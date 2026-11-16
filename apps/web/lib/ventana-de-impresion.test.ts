@@ -30,8 +30,8 @@ describe("frenoDeImpresion", () => {
 
   it("«CAYLA Caja» imprime tickets y frena las hojas A4 y las etiquetas por el cuadro", () => {
     expect(frenoDeImpresion("caja", "ticket", "windows")).toBeNull();
-    expect(frenoDeImpresion("caja", "hoja", "windows")).toMatch(/Chrome de siempre/);
-    expect(frenoDeImpresion("caja", "etiqueta", "windows")).toMatch(/CAYLA Etiquetas/);
+    expect(frenoDeImpresion("caja", "hoja", "windows")).toMatch(/Microsoft Edge/);
+    expect(frenoDeImpresion("caja", "etiqueta", "windows")).toMatch(/computadora de la Brother/);
     expect(frenoDeImpresion("caja", "etiqueta", "mac")).toMatch(/ayudante/);
   });
 
@@ -41,8 +41,8 @@ describe("frenoDeImpresion", () => {
 
   it("«CAYLA Etiquetas» imprime etiquetas y frena tickets y hojas A4", () => {
     expect(frenoDeImpresion("etiquetas", "etiqueta", "windows")).toBeNull();
-    expect(frenoDeImpresion("etiquetas", "ticket", "windows")).toMatch(/CAYLA Caja/);
-    expect(frenoDeImpresion("etiquetas", "hoja", "windows")).toMatch(/Chrome de siempre/);
+    expect(frenoDeImpresion("etiquetas", "ticket", "windows")).toMatch(/en la caja/);
+    expect(frenoDeImpresion("etiquetas", "hoja", "windows")).toMatch(/Microsoft Edge/);
   });
 
   it("toda frase que frena dice dónde imprimirlo y cabe en una línea de aviso", () => {

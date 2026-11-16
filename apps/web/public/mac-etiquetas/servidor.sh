@@ -16,7 +16,9 @@ export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
 export LC_ALL=C
 
 # 2 (2026-10-09): acepta `?medida=` para los rótulos de anaquel (62 × 100 mm). Una pantalla que la necesita pide la 2.
-VERSION=2
+# 3 (2026-11-16): también imprime la BOLETA en la ticketera (`?tipo=ticket&largo=<mm>`), sin el cuadro de Chrome, desde el Chrome
+#   de siempre (ADR-0670). El largo lo mide la pantalla; el ancho es el del rollo de 80 mm. Una pantalla que lo necesita pide la 3.
+VERSION=3
 DIR="${CAYLA_ETIQUETAS_DIR:-$HOME/Library/Application Support/CAYLA/etiquetas}"
 LP="${CAYLA_LP:-lp}"
 MAX_BYTES=2097152
@@ -73,6 +75,16 @@ buscar_chrome() {
   return 1
 }
 
+# La cola de la ticketera: la que dice `$DIR/ticketera` o, si no, la primera que por su nombre sea una térmica de tickets
+# (Epson TM-…, «Receipt», «Ticket», «POS-80»). Nunca la Brother: esa es de etiquetas.
+buscar_ticketera() {
+  if [ -s "$DIR/ticketera" ]; then
+    head -n 1 "$DIR/ticketera"
+    return 0
+  fi
+  lpstat -e 2>/dev/null | grep -v -i '^Brother' | grep -i -E '(^|[_-])TM[-_]?[A-Z0-9]|receipt|ticket|thermal|pos[-_]?(58|80)' | head -n 1
+}
+
 # La cola de la Brother: la que dice `$DIR/impresora` o, si no, la primera «Brother_QL…» que conozca la Mac.
 buscar_cola() {
   if [ -s "$DIR/impresora" ]; then
@@ -122,28 +134,54 @@ case "$METODO $RUTA" in
     CHROME=$(buscar_chrome) && TIENE_CHROME=true || TIENE_CHROME=false
     COLA=$(buscar_cola)
     [ -n "$COLA" ] && TIENE_COLA=true || TIENE_COLA=false
-    responder "200 OK" "{\"ok\":true,\"version\":$VERSION,\"chrome\":$TIENE_CHROME,\"impresora\":$TIENE_COLA}"
+    TICKETERA=$(buscar_ticketera)
+    [ -n "$TICKETERA" ] && TIENE_TICKETERA=true || TIENE_TICKETERA=false
+    responder "200 OK" "{\"ok\":true,\"version\":$VERSION,\"chrome\":$TIENE_CHROME,\"impresora\":$TIENE_COLA,\"ticketera\":$TIENE_TICKETERA}"
     ;;
   "POST /imprimir")
     if ! origen_permitido "$ORIGEN"; then
       responder "403 Forbidden" '{"ok":false,"error":"origen no permitido"}'
       exit 0
     fi
-    case "$CONSULTA" in
-      '') ;;
-      medida=*)
-        PEDIDA=${CONSULTA#medida=}
-        if ! medida_permitida "$PEDIDA"; then
-          responder "400 Bad Request" '{"ok":false,"error":"esa medida de papel no existe"}'
-          exit 0
-        fi
-        MEDIA="Custom.$PEDIDA"
-        ;;
-      *)
-        responder "400 Bad Request" '{"ok":false,"error":"la pantalla pidio algo que el ayudante no conoce"}'
+    # La consulta: `medida=…` (rótulos), o `tipo=ticket&largo=<mm>` (la boleta). Nada más; nunca llega a `lp` un texto que no
+    # se haya comprobado aquí.
+    TIPO=etiqueta
+    PEDIDA=""
+    LARGO_TICKET=""
+    RARO=false
+    set -f
+    VIEJO_IFS=$IFS
+    IFS='&'
+    for PAR in $CONSULTA; do
+      case "$PAR" in
+        '') ;;
+        medida=*) PEDIDA=${PAR#medida=} ;;
+        tipo=ticket) TIPO=ticket ;;
+        largo=*) LARGO_TICKET=${PAR#largo=} ;;
+        *) RARO=true ;;
+      esac
+    done
+    IFS=$VIEJO_IFS
+    set +f
+    if [ "$RARO" = true ]; then
+      responder "400 Bad Request" '{"ok":false,"error":"la pantalla pidio algo que el ayudante no conoce"}'
+      exit 0
+    fi
+    if [ -n "$PEDIDA" ]; then
+      if ! medida_permitida "$PEDIDA"; then
+        responder "400 Bad Request" '{"ok":false,"error":"esa medida de papel no existe"}'
         exit 0
-        ;;
-    esac
+      fi
+      MEDIA="Custom.$PEDIDA"
+    fi
+    if [ "$TIPO" = ticket ]; then
+      case "$LARGO_TICKET" in '' | *[!0-9]*) LARGO_TICKET=0 ;; esac
+      if [ "$LARGO_TICKET" -lt 30 ] || [ "$LARGO_TICKET" -gt 3000 ]; then
+        responder "400 Bad Request" '{"ok":false,"error":"el largo del ticket no es valido"}'
+        exit 0
+      fi
+      MEDIA="Custom.80x${LARGO_TICKET}mm"
+    fi
     if [ "$LARGO" -le 0 ] || [ "$LARGO" -gt "$MAX_BYTES" ]; then
       responder "413 Payload Too Large" '{"ok":false,"error":"las etiquetas no llegaron completas"}'
       exit 0
@@ -152,10 +190,18 @@ case "$METODO $RUTA" in
       responder "500 Internal Server Error" '{"ok":false,"error":"no hay Chrome en esta Mac"}'
       exit 0
     }
-    COLA=$(buscar_cola)
-    if [ -z "$COLA" ]; then
-      responder "500 Internal Server Error" '{"ok":false,"error":"la Mac no tiene la Brother agregada"}'
-      exit 0
+    if [ "$TIPO" = ticket ]; then
+      COLA=$(buscar_ticketera)
+      if [ -z "$COLA" ]; then
+        responder "500 Internal Server Error" '{"ok":false,"error":"la Mac no tiene la ticketera agregada"}'
+        exit 0
+      fi
+    else
+      COLA=$(buscar_cola)
+      if [ -z "$COLA" ]; then
+        responder "500 Internal Server Error" '{"ok":false,"error":"la Mac no tiene la Brother agregada"}'
+        exit 0
+      fi
     fi
 
     TMP=$(mktemp -d "${TMPDIR:-/tmp}/cayla-etq.XXXXXX") || exit 1
@@ -197,7 +243,13 @@ case "$METODO $RUTA" in
       exit 0
     fi
 
-    SALIDA=$("$LP" -d "$COLA" -t "Etiquetas CAYLA" -o "media=$MEDIA" -o CutMedia=EndOfPage -o print-scaling=none "$TMP/etiquetas.pdf" 2>&1)
+    # La ticketera: el ticket entero en una hoja de su largo y un corte al final (`TmxPaperCut` es de los drivers Epson TM; otro
+    # driver ignora la opción). La Brother: una etiqueta por corte.
+    if [ "$TIPO" = ticket ]; then
+      SALIDA=$("$LP" -d "$COLA" -t "Ticket CAYLA" -o "media=$MEDIA" -o print-scaling=none -o TmxPaperCut=CutPerJob "$TMP/etiquetas.pdf" 2>&1)
+    else
+      SALIDA=$("$LP" -d "$COLA" -t "Etiquetas CAYLA" -o "media=$MEDIA" -o CutMedia=EndOfPage -o print-scaling=none "$TMP/etiquetas.pdf" 2>&1)
+    fi
     if [ $? -ne 0 ]; then
       MENSAJE=$(printf '%s' "$SALIDA" | tr -d '"\\' | tr '\n' ' ' | cut -c1-160)
       responder "500 Internal Server Error" "{\"ok\":false,\"error\":\"la impresora no recibio el trabajo: $MENSAJE\"}"

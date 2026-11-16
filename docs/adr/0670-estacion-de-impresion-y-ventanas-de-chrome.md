@@ -1,7 +1,7 @@
 # ADR-0670 — Imprimir sin cuadro: una ventana de Chrome por impresora, y la estación de la caja que imprime lo del piso
 
 - **Fecha:** 2026-11-16 · **Estado:** construido en la rama `claude/estacion-de-impresion` (seis actividades de `/construir`, una por
-  commit). **La migración `20261116204000_cola_de_impresion.sql` NO está en producción:** la pega Felipe (una sola parte).
+  commit). La migración `20261116204000_cola_de_impresion.sql` está en producción desde el 2026-11-16 (con el sí de Felipe).
 - **Pidió:** Felipe, 2026-11-16: «cuando la venta es por efectivo que solo se haga clic en confirmar pago y ya te imprime la boleta» y
   «que al momento de mandar a imprimir cualquier cosa se imprima directamente sin abrir ningún cuadro de diálogo»; y, de su idea de
   Izipay, que la boleta salga en la caja sin que la colaboradora se acerque. Decidió en preguntas: interruptor por equipo en el piso (habrá
@@ -59,3 +59,40 @@ SE ROMPE SI:
 
 Pegar `supabase/migrations/20261116204000_cola_de_impresion.sql` en una sola parte (crea una tabla y funciones nuevas; no toca tablas en
 uso ni crea políticas, ADR-0195). Se puede pegar antes o después de publicar la web: los interruptores nacen apagados.
+
+## Actualización 2026-11-16 (b): el Chrome de siempre, sin íconos aparte
+
+Felipe, al ver la guía de Trujillo: «No hay forma de que se haga mediante abrir el Chrome que siempre usan? … tener distintos accesos de
+Chrome puede ser confuso», y después: «que se pueda imprimir sin tener que cambiar el flujo de las colaboradoras, solo acortar pasos. Las
+computadoras estarán fijas, así que nunca habrá dos impresoras en una sola computadora». Con UNA impresora por computadora, el motivo de
+los perfiles aparte (que la mitad no saliera en la impresora equivocada) desaparece.
+
+1. **Windows:** el Chrome de siempre lleva `--kiosk-printing` en su ícono de la barra de tareas (y del escritorio). Se calibra una vez con
+   el cuadro, se apaga «seguir en segundo plano» (si no, la opción no se aplica al volver a abrirlo) y las hojas A4 de esa computadora van
+   por Microsoft Edge. El ERP se abre una vez con `?ventana=etiquetas`: frena una hoja A4 o un ticket y dice dónde imprimirlo.
+2. **Mac:** el ayudante (ADR-0304) imprime también la boleta, desde la versión 3 de `servidor.sh`. `components/impresion/imprimirBoleta.ts`
+   mide `#comprobante-print` con las reglas de impresión de `globals.css` copiadas a una copia invisible, manda el documento con
+   `@page{size:80mm <largo>mm}` a `POST /imprimir?tipo=ticket&largo=<mm>` y el ayudante lo imprime con `lp -o media=Custom.80x<largo>mm
+   -o TmxPaperCut=CutPerJob` en la ticketera que encuentra (`buscar_ticketera`: la cola que no es Brother y parece térmica). Todo ticket
+   pasa por ahí: Venta registrada, Detalle de la venta, Cambios, Apartados y la estación de la caja. En esa Mac la estación se enciende
+   sin marcar la ventana.
+3. **Si el ayudante falla,** el botón cae al cuadro de siempre con un aviso que dice por qué; la estación nunca cae al cuadro (con la
+   ventana minimizada quedaría trabada): la boleta vuelve a la cola.
+
+Verificado sin papel: con una copia del ayudante y una `lp` falsa, la boleta B001-000002 salió en UNA hoja de 80 × 186 mm, centrada,
+con el punto del corte al final; con el ayudante caído, aviso y cuadro. Falta la prueba en el papel de Trujillo.
+
+DESCARTÉ:
+- **Seguir con un ícono por impresora:** dos Chrome en la misma computadora confunden (Felipe), y con una impresora no hacen falta.
+- **La política `PrintPreviewUseSystemDefaultPrinter`:** pide tocar el registro de Windows o un perfil de configuración en la Mac, y en
+  la Mac no evita el cuadro.
+- **Dejar que el driver ponga el largo (papel `RP80x2000` y recorte):** depende del recorte de la Epson; medir da un PDF exacto de una
+  hoja, y el recorte sigue de respaldo (se mide con 3 mm de holgura).
+
+SE ROMPE SI:
+1. **Alguien abre Chrome en el almacén desde un enlace (WhatsApp, correo) con Chrome cerrado:** esa sesión abre el cuadro. Se cierra
+   Chrome y se abre desde la barra.
+2. **Se imprime algo que no es del ERP desde el Chrome del almacén (Ctrl+P en una web):** sale en la Brother. Va por Edge.
+3. **La Mac tiene un ayudante viejo (v2):** la boleta sigue saliendo por el cuadro, como antes; se vuelve a pegar la línea.
+4. **Una regla de impresión de la boleta deja de estar en `@media print` de un `.css` propio:** la medida no la ve y la boleta se partiría
+   en dos hojas. Hoy todas viven en `globals.css`.

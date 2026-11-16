@@ -1,7 +1,7 @@
 /**
  * La estación de impresión de la caja (Felipe, 2026-11-16): la ventana «CAYLA Caja» imprime las boletas que se vendieron en
- * el piso (`retail.impresiones`, migración 20261116204000). Solo funciona en la ventana marcada como caja: fuera de ella el
- * cuadro de impresión de Chrome se abriría solo cada vez. La voz dice cada boleta que salió (decisión de Felipe: con su
+ * el piso (`retail.impresiones`, migración 20261116204000). Solo funciona donde se imprime sin cuadro: la ventana marcada como
+ * caja o la Mac cuyo ayudante tiene la ticketera; en otro lado el cuadro de impresión de Chrome se abriría solo cada vez. La voz dice cada boleta que salió (decisión de Felipe: con su
  * interruptor), sin mirar la pantalla.
  */
 import { preferenciaLocal } from "./preferencia-local";
@@ -19,8 +19,10 @@ export const REVISAR_CADA_MS = 10_000;
 /** Después de un aviso de venta nueva, una segunda mirada: el celular pide la boleta un instante después de cobrar. */
 export const SEGUNDA_MIRADA_MS = 2500;
 
-export function estacionActiva(ventana: Ventana, estacion: (typeof VALORES)[number]): boolean {
-  return ventana === "caja" && estacion === "si";
+/** La estación imprime sin cuadro: en la ventana «CAYLA Caja» (Windows, `--kiosk-printing`) o en una Mac cuyo ayudante tiene la
+ *  ticketera (`porAyudante`, ADR-0670 act. 2026-11-16), desde el Chrome de siempre. */
+export function estacionActiva(ventana: Ventana, estacion: (typeof VALORES)[number], porAyudante = false): boolean {
+  return (ventana === "caja" || porAyudante) && estacion === "si";
 }
 
 /** Lo que dice la voz: «Boleta de 79 soles con 90 lista». Montos en palabras de tienda, sin «céntimos» ni decimales. */
