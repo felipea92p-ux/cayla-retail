@@ -33,6 +33,13 @@
 }
 @media (min-width: 640px) {
   .hoja-serena { border-radius: var(--vidrio-hoja-radio); padding: 1.75rem; }
+  /* La hoja con la foto a la izquierda (`<Modal lateral>`, Ajustar inventario): este relleno va sin capa y le ganaba al de
+     `.hoja-con-lateral` (globals.css, capa `utilities`), así que la foto tapaba el título y la primera columna de tallas. Aquí se repite
+     la misma cuenta con el relleno de la hoja de vidrio (1,75 rem), y la foto se corre al mismo borde. El pie pegado no se mete bajo la
+     foto: arranca donde arranca el contenido. */
+  .hoja-serena.hoja-con-lateral { padding-left: calc(1.75rem + var(--ancho-lateral) + var(--separacion-lateral)); }
+  .hoja-serena.hoja-con-lateral > [data-lateral] { top: 1.75rem; left: 1.75rem; }
+  .hoja-serena.hoja-con-lateral .pie-hoja-fijo { margin-left: 0; padding-left: 0; }
 }
 @media (max-width: 639.98px) {
   .hoja-serena { border-radius: 26px 26px 0 0; }

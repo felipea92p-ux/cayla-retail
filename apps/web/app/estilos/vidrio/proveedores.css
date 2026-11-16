@@ -10,9 +10,15 @@
   border-radius: var(--radius-tarjeta);
   border-color: var(--serena-borde);
   background: var(--serena-fondo);
-  -webkit-backdrop-filter: var(--serena-filtro);
-  backdrop-filter: var(--serena-filtro);
   box-shadow: var(--serena-sombra);
+}
+/* El desenfoque, solo donde la columna se queda quieta (sticky desde xl, ConLado de ProveedoresPanel). Más angosto, baja al flujo y corre con
+   la página: lo que se desplaza no se desenfoca (ADR-0623), o se vuelve a desenfocar en cada cuadro. */
+@media (min-width: 80rem) {
+  .prov-lado {
+    -webkit-backdrop-filter: var(--serena-filtro);
+    backdrop-filter: var(--serena-filtro);
+  }
 }
 
 /* ---------- «Qué hacer»: cada tarea, una fila de la lista ----------

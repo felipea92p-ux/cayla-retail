@@ -71,13 +71,19 @@
 @keyframes tp-late { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-ambar) 45%, transparent); } 60% { box-shadow: 0 0 0 7px transparent; } }
 
 /* ── La billetera (columna izquierda) ── */
+/* Billetera y pase lado a lado los decide el ancho de la PANTALLA DE TRASLADOS (`.tp-marco`, contenedor), no el de la ventana: a 1024 px
+   con el menú abierto quedan ~692, y con la billetera de 380 el pase tenía 236 px y se le cortaba la sede de destino (`.tp-ruta` pide
+   ~312). Desde 800 px de contenedor caben los dos (billetera 380 + 28 + el pase con su relleno); bajo eso, una cosa a la vez, como en el
+   celular. Si el menú se pliega, a 1024 vuelven a caber y se ven juntos sin tocar nada. El mismo corte en los cinco bloques de abajo y en
+   la flecha de `PaseTraslado.tsx` (`@min-[800px]:hidden`): si cambia, cambia en todos. */
+.tp-marco { container: tp / inline-size; }
 .tp-cols { display: grid; gap: 28px; align-items: start; }
-@media (min-width: 1024px) { .tp-cols { grid-template-columns: 380px minmax(0, 1fr); } }
+@container tp (min-width: 800px) { .tp-cols { grid-template-columns: 380px minmax(0, 1fr); } }
 .tp-billetera { display: grid; gap: 14px; }
-@media (min-width: 1024px) { .tp-billetera { position: sticky; top: 76px; } }
+@container tp (min-width: 800px) { .tp-billetera { position: sticky; top: 76px; } }
 /* En celular se ve una cosa a la vez: con un pase abierto, la billetera se esconde; sin pase, el escenario. (Aquí y no con
    `max-lg:hidden`: esta hoja va sin capa y le ganaría a la utilidad de Tailwind.) */
-@media (max-width: 1023px) { .tp-cols[data-con-pase] > .tp-billetera, .tp-cols:not([data-con-pase]) > .tp-lado-pase { display: none; } }
+@container tp (max-width: 799.98px) { .tp-cols[data-con-pase] > .tp-billetera, .tp-cols:not([data-con-pase]) > .tp-lado-pase { display: none; } }
 .tp-dia { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 18px; background: var(--color-papel); border: 1px solid var(--color-sand); }
 .tp-anillo { position: relative; flex: none; width: 52px; height: 52px; display: grid; place-items: center; }
 .tp-anillo svg { position: absolute; inset: 0; transform: rotate(-90deg); }
@@ -101,7 +107,7 @@
   .tp-mini:hover { transform: translateY(-8px); }
 }
 .tp-mini[aria-current="page"] { margin-bottom: 58px; transform: translateX(8px); box-shadow: 0 0 0 2px var(--tp-c), 0 18px 34px -18px color-mix(in srgb, var(--color-sombra) 55%, transparent); }
-@media (max-width: 1023px) { .tp-mini[aria-current="page"] { transform: none; margin-bottom: 0; } }
+@container tp (max-width: 799.98px) { .tp-mini[aria-current="page"] { transform: none; margin-bottom: 0; } }
 .tp-mini-banda { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px 0 10px; background: var(--tp-md); color: var(--tp-c); }
 .tp-mini-banda .tp-sello { --tp-sz: 28px; border-radius: 9px; }
 .tp-mini-nombre { flex: 1; min-width: 0; font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -137,7 +143,7 @@
 
 /* ── El escenario (el pase grande) ── */
 .tp-escenario { position: relative; min-height: 640px; border-radius: 26px; background: var(--color-hueso); display: grid; place-items: center; padding: 34px 24px 80px; overflow: hidden; }
-@media (max-width: 1023px) { .tp-escenario { min-height: 0; padding: 14px 0 24px; background: transparent; border-radius: 0; } }
+@container tp (max-width: 799.98px) { .tp-escenario { min-height: 0; padding: 14px 0 24px; background: transparent; border-radius: 0; } }
 .tp-giro { position: relative; width: min(460px, 100%); perspective: 1800px; }
 .tp-pase3d { position: relative; transform-style: preserve-3d; transition: transform 0.8s var(--ease-cayla), min-height 0.5s var(--ease-cayla); }
 .tp-pase3d[data-vuelta] { transform: rotateY(180deg); }
@@ -167,7 +173,7 @@
 .tp-perfo i { position: absolute; top: 50%; width: 26px; height: 26px; margin-top: -13px; border-radius: 50%; background: var(--color-hueso); }
 .tp-perfo i:first-child { left: -13px; }
 .tp-perfo i:last-child { right: -13px; }
-@media (max-width: 1023px) { .tp-perfo i { background: var(--color-crema); } }
+@container tp (max-width: 799.98px) { .tp-perfo i { background: var(--color-crema); } }
 .tp-pie { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 0 24px 14px; }
 .tp-envia { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 .tp-envia i { width: 22px; height: 22px; border-radius: 50%; background: var(--color-hueso); color: var(--color-taupe); display: inline-grid; place-items: center; font-size: 10.5px; font-weight: 700; font-style: normal; }
@@ -203,7 +209,7 @@
 }
 .tp-paginas span[aria-disabled] { opacity: 0.3; }
 .tp-paginas p { min-width: 56px; text-align: center; font-size: 14px; font-weight: 600; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); font-variant-numeric: tabular-nums; }
-@media (max-width: 1023px) { .tp-paginas { display: none; } }
+@container tp (max-width: 799.98px) { .tp-paginas { display: none; } }
 
 /* ── El reverso: aquí se cuenta ── */
 .tp-volver { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: var(--tp-c); padding: 6px 10px 6px 6px; border-radius: 9px; background: var(--color-papel); }
@@ -241,7 +247,7 @@
 .tp-contador input { width: 40px; background: transparent; text-align: center; font-family: var(--font-serif); font-size: 20px; line-height: 1; color: var(--color-tinta); outline: none; font-variant-numeric: tabular-nums; }
 .tp-contador input::placeholder { color: color-mix(in srgb, var(--color-tinta) 64%, transparent); } /* contraste: texto sobre hueso */
 .tp-contador input:focus { box-shadow: 0 0 0 2px var(--color-pizarra); border-radius: 6px; }
-@media (pointer: coarse) { .tp-contador button { width: 40px; height: 40px; } }
+@media (pointer: coarse) { .tp-contador button { width: 44px; height: 44px; } } /* con el dedo, 44 px (ADR-0611, mejora 5) */
 .tp-guardado { display: flex; align-items: center; justify-content: flex-end; gap: 4px; height: 16px; margin-top: 3px; font-size: 11px; line-height: 16px; }
 .tp-cita { margin: 0; padding: 10px 14px; border-radius: 12px; background: var(--color-hueso); font-size: 14px; color: var(--color-tinta); }
 .tp-cita cite { display: block; margin-top: 2px; font-style: normal; font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }

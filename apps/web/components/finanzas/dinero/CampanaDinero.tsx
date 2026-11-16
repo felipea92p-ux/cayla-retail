@@ -195,7 +195,7 @@ export function CampanaDinero({
                           <button type="button" className={fila(PLANTILLA, "w-full text-left")} aria-expanded={filaAbierta === f.id} onClick={() => setFilaAbierta(filaAbierta === f.id ? null : f.id)}>
                             <span className={celda("izq", "!whitespace-normal")}>
                               <b className="block font-semibold text-tinta">{f.nombre}</b>
-                              {f.detalle && <small className="block text-xs text-tinta/65">{f.detalle}</small>}
+                              {f.detalle && <small className="block text-sm text-tinta/65">{f.detalle}</small>}
                             </span>
                             <span className={celda()}>{f.sinSede ? <span className="dp-sin-sede">sin sede</span> : f.sede}</span>
                             <span className={celda()}>{TEXTO_ETAPA[f.etapa]}</span>

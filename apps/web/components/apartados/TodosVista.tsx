@@ -486,7 +486,7 @@ export function TodosVista({
               <TituloSeccion nivel={3} cuenta={filas.length} className="mb-2.5">
                 {g.titulo}
               </TituloSeccion>
-              <ul className="ap-placa divide-y divide-sand overflow-hidden rounded-2xl border border-sand">
+              <ul className="ap-placa @container divide-y divide-sand overflow-hidden rounded-2xl border border-sand">
                 {filas.map(({ a, e }, i) => (
                   <li
                     key={a.id}
@@ -497,7 +497,7 @@ export function TodosVista({
                       if (!ev.currentTarget.contains(ev.target as Node) || (ev.target as HTMLElement).closest("button, a")) return;
                       setDetalle({ id: a.id, modo: "ver" });
                     }}
-                    className="anim-sube grid cursor-pointer items-center gap-x-5 gap-y-2 px-5 py-3.5 hover:bg-crema/60 md:grid-cols-[minmax(190px,1.3fr)_minmax(130px,1fr)_150px_170px_auto]"
+                    className="anim-sube grid cursor-pointer items-center gap-x-5 gap-y-2 px-5 py-3.5 hover:bg-crema/60 @min-[56rem]:grid-cols-[minmax(190px,1.3fr)_minmax(130px,1fr)_150px_170px_auto]"
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <span className="font-display grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sand/70 text-sm">{`${a.nombres[0] ?? ""}${a.apellidos[0] ?? ""}`.toUpperCase()}</span>
@@ -515,13 +515,13 @@ export function TodosVista({
                         <p className="text-sm text-tinta/60 tabular-nums">
                           {ver.celular && a.celular && `${formatoCelular(a.celular)} · `}<span className="font-mono">{a.codigo}</span>
                           {ver.estante && conEstante && a.estante && (
-                            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded bg-hueso px-1.5 font-mono text-[10.5px] text-tinta/80"><Archive className="h-3 w-3" aria-hidden />{a.estante}</span>
+                            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded bg-hueso px-1.5 font-mono text-sm text-tinta/80"><Archive className="h-3 w-3" aria-hidden />{a.estante}</span>
                           )}
                         </p>
                         {ver.asesora && a.asesora && <p className="text-sm text-tinta/55">atendió {a.asesora}</p>}
                       </div>
                     </div>
-                    <div className={`flex min-w-0 items-center gap-2 max-md:hidden ${ver.prendas ? "" : "invisible"}`}>
+                    <div className={`flex min-w-0 items-center gap-2 @max-[56rem]:hidden ${ver.prendas ? "" : "invisible"}`}>
                       <span className="flex">
                         {a.prendas.slice(0, 3).map((pr, j) => (
                           <FotoPrenda key={pr.itemId || `${pr.varianteId}-${j}`} fotoUrl={porVariante.get(pr.varianteId)?.fotoUrl} referencia={pr.referencia} colorHex={porVariante.get(pr.varianteId)?.colorHex} categoria={porVariante.get(pr.varianteId)?.categoria} categoriaPrefijo={porVariante.get(pr.varianteId)?.categoriaPrefijo} categoriaFamilia={porVariante.get(pr.varianteId)?.categoriaFamilia} ancho={32} className={`w-8 border border-papel ${j ? "-ml-3.5" : ""}`} />
@@ -529,7 +529,7 @@ export function TodosVista({
                       </span>
                       <span className="truncate text-sm text-tinta/60">{a.prendas.map((pr) => pr.referencia.split(" ")[0]).join(", ")}</span>
                     </div>
-                    <div className={`text-sm tabular-nums max-md:hidden ${ver.pagado ? "" : "invisible"}`}>
+                    <div className={`text-sm tabular-nums @max-[56rem]:hidden ${ver.pagado ? "" : "invisible"}`}>
                       <b className="font-semibold">{money(a.adelanto)}</b> <span className="text-sm text-tinta/55">de {money(a.total)}</span>
                       <p className="text-sm text-tinta/60">
                         {a.estado === "liberada" ? `por ${textoDevolucion(a)}` : a.estado === "abierta" ? `saldo ${money(a.saldo)}` : "cerrado"}

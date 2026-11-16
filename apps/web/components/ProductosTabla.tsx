@@ -863,16 +863,20 @@ function BarraMarcadas({
   const hayDescontinuadas = seleccion.some((p) => p.estado !== "activo");
   const hrefRotulos = n > 0 ? urlRotulos(seleccion.map((p) => p.productoId), { productos: pantalla }) : null;
   const forma =
-    "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-sm text-crema transition-colors disabled:opacity-40 sm:flex-none sm:flex-row sm:gap-2 sm:px-3 sm:text-sm";
+    // Ícono sobre la palabra hasta 1280 px de ventana; la palabra al lado, recién en `xl:`. Con el lateral fijo, entre 640 y 1279 la fila
+    // de palabras (~750 px) no cabía en el área del contenido.
+    "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-sm text-crema transition-colors disabled:opacity-40 xl:flex-none xl:flex-row xl:gap-2 xl:px-3";
   const boton = `${forma} hover:bg-crema/10`;
   return (
     <div
       role="toolbar"
       aria-label="Acciones sobre las prendas marcadas"
       aria-hidden={n === 0}
-      // La isla oscura de lo que llevas elegido (ADR-0479, actividad 12, `barra-abajo`).
+      // La isla oscura de lo que llevas elegido (ADR-0479, actividad 12, `barra-abajo`). Desde 640 px va centrada sobre el ÁREA DEL
+      // CONTENIDO (el lateral ocupa `--spacing-lateral`, que cambia al plegarlo), no sobre la ventana: centrada en la ventana tapaba el
+      // lateral. Mide lo que pide su contenido (`w-max`) con tope en esa área, y si no cabe, baja a una segunda fila.
       data-tono="tinta"
-      className={`barra-abajo z-40 flex-nowrap gap-1 p-1.5 max-sm:flex-wrap transition-[opacity,transform] duration-300 ease-cayla sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:-translate-x-1/2 sm:pl-4 ${
+      className={`barra-abajo z-40 flex-wrap gap-1 p-1.5 transition-[opacity,transform] duration-300 ease-cayla sm:w-max sm:max-w-[calc(100%_-_var(--spacing-lateral)_-_2.5rem)] sm:justify-center sm:inset-x-auto sm:bottom-6 sm:left-[calc(var(--spacing-lateral)_+_(100%_-_var(--spacing-lateral))_/_2)] sm:-translate-x-1/2 sm:pl-4 ${
         n > 0 ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"
       }`}
     >

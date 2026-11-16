@@ -253,7 +253,8 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
           </Aviso>
         )}
 
-        <div className="divide-y divide-sand rounded-2xl border border-sand bg-crema">
+        {/* `@container` aquí y no en la raíz: las filas miran el ancho de esta caja (a 375 px, unos 263) y la raíz no crea un apilamiento bajo la barra de la ficha. */}
+        <div className="@container divide-y divide-sand rounded-2xl border border-sand bg-crema">
           {porColor.map((fila, posicion) => {
             // Compacto (2026-10-31, Felipe: «ahorrar espacios en blanco»): las etiquetas «Tela» / «m por prenda» y la ayuda de la caja se ven en la PRIMERA fila; en las demás quedan para el lector de pantalla.
             const primera = posicion === 0;
@@ -288,21 +289,24 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                   className={
                     porTallaActiva
                       ? edicion?.puedeQuitarTela ? "grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1" : "grid grid-cols-[minmax(0,1fr)] gap-x-3 gap-y-1"
-                      : edicion?.puedeQuitarTela ? "grid grid-cols-[minmax(0,1fr)_8.5rem_auto] gap-x-3 gap-y-1" : "grid grid-cols-[minmax(0,1fr)_8.5rem] gap-x-3 gap-y-1"
+                      : edicion?.puedeQuitarTela ? "grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 @min-[26rem]:grid-cols-[minmax(0,1fr)_8.5rem_auto]" : "grid grid-cols-[minmax(0,1fr)] gap-x-3 gap-y-1 @min-[26rem]:grid-cols-[minmax(0,1fr)_8.5rem]"
                   }
                 >
-                  <CampoSelect
-                    id={`tela-${fila.color.codigo ?? "sin-color"}`}
-                    etiqueta="Tela"
-                    valor={fila.tela.insumoId ?? ""}
-                    onValor={(v) => ponerColor(fila, { insumoId: v || null })}
-                    opciones={opciones}
-                    marcador={opciones.length === 0 ? "Sin telas en Insumos" : "Elegir la tela"}
-                    deshabilitado={opciones.length === 0}
-                    caja={!primera}
-                    sinPie={!primera}
-                    {...pies.tela}
-                  />
+                  {/* En una caja angosta la tela va sola en su renglón (si no, se leía «Popelina…» sin el color); el consumo y la × bajan. */}
+                  <div className={porTallaActiva ? "min-w-0" : "col-span-full min-w-0 @min-[26rem]:col-span-1"}>
+                    <CampoSelect
+                      id={`tela-${fila.color.codigo ?? "sin-color"}`}
+                      etiqueta="Tela"
+                      valor={fila.tela.insumoId ?? ""}
+                      onValor={(v) => ponerColor(fila, { insumoId: v || null })}
+                      opciones={opciones}
+                      marcador={opciones.length === 0 ? "Sin telas en Insumos" : "Elegir la tela"}
+                      deshabilitado={opciones.length === 0}
+                      caja={!primera}
+                      sinPie={!primera}
+                      {...pies.tela}
+                    />
+                  </div>
                   {!porTallaActiva && (
                     <CampoTexto
                       id={`tela-${fila.color.codigo ?? "sin-color"}-consumo`}
@@ -403,16 +407,18 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                 const opciones = opcionesMaterial(tela);
                 return (
                   <div key={indice} className="space-y-1">
-                    <div className="grid grid-cols-[minmax(0,1fr)_8.5rem_auto] items-start gap-x-3 gap-y-1">
-                      <CampoSelect
-                        id={`avio-${indice}`}
-                        etiqueta="Material"
-                        valor={tela.insumoId ?? ""}
-                        onValor={(v) => elegirMaterial(indice, v)}
-                        opciones={opciones}
-                        marcador="Elegir el material"
-                        {...pies.tela}
-                      />
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 @min-[26rem]:grid-cols-[minmax(0,1fr)_8.5rem_auto]">
+                      <div className="col-span-full min-w-0 @min-[26rem]:col-span-1">
+                        <CampoSelect
+                          id={`avio-${indice}`}
+                          etiqueta="Material"
+                          valor={tela.insumoId ?? ""}
+                          onValor={(v) => elegirMaterial(indice, v)}
+                          opciones={opciones}
+                          marcador="Elegir el material"
+                          {...pies.tela}
+                        />
+                      </div>
                       <CampoTexto
                         id={`avio-${indice}-consumo`}
                         etiqueta={`${insumo ? unidadCorta(insumo.unidad) : "unid."} por prenda`}

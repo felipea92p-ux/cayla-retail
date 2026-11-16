@@ -397,7 +397,9 @@ export function MarcasLista({
 
         {lista.length > 0 && (
           <div data-guia="marcas.pie" className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3 border-t border-sand pt-4">
-            <p className="text-sm text-tinta/70" aria-live="polite">
+            {/* Una línea que resume: si no cabe, se corta con «…» (decisión 3B de Felipe, 2026-11-16). El rango «de A… a Z…» lleva nombres de
+                marca, y uno sin espacios estiraba la página de lado; el nombre completo se sigue viendo en su tarjeta. */}
+            <p className="min-w-0 max-w-full truncate text-sm text-tinta/70" aria-live="polite">
               Mostrando{" "}
               <b className="font-semibold text-tinta">
                 {pag.desde}–{pag.hasta}

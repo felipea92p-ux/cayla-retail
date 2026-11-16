@@ -267,7 +267,7 @@ export function ImprimirRotulos({
                             type="button"
                             onClick={() => setMarcasElegidas((actual) => actual.filter((x) => x.id !== m.id))}
                             aria-label={`Quitar ${m.nombre}`}
-                            className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-taupe transition-colors hover:bg-hueso hover:text-tinta"
+                            className="area-dedo grid h-7 w-7 shrink-0 place-items-center rounded-full text-taupe transition-colors hover:bg-hueso hover:text-tinta"
                           >
                             <X aria-hidden className="h-3.5 w-3.5" />
                           </button>
@@ -318,7 +318,7 @@ export function ImprimirRotulos({
                         type="button"
                         onClick={(ev) => quitar([m.productoId], ev.timeStamp)}
                         aria-label={`Quitar ${m.referencia}`}
-                        className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-taupe transition-colors hover:bg-hueso hover:text-tinta"
+                        className="area-dedo grid h-7 w-7 shrink-0 place-items-center rounded-full text-taupe transition-colors hover:bg-hueso hover:text-tinta"
                       >
                         <X aria-hidden className="h-3.5 w-3.5" />
                       </button>
@@ -361,7 +361,7 @@ export function ImprimirRotulos({
               </div>
             )}
 
-            <p className="border-t border-sand pt-3.5 text-[12.5px] text-tinta/70">
+            <p className="border-t border-sand pt-3.5 text-sm text-tinta/70">
               También puedes marcarlas en <b className="font-semibold text-tinta">Productos</b> o en <b className="font-semibold text-tinta">Existencias</b> y tocar «Rótulo».
             </p>
           </section>

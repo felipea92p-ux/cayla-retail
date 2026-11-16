@@ -618,7 +618,9 @@ function CuentasDelRolModal({ rol, cuentas, onClose }: { rol: RolVista; cuentas:
           placeholder={`Buscar entre estas ${cuentas.length} cuentas…`}
           etiqueta="Buscar cuenta"
         />
-        <ul className="h-[320px] overflow-y-auto">
+        {/* Alto fijo (no `max-h`: la hoja no se encoge al buscar, ADR-0185), pero acotado a la pantalla: con el teléfono acostado no cabían
+            los 320 px más el título y el buscador. */}
+        <ul className="h-[min(320px,45dvh)] overflow-y-auto">
           {filtradas.slice(0, MAX).map((c) => (
             <li key={`${c.tipo}:${c.id}`} className="flex items-center gap-3 border-b border-tinta/5 px-1 py-2.5 text-sm">
               <AvatarPersona personaId={null} nombre={c.nombre} tamano={32} terminal={c.tipo === "terminal"} />

@@ -206,7 +206,7 @@ export function FichaDeConsumoHoja({ tallerId, productoId, referencia, insumos, 
   const subtitulo = "Cuánta tela lleva cada prenda de este modelo y qué avíos. Las órdenes nuevas lo proponen solas.";
   return (
     <Modal titulo={titulo} subtitulo={subtitulo} variante="hoja" tamano="ancha" onClose={onClose} conCerrar={!puedeEditar} antesDeCerrar={avisoSalida.pedirAccion}>
-      {lectura === "leyendo" && <p className="mt-4 text-[13px] text-tinta/60">Leyendo la ficha del modelo…</p>}
+      {lectura === "leyendo" && <p className="mt-4 text-sm text-tinta/60">Leyendo la ficha del modelo…</p>}
       {lectura === "error" && (
         <div className="mt-4">
           <Aviso tono="error" titulo="No se pudo leer la ficha de este modelo">
@@ -282,7 +282,7 @@ function PanelTela({ ficha, borrador, puedeEditar, problemas, cambiar }: { ficha
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div>
           <p className="font-display text-[17px] leading-tight text-tinta">Tela principal</p>
-          <p className="text-[12.5px] text-tinta/70">Metros que lleva una prenda, como los calcula Audaces.</p>
+          <p className="text-sm text-tinta/70">Metros que lleva una prenda, como los calcula Audaces.</p>
         </div>
         {variasTallas && (
           <SegmentoDeslizante
@@ -344,10 +344,10 @@ function PanelTela({ ficha, borrador, puedeEditar, problemas, cambiar }: { ficha
           <Chip tono="ambar" versalitas={false} title="Un solo número para todas las tallas: sepáralo por talla y el pedido se afina">
             Aproximado
           </Chip>
-          <span className="text-[12.5px] text-tinta/70">Sirve para empezar; la orden lo usa igual para todas las tallas.</span>
+          <span className="text-sm text-tinta/70">Sirve para empezar; la orden lo usa igual para todas las tallas.</span>
         </div>
       )}
-      {!ficha.tela && <p className="text-[12.5px] text-tinta/70">Este modelo todavía no tiene ficha. Lo que escribas lo proponen las órdenes nuevas.</p>}
+      {!ficha.tela && <p className="text-sm text-tinta/70">Este modelo todavía no tiene ficha. Lo que escribas lo proponen las órdenes nuevas.</p>}
     </div>
   );
 }
@@ -376,12 +376,12 @@ function PanelAvios({
   const delEstante = insumos.filter((i) => i.tipo === "avio" && !i.archivado);
   const para: Opcion<string>[] = [{ valor: "todas", texto: "Toda la orden" }, ...ficha.colores.map((c) => ({ valor: c.codigo, texto: c.nombre }))];
   return (
-    <div className="space-y-3">
+    <div className="@container space-y-3">
       <div>
         <p className="font-display text-[17px] leading-tight text-tinta">Avíos</p>
-        <p className="text-[12.5px] text-tinta/70">Botones, hilo, etiquetas: lo que lleva cada prenda además de la tela. «Para» dice a cuáles se aplica.</p>
+        <p className="text-sm text-tinta/70">Botones, hilo, etiquetas: lo que lleva cada prenda además de la tela. «Para» dice a cuáles se aplica.</p>
       </div>
-      {borrador.avios.length === 0 && <p className="text-[12.5px] text-tinta/70">Este modelo no tiene avíos. Si los agregas, las órdenes nuevas los proponen solas.</p>}
+      {borrador.avios.length === 0 && <p className="text-sm text-tinta/70">Este modelo no tiene avíos. Si los agregas, las órdenes nuevas los proponen solas.</p>}
       {borrador.avios.map((fila) => {
         // Si la cuenta no ve el avío en el estante (Editar producto trae solo lo que su rol lee), el nombre sale de la propia ficha.
         const delModelo = fila.insumoId ? ficha.avios.find((a) => a.insumoId === fila.insumoId) : undefined;
@@ -393,18 +393,23 @@ function PanelAvios({
         const deAvio = faltas.find((p) => !/cuánto lleva|tiene que ser|puede pasar|Escribe/.test(p.texto));
         const deCantidad = faltas.find((p) => /cuánto lleva|tiene que ser|puede pasar|Escribe/.test(p.texto));
         return (
-          <div key={fila.clave} className="grid grid-cols-[minmax(0,1fr)_minmax(0,11rem)_7.5rem_auto] items-start gap-x-3 gap-y-1">
-            <CampoSelect
-              id={`ficha-avio-${fila.clave}`}
-              etiqueta="Avío"
-              valor={fila.insumoId ?? ""}
-              onValor={(v) => ponerAvio(fila.clave, { insumoId: v || null })}
-              opciones={opciones}
-              marcador="Elegir el avío"
-              deshabilitado={!puedeEditar}
-              pie={deAvio?.texto}
-              tono={deAvio ? "error" : "neutro"}
-            />
+          // La fila mira el ancho de su columna, no el de la ventana: con «De dónde sale el número» al costado la columna mide ~430 px
+          // y «Para» (que crece primero, hasta 11rem) dejaba «Avío» en 74 px. En angosto: Avío con su × arriba; Para y la cantidad abajo.
+          <div key={fila.clave} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 @min-[34rem]:grid-cols-[minmax(0,1fr)_minmax(0,11rem)_7.5rem_auto]">
+            {/* Sin la × (cuenta que solo ve), «Avío» toma todo el renglón: si no, «Para» subía a la tercera columna, la angosta. */}
+            <div className={`${puedeEditar ? "col-span-2" : "col-span-full"} min-w-0 @min-[34rem]:col-span-1`}>
+              <CampoSelect
+                id={`ficha-avio-${fila.clave}`}
+                etiqueta="Avío"
+                valor={fila.insumoId ?? ""}
+                onValor={(v) => ponerAvio(fila.clave, { insumoId: v || null })}
+                opciones={opciones}
+                marcador="Elegir el avío"
+                deshabilitado={!puedeEditar}
+                pie={deAvio?.texto}
+                tono={deAvio ? "error" : "neutro"}
+              />
+            </div>
             <CampoSelect
               id={`ficha-avio-${fila.clave}-para`}
               etiqueta="Para"
@@ -426,7 +431,7 @@ function PanelAvios({
               tono={deCantidad && fila.cantidad.trim() !== "" ? "error" : "neutro"}
             />
             {puedeEditar && (
-              <div className="pt-[1.625rem]">
+              <div className="col-start-3 row-start-1 pt-[1.625rem] @min-[34rem]:col-start-auto @min-[34rem]:row-start-auto">
                 <QuitarColor nombre={insumo?.nombre ?? delModelo?.nombre ?? "este avío"} onQuitar={() => quitarAvio(fila.clave)} />
               </div>
             )}
@@ -470,8 +475,8 @@ function DeDondeSale({ ficha, volver }: { ficha: FichaLeida; volver: AccionVolve
                   {hecho ? "✓" : ahora ? <span className="h-2 w-2 rounded-full bg-tinta" /> : null}
                 </span>
                 <span>
-                  <span className="block text-[13.5px] font-semibold text-tinta">{e.titulo}</span>
-                  <span className="block text-[12px] text-tinta/70">{e.detalle}</span>
+                  <span className="block text-[15px] font-semibold text-tinta">{e.titulo}</span>
+                  <span className="block text-sm text-tinta/70">{e.detalle}</span>
                 </span>
               </li>
             );
@@ -479,7 +484,7 @@ function DeDondeSale({ ficha, volver }: { ficha: FichaLeida; volver: AccionVolve
         </ol>
       </div>
       <div className="rounded-xl border border-sand p-3">
-        <p className="text-[12px] text-tinta/70">Órdenes cerradas de este modelo</p>
+        <p className="text-sm text-tinta/70">Órdenes cerradas de este modelo</p>
         <div className="mt-1.5 flex items-center justify-between gap-2">
           <b className="font-display text-[22px] font-normal leading-none tabular-nums text-tinta">{Math.min(n, ORDENES_PARA_QUE_MANDE_LO_MEDIDO)} de {ORDENES_PARA_QUE_MANDE_LO_MEDIDO}</b>
           <Chip tono={actual === "medido" ? "verde" : "neutro"} versalitas={false}>
@@ -490,8 +495,8 @@ function DeDondeSale({ ficha, volver }: { ficha: FichaLeida; volver: AccionVolve
       </div>
       {historial.filas.length > 0 && (
         <div>
-          <p className="text-[12px] text-tinta/70">Lo que gastó cada orden</p>
-          <ul className="mt-1.5 divide-y divide-sand rounded-xl border border-sand text-[12.5px]">
+          <p className="text-sm text-tinta/70">Lo que gastó cada orden</p>
+          <ul className="mt-1.5 divide-y divide-sand rounded-xl border border-sand text-sm">
             {historial.filas.map((o) => (
               <li key={o.numero} className="flex items-center justify-between gap-2 px-3 py-1.5">
                 <span className="min-w-0">
@@ -500,7 +505,7 @@ function DeDondeSale({ ficha, volver }: { ficha: FichaLeida; volver: AccionVolve
                     {o.cuando && <span className="text-tinta/70"> · {o.cuando}</span>}
                   </span>
                   {!o.cuenta && (
-                    <span className="block text-[11.5px] text-tinta/70" title="Se cerró antes de la última vez que se escribió la ficha: ya no cuenta para lo medido">
+                    <span className="block text-sm text-tinta/70" title="Se cerró antes de la última vez que se escribió la ficha: ya no cuenta para lo medido">
                       Ya no cuenta
                     </span>
                   )}
@@ -509,7 +514,7 @@ function DeDondeSale({ ficha, volver }: { ficha: FichaLeida; volver: AccionVolve
               </li>
             ))}
           </ul>
-          {historial.sinMostrar > 0 && <p className="mt-1 text-[12px] text-tinta/70">y {historial.sinMostrar} {historial.sinMostrar === 1 ? "orden más" : "órdenes más"}</p>}
+          {historial.sinMostrar > 0 && <p className="mt-1 text-sm text-tinta/70">y {historial.sinMostrar} {historial.sinMostrar === 1 ? "orden más" : "órdenes más"}</p>}
         </div>
       )}
       {actual === "medido" ? (
@@ -517,7 +522,7 @@ function DeDondeSale({ ficha, volver }: { ficha: FichaLeida; volver: AccionVolve
           Manda lo gastado de verdad: {ficha.medido?.porPrenda?.toFixed(3) ?? "—"} m por prenda en promedio. Las órdenes ya abiertas no cambian.
         </Aviso>
       ) : (
-        <p className="text-[12.5px] text-tinta/70">
+        <p className="text-sm text-tinta/70">
           Todavía no manda lo medido: {n >= ORDENES_PARA_QUE_MANDE_LO_MEDIDO ? "se cerraron antes de la última vez que se escribió la ficha" : `faltan ${ORDENES_PARA_QUE_MANDE_LO_MEDIDO - n} ${ORDENES_PARA_QUE_MANDE_LO_MEDIDO - n === 1 ? "orden cerrada" : "órdenes cerradas"}`}. Cuando haya {ORDENES_PARA_QUE_MANDE_LO_MEDIDO}, la ficha toma lo que se gastó de verdad.
         </p>
       )}

@@ -233,7 +233,7 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
           </span>
         )}
         <span
-          className={`font-display whitespace-nowrap leading-tight lining-nums tabular-nums @max-[148px]:text-[22px] ${compacta ? "text-[24px]" : "text-[28px]"} ${
+          className={`font-display whitespace-nowrap leading-tight lining-nums tabular-nums ${compacta ? "text-[length:clamp(1rem,15cqi,1.5rem)]" : "text-[length:clamp(1rem,16cqi,1.75rem)]"} ${
             sinDato ? "text-tinta/65" : (tono ?? "text-tinta")
           }`}
         >

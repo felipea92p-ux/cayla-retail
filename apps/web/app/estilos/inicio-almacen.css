@@ -772,7 +772,7 @@
     padding: 13px 20px;
     border-top: 1px solid var(--ia-t08);
     color: var(--ia-t65);
-    font-size: 13px;
+    font-size: 14px;
   }
   .ia-dial svg.ia-ic {
     width: 16px;
@@ -996,7 +996,7 @@
     align-items: center;
     gap: 8px;
     color: var(--ia-t65);
-    font-size: 12.5px;
+    font-size: 14px;
   }
   .ia-sw {
     display: flex;
@@ -1490,9 +1490,21 @@
      (sobre el mínimo de 44 para el dedo) y el texto no se corta. */
   .ia-dock .ia-principal {
     white-space: nowrap;
+    min-width: 0;
   }
   .ia-dock:has(> :nth-child(4)) .ia-ib {
     width: 48px;
+  }
+  /* Con cinco (Colgar y «Separé una dañada» salen juntos), a 375 px la fila medía ~383 y «Escanear» quedaba fuera del borde: los íconos
+     bajan a 44 (el mínimo para el dedo), el hueco a 8 y el «+» se va; «Nuevo producto» conserva su texto entero. */
+  .ia-dock:has(> :nth-child(5)) {
+    gap: 8px;
+  }
+  .ia-dock:has(> :nth-child(5)) .ia-ib {
+    width: 44px;
+  }
+  .ia-dock:has(> :nth-child(5)) .ia-principal svg {
+    display: none;
   }
   @media (min-width: 640px) {
     .ia-dock {

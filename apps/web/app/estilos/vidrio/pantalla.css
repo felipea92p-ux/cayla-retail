@@ -50,11 +50,12 @@
   --relleno: 16px;
   font-size: clamp(13px, calc(((100vw - var(--lateral) - var(--margenes)) / var(--cifras, 3) - var(--relleno)) / (var(--largo, 4) * 0.45)), var(--tope));
 }
+/* `--margenes` sigue al relleno derecho del <main> (`--relleno-der-pantalla`, AppShell): 20 px en una tablet y 40 desde 1024. */
 @media (min-width: 640px) {
-  .resumen-sede-cifra { --tope: 42px; --margenes: 80px; --lateral: var(--spacing-lateral); }
+  .resumen-sede-cifra { --tope: 42px; --margenes: 60px; --lateral: var(--spacing-lateral); }
 }
 @media (min-width: 1024px) {
-  .resumen-sede-cifra { --relleno: var(--relleno-ancho, 56px); }
+  .resumen-sede-cifra { --margenes: 80px; --relleno: var(--relleno-ancho, 56px); }
 }
 
 /* ---------- La tarjeta de cifra: la misma placa ---------- */
@@ -328,7 +329,9 @@
 .paginas:not([data-pista]) .paginas-n[aria-current="page"] {
   background: var(--gota-marca);
 }
-@media (max-width: 400px) {
+/* Con el dedo los números miden 44 px (tacto.css): una fila completa ya no cabe en un teléfono de 414–430 px, así que ahí también quedan
+   solo la actual y sus vecinas. */
+@media (max-width: 400px), (pointer: coarse) and (max-width: 520px) {
   .paginas .paginas-n.lejana,
   .paginas .paginas-corte {
     display: none;
@@ -688,6 +691,10 @@ svg.lucide:is(.h-5, .size-5, .h-6, .size-6, .h-7, .h-8, .size-8, .h-10, .h-12):n
     flex-direction: column;
     gap: 1px;
   }
+  /* El precio de campaña (tachado + el que cobra) o un rango no caben en una línea de 76 px: el tachado arriba y el que cobra debajo, en
+     vez de salirse sobre la tarjeta de al lado. «S/» y el número no se separan (el espacio que los une no se parte). */
+  .prod-precio { white-space: normal; }
+  .prod-precio-lista { display: block; }
   .prod-nombre {
     display: -webkit-box;
     -webkit-box-orient: vertical;

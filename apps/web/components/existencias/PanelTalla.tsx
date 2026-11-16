@@ -839,7 +839,7 @@ export function PanelTalla({
                             title={`${c.color ?? "Sin color"}${dice ? ` · ${dice}` : ""}`}
                             onClick={() => elegirColor(c)}
                             style={{ background: fondoDelPunto(c.colorHex, c.colorTonos) ?? "var(--color-hueso)" }}
-                            className="relative h-[30px] w-[30px] rounded-full border-2 border-papel shadow-[0_0_0_1px_var(--color-sand)] aria-checked:shadow-[0_0_0_2px_var(--color-tinta)]"
+                            className="area-dedo relative h-[30px] w-[30px] rounded-full border-2 border-papel shadow-[0_0_0_1px_var(--color-sand)] aria-checked:shadow-[0_0_0_2px_var(--color-tinta)]"
                           >
                             {c.colorEstampado && fotoQueDistingue(c.fotoUrl, colores.map((x) => x.fotoUrl)) && (
                               <span className="absolute inset-0 overflow-hidden rounded-full">
@@ -1208,6 +1208,9 @@ export function PanelTalla({
                         <div data-guia="existencias.cajon-todas-tabla" className="scroll-cayla overflow-x-auto">
                           <table // unificar-fijo: la matriz color × talla de «Todas» (ADR-0391), no una lista de registros
                             className="w-full table-fixed border-separate border-spacing-y-1.5 text-center text-sm"
+                            // Un piso de 60 px por talla (más el color y el total): con 5 o más tallas en el celular, `table-fixed` las
+                            // apretaba bajo 36 px y «Se acabó» o «2 dañadas» se montaban en la celda vecina. Ahora corre de lado en su caja.
+                            style={{ minWidth: `${154 + tallasDeTodos.length * 60}px` }}
                           >
                             <colgroup>
                               <col className="w-[96px]" />

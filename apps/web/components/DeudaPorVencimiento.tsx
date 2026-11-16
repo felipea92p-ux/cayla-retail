@@ -47,7 +47,7 @@ export function DeudaPorVencimiento({ tramos, indice = 0 }: { tramos: Tramo[]; /
   const comoTramo = (clave: string) => clave as TramoVencimiento;
 
   return (
-    <div data-guia="por-pagar.vencimiento" className="card-cayla anim-entra min-w-0 p-5" style={{ ["--i" as string]: indice }}>
+    <div data-guia="por-pagar.vencimiento" className="card-cayla anim-entra @container min-w-0 p-5" style={{ ["--i" as string]: indice }}>
       <p className="label-cayla flex items-baseline justify-between gap-3 text-[11px] text-tinta/65">
         Deuda por vencimiento
       </p>
@@ -68,7 +68,7 @@ export function DeudaPorVencimiento({ tramos, indice = 0 }: { tramos: Tramo[]; /
               accion: "Filtrar la lista",
             }}
           />
-          <div className="mt-3.5 grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
+          <div className="mt-3.5 grid grid-cols-2 gap-x-3 gap-y-2 @min-[30rem]:grid-cols-4">
             {filas.map((f) => (
               <button
                 key={f.k}

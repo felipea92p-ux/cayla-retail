@@ -431,7 +431,7 @@ function TablaDeTallas({
                 <td className="rc-fila-total">{conMiles(total)}</td>
                 {conQuitar && colores.length > 1 && (
                   <td>
-                    <button type="button" tabIndex={-1} className="icono-fila grid h-8 w-8 place-items-center" aria-label={`Quitar ${c.texto}`} title={`Quitar ${c.texto}`} onClick={() => onQuitar("color", c)}>
+                    <button type="button" tabIndex={-1} className="icono-fila area-dedo grid h-8 w-8 place-items-center" aria-label={`Quitar ${c.texto}`} title={`Quitar ${c.texto}`} onClick={() => onQuitar("color", c)}>
                       <X aria-hidden className="h-4 w-4" />
                     </button>
                   </td>

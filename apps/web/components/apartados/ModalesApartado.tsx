@@ -55,7 +55,7 @@ import {
   type Apartado,
   type MedioDevolucionReal,
 } from "@/lib/separaciones-reglas";
-import { NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
+import { NOMBRE_CORTO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { EstadoChip, ReciboApartado, fechaCorta } from "@/components/apartados/piezas";
 import { TicketDeEntrega, useReciboDeApartado } from "@/components/apartados/useReciboDeApartado";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -427,7 +427,7 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
                 className={`metodo-${m} flex h-14 flex-col items-center justify-center gap-1 rounded-lg text-sm capitalize transition-colors ${medio === m ? "shadow-sm" : "text-tinta/60 hover:bg-papel/60"}`}
               >
                 {ICONO_METODO[m]}
-                {m}
+                <span className="max-w-full truncate">{NOMBRE_CORTO[m] ?? m}</span>
               </button>
             ))}
           </div>
@@ -716,7 +716,7 @@ export function AbonarFormulario({
             className={`metodo-${m} flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-sm capitalize transition-colors ${metodo === m ? "shadow-sm" : "text-tinta/60 hover:bg-papel/60"}`}
           >
             {ICONO_METODO[m]}
-            {m}
+            <span className="max-w-full truncate">{NOMBRE_CORTO[m] ?? m}</span>
           </button>
         ))}
       </div>

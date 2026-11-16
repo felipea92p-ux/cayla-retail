@@ -52,7 +52,8 @@
   .twc-mover svg { width: 16px; height: 16px; }
   @media (pointer: coarse) {
     .twc-asa { display: none; }
-    .twc-mover { display: flex; }
+    /* 12 px entre los dos: cada botón responde en 44 px (`area-dedo`) y con 4 px sus áreas se pisaban. */
+    .twc-mover { display: flex; gap: 12px; }
   }
   .twc-cara { display: grid; width: 100%; text-align: left; cursor: pointer; }
   .twc-cara-texto { display: grid; gap: 8px; padding: 12px 14px 4px; justify-items: start; }
@@ -76,9 +77,13 @@
 
   /* ───────── El taller y el teléfono ───────── */
   .twc-taller { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
-  @media (max-width: 900px) { .twc-taller { grid-template-columns: 1fr; } }
   .twc-lado { position: sticky; top: 16px; display: grid; gap: 12px; justify-items: center; }
-  @media (max-width: 900px) { .twc-lado { position: static; } }
+  /* Lo decide el ancho de la página (`.tw`), no el de la ventana: con el menú abierto, a 1024 px el taller quedaba en 328 px al lado del
+     teléfono y los campos de a dos, en 133 px cada uno. */
+  @container tw (max-width: 899.98px) {
+    .twc-taller { grid-template-columns: minmax(0, 1fr); }
+    .twc-lado { position: static; }
+  }
   .twc-nota-en-vivo { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--color-taupe); }
   .twc-nota-en-vivo svg { width: 14px; height: 14px; }
 
@@ -107,7 +112,7 @@
   .twc-col { min-width: 0; }
   .twc-campo-foto { display: flex; flex-direction: column; }
   .twc-campo-foto .twc-foto { flex: 1 1 auto; min-height: 104px; height: auto; }
-  @media (max-width: 700px) { .twc-fila2 { grid-template-columns: minmax(0, 1fr); } }
+  @container tw (max-width: 559.98px) { .twc-fila2 { grid-template-columns: minmax(0, 1fr); } }
 
   /* La foto de la fachada: se suelta o se elige; con foto, ella es el fondo y el texto queda abajo. */
   .twc-foto {
@@ -234,7 +239,15 @@
   .twc-ahora { position: absolute; top: 0; bottom: 0; z-index: 3; width: 2px; background: var(--color-rojo); pointer-events: none; }
   .twc-ahora::before { content: ""; position: absolute; top: -3px; left: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-rojo); }
   .twc-horario-pie { display: flex; justify-content: flex-end; margin-top: 10px; }
-  @media (pointer: coarse) { .twc-dia, .twc-pista { height: 44px; } }
+  @media (pointer: coarse) {
+    .twc-dia, .twc-pista { height: 44px; }
+    /* El asa responde en 28 px hacia adentro del tramo (20 en uno corto) sin mover sus rayitas, que viven en el `::before`. El `::after` es
+       parte del <i data-asa>, así que `closest("[data-asa]")` lo reconoce; el tramo recorta lo que se pasaría de su borde. */
+    .twc-asa-h::after { content: ""; position: absolute; top: 0; bottom: 0; width: 28px; }
+    .twc-asa-h[data-asa="abre"]::after { left: 0; }
+    .twc-asa-h[data-asa="cierra"]::after { right: 0; }
+    .twc-tramo[data-corto] .twc-asa-h::after { width: 20px; }
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .twc-puerta, .twc-fachada, .twc-tarjeta, .twc-tramo, .twc-dia, .twc-asa-h::before, .twc-cierre button, .twc-celda b, .twc-celda span { transition: none; }

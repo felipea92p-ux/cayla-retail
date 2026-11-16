@@ -261,7 +261,9 @@ export function FiltrosMovimientos({
         Zona
       </span>
       {/* Deja menos movimientos (filtro de un valor): la píldora del sistema, no la pista hueso de la demo (ADR-0358). */}
-      <div role="group" aria-label="Zona de la tienda" className="pildoras-desliza gap-1.5 sm:flex-wrap">
+      {/* `suppressHydrationWarning`: `FilasQueSeDeslizan` (app/layout.tsx) le pone `data-mas-izq`/`data-mas-der` desde afuera de
+          React, como a la fila de `<Pestanas>`; esas marcas no son de React y no hay nada que comparar. */}
+      <div role="group" aria-label="Zona de la tienda" className="pildoras-desliza gap-1.5 sm:flex-wrap" suppressHydrationWarning>
         {[{ token: null as TokenSububicacion | null, etiqueta: "Todas" }, ...subDisponibles].map((f) => (
           <button key={f.token ?? "todo"} type="button" aria-pressed={sub === f.token} onClick={() => aplicar({ sub: f.token ?? "" })} className="pildora-cayla shrink-0">
             {f.etiqueta}
@@ -277,7 +279,7 @@ export function FiltrosMovimientos({
       <span className="label-cayla text-[10px] font-bold text-taupe" aria-hidden>
         Tienda
       </span>
-      <div role="group" aria-label="De qué tienda es la prenda" className="pildoras-desliza gap-1.5 sm:flex-wrap">
+      <div role="group" aria-label="De qué tienda es la prenda" className="pildoras-desliza gap-1.5 sm:flex-wrap" suppressHydrationWarning>
         {[{ clave: null as string | null, nombre: "Todas" }, ...empresas].map((e) => (
           <button key={e.clave ?? "todas"} type="button" aria-pressed={emp === e.clave} onClick={() => aplicar({ emp: e.clave ?? "" })} className="pildora-cayla shrink-0">
             {e.nombre}
@@ -310,7 +312,7 @@ export function FiltrosMovimientos({
     <div className="border-b border-sand">
       {/* Búsqueda. En el celular queda FIJA arriba al bajar (ADR-0241), con la cámara para leer una etiqueta y el botón
           de los filtros: lo que se hace con el pulgar sin volver a subir. La cabecera del ERP es `fixed` (≈58 px). */}
-      <div className="sticky top-[3.625rem] z-20 flex items-center gap-2 bg-papel/95 px-3 pb-2 pt-3 backdrop-blur-sm sm:static sm:z-auto sm:bg-transparent sm:px-4 sm:pb-0 sm:pt-4 sm:backdrop-blur-none">
+      <div className="sticky top-[3.625rem] z-20 flex items-center gap-2 bg-papel/95 px-3 pb-2 pt-3 backdrop-blur-sm sm:static sm:z-auto sm:flex-wrap sm:bg-transparent sm:px-4 sm:pb-0 sm:pt-4 sm:backdrop-blur-none">
         <Buscador guia="movimientos.buscador"
           ref={entrada}
           valor={busqueda}
@@ -318,7 +320,7 @@ export function FiltrosMovimientos({
           buscando={buscando}
           placeholder="Prenda, código, barras o referencia…"
           etiqueta="Buscar por prenda, código, código de barras o referencia (por ejemplo Traslado 24)"
-          className="min-w-0 flex-1"
+          className="min-w-0 flex-1 sm:min-w-[16rem]"
         />
         <button
           type="button"

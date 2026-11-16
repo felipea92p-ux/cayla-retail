@@ -23,11 +23,13 @@ import { Boton } from "@/components/ui/campos";
 // opciones. El nombre de la prenda es un botón que abre la hoja (el porqué); con el mouse, toda la fila la abre también, salvo sus
 // propios botones.
 
-/** Las columnas de la tabla, UNA vez: el encabezado de cada categoría y cada fila usan esta misma plantilla. */
-export const PLANTILLA_FRESCURA = "md:grid-cols-[minmax(230px,1.5fr)_minmax(150px,0.85fr)_minmax(220px,1.5fr)_minmax(170px,auto)]";
+/** Las columnas de la tabla, UNA vez: el encabezado de cada categoría y cada fila usan esta misma plantilla. Se decide por el ancho de
+ *  la caja de la tabla (`@container` en FrescuraPanel), no de la ventana: las columnas piden 230+150+220+170 + 3 huecos + px-5 ≈ 858 px
+ *  (54rem); con menos, cada prenda va en su forma apilada, con «Decidir» a la vista (a 768 y 1024, con el lateral, quedaba fuera). */
+export const PLANTILLA_FRESCURA = "@min-[54rem]:grid-cols-[minmax(230px,1.5fr)_minmax(150px,0.85fr)_minmax(220px,1.5fr)_minmax(170px,auto)]";
 
 /** Por debajo de este ancho la tabla se desliza dentro de su tarjeta, como `Tabla` (nunca la página entera). */
-export const ANCHO_MINIMO_TABLA = "md:min-w-[840px]";
+export const ANCHO_MINIMO_TABLA = "@min-[54rem]:min-w-[840px]";
 
 /**
  * Lo que se decidió (paso 4b): con una decisión vigente reemplaza a las preguntas («Decidida · se cambió de lugar · se revisa el
@@ -136,7 +138,7 @@ function Accion({
 }) {
   const detener = (e: MouseEvent) => e.stopPropagation();
   return (
-    <span data-guia="frescura.accion" className="flex flex-wrap items-center gap-x-2.5 gap-y-1 md:justify-end">
+    <span data-guia="frescura.accion" className="flex flex-wrap items-center gap-x-2.5 gap-y-1 @min-[54rem]:justify-end">
       {accion?.tipo === "anotar" && (
         <Boton peso="primario" cargando={enviando} textoCargando="Anotando…"
           type="button"
@@ -169,7 +171,7 @@ function Accion({
       )}
       <button
         type="button"
-        className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13px]"
+        className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-sm"
         onClick={(e) => {
           detener(e);
           onAbrir();
@@ -179,14 +181,14 @@ function Accion({
       </button>
       {/* La consecuencia ANTES de tocar (Formidable 2026-10-09): el botón afirma un hecho; esta línea dice cuándo tocarlo y qué pasa. */}
       {consecuencia && accion?.tipo === "anotar" && !error && (
-        <span className="basis-full text-sm leading-snug text-taupe md:text-right">{consecuencia}</span>
+        <span className="basis-full text-sm leading-snug text-taupe @min-[54rem]:text-right">{consecuencia}</span>
       )}
       {error && (
-        <span role="alert" className="basis-full text-sm leading-snug text-tinta/80 md:text-right">
+        <span role="alert" className="basis-full text-sm leading-snug text-tinta/80 @min-[54rem]:text-right">
           {error.texto}{" "}
           <button
             type="button"
-            className="btn-cayla btn-enlace text-[12.5px]"
+            className="btn-cayla btn-enlace text-sm"
             onClick={(e) => {
               detener(e);
               onLimpiarError();
@@ -245,7 +247,7 @@ export function FrescuraFila({
       className="fila-cayla relative cursor-pointer border-t border-sand"
     >
       {/* Computadora: una fila de la tabla. */}
-      <div className={`hidden items-center gap-x-4 px-5 py-3.5 md:grid ${PLANTILLA_FRESCURA}`}>
+      <div className={`hidden items-center gap-x-4 px-5 py-3.5 @min-[54rem]:grid ${PLANTILLA_FRESCURA}`}>
         <Prenda fila={fila} apariencia={apariencia} categoria={categoria} onAbrir={onAbrir} />
         <Estado fila={fila} marcarAproximado={marcarAproximado} />
         <QueHacer fila={fila} decision={decision} />
@@ -253,7 +255,7 @@ export function FrescuraFila({
       </div>
 
       {/* Celular: una tarjeta con lo mismo, apilado. */}
-      <div className="flex flex-col gap-2.5 px-4 py-3.5 md:hidden">
+      <div className="flex flex-col gap-2.5 px-4 py-3.5 @min-[54rem]:hidden">
         <Prenda fila={fila} apariencia={apariencia} categoria={categoria} onAbrir={onAbrir} />
         <Estado fila={fila} marcarAproximado={marcarAproximado} />
         <QueHacer fila={fila} decision={decision} />

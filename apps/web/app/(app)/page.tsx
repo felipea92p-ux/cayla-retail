@@ -236,9 +236,10 @@ export default async function InicioPage() {
             </>
           )}
           {tuFondo && (
-            // En la misma grilla que las cifras de «Tu día»: una cifra más, no una franja a todo el ancho.
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <TuFondoConRendir fondo={tuFondo} href={hrefFondo} guia="inicio.tu-fondo" className="col-span-2 sm:col-span-1" />
+            // En la misma grilla que las cifras de «Tu día»: una cifra más, no una franja a todo el ancho. Como ellas, decide por el ancho de
+            // la columna (`@container`, 30 rem), no por el de la ventana.
+            <div className="@container grid grid-cols-3 gap-3">
+              <TuFondoConRendir fondo={tuFondo} href={hrefFondo} guia="inicio.tu-fondo" className="col-span-3 @min-[30rem]:col-span-1" />
             </div>
           )}
           <TeToca visibles={visibles} ajustar={ajustar} />
@@ -314,13 +315,15 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
   }
 
   return (
-    <section data-guia="inicio.hoy">
+    <section data-guia="inicio.hoy" className="@container">
       <Etiqueta>{titulo}</Etiqueta>
-      {/* En celular la primera cifra va a todo lo ancho y las otras dos lado a lado; desde `sm`, las tres en fila. */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {/* Angosta, la primera cifra va a todo lo ancho y las otras dos lado a lado; desde 30 rem de sección, las tres en fila. Lo decide el
+          ancho de la sección y no el de la ventana: entre 640 y ~760 px (lateral fijo) y a 1024 (columna de 420) cada tarjeta quedaba
+          en 95–135 px y una venta de 5 cifras se salía sobre la de al lado. */}
+      <div className="grid grid-cols-2 gap-3 @min-[30rem]:grid-cols-3">
         {/* La pieza única de cifra (TarjetaCifra, ADR-0358): antes era la receta propia del Inicio, con el nombre en la
             misma letra que «Tu día» (el título de la sección). Sin meta es «sin dato»; la caja sin leer, «no se pudo leer». */}
-        <TarjetaCifra etiqueta={esLider ? "Ventas" : "Tus ventas"} valor={formatoSoles(r.importe)} className="col-span-2 sm:col-span-1">
+        <TarjetaCifra etiqueta={esLider ? "Ventas" : "Tus ventas"} valor={formatoSoles(r.importe)} className="col-span-2 @min-[30rem]:col-span-1">
           {esLider && r.comparativo ? (
             <span className={r.comparativo.positivo ? "text-verde-profundo" : "text-ambar-profundo"}>{r.comparativo.texto}</span>
           ) : esLider ? (

@@ -28,7 +28,7 @@ export default async function CompraDetallePage({
   const { compra } = detalle;
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="space-y-6">
       {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): el proveedor de título y el documento en la línea
           de arriba, junto a la fecha. La hoja (el modal) sigue con `TituloComprobante`. */}
       <div data-guia="factura.cabecera">

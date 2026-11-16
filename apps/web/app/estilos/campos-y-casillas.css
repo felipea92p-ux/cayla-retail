@@ -567,4 +567,9 @@
   )::placeholder {
     font-size: 14px;
   }
+  /* La sombra de predicción del buscador (`<Buscador sombra>`, Catálogo ▸ Marcas) copia letra por letra lo escrito: tiene que medir lo mismo
+     que el campo, que aquí sube a 16 px. En 14 px lo invisible quedaba un 12 % más corto y la cola gris se montaba sobre las últimas letras. */
+  .buscador-sombra {
+    font-size: 16px;
+  }
 }

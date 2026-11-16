@@ -217,7 +217,7 @@ export function PorPagarTodas({
           </Tabla>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-[12.5px] text-tinta/70">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-tinta/70">
           <span className="flex flex-wrap items-center gap-3 tabular-nums">
             {pag.desde}–{pag.hasta} de {plural(total.n)} · {solesRedondo(total.saldo)} por pagar
             <SegmentoDeslizante

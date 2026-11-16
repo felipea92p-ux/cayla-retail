@@ -417,3 +417,14 @@ si la cuenta ve Rendimiento); los gastos, la barra por rubro (los cuatro mayores
 mínimo (`Linea`, la misma caja de «Próximos»); SUNAT, lo que vence ahora contra lo que se junta. Los renglones llevan la muestra del color de su tramo
 (antes, una barrita gris que repetía el gráfico), una barra de un solo tramo no se dibuja, las hojas pasan a 768 px y las cifras a Inter con la «S/»
 chica también dentro del portal. Lógica en `lib/hojas-resumen-reglas.ts` (`deCadaCien`, `rubrosEnBarra`, `ventasDiaADia`, `colorDeSede`), con su prueba.
+
+## Actualización 2026-11-16 — En el celular, la mesa de mando se va al bajar (Felipe, decisión 5A)
+
+Fija bajo la cabecera, en un iPhone SE (375 × 667) la mesa y la cabecera ocupaban 179 px, el 27 % de la pantalla, todo el tiempo. Felipe lo vio en la demo
+del celular y eligió soltarla: **bajo 640 px la mesa va en el flujo (`position: relative`, `telar.css`), se va al bajar y vuelve al subir hasta arriba**;
+desde 640 px sigue fija como hasta hoy. El separador de días de Gastos (`ExtractoGastos`) mide si la mesa está pegada antes de sumar su alto, así no queda
+un hueco bajo la cabecera, y vuelve a medir al girar el aparato.
+
+- **DECIDÍ:** en el celular, la mesa se va al bajar.
+- **DESCARTÉ:** dejarla fija, porque en un SE se come más de un cuarto de lo que se lee; dejar fija solo la fila de sedes, porque igual son ~60 px y parte la mesa en dos.
+- **SE ROMPE SI:** alguien cambia de sede seguido a mitad de una lista larga en el teléfono: tiene que subir cada vez.
