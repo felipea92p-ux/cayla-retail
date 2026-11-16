@@ -25,6 +25,7 @@ import {
   mensajeAlNoFusionar,
   opcionesDeCampo,
   preciosSedeParaLaBase,
+  precioGeneralElegido,
   quedaSugerido,
   yaFusionadas,
   type CampoFusion,
@@ -160,11 +161,17 @@ export function FusionarProductosHoja({
   const hayFusion = Boolean(quedaEfectiva) && duplicados.length > 0;
 
   // ---------- Leer el plan: cada vez que cambian las fichas, cuál queda o un dato que decide un bloqueo ----------
+  // El precio general elegido cambia la lista de sedes (20261116020000): sale de la lectura anterior, donde están los precios de cada ficha.
+  const planPrevio = lectura?.plan ?? null;
+  const precioElegido = planPrevio
+    ? precioGeneralElegido(elecciones, planPrevio.productos, planPrevio.diferencias, quedaEfectiva)
+    : null;
   const clavePlan = JSON.stringify({
     quedaEfectiva,
     duplicados,
     campos: elecciones.campos,
     retirar: elecciones.retirar,
+    precioElegido,
     intento,
   });
   const leyendo = hayFusion && lectura?.clave !== clavePlan;
@@ -187,10 +194,11 @@ export function FusionarProductosHoja({
           p_queda: quedaEfectiva,
           p_duplicados: duplicados,
           // `retirar` solo si hay: con la base de antes de 20261113175000 la clave sobra.
-          p_elecciones:
-            elecciones.retirar.length > 0
-              ? { campos: elecciones.campos, retirar: elecciones.retirar }
-              : { campos: elecciones.campos },
+          p_elecciones: {
+            campos: elecciones.campos,
+            ...(elecciones.retirar.length > 0 ? { retirar: elecciones.retirar } : {}),
+            ...(precioElegido !== null ? { precio: precioElegido } : {}),
+          },
         },
       );
       if (!vigente) return;

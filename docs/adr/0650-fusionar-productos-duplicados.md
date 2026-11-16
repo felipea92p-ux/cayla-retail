@@ -154,6 +154,24 @@ por un conflicto de precio (se resuelve mirando).
 Migración `20261115153000` (funciones `fn_fusion_precios_*`, `previsualizar_fusion_productos` y tres reemplazos anclados). El número no se pudo reservar
 (`pnpm reservar`: 403 desde el entorno en la nube). Ensayo en producción con `begin … rollback`, pendiente al escribir esto.
 
+## Actualización 2026-11-16: un precio por sede
+
+La revisión del 2026-11-15 encontró en local tres casos donde 20261115153000 dejaba la misma prenda con dos precios en una tienda: la que queda con
+tallas al precio general y la repetida con precio propio en Trujillo (S a 79.90, M y XL a 169; la hoja decía «Conserva S/ 169»); lo mismo eligiendo la
+repetida cuando la que queda tenía precio propio en una sola talla; y, al elegir otro precio general, la lista de sedes ni mostraba la sede. Solo se
+alineaban las tallas que ya tenían precio propio, y la lista comparaba contra el precio general de antes. Felipe: «arréglalo», con un precio por sede.
+
+DECIDÍ: en cada sede que la hoja muestra, toda talla a la venta del producto final cobra el precio de la ficha ganadora (la elegida o la de por
+defecto), el que vio la persona; una talla de la ganadora con su propia excepción en esa sede la conserva. Las sedes que la hoja no muestra siguen
+igual. La lista de sedes se calcula contra el precio general elegido (`p_elecciones.precio`, que la hoja ahora manda también al previsualizar).
+DESCARTÉ: «talla por talla» (la tienda seguiría con dos precios para la misma prenda, y la hoja prometía uno); escribir `precios_sede_prenda` (su
+disparador archivaría las excepciones de talla que esta regla conserva). SE ROMPE SI la ficha ganadora tiene en una sede precios propios distintos por
+talla sin excepción de talla (hoy imposible: el precio de una prenda en una sede es uno); ahí se usa el más repetido, el mismo que muestra la hoja.
+Consecuencia que Felipe aceptó: una talla de la que queda que cobraba el general en esa tienda pasa a cobrar el precio de la sede.
+
+Migración `20261116020000` (reservada). `pruebas:fusionar-productos` 39/39; con las funciones de antes fallan 29, 36 y 37, y sin el parche del candado
+de la terminal falla 35 (que ahora sí cambia el precio general).
+
 ## Pendiente
 
 - «Esta no es repetida»: hoy un par sugerido que no es la misma prenda sigue en la lista. Si molesta, una tabla de pares descartados.

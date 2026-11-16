@@ -709,7 +709,7 @@ const PRECIOS_TRAS_FUSION = `
   retail.fn_precio_en_sede(:'em','${LIMA}') = (select precio from retail.variantes where id = :'em'),
   jsonb_path_query_first(:'r'::jsonb, 'strict $.**.precios_sede') ->> 'modo'`;
 
-caso("29 · precios por sede, de fábrica: el precio propio de la repetida en Trujillo viaja a sus tallas (sin conflicto); Lima sigue el general", () =>
+caso("29 · precios por sede, de fábrica: el precio propio de la repetida en Trujillo pasa a TODA la prenda allí (también a la S, que cobraba el general; 20261116020000); Lima sigue el general", () =>
   espera(
     correr(`${COMO_POSTGRES}${PREP_SEDE}${precioDeLaPrenda(":'d'", 169)}
 ${sesion(FELIPE)}
@@ -718,7 +718,7 @@ select retail.fusionar_productos('${EMMA}', array[:'d']::uuid[]) as r \\gset
 ${COMO_POSTGRES}
 select 'x', (:'pv'::jsonb -> 'precios_sede' -> 0 ->> 'conflicto'), (:'pv'::jsonb -> 'precios_sede' -> 0 ->> 'por_defecto') = :'d',
   ${PRECIOS_TRAS_FUSION};`),
-    "false|t|169.00|79.90|t|169.00|t|por_sede"
+    "false|t|169.00|169.00|f|169.00|t|por_sede"
   )
 );
 
@@ -797,7 +797,8 @@ ${sesion(TERMINAL_FUSION)}
 select 'x', retail.fn_es_terminal()::text, pg_temp.intento($$select retail.fusionar_productos('${EMMA}', array['$$ || :'d' || $$']::uuid[], '${elecciones}')$$);`),
       "true|SIN_ERROR"
     );
-  const e1 = fusiona("{}") ?? fusiona('{"precio_modo":"uno"}');
+  // Con `precio` el disparador del candado SÍ se dispara sobre las tallas de Emma (79.90 → 99): sin el parche (c) de 20261115153000, 42501.
+  const e1 = fusiona("{}") ?? fusiona('{"precio_modo":"uno"}') ?? fusiona('{"precio":99}');
   if (e1) return e1;
   return espera(
     correr(`${COMO_POSTGRES}${PREP_SEDE}${TERMINAL_EN_TRUJILLO}
@@ -806,6 +807,93 @@ select 'x', split_part(pg_temp.intento($$update retail.variantes set precio = pr
     "terminal_precio_de_la_prenda"
   );
 });
+
+// ---------------------------------------------------------------------------------------------- un precio por sede (20261116020000)
+
+// Cuántos precios distintos cobra la prenda final en una sede: tras fusionar, uno.
+const PRECIOS_DISTINTOS_EN = (sede) =>
+  `(select count(distinct retail.fn_precio_en_sede(v.id, '${sede}')) from retail.variantes v where v.producto_id = '${EMMA}' and v.activo and v.fusionada_en_id is null)`;
+const excepcionDeTalla = (variante, precio) =>
+  `insert into retail.precios_sede_variante (variante_id, ubicacion_id, precio, motivo, creado_por) values (${variante}, '${TRUJILLO}', ${precio}, 'prueba de talla', :'yo');\n`;
+
+caso("36 · la que queda solo tenía una EXCEPCIÓN de talla (M a S/ 150), la repetida precio de prenda 169 en Trujillo: la hoja dice «conserva 169» sin conflicto; toda la prenda pasa a 169 y la M conserva su 150", () =>
+  espera(
+    correr(`${COMO_POSTGRES}${PREP_SEDE}${excepcionDeTalla(":'em'", 150)}${precioDeLaPrenda(":'d'", 169)}
+${sesion(FELIPE)}
+select retail.previsualizar_fusion_productos('${EMMA}', array[:'d']::uuid[]) as pv \\gset
+select retail.fusionar_productos('${EMMA}', array[:'d']::uuid[]) as r \\gset
+${COMO_POSTGRES}
+select 'x', (:'pv'::jsonb -> 'precios_sede' -> 0 ->> 'conflicto'), (:'pv'::jsonb -> 'precios_sede' -> 0 ->> 'por_defecto') = :'d',
+  ${PRECIOS_TRAS_FUSION}, ${PRECIOS_DISTINTOS_EN(TRUJILLO)};`),
+    "false|t|150.00|169.00|f|169.00|t|por_sede|2"
+  )
+);
+
+caso("37 · la lista de sedes mira el precio general ELEGIDO: eligiendo S/ 99 con la repetida a 79.90 en Trujillo, Trujillo sale en la hoja y toda la prenda cobra 79.90 allí; Lima, 99", () =>
+  espera(
+    correr(`${COMO_POSTGRES}${PREP_SEDE}${precioDeLaPrenda(":'d'", 79.90)}
+update retail.variantes set precio = 99 where producto_id = :'d';
+${sesion(FELIPE)}
+select retail.previsualizar_fusion_productos('${EMMA}', array[:'d']::uuid[]) as pv0 \\gset
+select retail.previsualizar_fusion_productos('${EMMA}', array[:'d']::uuid[], '{"precio":99}') as pv \\gset
+select retail.fusionar_productos('${EMMA}', array[:'d']::uuid[], '{"precio":99}') as r \\gset
+${COMO_POSTGRES}
+select 'x', coalesce(jsonb_array_length(:'pv0'::jsonb -> 'precios_sede'), 0), jsonb_array_length(:'pv'::jsonb -> 'precios_sede'),
+  retail.fn_precio_en_sede(:'em','${TRUJILLO}'), retail.fn_precio_en_sede(:'es','${TRUJILLO}'), retail.fn_precio_en_sede(:'dxl','${TRUJILLO}'),
+  retail.fn_precio_en_sede(:'em','${LIMA}'), ${PRECIOS_DISTINTOS_EN(TRUJILLO)};`),
+    "0|1|79.90|79.90|79.90|99.00|1"
+  )
+);
+
+caso("38 · la ficha ganadora conserva la excepción que ya tenía en UNA talla (M a S/ 155 sobre su 150 de Trujillo); lo demás cobra 150", () =>
+  espera(
+    correr(`${COMO_POSTGRES}${PREP_SEDE}${precioDeLaPrenda(`'${EMMA}'`, 150)}${excepcionDeTalla(":'em'", 155)}${precioDeLaPrenda(":'d'", 169)}
+${sesion(FELIPE)}
+select retail.fusionar_productos('${EMMA}', array[:'d']::uuid[]) as r \\gset
+${COMO_POSTGRES}
+select 'x', retail.fn_precio_en_sede(:'em','${TRUJILLO}'), retail.fn_precio_en_sede(:'es','${TRUJILLO}'), retail.fn_precio_en_sede(:'dxl','${TRUJILLO}');`),
+    "155.00|150.00|150.00"
+  )
+);
+
+caso("39 · sin precios propios en ninguna sede la fusión no escribe ningún precio de sede", () =>
+  espera(
+    correr(`${COMO_POSTGRES}${PREP_SEDE}
+select count(*) as antes from retail.precios_sede_variante \\gset
+${sesion(FELIPE)}
+select retail.fusionar_productos('${EMMA}', array[:'d']::uuid[]) as r \\gset
+${COMO_POSTGRES}
+select 'x', jsonb_path_query_first(:'r'::jsonb, 'strict $.**.precios_sede') ->> 'fijados', (select count(*) from retail.precios_sede_variante) = :antes;`),
+    "0|t"
+  )
+);
+
+caso("40 · una excepción de talla IGUAL al precio general («esta talla no sube») también se conserva: no se archiva", () =>
+  espera(
+    correr(`${COMO_POSTGRES}${PREP_SEDE}${precioDeLaPrenda(`'${EMMA}'`, 150)}${excepcionDeTalla(":'es'", 79.90)}${precioDeLaPrenda(":'d'", 169)}
+${sesion(FELIPE)}
+select retail.fusionar_productos('${EMMA}', array[:'d']::uuid[]) as r \\gset
+${COMO_POSTGRES}
+select 'x', retail.fn_precio_en_sede(:'es','${TRUJILLO}'), retail.fn_precio_en_sede(:'em','${TRUJILLO}'), retail.fn_precio_en_sede(:'dxl','${TRUJILLO}'),
+  (select count(*) from retail.precios_sede_variante where variante_id = :'es' and archivado_en is not null);`),
+    "79.90|150.00|150.00|0"
+  )
+);
+
+caso("41 · una talla APAGADA de la que queda con una excepción vieja (XL a S/ 120 en Lima) que la fusión vuelve a poner a la venta no trae ese precio: cobra lo de la prenda", () =>
+  espera(
+    correr(`${COMO_POSTGRES}${PREP_SEDE}
+insert into retail.variantes (producto_id, color_codigo, talla_id, precio, costo, activo)
+  values ('${EMMA}', 'NEG', (select id from retail.tallas where valor = 'XL'), 79.90, 32, false) returning id as qxl \\gset
+insert into retail.precios_sede_variante (variante_id, ubicacion_id, precio, motivo, creado_por) values (:'qxl', '${LIMA}', 120, 'precio viejo', :'yo');
+${sesion(FELIPE)}
+select retail.fusionar_productos('${EMMA}', array[:'d']::uuid[]) as r \\gset
+${COMO_POSTGRES}
+select 'x', (select activo from retail.variantes where id = :'qxl'), retail.fn_precio_en_sede(:'qxl','${LIMA}'), ${PRECIOS_DISTINTOS_EN(LIMA)},
+  (select count(*) from retail.precios_sede_variante where variante_id = :'qxl' and archivado_en is null);`),
+    "t|79.90|1|0"
+  )
+);
 
 // ---------------------------------------------------------------------------------------------- correr
 
