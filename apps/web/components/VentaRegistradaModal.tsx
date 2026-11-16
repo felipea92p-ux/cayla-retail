@@ -21,7 +21,7 @@ import { usePedidaALaCaja, type EstadoPedida } from "@/components/impresion/useP
 import { imprimirAlCobrar, imprimirEnLaCaja, queHacerAlRegistrar, type AlRegistrar } from "@/lib/imprimir-al-cobrar";
 import { estacionDeLaCaja, vozDeLaEstacion } from "@/lib/estacion-de-impresion";
 import { ventanaDelEquipo } from "@/lib/ventana-de-impresion";
-import { boletasPorAyudante, imprimirBoleta } from "@/components/impresion/imprimirBoleta";
+import { boletasPorAyudante, imprimirBoleta, useDespertarAyudante } from "@/components/impresion/imprimirBoleta";
 
 type Props = {
   ok: VentaOk;
@@ -52,6 +52,8 @@ type Props = {
  * la cajera vea cuánto entregar, y Enter abre la siguiente.
  */
 export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarEnfocar, emisor = EMISOR }: Props) {
+  // Despierta al ayudante de la Mac: al imprimir, la boleta sale en 0,5 s y no en 1,1 (ADR-0670).
+  useDespertarAyudante();
   const r = ok.recibo;
   const imprimeSolo = useSyncExternalStore(imprimirAlCobrar.suscribir, imprimirAlCobrar.leer, imprimirAlCobrar.leerEnServidor) === "si";
   const mandaALaCaja = useSyncExternalStore(imprimirEnLaCaja.suscribir, imprimirEnLaCaja.leer, imprimirEnLaCaja.leerEnServidor) === "si";
