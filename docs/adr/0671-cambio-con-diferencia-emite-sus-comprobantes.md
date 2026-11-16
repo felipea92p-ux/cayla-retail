@@ -6,7 +6,7 @@
   sepa eso y no descuadre el stock».
 - **Sigue a:** ADR-0053 (la diferencia cuadra la caja), ADR-0100 (la devolución emite su nota), ADR-0380 (contra lo pagado), ADR-0382 (la
   nota declara solo lo devuelto), ADR-0470 (una prenda por varias), ADR-0655 (el mismo modelo conserva su descuento).
-- **Números:** ADR reservado (`reserva/adr-0671`); migraciones `20261116212000` y `20261116213000` reservadas.
+- **Números:** ADR reservado (`reserva/adr-0671`); migraciones `20261116212000`, `20261116213000` y `20261116214000` reservadas.
 
 ## El problema
 
@@ -94,8 +94,33 @@ SE ROMPE SI:
 - Un tercer camino escribe en `cambios` sin pasar por las dos funciones (23 suites de prueba lo hacen a mano): ese cambio no tendrá
   documentos. La emisión vive solo dentro de las dos funciones a propósito.
 
+## Parte 3: el vigía y la fuente de las metas
+
+- **INV-30** (`cambio_con_diferencia_tiene_sus_documentos`, gravedad 1): desde el corte, cada cambio con diferencia tiene su comprobante
+  nuevo vivo, cuadra (`nuevo − lo pagado = diferencia`, la nota es lo pagado), y el par no queda roto (uno aceptado y el otro rechazado,
+  anulado o liberado) ni una nota espera más de un día a una original aceptada. Nace con su línea base puesta: lo roto avisa desde el
+  primer día.
+- **INV-22** deja de comparar la diferencia de un cambio por varias que trae el MISMO modelo: `cambio_salidas` guarda el precio de lista y
+  esas unidades conservan su descuento (ADR-0655), así que cada cambio así era un falso positivo. INV-30 lo cuadra contra el comprobante.
+- **`fn_diferencias_de_cambio(desde, hasta, sedes)`**: la única fuente de lo que un cambio le suma o le resta a una persona (decisión 7),
+  desde el corte. **Todavía no la lee ningún lector de metas** (Rendimiento, Metas, Inicio, Observatorio: ocho funciones): conectarlas
+  cambia cifras que la gente mira y espera a Felipe, con dos reglas que la fuente aplica como PROVISIONALES:
+  1. Una venta sin asesora: su resta queda sin persona (cuenta solo para la sede); el Observatorio, en cambio, le cuenta esa venta a quien
+     la registró.
+  2. Con CAYLA y CLAURE en la misma sede: la cifra de CAYLA solo se mueve por lo que el cambio movió de CAYLA, nunca más que la
+     diferencia (devolver una de CAYLA y llevarse una de CLAURE más cara no le suma a nadie; la plata sí sigue a la prenda en la deuda).
+
+## Lo que se vio de paso y queda aparte
+
+- `fn_claure_cambios` (ADR-0560) valora las salidas de un cambio por varias con `cambio_salidas.precio_unitario`, que es el precio de lista:
+  con el mismo modelo (ADR-0655) lo que se le debe a CLAURE puede salir distinto de lo cobrado. Es anterior a este ADR y es plata de CLAURE:
+  lo decide Felipe.
+- `/api/lucode/anular` cuenta los cambios y devoluciones de la venta con la llave de servicio antes de pedir la baja: quien ve Facturación
+  sin ser líder no veía, por RLS, un cambio hecho en otra sede, y la baja podía llegar a SUNAT y rechazarse recién al guardar.
+
 ## Producción
 
-Dos partes, en orden, cada una idempotente y con `lock_timeout` de 3 s, sin políticas: la 1 agrega la columna, los índices y la tabla; la 2,
-las funciones y los reemplazos anclados. Desde que se pega la parte 2 la base ya emite (también con la web de hoy, que no manda `p_cliente`);
-los documentos los transmite el cron en minutos. Se pega con el OK de Felipe.
+Tres partes, en orden, cada una idempotente y con `lock_timeout` de 3 s, sin políticas: la 1 agrega la columna, los índices y la tabla; la 2,
+las funciones y los reemplazos anclados; la 3, el vigía y la fuente de metas, en la misma sesión que la 2. Desde que se pega la parte 2 la
+base ya emite (también con la web de hoy, que no manda `p_cliente`); los documentos los transmite el cron en minutos. Se pega con el OK de
+Felipe. Después: `pnpm datos:generar:produccion` y `pnpm datos:comparar`.

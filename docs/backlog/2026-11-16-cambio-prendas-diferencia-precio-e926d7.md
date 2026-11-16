@@ -16,13 +16,14 @@ existió. Lo que corresponde es una nota de crédito sobre la boleta original y 
 - [x] **Mismo modelo con una talla más cara** (2 de 631 modelos): si se cobra algo, también se emite.
 - [x] **Lo que sobra cuando la nueva es más barata:** siempre se devuelve en dinero, como hoy. La nota de crédito es el papel que lo respalda.
 - [x] **Quién:** cualquiera que vea Cambios, sin aprobación del líder (R-38).
-- [x] **Boleta original aún no aceptada por SUNAT:** el cambio se hace al momento; la nota de crédito y el comprobante nuevo salen solos
-      cuando SUNAT acepte la original.
+- [x] **Boleta original aún no aceptada por SUNAT:** el cambio se hace al momento y el comprobante nuevo sale siempre al momento (SUNAT
+      pide emitirlo al entregar); solo la nota de crédito espera a que SUNAT acepte la original (Felipe lo corrigió con la crítica).
 - [x] **Compra original con nota de venta:** sale una nota de venta nueva por lo que se lleva, sin nota de crédito.
 - [x] **Compra original con factura:** nota de crédito sobre la factura y factura nueva al mismo RUC.
 - [x] **A nombre de quién:** la nota de crédito, siempre de quien compró (SUNAT). El comprobante nuevo se llena con el mismo cliente y se
       puede cambiar ahí mismo (un regalo).
-- [x] **Metas:** la venta original queda con su asesora; quien atiende el cambio suma (o resta) solo la diferencia.
+- [x] **Metas:** la venta original queda con su asesora. Si la nueva es más cara, la diferencia la suma quien atiende el cambio; si es
+      más barata, se le resta a quien hizo la venta original (Felipe lo corrigió al ver los 2 casos negativos reales).
 - [x] **Cambios ya hechos:** se aplica desde que se publique. La lista de los 13 con diferencia se le entregó a Felipe para el contador
       (fuera del repo: es público).
 - [x] **Volver a cambiar lo que se llevó en un cambio:** se podrá, dentro de los 15 días de la compra original. Hoy el sistema no lo

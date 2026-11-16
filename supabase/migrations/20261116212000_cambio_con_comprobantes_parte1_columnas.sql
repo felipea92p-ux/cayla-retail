@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261116212000 — Un cambio con diferencia emite su nota de crédito y su comprobante nuevo · PARTE 1 de 2: columnas (ADR-0671)
+-- 20261116212000 — Un cambio con diferencia emite su nota de crédito y su comprobante nuevo · PARTE 1 de 3: columnas (ADR-0671)
 --
 -- EL PROBLEMA. Un cambio cobra o devuelve la diferencia sin ningún comprobante: la boleta original sigue diciendo la prenda de antes y lo
 --   cobrado de más entra sin documento (13 de 25 cambios al 2026-11-16).

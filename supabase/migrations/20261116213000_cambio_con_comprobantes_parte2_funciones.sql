@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261116213000 — Un cambio con diferencia emite su nota de crédito y su comprobante nuevo · PARTE 2 de 2: funciones (ADR-0671)
+-- 20261116213000 — Un cambio con diferencia emite su nota de crédito y su comprobante nuevo · PARTE 2 de 3: funciones (ADR-0671)
 --
 -- EL PROBLEMA. Ver la parte 1 y docs/adr/0671-cambio-con-diferencia-emite-sus-comprobantes.md.
 --
