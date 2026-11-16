@@ -1,11 +1,13 @@
 "use client";
 
+import { Aviso } from "@/components/ui/Aviso";
 import { Interruptor } from "@/components/ui/campos";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { soles } from "@/lib/compras-reglas";
 import {
   fichaDelPrecioDeSede,
   fraseDePrecioEnSede,
+  sedesBajoCosto,
   type PrecioSedePlan,
   type ProductoPlan,
 } from "@/lib/fusionar-productos-reglas";
@@ -39,6 +41,8 @@ export function PreciosPorSede({
 }) {
   const conflictos = sedes.filter((s) => s.conflicto);
   const sinConflicto = sedes.filter((s) => !s.conflicto);
+  // Lo que la fusión frenaría al confirmar, dicho antes (20261116203000).
+  const bajoCosto = sedesBajoCosto(sedes, { unSoloPrecio, precioSedeDe: elegidas });
   return (
     <section className="space-y-4" data-guia="fusionar.precios-sede">
       <TituloGrupo cuenta={sedes.length}>Precios por sede</TituloGrupo>
@@ -76,6 +80,11 @@ export function PreciosPorSede({
               ))}
             </ul>
           )}
+          {bajoCosto.map((b) => (
+            <Aviso key={b.nombre} tono="atencion" chico titulo={`${b.nombre}: ${b.precio === null ? "ese precio" : soles(b.precio)} queda bajo el costo`}>
+              Así no se podrá fusionar. Elige el de otra ficha o «Un solo precio».
+            </Aviso>
+          ))}
         </>
       )}
     </section>
