@@ -149,6 +149,11 @@ create function pg_temp.fuente_de(p_persona uuid, p_ubics uuid[] default null) r
     left join retail.ubicaciones u on u.id = f.ubicacion_id
    where f.persona_id = p_persona;
 $f$;
+-- La base puede traer cambios con documentos de antes (una base local en la que alguien probó un cambio de verdad): sin soltarlos, el
+-- corte ya estaría puesto y la fuente de hoy sumaría también los suyos. Dentro de esta transacción, que se deshace al terminar, se sueltan
+-- sus documentos y sus notas por emitir: quedan como cambios de antes del corte, que ni el vigía ni la fuente miran.
+update retail.comprobantes set cambio_id = null where cambio_id is not null;
+delete from retail.cambio_notas;
 set local request.jwt.claim.sub = '${FELIPE}';
 select id as ubic from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select id as trujillo from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
