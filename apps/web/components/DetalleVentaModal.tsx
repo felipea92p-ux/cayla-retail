@@ -23,6 +23,7 @@ import {
 } from "@/lib/recibo-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { sePuedeImprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
 
 const money = (n: number) => "S/" + n.toFixed(2);
 
@@ -308,10 +309,10 @@ export function DetalleVentaModal({
               {/* `min-w-[11rem]`: «Imprimir boleta A4» necesita ~167 px y en media fila de un celular tenía 158 (el texto salía cortado). Con ese
                   mínimo los dos botones se apilan, cada uno a todo el ancho, cuando no caben juntos; en la hoja de escritorio siguen en una fila. */}
               <div className="flex flex-wrap gap-2.5">
-                <BotonImprimir peso="primario" className="min-w-[11rem] flex-1" disabled={!imprimible || imprimiendo !== null} onClick={() => setImprimiendo("ticket")}>
+                <BotonImprimir peso="primario" className="min-w-[11rem] flex-1" disabled={!imprimible || imprimiendo !== null} onClick={() => sePuedeImprimirAqui("ticket") && setImprimiendo("ticket")}>
                   Imprimir ticket
                 </BotonImprimir>
-                <BotonImprimir className="min-w-[11rem] flex-1" disabled={!imprimible || imprimiendo !== null} onClick={() => setImprimiendo("a4")}>
+                <BotonImprimir className="min-w-[11rem] flex-1" disabled={!imprimible || imprimiendo !== null} onClick={() => sePuedeImprimirAqui("hoja") && setImprimiendo("a4")}>
                   Imprimir {d.recibo?.tipo === "factura" ? "factura" : "boleta"} A4
                 </BotonImprimir>
               </div>

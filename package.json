@@ -476,6 +476,7 @@
     "pruebas:caja-efectivo-no-negativo": "node scripts/pruebas/caja_efectivo_no_negativo.mjs",
     "pruebas:corregir-pagos-caja-cerrada": "node scripts/pruebas/corregir_pagos_caja_cerrada.mjs",
     "pruebas:ventas-montos-validos": "node scripts/pruebas/ventas_montos_validos.mjs",
+    "pruebas:cola-de-impresion": "node scripts/pruebas/cola_de_impresion.mjs",
     "pruebas:comprobante-documento-valido": "node scripts/pruebas/comprobante_documento_valido.mjs",
     "pruebas:apartados-proformas-candados": "node scripts/pruebas/apartados_proformas_candados.mjs",
     "pruebas:ventas-online-canal": "node scripts/pruebas/ventas_online_canal.mjs",

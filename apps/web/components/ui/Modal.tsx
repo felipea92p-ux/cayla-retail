@@ -291,11 +291,17 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
             }
             // Radix dispara esto al desmontar el diálogo; `preventDefault` evita que
             // su default (enfocar el trigger) pise el foco que se pone acá.
+            // Si otra hoja se abrió en el lugar de esta (Vender: el ticket se cierra en el mismo instante en que
+            // abre «Venta registrada»), el foco ya está en ella y no se le quita: Radix corre esto un tick
+            // después, cuando la hoja nueva ya enfocó su botón, y devolverlo al escáner dejaba a Enter sin hoja.
             onCloseAutoFocus={
               alCerrarEnfocar
                 ? (e) => {
                     e.preventDefault();
-                    alCerrarEnfocar.current?.focus();
+                    const destino = alCerrarEnfocar.current;
+                    const otraHoja = document.activeElement instanceof HTMLElement ? document.activeElement.closest('[role="dialog"]') : null;
+                    if (otraHoja && destino && !otraHoja.contains(destino)) return;
+                    destino?.focus();
                   }
                 : undefined
             }

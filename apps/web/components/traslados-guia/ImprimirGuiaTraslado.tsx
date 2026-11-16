@@ -14,6 +14,7 @@ import {
   type GuiaTraslado,
 } from "@/lib/traslados-guia-reglas";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { imprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
 
 const sinSuscripcion = () => () => {};
 const formatoGuardado = (): FormatoGuia => {
@@ -54,7 +55,7 @@ export function ImprimirGuiaTraslado({ guia, sede, volver }: { guia: GuiaTraslad
         subtitulo="Pégala en la caja: quien la recibe escanea el QR y cuenta ahí mismo."
         volver={volver}
         acciones={
-          <BotonImprimir peso="primario" onClick={() => window.print()} disabled={!urlQr}>
+          <BotonImprimir peso="primario" onClick={() => imprimirAqui(formato === "a4" ? "hoja" : "ticket")} disabled={!urlQr}>
             {textoImprimirGuia(formato)}
           </BotonImprimir>
         }
