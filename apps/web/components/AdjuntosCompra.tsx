@@ -37,8 +37,10 @@ function IconoTipo({ tipo }: { tipo: string }) {
   );
 }
 
-// El botón que abre el explorador. Es un <label> sobre un input oculto: el
-// input nativo no se puede estilar y este sí parece un botón del sistema.
+// El botón que abre el explorador: un <Boton> del sistema que pulsa un input
+// oculto (el input nativo no se puede estilar). El input lleva su nombre para el
+// lector de pantalla y sale del orden de Tab: con el teclado se llega al botón,
+// no a un control invisible (como en ElegirDibujoDeInsignia).
 function BotonElegir({ onArchivos, disabled = false, texto }: { onArchivos: (f: File[]) => void; disabled?: boolean; texto: string }) {
   const input = useRef<HTMLInputElement>(null);
   return (
@@ -49,6 +51,8 @@ function BotonElegir({ onArchivos, disabled = false, texto }: { onArchivos: (f: 
         multiple
         accept={ACEPTA}
         className="sr-only"
+        aria-label="Elegir los archivos para adjuntar"
+        tabIndex={-1}
         disabled={disabled}
         onChange={(e) => {
           onArchivos(Array.from(e.target.files ?? []));

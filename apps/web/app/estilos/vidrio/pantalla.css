@@ -124,8 +124,9 @@
 .pestana-cayla:is([aria-selected="true"], [aria-current="page"]):focus-visible {
   outline-color: var(--foco-color);
 }
-/* El conteo de la elegida ya no va sobre tinta: vuelve a su globito de siempre. */
-.pestana-cayla:is([aria-selected="true"], [aria-current="page"]) .pestana-cayla__cuenta:not([data-pide], [data-tono]) {
+/* El conteo de la elegida ya no va sobre tinta: vuelve a su globito de siempre. El tono «neutro» también: sin él, la regla vieja de
+   pestanas-y-segmentos.css lo pintaba crema sobre la gota clara («7 activos», «N cajas»: 1,09:1, medido por /milimetro el 2026-11-16). */
+.pestana-cayla:is([aria-selected="true"], [aria-current="page"]) .pestana-cayla__cuenta:is(:not([data-pide], [data-tono]), [data-tono="neutro"]) {
   color: var(--color-tinta);
   background: color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es el fondo del globito, no un texto */
 }

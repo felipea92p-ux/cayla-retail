@@ -612,7 +612,7 @@ function TallerDeTienda({
                 Tienes cambios sin guardar.
               </span>
             )}
-            <Boton peso="primario" cargando={guardando} disabled={!sucio} onClick={onGuardar}>
+            <Boton peso="primario" cargando={guardando} disabled={!sucio} title={sucio ? undefined : "No cambiaste nada"} onClick={onGuardar}>
               Guardar
             </Boton>
           </PieAcciones>
@@ -687,7 +687,7 @@ function Plazos({ parametros, guardar, onSucio }: { parametros: ParametrosTienda
             Tienes cambios sin guardar.
           </span>
         )}
-        <Boton peso="primario" cargando={guardando} disabled={!sucio} onClick={guardarPlazos}>
+        <Boton peso="primario" cargando={guardando} disabled={!sucio} title={sucio ? undefined : "No cambiaste nada"} onClick={guardarPlazos}>
           Guardar
         </Boton>
       </PieAcciones>
