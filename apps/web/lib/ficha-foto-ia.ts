@@ -21,6 +21,15 @@ import { familiaDeTejido, type FamiliaTejido } from "./tejido-visual";
 /** De dónde cuelga la prenda: de los hombros (blusa, casaca, vestido) o de la cintura (pantalón, jean, short, falda). Define qué partes se nombran. */
 export type ZonaDeLaPrenda = "hombros" | "cintura";
 
+/**
+ * Qué es una prenda que cuelga de la cintura, para nombrar sus partes (2026-11-16, fase 2 del «pantalón que sale buzo»):
+ * - «pierna-suelta»: un pantalón o un jean de tela claramente PLANA (`TEJIDOS_PLANOS`) o sin tejido elegido: la basta va suelta;
+ * - «pierna»: un short, o un pantalón de cualquier otra tela (punto, elástica o ambigua: franela, licra, algodón, «Tela»…): la basta, como en la foto;
+ * - «falda»: vuelo y ruedo, sin piernas.
+ * La pierna nunca fija un ancho: sigue la forma de la foto (recta, flare, globo, mom…).
+ */
+export type FormaDeCintura = "pierna-suelta" | "pierna" | "falda";
+
 /** Lo ya elegido de la prenda, tal como lo tiene la pantalla. Todo es opcional: sin datos, la IA recibe el pedido de siempre. */
 export type DatosDePrenda = {
   /** `categorias.prefijo`: la clave estable (el nombre visible se renombra). */
@@ -36,6 +45,8 @@ export type DatosDePrenda = {
 export type FichaParaIA = {
   /** Sin zona conocida el pedido es el de siempre. */
   zona: ZonaDeLaPrenda | null;
+  /** Solo con zona «cintura»: qué es, para nombrar sus partes. */
+  cintura: FormaDeCintura | null;
   /** Lo que se suma al final del pedido. */
   texto: string;
 };
@@ -71,6 +82,25 @@ export const ZONA_POR_PREFIJO: Readonly<Record<string, ZonaDeLaPrenda | null>> =
 };
 
 /**
+ * @internal Exportada para su prueba (toda categoría de cintura tiene su forma); la pantalla la usa a través de `fichaParaIA`.
+ * La forma de partida de cada categoría. Pantalones y Jeans parten de «pierna-suelta», pero NO es una verdad de la categoría: en producción hay
+ * buzos de franela y de «Tela» y un legging de licra en Pantalones (revisión del 2026-11-16). Por eso solo quedan en «pierna-suelta» con una tela
+ * claramente plana o sin tejido; con cualquier otra, «pierna» (que no afirma nada de la basta).
+ */
+export const FORMA_DE_CINTURA: Readonly<Record<string, FormaDeCintura>> = {
+  FAL: "falda",
+  JEA: "pierna-suelta",
+  PAN: "pierna-suelta",
+  SHO: "pierna",
+};
+
+/**
+ * @internal Exportada para su prueba (que ninguno sea plano); la pantalla no la usa: un pantalón solo es de «pierna suelta» con una tela PLANA.
+ * Tejidos de PUNTO o afelpados: la tela de un buzo, un jogger o un legging. Documenta los controles de la prueba.
+ */
+export const TEJIDOS_DE_PUNTO: ReadonlySet<FamiliaTejido> = new Set<FamiliaTejido>(["franela", "hilo", "jersey", "licra", "mesh", "pique", "polar", "rib", "suplex"]);
+
+/**
  * @internal Exportada para que su prueba vigile que ningún tejido de punto entre; la pantalla la usa a través de `fichaParaIA`.
  * Tejidos que son PLANOS (trama y urdimbre, no de punto). Corta a propósito: solo lo que lo es sin discusión. «Algodón» puede ser plano o de
  * punto, «franela» es felpa cepillada, «jersey», «rib», «licra», «polar», «piqué» y «suplex» son punto: ninguno entra, o un buzo de verdad saldría
@@ -89,6 +119,27 @@ export const TEJIDOS_PLANOS: ReadonlySet<FamiliaTejido> = new Set<FamiliaTejido>
   "organza",
   "seersucker",
 ]);
+
+/**
+ * Lo que la ayuda del tejido le dice a una PERSONA no va al pedido de la IA (la de «Sastre» termina con «confirma la composición con el
+ * proveedor»; la del Satín, «si es de seda natural, elige Seda»). Se corta por cláusula (`.` y `;`), no por frase entera, para no perder el dato
+ * de la tela que comparte frase con el consejo («Suele ser mezcla de poliéster y viscosa»).
+ */
+function paraLaIA(texto: string): string {
+  const frases = texto.match(/[^.]+\.?/g) ?? [];
+  return frases
+    .map((frase) => {
+      const fin = frase.trim().endsWith(".") ? "." : "";
+      const clausulas = frase
+        .replace(/\.$/, "")
+        .split(";")
+        .map((c) => c.trim())
+        .filter((c) => c && !/proveedor|etiqueta|\belige\b/i.test(c));
+      return clausulas.length ? `${clausulas.join("; ")}${fin}` : "";
+    })
+    .filter(Boolean)
+    .join(" ");
+}
 
 /** Lo más largo que se acepta de un nombre elegido (un tejido o un patrón): lo demás es ruido o un intento de colar instrucciones. */
 const MAX_NOMBRE = 40;
@@ -135,17 +186,28 @@ export function fichaParaIA(datos: DatosDePrenda | null | undefined): FichaParaI
   const patron = limpiar(datos.patron);
   if (!tipo && !tejido && !patron) return null;
 
+  const zona = prefijo ? (ZONA_POR_PREFIJO[prefijo] ?? null) : null;
+  const familia = tejido ? familiaDeTejido(tejido) : null;
+  // Sin tejido elegido vale lo de la categoría (el lino del 14-nov sigue defendido aunque falte la tela); con tejido, solo una tela claramente plana
+  // es «pierna suelta». Lo ambiguo («Algodón», «Tela», «Algodón alicrado», «Mojado») no se afirma: un jogger de algodón existe.
+  const plana = !tejido || Boolean(familia && TEJIDOS_PLANOS.has(familia));
+  const deCategoria = zona === "cintura" && prefijo ? (FORMA_DE_CINTURA[prefijo] ?? null) : null;
+  const cintura: FormaDeCintura | null = deCategoria === "pierna-suelta" && !plana ? "pierna" : deCategoria;
+
   const partes: string[] = ["DATOS DE LA PRENDA, elegidos por el equipo de la tienda (son ciertos y mandan sobre lo que adivines de la foto):"];
   if (tipo) partes.push(`Tipo de prenda: ${tipo}.`);
+  // Dicho en positivo, también sin tejido elegido (es opcional en Nuevo producto): defiende al pantalón de lino del 14-nov aunque falte la tela.
+  if (cintura === "pierna-suelta") partes.push("Es un pantalón de tela plana, de vestir o casual.");
 
   if (tejido) {
-    const familia = familiaDeTejido(tejido);
     // «Tela» a secas es el comodín del vocabulario: su frase genérica no describe nada.
-    const queEs = familia && familia !== "tela" ? ayudaDeTejido(tejido)?.queEs : null;
+    const ayuda = familia && familia !== "tela" ? ayudaDeTejido(tejido)?.queEs : null;
+    const queEs = ayuda ? paraLaIA(ayuda) : "";
     partes.push(queEs ? `Tela: ${tejido}. ${queEs}` : `Tela: ${tejido}.`);
-    if (familia && TEJIDOS_PLANOS.has(familia)) {
-      partes.push("Es un tejido PLANO, no de punto: se ve su trama, sin pelusa ni textura de felpa, de algodón de buzo o de ropa deportiva.");
-    }
+    // En positivo: nombrar lo que se quiere evitar («felpa», «buzo») le pone esas palabras al modelo de imagen (las guías de Google, Ideogram y
+    // BFL piden describir lo que sí se quiere; revisión del 2026-11-16). Sin hablar de caída: a un chaleco de Sastre, a una blusa de organza o a un
+    // jean globo les contradiría su tela (la caída, si va, la dice el pedido de cintura una sola vez).
+    if (familia && TEJIDOS_PLANOS.has(familia)) partes.push("Es un tejido PLANO, hecho en telar: se ve su trama.");
   }
 
   if (patron) {
@@ -155,5 +217,5 @@ export function fichaParaIA(datos: DatosDePrenda | null | undefined): FichaParaI
   // La foto real casi nunca es limpia: una mano que la sostiene, otra prenda al lado, los estantes del almacén.
   partes.push("Si la sostiene una persona, o hay otra ropa, manos o estantes en la foto, ignóralos: la prenda es SOLO esta.");
 
-  return { zona: prefijo ? (ZONA_POR_PREFIJO[prefijo] ?? null) : null, texto: partes.join(" ") };
+  return { zona, cintura, texto: partes.join(" ") };
 }

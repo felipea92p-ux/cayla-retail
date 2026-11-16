@@ -228,8 +228,14 @@ const HUELLAS: Huella[] = [
     frase: (prenda) => `${prenda} va con su oferta de grupo en vez de su rebaja: vuelve a abrir el cobro para ver el precio de ahora.`,
   },
   {
+    // El candado de venta_items: el descuento de una línea no pasa su precio. Con una oferta de grupo pasa si el descuento a mano más la
+    // parte del grupo superan el precio (casuística 2026-11-16); «Quedaría en» ya lo frena, esto es la red.
+    marca: "venta_items_descuento_no_supera_precio",
+    frase: "Una prenda quedaría bajo S/ 0: su descuento a mano más su parte de la oferta pasan su precio. Baja el descuento de esa prenda.",
+  },
+  {
     marca: "separacion_grupo_no_coincide",
-    frase: (prenda) => `La oferta de grupo de ${prenda} cambió mientras apartabas: recarga la pantalla para ver el precio de ahora.`,
+    frase: (prenda) => `La oferta de grupo de ${prenda} cambió mientras apartabas: la pantalla ya trae el precio de ahora. Revisa el total y vuelve a confirmar.`,
   },
   {
     // 20261012190000_precio_cero_solo_empaque.sql (ADR-0384) — una prenda de mercadería con precio 0 en el catálogo no se vende

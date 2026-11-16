@@ -235,10 +235,12 @@ esperarValor(
   correr(`${PARTIDA()}${HORA("1 day")}${venta(SIN_3X2, COBRO_SIN)}select count(*) from retail.venta_items where venta_id = :'venta';\nrollback;`),
   "3",
 );
-esperarError(
-  "con una hora de hace más de 3 días se mide con hoy, y se rechaza como una venta en línea",
-  correr(`${PARTIDA()}${HORA("4 days")}${venta(SIN_3X2, COBRO_SIN)}rollback;`),
-  "venta_grupo_omitido",
+// Felipe 2026-11-16 (20261116174000): una venta sin conexión ya no se rechaza porque su oferta no cuadre con la de hoy; entra con lo que
+// cobró la caja y queda marcada. Con más de 3 días se mide con hoy: le faltó el 3x2 de hoy, así que queda marcada como «omitido».
+esperarValor(
+  "con una hora de hace más de 3 días se mide con hoy: entra y queda marcada (Felipe 2026-11-16)",
+  correr(`${PARTIDA()}${HORA("4 days")}${venta(SIN_3X2, COBRO_SIN)}select coalesce(oferta_cambiada -> 0 ->> 'motivo', 'sin marca') from retail.ventas where id = :'venta';\nrollback;`),
+  "omitido",
 );
 // Lo mismo con el % de siempre: una campaña de −20 % en la categoría de «fuera» que empieza hoy.
 const CAMPANA_DE_HOY = `select p.categoria_id as cat_fuera from retail.variantes v join retail.productos p on p.id = v.producto_id where v.id = :'fuera' \\gset
@@ -258,10 +260,12 @@ esperarError(
   correr(`${PARTIDA()}${CAMPANA_DE_HOY}${SIN_RABAJA}rollback;`),
   "venta_campana_omitida",
 );
-esperarError(
-  "CONTROL: sin la migración, la venta de ayer sin red se rechaza: la prueba ve la diferencia",
-  correr(`${PARTIDA()}${DESHACER_DIA_VENTA}\n${HORA("1 day")}${venta(SIN_3X2, COBRO_SIN)}rollback;`),
-  "venta_grupo_omitido",
+// Desde 20261116174000 (Felipe 2026-11-16) una venta sin conexión que no cuadra ya no se rechaza: entra y queda marcada. El control mira
+// la marca: sin 20261114132000 se mide con hoy y le falta el 3x2 («omitido»); con ella, entra sin marca.
+esperarValor(
+  "CONTROL: sin la migración, la venta de ayer sin red se mide con hoy y queda marcada: la prueba ve la diferencia",
+  correr(`${PARTIDA()}${DESHACER_DIA_VENTA}\n${HORA("1 day")}${venta(SIN_3X2, COBRO_SIN)}select coalesce(oferta_cambiada -> 0 ->> 'motivo', 'sin marca') from retail.ventas where id = :'venta';\nrollback;`),
+  "omitido",
 );
 esperar(
   "la migración de la venta sin conexión se puede pegar dos veces",

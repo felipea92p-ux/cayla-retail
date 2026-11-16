@@ -198,6 +198,8 @@ export type VentaCruda = {
   estado: string;
   nota: string | null;
   es_prueba?: boolean;
+  /** La venta sin conexión cuya oferta cambió antes de subirla (20261116174000): lo que se cobró y lo que la base habría pedido, por línea. */
+  oferta_cambiada?: unknown[] | null;
   usuario_id: string | null;
   /** Quién atendió (`ventas.asesora_id`); ausente/null en las ventas anteriores a la fila «Atendió». */
   asesora_id?: string | null;
@@ -331,6 +333,8 @@ export type FilaHistorial = {
   nota: string | null;
   /** Dato ficticio de prueba (D-54, ADR-0159): solo llega a esta fila con el toggle «Ver datos de prueba». */
   esPrueba: boolean;
+  /** Se cobró sin conexión con una oferta que cambió antes de subirla (ADR-0655, Felipe 2026-11-16): entró con lo que cobró la caja. */
+  ofertaCambiada?: boolean;
   /** Cuándo se anuló (para el recorrido); null si sigue vigente o si la base no lo trajo. */
   anuladaEn: string | null;
   /** Las líneas de la venta, para abrir Cambios o Devoluciones directo sobre una prenda. */
@@ -394,6 +398,7 @@ export function aFila(v: VentaCruda, nombres: ReadonlyMap<string, string>): Fila
     anulada: v.estado === "anulada",
     nota: v.nota,
     esPrueba: v.es_prueba === true,
+    ofertaCambiada: Array.isArray(v.oferta_cambiada) && v.oferta_cambiada.length > 0,
     anuladaEn: v.anulado_en ?? null,
     ventaItemIds: v.venta_items.map((i) => i.id).filter((id): id is string => !!id),
     itemsPorRegularizar: itemsPorRegularizar(v.venta_items),

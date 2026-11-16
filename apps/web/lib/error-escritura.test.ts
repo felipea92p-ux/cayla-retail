@@ -249,9 +249,20 @@ describe("las ofertas de grupo (ADR-0655) se dicen en palabras de tienda, no con
   it.each([
     ["venta_grupo_omitido", "registrar la venta", "La oferta de grupo de Blusa Emma (BLU-EMMA-BEI-S) cambió mientras cobrabas: vuelve a abrir el cobro para ver el precio de ahora."],
     ["venta_grupo_no_coincide", "registrar la venta", "La oferta de grupo de Blusa Emma (BLU-EMMA-BEI-S) ya no da lo que dice el ticket: vuelve a abrir el cobro para ver el precio de ahora."],
-    ["separacion_grupo_no_coincide", "apartar", "La oferta de grupo de Blusa Emma (BLU-EMMA-BEI-S) cambió mientras apartabas: recarga la pantalla para ver el precio de ahora."],
+    ["separacion_grupo_no_coincide", "apartar", "La oferta de grupo de Blusa Emma (BLU-EMMA-BEI-S) cambió mientras apartabas: la pantalla ya trae el precio de ahora. Revisa el total y vuelve a confirmar."],
   ])("%s", (codigo, contexto, frase) => {
     expect(traducirError({ message: codigo, details: "Blusa Emma (BLU-EMMA-BEI-S)", hint: "La oferta…", code: "P0001" }, contexto)).toBe(frase);
+  });
+});
+
+describe("una prenda bajo S/ 0 por descuento a mano más su oferta (casuística 2026-11-16)", () => {
+  it("dice qué pasó y qué hacer, no el nombre del candado", () => {
+    const salida = traducirError(
+      { message: 'new row for relation "venta_items" violates check constraint "venta_items_descuento_no_supera_precio"', code: "23514" },
+      "registrar la venta",
+    );
+    // `montosSinCorte` une «S/» y su cifra con un espacio que no corta.
+    expect(salida.replace(/\u00a0/g, " ")).toBe("Una prenda quedaría bajo S/ 0: su descuento a mano más su parte de la oferta pasan su precio. Baja el descuento de esa prenda.");
   });
 });
 

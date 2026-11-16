@@ -175,6 +175,11 @@ function FilaVenta({
           {/* Solo aparece con el toggle «Con datos de prueba» activo (D-54, ADR-0159): sin él, esta fila
               ni siquiera llega de la base — así que no hace falta un tono de alerta, solo distinguirla. */}
           {v.esPrueba && <Chip tono="neutro">Prueba</Chip>}
+          {v.ofertaCambiada && (
+            <Chip tono="ambar" title="Se cobró sin conexión y su oferta cambió antes de subirla: entró con lo que cobró la caja.">
+              Oferta que cambió
+            </Chip>
+          )}
           {deEmpresa && (
             <Chip
               tono="pizarra"

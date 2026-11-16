@@ -62,15 +62,17 @@ const embebidosLista = (conReferencia: boolean) => `ubicacion:ubicaciones ( id, 
   comprobantes ( tipo, serie, numero, estado, created_at, enviado_at ),
   devoluciones ( estado, created_at ),
   separaciones ( codigo, created_at )`;
-const selectLista = (o: Columnas) => `${CAMPOS_LISTA}${o.prueba ? ", es_prueba" : ""}, ${embebidosLista(o.referencia)}`;
+const selectLista = (o: Columnas) => `${CAMPOS_LISTA}${o.prueba ? ", es_prueba" : ""}${o.ofertaCambiada ? ", oferta_cambiada" : ""}, ${embebidosLista(o.referencia)}`;
 
-/** Columnas aditivas que pueden no estar todavía en la base: `es_prueba` (D-54) y `venta_pagos.referencia` (ADR-0230). */
-type Columnas = { prueba: boolean; referencia: boolean };
-const TODAS: Columnas = { prueba: true, referencia: true };
+/** Columnas aditivas que pueden no estar todavía en la base: `es_prueba` (D-54), `venta_pagos.referencia` (ADR-0230) y
+ *  `oferta_cambiada` (20261116174000, la venta sin conexión cuya oferta cambió). */
+type Columnas = { prueba: boolean; referencia: boolean; ofertaCambiada: boolean };
+const TODAS: Columnas = { prueba: true, referencia: true, ofertaCambiada: true };
 
 /** Qué columna quitar tras un 42703: la que nombra el mensaje de Postgres. Si no nombra ninguna conocida, null (no se
  *  reintenta a ciegas: el error sale tal cual). */
 function sinLaColumnaQueFalta(o: Columnas, mensaje: string | undefined): Columnas | null {
+  if (o.ofertaCambiada && mensaje?.includes("oferta_cambiada")) return { ...o, ofertaCambiada: false };
   if (o.referencia && mensaje?.includes("referencia")) return { ...o, referencia: false };
   if (o.prueba && mensaje?.includes("es_prueba")) return { ...o, prueba: false };
   return null;

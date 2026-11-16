@@ -239,8 +239,11 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                           ) : grupo.ahorro > 0 ? (
                             // Decisión 2: si el grupo le ahorra más que su rebaja, va en vez de ella (nunca las dos).
                             <>ahorras <span className="num">{soles(grupo.ahorro)}</span>{grupo.dejaRebaja > 0 ? " en vez de su rebaja" : ""}</>
-                          ) : (
+                          ) : grupo.faltan > 0 ? (
                             `lleva ${grupo.faltan} más`
+                          ) : (
+                            // Grupo completo que no conviene (su rebaja ahorra más, o «N por S/» cuesta más): antes decía «lleva 0 más».
+                            "con su precio de hoy ya pagas menos"
                           )}
                         </small>
                       )}
