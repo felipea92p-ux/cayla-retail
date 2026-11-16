@@ -47,7 +47,21 @@ Todo lo demás (el panel, la grilla, la cámara, las hojas) es igual en las dos.
 - **Espacio** (`/espacio`): múltiplos de 4. A 375 px todo se toca en 44 px; la × se dibuja de 36 y se toca en 44 (lo que hace `area-dedo`).
 - **Movimiento:** al agregar o quitar solo entra lo nuevo y lo que se va sale corto. Nada se repite; la única excepción es la
   línea del visor de la cámara, que es la señal de espera. Quieto, todo responde igual.
-- **Prueba ciega** (`/formidable`): ver abajo.
+- **Prueba ciega** (`/formidable`): ver la sección siguiente.
+
+## Prueba ciega (`/formidable`, un agente sin contexto, 2026-11-16)
+
+- **A los 5 segundos** entendió que la pantalla «sirve para manejar los descuentos de la tienda», y que podía agregar o quitar prendas,
+  crear un descuento o abrir una campaña.
+- **Tres tareas en palabras de tienda, las tres terminadas sin perderse:** −10 % a una blusa (2 toques), quitarle el descuento a un top
+  (3 toques) y un «lleva 2 y paga 1» en blusas dentro de Black Friday (8 toques).
+- **Lo que falló, ya arreglado:**
+  - la tarjeta no cambiaba su nombre al pasar de 3x2 a 2x1;
+  - la compra de ejemplo seguía con 3 prendas en un 2x1;
+  - «Polos» no se desmarcaba al primer toque;
+  - no veía «2x1» entre las opciones: ahora la tarjeta dice «3x2 · 2x1»;
+  - no entendió «Insignias»: ahora va dentro de «Prendas», como «O por insignia».
+- **Sin probar:** una colaboradora real. La nota de «sin manual» no llega a 10 sin ella.
 
 ## Lo que no cambia
 
