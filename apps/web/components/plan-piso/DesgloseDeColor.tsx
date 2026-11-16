@@ -85,7 +85,7 @@ function BloqueDeFamilia({ f, color, dias, cabecera }: { f: FamiliaDeColor; colo
       <p className="pp-des-frase">{fraseDeFamilia(f, { hayVentas: color.hayVentas, dias })}</p>
       {secciones.length > 0 && (
         <Tabla className="pp-des-tabla">
-          <div className="divide-y divide-sand sm:min-w-[34rem]">
+          <div className="divide-y divide-sand">
             <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
             {secciones.map((s) => (
               <div key={s.clave} className="divide-y divide-sand">

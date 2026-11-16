@@ -267,7 +267,8 @@ Renombrar o quitar una variable de una receta abre una tarea en Dynamic; un `--c
 - **Se miran** el resto de `apps/web/app/estilos/vidrio/` y `apps/web/components/ui/`. No se copian: si cambian, el vigilante abre una tarea en su aviso y se hace a mano. `globals.css` y `tema.css` no están en la lista, porque un valor de marca viaja por el contrato.
 - **Lo que te toca:** si tu cambio toca uno de esos archivos, díselo a Felipe en tu cierre y escríbelo en el PR: «Esto cambia el diseño de Dynamic: llega solo» o «queda como tarea allá», con las piezas. Si cambia **cómo funciona** una pieza, y no solo cómo se ve, di también qué tendrá que hacerse a mano en Dynamic. Desde aquí nunca se escribe en el repositorio de Dynamic.
 
-**Con el dedo, todo se toca en 44 px (ADR-0611, mejora 5):** `app/estilos/tacto.css`, solo con `pointer: coarse`. Una pieza nueva del sistema se suma ahí; un botón de ícono sin clase propia lleva
+**Con el dedo, todo se toca en 44 px (ADR-0611, mejora 5):** `app/estilos/tacto.css`, solo con `pointer: coarse`. Una pieza nueva del sistema se suma ahí. **Los íconos y los puntos de color
+se DIBUJAN de 44 px** (Felipe 2026-11-16, act. de ADR-0611); lo que va dentro de una frase o de otra pieza de 44, y un botón de ícono sin clase propia, lleva
 `area-dedo`, que agranda su área sin cambiar su dibujo. Se mide con `pnpm --filter web tacto:medir`.
 
 **Lo que flota sobre contenido que se desplaza lleva fondo de vidrio, nunca «en el aire» (regla — Felipe 2026-11-04):** una cabecera, una

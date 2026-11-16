@@ -314,7 +314,7 @@ export function Cajon({
                 </Dialog.Title>
                 {frase ? (
                   <Dialog.Description asChild>
-                    <div className="mt-1 text-[13px] leading-snug text-taupe">{frase}</div>
+                    <div className="mt-1 text-sm leading-snug text-taupe">{frase}</div>
                   </Dialog.Description>
                 ) : null}
                 {debajo ? <div className="mt-2.5">{debajo}</div> : null}
@@ -347,7 +347,7 @@ export function Cajon({
                       onClick={() => navegar(-1)}
                       disabled={!n.circular && n.indice <= 0}
                       aria-label={`${n.que} anterior`}
-                      className="grid h-8 w-8 place-items-center rounded-md border border-tinta/15 transition-colors hover:border-rojo hover:text-rojo disabled:pointer-events-none disabled:opacity-35"
+                      className="area-dedo grid h-8 w-8 place-items-center rounded-md border border-tinta/15 transition-colors hover:border-rojo hover:text-rojo disabled:pointer-events-none disabled:opacity-35"
                     >
                       <ChevronUp aria-hidden className="h-4 w-4 max-sm:hidden" />
                       <ChevronLeft aria-hidden className="h-4 w-4 sm:hidden" />
@@ -357,7 +357,7 @@ export function Cajon({
                       onClick={() => navegar(1)}
                       disabled={!n.circular && n.indice >= n.total - 1}
                       aria-label={`${n.que} siguiente`}
-                      className="grid h-8 w-8 place-items-center rounded-md border border-tinta/15 transition-colors hover:border-rojo hover:text-rojo disabled:pointer-events-none disabled:opacity-35"
+                      className="area-dedo grid h-8 w-8 place-items-center rounded-md border border-tinta/15 transition-colors hover:border-rojo hover:text-rojo disabled:pointer-events-none disabled:opacity-35"
                     >
                       <ChevronDown aria-hidden className="h-4 w-4 max-sm:hidden" />
                       <ChevronRight aria-hidden className="h-4 w-4 sm:hidden" />

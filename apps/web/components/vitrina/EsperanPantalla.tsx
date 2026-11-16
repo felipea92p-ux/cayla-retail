@@ -27,10 +27,12 @@ import {
   type LecturaEsperan,
 } from "@/lib/vitrina-esperan-reglas";
 
-// En el celular la fila es una tarjeta: la prenda arriba; debajo, en una línea, la tienda, cuántos y desde cuándo; y al final, qué
-// pasa ahora. Desde `sm`, columnas.
+// Angosta, la fila es una tarjeta: la prenda arriba; debajo, en una línea, la tienda, cuántos y desde cuándo; y al final, qué
+// pasa ahora. Con la TABLA de 54 rem o más, columnas: lo decide el ancho de la tabla (`.tabla-cayla` es contenedor), no el de la
+// ventana. Las fijas, «Ahora» estirada, los huecos y el relleno piden hasta 648 px, y con el menú abierto a 768 o 1024 px la
+// prenda se quedaba sin nombre.
 const PLANTILLA =
-  "grid-cols-[auto_auto_minmax(0,1fr)] sm:grid-cols-[minmax(0,1fr)_8rem_6.5rem_6.5rem_minmax(9rem,13rem)]";
+  "grid-cols-[auto_auto_minmax(0,1fr)] @min-[54rem]:grid-cols-[minmax(0,1fr)_8rem_6.5rem_6.5rem_minmax(9rem,13rem)]";
 const TONO: Record<EstadoEspera, TonoChip> = { falta: "ambar", llego: "verde", fuera: "neutro" };
 
 /**
@@ -99,7 +101,7 @@ export function EsperanPantalla({ lectura, hoy }: { lectura: LecturaEsperan; hoy
             />
           </div>
           {pildoras.length > 2 && (
-            <div className="pildoras-desliza gap-2 sm:flex-wrap" role="group" aria-label="Tienda" data-guia="esperan.tiendas">
+            <div className="pildoras-desliza gap-2 sm:flex-wrap" role="group" aria-label="Tienda" data-guia="esperan.tiendas" suppressHydrationWarning>
               {pildoras.map((p) => (
                 <button key={p.valor} type="button" className="pildora-cayla" aria-pressed={tienda === p.valor} onClick={() => setTienda(p.valor)}>
                   {p.texto}
@@ -128,6 +130,7 @@ export function EsperanPantalla({ lectura, hoy }: { lectura: LecturaEsperan; hoy
           <Tabla className="rounded-none border-0 shadow-none" guia="esperan.lista">
             <Encabezado
               plantilla={PLANTILLA}
+              visible="hidden @min-[54rem]:grid"
               columnas={[{ titulo: "Prenda" }, { titulo: "Tienda" }, { titulo: "Esperan", alinear: "der" }, { titulo: "Desde" }, { titulo: "Ahora" }]}
             />
             {visibles.map((f, i) => {
@@ -136,7 +139,7 @@ export function EsperanPantalla({ lectura, hoy }: { lectura: LecturaEsperan; hoy
               return (
                 <div key={f.clave}>
                 <div role="row" className={fila(PLANTILLA, "items-center sm:items-center")}>
-                  <span className={celda("izq", "col-span-3 flex items-center gap-3 sm:col-span-1")}>
+                  <span className={celda("izq", "col-span-3 flex items-center gap-3 @min-[54rem]:col-span-1")}>
                     <MiniaturaPrenda
                       fotoUrl={f.producto.foto}
                       colorHex={f.color?.hex ?? null}
@@ -153,7 +156,7 @@ export function EsperanPantalla({ lectura, hoy }: { lectura: LecturaEsperan; hoy
                     </span>
                   </span>
                   <span className={celda("izq", "text-sm text-tinta")}>
-                    <span className="text-taupe sm:hidden">En </span>
+                    <span className="text-taupe @min-[54rem]:hidden">En </span>
                     {tiendaDicha(f)}
                   </span>
                   <span className={celda("der", "text-sm font-semibold text-tinta")}>
@@ -172,7 +175,7 @@ export function EsperanPantalla({ lectura, hoy }: { lectura: LecturaEsperan; hoy
                   <span className={celda("izq", "text-sm text-taupe")} title={`La más nueva: ${desdeCuando(f.ultima, hoy)}`}>
                     {desdeCuando(f.desde, hoy)}
                   </span>
-                  <span className={celda("izq", "col-span-3 pt-1 sm:col-span-1 sm:pt-0")} data-guia={i === 0 ? "esperan.ahora" : undefined}>
+                  <span className={celda("izq", "col-span-3 pt-1 @min-[54rem]:col-span-1 @min-[54rem]:pt-0")} data-guia={i === 0 ? "esperan.ahora" : undefined}>
                     <Chip tono={TONO[e]}>{ahoraDicho(f)}</Chip>
                   </span>
                 </div>

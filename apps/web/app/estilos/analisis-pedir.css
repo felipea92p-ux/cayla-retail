@@ -19,6 +19,25 @@
     .cols-t.muchas > .ct:last-child{margin-right:auto}
     .cols-t.muchas .par-c i{width:18px}
     .cols-t.muchas .ct .nom{font-size:18px}
+    /* En un panel angosto (celular, tablet con el lateral), cinco tallas a 61 px cada una no caben: toman la misma forma de
+       `.muchas` antes de salirse de la tarjeta. */
+    @container analisis (max-width:520px){
+      .panel-tipo .cols-t{gap:14px;justify-content:flex-start;overflow-x:auto}
+      .panel-tipo .cols-t > .ct:first-child{margin-left:auto}
+      .panel-tipo .cols-t > .ct:last-child{margin-right:auto}
+      .panel-tipo .cols-t .par-c i{width:18px}
+      .panel-tipo .cols-t .ct .nom{font-size:18px}
+    }
+    /* El mismo panel también es angosto en escritorio, cuando la lista y el panel van lado a lado (pantalla de 1001 a ≈1190 px, ventana de
+       ≈1330 a 1520 con el lateral, 1440 incluida): el panel mide (ancho − 14) ÷ 2,45, y bajo ≈479 px (441 de las cinco tallas + 38 de relleno y borde) se
+       salían de la tarjeta. */
+    @container analisis (min-width:1001px) and (max-width:1190px){
+      .panel-tipo .cols-t{gap:14px;justify-content:flex-start;overflow-x:auto}
+      .panel-tipo .cols-t > .ct:first-child{margin-left:auto}
+      .panel-tipo .cols-t > .ct:last-child{margin-right:auto}
+      .panel-tipo .cols-t .par-c i{width:18px}
+      .panel-tipo .cols-t .ct .nom{font-size:18px}
+    }
     /* «¿Para cuánto te alcanza?» (B2, Felipe 2026-10-07): cada tipo con su barra de días, la línea de Navidad (punteada, en la
        misma posición en todas las filas: `--nav`) y lo que tienes. Lo que no llega a Navidad va en ámbar. Cada fila es un botón de
        24 px o más que filtra tallas y ranking. */
@@ -49,6 +68,13 @@
     /* Columnas de ancho fijo salvo el nombre: con la última en `auto`, cada fila medía su «Quedan N» y la barra arrancaba en otro
        lugar (Felipe 2026-10-12). Así todas las barras salen de la misma línea. */
     .panel-tipo .rank-f{grid-template-columns:32px minmax(0,1fr) minmax(60px,.8fr) 108px}
+    /* Angosto: miniatura, nombre y «Quedan N» en la primera fila; la barra baja, bajo el nombre. Con la plantilla de arriba
+       (que le gana a la de la base por especificidad) el chip caía a una tercera fila de 32 px y se salía por la izquierda. */
+    @container analisis (max-width:620px){
+      .panel-tipo .rank-f{grid-template-columns:32px minmax(0,1fr) auto}
+      .panel-tipo .rank-f .tr{grid-column:2 / -1;grid-row:2}
+      .panel-tipo .rank-f .q{grid-column:3;grid-row:1}
+    }
     @container analisis (max-width:1000px){ .pedir-ad{grid-template-columns:minmax(0,1fr)} .panel-tipo{position:static} }
     .al-cab{font-size:13px;color:var(--color-tinta-60);padding:0 8px 6px}
     .al-cab .eje{position:relative;height:14px}

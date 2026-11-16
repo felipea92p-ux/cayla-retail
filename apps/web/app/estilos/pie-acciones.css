@@ -27,7 +27,11 @@
   /* Un pie que comparte la fila con otra cosa (`ml-auto`, al lado de «Falta: …») baja a ocupar la suya: si no, sus mitades serían del
      ancho de sus palabras. El pie fijo (`pie-hoja-fijo`) ya es de bloque y se estira con sus márgenes negativos: no se toca. */
   .pie-acciones:not(.pie-hoja-fijo) { width: 100%; margin-left: 0; }
-  .pie-acciones > :is(button, a):not([data-pieza="volver"]) { flex: 1 1 0; min-width: 0; }
+  /* Mitades iguales mientras las dos palabras quepan. Si una no cabe en su mitad («Registrar devolución», «Poner al día los nombres»),
+     `min-width: max-content` no la deja recortarse por los dos lados (el botón es `nowrap` y `overflow: hidden`): el `flex-wrap` del pie
+     baja cada botón a su propia fila a todo el ancho, lo mismo que hace a mano `pie-acciones-ancho`. (Un tope de ancho aquí no serviría:
+     `min-width` le gana a `max-width`. Una etiqueta más ancha que la hoja entera la desbordaría: esa se acorta en su texto.) */
+  .pie-acciones > :is(button, a):not([data-pieza="volver"]) { flex: 1 1 0; min-width: max-content; }
   .pie-acciones > :is(.pie-acciones-izq, .mr-auto) { order: 1; flex-basis: 100%; margin-right: 0; }
   /* Un botón de etiqueta larga («Registrar pago de S/ 5,133.60») no cabe en media fila y quedaba de 34 px: `pie-acciones-ancho` lo deja
      en su propia fila a todo el ancho, y «Cancelar» (que va antes) queda arriba, también a todo el ancho. Va después de la regla de las

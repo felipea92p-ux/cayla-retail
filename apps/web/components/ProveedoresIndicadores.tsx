@@ -43,67 +43,71 @@ export function ProveedoresIndicadores({
   const sin90 = resumen.sinCompras90d ?? 0;
 
   return (
-    <div data-guia="proveedores.cifras" className={`grid grid-cols-2 gap-3 ${conFavor ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}>
-      <TarjetaCifra {...entra(1)} punto="neutro" etiqueta="Proveedores activos" valor={<CifraQueCuenta valor={resumen.activos} alMontar />}>
-        {resumen.desactivados === 0 ? "Ninguno desactivado" : `${resumen.desactivados.toLocaleString("es-PE")} ${resumen.desactivados === 1 ? "desactivado" : "desactivados"}`}
-      </TarjetaCifra>
-      <TarjetaCifra
-        {...entra(2)}
-        punto={deuda > 0 ? "ambar" : "verde"}
-        detalleTono={vencidas > 0 ? "text-rojo" : undefined}
-        etiqueta="Deuda con proveedores"
-        valor={<CifraQueCuenta valor={deuda} formato="soles" alMontar />}
-      >
-        {deuda > 0 ? `${resumen.conSaldo} con saldo${vencidas > 0 ? ` · ${vencidas} con comprobantes vencidos` : ""}` : "Nada por pagar"}
-      </TarjetaCifra>
-      {resumen.topProveedorNombre && resumen.topPct != null ? (
-        <TarjetaCifra {...entra(3)} punto="neutro" etiqueta="Concentración" valor={<CifraQueCuenta valor={resumen.topPct} formato="porcentaje" alMontar />}>
-          {(resumen.conSaldo ?? 0) > 3 && resumen.top3Pct != null
-            ? `${resumen.topProveedorNombre} · los 3 mayores suman el ${Math.round(resumen.top3Pct)} %`
-            : `${resumen.topProveedorNombre} concentra la deuda`}
-          {reparto.length > 0 && (
-            // La barra es `<BarraApilada>` (ADR-0358): cada proveedor es un tramo; apuntarlo enciende su fila en la tabla y apaga las demás
-            // (`onFoco`: apuntar no es un filtro, solo enciende la fila, por eso se RESALTA y no queda «presionado»), tocarlo abre su vista rápida. El «Resto»
-            // se dibuja pero no responde ni lo oye el lector.
-            <BarraApilada
-              className="mt-2.5"
-              alto={8}
-              retraso={3}
-              segmentos={reparto.map((t, i) => ({
-                clave: t.id ?? "resto",
-                nombre: t.nombre,
-                valor: t.monto,
-                clase: COLOR_TRAMO[i],
-                titulo: t.id ? `${t.nombre} · ${soles(t.monto)}` : undefined,
-                etiqueta: t.id ? `${t.nombre}: ${soles(t.monto)}, ${Math.round(t.pct)} % de la deuda` : undefined,
-                inerte: !t.id,
-                oculto: !t.id,
-              }))}
-              etiqueta="Reparto de la deuda por proveedor"
-              formato={soles}
-              respuesta={{ onApuntar: (clave) => onFoco(clave), onElegir: (clave) => onAbrir(clave), resaltada: foco }}
-            />
-          )}
+    // Las columnas siguen el ancho de la banda, no el de la ventana: con el menú fijo de una tablet, cuatro por fila dejaban ~60 px por cifra.
+    // Con las cinco, a 1280 (~59rem de banda) van de a tres: cinco quedarían bajo 148 px de contenido y dos dejarían tres filas.
+    <div className="@container">
+      <div data-guia="proveedores.cifras" className={`grid grid-cols-2 gap-3 ${conFavor ? "@min-[56rem]:grid-cols-3 @min-[68rem]:grid-cols-5" : "@min-[56rem]:grid-cols-4"}`}>
+        <TarjetaCifra {...entra(1)} punto="neutro" etiqueta="Proveedores activos" valor={<CifraQueCuenta valor={resumen.activos} alMontar />}>
+          {resumen.desactivados === 0 ? "Ninguno desactivado" : `${resumen.desactivados.toLocaleString("es-PE")} ${resumen.desactivados === 1 ? "desactivado" : "desactivados"}`}
         </TarjetaCifra>
-      ) : (
-        <TarjetaCifra {...entra(3)} etiqueta="Concentración" valor={null}>
-          Aparece cuando haya deuda
+        <TarjetaCifra
+          {...entra(2)}
+          punto={deuda > 0 ? "ambar" : "verde"}
+          detalleTono={vencidas > 0 ? "text-rojo" : undefined}
+          etiqueta="Deuda con proveedores"
+          valor={<CifraQueCuenta valor={deuda} formato="soles" alMontar />}
+        >
+          {deuda > 0 ? `${resumen.conSaldo} con saldo${vencidas > 0 ? ` · ${vencidas} con comprobantes vencidos` : ""}` : "Nada por pagar"}
         </TarjetaCifra>
-      )}
-      <TarjetaCifra
-        {...entra(4)}
-        punto={sin90 > 0 ? "ambar" : "verde"}
-        detalleTono={sin90 > 0 ? "text-ambar-profundo" : "text-verde-profundo"}
-        etiqueta="Sin compras en 90 días"
-        valor={<CifraQueCuenta valor={sin90} alMontar />}
-      >
-        {sin90 > 0 ? "Revisa si siguen siendo proveedores" : "Nadie inactivo por revisar"}
-      </TarjetaCifra>
-      {conFavor && (
-        <TarjetaCifra {...entra(5)} punto="verde" tono="text-verde-profundo" detalleTono="text-verde-profundo" etiqueta="A favor con proveedores" valor={<CifraQueCuenta valor={resumen.saldoFavorTotal ?? 0} formato="soles" alMontar />}>
-          {resumen.conSaldoFavor === 1 ? "1 proveedor te debe" : `${resumen.conSaldoFavor} proveedores te deben`} · se descuenta al pagar
+        {resumen.topProveedorNombre && resumen.topPct != null ? (
+          <TarjetaCifra {...entra(3)} punto="neutro" etiqueta="Concentración" valor={<CifraQueCuenta valor={resumen.topPct} formato="porcentaje" alMontar />}>
+            {(resumen.conSaldo ?? 0) > 3 && resumen.top3Pct != null
+              ? `${resumen.topProveedorNombre} · los 3 mayores suman el ${Math.round(resumen.top3Pct)} %`
+              : `${resumen.topProveedorNombre} concentra la deuda`}
+            {reparto.length > 0 && (
+              // La barra es `<BarraApilada>` (ADR-0358): cada proveedor es un tramo; apuntarlo enciende su fila en la tabla y apaga las demás
+              // (`onFoco`: apuntar no es un filtro, solo enciende la fila, por eso se RESALTA y no queda «presionado»), tocarlo abre su vista rápida. El «Resto»
+              // se dibuja pero no responde ni lo oye el lector.
+              <BarraApilada
+                className="mt-2.5"
+                alto={8}
+                retraso={3}
+                segmentos={reparto.map((t, i) => ({
+                  clave: t.id ?? "resto",
+                  nombre: t.nombre,
+                  valor: t.monto,
+                  clase: COLOR_TRAMO[i],
+                  titulo: t.id ? `${t.nombre} · ${soles(t.monto)}` : undefined,
+                  etiqueta: t.id ? `${t.nombre}: ${soles(t.monto)}, ${Math.round(t.pct)} % de la deuda` : undefined,
+                  inerte: !t.id,
+                  oculto: !t.id,
+                }))}
+                etiqueta="Reparto de la deuda por proveedor"
+                formato={soles}
+                respuesta={{ onApuntar: (clave) => onFoco(clave), onElegir: (clave) => onAbrir(clave), resaltada: foco }}
+              />
+            )}
+          </TarjetaCifra>
+        ) : (
+          <TarjetaCifra {...entra(3)} etiqueta="Concentración" valor={null}>
+            Aparece cuando haya deuda
+          </TarjetaCifra>
+        )}
+        <TarjetaCifra
+          {...entra(4)}
+          punto={sin90 > 0 ? "ambar" : "verde"}
+          detalleTono={sin90 > 0 ? "text-ambar-profundo" : "text-verde-profundo"}
+          etiqueta="Sin compras en 90 días"
+          valor={<CifraQueCuenta valor={sin90} alMontar />}
+        >
+          {sin90 > 0 ? "Revisa si siguen siendo proveedores" : "Nadie inactivo por revisar"}
         </TarjetaCifra>
-      )}
+        {conFavor && (
+          <TarjetaCifra {...entra(5)} punto="verde" tono="text-verde-profundo" detalleTono="text-verde-profundo" etiqueta="A favor con proveedores" valor={<CifraQueCuenta valor={resumen.saldoFavorTotal ?? 0} formato="soles" alMontar />}>
+            {resumen.conSaldoFavor === 1 ? "1 proveedor te debe" : `${resumen.conSaldoFavor} proveedores te deben`} · se descuenta al pagar
+          </TarjetaCifra>
+        )}
+      </div>
     </div>
   );
 }

@@ -158,7 +158,7 @@ function LoginForm() {
             {saludo ?? "\u00a0"}
           </p>
           <h1 className="login-titulo">Entrar</h1>
-          <p className="mt-2 text-[13.5px] leading-relaxed text-tinta/65">
+          <p className="mt-2 text-sm leading-relaxed text-tinta/65">
             Con el correo que te dio tu líder, o el de la terminal de tu tienda.
           </p>
 
@@ -195,7 +195,7 @@ function LoginForm() {
                   type="button"
                   onClick={() => setMostrarPassword((v) => !v)}
                   aria-label={mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                  className="-mr-1 shrink-0 text-tinta/65 transition-colors hover:text-rojo"
+                  className="area-dedo -mr-1 shrink-0 text-tinta/65 transition-colors hover:text-rojo"
                 >
                   {mostrarPassword ? (
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
@@ -221,7 +221,7 @@ function LoginForm() {
           </div>
         </form>
 
-        <p className="login-pie text-[12.5px] text-tinta/65">¿Olvidaste tu contraseña? Avísale a tu líder.</p>
+        <p className="login-pie text-sm text-tinta/65">¿Olvidaste tu contraseña? Avísale a tu líder.</p>
       </main>
     </div>
   );

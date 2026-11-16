@@ -30,7 +30,7 @@ export function UltimaRonda({
   const [abierta, setAbierta] = useState(false);
   const resumen = envios ? resumenDeEnvios(envios, hoy) : null;
   return (
-    <section aria-label="Tu última ronda" data-guia="mi-plata.ultima" className="card-cayla flex min-w-0 flex-col gap-4 p-5">
+    <section aria-label="Tu última ronda" data-guia="mi-plata.ultima" className="card-cayla @container flex min-w-0 flex-col gap-4 p-5">
       <header className="flex flex-col gap-1">
         {/* El sello comparte línea con la etiqueta, no con el título: a 375 px «Ronda RC-000004» se partía en el guion. */}
         <span className="flex items-center justify-between gap-3">
@@ -42,7 +42,7 @@ export function UltimaRonda({
         <span className="font-serif text-[28px] leading-tight text-tinta">{u.ronda.titulo}</span>
         <span className="text-sm text-taupe">{u.ronda.detalle}</span>
       </header>
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-3.5 rounded-[14px] bg-hueso px-4 py-3.5 sm:grid-cols-3">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3.5 rounded-[14px] bg-hueso px-4 py-3.5 @min-[30rem]:grid-cols-3">
         <div className="flex min-w-0 flex-col gap-1">
           <dt className="label-cayla text-[11px] text-taupe">Salió de tu plata</dt>
           <dd className="font-serif text-2xl leading-none tabular-nums text-tinta">{u.ronda.monto}</dd>
@@ -52,7 +52,7 @@ export function UltimaRonda({
           <dd className="text-sm text-tinta">{u.comoCerro}</dd>
         </div>
         {resumen && (
-          <div className="col-span-2 flex min-w-0 flex-col gap-1 sm:col-span-1">
+          <div className="col-span-2 flex min-w-0 flex-col gap-1 @min-[30rem]:col-span-1">
             <dt className="label-cayla text-[11px] text-taupe">Envíos</dt>
             <dd className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-tinta">
               {resumen.texto}

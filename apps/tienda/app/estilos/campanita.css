@@ -11,7 +11,7 @@
 /* En el celular el panel se ancla a toda la cabecera (el ícono queda lejos del borde y un panel de 360 px se saldría): de un lado al otro,
    con el margen de la fila. En la computadora baja del ícono, alineado a la derecha. */
 .t-avisos-panel {
-  position: absolute; top: calc(100% + 8px); left: 10px; right: 10px; z-index: 42; max-height: min(72vh, 540px); overflow-y: auto;
+  position: absolute; top: calc(100% + 8px); left: 10px; right: 10px; z-index: 42; max-height: min(72vh, 540px); max-height: min(72dvh, 540px); overflow-y: auto;
   padding: 8px; background: var(--papel); border: 1px solid var(--sand); border-radius: 0; box-shadow: 0 22px 40px -22px var(--sombra);
   animation: t-bajar .22s var(--ease) both;
 }
@@ -43,6 +43,11 @@
 .t-avisos-panel li > .t-avisos-fila { flex: 1; min-width: 0; }
 .t-avisos-borrar { flex: none; align-self: center; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 0; background: transparent; color: var(--tinta-60); cursor: pointer; }
 .t-avisos-borrar .ic { width: 14px; height: 14px; }
+/* Con el dedo, la ✕ se toca en 44 px sin cambiar su dibujo de 28 (en la campanita y en «Todas las notificaciones»). */
+@media (pointer: coarse) {
+  .t-avisos-borrar { position: relative; }
+  .t-avisos-borrar::before { content: ""; position: absolute; inset: -8px; }
+}
 .t-avisos-borrar:hover { background: var(--hueso); color: var(--rojo-profundo); }
 .t-avisos-borrar:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
 /* «Vaciar bandeja» (Felipe, 2026-10-19): quita las notificaciones del panel sin borrarlas. Va a la izquierda del título, a su misma altura. */

@@ -48,11 +48,21 @@ function useTopeBajoLaMesa() {
     const mesa = document.querySelector<HTMLElement>(".mesa-telar");
     const lista = ref.current;
     if (!mesa || !lista) return;
-    const medir = () => lista.style.setProperty("--separador-tope", `calc(3.75rem + env(safe-area-inset-top) + ${Math.round(mesa.getBoundingClientRect().height)}px)`);
+    // En el celular la mesa ya no va pegada (telar.css): el separador se pega directo bajo la cabecera, sin sumar un alto que se fue al bajar.
+    const medir = () => {
+      const pegada = getComputedStyle(mesa).position === "sticky";
+      const alto = pegada ? Math.round(mesa.getBoundingClientRect().height) : 0;
+      lista.style.setProperty("--separador-tope", `calc(3.75rem + env(safe-area-inset-top) + ${alto}px)`);
+    };
     medir();
     const obs = new ResizeObserver(medir);
     obs.observe(mesa);
-    return () => obs.disconnect();
+    // Girar el aparato o cambiar el ancho de la ventana cruza los 640 px sin que la mesa cambie de alto: también se vuelve a medir.
+    window.addEventListener("resize", medir);
+    return () => {
+      obs.disconnect();
+      window.removeEventListener("resize", medir);
+    };
   }, []);
   return ref;
 }

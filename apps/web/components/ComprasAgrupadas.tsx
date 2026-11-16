@@ -127,7 +127,9 @@ export function ComprasAgrupadas({
                   key={compra.ventaId}
                   data-guia="posventa.compra"
                   style={{ "--i": Math.min(d * 2 + c + 2, 12) } as CSSProperties}
-                  className="anim-sube rounded-tarjeta bg-papel ring-1 ring-tinta/[0.07] transition-[transform,box-shadow] duration-[400ms] ease-[var(--ease-cayla)] hover:-translate-y-0.5 hover:shadow-[0_24px_44px_-30px_color-mix(in_srgb,var(--color-sombra)_55%,transparent)]"
+                  // `@container`: la fila de cada prenda (FilaPrendaVenta) se pone en fila según el ancho de ESTA tarjeta, no el de la
+                  // ventana. A 768 px con el menú abierto la tarjeta mide ~390 px y el nombre quedaba en ~80 px junto al botón.
+                  className="@container anim-sube rounded-tarjeta bg-papel ring-1 ring-tinta/[0.07] transition-[transform,box-shadow] duration-[400ms] ease-[var(--ease-cayla)] hover:-translate-y-0.5 hover:shadow-[0_24px_44px_-30px_color-mix(in_srgb,var(--color-sombra)_55%,transparent)]"
                 >
                   <header className="px-6 pb-1 pt-4">
                     <MetaCompra compra={compra.lineas[0]!} derecha={accionCompra?.(compra.lineas[0]!)} />
@@ -163,7 +165,7 @@ export function FilaPrendaVenta({
 }) {
   return (
     <li
-      className={`group flex flex-col gap-3 rounded-2xl px-4 py-3.5 transition-colors duration-200 sm:flex-row sm:items-center sm:gap-4 [&+&]:border-t [&+&]:border-dashed [&+&]:border-tinta/10 ${
+      className={`group flex flex-col gap-3 rounded-2xl px-4 py-3.5 transition-colors duration-200 @lg:flex-row @lg:items-center @lg:gap-4 [&+&]:border-t [&+&]:border-dashed [&+&]:border-tinta/10 ${
         linea.coincideConBusqueda ? "bg-crema/80" : ""
       }`}
     >
@@ -186,7 +188,7 @@ export function FilaPrendaVenta({
         </div>
       </div>
 
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 pl-16 sm:flex-col sm:flex-nowrap sm:items-end sm:justify-center sm:pl-0">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 pl-16 @lg:flex-col @lg:flex-nowrap @lg:items-end @lg:justify-center @lg:pl-0">
         <ChipEstado estado={estado} />
         {accion}
       </div>
@@ -212,7 +214,8 @@ export function FiltrosActividad<T extends string>({
   onCambio: (v: T) => void;
 }) {
   return (
-    <div role="group" aria-label="Filtrar la actividad" data-guia="cambios.filtros" className="pildoras-desliza gap-2 sm:flex-wrap">
+    // `suppressHydrationWarning`: `FilasQueSeDeslizan` (app/layout.tsx) le pone `data-mas-izq`/`data-mas-der` desde afuera de React.
+    <div role="group" aria-label="Filtrar la actividad" data-guia="cambios.filtros" className="pildoras-desliza gap-2 sm:flex-wrap" suppressHydrationWarning>
       {opciones.map((f) => (
         <button key={f.valor} type="button" aria-pressed={valor === f.valor} onClick={() => onCambio(f.valor)} className="pildora-cayla shrink-0">
           {f.texto} <span className="pildora-cayla__n">{f.cuantas}</span>

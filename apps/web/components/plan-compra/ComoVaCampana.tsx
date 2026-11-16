@@ -112,9 +112,16 @@ export function CeldaComoVa({
       <span className="flex flex-wrap items-baseline gap-x-2 text-sm text-tinta/65">
         {/* Sin plan, «861 de —» no dice nada: la cifra grande ya es lo que termina vendiéndose. */}
         {c.medidos > 0 && c.esperado !== null && (
-          <span className="whitespace-nowrap">
-            {enteroES.format(c.vendido)} de {enteroES.format(c.esperado)} esperadas · termina en {enteroES.format(c.proyeccion)}
-            {c.planTotal !== null ? ` de ${enteroES.format(c.planTotal)}` : ""}
+          // Se parte en el «·», nunca dentro de un par: la frase entera no cabe en la celda angosta de la barra de cifras.
+          <span className="min-w-0">
+            <span className="whitespace-nowrap">
+              {enteroES.format(c.vendido)} de {enteroES.format(c.esperado)} esperadas
+            </span>{" "}
+            ·{" "}
+            <span className="whitespace-nowrap">
+              termina en {enteroES.format(c.proyeccion)}
+              {c.planTotal !== null ? ` de ${enteroES.format(c.planTotal)}` : ""}
+            </span>
           </span>
         )}
         {c.medidos > 0 && (

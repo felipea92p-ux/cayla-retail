@@ -135,7 +135,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
       <section aria-labelledby="titulo-tiendas" className="space-y-3" data-guia="comercial.tiendas">
         <div>
           <TituloSeccion id="titulo-tiendas">Por tienda</TituloSeccion>
-          <p className="mt-1 text-xs text-tinta/60">La tienda que más necesita atención, primero.</p>
+          <p className="mt-1 text-sm text-tinta/60">La tienda que más necesita atención, primero.</p>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {panel.sedes.map((s) => (
@@ -148,7 +148,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
       <section aria-labelledby="titulo-horas" className="space-y-3" data-guia="comercial.horas">
         <div>
           <TituloSeccion id="titulo-horas">Ventas por hora, hoy</TituloSeccion>
-          <p className="mt-1 text-xs text-tinta/60">Hora de Lima. Desde la primera venta del día hasta la hora actual.</p>
+          <p className="mt-1 text-sm text-tinta/60">Hora de Lima. Desde la primera venta del día hasta la hora actual.</p>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {panel.sedes.map((s) => {
@@ -159,7 +159,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
               <div key={s.ubicacionId} className="space-y-1.5">
                 <p className="text-sm font-semibold text-tinta">
                   {s.nombre}
-                  {pico !== null && <span className="ml-2 text-xs font-normal text-tinta/60">Hora fuerte: {etiquetaHora(pico)}</span>}
+                  {pico !== null && <span className="ml-2 text-sm font-normal text-tinta/60">Hora fuerte: {etiquetaHora(pico)}</span>}
                 </p>
                 {serie.length === 0 ? (
                   <div className="card-cayla">
@@ -180,7 +180,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
       <section aria-labelledby="titulo-colab" className="space-y-3" data-guia="comercial.colaboradoras">
         <div>
           <TituloSeccion id="titulo-colab">Ventas por colaboradora, este mes</TituloSeccion>
-          <p className="mt-1 max-w-2xl text-xs text-tinta/60">
+          <p className="mt-1 max-w-2xl text-sm text-tinta/60">
             El descuento va al lado a propósito: vender más regalando precio no es vender mejor. Es una foto de un mes, no
             una evaluación: una colaboradora que cubre menos turnos vende menos sin hacerlo peor.
           </p>
@@ -196,7 +196,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
         </div>
       </section>
 
-      <details className="card-cayla p-4 text-xs text-tinta/75" data-guia="comercial.como-se-calcula">
+      <details className="card-cayla p-4 text-sm text-tinta/75" data-guia="comercial.como-se-calcula">
         <summary className="cursor-pointer font-semibold text-tinta" data-guia="comercial.como-abrir">Cómo se calcula todo esto</summary>
         <ul className="mt-3 list-disc space-y-1.5 pl-5 leading-relaxed">
           <li>
@@ -293,7 +293,7 @@ function TablaColaboradoras({ sede, filas }: { sede: SedeComercial; filas: Colab
           Sin ventas este mes.
         </Vacio>
       ) : (
-        <div role="table" aria-label={`Ventas por colaboradora en ${sede.nombre}, este mes`} className="divide-y divide-sand text-xs tabular-nums">
+        <div role="table" aria-label={`Ventas por colaboradora en ${sede.nombre}, este mes`} className="divide-y divide-sand text-sm tabular-nums">
           <Encabezado
             siempre
             plantilla={`${PLANTILLA_COLABORADORAS} @max-[640px]:hidden!`}

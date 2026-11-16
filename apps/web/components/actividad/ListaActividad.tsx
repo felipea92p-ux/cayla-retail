@@ -129,7 +129,7 @@ export function ListaActividad({
                   <p className="text-sm leading-snug text-tinta">
                     <span className="font-semibold">{quien(f)}</span> {montosSinCorte(f.descripcion) /* la escribe Postgres: «por S/ 189» */}
                   </p>
-                  <p className="mt-0.5 text-xs text-taupe">
+                  <p className="mt-0.5 text-sm text-taupe">
                     {pieDeFila(f, { conSede })}
                     {conModulo ? ` · ${nombreDeModulo(f.modulo)}` : ""}
                   </p>

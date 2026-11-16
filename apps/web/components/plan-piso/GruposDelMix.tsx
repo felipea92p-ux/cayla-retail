@@ -58,7 +58,9 @@ import { prefiereQuieto } from "@/lib/movimiento-cliente";
 // Desde ADR-0534 (20261027164000) los decide quien ve el módulo Plan del piso, no solo el líder: esta pantalla ya exige el módulo y la base lo
 // vuelve a pedir (`grupos_mix_sin_modulo`). Quién lo hizo queda firmado con el «Responsable».
 
-const PLANTILLA = "sm:grid-cols-[minmax(0,1.3fr)_8.5rem_minmax(0,1.2fr)]";
+// La tercera pista guarda los 12rem del combo: así el corte (`corteDePlantilla`) sabe cuánto pide de verdad y, en una tarjeta angosta,
+// la fila se apila en vez de comerse el final del grupo elegido.
+const PLANTILLA = "sm:grid-cols-[minmax(0,1.3fr)_8.5rem_minmax(12rem,1.2fr)]";
 const COLUMNAS = [{ titulo: "Categoría" }, { titulo: "Estado" }, { titulo: "Grupo del plan" }];
 
 const ESTADO_CHIP: Record<EstadoCategoria, { tono: TonoChip; texto: string; ayuda: string }> = {
@@ -145,7 +147,7 @@ export function GruposDelMix({ grupos, categorias }: { grupos: GrupoMix[]; categ
           </div>
         )}
 
-        <div className="divide-y divide-sand">
+        <div className="tabla-corte-zona divide-y divide-sand">
           <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
           {vista.sinGrupo.length > 0 && (
             <SeccionSinGrupo categorias={vista.sinGrupo}>

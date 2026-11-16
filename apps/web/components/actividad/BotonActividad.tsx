@@ -120,7 +120,7 @@ function PanelActividad({
           )}
 
           <div className="mt-5 flex items-center justify-between gap-3 border-t border-sand/70 pt-4">
-            <p className="text-xs text-taupe">{esLider ? "Ves la sede elegida arriba." : "Ves solo la actividad de tu tienda."}</p>
+            <p className="text-sm text-taupe">{esLider ? "Ves la sede elegida arriba." : "Ves solo la actividad de tu tienda."}</p>
             <EnlaceVer href={verTodo} alNavegar={cerrar}>
               Ver todo el historial
             </EnlaceVer>

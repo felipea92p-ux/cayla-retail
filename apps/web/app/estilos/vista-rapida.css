@@ -759,8 +759,19 @@
     transition: none;
   }
 
-  /* ---- Celular: una columna, foto como cinta, pie en 2 × 2 ---- */
-  @media (max-width: 639px) {
+  /* La red de la matriz: con muchas tallas (6 o más en el celular, 7 o más en escritorio) la grilla corre de lado dentro de su placa, en vez
+     de empujar la hoja entera y dejar «Total» fuera de la vista. El relleno de 6 px (con su margen negativo, sin mover nada) deja a la vista
+     el ✓ de la celda elegida, que asoma 6 px por su esquina. */
+  .vr-grid {
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    padding: 6px;
+    margin: -6px;
+  }
+
+  /* ---- Tablet y laptop angosto: la hoja (max-w-4xl) no da para foto de 260 px + matriz; la foto pasa a cinta arriba ---- */
+  @media (max-width: 959px) {
     .vr-cuerpo {
       grid-template-columns: 1fr;
       gap: 14px;
@@ -792,16 +803,20 @@
       width: 12px;
       height: 12px;
     }
-    .vr-pista {
-      display: none;
-    }
     /* Bajo la cinta de foto + color, a todo el ancho (en la columna de 96 px se partía palabra por palabra). */
-    .vr-ficha {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
     .vr-desc {
       grid-column: 1 / -1;
       margin-top: 0;
+    }
+  }
+
+  /* ---- Celular: además, pie en 2 × 2 y la matriz sin la columna «Total» ---- */
+  @media (max-width: 639px) {
+    .vr-pista {
+      display: none;
+    }
+    .vr-ficha {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .vr-meta .vr-sep {
       border-left: 0;

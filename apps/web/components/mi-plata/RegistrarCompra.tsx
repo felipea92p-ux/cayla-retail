@@ -614,9 +614,10 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const cabecera = paso !== "listo" && (
     <div
       // Cuelga bajo la cabecera fija de la app (~58 px más la muesca del celular) y llega de borde a borde del <main>, que desde `sm` deja
-      // 20 px a la izquierda y 40 a la derecha (AppShell): los mismos márgenes negativos que su relleno, para que ninguna prenda se vea pasar
-      // en los costados. El alto de la cabecera y el de esta caja (~105 px) los sigue `lg:top-40` de «Tu compra»: si uno cambia, el otro también.
-      className="sticky top-[calc(3.625rem+env(safe-area-inset-top))] z-20 -mx-4 flex flex-col gap-2.5 bg-crema/95 px-4 pb-2.5 pt-3 backdrop-blur sm:-ml-5 sm:-mr-[max(2.5rem,env(safe-area-inset-right))] sm:pl-5 sm:pr-[max(2.5rem,env(safe-area-inset-right))]"
+      // 20 px a la izquierda y a la derecha `--relleno-der-pantalla` (AppShell: 20 en una tablet, 40 desde 1024): los mismos márgenes
+      // negativos que su relleno, para que ninguna prenda se vea pasar en los costados. El alto de la cabecera y el de esta caja (~105 px)
+      // los sigue `lg:top-40` de «Tu compra»: si uno cambia, el otro también.
+      className="sticky top-[calc(3.625rem+env(safe-area-inset-top))] z-20 -mx-4 flex flex-col gap-2.5 bg-crema/95 px-4 pb-2.5 pt-3 backdrop-blur sm:-ml-5 sm:-mr-[var(--relleno-der-pantalla)] sm:pl-5 sm:pr-[var(--relleno-der-pantalla)]"
       data-guia="compra.avance"
     >
       <div className="flex items-center gap-3">

@@ -340,7 +340,7 @@ function PasoAbierto({
             </Boton>
           )}
           {acciones.includes("desmarcar") && (
-            <button type="button" aria-haspopup="dialog" data-guia="prod-orden.quitar-marca-paso" onClick={() => alAbrirHoja("desmarcar")} className="btn-cayla btn-enlace text-[12.5px]">
+            <button type="button" aria-haspopup="dialog" data-guia="prod-orden.quitar-marca-paso" onClick={() => alAbrirHoja("desmarcar")} className="btn-cayla btn-enlace">
               Quitar la marca
             </button>
           )}
@@ -360,12 +360,12 @@ function PasoAbierto({
             </Boton>
           )}
           {cambiar && (
-            <button type="button" aria-haspopup="dialog" data-guia="prod-orden.cambiar-quien" onClick={() => alAbrirHoja("quien")} className="btn-cayla btn-enlace text-[12.5px]">
+            <button type="button" aria-haspopup="dialog" data-guia="prod-orden.cambiar-quien" onClick={() => alAbrirHoja("quien")} className="btn-cayla btn-enlace">
               {registrar ? "Registrar quién" : "Cambiar quién"}
             </button>
           )}
           {quitar && (
-            <button type="button" aria-haspopup="dialog" data-guia="prod-orden.quitar-paso" onClick={() => alAbrirHoja("quitar")} className="btn-cayla btn-enlace text-[12.5px]">
+            <button type="button" aria-haspopup="dialog" data-guia="prod-orden.quitar-paso" onClick={() => alAbrirHoja("quitar")} className="btn-cayla btn-enlace">
               Quitar este paso
             </button>
           )}

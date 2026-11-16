@@ -27,7 +27,7 @@ export type VarianteBotonCompacto = "primario" | "fila" | "fila-alerta";
 // - El movimiento (subir con sombra, la luz, encogerse al presionar, el «+» y la flecha) es el ÚNICO del ERP: `.mov-boton`
 //   (globals.css; ADR-0358, ronda 3, Felipe 2026-10-07). Antes este botón solo subía 1 px con sombra.
 const BASE =
-  "mov-boton inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap font-medium " +
+  "boton-compacto mov-boton inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap font-medium " +
   "disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:h-[15px] [&>svg]:w-[15px] [&>svg]:shrink-0";
 
 // `enabled:hover:` y no `hover:`: `hover:` no excluye `:disabled`, así que un botón deshabilitado o

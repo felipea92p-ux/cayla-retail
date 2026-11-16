@@ -73,16 +73,16 @@ export function ProveedorServicio({ resumen }: { resumen: ResumenServicio }) {
           />
         </div>
 
-        <div className="card-cayla overflow-hidden">
+        <div className="card-cayla @container overflow-hidden">
           <p className="label-cayla px-5 pb-2 pt-4 text-[11px] text-tinta/65">Últimos comprobantes</p>
           <div className="divide-y divide-tinta/10">
             {resumen.ultimos.map((u) => (
-              <div key={u.id} className="grid grid-cols-[6.5rem_1fr_auto] items-center gap-x-4 px-5 py-3">
+              <div key={u.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-5 py-3 @min-[28rem]:grid-cols-[6.5rem_minmax(0,1fr)_auto] @min-[28rem]:gap-x-4">
                 <span>
                   <span className="block text-sm tabular-nums text-tinta">{u.documento ?? "Sin número"}</span>
                   <span className="block text-sm text-taupe">{fechaCorta(u.fecha)}</span>
                 </span>
-                <span>{u.saldo > 0 ? <Chip tono="ambar">Debe {soles(u.saldo)}</Chip> : <Chip tono="verde">Pagado</Chip>}</span>
+                <span className="col-start-1 row-start-2 @min-[28rem]:col-start-auto @min-[28rem]:row-start-auto">{u.saldo > 0 ? <Chip tono="ambar">Debe {soles(u.saldo)}</Chip> : <Chip tono="verde">Pagado</Chip>}</span>
                 <span className="text-right text-sm tabular-nums text-tinta">{soles(u.total)}</span>
               </div>
             ))}

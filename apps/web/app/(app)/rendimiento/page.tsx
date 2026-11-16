@@ -120,7 +120,7 @@ function Rankings({ sede }: { sede: SedeDeRendimiento }) {
             )}
             {porHora.map((f) => (
               <div key={f.personaId} className={fila(PLANTILLA)} role="row">
-                <span className={celda()}>
+                <span className={celda("izq", "!whitespace-normal flex flex-wrap items-center gap-x-1.5 gap-y-1")}>
                   {f.nombre}{" "}
                   {f.esEncargada && (
                     <Chip tono="pizarra" versalitas={false}>
@@ -161,7 +161,7 @@ function Rankings({ sede }: { sede: SedeDeRendimiento }) {
             )}
             {porVentas.map((f) => (
               <div key={f.personaId} className={fila(PLANTILLA)} role="row">
-                <span className={celda()}>
+                <span className={celda("izq", "!whitespace-normal flex flex-wrap items-center gap-x-1.5 gap-y-1")}>
                   {f.nombre}{" "}
                   {f.esEncargada && (
                     <Chip tono="pizarra" versalitas={false}>

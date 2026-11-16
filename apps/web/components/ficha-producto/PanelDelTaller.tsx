@@ -112,7 +112,12 @@ export function PanelDelTaller({
   const pendiente = pendientes[0];
 
   return (
-    <aside aria-label="Identidad y stock de la prenda" className="taller-panel min-w-0 @min-[50rem]:sticky @min-[50rem]:top-6">
+    // Pegado bajo la cabecera fija de 64 px (`top-20`: con `top-6` la foto quedaba debajo de ella) y con tope de alto: si el panel mide más
+    // que la ventana, corre por su cuenta en vez de esconder su pie hasta el final del formulario.
+    <aside
+      aria-label="Identidad y stock de la prenda"
+      className="taller-panel scroll-cayla min-w-0 @min-[50rem]:sticky @min-[50rem]:top-20 @min-[50rem]:max-h-[calc(100dvh-6rem)] @min-[50rem]:overflow-y-auto"
+    >
       <div data-guia="editar.foto" className="taller-panel-foto">
         <div className="taller-foto-grande">
           {preparandoAqui ? (

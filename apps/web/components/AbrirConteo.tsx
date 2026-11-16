@@ -313,7 +313,7 @@ export function AbrirConteo({
                 { clave: "prendas", etiqueta: "Por prenda", guia: "conteo.que-prendas" },
               ]}
             />
-            <p aria-live="polite" className="mt-2.5 min-h-5 text-[13px] text-taupe">
+            <p aria-live="polite" className="mt-2.5 min-h-5 text-sm text-taupe">
               {ayudaQue}
             </p>
             {/* Se despliega dentro de la misma pregunta (sin lista flotante, ADR-0185). Cerrada, `inert`: ni se enfoca ni se lee. */}

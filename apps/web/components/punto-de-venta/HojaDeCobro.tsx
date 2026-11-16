@@ -6,7 +6,7 @@ import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { lecturaDelRecibido, type MaquinaDeCobro, maquinasPara, montosSugeridos, nombreMaquina, type PagoAplicado, preguntaMaquina } from "@/lib/vender-reglas";
 import type { NumeroQueDar } from "@/lib/cobro-por-dueno-reglas";
-import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
+import { LEY_REDONDEO, NOMBRE_CORTO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { CLASE_MONTO_ILEGIBLE, EntradaMonto, atributosMontoTexto } from "@/components/ui/CampoMonto";
 import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
 import { money } from "@/components/PuntoDeVenta";
@@ -23,10 +23,6 @@ const TIPOS: { tipo: TipoVenta; icono: ReactNode }[] = [
   { tipo: "nota_venta", icono: <StickyNote className="h-5 w-5" aria-hidden /> },
 ];
 
-/** Nombre corto de un medio para una ficha muy angosta (menos de 6 rem: una tablet a 1024 px): «Transferencia» no cabe entera a un
- *  tamaño legible. Los dos nombres van en la ficha y el CSS (`.hoja-cobro-nombre-corto`) muestra solo uno; el `title` sigue diciendo el
- *  nombre entero. */
-const NOMBRE_CORTO: Partial<Record<MetodoPagoVenta, string>> = { transferencia: "Transf." };
 const SIN_MAQUINAS: readonly MaquinaDeCobro[] = [];
 
 /** Los colores de la línea bajo los billetes: lo exacto va en verde, lo que falta en rojo y el vuelto neutro (Felipe 2026-10-05). */

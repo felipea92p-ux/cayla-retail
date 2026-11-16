@@ -201,7 +201,9 @@ export function HistorialCierresModal({
               ))}
             </div>
 
-            <div data-lista-cierres data-guia="caja.historial-lista" className="scroll-cayla -mx-1 mt-3 max-h-[44vh] overflow-y-auto px-1 pb-1">
+            {/* En el celular la lista crece y solo se desplaza la hoja (dos desplazamientos anidados dejaban ver 1 o 2 tickets y peleaban
+                con el gesto de bajar la hoja); desde 640 px, la lista se desplaza sola y el gráfico queda a la vista. */}
+            <div data-lista-cierres data-guia="caja.historial-lista" className="scroll-cayla -mx-1 mt-3 px-1 pb-1 sm:max-h-[44vh] sm:overflow-y-auto">
               {visibles.length === 0 ? (
                 <Vacio tamano="chico" icono={<CircleCheck />} className="py-8">
                   {filtro === "falto" ? `En ningún cierre de ${nombre} faltó plata.` : `En ningún cierre de ${nombre} sobró plata.`}
@@ -234,7 +236,7 @@ function CuentaSello({ estado, texto, veces: n, monto }: { estado: EstadoCierre;
     <div className="ht-cuenta" data-estado-cierre={estado}>
       <span className="ht-sello">{texto}</span>
       <span className="font-display text-[24px] leading-none text-tinta tabular-nums">{n}</span>
-      <span className="text-left text-[11px] leading-tight text-tinta/60">
+      <span className="text-left text-sm leading-tight text-tinta/60">
         {veces(n)}
         {monto !== undefined && n > 0 && <span className="block tabular-nums">{money(monto)}</span>}
       </span>
@@ -262,7 +264,7 @@ function Ticket({ cierre: c, onVer }: { cierre: CierreCaja; onVer: () => void })
           <span className="font-display text-[22px] leading-none">{dia}</span>
           <span className="label-cayla text-[10px] text-tinta/60">{diaSemana}</span>
         </span>
-        <span className="text-[11px] text-tinta/60 tabular-nums">
+        <span className="text-sm text-tinta/60 tabular-nums">
           {hora(c.abiertaEn)} – {hora(c.cerradaEn)}
         </span>
       </span>

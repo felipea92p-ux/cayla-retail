@@ -778,7 +778,7 @@ export function ApartarVista({
   const hermanas = p ? prendas.filter((x) => x.referencia === p.referencia && x.color === p.color) : [];
 
   return (
-    <div className="ap-dos grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
+    <div className="ap-dos grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_clamp(340px,40%,380px)] xl:grid-cols-[minmax(0,1fr)_420px]">
       {envio.incierto && (
         <div className="px-5 pt-5 sm:px-6 lg:col-span-2">
           <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} onReintentar={confirmar} reintentando={enviando} />
@@ -811,7 +811,7 @@ export function ApartarVista({
               aria-autocomplete="list"
             />
             {abierta && (
-              <ul id="apt-resultados" role="listbox" /* unificar-fijo: la lista con fotos y stock del mostrador */ aria-label="Prendas encontradas" className="card-cayla anim-globo scroll-cayla absolute top-16 right-0 left-0 max-h-[430px] divide-y divide-sand overflow-y-auto !p-0 shadow-lg">
+              <ul id="apt-resultados" role="listbox" /* unificar-fijo: la lista con fotos y stock del mostrador */ aria-label="Prendas encontradas" className="card-cayla anim-globo scroll-cayla absolute top-16 right-0 left-0 max-h-[430px] divide-y divide-sand overflow-y-auto !p-0 shadow-lg max-lg:max-h-[max(12rem,min(430px,calc(100dvh-25rem)))]">
                 {disponibles.length + agotadas.length === 0 ? (
                   <li>
                     <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
@@ -863,7 +863,7 @@ export function ApartarVista({
               </div>
               <div className="mt-3 flex flex-wrap justify-center gap-1.5 @lg:justify-start" role="group" aria-label="Tallas">
                 {hermanas.map((h) => (
-                  <button key={h.varianteId} type="button" title={codigoPrenda(h)} onClick={() => agregar(h.varianteId)} className={`h-9 min-w-9 rounded-lg border px-2 text-sm font-semibold ${h.varianteId === p.varianteId ? "border-tinta bg-tinta text-papel" : h.stockAqui <= 0 ? "border-sand text-tinta/35 line-through" : "border-sand text-tinta hover:border-tinta/40"}`}>
+                  <button key={h.varianteId} type="button" title={codigoPrenda(h)} onClick={() => agregar(h.varianteId)} className={`area-dedo h-9 min-w-9 rounded-lg border px-2 text-sm font-semibold ${h.varianteId === p.varianteId ? "border-tinta bg-tinta text-papel" : h.stockAqui <= 0 ? "border-sand text-tinta/35 line-through" : "border-sand text-tinta hover:border-tinta/40"}`}>
                     {h.talla ?? "—"}
                   </button>
                 ))}

@@ -864,9 +864,15 @@ export function InventarioPanel({
   // Ahí la tabla cabe entera hasta ~870 px de tarjeta (~1230 px de ventana con el lateral abierto). Cada pieza «solo ancha» lleva la
   // misma condición (`@min-[1070px]`) en el encabezado, la plantilla y las filas: si cambia el umbral, cambia en los tres.
   // Donde no se separa piso y almacén (Taller): sin Cobertura, Ritmo ni Acción hoy, y cabe siempre.
+  //
+  // Bajo ~880 px de TARJETA (tablet: 436 px a 768 de ventana y ~690 a 1024, con el lateral abierto) ni la forma comprimida cabe (7
+  // columnas piden 844, 874 con casillas; Taller, 724/758). Ahí encabezado y filas pasan JUNTOS a la tarjeta del celular: las columnas
+  // las decide `@min-[880px]` (el ancho de la `Tabla`, que es contenedor), no `sm:` (la ventana), que dejaba filas en columnas sin sus
+  // títulos. En px y no en rem a propósito: Tailwind ordena los `@min-[…]` por unidad y un rem saldría DESPUÉS de `@min-[1070px]` y le
+  // ganaría. El espacio entre columnas (`sm:gap-x-3 2xl:gap-x-4`) sigue por ventana: en la tarjeta angosta no hay columnas que separar.
   const plantilla = separa
-    ? `${conSeleccion ? "sm:gap-x-3 2xl:gap-x-4 sm:grid-cols-[1.125rem_minmax(10rem,1fr)_3rem_minmax(6.25rem,6.75rem)_repeat(3,minmax(5.5rem,6.75rem))_minmax(10rem,1fr)] @min-[1070px]:grid-cols-[1.125rem_minmax(10rem,1fr)_3rem_minmax(6.25rem,6.75rem)_repeat(3,minmax(5.5rem,6.75rem))_minmax(9.25rem,10.5rem)_minmax(10rem,1fr)_1.25rem]" : "sm:gap-x-3 2xl:gap-x-4 sm:grid-cols-[minmax(10rem,1fr)_3rem_minmax(6.25rem,6.75rem)_repeat(3,minmax(5.5rem,6.75rem))_minmax(10rem,1fr)] @min-[1070px]:grid-cols-[minmax(10rem,1fr)_3rem_minmax(6.25rem,6.75rem)_repeat(3,minmax(5.5rem,6.75rem))_minmax(9.25rem,10.5rem)_minmax(10rem,1fr)_1.25rem]"}`
-    : `${conSeleccion ? "sm:grid-cols-[1.125rem_minmax(10rem,1fr)_3.5rem_7rem_7rem_minmax(9rem,1fr)_1.25rem]" : "sm:grid-cols-[minmax(10rem,1fr)_3.5rem_7rem_7rem_minmax(9rem,1fr)_1.25rem]"}`;
+    ? `${conSeleccion ? "sm:gap-x-3 2xl:gap-x-4 @min-[880px]:grid-cols-[1.125rem_minmax(10rem,1fr)_3rem_minmax(6.25rem,6.75rem)_repeat(3,minmax(5.5rem,6.75rem))_minmax(10rem,1fr)] @min-[1070px]:grid-cols-[1.125rem_minmax(10rem,1fr)_3rem_minmax(6.25rem,6.75rem)_repeat(3,minmax(5.5rem,6.75rem))_minmax(9.25rem,10.5rem)_minmax(10rem,1fr)_1.25rem]" : "sm:gap-x-3 2xl:gap-x-4 @min-[880px]:grid-cols-[minmax(10rem,1fr)_3rem_minmax(6.25rem,6.75rem)_repeat(3,minmax(5.5rem,6.75rem))_minmax(10rem,1fr)] @min-[1070px]:grid-cols-[minmax(10rem,1fr)_3rem_minmax(6.25rem,6.75rem)_repeat(3,minmax(5.5rem,6.75rem))_minmax(9.25rem,10.5rem)_minmax(10rem,1fr)_1.25rem]"}`
+    : `${conSeleccion ? "@min-[880px]:grid-cols-[1.125rem_minmax(10rem,1fr)_3.5rem_7rem_7rem_minmax(9rem,1fr)_1.25rem]" : "@min-[880px]:grid-cols-[minmax(10rem,1fr)_3.5rem_7rem_7rem_minmax(9rem,1fr)_1.25rem]"}`;
 
   // Lo que la persona ve en los filtros, para nombrarlo si dejan la tabla en blanco (y para que el estado vacío los quite de a uno).
   const filtroMarcaElegida = marcaEfectiva === TODAS ? null : marcaEfectiva;
@@ -1257,6 +1263,7 @@ export function InventarioPanel({
               tocar una fila abre el cajón de la prenda, donde viven Reponer, Trasladar, Ajustar, Etiquetas e Historial. */}
           <Encabezado
             plantilla={plantilla}
+            visible="hidden @min-[880px]:grid"
             grande
             columnas={[
               ...(conSeleccion
@@ -1320,12 +1327,12 @@ export function InventarioPanel({
                     abrirPrenda({ clave }, f.varianteId);
                   }
                 }}
-                className={`grid fila-cayla cursor-pointer gap-x-4 gap-y-2.5 px-5 py-1.5 transition-colors sm:items-center ${plantilla} ${
+                className={`grid fila-cayla cursor-pointer gap-x-4 gap-y-2.5 px-5 py-1.5 transition-colors @min-[880px]:items-center ${plantilla} ${
                   filaAbierta ? "bg-hueso/80" : marcadaFila ? "bg-sand/35" : "hover:bg-sand/25 focus-visible:bg-sand/25"
                 }`}
               >
-                {/* Celular: casilla + prenda arriba. Escritorio: `sm:contents` devuelve cada pieza a su columna, en el orden del encabezado. */}
-                <div className="flex min-w-0 items-center gap-3 sm:contents">
+                {/* Tabla angosta: casilla + prenda arriba. Tabla ancha: `@min-[880px]:contents` devuelve cada pieza a su columna, en el orden del encabezado. */}
+                <div className="flex min-w-0 items-center gap-3 @min-[880px]:contents">
                   {conSeleccion && (
                     <span className="flex items-center">
                       <Casilla
@@ -1345,36 +1352,37 @@ export function InventarioPanel({
                       </span>
                       <span className="mt-0.5 block truncate text-[11px] tracking-wide text-taupe/80">{f.sku}</span>
                       {/* Solo celular: el color y la talla, que en escritorio tienen su propia columna. */}
-                      <span className="mt-0.5 flex items-center gap-2 text-sm text-taupe sm:hidden">
+                      <span className="mt-0.5 flex items-center gap-2 text-sm text-taupe @min-[880px]:hidden">
                         {f.color && <MuestraColor nombre={f.color} hex={f.colorHex} tonos={f.colorTonos} compacta />}
                         {f.talla}
                       </span>
                     </span>
                   </span>
                 </div>
-                <span className="hidden items-center gap-2 overflow-visible whitespace-nowrap text-sm text-tinta/65 sm:flex">
+                <span className="hidden items-center gap-2 overflow-visible whitespace-nowrap text-sm text-tinta/65 @min-[880px]:flex">
                   {f.color && <MuestraColor nombre={f.color} hex={f.colorHex} tonos={f.colorTonos} compacta />}
                   {f.talla}
                 </span>
                 {/* Las cifras (Stock actual, Cobertura piso, Ritmo reciente, En camino) amontonadas y pegadas a la izquierda
                     eran ilegibles en celular (Felipe, 2026-09-25): acá se agrupan en una grilla de 2×2 con cada una en su propia
-                    tarjetita, para que se lean como datos separados, no como una sola oración. `sm:contents` disuelve este
+                    tarjetita, para que se lean como datos separados, no como una sola oración. `@min-[880px]:contents` disuelve este
                     envoltorio desde escritorio: ahí cada cifra vuelve a ser su propia columna, en el orden del encabezado — la
-                    plantilla `sm:grid-cols` de arriba no cambia. */}
-                <div className="col-span-full grid grid-cols-2 gap-2 border-t border-sand/70 pt-3 sm:contents sm:border-0 sm:pt-0">
+                    plantilla `@min-[880px]:grid-cols` de arriba no cambia. En la tarjeta angosta de una tablet, `@max-[880px]:text-left`
+                    le gana al `sm:text-center` de `celda()`: las tarjetitas se leen igual que en el celular. */}
+                <div className="col-span-full grid grid-cols-2 gap-2 border-t border-sand/70 pt-3 @min-[880px]:contents @min-[880px]:border-0 @min-[880px]:pt-0">
                   {/* «Stock actual P/A» (2026-09-25, sección 4 del pedido): fusiona Piso·Almacén y Disponible. En Taller (sin
                       separación) es un solo número: no hay un split que reportar con rigor. Las cifras son las LIBRES
                       (`pisoDisponible`/`almacenDisponible`, 2026-09-26): las mismas que decide «Acción hoy» y que muestra el modal de
                       Reponer; lo apartado va debajo. */}
                   <span
-                    className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0 text-[15px] tabular-nums")}
+                    className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 @max-[880px]:text-left @min-[880px]:rounded-none @min-[880px]:bg-transparent @min-[880px]:px-0 @min-[880px]:py-0 text-[15px] tabular-nums")}
                     title={
                       separa
                         ? `Libre en piso: ${f.pisoDisponible ?? 0}\nLibre en almacén: ${f.almacenDisponible ?? 0}\nTotal libre: ${f.disponible}${f.apartado > 0 ? `\nApartadas para clientes: ${f.apartado}` : ""}`
                         : undefined
                     }
                   >
-                    <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 sm:hidden">Stock actual</span>
+                    <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 @min-[880px]:hidden">Stock actual</span>
                     {separa ? (
                       <>
                         <span className="text-tinta">{f.pisoDisponible}</span>
@@ -1391,8 +1399,8 @@ export function InventarioPanel({
                     )}
                   </span>
                   {separa && (
-                    <span className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0")}>
-                      <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 sm:hidden">Cobertura piso</span>
+                    <span className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 @max-[880px]:text-left @min-[880px]:rounded-none @min-[880px]:bg-transparent @min-[880px]:px-0 @min-[880px]:py-0")}>
+                      <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 @min-[880px]:hidden">Cobertura piso</span>
                       <CeldaCoberturaPiso f={f} calculando={ritmoCalculando.has(f.varianteId)} />
                     </span>
                   )}
@@ -1400,9 +1408,9 @@ export function InventarioPanel({
                     // El botón del detalle no abre el cajón de la prenda: el clic se queda aquí.
                     <span
                       onClick={(e) => e.stopPropagation()}
-                      className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0 overflow-visible")}
+                      className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 @max-[880px]:text-left @min-[880px]:rounded-none @min-[880px]:bg-transparent @min-[880px]:px-0 @min-[880px]:py-0 overflow-visible")}
                     >
-                      <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 sm:hidden">Ritmo reciente</span>
+                      <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 @min-[880px]:hidden">Ritmo reciente</span>
                       {ritmoCalculando.has(f.varianteId) ? (
                         <Calculando className="h-6 w-14 rounded-lg" />
                       ) : (
@@ -1410,18 +1418,18 @@ export function InventarioPanel({
                       )}
                     </span>
                   )}
-                  <span className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0 text-sm tabular-nums text-tinta")}>
-                    <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 sm:hidden">En camino</span>
+                  <span className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 @max-[880px]:text-left @min-[880px]:rounded-none @min-[880px]:bg-transparent @min-[880px]:px-0 @min-[880px]:py-0 text-sm tabular-nums text-tinta")}>
+                    <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 @min-[880px]:hidden">En camino</span>
                     {f.enTransito}
                   </span>
                 </div>
                 {/* En celular «Acción hoy» va a la derecha de «En la red», en el hueco que dejaba vacío, en vez de ocupar un renglón
-                    propio (Felipe, 2026-09-25). `sm:contents` + `sm:[grid-area:auto]` devuelven cada celda a su columna de escritorio. */}
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 border-t border-sand/70 pt-3 sm:contents sm:border-0 sm:pt-0">
+                    propio (Felipe, 2026-09-25). `@min-[880px]:contents` + `[grid-area:auto]` devuelven cada celda a su columna de escritorio. */}
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 border-t border-sand/70 pt-3 @min-[880px]:contents @min-[880px]:border-0 @min-[880px]:pt-0">
                   {separa && (
-                    <span className={celda("izq", "col-start-2 row-start-1 overflow-visible whitespace-normal sm:[grid-area:auto]")}>
-                      <span className="flex flex-col items-end gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2 sm:gap-y-1">
-                        <span className="label-cayla text-[10px] text-tinta/45 sm:hidden">Hoy</span>
+                    <span className={celda("izq", "col-start-2 row-start-1 overflow-visible whitespace-normal @min-[880px]:[grid-area:auto]")}>
+                      <span className="flex flex-col items-end gap-1.5 @min-[880px]:flex-row @min-[880px]:flex-wrap @min-[880px]:items-center @min-[880px]:gap-x-2 @min-[880px]:gap-y-1">
+                        <span className="label-cayla text-[10px] text-tinta/45 @min-[880px]:hidden">Hoy</span>
                         {/* Solo el diagnóstico, nunca un botón (diseño aprobado), con las MISMAS palabras del filtro «Hoy» y de la
                             tarjeta (`lib/existencias-hoy.ts`, Felipe 2026-10-03). En «Por colgar», lo que se puede bajar (disponible, neto
                             de apartados): la suma de estos chips es la del resumen de arriba. En «Sin stock atrás», si viene algo en camino. */}
@@ -1442,7 +1450,7 @@ export function InventarioPanel({
                         {/* Solo en escritorio con la tarjeta angosta (< 1070 px): «En la red» no tiene columna propia y va aquí, debajo.
                             En el celular ya tiene su celda, y con la tarjeta ancha también. */}
                         {red && (
-                          <span className="basis-full truncate text-sm leading-tight text-taupe max-sm:hidden @min-[1070px]:hidden" title={red.detalle}>
+                          <span className="basis-full truncate text-sm leading-tight text-taupe @max-[880px]:hidden @min-[1070px]:hidden" title={red.detalle}>
                             {red.linea}
                           </span>
                         )}
@@ -1452,15 +1460,15 @@ export function InventarioPanel({
                   <span
                     className={celda(
                       "izq",
-                      `col-start-1 row-start-1 text-sm text-tinta/75 sm:[grid-area:auto]${separa ? " hidden max-sm:block @min-[1070px]:block" : ""}`
+                      `col-start-1 row-start-1 text-sm text-tinta/75 @min-[880px]:[grid-area:auto]${separa ? " hidden @max-[880px]:block @min-[1070px]:block" : ""}`
                     )}
                     title={red?.detalle}
                   >
-                    <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">En la red</span>
+                    <span className="label-cayla mr-1 text-[10px] text-tinta/45 @min-[880px]:hidden">En la red</span>
                     {red ? red.linea : <span className="text-tinta/35">—</span>}
                   </span>
                 </div>
-                <span aria-hidden className={`hidden justify-center text-taupe/60 ${separa ? "@min-[1070px]:flex" : "sm:flex"}`}>
+                <span aria-hidden className={`hidden justify-center text-taupe/60 ${separa ? "@min-[1070px]:flex" : "@min-[880px]:flex"}`}>
                   <ChevronRight className="h-4 w-4" />
                 </span>
               </div>
@@ -1757,7 +1765,7 @@ export function InventarioPanel({
               type="button"
               onClick={() => setMarcadas(new Set())}
               aria-label="Quitar las marcas"
-              className="grid h-9 w-9 place-items-center rounded-xl text-crema/70 hover:bg-crema/10 hover:text-crema"
+              className="area-dedo grid h-9 w-9 place-items-center rounded-xl text-crema/70 hover:bg-crema/10 hover:text-crema"
             >
               <X aria-hidden className="h-4 w-4" />
             </button>

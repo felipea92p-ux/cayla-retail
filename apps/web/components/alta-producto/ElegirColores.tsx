@@ -397,7 +397,7 @@ function PieDeLaCarta({ senalado, elegido, colores, porCodigo }: { senalado: Col
     // DENTRO DE UNA HOJA (Recibir, Agregar colores…) va quieto al pie de la carta (Felipe 2026-11-12: «queda muy arriba y no se mantiene en
     // el fondo»): ahí no hay barra que publique su alto, y el respaldo lo dejaba flotando a media carta, tapando dos filas.
     // El círculo es la muestra grande (40 px) y la letra, de lectura (14 px).
-    <div aria-hidden className="sticky bottom-[var(--alto-barra-ficha,6rem)] z-10 -mx-3 mt-1 grid min-h-14 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 border-t border-sand bg-crema px-3 py-1.5 text-sm lg:static lg:mx-0 lg:bg-transparent lg:px-0 [[role=dialog]_&]:static [[role=dialog]_&]:mx-0 [[role=dialog]_&]:bg-transparent [[role=dialog]_&]:px-0">
+    <div aria-hidden className="sticky bottom-[var(--alto-barra-ficha,6rem)] z-10 -mx-3 mt-1 grid min-h-14 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 border-t border-sand bg-crema px-3 py-1.5 text-sm xl:static xl:mx-0 xl:bg-transparent xl:px-0 [[role=dialog]_&]:static [[role=dialog]_&]:mx-0 [[role=dialog]_&]:bg-transparent [[role=dialog]_&]:px-0">
       {senalado ? (
         <>
           <Punto hex={senalado.hex} familia={senalado.familiaColor} tipo={senalado.tipo} tonos={tonosDeMezcla(senalado, porCodigo)} muestra />

@@ -167,7 +167,7 @@ export function SeriesPanel({
                           type="button"
                           onClick={() => setArchivando(s)}
                           aria-label={`Archivar la serie ${s.serie}`}
-                          className="rounded-md px-1.5 py-0.5 text-sm text-tinta/60 outline-none transition-colors duration-200 hover:bg-tinta/10 hover:text-tinta focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-rojo/60"
+                          className="area-dedo rounded-md px-1.5 py-0.5 text-sm text-tinta/60 outline-none transition-colors duration-200 hover:bg-tinta/10 hover:text-tinta focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-rojo/60"
                         >
                           Archivar
                         </button>

@@ -303,7 +303,7 @@ export function CajaAbiertaPanel({
       {puedeCerrar ? (
         <BotonCerrarCaja onCerrar={() => setModal("cerrar")} />
       ) : (
-        <p className="text-xs text-tinta/60">La caja la cierra un líder de equipo.</p>
+        <p className="text-sm text-tinta/60">La caja la cierra un líder de equipo.</p>
       )}
     </div>
   );
@@ -458,13 +458,16 @@ export function CajaAbiertaPanel({
           <div className={`grid grid-cols-1 gap-3 ${puedeCerrar && fondoCierre ? "@[900px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]" : ""}`}>
             <div data-guia="caja.meta" className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 4 } as CSSProperties}>
               <TituloSeccion dato={<b>{soles0(metaVentaDiaria)}</b>}>Meta de hoy</TituloSeccion>
-              <p className="mt-1 text-[13px] text-taupe">{explicacionMeta}</p>
+              <p className="mt-1 text-sm text-taupe">{explicacionMeta}</p>
               <BarraAvance pct={metaPct} alto="gruesa" etiqueta="Meta de hoy" className="mb-1 mt-4" />
-              <dl className="mt-auto grid grid-cols-3 gap-4 pt-4">
+              {/* Tres columnas solo si el tablero (`@container`) da ~104 px a cada una: a 375 «S/ 12,345» en 26 px mide 102 y no
+                  cabía en 90; ahí van dos y la tercera ocupa la fila de abajo entera, con su detalle a lo ancho. */}
+              <dl className="mt-auto grid grid-cols-2 gap-4 pt-4 @min-[24rem]:grid-cols-3">
                 <DatoMeta etiqueta="Llevas" valor={soles0(totalVentas)} />
                 <DatoMeta etiqueta="Te faltan" valor={faltaMeta > 0 ? soles0(faltaMeta) : "—"} detalle={faltaMeta > 0 ? undefined : <b className="font-semibold text-verde-profundo">Meta cumplida.</b>} />
                 {alCierre !== null ? (
                   <DatoMeta
+                    className="col-span-2 @min-[24rem]:col-span-1"
                     etiqueta="Al ritmo de hoy cierras en"
                     valor={soles0(alCierre)}
                     detalle={
@@ -474,15 +477,15 @@ export function CajaAbiertaPanel({
                     }
                   />
                 ) : (
-                  <DatoMeta etiqueta="Avance" valor={`${metaPct} %`} detalle="de la meta de hoy" />
+                  <DatoMeta className="col-span-2 @min-[24rem]:col-span-1" etiqueta="Avance" valor={`${metaPct} %`} detalle="de la meta de hoy" />
                 )}
               </dl>
             </div>
             {puedeCerrar && fondoCierre && (
               <div className="card-cayla anim-sube p-5" style={{ "--i": 5 } as CSSProperties}>
                 <TituloSeccion>Al cerrar</TituloSeccion>
-                <p className="mt-1 text-[13px] text-taupe">Lo que el cierre te va a pedir.</p>
-                <dl className="mt-3 text-[13px] text-tinta">
+                <p className="mt-1 text-sm text-taupe">Lo que el cierre te va a pedir.</p>
+                <dl className="mt-3 text-sm text-tinta">
                   <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
                     <dt>Debería haber en el cajón</dt>
                     <dd className="whitespace-nowrap font-semibold tabular-nums">{esperadoCajon === null ? "—" : soles0(esperadoCajon)}</dd>
@@ -493,10 +496,10 @@ export function CajaAbiertaPanel({
                   </div>
                   <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
                     <dt>Lo demás se traslada</dt>
-                    <dd className="text-right text-[12px] text-taupe">a la caja fuerte, al banco o al líder</dd>
+                    <dd className="text-right text-sm text-taupe">a la caja fuerte, al banco o al líder</dd>
                   </div>
                 </dl>
-                <p className="mt-1 text-[12.5px] text-taupe">
+                <p className="mt-1 text-sm text-taupe">
                   {fondoCierre.motivo}. El fondo normal lo pone el líder en Configuración ▸ Empresa y tiendas; cada campaña puede subirlo.
                 </p>
               </div>
@@ -625,7 +628,7 @@ function AvisoTurnoLargo({ abiertaEn, esLider }: { abiertaEn: string; esLider: b
 function TurnoCompacto({ abiertaEn }: { abiertaEn: string }) {
   const ahora = useAhora(30_000);
   return (
-    <p className="text-[13px] text-tinta/65">
+    <p className="text-sm text-tinta/65">
       Abrió <b className="font-medium text-tinta/85">{FORMATO_HORA_CORTA.format(new Date(abiertaEn))}</b>
       {ahora && (
         <>
@@ -821,12 +824,12 @@ function soles0(n: number): string {
   return `S/\u00a0${Math.round(n).toLocaleString("es-PE")}`;
 }
 
-function DatoMeta({ etiqueta, valor, detalle }: { etiqueta: string; valor: string; detalle?: ReactNode }) {
+function DatoMeta({ etiqueta, valor, detalle, className = "" }: { etiqueta: string; valor: string; detalle?: ReactNode; className?: string }) {
   return (
-    <div className="min-w-0">
+    <div className={`min-w-0 ${className}`}>
       <dt className="label-cayla text-[11px] text-taupe">{etiqueta}</dt>
       <dd className="font-display mt-1 text-[26px] leading-none tabular-nums text-tinta">{valor}</dd>
-      {detalle && <dd className="mt-1.5 text-[12px] text-taupe">{detalle}</dd>}
+      {detalle && <dd className="mt-1.5 text-sm text-taupe">{detalle}</dd>}
     </div>
   );
 }

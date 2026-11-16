@@ -360,9 +360,9 @@ export function ResumenProduccionPanel({
             .
           </p>
         ) : (
-          <ul className="card-cayla overflow-hidden">
+          <ul className="card-cayla @container overflow-hidden">
             {telas.map((t) => (
-              <li key={t.insumoId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b border-tinta/10 px-4 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1.5fr)_8rem_11rem]">
+              <li key={t.insumoId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b border-tinta/10 px-4 py-3 last:border-b-0 @min-[36rem]:grid-cols-[minmax(0,1.5fr)_8rem_11rem]">
                 <span className="min-w-0">
                   <span className="block truncate text-[14px] text-tinta">{t.nombre}</span>
                   <span className="block text-sm text-tinta/65">
@@ -375,14 +375,14 @@ export function ResumenProduccionPanel({
                     </span>
                   )}
                 </span>
-                <span className="hidden text-right text-sm tabular-nums text-tinta sm:block">{t.piden > 0 ? `piden ${cantidadTexto(t.piden, t.unidad)}` : <span className="text-tinta/65">—</span>}</span>
-                <span className="sm:justify-self-end">
+                <span className="hidden text-right text-sm tabular-nums text-tinta @min-[36rem]:block">{t.piden > 0 ? `piden ${cantidadTexto(t.piden, t.unidad)}` : <span className="text-tinta/65">—</span>}</span>
+                <span className="@min-[36rem]:justify-self-end">
                   {t.estado === "sin_demanda" ? (
                     <Chip tono="neutro">Sin demanda</Chip>
                   ) : t.estado === "alcanza" ? (
                     <Chip tono="verde">Alcanza</Chip>
                   ) : t.estado === "alcanza_si_llega" ? (
-                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:justify-end">
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 @min-[36rem]:justify-end">
                       <Chip tono="ambar">Alcanza si llega</Chip>
                       {t.pedidos.length > 0 && (
                         <BotonEnlace href="/ordenes-insumos" peso="discreto">
@@ -391,7 +391,7 @@ export function ResumenProduccionPanel({
                       )}
                     </span>
                   ) : (
-                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:justify-end">
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 @min-[36rem]:justify-end">
                       <Chip tono="ambar">Faltan {cantidadTexto(t.faltan, t.unidad)}</Chip>
                       {/* La salida de «faltan» es PEDIR lo que queda; con un pedido atrasado, lo útil es ir a verlo (llamar al proveedor). Nunca registrar una factura que todavía no existe. */}
                       <BotonEnlace href={t.atrasado > 0 ? "/ordenes-insumos" : urlPedirInsumo(t.insumoId, t.faltan)} peso="discreto">

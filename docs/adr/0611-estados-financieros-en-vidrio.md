@@ -142,3 +142,17 @@ y el Balance enterrado bajo siete tarjetas de comprobación. Eligió mirando el 
   gráfico; todos los montos van con céntimos (también `solesBalance`).
 - **No verificado en el navegador** (la base local no tiene `fn_patrimonio_cambios` ni un Balance que no cuadre): Cambios en el patrimonio y la vista del bloqueo. Ganancias
   y Flujo sí, a 1440 px.
+
+## Actualización 2026-11-16 — Mejora 5: los íconos y los puntos de color se DIBUJAN de 44 px con el dedo (Felipe, decisión 2B)
+
+Felipe miró en el celular, lado a lado, las tres formas de llegar a 44 px (la demo del responsive, capturas reales a 375 px) y eligió **«B · Dibujo de
+44 px»** para los íconos y los puntos de color. En `app/estilos/tacto.css` (solo `pointer: coarse`) quedan tres formas: lo que tiene sitio crece
+(`min-height`); **los íconos (la gota del tema y de las animaciones, `.icono-fila` —el ⋯, el lápiz, copiar—, la × de una hoja o un cajón y los botones de
+ícono de la cabecera) y los puntos de color (`.vg-punto` de Vender y la Grilla, `.vitrina-punto` de Existencias) miden 44 px dibujados**; y lo que va
+dentro de una frase o de otra pieza de 44 (las tallas, el interruptor, el enlace en una frase, la ✕ de un filtro, la × del buscador, `.area-dedo` en un
+botón sin clase) conserva su dibujo y agranda su área con el `::after`. La chapa de Existencias (una línea de 96 px sobre la foto) entra justa con dos
+puntos; con tres o más se desliza de lado (`safe center`), nunca corta un color ni agranda la tarjeta. Con mouse no cambia nada (medido: 26 y 16 px).
+
+- **DECIDÍ:** dibujar de 44 lo que es un ícono o un punto de color; el área invisible solo para lo que vive dentro de una frase o de otra pieza.
+- **DESCARTÉ:** el área invisible para todo (la «A» de la demo), porque los puntos de color quedaban en 30 px de ancho para no quitarle el toque al vecino.
+- **SE ROMPE SI:** una prenda de Existencias tiene muchos colores: la chapa se desliza y los últimos quedan fuera de la vista hasta deslizarla (siguen a un toque; «+N» abre todos).
