@@ -39,7 +39,7 @@ Una plata que no vuelve (o que baja dos veces) en «Tienes para comprar»; una p
 
 Una sola parte (tabla nueva vacía con RLS, funciones y permisos; sin políticas ni `drop trigger`), después de `20261027231000`. Idempotente. El deploy de la web puede ir antes: sin la función, la hoja dice «No se pudo leer la compra» y no rompe nada más.
 
-## Actualización 2026-11-16 — corregir con el envío todavía sin recibir (`20261116215000`)
+## Actualización 2026-11-16 — corregir con el envío todavía sin recibir (`20261116215000`, en producción desde el 2026-11-16)
 
 **El caso.** El ENV-24 de Trujillo decía «Aretes: dijeron 93, contaste 84» y «Por definir: 13 sin contar». No faltaba nada: la compradora anotó mal la cantidad de aretes y, al leer las notas, tres prendas que nunca se compraron. Nadie podía arreglarlo desde el sistema: la regla 4 («una prenda no baja de lo que ya salió en un envío») cerraba la puerta apenas la compra viajaba, y no había cómo quitar una prenda. Ese día las 13 se quitaron a mano en la base, con su copia en Actividad (`envio_lineas_quitadas`).
 
