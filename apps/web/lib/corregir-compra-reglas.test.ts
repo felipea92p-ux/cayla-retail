@@ -15,8 +15,10 @@ import {
   problemasDePapel,
   problemasDePrenda,
   puedeCambiarDeTienda,
+  seQuitanTodas,
   textoDeCambio,
   textoDeCambios,
+  textoDelMinimo,
   textoDeLaPlata,
   textoMotivo,
   type Borrador,
@@ -40,6 +42,10 @@ const prenda = (id: string, o: Partial<PrendaParaCorregir> = {}): PrendaParaCorr
   precioVenta: 129.9,
   admitePrecioCero: false,
   enviadas: 0,
+  // Como la base: sin decir otra cosa, el mínimo es lo enviado (todo ya llegó) y se puede quitar.
+  minimo: Math.max(1, o.enviadas ?? 0),
+  quitable: true,
+  noSeQuita: null,
   ...o,
 });
 
@@ -105,6 +111,13 @@ describe("leerCompraParaCorregir", () => {
     expect(c.monto).toBe(480);
     expect(c.medioPago).toBe("yape");
     expect(c.prendas).toEqual([expect.objectContaining({ id: "l1", cantidad: 6, costo: 50, precioVenta: 129.9, enviadas: 2, esCatalogo: false })]);
+  });
+
+  it("lee hasta cuánto baja y si se quita (20261116215000); una base sin eso: no baja de lo enviado y no se quita", () => {
+    const nuevo = leerCompraParaCorregir({ ...crudo, lineas: [{ ...crudo.lineas[0], envios: { enviadas: 2, minimo: 1, quitable: false, por_que: "la tienda ya la está contando" } }] })!;
+    expect(nuevo.prendas[0]).toMatchObject({ enviadas: 2, minimo: 1, quitable: false, noSeQuita: "la tienda ya la está contando" });
+    const viejo = leerCompraParaCorregir(crudo)!;
+    expect(viejo.prendas[0]).toMatchObject({ minimo: 2, quitable: false, noSeQuita: null });
   });
 
   it("una forma que no se entiende da null, nunca una compra a medias", () => {
@@ -402,6 +415,46 @@ describe("lineasAntesAhora (revisar antes de guardar)", () => {
     const c = compra();
     const l = lineasAntesAhora(c, borradores(c), { monto: "480", pagado: "480", medio: "yape" });
     expect(l).toEqual([{ clave: "medio", titulo: "Cómo pagaste", antes: "Efectivo", ahora: "Yape" }]);
+  });
+});
+
+describe("bajar lo que viajó y quitar lo que se anotó por error (20261116215000)", () => {
+  it("con el envío sin llegar, baja hasta el mínimo de la base y lo dice", () => {
+    const p = prenda("a", { cantidad: 23, enviadas: 23, minimo: 1 });
+    expect(problemasDePrenda(p, { ...borradorDe(p), cantidad: "13" }).cantidad).toBeNull();
+    expect(cambiosDePrenda(p, { ...borradorDe(p), cantidad: "13" })).toEqual({ cantidad: 13 });
+    const llego = prenda("b", { cantidad: 12, enviadas: 12, minimo: 5 });
+    expect(problemasDePrenda(llego, { ...borradorDe(llego), cantidad: "4" }).cantidad).toBe("Puede bajar hasta 5: lo demás ya salió en un envío");
+    expect(problemasDePrenda(prenda("c", { enviadas: 3 }), { ...borradorDe(prenda("c", { enviadas: 3 })), cantidad: "2" }).cantidad).toMatch(/Ya salieron 3/);
+  });
+
+  it("el texto bajo la cantidad: nada sin envío; «no puede quedar en menos» si ya llegó; «puede bajar hasta» si no", () => {
+    expect(textoDelMinimo({ enviadas: 0, minimo: 1 })).toBeNull();
+    expect(textoDelMinimo({ enviadas: 3, minimo: 3 })).toBe("Ya salieron 3 en un envío: no puede quedar en menos.");
+    expect(textoDelMinimo({ enviadas: 23, minimo: 1 })).toBe("Ya salieron 23 en un envío que no llega: puede bajar hasta 1.");
+  });
+
+  it("quitar manda sobre lo escrito, no tiene nada que arreglar, viaja solo y sale de la cuenta", () => {
+    const c = compra({ cuadra: true });
+    const b = borradores(c, { a: { quitar: true, costo: "x" } });
+    expect(problemasDePrenda(c.prendas[0]!, b.get("a")!)).toEqual({ cantidad: null, costo: null, venta: null, nombre: null, categoria: null, marca: null, tienda: null });
+    expect(cambiosDePrenda(c.prendas[0]!, b.get("a")!)).toEqual({ quitar: true });
+    expect(cambiosParaLaBase(c.prendas, b)).toEqual([{ item_id: "a", quitar: true }]);
+    // 6 × 50 sale; queda 4 × 45 = 180, y el papel (que cuadraba) la sigue.
+    expect(cuentaDeLaCorreccion(c, b)).toMatchObject({ datos: 1, prendas: 1, prendasSuman: 180, monto: 180 });
+    expect(lineasAntesAhora(c, b, null)[0]).toEqual({ clave: "a-quitar", titulo: "Polo Venus", antes: "6 unidades · S/ 300.00", ahora: "Se quita: se anotó por error" });
+  });
+
+  it("lo que la base no deja quitar no se manda, y quitar todas no se guarda", () => {
+    const fija = prenda("a", { quitable: false, noSeQuita: "la tienda ya la está contando" });
+    expect(cambiosDePrenda(fija, { ...borradorDe(fija), quitar: true })).toEqual({});
+    const c = compra();
+    expect(seQuitanTodas(c, borradores(c, { a: { quitar: true } }))).toBe(false);
+    expect(seQuitanTodas(c, borradores(c, { a: { quitar: true }, b: { quitar: true } }))).toBe(true);
+  });
+
+  it("el rastro de una prenda quitada se lee con lo que decía", () => {
+    expect(textoDeCambio({ campo: "quitada", antes: "Lentes · 3 × S/ 5.40", despues: null, prenda: null })).toBe("Lentes · 3 × S/ 5.40: se quitó, se anotó por error");
   });
 });
 
