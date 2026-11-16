@@ -476,7 +476,8 @@ function HojaDeFotos({
               <span className="text-xs font-semibold uppercase tracking-wide">Agregar otra</span>
             </BotonFoto>
           </div>
-          <div className="flex justify-end">
+          {/* Pegado abajo: con tres fotos o más la hoja pasa del alto de un laptop (900 px) y «Listo» quedaba bajo el borde. */}
+          <div className="pie-hoja-fijo flex justify-end pt-2">
             <button type="button" onClick={cerrar} className="btn-cayla btn-primario">
               Listo
             </button>
