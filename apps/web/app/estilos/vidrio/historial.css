@@ -14,8 +14,9 @@
 /* ---------- 1 · Los días: las gotas que flotan, bajo la cabecera ----------
    La cabecera son dos islas fijas (vidrio/marco.css): 52 px de alto a 8 px del borde en el celular y a 12 px desde 640 px. La gota
    (con los 10 px de aire de arriba del separador) queda 6 px bajo la isla. En el celular, además, el buscador va fijo bajo la cabecera
-   (`top-[61px]`, 60 px de alto con su aire): las gotas se pegan debajo de él. */
-.historial-dias { --separador-tope: 113px; }
+   (`top-[61px]` más la zona segura, 60 px de alto con su aire): las gotas se pegan debajo de él. La zona segura de arriba se suma
+   como en la cabecera y el padding del main: con un inset mayor que 0 (Android de borde a borde) quedaban 58 px corridas. */
+.historial-dias { --separador-tope: calc(113px + env(safe-area-inset-top, 0px)); }
 @media (min-width: 640px) {
   .historial-dias { --separador-tope: calc(env(safe-area-inset-top, 0px) + 60px); }
 }
@@ -31,6 +32,16 @@
 /* La gota del total trae tres piezas («S/ 149.90», «·», «3 ventas»): en su caja flexible los espacios del texto se pierden, así que
    el aire entre ellas lo pone el `gap`. */
 .historial-dias .separador-dia-total { gap: 0.35em; }
+
+/* El buscador fijo del celular flota quieto sobre la lista que corre: lleva el vidrio de lo que flota (la receta de las islas y de la
+   barra de abajo), no un crema con desenfoque propio. Desde 640 px va en su lugar, sin fondo. */
+@media (max-width: 639.98px) {
+  .historial-buscador {
+    background: var(--vidrio-flota-fondo);
+    -webkit-backdrop-filter: var(--vidrio-flota-filtro);
+    backdrop-filter: var(--vidrio-flota-filtro);
+  }
+}
 
 /* ---------- 2 · La tarjeta de cada día: la placa Serena ---------- */
 .historial-placa {

@@ -105,7 +105,7 @@ export function CampanasPantalla({ lectura, puedeIrACampanas }: { lectura: Lectu
       ) : (
         <section className="card-cayla space-y-0">
           <div className="flex flex-wrap items-center gap-3 border-b border-sand px-5 py-4">
-            <div className="pildoras-desliza gap-2 sm:flex-wrap" role="group" aria-label="Estado de la campaña" data-guia="campanas.filtros">
+            <div className="pildoras-desliza gap-2 sm:flex-wrap" role="group" aria-label="Estado de la campaña" data-guia="campanas.filtros" suppressHydrationWarning>
               {FILTROS.map((f) => (
                 <button key={f.valor} type="button" className="pildora-cayla" aria-pressed={filtro === f.valor} onClick={() => setFiltro(f.valor)}>
                   {f.texto}

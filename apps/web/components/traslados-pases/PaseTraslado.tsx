@@ -114,7 +114,7 @@ export function PaseTraslado({
   return (
     <CtxPase.Provider value={pase}>
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-3 lg:hidden">
+        <div className="flex flex-wrap items-center gap-3 @min-[800px]:hidden">
           {/* La flecha de todo el ERP (ADR-0358); con el dedo responde en 44 px (Formidable, 2026-10-06). */}
           <Volver href={RUTA_TRASLADOS} a="Traslados" />
         </div>

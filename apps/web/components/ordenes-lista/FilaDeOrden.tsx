@@ -39,7 +39,7 @@ export function FilaDeOrden({ f, primera = false, guiaPorque = false, recien = f
         <span className="flex min-w-0 items-center gap-3">
           <MiniaturaPrenda fotoUrl={null} colorHex={f.colorHex} tamano="lg" {...prenda} />
           <span className="min-w-0">
-            <span className="flex min-w-0 items-center gap-2">
+            <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
               <span className="truncate text-sm font-medium text-tinta">{f.referencia}</span>
               {f.esMuestra && <Chip tono="tinta">Muestra</Chip>}
               {f.urgente && <Chip tono="ambar">Urgente</Chip>}

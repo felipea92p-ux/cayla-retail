@@ -648,7 +648,7 @@ function BloquePrecio({
               key={cual}
               aria-label={`Precio ${cual}`}
               aria-valuetext={solesFiltro(posicionEnControl(precioMin, precioMax, limites)[i])}
-              className="block h-3.5 w-3.5 rounded-full border-2 border-rojo bg-papel outline-none transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-rojo/40"
+              className="area-dedo block h-3.5 w-3.5 rounded-full border-2 border-rojo bg-papel outline-none transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-rojo/40"
             />
           ))}
         </Slider.Root>
@@ -665,7 +665,7 @@ function BloquePrecio({
                 type="button"
                 aria-pressed={activo}
                 onClick={() => onTramo(t)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-sm transition-colors ${
+                className={`area-dedo inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-sm transition-colors pointer-coarse:min-h-9 pointer-coarse:py-1 ${
                   activo ? "border-tinta bg-tinta text-crema" : "border-tinta/15 text-tinta/75 hover:border-tinta/35 hover:text-tinta"
                 }`}
               >

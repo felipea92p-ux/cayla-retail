@@ -237,10 +237,11 @@ export function AbrirCajaPantalla({
           <div data-guia="caja.cierres-anteriores" className="mt-auto pt-6">
             <TituloGrupo>Cierres anteriores</TituloGrupo>
             {/* Cada cierre abre su detalle (Felipe 2026-11-08): el mismo de «Historial de cierres», con lo cobrado por medio de
-                pago, cómo cuadró el efectivo y los movimientos del turno. Las siete en fila solo desde 1400 px: a 1024 cada tarjeta
-                quedaba de 72 px (y a 1280, de 96) y el monto de cuatro cifras y «Ver detalle» se salían del borde. Va en rem
-                (87.5rem): escrito en px, Tailwind lo ordena antes que `sm:` y pierde. */}
-            <ol className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-4 min-[87.5rem]:grid-cols-7">
+                pago, cómo cuadró el efectivo y los movimientos del turno. Las columnas las decide el ancho de la sección, no el de la
+                ventana: con el lateral abierto, a 768, 1024 y 1440 las columnas por ventana dejaban 45-60 px de contenido y el monto de
+                cuatro cifras (80 px) y «Ver detalle» (84 px) pisaban la tarjeta vecina. Con 7.5rem como mínimo cada tarjeta deja 90 px
+                o más: 2 columnas a 375, 3 a 768, 2 a 1024, 4 a 1280, 5 a 1440 y 7 a 1920. */}
+            <ol className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-2.5">
               {serie.map((c) => {
                 const estado = estadoCierre(c.diferencia);
                 const dia = diaYHoraLima(c.cerradaEn).dia;
@@ -286,7 +287,9 @@ export function AbrirCajaPantalla({
             {cifras.map((c) => (
               <li key={c.clave} className="rounded-2xl bg-tinta/[0.06] px-3.5 py-3">
                 <span className="label-cayla block text-[11px] text-taupe-profundo">{c.etiqueta}</span>
-                <span className="font-display mt-1 block text-2xl leading-none tabular-nums text-tinta">{c.valor.replace("S/ ", "")}</span>
+                {/* lg:max-xl: entre 1024 y 1279 el aside queda en su mínimo (300 px) y cada cifra tiene ~51 px: a 24 px «3,450»
+                    mide 55 y se mete en su relleno; a 20 px mide ~46. */}
+                <span className="font-display mt-1 block text-2xl leading-none tabular-nums text-tinta lg:max-xl:text-xl">{c.valor.replace("S/ ", "")}</span>
               </li>
             ))}
           </ul>

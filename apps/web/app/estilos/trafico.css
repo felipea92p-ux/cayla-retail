@@ -67,6 +67,10 @@
     font-size: 14px;
     transition: background-color 180ms var(--ease-cayla);
   }
+  /* Cada fila es un filtro que se toca: con el dedo, 44 px de alto como el resto del ERP (tacto.css). */
+  @media (pointer: coarse) {
+    .trafico-fila { min-height: 44px; }
+  }
   @media (hover: hover) {
     a.trafico-fila:hover {
       background: color-mix(in oklab, var(--color-sand) 50%, transparent);

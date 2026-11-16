@@ -63,14 +63,14 @@ export function TarjetaKpiVidrio({
 
   return (
     <div className="kpi-vidrio-envoltura anim-sube" data-tono={tono} style={{ "--i": indice } as CSSProperties}>
-      <div ref={tarjeta} className="kpi-vidrio" onPointerMove={seguirCursor}>
+      <div ref={tarjeta} className="kpi-vidrio @container" onPointerMove={seguirCursor}>
         <div className="flex items-center justify-between gap-2">
           <span className="label-cayla text-[11px] text-tinta/65">{etiqueta}</span>
           <span className="kpi-vidrio__icono" aria-hidden>
             {icono}
           </span>
         </div>
-        <p className={`font-display mt-1 text-3xl tabular-nums ${colorearCifra ? COLOR_DE_LA_CIFRA[tono] : "text-tinta"}`}>{valor}</p>
+        <p className={`font-display mt-1 whitespace-nowrap text-[length:clamp(1.25rem,13cqi,1.875rem)] tabular-nums ${colorearCifra ? COLOR_DE_LA_CIFRA[tono] : "text-tinta"}`}>{valor}</p>
         {contexto && <p className="mt-1 text-sm leading-[1.45] text-tinta/70">{contexto}</p>}
         {children}
       </div>

@@ -100,10 +100,11 @@ function accionComprobante(
 function DocumentosSunat({ c, telefono }: { c: Comprobante; telefono: string | null }) {
   if (!c.pdfUrl && !c.xmlUrl && !c.cdrUrl) return null;
   return (
-    // En una tarjeta angosta (celular) no se dibujan: viven en el «⋯», con botones del tamaño de un dedo.
+    // En una tarjeta angosta (celular) no se dibujan: viven en el «⋯», con botones del tamaño de un dedo. En una tablet (la
+    // tarjeta pasa de 640 px a 1024) sí se ven: con el dedo las gotas crecen a 44 px y XML y CDR agrandan su área sin cambiar su dibujo.
     <div className="docs-sunat mt-1.5 hidden flex-wrap items-center @min-[640px]:flex">
       {c.pdfUrl && (
-        <a href={c.pdfUrl} target="_blank" rel="noreferrer" className="docs-sunat__gota">
+        <a href={c.pdfUrl} target="_blank" rel="noreferrer" className="docs-sunat__gota pointer-coarse:min-h-11">
           <FileText aria-hidden className="h-3 w-3" />
           Ver PDF
         </a>
@@ -114,7 +115,7 @@ function DocumentosSunat({ c, telefono }: { c: Comprobante; telefono: string | n
           target="_blank"
           rel="noreferrer"
           aria-label={`Enviar por WhatsApp ${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`}
-          className="docs-sunat__gota"
+          className="docs-sunat__gota pointer-coarse:min-h-11"
         >
           <MessageCircle aria-hidden className="h-3 w-3" />
           WhatsApp
@@ -126,12 +127,12 @@ function DocumentosSunat({ c, telefono }: { c: Comprobante; telefono: string | n
         </span>
       )}
       {c.xmlUrl && (
-        <a href={c.xmlUrl} target="_blank" rel="noreferrer" className="docs-sunat__tenue">
+        <a href={c.xmlUrl} target="_blank" rel="noreferrer" className="docs-sunat__tenue area-dedo">
           XML
         </a>
       )}
       {c.cdrUrl && (
-        <a href={c.cdrUrl} target="_blank" rel="noreferrer" className="docs-sunat__tenue">
+        <a href={c.cdrUrl} target="_blank" rel="noreferrer" className="docs-sunat__tenue area-dedo">
           CDR
         </a>
       )}
@@ -415,8 +416,9 @@ export function ComprobantesPanel({
                     </div>
                     <div data-guia="comprobantes.acciones" className="flex flex-wrap items-center gap-1.5">
                       {botones}
-                      {/* El «⋯» de una fila de una lista (ronda 13): abre la hoja con lo que se hace con el comprobante. En el celular, 44 px. */}
-                      <BotonPuntos que={`${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`} guia="comprobantes.opciones" className="max-sm:h-11 max-sm:w-11" onClick={() => setConOpciones(c)} />
+                      {/* El «⋯» de una fila de una lista (ronda 13): abre la hoja con lo que se hace con el comprobante. En el celular, 44 px;
+                          con el dedo (una tablet de 768 o 1024), también: es la única entrada a PDF, WhatsApp y posventa. */}
+                      <BotonPuntos que={`${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`} guia="comprobantes.opciones" className="max-sm:h-11 max-sm:w-11 pointer-coarse:h-11 pointer-coarse:w-11" onClick={() => setConOpciones(c)} />
                     </div>
                   </div>
                 </div>

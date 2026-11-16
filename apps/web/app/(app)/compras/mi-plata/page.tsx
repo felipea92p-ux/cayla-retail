@@ -100,10 +100,10 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
         />
       ) : (
         // Sin ronda abierta: a la izquierda tu plata y abrir la ronda; a la derecha cómo terminó la última (o la lista de lo anotado) y las
-        // rondas anteriores. En el celular una sola columna, en el mismo orden. Con prendas por mandar de una ronda cerrada, «Para mandar» baja
+        // rondas anteriores. Bajo 1280 px (celular y tablet, con el menú fijo al lado) una sola columna, en el mismo orden. Con prendas por mandar de una ronda cerrada, «Para mandar» baja
         // sobre el registro (Felipe 2026-10-26: no desaparece en PC mientras en el celular sí se ve).
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start lg:gap-x-7">
-          <div className="contents lg:flex lg:flex-col lg:gap-4">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] xl:items-start xl:gap-x-7">
+          <div className="contents xl:flex xl:flex-col xl:gap-4">
             <div className="flex flex-col gap-3.5">
               <CaminoDePasos pasos={PASOS_DE_LA_RONDA} ahora={pasoDeLaRonda(plata)} etiqueta="Tu ronda, paso a paso" guia="mi-plata.camino" />
               <Billetera plata={plata} />
@@ -116,7 +116,7 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
               </div>
             </div>
           </div>
-          <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-4">
+          <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-4">
             {/* La hoja «Mandar a la tienda» vive aquí sin su franja: la tarjeta de abajo trae el botón que la abre. */}
             <MandarATienda porMandar={plata.porMandar} abrirAlCargar={mandar === "1"} sinFranja />
             {conManda && <ParaMandar porMandar={plata.porMandar} envios={null} texto={null} hoy={hoy} />}

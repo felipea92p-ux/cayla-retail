@@ -29,6 +29,8 @@
       text-align:center;font:600 15px var(--font-sans);font-variant-numeric:tabular-nums}
     .paso-dias input[aria-invalid="true"]{color:var(--color-rojo-profundo)}
     .paso-dias button:focus-visible,.paso-dias input:focus-visible{outline:2px solid var(--color-tinta);outline-offset:-2px}
+    /* Con el dedo: − y + de 44 px, y el número a 16 px para que el teléfono no acerque la página al tocarlo. */
+    @media (pointer: coarse){ .paso-dias button{width:44px;height:44px} .paso-dias input{height:44px;font-size:16px} }
     .umbral-error{font-size:14px;color:var(--color-rojo-profundo)}
     /* El plazo de cada fila (Felipe 2026-11-09, «Plazo por tipo, a la vista»): bajo la barra, desde donde empieza su zona de liquidar,
        con una rayita que la señala; si no le cabe, se corre a la izquierda lo justo. En angosto empieza al borde y baja de línea. La que sigue a la caja (sin historial)

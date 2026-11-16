@@ -409,7 +409,7 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
                           onClick={() => quitarOrden(o.id)}
                           disabled={guardando}
                           aria-label={`Quitar ${o.numero} de este gasto`}
-                          className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
+                          className="area-dedo grid h-7 w-7 shrink-0 place-items-center rounded-full text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
                         >
                           <X aria-hidden className="h-3.5 w-3.5" />
                         </button>

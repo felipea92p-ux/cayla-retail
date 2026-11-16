@@ -158,46 +158,50 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         {/* `space-y-6` deja 24 px como margen INFERIOR del título (Tailwind 4): `mb-3` los baja a 12. Con `-mb-3` el título quedaba
             12 px debajo de las tarjetas y se veía cortado por la mitad. */}
         <TituloSeccion className="mb-3">Contra factura</TituloSeccion>
-        <div data-guia="recibidas.cifras" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <TarjetaCifra className="anim-entra" style={{ "--i": 0 } as CSSProperties} punto="neutro" etiqueta="Unidades recibidas" valor={<CifraQueCuenta valor={resumen.unidadesRecibidas} alMontar />}>
-            últimos 90 días · {resumen.recepciones.toLocaleString("es-PE")} {resumen.recepciones === 1 ? "recepción" : "recepciones"}
-          </TarjetaCifra>
-          {resumen.diasEntregaPromedio != null ? (
-            <TarjetaCifra className="anim-entra" style={{ "--i": 1 } as CSSProperties} punto="neutro" etiqueta="Tiempo de entrega" valor={<CifraQueCuenta valor={resumen.diasEntregaPromedio} formato="dias" alMontar />}>
-              emisión → llegada · promedio de {resumen.comprobantesRecibidos}
+        {/* Cuatro cifras en fila las decide el ancho de la pantalla (`@container`), no el de la ventana: a 768 px con el menú abierto
+            quedaban ~100 px por tarjeta, bajo el piso de `TarjetaCifra`. Desde 640 px (4 × 148 + huecos) caben; bajo eso, 2 × 2. */}
+        <div className="@container">
+          <div data-guia="recibidas.cifras" className="grid grid-cols-2 gap-3 @min-[640px]:grid-cols-4">
+            <TarjetaCifra className="anim-entra" style={{ "--i": 0 } as CSSProperties} punto="neutro" etiqueta="Unidades recibidas" valor={<CifraQueCuenta valor={resumen.unidadesRecibidas} alMontar />}>
+              últimos 90 días · {resumen.recepciones.toLocaleString("es-PE")} {resumen.recepciones === 1 ? "recepción" : "recepciones"}
             </TarjetaCifra>
-          ) : (
-            <TarjetaCifra className="anim-entra" style={{ "--i": 1 } as CSSProperties} etiqueta="Tiempo de entrega" valor={null}>
-              Aparece con la primera recepción
+            {resumen.diasEntregaPromedio != null ? (
+              <TarjetaCifra className="anim-entra" style={{ "--i": 1 } as CSSProperties} punto="neutro" etiqueta="Tiempo de entrega" valor={<CifraQueCuenta valor={resumen.diasEntregaPromedio} formato="dias" alMontar />}>
+                emisión → llegada · promedio de {resumen.comprobantesRecibidos}
+              </TarjetaCifra>
+            ) : (
+              <TarjetaCifra className="anim-entra" style={{ "--i": 1 } as CSSProperties} etiqueta="Tiempo de entrega" valor={null}>
+                Aparece con la primera recepción
+              </TarjetaCifra>
+            )}
+            {pctCompletas != null ? (
+              <TarjetaCifra className="anim-entra" style={{ "--i": 2 } as CSSProperties} punto="verde" detalleTono="text-verde-profundo" etiqueta="Entregas completas" valor={<CifraQueCuenta valor={pctCompletas} formato="porcentaje" alMontar />}>
+                {resumen.entregasCompletas} de {resumen.comprobantesRecibidos} {resumen.comprobantesRecibidos === 1 ? "comprobante llegó completo" : "comprobantes llegaron completos"}
+              </TarjetaCifra>
+            ) : (
+              <TarjetaCifra className="anim-entra" style={{ "--i": 2 } as CSSProperties} etiqueta="Entregas completas" valor={null}>
+                Aparece con la primera recepción
+              </TarjetaCifra>
+            )}
+            <TarjetaCifra
+              className="anim-entra"
+              style={{ "--i": 3 } as CSSProperties}
+              punto={resumen.faltanteUnidades > 0 ? "ambar" : "verde"}
+              vivo={resumen.faltanteUnidades > 0}
+              tono={resumen.faltanteUnidades > 0 ? "text-ambar-profundo" : undefined}
+              detalleTono={resumen.faltanteUnidades > 0 ? "text-ambar-profundo" : undefined}
+              etiqueta="Faltante abierto"
+              valor={<CifraQueCuenta valor={resumen.faltanteUnidades} alMontar />}
+              unidad={resumen.faltanteUnidades === 1 ? "unidad" : "unidades"}
+              // La lista de comprobantes con faltante es de Facturas de proveedor: a quien no tiene ese módulo no se le ofrece un enlace
+              // que lo devuelve al Inicio (ADR-0387; antes, solo al líder).
+              href={acciones.facturas && resumen.faltanteUnidades > 0 ? "/compras?recep=parcial" : undefined}
+            >
+              {resumen.faltanteUnidades > 0
+                ? `${resumen.faltanteComprobantes} ${resumen.faltanteComprobantes === 1 ? "comprobante" : "comprobantes"} · cerrar o reclamar`
+                : "Nada por reclamar"}
             </TarjetaCifra>
-          )}
-          {pctCompletas != null ? (
-            <TarjetaCifra className="anim-entra" style={{ "--i": 2 } as CSSProperties} punto="verde" detalleTono="text-verde-profundo" etiqueta="Entregas completas" valor={<CifraQueCuenta valor={pctCompletas} formato="porcentaje" alMontar />}>
-              {resumen.entregasCompletas} de {resumen.comprobantesRecibidos} {resumen.comprobantesRecibidos === 1 ? "comprobante llegó completo" : "comprobantes llegaron completos"}
-            </TarjetaCifra>
-          ) : (
-            <TarjetaCifra className="anim-entra" style={{ "--i": 2 } as CSSProperties} etiqueta="Entregas completas" valor={null}>
-              Aparece con la primera recepción
-            </TarjetaCifra>
-          )}
-          <TarjetaCifra
-            className="anim-entra"
-            style={{ "--i": 3 } as CSSProperties}
-            punto={resumen.faltanteUnidades > 0 ? "ambar" : "verde"}
-            vivo={resumen.faltanteUnidades > 0}
-            tono={resumen.faltanteUnidades > 0 ? "text-ambar-profundo" : undefined}
-            detalleTono={resumen.faltanteUnidades > 0 ? "text-ambar-profundo" : undefined}
-            etiqueta="Faltante abierto"
-            valor={<CifraQueCuenta valor={resumen.faltanteUnidades} alMontar />}
-            unidad={resumen.faltanteUnidades === 1 ? "unidad" : "unidades"}
-            // La lista de comprobantes con faltante es de Facturas de proveedor: a quien no tiene ese módulo no se le ofrece un enlace
-            // que lo devuelve al Inicio (ADR-0387; antes, solo al líder).
-            href={acciones.facturas && resumen.faltanteUnidades > 0 ? "/compras?recep=parcial" : undefined}
-          >
-            {resumen.faltanteUnidades > 0
-              ? `${resumen.faltanteComprobantes} ${resumen.faltanteComprobantes === 1 ? "comprobante" : "comprobantes"} · cerrar o reclamar`
-              : "Nada por reclamar"}
-          </TarjetaCifra>
+          </div>
         </div>
 
         {/* En la maqueta 06 los filtros van a 14 px de la tabla (más pegados que el ritmo de la página): son sus controles. */}

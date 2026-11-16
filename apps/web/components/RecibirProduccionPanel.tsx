@@ -102,7 +102,7 @@ export function RecibirProduccionPanel({
       {ordenesInsumo.length > 0 && (
         <section data-guia="prod-recibir.ordenes" className="space-y-3" aria-label="Órdenes de insumos por recibir">
           <TituloSeccion cuenta={ordenesInsumo.length}>Órdenes de insumos</TituloSeccion>
-          <ul className="space-y-3">
+          <ul className="grid items-start gap-3 xl:grid-cols-2">
             {ordenesInsumo.map((o, i) => {
               const mia = ordenBloqueadaPorSerMia(o, personaId, esAdmin);
               // Un Admin que hizo la orden sí la recibe: se lo dice, y queda a su nombre (el lote y su movimiento guardan quién los registró).
@@ -138,12 +138,12 @@ export function RecibirProduccionPanel({
                   {suya && <p className="mt-2 text-sm text-taupe">La hiciste tú. Como Admin la puedes recibir; queda anotado a tu nombre.</p>}
                   <ul className="mt-3">
                     {o.lineas.map((l) => (
-                      <li key={l.itemId} className="flex items-baseline justify-between gap-3 border-t border-tinta/10 py-2 text-sm">
-                        <span className="min-w-0 truncate text-tinta">
+                      <li key={l.itemId} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-t border-tinta/10 py-2 text-sm">
+                        <span className="min-w-0 break-words text-tinta">
                           {l.insumo}
                           {l.tipo === "papel" && <small className="ml-1.5 text-sm text-taupe">fuera de la orden</small>}
                         </span>
-                        <span className="whitespace-nowrap tabular-nums text-tinta/80">
+                        <span className="ml-auto shrink-0 whitespace-nowrap tabular-nums text-tinta/80">
                           quedan <b className="font-semibold text-tinta">{cantidadConUnidad(l.queda, l.unidad)}</b>
                         </span>
                       </li>
@@ -176,7 +176,7 @@ export function RecibirProduccionPanel({
       ) : (
         <section className="space-y-3" aria-label="Facturas por recibir">
           {ordenesInsumo.length > 0 && <TituloSeccion cuenta={abiertos.length}>Facturas sin orden</TituloSeccion>}
-          <ul data-guia="prod-recibir.lista" className="space-y-3">
+          <ul data-guia="prod-recibir.lista" className="grid items-start gap-3 xl:grid-cols-2">
           {abiertos.map((g, i) => (
             <li key={g.comprobanteId} data-guia={i === 0 ? "prod-recibir.factura" : undefined} className="card-cayla anim-entra p-4" style={{ ["--i" as string]: Math.min(i, 8) }}>
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -195,9 +195,9 @@ export function RecibirProduccionPanel({
               </div>
               <ul className="mt-3">
                 {g.pendientes.map((l) => (
-                  <li key={l.itemId} className="flex items-baseline justify-between gap-3 border-t border-tinta/10 py-2 text-sm">
-                    <span className="min-w-0 truncate text-tinta">{l.insumo}</span>
-                    <span className="whitespace-nowrap tabular-nums text-tinta/80">
+                  <li key={l.itemId} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-t border-tinta/10 py-2 text-sm">
+                    <span className="min-w-0 break-words text-tinta">{l.insumo}</span>
+                    <span className="ml-auto shrink-0 whitespace-nowrap tabular-nums text-tinta/80">
                       faltan <b className="font-semibold text-tinta">{cantidadTexto(l.pendiente, l.unidad)}</b>
                       {(l.recibido > 0 || l.cerrado > 0) && <small className="ml-1.5 text-sm text-tinta/60">de {cantidadTexto(l.facturado, l.unidad)}</small>}
                     </span>
@@ -212,12 +212,12 @@ export function RecibirProduccionPanel({
 
       {completos.length > 0 && (
         <details data-guia="prod-recibir.recibidos" className="card-cayla p-4">
-          <summary className="cursor-pointer text-sm text-tinta/80">Ya recibidos ({completos.length})</summary>
+          <summary className="-my-3 cursor-pointer py-3 text-sm text-tinta/80">Ya recibidos ({completos.length})</summary>
           <ul className="mt-2">
             {completos.map((g) => (
-              <li key={g.comprobanteId} className="flex items-baseline justify-between gap-3 border-t border-tinta/10 py-2 text-sm">
-                <span className="min-w-0 truncate text-tinta">{g.proveedor}</span>
-                <span className="whitespace-nowrap text-sm tabular-nums text-tinta/65">
+              <li key={g.comprobanteId} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-t border-tinta/10 py-2 text-sm">
+                <span className="min-w-0 break-words text-tinta">{g.proveedor}</span>
+                <span className="ml-auto shrink-0 whitespace-nowrap text-sm tabular-nums text-tinta/65">
                   {etiquetaTipo(g.tipo, true)} {g.documento} · {diaMes(g.fechaEmision)}
                 </span>
               </li>

@@ -62,7 +62,7 @@ function PrecioEnLaWeb({ productoId }: { productoId: string }) {
     <div className="space-y-2 border-t border-sand pt-4" data-guia="vitrina-modelo.precios">
       <p className="campo-etiqueta">Precio en la web</p>
       {estado.tipo === "leyendo" ? (
-        <p className="text-[13px] text-taupe" aria-live="polite">
+        <p className="text-sm text-taupe" aria-live="polite">
           Leyendo los precios…
         </p>
       ) : estado.tipo === "error" ? (
@@ -75,7 +75,7 @@ function PrecioEnLaWeb({ productoId }: { productoId: string }) {
         </Vacio>
       ) : (
         <>
-          <ul className="card-cayla divide-y divide-sand text-[13px]">
+          <ul className="card-cayla divide-y divide-sand text-sm">
             {estado.precios.sedes.map((t) => {
               const d = textoDePrecio(t);
               return (
@@ -84,14 +84,14 @@ function PrecioEnLaWeb({ productoId }: { productoId: string }) {
                   <span className={`text-right tabular-nums ${t.seOfrece ? "text-tinta" : "text-taupe"}`}>
                     <b className={t.seOfrece ? "font-semibold" : "font-normal"}>{d.principal}</b>
                     {d.tachado && <s className="ml-2 text-taupe">{d.tachado}</s>}
-                    {d.campana && <span className="block text-[12px] text-taupe">{d.campana}</span>}
+                    {d.campana && <span className="block text-sm text-taupe">{d.campana}</span>}
                   </span>
                 </li>
               );
             })}
           </ul>
-          {lineaSinElegirTienda(estado.precios) && <p className="text-[12px] text-taupe">{lineaSinElegirTienda(estado.precios)}</p>}
-          <p className="text-[12px] text-taupe">Es el precio de la talla más cara. Se cambia en su ficha, en Catálogo ▸ Productos.</p>
+          {lineaSinElegirTienda(estado.precios) && <p className="text-sm text-taupe">{lineaSinElegirTienda(estado.precios)}</p>}
+          <p className="text-sm text-taupe">Es el precio de la talla más cara. Se cambia en su ficha, en Catálogo ▸ Productos.</p>
         </>
       )}
     </div>
@@ -218,7 +218,7 @@ export function VitrinaModeloHoja({
         <div className="space-y-2 border-t border-sand pt-4" data-guia="vitrina-modelo.lo-nuevo">
           <p className="campo-etiqueta">Lo nuevo</p>
           <SegmentoDeslizante opciones={OPCIONES_LO_NUEVO} valor={enLoNuevo} onCambio={(c) => setEnLoNuevo(c as EnLoNuevo)} etiqueta="Cómo entra a Lo nuevo" />
-          <p className="text-[12px] text-taupe">{textoLoNuevo(enLoNuevo)}</p>
+          <p className="text-sm text-taupe">{textoLoNuevo(enLoNuevo)}</p>
         </div>
 
         <div className="space-y-3 border-t border-sand pt-4" data-guia="vitrina-modelo.cliente">
@@ -227,7 +227,7 @@ export function VitrinaModeloHoja({
             {sinFotoPropia > 0 && <Chip tono="ambar" className="font-sans normal-case tracking-normal">{`${sinFotoPropia} sin foto propia`}</Chip>}
           </p>
           {colores.length > 0 ? (
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {colores.map((c) => (
                 <li key={c.codigo} className="flex min-w-0 items-center gap-2">
                   <MiniaturaPrenda
@@ -239,8 +239,8 @@ export function VitrinaModeloHoja({
                     categoria={modelo.categoria}
                   />
                   <span className="min-w-0">
-                    <span className="block truncate text-[13px] text-tinta">{c.nombre}</span>
-                    <span className={`block truncate text-[11px] ${c.foto ? "text-taupe" : "text-ambar-profundo"}`}>
+                    <span className="block truncate text-sm text-tinta">{c.nombre}</span>
+                    <span className={`block truncate text-sm ${c.foto ? "text-taupe" : "text-ambar-profundo"}`}>
                       {c.foto ? "Foto propia" : modelo.foto ? "Usa la foto principal" : "Sin foto"}
                     </span>
                   </span>
@@ -248,10 +248,10 @@ export function VitrinaModeloHoja({
               ))}
             </ul>
           ) : (
-            <p className="text-[13px] text-taupe">Este modelo no tiene colores en sus tallas activas.</p>
+            <p className="text-sm text-taupe">Este modelo no tiene colores en sus tallas activas.</p>
           )}
           {modelo.colores.length > COLORES_A_LA_VISTA && (
-            <p className="text-[12px] text-taupe">Y {modelo.colores.length - COLORES_A_LA_VISTA} colores más.</p>
+            <p className="text-sm text-taupe">Y {modelo.colores.length - COLORES_A_LA_VISTA} colores más.</p>
           )}
           <CampoGuiado id="descripcion" guia={guia} titulo="Descripción para la web" ayuda="Opcional · sin ella sale la del catálogo">
             <Campo

@@ -98,7 +98,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
   }, [creado.id]);
 
   return (
-    <div className="space-y-5">
+    <div className="@container space-y-5">
       <div role="status" className="card-cayla flex items-start gap-4 p-5">
         {sinConexion ? (
           <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-ambar text-ambar-profundo">
@@ -195,7 +195,9 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
         </Aviso>
       )}
 
-      <div className={`grid gap-4 ${etiquetas ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
+      {/* Las columnas las decide el ancho del bloque (576 px para dos, 672 para tres), no el de la ventana: a 768, con el lateral, tres
+          tarjetas de 135 px no dejaban caber «Crear otro parecido». */}
+      <div className={`grid gap-4 ${etiquetas ? "@xl:grid-cols-2" : "@2xl:grid-cols-3"}`}>
         {/* La salida principal: las fotos (lo que falte de ellas). Un alta descartada no tiene ficha ni fotos que agregar. */}
         {subida !== "descartada" && (
           <div className="card-cayla flex flex-col justify-between gap-4 border-tinta/40 p-5">

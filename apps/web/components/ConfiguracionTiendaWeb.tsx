@@ -561,7 +561,8 @@ function TallerDeTienda({
             etiqueta={
               <>
                 {etiqueta("horario", "Horario")}
-                <Chip tono="neutro" versalitas={false} className="ml-2">
+                {/* `chip-envuelve`: en el celular la ayuda baja de línea en vez de salirse 75 px de la tarjeta. */}
+                <Chip tono="neutro" versalitas={false} className="chip-envuelve ml-2">
                   Arrastra los bordes o la barra · el interruptor abre o cierra el día
                 </Chip>
               </>

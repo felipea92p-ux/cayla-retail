@@ -41,13 +41,15 @@ export function BarrasPorTramo({ tramos }: { tramos: Tramo[] }) {
           </span>
         ))}
       </div>
-      <div className="kpi-tramos-eje">
-        <span>{tramos[0]?.etiqueta}</span>
-        <span className="inline-flex items-center gap-2">
+      {/* La leyenda baja a su propio renglón y las horas quedan en los extremos: en una tarjeta de ~130-190 px (375, 768 y
+          1280 con cuatro tarjetas) todo en una línea pide ~200 px y el encogimiento partía «21 h» en dos. */}
+      <div className="kpi-tramos-eje flex-wrap gap-x-2">
+        <span className="whitespace-nowrap">{tramos[0]?.etiqueta}</span>
+        <span className="order-last inline-flex basis-full flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
           <span className="inline-flex items-center gap-1"><i className="g-tinta inline-block h-[7px] w-[7px] rounded-[2px]" />facturado</span>
           <span className="inline-flex items-center gap-1"><i className="g-neutro inline-block h-[7px] w-[7px] rounded-[2px]" />prueba o sin enviar</span>
         </span>
-        <span>{tramos[tramos.length - 1]?.etiqueta}</span>
+        <span className="whitespace-nowrap">{tramos[tramos.length - 1]?.etiqueta}</span>
       </div>
     </div>
   );

@@ -356,9 +356,9 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, precarga, e
       )}
 
       <form onSubmit={guardar} onKeyDown={enterNoGuarda} noValidate className="space-y-6">
-        {/* Proveedor, a qué taller llega, entrega y nota: dos por fila y, con lugar (tarjeta de 52 rem o más), los cuatro en una. */}
+        {/* Proveedor, a qué taller llega, entrega y nota: dos por fila y, con lugar (tarjeta de 60 rem o más: a 52 rem «Entrega estimada · si la sabes» se cortaba sin «…»), los cuatro en una. */}
         <section data-guia="oi-form.datos" className="@container card-cayla p-4 sm:p-5" aria-label="Proveedor y a dónde llega">
-          <div className="grid gap-x-5 gap-y-4 @min-[28rem]:grid-cols-2 @min-[52rem]:grid-cols-4">
+          <div className="grid gap-x-5 gap-y-4 @min-[28rem]:grid-cols-2 @min-[60rem]:grid-cols-4">
             <CampoGuiado id="proveedor" guia={guia}>
               <p className={TITULO_FIJO}>{etiqueta("proveedor", "Proveedor")}</p>
               {/* El combo no trae su renglón de error: el de un dato va bajo su campo (`Campo`), con su «!» (ADR-0358). */}

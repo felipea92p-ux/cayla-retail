@@ -41,7 +41,7 @@ export function CierresDeTienda({
       {valor.map((fecha) => (
         <span key={fecha} className="twc-cierre" data-hoy={fecha === hoy ? "" : undefined}>
           {hoy ? etiquetaDeCierre(fecha, hoy) : fecha}
-          <button type="button" aria-label={`Quitar el cierre del ${hoy ? etiquetaDeCierre(fecha, hoy) : fecha}`} disabled={deshabilitado} onClick={() => onCambio(sinCierre(valor, fecha))}>
+          <button type="button" className="area-dedo" aria-label={`Quitar el cierre del ${hoy ? etiquetaDeCierre(fecha, hoy) : fecha}`} disabled={deshabilitado} onClick={() => onCambio(sinCierre(valor, fecha))}>
             <X aria-hidden />
           </button>
         </span>

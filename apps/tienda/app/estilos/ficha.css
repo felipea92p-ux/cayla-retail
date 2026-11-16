@@ -24,6 +24,12 @@
 .t-gal-puntos { position: absolute; left: 0; right: 0; bottom: 12px; z-index: 2; display: flex; justify-content: center; gap: 6px; pointer-events: none; }
 .t-gal-puntos i { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in srgb, var(--t-tinta-fija) 24%, transparent); transition: width .3s var(--ease), background-color .3s; }
 .t-gal-puntos i[data-on] { width: 18px; border-radius: 0; background: var(--t-tinta-fija); }
+/* En la tableta vertical la foto a todo el ancho (≈725×906 a 768) empujaba el nombre y el precio bajo el pliegue: se achica la galería
+   entera, no cada foto (cada foto sigue midiendo el 100 % del carril, que es lo que cuentan los puntos). */
+@container tienda (min-width: 700px) and (max-width: 959.98px) {
+  .t-pdp > .cp-galeria { width: 100%; max-width: 520px; justify-self: center; }
+  .cp-galeria .t-galeria { margin-inline: 0; }
+}
 
 /* ---- La lupa de la computadora (2026-10-16): con el mouse encima, la foto se acerca al doble donde está el mouse y lo sigue; la foto
    grande (`.cp-lupa`) se pide al entrar y reemplaza a la que ya se ve apenas llega. Con el dedo, nada nuevo. ---- */

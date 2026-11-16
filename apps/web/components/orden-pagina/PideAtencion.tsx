@@ -20,7 +20,7 @@ export function PideAtencion({ causas }: { causas: CausaRoja[] }) {
           Pide atención · {primera.titulo.toLocaleLowerCase("es")}
           {otras.length > 0 && ` y ${otras.length} más`}
         </Chip>
-        <button type="button" onClick={() => setAbierto((a) => !a)} aria-expanded={abierto} className="btn-cayla btn-enlace text-[12.5px]">
+        <button type="button" onClick={() => setAbierto((a) => !a)} aria-expanded={abierto} className="btn-cayla btn-enlace">
           {abierto ? "Ocultar" : "¿Por qué?"}
         </button>
       </div>

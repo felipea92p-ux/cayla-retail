@@ -277,6 +277,25 @@
     & .en-partida[data-alto="corto"] .en-panel-in { position: static; min-height: 0; height: 100%; max-width: none; margin: 0; padding: 44px 40px; }
   }
 }
+/* Entre 960 y 1279 px la fila con todo (menús, dos tiendas o más, sesión) pedía ≈1100 px en 942: el buscador cede primero (su texto se corta
+   con «…» hasta quedar en la lupa) y los huecos se aprietan. El selector de la tienda no se toca. */
+@container tienda (min-width: 960px) and (max-width: 1279.98px) {
+  :root[data-diseno="nuevo"] {
+    & .t-cab-fila { gap: 12px; }
+    & .dn-buscar-cab { min-width: 44px; padding-inline: 12px; overflow: hidden; }
+    & .dn-buscar-cab span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  }
+}
+
+/* Con poco lugar (sesión, campanita y el selector de dos tiendas o más): la fila con todo pedía ≈398 px y, a 375-429 px, salía por la
+   derecha. Los íconos bajan a 40 px y el margen se aprieta; no se esconde nada (el selector lleva dentro la confirmación de vaciar la bolsa). */
+@container tienda (max-width: 429px) {
+  :root[data-diseno="nuevo"] {
+    & .t-cab-fila { padding-inline: var(--e-2); gap: 0; }
+    & .t-cab-fila > .t-logo { margin-right: var(--e-1); }
+    & .t-cab-fila :is(.t-ico, .dn-buscar-cab) { width: 40px; }
+  }
+}
 
 /* Una pantalla muy angosta: los íconos ceden un poco para que quepa todo sin esconder ninguno */
 @container tienda (max-width: 374px) {
@@ -304,6 +323,11 @@
 .dn-puntos button { width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: pointer; }
 .dn-puntos button::before { content: ""; width: 9px; height: 9px; border: 1px solid var(--dn-rojo); border-radius: 50%; transition: background-color .25s; }
 .dn-puntos button[aria-current]::before { background: var(--dn-rojo); }
+/* Con el dedo, cada punto se toca en 44 px; el dibujo sigue siendo el punto de 9 px. */
+@media (pointer: coarse) {
+  .dn-puntos { gap: 0; }
+  .dn-puntos button { width: 44px; height: 44px; }
+}
 .dn-escena::after { content: ""; position: absolute; left: -100vw; right: -100vw; bottom: 0; height: 22px; z-index: 0; background: linear-gradient(180deg, var(--dn-suelo-1), var(--dn-suelo-2)); }
 .dn-arco { position: absolute; left: -8%; right: -8%; top: 0; bottom: 22px; border-radius: 50% 50% 0 0 / 40% 40% 0 0; background: linear-gradient(90deg, var(--dn-arco-hondo), var(--dn-arco-sombra) 12%, var(--dn-arco) 60%, var(--dn-arco-fondo)); box-shadow: -16px 6px 40px -18px var(--dn-sombra-arco); }
 .dn-arco::before { content: ""; position: absolute; inset: 0 0 0 8px; border-radius: inherit; background: url(/escenario/yeso.webp), linear-gradient(112deg, transparent 22%, var(--dn-rayo) 33%, transparent 44%, var(--dn-rayo-sombra) 52%, transparent 60%, var(--dn-rayo) 72%, transparent 84%), radial-gradient(ellipse 60% 62% at 58% 52%, var(--dn-arco-luz), transparent 76%), linear-gradient(98deg, var(--dn-arco-sombra), var(--dn-arco) 36%, var(--dn-arco-fondo)); box-shadow: inset clamp(18px, 2.2cqi, 34px) clamp(10px, 1.2cqi, 18px) clamp(30px, 3.4cqi, 52px) -14px var(--dn-sombra-arco); }

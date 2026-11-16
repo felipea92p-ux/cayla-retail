@@ -74,6 +74,11 @@ export const NOMBRE_METODO: Record<MetodoPagoVenta, string> = {
   transferencia: "Transferencia",
 };
 
+/** El nombre de un medio en una ficha muy angosta: «Transferencia» no cabe entera a un tamaño legible. La hoja de cobro de Vender lleva
+ *  los dos nombres y su CSS (`.hoja-cobro-nombre-corto`) muestra el corto bajo 6 rem de ficha (una tablet a 1024 px); la grilla de cinco
+ *  medios de Apartados (unos 50 px por ficha) lleva solo el corto. */
+export const NOMBRE_CORTO: Partial<Record<MetodoPagoVenta, string>> = { transferencia: "Transf." };
+
 /** Cómo se dice el redondeo del efectivo en el papel y en las pantallas de la venta (ADR-0311). */
 export const TEXTO_REDONDEO = "Redondeo de efectivo";
 export const LEY_REDONDEO = "Ley 29571: el efectivo se cobra al múltiplo de S/\u00a00.10, hacia abajo";

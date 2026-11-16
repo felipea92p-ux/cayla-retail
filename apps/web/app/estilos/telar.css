@@ -28,6 +28,15 @@
     padding-inline: 1.25rem;
   }
 }
+/* En el celular la mesa se va al bajar y vuelve al subir hasta arriba (decisión 5A de Felipe, 2026-11-16, mirando la demo del celular): fija,
+   con la cabecera se comía 179 px de un iPhone SE —el 27 % de la pantalla— todo el tiempo. Desde 640 px sigue fija. El separador de días de
+   Gastos, que se pegaba debajo de ella, lo sabe: `ExtractoGastos` mide si la mesa está pegada antes de sumar su alto. */
+@media (max-width: 639.98px) {
+  .mesa-telar {
+    position: relative;
+    top: auto;
+  }
+}
 .mesa-telar-fila {
   display: flex;
   align-items: center;

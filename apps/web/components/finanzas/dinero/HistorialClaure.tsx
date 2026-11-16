@@ -93,13 +93,13 @@ export function HistorialClaure({ libro, hoy, filtroInicial, periodoInicial, onC
           </div>
           <div className="cl-h-per">
             {periodo !== "todo" && (
-              <button type="button" className="cl-h-flecha" onClick={() => mover(-1)} aria-label="Período anterior">
+              <button type="button" className="cl-h-flecha area-dedo" onClick={() => mover(-1)} aria-label="Período anterior">
                 <ChevronLeft className="h-4 w-4" aria-hidden />
               </button>
             )}
             <b>{etiquetaPeriodo(periodo, ref)}</b>
             {periodo !== "todo" && (
-              <button type="button" className="cl-h-flecha" onClick={() => mover(1)} disabled={!hayPeriodoSiguiente(periodo, ref, hoy)} aria-label="Período siguiente">
+              <button type="button" className="cl-h-flecha area-dedo" onClick={() => mover(1)} disabled={!hayPeriodoSiguiente(periodo, ref, hoy)} aria-label="Período siguiente">
                 <ChevronRight className="h-4 w-4" aria-hidden />
               </button>
             )}

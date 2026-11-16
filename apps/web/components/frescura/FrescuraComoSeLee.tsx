@@ -80,7 +80,7 @@ export function FrescuraComoSeLee({
         <p>
           <b>Sin temporada.</b> {sinTemporada.texto}{" "}
           {sinTemporada.href && (
-            <Link href={sinTemporada.href} className="btn-cayla btn-enlace text-[13px]">
+            <Link href={sinTemporada.href} className="btn-cayla btn-enlace text-sm">
               Complétalas en Catálogo
             </Link>
           )}
