@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
-import { objecionFotoProducto, subirFotoProducto } from "@/lib/producto-fotos";
+import { abrirFotosElegidas } from "@/lib/foto-elegida-cliente";
+import { subirFotoProducto } from "@/lib/producto-fotos";
 
 // Elegir → subir, para la ficha de una prenda que YA existe (ADR-0279; antes vivía dentro de `FotosProducto`).
 //
@@ -18,7 +19,7 @@ export type FotoSubida = { url: string; colorCodigo: string | null };
 
 export function useSubirFotos({ onSubidas }: { onSubidas: (nuevas: FotoSubida[]) => void }): {
   /** Valida los archivos y los sube tal cual; las fotos nacen con `colorCodigo`. */
-  elegir: (archivos: File[], colorCodigo: string | null) => void;
+  elegir: (archivos: File[], colorCodigo: string | null) => Promise<void>;
   /** Subiendo: los selectores de archivo se apagan para no mezclar dos tandas. */
   ocupado: boolean;
 } {
@@ -39,16 +40,13 @@ export function useSubirFotos({ onSubidas }: { onSubidas: (nuevas: FotoSubida[])
     if (nuevas.length) onSubidas(nuevas);
   }
 
-  function elegir(archivos: File[], colorCodigo: string | null) {
-    const buenas: File[] = [];
-    const malas: string[] = [];
-    for (const a of archivos) {
-      const objecion = objecionFotoProducto(a);
-      if (objecion) malas.push(`${a.name}: ${objecion}`);
-      else buenas.push(a);
-    }
-    if (malas.length) avisar.error(malas.length === 1 ? "Una foto no se puede usar" : `${malas.length} fotos no se pueden usar`, { detalle: malas.join(" · ") });
-    if (buenas.length) void subir(buenas, colorCodigo);
+  async function elegir(archivos: File[], colorCodigo: string | null) {
+    // La foto se abre antes de subirla (`abrirFotosElegidas`): una que el navegador no puede leer se dice en palabras de tienda y no sube.
+    // Mientras se abren, los selectores ya se apagan: si no, un segundo clic armaría otra tanda en paralelo.
+    setSubiendo(true);
+    const { buenas } = await abrirFotosElegidas(archivos, (titulo, detalle) => avisar.error(titulo, { detalle }));
+    if (buenas.length) await subir(buenas, colorCodigo);
+    else setSubiendo(false);
   }
 
   return { elegir, ocupado: subiendo };

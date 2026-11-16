@@ -12,7 +12,7 @@
 export const PHOTOROOM_URL_EDITAR = "https://image-api.photoroom.com/v2/edit";
 /** Lo que tarda de más una foto grande en el sandbox es ~10 s; a los 45 s se da por caído (principio 9: la pantalla no se cuelga). */
 export const PHOTOROOM_TOPE_MS = 45_000;
-/** El mismo tope de una foto de producto (`PRODUCTO_FOTOS_MAX_BYTES`): lo que no se puede subir no vale la pena probarlo. */
+/** El mismo tope de una foto de producto (`PRODUCTO_FOTOS_MAX_BYTES`, `foto-elegida-reglas.ts`): lo que no se puede subir no vale la pena probarlo. */
 export const PHOTOROOM_MAX_BYTES = 5 * 1024 * 1024;
 
 /**

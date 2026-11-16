@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { codigosParaReintentar, lugarDeLasFotosNuevas, motivoDeFalla, segundaOpcionDelDibujo, sumarFotoUnaVez } from "./fotos-y-colores-reglas";
+import { avisoDeIAQueNoPudo, codigosParaReintentar, fotosParaLaIAAlEncender, lugarDeLasFotosNuevas, pendientesParaLaIAAlEncender, motivoDeFalla, segundaOpcionDelDibujo, sumarFotoUnaVez } from "./fotos-y-colores-reglas";
 
 // Los tres hallazgos de /chaos en «Fotos y colores» (2026-11-14, semilla 663), hechos prueba para que no vuelvan.
 
@@ -52,6 +52,15 @@ describe("motivoDeFalla — sin red se dice en palabras de tienda, nunca «Faile
     expect(motivoDeFalla(new Error("Ya existe una mezcla con esos colores."), "x")).toBe("Ya existe una mezcla con esos colores.");
   });
 
+  it("un error del navegador al abrir una foto no sale en inglés (Chaleco Dad, 2026-11-16)", () => {
+    // Safari: `InvalidStateError`; Chrome: `InvalidStateError`/`EncodingError`. Son `DOMException`, que también es `Error`.
+    const safari = new DOMException("An error occured reading the Blob argument to createImageBitmap", "InvalidStateError");
+    const chrome = new DOMException("The source image could not be decoded.", "InvalidStateError");
+    expect(motivoDeFalla(safari, "No se pudo leer esta foto.")).toBe("No se pudo leer esta foto.");
+    expect(motivoDeFalla(chrome, "No se pudo leer esta foto.")).toBe("No se pudo leer esta foto.");
+    expect(motivoDeFalla(new RangeError("Invalid array length"), "No se pudo leer esta foto.")).toBe("No se pudo leer esta foto.");
+  });
+
   it("sin mensaje, el de respaldo", () => {
     expect(motivoDeFalla("raro", "No se pudo armar la mezcla.")).toBe("No se pudo armar la mezcla.");
     expect(motivoDeFalla(new Error(""), "No se pudo armar la mezcla.")).toBe("No se pudo armar la mezcla.");
@@ -85,5 +94,52 @@ describe("lugarDeLasFotosNuevas — sumar fotos a una prenda que ya existe no le
 
   it("con fotos pero ninguna principal: la primera nueva lo es", () => {
     expect(lugarDeLasFotosNuevas([{ orden: 1, es_principal: false }])).toEqual({ desde: 2, primeraEsPrincipal: true });
+  });
+});
+
+describe("encender la IA con fotos ya subidas no obliga a quitarlas y subirlas de nuevo (Felipe 2026-11-16)", () => {
+  const foto = (clave: string, colorCodigo: string | null, ia?: unknown) => ({ clave, colorCodigo, ia });
+
+  it("prepara la PRIMERA foto de cada color (la de frente); la espalda no se paga", () => {
+    const r = fotosParaLaIAAlEncender([foto("a", "AZU"), foto("a2", "AZU"), foto("b", "ROJ")], new Set());
+    expect(r.map((f) => f.clave)).toEqual(["a", "b"]);
+  });
+
+  it("no paga dos veces: la que ya tiene su versión de IA no se vuelve a pedir, ni pasa la posta a la espalda", () => {
+    expect(fotosParaLaIAAlEncender([foto("a", "AZU", { usar: false }), foto("a2", "AZU")], new Set())).toEqual([]);
+  });
+
+  it("apagar y encender rápido no repite la que ya se pidió (en camino o recién llegada)", () => {
+    expect(fotosParaLaIAAlEncender([foto("a", "AZU"), foto("b", "ROJ")], new Set(["a"])).map((f) => f.clave)).toEqual(["b"]);
+  });
+
+  it("de las que esperan su color, vuelven a la IA solo las que preguntan y no la tienen; las demás ya van por su camino", () => {
+    const p = (clave: string, estado: string, ia?: unknown) => ({ clave, estado, ia });
+    const r = pendientesParaLaIAAlEncender([p("a", "pregunta"), p("b", "pregunta", {}), p("c", "abriendo"), p("d", "ia"), p("e", "leyendo"), p("f", "armando")]);
+    expect(r.map((x) => x.clave)).toEqual(["a"]);
+  });
+
+  it("la que ya tiene su respuesta completa (la mezcla falló por la red) no se reinicia: se perdería lo que se contestó", () => {
+    const p = (clave: string, eleccion?: (string | null)[]) => ({ clave, estado: "pregunta", eleccion });
+    const r = pendientesParaLaIAAlEncender([p("respondida", ["AZM", "MOS"]), p("a-medias", ["AZM", null]), p("sin-leer")]);
+    expect(r.map((x) => x.clave)).toEqual(["a-medias", "sin-leer"]);
+  });
+});
+
+describe("avisoDeIAQueNoPudo — UN aviso por tanda, que dice cuántas y cuáles (revisión 2026-11-16)", () => {
+  it("sin fallas no hay aviso", () => {
+    expect(avisoDeIAQueNoPudo([], 0)).toBeNull();
+  });
+
+  it("una sola: en singular, con su color", () => {
+    expect(avisoDeIAQueNoPudo(["Azul"], 0)).toEqual({ titulo: "La IA no pudo con una foto: quedó como la subiste.", detalle: "Azul" });
+  });
+
+  it("varias: cuenta todas, nombra cada color una vez y suma las que esperan su color", () => {
+    expect(avisoDeIAQueNoPudo(["Azul", "Rojo", "Azul"], 2)).toEqual({
+      titulo: "La IA no pudo con 5 fotos: quedaron como las subiste.",
+      detalle: "Azul · Rojo · 2 que esperan su color",
+    });
+    expect(avisoDeIAQueNoPudo([], 1)?.detalle).toBe("una que espera su color");
   });
 });
