@@ -195,7 +195,7 @@ export function ConfirmarConteo({
 
   return (
     <>
-      <section ref={tarjeta} data-guia="confirmar.lista" className="card-cayla @container scroll-mt-24 space-y-4 p-4 sm:p-5">
+      <section ref={tarjeta} data-guia="confirmar.lista" className="card-cayla @container scroll-mt-8 space-y-4 p-4 sm:p-5">
         <TituloSeccion>{filas.length === 0 ? "No hay existencias que cambiar." : textoSeActualizaran(filas.length)}</TituloSeccion>
 
         {negativas > 0 && (

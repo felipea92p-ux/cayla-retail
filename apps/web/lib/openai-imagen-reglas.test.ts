@@ -194,8 +194,9 @@ describe("pedidoDeCatalogo con la ficha de la prenda (lo ya elegido, 2026-11-14)
     // la arruga, que el modelo dibuja si la lee. Antes la ayuda del lino le decía «Se arruga (es parte de su gracia)».
     for (const extras of [{}, { molde: true }, { espalda: true }]) {
       const { prompt } = pedidoDeCatalogo(extras, lino);
-      expect(prompt, JSON.stringify(extras)).toMatch(/PLANCHADA: la prenda se ve recién planchada al vapor/);
-      expect(prompt, JSON.stringify(extras)).toMatch(/con la textura de su tejido a la vista/);
+      expect(prompt, JSON.stringify(extras)).toMatch(/PLANCHADA: la prenda se ve planchada para una sesión de fotos/);
+      expect(prompt, JSON.stringify(extras)).toMatch(/La TELA es la misma de la foto real/);
+      expect(prompt, JSON.stringify(extras)).toMatch(/Es lino planchado y se ve lino/);
       expect(prompt, JSON.stringify(extras)).not.toMatch(/arrugas|luz pareja|se arruga|gracia/i);
     }
   });
@@ -260,8 +261,8 @@ describe("fase 2 (2026-11-16): el pedido de cintura, sin empujar al buzo, y el d
     const chaleco = fichaParaIA({ prefijo: "CHA", tejido: "Sastre", patron: "Liso" });
     expect({ blusa: huella(pedidoDeCatalogo({}, blusa).prompt), chaleco: huella(pedidoDeCatalogo({}, chaleco).prompt) }).toMatchInlineSnapshot(`
       {
-        "blusa": "619f8bff3da28ed9",
-        "chaleco": "1f13e87ad29849d2",
+        "blusa": "5a9e2adb62574d3c",
+        "chaleco": "f0acf4550dfa0126",
       }
     `);
   });

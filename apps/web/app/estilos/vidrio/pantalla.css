@@ -108,12 +108,16 @@
   border-radius: 999px;
   color: color-mix(in srgb, var(--color-tinta) 72%, transparent); /* contraste: texto sobre el pozo de las pestañas (crema, papel) */
 }
+/* La elegida lleva un filo de `borde-control` sobre su gota (Felipe 2026-11-16, decisión 2A): la gota clara sola daba 1,27–2,16:1 contra el
+   pozo y lo elegido pide 3:1 (WCAG 1.4.11). El filo es el mismo de todo lo que se toca; la gota que viaja lo lleva igual. */
 .pestana-cayla:is([aria-selected="true"], [aria-current="page"]) {
   color: var(--color-tinta);
   background: var(--gota-marca);
+  box-shadow: inset 0 0 0 1px var(--color-borde-control);
 }
 [data-indicador] > .pestana-cayla:is([aria-selected="true"], [aria-current="page"]) {
   background: transparent;
+  box-shadow: none;
 }
 @media (hover: hover) {
   .pestana-cayla:not([aria-selected="true"], [aria-current="page"]):hover {
@@ -124,8 +128,9 @@
 .pestana-cayla:is([aria-selected="true"], [aria-current="page"]):focus-visible {
   outline-color: var(--foco-color);
 }
-/* El conteo de la elegida ya no va sobre tinta: vuelve a su globito de siempre. */
-.pestana-cayla:is([aria-selected="true"], [aria-current="page"]) .pestana-cayla__cuenta:not([data-pide], [data-tono]) {
+/* El conteo de la elegida ya no va sobre tinta: vuelve a su globito de siempre. El tono «neutro» también: sin él, la regla vieja de
+   pestanas-y-segmentos.css lo pintaba crema sobre la gota clara («7 activos», «N cajas»: 1,09:1, medido por /milimetro el 2026-11-16). */
+.pestana-cayla:is([aria-selected="true"], [aria-current="page"]) .pestana-cayla__cuenta:is(:not([data-pide], [data-tono]), [data-tono="neutro"]) {
   color: var(--color-tinta);
   background: color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es el fondo del globito, no un texto */
 }
@@ -141,7 +146,7 @@
 .pestanas-cayla > .cmp-ind-gota {
   border-radius: 999px;
   background: var(--gota-marca);
-  box-shadow: var(--gota-luz);
+  box-shadow: inset 0 0 0 1px var(--color-borde-control), var(--gota-luz);
 }
 /* Los dos tramos del flujo (el JavaScript solo dice cuándo pasa al segundo). */
 .cmp-ind-gota[data-fluye="estira"] {
@@ -501,7 +506,7 @@ svg.lucide:is(.h-5, .size-5, .h-6, .size-6, .h-7, .h-8, .size-8, .h-10, .h-12):n
 .segmento-cayla__opcion:is([aria-checked="true"], [aria-current="true"], [aria-current="page"], [aria-pressed="true"]) {
   color: var(--color-tinta);
   background: var(--gota-marca);
-  box-shadow: var(--gota-luz);
+  box-shadow: inset 0 0 0 1px var(--color-borde-control), var(--gota-luz); /* el filo de la elegida (decisión 2A), como en las pestañas */
 }
 [data-indicador] > .segmento-cayla__opcion:is([aria-checked="true"], [aria-current="true"], [aria-current="page"]) {
   background: transparent;
@@ -517,7 +522,7 @@ svg.lucide:is(.h-5, .size-5, .h-6, .size-6, .h-7, .h-8, .size-8, .h-10, .h-12):n
   bottom: 3px;
   border-radius: 999px;
   background: var(--gota-marca);
-  box-shadow: var(--gota-luz);
+  box-shadow: inset 0 0 0 1px var(--color-borde-control), var(--gota-luz);
 }
 
 /* ---------- La tarjeta de producto de Catálogo ▸ Productos: «A · Catálogo de moda» (Felipe 2026-11-02, docs/maquetas/productos-vidrio-2026-11/) ----------

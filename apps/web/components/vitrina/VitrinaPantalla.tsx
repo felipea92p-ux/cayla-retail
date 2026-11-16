@@ -294,7 +294,7 @@ export function VitrinaPantalla({
         </TarjetaCifra>
       </div>
 
-      <section ref={cajaRef} className="card-cayla scroll-mt-20 space-y-0">
+      <section ref={cajaRef} className="card-cayla scroll-mt-4 space-y-0">
         {/* El buscador, los filtros (un botón que abre un panel flotante) y cómo ver la lista, en una sola fila: bajo `sm` los dos últimos son solo
             íconos y el buscador conserva su ancho. */}
         <div className="flex items-center gap-3 border-b border-sand px-4 py-4 sm:px-5">

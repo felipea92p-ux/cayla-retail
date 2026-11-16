@@ -384,7 +384,7 @@ export function NuevoProductoForm({
     pasoPrevio.current = paso;
     soltarPaginaEstable();
     const reducido = prefiereQuieto();
-    // Al título del paso (la sección lleva `scroll-mt-24`, así que queda bajo la cabecera). Con «nearest», elegir la categoría dejaba
+    // Al título del paso (la página descuenta la cabecera y la sección lleva su `scroll-mt`, así que queda bajo ella). Con «nearest», elegir la categoría dejaba
     // el paso 2 con su título cortado arriba y el campo «Nombre» pegado al borde (prueba con una trabajadora, 2026-09-29).
     requestAnimationFrame(() =>
       document.getElementById(`paso-${paso}`)?.closest("section")?.scrollIntoView({ block: "start", behavior: reducido ? "auto" : "smooth" }),

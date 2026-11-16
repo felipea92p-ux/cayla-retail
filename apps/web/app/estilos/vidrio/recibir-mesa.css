@@ -504,8 +504,8 @@ button.rc-celda-falta:focus-visible { outline: 2px solid var(--color-tinta); out
 /* Bajo las dos mitades (una pantalla angosta), una columna: la lista y debajo lo que se cuenta. */
 @container rc-conteo (max-width: 759px) {
   .rc-lista .rc-scroll { max-height: 60dvh; }
-  /* Al elegir un modelo la vista baja hasta el contador: queda bajo la cabecera flotante, no detrás. */
-  .rc-placa { scroll-margin-top: 5.5rem; }
+  /* Al elegir un modelo la vista baja hasta el contador: queda bajo la cabecera, no detrás (la cabecera la descuenta la página, decisión 1A). */
+  .rc-placa { scroll-margin-top: 1.5rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

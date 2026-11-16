@@ -58,6 +58,8 @@
    para el lector y aparece al tocarlo). Mide la zona del gráfico (`.barras-tiempo-zona` ya es contenedor). */
 @container (max-width: 560px) {
   .cv-meses-barras .barra-t:not([data-tono]) .barra-t-cifra { display: none; }
+  /* Sin su cifra, la barra pasa 3:1 como en `BarrasTiempo` (decisión 5B, graficos-tiempo.css). */
+  .cv-meses-barras .barra-t:not([data-tono]) .barra-t-relleno { background: color-mix(in srgb, var(--color-tinta) 36%, var(--color-grafico-neutro)); }
 }
 
 /* ---------- el movimiento: una vez ---------- */

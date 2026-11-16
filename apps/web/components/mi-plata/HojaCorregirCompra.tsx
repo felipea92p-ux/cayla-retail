@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
 import { Volver } from "@/components/ui/Volver";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { avisar } from "@/components/ui/Avisos";
@@ -29,10 +30,13 @@ import {
   problemasDePapel,
   problemasDePrenda,
   puedeCambiarDeTienda,
+  seQuitanTodas,
   textoDeCambios,
+  textoDelMinimo,
   textoDeLaPlata,
   textoMotivo,
   type Borrador,
+  type CampoDeBorrador,
   type CompraParaCorregir,
   type Opcion,
   type PapelBorrador,
@@ -87,8 +91,10 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
 
   const cuenta = compra ? cuentaDeLaCorreccion(compra, borradores, papel) : null;
   const automatica = compra ? cuentaDeLaCorreccion(compra, borradores) : null;
+  // Una compra se queda con al menos una prenda (la base lo exige): quitarlas todas no se guarda.
+  const quitaTodas = compra ? seQuitanTodas(compra, borradores) : false;
   const hayProblema = compra
-    ? compra.prendas.some((p) => prendaConProblema(p, borradores.get(p.id) ?? borradorDe(p))) || (papel !== null && papelConProblema(papel))
+    ? compra.prendas.some((p) => prendaConProblema(p, borradores.get(p.id) ?? borradorDe(p))) || (papel !== null && papelConProblema(papel)) || quitaTodas
     : false;
   const conCambios = (cuenta?.datos ?? 0) > 0;
   const salida = useSalidaSinGuardar(conCambios, "Cambiaste datos de esta compra y todavía no se guardaron. Si cierras ahora, se pierden.");
@@ -103,9 +109,16 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
     setPapel((p) => ({ ...(p ?? papelBorradorDe(automatica.monto, automatica.pagado, compra.medioPago)), [campo]: valor }) as PapelBorrador);
   }
 
-  function cambiar(p: PrendaParaCorregir, campo: keyof Borrador, valor: string) {
+  function cambiar(p: PrendaParaCorregir, campo: CampoDeBorrador, valor: string) {
     setRechazo(null);
     setBorradores((m) => new Map(m).set(p.id, { ...(m.get(p.id) ?? borradorDe(p)), [campo]: valor }));
+  }
+
+  // «Se anotó por error» (20261116215000): quitarla deja de lado lo escrito de esa prenda; volver a dejarla la trae como estaba.
+  function quitar(p: PrendaParaCorregir, si: boolean) {
+    setRechazo(null);
+    setBorradores((m) => new Map(m).set(p.id, { ...borradorDe(p), quitar: si }));
+    if (si) setAbierta(null);
   }
 
   async function guardar() {
@@ -195,6 +208,7 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                   tiendas={compra.tiendas}
                   borrador={borradores.get(prenda.id) ?? borradorDe(prenda)}
                   alCambiar={(campo, valor) => cambiar(prenda, campo, valor)}
+                  alQuitar={(si) => quitar(prenda, si)}
                   alDescartar={() => setBorradores((m) => new Map(m).set(prenda.id, borradorDe(prenda)))}
                   alVolver={() => setAbierta(null)}
                   bloqueado={!compra.sePuede || guardando}
@@ -209,6 +223,7 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                     const categoria = compra.categorias.find((c) => c.id === b.categoriaId)?.nombre ?? p.categoria;
                     const marca = compra.marcas.find((m) => m.id === b.marcaId)?.nombre ?? p.marca;
                     const tienda = compra.tiendas.find((t) => t.id === b.destinoId)?.nombre ?? p.destino;
+                    const seQuita = b.quitar;
                     return (
                       <li key={p.id}>
                         <button
@@ -217,11 +232,11 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                           disabled={!compra.sePuede}
                           onClick={() => setAbierta(p.id)}
                           className={`grid w-full grid-cols-[36px_minmax(0,1fr)_auto_16px] items-center gap-2.5 rounded-[14px] border px-3 py-2.5 text-left transition-colors disabled:cursor-default ${
-                            cambio ? "border-ambar bg-ambar/10" : "border-sand bg-papel"
+                            seQuita ? "border-sand bg-hueso" : cambio ? "border-ambar bg-ambar/10" : "border-sand bg-papel"
                           } ${compra.sePuede ? "hover:bg-hueso" : ""}`}
                         >
                           <MiniaturaPrenda fotoUrl={null} categoria={categoria} />
-                          <span className="min-w-0">
+                          <span className={`min-w-0 ${seQuita ? "line-through decoration-taupe" : ""}`}>
                             <span className="block truncate text-sm font-medium text-tinta">{nombre}</span>
                             <span className="block truncate text-sm text-taupe">
                               {[categoria, marca, tienda].filter(Boolean).join(" · ")}
@@ -231,8 +246,12 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                             </span>
                           </span>
                           <span className="flex flex-col items-end gap-1">
-                            <b className="whitespace-nowrap text-sm font-semibold tabular-nums text-tinta">{soles(cantidad * leerPrecioDe(b, p))}</b>
-                            {cambio ? (
+                            <b className={`whitespace-nowrap text-sm font-semibold tabular-nums text-tinta ${seQuita ? "line-through" : ""}`}>
+                              {soles(cantidad * leerPrecioDe(b, p))}
+                            </b>
+                            {seQuita ? (
+                              <Chip tono="rojo">Se quita</Chip>
+                            ) : cambio ? (
                               <Chip tono="ambar">Cambiaste</Chip>
                             ) : (
                               <Chip tono="neutro" versalitas={false}>
@@ -261,7 +280,8 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                     <span className="block text-sm font-medium text-tinta">Papel y pago</span>
                     <span className="block text-sm tabular-nums text-taupe">
                       {TIPOS_PAPEL[compra.tipo as TipoPapel]?.nombre ?? "Papel"} · {soles(cuenta.monto)}
-                      {cuenta.monto !== compra.monto && <span className="ml-1 line-through opacity-70">{soles(compra.monto)}</span>}
+                      {/* El monto de antes, tachado y en el taupe de la línea (sin `opacity`: al 70 % bajaba a 2,8:1 en oscuro, /milimetro 2026-11-16). */}
+                      {cuenta.monto !== compra.monto && <span className="ml-1 line-through">{soles(compra.monto)}</span>}
                     </span>
                     <span className="block text-sm tabular-nums text-taupe">
                       {cuenta.pagado > 0 ? `Pagaste ${soles(cuenta.pagado)}` : "Lo paga Compras"}
@@ -282,7 +302,9 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
               <p className="text-sm text-taupe" aria-live="polite">
                 {revisando
                   ? ""
-                  : conCambios && cuenta
+                  : quitaTodas
+                    ? "La compra se queda con al menos una prenda."
+                    : conCambios && cuenta
                     ? `${textoDeCambios(cuenta.datos)} · ${textoDeLaPlata(cuenta.plata)}`
                     : compra.sePuede && !prenda && !enElPapel
                       ? "Toca una prenda para corregirla."
@@ -331,6 +353,7 @@ function FormularioDePrenda({
   tiendas,
   borrador,
   alCambiar,
+  alQuitar,
   alDescartar,
   alVolver,
   bloqueado,
@@ -340,7 +363,8 @@ function FormularioDePrenda({
   marcas: readonly Opcion[];
   tiendas: readonly Opcion[];
   borrador: Borrador;
-  alCambiar: (campo: keyof Borrador, valor: string) => void;
+  alCambiar: (campo: CampoDeBorrador, valor: string) => void;
+  alQuitar: (si: boolean) => void;
   alDescartar: () => void;
   alVolver: () => void;
   bloqueado: boolean;
@@ -350,17 +374,32 @@ function FormularioDePrenda({
   const cambio = prendaCambio(prenda, borrador);
   const cambios = cambiosDePrenda(prenda, borrador);
   const antes = (texto: string, cambioEsteDato: boolean) => (cambioEsteDato ? `Antes: ${texto}` : undefined);
+  const cabecera = (
+    <div className="flex items-center gap-3">
+      <Volver onClick={alVolver} a="las prendas de la compra" />
+      <p className="min-w-0 text-sm text-taupe">
+        {[prenda.categoria, prenda.marca, prenda.destino].filter(Boolean).join(" · ")}
+      </p>
+      <Chip tono="neutro" versalitas={false}>
+        {prenda.esCatalogo ? "Del catálogo" : "Algo nuevo"}
+      </Chip>
+    </div>
+  );
+  // Ya marcada para quitar: no hay nada que escribir, solo volver a dejarla.
+  if (borrador.quitar) {
+    return (
+      <div className="space-y-4">
+        {cabecera}
+        <Aviso tono="atencion" titulo="Se quita de la compra" chico>
+          Se anotó por error. Al guardar sale también de su envío.
+        </Aviso>
+        {!bloqueado && <BotonDeshacer onClick={() => alQuitar(false)}>No quitarla</BotonDeshacer>}
+      </div>
+    );
+  }
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <Volver onClick={alVolver} a="las prendas de la compra" />
-        <p className="min-w-0 text-sm text-taupe">
-          {[prenda.categoria, prenda.marca, prenda.destino].filter(Boolean).join(" · ")}
-        </p>
-        <Chip tono="neutro" versalitas={false}>
-          {prenda.esCatalogo ? "Del catálogo" : "Algo nuevo"}
-        </Chip>
-      </div>
+      {cabecera}
 
       {!prenda.esCatalogo && (
         <div className="space-y-3">
@@ -415,8 +454,8 @@ function FormularioDePrenda({
         <span className="campo-etiqueta">¿Cuántas unidades?</span>
         <PasoCantidad
           menos={{
-            onClick: () => alCambiar("cantidad", String(Math.max(Math.max(1, prenda.enviadas), (cantidad ?? 1) - 1))),
-            deshabilitado: bloqueado || (cantidad ?? 0) <= Math.max(1, prenda.enviadas),
+            onClick: () => alCambiar("cantidad", String(Math.max(prenda.minimo, (cantidad ?? 1) - 1))),
+            deshabilitado: bloqueado || (cantidad ?? 0) <= prenda.minimo,
             etiqueta: "Una menos",
           }}
           mas={{ onClick: () => alCambiar("cantidad", String(Math.min(99999, (cantidad ?? 0) + 1))), deshabilitado: bloqueado, etiqueta: "Una más" }}
@@ -433,7 +472,8 @@ function FormularioDePrenda({
         <p className={`min-h-4 text-sm ${problemas.cantidad ? "text-rojo-profundo" : cambios.cantidad !== undefined ? "text-ambar" : "text-taupe"}`}>
           {problemas.cantidad ??
             antes(`${prenda.cantidad} ${prenda.cantidad === 1 ? "unidad" : "unidades"}`, cantidad !== null && cantidad !== prenda.cantidad) ??
-            (prenda.enviadas > 0 ? `Ya salieron ${prenda.enviadas} en un envío: no puede quedar en menos.` : "")}
+            textoDelMinimo(prenda) ??
+            ""}
         </p>
       </div>
 
@@ -469,6 +509,18 @@ function FormularioDePrenda({
           Dejar esta prenda como estaba
         </button>
       )}
+
+      {/* 20261116215000: una prenda que se anotó por error sale de la compra (y de su envío, si la tienda todavía no la cuenta). */}
+      {!bloqueado &&
+        (prenda.quitable ? (
+          <div className="pie-acciones">
+            <Boton type="button" peso="peligro" onClick={() => alQuitar(true)} className="mr-auto">
+              Quitar: se anotó por error
+            </Boton>
+          </div>
+        ) : prenda.noSeQuita ? (
+          <p className="text-sm text-taupe">No se puede quitar: {prenda.noSeQuita}.</p>
+        ) : null)}
     </div>
   );
 }

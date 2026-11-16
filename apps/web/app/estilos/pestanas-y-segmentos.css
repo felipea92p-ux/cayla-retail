@@ -27,6 +27,7 @@
     padding: 4px;
     border-radius: 14px;
     overflow-x: auto;
+    scroll-padding-inline: 6rem; /* la pestaña enfocada que asoma se corre hacia adentro (WCAG 2.4.11), como en `.pildoras-desliza` */
     scrollbar-width: none;
   }
   .pestanas-cayla::-webkit-scrollbar {
@@ -187,6 +188,8 @@
     font-variant-numeric: tabular-nums;
   }
   /* Una fila de píldoras que se desliza (celular) deja 4 px de holgura para que el anillo de foco no se recorte (ADR-0351, 3). */
+  /* `scroll-padding-inline`: al llegar con Tab a una píldora que asoma, la fila la corre 6 rem hacia adentro y no queda a medias bajo el
+     desvanecido del borde (WCAG 2.4.11; a 1024 px «Empresa» de Gastos quedaba con 35 de sus 104 px a la vista). No cambia nada en reposo. */
   .pildoras-desliza {
     display: flex;
     flex-wrap: nowrap;
@@ -194,6 +197,7 @@
     margin: -4px;
     padding: 4px;
     overflow-x: auto;
+    scroll-padding-inline: 6rem;
     scrollbar-width: none;
   }
   .pildoras-desliza::-webkit-scrollbar {

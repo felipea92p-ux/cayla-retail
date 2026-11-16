@@ -407,8 +407,10 @@ export function PuntoDeVentaCatalogo({
             )}
           </div>
 
-          {/* Catálogo, la ruta secundaria: las categorías tienen ahora toda la fila. */}
-          <div data-guia="vender.categorias" className="scroll-cayla -mx-1 mt-1 flex gap-2 overflow-x-auto px-1 pb-3 pt-1">
+          {/* Catálogo, la ruta secundaria: las categorías tienen ahora toda la fila. `scroll-px-24`: con el Tab, el navegador no corre
+              la fila si la píldora asoma aunque sea 2 px por el borde, y quedaba enfocada sin verse (WCAG 2.4.11, auditoría /milimetro
+              2026-11-16). Con 6 rem de margen la corre siempre que el centro de la píldora quede afuera (la más ancha mide 172 px). */}
+          <div data-guia="vender.categorias" className="scroll-cayla -mx-1 mt-1 flex gap-2 overflow-x-auto px-1 pb-3 pt-1 scroll-px-24">
             {categorias.map((c, i) => (
               <button
                 key={c}
