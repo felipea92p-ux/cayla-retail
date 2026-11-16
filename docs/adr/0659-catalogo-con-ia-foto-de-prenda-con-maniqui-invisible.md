@@ -244,3 +244,26 @@ pierde la tela». La IA cumplió «tersa y bien estirada», «recién planchada 
 
 **Sigue sin medir** con una lámina: es la segunda apuesta del día sobre el mismo pantalón. Lo que más ayuda sin tocar el pedido: subir también la
 foto de cerca de la tela (con luz de costado se ven los nudos del lino).
+
+## Actualización 2026-11-16 (f) — Tres acabados de la tela, para elegir mirando en el laboratorio
+
+**Nace de** la segunda foto del lino Crudo con la act. (e): también salió lisa (Felipe: «se sigue perdiendo el tipo de tela»). La foto sí salió con
+el pedido nuevo (publicado 22:25:26, pedida ~22:28; la ficha del pantalón dice Pantalones, Lino, Liso). **Diagnóstico:** en la foto real,
+sostenida a mano en el almacén, lo único que dice «lino» son las arrugas; desde esa distancia no se ven los hilos ni los nudos. Al pedirle
+planchada, la IA quita la única pista y rellena con una tela genérica: no puede copiar una trama que no ve, se la nombre como se la nombre.
+
+**Felipe eligió** (de cuatro caminos: probar con la foto de cerca, comparar tres versiones, que el lino conserve sus arrugas, o calidad alta)
+**comparar tres versiones de la misma foto y decidir mirando.** Producción no cambia hasta que elija.
+
+**Lo que cambió:**
+1. `fichaParaIA(datos, { acabado })` (`lib/ficha-foto-ia.ts`) con tres acabados (`ACABADOS`): **«planchada»** (la de hoy, la de fábrica: el pedido de
+   producción sale palabra por palabra igual, lo vigilan sus huellas), **«arrugas-finas»** (sin los dobleces de guardarla, pero con «las arrugas
+   finas y naturales de su tela, repartidas parejo»: aquí SÍ se nombran, es lo que se mide) y **«sin-planchar»** (ninguna línea de acabado). El
+   seersucker no lleva ninguno.
+2. **El laboratorio (`/laboratorio/fotos`, solo fuera de producción) arma el MISMO pedido que producción** (`pedidoDeCatalogo` con la ficha), que
+   hasta hoy mandaba el de blusa sin ficha. Con «Comparar acabados» encendido, cada foto pide las tres versiones lado a lado, con la ficha
+   (categoría, tejido, patrón; de fábrica, el caso medido: Pantalones, Lino, Liso), la foto de cerca de la tela si se sube, y el molde si se elige.
+   Tres llamadas por foto (~0,18 USD); cada versión dice lo que costó.
+
+**Qué sigue:** correr el laboratorio con la foto real de Crudo (y, si se puede, con una foto de cerca de la tela), mirar las tres versiones y
+elegir. Lo elegido pasa a ser el acabado de fábrica, o solo el del lino si las demás telas salen bien planchadas.
