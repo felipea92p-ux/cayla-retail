@@ -1,6 +1,6 @@
 "use client";
 
-import type { RefObject } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Ticket } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
@@ -15,6 +15,8 @@ import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { textoCuponCobrado } from "@/lib/club-puntos-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { Interruptor } from "@/components/ui/campos";
+import { imprimirAlCobrar, queHacerAlRegistrar, type AlRegistrar } from "@/lib/imprimir-al-cobrar";
 
 type Props = {
   ok: VentaOk;
@@ -39,9 +41,23 @@ type Props = {
  *
  * Una venta guardada sin conexión no tiene comprobante todavía (no hay serie ni número hasta
  * que suba): ahí no hay nada que imprimir y se conserva el mensaje de siempre.
+ *
+ * Con «Imprimir solo al cobrar» encendido en este equipo (`lib/imprimir-al-cobrar.ts`), la hoja
+ * imprime apenas se abre: sin vuelto vuelve sola a una venta nueva; con vuelto se queda para que
+ * la cajera vea cuánto entregar, y Enter abre la siguiente.
  */
 export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarEnfocar, emisor = EMISOR }: Props) {
   const r = ok.recibo;
+  const imprimeSolo = useSyncExternalStore(imprimirAlCobrar.suscribir, imprimirAlCobrar.leer, imprimirAlCobrar.leerEnServidor) === "si";
+  // Se decide UNA vez, al abrir: prender el interruptor en esta hoja vale desde la próxima venta, no imprime esta de golpe.
+  const [alRegistrar] = useState<AlRegistrar>(() =>
+    queHacerAlRegistrar({
+      encendido: imprimirAlCobrar.leer() === "si",
+      hayComprobante: r !== null,
+      sinConexion: ok.offline,
+      vuelto: r?.vueltoTotal ?? 0,
+    }),
+  );
   // El PDF sale con el número del comprobante como nombre («B004-000004.pdf»), no «Retail - CAYLA.pdf».
   useTituloDeImpresion(r ? textoNumeroRecibo(r) : null);
   const fh = r ? fechaHoraLima(r.emitidoEn) : null;
@@ -196,7 +212,19 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
             <p className="text-center text-sm text-tinta/65">Ya está descontada del stock de {ubicacionEtiqueta} y aparece abajo, en «Ventas de hoy».</p>
           )}
 
-          {r ? (
+          {r && alRegistrar !== "esperar" ? (
+            <div className="space-y-2">
+              {/* Ya se imprimió sola al abrir: lo que queda es pasar a la siguiente clienta (Enter)
+                  o reintentar el papel si se atascó o se acabó el rollo. */}
+              <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
+                Nueva venta
+              </button>
+              <BotonImprimir onClick={() => window.print()} className="w-full whitespace-nowrap">
+                Imprimir otra vez
+              </BotonImprimir>
+              <p className="text-center text-sm text-tinta/55">Ya se imprimió · Enter abre una venta nueva</p>
+            </div>
+          ) : r ? (
             <div className="space-y-2">
               {/* Lo que se hace en casi todas las ventas, en UN toque y con Enter (el foco ya está
                   acá): imprime y deja la caja lista para la siguiente clienta. */}
@@ -221,9 +249,36 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
             </button>
           )}
 
+          {/* Es del equipo, no de la venta: se enciende una vez en la Mac de caja que imprime sin diálogo. */}
+          {r && (
+            <div className="border-t border-sand pt-3">
+              <Interruptor
+                activo={imprimeSolo}
+                onActivo={(v) => imprimirAlCobrar.fijar(v ? "si" : "no")}
+                etiqueta="Imprimir solo al cobrar"
+              />
+            </div>
+          )}
+
           {r && createPortal(<ReciboTermico recibo={r} emisor={emisor} />, document.body)}
+          {r && alRegistrar !== "esperar" && (
+            <ImprimirAlAbrir seguir={alRegistrar === "imprimir-y-seguir"} imprimirYSeguir={() => imprimirYSeguir(cerrar)} />
+          )}
         </div>
       )}
     </Modal>
   );
+}
+
+/** Imprime una sola vez al montarse, cuando el recibo ya está en el `<body>` (su portal se monta en el mismo
+ *  render). El `ref` evita la segunda impresión del doble efecto de React en desarrollo. */
+function ImprimirAlAbrir({ seguir, imprimirYSeguir }: { seguir: boolean; imprimirYSeguir: () => void }) {
+  const hecho = useRef(false);
+  useEffect(() => {
+    if (hecho.current) return;
+    hecho.current = true;
+    if (seguir) imprimirYSeguir();
+    else window.print();
+  }, [seguir, imprimirYSeguir]);
+  return null;
 }
