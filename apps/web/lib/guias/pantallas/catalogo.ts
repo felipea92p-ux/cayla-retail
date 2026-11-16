@@ -1218,6 +1218,13 @@ export const GUIA_CAMPANAS: Guia = {
       texto: "Abre una ventana para crearla con su nombre y, si quieres, su dibujo y sus fechas. Después respondes sus tres preguntas. Antes mira si ya existe: una campaña que ya pasó se repite, no se crea de nuevo. En la demo no lo tocamos.",
     },
     {
+      id: "poner-un-pct",
+      ancla: "rebaja.escaner",
+      opcional: true,
+      titulo: "Ponerle un % a una prenda",
+      texto: "Escanea la etiqueta o escribe su nombre: se abre una hoja que dice qué % tiene hoy. Eliges si va solo a esa prenda o a todo el modelo, y cuánto menos entre los % que ya hay en tu tienda. Rige hasta que alguien lo quite.",
+    },
+    {
       id: "dos-ofertas",
       ancla: "sellos.dos-ofertas",
       opcional: true,

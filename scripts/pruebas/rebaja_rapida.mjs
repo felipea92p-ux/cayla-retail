@@ -136,7 +136,7 @@ ${PONER(20)}select (select count(*) from retail.variante_etiquetas where etiquet
 esperarValor(
   "…y la hoja lo dice: esa campaña llega a mano pero no se mueve desde Lima",
   caso(`${EN_TODAS(25)}insert into retail.variante_etiquetas (variante_id, etiqueta_id) values (:'a1', :'todas');
-select string_agg((x ->> 'pct') || ':' || (x ->> 'como') || ':' || (x ->> 'movible'), ',') from jsonb_array_elements(retail.rebaja_de_prenda(:'a1', :'u') -> 'tiene') x;\n`),
+select string_agg((x ->> 'pct') || ':' || (x ->> 'como') || ':' || (x ->> 'movible'), ',') from jsonb_array_elements(retail.campanas_rebaja_de_prenda(:'a1', :'u') -> 'tiene') x;\n`),
   "25.00:a_mano:false",
 );
 esperarValor(
@@ -186,17 +186,17 @@ console.log("\n— Lo que lee la pantalla —");
 esperarValor(
   "la prenda: su modelo, su precio en la tienda y el piso para no perder",
   caso(`select (p ->> 'referencia') || ':' || (p ->> 'modelo_prendas') || ':' || ((p ->> 'precio')::numeric > 0) || ':' || ((p ->> 'piso_sin_perder') is not null)
-from (select retail.rebaja_de_prenda(:'a1', :'u') -> 'prenda' as p) x;\n`),
+from (select retail.campanas_rebaja_de_prenda(:'a1', :'u') -> 'prenda' as p) x;\n`),
   `Blusa Emma:${correr("select count(*) from retail.variantes v where v.producto_id = (select producto_id from retail.variantes where sku = 'BLU-EMMA-NEG-M') and v.activo;").salida}:true:true`,
 );
 esperarValor(
   "los lugares de la tienda, con cuántas prendas (modelo en su color)",
-  caso(`${EN_LIMA(15)}${PONER(20)}select string_agg(pct::text || ':' || es_cajon || ':' || movible || ':' || prendas, ',' order by pct) from retail.rebajas_de_tienda(:'u');\n`),
+  caso(`${EN_LIMA(15)}${PONER(20)}select string_agg(pct::text || ':' || es_cajon || ':' || movible || ':' || prendas, ',' order by pct) from retail.campanas_rebajas_de_tienda(:'u');\n`),
   `15.00:false:true:0,20.00:true:true:${correr("select count(distinct v.color_codigo) from retail.variantes v where v.producto_id = (select producto_id from retail.variantes where sku = 'BLU-EMMA-NEG-M') and v.activo;").salida}`,
 );
 esperarValor(
   "las prendas de un lugar, para verlas y quitarlas",
-  caso(`${PONER(20, "prenda")}select string_agg(referencia || ' ' || coalesce(talla, ''), ',') from retail.rebaja_cajon_prendas((select etiqueta_id from retail.rebaja_cajones where pct = 20), :'u');\n`),
+  caso(`${PONER(20, "prenda")}select string_agg(referencia || ' ' || coalesce(talla, ''), ',') from retail.campanas_rebaja_prendas((select etiqueta_id from retail.rebaja_cajones where pct = 20), :'u');\n`),
   "Blusa Emma M",
 );
 

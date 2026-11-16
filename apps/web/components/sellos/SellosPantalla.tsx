@@ -44,6 +44,7 @@ import { notaSinRegistrar, type LecturaRotacion } from "@/lib/etiqueta-rotacion"
 import { hoyLima } from "@/lib/fechas-lima";
 import { bajadaDesactivarInsignia, reglasDeCampana, reglasVivas, vigenciaDeRegla, type InsigniaDeOferta, type ParQueChoca, type ReglaCampana } from "@/lib/campana-reglas";
 import { AvisoDosOfertas } from "@/components/sellos/AvisoDosOfertas";
+import { PonerUnPct } from "@/components/rebajas/PonerUnPct";
 import { tramoDeCampana, TEXTOS_MODO } from "@/lib/sellos-campanas";
 import {
   ESTILO_DE_VISTA,
@@ -918,6 +919,9 @@ export function SellosPantalla({
           }
         />
       </div>
+
+      {/* «Poner un %» (ADR-0669, Felipe 2026-11-16): escanear una prenda y ponerle un % en un toque, en la tienda de la cabecera. */}
+      {esCampanas && puedeEditarCampanas && sedeActualId && <PonerUnPct ubicacionId={sedeActualId} sede={sede} onCambio={() => router.refresh()} />}
 
       {esCampanas && puedeEditarCampanas && <AvisoDosOfertas pares={choquesAbiertos} alElegir={() => router.refresh()} />}
 

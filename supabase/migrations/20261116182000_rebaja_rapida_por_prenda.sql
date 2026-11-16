@@ -19,11 +19,11 @@
 --     nada. `rebaja_cajones` dice cuáles lo son, su % y su tienda (una sola fila por % y tienda; «todas» es la tienda nula).
 --   · `fn_rebajas_de_sede(sede, todas)`: los «lugares de un %» de una tienda: los cajones y las campañas vigentes con descuento de siempre que
 --     rigen ahí. «Movible» = rige exactamente en esas tiendas (la misma tienda, o todas): de ahí se saca una prenda al ponerla en otro.
---   · `rebaja_de_prenda(variante, sede)`: lo que la hoja muestra al escanear: la prenda, su precio en la tienda, qué % tiene hoy y de dónde
+--   · `campanas_rebaja_de_prenda(variante, sede)`: lo que la hoja muestra al escanear: la prenda, su precio en la tienda, qué % tiene hoy y de dónde
 --     (marcada a mano, por su categoría, por una oferta), y los lugares de % de la tienda con cuántas prendas tienen.
 --   · `poner_rebaja(variante, alcance, %, lugar, sede, todas)` y `quitar_rebaja(variante, alcance, sede, todas)`: marcan o desmarcan la
 --     prenda (o todo su modelo) y la sacan de los otros lugares movibles. Firman con el responsable (`fn_actor_persona_id(true)`, ADR-0162).
---   · `rebaja_cajon_prendas(lugar)`: las prendas marcadas de un lugar, para verlas y quitarlas.
+--   · `campanas_rebaja_prendas(lugar)`: las prendas marcadas de un lugar, para verlas y quitarlas.
 --   DECIDÍ reusar la campaña con descuento de siempre en vez de una tabla de precios por prenda: es lo que la caja ya cobra, y lo que las
 --     colaboradoras ya hacían a mano. DESCARTÉ una oferta por prenda (`campana_reglas`): exige fecha de fin y se cruza con el candado de
 --     choques. DESCARTÉ sacar la prenda de una campaña que rige en otras tiendas: Arequipa no pierde su −20 % porque Trujillo lo cambió.
@@ -148,7 +148,7 @@ revoke all on function retail.fn_variantes_del_alcance(uuid, text) from public, 
 -- Lo que la hoja muestra al escanear
 -- ---------------------------------------------------------------------------------------------------------------------------------------
 
-create or replace function retail.rebaja_de_prenda(p_variante_id uuid, p_ubicacion_id uuid)
+create or replace function retail.campanas_rebaja_de_prenda(p_variante_id uuid, p_ubicacion_id uuid)
 returns jsonb
 language plpgsql
 stable
@@ -220,11 +220,11 @@ begin
 end;
 $function$;
 
-comment on function retail.rebaja_de_prenda(uuid, uuid) is
+comment on function retail.campanas_rebaja_de_prenda(uuid, uuid) is
   'ADR-0669. Lo que muestra «Poner un %» al escanear: la prenda y su precio en la tienda, qué % tiene hoy y de dónde le llega, y los lugares de % de la tienda con cuántas prendas tienen. Pide ver Campañas y ofertas.';
 
-revoke all on function retail.rebaja_de_prenda(uuid, uuid) from public, anon;
-grant execute on function retail.rebaja_de_prenda(uuid, uuid) to authenticated;
+revoke all on function retail.campanas_rebaja_de_prenda(uuid, uuid) from public, anon;
+grant execute on function retail.campanas_rebaja_de_prenda(uuid, uuid) to authenticated;
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------
 -- Poner y quitar
@@ -354,7 +354,7 @@ grant execute on function retail.quitar_rebaja(uuid, text, uuid, boolean) to aut
 -- Los lugares de % de una tienda y sus prendas
 -- ---------------------------------------------------------------------------------------------------------------------------------------
 
-create or replace function retail.rebajas_de_tienda(p_ubicacion_id uuid)
+create or replace function retail.campanas_rebajas_de_tienda(p_ubicacion_id uuid)
 returns table (etiqueta_id uuid, nombre text, pct numeric, es_cajon boolean, movible boolean, hasta date, prendas integer)
 language plpgsql
 stable
@@ -373,13 +373,13 @@ begin
 end;
 $function$;
 
-comment on function retail.rebajas_de_tienda(uuid) is
+comment on function retail.campanas_rebajas_de_tienda(uuid) is
   'ADR-0669. Los lugares de % de una tienda (cajones y campañas vigentes con descuento de siempre) con cuántas prendas (modelo en su color) tiene cada uno.';
 
-revoke all on function retail.rebajas_de_tienda(uuid) from public, anon;
-grant execute on function retail.rebajas_de_tienda(uuid) to authenticated;
+revoke all on function retail.campanas_rebajas_de_tienda(uuid) from public, anon;
+grant execute on function retail.campanas_rebajas_de_tienda(uuid) to authenticated;
 
-create or replace function retail.rebaja_cajon_prendas(p_etiqueta_id uuid, p_ubicacion_id uuid)
+create or replace function retail.campanas_rebaja_prendas(p_etiqueta_id uuid, p_ubicacion_id uuid)
 returns table (variante_id uuid, producto_id uuid, referencia text, codigo text, color text, color_hex text, talla text, precio numeric)
 language plpgsql
 stable
@@ -404,8 +404,8 @@ begin
 end;
 $function$;
 
-comment on function retail.rebaja_cajon_prendas(uuid, uuid) is
+comment on function retail.campanas_rebaja_prendas(uuid, uuid) is
   'ADR-0669. Las prendas marcadas de un lugar de % de la tienda, con su precio en la tienda, para verlas y quitarlas.';
 
-revoke all on function retail.rebaja_cajon_prendas(uuid, uuid) from public, anon;
-grant execute on function retail.rebaja_cajon_prendas(uuid, uuid) to authenticated;
+revoke all on function retail.campanas_rebaja_prendas(uuid, uuid) from public, anon;
+grant execute on function retail.campanas_rebaja_prendas(uuid, uuid) to authenticated;
