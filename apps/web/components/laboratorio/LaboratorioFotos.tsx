@@ -9,7 +9,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
 import { BotonFoto } from "@/components/alta-producto/FotosAlta";
 import { avisar } from "@/components/ui/Avisos";
-import { objecionFotoProducto } from "@/lib/producto-fotos";
+import { abrirFotosElegidas } from "@/lib/foto-elegida-cliente";
 import { colorPromedio, diferenciaDeColor, veredictoDeColor } from "@/lib/photoroom-reglas";
 import { textoDelMotivo } from "@/lib/recorte-probador-reglas";
 import type { ProveedoresLaboratorio } from "@/lib/laboratorio-fotos";
@@ -116,15 +116,13 @@ export function LaboratorioFotos({ proveedores }: { proveedores: ProveedoresLabo
   }
 
   async function probar(archivos: File[]) {
-    const buenas: File[] = [];
-    const malas: string[] = [];
-    for (const a of archivos) {
-      const objecion = objecionFotoProducto(a);
-      if (objecion) malas.push(`${a.name}: ${objecion}`);
-      else buenas.push(a);
+    // Ocupado desde que se abren las fotos: dos tandas soltadas seguidas no corren a la vez.
+    setOcupado(true);
+    const { buenas } = await abrirFotosElegidas(archivos, (titulo, detalle) => avisar.error(titulo, { detalle }));
+    if (!buenas.length) {
+      setOcupado(false);
+      return;
     }
-    if (malas.length) avisar.error(malas.length === 1 ? "Una foto no se puede usar" : `${malas.length} fotos no se pueden usar`, { detalle: malas.join(" · ") });
-    if (!buenas.length) return;
 
     const nuevas = buenas.map((archivo) => {
       const original = URL.createObjectURL(archivo);
@@ -140,7 +138,6 @@ export function LaboratorioFotos({ proveedores }: { proveedores: ProveedoresLabo
     });
     setPruebas((ps) => [...nuevas.map((n) => n.prueba), ...ps]);
 
-    setOcupado(true);
     // Una foto a la vez (el sandbox de Photoroom da 100 imágenes al día y no conviene que nos frenen por ráfaga); sus pedidos, juntos.
     for (const { archivo, prueba } of nuevas) {
       const real = perfiles.includes("sin-fondo") ? pedir(archivo, "sin-fondo", null) : Promise.resolve(null);

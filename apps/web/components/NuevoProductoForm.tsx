@@ -616,6 +616,10 @@ export function NuevoProductoForm({
   const fotosOrdenadas = ordenarFotosAlta(fotos, coloresElegidos);
   // «Catálogo con IA» (2026-11-13): la foto de catálogo de cada color se prepara en su fila mientras se sigue; al crear, se espera.
   const catalogo = useCatalogoIAAlta({
+    // Al encender la IA, también se preparan las fotos que esperan su color, no solo las ya puestas (Felipe 2026-11-16).
+    fotosEnCurso,
+    // Mientras se crea no se pide ninguna IA (tampoco desde el «Volver a intentar» de un aviso).
+    bloqueado: cargando,
     disponible: catalogoIADisponible,
     fotos,
     setFotos,
@@ -1262,7 +1266,7 @@ export function NuevoProductoForm({
             {/* Los colores salen de las fotos (ADR-0663): la carta queda para «Cambiar» y «Elegir sin foto». Es el único lugar de las fotos. */}
             {catalogo.disponible && (
               <div className="mb-2 flex justify-end" data-guia="nuevo.catalogo-ia">
-                <InterruptorCatalogoIA catalogo={catalogo} />
+                <InterruptorCatalogoIA catalogo={catalogo} disabled={cargando} />
               </div>
             )}
             <FotosYColores
