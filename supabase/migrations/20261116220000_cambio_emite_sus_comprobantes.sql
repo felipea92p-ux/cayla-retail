@@ -291,10 +291,12 @@ select pg_temp.reemplazar_cambio_comprobantes(
 
 -- 5. Una prenda por varias (ADR-0470): la boleta lleva una línea por prenda; las unidades del mismo modelo que conservaron su descuento
 --    (ADR-0655) van en su propia línea, con el precio de lista y el descuento aparte. Se arman en el mismo ciclo que calcula la diferencia.
+-- La variable va tras la línea de `v_precio` y no junto a la de ADR-0655 (`i integer;` + `v_mismo …` + `begin`): esa es el ancla de
+-- `20261114125000`, y meter una línea en medio haría que esa migración, pegada otra vez, ya no se encuentre a sí misma.
 select pg_temp.reemplazar_cambio_comprobantes(
   'retail.registrar_cambio_varias(uuid, uuid, jsonb, integer, text, uuid, text, text)',
-  $v$  v_mismo integer := p_cantidad; v_k integer; v_pm numeric;  -- ADR-0655: unidades del mismo modelo que aún conservan su descuento$v$,
-  $n$  v_mismo integer := p_cantidad; v_k integer; v_pm numeric;  -- ADR-0655: unidades del mismo modelo que aún conservan su descuento
+  $v$  v_e jsonb; v_var uuid; v_cant integer; v_precio numeric;$v$,
+  $n$  v_e jsonb; v_var uuid; v_cant integer; v_precio numeric;
   v_items_bol jsonb := '[]';  -- ADR-0672: las líneas de la boleta nueva$n$
 );
 

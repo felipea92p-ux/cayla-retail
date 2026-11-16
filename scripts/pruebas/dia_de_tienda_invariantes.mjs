@@ -136,7 +136,14 @@ select retail.anular_venta(:'venta_mixta', 'prueba automatizada: día de tienda'
   {
     id: "cambio",
     dice: "cambiar la Blusa de la venta en efectivo por el Vestido Sofía, cobrando la diferencia en efectivo",
+    // ADR-0672: el cambio emite su nota de crédito sobre la boleta, y espera a que SUNAT la haya aceptado. En la tienda llega en segundos;
+    // aquí nadie la transmite, así que se marca aceptada (en sandbox, como `aprobar_devolucion_caja.mjs`) antes de cambiar. La nota
+    // necesita su serie con B en la tienda (producción ya la tiene; el Postgres local puede no tenerla).
     sql: `
+update retail.comprobantes set estado = 'aceptado', entorno_transmision = 'sandbox' where venta_id = :'venta_efectivo' and tipo in ('boleta', 'factura');
+insert into retail.series_comprobantes (ubicacion_id, tipo, serie)
+  select :'ubic', 'nota_credito', 'BC01'
+   where not exists (select 1 from retail.series_comprobantes where ubicacion_id = :'ubic' and tipo = 'nota_credito' and serie like 'B%' and archivada_at is null);
 select retail.registrar_cambio(:'item_efectivo', :'ubic', :'sofi', 1, 'efectivo', gen_random_uuid()) as cambio_id \\gset`,
   },
   {
