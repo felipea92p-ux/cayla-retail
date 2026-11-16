@@ -19,8 +19,9 @@ import { ventanaDelEquipo } from "@/lib/ventana-de-impresion";
 export type FinBoleta = "impresa" | "cuadro" | "frenada" | "fallo";
 
 const ID = "comprobante-print";
-/** Cuánto se espera al ayudante al preguntarle si está: en una Mac sin él la pregunta no contesta nunca. */
-const ESPERA_ESTADO_MS = 1200;
+/** Cuánto se espera al ayudante al preguntarle si está. En una Mac sin él la respuesta llega al instante (conexión rechazada); lo que
+ *  tarda es el aviso de Chrome «acceso a la red local» la primera vez, mientras la persona elige Permitir. */
+const ESPERA_ESTADO_MS = 5000;
 /** Cada cuánto se vuelve a preguntar. Instalar el ayudante o conectar la ticketera se nota sin recargar. */
 const VIGENCIA_MS = 30_000;
 

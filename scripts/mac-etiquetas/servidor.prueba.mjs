@@ -79,6 +79,11 @@ try {
   assert.equal(r.headers.get("access-control-allow-origin"), null);
   ok("otro sitio no recibe permiso CORS");
 
+  // 2b. El dominio propio del ERP también (la tienda de Trujillo entra por ahí).
+  r = await fetch(url("/estado"), { headers: { Origin: "https://retail.cayla.pe" } });
+  assert.equal(r.headers.get("access-control-allow-origin"), "https://retail.cayla.pe");
+  ok("el dominio propio del ERP (retail.cayla.pe) recibe permiso CORS");
+
   // 3. El preflight del navegador (OPTIONS) pasa para CAYLA y se rechaza para otro sitio.
   r = await fetch(url("/imprimir"), { method: "OPTIONS", headers: { Origin: ERP, "Access-Control-Request-Method": "POST", "Access-Control-Request-Private-Network": "true" } });
   assert.equal(r.status, 204);

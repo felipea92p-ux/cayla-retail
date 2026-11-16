@@ -37,7 +37,8 @@ CR=$(printf '\r')
 
 origen_permitido() {
   case "$1" in
-    https://cayla-retail.vercel.app | http://localhost:3000 | http://localhost:3010 | http://127.0.0.1:3000) return 0 ;;
+    # retail.cayla.pe: el dominio propio del ERP (2026-11-16: la tienda lo usaba y el ayudante no le contestaba).
+    https://cayla-retail.vercel.app | https://retail.cayla.pe | http://localhost:3000 | http://localhost:3010 | http://127.0.0.1:3000) return 0 ;;
   esac
   [ -f "$DIR/origenes.txt" ] && grep -qxF "$1" "$DIR/origenes.txt"
 }
