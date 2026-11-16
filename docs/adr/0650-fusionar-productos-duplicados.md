@@ -154,6 +154,34 @@ por un conflicto de precio (se resuelve mirando).
 Migración `20261115153000` (funciones `fn_fusion_precios_*`, `previsualizar_fusion_productos` y tres reemplazos anclados). El número no se pudo reservar
 (`pnpm reservar`: 403 desde el entorno en la nube). Ensayo en producción con `begin … rollback`, pendiente al escribir esto.
 
+## Actualización 2026-11-16: un precio por sede
+
+La revisión del 2026-11-15 encontró en local tres casos donde 20261115153000 dejaba la misma prenda con dos precios en una tienda: la que queda con
+tallas al precio general y la repetida con precio propio en Trujillo (S a 79.90, M y XL a 169; la hoja decía «Conserva S/ 169»); lo mismo eligiendo la
+repetida cuando la que queda tenía precio propio en una sola talla; y, al elegir otro precio general, la lista de sedes ni mostraba la sede. Solo se
+alineaban las tallas que ya tenían precio propio, y la lista comparaba contra el precio general de antes. Felipe: «arréglalo», con un precio por sede.
+
+DECIDÍ, en dos capas (las mismas de `fn_precios_en_sedes`): el **precio de la prenda** en cada tienda es uno, el de la ficha ganadora (la
+elegida o la de por defecto) en cada sede que la hoja muestra; una **excepción de talla** («la XL cuesta más en Trujillo») viaja con su talla y se
+conserva, también si es igual al general; si dos chocan al juntarse, la de la ganadora. La de una talla apagada no revive. La lista de sedes compara
+precios de prenda y contra el precio general elegido (`p_elecciones.precio`, que la hoja ahora manda también al previsualizar).
+El precio ganador se escribe en la capa de la PRENDA (`precios_sede_prenda` de la que queda), no talla por talla: así la ficha dice lo que se
+cobra y una talla agregada después también lo cobra; las excepciones que su disparador archiva se reponen enseguida. La talla de obsequio (S/ 0)
+ya no la pisa el precio general elegido (venía de `fusionar_productos`). El precio de tienda que deja la fusión sigue la regla de «Precio en tu
+tienda»: nunca bajo el costo de la talla. Se mira una sola vez, al final, con el costo elegido ya puesto, y solo donde la fusión cambió lo que
+esa talla cobra o cuesta; si quedaría así, la fusión frena y pide elegir otro. Una excepción conservada vuelve con su motivo, su
+autor y su fecha.
+DESCARTÉ: «talla por talla» sin unificar la prenda (la tienda seguiría con dos precios que nadie decidió); borrar las excepciones de talla de la
+ficha perdedora (una decisión que la persona no vio en la hoja); escribir el precio ganador solo talla por talla (la ficha seguiría diciendo el
+precio viejo).
+SE ROMPE SI alguien usa excepciones de talla para todas las tallas en vez del precio de la prenda en la tienda: ahí cada talla conserva la suya y la
+hoja no muestra esa sede. Consecuencia que Felipe aceptó: una talla de la que queda que cobraba el general en esa tienda pasa al precio de la sede.
+Revisión adversarial en cinco rondas, con cada hallazgo reproducido en local: la primera versión tomaba como precio de la ficha el más repetido entre sus tallas con precio propio, y una
+excepción de una sola talla se volvía el precio de toda la prenda.
+
+Migración `20261116020000` (reservada). `pruebas:fusionar-productos` 49/49; con las funciones de antes fallan 29, 36, 37, 41, 42 y 43 (y 44-49 con versiones previas de esta migración), y sin el parche del candado
+de la terminal falla 35 (que ahora sí cambia el precio general).
+
 ## Pendiente
 
 - «Esta no es repetida»: hoy un par sugerido que no es la misma prenda sigue en la lista. Si molesta, una tabla de pares descartados.

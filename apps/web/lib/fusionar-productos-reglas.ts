@@ -338,6 +338,19 @@ export function eleccionesParaLaBase(
   return salida;
 }
 
+/** El precio general que tendrá el producto final, para que la base arme la lista de sedes contra ese precio y no contra el de antes
+ *  (20261116020000): el mismo número que `eleccionesParaLaBase` manda al fusionar. `null` si el precio no difiere (cada talla conserva
+ *  el suyo) o si todavía no hay plan. */
+export function precioGeneralElegido(
+  e: Elecciones,
+  productos: ProductoPlan[],
+  diferencias: string[],
+  queda: string | null,
+): number | null {
+  const precio = eleccionesParaLaBase(e, productos, diferencias, queda).precio;
+  return typeof precio === "number" ? precio : null;
+}
+
 /** Lo de los precios por sede que se le suma a `p_elecciones`: nada si ninguna sede cobra un precio propio distinto (la base de antes
  *  de 20261115153000 tampoco lo conoce). Con «un solo precio» viaja solo el modo; si no, la ficha elegida por cada sede con conflicto. */
 export function preciosSedeParaLaBase(e: Elecciones, sedes: PrecioSedePlan[]): Record<string, unknown> {

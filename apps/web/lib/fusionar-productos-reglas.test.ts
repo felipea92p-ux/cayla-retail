@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   fichaDelPrecioDeSede,
   preciosSedeParaLaBase,
+  precioGeneralElegido,
   ELECCIONES_VACIAS as VACIAS_PRECIOS,
   ELECCIONES_VACIAS,
   camposAElegir,
@@ -279,5 +280,18 @@ describe("precios por sede (20261115153000)", () => {
 
   it("«un solo precio» manda solo el modo", () => {
     expect(preciosSedeParaLaBase({ ...VACIAS_PRECIOS, unSoloPrecio: true }, [sede(true)])).toEqual({ precio_modo: "uno" });
+  });
+});
+
+describe("el precio general que ve la lista de sedes (20261116020000)", () => {
+  const plan = leerPlan(PLAN);
+  it("sin tocar nada: el del que queda, el mismo que se manda al fusionar", () => {
+    expect(precioGeneralElegido(ELECCIONES_VACIAS, plan.productos, plan.diferencias, "A")).toBe(79.9);
+  });
+  it("eligiendo el de la repetida: su precio", () => {
+    expect(precioGeneralElegido({ ...ELECCIONES_VACIAS, precioDe: "B" }, plan.productos, plan.diferencias, "A")).toBe(89);
+  });
+  it("si el precio no difiere, nada: cada talla conserva el suyo", () => {
+    expect(precioGeneralElegido({ ...ELECCIONES_VACIAS, precioDe: "B" }, plan.productos, [], "A")).toBeNull();
   });
 });
