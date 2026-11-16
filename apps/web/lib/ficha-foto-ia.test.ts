@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TIPOS_POR_CATEGORIA } from "./nombre-de-prenda";
 import { familiaDeTejido, type FamiliaTejido } from "./tejido-visual";
-import { fichaParaIA, TEJIDOS_PLANOS, ZONA_POR_PREFIJO } from "./ficha-foto-ia";
+import { fichaParaIA, FORMA_DE_CINTURA, TEJIDOS_PLANOS, ZONA_POR_PREFIJO } from "./ficha-foto-ia";
 
 // La ficha que la IA de «Catálogo con IA» recibe de lo ya elegido (2026-11-14). El caso que la originó: un pantalón de LINO que la IA devolvió como
 // buzo. Cada prueba lleva su control: lo que se dice del lino NO se dice de un buzo de verdad.
@@ -12,7 +12,7 @@ describe("fichaParaIA: qué se le dice a la IA de lo ya elegido", () => {
     expect(f?.zona).toBe("cintura");
     expect(f?.texto).toContain("Tipo de prenda: Pantalón.");
     expect(f?.texto).toContain("Tela: Lino.");
-    expect(f?.texto).toMatch(/tejido PLANO, no de punto/);
+    expect(f?.texto).toMatch(/tejido PLANO, hecho en telar/);
     expect(f?.texto).toMatch(/Diseño: liso, sin estampado ni rayas/);
   });
 
@@ -112,5 +112,46 @@ describe("TEJIDOS_PLANOS: solo lo que es plano sin discusión", () => {
       expect(f, nombre).not.toBeNull();
       expect(TEJIDOS_PLANOS.has(f as FamiliaTejido), nombre).toBe(true);
     }
+  });
+});
+
+describe("fase 2 (2026-11-16): el pantalón de lino del 14-nov, dicho en positivo", () => {
+  // Las telas que un pantalón de esta tienda puede tener. Franela y jersey quedan fuera a propósito: la franela ES felpa, y su descripción lo dice.
+  const TEJIDOS = ["Lino", "Drill", "Algodón", "Poliéster", "Viscosa", "Gabardina", "Denim", "Sastre", "Tela"];
+
+  it("toda categoría que cuelga de la cintura dice qué es (pantalón de tela, short o falda); ninguna otra lo dice", () => {
+    for (const [prefijo, zona] of Object.entries(ZONA_POR_PREFIJO)) {
+      if (zona === "cintura") expect(FORMA_DE_CINTURA[prefijo], prefijo).toBeDefined();
+      else expect(FORMA_DE_CINTURA[prefijo], prefijo).toBeUndefined();
+    }
+    expect(Object.keys(FORMA_DE_CINTURA).every((p) => ZONA_POR_PREFIJO[p] === "cintura")).toBe(true);
+  });
+
+  it("Pantalones y Jeans son siempre de tela (Felipe 2026-11-16: no hay joggers): se dice aunque el tejido sea Algodón o falte", () => {
+    for (const prefijo of ["PAN", "JEA"]) {
+      for (const tejido of [null, "Algodón", "Poliéster", "Tela"]) {
+        const f = fichaParaIA({ prefijo, tejido });
+        expect(f?.cintura, `${prefijo} ${tejido}`).toBe("pantalon-de-tela");
+        expect(f?.texto, `${prefijo} ${tejido}`).toContain("Es un pantalón de tela tejida");
+      }
+    }
+  });
+
+  it("CONTROL: un short, una falda y una blusa no se dicen «pantalón de tela»", () => {
+    expect(fichaParaIA({ prefijo: "SHO", tejido: "Algodón" })?.cintura).toBe("short");
+    expect(fichaParaIA({ prefijo: "FAL", tejido: "Lino" })?.cintura).toBe("falda");
+    expect(fichaParaIA({ prefijo: "CMS", tipo: "Blusa", tejido: "Lino" })?.cintura).toBeNull();
+    for (const prefijo of ["SHO", "FAL", "CMS", "SUD"]) expect(fichaParaIA({ prefijo, tejido: "Lino" })?.texto ?? "", prefijo).not.toMatch(/pantalón de tela/);
+  });
+
+  it("la ficha no nombra lo que se quiere evitar (buzo, felpa, ropa deportiva, jogger), con ningún tejido ni prenda", () => {
+    for (const prefijo of ["PAN", "JEA", "SHO", "FAL", "CMS", "SUD"])
+      for (const tejido of TEJIDOS) expect(fichaParaIA({ prefijo, tejido, patron: "Liso" })?.texto ?? "", `${prefijo} ${tejido}`).not.toMatch(/buzo|felpa|deportiv|jogger/i);
+  });
+
+  it("lo que la ayuda le dice a una persona (el proveedor, la etiqueta) no va al pedido", () => {
+    const f = fichaParaIA({ prefijo: "PAN", tejido: "Sastre" });
+    expect(f?.texto).toMatch(/Tela de vestir de cuerpo firme/);
+    expect(f?.texto).not.toMatch(/proveedor|etiqueta/i);
   });
 });

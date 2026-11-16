@@ -9,6 +9,7 @@ import {
   PROMPT_CATALOGO,
   PROMPT_CON_MOLDE,
 } from "./openai-imagen-reglas";
+import { createHash } from "node:crypto";
 import { fichaParaIA } from "./ficha-foto-ia";
 
 describe("camposOpenAI", () => {
@@ -160,7 +161,7 @@ describe("pedidoDeCatalogo con la ficha de la prenda (lo ya elegido, 2026-11-14)
     const { prompt } = pedidoDeCatalogo({}, lino);
     expect(prompt).toMatch(/interior de la pretina/);
     expect(prompt).toMatch(/de la cintura a la basta/);
-    expect(prompt).toMatch(/no agregues elástico, puños ni cordón donde la foto no los muestra/);
+    expect(prompt).toMatch(/BASTA: abierta y recta, del mismo ancho que la pierna/);
     expect(prompt).toMatch(/si es ancha y recta, sigue ancha y recta/);
     // «la del cuello» sí aparece, pero en la lista de etiquetas que se quitan (`SIN_ETIQUETAS`), que es común a toda prenda.
     expect(prompt).not.toMatch(/interior del cuello|hombros|pecho|MANGAS/);
@@ -211,5 +212,76 @@ describe("mensajeParaTienda", () => {
     expect(mensajeParaTienda(429, { error: { code: "rate_limit_exceeded" } })).toMatch(/en un minuto/);
     expect(mensajeParaTienda(400, null)).toMatch(/Prueba con otra/);
     expect(mensajeParaTienda(503, null)).toMatch(/Prueba en un rato/);
+  });
+});
+
+describe("fase 2 (2026-11-16): el pedido de cintura, sin empujar al buzo, y el de hombros sin tocar", () => {
+  const huella = (t: string) => createHash("sha256").update(t).digest("hex").slice(0, 16);
+  const blusa = fichaParaIA({ prefijo: "CMS", tipo: "Blusa", tejido: "Seda", patron: "Liso" })!;
+  // Se quita la ficha (que sí cambió: ahora dice lo plano en positivo) para comparar solo el pedido; igual que cuando se tomaron las huellas.
+  const sinFicha = (t: string) => t.replace(blusa.texto, "");
+  const pan = fichaParaIA({ prefijo: "PAN", tejido: "Lino", patron: "Liso" })!;
+  const sho = fichaParaIA({ prefijo: "SHO", tejido: "Algodón" })!;
+  const fal = fichaParaIA({ prefijo: "FAL", tejido: "Lino" })!;
+  const CAMINOS = [{}, { molde: true }, { espalda: true, detalle: true }, { espalda: true, molde: true }];
+
+  it("el pedido de HOMBROS (lo único medido: 99 % de la silueta) no cambió ni una letra: sus huellas son las de antes de la fase 2", () => {
+    // Huellas tomadas el 2026-11-16 ANTES de tocar el pedido. Si una cambia, se cambió el pedido de blusas, que es el medido: no se toca sin medirlo.
+    expect({
+      catalogo: huella(PROMPT_CATALOGO),
+      conMolde: huella(PROMPT_CON_MOLDE),
+      variasSinFicha: huella(pedidoDeCatalogo({ espalda: true, detalle: true }).prompt),
+      variasConMolde: huella(pedidoDeCatalogo({ espalda: true, detalle: true, molde: true }).prompt),
+      blusaUna: huella(sinFicha(pedidoDeCatalogo({}, blusa).prompt)),
+      blusaMolde: huella(sinFicha(pedidoDeCatalogo({ molde: true }, blusa).prompt)),
+      blusaVarias: huella(sinFicha(pedidoDeCatalogo({ espalda: true, molde: true }, blusa).prompt)),
+    }).toEqual({
+      catalogo: "0b994ef712336754",
+      conMolde: "e4a696f0432e6544",
+      variasSinFicha: "5167d4bb5b0119c2",
+      variasConMolde: "d1792fdb0a444f2d",
+      blusaUna: "a1975bdc81d0ccdc",
+      blusaMolde: "e424d75c4f2a5556",
+      blusaVarias: "8995cef80caf5e4e",
+    });
+  });
+
+  it("ningún pedido de cintura empuja al buzo: ni basta fruncida, ni volumen inflado, ni nombra puño, cordón, felpa o jogger", () => {
+    for (const ficha of [pan, sho, fal])
+      for (const extras of CAMINOS) {
+        const { prompt } = pedidoDeCatalogo(extras, ficha);
+        expect(prompt, JSON.stringify(extras)).not.toMatch(/fruncid|volumen 3D|con volumen|puño|cordón|felpa|jogger|buzo|deportiv/i);
+      }
+  });
+
+  it("un pantalón: la pretina va sola (con su cierre), la pierna cae por su peso y la basta es abierta y recta", () => {
+    const { prompt } = pedidoDeCatalogo({}, pan);
+    expect(prompt).toMatch(/PRETINA: con su mismo ancho y su mismo cierre/);
+    expect(prompt).toMatch(/la arruga es de la mano y no de la pretina/);
+    expect(prompt).toMatch(/las piernas caen rectas, con el peso de la tela/);
+    expect(prompt).toMatch(/BASTA: abierta y recta/);
+  });
+
+  it("CONTROL: un short deja la basta como en la foto, y una falda habla de vuelo y ruedo, no de piernas", () => {
+    expect(pedidoDeCatalogo({}, sho).prompt).toMatch(/BASTA: como en la foto/);
+    expect(pedidoDeCatalogo({}, sho).prompt).not.toMatch(/BASTA: abierta y recta/);
+    const falda = pedidoDeCatalogo({}, fal).prompt;
+    expect(falda).toMatch(/VUELO:/);
+    expect(falda).toMatch(/RUEDO:/);
+    expect(falda).not.toMatch(/PIERNA|BASTA|piernas/);
+  });
+
+  it("con molde, una prenda de cintura copia su FORMA (no mangas, cuello ni elástico) y toma la TEXTURA de la foto real", () => {
+    for (const extras of [{ molde: true }, { espalda: true, molde: true }]) {
+      const { prompt } = pedidoDeCatalogo(extras, pan);
+      expect(prompt, JSON.stringify(extras)).toMatch(/copia EXACTAMENTE la forma: la silueta, el largo, la pretina, el ancho de la pierna, la basta/);
+      expect(prompt, JSON.stringify(extras)).toMatch(/la textura de la tela/);
+      expect(prompt, JSON.stringify(extras)).not.toMatch(/mangas|\bel cuello,|el elástico|toma SOLO el color/);
+    }
+    expect(pedidoDeCatalogo({ molde: true }, fal).prompt).toMatch(/el vuelo, el ruedo/);
+  });
+
+  it("la ficha sigue yendo al final de todos los pedidos de cintura", () => {
+    for (const ficha of [pan, sho, fal]) for (const extras of CAMINOS) expect(pedidoDeCatalogo(extras, ficha).prompt.endsWith(ficha.texto)).toBe(true);
   });
 });
