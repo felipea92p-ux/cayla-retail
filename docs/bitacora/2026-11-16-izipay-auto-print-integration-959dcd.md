@@ -10,3 +10,8 @@
   Suite completa de la web (929 archivos), `tsc` y Knip limpios; huella de la guía de Vender aceptada (la guía no llega a esta hoja).
 - **No verificado:** con la térmica real y Chrome `--kiosk-printing` en una Mac de caja. **Hallazgo aparte (ya existía):** bajo 1024 px, al abrirse
   «Venta registrada» el foco se queda en el escáner de atrás, así que Enter no llega al botón de la hoja.
+- **Imprimir sin diálogo (misma rama):** se verificó en el código de Chrome que `--kiosk-printing` imprime en la última impresora del
+  perfil (no en la predeterminada del sistema) con su papel, márgenes y escala; se probó en esta Mac con un perfil aparte que guarda a PDF
+  (salió solo, a 80 × 120 mm). `docs/OPERACION-IMPRESORA-TERMICA.md` se reescribió con esa regla: un perfil de Chrome por impresora
+  («CAYLA Caja», «CAYLA Etiquetas» en Windows; en Mac las etiquetas siguen por el ayudante). Guía visual: el artefacto «Imprimir sin diálogo».
+  **No verificado:** en una PC Windows real ni con papel.
