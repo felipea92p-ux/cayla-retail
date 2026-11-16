@@ -1,6 +1,6 @@
 # «Poner un %» (ADR-0669) · pendientes
 
-- [ ] Pegar en producción, con el OK de Felipe, `20261116182000_rebaja_rapida_por_prenda` y después `20261116183000_buscar_prenda_para_rebaja`
+- [x] Pegadas en producción el 2026-11-16, con el OK de Felipe (las 11 funciones idénticas a la copia local por su md5; la tabla con RLS y sin políticas): `20261116182000_rebaja_rapida_por_prenda` y después `20261116183000_buscar_prenda_para_rebaja`
   (va DESPUÉS de las cinco de `claude/ofertas-promociones-casos-689a3b`). Una tabla nueva con RLS sin políticas y funciones nuevas.
 - [ ] Probarlo con una colaboradora en una tienda (la regla «Formidable»: que lo entienda sin explicarle).
 - [ ] Regenerar los tipos de la base después de pegarlas y quitar `lib/rebaja-rapida.ts` (las llama sin tipo mientras tanto).
