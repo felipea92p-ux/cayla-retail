@@ -628,7 +628,7 @@ function FilaPorPagar({
           filas[filas.indexOf(e.currentTarget) + (e.key === "ArrowDown" ? 1 : -1)]?.focus();
         }
       }}
-      className={`group relative flex cursor-pointer items-start gap-3 px-4 py-3 transition-[background-color,opacity] duration-200 outline-none before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded-full before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.04] hover:before:scale-y-100 focus-visible:bg-tinta/[0.04] focus-visible:before:scale-y-100 @[40rem]:grid @[40rem]:items-center @[40rem]:gap-x-4 @[40rem]:px-5 ${PLANTILLA} ${
+      className={`group relative flex cursor-pointer items-start gap-3 px-4 py-3 transition-[background-color,opacity] duration-200 focus-visible:[outline-offset:calc(var(--foco-ancho)*-1)] before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded-full before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.04] hover:before:scale-y-100 focus-visible:bg-tinta/[0.04] focus-visible:before:scale-y-100 @[40rem]:grid @[40rem]:items-center @[40rem]:gap-x-4 @[40rem]:px-5 ${PLANTILLA} ${
         marcada ? "bg-rojo/[0.045] before:scale-y-100" : ""
       } ${eco || foco ? "bg-tinta/[0.04] before:scale-y-100" : ""} ${atenuada ? "opacity-40" : ""} ${destello ? "anim-destello-ok" : ""} ${
         sellada ? "pointer-events-none bg-verde/10 before:scale-y-100 before:bg-verde" : ""
@@ -643,9 +643,12 @@ function FilaPorPagar({
           <span className="label-cayla text-[11px]">Pagada</span>
         </span>
       )}
-      <span data-guia="por-pagar.casilla" className={`relative z-10 pt-0.5 @[40rem]:pt-0 ${sellada ? "opacity-55" : ""}`}>
+      {/* La casilla mide 20 px dentro de una fila que abre la vista rápida: tocar a 2 px de ella abría la factura en vez de marcarla. Su
+          <label> agranda lo que la marca en 6 px por lado (WCAG 2.5.8) y el margen negativo deja todo donde estaba, como la casilla de
+          Proveedores; la fila ya ignora el clic que nace en una <label>. */}
+      <label data-guia="por-pagar.casilla" className={`relative z-10 -m-1.5 cursor-pointer p-1.5 pt-2 @[40rem]:pt-1.5 ${sellada ? "opacity-55" : ""}`}>
         <Casilla marcada={marcada} onCambio={onAlternar} etiqueta={`Elegir ${c.documento} de ${c.proveedorNombre} para pagar`} />
-      </span>
+      </label>
       <div className={`min-w-0 flex-1 @[40rem]:flex-none ${sellada ? "opacity-55" : ""}`}>
         {/* La marca primero (ADR-0644): con marcas, son el título y la razón social baja a la línea de abajo; sin ellas, como antes. */}
         <span className={`block truncate text-sm text-tinta ${tituloDeCompra(marcas) ? "font-medium" : ""}`}>

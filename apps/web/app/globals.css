@@ -1986,6 +1986,19 @@ html[data-buscando] [data-resultados] {
     background: linear-gradient(to top, var(--fondo-hoja, var(--color-papel)), transparent);
     pointer-events: none;
   }
+  /* El pie pegado de una PÁGINA (no de una hoja: las hojas viven fuera del <main>), p. ej. Diseñar la campaña: el control al que llega
+     el Tab no se queda debajo de él (WCAG 2.4.11, auditoría /milimetro 2026-11-16). El navegador lo sube hasta dejarle este alto libre.
+     15 rem: lo que tapa el de la campaña, medido (157 px y su degradado de 16 a 1024 px o más; 209 y 16 entre 640 y 1023, cuando el
+     pie se parte en dos filas). Bajo 640 px ese pie no se pega (`max-sm:static`).
+     Va en cada control (`scroll-margin`) y no en la página (`scroll-padding` de <html>), y los del pie quedan fuera: el pie es `sticky`
+     y corre con la página, así que con `scroll-padding` sus propios botones caían en la franja reservada y enfocarlos (Tab o la guía de
+     foco) llevaba la página de golpe hasta el final (medido: de 462 a 924 px). Lo `fixed` (el dock de Finanzas, telar.css) sí usa
+     `scroll-padding`: sus botones no corren con la página. */
+  @media (min-width: 640px) {
+    main:has(.pie-hoja-fijo) :is(a[href], button, input, select, textarea, summary, [tabindex]):not(.pie-hoja-fijo *) {
+      scroll-margin-bottom: 15rem;
+    }
+  }
 }
 
 /* ---- EL MOUSE ENCIMA, SOLO CON MOUSE (ADR-0479, actividad 7) ----

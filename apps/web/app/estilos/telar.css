@@ -203,6 +203,10 @@ span.sede-telar { cursor: default; }
   .dock-telar { display: flex; }
   /* Que el dock no tape lo último de la pantalla. */
   main:has(.dock-telar) { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+  /* Ni el control al que llega el Tab (WCAG 2.4.11, auditoría /milimetro 2026-11-16): el navegador lo sube hasta dejar este alto
+     libre. El dock tapa 94 px desde el borde de abajo (medido a 1440 × 900); 7 rem le deja 18 de aire. Los controles del dock no
+     mueven la página: es `fixed`. */
+  html:has(.dock-telar) { scroll-padding-bottom: calc(7rem + env(safe-area-inset-bottom)); }
 }
 @keyframes dock-sube {
   from { transform: translate(-50%, 12px); opacity: 0; }
