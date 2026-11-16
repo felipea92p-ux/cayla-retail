@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   fichaDelPrecioDeSede,
+  sedesBajoCosto,
   fraseDePrecioEnSede,
   frasesPreciosSede,
   precioQueQuedaEnSede,
@@ -235,8 +236,8 @@ describe("precios por sede (20261115153000)", () => {
     conflicto,
     porDefecto,
     productos: [
-      { id: "Q", queda: true, precio: 199, propio: true },
-      { id: "D", queda: false, precio: 179, propio: true },
+      { id: "Q", queda: true, precio: 199, propio: true, bajoCosto: false },
+      { id: "D", queda: false, precio: 179, propio: true, bajoCosto: false },
     ],
   });
 
@@ -307,8 +308,8 @@ describe("lo que cobra cada tienda, dicho antes de confirmar (auditoría 2026-11
     conflicto: false,
     porDefecto: "D",
     productos: [
-      { id: "Q", queda: true, precio: 79.9, propio: false },
-      { id: "D", queda: false, precio: 74.9, propio: true },
+      { id: "Q", queda: true, precio: 79.9, propio: false, bajoCosto: false },
+      { id: "D", queda: false, precio: 74.9, propio: true, bajoCosto: false },
     ],
   };
   const lima = {
@@ -317,14 +318,14 @@ describe("lo que cobra cada tienda, dicho antes de confirmar (auditoría 2026-11
     conflicto: true,
     porDefecto: "Q",
     productos: [
-      { id: "Q", queda: true, precio: 89.9, propio: true },
-      { id: "D", queda: false, precio: 84.9, propio: true },
+      { id: "Q", queda: true, precio: 89.9, propio: true, bajoCosto: false },
+      { id: "D", queda: false, precio: 84.9, propio: true, bajoCosto: false },
     ],
   };
 
   it("sin conflicto, el precio que viaja y lo que cobraba la que queda", () => {
     expect(precioQueQuedaEnSede(trujillo, undefined)).toEqual({ precio: 74.9, antes: 79.9, de: "D" });
-    expect(fraseDePrecioEnSede(trujillo, undefined)).toMatch(/^Tienda Trujillo: toda la prenda a S\/\s?74\.90 \(antes S\/\s?79\.90\)\.$/);
+    expect(fraseDePrecioEnSede(trujillo, undefined)).toMatch(/^Tienda Trujillo: la prenda a S\/\s?74\.90 \(antes S\/\s?79\.90\)\.$/);
   });
 
   it("con conflicto y sin elegir, gana la que queda: no hay «antes» porque no cambia", () => {
@@ -342,5 +343,38 @@ describe("lo que cobra cada tienda, dicho antes de confirmar (auditoría 2026-11
     expect(uno).toHaveLength(1);
     expect(uno[0]).toMatch(/^Todas las sedes cobran S\/\s?79\.90\.$/);
     expect(frasesPreciosSede([], VACIAS_PRECIOS, 79.9)).toEqual([]);
+  });
+});
+
+
+describe("el precio que quedaría bajo el costo y la lista que se vio (20261116203000)", () => {
+  const sede = (bajoQ: boolean, bajoD: boolean) => ({
+    ubicacionId: "LIM",
+    nombre: "Tienda Lima",
+    conflicto: true,
+    porDefecto: "Q",
+    productos: [
+      { id: "Q", queda: true, precio: 89.9, propio: true, bajoCosto: bajoQ },
+      { id: "D", queda: false, precio: 20, propio: true, bajoCosto: bajoD },
+    ],
+  });
+
+  it("avisa solo si el precio que quedaría (el elegido o el de por defecto) está bajo el costo", () => {
+    expect(sedesBajoCosto([sede(false, true)], VACIAS_PRECIOS)).toEqual([]);
+    expect(sedesBajoCosto([sede(false, true)], { ...VACIAS_PRECIOS, precioSedeDe: { LIM: "D" } })).toEqual([
+      { nombre: "Tienda Lima", precio: 20 },
+    ]);
+  });
+
+  it("con «un solo precio» no hay precio de tienda que avisar", () => {
+    expect(sedesBajoCosto([sede(true, true)], { ...VACIAS_PRECIOS, unSoloPrecio: true })).toEqual([]);
+  });
+
+  it("guarda la lista tal como llegó, para devolverla al fusionar; sin lista, vacía", () => {
+    const crudo = [{ ubicacion_id: "LIM", nombre: "Tienda Lima", conflicto: false, por_defecto: "D", productos: [] }];
+    expect(leerPlan({ ok: true, precios_sede: crudo }).preciosSedeVistos).toBe(crudo);
+    expect(leerPlan({ ok: true }).preciosSedeVistos).toEqual([]);
+    const conAviso = leerPlan({ ok: true, precios_sede: [{ ...crudo[0], productos: [{ id: "D", queda: false, precio: 20, propio: true, bajo_costo: true }] }] });
+    expect(conAviso.preciosSede[0].productos[0].bajoCosto).toBe(true);
   });
 });
