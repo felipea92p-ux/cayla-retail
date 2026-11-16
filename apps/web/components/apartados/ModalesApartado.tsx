@@ -350,29 +350,7 @@ export function LiberarModal({ apartado, ubicacion, onClose }: { apartado: Apart
     >
       {(cerrar) =>
         liberado ? (
-          <div className="space-y-4">
-            <div className="card-cayla space-y-2 p-4">
-              <p className="label-cayla text-[11px] text-tinta/60">Mensaje para {apartado.nombres}</p>
-              <p className="rounded-xl rounded-bl-sm bg-hueso px-3.5 py-3 text-[15px] text-tinta">{mensaje}</p>
-            </div>
-            <div className="pie-acciones">
-              <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Ahora no</button>
-              <Boton
-                type="button"
-                peso="primario"
-                autoFocus
-                onClick={() => {
-                  window.open(enlaceWhatsapp(apartado.celular, mensaje), "_blank", "noopener,noreferrer");
-                  cerrar();
-                }}
-              >
-                <span className="flex items-center justify-center gap-2">
-                  <MessageCircle className="-my-1 h-4 w-4" aria-hidden />
-                  Avisar por WhatsApp
-                </span>
-              </Boton>
-            </div>
-          </div>
+          <AvisoDeCancelacion apartado={apartado} mensaje={mensaje} cerrar={cerrar} />
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-tinta/80">
@@ -400,6 +378,50 @@ export function LiberarModal({ apartado, ubicacion, onClose }: { apartado: Apart
           </div>
         )
       }
+    </Modal>
+  );
+}
+
+/** El mensaje de «apartado cancelado» y su botón: lo comparten la hoja de liberar (al terminar) y la fila de un apartado liberado.
+ *  El chat se abre en el mismo toque (el navegador no deja abrir una ventana después de esperar) y lo envía la persona. */
+function AvisoDeCancelacion({ apartado, mensaje, cerrar }: { apartado: Apartado; mensaje: string; cerrar: () => void }) {
+  return (
+    <div className="space-y-4">
+      <div className="card-cayla space-y-2 p-4">
+        <p className="label-cayla text-[11px] text-tinta/60">Mensaje para {apartado.nombres}</p>
+        <p className="rounded-xl rounded-bl-sm bg-hueso px-3.5 py-3 text-[15px] text-tinta">{mensaje}</p>
+      </div>
+      <div className="pie-acciones">
+        <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Ahora no</button>
+        <Boton
+          type="button"
+          peso="primario"
+          autoFocus
+          onClick={() => {
+            window.open(enlaceWhatsapp(apartado.celular, mensaje), "_blank", "noopener,noreferrer");
+            cerrar();
+          }}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <MessageCircle className="-my-1 h-4 w-4" aria-hidden />
+            Avisar por WhatsApp
+          </span>
+        </Boton>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Avisar desde la fila de un apartado liberado (Felipe 2026-11-16): para el que «se liberó solo» al vencer su gracia, que nunca pasó
+ * por la hoja de liberar, y para el que se liberó con «Ahora no». La fila no trae el motivo: el que se liberó solo venció; del otro,
+ * el mensaje solo dice que se canceló. No anota nada en la base.
+ */
+export function AvisoCancelacionModal({ apartado, ubicacion, onClose }: { apartado: Apartado; ubicacion: UbicacionApartado; onClose: () => void }) {
+  const mensaje = mensajeLiberacion(apartado, ubicacion.etiqueta, apartado.liberadaSola ? "vencio" : null);
+  return (
+    <Modal titulo={`Avisarle a ${apartado.nombres}`} subtitulo={`${apartado.codigo} · ${formatoCelular(apartado.celular)}`} onClose={onClose}>
+      {(cerrar) => <AvisoDeCancelacion apartado={apartado} mensaje={mensaje} cerrar={cerrar} />}
     </Modal>
   );
 }
