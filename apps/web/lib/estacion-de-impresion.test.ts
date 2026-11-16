@@ -8,6 +8,10 @@ describe("estacionActiva", () => {
     expect(estacionActiva("normal", "si")).toBe(false);
     expect(estacionActiva("etiquetas", "si")).toBe(false);
   });
+  it("en la Mac con la ticketera en su ayudante, desde el Chrome de siempre", () => {
+    expect(estacionActiva("normal", "si", true)).toBe(true);
+    expect(estacionActiva("normal", "no", true)).toBe(false);
+  });
 });
 
 describe("fraseDeVoz", () => {
