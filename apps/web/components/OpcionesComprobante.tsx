@@ -6,6 +6,7 @@ import { ArrowLeftRight, FileText, Link2, MessageCircle, Printer, ShoppingBag, U
 import type { Comprobante } from "@/lib/comprobantes-reglas";
 import { ETIQUETA_TIPO } from "@/lib/comprobantes-reglas";
 import type { ExtraComprobante } from "@/lib/comprobantes";
+import { puedeIrAPosventa, textoDelCambio, ventaParaVer } from "@/lib/comprobantes-cambio-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { chipDelComprobante } from "@/lib/facturacion-actividad";
 import { enlaceWhatsAppA, numeroWhatsApp } from "@/lib/facturacion-comprobantes-reglas";
@@ -20,6 +21,11 @@ import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 // buscada en Posventa. En celular es la hoja que sube desde abajo (`<Modal variante="hoja">`, botones de 52 px);
 // XML y CDR van al final porque son del contador, no de la tienda (lo mismo hacen Alegra y Bsale).
 // Anular, liberar y reintentar siguen en la fila (son del estado ante SUNAT; Anular es de quien ve Facturación, ADR-0534).
+// Los documentos de un cambio (ADR-0671) dicen de qué comprobante salen y «Ver la venta» abre la venta original, con la sede de esa venta
+// (el comprobante nuevo nace en la sede del cambio, que puede ser otra); la nota de un cambio no es una devolución: no dice «se devolvió» ni
+// le quita Posventa a la boleta original (`puedeIrAPosventa`).
+// Lo que solo explica (de qué cambio sale, qué nota lo corrige) va DEBAJO de las acciones, en la placa plana (`nota-cayla`): no se toca, así
+// que no lleva el borde ni el mouse encima de un botón (vidrio «Serena»: lo que explica es plano).
 
 const BASE_OPCION =
   "flex min-h-[52px] items-center gap-3 rounded-[12px] border px-3 py-2.5 text-left text-[14px] outline-none transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60";
@@ -27,21 +33,24 @@ const OPCION = `${BASE_OPCION} border-sand bg-papel text-tinta hover:bg-hueso`;
 // La principal (reenviar a la clienta) en tinta: una sola por hoja.
 const PRIMARIA = `${BASE_OPCION} border-tinta bg-tinta text-crema hover:bg-tinta/90`; // unificar-fijo: la opción ya elegida de un selector, no un botón principal
 const BAJADA = "block text-sm leading-snug text-tinta/65";
+const INFO = "nota-cayla sin-i flex items-center gap-3";
 
 export function OpcionesComprobante({
   comprobante: c,
   extra,
-  sede,
+  nombreDeSede,
   esLider,
   onClose,
 }: {
   comprobante: Comprobante;
   extra: ExtraComprobante | undefined;
-  sede: string;
+  /** El nombre de una sede por su id: la del comprobante (subtítulo) y la de la venta que abre «Ver la venta». */
+  nombreDeSede: (ubicacionId: string) => string;
   esLider: boolean;
   onClose: () => void;
 }) {
   const [viendoVenta, setViendoVenta] = useState(false);
+  const sede = nombreDeSede(c.ubicacion_id);
   const numero = `${c.serie}-${String(c.numero).padStart(6, "0")}`;
   const tipo = ETIQUETA_TIPO[c.tipo];
   const chip = chipDelComprobante(c);
@@ -53,10 +62,22 @@ export function OpcionesComprobante({
   const mensaje = `Hola${primerNombre ? ` ${primerNombre}` : ""}, aquí está tu ${tipo.toLowerCase()} ${numero} de CAYLA: ${c.pdfUrl ?? ""}`;
   // Posventa busca la venta por el número de la boleta; el líder mira todas las sedes (RLS de ventas).
   const posventa = (ruta: string) => `${ruta}?q=${encodeURIComponent(numero)}${esLider ? "&todas=1" : ""}`;
-  const puedePosventa = aceptado && !esNota && !!c.venta_id && !extra?.notaDeCredito;
+  const puedePosventa = puedeIrAPosventa(c, extra);
+  const venta = ventaParaVer(c, extra);
+  const cambio = extra?.cambio ?? null;
+  const notasDeCambio = extra?.notasDeCambio ?? [];
 
-  if (viendoVenta && c.venta_id) {
-    return <DetalleVentaModal ventaId={c.venta_id} vendedor={null} ubicacionNombre={sede} onClose={() => setViendoVenta(false)} />;
+  const corrigeA = esNota && !cambio ? (extra?.corrige ?? null) : null;
+
+  if (viendoVenta && venta) {
+    return (
+      <DetalleVentaModal
+        ventaId={venta.id}
+        vendedor={null}
+        ubicacionNombre={venta.ubicacionId ? nombreDeSede(venta.ubicacionId) : ""}
+        onClose={() => setViendoVenta(false)}
+      />
+    );
   }
 
   return (
@@ -92,11 +113,11 @@ export function OpcionesComprobante({
             </span>
           </a>
         )}
-        {c.venta_id && (
+        {venta && (
           <button type="button" onClick={() => setViendoVenta(true)} className={OPCION}>
             <ShoppingBag aria-hidden size={20} className="shrink-0 text-taupe" />
             <span>
-              Ver la venta<span className={BAJADA}>Prendas, pago y quién vendió</span>
+              Ver la venta<span className={BAJADA}>{cambio ? "La venta de donde sale el cambio" : "Prendas, pago y quién vendió"}</span>
             </span>
           </button>
         )}
@@ -133,16 +154,41 @@ export function OpcionesComprobante({
             </span>
           </Link>
         )}
-        {esNota && extra?.corrige && (
-          <div className={`${OPCION} sm:col-span-2`}>
-            <Link2 aria-hidden size={20} className="shrink-0 text-pizarra" />
-            <span>
-              Corrige a {extra.corrige.numero}
-              <span className={BAJADA}>{extra.devolucionId ? "Salió de una devolución aprobada." : "Nota de crédito sobre ese comprobante."}</span>
-            </span>
-          </div>
-        )}
       </div>
+
+      {(cambio || notasDeCambio.length > 0 || corrigeA) && (
+        <div className="mt-3 space-y-2">
+          {cambio && (
+            <p className={INFO}>
+              <ArrowLeftRight aria-hidden size={20} className="shrink-0 text-pizarra" />
+              <span>
+                <span className="text-tinta">{textoDelCambio(cambio)}</span>
+                <span className={BAJADA}>{esNota ? "Por la prenda que volvió a la tienda." : "Por la prenda que se llevó el cliente."}</span>
+              </span>
+            </p>
+          )}
+          {notasDeCambio.length > 0 && (
+            <p className={INFO}>
+              <ArrowLeftRight aria-hidden size={20} className="shrink-0 text-pizarra" />
+              <span>
+                <span className="text-tinta">
+                  {notasDeCambio.length === 1 ? "Nota del cambio" : "Notas de los cambios"} {notasDeCambio.map((n) => n.numero).join(", ")}
+                </span>
+                <span className={BAJADA}>Por una prenda cambiada, no una devolución.</span>
+              </span>
+            </p>
+          )}
+          {corrigeA && (
+            <p className={INFO}>
+              <Link2 aria-hidden size={20} className="shrink-0 text-pizarra" />
+              <span>
+                <span className="text-tinta">Corrige a {corrigeA.numero}</span>
+                <span className={BAJADA}>{extra?.devolucionId ? "Salió de una devolución aprobada." : "Nota de crédito sobre ese comprobante."}</span>
+              </span>
+            </p>
+          )}
+        </div>
+      )}
 
       {(c.xmlUrl || c.cdrUrl) && (
         <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-tinta/10 pt-3 text-sm text-tinta/65">

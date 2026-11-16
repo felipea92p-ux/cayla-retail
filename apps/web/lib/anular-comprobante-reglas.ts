@@ -15,15 +15,37 @@ export type DatosParaPedirBaja = {
   anulacion_solicitada_at: string | null;
   /** Notas de crédito o débito del comprobante que no están anuladas (el criterio de `anular_comprobante`). */
   notasVigentes: number;
+  /** El cambio del que sale el comprobante (ADR-0671); `null` si no sale de uno. */
+  cambioId: string | null;
 };
 
 export type RechazoDeBaja = { status: 403 | 409; error: string };
+
+// ADR-0671: los candados de un cambio. La base (`anular_comprobante`, `marcar_comprobante_no_emitido`) rechaza dar de baja o liberar un
+// documento que sale de un cambio (`documento_de_un_cambio`) y la original de un cambio cuya nota de crédito todavía no sale
+// (`original_de_un_cambio`). Al ANULAR, los dos se frenan antes de Lucode en `/api/lucode/anular`: el documento del cambio con
+// `motivoParaNoPedirBaja` y la original con `motivoParaNoAnularLaVenta` (su venta ya tiene un cambio, contado sin la RLS de quien anula),
+// así que el aviso de la base nunca llega a la pantalla al anular. Al LIBERAR no hay ruta: la pantalla dice el de la base.
+const DOCUMENTO_DE_UN_CAMBIO_AL_ANULAR = "Sale de un cambio: va a SUNAT junto con el otro documento del cambio y no se anula por separado.";
+const CANDADO_AL_LIBERAR: Record<"documento_de_un_cambio" | "original_de_un_cambio", string> = {
+  documento_de_un_cambio: "Sale de un cambio: va a SUNAT junto con el otro documento del cambio y no se libera por separado.",
+  original_de_un_cambio: "Tiene un cambio cuya nota de crédito sale cuando SUNAT lo acepte: no se libera mientras tanto.",
+};
+
+/** El aviso cuando la base rechaza LIBERAR por un cambio (lo dice su `hint`). `null` si el error es otro: lo traduce `traducirError`. */
+export function mensajeDelCambioAlLiberar(error: { hint?: string | null } | null): string | null {
+  const hint = error?.hint;
+  return hint === "documento_de_un_cambio" || hint === "original_de_un_cambio" ? CANDADO_AL_LIBERAR[hint] : null;
+}
 
 /** `null` si se puede pedir la baja; si no, la respuesta que da la ruta, sin haber llamado a Lucode. */
 export function motivoParaNoPedirBaja(d: DatosParaPedirBaja): RechazoDeBaja | null {
   if (!d.veFacturacion) {
     return { status: 403, error: "Anular un comprobante necesita el módulo Facturación en tu rol: la baja ante SUNAT no se deshace." };
   }
+  // Un documento de un cambio va a SUNAT con su pareja: dar de baja una mitad deja a SUNAT sin la prenda que salió o con la que volvió
+  // (`anular_comprobante` lo rechaza con `documento_de_un_cambio`, pero recién al guardar: la baja ya estaría pedida).
+  if (d.cambioId) return { status: 409, error: DOCUMENTO_DE_UN_CAMBIO_AL_ANULAR };
   if (d.estado !== "aceptado") {
     return { status: 409, error: `Solo se anula un comprobante aceptado por SUNAT (este está "${d.estado}").` };
   }
@@ -55,6 +77,9 @@ export type VentaDelComprobante = {
   /** Día de Lima (`aaaa-mm-dd`) en que se vendió, y el de hoy: `anular_venta` solo anula el mismo día (PL-29). */
   diaVenta: string;
   hoy: string;
+  /** Un cambio o una devolución sobre la venta, de CUALQUIER sede: la ruta los cuenta con la llave de servicio, porque `anular_venta`
+   *  (security definer) los ve todos y la RLS de quien anula solo los de su sede. Con un cambio con diferencia, esto también frena la
+   *  original cuya nota de crédito todavía no sale (`original_de_un_cambio`, ADR-0671), que la base rechazaría recién al guardar. */
   tieneCambioODevolucion: boolean;
   /** `fn_ve_modulo('devoluciones')` de la cuenta: lo exige `anular_venta`. */
   veDevoluciones: boolean;
