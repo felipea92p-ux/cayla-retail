@@ -91,6 +91,13 @@
   background-color: color-mix(in srgb, var(--color-vidrio) 38%, transparent);
   box-shadow: var(--pozo-encendido-sombra);
 }
+/* Con el teclado, el foco del sistema: borde de tinta y el halo (decisión 6A, Felipe 2026-11-16; como `.caja-campo`, campos-y-botones.css). */
+@media (forced-colors: none) and (not (prefers-contrast: more)) {
+  .pantalla-en-vidrio .fin-control:not(.cfg-casilla > *):focus:focus-visible {
+    border-color: var(--color-tinta);
+    box-shadow: var(--pozo-encendido-sombra), var(--pozo-foco-halo);
+  }
+}
 
 /* ---------- Elegir entre tarjetas del kit: gota al esperar; la puesta se hunde con su filo de tinta ---------- */
 .pantalla-en-vidrio :is(.fin-radios, .fin-opciones) label {

@@ -578,7 +578,7 @@
   }
 }
 .resumen-ancla {
-  scroll-margin-top: 140px;
+  scroll-margin-top: 1.25rem; /* la cabecera y la mesa del telar las descuenta la página (`scroll-padding-top`, decisión 1A): esto es el aire */
 }
 
 /* ---------- Las hojas de detalle ---------- */

@@ -461,7 +461,7 @@ export function CambiosFlujo({
   }
 
   return (
-    <div ref={raiz} className="scroll-mt-24 space-y-6">
+    <div ref={raiz} className="scroll-mt-8 space-y-6">
       {paso !== "exito" && (
         <EncabezadoFlujo
           volverA="Volver a Cambios"

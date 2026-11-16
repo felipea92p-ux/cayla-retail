@@ -121,7 +121,9 @@
   }).filter(Boolean);
 
   // ── 6 · vacío: la etiqueta no vive en el placeholder
-  const campos = [...raiz.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]), textarea')].filter(vis);
+  // Lo escondido del lector a propósito (`aria-hidden`: el input de archivo que abre un botón con nombre, como `BotonFoto`) no es un campo de la vista.
+  const ocultoAlLector = (el) => Boolean(el.closest('[aria-hidden="true"]'));
+  const campos = [...raiz.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]), textarea')].filter((el) => vis(el) && !ocultoAlLector(el));
   const sinEtiqueta = campos.filter((c) => !(c.labels && c.labels.length) && !c.getAttribute('aria-label') && !c.getAttribute('aria-labelledby'))
     .map((c) => ({ pieza: pista(c), placeholder: c.getAttribute('placeholder') || null }));
 
@@ -151,7 +153,7 @@
     // La pantalla (<main>) va primero: antes el tope de 80 se llenaba con los enlaces del lateral y la pantalla quedaba sin medir.
     const main = document.querySelector('main');
     const todosEnf = [...raiz.querySelectorAll('a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
-      .filter((el) => vis(el) && !el.closest('[inert]'));
+      .filter((el) => vis(el) && !el.closest('[inert]') && !ocultoAlLector(el));
     const enfocables = [...todosEnf.filter((el) => main?.contains(el)), ...todosEnf.filter((el) => !main?.contains(el))].slice(0, 80);
     const sinAnillo = [], anilloFlojo = [], tapado = [], halo = []; let sinMedir = 0, noToma = 0;
     // El campo dentro de una caja del sistema (Buscador, `caja-campo`, `caja-cayla`) dibuja su anillo en la CAJA con :focus-within.

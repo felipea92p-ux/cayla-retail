@@ -1953,6 +1953,9 @@ export const PRUEBAS = [
   // Corregir una compra ya anotada (ADR-0561): la plata vuelve sola mientras Compras no la completa, el papel acompaña si ya cuadraba, no se baja de lo
   // enviado, todo o nada, rastro que no se borra.
   "pruebas:compras-simple-corregir",
+  // Corregir con el envío sin recibir (ADR-0561 act. 2026-11-16): bajar lo que viajó baja también su línea del envío (al menos 1, nunca lo ya
+  // recibido); quitar lo que se anotó por error la saca de la compra y del envío con su rastro; no se quita lo que la tienda ya está contando.
+  "pruebas:corregir-compra-envio-abierto",
   "pruebas:compras-simple-reabrir",
   "pruebas:compras-simple-corregir-gasto",
   // «¿A qué cuenta de CAYLA devolviste?» al cerrar la ronda (Felipe 2026-10-29): la compradora indica la cuenta, la base valida que Compras pueda recibirla.

@@ -200,8 +200,9 @@
 
   /* ---------- <Buscador tamano="mostrador">: la píldora que se despega (Vender, Cambios, Devoluciones, Apartados) ---------- */
   .buscador.mostrador {
-    height: 60px; gap: 12px; padding: 0 8px 0 18px; border-radius: 14px; border: 0; background: var(--color-papel);
-    box-shadow: 0 20px 42px -28px color-mix(in srgb, var(--color-sombra) 50%, transparent), 0 0 0 1px color-mix(in srgb, var(--color-tinta) 10%, transparent);
+    /* Su borde es el de todo lo que se escribe (`borde-control`, 3:1; Felipe 2026-11-16, decisión 3A): el aro de tinta al 10 % que lo reemplazaba no se veía. */
+    height: 60px; gap: 12px; padding: 0 8px 0 18px; border-radius: 14px; border: 1px solid var(--color-borde-control); background: var(--color-papel);
+    box-shadow: 0 20px 42px -28px color-mix(in srgb, var(--color-sombra) 50%, transparent);
     transition: box-shadow var(--t-cambio) var(--ease-cayla), transform var(--t-cambio) var(--ease-cayla);
   }
   .buscador.mostrador:focus-within {

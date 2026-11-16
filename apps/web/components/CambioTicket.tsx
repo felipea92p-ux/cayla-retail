@@ -16,7 +16,7 @@ import { textoTicketCambio } from "@/lib/cambios-atajos-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { soles } from "@/lib/compras-reglas";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
-import { imprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
+import { imprimirBoleta } from "@/components/impresion/imprimirBoleta";
 
 /* ====================================================================
    CambioTicket · lo que la clienta se lleva al terminar un cambio (spike 2026-09-26, opción A)
@@ -81,8 +81,9 @@ export function CambioTicketHoja({
   useEffect(() => {
     if (!papeles || !imprimeSolo || yaImprimio.current) return;
     yaImprimio.current = true;
-    // Un cuadro después: el papel tiene que estar en el <body> (el portal) antes de abrir la impresión.
-    const t = setTimeout(() => imprimirAqui("ticket"), 0);
+    // Un cuadro después: el papel tiene que estar en el <body> (el portal) antes de mandarlo. Por el ayudante de la Mac si lo hay,
+    // o con el cuadro de siempre (`imprimirBoleta`, ADR-0670).
+    const t = setTimeout(() => void imprimirBoleta(), 0);
     return () => clearTimeout(t);
   }, [papeles, imprimeSolo]);
   const { fecha, hora } = fechaHoraLima(ticket.registradoEn);
@@ -137,7 +138,7 @@ export function CambioTicketHoja({
               <MessageCircle aria-hidden className="h-4 w-4" />
               {ticket.clienta ? `WhatsApp a ${ticket.clienta.split(" · ")[0]!.split(" ")[0]}` : "Enviar por WhatsApp"}
             </a>
-            <BotonImprimir onClick={() => imprimirAqui("ticket")} className="h-12 rounded-xl">
+            <BotonImprimir onClick={() => void imprimirBoleta()} className="h-12 rounded-xl">
               {papeles ? "Imprimir boleta" : "Imprimir ticket"}
             </BotonImprimir>
             <Link href="/vender" className={`${boton} border border-sand bg-papel text-tinta hover:border-taupe`}>

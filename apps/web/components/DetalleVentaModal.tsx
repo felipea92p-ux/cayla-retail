@@ -24,6 +24,7 @@ import {
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { sePuedeImprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
+import { imprimirBoleta } from "@/components/impresion/imprimirBoleta";
 
 const money = (n: number) => "S/" + n.toFixed(2);
 
@@ -104,11 +105,12 @@ export function DetalleVentaModal({
   // temporizador arranca recién al llamarlo.
   useEffect(() => {
     if (!imprimiendo) return;
+    let vigente = true;
     let respaldo: number | undefined;
     const terminar = () => {
       window.removeEventListener("afterprint", terminar);
       window.clearTimeout(respaldo);
-      setImprimiendo(null);
+      if (vigente) setImprimiendo(null);
     };
     const cuadro = requestAnimationFrame(async () => {
       const imagenes = [
@@ -117,11 +119,18 @@ export function DetalleVentaModal({
         ),
       ];
       await Promise.all(imagenes.map((i) => i.decode().catch(() => undefined)));
+      // El ticket va por `imprimirBoleta` (en la Mac del piso, por el ayudante y sin cuadro); la A4, por el cuadro.
+      if (imprimiendo === "ticket") {
+        await imprimirBoleta();
+        terminar();
+        return;
+      }
       window.addEventListener("afterprint", terminar);
       respaldo = window.setTimeout(terminar, 4000);
       window.print();
     });
     return () => {
+      vigente = false;
       cancelAnimationFrame(cuadro);
       window.removeEventListener("afterprint", terminar);
       window.clearTimeout(respaldo);
@@ -309,7 +318,7 @@ export function DetalleVentaModal({
               {/* `min-w-[11rem]`: «Imprimir boleta A4» necesita ~167 px y en media fila de un celular tenía 158 (el texto salía cortado). Con ese
                   mínimo los dos botones se apilan, cada uno a todo el ancho, cuando no caben juntos; en la hoja de escritorio siguen en una fila. */}
               <div className="flex flex-wrap gap-2.5">
-                <BotonImprimir peso="primario" className="min-w-[11rem] flex-1" disabled={!imprimible || imprimiendo !== null} onClick={() => sePuedeImprimirAqui("ticket") && setImprimiendo("ticket")}>
+                <BotonImprimir peso="primario" className="min-w-[11rem] flex-1" disabled={!imprimible || imprimiendo !== null} onClick={() => setImprimiendo("ticket")}>
                   Imprimir ticket
                 </BotonImprimir>
                 <BotonImprimir className="min-w-[11rem] flex-1" disabled={!imprimible || imprimiendo !== null} onClick={() => sePuedeImprimirAqui("hoja") && setImprimiendo("a4")}>

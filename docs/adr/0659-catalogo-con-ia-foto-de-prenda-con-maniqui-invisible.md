@@ -199,3 +199,48 @@ plana tiene un tejido ambiguo («Algodón», «Tela»): recibe «pierna», que n
 **Sigue sin medir.** Lo que lo mediría sin costo: que el laboratorio use `pedidoDeCatalogo` con la ficha (hoy manda el de blusa) y una medida pura del
 canal alfa (ancho de la basta ÷ ancho de la rodilla; un puño se ve como un ensanche justo antes de la basta). Una lámina de 6 prendas × 3 variantes
 cuesta ~0,90 USD.
+
+## Actualización 2026-11-16 (d) — La prenda sale PLANCHADA, con la textura de su tejido
+
+**Nace de** el pantalón de lino Crudo (Felipe 2026-11-16, con la captura de la hoja «Fotos de Crudo»): «sale con arrugas y da un mal aspecto… ahora sí
+comprendo que la tela es lino, antes no se diferenciaba, pero quiero retocar las arrugas sin perder el tipo de tela».
+
+**Diagnóstico (leído del código).** La ayuda del tejido escrita para PERSONAS viajaba a la IA, y la del lino dice «Se arruga (es parte de su gracia)»: el
+pedido le contaba al modelo que el lino se arruga y que eso es lo lindo. Ningún pedido decía cómo debía verse la tela de la foto de catálogo.
+
+**Lo que cambió** (`lib/ficha-foto-ia.ts`, solo la ficha):
+1. **La ficha pide la prenda PLANCHADA**, en positivo y sin la palabra «arrugas» (el modelo dibuja la palabra que lee, act. (c)): «recién planchada al
+   vapor, como para una sesión de fotos, aunque en las fotos que te doy no lo esté: la tela tersa y bien estirada, con la textura de su tejido a la vista
+   (la trama, el grano y el brillo o lo mate que tiene en la foto real). Se quedan los pliegues y las pinzas que son del diseño». «Tersa» y no «lisa»
+   («liso» es un diseño: la IA podría borrar unas rayas). «Aunque en las fotos que te doy no lo esté» cubre también el MOLDE, que pudo salir arrugado.
+2. **La textura queda nombrada al lado**: el lino conserva «de textura rústica con nudos visibles» y «es un tejido PLANO: se ve su trama».
+3. **Lo que le dice a una persona que la tela SE ARRUGA no va a la IA** (`diceQueSeArruga`: lino, algodón, viscosa). Lo que dice que casi NO se arruga,
+   o MENOS (jersey, poliéster, gabardina), se queda con su frase.
+4. **El seersucker no se plancha** (`TEJIDOS_CON_RELIEVE`): su fruncido es el tejido.
+5. **El cuerpo medido no cambió ni una letra** (sus siete huellas siguen iguales); la huella de la ficha (blusa de seda, chaleco de sastre) se actualizó.
+
+**Esto vuelve sobre una decisión de octubre** (`docs/investigacion/2026-10-21-prompt-edicion-minima-fotos.md`): pedir «quita arrugas» en el pedido de
+EDICIÓN MÍNIMA hacía que ChatGPT regenerara la prenda (rayas más gruesas, cuello redibujado). Hoy el pedido ya es de regeneración (maniquí invisible,
+«el estampado se redibuja con las mismas figuras»), así que el riesgo sumado es menor, pero **no está medido**. **Se rompe si** una prenda RAYADA o con
+estampado fino sale con el dibujo cambiado: entonces «Usar mi foto» vuelve a la real, y la regla se puede limitar a las prendas de diseño liso.
+
+**Una ficha `null` no lo recibe:** sin tipo, tejido ni patrón el pedido sigue siendo el medido, palabra por palabra (como desde el 14-nov).
+
+**Las fotos ya hechas no cambian solas:** se rehacen subiendo de nuevo la foto real del color con «Catálogo con IA» encendido, empezando por el color
+que sirve de molde (el primero con foto de IA), para que los demás copien una forma ya planchada.
+
+## Actualización 2026-11-16 (e) — Planchada, pero sin perder la tela
+
+**Nace de** la primera foto hecha con la act. (d), el pantalón de lino Crudo (Felipe 2026-11-16, mirando la hoja «Fotos de Crudo»): «es más liso pero
+pierde la tela». La IA cumplió «tersa y bien estirada», «recién planchada al vapor», y alisó el lino hasta volverlo otra tela.
+
+**Lo que cambió** (`lib/ficha-foto-ia.ts`, solo la ficha; el cuerpo medido sigue igual):
+1. **Se quita solo lo que deja el guardarla:** «sin los dobleces ni las marcas de haberla guardado, doblado o colgado». Salen «tersa», «bien estirada»
+   y «al vapor».
+2. **La TELA va primero:** «la misma de la foto real y se ve de cerca: su trama, sus hilos, su grano y su acabado mate o brillante, sin alisarla de
+   más», y **la foto de cerca de la tela manda** si se subió (el ángulo «Detalle de la tela» de la hoja de la IA).
+3. **El lino dice cómo se ve planchado** (`SE_VE_PLANCHADA`): «hilos irregulares con nudos, aspecto mate y rústico, y unas ondas suaves y naturales en
+   la tela, propias del lino». Otro tejido entra a esa tabla solo después de verlo salir mal: la regla general vale para los demás.
+
+**Sigue sin medir** con una lámina: es la segunda apuesta del día sobre el mismo pantalón. Lo que más ayuda sin tocar el pedido: subir también la
+foto de cerca de la tela (con luz de costado se ven los nudos del lino).

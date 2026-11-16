@@ -54,7 +54,7 @@ export function NosDebeProveedor({
   const cerradas = nosDebe?.cerradas ?? [];
   const unidades = nosDebe?.unidadesPendientes ?? 0;
   return (
-    <section id="nos-debe" aria-labelledby="nos-debe-titulo" data-guia="proveedor-ficha.nos-debe" className="scroll-mt-24 space-y-3">
+    <section id="nos-debe" aria-labelledby="nos-debe-titulo" data-guia="proveedor-ficha.nos-debe" className="scroll-mt-8 space-y-3">
       <TituloSeccion id="nos-debe-titulo">Nos debe</TituloSeccion>
       <div className="space-y-3">
         <div className="card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: 10 }}>

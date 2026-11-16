@@ -228,7 +228,7 @@ function FilaDelRanking({
           onClick={() => onAbrir(f.proveedorId)}
           data-guia="proveedores.nombre"
           aria-label={`${titulo ? `${titulo} (${f.nombre})` : f.nombre}: abrir vista rápida`}
-          className="block min-w-0 max-w-full text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-rojo/60"
+          className="block min-w-0 max-w-full text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:[outline:var(--foco-ancho)_solid_var(--foco-color)] focus-visible:after:[outline-offset:calc(var(--foco-ancho)*-1)]"
         >
           <span className="flex min-w-0 items-center gap-2">
             <span className="truncate text-[15px] font-semibold text-tinta" title={titulo ? marcas.join(", ") : undefined}>
@@ -249,10 +249,13 @@ function FilaDelRanking({
             <Resaltado texto={f.nombre} busqueda={busqueda} />
           </span>
         )}
-        <span className="block truncate text-sm text-tinta/65">
+        {/* «Le debes» se toca en 24 px (WCAG 2.5.8): el renglón recortaba el enlace a 22 px (`truncate` corta lo que se sale). Con 2 px más
+            arriba y abajo que su margen negativo devuelve, el renglón deja ver el enlace entero sin moverse, y el enlace suma 2 px arriba
+            (en línea, el relleno no cambia el alto del renglón). */}
+        <span className="-my-0.5 block truncate py-0.5 text-sm text-tinta/65">
           {saldo > 0 ? (
             <>
-              <Link href={`/compras/por-pagar?prov=${f.proveedorId}`} data-guia="proveedores.saldo" className="btn-enlace relative">
+              <Link href={`/compras/por-pagar?prov=${f.proveedorId}`} data-guia="proveedores.saldo" className="btn-enlace relative pt-0.5">
                 Le debes {soles(saldo)}
               </Link>
               {/* Lo vencido en rojo y en texto: es lo único de la fila que pide actuar hoy (el enlace de al lado lleva a pagarlo). */}
