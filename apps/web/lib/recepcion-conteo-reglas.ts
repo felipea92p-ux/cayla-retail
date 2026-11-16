@@ -27,6 +27,7 @@ import {
   type CausaSobrante,
   type Conteo,
   type DetalleEnvio,
+  type DiferenciaEnvio,
   type LineaEnvio,
   type PrendaRecepcion,
   type RecibidoEnvio,
@@ -1529,6 +1530,40 @@ export function textoResumenDelCierre(r: { sePuedenVender: number; guardadas: nu
   const guardadas = `${r.guardadas.toLocaleString("es-PE")} ${r.guardadas === 1 ? "queda guardada" : "quedan guardadas"} para terminar después`;
   if (r.sePuedenVender === 0) return r.guardadas === 0 ? "Al cerrar: todavía no hay nada contado." : `Al cerrar: ${guardadas}.`;
   return r.guardadas === 0 ? `Al cerrar: ${entran}.` : `Al cerrar: ${entran} · ${guardadas}.`;
+}
+
+/** Lo que no cuadró de un envío cerrado, una fila por respuesta. */
+export type NoCuadro = {
+  tipo: "faltante" | "sobrante";
+  causa: string | null;
+  nota: string | null;
+  cantidad: number;
+  /** De qué es: las prendas que entraron por esas líneas o, si ninguna entró, su categoría y marca. */
+  que: string[];
+};
+
+/**
+ * Lo que no cuadró, juntando lo que tuvo la misma respuesta (Felipe 2026-11-16, maqueta `recibir-cierre-recibo-2026-11`): en ENV-000023 eran tres
+ * filas iguales —«+138 Polos · Otro», «+58 Pantalones · Otro», «+7 Vestidos · Otro»— que dicen menos que una sola con las tres prendas. Se juntan las de
+ * la misma clase (falta o sobra), la misma causa y la misma nota, en el orden en que llegan.
+ */
+export function noCuadroAgrupado(
+  diferencias: readonly DiferenciaEnvio[],
+  lineas: readonly { clave: ClaveLinea; conteo: { prendasEnStock?: string[] } | null }[],
+): NoCuadro[] {
+  const grupos = new Map<string, NoCuadro>();
+  for (const d of diferencias) {
+    if (d.cantidad <= 0) continue;
+    const clave: ClaveLinea = d.despachoItemId ? `item:${d.despachoItemId}` : `extra:${d.extra ?? 0}`;
+    const prendas = lineas.find((l) => l.clave === clave)?.conteo?.prendasEnStock ?? [];
+    const que = prendas.length > 0 ? prendas : [[d.categoria, d.marca].filter(Boolean).join(" · ") || "Sin categoría"];
+    const llave = [d.tipo, d.causa ?? "", d.nota ?? ""].join("|");
+    const g = grupos.get(llave) ?? { tipo: d.tipo, causa: d.causa, nota: d.nota, cantidad: 0, que: [] };
+    g.cantidad += d.cantidad;
+    for (const q of que) if (!g.que.includes(q)) g.que.push(q);
+    grupos.set(llave, g);
+  }
+  return [...grupos.values()];
 }
 
 export type VeredictoDelCerrado = {

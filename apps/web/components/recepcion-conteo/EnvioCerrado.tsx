@@ -11,7 +11,8 @@ import { Chip } from "@/components/ui/Chip";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buenasDeRecibidos, CAUSAS_FALTANTE, CAUSAS_SOBRANTE, despuesDeRecibirEnvio, textoCausa, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
-import { BOTON_DE_PENDIENTE, cifrasDelEnvio, loQueEntroPorPrenda, paraDespues, proveedoresDeLasLineas, textoNoSeReabre, veredictoDelCerrado, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
+import { unirConY } from "@/lib/precio-sede-reglas";
+import { BOTON_DE_PENDIENTE, cifrasDelEnvio, loQueEntroPorPrenda, noCuadroAgrupado, paraDespues, proveedoresDeLasLineas, textoNoSeReabre, veredictoDelCerrado, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
 import { HacerAhora } from "./HacerAhora";
 import { Lacre } from "./Lacre";
 import { Odometro } from "./Odometro";
@@ -92,7 +93,7 @@ export function EnvioCerrado({
   const acciones = despuesDeRecibirEnvio({ lotes, envioId: detalle.id, buenas, unidades: cifras.enStock, unidadesBuenas: buenas.reduce((a, b) => a + b.cantidad, 0), veExistencias }).filter(
     (a) => !(conListaDeEtiquetas && a.clave === "etiquetas"),
   );
-  const diferencias = (detalle.diferencias ?? []).filter((d) => d.cantidad > 0);
+  const noCuadro = noCuadroAgrupado(detalle.diferencias ?? [], lineas);
   const cuando = detalle.cerradoEn ? diaYHoraLima(detalle.cerradoEn) : null;
   const reabrir = conteos?.reabrir ?? null;
 
@@ -186,15 +187,16 @@ export function EnvioCerrado({
         )}
       </section>
 
-      {diferencias.length > 0 && (
+      {noCuadro.length > 0 && (
         <section className="card-cayla space-y-2 p-4 sm:p-5" aria-label="Lo que no cuadró">
           <TituloSeccion>Lo que no cuadró</TituloSeccion>
           <ul className="space-y-1 text-sm text-tinta">
-            {diferencias.map((d, i) => (
+            {noCuadro.map((g, i) => (
               <li key={i}>
-                <b className="font-display text-lg tabular-nums">{d.tipo === "faltante" ? `−${d.cantidad}` : `+${d.cantidad}`}</b> {[d.categoria, d.marca].filter(Boolean).join(" · ")}
-                {d.causa ? <span> · {textoCausa(d.causa)}</span> : null}
-                {d.causa && consecuencia(d.causa) ? <span className="text-taupe"> → {consecuencia(d.causa)}</span> : null}
+                <b className="font-display text-lg tabular-nums">{g.tipo === "faltante" ? `−${g.cantidad}` : `+${g.cantidad}`}</b> {unirConY(g.que)}
+                {g.causa ? <span> · {textoCausa(g.causa)}</span> : null}
+                {g.nota ? <span> · «{g.nota}»</span> : null}
+                {g.causa && consecuencia(g.causa) ? <span className="text-taupe"> → {consecuencia(g.causa)}</span> : null}
               </li>
             ))}
           </ul>

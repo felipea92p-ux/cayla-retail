@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { costoDelGrupo as costoDelGrupoStock, costoDeLoQueYaEntro, filasDeCostoEnStock, leerConteosDelEnvio as leerConteosStock, textoCostoEnStock, unidadesSinIdentificar as sinIdentificarStock } from "./recepcion-conteo-reglas";
 import { sePuedeCambiarCategoria, costoDeCatalogo, costosConCatalogo, DECISION_VACIA } from "./recepcion-conteo-reglas";
+import { noCuadroAgrupado } from "./recepcion-conteo-reglas";
+import type { DiferenciaEnvio, RecibidoEnvio } from "./recepcion-envio-reglas";
 import {
   lineasSinModelosEnCero,
   modelosEnCeroDe,
@@ -1597,5 +1599,44 @@ describe("lo de fuera de la guía que ya entró entero al stock: su costo llega 
     const campos = camposDelCierre({ lineas: [vestidos], decisiones: { "extra:1": DECISION_VACIA }, sinAviso: true, responsable: true });
     expect(campos.some((c) => c.id === "costo-extra-1")).toBe(false);
     expect(faltaParaCerrar({ lineas: [vestidos], decisiones: { "extra:1": DECISION_VACIA }, sinAviso: true, responsable: true })).toEqual([]);
+  });
+});
+
+describe("lo que no cuadró, una fila por respuesta (maqueta recibir-cierre-recibo-2026-11)", () => {
+  const dif = (o: Partial<DiferenciaEnvio>): DiferenciaEnvio => ({ despachoItemId: null, extra: null, tipo: "sobrante", causa: "otro", cantidad: 1, categoria: null, marca: null, nota: null, ...o });
+  const entro = (o: Partial<RecibidoEnvio>): RecibidoEnvio => ({ despachoItemId: null, extra: null, varianteId: "v", prenda: null, talla: null, color: null, cantidad: 1, danadas: 0, costoUnitario: null, categoria: null, marca: null, ...o });
+
+  it("ENV-000023: tres extras con «Otro» y la misma nota son UNA fila de 203 con sus tres prendas", () => {
+    const c = leerConteosDelEnvio({
+      despacho_id: "d1",
+      estado: "cerrado",
+      conteos: [conteoCrudo({ extra_posicion: 1, contadas: 138 }), conteoCrudo({ extra_posicion: 2, contadas: 58 }), conteoCrudo({ extra_posicion: 3, contadas: 7 })],
+    });
+    const ls = lineasParaContar(
+      { lineas: [], recibidos: [entro({ extra: 1, prenda: "Polo Básico Cayla", cantidad: 138 }), entro({ extra: 2, prenda: "Pantalón Cayla Lino", cantidad: 58 }), entro({ extra: 3, prenda: "Vestido Amapola", cantidad: 7 })] },
+      c,
+    );
+    const nota = "Se mando a otra sede";
+    const g = noCuadroAgrupado([dif({ extra: 1, cantidad: 138, nota }), dif({ extra: 2, cantidad: 58, nota }), dif({ extra: 3, cantidad: 7, nota })], ls);
+    expect(g).toEqual([{ tipo: "sobrante", causa: "otro", nota, cantidad: 203, que: ["Polo Básico Cayla", "Pantalón Cayla Lino", "Vestido Amapola"] }]);
+  });
+
+  it("separa por clase, causa y nota; sin prendas que entraron, dice categoría y marca; descarta lo que viene en 0", () => {
+    const g = noCuadroAgrupado(
+      [
+        dif({ despachoItemId: "i1", tipo: "faltante", causa: "no_vino", cantidad: 3, categoria: "Faldas", marca: "Lima Knit" }),
+        dif({ extra: 1, causa: "regalo", cantidad: 2, categoria: "Polos" }),
+        dif({ extra: 2, causa: "otro", cantidad: 1, nota: "Una muestra" }),
+        dif({ extra: 3, causa: "otro", cantidad: 4, nota: "Otra cosa" }),
+        dif({ extra: 4, causa: "regalo", cantidad: 0 }),
+      ],
+      [],
+    );
+    expect(g.map((x) => [x.tipo, x.causa, x.nota, x.cantidad, x.que])).toEqual([
+      ["faltante", "no_vino", null, 3, ["Faldas · Lima Knit"]],
+      ["sobrante", "regalo", null, 2, ["Polos"]],
+      ["sobrante", "otro", "Una muestra", 1, ["Sin categoría"]],
+      ["sobrante", "otro", "Otra cosa", 4, ["Sin categoría"]],
+    ]);
   });
 });

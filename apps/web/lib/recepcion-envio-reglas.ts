@@ -298,6 +298,8 @@ export type DiferenciaEnvio = {
   cantidad: number;
   categoria: string | null;
   marca: string | null;
+  /** Lo que escribió quien cerró al elegir «Otro» («Se mando a otra sede»). La base la manda desde ADR-0393; la pantalla la leyó recién el 2026-11-16. */
+  nota: string | null;
 };
 
 export type DetalleEnvio = {
@@ -453,6 +455,7 @@ function leerDiferencia(f: unknown): DiferenciaEnvio | null {
     cantidad,
     categoria: idNombre(r.categoria)?.nombre ?? texto(r.categoria),
     marca: idNombre(r.marca)?.nombre ?? texto(r.marca),
+    nota: texto(r.nota),
   };
 }
 

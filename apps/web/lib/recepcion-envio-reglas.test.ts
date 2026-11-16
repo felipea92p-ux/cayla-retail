@@ -313,7 +313,7 @@ describe("leer un envío por dentro (fn_envio_detalle)", () => {
     expect(d.recibidos).toHaveLength(2);
     expect(d.recibidos![0]).toMatchObject({ varianteId: "v-m-ne", prenda: "Chompa Aurora", cantidad: 10, danadas: 2, costoUnitario: 25 });
     expect(d.recibidos![1]).toMatchObject({ prenda: "Bolso", costoUnitario: 30, danadas: 0 });
-    expect(d.diferencias).toEqual([{ despachoItemId: "di-1", extra: null, tipo: "faltante", causa: "no_vino", cantidad: 2, categoria: null, marca: null }]);
+    expect(d.diferencias).toEqual([{ despachoItemId: "di-1", extra: null, tipo: "faltante", causa: "no_vino", cantidad: 2, categoria: null, marca: null, nota: null }]);
   });
 
   it("ADR-0517: lee si quien mira compró (aunque pueda recibirlo) y si lo cerró quien compró; una base sin las claves dice null", () => {
@@ -1018,6 +1018,18 @@ describe("la forma de la base de la fase 4", () => {
     expect(d.creadoPorMi).toBe(true);
     expect(d.recibidos![0]).toMatchObject({ extra: 1, varianteId: "v9" });
     expect(d.diferencias![0]).toMatchObject({ extra: 1, tipo: "sobrante", causa: "regalo" });
+  });
+
+  it("la nota de «Otro» llega a la pantalla (la base la manda; antes se perdía al leer)", () => {
+    const d = leerDetalleEnvio({
+      ...DETALLE_FASE4,
+      estado: "cerrado",
+      diferencias: [
+        { despacho_item_id: null, extra: 1, tipo: "sobrante", causa: "otro", cantidad: 138, nota: "Se mando a otra sede" },
+        { despacho_item_id: null, extra: 2, tipo: "sobrante", causa: "otro", cantidad: 58, nota: "  " },
+      ],
+    })!;
+    expect(d.diferencias!.map((x) => x.nota)).toEqual(["Se mando a otra sede", null]);
   });
 
   it("el costo atípico dice el lugar del extra: se confirma ese extra y no otro con la misma prenda", () => {
