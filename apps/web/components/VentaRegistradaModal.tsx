@@ -17,6 +17,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { Interruptor } from "@/components/ui/campos";
 import { imprimirAlCobrar, queHacerAlRegistrar, type AlRegistrar } from "@/lib/imprimir-al-cobrar";
+import { imprimirAqui, sePuedeImprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
 
 type Props = {
   ok: VentaOk;
@@ -68,6 +69,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
    *  ANTES desmontaría el recibo del `<body>` y no habría nada que imprimir. El temporizador es el
    *  respaldo por si el navegador no emite `afterprint`: sin él la caja quedaría trabada. */
   function imprimirYSeguir(cerrar: () => void) {
+    if (!sePuedeImprimirAqui("ticket")) return;
     let hecho = false;
     const terminar = () => {
       if (hecho) return;
@@ -219,7 +221,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
               <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
                 Nueva venta
               </button>
-              <BotonImprimir onClick={() => window.print()} className="w-full whitespace-nowrap">
+              <BotonImprimir onClick={() => imprimirAqui("ticket")} className="w-full whitespace-nowrap">
                 Imprimir otra vez
               </BotonImprimir>
               <p className="text-center text-sm text-tinta/55">Ya se imprimió · Enter abre una venta nueva</p>
@@ -234,7 +236,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
               {/* Las dos salidas menos comunes, más discretas: reintentar el papel sin salir
                   (se atascó, se acabó el rollo) o seguir sin imprimir (la clienta no lo quiere). */}
               <div className="grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => window.print()} className={botonCancelar}>
+                <button type="button" onClick={() => imprimirAqui("ticket")} className={botonCancelar}>
                   Solo imprimir
                 </button>
                 <button type="button" onClick={cerrar} className={botonCancelar}>
@@ -278,7 +280,7 @@ function ImprimirAlAbrir({ seguir, imprimirYSeguir }: { seguir: boolean; imprimi
     if (hecho.current) return;
     hecho.current = true;
     if (seguir) imprimirYSeguir();
-    else window.print();
+    else imprimirAqui("ticket");
   }, [seguir, imprimirYSeguir]);
   return null;
 }
