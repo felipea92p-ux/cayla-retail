@@ -926,6 +926,59 @@ select 'x', retail.fn_categoria_admite_precio_cero((select categoria_id from ret
   )
 );
 
+caso("44 · si el precio de tienda que quedaría está bajo el costo de una talla, la fusión frena con su frase y no deja nada a medias", () =>
+  espera(
+    correr(`${COMO_POSTGRES}${PREP_SEDE}${precioDeLaPrenda(":'d'", 79.90)}
+update retail.variantes set costo = 90, precio = 120 where producto_id = '${EMMA}' and activo;
+${sesion(FELIPE)}
+select split_part(pg_temp.intento($$select retail.fusionar_productos('${EMMA}', array['$$ || :'d' || $$']::uuid[], '{"precio":120}')$$), '|', 2) as hint \\gset
+${COMO_POSTGRES}
+select 'x', :'hint', (select estado from retail.productos where id = :'d'),
+  (select count(*) from retail.precios_sede_prenda where producto_id = '${EMMA}' and archivado_en is null);`),
+    "precio_sede_bajo_costo|activo|0"
+  )
+);
+
+caso("45 · una excepción de talla que se conserva vuelve con su motivo y su autor, aunque cambie el precio de la prenda en esa tienda", () =>
+  espera(
+    correr(`${COMO_POSTGRES}${PREP_SEDE}${precioDeLaPrenda(`'${EMMA}'`, 150)}${precioDeLaPrenda(":'d'", 169)}
+insert into retail.precios_sede_variante (variante_id, ubicacion_id, precio, motivo, creado_por, vigente_desde)
+  values (:'es', '${TRUJILLO}', 120, 'la S se liquida en Trujillo', :'yo', '2026-09-01');
+${sesion(FELIPE)}
+select retail.fusionar_productos('${EMMA}', array[:'d']::uuid[], jsonb_build_object('precios_sede', jsonb_build_object('${TRUJILLO}', :'d'))) as r \\gset
+${COMO_POSTGRES}
+select 'x', retail.fn_precio_en_sede(:'es','${TRUJILLO}'), retail.fn_precio_en_sede(:'em','${TRUJILLO}'), pv.motivo, pv.creado_por = :'yo', pv.vigente_desde::date
+  from retail.precios_sede_variante pv where pv.variante_id = :'es' and pv.ubicacion_id = '${TRUJILLO}' and pv.archivado_en is null;`),
+    "120.00|169.00|la S se liquida en Trujillo|t|2026-09-01"
+  )
+);
+
+caso("46 · una talla que se MUDA a una sede que la hoja no muestra tampoco queda bajo su costo (Emma a S/ 50 en Lima, la XL de la repetida cuesta 60): frena", () =>
+  espera(
+    correr(`${COMO_POSTGRES}${PREP_SEDE}
+insert into retail.precios_sede_prenda (producto_id, ubicacion_id, precio, motivo, creado_por) values ('${EMMA}', '${LIMA}', 50, 'prueba', :'yo');
+update retail.variantes set costo = 30 where producto_id = '${EMMA}' and activo;
+update retail.variantes set costo = 60 where id = :'dxl';
+${sesion(FELIPE)}
+select split_part(pg_temp.intento($$select retail.fusionar_productos('${EMMA}', array['$$ || :'d' || $$']::uuid[])$$), '|', 2) as hint \\gset
+${COMO_POSTGRES}
+select 'x', :'hint', (select producto_id = :'d' from retail.variantes where id = :'dxl');`),
+    "precio_sede_bajo_costo|t"
+  )
+);
+
+caso("47 · el precio de la PRENDA que gana tampoco baja del costo de una talla que conserva su excepción (la S a 200 cuesta 180; la ganadora cobra 169): frena", () =>
+  espera(
+    correr(`${COMO_POSTGRES}${PREP_SEDE}${precioDeLaPrenda(":'d'", 169)}${excepcionDeTalla(":'es'", 200)}
+update retail.variantes set costo = 180 where id = :'es';
+${sesion(FELIPE)}
+select split_part(pg_temp.intento($$select retail.fusionar_productos('${EMMA}', array['$$ || :'d' || $$']::uuid[])$$), '|', 2) as hint \\gset
+${COMO_POSTGRES}
+select 'x', :'hint', (select estado from retail.productos where id = :'d');`),
+    "precio_sede_bajo_costo|activo"
+  )
+);
+
 // ---------------------------------------------------------------------------------------------- correr
 
 let fallas = 0;

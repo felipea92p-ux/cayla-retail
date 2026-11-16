@@ -165,14 +165,20 @@ DECIDÍ, en dos capas (las mismas de `fn_precios_en_sedes`): el **precio de la p
 elegida o la de por defecto) en cada sede que la hoja muestra; una **excepción de talla** («la XL cuesta más en Trujillo») viaja con su talla y se
 conserva, también si es igual al general; si dos chocan al juntarse, la de la ganadora. La de una talla apagada no revive. La lista de sedes compara
 precios de prenda y contra el precio general elegido (`p_elecciones.precio`, que la hoja ahora manda también al previsualizar).
+El precio ganador se escribe en la capa de la PRENDA (`precios_sede_prenda` de la que queda), no talla por talla: así la ficha dice lo que se
+cobra y una talla agregada después también lo cobra; las excepciones que su disparador archiva se reponen enseguida. La talla de obsequio (S/ 0)
+ya no la pisa el precio general elegido (venía de `fusionar_productos`). El precio de tienda que deja la fusión sigue la regla de «Precio en tu
+tienda»: nunca bajo el costo de la talla (si quedaría así, la fusión frena y pide elegir otro). Una excepción conservada vuelve con su motivo, su
+autor y su fecha.
 DESCARTÉ: «talla por talla» sin unificar la prenda (la tienda seguiría con dos precios que nadie decidió); borrar las excepciones de talla de la
-ficha perdedora (una decisión que la persona no vio en la hoja); escribir `precios_sede_prenda` (su disparador archivaría las excepciones de talla).
+ficha perdedora (una decisión que la persona no vio en la hoja); escribir el precio ganador solo talla por talla (la ficha seguiría diciendo el
+precio viejo).
 SE ROMPE SI alguien usa excepciones de talla para todas las tallas en vez del precio de la prenda en la tienda: ahí cada talla conserva la suya y la
 hoja no muestra esa sede. Consecuencia que Felipe aceptó: una talla de la que queda que cobraba el general en esa tienda pasa al precio de la sede.
-Revisión adversarial en dos rondas: la primera versión tomaba como precio de la ficha el más repetido entre sus tallas con precio propio, y una
+Revisión adversarial en cuatro rondas, con cada hallazgo reproducido en local: la primera versión tomaba como precio de la ficha el más repetido entre sus tallas con precio propio, y una
 excepción de una sola talla se volvía el precio de toda la prenda.
 
-Migración `20261116020000` (reservada). `pruebas:fusionar-productos` 41/41; con las funciones de antes fallan 29, 36, 37 y 41, y sin el parche del candado
+Migración `20261116020000` (reservada). `pruebas:fusionar-productos` 45/45; con las funciones de antes fallan 29, 36, 37, 41, 42 y 43 (y 44-45 con la versión previa de esta migración), y sin el parche del candado
 de la terminal falla 35 (que ahora sí cambia el precio general).
 
 ## Pendiente
