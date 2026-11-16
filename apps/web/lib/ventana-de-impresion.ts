@@ -2,9 +2,10 @@
  * Qué ventana de Chrome es esta, para imprimir sin el cuadro de impresión (Felipe, 2026-11-16).
  *
  * Chrome sin cuadro (`--kiosk-printing`) imprime siempre en la ÚLTIMA impresora que usó ese perfil, con su papel
- * (verificado en el código de Chrome: `docs/OPERACION-IMPRESORA-TERMICA.md`). Por eso cada impresora tiene su ícono:
- * «CAYLA Caja» (la térmica) y, en Windows, «CAYLA Etiquetas» (la Brother). El ícono abre el ERP con `?ventana=caja` o
- * `?ventana=etiquetas`; esta ventana lo recuerda (es su propio perfil de Chrome, así que su `localStorage` es solo suyo).
+ * (verificado en el código de Chrome: `docs/OPERACION-IMPRESORA-TERMICA.md`). En una computadora con UNA impresora (Trujillo:
+ * la Brother en el almacén) es el Chrome de siempre con esa opción; con dos, cada una tiene su ícono («CAYLA Caja», «CAYLA
+ * Etiquetas»). El ERP se abre una vez con `?ventana=caja` o `?ventana=etiquetas` y ese perfil lo recuerda (`localStorage`).
+ * La Mac del piso no se marca: la boleta sale por su ayudante (`components/impresion/imprimirBoleta.ts`).
  *
  * Desde ahí, lo que no va a la impresora de esa ventana NO se imprime y se explica (decisión de Felipe): una hoja A4
  * mandada desde «CAYLA Caja» saldría en la térmica. Una ventana sin marca (el Chrome de siempre) imprime todo con el cuadro.
@@ -48,12 +49,12 @@ export function frenoDeImpresion(ventana: Ventana, que: QueSeImprime, sistema: S
   if (que === "etiqueta" && porAyudante) return null;
   if (ventana === "caja") {
     if (que === "ticket") return null;
-    if (que === "hoja") return "Esta ventana imprime en la térmica. Abre las hojas A4 en el Chrome de siempre.";
+    if (que === "hoja") return "Aquí se imprime sin preguntar en la ticketera. Abre las hojas A4 en otro navegador, como Microsoft Edge.";
     return sistema === "mac"
-      ? "Esta ventana imprime en la térmica. Las etiquetas salen por el ayudante: instálalo desde Etiquetas de precio."
-      : "Esta ventana imprime en la térmica. Las etiquetas se imprimen en «CAYLA Etiquetas».";
+      ? "Aquí se imprime en la ticketera. Las etiquetas salen por el ayudante: instálalo desde Etiquetas de precio."
+      : "Aquí se imprime sin preguntar en la ticketera. Las etiquetas se imprimen en la computadora de la Brother.";
   }
   if (que === "etiqueta") return null;
-  if (que === "ticket") return "Esta ventana imprime en la Brother. Los tickets se imprimen en «CAYLA Caja».";
-  return "Esta ventana imprime en la Brother. Abre las hojas A4 en el Chrome de siempre.";
+  if (que === "ticket") return "Aquí se imprime sin preguntar en la Brother. Los tickets se imprimen en la caja.";
+  return "Aquí se imprime sin preguntar en la Brother. Abre las hojas A4 en otro navegador, como Microsoft Edge.";
 }

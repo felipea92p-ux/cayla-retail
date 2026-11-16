@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { createPortal } from "react-dom";
 import { ReciboTermico } from "@/components/ReciboTermico";
 import { useSedeActiva } from "@/components/SedeActiva";
-import { sePuedeImprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
+import { boletasPorAyudante, imprimirBoleta } from "@/components/impresion/imprimirBoleta";
 import { Chip } from "@/components/ui/Chip";
 import { createClient } from "@/lib/supabase/client";
 import { useCambiosEnVivo } from "@/lib/useCambiosEnVivo";
@@ -26,14 +26,6 @@ const imagenesListas = () =>
     new Promise((listo) => window.setTimeout(listo, 1500)),
   ]);
 
-/** Imprime lo que está montado y espera a que el navegador termine (`afterprint`; 4 s de respaldo). */
-const imprimirYEsperar = () =>
-  new Promise<void>((listo) => {
-    const respaldo = window.setTimeout(listo, 4000);
-    window.addEventListener("afterprint", () => { window.clearTimeout(respaldo); listo(); }, { once: true });
-    window.print();
-  });
-
 /**
  * La estación de la caja (migración 20261116204000): en la ventana «CAYLA Caja», con «Imprimir lo que se vende en el piso»
  * encendido, toma de la cola cada boleta pedida desde el piso, la imprime sin cuadro y la marca impresa. Se entera por el aviso
@@ -46,7 +38,8 @@ export function EstacionDeImpresion() {
   const ventana = useSyncExternalStore(ventanaDelEquipo.suscribir, ventanaDelEquipo.leer, ventanaDelEquipo.leerEnServidor);
   const estacion = useSyncExternalStore(estacionDeLaCaja.suscribir, estacionDeLaCaja.leer, estacionDeLaCaja.leerEnServidor);
   const ubicacionId = sede?.ubicacionId ?? null;
-  const activa = estacionActiva(ventana, estacion) && Boolean(ubicacionId);
+  const porAyudante = useSyncExternalStore(boletasPorAyudante.suscribir, boletasPorAyudante.leer, boletasPorAyudante.leerEnServidor);
+  const activa = estacionActiva(ventana, estacion, porAyudante) && Boolean(ubicacionId);
   const [recibo, setRecibo] = useState<ReciboVenta | null>(null);
   const [pendientes, setPendientes] = useState(0);
   const [sinCola, setSinCola] = useState(false);
@@ -75,12 +68,16 @@ export function EstacionDeImpresion() {
         let impresa = false;
         try {
           const detalle = await leerVentaDetalle(supabase, fila.venta_id, { sede: sede?.etiqueta ?? "", vendedor: null });
-          if (detalle.recibo && sePuedeImprimirAqui("ticket")) {
+          if (detalle.recibo) {
             setRecibo(detalle.recibo);
             await darleUnMomento();
             await imagenesListas();
-            await imprimirYEsperar();
-            impresa = true;
+            // Por el ayudante de la Mac o por la ventana «CAYLA Caja» (sin cuadro). Nunca abre el cuadro: con la ventana minimizada
+            // nadie lo vería y la caja quedaría trabada; si no salió, la boleta vuelve a la cola.
+            const fin = await imprimirBoleta({ conCuadro: false });
+            impresa = fin === "impresa" || fin === "cuadro";
+          }
+          if (impresa && detalle.recibo) {
             if (vozDeLaEstacion.leer() === "si" && "speechSynthesis" in window) {
               const frase = new SpeechSynthesisUtterance(fraseDeVoz(detalle.recibo.tipo, detalle.recibo.total));
               frase.lang = "es-PE";
