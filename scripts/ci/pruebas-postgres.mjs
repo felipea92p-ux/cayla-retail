@@ -847,6 +847,8 @@ export const PRUEBAS = [
   // reembolsos; el vuelto con tope de S/ 500; el reembolso de una devolución ≥ 0 y con uno de los cinco medios. Con controles.
   // Cada caso: ROLLBACK.
   "pruebas:ventas-montos-validos",
+  // La cola de impresión (vender en el piso, la boleta sale en la caja): una pedida viva por venta, dos cajas no toman la misma.
+  "pruebas:cola-de-impresion",
 
   // El documento del comprobante (/chaos 2026-10-13, decisión de Felipe): boleta con DNI de 8 dígitos y factura con RUC de 11,
   // en emitir_comprobante y en un disparador de respaldo; una boleta vieja sigue cambiando de estado y emitiendo su nota de
