@@ -309,6 +309,34 @@ export function fichaDelPrecioDeSede(sede: PrecioSedePlan, elegida: string | und
   return elegida && sede.productos.some((p) => p.id === elegida && p.propio) ? elegida : sede.porDefecto;
 }
 
+/** Lo que cobrará la prenda entera en una sede tras fusionar y, si cambia, lo que cobraba ahí la ficha que queda: la hoja lo dice
+ *  («antes S/ 79.90») para que nadie confirme sin ver que su tienda pasa a cobrar otro precio (auditoría 2026-11-16). */
+export function precioQueQuedaEnSede(
+  sede: PrecioSedePlan,
+  elegida: string | undefined,
+): { precio: number | null; antes: number | null; de: string | null } {
+  const de = fichaDelPrecioDeSede(sede, elegida);
+  const precio = sede.productos.find((p) => p.id === de)?.precio ?? null;
+  const queda = sede.productos.find((p) => p.queda)?.precio ?? null;
+  return { precio, de, antes: queda !== null && precio !== null && queda !== precio ? queda : null };
+}
+
+/** Lo que dice cada sede, en una línea: «Tienda Trujillo: toda la prenda a S/ 74.90 (antes S/ 79.90).» */
+export function fraseDePrecioEnSede(sede: PrecioSedePlan, elegida: string | undefined): string {
+  const { precio, antes } = precioQueQuedaEnSede(sede, elegida);
+  if (precio === null) return `${sede.nombre} conserva su precio.`;
+  return `${sede.nombre}: toda la prenda a ${soles(precio)}${antes !== null ? ` (antes ${soles(antes)})` : ""}.`;
+}
+
+/** Las líneas de «Qué va a pasar» sobre lo que cobrará cada tienda (20261115153000): una por sede o, con «un solo precio», una sola.
+ *  Nada si ninguna sede cobra un precio propio distinto (la hoja tampoco pregunta). */
+export function frasesPreciosSede(sedes: PrecioSedePlan[], e: Elecciones, precioGeneral: number | null): string[] {
+  if (sedes.length === 0) return [];
+  if (e.unSoloPrecio)
+    return [precioGeneral === null ? "Todas las sedes cobran el precio general." : `Todas las sedes cobran ${soles(precioGeneral)}.`];
+  return sedes.map((s) => fraseDePrecioEnSede(s, e.precioSedeDe[s.ubicacionId]));
+}
+
 /** De qué producto sale el precio o el costo: lo elegido, o —si difieren y nadie tocó— el del que queda (decisiones 6 y 7:
  *  por defecto, el del que queda). Si no difieren, nada: cada talla conserva el suyo. */
 export function fuenteDe(eleccion: string | null, campo: "precio" | "costo", diferencias: string[], queda: string | null): string | null {
