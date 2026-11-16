@@ -715,7 +715,12 @@ export function SellosPantalla({
     const vivas = reglasDisponibles ? reglasVivas(reglasDeCampana(reglas, e.id), hoy) : [];
     const borradores = vivas.filter((r) => vigenciaDeRegla(r, hoy) === "borrador").length;
     // Una oferta que elige sus propias prendas (categorías, modelos, insignias o toda la compra) responde «En qué prendas» (ADR-0655).
-    const eligen = vivas.some((r) => r.categoriasSolo.length > 0 || r.productosSolo.length > 0 || r.insigniasSolo.length > 0 || (r.tipo === "monto" && r.cuenta !== "campana"));
+    // Una insignia desactivada o sin aprobar no le da prendas (20261114130000): si todas las de la oferta lo están, no responde (casuística
+    // 2026-11-16: el pase decía «Las eligen sus ofertas» ✓ con ofertas que ya no rebajaban nada).
+    const insigniaViva = (id: string) => etiquetas.some((x) => x.id === id && x.activo && x.estado === "aprobado");
+    const eligen = vivas.some(
+      (r) => r.categoriasSolo.length > 0 || r.productosSolo.length > 0 || r.insigniasSolo.some(insigniaViva) || (r.tipo === "monto" && r.cuenta !== "campana"),
+    );
     return preguntasDeCampana(e, p.modelos.length, categoriasDe(e), hoy, p.aMano, { activas: vivas.length - borradores, borradores }, textoSedesDeCampana(e.sedeIds, tiendas), eligen);
   }
   function responder(e: Etiqueta, clave: "oferta" | "prendas" | "cuando") {

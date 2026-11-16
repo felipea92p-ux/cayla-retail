@@ -79,6 +79,8 @@ import {
   type TipoOferta,
   type ReglaCampana,
   type VigenciaRegla,
+  avisoDePorMonto,
+  pctEquivalente,
 } from "@/lib/campana-reglas";
 
 /* ====================================================================
@@ -374,10 +376,14 @@ export function OfertasHoja({
 
   // ---- Lo que la oferta alcanzaría y lo que avisa ---------------------------------------------------------------------------------
   const alcanzadas = useMemo(() => prendasQueAlcanza(prendasCampana, prendasConCosto, o), [prendasCampana, prendasConCosto, o]);
-  // Bajo el costo, por prenda: solo con «un % menos» (en un grupo, la prenda gratis no es «bajo el costo»: el grupo se cobra entero; un monto
-  // reparte su ahorro en la compra).
-  const pctPorPrenda = o.tipo === "pct" ? o.porcentaje : 0;
-  const bajoCosto = useMemo(() => prendasBajoCosto(pctPorPrenda, alcanzadas, new Set<string>(), new Set(alcanzadas.map((p) => p.id))), [pctPorPrenda, alcanzadas]);
+  // Bajo el costo, por prenda, en TODA forma (casuística 2026-11-16: antes solo con «un % menos», y un «10 x 1» o un «2 por S/ 10» no avisaban):
+  // cada prenda con lo más que la oferta le quita si su grupo se arma con prendas como ella (`pctEquivalente`). Es un aviso: se puede guardar.
+  const bajoCosto = useMemo(
+    () => alcanzadas.flatMap((p) => prendasBajoCosto(pctEquivalente(o, p.precio), [p], new Set<string>(), new Set([p.id]))),
+    [o, alcanzadas],
+  );
+  // Un «N por S/» con los precios de hoy: en cuántas no ahorra nada y en cuántas regalaría más del 70 % (Felipe 2026-11-16).
+  const porMonto = useMemo(() => avisoDePorMonto(o, alcanzadas.map((p) => p.precio)), [o, alcanzadas]);
   const nAlcanza = contarPrendas(alcanzadas);
   // Por debajo del costo se cuenta como se cuentan las prendas (un modelo en su color) y se nombran dos, no dos tallas del mismo.
   const bajoPorModelo = useMemo(() => [...new Map(bajoCosto.map((p) => [p.modelo ?? p.id, p])).values()], [bajoCosto]);
@@ -1289,6 +1295,16 @@ export function OfertasHoja({
             {nAlcanza === 0 && (
               <Aviso tono="atencion" chico titulo="Todavía no alcanza ninguna prenda">
                 Márcalas en «Prendas», en la tarjeta de la campaña, o elige otras categorías.
+              </Aviso>
+            )}
+            {porMonto.noAhorra > 0 && (
+              <Aviso tono="atencion" chico titulo={`No ahorra en ${plural(porMonto.noAhorra, "prenda", "prendas")}`}>
+                Con sus precios de hoy, el grupo cuesta lo mismo o menos sin la oferta.
+              </Aviso>
+            )}
+            {porMonto.pasaTope > 0 && (
+              <Aviso tono="atencion" chico titulo={`Regala más del ${PORCENTAJE_MAX} % en ${plural(porMonto.pasaTope, "prenda", "prendas")}`}>
+                Revisa el precio del grupo: es más de lo que regala cualquier otra oferta.
               </Aviso>
             )}
             {bajoPorModelo.length > 0 && (
