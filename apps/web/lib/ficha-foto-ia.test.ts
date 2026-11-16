@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TIPOS_POR_CATEGORIA } from "./nombre-de-prenda";
 import { familiaDeTejido, type FamiliaTejido } from "./tejido-visual";
-import { fichaParaIA, FORMA_DE_CINTURA, TEJIDOS_CON_RELIEVE, TEJIDOS_DE_PUNTO, TEJIDOS_PLANOS, ZONA_POR_PREFIJO } from "./ficha-foto-ia";
+import { fichaParaIA, FORMA_DE_CINTURA, SE_VE_PLANCHADA, TEJIDOS_CON_RELIEVE, TEJIDOS_DE_PUNTO, TEJIDOS_PLANOS, ZONA_POR_PREFIJO } from "./ficha-foto-ia";
 
 // La ficha que la IA de «Catálogo con IA» recibe de lo ya elegido (2026-11-14). El caso que la originó: un pantalón de LINO que la IA devolvió como
 // buzo. Cada prueba lleva su control: lo que se dice del lino NO se dice de un buzo de verdad.
@@ -168,15 +168,29 @@ describe("fase 2 (2026-11-16): el pantalón de lino del 14-nov, dicho en positiv
 
   it("la prenda va PLANCHADA con la textura de su tejido; el lino sigue siendo lino (Felipe 2026-11-16: «sin perder el tipo de tela»)", () => {
     const lino = fichaParaIA({ prefijo: "PAN", tejido: "Lino", patron: "Liso" })?.texto ?? "";
-    expect(lino).toMatch(/PLANCHADA: la prenda se ve recién planchada al vapor/);
-    expect(lino).toMatch(/con la textura de su tejido a la vista/);
-    // Lo que hace que se vea lino se queda: su textura con nudos y su trama.
+    expect(lino).toMatch(/PLANCHADA: la prenda se ve planchada para una sesión de fotos/);
+    // Se quita lo que deja el guardarla; la TELA va primero, y la foto de cerca manda.
+    expect(lino).toMatch(/sin los dobleces ni las marcas de haberla guardado/);
+    expect(lino).toMatch(/La TELA es la misma de la foto real/);
+    expect(lino).toMatch(/Si te doy un detalle de cerca de la tela, su textura manda/);
+    // Lo que hace que se vea lino se queda: su textura con nudos, su trama y cómo se ve planchado sin dejar de ser lino.
     expect(lino).toMatch(/de textura rústica con «nudos» visibles/);
     expect(lino).toMatch(/se ve su trama/);
-    // «tersa», nunca «lisa»: «liso» es un diseño, y la IA podría borrar unas rayas.
+    expect(lino).toMatch(/Es lino planchado y se ve lino: hilos irregulares con nudos/);
+    // La primera versión («tersa y bien estirada», «al vapor») alisó el lino Crudo hasta volverlo otra tela (Felipe 2026-11-16).
+    expect(lino).not.toMatch(/tersa|bien estirada|al vapor/);
+    // Nunca «lisa»: «liso» es un diseño, y la IA podría borrar unas rayas.
     expect(lino).not.toMatch(/tela lisa/);
-    // Sin tejido elegido también va planchada.
-    expect(fichaParaIA({ prefijo: "PAN", patron: "Liso" })?.texto ?? "").toMatch(/PLANCHADA:/);
+    // Sin tejido elegido también va planchada, pero sin la línea del lino.
+    const sinTejido = fichaParaIA({ prefijo: "PAN", patron: "Liso" })?.texto ?? "";
+    expect(sinTejido).toMatch(/PLANCHADA:/);
+    expect(sinTejido).not.toMatch(/Es lino planchado/);
+  });
+
+  it("solo el lino dice cómo se ve planchado sin dejar de ser él (los demás, la regla general)", () => {
+    expect(Object.keys(SE_VE_PLANCHADA)).toEqual(["lino"]);
+    for (const tejido of ["Gabardina", "Algodón", "Viscosa", "Denim", "Seda"])
+      expect(fichaParaIA({ prefijo: "PAN", tejido })?.texto ?? "", tejido).not.toMatch(/Es lino planchado/);
   });
 
   it("lo que le dice a una persona que la tela SE ARRUGA no va a la IA (lo dibujaba); lo que dice que casi no se arruga, sí", () => {
