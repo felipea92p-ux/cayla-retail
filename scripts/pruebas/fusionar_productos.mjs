@@ -895,6 +895,37 @@ select 'x', (select activo from retail.variantes where id = :'qxl'), retail.fn_p
   )
 );
 
+caso("42 · eligiendo la repetida, el precio de la PRENDA de la que queda en Trujillo pasa a 169 (la ficha dice lo que se cobra) y una talla agregada después también cobra 169", () =>
+  espera(
+    correr(`${COMO_POSTGRES}${PREP_SEDE}${precioDeLaPrenda(`'${EMMA}'`, 150)}${precioDeLaPrenda(":'d'", 169)}
+${sesion(FELIPE)}
+select retail.fusionar_productos('${EMMA}', array[:'d']::uuid[], jsonb_build_object('precios_sede', jsonb_build_object('${TRUJILLO}', :'d'))) as r \\gset
+${COMO_POSTGRES}
+insert into retail.variantes (producto_id, color_codigo, talla_id, precio, costo)
+  values ('${EMMA}', 'BEI', (select id from retail.tallas where valor = 'XL'), 79.90, 32) returning id as nueva \\gset
+select 'x', (select precio from retail.precios_sede_prenda where producto_id = '${EMMA}' and ubicacion_id = '${TRUJILLO}' and archivado_en is null),
+  retail.fn_precio_en_sede(:'nueva','${TRUJILLO}'), ${PRECIOS_DISTINTOS_EN(TRUJILLO)},
+  (select count(*) from retail.precios_sede_prenda where producto_id = '${EMMA}' and ubicacion_id = '${TRUJILLO}' and archivado_en is not null);`),
+    "169.00|169.00|1|1"
+  )
+);
+
+caso("43 · la talla de OBSEQUIO (S/ 0 en una categoría que lo admite) sigue en 0 aunque la fusión fije el precio general, en toda tienda", () =>
+  espera(
+    correr(`${COMO_POSTGRES}${PREP_SEDE}${precioDeLaPrenda(":'d'", 169)}
+update retail.familias set entra_a_motores = false
+ where codigo = (select c.familia from retail.categorias c join retail.productos p on p.categoria_id = c.id where p.id = '${EMMA}');
+update retail.variantes set precio = 0 where id = :'es';
+${sesion(FELIPE)}
+select retail.fusionar_productos('${EMMA}', array[:'d']::uuid[], '{"precio":79.90}') as r \\gset
+${COMO_POSTGRES}
+select 'x', retail.fn_categoria_admite_precio_cero((select categoria_id from retail.productos where id = '${EMMA}')),
+  (select precio from retail.variantes where id = :'es'), retail.fn_precio_en_sede(:'es','${TRUJILLO}'), retail.fn_precio_en_sede(:'es','${LIMA}'),
+  retail.fn_precio_en_sede(:'em','${TRUJILLO}');`),
+    "t|0.00|0.00|0.00|169.00"
+  )
+);
+
 // ---------------------------------------------------------------------------------------------- correr
 
 let fallas = 0;

@@ -19,7 +19,7 @@
 --     en esa sede; si no, la de la que queda. La de una talla apagada es vieja y no revive cuando la fusión la vuelve a poner a la venta.
 --   · Sedes que la hoja no muestra: el precio de prenda de la que queda (o el general) y las excepciones como arriba.
 --   · La lista de sedes compara precios de PRENDA, y contra el precio general que la persona eligió (`p_elecciones.precio`).
---   · La talla de obsequio no se toca. «Un solo precio» (`precio_modo = 'uno'`) no cambia.
+--   · La talla de obsequio no se toca, tampoco con el precio general elegido. «Un solo precio» (`precio_modo = 'uno'`) no cambia.
 -- Revisión adversarial 2026-11-16 (dos rondas, cada hallazgo reproducido en local): la primera versión tomaba como «precio de la ficha» el
 -- más repetido entre sus tallas con precio propio, y una excepción de una talla se volvía el precio de toda la prenda.
 --
@@ -27,8 +27,9 @@
 --   · «Talla por talla» sin unificar la prenda: deja la misma prenda con dos precios en la tienda sin que nadie lo decidiera, y la hoja
 --     prometía uno. Felipe eligió un precio por sede.
 --   · Borrar las excepciones de talla de la ficha perdedora: es borrar una decisión que la persona no vio en la hoja.
---   · Escribir el precio en la capa de la prenda (`precios_sede_prenda`): su disparador archivaría las excepciones por talla. Se escribe
---     por talla, solo donde lo de hoy no es lo que corresponde.
+--   · Escribir el precio ganador solo talla por talla (como hacía 20261115153000): la ficha seguía diciendo el precio de prenda viejo y una
+--     talla agregada después lo cobraba. Se escribe en la capa de la prenda (`precios_sede_prenda`) y, como su disparador archiva las
+--     excepciones de talla de esa tienda, las que se conservan se vuelven a poner enseguida.
 --
 -- SE ROMPE SI: alguien usa excepciones de talla para TODAS las tallas en vez del precio de prenda de la tienda. Ahí cada talla conserva
 -- la suya y la hoja, que solo mira precios de prenda, no muestra esa sede.
@@ -223,6 +224,35 @@ begin
       using errcode = 'P0001', hint = 'fusion_reintentar';
   end if;
 
+  -- Primero, la capa de la PRENDA: en cada sede de la lista donde la ficha ganadora no es la que queda (o cobra otra cosa), el precio de
+  -- prenda de la que queda pasa a ser el de la ganadora. Así la ficha dice lo que se cobra, y una talla que se agregue mañana también lo
+  -- cobra. El disparador `precios_sede_prenda_limpia_excepciones` archiva entonces las excepciones de talla de esa tienda; las que se
+  -- conservan vuelven en el recorrido de abajo.
+  for r in
+    with ganador as (
+      select distinct l.ubicacion_id,
+             coalesce((select l2.producto_id from pg_temp.fusion_sede_lista l2
+                        where l2.ubicacion_id = l.ubicacion_id
+                          and l2.producto_id::text = nullif(p_elecciones #>> array['precios_sede', l.ubicacion_id::text], '')),
+                      l.por_defecto) as producto_id
+        from pg_temp.fusion_sede_lista l
+    )
+    select g.ubicacion_id, l.precio
+      from ganador g
+      join pg_temp.fusion_sede_lista l on l.ubicacion_id = g.ubicacion_id and l.producto_id = g.producto_id
+     where l.precio is distinct from (select ps.precio from retail.precios_sede_prenda ps
+                                       where ps.producto_id = p_queda and ps.ubicacion_id = g.ubicacion_id and ps.archivado_en is null)
+  loop
+    v_sede := (select u.nombre from retail.ubicaciones u where u.id = r.ubicacion_id);
+    update retail.precios_sede_prenda
+       set archivado_en = now(), archivado_por = p_persona,
+           archivado_motivo = 'Fusión de productos: la prenda toma el precio de la ficha elegida para esta sede'
+     where producto_id = p_queda and ubicacion_id = r.ubicacion_id and archivado_en is null;
+    insert into retail.precios_sede_prenda (producto_id, ubicacion_id, precio, motivo, creado_por)
+      values (p_queda, r.ubicacion_id, r.precio, 'Fusión de productos: el precio de la prenda en ' || v_sede, p_persona);
+    v_fijados := v_fijados + 1;
+  end loop;
+
   -- Para cada talla a la venta del producto final y cada tienda, lo que debe cobrar:
   --   1. Si la talla (o la que se juntó con ella) tenía una excepción propia en esa tienda: esa. Si dos chocan al juntarse, la de la ficha
   --      ganadora en esa sede; si no, la de la que queda.
@@ -256,7 +286,8 @@ begin
                       order by (e.producto_id is not distinct from pr.ganador) desc, e.orden
                       limit 1),
                     pr.precio,
-                    w.precio) as precio
+                    w.precio) as precio,
+           exists (select 1 from pg_temp.fusion_sede_excepciones e where e.destino_id = w.id and e.ubicacion_id = pr.ubicacion_id) as excepcion
       from retail.variantes w
       join retail.productos p on p.id = w.producto_id
       cross join prenda pr
@@ -278,7 +309,10 @@ begin
       v_sin := retail.fn_precio_en_sede(r.destino_id, r.ubicacion_id);
       if v_sin is distinct from r.precio then
         insert into retail.precios_sede_variante (variante_id, ubicacion_id, precio, motivo, creado_por)
-          values (r.destino_id, r.ubicacion_id, r.precio, 'Fusión de productos: un precio para la prenda en ' || v_sede, p_persona);
+          values (r.destino_id, r.ubicacion_id, r.precio,
+                  case when r.excepcion then 'Fusión de productos: la talla conserva su precio en ' || v_sede
+                       else 'Fusión de productos: un precio para la prenda en ' || v_sede end,
+                  p_persona);
       end if;
       v_fijados := v_fijados + 1;
     end if;
@@ -320,10 +354,20 @@ select pg_temp.reemplazar(
   $a$  perform retail.fn_fusion_precios_sede_capturar(p_queda, v_dups, v_plan, v_el);$a$,
   1);
 
+-- El precio general elegido no alcanza a la talla de OBSEQUIO (S/ 0 en una categoría que lo admite, ADR-0384). Antes la bolsa de regalo
+-- pasaba a cobrarse: una talla a 0 hace que el plan marque «precio» como diferencia y la hoja manda el de la que queda (revisión 2026-11-16).
+select pg_temp.reemplazar(
+  'retail.fusionar_productos(uuid, uuid[], jsonb, jsonb)',
+  $a$     where producto_id = p_queda and activo and fusionada_en_id is null and precio is distinct from v_precio;$a$,
+  $a$     where producto_id = p_queda and activo and fusionada_en_id is null and precio is distinct from v_precio
+       and not (precio = 0 and retail.fn_categoria_admite_precio_cero((select categoria_id from retail.productos where id = p_queda)));$a$,
+  1);
+
 -- ---------- 6. Las firmas viejas ya no las llama nadie ----------
--- `drop function` no toma las tablas de `auth` ni de `storage` (ADR-0195).
+-- `drop function` no toma las tablas de `auth` ni de `storage` (ADR-0195). `fn_fusion_precios_propios` solo la usaban las dos de antes.
 drop function if exists retail.fn_fusion_precios_sede_capturar(uuid, uuid[], jsonb);
 drop function if exists retail.fn_fusion_precios_sede_resumen(uuid, uuid[]);
+drop function if exists retail.fn_fusion_precios_propios(uuid[]);
 
 -- ---------- 7. Verificación: si algo no quedó, la migración falla ----------
 do $$
@@ -332,6 +376,8 @@ begin
               pg_get_functiondef('retail.fusionar_productos(uuid, uuid[], jsonb, jsonb)'::regprocedure)) = 0
      or position('fn_fusion_precios_sede_resumen(p_queda, p_duplicados, p_elecciones)' in
               pg_get_functiondef('retail.previsualizar_fusion_productos(uuid, uuid[], jsonb)'::regprocedure)) = 0
+     or position('fn_categoria_admite_precio_cero((select categoria_id from retail.productos where id = p_queda)));' in
+              pg_get_functiondef('retail.fusionar_productos(uuid, uuid[], jsonb, jsonb)'::regprocedure)) = 0
      or position('fusion_sede_excepciones' in
               pg_get_functiondef('retail.fn_fusion_precios_sede_aplicar(uuid, text, jsonb, uuid)'::regprocedure)) = 0 then
     raise exception '20261116020000: la fusión no quedó con un precio por sede.';
