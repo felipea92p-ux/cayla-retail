@@ -1,9 +1,11 @@
 // Esqueleto de carga de Órdenes de insumos (como el de Compras): la silueta de la lista —título, dos cifras, buscador, píldoras y filas
-// con las mismas columnas que la tabla real (`PLANTILLA` de `page.tsx`, a 64 rem)— para que al llegar los datos nada se corra de lugar.
+// con las mismas columnas que la tabla real (`PLANTILLA` de `page.tsx`, que mira el ancho de la tarjeta: 40 y 60 rem)— para que al llegar
+// los datos nada se corra de lugar. Con la plantilla vieja por ventana (608 px fijos) las filas se salían a 768 y 1024 y la página tenía barra.
 // Sin texto: la forma ya dice qué viene. Las piezas brillan (`cmp-sk`) mientras se espera; con movimiento reducido quedan quietas.
 import { EsperaPantalla } from "@/components/ui/Espera";
 
-const PLANTILLA = "sm:grid-cols-[7.5rem_1fr_5.5rem_10rem_7.5rem_6.5rem_1rem]";
+const PLANTILLA =
+  "@min-[40rem]:grid-cols-[6.5rem_minmax(0,1fr)_7.5rem_6.5rem_1rem] @min-[60rem]:grid-cols-[7.5rem_minmax(0,1fr)_5.5rem_minmax(0,0.85fr)_7.5rem_6.5rem_1rem]";
 
 export default function LoadingOrdenesInsumo() {
   return (
@@ -24,7 +26,7 @@ export default function LoadingOrdenesInsumo() {
             </div>
           ))}
         </div>
-        <div className="card-cayla divide-y divide-tinta/10">
+        <div className="card-cayla @container divide-y divide-tinta/10">
           <div className="flex items-end gap-3 px-5 py-4">
             <div className="cmp-sk h-9 flex-1" />
             <div className="cmp-sk hidden h-7 w-24 rounded-full sm:block" />
@@ -34,11 +36,11 @@ export default function LoadingOrdenesInsumo() {
             <div key={i} className={`grid items-center gap-x-4 gap-y-2 px-5 py-4 ${PLANTILLA}`}>
               <div className="cmp-sk h-3 w-16" />
               <div className="cmp-sk h-3 w-3/5" />
-              <div className="cmp-sk h-3 w-12" />
-              <div className="cmp-sk h-3 w-24" />
-              <div className="cmp-sk h-3 w-16 sm:justify-self-end" />
-              <div className="cmp-sk h-5 w-20 rounded-full" />
-              <span className="hidden sm:block" />
+              <div className="cmp-sk hidden h-3 w-12 @min-[60rem]:block" />
+              <div className="cmp-sk hidden h-3 w-24 @min-[60rem]:block" />
+              <div className="cmp-sk h-3 w-16 @min-[40rem]:justify-self-end" />
+              <div className="cmp-sk hidden h-5 w-20 rounded-full @min-[40rem]:block" />
+              <span className="hidden @min-[40rem]:block" />
             </div>
           ))}
         </div>

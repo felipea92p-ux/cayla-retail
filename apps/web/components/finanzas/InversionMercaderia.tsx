@@ -336,7 +336,7 @@ function CostoDeLaCampana({ c, costos, conIgv }: { c: CampanaInversion; costos: 
           ))}
         </p>
         <TituloSeccion nivel={3} className="mt-5">¿Por qué no es un gasto?</TituloSeccion>
-        <div className="mt-2 grid gap-2 sm:grid-cols-3">
+        <div className="mt-2 grid grid-cols-[repeat(auto-fit,minmax(min(100%,11rem),1fr))] gap-2">
           {[
             ["1 · Compras", `Pagas ${soles(saleDeCajaDelPlan(c, conIgv))}. Son prendas en tu estante: inventario, no gasto. Sale de tu caja, no de «Te deja».`],
             ["2 · Vendes", "Cada prenda vendida pasa a ser costo de lo vendido. Ahí recién baja «Te deja»."],

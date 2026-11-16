@@ -285,6 +285,15 @@
    vidrio. Las islas se apartan 22 px del riel para no tocar el botón de plegar, que sobresale 14 px.
    La cabecera es un CONTENEDOR: el buscador se encoge con SU ancho, no con el de la pantalla, así que nunca se sale de su isla
    (Felipe 2026-10-31). `RecordatorioCierreCaja` mide el hueco entre los hijos de su primera caja: son las dos islas. */
+/* El alto de la barra vive en la raíz: lo que se pega bajo la cabecera (el separador de un día, `--separador-tope: var(--alto-cabecera)`)
+   lee `--alto-cabecera`, que ya suma la muesca, en vez de repetir 60 o 64 px a mano. */
+:root {
+  --cab-alto: 60px; /* la barra: lo mismo que ocupaba la cabecera flotante (8 de aire + 52) */
+  --alto-cabecera: calc(var(--cab-alto) + env(safe-area-inset-top, 0px));
+}
+@media (min-width: 640px) {
+  :root { --cab-alto: 64px; }
+}
 .marco-cabecera {
   position: fixed;
   z-index: 30;
@@ -294,15 +303,13 @@
   left: 0;
   right: 0;
   box-sizing: border-box;
-  --cab-alto: 60px; /* la barra: lo mismo que ocupaba la cabecera flotante (8 de aire + 52) */
-  height: calc(var(--cab-alto) + env(safe-area-inset-top, 0px));
+  height: var(--alto-cabecera);
   padding-top: env(safe-area-inset-top, 0px);
   pointer-events: none;
   container: cabecera / inline-size;
 }
 @media (min-width: 640px) {
   .marco-cabecera {
-    --cab-alto: 64px;
     left: var(--spacing-lateral);
   }
 }
@@ -363,6 +370,16 @@
 @container cabecera (max-width: 400px) {
   .marco-colibri { display: none; }
 }
+/* Angosta (un teléfono, o un teléfono girado con el lateral abierto), la isla derecha puede encoger, y lo único que encoge es la sede: su
+   nombre se corta con «…» (`.combo-valor` ya lo hace) y los botones conservan su tamaño. Sin esto, con «Pregúntale a CAYLA» encendido y una
+   sede de nombre largo, la isla se salía ~24 px a 375 y ~40 a 640, y la lupa del buscador (la única entrada en el teléfono) quedaba fuera.
+   Solo desde aquí: más ancha, la que se encoge primero es la isla del buscador, hasta su lupa. */
+@container cabecera (max-width: 520px) {
+  .marco-isla-der { flex: 0 1 auto; min-width: 0; }
+}
+.marco-isla-der > [data-marco-sede],
+.marco-isla-der > [data-marco-sede] > div { min-width: 0; }
+.marco-cabecera .combo-pastilla { max-width: 100%; }
 /* Los botones de la cabecera, redondos (los que tienen nombre, píldoras). El combo de la sede no es hijo directo (va en su
    propia caja, `data-marco-sede`): su aspecto es del combo, no de la cabecera. */
 .marco-isla-der > :is(button, a) { border-radius: 9999px; }

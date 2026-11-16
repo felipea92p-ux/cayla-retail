@@ -6,7 +6,7 @@ import { textoAnuncio, type AlertaVista } from "@/lib/parecidas-alta-vista";
 
 // La tira «2 prendas parecidas · Ver» de «Nuevo producto» en celular y tablet (Fase 1; maqueta docs/maquetas/producto-buscar-primero-2026-09/).
 //
-// EL PROBLEMA. Con menos de 1024 px no hay resumen a la derecha, y ahí vivía la alerta de prendas parecidas. La misma alerta pasa a una tira de una
+// EL PROBLEMA. Con menos de 1280 px no hay resumen a la derecha, y ahí vivía la alerta de prendas parecidas. La misma alerta pasa a una tira de una
 // línea pegada SOBRE la barra de abajo de la ficha (`data-barra-ficha`): se ve sin tapar el formulario y un toque abre la hoja a pantalla completa.
 //
 // CONTRATO. PROMETE: mostrar la tira con el mismo tono que la alerta del resumen (pizarra, ámbar, rojo, neutro) y, cuando lo que avisa FRENA «Crear»,
@@ -14,7 +14,7 @@ import { textoAnuncio, type AlertaVista } from "@/lib/parecidas-alta-vista";
 //   `role="status"` siempre montada (la del resumen está oculta con esta pantalla, así que esta es la que se anuncia; mientras la base responde no hay
 //   tira, pero la región dice «Buscando…» para el lector de pantalla); objetivo táctil de 44 px; `type="button"` (vive dentro del formulario); la región es
 //   un destino de foco de respaldo de la hoja (`data-parecidas-ancla`, `tabIndex -1`). ASUME: que es el PRIMER hijo de la barra `data-barra-ficha` (16 px a los
-//   lados y 10 px arriba: sus márgenes negativos la llevan de borde a borde) y que la barra se oculta con lg:hidden, así que aquí no hay punto de corte.
+//   lados y 10 px arriba: sus márgenes negativos la llevan de borde a borde) y que la barra se oculta con xl:hidden, así que aquí no hay punto de corte.
 //   NO HACE: decidir el texto ni el tono (vienen en `AlertaVista`) ni abrir la hoja por su cuenta.
 
 type Props = {

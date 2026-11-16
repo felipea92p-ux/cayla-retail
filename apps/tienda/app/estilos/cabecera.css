@@ -59,6 +59,9 @@ html[data-theme="light"] .t-tema-iconos .t-tema-claro, html[data-theme="dark"] .
 /* Primero los nombres: cada columna de grupo mide lo que pide su categoría más larga (mínimo 190 px) y «Recién llegado» se queda con lo que sobra (y se apaga si no llega a 230 px, más abajo).
    Antes cada columna se topaba en 210 px y «Ropa interior/Lencería» o «Pañuelos y Pañoletas» salían cortados con «…» (Felipe 2026-10-27). */
 .t-mega-in { max-width: 1440px; margin: 0 auto; display: grid; grid-template-columns: repeat(var(--grupos), minmax(190px, auto)) minmax(0, 1fr); gap: 0 22px; align-items: start; }
+/* El mínimo de 190 px cede cuando los grupos no caben (5 grupos a 1024 px pedían 1060 en 942 y la quinta columna salía de la pantalla): cada
+   columna toma su parte del ancho y «Recién llegado» se apaga solo por su @container. Con lugar de sobra queda igual que arriba. */
+.t-mega-in { grid-template-columns: repeat(var(--grupos), minmax(min(190px, calc((100% - var(--grupos) * 22px) / var(--grupos))), auto)) minmax(0, 1fr); }
 /* Simetría: los títulos y las listas de todas las columnas comparten fila (subgrid): un título que se parte en dos líneas no baja SOLO su
    lista; todas bajan igual. «Recién llegado» ocupa las dos filas. */
 .t-mega-in { grid-template-rows: auto 1fr; }
@@ -110,7 +113,7 @@ html[data-theme="light"] .t-tema-iconos .t-tema-claro, html[data-theme="dark"] .
 .t-menu-cab { display: flex; align-items: center; justify-content: space-between; padding: 10px 10px 10px 16px; border-bottom: 1px solid var(--sand); }
 
 /* ---- El buscador: baja desde arriba; en la computadora, al centro ---- */
-.t-buscador { position: fixed; left: 0; right: 0; top: 0; z-index: 41; max-height: 92vh; overflow-y: auto; background: var(--crema); padding: 14px 16px 20px; border-radius: 0; box-shadow: 0 20px 50px -30px var(--sombra); display: flex; flex-direction: column; gap: 14px; animation: t-bajar .35s var(--ease) both; }
+.t-buscador { position: fixed; left: 0; right: 0; top: 0; z-index: 41; max-height: 92vh; max-height: 92dvh; overflow-y: auto; background: var(--crema); padding: 14px 16px 20px; border-radius: 0; box-shadow: 0 20px 50px -30px var(--sombra); display: flex; flex-direction: column; gap: 14px; animation: t-bajar .35s var(--ease) both; }
 .t-buscador-fila { display: flex; align-items: center; gap: 8px; }
 .t-buscador-caja { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px; border-radius: 0; background: transparent; border: 1px solid var(--sand); transition: border-color .3s; }
 .t-buscador-caja:focus-within { border-color: var(--tinta); }
@@ -176,6 +179,8 @@ html[data-theme="light"] .t-tema-iconos .t-tema-claro, html[data-theme="dark"] .
 .t-persona-op[aria-current="page"] { font-weight: 600; }
 .t-persona-op:disabled { opacity: .65; cursor: progress; }
 .t-persona-op svg { width: 18px; height: 18px; flex: none; }
+/* Con el dedo, cada opción de los menús de la cuenta y de la tienda se toca en 44 px (con el mouse quedan en 40). */
+@media (pointer: coarse) { .t-persona-op { min-height: 44px; } }
 @media (prefers-reduced-motion: reduce) { .t-persona-menu { animation: none; } }
 
 /* La cabecera «Una línea» (A · Muro): la tienda es una palabra («LIMA ▾»); la cuenta y la bolsa son íconos, con el número de la bolsa en su globo. */

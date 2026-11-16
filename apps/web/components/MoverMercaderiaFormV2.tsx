@@ -483,7 +483,7 @@ export function MoverMercaderiaFormV2({
               />
               {l.varianteId && <span className="text-sm text-tinta/65">de {tope}</span>}
               {lineas.length > 1 && (
-                <button type="button" onClick={() => quitarLinea(i)} className="text-sm text-rojo">
+                <button type="button" onClick={() => quitarLinea(i)} className="btn-cayla btn-peligro btn-chico">
                   Quitar
                 </button>
               )}

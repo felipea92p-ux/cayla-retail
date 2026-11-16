@@ -249,7 +249,7 @@ export function InsumosPanel({
                         </div>
                       )}
                       {/* «A · Una placa por tela» (vidrio/insumos.css): los colores de una tela, en una sola placa. */}
-                      <div className="insumos-placa">
+                      <div className="insumos-placa @container">
                         {g.insumos.map((i) => (
                           <FilaInsumo
                             key={i.id}
@@ -423,7 +423,7 @@ function FilaInsumo({
         data-guia={indice === 0 ? "prod-insumos.fila-cabecera" : undefined}
         onClick={onAlternar}
         aria-expanded={abierto}
-        className="insumo-fila-cabecera grid w-full grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_auto_auto] items-center gap-x-5 gap-y-3 px-4 py-3.5 text-left outline-none focus-visible:bg-tinta/[0.03] max-sm:grid-cols-[1fr_auto]"
+        className="insumo-fila-cabecera grid w-full grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_auto_auto] items-center gap-x-5 gap-y-3 px-4 py-3.5 text-left outline-none focus-visible:bg-tinta/[0.03] @max-[32rem]:grid-cols-[1fr_auto]"
       >
         <div className="min-w-0">
           <p className="truncate text-[15px] text-tinta">{i.nombre}</p>
@@ -436,12 +436,12 @@ function FilaInsumo({
             <span className={`truncate ${ficha.tejido === null && ficha.color === null ? "text-tinta/70" : ""}`}>{textoDeLaFicha(ficha, i.tipo)}</span>
           </p>
         </div>
-        <div className="max-sm:order-3 max-sm:col-span-2">
+        <div className="@max-[32rem]:order-3 @max-[32rem]:col-span-2">
           {/* Sin mínimo no hay contra qué medir: la barra se llenaba entera con 1 m de tela y mentía (P10 del análisis del Taller, 2026-11-02). */}
           {marcaMinimo !== null && (
             <BarraAvance pct={llenado * 100} tono={TONO_RIEL[i.estado.tono]} marca={marcaMinimo * 100} decorativa indice={indice} title={`Mínimo ${cantidadTexto(i.minimo ?? 0, i.unidad)}`} />
           )}
-          <div className={`${marcaMinimo !== null ? "mt-1.5 " : ""}flex items-center justify-between text-sm text-tinta/65`}>
+          <div className={`${marcaMinimo !== null ? "mt-1.5 " : ""}flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm text-tinta/65`}>
             <span>{i.minimo === null ? "sin mínimo definido" : `mínimo ${cantidadTexto(i.minimo, i.unidad)}`}</span>
             <Chip tono={TONO_ESTADO[i.estado.tono]}>{i.estado.etiqueta}</Chip>
           </div>
@@ -450,7 +450,7 @@ function FilaInsumo({
           <CifraQueCuenta valor={i.saldo} decimales={UNIDADES_INSUMO[i.unidad].vista} />
           <small className="font-sans ml-1 text-sm text-tinta/65">{UNIDADES_INSUMO[i.unidad].corta}</small>
         </p>
-        <ChevronRight aria-hidden className={`h-4 w-4 text-tinta/45 transition-transform duration-300 ease-cayla max-sm:hidden ${abierto ? "rotate-90" : ""}`} />
+        <ChevronRight aria-hidden className={`h-4 w-4 text-tinta/45 transition-transform duration-300 ease-cayla @max-[32rem]:hidden ${abierto ? "rotate-90" : ""}`} />
       </button>
 
       {/* Se abre por `grid-template-rows` (ADR-0128): sin medir alturas, sin salto. */}
@@ -463,13 +463,15 @@ function FilaInsumo({
               <ul>
                 {lotes.map((l, k) => (
                   // En el celular la fila de cinco columnas no cabía (375 px): el detalle se quedaba en 0 px y el lápiz salía de la pantalla.
-                  // Bajo 640 px se arma en tres renglones con áreas: código · cantidad · lápiz / el detalle a todo el ancho / el costo.
-                  <li key={l.id} className={`grid ${esLider && ingresosEditables ? "grid-cols-[5.75rem_minmax(0,1fr)_auto_auto_auto] max-sm:grid-cols-[minmax(0,1fr)_auto_auto] max-sm:[grid-template-areas:'codigo_cantidad_lapiz'_'detalle_detalle_detalle'_'costo_costo_costo']" : "grid-cols-[5.75rem_minmax(0,1fr)_auto_auto] max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:[grid-template-areas:'codigo_cantidad'_'detalle_detalle'_'costo_costo']"} items-center gap-x-4 max-sm:gap-x-2.5 max-sm:gap-y-1 border-b border-tinta/[0.06] py-2.5 text-sm last:border-0`}>
-                    <span className="whitespace-nowrap font-mono font-medium text-tinta max-sm:[grid-area:codigo]">{l.codigo ?? <span className="font-sans font-normal text-tinta/65">sin código</span>}</span>
-                    <div className="min-w-0 max-sm:[grid-area:detalle]">
+                  // Con la placa bajo 640 px (celular, tablet o el libro al costado) se arma en tres renglones con áreas: código · cantidad · lápiz /
+                  // el detalle a todo el ancho / el costo. Mira el ancho de la placa (`@container`), no el de la ventana: a 768 la placa mide 434 px.
+                  <li key={l.id} className={`grid ${esLider && ingresosEditables ? "grid-cols-[5.75rem_minmax(0,1fr)_auto_auto_auto] @max-[40rem]:grid-cols-[minmax(0,1fr)_auto_auto] @max-[40rem]:[grid-template-areas:'codigo_cantidad_lapiz'_'detalle_detalle_detalle'_'costo_costo_costo']" : "grid-cols-[5.75rem_minmax(0,1fr)_auto_auto] @max-[40rem]:grid-cols-[minmax(0,1fr)_auto] @max-[40rem]:[grid-template-areas:'codigo_cantidad'_'detalle_detalle'_'costo_costo']"} items-center gap-x-4 @max-[40rem]:gap-x-2.5 @max-[40rem]:gap-y-1 border-b border-tinta/[0.06] py-2.5 text-sm last:border-0`}>
+                    <span className="whitespace-nowrap font-mono font-medium text-tinta @max-[40rem]:[grid-area:codigo]">{l.codigo ?? <span className="font-sans font-normal text-tinta/65">sin código</span>}</span>
+                    <div className="min-w-0 @max-[40rem]:[grid-area:detalle]">
                       <BarraAvance pct={(l.saldo / l.cantidadIngresada) * 100} alto="fina" tono="tinta" decorativa />
-                      <p className="mt-1 truncate text-tinta/65">
-                        {origenDeLote(l)} · {diaMes(l.ingreso)}
+                      {/* En renglones que se parten: dentro de un `truncate`, «Decir a quién» se cortaba en una lista angosta (con el libro al costado). */}
+                      <p className="mt-1 flex flex-wrap items-baseline gap-x-1 text-tinta/65">
+                        <span className="min-w-0 truncate">{origenDeLote(l)} · {diaMes(l.ingreso)}</span>
                         {onNombrar && esLider && l.origen === "compra" && !l.proveedor && (
                           <>
                             {" · "}
@@ -478,18 +480,18 @@ function FilaInsumo({
                             </button>
                           </>
                         )}
-                        {l.documento ? ` · ${l.documento}` : ""}
+                        {l.documento ? <span className="min-w-0 truncate">{` · ${l.documento}`}</span> : null}
                       </p>
                       {/* La nota del ingreso (la cuenta de kilos a metros, o «Encontré tela») a la vista, no escondida: P11 del análisis del Taller. */}
                       {l.nota && <p className="mt-0.5 truncate text-tinta/65" title={l.nota}>{l.nota}</p>}
                     </div>
-                    <span className="whitespace-nowrap tabular-nums text-tinta max-sm:[grid-area:cantidad]">
+                    <span className="whitespace-nowrap tabular-nums text-tinta @max-[40rem]:[grid-area:cantidad]">
                       {/* «quedan de entraron»: dos cifras iguales sin nombre no decían cuál era cuál (P11 del análisis del Taller). */}
                       <span title="Lo que queda de lo que entró">
                         {cantidadTexto(l.saldo, i.unidad)} <span className="text-tinta/65">de {cantidadTexto(l.cantidadIngresada, i.unidad)}</span>
                       </span>
                     </span>
-                    <span className="flex min-w-[5.5rem] items-center justify-end gap-2 whitespace-nowrap tabular-nums text-tinta/75 max-sm:min-w-0 max-sm:justify-start max-sm:[grid-area:costo] max-sm:empty:hidden">
+                    <span className="flex min-w-[5.5rem] items-center justify-end gap-2 whitespace-nowrap tabular-nums text-tinta/75 @max-[40rem]:min-w-0 @max-[40rem]:justify-start @max-[40rem]:[grid-area:costo] @max-[40rem]:empty:hidden">
                       {veCostos && l.costoUnitario !== null && costoUnitarioTexto(l.costoUnitario)}
                       {primero?.id === l.id && (
                         <span title="Se descuenta primero: el más antiguo con saldo">
@@ -500,7 +502,7 @@ function FilaInsumo({
                     {/* Un ingreso equivocado se corrige o se elimina aquí (ADR-0570): el lápiz abre una hoja con el motivo; si de ese lote ya salió material, se apaga y dice por qué. */}
                     {esLider && ingresosEditables && (
                       <LapizEditar
-                        className="max-sm:[grid-area:lapiz]"
+                        className="@max-[40rem]:[grid-area:lapiz]"
                         que={l.noSeToca ? "lo que queda de este lote" : "este ingreso"}
                         guia={indice === 0 && k === 0 ? "prod-insumos.corregir-ingreso" : undefined}
                         title={l.noSeToca ? "Ajustar lo que queda" : "Corregir o eliminar este ingreso"}

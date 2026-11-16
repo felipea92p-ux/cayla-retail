@@ -102,7 +102,8 @@ export default async function OrdenesInsumoPage({ searchParams }: { searchParams
             <div role="search" aria-label="Buscar y filtrar las órdenes de insumos" className="space-y-3 px-5 py-4">
               <BuscadorOrdenesInsumo filtros={filtros} />
               {/* El estado deja menos órdenes en la MISMA lista: la píldora de filtro del sistema (ADR-0358). Tocar el puesto lo quita. */}
-              <nav aria-label="Filtrar las órdenes" data-guia="oi-lista.filtros" className="pildoras-desliza items-center gap-2 sm:flex-wrap">
+              {/* `suppressHydrationWarning`: `FilasQueSeDeslizan` (app/layout.tsx) le pone `data-mas-izq`/`data-mas-der` desde afuera de React (como en `<Pestanas>`). */}
+              <nav aria-label="Filtrar las órdenes" data-guia="oi-lista.filtros" className="pildoras-desliza items-center gap-2 sm:flex-wrap" suppressHydrationWarning>
                 {(["generada", "anulada"] as const).map((e) => {
                   const puesto = filtros.estado === e;
                   return (

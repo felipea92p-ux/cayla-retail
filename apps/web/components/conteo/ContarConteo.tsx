@@ -802,36 +802,40 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
   // Solo se pregunta si NO hay responsable vigente (nadie lo eligió en este navegador o ya no está de turno): sin él la base no deja guardar.
   const mostrarCombo = !responsable.listo || !nombre;
   const bloque = "flex min-w-0 items-center gap-3 px-5 py-3";
+  // Los tres bloques en fila los decide el ancho de la barra (`@container`), no el de la ventana: a 768 px, con el menú abierto, quedaban
+  // ~145 px por bloque y la fecha y el progreso se salían al vecino. Desde 640 px de barra caben (~213 por bloque); bajo eso, se apilan.
   return (
-    <div className="grid grid-cols-1 divide-y divide-sand rounded-xl border border-sand bg-papel sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-      <div className={bloque}>
-        <UserRound aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm text-tinta/70">Responsable</p>
-          {mostrarCombo ? (
-            <ComboResponsable control={responsable} className="mt-1 w-full" />
-          ) : (
-            <p className="truncate text-base font-medium text-tinta">{nombre}</p>
-          )}
+    <div className="@container">
+      <div className="grid grid-cols-1 divide-y divide-sand rounded-xl border border-sand bg-papel @min-[640px]:grid-cols-3 @min-[640px]:divide-x @min-[640px]:divide-y-0">
+        <div className={bloque}>
+          <UserRound aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-tinta/70">Responsable</p>
+            {mostrarCombo ? (
+              <ComboResponsable control={responsable} className="mt-1 w-full" />
+            ) : (
+              <p className="truncate text-base font-medium text-tinta">{nombre}</p>
+            )}
+          </div>
         </div>
-      </div>
-      <div className={bloque}>
-        <Anillo pct={porcentaje} tamano="chico" decorativa />
-        <div className="min-w-0">
-          <p className="text-sm text-tinta/70">Progreso</p>
-          <p className="flex items-baseline gap-3 text-base font-medium tabular-nums text-tinta">
-            <span>
-              {r.verificadas} de {r.variantes} {r.variantes === 1 ? "variante" : "variantes"}
-            </span>
-            <span className="text-tinta/70">{porcentaje}%</span>
-          </p>
+        <div className={bloque}>
+          <Anillo pct={porcentaje} tamano="chico" decorativa />
+          <div className="min-w-0">
+            <p className="text-sm text-tinta/70">Progreso</p>
+            <p className="flex flex-wrap items-baseline gap-x-3 text-base font-medium tabular-nums text-tinta">
+              <span>
+                {r.verificadas} de {r.variantes} {r.variantes === 1 ? "variante" : "variantes"}
+              </span>
+              <span className="text-tinta/70">{porcentaje}%</span>
+            </p>
+          </div>
         </div>
-      </div>
-      <div className={bloque}>
-        <Clock aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
-        <div className="min-w-0">
-          <p className="text-sm text-tinta/70">Inicio del conteo</p>
-          <p className="text-base font-medium tabular-nums text-tinta">{textoInicio(creadoEn)}</p>
+        <div className={bloque}>
+          <Clock aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
+          <div className="min-w-0">
+            <p className="text-sm text-tinta/70">Inicio del conteo</p>
+            <p className="text-base font-medium tabular-nums text-tinta">{textoInicio(creadoEn)}</p>
+          </div>
         </div>
       </div>
     </div>

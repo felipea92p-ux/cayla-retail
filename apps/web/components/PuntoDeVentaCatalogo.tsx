@@ -248,7 +248,7 @@ export function PuntoDeVentaCatalogo({
                 role="listbox" // unificar-fijo: la lista con fotos y stock de la búsqueda del mostrador
                 data-guia="vender.resultados"
                 aria-label="Prendas encontradas"
-                className="card-cayla anim-globo absolute top-16 right-0 left-0 divide-y divide-sand overflow-hidden !p-0 shadow-lg"
+                className="card-cayla anim-globo scroll-cayla absolute top-16 right-0 left-0 max-h-[max(12rem,min(30rem,calc(100dvh-15rem)))] divide-y divide-sand overflow-y-auto overscroll-contain !p-0 shadow-lg"
               >
                 {resultados.length ? (
                   resultados.map((v, i) => {
@@ -287,7 +287,7 @@ export function PuntoDeVentaCatalogo({
                               </span>
                             )}
                           </span>
-                          <span className="mt-0.5 block truncate text-[11px] tracking-wide text-tinta/50">{codigoPrenda(v)}</span>
+                          <span className="mt-0.5 block truncate font-mono text-sm text-tinta/60">{codigoPrenda(v)}</span>
                           <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                             <Chip tono={TONO_STOCK[motivo]} tachado={false}>
                               {textoStockDeFila(v)}

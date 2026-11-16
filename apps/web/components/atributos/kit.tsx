@@ -21,8 +21,12 @@ import { Vacio } from "@/components/ui/Vacio";
  */
 
 /** Cinco tarjetas por fila en escritorio, dos en el celular: la misma medida en las seis pestañas, así la muestra no crece
- *  ni se corre al cambiar de una a otra. */
-export const GRILLA_ATRIBUTOS = "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5";
+ *  ni se corre al cambiar de una a otra. Las columnas las decide el ANCHO DE LA GRILLA, no el de la ventana: con el lateral
+ *  fijo de 272 px, una tablet de 768 deja 436 px y la regla de ventana (`md:grid-cols-4`) daba tarjetas de 100 px, más
+ *  angostas que en el celular, que recortaban «Aprobar / Rechazar». Cada tarjeta mide al menos 140 px y, como mucho, caben
+ *  cinco (el quinto de lo que queda, con 60 px de holgura para los cuatro huecos de 12 px): 308 px → 2, 436 → 2, 692 → 4,
+ *  968 o más → 5. */
+export const GRILLA_ATRIBUTOS = "grid gap-3 grid-cols-[repeat(auto-fill,minmax(max(140px,calc((100%_-_60px)/5)),1fr))]";
 
 type Busqueda = {
   valor: string;
@@ -234,7 +238,7 @@ export function DesactivarTarjeta({ onClick, cambiando = false }: { onClick: () 
       type="button"
       disabled={cambiando}
       onClick={onClick}
-      className="label-cayla ml-auto whitespace-nowrap text-[10px] text-tinta/55 underline-offset-4 opacity-0 transition-[opacity,color] duration-200 hover:text-tinta hover:underline focus:opacity-100 disabled:opacity-50 group-hover/etq:opacity-100 [@media(hover:none)]:opacity-100"
+      className="label-cayla area-dedo ml-auto whitespace-nowrap pointer-coarse:py-1 text-[10px] text-tinta/55 underline-offset-4 opacity-0 transition-[opacity,color] duration-200 hover:text-tinta hover:underline focus:opacity-100 disabled:opacity-50 group-hover/etq:opacity-100 [@media(hover:none)]:opacity-100"
     >
       {cambiando ? "Desactivando…" : "Desactivar"}
     </button>

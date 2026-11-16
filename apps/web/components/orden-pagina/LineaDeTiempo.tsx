@@ -53,7 +53,8 @@ export function LineaDeTiempo({ datos, hoy, esLider = false }: { datos: OrdenPag
       >
         Historia
       </TituloSeccion>
-      <div className="card-cayla p-5">
+      {/* El día se pega bajo la cabecera fija de la app, no bajo el borde de la ventana (ahí la cabecera lo tapaba y nunca se veía pegado). */}
+      <div className="card-cayla p-5 [--separador-tope:var(--alto-cabecera)]">
         {dias.length === 0 ? (
           <Vacio tamano="chico" icono={<Hourglass />}>
             Todavía no se anotó nada en esta orden.

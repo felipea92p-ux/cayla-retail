@@ -168,7 +168,7 @@
   gap: 7px;
   height: 38px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
   transition: color 300ms;

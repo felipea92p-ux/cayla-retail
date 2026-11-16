@@ -57,7 +57,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
+    <div className="space-y-5">
       <div data-guia="caja-historial.cabecera">
       <EncabezadoPagina
         sede="Caja · todas las sedes"
@@ -83,7 +83,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
         </div>
       ) : (
         <>
-          <div data-guia="caja-historial.cifras" className="grid gap-3 sm:grid-cols-3">
+          <div data-guia="caja-historial.cifras" className="grid gap-3 lg:grid-cols-3">
             <TarjetaCifra
               etiqueta="Cuadraron"
               valor={resumen.cuadraron}

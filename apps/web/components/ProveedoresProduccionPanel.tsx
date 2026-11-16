@@ -131,7 +131,7 @@ export function ProveedoresProduccionPanel({
         />
       ) : (
         <>
-      <div data-guia="prod-proveedores.cifras" className="grid gap-3 sm:grid-cols-3">
+      <div data-guia="prod-proveedores.cifras" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <TarjetaCifra punto="verde" etiqueta="Proveedores activos" className="anim-entra" style={{ ["--i" as string]: 0 }} valor={<CifraQueCuenta valor={resumen.activos} alMontar />}>
           {resumen.archivados > 0 ? `${plural(resumen.archivados, "archivado", "archivados")} aparte` : "ninguno archivado"}
         </TarjetaCifra>
@@ -221,13 +221,13 @@ export function ProveedoresProduccionPanel({
               )}
             </div>
           ) : (
-            <div data-guia="prod-proveedores.lista" className="card-cayla overflow-hidden">
-              <div className="hidden grid-cols-[minmax(0,1.6fr)_7rem_5rem_6.5rem_auto] gap-4 border-b border-tinta/10 px-4 py-2.5 sm:grid">
+            <div data-guia="prod-proveedores.lista" className="card-cayla @container overflow-hidden">
+              <div className="hidden gap-4 border-b border-tinta/10 px-4 py-2.5 @min-[42rem]:grid @min-[42rem]:grid-cols-[minmax(0,1.6fr)_7rem_5rem_6.5rem_9rem]">
                 <span className="label-cayla text-[11px] text-tinta/65">Proveedor</span>
                 <span className="label-cayla text-right text-[11px] text-tinta/65">Comprado</span>
                 <span className="label-cayla text-right text-[11px] text-tinta/65">Lotes</span>
                 <span className="label-cayla text-right text-[11px] text-tinta/65">Última entrega</span>
-                <span className="w-24" />
+                <span />
               </div>
               <ul>
                 {visibles.map((p, i) => (
@@ -235,7 +235,7 @@ export function ProveedoresProduccionPanel({
                     <button
                       type="button"
                       onClick={() => setEditando(p)}
-                      className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left outline-none transition-colors hover:bg-sand/40 focus-visible:bg-sand/40 sm:grid-cols-[minmax(0,1.6fr)_7rem_5rem_6.5rem_auto]"
+                      className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left outline-none transition-colors hover:bg-sand/40 focus-visible:bg-sand/40 @min-[42rem]:grid-cols-[minmax(0,1.6fr)_7rem_5rem_6.5rem_9rem]"
                     >
                       <span className="min-w-0">
                         <span data-guia="prod-proveedores.nombre" className={`block truncate text-[14px] ${p.activo ? "text-tinta" : "text-tinta/55 line-through"}`}>{p.nombre}</span>
@@ -245,9 +245,9 @@ export function ProveedoresProduccionPanel({
                         </span>
                       </span>
                       <span className="text-right text-sm tabular-nums text-tinta">{p.totalComprado > 0 ? soles(p.totalComprado) : <span className="text-tinta/45">—</span>}</span>
-                      <span className="hidden text-right text-sm tabular-nums text-tinta sm:block">{p.lotes > 0 ? p.lotes : <span className="text-tinta/45">—</span>}</span>
-                      <span className="hidden text-right text-sm tabular-nums text-tinta sm:block">{p.ultimaEntrega ? diaMes(p.ultimaEntrega) : <span className="text-tinta/45">—</span>}</span>
-                      <span className="col-span-2 flex flex-wrap justify-end gap-1.5 sm:col-span-1 sm:w-24">
+                      <span className="hidden text-right text-sm tabular-nums text-tinta @min-[42rem]:block">{p.lotes > 0 ? p.lotes : <span className="text-tinta/45">—</span>}</span>
+                      <span className="hidden text-right text-sm tabular-nums text-tinta @min-[42rem]:block">{p.ultimaEntrega ? diaMes(p.ultimaEntrega) : <span className="text-tinta/45">—</span>}</span>
+                      <span className="col-span-2 flex flex-wrap justify-end gap-1.5 @min-[42rem]:col-span-1">
                         {!p.activo && <Chip tono="apagado">Archivado</Chip>}
                         {p.activo && sinDatosDePago(p) && <Chip tono="ambar">Sin datos de pago</Chip>}
                       </span>

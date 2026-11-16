@@ -46,7 +46,7 @@ export function BotonAsistente({ rutasDelMenu }: { /** Las entradas del menú de
         aria-label="Pregúntale a CAYLA cómo hacer algo"
         aria-haspopup="dialog"
         title="Pregúntale a CAYLA cómo hacer algo  ( ? )"
-        className="flex h-9 items-center gap-1.5 rounded-lg px-2 text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:px-2.5"
+        className="area-dedo flex h-9 items-center gap-1.5 rounded-lg px-2 text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:px-2.5"
       >
         <MessageCircleQuestion /* unificar-fijo: el botón de la cabecera es del marco, trazo 1,5 y 18 px como «Actividad» y «Demo» (ronda 16) */ className="h-[18px] w-[18px]" strokeWidth={1.5} aria-hidden />
         <span className="label-cayla hidden text-[11px] sm:inline">Preguntar</span>

@@ -21,8 +21,9 @@ export function MovimientosCajaModal({
 }) {
   return (
     <Modal conCerrar titulo="Movimientos de la caja" subtitulo={`${ubicacionNombre} · ${eventos.length} en total`} onClose={onClose} tamano="ancha">
-      {/* El scroll es de la lista, no del modal: el título se queda a la vista. */}
-      <div className="scroll-cayla mt-3 max-h-[62vh] divide-y divide-sand overflow-y-auto pr-1">
+      {/* El scroll es de la lista, no del modal: el título se queda a la vista. En el celular, en dvh (el alto que se ve con la
+          barra del navegador): con 62vh la lista y la hoja se desplazaban las dos. */}
+      <div className="scroll-cayla mt-3 max-h-[55dvh] divide-y divide-sand overflow-y-auto sm:max-h-[62vh] pr-1">
         {eventos.map((e) => (
           <FilaMovimientoCaja key={e.id} e={e} nuevo={idsNuevos.has(e.id)} onAbrir={onAbrir} />
         ))}

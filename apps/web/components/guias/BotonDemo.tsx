@@ -12,7 +12,7 @@ export function BotonDemo({ onClick }: { onClick: () => void }) {
       onClick={onClick}
       aria-label="Demo: ver cómo funciona una pantalla"
       title="Ver la demo de un módulo, paso a paso"
-      className="flex h-9 items-center gap-1.5 rounded-lg px-2 text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:px-2.5"
+      className="area-dedo flex h-9 items-center gap-1.5 rounded-lg px-2 text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:px-2.5"
     >
       <PlayCircle className="h-4 w-4" strokeWidth={1.5} aria-hidden />
       <span className="label-cayla hidden text-[11px] sm:inline">Demo</span>

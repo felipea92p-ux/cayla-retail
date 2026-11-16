@@ -210,6 +210,14 @@
 .pb-candado:hover { background: var(--hueso); }
 .pb-candado[aria-pressed="true"] { background: var(--tinta); color: var(--crema); box-shadow: none; }
 .pb-candado .ic { width: 16px; height: 16px; stroke-width: 2; }
+/* Con el dedo: el candado y la ✕ del buscador se tocan en 44 px sin cambiar su dibujo de 36 (36 + 8 + 36 cabe en los 80 px de la fila);
+   la muestra de color sí crece a 44, porque su carril (overflow-x) recortaría un área que sobresale. */
+@media (pointer: coarse) {
+  .pb-candado, .pb-bus-borrar { position: relative; }
+  .pb-candado::after, .pb-bus-borrar::after { content: ""; position: absolute; inset: -4px; }
+  .pb-fila-acc { gap: 8px; }
+  .pb-muestras .pb-muestra { width: 44px; height: 44px; }
+}
 /* «No la llevo»: la prenda sigue en la figura, pero atenuada y sin contar; la ✕ queda llena para poder volver a llevarla. */
 .pb-fila[data-fuera] :is(.pb-fila-foto, .pb-fila-txt, .pb-fila-precio) { opacity: .5; }
 .pb-fila[data-fuera] :is(.pb-fila-nombre, .pb-fila-precio b) { text-decoration: line-through; }
@@ -230,7 +238,9 @@
 .pb-pie .cp-promesas { margin: 0; padding-top: 14px; border-top: 1px solid var(--sand); }
 
 /* ---- La barra de abajo: cuántas prendas y cuánto cuesta el look ---- */
-.pb-barra { position: sticky; bottom: 0; z-index: 40; margin-top: 4px; min-height: 64px; box-sizing: border-box; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--papel); box-shadow: 0 -1px 0 var(--sand), 0 -16px 30px -20px var(--sombra); display: flex; align-items: center; gap: 14px; }
+/* z 31: sobre la tarjeta «Sorpréndeme» y el sello del look (30), que pasan por debajo al desplazar, y bajo el velo de las hojas (40) y las
+   hojas (41). Con 40 (el mismo del velo, y después en la página) asomaba encima del menú y del buscador abiertos, y se podía tocar. */
+.pb-barra { position: sticky; bottom: 0; z-index: 31; margin-top: 4px; min-height: 64px; box-sizing: border-box; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--papel); box-shadow: 0 -1px 0 var(--sand), 0 -16px 30px -20px var(--sombra); display: flex; align-items: center; gap: 14px; }
 .pb-barra-total { display: flex; flex-direction: column; gap: 1px; line-height: 1.1; flex: none; }
 .pb-barra-total span { font-size: 11.5px; color: var(--tinta-60); }
 .pb-barra-total b { font-family: var(--nombre); font-style: italic; font-size: 25px; font-weight: 400; font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; }
@@ -427,7 +437,8 @@
 .lg-nota { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--tinta-60); }
 .lg-quitar { align-self: flex-start; min-height: 40px; cursor: pointer; }
 /* «Agregar el look a mi bolsa»: en el celular, pegado abajo mientras se mira el look; en la computadora, en su lugar, bajo el total. */
-.lg-barra { position: sticky; bottom: 0; z-index: 40; margin-inline: -16px; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--papel); box-shadow: 0 -1px 0 var(--sand), 0 -16px 30px -20px var(--sombra); }
+/* z 31, como `.pb-barra`: bajo el velo de las hojas. */
+.lg-barra { position: sticky; bottom: 0; z-index: 31; margin-inline: -16px; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--papel); box-shadow: 0 -1px 0 var(--sand), 0 -16px 30px -20px var(--sombra); }
 .lg-agregar { width: 100%; }
 @container tienda (min-width: 960px) {
   .lg { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); column-gap: 56px; align-items: start; }

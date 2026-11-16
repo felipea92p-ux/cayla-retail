@@ -245,7 +245,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
         </div>
       )}
 
-      <div className="max-h-[520px] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
+      <div className="max-h-[min(520px,60dvh)] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
         <table className="w-full border-separate border-spacing-0 text-[13px]">
           <thead>
             <tr>

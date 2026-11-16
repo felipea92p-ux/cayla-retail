@@ -86,7 +86,7 @@ export function PasoAPaso({
         <p className="mt-1 font-display text-2xl tabular-nums text-tinta">
           {avance.hechas} de {avance.total}
         </p>
-        <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Ir a una categoría">
+        <div className="mt-3 flex flex-wrap gap-1.5 pointer-coarse:gap-2" role="group" aria-label="Ir a una categoría">
           {cola.map((f, i) => {
             const hecha = !!f.linea || hechas.includes(f.c.id);
             const aqui = actual?.c.id === f.c.id;
@@ -98,7 +98,7 @@ export function PasoAPaso({
                 title={f.c.nombre}
                 aria-label={`${f.c.nombre}${hecha ? ", con plan" : ""}${aqui ? ", la que estás armando" : ""}`}
                 aria-current={aqui ? "step" : undefined}
-                className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[11.5px] font-semibold tabular-nums transition-colors duration-200 ease-cayla motion-reduce:transition-none ${
+                className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[11.5px] font-semibold tabular-nums transition-colors duration-200 ease-cayla motion-reduce:transition-none pointer-coarse:h-11 pointer-coarse:min-w-11 ${
                   hecha ? "bg-verde text-crema" : "border border-tinta/25 bg-papel text-tinta/80 hover:border-tinta"
                 } ${aqui ? "ring-2 ring-tinta ring-offset-2 ring-offset-papel" : ""}`}
               >

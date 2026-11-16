@@ -7,7 +7,8 @@ import { describe, expect, it } from "vitest";
 //     que se lee (las versalitas y las etiquetas de gráfico quedan aparte).
 //   · 161: los gráficos de barras de Finanzas se escalan a su caja; con el lienzo de 560 del Flujo, la letra quedaba en ~6 px
 //     a 375 px. Bajo 560 px la letra crece según el lienzo, y en los gráficos por semana se dicen menos montos para que no
-//     se pisen.
+//     se pisen. Desde la auditoría responsive (2026-11-16) el corte mira el ancho del gráfico (`@container fin-grafico`), no el
+//     de la ventana: a 1024 px con el lateral, Campañas y Escenarios viven en una columna de ~260 px y la letra quedaba en 6–7 px.
 
 const leer = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
 
@@ -19,9 +20,9 @@ function tamanoDe(css: string, selector: string): number | null {
   return t ? Number(t[1]) : null;
 }
 
-/** El cuerpo del primer `@media (max-width: <ancho>)` (con llaves balanceadas). */
-function bloqueMedia(css: string, ancho: string): string {
-  const i = css.indexOf(`@media (max-width: ${ancho})`);
+/** El cuerpo del primer `<regla> (max-width: <ancho>)` (con llaves balanceadas): `@media` o `@container <nombre>`. */
+function bloqueMedia(css: string, ancho: string, regla = "@media"): string {
+  const i = css.indexOf(`${regla} (max-width: ${ancho})`);
   if (i < 0) return "";
   let nivel = 0;
   for (let j = css.indexOf("{", i); j < css.length; j++) {
@@ -75,9 +76,15 @@ describe("Por pagar (todas): el detalle de cada fila usa la letra de detalle", (
 
 describe("Gráficos de Finanzas en el celular (tarea 161)", () => {
   const css = leer("app/estilos/finanzas.css");
-  const bajo560 = bloqueMedia(css, "559.98px");
-  const bajo440 = bloqueMedia(css, "439.98px");
+  // Caja de 520 px o menos (el celular a 560, la columna angosta de una pantalla ancha) y de 400 o menos (el celular a 440).
+  const bajo560 = bloqueMedia(css, "520px", "@container fin-grafico");
+  const bajo440 = bloqueMedia(css, "400px", "@container fin-grafico");
 
+  it("el gráfico es el contenedor que miran los cortes (sin él, ningún corte se aplica y no avisa)", () => {
+    expect(css).toMatch(/\.fin-grafico\s*\{[^}]*container:\s*fin-grafico\s*\/\s*inline-size/);
+    expect(bajo560, "falta el corte de 520 px").not.toBe("");
+    expect(bajo440, "falta el corte de 400 px").not.toBe("");
+  });
   it("a 375 px (caja de ~303 px) la letra de Flujo, Escenarios y Campañas mide 11 px o más", () => {
     for (const lienzo of [560, 460, 440]) {
       const t = tamanoDe(bajo440, `.fin-grafico svg[viewBox^="0 0 ${lienzo} "] text`);
