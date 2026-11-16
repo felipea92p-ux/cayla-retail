@@ -128,10 +128,10 @@
       "button «Quitar»",
       "button «{`Ver o cambiar las fotos de ${titulo}»",
       "button «{alternativa.texto}»",
-      "button «Principal»",
+      "button «Hacer principal»",
       "button «Quitar» #2",
-      "button «Ponerla primera»",
       "Desplegable «{opcionesPasar}»",
+      "button «Ponerla primera»",
       "button «Listo»"
     ],
     "components/ficha-producto/ImprimirLoQueEntro.tsx": [

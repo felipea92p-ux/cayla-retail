@@ -322,3 +322,19 @@ de la actualización anterior (2026-11-03), en todo el ERP y también en Vender.
 **Descartado:** F («Lo demás baja», lo atenuado parece apagado), J («La barra», el campo no se señala) y C («Solo la marca», la que más le puede costar a alguien nuevo). Si una colaboradora se pierde con el hilo, la alternativa es B, Filo pizarra: es una receta.
 
 **Verificado:** en el navegador, en Nuevo color, Registrar cliente, el cobro y el descuento de Vender (escritorio; el cobro también a 375 px), con teclas y clics reales; el foco en claro y oscuro. **Sin probar:** una colaboradora real, Safari y los modos de más contraste y colores forzados.
+
+## Actualización 2026-11-16 (k) — el cursor nunca cae en un archivo escondido
+
+**Nace de** la auditoría `/milimetro` de la hoja «Fotos de <color>» (2026-11-16): al pedir lo que falta en «Subir la propuesta del SIRE», la guía
+dejaba el cursor en el `<input type="file">` escondido (`sr-only`, 1 px, sin nombre), no en el botón «Elegir el archivo» que lo abre.
+`irAlIdCampo` ponía el cursor en el primer `input` del campo sin excluir los de archivo.
+
+**La regla** (`components/alta-producto/useGuiaAlta.ts`, `ARCHIVO_ESCONDIDO` y `botonDelArchivo`): un input de archivo **escondido** —fuera de Tab,
+`tabindex="-1"`, y abierto por un botón con nombre (`BotonFoto`, la hoja del SIRE)— no recibe el cursor. Lo recibe el primer botón del campo, y
+`CampoGuiado` le une el error (`aria-describedby`; sin `aria-invalid`, que un botón no admite). Un input de archivo que se alcanza con Tab, dentro de su
+`<label>` (Existencias ▸ la foto de la talla), recibe el cursor como siempre. Esos inputs escondidos llevan además `aria-hidden`: el lector de
+pantalla no encuentra un «archivo» sin nombre.
+
+**Medido** con la guía real en el navegador: archivo escondido → «Elegir el archivo»; archivo dentro de su `<label>` → el input (sin cambio); caja de
+texto → la caja (sin cambio). En la hoja del SIRE, «Comparar» sin archivo deja el foco en «Elegir el archivo» con su error, y Tab ya no se detiene
+en el input invisible.

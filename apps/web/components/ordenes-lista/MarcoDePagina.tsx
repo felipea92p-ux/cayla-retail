@@ -23,7 +23,7 @@ export function MarcoDePagina({ children }: { children: ReactNode }) {
     if (!el.contains(document.activeElement)) el.querySelector<HTMLElement>("input:not([disabled])")?.focus({ preventScroll: true });
   }, []);
   return (
-    <section ref={raiz} aria-labelledby="nueva-orden-titulo" data-compositor-orden className="card-cayla anim-revelar @container scroll-mt-24 p-6">
+    <section ref={raiz} aria-labelledby="nueva-orden-titulo" data-compositor-orden className="card-cayla anim-revelar @container scroll-mt-8 p-6">
       <TituloSeccion id="nueva-orden-titulo">Nueva orden de producción</TituloSeccion>
       {children}
     </section>

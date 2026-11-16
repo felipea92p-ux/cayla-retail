@@ -10,7 +10,8 @@ import { familiaDeTejido, type FamiliaTejido } from "./tejido-visual";
 //
 // CONTRATO
 //   PROMETE: de lo ya elegido (categoría, tejido, patrón) arma el texto que se suma al pedido y la ZONA de la prenda (de dónde cuelga), que
-//            decide si el pedido habla de cuello y hombros o de pretina y basta. Pura y determinista: sin red, sin base, sin azar.
+//            decide si el pedido habla de cuello y hombros o de pretina y basta; y pide la prenda PLANCHADA con su textura a la vista (salvo un
+//            tejido de relieve, `TEJIDOS_CON_RELIEVE`). Pura y determinista: sin red, sin base, sin azar.
 //   ASUME:   lo que llega puede venir de un navegador: se limpia (largo, caracteres) antes de entrar a un pedido que se paga. Lo elegido por la
 //            persona se toma como cierto: la ficha «manda sobre lo que se adivine de la foto».
 //   NO HACE: no inventa. Una categoría que un Líder crea sin deploy no está en la tabla: no toma el tipo ni la zona de otra (ADR-0290), y sin
@@ -121,9 +122,33 @@ export const TEJIDOS_PLANOS: ReadonlySet<FamiliaTejido> = new Set<FamiliaTejido>
 ]);
 
 /**
+ * @internal Exportada para su prueba (que el seersucker no se planche); la pantalla la usa a través de `fichaParaIA`.
+ * Tejidos cuyo relieve ES el tejido: planchados, perderían lo que son. El fruncido del seersucker «es del tejido, no una arruga» (su propia ayuda).
+ */
+export const TEJIDOS_CON_RELIEVE: ReadonlySet<FamiliaTejido> = new Set<FamiliaTejido>(["seersucker"]);
+
+/**
+ * La prenda PLANCHADA (Felipe 2026-11-16, con el pantalón de lino: «sale con arrugas y da un mal aspecto… quiero retocar las arrugas sin perder el
+ * tipo de tela»). Dicho en positivo, sin la palabra «arrugas» (el modelo se engancha a la palabra que nombra; ADR-0659 act. 2026-11-16 c), y con la
+ * TEXTURA nombrada al lado para que planchar no la borre: el lino sigue viéndose lino. Vale también contra el molde, que puede venir sin planchar.
+ * «Tersa» y no «lisa»: «liso» es un DISEÑO (sin estampado) y la IA podría borrar unas rayas. Sin «fruncidos» ni «caída»: los vigilan las pruebas
+ * del pedido de cintura (una basta fruncida es el puño de un jogger; la caída se dice una sola vez).
+ */
+const PLANCHADA =
+  "PLANCHADA: la prenda se ve recién planchada al vapor, como para una sesión de fotos, aunque en las fotos que te doy no lo esté: la tela tersa y bien estirada, con la textura de su tejido a la vista (la trama, el grano y el brillo o lo mate que tiene en la foto real). Se quedan los pliegues y las pinzas que son del diseño.";
+
+/**
+ * ¿Esta cláusula le dice a una persona que la tela SE ARRUGA? A la IA no le sirve: lo toma como algo que dibujar (la del lino decía «Se arruga (es
+ * parte de su gracia)», y el pantalón salía arrugado). Lo que dice que casi NO se arruga, o MENOS (jersey, poliéster), se queda: no pide arrugas.
+ */
+function diceQueSeArruga(clausula: string): boolean {
+  return /\bse arruga\b/i.test(clausula) && !/\b(no|menos)\b/i.test(clausula);
+}
+
+/**
  * Lo que la ayuda del tejido le dice a una PERSONA no va al pedido de la IA (la de «Sastre» termina con «confirma la composición con el
- * proveedor»; la del Satín, «si es de seda natural, elige Seda»). Se corta por cláusula (`.` y `;`), no por frase entera, para no perder el dato
- * de la tela que comparte frase con el consejo («Suele ser mezcla de poliéster y viscosa»).
+ * proveedor»; la del Satín, «si es de seda natural, elige Seda»; la del lino, que «se arruga»). Se corta por cláusula (`.` y `;`), no por frase
+ * entera, para no perder el dato de la tela que comparte frase con el consejo («Suele ser mezcla de poliéster y viscosa»).
  */
 function paraLaIA(texto: string): string {
   const frases = texto.match(/[^.]+\.?/g) ?? [];
@@ -134,7 +159,7 @@ function paraLaIA(texto: string): string {
         .replace(/\.$/, "")
         .split(";")
         .map((c) => c.trim())
-        .filter((c) => c && !/proveedor|etiqueta|\belige\b/i.test(c));
+        .filter((c) => c && !/proveedor|etiqueta|\belige\b/i.test(c) && !diceQueSeArruga(c));
       return clausulas.length ? `${clausulas.join("; ")}${fin}` : "";
     })
     .filter(Boolean)
@@ -209,6 +234,9 @@ export function fichaParaIA(datos: DatosDePrenda | null | undefined): FichaParaI
     // jean globo les contradiría su tela (la caída, si va, la dice el pedido de cintura una sola vez).
     if (familia && TEJIDOS_PLANOS.has(familia)) partes.push("Es un tejido PLANO, hecho en telar: se ve su trama.");
   }
+
+  // Toda foto de catálogo va planchada, salvo la de un tejido cuyo relieve es el tejido (el seersucker).
+  if (!familia || !TEJIDOS_CON_RELIEVE.has(familia)) partes.push(PLANCHADA);
 
   if (patron) {
     partes.push(/^liso$/i.test(patron) ? "Diseño: liso, sin estampado ni rayas: no dibujes ninguno." : `Diseño: ${patron}.`);

@@ -102,6 +102,10 @@ export function SubirPropuestaSireModal({ registro, mes, onClose }: { registro: 
               type="file"
               accept=".txt,.zip,text/plain,application/zip"
               className="sr-only"
+              // El camino es «Elegir el archivo»: sin esto, Tab se detenía en un input invisible y sin nombre. La guía de foco lleva el cursor
+              // a ese botón (`botonDelArchivo`), no aquí.
+              tabIndex={-1}
+              aria-hidden
               disabled={trabajando}
               onChange={(e) => {
                 void elegir(e.target.files?.[0]);

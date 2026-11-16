@@ -248,7 +248,7 @@ export function MatrizStockFicha({
   if (m.colores.length === 0) return <p className="text-sm text-taupe">Esta prenda no tiene variantes activas. Agrega un color.</p>;
 
   return (
-    <div className="scroll-mt-20 space-y-2" ref={raiz}>
+    <div className="scroll-mt-4 space-y-2" ref={raiz}>
       {/* La misma tabla con otro dato a la vista: el segmento de modo del sistema (ADR-0358). Angosto, ocupa todo el ancho. */}
       <div data-guia="editar.vistas">
       <SegmentoDeslizante

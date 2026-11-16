@@ -154,6 +154,8 @@ export function BarrasTiempo({
             );
             const comunes = {
               "data-tono": tono,
+              // Sin su cifra a la vista, la barra es lo único que dice el monto: pasa 3:1 (decisión 5B, graficos-tiempo.css).
+              "data-sin-cifra": !decorativa && !conCifra(b) ? "" : undefined,
               "data-apagada": filtra && elegida !== b.clave ? "" : undefined,
               className: "barra-t",
             };
