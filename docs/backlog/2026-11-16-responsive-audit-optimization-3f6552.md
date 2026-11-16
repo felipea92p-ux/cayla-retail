@@ -22,7 +22,12 @@ Rama `claude/responsive-audit-optimization-3f6552`. Informe completo: `docs/audi
 
 ## Sin decisión, para hacer
 
-- [ ] **`/milimetro auditar` de las pantallas tocadas antes del PR** (regla «Al milímetro»: el check del PR lo pide). Con 222 archivos, por módulo.
+- [x] **`/milimetro auditar` de las pantallas tocadas** (2026-11-16): 135 rutas, rama contra `main`. 0 graves nuevos. Informe:
+  `docs/milimetro/auditorias/2026-11-16-responsive-pr-1895.md`.
+- [ ] **Los 351 graves heredados de `main`** que encontró esa auditoría (no son de este PR), por pieza: el segmento (`segmento-cayla__opcion`, contraste de
+  cada opción y foco tapado), «Registrar» de la mesa de Finanzas (texto bajo 4.5:1), el foco de los gráficos SVG y de las muestras de Categorías
+  (`outline: none` sin halo), el globito de las pestañas, las marcas de `BarraApilada`/`BarrasTiempo` bajo 3:1 y el botón que confirma apagado por lo
+  que falta (Tienda web ▸ Ajustes, Vender ▸ descuento y cupón, Plan ▸ Pagos). Arreglar de a una pieza compartida, con `/color` y `/unificar`.
 - [ ] **CAYLA Dynamic:** cambian 10 archivos de `app/estilos/vidrio/` y 7 de `components/ui/` (ninguno es `recetas.css` ni el contrato, así que nada viaja
   solo): `hoja.css` (la foto de la hoja con costado ya no tapa el título), `marco.css` (la sede se acorta; nace `--alto-cabecera`), `pantalla.css`
   (paginación y precio en tarjeta angosta), `catalogo.css`, `config-vistas.css`, `fusionar.css`, `historial.css`, `proveedores.css`, `rendimiento.css`,

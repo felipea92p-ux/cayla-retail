@@ -138,11 +138,11 @@
   }
 
   /* El nombre de la prenda en una tarjeta de Tienda web ▸ Vitrina y Looks (`tienda-web.css`) es texto que abre la tarjeta: 27 px de alto. Con el
-     dedo, su relleno vertical crece hasta 44 y el margen negativo lo devuelve, así que la tarjeta no se mueve (su `overflow: hidden` de la
-     elipsis recortaría un `::after`). */
+     dedo, su relleno vertical sube a 16 px (la escala de 4) y el margen negativo lo devuelve, así que la tarjeta no se mueve (su `overflow: hidden`
+     de la elipsis recortaría un `::after`): queda en ~51 px de toque. Lo que pisa arriba es la foto, que abre lo mismo; abajo, el stock, que no se toca. */
   .tw-carta-nombre {
-    padding-block: 12.75px;
-    margin-block: -12.75px;
+    padding-block: 16px;
+    margin-block: -16px;
   }
 
   /* La paleta con todos los colores (ADR-0663): el punto y la perilla conservan su dibujo y agrandan su área. Ya van en `absolute`. */
