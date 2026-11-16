@@ -6,4 +6,5 @@
 - **Verificado:** en un Postgres local con todas las migraciones, `pruebas:fusionar-productos` 49/49; con las funciones de antes fallan 29, 36, 37, 41, 42 y 43 (44-49 con versiones previas), y sin
   el parche del candado de la terminal falla 35. La migración se aplica dos veces sin efecto. En producción (solo lectura) el ancla aparece una vez y no
   hubo fusiones desde el pegado de 20261115153000. `tsc` limpio y 34 pruebas de las reglas de la web. **No verificado:** la hoja en el navegador.
-- **Riesgo:** hasta pegar `20261116020000`, una fusión en producción puede dejar dos precios por sede en los tres casos del ADR.
+- **En producción:** `20261116020000` pegada el 2026-11-16 y verificada en vivo. **Riesgo:** hasta publicar la web, la hoja no manda el precio general
+  elegido al previsualizar (la lista de sedes puede no mostrar una sede que la fusión sí ajusta).
