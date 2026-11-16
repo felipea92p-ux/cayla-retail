@@ -58,5 +58,7 @@ existió. Lo que corresponde es una nota de crédito sobre la boleta original y 
 - [ ] Abrir el PR con `/abrir-pr` y probar en su vista previa de Vercel, contra el sandbox de Lucode, una nota 07 (una prenda de dos) y
       una 06, de boleta y de factura (decisión 9). Nunca contra la SUNAT real.
 - [ ] `/milimetro auditar /cambios` y `/vender/comprobantes` (lo pide el check del PR), `/formidable`, `/chaos` y `guias:recorrer`.
+- [x] De #1910 (Felipe eligió esta rama): el papel de Vender con «CANCELADO» y la impresión sola con «Imprimir solo al cobrar».
+- [ ] **Contador:** confirma la lectura legal (nota de crédito + comprobante nuevo) antes de pegar el SQL. Cerrar #1910 lo decide Felipe.
 - [ ] Pegar en producción las partes 1, 2 y 3 en ese orden, con el OK de Felipe; después `pnpm datos:generar:produccion` y `datos:comparar`.
 - [ ] Obra aparte: volver a cambiar lo que se llevó en un cambio (15 días desde la compra original).

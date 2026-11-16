@@ -73,6 +73,8 @@ export type PagoDelCambio = {
   cobrado: { metodo: MetodoPagoVenta; monto: number } | null;
   /** Lo que se le devolvió al cliente porque lo nuevo vale menos, con su medio. */
   devuelto: { metodo: MetodoPagoVenta; monto: number } | null;
+  /** El pie del papel: «Cambio de Boleta B001-000002 · Nota de crédito BC01-000001». */
+  referencia: string;
 };
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
@@ -86,12 +88,6 @@ export const NOMBRE_METODO: Record<MetodoPagoVenta, string> = {
   plin: "Plin",
   transferencia: "Transferencia",
 };
-
-/** Un medio dentro de una frase del papel («Se devolvió en efectivo»): en minúscula, salvo las marcas, que no se achican («en Yape»,
- *  «en QR»). La misma regla que `impactoCambio` (cambios-reglas.ts) usa en pantalla. */
-export function medioEnFrase(m: MetodoPagoVenta): string {
-  return m === "yape" || m === "plin" || m === "qr" ? NOMBRE_METODO[m] : NOMBRE_METODO[m].toLowerCase();
-}
 
 /** El nombre de un medio en una ficha muy angosta: «Transferencia» no cabe entera a un tamaño legible. La hoja de cobro de Vender lleva
  *  los dos nombres y su CSS (`.hoja-cobro-nombre-corto`) muestra el corto bajo 6 rem de ficha (una tablet a 1024 px); la grilla de cinco
@@ -181,6 +177,8 @@ export function armarReciboDeCambio(entrada: {
   diferencia: number;
   metodo: MetodoPagoVenta;
   atendio?: string | null;
+  /** El documento de la compra que se cambió («Boleta B001-000002»), para el pie del papel. */
+  compra?: string | null;
 }): ReciboVenta {
   const lineas: LineaRecibo[] = entrada.lineas.map((l) => ({
     cantidad: l.cantidad,
@@ -214,6 +212,7 @@ export function armarReciboDeCambio(entrada: {
       credito: { texto: entrada.credito, monto: redondear2(total - diferencia) },
       cobrado: diferencia > 0 ? { metodo: entrada.metodo, monto: diferencia } : null,
       devuelto: diferencia < 0 ? { metodo: entrada.metodo, monto: -diferencia } : null,
+      referencia: [entrada.compra ? `Cambio de ${entrada.compra}` : "Cambio", entrada.credito].filter(Boolean).join(" · "),
     },
   };
 }

@@ -2,7 +2,7 @@
 
 import { LogoCayla } from "@/components/ui/LogoCayla";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { MessageCircle, Plus, ShoppingBag } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -25,6 +25,7 @@ import {
 } from "@/lib/cambios-documentos-reglas";
 import { DocumentosDelTicket, reciboDelCambio, useComprobantesDelCambio, type PrendasDelCambio } from "@/components/cambios-documentos/DocumentosDelTicket";
 import { imprimirBoleta } from "@/components/impresion/imprimirBoleta";
+import { imprimirAlCobrar } from "@/lib/imprimir-al-cobrar";
 
 /* ====================================================================
    CambioTicket · lo que la clienta se lleva al terminar un cambio (spike 2026-09-26, opción A)
@@ -83,7 +84,13 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
   const nuevo = emitidos ? comprobanteNuevo(emitidos) : null;
   const recibo =
     ticket.documentos && emitidos
-      ? reciboDelCambio(emitidos, { ...ticket.documentos, diferencia: ticket.diferencia, sede: ticket.sede, atendio: ticket.atendio })
+      ? reciboDelCambio(emitidos, {
+          ...ticket.documentos,
+          diferencia: ticket.diferencia,
+          sede: ticket.sede,
+          atendio: ticket.atendio,
+          compra: ticket.comprobante,
+        })
       : null;
   // «No es comprobante de pago» solo si el cambio no emitió ninguno (mientras se leen, no se dice nada).
   const sinComprobantes = !ticket.documentos || (emitidos !== null && emitidos.length === 0);
@@ -104,6 +111,17 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
     setImpresion(que);
     setPedidos((n) => n + 1);
   }
+  // «Imprimir solo al cobrar» (lib/imprimir-al-cobrar.ts, la preferencia de este equipo): la boleta nueva del cambio sale sola, una vez,
+  // apenas se leyó (lo trajo #1910). «Mandar a la caja» no aplica: la cola de la caja imprime por venta, y este papel no tiene venta.
+  const imprimeSolo = useSyncExternalStore(imprimirAlCobrar.suscribir, imprimirAlCobrar.leer, imprimirAlCobrar.leerEnServidor) === "si";
+  const yaImprimioSolo = useRef(false);
+  const hayRecibo = recibo !== null;
+  useEffect(() => {
+    if (!hayRecibo || !imprimeSolo || yaImprimioSolo.current) return;
+    yaImprimioSolo.current = true;
+    setImpresion("comprobante");
+    setPedidos((n) => n + 1);
+  }, [hayRecibo, imprimeSolo]);
   const whatsapp = enlaceWhatsApp(
     textoTicketCambio({
       operacion: ticket.operacion,

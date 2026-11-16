@@ -118,7 +118,21 @@ SE ROMPE SI:
 - `/api/lucode/anular` cuenta los cambios y devoluciones de la venta con la llave de servicio antes de pedir la baja: quien ve Facturación
   sin ser líder no veía, por RLS, un cambio hecho en otra sede, y la baja podía llegar a SUNAT y rechazarse recién al guardar.
 
+## La otra rama: #1910 (ADR-0672)
+
+Otra sesión construyó lo mismo en paralelo (PR #1910, en borrador), con respuestas distintas de Felipe (la boleta sin aceptar frenaba el
+cambio; la nota de venta no emitía nada; el cliente no se editaba). El 2026-11-16 Felipe eligió seguir con esta rama. De #1910 se trajo:
+- **El papel:** la boleta nueva se imprime con el papel de Vender y el sello «CANCELADO» (como la entrega de un apartado), con la compra y
+  su nota de crédito al pie, y sale sola si el equipo tiene «Imprimir solo al cobrar». «Mandar a la caja» no aplica: la cola de la caja
+  imprime por venta y este papel no tiene venta.
+- **El contador:** la lectura legal (nota de crédito sobre la original + comprobante nuevo por lo que se lleva) la confirma el contador
+  antes de pegar el SQL.
+Las dos ramas no pueden fusionarse juntas (las dos crean `comprobantes.cambio_id`, INV-30 y la última siembra del vigía): cerrar #1910 lo
+decide Felipe.
+
 ## Producción
+
+**Antes de pegar:** el OK del contador (ver arriba) y la prueba en la vista previa contra el sandbox de Lucode (decisión 9).
 
 Tres partes, en orden, cada una idempotente y con `lock_timeout` de 3 s, sin políticas: la 1 agrega la columna, los índices y la tabla; la 2,
 las funciones y los reemplazos anclados; la 3, el vigía y la fuente de metas, en la misma sesión que la 2. Desde que se pega la parte 2 la

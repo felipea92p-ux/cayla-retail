@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { armarRecibo, armarReciboDeCambio, desglosaIgv, fechaHoraLima, LEY_REDONDEO_TICKET, medioEnFrase, montoEnLetras, textoNumeroRecibo, textoQrSunat, TITULO_DOCUMENTO } from "./recibo-reglas";
+import { armarRecibo, armarReciboDeCambio, desglosaIgv, fechaHoraLima, LEY_REDONDEO_TICKET, montoEnLetras, textoNumeroRecibo, textoQrSunat, TITULO_DOCUMENTO } from "./recibo-reglas";
 
 // El comprobante impreso es lo que la clienta se lleva y lo que SUNAT puede cotejar: si un
 // número acá se descuadra por un centavo, el papel y la base dicen cosas distintas.
@@ -273,13 +273,13 @@ describe("armarReciboDeCambio — el comprobante nuevo de un cambio (ADR-0671)",
     const r = armarReciboDeCambio({ ...base, diferencia: 20 });
     expect([r.subtotal, r.igv, r.total]).toEqual([84.75, 15.25, 100]);
     expect(r.pagos).toEqual([]);
-    expect(r.cambio).toEqual({ credito: { texto: "Nota de crédito BC05-000012", monto: 80 }, cobrado: { metodo: "efectivo", monto: 20 }, devuelto: null });
+    expect(r.cambio).toMatchObject({ credito: { texto: "Nota de crédito BC05-000012", monto: 80 }, cobrado: { metodo: "efectivo", monto: 20 }, devuelto: null });
     expect(r.cambio!.credito.monto + (r.cambio!.cobrado?.monto ?? 0) - (r.cambio!.devuelto?.monto ?? 0)).toBe(r.total);
   });
 
   it("devolvió plata: el papel lo dice, y la cuenta sigue cerrando", () => {
     const r = armarReciboDeCambio({ ...base, comprobante: { ...base.comprobante, subtotal: 59.32, igv: 10.68, total: 70 }, diferencia: -10, metodo: "yape" });
-    expect(r.cambio).toEqual({ credito: { texto: "Nota de crédito BC05-000012", monto: 80 }, cobrado: null, devuelto: { metodo: "yape", monto: 10 } });
+    expect(r.cambio).toMatchObject({ credito: { texto: "Nota de crédito BC05-000012", monto: 80 }, cobrado: null, devuelto: { metodo: "yape", monto: 10 } });
     expect(r.cambio!.credito.monto - r.cambio!.devuelto!.monto).toBe(r.total);
   });
 
@@ -293,13 +293,11 @@ describe("armarReciboDeCambio — el comprobante nuevo de un cambio (ADR-0671)",
     expect(r.lineas[0]).toMatchObject({ cantidad: 2, descripcion: "Blusa Emma", importe: 100, detalle: "Negro · Talla M" });
   });
 
-  it("el medio en la frase del papel: minúscula, salvo las marcas («Se devolvió en Yape», no «en yape»)", () => {
-    expect(medioEnFrase("efectivo")).toBe("efectivo");
-    expect(medioEnFrase("tarjeta")).toBe("tarjeta");
-    expect(medioEnFrase("transferencia")).toBe("transferencia");
-    expect(medioEnFrase("yape")).toBe("Yape");
-    expect(medioEnFrase("plin")).toBe("Plin");
-    expect(medioEnFrase("qr")).toBe("QR");
+  it("el pie del papel dice de qué compra sale y su nota de crédito; sin la compra, solo «Cambio»", () => {
+    expect(armarReciboDeCambio({ ...base, diferencia: 20, compra: "Boleta B001-000002" }).cambio!.referencia).toBe(
+      "Cambio de Boleta B001-000002 · Nota de crédito BC05-000012",
+    );
+    expect(armarReciboDeCambio({ ...base, diferencia: 20 }).cambio!.referencia).toBe("Cambio · Nota de crédito BC05-000012");
   });
 
   it("una venta de siempre no lleva el modo cambio", () => {

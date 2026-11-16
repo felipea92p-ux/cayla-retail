@@ -114,7 +114,16 @@ function lineasDelPapel(items: unknown, prendas: PrendasDelCambio) {
 /** El papel del comprobante nuevo (boleta, factura o nota de venta), o null si el cambio no emitió uno. */
 export function reciboDelCambio(
   emitidos: readonly ComprobanteDelCambio[],
-  e: { esperado: DocumentosDelCambio; diferencia: number; metodo: MetodoDiferencia; prendas: PrendasDelCambio; sede: string; atendio: string | null },
+  e: {
+    esperado: DocumentosDelCambio;
+    diferencia: number;
+    metodo: MetodoDiferencia;
+    prendas: PrendasDelCambio;
+    sede: string;
+    atendio: string | null;
+    /** El documento de la compra que se cambió («Boleta B001-000002»): el pie del papel lo nombra. */
+    compra: string | null;
+  },
 ): ReciboVenta | null {
   const nuevo = comprobanteNuevo(emitidos);
   if (!nuevo || (nuevo.tipo !== "boleta" && nuevo.tipo !== "factura" && nuevo.tipo !== "nota_venta")) return null;
@@ -127,6 +136,7 @@ export function reciboDelCambio(
     diferencia: e.diferencia,
     metodo: e.metodo,
     atendio: e.atendio,
+    compra: e.compra,
   });
 }
 
