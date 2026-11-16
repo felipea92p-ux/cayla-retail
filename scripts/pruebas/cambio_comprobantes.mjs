@@ -16,6 +16,8 @@
  *  11. Cambio en otra tienda por quien no opera la tienda de la boleta: la nota sale en la serie de la tienda de la boleta.
  *  12. MUTANTE: si el cambio no emite papeles, el caso 1 lo ve.
  *  13. La migración se puede pegar dos veces.
+ *  14. Una prenda por varias, con descuento: la del mismo modelo conserva su descuento en su línea; la otra va a lista (ADR-0470/0655).
+ *  15. Una por dos unidades de otra prenda, en efectivo: la caja espera lo mismo que dicen los papeles.
  *
  * CÓMO. Cada caso en su transacción con ROLLBACK (nunca se commitea nada). Si la base no tiene la migración, se aplica dentro de cada
  * transacción (el CI ya la tiene). Las series de la prueba (B901, B902, BC91, FC91) se crean y se archivan dentro de la transacción.
@@ -46,7 +48,7 @@ function psql(sql) {
 }
 
 function correr(sql, { forzarMigracion = false } = {}) {
-  const yaEsta = psql("select to_regprocedure('retail.fn_emitir_comprobantes_del_cambio(uuid)') is not null;").trim() === "t";
+  const yaEsta = psql("select to_regprocedure('retail.fn_emitir_comprobantes_del_cambio(uuid, jsonb)') is not null;").trim() === "t";
   const migracion = forzarMigracion || !yaEsta ? SQL_MIGRACION : "";
   try {
     const salida = psql(`begin;\n${migracion}\n${PRELUDIO}\n${sql}\nrollback;\n`).trim().split("\n").filter((x) => x !== "");
@@ -115,6 +117,12 @@ select esperado as esp_antes from retail.fn_calcular_esperado_caja(:'caja_id') \
 
 const cambio = ({ nueva, cantidad = 1, metodo = null, ubic = "ubic", token = "gen_random_uuid()" }) =>
   `select retail.registrar_cambio(:'venta_item', :'${ubic}', :'${nueva}', ${cantidad}, ${metodo ? `'${metodo}'` : "null"}, ${token}) as cambio_id \\gset`;
+
+/** Una prenda por varias (ADR-0470): `salidas` = [[variante, cantidad], …]. */
+const cambioVarias = ({ salidas, metodo = null }) =>
+  `select retail.registrar_cambio_varias(:'venta_item', :'ubic',
+     jsonb_build_array(${salidas.map(([v, c]) => `jsonb_build_object('variante_id', :'${v}', 'cantidad', ${c})`).join(", ")}),
+     1, ${metodo ? `'${metodo}'` : "null"}, gen_random_uuid()) as cambio_id \\gset`;
 
 // Todo lo que se mira de un cambio, en una línea JSON.
 const LEER = `
@@ -303,9 +311,35 @@ select :'opera_lima';`);
   );
 }
 
+// 14. Una por varias, con descuento: la blusa del mismo modelo conserva su descuento en su propia línea; el vestido va a lista.
+{
+  const r = correr(`${venta({ variante: "v_m", descuento: 10 })}\n${cambioVarias({ salidas: [["v_s", 1], ["v_ves", 1]], metodo: "tarjeta" })}\n${LEER}`);
+  const h = leer(r);
+  const blusa = h?.bol?.items.find((it) => num(it.descuento_unitario) === 10);
+  esperar(
+    "14 · una por varias con descuento: nota S/ 69.90, boleta S/ 219.80 con la blusa a S/ 79.90 − 10 y el vestido a lista",
+    papelesSanos(h) && num(h.dif) === 149.9 && num(h.nc.total) === 69.9 && num(h.bol.total) === 219.8 &&
+      h.bol.items.length === 2 && blusa && num(blusa.precio_unitario) === 79.9 && Math.abs(sumaItems(h.bol) - 219.8) < 0.001,
+    r.ok ? h : r.mensaje,
+  );
+}
+
+// 15. Una por dos vestidos, diferencia en efectivo: la caja espera lo mismo que dicen los papeles.
+{
+  const r = correr(`${venta({ variante: "v_m" })}\n${cambioVarias({ salidas: [["v_ves", 2]], metodo: "efectivo" })}\n${LEER}`);
+  const h = leer(r);
+  esperar(
+    "15 · una por dos vestidos en efectivo: boleta S/ 299.80 − nota S/ 79.90 = la caja espera +219.90",
+    papelesSanos(h) && num(h.dif) === 219.9 && num(h.bol.total) === 299.8 && num(h.delta_caja) === 219.9 &&
+      h.bol.items.length === 1 && num(h.bol.items[0].cantidad) === 2,
+    r.ok ? h : r.mensaje,
+  );
+}
+
 // 12. MUTANTE: un cambio que no emite papeles (como antes de la migración) lo ve el caso 1.
 {
-  const r = correr(`create or replace function retail.fn_emitir_comprobantes_del_cambio(p_cambio_id uuid) returns void language plpgsql as $m$ begin return; end $m$;
+  const r = correr(`create or replace function retail.fn_emitir_comprobantes_del_cambio(p_cambio_id uuid, p_items_boleta jsonb default null)
+  returns void language plpgsql as $m$ begin return; end $m$;
 ${venta({ variante: "v_m" })}\n${cambio({ nueva: "v_s" })}\n${LEER}`);
   const h = leer(r);
   esperar("12 · MUTANTE: si el cambio no emite papeles, la prueba lo ve", h && !papelesSanos(h) && num(h.n) === 0, r.ok ? h : r.mensaje);

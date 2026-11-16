@@ -26,12 +26,14 @@
 --      texto, misma firma, mismos permisos): el cambio puede hacerse en otra tienda (ADR-0370) y la nota va en la serie de la tienda de la
 --      boleta original, donde quien hace el cambio no siempre opera. El permiso del cambio ya lo pidió `registrar_cambio`.
 --   3. `fn_emitir_comprobantes_del_cambio(cambio)`: arma y reserva los dos papeles. Comprueba que boleta − nota = diferencia o no guarda nada.
---   4. `registrar_cambio` la llama al final (reemplazo anclado). El cambio por varias prendas (`registrar_cambio_varias`) va aparte.
+--   4. `registrar_cambio` la llama al final (reemplazo anclado).
+--   5. `registrar_cambio_varias` (ADR-0470) arma las líneas de la boleta en el mismo ciclo que calcula la diferencia (las unidades del mismo
+--      modelo que conservaron su descuento van aparte, ADR-0655) y la llama al final con ellas.
 --
 -- QUÉ NO HACE. No emite papeles por los cambios ya hechos (decisión del contador). No transmite a SUNAT: los papeles quedan `pendiente` y
 --   salen por el mismo camino que una boleta de venta (ADR-0165).
--- SE ROMPE SI: alguien cambia `emitir_nota` o el final de `registrar_cambio` antes de pegar esto: la huella o el ancla no aparecen y se
---   detiene sin aplicar nada.
+-- SE ROMPE SI: alguien cambia `emitir_nota`, el final de `registrar_cambio` o el ciclo de `registrar_cambio_varias` antes de pegar esto:
+--   la huella o el ancla no aparecen y se detiene sin aplicar nada.
 -- CÓMO SE PEGA. Una sola parte, idempotente, `lock_timeout` 3 s. Un `alter table` y funciones, sin políticas ni disparadores (ADR-0195).
 -- CAÍDA EXTERNA. Nada llama a la red.
 -- PRUEBA. `pnpm pruebas:cambio-comprobantes`.
@@ -132,8 +134,10 @@ begin
 end;
 $function$;
 
--- 3. Los dos papeles de un cambio.
-create or replace function retail.fn_emitir_comprobantes_del_cambio(p_cambio_id uuid)
+-- 3. Los dos papeles de un cambio. `p_items_boleta`: las líneas de la boleta ya armadas por quien sabe qué unidad conservó su descuento
+--    (`registrar_cambio_varias`, ADR-0655); sin ellas (una prenda por una), se arman aquí.
+drop function if exists retail.fn_emitir_comprobantes_del_cambio(uuid);
+create or replace function retail.fn_emitir_comprobantes_del_cambio(p_cambio_id uuid, p_items_boleta jsonb default null)
 returns void
 language plpgsql
 security definer
@@ -188,9 +192,17 @@ begin
   -- Lo que se pagó por lo devuelto (ADR-0380) y lo que vale lo que se lleva: lo pagado más la diferencia que cobró o devolvió la caja.
   v_nc_total := round((vi.precio_unitario - vi.descuento_unitario) * c.cantidad, 2);
   v_bol_total := round(v_nc_total + c.diferencia, 2);
-  v_unit := round(v_bol_total / c.cantidad, 2);
-  if v_unit * c.cantidad <> v_bol_total then
-    raise exception 'La boleta del cambio no reparte S/% entre % unidades sin céntimos sueltos. No se guardó nada.', v_bol_total, c.cantidad;
+  if p_items_boleta is not null then
+    -- Una prenda por varias: las líneas llegan armadas; tienen que valer exactamente lo pagado más la diferencia.
+    if round(coalesce((select sum(((it ->> 'precio_unitario')::numeric - coalesce((it ->> 'descuento_unitario')::numeric, 0)) * (it ->> 'cantidad')::integer)
+                         from jsonb_array_elements(p_items_boleta) it), 0), 2) <> v_bol_total then
+      raise exception 'Las prendas que se lleva no suman lo que vale la boleta del cambio (S/%). No se guardó nada.', v_bol_total;
+    end if;
+  else
+    v_unit := round(v_bol_total / c.cantidad, 2);
+    if v_unit * c.cantidad <> v_bol_total then
+      raise exception 'La boleta del cambio no reparte S/% entre % unidades sin céntimos sueltos. No se guardó nada.', v_bol_total, c.cantidad;
+    end if;
   end if;
 
   if v_nc_total > 0 then
@@ -211,14 +223,16 @@ begin
 
   if v_bol_total > 0 then
     -- La línea dice el precio de lista y, si se cobró menos (el mismo modelo conserva su descuento, ADR-0655), el descuento aparte.
-    v_lista := greatest(coalesce(retail.fn_precio_para_cambio(c.venta_item_id, c.variante_nueva_id, c.ubicacion_id), v_unit), v_unit);
+    if p_items_boleta is null then
+      v_lista := greatest(coalesce(retail.fn_precio_para_cambio(c.venta_item_id, c.variante_nueva_id, c.ubicacion_id), v_unit), v_unit);
+    end if;
     v_bol_igv := round(v_bol_total - v_bol_total / 1.18, 2);
     v_bol_id := retail.emitir_comprobante(
       c.ubicacion_id, o.tipo, round(v_bol_total - v_bol_igv, 2), v_bol_igv, v_bol_total, null,
       o.cliente_tipo_doc, o.cliente_num_doc, o.cliente_nombre,
-      jsonb_build_array(jsonb_build_object(
+      coalesce(p_items_boleta, jsonb_build_array(jsonb_build_object(
         'variante_id', c.variante_nueva_id, 'cantidad', c.cantidad,
-        'precio_unitario', v_lista, 'descuento_unitario', round(v_lista - v_unit, 2))),
+        'precio_unitario', v_lista, 'descuento_unitario', round(v_lista - v_unit, 2)))),
       null
     );
     update comprobantes set cambio_id = p_cambio_id where id = v_bol_id;
@@ -232,11 +246,12 @@ begin
 end;
 $function$;
 
-comment on function retail.fn_emitir_comprobantes_del_cambio(uuid) is
+comment on function retail.fn_emitir_comprobantes_del_cambio(uuid, jsonb) is
   'ADR-0672: la nota de crédito sobre la boleta original (lo pagado por lo devuelto) y la boleta nueva (lo pagado + la diferencia) de un '
-  'cambio, sin venta ni pago. Espera si la boleta original no está aceptada; no emite nada si la venta no tiene boleta ni factura del ERP.';
+  'cambio, sin venta ni pago. Espera si la boleta original no está aceptada; no emite nada si la venta no tiene boleta ni factura del ERP. '
+  'p_items_boleta: las líneas ya armadas por registrar_cambio_varias.';
 
-revoke all on function retail.fn_emitir_comprobantes_del_cambio(uuid) from public, anon, authenticated;
+revoke all on function retail.fn_emitir_comprobantes_del_cambio(uuid, jsonb) from public, anon, authenticated;
 
 -- 4. `registrar_cambio` la llama al final, después de mover el stock: si los papeles no se pueden emitir, no se guarda nada.
 create or replace function pg_temp.reemplazar_cambio_comprobantes(p_firma text, p_viejo text, p_nuevo text)
@@ -267,6 +282,45 @@ select pg_temp.reemplazar_cambio_comprobantes(
 
   -- ADR-0672: la nota de crédito sobre la boleta original y la boleta nueva, en el mismo guardado.
   perform retail.fn_emitir_comprobantes_del_cambio(v_cambio_id);
+
+  return v_cambio_id;$n$
+);
+
+-- 5. Una prenda por varias (ADR-0470): la boleta lleva una línea por prenda; las unidades del mismo modelo que conservaron su descuento
+--    (ADR-0655) van en su propia línea, con el precio de lista y el descuento aparte. Se arman en el mismo ciclo que calcula la diferencia.
+select pg_temp.reemplazar_cambio_comprobantes(
+  'retail.registrar_cambio_varias(uuid, uuid, jsonb, integer, text, uuid, text, text)',
+  $v$  v_mismo integer := p_cantidad; v_k integer; v_pm numeric;  -- ADR-0655: unidades del mismo modelo que aún conservan su descuento$v$,
+  $n$  v_mismo integer := p_cantidad; v_k integer; v_pm numeric;  -- ADR-0655: unidades del mismo modelo que aún conservan su descuento
+  v_items_bol jsonb := '[]';  -- ADR-0672: las líneas de la boleta nueva$n$
+);
+
+select pg_temp.reemplazar_cambio_comprobantes(
+  'retail.registrar_cambio_varias(uuid, uuid, jsonb, integer, text, uuid, text, text)',
+  $v$    v_total_nuevo := v_total_nuevo + coalesce(v_pm, 0) * v_k + v_precio * (v_cants[i] - v_k);$v$,
+  $n$    v_total_nuevo := v_total_nuevo + coalesce(v_pm, 0) * v_k + v_precio * (v_cants[i] - v_k);
+    -- ADR-0672: la misma cuenta, en líneas de la boleta nueva.
+    if v_k > 0 then
+      v_items_bol := v_items_bol || jsonb_build_array(jsonb_build_object('variante_id', v_vars[i], 'cantidad', v_k,
+        'precio_unitario', greatest(v_precio, v_pm), 'descuento_unitario', greatest(v_precio, v_pm) - v_pm));
+    end if;
+    if v_cants[i] - v_k > 0 then
+      v_items_bol := v_items_bol || jsonb_build_array(jsonb_build_object('variante_id', v_vars[i], 'cantidad', v_cants[i] - v_k,
+        'precio_unitario', v_precio, 'descuento_unitario', 0));
+    end if;$n$
+);
+
+select pg_temp.reemplazar_cambio_comprobantes(
+  'retail.registrar_cambio_varias(uuid, uuid, jsonb, integer, text, uuid, text, text)',
+  $v$    perform fn_aplicar_movimiento(v_mov_salida);
+  end loop;
+
+  return v_cambio_id;$v$,
+  $n$    perform fn_aplicar_movimiento(v_mov_salida);
+  end loop;
+
+  -- ADR-0672: la nota de crédito sobre la boleta original y la boleta nueva con todas las prendas, en el mismo guardado.
+  perform retail.fn_emitir_comprobantes_del_cambio(v_cambio_id, v_items_bol);
 
   return v_cambio_id;$n$
 );
