@@ -63,13 +63,17 @@ export const HINT_QUIEN_COMPRO = "recibir_quien_compro";
 // Causas (decisiones 14, 15, 23 y 27)
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-export type CausaFaltante = "no_vino" | "se_perdio" | "otra_sede";
+/** `otro` (Felipe 2026-11-16): lo que falta tuvo otra causa; se cuenta en una línea y NO es deuda del proveedor (lo asume CAYLA, como `se_perdio`). Solo al CERRAR un
+ *  conteo (`cerrar_conteo_envio`, migración 20261116230000); el formulario de la fase 4 sigue con las tres de siempre. */
+export type CausaFaltante = "no_vino" | "se_perdio" | "otra_sede" | typeof VALOR_OTRO;
 /** `reposicion` (fase 5a): lo de más es lo que el proveedor debía de una recepción anterior. Solo se ofrece si lo debe (`opcionesSobrante`). */
 export type CausaSobrante = "regalo" | "cobra_aparte" | "proxima_compra" | typeof VALOR_REPOSICION | typeof VALOR_OTRO;
 /** «Otro» (Felipe 2026-10-28): lo de más tuvo una causa que no está en la lista; quien cierra la cuenta en una línea (la nota de la línea, hasta 300 letras). Solo se
  *  ofrece al CERRAR un conteo (`cerrar_conteo_envio`); el formulario de la fase 4 (`recibir_despacho`) sigue con las tres de siempre. */
 export const VALOR_OTRO = "otro";
 export const OPCION_OTRO = { valor: VALOR_OTRO, texto: "Otro", ayuda: "Pasó otra cosa: cuéntala en una línea." } as const;
+/** «Otro» en lo que FALTA (Felipe 2026-11-16): se cuenta igual en una línea, y no es deuda del proveedor: lo asume CAYLA. */
+export const OPCION_OTRO_FALTANTE = { valor: VALOR_OTRO, texto: "Otro", ayuda: "Pasó otra cosa: cuéntala en una línea. Lo asume CAYLA." } as const;
 /** Una dañada con arreglo queda en cuarentena esperando; sin arreglo, en cuarentena para liquidar, regalar, desechar o devolver. */
 export type SolucionDanada = "pendiente" | "sin_solucion";
 

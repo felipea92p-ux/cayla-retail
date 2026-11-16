@@ -360,13 +360,28 @@ describe("cerrar", () => {
   it("«Otro» (2026-10-28): se ofrece solo para lo de más, pide su explicación y la lleva como nota de la línea", () => {
     expect(causasDe(extra(1, 3))?.opciones.map((o) => o.valor)).toEqual(["regalo", "cobra_aparte", "proxima_compra", "otro"]);
     expect(causasDe(contada("i1", 10, 12), 2)?.opciones.map((o) => o.valor)).toEqual(["regalo", "cobra_aparte", "proxima_compra", "reposicion_faltante", "otro"]);
-    expect(causasDe(contada("i1", 10, 8))?.opciones.some((o) => o.valor === "otro")).toBe(false); // lo que faltó no cambia
+    // Lo que falta también lo ofrece desde el 2026-11-16 (abajo, en su prueba).
     const sin = faltaParaCerrar({ lineas: [extra(1, 3)], decisiones: { "extra:1": dec({ sobranteCausa: "otro" }) }, sinAviso: false, responsable: true });
     expect(sin.map((x) => x.texto)).toEqual(["Cuenta qué fue lo de más de Camisas · Marca Uno (fuera de la guía)"].map((t) => expect.stringContaining("Cuenta qué fue lo de más de")) as never);
     const con = faltaParaCerrar({ lineas: [extra(1, 3)], decisiones: { "extra:1": dec({ sobranteCausa: "otro", nota: "Muestra del proveedor" }) }, sinAviso: false, responsable: true });
     expect(con).toEqual([]);
     const [l] = lineasParaCerrar([extra(1, 3)], { "extra:1": dec({ sobranteCausa: "otro", nota: "  Muestra del proveedor " }) }, false);
     expect(l).toMatchObject({ sobrante_causa: "otro", nota: "Muestra del proveedor" });
+  });
+
+  it("«Otro» también en lo que FALTA (Felipe 2026-11-16): se ofrece al final, pide su explicación, la lleva como nota y dice que lo asume CAYLA", () => {
+    const opciones = causasDe(contada("i1", 10, 8))?.opciones ?? [];
+    expect(opciones.map((o) => o.valor)).toEqual(["no_vino", "se_perdio", "otra_sede", "otro"]);
+    expect(opciones.at(-1)?.ayuda).toContain("Lo asume CAYLA");
+    const sin = faltaParaCerrar({ lineas: [contada("i1", 10, 8)], decisiones: { "item:i1": dec({ faltanteCausa: "otro" }) }, sinAviso: false, responsable: true });
+    expect(sin.map((x) => x.texto)).toEqual([expect.stringContaining("Cuenta qué pasó con lo que falta de")]);
+    const con = faltaParaCerrar({ lineas: [contada("i1", 10, 8)], decisiones: { "item:i1": dec({ faltanteCausa: "otro", nota: "La caja llegó abierta" }) }, sinAviso: false, responsable: true });
+    expect(con).toEqual([]);
+    const [l] = lineasParaCerrar([contada("i1", 10, 8)], { "item:i1": dec({ faltanteCausa: "otro", nota: "  La caja llegó abierta " }) }, false);
+    expect(l).toMatchObject({ faltante_causa: "otro", sobrante_causa: null, nota: "La caja llegó abierta" });
+    // Con otra causa, lo escrito antes no viaja.
+    const [n] = lineasParaCerrar([contada("i1", 10, 8)], { "item:i1": dec({ faltanteCausa: "no_vino", nota: "quedó escrito" }) }, false);
+    expect(n).toMatchObject({ faltante_causa: "no_vino", nota: null });
   });
 
   it("un regalo de fuera de la guía no pide costo: entra a S/ 0 y no manda ni el de la línea ni el de sus prendas; uno de la guía sí lo conserva", () => {

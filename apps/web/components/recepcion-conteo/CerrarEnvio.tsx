@@ -1067,7 +1067,7 @@ export function CerrarEnvio({
                       onValor={(v) => {
                         // «Otro» se explica con la nota de la línea; al dejarlo, lo escrito se suelta (no hay otro lugar donde escribirla).
                         for (const x of c.lineas)
-                          cambiar(x.clave, c.tipo === "faltante" ? { faltanteCausa: v as CausaFaltante } : { sobranteCausa: v as CausaSobrante, ...(v === VALOR_OTRO ? {} : { nota: "" }) });
+                          cambiar(x.clave, { ...(c.tipo === "faltante" ? { faltanteCausa: v as CausaFaltante } : { sobranteCausa: v as CausaSobrante }), ...(v === VALOR_OTRO ? {} : { nota: "" }) });
                       }}
                     />
                     {/* Qué debe este proveedor de esto, con el nombre de cada prenda (ADR-0604): se contesta mirando lo que se tiene en la mano. */}
@@ -1076,14 +1076,14 @@ export function CerrarEnvio({
                         {decisionDe(c.lineas[0].clave).sobranteCausa === VALOR_REPOSICION ? c.opciones.find((o) => o.valor === VALOR_REPOSICION)?.ayuda : c.opciones.find((o) => o.valor === VALOR_REPOSICION)?.aviso}
                       </p>
                     )}
-                    {c.tipo === "sobrante" && decisionDe(c.lineas[0].clave).sobranteCausa === VALOR_OTRO && (
+                    {(c.tipo === "faltante" ? decisionDe(c.lineas[0].clave).faltanteCausa : decisionDe(c.lineas[0].clave).sobranteCausa) === VALOR_OTRO && (
                       <CampoTexto
                         className="mt-2"
                         etiqueta="¿Qué pasó exactamente?"
                         value={decisionDe(c.lineas[0].clave).nota}
                         maxLength={TOPES_CONTEO.nota}
-                        // sugerir-fijo: lo que pasó con lo de más no depende de nada elegido antes
-                        placeholder="Ej. El proveedor mandó una muestra"
+                        // sugerir-fijo: el ejemplo solo sigue a si falta o sobra; no depende de nada que la persona eligió antes
+                        placeholder={c.tipo === "faltante" ? "Ej. La caja llegó abierta" : "Ej. El proveedor mandó una muestra"}
                         onChange={(e) => {
                           for (const x of c.lineas) cambiar(x.clave, { nota: e.target.value });
                         }}

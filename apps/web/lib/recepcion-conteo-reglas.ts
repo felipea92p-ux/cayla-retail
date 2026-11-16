@@ -22,6 +22,7 @@ import {
   CAUSAS_FALTANTE,
   CAUSAS_SOBRANTE,
   OPCION_OTRO,
+  OPCION_OTRO_FALTANTE,
   VALOR_OTRO,
   type CausaFaltante,
   type CausaSobrante,
@@ -1097,6 +1098,8 @@ export function faltaParaCerrar(p: {
     const sobra = (dif != null && dif > 0) || (!l.linea && !p.sinAviso && contadasDe(l) > 0);
     // «Otro» se cuenta en una línea (la nota de la línea): sin ella la base no cierra (`recepcion_sobrante_otro`).
     if (sobra && d.sobranteCausa === VALOR_OTRO && !d.nota.trim()) f.push({ clave: "causa", linea: l.clave, texto: `Cuenta qué fue lo de más de ${nombre}` });
+    // Lo mismo con lo que falta (Felipe 2026-11-16): sin su línea la base no cierra (`recepcion_faltante_otro`).
+    if (dif != null && dif < 0 && d.faltanteCausa === VALOR_OTRO && !d.nota.trim()) f.push({ clave: "causa", linea: l.clave, texto: `Cuenta qué pasó con lo que falta de ${nombre}` });
     const regalo = esRegaloFuera(l, d);
     if (!l.linea && !p.sinAviso && contadasDe(l) > 0) {
       if (!d.sobranteCausa) f.push({ clave: "causa", linea: l.clave, texto: `Di qué pasa con ${nombre} (no estaba en la guía)` });
@@ -1339,6 +1342,7 @@ export function lineasParaCerrar(
       const dif = diferenciaDe(l);
       const fuera = !l.linea;
       const sobrante = (dif != null && dif > 0) || (fuera && !sinAviso && c.contadas > 0) ? d.sobranteCausa : null;
+      const faltante = dif != null && dif < 0 ? d.faltanteCausa : null;
       // Lo que llega sin aviso no pregunta la causa (`sobrante` null): ahí no hay regalo que valga.
       const regalo = !l.linea && sobrante === "regalo";
       // Un regalo de fuera de la guía entra a S/ 0: se manda 0 y ningún costo propio (la base los ignora igual).
@@ -1349,10 +1353,11 @@ export function lineasParaCerrar(
         version: c.version,
         costo_unitario: fuera && sinAviso && costo == null ? null : costo,
         confirma_costo: regalo ? false : d.confirmaCosto,
-        faltante_causa: dif != null && dif < 0 ? d.faltanteCausa : null,
+        faltante_causa: faltante,
         sobrante_causa: sobrante,
-        // La nota de la línea solo es «lo que pasó» de un «Otro»: con otra causa no hay dónde escribirla y lo que quedó escrito antes no viaja.
-        nota: sobrante === VALOR_OTRO && d.nota.trim() ? d.nota.trim().slice(0, TOPES_CONTEO.nota) : null,
+        // La nota de la línea solo es «lo que pasó» de un «Otro» (de más o, desde el 2026-11-16, de menos): con otra causa no hay dónde escribirla y lo que quedó
+        // escrito antes no viaja.
+        nota: (sobrante === VALOR_OTRO || faltante === VALOR_OTRO) && d.nota.trim() ? d.nota.trim().slice(0, TOPES_CONTEO.nota) : null,
         ...(Object.keys(propios).length > 0 ? { costos_prendas: propios } : {}),
         ...confirmaMontosDeLinea(regalo, d.confirmaCosto, costo, propios, confirmadosEnLaHoja[l.clave] ?? []),
       };
@@ -1386,7 +1391,8 @@ export function causasDe(
   // Lo que llega sin aviso no tiene con qué compararse: nada sobra ni falta, y no se pregunta qué pasó (igual que `faltaParaCerrar`).
   if (sinAviso && !l.linea) return null;
   const dif = diferenciaDe(l);
-  if (dif != null && dif < 0) return { tipo: "faltante", opciones: [...CAUSAS_FALTANTE] };
+  // «Otro» también en lo que falta (Felipe 2026-11-16): con su explicación, y lo asume CAYLA (no es deuda del proveedor).
+  if (dif != null && dif < 0) return { tipo: "faltante", opciones: [...CAUSAS_FALTANTE, { ...OPCION_OTRO_FALTANTE }] };
   if ((dif != null && dif > 0) || (!l.linea && contadasDe(l) > 0)) {
     const opciones: { valor: string; texto: string; ayuda: string; aviso?: string }[] = [...CAUSAS_SOBRANTE];
     if (deudaPendiente > 0) {

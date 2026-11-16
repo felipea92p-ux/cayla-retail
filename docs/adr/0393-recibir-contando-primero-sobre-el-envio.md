@@ -972,3 +972,13 @@ volver a la lista»; «con Imprimir»).
 
 **Fuera, esperan a Felipe** (tocan plata y stock): las opciones nuevas de «¿Qué pasó?» («Era para otra sede», «No sé qué es» en vez de «Otro»), el freno
 «¿Son de este envío?» cuando lo de fuera de la guía supera a lo de la guía, y pasar esas prendas a un envío sin aviso (necesita base).
+
+### Actualización 2026-11-16 (b) — «Otro» también en lo que falta, y no es deuda (Felipe)
+
+Felipe preguntó si «Otro» existía para escribir qué pasó: existía solo en lo de más (20261028182000), que dejó fuera lo que falta porque faltaba decidir si
+sería deuda. **Decisión de Felipe: un faltante «Otro» no es deuda del proveedor; lo asume CAYLA, como «Se perdió en el camino».** Migración
+`20261116230000_recepcion_otro_tambien_si_falta.sql`: el candado `despacho_diferencias_causa` acepta `otro` en un faltante, y `cerrar_conteo_envio` lo acepta
+y exige su explicación (`recepcion_faltante_otro`); la nota ya la guardaba `fn_recepcion_entrar`. «Nos debe», la reposición y el cierre de mes no cambian: la
+deuda solo nace de `no_vino` y `devuelta`. En la pantalla, «Otro» va al final de lo que falta con «¿Qué pasó exactamente?» («Ej. La caja llegó abierta»), y el
+envío cerrado dice «Lo asume CAYLA». `recibir_despacho` (fase 4) sigue sin «Otro». Pruebas: `pendientes_de_envio.mjs` O5 y O6. El SQL se pega ANTES de
+fusionar el PR #1906: sin él, cerrar con «Otro» en lo que falta fallaría.

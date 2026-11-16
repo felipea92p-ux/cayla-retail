@@ -15,7 +15,7 @@ import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import type { ControlResponsable } from "@/lib/useResponsable";
-import { buenasDeRecibidos, CAUSAS_FALTANTE, CAUSAS_SOBRANTE, despuesDeRecibirEnvio, textoCausa, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
+import { buenasDeRecibidos, CAUSAS_FALTANTE, CAUSAS_SOBRANTE, VALOR_OTRO, despuesDeRecibirEnvio, textoCausa, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
 import { unirConY } from "@/lib/precio-sede-reglas";
 import { BOTON_DE_PENDIENTE, cifrasDelEnvio, lineaDelAviso, loQueEntroPorPrenda, noCuadroAgrupado, paraDespues, urlEtiquetasDeLoQueEntro, proveedoresDeLasLineas, textoNoSeReabre, veredictoDelCerrado, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
 import { HacerAhora } from "./HacerAhora";
@@ -28,8 +28,9 @@ import { ReabrirEnvio } from "./ReabrirEnvio";
 // cualquiera que tenga Recibir), y lo que sigue: imprimir y bajar al piso. «Reabrir» (decisión 5) va en «Más»; el rastro de cierres, en su hoja. Al cerrar
 // en esta pantalla, el aviso «ENV-… recibido» deja elegir qué hacer (`AvisoRecibido`).
 
-/** Qué pasa después con lo que no cuadró (la misma ayuda que se lee al elegir la causa). */
-function consecuencia(causa: string): string | null {
+/** Qué pasa después con lo que no cuadró (la misma ayuda que se lee al elegir la causa). «Otro» de más no tiene una; «Otro» de menos lo asume CAYLA (2026-11-16). */
+function consecuencia(causa: string, tipo: "faltante" | "sobrante"): string | null {
+  if (causa === VALOR_OTRO) return tipo === "faltante" ? "Lo asume CAYLA" : null;
   return [...CAUSAS_FALTANTE, ...CAUSAS_SOBRANTE].find((c) => c.valor === causa)?.ayuda.replace(/\.$/, "") ?? null;
 }
 
@@ -183,7 +184,7 @@ export function EnvioCerrado({
                   <b className="font-semibold">{unirConY(g.que)}</b>
                   {g.causa ? ` · ${textoCausa(g.causa)}` : ""}
                   {g.nota ? <i> · «{g.nota}»</i> : null}
-                  {g.causa && consecuencia(g.causa) ? <span className="block text-taupe">{consecuencia(g.causa)}</span> : null}
+                  {g.causa && consecuencia(g.causa, g.tipo) ? <span className="block text-taupe">{consecuencia(g.causa, g.tipo)}</span> : null}
                 </span>
               </li>
             ))}
