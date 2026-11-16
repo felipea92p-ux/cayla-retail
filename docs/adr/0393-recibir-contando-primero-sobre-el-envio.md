@@ -949,3 +949,26 @@ se frena antes de escribir nada con `recepcion_sin_color_con_historia`, que la p
 mezcla se difiere solo durante la llamada y vuelve a inmediato antes de responder. Lo demás no cambia: llegar «Sin color», o mezclar en lo que llegó,
 frena como antes. Se eligió el primer color que llegó (y no preguntar) porque la variante «Sin color» sin historia es una cáscara vacía: no hay
 prendas que se pinten mal. **Pruebas:** `scripts/pruebas/recibir_sin_color_toma_color.mjs` (S0–S6).
+
+## Actualización 2026-11-16 — cerrar firma lo que no cuadró, avisa y deja lo recibido liviano (Felipe)
+
+Felipe preguntó si el cierre y el envío cerrado «son los mejores, intuitivos, amigables». Los datos de producción del 16/11: 5 de los 6 envíos con guía
+cuadraron exacto; el único que no (ENV-000023) traía 203 de 227 prendas fuera de la guía, y 203 de las 205 prendas que no cuadraron en toda la base se
+cerraron con «Otro». Cerrar no preguntaba nada aunque moviera S/ 3,915 al stock, la nota de «Otro» no llegaba a la pantalla (la base la manda; la web
+la descartaba al leer) y el envío cerrado eran seis bloques con 70 casillas. Maquetas: `docs/maquetas/recibir-cierre-recibo-2026-11/` (sin commitear:
+traen datos reales y el repo es público). Felipe eligió mirando, con dos rondas («hay mucho texto»; «mejor un aviso al cerrar con ver el detalle o
+volver a la lista»; «con Imprimir»).
+
+**Decisión** (solo web, sin migración ni RPC nuevas):
+- **La firma, solo si algo no cuadró.** «Cerrar el envío» abre una hoja de tres líneas —qué entra al almacén, qué pasa a Compras (de más o faltan) y
+  quién firma— cuando falta o sobra algo con la guía (`pideFirmaAlCerrar`, `filasDeLaFirma`; `FirmaDelCierre.tsx`). Lo normal se cierra de un toque. Si el
+  cierre también cambia precios, el resumen va arriba de «Vas a cambiar precios»: una hoja, no dos.
+- **Al cerrar, un aviso en vez de la pantalla llena.** Cae el lacre, una línea (`lineaDelAviso`) y tres salidas: «Imprimir N etiquetas» (todo llega sin
+  etiqueta), «Ver lo recibido» y «Volver a Recibir mercadería», que vuelve a la lista con un aviso de 7 s con «Ver» (`AvisoRecibido.tsx`). Cerrar el aviso
+  por cualquier lado es quedarse. Reemplaza al aviso de esquina «ENV-… cerrado».
+- **Lo recibido, liviano.** La tarjeta del lacre: cifras en una línea, insignia, lo que no cuadró agrupado por respuesta con su nota
+  (`noCuadroAgrupado`) y lo que queda para después con su «Hacer ahora»; Imprimir, Bajar al piso y «Más» (Elegir de cuáles imprimir, Reabrir). «Qué
+  entró» va plegado, con la tabla color × talla de cada prenda (`matrizDeLoQueEntro`); el rastro de cierres pasa a la hoja de Reabrir.
+
+**Fuera, esperan a Felipe** (tocan plata y stock): las opciones nuevas de «¿Qué pasó?» («Era para otra sede», «No sé qué es» en vez de «Otro»), el freno
+«¿Son de este envío?» cuando lo de fuera de la guía supera a lo de la guía, y pasar esas prendas a un envío sin aviso (necesita base).
