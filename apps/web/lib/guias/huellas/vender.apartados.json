@@ -138,12 +138,12 @@
       "button «{constancia ? \"Boleta o factura\" : \"Boleta final\"}»",
       "button «{constancia ? \"Constancia\" : \"Anticipo\"}»",
       "BotonImprimir «Imprimir la copia»",
-      "button «Ahora no»",
-      "Boton «Avisar por WhatsApp»",
       "button «{o.texto}»",
       "ComboResponsable «{responsable}»",
       "button «Mejor no»",
       "Boton «{!motivo ? \"Elige por qué se libera.\" : (responsable.motivo ?? undefined)}»",
+      "button «Ahora no»",
+      "Boton «Avisar por WhatsApp»",
       "button «{ICONO_METODO[m]}»",
       "input «{apartado.devolucionCciFinal ? `…${apartado.devolucionCciFinal}»",
       "input «Obligatorio»",
@@ -209,6 +209,7 @@
       "button «{a.extensiones >= EXTENSIONES_MAX ? `Ya se aplazó ${EXTENSIONES_MAX}»",
       "button «Liberar»",
       "button «Entregar»",
+      "button «{`Avisarle a ${a.nombres}»",
       "button «Devolver»"
     ],
     "components/apartados/piezas.tsx": [
