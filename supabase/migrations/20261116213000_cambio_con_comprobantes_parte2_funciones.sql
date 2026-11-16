@@ -332,6 +332,23 @@ $function$;
 comment on function retail.previsualizar_documentos_cambio(uuid, uuid, integer, numeric, jsonb) is
   'ADR-0671: qué documentos va a emitir un cambio (comprobante nuevo con su cliente, nota de crédito ahora o después) y qué lo impediría, para decirlo antes de confirmar. Solo lee.';
 
+-- La sonda: existe desde que la base emite los documentos de un cambio. Cambios la pregunta (como fn_acepta_qr_en_cambios) antes de
+-- mandar p_cliente o de decir qué documentos salen: si la web se publica antes que esta migración, sigue cambiando como antes.
+create or replace function retail.fn_cambio_emite_comprobantes()
+returns boolean
+language sql
+stable
+set search_path to 'retail', 'public', 'extensions'
+as $function$
+  select true;
+$function$;
+
+comment on function retail.fn_cambio_emite_comprobantes() is
+  'ADR-0671: existe desde que un cambio con diferencia emite su comprobante nuevo y su nota de crédito. La pantalla de Cambios la pregunta antes de mandar p_cliente.';
+
+revoke all on function retail.fn_cambio_emite_comprobantes() from public, anon;
+grant execute on function retail.fn_cambio_emite_comprobantes() to authenticated;
+
 revoke all on function retail.fn_original_del_cambio(uuid) from public, anon, authenticated, service_role;
 revoke all on function retail.fn_problema_cliente_del_cambio(text, text, text, numeric) from public, anon, authenticated, service_role;
 revoke all on function retail.fn_emitir_nota_del_cambio(uuid) from public, anon, authenticated, service_role;

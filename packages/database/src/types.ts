@@ -9253,6 +9253,7 @@ export type Database = {
         Returns: Json
       }
       fn_emitir_notas_de_cambios_pendientes: { Args: never; Returns: number }
+      fn_cambio_emite_comprobantes: { Args: never; Returns: boolean }
       registrar_cambio: {
         Args: {
           p_cantidad?: number

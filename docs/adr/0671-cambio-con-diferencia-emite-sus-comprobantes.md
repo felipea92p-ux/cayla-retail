@@ -71,6 +71,8 @@ siguen ciertas, y la venta original queda con su asesora.
 - **El cliente** llega como `p_cliente` (jsonb opcional) en las dos funciones de cambio, y entra a la huella del token solo cuando viene.
   Una boleta de más de S/ 700 exige documento (Reglamento de Comprobantes de Pago, art. 8): se valida antes de reservar, y la pantalla lo
   pregunta antes con `previsualizar_documentos_cambio`.
+- **La sonda** (`fn_cambio_emite_comprobantes`, como `fn_acepta_qr_en_cambios`): la pantalla solo manda `p_cliente` y solo dice qué
+  documentos salen si la base ya los emite. Si la web se publica antes que la migración, Cambios sigue funcionando como antes.
 - **El corte** (`fn_cambios_con_documentos_desde`) es el primer cambio que tuvo documentos: lo leen las metas y el vigía para no reescribir los
   meses pasados.
 
