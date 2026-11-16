@@ -23,7 +23,7 @@ export function QuitarColor({ nombre, onQuitar }: { nombre: string; onQuitar: (c
       type="button"
       onClick={(e) => onQuitar(e.detail === 0)}
       aria-label={`Quitar ${nombre}`}
-      className="grid h-6 w-6 place-items-center rounded-full text-[15px] leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
+      className="area-dedo grid h-6 w-6 place-items-center rounded-full text-[15px] leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
     >
       ×
     </button>

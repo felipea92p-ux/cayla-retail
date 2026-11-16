@@ -30,7 +30,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
         {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
         <EncabezadoPagina
           sede="Todas las sedes"
-          titulo={term ? <>&ldquo;{q}&rdquo;</> : "Buscar en el catálogo"}
+          titulo={term ? <span className="[overflow-wrap:anywhere]">&ldquo;{q}&rdquo;</span> : "Buscar en el catálogo"}
           nombre="Búsqueda"
           guiaAyuda="buscar.ayuda"
           ayuda={
@@ -140,25 +140,25 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
           return (
             <div key={v.varianteId} className="card-cayla p-5" data-guia="buscar.resultado">
               <div className="flex items-start justify-between gap-4">
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-tinta">
                     {v.referencia}{" "}
                     <span className="text-tinta/65">{[v.talla, v.color].filter(Boolean).join(" · ")}</span>
                   </p>
-                  {v.categoria && <p className="mt-0.5 text-xs text-tinta/65">{v.categoria}</p>}
-                  <p className="mt-1 font-mono text-[11px] text-tinta/65">{v.sku}</p>
+                  {v.categoria && <p className="mt-0.5 text-sm text-tinta/65">{v.categoria}</p>}
+                  <p className="mt-1 font-mono text-sm text-tinta/65 [overflow-wrap:anywhere]">{v.sku}</p>
                 </div>
                 <div className="text-right" data-guia="buscar.stock">
                   <p className={`font-display text-2xl ${hayStock ? "text-tinta" : "text-rojo"}`}>{stockTotal}</p>
                   <p className="label-cayla text-[10px] text-tinta/65">{hayStock ? "en stock" : "agotada"}</p>
-                  <p className="mt-1 text-xs text-tinta/70">S/{(preciosAqui[v.varianteId] ?? v.precio).toFixed(2)}</p>
+                  <p className="mt-1 text-sm text-tinta/70">S/{(preciosAqui[v.varianteId] ?? v.precio).toFixed(2)}</p>
                 </div>
               </div>
 
               {detalles.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12" data-guia="buscar.sedes">
                   {detalles.map((d, i) => (
-                    <span key={`${d.ubicacion}-${i}`} className="bg-crema px-3 py-1.5 text-xs text-tinta/80">
+                    <span key={`${d.ubicacion}-${i}`} className="bg-crema px-3 py-1.5 text-sm text-tinta/80">
                       {d.ubicacion} <b className="font-display text-sm text-tinta">{d.cantidad}</b>
                     </span>
                   ))}

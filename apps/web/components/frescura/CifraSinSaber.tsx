@@ -25,7 +25,7 @@ export function CifraSinSaber({ pct, cuantas, causas }: { pct: number; cuantas: 
             aria-expanded={abierto}
             aria-controls={id}
             onClick={() => setAbierto((v) => !v)}
-            className="btn-cayla btn-enlace -my-[3px] inline-flex min-h-6 items-center text-[12.5px]"
+            className="btn-cayla btn-enlace -my-[3px] inline-flex min-h-6 items-center text-sm"
           >
             ¿Por qué?
           </button>

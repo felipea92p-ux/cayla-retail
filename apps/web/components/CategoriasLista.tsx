@@ -25,6 +25,7 @@ import { claveTexto } from "@/lib/nombres-parecidos";
 import { ExisteTambien, faltaPorExistente, useExisteTambien } from "@/components/ui/ExisteTambien";
 import { FolderTree, Grid3x3, Layers, Ruler, Shapes } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { PieAcciones } from "@/components/ui/PieAcciones";
 import { BotonEditar } from "@/components/ui/BotonEditar";
 import { MAX_NOMBRE_CATALOGO } from "@/lib/catalogo-topes";
 
@@ -795,33 +796,36 @@ export function CategoriasLista({
           )}
 
           <ComboResponsable control={responsable} deshabilitado={guardando || subGuardando || cambiandoId !== null} className="mt-5" />
-          <div data-guia="categorias.form-pie" className="mt-5 flex items-center justify-between gap-2">
-            {editando ? (
-              // Lo peligroso, rojo desde el principio (ADR-0358, `accion.eliminar`): `btn-peligro`, como en Familias.
-              <Boton cargando={cambiandoId === borrador.id} textoCargando="Desactivando…"
-                type="button"
-                peso="peligro"
-                onClick={() => {
-                  const c = categorias.find((x) => x.id === borrador.id);
-                  if (c) cambiarEstado(c);
-                }}
-                disabled={cambiandoId === borrador.id || !responsable.listo}
-                title={responsable.motivo ?? undefined}
-              >
-                Desactivar categoría
-              </Boton>
-            ) : (
-              <span />
-            )}
-            <div className="pie-acciones">
-              <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
-                Cancelar
-              </Boton>
-              <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!borrador.nombre.trim() || borrador.prefijo.length !== 3 || !!choquePrefijo || !!choqueNombre || existe.bloquea || !responsable.listo} title={responsable.motivo ?? faltaExiste ?? undefined}>
-                {editando ? "Guardar cambios" : "Guardar categoría"}
-              </Boton>
-            </div>
-          </div>
+          {/* El pie del sistema (`<PieAcciones>`): en el celular «Desactivar categoría» baja a su propia fila y Cancelar y Guardar quedan en
+              mitades. Antes iban en una fila sin salto y, a 375 px, «Guardar cambios» se montaba sobre «Cancelar». */}
+          <PieAcciones
+            className="mt-5"
+            guia="categorias.form-pie"
+            izquierda={
+              editando ? (
+                // Lo peligroso, rojo desde el principio (ADR-0358, `accion.eliminar`): `btn-peligro`, como en Familias.
+                <Boton cargando={cambiandoId === borrador.id} textoCargando="Desactivando…"
+                  type="button"
+                  peso="peligro"
+                  onClick={() => {
+                    const c = categorias.find((x) => x.id === borrador.id);
+                    if (c) cambiarEstado(c);
+                  }}
+                  disabled={cambiandoId === borrador.id || !responsable.listo}
+                  title={responsable.motivo ?? undefined}
+                >
+                  Desactivar categoría
+                </Boton>
+              ) : null
+            }
+          >
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
+              Cancelar
+            </Boton>
+            <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!borrador.nombre.trim() || borrador.prefijo.length !== 3 || !!choquePrefijo || !!choqueNombre || existe.bloquea || !responsable.listo} title={responsable.motivo ?? faltaExiste ?? undefined}>
+              {editando ? "Guardar cambios" : "Guardar categoría"}
+            </Boton>
+          </PieAcciones>
             </>
           )}
         </Modal>

@@ -32,7 +32,7 @@ export function ChipEstado({ est, children, onClick, tip, guia }: { est: Estado;
     </>
   );
   return onClick ? (
-    <button type="button" className={`chip ${est}`} onClick={onClick} data-tip={tip} data-guia={guia}>
+    <button type="button" className={`chip area-dedo ${est}`} onClick={onClick} data-tip={tip} data-guia={guia}>
       {contenido}
     </button>
   ) : (
@@ -45,7 +45,7 @@ export function ChipEstado({ est, children, onClick, tip, guia }: { est: Estado;
 /** El «?» que explica a un toque (nunca solo con el mouse encima: también al tocarlo y con el teclado). */
 export function Ayuda({ texto }: { texto: string }) {
   return (
-    <button type="button" className="ayuda" data-tip={texto} aria-label={texto}>
+    <button type="button" className="ayuda area-dedo" data-tip={texto} aria-label={texto}>
       ?
     </button>
   );

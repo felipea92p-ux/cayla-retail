@@ -155,7 +155,7 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
                 placeholder="Ej.: la puse en la entrada, junto a la caja" // sugerir-fijo: ejemplo de dónde se movió la prenda; no depende de la acción, el producto ni la sede elegidos
               />
             ) : (
-              <button type="button" className="btn-cayla btn-enlace text-[13px]" onClick={() => setNotaAbierta(true)}>
+              <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => setNotaAbierta(true)}>
                 + Agregar una nota
               </button>
             )}
@@ -171,7 +171,7 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
         <div role="alert" className="rounded-xl bg-hueso px-3.5 py-3 text-[15px] leading-relaxed">
           <p>{error.texto}</p>
           {error.conVer && (
-            <button type="button" className="btn-cayla btn-enlace mt-1 text-[13px]" onClick={() => (anotador.limpiarError(), router.refresh())}>
+            <button type="button" className="btn-cayla btn-enlace mt-1 text-sm" onClick={() => (anotador.limpiarError(), router.refresh())}>
               Ver
             </button>
           )}

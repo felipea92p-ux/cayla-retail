@@ -309,7 +309,7 @@ export function FilaFase({
         {...pieDe("proveedor", opcionesProveedor.length === 0 ? "aún no hay proveedores de servicio cargados" : undefined)}
       />
       {onAgregarProveedor && (
-        <button type="button" onClick={() => onAgregarProveedor((id) => onCambiar({ pendiente: false, proveedorId: id }))} className="btn-cayla btn-enlace mt-1 text-[13px]">
+        <button type="button" onClick={() => onAgregarProveedor((id) => onCambiar({ pendiente: false, proveedorId: id }))} className="btn-cayla btn-enlace mt-1">
           + Registrar proveedor nuevo
         </button>
       )}
@@ -486,7 +486,7 @@ export function FilaFase({
                 {...pieDe("fijo", sugerida && sugerida.fijo > 0 && fase.fijo.trim() === "" ? "de su lista de precios" : "una sola vez por orden: ponchado del bordado, matriz del estampado")}
               />
             ) : (
-              <button type="button" onClick={() => setFijoDesplegado(true)} className="btn-cayla btn-enlace text-[12.5px]">
+              <button type="button" onClick={() => setFijoDesplegado(true)} className="btn-cayla btn-enlace">
                 + fijo por orden (ponchado, matriz)
               </button>
             )}

@@ -371,7 +371,7 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
         className="space-y-6"
       >
         <section data-guia="oi-comprobante.papel" className="@container card-cayla p-4 sm:p-5" aria-label="El papel">
-          <div className="grid gap-x-5 gap-y-4 @min-[28rem]:grid-cols-2 @min-[52rem]:grid-cols-4">
+          <div className="grid gap-x-5 gap-y-4 @min-[28rem]:grid-cols-2 @min-[60rem]:grid-cols-4">
             <CampoGuiado id="tipo" guia={guia} className="@min-[28rem]:col-span-2">
               <p className={TITULO_FIJO}>{etiqueta("tipo", "Qué papel te dieron")}</p>
               {/* Los cuatro tipos en un segmento piden 448 px: en la sección angosta «Sin comprobante» quedaba fuera de la vista, así que

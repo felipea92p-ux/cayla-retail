@@ -376,7 +376,7 @@ export function CerrarCajaModalV2({
                 {esperado ? (
                   <>
                     <p className="font-display mt-1 text-3xl tabular-nums text-tinta">{money(esperado.esperado)}</p>
-                    <dl className="mt-2 space-y-0.5 text-xs text-tinta/65">
+                    <dl className="mt-2 space-y-0.5 text-sm text-tinta/65">
                       <Linea etiqueta="Apertura" valor={esperado.apertura} />
                       <Linea etiqueta="+ Ventas en efectivo" valor={esperado.ventasEfectivo} />
                       {esperado.ingresos > 0 && <Linea etiqueta="+ Ingresos" valor={esperado.ingresos} />}
@@ -391,11 +391,11 @@ export function CerrarCajaModalV2({
                     {cierreClaure && <EfectivoDeClaure cierre={cierreClaure} />}
                   </>
                 ) : falloEsperado ? (
-                  <p className="mt-2 text-xs text-tinta/65">
+                  <p className="mt-2 text-sm text-tinta/65">
                     No se pudo leer lo que espera el sistema. Puedes cerrar igual: al cerrar te decimos si cuadra.
                   </p>
                 ) : (
-                  <p className="mt-2 text-xs text-tinta/50">Calculando…</p>
+                  <p className="mt-2 text-sm text-tinta/50">Calculando…</p>
                 )}
               </section>
               <section className="rounded-xl border border-sand bg-papel p-3.5">
@@ -416,7 +416,9 @@ export function CerrarCajaModalV2({
                   />
                 </div>
                 <details className="mt-3 rounded-lg border border-dashed border-sand px-3 py-2">
-                  <summary className="cursor-pointer text-xs font-semibold text-tinta/80">Contar por billetes y monedas</summary>
+                  {/* -my-2 py-3: el área que se toca crece a ~44 px sin mover el texto (el relleno lo tiene el <details>). Sin `flex`:
+                      Chrome le quitaría el triángulo de desplegar. */}
+                  <summary className="-my-2 cursor-pointer py-3 text-sm font-semibold text-tinta/80">Contar por billetes y monedas</summary>
                   {/* Una fila por billete o moneda: denominación · cantidad · subtotal. En dos columnas el campo quedaba
                       de pocos píxeles dentro de la tarjeta y el número no se veía. */}
                   <div className="mt-2 space-y-1">
@@ -425,7 +427,7 @@ export function CerrarCajaModalV2({
                       const clave = String(d);
                       const invalida = escrita.invalida(clave);
                       return (
-                        <label key={d} className="grid grid-cols-[3.25rem_4rem_1fr] items-center gap-2 text-xs text-tinta/65">
+                        <label key={d} className="grid grid-cols-[3.25rem_4rem_1fr] items-center gap-2 text-sm text-tinta/65">
                           <b className="font-semibold text-tinta">{d >= 1 ? `S/\u00a0${d}` : `${Math.round(d * 100)} cts`}</b>
                           <input
                             inputMode="numeric"
@@ -436,7 +438,7 @@ export function CerrarCajaModalV2({
                             onChange={(e) => escrita.escribir(clave, e.target.value, billetes[d] ?? "", (v) => cambiarBillete(d, v))}
                             onBlur={() => escrita.terminar(clave)}
                             aria-label={`Cantidad de ${d >= 1 ? `billetes o monedas de ${d} soles` : `monedas de ${Math.round(d * 100)} céntimos`}`}
-                            className={`caja-campo-input min-h-8 px-2 text-right tabular-nums ${invalida ? "text-rojo-profundo" : ""}`}
+                            className={`caja-campo-input min-h-8 px-2 text-right tabular-nums pointer-coarse:min-h-11 ${invalida ? "text-rojo-profundo" : ""}`}
                           />
                           <span className={`text-right tabular-nums ${cantidad > 0 ? "text-tinta" : "text-tinta/35"}`}>
                             {money(cantidad * d)}

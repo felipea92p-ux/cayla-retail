@@ -17,7 +17,7 @@ import { armarHoja, TEXTO, tituloHoja, type AlcanceHoja, type BuscarEnHoja, type
 //
 // CONTRATO. PROMETE: un <Modal variante="hoja"> del sistema (velo, entrada, cascada y Escape del sistema; nada de overlay propio); un buscador (que
 //   se ve SIEMPRE: el código de la etiqueta discrimina aun con 2 prendas); el contador; las tarjetas; «Ninguna es mi prenda» al pie; pantalla
-//   completa bajo 1024 px; la línea gris de otras marcas SIN acción; el aviso cuando la lectura falló; Escape en dos tiempos (el primero borra la
+//   completa bajo 1280 px; la línea gris de otras marcas SIN acción; el aviso cuando la lectura falló; Escape en dos tiempos (el primero borra la
 //   búsqueda, el segundo cierra la hoja); el foco no salta a un teclado en el celular; que el foco vuelva a un lugar REAL al cerrar (si la fila que la abrió
 //   ya no existe —«Ninguna es mi prenda» baja la alerta y la quita—, va a la alerta o, sin ella, al campo Nombre); el buscador a 16 px en el celular (a menos,
 //   Safari hace zoom al enfocarlo) con un texto corto que sí cabe; ni un texto propio (todos vienen de `TEXTO`). ASUME: que se monta solo cuando la hoja está abierta (la hoja
@@ -59,7 +59,7 @@ function esTactil(): boolean {
   return typeof window !== "undefined" && (window.matchMedia?.("(pointer: coarse)").matches || window.innerWidth <= 660);
 }
 
-/** ¿Se ve en la pantalla? (un elemento de una rama oculta con `lg:hidden` o `hidden lg:block` está conectado pero no ocupa lugar). */
+/** ¿Se ve en la pantalla? (un elemento de una rama oculta con `xl:hidden` o `hidden xl:block` está conectado pero no ocupa lugar). */
 const seVe = (el: HTMLElement | null): el is HTMLElement => !!el && el.isConnected && el.getClientRects().length > 0;
 
 /**
@@ -113,7 +113,7 @@ export function HojaParecidas(p: Props) {
       variante="hoja"
       titulo={tituloHoja(p.resultado.ambito, alcance, p.marca, p.categoria)}
       subtitulo={TEXTO.bajadaHoja}
-      // `parecidas-hoja` (app/estilos/alta-parecidas.css): el contenedor de consulta de las tarjetas y la pantalla completa bajo 1024 px.
+      // `parecidas-hoja` (app/estilos/alta-parecidas.css): el contenedor de consulta de las tarjetas y la pantalla completa bajo 1280 px.
       ancho={`${ANCHO_HOJA.ancha} parecidas-hoja`} /* unificar-fijo: la ancha con la clase de su contenedor (alta-parecidas.css) */
       onClose={p.onCerrar}
       alCerrarEnfocar={alCerrarEnfocar}

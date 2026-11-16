@@ -65,7 +65,7 @@ export function FrescuraPiso({
   const cerrada = puerta === null || !puerta.puedeHablar;
   const paso = pasoDeLaPuerta(puerta, acceso);
   return (
-    <section aria-labelledby="frescura-piso-titulo" data-guia="frescura.piso" className="card-cayla px-4 py-4 sm:px-5">
+    <section aria-labelledby="frescura-piso-titulo" data-guia="frescura.piso" className="@container card-cayla px-4 py-4 sm:px-5">
       <TituloSeccion
         id="frescura-piso-titulo"
         dato={
@@ -87,7 +87,7 @@ export function FrescuraPiso({
 
       <BarraApilada segmentos={segmentosDelPiso(principal)} alto={12} unidad="unidades colgadas" className="mt-3" />
 
-      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 @min-[36rem]:grid-cols-4">
         {tramosConNumero(principal).map((t) =>
           t === "sin_saber" ? (
             <CifraSinSaber key={t} pct={pct[t]} cuantas={principal.unidades.sin_saber} causas={principal.sinSaberPor} />
@@ -118,9 +118,9 @@ export function FrescuraPiso({
 
 
       {lineas.length > 0 && (
-        <ul aria-label="Cada familia" className="mt-4 divide-y divide-sand border-t border-sand">
+        <ul aria-label="Cada familia" className="@container mt-4 divide-y divide-sand border-t border-sand">
           {lineas.map((f) => (
-            <li key={f.codigo ?? "otras"} className="grid grid-cols-1 items-center gap-x-4 gap-y-1.5 py-2.5 sm:grid-cols-[minmax(140px,1fr)_minmax(180px,2fr)_minmax(0,2fr)]">
+            <li key={f.codigo ?? "otras"} className="grid grid-cols-1 items-center gap-x-4 gap-y-1.5 py-2.5 @min-[40rem]:grid-cols-[minmax(140px,1fr)_minmax(180px,2fr)_minmax(0,2fr)]">
               <span className="text-[14px] font-semibold leading-tight">
                 {f.nombre} <span className="text-sm font-normal tabular-nums text-taupe">· {unidades(f.total)}</span>
               </span>

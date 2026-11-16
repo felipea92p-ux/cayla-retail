@@ -387,7 +387,7 @@ export function ImprimirEtiquetasPrecio({
               </div>
             )}
           </div>
-          <p className="px-1 text-xs leading-relaxed text-taupe">
+          <p className="px-1 text-sm leading-relaxed text-taupe">
             {sinElDescuento
               ? "Salen con el precio normal, sin la campaña: no hace falta reimprimirlas cuando termine."
               : "Sale lo que la caja cobra hoy, con la campaña si hay una; cuando termine, reimprímelas desde la campaña."}{" "}

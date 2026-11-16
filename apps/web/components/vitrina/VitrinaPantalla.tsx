@@ -75,9 +75,10 @@ const cargarHojaLote = () => import("@/components/vitrina/VitrinaLoteHoja").then
 const VitrinaModeloHoja = dynamic(cargarHojaModelo);
 const VitrinaLoteHoja = dynamic(cargarHojaLote);
 
-// En el celular la fila es una tarjeta: casilla, modelo e interruptor arriba y lo libre en cada tienda bajo el nombre; desde `sm`,
-// columnas.
-const PLANTILLA = "grid-cols-[1.5rem_minmax(0,1fr)_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_12rem_4.5rem]";
+// Angosta, la fila es una tarjeta: casilla, modelo e interruptor arriba y lo libre en cada tienda bajo el nombre; con la TABLA de 34 rem o
+// más, columnas. Lo decide el ancho de la tabla (`.tabla-cayla` es contenedor), no el de la ventana: con el menú abierto a 768 px, las
+// columnas dejaban al nombre del modelo en unos 2 px.
+const PLANTILLA = "grid-cols-[1.5rem_minmax(0,1fr)_2.75rem] @min-[34rem]:grid-cols-[1.5rem_minmax(0,1fr)_12rem_4.5rem]";
 
 // «Columnas» (pantalla grande, hasta 8 tiendas): casilla · modelo · categoría · colores · una columna por tienda · estado · interruptor.
 // Los anchos tienen tope (el modelo, 22 rem; la categoría, 10) para que el stock no quede a un mundo del nombre; lo que sobra lo toma el
@@ -432,6 +433,7 @@ export function VitrinaPantalla({
           <Tabla className="rounded-none border-0 shadow-none" guia="vitrina.lista">
             <Encabezado
               plantilla={plantillaLista}
+              visible={modoLista === "filas" ? "hidden @min-[34rem]:grid" : undefined}
               columnas={[
                 {
                   titulo: (
@@ -525,11 +527,12 @@ export function VitrinaPantalla({
  *  antes el motivo solo vivía en la hoja del modelo. El empaque («Solo en la caja») no es un problema: va sin él. Un clic aquí no abre la hoja. */
 function RazonDelChip({ razon }: { razon: NonNullable<ReturnType<typeof razonNoSeMuestra>> }) {
   const [abierta, setAbierta] = useState(false);
-  if (razon.tono !== "ambar") return <Chip tono={razon.tono}>{razon.chip}</Chip>;
+  // `chip-envuelve`: en una carta angosta «Aún en el Taller: no se ve» baja de línea en vez de salirse de la carta.
+  if (razon.tono !== "ambar") return <Chip tono={razon.tono} className="chip-envuelve">{razon.chip}</Chip>;
   return (
     <>
-      <Chip tono={razon.tono}>{razon.chip}</Chip>
-      <button type="button" className="btn-cayla btn-enlace text-[12px]" aria-expanded={abierta} onClick={() => setAbierta((a) => !a)}>
+      <Chip tono={razon.tono} className="chip-envuelve">{razon.chip}</Chip>
+      <button type="button" className="btn-cayla btn-enlace text-sm" aria-expanded={abierta} onClick={() => setAbierta((a) => !a)}>
         ¿Por qué?
       </button>
       {abierta && <span className="basis-full text-sm leading-snug text-taupe">{razon.frase}</span>}
@@ -570,7 +573,7 @@ function FilaModelo({
       }}
       className={`${fila(PLANTILLA, "cursor-pointer items-center sm:items-center")} ${elegido ? "bg-rojo/[0.045]" : ""}`}
     >
-      <label data-guia="vitrina.casilla" className="tw-toque-casilla row-span-2 sm:row-span-1">
+      <label data-guia="vitrina.casilla" className="tw-toque-casilla area-dedo row-span-2 @min-[34rem]:row-span-1">
         <Casilla marcada={elegido} onCambio={onElegir} etiqueta={`Elegir ${m.nombre}`} />
       </label>
       <span className="flex min-w-0 items-center gap-3">
@@ -600,7 +603,7 @@ function FilaModelo({
           )}
         </span>
       </span>
-      <span className="col-start-2 row-start-2 text-sm tabular-nums text-tinta sm:col-start-auto sm:row-start-auto">
+      <span className="col-start-2 row-start-2 text-sm tabular-nums text-tinta @min-[34rem]:col-start-auto @min-[34rem]:row-start-auto">
         {stockEnTiendas(m, tiendas).map((s, i) => (
           <span key={s.sede} className={s.cantidad === 0 ? "text-tinta/40" : ""}>
             {i > 0 && <span className="text-taupe"> · </span>}
@@ -608,7 +611,7 @@ function FilaModelo({
           </span>
         ))}
       </span>
-      <span className="col-start-3 row-start-1 flex justify-end self-center sm:col-start-auto sm:row-start-auto" data-guia="vitrina.interruptor">
+      <span className="col-start-3 row-start-1 flex justify-end self-center @min-[34rem]:col-start-auto @min-[34rem]:row-start-auto" data-guia="vitrina.interruptor">
         <button
           type="button"
           role="switch" // unificar-fijo: la cara del interruptor del sistema en una fila de tabla; su título es la columna «En la web»
@@ -658,7 +661,7 @@ function FilaColumnas({
       }}
       className={`${fila(PLANTILLA_COLUMNAS[tiendas.length]!, "cursor-pointer items-center sm:items-center")} ${elegido ? "bg-rojo/[0.045]" : ""}`}
     >
-      <label data-guia="vitrina.casilla" className="tw-toque-casilla">
+      <label data-guia="vitrina.casilla" className="tw-toque-casilla area-dedo">
         <Casilla marcada={elegido} onCambio={onElegir} etiqueta={`Elegir ${m.nombre}`} />
       </label>
       <span className="flex min-w-0 items-center gap-3">

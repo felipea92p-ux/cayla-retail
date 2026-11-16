@@ -166,9 +166,9 @@ export function DetalleCategoriaResultados({
               Cuando se venda una prenda de {categoria.nombre}, aparece aquí con su color.
             </Vacio>
           ) : (
-            <ol className="mt-2 divide-y divide-sand">
+            <ol className="@container mt-2 divide-y divide-sand">
               {prendas.map((p, i) => (
-                <li key={p.clave} className="grid grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,8rem)_3rem_6rem] items-center gap-3 py-2 text-sm">
+                <li key={p.clave} className="grid grid-cols-[1.5rem_minmax(0,1fr)_3rem_6rem] items-center gap-3 py-2 text-sm @min-[28rem]:grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,8rem)_3rem_6rem]">
                   <span className="text-sm tabular-nums text-taupe">{i + 1}</span>
                   <span className="flex min-w-0 items-center gap-2">
                     {/* El color de la prenda es dato: no cambia con el tema (ADR-0336, regla 3). */}
@@ -178,7 +178,7 @@ export function DetalleCategoriaResultados({
                       {p.color && <span className="text-taupe"> · {p.color}</span>}
                     </span>
                   </span>
-                  <BarraAvance pct={(p.unidades / maxPrenda) * 100} tono="tinta" decorativa indice={i} />
+                  <BarraAvance className="hidden @min-[28rem]:block" pct={(p.unidades / maxPrenda) * 100} tono="tinta" decorativa indice={i} />
                   <span className="text-right tabular-nums text-tinta">{enteroES.format(p.unidades)}</span>
                   <span className="text-right tabular-nums text-tinta/70">{solesES(p.soles)}</span>
                 </li>

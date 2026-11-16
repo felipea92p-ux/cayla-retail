@@ -32,7 +32,7 @@ function FilaDeMovimiento({ m, cuentaId, onElegir }: { m: MovimientoDinero; cuen
       <span className="dp-versalita">{fechaCorta(m.fecha)}</span>
       <span className="min-w-0">
         <b className="block text-sm font-semibold text-tinta">{TEXTO_MOVIMIENTO[m.tipo]}</b>
-        <small className="dp-tenue block truncate text-xs">
+        <small className="dp-tenue line-clamp-2 text-sm">
           {m.origenNombre ? nombreCorto(m.origenNombre) : "El dueño"} → {m.destinoNombre ? nombreCorto(m.destinoNombre) : "Sale del negocio"}
           {m.comision > 0 ? ` · comisión ${solesDos(m.comision)} → gasto` : ""}
           {m.estado === "anulado" ? ` · anulado: ${m.motivoAnulacion ?? ""}` : ""}

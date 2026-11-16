@@ -34,9 +34,10 @@ import {
 
 const RUTA = "/tienda-web/recomendaciones";
 // Cada recomendación como un mensaje (ADR-0430): a la izquierda quién la escribió, sobre qué y cuándo; al centro lo que escribió, en su
-// globo (y debajo, si ya se le respondió, la respuesta de CAYLA); a la derecha en qué está. En el celular, quién y el estado arriba y el
-// mensaje debajo, a todo el ancho.
-const PLANTILLA = "grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[12rem_minmax(0,1fr)_7.5rem]";
+// globo (y debajo, si ya se le respondió, la respuesta de CAYLA); a la derecha en qué está. Angosta, quién y el estado arriba y el
+// mensaje debajo, a todo el ancho. Lo decide el ancho de la TABLA (`.tabla-cayla` es contenedor), no el de la ventana: con el menú
+// abierto a 768 px, las columnas dejaban el globo en unos 50 px y el mensaje no se leía.
+const PLANTILLA = "grid-cols-[minmax(0,1fr)_auto] @min-[40rem]:grid-cols-[12rem_minmax(0,1fr)_7.5rem]";
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
 
 /**
@@ -234,7 +235,7 @@ export function RecomendacionesPantalla({
           )
         ) : (
           <>
-            <Encabezado plantilla={PLANTILLA} columnas={[{ titulo: "Quién" }, { titulo: "Lo que escribió" }, { titulo: "Estado" }]} />
+            <Encabezado plantilla={PLANTILLA} visible="hidden @min-[40rem]:grid" columnas={[{ titulo: "Quién" }, { titulo: "Lo que escribió" }, { titulo: "Estado" }]} />
             {enPagina.map((r, i) => {
               const e = estadoDe(r);
               return (
@@ -285,12 +286,12 @@ export function RecomendacionesPantalla({
                       </span>
                     </span>
                   </span>
-                  <span className="col-start-2 row-start-1 flex justify-end sm:hidden">
+                  <span className="col-start-2 row-start-1 flex justify-end @min-[40rem]:hidden">
                     <Chip tono={INSIGNIA[e].tono} tachado={false}>
                       {INSIGNIA[e].texto}
                     </Chip>
                   </span>
-                  <span className="col-span-2 flex min-w-0 flex-col gap-1.5 sm:col-span-1">
+                  <span className="col-span-2 flex min-w-0 flex-col gap-1.5 @min-[40rem]:col-span-1">
                     <span className="tw-globo line-clamp-3" data-sin-leer={e === "por_responder" ? "" : undefined}>
                       {r.texto}
                     </span>
@@ -301,7 +302,7 @@ export function RecomendacionesPantalla({
                       </span>
                     )}
                   </span>
-                  <span className="hidden sm:block">
+                  <span className="hidden @min-[40rem]:block">
                     <Chip tono={INSIGNIA[e].tono} tachado={false}>
                       {INSIGNIA[e].texto}
                     </Chip>

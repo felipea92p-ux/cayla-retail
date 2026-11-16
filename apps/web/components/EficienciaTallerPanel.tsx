@@ -94,8 +94,9 @@ export function EficienciaTallerPanel({
       )}
 
       {periodos.length > 1 && (
-        // El período es un filtro de un valor: la píldora del sistema (ADR-0358).
-        <div data-guia="prod-eficiencia.periodos" role="group" aria-label="Período" className="pildoras-desliza gap-2 sm:flex-wrap">
+        // El período es un filtro de un valor: la píldora del sistema (ADR-0358). `suppressHydrationWarning`: `FilasQueSeDeslizan`
+        // (app/layout.tsx) le pone `data-mas-izq`/`data-mas-der` desde afuera de React (como en `<Pestanas>`).
+        <div data-guia="prod-eficiencia.periodos" role="group" aria-label="Período" className="pildoras-desliza gap-2 sm:flex-wrap" suppressHydrationWarning>
           {periodos.map((p, n) => (
             <button key={p.ventana.clave} type="button" data-guia={n === 0 ? "prod-eficiencia.periodo-actual" : n === 1 ? "prod-eficiencia.periodo-otro" : undefined} aria-pressed={clave === p.ventana.clave} onClick={() => setClave(p.ventana.clave)} className="pildora-cayla shrink-0">
               {p.ventana.etiqueta}

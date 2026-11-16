@@ -292,7 +292,8 @@
   color: var(--color-tinta);
 }
 .mes-a-nota {
-  font-size: 13px;
+  /* Lleva frases enteras: es lectura, no etiqueta (14 px, la regla de la letra de lectura). */
+  font-size: 14px;
   line-height: 1.45;
   color: var(--color-taupe-profundo);
 }
@@ -633,7 +634,8 @@
   gap: 4px;
 }
 .hoja-a-lado small {
-  font-size: 12px;
+  /* «N de cada S/ 100»: se lee, no es una etiqueta (14 px). */
+  font-size: 14px;
   color: var(--color-taupe-profundo);
 }
 .pie-acciones.hoja-a-pie {
@@ -838,7 +840,8 @@
   color: var(--color-taupe-profundo);
 }
 .hoja-a-pie-graf {
-  font-size: 13px;
+  /* La frase que explica el gráfico: lectura (14 px). */
+  font-size: 14px;
   line-height: 1.45;
   color: var(--color-taupe-profundo);
 }

@@ -59,6 +59,17 @@
 .pv-mesa .pv-ticket:not([data-en-hoja]) .pv-ticket-pie {
   background: transparent;
 }
+/* La hoja del ticket en un teléfono bajo (iPhone SE, 667 px): el pie fijo (Total, Responsable y Cobrar) se comía casi la mitad de la
+   hoja y el cobro quedaba en ~200 px. Se achica solo el número del Total y el aire del pie; el desglose y los datos no se tocan. */
+@media (max-height: 760px) {
+  .pv-ticket[data-en-hoja] .pv-ticket-pie {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+  .pv-ticket[data-en-hoja] .pv-pie-total {
+    font-size: 2.25rem;
+  }
+}
 
 /* ---------- La tarjeta de prenda: «A · Placa» (Felipe 2026-11-02, a las pocas horas de elegir «B · Foto al aire») ----------
    Con fotos reales, la foto al aire no funcionaba: cada foto trae su fondo (blanco, beige, celeste), así que unas se perdían contra el fondo

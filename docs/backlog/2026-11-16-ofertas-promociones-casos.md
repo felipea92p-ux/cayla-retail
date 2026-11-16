@@ -97,7 +97,7 @@ Gravedad: 1 dinero o stock que no cuadra · 2 dato malo en silencio · 3 error f
 
 ## Lo que sigue
 
-- [ ] **Pegar en producción, con el OK de Felipe**, en este orden: `20261116172000`, `20261116173000`, `20261116174000`, `20261116175000`,
+- [x] **Pegado en producción el 2026-11-16, con el OK de Felipe** (las 17 funciones verificadas idénticas a la copia local por su md5), en este orden: `20261116172000`, `20261116173000`, `20261116174000`, `20261116175000`,
   `20261116180000`. Ninguna mezcla políticas con `alter`; `174000` agrega una columna a `ventas` (la web la lee con reintento sin ella).
 - [ ] **Apartados: el monto sobre lo que se paga.** `separar_prendas`, `editar_separacion`, `previsualizar_edicion_separacion` y
   `fn_grupos_de_separacion` arman sus líneas sin `descuento_manual`: un apartado con descuento a mano mide el monto a precio de lista (la

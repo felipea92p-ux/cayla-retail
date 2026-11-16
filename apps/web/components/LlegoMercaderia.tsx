@@ -399,35 +399,39 @@ export function LlegoMercaderia({
         </section>
       ) : (
         <form ref={formulario} onSubmit={onSubmit} className="card-cayla space-y-6 p-5 sm:p-6">
-          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
-            <div data-guia="recibir.proveedor">
-            <CampoGuiado id="llegada-proveedor" guia={guiaVista} titulo="¿De quién es?" ayuda="El proveedor que la mandó">
-              <Desplegable
-                forma="campo"
-                etiquetaAccesible="Proveedor"
-                marcador="Elige el proveedor"
-                valor={proveedorId}
-                onValor={elegirProveedor}
-                opciones={directorio.map((p) => ({ valor: p.id, texto: textoDelProveedor(p.nombre, p.marcas) }))}
-              />
-              {puedeAgregarProveedor ? (
-                <p className="mt-1.5 text-sm text-taupe">
-                  ¿No está?{" "}
-                  <button type="button" onClick={() => setAgregando(true)} className="btn-cayla btn-enlace whitespace-normal text-left text-xs">
-                    + Agregar proveedor
-                  </button>
-                </p>
-              ) : (
-                <p className="mt-1.5 text-sm text-taupe">¿No está? Pídele a quien administra Proveedores que lo agregue.</p>
-              )}
-            </CampoGuiado>
+          {/* Proveedor y guía lado a lado los decide el ancho de la tarjeta (`@container`), no el de la ventana: a 768 px con el menú
+              abierto la guía se llevaba 224 px y el combo del proveedor quedaba en ~148. Desde 480 px de tarjeta caben; bajo eso, se apilan. */}
+          <div className="@container">
+            <div className="grid gap-4 @min-[480px]:grid-cols-[minmax(0,1fr)_14rem]">
+              <div data-guia="recibir.proveedor">
+              <CampoGuiado id="llegada-proveedor" guia={guiaVista} titulo="¿De quién es?" ayuda="El proveedor que la mandó">
+                <Desplegable
+                  forma="campo"
+                  etiquetaAccesible="Proveedor"
+                  marcador="Elige el proveedor"
+                  valor={proveedorId}
+                  onValor={elegirProveedor}
+                  opciones={directorio.map((p) => ({ valor: p.id, texto: textoDelProveedor(p.nombre, p.marcas) }))}
+                />
+                {puedeAgregarProveedor ? (
+                  <p className="mt-1.5 text-sm text-taupe">
+                    ¿No está?{" "}
+                    <button type="button" onClick={() => setAgregando(true)} className="btn-cayla btn-enlace whitespace-normal text-left text-xs">
+                      + Agregar proveedor
+                    </button>
+                  </p>
+                ) : (
+                  <p className="mt-1.5 text-sm text-taupe">¿No está? Pídele a quien administra Proveedores que lo agregue.</p>
+                )}
+              </CampoGuiado>
+              </div>
+              <label data-guia="recibir.guia" className="block">
+                <span className="mb-1.5 block text-sm font-semibold text-tinta">
+                  Guía <span className="font-normal text-taupe">opcional</span>
+                </span>
+                <input value={numeroGuia} onChange={(e) => setNumeroGuia(e.target.value)} className="caja-campo-input" />
+              </label>
             </div>
-            <label data-guia="recibir.guia" className="block">
-              <span className="mb-1.5 block text-sm font-semibold text-tinta">
-                Guía <span className="font-normal text-taupe">opcional</span>
-              </span>
-              <input value={numeroGuia} onChange={(e) => setNumeroGuia(e.target.value)} className="caja-campo-input" />
-            </label>
           </div>
 
           {mismaCaja && (
@@ -529,7 +533,7 @@ export function LlegoMercaderia({
                   destino,
                 )}
             </div>
-            <p id="llegada-lectura" role="status" className="mt-2 min-h-5 text-[13px]">
+            <p id="llegada-lectura" role="status" className="mt-2 min-h-5 text-sm">
               {lectura && (
                 <span className={lectura.bueno ? "text-verde" : "text-ambar-profundo"}>
                   {lectura.bueno ? "✓ " : ""}

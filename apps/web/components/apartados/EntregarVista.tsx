@@ -15,7 +15,7 @@ import { enviarVentaASunat } from "@/lib/envio-sunat";
 import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
-import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
+import { LEY_REDONDEO, NOMBRE_CORTO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { AVISO_EFECTIVO_SIN_MONEDA, avanceDelPlazo, cobroDelSaldo, coincide, encendida, esConstancia, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
 import { BarraMovil, DescuentoDePrenda, EstadoChip, FotoPrenda, ImporteDePrenda, fechaCorta } from "@/components/apartados/piezas";
 import { CanalChip } from "@/components/apartados/CanalChip";
@@ -174,7 +174,7 @@ export function EntregarVista({
   }
 
   return (
-    <div className="ap-dos grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
+    <div className="ap-dos grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_clamp(340px,40%,380px)] xl:grid-cols-[minmax(0,1fr)_420px]">
       {envio.incierto && (
         <div className="px-5 pt-5 sm:px-6 lg:col-span-2">
           <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} onReintentar={entregar} reintentando={enviando} />
@@ -214,11 +214,11 @@ export function EntregarVista({
               <div className="text-right">
                 <EstadoChip {...estadoVisible(a, hoy)} />
                 <div className="mt-1"><CanalChip a={a} className="max-w-full" /></div>
-                <p className="mt-1 font-mono text-[11px] text-tinta/55">{a.codigo}{a.comprobanteAnticipo ? ` · ${a.comprobanteAnticipo}` : ""}</p>
+                <p className="mt-1 font-mono text-sm text-tinta/55">{a.codigo}{a.comprobanteAnticipo ? ` · ${a.comprobanteAnticipo}` : ""}</p>
                 {conEstante && a.estante && (
-                  <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-hueso px-2 py-0.5 font-mono text-[11px]"><Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}</p>
+                  <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-hueso px-2 py-0.5 font-mono text-sm"><Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}</p>
                 )}
-                <button type="button" onClick={() => elegir(null)} className="label-cayla mt-1 h-7 rounded-md px-2 text-[10.5px] text-tinta/70 hover:bg-sand/40">
+                <button type="button" onClick={() => elegir(null)} className="area-dedo label-cayla mt-1 h-7 rounded-md px-2 text-[10.5px] text-tinta/70 hover:bg-sand/40">
                   Otro cliente
                 </button>
               </div>
@@ -349,7 +349,7 @@ export function EntregarVista({
                           <button key={m} type="button" aria-pressed={puesto} title={`${m} (F${i + 1})`} onClick={() => tocarMedio(m)} style={puesto ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined} className={`metodo-${m} relative flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-sm capitalize transition-colors ${puesto ? "anim-pop shadow-sm" : OPCION_INACTIVA}`}>
                             <span aria-hidden className="absolute top-0.5 right-1 text-[8px] font-semibold opacity-45">F{i + 1}</span>
                             {ICONO_METODO[m]}
-                            {m}
+                            <span className="max-w-full truncate">{NOMBRE_CORTO[m] ?? m}</span>
                           </button>
                         );
                       })}

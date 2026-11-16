@@ -145,7 +145,7 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
             aria-label={`Quitar ${nombre}`}
             title="Quitar"
             onClick={() => onQuitar(linea.claveLinea)}
-            className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/10 hover:text-rojo max-sm:order-2"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/10 hover:text-rojo max-sm:order-2 pointer-coarse:h-11 pointer-coarse:w-11"
           >
             <Trash2 className="h-4 w-4" aria-hidden />
           </button>

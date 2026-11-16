@@ -135,7 +135,7 @@ export function Carril({
             </div>
           ))}
           {g.corte !== undefined && !abiertos.has(g.clave) && g.prendas.length > g.corte && (
-            <button type="button" className="c-mas" onClick={() => setAbiertos((s) => new Set(s).add(g.clave))}>
+            <button type="button" className="c-mas area-dedo" onClick={() => setAbiertos((s) => new Set(s).add(g.clave))}>
               {textoVerMas(g.prendas.length - g.corte)}
               <Icono nombre="sigue" />
             </button>

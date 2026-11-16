@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useState, type ReactNode } from
 import { hrefEtiquetasDeSubidas, juntarSubidas } from "@/lib/matriz-ficha-reglas";
 import { conDesde } from "@/lib/vuelta-productos";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { X } from "lucide-react";
 
 // Recordatorio de «Imprimir etiquetas» (2026-10-02, Felipe: «que sea bastante visible y que no desaparezca hasta
 // cambiar de módulo»). Cuando un ajuste de stock desde la ficha de un producto SUBE alguna talla, hay una prenda más
@@ -94,9 +95,9 @@ function BannerRecordatorio({ pendientes, onLimpiar }: { pendientes: readonly Li
           onClick={onLimpiar}
           aria-label="Descartar el aviso de etiquetas pendientes"
           title="Descartar"
-          className="shrink-0 rounded px-1.5 py-1 text-tinta/45 transition-colors hover:bg-tinta/[0.06] hover:text-tinta"
+          className="area-dedo grid h-9 w-9 shrink-0 place-items-center rounded-full text-tinta/55 transition-colors hover:bg-tinta/[0.06] hover:text-tinta"
         >
-          ✕
+          <X aria-hidden className="h-4 w-4" />
         </button>
       </div>
     </div>

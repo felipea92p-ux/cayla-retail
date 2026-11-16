@@ -91,7 +91,7 @@ export function CartelClub({
                   <div className="cartel-club-previa card-cayla overflow-hidden">
                     <Cartel cartel={c} textos={textos} />
                   </div>
-                  <figcaption className="text-xs text-tinta/65">
+                  <figcaption className="text-sm text-tinta/65">
                     {c.tienda}
                     {c.numero ? ` · WhatsApp ${numeroLegible(c.numero)}` : ""}
                   </figcaption>

@@ -73,7 +73,7 @@ export function ComprobantesProduccionPanel({
         }
       />
 
-      <div data-guia="prod-facturas.cifras" className="grid gap-3 sm:grid-cols-3">
+      <div data-guia="prod-facturas.cifras" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <TarjetaCifra
           punto={resumen.porPagar > 0 ? "ambar" : "verde"}
           etiqueta="Por pagar"
@@ -197,8 +197,8 @@ export function ComprobantesProduccionPanel({
               )}
             </div>
           ) : (
-            <div data-guia="prod-facturas.lista" className="card-cayla overflow-hidden">
-              <div className="hidden grid-cols-[4rem_minmax(0,1.6fr)_7rem_7rem_11rem] gap-4 border-b border-tinta/10 px-4 py-2.5 sm:grid">
+            <div data-guia="prod-facturas.lista" className="card-cayla @container overflow-hidden">
+              <div className="hidden grid-cols-[4rem_minmax(0,1.6fr)_7rem_7rem_11rem] gap-4 border-b border-tinta/10 px-4 py-2.5 @min-[42rem]:grid">
                 <span className="label-cayla text-[11px] text-tinta/65">Fecha</span>
                 <span className="label-cayla text-[11px] text-tinta/65">Proveedor</span>
                 <span className="label-cayla text-right text-[11px] text-tinta/65">Total</span>
@@ -213,19 +213,19 @@ export function ComprobantesProduccionPanel({
                       <button
                         type="button"
                         onClick={() => setAbierto(c.id)}
-                        className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left outline-none transition-colors hover:bg-sand/40 focus-visible:bg-sand/40 sm:grid-cols-[4rem_minmax(0,1.6fr)_7rem_7rem_11rem]"
+                        className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left outline-none transition-colors hover:bg-sand/40 focus-visible:bg-sand/40 @min-[42rem]:grid-cols-[4rem_minmax(0,1.6fr)_7rem_7rem_11rem]"
                       >
-                        <span className="hidden text-sm tabular-nums text-tinta/75 sm:block">{diaMes(c.fechaEmision)}</span>
+                        <span className="hidden text-sm tabular-nums text-tinta/75 @min-[42rem]:block">{diaMes(c.fechaEmision)}</span>
                         <span className="min-w-0">
                           <span data-guia="prod-facturas.proveedor-fila" className={`block truncate text-[14px] ${c.estado === "anulada" ? "text-tinta/55 line-through" : "text-tinta"}`}>{c.proveedor}</span>
                           <span className="block text-sm text-tinta/65">
                             {etiquetaTipo(c.tipo, true)} {c.serie}-{c.numero} · {plural(c.lineas, "línea", "líneas")}
-                            <span className="sm:hidden"> · {diaMes(c.fechaEmision)}</span>
+                            <span className="@min-[42rem]:hidden"> · {diaMes(c.fechaEmision)}</span>
                           </span>
                         </span>
                         <span className="text-right text-sm tabular-nums text-tinta">{soles(c.total)}</span>
-                        <span className="hidden text-right text-sm tabular-nums text-tinta sm:block">{c.saldo > 0 ? soles(c.saldo) : <span className="text-tinta/45">—</span>}</span>
-                        <span className="col-span-2 sm:col-span-1">
+                        <span className="hidden text-right text-sm tabular-nums text-tinta @min-[42rem]:block">{c.saldo > 0 ? soles(c.saldo) : <span className="text-tinta/45">—</span>}</span>
+                        <span className="col-span-2 @min-[42rem]:col-span-1">
                           <Chip tono={est.tono}>{est.texto}</Chip>
                         </span>
                       </button>

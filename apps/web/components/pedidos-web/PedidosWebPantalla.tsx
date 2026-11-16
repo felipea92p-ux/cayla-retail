@@ -57,8 +57,12 @@ import {
 } from "@/lib/pedidos-web-reglas";
 
 const RUTA = "/tienda-web/pedidos";
-// En el celular la fila es una tarjeta (pedido y total arriba; el cliente, su plazo y su verbo abajo); desde `sm`, columnas.
-const PLANTILLA = "grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[6.5rem_minmax(0,1.5fr)_7rem_minmax(0,1.3fr)_9.5rem]";
+// Angosta, la fila es una tarjeta (pedido y total arriba; el cliente, su plazo y su verbo abajo); con la TABLA de 56 rem o más,
+// columnas. Lo decide el ancho de la tabla (`.tabla-cayla` es contenedor), no el de la ventana: las fijas, los huecos y el relleno
+// piden 472 px, y con el menú abierto a 768 o 1024 px el cliente se quedaba sin ancho y la fila corría de lado.
+const PLANTILLA = "grid-cols-[minmax(0,1fr)_auto] @min-[56rem]:grid-cols-[6.5rem_minmax(0,1.5fr)_7rem_minmax(0,1.3fr)_9.5rem]";
+/** El encabezado se ve con la misma condición que pone las columnas. */
+const ENCABEZADO_VISIBLE = "hidden @min-[56rem]:grid";
 const COLUMNAS_CERRADOS = [{ titulo: "Pedido" }, { titulo: "Cliente y prendas" }, { titulo: "Total", alinear: "der" as const }, { titulo: "Cómo se cerró" }];
 // Lo cerrado que se ve sin abrir «Ver los …» en un día tranquilo (en uno con pedidos, la barra de motivos basta).
 const CERRADOS_A_LA_VISTA = 3;
@@ -579,31 +583,31 @@ function FilaPedido({
         </button>
         <span className="block text-sm text-taupe">{haceCuanto(momentoDe(p), ahora)}</span>
       </span>
-      <span className="text-right font-medium tabular-nums text-tinta sm:hidden">{soles(p.total)}</span>
-      <span className="col-span-2 flex min-w-0 items-center gap-3 sm:col-span-1">
+      <span className="text-right font-medium tabular-nums text-tinta @min-[56rem]:hidden">{soles(p.total)}</span>
+      <span className="col-span-2 flex min-w-0 items-center gap-3 @min-[56rem]:col-span-1">
         <span className="flex min-w-0 flex-1 items-center gap-2">
           <AvatarPersona personaId={null} nombre={p.cliente} tamano={24} />
           <span className="truncate text-tinta">{p.cliente}</span>
         </span>
         <Prendas pedido={p} />
       </span>
-      <span className="hidden text-right tabular-nums sm:block">
+      <span className="hidden text-right tabular-nums @min-[56rem]:block">
         <span className="block font-medium text-tinta">{soles(p.total)}</span>
         {p.estado === "confirmado" && p.pagado > 0 && <span className="block text-sm text-taupe">falta {soles(p.falta)}</span>}
       </span>
-      <span className="col-span-2 min-w-0 sm:col-span-1" data-guia={primera ? "pedidos-web.plazo" : undefined}>
+      <span className="col-span-2 min-w-0 @min-[56rem]:col-span-1" data-guia={primera ? "pedidos-web.plazo" : undefined}>
         <span className={`block text-sm font-medium ${TONO_RELOJ[reloj.tono]}`}>{reloj.texto}</span>
         {reloj.detalle && <span className="block text-sm text-taupe">{reloj.detalle}</span>}
         {/* El reloj de su plazo (ADR-0430): cuánto lleva del tiempo de este paso; se llena una vez al verse. */}
         {reloj.barra && <BarraAvance pct={reloj.barra.pct} alto="fina" tono={reloj.barra.tono} indice={indice} etiqueta={reloj.barra.etiqueta} className="mt-1.5 block max-w-[11rem]" />}
       </span>
-      <span className="col-span-2 flex sm:col-span-1 sm:justify-end">
+      <span className="col-span-2 flex @min-[56rem]:col-span-1 @min-[56rem]:justify-end">
         {verbo && (
           <Boton
             type="button"
             peso="fantasma"
             aria-haspopup="dialog"
-            className="btn-chico w-full sm:w-auto"
+            className="btn-chico w-full @min-[56rem]:w-auto"
             onClick={(e) => {
               e.stopPropagation();
               onAbrir();
@@ -663,16 +667,16 @@ function CerradosSeccion({
           <span className="font-semibold tabular-nums text-tinta">{p.codigo}</span>
           <span className="block text-sm text-taupe">{haceCuanto(momentoDe(p), ahora)}</span>
         </span>
-        <span className="text-right font-medium tabular-nums text-tinta sm:hidden">{soles(p.total)}</span>
-        <span className="col-span-2 flex min-w-0 items-center gap-3 sm:col-span-1">
+        <span className="text-right font-medium tabular-nums text-tinta @min-[56rem]:hidden">{soles(p.total)}</span>
+        <span className="col-span-2 flex min-w-0 items-center gap-3 @min-[56rem]:col-span-1">
           <span className="flex min-w-0 flex-1 items-center gap-2">
             <AvatarPersona personaId={null} nombre={p.cliente} tamano={24} />
             <span className="truncate text-tinta">{p.cliente}</span>
           </span>
           <Prendas pedido={p} />
         </span>
-        <span className="hidden text-right font-medium tabular-nums text-tinta sm:block">{soles(p.total)}</span>
-        <span className="col-span-2 min-w-0 sm:col-span-2">
+        <span className="hidden text-right font-medium tabular-nums text-tinta @min-[56rem]:block">{soles(p.total)}</span>
+        <span className="col-span-2 min-w-0 @min-[56rem]:col-span-2">
           <Chip tono={porDevolver ? "rojo" : "neutro"}>{porDevolver ? `Por devolver ${soles(p.pagado)}` : m.texto}</Chip>
         </span>
       </div>
@@ -732,7 +736,7 @@ function CerradosSeccion({
           </div>
           {(visibles.length > 0 || guardados.length > 0) && (
             <Tabla className="rounded-none border-0 shadow-none">
-              {filtrado && <Encabezado plantilla={PLANTILLA} columnas={COLUMNAS_CERRADOS} />}
+              {filtrado && <Encabezado plantilla={PLANTILLA} columnas={COLUMNAS_CERRADOS} visible={ENCABEZADO_VISIBLE} />}
               {visibles.map(filaCerrada)}
               {guardados.length > 0 && <FilasDeMas abierto={abiertos} id="pedidos-web-cerrados">{guardados.map(filaCerrada)}</FilasDeMas>}
             </Tabla>
