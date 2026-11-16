@@ -10,11 +10,13 @@ import type { CatalogoIAAlta } from "@/components/alta-producto/useCatalogoIAAlt
 // fotos viven en el navegador hasta que la prenda se crea; quien la crea las sube (`subirParDeCatalogo`, `subirFotoProducto`).
 
 /** La opción «Catálogo con IA»: apagada de fábrica y recordada en el aparato (`useInterruptorIA`). */
-export function InterruptorCatalogoIA({ catalogo }: { catalogo: CatalogoIAAlta }) {
+export function InterruptorCatalogoIA({ catalogo, disabled = false }: { catalogo: CatalogoIAAlta; disabled?: boolean }) {
   return (
     <Interruptor
       activo={catalogo.encendido}
       onActivo={catalogo.cambiarEncendido}
+      // Mientras se crea la prenda no se cambia: encenderla en ese momento pediría la IA de fotos que ya se están subiendo tal cual.
+      disabled={disabled}
       etiqueta={
         <span className="inline-flex items-center gap-1.5 font-medium text-tinta">
           <Sparkles aria-hidden className="h-3.5 w-3.5" />

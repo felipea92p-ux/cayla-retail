@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
-import { objecionFotoProducto, subirFotoProducto, subirParDeCatalogo } from "@/lib/producto-fotos";
+import { abrirFotosElegidas } from "@/lib/foto-elegida-cliente";
+import { subirFotoProducto, subirParDeCatalogo } from "@/lib/producto-fotos";
 import { pedirFotoDeCatalogo } from "@/lib/foto-catalogo-cliente";
 import type { DatosDePrenda } from "@/lib/ficha-foto-ia";
 import { avisoIANoRespondio, esFotoIA, moldeDeLaPrenda, originalDeLaFotoIA } from "@/lib/foto-catalogo-reglas";
@@ -70,16 +71,16 @@ export function useInterruptorIA(): [boolean, (v: boolean) => void] {
   return [encendido, cambiar];
 }
 
-/** La foto de frente que llega a la hoja: la misma validación que una subida normal. `null` si no sirve (y ya se avisó). */
-export function frenteValido(archivos: File[]): File | null {
-  const frente = archivos[0];
-  if (!frente) return null;
-  const objecion = objecionFotoProducto(frente);
-  if (objecion) {
-    avisar.error("Esa foto no se puede usar", { detalle: `${frente.name}: ${objecion}` });
-    return null;
-  }
-  return frente;
+/**
+ * Las fotos que llegan a la hoja de «Catálogo con IA», abiertas como cualquier foto (`abrirFotosElegidas`): la 1.ª es el frente, la 2.ª la
+ * espalda y la 3.ª el detalle, cada una en SU lugar (si la espalda no abre, el detalle no pasa a ser la espalda). `null` si el frente no sirve
+ * (y ya se avisó). Antes solo se revisaba el frente: una espalda que no abría llegaba a la IA, que se paga por llamada.
+ */
+export async function fotosParaLaHoja(archivos: File[]): Promise<{ frente: File; espalda: File | null; detalle: File | null } | null> {
+  if (!archivos[0]) return null;
+  const { porPosicion } = await abrirFotosElegidas(archivos.slice(0, 3), (titulo, detalle) => avisar.error(titulo, { detalle }));
+  const [frente, espalda = null, detalle = null] = porPosicion;
+  return frente ? { frente, espalda, detalle } : null;
 }
 
 export function useCatalogoIA({
@@ -213,8 +214,7 @@ export function useCatalogoIA({
     abrir: (archivos, color) => {
       // El foco vuelve al botón que abrió la hoja (`HojaCatalogoIA` → `alCerrarEnfocar`).
       volverA.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
-      const frente = frenteValido(archivos);
-      if (frente) setHoja({ color, frente, espalda: archivos[1] ?? null, detalle: archivos[2] ?? null });
+      void fotosParaLaHoja(archivos).then((fotos) => fotos && setHoja({ color, ...fotos }));
     },
     preparandoDe: (color) => preparando.get(claveDe(color)) ?? null,
     preparandoAlgo: preparando.size > 0,
