@@ -48,7 +48,9 @@ export type LugarDeRebaja = {
   esCajon: boolean;
   movible: boolean;
   hasta: string | null;
-  /** Cuántas prendas (modelo en su color) tiene. */
+  /** Le llega también a las prendas de sus categorías (no se quitan desde aquí, sino desde la campaña). */
+  porCategoria?: boolean;
+  /** Cuántas prendas (modelo en su color) le llegan: las marcadas y las de sus categorías. */
   prendas: number;
 };
 
@@ -95,6 +97,7 @@ export function leerRebajaDePrenda(json: unknown): RebajaDePrenda | null {
         esCajon: x.es_cajon === true,
         movible: x.movible === true,
         hasta: texto(x.hasta),
+        porCategoria: x.por_categoria === true,
         prendas: num(x.prendas) || 0,
       };
     }),

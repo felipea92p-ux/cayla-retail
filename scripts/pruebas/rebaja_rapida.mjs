@@ -195,6 +195,12 @@ esperarValor(
   `15.00:false:true:0,20.00:true:true:${correr("select count(distinct v.color_codigo) from retail.variantes v where v.producto_id = (select producto_id from retail.variantes where sku = 'BLU-EMMA-NEG-M') and v.activo;").salida}`,
 );
 esperarValor(
+  "una campaña que llega por categoría cuenta también esas prendas (antes decía «0 prendas»)",
+  caso(`${EN_LIMA(15)}insert into retail.etiqueta_categorias (etiqueta_id, categoria_id) select :'lima', p.categoria_id from retail.productos p where p.id = :'modelo';
+select (por_categoria and prendas > 0)::text from retail.campanas_rebajas_de_tienda(:'u') where etiqueta_id = :'lima';\n`),
+  "true",
+);
+esperarValor(
   "las prendas de un lugar, para verlas y quitarlas",
   caso(`${PONER(20, "prenda")}select string_agg(referencia || ' ' || coalesce(talla, ''), ',') from retail.campanas_rebaja_prendas((select etiqueta_id from retail.rebaja_cajones where pct = 20), :'u');\n`),
   "Blusa Emma M",

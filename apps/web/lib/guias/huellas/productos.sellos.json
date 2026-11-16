@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 174,
+  "total": 176,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -99,6 +99,10 @@
       "Boton «Quitar el %»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/rebajas/RebajasDeTienda.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/sellos/AvisoDosOfertas.tsx": [
       "Boton «Elegir cuál queda»",

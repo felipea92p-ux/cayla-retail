@@ -67,7 +67,7 @@ $function$;
 -- ---------------------------------------------------------------------------------------------------------------------------------------
 
 create or replace function retail.fn_rebajas_de_sede(p_ubicacion_id uuid, p_todas boolean)
-returns table (etiqueta_id uuid, nombre text, pct numeric, es_cajon boolean, movible boolean, hasta date)
+returns table (etiqueta_id uuid, nombre text, pct numeric, es_cajon boolean, movible boolean, hasta date, por_categoria boolean)
 language sql
 stable
 security definer
@@ -79,7 +79,8 @@ as $function$
               then not exists (select 1 from retail.campana_sedes cs where cs.etiqueta_id = e.id)
               else coalesce((select array_agg(cs.ubicacion_id) from retail.campana_sedes cs where cs.etiqueta_id = e.id) = array[p_ubicacion_id], false)
          end,
-         e.vigente_hasta
+         e.vigente_hasta,
+         exists (select 1 from retail.etiqueta_categorias ec where ec.etiqueta_id = e.id)
   from retail.etiquetas e
   left join retail.rebaja_cajones c on c.etiqueta_id = e.id
   where e.estilo = 'campana' and e.estado = 'aprobado' and e.activo and e.descuento_pct is not null
@@ -143,6 +144,23 @@ as $function$
 $function$;
 
 revoke all on function retail.fn_variantes_del_alcance(uuid, text) from public, anon, authenticated;
+
+-- Cuántas prendas (el modelo en su color, como cuentan las tiendas) le llegan a un lugar: las marcadas a mano y las de sus categorías.
+create or replace function retail.fn_prendas_de_lugar(p_etiqueta_id uuid)
+returns integer
+language sql
+stable
+set search_path to 'retail', 'public'
+as $function$
+  select count(distinct (v.producto_id, v.color_codigo))::integer
+  from retail.variantes v
+  join retail.productos p on p.id = v.producto_id
+  where v.activo
+    and (exists (select 1 from retail.variante_etiquetas ve where ve.variante_id = v.id and ve.etiqueta_id = p_etiqueta_id)
+         or exists (select 1 from retail.etiqueta_categorias ec where ec.etiqueta_id = p_etiqueta_id and ec.categoria_id = p.categoria_id))
+$function$;
+
+revoke all on function retail.fn_prendas_de_lugar(uuid) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------
 -- Lo que la hoja muestra al escanear
@@ -210,8 +228,7 @@ begin
   v_lugares := coalesce((
     select jsonb_agg(jsonb_build_object(
              'etiqueta_id', l.etiqueta_id, 'nombre', l.nombre, 'pct', l.pct, 'es_cajon', l.es_cajon, 'movible', l.movible, 'hasta', l.hasta,
-             'prendas', (select count(distinct (v.producto_id, v.color_codigo)) from retail.variante_etiquetas ve
-                         join retail.variantes v on v.id = ve.variante_id and v.activo where ve.etiqueta_id = l.etiqueta_id))
+             'por_categoria', l.por_categoria, 'prendas', retail.fn_prendas_de_lugar(l.etiqueta_id))
            order by l.pct, l.es_cajon desc, l.nombre)
     from retail.fn_rebajas_de_sede(v_sede, false) l
   ), '[]'::jsonb);
@@ -355,7 +372,7 @@ grant execute on function retail.quitar_rebaja(uuid, text, uuid, boolean) to aut
 -- ---------------------------------------------------------------------------------------------------------------------------------------
 
 create or replace function retail.campanas_rebajas_de_tienda(p_ubicacion_id uuid)
-returns table (etiqueta_id uuid, nombre text, pct numeric, es_cajon boolean, movible boolean, hasta date, prendas integer)
+returns table (etiqueta_id uuid, nombre text, pct numeric, es_cajon boolean, movible boolean, hasta date, por_categoria boolean, prendas integer)
 language plpgsql
 stable
 security definer
@@ -365,16 +382,14 @@ declare
   v_sede uuid := retail.fn_exigir_rebaja_rapida(p_ubicacion_id, false);
 begin
   return query
-    select l.etiqueta_id, l.nombre, l.pct, l.es_cajon, l.movible, l.hasta,
-           (select count(distinct (v.producto_id, v.color_codigo))::integer from retail.variante_etiquetas ve
-              join retail.variantes v on v.id = ve.variante_id and v.activo where ve.etiqueta_id = l.etiqueta_id)
+    select l.etiqueta_id, l.nombre, l.pct, l.es_cajon, l.movible, l.hasta, l.por_categoria, retail.fn_prendas_de_lugar(l.etiqueta_id)
     from retail.fn_rebajas_de_sede(v_sede, false) l
     order by l.pct, l.es_cajon desc, l.nombre;
 end;
 $function$;
 
 comment on function retail.campanas_rebajas_de_tienda(uuid) is
-  'ADR-0669. Los lugares de % de una tienda (cajones y campañas vigentes con descuento de siempre) con cuántas prendas (modelo en su color) tiene cada uno.';
+  'ADR-0669. Los lugares de % de una tienda (cajones y campañas vigentes con descuento de siempre) con cuántas prendas (modelo en su color, marcadas o por sus categorías) le llegan a cada uno.';
 
 revoke all on function retail.campanas_rebajas_de_tienda(uuid) from public, anon;
 grant execute on function retail.campanas_rebajas_de_tienda(uuid) to authenticated;

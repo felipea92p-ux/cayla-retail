@@ -1225,6 +1225,13 @@ export const GUIA_CAMPANAS: Guia = {
       texto: "Escanea la etiqueta o escribe su nombre: se abre una hoja que dice qué % tiene hoy. Eliges si va solo a esa prenda o a todo el modelo, y cuánto menos entre los % que ya hay en tu tienda. Rige hasta que alguien lo quite.",
     },
     {
+      id: "rebajas-de-tienda",
+      ancla: "rebaja.tienda",
+      opcional: true,
+      titulo: "Los % de tu tienda",
+      texto: "Cada tarjeta es un % que rige aquí y cuántas prendas tiene. Tócala para ver sus prendas con su precio de hoy y quitar las que ya no van.",
+    },
+    {
       id: "dos-ofertas",
       ancla: "sellos.dos-ofertas",
       opcional: true,

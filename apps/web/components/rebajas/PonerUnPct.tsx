@@ -5,9 +5,8 @@ import { Buscador } from "@/components/ui/Buscador";
 import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { HojaRebaja } from "@/components/rebajas/HojaRebaja";
-import { claveResponsableConteo } from "@/lib/responsable-conteo";
 import { rpcRebaja } from "@/lib/rebaja-rapida";
-import { useResponsable } from "@/lib/useResponsable";
+import type { useResponsable } from "@/lib/useResponsable";
 
 type Encontrada = {
   variante_id: string;
@@ -29,9 +28,19 @@ const soles = (n: number) => `S/ ${Number(n).toFixed(2)}`;
 /**
  * «Poner un %» (ADR-0669, Felipe 2026-11-16): el escáner de Campañas y ofertas. La pistola lee el código y abre la hoja de esa prenda; escribir
  * un nombre muestra las prendas que coinciden. Al cerrar la hoja el cursor vuelve aquí, listo para la siguiente: se rebajan muchas seguidas.
- * Quién lo pone se elige una vez por tienda y queda para los siguientes (`recordarEn`).
+ * Quién lo pone se elige una vez por tienda y queda para los siguientes (lo tiene `RebajasDeTienda`, con `recordarEn`).
  */
-export function PonerUnPct({ ubicacionId, sede, onCambio }: { ubicacionId: string; sede: string; onCambio: () => void }) {
+export function PonerUnPct({
+  ubicacionId,
+  sede,
+  responsable,
+  onCambio,
+}: {
+  ubicacionId: string;
+  sede: string;
+  responsable: ReturnType<typeof useResponsable>;
+  onCambio: () => void;
+}) {
   const [texto, setTexto] = useState("");
   const [encontradas, setEncontradas] = useState<Encontrada[]>([]);
   const [buscando, setBuscando] = useState(false);
@@ -41,7 +50,6 @@ export function PonerUnPct({ ubicacionId, sede, onCambio }: { ubicacionId: strin
   const entrada = useRef<HTMLInputElement>(null);
   // Con menos de 2 letras no se busca: no se muestra lo de una búsqueda anterior.
   const visibles = texto.trim().length < 2 ? [] : encontradas;
-  const responsable = useResponsable({ ubicacionId, etiqueta: sede }, { recordarEn: claveResponsableConteo(`rebaja-${ubicacionId}`) });
 
   // Busca mientras se escribe (una lectura: `buscar_`, sin loader), con la pausa corta del buscador.
   useEffect(() => {
