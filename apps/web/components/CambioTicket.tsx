@@ -2,12 +2,16 @@
 
 import { LogoCayla } from "@/components/ui/LogoCayla";
 import Link from "next/link";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { MessageCircle, Plus, ShoppingBag } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { ReciboTermico } from "@/components/ReciboTermico";
 import { EMISOR } from "@/lib/emisor";
 import { enlaceWhatsApp } from "@/lib/facturacion-comprobantes-reglas";
-import { fechaHoraLima } from "@/lib/recibo-reglas";
+import { fechaHoraLima, textoNumeroRecibo } from "@/lib/recibo-reglas";
+import { imprimirAlCobrar } from "@/lib/imprimir-al-cobrar";
+import type { PapelesDelCambio } from "@/lib/cambio-papeles";
 import { textoTicketCambio } from "@/lib/cambios-atajos-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { soles } from "@/lib/compras-reglas";
@@ -24,8 +28,9 @@ import { imprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
      · Imprimir: el mismo resumen en la térmica de 80 mm (`#comprobante-print`, las reglas de impresión de
        `globals.css` que ya usa el comprobante de venta).
      · Seguir vendiendo: si se lleva algo más, al Punto de venta. Es cuando más compra: ya está en la tienda.
-   El ticket NO es comprobante de SUNAT y lo dice en los dos formatos: la diferencia de precio sigue sin comprobante
-   propio (docs/pantallas/cambios.md §2), y eso es una decisión de dinero pendiente, no de esta hoja.
+   Desde ADR-0672 el cambio emite su boleta nueva (y una nota de crédito sobre la de la compra): si la hay, se imprime ESA
+   boleta, el mismo papel de Vender con el sello «CANCELADO» (`ReciboTermico` con `cambio`), y sale sola con «Imprimir solo
+   al cobrar». Sin boleta (la compra tenía nota de venta) se imprime el resumen de siempre, que dice que no es comprobante.
    ==================================================================== */
 
 export type TicketCambio = {
@@ -55,9 +60,31 @@ function textoDiferencia(d: number): string {
   return d === 0 ? "Sin diferencia" : d > 0 ? `${soles(d)} cobrados` : `${soles(-d)} devueltos`;
 }
 
-export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: TicketCambio; onNuevo: () => void; onCerrar: () => void }) {
-  // El PDF sale como «Cambio B004-000004.pdf» (el ticket nombra la venta que se cambió), no «Retail - CAYLA.pdf».
-  useTituloDeImpresion(ticket.comprobante ? `Cambio ${ticket.comprobante}` : null);
+export function CambioTicketHoja({
+  ticket,
+  papeles,
+  onNuevo,
+  onCerrar,
+}: {
+  ticket: TicketCambio;
+  /** La boleta nueva del cambio (ADR-0672), o `null` si el cambio no emitió papeles o no se pudo leer. */
+  papeles: PapelesDelCambio | null;
+  onNuevo: () => void;
+  onCerrar: () => void;
+}) {
+  const boleta = papeles ? textoNumeroRecibo(papeles.recibo) : null;
+  // El PDF sale con el número de la boleta nueva («B004-000004.pdf») o como «Cambio B004-000004.pdf», no «Retail - CAYLA.pdf».
+  useTituloDeImpresion(boleta ?? (ticket.comprobante ? `Cambio ${ticket.comprobante}` : null));
+  // «Imprimir solo al cobrar» (lib/imprimir-al-cobrar.ts): es del equipo; se decide al abrir la hoja, una sola vez.
+  const imprimeSolo = useSyncExternalStore(imprimirAlCobrar.suscribir, imprimirAlCobrar.leer, imprimirAlCobrar.leerEnServidor) === "si";
+  const yaImprimio = useRef(false);
+  useEffect(() => {
+    if (!papeles || !imprimeSolo || yaImprimio.current) return;
+    yaImprimio.current = true;
+    // Un cuadro después: el papel tiene que estar en el <body> (el portal) antes de abrir la impresión.
+    const t = setTimeout(() => imprimirAqui("ticket"), 0);
+    return () => clearTimeout(t);
+  }, [papeles, imprimeSolo]);
   const { fecha, hora } = fechaHoraLima(ticket.registradoEn);
   const cantidad = ticket.cantidad > 1 ? ` (×${ticket.cantidad})` : "";
   const whatsapp = enlaceWhatsApp(
@@ -91,6 +118,7 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
               <span className="font-mono font-semibold">{ticket.operacion}</span>
             </Linea>
             {ticket.comprobante && <Linea titulo="De la compra">{ticket.comprobante}</Linea>}
+            {boleta && <Linea titulo="Boleta nueva">{boleta}</Linea>}
             <div className="my-1.5 border-t border-dashed border-sand" />
             <Linea titulo="Devolvió">{`${ticket.devolvio}${cantidad}`}</Linea>
             <Linea titulo="Se llevó">{`${ticket.sellevo}${cantidad}`}</Linea>
@@ -110,7 +138,7 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
               {ticket.clienta ? `WhatsApp a ${ticket.clienta.split(" · ")[0]!.split(" ")[0]}` : "Enviar por WhatsApp"}
             </a>
             <BotonImprimir onClick={() => imprimirAqui("ticket")} className="h-12 rounded-xl">
-              Imprimir ticket
+              {papeles ? "Imprimir boleta" : "Imprimir ticket"}
             </BotonImprimir>
             <Link href="/vender" className={`${boton} border border-sand bg-papel text-tinta hover:border-taupe`}>
               <ShoppingBag aria-hidden className="h-4 w-4" />
@@ -128,9 +156,13 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
               Nuevo cambio
             </button>
           </div>
-          <p className="mt-3 text-center text-sm text-tinta/55">Es el resumen del cambio para el cliente; no es un comprobante de pago.</p>
+          {!papeles && <p className="mt-3 text-center text-sm text-tinta/55">Es el resumen del cambio para el cliente; no es un comprobante de pago.</p>}
 
-          {typeof document !== "undefined" && createPortal(<TicketCambioTermico ticket={ticket} />, document.body)}
+          {typeof document !== "undefined" &&
+            createPortal(
+              papeles ? <ReciboTermico recibo={papeles.recibo} cambio={{ referencia: papeles.referencia }} /> : <TicketCambioTermico ticket={ticket} />,
+              document.body,
+            )}
         </>
       )}
     </Modal>

@@ -38,13 +38,17 @@ const s = (n: number) => `S/\u00a0${n.toFixed(2)}`;
  *  · Sin QR del club: el papel lleva solo el QR de SUNAT (Felipe 2026-10-01, ADR-0288 act. j). La clienta se une con el
  *    QR del cartel del mostrador.
  */
-export function ReciboTermico({ recibo, emisor = EMISOR, apartado }: {
+export function ReciboTermico({ recibo, emisor = EMISOR, apartado, cambio }: {
   recibo: ReciboVenta;
   emisor?: Emisor;
   /** La entrega de un apartado (ADR-0399): el papel es la misma boleta o factura, pero en vez de la forma de pago —que mostraría el
    *  adelanto, un pacto interno— lleva el sello «CANCELADO» y una referencia al apartado, sin plata. */
   apartado?: { codigo: string };
+  /** La boleta nueva de un cambio (ADR-0672): se pagó con la prenda que volvió (su nota de crédito) y, si hubo, la diferencia. Lleva el
+   *  sello «CANCELADO» y la referencia a la compra y a su nota, como el apartado. */
+  cambio?: { referencia: string };
 }) {
+  const cancelado = Boolean(apartado || cambio);
   const { fecha, hora } = fechaHoraLima(recibo.emitidoEn);
   const cli = recibo.cliente;
   const fiscal = desglosaIgv(recibo.tipo);
@@ -138,7 +142,7 @@ export function ReciboTermico({ recibo, emisor = EMISOR, apartado }: {
       <p className="rt-son">SON: {montoEnLetras(recibo.total)}</p>
 
       <div className="rt-linea" />
-      {apartado ? (
+      {cancelado ? (
         <p className="rt-centro">
           <span className="rt-cancelado">CANCELADO</span>
         </p>
@@ -197,6 +201,7 @@ export function ReciboTermico({ recibo, emisor = EMISOR, apartado }: {
         <p className="rt-lema">{emisor.lema}</p>
         <p className="rt-negrita">¡Gracias por tu compra!</p>
         {apartado && <p>Prendas apartadas · ref. {apartado.codigo}</p>}
+        {cambio && <p>{cambio.referencia}</p>}
       </footer>
 
     </div>

@@ -827,14 +827,14 @@ export const GUIA_CAMBIOS: Guia = {
       ancla: "cambios.validaciones",
       opcional: true,
       titulo: "Lo que revisa el sistema",
-      texto: "Mientras eliges, revisa que la compra esté en plazo y la prenda se pueda cambiar, que elijas el motivo y una prenda nueva con stock y, si hay diferencia en efectivo, que la caja esté abierta. El círculo cuenta lo que ya está listo.",
+      texto: "Mientras eliges, revisa que la compra esté en plazo, que su boleta ya llegó a SUNAT y que la prenda se pueda cambiar, que elijas el motivo y una prenda nueva con stock y, si hay diferencia en efectivo, que la caja esté abierta. El círculo cuenta lo que ya está listo.",
     },
     {
       id: "pie-reemplazo",
       ancla: "cambios.pie-reemplazo",
       opcional: true,
       titulo: "Revisar antes de confirmar",
-      texto: "«Revisar el cambio» lleva al último paso: el resumen, quién lo registra y «Confirmar cambio», que recién ahí mueve el stock y la caja. La flecha vuelve al paso anterior.",
+      texto: "«Revisar el cambio» lleva al último paso: el resumen, quién lo registra y «Confirmar cambio», que recién ahí mueve el stock y la caja y emite la nota de crédito y la boleta nueva, que imprimes al terminar. La flecha vuelve al paso anterior.",
     },
     {
       id: "flujo-volver",

@@ -4,6 +4,7 @@ import {
   actividadPreviaVenta,
   agruparPorCompra,
   agruparPorDia,
+  boletaEnCaminoDe,
   clasificarBusqueda,
   condicionForzada,
   descripcionEntregada,
@@ -346,6 +347,44 @@ describe("validarCambio / primerBloqueo", () => {
     expect(primerBloqueo(validarCambio({ ...conDiferencia, cajaAbierta: true }))).toBeNull();
     // Por Yape no pasa por el cajón: la caja ni se menciona.
     expect(validarCambio({ ...conDiferencia, metodo: "yape" }).some((v) => v.clave === "caja")).toBe(false);
+  });
+
+  it("la boleta de la compra aún sin aceptar por SUNAT frena (ADR-0672: sin ella no sale la nota de crédito)", () => {
+    const enCamino = { ...listo, venta: { ...listo.venta, boletaEnCamino: { texto: "Boleta B001-000012", estado: "pendiente" as const } } };
+    expect(primerBloqueo(validarCambio(enCamino))).toMatchObject({
+      clave: "compra",
+      estado: "alerta",
+      titulo: "La Boleta B001-000012 aún no llega a SUNAT",
+    });
+    const rechazada = { ...listo, venta: { ...listo.venta, boletaEnCamino: { texto: "Boleta B001-000012", estado: "rechazado" as const } } };
+    expect(primerBloqueo(validarCambio(rechazada))).toMatchObject({ titulo: "SUNAT rechazó la Boleta B001-000012", detalle: "Reintenta su envío en Comprobantes y vuelve." });
+    // Sin boleta en camino (aceptada, nota de venta o sin dato), nada cambia.
+    expect(primerBloqueo(validarCambio({ ...listo, venta: { ...listo.venta, boletaEnCamino: null } }))).toBeNull();
+  });
+});
+
+describe("boletaEnCaminoDe", () => {
+  const c = (tipo: string, estado: string, created_at: string, numero = 12) => ({ tipo, estado, serie: tipo === "factura" ? "F001" : "B001", numero, created_at });
+
+  it("una boleta pendiente, en reintento, enviada sin respuesta o rechazada está en camino", () => {
+    for (const estado of ["pendiente", "pendiente_reintento", "enviado", "rechazado"]) {
+      expect(boletaEnCaminoDe([c("boleta", estado, "2026-11-16T10:00:00Z")])).toEqual({ texto: "Boleta B001-000012", estado });
+    }
+  });
+
+  it("aceptada, liberada, anulada o una nota de venta no frenan: igual que la base", () => {
+    for (const x of [c("boleta", "aceptado", "a"), c("boleta", "no_emitido", "a"), c("boleta", "anulado", "a"), c("nota_venta", "interna", "a")]) {
+      expect(boletaEnCaminoDe([x])).toBeNull();
+    }
+    expect(boletaEnCaminoDe([])).toBeNull();
+  });
+
+  it("una factura se nombra como factura, y si hay varias en camino manda la más reciente", () => {
+    expect(boletaEnCaminoDe([c("factura", "pendiente", "2026-11-16T10:00:00Z", 3)])?.texto).toBe("Factura F001-000003");
+    expect(boletaEnCaminoDe([c("boleta", "rechazado", "2026-11-16T09:00:00Z", 1), c("boleta", "pendiente", "2026-11-16T10:00:00Z", 2)])).toEqual({
+      texto: "Boleta B001-000002",
+      estado: "pendiente",
+    });
   });
 });
 

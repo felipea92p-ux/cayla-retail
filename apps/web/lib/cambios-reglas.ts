@@ -233,6 +233,29 @@ export function actividadPreviaVenta(
 // con la clienta esperando.
 // ============================================================================
 
+/** La boleta o factura de una compra que todavía no aceptó SUNAT (ADR-0672, igual que la devolución, ADR-0390). */
+export type BoletaEnCamino = { texto: string; estado: "pendiente" | "pendiente_reintento" | "enviado" | "rechazado" };
+
+const EN_CAMINO = new Set(["pendiente", "pendiente_reintento", "enviado", "rechazado"]);
+
+/**
+ * ¿La compra tiene una boleta o factura que SUNAT aún no aceptó? Es la misma regla de `fn_emitir_comprobantes_del_cambio`: sin
+ * aceptada no sale la nota de crédito del cambio, así que la base lo rechaza. La más reciente; una nota de venta, una liberada
+ * (`no_emitido`) o una anulada no van a SUNAT y no frenan. `null` si no hay ninguna en camino.
+ */
+export function boletaEnCaminoDe(
+  comprobantes: readonly { tipo: string; estado: string; serie: string; numero: number; created_at: string }[],
+): BoletaEnCamino | null {
+  const c = comprobantes
+    .filter((x) => (x.tipo === "boleta" || x.tipo === "factura") && EN_CAMINO.has(x.estado))
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  if (!c) return null;
+  return {
+    texto: `${c.tipo === "factura" ? "Factura" : "Boleta"} ${c.serie}-${String(c.numero).padStart(6, "0")}`,
+    estado: c.estado as BoletaEnCamino["estado"],
+  };
+}
+
 export type Validacion = {
   /** Qué se está revisando ("compra", "plazo", "motivo"…): de ahí sale a qué campo va
    *  el foco cuando frena. Cada flujo (Cambios, Devoluciones) tiene las suyas. */
@@ -249,7 +272,8 @@ export type Validacion = {
 };
 
 export function validarCambio(e: {
-  venta: { comprobante: string | null; creadoEn: string; anulada: boolean };
+  /** `boletaEnCamino`: la boleta de la compra que SUNAT aún no aceptó (ADR-0672); sin ella el cambio no emite su nota y la base lo rechaza. */
+  venta: { comprobante: string | null; creadoEn: string; anulada: boolean; boletaEnCamino?: BoletaEnCamino | null };
   ahora: Date;
   cantidadComprada: number;
   disponible: number;
@@ -274,6 +298,16 @@ export function validarCambio(e: {
       ? { clave: "compra", estado: "alerta", titulo: "La venta está anulada", detalle: "Sus prendas ya volvieron al stock." }
       : { clave: "compra", estado: "ok", titulo: "Compra encontrada", detalle: `${e.venta.comprobante ?? "Venta sin comprobante"} · ${fecha}` }
   );
+  // ADR-0672: el cambio emite su nota de crédito sobre la boleta, y SUNAT tiene que haberla aceptado antes.
+  if (!e.venta.anulada && e.venta.boletaEnCamino) {
+    const rechazada = e.venta.boletaEnCamino.estado === "rechazado";
+    lista.push({
+      clave: "compra",
+      estado: "alerta",
+      titulo: rechazada ? `SUNAT rechazó la ${e.venta.boletaEnCamino.texto}` : `La ${e.venta.boletaEnCamino.texto} aún no llega a SUNAT`,
+      detalle: rechazada ? "Reintenta su envío en Comprobantes y vuelve." : "Espera unos minutos y vuelve a intentar.",
+    });
+  }
 
   const plazo = estadoPlazoCambio(e.venta.creadoEn, e.ahora);
   const diasDesdeLaCompra = DIAS_PLAZO_CAMBIO - plazo.diasRestantes;

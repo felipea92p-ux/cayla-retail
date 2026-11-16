@@ -32,6 +32,7 @@ import type { TonoLectura } from "@/lib/escaner-reglas";
 import { usePistola } from "@/components/ui/usePistola";
 import type { TonoAvisoLinea } from "@/components/ui/Aviso";
 import { CambioTicketHoja, type TicketCambio } from "@/components/CambioTicket";
+import { leerPapelesDelCambio, type PapelesDelCambio } from "@/lib/cambio-papeles";
 import type { SedeConId } from "@/lib/cambios-atajos-reglas";
 import {
   agruparCatalogo,
@@ -179,6 +180,8 @@ export function CambiosFlujo({
   const [revisando, setRevisando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<TicketCambio | null>(null);
+  // La boleta nueva del cambio (ADR-0672) para imprimir; `null` si el cambio no emitió papeles o no se pudo leer.
+  const [papeles, setPapeles] = useState<PapelesDelCambio | null>(null);
   const [avisoContinuar, setAvisoContinuar] = useState<string | null>(null);
   const [camara, setCamara] = useState(false);
   const [esperandoPistola, setEsperandoPistola] = useState(false);
@@ -224,7 +227,7 @@ export function CambiosFlujo({
   const validaciones: Validacion[] =
     linea && seleccion && r
       ? validarCambio({
-          venta: { comprobante: compra.comprobante, creadoEn: compra.creadoEn, anulada: compra.anulada },
+          venta: { comprobante: compra.comprobante, creadoEn: compra.creadoEn, anulada: compra.anulada, boletaEnCamino: linea.boletaEnCamino ?? null },
           ahora,
           cantidadComprada: linea.cantidad,
           disponible: unidadesDisponibles(linea),
@@ -425,12 +428,19 @@ export function CambiosFlujo({
     if (res.tipo === "sin_respuesta") setError("Todavía no hay respuesta. Revisa el internet y vuelve a tocar «Revisar si se guardó».");
   }
 
-  function registrado(data: unknown) {
+  async function registrado(data: unknown) {
     if (!linea || !seleccion || !r || !totales || !r.varianteNueva) return;
-    // ADR-0672: la nota de crédito y la boleta nueva salen a SUNAT solas, en segundo plano, como la boleta al cobrar en Vender.
-    if (typeof data === "string" && data) enviarCambioASunat(data);
-    // El ticket del cambio (spike 2026-09-26): lo que la clienta se lleva. `nombreResponsable` se lee ANTES de que el
-    // combo se vacíe tras guardar.
+    // `nombreResponsable` se lee ANTES de esperar: tras guardar, el combo se vacía.
+    const atendio = nombreResponsable;
+    const cambioId = typeof data === "string" && data ? data : null;
+    // ADR-0672: la nota de crédito y la boleta nueva salen a SUNAT solas, en segundo plano, como la boleta al cobrar en Vender; la
+    // boleta se lee ahora para imprimirla en la hoja. Si no se puede leer, la hoja imprime el resumen (la boleta queda en Comprobantes).
+    if (cambioId) enviarCambioASunat(cambioId);
+    const leidos = cambioId
+      ? await leerPapelesDelCambio({ cambioId, sede, atendio, compra: compra.comprobante }).catch(() => null)
+      : null;
+    setPapeles(leidos);
+    // El ticket del cambio (spike 2026-09-26): lo que la clienta se lleva.
     setResultado({
       operacion: String(data ?? "").slice(0, 8).toUpperCase(),
       comprobante: compra.comprobante,
@@ -442,7 +452,7 @@ export function CambiosFlujo({
       diferencia: totales.diferencia,
       vaACuarentena: r.condicion === "no_vendible",
       sede,
-      atendio: nombreResponsable,
+      atendio,
       registradoEn: new Date().toISOString(),
     });
     setPaso("exito");
@@ -641,7 +651,7 @@ export function CambiosFlujo({
         </div>
       )}
 
-      {paso === "exito" && resultado && <CambioTicketHoja ticket={resultado} onNuevo={onNuevo} onCerrar={onCerrar} />}
+      {paso === "exito" && resultado && <CambioTicketHoja ticket={resultado} papeles={papeles} onNuevo={onNuevo} onCerrar={onCerrar} />}
     </div>
   );
 }

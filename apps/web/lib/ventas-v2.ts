@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { documentoLegibleComprobante, esTipoDocComprobante } from "@/lib/documento-comprobante-reglas";
-import { clasificarBusqueda, DIAS_PLAZO_CAMBIO, type Busqueda } from "@/lib/cambios-reglas";
+import { boletaEnCaminoDe, clasificarBusqueda, DIAS_PLAZO_CAMBIO, type BoletaEnCamino, type Busqueda } from "@/lib/cambios-reglas";
 import { diaLima, inicioDeDiaLima } from "@/lib/panel-serie";
 import { fotoDeVariante } from "@/lib/producto-fotos-reglas";
 
@@ -233,6 +233,8 @@ export type LineaVentaReciente = {
   /** SUNAT ya aceptó alguno de sus comprobantes: al aprobar una devolución de esta venta
    *  `aprobar_devolucion` emite sola la nota de crédito (ADR-0100). */
   comprobanteAceptado: boolean;
+  /** La boleta o factura que SUNAT aún no aceptó (ADR-0672): un cambio de esta compra espera. Opcional para quien arma una línea a mano. */
+  boletaEnCamino?: BoletaEnCamino | null;
   /** Quién compró, si el comprobante lo guardó ("Ana Pérez · DNI 45879632"). */
   clienta: string | null;
   /** Nombre de la sede donde se vendió, solo si NO es la sede desde la que se mira
@@ -391,8 +393,10 @@ export async function getVentasRecientes(
   // último: vienen ordenados por fecha y cada uno pisa al anterior.
   const comprobantePorVenta = new Map<string, { texto: string; clienta: string | null }>();
   const ventasConComprobanteAceptado = new Set<string>();
+  const comprobantesPorVenta = new Map<string, { tipo: string; estado: string; serie: string; numero: number; created_at: string }[]>();
   for (const c of exigir(comprobantesRes, "las boletas de esas ventas")) {
     if (!c.venta_id) continue;
+    comprobantesPorVenta.set(c.venta_id, [...(comprobantesPorVenta.get(c.venta_id) ?? []), c]);
     if (c.estado === "aceptado") ventasConComprobanteAceptado.add(c.venta_id);
     const documento = esTipoDocComprobante(c.cliente_tipo_doc) ? documentoLegibleComprobante(c.cliente_tipo_doc, c.cliente_num_doc) : null;
     const clienta = [c.cliente_nombre?.trim() || null, documento].filter(Boolean).join(" · ") || null;
@@ -432,6 +436,7 @@ export async function getVentasRecientes(
       vendedorNombre: nombreVendedor.get(quienVendio(f.venta) ?? "") ?? null,
       comprobante: comprobante?.texto ?? null,
       comprobanteAceptado: ventasConComprobanteAceptado.has(f.venta_id),
+      boletaEnCamino: boletaEnCaminoDe(comprobantesPorVenta.get(f.venta_id) ?? []),
       clienta: comprobante?.clienta ?? null,
       sedeVenta: f.venta && f.venta.ubicacion_id !== ubicacionId ? (f.venta.ubicacion?.nombre ?? null) : null,
       ubicacionVentaId: f.venta?.ubicacion_id ?? null,

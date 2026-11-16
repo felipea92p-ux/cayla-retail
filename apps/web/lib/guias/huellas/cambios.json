@@ -29,7 +29,7 @@
     ],
     "components/CambioTicket.tsx": [
       "a «(sin nombre)»",
-      "BotonImprimir «Imprimir ticket»",
+      "BotonImprimir «{papeles ? \"Imprimir boleta\" : \"Imprimir ticket\"}»",
       "Link «Se lleva algo más: seguir vendiendo»",
       "button «Nuevo cambio»"
     ],
