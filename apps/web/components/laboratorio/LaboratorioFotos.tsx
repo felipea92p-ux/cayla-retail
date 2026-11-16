@@ -8,11 +8,14 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
 import { BotonFoto } from "@/components/alta-producto/FotosAlta";
+import { CampoSelect, CampoTexto, Interruptor } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { abrirFotosElegidas } from "@/lib/foto-elegida-cliente";
 import { colorPromedio, diferenciaDeColor, veredictoDeColor } from "@/lib/photoroom-reglas";
 import { textoDelMotivo } from "@/lib/recorte-probador-reglas";
 import type { ProveedoresLaboratorio } from "@/lib/laboratorio-fotos";
+import { ACABADOS, type Acabado } from "@/lib/ficha-foto-ia";
+import { TIPOS_POR_CATEGORIA } from "@/lib/nombre-de-prenda";
 
 // La pantalla del laboratorio de fotos (`app/laboratorio/fotos/page.tsx`). Por cada foto que se suelta: la original; la misma prenda recortada por
 // Photoroom (la prenda REAL sin fondo: la referencia del color); y cada versión «de catálogo» que redibuja una IA: el maniquí invisible de
@@ -20,19 +23,31 @@ import type { ProveedoresLaboratorio } from "@/lib/laboratorio-fotos";
 // misma que corre al subir una foto, ADR-0442) y si su color se fue del de la prenda real (`veredictoDeColor`); la de OpenAI, además, lo que
 // costó. Una versión de OpenAI se puede «Usar como molde»: las fotos siguientes (otros colores de la misma prenda) copian su estructura y solo
 // toman su color y estampado (`PROMPT_CON_MOLDE`). Todo vive en el navegador: no se sube nada al almacén ni a la base.
+//
+// «Comparar acabados» (Felipe 2026-11-16, el lino Crudo que salía liso): con la ficha de la prenda (categoría, tejido, patrón) y, si se sube, la
+// foto de cerca de la tela, cada foto pide a OpenAI las tres versiones de `ACABADOS` (planchada, con arrugas finas, sin planchar) con el MISMO
+// pedido que producción, lado a lado. Cuesta tres llamadas por foto. Se elige mirando; lo elegido pasa a producción en un cambio aparte.
 
 type Perfil = "sin-fondo" | "maniqui" | "openai";
 type Resultado = { estado: "esperando" } | { estado: "listo"; url: string; costo: number | null } | { estado: "error"; texto: string };
 type Insignia = { tono: TonoChip; texto: string };
 type Revision = { armador: Insignia | null; color: Insignia | null };
 type Molde = { url: string; nombre: string };
+/** Lo que viaja con cada pedido de «Comparar acabados»: la ficha de la prenda y, si se subió, la foto de cerca de la tela. */
+type Ficha = { prefijo: string; tejido: string; patron: string };
+type Comparacion = { ficha: Ficha; detalle: Molde | null; acabado: Acabado };
 type Prueba = {
   clave: string;
   nombre: string;
   original: string;
   resultados: Partial<Record<Perfil, Resultado>>;
   revision: Partial<Record<Perfil, Revision>>;
+  /** Con «Comparar acabados»: una versión de OpenAI por acabado, en vez de una sola. */
+  acabados?: Partial<Record<Acabado, Resultado>>;
 };
+
+/** Las categorías para la ficha, por su clave estable (`categorias.prefijo`), con el nombre de sus prendas. */
+const CATEGORIAS = Object.entries(TIPOS_POR_CATEGORIA).map(([prefijo, tipos]) => ({ valor: prefijo, texto: tipos.join(" / ") }));
 
 const CATALOGO: { perfil: Exclude<Perfil, "sin-fondo">; titulo: string; descarga: string }[] = [
   { perfil: "maniqui", titulo: "Maniquí invisible · Photoroom", descarga: "Descargar Photoroom" },
@@ -43,12 +58,17 @@ function perfilesActivos(p: ProveedoresLaboratorio): Perfil[] {
   return [...(p.photoroom ? (["sin-fondo", "maniqui"] as const) : []), ...(p.openai ? (["openai"] as const) : [])];
 }
 
-async function pedir(archivo: File, perfil: Perfil, molde: Molde | null): Promise<Resultado> {
+async function pedir(archivo: File, perfil: Perfil, molde: Molde | null, comparacion: Comparacion | null = null): Promise<Resultado> {
   const cuerpo = new FormData();
   cuerpo.set("foto", archivo);
   cuerpo.set("perfil", perfil);
   try {
     if (perfil === "openai" && molde) cuerpo.set("molde", await (await fetch(molde.url)).blob(), "molde.png");
+    if (perfil === "openai" && comparacion) {
+      for (const [campo, valor] of Object.entries(comparacion.ficha)) if (valor.trim()) cuerpo.set(campo, valor.trim());
+      cuerpo.set("acabado", comparacion.acabado);
+      if (comparacion.detalle) cuerpo.set("detalle", await (await fetch(comparacion.detalle.url)).blob(), "detalle.jpg");
+    }
     // `x-espera: no`: la pantalla muestra su propio avance por foto; el loader de pantalla completa (ADR-0149) taparía las demás.
     const r = await fetch("/api/fotos/laboratorio", { method: "POST", body: cuerpo, headers: { "x-espera": "no" } });
     if (!r.ok) {
@@ -104,6 +124,10 @@ export function LaboratorioFotos({ proveedores }: { proveedores: ProveedoresLabo
   const [pruebas, setPruebas] = useState<Prueba[]>([]);
   const [ocupado, setOcupado] = useState(false);
   const [molde, setMolde] = useState<Molde | null>(null);
+  const [comparar, setComparar] = useState(false);
+  // El caso que se está midiendo (el pantalón de lino Crudo): se cambia aquí mismo para probar otra prenda.
+  const [ficha, setFicha] = useState<Ficha>({ prefijo: "PAN", tejido: "Lino", patron: "Liso" });
+  const [detalle, setDetalle] = useState<Molde | null>(null);
   const urls = useRef<string[]>([]);
   const perfiles = perfilesActivos(proveedores);
   const abierto = perfiles.length > 0;
@@ -118,11 +142,15 @@ export function LaboratorioFotos({ proveedores }: { proveedores: ProveedoresLabo
   async function probar(archivos: File[]) {
     // Ocupado desde que se abren las fotos: dos tandas soltadas seguidas no corren a la vez.
     setOcupado(true);
-    const { buenas } = await abrirFotosElegidas(archivos, (titulo, detalle) => avisar.error(titulo, { detalle }));
+    const { buenas } = await abrirFotosElegidas(archivos, (titulo, d) => avisar.error(titulo, { detalle: d }));
     if (!buenas.length) {
       setOcupado(false);
       return;
     }
+    // Lo que valía al soltar las fotos: cambiar la ficha a mitad no mezcla dos pedidos en una misma fila.
+    const comparando = comparar && perfiles.includes("openai");
+    const fichaDeLaTanda = ficha;
+    const detalleDeLaTanda = detalle;
 
     const nuevas = buenas.map((archivo) => {
       const original = URL.createObjectURL(archivo);
@@ -131,8 +159,10 @@ export function LaboratorioFotos({ proveedores }: { proveedores: ProveedoresLabo
         clave: crypto.randomUUID(),
         nombre: archivo.name,
         original,
-        resultados: Object.fromEntries(perfiles.map((p) => [p, { estado: "esperando" }])),
+        // Comparando, OpenAI va en `acabados` (tres versiones); su cuadro único no se dibuja.
+        resultados: Object.fromEntries(perfiles.filter((p) => !(comparando && p === "openai")).map((p) => [p, { estado: "esperando" }])),
         revision: {},
+        acabados: comparando ? Object.fromEntries(ACABADOS.map((a) => [a.valor, { estado: "esperando" }])) : undefined,
       };
       return { archivo, prueba };
     });
@@ -142,8 +172,16 @@ export function LaboratorioFotos({ proveedores }: { proveedores: ProveedoresLabo
     for (const { archivo, prueba } of nuevas) {
       const real = perfiles.includes("sin-fondo") ? pedir(archivo, "sin-fondo", null) : Promise.resolve(null);
       void real.then((r) => r && cambiar(prueba.clave, (p) => ({ ...p, resultados: { ...p.resultados, "sin-fondo": r } })));
-      await Promise.all(
-        CATALOGO.filter((c) => perfiles.includes(c.perfil)).map(async ({ perfil }) => {
+      const versiones = comparando
+        ? ACABADOS.map(async ({ valor }) => {
+            const r = await pedir(archivo, "openai", molde, { ficha: fichaDeLaTanda, detalle: detalleDeLaTanda, acabado: valor });
+            if (r.estado === "listo") urls.current.push(r.url);
+            cambiar(prueba.clave, (p) => ({ ...p, acabados: { ...p.acabados, [valor]: r } }));
+          })
+        : [];
+      await Promise.all([
+        ...versiones,
+        ...CATALOGO.filter((c) => perfiles.includes(c.perfil) && !(comparando && c.perfil === "openai")).map(async ({ perfil }) => {
           const r = await pedir(archivo, perfil, molde);
           if (r.estado === "listo") urls.current.push(r.url);
           cambiar(prueba.clave, (p) => ({ ...p, resultados: { ...p.resultados, [perfil]: r } }));
@@ -155,7 +193,7 @@ export function LaboratorioFotos({ proveedores }: { proveedores: ProveedoresLabo
           ]);
           cambiar(prueba.clave, (p) => ({ ...p, revision: { ...p.revision, [perfil]: { armador, color } } }));
         }),
-      );
+      ]);
       const r = await real;
       if (r?.estado === "listo") urls.current.push(r.url);
     }
@@ -208,6 +246,75 @@ export function LaboratorioFotos({ proveedores }: { proveedores: ProveedoresLabo
               )}
             </div>
 
+            {proveedores.openai ? (
+              <section className="card-cayla mt-4 flex max-w-3xl flex-col gap-4 p-4" aria-label="Comparar acabados">
+                <Interruptor
+                  activo={comparar}
+                  onActivo={setComparar}
+                  disabled={ocupado}
+                  etiqueta="Comparar acabados: planchada, con arrugas finas y sin planchar"
+                />
+                {comparar ? (
+                  <>
+                    <p className="text-sm text-taupe">Cada foto pide 3 versiones a OpenAI (unos 0,18 USD).</p>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <CampoSelect
+                        etiqueta="Categoría"
+                        valor={ficha.prefijo}
+                        onValor={(prefijo) => setFicha((f) => ({ ...f, prefijo }))}
+                        opciones={CATEGORIAS}
+                        deshabilitado={ocupado}
+                        sinPie
+                      />
+                      <CampoTexto
+                        etiqueta="Tejido"
+                        value={ficha.tejido}
+                        onChange={(e) => setFicha((f) => ({ ...f, tejido: e.target.value }))}
+                        disabled={ocupado}
+                        sinPie
+                      />
+                      <CampoTexto
+                        etiqueta="Patrón"
+                        value={ficha.patron}
+                        onChange={(e) => setFicha((f) => ({ ...f, patron: e.target.value }))}
+                        disabled={ocupado}
+                        sinPie
+                      />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      {detalle ? (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element -- vista local (blob:), no pasa por el optimizador */}
+                          <img src={detalle.url} alt="" className="h-14 w-14 rounded-md border border-sand object-cover" />
+                          <Chip tono="pizarra">De cerca: {detalle.nombre}</Chip>
+                          <button type="button" className="btn-cayla btn-enlace" disabled={ocupado} onClick={() => setDetalle(null)}>
+                            Quitar
+                          </button>
+                        </>
+                      ) : (
+                        <BotonFoto
+                          onArchivos={(a) =>
+                            void abrirFotosElegidas(a.slice(0, 1), (titulo, d) => avisar.error(titulo, { detalle: d })).then(({ buenas }) => {
+                              const [f] = buenas;
+                              if (!f) return;
+                              const url = URL.createObjectURL(f);
+                              urls.current.push(url);
+                              setDetalle({ url, nombre: f.name });
+                            })
+                          }
+                          disabled={ocupado}
+                          etiqueta="Agregar una foto de cerca de la tela"
+                          className="btn-cayla btn-secundario btn-chico"
+                        >
+                          Foto de cerca de la tela · opcional
+                        </BotonFoto>
+                      )}
+                    </div>
+                  </>
+                ) : null}
+              </section>
+            ) : null}
+
             {molde ? (
               <div className="mt-4 flex max-w-3xl items-center gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element -- vista local (blob:), no pasa por el optimizador */}
@@ -259,6 +366,38 @@ function FilaPrueba({ prueba, molde, onMolde }: { prueba: Prueba; molde: Molde |
           <img src={prueba.original} alt={`Original de ${prueba.nombre}`} className="h-full w-full object-contain" />
         </Panel>
         {real ? <Panel titulo="La prenda real, recortada" fondo="bg-crema" resultado={real} alt={`${prueba.nombre} recortada`} /> : null}
+        {prueba.acabados
+          ? ACABADOS.map(({ valor, nombre }) => {
+              const r = prueba.acabados?.[valor];
+              if (!r) return null;
+              return (
+                <Panel key={valor} titulo={nombre} fondo="bg-crema" resultado={r} alt={`${prueba.nombre}: ${nombre}`}>
+                  {r.estado === "listo" ? (
+                    // El costo arriba y sus dos acciones en su fila, con el mismo aire: van juntos y no se confunden con el cuadro de al lado.
+                    <div className="flex flex-col items-start gap-1.5">
+                      {r.costo !== null ? (
+                        <Chip tono="pizarra" versalitas={false}>
+                          Costó {r.costo.toLocaleString("es-PE", { style: "currency", currency: "USD", maximumFractionDigits: 3 })}
+                        </Chip>
+                      ) : null}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <BotonDescargar href={r.url} chico>
+                          Descargar
+                        </BotonDescargar>
+                        {molde?.url === r.url ? (
+                          <Chip tono="pizarra">Es el molde</Chip>
+                        ) : (
+                          <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => onMolde({ url: r.url, nombre: `${prueba.nombre} · ${nombre}` })}>
+                            Usar como molde
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </Panel>
+              );
+            })
+          : null}
         {catalogo.map(({ perfil, titulo }) => {
           const r = prueba.resultados[perfil]!;
           const rev = prueba.revision[perfil];

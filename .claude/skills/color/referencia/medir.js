@@ -214,7 +214,8 @@
     };
     const controles = { medidos: 0, fallan: [], vidrio: [], porTexto: 0, nativos: [], estados: [] };
     for (const el of document.querySelectorAll(SEL)) {
-      if (deshabilitado(el) || (el.matches('input,textarea,[role=combobox]') && el.closest(CAJA))) continue;
+      // Lo escondido del lector a propósito (`aria-hidden`: el input de archivo que abre un botón con nombre, como `BotonFoto`) no es un control.
+      if (deshabilitado(el) || el.closest('[aria-hidden="true"]') || (el.matches('input,textarea,[role=combobox]') && el.closest(CAJA))) continue;
       const r = el.getBoundingClientRect(), s = getComputedStyle(el); if (!enVista(r) || s.visibility === 'hidden') continue;
       const propio = el.matches(OPCION) && !el.matches('.btn-secundario,.interruptor,input') ? textoPropio(el) : null;
       if (propio) {
