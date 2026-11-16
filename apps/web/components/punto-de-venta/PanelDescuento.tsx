@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { type DescuentoForm, type ItemCarrito, money } from "@/components/PuntoDeVenta";
-import { CabezaPaso } from "@/components/punto-de-venta/HojaDeCobro";
+import { CabezaPaso } from "@/components/punto-de-venta/CabezaPaso";
 import { Casilla } from "@/components/ui/Casilla";
 import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto, atributosPorcentajeTexto } from "@/components/ui/CampoMonto";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
