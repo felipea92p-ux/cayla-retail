@@ -10,6 +10,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "responsive:check": "node responsive/cli.mjs",
+    "responsive:barrido": "node responsive/barrido.mjs",
     "tema:auditar": "node tema/cli.mjs",
     "tacto:medir": "node tacto/medir.mjs",
     "tema:cuentas": "node tema/cuentas-locales.mjs",

@@ -187,3 +187,34 @@ Dos formas, según dónde viva el conocimiento:
 `responsive/.salida/<fecha-ISO-de-la-corrida>/` — `reporte.md` (para leer), `reporte.json` (para
 que Claude Code lo parsee sin regex sobre texto) y `capturas/`. Toda la carpeta está en
 `.gitignore`: se regenera en cada corrida.
+
+## Barrido: todo el ERP sin registrar nada (`barrido.mjs`)
+
+El Quality Gate de arriba prueba a fondo las pantallas registradas, con sus escenarios. El barrido hace lo contrario: pasa por **todas** las `page.tsx`
+de `app/(app)` a pocos anchos y mide lo que se puede medir sin conocer la pantalla. Nació de la auditoría responsive del 2026-11-16 (120 pantallas a
+375, 768, 1280 y 1440 px).
+
+```bash
+pnpm --filter web responsive:barrido                                   # todo, a 375 · 768 · 1280 · 1440
+pnpm --filter web responsive:barrido -- --anchos 375 --rutas /vender,/caja
+pnpm --filter web responsive:barrido -- --rutas /productos/<uuid>/editar   # una ruta con [id], con un id real
+pnpm --filter web responsive:barrido -- --cuenta integrante --capturas     # otra cuenta de tema/cuentas.mjs; captura de cada caso
+```
+
+Por cada ruta y ancho mide: **desborde** (la página corre de lado, con el elemento más externo que lo causa), **fuera de la ventana** (algo con texto o
+que se toca queda fuera sin que la página corra), **tapado** (un control bajo una barra fija sin poder sacarlo de ahí: arriba del todo bajo la de arriba,
+al fondo bajo la de abajo, o bajo un panel pegado al costado), **táctil** (con el dedo, a 375 y 768: lo que se toca en menos de 44 px y, en todo ancho, en
+menos de 24 px, contando el área real del `::after` de `tacto.css`), **zoom de iOS** (un campo con letra de menos de 16 px a 375) y **consola** (errores de
+la página y respuestas 5xx; el Realtime de Supabase, que el local no levanta, no cuenta).
+
+Cuatro cosas que aprendió en su primera corrida:
+- **`/global` cambia la vista a «CAYLA Global»** (escribe la cookie de la sede): desde ahí, toda pantalla de sede manda a «Elige sede». Por eso esas rutas
+  se miden al final. Si agregas otra ruta que cambie de sede al entrar, súmala a `alFinal`.
+- **Una ruta con `[id]` se resuelve con el primer enlace que la cumpla** en las pantallas ya visitadas. Las que se abren con un clic (no con un `<a>`)
+  no se resuelven solas: pásalas a mano con `--rutas` y un id real de la base local (un `select` de solo lectura).
+- **Solo navega:** no escribe en la base. Las llamadas `POST /rpc/fn_*` que se ven en la red son lecturas.
+- **No edites el código mientras corre:** cada guardado recompila en `next dev` y, con el barrido pidiendo cuatro anchos a la vez, el servidor se puede
+  colgar (pasó el 2026-11-16).
+
+Salida en `responsive/.salida/barrido-<fecha>/` (fuera de git): `reporte.md`, `reporte.json`, `casos.jsonl` (se escribe caso a caso: sobrevive a un corte)
+y `capturas/` de lo que falló.
