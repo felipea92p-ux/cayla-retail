@@ -900,3 +900,18 @@ span.sede-telar { cursor: default; }
   .pila-tarjeta[data-subio] { animation: none; }
   .pila-sale { display: none; }
 }
+
+/* «Registrar pago» va sobre la tarjeta de tinta de Impuestos (`.fin-pagas`, finanzas.css): papel sobre tinta, sólido, como se diseñó (en oscuro
+   los dos se invierten juntos). La gota de vidrio del botón secundario (vidrio/campos-y-botones.css, sin capa) le ganaba a la regla de
+   finanzas.css: en claro quedaba gris con la letra oscura y en oscuro, claro sobre claro e invisible (1:1; /milimetro, 2026-11-16). */
+.fin-pagas .btn-secundario {
+  background: var(--color-crema);
+  border-color: var(--color-crema);
+  color: var(--color-tinta);
+  box-shadow: none;
+}
+@media (hover: hover) {
+  .fin-pagas .btn-secundario:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-crema) 88%, var(--color-tinta));
+  }
+}
