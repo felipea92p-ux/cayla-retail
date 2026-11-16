@@ -228,3 +228,19 @@ estampado fino sale con el dibujo cambiado: entonces «Usar mi foto» vuelve a l
 
 **Las fotos ya hechas no cambian solas:** se rehacen subiendo de nuevo la foto real del color con «Catálogo con IA» encendido, empezando por el color
 que sirve de molde (el primero con foto de IA), para que los demás copien una forma ya planchada.
+
+## Actualización 2026-11-16 (e) — Planchada, pero sin perder la tela
+
+**Nace de** la primera foto hecha con la act. (d), el pantalón de lino Crudo (Felipe 2026-11-16, mirando la hoja «Fotos de Crudo»): «es más liso pero
+pierde la tela». La IA cumplió «tersa y bien estirada», «recién planchada al vapor», y alisó el lino hasta volverlo otra tela.
+
+**Lo que cambió** (`lib/ficha-foto-ia.ts`, solo la ficha; el cuerpo medido sigue igual):
+1. **Se quita solo lo que deja el guardarla:** «sin los dobleces ni las marcas de haberla guardado, doblado o colgado». Salen «tersa», «bien estirada»
+   y «al vapor».
+2. **La TELA va primero:** «la misma de la foto real y se ve de cerca: su trama, sus hilos, su grano y su acabado mate o brillante, sin alisarla de
+   más», y **la foto de cerca de la tela manda** si se subió (el ángulo «Detalle de la tela» de la hoja de la IA).
+3. **El lino dice cómo se ve planchado** (`SE_VE_PLANCHADA`): «hilos irregulares con nudos, aspecto mate y rústico, y unas ondas suaves y naturales en
+   la tela, propias del lino». Otro tejido entra a esa tabla solo después de verlo salir mal: la regla general vale para los demás.
+
+**Sigue sin medir** con una lámina: es la segunda apuesta del día sobre el mismo pantalón. Lo que más ayuda sin tocar el pedido: subir también la
+foto de cerca de la tela (con luz de costado se ven los nudos del lino).
