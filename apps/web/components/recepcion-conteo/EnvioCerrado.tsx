@@ -106,12 +106,27 @@ export function EnvioCerrado({
   const faltan = sumaDe("faltante");
   const lineaAviso = lineaDelAviso({ alAlmacen: cifras.enStock, paraDespues: cifras.porDetallar, sobran, faltan, conGuia: cifras.dijeron != null });
   const queEntro = loQueEntroPorPrenda(detalle.recibidos);
-  const imprimirTodo = urlEtiquetasDeLoQueEntro(detalle.id, queEntro, new Set(queEntro.flatMap((p) => p.combinaciones.map((c) => c.varianteId))));
+  // De cuáles imprimir: todo lo que entró, salvo lo que se saque con «Más → Elegir de cuáles imprimir». Un solo botón de imprimir, arriba.
+  const [elegir, setElegir] = useState(false);
+  const [fuera, setFuera] = useState<ReadonlySet<string>>(new Set());
+  const imprimirTodo = urlEtiquetasDeLoQueEntro(detalle.id, queEntro, new Set(queEntro.flatMap((p) => p.combinaciones.map((c) => c.varianteId)).filter((id) => !fuera.has(id))));
   const cuando = detalle.cerradoEn ? diaYHoraLima(detalle.cerradoEn) : null;
   const reabrir = conteos?.reabrir ?? null;
   // La insignia: lo que no cuadró manda; si no, lo que quedó para después; con guía y todo en orden, «Completo». Sin guía no hay con qué compararse.
   const insignia = noCuadro.length > 0 ? { tono: "ambar" as const, texto: "Con diferencias" } : lista.length > 0 ? { tono: "ambar" as const, texto: "Con pendientes" } : cifras.dijeron != null ? { tono: "verde" as const, texto: "Completo" } : null;
   const mas: ItemMenu[] = [
+    ...(queEntro.length > 0 && !elegir
+      ? [
+          {
+            clave: "elegir",
+            etiqueta: "Elegir de cuáles imprimir",
+            onSelect: () => {
+              setElegir(true);
+              requestAnimationFrame(() => document.getElementById("rc-que-entro")?.scrollIntoView({ block: "start", behavior: "smooth" }));
+            },
+          },
+        ]
+      : []),
     { clave: "reabrir", etiqueta: "Reabrir el conteo", onSelect: () => setReabriendo(true), motivo: reabrir?.sePuede === false ? textoNoSeReabre(reabrir.porQueNo) : undefined },
   ];
 
@@ -193,6 +208,8 @@ export function EnvioCerrado({
             <BotonImprimir href={imprimirTodo.href} peso="primario">
               {`Imprimir ${imprimirTodo.etiquetas.toLocaleString("es-PE")} ${imprimirTodo.etiquetas === 1 ? "etiqueta" : "etiquetas"}`}
             </BotonImprimir>
+          ) : queEntro.length > 0 ? (
+            <p className="text-sm text-taupe">Marca de qué prendas quieres la etiqueta.</p>
           ) : veredicto.accion && lista.length > 0 ? (
             <Boton type="button" peso="primario" onClick={() => setHaciendo(lista[0])}>
               {veredicto.accion}
@@ -210,10 +227,25 @@ export function EnvioCerrado({
         </div>
       </section>
 
-      {cifras.enStock > 0 && (
-        <section className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Qué entró">
+      {queEntro.length > 0 && (
+        <section id="rc-que-entro" className="card-cayla scroll-mt-28 space-y-3 p-4 sm:p-5" aria-label="Qué entró">
           <TituloSeccion cuenta={queEntro.length}>Qué entró</TituloSeccion>
-          <LoQueEntro key={detalle.recibidos?.length ?? 0} despachoId={detalle.id} recibidos={detalle.recibidos} />
+          <LoQueEntro
+            prendas={queEntro}
+            elegir={elegir}
+            fuera={fuera}
+            onCambiar={(ids, imprimir) =>
+              setFuera((f) => {
+                const n = new Set(f);
+                for (const id of ids) {
+                  if (imprimir) n.delete(id);
+                  else n.add(id);
+                }
+                return n;
+              })
+            }
+            onListo={() => setElegir(false)}
+          />
         </section>
       )}
 

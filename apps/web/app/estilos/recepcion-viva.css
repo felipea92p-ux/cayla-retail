@@ -249,6 +249,14 @@
 .rc-cerrado-cifras b[data-tono="ambar"], .rc-cerrado-cifra[data-tono="ambar"] { color: var(--color-ambar-profundo); }
 .rc-cerrado-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 10px 14px; border: 1px solid var(--color-sand); border-radius: 16px; }
 .rc-cerrado-fila[data-tipo="crear"] { border-style: dashed; border-color: color-mix(in srgb, var(--color-pizarra) 45%, transparent); }
+/* Qué entró, en tabla color × talla: cada celda es una pastilla con su número; eligiendo de cuáles imprimir, la que sale va llena (tinta) y la que no,
+   punteada. Ya no son 70 casillas sueltas (Felipe 2026-11-16). */
+.rc-entro-matriz { border-collapse: separate; border-spacing: 0; }
+.rc-entro-celda { display: inline-grid; place-items: center; min-width: 40px; height: 32px; padding: 0 8px; border-radius: 10px; background: var(--color-hueso); color: var(--color-tinta); font-weight: 600; }
+button.rc-entro-celda { border: 1px solid transparent; cursor: pointer; transition: background-color var(--t-cambio) var(--ease-cayla), color var(--t-cambio) var(--ease-cayla), border-color var(--t-cambio) var(--ease-cayla); }
+button.rc-entro-celda[aria-pressed="true"] { background: var(--color-tinta); color: var(--color-crema); }
+button.rc-entro-celda[aria-pressed="false"] { background: transparent; border: 1px dashed var(--color-borde-control); color: var(--color-taupe); }
+@media (hover: hover) { button.rc-entro-celda:hover { border-color: var(--color-tinta); } }
 .rc-cerrado-cifra { min-width: 52px; font-family: var(--font-serif); font-size: 22px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
 .rc-lacre-cera { fill: var(--color-rojo); }
 .rc-lacre-aro { fill: none; stroke: color-mix(in srgb, var(--color-crema-fija) 40%, transparent); stroke-width: 2; }

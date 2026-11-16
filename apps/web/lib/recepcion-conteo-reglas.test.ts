@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { costoDelGrupo as costoDelGrupoStock, costoDeLoQueYaEntro, filasDeCostoEnStock, leerConteosDelEnvio as leerConteosStock, textoCostoEnStock, unidadesSinIdentificar as sinIdentificarStock } from "./recepcion-conteo-reglas";
 import { sePuedeCambiarCategoria, costoDeCatalogo, costosConCatalogo, DECISION_VACIA } from "./recepcion-conteo-reglas";
-import { filasDeLaFirma, lineaDelAviso, noCuadroAgrupado, pideFirmaAlCerrar } from "./recepcion-conteo-reglas";
+import { filasDeLaFirma, lineaDelAviso, matrizDeLoQueEntro, noCuadroAgrupado, pideFirmaAlCerrar } from "./recepcion-conteo-reglas";
 import type { DiferenciaEnvio, RecibidoEnvio } from "./recepcion-envio-reglas";
 import {
   lineasSinModelosEnCero,
@@ -1666,5 +1666,31 @@ describe("la línea del aviso «ENV-… recibido» (maqueta recibir-cierre-recib
     expect(lineaDelAviso({ alAlmacen: 22, paraDespues: 0, sobran: 0, faltan: 0, conGuia: false })).toBe("22 al almacén");
     expect(lineaDelAviso({ alAlmacen: 0, paraDespues: 5, sobran: 0, faltan: 0, conGuia: false })).toBe("5 para después");
     expect(lineaDelAviso({ alAlmacen: 0, paraDespues: 0, sobran: 0, faltan: 0, conGuia: false })).toBe("Nada entró al almacén");
+  });
+});
+
+describe("lo que entró, en tabla color × talla (maqueta recibir-cierre-recibo-2026-11)", () => {
+  it("las tallas en su orden de tienda; un color por fila con sus celdas y su total; el hueco queda vacío", () => {
+    const m = matrizDeLoQueEntro({
+      combinaciones: [
+        { varianteId: "b-s", talla: "S", color: "Blanco", cantidad: 5 },
+        { varianteId: "b-est", talla: "Estándar", color: "Blanco", cantidad: 5 },
+        { varianteId: "b-m", talla: "M", color: "Blanco", cantidad: 5 },
+        { varianteId: "m-l", talla: "L", color: "Moka", cantidad: 5 },
+        { varianteId: "m-s", talla: "S", color: "Moka", cantidad: 7 },
+      ],
+    });
+    expect(m.tallas).toEqual(["S", "M", "L", "Estándar"]);
+    expect(m.filas.map((f) => [f.color, f.total, Object.keys(f.celdas)])).toEqual([
+      ["Blanco", 15, ["S", "Estándar", "M"]],
+      ["Moka", 12, ["L", "S"]],
+    ]);
+    expect(m.filas[0].celdas.L).toBeUndefined();
+    expect(m.filas[1].celdas.S).toEqual({ varianteId: "m-s", cantidad: 7 });
+  });
+
+  it("sin talla es «Única» y sin color «Sin color»", () => {
+    const m = matrizDeLoQueEntro({ combinaciones: [{ varianteId: "v", talla: null, color: null, cantidad: 3 }] });
+    expect(m).toEqual({ tallas: ["Única"], filas: [{ color: "Sin color", celdas: { Única: { varianteId: "v", cantidad: 3 } }, total: 3 }] });
   });
 });

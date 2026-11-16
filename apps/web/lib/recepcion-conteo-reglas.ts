@@ -1702,6 +1702,28 @@ export function loQueEntroPorPrenda(recibidos: readonly Pick<RecibidoEnvio, "var
     .sort((a, b) => b.cantidad - a.cantidad || a.nombre.localeCompare(b.nombre, "es"));
 }
 
+/** Lo que entró de UNA prenda, en tabla: un color por fila y una talla por columna (Felipe 2026-11-16, maqueta `recibir-cierre-recibo-2026-11`). Con 70 casillas
+ *  sueltas no se veía lo raro —un polo con «Estándar» además de S, M y L, un color sin su L—; en tabla salta a la vista. Cada celda lleva su variante,
+ *  para elegir de cuáles imprimir la etiqueta. Sin talla es «Única»; sin color, «Sin color». */
+export type MatrizQueEntro = {
+  tallas: string[];
+  filas: { color: string; celdas: Record<string, { varianteId: string; cantidad: number }>; total: number }[];
+};
+export function matrizDeLoQueEntro(p: Pick<PrendaQueEntro, "combinaciones">): MatrizQueEntro {
+  const tallas = [...new Set(p.combinaciones.map((c) => c.talla?.trim() || "Única"))].sort(ordenTalla);
+  const filas = new Map<string, MatrizQueEntro["filas"][number]>();
+  for (const c of p.combinaciones) {
+    const color = c.color?.trim() || "Sin color";
+    const talla = c.talla?.trim() || "Única";
+    const f = filas.get(color) ?? { color, celdas: {}, total: 0 };
+    const ya = f.celdas[talla];
+    f.celdas[talla] = ya ? { varianteId: ya.varianteId, cantidad: ya.cantidad + c.cantidad } : { varianteId: c.varianteId, cantidad: c.cantidad };
+    f.total += c.cantidad;
+    filas.set(color, f);
+  }
+  return { tallas, filas: [...filas.values()] };
+}
+
 /** Las etiquetas de lo elegido: una por prenda buena de cada combinación marcada (`/etiquetas-de-precio?unidades=…&envio=…`). Sin nada marcado, `null`. */
 export function urlEtiquetasDeLoQueEntro(despachoId: string, prendas: readonly PrendaQueEntro[], marcadas: ReadonlySet<string>): { href: string; etiquetas: number } | null {
   const elegidas = prendas.flatMap((p) => p.combinaciones).filter((c) => marcadas.has(c.varianteId));
