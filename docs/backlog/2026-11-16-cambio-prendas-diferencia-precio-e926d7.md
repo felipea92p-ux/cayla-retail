@@ -1,0 +1,44 @@
+## 🧾 Un cambio con diferencia de precio emite sus comprobantes (2026-11-16) — decidido, sin construir; rama `claude/cambio-prendas-diferencia-precio-e926d7`
+
+**El problema.** Hoy un cambio cobra o devuelve la diferencia (contra lo pagado, ADR-0380; el mismo modelo conserva su descuento,
+ADR-0655), pero no emite ningún comprobante: la boleta original sigue diciendo la prenda y el monto de antes, y lo cobrado de más entra
+sin documento. En producción, al 2026-11-16: 25 cambios desde el 2026-10-04, 13 con diferencia (11 cobraron S/ 209.70, 2 devolvieron
+S/ 10.10), 24 sobre una boleta aceptada y 1 sobre una nota de venta. Las series de nota de crédito (BC04/BC05/BC06, FC04/FC05/FC06) ya
+están activas y hay una nota de crédito aceptada por SUNAT.
+
+**Por qué no se «anula» la boleta.** Una baja le dice a SUNAT que la venta nunca existió (ADR-0016, ADR-0065); en un cambio la venta sí
+existió. Lo que corresponde es una nota de crédito sobre la boleta original y un comprobante nuevo por lo que se lleva.
+
+### Decisiones de Felipe (2026-11-16, en el chat)
+
+- [x] **Cuándo:** si la diferencia no es cero (más cara o más barata), se emiten comprobantes. Mismo precio, o el mismo modelo en otra
+      talla o color sin diferencia: no se emite nada. El stock se mueve igual que hoy.
+- [x] **Mismo modelo con una talla más cara** (2 de 631 modelos): si se cobra algo, también se emite.
+- [x] **Lo que sobra cuando la nueva es más barata:** siempre se devuelve en dinero, como hoy. La nota de crédito es el papel que lo respalda.
+- [x] **Quién:** cualquiera que vea Cambios, sin aprobación del líder (R-38).
+- [x] **Boleta original aún no aceptada por SUNAT:** el cambio se hace al momento; la nota de crédito y el comprobante nuevo salen solos
+      cuando SUNAT acepte la original.
+- [x] **Compra original con nota de venta:** sale una nota de venta nueva por lo que se lleva, sin nota de crédito.
+- [x] **Compra original con factura:** nota de crédito sobre la factura y factura nueva al mismo RUC.
+- [x] **A nombre de quién:** la nota de crédito, siempre de quien compró (SUNAT). El comprobante nuevo se llena con el mismo cliente y se
+      puede cambiar ahí mismo (un regalo).
+- [x] **Metas:** la venta original queda con su asesora; quien atiende el cambio suma (o resta) solo la diferencia.
+- [x] **Cambios ya hechos:** se aplica desde que se publique. La lista de los 13 con diferencia se le entregó a Felipe para el contador
+      (fuera del repo: es público).
+- [x] **Volver a cambiar lo que se llevó en un cambio:** se podrá, dentro de los 15 días de la compra original. Hoy el sistema no lo
+      permite en ningún caso (la línea queda agotada con el primer cambio): es una obra aparte.
+
+### Diseño (técnico, del arquitecto)
+
+- Los comprobantes **cuelgan del cambio**, no de una venta nueva (`comprobantes.cambio_id`). Así el camino del stock no se toca, la regla
+  «una venta, un comprobante vivo» (INV-06) sigue cierta y las metas cuentan la diferencia sin restar a nadie.
+- Regla única: `cambios.diferencia <> 0` → documentos. Nota de crédito por lo pagado de lo devuelto, con solo esos ítems (como
+  ADR-0382); comprobante nuevo por todo lo que se lleva, a su precio de cambio. Comprobante nuevo − nota de crédito = diferencia.
+- Se reservan en Postgres dentro del mismo guardado (o quedan «por emitir» hasta que la original esté aceptada); se transmiten por el
+  envío y la cola que ya existen. Si Lucode no responde, el cambio no se pierde ni se deshace.
+
+### Pendiente
+
+- [ ] ADR y reserva de números (`pnpm reservar adr` / `pnpm reservar migracion`).
+- [ ] Construir actividad por actividad (`/construir`), con la lista aprobada por Felipe.
+- [ ] Probar contra el sandbox de Lucode, nunca contra la SUNAT real; pegar en producción solo con el OK de Felipe.

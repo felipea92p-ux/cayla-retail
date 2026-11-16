@@ -482,6 +482,7 @@ export const PRUEBAS = [
   // Cambiar la talla o el color de una prenda comprada con descuento no cobra el descuento otra vez (ADR-0655, Felipe 2026-11-14): el mismo
   // modelo, una talla más cara o más barata, otro modelo, una por varias y su mutante. ROLLBACK.
   "pruebas:cambio-mismo-modelo",
+  "pruebas:cambio-con-comprobantes",
   "pruebas:aviso-dos-ofertas",
   // Tres candados de las ofertas (ADR-0655, casuística 2026-11-16): cesiones sin ciclo, la campaña que se achica bajo sus ofertas (fechas y
   // tiendas) y la revisión de choques de a una; con su control (sin el candado, el ciclo apaga las tres ofertas). ROLLBACK.
