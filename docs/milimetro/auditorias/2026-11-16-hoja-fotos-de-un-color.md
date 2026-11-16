@@ -12,7 +12,7 @@ es de otro color: las dos dicen «Hacer principal» y la segunda «Ponerla prime
 
 ## Números
 
-**0 graves · 0 medias · 0 leves en lo que cambió.** 1 media propia arreglada en el camino. 2 notas de antes, fuera de este cambio.
+**0 graves · 0 medias · 0 leves en lo que cambió.** 1 media propia arreglada en el camino. 2 notas de antes: una arreglada (el input sin nombre), una abierta (el vacío).
 
 | Medidor | 1440 claro | 375 claro | 1440 oscuro | quieto |
 |---|---|---|---|---|
@@ -59,9 +59,17 @@ combo × «Ponerla primera»); después, 0 en los cuatro casos.
 
 ## Notas de antes (fuera de este cambio)
 
-- **El `<input type="file">` escondido de `BotonFoto` no tiene nombre** (`components/alta-producto/FotosAlta.tsx:90`): es `sr-only` con `tabIndex={-1}`,
-  así que no se alcanza con Tab (el «foco tapado» del medidor es falso), pero un lector de pantalla en modo lectura lo encuentra como «archivo» sin nombre
-  (WCAG 4.1.2). El botón de al lado ya tiene su `aria-label`. Arreglo probable: `aria-hidden` en el input. Lo usa también Nuevo producto: va aparte.
+- **Arreglado después (Felipe lo pidió en la misma sesión): el `<input type="file">` escondido de `BotonFoto` no tenía nombre**
+  (`components/alta-producto/FotosAlta.tsx`): `sr-only` con `tabIndex={-1}`, un lector de pantalla lo encontraba como «archivo» sin nombre (WCAG 4.1.2).
+  Ahora lleva `aria-hidden`, como `ElegirDibujoDeInsignia`; el botón de al lado, con su `aria-label`, es el único camino. Lo mismo, y además fuera
+  del orden de Tab (`tabIndex={-1}`: Tab se detenía en un campo invisible), en `AdjuntosCompra.tsx`, `finanzas/gastos/FotoDelComprobante.tsx` y
+  `finanzas/dinero/CuadrarConExtracto.tsx`. Medido: la foto ARIA de la hoja ya no tiene ningún campo de archivo; Tab recorre solo «Hacer principal»,
+  «Quitar», el combo, «Agregar otra foto de Crudo» y «Listo»; «Agregar otra» sigue abriendo el selector y el archivo llega. Los demás campos de archivo
+  del ERP ya tenían nombre (dentro de su `<label>`, con `htmlFor` o `aria-label`) o estaban fuera del árbol (`hidden`, `aria-hidden`).
+  **El medidor también se corrigió:** `milimetro/referencia/medir.js` contaba como campo sin etiqueta, y enfocaba, lo que está bajo `aria-hidden`;
+  probado con una página de control (el escondido ya no sale; un campo de texto sin nombre sí).
+  **Queda aparte:** `finanzas/SubirPropuestaSireModal.tsx` tiene el mismo input, pero dentro de un `CampoGuiado`, y la guía de foco
+  (`irAlIdCampo`, `cursor: true`) pone el cursor en el primer `input` del campo sin excluir los de archivo: ahí el arreglo es de la guía, no del input.
 - **El vacío es una frase gris suelta** («Ya no quedan fotos aquí…», `FotosPorColor.tsx:424`), no `<Vacio tamano="chico">` (ADR-0358, familia `vacio`).
 
 ## Sin medir

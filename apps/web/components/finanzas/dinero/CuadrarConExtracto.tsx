@@ -94,6 +94,9 @@ function HojaExtracto({ banco, bancoId, maquinas, guardar, onCerrar }: Props & {
             type="file"
             accept=".txt,text/plain"
             className="sr-only"
+            // El camino es el botón: sin esto, Tab se detenía en un input invisible y sin nombre.
+            tabIndex={-1}
+            aria-hidden
             onChange={(e) => {
               void elegir(e.target.files?.[0]);
               e.target.value = "";

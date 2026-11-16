@@ -10,3 +10,11 @@ solo en la ficha, para no tocar el cuerpo medido (sus siete huellas siguen igual
 encimadas por caso; después, ninguna, a 1440 y 375 px.
 Felipe se lleva: las fotos ya hechas no cambian solas; se rehacen subiendo la foto real con «Catálogo con IA» encendido, primero el color molde.
 Riesgo sin medir (octubre): en una prenda rayada, la IA podría redibujar las rayas; ahí, «Usar mi foto». ADR-0659 act. 2026-11-16 (d).
+
+## 2026-11-16 (El campo de archivo escondido ya no lo encuentra el lector de pantalla)
+Qué hice: el `<input type="file">` escondido de `BotonFoto` lleva `aria-hidden` (el botón «Agregar…», con su nombre, es el único camino), y el de
+`AdjuntosCompra`, `FotoDelComprobante` y `CuadrarConExtracto`, además, sale del orden de Tab. El medidor de `/milimetro` ya no cuenta lo que está bajo
+`aria-hidden`. Medido con la hoja de fotos: 0 campos de archivo en la foto ARIA, Tab solo por los 5 botones, el selector se sigue abriendo.
+Por qué así: lo encontró la auditoría de la hoja (WCAG 4.1.2), y Tab se detenía en un campo invisible en los otros tres. Es el arreglo que ya tenía
+`ElegirDibujoDeInsignia`. Felipe se lleva: queda aparte la hoja de SUNAT (`SubirPropuestaSireModal`): la guía de foco pone el cursor en su input de
+archivo escondido, y el arreglo es de la guía (`irAlIdCampo`).
