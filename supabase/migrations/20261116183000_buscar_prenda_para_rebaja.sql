@@ -48,7 +48,8 @@ begin
       select array_agg(x.id) from (
         select v.id from retail.variantes v join retail.productos p on p.id = v.producto_id
         where v.activo and p.estado = 'activo' and retail.fn_clave_texto(p.referencia) like '%' || retail.fn_clave_texto(v_texto) || '%'
-        order by p.referencia, v.color_codigo, v.id
+        -- Primero los modelos cuyo nombre EMPIEZA con lo escrito («pantalón» → Pantalón Carla antes que Conjunto Chaleco y Pantalón).
+        order by (retail.fn_clave_texto(p.referencia) like retail.fn_clave_texto(v_texto) || '%') desc, p.referencia, v.color_codigo, v.id
         limit 20
       ) x
     );
@@ -64,7 +65,7 @@ begin
     left join retail.tallas t on t.id = v.talla_id
     left join retail.categorias ca on ca.id = p.categoria_id
     where v.id = any (coalesce(v_ids, '{}'::uuid[]))
-    order by p.referencia, co.nombre, t.valor;
+    order by (retail.fn_clave_texto(p.referencia) like retail.fn_clave_texto(v_texto) || '%') desc, p.referencia, co.nombre, t.valor;
 end;
 $function$;
 

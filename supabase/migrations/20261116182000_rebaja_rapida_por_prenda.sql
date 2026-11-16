@@ -266,6 +266,9 @@ declare
 begin
   v_sede := retail.fn_exigir_rebaja_rapida(p_ubicacion_id, v_todas);
   v_actor := retail.fn_actor_persona_id(true);
+  -- Dos personas poniendo un % a la misma prenda a la vez: van de a una, y la segunda ve (y saca) lo que puso la primera. Sin esto, cada una
+  -- sacaba la prenda de los otros lugares sin ver lo que la otra aún no confirmaba, y la prenda quedaba en dos (probado el 2026-11-16).
+  perform pg_advisory_xact_lock(hashtext('retail.rebaja_rapida'));
   if p_alcance is null or p_alcance not in ('prenda', 'modelo') then
     raise exception 'Elige si va solo a esta prenda o a todo el modelo.' using hint = 'rebaja_sin_alcance';
   end if;
@@ -287,7 +290,6 @@ begin
     if v_pct is null or v_pct <= 0 or v_pct > 70 then
       raise exception 'El %% va de 1 a 70.' using hint = 'rebaja_pct';
     end if;
-    perform pg_advisory_xact_lock(hashtext('retail.rebaja_cajones'));
     select c.etiqueta_id into v_destino from retail.rebaja_cajones c where c.pct = v_pct and c.ubicacion_id is not distinct from v_sede;
     if v_destino is null then
       v_nombre := format('Rebaja −%s %% · %s', retail.fn_pct_corto(v_pct),
@@ -346,6 +348,7 @@ declare
 begin
   v_sede := retail.fn_exigir_rebaja_rapida(p_ubicacion_id, v_todas);
   perform retail.fn_actor_persona_id(true);
+  perform pg_advisory_xact_lock(hashtext('retail.rebaja_rapida'));
   if p_alcance is null or p_alcance not in ('prenda', 'modelo') then
     raise exception 'Elige si va solo a esta prenda o a todo el modelo.' using hint = 'rebaja_sin_alcance';
   end if;

@@ -10,6 +10,7 @@ import { Boton, Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { Modal } from "@/components/ui/Modal";
+import { PieAcciones } from "@/components/ui/PieAcciones";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { traducirError } from "@/lib/error-escritura";
@@ -267,21 +268,24 @@ export function HojaRebaja({
 
             <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
               <PieGuia guia={guia} listo="Listo para poner el %." />
-              <div className="pie-acciones ml-auto">
-                {hayQueQuitar(datos.r.tiene) && (
-                  <Boton
-                    type="button"
-                    peso="peligro"
-                    className="mr-auto"
-                    cargando={guardando === "quitar"}
-                    textoCargando="Quitando…"
-                    disabled={guardando !== null || alcance === null || !responsable.listo}
-                    title={alcance === null ? "Elige primero a qué: solo esta prenda o todo el modelo." : (responsable.motivo ?? undefined)}
-                    onClick={() => void guardar("quitar")}
-                  >
-                    Quitar el %
-                  </Boton>
-                )}
+              <PieAcciones
+                className="ml-auto"
+                izquierda={
+                  hayQueQuitar(datos.r.tiene) ? (
+                    <Boton
+                      type="button"
+                      peso="peligro"
+                      cargando={guardando === "quitar"}
+                      textoCargando="Quitando…"
+                      disabled={guardando !== null || alcance === null || !responsable.listo}
+                      title={alcance === null ? "Elige primero a qué: solo esta prenda o todo el modelo." : (responsable.motivo ?? undefined)}
+                      onClick={() => void guardar("quitar")}
+                    >
+                      Quitar el %
+                    </Boton>
+                  ) : undefined
+                }
+              >
                 <Boton type="button" onClick={cerrar}>
                   Cancelar
                 </Boton>
@@ -296,7 +300,7 @@ export function HojaRebaja({
                 >
                   {textoDelBoton(pct)}
                 </Boton>
-              </div>
+              </PieAcciones>
             </div>
           </form>
         )
