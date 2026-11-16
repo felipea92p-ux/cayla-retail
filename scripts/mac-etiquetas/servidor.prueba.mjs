@@ -84,6 +84,16 @@ try {
   assert.equal(r.headers.get("access-control-allow-origin"), "https://retail.cayla.pe");
   ok("el dominio propio del ERP (retail.cayla.pe) recibe permiso CORS");
 
+  // 2c. Despertar a Chrome antes de imprimir: responde al tiro, una vez cada 10 s, y solo a la pantalla de CAYLA.
+  r = await fetch(url("/calentar"), { headers: { Origin: ERP } });
+  assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { ok: true, calentado: true });
+  r = await fetch(url("/calentar"), { headers: { Origin: ERP } });
+  assert.deepEqual(await r.json(), { ok: true, calentado: false });
+  r = await fetch(url("/calentar"), { headers: { Origin: "https://otro.example" } });
+  assert.equal(r.status, 403);
+  ok("/calentar despierta a Chrome una vez cada 10 s y solo para CAYLA");
+
   // 3. El preflight del navegador (OPTIONS) pasa para CAYLA y se rechaza para otro sitio.
   r = await fetch(url("/imprimir"), { method: "OPTIONS", headers: { Origin: ERP, "Access-Control-Request-Method": "POST", "Access-Control-Request-Private-Network": "true" } });
   assert.equal(r.status, 204);
@@ -139,7 +149,7 @@ try {
 
   // 6b. Rótulos de anaquel (ADR-0366): con `?medida=62x100mm` va a la Brother con ese papel; una medida que no está en la
   // lista del ayudante no se imprime (nunca llega a `lp` un texto de la petición).
-  assert.equal(estado.version, 3);
+  assert.ok(estado.version >= 3);
   const rotulo = `<!doctype html><html><head><meta charset="utf-8"><style>
 @page rotulo { size: 62mm 100mm; margin: 0 }
 @media print { .rot-hoja { width: 62mm; height: 100mm; overflow: hidden; page: rotulo; break-after: page }

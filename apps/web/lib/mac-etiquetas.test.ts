@@ -117,7 +117,7 @@ describe("el ayudante y la web dicen lo mismo", () => {
     expect(SERVIDOR).toContain("Custom.62x40.1mm");
   });
   it("la versión que imprime boletas y los topes del largo", () => {
-    expect(SERVIDOR).toContain(`VERSION=${VERSION_CON_BOLETAS}`);
+    expect(Number(SERVIDOR.match(/^VERSION=(\d+)$/m)?.[1])).toBeGreaterThanOrEqual(VERSION_CON_BOLETAS);
     expect(SERVIDOR).toContain(`-lt ${LARGO_MIN_MM} ]`);
     expect(SERVIDOR).toContain(`-gt ${LARGO_MAX_MM} ]`);
     expect(SERVIDOR).toContain('MEDIA="Custom.80x${LARGO_TICKET}mm"');

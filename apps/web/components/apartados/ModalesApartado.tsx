@@ -77,7 +77,7 @@ import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 import { Casilla } from "@/components/ui/Casilla";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
-import { imprimirBoleta } from "@/components/impresion/imprimirBoleta";
+import { imprimirBoleta, useDespertarAyudante } from "@/components/impresion/imprimirBoleta";
 
 const CANTIDAD_DE_LINEA = reglaDeEntero();
 
@@ -115,6 +115,8 @@ function Botones({ cerrar, principal }: { cerrar: () => void; principal: string 
 /** «Apartado registrado»: la forma de «Venta registrada» más lo propio de apartar — la fecha límite y lo que hay que
  *  hacer con la prenda en la mano. */
 export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { apartado: Apartado; vuelto: number; sede: string; onClose: () => void }) {
+  // Despierta al ayudante de la Mac: al imprimir, la boleta sale en 0,5 s y no en 1,1 (ADR-0670).
+  useDespertarAyudante();
   const a = apartado;
   useTituloDeImpresion(a.codigo); // el PDF sale como «APT-TRU-0004.pdf», no «Retail - CAYLA.pdf»
   const [hechos, setHechos] = useState<boolean[]>([false, false, false]);
@@ -216,6 +218,8 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
 }
 
 export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo = 0, sede, onClose }: { apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number; /** Lo que no se cobró por llevar el efectivo del saldo a S/ 0.10 (ADR-0311). */ redondeo?: number; sede: string; onClose: () => void }) {
+  // Despierta al ayudante de la Mac: al imprimir, la boleta sale en 0,5 s y no en 1,1 (ADR-0670).
+  useDespertarAyudante();
   const a = apartado;
   useTituloDeImpresion(a.codigo);
   // Un apartado nuevo imprime LA boleta o factura de siempre (con su QR y su número); uno viejo, su ticket de antes (ADR-0399).
@@ -262,6 +266,8 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo =
  * No escribe nada: solo vuelve a dibujar lo que la base ya tiene.
  */
 export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado: Apartado; sede: string; onClose: () => void }) {
+  // Despierta al ayudante de la Mac: al imprimir, la boleta sale en 0,5 s y no en 1,1 (ADR-0670).
+  useDespertarAyudante();
   const a = apartado;
   const conFinal = a.estado === "entregada" && !!a.comprobanteFinal;
   const constancia = esConstancia(a);

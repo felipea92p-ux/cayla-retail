@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { sistemaDelEquipo } from "@/lib/guia-impresion-reglas";
 import { ayudanteImprimeBoletas, documentoDeBoleta, largoDeLaBoleta, resultadoDeBoleta, URL_AYUDANTE } from "@/lib/mac-etiquetas";
@@ -62,6 +63,29 @@ export const boletasPorAyudante = {
   leerEnServidor: () => false,
 };
 
+let ultimoDespertar = 0;
+
+/**
+ * Despierta al Chrome del ayudante (`GET /calentar`) unos segundos antes de imprimir. Después de un rato sin usarse, el primer PDF tarda
+ * ~1,1 s; con Chrome corrido 3 a 8 s antes, 0,5 s (medido el 2026-11-16). Solo en una Mac cuyo ayudante imprime boletas, a lo más
+ * cada 10 s, sin esperar respuesta: si no contesta, la boleta sale igual, un poco más lenta.
+ */
+export function despertarAyudante(): void {
+  if (!esMac()) return;
+  void comprobarBoletasPorAyudante().then((si) => {
+    if (!si || Date.now() - ultimoDespertar < 10_000) return;
+    ultimoDespertar = Date.now();
+    void fetch(`${URL_AYUDANTE}/calentar`, { cache: "no-store", signal: AbortSignal.timeout(3000) }).catch(() => undefined);
+  });
+}
+
+/** Despierta al ayudante al abrir una hoja desde la que se imprime un ticket (el cobro, Venta registrada, el detalle, un cambio). */
+export function useDespertarAyudante(activo = true): void {
+  useEffect(() => {
+    if (activo) despertarAyudante();
+  }, [activo]);
+}
+
 /**
  * Las reglas de impresión de la boleta (`@media print` de `globals.css`) con otro id, para dibujar una copia en pantalla y medir
  * cuánto papel ocupa. Las que nombran `html` o `body` quedan fuera: esconden la página entera.
@@ -109,12 +133,48 @@ function medirBoleta(nodo: HTMLElement): number {
   }
 }
 
+/**
+ * Solo las reglas que tocan la boleta, escritas dentro del documento. Antes iban los `<link>` de las hojas de estilo del ERP y el
+ * Chrome del ayudante (un perfil nuevo en cada boleta, sin caché) las bajaba de internet cada vez: 1,3 a 1,9 s por boleta, contra
+ * 0,5 s con los estilos adentro (medido el 2026-11-16). Entra toda regla que nombra `#comprobante-print` o una clase que la boleta
+ * usa (`rt-*`, `sr-only`, las del logo); quedan fuera las de otros anchos y del modo oscuro, y las variables de `:root` (39 KB que la
+ * boleta no usa: sus reglas son negro sobre blanco, sin tokens, y con ellas el PDF tardaba 0,6 s en vez de 0,5). Las capas
+ * (`@layer`) se aplanan en su orden: la boleta no depende de su prioridad.
+ */
+function estilosDeLaBoleta(nodo: HTMLElement): string {
+  const clases = new Set<string>();
+  for (const el of [nodo, ...nodo.querySelectorAll("[class]")]) el.classList.forEach((c) => clases.add(c));
+  const laNombra = (selector: string) =>
+    selector.includes(`#${ID}`) ||
+    Array.from(selector.matchAll(/\.((?:\\.|[\w-])+)/g)).some((m) => clases.has(m[1].replace(/\\(.)/g, "$1")));
+  const salida: string[] = [];
+  const recorrer = (lista: CSSRuleList, envolver: (texto: string) => string) => {
+    for (const regla of Array.from(lista)) {
+      if (regla instanceof CSSMediaRule) {
+        const medio = regla.media.mediaText.trim();
+        if (medio === "" || medio === "all" || /\bprint\b/.test(medio)) recorrer(regla.cssRules, (t) => envolver(`@media ${medio || "all"}{${t}}`));
+      } else if (regla instanceof CSSStyleRule) {
+        if (laNombra(regla.selectorText)) salida.push(envolver(regla.cssText));
+      } else if (!(regla instanceof CSSPageRule) && "cssRules" in regla) {
+        recorrer((regla as CSSGroupingRule).cssRules, envolver);
+      }
+    }
+  };
+  for (const hoja of Array.from(document.styleSheets)) {
+    try {
+      recorrer(hoja.cssRules, (t) => t);
+    } catch {
+      // Una hoja de otro origen no deja leer sus reglas: las de la boleta son nuestras.
+    }
+  }
+  return `<style>${salida.join("\n").replace(/<\/style/gi, "<\\/style")}</style>`;
+}
+
 /** Manda la boleta al ayudante. `true` si salió; si no, ya avisó por qué. */
 async function porElAyudante(nodo: HTMLElement): Promise<boolean> {
   const largo = largoDeLaBoleta(medirBoleta(nodo));
-  const estilos = Array.from(document.head.querySelectorAll('link[rel="stylesheet"], style, link[rel="preload"][as="font"]'), (n) => n.outerHTML);
   const documento = documentoDeBoleta({
-    estilos,
+    estilos: [estilosDeLaBoleta(nodo)],
     base: `${location.origin}/`,
     clases: `${document.documentElement.className} ${document.body.className}`.trim(),
     boleta: nodo.outerHTML,
@@ -160,13 +220,17 @@ const porElCuadro = () =>
   });
 
 /**
- * Imprime la boleta montada. `conCuadro: false` (la estación de la caja) no cae nunca al cuadro: en una ventana minimizada el cuadro
+ * Imprime la boleta montada. Por el ayudante avisa «Ticket enviado a la ticketera». `conCuadro: false` (la estación de la caja) no avisa ni cae nunca al cuadro: en una ventana minimizada el cuadro
  * se quedaría abierto sin que nadie lo vea, y la boleta vuelve a la cola.
  */
 export async function imprimirBoleta({ conCuadro = true }: { conCuadro?: boolean } = {}): Promise<FinBoleta> {
   const nodo = document.getElementById(ID);
   if (nodo && (await comprobarBoletasPorAyudante())) {
-    if (await porElAyudante(nodo)) return "impresa";
+    if (await porElAyudante(nodo)) {
+      // Sin cuadro no hay nada que diga que salió: el aviso lo dice (la estación, que imprime sola, no avisa).
+      if (conCuadro) avisar.exito("Ticket enviado a la ticketera");
+      return "impresa";
+    }
     if (!conCuadro) return "fallo";
   }
   // Sin el ayudante, solo la ventana «CAYLA Caja» imprime sin cuadro.
