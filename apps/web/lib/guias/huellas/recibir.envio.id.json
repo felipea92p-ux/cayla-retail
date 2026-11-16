@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 318,
+  "total": 322,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -118,6 +118,11 @@
       "button «{`Usar ${soles(aviso.usar)}»",
       "button «{`Sí, pagué ${soles(costo)}»"
     ],
+    "components/recepcion-conteo/AvisoRecibido.tsx": [
+      "BotonImprimir «{`Imprimir ${imprimir.etiquetas.toLocaleString(\"es-PE\")}»",
+      "Boton «Ver lo recibido»",
+      "Boton «Volver a Recibir mercadería»"
+    ],
     "components/recepcion-conteo/BotonCerrarConteo.tsx": [
       "Boton «{guia}»",
       "Boton «{guia}» #2"
@@ -206,12 +211,10 @@
       "ComboResponsable «{responsable}»"
     ],
     "components/recepcion-conteo/EnvioCerrado.tsx": [
-      "BotonEnlace «{a.texto}»",
-      "Boton «{veredicto.accion}»",
       "Boton «{BOTON_DE_PENDIENTE[p.tipo]}»",
-      "Boton «Reabrir el conteo»",
-      "BotonEnlace «Recibir otro»",
-      "BotonEnlace «Ver todo lo recibido»"
+      "BotonImprimir «{`Imprimir ${imprimirTodo.etiquetas.toLocaleString(\"es-PE\")}»",
+      "Boton «{veredicto.accion}»",
+      "BotonEnlace «{bajar.texto}»"
     ],
     "components/recepcion-conteo/FiltrosDelEnvio.tsx": [
       "BotonFiltros «→() => setAbierto((a) => !a)»",
@@ -225,6 +228,10 @@
       "FiltroPuesto «Quitar el filtro de proveedor»",
       "FiltroPuesto «Quitar el filtro de marca»",
       "BotonLimpiar «Limpiar filtros»"
+    ],
+    "components/recepcion-conteo/FirmaDelCierre.tsx": [
+      "Boton «Cancelar»",
+      "Boton «Cerrar y firmar»"
     ],
     "components/recepcion-conteo/HacerAhora.tsx": [
       "Boton «Cancelar»",
@@ -259,9 +266,10 @@
     ],
     "components/recepcion-conteo/LoQueEntro.tsx": [
       "Casilla «{`Etiquetas de ${p.nombre}»",
-      "Casilla «{`Etiquetas de ${p.nombre}» #2",
-      "BotonImprimir «{`Imprimir ${enlace.etiquetas}»",
-      "button «{todasMarcadas ? \"Desmarcar todas\" : \"Marcar todas\"}»"
+      "button «{p.nombre}»",
+      "button «{`${f.color}»",
+      "Boton «Listo»",
+      "button «{todasDentro ? \"Desmarcar todas\" : \"Marcar todas\"}»"
     ],
     "components/recepcion-conteo/MarcaNuevaRecepcion.tsx": [
       "CampoTexto «{guia.etiqueta(\"marca-nombre\", \"Marca\")}»",
