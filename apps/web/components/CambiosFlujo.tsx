@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { enviarCambioASunat } from "@/lib/envio-sunat";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -426,6 +427,8 @@ export function CambiosFlujo({
 
   function registrado(data: unknown) {
     if (!linea || !seleccion || !r || !totales || !r.varianteNueva) return;
+    // ADR-0672: la nota de crédito y la boleta nueva salen a SUNAT solas, en segundo plano, como la boleta al cobrar en Vender.
+    if (typeof data === "string" && data) enviarCambioASunat(data);
     // El ticket del cambio (spike 2026-09-26): lo que la clienta se lleva. `nombreResponsable` se lee ANTES de que el
     // combo se vacíe tras guardar.
     setResultado({

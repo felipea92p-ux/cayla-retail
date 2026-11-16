@@ -24,6 +24,15 @@ export function enviarVentaASunat(ventaId: string): void {
   });
 }
 
+/** Declara la nota de crédito y la boleta nueva de un cambio recién guardado (ADR-0672), una sola vez por cambio en esta pestaña.
+ *  Un cambio sin papeles (la venta tenía nota de venta) responde sin mandar nada. */
+export function enviarCambioASunat(cambioId: string): void {
+  if (!primeraVez(`cambio:${cambioId}`)) return;
+  fetch("/api/lucode/emitir", { ...OPCIONES, body: JSON.stringify({ cambio_id: cambioId }) }).catch(() => {
+    // Sin red: los papeles siguen `pendiente` y los recoge el próximo barrido.
+  });
+}
+
 /** Lo que hizo una pasada del barrido: cuántos comprobantes intentó, cuántos preguntó y cuántos cambiaron con la consulta.
  *  `lucodeNoDisponible`: algún envío falló porque Lucode no respondió o no aceptó la clave; seguir sería insistirle. */
 export type PasadaSunat = { tomados: number; consultados: number; actualizados: number; lucodeNoDisponible: boolean };

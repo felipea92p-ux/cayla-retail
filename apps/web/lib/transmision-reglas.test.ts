@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cronNoAutorizado, diasParaElPlazo, queHacerConElError, errorDeColaLegible, itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar, type ComprobanteParaTransmitir } from "./transmision-reglas";
+import { cronNoAutorizado, diasParaElPlazo, queHacerConElError, errorDeColaLegible, itemsParaLucode, motivoParaNoTransmitir, papelesDelCambioPorEnviar, vaALaColaDeReintento, variantesPorNombrar, type ComprobanteParaTransmitir } from "./transmision-reglas";
 
 function comprobante(extra: Partial<ComprobanteParaTransmitir> = {}): ComprobanteParaTransmitir {
   return { estado: "pendiente", venta_id: "v1", venta: { estado: "completada" }, ...extra };
@@ -56,6 +56,37 @@ describe("vaALaColaDeReintento", () => {
     expect(vaALaColaDeReintento("pendiente")).toBe(true);
     expect(vaALaColaDeReintento("pendiente_reintento")).toBe(true);
     for (const estado of ["rechazado", "enviado", "aceptado", "anulado", "no_emitido"]) expect(vaALaColaDeReintento(estado)).toBe(false);
+  });
+});
+
+describe("papelesDelCambioPorEnviar", () => {
+  it("manda primero la nota de crédito y después la boleta nueva", () => {
+    const papeles = [
+      { id: "b", tipo: "boleta", estado: "pendiente" },
+      { id: "n", tipo: "nota_credito", estado: "pendiente" },
+    ];
+    expect(papelesDelCambioPorEnviar(papeles).map((p) => p.id)).toEqual(["n", "b"]);
+  });
+
+  it("una factura nueva también va después de su nota", () => {
+    const papeles = [
+      { id: "f", tipo: "factura", estado: "pendiente_reintento" },
+      { id: "n", tipo: "nota_credito", estado: "pendiente" },
+    ];
+    expect(papelesDelCambioPorEnviar(papeles).map((p) => p.id)).toEqual(["n", "f"]);
+  });
+
+  it("lo que ya salió (aceptado, enviado o rechazado) no se vuelve a mandar desde aquí", () => {
+    const papeles = [
+      { id: "n", tipo: "nota_credito", estado: "aceptado" },
+      { id: "b", tipo: "boleta", estado: "rechazado" },
+      { id: "x", tipo: "boleta", estado: "enviado" },
+    ];
+    expect(papelesDelCambioPorEnviar(papeles)).toEqual([]);
+  });
+
+  it("un cambio sin papeles (nota de venta) no manda nada", () => {
+    expect(papelesDelCambioPorEnviar([])).toEqual([]);
   });
 });
 

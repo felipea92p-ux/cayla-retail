@@ -64,6 +64,14 @@ export function vaALaColaDeReintento(estado: string): boolean {
   return estado === "pendiente" || estado === "pendiente_reintento";
 }
 
+/** Los papeles de un cambio (ADR-0672) que todavía hay que mandar, en el orden del cambio: primero la nota de crédito (la prenda
+ *  volvió), después la boleta nueva (se llevó otra). Lo ya enviado, aceptado o rechazado no se toca aquí: eso es de Comprobantes. */
+export function papelesDelCambioPorEnviar<T extends { id: string; tipo: string; estado: string }>(papeles: readonly T[]): T[] {
+  return papeles
+    .filter((p) => vaALaColaDeReintento(p.estado))
+    .sort((a, b) => Number(b.tipo === "nota_credito") - Number(a.tipo === "nota_credito"));
+}
+
 export type ItemLucode = { descripcion: string; cantidad: number; precio_unitario: number };
 
 const esNumero = (x: unknown): x is number => typeof x === "number" && Number.isFinite(x);

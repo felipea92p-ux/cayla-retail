@@ -18,6 +18,7 @@
  *  13. La migración se puede pegar dos veces.
  *  14. Una prenda por varias, con descuento: la del mismo modelo conserva su descuento en su línea; la otra va a lista (ADR-0470/0655).
  *  15. Una por dos unidades de otra prenda, en efectivo: la caja espera lo mismo que dicen los papeles.
+ *  16. Si el envío al guardar no llegó, el reintento automático toma los dos papeles (no tienen venta y aun así entran a la cola).
  *
  * CÓMO. Cada caso en su transacción con ROLLBACK (nunca se commitea nada). Si la base no tiene la migración, se aplica dentro de cada
  * transacción (el CI ya la tiene). Las series de la prueba (B901, B902, BC91, FC91) se crean y se archivan dentro de la transacción.
@@ -334,6 +335,16 @@ select :'opera_lima';`);
       h.bol.items.length === 1 && num(h.bol.items[0].cantidad) === 2,
     r.ok ? h : r.mensaje,
   );
+}
+
+// 16. Si el envío al guardar no llegó (sin red), el reintento automático toma los dos papeles: no tienen venta y aun así entran a la cola.
+{
+  const r = correr(`${venta({ variante: "v_m" })}\n${cambio({ nueva: "v_ves", metodo: "tarjeta" })}
+update retail.comprobantes set created_at = now() - interval '3 minutes' where cambio_id = :'cambio_id';
+select (select count(*) from retail.fn_tomar_comprobantes_para_reintento(:'ubic', 20) t(id)
+          join retail.comprobantes c on c.id = t.id where c.cambio_id = :'cambio_id')
+       || '|' || (select count(*) from retail.comprobantes where cambio_id = :'cambio_id');`);
+  esperar("16 · sin red al guardar: el reintento automático toma la nota y la boleta del cambio", r.ok && r.lineas.at(-1) === "2|2", r.ok ? r.lineas : r.mensaje);
 }
 
 // 12. MUTANTE: un cambio que no emite papeles (como antes de la migración) lo ve el caso 1.
