@@ -706,6 +706,27 @@ delete from retail.diario_vencido_marcas;
 insert into retail.diario_foto_lineas (mes, fecha, asiento, regla, cuenta, debe, haber, glosa)
   values ((date_trunc('month', retail.fn_hoy_lima()) - interval '1 month')::date, (date_trunc('month', retail.fn_hoy_lima()) - interval '1 month')::date, 'corrompida', 'chaos', '99', 1, 0, 'línea que el diario no tiene');`,
   },
+  {
+    id: "INV-30",
+    nombre: "papeles_del_cambio_cuadran",
+    gravedad: 1,
+    nivel: "cruzada",
+    clave: ["cambio_id"],
+    dice: "Los papeles de un cambio de prenda (ADR-0672) declaran lo que se movió en la caja: la boleta nueva menos la nota de crédito es la diferencia del cambio, y ninguno tiene venta (si la tuviera, la caja o Ventas la contarían otra vez). Si no, SUNAT recibe una cifra y el cajón otra. `fn_emitir_comprobantes_del_cambio` lo exige al guardar; esto vigila un arreglo a mano o una puerta nueva. Lee `cambio_id` con `to_jsonb` para no fallar en una base que todavía no tiene la columna.",
+    sql: `
+select c.id as cambio_id, c.diferencia,
+       round(sum(case when p.tipo = 'nota_credito' then -p.total else p.total end), 2) as boleta_menos_nota,
+       count(*) filter (where p.venta_id is not null) as papeles_con_venta
+  from retail.comprobantes p
+  join retail.cambios c on c.id = (to_jsonb(p) ->> 'cambio_id')::uuid
+ where p.estado not in ('rechazado', 'anulado', 'no_emitido')
+ group by c.id, c.diferencia
+having round(sum(case when p.tipo = 'nota_credito' then -p.total else p.total end), 2) <> round(c.diferencia, 2)
+    or count(*) filter (where p.venta_id is not null) > 0`,
+    // La boleta nueva de un cambio dice otra cifra que la caja: un arreglo a mano de su total.
+    corrompe: `update retail.comprobantes set total = total + 5
+ where ctid = (select ctid from retail.comprobantes where (to_jsonb(comprobantes) ->> 'cambio_id') is not null and tipo <> 'nota_credito' limit 1);`,
+  },
 ];
 
 // ── Instrumento (Docker + psql) ─────────────────────────────────────────────────────────────────────────────────────────────

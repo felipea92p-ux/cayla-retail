@@ -1311,6 +1311,17 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `fn_demanda_sede`, `fn_piso_plan_lectura` y `fn_actividad_cambio` leen `cambio_salidas` con un
   `left join` (20261021193000); `getVentasRecientes` trae `salidas` y las listas dicen
   `descripcionEntregadaTodas`; /chaos vigila `INV-22`. Migraciones 20261021183000 a 20261021193000.
+  **Desde el ADR-0672 (2026-11-16, migración 20261116220000) un cambio emite sus papeles:** al final de
+  `registrar_cambio` y `registrar_cambio_varias`, `fn_emitir_comprobantes_del_cambio` reserva la nota de
+  crédito sobre la boleta original (lo pagado por lo devuelto, por `fn_emitir_nota_interna`, el cuerpo de
+  `emitir_nota` sin el permiso de sede) y la boleta nueva (lo pagado + la diferencia, por
+  `emitir_comprobante`), los dos sin venta (`comprobantes.cambio_id`); la caja no cambia. Espera si la
+  boleta original no está aceptada (hint `cambio_boleta_sin_aceptar`; la pantalla lo adelanta con
+  `boletaEnCamino`, `lib/cambios-reglas.ts`) y no emite nada sin boleta del ERP. Al guardar, `CambiosFlujo`
+  los manda a SUNAT (`enviarCambioASunat` → `POST /api/lucode/emitir { cambio_id }`), los lee con
+  `lib/cambio-papeles.ts` y `CambioTicket.tsx` imprime la boleta con `ReciboTermico` (`cambio`, sello
+  «CANCELADO»; `lib/recibo-cambio-reglas.ts`). Comprobantes los enlaza (`getExtrasDeComprobantes` →
+  `cambio`, `notaDeCambio`; `comprasDeLosCambios`). /chaos vigila `INV-30`; prueba `pruebas:cambio-comprobantes`.
 - `/devoluciones` (ADR-0122, ADR-0232) → `getVentasRecientes` + `lib/devoluciones.ts`
   (`getDevolucionesPendientes`, `getDevolucionesResueltas`, `getEstadisticasDevoluciones`,
   `contarPrendasEnCuarentena`) + `getCajaAbierta` → `DevolucionesPanel.tsx` (avisos de cuarentena →
@@ -2474,7 +2485,8 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   a la forma del proveedor en `lib/lucode.ts` — cambiar de PSE es cambiar ese
   archivo, no el esquema. Si Lucode no responde, el comprobante se queda en su
   estado real (`pendiente`/`rechazado`) y el botón sigue a la vista: nunca se
-  le inventa un estado ni se reintenta solo. ADR-0009.
+  le inventa un estado ni se reintenta solo. ADR-0009. Con `{ cambio_id }` (ADR-0672) manda la nota de
+  crédito y la boleta nueva de ese cambio, en ese orden (`papelesDelCambioPorEnviar`).
 - `/api/fotos/catalogo` → `POST` multipart (`frente`, y opcionales `espalda`, `detalle`, `molde`): la foto de catálogo con IA de una prenda
   (ADR-0659). Pide sesión y el módulo Productos, 12 por persona por minuto; llama a OpenAI (`lib/openai-imagen-reglas.ts`, llave en
   `lib/foto-catalogo.ts`, solo servidor) y devuelve el PNG transparente 1024×1280 con `x-costo-usd`. Sin llave, 503. No guarda nada: la

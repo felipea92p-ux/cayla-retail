@@ -2,7 +2,7 @@
 
 - [x] **Pegar en producción las 7 migraciones:** hecho el 2026-10-21 con el OK de Felipe, por partes y en orden (la política sola y al final); md5 y `fn_acepta_qr_en_cambios() = true` verificados (ADR-0470, «Verificación en producción»). Falta publicar la web de esta rama: hasta entonces producción tiene la base nueva y la pantalla de antes.
 - [ ] **Refrescar el diccionario** (`pnpm datos:generar:produccion`) cuando se refresque el volcado: tabla nueva `cambio_salidas`.
-- [ ] **Boleta y nota de crédito de un cambio** (decisión de Felipe/contador, SUNAT): hoy un cambio no emite comprobante y esta entrega tampoco. En B005-000670 las dos boletas suman S/ 10 de más sin nota de crédito.
+- [x] ~~**Boleta y nota de crédito de un cambio**~~: decidido y construido el 2026-11-16 (ADR-0672, `20261116220000`, sin pegar en producción hasta el OK del contador). Lo que queda, incluido B005-000670, sigue en `docs/backlog/2026-11-16-cambios-prendas-comprobante-36deb9.md`.
 - [ ] **El candado de líder para un cambio que devuelve plata se quitó el 2026-09-23** (`20260923110500`): hoy cualquier colaboradora lo registra. Revisar si es lo que Felipe quiere (dinero: decide él).
 - [ ] **Guía de foco de `/cambios`** sigue `PENDIENTE` (`lib/guia-de-foco-pantallas.ts`): el paso «Reemplazo» ganó campos (las prendas extra); correr `/focus` sobre la pantalla.
 - [ ] **Correr `/chaos` y `/formidable` sobre Cambios** (la parte de la base está cubierta: todo o nada, doble clic, token, permisos; falta el catálogo completo en el navegador).

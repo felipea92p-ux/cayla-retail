@@ -1,8 +1,8 @@
 # ADR-0672 — Un cambio de prenda emite su nota de crédito y su boleta nueva
 
 - **Fecha:** 2026-11-16 · **Decidió:** Felipe (plan de 8 actividades y las tres decisiones de abajo, en el chat del 2026-11-16).
-- **Estado:** actividad 1 construida y probada en una copia de la base local con las funciones de producción. **Sin pegar en
-  producción:** la pega Felipe, con el OK del contador (actividad 7).
+- **Estado:** actividades 1 a 6 construidas y probadas en una copia de la base local con las funciones de producción (base) y con
+  datos inventados en el navegador (pantallas). **Sin pegar en producción:** la pega Felipe, con el OK del contador (actividad 7).
 - **Sigue a:** ADR-0100 y ADR-0382 (la nota de crédito de una devolución), ADR-0380 (lo pagado manda), ADR-0390 (la devolución espera la
   boleta), ADR-0470 (cambio por varias), ADR-0655 (el mismo modelo conserva su descuento). Cierra el pendiente «Boleta y nota de crédito de un
   cambio» que dejaron ADR-0125, ADR-0177 y ADR-0470.
@@ -53,7 +53,24 @@ prenda dos veces.
 - `fn_emitir_nota_interna`: el cuerpo de `emitir_nota` sin el permiso de sede. `emitir_nota` queda como «permiso + interna», con la misma
   firma, el mismo comportamiento y los mismos permisos (la prueba de la devolución pasa 16/16).
 - `fn_emitir_comprobantes_del_cambio`: arma y reserva los dos papeles.
-- `registrar_cambio` la llama al final, con un reemplazo anclado. El cambio por varias prendas se conecta en la actividad 2.
+- `registrar_cambio` la llama al final, con un reemplazo anclado.
+- `registrar_cambio_varias` arma las líneas de la boleta en el mismo ciclo que calcula la diferencia (las unidades del mismo modelo que
+  conservaron su descuento, ADR-0655, van en su propia línea) y se las pasa. La función exige que sumen lo pagado más la diferencia.
+- La siembra del vigía de producción con **INV-30** (los papeles de cada cambio suman su diferencia y ninguno tiene venta). Lee
+  `cambio_id` con `to_jsonb`, así que no falla en una base que todavía no tiene la columna.
+
+**La pantalla** (sin pasos nuevos para la colaboradora):
+
+- Al guardar, `CambiosFlujo` manda los dos papeles a SUNAT en segundo plano (`enviarCambioASunat` → `POST /api/lucode/emitir {
+  cambio_id }`, primero la nota). Sin red, el reintento automático los toma: tienen venta vacía y `fn_tomar_comprobantes_para_reintento`
+  ya hacía `left join`.
+- La hoja «Cambio registrado» imprime la boleta nueva con el papel de Vender (`ReciboTermico` con `cambio`): el sello «CANCELADO» en vez
+  de la forma de pago y «Cambio de la Boleta B001-… · Nota de crédito BC0…-…» al pie. Con «Imprimir solo al cobrar» sale sola, una vez.
+  Sin boleta (nota de venta), el resumen de siempre.
+- Antes de confirmar, si la boleta de la compra no llegó a SUNAT, el cambio lo dice y frena (`boletaEnCaminoDe`, la misma regla de la base).
+- En Comprobantes, la boleta nueva dice «Cambio de B001-…» y lleva al cambio; la nota dice «Salió de un cambio de prenda»; la boleta
+  original con la nota de un cambio ya no dice «Se devolvió», sino «Se cambió una prenda».
+- Historial no cambia: tampoco muestra la nota de una devolución.
 
 DESCARTÉ:
 
@@ -79,13 +96,24 @@ SE ROMPE SI:
 - **La boleta nueva no se puede repartir en céntimos exactos entre sus unidades:** no pasa con precios por unidad, que es como se calcula la
   diferencia, y si pasara, la función se niega y no guarda nada.
 
-## Verificación (actividad 1)
+## Verificación
 
 - **Copia desechable de la base local** (`cambio_comprobantes`), con las migraciones de `main` aplicadas como `postgres`. Las funciones que
   importan tienen la misma huella que producción (`registrar_cambio` 7ce86624, `registrar_cambio_varias` 1847610e, `emitir_nota` 196885b8,
   `aprobar_devolucion` cf2a6529, `fn_precio_mismo_modelo` 7310f632). `emitir_comprobante` solo difiere en los saltos de línea de Windows.
-- `pnpm pruebas:cambio-comprobantes`: 13/13. Incluye los tres casos de negocio con la caja y el registro de ventas, el descuento, la venta
-  parcial, la boleta sin aceptar, la nota de venta, la factura, el doble clic, otra tienda, el mutante y el pegado doble.
+- `pnpm pruebas:cambio-comprobantes`: 17/17, también sobre una base recién hecha. Incluye:
+  - los tres casos de negocio, con la caja y el registro de ventas;
+  - el descuento, con otro modelo y con el mismo modelo, y la venta parcial;
+  - la boleta sin aceptar, la nota de venta y la factura;
+  - el doble clic y el cambio en otra tienda;
+  - el cambio por varias prendas (con descuento y en efectivo);
+  - el reintento automático sin red y el vigía INV-30, limpio y viendo lo corrompido;
+  - el mutante y el pegado doble.
+- Web: tipos en verde, la suite completa (168 mil pruebas), y en el navegador, con datos inventados, la hoja final con y sin boleta en
+  escritorio y a 375 px, la impresión automática contada (una con boleta, ninguna sin ella) y las tres hojas de opciones de Comprobantes.
+- **No verificado:** el envío real al sandbox de Lucode (necesita sus claves), y un cambio de punta a punta en la pantalla con una base que
+  tenga la migración. La base local compartida es el espejo de `/flujo-de-negocio` y no recibe migraciones sin la orden de Felipe
+  (`/actualizar-flujo`); por eso tampoco se corrieron `/chaos` en el navegador, `/milimetro`, `/formidable` ni `guias:recorrer`.
 - Regresión en la copia: `registrar_cambio` 29/29, `registrar_cambio_varias` 26/26, `cambio_mismo_modelo` y `cambio_sin_precio` en verde.
   La devolución (`aprobar_devolucion_caja`) da 16/16 aprobando con Felipe: la base local no tiene la cuenta de Sandra y, sin ella, la misma
   prueba falla igual sin esta migración (2/16).
