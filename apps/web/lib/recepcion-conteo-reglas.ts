@@ -1532,6 +1532,25 @@ export function textoResumenDelCierre(r: { sePuedenVender: number; guardadas: nu
   return r.guardadas === 0 ? `Al cerrar: ${entran}.` : `Al cerrar: ${entran} · ${guardadas}.`;
 }
 
+/** Una fila del resumen que se firma al cerrar: una palabra y su cifra. `ambar` es lo que no cuadró con la guía. */
+export type FilaDeLaFirma = { texto: string; cifra: string; tono: "neutro" | "ambar" };
+
+/**
+ * La firma del cierre aparece solo si algo no cuadró con la guía (Felipe 2026-11-16, maqueta `recibir-cierre-recibo-2026-11`): lo normal —5 de cada 6
+ * envíos con guía llegan exactos— se cierra de un toque, como antes. Lo que llegó sin aviso no tiene con qué compararse y nunca cuenta como «de más».
+ */
+export const pideFirmaAlCerrar = (c: { faltan: number; sobran: number }): boolean => c.faltan > 0 || c.sobran > 0;
+
+/** Lo que pasa al cerrar, una palabra y un número por fila (Felipe 2026-11-16: «hay mucho texto»). Solo van las filas con cifra, salvo «Al almacén». */
+export function filasDeLaFirma(c: { alAlmacen: number; sobran: number; faltan: number; paraDespues: number }): FilaDeLaFirma[] {
+  const n = (x: number) => x.toLocaleString("es-PE");
+  const filas: FilaDeLaFirma[] = [{ texto: "Al almacén", cifra: n(c.alAlmacen), tono: "neutro" }];
+  if (c.sobran > 0) filas.push({ texto: "De más · a Compras", cifra: `+${n(c.sobran)}`, tono: "ambar" });
+  if (c.faltan > 0) filas.push({ texto: "Faltan · a Compras", cifra: `−${n(c.faltan)}`, tono: "ambar" });
+  if (c.paraDespues > 0) filas.push({ texto: "Para después", cifra: n(c.paraDespues), tono: "neutro" });
+  return filas;
+}
+
 /** Lo que no cuadró de un envío cerrado, una fila por respuesta. */
 export type NoCuadro = {
   tipo: "faltante" | "sobrante";

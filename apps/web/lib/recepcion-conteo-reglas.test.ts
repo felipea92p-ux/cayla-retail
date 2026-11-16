@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { costoDelGrupo as costoDelGrupoStock, costoDeLoQueYaEntro, filasDeCostoEnStock, leerConteosDelEnvio as leerConteosStock, textoCostoEnStock, unidadesSinIdentificar as sinIdentificarStock } from "./recepcion-conteo-reglas";
 import { sePuedeCambiarCategoria, costoDeCatalogo, costosConCatalogo, DECISION_VACIA } from "./recepcion-conteo-reglas";
-import { noCuadroAgrupado } from "./recepcion-conteo-reglas";
+import { filasDeLaFirma, noCuadroAgrupado, pideFirmaAlCerrar } from "./recepcion-conteo-reglas";
 import type { DiferenciaEnvio, RecibidoEnvio } from "./recepcion-envio-reglas";
 import {
   lineasSinModelosEnCero,
@@ -1638,5 +1638,26 @@ describe("lo que no cuadró, una fila por respuesta (maqueta recibir-cierre-reci
       ["sobrante", "otro", "Una muestra", 1, ["Sin categoría"]],
       ["sobrante", "otro", "Otra cosa", 4, ["Sin categoría"]],
     ]);
+  });
+});
+
+describe("la firma del cierre (maqueta recibir-cierre-recibo-2026-11)", () => {
+  it("solo se pide si algo no cuadró: lo exacto se cierra de un toque", () => {
+    expect(pideFirmaAlCerrar({ faltan: 0, sobran: 0 })).toBe(false);
+    expect(pideFirmaAlCerrar({ faltan: 0, sobran: 203 })).toBe(true);
+    expect(pideFirmaAlCerrar({ faltan: 3, sobran: 0 })).toBe(true);
+  });
+
+  it("una palabra y un número por fila; solo las que tienen cifra, salvo «Al almacén»", () => {
+    expect(filasDeLaFirma({ alAlmacen: 227, sobran: 203, faltan: 0, paraDespues: 0 })).toEqual([
+      { texto: "Al almacén", cifra: "227", tono: "neutro" },
+      { texto: "De más · a Compras", cifra: "+203", tono: "ambar" },
+    ]);
+    expect(filasDeLaFirma({ alAlmacen: 30, sobran: 0, faltan: 3, paraDespues: 6 }).map((f) => [f.texto, f.cifra])).toEqual([
+      ["Al almacén", "30"],
+      ["Faltan · a Compras", "−3"],
+      ["Para después", "6"],
+    ]);
+    expect(filasDeLaFirma({ alAlmacen: 1234, sobran: 0, faltan: 0, paraDespues: 0 })).toEqual([{ texto: "Al almacén", cifra: "1,234", tono: "neutro" }]);
   });
 });

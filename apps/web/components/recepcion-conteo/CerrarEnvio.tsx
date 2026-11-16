@@ -17,6 +17,7 @@ import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { BaldosaCategoria } from "./piezas";
 import { PrendaConCombinaciones } from "./PrendaConCombinaciones";
 import { ConfirmarPrecios } from "./ConfirmarPrecios";
+import { FirmaDelCierre, ResumenDelCierre } from "./FirmaDelCierre";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Ayuda } from "@/components/Ayuda";
@@ -45,7 +46,7 @@ import { dudaDeCosto } from "@/lib/referencia-de-costo";
 import { agruparLineasDelCierre, camposDelCierrePorGrupo, nombreDelGrupoDelCierre, causasDelGrupo, filasDelCierre, lineaDeLaPrenda, lineaDelGrupo, textoDeLasPlegadas, textoDeLoQueFalta, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
 import { pideRevisarAlRecibir, precioUnicoAlCerrar, textoRevisarAlRecibir } from "@/lib/precio-propuesto-reglas";
 import { borrarBorradorDelCierre, conCostosDecididos, conLoDecidido, costosCambiados, costosDeCombinacionCambiados, decisionCambiada, type FotoDelCierre, guardarBorradorDelCierre, leerBorradorDelCierre } from "@/lib/recepcion-cierre-borrador";
-import { type PrendaConCosto, lineasSinModelosEnCero, modelosEnCeroDe, textoModelosEnCero, avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, conCostoDeHoy, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, filasDeCostoEnStock, textoCostoEnStock, costosDePrendaConProblema, type CostosDePrendas, costoDelGrupo, detalleDelModelo, deQuienLlego, type FilaDeQuien, idCampoProveedor, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, textoDelEnvioCerrado, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
+import { type PrendaConCosto, lineasSinModelosEnCero, modelosEnCeroDe, textoModelosEnCero, avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, conCostoDeHoy, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, filasDeCostoEnStock, filasDeLaFirma, pideFirmaAlCerrar, textoCostoEnStock, costosDePrendaConProblema, type CostosDePrendas, costoDelGrupo, detalleDelModelo, deQuienLlego, type FilaDeQuien, idCampoProveedor, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, textoDelEnvioCerrado, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
 import { VALOR_OTRO } from "@/lib/recepcion-envio-reglas";
 import { cambiarPreciosEnRecepcion, cerrarConteo, corregirGuiaEnvio, leerCostosDeHoy, leerObservacionesDelEnvio, leerPreciosDeCombinaciones, ponerProveedorDeMarca, validarPreciosEnRecepcion } from "@/lib/recepcion-conteo-acciones";
 import {
@@ -208,6 +209,8 @@ export function CerrarEnvio({
   const dudasAbiertas: { claveFila: string; nombre: string; grupo: GrupoDeLineas }[] = [];
   // Lo que cambia (de compra y de venta), para confirmarlo antes de guardar: `null` = no se está confirmando.
   const [porConfirmar, setPorConfirmar] = useState<CambioDePrecio[] | null>(null);
+  // La firma del cierre (Felipe 2026-11-16): se abre al pedir cerrar si algo no cuadró con la guía.
+  const [firmando, setFirmando] = useState(false);
   // Las filas con el costo y el precio de venta de sus prendas a la vista. Una categoría de fuera de la guía arranca abierta (su costo se pide y no
   // viene de ninguna orden), pero se puede esconder (Felipe 2026-10-28): cerrada, dice «Falta el costo» mientras no lo escriban. Desde el
   // 2026-10-29 (Formidable) también arranca abierta la que ya tiene prendas identificadas, porque la prueba ciega no encontraba dónde poner el precio; con
@@ -546,7 +549,26 @@ export function CerrarEnvio({
       setPorConfirmar(c);
       return;
     }
+    if (pideFirmaAlCerrar(diferenciasDelCierre())) {
+      setFirmando(true);
+      return;
+    }
     void cerrar();
+  }
+
+  /** Cuánto falta y cuánto sobra en todo el envío: decide si el cierre pide firma y arma su resumen. */
+  function diferenciasDelCierre(): { faltan: number; sobran: number } {
+    const difs = grupos.flatMap((g) => causasDelGrupo(g, 0, sinAviso));
+    return {
+      faltan: difs.filter((d) => d.tipo === "faltante").reduce((a, d) => a + d.cantidad, 0),
+      sobran: difs.filter((d) => d.tipo === "sobrante").reduce((a, d) => a + d.cantidad, 0),
+    };
+  }
+  /** Quien firma: el responsable elegido o, en una terminal con firma de respaldo, a nombre de quien firma (ADR-0454). */
+  function quienFirma(): { personaId: string | null; nombre: string } | null {
+    const p = responsable.lista.elegibles.find((x) => x.personaId === responsable.elegidoId);
+    if (p) return { personaId: p.personaId, nombre: p.nombre };
+    return responsable.firmaDeRespaldo ? { personaId: null, nombre: responsable.firmaDeRespaldo } : null;
   }
 
   async function cerrar(confirmados: ReadonlySet<string> = new Set()) {
@@ -1456,9 +1478,24 @@ export function CerrarEnvio({
         onCerrar={() => setAgregandoProveedor(null)}
       />
     )}
+    {firmando && (
+      <FirmaDelCierre
+        numero={detalle.numero}
+        filas={filasDeLaFirma({ alAlmacen: resumen.sePuedenVender, ...diferenciasDelCierre(), paraDespues: porDetallar })}
+        quien={quienFirma()}
+        cargando={guardando}
+        onCancelar={() => setFirmando(false)}
+        onConfirmar={async () => {
+          await cerrar();
+          // Si no cerró (un error, un costo raro), la hoja se va y lo que hay que ver queda a la vista en el pie, como antes.
+          setFirmando(false);
+        }}
+      />
+    )}
     {porConfirmar && (
       <ConfirmarPrecios
         cambios={porConfirmar}
+        arriba={pideFirmaAlCerrar(diferenciasDelCierre()) ? <ResumenDelCierre filas={filasDeLaFirma({ alAlmacen: resumen.sePuedenVender, ...diferenciasDelCierre(), paraDespues: porDetallar })} /> : undefined}
         sede={sede}
         subtitulo="Revisa lo que cambia antes de cerrar el envío."
         textoConfirmar="Confirmar y cerrar"
