@@ -483,6 +483,15 @@ export const PRUEBAS = [
   // modelo, una talla más cara o más barata, otro modelo, una por varias y su mutante. ROLLBACK.
   "pruebas:cambio-mismo-modelo",
   "pruebas:aviso-dos-ofertas",
+  // Tres candados de las ofertas (ADR-0655, casuística 2026-11-16): cesiones sin ciclo, la campaña que se achica bajo sus ofertas (fechas y
+  // tiendas) y la revisión de choques de a una; con su control (sin el candado, el ciclo apaga las tres ofertas). ROLLBACK.
+  "pruebas:ofertas-candados",
+  // Las reglas de dinero que decidió Felipe el 2026-11-16 (ADR-0655): el tope de 70 % para toda forma, las bolsas fuera del monto y el
+  // monto medido sobre lo que la prenda paga (también lo que exige registrar_venta); con su control. ROLLBACK.
+  "pruebas:ofertas-tope-y-monto",
+  // Una venta sin conexión cuya oferta cambió antes de subirla se acepta con lo que cobró la caja y queda marcada (ADR-0655, Felipe
+  // 2026-11-16); en línea se sigue rechazando (el control), y los candados de la parte siguen sin conexión. ROLLBACK.
+  "pruebas:venta-sin-conexion-oferta",
   // Una campaña que solo tiene OFERTAS también sale en la Tienda web (ADR-0496, «Lo que NO cubre»): la lista, la portada y el diseño leen las
   // ofertas activas (la portada, solo las que rigen hoy, con el mayor %), un borrador no cuenta y, sin ofertas, todo queda idéntico. ROLLBACK.
   "pruebas:campana-con-ofertas",

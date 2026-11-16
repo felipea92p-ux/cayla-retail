@@ -19,8 +19,12 @@ export function PieDeGrupo({ g }: { g: GrupoEnTicket }) {
             {g.sinRebaja ? ` ${enVezDeSuRebaja(g.sinRebaja)}` : ""}
             {g.faltan > 0 ? ` · ${faltan} y arma otro grupo` : ""}
           </>
-        ) : (
+        ) : g.faltan > 0 ? (
           `${faltan} y se arma el grupo`
+        ) : (
+          // El grupo está completo pero no le conviene: su rebaja ahorra más (decisión 2) o un «N por S/» cuesta más que las prendas.
+          // Antes decía «lleva 0 más y se arma el grupo» (casuística 2026-11-16).
+          "su precio de hoy ya es menor"
         )}
       </span>
     </span>

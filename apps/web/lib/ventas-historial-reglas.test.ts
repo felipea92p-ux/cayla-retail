@@ -586,3 +586,12 @@ describe("posventa y apartado en la fila (ADR-0230)", () => {
     expect(f).toMatchObject({ posventa: [], apartado: null, conAnticipo: false, operaciones: [], anuladaEn: null });
   });
 });
+
+// ADR-0655 (Felipe 2026-11-16, 20261116174000): una venta sin conexión cuya oferta cambió entra y queda marcada; el historial lo dice.
+describe("la venta sin conexión con una oferta que cambió", () => {
+  it("con la marca de la base, la fila lo dice; sin ella (o con la base sin la columna), no", () => {
+    expect(aFila(venta({ oferta_cambiada: [{ linea: 1, motivo: "no_coincide" }] }), new Map()).ofertaCambiada).toBe(true);
+    expect(aFila(venta({ oferta_cambiada: null }), new Map()).ofertaCambiada).toBe(false);
+    expect(aFila(venta(), new Map()).ofertaCambiada).toBe(false);
+  });
+});

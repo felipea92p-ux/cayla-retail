@@ -1,0 +1,5 @@
+# 2026-11-16 · Campañas y ofertas: casuística completa, arreglos e /innovar
+
+- Casuística de punta a punta sobre una copia de la base local con todas las migraciones: 16 suites del módulo en verde (510 de 510) y 17 casos por subsanar (`docs/backlog/2026-11-16-ofertas-promociones-casos.md`); `/innovar` dejó 17 propuestas en `docs/innovacion/2026-11-16-campanas-ofertas.md`.
+- Felipe decidió las cuatro reglas de dinero (venta sin conexión aceptada y marcada, monto sobre lo pagado, tope de 70 % en toda forma, bolsas fuera del monto) y se arreglaron 15 de los 17 casos, más uno encontrado al verificar: con cesiones, la lectura de campañas de Vender tardaba 11 s y la API la cortaba (ahora 15 ms). Cinco migraciones (`20261116172000`–`20261116180000`), sin pegar en producción.
+- Verificado en el navegador sobre la copia: el aviso de dos ofertas, Vender cargando las campañas con cesiones y el ticket de tres polos con «su precio de hoy ya es menor». Falta pegar en producción con el OK de Felipe y el monto sobre lo pagado en los apartados.

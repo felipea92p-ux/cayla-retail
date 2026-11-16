@@ -9,8 +9,8 @@ import { detalleDePar, nombreEnPar, prendasConDosOfertas, tituloDosOfertas, type
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 
 // El aviso de Campañas (ADR-0655, decisión 2 de Felipe, 2026-11-14): una prenda quedó con dos ofertas por una puerta de fuera de la hoja
-// (una insignia, una categoría, un modelo nuevo, una campaña reactivada). Mientras nadie elige, la caja cobra la que más le ahorra al
-// cliente. Como en Shopify, se elige por par de ofertas y vale para todas las prendas que comparten. Un descuento de siempre no cede.
+// (una insignia, una categoría, un modelo nuevo, una campaña reactivada). Mientras nadie elige, la caja cobra solo una: entre una rebaja
+// y un 3x2, la que más le ahorra al cliente; entre dos 3x2, la más antigua; con un monto, la otra (casuística 2026-11-16). Como en Shopify, se elige por par de ofertas y vale para todas las prendas que comparten. Un descuento de siempre no cede.
 
 export function AvisoDosOfertas({ pares, alElegir }: { pares: readonly ParQueChoca[]; alElegir: () => void }) {
   const [abierto, setAbierto] = useState(false);
@@ -54,7 +54,8 @@ export function AvisoDosOfertas({ pares, alElegir }: { pares: readonly ParQueCho
           </Boton>
         }
       >
-        Mientras no elijas, la caja cobra la que más le ahorra al cliente.
+        {/* Casuística 2026-11-16: «la que más le ahorra» solo vale entre una rebaja y un 3x2; entre dos 3x2 o con un monto, no. */}
+        Mientras no elijas, la caja cobra solo una de las dos.
       </Aviso>
       {abierto && (
         <Modal titulo="Prendas con dos ofertas" subtitulo="Elige cuál queda en cada par: vale para todas sus prendas." tamano="mediana" conCerrar onClose={() => setAbierto(false)}>

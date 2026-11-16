@@ -2,9 +2,9 @@ import type { DescuentoForm, ItemCarrito } from "@/components/PuntoDeVenta";
 import { ticketConVale } from "./club-cupon-reparto-reglas";
 import { numeroDeMonto } from "./monto-plata-reglas";
 import {
-  descuentoResultante,
   descuentosPedidos,
   hayDescuentoManual,
+  lineaConDescuentoPedido,
   necesitaArgumentoEscrito,
   pasoDelDescuento,
   totalDeLineas,
@@ -47,27 +47,27 @@ export function cuentaDelDescuento(
   const pedidos = descuentosPedidos(descuento.modo, porMonto ? monto : pct, alcanzadas);
   const montoPedido = (it: ItemCarrito) => pedidos.get(it.claveLinea) ?? 0;
   const unidadesAlcanzadas = alcanzadas.reduce((c, it) => c + it.cantidad, 0);
-  const descuentoUnitarioAplicando = (it: ItemCarrito) => (!recibeDescuento(it) ? it.descuentoUnitario : descuentoResultante(it, montoPedido(it)).monto);
-  // Lo que va a quedar en «Total» si se aplica ahora. Con un cupón del Club puesto, también sin su parte (el cupón se reparte sobre lo
-  // que quedará): el mismo número que quedará en el Total.
-  const conDescuento = conOfertas(carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) })));
+  // Lo que va a quedar en «Total» si se aplica ahora: cada línea armada IGUAL que «Aplicar» (`lineaConDescuentoPedido`: el pedido o la
+  // campaña con el pedido detrás), y después sus ofertas. Antes solo cambiaba el monto y dejaba el motivo «campaña»: con un 3x2 la caja
+  // le sacaba ese descuento y «Quedaría en» mentía (casuística 2026-11-16). Con un cupón del Club puesto, también sin su parte.
+  const detalle = { razon: descuento.razon, razonOtro: descuento.razonOtro, argumento: descuento.argumento };
+  const conDescuento = conOfertas(carrito.map((it) => (recibeDescuento(it) ? lineaConDescuentoPedido(it, montoPedido(it), detalle) : it)));
+  // Una prenda cuyo descuento a mano más su parte de la oferta pasan su precio: la base no lo deja (`venta_items_descuento_no_supera_precio`).
+  const bajoCero = conDescuento.find((it) => Math.round(it.descuentoUnitario * 100) > Math.round(it.precioUnitario * 100)) ?? null;
   const totalConDescuento = vale ? ticketConVale(conDescuento, vale.vale).total : totalDeLineas(conDescuento);
   // «Quitar descuento» solo tiene sentido para lo puesto a mano: el de campaña no se quita.
   const hayDescuentoEnAlcance = hayDescuentoManual(carrito.filter((it) => alcanza(it.claveLinea)));
-  // Si alguna prenda alcanzada va a quedar pasada del 15 %: ahí el apartado MUESTRA el argumento. Donde la campaña gana no cuenta (ese
-  // descuento no es manual).
-  const mostrarArgumento =
-    valorValido &&
-    alcanzadas.some((it) => {
-      const r = descuentoResultante(it, montoPedido(it));
-      return !r.prevaleceCampana && necesitaArgumentoEscrito(it.precioUnitario, r.monto);
-    });
+  // Si alguna prenda alcanzada va a quedar pasada del 15 %: ahí el apartado MUESTRA el argumento. También donde hoy gana la campaña: ese
+  // descuento queda guardado detrás y vuelve si la prenda se va con su oferta de grupo (casuística 2026-11-16), y ahí la base lo pide.
+  const mostrarArgumento = valorValido && alcanzadas.some((it) => necesitaArgumentoEscrito(it.precioUnitario, montoPedido(it)));
   const motivoDescuento = !valorValido
     ? porMonto
       ? "Escribe un monto mayor a 0."
       : "Elige un porcentaje entre 1 y 100."
     : elegidasCuenta === 0
       ? "Elige al menos una prenda."
+      : bajoCero
+        ? `Con su oferta, ${bajoCero.referencia} quedaría bajo S/ 0: baja el descuento.`
       : descuento.razon === ""
         ? "Elige por qué se aplica el descuento."
         : descuento.razon === "otro" && descuento.razonOtro.trim() === ""
