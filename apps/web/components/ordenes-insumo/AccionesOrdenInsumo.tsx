@@ -34,6 +34,7 @@ import { baseConPapelDeInsumos } from "@/lib/comprobante-orden-insumo-reglas";
 import { anularOrdenInsumo } from "@/lib/ordenes-insumo-acciones";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { BotonEditar } from "@/components/ui/BotonEditar";
+import { imprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
 
 // Lo que se hace con una orden de insumos (ADR-0362, fase 7 · actividad 2), como en la orden de compra (fase 1): «Imprimir o guardar
 // PDF» siempre; «Editar» y «Anular orden» solo mientras está «generada». Con papel (fase 7 parte 2, actividad 1) se suma «Registrar
@@ -59,7 +60,7 @@ export function AccionesOrdenInsumo({ orden, empresa, lugar }: { orden: DetalleO
   useTituloDeImpresion(numeroOrdenInsumo(orden.numero));
 
   const imprimir = (
-    <BotonImprimir onClick={() => window.print()} title="También sirve para guardar la orden en PDF" guia="oi.imprimir">
+    <BotonImprimir onClick={() => imprimirAqui("hoja")} title="También sirve para guardar la orden en PDF" guia="oi.imprimir">
       Imprimir la orden
     </BotonImprimir>
   );

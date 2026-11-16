@@ -33,10 +33,10 @@ Una hoja A4 mandada desde «CAYLA Caja» saldría en la térmica: las hojas A4 s
    longitud **40.1** y corte cada 1 (la guía de impresión del ERP, en Etiquetas de precio).
 2. Accesos directos (clic derecho en el escritorio → Nuevo → Acceso directo), cada uno con su carpeta de perfil:
    ```
-   "C:\Program Files\Google\Chrome\Application\chrome.exe" --user-data-dir="C:\CAYLA\chrome-caja" --no-first-run https://cayla-retail.vercel.app/vender
-   "C:\Program Files\Google\Chrome\Application\chrome.exe" --user-data-dir="C:\CAYLA\chrome-caja" --no-first-run --kiosk-printing https://cayla-retail.vercel.app/vender
-   "C:\Program Files\Google\Chrome\Application\chrome.exe" --user-data-dir="C:\CAYLA\chrome-etiquetas" --no-first-run https://cayla-retail.vercel.app/etiquetas-de-precio
-   "C:\Program Files\Google\Chrome\Application\chrome.exe" --user-data-dir="C:\CAYLA\chrome-etiquetas" --no-first-run --kiosk-printing https://cayla-retail.vercel.app/etiquetas-de-precio
+   "C:\Program Files\Google\Chrome\Application\chrome.exe" --user-data-dir="C:\CAYLA\chrome-caja" --no-first-run https://cayla-retail.vercel.app/vender?ventana=caja
+   "C:\Program Files\Google\Chrome\Application\chrome.exe" --user-data-dir="C:\CAYLA\chrome-caja" --no-first-run --kiosk-printing https://cayla-retail.vercel.app/vender?ventana=caja
+   "C:\Program Files\Google\Chrome\Application\chrome.exe" --user-data-dir="C:\CAYLA\chrome-etiquetas" --no-first-run https://cayla-retail.vercel.app/etiquetas-de-precio?ventana=etiquetas
+   "C:\Program Files\Google\Chrome\Application\chrome.exe" --user-data-dir="C:\CAYLA\chrome-etiquetas" --no-first-run --kiosk-printing https://cayla-retail.vercel.app/etiquetas-de-precio?ventana=etiquetas
    ```
    Nombres: «Calibrar caja», «CAYLA Caja», «Calibrar etiquetas», «CAYLA Etiquetas».
 3. **Calibrar:** abre «Calibrar caja», entra al ERP, reimprime un ticket (Historial → una venta → Imprimir ticket) y en
@@ -53,8 +53,8 @@ Una hoja A4 mandada desde «CAYLA Caja» saldría en la térmica: las hojas A4 s
    ventana de Chrome y siempre a la Brother.
 3. **Boletas:** dos apps con el Editor de Scripts (Archivo → Exportar… → Formato: Aplicación):
    ```
-   do shell script "open -na \"Google Chrome\" --args --user-data-dir=\"$HOME/CAYLA/chrome-caja\" --no-first-run https://cayla-retail.vercel.app/vender"
-   do shell script "open -na \"Google Chrome\" --args --user-data-dir=\"$HOME/CAYLA/chrome-caja\" --no-first-run --kiosk-printing https://cayla-retail.vercel.app/vender"
+   do shell script "open -na \"Google Chrome\" --args --user-data-dir=\"$HOME/CAYLA/chrome-caja\" --no-first-run \"https://cayla-retail.vercel.app/vender?ventana=caja\""
+   do shell script "open -na \"Google Chrome\" --args --user-data-dir=\"$HOME/CAYLA/chrome-caja\" --no-first-run --kiosk-printing \"https://cayla-retail.vercel.app/vender?ventana=caja\""
    ```
    «Calibrar caja» y «CAYLA Caja». Comprobado: la línea compila y arma la orden correcta.
 4. **Calibrar** como en Windows con «Calibrar caja» (térmica, papel de 80 mm, márgenes Ninguno, escala 100) y salir con
@@ -65,6 +65,21 @@ Una hoja A4 mandada desde «CAYLA Caja» saldría en la térmica: las hojas A4 s
 Con «CAYLA Caja» ya listo, en la hoja **«Venta registrada»** de Vender enciende **«Imprimir solo al cobrar»**. Desde
 la venta siguiente, confirmar el cobro ya imprime la boleta: sin vuelto vuelve sola a una venta nueva; con vuelto deja
 a la vista cuánto entregar y Enter abre la siguiente. Es de ese equipo; no lo enciendas fuera de «CAYLA Caja».
+
+## La ventana sabe qué es (ADR-0670)
+
+El `?ventana=caja` o `?ventana=etiquetas` del ícono marca esa ventana. Desde ahí, lo que no va a su impresora no se imprime y un aviso
+dice dónde abrirlo: en «CAYLA Caja», una hoja A4 (y en Windows, una etiqueta); en «CAYLA Etiquetas», un ticket o una hoja A4. Para quitar
+la marca de una ventana: abrir cualquier pantalla con `?ventana=normal`.
+
+## Vender en el piso: la boleta sale en la caja (ADR-0670)
+
+- **En el celular o la tablet del piso:** en «Venta registrada», encender **«Imprimir en la caja»**. Desde la venta siguiente, la boleta se
+  manda a la cola de la caja y la hoja dice «En la cola de la caja» → «Impresa en la caja». Cuando el piso tenga su impresora, se apaga.
+- **En «CAYLA Caja»:** en «Venta registrada», encender **«Imprimir lo que se vende en el piso»** (y, si se quiere, «Avisar con voz»).
+  Abajo al centro aparece «Caja imprime el piso» y cuántas faltan. Si la caja estaba apagada, al volver imprime lo pedido en las últimas
+  12 horas, en orden.
+- Necesita la migración `20261116204000_cola_de_impresion.sql` en producción.
 
 ## Cosas a saber
 
