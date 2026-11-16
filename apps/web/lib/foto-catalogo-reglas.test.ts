@@ -9,6 +9,7 @@ import {
   medidasParaIA,
   avisoIANoRespondio,
   firmaDeImagen,
+  moldeAlPreparar,
   moldeDeLaPrenda,
   originalDeLaFotoIA,
   rutaDeLaFotoIA,
@@ -88,6 +89,41 @@ describe("moldeDeLaPrenda", () => {
   it("sin ninguna de IA no hay molde", () => {
     expect(moldeDeLaPrenda(["VER"], [{ url: real("verde"), colorCodigo: "VER" }])).toBeNull();
     expect(moldeDeLaPrenda([], [])).toBeNull();
+  });
+});
+
+describe("moldeAlPreparar — la hoja y el pedido usan la misma regla (revisión 2026-11-16)", () => {
+  const ia = (n: string) => `https://x/fotos/${n}.jpg.ia.png`;
+  // Beige es el primer color (el molde) y salió buzo; Negro se hizo copiando a Beige.
+  const fotos = [
+    { url: ia("beige"), colorCodigo: "BEI" },
+    { url: ia("negro"), colorCodigo: "NEG" },
+  ];
+
+  it("rehacer el color que ES el molde va sin molde: ni su propio buzo, ni el Negro que se copió de él", () => {
+    expect(moldeAlPreparar(["BEI", "NEG"], fotos, "BEI")).toEqual({ tipo: "sin-molde" });
+  });
+
+  it("rehacer otro color usa el molde de la prenda (la misma forma en todos los colores)", () => {
+    expect(moldeAlPreparar(["BEI", "NEG"], fotos, "NEG")).toEqual({ tipo: "molde", url: ia("beige") });
+    expect(moldeAlPreparar(["BEI", "NEG"], fotos, "AZU")).toEqual({ tipo: "molde", url: ia("beige") });
+  });
+
+  it("la foto «para todos los colores» no usa molde ni espera a nadie", () => {
+    expect(moldeAlPreparar(["BEI"], fotos, null)).toEqual({ tipo: "sin-molde" });
+  });
+
+  it("sin ninguna foto de IA todavía: «ninguno» (espera al que se prepara, o pasa a ser el molde)", () => {
+    expect(moldeAlPreparar(["BEI"], [], "BEI")).toEqual({ tipo: "ninguno" });
+  });
+
+  it("es exactamente lo que la hoja anuncia: muestra «Misma forma que …» solo cuando el pedido usa un molde", () => {
+    for (const color of ["BEI", "NEG", "AZU"]) {
+      const url = moldeDeLaPrenda(["BEI", "NEG"], fotos);
+      const colorDelMolde = fotos.find((f) => f.url === url)?.colorCodigo ?? null;
+      const laHojaLoAnuncia = colorDelMolde !== color;
+      expect(moldeAlPreparar(["BEI", "NEG"], fotos, color).tipo === "molde", color).toBe(laHojaLoAnuncia);
+    }
   });
 });
 
