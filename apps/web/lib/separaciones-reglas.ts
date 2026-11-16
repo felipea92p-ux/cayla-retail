@@ -389,6 +389,34 @@ export function mensajeWhatsapp(a: Pick<Apartado, "nombres" | "codigo" | "venceE
   return `Hola ${a.nombres}, tu apartado ${a.codigo} te espera en CAYLA ${tienda} hasta el ${ddmm(a.venceEl)}. ${saldo}`;
 }
 
+/** Por qué se libera un apartado (`liberar_separacion.p_motivo`): la misma lista que elige «¿Liberar el apartado?». */
+export type MotivoLiberacion = "vencio" | "clienta_desistio" | "error_de_carga";
+
+/**
+ * El aviso de que el apartado se canceló (Felipe 2026-11-16): al liberar, la tienda le escribe al cliente desde su WhatsApp.
+ * Dice por qué, en palabras del motivo elegido, y cómo vuelve su adelanto: se libera con el adelanto «por devolver», así
+ * que se nombra el medio que el cliente dejó anotado. Lo envía la persona (wa.me), no el sistema.
+ */
+export function mensajeLiberacion(
+  a: Pick<Apartado, "nombres" | "codigo" | "adelanto" | "devolucionMedio" | "devolucionNumero" | "devolucionCciFinal">,
+  tienda: string,
+  motivo: MotivoLiberacion,
+): string {
+  const que =
+    motivo === "vencio"
+      ? `tu apartado ${a.codigo} en CAYLA ${tienda} venció y lo cancelamos.`
+      : motivo === "clienta_desistio"
+        ? `como nos pediste, cancelamos tu apartado ${a.codigo} en CAYLA ${tienda}.`
+        : `cancelamos el apartado ${a.codigo} en CAYLA ${tienda}: se registró por error.`;
+  if (a.adelanto <= 0) return `Hola ${a.nombres}, ${que}`;
+  const numero = formatoCelular(a.devolucionNumero ?? "");
+  const por =
+    a.devolucionMedio === "transferencia"
+      ? `por transferencia${a.devolucionCciFinal ? ` a tu cuenta (CCI …${a.devolucionCciFinal})` : ""}`
+      : `por ${a.devolucionMedio === "yape" ? "Yape" : "Plin"}${numero ? ` al ${numero}` : ""}`;
+  return `Hola ${a.nombres}, ${que} Te devolvemos tu adelanto de S/${a.adelanto.toFixed(2)} ${por}.`;
+}
+
 /** Lo que la base sabe de los avisos de un apartado (`fn_avisos_separaciones`, 20260926233000). */
 export type AvisoApartado = { avisos: number; ultimoEn: string; ultimoPor: string | null };
 
