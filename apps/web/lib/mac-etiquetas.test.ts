@@ -110,12 +110,14 @@ describe("el ayudante y la web dicen lo mismo", () => {
     expect(INSTALAR).toContain(`PUERTO=${puerto}`);
     expect(COMANDO_INSTALAR).toContain("https://cayla-retail.vercel.app/mac-etiquetas/instalar.sh");
     expect(SERVIDOR).toContain("https://cayla-retail.vercel.app");
+    // El ERP también vive en su dominio propio: sin él, el ayudante no le contesta y todo sale por el cuadro.
+    expect(SERVIDOR).toContain("https://retail.cayla.pe");
   });
   it("la medida que manda a la Brother es la del corte (ADR-0180)", () => {
     expect(SERVIDOR).toContain("Custom.62x40.1mm");
   });
   it("la versión que imprime boletas y los topes del largo", () => {
-    expect(SERVIDOR).toContain(`VERSION=${VERSION_CON_BOLETAS}`);
+    expect(Number(SERVIDOR.match(/^VERSION=(\d+)$/m)?.[1])).toBeGreaterThanOrEqual(VERSION_CON_BOLETAS);
     expect(SERVIDOR).toContain(`-lt ${LARGO_MIN_MM} ]`);
     expect(SERVIDOR).toContain(`-gt ${LARGO_MAX_MM} ]`);
     expect(SERVIDOR).toContain('MEDIA="Custom.80x${LARGO_TICKET}mm"');

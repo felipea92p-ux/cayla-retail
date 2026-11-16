@@ -24,7 +24,7 @@ import {
   type FilaTicketDocumento,
 } from "@/lib/cambios-documentos-reglas";
 import { DocumentosDelTicket, reciboDelCambio, useComprobantesDelCambio, type PrendasDelCambio } from "@/components/cambios-documentos/DocumentosDelTicket";
-import { imprimirBoleta } from "@/components/impresion/imprimirBoleta";
+import { imprimirBoleta, useDespertarAyudante } from "@/components/impresion/imprimirBoleta";
 import { imprimirAlCobrar } from "@/lib/imprimir-al-cobrar";
 
 /* ====================================================================
@@ -76,6 +76,9 @@ function textoDiferencia(d: number): string {
 }
 
 export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: TicketCambio; onNuevo: () => void; onCerrar: () => void }) {
+  // Despierta al ayudante de la Mac: al imprimir, la boleta sale en 0,5 s y no en 1,1 (ADR-0670). El título del PDF lo pone más abajo,
+  // según qué papel se imprime (el ticket o el comprobante nuevo del cambio).
+  useDespertarAyudante();
   const { fecha, hora } = fechaHoraLima(ticket.registradoEn);
   const cantidad = ticket.cantidad > 1 ? ` (×${ticket.cantidad})` : "";
   // Los comprobantes REALES del cambio (ADR-0671), leídos por su id; `null` mientras se leen.
