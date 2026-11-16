@@ -220,6 +220,7 @@
     "pruebas:aviso-dos-ofertas": "node scripts/pruebas/aviso_dos_ofertas.mjs",
     "pruebas:ofertas-candados": "node scripts/pruebas/ofertas_candados.mjs",
     "pruebas:ofertas-tope-y-monto": "node scripts/pruebas/ofertas_tope_y_monto.mjs",
+    "pruebas:venta-sin-conexion-oferta": "node scripts/pruebas/venta_sin_conexion_oferta.mjs",
     "pruebas:campana-con-ofertas": "node scripts/pruebas/campana_con_ofertas.mjs",
     "pruebas:tienda-ficha": "node scripts/pruebas/tienda_ficha.mjs",
     "pruebas:tienda-filtros": "node scripts/pruebas/tienda_filtros.mjs",
