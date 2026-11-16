@@ -28,8 +28,14 @@ export type PrendaParaCorregir = {
   costo: number;
   precioVenta: number | null;
   admitePrecioCero: boolean;
-  /** Lo que ya salió en un envío: la prenda no puede quedar en menos. */
+  /** Lo que ya salió en un envío. */
   enviadas: number;
+  /** Hasta cuánto puede bajar (20261116215000): lo que la tienda ya recibió, y 1 por cada envío que todavía no llega. Sin envíos, 1. */
+  minimo: number;
+  /** Se puede quitar porque se anotó por error: la tienda todavía no la contó ni llegó nada de ella. */
+  quitable: boolean;
+  /** Por qué no se puede quitar, en palabras de tienda («la tienda ya la está contando»), o `null`. */
+  noSeQuita: string | null;
 };
 
 export type CompraParaCorregir = {
@@ -79,6 +85,9 @@ export function leerCompraParaCorregir(data: unknown): CompraParaCorregir | null
     const cantidad = num(l.cantidad);
     const costo = num(l.costo);
     if (!lid || cantidad == null || costo == null) return null;
+    const enviadas = num(l.enviadas) ?? 0;
+    // Una base sin 20261116215000 no manda `envios`: la regla de antes (no baja de lo enviado, no se quita).
+    const envios = esObjeto(l.envios) ? l.envios : null;
     prendas.push({
       id: lid,
       nombre: texto(l.descripcion) ?? texto(l.categoria) ?? "Prenda",
@@ -95,7 +104,10 @@ export function leerCompraParaCorregir(data: unknown): CompraParaCorregir | null
       costo,
       precioVenta: num(l.precio_venta),
       admitePrecioCero: l.admite_precio_cero === true,
-      enviadas: num(l.enviadas) ?? 0,
+      enviadas,
+      minimo: num(envios?.minimo) ?? Math.max(1, enviadas),
+      quitable: envios?.quitable === true,
+      noSeQuita: texto(envios?.por_que),
     });
   }
   return {
@@ -145,8 +157,20 @@ export function textoMotivo(motivo: string | null): string {
   }
 }
 
-/** Lo que la persona escribe de una prenda (siempre texto: así se ve mientras se escribe). */
-export type Borrador = { cantidad: string; costo: string; venta: string; nombre: string; categoriaId: string; marcaId: string; destinoId: string };
+/** Lo que la persona escribe de una prenda (siempre texto: así se ve mientras se escribe), y si la quita porque se anotó por error. */
+export type Borrador = {
+  cantidad: string;
+  costo: string;
+  venta: string;
+  nombre: string;
+  categoriaId: string;
+  marcaId: string;
+  destinoId: string;
+  quitar: boolean;
+};
+
+/** Lo que se escribe de una prenda (todo menos «quitar», que es un botón). */
+export type CampoDeBorrador = Exclude<keyof Borrador, "quitar">;
 
 /** ¿Se puede cambiar a qué tienda va? Solo si todavía no salió nada de la prenda y la orden dice a cuál va (las de antes pueden ir «por repartir»). */
 export const puedeCambiarDeTienda = (p: PrendaParaCorregir): boolean => p.enviadas === 0 && p.destinoId !== null;
@@ -165,11 +189,21 @@ export function borradorDe(p: PrendaParaCorregir): Borrador {
     categoriaId: p.categoriaId,
     marcaId: p.marcaId,
     destinoId: p.destinoId ?? "",
+    quitar: false,
   };
 }
 
-/** Lo que hay que arreglar de cada dato, o nada. Lo mismo que rechaza la base: cantidad entera de 1 a 99 999 y no menos de lo enviado, costo
- *  de S/ 0 a S/ 99 999.99, y el precio de venta de S/ 0 a S/ 5 000 (el 0 solo donde el catálogo lo admite). */
+/** Lo que dice bajo la cantidad cuando no puede bajar más: lo que ya salió y, si todavía puede bajar algo, hasta cuánto. */
+export function textoDelMinimo(p: Pick<PrendaParaCorregir, "enviadas" | "minimo">): string | null {
+  if (p.enviadas === 0) return null;
+  return p.minimo >= p.enviadas
+    ? `Ya salieron ${p.enviadas} en un envío: no puede quedar en menos.`
+    : `Ya salieron ${p.enviadas} en un envío que no llega: puede bajar hasta ${p.minimo}.`;
+}
+
+/** Lo que hay que arreglar de cada dato, o nada. Lo mismo que rechaza la base: cantidad entera de 1 a 99 999 y no menos del mínimo (lo que la
+ *  tienda ya recibió, y 1 por envío que no llega), costo de S/ 0 a S/ 99 999.99, y el precio de venta de S/ 0 a S/ 5 000 (el 0 solo donde el
+ *  catálogo lo admite). Una prenda que se quita no tiene nada que arreglar. */
 export function problemasDePrenda(
   p: PrendaParaCorregir,
   b: Borrador,
@@ -182,6 +216,7 @@ export function problemasDePrenda(
   marca: string | null;
   tienda: string | null;
 } {
+  if (b.quitar) return { cantidad: null, costo: null, venta: null, nombre: null, categoria: null, marca: null, tienda: null };
   const cantidad = leerCantidad(b.cantidad);
   const venta = b.venta.trim() === "" ? (p.precioVenta == null ? "sin-cambio" : null) : leerPrecioVenta(b.venta, p.admitePrecioCero);
   // El nombre, la categoría y la marca son de «Algo nuevo»: las del catálogo no se tocan desde aquí.
@@ -196,8 +231,10 @@ export function problemasDePrenda(
     cantidad:
       cantidad == null
         ? "Escribe cuántas unidades: un número entero, desde 1"
-        : cantidad < p.enviadas
-          ? `Ya salieron ${p.enviadas} en un envío: no puede quedar en menos`
+        : cantidad < p.minimo
+          ? p.minimo >= p.enviadas
+            ? `Ya salieron ${p.enviadas} en un envío: no puede quedar en menos`
+            : `Puede bajar hasta ${p.minimo}: lo demás ya salió en un envío`
           : null,
     costo: leerPrecio(b.costo) == null ? "Escribe el precio, con hasta dos decimales" : null,
     venta:
@@ -223,6 +260,8 @@ export type CambiosDePrenda = {
   categoriaId?: string;
   marcaId?: string;
   destinoId?: string;
+  /** Se quita entera (se anotó por error): no viaja con ningún otro cambio. */
+  quitar?: true;
 };
 
 /**
@@ -235,6 +274,8 @@ export function costoQueSeVe(p: Pick<PrendaParaCorregir, "costo">, b: Pick<Borra
 }
 
 export function cambiosDePrenda(p: PrendaParaCorregir, b: Borrador): CambiosDePrenda {
+  // Quitarla manda sobre todo lo demás: lo escrito antes de tocar «Quitar» no se manda. Solo si la base dice que se puede.
+  if (b.quitar) return p.quitable ? { quitar: true } : {};
   const cambios: CambiosDePrenda = {};
   if (puedeCambiarDeTienda(p) && b.destinoId !== "" && b.destinoId !== p.destinoId) cambios.destinoId = b.destinoId;
   if (!p.esCatalogo) {
@@ -268,6 +309,10 @@ export function cambiosParaLaBase(prendas: readonly PrendaParaCorregir[], borrad
     if (!b) continue;
     const c = cambiosDePrenda(p, b);
     if (Object.keys(c).length === 0) continue;
+    if (c.quitar) {
+      lista.push({ item_id: p.id, quitar: true });
+      continue;
+    }
     lista.push({
       item_id: p.id,
       ...(c.cantidad !== undefined ? { cantidad: c.cantidad } : {}),
@@ -362,6 +407,7 @@ export function cuentaDeLaCorreccion(
     const n = Object.keys(cambios).length;
     datos += n;
     if (n > 0) prendas += 1;
+    if (cambios.quitar) continue;
     despues += (cambios.cantidad ?? p.cantidad) * (cambios.costo ?? p.costo);
   }
   const papelAcompana = c.cuadra;
@@ -377,6 +423,11 @@ export function cuentaDeLaCorreccion(
     pagado = escrito.pagado;
   }
   return { datos, prendas, monto, pagado, plata: redondear(c.pagado - pagado), falta: redondear(monto - pagado), papelAcompana, prendasSuman: redondear(despues) };
+}
+
+/** Una compra se queda con al menos una prenda (la base lo exige): ¿se están quitando todas? */
+export function seQuitanTodas(c: Pick<CompraParaCorregir, "prendas">, borradores: ReadonlyMap<string, Borrador>): boolean {
+  return c.prendas.length > 0 && c.prendas.every((p) => borradores.get(p.id)?.quitar === true);
 }
 
 /** Lo que pasa con su plata, dicho en una frase. */
@@ -407,6 +458,10 @@ export function lineasAntesAhora(
     const b = borradores.get(p.id);
     if (!b || prendaConProblema(p, b)) continue;
     const x = cambiosDePrenda(p, b);
+    if (x.quitar) {
+      lineas.push({ clave: `${p.id}-quitar`, titulo: p.nombre, antes: `${unidades(p.cantidad)} · ${soles(p.cantidad * p.costo)}`, ahora: "Se quita: se anotó por error" });
+      continue;
+    }
     const de = (campo: string) => `${p.nombre} · ${campo}`;
     if (x.descripcion !== undefined) lineas.push({ clave: `${p.id}-nombre`, titulo: de("nombre"), antes: p.nombre, ahora: x.descripcion });
     if (x.categoriaId !== undefined)
@@ -450,6 +505,7 @@ const NOMBRE_DE_CAMPO: Record<string, string> = {
   monto: "lo que dice el papel",
   pagado: "lo que pagó",
   medio_pago: "cómo pagó",
+  quitada: "se quitó",
 };
 
 /** Lo que manda la base; lo ilegible se descarta (nunca una corrección a medias). */
@@ -474,6 +530,8 @@ export function leerCorrecciones(data: unknown): CorreccionHecha[] {
 
 /** Un cambio del rastro en una frase: «Polo Venus · costo: S/ 22.00 → S/ 25.50». */
 export function textoDeCambio(c: CambioHecho): string {
+  // Una prenda quitada ya no existe: su nombre y lo que decía vienen en «antes» («Lentes · 3 × S/ 5.40»).
+  if (c.campo === "quitada") return `${c.antes ?? "Una prenda"}: se quitó, se anotó por error`;
   const dinero = c.campo === "costo" || c.campo === "precio_venta" || c.campo === "monto" || c.campo === "pagado";
   const ver = (v: string | null): string => {
     if (v == null) return "nada";
