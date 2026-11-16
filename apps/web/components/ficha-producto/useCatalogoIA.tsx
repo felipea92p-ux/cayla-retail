@@ -141,7 +141,12 @@ export function useCatalogoIA({
       let molde: Blob | null = null;
       // Si este color resulta ser el molde, `soltar` le avisa a los que lo esperan (con su foto, o `null` si la IA falló).
       const esMolde: { soltar: ((b: Blob | null) => void) | null } = { soltar: null };
-      const url = moldeDeLaPrenda(colores, fotosRef.current);
+      // El color que se rehace no es su propio molde: rehacer la foto que salió mal (el pantalón de lino que salió buzo) mandaba ese mismo buzo
+      // como molde y la IA lo copiaba (revisión del 2026-11-16). Sin otro color con foto de IA, va el pedido de una foto.
+      const url = moldeDeLaPrenda(
+        colores.filter((c) => c !== p.color),
+        fotosRef.current.filter((f) => f.colorCodigo !== p.color),
+      );
       // La foto «para todos los colores» no usa molde ni lo es: puede mostrar la prenda en otra forma.
       if (p.color === null) molde = null;
       else if (url) molde = await fetch(url).then((r) => (r.ok ? r.blob() : null)).catch(() => null);

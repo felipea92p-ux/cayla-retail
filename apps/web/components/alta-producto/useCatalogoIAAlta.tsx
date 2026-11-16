@@ -138,7 +138,8 @@ export function useCatalogoIAAlta({
 
     const esMolde: { soltar: ((b: Blob | null) => void) | null } = { soltar: null };
     let molde: Blob | null = null;
-    const hecho = moldeHecho(fotosRef.current);
+    // El color que se prepara no es su propio molde (la misma regla que la hoja usa para decir «saldrá con la misma forma de…»).
+    const hecho = moldeHecho(fotosRef.current.filter((f) => f.colorCodigo !== p.color));
     // La foto «para todos los colores» no usa molde ni lo es: puede mostrar la prenda en otra forma.
     if (p.color === null) molde = null;
     else if (hecho?.ia) molde = hecho.ia.png;

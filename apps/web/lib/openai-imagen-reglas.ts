@@ -42,10 +42,10 @@ const PRENDA_PONE_SUS_MEDIDAS = [
  * Lo mismo para una prenda que CUELGA DE LA CINTURA (pantalón, jean, short, falda; ficha de la prenda, 2026-11-14), reescrito el 2026-11-16 (fase 2:
  * el pantalón de lino que la IA devolvió como buzo). El de antes pedía «la pretina y la basta con el mismo ancho y el mismo FRUNCIDO» (una basta
  * fruncida es el puño de un jogger), «con volumen 3D» y «la cintura y las caderas con volumen» (inflaban la pierna), y nombraba «elástico, puños ni
- * cordón» (nombrar lo que se evita se lo pone al modelo). Ahora: la pretina va sola, con su cierre; la pierna cae por su peso; la basta de un
- * pantalón de tela es abierta y recta (CAYLA no vende joggers en Pantalones ni en Jeans, Felipe 2026-11-16); la de un short, como en la foto; la
- * falda tiene vuelo y ruedo. Todo dicho en positivo. Sin medir con una lámina (Felipe eligió cambiar el texto sin medir): ver ADR-0659,
- * act. 2026-11-16. El pedido de hombros no cambió ni una letra (lo vigila su huella en la prueba).
+ * cordón» (nombrar lo que se evita se lo pone al modelo). Ahora, en positivo: la pretina va sola, con su cierre; la pierna conserva la forma de la
+ * foto (recta, flare, globo o mom: nunca se le fija un ancho, revisión del 2026-11-16); la basta de un pantalón de tela plana va SUELTA alrededor
+ * del tobillo (la de un short o un pantalón de punto, como en la foto); la falda tiene vuelo y ruedo. Sin medir con una lámina (Felipe eligió cambiar
+ * el texto sin medir): ver ADR-0659, act. 2026-11-16 (c). El cuerpo del pedido de hombros no cambió ni una letra (lo vigila su huella en la prueba).
  */
 const PUESTA_DE_CINTURA =
   "Conviértela en una foto de catálogo profesional con efecto MANIQUÍ INVISIBLE (ghost mannequin): la prenda PUESTA, de frente, derecha y centrada, con un margen pequeño alrededor.";
@@ -53,11 +53,14 @@ const PUESTA_DE_CINTURA =
 function maniquiDeCintura(forma: FormaDeCintura): string {
   return forma === "falda"
     ? "Lo que pone el MANIQUÍ: la postura de frente, y la cintura y las caderas a su altura; la falda cae con el peso de la tela."
-    : "Lo que pone el MANIQUÍ: la postura de frente, y la cintura y las caderas a su altura; las piernas caen rectas, con el peso de la tela.";
+    : "Lo que pone el MANIQUÍ: la postura de frente, y la cintura y las caderas a su altura; las piernas caen con el peso de la tela.";
 }
 
 const PRETINA =
   "PRETINA: con su mismo ancho y su mismo cierre, como en la foto (botón y bragueta al frente, o pretina elástica); donde una mano la sostiene, la arruga es de la mano y no de la pretina.";
+
+/** La basta de un pantalón de tela plana: suelta, el único rasgo que la decisión fija; el resto (ancho, vuelta, borde) sale de la foto. */
+const BASTA_SUELTA = "BASTA: suelta alrededor del tobillo, con su mismo ancho y su mismo acabado que en la foto (dobladillo, vuelta o borde).";
 
 function prendaDeCintura(forma: FormaDeCintura): string {
   const partes =
@@ -71,10 +74,8 @@ function prendaDeCintura(forma: FormaDeCintura): string {
       : [
           "LARGO: el mismo largo respecto del ancho que tiene la prenda (de la cintura a la basta); no la alargues.",
           PRETINA,
-          "PIERNA: del mismo ancho desde la cadera hasta la basta: si es ancha y recta, sigue ancha y recta; si es ceñida, ceñida.",
-          forma === "pantalon-de-tela"
-            ? "BASTA: abierta y recta, del mismo ancho que la pierna, terminada en un dobladillo plano, como la de un pantalón de vestir."
-            : "BASTA: como en la foto, con su mismo ancho y su mismo acabado.",
+          "PIERNA: con la misma forma que en la foto, de la cadera a la basta: si es recta, sigue recta; si se abre o se cierra hacia abajo, igual; si es ancha, ancha; si es ceñida, ceñida.",
+          forma === "pierna-suelta" ? BASTA_SUELTA : "BASTA: como en la foto, con su mismo ancho y su mismo acabado.",
         ];
   return [
     "Lo que pone la PRENDA, y no se cambia:",
@@ -84,11 +85,21 @@ function prendaDeCintura(forma: FormaDeCintura): string {
   ].join(" ");
 }
 
-/** Lo que el molde fija de una prenda de cintura: su forma (la textura de la tela, en cambio, sale de la foto real del color nuevo). */
+/**
+ * Lo que el molde fija de una prenda de cintura: su forma. La textura de la tela sale de la foto real; y la basta de un pantalón de tela plana NO sale
+ * del molde: un molde viejo (hecho con el pedido de antes, con su puño de jogger) la copiaría a todos los colores (revisión del 2026-11-16).
+ */
 function formaDelMoldeDeCintura(forma: FormaDeCintura): string {
-  return forma === "falda"
-    ? "la silueta, el largo, la pretina, el vuelo, el ruedo, los pliegues, la pose, el tamaño y la posición en el cuadro"
-    : "la silueta, el largo, la pretina, el ancho de la pierna, la basta, los pliegues, la pose, el tamaño y la posición en el cuadro";
+  if (forma === "falda") return "la silueta, el largo, la pretina, el vuelo, el ruedo, los pliegues, la pose, el tamaño y la posición en el cuadro";
+  return forma === "pierna-suelta"
+    ? "la silueta, el largo, la pretina, la forma de la pierna, los pliegues, la pose, el tamaño y la posición en el cuadro"
+    : "la silueta, el largo, la pretina, la forma de la pierna, la basta, los pliegues, la pose, el tamaño y la posición en el cuadro";
+}
+
+/** Lo que va después de copiar el molde: la basta suelta (si es de tela plana) y que la ficha manda sobre el molde. */
+function despuesDelMoldeDeCintura(forma: FormaDeCintura, deLaFoto: string): string {
+  const basta = forma === "pierna-suelta" ? `BASTA: suelta alrededor del tobillo, como en ${deLaFoto}, aunque el molde la muestre distinta. ` : "";
+  return `${basta}Si el MOLDE contradice los DATOS DE LA PRENDA, mandan los datos.`;
 }
 
 /** Lo que dicen las prendas de los HOMBROS (y las de zona desconocida): el pedido medido el 2026-11-14, palabra por palabra. */
@@ -164,6 +175,7 @@ function promptConMoldeDeCintura(cintura: FormaDeCintura): string {
     "IMAGEN 2: la foto de catálogo ya hecha de la MISMA prenda en otro color: es el MOLDE. Crea la foto de catálogo del nuevo color.",
     `Del MOLDE copia EXACTAMENTE la forma: ${formaDelMoldeDeCintura(cintura)}, como si fuera la misma prenda puesta en el mismo maniquí invisible.`,
     "De la IMAGEN 1 toma el color, el tono, el estampado o las rayas y la textura de la tela, tal como se ven en la foto real. No cambies nada más.",
+    despuesDelMoldeDeCintura(cintura, "la IMAGEN 1"),
     SIN_ETIQUETAS,
     "No se ve ningún maniquí, persona, piel, gancho ni perchero. Fondo transparente, sin sombra.",
   ].join(" ");
@@ -220,8 +232,8 @@ export function pedidoDeCatalogo(
   if (extras.molde) orden.push("molde");
   const conFicha = (prompt: string) => (ficha ? `${prompt} ${ficha.texto}` : prompt);
   const zona = ficha?.zona ?? null;
-  // La forma de una prenda de cintura (pantalón de tela, short, falda); sin ella, la de un short: la basta «como en la foto», que no afirma nada.
-  const cintura: FormaDeCintura | null = zona === "cintura" ? (ficha?.cintura ?? "short") : null;
+  // La forma de una prenda de cintura; sin ella, «pierna»: la basta como en la foto, que no afirma nada.
+  const cintura: FormaDeCintura | null = zona === "cintura" ? (ficha?.cintura ?? "pierna") : null;
   if (orden.length === 1) return { orden, prompt: conFicha(cintura ? armarPromptDeUnaFoto(cintura) : PROMPT_CATALOGO) };
   if (orden.length === 2 && extras.molde) return { orden, prompt: conFicha(cintura ? promptConMoldeDeCintura(cintura) : PROMPT_CON_MOLDE) };
 
@@ -233,7 +245,7 @@ export function pedidoDeCatalogo(
   let estructura: string;
   if (cintura) {
     estructura = extras.molde
-      ? `Del MOLDE (IMAGEN ${nMolde}) copia EXACTAMENTE la forma: ${formaDelMoldeDeCintura(cintura)}, como si fuera la misma prenda puesta en el mismo maniquí invisible. De ${deReales} toma el color, el tono, el estampado o las rayas y la textura de la tela, tal como se ven en las fotos reales.`
+      ? `Del MOLDE (IMAGEN ${nMolde}) copia EXACTAMENTE la forma: ${formaDelMoldeDeCintura(cintura)}, como si fuera la misma prenda puesta en el mismo maniquí invisible. De ${deReales} toma el color, el tono, el estampado o las rayas y la textura de la tela, tal como se ven en las fotos reales. ${despuesDelMoldeDeCintura(cintura, "las fotos reales")}`
       : `${PUESTA_DE_CINTURA} ${CINTURA.interior} ${maniquiDeCintura(cintura)} ${prendaDeCintura(cintura)} Usa ${deReales} para conservar la tela, el color y el tono, las costuras y los botones.`;
   } else {
     estructura = extras.molde
