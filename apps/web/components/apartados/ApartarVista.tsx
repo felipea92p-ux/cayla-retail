@@ -5,15 +5,16 @@ import { useStockPorDueno } from "@/lib/useStockPorDueno";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Volver } from "@/components/ui/Volver";
 import { BotonBuscar } from "@/components/ui/BotonBuscar";
-import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BadgePercent, Bookmark, Camera, Check, FileText, Receipt, ScanBarcode, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
+import { ArrowRight, BadgePercent, Bookmark, Camera, Check, ScanBarcode, SearchX, ShieldCheck, StickyNote } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
 import { PieDeGrupo } from "@/components/punto-de-venta/PieDeGrupo";
 import { apartadoConGrupos, montoDeVariante, ofertasDeMontoDeFilas, type FilaOfertaDeMonto, type OfertaDeGrupoDeVariante } from "@/lib/ofertas-de-grupo";
-import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
+import { ICONO_METODO, iconoMetodo } from "@/components/PuntoDeVentaTicket";
+import { CabezaPaso } from "@/components/punto-de-venta/CabezaPaso";
+import { Ayuda } from "@/components/Ayuda";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CanalDelApartado } from "@/components/apartados/CanalDelApartado";
 import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
@@ -41,7 +42,6 @@ import { MQ_TELEFONO, type EstadoEscaneo, type ResultadoEscaneo } from "@/lib/es
 import { lineasApartables, tomarDescuentosParaApartar, type LineaApartar } from "@/lib/apartar-desde-ticket";
 import {
   PLAZO_DIAS,
-  TEXTO_PASO_APARTADO,
   adelantoDe,
   apartadoDeFila,
   erroresDelApartado,
@@ -108,6 +108,12 @@ export type PrendaApartable = VarianteBusqueda & {
 };
 
 const CANTIDAD_DE_LINEA = reglaDeEntero();
+/** El nombre de cada medio en la hoja del apartado; el corto cabe en una ficha acostada de 5 por fila. */
+const NOMBRE_MEDIO: Record<MetodoPago, string> = { efectivo: "Efectivo", tarjeta: "Tarjeta", yape: "Yape", plin: "Plin", transferencia: "Transferencia" };
+const NOMBRE_MEDIO_CORTO: Record<MetodoPago, string> = { ...NOMBRE_MEDIO, transferencia: "Transf." };
+/** Los billetes del adelanto: el mínimo (30 %), la mitad y todo. */
+const ATAJOS_ADELANTO = [[0.3, "30 %"], [0.5, "Mitad"], [1, "Todo"]] as const;
+const corto = (n: number) => (Number.isInteger(n) ? `S/${n}` : money(n));
 const SIN_MONTOS: readonly FilaOfertaDeMonto[] = [];
 const OPCION = "rounded-lg transition-colors";
 const OPCION_ACTIVA = "bg-papel text-tinta shadow-sm";
@@ -384,6 +390,24 @@ export function ApartarVista({
   const pasoForm = pasoDelApartado(errores);
   const adelanto = Math.min(adelantoDe(f.pagos), total);
   const vuelto = vueltoDelAdelanto(f.pagos);
+  // Los tres pasos de la hoja, como los de Cobrar: cada uno está listo cuando la validación real no le pone reparos.
+  const clienteOk = pasoForm > 0;
+  const pagoOk = !errores.pago;
+  const devolucionOk = !errores.devolucion && !errores.acepta;
+  const pasoQueSigue = !clienteOk ? 0 : !pagoOk ? 1 : !devolucionOk ? 2 : null;
+  const resumenCliente = [[f.nombres.trim().split(/\s+/)[0], f.apellidos.trim().split(/\s+/)[0]].filter(Boolean).join(" "), f.comprobante === "factura" ? "Factura" : "Boleta"].join(" · ");
+  // El paso 1 se pliega a una línea cuando, ya listo, la persona usa el adelanto o la devolución: nunca mientras escribe en él. Con el
+  // CLIC y no al apretar el mouse: lo de abajo sube al plegarse y, si subiera antes de soltar, el clic caería en otra ficha. En el
+  // celular cada paso es su propia pantalla, y con un dato del cliente mal se vuelve a abrir solo (deja de estar listo).
+  const [plegarCliente, setPlegarCliente] = useState(false);
+  const clientePlegado = plegarCliente && clienteOk && !apilado;
+  const plegarSiListo = () => {
+    if (clienteOk && !plegarCliente) setPlegarCliente(true);
+  };
+  const pagoEfectivo = f.pagos.find((p) => p.metodo === "efectivo");
+  const montoEscrito = f.pagos.length === 1 && !ATAJOS_ADELANTO.some(([k]) => f.pagos[0].monto === (k === 1 ? total : Math.ceil(total * k)));
+  // El pie solo habla si tiene algo que decir: la caja cerrada, el primer reparo tras intentar o por qué el responsable no firma.
+  const mensajeDelPie = !cajaAbierta ? "Abre la caja para poder apartar." : intento && Object.keys(errores).length ? Object.values(errores)[0] : responsable.motivo;
   const ver = (k: keyof typeof errores) => (intento || (tocados.has(k) && CAMPOS_CON_FORMATO.has(k)) ? errores[k] : undefined);
   const tocar = (k: string) => () => setTocados((t) => (t.has(k) ? t : new Set([...t, k])));
 
@@ -1013,37 +1037,31 @@ export function ApartarVista({
           </>
         ) : (
           <>
-            <div className="ap-ticket-hilo flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
+            {/* La hoja del apartado se arma como la de Cobrar (Felipe 2026-11-16, «A · Pasos como Cobrar»; maqueta
+                docs/maquetas/apartar-compacto-2026-11/): el total arriba, tres pasos numerados con `CabezaPaso` (su «Sigue» y su estado a la
+                derecha) y el botón con el monto al pie. Cada dato se dice una sola vez; lo que explica va detrás del «?». */}
+            <div className="ap-ticket-hilo flex min-h-[65px] items-center gap-3 border-b border-sand px-5 py-2.5">
               <Volver
                 onClick={() => irAPaso(apilado && paso === "adelanto" ? "clienta" : "ticket")}
                 a={apilado && paso === "adelanto" ? "Volver a los datos del cliente" : "Volver al ticket"}
                 className="-ml-2 shrink-0"
               />
-              <div className="anim-revelar text-right">
-                <TituloSeccion className="justify-end">
-                  <span className="inline-flex items-center gap-2.5">
-                    <Bookmark className="h-5 w-5 text-tinta/70" aria-hidden /> Apartado
-                  </span>
-                </TituloSeccion>
+              <div className="anim-revelar min-w-0 flex-1 text-right">
+                <p className="flex items-baseline justify-end gap-2.5">
+                  <span className="label-cayla text-[11px] text-tinta/60">Apartado</span>
+                  <span key={total} className="anim-asentar font-display text-[34px] leading-none text-tinta tabular-nums">{money(total)}</span>
+                </p>
                 <p className="mt-1 text-sm text-tinta/60">
-                  {prendasEnTicket} {prendasEnTicket === 1 ? "prenda" : "prendas"} · recoger hasta el {fechaCorta(vence)}
+                  {prendasEnTicket} {prendasEnTicket === 1 ? "prenda" : "prendas"} · recoge hasta el <b className="font-semibold text-tinta">{fechaCorta(vence)}</b>
                 </p>
               </div>
             </div>
             <div className="scroll-cayla min-h-40 flex-1 overflow-y-auto">
-              <div className="anim-revelar space-y-6 px-5 py-4">
-                <div>
-                  <div aria-hidden className="flex gap-1.5">
-                    {[0, 1, 2].map((i) => (
-                      <span key={i} className={`h-1 flex-1 rounded-full transition-colors duration-500 ${i < pasoForm ? "bg-tinta" : i === pasoForm ? "bg-rojo" : "bg-sand"}`} />
-                    ))}
-                  </div>
-                  <p role="status" className="mt-2 text-sm text-taupe-profundo">{TEXTO_PASO_APARTADO[pasoForm]}</p>
-                </div>
-
+              <div className="anim-revelar space-y-2 px-5 py-3">
                 {conCanal && (
-                  <div className={paso === "adelanto" ? "max-lg:hidden" : ""}>
+                  <div className={`pb-1 ${paso === "adelanto" ? "max-lg:hidden" : ""}`}>
                     <CanalDelApartado
+                      compacta
                       canales={canales}
                       canal={canalElegido}
                       modoEntrega={modoDeEntrega}
@@ -1058,173 +1076,240 @@ export function ApartarVista({
                   </div>
                 )}
 
-                <fieldset className={`space-y-3.5 ${paso === "adelanto" ? "max-lg:hidden" : ""}`}>
-                  <legend className="mb-2 flex items-center gap-1.5 text-sm text-tinta/50"><User className="h-3.5 w-3.5" aria-hidden /> El cliente</legend>
-                  {/* Sin el módulo Clientas (o con la ficha apagada) el buscador sigue: solo por DNI, al padrón de SUNAT. */}
-                  <div className="space-y-1.5">
-                    {clientaId ? (
-                      <Aviso
-                        tono="exito"
-                        chico
-                        accion={<button type="button" onClick={() => { setClientaId(null); setClientaQ(""); }}>Cambiar</button>}
-                      >
-                        Ficha encontrada: el apartado queda ligado a su historial.
-                      </Aviso>
-                    ) : (
-                      <div className="flex gap-2">
-                        {/* La cara del buscador único (ADR-0358, ronda 5), pero busca con su botón o Enter: trae la ficha exacta de un
-                            cliente por DNI o celular, no filtra una lista (Felipe 2026-10-08). */}
-                        <Buscador
-                          valor={clientaQ}
-                          onCambio={(v) => { setClientaQ(v); setSinFicha(null); }}
-                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarFicha(); } }}
-                          inputMode="numeric"
-                          placeholder={conClienta ? "DNI (8) o celular (9) del cliente" : "DNI del cliente (8 dígitos)"}
-                          etiqueta={conClienta ? "Buscar al cliente por DNI o celular" : "Buscar al cliente por DNI"}
-                          className="min-w-0 flex-1"
-                        />
-                        <BotonBuscar cargando={buscandoClienta} onClick={buscarFicha} disabled={buscandoClienta || !largosBuscables.includes(soloDigitos(clientaQ).length)} className="h-10 shrink-0" />
+                {/* 1 · Cliente. Listo, se pliega a una línea en cuanto la persona pasa al adelanto (nunca mientras escribe). */}
+                <section aria-label="Cliente" className={`hoja-cobro-paso ${pasoQueSigue === 0 ? "sigue-aqui" : ""} ${paso === "adelanto" ? "max-lg:hidden" : ""}`}>
+                  {clientePlegado ? (
+                    <div className="flex items-center gap-3 [&_.hoja-cobro-cabeza-paso]:mb-0">
+                      <div className="min-w-0 flex-1">
+                        <CabezaPaso numero={1} titulo="Cliente" hecho pista={null} estado={{ ok: true, texto: resumenCliente }} />
                       </div>
-                    )}
-                    {sinFicha === "padron" && (
-                      <p className="text-sm text-tinta/60">{conClienta ? "No tiene ficha: su nombre vino de SUNAT. " : "Su nombre vino de SUNAT. "}Revísalo y completa lo que falta.</p>
-                    )}
-                    {sinFicha === "nada" && (
-                      <p className="text-sm text-tinta/60">
-                        {soloDigitos(clientaQ).length === 8 ? `${conClienta ? "No tiene ficha y " : ""}SUNAT no devolvió su nombre: escríbelo abajo.` : "No tiene ficha todavía: completa sus datos abajo."}
-                      </p>
-                    )}
-                  </div>
-                  <div className="grid gap-3.5 sm:grid-cols-2">
-                    <Campo etiqueta="Nombres" error={ver("nombres")} onBlur={tocar("nombres")}><input value={f.nombres} onChange={(e) => cambiar("nombres", e.target.value)} autoComplete="off" className="caja-campo-input mt-1.5" /></Campo>
-                    <Campo etiqueta="Apellidos" error={ver("apellidos")} onBlur={tocar("apellidos")}><input value={f.apellidos} onChange={(e) => cambiar("apellidos", e.target.value)} autoComplete="off" className="caja-campo-input mt-1.5" /></Campo>
-                    <Campo etiqueta="Celular · WhatsApp (opcional)" error={ver("celular")} onBlur={tocar("celular")}><input value={f.celular} onChange={(e) => cambiar("celular", e.target.value)} inputMode="numeric" placeholder="9 dígitos" className="caja-campo-input mt-1.5 font-mono" /></Campo>
-                    <Campo etiqueta={total > 700 ? "DNI" : "DNI (recomendado)"} error={ver("dni")} onBlur={tocar("dni")}><input value={f.dni} onChange={(e) => cambiar("dni", e.target.value)} inputMode="numeric" placeholder="8 dígitos" className="caja-campo-input mt-1.5 font-mono" /></Campo>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1 rounded-xl bg-sand/50 p-1">
-                    {(["boleta", "factura"] as const).map((k) => (
-                      <button key={k} type="button" aria-pressed={f.comprobante === k} onClick={() => cambiar("comprobante", k)} className={`${OPCION} label-cayla flex h-10 items-center justify-center gap-1.5 text-[11px] ${f.comprobante === k ? OPCION_ACTIVA : OPCION_INACTIVA}`}>
-                        {k === "boleta" ? <Receipt className="h-3.5 w-3.5" aria-hidden /> : <FileText className="h-3.5 w-3.5" aria-hidden />}
-                        {k}
+                      <button type="button" onClick={() => setPlegarCliente(false)} className="btn-enlace shrink-0 text-sm">
+                        Editar
                       </button>
-                    ))}
-                  </div>
-                  <p className="-mt-1 text-sm text-tinta/60">Se emite al entregar, por el total. Ahora el cliente se lleva una constancia, no un comprobante.</p>
-                  {f.comprobante === "factura" && (
-                    <div className="grid gap-3.5 sm:grid-cols-2">
-                      <Campo etiqueta="RUC" error={ver("ruc")} onBlur={tocar("ruc")}><input value={f.ruc} onChange={(e) => cambiar("ruc", e.target.value)} inputMode="numeric" className="caja-campo-input mt-1.5 font-mono" /></Campo>
-                      <Campo etiqueta="Razón social" error={ver("razonSocial")} onBlur={tocar("razonSocial")}><input value={f.razonSocial} onChange={(e) => cambiar("razonSocial", e.target.value)} className="caja-campo-input mt-1.5" /></Campo>
                     </div>
+                  ) : (
+                    <>
+                      <CabezaPaso numero={1} titulo="Cliente" hecho={clienteOk} pista={pasoQueSigue === 0 ? "Sigue" : null} estado={clienteOk ? { ok: true, texto: resumenCliente } : null} />
+                      <fieldset className="min-w-0 space-y-3">
+                        <legend className="sr-only">Datos del cliente</legend>
+                        {/* Sin el módulo Clientas (o con la ficha apagada) el buscador sigue: solo por DNI, al padrón de SUNAT. */}
+                        <div className="space-y-1.5">
+                          {clientaId ? (
+                            <Aviso
+                              tono="exito"
+                              chico
+                              accion={<button type="button" onClick={() => { setClientaId(null); setClientaQ(""); }}>Cambiar</button>}
+                            >
+                              Ficha encontrada: queda en su historial.
+                            </Aviso>
+                          ) : (
+                            <div className="flex gap-2">
+                              {/* La cara del buscador único (ADR-0358, ronda 5), pero busca con su botón o Enter: trae la ficha exacta de un
+                                  cliente por DNI o celular, no filtra una lista (Felipe 2026-10-08). */}
+                              <Buscador
+                                valor={clientaQ}
+                                onCambio={(v) => { setClientaQ(v); setSinFicha(null); }}
+                                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarFicha(); } }}
+                                inputMode="numeric"
+                                placeholder={conClienta ? "DNI (8) o celular (9) del cliente" : "DNI del cliente (8 dígitos)"}
+                                etiqueta={conClienta ? "Buscar al cliente por DNI o celular" : "Buscar al cliente por DNI"}
+                                className="min-w-0 flex-1"
+                              />
+                              <BotonBuscar cargando={buscandoClienta} onClick={buscarFicha} disabled={buscandoClienta || !largosBuscables.includes(soloDigitos(clientaQ).length)} className="h-10 shrink-0" />
+                            </div>
+                          )}
+                          {sinFicha === "padron" && (
+                            <p className="text-sm text-tinta/60">{conClienta ? "No tiene ficha: su nombre vino de SUNAT. " : "Su nombre vino de SUNAT. "}Revísalo.</p>
+                          )}
+                          {sinFicha === "nada" && (
+                            <p className="text-sm text-tinta/60">
+                              {soloDigitos(clientaQ).length === 8 ? `${conClienta ? "No tiene ficha y " : ""}SUNAT no devolvió su nombre: escríbelo.` : "No tiene ficha todavía: completa sus datos."}
+                            </p>
+                          )}
+                        </div>
+                        <div className="grid gap-x-3 gap-y-2.5 sm:grid-cols-2">
+                          <Campo etiqueta="Nombres" error={ver("nombres")} onBlur={tocar("nombres")}><input value={f.nombres} onChange={(e) => cambiar("nombres", e.target.value)} autoComplete="off" className="caja-campo-input mt-1.5" /></Campo>
+                          <Campo etiqueta="Apellidos" error={ver("apellidos")} onBlur={tocar("apellidos")}><input value={f.apellidos} onChange={(e) => cambiar("apellidos", e.target.value)} autoComplete="off" className="caja-campo-input mt-1.5" /></Campo>
+                          <Campo etiqueta="Celular (opcional)" error={ver("celular")} onBlur={tocar("celular")}><input value={f.celular} onChange={(e) => cambiar("celular", e.target.value)} inputMode="numeric" placeholder="9 dígitos" className="caja-campo-input mt-1.5 font-mono" /></Campo>
+                          <Campo etiqueta={total > 700 ? "DNI" : "DNI (recomendado)"} error={ver("dni")} onBlur={tocar("dni")}><input value={f.dni} onChange={(e) => cambiar("dni", e.target.value)} inputMode="numeric" placeholder="8 dígitos" className="caja-campo-input mt-1.5 font-mono" /></Campo>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="campo-etiqueta flex items-center gap-1">
+                            Comprobante
+                            <Ayuda titulo="el comprobante del apartado">Se emite al entregar, por el total. Hoy el cliente se lleva una constancia, no un comprobante.</Ayuda>
+                          </span>
+                          <div role="group" aria-label="Comprobante al entregar" className="ml-auto grid w-44 shrink-0 grid-cols-2 gap-1 rounded-xl bg-sand/50 p-1">
+                            {(["boleta", "factura"] as const).map((k) => (
+                              <button key={k} type="button" aria-pressed={f.comprobante === k} onClick={() => cambiar("comprobante", k)} className={`${OPCION} label-cayla h-8 text-[10.5px] ${f.comprobante === k ? OPCION_ACTIVA : OPCION_INACTIVA}`}>
+                                {k}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        {f.comprobante === "factura" && (
+                          <div className="grid gap-x-3 gap-y-2.5 sm:grid-cols-2">
+                            <Campo etiqueta="RUC" error={ver("ruc")} onBlur={tocar("ruc")}><input value={f.ruc} onChange={(e) => cambiar("ruc", e.target.value)} inputMode="numeric" className="caja-campo-input mt-1.5 font-mono" /></Campo>
+                            <Campo etiqueta="Razón social" error={ver("razonSocial")} onBlur={tocar("razonSocial")}><input value={f.razonSocial} onChange={(e) => cambiar("razonSocial", e.target.value)} className="caja-campo-input mt-1.5" /></Campo>
+                          </div>
+                        )}
+                      </fieldset>
+                    </>
                   )}
-                </fieldset>
+                </section>
 
-                <fieldset className={`space-y-2 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
-                  <legend className="mb-2 flex items-center gap-1.5 text-sm text-tinta/50"><Wallet className="h-3.5 w-3.5" aria-hidden /> Adelanto · cómo pagó el cliente</legend>
-                  <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1">
-                    {METODOS_PAGO.map((m, i) => {
+                {/* 2 · Adelanto: las fichas de medio de Cobrar, acostadas (las de Caja), y los montos en billetes del color del medio. */}
+                <section
+                  aria-label="Adelanto"
+                  onClickCapture={plegarSiListo}
+                  onKeyDownCapture={plegarSiListo}
+                  className={`hoja-cobro-paso ${pasoQueSigue === 1 ? "sigue-aqui" : ""} ${paso === "clienta" ? "max-lg:hidden" : ""}`}
+                >
+                  <CabezaPaso
+                    numero={2}
+                    titulo="Adelanto"
+                    hecho={pagoOk}
+                    pista={pasoQueSigue === 1 ? "Sigue" : null}
+                    estado={f.pagos.length ? { ok: pagoOk, texto: total - adelanto > 0 ? `Resta ${money(total - adelanto)}` : "Pagado todo" } : null}
+                  />
+                  <div role="group" aria-label="Cómo pagó el adelanto" className="grid grid-cols-5 gap-1.5">
+                    {METODOS_PAGO.map((m) => {
                       const puesto = f.pagos.some((x) => x.metodo === m);
                       return (
-                        <button key={m} type="button" aria-pressed={puesto} title={`${m} (F${i + 1})`} onClick={() => tocarMedio(m)} style={puesto ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined} className={`${OPCION} metodo-${m} relative flex h-14 flex-col items-center justify-center gap-1 px-1 text-sm leading-tight capitalize ${puesto ? "anim-pop shadow-sm" : OPCION_INACTIVA}`}>
-                          <span aria-hidden className="absolute top-0.5 right-1 text-[8px] font-semibold opacity-45">F{i + 1}</span>
-                          {ICONO_METODO[m]}
-                          {m}
+                        <button key={m} type="button" aria-pressed={puesto} title={NOMBRE_MEDIO[m]} onClick={() => tocarMedio(m)} className={`metodo-${m} hoja-cobro-medio es-acostada ${puesto ? "es-elegido" : ""}`}>
+                          {puesto && (
+                            <span className="hoja-cobro-marca">
+                              <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-3 w-3" strokeWidth={3} aria-hidden />
+                            </span>
+                          )}
+                          <span className="hoja-cobro-acostada">
+                            <span className="hoja-cobro-icono">{iconoMetodo(m, "h-full w-full")}</span>
+                            <span className="hoja-cobro-nombre label-cayla font-bold leading-none">{NOMBRE_MEDIO_CORTO[m]}</span>
+                          </span>
                         </button>
                       );
                     })}
                   </div>
-                  {f.pagos.length > 0 && (
-                    <div className="anim-revelar divide-y divide-sand rounded-lg border border-sand bg-crema">
+                  {f.pagos.length <= 1 ? (
+                    <div className={`metodo-${f.pagos[0]?.metodo ?? "yape"} mt-2 grid grid-cols-4 gap-1.5`}>
+                      {ATAJOS_ADELANTO.map(([k, n]) => {
+                        const v = k === 1 ? total : Math.ceil(total * k);
+                        const elegido = f.pagos.length === 1 && f.pagos[0].monto === v;
+                        return (
+                          <button key={n} type="button" aria-pressed={elegido} onClick={() => atajo(k)} className={`hoja-cobro-billete es-de-medio ${elegido ? "es-elegido" : ""}`}>
+                            <span className="hoja-cobro-billete-nombre">{n}</span>
+                            {corto(v)}
+                          </button>
+                        );
+                      })}
+                      <label className={`hoja-cobro-billete es-de-medio es-otro ${montoEscrito ? "es-escrito" : ""}`}>
+                        <span className="hoja-cobro-billete-nombre">Otro</span>
+                        <span className="flex items-baseline gap-0.5">
+                          <span className="text-sm text-tinta/50">S/</span>
+                          <EntradaMonto
+                            aria-label="Otro monto de adelanto"
+                            valor={montoEscrito ? f.pagos[0].monto : 0}
+                            onCambio={(v) => setF((x) => ({ ...x, pagos: x.pagos.length ? [{ ...x.pagos[0], monto: v }] : [{ metodo: "yape", monto: v }] }))}
+                            className="w-full min-w-0 bg-transparent text-right tabular-nums outline-none"
+                          />
+                        </span>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="anim-revelar mt-2 divide-y divide-sand rounded-lg border border-sand bg-crema">
                       {f.pagos.map((pg, i) => (
-                        <div key={pg.metodo} className="flex items-center gap-2.5 px-3 py-2">
-                          <span className={`metodo-${pg.metodo} flex min-w-0 flex-1 items-center gap-2 text-sm capitalize`} style={{ color: "var(--cd)" }}>
-                            {ICONO_METODO[pg.metodo]} <span className="truncate">{pg.metodo}</span>
+                        <div key={pg.metodo} className="flex items-center gap-2.5 px-3 py-1.5">
+                          <span className={`metodo-${pg.metodo} flex min-w-0 flex-1 items-center gap-2 text-sm`} style={{ color: "var(--cd)" }}>
+                            {ICONO_METODO[pg.metodo]} <span className="truncate">{NOMBRE_MEDIO[pg.metodo]}</span>
                           </span>
                           <span className="flex items-center gap-1 border-b border-tinta/20 text-sm">
                             <span className="text-tinta/50">S/</span>
-                            <EntradaMonto aria-label={`Monto en ${pg.metodo}`} valor={pg.monto} onCambio={(v) => setF((x) => ({ ...x, pagos: x.pagos.map((y, j) => (j === i ? { ...y, monto: v } : y)) }))} className="w-20 bg-transparent py-1 text-right tabular-nums outline-none" />
+                            <EntradaMonto aria-label={`Monto en ${NOMBRE_MEDIO[pg.metodo]}`} valor={pg.monto} onCambio={(v) => setF((x) => ({ ...x, pagos: x.pagos.map((y, j) => (j === i ? { ...y, monto: v } : y)) }))} className="w-20 bg-transparent py-1 text-right tabular-nums outline-none" />
                           </span>
-                          {pg.metodo === "efectivo" && (
-                            <span className="flex items-center gap-1 border-b border-tinta/20 text-sm" title="Con cuánto pagó (para el vuelto)">
-                              <span className="text-sm text-tinta/50">Recibe</span>
-                              <EntradaMonto aria-label="Efectivo recibido" valor={pg.recibido ?? 0} onCambio={(v) => setF((x) => ({ ...x, pagos: x.pagos.map((y, j) => (j === i ? { ...y, recibido: v || undefined } : y)) }))} className="w-16 bg-transparent py-1 text-right tabular-nums outline-none" />
-                            </span>
-                          )}
-                          <button type="button" aria-label={`Quitar ${pg.metodo}`} onClick={() => setF((x) => ({ ...x, pagos: x.pagos.filter((_, j) => j !== i) }))} className="p-1 text-rojo-profundo">
-                            <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                          </button>
                         </div>
                       ))}
                     </div>
                   )}
-                  <div className="flex flex-wrap gap-1.5">
-                    {([[0.3, "30%"], [0.5, "La mitad"], [1, "Todo"]] as const).map(([k, n]) => (
-                      <button key={n} type="button" onClick={() => atajo(k)} className="rounded-full border border-sand px-3 py-1 text-sm tabular-nums hover:border-taupe">
-                        {n} · {money(k === 1 ? total : Math.ceil(total * k))}
-                      </button>
-                    ))}
-                  </div>
-                  <BarraAvance pct={total ? (adelanto / total) * 100 : 0} decorativa />
-                  <p className="flex justify-between text-sm text-tinta/60 tabular-nums"><span>Deja {money(adelanto)}</span><span>Saldo al recoger {money(total - adelanto)}</span></p>
-                  {ver("pago") && <Aviso tono="error" chico>{ver("pago")}</Aviso>}
-                  {vuelto > 0 && (
-                    <div className="anim-revelar flex items-baseline justify-between rounded-xl border border-tinta/15 bg-papel px-4 py-2.5">
-                      <span className="label-cayla text-[11px] text-tinta/70">Entregar vuelto</span>
-                      <span className="font-display text-2xl tabular-nums">{money(vuelto)}</span>
+                  {/* El efectivo pide con cuánto pagó: solo para el vuelto. */}
+                  {pagoEfectivo && (
+                    <div className="anim-revelar mt-2 flex items-center gap-2 text-sm">
+                      <span className="text-tinta/60">Recibe</span>
+                      <span className="flex items-center gap-1 border-b border-tinta/20">
+                        <span className="text-tinta/50">S/</span>
+                        <EntradaMonto
+                          aria-label="Efectivo recibido"
+                          valor={pagoEfectivo.recibido ?? 0}
+                          onCambio={(v) => setF((x) => ({ ...x, pagos: x.pagos.map((y) => (y.metodo === "efectivo" ? { ...y, recibido: v || undefined } : y)) }))}
+                          className="w-20 bg-transparent py-1 text-right tabular-nums outline-none"
+                        />
+                      </span>
+                      {vuelto > 0 && (
+                        <span className="ml-auto flex items-baseline gap-2">
+                          <span className="label-cayla text-[11px] text-tinta/70">Vuelto</span>
+                          <span className="font-display text-2xl leading-none tabular-nums">{money(vuelto)}</span>
+                        </span>
+                      )}
                     </div>
                   )}
-                </fieldset>
+                  {ver("pago") && <Aviso tono="error" chico className="mt-2">{ver("pago")}</Aviso>}
+                </section>
 
-                <fieldset className={`space-y-2.5 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
-                  <legend className="mb-2 flex items-center gap-1.5 text-sm text-tinta/50"><Undo2 className="h-3.5 w-3.5" aria-hidden /> Si no recoge, le devolvemos por</legend>
-                  <div className="grid grid-cols-3 gap-1 rounded-xl bg-sand/50 p-1">
-                    {(["yape", "plin", "transferencia"] as const).map((k) => (
-                      <button key={k} type="button" aria-pressed={f.devolucionMedio === k} onClick={() => cambiar("devolucionMedio", k)} className={`${OPCION} label-cayla h-10 text-[10.5px] ${f.devolucionMedio === k ? OPCION_ACTIVA : OPCION_INACTIVA}`}>
-                        {k}
-                      </button>
-                    ))}
+                {/* 3 · Si no recoge: por dónde se le devuelve (vacío = su celular) y que acepte las condiciones. */}
+                <section
+                  aria-label="Si no recoge"
+                  onClickCapture={plegarSiListo}
+                  onKeyDownCapture={plegarSiListo}
+                  className={`hoja-cobro-paso ${pasoQueSigue === 2 ? "sigue-aqui" : ""} ${paso === "clienta" ? "max-lg:hidden" : ""}`}
+                >
+                  <CabezaPaso
+                    numero={3}
+                    titulo="Si no recoge"
+                    hecho={devolucionOk}
+                    pista={pasoQueSigue === 2 ? "Sigue" : null}
+                    estado={devolucionOk ? { ok: true, texto: `Por ${NOMBRE_MEDIO[f.devolucionMedio]}` } : null}
+                  />
+                  <div className="flex flex-wrap items-start gap-2">
+                    <div role="group" aria-label="Le devolvemos por" className="grid shrink-0 grid-cols-3 gap-1 rounded-xl bg-sand/50 p-1">
+                      {(["yape", "plin", "transferencia"] as const).map((k) => (
+                        <button key={k} type="button" aria-pressed={f.devolucionMedio === k} onClick={() => cambiar("devolucionMedio", k)} className={`${OPCION} label-cayla h-8 px-2 text-[10.5px] ${f.devolucionMedio === k ? OPCION_ACTIVA : OPCION_INACTIVA}`}>
+                          {NOMBRE_MEDIO_CORTO[k]}
+                        </button>
+                      ))}
+                    </div>
+                    <label className="block min-w-36 flex-1" onBlur={tocar("devolucion")}>
+                      {f.devolucionMedio === "transferencia" ? (
+                        <input aria-label="CCI del cliente" value={f.devolucionCci} onChange={(e) => cambiar("devolucionCci", e.target.value)} inputMode="numeric" placeholder="20 dígitos" className="caja-campo-input font-mono" />
+                      ) : (
+                        <input aria-label={`Número de ${NOMBRE_MEDIO[f.devolucionMedio]}`} value={f.devolucionNumero} onChange={(e) => cambiar("devolucionNumero", e.target.value)} inputMode="numeric" placeholder={f.celular || "9 dígitos"} className="caja-campo-input font-mono" />
+                      )}
+                      {ver("devolucion") && <span className="mt-0.5 block text-sm text-rojo-profundo">{ver("devolucion")}</span>}
+                    </label>
                   </div>
-                  {f.devolucionMedio === "transferencia" ? (
-                    <Campo etiqueta="CCI del cliente" error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionCci} onChange={(e) => cambiar("devolucionCci", e.target.value)} inputMode="numeric" placeholder="20 dígitos" className="caja-campo-input mt-1.5 font-mono" /></Campo>
-                  ) : (
-                    <Campo etiqueta={`Número de ${f.devolucionMedio === "yape" ? "Yape" : "Plin"}`} error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionNumero} onChange={(e) => cambiar("devolucionNumero", e.target.value)} inputMode="numeric" placeholder={f.celular || "9 dígitos"} className="caja-campo-input mt-1.5 font-mono" /></Campo>
-                  )}
-                  <p className="text-sm text-tinta/60">Así no tiene que volver a la tienda. Efectivo, solo si viene antes de que se le transfiera.</p>
-                </fieldset>
-
-                <label className={`flex cursor-pointer items-start gap-2.5 text-sm text-tinta/85 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
-                  <Casilla marcada={f.acepta} onCambio={() => cambiar("acepta", !f.acepta)} etiqueta="Le leí las condiciones del apartado" className="mt-0.5 shrink-0" />
-                  <span>
-                    Le leí las condiciones: recoge hasta el <b>{fechaCorta(vence)}</b> con su constancia o DNI; si no, vuelve a tienda y se le devuelve el 100% por {f.devolucionMedio === "transferencia" ? "transferencia" : f.devolucionMedio === "yape" ? "Yape" : "Plin"}.
-                    {ver("acepta") && <span className="block text-sm text-rojo-profundo">{ver("acepta")}</span>}
-                  </span>
-                </label>
+                  <div className="mt-3 flex items-center gap-1.5 text-sm text-tinta/85">
+                    <label className="flex cursor-pointer items-center gap-2.5">
+                      <Casilla marcada={f.acepta} onCambio={() => cambiar("acepta", !f.acepta)} etiqueta="Le leí las condiciones del apartado" className="shrink-0" />
+                      <span>Le leí las condiciones</span>
+                    </label>
+                    <Ayuda titulo="las condiciones del apartado">
+                      Recoge hasta el {fechaCorta(vence)} con su constancia o DNI. Si no, vuelve a la tienda y se le devuelve el 100 % por {NOMBRE_MEDIO[f.devolucionMedio]}. En efectivo, solo si viene antes de que se le transfiera.
+                    </Ayuda>
+                  </div>
+                  {ver("acepta") && <span className="mt-1 block text-sm text-rojo-profundo">{ver("acepta")}</span>}
+                </section>
               </div>
             </div>
-            <div className={`ap-ticket-hilo space-y-3 border-t border-sand px-5 py-5 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
-              <div className="flex items-end justify-between gap-3 max-lg:hidden">
-                <dl className="grid grid-cols-[auto_auto] gap-x-3 text-sm text-tinta/60 tabular-nums">
-                  <dt>Total prendas</dt><dd className="text-tinta">{money(total)}</dd>
-                  <dt>Saldo al recoger</dt><dd className="text-tinta">{money(total - adelanto)}</dd>
-                </dl>
-                <div className="text-right">
-                  <p className="label-cayla text-[11px] text-tinta/60">Adelanto hoy</p>
-                  <p className="font-display text-[44px] leading-none text-tinta tabular-nums">{money(adelanto)}</p>
-                </div>
-              </div>
+            <div className={`ap-ticket-hilo space-y-3 border-t border-sand px-5 py-4 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
               {/* El combo «Responsable» (ADR-0161), justo encima del botón que guarda, como en Cobrar. La lista se abre
                   hacia arriba: debajo solo está el botón. Sin caja abierta no se muestra: no hay nada que firmar. */}
               {cajaAbierta && <ComboResponsable control={responsable} deshabilitado={enviando} />}
               <button type="button" disabled={enviando || !cajaAbierta || !responsable.listo} title={cajaAbierta ? (responsable.motivo ?? undefined) : undefined} onClick={confirmar} className={`${BOTON_PRINCIPAL} max-lg:hidden`}>
-                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><Bookmark className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Confirmar apartado" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}</span>
+                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><Check className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Confirmar apartado" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}</span>
                 <span className="font-display text-xl tabular-nums">{money(adelanto)}</span>
               </button>
-              <p className={`text-center text-sm ${intento && Object.keys(errores).length ? "text-rojo-profundo" : "text-tinta/55"}`}>
-                {!cajaAbierta
-                  ? "Abre la caja para poder apartar."
-                  : intento && Object.keys(errores).length
-                    ? Object.values(errores)[0]
-                    : (responsable.motivo ?? TEXTO_PASO_APARTADO[pasoForm])}
-              </p>
+              {mensajeDelPie && (
+                <p role="status" className={`text-center text-sm ${intento && Object.keys(errores).length ? "text-rojo-profundo" : "text-tinta/55"}`}>
+                  {mensajeDelPie}
+                </p>
+              )}
             </div>
           </>
         )}

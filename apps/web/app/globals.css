@@ -3122,6 +3122,24 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
     white-space: nowrap;
   }
   .hoja-cobro-billete.es-maquina.metodo-qr { --c: var(--color-metodo-qr); --cd: var(--color-metodo-qr); }
+  /* El billete del adelanto de un apartado (ApartarVista, Felipe 2026-11-16): toma el color del medio elegido de quien lo envuelve
+     (`.metodo-<medio>`), más bajo, con su nombre («30 %», «Mitad») arriba de la cifra. */
+  .hoja-cobro-billete.es-de-medio {
+    --c: inherit;
+    --cd: inherit;
+    height: 3.25rem;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 1.125rem;
+  }
+  .hoja-cobro-billete-nombre {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, currentColor 70%, transparent); /* contraste: no aplica — versalitas del billete, sobre su propio color */
+  }
 
   /* Comprobante: punteado mientras no se elige; elegido, en tinta; los otros se apagan. */
   .hoja-cobro-comprobante {
