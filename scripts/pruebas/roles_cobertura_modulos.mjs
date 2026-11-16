@@ -186,6 +186,23 @@ const SOLO_LIDER_GRUPOS = [
       "se muestra solo al líder (`esLider` en BalancePanel.tsx), y fn_exigir_lider_balance lo dice: «Los saldos de arranque los registra el líder».",
   },
   {
+    // ADR-0669 (Felipe 2026-11-16): «Poner un %» lo usa quien ve Campañas (fn_puede_campanas). fn_exigir_rebaja_rapida tiene una
+    // rama de solo líder, la de «En todas las tiendas»: por eso el detector la cuenta como ayudante-candado.
+    modulo: "campanas",
+    funciones: [
+      "buscar_prenda_para_rebaja",
+      "campanas_rebaja_de_prenda",
+      "campanas_rebaja_prendas",
+      "campanas_rebajas_de_tienda",
+      "poner_rebaja",
+      "quitar_rebaja",
+    ],
+    razon:
+      "«Poner un %» (components/rebajas/*, en app/(app)/productos/campanas) lo usa quien ve el módulo: fn_exigir_rebaja_rapida pide " +
+      "fn_puede_campanas() y la tienda donde trabaja. Solo la rama «En todas las tiendas» (p_todas) exige líder, y las cuatro lecturas " +
+      "la llaman siempre con p_todas = false. La pantalla dibuja el interruptor «En todas las tiendas» solo si `es_lider` (HojaRebaja.tsx).",
+  },
+  {
     // ADR-0653 (Felipe 2026-11-13): el módulo Liquidación se retiró. Sus funciones siguen en la base (no se borra lo construido),
     // pero sin pantalla y sin permiso para `authenticated`: nadie llega a ellas. Siguen llamando a fn_exigir_precio_liquidacion.
     modulo: null,

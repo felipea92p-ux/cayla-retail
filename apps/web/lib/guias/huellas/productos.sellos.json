@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 166,
+  "total": 176,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -89,6 +89,20 @@
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
+    ],
+    "components/rebajas/HojaRebaja.tsx": [
+      "button «→() => setAlcance(\"prenda\")»",
+      "button «{`Todo el modelo · ${datos.r.prenda.modeloPrendas}»",
+      "button «{`${l.prendas}»",
+      "button «Otro %»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Quitar el %»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/rebajas/RebajasDeTienda.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/sellos/AvisoDosOfertas.tsx": [
       "Boton «Elegir cuál queda»",

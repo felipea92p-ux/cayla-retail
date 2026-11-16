@@ -492,6 +492,9 @@ export const PRUEBAS = [
   // Una venta sin conexión cuya oferta cambió antes de subirla se acepta con lo que cobró la caja y queda marcada (ADR-0655, Felipe
   // 2026-11-16); en línea se sigue rechazando (el control), y los candados de la parte siguen sin conexión. ROLLBACK.
   "pruebas:venta-sin-conexion-oferta",
+  // «Poner un %» (ADR-0669, Felipe 2026-11-16): cajones de % por tienda, una prenda en un solo lugar, quitar, los candados (tope 70 %,
+  // tienda, «todas» solo un líder, el módulo) y lo que lee la hoja; con su control. ROLLBACK.
+  "pruebas:rebaja-rapida",
   // Una campaña que solo tiene OFERTAS también sale en la Tienda web (ADR-0496, «Lo que NO cubre»): la lista, la portada y el diseño leen las
   // ofertas activas (la portada, solo las que rigen hoy, con el mayor %), un borrador no cuenta y, sin ofertas, todo queda idéntico. ROLLBACK.
   "pruebas:campana-con-ofertas",
