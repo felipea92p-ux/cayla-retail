@@ -10,9 +10,10 @@ Rama `claude/receipt-closing-screens-5255cd`. ADR-0393, actualización 2026-11-1
 - [ ] **El freno «¿Son de este envío?»** cuando lo de fuera de la guía supera a lo de la guía (maqueta, pantalla 1, forma B). ¿Ese tope u otro?
 - [ ] **«No, son de otra compra» → pasar esas prendas a un envío sin aviso** del mismo proveedor y cerrar este con lo suyo. Necesita base.
 
-## POR PEGAR en producción (antes de fusionar el PR #1906)
+## SQL en producción
 
-- [ ] `supabase/migrations/20261116230000_recepcion_otro_tambien_si_falta.sql`, una sola parte, con el OK de Felipe. Comprobar después:
+- [x] `supabase/migrations/20261116230000_recepcion_otro_tambien_si_falta.sql` **pegada el 2026-11-16** con el OK de Felipe (md5 de `cerrar_conteo_envio` después:
+  `54512ceb43e9ca4836b7d5aab1ac9419`). Comprobación:
   `select position('recepcion_faltante_otro' in pg_get_functiondef('retail.cerrar_conteo_envio(uuid,integer,jsonb,text,uuid)'::regprocedure)) > 0;` → `t`.
 
 ## Para revisar en producción (no es código)
