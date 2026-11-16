@@ -24,6 +24,35 @@ vez por PC. Contexto y decisión: `docs/adr/0114-pos-comprobante-termico-y-ajust
 5. **Prueba**: haz una venta, confirma el cobro y presiona **Enter**. El ticket debe salir sin ningún
    diálogo y el sistema quedar listo para la siguiente venta.
 
+## Una vez por Mac de caja (macOS + Chrome)
+
+1. **Pon la térmica como predeterminada:** *Ajustes del Sistema → Impresoras y escáneres → Impresora
+   predeterminada* → tu térmica (no «Última impresora usada»: con eso cambia sola).
+2. **Ajusta el papel:** en Chrome, imprime una vez a mano, elige la térmica, papel **80 mm**, márgenes
+   **Ninguno** y escala **100 %**. Chrome recuerda ese ajuste.
+3. **Crea el «Chrome de caja»:** abre la app **Editor de Scripts** (en Aplicaciones → Utilidades), pega
+   esta línea:
+   ```
+   do shell script "open -na 'Google Chrome' --args --kiosk-printing"
+   ```
+   *Archivo → Exportar…* → Formato de archivo: **Aplicación** → nómbralo «Chrome de caja» y guárdalo en
+   Aplicaciones. Arrástralo al Dock.
+4. **Cierra Chrome por completo** (Cmd+Q, no solo la ventana) y ábrelo desde «Chrome de caja».
+5. **Prueba** como en Windows: una venta, confirma el cobro, Enter. Debe salir sin diálogo.
+
+## Imprimir solo al cobrar (sin el segundo toque)
+
+Con el «Chrome de caja» ya listo, en la hoja **«Venta registrada»** de Vender enciende **«Imprimir solo
+al cobrar»**. Desde la venta siguiente, confirmar el cobro ya imprime la boleta:
+
+- **Sin vuelto** (tarjeta, QR, efectivo exacto): imprime y vuelve sola a una venta nueva.
+- **Con vuelto:** imprime y deja a la vista cuánto entregar; Enter abre la venta siguiente.
+- Si el papel se atasca: **«Imprimir otra vez»**, o búscala en «Ventas de hoy» y reimprime.
+
+Es un ajuste **de ese equipo**, no de la cuenta. No lo enciendas en un celular ni en un equipo sin el
+«Chrome de caja»: ahí abriría el diálogo de impresión solo en cada venta. Para apagarlo, el mismo
+interruptor (sale en cualquier venta con vuelto).
+
 ## Cosas a saber
 
 - Con `--kiosk-printing`, **todo** lo que se imprima desde ese Chrome sale directo a la impresora
