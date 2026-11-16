@@ -11,6 +11,7 @@ import { CLASE_MONTO_ILEGIBLE, EntradaMonto, atributosMontoTexto } from "@/compo
 import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
 import { money } from "@/components/PuntoDeVenta";
 import { CerrarHoja } from "@/components/punto-de-venta/CerrarHoja";
+import { CabezaPaso } from "@/components/punto-de-venta/CabezaPaso";
 import { montoIlegible, numeroDeMonto } from "@/lib/monto-plata-reglas";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
@@ -451,48 +452,6 @@ export function HojaDeCobro({
             {prendas} {prendas === 1 ? "prenda" : "prendas"}
           </p>
         </div>
-      )}
-    </div>
-  );
-}
-
-/** El título de un paso: número (✓ al completarlo), nombre, la palabra «Sigue» o «Elige uno» y su estado a la derecha. También lo usa
- *  la hoja del descuento (`PanelDescuento`): los dos pasos a paso de Vender se ven igual. */
-export function CabezaPaso({
-  numero,
-  titulo,
-  hecho,
-  pista,
-  pistaFuerte = true,
-  estado,
-}: {
-  numero: number;
-  titulo: string;
-  hecho: boolean;
-  pista: string | null;
-  pistaFuerte?: boolean;
-  estado: { ok: boolean; texto: string } | null;
-}) {
-  return (
-    <div className="hoja-cobro-cabeza-paso flex items-center gap-2.5">
-      <span
-        className={`hoja-cobro-numero grid shrink-0 place-items-center rounded-full border-[1.5px] font-bold transition-colors ${
-          hecho ? "border-verde bg-verde text-crema" : "border-tinta text-tinta"
-        }`}
-      >
-        {hecho ? <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> : numero}
-      </span>
-      <h3 className="label-cayla whitespace-nowrap text-[15px] font-bold text-tinta">{/* unificar-fijo: la cabeza numerada de un paso del cobro, con su pista y su estado */}{titulo}</h3>
-      {pista && (
-        <span className={`hilo-etiqueta ${pistaFuerte ? "" : "!text-taupe"}`}>
-          {pista}
-        </span>
-      )}
-      {estado && (
-        <span className={`ml-auto min-w-0 truncate text-sm font-semibold ${estado.ok ? "text-verde-profundo" : "text-ambar-profundo"}`}>
-          {estado.texto}
-          {estado.ok ? " ✓" : ""}
-        </span>
       )}
     </div>
   );
