@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, leerPorTandasDeIds, leerTodas, tolerar } from "@/lib/resultado";
 import { resumenPorEnviar, type ResumenPorEnviar } from "@/lib/facturacion-reglas";
 import { HORAS_REINTENTO_AUTOMATICO } from "@/lib/transmision-reglas";
-import type { Comprobante, EstadoComprobante, SerieComprobante } from "@/lib/comprobantes-reglas";
+import { comprasDeLosCambios, type Comprobante, type EstadoComprobante, type PapelDeCambio, type SerieComprobante } from "@/lib/comprobantes-reglas";
 
 // Tipos y reglas puras (lo que un componente cliente puede necesitar como
 // VALOR: constantes, `tipoDocumentoDeCliente`) viven en comprobantes-reglas.ts,
@@ -231,6 +231,10 @@ export type ExtraComprobante = {
   corrige: { id: string; numero: string } | null;
   /** La devolución que emitió la nota (en una nota) o que se hizo sobre este comprobante (en el original). */
   devolucionId: string | null;
+  /** Si este papel lo emitió un cambio de prenda (su nota o su boleta nueva, ADR-0672): la compra que se cambió («B001-000012»). */
+  cambio: { compra: string | null } | null;
+  /** En el original: la nota de crédito que lo corrige salió de un cambio, no de una devolución. */
+  notaDeCambio: boolean;
 };
 
 /** Se lee DESPUÉS de los comprobantes y nunca tumba la pantalla: si una de estas lecturas falla, la fila solo
@@ -271,12 +275,53 @@ export async function getExtrasDeComprobantes(filas: Comprobante[]): Promise<Rec
   const devolucionDeNota = new Map<string, string>();
   for (const d of tolerar(resDevoluciones, "las devoluciones").datos ?? []) if (d.nota_credito_id) devolucionDeNota.set(d.nota_credito_id, d.id);
 
+  const deCambio = await papelesDeCambios(supabase, [...ids, ...[...notaDe.values()].map((n) => n.id)], originalPorId, numero);
+
   return Object.fromEntries(
     filas.map((c) => {
       const nc = notaDe.get(c.id) ?? null;
       const corrige = c.comprobante_original_id ? { id: c.comprobante_original_id, numero: originalPorId.get(c.comprobante_original_id) ?? "otro mes" } : null;
       const devolucionId = c.tipo === "nota_credito" ? (devolucionDeNota.get(c.id) ?? null) : nc ? (devolucionDeNota.get(nc.id) ?? null) : null;
-      return [c.id, { telefono: c.cliente_num_doc ? (telefonos.get(c.cliente_num_doc) ?? null) : null, notaDeCredito: nc, corrige, devolucionId }];
+      return [
+        c.id,
+        {
+          telefono: c.cliente_num_doc ? (telefonos.get(c.cliente_num_doc) ?? null) : null,
+          notaDeCredito: nc,
+          corrige,
+          devolucionId,
+          cambio: deCambio.get(c.id) ?? null,
+          notaDeCambio: nc ? deCambio.has(nc.id) : false,
+        },
+      ];
     })
   );
+}
+
+/**
+ * Los papeles de un cambio de prenda (ADR-0672) entre `ids`, con la compra que se cambió. Tolerante como el resto de los extras: si una
+ * lectura falla, la fila pierde el vínculo y nada más. `cambio_id` todavía no está en los tipos generados de la base.
+ */
+async function papelesDeCambios(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  ids: string[],
+  numeros: Map<string, string>,
+  numero: (c: { serie: string; numero: number }) => string,
+): Promise<Map<string, { compra: string | null }>> {
+  const res = await leerPorTandasDeIds(ids, (tanda) =>
+    supabase.from("comprobantes").select("id, cambio_id").in("id", tanda).not("cambio_id" as never, "is", null),
+  );
+  const cambios = [...new Set(((tolerar(res, "los cambios de los comprobantes").datos ?? []) as unknown as { cambio_id: string }[]).map((x) => x.cambio_id))];
+  if (cambios.length === 0) return new Map();
+  // Todos los papeles de esos cambios: la boleta nueva toma la compra de su nota hermana, que puede no estar entre las filas del mes.
+  const resPapeles = await leerPorTandasDeIds(cambios, (tanda) =>
+    supabase.from("comprobantes").select("id, tipo, cambio_id, comprobante_original_id").in("cambio_id" as never, tanda as never),
+  );
+  const papeles = (tolerar(resPapeles, "los papeles de los cambios").datos ?? []) as unknown as PapelDeCambio[];
+  const faltan = [...new Set(papeles.map((p) => p.comprobante_original_id).filter((x): x is string => !!x && !numeros.has(x)))];
+  const todos = new Map(numeros);
+  if (faltan.length) {
+    const resOriginales = await supabase.from("comprobantes").select("id, serie, numero").in("id", faltan);
+    for (const o of tolerar(resOriginales, "las compras que se cambiaron").datos ?? []) todos.set(o.id, numero(o));
+  }
+  return comprasDeLosCambios(papeles, todos);
 }

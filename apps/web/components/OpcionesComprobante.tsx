@@ -125,11 +125,13 @@ export function OpcionesComprobante({
           </>
         )}
         {extra?.notaDeCredito && (
-          <Link href={posventa("/devoluciones")} className={`${OPCION} sm:col-span-2`}>
+          <Link href={posventa(extra.notaDeCambio ? "/cambios" : "/devoluciones")} className={`${OPCION} sm:col-span-2`}>
             <Link2 aria-hidden size={20} className="shrink-0 text-pizarra" />
             <span>
               Ya tiene la nota de crédito {extra.notaDeCredito.numero}
-              <span className={BAJADA}>Se devolvió: no se puede devolver dos veces. Toca para ver la devolución.</span>
+              <span className={BAJADA}>
+                {extra.notaDeCambio ? "Se cambió una prenda. Toca para ver el cambio." : "Se devolvió: no se puede devolver dos veces. Toca para ver la devolución."}
+              </span>
             </span>
           </Link>
         )}
@@ -138,9 +140,24 @@ export function OpcionesComprobante({
             <Link2 aria-hidden size={20} className="shrink-0 text-pizarra" />
             <span>
               Corrige a {extra.corrige.numero}
-              <span className={BAJADA}>{extra.devolucionId ? "Salió de una devolución aprobada." : "Nota de crédito sobre ese comprobante."}</span>
+              <span className={BAJADA}>
+                {extra.devolucionId ? "Salió de una devolución aprobada." : extra.cambio ? "Salió de un cambio de prenda." : "Nota de crédito sobre ese comprobante."}
+              </span>
             </span>
           </div>
+        )}
+        {/* La boleta nueva de un cambio (ADR-0672): lleva al cambio, buscado por la compra que se cambió. */}
+        {!esNota && extra?.cambio && (
+          <Link
+            href={extra.cambio.compra ? `/cambios?q=${encodeURIComponent(extra.cambio.compra)}${esLider ? "&todas=1" : ""}` : "/cambios"}
+            className={`${OPCION} sm:col-span-2`}
+          >
+            <ArrowLeftRight aria-hidden size={20} className="shrink-0 text-pizarra" />
+            <span>
+              {extra.cambio.compra ? `Del cambio de la ${extra.cambio.compra}` : "De un cambio de prenda"}
+              <span className={BAJADA}>Toca para ver el cambio.</span>
+            </span>
+          </Link>
         )}
       </div>
 

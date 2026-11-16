@@ -400,6 +400,13 @@ export function ComprobantesPanel({
                         Corrige {extras[c.id]!.corrige!.numero}
                       </p>
                     )}
+                    {/* La boleta nueva de un cambio (ADR-0672): no corrige nada; dice de qué compra salió. */}
+                    {extras[c.id]?.cambio && c.tipo !== "nota_credito" && (
+                      <p className="comprobante-vinculo mt-1 inline-flex items-center gap-1 text-sm text-pizarra">
+                        <Link2 aria-hidden size={12} />
+                        {extras[c.id]!.cambio!.compra ? `Cambio de ${extras[c.id]!.cambio!.compra}` : "De un cambio"}
+                      </p>
+                    )}
                     <DocumentosSunat c={c} telefono={extras[c.id]?.telefono ?? null} />
                   </div>
 

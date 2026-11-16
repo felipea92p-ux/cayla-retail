@@ -122,7 +122,7 @@ export const GUIA_COMPROBANTES_MES: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "comprobantes.opciones" }],
       titulo: "Reenviar, imprimir o empezar un cambio",
-      texto: "Según el comprobante: mándale el PDF al cliente por WhatsApp, ábrelo, mira la venta o imprímelo otra vez. Si el cliente vuelve, desde aquí empiezas su cambio o su devolución.",
+      texto: "Según el comprobante: mándale el PDF al cliente por WhatsApp, ábrelo, mira la venta o imprímelo otra vez. Si el cliente vuelve, desde aquí empiezas su cambio o su devolución; si la boleta salió de un cambio, te lleva a ese cambio.",
     },
     {
       id: "fin",

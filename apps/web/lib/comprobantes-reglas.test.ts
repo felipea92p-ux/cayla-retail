@@ -1,5 +1,35 @@
 import { describe, it, expect } from "vitest";
-import { parsearComprobante } from "./comprobantes-reglas";
+import { comprasDeLosCambios, parsearComprobante } from "./comprobantes-reglas";
+
+describe("comprasDeLosCambios (ADR-0672)", () => {
+  const numeros = new Map([["orig", "B001-000012"]]);
+
+  it("la nota y la boleta nueva de un cambio dicen qué compra se cambió (la boleta la toma de su nota hermana)", () => {
+    const r = comprasDeLosCambios(
+      [
+        { id: "nc", tipo: "nota_credito", cambio_id: "k1", comprobante_original_id: "orig" },
+        { id: "bol", tipo: "boleta", cambio_id: "k1", comprobante_original_id: null },
+      ],
+      numeros,
+    );
+    expect(r.get("nc")).toEqual({ compra: "B001-000012" });
+    expect(r.get("bol")).toEqual({ compra: "B001-000012" });
+  });
+
+  it("un comprobante sin cambio no entra; sin la nota o sin su número, el vínculo va sin número", () => {
+    const r = comprasDeLosCambios(
+      [
+        { id: "venta", tipo: "boleta", cambio_id: null, comprobante_original_id: null },
+        { id: "sola", tipo: "boleta", cambio_id: "k2", comprobante_original_id: null },
+        { id: "nc3", tipo: "nota_credito", cambio_id: "k3", comprobante_original_id: "otro-mes" },
+      ],
+      numeros,
+    );
+    expect(r.has("venta")).toBe(false);
+    expect(r.get("sola")).toEqual({ compra: null });
+    expect(r.get("nc3")).toEqual({ compra: null });
+  });
+});
 
 // Buscar una venta por su boleta (2026-09-15): Devoluciones y Cambios solo mostraban las
 // últimas 30 ventas de la sede — una devuelta de hace una semana no aparecía. Esto lee

@@ -98,6 +98,28 @@ export function tipoDocumentoDeCliente(
   return tipoDocDelComprobante(tipo, clienteNumDoc, identidad);
 }
 
+/** Un papel emitido por un cambio de prenda (ADR-0672): su nota de crédito o su boleta nueva. */
+export type PapelDeCambio = { id: string; tipo: string; cambio_id: string | null; comprobante_original_id: string | null };
+
+/**
+ * De cada papel de un cambio, la compra que se cambió («B001-000012»): la que corrige la nota de crédito de ese mismo cambio. La boleta
+ * nueva no la referencia; la toma de su nota hermana. `null` si la nota no está entre los papeles o su número no se pudo leer (el
+ * vínculo se dice sin número). Solo los papeles con `cambio_id` entran al resultado.
+ */
+export function comprasDeLosCambios(papeles: readonly PapelDeCambio[], numeros: ReadonlyMap<string, string>): Map<string, { compra: string | null }> {
+  const originalDelCambio = new Map<string, string | null>();
+  for (const p of papeles) {
+    if (p.cambio_id && p.tipo === "nota_credito") originalDelCambio.set(p.cambio_id, p.comprobante_original_id);
+  }
+  const salida = new Map<string, { compra: string | null }>();
+  for (const p of papeles) {
+    if (!p.cambio_id) continue;
+    const original = originalDelCambio.get(p.cambio_id) ?? null;
+    salida.set(p.id, { compra: original ? (numeros.get(original) ?? null) : null });
+  }
+  return salida;
+}
+
 /** Cuántos dígitos tiene, como mucho, el número de un comprobante (`comprobantes.numero` es `integer`). */
 const MAX_DIGITOS_COMPROBANTE = 9;
 

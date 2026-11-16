@@ -2,7 +2,7 @@
   "guia": "vender.comprobantes.emitidos",
   "ruta": "/vender/comprobantes/emitidos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 49,
+  "total": 50,
   "controles": {
     "components/ComprobantesPanel.tsx": [
       "BotonCompacto «{`Reintentar ${numero}»",
@@ -59,6 +59,7 @@
       "Link «Cambio»",
       "Link «Devolución»",
       "Link «Ya tiene la nota de crédito»",
+      "Link «(sin nombre)»",
       "a «XML»",
       "a «CDR»"
     ],
