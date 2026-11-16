@@ -165,10 +165,10 @@ begin
        and v.producto_id = any (array_prepend(p_queda, p_duplicados));
 
   -- Lo que cobraba cada talla a la venta en cada tienda antes de mover nada: para saber, después, qué talla cambió de precio.
-  create temp table if not exists fusion_sede_precio_antes (variante_id uuid, ubicacion_id uuid, precio numeric) on commit drop;
+  create temp table if not exists fusion_sede_precio_antes (variante_id uuid, ubicacion_id uuid, precio numeric, costo numeric) on commit drop;
   truncate pg_temp.fusion_sede_precio_antes;
   insert into pg_temp.fusion_sede_precio_antes
-    select x.variante_id, x.ubicacion_id, x.precio
+    select x.variante_id, x.ubicacion_id, x.precio, (select w.costo from retail.variantes w where w.id = x.variante_id)
       from retail.fn_precios_en_sedes(
              array(select w.id from retail.variantes w
                     where w.producto_id = any (array_prepend(p_queda, p_duplicados)) and w.activo and w.fusionada_en_id is null),
@@ -257,14 +257,6 @@ begin
                                        where ps.producto_id = p_queda and ps.ubicacion_id = g.ubicacion_id and ps.archivado_en is null)
   loop
     v_sede := (select u.nombre from retail.ubicaciones u where u.id = r.ubicacion_id);
-    -- Como «Precio en tu tienda» (20261011110000): el precio de la prenda en una tienda no baja del costo de NINGUNA de sus tallas a la
-    -- venta (también las que conservan su excepción: si mañana se quita, la talla cae a este precio). El obsequio no cuenta.
-    if r.precio < (select max(w.costo) from retail.variantes w join retail.productos p on p.id = w.producto_id
-                    where w.producto_id = p_queda and w.activo and w.fusionada_en_id is null
-                      and not (w.precio = 0 and retail.fn_categoria_admite_precio_cero(p.categoria_id))) then
-      raise exception 'En % el precio que quedaría está por debajo de lo que cuesta la prenda. No se fusionó nada: elige el precio de otra ficha para esa sede o «Un solo precio».', v_sede
-        using errcode = 'P0001', hint = 'precio_sede_bajo_costo';
-    end if;
     update retail.precios_sede_prenda
        set archivado_en = now(), archivado_por = p_persona,
            archivado_motivo = 'Fusión de productos: la prenda toma el precio de la ficha elegida para esta sede'
@@ -301,12 +293,9 @@ begin
         left join ganador_precio gp on gp.ubicacion_id = u.id
        where u.activo and u.tipo = 'tienda'
     )
-    select w.id as destino_id, pr.ubicacion_id, w.costo,
+    select w.id as destino_id, pr.ubicacion_id,
            coalesce(ex.precio, pr.precio, w.precio) as precio,
-           ex.precio is not null as excepcion, ex.precio is null and pr.precio is not null as de_tienda,
-           pr.ganador is not null as en_la_lista,
-           (select a.precio from pg_temp.fusion_sede_precio_antes a where a.variante_id = w.id and a.ubicacion_id = pr.ubicacion_id) as antes,
-           ex.motivo, ex.creado_por, ex.vigente_desde
+           ex.precio is not null as excepcion, ex.motivo, ex.creado_por, ex.vigente_desde
       from retail.variantes w
       join retail.productos p on p.id = w.producto_id
       cross join prenda pr
@@ -321,14 +310,6 @@ begin
   loop
     v_hoy := retail.fn_precio_en_sede(r.destino_id, r.ubicacion_id);
     v_sede := (select u.nombre from retail.ubicaciones u where u.id = r.ubicacion_id);
-    -- La misma regla que «Precio en tu tienda» (20261011110000): un precio de TIENDA nunca bajo el costo de la talla. Se mira donde la
-    -- fusión cambia lo que cobra esa talla (contra lo que cobraba ANTES de mudarla: una talla que se muda a la prenda de otra ficha toma
-    -- su precio de tienda aunque esa sede no salga en la hoja). Un precio bajo costo que ya estaba no lo creó la fusión y se deja; el
-    -- precio general tiene su propia regla. El mensaje no dice cuánto cuesta: el costo es dato con permiso (ADR-0183).
-    if r.de_tienda and r.costo is not null and r.precio < r.costo and r.antes is distinct from r.precio then
-      raise exception 'En % el precio que quedaría está por debajo de lo que cuesta la prenda. No se fusionó nada: elige el precio de otra ficha para esa sede o «Un solo precio».', v_sede
-        using errcode = 'P0001', hint = 'precio_sede_bajo_costo';
-    end if;
     if v_hoy is distinct from r.precio then
       if r.precio > 5000 then
         raise exception 'El precio de S/ % en % pasa del tope de S/ 5 000 por talla y sede. Corrígelo antes de fusionar.', r.precio, v_sede
@@ -362,6 +343,55 @@ comment on function retail.fn_fusion_precios_sede_aplicar(uuid, text, jsonb, uui
   'ADR-0650 (act. 2026-11-16): deja a cada sede de la lista con un precio de prenda (el de la ficha ganadora) y cada excepción de talla en su talla (por_sede), o a todas con uno solo (uno). Solo la llama fusionar_productos, después de mover las tallas.';
 revoke all on function retail.fn_fusion_precios_sede_aplicar(uuid, text, jsonb, uuid) from public, anon, authenticated;
 
+-- ---------- 4b. Al final de toda la fusión: ningún precio de tienda bajo el costo que la fusión haya creado ----------
+-- La misma regla que «Precio en tu tienda» (20261011110000): un precio de TIENDA (excepción de la talla o precio de la prenda en esa
+-- tienda) nunca bajo el costo de la talla. Se mira una sola vez, al final, cuando ya están puestos el precio general, los precios de
+-- tienda y el costo elegido (`costo_de`): antes se miraba en medio y fallaba en los dos sentidos (revisión 2026-11-16, ronda 5).
+-- Solo donde la fusión cambió lo que esa talla cobra o lo que cuesta: un precio bajo costo que ya estaba y nadie tocó no frena. El
+-- precio general tiene su propia regla y el obsequio no cuenta. El mensaje no dice cuánto cuesta (ADR-0183).
+
+create or replace function retail.fn_fusion_precios_sede_costo(p_queda uuid)
+returns void
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_sede text;
+begin
+  if to_regclass('pg_temp.fusion_sede_precio_antes') is null then
+    return;
+  end if;
+  for v_sede in
+    select u.nombre
+      from retail.variantes w
+      join retail.productos p on p.id = w.producto_id
+      cross join lateral retail.fn_precios_en_sedes(array[w.id],
+        array(select u2.id from retail.ubicaciones u2 where u2.activo and u2.tipo = 'tienda')) x
+      join retail.ubicaciones u on u.id = x.ubicacion_id
+      left join pg_temp.fusion_sede_precio_antes a on a.variante_id = w.id and a.ubicacion_id = x.ubicacion_id
+     where w.producto_id = p_queda and w.activo and w.fusionada_en_id is null
+       and not (w.precio = 0 and retail.fn_categoria_admite_precio_cero(p.categoria_id))
+       and w.costo is not null and x.precio < w.costo
+       and (exists (select 1 from retail.precios_sede_variante pv
+                     where pv.variante_id = w.id and pv.ubicacion_id = x.ubicacion_id and pv.archivado_en is null)
+            or exists (select 1 from retail.precios_sede_prenda ps
+                        where ps.producto_id = p_queda and ps.ubicacion_id = x.ubicacion_id and ps.archivado_en is null))
+       and (a.variante_id is null or a.precio is distinct from x.precio or a.costo is distinct from w.costo)
+     order by u.nombre
+     limit 1
+  loop
+    raise exception 'En % el precio que quedaría está por debajo de lo que cuesta la prenda. No se fusionó nada: elige el precio de otra ficha para esa sede, otro costo o «Un solo precio».', v_sede
+      using errcode = 'P0001', hint = 'precio_sede_bajo_costo';
+  end loop;
+end;
+$$;
+
+comment on function retail.fn_fusion_precios_sede_costo(uuid) is
+  'ADR-0650 (act. 2026-11-16): al final de fusionar_productos, frena si la fusión dejó una talla cobrando un precio de tienda bajo su costo. Solo la llama fusionar_productos.';
+revoke all on function retail.fn_fusion_precios_sede_costo(uuid) from public, anon, authenticated;
+
 -- ---------- 5. fusionar_productos llama a la captura con las elecciones (reemplazo anclado, re-ejecutable) ----------
 
 create or replace function pg_temp.reemplazar(p_firma text, p_viejo text, p_nuevo text, p_veces integer)
@@ -391,6 +421,16 @@ select pg_temp.reemplazar(
   $a$  perform retail.fn_fusion_precios_sede_capturar(p_queda, v_dups, v_plan, v_el);$a$,
   1);
 
+-- Al final, con precios y costo ya puestos: ningún precio de tienda bajo el costo creado por la fusión.
+select pg_temp.reemplazar(
+  'retail.fusionar_productos(uuid, uuid[], jsonb, jsonb)',
+  $a$  -- ---------- 9. Lo que es del producto ----------$a$,
+  $a$  -- Ningún precio de tienda bajo el costo que la fusión haya creado (20261116020000), con el costo elegido ya puesto.
+  perform retail.fn_fusion_precios_sede_costo(p_queda);
+
+  -- ---------- 9. Lo que es del producto ----------$a$,
+  1);
+
 -- El precio general elegido no alcanza a la talla de OBSEQUIO (S/ 0 en una categoría que lo admite, ADR-0384). Antes la bolsa de regalo
 -- pasaba a cobrarse: una talla a 0 hace que el plan marque «precio» como diferencia y la hoja manda el de la que queda (revisión 2026-11-16).
 select pg_temp.reemplazar(
@@ -414,6 +454,8 @@ begin
      or position('fn_fusion_precios_sede_resumen(p_queda, p_duplicados, p_elecciones)' in
               pg_get_functiondef('retail.previsualizar_fusion_productos(uuid, uuid[], jsonb)'::regprocedure)) = 0
      or position('fn_categoria_admite_precio_cero((select categoria_id from retail.productos where id = p_queda)));' in
+              pg_get_functiondef('retail.fusionar_productos(uuid, uuid[], jsonb, jsonb)'::regprocedure)) = 0
+     or position('perform retail.fn_fusion_precios_sede_costo(p_queda);' in
               pg_get_functiondef('retail.fusionar_productos(uuid, uuid[], jsonb, jsonb)'::regprocedure)) = 0
      or position('fusion_sede_excepciones' in
               pg_get_functiondef('retail.fn_fusion_precios_sede_aplicar(uuid, text, jsonb, uuid)'::regprocedure)) = 0 then

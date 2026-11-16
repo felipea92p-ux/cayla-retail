@@ -9,3 +9,5 @@
   propone S/ 0. Viene de antes de esta rama; raro (empaque con varias tallas).
 - [ ] El historial de la prenda no muestra el cambio de precio de tienda que hace la fusión.
 - [ ] Publicar la web junto con el pegado: con la web vieja, la hoja no manda el precio general elegido al previsualizar.
+- [ ] Riesgo latente (no lo crea la fusión de hoy): si la ficha ganadora cobra en una tienda menos que el costo de una talla que conserva
+  su excepción, el día que alguien quite esa excepción la talla cae bajo su costo. La fusión solo mira lo que cada talla cobra.

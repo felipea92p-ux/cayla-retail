@@ -967,15 +967,47 @@ select 'x', :'hint', (select producto_id = :'d' from retail.variantes where id =
   )
 );
 
-caso("47 · el precio de la PRENDA que gana tampoco baja del costo de una talla que conserva su excepción (la S a 200 cuesta 180; la ganadora cobra 169): frena", () =>
+caso("47 · el control mide lo que COBRA cada talla: la S conserva su excepción de 200 sobre su costo de 180 y la prenda pasa a 169; no frena", () =>
   espera(
     correr(`${COMO_POSTGRES}${PREP_SEDE}${precioDeLaPrenda(":'d'", 169)}${excepcionDeTalla(":'es'", 200)}
 update retail.variantes set costo = 180 where id = :'es';
 ${sesion(FELIPE)}
-select split_part(pg_temp.intento($$select retail.fusionar_productos('${EMMA}', array['$$ || :'d' || $$']::uuid[])$$), '|', 2) as hint \\gset
+select pg_temp.intento($$select retail.fusionar_productos('${EMMA}', array['$$ || :'d' || $$']::uuid[])$$) as res \\gset
 ${COMO_POSTGRES}
-select 'x', :'hint', (select estado from retail.productos where id = :'d');`),
+select 'x', :'res', retail.fn_precio_en_sede(:'es','${TRUJILLO}'), retail.fn_precio_en_sede(:'em','${TRUJILLO}');`),
+    "SIN_ERROR|200.00|169.00"
+  )
+);
+
+caso("48 · una excepción de talla que se JUNTA con una talla más cara no la deja bajo su costo (C liquida su M a 50; la M de A cuesta 70): frena", () =>
+  espera(
+    correr(`${COMO_POSTGRES}select id as yo from public.personas where auth_user_id = '${FELIPE}' \\gset
+select pg_temp.duplicado('ZZ A', '[{"color":"NEG","talla":"M","precio":150,"costo":70,"stock":1}]') as a \\gset
+select pg_temp.duplicado('ZZ B', '[{"color":"NEG","talla":"S","precio":150,"costo":32,"stock":1}]') as b \\gset
+select pg_temp.duplicado('ZZ C', '[{"color":"NEG","talla":"M","precio":150,"costo":32,"stock":1}]') as c \\gset
+select pg_temp.variante(:'c','NEG','M') as cm \\gset
+insert into retail.precios_sede_variante (variante_id, ubicacion_id, precio, motivo, creado_por) values (:'cm', '${TRUJILLO}', 50, 'liquida', :'yo');
+${sesion(FELIPE)}
+select split_part(pg_temp.intento($$select retail.fusionar_productos('$$ || :'a' || $$', array['$$ || :'b' || $$','$$ || :'c' || $$']::uuid[])$$), '|', 2) as hint \\gset
+${COMO_POSTGRES}
+select 'x', :'hint', (select estado from retail.productos where id = :'c');`),
     "precio_sede_bajo_costo|activo"
+  )
+);
+
+caso("49 · el control de costo mira el costo ELEGIDO: con el costo de la repetida (32), su precio de 100 en Trujillo pasa aunque la que queda costaba 120", () =>
+  espera(
+    correr(`${COMO_POSTGRES}select id as yo from public.personas where auth_user_id = '${FELIPE}' \\gset
+select pg_temp.duplicado('ZZ A', '[{"color":"NEG","talla":"S","precio":150,"costo":120},{"color":"NEG","talla":"M","precio":150,"costo":120}]') as a \\gset
+select pg_temp.duplicado('ZZ B', '[{"color":"NEG","talla":"M","precio":150,"costo":32},{"color":"NEG","talla":"XL","precio":150,"costo":32}]') as b \\gset
+insert into retail.precios_sede_prenda (producto_id, ubicacion_id, precio, motivo, creado_por) values (:'b', '${TRUJILLO}', 100, 'prueba', :'yo');
+${sesion(FELIPE)}
+select pg_temp.intento($$select retail.fusionar_productos('$$ || :'a' || $$', array['$$ || :'b' || $$']::uuid[], '{"costo_de":"$$ || :'b' || $$"}')$$) as res \\gset
+${COMO_POSTGRES}
+select 'x', :'res', (select max(costo) from retail.variantes where producto_id = :'a' and activo),
+  (select count(distinct retail.fn_precio_en_sede(v.id, '${TRUJILLO}')) from retail.variantes v where v.producto_id = :'a' and v.activo),
+  (select min(retail.fn_precio_en_sede(v.id, '${TRUJILLO}')) from retail.variantes v where v.producto_id = :'a' and v.activo);`),
+    "SIN_ERROR|32.00|1|100.00"
   )
 );
 
