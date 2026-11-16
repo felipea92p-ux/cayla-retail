@@ -79,6 +79,9 @@ export function FotoDelComprobante({ compraId, puedeAgregar }: { compraId: strin
             type="file"
             accept={ACEPTA}
             className="sr-only"
+            // El camino es el botón: sin esto, Tab se detenía en un input invisible y sin nombre.
+            tabIndex={-1}
+            aria-hidden
             onChange={(e) => {
               void agregar(Array.from(e.target.files ?? []));
               e.target.value = "";

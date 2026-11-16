@@ -300,7 +300,7 @@ function PorCategoriaYTalla({ resumen }: { resumen: ResumenPerdidas }) {
 // Lo mismo que avisa el Inicio del líder, con un enlace por hallazgo a la pestaña filtrada.
 function SeRepite({ repeticiones }: { repeticiones: Repeticion[] }) {
   return (
-    <section id="se-repite" aria-labelledby="se-repite-titulo" data-guia="perdidas.se-repite" className="card-cayla scroll-mt-24 p-5">
+    <section id="se-repite" aria-labelledby="se-repite-titulo" data-guia="perdidas.se-repite" className="card-cayla scroll-mt-8 p-5">
       <TituloSeccion id="se-repite-titulo">Se repite</TituloSeccion>
       <p className="mt-1 text-sm text-taupe">
         En los últimos 30 días: la misma prenda o la misma zona perdió en dos días distintos, o se quitaron muchas sin nota.

@@ -46,7 +46,7 @@ export function PorDefinir({ modelos, categorias, guia }: { modelos: ModeloPorDe
   if (!aviso) return null;
   const detalle = aviso.detalle ? `${aviso.detalle.charAt(0).toUpperCase()}${aviso.detalle.slice(1)}. ` : "";
   return (
-    <section id="por-definir" className="scroll-mt-24 space-y-3" data-guia={guia}>
+    <section id="por-definir" className="scroll-mt-8 space-y-3" data-guia={guia}>
       <TituloSeccion cuenta={modelos.length}>Por definir</TituloSeccion>
       <Aviso tono="atencion" titulo={aviso.titulo} chico>
         {detalle}Lo que nadie defina antes, lo dice la tienda al recibirlo.

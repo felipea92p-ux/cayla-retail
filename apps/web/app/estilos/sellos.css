@@ -103,7 +103,7 @@
   /* ── El pase ── */
   .sl-pase {
     position: relative;
-    scroll-margin-top: 6.5rem; /* el pase que se abre sube hasta quedar bajo la cabecera flotante (celular) */
+    scroll-margin-top: 2.75rem; /* el pase que se abre sube hasta quedar bajo la cabecera, que ya descuenta la página (`scroll-padding-top`, decisión 1A) */
     border-radius: 20px;
     background: var(--color-papel);
     border: 1px solid var(--color-sand);

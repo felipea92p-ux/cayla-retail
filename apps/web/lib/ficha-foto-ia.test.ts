@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TIPOS_POR_CATEGORIA } from "./nombre-de-prenda";
 import { familiaDeTejido, type FamiliaTejido } from "./tejido-visual";
-import { fichaParaIA, FORMA_DE_CINTURA, TEJIDOS_DE_PUNTO, TEJIDOS_PLANOS, ZONA_POR_PREFIJO } from "./ficha-foto-ia";
+import { ACABADOS, esAcabado, fichaParaIA, FORMA_DE_CINTURA, SE_VE_PLANCHADA, TEJIDOS_CON_RELIEVE, TEJIDOS_DE_PUNTO, TEJIDOS_PLANOS, ZONA_POR_PREFIJO } from "./ficha-foto-ia";
 
 // La ficha que la IA de «Catálogo con IA» recibe de lo ya elegido (2026-11-14). El caso que la originó: un pantalón de LINO que la IA devolvió como
 // buzo. Cada prueba lleva su control: lo que se dice del lino NO se dice de un buzo de verdad.
@@ -166,11 +166,100 @@ describe("fase 2 (2026-11-16): el pantalón de lino del 14-nov, dicho en positiv
       for (const tejido of TEJIDOS) expect(fichaParaIA({ prefijo, tejido, patron: "Liso" })?.texto ?? "", `${prefijo} ${tejido}`).not.toMatch(/buzo|felpa|deportiv|jogger/i);
   });
 
+  it("la prenda va PLANCHADA con la textura de su tejido; el lino sigue siendo lino (Felipe 2026-11-16: «sin perder el tipo de tela»)", () => {
+    const lino = fichaParaIA({ prefijo: "PAN", tejido: "Lino", patron: "Liso" })?.texto ?? "";
+    expect(lino).toMatch(/PLANCHADA: la prenda se ve planchada para una sesión de fotos/);
+    // Se quita lo que deja el guardarla; la TELA va primero, y la foto de cerca manda.
+    expect(lino).toMatch(/sin los dobleces ni las marcas de haberla guardado/);
+    expect(lino).toMatch(/La TELA es la misma de la foto real/);
+    expect(lino).toMatch(/Si te doy un detalle de cerca de la tela, su textura manda/);
+    // Lo que hace que se vea lino se queda: su textura con nudos, su trama y cómo se ve planchado sin dejar de ser lino.
+    expect(lino).toMatch(/de textura rústica con «nudos» visibles/);
+    expect(lino).toMatch(/se ve su trama/);
+    expect(lino).toMatch(/Es lino planchado y se ve lino: hilos irregulares con nudos/);
+    // La primera versión («tersa y bien estirada», «al vapor») alisó el lino Crudo hasta volverlo otra tela (Felipe 2026-11-16).
+    expect(lino).not.toMatch(/tersa|bien estirada|al vapor/);
+    // Nunca «lisa»: «liso» es un diseño, y la IA podría borrar unas rayas.
+    expect(lino).not.toMatch(/tela lisa/);
+    // Sin tejido elegido también va planchada, pero sin la línea del lino.
+    const sinTejido = fichaParaIA({ prefijo: "PAN", patron: "Liso" })?.texto ?? "";
+    expect(sinTejido).toMatch(/PLANCHADA:/);
+    expect(sinTejido).not.toMatch(/Es lino planchado/);
+  });
+
+  it("solo el lino dice cómo se ve planchado sin dejar de ser él (los demás, la regla general)", () => {
+    expect(Object.keys(SE_VE_PLANCHADA)).toEqual(["lino"]);
+    for (const tejido of ["Gabardina", "Algodón", "Viscosa", "Denim", "Seda"])
+      expect(fichaParaIA({ prefijo: "PAN", tejido })?.texto ?? "", tejido).not.toMatch(/Es lino planchado/);
+  });
+
+  it("lo que le dice a una persona que la tela SE ARRUGA no va a la IA (lo dibujaba); lo que dice que casi no se arruga, sí", () => {
+    for (const tejido of ["Lino", "Algodón", "Viscosa"]) {
+      const texto = fichaParaIA({ prefijo: "CMS", tipo: "Blusa", tejido })?.texto ?? "";
+      expect(texto, tejido).not.toMatch(/se arruga|gracia/i);
+    }
+    // El dato de la tela de las demás frases se queda.
+    expect(fichaParaIA({ prefijo: "CMS", tipo: "Blusa", tejido: "Algodón" })?.texto ?? "").toMatch(/Fibra natural, suave y fresca/);
+    // «poca arruga» y «casi no se arruga» no piden arrugas: la frase entera, con su dato, se queda.
+    expect(fichaParaIA({ prefijo: "BLZ", tejido: "Gabardina" })?.texto ?? "").toMatch(/Sarga muy fina y tupida, de caída elegante, buen cuerpo y poca arruga\./);
+    expect(fichaParaIA({ prefijo: "POL", tejido: "Jersey" })?.texto ?? "").toMatch(/casi no se arruga/);
+  });
+
+  it("CONTROL: el seersucker no se plancha (su fruncido es el tejido, no una arruga)", () => {
+    expect(TEJIDOS_CON_RELIEVE.has("seersucker")).toBe(true);
+    const texto = fichaParaIA({ prefijo: "CMS", tipo: "Camisa", tejido: "Seersucker" })?.texto ?? "";
+    expect(texto).toMatch(/franjas fruncidas en relieve/);
+    expect(texto).not.toMatch(/PLANCHADA/);
+  });
+
   it("lo que la ayuda le dice a una persona (proveedor, etiqueta, «elige …») no va al pedido, pero el dato de la tela de esa misma frase sí", () => {
     const sastre = fichaParaIA({ prefijo: "PAN", tejido: "Sastre" })?.texto ?? "";
     expect(sastre).toMatch(/Tela de vestir de cuerpo firme/);
     expect(sastre).toMatch(/Suele ser mezcla de poliéster y viscosa\./);
     expect(sastre).not.toMatch(/proveedor|etiqueta/i);
     expect(fichaParaIA({ prefijo: "CMS", tejido: "Satín" })?.texto ?? "").not.toMatch(/\belige\b/i);
+  });
+});
+
+describe("los tres acabados de la tela, para compararlos en el laboratorio (Felipe 2026-11-16, el lino Crudo)", () => {
+  const lino = { prefijo: "PAN", tejido: "Lino", patron: "Liso" };
+
+  it("producción no cambia: sin acabado es «planchada», palabra por palabra", () => {
+    expect(fichaParaIA(lino)).toEqual(fichaParaIA(lino, { acabado: "planchada" }));
+    expect(ACABADOS.map((a) => a.valor)).toEqual(["planchada", "arrugas-finas", "sin-planchar"]);
+  });
+
+  it("«con arrugas finas» conserva las arrugas finas y parejas, sin los dobleces de guardarla; no dice «planchada»", () => {
+    const texto = fichaParaIA(lino, { acabado: "arrugas-finas" })?.texto ?? "";
+    expect(texto).toMatch(/ACABADO: la prenda lista para una sesión de fotos/);
+    expect(texto).toMatch(/con las arrugas finas y naturales de su tela, repartidas parejo/);
+    expect(texto).toMatch(/sin los dobleces ni las marcas de haberla guardado/);
+    expect(texto).toMatch(/Si te doy un detalle de cerca de la tela, su textura manda/);
+    expect(texto).not.toMatch(/PLANCHADA|Es lino planchado/);
+    // Lo que dice que es lino sigue: la ayuda de la tela y la trama.
+    expect(texto).toMatch(/de textura rústica con «nudos» visibles/);
+  });
+
+  it("«sin planchar» no lleva ninguna línea de acabado: la tela como venga en la foto", () => {
+    const texto = fichaParaIA(lino, { acabado: "sin-planchar" })?.texto ?? "";
+    expect(texto).not.toMatch(/PLANCHADA|ACABADO:|arrugas finas|Es lino planchado/);
+    expect(texto).toMatch(/Tela: Lino\./);
+  });
+
+  it("ningún acabado empuja al buzo ni repite la caída (los candados del pedido de cintura)", () => {
+    for (const { valor } of ACABADOS) {
+      const texto = fichaParaIA(lino, { acabado: valor })?.texto ?? "";
+      expect(texto, valor).not.toMatch(/fruncid|volumen 3D|con volumen|puño|cordón|felpa|jogger|buzo|deportiv|tobillo|cae con el peso/i);
+    }
+  });
+
+  it("CONTROL: el seersucker no lleva acabado en ninguna versión (su fruncido es el tejido)", () => {
+    for (const { valor } of ACABADOS)
+      expect(fichaParaIA({ prefijo: "CMS", tipo: "Camisa", tejido: "Seersucker" }, { acabado: valor })?.texto ?? "", valor).not.toMatch(/PLANCHADA|ACABADO:/);
+  });
+
+  it("solo un acabado conocido pasa (lo que llega del navegador)", () => {
+    for (const { valor } of ACABADOS) expect(esAcabado(valor)).toBe(true);
+    for (const otro of ["", "planchado", "PLANCHADA", null, undefined, 3]) expect(esAcabado(otro)).toBe(false);
   });
 });

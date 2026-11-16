@@ -24,6 +24,7 @@ import {
   type FilaTicketDocumento,
 } from "@/lib/cambios-documentos-reglas";
 import { DocumentosDelTicket, reciboDelCambio, useComprobantesDelCambio, type PrendasDelCambio } from "@/components/cambios-documentos/DocumentosDelTicket";
+import { imprimirBoleta } from "@/components/impresion/imprimirBoleta";
 
 /* ====================================================================
    CambioTicket · lo que la clienta se lleva al terminar un cambio (spike 2026-09-26, opción A)
@@ -94,8 +95,10 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
   // ANTES que el efecto que imprime: React corre los efectos en el orden en que se declaran, y al pasar del ticket al comprobante (o al
   // revés) el título nuevo tiene que estar puesto cuando se abre el cuadro de impresión; si no, el primer PDF sale «Retail - CAYLA.pdf».
   useTituloDeImpresion(imprimeComprobante && nuevo ? numeroDeDocumento(nuevo) : ticket.comprobante ? `Cambio ${ticket.comprobante}` : null);
+  // Ya dibujado el papel elegido, se imprime como todo ticket térmico del ERP (ADR-0670): por el ayudante de la Mac si lo tiene, si no
+  // con el cuadro de impresión.
   useEffect(() => {
-    if (pedidos > 0) window.print();
+    if (pedidos > 0) void imprimirBoleta();
   }, [pedidos]);
   function imprimir(que: "ticket" | "comprobante") {
     setImpresion(que);

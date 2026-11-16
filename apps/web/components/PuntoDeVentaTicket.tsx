@@ -667,6 +667,8 @@ export function PuntoDeVentaTicket({
                   type="button"
                   onClick={() => onAbrirDescuento(null)}
                   disabled={bloqueado || carrito.length === 0}
+                  // Apagado con el ticket vacío: el porqué va en su `title` (no se arregla llenando un campo).
+                  title={carrito.length === 0 ? "Agrega una prenda para descontar" : undefined}
                   aria-label="Aplicar descuento"
                   className="area-dedo label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
                 >
@@ -685,6 +687,7 @@ export function PuntoDeVentaTicket({
                   type="button"
                   onClick={onAbrirCodigo}
                   disabled={bloqueado || carrito.length === 0 || vale != null}
+                  title={carrito.length === 0 ? "Agrega una prenda para usar un cupón" : vale != null ? "Ya hay un cupón en el ticket" : undefined}
                   data-guia="vender.codigo-cupon-boton"
                   aria-label="Código de cupón"
                   className="area-dedo label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"

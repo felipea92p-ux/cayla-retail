@@ -100,7 +100,7 @@ export function MasDelFlujo({
         </Superficie>
       </section>
 
-      <section id="y-si" className="scroll-mt-44 space-y-4">
+      <section id="y-si" className="scroll-mt-14 space-y-4">
         <BotonVerMas abierto={verYSi} onCambiar={setVerYSi} texto="¿Y si…? Prueba un cambio" forma="enlace" controla="fin-plata-y-si" data-guia="fin-plata.y-si" />
         <FilasDeMas abierto={verYSi} id="fin-plata-y-si">
           <EscenariosPanel proyeccion={proyeccion} resultados={escenarios.resultados} mesBase={escenarios.mesBase} hoy={hoy} vePlan={escenarios.vePlan} />

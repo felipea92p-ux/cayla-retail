@@ -35,6 +35,7 @@ import { anularOrdenCompra } from "@/lib/ordenes-compra-acciones";
 import { textoParaBase } from "@/lib/orden-compra-alta";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
+import { imprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
 
 // Lo que se hace con una orden (ADR-0362, fase 1 · actividades 4, 5 y 6): «Imprimir o guardar PDF» siempre; «Editar» y «Anular orden»
 // solo mientras está «generada». Con papel (fase 2, actividad 4) se suma «Registrar la compra» —la acción principal— mientras la orden esté
@@ -72,7 +73,7 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
   const puedeEnviar = puedeEnviarOrden(orden);
 
   const imprimir = (
-    <BotonImprimir onClick={() => window.print()} title="También sirve para guardar la orden en PDF">
+    <BotonImprimir onClick={() => imprimirAqui("hoja")} title="También sirve para guardar la orden en PDF">
       Imprimir la orden
     </BotonImprimir>
   );

@@ -96,14 +96,34 @@ function asegurarVisible(id: IdCampo, opciones: { enModal?: boolean } = {}): voi
 /** Lo que recibe el foco cuando el campo no se escribe: con el teclado se sigue desde ahí, y el lector de pantalla lee su error. */
 const CONTROL_SIN_TECLEO = 'button[role="combobox"]:not([disabled]), [role="radio"]:not([disabled]), [role="switch"]:not([disabled])';
 
+/**
+ * Un input de archivo ESCONDIDO: fuera de Tab (`tabindex="-1"`) y abierto por un botón con nombre (`BotonFoto`, la hoja del SIRE). Al llevarte a su
+ * campo, el cursor caía en él: un cuadrito invisible de 1 px y sin nombre (2026-11-16). Uno que va dentro de su `<label>` y se alcanza con Tab
+ * (Existencias ▸ la foto de la talla) no es escondido: ese sí recibe el cursor, como siempre.
+ */
+const ARCHIVO_ESCONDIDO = 'input[type=file][tabindex="-1"]';
+
+/** El botón que abre el archivo escondido de un campo: recibe el cursor y su error (`CampoGuiado`). `null` si el campo no tiene uno. */
+export function botonDelArchivo(campo: Element): HTMLElement | null {
+  return campo.querySelector(ARCHIVO_ESCONDIDO) ? campo.querySelector<HTMLElement>("button:not([disabled])") : null;
+}
+
 export function irAlIdCampo(id: IdCampo, opciones: { destello?: boolean; cursor?: boolean; enModal?: boolean } = {}): void {
   const { destello = true, cursor = CON_CURSOR.has(id), enModal = false } = opciones;
   const el = fila(id);
   if (!el) return;
   asegurarVisible(id, { enModal });
   // El cursor va a una caja de texto; un combo, unas opciones o un interruptor reciben el foco, pero no se abren solos: la persona elige (`CONTROL_SIN_TECLEO`). Una caja que dice `data-sin-cursor` («Llenar todas con» de la tabla de
-  // cantidades de «Nueva orden») es una herramienta, no el dato que falta: el cursor va a la primera celda.
-  if (cursor) (el.querySelector<HTMLElement>('input:not([disabled]):not([role="combobox"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([data-sin-cursor]), textarea:not([disabled])') ?? el.querySelector<HTMLElement>(CONTROL_SIN_TECLEO))?.focus({ preventScroll: true });
+  // cantidades de «Nueva orden») es una herramienta, no el dato que falta: el cursor va a la primera celda. Un archivo escondido no recibe el
+  // cursor: lo recibe el botón que lo abre (`botonDelArchivo`).
+  if (cursor)
+    (
+      el.querySelector<HTMLElement>(
+        `input:not([disabled]):not([role="combobox"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([data-sin-cursor]):not(${ARCHIVO_ESCONDIDO}), textarea:not([disabled])`,
+      ) ??
+      el.querySelector<HTMLElement>(CONTROL_SIN_TECLEO) ??
+      botonDelArchivo(el)
+    )?.focus({ preventScroll: true });
   if (!destello) return;
   el.removeAttribute("data-llamado");
   // Reinicia la animación aunque se pida dos veces seguidas.

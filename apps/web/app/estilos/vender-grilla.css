@@ -22,7 +22,8 @@
   width: 1.125rem;
   height: 1.125rem;
   border-radius: 9999px;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 16%, transparent);
+  /* El aro recorta el color del fondo de la tarjeta, aunque sea un beige sobre crema (Felipe 2026-11-16, decisión 7A: de 16 a 38 %). */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 38%, transparent);
   transition: transform 250ms var(--ease-cayla), opacity 250ms var(--ease-cayla);
 }
 /* Un estampado se reconoce por su foto (ADR-0634): llena el lugar del punto, dentro del anillo. */

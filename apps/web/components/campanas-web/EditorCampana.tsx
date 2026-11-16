@@ -659,7 +659,9 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
           </PasoDelEditor>
         </div>
 
-        <div className="space-y-3 @min-[56rem]:sticky @min-[56rem]:top-4 @min-[56rem]:self-start" data-guia="campana-editor.vista">
+        {/* Pegada bajo la cabecera fija (64 px + 16 de aire, como las demás columnas pegadas del ERP): con `top-4` sus selectores
+            quedaban debajo de la cabecera al bajar (WCAG 2.4.11, auditoría /milimetro 2026-11-16). */}
+        <div className="space-y-3 @min-[56rem]:sticky @min-[56rem]:top-20 @min-[56rem]:self-start" data-guia="campana-editor.vista">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <SegmentoDeslizante
               forma="modo"

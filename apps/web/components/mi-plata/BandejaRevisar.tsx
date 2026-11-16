@@ -210,7 +210,7 @@ export function BandejaRevisar(d: Datos) {
           )}
         </div>
         {actual ? (
-          <div ref={detalleRef} className="min-w-0 scroll-mt-24">
+          <div ref={detalleRef} className="min-w-0 scroll-mt-8">
             {detalle()}
           </div>
         ) : (

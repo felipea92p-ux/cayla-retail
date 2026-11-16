@@ -33,6 +33,7 @@ echo "request id is Brother_QL_FALSA-7 (1 file(s))"
 );
 chmodSync(falsa, 0o755);
 writeFileSync(join(tmp, "impresora"), "Brother_QL_FALSA\n");
+writeFileSync(join(tmp, "ticketera"), "EPSON_TM_FALSA\n");
 
 // El mismo @page que `globals.css` (#etiquetas-precio-print): una página de 62 × 40,1 mm por etiqueta.
 const html = (n) => `<!doctype html><html><head><meta charset="utf-8"><style>
@@ -70,6 +71,7 @@ try {
   const estado = await r.json();
   assert.equal(estado.ok, true);
   assert.equal(estado.chrome, true);
+  assert.equal(estado.ticketera, true);
   ok("/estado responde y avisa con CORS a la pantalla de CAYLA");
 
   // 2. Otro sitio no recibe permiso de lectura.
@@ -132,7 +134,7 @@ try {
 
   // 6b. Rótulos de anaquel (ADR-0366): con `?medida=62x100mm` va a la Brother con ese papel; una medida que no está en la
   // lista del ayudante no se imprime (nunca llega a `lp` un texto de la petición).
-  assert.equal(estado.version, 2);
+  assert.equal(estado.version, 3);
   const rotulo = `<!doctype html><html><head><meta charset="utf-8"><style>
 @page rotulo { size: 62mm 100mm; margin: 0 }
 @media print { .rot-hoja { width: 62mm; height: 100mm; overflow: hidden; page: rotulo; break-after: page }
@@ -153,6 +155,32 @@ try {
   r = await fetch(url("/imprimir?otra=1"), { method: "POST", headers: { Origin: ERP }, body: rotulo });
   assert.equal(r.status, 400);
   ok("una medida fuera de la lista, o una consulta desconocida: 400");
+
+  // 6c. La boleta (versión 3, ADR-0670): `?tipo=ticket&largo=<mm>` la manda a la ticketera, en UNA hoja de 80 mm × su largo
+  // (el largo lo mide la pantalla y viene también en el `@page` del documento) y con el corte al final.
+  const ticket = `<!doctype html><html><head><meta charset="utf-8"><style>
+@page { size: 80mm 150mm; margin: 0 }
+@media print { body { margin: 0 } #comprobante-print { width: 72mm; padding: 2mm 4mm 0; font: 8pt Arial } }
+</style></head><body><div id="comprobante-print"><p>CAYLA</p><p>BOLETA B001-000001</p><p>TOTAL S/ 79.90</p></div></body></html>`;
+  r = await fetch(url("/imprimir?tipo=ticket&largo=150"), { method: "POST", headers: { Origin: ERP, "Content-Type": "text/html" }, body: ticket });
+  assert.equal(r.status, 200, JSON.stringify(await r.clone().json()));
+  const argsTicket = readFileSync(join(tmp, "lp-args.txt"), "utf8");
+  assert.match(argsTicket, /-d EPSON_TM_FALSA/);
+  assert.match(argsTicket, /media=Custom\.80x150mm/);
+  assert.match(argsTicket, /TmxPaperCut=CutPerJob/);
+  assert.doesNotMatch(argsTicket, /Brother/);
+  const pdfTicket = readFileSync(join(tmp, "recibido.pdf"), "latin1");
+  const paginasTicket = [...pdfTicket.matchAll(/\/Type\s*\/Page\b(?!s)/g)].length;
+  const cajaTicket = pdfTicket.match(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/);
+  const [anchoT, altoT] = [Number(cajaTicket[1]) / 72 * 25.4, Number(cajaTicket[2]) / 72 * 25.4];
+  assert.equal(paginasTicket, 1, `páginas del ticket: ${paginasTicket}`);
+  assert.ok(Math.abs(anchoT - 80) < 0.3 && Math.abs(altoT - 150) < 0.3, `ticket de ${anchoT.toFixed(2)} × ${altoT.toFixed(2)} mm`);
+  ok(`boleta con ?tipo=ticket&largo=150 → a la ticketera, PDF de 1 hoja de ${anchoT.toFixed(1)} × ${altoT.toFixed(1)} mm, con corte al final`);
+  for (const mala of ["tipo=ticket", "tipo=ticket&largo=abc", "tipo=ticket&largo=10", "tipo=ticket&largo=5000", "tipo=ticket&largo=150;rm", "tipo=boleta&largo=150"]) {
+    r = await fetch(url(`/imprimir?${mala}`), { method: "POST", headers: { Origin: ERP }, body: ticket });
+    assert.equal(r.status, 400, mala);
+  }
+  ok("un ticket sin largo, con un largo raro o fuera de 30–3000 mm, o un tipo desconocido: 400");
 
   // 7. Un cuerpo vacío o gigante no arranca Chrome.
   r = await fetch(url("/imprimir"), { method: "POST", headers: { Origin: ERP }, body: "" });

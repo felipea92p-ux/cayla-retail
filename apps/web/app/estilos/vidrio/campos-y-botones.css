@@ -328,6 +328,12 @@
   background: var(--pozo-encendido-fondo);
   box-shadow: var(--pozo-encendido-sombra);
 }
+@media (forced-colors: none) and (not (prefers-contrast: more)) {
+  .cfg-casilla > .fin-control:focus:focus-visible {
+    border-color: var(--color-tinta);
+    box-shadow: var(--pozo-encendido-sombra), var(--pozo-foco-halo); /* el foco del sistema (decisión 6A, Felipe 2026-11-16) */
+  }
+}
 .cfg-casilla-hilo {
   position: absolute;
   left: 12px;

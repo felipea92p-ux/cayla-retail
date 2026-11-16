@@ -37,6 +37,13 @@
     top: auto;
   }
 }
+/* Pegada (desde 640 px), la página deja también su alto: lo que alcanza el Tab o un ancla queda bajo la mesa, no debajo (decisión 1A de
+   Felipe, 2026-11-16; la cabecera sola está en globals.css). `MesaDeMando` publica su alto en `--alto-mesa-telar`; su `top` es 3,75 rem. */
+@media (min-width: 640px) {
+  html:has(.marco-cabecera):has(.mesa-telar) {
+    scroll-padding-top: calc(3.75rem + env(safe-area-inset-top) + var(--alto-mesa-telar, 0px));
+  }
+}
 .mesa-telar-fila {
   display: flex;
   align-items: center;
@@ -203,6 +210,10 @@ span.sede-telar { cursor: default; }
   .dock-telar { display: flex; }
   /* Que el dock no tape lo último de la pantalla. */
   main:has(.dock-telar) { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+  /* Ni el control al que llega el Tab (WCAG 2.4.11, auditoría /milimetro 2026-11-16): el navegador lo sube hasta dejar este alto
+     libre. El dock tapa 94 px desde el borde de abajo (medido a 1440 × 900); 7 rem le deja 18 de aire. Los controles del dock no
+     mueven la página: es `fixed`. */
+  html:has(.dock-telar) { scroll-padding-bottom: calc(7rem + env(safe-area-inset-bottom)); }
 }
 @keyframes dock-sube {
   from { transform: translate(-50%, 12px); opacity: 0; }
@@ -888,4 +899,19 @@ span.sede-telar { cursor: default; }
 @media (prefers-reduced-motion: reduce) {
   .pila-tarjeta[data-subio] { animation: none; }
   .pila-sale { display: none; }
+}
+
+/* «Registrar pago» va sobre la tarjeta de tinta de Impuestos (`.fin-pagas`, finanzas.css): papel sobre tinta, sólido, como se diseñó (en oscuro
+   los dos se invierten juntos). La gota de vidrio del botón secundario (vidrio/campos-y-botones.css, sin capa) le ganaba a la regla de
+   finanzas.css: en claro quedaba gris con la letra oscura y en oscuro, claro sobre claro e invisible (1:1; /milimetro, 2026-11-16). */
+.fin-pagas .btn-secundario {
+  background: var(--color-crema);
+  border-color: var(--color-crema);
+  color: var(--color-tinta);
+  box-shadow: none;
+}
+@media (hover: hover) {
+  .fin-pagas .btn-secundario:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-crema) 88%, var(--color-tinta));
+  }
 }
