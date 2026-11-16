@@ -199,6 +199,8 @@ export function ColumnaFicha({
  *  (la primera) y en las demás queda «Igual». */
 export function FilaDistinta({
   campo,
+  etiqueta,
+  vacia = "Igual",
   productos,
   opciones,
   marcada,
@@ -207,6 +209,10 @@ export function FilaDistinta({
   onElegir,
 }: {
   campo: Parameters<typeof nombreDeCampo>[0];
+  /** El rótulo de la fila, si no es el nombre del campo (el precio de UNA sede: «Tienda Lima»). */
+  etiqueta?: string;
+  /** Lo que dice la celda de una ficha sin opción en esta fila. */
+  vacia?: string;
   productos: ProductoPlan[];
   opciones: { productoId: string; valor: string }[];
   marcada: string | null;
@@ -214,7 +220,7 @@ export function FilaDistinta({
   deshabilitada: boolean;
   onElegir: (productoId: string) => void;
 }) {
-  const nombre = nombreDeCampo(campo);
+  const nombre = etiqueta ?? nombreDeCampo(campo);
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const lista = opciones.map((o) => o.productoId);
   const tecla = (e: React.KeyboardEvent<HTMLButtonElement>, i: number) => {
@@ -248,7 +254,7 @@ export function FilaDistinta({
         if (i === -1)
           return (
             <span key={p.id} className="fus-celda-vacia" aria-hidden>
-              Igual
+              {vacia}
             </span>
           );
         const o = opciones[i];
