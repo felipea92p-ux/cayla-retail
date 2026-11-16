@@ -681,3 +681,30 @@ sello «Fusionado» se estampa (`--t-momento`). Se quitaron de la maqueta dos id
 0,96 del sello) y el desenfoque sobre la foto (lo que se desplaza no se desenfoca, ADR-0623). Todo con los tiempos con nombre y `--ease-cayla`,
 apagado con «Animaciones» apagado y con `prefers-reduced-motion`. Estilos: `app/estilos/vidrio/fusionar.css`; lo vigila
 `lib/fusionar-movimiento.test.ts`. Ficha al milímetro: `docs/milimetro/fusionar-productos.md`.
+
+## Actualización 2026-11-16 — al entrar, el navegador olvida lo que aprendió antes de la cuenta (complementa la act. 2026-10-13 (e))
+
+- **El problema (Felipe):** «salí de la cuenta de Felipe, intenté entrar con una terminal y se quedó cargando; al recargar el login, sí entró».
+  Next guarda en el navegador, 5 minutos, **a qué pantalla lleva cada dirección** (su caché de rutas), y la aprende con la sesión que hay en ese
+  momento. Justo al salir, el marco todavía a la vista precarga `/` sin sesión, el proxy la manda al login y Next anota «`/` es el login». El
+  login de la act. (e) navega a `/` con `router.replace`: Next usa la nota sin preguntarle al servidor, «llega» al mismo login, y el botón queda en
+  «Entrando…» hasta el tope de 15 s. Visto en producción (Vercel, 22:11 UTC): tres entradas con `/api/aterrizaje` en 200 y, tras la segunda y la
+  tercera, ni un pedido de `/` al servidor. Reproducido en un banco propio con la versión compilada: con una precarga de `/` hecha sin sesión, la
+  entrada se queda en el login en Chrome; sin ella, entra. Lo mismo vale para lo aprendido con la cuenta anterior (un Inicio que redirigía a
+  Vender, una pantalla que respondía «Sin acceso»). `router.refresh()` no lo arregla: vacía los datos de las pantallas, no la caché de rutas
+  (lo dice el propio código de Next 16.4).
+- **Lo que se hace:** el login, al abrir la sesión, llama a la Server Action `marcarCambioDeCuenta` (`app/actions/entrada.ts`) **a la par** de
+  `/api/aterrizaje`, y recién después navega. La acción borra una cookie que no existe (`COOKIE_CAMBIO_DE_CUENTA`): cambiar una cookie dentro
+  de una Server Action es lo que Next documenta para que el navegador vacíe su caché del router «en rutas que dependen de cookies, como la
+  autenticación». No guarda nada ni lee datos. Si la acción no responde (5 s), el login entra con la página completa (`window.location.replace`):
+  pierde el vuelo, nunca se queda en el login. El proxy ya no saca del login un POST (`saleDelLogin`, solo GET y HEAD): la acción viaja a
+  `/login` con la sesión recién abierta y, redirigida, se perdía. De paso, una cuenta que no puede entrar (`?error=`) suelta la espera al
+  volver al login: el aviso sale en ~1,5 s y no tras el tope de 15 s.
+- **Lo que se descartó:** hacer la entrada entera en el servidor (el patrón de Supabase): todas las entradas saldrían desde la IP de Vercel y el
+  límite de Supabase por IP (30 entradas cada 5 min) pasaría a ser uno solo para todo el ERP; alguien probando claves podría dejar sin entrar a
+  las tiendas. `revalidatePath`: también vacía la caché, pero borra la del servidor (las copias del catálogo, `copia-por-version.ts`) en cada
+  entrada. Entrar siempre con la página completa: pierde «El colibrí se abre». Responder sin redirección a las precargas sin sesión: cierra solo
+  el caso de «`/` es el login», no el de lo aprendido con la cuenta anterior.
+- **Dónde vive y cómo se vigila:** `app/login/page.tsx` (`olvidarLoDeAntes`), `app/actions/entrada.ts`, `lib/login-aterrizaje.ts`
+  (`COOKIE_CAMBIO_DE_CUENTA`, `saleDelLogin`) y `proxy.ts`. `lib/login-aterrizaje.test.ts` falla si el login vuelve a navegar sin esperar la acción, si
+  la acción deja de cambiar la cookie o si el proxy vuelve a redirigir un POST del login.
