@@ -131,11 +131,25 @@ export const TEJIDOS_CON_RELIEVE: ReadonlySet<FamiliaTejido> = new Set<FamiliaTe
  * La prenda PLANCHADA (Felipe 2026-11-16, con el pantalón de lino: «sale con arrugas y da un mal aspecto… quiero retocar las arrugas sin perder el
  * tipo de tela»). Dicho en positivo, sin la palabra «arrugas» (el modelo se engancha a la palabra que nombra; ADR-0659 act. 2026-11-16 c), y con la
  * TEXTURA nombrada al lado para que planchar no la borre: el lino sigue viéndose lino. Vale también contra el molde, que puede venir sin planchar.
- * «Tersa» y no «lisa»: «liso» es un DISEÑO (sin estampado) y la IA podría borrar unas rayas. Sin «fruncidos» ni «caída»: los vigilan las pruebas
- * del pedido de cintura (una basta fruncida es el puño de un jogger; la caída se dice una sola vez).
+ * Nunca «lisa»: «liso» es un DISEÑO (sin estampado) y la IA podría borrar unas rayas. Sin «fruncidos» ni «caída»: los vigilan las pruebas del pedido
+ * de cintura (una basta fruncida es el puño de un jogger; la caída se dice una sola vez).
+ *
+ * Segunda versión, el mismo día: la primera pedía la tela «tersa y bien estirada», recién planchada «al vapor», y el pantalón de lino Crudo salió
+ * liso pero de otra tela (Felipe: «es más liso pero pierde la tela»). Ahora se pide quitar solo lo que deja el guardarla (dobleces y marcas) y la
+ * TELA va primero: la de la foto real, sin alisarla de más; la foto de cerca de la tela, si la hay, manda; y cada tejido que lo necesite dice cómo
+ * se ve planchado sin dejar de ser él (`SE_VE_PLANCHADA`).
  */
 const PLANCHADA =
-  "PLANCHADA: la prenda se ve recién planchada al vapor, como para una sesión de fotos, aunque en las fotos que te doy no lo esté: la tela tersa y bien estirada, con la textura de su tejido a la vista (la trama, el grano y el brillo o lo mate que tiene en la foto real). Se quedan los pliegues y las pinzas que son del diseño.";
+  "PLANCHADA: la prenda se ve planchada para una sesión de fotos, aunque en las fotos que te doy no lo esté: sin los dobleces ni las marcas de haberla guardado, doblado o colgado. La TELA es la misma de la foto real y se ve de cerca: su trama, sus hilos, su grano y su acabado mate o brillante, sin alisarla de más. Si te doy un detalle de cerca de la tela, su textura manda. Se quedan los pliegues y las pinzas que son del diseño.";
+
+/**
+ * @internal Exportada para su prueba; la pantalla la usa a través de `fichaParaIA`.
+ * Cómo se ve planchado un tejido que, alisado de más, deja de parecer él. El lino (Felipe 2026-11-16, Crudo): planchado sigue mostrando sus hilos
+ * irregulares con nudos y unas ondas suaves; sin ellas parece algodón o poliéster. Un tejido nuevo entra aquí solo después de verlo salir mal.
+ */
+export const SE_VE_PLANCHADA: Readonly<Partial<Record<FamiliaTejido, string>>> = {
+  lino: "Es lino planchado y se ve lino: hilos irregulares con nudos, aspecto mate y rústico, y unas ondas suaves y naturales en la tela, propias del lino.",
+};
 
 /**
  * ¿Esta cláusula le dice a una persona que la tela SE ARRUGA? A la IA no le sirve: lo toma como algo que dibujar (la del lino decía «Se arruga (es
@@ -236,7 +250,11 @@ export function fichaParaIA(datos: DatosDePrenda | null | undefined): FichaParaI
   }
 
   // Toda foto de catálogo va planchada, salvo la de un tejido cuyo relieve es el tejido (el seersucker).
-  if (!familia || !TEJIDOS_CON_RELIEVE.has(familia)) partes.push(PLANCHADA);
+  if (!familia || !TEJIDOS_CON_RELIEVE.has(familia)) {
+    partes.push(PLANCHADA);
+    const seVe = familia ? SE_VE_PLANCHADA[familia] : undefined;
+    if (seVe) partes.push(seVe);
+  }
 
   if (patron) {
     partes.push(/^liso$/i.test(patron) ? "Diseño: liso, sin estampado ni rayas: no dibujes ninguno." : `Diseño: ${patron}.`);
