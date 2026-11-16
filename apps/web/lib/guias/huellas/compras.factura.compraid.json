@@ -11,7 +11,7 @@
       "button «factura.cerrar-faltante»"
     ],
     "components/AdjuntosCompra.tsx": [
-      "input «Elegir los archivos para adjuntar»",
+      "input «(sin nombre)»",
       "Boton «{texto}»",
       "a «{a.nombre}»",
       "a «Ver»",

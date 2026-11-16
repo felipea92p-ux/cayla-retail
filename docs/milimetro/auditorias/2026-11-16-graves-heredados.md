@@ -53,7 +53,8 @@ siempre con el mismo medidor en los dos lados.
 - **El foco no queda tapado por lo de abajo** (2.4.11): el pie de Cierre de caja, el dock del telar y el pie fijo de las páginas apartan el control
   (`scroll-margin-bottom` / `scroll-padding-bottom`); la barra pegada de la campaña web baja bajo la cabecera; las filas de píldoras, pestañas y
   categorías de Vender dejan aire al correr de lado con Tab. **foco-tapado: 23 → 0.**
-- **Nombres, blancos y motivos:** el campo de archivos de Adjuntar factura (4.1.2, **sin-etiqueta 4 → 0**); el «+N» de las piezas y «Le debes» de
+- **Nombres, blancos y motivos:** el campo de archivos escondido de Adjuntar factura (4.1.2, **sin-etiqueta 4 → 0**; `main` lo arregló a la vez
+  en #1901 con `aria-hidden` y fuera del Tab, el patrón del repo, y quedó esa versión); el «+N» de las piezas y «Le debes» de
   Proveedores a 24 px (2.5.8, **blanco-24 4 → 0**); los botones que se apagan dicen por qué (**apagado-por-lo-que-falta 18 → 0**: el medidor lo
   contaba porque no había motivo a la vista).
 - **Contraste:** los puntos del gráfico de Dinero en oscuro, el globito neutro de la pestaña elegida (1,09:1).

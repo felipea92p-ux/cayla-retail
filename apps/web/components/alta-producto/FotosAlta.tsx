@@ -93,7 +93,10 @@ export function BotonFoto({
         multiple
         accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
         className="sr-only"
+        // El camino es el botón de al lado, que tiene su nombre: el input escondido no se alcanza con Tab ni lo lee el lector de pantalla
+        // (lo encontraba como «archivo» sin nombre, WCAG 4.1.2; /milimetro 2026-11-16). Igual que `ElegirDibujoDeInsignia`.
         tabIndex={-1}
+        aria-hidden
         disabled={disabled}
         onChange={(e) => {
           onArchivos(Array.from(e.target.files ?? []));
