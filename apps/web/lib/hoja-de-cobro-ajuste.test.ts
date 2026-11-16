@@ -15,7 +15,8 @@ import { describe, expect, it } from "vitest";
 
 const leer = (ruta: string) => readFileSync(new URL(`../${ruta}`, import.meta.url), "utf8");
 
-const HOJA = leer("components/punto-de-venta/HojaDeCobro.tsx");
+// La cabeza numerada de cada paso vive en su archivo desde el 2026-11-16 (también la usa la hoja del apartado): cuenta como parte de la hoja.
+const HOJA = leer("components/punto-de-venta/HojaDeCobro.tsx") + leer("components/punto-de-venta/CabezaPaso.tsx");
 const PUNTO_DE_VENTA = leer("components/PuntoDeVenta.tsx");
 const CSS = leer("app/globals.css");
 

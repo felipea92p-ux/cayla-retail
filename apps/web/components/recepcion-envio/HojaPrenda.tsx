@@ -270,6 +270,10 @@ export function HojaPrenda({
     return moldeDeLaPrenda.current;
   }
   const catalogo = useCatalogoIAAlta({
+    // Al encender la IA, también se preparan las fotos que esperan su color, no solo las ya puestas (Felipe 2026-11-16).
+    fotosEnCurso,
+    // Mientras se crea no se pide ninguna IA (tampoco desde el «Volver a intentar» de un aviso).
+    bloqueado: guardando,
     disponible: permisoFotos.ia,
     moldeDeLaPrenda: nueva ? undefined : leerMoldeDeLaPrenda,
     fotos,
@@ -559,7 +563,7 @@ export function HojaPrenda({
     <CampoGuiado id="prenda-colores" guia={guia} retiene="fila" titulo="Fotos y colores" ayuda={borrador.colorCodigos.length > 0 ? `${borrador.colorCodigos.length} ${borrador.colorCodigos.length === 1 ? "color" : "colores"}` : "Una foto por color"}>
       {catalogo.disponible && (
         <div className="mb-2 flex justify-end">
-          <InterruptorCatalogoIA catalogo={catalogo} />
+          <InterruptorCatalogoIA catalogo={catalogo} disabled={guardando} />
         </div>
       )}
       <FotosYColores

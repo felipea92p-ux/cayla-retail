@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apartar compacto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Maqueta, no producción: los tokens copiados de apps/web/app/globals.css (ADR-0169) y su oscuro de estilos/tema.css. */
+:root{
+  --color-crema:#f5f0e8;--color-papel:#fbf8f2;--color-tinta:#1a1a18;--color-hueso:#eae1d2;--color-sand:#e8e0d0;
+  --color-taupe:#805c4c;--color-rojo:#b8412d;--color-rojo-profundo:#8b2a1f;--color-verde:#48603f;--color-verde-profundo:#44583a;
+  --color-ambar-profundo:#734f15;--color-borde-control:#96786a;
+  --m-efectivo:#d19a12;--m-efectivo-t:#6b4a00;--m-tarjeta:#525a64;--m-yape:#6d3fa3;--m-plin:#1c6b56;--m-transf:#2f6aa3;
+  --sans:"DM Sans",system-ui,sans-serif;--serif:"EB Garamond",Georgia,serif;
+}
+:root[data-tema="oscuro"]{
+  --color-crema:#1c1a17;--color-papel:#25221e;--color-tinta:#f5f0e8;--color-hueso:#2d2924;--color-sand:#3b362f;
+  --color-taupe:#c4a596;--color-verde-profundo:#9fbc90;--color-ambar-profundo:#e0b56a;--color-borde-control:#8a7a6e;
+  --m-efectivo-t:#f0c552;--m-yape:#b58ae6;--m-plin:#5fc4a6;--m-transf:#7fb3e6;--m-tarjeta:#a9b2bd;
+}
+*{box-sizing:border-box;margin:0}
+body{background:var(--color-crema);color:var(--color-tinta);font:15px/1.45 var(--sans);padding:24px 16px 80px}
+.barra{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 auto 20px;max-width:1900px}
+.barra h1{font:500 30px/1 var(--serif);margin-right:auto}
+.barra button{font:600 11px var(--sans);letter-spacing:.13em;text-transform:uppercase;border:1.5px solid var(--color-borde-control);background:var(--color-papel);color:var(--color-tinta);border-radius:999px;padding:8px 14px;cursor:pointer}
+.mesa{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;padding-bottom:16px;max-width:1900px;margin:0 auto}
+.col{flex:none;width:430px}
+.col.ancha{width:880px}
+.rotulo{margin-bottom:10px}
+.rotulo b{display:block;font:500 22px/1.15 var(--serif)}
+.rotulo span{font-size:13px;color:var(--color-taupe)}
+.medida{display:inline-block;margin-top:6px;font:600 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--color-hueso)}
+.medida.bien{background:color-mix(in srgb,var(--color-verde) 18%,transparent);color:var(--color-verde-profundo)}
+.hoja{position:relative;background:color-mix(in srgb,var(--color-papel) 82%,transparent);border:1px solid var(--color-sand);border-radius:28px;overflow:hidden}
+.pliegue{position:absolute;left:0;right:0;top:760px;border-top:2px dashed var(--color-rojo);pointer-events:none;z-index:5}
+.pliegue::after{content:"Hasta aquí se ve sin bajar (tu captura)";position:absolute;right:10px;top:-22px;font:600 10px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--color-rojo);background:var(--color-papel);padding:2px 6px;border-radius:6px}
+.lbl{font:600 11px var(--sans);letter-spacing:.13em;text-transform:uppercase;color:color-mix(in srgb,var(--color-tinta) 62%,transparent)}
+.sub{font-size:14px;color:color-mix(in srgb,var(--color-tinta) 64%,transparent)}
+.serif{font-family:var(--serif)}
+.num{font-variant-numeric:tabular-nums}
+.pad{padding:16px 20px}
+.cab{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;border-bottom:1px solid var(--color-sand);min-height:65px}
+.flecha{width:36px;height:36px;border-radius:999px;border:1.5px solid var(--color-borde-control);display:grid;place-items:center;flex:none;background:var(--color-papel)}
+.x{width:34px;height:34px;border-radius:999px;display:grid;place-items:center;font-size:20px;color:var(--color-taupe)}
+.caja{height:40px;border-radius:12px;background:var(--color-hueso);border:1.5px solid var(--color-borde-control);display:flex;align-items:center;padding:0 12px;font-size:14px;color:color-mix(in srgb,var(--color-tinta) 55%,transparent);width:100%}
+.caja.llena{color:var(--color-tinta)}
+.caja.mono{font-family:ui-monospace,Menlo,monospace;font-size:13.5px}
+.campo .lbl{display:block;margin-bottom:6px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.seg{display:grid;gap:4px;padding:4px;border-radius:14px;background:color-mix(in srgb,var(--color-sand) 60%,transparent)}
+.seg>span{height:36px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:10px;font:600 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:color-mix(in srgb,var(--color-tinta) 60%,transparent)}
+.seg>span.on{background:var(--color-papel);color:var(--color-tinta);box-shadow:0 1px 3px color-mix(in srgb,#000 10%,transparent)}
+.seg.chico>span{height:30px;font-size:10.5px;padding:0 10px}
+.chip{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--color-sand);font-size:14px;white-space:nowrap}
+.btn{height:56px;border-radius:16px;background:var(--color-tinta);color:var(--color-crema);display:flex;align-items:center;gap:12px;padding:0 20px}
+.btn .lbl{color:var(--color-crema);flex:1}
+.btn .m{font:500 28px/1 var(--serif)}
+.aviso{border:1px solid var(--color-sand);border-radius:12px;padding:8px 12px;font-size:13.5px;background:var(--color-papel)}
+.casilla{width:20px;height:20px;border:1.5px solid var(--color-borde-control);border-radius:6px;flex:none;background:var(--color-papel)}
+.casilla.on{background:var(--color-tinta);border-color:var(--color-tinta);display:grid;place-items:center;color:var(--color-crema);font-size:13px}
+.ayuda{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:999px;border:1px solid var(--color-borde-control);font:600 11px var(--sans);color:var(--color-taupe);vertical-align:2px;margin-left:4px}
+.barra-av{height:6px;border-radius:999px;background:var(--color-sand);overflow:hidden}
+.barra-av i{display:block;height:100%;background:var(--color-tinta)}
+.medios{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:4px;border-radius:14px;background:color-mix(in srgb,var(--color-sand) 60%,transparent)}
+.medio{height:56px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:13.5px;position:relative}
+.medio small{position:absolute;top:2px;right:5px;font-size:8px;opacity:.45;font-weight:600}
+.medio svg{width:20px;height:20px}
+/* La baldosa acostada de Caja (`.hoja-cobro-medio.es-acostada`): la de Cobrar, 50 px de alto, con su franja de color. */
+.medios-c{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.mc{position:relative;height:50px;border-radius:12px;border:1.5px solid var(--color-sand);background:var(--color-papel);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;overflow:hidden;font:700 9.5px var(--sans);letter-spacing:.08em;text-transform:uppercase}
+.mc::before{content:"";position:absolute;inset:0 0 auto;height:4px;background:var(--c)}
+.mc svg{width:20px;height:20px;color:var(--cd)}
+.mc.on{background:var(--cd);border-color:var(--cd);color:var(--color-crema)}
+.mc.on svg{color:var(--color-crema)}
+.mc .ok{position:absolute;top:7px;right:5px;width:14px;height:14px;border-radius:99px;background:var(--color-crema);color:var(--cd);display:grid;place-items:center;font-size:9px}
+/* El cuadrado de Cobrar (`.hoja-cobro-medio`). */
+.mq{position:relative;aspect-ratio:1;border-radius:18px;border:1.5px solid var(--color-sand);background:var(--color-papel);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;overflow:hidden;font:700 12px var(--sans);letter-spacing:.08em;text-transform:uppercase}
+.mq::before{content:"";position:absolute;inset:0 0 auto;height:5px;background:var(--c)}
+.mq svg{width:48%;height:48%;color:var(--cd);stroke-width:1.5}
+.mq.on{background:var(--cd);border-color:var(--cd);color:var(--color-crema)}
+.mq.on svg{color:var(--color-crema)}
+.ef{--c:var(--m-efectivo);--cd:var(--m-efectivo-t)}.ta{--c:var(--m-tarjeta);--cd:var(--m-tarjeta)}.ya{--c:var(--m-yape);--cd:var(--m-yape)}.pl{--c:var(--m-plin);--cd:var(--m-plin)}.tr{--c:var(--m-transf);--cd:var(--m-transf)}
+.billete{height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:6px;border:1.5px solid color-mix(in srgb,var(--m-yape) 45%,var(--color-sand));background:color-mix(in srgb,var(--m-yape) 9%,var(--color-papel));font:500 20px/1 var(--serif)}
+.billete small{font:600 10px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:color-mix(in srgb,var(--color-tinta) 60%,transparent)}
+.billete.on{background:var(--m-yape);border-color:var(--m-yape);color:var(--color-crema)}
+.billete.on small{color:color-mix(in srgb,var(--color-crema) 80%,transparent)}
+/* La cabeza numerada de un paso de Cobrar (`CabezaPaso`). */
+.paso{margin:0 -12px;padding:10px 12px;border:1.5px solid transparent;border-radius:18px}
+.paso.sigue{border-color:color-mix(in srgb,var(--color-tinta) 18%,transparent);background:color-mix(in srgb,var(--color-papel) 70%,transparent)}
+.paso.listo{padding-block:8px}
+.cp{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.paso.listo .cp{margin-bottom:0}
+.n{width:28px;height:28px;border-radius:99px;border:1.5px solid var(--color-tinta);display:grid;place-items:center;font:700 12px var(--sans);flex:none}
+.n.ok{background:var(--color-verde);border-color:var(--color-verde);color:var(--color-crema)}
+.cp h3{font:700 15px var(--sans);letter-spacing:.13em;text-transform:uppercase;white-space:nowrap}
+.cp .sigue-p{font-size:12px;font-weight:600}
+.cp .est{margin-left:auto;font-size:14px;font-weight:600;color:var(--color-verde-profundo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cp .est.falta{color:var(--color-ambar-profundo)}
+.cp .camb{font-size:13.5px;text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--color-tinta) 30%,transparent);text-underline-offset:3px}
+.ficha{display:flex;align-items:center;gap:10px;border-radius:14px;background:var(--color-hueso);padding:8px 12px}
+.av{width:32px;height:32px;border-radius:99px;background:var(--color-sand);display:grid;place-items:center;font:500 14px var(--serif);flex:none}
+.pie{border-top:1px solid var(--color-sand);padding:14px 20px 18px;display:grid;gap:10px}
+.combo{height:44px;border-radius:12px;background:var(--color-hueso);border:1.5px solid var(--color-borde-control);display:flex;align-items:center;gap:10px;padding:0 12px;font-size:14px}
+.notas{max-width:1900px;margin:28px auto 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.nota{background:var(--color-papel);border:1px solid var(--color-sand);border-radius:20px;padding:16px 18px;font-size:14px}
+.nota h4{font:500 20px/1.2 var(--serif);margin-bottom:8px}
+.nota ul{padding-left:18px;display:grid;gap:4px}
+.nota .gana{color:var(--color-verde-profundo);font-weight:600}
+.nota .paga{color:var(--color-ambar-profundo);font-weight:600}
+.tachado{position:relative}
+.tachado::after{content:attr(data-por);position:absolute;inset:-3px;border:2px solid var(--color-rojo);border-radius:10px;background:color-mix(in srgb,var(--color-rojo) 7%,transparent);pointer-events:none;font-size:0}
+.ver-marcas .tachado::after{display:flex}
+.tachado::before{content:attr(data-por);position:absolute;right:6px;top:-11px;z-index:2;font:700 9.5px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--color-crema);background:var(--color-rojo);padding:1px 6px;border-radius:6px}
+body:not(.ver-marcas) .tachado::before{display:none}
+body:not(.ver-marcas) .tachado::after{display:none}
+.globo{border-radius:14px;background:var(--color-tinta);color:var(--color-crema);font-size:13.5px;padding:10px 12px;line-height:1.4}
+.ancha-cuerpo{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+</style>
+</head>
+<body class="ver-marcas">
+<div class="barra">
+  <h1>Apartar · cómo compactarla</h1>
+  <button onclick="document.body.classList.toggle('ver-marcas')">Marcas de lo repetido</button>
+  <button onclick="const r=document.documentElement;r.dataset.tema=r.dataset.tema==='oscuro'?'':'oscuro'">Claro / oscuro</button>
+</div>
+
+<!-- Íconos (lucide, dibujados en línea) -->
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-ef" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></symbol>
+  <symbol id="i-ta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></symbol>
+  <symbol id="i-ya" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><text x="12" y="15.5" text-anchor="middle" font-size="9" font-weight="700" fill="var(--color-papel)" font-family="DM Sans">S/</text></symbol>
+  <symbol id="i-pl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3a9 9 0 1 0 5.2 16.4L21 21l-1.5-3.7A9 9 0 0 0 12 3Z"/><text x="12" y="14.5" text-anchor="middle" font-size="6.5" font-weight="700" fill="currentColor" stroke="none" font-family="DM Sans">Plin</text></symbol>
+  <symbol id="i-tr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M12 2l9 5H3z"/></symbol>
+  <symbol id="i-lupa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-marca" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></symbol>
+</svg>
+
+<div class="mesa">
+
+<!-- ======================= HOY ======================= -->
+<div class="col">
+  <div class="rotulo"><b>Hoy</b><span>Tal cual tu captura, con un cliente encontrado y Yape S/ 10.</span><br><span class="medida" data-alto></span></div>
+  <div class="hoja" data-medir>
+    <div class="pliegue"></div>
+    <div class="cab"><span class="flecha"><svg width="16" height="16"><use href="#i-flecha"/></svg></span>
+      <div style="text-align:right"><div class="serif" style="font-size:24px">Apartado</div><div class="sub">1 prenda · recoger hasta el lun, 23 nov</div></div></div>
+    <div class="pad" style="display:grid;gap:24px">
+      <div class="tachado" data-por="repite el pie"><div style="display:flex;gap:6px"><span class="barra-av" style="flex:1"><i style="width:100%"></i></span><span class="barra-av" style="flex:1"><i style="width:100%;background:var(--color-rojo)"></i></span><span class="barra-av" style="flex:1"></span></div><p class="sub" style="margin-top:8px;color:var(--color-taupe)">Registra cuánto deja de adelanto y cómo.</p></div>
+      <div><p class="sub" style="margin-bottom:8px">La venta</p><p class="lbl" style="margin-bottom:8px">¿Por dónde se vende?</p><div class="seg" style="grid-template-columns:1fr 1fr;width:160px"><span class="on">Tienda</span><span>TikTok</span></div></div>
+      <div style="display:grid;gap:14px"><p class="sub">El cliente</p>
+        <div class="aviso" style="color:var(--color-verde-profundo)">✓ Ficha encontrada: el apartado queda ligado a su historial. <u>Cambiar</u></div>
+        <div class="g2"><div class="campo"><span class="lbl">Nombres</span><div class="caja llena">Ana Lucía</div></div><div class="campo"><span class="lbl">Apellidos</span><div class="caja llena">Quispe Rojas</div></div></div>
+        <div class="g2"><div class="campo"><span class="lbl">Celular · WhatsApp (opcional)</span><div class="caja llena mono">987654321</div></div><div class="campo"><span class="lbl">DNI (recomendado)</span><div class="caja llena mono">45678912</div></div></div>
+        <div class="seg" style="grid-template-columns:1fr 1fr"><span class="on">Boleta</span><span>Factura</span></div>
+        <p class="sub tachado" data-por="explicación">Se emite al entregar, por el total. Ahora el cliente se lleva una constancia, no un comprobante.</p>
+      </div>
+      <div style="display:grid;gap:8px"><p class="sub">Adelanto · cómo pagó el cliente</p>
+        <div class="medios"><span class="medio"><small>F1</small><svg><use href="#i-ef"/></svg>Efectivo</span><span class="medio"><small>F2</small><svg><use href="#i-ta"/></svg>Tarjeta</span><span class="medio" style="background:var(--m-yape);color:var(--color-crema)"><small>F3</small><svg><use href="#i-ya"/></svg>Yape</span><span class="medio"><small>F4</small><svg><use href="#i-pl"/></svg>Plin</span><span class="medio" style="font-size:12px"><small>F5</small><svg><use href="#i-tr"/></svg>Transferencia</span></div>
+        <div class="aviso" style="display:flex;justify-content:space-between;align-items:center"><span style="color:var(--m-yape)">Yape</span><span class="num">S/ <u>10.00</u> &nbsp;🗑</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="chip">30% · S/10.00</span><span class="chip">La mitad · S/16.00</span><span class="chip">Todo · S/30.50</span></div>
+        <div class="tachado" data-por="3ª vez el adelanto"><div class="barra-av"><i style="width:33%"></i></div><p class="sub num" style="display:flex;justify-content:space-between;margin-top:6px"><span>Deja S/10.00</span><span>Saldo al recoger S/20.50</span></p></div>
+      </div>
+      <div style="display:grid;gap:10px"><p class="sub">Si no recoge, le devolvemos por</p>
+        <div class="seg" style="grid-template-columns:1fr 1fr 1fr"><span class="on">Yape</span><span>Plin</span><span>Transferencia</span></div>
+        <div class="campo"><span class="lbl">Número de Yape</span><div class="caja mono">987654321</div></div>
+        <p class="sub tachado" data-por="explicación">Así no tiene que volver a la tienda. Efectivo, solo si viene antes de que se le transfiera.</p>
+      </div>
+      <div style="display:flex;gap:10px"><span class="casilla"></span><p style="font-size:14px" class="tachado" data-por="la fecha, 3ª vez">Le leí las condiciones: recoge hasta el <b>lun, 23 nov</b> con su constancia o DNI; si no, vuelve a tienda y se le devuelve el 100% por Yape.</p></div>
+    </div>
+    <div class="pie">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end"><dl class="sub num tachado" data-por="repetido" style="display:grid;grid-template-columns:auto auto;gap:0 12px"><dt>Total prendas</dt><dd>S/30.50</dd><dt>Saldo al recoger</dt><dd>S/20.50</dd></dl>
+        <div style="text-align:right" class="tachado" data-por="= el botón"><p class="lbl">Adelanto hoy</p><p class="serif num" style="font-size:44px;line-height:1">S/10.00</p></div></div>
+      <div class="aviso"><b>Eres admin.</b> Guardas a tu nombre, sin autorización.</div>
+      <div class="btn"><svg width="16" height="16"><use href="#i-marca"/></svg><span class="lbl">Confirmar apartado</span><span class="m num">S/10.00</span></div>
+      <p class="sub tachado" data-por="= el texto de arriba" style="text-align:center">Registra cuánto deja de adelanto y cómo.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= A ======================= -->
+<div class="col">
+  <div class="rotulo"><b>A · Pasos como Cobrar <span style="font:600 11px var(--sans);letter-spacing:.1em;color:var(--color-verde-profundo)">RECOMENDADA</span></b><span>Los tres pasos numerados de la hoja de Cobrar; el que está listo se pliega a una línea.</span><br><span class="medida bien" data-alto></span></div>
+  <div class="hoja" data-medir>
+    <div class="pliegue"></div>
+    <div class="cab" style="align-items:flex-start;padding-top:14px">
+      <div><p style="display:flex;align-items:baseline;gap:10px"><span class="lbl">Apartar</span><span class="serif num" style="font-size:40px;line-height:1">S/30.50</span></p>
+        <p class="sub" style="margin-top:4px">1 prenda · recoge hasta el <b style="color:var(--color-tinta)">lun 23 nov</b></p></div>
+      <div style="display:grid;justify-items:end;gap:8px"><span class="x">×</span><div class="seg chico" style="grid-template-columns:1fr 1fr"><span class="on">Tienda</span><span>TikTok</span></div></div>
+    </div>
+    <div class="pad" style="display:grid;gap:8px">
+      <section class="paso listo"><div class="cp"><span class="n ok"><svg width="14" height="14"><use href="#i-check"/></svg></span><h3>Cliente</h3><span class="est" style="color:var(--color-tinta);font-weight:500">Ana Quispe · Boleta</span><span class="camb">Cambiar</span></div></section>
+      <section class="paso sigue"><div class="cp"><span class="n">2</span><h3>Adelanto</h3><span class="est">S/10.00 · resta S/20.50 ✓</span></div>
+        <div class="medios-c"><span class="mc ef"><svg><use href="#i-ef"/></svg>Efect.</span><span class="mc ta"><svg><use href="#i-ta"/></svg>Tarjeta</span><span class="mc ya on"><span class="ok">✓</span><svg><use href="#i-ya"/></svg>Yape</span><span class="mc pl"><svg><use href="#i-pl"/></svg>Plin</span><span class="mc tr"><svg><use href="#i-tr"/></svg>Transf.</span></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px"><span class="billete on"><small>30%</small>10</span><span class="billete"><small>Mitad</small>16</span><span class="billete"><small>Todo</small>30.50</span><span class="billete" style="border-style:dashed;background:var(--color-papel);font-size:15px;color:var(--color-taupe)">Otro</span></div>
+      </section>
+      <section class="paso"><div class="cp"><span class="n">3</span><h3>Si no recoge</h3><span class="ayuda">?</span></div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center"><div class="seg chico" style="grid-template-columns:repeat(3,auto)"><span class="on">Yape</span><span>Plin</span><span>Transf.</span></div><div class="caja llena mono">987654321 <span style="margin-left:auto;font:12px var(--sans);color:var(--color-taupe)">su celular</span></div></div>
+        <label style="display:flex;gap:10px;align-items:center;margin-top:12px;font-size:14px"><span class="casilla"></span>Le leí las condiciones <span class="ayuda">?</span></label>
+      </section>
+    </div>
+    <div class="pie">
+      <div class="combo"><span class="av" style="width:26px;height:26px;font-size:12px">FA</span>Felipe Alvarez<span style="margin-left:auto;font-size:12.5px;color:var(--color-taupe)">admin · sin autorización</span></div>
+      <div class="btn"><svg width="18" height="18"><use href="#i-check"/></svg><span class="lbl">Confirmar apartado</span><span class="m num">S/10.00</span></div>
+    </div>
+  </div>
+  <p class="sub" style="margin-top:12px">El paso 1 abierto (antes de encontrar al cliente):</p>
+  <div class="hoja pad" style="margin-top:8px">
+    <section class="paso sigue" style="margin:0"><div class="cp"><span class="n">1</span><h3>Cliente</h3><span class="sigue-p">Sigue</span></div>
+      <div style="display:flex;gap:8px"><div class="caja"><svg width="16" height="16" style="margin-right:8px"><use href="#i-lupa"/></svg>DNI o celular · Enter</div></div>
+      <div class="g2" style="margin-top:10px"><div class="caja">Nombres</div><div class="caja">Apellidos</div></div>
+      <div class="g2" style="margin-top:10px"><div class="caja mono">Celular</div><div class="caja mono">DNI</div></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:10px"><span class="lbl">Al entregar</span><span class="ayuda">?</span><div class="seg chico" style="grid-template-columns:1fr 1fr;margin-left:auto"><span class="on">Boleta</span><span>Factura</span></div></div>
+    </section>
+  </div>
+</div>
+
+<!-- ======================= C ======================= -->
+<div class="col">
+  <div class="rotulo"><b>C · Solo recortar</b><span>La misma hoja de hoy, sin lo repetido ni las explicaciones a la vista.</span><br><span class="medida" data-alto></span></div>
+  <div class="hoja" data-medir>
+    <div class="pliegue"></div>
+    <div class="cab"><span class="flecha"><svg width="16" height="16"><use href="#i-flecha"/></svg></span>
+      <div style="text-align:right"><div class="serif" style="font-size:24px">Apartado</div><div class="sub">1 prenda · recoge hasta el lun, 23 nov</div></div></div>
+    <div class="pad" style="display:grid;gap:18px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span class="lbl">Se vende en</span><div class="seg chico" style="grid-template-columns:1fr 1fr"><span class="on">Tienda</span><span>TikTok</span></div></div>
+      <div style="display:grid;gap:10px"><p class="lbl">El cliente</p>
+        <div class="ficha"><span class="av">AQ</span><div style="flex:1;min-width:0"><b style="font-weight:600">Ana Lucía Quispe Rojas</b><p class="sub" style="font-size:13px">DNI 45678912 · 987 654 321</p></div><span class="camb" style="font-size:13.5px;text-decoration:underline">Editar</span></div>
+        <div style="display:flex;align-items:center;gap:10px"><span class="lbl">Comprobante al entregar</span><span class="ayuda">?</span><div class="seg chico" style="grid-template-columns:1fr 1fr;margin-left:auto"><span class="on">Boleta</span><span>Factura</span></div></div>
+      </div>
+      <div style="display:grid;gap:8px"><p class="lbl">Adelanto</p>
+        <div class="medios"><span class="medio" style="height:48px"><svg><use href="#i-ef"/></svg>Efectivo</span><span class="medio" style="height:48px"><svg><use href="#i-ta"/></svg>Tarjeta</span><span class="medio" style="height:48px;background:var(--m-yape);color:var(--color-crema)"><svg><use href="#i-ya"/></svg>Yape</span><span class="medio" style="height:48px"><svg><use href="#i-pl"/></svg>Plin</span><span class="medio" style="height:48px;font-size:12px"><svg><use href="#i-tr"/></svg>Transf.</span></div>
+        <div style="display:flex;gap:6px;align-items:center"><span class="chip">30%</span><span class="chip">Mitad</span><span class="chip">Todo</span><span class="caja llena num" style="width:110px;margin-left:auto;height:34px">S/ 10.00</span></div>
+      </div>
+      <div style="display:grid;gap:8px"><p class="lbl">Si no recoge, se devuelve por <span class="ayuda">?</span></p>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:8px"><div class="seg chico" style="grid-template-columns:repeat(3,auto)"><span class="on">Yape</span><span>Plin</span><span>Transf.</span></div><div class="caja llena mono" style="height:38px">987654321</div></div>
+      </div>
+      <label style="display:flex;gap:10px;align-items:center;font-size:14px"><span class="casilla"></span>Le leí las condiciones <span class="ayuda">?</span></label>
+    </div>
+    <div class="pie">
+      <p class="sub num" style="display:flex;justify-content:space-between"><span>Total S/30.50</span><span>Saldo al recoger <b style="color:var(--color-tinta)">S/20.50</b></span></p>
+      <div class="combo"><span class="av" style="width:26px;height:26px;font-size:12px">FA</span>Felipe Alvarez<span style="margin-left:auto;font-size:12.5px;color:var(--color-taupe)">admin</span></div>
+      <div class="btn"><svg width="16" height="16"><use href="#i-marca"/></svg><span class="lbl">Confirmar apartado</span><span class="m num">S/10.00</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= B ======================= -->
+<div class="col ancha">
+  <div class="rotulo"><b>B · La hoja ancha de Cobrar</b><span>Al tocar «Apartar», entra la misma hoja ancha que «Cobrar», sobre el catálogo, en dos columnas. El ticket queda a la derecha, quieto.</span><br><span class="medida bien" data-alto></span></div>
+  <div class="hoja" data-medir style="padding:12px 24px 16px">
+    <div class="pliegue"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--color-sand);padding-bottom:12px;margin-bottom:8px">
+      <p style="display:flex;align-items:baseline;gap:12px"><span class="lbl">Apartar</span><span class="serif num" style="font-size:48px;line-height:1">S/30.50</span><span class="sub">1 prenda · recoge hasta el <b style="color:var(--color-tinta)">lun 23 nov</b></span></p>
+      <div style="display:flex;gap:12px;align-items:center"><div class="seg chico" style="grid-template-columns:1fr 1fr"><span class="on">Tienda</span><span>TikTok</span></div><span class="x">×</span></div>
+    </div>
+    <div class="ancha-cuerpo">
+      <div style="display:grid;gap:8px;align-content:start">
+        <section class="paso"><div class="cp"><span class="n ok"><svg width="14" height="14"><use href="#i-check"/></svg></span><h3>Cliente</h3><span class="est">Ficha encontrada ✓</span></div>
+          <div class="ficha"><span class="av">AQ</span><div style="flex:1"><b style="font-weight:600">Ana Lucía Quispe Rojas</b><p class="sub" style="font-size:13px">DNI 45678912 · 987 654 321</p></div><span class="camb" style="font-size:13.5px;text-decoration:underline">Cambiar</span></div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:12px"><span class="lbl">Al entregar</span><span class="ayuda">?</span><div class="seg chico" style="grid-template-columns:1fr 1fr;margin-left:auto"><span class="on">Boleta</span><span>Factura</span></div></div>
+        </section>
+        <section class="paso"><div class="cp"><span class="n">3</span><h3>Si no recoge</h3><span class="ayuda">?</span></div>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:8px"><div class="seg chico" style="grid-template-columns:repeat(3,auto)"><span class="on">Yape</span><span>Plin</span><span>Transf.</span></div><div class="caja llena mono">987654321</div></div>
+          <label style="display:flex;gap:10px;align-items:center;margin-top:12px;font-size:14px"><span class="casilla"></span>Le leí las condiciones <span class="ayuda">?</span></label>
+        </section>
+      </div>
+      <section class="paso sigue" style="align-self:start"><div class="cp"><span class="n">2</span><h3>Adelanto</h3><span class="sigue-p">Sigue</span><span class="est">S/10.00 · resta S/20.50</span></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><span class="mq ef"><svg><use href="#i-ef"/></svg>Efectivo</span><span class="mq ta"><svg><use href="#i-ta"/></svg>Tarjeta</span><span class="mq ya on"><svg><use href="#i-ya"/></svg>Yape</span><span class="mq pl"><svg><use href="#i-pl"/></svg>Plin</span><span class="mq tr"><svg><use href="#i-tr"/></svg>Transf.</span><span></span></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px"><span class="billete on"><small>30%</small>10</span><span class="billete"><small>Mitad</small>16</span><span class="billete"><small>Todo</small>30.50</span><span class="billete" style="border-style:dashed;background:var(--color-papel);font-size:15px;color:var(--color-taupe)">Otro</span></div>
+      </section>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:12px;margin-top:12px">
+      <div class="combo"><span class="av" style="width:26px;height:26px;font-size:12px">FA</span>Felipe Alvarez<span style="margin-left:auto;font-size:12.5px;color:var(--color-taupe)">admin</span></div>
+      <div class="btn"><svg width="18" height="18"><use href="#i-check"/></svg><span class="lbl">Confirmar apartado</span><span class="m num">S/10.00</span></div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="notas">
+  <div class="nota"><h4>Lo que se repite hoy (las marcas rojas)</h4><ul>
+    <li>El adelanto se dice 3 veces: «Deja S/10», «Adelanto hoy S/10» (44 px) y el botón.</li>
+    <li>La fecha de recojo, 2 veces más en la casilla y el precio congelado.</li>
+    <li>El texto del paso, arriba y otra vez bajo el botón.</li>
+    <li>«Saldo al recoger», bajo la barra y en el pie.</li>
+    <li>Tres explicaciones a la vista (comprobante, devolución, condiciones): la regla «Poco texto» las manda detrás del «?».</li>
+    <li>El número de Yape casi siempre es su celular: se puede llenar solo.</li>
+  </ul></div>
+  <div class="nota"><h4>A · Pasos como Cobrar</h4><ul>
+    <li><span class="gana">Ganas:</span> se ve y se usa igual que Cobrar (paso numerado, «Sigue», estado verde a la derecha, baldosas con franja de color, billetes). Todo cabe sin bajar. El paso hecho se pliega a una línea.</li>
+    <li><span class="paga">Pagas:</span> los atajos 30 % · Mitad · Todo pasan a billetes y desaparece la barra; un paso plegado esconde los datos del cliente (se abren con «Cambiar»).</li>
+  </ul></div>
+  <div class="nota"><h4>B · La hoja ancha de Cobrar</h4><ul>
+    <li><span class="gana">Ganas:</span> es literalmente la hoja de Cobrar: mismo lugar, mismos cuadrados de pago. Todo a la vista sin pasos plegados.</li>
+    <li><span class="paga">Pagas:</span> el formulario sale del ticket lateral (más código que mover); tapa el catálogo mientras apartas. En el celular no cambia (ya es paso a paso).</li>
+  </ul></div>
+  <div class="nota"><h4>C · Solo recortar</h4><ul>
+    <li><span class="gana">Ganas:</span> el cambio más chico y seguro: quita lo repetido y las explicaciones; nadie reaprende nada.</li>
+    <li><span class="paga">Pagas:</span> sigue siendo un formulario largo distinto de Cobrar; el pie todavía queda al filo en un laptop.</li>
+  </ul></div>
+</div>
+
+<script>
+// Medido en el navegador: el alto real de cada hoja.
+const BASE = document.querySelector('[data-medir]').getBoundingClientRect().height;
+document.querySelectorAll('.col').forEach((col) => {
+  const h = col.querySelector('[data-medir]').getBoundingClientRect().height;
+  const m = col.querySelector('[data-alto]');
+  const menos = Math.round((1 - h / BASE) * 100);
+  m.textContent = `Alto ${Math.round(h)} px` + (menos > 0 ? ` · ${menos}% menos` : '');
+});
+</script>
+</body>
+</html>

@@ -12,6 +12,7 @@ import { diaLima, diaMes } from "./fechas-lima";
 import { motivoDeLaLinea } from "./ticket-linea-reglas";
 import { porcentajeDeLinea, RAZON_CAMPANA } from "./vender-reglas";
 import { titularDeOferta } from "./campana-reglas";
+import { soles as solesErp } from "./compras-reglas";
 
 /** D3 (Felipe, 2026-09-22): 7 días para recoger, aviso cuando faltan 2, 2 días para decidir tras vencer. */
 export const PLAZO_DIAS = 7;
@@ -281,13 +282,8 @@ export function erroresDelApartado(f: FormularioApartado, total: number): Partia
   return e;
 }
 
-/** La barra de 3 tramos (clienta → adelanto → devolución), igual que el cobro del Punto de venta. */
+/** Los 3 pasos del apartado (cliente → adelanto → devolución), numerados como los del cobro del Punto de venta. */
 export type PasoApartado = 0 | 1 | 2;
-export const TEXTO_PASO_APARTADO: Record<PasoApartado, string> = {
-  0: "Anota al cliente y elige quién hace el apartado.",
-  1: "Registra cuánto deja de adelanto y cómo.",
-  2: "Cómo se le devuelve si no recoge, y que acepte.",
-};
 export function pasoDelApartado(e: Partial<Record<CampoApartado, string>>): PasoApartado {
   if (e.nombres || e.apellidos || e.celular || e.dni || e.ruc || e.razonSocial || e.asesora || e.direccionEnvio) return 0;
   if (e.pago) return 1;
@@ -393,28 +389,33 @@ export function mensajeWhatsapp(a: Pick<Apartado, "nombres" | "codigo" | "venceE
 export type MotivoLiberacion = "vencio" | "clienta_desistio" | "error_de_carga";
 
 /**
- * El aviso de que el apartado se canceló (Felipe 2026-11-16): al liberar, la tienda le escribe al cliente desde su WhatsApp.
+ * El aviso de que el apartado se canceló (Felipe 2026-11-16): al liberar, la tienda le escribe al cliente desde su WhatsApp, y
+ * después, desde la fila del apartado liberado (también el que «se liberó solo» al vencer su gracia).
  * Dice por qué, en palabras del motivo elegido, y cómo vuelve su adelanto: se libera con el adelanto «por devolver», así
  * que se nombra el medio que el cliente dejó anotado. Lo envía la persona (wa.me), no el sistema.
  */
 export function mensajeLiberacion(
   a: Pick<Apartado, "nombres" | "codigo" | "adelanto" | "devolucionMedio" | "devolucionNumero" | "devolucionCciFinal">,
   tienda: string,
-  motivo: MotivoLiberacion,
+  /** null: no se sabe por qué (la fila de la lista no trae el motivo); el mensaje solo dice que se canceló. */
+  motivo: MotivoLiberacion | null,
 ): string {
   const que =
-    motivo === "vencio"
-      ? `tu apartado ${a.codigo} en CAYLA ${tienda} venció y lo cancelamos.`
-      : motivo === "clienta_desistio"
-        ? `como nos pediste, cancelamos tu apartado ${a.codigo} en CAYLA ${tienda}.`
-        : `cancelamos el apartado ${a.codigo} en CAYLA ${tienda}: se registró por error.`;
+    motivo === null
+      ? `cancelamos tu apartado ${a.codigo} en CAYLA ${tienda}.`
+      : motivo === "vencio"
+        ? `tu apartado ${a.codigo} en CAYLA ${tienda} venció y lo cancelamos.`
+        : motivo === "clienta_desistio"
+          ? `como nos pediste, cancelamos tu apartado ${a.codigo} en CAYLA ${tienda}.`
+          : `cancelamos el apartado ${a.codigo} en CAYLA ${tienda}: se registró por error.`;
   if (a.adelanto <= 0) return `Hola ${a.nombres}, ${que}`;
   const numero = formatoCelular(a.devolucionNumero ?? "");
   const por =
     a.devolucionMedio === "transferencia"
       ? `por transferencia${a.devolucionCciFinal ? ` a tu cuenta (CCI …${a.devolucionCciFinal})` : ""}`
       : `por ${a.devolucionMedio === "yape" ? "Yape" : "Plin"}${numero ? ` al ${numero}` : ""}`;
-  return `Hola ${a.nombres}, ${que} Te devolvemos tu adelanto de S/${a.adelanto.toFixed(2)} ${por}.`;
+  // El monto con el formato del ERP («S/ 90.00», espacio que no se parte: /textos, ADR-0413), no el «S/90.00» de `mensajeWhatsapp`.
+  return `Hola ${a.nombres}, ${que} Te devolvemos tu adelanto de ${solesErp(a.adelanto)} ${por}.`;
 }
 
 /** Lo que la base sabe de los avisos de un apartado (`fn_avisos_separaciones`, 20260926233000). */
