@@ -50,31 +50,38 @@ const PRENDA_PONE_SUS_MEDIDAS = [
 const PUESTA_DE_CINTURA =
   "Conviértela en una foto de catálogo profesional con efecto MANIQUÍ INVISIBLE (ghost mannequin): la prenda PUESTA, de frente, derecha y centrada, con un margen pequeño alrededor.";
 
+/** La caída se dice solo de la tela plana suelta y de la falda: a un legging o un jean skinny («pierna») les contradiría lo ceñido. */
 function maniquiDeCintura(forma: FormaDeCintura): string {
-  return forma === "falda"
-    ? "Lo que pone el MANIQUÍ: la postura de frente, y la cintura y las caderas a su altura; la falda cae con el peso de la tela."
-    : "Lo que pone el MANIQUÍ: la postura de frente, y la cintura y las caderas a su altura; las piernas caen con el peso de la tela.";
+  const base = "Lo que pone el MANIQUÍ: la postura de frente, y la cintura y las caderas a su altura";
+  if (forma === "falda") return `${base}; la falda cae con el peso de la tela.`;
+  return forma === "pierna-suelta" ? `${base}; las piernas caen con el peso de la tela.` : `${base}.`;
 }
 
-const PRETINA =
-  "PRETINA: con su mismo ancho y su mismo cierre, como en la foto (botón y bragueta al frente, o pretina elástica); donde una mano la sostiene, la arruga es de la mano y no de la pretina.";
+/** La pretina, con el ejemplo de cierre de cada forma (una falda no lleva bragueta: su cierre va al frente, al costado o es elástica). */
+function pretina(forma: FormaDeCintura): string {
+  const cierres = forma === "falda" ? "al frente, al costado o elástica" : "botón y bragueta al frente, o pretina elástica";
+  return `PRETINA: con su mismo ancho y su mismo cierre, como en la foto (${cierres}); donde una mano la sostiene, la arruga es de la mano y no de la pretina.`;
+}
 
-/** La basta de un pantalón de tela plana: suelta, el único rasgo que la decisión fija; el resto (ancho, vuelta, borde) sale de la foto. */
-const BASTA_SUELTA = "BASTA: suelta alrededor del tobillo, con su mismo ancho y su mismo acabado que en la foto (dobladillo, vuelta o borde).";
+/**
+ * La basta de un pantalón de tela plana: SUELTA es el único rasgo que se fija; dónde termina, su ancho y su acabado salen de la foto (un culotte o un
+ * capri terminan a media pierna, un jean globo la tiene más angosta: ninguno se alarga ni se ensancha, revisión del 2026-11-16).
+ */
+const BASTA_SUELTA = "BASTA: suelta, donde termina en la foto, con su mismo ancho y su mismo acabado (dobladillo, vuelta o borde).";
 
 function prendaDeCintura(forma: FormaDeCintura): string {
   const partes =
     forma === "falda"
       ? [
           "LARGO: el mismo largo respecto del ancho que tiene la prenda (de la cintura al ruedo); no la alargues.",
-          PRETINA,
+          pretina(forma),
           "VUELO: el mismo de la cadera al ruedo: si es amplia, sigue amplia; si es recta o ceñida, igual.",
           "RUEDO: con su mismo ancho y su mismo acabado.",
         ]
       : [
           "LARGO: el mismo largo respecto del ancho que tiene la prenda (de la cintura a la basta); no la alargues.",
-          PRETINA,
-          "PIERNA: con la misma forma que en la foto, de la cadera a la basta: si es recta, sigue recta; si se abre o se cierra hacia abajo, igual; si es ancha, ancha; si es ceñida, ceñida.",
+          pretina(forma),
+          "PIERNA: con la misma forma que en la foto, de la cadera a la basta: si es recta, sigue recta; si se abre o se cierra hacia abajo, igual; si es ancha, ancha; si es ceñida, ceñida; si tiene volumen, lo conserva.",
           forma === "pierna-suelta" ? BASTA_SUELTA : "BASTA: como en la foto, con su mismo ancho y su mismo acabado.",
         ];
   return [
@@ -98,7 +105,7 @@ function formaDelMoldeDeCintura(forma: FormaDeCintura): string {
 
 /** Lo que va después de copiar el molde: la basta suelta (si es de tela plana) y que la ficha manda sobre el molde. */
 function despuesDelMoldeDeCintura(forma: FormaDeCintura, deLaFoto: string): string {
-  const basta = forma === "pierna-suelta" ? `BASTA: suelta alrededor del tobillo, como en ${deLaFoto}, aunque el molde la muestre distinta. ` : "";
+  const basta = forma === "pierna-suelta" ? `BASTA: suelta, como en ${deLaFoto}, aunque el molde la muestre distinta. ` : "";
   return `${basta}Si el MOLDE contradice los DATOS DE LA PRENDA, mandan los datos.`;
 }
 

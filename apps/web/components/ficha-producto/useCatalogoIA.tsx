@@ -7,7 +7,7 @@ import { abrirFotosElegidas } from "@/lib/foto-elegida-cliente";
 import { subirFotoProducto, subirParDeCatalogo } from "@/lib/producto-fotos";
 import { pedirFotoDeCatalogo } from "@/lib/foto-catalogo-cliente";
 import type { DatosDePrenda } from "@/lib/ficha-foto-ia";
-import { avisoIANoRespondio, esFotoIA, moldeDeLaPrenda, originalDeLaFotoIA } from "@/lib/foto-catalogo-reglas";
+import { avisoIANoRespondio, esFotoIA, moldeAlPreparar, moldeDeLaPrenda, originalDeLaFotoIA } from "@/lib/foto-catalogo-reglas";
 import type { FotoLocal } from "@/lib/fotos-por-color-reglas";
 import type { FotoSubida } from "./useSubirFotos";
 import { HojaCatalogoIA, type PedidoCatalogo } from "./HojaCatalogoIA";
@@ -141,15 +141,11 @@ export function useCatalogoIA({
       let molde: Blob | null = null;
       // Si este color resulta ser el molde, `soltar` le avisa a los que lo esperan (con su foto, o `null` si la IA falló).
       const esMolde: { soltar: ((b: Blob | null) => void) | null } = { soltar: null };
-      // El color que se rehace no es su propio molde: rehacer la foto que salió mal (el pantalón de lino que salió buzo) mandaba ese mismo buzo
-      // como molde y la IA lo copiaba (revisión del 2026-11-16). Sin otro color con foto de IA, va el pedido de una foto.
-      const url = moldeDeLaPrenda(
-        colores.filter((c) => c !== p.color),
-        fotosRef.current.filter((f) => f.colorCodigo !== p.color),
-      );
-      // La foto «para todos los colores» no usa molde ni lo es: puede mostrar la prenda en otra forma.
-      if (p.color === null) molde = null;
-      else if (url) molde = await fetch(url).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+      // La misma regla que la hoja (`moldeAlPreparar`): rehacer el color que ES el molde va sin molde (rehacer el pantalón de lino que salió buzo
+      // mandaba ese mismo buzo, o un color copiado de él, como molde: revisión del 2026-11-16); la foto «para todos los colores» tampoco usa molde.
+      const decision = moldeAlPreparar(colores, fotosRef.current, p.color);
+      if (decision.tipo === "molde") molde = await fetch(decision.url).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+      else if (decision.tipo === "sin-molde") molde = null;
       else if (moldeEnCurso.current) molde = await moldeEnCurso.current.promesa;
       else {
         // Este color es el molde de los que vengan detrás mientras se prepara.

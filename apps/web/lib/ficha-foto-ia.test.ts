@@ -127,17 +127,18 @@ describe("fase 2 (2026-11-16): el pantalón de lino del 14-nov, dicho en positiv
     expect(Object.keys(FORMA_DE_CINTURA).every((p) => ZONA_POR_PREFIJO[p] === "cintura")).toBe(true);
   });
 
-  it("un pantalón o un jean de tela plana, o sin tejido, es de «pierna suelta» y se dice «de tela plana» (el lino del 14-nov, aunque falte la tela)", () => {
+  it("un pantalón o un jean de tela claramente plana, o sin tejido, es de «pierna suelta» y se dice «de tela plana» (el lino del 14-nov, aunque falte la tela)", () => {
     for (const prefijo of ["PAN", "JEA"])
-      for (const tejido of [null, "Lino", "Drill", "Algodón", "Poliéster", "Denim", "Tela"]) {
+      for (const tejido of [null, "Lino", "Drill", "Gabardina", "Denim", "Sastre"]) {
         const f = fichaParaIA({ prefijo, tejido });
         expect(f?.cintura, `${prefijo} ${tejido}`).toBe("pierna-suelta");
         expect(f?.texto, `${prefijo} ${tejido}`).toContain("Es un pantalón de tela plana");
       }
   });
 
-  it("CONTROL de producción: los buzos de franela y el legging de licra que hay en Pantalones NO son de pierna suelta ni se dicen de tela plana", () => {
-    for (const tejido of ["Franela", "Licra", "Suplex", "Jersey", "Polar", "Rib"]) {
+  it("CONTROL de producción: los buzos (franela, «Tela») y el legging de licra de Pantalones NO son de pierna suelta ni se dicen de tela plana", () => {
+    // También lo ambiguo: un jogger de algodón existe, y «Algodón alicrado» o «Mojado» se pegan al cuerpo. Solo se afirma lo claramente plano.
+    for (const tejido of ["Franela", "Licra", "Suplex", "Jersey", "Polar", "Rib", "Tela", "Algodón", "Poliéster", "Algodón alicrado", "Mojado"]) {
       const f = fichaParaIA({ prefijo: "PAN", tejido });
       expect(f?.cintura, tejido).toBe("pierna");
       expect(f?.texto, tejido).not.toMatch(/tela plana|tejido PLANO/);
@@ -152,9 +153,8 @@ describe("fase 2 (2026-11-16): el pantalón de lino del 14-nov, dicho en positiv
     for (const prefijo of ["SHO", "FAL", "CMS", "SUD"]) expect(fichaParaIA({ prefijo, tejido: "Lino" })?.texto ?? "", prefijo).not.toMatch(/pantalón de tela/);
   });
 
-  it("la caída («cae con el peso de la tela») se dice solo de lo que cuelga de la cintura: a un chaleco de Sastre o a una blusa de organza no", () => {
-    expect(fichaParaIA({ prefijo: "PAN", tejido: "Lino" })?.texto).toMatch(/se ve su trama y cae con el peso de la tela/);
-    for (const [prefijo, tejido] of [["CHA", "Sastre"], ["CMS", "Organza"], ["CMS", "Seda"], ["BLZ", "Gabardina"]]) {
+  it("la ficha no habla de caída: a un chaleco de Sastre, a una blusa de organza o a un jean globo les contradiría su tela", () => {
+    for (const [prefijo, tejido] of [["PAN", "Lino"], ["JEA", "Denim"], ["CHA", "Sastre"], ["CMS", "Organza"], ["CMS", "Seda"], ["BLZ", "Gabardina"]]) {
       const texto = fichaParaIA({ prefijo, tejido })?.texto ?? "";
       expect(texto, `${prefijo} ${tejido}`).toMatch(/Es un tejido PLANO, hecho en telar: se ve su trama\./);
       expect(texto, `${prefijo} ${tejido}`).not.toMatch(/cae con el peso/);

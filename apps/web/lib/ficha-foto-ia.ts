@@ -23,8 +23,8 @@ export type ZonaDeLaPrenda = "hombros" | "cintura";
 
 /**
  * Qué es una prenda que cuelga de la cintura, para nombrar sus partes (2026-11-16, fase 2 del «pantalón que sale buzo»):
- * - «pierna-suelta»: un pantalón o un jean de tela PLANA (o sin tejido elegido): la basta va suelta alrededor del tobillo, nunca ajustada;
- * - «pierna»: un short, o un pantalón de PUNTO (franela, licra, jersey…: un buzo o un legging de verdad): la basta, como en la foto;
+ * - «pierna-suelta»: un pantalón o un jean de tela claramente PLANA (`TEJIDOS_PLANOS`) o sin tejido elegido: la basta va suelta;
+ * - «pierna»: un short, o un pantalón de cualquier otra tela (punto, elástica o ambigua: franela, licra, algodón, «Tela»…): la basta, como en la foto;
  * - «falda»: vuelo y ruedo, sin piernas.
  * La pierna nunca fija un ancho: sigue la forma de la foto (recta, flare, globo, mom…).
  */
@@ -84,7 +84,8 @@ export const ZONA_POR_PREFIJO: Readonly<Record<string, ZonaDeLaPrenda | null>> =
 /**
  * @internal Exportada para su prueba (toda categoría de cintura tiene su forma); la pantalla la usa a través de `fichaParaIA`.
  * La forma de partida de cada categoría. Pantalones y Jeans parten de «pierna-suelta», pero NO es una verdad de la categoría: en producción hay
- * buzos de franela y un legging de licra en Pantalones (revisión del 2026-11-16), así que con un tejido de punto pasan a «pierna» (`TEJIDOS_DE_PUNTO`).
+ * buzos de franela y de «Tela» y un legging de licra en Pantalones (revisión del 2026-11-16). Por eso solo quedan en «pierna-suelta» con una tela
+ * claramente plana o sin tejido; con cualquier otra, «pierna» (que no afirma nada de la basta).
  */
 export const FORMA_DE_CINTURA: Readonly<Record<string, FormaDeCintura>> = {
   FAL: "falda",
@@ -94,9 +95,8 @@ export const FORMA_DE_CINTURA: Readonly<Record<string, FormaDeCintura>> = {
 };
 
 /**
- * @internal Exportada para su prueba; la pantalla la usa a través de `fichaParaIA`.
- * Tejidos de PUNTO o afelpados: la tela de un buzo, un jogger o un legging. Un pantalón con uno de estos no se pide de «pierna suelta» (su basta puede
- * ser un puño de verdad) ni se dice «de tela plana».
+ * @internal Exportada para su prueba (que ninguno sea plano); la pantalla no la usa: un pantalón solo es de «pierna suelta» con una tela PLANA.
+ * Tejidos de PUNTO o afelpados: la tela de un buzo, un jogger o un legging. Documenta los controles de la prueba.
  */
 export const TEJIDOS_DE_PUNTO: ReadonlySet<FamiliaTejido> = new Set<FamiliaTejido>(["franela", "hilo", "jersey", "licra", "mesh", "pique", "polar", "rib", "suplex"]);
 
@@ -188,10 +188,11 @@ export function fichaParaIA(datos: DatosDePrenda | null | undefined): FichaParaI
 
   const zona = prefijo ? (ZONA_POR_PREFIJO[prefijo] ?? null) : null;
   const familia = tejido ? familiaDeTejido(tejido) : null;
-  const dePunto = Boolean(familia && TEJIDOS_DE_PUNTO.has(familia));
+  // Sin tejido elegido vale lo de la categoría (el lino del 14-nov sigue defendido aunque falte la tela); con tejido, solo una tela claramente plana
+  // es «pierna suelta». Lo ambiguo («Algodón», «Tela», «Algodón alicrado», «Mojado») no se afirma: un jogger de algodón existe.
+  const plana = !tejido || Boolean(familia && TEJIDOS_PLANOS.has(familia));
   const deCategoria = zona === "cintura" && prefijo ? (FORMA_DE_CINTURA[prefijo] ?? null) : null;
-  // Un pantalón de punto (un buzo, un legging) no es de «pierna suelta»: su basta va como en la foto.
-  const cintura: FormaDeCintura | null = deCategoria === "pierna-suelta" && dePunto ? "pierna" : deCategoria;
+  const cintura: FormaDeCintura | null = deCategoria === "pierna-suelta" && !plana ? "pierna" : deCategoria;
 
   const partes: string[] = ["DATOS DE LA PRENDA, elegidos por el equipo de la tienda (son ciertos y mandan sobre lo que adivines de la foto):"];
   if (tipo) partes.push(`Tipo de prenda: ${tipo}.`);
@@ -204,10 +205,9 @@ export function fichaParaIA(datos: DatosDePrenda | null | undefined): FichaParaI
     const queEs = ayuda ? paraLaIA(ayuda) : "";
     partes.push(queEs ? `Tela: ${tejido}. ${queEs}` : `Tela: ${tejido}.`);
     // En positivo: nombrar lo que se quiere evitar («felpa», «buzo») le pone esas palabras al modelo de imagen (las guías de Google, Ideogram y
-    // BFL piden describir lo que sí se quiere; revisión del 2026-11-16). La caída solo se dice de lo que cuelga de la cintura: a un chaleco de
-    // Sastre o a una blusa de organza («caída estructurada», «algo rígida») les contradiría su tela.
-    if (familia && TEJIDOS_PLANOS.has(familia))
-      partes.push(zona === "cintura" ? "Es un tejido PLANO, hecho en telar: se ve su trama y cae con el peso de la tela." : "Es un tejido PLANO, hecho en telar: se ve su trama.");
+    // BFL piden describir lo que sí se quiere; revisión del 2026-11-16). Sin hablar de caída: a un chaleco de Sastre, a una blusa de organza o a un
+    // jean globo les contradiría su tela (la caída, si va, la dice el pedido de cintura una sola vez).
+    if (familia && TEJIDOS_PLANOS.has(familia)) partes.push("Es un tejido PLANO, hecho en telar: se ve su trama.");
   }
 
   if (patron) {

@@ -12,4 +12,7 @@ flare, globo o mom: el texto fijo («pierna recta», «basta abierta y recta») 
 suelta solo en tela plana (la de punto, como en la foto), con molde la basta no se copia, el color que se rehace no es su propio molde, y la caída no se
 le dice a una blusa ni a un chaleco.
 Por qué así: la premisa «en Pantalones solo hay tela» no se cumple en los datos; el tejido sí distingue un buzo de un pantalón de lino.
-Felipe se lleva: PAN-0028 «Buzo Mirahme» tiene el tejido «Tela» y recibiría la basta suelta: hay que corregirle el tejido.
+Felipe se lleva: una segunda verificación pidió más: la basta no nombra el tobillo (culotte, capri), solo una tela claramente plana se dice plana (así
+PAN-0028 «Buzo Mirahme», con «Tela», recibe «como en la foto»), la caída va una sola vez y no al legging, la falda no lleva «bragueta», y rehacer el
+color que es el molde va sin molde, con la misma regla que la hoja (`moldeAlPreparar`). Para que un pantalón de algodón quede defendido, su tejido
+tiene que ser uno plano (Drill, Gabardina, Popelina…).

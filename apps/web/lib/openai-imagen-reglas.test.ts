@@ -161,7 +161,7 @@ describe("pedidoDeCatalogo con la ficha de la prenda (lo ya elegido, 2026-11-14)
     const { prompt } = pedidoDeCatalogo({}, lino);
     expect(prompt).toMatch(/interior de la pretina/);
     expect(prompt).toMatch(/de la cintura a la basta/);
-    expect(prompt).toMatch(/BASTA: suelta alrededor del tobillo/);
+    expect(prompt).toMatch(/BASTA: suelta, donde termina en la foto/);
     expect(prompt).toMatch(/PIERNA: con la misma forma que en la foto/);
     // «la del cuello» sí aparece, pero en la lista de etiquetas que se quitan (`SIN_ETIQUETAS`), que es común a toda prenda.
     expect(prompt).not.toMatch(/interior del cuello|hombros|pecho|MANGAS/);
@@ -271,7 +271,8 @@ describe("fase 2 (2026-11-16): el pedido de cintura, sin empujar al buzo, y el d
     for (const ficha of [pan, jean, sho, buzo])
       for (const extras of CAMINOS) {
         const { prompt } = pedidoDeCatalogo(extras, ficha);
-        expect(prompt, JSON.stringify(extras)).not.toMatch(/del mismo ancho desde la cadera|caen rectas|del mismo ancho que la pierna|abierta y recta/);
+        // Tampoco se fija dónde termina la basta: un culotte o un capri terminan a media pierna.
+        expect(prompt, JSON.stringify(extras)).not.toMatch(/del mismo ancho desde la cadera|caen rectas|del mismo ancho que la pierna|abierta y recta|tobillo/);
       }
     expect(pedidoDeCatalogo({}, jean).prompt).toMatch(/PIERNA: con la misma forma que en la foto.*si se abre o se cierra hacia abajo, igual/);
   });
@@ -281,7 +282,9 @@ describe("fase 2 (2026-11-16): el pedido de cintura, sin empujar al buzo, y el d
     expect(prompt).toMatch(/PRETINA: con su mismo ancho y su mismo cierre/);
     expect(prompt).toMatch(/la arruga es de la mano y no de la pretina/);
     expect(prompt).toMatch(/las piernas caen con el peso de la tela/);
-    expect(prompt).toMatch(/BASTA: suelta alrededor del tobillo, con su mismo ancho y su mismo acabado que en la foto/);
+    // La caída se dice una sola vez (en el maniquí), no también en la ficha.
+    expect(prompt.match(/con el peso de la tela/g)).toHaveLength(1);
+    expect(prompt).toMatch(/BASTA: suelta, donde termina en la foto, con su mismo ancho y su mismo acabado/);
   });
 
   it("CONTROL de producción: el buzo de franela de Pantalones conserva su basta como en la foto (no se dibuja como pantalón de vestir)", () => {
@@ -290,6 +293,13 @@ describe("fase 2 (2026-11-16): el pedido de cintura, sin empujar al buzo, y el d
       expect(prompt, JSON.stringify(extras)).not.toMatch(/BASTA: suelta|tela plana|de vestir/);
     }
     expect(pedidoDeCatalogo({}, buzo).prompt).toMatch(/BASTA: como en la foto/);
+    // Un legging o un buzo («pierna») no recibe «las piernas caen con el peso de la tela»: le contradiría lo ceñido.
+    expect(pedidoDeCatalogo({}, buzo).prompt).not.toMatch(/caen con el peso/);
+  });
+
+  it("una falda no recibe «bragueta» como ejemplo de su cierre", () => {
+    expect(pedidoDeCatalogo({}, fal).prompt).toMatch(/PRETINA: .*\(al frente, al costado o elástica\)/);
+    expect(pedidoDeCatalogo({}, fal).prompt).not.toMatch(/bragueta/);
   });
 
   it("CONTROL: un short deja la basta como en la foto, y una falda habla de vuelo y ruedo, no de piernas", () => {
@@ -315,7 +325,7 @@ describe("fase 2 (2026-11-16): el pedido de cintura, sin empujar al buzo, y el d
   it("con molde, un pantalón de tela plana NO copia la basta del molde (un molde viejo con puño la pasaría a todos los colores)", () => {
     const conMolde = pedidoDeCatalogo({ molde: true }, pan).prompt;
     expect(conMolde).not.toMatch(/la forma de la pierna, la basta/);
-    expect(conMolde).toMatch(/BASTA: suelta alrededor del tobillo, como en la IMAGEN 1, aunque el molde la muestre distinta/);
+    expect(conMolde).toMatch(/BASTA: suelta, como en la IMAGEN 1, aunque el molde la muestre distinta/);
     expect(pedidoDeCatalogo({ espalda: true, molde: true }, pan).prompt).toMatch(/como en las fotos reales, aunque el molde la muestre distinta/);
     // El buzo de franela sí copia su basta del molde (puede ser un puño de verdad).
     expect(pedidoDeCatalogo({ molde: true }, buzo).prompt).toMatch(/la forma de la pierna, la basta, los pliegues/);

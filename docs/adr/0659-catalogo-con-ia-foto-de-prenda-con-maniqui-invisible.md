@@ -169,29 +169,32 @@ color», así que la textura salía del molde. La ficha decía «sin pelusa ni t
 **Decisiones de Felipe (2026-11-16):** cambiar el texto **sin medir** con una lámina (se le advirtió: es la misma apuesta del 14-nov), y «en
 Pantalones solo hay pantalones de tela». **Los datos contradicen esa segunda premisa:** en producción hay 4 prendas activas de punto en Pantalones
 (PAN-0010 y PAN-0011, buzos de franela; PAN-0027, legging de Licra; PAN-0028, «Buzo Mirahme» con el tejido genérico «Tela»), y 8 jeans que no son
-rectos (flare, globo, mom). Por eso **la basta la decide el TEJIDO, no la categoría**.
+rectos (flare, globo, mom). Por eso **la basta la decide el TEJIDO, no la categoría**, y solo una tela claramente plana se afirma.
 
 **Lo que cambió** (`lib/openai-imagen-reglas.ts`, `lib/ficha-foto-ia.ts`, y el molde en `useCatalogoIA.tsx` / `useCatalogoIAAlta.tsx`):
 1. **El cuerpo del pedido de hombros no cambió ni una letra.** Es lo único medido (99 % de la silueta). Una prueba congela sus siete huellas sha256.
    La **ficha** que va al final de TODO pedido sí cambió (no estaba medida): otras dos huellas, de una blusa de seda y un chaleco de sastre con su
    ficha, hacen que un cambio en ella no pase sin verse.
-2. **Tres formas de cintura** (`FormaDeCintura`): «pierna-suelta» (Pantalones y Jeans de tela PLANA o sin tejido), «pierna» (Shorts, y Pantalones o
-   Jeans de PUNTO: `TEJIDOS_DE_PUNTO` = franela, hilo, jersey, licra, mesh, piqué, polar, rib, suplex) y «falda».
-3. **El pedido de cintura, en positivo:** la prenda PUESTA sin «volumen 3D»; «las piernas caen con el peso de la tela»; la PRETINA va sola, con su
-   cierre (botón y bragueta, o elástica) y «donde una mano la sostiene, la arruga es de la mano»; la PIERNA «con la misma forma que en la foto… si se
-   abre o se cierra hacia abajo, igual» (nunca se le fija un ancho: un flare o un mom no se enderezan); la BASTA de «pierna-suelta», «suelta alrededor
-   del tobillo, con su mismo ancho y su mismo acabado que en la foto (dobladillo, vuelta o borde)»; la de «pierna», «como en la foto»; la falda, VUELO
-   y RUEDO. Ninguno nombra puño, cordón, felpa, jogger ni buzo (lo vigila una prueba).
+2. **Tres formas de cintura** (`FormaDeCintura`): «pierna-suelta» (Pantalones y Jeans de tela claramente PLANA, `TEJIDOS_PLANOS`, o sin tejido),
+   «pierna» (Shorts, y Pantalones o Jeans de cualquier otra tela: de punto, elástica o ambigua —franela, licra, «Algodón», «Tela», «Algodón alicrado»,
+   «Mojado»—: un jogger de algodón existe) y «falda».
+3. **El pedido de cintura, en positivo:** la prenda PUESTA sin «volumen 3D»; la caída («las piernas caen con el peso de la tela») solo en «pierna-suelta» y
+   falda, una sola vez (a un legging le contradiría lo ceñido); la PRETINA va sola, con su cierre (botón y bragueta, o elástica; en la falda, al frente,
+   al costado o elástica) y «donde una mano la sostiene, la arruga es de la mano»; la PIERNA «con la misma forma que en la foto… si se abre o se cierra
+   hacia abajo, igual… si tiene volumen, lo conserva» (nunca se le fija un ancho: un flare, un globo o un mom no se enderezan); la BASTA de
+   «pierna-suelta», «suelta, donde termina en la foto, con su mismo ancho y su mismo acabado (dobladillo, vuelta o borde)» (sin nombrar el tobillo: un
+   culotte o un capri terminan a media pierna); la de «pierna», «como en la foto»; la falda, VUELO y RUEDO. Ninguno nombra puño, cordón, felpa, jogger ni buzo (lo vigila una prueba).
 4. **Con molde, una prenda de cintura copia su FORMA y toma de la foto real la TEXTURA**; la basta de «pierna-suelta» NO sale del molde («suelta…
    aunque el molde la muestre distinta»: un molde viejo con puño de jogger no la pasa a los demás colores), y «si el MOLDE contradice los DATOS DE LA
    PRENDA, mandan los datos».
-5. **El color que se rehace no es su propio molde** (Editar producto y el alta): rehacer la foto que salió buzo mandaba ese mismo buzo como molde.
-6. **La ficha**: «Es un pantalón de tela plana, de vestir o casual» para «pierna-suelta» aunque el tejido falte; la frase de tejido plano dice la caída
-   solo en lo que cuelga de la cintura (a un chaleco de Sastre o una blusa de organza les contradecía su tela); y las cláusulas de la ayuda escritas
+5. **Rehacer el color que ES el molde va sin molde** (`moldeAlPreparar`, la misma regla con la que la hoja dice «misma forma que…»): rehacer la foto
+   que salió buzo mandaba ese mismo buzo como molde, o un segundo color copiado de él.
+6. **La ficha**: «Es un pantalón de tela plana, de vestir o casual» para «pierna-suelta» aunque el tejido falte; la frase de tejido plano ya no habla de
+   caída (a un chaleco de Sastre, una blusa de organza o un jean globo les contradecía su tela); y las cláusulas de la ayuda escritas
    para personas (el proveedor, la etiqueta, «elige Seda») no van al pedido, sin perder el dato de la tela de la misma frase.
 
-**Se rompe si** una prenda de punto tiene elegido un tejido plano o genérico (PAN-0028 «Buzo Mirahme», con «Tela», recibe la basta suelta: hay que
-corregir su tejido), o si aparece un tejido de punto nuevo que no esté en `TEJIDOS_DE_PUNTO`.
+**Se rompe si** una prenda de punto tiene elegido un tejido claramente plano (un buzo marcado «Lino» recibe la basta suelta), o si un pantalón de tela
+plana tiene un tejido ambiguo («Algodón», «Tela»): recibe «pierna», que no lo defiende del buzo. Lo que manda es el tejido bien elegido.
 
 **Sigue sin medir.** Lo que lo mediría sin costo: que el laboratorio use `pedidoDeCatalogo` con la ficha (hoy manda el de blusa) y una medida pura del
 canal alfa (ancho de la basta ÷ ancho de la rodilla; un puño se ve como un ensanche justo antes de la basta). Una lámina de 6 prendas × 3 variantes
