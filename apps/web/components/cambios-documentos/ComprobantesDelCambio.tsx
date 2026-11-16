@@ -34,6 +34,20 @@ import {
    Todo lo que dice sale de `lib/cambios-documentos-reglas.ts`; la base tiene la última palabra (`previsualizar_documentos_cambio`).
    ==================================================================== */
 
+/** «Sobre la B001-000004»: el número de un comprobante no se parte en el guion al final de una línea (a 375 px quedaba «B001-» arriba y
+ *  «000004» abajo). Solo cambia cómo se dibuja: el texto es el mismo. */
+function conNumeroEntero(texto: string) {
+  return texto.split(/([A-Z]{1,2}[0-9A-Z]{2,3}-\d+)/).map((parte, i) =>
+    i % 2 === 1 ? (
+      <span key={i} className="whitespace-nowrap">
+        {parte}
+      </span>
+    ) : (
+      parte
+    ),
+  );
+}
+
 /** Lo que se le pregunta a la base; `null` mientras no hay nada que preguntar (sin diferencia, o la base todavía no emite). */
 export type ConsultaPrevia = {
   ventaItemId: string;
@@ -128,7 +142,7 @@ export function ComprobantesDelCambio({
             <li key={l.clave} className="flex items-start justify-between gap-4 text-sm">
               <span className="min-w-0">
                 <span className="block font-semibold text-tinta">{l.titulo}</span>
-                {l.detalle && <span className="block text-tinta/70">{l.detalle}</span>}
+                {l.detalle && <span className="block text-tinta/70">{conNumeroEntero(l.detalle)}</span>}
               </span>
               <span className="flex shrink-0 flex-col items-end gap-1">
                 <span className="font-semibold tabular-nums text-tinta">{soles(l.monto)}</span>

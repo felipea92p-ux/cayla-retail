@@ -38,8 +38,25 @@ existió. Lo que corresponde es una nota de crédito sobre la boleta original y 
 - Se reservan en Postgres dentro del mismo guardado (o quedan «por emitir» hasta que la original esté aceptada); se transmiten por el
   envío y la cola que ya existen. Si Lucode no responde, el cambio no se pierde ni se deshace.
 
+### Hecho (2026-11-16, commits locales, sin PR)
+
+- [x] Base (partes 1 y 2): los documentos del cambio, candados de anular/liberar, `previsualizar_documentos_cambio`, la sonda.
+      `pnpm pruebas:cambio-con-comprobantes` 20/20 (con mutante); 31 suites vecinas en verde en una base aislada (5 ajustadas).
+- [x] Envío a SUNAT: `/api/lucode/emitir {cambio_id}` y el barrido que emite las notas pendientes.
+- [x] Pantalla de Cambios: bloque «Comprobantes», cliente editable, ticket con los documentos reales y la boleta en la térmica.
+- [x] Comprobantes: «Cambio de B001-…», sin Anular ni Liberar en lo que sale de un cambio.
+- [x] Parte 3: INV-30, INV-22 sin falso positivo y `fn_diferencias_de_cambio` (sin conectar). `pnpm pruebas:cambio-con-comprobantes-vigia` 33/33.
+- [x] Probado en el navegador contra la base aislada y el Lucode falso: boleta aceptada (nota 06 + boleta nueva al momento, los dos
+      aceptados) y boleta sin aceptar a 375 px (boleta nueva al momento; la nota «Por emitir», la emitió el barrido al aceptarse la
+      original). Vigía: INV-06, 07, 22 y 30 en verde. Web: 168 601 pruebas en verde.
+
 ### Pendiente
 
-- [ ] ADR y reserva de números (`pnpm reservar adr` / `pnpm reservar migracion`).
-- [ ] Construir actividad por actividad (`/construir`), con la lista aprobada por Felipe.
-- [ ] Probar contra el sandbox de Lucode, nunca contra la SUNAT real; pegar en producción solo con el OK de Felipe.
+- [ ] **Felipe:** las dos reglas PROVISIONALES de metas (venta sin asesora; CAYLA y CLAURE en la misma sede) y conectar los ocho lectores
+      de metas a `fn_diferencias_de_cambio` (Rendimiento es del plan de Dany: avisar).
+- [ ] **Felipe:** `fn_claure_cambios` valora un cambio por varias del mismo modelo a precio de lista (anterior a este ADR, plata de CLAURE).
+- [ ] Abrir el PR con `/abrir-pr` y probar en su vista previa de Vercel, contra el sandbox de Lucode, una nota 07 (una prenda de dos) y
+      una 06, de boleta y de factura (decisión 9). Nunca contra la SUNAT real.
+- [ ] `/milimetro auditar /cambios` y `/vender/comprobantes` (lo pide el check del PR), `/formidable`, `/chaos` y `guias:recorrer`.
+- [ ] Pegar en producción las partes 1, 2 y 3 en ese orden, con el OK de Felipe; después `pnpm datos:generar:produccion` y `datos:comparar`.
+- [ ] Obra aparte: volver a cambiar lo que se llevó en un cambio (15 días desde la compra original).
