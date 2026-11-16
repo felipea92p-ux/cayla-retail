@@ -22,11 +22,13 @@ import {
   CAUSAS_FALTANTE,
   CAUSAS_SOBRANTE,
   OPCION_OTRO,
+  OPCION_OTRO_FALTANTE,
   VALOR_OTRO,
   type CausaFaltante,
   type CausaSobrante,
   type Conteo,
   type DetalleEnvio,
+  type DiferenciaEnvio,
   type LineaEnvio,
   type PrendaRecepcion,
   type RecibidoEnvio,
@@ -1096,6 +1098,8 @@ export function faltaParaCerrar(p: {
     const sobra = (dif != null && dif > 0) || (!l.linea && !p.sinAviso && contadasDe(l) > 0);
     // «Otro» se cuenta en una línea (la nota de la línea): sin ella la base no cierra (`recepcion_sobrante_otro`).
     if (sobra && d.sobranteCausa === VALOR_OTRO && !d.nota.trim()) f.push({ clave: "causa", linea: l.clave, texto: `Cuenta qué fue lo de más de ${nombre}` });
+    // Lo mismo con lo que falta (Felipe 2026-11-16): sin su línea la base no cierra (`recepcion_faltante_otro`).
+    if (dif != null && dif < 0 && d.faltanteCausa === VALOR_OTRO && !d.nota.trim()) f.push({ clave: "causa", linea: l.clave, texto: `Cuenta qué pasó con lo que falta de ${nombre}` });
     const regalo = esRegaloFuera(l, d);
     if (!l.linea && !p.sinAviso && contadasDe(l) > 0) {
       if (!d.sobranteCausa) f.push({ clave: "causa", linea: l.clave, texto: `Di qué pasa con ${nombre} (no estaba en la guía)` });
@@ -1338,6 +1342,7 @@ export function lineasParaCerrar(
       const dif = diferenciaDe(l);
       const fuera = !l.linea;
       const sobrante = (dif != null && dif > 0) || (fuera && !sinAviso && c.contadas > 0) ? d.sobranteCausa : null;
+      const faltante = dif != null && dif < 0 ? d.faltanteCausa : null;
       // Lo que llega sin aviso no pregunta la causa (`sobrante` null): ahí no hay regalo que valga.
       const regalo = !l.linea && sobrante === "regalo";
       // Un regalo de fuera de la guía entra a S/ 0: se manda 0 y ningún costo propio (la base los ignora igual).
@@ -1348,10 +1353,11 @@ export function lineasParaCerrar(
         version: c.version,
         costo_unitario: fuera && sinAviso && costo == null ? null : costo,
         confirma_costo: regalo ? false : d.confirmaCosto,
-        faltante_causa: dif != null && dif < 0 ? d.faltanteCausa : null,
+        faltante_causa: faltante,
         sobrante_causa: sobrante,
-        // La nota de la línea solo es «lo que pasó» de un «Otro»: con otra causa no hay dónde escribirla y lo que quedó escrito antes no viaja.
-        nota: sobrante === VALOR_OTRO && d.nota.trim() ? d.nota.trim().slice(0, TOPES_CONTEO.nota) : null,
+        // La nota de la línea solo es «lo que pasó» de un «Otro» (de más o, desde el 2026-11-16, de menos): con otra causa no hay dónde escribirla y lo que quedó
+        // escrito antes no viaja.
+        nota: (sobrante === VALOR_OTRO || faltante === VALOR_OTRO) && d.nota.trim() ? d.nota.trim().slice(0, TOPES_CONTEO.nota) : null,
         ...(Object.keys(propios).length > 0 ? { costos_prendas: propios } : {}),
         ...confirmaMontosDeLinea(regalo, d.confirmaCosto, costo, propios, confirmadosEnLaHoja[l.clave] ?? []),
       };
@@ -1385,7 +1391,8 @@ export function causasDe(
   // Lo que llega sin aviso no tiene con qué compararse: nada sobra ni falta, y no se pregunta qué pasó (igual que `faltaParaCerrar`).
   if (sinAviso && !l.linea) return null;
   const dif = diferenciaDe(l);
-  if (dif != null && dif < 0) return { tipo: "faltante", opciones: [...CAUSAS_FALTANTE] };
+  // «Otro» también en lo que falta (Felipe 2026-11-16): con su explicación, y lo asume CAYLA (no es deuda del proveedor).
+  if (dif != null && dif < 0) return { tipo: "faltante", opciones: [...CAUSAS_FALTANTE, { ...OPCION_OTRO_FALTANTE }] };
   if ((dif != null && dif > 0) || (!l.linea && contadasDe(l) > 0)) {
     const opciones: { valor: string; texto: string; ayuda: string; aviso?: string }[] = [...CAUSAS_SOBRANTE];
     if (deudaPendiente > 0) {
@@ -1513,13 +1520,20 @@ export function resumenDelCierre(lineas: readonly LineaParaContar[]): { sePueden
   return { sePuedenVender, guardadas };
 }
 
-/** El detalle del aviso «ENV-… cerrado»: cuántas entraron y cuántas quedan para después, con su singular («1 prenda entró», no «1 prendas entraron»). */
-export function textoDelEnvioCerrado(entraron: number, paraDespues: number): string | undefined {
+/**
+ * La línea bajo «ENV-… recibido» en el aviso al cerrar (Felipe 2026-11-16, maqueta `recibir-cierre-recibo-2026-11`): qué entró y qué no cuadró, en pocas
+ * palabras. Reemplaza al aviso de esquina «ENV-… cerrado» (`textoDelEnvioCerrado`): el aviso nuevo ya dice lo mismo y ofrece qué hacer después.
+ * Sin guía (llegó sin aviso) no hay con qué compararse: nunca dice «llegó completo».
+ */
+export function lineaDelAviso(c: { alAlmacen: number; paraDespues: number; sobran: number; faltan: number; conGuia: boolean }): string {
   const n = (x: number) => x.toLocaleString("es-PE");
-  const despues = paraDespues === 1 ? "1 queda para después" : `${n(paraDespues)} quedan para después`;
-  if (entraron > 0) return `${entraron === 1 ? "1 prenda entró" : `${n(entraron)} prendas entraron`} al stock${paraDespues > 0 ? `; ${despues}` : ""}`;
-  if (paraDespues > 0) return paraDespues === 1 ? "1 prenda queda para después" : `${n(paraDespues)} prendas quedan para después`;
-  return undefined;
+  const partes: string[] = [];
+  if (c.alAlmacen > 0) partes.push(`${n(c.alAlmacen)} al almacén`);
+  if (c.paraDespues > 0) partes.push(`${n(c.paraDespues)} para después`);
+  if (c.sobran > 0) partes.push(`${n(c.sobran)} de más a Compras`);
+  if (c.faltan > 0) partes.push(c.faltan === 1 ? "falta 1" : `faltan ${n(c.faltan)}`);
+  if (c.conGuia && c.sobran === 0 && c.faltan === 0) partes.push("llegó completo");
+  return partes.join(" · ") || "Nada entró al almacén";
 }
 
 /** La línea sobre el botón de cerrar: «Al cerrar: 0 se pueden vender ya · 5 quedan guardadas para terminar después.» */
@@ -1529,6 +1543,59 @@ export function textoResumenDelCierre(r: { sePuedenVender: number; guardadas: nu
   const guardadas = `${r.guardadas.toLocaleString("es-PE")} ${r.guardadas === 1 ? "queda guardada" : "quedan guardadas"} para terminar después`;
   if (r.sePuedenVender === 0) return r.guardadas === 0 ? "Al cerrar: todavía no hay nada contado." : `Al cerrar: ${guardadas}.`;
   return r.guardadas === 0 ? `Al cerrar: ${entran}.` : `Al cerrar: ${entran} · ${guardadas}.`;
+}
+
+/** Una fila del resumen que se firma al cerrar: una palabra y su cifra. `ambar` es lo que no cuadró con la guía. */
+export type FilaDeLaFirma = { texto: string; cifra: string; tono: "neutro" | "ambar" };
+
+/**
+ * La firma del cierre aparece solo si algo no cuadró con la guía (Felipe 2026-11-16, maqueta `recibir-cierre-recibo-2026-11`): lo normal —5 de cada 6
+ * envíos con guía llegan exactos— se cierra de un toque, como antes. Lo que llegó sin aviso no tiene con qué compararse y nunca cuenta como «de más».
+ */
+export const pideFirmaAlCerrar = (c: { faltan: number; sobran: number }): boolean => c.faltan > 0 || c.sobran > 0;
+
+/** Lo que pasa al cerrar, una palabra y un número por fila (Felipe 2026-11-16: «hay mucho texto»). Solo van las filas con cifra, salvo «Al almacén». */
+export function filasDeLaFirma(c: { alAlmacen: number; sobran: number; faltan: number; paraDespues: number }): FilaDeLaFirma[] {
+  const n = (x: number) => x.toLocaleString("es-PE");
+  const filas: FilaDeLaFirma[] = [{ texto: "Al almacén", cifra: n(c.alAlmacen), tono: "neutro" }];
+  if (c.sobran > 0) filas.push({ texto: "De más · a Compras", cifra: `+${n(c.sobran)}`, tono: "ambar" });
+  if (c.faltan > 0) filas.push({ texto: "Faltan · a Compras", cifra: `−${n(c.faltan)}`, tono: "ambar" });
+  if (c.paraDespues > 0) filas.push({ texto: "Para después", cifra: n(c.paraDespues), tono: "neutro" });
+  return filas;
+}
+
+/** Lo que no cuadró de un envío cerrado, una fila por respuesta. */
+export type NoCuadro = {
+  tipo: "faltante" | "sobrante";
+  causa: string | null;
+  nota: string | null;
+  cantidad: number;
+  /** De qué es: las prendas que entraron por esas líneas o, si ninguna entró, su categoría y marca. */
+  que: string[];
+};
+
+/**
+ * Lo que no cuadró, juntando lo que tuvo la misma respuesta (Felipe 2026-11-16, maqueta `recibir-cierre-recibo-2026-11`): en ENV-000023 eran tres
+ * filas iguales —«+138 Polos · Otro», «+58 Pantalones · Otro», «+7 Vestidos · Otro»— que dicen menos que una sola con las tres prendas. Se juntan las de
+ * la misma clase (falta o sobra), la misma causa y la misma nota, en el orden en que llegan.
+ */
+export function noCuadroAgrupado(
+  diferencias: readonly DiferenciaEnvio[],
+  lineas: readonly { clave: ClaveLinea; conteo: { prendasEnStock?: string[] } | null }[],
+): NoCuadro[] {
+  const grupos = new Map<string, NoCuadro>();
+  for (const d of diferencias) {
+    if (d.cantidad <= 0) continue;
+    const clave: ClaveLinea = d.despachoItemId ? `item:${d.despachoItemId}` : `extra:${d.extra ?? 0}`;
+    const prendas = lineas.find((l) => l.clave === clave)?.conteo?.prendasEnStock ?? [];
+    const que = prendas.length > 0 ? prendas : [[d.categoria, d.marca].filter(Boolean).join(" · ") || "Sin categoría"];
+    const llave = [d.tipo, d.causa ?? "", d.nota ?? ""].join("|");
+    const g = grupos.get(llave) ?? { tipo: d.tipo, causa: d.causa, nota: d.nota, cantidad: 0, que: [] };
+    g.cantidad += d.cantidad;
+    for (const q of que) if (!g.que.includes(q)) g.que.push(q);
+    grupos.set(llave, g);
+  }
+  return [...grupos.values()];
 }
 
 export type VeredictoDelCerrado = {
@@ -1639,6 +1706,28 @@ export function loQueEntroPorPrenda(recibidos: readonly Pick<RecibidoEnvio, "var
       return { nombre, cantidad: combinaciones.reduce((s, c) => s + c.cantidad, 0), combinaciones };
     })
     .sort((a, b) => b.cantidad - a.cantidad || a.nombre.localeCompare(b.nombre, "es"));
+}
+
+/** Lo que entró de UNA prenda, en tabla: un color por fila y una talla por columna (Felipe 2026-11-16, maqueta `recibir-cierre-recibo-2026-11`). Con 70 casillas
+ *  sueltas no se veía lo raro —un polo con «Estándar» además de S, M y L, un color sin su L—; en tabla salta a la vista. Cada celda lleva su variante,
+ *  para elegir de cuáles imprimir la etiqueta. Sin talla es «Única»; sin color, «Sin color». */
+export type MatrizQueEntro = {
+  tallas: string[];
+  filas: { color: string; celdas: Record<string, { varianteId: string; cantidad: number }>; total: number }[];
+};
+export function matrizDeLoQueEntro(p: Pick<PrendaQueEntro, "combinaciones">): MatrizQueEntro {
+  const tallas = [...new Set(p.combinaciones.map((c) => c.talla?.trim() || "Única"))].sort(ordenTalla);
+  const filas = new Map<string, MatrizQueEntro["filas"][number]>();
+  for (const c of p.combinaciones) {
+    const color = c.color?.trim() || "Sin color";
+    const talla = c.talla?.trim() || "Única";
+    const f = filas.get(color) ?? { color, celdas: {}, total: 0 };
+    const ya = f.celdas[talla];
+    f.celdas[talla] = ya ? { varianteId: ya.varianteId, cantidad: ya.cantidad + c.cantidad } : { varianteId: c.varianteId, cantidad: c.cantidad };
+    f.total += c.cantidad;
+    filas.set(color, f);
+  }
+  return { tallas, filas: [...filas.values()] };
 }
 
 /** Las etiquetas de lo elegido: una por prenda buena de cada combinación marcada (`/etiquetas-de-precio?unidades=…&envio=…`). Sin nada marcado, `null`. */

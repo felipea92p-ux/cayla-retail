@@ -542,6 +542,7 @@ export function RecibirContando({
 
       {estado === "cerrado" && (
         <EnvioCerrado
+          recienCerrado={recienCerrado}
           detalle={detalle}
           lineas={lineas}
           conteos={conteos}
