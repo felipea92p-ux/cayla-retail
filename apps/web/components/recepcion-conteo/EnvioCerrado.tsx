@@ -4,6 +4,9 @@ import { usePrendasCreadas } from "@/components/recepcion-envio/usePrendasCreada
 import { productosDelEnvio } from "@/lib/recepcion-igual-que-anterior";
 import { LoQueEntro } from "./LoQueEntro";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { avisar } from "@/components/ui/Avisos";
+import { AvisoRecibido } from "./AvisoRecibido";
 import { Layers, List, ListChecks, Package, RotateCcw, Sparkles } from "lucide-react";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Boton, BotonEnlace } from "@/components/ui/campos";
@@ -12,7 +15,7 @@ import { diaYHoraLima } from "@/lib/fechas-lima";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buenasDeRecibidos, CAUSAS_FALTANTE, CAUSAS_SOBRANTE, despuesDeRecibirEnvio, textoCausa, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
 import { unirConY } from "@/lib/precio-sede-reglas";
-import { BOTON_DE_PENDIENTE, cifrasDelEnvio, loQueEntroPorPrenda, noCuadroAgrupado, paraDespues, proveedoresDeLasLineas, textoNoSeReabre, veredictoDelCerrado, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
+import { BOTON_DE_PENDIENTE, cifrasDelEnvio, lineaDelAviso, loQueEntroPorPrenda, noCuadroAgrupado, paraDespues, urlEtiquetasDeLoQueEntro, proveedoresDeLasLineas, textoNoSeReabre, veredictoDelCerrado, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
 import { HacerAhora } from "./HacerAhora";
 import { Lacre } from "./Lacre";
 import { Odometro } from "./Odometro";
@@ -43,6 +46,7 @@ export function EnvioCerrado({
   onPrendaVista,
   onCambio,
   onReabierto,
+  recienCerrado = false,
 }: {
   detalle: DetalleEnvio;
   lineas: readonly LineaParaContar[];
@@ -61,6 +65,8 @@ export function EnvioCerrado({
   onPrendaVista: (p: PrendaRecepcion) => void;
   onCambio: () => void;
   onReabierto: () => void;
+  /** Se acaba de cerrar en esta pantalla: se abre el aviso «ENV-… recibido» (Felipe 2026-11-16). Al volver a entrar a un envío ya cerrado, no. */
+  recienCerrado?: boolean;
 }) {
   const [haciendo, setHaciendo] = useState<ParaDespues | null>(null);
   // «Igual que la anterior» también en «Crear ahora» (innovar `recibir-crear-prenda#1`): las prendas del envío creadas al recibirlo.
@@ -94,6 +100,12 @@ export function EnvioCerrado({
     (a) => !(conListaDeEtiquetas && a.clave === "etiquetas"),
   );
   const noCuadro = noCuadroAgrupado(detalle.diferencias ?? [], lineas);
+  const router = useRouter();
+  const [aviso, setAviso] = useState(recienCerrado);
+  const sumaDe = (tipo: "faltante" | "sobrante") => noCuadro.filter((g) => g.tipo === tipo).reduce((a, g) => a + g.cantidad, 0);
+  const lineaAviso = lineaDelAviso({ alAlmacen: cifras.enStock, paraDespues: cifras.porDetallar, sobran: sumaDe("sobrante"), faltan: sumaDe("faltante"), conGuia: cifras.dijeron != null });
+  const queEntro = loQueEntroPorPrenda(detalle.recibidos);
+  const imprimirTodo = urlEtiquetasDeLoQueEntro(detalle.id, queEntro, new Set(queEntro.flatMap((p) => p.combinaciones.map((c) => c.varianteId))));
   const cuando = detalle.cerradoEn ? diaYHoraLima(detalle.cerradoEn) : null;
   const reabrir = conteos?.reabrir ?? null;
 
@@ -281,6 +293,21 @@ export function EnvioCerrado({
             setCreando(false);
             setHaciendo(null);
             if (huboCambio) onCambio();
+          }}
+        />
+      )}
+
+      {aviso && (
+        <AvisoRecibido
+          numero={detalle.numero}
+          linea={lineaAviso}
+          imprimir={imprimirTodo}
+          onVer={() => setAviso(false)}
+          onVolver={() => {
+            setAviso(false);
+            router.push("/recibir");
+            // En la lista, un aviso de 7 s con «Ver» por si quería volver a lo recibido (ADR-0146: con acción, 7 s como mínimo).
+            avisar.exito(`${detalle.numero} recibido`, { detalle: lineaAviso, accion: { texto: "Ver", onClick: () => router.push(`/recibir/envio/${detalle.id}`) }, duracion: 7000 });
           }}
         />
       )}

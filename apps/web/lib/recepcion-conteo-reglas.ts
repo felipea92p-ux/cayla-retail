@@ -1514,13 +1514,20 @@ export function resumenDelCierre(lineas: readonly LineaParaContar[]): { sePueden
   return { sePuedenVender, guardadas };
 }
 
-/** El detalle del aviso «ENV-… cerrado»: cuántas entraron y cuántas quedan para después, con su singular («1 prenda entró», no «1 prendas entraron»). */
-export function textoDelEnvioCerrado(entraron: number, paraDespues: number): string | undefined {
+/**
+ * La línea bajo «ENV-… recibido» en el aviso al cerrar (Felipe 2026-11-16, maqueta `recibir-cierre-recibo-2026-11`): qué entró y qué no cuadró, en pocas
+ * palabras. Reemplaza al aviso de esquina «ENV-… cerrado» (`textoDelEnvioCerrado`): el aviso nuevo ya dice lo mismo y ofrece qué hacer después.
+ * Sin guía (llegó sin aviso) no hay con qué compararse: nunca dice «llegó completo».
+ */
+export function lineaDelAviso(c: { alAlmacen: number; paraDespues: number; sobran: number; faltan: number; conGuia: boolean }): string {
   const n = (x: number) => x.toLocaleString("es-PE");
-  const despues = paraDespues === 1 ? "1 queda para después" : `${n(paraDespues)} quedan para después`;
-  if (entraron > 0) return `${entraron === 1 ? "1 prenda entró" : `${n(entraron)} prendas entraron`} al stock${paraDespues > 0 ? `; ${despues}` : ""}`;
-  if (paraDespues > 0) return paraDespues === 1 ? "1 prenda queda para después" : `${n(paraDespues)} prendas quedan para después`;
-  return undefined;
+  const partes: string[] = [];
+  if (c.alAlmacen > 0) partes.push(`${n(c.alAlmacen)} al almacén`);
+  if (c.paraDespues > 0) partes.push(`${n(c.paraDespues)} para después`);
+  if (c.sobran > 0) partes.push(`${n(c.sobran)} de más a Compras`);
+  if (c.faltan > 0) partes.push(c.faltan === 1 ? "falta 1" : `faltan ${n(c.faltan)}`);
+  if (c.conGuia && c.sobran === 0 && c.faltan === 0) partes.push("llegó completo");
+  return partes.join(" · ") || "Nada entró al almacén";
 }
 
 /** La línea sobre el botón de cerrar: «Al cerrar: 0 se pueden vender ya · 5 quedan guardadas para terminar después.» */

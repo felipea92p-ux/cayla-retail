@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { costoDelGrupo as costoDelGrupoStock, costoDeLoQueYaEntro, filasDeCostoEnStock, leerConteosDelEnvio as leerConteosStock, textoCostoEnStock, unidadesSinIdentificar as sinIdentificarStock } from "./recepcion-conteo-reglas";
 import { sePuedeCambiarCategoria, costoDeCatalogo, costosConCatalogo, DECISION_VACIA } from "./recepcion-conteo-reglas";
-import { filasDeLaFirma, noCuadroAgrupado, pideFirmaAlCerrar } from "./recepcion-conteo-reglas";
+import { filasDeLaFirma, lineaDelAviso, noCuadroAgrupado, pideFirmaAlCerrar } from "./recepcion-conteo-reglas";
 import type { DiferenciaEnvio, RecibidoEnvio } from "./recepcion-envio-reglas";
 import {
   lineasSinModelosEnCero,
@@ -93,7 +93,6 @@ import {
   BOTON_DE_PENDIENTE,
   insigniaDelEnvio,
   textoResumenDelCierre,
-  textoDelEnvioCerrado,
   veredictoDelCerrado,
   lineasALaVista,
   leerContadas,
@@ -853,12 +852,6 @@ describe("formidable 2026-10-13: el veredicto al cerrar y lo que pasa al cerrar"
     expect(veredictoDelCerrado([], [])).toMatchObject({ titulo: "Nada entró al stock", accion: null });
   });
 
-  it("el aviso del envío cerrado pluraliza bien (auditoría 2026-11-12)", () => {
-    expect(textoDelEnvioCerrado(1, 1)).toBe("1 prenda entró al stock; 1 queda para después");
-    expect(textoDelEnvioCerrado(6, 3)).toBe("6 prendas entraron al stock; 3 quedan para después");
-    expect(textoDelEnvioCerrado(0, 1)).toBe("1 prenda queda para después");
-    expect(textoDelEnvioCerrado(0, 0)).toBeUndefined();
-  });
 
   it("cambio 3: al cerrar, cuántas se pueden vender ya y cuántas quedan guardadas", () => {
     const l = extra({ contadas: 5, en_stock: 0, sin_separar: 5 });
@@ -1659,5 +1652,19 @@ describe("la firma del cierre (maqueta recibir-cierre-recibo-2026-11)", () => {
       ["Para después", "6"],
     ]);
     expect(filasDeLaFirma({ alAlmacen: 1234, sobran: 0, faltan: 0, paraDespues: 0 })).toEqual([{ texto: "Al almacén", cifra: "1,234", tono: "neutro" }]);
+  });
+});
+
+describe("la línea del aviso «ENV-… recibido» (maqueta recibir-cierre-recibo-2026-11)", () => {
+  it("qué entró y qué no cuadró; con guía y sin diferencias dice «llegó completo»", () => {
+    expect(lineaDelAviso({ alAlmacen: 227, paraDespues: 0, sobran: 203, faltan: 0, conGuia: true })).toBe("227 al almacén · 203 de más a Compras");
+    expect(lineaDelAviso({ alAlmacen: 90, paraDespues: 0, sobran: 0, faltan: 0, conGuia: true })).toBe("90 al almacén · llegó completo");
+    expect(lineaDelAviso({ alAlmacen: 30, paraDespues: 6, sobran: 0, faltan: 3, conGuia: true })).toBe("30 al almacén · 6 para después · faltan 3");
+    expect(lineaDelAviso({ alAlmacen: 4, paraDespues: 0, sobran: 0, faltan: 1, conGuia: true })).toBe("4 al almacén · falta 1");
+  });
+  it("sin guía nunca dice «llegó completo»; sin nada en el almacén lo dice", () => {
+    expect(lineaDelAviso({ alAlmacen: 22, paraDespues: 0, sobran: 0, faltan: 0, conGuia: false })).toBe("22 al almacén");
+    expect(lineaDelAviso({ alAlmacen: 0, paraDespues: 5, sobran: 0, faltan: 0, conGuia: false })).toBe("5 para después");
+    expect(lineaDelAviso({ alAlmacen: 0, paraDespues: 0, sobran: 0, faltan: 0, conGuia: false })).toBe("Nada entró al almacén");
   });
 });
