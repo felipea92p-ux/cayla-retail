@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TIPOS_POR_CATEGORIA } from "./nombre-de-prenda";
 import { familiaDeTejido, type FamiliaTejido } from "./tejido-visual";
-import { fichaParaIA, FORMA_DE_CINTURA, TEJIDOS_DE_PUNTO, TEJIDOS_PLANOS, ZONA_POR_PREFIJO } from "./ficha-foto-ia";
+import { fichaParaIA, FORMA_DE_CINTURA, TEJIDOS_CON_RELIEVE, TEJIDOS_DE_PUNTO, TEJIDOS_PLANOS, ZONA_POR_PREFIJO } from "./ficha-foto-ia";
 
 // La ficha que la IA de «Catálogo con IA» recibe de lo ya elegido (2026-11-14). El caso que la originó: un pantalón de LINO que la IA devolvió como
 // buzo. Cada prueba lleva su control: lo que se dice del lino NO se dice de un buzo de verdad.
@@ -164,6 +164,38 @@ describe("fase 2 (2026-11-16): el pantalón de lino del 14-nov, dicho en positiv
   it("la ficha no nombra lo que se quiere evitar (buzo, felpa, ropa deportiva, jogger) en ninguna prenda de tela plana", () => {
     for (const prefijo of ["PAN", "JEA", "SHO", "FAL", "CMS", "SUD"])
       for (const tejido of TEJIDOS) expect(fichaParaIA({ prefijo, tejido, patron: "Liso" })?.texto ?? "", `${prefijo} ${tejido}`).not.toMatch(/buzo|felpa|deportiv|jogger/i);
+  });
+
+  it("la prenda va PLANCHADA con la textura de su tejido; el lino sigue siendo lino (Felipe 2026-11-16: «sin perder el tipo de tela»)", () => {
+    const lino = fichaParaIA({ prefijo: "PAN", tejido: "Lino", patron: "Liso" })?.texto ?? "";
+    expect(lino).toMatch(/PLANCHADA: la prenda se ve recién planchada al vapor/);
+    expect(lino).toMatch(/con la textura de su tejido a la vista/);
+    // Lo que hace que se vea lino se queda: su textura con nudos y su trama.
+    expect(lino).toMatch(/de textura rústica con «nudos» visibles/);
+    expect(lino).toMatch(/se ve su trama/);
+    // «tersa», nunca «lisa»: «liso» es un diseño, y la IA podría borrar unas rayas.
+    expect(lino).not.toMatch(/tela lisa/);
+    // Sin tejido elegido también va planchada.
+    expect(fichaParaIA({ prefijo: "PAN", patron: "Liso" })?.texto ?? "").toMatch(/PLANCHADA:/);
+  });
+
+  it("lo que le dice a una persona que la tela SE ARRUGA no va a la IA (lo dibujaba); lo que dice que casi no se arruga, sí", () => {
+    for (const tejido of ["Lino", "Algodón", "Viscosa"]) {
+      const texto = fichaParaIA({ prefijo: "CMS", tipo: "Blusa", tejido })?.texto ?? "";
+      expect(texto, tejido).not.toMatch(/se arruga|gracia/i);
+    }
+    // El dato de la tela de las demás frases se queda.
+    expect(fichaParaIA({ prefijo: "CMS", tipo: "Blusa", tejido: "Algodón" })?.texto ?? "").toMatch(/Fibra natural, suave y fresca/);
+    // «poca arruga» y «casi no se arruga» no piden arrugas: la frase entera, con su dato, se queda.
+    expect(fichaParaIA({ prefijo: "BLZ", tejido: "Gabardina" })?.texto ?? "").toMatch(/Sarga muy fina y tupida, de caída elegante, buen cuerpo y poca arruga\./);
+    expect(fichaParaIA({ prefijo: "POL", tejido: "Jersey" })?.texto ?? "").toMatch(/casi no se arruga/);
+  });
+
+  it("CONTROL: el seersucker no se plancha (su fruncido es el tejido, no una arruga)", () => {
+    expect(TEJIDOS_CON_RELIEVE.has("seersucker")).toBe(true);
+    const texto = fichaParaIA({ prefijo: "CMS", tipo: "Camisa", tejido: "Seersucker" })?.texto ?? "";
+    expect(texto).toMatch(/franjas fruncidas en relieve/);
+    expect(texto).not.toMatch(/PLANCHADA/);
   });
 
   it("lo que la ayuda le dice a una persona (proveedor, etiqueta, «elige …») no va al pedido, pero el dato de la tela de esa misma frase sí", () => {
