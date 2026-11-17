@@ -43,3 +43,9 @@ Las cuatro hojas de Caja que pasan a bajar bajo demanda usan la pieza D ya medid
 «No se pudo abrir «Cerrar caja»», «… el historial de cierres», «… el detalle de la venta», «… «Registrar gasto»», todas con «Revisa la
 conexión y vuelve a intentarlo.». No hay pieza, color ni medida nueva; las hojas se ven igual que antes. Visto en Caja a 1366 px (el aviso
 del historial sin red) y a 375 px («Cerrar caja» desde la barra de abajo, sin desborde). No se volvieron a correr los medidores.
+
+## Añadido el mismo día — el corte de Existencias
+Igual que en Caja: las seis hojas de Existencias que bajan bajo demanda usan la pieza D con otro nombre («No se pudo abrir la prenda», «… la
+cámara», «… «Ajustar inventario»», «… el buscador de prendas», «… las prendas dañadas», «… el resumen del stock»). Sin pieza, color ni
+medida nueva. Visto a 1366 px (el aviso sin red al tocar una prenda) y a 375 px (el panel de la prenda, sin desborde). No se volvieron a
+correr los medidores.

@@ -28,3 +28,9 @@ Qué hice: abrí el PR #1923 (auditoría `/milimetro` incluida) y diferí las cu
 de venta y registrar gasto. Caja baja de 1 650 a 1 454 KB de JavaScript (2 241 antes de la actividad 7).
 Por qué así: las cuatro piden internet de todos modos; «Cerrar caja» se precarga en reposo para que abra al instante.
 Felipe se lleva: el corte de Caja está en la rama local, sin subir al PR; siguen Existencias, Recibir, Nuevo producto y el marco.
+
+## 2026-11-17 (Actividad 7, tercer corte: Existencias)
+Qué hice: el corte de Caja subió al PR #1923. En Existencias, el panel de la prenda y cinco hojas más bajan cuando hacen falta: la pantalla
+pasa de 1 899 a 1 546 KB de JavaScript. El panel y la cámara se precargan en reposo, así que abren al instante.
+Por qué así: aquí no había un arrastre de otra pantalla; lo pesado era el panel, que bajaba aunque nadie tocara una prenda.
+Felipe se lleva: el corte de Existencias está en la rama local, sin subir; siguen Recibir, Nuevo producto, Productos y el marco.

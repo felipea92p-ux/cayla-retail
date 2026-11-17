@@ -226,6 +226,32 @@ local quedó idéntica (no se guardó nada). `vitest` (945 archivos, huellas de 
 **No verificado:** el detalle de una venta abierto desde Caja (la base local no tenía ventas de hoy; es la misma pieza y los mismos tipos
 que las otras tres), ni cerrar la caja de verdad.
 
+## Actualización 2026-11-17 (d) — actividad 7, tercer corte: Existencias
+
+Medido antes de tocar (`scripts/peso/cierres.mjs` sobre `components/InventarioPanel.tsx`): no había un arrastre de otra pantalla (como
+`money` en Vender); lo que pesaba era suyo. El panel de la prenda (`existencias/PanelTalla.tsx`, con la planilla de «Ajustar stock» y los
+flujos de colgar, subir, apartar y pedir) eran 625 KB de fuente en 54 archivos que bajaban aunque nadie tocara una prenda.
+
+- DECIDÍ: seis hojas pasan a `hojaBajoDemanda` (`components/existencias/hojas-bajo-demanda.tsx`). El panel de la prenda y la cámara para
+  escanear se precargan en reposo (`usePrecargarEnReposo`): son lo que más se abre —la cámara, en el celular— y así abren al instante.
+  «Ajustar inventario», el buscador de prendas, las dañadas y el resumen del stock bajan al abrirlos.
+- DESCARTÉ: dejar el panel fijo «porque se usa siempre», porque lo que se busca no es bajar menos código sino que la pantalla se pueda
+  usar antes: con la precarga en reposo, la lista de Existencias aparece y responde sin esperar a leer el panel. Y descarté partir el
+  panel por dentro (su planilla de ajuste aparte): son varias piezas y un gancho enlazados, y diferir el panel entero ya las saca todas.
+- SE ROMPE SI: alguien toca una prenda en los primeros segundos con la red caída: sale «No se pudo abrir la prenda» en vez del panel
+  (probado). Antes el panel ya estaba; pero sin red tampoco se podía hacer nada dentro de él.
+
+**Medido** (armado de producción local): `/inventario` 1 899 → 1 546 KB (603 → 494 comprimido), −19 %. Lo que la pantalla alcanza con imports
+fijos baja de 289 archivos y 2 836 KB de fuente a 189 y 1 664. El texto propio del panel, del buscador, de las dañadas y de la cámara ya no
+aparece en los 32 archivos de la carga inicial.
+
+**Verificado (local, Playwright, 1366 y 375 px):** el panel de la prenda y la cámara abren sin pedir nada a la red (precargados); el
+buscador de «Ajustar stock» abre y baja su código al abrirse; las dañadas abren desde su dirección (`?danados=1`, la hoja se pide al cargar);
+sin red desde que la pantalla pidió su código inicial, tocar una prenda avisa y la pantalla sigue viva, y con red abre; a 375 px el panel
+abre sin desborde. La base local quedó idéntica. `vitest` (945 archivos, huellas de guías sin cambio), `tsc`, `eslint`, `knip`, `knip:produccion`.
+**No verificado:** «Ajustar inventario» completo y el resumen del stock (con los datos de la base local no hay camino hasta ellos; misma
+pieza y mismos tipos que las otras cuatro), ni guardar nada desde el panel diferido (colgar, ajustar, apartar): se abrió y se cerró.
+
 ## Para Dynamic
 
 `components/ui/BotonLiviano.tsx` es una pieza nueva en una carpeta que Dynamic mira: **queda como tarea allá**, si quieren el modo liviano.

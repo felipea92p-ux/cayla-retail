@@ -52,7 +52,7 @@ JavaScript total por pantalla, antes → después (armado de producción local):
 |---|---|---|
 | 6a | El ticket de **Vender** sobrevive a que Android cierre la pestaña | **Hecho** (commit `d837a8b`), verificado con dos pestañas; NO en producción |
 | 6b | La compra a medio registrar en **Mis compras** sobrevive igual | **Hecho** (2026-11-17), verificado en local a 375 px; NO en producción |
-| 7 | Partir el código de las pantallas pesadas | **Dos cortes hechos** (2026-11-17): Vender y su arrastre en Caja, Apartados y Mis compras (en el PR #1923); y las cuatro hojas de Caja (en la rama, sin subir). Faltan los cortes de las demás pantallas (abajo) |
+| 7 | Partir el código de las pantallas pesadas | **Dos cortes hechos** (2026-11-17): Vender y su arrastre en Caja, Apartados y Mis compras (en el PR #1923); y las cuatro hojas de Caja (los dos en el PR #1923); y Existencias (en la rama, sin subir). Faltan los cortes de las demás pantallas (abajo) |
 | 8 | Recorrer las pantallas de los 4 módulos a 375 px y arreglar lo roto | Sin empezar |
 | 9 | Probar en un teléfono barato real | Lo hace Felipe |
 
@@ -117,7 +117,7 @@ Falta antes de producción:
 - **Vender:** GSAP solo con las animaciones encendidas (`useFlipDelTicket`), «Cerrar caja» al abrirla y «Prenda sin registrar» en reposo
   (`hojaBajoDemanda`, que avisa y reintenta si no hay red). Lo de cobrar sin conexión (hoja de cobro, venta registrada, cobro en duda) NO se difiere.
 - **Medido** (JavaScript total, armado de producción): Compré ropa 2 097 → 1 406 KB (−33 %), Caja 2 241 → 1 650 (−26 %; con el segundo
-  corte, 1 454: −35 %), Apartados 2 137 → 1 692 (−21 %), Vender 1 938 → 1 751 (−10 %). Sin cambio: Existencias 1 903, Recibir 1 754, Nuevo producto 1 742, Productos 1 640.
+  corte, 1 454: −35 %), Apartados 2 137 → 1 692 (−21 %), Vender 1 938 → 1 751 (−10 %). Con el tercer corte, Existencias 1 899 → 1 546 (−19 %). Sin cambio: Recibir 1 754, Nuevo producto 1 742, Productos 1 640.
 
 **Los medidores viven en `scripts/peso/`** (ya no hay que reescribirlos): `cierres.mjs` (qué arrastra cada import fijo de un componente),
 `camino.mjs` (por dónde un archivo termina cargando a otro) y `por-pantalla.mjs` (JavaScript por ruta sobre un armado de producción).
@@ -134,8 +134,16 @@ Lo que sigue, en orden de lo que más pesa (medir SIEMPRE antes: buscar primero 
 - [ ] **Vender**, segunda pasada: `ClientaDelTicket` (114 KB solo suyos: partir su buscador, que solo sirve con red), `EscanerCamara` (52; hoy
   Vender importa de ese archivo también `precargarLectorQR`: separarlo primero), `PuntoDeVentaCatalogo` (109, siempre a la vista: no).
   El botón «Cerrar caja» vive en el menú «Más»: se le puede sumar `CerrarCajaBajoDemanda.precargar` al acercar el dedo o el foco.
-- [ ] **Existencias** (1 903), **Recibir** (1 754), **Nuevo producto** (1 742), **Productos** (1 640), **Apartados** (1 692), **Campañas**:
-  sin medir todavía. Correr `cierres.mjs` con su componente raíz.
+- [x] **Existencias** (2026-11-17, commit `64434e3`): el panel de la prenda, la cámara, «Ajustar inventario», el buscador de prendas, las
+  dañadas y el resumen del stock pasan a `hojaBajoDemanda` (`components/existencias/hojas-bajo-demanda.tsx`); el panel y la cámara se
+  precargan en reposo. 1 899 → 1 546 KB. ADR-0674, «Actualización 2026-11-17 (d)». Queda fijo lo que siempre se ve (filtros y tarjetas) y
+  `ApartadosModal` (58 KB de fuente, se abre con un toque: candidato).
+- [ ] Abrir «Ajustar inventario» completo y el resumen del stock desde Existencias con datos que lleven hasta ellos, y guardar algo
+  desde el panel diferido (colgar, ajustar): no se pudo o no se hizo en local.
+- [ ] **Recibir** (1 754), **Nuevo producto** (1 742), **Productos** (1 640), **Apartados** (1 692), **Campañas**: sin medir todavía.
+  Correr `cierres.mjs` con su componente raíz.
+- [ ] Visto al probar sin red: la guía interactiva (`MotorGuias`, `next/dynamic`) lanza `ChunkLoadError` si su código no baja. No tumbó
+  la pantalla en la prueba, pero es el patrón que `hojaBajoDemanda` evita.
 - [ ] **El marco** (1 073 KB de los ~1 400–1 900 de cada pantalla) es ya lo que más pesa en todas: la Fase 1 lo bajó de 936 a 626 KB
   «propios» con otra cuenta; con la de `por-pantalla.mjs` (marco = `rootMainFiles` + los `layout`) son 1 073. Vale otra pasada de cierres
   sobre `components/AppShell.tsx` y `app/(app)/layout.tsx`.
