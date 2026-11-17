@@ -51,7 +51,7 @@ export const GUIA_PRODUCTOS: Guia = {
       ancla: "productos.por-revisar",
       opcional: true,
       titulo: "Prendas por revisar",
-      texto: "Las que alguien propuso en un conteo o desde el Taller esperan que quien edita el catálogo las apruebe o las rechace. Mientras tanto se pueden vender, si tienen precio. «Revisar» te lleva a la lista.",
+      texto: "Las que alguien propuso en un conteo o desde el Taller esperan que quien edita el catálogo las apruebe o las rechace. Mientras tanto se pueden vender, si tienen precio. Este botón, con su número, te lleva a la lista.",
     },
     {
       // ADR-0650 (decisión 3): sale solo si hay fichas activas con el nombre igual o casi igual.
@@ -59,7 +59,7 @@ export const GUIA_PRODUCTOS: Guia = {
       ancla: "productos.posibles-duplicados",
       opcional: true,
       titulo: "Fichas que parecen repetidas",
-      texto: "Si dos fichas tienen el nombre igual o casi igual, el sistema te las muestra aquí. «Revisar» abre la lista: si son la misma prenda, las fusionas en una y no se pierden ventas, fotos ni stock. Si no, las dejas como están.",
+      texto: "Si dos fichas tienen el nombre igual o casi igual, este botón aparece con su número. Al tocarlo se abre la lista: si son la misma prenda, las fusionas en una y no se pierden ventas, fotos ni stock. Si no, las dejas como están.",
     },
     {
       // ADR-0393 (decisión 4): sale solo si lo recibido en la sede tiene prendas nuevas por crear.
@@ -67,7 +67,7 @@ export const GUIA_PRODUCTOS: Guia = {
       ancla: "productos.por-crear",
       opcional: true,
       titulo: "Prendas recibidas por crear",
-      texto: "Llegaron a tu sede, se contaron como nuevas y están en el almacén, pero no se pueden vender hasta crearlas. Se crean desde Recibir, con «Crear ahora»: así la prenda nace con lo que ya se contó.",
+      texto: "Llegaron a tu sede, se contaron como nuevas y están en el almacén, pero no se pueden vender hasta crearlas. Este botón te lleva a Recibir, donde se crean con «Crear ahora»: así la prenda nace con lo que ya se contó.",
     },
     {
       id: "buscador",
