@@ -1,13 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
-  alternarTema,
   ATRIBUTO_TEMA,
   CLAVE_TEMA,
   esTema,
   resolverTema,
   SCRIPT_TEMA_ANTES_DE_PINTAR,
   TEMA_POR_DEFECTO,
-  textosDelBoton,
 } from "./tema-reglas";
 
 describe("tema — reglas puras (ADR-0336)", () => {
@@ -25,19 +23,6 @@ describe("tema — reglas puras (ADR-0336)", () => {
     expect(resolverTema("oscuro")).toBe("oscuro");
     expect(resolverTema("claro")).toBe("claro");
     for (const raro of [null, undefined, "", "dark", "OSCURO", 0, {}]) expect(resolverTema(raro)).toBe("claro");
-  });
-
-  it("alternar va y vuelve (A→B→A)", () => {
-    expect(alternarTema("claro")).toBe("oscuro");
-    expect(alternarTema("oscuro")).toBe("claro");
-    expect(alternarTema(alternarTema("claro"))).toBe("claro");
-  });
-
-  it("el nombre accesible del botón no cambia; el título dice qué hará el clic", () => {
-    expect(textosDelBoton("claro").etiqueta).toBe("Modo oscuro");
-    expect(textosDelBoton("oscuro").etiqueta).toBe("Modo oscuro");
-    expect(textosDelBoton("claro").titulo).toBe("Cambiar a modo oscuro");
-    expect(textosDelBoton("oscuro").titulo).toBe("Cambiar a modo claro");
   });
 });
 

@@ -74,10 +74,11 @@
     margin-block: -6px;
   }
 
-  /* Los íconos se DIBUJAN de 44 px (decisión 2B, Felipe 2026-11-16): la gota del tema, de las animaciones y del modo liviano, el ⋯, el lápiz y el copiar de
-     una fila (`.icono-fila`), la × de una hoja y de un cajón, y los botones de ícono de la cabecera (☰, la lupa, Actividad, Demo). `min-` y no
-     el tamaño exacto: un botón de la cabecera con su nombre al lado (una píldora) sigue midiendo lo que mide su palabra. */
-  :is(.boton-tema, .boton-movimiento, .boton-liviano, .icono-fila, .cerrar-hoja, .marco-cabecera .area-dedo) {
+  /* Los íconos se DIBUJAN de 44 px (decisión 2B, Felipe 2026-11-16): el ⋯, el lápiz y el copiar de una fila (`.icono-fila`), la × de una
+     hoja y de un cajón, y los botones de ícono de la cabecera (☰, la lupa, Actividad, Demo). `min-` y no el tamaño exacto: un botón de la
+     cabecera con su nombre al lado (una píldora) sigue midiendo lo que mide su palabra. (El tema, las animaciones y el modo liviano ya no
+     están en la cabecera: viven en «Apariencia», 2026-11-17.) */
+  :is(.icono-fila, .cerrar-hoja, .marco-cabecera .area-dedo) {
     min-width: 44px;
     min-height: 44px;
   }

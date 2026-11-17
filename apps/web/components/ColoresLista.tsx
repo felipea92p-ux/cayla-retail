@@ -26,6 +26,7 @@ import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import {
 
   BarraAtributos,
+  GrupoDesactivado,
   BotonesPendiente,
   BotonReactivar,
   GRILLA_ATRIBUTOS,
@@ -396,6 +397,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   return (
     <div className="space-y-6">
       <BarraAtributos
+        filtrosPuestos={familia !== "todas" ? 1 : 0}
         guia="atributos.barra-colores"
         etiqueta="Filtrar colores"
         filtros={
@@ -589,11 +591,10 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         </Modal>
       )}
 
-      {desactivadosVisibles.length > 0 && (
-        <section className="space-y-3">
-          <TituloGrupo cuenta={desactivadosVisibles.length}>Desactivados — ya no se pueden elegir en una prenda nueva</TituloGrupo>
+      <GrupoDesactivado titulo="Desactivados — ya no se pueden elegir en una prenda nueva" lista={desactivadosVisibles}>
+        {(visibles) => (
           <div className={GRILLA_ATRIBUTOS}>
-            {desactivadosVisibles.map((c) => (
+            {visibles.map((c) => (
               <TarjetaAtributo
                 key={c.codigo}
                 muestra={<Muestra hex={c.hex} familia={c.familiaColor} tipo={c.tipo} tonos={tonosDeMezcla(c, porCodigo)} />}
@@ -616,8 +617,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
               </TarjetaAtributo>
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </GrupoDesactivado>
 
       {rechazandoColor && (
         <Modal titulo={`Rechazar «${rechazandoColor.nombre}»`} onClose={() => setRechazandoAbierto(null)}>

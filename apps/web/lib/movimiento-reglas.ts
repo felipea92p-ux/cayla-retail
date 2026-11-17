@@ -3,9 +3,9 @@
 //
 // Es una preferencia del APARATO, como el modo oscuro (ADR-0336): las cuentas de mostrador son compartidas por tienda y una terminal
 // no tiene «Mi perfil». ARRANCA QUIETO: el ERP corre en equipos modestos y lo que se mueve cuesta; quien quiera las animaciones las
-// enciende con el botón de la cabecera. Quieto apaga todo lo decorativo, pero NO las señales de espera (el hilo de «Guardando…» y el
+// enciende en «Apariencia», al pie del menú (antes, un botón de la cabecera). Quieto apaga todo lo decorativo, pero NO las señales de espera (el hilo de «Guardando…» y el
 // del loader): sin ellas un guardado lento parece colgado y la persona aprieta dos veces. Y si el aparato pide menos movimiento
-// (`prefers-reduced-motion`), eso gana siempre: el botón no puede encender lo que el sistema operativo apagó.
+// (`prefers-reduced-motion`), eso gana siempre: el interruptor no puede encender lo que el sistema operativo apagó.
 
 export type Movimiento = "quieto" | "vivo";
 
@@ -26,27 +26,12 @@ export function resolverMovimiento(guardado: unknown): Movimiento {
   return esMovimiento(guardado) ? guardado : MOVIMIENTO_POR_DEFECTO;
 }
 
-export function alternarMovimiento(actual: Movimiento): Movimiento {
-  return actual === "vivo" ? "quieto" : "vivo";
-}
-
 /**
  * ¿Se anima? Solo si la persona lo encendió Y el aparato no pide menos movimiento. Es la pregunta que hacen todas las piezas que
  * animan desde JavaScript (`prefiereQuieto()` la responde con lo que hay en la página).
  */
 export function quedaQuieto(movimiento: Movimiento, sistemaPideMenos: boolean): boolean {
   return sistemaPideMenos || movimiento === "quieto";
-}
-
-/**
- * Los textos del botón. El NOMBRE accesible no cambia («Animaciones») y el estado va en `aria-pressed`, como el del modo oscuro. El
- * `title` dice qué hará el clic.
- */
-export function textosDelBotonMovimiento(actual: Movimiento): { etiqueta: string; titulo: string } {
-  return {
-    etiqueta: "Animaciones",
-    titulo: actual === "vivo" ? "Apagar las animaciones" : "Encender las animaciones",
-  };
 }
 
 /**

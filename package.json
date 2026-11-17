@@ -268,6 +268,7 @@
     "pruebas:vendedora-en-venta": "node scripts/pruebas/vendedora_en_venta.mjs",
     "pruebas:ventas-del-dia": "node scripts/pruebas/ventas_del_dia.mjs",
     "pruebas:anular-venta-comprobante": "node scripts/pruebas/anular_venta_comprobante.mjs",
+    "pruebas:anular-comprobante-permisos": "node scripts/pruebas/anular_comprobante_permisos.mjs",
     "pruebas:comprobante-venta-anulada": "node scripts/pruebas/comprobante_venta_anulada.mjs",
     "pruebas:notas-credito-serie-por-letra": "node scripts/pruebas/notas_credito_serie_por_letra.mjs",
     "pruebas:sunat-reintento-por-cron": "node scripts/pruebas/sunat_reintento_por_cron.mjs",

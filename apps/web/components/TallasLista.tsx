@@ -16,6 +16,7 @@ import { existentesParecidos } from "@/lib/atributo-parecido";
 import { ExisteTambien, faltaPorExistente, useExisteTambien } from "@/components/ui/ExisteTambien";
 import {
   BarraAtributos,
+  GrupoDesactivado,
   BotonesPendiente,
   BotonReactivar,
   DesactivarTarjeta,
@@ -239,6 +240,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
   return (
     <div className="space-y-6">
       <BarraAtributos
+        filtrosPuestos={tipo !== "todas" ? 1 : 0}
         guia="atributos.barra-tallas"
         etiqueta="Filtrar tallas"
         filtros={
@@ -309,18 +311,17 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
         })}
       </div>
 
-      {desactivadosVisibles.length > 0 && (
-        <section className="space-y-3">
-          <TituloGrupo cuenta={desactivadosVisibles.length}>Desactivadas — ya no se pueden elegir en una prenda nueva</TituloGrupo>
+      <GrupoDesactivado titulo="Desactivadas — ya no se pueden elegir en una prenda nueva" lista={desactivadosVisibles}>
+        {(visibles) => (
           <div className={GRILLA_ATRIBUTOS}>
-            {desactivadosVisibles.map((t) => (
+            {visibles.map((t) => (
               <TarjetaTalla key={t.id} t={t} apagada>
                 {puedeEditar && <BotonReactivar onClick={() => abrirReactivar(t)} />}
               </TarjetaTalla>
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </GrupoDesactivado>
 
       {agregando && (
         <NuevaTallaModal

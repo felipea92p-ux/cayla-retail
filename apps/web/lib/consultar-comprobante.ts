@@ -2,6 +2,7 @@ import type { Json } from "@cayla-retail/database";
 import { consultarAnulacionLucode, consultarEstadoLucode, entornoLucode, type TipoDocumentoLucode } from "@/lib/lucode";
 import { accionPorBaja, accionPorEmision, queConsultar, type AccionConsulta } from "@/lib/consulta-sunat-reglas";
 import { capturarError } from "@/lib/errores";
+import { confirmarBajaEnLaBase } from "@/lib/confirmar-baja-sunat";
 import type { Cliente, ClienteServidor } from "@/lib/transmitir-comprobante";
 
 // Preguntarle a Lucode por UN comprobante que quedó esperando a SUNAT —su emisión respondió PENDIENTE, o pidió
@@ -70,16 +71,14 @@ export async function consultarComprobante(supabase: Cliente, id: string, servid
   if (!r.ok) return { id, consulta, accion: "error" };
   const accion = accionPorBaja(r.anulacion);
   if (accion.tipo !== "confirmar_baja") return { id, consulta, accion: accion.tipo };
-  const rpcLibre = supabase.rpc.bind(supabase) as unknown as (
-    fn: string,
-    args: Record<string, unknown>,
-  ) => PromiseLike<{ error: { message: string } | null }>;
-  const { error: errBaja } = await rpcLibre("fn_confirmar_baja_sunat", {
-    p_comprobante_id: c.id,
-    p_respuesta: { estado: r.estadoCrudo, mensaje: r.mensaje, consultado_at: new Date().toISOString() },
+  // «Anulado» lo escribe solo el servidor (ADR-0673): con la llave de servicio, aunque este barrido lo haya pedido una pantalla.
+  const { error: errBaja } = await confirmarBajaEnLaBase(c.id, {
+    estado: r.estadoCrudo,
+    mensaje: r.mensaje,
+    consultado_at: new Date().toISOString(),
   });
   if (errBaja) {
-    capturarError("lucode/consultar: SUNAT confirmó la baja pero sin guardar", errBaja, { comprobante: `${c.serie}-${c.numero}` });
+    capturarError("lucode/consultar: SUNAT confirmó la baja pero sin guardar", new Error(errBaja), { comprobante: `${c.serie}-${c.numero}` });
     return { id, consulta, accion: "error" };
   }
   return { id, consulta, accion: accion.tipo };

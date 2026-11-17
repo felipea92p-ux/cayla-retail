@@ -2,7 +2,7 @@
   "guia": "productos.campanas",
   "ruta": "/productos/campanas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 176,
+  "total": 178,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -66,7 +66,9 @@
       "BotonDeshacer «Deshacer esta lectura»"
     ],
     "components/atributos/kit.tsx": [
+      "BotonFiltros «vocabulario.filtros»",
       "Boton «vocabulario.agregar»",
+      "Boton «vocabulario.agregar» #2",
       "Boton «Limpiar filtros»",
       "button «{abrir.titulo}»",
       "Boton «Aprobar»",

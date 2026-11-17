@@ -657,6 +657,10 @@ export const PRUEBAS = [
   // SUNAT con su botón «Transmitir» de una venta que ya se devolvió. Cada caso termina en ROLLBACK.
   "pruebas:anular-venta-comprobante",
 
+  // Quién pide y quién confirma la baja de un comprobante (ADR-0673): pedirla es de la sede del comprobante, y «anulado» lo
+  // escribe solo la llave de servicio (`fn_confirmar_baja_sunat`). Cada caso termina en ROLLBACK.
+  "pruebas:anular-comprobante-permisos",
+
   // Un comprobante no nace sobre una venta anulada (20260921161500): ni por `emitir_comprobante`, ni por
   // un insert directo, ni convirtiendo una proforma. Cada caso termina en ROLLBACK.
   "pruebas:comprobante-venta-anulada",
