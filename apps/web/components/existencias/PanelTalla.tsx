@@ -95,6 +95,11 @@ const SIN_CALCULAR: ReadonlySet<string> = new Set();
 const escribiendo = (el: Element | null) => !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || (el as HTMLElement).isContentEditable);
 /** Los cuatro botones de la prenda, la misma cara que en la vista rápida de Catálogo (una función, una pieza). */
 const BOTON_PRENDA = "btn-cayla btn-secundario min-h-10 gap-1.5 text-[12.5px]";
+/** Las casillas de «Dónde está» y de «Todo el modelo»: de a dos en el celular (cada una ~150 px, con su palabra entera) y de a cuatro desde
+ *  640 px. Sin el piso y el almacén separados son tres, que sí caben en una fila. */
+const casillasDeLaFila = (separa: boolean) => `grid gap-2 sm:gap-1.5 ${separa ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`;
+/** La cifra de cada casilla: 28 px en el celular (el tope de `TarjetaCifra`), 22 desde 640 px, donde van cuatro en fila. */
+const CIFRA_CASILLA = "text-[28px] sm:text-[22px]";
 /** Cuánto tarda la foto en cruzar de la tarjeta al modal: lo mismo que la hoja en entrar (ADR-0136). */
 const MS_FOTO_CRUZA = 420;
 
@@ -608,6 +613,8 @@ export function PanelTalla({
    *  del piso que faltan (ámbar). Las dos primeras llevan a «Todas» con su capa; apartadas y dañadas con algo abren su lista (las mismas
    *  ventanas de siempre). Los rótulos son «En piso / En almacén» (Felipe, 2026-10-13: antes «colgadas / guardadas»). */
   // `desde`: la cifra de antes de ajustar el stock: al volver de la planilla cuenta desde ella hasta la nueva (ADR-0494).
+  // En el celular las cuatro van de a dos (`casillasDeLaFila`) y la cifra sube a 28 px, el tope de `TarjetaCifra` (Felipe
+  // 2026-11-17: «poder visualizar en grande lo importante»): de a cuatro medían 74 px y «En almacén», «apartadas» y «dañadas» se salían.
   const casilla = (valor: number, rotulo: string, Ico: Icono, clase?: "falta" | "apartada" | "danada", abre?: () => void, queHace = "ver cuáles", desde?: number) => {
     const fondo =
       clase === "falta"
@@ -621,13 +628,13 @@ export function PanelTalla({
               : "bg-hueso text-tinta";
     const cuerpo = (
       <>
-        <b className="block font-display text-[22px] font-medium leading-none tabular-nums">{desde === undefined ? valor : <CifraQueCuenta valor={valor} desde={desde} />}</b>
+        <b className={`block font-display ${CIFRA_CASILLA} font-medium leading-none tabular-nums`}>{desde === undefined ? valor : <CifraQueCuenta valor={valor} desde={desde} />}</b>
         <small className="text-sm text-taupe">{rotulo}</small>
         <Ico aria-hidden className="absolute right-2 top-2 h-3.5 w-3.5 text-taupe" />
         {abre && <ChevronRight aria-hidden className="absolute bottom-2 right-1.5 h-3.5 w-3.5 text-taupe" />}
       </>
     );
-    const base = `relative grid gap-1 rounded-[11px] px-2.5 py-2 text-left ${fondo}`;
+    const base = `relative grid gap-1 rounded-[11px] px-3 py-3 text-left sm:px-2.5 sm:py-2 ${fondo}`;
     return abre ? (
       <button type="button" onClick={abre} aria-label={`${valor} ${rotulo}: ${queHace}`} title={queHace.charAt(0).toLocaleUpperCase("es") + queHace.slice(1)} className={`${base} transition-[outline] ${HOVER_CASILLA}`}>
         {cuerpo}
@@ -652,13 +659,13 @@ export function PanelTalla({
         aria-pressed={elegida}
         onClick={() => setCapa(elegida ? null : cual)}
         title={elegida ? "Ver piso y almacén" : `Ver solo lo que está ${cual === "piso" ? "en el piso" : "en el almacén"}`}
-        className={`relative grid gap-1 rounded-[11px] border px-2 py-2 text-left transition-[opacity,box-shadow,border-color,outline] ${HOVER_CASILLA} ${tono} ${
+        className={`relative grid gap-1 rounded-[11px] border px-3 py-3 text-left transition-[opacity,box-shadow,border-color,outline] sm:px-2 sm:py-2 ${HOVER_CASILLA} ${tono} ${
           elegida ? "border-tinta shadow-[0_0_0_1px_var(--color-tinta)]" : "border-transparent"
         } ${apagada ? "opacity-45" : ""}`}
       >
         <span className="flex items-center gap-1.5">
           <Icono aria-hidden className="h-4 w-4 shrink-0" />
-          <b className="block font-display text-[22px] font-medium leading-none tabular-nums text-tinta">{valor}</b>
+          <b className={`block font-display ${CIFRA_CASILLA} font-medium leading-none tabular-nums text-tinta`}>{valor}</b>
         </span>
         <small className="whitespace-nowrap text-sm font-semibold text-tinta sm:text-sm">{rotulo}</small>
         {elegida && <Check aria-hidden className="absolute right-1.5 top-1.5 h-3.5 w-3.5 text-tinta" />}
@@ -728,7 +735,9 @@ export function PanelTalla({
             {/* Al ajustar, lo de la prenda se pliega: la planilla necesita el lugar (ronda 2 de la maqueta), y vuelve al salir. */}
             <div className="ajuste-repliega" data-plegado={modoAjuste ? "si" : undefined} aria-hidden={modoAjuste || undefined}>
               <div>
-            <div data-guia="existencias.cajon-prenda" className="mb-4 flex flex-wrap gap-2 p-0.5">
+            {/* En el celular, una grilla de dos que llena el ancho (Felipe 2026-11-17: «centrar o rellenar»): a 375 px la fila suelta dejaba
+                85 px vacíos a la derecha de cada par. Si quedan tres, el último toma la fila entera. Desde 640 px, la fila de siempre. */}
+            <div data-guia="existencias.cajon-prenda" className="mb-4 grid grid-cols-2 gap-2 p-0.5 [&>*:last-child:nth-child(odd)]:col-span-2 sm:flex sm:flex-wrap">
               {enSedeActiva && hrefEtiquetas && (
                 <EnlaceEtiquetas
                   href={hrefEtiquetas}
@@ -1009,7 +1018,7 @@ export function PanelTalla({
                             </Chip>
                             {insignia.frase && <span className="text-sm text-taupe">{insignia.frase}</span>}
                           </p>
-                          <div className={`grid gap-1.5 ${separa ? "grid-cols-4" : "grid-cols-3"}`}>
+                          <div className={casillasDeLaFila(separa)}>
                             {casilla(separa ? (fila.pisoDisponible ?? 0) : fila.disponible, separa ? "En piso" : "disponibles", IconoPercha, separa && insignia.tono === "ambar" ? "falta" : undefined, separa ? () => irATodas("piso") : undefined, "ver todas las tallas y colores en el piso", antesDeEsta ? (separa ? antesDeEsta.piso : antesDeEsta.disponible) : undefined)}
                             {separa && casilla(fila.almacenDisponible ?? 0, "En almacén", Archive, undefined, () => irATodas("almacen"), "ver todas las tallas y colores en el almacén", antesDeEsta?.almacen)}
                             {casilla(fila.apartado, fila.apartado === 1 ? "apartada" : "apartadas", ShoppingBag, "apartada", fila.apartado > 0 ? onVerApartadas : undefined)}
@@ -1155,7 +1164,7 @@ export function PanelTalla({
                             {colores.length} {colores.length === 1 ? "color" : "colores"} · {tallasDeTodos.length} {tallasDeTodos.length === 1 ? "talla" : "tallas"}
                           </span>
                         </p>
-                        <div className={`grid gap-1.5 ${separa ? "grid-cols-4" : "grid-cols-3"}`}>
+                        <div className={casillasDeLaFila(separa)}>
                           {separa ? casillaCapa("piso", sumaModelo.piso) : casilla(sumaModelo.piso, "disponibles", IconoPercha)}
                           {separa && casillaCapa("almacen", sumaModelo.almacen)}
                           {casilla(sumaModelo.apartado, sumaModelo.apartado === 1 ? "apartada" : "apartadas", ShoppingBag, "apartada")}
@@ -1244,9 +1253,15 @@ export function PanelTalla({
                                 const colorAbierto = c.clave === prenda.clave;
                                 return (
                                   <tr key={c.clave} className={vacioEnCapa ? "opacity-40" : ""}>
-                                    <th scope="row" className={`truncate rounded-lg pl-1.5 pr-1.5 text-left text-sm font-semibold text-tinta ${colorAbierto ? "bg-hueso" : ""}`}>
-                                      <span aria-hidden className="mr-1.5 inline-block h-3 w-3 rounded-full align-[-1px] shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: fondoDelPunto(c.colorHex, c.colorTonos) ?? "var(--color-hueso)" }} />
-                                      {c.color ?? "Sin color"}
+                                    <th scope="row" className={`rounded-lg pl-1.5 pr-1.5 text-left text-sm font-semibold text-tinta ${colorAbierto ? "bg-hueso" : ""}`}>
+                                      {/* El nombre baja a una segunda línea en vez de cortarse: «Azul m…» no decía qué color era (Felipe
+                                          2026-11-17). La fila mide 52 px, así que dos líneas caben sin agrandarla. */}
+                                      <span className="flex items-center gap-1.5">
+                                        <span aria-hidden className="inline-block h-3 w-3 shrink-0 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: fondoDelPunto(c.colorHex, c.colorTonos) ?? "var(--color-hueso)" }} />
+                                        <span className="line-clamp-2 leading-tight [overflow-wrap:anywhere]" title={c.color ?? "Sin color"}>
+                                          {c.color ?? "Sin color"}
+                                        </span>
+                                      </span>
                                     </th>
                                     {tallasDeTodos.map((t) => {
                                       const f = c.tallas.find((x) => (x.talla ?? "Única") === t);
