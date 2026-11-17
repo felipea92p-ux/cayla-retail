@@ -17,8 +17,11 @@ export LC_ALL=C
 
 # 2 (2026-10-09): acepta `?medida=` para los rótulos de anaquel (62 × 100 mm). Una pantalla que la necesita pide la 2.
 # 3 (2026-11-16): también imprime la BOLETA en la ticketera (`?tipo=ticket&largo=<mm>`), sin el cuadro de Chrome, desde el Chrome
-#   de siempre (ADR-0670). El largo lo mide la pantalla; el ancho es el del rollo de 80 mm. Una pantalla que lo necesita pide la 3.
-VERSION=3
+#   de siempre (ADR-0670). El largo lo mide la pantalla. Una pantalla que lo necesita pide la 3.
+# 4 (2026-11-16): `GET /calentar` despierta a Chrome antes de imprimir.
+# 5 (2026-11-16): la boleta va en papel de 72 mm de ancho, el del cabezal (en el driver de la Epson, «80 mm» = 204,3 pt). Con 80 mm el
+#   driver le mandaba líneas de 640 puntos a un cabezal de 576 y el papel salía más lento que con el cuadro de Chrome.
+VERSION=5
 DIR="${CAYLA_ETIQUETAS_DIR:-$HOME/Library/Application Support/CAYLA/etiquetas}"
 LP="${CAYLA_LP:-lp}"
 MAX_BYTES=2097152
@@ -37,7 +40,8 @@ CR=$(printf '\r')
 
 origen_permitido() {
   case "$1" in
-    https://cayla-retail.vercel.app | http://localhost:3000 | http://localhost:3010 | http://127.0.0.1:3000) return 0 ;;
+    # retail.cayla.pe: el dominio propio del ERP (2026-11-16: la tienda lo usaba y el ayudante no le contestaba).
+    https://cayla-retail.vercel.app | https://retail.cayla.pe | http://localhost:3000 | http://localhost:3010 | http://127.0.0.1:3000) return 0 ;;
   esac
   [ -f "$DIR/origenes.txt" ] && grep -qxF "$1" "$DIR/origenes.txt"
 }
@@ -138,6 +142,33 @@ case "$METODO $RUTA" in
     [ -n "$TICKETERA" ] && TIENE_TICKETERA=true || TIENE_TICKETERA=false
     responder "200 OK" "{\"ok\":true,\"version\":$VERSION,\"chrome\":$TIENE_CHROME,\"impresora\":$TIENE_COLA,\"ticketera\":$TIENE_TICKETERA}"
     ;;
+  "GET /calentar")
+    # Despierta a Chrome antes de imprimir (la web lo pide al abrir el cobro o una hoja con ticket). Tras unos segundos sin usarse,
+    # el primer Chrome sin ventana tarda ~1,1 s en armar el PDF; con uno corrido 3 a 8 s antes, 0,5 s (medido el 2026-11-16).
+    # Responde al tiro y recién después corre Chrome con una página en blanco: launchd mataría a un Chrome dejado atrás.
+    if ! origen_permitido "$ORIGEN"; then
+      responder "403 Forbidden" '{"ok":false,"error":"origen no permitido"}'
+      exit 0
+    fi
+    MARCA="$DIR/calentado"
+    # Una vez cada 10 s, como mucho: varias pestañas abiertas no lanzan un Chrome cada una.
+    if [ -f "$MARCA" ] && [ -n "$(find "$MARCA" -mtime -10s 2>/dev/null)" ]; then
+      responder "200 OK" '{"ok":true,"calentado":false}'
+      exit 0
+    fi
+    CHROME=$(buscar_chrome) || { responder "500 Internal Server Error" '{"ok":false,"error":"no encuentro Google Chrome"}'; exit 0; }
+    touch "$MARCA" 2>/dev/null
+    responder "200 OK" '{"ok":true,"calentado":true}'
+    exec >/dev/null 2>&1 </dev/null
+    TMP=$(mktemp -d "${TMPDIR:-/tmp}/cayla-cal.XXXXXX") || exit 0
+    trap 'pkill -9 -f "$TMP/perfil" 2>/dev/null; rm -rf "$TMP"' EXIT
+    "$CHROME" --headless --disable-gpu --no-first-run --no-default-browser-check --disable-background-networking \
+      --disable-component-update --use-mock-keychain --user-data-dir="$TMP/perfil" --dump-dom about:blank &
+    PID=$!
+    I=0
+    while [ "$I" -lt 100 ] && kill -0 "$PID" 2>/dev/null; do sleep 0.1; I=$((I + 1)); done
+    { kill -9 "$PID"; wait "$PID"; } 2>/dev/null
+    ;;
   "POST /imprimir")
     if ! origen_permitido "$ORIGEN"; then
       responder "403 Forbidden" '{"ok":false,"error":"origen no permitido"}'
@@ -180,7 +211,7 @@ case "$METODO $RUTA" in
         responder "400 Bad Request" '{"ok":false,"error":"el largo del ticket no es valido"}'
         exit 0
       fi
-      MEDIA="Custom.80x${LARGO_TICKET}mm"
+      MEDIA="Custom.72x${LARGO_TICKET}mm"
     fi
     if [ "$LARGO" -le 0 ] || [ "$LARGO" -gt "$MAX_BYTES" ]; then
       responder "413 Payload Too Large" '{"ok":false,"error":"las etiquetas no llegaron completas"}'
@@ -229,10 +260,11 @@ case "$METODO $RUTA" in
       --print-to-pdf="$TMP/etiquetas.pdf" "file://$TMP/etiquetas.html" >"$TMP/chrome.log" 2>&1 &
     PID=$!
     I=0
-    while [ "$I" -lt 80 ]; do
+    # Se mira cada 0,1 s (antes 0,5: hasta medio segundo de espera de más en cada boleta). 400 vueltas = el mismo tope de 40 s.
+    while [ "$I" -lt 400 ]; do
       grep -q 'bytes written to file' "$TMP/chrome.log" 2>/dev/null && break
       kill -0 "$PID" 2>/dev/null || break
-      sleep 0.5
+      sleep 0.1
       I=$((I + 1))
     done
     { kill -9 "$PID"; wait "$PID"; } 2>/dev/null

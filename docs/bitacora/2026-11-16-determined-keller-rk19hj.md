@@ -32,3 +32,11 @@ pone la TELA de la foto real primero («sin alisarla de más»), hace mandar la 
 planchado (`SE_VE_PLANCHADA`: hilos con nudos, mate, ondas suaves). ADR-0659 act. 2026-11-16 (e).
 Por qué así: la primera versión alisó el lino Crudo hasta volverlo otra tela (Felipe: «es más liso pero pierde la tela»).
 Felipe se lleva: sin medir con OpenAI desde aquí; se prueba rehaciendo Crudo, idealmente con la foto «Detalle de la tela».
+
+## 2026-11-16 (Tres acabados del lino, para elegir mirando)
+Qué hice: la ficha de la IA tiene tres acabados de la tela (planchada, con arrugas finas, sin planchar; producción sigue con «planchada»), y el
+laboratorio de fotos arma el mismo pedido que producción y, con «Comparar acabados», pide las tres versiones de cada foto lado a lado, con la ficha
+y la foto de cerca de la tela. ADR-0659 act. 2026-11-16 (f).
+Por qué así: el lino Crudo salió liso dos veces; en la foto real lo único que dice «lino» son las arrugas, y planchada la IA no tiene de dónde
+copiar la trama. Felipe eligió comparar y decidir mirando. Felipe se lleva: el laboratorio corre en local con `OPENAI_API_KEY` en
+`apps/web/.env.local`; verificado aquí con OpenAI simulado (tres pedidos con ficha, acabado y foto de cerca), sin gastar.

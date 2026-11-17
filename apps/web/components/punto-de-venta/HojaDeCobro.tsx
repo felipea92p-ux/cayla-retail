@@ -14,6 +14,7 @@ import { CerrarHoja } from "@/components/punto-de-venta/CerrarHoja";
 import { CabezaPaso } from "@/components/punto-de-venta/CabezaPaso";
 import { montoIlegible, numeroDeMonto } from "@/lib/monto-plata-reglas";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
+import { useDespertarAyudante } from "@/components/impresion/imprimirBoleta";
 
 type TipoVenta = Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">;
 
@@ -124,6 +125,8 @@ export function HojaDeCobro({
   /** Los comprobantes que esta sede puede emitir (`tiposDeComprobanteDeLaSede`): solo los que tienen serie. */
   tipos?: readonly TipoVenta[];
 }) {
+  // Despierta al ayudante de la Mac: al imprimir, la boleta sale en 0,5 s y no en 1,1 (ADR-0670).
+  useDespertarAyudante();
   const cuerpoRef = useRef<HTMLDivElement>(null);
   // «Otro»: lo escrito se guarda como texto mientras se edita (con coma y todo) y se lee con la regla de plata (ADR-0419): convertirlo en
   // cada tecla borraba la coma de «2,» a mitad de escribir. Lo que no se entiende no cuenta como recibido y queda en rojo.

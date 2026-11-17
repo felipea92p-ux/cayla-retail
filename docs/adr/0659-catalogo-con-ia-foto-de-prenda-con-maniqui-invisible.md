@@ -244,3 +244,41 @@ pierde la tela». La IA cumplió «tersa y bien estirada», «recién planchada 
 
 **Sigue sin medir** con una lámina: es la segunda apuesta del día sobre el mismo pantalón. Lo que más ayuda sin tocar el pedido: subir también la
 foto de cerca de la tela (con luz de costado se ven los nudos del lino).
+
+## Actualización 2026-11-16 (f) — Tres acabados de la tela, para elegir mirando en el laboratorio
+
+**Nace de** la segunda foto del lino Crudo con la act. (e): también salió lisa (Felipe: «se sigue perdiendo el tipo de tela»). La foto sí salió con
+el pedido nuevo (publicado 22:25:26, pedida ~22:28; la ficha del pantalón dice Pantalones, Lino, Liso). **Diagnóstico:** en la foto real,
+sostenida a mano en el almacén, lo único que dice «lino» son las arrugas; desde esa distancia no se ven los hilos ni los nudos. Al pedirle
+planchada, la IA quita la única pista y rellena con una tela genérica: no puede copiar una trama que no ve, se la nombre como se la nombre.
+
+**Felipe eligió** (de cuatro caminos: probar con la foto de cerca, comparar tres versiones, que el lino conserve sus arrugas, o calidad alta)
+**comparar tres versiones de la misma foto y decidir mirando.** Producción no cambia hasta que elija.
+
+**Lo que cambió:**
+1. `fichaParaIA(datos, { acabado })` (`lib/ficha-foto-ia.ts`) con tres acabados (`ACABADOS`): **«planchada»** (la de hoy, la de fábrica: el pedido de
+   producción sale palabra por palabra igual, lo vigilan sus huellas), **«arrugas-finas»** (sin los dobleces de guardarla, pero con «las arrugas
+   finas y naturales de su tela, repartidas parejo»: aquí SÍ se nombran, es lo que se mide) y **«sin-planchar»** (ninguna línea de acabado). El
+   seersucker no lleva ninguno.
+2. **El laboratorio (`/laboratorio/fotos`, solo fuera de producción) arma el MISMO pedido que producción** (`pedidoDeCatalogo` con la ficha), que
+   hasta hoy mandaba el de blusa sin ficha. Con «Comparar acabados» encendido, cada foto pide las tres versiones lado a lado, con la ficha
+   (categoría, tejido, patrón; de fábrica, el caso medido: Pantalones, Lino, Liso), la foto de cerca de la tela si se sube, y el molde si se elige.
+   Tres llamadas por foto (~0,18 USD); cada versión dice lo que costó.
+
+**Qué sigue:** correr el laboratorio con la foto real de Crudo (y, si se puede, con una foto de cerca de la tela), mirar las tres versiones y
+elegir. Lo elegido pasa a ser el acabado de fábrica, o solo el del lino si las demás telas salen bien planchadas.
+
+## Actualización 2026-11-17 (g) — El lino sale «con arrugas finas» de fábrica
+
+**Nace de** la tercera foto planchada del lino Crudo, mirada junto a las dos de antes (Felipe 2026-11-17): «se sigue viendo de esta forma, se ve
+peor». Tres fotos planchadas, tres veces el lino perdió lo que lo hace lino. El laboratorio de la act. (f) existe, pero corre en local con la llave,
+y Felipe prueba en producción.
+
+**Lo que cambió** (`lib/ficha-foto-ia.ts`): `ACABADO_POR_TEJIDO = { lino: "arrugas-finas" }`. Sin acabado pedido, el lino sale «con arrugas finas»
+(lo que Felipe pidió al principio: «retocar las arrugas sin perder el tipo de tela»): sin los dobleces de guardarla, con las arrugas finas y parejas
+de una tela natural, y la textura de la foto real. Las demás telas siguen «planchada» (no hay evidencia de que les vaya mal); el laboratorio sigue
+pidiendo el acabado que se le diga. Las huellas de la blusa de seda y el chaleco de sastre no cambiaron.
+
+**Aquí SÍ se nombran las arrugas** (lo de octubre, «quita arrugas», redibujaba rayas): el lino de esta prueba es liso, sin rayas que redibujar. **Se
+rompe si** un lino rayado sale con las rayas cambiadas; entonces «Usar mi foto». **Si tampoco convence**, lo siguiente es `lino: "sin-planchar"`
+(las fotos de antes, con sus arrugas): una línea.

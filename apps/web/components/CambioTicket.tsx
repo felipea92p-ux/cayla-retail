@@ -16,7 +16,7 @@ import { textoTicketCambio } from "@/lib/cambios-atajos-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { soles } from "@/lib/compras-reglas";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
-import { imprimirBoleta } from "@/components/impresion/imprimirBoleta";
+import { imprimirBoleta, useDespertarAyudante } from "@/components/impresion/imprimirBoleta";
 
 /* ====================================================================
    CambioTicket · lo que la clienta se lleva al terminar un cambio (spike 2026-09-26, opción A)
@@ -72,6 +72,8 @@ export function CambioTicketHoja({
   onNuevo: () => void;
   onCerrar: () => void;
 }) {
+  // Despierta al ayudante de la Mac: al imprimir, la boleta sale en 0,5 s y no en 1,1 (ADR-0670).
+  useDespertarAyudante();
   const boleta = papeles ? textoNumeroRecibo(papeles.recibo) : null;
   // El PDF sale con el número de la boleta nueva («B004-000004.pdf») o como «Cambio B004-000004.pdf», no «Retail - CAYLA.pdf».
   useTituloDeImpresion(boleta ?? (ticket.comprobante ? `Cambio ${ticket.comprobante}` : null));
