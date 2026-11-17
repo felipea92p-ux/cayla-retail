@@ -299,7 +299,11 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         recibidos={recibidos}
         costos={costos}
         vacio={`Todavía no llegó nada a ${persona.ubicacionEtiqueta}.`}
-        enviosAbiertos={(deOrdenes?.envios ?? []).filter((e) => e.estado === "abierto").map((e) => e.id)}
+        // Cada envío sale una sola vez (Felipe 2026-11-17): lo que se sigue recibiendo y lo que quedó por terminar no se repite en «Terminados».
+        enviosSinTerminar={[
+          ...(deOrdenes?.envios ?? []).filter((e) => e.estado === "abierto").map((e) => e.id),
+          ...(contando.disponible ? (contando.pendientes?.envios ?? []).map((e) => e.despachoId) : []),
+        ]}
       />
     );
     if (contando.disponible) {

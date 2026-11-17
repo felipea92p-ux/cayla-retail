@@ -202,7 +202,7 @@ export function EnviosParaRecibir({
               <span className={celda("izq", "pointer-events-none relative hidden text-sm tabular-nums text-taupe @5xl:block")}>{e.numeroGuia ?? "—"}</span>
               <span className={celda("der", "pointer-events-none relative text-sm text-tinta")}>
                 {sinAviso ? "—" : prendas(e.unidades)}
-                {/* Lo que ya entró de un envío abierto también sale abajo, en «Terminados»: aquí se dice para que no parezca repetido. */}
+                {/* Lo que ya entró de un envío abierto se dice aquí: «Terminados» solo trae lo que terminó (Felipe 2026-11-17). */}
                 {yaEnStock && <small className="block whitespace-normal text-sm text-taupe">{yaEnStock}</small>}
               </span>
               <span className={celda("der", "relative overflow-visible whitespace-normal sm:flex sm:justify-end")}>
