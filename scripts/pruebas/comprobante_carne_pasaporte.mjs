@@ -387,9 +387,11 @@ caso(
   SEDE + como(FELIPE) + VENDER("venta", { tipoDoc: "'carne_extranjeria'", num: "'001234567'" }) +
     `reset role;
 select id as bol from retail.comprobantes where venta_id::text = :'venta' \\gset
-select retail.registrar_serie_comprobante(:'ubic', 'nota_credito', 'BC97') as _bc
- where not exists (select 1 from retail.series_comprobantes where ubicacion_id = :'ubic' and tipo = 'nota_credito'
-                     and archivada_at is null and serie like 'B%') \\gset
+-- Una subconsulta escalar: si la tienda ya tiene su serie B (el seed le da una a Lima desde ADR-0672), \\gset recibe una fila vacía en
+-- vez de ninguna fila (que psql trata como error).
+select (select retail.registrar_serie_comprobante(:'ubic', 'nota_credito', 'BC97')
+         where not exists (select 1 from retail.series_comprobantes where ubicacion_id = :'ubic' and tipo = 'nota_credito'
+                             and archivada_at is null and serie like 'B%')) as _bc \\gset
 -- SUNAT solo admite notas sobre lo que ya aceptó (fn_valida_nota_referencia_aceptada).
 select retail.actualizar_transmision_comprobante(:'bol', 'aceptado', 'sandbox', '{"prueba": true}'::jsonb) as _ab \\gset
 -- La nota acredita lo que cobró la boleta (su propio subtotal, IGV y total): desde 20261012120100 una nota que pasara de eso se rechaza.

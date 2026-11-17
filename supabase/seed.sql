@@ -589,6 +589,13 @@ begin
   -- de +139.90 y poder probar que el cuadre la detecta.
 
   -- ---------- cambio de talla: la blusa comprada en venta1 (M) se cambia por L ----------
+  -- ADR-0672: el cambio emite su nota de crédito sobre la boleta de venta1 y su boleta nueva, y espera a que SUNAT haya aceptado la
+  -- boleta. Aquí nadie la transmite: se da por aceptada en sandbox, y Lima recibe su serie de nota de crédito para la nota: BC03, la
+  -- de producción (no BC01: las pruebas la registran en otras tiendas, y el número de un comprobante es único en toda la empresa).
+  update retail.comprobantes set estado = 'aceptado', entorno_transmision = 'sandbox' where venta_id = venta1_id and tipo = 'boleta';
+  insert into retail.series_comprobantes (ubicacion_id, tipo, serie)
+    select ubic_lima, 'nota_credito', 'BC03'
+     where not exists (select 1 from retail.series_comprobantes where ubicacion_id = ubic_lima and tipo = 'nota_credito' and serie like 'B%');
   select id into vi_blusa_emma from retail.venta_items where venta_id = venta1_id and variante_id = sku_blu_emma_neg_m;
   cambio1_id := retail.registrar_cambio(vi_blusa_emma, ubic_lima, sku_blu_emma_neg_l, 1, null, gen_random_uuid());
 

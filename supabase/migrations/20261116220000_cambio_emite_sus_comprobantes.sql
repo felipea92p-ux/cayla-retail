@@ -22,9 +22,11 @@
 --
 -- PIEZAS.
 --   1. `comprobantes.cambio_id` + candado + un solo papel de cada tipo por cambio.
---   2. `fn_emitir_nota_interna`: el cuerpo de `emitir_nota` sin el permiso de sede. `emitir_nota` pasa a ser «permiso + interna» (mismo
---      texto, misma firma, mismos permisos): el cambio puede hacerse en otra tienda (ADR-0370) y la nota va en la serie de la tienda de la
---      boleta original, donde quien hace el cambio no siempre opera. El permiso del cambio ya lo pidió `registrar_cambio`.
+--   2. `fn_emitir_nota_interna`: una copia del cuerpo de `emitir_nota` sin el permiso de sede, porque el cambio puede hacerse en otra tienda
+--      (ADR-0370) y la nota va en la serie de la tienda de la boleta original, donde quien hace el cambio no siempre opera (el permiso del
+--      cambio ya lo pidió `registrar_cambio`). `emitir_nota` NO se toca: la devolución sigue igual y la firma del responsable (ADR-0162,
+--      `20260923100000`) sigue donde esa migración la busca. Que las dos sigan siendo la misma salvo el permiso lo vigila
+--      `pruebas:cambio-comprobantes` (caso 18).
 --   3. `fn_emitir_comprobantes_del_cambio(cambio)`: arma y reserva los dos papeles. Comprueba que boleta − nota = diferencia o no guarda nada.
 --   4. `registrar_cambio` la llama al final (reemplazo anclado).
 --   5. `registrar_cambio_varias` (ADR-0470) arma las líneas de la boleta en el mismo ciclo que calcula la diferencia (las unidades del mismo
@@ -35,7 +37,8 @@
 -- QUÉ NO HACE. No emite papeles por los cambios ya hechos (decisión del contador). No transmite a SUNAT: los papeles quedan `pendiente` y
 --   salen por el mismo camino que una boleta de venta (ADR-0165).
 -- SE ROMPE SI: alguien cambia `emitir_nota`, el final de `registrar_cambio` o el ciclo de `registrar_cambio_varias` antes de pegar esto:
---   la huella o el ancla no aparecen y se detiene sin aplicar nada.
+--   la huella o el ancla no aparecen y se detiene sin aplicar nada. Y si después alguien cambia `emitir_nota` sin cambiar igual
+--   `fn_emitir_nota_interna`: la prueba lo marca.
 -- CÓMO SE PEGA. Una sola parte, idempotente, `lock_timeout` 3 s. Un `alter table`, funciones y la siembra del vigía, sin políticas ni
 --   disparadores (ADR-0195).
 -- CAÍDA EXTERNA. Nada llama a la red.
@@ -57,16 +60,15 @@ create unique index if not exists comprobantes_un_papel_por_tipo_de_cambio
 comment on column retail.comprobantes.cambio_id is
   'ADR-0672: el cambio de prenda que emitió este papel (su nota de crédito o su boleta nueva). Sin venta: la caja no lo cuenta.';
 
--- 2. La nota de crédito sin el permiso de sede. Se comprueba que `emitir_nota` sea la que se leyó (ADR-0382/0380) antes de tocarla.
+-- 2. La nota de crédito sin el permiso de sede: una copia de `emitir_nota`. Se comprueba que `emitir_nota` sea la que se copió
+--    (ADR-0382/0380): si cambió, la copia ya no sería igual y no se aplica nada. `emitir_nota` no se toca.
 do $$
 declare
   v_md5 text := (select md5(p.prosrc) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                   where n.nspname = 'retail' and p.proname = 'emitir_nota');
 begin
-  if v_md5 is distinct from '196885b8ad3c5eda8c29a0bf715bcbcb'
-     and not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                      where n.nspname = 'retail' and p.proname = 'fn_emitir_nota_interna') then
-    raise exception 'emitir_nota cambió desde que se escribió esta migración (huella %). No se aplicó nada.', v_md5;
+  if v_md5 is distinct from '196885b8ad3c5eda8c29a0bf715bcbcb' then
+    raise exception 'emitir_nota cambió desde que se escribió esta migración (huella %): fn_emitir_nota_interna es su copia sin el permiso de sede y hay que rehacerla desde la nueva. No se aplicó nada.', v_md5;
   end if;
 end;
 $$;
@@ -113,29 +115,10 @@ end;
 $function$;
 
 comment on function retail.fn_emitir_nota_interna(uuid, text, text, numeric, numeric, numeric, jsonb) is
-  'ADR-0672: el cuerpo de emitir_nota sin el permiso de sede. Solo la llaman emitir_nota (que pide el permiso) y '
-  'fn_emitir_comprobantes_del_cambio (cuyo permiso ya pidió registrar_cambio). Nadie más.';
+  'ADR-0672: copia de emitir_nota sin el permiso de sede. Solo la llama fn_emitir_comprobantes_del_cambio (cuyo permiso ya pidió '
+  'registrar_cambio). Si cambia emitir_nota, cambia esta igual: lo vigila pruebas:cambio-comprobantes.';
 
 revoke all on function retail.fn_emitir_nota_interna(uuid, text, text, numeric, numeric, numeric, jsonb) from public, anon, authenticated;
-
-create or replace function retail.emitir_nota(
-  p_comprobante_original_id uuid, p_tipo text, p_motivo text, p_subtotal numeric, p_igv numeric, p_total numeric,
-  p_items jsonb default null)
-returns uuid
-language plpgsql
-security definer
-set search_path to 'retail', 'public', 'extensions'
-as $function$
-begin
-  if not fn_puede_operar_ubicacion((select c.ubicacion_id from comprobantes c where c.id = p_comprobante_original_id)) then
-    if not exists (select 1 from comprobantes c where c.id = p_comprobante_original_id) then
-      raise exception 'El comprobante original % no existe', p_comprobante_original_id;
-    end if;
-    raise exception 'No tienes permiso para emitir notas en esa ubicación';
-  end if;
-  return retail.fn_emitir_nota_interna(p_comprobante_original_id, p_tipo, p_motivo, p_subtotal, p_igv, p_total, p_items);
-end;
-$function$;
 
 -- 3. Los dos papeles de un cambio. `p_items_boleta`: las líneas de la boleta ya armadas por quien sabe qué unidad conservó su descuento
 --    (`registrar_cambio_varias`, ADR-0655); sin ellas (una prenda por una), se arman aquí.

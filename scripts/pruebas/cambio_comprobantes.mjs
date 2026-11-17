@@ -20,6 +20,7 @@
  *  15. Una por dos unidades de otra prenda, en efectivo: la caja espera lo mismo que dicen los papeles.
  *  16. Si el envío al guardar no llegó, el reintento automático toma los dos papeles (no tienen venta y aun así entran a la cola).
  *  17. El vigía de /chaos (INV-30) ve lo que vigila: limpio tras un cambio; con la boleta del cambio retocada a mano, la ve.
+ *  18. `fn_emitir_nota_interna` sigue siendo `emitir_nota` sin el permiso de sede (la nota del cambio y la de la devolución, una regla).
  *
  * CÓMO. Cada caso en su transacción con ROLLBACK (nunca se commitea nada). Si la base no tiene la migración, se aplica dentro de cada
  * transacción (el CI ya la tiene). Las series de la prueba (B901, B902, BC91, FC91) se crean y se archivan dentro de la transacción.
@@ -85,6 +86,10 @@ update retail.series_comprobantes set archivada_at = now(), motivo_archivo = 'pr
  where ubicacion_id in (:'ubic', :'ubic_tru') and tipo in ('boleta', 'nota_credito') and archivada_at is null;
 insert into retail.series_comprobantes (ubicacion_id, tipo, serie) values
   (:'ubic', 'boleta', 'B901'), (:'ubic', 'nota_credito', 'BC91'), (:'ubic', 'nota_credito', 'FC91'), (:'ubic_tru', 'boleta', 'B902');
+-- La nota de venta (caso 8) y la factura (caso 9) necesitan su serie; la base del CI puede no traerlas.
+insert into retail.series_comprobantes (ubicacion_id, tipo, serie)
+  select :'ubic', t, s from (values ('nota_venta', 'NV91'), ('factura', 'F901')) v(t, s)
+   where not exists (select 1 from retail.series_comprobantes where ubicacion_id = :'ubic' and tipo = v.t and archivada_at is null);
 select (select count(*) from (
   select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'ubic' and estado = 'abierta'
 ) x) as _cerro_previa \\gset
@@ -258,7 +263,7 @@ const sumaItems = (p) => p.items.reduce((s, it) => s + (num(it.precio_unitario) 
   const r = correr(`${venta({ variante: "v_m", aceptada: false })}
 select pg_temp.intentar(format('select retail.registrar_cambio(%L, %L, %L, 1, null, gen_random_uuid())', :'venta_item', :'ubic', :'v_s'));
 select (select count(*) from retail.cambios where venta_item_id = :'venta_item') || '|' ||
-       (select count(*) from retail.comprobantes where cambio_id is not null);`);
+       (select count(*) from retail.comprobantes c join retail.cambios k on k.id = c.cambio_id where k.venta_item_id = :'venta_item');`);
   const msg = r.ok ? r.lineas.at(-2) : "";
   esperar(
     "7 · la boleta original aún no llega a SUNAT: el cambio espera y no queda nada escrito",
@@ -359,6 +364,26 @@ ${inv.corrompe}
 select count(*) from (${inv.sql}) x;`)
     : { ok: false, mensaje: "INV-30 no está en scripts/chaos/invariantes.mjs" };
   esperar("17 · el vigía de /chaos (INV-30): limpio tras el cambio, y ve la boleta retocada", r.ok && r.lineas.at(-2) === "0" && num(r.lineas.at(-1)) >= 1, r.ok ? r.lineas : r.mensaje);
+}
+
+// 18. `fn_emitir_nota_interna` es una copia de `emitir_nota` sin el permiso de sede: si alguien cambia una y no la otra (el tope de
+//     las notas, la serie por letra, quién firma), el cambio y la devolución emitirían notas distintas. Las dos, sin el permiso y sin
+//     espacios, tienen que ser el mismo texto.
+{
+  const r = correr(`select replace(replace(prosrc, E'\\n', '⏎'), '|', '¦') from pg_proc where proname in ('emitir_nota', 'fn_emitir_nota_interna')
+    and pronamespace = 'retail'::regnamespace order by proname;`);
+  const sinPermiso = (s) =>
+    s
+      .replace(/⏎/g, "\n")
+      .replace(/\s*if not fn_puede_operar_ubicacion\(v_original\.ubicacion_id\) then\s*raise exception 'No tienes permiso para emitir notas en esa ubicación';\s*end if;/, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  const [nota, interna] = r.ok ? r.lineas.slice(-2) : [];
+  esperar(
+    "18 · la nota del cambio y la de la devolución salen de la misma regla (fn_emitir_nota_interna = emitir_nota sin el permiso)",
+    r.ok && nota && interna && sinPermiso(nota) === sinPermiso(interna) && sinPermiso(nota) !== nota.replace(/⏎/g, "\n").replace(/\s+/g, " ").trim(),
+    r.ok ? { nota: nota?.slice(0, 200), interna: interna?.slice(0, 200) } : r.mensaje,
+  );
 }
 
 // 12. MUTANTE: un cambio que no emite papeles (como antes de la migración) lo ve el caso 1.

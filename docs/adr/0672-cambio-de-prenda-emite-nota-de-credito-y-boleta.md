@@ -50,8 +50,11 @@ prenda dos veces.
 **Piezas** (`20261116220000_cambio_emite_sus_comprobantes.sql`):
 
 - `comprobantes.cambio_id`, con su candado y un solo papel de cada tipo por cambio.
-- `fn_emitir_nota_interna`: el cuerpo de `emitir_nota` sin el permiso de sede. `emitir_nota` queda como «permiso + interna», con la misma
-  firma, el mismo comportamiento y los mismos permisos (la prueba de la devolución pasa 16/16).
+- `fn_emitir_nota_interna`: una **copia** de `emitir_nota` sin el permiso de sede. `emitir_nota` no se toca: la devolución sigue igual, y
+  la firma del responsable sigue donde la busca la migración de ADR-0162 (`20260923100000`). Partirla en «permiso + interna» fue la primera
+  versión, y el CI la frenó: esa migración, pegada otra vez, ya no encontraba la firma en `emitir_nota`. Para que la copia no se desfase, el
+  caso 18 de `pruebas:cambio-comprobantes` exige que las dos sean el mismo texto salvo el permiso, y la migración se niega a pegarse si
+  `emitir_nota` ya no es la que se copió (huella 196885b8).
 - `fn_emitir_comprobantes_del_cambio`: arma y reserva los dos papeles.
 - `registrar_cambio` la llama al final, con un reemplazo anclado.
 - `registrar_cambio_varias` arma las líneas de la boleta en el mismo ciclo que calcula la diferencia (las unidades del mismo modelo que
@@ -118,3 +121,14 @@ SE ROMPE SI:
   La devolución (`aprobar_devolucion_caja`) da 16/16 aprobando con Felipe: la base local no tiene la cuenta de Sandra y, sin ella, la misma
   prueba falla igual sin esta migración (2/16).
 - La migración se pegó dos veces en la copia: es idempotente.
+- **Lo que encontraron el CI y un banco limpio** (todas las migraciones y el seed, como el CI), ya arreglado:
+  - partir `emitir_nota` rompía el re-pegado de la migración de ADR-0162 (`actor-firma`): ahora es una copia;
+  - la variable nueva de `registrar_cambio_varias` le quitaba el ancla a `20261114125000` (`cambio_mismo_modelo`, caso 8);
+  - **el seed fallaba**: su cambio de ejemplo era sobre una boleta sin aceptar. Ahora la da por aceptada y le registra a Lima su serie
+    de nota de crédito, `BC03` (la de producción; con `BC01` chocaba con la que registran las pruebas de apartados en Trujillo, porque
+    el número de un comprobante es único en toda la empresa);
+  - `dia_de_tienda_invariantes` simula la respuesta de SUNAT antes de su cambio;
+  - `comprobante_carne_pasaporte` tenía un `\gset` que fallaba si la tienda ya tenía su serie B.
+
+  Con eso, en ese banco pasan 40 de las 41 pruebas que tocan cambios, devoluciones y comprobantes. La que falla,
+  `lecturas_rapidas_y_cambio`, pide la base de volumen `cayla_carga`, que el banco no tiene.

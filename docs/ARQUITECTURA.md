@@ -1313,8 +1313,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `descripcionEntregadaTodas`; /chaos vigila `INV-22`. Migraciones 20261021183000 a 20261021193000.
   **Desde el ADR-0672 (2026-11-16, migración 20261116220000) un cambio emite sus papeles:** al final de
   `registrar_cambio` y `registrar_cambio_varias`, `fn_emitir_comprobantes_del_cambio` reserva la nota de
-  crédito sobre la boleta original (lo pagado por lo devuelto, por `fn_emitir_nota_interna`, el cuerpo de
-  `emitir_nota` sin el permiso de sede) y la boleta nueva (lo pagado + la diferencia, por
+  crédito sobre la boleta original (lo pagado por lo devuelto, por `fn_emitir_nota_interna`, una copia de
+  `emitir_nota` sin el permiso de sede; `emitir_nota` no cambia) y la boleta nueva (lo pagado + la diferencia, por
   `emitir_comprobante`), los dos sin venta (`comprobantes.cambio_id`); la caja no cambia. Espera si la
   boleta original no está aceptada (hint `cambio_boleta_sin_aceptar`; la pantalla lo adelanta con
   `boletaEnCamino`, `lib/cambios-reglas.ts`) y no emite nada sin boleta del ERP. Al guardar, `CambiosFlujo`
