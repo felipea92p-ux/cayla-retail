@@ -35,6 +35,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
 import { AccionSinAviso, SinAvisoProvider } from "@/components/recepcion-conteo/SinAvisoContexto";
 import { EnviosParaRecibir } from "@/components/recepcion-envio/EnviosParaRecibir";
+import { EnviosDeLaSede } from "@/components/recepcion-envio/EnviosDeLaSede";
 import { getComprasPagadasHacia, getEnviosAMedias, getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
 import { diasAMedias, DIAS_PARA_RESALTAR, textoDeEnvioAMedias } from "@/lib/recepcion-salida-reglas";
 import { getConteosDelEnvio, recibirContandoDisponible } from "@/lib/recepcion-conteo";
@@ -328,9 +329,21 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           {contando.pendientes && <PendientesDeRecibir pendientes={contando.pendientes} conLista={false} guia="recibir.pendientes" />}
           <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
           <SinAvisoProvider>
-          {deOrdenes && (
-            <EnviosParaRecibir envios={porRecibirEnLaSede?.envios ?? []} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria proveedoresSinAviso={proveedoresSinAviso} enStock={Object.fromEntries(aMedias.map((e) => [e.id, e.enStock]))} accionTitulo={<AccionSinAviso />} />
-          )}
+          {/* Una sola tarjeta (Felipe 2026-11-17, propuesta «C · Índice»): lo que falta recibir, lo que quedó por terminar y lo terminado, cada
+              envío una vez. Si los envíos por recibir no se pudieron leer, la tarjeta lo dice y muestra lo demás. */}
+          <EnviosDeLaSede
+            envios={porRecibirEnLaSede?.envios ?? []}
+            ordenes={deOrdenes?.ordenes ?? []}
+            sinLeerPorRecibir={!deOrdenes}
+            sede={persona.ubicacionEtiqueta}
+            proveedoresSinAviso={proveedoresSinAviso}
+            aMedias={Object.fromEntries(aMedias.map((e) => [e.id, { enStock: e.enStock, contadas: e.contadas }]))}
+            pendientes={contando.pendientes}
+            recibidos={recibidos}
+            costos={costos}
+            hoy={hoyLima()}
+            accionTitulo={<AccionSinAviso />}
+          />
           <LlegoSinAviso
             key={claveDeLaRecepcion(persona.ubicacionId)}
             ubicacionId={persona.ubicacionId}
@@ -341,7 +354,6 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             hayListaArriba={(deOrdenes?.envios.length ?? 0) + (deOrdenes?.ordenes.length ?? 0) > 0}
           />
           </SinAvisoProvider>
-          {loRecibido}
         </div>
       );
     }

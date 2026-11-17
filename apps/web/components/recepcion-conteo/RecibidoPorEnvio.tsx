@@ -141,7 +141,8 @@ export function RecibidoPorEnvio({
   );
 }
 
-function EnvioAbierto({ envio, costos, onClose }: { envio: EnvioRecibido; costos?: Record<string, CostoRecepcion>; onClose: () => void }) {
+/** La hoja de un envío terminado: lo que trajo, por marca. También la abre la tarjeta «Envíos» de Recibir. */
+export function EnvioAbierto({ envio, costos, onClose }: { envio: EnvioRecibido; costos?: Record<string, CostoRecepcion>; onClose: () => void }) {
   const termino = textoTermino(envio);
   const [desplegadas, setDesplegadas] = useState<ReadonlySet<string>>(new Set());
   const marcas = marcasDelEnvio(envio);
