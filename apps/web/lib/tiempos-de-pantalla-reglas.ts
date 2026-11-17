@@ -11,7 +11,8 @@
 //
 // QUÉ NO LLEVA (ADR-0424): ni nombres, ni la sesión, ni lo que se buscó, ni la dirección con su `?…`. Solo el PATRÓN de la ruta
 // (`/productos/[id]`, nunca el id), los milisegundos, la sede, la versión del ERP que lo midió y, desde ADR-0674, la CLASE del equipo
-// (memoria y núcleos en rangos gruesos, tipo de red, ahorro de datos: `clase-de-equipo.ts`), para separar el teléfono de gama baja del Mac mini.
+// (memoria y núcleos en rangos gruesos, tipo de red, ahorro de datos, pantalla táctil: `clase-de-equipo.ts`), para separar el teléfono de
+// gama baja del Mac mini.
 //
 // Aquí vive solo lo puro (qué cuenta como cambiar de pantalla, cuándo llegó, el patrón, el lote y su lectura en el servidor). Lo que mira
 // el navegador está en `tiempos-de-pantalla-cliente.ts`; lo que escribe la línea en los registros, en `app/api/tiempos/route.ts`.
@@ -162,7 +163,7 @@ export function leerLote(texto: string): TiempoDePantalla[] {
 
 /**
  * La línea de los registros del servidor: UNA por medición, para que `vercel logs --query tiempo_de_pantalla` dé las filas del p75. La
- * clase del equipo va en columnas planas (`ram`, `nucleos`, `red`, `ahorro_datos`; `null` si no se sabe) para poder filtrar por ellas.
+ * clase del equipo va en columnas planas (`ram`, `nucleos`, `red`, `ahorro_datos`, `tactil`; `null` si no se sabe) para poder filtrar por ellas.
  */
 export function lineaDeRegistro(t: TiempoDePantalla): string {
   const e = t.equipo;
@@ -177,5 +178,6 @@ export function lineaDeRegistro(t: TiempoDePantalla): string {
     nucleos: e?.nucleos ?? null,
     red: e?.red ?? null,
     ahorro_datos: e ? e.ahorroDeDatos : null,
+    tactil: e ? e.tactil : null,
   });
 }

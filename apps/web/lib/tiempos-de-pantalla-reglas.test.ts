@@ -112,7 +112,7 @@ const T: TiempoDePantalla = {
   sedeId: SEDE,
   sinEsqueleto: false,
   version: "98b9137f3a1c",
-  equipo: { ram: 2, nucleos: 8, red: "4g", ahorroDeDatos: false },
+  equipo: { ram: 2, nucleos: 8, red: "4g", ahorroDeDatos: false, tactil: true },
 };
 
 describe("armarLote: un envío solo cuando hay qué mandar, de a 50", () => {
@@ -166,7 +166,7 @@ describe("leerLote: el servidor solo cree lo que tiene la forma exacta", () => {
   });
 
   it("un equipo fuera de forma no tira la medición: queda sin equipo", () => {
-    expect(leerLote(cuerpo([{ ...T, equipo: { ram: 3, nucleos: 8, red: "4g", ahorroDeDatos: false } }]))).toEqual([{ ...T, equipo: null }]);
+    expect(leerLote(cuerpo([{ ...T, equipo: { ram: 3, nucleos: 8, red: "4g", ahorroDeDatos: false, tactil: true } }]))).toEqual([{ ...T, equipo: null }]);
   });
 
   it("50 mediciones con su equipo caben en un envío", () => {
@@ -193,10 +193,11 @@ describe("lineaDeRegistro: una línea JSON por medición, sin nada personal", ()
       nucleos: 8,
       red: "4g",
       ahorro_datos: false,
+      tactil: true,
     });
   });
 
   it("sin equipo, sus columnas van en null (no se confunde con «sin ahorro de datos»)", () => {
-    expect(JSON.parse(lineaDeRegistro({ ...T, equipo: null }))).toMatchObject({ ram: null, nucleos: null, red: null, ahorro_datos: null });
+    expect(JSON.parse(lineaDeRegistro({ ...T, equipo: null }))).toMatchObject({ ram: null, nucleos: null, red: null, ahorro_datos: null, tactil: null });
   });
 });

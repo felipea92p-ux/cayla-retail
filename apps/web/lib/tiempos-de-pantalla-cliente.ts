@@ -32,7 +32,8 @@ let cuadro = 0;
 const cola: TiempoDePantalla[] = [];
 /** La clase de este equipo (ADR-0674): memoria y núcleos no cambian; la red sí, así que se lee de nuevo en cada medición. */
 function equipoAhora(): Equipo {
-  return leerEquipo(typeof navigator === "undefined" ? null : navigator);
+  if (typeof navigator === "undefined") return leerEquipo(null);
+  return leerEquipo(navigator, window.matchMedia?.("(pointer: coarse)").matches === true);
 }
 
 /** El marco anota en qué ruta está y en qué sede (lo llama `CronometroDelClic` en cada cambio de ruta, al montarse la pantalla nueva). */
