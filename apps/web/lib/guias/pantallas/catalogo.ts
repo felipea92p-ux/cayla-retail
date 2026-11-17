@@ -1694,7 +1694,7 @@ export const GUIA_MARCAS: Guia = {
       id: "buscador",
       ancla: "marcas.buscador",
       titulo: "Busca una marca",
-      texto: "Escribe el nombre de una marca o de un proveedor y la lista se achica mientras escribes. Si aparece en gris lo que falta, Tab lo completa y Enter te lleva a esa marca. Al lado, cuántas hay. Mira:",
+      texto: "Escribe el nombre de una marca o de un proveedor y la lista se achica mientras escribes. Si aparece en gris lo que falta, Tab lo completa y Enter te lleva a esa marca. También dice cuántas hay. Mira:",
       demostrar: [{ tipo: "escribir", ancla: "marcas.buscador", texto: { palabraDe: "marcas.tarjeta" } }],
     },
     {
@@ -1703,14 +1703,14 @@ export const GUIA_MARCAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "marcas.buscador" }],
       titulo: "Filtrar por estado",
-      texto: "«Ya las usamos» deja las que tienen productos; «Sin productos», las que nadie usó todavía; «Sin proveedor», las que no se pueden elegir porque falta decir quién las trae (el punto ámbar avisa). «Todas» vuelve a la lista completa.",
+      texto: "«Ya las usamos» deja las que tienen productos; «Sin productos», las que nadie usó todavía; «Sin proveedor», las que no se pueden elegir porque falta decir quién las trae (el punto ámbar avisa); «Desactivadas», las que ya no se usan. «Todas» vuelve a la lista completa. En el celular están detrás de este ícono.",
     },
     {
       id: "resumen",
       ancla: "marcas.resumen",
       opcional: true,
       titulo: "El resumen",
-      texto: "Abre los mismos cuatro números en tarjetas grandes, arriba. Tocar una tarjeta filtra la lista igual que las píldoras.",
+      texto: "Abre los mismos números en tarjetas grandes, en una hoja. Tocar una tarjeta filtra la lista igual que las píldoras y cierra la hoja.",
     },
     {
       id: "desactivadas",
