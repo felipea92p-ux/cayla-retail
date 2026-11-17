@@ -18,18 +18,23 @@ import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
 import { Modal } from "@/components/ui/Modal";
-import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { avisar } from "@/components/ui/Avisos";
-import { BuscarPrendaParaAjustar } from "@/components/existencias/BuscarPrendaParaAjustar";
+import {
+  AjustarInventarioBajoDemanda,
+  BuscarPrendaBajoDemanda,
+  EscanerBusquedaBajoDemanda,
+  PanelTallaBajoDemanda,
+  ResolverDanadosBajoDemanda,
+  ResumenStockBajoDemanda,
+} from "@/components/existencias/hojas-bajo-demanda";
+import { usePrecargarEnReposo } from "@/components/HojaBajoDemanda";
 import { usePedidoDeAjuste } from "@/components/existencias/BotonAjustarStock";
 // «Pedir para una clienta» (PedirOtraSedeModal) no vuelve: el rediseño del cajón (2026-09-28) no tiene esa entrada — el
 // mismo criterio ya documentado para «Apartar»/«Retirar del piso»/«Dónde más hay». «Eliminar el producto» (ADR-0252) salió del
 // detalle de la prenda el 2026-10-12 (ADR-0391, decisión de Felipe): es de Catálogo, y ahí sigue (la vista rápida de Productos).
 import { alternarMarcasDePrenda, permisosDelDetalle } from "@/lib/existencias-permisos";
-import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
 import type { Hermana } from "@/lib/danadas-correccion";
 import { ApartadosModal } from "@/components/ApartadosModal";
-import { ResumenStockOverlay } from "@/components/ResumenStockOverlay";
 import { RitmoRecientePopover } from "@/components/RitmoRecientePopover";
 import { resumirApartados, type Apartado } from "@/lib/apartados-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -40,12 +45,11 @@ import { entradaPorColgar, porColgarDeLaSede, tareasParaHoy, type TipoTareaHoy }
 import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
 import { ALTO_TARJETA, ExistenciasTarjetas, REJILLA_TARJETAS } from "@/components/ExistenciasTarjetas";
 import { conteoDeLista, opcionesOrden, ordenarModelos, tarjetasDeExistencias, type OrdenPrendas } from "@/lib/existencias-tarjetas";
-import { PanelTalla, type FlujoPedido, type MarcaDelFiltro } from "@/components/existencias/PanelTalla";
+import type { FlujoPedido, MarcaDelFiltro } from "@/components/existencias/PanelTalla";
 import { AnilloMision } from "@/components/existencias/AnilloMision";
 import { mejorOrigen } from "@/lib/existencias-flujos";
 import { usePistola } from "@/components/ui/usePistola";
 import { tallasQueFaltan } from "@/lib/reponer-prenda-reglas";
-import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import { HREF_COLGAR_EN_TANDAS } from "@/lib/inicio-almacen-reglas";
 import { agruparPorPrenda, deLaPrenda, tallasPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorListaDelDia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, type ClaveFiltro, type FiltroActivo, type ProductoSinStock } from "@/lib/existencias-vacio";
@@ -377,6 +381,10 @@ export function InventarioPanel({
   // «Ajustar stock» de la cabecera (ADR-0494): cada toque abre «¿Qué prenda vas a ajustar?» (patrón «previo + comparación»).
   const pedidoDeAjuste = usePedidoDeAjuste();
   const [pedidoVisto, setPedidoVisto] = useState(pedidoDeAjuste);
+  // El panel de la prenda es lo que más se abre en Existencias: su código baja apenas la pantalla queda libre, no al primer toque (ADR-0674).
+  usePrecargarEnReposo(PanelTallaBajoDemanda);
+  // La cámara es por donde se entra a una prenda en el celular: también baja en reposo.
+  usePrecargarEnReposo(EscanerBusquedaBajoDemanda);
   const [buscandoAjuste, setBuscandoAjuste] = useState(false);
   // «Separé una dañada» (ADR-0564): el mismo buscador, que lleva directo a «Reportar dañada» de la talla elegida.
   const [buscandoDanada, setBuscandoDanada] = useState(abrirSepararDanada);
@@ -1499,7 +1507,8 @@ export function InventarioPanel({
       </div>
 
       {ajustando && (
-        <AjustarInventarioModal
+        <AjustarInventarioBajoDemanda
+          alFallar={() => setAjustando(null)}
           productoId={ajustando.productoId}
           // Cada fila de Existencias es una prenda (modelo + color): el ajuste muestra solo sus tallas.
           prenda={{ color: ajustando.color, colorHex: ajustando.colorHex, fotoUrl: ajustando.fotoUrl, categoriaPrefijo: ajustando.categoriaPrefijo, categoriaFamilia: ajustando.categoriaFamilia, categoria: ajustando.categoria }}
@@ -1513,7 +1522,12 @@ export function InventarioPanel({
 
 
       {viendoDanados && (
-        <ResolverDanadosModal
+        <ResolverDanadosBajoDemanda
+          alFallar={() => {
+            setArregloInicial(null);
+            setViendoDanados(false);
+            setSoloPrenda(null);
+          }}
           pendientes={soloPrenda ? deLaPrenda(danadosPendientes, soloPrenda) : danadosPendientes}
           ubicacionId={ubicacionId}
           lugar={lugarDanadas}
@@ -1540,7 +1554,7 @@ export function InventarioPanel({
         />
       )}
 
-      {viendoDisponible && <ResumenStockOverlay stock={stock} separa={separa} ubicacionId={ubicacionId} sedeNombre={sedeNombre} onClose={() => setViendoDisponible(false)} />}
+      {viendoDisponible && <ResumenStockBajoDemanda alFallar={() => setViendoDisponible(false)} stock={stock} separa={separa} ubicacionId={ubicacionId} sedeNombre={sedeNombre} onClose={() => setViendoDisponible(false)} />}
 
       {/* «Ver análisis de cobertura» (AnalisisCoberturaOverlay) y «Ver recomendaciones» (RecomendacionesOverlay) no vuelven:
           el rediseño del 2026-09-28 los reemplaza por «Prioridades de hoy» y el diagnóstico de cada fila; la cobertura
@@ -1551,7 +1565,8 @@ export function InventarioPanel({
           modal encima del cajón: lo cierran y abren el suyo (Reponer, Ajustar, Eliminar), que al guardar refresca la pantalla. Sin
           `key`: al tocar otra fila el cajón se queda y solo cambia su contenido. */}
       {buscandoDanada && permisos.reportarDanada && (
-        <BuscarPrendaParaAjustar
+        <BuscarPrendaBajoDemanda
+          alFallar={() => setBuscandoDanada(false)}
           modo="danada"
           indice={indiceBusqueda}
           sedeNombre={sedeNombre}
@@ -1567,7 +1582,8 @@ export function InventarioPanel({
       )}
 
       {buscandoAjuste && puedeAjustarAqui && (
-        <BuscarPrendaParaAjustar
+        <BuscarPrendaBajoDemanda
+          alFallar={() => setBuscandoAjuste(false)}
           indice={indiceBusqueda}
           sedeNombre={sedeNombre}
           ubicacionId={ubicacionId}
@@ -1585,7 +1601,8 @@ export function InventarioPanel({
       )}
 
       {prendaAbierta && (
-        <PanelTalla
+        <PanelTallaBajoDemanda
+          alFallar={() => setAbierta(null)}
           colores={coloresDelModelo(stockDelModal, prendaAbierta.productoId)}
           claveInicial={prendaAbierta.clave}
           varianteInicial={abierta?.varianteId}
@@ -1677,7 +1694,8 @@ export function InventarioPanel({
       )}
 
       {camara && (
-        <EscanerBusqueda
+        <EscanerBusquedaBajoDemanda
+          alFallar={() => setCamara(false)}
           titulo="Escanear prenda"
           pista="Centra la etiqueta de la prenda en el cuadro"
           onCodigo={(codigo) => {
