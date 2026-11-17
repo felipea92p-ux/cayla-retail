@@ -167,7 +167,11 @@ ${CAMBIAR("v_s")}\n${DIFERENCIA}`);
     r.ok ? r.lineas : r.mensaje,
   );
 }
-{
+// ADR-0671 (20261116213000) le sumó `p_cliente` a registrar_cambio y borró la firma que esta migración ancla: desde ahí ya no se vuelve a
+// pegar (está en producción desde el 2026-11-14). El caso queda para una base que todavía no tiene ADR-0671.
+if (psql("select to_regprocedure('retail.registrar_cambio(uuid,uuid,uuid,integer,text,uuid,text,text,jsonb)') is not null;").trim() === "t") {
+  console.log("· 8 · omitido: ADR-0671 cambió la firma de registrar_cambio; esta migración ya no se vuelve a pegar");
+} else {
   const r = correr(`${SQL_MIGRACION}\n${SQL_MIGRACION}\n${CAMBIAR("v_s")}\n${DIFERENCIA}`);
   esperar("8 · la migración se puede pegar dos veces", r.ok && r.lineas.at(-2) === "ok" && num(r.lineas.at(-1)) === 0, r.ok ? r.lineas : r.mensaje);
 }

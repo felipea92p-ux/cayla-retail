@@ -282,6 +282,12 @@ select 'res|' || (retail.fn_resolver_intento('registrar_movimiento_caja', '${TOK
 // ---------------------------------------------------------------------------------------------------------------------
 // Las migraciones
 // ---------------------------------------------------------------------------------------------------------------------
+// ADR-0671 (20261116213000) le sumó `p_cliente` a registrar_cambio y registrar_cambio_varias y borró las firmas que la parte 2 ancla: desde
+// ahí estas dos migraciones ya no se vuelven a pegar (están en producción desde el 2026-10-13). Los dos casos quedan para una base sin ADR-0671.
+const CON_ADR_0671 = correr("begin;\nselect to_regprocedure('retail.registrar_cambio(uuid,uuid,uuid,integer,text,uuid,text,text,jsonb)') is not null;").salida === "t";
+if (CON_ADR_0671) {
+  console.log("· omitidas las dos pruebas de volver a pegar: ADR-0671 cambió la firma de registrar_cambio y registrar_cambio_varias");
+} else {
 {
   const cuenta = FUNCIONES.map((f) => `select '${f}|' || (length(d) - length(replace(d, 'fn_intento_con_huella(', ''))) / length('fn_intento_con_huella(')
   from pg_get_functiondef('${bloqueDe(f).firma}'::regprocedure) d;`).join("\n");
@@ -300,6 +306,7 @@ select 'res|' || (retail.fn_resolver_intento('registrar_movimiento_caja', '${TOK
   const [antes, despues] = r.salida.split("\n").filter(Boolean);
   esperar("deshacer las diez llamadas y volver a pegar la parte 2 deja las funciones idénticas", r.ok && antes && antes === despues,
     r.ok ? `${antes?.slice(0, 40)} · ${despues?.slice(0, 40)}` : r.error);
+}
 }
 
 console.log(fallas ? `\n${fallas} de ${total} en rojo.` : `\n${total}/${total} pruebas en verde.`);

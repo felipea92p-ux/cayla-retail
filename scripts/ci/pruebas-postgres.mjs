@@ -483,6 +483,11 @@ export const PRUEBAS = [
   // Cambiar la talla o el color de una prenda comprada con descuento no cobra el descuento otra vez (ADR-0655, Felipe 2026-11-14): el mismo
   // modelo, una talla más cara o más barata, otro modelo, una por varias y su mutante. ROLLBACK.
   "pruebas:cambio-mismo-modelo",
+  "pruebas:cambio-con-comprobantes",
+  // Los documentos de un cambio, vigilados (ADR-0671, parte 3): INV-30 calla con lo sano y grita con cada rama rota (sin comprobante nuevo,
+  // nuevo − pagado ≠ diferencia, nota ≠ pagado, falta la nota, par roto, nota que se quedó por emitir), respeta el corte y lo corre el vigía;
+  // y la fuente de metas reparte la diferencia (+ a quien atendió, − a quien vendió, sin lo de CLAURE). Con sus mutantes. ROLLBACK.
+  "pruebas:cambio-con-comprobantes-vigia",
   "pruebas:aviso-dos-ofertas",
   // Tres candados de las ofertas (ADR-0655, casuística 2026-11-16): cesiones sin ciclo, la campaña que se achica bajo sus ofertas (fechas y
   // tiendas) y la revisión de choques de a una; con su control (sin el candado, el ciclo apaga las tres ofertas). ROLLBACK.

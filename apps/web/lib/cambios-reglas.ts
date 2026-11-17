@@ -364,7 +364,7 @@ export function primerBloqueo(validaciones: readonly Validacion[]): Validacion |
 export type ImpactoOperacion = {
   inventario: { signo: "+" | "−"; cantidad: number; prenda: string; donde: string }[];
   caja: { titulo: string; detalle: string };
-  /** Un papel que se emite por el camino (Devoluciones: la nota de crédito). */
+  /** Un papel que se emite por el camino (Devoluciones: la nota de crédito; Cambios con diferencia: la nota y el comprobante nuevo, ADR-0671). */
   documento?: { titulo: string; detalle: string };
 };
 
@@ -379,6 +379,9 @@ export function impactoCambio(e: {
   diferencia: number;
   metodo: MetodoDiferencia;
   sede: string;
+  /** Los comprobantes que emite un cambio con diferencia (ADR-0671, `textoDelImpacto`). Sin él, el cambio no promete ningún papel: así
+   *  sigue mientras la base no los emite (la sonda `fn_cambio_emite_comprobantes`). */
+  documento?: { titulo: string; detalle: string } | null;
 }): ImpactoOperacion {
   // En medio de una frase: "con tarjeta", pero "con Yape" — las marcas no se achican.
   const etiqueta = METODOS_DIFERENCIA.find((m) => m.valor === e.metodo)?.etiqueta ?? e.metodo;
@@ -412,6 +415,7 @@ export function impactoCambio(e: {
       })),
     ],
     caja,
+    ...(e.documento ? { documento: e.documento } : {}),
   };
 }
 

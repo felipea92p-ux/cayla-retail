@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { crearClienteAdmin } from "@/lib/supabase-admin";
 import { anularBoletaLucode, anularDocumentoLucode, entornoLucode } from "@/lib/lucode";
 import { firmaDeEncabezados, mensajeErrorResponsable } from "@/lib/responsable-reglas";
 import { capturarError } from "@/lib/errores";
@@ -23,11 +24,11 @@ import { hoyLima } from "@/lib/fechas-lima";
 //            dos cobradas otra vez).
 //   ASUME:   sesión válida y el responsable del combo en los encabezados
 //            `x-responsable`/`x-ubicacion` (ADR-0161). Que vea Facturación
-//            (antes, que fuera líder: ADR-0534), que no haya nota vigente ni
-//            una baja en trámite se revisa ANTES de
+//            (antes, que fuera líder: ADR-0534), que no haya nota vigente, que
+//            no salga de un cambio (ADR-0671) ni tenga una baja en trámite se revisa ANTES de
 //            llamar a Lucode (`motivoParaNoPedirBaja`); la RPC lo vuelve a
 //            exigir al guardar. Y lo que `anular_venta` va a exigir (caja
-//            abierta, mismo día, sin cambio ni devolución, módulo Devoluciones)
+//            abierta, mismo día, sin cambio ni devolución de ninguna sede, módulo Devoluciones)
 //            también se revisa ANTES (`motivoParaNoAnularLaVenta`): si la venta
 //            no se puede anular, la baja no se pide y el camino es Devolución
 //            con nota de crédito.
@@ -91,16 +92,20 @@ export async function POST(request: Request) {
   // Lo que `anular_comprobante` exige (el módulo Facturación, sin nota vigente) y la baja ya en trámite se revisan ANTES de Lucode: lo
   // que llega a SUNAT no se deshace, y si la base lo rechazara recién al guardar, la baja quedaría pedida sin
   // registrarse. Si no se puede saber (la base no responde), no se pide: 503, nunca «adelante».
-  const [{ data: veFacturacion, error: errModulo }, { count: notasVigentes, error: errNotas }] = await Promise.all([
+  const [{ data: veFacturacion, error: errModulo }, { count: notasVigentes, error: errNotas }, { data: delCambio, error: errCambio }] = await Promise.all([
     supabase.rpc("fn_ve_modulo", { p_clave: "facturacion" }),
     supabase
       .from("comprobantes")
       .select("id", { count: "exact", head: true })
       .eq("comprobante_original_id", comprobante.id)
       .neq("estado", "anulado"),
+    // ADR-0671: un documento que sale de un cambio no se da de baja por separado. Aparte y tolerante solo a la columna que todavía no
+    // existe (42703: la web salió antes que la migración, y entonces ningún documento sale de un cambio); otro error no deja pasar.
+    supabase.from("comprobantes").select("cambio_id").eq("id", comprobante.id).maybeSingle(),
   ]);
-  if (errModulo || errNotas || notasVigentes === null) {
-    capturarError("lucode/anular: no se pudo revisar el permiso o las notas", errModulo ?? errNotas, { comprobante_id: comprobante.id });
+  const faltaLaColumna = errCambio?.code === "42703";
+  if (errModulo || errNotas || notasVigentes === null || (errCambio && !faltaLaColumna)) {
+    capturarError("lucode/anular: no se pudo revisar el permiso o las notas", errModulo ?? errNotas ?? errCambio, { comprobante_id: comprobante.id });
     return Response.json({ error: "No se pudo comprobar si se puede anular. Reintenta en un momento." }, { status: 503 });
   }
   const rechazo = motivoParaNoPedirBaja({
@@ -108,6 +113,7 @@ export async function POST(request: Request) {
     estado: comprobante.estado as EstadoComprobante,
     anulacion_solicitada_at: comprobante.anulacion_solicitada_at,
     notasVigentes,
+    cambioId: faltaLaColumna ? null : (delCambio?.cambio_id ?? null),
   });
   if (rechazo) return Response.json({ error: rechazo.error }, { status: rechazo.status });
   // Mismo criterio que las notas (ADR-0015): no se pide una baja real de algo
@@ -139,10 +145,22 @@ export async function POST(request: Request) {
       rpcDatos("fn_ve_modulo", { p_clave: "devoluciones" }),
     ]);
     const itemIds = (items.data ?? []).map((i) => i.id);
+    // `anular_venta` (security definer) ve los cambios y las devoluciones de TODAS las sedes; quien anula, por la RLS de `cambios` y
+    // `devoluciones`, solo los de la suya. Una venta de TRU con un cambio registrado en AQP pasaba esta revisión, Lucode pedía la baja y la
+    // base la rechazaba recién al guardar (`original_de_un_cambio` si la nota del cambio no había salido, ADR-0671; si no, `anular_venta`):
+    // baja pedida ante SUNAT sin registrarse aquí. Por eso se cuentan con la llave de servicio, que solo responde cuántos hay: quien anula
+    // ya pasó su sesión, el módulo, la RLS del comprobante y la de su venta. Sin la llave no se sabe, y entonces no se pide: 503.
+    let admin: ReturnType<typeof crearClienteAdmin>;
+    try {
+      admin = crearClienteAdmin();
+    } catch (e) {
+      capturarError("lucode/anular: sin llave de servicio para contar los cambios de la venta", e, { comprobante_id: comprobante.id });
+      return Response.json({ error: "No se pudo comprobar si se puede anular. Reintenta en un momento." }, { status: 503 });
+    }
     // Las mismas tres preguntas de `anular_venta`: un cambio cuelga de la línea (`cambios.venta_item_id`), una devolución de la venta.
     const [cambios, devoluciones, caja] = await Promise.all([
-      supabase.from("cambios").select("id", { count: "exact", head: true }).in("venta_item_id", itemIds),
-      supabase.from("devoluciones").select("id", { count: "exact", head: true }).eq("venta_id", ventaId).neq("estado", "rechazada"),
+      admin.from("cambios").select("id", { count: "exact", head: true }).in("venta_item_id", itemIds),
+      admin.from("devoluciones").select("id", { count: "exact", head: true }).eq("venta_id", ventaId).neq("estado", "rechazada"),
       venta.data?.caja_id ? supabase.from("cajas").select("estado").eq("id", venta.data.caja_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ]);
     const falla = venta.error ?? items.error ?? veDevoluciones.error ?? cambios.error ?? devoluciones.error ?? caja.error;

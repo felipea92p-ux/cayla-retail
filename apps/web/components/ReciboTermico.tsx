@@ -37,6 +37,9 @@ const s = (n: number) => `S/\u00a0${n.toFixed(2)}`;
  *  · Ancho útil 72 mm (papel de 80 con los márgenes del cabezal).
  *  · Sin QR del club: el papel lleva solo el QR de SUNAT (Felipe 2026-10-01, ADR-0288 act. j). La clienta se une con el
  *    QR del cartel del mostrador.
+ *  · El comprobante nuevo de un cambio (ADR-0671, `recibo.cambio`, de `armarReciboDeCambio`): como la entrega de un apartado, lleva
+ *    el sello «CANCELADO» y, al pie, de qué compra sale y su nota de crédito; no promete «Cambios dentro de 15 días»: lo recibido en
+ *    un cambio todavía no se vuelve a cambiar.
  */
 export function ReciboTermico({ recibo, emisor = EMISOR, apartado }: {
   recibo: ReciboVenta;
@@ -138,7 +141,9 @@ export function ReciboTermico({ recibo, emisor = EMISOR, apartado }: {
       <p className="rt-son">SON: {montoEnLetras(recibo.total)}</p>
 
       <div className="rt-linea" />
-      {apartado ? (
+      {/* La entrega de un apartado y el comprobante nuevo de un cambio (ADR-0671, el papel que trajo #1910): «CANCELADO» en vez de la
+          forma de pago, que mostraría un pacto interno (el adelanto, o la prenda que volvió con su nota de crédito). */}
+      {apartado || recibo.cambio ? (
         <p className="rt-centro">
           <span className="rt-cancelado">CANCELADO</span>
         </p>
@@ -190,13 +195,19 @@ export function ReciboTermico({ recibo, emisor = EMISOR, apartado }: {
         ) : (
           <p>Documento sin valor tributario. No es un comprobante de pago.</p>
         )}
-        <p>
-          Cambios dentro de {DIAS_PLAZO_CAMBIO} días con este {fiscal ? "comprobante" : "documento"}.
-          {emisor.web && ` Más en ${emisor.web}`}
-        </p>
+        {/* Lo recibido en un cambio todavía no se vuelve a cambiar (ADR-0671, decisión 10): su papel no lo promete. */}
+        {recibo.cambio ? (
+          emisor.web && <p>Más en {emisor.web}</p>
+        ) : (
+          <p>
+            Cambios dentro de {DIAS_PLAZO_CAMBIO} días con este {fiscal ? "comprobante" : "documento"}.
+            {emisor.web && ` Más en ${emisor.web}`}
+          </p>
+        )}
         <p className="rt-lema">{emisor.lema}</p>
         <p className="rt-negrita">¡Gracias por tu compra!</p>
         {apartado && <p>Prendas apartadas · ref. {apartado.codigo}</p>}
+        {recibo.cambio && <p>{recibo.cambio.referencia}</p>}
       </footer>
 
     </div>
