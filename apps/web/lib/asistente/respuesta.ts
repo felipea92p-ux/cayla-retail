@@ -31,19 +31,9 @@ export const GUIAS_PARA_LA_IA = 5;
 /** Cuántas pantallas de FUERA del menú de la cuenta se le muestran, para que pueda decir «eso lo hace quien tiene…» (actividad 4). */
 export const GUIAS_AJENAS_PARA_LA_IA = 3;
 
-/**
- * Lo que se puede gastar en IA en un mes de Lima (ADR-0536, decisión 9): al llegar, el asistente sigue sin IA hasta el día 1. Lo suma
- * la base (`fn_asistente_gasto_del_mes`) con el costo que anota cada pregunta. Cambiarlo es decisión de Felipe.
- */
-export const TOPE_MENSUAL_USD = 30;
-
-/** ¿Ya se gastó el mes? Un gasto que no se pudo leer (`null`: la base no respondió) no corta la IA: el tope de Anthropic queda de respaldo. */
-export function seLlegoAlTope(gastado: number | null): boolean {
-  return gastado !== null && Number.isFinite(gastado) && gastado >= TOPE_MENSUAL_USD;
-}
-
-/** Lo más largo que se acepta preguntar: una pregunta de tienda cabe de sobra; más es otra cosa (un texto pegado). */
-export const LARGO_MAXIMO_PREGUNTA = 300;
+// El tope del mes y el largo de una pregunta viven en `limites.ts` (ADR-0674 act. g): los leen pantallas del navegador (Configuración, el
+// cajón del asistente), que por importarlos de aquí bajaban zod entero. Lo que usa el servidor se sigue exportando desde aquí.
+export { LARGO_MAXIMO_PREGUNTA, seLlegoAlTope } from "./limites";
 
 /** Lo que la IA tiene que devolver, siempre con esta forma (salida estructurada: la API no deja que se salga). */
 export const RespuestaDeLaIA = z.object({

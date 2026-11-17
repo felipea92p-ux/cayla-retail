@@ -137,3 +137,45 @@ describe("contar un envío no vuelve a cargar lo que se le quitó (ADR-0674)", (
     expect(camino("components/recepcion-envio/RecibirEnvio.tsx", "components/recepcion-envio/HojaPrenda.tsx")?.join("\n  → ") ?? null).toBeNull();
   });
 });
+
+// Y para «Preguntas del equipo» (ADR-0674 act. g): para decir «→ Caja» le pedía el título al registro de las guías desde el navegador, y con
+// él bajaba el texto de las 79 guías (650 KB de sus 786). El título lo resuelve el servidor (`lib/guias/titulos.ts`) y llega como dato.
+describe("Preguntas del equipo no baja el texto de las guías ni zod (ADR-0674)", () => {
+  // Lo mismo con zod (52 KB): el esquema de lo que devuelve la IA vivía en `informe.ts`, que también importa la tarjeta del informe.
+  it.each([
+    ["la lista de preguntas", "components/asistente/PreguntasEquipo.tsx", "el registro de las guías", "lib/guias/registro.ts"],
+    ["la lista de preguntas", "components/asistente/PreguntasEquipo.tsx", "los títulos, que son del servidor", "lib/guias/titulos.ts"],
+    ["la tarjeta del informe", "components/asistente/InformeSemanal.tsx", "el esquema de zod del informe", "lib/asistente/informe-esquema.ts"],
+    ["la tarjeta del informe", "components/asistente/InformeSemanal.tsx", "el registro de las guías", "lib/guias/registro.ts"],
+  ])("desde %s (%s) no hay camino de imports fijos hasta %s", (_nombre, raiz, _que, pieza) => {
+    expect(camino(raiz, pieza)?.join("\n  → ") ?? null).toBeNull();
+  });
+});
+
+// zod solo en el servidor (ADR-0674 act. g). Un archivo que arma un esquema de zod al cargarse trae la librería entera (52 KB) a quien le
+// importe cualquier cosa, aunque sea una constante: así la bajaban Configuración (por `TOPE_MENSUAL_USD`) y Preguntas del equipo. Lo que el
+// navegador necesita de esos archivos vive aparte (`lib/asistente/limites.ts`); el esquema, en un archivo que solo importa el servidor.
+describe("ningún componente llega a zod por un import fijo (ADR-0674)", () => {
+  const todos = ["components", "app", "lib"].flatMap(archivosDe);
+  const usaZod = (a: string) => modulosConValor(a, readFileSync(join(WEB, a), "utf8")).some((m) => m === "zod" || m.startsWith("zod/"));
+
+  it("desde components/ no hay camino de imports fijos hasta un archivo que importa zod", () => {
+    const conZod = todos.filter(usaZod);
+    expect(conZod.length, "el detector no está ciego: hay archivos que importan zod").toBeGreaterThan(0);
+    // Quién importa a quién, al revés: desde los archivos con zod se sube hasta todo el que los alcanza.
+    const quienImporta = new Map<string, string[]>();
+    for (const a of todos) for (const h of importsFijos(a)) quienImporta.set(h, [...(quienImporta.get(h) ?? []), a]);
+    const alcanzan = new Set(conZod);
+    const cola = [...conZod];
+    while (cola.length > 0) {
+      for (const padre of quienImporta.get(cola.pop()!) ?? []) {
+        if (alcanzan.has(padre)) continue;
+        alcanzan.add(padre);
+        cola.push(padre);
+      }
+    }
+    const culpables = [...alcanzan].filter((a) => a.startsWith("components/")).sort();
+    expect(culpables, `Estos componentes llegan a zod por un import fijo y lo bajan entero. Lo que necesiten de ese archivo va en uno aparte, sin zod (como lib/asistente/limites.ts). Archivos con zod: ${conZod.join(", ")}`).toEqual([]);
+  });
+});
+
