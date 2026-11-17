@@ -3,7 +3,7 @@
 Medido: 375×812 claro quieto (así arranca el aparato) · 375 oscuro · foco con teclado · latido en vivo y en quieto · 1440×900 claro (que no cambie, y el menú hacia abajo con el mouse). Servidor: `localhost:3110` (base local, sede Lima).
 «Filtros» y «Avisos» en la cabecera viven solo bajo 640 px: desde 640 px el botón de filtros sigue en la barra del buscador y el aviso sigue siendo la franja sobre las tarjetas (medido a 1440). El menú «Más» cambia en todo ancho.
 
-Resumen: **0 graves · 0 medias · 0 leves abiertas** · 2 medias propias corregidas · 1 leve propia corregida · 1 leve heredada corregida · 3 heredados de piezas del sistema.
+Resumen: **0 graves · 0 medias · 0 leves abiertas** · 3 medias propias corregidas · 1 leve propia corregida · 1 leve heredada corregida · 3 heredados de piezas del sistema.
 
 ## Lo que se midió
 
@@ -15,7 +15,7 @@ Resumen: **0 graves · 0 medias · 0 leves abiertas** · 2 medias propias correg
 | Primera prenda a 375 | empieza en y = 428. La franja de antes (solo el título) medía ~106 px más 12 de aire en la captura de Felipe a 350 px; con su explicación, que antes no cabía, serían 247 px (medido forzándola a la vista) | — | pasa |
 | Ícono «Avisos» | `PendienteDeCabecera` con su «1» en ámbar; el lector oye «1 aviso» | pieza de los pendientes de cabecera (ADR-0136 act. 2026-11-17) | pasa |
 | Latido | vivo: `cayla-pulso` 2,2 s, sin fin; quieto: 0,01 ms, una vez (no se mueve) | ADR-0625: quieto es quieto; avisa el número | pasa |
-| Hoja «Avisos» | 334 px de alto; la × de 44 × 44; «Cuadrar el piso» de 325 × 44; el aviso es `role="status"` y trae su explicación | una salida a la vista (`conCerrar`: la hoja solo se lee) | pasa |
+| Hoja «Avisos» | 310 px de alto, solo con su título; la × de 44 × 44, a 4 px sobre el aviso; «Cuadrar el piso» de 325 × 44; el aviso es `role="status"` y trae su explicación | una salida a la vista (`conCerrar`: la hoja solo se lee) | pasa |
 | Foco con teclado en la fila | 4 de 4 con su anillo; ninguno tapado por la cabecera | WCAG 2.4.7 y 2.4.11 | pasa |
 | Foco al cerrar la hoja «Avisos» | vuelve al ícono, con Escape y con la × | WCAG 2.4.3 | pasa (tras el arreglo 2) |
 | Menú «Más», botón a 120–340 px del borde (no cabe arriba) | abre hacia ABAJO, entero, sobre la tarjeta siguiente; no pasa de la barra «Escanear prenda» (y = 756) | que ninguna opción quede tapada | pasa |
@@ -23,7 +23,7 @@ Resumen: **0 graves · 0 medias · 0 leves abiertas** · 2 medias propias correg
 | Menú «Más» con el mouse a 1440 (la tarjeta lleva `transform`) | la tarjeta sube a `z-index: 2` y el menú queda al frente en los tres puntos medidos | — | pasa |
 | La página al abrir «Más» | 0 px de salto, la primera vez y las siguientes, en los dos lados | ADR-0185 | pasa (tras el arreglo 1) |
 | Opciones del menú con el dedo | 47 px (las de una línea), 70 y 91 (las que dicen su motivo) | 44 px con el dedo | pasa (tras el arreglo 3) |
-| Oscuro a 375 | la fila, el «1» en ámbar y la hoja se leen; nada queda claro sobre oscuro | ADR-0336 | pasa (a ojo, en captura) |
+| Oscuro a 375 | `tema:auditar` (cuenta admin): la pantalla y la hoja «Avisos», 0 hallazgos solo en oscuro, 0 manchas, 0 velos; heredado del claro, «Escanear prenda» sobre su vidrio (el medidor no resuelve el degradado) | ADR-0336 | pasa |
 
 ## Corregido en el camino
 
@@ -31,6 +31,7 @@ Resumen: **0 graves · 0 medias · 0 leves abiertas** · 2 medias propias correg
 2. **Media (propia).** Al cerrar la hoja «Avisos» con la ×, el foco caía al `body`: el clic de la × (un portal) subía por React hasta el ícono y se guardaba como «a dónde volver». Ahora solo cuentan los clics que nacen en el ícono. `components/existencias/AvisosExistencias.tsx`.
 3. **Leve (heredada).** Las opciones de una línea del menú «Más» medían 39 px con el dedo y van una pegada a la otra. Ahora 47. `PieTarjeta.tsx`.
 4. **Leve (propia).** El lector oía «1 pendientes» en el ícono de avisos. `PendienteDeCabecera` acepta `queCuenta` y aquí dice «1 aviso»; en Productos sigue igual.
+5. **Media (propia).** La hoja «Avisos» repetía la sede como bajada, y la bajada de una hoja (taupe sobre el vidrio) da 4,12:1 en claro (`tema:auditar` a 375 px; pide 4,5). Se quitó: la sede ya está en la cabecera de la pantalla. Sin bajada el título no deja aire y la × quedaba 16 px sobre la esquina del aviso: el contenido baja 20 px. La bajada de `<Modal>` sigue siendo un pendiente de la pieza.
 
 ## Heredado de piezas del sistema (no se toca aquí)
 

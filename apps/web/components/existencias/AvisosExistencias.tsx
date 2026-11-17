@@ -32,11 +32,9 @@ export function AvisoPisoSinCuadrar({ accion, guia, className }: { accion?: Reac
    el plan del piso llega, manda lo que publica el panel (`cabecera-existencias.ts`), igual que la franja.
    ==================================================================== */
 export function AvisosExistencias({
-  sede,
   pisoSinCuadrarAntes,
   puedeCuadrar,
 }: {
-  sede: string;
   /** Lo que el servidor ya sabe al dibujar la página; el panel lo corrige cuando llega el plan del piso. */
   pisoSinCuadrarAntes: boolean;
   /** «Cuadrar el piso» cuadra SIEMPRE la sede activa: sin esto (un líder mirando otra sede), el aviso informa y no lleva botón. */
@@ -69,8 +67,11 @@ export function AvisosExistencias({
         onClick={() => setAbierto(true)}
       />
       {abierto && (
-        <Modal titulo="Avisos" subtitulo={sede} onClose={() => setAbierto(false)} conCerrar alCerrarEnfocar={disparador}>
-          <div className="grid gap-4">
+        // Sin bajada: la sede ya está en la cabecera de la pantalla, y la bajada de una hoja (taupe sobre el vidrio) no llega a 4,5:1 en
+        // claro (4,12 medido con `tema:auditar`; es de la pieza `<Modal>`, pendiente de decisión). No se suma otro texto que no pasa.
+        <Modal titulo="Avisos" onClose={() => setAbierto(false)} conCerrar alCerrarEnfocar={disparador}>
+          {/* `mt-5`: sin bajada, el título no deja aire y la × (44 px) quedaba 16 px sobre la esquina del aviso (medido a 375 px). */}
+          <div className="mt-5 grid gap-4">
             <AvisoPisoSinCuadrar />
             {puedeCuadrar && (
               <BotonVer href="/inventario/cuadrar" alNavegar={() => setAbierto(false)} className="w-full justify-center">

@@ -387,7 +387,6 @@ export default async function InventarioPage({
             {stock.length > 0 && <FiltrosEnCabecera />}
             <AvisosExistencias
               key={`avisos-${ubicacionActivaId}`}
-              sede={ubicacionActiva?.nombre ?? "esta sede"}
               pisoSinCuadrarAntes={pisoSinCuadrarAntes}
               puedeCuadrar={puedeBajarAlPiso}
             />
