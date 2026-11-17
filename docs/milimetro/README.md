@@ -15,7 +15,17 @@ de `apps/web/components/` o `apps/web/app/`, o un `.css` de `apps/web/app/`.
 
 ## Auditorías
 
-Una fila por auditoría (la más nueva arriba). Graves = hallazgos de severidad «grave» que quedaron abiertos.
+**Cada auditoría es su informe** en `auditorias/AAAA-MM-DD-<tema>.md`, con su título y su línea `Resumen:`. No se le agrega una fila a
+ninguna tabla: el CI la rechaza (ADR-0259, act. 2026-11-17). El tablero se arma desde la carpeta, el más nuevo arriba:
+
+```
+pnpm milimetro:auditorias
+```
+
+### Hasta el 2026-11-17 (historia)
+
+Estas filas se escribían a mano, todas en la primera línea de la tabla, y el segundo PR en fusionarse chocaba siempre. Quedan como
+historia: se corrigen, pero no reciben filas nuevas. Graves = hallazgos de severidad «grave» que quedaron abiertos.
 
 | Fecha | Ruta o pieza | Rama / PR | Graves abiertos | Notas |
 |---|---|---|---|---|
