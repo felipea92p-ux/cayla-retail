@@ -175,3 +175,16 @@ Tres partes, en orden, cada una idempotente y con `lock_timeout` de 3 s, sin pol
 las funciones y los reemplazos anclados; la 3, el vigía y la fuente de metas, en la misma sesión que la 2. Desde que se pega la parte 2 la
 base ya emite (también con la web de hoy, que no manda `p_cliente`); los documentos los transmite el cron en minutos. Se pega con el OK de
 Felipe. Después: `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
+
+**Pegado el 2026-11-17** (Felipe: «Pega las migraciones en producción»), por `apply_migration`, que registra la hora de aplicación como
+versión: `20261117141105` (parte 1), `20261117141259` (parte 2) y `20261117141607` (parte 3), justo después de la baja de ADR-0673
+(`20261117140654`). Comprobado contra la base aislada con todo aplicado: las huellas de las doce funciones de la parte 2 coinciden (salvo
+`anular_comprobante`, que allá también lleva ADR-0673), la de `fn_diferencias_de_cambio` también, las 30 invariantes son idénticas e INV-30
+nació con su línea base; los permisos, iguales. El OK del contador a la lectura legal no quedó escrito antes de pegar.
+
+**Con ADR-0673 (#1918).** Las dos tocan `anular_comprobante` y anclan en el mismo «El comprobante % no existe». En producción ADR-0673 entró
+primero y la parte 2 encontró su ancla. En una base nueva, como el CI, el orden es al revés: ADR-0673 entra bien después de la parte 2, pero
+volver a pegar la parte 2 repetía el candado, porque «ya aplicado» se reconocía por el bloque entero y ADR-0673 escribe en medio. Ahora el
+candado se reconoce por su comentario (`pg_temp.reemplazar_marcado_0671`); no cambia el cuerpo que queda (caso 25). Mientras la web de esta
+obra no se publique, la base ya emite: el barrido de hoy transmite la boleta nueva y la nota (las arma con las líneas de su propia fila y
+toma comprobantes sin venta); la nota «por emitir» espera al barrido nuevo, y el ticket no muestra los documentos.

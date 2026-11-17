@@ -72,6 +72,8 @@ existió. Lo que corresponde es una nota de crédito sobre la boleta original y 
 - [x] CI, tanda 4 (`pruebas:redondeo-efectivo`): al volver a pegar 20261003130000 y 20261003135000, `REHACER_TOKEN` volvía a pegar la
       parte 2 del token, que ancla `registrar_cambio` con la firma que la parte 2 de este ADR borra. Ahora se ancla a la firma que haya
       (`registrar-venta-antes-de-precio-sede.mjs`). En un banco limpio con las tres partes: 90/90; sin el arreglo, los mismos 2 rojos del CI.
-- [ ] **Contador:** confirma la lectura legal (nota de crédito + comprobante nuevo) antes de pegar el SQL. Cerrar #1910 lo decide Felipe.
-- [ ] Pegar en producción las partes 1, 2 y 3 en ese orden, con el OK de Felipe; después `pnpm datos:generar:produccion` y `datos:comparar`.
+- [ ] **Contador:** confirmar la lectura legal (nota de crédito + comprobante nuevo); el SQL ya está en producción. Cerrar #1910 lo decide Felipe.
+- [x] Pegado en producción el 2026-11-17 (Felipe lo pidió): versiones `20261117141105`, `20261117141259` y `20261117141607` (apply_migration),
+      huellas comprobadas contra la base aislada. Desde ahí la base emite; la web de esta obra todavía no está publicada.
+- [ ] Refrescar el volcado y correr `pnpm datos:generar:produccion` y `pnpm datos:comparar` (las tablas y funciones nuevas entran al diccionario).
 - [ ] Obra aparte: volver a cambiar lo que se llevó en un cambio (15 días desde la compra original).
