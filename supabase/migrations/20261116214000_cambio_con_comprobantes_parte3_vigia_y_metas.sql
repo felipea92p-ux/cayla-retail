@@ -33,8 +33,9 @@
 --   2. INV-30 en el vigía (`cambio_con_diferencia_tiene_sus_documentos`, gravedad 1): desde el mismo corte, cada cambio con diferencia de
 --      una venta que no es de prueba tiene su comprobante nuevo vivo (uno rechazado tiene un día para corregirse); nuevo − lo pagado =
 --      diferencia; la nota (emitida o por emitir) es lo pagado; si la original es una boleta o factura viva, la nota existe o está por
---      emitir; el par no queda roto (uno aceptado y el otro rechazado, anulado o liberado); y una nota por emitir no lleva más de un día
---      esperando a una original aceptada, ni espera a una que ya no se puede aceptar.
+--      emitir; el par no queda roto (uno aceptado y el otro rechazado, anulado o liberado); una nota por emitir no lleva más de un día
+--      esperando a una original aceptada, ni espera a una que ya no se puede aceptar; y una nota ya emitida no queda sobre una original
+--      anulada, liberada o con la baja en trámite (la carrera R3 de /chaos, 2026-11-16).
 --      INV-30 nace con su línea base puesta (paso 3): tiene su propio corte, así que no hay un «antes» que heredar, y lo que ya esté roto el
 --      día que se pegue (la primera nota 07 que SUNAT rechace, ADR-0671 «SE ROMPE SI») tiene que avisar como NUEVO desde la primera corrida.
 --   3. INV-22 (`cambio_por_varias_cuadra`) deja de comparar la diferencia cuando lo que se llevó trae el MISMO modelo que lo devuelto: esas
@@ -506,7 +507,7 @@ having c.pagado <> coalesce(sum(p.monto), 0)$inv$),
    $txt$La foto de un mes que el diario da por vigente es el diario de ese mes armado en vivo (ADR-0633). Si no, alguna tabla que alimenta el diario cambió sin vencer la foto (hay que sumarla a la vigilancia) o alguien tocó una línea de la foto.$txt$,
    $inv$select mes, guardada, viva from retail.fn_fotos_del_diario_distintas()$inv$),
   ('INV-30', 'cambio_con_diferencia_tiene_sus_documentos', 1, 'cruzada', array['cambio_id', 'problema']::text[], false, true,
-   $txt$Un cambio con diferencia de precio deja ante SUNAT lo que de verdad pasó (ADR-0671): su comprobante nuevo vivo (uno rechazado tiene un día para corregirse), que menos lo que el cliente pagó por lo devuelto da la diferencia que cobró o devolvió la caja, y su nota de crédito por exactamente lo pagado (emitida, o «por emitir» mientras la original no está aceptada). Y el par no queda roto: uno aceptado y el otro rechazado, anulado o liberado, o una nota que lleva más de un día esperando a una original ya aceptada, o a una que ya no se puede aceptar. Si no, el IGV del mes sale de más o de menos sin que nadie lo vea: INV-06 e INV-07 miran por venta, y estos documentos cuelgan del cambio. Solo desde el corte (`fn_cambios_con_documentos_desde`): los cambios de antes no se regularizan. Un mismo cambio puede salir con dos problemas (un comprobante nuevo anulado con su nota aceptada es los dos).$txt$,
+   $txt$Un cambio con diferencia de precio deja ante SUNAT lo que de verdad pasó (ADR-0671): su comprobante nuevo vivo (uno rechazado tiene un día para corregirse), que menos lo que el cliente pagó por lo devuelto da la diferencia que cobró o devolvió la caja, y su nota de crédito por exactamente lo pagado (emitida, o «por emitir» mientras la original no está aceptada). Y el par no queda roto: uno aceptado y el otro rechazado, anulado o liberado, o una nota que lleva más de un día esperando a una original ya aceptada, o a una que ya no se puede aceptar, o una nota ya emitida sobre una original que quedó anulada, liberada o con la baja en trámite (iría a SUNAT sobre una boleta dada de baja). Si no, el IGV del mes sale de más o de menos sin que nadie lo vea: INV-06 e INV-07 miran por venta, y estos documentos cuelgan del cambio. Solo desde el corte (`fn_cambios_con_documentos_desde`): los cambios de antes no se regularizan. Un mismo cambio puede salir con dos problemas (un comprobante nuevo anulado con su nota aceptada es los dos).$txt$,
    $inv$with cb as (
   select c.id as cambio_id, c.diferencia,
          round((vi.precio_unitario - vi.descuento_unitario) * c.cantidad, 2) as pagado,
@@ -522,12 +523,14 @@ d as (
   select cb.*, n.total as nuevo_total, n.estado as nuevo_estado, n.created_at as nuevo_emitido,
          nc.total as nota_total, nc.estado as nota_estado,
          cn.total as debe_total, greatest(cn.created_at, coalesce(po.enviado_at, cn.created_at)) as espera_desde,
-         po.estado as espera_original_estado
+         po.estado as espera_original_estado,
+         ncorig.estado as nota_original_estado, ncorig.anulacion_solicitada_at is not null as nota_original_en_baja
     from cb
     left join retail.comprobantes n on n.cambio_id = cb.cambio_id and n.tipo <> 'nota_credito'
     left join retail.comprobantes nc on nc.cambio_id = cb.cambio_id and nc.tipo = 'nota_credito'
     left join retail.cambio_notas cn on cn.cambio_id = cb.cambio_id
     left join retail.comprobantes po on po.id = cn.comprobante_original_id
+    left join retail.comprobantes ncorig on ncorig.id = nc.comprobante_original_id
 )
 select cambio_id, 'sin_comprobante_nuevo' as problema, diferencia, nuevo_estado as estado from d
  where nuevo_estado is null or nuevo_estado in ('anulado', 'no_emitido')
@@ -546,6 +549,10 @@ union all
 select cambio_id, 'par_roto', diferencia, nuevo_estado || '/' || nota_estado from d
  where (nuevo_estado = 'aceptado' and nota_estado in ('rechazado', 'anulado', 'no_emitido'))
     or (nota_estado = 'aceptado' and nuevo_estado in ('rechazado', 'anulado', 'no_emitido'))
+union all
+select cambio_id, 'nota_sobre_original_muerta', diferencia, nota_estado || '/' || nota_original_estado from d
+ where nota_estado is not null and nota_estado not in ('rechazado', 'anulado')
+   and (nota_original_estado in ('anulado', 'no_emitido') or nota_original_en_baja)
 union all
 select cambio_id, 'nota_se_quedo_por_emitir', diferencia, espera_original_estado from d
  where debe_total is not null and nota_estado is null

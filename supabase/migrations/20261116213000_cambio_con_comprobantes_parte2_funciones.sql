@@ -17,7 +17,8 @@
 --      PostgREST) y, justo antes de su único `return v_cambio_id`, llaman a fn_documentos_del_cambio con los MISMOS precios que dieron la
 --      diferencia. Las vueltas tempranas por token no llegan ahí. El cliente entra a la huella del token solo si viene.
 --   3. anular_comprobante y marcar_comprobante_no_emitido rechazan un documento que sale de un cambio y la original de un cambio cuya nota
---      todavía no sale.
+--      todavía no sale. Las dos, y el cambio, bloquean la boleta original ANTES de revisar o decidir: liberar o anular mientras se guarda
+--      un cambio sobre la misma venta (las carreras de /chaos, 2026-11-16) espera al otro y decide con lo que dejó.
 --
 -- QUÉ NO HACE. No toca el stock, la caja, venta_pagos ni las columnas de dinero de cambios. No toca emitir_comprobante, emitir_nota ni
 --   aprobar_devolucion. No regulariza los cambios pasados (decisión de Felipe).
@@ -162,6 +163,12 @@ begin
 
   v_orig := retail.fn_original_del_cambio(v_item.venta_id);
   v_hay_orig := v_orig.id is not null;
+  -- La original se bloquea ANTES de decidir con su estado (las carreras R1 a R3 de /chaos, 2026-11-16): si alguien la está liberando o
+  -- anulando en este momento, se espera y se vuelve a leer; y quien llegue a liberarla o anularla después espera a este cambio y ve su nota.
+  if v_hay_orig then
+    perform 1 from retail.comprobantes where id = v_orig.id for update;
+    v_orig := (select c from retail.comprobantes c where c.id = v_orig.id);
+  end if;
 
   -- El comprobante nuevo: el mismo tipo que el original (sin original, boleta) y, por defecto, el mismo cliente. En una boleta o una nota
   -- de venta se puede cambiar (un regalo); una factura va siempre al mismo RUC.
@@ -490,6 +497,35 @@ begin
   execute pg_temp.anclar_0671(v_def, p_viejo, p_nuevo, p_firma);
 end;
 $f$;
+
+-- Primero: el comprobante se bloquea y se relee apenas se sabe que existe, ANTES de toda revisión (las carreras R1 a R3 de /chaos,
+-- 2026-11-16: revisaban «¿hay un cambio esperando?» sin candado y después bloqueaban, y actuaban con lo leído antes de esperar). Va
+-- aparte de su candado de abajo para que una base que ya tiene ese candado reciba solo esto.
+select pg_temp.reemplazar_0671(
+  'retail.anular_comprobante(uuid, text, boolean, jsonb)',
+  $v$  if not found then
+    raise exception 'El comprobante % no existe', p_comprobante_id;
+  end if;$v$,
+  $n$  if not found then
+    raise exception 'El comprobante % no existe', p_comprobante_id;
+  end if;
+  -- ADR-0671: bloqueado y releído antes de revisar nada. Un cambio que lo usa en este momento se espera, y lo que sigue ve su nota.
+  perform 1 from retail.comprobantes where id = p_comprobante_id for update;
+  v_comp := (select c from retail.comprobantes c where c.id = p_comprobante_id);$n$
+);
+
+select pg_temp.reemplazar_0671(
+  'retail.marcar_comprobante_no_emitido(uuid, text)',
+  $v$  if not found then
+    raise exception 'El comprobante % no existe', p_comprobante_id;
+  end if;$v$,
+  $n$  if not found then
+    raise exception 'El comprobante % no existe', p_comprobante_id;
+  end if;
+  -- ADR-0671: bloqueado y releído antes de revisar nada. Un cambio que lo usa en este momento se espera, y lo que sigue ve su nota.
+  perform 1 from retail.comprobantes where id = p_comprobante_id for update;
+  v_comp := (select c from retail.comprobantes c where c.id = p_comprobante_id);$n$
+);
 
 select pg_temp.reemplazar_0671(
   'retail.anular_comprobante(uuid, text, boolean, jsonb)',
