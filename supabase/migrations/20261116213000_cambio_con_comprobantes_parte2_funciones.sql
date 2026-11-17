@@ -54,7 +54,11 @@ $function$;
 comment on function retail.fn_original_del_cambio(uuid) is
   'ADR-0671: el documento original de una venta para un cambio (boleta, factura o nota de venta; el vivo primero). Interna.';
 
-create or replace function retail.fn_problema_cliente_del_cambio(p_tipo text, p_tipo_doc text, p_num_doc text, p_total numeric)
+-- La regla del cliente ganó el nombre (las faltas de /chaos, 2026-11-16): se borra la firma de cuatro, que una base de prueba pudo tener.
+drop function if exists retail.fn_problema_cliente_del_cambio(text, text, text, numeric);
+
+create or replace function retail.fn_problema_cliente_del_cambio(p_tipo text, p_tipo_doc text, p_num_doc text, p_total numeric,
+                                                                  p_nombre text default null)
 returns text
 language sql
 stable
@@ -62,6 +66,8 @@ security definer
 set search_path to 'retail', 'public', 'extensions'
 as $function$
   select case
+    -- El nombre tiene tope (/chaos guardó uno de 1 646 letras): también en la nota de venta, que se imprime. La factura no se edita.
+    when p_tipo <> 'factura' and length(btrim(coalesce(p_nombre, ''))) > 200 then 'El nombre pasa de 200 letras.'
     when p_tipo not in ('boleta', 'factura') then null
     when p_tipo = 'factura' and coalesce(p_tipo_doc, '') <> 'ruc' then 'Una factura va a un RUC.'
     when p_tipo_doc in ('carne_extranjeria', 'pasaporte') and retail.fn_documento_clienta(p_tipo_doc, p_num_doc) is null then
@@ -71,10 +77,13 @@ as $function$
       retail.fn_problema_documento_comprobante(p_tipo, p_tipo_doc, p_num_doc)
     when p_tipo = 'boleta' and p_total > 700 and coalesce(p_tipo_doc, 'sin_documento') = 'sin_documento' then
       'Una boleta de más de S/ 700 lleva el documento del cliente (DNI, carné de extranjería o pasaporte).'
+    -- Más de S/ 700 lleva el documento de una persona: uno de un solo carácter repetido («00000000», «AAAAAA») es de relleno (/chaos).
+    when p_tipo = 'boleta' and p_total > 700 and upper(btrim(coalesce(p_num_doc, ''))) ~ '^(.)\1*$' then
+      'Más de S/ 700: escribe el documento real.'
   end;
 $function$;
 
-comment on function retail.fn_problema_cliente_del_cambio(text, text, text, numeric) is
+comment on function retail.fn_problema_cliente_del_cambio(text, text, text, numeric, text) is
   'ADR-0671: qué impide emitir el comprobante nuevo de un cambio a ese cliente, o null. La comparten la emisión y previsualizar_documentos_cambio.';
 
 create or replace function retail.fn_emitir_nota_del_cambio(p_cambio_id uuid)
@@ -181,7 +190,7 @@ begin
     v_ndoc := case when v_tdoc = 'sin_documento' then null else nullif(btrim(p_cliente ->> 'num_doc'), '') end;
     v_nom := nullif(btrim(p_cliente ->> 'nombre'), '');
   end if;
-  v_problema := retail.fn_problema_cliente_del_cambio(v_tipo, v_tdoc, v_ndoc, p_total_nuevo);
+  v_problema := retail.fn_problema_cliente_del_cambio(v_tipo, v_tdoc, v_ndoc, p_total_nuevo, v_nom);
   if v_problema is not null then
     raise exception '%', v_problema using errcode = '22023', hint = 'documento_invalido';
   end if;
@@ -305,7 +314,7 @@ begin
     else 'despues'
   end;
 
-  v_problema := retail.fn_problema_cliente_del_cambio(v_tipo, v_tdoc, v_ndoc, p_total_nuevo);
+  v_problema := retail.fn_problema_cliente_del_cambio(v_tipo, v_tdoc, v_ndoc, p_total_nuevo, v_nom);
   if v_problema is null and not exists (select 1 from retail.series_comprobantes s
                                          where s.ubicacion_id = p_ubicacion_id and s.tipo = v_tipo and s.archivada_at is null) then
     v_problema := 'Esta tienda no tiene serie de ' || replace(v_tipo, '_', ' ') || ' activa: regístrala en Facturación.';
@@ -357,7 +366,7 @@ revoke all on function retail.fn_cambio_emite_comprobantes() from public, anon;
 grant execute on function retail.fn_cambio_emite_comprobantes() to authenticated;
 
 revoke all on function retail.fn_original_del_cambio(uuid) from public, anon, authenticated, service_role;
-revoke all on function retail.fn_problema_cliente_del_cambio(text, text, text, numeric) from public, anon, authenticated, service_role;
+revoke all on function retail.fn_problema_cliente_del_cambio(text, text, text, numeric, text) from public, anon, authenticated, service_role;
 revoke all on function retail.fn_emitir_nota_del_cambio(uuid) from public, anon, authenticated, service_role;
 revoke all on function retail.fn_documentos_del_cambio(uuid, jsonb, numeric, jsonb) from public, anon, authenticated, service_role;
 revoke all on function retail.fn_emitir_notas_de_cambios_pendientes() from public, anon;

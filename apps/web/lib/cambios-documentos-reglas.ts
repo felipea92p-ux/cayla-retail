@@ -12,7 +12,7 @@
 
 import { soles } from "./compras-reglas";
 import type { EstadoComprobante } from "./comprobantes-reglas";
-import { esTipoDocComprobante, documentoLegibleComprobante, problemaDocumentoComprobante, tipoDocDelComprobante, type TipoDocComprobante } from "./documento-comprobante-reglas";
+import { LARGO_NOMBRE_DEL_COMPROBANTE, esTipoDocComprobante, documentoLegibleComprobante, problemaDocumentoComprobante, tipoDocDelComprobante, type TipoDocComprobante } from "./documento-comprobante-reglas";
 import type { TipoDocumentoClienta } from "./documento-clienta-reglas";
 
 /** Lo que puede ser el original de un cambio, y por eso también su comprobante nuevo. */
@@ -238,9 +238,21 @@ export function clienteCambiado(tipo: TipoDocumentoCambio, c: ClienteDelComproba
  * corregir en la pantalla (el número mal escrito y la boleta de más de S/ 700 sin documento). Una nota de venta no va a SUNAT: nada.
  */
 export function problemaClienteDelCambio(tipo: TipoDocumentoCambio, c: ClienteDelComprobante, total: number): string | null {
+  // Una factura va al mismo RUC y no se edita: su nombre es el del padrón.
+  if (tipo === "factura") return null;
+  // El tope del nombre (/chaos, 2026-11-16): también en la nota de venta, que se imprime. La base lo exige igual.
+  if (c.nombre.trim().length > LARGO_NOMBRE_DEL_COMPROBANTE) return `El nombre pasa de ${LARGO_NOMBRE_DEL_COMPROBANTE} letras.`;
   if (tipo !== "boleta") return null;
   const numeroLimpio = c.numero.trim();
-  if (numeroLimpio) return problemaDocumentoComprobante("boleta", c.identidad, numeroLimpio);
+  if (numeroLimpio) {
+    const formato = problemaDocumentoComprobante("boleta", c.identidad, numeroLimpio);
+    if (formato) return formato;
+    // Más de S/ 700 lleva el documento de una persona: un número de un solo carácter repetido («00000000», «AAAAAA») es de relleno.
+    if (aCentimos(total) > TOPE_BOLETA_SIN_DOCUMENTO && /^(.)\1*$/.test(numeroLimpio)) {
+      return `Más de S/\u00a0${TOPE_BOLETA_SIN_DOCUMENTO}: escribe el documento real.`;
+    }
+    return null;
+  }
   if (aCentimos(total) > TOPE_BOLETA_SIN_DOCUMENTO) return TEXTO_BOLETA_PIDE_DOCUMENTO;
   return null;
 }
