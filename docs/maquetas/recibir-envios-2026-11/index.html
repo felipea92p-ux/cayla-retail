@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-cara="A">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Envíos por recibir</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Recibir mercadería: los envíos, RONDA 3 (Felipe 2026-11-17): «olvida todas las maquetas pasadas y haz 3 más desde 0 tomando
+   como referencia los mejores sistemas del mundo y los que muestran de manera amigable todas sus cosas».
+   Cada propuesta copia UN patrón que la gente ya conoce de memoria:
+     A · Estantes     → Netflix «Continuar viendo», Spotify, App Store «Hoy»
+     B · Seguimiento  → Amazon y Mercado Libre «Mis compras», la app Shop
+     C · Índice       → Shopify Admin (recibir inventario), Linear, Stripe
+   Lo nuevo en las tres: cada envío muestra LAS PRENDAS QUE TRAE (en la pantalla real, su foto; sin foto, su silueta sobre su color,
+   ADR-0333). Sobre el marco ya elegido (../vidrio-base-2026-10/). Colores de interfaz: SOLO tokens; el color de una prenda es dato.
+   Movimiento: una vez, sin rebote ni bucle (ADR-0136). Datos inventados (el repo es público).
+   ==================================================================== */
+.cont{container:cont/inline-size}
+.placa{border:1px solid color-mix(in srgb,var(--vidrio) 62%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 78%,transparent),color-mix(in srgb,var(--vidrio) 52%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 96%,transparent),0 2px 4px -2px color-mix(in srgb,var(--sombra) 18%,transparent),0 24px 40px -30px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tema="oscuro"] .placa{border-color:color-mix(in srgb,var(--tinta) 11%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 68%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent),0 24px 40px -26px var(--sombra)}
+.entra{animation:sube .5s var(--ease) backwards;animation-delay:calc(100ms + var(--k,0) * 50ms)}
+svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- la prenda: su silueta en su color (en la pantalla real, su foto) ---------- */
+.pz{fill:var(--c);stroke:color-mix(in srgb,var(--c) 68%,var(--sombra));stroke-width:1;stroke-linejoin:round}
+[data-tema="oscuro"] .pz{stroke:color-mix(in srgb,var(--c) 50%,var(--tinta))} /* en oscuro, una prenda negra se sigue viendo */
+.pl{fill:none;stroke:color-mix(in srgb,var(--c) 58%,var(--sombra));stroke-width:1}
+.gancho{fill:none;stroke:color-mix(in srgb,var(--tinta) 50%,transparent);stroke-width:1.3;stroke-linecap:round}
+/* en fila, como en una percha: la portada de un envío */
+.perchero{position:relative;display:flex;align-items:flex-start;justify-content:center;height:146px;padding:18px 12px 0;border-radius:22px;overflow:hidden;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--hueso) 80%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--borde) 16%,transparent);transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
+[data-tema="oscuro"] .perchero{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 9%,transparent),color-mix(in srgb,var(--tinta) 4%,transparent))}
+.perchero::before{content:"";position:absolute;left:8%;right:8%;top:16px;height:3px;border-radius:3px;background:color-mix(in srgb,var(--tinta) 60%,transparent)}
+.perchero>svg{position:relative;width:var(--w,52px);margin:0 -4px;flex:none;transform-origin:50% 0;filter:drop-shadow(0 5px 5px color-mix(in srgb,var(--sombra) 16%,transparent))}
+.perchero>svg:nth-of-type(even){transform:rotate(2deg)}.perchero>svg:nth-of-type(3n){transform:rotate(-2.5deg)}
+.mas-p{align-self:center;margin:6px 0 0 10px;display:grid;place-items:center;min-width:38px;height:38px;padding:0 8px;border-radius:999px;font-size:14px;font-weight:700;color:var(--t80);background:color-mix(in srgb,var(--vidrio) 80%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--borde) 30%,transparent)}
+/* suelta, en un cuadrito: la miniatura */
+.th{display:grid;place-items:center;width:var(--t,60px);height:var(--t,60px);border-radius:calc(var(--t,60px) * .26);flex:none;background:color-mix(in srgb,var(--c) 17%,var(--papel));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.th svg{width:70%;height:70%}
+.th.mas{background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:none;font-size:calc(var(--t,60px) * .26);font-weight:700;color:var(--t80)}
+.fotos{display:flex;gap:8px}
+
+/* ---------- piezas comunes: cuándo, estado, barra, seguimiento, botón redondo ---------- */
+.cuando{display:inline-flex;align-items:center;height:28px;padding:0 11px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--tinta);background:color-mix(in srgb,var(--papel) 88%,transparent);box-shadow:0 4px 10px -6px color-mix(in srgb,var(--sombra) 50%,transparent)}
+.cuando.ambar{color:var(--crema);background:var(--ambar)}.cuando.pizarra{color:var(--crema);background:var(--pizarra)}.cuando.tinta{color:var(--crema);background:var(--tinta)}
+.bdg{display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 11px;border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent)}
+.pip{width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 2px currentColor;flex:none}
+.pip.m{background:linear-gradient(90deg,currentColor 50%,transparent 50%)}.pip.f{background:currentColor}
+.pb{position:relative;display:block;height:8px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.pb i{position:absolute;inset:0 auto 0 0;border-radius:999px;transform-origin:left;animation:crece .9s var(--ease) .3s backwards}
+.pb .ct{background:color-mix(in srgb,var(--tinta) 55%,transparent)}.pb .st{background:var(--verde)}
+@keyframes crece{from{transform:scaleX(0)}}
+.trk{position:relative;display:grid;grid-template-columns:repeat(4,1fr);max-width:540px}
+.trk::before,.trk>i{content:"";position:absolute;left:12.5%;top:6px;height:4px;border-radius:4px}
+.trk::before{right:12.5%;background:color-mix(in srgb,var(--tinta) 12%,transparent)}
+.trk>i{width:calc(75% * var(--f,0));background:var(--verde);transform-origin:left;animation:crece 1s var(--ease) .3s backwards}
+.trk span{position:relative;z-index:1;display:grid;justify-items:center;gap:7px;font-size:13.5px;color:var(--t65);text-align:center}
+.trk span::before{content:"";width:16px;height:16px;border-radius:50%;background:var(--papel);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--tinta) 24%,transparent)}
+.trk span.h::before{background:var(--verde);box-shadow:none}
+.trk span.a{color:var(--tinta);font-weight:600}.trk span.a::before{box-shadow:inset 0 0 0 5px var(--tinta)}
+.trk.viejo span.a{color:var(--ambar)}.trk.viejo span.a::before{box-shadow:inset 0 0 0 5px var(--ambar)}
+.trk.camino span.a{color:var(--pizarra)}.trk.camino span.a::before{box-shadow:inset 0 0 0 5px var(--pizarra)}
+.ir{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;flex:none;color:var(--crema);background:var(--tinta);box-shadow:0 10px 18px -8px color-mix(in srgb,var(--sombra) 70%,transparent)}
+.ir svg{width:20px;height:20px}
+.dias{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px 0 8px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--ambar);background:color-mix(in srgb,var(--ambar) 14%,transparent)}
+.dias svg{width:15px;height:15px}
+
+.herr{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:18px}
+.buscar-t{flex:1;min-width:200px;max-width:400px;display:flex;align-items:center;gap:10px;height:44px;padding:0 16px;border-radius:999px;background:color-mix(in srgb,var(--hueso) 55%,transparent);
+  box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 12%,transparent);border:1px solid color-mix(in srgb,var(--borde) 45%,transparent)}
+.buscar-t svg{color:var(--t65)}
+.buscar-t input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:15px;color:var(--tinta);outline:none}
+.buscar-t input::placeholder{color:var(--t65)}
+.sec{display:flex;align-items:center;gap:10px;margin:30px 2px 12px}
+.sec h2{margin:0;font-family:"EB Garamond",serif;font-size:24px;font-weight:500}
+.glob{display:inline-grid;place-items:center;min-width:24px;height:22px;padding:0 7px;border-radius:999px;font-size:12.5px;font-weight:700;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+.ver{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--rojo);text-decoration:none}
+.vacio-t{padding:44px 20px;text-align:center;border-radius:26px;margin-top:18px}
+.vacio-t svg{width:44px;height:44px;stroke-width:1.5;color:var(--t50)}
+.vacio-t h3{font-family:"EB Garamond",serif;font-size:24px;font-weight:500;margin:8px 0 12px}
+.seg{display:inline-flex;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--hueso) 60%,transparent);box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.seg button{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border-radius:999px;font-size:15px;font-weight:500;color:var(--t80)}
+.seg button[aria-pressed="true"]{color:var(--tinta);font-weight:600;background:var(--papel);box-shadow:0 4px 10px -5px color-mix(in srgb,var(--sombra) 50%,transparent)}
+
+/* ====================================================================
+   A · ESTANTES (Netflix «Continuar viendo», Spotify, App Store «Hoy»)
+   Arriba, lo último que llegó, grande. Debajo, estantes que se deslizan: por recibir, por llegar, terminados.
+   ==================================================================== */
+.heroe{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:30px;align-items:center;margin-top:20px;padding:16px;border-radius:34px;cursor:pointer}
+.heroe .perchero{height:204px;--w:96px;padding-top:26px;border-radius:24px}.heroe .perchero::before{top:24px;height:4px}
+.heroe .perchero>svg{margin:0 -6px}.heroe .mas-p{min-width:48px;height:48px;font-size:16px}
+.heroe-t{padding:6px 14px 6px 0;min-width:0}
+.sobre{margin:0 0 6px;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe)}
+.heroe-t h2{margin:0;font-family:"EB Garamond",serif;font-size:36px;font-weight:500;line-height:1.08}
+.heroe-f{margin:10px 0 16px;font-size:17px;color:var(--t80)}
+.heroe-b{display:flex;align-items:center;gap:12px;font-size:14.5px;color:var(--t65);margin-bottom:20px}.heroe-b .pb{flex:1;max-width:260px;height:10px}
+.heroe-acc{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.heroe-acc .btn{height:48px;padding:0 24px;font-size:16px}
+.id{font-size:13.5px;font-weight:600;letter-spacing:.04em;color:var(--t65);white-space:nowrap}
+.estante{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x proximity;padding:6px 2px 14px;margin:0 -2px;scrollbar-width:none}
+.tj{position:relative;flex:none;width:252px;scroll-snap-align:start;cursor:pointer;border-radius:22px}
+.pie-p{position:absolute;left:10px;bottom:16px;display:flex;align-items:center;gap:6px}
+.tj .perchero .pb{position:absolute;left:0;right:0;bottom:0;height:6px;border-radius:0}
+.tj .ir{position:absolute;right:10px;bottom:16px;opacity:0;transform:translateY(8px);transition:opacity .25s var(--ease),transform .25s var(--ease)}
+.nuevo{display:inline-flex;align-items:center;height:28px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--crema);background:var(--rojo)}
+.hecho{position:absolute;right:10px;top:26px;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;color:var(--crema);background:var(--verde);box-shadow:0 0 0 3px color-mix(in srgb,var(--papel) 80%,transparent)}
+.hecho svg{width:15px;height:15px;stroke-width:3}
+.tj-t{margin:12px 2px 2px;font-size:16.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tj-s{margin:0 2px;font-size:14.5px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (hover:hover){.tj:hover .perchero,.heroe:hover .perchero{transform:translateY(-4px);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--borde) 16%,transparent),0 26px 34px -24px color-mix(in srgb,var(--sombra) 70%,transparent)}
+  .tj:hover .ir,.tj:focus-visible .ir{opacity:1;transform:none}}
+@media (hover:none){.tj .ir{opacity:1;transform:none}}
+.tj.chica{width:164px}.tj.chica .perchero{height:104px;--w:36px;padding-top:16px}.tj.chica .perchero::before{top:14px}
+.tj.chica .mas-p{display:none}.tj.chica .tj-t{font-size:15px}.tj.chica .hecho{top:22px}
+.dos{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 34px}
+.rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:22px 18px;margin-top:18px}.rejilla .tj{width:auto}
+
+/* ====================================================================
+   B · SEGUIMIENTO (Amazon y Mercado Libre «Mis compras», la app Shop)
+   Una tarjeta por envío, del más nuevo al más viejo: una frase dice cómo va, la barra de cuatro pasos dice cuánto falta.
+   ==================================================================== */
+.dia-t{margin:26px 6px 10px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe)}
+.ped{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px 28px;margin-bottom:12px;padding:20px 24px;border-radius:28px;cursor:pointer;transition:transform .28s var(--ease),box-shadow .28s var(--ease)}
+@media (hover:hover){.ped:hover,.idx-fila:hover .th{transform:translateY(-3px)}}
+.ped-h{margin:0;font-size:20px;font-weight:600;line-height:1.25}
+.ped-h.verde{color:var(--verde)}.ped-h.pizarra{color:var(--pizarra)}
+.ped-s{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;margin:5px 0 16px;font-size:15px;color:var(--t65)}
+.ped-der{display:grid;justify-items:end;gap:12px}
+.ped-der .btn{height:46px;padding:0 20px;font-size:15.5px;white-space:nowrap}
+.ped-der .btn svg.i,.heroe-acc .btn svg.i{transition:transform .3s var(--ease)}
+@media (hover:hover){.btn:hover svg.i{transform:translateX(4px)}}
+.ped.hecho-p{padding-top:14px;padding-bottom:14px}.ped.hecho-p .ped-s{margin-bottom:0}
+
+/* ====================================================================
+   C · ÍNDICE (Shopify Admin al recibir inventario, Linear, Stripe)
+   Una sola tarjeta: pestañas con su cuenta, una línea por envío, cuánto se recibió en una barra. Ordena y filtra desde la cabecera.
+   ==================================================================== */
+.idx{margin-top:20px;border-radius:28px}
+.idx-top{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;padding:12px 14px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 15px;border-radius:14px;font-size:15.5px;font-weight:500;color:var(--t80)}
+.tab[aria-selected="true"]{color:var(--tinta);font-weight:600;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+.idx-top .buscar-t{margin-left:auto;max-width:300px;height:42px}
+.idx{--cols:minmax(0,1.9fr) 7.5rem 11.5rem minmax(10rem,1fr) 1.5rem}
+.idx-cab,.idx-fila{display:grid;grid-template-columns:var(--cols);gap:0 20px;align-items:center;padding:0 22px}
+.idx-cab{min-height:44px;background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 9%,transparent),inset 0 -1px 0 color-mix(in srgb,var(--tinta) 9%,transparent)}
+.idx-cab>span{position:relative;text-align:center;font-size:12.5px;min-width:0}.idx-cab>span:first-child{text-align:left}
+.col-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;max-width:100%;height:32px;padding:0 10px;border-radius:999px;font-size:inherit;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t80)}
+.idx-cab>span:first-child .col-btn{margin-left:-10px}
+.col-btn svg{width:14px;height:14px;color:var(--t50);transition:transform .3s var(--ease)}
+.col-btn[data-ordenada] svg{color:var(--tinta)}.col-btn[data-ordenada="asc"] svg{transform:rotate(180deg)}
+.col-btn .pt{width:7px;height:7px;border-radius:50%;background:var(--rojo);display:none}.col-btn[data-filtrada] .pt{display:block}
+.col-btn[aria-expanded="true"]{background:color-mix(in srgb,var(--tinta) 8%,transparent);color:var(--tinta)}
+@media (hover:hover){.col-btn:hover{background:color-mix(in srgb,var(--tinta) 6%,transparent);color:var(--tinta)}}
+.globo{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);z-index:20;width:268px;padding:12px;border-radius:22px;text-align:left;text-transform:none;letter-spacing:0;
+  background:color-mix(in srgb,var(--papel) 96%,transparent);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:1px solid color-mix(in srgb,var(--borde) 45%,transparent);
+  box-shadow:0 24px 50px -18px color-mix(in srgb,var(--sombra) 45%,transparent);animation:globo .24s var(--ease)}
+.idx-cab>span:first-child .globo{left:0;transform:none;animation-name:funde}
+@keyframes globo{from{opacity:0;transform:translate(-50%,-6px) scale(.98)}}
+.globo .g-t{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);margin:2px 6px 6px}
+.g-ord{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.g-ord button{height:38px;border-radius:12px;font-size:13.5px;color:var(--t80);border:1px solid color-mix(in srgb,var(--borde) 40%,transparent)}
+.g-ord button[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.g-op{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 8px;border-radius:12px;font-size:14.5px;color:var(--tinta);cursor:pointer}
+.g-op:hover{background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+.g-op input{width:18px;height:18px;accent-color:var(--tinta)}
+.g-op b{margin-left:auto;font-weight:500;color:var(--t65)}
+.idx-fila{position:relative;min-height:80px;padding-top:10px;padding-bottom:10px;cursor:pointer;transition:background-color .18s var(--ease)}
+.idx-fila+.idx-fila::before{content:"";position:absolute;top:0;left:22px;right:22px;height:1px;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+@media (hover:hover){.idx-fila:hover{background-color:color-mix(in srgb,var(--vidrio) 50%,transparent)}[data-tema="oscuro"] .idx-fila:hover{background-color:color-mix(in srgb,var(--tinta) 6%,transparent)}}
+.idx-fila>*{min-width:0;text-align:center}
+.c-env{display:flex;align-items:center;gap:14px;text-align:left!important}
+.c-env .fotos{gap:0;--t:48px}.c-env .th{transition:transform .28s var(--ease)}.c-env .th+.th{margin-left:-14px;box-shadow:0 0 0 3px var(--papel),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.c-env .th.mas{box-shadow:0 0 0 3px var(--papel);background:var(--hueso)}
+.c-env b{display:block;font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-env small{display:block;font-size:14px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-dia{font-size:15.5px;font-weight:500}.c-dia small{display:block;font-size:14px;font-weight:400;color:var(--t65)}.c-dia small.ambar{color:var(--ambar);font-weight:600}
+.c-rec{display:grid;gap:7px}.c-rec .pb{height:9px}.c-rec small{font-size:14px;color:var(--t65)}.c-rec small b{color:var(--tinta);font-weight:600}
+.c-ir{color:var(--t50);display:grid;place-items:center}
+.idx-pie{padding:14px 22px;font-size:14.5px;color:var(--t65);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 9%,transparent)}.idx-pie b{color:var(--tinta);font-weight:600}
+
+/* ====================================================================
+   EL CAJÓN DEL ENVÍO (común): lo que explica vive aquí, a un toque
+   ==================================================================== */
+.cj-velo{position:absolute;inset:0;z-index:70;background:color-mix(in srgb,var(--sombra) 26%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);animation:funde .25s}
+.cj{position:absolute;z-index:71;top:12px;right:12px;bottom:12px;width:min(480px,calc(100% - 24px));display:flex;flex-direction:column;border-radius:30px;overflow:hidden;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--papel) 96%,transparent),color-mix(in srgb,var(--papel) 88%,transparent));border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);
+  box-shadow:0 50px 90px -40px var(--sombra);animation:cj-entra .36s var(--ease)}
+[data-tema="oscuro"] .cj{border-color:color-mix(in srgb,var(--tinta) 12%,transparent)}
+@keyframes cj-entra{from{opacity:0;transform:translateX(32px)}}
+.cj-cab{display:flex;align-items:center;gap:12px;padding:20px 22px 12px}
+.cj-cab h2{margin:0;font-family:"EB Garamond",serif;font-size:28px;font-weight:500;line-height:1.05}
+.cj-x{margin-left:auto;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;color:var(--tinta);background:color-mix(in srgb,var(--tinta) 6%,transparent);flex:none}
+.cj-cuerpo{flex:1;overflow:auto;padding:0 22px 20px;scrollbar-width:thin}
+.cj .perchero{height:176px;--w:64px;padding-top:22px}.cj .perchero::before{top:20px}
+.cj-f{margin:18px 0 6px;font-size:21px;font-weight:600;line-height:1.25}
+.cj-s{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 20px;font-size:15px;color:var(--t65)}
+.cj h3{margin:26px 0 10px;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe)}
+.cifras-3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:22px}
+.cifras-3 div{padding:12px 8px;border-radius:18px;text-align:center;background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.cifras-3 b{display:block;font-family:"EB Garamond",serif;font-size:30px;font-weight:500;line-height:1;font-variant-numeric:lining-nums}
+.cifras-3 span{font-size:13.5px;color:var(--t65)}.cifras-3 .v b{color:var(--verde)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip-m{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px;border-radius:999px;font-size:14.5px;background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+.chip-m b{font-weight:600}.chip-m span{color:var(--t65)}
+.cj-pie{padding:14px 22px 18px;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 9%,transparent)}
+.cj-pie .btn{width:100%;height:50px;font-size:16px}
+.disp:is([data-ancho="movil"],[data-ancho="m320"],[data-ancho="m430"]) .cj{top:auto;left:0;right:0;bottom:0;width:100%;max-height:92%;border-radius:30px 30px 0 0;animation-name:cj-sube}
+@keyframes cj-sube{from{transform:translateY(40%);opacity:.5}}
+
+/* ---------- angosto y celular ---------- */
+@container cont (max-width:820px){
+  .heroe{grid-template-columns:1fr;gap:14px}.heroe .perchero{height:190px;--w:66px}.heroe-t{padding:0 8px 8px}.heroe-t h2{font-size:30px}
+  .dos{grid-template-columns:1fr}
+  .ped{grid-template-columns:minmax(0,1fr);gap:14px;padding:18px}.ped-fotos{order:2}.ped-cuerpo{order:1}.ped-der{order:3;justify-items:stretch}.ped-der .id{display:none}.ped-s{margin-bottom:0}
+  .ped .trk{margin-top:14px}
+  .idx{--cols:minmax(0,1fr) auto}.idx-cab{display:flex;flex-wrap:wrap;gap:4px;padding:8px 14px}.idx-cab>span:empty{display:none}
+  .idx-fila{grid-template-areas:"env dia" "rec est";gap:10px 14px;padding:14px 16px}
+  .idx-fila .c-env{grid-area:env}.idx-fila .c-dia{grid-area:dia;text-align:right}.idx-fila .c-rec{grid-area:rec}.idx-fila .c-est{grid-area:est;text-align:right}.idx-fila .c-ir{display:none}
+  .idx-fila+.idx-fila::before{left:16px;right:16px}.idx-top .buscar-t{margin-left:0;max-width:none}
+  .globo{position:fixed;left:12px!important;right:12px;bottom:12px;top:auto;width:auto;transform:none!important}
+}
+@container cont (max-width:560px){.trk span{font-size:12px}.fotos{--t:52px}.c-env .th:nth-child(n+2){display:none}.estante{gap:14px}.tj{width:228px}.herr .seg{width:100%}.herr .seg button{flex:1;justify-content:center}}
+.toast{position:absolute;left:50%;transform:translateX(-50%);bottom:24px;z-index:90;padding:12px 18px;border-radius:16px;background:var(--tinta);color:var(--crema);font-size:14.5px;white-space:nowrap;box-shadow:0 18px 40px -18px var(--sombra)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Recibir mercadería · ronda 3 · como los mejores</span>
+  <span class="tag">Propuesta</span><div class="seg-m" data-ctl="cara"><button data-v="A">A · Estantes (Netflix, Spotify)</button><button data-v="B">B · Seguimiento (Amazon, Mercado Libre)</button><button data-v="C">C · Índice (Shopify, Linear)</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="escritorio">Tu ventana</button></div>
+  <button data-acc="plegar" style="color:inherit;border:1px solid color-mix(in srgb,currentColor 35%,transparent);border-radius:8px;padding:4px 10px">Plegar menú</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis" id="analisis"></div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<script>
+/* ====================================================================
+   LOS DATOS (inventados). Hoy es martes 17 de noviembre de 2026, 15:24, en Tienda TRU. El 1 de noviembre de 2026 es domingo.
+   Cada envío vive en UN solo estado. Lo que ya entró al stock de un envío que se sigue recibiendo es su AVANCE (el verde de la barra),
+   no una fila en «Terminados».
+   ==================================================================== */
+activa = 'inventario.recibir';
+const HOY = 17, DIAS_AVISO = 3; // DIAS_PARA_RESALTAR de lib/recepcion-salida-reglas.ts
+const DIAS_SEM = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const dsem = (d) => DIAS_SEM[(d - 1) % 7];
+const IC = {
+  check: 'M20 6 9 17l-5-5', reloj: 'M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', flecha: 'M5 12h14M13 6l6 6-6 6', abajo: 'M12 5v14M5 12l7 7 7-7', chev: 'M6 9l6 6 6-6', der: 'M9 6l6 6-6 6',
+  lupa: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35', x: 'M18 6 6 18M6 6l12 12', lupaX: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35M8.5 8.5l5 5M13.5 8.5l-5 5',
+};
+const ico = (d) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+// Las siluetas (48 × 48) y los colores de prenda. tema-fijo: el color de una prenda es dato, no cambia con el tema (ADR-0336).
+const FORMA = {
+  polo: 'M17 7c2 3 5 4.5 7 4.5S29 10 31 7l9 4 5 9-7 4-2-3v20H12V21l-2 3-7-4 5-9z',
+  blusa: 'M18 6l6 8 6-8 8 4 6 24-6 2-4-14v20H14V22l-4 14-6-2 6-24z',
+  vestido: 'M19 5c0 3 2 5 5 5s5-2 5-5l3 1-2 10 9 27H9l9-27-2-10z',
+  pantalon: 'M13 5h22l3 38H27l-3-24-3 24H10z',
+  falda: 'M16 9h16v4l8 28H8l8-28z',
+  casaca: 'M17 6l7 5 7-5 9 5 4 27-7 1-2-14v18H13V25l-2 14-7-1 4-27z',
+};
+const ALTO_GANCHO = { polo: 18, blusa: 17, vestido: 15, pantalon: 15, falda: 19, casaca: 17 };
+const COLOR = { crema: '#e9dcc3', negro: '#2b2b2b', vino: '#7a2e2a', oliva: '#6f7d4f', azul: '#3f5f86', rosa: '#d9a3a0', camel: '#c08a52', celeste: '#9bbcd6', mostaza: '#d2a53a', lila: '#9a84b8', blanco: '#f4f0e6', terracota: '#b5643a', gris: '#8e8e8a', jean: '#4f6f8f' };
+const P = ['Textil Andina SAC', 'Moda Sol EIRL', 'Confecciones Rímac', 'Hilos del Norte SAC', 'Comercial Pacífico SAC', 'Industrias Huanchaco SAC', 'Tejidos Moche EIRL', 'Distribuidora Chan Chan'];
+const pr = (s) => s.split(' ').map((x) => x.split(':'));
+const ENVIOS = [
+  { id: 'ENV-000028', d: 16, h: '10:30', est: 'camino', llega: 18, marcas: [['Brisa', 40]], provs: [P[3]], total: 40, modelos: 4, prendas: pr('blusa:celeste blusa:blanco falda:azul vestido:celeste') },
+  { id: 'ENV-000027', d: 17, h: '14:25', est: 'cerrar', sinAviso: true, marcas: [['Nativa', 24], ['Lúcuma', 22], ['Arena', 14]], provs: [P[0], P[1], P[2]], total: 60, cont: 60, stock: 60, modelos: 9, prendas: pr('vestido:vino blusa:crema pantalon:negro polo:mostaza casaca:camel falda:oliva blusa:rosa') },
+  { id: 'ENV-000026', d: 16, h: '10:02', est: 'abrir', marcas: [['Totora', 48], ['Quena', 36]], provs: [P[4]], total: 84, cont: 0, stock: 0, modelos: 11, prendas: pr('polo:oliva pantalon:jean casaca:negro polo:blanco blusa:rosa falda:camel') },
+  { id: 'ENV-000025', d: 15, h: '09:40', est: 'terminado', fin: 16, marcas: [['Nativa', 50], ['Arena', 42]], provs: [P[0]], total: 92, cont: 92, stock: 92, modelos: 12, prendas: pr('vestido:terracota blusa:blanco pantalon:camel falda:negro') },
+  { id: 'ENV-000024', d: 14, h: '11:49', est: 'contando', marcas: [['Kantu', 177]], provs: [P[4], P[5]], total: 177, cont: 96, stock: 0, modelos: 18, prendas: pr('pantalon:jean casaca:jean pantalon:negro polo:gris falda:jean polo:blanco') },
+  { id: 'ENV-000023', d: 13, h: '17:05', est: 'terminado', fin: 13, marcas: [['Quena', 64]], provs: [P[6]], total: 64, cont: 64, stock: 64, modelos: 7, prendas: pr('blusa:lila vestido:rosa falda:crema polo:lila') },
+  { id: 'ENV-000022', d: 12, h: '11:20', est: 'terminado', fin: 14, marcas: [['Mistura', 70], ['Brisa', 50]], provs: [P[3], P[7]], total: 120, cont: 120, stock: 120, modelos: 15, prendas: pr('casaca:vino pantalon:negro blusa:celeste vestido:azul') },
+  { id: 'ENV-000021', d: 10, h: '15:48', est: 'terminado', fin: 12, marcas: [['Lúcuma', 58]], provs: [P[1]], total: 58, cont: 58, stock: 58, modelos: 6, prendas: pr('polo:mostaza polo:terracota pantalon:camel falda:mostaza') },
+  { id: 'ENV-000017', d: 9, h: '16:37', est: 'contando', marcas: [['Mistura', 38], ['Arena', 24], ['Lúcuma', 20], ['Nativa', 16], ['Totora', 12], ['Quena', 10], ['Brisa', 8], ['Kantu', 7]], provs: P, total: 135, cont: 135, stock: 12, modelos: 22, prendas: pr('blusa:rosa vestido:negro casaca:camel pantalon:crema polo:vino falda:mostaza blusa:oliva') },
+  { id: 'ENV-000016', d: 9, h: '16:13', est: 'contando', marcas: [['Arena', 52], ['Mistura', 40], ['Nativa', 31], ['Kantu', 26], ['Lúcuma', 18], ['Totora', 14], ['Brisa', 9], ['Quena', 7]], provs: [P[0], P[2], P[4], P[6], P[7], P[5], P[1], P[3]], total: 197, cont: 40, stock: 0, modelos: 31, prendas: pr('vestido:azul polo:blanco pantalon:gris casaca:oliva blusa:terracota falda:lila') },
+  { id: null, d: 6, h: '12:10', est: 'terminado', fin: 6, marcas: [['Kantu', 12]], provs: [P[6]], total: 12, cont: 12, stock: 12, modelos: 2, prendas: pr('pantalon:jean polo:negro') },
+  { id: 'ENV-000020', d: 5, h: '10:00', est: 'terminado', fin: 7, marcas: [['Totora', 33]], provs: [P[4]], total: 33, cont: 33, stock: 33, modelos: 5, prendas: pr('polo:oliva pantalon:camel polo:crema casaca:oliva') },
+  { id: 'ENV-000019', d: 3, h: '16:30', est: 'terminado', fin: 3, marcas: [['Arena', 45], ['Quena', 30]], provs: [P[0], P[6]], total: 75, cont: 75, stock: 75, modelos: 9, prendas: pr('vestido:crema blusa:vino falda:camel blusa:blanco') },
+].map((e) => ({ ...e, clave: e.id || `sin-${e.d}`, nombre: e.id || 'Sin envío',
+  // lo que está por llegar se ordena por cuándo llega: va arriba de todo
+  ts: (e.est === 'camino' ? e.llega : e.d) * 10000 + parseInt(e.h.replace(':', ''), 10) }));
+const abierto = (e) => e.est !== 'terminado';
+const diasDesde = (e) => HOY - e.d;
+const viejo = (e) => abierto(e) && e.est !== 'camino' && diasDesde(e) >= DIAS_AVISO;
+// 0 por llegar · 1 llegó y falta abrir · 2 contando · 3 falta pasar a stock · 4 falta cerrar · 5 terminado
+const paso = (e) => ({ camino: 0, abrir: 1, cerrar: 4, terminado: 5 })[e.est] ?? (e.cont < e.total ? 2 : 3);
+const ESTADO = ['Por llegar', 'Falta abrir', 'Contando', 'Falta pasar a stock', 'Falta cerrar', 'Terminado'];
+const ESTADO_COLOR = ['var(--pizarra)', 'var(--rojo)', 'var(--tinta)', 'var(--tinta)', 'var(--verde)', 'var(--verde)'];
+const VERBO = [null, 'Abrir y contar', 'Seguir contando', 'Seguir', 'Cerrar el envío', 'Ver'];
+const porFecha = (a, b) => b.ts - a.ts; // el más nuevo arriba
+
+/* ---------- las piezas ---------- */
+const prenda = ([tipo, col], colgada) => colgada
+  ? `<svg viewBox="0 0 48 60" style="--c:${COLOR[col]}" aria-hidden="true"><path class="gancho" d="M24 0v${ALTO_GANCHO[tipo]}"/><g transform="translate(0 11)"><path class="pz" d="${FORMA[tipo]}"/>${tipo === 'casaca' ? '<path class="pl" d="M24 11v32"/>' : ''}</g></svg>`
+  : `<svg viewBox="0 0 48 48" aria-hidden="true"><path class="pz" d="${FORMA[tipo]}"/>${tipo === 'casaca' ? '<path class="pl" d="M24 11v32"/>' : ''}</svg>`;
+function perchero(e, n, extra = '') {
+  const ver = e.prendas.slice(0, n), mas = e.modelos - ver.length;
+  return `<div class="perchero" role="img" aria-label="${e.modelos} modelos">${ver.map((x) => prenda(x, true)).join('')}${mas > 0 ? `<b class="mas-p" title="y ${mas} modelos más">+${mas}</b>` : ''}${extra}</div>`;
+}
+function fotos(e, n) {
+  const ver = e.prendas.slice(0, n), mas = e.modelos - ver.length;
+  return `<span class="fotos" role="img" aria-label="${e.modelos} modelos">${ver.map((x) => `<span class="th" style="--c:${COLOR[x[1]]}">${prenda(x)}</span>`).join('')}${mas > 0 ? `<span class="th mas" title="y ${mas} modelos más">+${mas}</span>` : ''}</span>`;
+}
+const marcasTxt = (e) => { const m = e.marcas.map(([x]) => x); return m.length === 1 ? m[0] : m.length === 2 ? `${m[0]} y ${m[1]}` : m.length === 3 ? `${m[0]}, ${m[1]} y ${m[2]}` : `${m[0]}, ${m[1]} y ${m.length - 2} más`; };
+const diaTxt = (d) => d === HOY ? 'Hoy' : d === HOY - 1 ? 'Ayer' : d === HOY + 1 ? 'Mañana' : `${dsem(d).slice(0, 3)} ${d}`;
+// La pastilla de «cuándo»: lo que lleva días abierto lo dice en ámbar.
+function cuando(e) {
+  if (e.est === 'camino') return `<span class="cuando pizarra">Llega ${diaTxt(e.llega).toLowerCase()}</span>`;
+  if (viejo(e)) return `<span class="cuando ambar">Hace ${diasDesde(e)} días</span>`;
+  return `<span class="cuando">${diaTxt(e.d)}${e.d === HOY ? ` · ${e.h}` : ''}</span>`;
+}
+const dias = (e) => viejo(e) ? `<span class="dias">${ico(IC.reloj)}${diasDesde(e)} días abierto</span>` : '';
+// La frase: cómo va, en palabras de tienda.
+function frase(e) {
+  const p = paso(e), lleg = diaTxt(e.d).toLowerCase();
+  return [e.llega ? `Llega ${diaTxt(e.llega).toLowerCase()}` : '', `Llegó ${lleg}. Falta abrirlo`, `Vas ${e.cont} de ${e.total} contadas`, `${e.stock} de ${e.total} ya en stock`, 'Todo en stock. Solo falta cerrar', `Terminado · ${e.total} en stock`][p];
+}
+const tonoFrase = (e) => ['pizarra', '', '', '', 'verde', 'verde'][paso(e)];
+// Lo corto, para donde no cabe la frase.
+const corto = (e) => { const p = paso(e); return [`${e.total} prendas`, `Falta abrir · ${e.total} prendas`, `Contando · ${e.cont} de ${e.total}`, `${e.stock} de ${e.total} en stock`, 'Solo falta cerrar', `${e.total} prendas · ${diaTxt(e.d)}`][p]; };
+const barra = (e) => `<span class="pb" role="img" aria-label="${e.cont || 0} contadas, ${e.stock || 0} en stock, de ${e.total}"><i class="ct" style="width:${(e.cont || 0) / e.total * 100}%"></i><i class="st" style="width:${(e.stock || 0) / e.total * 100}%"></i></span>`;
+// El seguimiento de cuatro pasos. La línea avanza dentro de cada tramo con lo que ya se contó o ya entró.
+function seguimiento(e) {
+  const p = paso(e), hechos = [0, 1, 1, 2, 3, 4][p];
+  const dentro = p === 2 ? e.cont / e.total : p === 3 ? e.stock / e.total : 0;
+  const f = Math.max(0, Math.min(1, (hechos - 1 + dentro) / 3));
+  return `<div class="trk${viejo(e) ? ' viejo' : p === 0 ? ' camino' : ''}" style="--f:${f.toFixed(3)}" role="img" aria-label="${ESTADO[p]}"><i></i>${['Llegó', 'Contado', 'En stock', 'Cerrado'].map((t, i) => `<span class="${i < hechos ? 'h' : i === hechos ? 'a' : ''}">${t}</span>`).join('')}</div>`;
+}
+const insignia = (e) => { const p = paso(e); return `<span class="bdg" style="--c:${ESTADO_COLOR[p]}"><i class="pip ${p >= 4 ? 'f' : p >= 2 ? 'm' : ''}"></i>${ESTADO[p]}</span>`; };
+const botonDe = (e, peso = 'sec') => VERBO[paso(e)] ? `<button class="btn ${peso}" data-hace="${VERBO[paso(e)]}">${VERBO[paso(e)]}${ico(IC.flecha)}</button>` : '';
+
+/* ---------- el estado de cada cara ---------- */
+const est = {};
+const de = (cara) => est[cara] || (est[cara] = { q: '', vista: 'recibir', orden: { col: 'dia', dir: 'desc' }, filtros: {}, globo: null });
+const coincide = (e, q) => !q || sinTilde([e.nombre, ...e.marcas.map(([m]) => m), ...e.provs].join(' ')).includes(sinTilde(q.trim()));
+const buscador = (s) => `<label class="buscar-t">${ico(IC.lupa)}<input data-q value="${s.q}" placeholder="Envío, marca o proveedor" aria-label="Buscar un envío"></label>`;
+const vacio = (q) => `<div class="vacio-t placa">${ico(IC.lupaX)}<h3>${q ? `Nada con «${q}»` : 'Todo recibido'}</h3>${q ? '<button class="btn sec" data-limpiar>Ver todo</button>' : ''}</div>`;
+const cabeza = () => encabezado({ sede: 'Tienda TRU', fecha: 'martes, 17 de noviembre · 15:24', titulo: 'Recibir mercadería', acciones: [['sec', 'Llegó sin aviso', 'caja']] });
+const enVista = (s) => (e) => s.vista === 'todos' || (s.vista === 'recibir' ? abierto(e) : !abierto(e));
+const cuenta = (v) => ENVIOS.filter(enVista({ vista: v })).length;
+
+/* ====================================================================
+   A · ESTANTES
+   ==================================================================== */
+function tarjeta(e, i, chica) {
+  const p = paso(e);
+  const extra = `${chica ? '' : `<span class="pie-p">${cuando(e)}${p === 1 ? '<span class="nuevo">Nuevo</span>' : ''}</span>`}${p === 5 ? `<span class="hecho">${ico(IC.check)}</span>` : ''}${p >= 2 && p <= 4 ? barra(e) : ''}${VERBO[p] && !chica ? `<span class="ir" aria-hidden="true">${ico(IC.flecha)}</span>` : ''}`;
+  return `<article class="tj entra${chica ? ' chica' : ''}" tabindex="0" role="button" data-abre="${e.clave}" style="--k:${i}" aria-label="${e.nombre}, ${marcasTxt(e)}, ${ESTADO[p]}">
+    ${perchero(e, 4, extra)}<h3 class="tj-t">${marcasTxt(e)}</h3><p class="tj-s">${corto(e)}</p></article>`;
+}
+function caraA() {
+  const s = de('A'), base = ENVIOS.filter((e) => coincide(e, s.q)).sort(porFecha);
+  if (s.q) return `${cabeza()}<div class="herr">${buscador(s)}</div>${base.length ? `<div class="rejilla">${base.map((e, i) => tarjeta(e, i)).join('')}</div>` : vacio(s.q)}`;
+  const llegados = base.filter((e) => abierto(e) && e.est !== 'camino'), ult = llegados[0], resto = llegados.slice(1);
+  const porLlegar = base.filter((e) => e.est === 'camino'), term = base.filter((e) => !abierto(e));
+  const heroe = ult ? `<section class="heroe placa entra" tabindex="0" role="button" data-abre="${ult.clave}" aria-label="Lo último que llegó: ${ult.nombre}">
+      ${perchero(ult, 5)}
+      <div class="heroe-t"><p class="sobre">Lo último que llegó · ${diaTxt(ult.d)}${ult.d === HOY ? ` ${ult.h}` : ''}</p><h2>${marcasTxt(ult)}</h2>
+        <p class="heroe-f">${frase(ult)}</p>${paso(ult) >= 2 ? `<div class="heroe-b">${barra(ult)}<span>${ult.stock} de ${ult.total}</span></div>` : ''}
+        <div class="heroe-acc">${botonDe(ult, 'pri')}<span class="id">${ult.nombre}</span></div></div></section>` : '';
+  return `${cabeza()}<div class="herr">${buscador(s)}</div>${heroe || vacio('')}
+    ${resto.length ? `<div class="sec"><h2>Por recibir</h2><span class="glob">${resto.length}</span></div><div class="estante">${resto.map((e, i) => tarjeta(e, i + 1)).join('')}</div>` : ''}
+    <div class="dos">
+      ${porLlegar.length ? `<div><div class="sec"><h2>Por llegar</h2><span class="glob">${porLlegar.length}</span></div><div class="estante">${porLlegar.map((e, i) => tarjeta(e, i + 5)).join('')}</div></div>` : ''}
+      ${term.length ? `<div style="min-width:0"><div class="sec"><h2>Terminados</h2><span class="glob">${term.length}</span><a class="ver" href="#" data-hace="Ver todo lo recibido">Ver todos ${ico(IC.flecha)}</a></div><div class="estante">${term.map((e, i) => tarjeta(e, i + 6, true)).join('')}</div></div>` : ''}
+    </div>`;
+}
+
+/* ====================================================================
+   B · SEGUIMIENTO
+   ==================================================================== */
+function pedido(e, i) {
+  const p = paso(e);
+  return `<article class="ped placa entra${p === 5 ? ' hecho-p' : ''}" tabindex="0" role="button" data-abre="${e.clave}" style="--k:${i}" aria-label="${e.nombre}: ${frase(e)}">
+    <div class="ped-fotos">${fotos(e, 3)}</div>
+    <div class="ped-cuerpo"><h3 class="ped-h ${tonoFrase(e)}">${frase(e)}</h3><p class="ped-s"><span>${marcasTxt(e)}</span>${dias(e)}</p>${p === 5 ? '' : seguimiento(e)}</div>
+    <div class="ped-der"><span class="id">${e.nombre}</span>${botonDe(e)}</div></article>`;
+}
+function caraB() {
+  const s = de('B'), filas = ENVIOS.filter(enVista(s)).filter((e) => coincide(e, s.q)).sort(porFecha);
+  let out = '', dia = null;
+  filas.forEach((e, i) => {
+    const d = e.est === 'camino' ? e.llega : e.d;
+    if (d !== dia) { dia = d; out += `<p class="dia-t">${d === HOY ? 'Hoy' : d === HOY - 1 ? 'Ayer' : d === HOY + 1 ? 'Mañana' : `${dsem(d)} ${d} de noviembre`}</p>`; }
+    out += pedido(e, i);
+  });
+  return `${cabeza()}<div class="herr"><div class="seg" role="group" aria-label="Qué envíos ver">${[['recibir', 'Por recibir'], ['terminados', 'Terminados']].map(([v, t]) => `<button data-vista="${v}" aria-pressed="${s.vista === v}">${t}<span class="glob">${cuenta(v)}</span></button>`).join('')}</div>${buscador(s)}</div>
+    ${filas.length ? out : vacio(s.q)}`;
+}
+
+/* ====================================================================
+   C · ÍNDICE (con lo esencial de TablaViva: ordenar y filtrar desde la cabecera)
+   ==================================================================== */
+const COLS = {
+  env: { t: 'Envío', orden: (e) => e.id || '', txt: ['Z → A', 'A → Z'], filtro: (e) => e.marcas.map(([m]) => m), clase: 'c-env',
+    celda: (e) => `${fotos(e, 2)}<span style="min-width:0"><b>${marcasTxt(e)}</b><small>${e.nombre}</small></span>` },
+  dia: { t: 'Llegó', orden: (e) => e.ts, txt: ['Más nuevo', 'Más viejo'], clase: 'c-dia',
+    celda: (e) => e.est === 'camino' ? `Llega ${diaTxt(e.llega).toLowerCase()}` : `${diaTxt(e.d)}${viejo(e) ? `<small class="ambar">hace ${diasDesde(e)} días</small>` : e.d >= HOY - 1 ? `<small>${e.h}</small>` : ''}` },
+  est: { t: 'Estado', orden: (e) => paso(e), txt: ['Más avanzado', 'Menos avanzado'], filtro: (e) => ESTADO[paso(e)], opciones: ESTADO, clase: 'c-est', celda: insignia },
+  rec: { t: 'Recibido', orden: (e) => ((e.stock || 0) + (e.cont || 0)) / e.total, txt: ['De más a menos', 'De menos a más'], clase: 'c-rec',
+    celda: (e) => `${barra(e)}<small>${paso(e) === 2 ? `<b>${e.cont}</b> de ${e.total} contadas` : `<b>${e.stock || 0}</b> de ${e.total} en stock`}</small>` },
+  ir: { t: '', clase: 'c-ir', celda: () => ico(IC.der) },
+};
+const ORDEN_COLS = Object.keys(COLS);
+function filasC() {
+  const s = de('C');
+  let filas = ENVIOS.filter(enVista(s)).filter((e) => coincide(e, s.q));
+  for (const [col, set] of Object.entries(s.filtros)) if (set.size) filas = filas.filter((e) => { const v = COLS[col].filtro(e); return Array.isArray(v) ? v.some((x) => set.has(x)) : set.has(v); });
+  const c = COLS[s.orden.col], f = s.orden.dir === 'desc' ? -1 : 1;
+  return filas.sort((a, b) => { const x = c.orden(a), y = c.orden(b); return (x > y ? 1 : x < y ? -1 : 0) * f || b.ts - a.ts; });
+}
+function globo(k) {
+  const s = de('C'), c = COLS[k], n = new Map();
+  if (c.filtro) for (const e of ENVIOS.filter(enVista(s))) { const v = c.filtro(e); for (const x of Array.isArray(v) ? v : [v]) n.set(x, (n.get(x) || 0) + 1); }
+  const ops = (c.opciones || [...n.keys()].sort((a, b) => n.get(b) - n.get(a))).filter((o) => n.has(o));
+  return `<div class="globo" role="dialog" aria-label="${c.t}"><p class="g-t">Ordenar</p><div class="g-ord">${['desc', 'asc'].map((d, i) => `<button data-ord="${k}:${d}" aria-pressed="${s.orden.col === k && s.orden.dir === d}">${d === 'desc' ? '↓' : '↑'} ${c.txt[i]}</button>`).join('')}</div>
+    ${ops.length ? `<p class="g-t">Mostrar solo</p>${ops.map((o) => `<label class="g-op"><input type="checkbox" data-fil="${k}" value="${o}" ${s.filtros[k]?.has(o) ? 'checked' : ''}>${o}<b>${n.get(o)}</b></label>`).join('')}` : ''}</div>`;
+}
+function caraC() {
+  const s = de('C'), filas = filasC();
+  const cab = `<div class="idx-cab">${ORDEN_COLS.map((k) => {
+    const c = COLS[k]; if (!c.t) return '<span></span>';
+    const ord = s.orden.col === k ? s.orden.dir : null;
+    return `<span><button class="col-btn" data-col-btn="${k}" aria-expanded="${s.globo === k}" ${ord ? `data-ordenada="${ord}"` : ''} ${s.filtros[k]?.size ? 'data-filtrada' : ''}>${c.t}<span class="pt"></span>${ico(ord ? IC.abajo : IC.chev)}</button>${s.globo === k ? globo(k) : ''}</span>`;
+  }).join('')}</div>`;
+  const filaC = (e, i) => `<div class="idx-fila entra" role="row" tabindex="0" data-abre="${e.clave}" style="--k:${i}">${ORDEN_COLS.map((k) => `<div class="${COLS[k].clase}">${COLS[k].celda(e)}</div>`).join('')}</div>`;
+  return `${cabeza()}<section class="idx placa entra">
+    <div class="idx-top"><div class="tabs" role="tablist">${[['recibir', 'Por recibir'], ['terminados', 'Terminados'], ['todos', 'Todos']].map(([v, t]) => `<button class="tab" role="tab" data-vista="${v}" aria-selected="${s.vista === v}">${t}<span class="glob">${cuenta(v)}</span></button>`).join('')}</div>${buscador(s)}</div>
+    ${cab}${filas.length ? filas.map(filaC).join('') : `<div style="padding:8px 14px 14px">${vacio(s.q)}</div>`}
+    ${filas.length ? `<div class="idx-pie"><b>${filas.length}</b> ${filas.length === 1 ? 'envío' : 'envíos'} · <b>${filas.reduce((a, e) => a + e.total, 0).toLocaleString('es-PE')}</b> prendas</div>` : ''}</section>`;
+}
+
+/* ====================================================================
+   EL CAJÓN DEL ENVÍO
+   ==================================================================== */
+function cajonDe(e) {
+  const p = paso(e);
+  return `<div class="cj-velo" data-cierra></div><aside class="cj" role="dialog" aria-modal="true" aria-label="${e.nombre}">
+    <header class="cj-cab"><h2>${e.id || 'Llegada sin envío'}</h2>${insignia(e)}<button class="cj-x" data-cierra aria-label="Cerrar">${ico(IC.x)}</button></header>
+    <div class="cj-cuerpo">${perchero(e, 6)}
+      <p class="cj-f">${frase(e)}</p><p class="cj-s"><span>${e.est === 'camino' ? `Salió ${diaTxt(e.d).toLowerCase()}` : `Llegó ${diaTxt(e.d).toLowerCase()} a las ${e.h}`}${e.sinAviso ? ' · sin aviso' : ''}</span>${dias(e)}</p>
+      ${seguimiento(e)}
+      <div class="cifras-3"><div><b>${e.total}</b><span>prendas</span></div><div><b>${e.cont || 0}</b><span>contadas</span></div><div class="v"><b>${e.stock || 0}</b><span>en stock</span></div></div>
+      <h3>${e.marcas.length === 1 ? 'Marca' : `${e.marcas.length} marcas`}</h3><div class="chips">${e.marcas.map(([m, u]) => `<span class="chip-m"><b>${m}</b><span>${u}</span></span>`).join('')}</div>
+      <h3>${e.provs.length === 1 ? 'Proveedor' : `${e.provs.length} proveedores`}</h3><div class="chips">${e.provs.map((x) => `<span class="chip-m">${x}</span>`).join('')}</div>
+    </div>${VERBO[p] ? `<footer class="cj-pie">${botonDe(e, p === 5 ? 'sec' : 'pri')}</footer>` : ''}</aside>`;
+}
+function abrirCajon(clave) { cerrarCajon(); const e = ENVIOS.find((x) => x.clave === clave); if (!e) return; $('#disp').insertAdjacentHTML('beforeend', cajonDe(e)); $('.cj-x')?.focus(); }
+function cerrarCajon() { $$('.cj, .cj-velo').forEach((n) => n.remove()); }
+
+/* ---------- pintar ---------- */
+const CARAS = { A: caraA, B: caraB, C: caraC };
+const caraDe = () => document.documentElement.dataset.cara;
+function pantalla() { cerrarCajon(); $('#cont').innerHTML = (CARAS[caraDe()] || caraA)(); }
+function repintar(foco) { // sin repetir la entrada en cada toque ni perder el cursor del buscador
+  const y = $('#cont').scrollTop; pantalla(); $('#cont').scrollTop = y;
+  $$('#cont .entra, #cont .pb i, #cont .trk>i, #cont .ep').forEach((n) => { n.style.animation = 'none'; });
+  if (foco) { const i = $('[data-q]'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+}
+function aviso(t) { $('.toast')?.remove(); const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; $('#disp').appendChild(d); setTimeout(() => d.remove(), 2400); }
+
+document.addEventListener('click', (ev) => {
+  const t = ev.target, s = de(caraDe());
+  if (t.closest('[data-cierra]')) { cerrarCajon(); return; }
+  const h = t.closest('[data-hace]'); if (h) { ev.preventDefault(); cerrarCajon(); aviso(`«${h.dataset.hace}»: la maqueta no guarda nada.`); return; }
+  if (t.closest('.cj')) return;
+  if (t.closest('.globo')) { const o = t.closest('[data-ord]'); if (o) { const [col, dir] = o.dataset.ord.split(':'); s.orden = { col, dir }; repintar(); } return; }
+  const cb = t.closest('[data-col-btn]'); if (cb) { s.globo = s.globo === cb.dataset.colBtn ? null : cb.dataset.colBtn; repintar(); return; }
+  if (s.globo) { s.globo = null; repintar(); }
+  const v = t.closest('[data-vista]'); if (v) { s.vista = v.dataset.vista; s.filtros = {}; repintar(); return; }
+  if (t.closest('[data-limpiar]')) { s.q = ''; s.filtros = {}; repintar(); return; }
+  const a = t.closest('[data-abre]'); if (a) abrirCajon(a.dataset.abre);
+});
+document.addEventListener('change', (ev) => { const c = ev.target.closest('[data-fil]'); if (!c) return; const s = de('C'); (s.filtros[c.dataset.fil] ||= new Set())[c.checked ? 'add' : 'delete'](c.value); repintar(); });
+document.addEventListener('input', (ev) => { if (!ev.target.matches('[data-q]')) return; de(caraDe()).q = ev.target.value; repintar(true); });
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape') { if ($('.cj')) { cerrarCajon(); return; } const s = de(caraDe()); if (s.globo) { s.globo = null; repintar(); } return; }
+  if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches('[data-abre]')) { ev.preventDefault(); abrirCajon(ev.target.dataset.abre); }
+});
+
+const url = new URLSearchParams(location.search);
+Marco.iniciar({ estado: { cara: ['A', 'B', 'C'].includes(url.get('cara')) ? url.get('cara') : 'A', tema: url.get('tema') === 'oscuro' ? 'oscuro' : 'claro' }, alPintar: () => { pantalla(); analisis(); } });
+if (url.get('cajon')) abrirCajon(url.get('cajon'));
+
+/* ====================================================================
+   EL ANÁLISIS (debajo del aparato)
+   ==================================================================== */
+function analisis() {
+  $('#analisis').innerHTML = `
+  <section><h2>De dónde sale cada propuesta</h2>
+  <table><tr><th></th><th>A · Estantes</th><th>B · Seguimiento</th><th>C · Índice</th></tr>
+    <tr><td><b>Referencia</b></td><td>Netflix «Continuar viendo», Spotify, App Store «Hoy»</td><td>Amazon y Mercado Libre «Mis compras», la app Shop</td><td>Shopify Admin al recibir inventario, Linear, Stripe</td></tr>
+    <tr><td><b>Qué se toma</b></td><td>Lo último, grande y arriba. Debajo, estantes que se deslizan, con la portada como protagonista y la barra de avance pegada a ella. El botón aparece al pasar el mouse.</td><td>Una tarjeta por pedido, del más nuevo al más viejo, agrupadas por día. Una frase dice cómo va, las fotos dicen qué trae y cuatro pasos dicen cuánto falta.</td><td>Una sola tarjeta con pestañas y su cuenta, una línea por envío con miniatura, insignia y «recibido» en una barra. Se ordena y se filtra desde la cabecera.</td></tr>
+    <tr><td><b>Gana</b></td><td>La más visual: se reconoce el envío por lo que trae. Lo último que llegó no se puede no ver.</td><td>La que se entiende sola: nadie tiene que aprender nada, es como rastrear un pedido.</td><td>La más rápida para quien revisa muchos: todo en una pantalla, con los filtros de la tabla con superpoderes.</td></tr>
+    <tr><td><b>Paga</b></td><td>Con muchos abiertos hay que deslizar el estante.</td><td>Ocupa más alto: unas 4 tarjetas por pantalla.</td><td>Es la menos llamativa.</td></tr>
+  </table>
+  <p>Me guié por cómo funcionan esos productos, de lo que conozco de ellos; no los abrí ahora para compararlos pantalla por pantalla.</p></section>
+  <section><h2>Lo que comparten las tres</h2><ul>
+    <li><b>Se ve lo que trae el envío.</b> En la pantalla real va la foto de cada prenda; sin foto, su silueta sobre su color, como ya hace el ERP.</li>
+    <li><b>Lo más nuevo, arriba.</b></li>
+    <li><b>Cada envío sale una sola vez.</b> Lo que ya entró al stock de un envío a medias es el verde de su barra; «Terminados» trae solo lo cerrado.</li>
+    <li><b>Los avisos de arriba se van:</b> lo que lleva ${DIAS_AVISO} días o más abierto lo dice en ámbar, en el propio envío.</li>
+    <li><b>Lo que explica va a un toque:</b> marcas, proveedores y cifras, en el cajón del envío.</li>
+  </ul></section>`;
+}
+</script>
+</body>
+</html>
