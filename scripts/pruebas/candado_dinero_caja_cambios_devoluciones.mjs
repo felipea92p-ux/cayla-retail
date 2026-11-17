@@ -171,6 +171,9 @@ ${cambiaA(MICAELA)}select retail.abrir_caja(:'trujillo', 100.00, 'prueba automat
 function fixtureCambio({ persona, diferenciaUnitaria }) {
   return `
 select id as ubic from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
+-- ADR-0671: un cambio con diferencia emite su boleta nueva en la tienda del cambio. En la semilla local Lima y Trujillo comparten B001
+-- (en producción cada tienda tiene la suya) y chocarían: aquí Trujillo lleva una serie propia, solo dentro de esta transacción.
+update retail.series_comprobantes set serie = 'B092' where ubicacion_id = :'ubic' and tipo = 'boleta' and archivada_at is null;
 
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
   select :'ubic', 'Piso de venta', 'piso_venta'

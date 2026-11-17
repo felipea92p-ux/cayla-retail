@@ -561,24 +561,39 @@ update retail.cajas set monto_fondo = monto_fondo + 700 where ctid = (select cti
     gravedad: 1,
     nivel: "cruzada",
     clave: ["cambio_id"],
-    dice: "Un cambio de una prenda por VARIAS cuadra en las tres cosas que lo definen (ADR-0470): su diferencia es el valor de todo lo que se llevó menos lo que la clienta pagó por lo que devolvió; las unidades que salieron del piso son las que dice su lista de prendas; y las que volvieron son las que se devolvieron. Si no, la caja o la cuenta de Izipay cobraron una cifra y el stock movió otra. `registrar_cambio_varias` lo guarda todo junto; esto vigila lo que se cuele por otra puerta o un arreglo a mano. Nació del cambio del body por dos Top Rib (B005-000670, 2026-10-21), que se había registrado como un cambio uno por uno y una venta aparte.",
+    dice: "Un cambio de una prenda por VARIAS cuadra en las tres cosas que lo definen (ADR-0470): su diferencia es el valor de todo lo que se llevó menos lo que la clienta pagó por lo que devolvió; las unidades que salieron del piso son las que dice su lista de prendas; y las que volvieron son las que se devolvieron. Si no, la caja o la cuenta de Izipay cobraron una cifra y el stock movió otra. `registrar_cambio_varias` lo guarda todo junto; esto vigila lo que se cuele por otra puerta o un arreglo a mano. Nació del cambio del body por dos Top Rib (B005-000670, 2026-10-21), que se había registrado como un cambio uno por uno y una venta aparte. La diferencia solo se compara cuando nada de lo que se llevó es del MISMO modelo que lo devuelto: esas unidades conservan su descuento (ADR-0655) y la lista guarda su precio de lista, así que la cuenta no se puede rehacer desde aquí (un cambio así con diferencia lo cuadra INV-30 contra su comprobante nuevo).",
+    // ADR-0655: con el mismo modelo, `registrar_cambio_varias` cobra esas unidades a lo pagado por la devuelta (`fn_precio_mismo_modelo`, con
+    // los precios de ESE día) pero anota en `cambio_salidas` el precio de lista. Comparar la diferencia ahí era un falso positivo de gravedad 1
+    // en cada cambio así (visto en la revisión de ADR-0671). Las unidades se siguen comparando siempre.
     sql: `
 select c.id as cambio_id, c.diferencia,
        round(sum(s.precio_unitario * s.cantidad) - (vi.precio_unitario - vi.descuento_unitario) * c.cantidad, 2) as diferencia_esperada,
+       bool_or(vs.producto_id = vo.producto_id) as con_mismo_modelo,
        sum(s.cantidad) as unidades_anotadas,
        (select coalesce(sum(m.cantidad), 0) from retail.movimientos m where m.cambio_id = c.id and m.tipo = 'salida') as unidades_que_salieron,
        c.cantidad as unidades_devueltas,
        (select coalesce(sum(m.cantidad), 0) from retail.movimientos m where m.cambio_id = c.id and m.tipo = 'entrada') as unidades_que_volvieron
   from retail.cambios c
   join retail.venta_items vi on vi.id = c.venta_item_id
+  join retail.variantes vo on vo.id = vi.variante_id
   join retail.cambio_salidas s on s.cambio_id = c.id
+  join retail.variantes vs on vs.id = s.variante_id
  group by c.id, c.diferencia, c.cantidad, vi.precio_unitario, vi.descuento_unitario
-having c.diferencia <> round(sum(s.precio_unitario * s.cantidad) - (vi.precio_unitario - vi.descuento_unitario) * c.cantidad, 2)
+having (c.diferencia <> round(sum(s.precio_unitario * s.cantidad) - (vi.precio_unitario - vi.descuento_unitario) * c.cantidad, 2)
+        and not bool_or(vs.producto_id = vo.producto_id))
     or sum(s.cantidad) <> (select coalesce(sum(m.cantidad), 0) from retail.movimientos m where m.cambio_id = c.id and m.tipo = 'salida')
     or c.cantidad <> (select coalesce(sum(m.cantidad), 0) from retail.movimientos m where m.cambio_id = c.id and m.tipo = 'entrada')`,
     // La diferencia de un cambio por varias deja de ser la que sale de sus prendas: un arreglo a mano que la "corrige" sin tocar la lista.
+    // En uno sin el mismo modelo: en el otro la diferencia no se compara (ADR-0655).
     corrompe: `update retail.cambios set diferencia = diferencia + 5
- where ctid = (select c.ctid from retail.cambios c where exists (select 1 from retail.cambio_salidas s where s.cambio_id = c.id) limit 1);`,
+ where ctid = (select c.ctid from retail.cambios c
+                where exists (select 1 from retail.cambio_salidas s where s.cambio_id = c.id)
+                  and not exists (select 1 from retail.cambio_salidas s
+                                    join retail.variantes vs on vs.id = s.variante_id
+                                    join retail.venta_items vi on vi.id = c.venta_item_id
+                                    join retail.variantes vo on vo.id = vi.variante_id
+                                   where s.cambio_id = c.id and vs.producto_id = vo.producto_id)
+                limit 1);`,
   },
   {
     id: "INV-23",
@@ -705,6 +720,74 @@ select set_config('request.jwt.claim.role', '', true);
 delete from retail.diario_vencido_marcas;
 insert into retail.diario_foto_lineas (mes, fecha, asiento, regla, cuenta, debe, haber, glosa)
   values ((date_trunc('month', retail.fn_hoy_lima()) - interval '1 month')::date, (date_trunc('month', retail.fn_hoy_lima()) - interval '1 month')::date, 'corrompida', 'chaos', '99', 1, 0, 'línea que el diario no tiene');`,
+  },
+  {
+    id: "INV-30",
+    nombre: "cambio_con_diferencia_tiene_sus_documentos",
+    gravedad: 1,
+    nivel: "cruzada",
+    clave: ["cambio_id", "problema"],
+    dice: "Un cambio con diferencia de precio deja ante SUNAT lo que de verdad pasó (ADR-0671): su comprobante nuevo vivo (uno rechazado tiene un día para corregirse), que menos lo que el cliente pagó por lo devuelto da la diferencia que cobró o devolvió la caja, y su nota de crédito por exactamente lo pagado (emitida, o «por emitir» mientras la original no está aceptada). Y el par no queda roto: uno aceptado y el otro rechazado, anulado o liberado, o una nota que lleva más de un día esperando a una original ya aceptada, o a una que ya no se puede aceptar, o una nota ya emitida sobre una original que quedó anulada, liberada o con la baja en trámite (iría a SUNAT sobre una boleta dada de baja). Si no, el IGV del mes sale de más o de menos sin que nadie lo vea: INV-06 e INV-07 miran por venta, y estos documentos cuelgan del cambio. Solo desde el corte (`fn_cambios_con_documentos_desde`): los cambios de antes no se regularizan. Un mismo cambio puede salir con dos problemas (un comprobante nuevo anulado con su nota aceptada es los dos).",
+    // La original es la de `fn_original_del_cambio`, la MISMA que eligió la emisión (nunca un anticipo). «Hace más de un día» se cuenta
+    // desde lo último entre el cambio y el primer envío de la original: `comprobantes` no guarda cuándo la aceptó SUNAT, y el barrido corre
+    // cada pocos minutos, así que una original aceptada justo antes del vigía (tras un rechazo corregido) es lo único que podría gritar de
+    // más, y se retira sola en la corrida siguiente. Un comprobante nuevo rechazado (que INV-06 tampoco da por vivo) grita al día de
+    // emitido: hasta que se corrija, lo que se llevó el cliente no tiene documento, aunque su nota siga por emitir. El corte va como
+    // subconsulta: la función es security definer (no se incrusta) y así corre una sola vez, no una por cambio.
+    sql: `
+with cb as (
+  select c.id as cambio_id, c.diferencia,
+         round((vi.precio_unitario - vi.descuento_unitario) * c.cantidad, 2) as pagado,
+         o.tipo as original_tipo, o.estado as original_estado
+    from retail.cambios c
+    join retail.venta_items vi on vi.id = c.venta_item_id
+    join retail.ventas v on v.id = vi.venta_id
+    left join lateral retail.fn_original_del_cambio(vi.venta_id) o on true
+   where c.created_at >= (select retail.fn_cambios_con_documentos_desde())
+     and c.diferencia <> 0 and not v.es_prueba
+),
+d as (
+  select cb.*, n.total as nuevo_total, n.estado as nuevo_estado, n.created_at as nuevo_emitido,
+         nc.total as nota_total, nc.estado as nota_estado,
+         cn.total as debe_total, greatest(cn.created_at, coalesce(po.enviado_at, cn.created_at)) as espera_desde,
+         po.estado as espera_original_estado,
+         ncorig.estado as nota_original_estado, ncorig.anulacion_solicitada_at is not null as nota_original_en_baja
+    from cb
+    left join retail.comprobantes n on n.cambio_id = cb.cambio_id and n.tipo <> 'nota_credito'
+    left join retail.comprobantes nc on nc.cambio_id = cb.cambio_id and nc.tipo = 'nota_credito'
+    left join retail.cambio_notas cn on cn.cambio_id = cb.cambio_id
+    left join retail.comprobantes po on po.id = cn.comprobante_original_id
+    left join retail.comprobantes ncorig on ncorig.id = nc.comprobante_original_id
+)
+select cambio_id, 'sin_comprobante_nuevo' as problema, diferencia, nuevo_estado as estado from d
+ where nuevo_estado is null or nuevo_estado in ('anulado', 'no_emitido')
+    or (nuevo_estado = 'rechazado' and nuevo_emitido < now() - interval '1 day')
+union all
+select cambio_id, 'nuevo_no_da_la_diferencia', diferencia, nuevo_estado from d
+ where nuevo_total is not null and round(nuevo_total - pagado, 2) <> round(diferencia, 2)
+union all
+select cambio_id, 'nota_no_es_lo_pagado', diferencia, nota_estado from d
+ where round(coalesce(nota_total, debe_total), 2) <> pagado
+union all
+select cambio_id, 'falta_la_nota', diferencia, original_estado from d
+ where nota_estado is null and debe_total is null and pagado > 0
+   and original_tipo in ('boleta', 'factura') and original_estado not in ('anulado', 'no_emitido')
+union all
+select cambio_id, 'par_roto', diferencia, nuevo_estado || '/' || nota_estado from d
+ where (nuevo_estado = 'aceptado' and nota_estado in ('rechazado', 'anulado', 'no_emitido'))
+    or (nota_estado = 'aceptado' and nuevo_estado in ('rechazado', 'anulado', 'no_emitido'))
+union all
+select cambio_id, 'nota_sobre_original_muerta', diferencia, nota_estado || '/' || nota_original_estado from d
+ where nota_estado is not null and nota_estado not in ('rechazado', 'anulado')
+   and (nota_original_estado in ('anulado', 'no_emitido') or nota_original_en_baja)
+union all
+select cambio_id, 'nota_se_quedo_por_emitir', diferencia, espera_original_estado from d
+ where debe_total is not null and nota_estado is null
+   and (espera_original_estado in ('anulado', 'no_emitido')
+        or (espera_original_estado = 'aceptado' and espera_desde < now() - interval '1 day'))`,
+    // El comprobante nuevo de un cambio cobra S/ 5 más que lo que se llevó el cliente: un arreglo a mano en Facturación.
+    corrompe: `update retail.comprobantes set total = total + 5
+ where ctid = (select ctid from retail.comprobantes where cambio_id is not null and tipo <> 'nota_credito' limit 1);`,
   },
 ];
 

@@ -499,6 +499,9 @@ const PRENDA_BASE = `select id as vv, precio as vv_general, producto_id as vp fr
 {
   const r = correr(MICAELA, `
 ${montarSede("tru")}
+-- ADR-0671: un cambio con diferencia emite su boleta nueva en la tienda del cambio. En la semilla local Lima y Trujillo comparten B001
+-- (en producción cada tienda tiene la suya) y chocarían: aquí Trujillo lleva una serie propia, solo dentro de esta transacción.
+update retail.series_comprobantes set serie = 'B093' where ubicacion_id = :'tru' and tipo = 'boleta' and archivada_at is null;
 ${PRENDA_BASE}
 select id as vv2 from retail.variantes where producto_id = :'vp' and id <> :'vv' and activo order by id limit 1 \\gset
 -- Otra prenda con un solo precio, cuyo costo deja poner :vv_general + 25 como precio de Trujillo (diferencia exacta de +15).

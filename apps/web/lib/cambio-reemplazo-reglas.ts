@@ -12,6 +12,7 @@ import { soles } from "./compras-reglas";
 import { valorPagado } from "./devoluciones-reglas";
 import { textoOtrasSedes, type SedeConStock } from "./stock-por-sede";
 import { sinStockPorApartado, textoSinStock } from "./vender-reglas";
+import type { ClienteDelComprobante } from "./cambios-documentos-reglas";
 
 export type VarianteCatalogo = {
   varianteId: string;
@@ -54,6 +55,9 @@ export type Seleccion = {
   /** Las OTRAS prendas que se lleva en el mismo cambio (ADR-0470). Opcional: un cambio armado antes de existir esto, y guardado por
    *  `TrabajoPorSede`, no lo trae; se lee con `extrasDe`. */
   extras?: PrendaExtra[];
+  /** El cliente del comprobante nuevo si la persona lo cambió (ADR-0671: un regalo; solo boleta o nota de venta). Opcional como `extras`:
+   *  sin él sale el cliente de la compra. Viaja con lo armado al cambiar de sede (`TrabajoPorSede`). */
+  cliente?: ClienteDelComprobante;
 };
 
 /** Una prenda MÁS que se lleva la clienta en el mismo cambio: devuelve una y se lleva varias (el body de S/ 45.90 por dos Top Rib).
