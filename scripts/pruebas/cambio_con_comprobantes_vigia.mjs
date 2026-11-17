@@ -16,6 +16,7 @@
  *    3. La corrupción de la autoprueba de /chaos (el comprobante nuevo cobra S/ 5 más): grita «nuevo_no_da_la_diferencia».
  *    4. La nota (emitida o por emitir) que no es lo pagado: grita «nota_no_es_lo_pagado».
  *    5. Par roto: el comprobante nuevo aceptado y la nota rechazada, o al revés: grita «par_roto».
+ *   5b. La nota del cambio ya emitida sobre una original anulada o con la baja en trámite: grita «nota_sobre_original_muerta».
  *    6. La nota por emitir: callada el primer día; a los dos días con la original aceptada, o en el acto si la original se liberó, grita
  *       «nota_se_quedo_por_emitir»; el barrido la emite y se calla.
  *    7. El corte: un cambio de antes del primer documento no se mira; uno de después sin documentos sí («sin_comprobante_nuevo»).
@@ -294,6 +295,20 @@ ${ORIGEN}\n${INV()}`);
   esperar("5 · el comprobante nuevo aceptado y la nota rechazada, o al revés: «par_roto»; los dos aceptados: limpia",
     lineas(r)[1] === "par_roto" && lineas(r2)[1] === "par_roto" && lineas(r3)[1] === "limpia",
     [r, r2, r3].map((x) => (x.ok ? x.lineas : x.mensaje)));
+}
+
+// 5b · la nota del cambio ya emitida sobre una original que después quedó anulada (la carrera R3 de /chaos, 2026-11-16): ni
+// «nota_se_quedo_por_emitir» (la nota existe) ni «par_roto» (mira el nuevo contra la nota) la veían.
+{
+  const r = correr(`${ACEPTAR}\n${CAMBIAR("v_ves")}\n${REPLICA}
+update retail.comprobantes set estado = 'anulado', motivo_anulacion = 'prueba automatizada', anulado_at = now() where id = :'original';
+${ORIGEN}\n${INV()}`);
+  const r2 = correr(`${ACEPTAR}\n${CAMBIAR("v_ves")}\n${REPLICA}
+update retail.comprobantes set anulacion_solicitada_at = now(), motivo_anulacion = 'prueba automatizada' where id = :'original';
+${ORIGEN}\n${INV()}`);
+  esperar("5b · la nota del cambio, emitida, sobre una original anulada o con la baja en trámite: «nota_sobre_original_muerta»",
+    lineas(r)[1] === "nota_sobre_original_muerta" && lineas(r2)[1] === "nota_sobre_original_muerta",
+    [r, r2].map((x) => (x.ok ? x.lineas : x.mensaje)));
 }
 
 // 6 · la nota por emitir

@@ -34,7 +34,7 @@
  *   pnpm pruebas:cambio-con-comprobantes
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -377,6 +377,104 @@ ${ACEPTAR}\n${CAMBIAR("v_ves")}\n${DOCS}`);
   const l = r.ok ? r.lineas : [];
   esperar("17 · MUTANTE: con fn_documentos_del_cambio vacía, el cambio más caro queda sin documentos, y la prueba lo ve",
     r.ok && l[0] === "ok" && l[1] === "nuevo=no nota=no pend=0", r.ok ? l : r.mensaje);
+}
+
+// 19 a 22 · Las carreras de /chaos (2026-11-16, semilla 671): liberar o anular la boleta original MIENTRAS se guarda un cambio sobre esa
+// venta, y al revés. Antes, liberar y anular revisaban «¿hay un cambio esperando?» y RECIÉN después bloqueaban la boleta, y el cambio
+// decidía «la nota espera» con el estado viejo y bloqueaba al final: quedaban una original liberada (o anulada) con su nota por emitir o
+// colgando para siempre. Ahora el primero que llega bloquea la boleta y el otro espera ANTES de revisar nada.
+// Cómo, sin dejar nada guardado: dos psql de verdad sobre una línea de venta YA confirmada (se elige sola). La sesión A toma la boleta
+// (con un cambio, o con un candado) y se queda quieta sin confirmar; la B intenta lo otro con `lock_timeout` corto y tiene que cortarse
+// esperando en el candado NUEVO (la primera línea de su contexto). Las dos terminan en ROLLBACK. Si la base no tiene una línea así, se omite.
+const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
+function psqlEnParalelo(sql) {
+  return new Promise((resolver) => {
+    const p = spawn("docker", ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-t", "-A", "-F", "|", "-f", "-"]);
+    let salida = "";
+    let error = "";
+    p.stdout.on("data", (d) => (salida += d));
+    p.stderr.on("data", (d) => (error += d));
+    p.on("close", (codigo) => resolver({ codigo, salida: salida.trim(), error }));
+    p.stdin.end(sql);
+  });
+}
+/** Lo que dejó B: «código|la función más adentro de su contexto», o «SIN_ERROR». Un candado que se corta dice «while locking tuple…»
+ *  y la sentencia antes que la función: lo que importa es en qué función y en qué instrucción esperaba. */
+function lecturaDeB(r) {
+  const err = r.error;
+  if (!/ERROR/.test(err)) return "SIN_ERROR";
+  const codigo = (err.match(/ERROR:\s+([0-9A-Z]{5}):/) ?? [])[1] ?? "?";
+  const contexto = (err.split("CONTEXT:")[1] ?? "").split("LOCATION:")[0] ?? "";
+  const funcion = contexto.split("\n").map((x) => x.trim()).find((x) => x.startsWith("PL/pgSQL function")) ?? contexto.trim().split("\n")[0];
+  return `${codigo}|${funcion}`;
+}
+const LINEA_CONFIRMADA = psql(`
+select vi.id || '|' || v.ubicacion_id || '|' || o.id || '|' ||
+       (select n.id from retail.variantes n where n.sku = case when var.sku = 'VES-SOFI-NEG-M' then 'CAS-LUCI-BEI-M' else 'VES-SOFI-NEG-M' end)
+  from retail.venta_items vi
+  join retail.ventas v on v.id = vi.venta_id
+  join retail.variantes var on var.id = vi.variante_id
+  join lateral retail.fn_original_del_cambio(v.id) o on true
+ where o.id is not null and o.tipo in ('boleta', 'factura') and o.estado not in ('anulado', 'no_emitido') and o.anulacion_solicitada_at is null
+   and coalesce(v.estado, '') <> 'anulada' and not coalesce(v.es_prueba, false)
+   and retail.fn_hoy_lima() - (v.created_at at time zone 'America/Lima')::date <= 10
+   and vi.cantidad > coalesce((select sum(c.cantidad) from retail.cambios c where c.venta_item_id = vi.id), 0)
+   and not exists (select 1 from retail.devolucion_items di where di.venta_item_id = vi.id)
+   and not exists (select 1 from retail.prendas_por_regularizar pr where pr.venta_item_id = vi.id)
+   and round(vi.precio_unitario - vi.descuento_unitario, 2) not in (149.90, 159.90)
+ order by v.created_at desc
+ limit 1;`).trim();
+if (!YA_ESTA) {
+  console.log("· 19 a 22 · omitidas: la base no tiene ADR-0671 aplicado (las carreras necesitan las funciones de verdad)");
+} else if (!LINEA_CONFIRMADA) {
+  console.log("· 19 a 22 · omitidas: la base no tiene una línea de venta confirmada, con boleta viva, que se pueda cambiar");
+} else {
+  const [item, ubic, orig, nueva] = LINEA_CONFIRMADA.split("|");
+  const PREPARA = `begin;
+set local request.jwt.claim.sub = '${FELIPE}';
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo) select '${ubic}', 'Piso de venta', 'piso_venta'
+  where not exists (select 1 from retail.sububicaciones where ubicacion_id = '${ubic}' and tipo = 'piso_venta');
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo) select '${ubic}', 'Almacén de tienda', 'almacen_tienda'
+  where not exists (select 1 from retail.sububicaciones where ubicacion_id = '${ubic}' and tipo = 'almacen_tienda');
+with m as (
+  insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values ('${nueva}', '${ubic}', retail.fn_sububicacion_por_defecto('${ubic}', 'venta'), 'entrada', 5, 'prueba de carrera') returning id)
+select retail.fn_aplicar_movimiento(m.id) from m;
+`;
+  const CAMBIO = `select retail.registrar_cambio('${item}', '${ubic}', '${nueva}', 1, 'tarjeta', gen_random_uuid());`;
+  const QUIETA = "select pg_sleep(4);\nrollback;\n";
+  const B = (cuerpo) => `\\set VERBOSITY verbose\nbegin;\nset local request.jwt.claim.sub = '${FELIPE}';\n${cuerpo}\nrollback;\n`;
+  const carrera = async (a, b) => {
+    const pa = psqlEnParalelo(a);
+    await dormir(1500);
+    const rb = await psqlEnParalelo(b);
+    await pa;
+    return lecturaDeB(rb);
+  };
+
+  const l19 = await carrera(`${PREPARA}${CAMBIO}\n${QUIETA}`,
+    B(`set local lock_timeout = '1500ms';\nselect retail.marcar_comprobante_no_emitido('${orig}', 'prueba de carrera');`));
+  esperar("19 · liberar la boleta mientras se guarda un cambio sobre esa venta: liberar espera en el candado ANTES de revisar (no decide con lo viejo)",
+    /^55P03\|PL\/pgSQL function (retail\.)?marcar_comprobante_no_emitido\(uuid,text\) line \d+ at PERFORM/.test(l19), l19);
+
+  const l20 = await carrera(`${PREPARA}${CAMBIO}\n${QUIETA}`,
+    B(`set local lock_timeout = '1500ms';\nselect retail.anular_comprobante('${orig}', 'prueba de carrera', true);`));
+  esperar("20 · anular la boleta mientras se guarda un cambio sobre esa venta: anular espera en el candado ANTES de revisar",
+    /^55P03\|PL\/pgSQL function (retail\.)?anular_comprobante\(uuid,text,boolean,jsonb\) line \d+ at PERFORM/.test(l20), l20);
+
+  const l21 = await carrera(`begin;\nselect 1 from retail.comprobantes where id = '${orig}' for update;\n${QUIETA}`,
+    `\\set VERBOSITY verbose\n${PREPARA}set local lock_timeout = '1500ms';\n${CAMBIO}\nrollback;\n`);
+  esperar("21 · un cambio mientras alguien libera o anula su boleta: el cambio espera en el candado ANTES de decidir «la nota espera»",
+    /^55P03\|PL\/pgSQL function (retail\.)?fn_documentos_del_cambio\(uuid,jsonb,numeric,jsonb\) line \d+ at PERFORM/.test(l21), l21);
+}
+
+// 22 · el orden normal de la carrera 21: liberada la boleta, el cambio ya no deja una nota por emitir sobre ella (sale solo el comprobante nuevo).
+{
+  const r = correr(`select pg_temp.intentar(format('select retail.marcar_comprobante_no_emitido(%L, %L)', :'original', 'prueba automatizada'));
+${CAMBIAR("v_ves")}\n${DOCS}\n${CUADRA}`);
+  const l = r.ok ? r.lineas : [];
+  esperar("22 · con la boleta ya liberada, el cambio emite solo el comprobante nuevo: sin nota ni nota por emitir sobre una boleta que no llegó a SUNAT",
+    r.ok && l[0] === "ok" && l[1] === "ok" && l[2].startsWith("nuevo=boleta|") && l[2].endsWith("nota=no pend=0") && l[3] === "t", r.ok ? l : r.mensaje);
 }
 
 // 18 · pegar dos veces
