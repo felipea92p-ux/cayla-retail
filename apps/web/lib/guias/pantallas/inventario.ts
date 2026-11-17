@@ -39,6 +39,14 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "Si contaste y el número no cuadra, empieza aquí: te pregunta qué prenda es (por nombre, código o escaneando la etiqueta) y abre su planilla con todos sus colores y tallas. En la demo no lo abrimos.",
     },
     {
+      // Solo en el celular (bajo 640 px): en la computadora las cifras ya están a la vista, a la derecha de la cabecera.
+      id: "resumen",
+      ancla: "existencias.resumen",
+      opcional: true,
+      titulo: "El resumen de la tienda",
+      texto: "En el celular, los números de la tienda están aquí: cuántas prendas hay colgadas, guardadas y en camino, y el valor a costo. Toca «Colgadas» o «Guardadas» y la lista deja solo esas prendas.",
+    },
+    {
       id: "buscador",
       ancla: "existencias.buscador",
       opcional: true,
