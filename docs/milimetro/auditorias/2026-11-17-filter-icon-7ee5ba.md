@@ -19,7 +19,7 @@ Resumen: **0 graves · 0 medias · 0 leves abiertas** · 1 leve heredada de la p
 | Área de toque con el dedo | 44 × 44 px | 44 px con `pointer: coarse` (ADR-0611, mejora 5) | Cumple; `espacio/medir.js`: 0 blancos bajo 44 y 0 bajo 24 |
 | Fila de períodos | «30 días» entero (153–252) y asoma «90 días»; el ícono va de 315 a 359 | que lo elegido se lea entero | Cumple; sin scroll lateral de la página |
 | Con un filtro puesto (`?estado=anulada`) | punto de 6 × 6 px dentro del círculo; nombre para el lector «Filtros · 1 puesto»; el globito con el número, oculto | `soloIcono`: «el ícono con su punto» | Cumple |
-| Las otras pantallas con la pieza, a 375 px táctil | Productos («Ordenar» y «Filtros»), Existencias, Categorías y la Vitrina: 44 × 44, alineados con su buscador (44 px), sin scroll lateral | la misma pieza se ve igual en todas | Cumple |
+| Las otras pantallas con la pieza, a 375 px táctil | Productos («Ordenar» y «Filtros»), Categorías y la Vitrina: 44 × 44, alineados con su buscador (44 px). Existencias, tras traer main (#1934 llevó «Filtros» a la fila de íconos de la cabecera): 44 × 44, alineado con sus tres vecinos de 44. Sin scroll lateral en ninguna | la misma pieza se ve igual en todas | Cumple |
 | 700 × 900 táctil | píldora entera «Filtros» de 109,8 × 44 px | desde `sm` el `min-` no cambia nada | No cambió |
 | Abrir y cerrar | `aria-expanded` pasa de `true` a `false` y vuelve; el panel sale y entra | WCAG 4.1.2 | Cumple |
 | Foco con teclado | anillo sólido de 3 px en tinta al 82 %, sin nada que lo tape | WCAG 2.4.7 | Cumple (`milimetro/medir.js { foco: true }`: 1 medido, 0 sin anillo) |
@@ -44,7 +44,9 @@ Ninguna.
 
 ## Heredado, anotado
 - Cada ícono de 44 le quita 6 px a su buscador. En la Vitrina el buscador queda en 151 px y «Busca un modelo» se corta; ya se cortaba antes
-  (pide 127,5 px de texto y tenía 109). En Existencias «Prenda, talla o código…» pide 167,6 y tiene 159 (antes 165). No se tocó.
+  (pide 127,5 px de texto y tenía 109). No se tocó. En Existencias ya no aplica: main sacó «Filtros» de la barra del buscador (#1934).
+- En Existencias, `FiltrosEnCabecera` (de main) ya forzaba 44 px con su propia clase, también con mouse. Con el dedo ahora coincide con la regla
+  de la pieza; con mouse sigue haciendo falta. No se tocó.
 
 ## Sin medir
 - `color/medir.js` midió 2 controles (0 fallan) y ningún texto en esta pasada: el contraste del borde no quedó calculado contra el fondo real
