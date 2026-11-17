@@ -1881,7 +1881,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `fn_tomar_comprobantes_para_reintento` (reserva de 5 min, `for update skip locked`), y en la misma pasada
   pregunta por lo que quedó esperando a SUNAT —un envío que respondió PENDIENTE, una baja sin confirmar— con
   `fn_tomar_comprobantes_para_consultar` → `lib/consultar-comprobante.ts` (reglas en `lib/consulta-sunat-reglas.ts`)
-  → `actualizar_transmision_comprobante` o `fn_confirmar_baja_sunat` (`20261007200000`). El trabajo programado
+  → `actualizar_transmision_comprobante` o `fn_confirmar_baja_sunat` (`20261007200000`; esta, solo con la llave de servicio vía
+  `lib/confirmar-baja-sunat.ts`, ADR-0673). El trabajo programado
   (`GET`, cada 5 min, `cronNoAutorizado` solo mira `CRON_SECRET`) transmite y consulta también en producción desde
   el 2026-10-12 (ADR-0165, «Actualización 2026-10-12»). La numeración sale
   de `fn_reservar_numero_serie` (solo la serie activa; en las notas, la de la letra del original: BC.. corrige
@@ -2472,6 +2473,11 @@ Son la excepción al patrón "Server Component lee, RPC escribe": existen solo
 cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
 
 - `/api/export/inventario` → CSV del catálogo (`lib/catalogo.ts`).
+- `/api/lucode/anular` y `/api/lucode/consultar-anulacion` → piden a Lucode la baja de un comprobante aceptado y preguntan si
+  SUNAT la confirmó. El pedido se guarda con la sesión de quien lo pide (`anular_comprobante`, firmado, solo en la sede del
+  comprobante); «anulado» lo escribe el servidor con la llave de servicio cuando SUNAT confirma (`fn_confirmar_baja_sunat` vía
+  `lib/confirmar-baja-sunat.ts`). Si eso falla, la baja queda en trámite y la confirma el barrido de `/api/lucode/reintentar`.
+  ADR-0016, ADR-0673.
 - `/api/lucode/emitir` → transmite a SUNAT, vía Lucode (PSE), un comprobante
   que `emitir_comprobante`/`emitir_nota` ya reservó. Traduce el formato propio
   a la forma del proveedor en `lib/lucode.ts` — cambiar de PSE es cambiar ese
