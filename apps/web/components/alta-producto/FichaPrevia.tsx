@@ -207,7 +207,7 @@ export function FichaPrevia({
 
   return (
     <>
-      {/* Escritorio: fija a la derecha */}
+      {/* Escritorio (desde 1280 px): fija a la derecha, bajo la cabecera fija de 64 px (`top-20`, no `top-6`: tapaba la tarjeta). */}
       {/* Con la alerta el resumen es más alto que una pantalla de 900 px. Lo informativo (ficha y alerta) corre por su cuenta con tope de
           alto y «Cancelar / Crear producto / Siguiente» quedan FIJOS abajo del mismo aside: el botón nunca se esconde justo cuando hay algo que
           revisar. `-mx-1.5 px-1.5` deja sitio al aro del pulso de la alerta, que por fuera lo cortaría el scroll (ver `app/estilos/alta-parecidas.css`).
@@ -215,9 +215,9 @@ export function FichaPrevia({
       <aside
         aria-label="La prenda que vas a crear"
         data-guia="nuevo.ficha"
-        className={`hidden lg:sticky lg:top-6 ${parecidas ? "lg:flex lg:max-h-[calc(100dvh-3rem)] lg:flex-col lg:gap-3" : "space-y-3 lg:block"}`}
+        className={`hidden xl:sticky xl:top-20 ${parecidas ? "xl:flex xl:max-h-[calc(100dvh-6rem)] xl:flex-col xl:gap-3" : "space-y-3 xl:block"}`}
       >
-        <div className={`space-y-3 ${parecidas ? "min-h-0 flex-1 overflow-y-auto lg:-mx-1.5 lg:px-1.5" : ""}`}>
+        <div className={`space-y-3 ${parecidas ? "min-h-0 flex-1 overflow-y-auto xl:-mx-1.5 xl:px-1.5" : ""}`}>
           <Tarjeta d={datos} />
           {parecidas && (
             <AlertaParecidas
@@ -246,7 +246,7 @@ export function FichaPrevia({
       {/* Pegada al fondo: desde 2026-09-25 el celular no tiene barra de navegación abajo (el menú es un cajón lateral).
           El aire inferior respeta la zona segura del teléfono. */}
       {/* La barra de abajo del celular es la Isla (ADR-0479, actividad 12): pegada dentro del formulario. */}
-      <div ref={barra} data-barra-ficha data-guia="nuevo.barra" data-pegada className="barra-abajo z-20 block overflow-hidden px-4 pb-3 pt-2.5 lg:hidden">
+      <div ref={barra} data-barra-ficha data-guia="nuevo.barra" data-pegada className="barra-abajo z-20 block overflow-hidden px-4 pb-3 pt-2.5 xl:hidden">
         {/* La tira va PRIMERO en la barra (sus márgenes negativos la llevan de borde a borde): se ve sin abrir «Ver» y un toque abre la hoja. */}
         {parecidas && <TiraParecidas alerta={parecidas.alerta} avisoEnLinea={parecidas.avisoEnLinea} onVer={parecidas.onVer} onReintentar={parecidas.onReintentar} />}
         {verMovil && (
@@ -271,7 +271,7 @@ export function FichaPrevia({
         </div>
         <Siguiente d={datos} clase="mt-1 text-sm" />
       </div>
-      {/* La hoja es un portal: va fuera del `aside` (oculto bajo 1024 px) y de la barra. */}
+      {/* La hoja es un portal: va fuera del `aside` (oculto bajo 1280 px) y de la barra. */}
       {parecidas?.hoja && <HojaParecidas {...parecidas.hoja} />}
     </>
   );

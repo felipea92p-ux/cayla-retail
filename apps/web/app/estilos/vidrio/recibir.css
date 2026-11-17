@@ -27,11 +27,6 @@
   box-shadow: var(--vidrio-claro-sombra);
 }
 
-/* ---------- Lo de adentro: el pozo ---------- */
-.rc-lacre-cifras > div {
-  background: var(--pozo-fondo);
-  box-shadow: var(--pozo-sombra);
-}
 /* El número del Dial no lleva vidrio: ni pozo al pasar el mouse ni pozo encendido al escribirlo. Es el mismo número, con su cursor
    (recepcion-viva.css, «El número de siempre, vivo», Felipe 2026-11-14). */
 

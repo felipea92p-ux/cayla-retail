@@ -190,7 +190,7 @@
   transition: stroke-dasharray 1100ms var(--ease-cayla);
 }
 .mesa-sede small {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
   color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
   font-variant-numeric: tabular-nums;
@@ -198,6 +198,34 @@
 .mesa-sede:focus-visible {
   outline: 2px solid var(--color-tinta);
   outline-offset: -2px;
+}
+/* Mesa angosta (celular, tablet con el lateral): tres tiendas en fila pedían ≈470 px y la tercera quedaba escondida en un deslizador sin
+   aviso. Aquí se reparten el ancho: el anillo a la izquierda y el % baja bajo el nombre. La gota se vuelve a medir sola (ResizeObserver). */
+@container (max-width: 560px) {
+  .mesa-sedes {
+    display: flex;
+    flex: 1 1 100%;
+  }
+  .mesa-sede {
+    flex: 1 1 0;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-content: center;
+    /* Sin hueco entre filas: el `gap: 9px` de la base separaba el nombre de su %. */
+    gap: 0 6px;
+    padding: 0 8px 0 6px;
+    line-height: 1.15;
+  }
+  .mesa-sede-aro {
+    grid-row: span 2;
+    width: 24px;
+    height: 24px;
+  }
+  .mesa-sede > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 /* ---------- El buscador que entiende y las acciones ---------- */
@@ -227,9 +255,9 @@
   margin-bottom: -6px;
 }
 
-/* Desde la frase se llega a la fila: que no quede bajo la cabecera de la tabla. */
+/* Desde la frase se llega a la fila: que no quede bajo la cabecera de la tabla (la del ERP ya la descuenta la página, decisión 1A). */
 .mesa-marco [data-fila] {
-  scroll-margin-top: 132px;
+  scroll-margin-top: 68px;
 }
 
 /* ---------- La frase ---------- */
@@ -470,7 +498,7 @@
   gap: 4px;
   min-width: 0;
   text-align: left;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.15;
   color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
   transition: opacity 240ms var(--ease-cayla);
@@ -738,7 +766,7 @@
   width: 188px;
   padding: 10px 13px;
   border-radius: 14px;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.4;
   pointer-events: none;
   color: var(--color-crema);
@@ -770,7 +798,7 @@
   flex-wrap: wrap;
   gap: 4px 6px;
   margin-top: 6px;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 .mesa-leyenda :is(button, .mesa-leyenda-sin) {
   display: inline-flex;
@@ -1160,5 +1188,21 @@
   [data-tema="oscuro"] .mesa-calendario button[data-fuerte],
   [data-tema="oscuro"] .mesa-visto {
     color: var(--color-tinta-fija);
+  }
+}
+
+/* Con el dedo, lo que se toca llega a 44 px (ADR-0611, mejora 5). El «?» de cada cifra es absoluto en su esquina: su zona crece con un
+   ::after propio, sin la lista de tacto.css, que le pondría `position: relative` y lo sacaría de su lugar. */
+@media (pointer: coarse) {
+  .volteable-boton::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+  }
+  .mesa-calendario button {
+    height: 44px;
+  }
+  .mesa-leyenda :is(button, .mesa-leyenda-sin) {
+    min-height: 44px;
   }
 }

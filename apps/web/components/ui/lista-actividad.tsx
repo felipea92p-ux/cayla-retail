@@ -12,11 +12,15 @@ import type { TonoChip } from "@/components/ui/Chip";
    archivo cliente NO se puede leer desde el servidor (llega como referencia, no como el texto).
    ==================================================================== */
 
-/** La fila: desde sm, seis celdas [hora · punto · ficha 1,5fr · qué pasó 1fr · quién/referencia 1fr · cifra 7 rem]. En celular, tres
- *  [punto · ficha · cifra] y debajo, en un segundo renglón, «qué pasó» y «quién/referencia». Las clases van ENTERAS: Tailwind solo
- *  genera lo que encuentra literal. */
+/** La fila: con 42 rem de tarjeta, seis celdas [hora · punto · ficha 1,5fr · qué pasó 1fr · quién/referencia 1fr · cifra 7 rem]. Más
+ *  angosta, tres [punto · ficha · cifra] y debajo, en un segundo renglón, «qué pasó» y «quién/referencia». Decide el ancho de la TARJETA
+ *  (`@container`), no el de la ventana: en una tablet con el lateral abierto la tarjeta mide 436 px y las seis columnas dejaban ~9 px para
+ *  «Conteo 12». A 42 rem, menos 3,5 de relleno (lista y fila) y 15,75 fijos (3,25 + 0,5 + 7 y cinco huecos de 1 rem), quedan ~23 rem
+ *  para las tres columnas de texto: la ficha recibe ~156 px.
+ *  Quien la usa va dentro de un `@container` y pasa al mismo umbral (`@min-[42rem]:`) lo que cambia entre las dos formas. Las clases van
+ *  ENTERAS: Tailwind solo genera lo que encuentra literal. */
 export const FILA_ACTIVIDAD =
-  "relative grid grid-cols-[0.5rem_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 py-3 transition-colors hover:bg-crema/60 focus-within:bg-crema/60 sm:grid-cols-[3.25rem_0.5rem_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_7rem] sm:items-center sm:gap-x-4 sm:px-2";
+  "relative grid grid-cols-[0.5rem_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 py-3 transition-colors hover:bg-crema/60 focus-within:bg-crema/60 @min-[42rem]:grid-cols-[3.25rem_0.5rem_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_7rem] @min-[42rem]:items-center @min-[42rem]:gap-x-4 @min-[42rem]:px-2";
 
 // El tono del estado como un punto: sobrio, y no obliga a que «Entrada · Traslado recibido» o «3 diferencias encontradas» quepan en
 // un chip.
@@ -36,11 +40,11 @@ export const DIA_TITULO = "mt-4 mb-1 flex items-baseline justify-between gap-3 r
 export const DIA_ETIQUETA = "label-cayla text-[11px] font-bold text-crema";
 export const DIA_CUANTOS = "label-cayla text-[10.5px] font-bold text-crema";
 
-/** La hora, primera columna de la fila (desde sm; en celular sigue bajo el nombre, donde no hay columnas). Un rango trae la hora de
- *  la primera y, debajo, la de la última. */
+/** La hora, primera columna de la fila (con 42 rem de tarjeta; más angosta sigue bajo el nombre, donde no hay columnas). Un rango trae
+ *  la hora de la primera y, debajo, la de la última. */
 export function ColumnaHora({ desde, hasta }: { desde?: string | null; hasta?: string | null }) {
   return (
-    <span className="hidden whitespace-nowrap text-[13px] leading-snug tabular-nums text-taupe sm:block">
+    <span className="hidden whitespace-nowrap text-[13px] leading-snug tabular-nums text-taupe @min-[42rem]:block">
       {desde}
       {hasta && hasta !== desde && <span className="block">–{hasta}</span>}
     </span>

@@ -186,8 +186,10 @@ function TarjetaProducto({
       <div className="absolute inset-0">
         <MosaicoPrenda forma="relleno" colorHex={activo?.hex} {...categoriaDe(producto)} className="h-full w-full !rounded-none transition-colors duration-300" />
       </div>
-      <span className="prod-sobre-foto label-cayla absolute right-2.5 top-2.5 rounded-full px-2 py-1 text-[9px] text-tinta/70">
-        Muestra{activo ? ` — ${activo.nombre}` : ""}
+      {/* Con tope de ancho y el color solo desde 640 px: a 375 «MUESTRA — AZUL MARINO» cruzaba la foto y se montaba sobre las insignias de
+          la izquierda. El color ya lo dice el segundo renglón de la tarjeta. */}
+      <span className="prod-sobre-foto label-cayla absolute right-2.5 top-2.5 max-w-[calc(100%-1.25rem)] truncate rounded-full px-2 py-1 text-[9px] text-tinta/70">
+        Muestra{activo ? <span className="max-sm:hidden">{` — ${activo.nombre}`}</span> : null}
       </span>
     </>
   );

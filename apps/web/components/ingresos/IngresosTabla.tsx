@@ -27,6 +27,7 @@ import {
   type ModeloIngresado,
 } from "@/lib/ingresos-reglas";
 import { fechaRelativa, ordenarFilas, sumaDe, unirConO, type OrdenViva } from "@/lib/tabla-viva-reglas";
+import { sePuedeImprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
 
 // La lista de modelos de «Ingresos»: una línea por modelo con su foto, si es Nuevo o un Reingreso, su categoría, cuándo entró, cuántas
 // prendas entraron, su precio en esta sede y —solo para quien ve el dinero— su costo. Vive en el cliente porque se busca, se filtra, se
@@ -222,6 +223,7 @@ export function IngresosTabla({
   const [preparando, setPreparando] = useState(false);
   const [impresoEn, setImpresoEn] = useState("");
   function imprimir() {
+    if (!sePuedeImprimirAqui("hoja")) return;
     setImpresoEn(new Intl.DateTimeFormat("es-PE", { dateStyle: "long", timeStyle: "short", timeZone: "America/Lima" }).format(new Date()));
     setPreparando(true);
     setImprimiendo(true);

@@ -33,6 +33,7 @@
 
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { deshacerCalladas } from "./campanas-en-sede-sin-calladas.mjs";
 
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
@@ -703,7 +704,8 @@ ${YA}select estado || '|' || (select ceden = array[:'r']::uuid[] from retail.cam
     );
     esperar(
       "la migración de una oferta por prenda se puede pegar dos veces",
-      correr(`begin;\n${ANTES}${readFileSync(MIGRACION_CESIONES, "utf8")}\n${readFileSync(MIGRACION_CESIONES, "utf8")}\n${readFileSync(MIGRACION_DE_UNA_VEZ, "utf8")}\n${readFileSync(MIGRACION_DE_UNA_VEZ, "utf8")}\nrollback;`).ok,
+      // 20261116175000 reemplazó el bloque de cesiones que ancla esta migración: se deshace antes de volver a pegarla (y se rehace con el ROLLBACK).
+      correr(`begin;\n${ANTES}${deshacerCalladas()}\n${readFileSync(MIGRACION_CESIONES, "utf8")}\n${readFileSync(MIGRACION_CESIONES, "utf8")}\n${readFileSync(MIGRACION_DE_UNA_VEZ, "utf8")}\n${readFileSync(MIGRACION_DE_UNA_VEZ, "utf8")}\nrollback;`).ok,
     );
   }
 

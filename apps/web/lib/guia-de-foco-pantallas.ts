@@ -278,6 +278,7 @@ export const MODALES_PENDIENTES_HOY = 43;
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
   "components/AjustarInventarioModal.tsx": { estado: "aplicada", evidencia: ["components/AjustarInventarioModal.tsx"] },
+  "components/VentaRegistradaModal.tsx": { estado: "no-aplica", motivo: "«Venta registrada»: la venta ya se guardó y no hay nada que llenar. Sus únicos controles son dos interruptores del equipo, «Imprimir en la caja» e «Imprimir solo al cobrar», que se encienden una vez (lib/imprimir-al-cobrar.ts); no hay camino que indicar." },
   "components/existencias/BuscarPrendaParaAjustar.tsx": { estado: "no-aplica", motivo: "«¿Qué prenda vas a ajustar?» (ADR-0494): un solo campo, el buscador, y su único paso es elegir la prenda; lo que se llena (la planilla, el motivo y quién) vive en el modal de la prenda, con su guía." },
   "components/asistente/CajonAsistente.tsx": { estado: "no-aplica", motivo: "«Pregúntale a CAYLA» (ADR-0536): un solo campo obligatorio, la pregunta, que busca mientras se escribe; su único paso es elegir la demo que arranca. Tras un «No» a «¿Te sirvió?» aparece una caja opcional («¿Qué buscabas?») que no bloquea nada. Lo que se llena de verdad vive en la pantalla a la que lleva, con su propia guía." },
   "components/AnularVentaForm.tsx": PENDIENTE, // 4 controles
@@ -328,6 +329,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   // el «Falta: …» tocable al pie (`FaltanDelPaso`) que lleva a la pregunta que lo arregla. Sale de lo mismo que apaga «Guardar»
   // (`problemasDeOferta` y haber elegido qué se da), sin reglas nuevas.
   "components/sellos/OfertasHoja.tsx": { estado: "aplicada", evidencia: ["components/sellos/OfertasHoja.tsx"] },
+  // «Poner un %» (ADR-0669): a qué, cuánto y quién, con la luz de «Sigue»; lo que falta lo dice el pie y el botón que confirma.
+  "components/rebajas/HojaRebaja.tsx": { estado: "aplicada", evidencia: ["components/rebajas/HojaRebaja.tsx"] },
+  "components/rebajas/RebajasDeTienda.tsx": { estado: "no-aplica", motivo: "El cajón de un % es una lista de prendas con «Quitar» en cada una: no hay nada que llenar salvo quién lo hace (un solo combo, que se elige una vez por tienda)." },
   "components/sellos/SellosPantalla.tsx": { estado: "no-aplica", motivo: "Sus dos ventanas propias tienen UN solo campo cada una (el comentario al aprobar, el motivo al rechazar) y el botón dice por qué espera; las que se llenan de verdad (nueva insignia o campaña, configurar) son de EtiquetasLista.tsx, con su guía." },
   "components/FamiliasLista.tsx": { estado: "aplicada", evidencia: ["components/FamiliasLista.tsx"] },
   "components/FiltrosExistencias.tsx": { estado: "no-aplica", motivo: "Hoja de filtros de Existencias en el celular (misma estructura que Productos, 2026-10-03): cada control filtra la lista al tocarlo y el botón dice cuántos productos quedan; no hay nada que completar ni pasos que seguir." },

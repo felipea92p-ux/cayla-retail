@@ -17,6 +17,7 @@ import {
   presetDe,
   FUNCIONES_APARTADOS,
   mensajeWhatsapp,
+  mensajeLiberacion,
   erroresDelApartado,
   esConstancia,
   estadoVisible,
@@ -364,6 +365,30 @@ describe("recordar en lote", () => {
       "Hola Lucía, tu apartado APT-TRU-0003 en CAYLA Tienda TRU venció el 25/09/2026. Aún te lo guardamos hasta el 27/09/2026. Saldo por pagar: S/99.00.",
     );
     expect(mensajeWhatsapp(vencido, "Tienda TRU")).toMatch(/te espera .* hasta el 25\/09\/2026/);
+  });
+});
+
+describe("mensajeLiberacion: avisar que el apartado se canceló", () => {
+  it("dice por qué, según el motivo elegido, y cómo vuelve el adelanto", () => {
+    const a = apartado();
+    expect(mensajeLiberacion(a, "Tienda TRU", "vencio")).toBe(
+      "Hola Ana, tu apartado APT-TRU-0007 en CAYLA Tienda TRU venció y lo cancelamos. Te devolvemos tu adelanto de S/\u00a090.00 por Yape al 987 111 222.",
+    );
+    expect(mensajeLiberacion(a, "Tienda TRU", "clienta_desistio")).toMatch(/^Hola Ana, como nos pediste, cancelamos tu apartado APT-TRU-0007/);
+    expect(mensajeLiberacion(a, "Tienda TRU", "error_de_carga")).toMatch(/se registró por error\. Te devolvemos/);
+  });
+  it("transferencia nombra el CCI; Plin sin número no deja un «al» colgando; sin adelanto no promete devolución", () => {
+    expect(mensajeLiberacion(apartado({ devolucionMedio: "transferencia", devolucionCciFinal: "4321" }), "Tienda TRU", "vencio")).toMatch(
+      /por transferencia a tu cuenta \(CCI …4321\)\.$/,
+    );
+    expect(mensajeLiberacion(apartado({ devolucionMedio: "plin", devolucionNumero: null }), "Tienda TRU", "vencio")).toMatch(/por Plin\.$/);
+    expect(mensajeLiberacion(apartado({ adelanto: 0 }), "Tienda TRU", "vencio")).not.toMatch(/devolvemos/);
+    // Sin motivo (desde la fila de la lista): solo dice que se canceló, sin inventar por qué.
+    expect(mensajeLiberacion(apartado(), "Tienda TRU", null)).toBe(
+      "Hola Ana, cancelamos tu apartado APT-TRU-0007 en CAYLA Tienda TRU. Te devolvemos tu adelanto de S/\u00a090.00 por Yape al 987 111 222.",
+    );
+    // El monto con el formato del ERP: coma de miles y espacio que no se parte tras «S/».
+    expect(mensajeLiberacion(apartado({ adelanto: 1250, total: 2000 }), "Tienda TRU", "vencio")).toContain("adelanto de S/\u00a01,250.00 por Yape");
   });
 });
 

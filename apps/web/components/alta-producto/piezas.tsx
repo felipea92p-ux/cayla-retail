@@ -80,9 +80,9 @@ export function PasoAlta({
 }) {
   const id = `paso-${numero}`;
   return (
-    // `scroll-mt`: al abrir el paso la página lo lleva arriba, bajo la cabecera fija de la app Y bajo los puntos de avance pegados
-    // (en el celular los puntos miden ~56 px y no 104: basta 8rem, 2026-10-09).
-    <section aria-labelledby={id} className="scroll-mt-32 rounded-xl sm:scroll-mt-[11.5rem] border border-sand bg-papel">
+    // `scroll-mt`: al abrir el paso la página lo lleva arriba, bajo los puntos de avance pegados; la cabecera fija ya la descuenta la
+    // página (`scroll-padding-top` de `<html>`, decisión 1A de Felipe, 2026-11-16). En el celular los puntos miden ~56 px y no 104.
+    <section aria-labelledby={id} className="scroll-mt-[4.25rem] rounded-xl sm:scroll-mt-[7.5rem] border border-sand bg-papel">
       <div className="px-4 pt-4 sm:px-5">
         <h2 id={id} className="text-[14.5px] font-semibold text-tinta">{/* unificar-fijo: el título de un paso de Nuevo producto, que tiene su diseño aprobado (ADR-0260, ADR-0284) */}
           {titulo}
@@ -97,9 +97,10 @@ export function PasoAlta({
         {pie && (
           // Pegado al borde de abajo de la ventana mientras el paso siga más abajo (ADR-0284): el paso 3 mide varias pantallas, y
           // el «qué falta» y el «Seguir →» no pueden quedar enterrados al fondo. Sale de los márgenes del contenido (`-mx`) y
-          // se pega al fondo de la tarjeta (`-mb-5`) para que, en su lugar natural, no deje un hueco. Solo desde `lg`: en celular
+          // se pega al fondo de la tarjeta (`-mb-5`) para que, en su lugar natural, no deje un hueco. Solo desde `xl` (el mismo corte que el
+          // resumen de la derecha, FichaPrevia): en celular y tablet
           // la barra de la ficha ya va pegada abajo con su «Siguiente: …» tocable, y las dos juntas taparían un cuarto de la pantalla.
-          <div data-pie-alta className="z-10 lg:sticky lg:bottom-0 -mx-4 -mb-5 mt-5 flex flex-wrap items-center justify-end gap-3 rounded-b-xl border-t border-sand bg-papel px-4 py-3.5 sm:-mx-5 sm:px-5">
+          <div data-pie-alta className="z-10 xl:sticky xl:bottom-0 -mx-4 -mb-5 mt-5 flex flex-wrap items-center justify-end gap-3 rounded-b-xl border-t border-sand bg-papel px-4 py-3.5 sm:-mx-5 sm:px-5">
             {pie.faltan && !pie.listo ? (
               <>
                 <p role="status" className="sr-only">
@@ -108,7 +109,7 @@ export function PasoAlta({
                 {pie.faltan}
               </>
             ) : (
-              <p role="status" className={`mr-auto text-[12.5px] ${pie.listo ? "text-verde" : "text-taupe"}`}>
+              <p role="status" className={`mr-auto text-sm ${pie.listo ? "text-verde" : "text-taupe"}`}>
                 {pie.texto}
               </p>
             )}
@@ -159,12 +160,12 @@ export function FilaAlta({
           <MarcaCampo estado={estado} />
         </span>
       )}
-      <span className="text-[13px] font-semibold text-tinta">
+      <span className="text-sm font-semibold text-tinta">
         {estado && <VozDelEstado estado={estado} />}
         {etiqueta}
       </span>
       {estado === "ahora" && <EtiquetaAhora flota />}
-      {ayuda && <span className="text-[12px] leading-snug text-taupe">{ayuda}</span>}
+      {ayuda && <span className="text-sm leading-snug text-taupe">{ayuda}</span>}
       {accion && <span className="ml-auto">{accion}</span>}
     </div>
   );
@@ -177,7 +178,7 @@ export function FilaAlta({
     );
   }
   return (
-    <div {...retener} data-campo={campo} data-estado={estado} className="hilo-fila scroll-mt-24">
+    <div {...retener} data-campo={campo} data-estado={estado} className="hilo-fila scroll-mt-8">
       <div className="hilo-fila-in">
         {titulo}
         <div className="min-w-0">{children}</div>

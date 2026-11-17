@@ -9,6 +9,7 @@ import {
   PROMPT_CATALOGO,
   PROMPT_CON_MOLDE,
 } from "./openai-imagen-reglas";
+import { createHash } from "node:crypto";
 import { fichaParaIA } from "./ficha-foto-ia";
 
 describe("camposOpenAI", () => {
@@ -160,8 +161,8 @@ describe("pedidoDeCatalogo con la ficha de la prenda (lo ya elegido, 2026-11-14)
     const { prompt } = pedidoDeCatalogo({}, lino);
     expect(prompt).toMatch(/interior de la pretina/);
     expect(prompt).toMatch(/de la cintura a la basta/);
-    expect(prompt).toMatch(/no agregues elástico, puños ni cordón donde la foto no los muestra/);
-    expect(prompt).toMatch(/si es ancha y recta, sigue ancha y recta/);
+    expect(prompt).toMatch(/BASTA: suelta, donde termina en la foto/);
+    expect(prompt).toMatch(/PIERNA: con la misma forma que en la foto/);
     // «la del cuello» sí aparece, pero en la lista de etiquetas que se quitan (`SIN_ETIQUETAS`), que es común a toda prenda.
     expect(prompt).not.toMatch(/interior del cuello|hombros|pecho|MANGAS/);
     // Lo que no depende de la zona sigue igual.
@@ -188,8 +189,26 @@ describe("pedidoDeCatalogo con la ficha de la prenda (lo ya elegido, 2026-11-14)
     expect(pedidoDeCatalogo({}, blusa).prompt).toBe(`${PROMPT_CATALOGO} ${blusa!.texto}`);
   });
 
-  it("con la ficha, ningún pedido pide quitar arrugas ni emparejar la luz (lo que redibujaba la prenda)", () => {
-    for (const extras of [{}, { molde: true }, { espalda: true }]) expect(pedidoDeCatalogo(extras, lino).prompt).not.toMatch(/arrugas|luz pareja/i);
+  it("con la ficha, una tela planchada lo pide en positivo: sin la palabra «arrugas» ni «luz pareja» (lo de octubre que redibujaba)", () => {
+    // Felipe 2026-11-16: se pide planchada en la ficha (no medida), nunca en el cuerpo medido; y sin nombrar la arruga, que el modelo dibuja si la
+    // lee. Una gabardina, que sale planchada de fábrica.
+    const gabardina = fichaParaIA({ prefijo: "PAN", tejido: "Gabardina", patron: "Liso" });
+    for (const extras of [{}, { molde: true }, { espalda: true }]) {
+      const { prompt } = pedidoDeCatalogo(extras, gabardina);
+      expect(prompt, JSON.stringify(extras)).toMatch(/PLANCHADA: la prenda se ve planchada para una sesión de fotos/);
+      expect(prompt, JSON.stringify(extras)).toMatch(/La TELA es la misma de la foto real/);
+      expect(prompt, JSON.stringify(extras)).not.toMatch(/arrugas|luz pareja|se arruga|gracia/i);
+    }
+  });
+
+  it("el lino sale «con arrugas finas» (Felipe 2026-11-17: planchado «se ve peor»): las nombra, finas y parejas, sin los dobleces de guardarla", () => {
+    for (const extras of [{}, { molde: true }, { espalda: true }]) {
+      const { prompt } = pedidoDeCatalogo(extras, lino);
+      expect(prompt, JSON.stringify(extras)).toMatch(/ACABADO: la prenda lista para una sesión de fotos/);
+      expect(prompt, JSON.stringify(extras)).toMatch(/con las arrugas finas y naturales de su tela, repartidas parejo/);
+      expect(prompt, JSON.stringify(extras)).toMatch(/de textura rústica con «nudos» visibles/);
+      expect(prompt, JSON.stringify(extras)).not.toMatch(/PLANCHADA|Es lino planchado|se arruga|gracia/);
+    }
   });
 });
 
@@ -211,5 +230,126 @@ describe("mensajeParaTienda", () => {
     expect(mensajeParaTienda(429, { error: { code: "rate_limit_exceeded" } })).toMatch(/en un minuto/);
     expect(mensajeParaTienda(400, null)).toMatch(/Prueba con otra/);
     expect(mensajeParaTienda(503, null)).toMatch(/Prueba en un rato/);
+  });
+});
+
+describe("fase 2 (2026-11-16): el pedido de cintura, sin empujar al buzo, y el de hombros sin tocar", () => {
+  const huella = (t: string) => createHash("sha256").update(t).digest("hex").slice(0, 16);
+  const blusa = fichaParaIA({ prefijo: "CMS", tipo: "Blusa", tejido: "Seda", patron: "Liso" })!;
+  // Se quita la ficha (que sí cambió) para comparar solo el CUERPO del pedido; igual que cuando se tomaron las huellas.
+  const sinFicha = (t: string) => t.replace(blusa.texto, "");
+  const pan = fichaParaIA({ prefijo: "PAN", tejido: "Lino", patron: "Liso" })!;
+  const buzo = fichaParaIA({ prefijo: "PAN", tejido: "Franela" })!;
+  const jean = fichaParaIA({ prefijo: "JEA", tejido: "Denim" })!;
+  const sho = fichaParaIA({ prefijo: "SHO", tejido: "Algodón" })!;
+  const fal = fichaParaIA({ prefijo: "FAL", tejido: "Lino" })!;
+  const CAMINOS = [{}, { molde: true }, { espalda: true, detalle: true }, { espalda: true, molde: true }];
+
+  it("el CUERPO del pedido de hombros (lo único medido: 99 % de la silueta) no cambió ni una letra: sus huellas son las de antes de la fase 2", () => {
+    // Huellas tomadas el 2026-11-16 ANTES de tocar el pedido. Si una cambia, se cambió el pedido de blusas, que es el medido: no se toca sin medirlo.
+    expect({
+      catalogo: huella(PROMPT_CATALOGO),
+      conMolde: huella(PROMPT_CON_MOLDE),
+      variasSinFicha: huella(pedidoDeCatalogo({ espalda: true, detalle: true }).prompt),
+      variasConMolde: huella(pedidoDeCatalogo({ espalda: true, detalle: true, molde: true }).prompt),
+      blusaUna: huella(sinFicha(pedidoDeCatalogo({}, blusa).prompt)),
+      blusaMolde: huella(sinFicha(pedidoDeCatalogo({ molde: true }, blusa).prompt)),
+      blusaVarias: huella(sinFicha(pedidoDeCatalogo({ espalda: true, molde: true }, blusa).prompt)),
+    }).toEqual({
+      catalogo: "0b994ef712336754",
+      conMolde: "e4a696f0432e6544",
+      variasSinFicha: "5167d4bb5b0119c2",
+      variasConMolde: "d1792fdb0a444f2d",
+      blusaUna: "a1975bdc81d0ccdc",
+      blusaMolde: "e424d75c4f2a5556",
+      blusaVarias: "8995cef80caf5e4e",
+    });
+  });
+
+  it("lo que de verdad recibe una blusa de seda y un chaleco de sastre (cuerpo + ficha) queda a la vista: cambiar la ficha cambia esta huella", () => {
+    // La ficha va al final de TODO pedido y NO está medida. Estas huellas no prueban que esté bien: hacen que un cambio en ella no pase sin que se vea.
+    const chaleco = fichaParaIA({ prefijo: "CHA", tejido: "Sastre", patron: "Liso" });
+    expect({ blusa: huella(pedidoDeCatalogo({}, blusa).prompt), chaleco: huella(pedidoDeCatalogo({}, chaleco).prompt) }).toMatchInlineSnapshot(`
+      {
+        "blusa": "5a9e2adb62574d3c",
+        "chaleco": "f0acf4550dfa0126",
+      }
+    `);
+  });
+
+  it("ningún pedido de cintura empuja al buzo: ni basta fruncida, ni volumen inflado, ni nombra puño, cordón, felpa o jogger", () => {
+    for (const ficha of [pan, jean, sho, fal])
+      for (const extras of CAMINOS) {
+        const { prompt } = pedidoDeCatalogo(extras, ficha);
+        expect(prompt, JSON.stringify(extras)).not.toMatch(/fruncid|volumen 3D|con volumen|puño|cordón|felpa|jogger|buzo|deportiv/i);
+      }
+  });
+
+  it("ninguna pierna fija un ancho: un jean flare, globo o mom conserva su forma (no se endereza)", () => {
+    for (const ficha of [pan, jean, sho, buzo])
+      for (const extras of CAMINOS) {
+        const { prompt } = pedidoDeCatalogo(extras, ficha);
+        // Tampoco se fija dónde termina la basta: un culotte o un capri terminan a media pierna.
+        expect(prompt, JSON.stringify(extras)).not.toMatch(/del mismo ancho desde la cadera|caen rectas|del mismo ancho que la pierna|abierta y recta|tobillo/);
+      }
+    expect(pedidoDeCatalogo({}, jean).prompt).toMatch(/PIERNA: con la misma forma que en la foto.*si se abre o se cierra hacia abajo, igual/);
+  });
+
+  it("un pantalón de tela plana: la pretina va sola, con su cierre, y la basta va SUELTA alrededor del tobillo, con el acabado de la foto", () => {
+    const { prompt } = pedidoDeCatalogo({}, pan);
+    expect(prompt).toMatch(/PRETINA: con su mismo ancho y su mismo cierre/);
+    expect(prompt).toMatch(/la arruga es de la mano y no de la pretina/);
+    expect(prompt).toMatch(/las piernas caen con el peso de la tela/);
+    // La caída se dice una sola vez (en el maniquí), no también en la ficha.
+    expect(prompt.match(/con el peso de la tela/g)).toHaveLength(1);
+    expect(prompt).toMatch(/BASTA: suelta, donde termina en la foto, con su mismo ancho y su mismo acabado/);
+  });
+
+  it("CONTROL de producción: el buzo de franela de Pantalones conserva su basta como en la foto (no se dibuja como pantalón de vestir)", () => {
+    for (const extras of CAMINOS) {
+      const { prompt } = pedidoDeCatalogo(extras, buzo);
+      expect(prompt, JSON.stringify(extras)).not.toMatch(/BASTA: suelta|tela plana|de vestir/);
+    }
+    expect(pedidoDeCatalogo({}, buzo).prompt).toMatch(/BASTA: como en la foto/);
+    // Un legging o un buzo («pierna») no recibe «las piernas caen con el peso de la tela»: le contradiría lo ceñido.
+    expect(pedidoDeCatalogo({}, buzo).prompt).not.toMatch(/caen con el peso/);
+  });
+
+  it("una falda no recibe «bragueta» como ejemplo de su cierre", () => {
+    expect(pedidoDeCatalogo({}, fal).prompt).toMatch(/PRETINA: .*\(al frente, al costado o elástica\)/);
+    expect(pedidoDeCatalogo({}, fal).prompt).not.toMatch(/bragueta/);
+  });
+
+  it("CONTROL: un short deja la basta como en la foto, y una falda habla de vuelo y ruedo, no de piernas", () => {
+    expect(pedidoDeCatalogo({}, sho).prompt).toMatch(/BASTA: como en la foto/);
+    expect(pedidoDeCatalogo({}, sho).prompt).not.toMatch(/BASTA: suelta/);
+    const falda = pedidoDeCatalogo({}, fal).prompt;
+    expect(falda).toMatch(/VUELO:/);
+    expect(falda).toMatch(/RUEDO:/);
+    expect(falda).not.toMatch(/PIERNA|BASTA|piernas/);
+  });
+
+  it("con molde, una prenda de cintura copia su FORMA (no mangas, cuello ni elástico), toma la TEXTURA de la foto real y la ficha manda sobre el molde", () => {
+    for (const extras of [{ molde: true }, { espalda: true, molde: true }]) {
+      const { prompt } = pedidoDeCatalogo(extras, pan);
+      expect(prompt, JSON.stringify(extras)).toMatch(/copia EXACTAMENTE la forma: la silueta, el largo, la pretina, la forma de la pierna, los pliegues/);
+      expect(prompt, JSON.stringify(extras)).toMatch(/la textura de la tela/);
+      expect(prompt, JSON.stringify(extras)).toMatch(/Si el MOLDE contradice los DATOS DE LA PRENDA, mandan los datos/);
+      expect(prompt, JSON.stringify(extras)).not.toMatch(/mangas|\bel cuello,|el elástico|toma SOLO el color/);
+    }
+    expect(pedidoDeCatalogo({ molde: true }, fal).prompt).toMatch(/el vuelo, el ruedo/);
+  });
+
+  it("con molde, un pantalón de tela plana NO copia la basta del molde (un molde viejo con puño la pasaría a todos los colores)", () => {
+    const conMolde = pedidoDeCatalogo({ molde: true }, pan).prompt;
+    expect(conMolde).not.toMatch(/la forma de la pierna, la basta/);
+    expect(conMolde).toMatch(/BASTA: suelta, como en la IMAGEN 1, aunque el molde la muestre distinta/);
+    expect(pedidoDeCatalogo({ espalda: true, molde: true }, pan).prompt).toMatch(/como en las fotos reales, aunque el molde la muestre distinta/);
+    // El buzo de franela sí copia su basta del molde (puede ser un puño de verdad).
+    expect(pedidoDeCatalogo({ molde: true }, buzo).prompt).toMatch(/la forma de la pierna, la basta, los pliegues/);
+  });
+
+  it("la ficha sigue yendo al final de todos los pedidos de cintura", () => {
+    for (const ficha of [pan, jean, sho, fal, buzo]) for (const extras of CAMINOS) expect(pedidoDeCatalogo(extras, ficha).prompt.endsWith(ficha.texto)).toBe(true);
   });
 });

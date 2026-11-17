@@ -236,6 +236,11 @@
   gap: 12px;
   animation: anim-revelar-taller 420ms var(--ease-cayla) 80ms both;
 }
+/* Con su tope de alto (pegado a la derecha, `PanelDelTaller`), el panel corre por su cuenta: ningún bloque se encoge para caber. Sin
+   esto, la tarjeta de la foto (recorta con `overflow: hidden`, así que su alto mínimo es 0) se aplastaba y escondía los colores. */
+.taller-panel > * {
+  flex-shrink: 0;
+}
 .taller-panel-foto {
   background: var(--color-papel);
   border: 1px solid var(--color-sand);
@@ -350,6 +355,19 @@
   inset: -4px;
   border: 1.5px dashed var(--color-ambar);
   border-radius: 999px;
+}
+/* Con el dedo (ADR-0611, mejora 5): el punto conserva su dibujo de 28 px (el color de adentro está escalado a esa medida) y agranda su
+   ÁREA a 38 × 44 con un `::before` invisible. No usa `area-dedo`: su `::after` ya dibuja el aro de «sin foto» de arriba, y la regla de
+   tacto lo pisaría. Con 10 px entre puntos, las áreas se tocan a la mitad del hueco y no se pisan de lado. */
+@media (pointer: coarse) {
+  .taller-swatches {
+    gap: 10px;
+  }
+  .taller-swatch::before {
+    content: "";
+    position: absolute;
+    inset: -8px -5px;
+  }
 }
 .taller-tarjeta {
   background: var(--color-papel);

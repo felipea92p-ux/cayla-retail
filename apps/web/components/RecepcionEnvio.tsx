@@ -1110,7 +1110,7 @@ export function RecepcionEnvio({
         </aside>
 
         {/* ================= derecha: el envío ================= */}
-        <div ref={panel} className="@container min-w-0 space-y-4 scroll-mt-24">
+        <div ref={panel} className="@container min-w-0 space-y-4 scroll-mt-8">
           {!hayEnvio ? (
             <>
               <div className="card-cayla flex min-h-[10rem] flex-col items-center justify-center gap-2 p-8 text-center">
@@ -1866,7 +1866,7 @@ function CurvaVariantes({
             const total = fila.reduce((a, v) => a + (v ? (valores[v.varianteId] ?? 0) : 0), 0);
             return (
               <tr key={color}>
-                {!unaFila && <th className="max-w-[4.5rem] truncate pr-1 text-left text-sm font-normal text-tinta/75 sm:max-w-none sm:pr-2">{color === SIN ? "Sin color" : color}</th>}
+                {!unaFila && <th className="max-w-[4.5rem] whitespace-normal break-words pr-1 text-left text-sm font-normal leading-tight text-tinta/75 sm:max-w-none sm:pr-2">{color === SIN ? "Sin color" : color}</th>}
                 {fila.map((v, i) => (
                   <td key={tallas[i]} className="text-center">
                     {v ? celda(v, [tallas[i], color].filter((x) => x !== SIN).join(" ")) : <span className="block w-14 text-center text-sm text-tinta/30 sm:w-16">·</span>}

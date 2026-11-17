@@ -67,7 +67,7 @@ export function FilasDeFalla({
             </div>
           ))}
           {opciones.length > 1 && (
-            <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={agregarFila}>
+            <button type="button" className="btn-cayla btn-enlace" onClick={agregarFila}>
               + Otra talla o color
             </button>
           )}

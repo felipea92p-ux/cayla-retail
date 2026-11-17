@@ -3,7 +3,9 @@
    `.vs-liquido` (`vitrinas-sedes.css`); aquí viven las piezas de cada vista. El color de la sede solo en lo que es de esa sede; el ámbar, lo que falta; el verde, lo que está
    listo. Nada baja de 14 px. Movimiento una vez, sin rebote ni bucle, apagado con prefers-reduced-motion (ADR-0136).
    ==================================================================== */
-.cv-bloque { padding: 20px 22px; min-width: 0; }
+/* El bloque es contenedor: lo de adentro (la semana, «Cuándo te avisa», los hilos de los cobros) se reparte por el ancho del bloque y no por el de la
+   ventana. Con el lateral fijo, a 768 px de ventana el bloque mide ~436 y a 1024 ~692: la ventana mentía sobre lo que cabía. */
+.cv-bloque { padding: 20px 22px; min-width: 0; container: cv-bloque / inline-size; }
 .cv-bloque[data-color="tru"], .cv-fijo[data-color="tru"], .cv-pago[data-color="tru"] { --c: var(--color-sede-tru); }
 .cv-bloque[data-color="aqp"], .cv-fijo[data-color="aqp"], .cv-pago[data-color="aqp"] { --c: var(--color-sede-aqp); }
 .cv-bloque[data-color="lim"], .cv-fijo[data-color="lim"], .cv-pago[data-color="lim"] { --c: var(--color-sede-lim); }
@@ -44,8 +46,20 @@
 @media (max-width: 767px) {
   .cv-bloque { padding: 16px; border-radius: var(--radius-tarjeta); }
   .cv-ver-mas { width: calc(100% + 32px); margin: 12px -16px -16px; border-radius: 0 0 24px 24px; }
+}
+/* La semana se desliza de lado cuando sus siete casillas no caben: con menos de 518 px por dentro, una meta de 4 cifras («1500») se cortaba
+   (a 768 de ventana quedaban ~29 px de texto por día). Una consulta de contenedor mide la caja de CONTENIDO del bloque (sin su relleno de 22):
+   el umbral es los 518 mismos. */
+@container cv-bloque (max-width: 517.98px) {
   .cv-semana { overflow-x: auto; padding-bottom: 6px; }
   .cv-semana-in { min-width: 518px; }
+}
+/* Con 12 meses en un gráfico angosto, «120 mil» pisaba a la de al lado: queda solo la cifra del mes elegido (la de cada mes sigue en su nombre
+   para el lector y aparece al tocarlo). Mide la zona del gráfico (`.barras-tiempo-zona` ya es contenedor). */
+@container (max-width: 560px) {
+  .cv-meses-barras .barra-t:not([data-tono]) .barra-t-cifra { display: none; }
+  /* Sin su cifra, la barra pasa 3:1 como en `BarrasTiempo` (decisión 5B, graficos-tiempo.css). */
+  .cv-meses-barras .barra-t:not([data-tono]) .barra-t-relleno { background: color-mix(in srgb, var(--color-tinta) 36%, var(--color-grafico-neutro)); }
 }
 
 /* ---------- el movimiento: una vez ---------- */
@@ -63,8 +77,12 @@
 .cv-dos { display: grid; gap: 18px; align-items: start; }
 @media (min-width: 1200px) { .cv-dos { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); } }
 .cv-vigia { display: grid; gap: 10px; margin-top: 12px; }
-@media (min-width: 768px) { .cv-vigia { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (min-width: 1700px) { .cv-vigia { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+/* De a dos cuando a cada tarjeta le quedan ~80 px para la frase: la de la caja ocupa fijo 209 (gota, «S/», casilla de 96 y huecos) y con
+   menos la casilla salía recortada y la frase quedaba de a una palabra por renglón. La consulta mide el contenido del bloque (sin sus 22 + 22 de
+   relleno): 2 × 311 + 10 = 632 (a 1024 de ventana el bloque mide ~692 y su contenido 648: van de a dos). De a cuatro, ~90 px de frase:
+   4 × 321 + 3 × 10 = 1314, redondeado a 1316. */
+@container cv-bloque (min-width: 632px) { .cv-vigia { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container cv-bloque (min-width: 1316px) { .cv-vigia { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .cv-tope { justify-content: space-between; }
 .cv-tope .cv-frase { flex: 1 1 170px; }
 .cv-tope .cv-combo { flex: 1 1 170px; margin-top: 0; }
@@ -91,11 +109,14 @@
 .cv-nodo-tx { flex: 1; min-width: 0; }
 .cv-nodo-tx b { display: block; font: 500 21px/1.15 var(--font-serif); overflow-wrap: anywhere; }
 .cv-columna:not(.destinos) .cv-nodo-tx { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
-.cv-columna:not(.destinos) .cv-nodo-tx b { flex: 0 0 118px; }
+.cv-columna:not(.destinos) .cv-nodo-tx b { flex: 0 1 118px; min-width: 0; }
 .cv-columna:not(.destinos) .cv-combo { flex: 1 1 150px; margin-top: 0; }
 .cv-nodo-tx small { display: block; font-size: 14px; color: var(--color-taupe); }
 
-@media (max-width: 767px) {
+/* Los hilos piden dos columnas con aire: bajo ~608 px de bloque (564 de contenido, que es lo que mide la consulta: 2 × 246 de nodo + 72 de
+   hueco) a cada nodo le quedaban menos de 160 px para el texto y el nombre del cobro salía de su píldora (a 768 de ventana, 75 px). Ahí va una
+   columna y sin hilos, como en el celular. */
+@container cv-bloque (max-width: 563.98px) {
   .cv-flujo { grid-template-columns: minmax(0, 1fr); }
   .cv-hilos, .cv-columna.destinos { display: none; }
 }
@@ -108,12 +129,17 @@
 .cv-subgrupo > :first-child { margin-bottom: 10px; }
 
 /* ---------- Gastos: la línea del mes, los fijos, los topes y el reparto ---------- */
-.cv-linea-mes { position: relative; height: 112px; margin: 6px 16px 12px; }
+.cv-linea-mes { position: relative; height: 112px; margin: 6px 16px 12px; container: cv-linea / inline-size; }
 .cv-linea-mes .pista, .cv-linea-mes .pasado { position: absolute; left: 0; top: 76px; height: 10px; border-radius: 999px; }
 .cv-linea-mes .pista { right: 0; background: var(--pozo-fondo); box-shadow: var(--pozo-sombra); }
 .cv-linea-mes .pasado { width: var(--w); background: color-mix(in srgb, var(--color-tinta) 24%, transparent); transform-origin: left; animation: cv-llena-x 1100ms var(--ease-cayla) 200ms backwards; }
 .cv-pago { position: absolute; top: 76px; left: var(--x); width: 0; height: 0; }
 .cv-pago span { position: absolute; left: -13px; bottom: calc(var(--a) * 8px + 2px); display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: 14px; font-variant-numeric: lining-nums; color: var(--color-tinta); background: radial-gradient(circle at 34% 26%, var(--color-vidrio), color-mix(in srgb, var(--color-vidrio) 60%, transparent)); box-shadow: inset 0 0 0 1.5px var(--c, var(--color-taupe)), 0 4px 9px -4px color-mix(in srgb, var(--color-sombra) 60%, transparent); animation: vs-asoma 500ms var(--ease-cayla) calc(300ms + var(--k) * 40ms) backwards; }
+/* En una línea angosta (menos de ~23 px por día) los círculos de días vecinos se tapaban con su número: quedan puntos. El día también va en cada
+   tarjeta de abajo; la línea es decorativa (aria-hidden). */
+@container cv-linea (max-width: 699px) {
+  .cv-pago span { left: -6px; width: 12px; height: 12px; color: transparent; }
+}
 .cv-linea-mes .dias { position: absolute; left: 0; right: 0; top: 92px; display: flex; justify-content: space-between; font-size: 14px; color: var(--color-taupe); }
 .cv-fijo { min-height: 68px; padding: 9px 14px 9px 9px; }
 .cv-dia-fijo { flex: none; display: grid; place-items: center; width: 50px; height: 50px; border-radius: 50%; background: color-mix(in srgb, var(--color-tinta) 3%, transparent); box-shadow: inset 0 1px 1px var(--color-vidrio), inset 0 0 0 1.5px var(--c, var(--color-taupe)); }
@@ -136,7 +162,9 @@
 .cv-escala { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px 18px; margin-top: 8px; font-size: 14px; color: var(--color-taupe); }
 .cv-tres-casillas { margin-top: 14px; }
 .cv-tres { display: grid; gap: 18px; align-items: start; }
-@media (min-width: 1100px) { .cv-tres { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* De a tres desde 1280: entre 1100 y ~1235 la fila de la UIT no cabía en su tercio (la casilla salía 9 px y el año se montaba sobre «S/»).
+   Queda por ventana porque `.cv-tres` es el padre de los bloques y `.vs-raiz` lo comparten Las vitrinas. */
+@media (min-width: 1280px) { .cv-tres { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .cv-vig { flex-wrap: nowrap; gap: 10px; padding: 8px 12px 8px 8px; }
 .cv-vig .cv-gota { flex: none; width: 48px; height: 48px; }
 .cv-corta { flex-wrap: nowrap; }

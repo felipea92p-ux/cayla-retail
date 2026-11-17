@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { WalletCards } from "lucide-react";
@@ -23,6 +23,8 @@ import {
 } from "@/lib/recibo-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { sePuedeImprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
+import { imprimirBoleta, useDespertarAyudante } from "@/components/impresion/imprimirBoleta";
 
 const money = (n: number) => "S/" + n.toFixed(2);
 
@@ -63,9 +65,13 @@ export function DetalleVentaModal({
   /** Ventas ▸ Historial (ADR-0365): ofrece «Corregir pago» mientras la caja de la venta siga abierta. Caja y los demás no lo pasan. */
   corregirPago?: boolean;
 }) {
+  // Despierta al ayudante de la Mac: al imprimir, la boleta sale en 0,5 s y no en 1,1 (ADR-0670).
+  useDespertarAyudante();
   const [carga, setCarga] = useState<Carga>({ fase: "cargando" });
   const [intento, setIntento] = useState(0);
   const [imprimiendo, setImprimiendo] = useState<Impresion>(null);
+  // El `cerrar` de la hoja (con su salida animada): un ticket que salió por el ayudante cierra el detalle, como pidió Felipe.
+  const cerrarHoja = useRef<(() => void) | null>(null);
   const [corrigiendo, setCorrigiendo] = useState(false);
   const router = useRouter();
   // Al reimprimir o guardar como PDF (ticket o A4), el archivo se llama como el comprobante («B004-000004.pdf»).
@@ -103,11 +109,12 @@ export function DetalleVentaModal({
   // temporizador arranca recién al llamarlo.
   useEffect(() => {
     if (!imprimiendo) return;
+    let vigente = true;
     let respaldo: number | undefined;
     const terminar = () => {
       window.removeEventListener("afterprint", terminar);
       window.clearTimeout(respaldo);
-      setImprimiendo(null);
+      if (vigente) setImprimiendo(null);
     };
     const cuadro = requestAnimationFrame(async () => {
       const imagenes = [
@@ -116,11 +123,20 @@ export function DetalleVentaModal({
         ),
       ];
       await Promise.all(imagenes.map((i) => i.decode().catch(() => undefined)));
+      // El ticket va por `imprimirBoleta` (en la Mac del piso, por el ayudante y sin cuadro); la A4, por el cuadro.
+      if (imprimiendo === "ticket") {
+        const fin = await imprimirBoleta();
+        terminar();
+        // Por el cuadro no se sabe si imprimió o canceló: el detalle queda abierto, como antes.
+        if (fin === "impresa" && vigente) cerrarHoja.current?.();
+        return;
+      }
       window.addEventListener("afterprint", terminar);
       respaldo = window.setTimeout(terminar, 4000);
       window.print();
     });
     return () => {
+      vigente = false;
       cancelAnimationFrame(cuadro);
       window.removeEventListener("afterprint", terminar);
       window.clearTimeout(respaldo);
@@ -308,10 +324,13 @@ export function DetalleVentaModal({
               {/* `min-w-[11rem]`: «Imprimir boleta A4» necesita ~167 px y en media fila de un celular tenía 158 (el texto salía cortado). Con ese
                   mínimo los dos botones se apilan, cada uno a todo el ancho, cuando no caben juntos; en la hoja de escritorio siguen en una fila. */}
               <div className="flex flex-wrap gap-2.5">
-                <BotonImprimir peso="primario" className="min-w-[11rem] flex-1" disabled={!imprimible || imprimiendo !== null} onClick={() => setImprimiendo("ticket")}>
+                <BotonImprimir peso="primario" className="min-w-[11rem] flex-1" disabled={!imprimible || imprimiendo !== null} onClick={() => {
+                  cerrarHoja.current = cerrar;
+                  setImprimiendo("ticket");
+                }}>
                   Imprimir ticket
                 </BotonImprimir>
-                <BotonImprimir className="min-w-[11rem] flex-1" disabled={!imprimible || imprimiendo !== null} onClick={() => setImprimiendo("a4")}>
+                <BotonImprimir className="min-w-[11rem] flex-1" disabled={!imprimible || imprimiendo !== null} onClick={() => sePuedeImprimirAqui("hoja") && setImprimiendo("a4")}>
                   Imprimir {d.recibo?.tipo === "factura" ? "factura" : "boleta"} A4
                 </BotonImprimir>
               </div>

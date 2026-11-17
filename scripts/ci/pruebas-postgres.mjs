@@ -484,6 +484,18 @@ export const PRUEBAS = [
   // modelo, una talla más cara o más barata, otro modelo, una por varias y su mutante. ROLLBACK.
   "pruebas:cambio-mismo-modelo",
   "pruebas:aviso-dos-ofertas",
+  // Tres candados de las ofertas (ADR-0655, casuística 2026-11-16): cesiones sin ciclo, la campaña que se achica bajo sus ofertas (fechas y
+  // tiendas) y la revisión de choques de a una; con su control (sin el candado, el ciclo apaga las tres ofertas). ROLLBACK.
+  "pruebas:ofertas-candados",
+  // Las reglas de dinero que decidió Felipe el 2026-11-16 (ADR-0655): el tope de 70 % para toda forma, las bolsas fuera del monto y el
+  // monto medido sobre lo que la prenda paga (también lo que exige registrar_venta); con su control. ROLLBACK.
+  "pruebas:ofertas-tope-y-monto",
+  // Una venta sin conexión cuya oferta cambió antes de subirla se acepta con lo que cobró la caja y queda marcada (ADR-0655, Felipe
+  // 2026-11-16); en línea se sigue rechazando (el control), y los candados de la parte siguen sin conexión. ROLLBACK.
+  "pruebas:venta-sin-conexion-oferta",
+  // «Poner un %» (ADR-0669, Felipe 2026-11-16): cajones de % por tienda, una prenda en un solo lugar, quitar, los candados (tope 70 %,
+  // tienda, «todas» solo un líder, el módulo) y lo que lee la hoja; con su control. ROLLBACK.
+  "pruebas:rebaja-rapida",
   // Una campaña que solo tiene OFERTAS también sale en la Tienda web (ADR-0496, «Lo que NO cubre»): la lista, la portada y el diseño leen las
   // ofertas activas (la portada, solo las que rigen hoy, con el mayor %), un borrador no cuenta y, sin ofertas, todo queda idéntico. ROLLBACK.
   "pruebas:campana-con-ofertas",
@@ -848,6 +860,8 @@ export const PRUEBAS = [
   // reembolsos; el vuelto con tope de S/ 500; el reembolso de una devolución ≥ 0 y con uno de los cinco medios. Con controles.
   // Cada caso: ROLLBACK.
   "pruebas:ventas-montos-validos",
+  // La cola de impresión (vender en el piso, la boleta sale en la caja): una pedida viva por venta, dos cajas no toman la misma.
+  "pruebas:cola-de-impresion",
 
   // El documento del comprobante (/chaos 2026-10-13, decisión de Felipe): boleta con DNI de 8 dígitos y factura con RUC de 11,
   // en emitir_comprobante y en un disparador de respaldo; una boleta vieja sigue cambiando de estado y emitiendo su nota de
@@ -1210,6 +1224,9 @@ export const PRUEBAS = [
   // Las ventas por día de cada proveedor (ranking de la lista, ADR-0521): una venta de hoy suma en su proveedor y una devolución resta; la suma
   // de 90 días no pasa lo vendido del ranking; sin el Taller; días acotados a 7–90; la llave. ROLLBACK.
   "pruebas:proveedores-ventas-diarias",
+  // Proveedores no cargaba en las terminales de Almacén (20261116223000): fn_proveedores() pregunta el permiso de la plata UNA vez por
+  // consulta, no por proveedor. Cuenta las llamadas con 20 proveedores más (deben ser las mismas), con su control. ROLLBACK.
+  "pruebas:proveedores-permiso-una-vez",
   // El reparto entre proveedores (ADR-0521 act. c): en toda la base, lo vendido y el stock de todos los proveedores de una variante suman lo real
   // (por día y por sede); una prenda de dos proveedores no le cuenta a B las ventas de antes de que llegara lo suyo. ROLLBACK siempre.
   "pruebas:proveedor-reparto",
@@ -1936,6 +1953,9 @@ export const PRUEBAS = [
   // Corregir una compra ya anotada (ADR-0561): la plata vuelve sola mientras Compras no la completa, el papel acompaña si ya cuadraba, no se baja de lo
   // enviado, todo o nada, rastro que no se borra.
   "pruebas:compras-simple-corregir",
+  // Corregir con el envío sin recibir (ADR-0561 act. 2026-11-16): bajar lo que viajó baja también su línea del envío (al menos 1, nunca lo ya
+  // recibido); quitar lo que se anotó por error la saca de la compra y del envío con su rastro; no se quita lo que la tienda ya está contando.
+  "pruebas:corregir-compra-envio-abierto",
   "pruebas:compras-simple-reabrir",
   "pruebas:compras-simple-corregir-gasto",
   // «¿A qué cuenta de CAYLA devolviste?» al cerrar la ronda (Felipe 2026-10-29): la compradora indica la cuenta, la base valida que Compras pueda recibirla.

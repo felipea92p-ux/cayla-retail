@@ -384,7 +384,7 @@ export function NuevoProductoForm({
     pasoPrevio.current = paso;
     soltarPaginaEstable();
     const reducido = prefiereQuieto();
-    // Al título del paso (la sección lleva `scroll-mt-24`, así que queda bajo la cabecera). Con «nearest», elegir la categoría dejaba
+    // Al título del paso (la página descuenta la cabecera y la sección lleva su `scroll-mt`, así que queda bajo ella). Con «nearest», elegir la categoría dejaba
     // el paso 2 con su título cortado arriba y el campo «Nombre» pegado al borde (prueba con una trabajadora, 2026-09-29).
     requestAnimationFrame(() =>
       document.getElementById(`paso-${paso}`)?.closest("section")?.scrollIntoView({ block: "start", behavior: reducido ? "auto" : "smooth" }),
@@ -616,6 +616,10 @@ export function NuevoProductoForm({
   const fotosOrdenadas = ordenarFotosAlta(fotos, coloresElegidos);
   // «Catálogo con IA» (2026-11-13): la foto de catálogo de cada color se prepara en su fila mientras se sigue; al crear, se espera.
   const catalogo = useCatalogoIAAlta({
+    // Al encender la IA, también se preparan las fotos que esperan su color, no solo las ya puestas (Felipe 2026-11-16).
+    fotosEnCurso,
+    // Mientras se crea no se pide ninguna IA (tampoco desde el «Volver a intentar» de un aviso).
+    bloqueado: cargando,
     disponible: catalogoIADisponible,
     fotos,
     setFotos,
@@ -1262,7 +1266,7 @@ export function NuevoProductoForm({
             {/* Los colores salen de las fotos (ADR-0663): la carta queda para «Cambiar» y «Elegir sin foto». Es el único lugar de las fotos. */}
             {catalogo.disponible && (
               <div className="mb-2 flex justify-end" data-guia="nuevo.catalogo-ia">
-                <InterruptorCatalogoIA catalogo={catalogo} />
+                <InterruptorCatalogoIA catalogo={catalogo} disabled={cargando} />
               </div>
             )}
             <FotosYColores
@@ -1308,32 +1312,35 @@ export function NuevoProductoForm({
     return (
       <div>
         <FilaAlta etiqueta="Costo y precio" ayuda="El costo es opcional" campo="precio" estado={est.precio}>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <CampoMonto
-              etiqueta="Costo"
-              pie={sugerido && !costoTocado ? `Sugerido: el último en ${categoria?.nombre} (${sugerido.referencia})` : "Opcional"}
-              inputMode="decimal"
-              placeholder="0.00"
-              value={costoBase}
-              onChange={(e) => {
-                setCostoTocado(true);
-                // La misma limpieza que las celdas de la tabla: «S/ 59» pegado o «59,90» se leen bien (/chaos 2026-10-28).
-                setCostoBase(limpiarPrecio(e.target.value));
-              }}
-            />
-            <CampoMonto etiqueta="Precio de venta" pie="Para todas las tallas y colores" inputMode="decimal" placeholder="0.00" value={precioBase} onChange={(e) => setPrecioBase(limpiarPrecio(e.target.value))} />
-            <div>
-              <p className="label-cayla text-[11px] text-tinta/65">Margen</p>
-              <p
-                className={`font-display mt-1.5 pb-1 text-[1.75rem] leading-none tabular-nums ${
-                  margen === null ? "text-tinta/25" : nivel === "negativo" ? "text-rojo-profundo" : nivel === "bajo" ? "text-ambar" : "text-verde"
-                }`}
-              >
-                {margen === null ? "—" : `${margen.toFixed(0)} %`}
-              </p>
-              {/* Tarea 8 de Recibir: el margen también en soles, con la misma cuenta y los mismos colores que la línea de Recibir. */}
-              {margen !== null && <LineaMargen costo={costoBase} precio={precioBase} soloSoles className="mt-1" />}
-              <p className="mt-1 text-sm text-taupe">{margen === null ? "Con el costo, se calcula" : nivel ? etiquetaNivel[nivel] : ""}</p>
+          {/* Tres columnas solo si el bloque da 384 px (cada monto con su «S/» necesita ~120); si no, uno debajo del otro. */}
+          <div className="@container">
+            <div className="grid gap-4 @sm:grid-cols-3">
+              <CampoMonto
+                etiqueta="Costo"
+                pie={sugerido && !costoTocado ? `Sugerido: el último en ${categoria?.nombre} (${sugerido.referencia})` : "Opcional"}
+                inputMode="decimal"
+                placeholder="0.00"
+                value={costoBase}
+                onChange={(e) => {
+                  setCostoTocado(true);
+                  // La misma limpieza que las celdas de la tabla: «S/ 59» pegado o «59,90» se leen bien (/chaos 2026-10-28).
+                  setCostoBase(limpiarPrecio(e.target.value));
+                }}
+              />
+              <CampoMonto etiqueta="Precio de venta" pie="Para todas las tallas y colores" inputMode="decimal" placeholder="0.00" value={precioBase} onChange={(e) => setPrecioBase(limpiarPrecio(e.target.value))} />
+              <div>
+                <p className="label-cayla text-[11px] text-tinta/65">Margen</p>
+                <p
+                  className={`font-display mt-1.5 pb-1 text-[1.75rem] leading-none tabular-nums ${
+                    margen === null ? "text-tinta/25" : nivel === "negativo" ? "text-rojo-profundo" : nivel === "bajo" ? "text-ambar" : "text-verde"
+                  }`}
+                >
+                  {margen === null ? "—" : `${margen.toFixed(0)} %`}
+                </p>
+                {/* Tarea 8 de Recibir: el margen también en soles, con la misma cuenta y los mismos colores que la línea de Recibir. */}
+                {margen !== null && <LineaMargen costo={costoBase} precio={precioBase} soloSoles className="mt-1" />}
+                <p className="mt-1 text-sm text-taupe">{margen === null ? "Con el costo, se calcula" : nivel ? etiquetaNivel[nivel] : ""}</p>
+              </div>
             </div>
           </div>
           {nivel === "negativo" && (
@@ -1508,7 +1515,10 @@ export function NuevoProductoForm({
           onKeyDown={enterNoGuarda}
           className="space-y-4"
         >
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+          {/* El resumen a la derecha recién desde 1280 px de ventana (`xl:`): con el lateral fijo de 272 px, a 1024 la columna del formulario
+              quedaba en 328 px, menos que un celular. El corte es el mismo en FichaPrevia (aside y barra), PasoAlta (pie pegado),
+              ElegirColores (su barra) y alta-parecidas.css (la hoja a pantalla completa): se mueven juntos. */}
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
             <div className="min-w-0 space-y-2.5">
               {/* Los 4 puntos, pegados arriba mientras se baja por el paso (ADR-0260 act. 2026-10-06). */}
               <PuntosAvance pasos={avance} onAbrir={(n) => irAPaso(n as NumeroPaso)} />

@@ -241,9 +241,9 @@ export function CuandoSePaga({ derivado, lectura, pagado, flujo }: { derivado: P
                       />
                     ))}
                   </div>
-                  <div data-guia="pagos.meses">
+                  <div data-guia="pagos.meses" className="@container">
                     <p className="label-cayla mb-2 text-[11px] font-bold text-taupe">Lo que sale de caja, mes a mes</p>
-                    <div className="grid grid-cols-2 gap-3 min-[640px]:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-3 @min-[40rem]:grid-cols-4">
                       {meses.map((m) => (
                         <TarjetaCifra key={m.clave} etiqueta={m.nombre} valor={m.monto > 0 ? solesEnterosES(m.monto) : "—"} tono={m.monto > 0 ? undefined : "text-taupe"}>
                           {m.monto > 0 ? "con IGV" : "sin pagos"}
@@ -303,7 +303,7 @@ export function CuandoSePaga({ derivado, lectura, pagado, flujo }: { derivado: P
                     Descartar cambios
                   </Boton>
                 )}
-                <Boton type="button" peso="primario" cargando={guardando} disabled={!puedeGuardar || sinNadaPorComprar} title={!valido ? "Los pagos tienen que sumar 100 %" : guardado && !cambio ? "No cambiaste nada" : undefined} onClick={() => void guardar()}>
+                <Boton type="button" peso="primario" cargando={guardando} disabled={!puedeGuardar || sinNadaPorComprar} title={sinNadaPorComprar ? "No hay nada por pedir" : !valido ? "Los pagos tienen que sumar 100 %" : guardado && !cambio ? "No cambiaste nada" : undefined} onClick={() => void guardar()}>
                   Guardar cómo se paga
                 </Boton>
               </div>

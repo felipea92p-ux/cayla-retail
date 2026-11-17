@@ -412,3 +412,37 @@ Felipe decidió cinco el 2026-11-14:
 antes que cualquier página, así que desde el 2026-11-13 la fila «Campañas y ofertas» abría Insignias, y quien solo tenía el módulo
 Campañas caía en un bucle de redirecciones. Se quitó el alias, y `lib/redirects-rutas-vivas.test.ts` falla si un alias fijo de la config
 tiene como origen una ruta con `page.tsx`. Al mover una pantalla a una ruta que ya tuvo un alias, el alias se borra en el mismo cambio.
+
+## Actualización 2026-11-16 — la casuística completa y lo que se subsanó
+
+Una revisión de punta a punta (`docs/backlog/2026-11-16-ofertas-promociones-casos.md`), sobre una copia de la base local con todas las
+migraciones: las 16 suites del módulo en verde (510 de 510) y 17 casos por subsanar. Felipe ordenó arreglarlos todos y decidió las cuatro
+reglas de dinero el mismo día:
+
+1. **Venta sin conexión con una oferta que cambió: «Se acepta y queda marcada»** (`20261116174000`). Si la venta trae `x-momento` y la parte de
+   su oferta no cuadra con la de hoy, la base acepta lo que cobró la caja —dentro de los candados de siempre— y guarda en
+   `ventas.oferta_cambiada` lo cobrado y lo que habría pedido; el historial lo muestra («Oferta que cambió»). En línea se sigue rechazando.
+   DESCARTÉ reconstruir la oferta de esa hora desde su historial.
+2. **El monto se mide sobre lo que paga la prenda** (precio − descuento a mano; `20261116173000`), en la base y en la caja. Los apartados
+   siguen a precio de lista: queda en el backlog.
+3. **El mismo tope de 70 % para toda forma** (`campana_reglas_tope_70`, escalones en soles hasta el 70 % de su monto). Un «N por S/» depende de
+   los precios del día: la hoja avisa si no ahorra o si regala más del 70 %.
+4. **Las bolsas no cuentan para un monto de toda la compra** ni reciben su parte.
+
+Y sin regla nueva de negocio:
+
+- **Candados** (`20261116172000`): ninguna cesión cierra un ciclo (con tres ofertas cediéndose en círculo la caja no cobraba ninguna);
+  acortar las fechas o las tiendas de una campaña no puede dejar fuera a una oferta que todavía rige (las ya terminadas no cuentan, así
+  «Repetir en 2027» sigue funcionando); y las revisiones de choques van de a una (`pg_advisory_xact_lock`).
+- **Rendimiento** (`20261116175000`, `20261116180000`): `fn_campanas_en_sede` calla a la oferta que cedió de una vez (`fn_variantes_de_regla`)
+  y no prenda por prenda: con tres cesiones la lectura de Vender pasaba de 19 ms a 11 s y la API la cortaba. La huella de la tienda web
+  conoce las funciones nuevas.
+- **La caja**: un descuento a mano menor que la campaña queda detrás de ella (`manualTrasCampana`) y vuelve si la prenda se va con su 3x2 o
+  la campaña termina; «Quedaría en» arma la línea igual que «Aplicar» y no deja aplicar algo que dejaría una prenda bajo S/ 0.
+- **Apartar** relee campañas y ofertas cada 10 s (`useOfertasAlDia`) y se rehace si cambiaron.
+- **Textos**: «lleva 0 más» (caja, Apartar y bolsa web), «la caja cobra la que más le ahorra» (ahora «solo una de las dos»), el pase que
+  daba por respondidas prendas de insignias apagadas, y el aviso «por debajo del costo» en toda forma.
+
+Pruebas nuevas: `pruebas:ofertas-candados` (17), `pruebas:ofertas-tope-y-monto` (18), `pruebas:venta-sin-conexion-oferta` (10), y casos en
+`lib/ofertas-de-grupo.test.ts`, `lib/vender-reglas.test.ts`, `lib/descuento-cuenta-reglas.test.ts`, `lib/campana-reglas.test.ts`,
+`lib/apartar-ofertas-al-dia.test.ts` y `lib/ventas-historial-reglas.test.ts`.

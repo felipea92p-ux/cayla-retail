@@ -312,7 +312,7 @@ function PildoraFechas({ desde, hasta, onCambiar }: { desde: string; hasta: stri
       disparador={
           <button
             type="button"
-            className={`label-cayla group relative flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-[11px] outline-none transition-colors ${
+            className={`label-cayla group relative flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-[11px] outline-none transition-colors pointer-coarse:min-h-11 ${
               activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"
             }`}
           >

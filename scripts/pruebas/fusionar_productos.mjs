@@ -1011,6 +1011,69 @@ select 'x', :'res', (select max(costo) from retail.variantes where producto_id =
   )
 );
 
+// 50-54 · Lo que se ve es lo que se cobra (20261116203000): la huella de los precios por sede que vio la persona y el aviso de costo.
+const VISTA_PREVIA_TRU = `${sesion(FELIPE)}
+select retail.previsualizar_fusion_productos('${EMMA}', array[:'d']::uuid[], '{}'::jsonb) -> 'precios_sede' as vistos \\gset
+${COMO_POSTGRES}`;
+
+caso("50 · si alguien pone precio de tienda a una ficha DESPUÉS de la vista previa, la fusión frena (PT409) y no escribe nada", () =>
+  espera(
+    correr(`${COMO_POSTGRES}${PREP_SEDE}${precioDeLaPrenda(":'d'", 169)}${VISTA_PREVIA_TRU}
+${precioDeLaPrenda(`'${EMMA}'`, 150)}${sesion(FELIPE)}
+select pg_temp.intento($$select retail.fusionar_productos('${EMMA}', array['$$ || :'d' || $$']::uuid[], jsonb_build_object('precios_sede_vistos', '$$ || :'vistos' || $$'::jsonb))$$) as res \\gset
+${COMO_POSTGRES}
+select 'x', split_part(:'res', '|', 1), split_part(:'res', '|', 2), (select estado from retail.productos where id = :'d'),
+  retail.fn_precio_en_sede(:'em', '${TRUJILLO}');`),
+    "PT409|version_cambiada|activo|150.00"
+  )
+);
+
+caso("51 · con la misma lista que vio la persona, la fusión sigue y cobra lo que la hoja mostró", () =>
+  espera(
+    correr(`${COMO_POSTGRES}${PREP_SEDE}${precioDeLaPrenda(":'d'", 169)}${VISTA_PREVIA_TRU}
+${sesion(FELIPE)}
+select pg_temp.intento($$select retail.fusionar_productos('${EMMA}', array['$$ || :'d' || $$']::uuid[], jsonb_build_object('precios_sede_vistos', '$$ || :'vistos' || $$'::jsonb))$$) as res \\gset
+${COMO_POSTGRES}
+select 'x', :'res', retail.fn_precio_en_sede(:'em', '${TRUJILLO}'), retail.fn_precio_en_sede(:'es', '${TRUJILLO}');`),
+    "SIN_ERROR|169.00|169.00"
+  )
+);
+
+caso("52 · una pantalla de antes (sin `precios_sede_vistos`) fusiona como siempre, aunque los precios hayan cambiado", () =>
+  espera(
+    correr(`${COMO_POSTGRES}${PREP_SEDE}${precioDeLaPrenda(":'d'", 169)}${precioDeLaPrenda(`'${EMMA}'`, 150)}${sesion(FELIPE)}
+select pg_temp.intento($$select retail.fusionar_productos('${EMMA}', array['$$ || :'d' || $$']::uuid[])$$) as res \\gset
+${COMO_POSTGRES}
+select 'x', :'res', (select estado from retail.productos where id = :'d');`),
+    "SIN_ERROR|descontinuado"
+  )
+);
+
+caso("53 · la huella no frena por la forma: «169.0» contra «169.00», claves en otro orden y el aviso de costo no cuentan", () =>
+  espera(
+    correr(`${COMO_POSTGRES}${PREP_SEDE}${precioDeLaPrenda(":'d'", 169)}${VISTA_PREVIA_TRU}
+select jsonb_agg(jsonb_set(s, '{productos}', (select jsonb_agg(p || jsonb_build_object('precio', ((p ->> 'precio')::numeric(12,1))::text::jsonb, 'bajo_costo', true))
+                                                  from jsonb_array_elements(s -> 'productos') p))) as otra
+  from jsonb_array_elements(:'vistos'::jsonb) s \\gset
+${sesion(FELIPE)}
+select pg_temp.intento($$select retail.fusionar_productos('${EMMA}', array['$$ || :'d' || $$']::uuid[], jsonb_build_object('precios_sede_vistos', '$$ || :'otra' || $$'::jsonb))$$) as res \\gset
+${COMO_POSTGRES}
+select 'x', :'res';`),
+    "SIN_ERROR"
+  )
+);
+
+caso("54 · la vista previa marca la ficha cuyo precio de tienda quedaría bajo el costo de una talla (y no la que no)", () =>
+  espera(
+    correr(`${COMO_POSTGRES}${PREP_SEDE}${precioDeLaPrenda(":'d'", 20)}
+update retail.variantes set costo = 32 where producto_id = '${EMMA}' and activo;
+${VISTA_PREVIA_TRU}
+select 'x', (select string_agg(case when (p ->> 'id') = :'d' then 'repetida' else 'queda' end || '=' || (p ->> 'bajo_costo'), ',' order by p ->> 'queda')
+               from jsonb_array_elements(:'vistos'::jsonb -> 0 -> 'productos') p);`),
+    "repetida=true,queda=false"
+  )
+);
+
 // ---------------------------------------------------------------------------------------------- correr
 
 let fallas = 0;

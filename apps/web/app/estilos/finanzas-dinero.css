@@ -338,7 +338,9 @@
     display: flex;
     justify-content: flex-end;
   }
-  @media (max-width: 640px) {
+  /* El par se apila según el ancho del detalle, no el de la ventana: a 1024 px la lista de bancos le deja 292 px y a 768 apilado, 436;
+     con el hilo de 90 px y «Marcar revisada» a la derecha, el monto y la fecha quedaban sin espacio y se montaban sobre el hilo. */
+  @container din-cuad-det (max-width: 600px) {
     .din-par {
       grid-template-columns: minmax(0, 1fr) auto;
     }
@@ -930,7 +932,10 @@
     height: 34px;
     border-radius: 50%;
     background: var(--c);
-    color: var(--color-crema-fija);
+    /* El fondo es el token de la etapa (verde, pizarra, rojo profundo, taupe), que en oscuro se aclara: la letra se invierte con él, como
+       `bg-tinta text-crema`. Con `crema-fija` quedaba crema sobre verde claro en oscuro (1,6 a 2:1); así pasa en los dos temas (claro 5,2 a
+       7,6:1; oscuro 7,8 a 9,4:1). No es un color de dato: el de la etapa ya cambia con el tema. */
+    color: var(--color-crema);
     font-size: 11px;
     font-weight: 700;
   }
@@ -1161,6 +1166,14 @@
   }
   .dp-dueno-filas > li + li {
     border-top: 1px dashed var(--color-sand);
+  }
+  /* Tarjeta angosta (el celular, la tableta): el rótulo de 7–9 rem dejaba ~25 px a cada barra y no se veía cuánto puso ni cuánto sacó.
+     El rótulo va arriba y las barras a lo ancho. */
+  @container (max-width: 480px) {
+    .dp-dueno-filas > li {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 4px;
+    }
   }
   .dp-dueno-k {
     font-size: 14px;

@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
-import { objecionFotoProducto, subirFotoProducto, subirParDeCatalogo } from "@/lib/producto-fotos";
+import { abrirFotosElegidas } from "@/lib/foto-elegida-cliente";
+import { subirFotoProducto, subirParDeCatalogo } from "@/lib/producto-fotos";
 import { pedirFotoDeCatalogo } from "@/lib/foto-catalogo-cliente";
 import type { DatosDePrenda } from "@/lib/ficha-foto-ia";
-import { avisoIANoRespondio, esFotoIA, moldeDeLaPrenda, originalDeLaFotoIA } from "@/lib/foto-catalogo-reglas";
+import { avisoIANoRespondio, esFotoIA, moldeAlPreparar, moldeDeLaPrenda, originalDeLaFotoIA } from "@/lib/foto-catalogo-reglas";
 import type { FotoLocal } from "@/lib/fotos-por-color-reglas";
 import type { FotoSubida } from "./useSubirFotos";
 import { HojaCatalogoIA, type PedidoCatalogo } from "./HojaCatalogoIA";
@@ -70,16 +71,16 @@ export function useInterruptorIA(): [boolean, (v: boolean) => void] {
   return [encendido, cambiar];
 }
 
-/** La foto de frente que llega a la hoja: la misma validación que una subida normal. `null` si no sirve (y ya se avisó). */
-export function frenteValido(archivos: File[]): File | null {
-  const frente = archivos[0];
-  if (!frente) return null;
-  const objecion = objecionFotoProducto(frente);
-  if (objecion) {
-    avisar.error("Esa foto no se puede usar", { detalle: `${frente.name}: ${objecion}` });
-    return null;
-  }
-  return frente;
+/**
+ * Las fotos que llegan a la hoja de «Catálogo con IA», abiertas como cualquier foto (`abrirFotosElegidas`): la 1.ª es el frente, la 2.ª la
+ * espalda y la 3.ª el detalle, cada una en SU lugar (si la espalda no abre, el detalle no pasa a ser la espalda). `null` si el frente no sirve
+ * (y ya se avisó). Antes solo se revisaba el frente: una espalda que no abría llegaba a la IA, que se paga por llamada.
+ */
+export async function fotosParaLaHoja(archivos: File[]): Promise<{ frente: File; espalda: File | null; detalle: File | null } | null> {
+  if (!archivos[0]) return null;
+  const { porPosicion } = await abrirFotosElegidas(archivos.slice(0, 3), (titulo, detalle) => avisar.error(titulo, { detalle }));
+  const [frente, espalda = null, detalle = null] = porPosicion;
+  return frente ? { frente, espalda, detalle } : null;
 }
 
 export function useCatalogoIA({
@@ -140,10 +141,11 @@ export function useCatalogoIA({
       let molde: Blob | null = null;
       // Si este color resulta ser el molde, `soltar` le avisa a los que lo esperan (con su foto, o `null` si la IA falló).
       const esMolde: { soltar: ((b: Blob | null) => void) | null } = { soltar: null };
-      const url = moldeDeLaPrenda(colores, fotosRef.current);
-      // La foto «para todos los colores» no usa molde ni lo es: puede mostrar la prenda en otra forma.
-      if (p.color === null) molde = null;
-      else if (url) molde = await fetch(url).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+      // La misma regla que la hoja (`moldeAlPreparar`): rehacer el color que ES el molde va sin molde (rehacer el pantalón de lino que salió buzo
+      // mandaba ese mismo buzo, o un color copiado de él, como molde: revisión del 2026-11-16); la foto «para todos los colores» tampoco usa molde.
+      const decision = moldeAlPreparar(colores, fotosRef.current, p.color);
+      if (decision.tipo === "molde") molde = await fetch(decision.url).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+      else if (decision.tipo === "sin-molde") molde = null;
       else if (moldeEnCurso.current) molde = await moldeEnCurso.current.promesa;
       else {
         // Este color es el molde de los que vengan detrás mientras se prepara.
@@ -213,8 +215,7 @@ export function useCatalogoIA({
     abrir: (archivos, color) => {
       // El foco vuelve al botón que abrió la hoja (`HojaCatalogoIA` → `alCerrarEnfocar`).
       volverA.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
-      const frente = frenteValido(archivos);
-      if (frente) setHoja({ color, frente, espalda: archivos[1] ?? null, detalle: archivos[2] ?? null });
+      void fotosParaLaHoja(archivos).then((fotos) => fotos && setHoja({ color, ...fotos }));
     },
     preparandoDe: (color) => preparando.get(claveDe(color)) ?? null,
     preparandoAlgo: preparando.size > 0,

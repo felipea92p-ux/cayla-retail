@@ -343,3 +343,54 @@ describe("una rebaja y un 3x2 en la misma prenda: la que más ahorra (la misma d
     expect(porVariante.get("a")).toMatchObject({ ahorro: 50, dejaRebaja: 30, sinRebaja: { pct: 20, unidades: 3, de: 3 } });
   });
 });
+
+// Casuística del 2026-11-16 (ADR-0655, decisiones de Felipe): el monto sobre lo que paga la prenda, como `fn_ofertas_de_grupo` con
+// `descuento_manual` (20261116173000), y el descuento a mano que quedó detrás de la campaña vuelve si la prenda se va con su 3x2.
+describe("el monto sobre lo que paga la prenda (la misma de la base, 20261116173000)", () => {
+  const M = monto([[300, 30]]);
+  const conManual = (precio: number, manual: number, oferta: OfertaDeGrupo = M): LineaDeGrupo => ({ precio, cantidad: 1, oferta, modeloId: null, manual });
+  it("sin descuento a mano, 400 llega a S/ 300 y ahorra 30", () => {
+    expect(dicho([conManual(400, 0)])).toBe("1:30.00:0");
+  });
+  it("con −S/ 140 a mano paga 260: no llega", () => {
+    expect(dicho([conManual(400, 140)])).toBe("1:0.00:0");
+  });
+  it("con −S/ 50 a mano paga 350: llega y ahorra 30", () => {
+    expect(dicho([conManual(400, 50)])).toBe("1:30.00:0");
+  });
+  it("el reparto también va sobre lo pagado: 400 (−100) + 150 → 20 · 10", () => {
+    expect(dicho([conManual(400, 100), conManual(150, 0)])).toBe("1:20.00:0,2:10.00:0");
+  });
+  it("un 3x2 no mira el descuento a mano (se suma a su parte, Felipe 2026-11-13)", () => {
+    expect(dicho([conManual(79.9, 10, TRES_POR_DOS), conManual(49.9, 0, TRES_POR_DOS), conManual(39.9, 0, TRES_POR_DOS)])).toBe("1:18.79:0,2:11.73:0,3:9.38:0");
+  });
+  it("la caja le pasa al monto el descuento a mano de la línea", () => {
+    const MONTO_DE = { ...M, modeloId: null, nombre: "Gasta y ahorra", titular: "S/ 30 menos" };
+    const montos = [{ ...MONTO_DE, cuenta: "compra" as const, variantes: null, excluidas: new Set<string>() }];
+    const linea = (clave: string, precio: number, descuento: number) => ({ claveLinea: clave, varianteId: clave, cantidad: 1, precioUnitario: precio, descuentoUnitario: descuento, razonDescuento: descuento > 0 ? "cerrar_venta" : "" });
+    expect(carritoConGrupos([linea("a", 400, 140)], {}, montos).lineas[0].descuentoGrupoUnitario).toBe(0);
+    expect(carritoConGrupos([linea("a", 400, 50)], {}, montos).lineas[0].descuentoUnitario).toBe(80);
+  });
+});
+
+describe("el descuento a mano detrás de la campaña vuelve si la prenda se va con su 3x2 (casuística 2026-11-16)", () => {
+  const OFERTA = { ...TRES_POR_DOS, modeloId: null, nombre: "Verano 3x2", titular: "3 x 2" };
+  const CAMPANA = { etiquetaId: "c", nombre: "Navidad", pct: 10 };
+  const TRAS = { monto: 2.5, razon: "cerrar_venta", razonOtro: "", argumento: "" };
+  const linea = (clave: string, tras: typeof TRAS | null) => ({
+    claveLinea: clave, varianteId: clave, cantidad: 1, precioUnitario: 50, descuentoUnitario: 5, razonDescuento: "campana", campana: CAMPANA, manualTrasCampana: tras,
+  });
+  it("tres polos a −10 % en un 3x2: gana el 3x2, la rebaja se va y el 5 % a mano se suma a su parte, con su motivo", () => {
+    const { lineas } = carritoConGrupos([linea("a", TRAS), linea("b", null), linea("c", null)], { a: OFERTA, b: OFERTA, c: OFERTA });
+    expect(lineas.map((l) => `${l.descuentoUnitario}:${l.descuentoGrupoUnitario}:${l.razonDescuento}`)).toEqual([
+      "19.17:16.67:cerrar_venta",
+      "16.67:16.67:",
+      "16.66:16.66:",
+    ]);
+  });
+  it("el ticket dibuja esa línea con su descuento a mano", () => {
+    const g = { titular: "3 x 2", nombre: "Verano", ahorro: 16.67, faltan: 0, sinRebaja: { pct: 10, unidades: 1, de: 1 } };
+    expect(lineaSinSuRebaja(linea("a", TRAS), g)).toMatchObject({ descuentoUnitario: 2.5, razonDescuento: "cerrar_venta" });
+    expect(lineaSinSuRebaja(linea("a", null), g)).toMatchObject({ descuentoUnitario: 0, razonDescuento: "" });
+  });
+});

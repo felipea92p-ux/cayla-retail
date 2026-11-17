@@ -2,6 +2,7 @@ import type { createClient } from "@/lib/supabase/client";
 import { rutaDeLaFoto } from "@/lib/foto-encuadre";
 import { rutaDelRecorte } from "@/lib/recorte-probador-reglas";
 import { rutaDeLaFotoIA } from "@/lib/foto-catalogo-reglas";
+import { PRODUCTO_FOTOS_MAX_BYTES, textoDeFalla } from "@/lib/foto-elegida-reglas";
 
 // Subida de fotos de producto desde el NAVEGADOR
 // (20260915224500_producto_fotos_temporada_venta_sin_stock.sql). Mismo
@@ -25,13 +26,14 @@ import { rutaDeLaFotoIA } from "@/lib/foto-catalogo-reglas";
 type Cliente = ReturnType<typeof createClient>;
 
 export const PRODUCTO_FOTOS_BUCKET = "retail-productos-fotos";
-export const PRODUCTO_FOTOS_MAX_BYTES = 5 * 1024 * 1024;
 const TIPOS_ACEPTADOS = ["image/jpeg", "image/png", "image/webp"] as const;
 
-export function objecionFotoProducto(f: File): string | null {
-  if (!(TIPOS_ACEPTADOS as readonly string[]).includes(f.type)) return "Solo se aceptan JPG, PNG o WebP.";
-  if (f.size <= 0) return "El archivo está vacío.";
-  if (f.size > PRODUCTO_FOTOS_MAX_BYTES) return `Pesa ${(f.size / (1024 * 1024)).toFixed(1)} MB; el máximo es 5 MB.`;
+/** La última revisión antes de subir. La de verdad (abrir la foto, sus bytes) la hace `foto-elegida-cliente.ts` al elegirla; los textos son
+ *  los mismos (`textoDeFalla`), para que una foto no se rechace con dos frases distintas según por dónde entró. */
+function objecionFotoProducto(f: File): string | null {
+  if (!(TIPOS_ACEPTADOS as readonly string[]).includes(f.type)) return textoDeFalla("tipo");
+  if (f.size <= 0) return textoDeFalla("vacia");
+  if (f.size > PRODUCTO_FOTOS_MAX_BYTES) return textoDeFalla("pesada", f.size);
   return null;
 }
 
@@ -57,7 +59,7 @@ export async function subirFotoProducto(supabase: Cliente, archivo: File): Promi
   if (objecion) return { error: objecion };
 
   const ruta = rutaDeLaFoto(crypto.randomUUID(), archivo.type);
-  if (!ruta) return { error: "Solo se aceptan JPG, PNG o WebP." };
+  if (!ruta) return { error: textoDeFalla("tipo") };
   const almacen = supabase.storage.from(PRODUCTO_FOTOS_BUCKET);
   const subida = await almacen.upload(ruta, archivo, { contentType: archivo.type, upsert: false });
   if (subida.error) return { error: leerErrorStorage(subida.error.message) };

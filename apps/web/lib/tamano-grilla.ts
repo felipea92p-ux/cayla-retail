@@ -24,15 +24,16 @@ export const ROTULO_TAMANO_GRILLA: Record<TamanoGrilla, string> = {
 
 /** Ancho MÍNIMO de una tarjeta en pantallas medianas y grandes (px). Las columnas que caben las decide el ancho DISPONIBLE
  *  (`auto-fill`), no el de la ventana: con el menú lateral abierto, una ventana de 1024 px deja ~550 px para las tarjetas, y
- *  contar columnas por ventana las dejaba de 100 px y con el texto cortado. Grande cabe 4 en una pantalla de 2000 px, como
- *  la grilla de siempre.
+ *  contar columnas por ventana las dejaba de 100 px y con el texto cortado. Grande mide al menos 300 px (antes 340): con el
+ *  lateral abierto, una ventana de 640 px deja 308 y una de 1024 deja 692, donde 340 desbordaba la página o dejaba una sola
+ *  tarjeta de 692 px. Así caben 2 a 1024 y 5 en una pantalla de 2000 px.
  *  @internal La prueba lo cruza con `CLASES_GRILLA`, que es lo que dibuja la pantalla. */
-export const ANCHO_MINIMO_TARJETA: Record<TamanoGrilla, number> = { grande: 340, mediano: 250, pequeno: 180 };
+export const ANCHO_MINIMO_TARJETA: Record<TamanoGrilla, number> = { grande: 300, mediano: 250, pequeno: 180 };
 
 /** Columnas: en el celular, un número fijo (grande 1 · mediano 2 · pequeño 3); desde `sm`, las que quepan a su ancho mínimo.
  *  Las clases van enteras y a la vista: Tailwind solo genera lo que puede leer escrito. */
 export const CLASES_GRILLA: Record<TamanoGrilla, string> = {
-  grande: "grid-cols-1 gap-5 sm:grid-cols-[repeat(auto-fill,minmax(340px,1fr))]",
+  grande: "grid-cols-1 gap-5 sm:grid-cols-[repeat(auto-fill,minmax(300px,1fr))]",
   mediano: "grid-cols-2 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(250px,1fr))]",
   pequeno: "grid-cols-3 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(180px,1fr))]",
 };

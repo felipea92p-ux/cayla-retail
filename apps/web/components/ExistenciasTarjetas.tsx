@@ -380,10 +380,11 @@ export function ExistenciasTarjetas({
                       title={`${h.color ?? "Sin color"}${propia ? " (el que ves)" : " · ver este color"}`}
                       aria-label={`${h.color ?? "Sin color"}${n ? `: ${n} ${n === 1 ? "talla" : "tallas"} ${marcaDelFiltro?.etiqueta.toLocaleLowerCase("es") ?? ""}` : ""}`}
                       aria-checked={propia}
-                      // El área para tocar crece sin que el círculo: 24 px con mouse y 32 con el dedo (`pointer-coarse`); en la chapa
-                      // caben 5 puntos en 86 px. El color que se ve, bien distinto (Felipe, 2026-10-07): más grande, con aro oscuro separado.
-                      className={`relative shrink-0 cursor-pointer rounded-full outline transition-[transform,width,height] after:absolute after:-inset-1.5 after:content-[''] pointer-coarse:after:-inset-2.5 hover:scale-110 focus-visible:outline-2 focus-visible:outline-tinta focus-visible:outline-offset-[3px] ${
-                        propia ? "onda-color h-4 w-4 outline-[1.5px] outline-offset-[1.5px] outline-tinta" : "h-3 w-3 outline-1 outline-tinta/20"
+                      // Con mouse el área para tocar crece sin que el círculo (24 px); en la chapa caben 5 puntos en 86 px. Con el dedo,
+                      // `.vitrina-punto` lo DIBUJA de 44 px (tacto.css, decisión 2B de Felipe, 2026-11-16) y la chapa se desliza de lado.
+                      // El color que se ve, bien distinto (Felipe, 2026-10-07): más grande, con aro oscuro separado.
+                      className={`vitrina-punto relative shrink-0 cursor-pointer rounded-full outline transition-[transform,width,height] after:absolute after:-inset-1.5 after:content-[''] hover:scale-110 focus-visible:outline-2 focus-visible:outline-tinta focus-visible:outline-offset-[3px] ${
+                        propia ? "onda-color h-4 w-4 outline-[1.5px] outline-offset-[1.5px] outline-tinta" : "h-3 w-3 outline-1 outline-tinta/40"
                       }`}
                       style={{ background: fondoDelPunto(h.colorHex, h.colorTonos) ?? "conic-gradient(from 20deg, #C0272D, #F2C14E, #3E7A4E, #1B2A4A, #5B3A78, #C0272D)" }}
                     >

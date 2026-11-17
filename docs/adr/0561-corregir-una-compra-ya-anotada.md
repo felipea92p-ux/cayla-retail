@@ -38,3 +38,18 @@ Una plata que no vuelve (o que baja dos veces) en «Tienes para comprar»; una p
 ## Para pegar en producción (con el OK de Felipe)
 
 Una sola parte (tabla nueva vacía con RLS, funciones y permisos; sin políticas ni `drop trigger`), después de `20261027231000`. Idempotente. El deploy de la web puede ir antes: sin la función, la hoja dice «No se pudo leer la compra» y no rompe nada más.
+
+## Actualización 2026-11-16 — corregir con el envío todavía sin recibir (`20261116215000`, en producción desde el 2026-11-16)
+
+**El caso.** El ENV-24 de Trujillo decía «Aretes: dijeron 93, contaste 84» y «Por definir: 13 sin contar». No faltaba nada: la compradora anotó mal la cantidad de aretes y, al leer las notas, tres prendas que nunca se compraron. Nadie podía arreglarlo desde el sistema: la regla 4 («una prenda no baja de lo que ya salió en un envío») cerraba la puerta apenas la compra viajaba, y no había cómo quitar una prenda. Ese día las 13 se quitaron a mano en la base, con su copia en Actividad (`envio_lineas_quitadas`).
+
+**Lo que cambia (pedido de Felipe: «que se arregle desde el sistema»):**
+
+1. **Bajar lo que viajó**, mientras lo que sobra esté en un envío en camino o abierto que la tienda todavía no recibió. Lo que la tienda ya recibió (entradas, faltantes, pendientes, separaciones o salidas de esa línea, `fn_despacho_item_fijo`) no baja. La línea del envío baja con la compra, del envío más nuevo al más viejo, y queda con al menos 1. Lo contado no frena ni se toca: se compara después con lo corregido. El envío sube de versión, así que quien cuenta recarga antes de cerrar. Reemplaza a la regla 4 de arriba.
+2. **Quitar una prenda anotada por error** («Quitar: se anotó por error» en el formulario de la prenda). Sale de la compra y de su envío si la tienda no la empezó a contar ni anotó nada de ella, no tiene factura ni correcciones anteriores y no es la única prenda de su envío. Una compra se queda con al menos una prenda. Si la orden de una tienda queda vacía, se anula con su motivo («Corrección de la compra: se quitaron o se movieron todas sus prendas»).
+3. **La fila se borra; el rastro queda.** La línea nunca existió en la realidad y no movió stock ni dinero. Archivarla con una columna obligaría a filtrarla en las decenas de funciones que leen esas tablas, y la que se olvide sumaría prendas fantasma. El rastro es `compra_correcciones` con `campo = 'quitada'`, lo que decía («Lentes · 3 × S/ 5.40») y su id en `prenda_quitada_id`, una columna sin llave. El índice único del rastro la incluye, para que dos prendas quitadas en la misma corrección no choquen.
+4. **El dinero sigue la regla 2 de siempre:** el papel acompaña a las prendas solo si ya cuadraba, y lo escrito a mano en «Papel y pago» manda. La hoja muestra la cuenta antes de guardar.
+
+**Quién:** la dueña de la compra, como antes. Que un líder pueda corregir la compra de otra persona quedó propuesto y sin decidir.
+
+**Cómo se verificó:** `pnpm pruebas:corregir-compra-envio-abierto` (12 casos con ROLLBACK, en una base desechable levantada desde cero con todas las migraciones), más las de siempre en verde (`compras-simple-corregir` 29/29, `mis-compras-por-definir` 13/13), `lib/corregir-compra-reglas.test.ts` (46), la suite de la web y la hoja en el navegador con una compra inventada (escritorio y 375 px).

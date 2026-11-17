@@ -377,7 +377,7 @@ export function RegistrarPagoModal({
                   )}
                   {/* La cascada: cuánto del saldo cubre este pago. Se llena al abrir. Verde = queda en cero; rojo = se pasa del saldo. */}
                   <BarraAvance pct={armada && compra.saldo > 0 ? (suma / compra.saldo) * 100 : 0} alto="fina" tono={excede ? "rojo" : llena ? "verde" : "tinta"} decorativa className="mt-1.5 sm:col-span-3" />
-                  <span className={`mt-1 flex min-h-[18px] items-center gap-1.5 text-xs sm:col-start-4 sm:justify-end ${excede ? "text-rojo" : llena ? "text-verde-profundo" : "text-tinta/55"}`} aria-live="polite">
+                  <span className={`mt-1 flex min-h-5 items-center gap-1.5 text-sm sm:col-start-4 sm:justify-end ${excede ? "text-rojo" : llena ? "text-verde-profundo" : "text-tinta/55"}`} aria-live="polite">
                     {excede ? (
                       "Supera el saldo"
                     ) : llena ? (
@@ -439,7 +439,7 @@ export function RegistrarPagoModal({
                   </>
                 )}
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-tinta/65">
+              <p className="mt-1 text-sm leading-relaxed text-tinta/65">
                 {!un ? (
                   <>
                     Se registra como <b className="font-semibold">un solo pago repartido en {lineas.length} medios</b>: en cada medio queda su línea (la del banco, la de caja…) y el comprobante conserva su propio historial de pagos.
@@ -465,7 +465,7 @@ export function RegistrarPagoModal({
                   cabe en media fila). */}
               <div className="-mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
                 <div className="pie-acciones">
-                  <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55 max-sm:basis-full">Todo o nada: si el comprobante ya no admite el monto, no se registra.</p>
+                  <p className="min-w-0 flex-1 basis-48 text-sm text-tinta/55 max-sm:basis-full">Todo o nada: si el comprobante ya no admite el monto, no se registra.</p>
                   <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
                     Cancelar
                   </button>

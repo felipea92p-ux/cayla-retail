@@ -397,7 +397,7 @@ export const GUIA_APARTADOS: Guia = {
       opcional: true,
       solo: "escritorio",
       titulo: "Cobrar el saldo y entregar",
-      texto: "Con el apartado elegido, cobras lo que falta (efectivo, tarjeta o Yape) y la prenda se entrega con su boleta o factura por el total. Si se apartó por error o el cliente ya no la quiere, «Liberar apartado» deja la prenda disponible y el adelanto queda por devolver. En la demo no se toca.",
+      texto: "Con el apartado elegido, cobras lo que falta (efectivo, tarjeta o Yape) y la prenda se entrega con su boleta o factura por el total. Si se apartó por error o el cliente ya no la quiere, «Liberar apartado» deja la prenda disponible, el adelanto queda por devolver y te ofrece avisarle por WhatsApp. En la demo no se toca.",
     },
     {
       id: "todos",
@@ -433,7 +433,7 @@ export const GUIA_APARTADOS: Guia = {
       ancla: "apartados.lista",
       opcional: true,
       titulo: "La lista",
-      texto: "Toca un apartado para ver todo: cada pago con su día y hora, cómo pagó y quién lo cobró. Desde ahí registras un abono o lo aplazas 3 días, 7 o hasta otra fecha. Si vence y no vuelve, la prenda regresa al stock sola y aquí te avisa que falta devolverle el adelanto.",
+      texto: "Toca un apartado para ver todo: cada pago con su día y hora, cómo pagó y quién lo cobró. Desde ahí registras un abono o lo aplazas 3 días, 7 o hasta otra fecha. Si vence y no vuelve, la prenda regresa al stock sola: aquí te avisa que falta devolverle el adelanto, y con el ícono del mensaje le avisas que se canceló.",
     },
     {
       id: "pedidos",

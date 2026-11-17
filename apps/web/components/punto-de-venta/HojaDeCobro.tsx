@@ -6,13 +6,15 @@ import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { lecturaDelRecibido, type MaquinaDeCobro, maquinasPara, montosSugeridos, nombreMaquina, type PagoAplicado, preguntaMaquina } from "@/lib/vender-reglas";
 import type { NumeroQueDar } from "@/lib/cobro-por-dueno-reglas";
-import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
+import { LEY_REDONDEO, NOMBRE_CORTO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { CLASE_MONTO_ILEGIBLE, EntradaMonto, atributosMontoTexto } from "@/components/ui/CampoMonto";
 import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
 import { money } from "@/components/PuntoDeVenta";
 import { CerrarHoja } from "@/components/punto-de-venta/CerrarHoja";
+import { CabezaPaso } from "@/components/punto-de-venta/CabezaPaso";
 import { montoIlegible, numeroDeMonto } from "@/lib/monto-plata-reglas";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
+import { useDespertarAyudante } from "@/components/impresion/imprimirBoleta";
 
 type TipoVenta = Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">;
 
@@ -22,10 +24,6 @@ const TIPOS: { tipo: TipoVenta; icono: ReactNode }[] = [
   { tipo: "nota_venta", icono: <StickyNote className="h-5 w-5" aria-hidden /> },
 ];
 
-/** Nombre corto de un medio para una ficha muy angosta (menos de 6 rem: una tablet a 1024 px): «Transferencia» no cabe entera a un
- *  tamaño legible. Los dos nombres van en la ficha y el CSS (`.hoja-cobro-nombre-corto`) muestra solo uno; el `title` sigue diciendo el
- *  nombre entero. */
-const NOMBRE_CORTO: Partial<Record<MetodoPagoVenta, string>> = { transferencia: "Transf." };
 const SIN_MAQUINAS: readonly MaquinaDeCobro[] = [];
 
 /** Los colores de la línea bajo los billetes: lo exacto va en verde, lo que falta en rojo y el vuelto neutro (Felipe 2026-10-05). */
@@ -127,6 +125,8 @@ export function HojaDeCobro({
   /** Los comprobantes que esta sede puede emitir (`tiposDeComprobanteDeLaSede`): solo los que tienen serie. */
   tipos?: readonly TipoVenta[];
 }) {
+  // Despierta al ayudante de la Mac: al imprimir, la boleta sale en 0,5 s y no en 1,1 (ADR-0670).
+  useDespertarAyudante();
   const cuerpoRef = useRef<HTMLDivElement>(null);
   // «Otro»: lo escrito se guarda como texto mientras se edita (con coma y todo) y se lee con la regla de plata (ADR-0419): convertirlo en
   // cada tecla borraba la coma de «2,» a mitad de escribir. Lo que no se entiende no cuenta como recibido y queda en rojo.
@@ -451,48 +451,6 @@ export function HojaDeCobro({
             {prendas} {prendas === 1 ? "prenda" : "prendas"}
           </p>
         </div>
-      )}
-    </div>
-  );
-}
-
-/** El título de un paso: número (✓ al completarlo), nombre, la palabra «Sigue» o «Elige uno» y su estado a la derecha. También lo usa
- *  la hoja del descuento (`PanelDescuento`): los dos pasos a paso de Vender se ven igual. */
-export function CabezaPaso({
-  numero,
-  titulo,
-  hecho,
-  pista,
-  pistaFuerte = true,
-  estado,
-}: {
-  numero: number;
-  titulo: string;
-  hecho: boolean;
-  pista: string | null;
-  pistaFuerte?: boolean;
-  estado: { ok: boolean; texto: string } | null;
-}) {
-  return (
-    <div className="hoja-cobro-cabeza-paso flex items-center gap-2.5">
-      <span
-        className={`hoja-cobro-numero grid shrink-0 place-items-center rounded-full border-[1.5px] font-bold transition-colors ${
-          hecho ? "border-verde bg-verde text-crema" : "border-tinta text-tinta"
-        }`}
-      >
-        {hecho ? <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> : numero}
-      </span>
-      <h3 className="label-cayla whitespace-nowrap text-[15px] font-bold text-tinta">{/* unificar-fijo: la cabeza numerada de un paso del cobro, con su pista y su estado */}{titulo}</h3>
-      {pista && (
-        <span className={`hilo-etiqueta ${pistaFuerte ? "" : "!text-taupe"}`}>
-          {pista}
-        </span>
-      )}
-      {estado && (
-        <span className={`ml-auto min-w-0 truncate text-sm font-semibold ${estado.ok ? "text-verde-profundo" : "text-ambar-profundo"}`}>
-          {estado.texto}
-          {estado.ok ? " ✓" : ""}
-        </span>
       )}
     </div>
   );

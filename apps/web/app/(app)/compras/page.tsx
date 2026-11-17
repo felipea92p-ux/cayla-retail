@@ -193,7 +193,8 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
       {/* Los estados dejan menos facturas en la MISMA lista (mismas columnas, mismas acciones): son un filtro de un valor y van
           con la píldora del sistema (ADR-0358, «Pestañas y segmentos», 2026-10-06), no con la pestaña en MAYÚSCULAS de la
           maqueta de ADR-0111. La vista sigue en la URL. */}
-      <nav aria-label="Vistas del historial" data-guia="compras.vistas" className="anim-entra pildoras-desliza gap-2 sm:flex-wrap" style={{ ["--i" as string]: 5 }}>
+      {/* `suppressHydrationWarning`: `FilasQueSeDeslizan` (app/layout.tsx) le pone `data-mas-izq`/`data-mas-der` desde afuera de React (como en <Pestanas>). */}
+      <nav aria-label="Vistas del historial" data-guia="compras.vistas" className="anim-entra pildoras-desliza gap-2 sm:flex-wrap" style={{ ["--i" as string]: 5 }} suppressHydrationWarning>
         {(
           [
             { clave: "todos", etiqueta: "Todos", conteo: resumen.registradas },

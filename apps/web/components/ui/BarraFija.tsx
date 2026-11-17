@@ -64,7 +64,7 @@ export function BarraFija({
       } ${className}`}
     >
       {medidor}
-      {aviso ? <div className="px-4 pt-2 text-xs empty:hidden sm:px-10">{aviso}</div> : null}
+      {aviso ? <div className="px-4 pt-2 text-sm empty:hidden sm:px-10">{aviso}</div> : null}
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3 sm:px-10">
         <div className={`${resumenMinimo ?? "min-w-0"} text-sm text-tinta/75 ${animada ? "basis-full sm:basis-0 sm:flex-1" : ""}`}>{resumen}</div>
         {/* Recibir (sin `visible`): el botón ocupa todo el ancho en celular; Por pagar (con `visible`): reparte sus acciones en la fila. */}

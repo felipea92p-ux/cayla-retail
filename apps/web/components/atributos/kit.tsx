@@ -21,8 +21,12 @@ import { Vacio } from "@/components/ui/Vacio";
  */
 
 /** Cinco tarjetas por fila en escritorio, dos en el celular: la misma medida en las seis pestañas, así la muestra no crece
- *  ni se corre al cambiar de una a otra. */
-export const GRILLA_ATRIBUTOS = "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5";
+ *  ni se corre al cambiar de una a otra. Las columnas las decide el ANCHO DE LA GRILLA, no el de la ventana: con el lateral
+ *  fijo de 272 px, una tablet de 768 deja 436 px y la regla de ventana (`md:grid-cols-4`) daba tarjetas de 100 px, más
+ *  angostas que en el celular, que recortaban «Aprobar / Rechazar». Cada tarjeta mide al menos 140 px y, como mucho, caben
+ *  cinco (el quinto de lo que queda, con 60 px de holgura para los cuatro huecos de 12 px): 308 px → 2, 436 → 2, 692 → 4,
+ *  968 o más → 5. */
+export const GRILLA_ATRIBUTOS = "grid gap-3 grid-cols-[repeat(auto-fill,minmax(max(140px,calc((100%_-_60px)/5)),1fr))]";
 
 type Busqueda = {
   valor: string;
@@ -136,9 +140,17 @@ function Insignia({ children }: { children: ReactNode }) {
 }
 
 /** La parte de arriba de la tarjeta que abre un detalle (Tejidos y Patrones: su foto y sus prendas). Las acciones del pie
- *  quedan fuera del botón: un clic en «Aprobar» nunca abre el detalle. */
-const BOTON_ARRIBA =
-  "group/muestra flex flex-1 flex-col gap-2 rounded-md text-left outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60";
+ *  quedan fuera del botón: un clic en «Aprobar» nunca abre el detalle. Su foco lo dibuja la placa (`FOCO_EN_LA_PLACA`), no
+ *  el botón: la muestra va posicionada y tapaba el anillo del botón por arriba. */
+const BOTON_ARRIBA = "group/muestra flex flex-1 flex-col gap-2 rounded-md text-left focus-visible:outline-none";
+
+/** Con Tab en el botón de arriba, la placa entera lleva el anillo del sistema (ADR-0351, el mismo de `mi-plata/TarjetaFoto`).
+ *  Antes el botón tenía `outline-none` y un anillo rojo al 60 % en el foco, y como `outline-none` deja `--tw-outline-style: none`,
+ *  el anillo rojo tampoco se pintaba: con Tab no se veía nada (auditoría /milimetro 2026-11-16, WCAG 2.4.7).
+ *  Solo el PRIMER hijo: «Reactivar» de una tarjeta desactivada también es un `<button>` hijo directo de la placa, y con
+ *  `>button` a secas su foco encendía la placa entera además de su propio anillo (dos anillos). */
+const FOCO_EN_LA_PLACA =
+  "has-[>button:first-child:focus-visible]:[outline:var(--foco-ancho)_solid_var(--foco-color)] has-[>button:first-child:focus-visible]:[outline-offset:var(--foco-separacion)]";
 
 /**
  * La tarjeta de un valor del vocabulario. Sin sombra (superficie pegada al fondo, ADR-0169): al pasar el mouse sube 2 px y
@@ -188,7 +200,7 @@ export function TarjetaAtributo({
   return (
     <div
       data-guia="vocabulario.tarjeta"
-      className={`tarjeta-valor group/etq card-cayla flex flex-col gap-2 p-4 transition-[transform,border-color] duration-260 ease-cayla hover:-translate-y-0.5 hover:border-tinta/25 ${
+      className={`tarjeta-valor group/etq card-cayla flex flex-col gap-2 p-4 transition-[transform,border-color] duration-260 ease-cayla hover:-translate-y-0.5 hover:border-tinta/25 ${FOCO_EN_LA_PLACA} ${
         apagada ? "opacity-60" : ""
       }`}
     >
@@ -234,7 +246,7 @@ export function DesactivarTarjeta({ onClick, cambiando = false }: { onClick: () 
       type="button"
       disabled={cambiando}
       onClick={onClick}
-      className="label-cayla ml-auto whitespace-nowrap text-[10px] text-tinta/55 underline-offset-4 opacity-0 transition-[opacity,color] duration-200 hover:text-tinta hover:underline focus:opacity-100 disabled:opacity-50 group-hover/etq:opacity-100 [@media(hover:none)]:opacity-100"
+      className="label-cayla area-dedo ml-auto whitespace-nowrap pointer-coarse:py-1 text-[10px] text-tinta/55 underline-offset-4 opacity-0 transition-[opacity,color] duration-200 hover:text-tinta hover:underline focus:opacity-100 disabled:opacity-50 group-hover/etq:opacity-100 [@media(hover:none)]:opacity-100"
     >
       {cambiando ? "Desactivando…" : "Desactivar"}
     </button>

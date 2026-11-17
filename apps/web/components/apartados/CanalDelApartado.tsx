@@ -20,6 +20,7 @@ export function CanalDelApartado({
   onDireccion,
   onTocarDireccion,
   deshabilitado = false,
+  compacta = false,
 }: {
   /** Los canales que opera la cuenta. */
   canales: readonly CanalVenta[];
@@ -32,27 +33,42 @@ export function CanalDelApartado({
   onDireccion: (texto: string) => void;
   onTocarDireccion?: () => void;
   deshabilitado?: boolean;
+  /** En la hoja del apartado (Felipe 2026-11-16, «A · Pasos como Cobrar»): «Se vende en» y el segmento en una sola fila. */
+  compacta?: boolean;
 }) {
   const online = esCanalOnline(canales, canal);
+  const eleccion =
+    canales.length === 1 ? (
+      // Un rol que opera un solo canal online: se ve fijo, para que se note por dónde vende.
+      <p className="rounded-xl bg-sand/50 px-3.5 py-2.5 text-[15px] text-tinta">{canales[0].nombre}</p>
+    ) : (
+      <SegmentoDeslizante
+        etiqueta="¿Por dónde se vende?"
+        valor={canal}
+        onCambio={onCanal}
+        opciones={canales.map((c) => ({ clave: c.clave, etiqueta: c.nombre }))}
+      />
+    );
   return (
     <fieldset disabled={deshabilitado} className="space-y-3.5" data-guia="apartados.canal">
-      <legend className="mb-2 flex items-center gap-1.5 text-sm text-tinta/50">
-        <Store className="h-3.5 w-3.5" aria-hidden /> La venta
-      </legend>
+      {compacta ? (
+        <legend className="sr-only">La venta</legend>
+      ) : (
+        <legend className="mb-2 flex items-center gap-1.5 text-sm text-tinta/50">
+          <Store className="h-3.5 w-3.5" aria-hidden /> La venta
+        </legend>
+      )}
 
-      <Campo etiqueta="¿Por dónde se vende?" sinPie>
-        {canales.length === 1 ? (
-          // Un rol que opera un solo canal online: se ve fijo, para que se note por dónde vende.
-          <p className="rounded-xl bg-sand/50 px-3.5 py-2.5 text-[15px] text-tinta">{canales[0].nombre}</p>
-        ) : (
-          <SegmentoDeslizante
-            etiqueta="¿Por dónde se vende?"
-            valor={canal}
-            onCambio={onCanal}
-            opciones={canales.map((c) => ({ clave: c.clave, etiqueta: c.nombre }))}
-          />
-        )}
-      </Campo>
+      {compacta ? (
+        <div className="flex items-center gap-3">
+          <span className="campo-etiqueta">Se vende en</span>
+          <div className="ml-auto w-48 shrink-0">{eleccion}</div>
+        </div>
+      ) : (
+        <Campo etiqueta="¿Por dónde se vende?" sinPie>
+          {eleccion}
+        </Campo>
+      )}
 
       {online && (
         <>

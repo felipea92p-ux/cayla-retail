@@ -561,7 +561,8 @@ function TallerDeTienda({
             etiqueta={
               <>
                 {etiqueta("horario", "Horario")}
-                <Chip tono="neutro" versalitas={false} className="ml-2">
+                {/* `chip-envuelve`: en el celular la ayuda baja de línea en vez de salirse 75 px de la tarjeta. */}
+                <Chip tono="neutro" versalitas={false} className="chip-envuelve ml-2">
                   Arrastra los bordes o la barra · el interruptor abre o cierra el día
                 </Chip>
               </>
@@ -611,7 +612,7 @@ function TallerDeTienda({
                 Tienes cambios sin guardar.
               </span>
             )}
-            <Boton peso="primario" cargando={guardando} disabled={!sucio} onClick={onGuardar}>
+            <Boton peso="primario" cargando={guardando} disabled={!sucio} title={sucio ? undefined : "No cambiaste nada"} onClick={onGuardar}>
               Guardar
             </Boton>
           </PieAcciones>
@@ -686,7 +687,7 @@ function Plazos({ parametros, guardar, onSucio }: { parametros: ParametrosTienda
             Tienes cambios sin guardar.
           </span>
         )}
-        <Boton peso="primario" cargando={guardando} disabled={!sucio} onClick={guardarPlazos}>
+        <Boton peso="primario" cargando={guardando} disabled={!sucio} title={sucio ? undefined : "No cambiaste nada"} onClick={guardarPlazos}>
           Guardar
         </Boton>
       </PieAcciones>

@@ -6,21 +6,12 @@
    tarjetas. Colores: solo tokens (ADR-0169). Las piezas vivas (componentes) están en components/finanzas/kit.tsx.
    ---- */
 @layer components {
-  /* Cifras de cabecera: cuatro tarjetas del mismo alto. */
+  /* Cifras de cabecera: tarjetas del mismo alto. Las columnas se acomodan solas al ancho (Gastos y Balance ponen tres: con cuatro fijas quedaba
+     un cuarto vacío a la derecha y, bajo 1080 px, la tercera sola en media fila): tres a lo ancho desde 1024, dos y una a 768, una a 375. */
   .fin-cifras {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
     gap: 14px;
-  }
-  @media (max-width: 1080px) {
-    .fin-cifras {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-  @media (max-width: 480px) {
-    .fin-cifras {
-      grid-template-columns: 1fr;
-    }
   }
 
   /* La vista integrada de los activos (ADR-0335): una tarjeta por sede y el total de CAYLA. Son cinco (cuatro sedes y el total):
@@ -148,9 +139,20 @@
     color: var(--color-tinta);
     transition: border-color 150ms;
   }
+  /* El foco del kit es el de la caja que se enciende (Felipe 2026-11-16, decisión 6A; ADR-0351 act.): borde de tinta y el halo difuminado.
+     Quien pidió más contraste o usa colores forzados recibe el anillo común de 2 px (antes no tenía ninguno). */
   .fin-control:focus {
     outline: none;
     border-color: var(--color-tinta); /* más fuerte que el reposo: un taupe aguado apagaría el campo justo al entrar */
+  }
+  .fin-control:focus-visible {
+    box-shadow: var(--pozo-foco-halo);
+  }
+  @media (forced-colors: active), (prefers-contrast: more) {
+    .fin-control:focus-visible {
+      outline: var(--foco-ancho) solid var(--foco-color);
+      outline-offset: var(--foco-separacion);
+    }
   }
   .fin-control:disabled,
   .fin-control[readonly] {
@@ -332,8 +334,8 @@
     overflow-x: auto;
   }
   /* El ancho lo da su tarjeta, no la ventana (tarea 119): con el lateral abierto, una ventana de 1024 px deja 650 para la tabla. Las que viven en una columna (flujo, utilidad,
-     una hoja) o traen su propio ancho siguen mirando la ventana: pasarían a fichas sin necesidad. `inline-size` colapsa dentro de un padre que se ajusta a su contenido: estas viven en una Superficie. */
-  .fin-tabla-wrap:has(> .fin-tabla:not(.fin-tabla-flujo, .fin-tabla-utilidad, .fin-tabla-hoja, [style])) {
+     una hoja, las campañas pasadas) o traen su propio ancho siguen mirando la ventana: pasarían a fichas sin necesidad. `inline-size` colapsa dentro de un padre que se ajusta a su contenido: estas viven en una Superficie. */
+  .fin-tabla-wrap:has(> .fin-tabla:not(.fin-tabla-flujo, .fin-tabla-utilidad, .fin-tabla-hoja, .fin-tabla-campanas, [style])) {
     container: fin-tabla / inline-size;
   }
   .fin-tabla {
@@ -1069,8 +1071,13 @@
   .fin-eerr tr.fin-eerr-sub td.fin-eerr-cons {
     background: color-mix(in oklab, var(--color-sand) 45%, transparent);
   }
-  /* El cuadro por sede se desliza de lado en pantallas chicas: el nombre del concepto se queda, con un fondo macizo por tipo de fila para que los números no se vean a través. */
-  @media (max-width: 1023px) {
+  /* El cuadro por sede se desliza de lado cuando no cabe en su tarjeta: el nombre del concepto se queda, con un fondo macizo por tipo de fila para que los números no se vean a través.
+     Se pregunta por el ancho de la caja y no por el de la ventana: con el lateral abierto, de 1024 a ~1190 px la tabla (860 px mínimo) ya se
+     deslizaba y el concepto se iba con las cifras. */
+  .fin-tabla-wrap:has(> .fin-eerr) {
+    container: fin-eerr / inline-size;
+  }
+  @container fin-eerr (max-width: 899px) {
     .fin-eerr th:first-child,
     .fin-eerr td:first-child {
       position: sticky;
@@ -1124,6 +1131,15 @@
     white-space: normal;
     vertical-align: bottom;
   }
+  /* El ancho mínimo de «Las pasadas» (Campañas) vale solo mientras es tabla: en el estilo en línea le ganaba a las fichas y cada ficha
+     medía 520 px dentro de un celular de 343. Vive en la columna derecha: como el flujo y la utilidad, mira la ventana (no es contenedor,
+     o pasaría a fichas a 1440 px sin necesidad). «Las que vienen» va a lo ancho y es contenedor, sin mínimo propio: fichas bajo 760 px de
+     tarjeta y, por encima, la tabla al ancho de su tarjeta (sus 820 px de antes solo la hacían deslizarse con una tarjeta de 760 a 820). */
+  @media (min-width: 860.02px) {
+    .fin-tabla.fin-tabla-campanas {
+      min-width: 520px;
+    }
+  }
 
   /* Avisos del reporte: una línea por aviso, con su chip. */
   .fin-avisos {
@@ -1143,6 +1159,9 @@
   /* Gráfico de barras de una serie (spike `barras()`): tinta; el rojo solo marca una pérdida, con su etiqueta. */
   .fin-grafico {
     position: relative;
+    /* La letra del gráfico se compensa según el ancho de SU caja (el SVG se escala a ella), no el de la ventana: a 1024 px con el lateral,
+       Campañas y Escenarios viven en una columna de ~260 px y la letra quedaba en 6–7 px. */
+    container: fin-grafico / inline-size;
   }
   .fin-grafico svg {
     display: block;
@@ -1165,9 +1184,9 @@
       opacity: 0.8;
     }
   }
-  .fin-grafico-barra:focus {
-    outline: none;
-  }
+  /* Con Tab, la columna de la barra lleva el anillo del sistema (ADR-0351): Chromium lo dibuja sobre la caja del <g>, que
+     incluye su recuadro transparente, la cifra y la semana. Antes era `outline: none` y solo bajaba la barra al 80 %, que no
+     se distinguía (auditoría /milimetro 2026-11-16, WCAG 2.4.7). Con el mouse no aparece: un clic no es :focus-visible. */
   .fin-grafico text {
     font-family: var(--font-sans);
     font-size: 11.5px;
@@ -1206,8 +1225,10 @@
      ~6 px a 375 px. Bajo 560 px la letra crece según el lienzo de cada uso (Flujo 560, Escenarios 460, Campañas 440) para
      quedar cerca de 12 px en pantalla. En los gráficos por semana (Flujo y Escenarios, `GraficoSemanas`) un monto con esa
      letra ya no cabe sobre cada barra: se dicen solo el de la última semana (con cuánto cierras) y el «bajo el mínimo» del
-     primer tramo que baja; el monto de cada semana sigue al tocar la barra (su recuadro) y en lo que lee el lector. */
-  @media (max-width: 559.98px) {
+     primer tramo que baja; el monto de cada semana sigue al tocar la barra (su recuadro) y en lo que lee el lector.
+     Los cortes miran el ancho del gráfico (`fin-grafico`), no el de la ventana: 520 y 400 px de caja equivalen a los 560 y 440 de ventana
+     del celular, y además alcanzan a la columna angosta de una pantalla ancha. */
+  @container fin-grafico (max-width: 520px) {
     .fin-grafico svg[viewBox^="0 0 560 "] text {
       font-size: 18px;
     }
@@ -1240,7 +1261,7 @@
       font-size: 14px;
     }
   }
-  @media (max-width: 439.98px) {
+  @container fin-grafico (max-width: 400px) {
     .fin-grafico svg[viewBox^="0 0 560 "] text {
       font-size: 22px;
     }
@@ -1722,7 +1743,8 @@
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   }
 
-  @media (max-width: 1180px) {
+  /* Hasta 1279 px de ventana, tres por fila: entre 1181 y ~1260, seis tarjetas dejaban ~105 px a cada una y «Cerrar setiembre» se salía de la de CAYLA. */
+  @media (max-width: 1279px) {
     .fin-matriz {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
@@ -2145,6 +2167,9 @@
     margin: 0;
     padding: 0;
     list-style: none;
+    /* Las dos líneas se deciden por el ancho de la lista: vive en la hoja mediana (576 px en todo escritorio y tableta), donde el día y sus
+       chips no cabían junto a «hace 12 días · comisión ≈ S/ 4.35» aunque la ventana fuera ancha. */
+    container: fin-lotes / inline-size;
   }
   .fin-lote {
     display: grid;
@@ -2195,8 +2220,9 @@
     font-size: 14px;
     color: var(--color-tinta);
   }
-  /* En el celular el día no cabe en una línea con su chip «atrasado»: el texto baja a dos líneas (día y hace cuánto) en vez de cortarse. */
-  @media (max-width: 560px) {
+  /* En una lista angosta (el celular, la hoja mediana) el día no cabe en una línea con su chip «atrasado»: el texto baja a dos líneas (día y
+     hace cuánto) en vez de cortarse. */
+  @container fin-lotes (max-width: 620px) {
     .fin-lote {
       grid-template-columns: auto minmax(0, 1fr) auto;
       align-items: start;

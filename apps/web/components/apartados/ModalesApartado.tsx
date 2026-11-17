@@ -47,15 +47,17 @@ import {
   esConstancia,
   estadoVisible,
   formatoCelular,
+  mensajeLiberacion,
   mensajeWhatsapp,
   paraQuienPedido,
+  type MotivoLiberacion,
   soloDigitos,
   sumarDiasIso,
   textoDevolucion,
   type Apartado,
   type MedioDevolucionReal,
 } from "@/lib/separaciones-reglas";
-import { NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
+import { NOMBRE_CORTO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { EstadoChip, ReciboApartado, fechaCorta } from "@/components/apartados/piezas";
 import { TicketDeEntrega, useReciboDeApartado } from "@/components/apartados/useReciboDeApartado";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -75,6 +77,7 @@ import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 import { Casilla } from "@/components/ui/Casilla";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { imprimirBoleta, useDespertarAyudante } from "@/components/impresion/imprimirBoleta";
 
 const CANTIDAD_DE_LINEA = reglaDeEntero();
 
@@ -83,17 +86,9 @@ export type UbicacionApartado = { ubicacionId: string; etiqueta: string };
 
 /** Imprime y cierra cuando el navegador avisa que terminó (mismo criterio que «Venta registrada»). */
 function imprimirYSeguir(cerrar: () => void) {
-  let hecho = false;
-  const terminar = () => {
-    if (hecho) return;
-    hecho = true;
-    window.removeEventListener("afterprint", terminar);
-    clearTimeout(respaldo);
-    cerrar();
-  };
-  window.addEventListener("afterprint", terminar);
-  const respaldo = setTimeout(terminar, 4000);
-  window.print();
+  void imprimirBoleta().then((fin) => {
+    if (fin !== "frenada") cerrar();
+  });
 }
 
 /** Los botones van en un pie pegado al fondo de la hoja: con la pantalla baja (captura de Felipe, 2026-09-26) quedaban
@@ -105,7 +100,7 @@ function Botones({ cerrar, principal }: { cerrar: () => void; principal: string 
         {principal}
       </BotonImprimir>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => window.print()} className={botonCancelar}>
+        <button type="button" onClick={() => void imprimirBoleta()} className={botonCancelar}>
           Solo imprimir
         </button>
         <button type="button" onClick={cerrar} className={botonCancelar}>
@@ -120,6 +115,8 @@ function Botones({ cerrar, principal }: { cerrar: () => void; principal: string 
 /** «Apartado registrado»: la forma de «Venta registrada» más lo propio de apartar — la fecha límite y lo que hay que
  *  hacer con la prenda en la mano. */
 export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { apartado: Apartado; vuelto: number; sede: string; onClose: () => void }) {
+  // Despierta al ayudante de la Mac: al imprimir, la boleta sale en 0,5 s y no en 1,1 (ADR-0670).
+  useDespertarAyudante();
   const a = apartado;
   useTituloDeImpresion(a.codigo); // el PDF sale como «APT-TRU-0004.pdf», no «Retail - CAYLA.pdf»
   const [hechos, setHechos] = useState<boolean[]>([false, false, false]);
@@ -221,6 +218,8 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
 }
 
 export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo = 0, sede, onClose }: { apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number; /** Lo que no se cobró por llevar el efectivo del saldo a S/ 0.10 (ADR-0311). */ redondeo?: number; sede: string; onClose: () => void }) {
+  // Despierta al ayudante de la Mac: al imprimir, la boleta sale en 0,5 s y no en 1,1 (ADR-0670).
+  useDespertarAyudante();
   const a = apartado;
   useTituloDeImpresion(a.codigo);
   // Un apartado nuevo imprime LA boleta o factura de siempre (con su QR y su número); uno viejo, su ticket de antes (ADR-0399).
@@ -267,6 +266,8 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo =
  * No escribe nada: solo vuelve a dibujar lo que la base ya tiene.
  */
 export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado: Apartado; sede: string; onClose: () => void }) {
+  // Despierta al ayudante de la Mac: al imprimir, la boleta sale en 0,5 s y no en 1,1 (ADR-0670).
+  useDespertarAyudante();
   const a = apartado;
   const conFinal = a.estado === "entregada" && !!a.comprobanteFinal;
   const constancia = esConstancia(a);
@@ -296,7 +297,7 @@ export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado:
             </p>
             <p className="text-sm text-tinta/60">Apartado el {fechaCorta(diaLima(a.creadaEn))} · sale marcado como COPIA.</p>
           </div>
-          <BotonImprimir peso="primario" autoFocus onClick={() => window.print()} className="w-full">
+          <BotonImprimir peso="primario" autoFocus onClick={() => void imprimirBoleta()} className="w-full">
             Imprimir la copia
           </BotonImprimir>
           {cual === "final" && reciboFinal ? <TicketDeEntrega recibo={reciboFinal} codigo={a.codigo} /> : <ReciboApartado key={cual} apartado={a} tipo={cual} sede={sede} copia />}
@@ -306,10 +307,16 @@ export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado:
   );
 }
 
+/**
+ * Liberar = cancelar el apartado. Al quedar liberado, la hoja no se cierra: ofrece avisarle al cliente por WhatsApp
+ * (Felipe 2026-11-16), con un mensaje según el motivo. El chat se abre en el toque de «Avisar por WhatsApp» (el navegador
+ * no deja abrir una ventana después de esperar a la base) y lo envía la persona; no se anota nada más en la base.
+ */
 export function LiberarModal({ apartado, ubicacion, onClose }: { apartado: Apartado; ubicacion: UbicacionApartado; onClose: () => void }) {
   const router = useRouter();
   const [enviando, setEnviando] = useState(false);
-  const [motivo, setMotivo] = useState<"vencio" | "clienta_desistio" | "error_de_carga" | null>(null);
+  const [motivo, setMotivo] = useState<MotivoLiberacion | null>(null);
+  const [liberado, setLiberado] = useState(false);
   // Liberar guarda en la tienda (las prendas vuelven a venderse): pide Responsable (ADR-0161), vacío al abrir.
   const responsable = useResponsable(ubicacion, { modo: "atencion" }); // módulo Punto de venta: «¿Quién está atendiendo?», vacío al abrir
   async function liberar(cerrar: () => void) {
@@ -324,41 +331,96 @@ export function LiberarModal({ apartado, ubicacion, onClose }: { apartado: Apart
     if (error) return avisar.error(traducirError(error, "liberar el apartado"));
     avisar.exito("Prendas liberadas", { detalle: `Falta devolver ${money(apartado.adelanto)} a ${apartado.nombres}.` });
     router.refresh();
-    cerrar();
+    // Sin celular (ADR-0367) no hay a quién escribirle: se cierra como siempre.
+    if (!apartado.celular) return cerrar();
+    setLiberado(true);
   }
+  const mensaje = motivo ? mensajeLiberacion(apartado, ubicacion.etiqueta, motivo) : "";
   const opciones: { id: NonNullable<typeof motivo>; texto: string }[] = [
     { id: "vencio", texto: "Venció y no vino" },
     { id: "clienta_desistio", texto: "El cliente desistió" },
     { id: "error_de_carga", texto: "Fue un error al apartar" },
   ];
   return (
-    <Modal titulo="¿Liberar el apartado?" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo}`} onClose={onClose}>
-      {(cerrar) => (
-        <div className="space-y-4">
-          <p className="text-sm text-tinta/80">
-            Las prendas vuelven a estar disponibles para vender. El adelanto de <b>{money(apartado.adelanto)}</b> queda por devolver, por {textoDevolucion(apartado)}.
-          </p>
-          <div role="radiogroup" aria-label="Por qué se libera" className="grid gap-1.5">
-            {opciones.map((o) => (
-              <button key={o.id} type="button" role="radio" aria-checked={motivo === o.id} onClick={() => setMotivo(o.id)} className={`rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${motivo === o.id ? "border-tinta bg-tinta text-papel" : "border-sand hover:border-tinta/40"}`}>
-                {o.texto}
-              </button>
-            ))}
+    <Modal
+      titulo={liberado ? `Avisarle a ${apartado.nombres}` : "¿Liberar el apartado?"}
+      subtitulo={liberado ? `${apartado.codigo} · ${formatoCelular(apartado.celular)}` : `${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo}`}
+      onClose={onClose}
+    >
+      {(cerrar) =>
+        liberado ? (
+          <AvisoDeCancelacion apartado={apartado} mensaje={mensaje} cerrar={cerrar} />
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-tinta/80">
+              Las prendas vuelven a estar disponibles para vender. El adelanto de <b>{money(apartado.adelanto)}</b> queda por devolver, por {textoDevolucion(apartado)}.
+            </p>
+            <div role="radiogroup" aria-label="Por qué se libera" className="grid gap-1.5">
+              {opciones.map((o) => (
+                <button key={o.id} type="button" role="radio" aria-checked={motivo === o.id} onClick={() => setMotivo(o.id)} className={`rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${motivo === o.id ? "border-tinta bg-tinta text-papel" : "border-sand hover:border-tinta/40"}`}>
+                  {o.texto}
+                </button>
+              ))}
+            </div>
+            <ComboResponsable control={responsable} deshabilitado={enviando} />
+            <div className="pie-acciones">
+              <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
+              <Boton peso="primario" cargando={enviando} textoCargando="Liberando…"
+                type="button"
+                disabled={!motivo || enviando || !responsable.listo}
+                title={!motivo ? "Elige por qué se libera." : (responsable.motivo ?? undefined)}
+                onClick={() => liberar(cerrar)}
+              >
+                Liberar prendas
+              </Boton>
+            </div>
           </div>
-          <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="pie-acciones">
-            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
-            <Boton peso="primario" cargando={enviando} textoCargando="Liberando…"
-              type="button"
-              disabled={!motivo || enviando || !responsable.listo}
-              title={!motivo ? "Elige por qué se libera." : (responsable.motivo ?? undefined)}
-              onClick={() => liberar(cerrar)}
-            >
-              Liberar prendas
-            </Boton>
-          </div>
-        </div>
-      )}
+        )
+      }
+    </Modal>
+  );
+}
+
+/** El mensaje de «apartado cancelado» y su botón: lo comparten la hoja de liberar (al terminar) y la fila de un apartado liberado.
+ *  El chat se abre en el mismo toque (el navegador no deja abrir una ventana después de esperar) y lo envía la persona. */
+function AvisoDeCancelacion({ apartado, mensaje, cerrar }: { apartado: Apartado; mensaje: string; cerrar: () => void }) {
+  return (
+    <div className="space-y-4">
+      <div className="card-cayla space-y-2 p-4">
+        <p className="label-cayla text-[11px] text-tinta/60">Mensaje para {apartado.nombres}</p>
+        <p className="rounded-xl rounded-bl-sm bg-hueso px-3.5 py-3 text-[15px] text-tinta">{mensaje}</p>
+      </div>
+      <div className="pie-acciones">
+        <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Ahora no</button>
+        <Boton
+          type="button"
+          peso="primario"
+          autoFocus
+          onClick={() => {
+            window.open(enlaceWhatsapp(apartado.celular, mensaje), "_blank", "noopener,noreferrer");
+            cerrar();
+          }}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <MessageCircle className="-my-1 h-4 w-4" aria-hidden />
+            Avisar por WhatsApp
+          </span>
+        </Boton>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Avisar desde la fila de un apartado liberado (Felipe 2026-11-16): para el que «se liberó solo» al vencer su gracia, que nunca pasó
+ * por la hoja de liberar, y para el que se liberó con «Ahora no». La fila no trae el motivo: el que se liberó solo venció; del otro,
+ * el mensaje solo dice que se canceló. No anota nada en la base.
+ */
+export function AvisoCancelacionModal({ apartado, ubicacion, onClose }: { apartado: Apartado; ubicacion: UbicacionApartado; onClose: () => void }) {
+  const mensaje = mensajeLiberacion(apartado, ubicacion.etiqueta, apartado.liberadaSola ? "vencio" : null);
+  return (
+    <Modal titulo={`Avisarle a ${apartado.nombres}`} subtitulo={`${apartado.codigo} · ${formatoCelular(apartado.celular)}`} onClose={onClose}>
+      {(cerrar) => <AvisoDeCancelacion apartado={apartado} mensaje={mensaje} cerrar={cerrar} />}
     </Modal>
   );
 }
@@ -427,7 +489,7 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
                 className={`metodo-${m} flex h-14 flex-col items-center justify-center gap-1 rounded-lg text-sm capitalize transition-colors ${medio === m ? "shadow-sm" : "text-tinta/60 hover:bg-papel/60"}`}
               >
                 {ICONO_METODO[m]}
-                {m}
+                <span className="max-w-full truncate">{NOMBRE_CORTO[m] ?? m}</span>
               </button>
             ))}
           </div>
@@ -716,7 +778,7 @@ export function AbonarFormulario({
             className={`metodo-${m} flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-sm capitalize transition-colors ${metodo === m ? "shadow-sm" : "text-tinta/60 hover:bg-papel/60"}`}
           >
             {ICONO_METODO[m]}
-            {m}
+            <span className="max-w-full truncate">{NOMBRE_CORTO[m] ?? m}</span>
           </button>
         ))}
       </div>

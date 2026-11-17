@@ -409,7 +409,10 @@
   .pp-det-b i { display: block; height: 100%; border-radius: inherit; background: var(--color-tinta-60); }
   .pp-det-p { text-align: right; font-variant-numeric: lining-nums tabular-nums; }
 
-  @media (pointer: coarse) { .pp-chip, .pp-porque { min-height: 44px; } }
+  @media (pointer: coarse) {
+    .pp-chip, .pp-porque, .mc-leg { min-height: 44px; }
+    .pp-des-x { width: 44px; height: 44px; }
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .pp-p, .pp-panel { animation: none !important; }

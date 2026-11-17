@@ -118,8 +118,15 @@
   display: grid;
   grid-template-columns: repeat(var(--fus-n, 2), minmax(180px, 1fr));
   gap: 12px;
-  padding: 4px; /* que el anillo de foco no lo recorte el desplazamiento */
-  margin: -4px;
+  /* Que el desplazamiento no recorte el anillo de foco (4 px) ni la sombra de la gota elegida, que baja 12 px; el margen negativo
+     devuelve el mismo espacio, así que nada se mueve. */
+  padding: 4px 4px 14px;
+  margin: -4px -4px -14px;
+  /* La hoja puede abrir con 4 o más fichas (las marcadas en la tabla; el tope de 3 es solo para las que se agregan aquí): 4 × 180 no cabe
+     en la hoja y la mesa se salía sobre «Así va a quedar». Entonces corre de lado dentro de su lugar. */
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
 }
 .fus-columna-caja {
   position: relative;

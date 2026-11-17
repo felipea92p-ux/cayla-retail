@@ -90,7 +90,7 @@ export function FrescuraAguja({
 }) {
   if (!pisoCuadrado && seLlevan.length === 0) return null;
   return (
-    <section aria-labelledby="frescura-aguja-titulo" data-guia="frescura.aguja" className="card-cayla px-4 py-4 sm:px-5">
+    <section aria-labelledby="frescura-aguja-titulo" data-guia="frescura.aguja" className="@container card-cayla px-4 py-4 sm:px-5">
       <TituloSeccion id="frescura-aguja-titulo">{pisoCuadrado ? "Lo que mueve la aguja" : "Lo que más se llevan"}</TituloSeccion>
       {!pisoCuadrado ? (
         <>
@@ -106,7 +106,7 @@ export function FrescuraAguja({
           Esta semana ninguna categoría se sale de lo normal.
         </Vacio>
       ) : (
-        <ul className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <ul className="mt-3 grid grid-cols-1 gap-3 @min-[32rem]:grid-cols-2 @min-[49rem]:grid-cols-3">
           {senales.map((s) => (
             <Tarjeta key={s.categoriaId} s={s} puedeBajar={puedeBajar} onVerCategoria={onVerCategoria} />
           ))}

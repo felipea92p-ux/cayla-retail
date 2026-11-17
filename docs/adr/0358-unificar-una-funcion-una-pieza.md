@@ -248,6 +248,15 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   flota a 12 px de los bordes, clara (papel) para lo que toca hacer y oscura (tinta) para lo elegido; con una acción, la isla es el botón.
   Pieza: `barra-abajo` / `<BarraDeAbajo>`. Deuda: 14 archivos. Registro: `docs/unificar/barra-movil.md` (ADR-0479, actividad 12).
 
+- **2026-11-16 · cinco piezas decididas que no llegaban a WCAG AA, mirando las capturas.** Lo dejó la limpieza de los graves heredados de
+  `/milimetro` (rama `claude/graves-heredados-milimetro`, página «Siete decisiones de accesibilidad»). Felipe eligió «todo lo recomendado»:
+  la **elegida del segmento y de las pestañas** lleva un filo de 1 px en `borde-control` sobre su gota (1,27–2,16:1 → el filo pasa 3:1; la
+  gota que viaja y la estática); el **buscador del mostrador** lleva su borde de `borde-control` como el de las listas (antes `border: 0`);
+  en **las barras por tiempo**, la barra que no escribe su cifra pasa de arena a gris con 36 % de tinta (1,56 → 3,26:1 en claro y 6,0:1 en oscuro, medido; el fin de semana,
+  `arena-fuerte`, a 56 % para seguir más oscuro), la destacada sigue en tinta; el **aro de los puntos de color** (Vender, la Grilla,
+  Existencias) sube de 16–20 % a 38–40 % de tinta (medido en los peores, Dorado, Plateado y Beige en claro y Negro y Azul marino en oscuro: 3,3 a 3,9:1); y en oscuro la **barra de la ventana de Tienda web** baja de tono para que «Abrir la
+  tienda» pase de 3,44 a 6,7:1. El movimiento de cada pieza no cambió. Registros: `pestanas.md`, `buscador.md`, `grafico.barras.md`.
+
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en
 `docs/SESIONES-ACTIVAS.md` lo reserva para que no vuelva a chocar.

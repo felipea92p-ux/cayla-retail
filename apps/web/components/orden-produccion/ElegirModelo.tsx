@@ -175,7 +175,7 @@ export function TarjetaModelo({ modelo, precio, onCambiar }: { modelo: ModeloPro
           {precio > 0 ? ` · se vende a S/\u00a0${precio.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}
         </p>
       </div>
-      <button type="button" onClick={onCambiar} className="btn-cayla btn-enlace shrink-0 text-[13px]">
+      <button type="button" onClick={onCambiar} className="btn-cayla btn-enlace shrink-0">
         Cambiar
       </button>
     </div>

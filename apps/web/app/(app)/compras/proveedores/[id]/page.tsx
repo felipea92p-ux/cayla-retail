@@ -166,7 +166,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       {servicio && <ProveedorServicio resumen={servicio} />}
 
       {m && (
-      <section className="space-y-3">
+      <section className="@container space-y-3">
         <TituloSeccion>Prendas terminadas · últimos 12 meses</TituloSeccion>
         {!conCompras ? (
           <div className="card-cayla">
@@ -175,7 +175,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
             </Vacio>
           </div>
         ) : (
-          <div data-guia="proveedor-ficha.cifras" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div data-guia="proveedor-ficha.cifras" className="grid grid-cols-2 gap-3 @min-[36rem]:grid-cols-3">
             <TarjetaCifra className="anim-entra" style={{ ["--i" as string]: 2 }} punto="neutro" etiqueta="Total facturado" valor={<CifraQueCuenta valor={m.facturado_12m} formato="soles" alMontar />}>
               {plural(m.facturas_vigentes, "comprobante vigente", "comprobantes vigentes")}
             </TarjetaCifra>
@@ -257,11 +257,11 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       )}
 
       {conCompras && ultimos && (
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           <div data-guia="proveedor-ficha.costo" className="[&>*]:h-full">
             <ProveedorCostoEvolucion evolucion={costo} />
           </div>
-          <div data-guia="proveedor-ficha.ultimos" className="card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: 12 }}>
+          <div data-guia="proveedor-ficha.ultimos" className="card-cayla anim-entra @container overflow-hidden" style={{ ["--i" as string]: 12 }}>
             <p className="label-cayla px-5 pb-2 pt-4 text-[11px] text-tinta/65">Últimos comprobantes</p>
             <div className="divide-y divide-tinta/10">
               {ultimos.filas.map((c) => {
@@ -275,7 +275,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
                       <span className="block text-sm tabular-nums text-tinta">{c.documento}</span>
                       <span className="block text-sm text-tinta/55">{diaMes(c.fechaEmision)}</span>
                     </span>
-                    <span>
+                    <span className="col-start-1 row-start-2 @min-[28rem]:col-start-auto @min-[28rem]:row-start-auto">
                       <Chip tono={estado.tono}>{estado.texto}</Chip>
                       <span className="mt-0.5 block text-sm tabular-nums text-tinta/55">{estado.sub}</span>
                     </span>
@@ -284,12 +284,12 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
                 );
                 // Sin Facturas de proveedor, la fila se lee pero no se abre: su detalle lo devolvería al Inicio.
                 return abreComprobantes ? (
-                  <Link key={c.id} href={`/compras/factura/${c.id}`} className="group grid grid-cols-[6.5rem_1fr_auto_1rem] items-center gap-x-4 px-5 py-3 transition-colors hover:bg-tinta/[0.03]">
+                  <Link key={c.id} href={`/compras/factura/${c.id}`} className="group grid grid-cols-[minmax(0,1fr)_auto_1rem] items-center gap-x-3 gap-y-1 px-5 py-3 transition-colors hover:bg-tinta/[0.03] @min-[28rem]:grid-cols-[6.5rem_minmax(0,1fr)_auto_1rem] @min-[28rem]:gap-x-4">
                     {celdas}
                     <ChevronRight aria-hidden className="h-4 w-4 text-tinta/40 transition-[transform,color] duration-300 ease-cayla group-hover:translate-x-1 group-hover:text-rojo" />
                   </Link>
                 ) : (
-                  <div key={c.id} className="grid grid-cols-[6.5rem_1fr_auto_1rem] items-center gap-x-4 px-5 py-3">
+                  <div key={c.id} className="grid grid-cols-[minmax(0,1fr)_auto_1rem] items-center gap-x-3 gap-y-1 px-5 py-3 @min-[28rem]:grid-cols-[6.5rem_minmax(0,1fr)_auto_1rem] @min-[28rem]:gap-x-4">
                     {celdas}
                     <span aria-hidden />
                   </div>

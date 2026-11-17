@@ -274,7 +274,7 @@ export function DevolucionesPanel({
     <div className="space-y-10 pb-24 sm:pb-0">
       <AvisosDevoluciones accesos={accesos} cajaAbierta={cajaAbierta} />
 
-      <section ref={zonaBusqueda} aria-labelledby="iniciar-devolucion" className="scroll-mt-24 space-y-4">
+      <section ref={zonaBusqueda} aria-labelledby="iniciar-devolucion" className="scroll-mt-8 space-y-4">
         <TituloSeccion id="iniciar-devolucion">Iniciar una devolución</TituloSeccion>
         <BuscadorVentas
           key={`${busqueda}|${todasLasSedes}`}
@@ -322,7 +322,7 @@ export function DevolucionesPanel({
         <section aria-labelledby="por-aprobar" className="space-y-5">
           <div>
             {/* `id="por-aprobar"`: el ancla de la cifra de la cabecera cae aquí, sea cual sea la pestaña. */}
-            <h2 id="por-aprobar" ref={tituloActividad} tabIndex={-1} className="font-display scroll-mt-28 text-[30px] leading-none text-tinta outline-none">
+            <h2 id="por-aprobar" ref={tituloActividad} tabIndex={-1} className="font-display scroll-mt-12 text-[30px] leading-none text-tinta outline-none">
               {TITULOS[vista].titulo}
             </h2>
             <p className="mt-0.5 text-sm text-tinta/70">{TITULOS[vista].bajada}</p>
@@ -349,7 +349,7 @@ export function DevolucionesPanel({
             <>
               {/* Filtros de la pestaña con la píldora de filtro del sistema, no con la forma de las pestañas:
                   dos filas iguales no decían cuál manda. */}
-              <div role="group" aria-label="Filtrar las compras" data-guia="devoluciones.filtros" className="pildoras-desliza gap-2 sm:flex-wrap">
+              <div role="group" aria-label="Filtrar las compras" data-guia="devoluciones.filtros" className="pildoras-desliza gap-2 sm:flex-wrap" suppressHydrationWarning>
                 {FILTROS.map((f) => (
                   <button key={f.valor} type="button" aria-pressed={filtro === f.valor} onClick={() => setFiltro(f.valor)} className="pildora-cayla shrink-0">
                     {f.texto} <span className="pildora-cayla__n">{ventasDelFiltro(lineas, f.valor).size}</span>

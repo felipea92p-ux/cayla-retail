@@ -100,66 +100,69 @@ export function Billetera({ billetera, puedeVerVacios, children }: { billetera: 
   const dia = textoDelAnillo(anillo);
   return (
     <CtxBilletera.Provider value={{ billetera, seleccion, idEnRuta }}>
-      <div className="tp-cols" data-con-pase={idEnRuta ? "" : undefined}>
-        <aside data-guia="traslados.billetera" className="tp-billetera" aria-label="Tus cajas">
-          <div data-guia="traslados.dia" className="tp-dia">
-            <Anillo fraccion={anillo.fraccion} />
-            <div className="min-w-0">
-              <p className="text-[15px] font-semibold text-tinta">{dia.titulo}</p>
-              <p className="texto-detalle">{dia.detalle}</p>
+      {/* `.tp-marco`: el contenedor que decide si billetera y pase van lado a lado (`traslados-pases.css`), por su ancho y no el de la ventana. */}
+      <div className="tp-marco">
+        <div className="tp-cols" data-con-pase={idEnRuta ? "" : undefined}>
+          <aside data-guia="traslados.billetera" className="tp-billetera" aria-label="Tus cajas">
+            <div data-guia="traslados.dia" className="tp-dia">
+              <Anillo fraccion={anillo.fraccion} />
+              <div className="min-w-0">
+                <p className="text-[15px] font-semibold text-tinta">{dia.titulo}</p>
+                <p className="texto-detalle">{dia.detalle}</p>
+              </div>
             </div>
-          </div>
 
-          <Buscador guia="traslados.buscador"
-            valor={consulta}
-            onCambio={setConsulta}
-            placeholder="Busca una caja por número, sede o prenda" // sugerir-fijo: el buscador no depende de nada elegido antes
-            etiqueta="Buscar una caja"
-          />
+            <Buscador guia="traslados.buscador"
+              valor={consulta}
+              onCambio={setConsulta}
+              placeholder="Busca una caja por número, sede o prenda" // sugerir-fijo: el buscador no depende de nada elegido antes
+              etiqueta="Buscar una caja"
+            />
 
-          {/* Llegan / Envías / Terminados cambian qué cajas se ven: la pestaña de vista del sistema (ADR-0358). El número de cada una
-              es cuántas hay; «por hacer» va en ámbar y con su texto para lector. */}
-          <Pestanas
-            etiquetaAccesible="Qué cajas ver"
-            activa={pestana}
-            onCambio={(c) => setPestana(c as PestanaPase)}
-            idIndicador="billetera"
-            guia="traslados.pestanas"
-            className="pestanas-cayla--llenar"
-            items={PESTANAS.map((p) => {
-              const hay = billetera.pases[p.id].filter(coincide).length;
-              const porHacer = consulta.trim() ? 0 : billetera.porHacer[p.id];
-              return porHacer > 0
-                ? { clave: p.id, etiqueta: p.nombre, conteo: porHacer, pide: "por hacer", guia: `traslados.pestana-${p.id}` }
-                : { clave: p.id, etiqueta: p.nombre, conteo: hay, tono: "neutro" as const, pide: hay === 1 ? "caja" : "cajas", guia: `traslados.pestana-${p.id}` };
-            })}
-          />
+            {/* Llegan / Envías / Terminados cambian qué cajas se ven: la pestaña de vista del sistema (ADR-0358). El número de cada una
+                es cuántas hay; «por hacer» va en ámbar y con su texto para lector. */}
+            <Pestanas
+              etiquetaAccesible="Qué cajas ver"
+              activa={pestana}
+              onCambio={(c) => setPestana(c as PestanaPase)}
+              idIndicador="billetera"
+              guia="traslados.pestanas"
+              className="pestanas-cayla--llenar"
+              items={PESTANAS.map((p) => {
+                const hay = billetera.pases[p.id].filter(coincide).length;
+                const porHacer = consulta.trim() ? 0 : billetera.porHacer[p.id];
+                return porHacer > 0
+                  ? { clave: p.id, etiqueta: p.nombre, conteo: porHacer, pide: "por hacer", guia: `traslados.pestana-${p.id}` }
+                  : { clave: p.id, etiqueta: p.nombre, conteo: hay, tono: "neutro" as const, pide: hay === 1 ? "caja" : "cajas", guia: `traslados.pestana-${p.id}` };
+              })}
+            />
 
-          <nav data-guia="traslados.pila" className="tp-pila" aria-label={PESTANAS[k].nombre}>
-            {lista.length > 0 ? (
-              lista.map((p) => <MiniPase key={p.id} pase={p} href={rutaDelPase(p.id)} actual={p.id === seleccion} />)
-            ) : (
-              consulta.trim() ? (
-                <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: "Borrar la búsqueda", onClick: () => setConsulta("") }}>
-                  Ninguna caja con «{consulta.trim()}». Prueba con el número, la sede o la prenda.
-                </Vacio>
+            <nav data-guia="traslados.pila" className="tp-pila" aria-label={PESTANAS[k].nombre}>
+              {lista.length > 0 ? (
+                lista.map((p) => <MiniPase key={p.id} pase={p} href={rutaDelPase(p.id)} actual={p.id === seleccion} />)
               ) : (
-                <Vacio tamano="chico" icono={<Package />}>
-                  {pestana === "llegan" ? "Nada viene hacia ti" : pestana === "envias" ? "No tienes envíos en camino" : "Nada terminado todavía"}. Cuando haya, aparece aquí.
-                </Vacio>
-              )
+                consulta.trim() ? (
+                  <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: "Borrar la búsqueda", onClick: () => setConsulta("") }}>
+                    Ninguna caja con «{consulta.trim()}». Prueba con el número, la sede o la prenda.
+                  </Vacio>
+                ) : (
+                  <Vacio tamano="chico" icono={<Package />}>
+                    {pestana === "llegan" ? "Nada viene hacia ti" : pestana === "envias" ? "No tienes envíos en camino" : "Nada terminado todavía"}. Cuando haya, aparece aquí.
+                  </Vacio>
+                )
+              )}
+            </nav>
+            {pestana === "terminadas" && billetera.terminadasAcotadas && <p className="px-1 text-sm text-tinta/60">Se ven las últimas 30 terminadas.</p>}
+            {puedeVerVacios && billetera.vacios > 0 && (
+              <p className="px-1 text-sm text-tinta/60">
+                {billetera.vacios === 1 ? "1 traslado sin prendas no se muestra" : `${billetera.vacios} traslados sin prendas no se muestran`} (cabeceras vacías de la limpieza de datos).
+              </p>
             )}
-          </nav>
-          {pestana === "terminadas" && billetera.terminadasAcotadas && <p className="px-1 text-sm text-tinta/60">Se ven las últimas 30 terminadas.</p>}
-          {puedeVerVacios && billetera.vacios > 0 && (
-            <p className="px-1 text-sm text-tinta/60">
-              {billetera.vacios === 1 ? "1 traslado sin prendas no se muestra" : `${billetera.vacios} traslados sin prendas no se muestran`} (cabeceras vacías de la limpieza de datos).
-            </p>
-          )}
-        </aside>
-        <section className="tp-lado-pase min-w-0" aria-label="La caja abierta">
-          {children}
-        </section>
+          </aside>
+          <section className="tp-lado-pase min-w-0" aria-label="La caja abierta">
+            {children}
+          </section>
+        </div>
       </div>
     </CtxBilletera.Provider>
   );

@@ -12,6 +12,7 @@ import { NIVEL_QR, ZONA_MUDA_MODULOS } from "@/lib/qr";
 import { cartelesDelClub, type CartelDeTienda } from "@/lib/club-qr-reglas";
 import { CARTEL_INVITACION, letraChicaDelCartel, type TextosCartel } from "@/lib/club-cartel-reglas";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { imprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
 
 // El cartel del club «Invitación» (ADR-0288 act. g, G-1; diseño C aprobado por Felipe el 2026-10-01): la vista previa en
 // pantalla y la hoja que va a la impresora. La hoja (`#cartel-club-print`) va pegada a <body> con un portal, como las etiquetas
@@ -66,7 +67,7 @@ export function CartelClub({
         subtitulo="Una hoja A4 por tienda para el mostrador: el cliente escanea el QR, crea su cuenta en cayla.pe y así entra al Club CAYLA."
         pie={volver}
         acciones={
-          <BotonImprimir peso="primario" disabled={!hay || !textos || !montado} onClick={() => window.print()}>
+          <BotonImprimir peso="primario" disabled={!hay || !textos || !montado} onClick={() => imprimirAqui("hoja")}>
             {hay && textos ? `Imprimir ${carteles.length === 1 ? "el cartel" : `${carteles.length} carteles`}` : "Nada que imprimir"}
           </BotonImprimir>
         }
@@ -91,7 +92,7 @@ export function CartelClub({
                   <div className="cartel-club-previa card-cayla overflow-hidden">
                     <Cartel cartel={c} textos={textos} />
                   </div>
-                  <figcaption className="text-xs text-tinta/65">
+                  <figcaption className="text-sm text-tinta/65">
                     {c.tienda}
                     {c.numero ? ` · WhatsApp ${numeroLegible(c.numero)}` : ""}
                   </figcaption>

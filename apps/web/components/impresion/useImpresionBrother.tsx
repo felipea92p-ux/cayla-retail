@@ -15,6 +15,7 @@ import {
   type EstadoAyudante,
   type PiezaImpresa,
 } from "@/lib/mac-etiquetas";
+import { sePuedeImprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
 
 const sinSuscripcion = () => () => {};
 
@@ -100,7 +101,9 @@ export function useImpresionBrother({
     else avisar.error(res.texto, { detalle: res.detalle });
     return res.ok ? "impreso" : "fallo";
   };
-  const mandar = () => (porAyudante ? imprimirEnMac() : imprimirPorDialogo());
+  // Por el cuadro, la etiqueta sale en la impresora de ESTA ventana: en «CAYLA Caja» sería la térmica (`lib/ventana-de-impresion.ts`).
+  const mandar = (): Promise<FinDeImpresion> =>
+    porAyudante ? imprimirEnMac() : sePuedeImprimirAqui("etiqueta") ? imprimirPorDialogo() : Promise.resolve("fallo");
 
   return {
     montado,

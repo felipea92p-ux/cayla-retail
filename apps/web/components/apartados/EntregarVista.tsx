@@ -15,7 +15,7 @@ import { enviarVentaASunat } from "@/lib/envio-sunat";
 import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
-import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
+import { LEY_REDONDEO, NOMBRE_CORTO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { AVISO_EFECTIVO_SIN_MONEDA, avanceDelPlazo, cobroDelSaldo, coincide, encendida, esConstancia, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
 import { BarraMovil, DescuentoDePrenda, EstadoChip, FotoPrenda, ImporteDePrenda, fechaCorta } from "@/components/apartados/piezas";
 import { CanalChip } from "@/components/apartados/CanalChip";
@@ -90,7 +90,8 @@ export function EntregarVista({
   const [revisando, setRevisando] = useState(false);
   const [abonar, setAbonar] = useState(false);
   const [editar, setEditar] = useState(false);
-  const [liberar, setLiberar] = useState(false);
+  // El apartado se guarda al abrir: al liberarse sale de `abiertos` y la hoja tiene que seguir para ofrecer el WhatsApp.
+  const [liberar, setLiberar] = useState<Apartado | null>(null);
   const conAbonos = encendida(apagadas, "abonos");
   const conEditar = encendida(apagadas, "editar");
   const conEstante = encendida(apagadas, "estante");
@@ -173,7 +174,7 @@ export function EntregarVista({
   }
 
   return (
-    <div className="ap-dos grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
+    <div className="ap-dos grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_clamp(340px,40%,380px)] xl:grid-cols-[minmax(0,1fr)_420px]">
       {envio.incierto && (
         <div className="px-5 pt-5 sm:px-6 lg:col-span-2">
           <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} onReintentar={entregar} reintentando={enviando} />
@@ -213,11 +214,11 @@ export function EntregarVista({
               <div className="text-right">
                 <EstadoChip {...estadoVisible(a, hoy)} />
                 <div className="mt-1"><CanalChip a={a} className="max-w-full" /></div>
-                <p className="mt-1 font-mono text-[11px] text-tinta/55">{a.codigo}{a.comprobanteAnticipo ? ` · ${a.comprobanteAnticipo}` : ""}</p>
+                <p className="mt-1 font-mono text-sm text-tinta/55">{a.codigo}{a.comprobanteAnticipo ? ` · ${a.comprobanteAnticipo}` : ""}</p>
                 {conEstante && a.estante && (
-                  <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-hueso px-2 py-0.5 font-mono text-[11px]"><Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}</p>
+                  <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-hueso px-2 py-0.5 font-mono text-sm"><Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}</p>
                 )}
-                <button type="button" onClick={() => elegir(null)} className="label-cayla mt-1 h-7 rounded-md px-2 text-[10.5px] text-tinta/70 hover:bg-sand/40">
+                <button type="button" onClick={() => elegir(null)} className="area-dedo label-cayla mt-1 h-7 rounded-md px-2 text-[10.5px] text-tinta/70 hover:bg-sand/40">
                   Otro cliente
                 </button>
               </div>
@@ -247,7 +248,7 @@ export function EntregarVista({
             {/* ADR-0599: liberar no espera al vencimiento ni a una líder: quien ve Apartados lo hace (un apartado hecho por error, o que el
                 cliente desistió). Las prendas vuelven a venderse y el adelanto queda por devolver. */}
             <div className="flex flex-wrap items-center gap-2">
-              <Boton peso="peligro" className="btn-chico" onClick={() => setLiberar(true)}>
+              <Boton peso="peligro" className="btn-chico" onClick={() => setLiberar(a)}>
                 Liberar apartado
               </Boton>
               <span className="text-sm text-tinta/55">Si se apartó por error o el cliente desistió: las prendas vuelven a estar disponibles.</span>
@@ -348,7 +349,7 @@ export function EntregarVista({
                           <button key={m} type="button" aria-pressed={puesto} title={`${m} (F${i + 1})`} onClick={() => tocarMedio(m)} style={puesto ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined} className={`metodo-${m} relative flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-sm capitalize transition-colors ${puesto ? "anim-pop shadow-sm" : OPCION_INACTIVA}`}>
                             <span aria-hidden className="absolute top-0.5 right-1 text-[8px] font-semibold opacity-45">F{i + 1}</span>
                             {ICONO_METODO[m]}
-                            {m}
+                            <span className="max-w-full truncate">{NOMBRE_CORTO[m] ?? m}</span>
                           </button>
                         );
                       })}
@@ -478,7 +479,7 @@ export function EntregarVista({
 
       {abonar && a && <AbonarModal apartado={a} ubicacion={ubicacion} cajaAbierta={cajaAbierta} onClose={() => setAbonar(false)} />}
       {editar && a && <EditarApartadoModal apartado={a} prendas={prendas} ubicacion={ubicacion} onClose={() => setEditar(false)} />}
-      {liberar && a && <LiberarModal apartado={a} ubicacion={ubicacion} onClose={() => setLiberar(false)} />}
+      {liberar && <LiberarModal apartado={liberar} ubicacion={ubicacion} onClose={() => setLiberar(null)} />}
 
       {entregado && <ApartadoEntregadoModal apartado={entregado.apartado} pagadoHoy={entregado.pagadoHoy} vuelto={entregado.vuelto} redondeo={entregado.redondeo} sede={ubicacionEtiqueta} onClose={() => setEntregado(null)} />}
       </fieldset>

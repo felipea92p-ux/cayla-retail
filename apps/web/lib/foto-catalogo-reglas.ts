@@ -87,6 +87,26 @@ export function moldeDeLaPrenda(colores: readonly string[], fotos: readonly { ur
 }
 
 /**
+ * Qué molde usa el color que se va a preparar, con la MISMA regla que la hoja usa para decir «saldrá con la misma forma de…» (revisión del
+ * 2026-11-16: la hoja y el pedido usaban reglas distintas):
+ * - «molde»: el molde de la prenda es de OTRO color: se usa ese;
+ * - «sin-molde»: se rehace el color que ES el molde, o es la foto «para todos los colores»: va sin molde y no espera a nadie. Rehacer el molde con
+ *   otro color hecho a partir de él traería de vuelta lo que se quiere arreglar (el pantalón de lino que salió buzo, y su segundo color, copia suya);
+ * - «ninguno»: la prenda todavía no tiene molde: el color espera al que se está preparando, o pasa a serlo.
+ */
+export function moldeAlPreparar(
+  colores: readonly string[],
+  fotos: readonly { url: string; colorCodigo: string | null }[],
+  color: string | null,
+): { tipo: "molde"; url: string } | { tipo: "sin-molde" } | { tipo: "ninguno" } {
+  if (color === null) return { tipo: "sin-molde" };
+  const url = moldeDeLaPrenda(colores, fotos);
+  if (!url) return { tipo: "ninguno" };
+  const colorDelMolde = fotos.find((f) => f.url === url)?.colorCodigo ?? null;
+  return colorDelMolde === color ? { tipo: "sin-molde" } : { tipo: "molde", url };
+}
+
+/**
  * Qué imagen es un archivo por sus primeros bytes (JPEG, PNG o WebP), o `null` si no es ninguna. El servidor no confía en el nombre ni en el
  * tipo que declara el navegador: un texto con nombre «.jpg» llegaba a OpenAI y se pagaba una llamada inútil (/chaos, 2026-11-13).
  */

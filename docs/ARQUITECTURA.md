@@ -106,7 +106,10 @@ flowchart TB
 - **Entrar sin pasar por el Inicio (2026-10-13, ADR-0136 act. e):** el login (`app/login/page.tsx`) pregunta a `/api/aterrizaje` a qué pantalla entra la
   cuenta y navega UNA vez ahí (`router.replace`, sin `router.refresh()`); con el colibrí, la app recién abierta no se muestra hasta que el velo tapa la
   pantalla (`EsperaAlVelo` de `components/login/EntradaColibri.tsx`, montada en `app/(app)/layout.tsx`; la espera vive en `lib/entrada-estado.ts`,
-  `veloPendiente`). Lo que hace el login con la respuesta, en `lib/login-aterrizaje.ts` (si no sabe, va a `/`).
+  `veloPendiente`). Lo que hace el login con la respuesta, en `lib/login-aterrizaje.ts` (si no sabe, va a `/`). **Antes de navegar, el navegador
+  olvida lo que aprendió sin esta cuenta (2026-11-16):** a la par de la pregunta, el login llama a la Server Action `marcarCambioDeCuenta`
+  (`app/actions/entrada.ts`), que borra una cookie y así vacía la caché de rutas de Next; sin eso, una precarga de `/` hecha sin sesión al salir
+  dejaba la entrada en «Entrando…». El proxy no redirige ese POST a `/login` (`saleDelLogin`). ADR-0136 act. 2026-11-16.
 - `app/(app)/page.tsx`: aterriza según el rol (`aterrizajeDe`, la misma regla del login: pantalla principal, terminal, CAYLA Global salvo el Admin) y, si se queda, arma «Hoy», «Te toca», accesos y «Equipo de hoy»
   (`lib/inicio.ts`, `lib/inicio-reglas.ts`, `lib/inicio-avisos.ts`; ADR-0225). **Una cuenta de almacén** (`esPerfilAlmacen`: no vende, ve Productos,
   puede crear productos y recibe) usa su propio cuerpo: `components/inicio-almacen/InicioAlmacen.tsx` (cabina «Nuevo producto», «Te toca», «Nuevo en el
@@ -1182,6 +1185,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     suma el chip «Nos debe» con `fn_ordenes_insumo_nos_debe` (lo anotado como «no llegará» × su costo).
 
 **Ventas / caja**
+- **Imprimir sin cuadro y la estación de la caja (ADR-0670, 2026-11-16):** `components/impresion/MarcaDeVentana.tsx` (layout raíz, `?ventana=caja|etiquetas` → `lib/ventana-de-impresion.ts`) y `imprimirEnEstaVentana.ts`, por donde pasa todo `window.print()`. «Venta registrada» (`VentaRegistradaModal.tsx`): «Imprimir solo al cobrar» y «Imprimir en la caja» (`lib/imprimir-al-cobrar.ts`, `components/impresion/usePedidaALaCaja.ts` → RPC `pedir_impresion`, `fn_impresion_estado`). La estación (`components/impresion/EstacionDeImpresion.tsx`, en `app/(app)/layout.tsx`, `lib/estacion-de-impresion.ts`) → `tomar_impresion`, `marcar_impresion` sobre `retail.impresiones`, escuchando `ventas` (`useCambiosEnVivo`).
 - `/vender` → `lib/catalogo-v2.ts:getCatalogoDeLaSede` (el catálogo sin las prendas de una empresa que no opera en la sede —CLAURE
   fuera de Lima— y con su insignia en Lima, `lib/empresas-de-sede-reglas.ts`, ADR-0505; lo mismo leen Apartados, Cambios, Buscar,
   Recibir, Existencias, Contar y Cuadrar) + `lib/caja.ts:getCajaAbierta` +
@@ -2537,6 +2541,8 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   con `requirePersonaActualV2`, la misma regla del Inicio). La llama el login antes de navegar, para ir directo sin pintar `/` (Felipe 2026-10-13,
   «se ve el inicio»). Sin sesión o sin acceso responde con la redirección de `requirePersonaActualV2`; el login no la sigue y, como con cualquier
   fallo o una espera de más de 5 s, entra por `/`, el camino de siempre. `Cache-Control: private, no-store`. ADR-0136 act. 2026-10-13 (e).
+  Se llama a la par de la Server Action `marcarCambioDeCuenta` (`app/actions/entrada.ts`, sin datos: vacía la caché de rutas del navegador al
+  entrar; ADR-0136 act. 2026-11-16).
 - `/api/salud` → `GET`, **pública** (`lib/rutas-publicas.ts`, exacta): `{ ok: true }` (200) o `{ ok: false, motivo }` (503), ¿responde la base AHORA? Llama a
   `retail.fn_salud()` (`select true`, migración 20261017225000) por la llave pública con tope de 4 s y la respuesta guardada 10 s por instancia
   (`lib/salud-reglas.ts`); el motivo es de una lista fija, nunca un mensaje de la base. La repite `/sin-base` y el vigía de GitHub. La tienda tiene la suya

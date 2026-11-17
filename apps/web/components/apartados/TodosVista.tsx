@@ -27,7 +27,7 @@ import { diaLima } from "@/lib/fechas-lima";
 import { BarraPlazo, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
 import { CanalChip, useCanalesDeApartados } from "@/components/apartados/CanalChip";
 import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
-import { CancelarPedidoModal, DevolverModal, EnviarPedidoModal, LiberarModal, RecordarModal, ReimprimirApartadoModal } from "@/components/apartados/ModalesApartado";
+import { AvisoCancelacionModal, CancelarPedidoModal, DevolverModal, EnviarPedidoModal, LiberarModal, RecordarModal, ReimprimirApartadoModal } from "@/components/apartados/ModalesApartado";
 import { DetalleApartadoModal, type ModoDetalle } from "@/components/apartados/DetalleApartado";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { SubirPedidoAlAlmacenModal } from "@/components/PedidoClienteModales";
@@ -172,6 +172,7 @@ export function TodosVista({
     setPeriodo(p);
   };
   const [liberar, setLiberar] = useState<Apartado | null>(null);
+  const [avisarCancelado, setAvisarCancelado] = useState<Apartado | null>(null);
   const [devolver, setDevolver] = useState<Apartado | null>(null);
   // El detalle de un apartado (ADR-0414): se abre al tocar la fila, o directo en «Aplazar» desde su botón. Se guarda el id, no la fila:
   // al abonar o aplazar la página se refresca y el detalle lee el apartado ya cambiado.
@@ -486,7 +487,7 @@ export function TodosVista({
               <TituloSeccion nivel={3} cuenta={filas.length} className="mb-2.5">
                 {g.titulo}
               </TituloSeccion>
-              <ul className="ap-placa divide-y divide-sand overflow-hidden rounded-2xl border border-sand">
+              <ul className="ap-placa @container divide-y divide-sand overflow-hidden rounded-2xl border border-sand">
                 {filas.map(({ a, e }, i) => (
                   <li
                     key={a.id}
@@ -497,7 +498,7 @@ export function TodosVista({
                       if (!ev.currentTarget.contains(ev.target as Node) || (ev.target as HTMLElement).closest("button, a")) return;
                       setDetalle({ id: a.id, modo: "ver" });
                     }}
-                    className="anim-sube grid cursor-pointer items-center gap-x-5 gap-y-2 px-5 py-3.5 hover:bg-crema/60 md:grid-cols-[minmax(190px,1.3fr)_minmax(130px,1fr)_150px_170px_auto]"
+                    className="anim-sube grid cursor-pointer items-center gap-x-5 gap-y-2 px-5 py-3.5 hover:bg-crema/60 @min-[56rem]:grid-cols-[minmax(190px,1.3fr)_minmax(130px,1fr)_150px_170px_auto]"
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <span className="font-display grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sand/70 text-sm">{`${a.nombres[0] ?? ""}${a.apellidos[0] ?? ""}`.toUpperCase()}</span>
@@ -515,13 +516,13 @@ export function TodosVista({
                         <p className="text-sm text-tinta/60 tabular-nums">
                           {ver.celular && a.celular && `${formatoCelular(a.celular)} · `}<span className="font-mono">{a.codigo}</span>
                           {ver.estante && conEstante && a.estante && (
-                            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded bg-hueso px-1.5 font-mono text-[10.5px] text-tinta/80"><Archive className="h-3 w-3" aria-hidden />{a.estante}</span>
+                            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded bg-hueso px-1.5 font-mono text-sm text-tinta/80"><Archive className="h-3 w-3" aria-hidden />{a.estante}</span>
                           )}
                         </p>
                         {ver.asesora && a.asesora && <p className="text-sm text-tinta/55">atendió {a.asesora}</p>}
                       </div>
                     </div>
-                    <div className={`flex min-w-0 items-center gap-2 max-md:hidden ${ver.prendas ? "" : "invisible"}`}>
+                    <div className={`flex min-w-0 items-center gap-2 @max-[56rem]:hidden ${ver.prendas ? "" : "invisible"}`}>
                       <span className="flex">
                         {a.prendas.slice(0, 3).map((pr, j) => (
                           <FotoPrenda key={pr.itemId || `${pr.varianteId}-${j}`} fotoUrl={porVariante.get(pr.varianteId)?.fotoUrl} referencia={pr.referencia} colorHex={porVariante.get(pr.varianteId)?.colorHex} categoria={porVariante.get(pr.varianteId)?.categoria} categoriaPrefijo={porVariante.get(pr.varianteId)?.categoriaPrefijo} categoriaFamilia={porVariante.get(pr.varianteId)?.categoriaFamilia} ancho={32} className={`w-8 border border-papel ${j ? "-ml-3.5" : ""}`} />
@@ -529,7 +530,7 @@ export function TodosVista({
                       </span>
                       <span className="truncate text-sm text-tinta/60">{a.prendas.map((pr) => pr.referencia.split(" ")[0]).join(", ")}</span>
                     </div>
-                    <div className={`text-sm tabular-nums max-md:hidden ${ver.pagado ? "" : "invisible"}`}>
+                    <div className={`text-sm tabular-nums @max-[56rem]:hidden ${ver.pagado ? "" : "invisible"}`}>
                       <b className="font-semibold">{money(a.adelanto)}</b> <span className="text-sm text-tinta/55">de {money(a.total)}</span>
                       <p className="text-sm text-tinta/60">
                         {a.estado === "liberada" ? `por ${textoDevolucion(a)}` : a.estado === "abierta" ? `saldo ${money(a.saldo)}` : "cerrado"}
@@ -587,6 +588,18 @@ export function TodosVista({
                       {a.estado === "abierta" && (
                         <button type="button" onClick={() => irAEntregar(a.id)} className={BOTON_CHICO_NEGRO}>Entregar</button>
                       )}
+                      {/* Liberado (a mano o solo, al vencer su gracia): avisarle que se canceló. Sin celular no hay a quién (ADR-0367). */}
+                      {e.clave === "devolver" && a.celular !== "" && (
+                        <button
+                          type="button"
+                          onClick={() => setAvisarCancelado(a)}
+                          aria-label={`Avisarle a ${a.nombres} por WhatsApp que se canceló`}
+                          title="Avisarle que se canceló"
+                          className={`${BOTON_CHICO} inline-flex items-center`}
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" aria-hidden />
+                        </button>
+                      )}
                       {e.clave === "devolver" &&
                         (puedeGestionar ? (
                           <button type="button" onClick={() => setDevolver(a)} className={BOTON_CHICO_NEGRO}>Devolver {money(a.adelanto)}</button>
@@ -643,6 +656,7 @@ export function TodosVista({
         );
       })()}
       {liberar && <LiberarModal apartado={liberar} ubicacion={ubicacion} onClose={() => setLiberar(null)} />}
+      {avisarCancelado && <AvisoCancelacionModal apartado={avisarCancelado} ubicacion={ubicacion} onClose={() => setAvisarCancelado(null)} />}
       {devolver && <DevolverModal apartado={devolver} ubicacion={ubicacion} cajaAbierta={cajaAbierta} onClose={() => setDevolver(null)} />}
     </div>
   );

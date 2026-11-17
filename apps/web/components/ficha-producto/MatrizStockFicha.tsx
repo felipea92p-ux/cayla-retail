@@ -248,7 +248,7 @@ export function MatrizStockFicha({
   if (m.colores.length === 0) return <p className="text-sm text-taupe">Esta prenda no tiene variantes activas. Agrega un color.</p>;
 
   return (
-    <div className="scroll-mt-20 space-y-2" ref={raiz}>
+    <div className="scroll-mt-4 space-y-2" ref={raiz}>
       {/* La misma tabla con otro dato a la vista: el segmento de modo del sistema (ADR-0358). Angosto, ocupa todo el ancho. */}
       <div data-guia="editar.vistas">
       <SegmentoDeslizante
@@ -318,7 +318,7 @@ export function MatrizStockFicha({
       {/* Oculto en «Unidades de hoy», pero montado: un monto escrito y no aplicado no se pierde al cambiar de pestaña. */}
       {bloque && <div hidden={enUnidades || enEtiquetas || (vista === "costo" && costosTodosFijos) || (vista === "precio" && precioFijo)}>{bloque}</div>}
 
-      <div className="max-h-[520px] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
+      <div className="max-h-[min(520px,60dvh)] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
         {/* Columnas de ancho FIJO (table-fixed + colgroup): agregar un color de nombre largo («Gris perla · nueva») o cambiar de
             pestaña no corre las tallas. El color tiene su ancho y su nombre se corta con «…»; las tallas se reparten lo que queda,
             y en una pantalla angosta la tabla no se aprieta: se desliza de lado (el mínimo de abajo), con el color fijo a la izquierda. */}

@@ -250,8 +250,10 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
     avisar.exito(programar ? `Programada: la tienda la muestra ${ficha.campana.estado === "prog" && ficha.campana.desde ? `desde el ${fechaCortaDicha(ficha.campana.desde)}` : "ahora"}` : "Pasó a borrador: la tienda ya no la muestra");
   }
 
+  // `@container`: los pasos y la vista previa van lado a lado según el ancho del editor, no el de la ventana. Con el menú abierto
+  // a 1024 px la previa quedaba en 236 px y se cortaba el titular que se está diseñando; desde 56 rem le quedan unos 440.
   return (
-    <div className="space-y-5">
+    <div className="@container space-y-5">
       {terminada && (
         <Aviso tono="info" titulo="Esta campaña ya terminó">
           Su diseño ya no se cambia: la tienda volvió sola a verse como siempre.
@@ -267,7 +269,7 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
               : "Elige un ambiente o sube tu imagen y guárdalo como borrador."}
         </p>
       </div>
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,27rem)_minmax(0,1fr)]">
+      <div className="grid gap-6 @min-[56rem]:grid-cols-[minmax(0,27rem)_minmax(0,1fr)]">
         <div className="space-y-3">
           <PasoDelEditor
             numero={1}
@@ -657,7 +659,9 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
           </PasoDelEditor>
         </div>
 
-        <div className="space-y-3 lg:sticky lg:top-4 lg:self-start" data-guia="campana-editor.vista">
+        {/* Pegada bajo la cabecera fija (64 px + 16 de aire, como las demás columnas pegadas del ERP): con `top-4` sus selectores
+            quedaban debajo de la cabecera al bajar (WCAG 2.4.11, auditoría /milimetro 2026-11-16). */}
+        <div className="space-y-3 @min-[56rem]:sticky @min-[56rem]:top-20 @min-[56rem]:self-start" data-guia="campana-editor.vista">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <SegmentoDeslizante
               forma="modo"
@@ -727,7 +731,9 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
         </Aviso>
       )}
 
-      <div className="pie-hoja-fijo flex flex-wrap items-end gap-x-4 gap-y-3 border-t border-sand pt-4">
+      {/* En el celular el pie va en su lugar, sin pegarse: pegado ocupaba un tercio de la pantalla (Responsable, la guía, la vista
+          previa y los dos botones) y dejaba poco para ver los pasos. Sin pegarse tampoco desenfoca, porque corre con la página. */}
+      <div className="pie-hoja-fijo flex flex-wrap items-end gap-x-4 gap-y-3 border-t border-sand pt-4 max-sm:static max-sm:before:hidden max-sm:[-webkit-backdrop-filter:none]! max-sm:[backdrop-filter:none]!">
         <div className="min-w-[16rem] flex-1 space-y-2">
           <CampoGuiado id="responsable" guia={guia}>
             <div data-guia="campana-editor.responsable" className="max-w-sm">

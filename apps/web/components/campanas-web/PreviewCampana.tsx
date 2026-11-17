@@ -73,8 +73,9 @@ export function PreviewCampana({
   const frase = `${nombre} · ${pctDicho(pct)}${hasta ? ` hasta el ${fechaCortaDicha(hasta)}` : ""}`;
   const franjaVestida = !!colores && donde.franja;
 
+  // `@container`: la portada de computador mide su letra y su relleno contra el ancho de la vista previa (`cqi`), no de la ventana.
   return (
-    <div className={`papel-fijo overflow-hidden rounded-lg border border-sand bg-papel text-tinta ${quieto ? "cmp-quieto" : ""}`} style={vars} data-color-dato aria-label="Vista previa de la tienda">
+    <div className={`@container papel-fijo overflow-hidden rounded-lg border border-sand bg-papel text-tinta ${quieto ? "cmp-quieto" : ""}`} style={vars} data-color-dato aria-label="Vista previa de la tienda">
       <Franja frase={frase} modo={franjaVestida ? movimiento.franja : "rota"} vestida={franjaVestida} />
       <div className="flex items-center justify-between border-b border-sand px-4 py-3">
         <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">{celular ? "☰" : "Lo nuevo · Ropa · Looks"}</span>
@@ -145,14 +146,16 @@ function Portada({
   const acento = vestida && colores ? { color: colores.acento } : undefined;
   return (
     <div
-      className={`relative isolate overflow-hidden ${celular ? "px-5 py-6" : "grid grid-cols-[1.1fr_1fr] items-center gap-4 px-8 py-8"} ${vestida ? "" : "bg-hueso"}`}
+      // En computador, el relleno y la letra del titular se encogen con la vista previa (`cqi`) y nunca pasan de lo de siempre: angosta
+      // (el celular, o el editor a 768 px), la columna del titular quedaba en ~140 px y una palabra larga en 36 px se cortaba.
+      className={`relative isolate overflow-hidden ${celular ? "px-5 py-6" : "grid grid-cols-[1.1fr_1fr] items-center gap-4 px-[min(5cqi,2rem)] py-[min(5cqi,2rem)]"} ${vestida ? "" : "bg-hueso"}`}
       style={vestida ? { backgroundColor: "var(--cmp-fondo)", color: "var(--cmp-texto)" } : undefined}
       data-entrada={vestida ? movimiento.entrada : undefined}
     >
       {vestida && <EfectoDePreview efecto={movimiento.efecto} intensidad={movimiento.intensidad} duracion={movimiento.duracion} />}
       <div className="relative z-[3] min-w-0">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-90">{`Campaña${hasta ? ` · hasta el ${fechaCortaDicha(hasta)}` : ""}`}</p>
-        <h3 className={`mt-3 font-sans font-medium uppercase leading-[1.02] ${celular ? "text-2xl" : "text-4xl"}`}>
+        <h3 className={`mt-3 font-sans font-medium uppercase leading-[1.02] ${celular ? "text-2xl" : "text-[length:clamp(1.25rem,6cqi,2.25rem)]"}`}>
           {cabeza}
           {cola && (
             <em className="block font-serif text-[1.18em] font-normal normal-case italic" style={acento}>
@@ -162,7 +165,7 @@ function Portada({
         </h3>
         {textos.bajada && <p className="mt-3 max-w-[34ch] text-[13px] opacity-90">{textos.bajada}</p>}
         <p className="mt-3 flex items-baseline gap-3">
-          <b className="font-serif text-3xl font-normal italic" style={acento}>
+          <b className={`font-serif font-normal italic ${celular ? "text-3xl" : "text-[length:clamp(1.25rem,5cqi,1.875rem)] leading-[1.2]"}`} style={acento}>
             {pctDicho(pct)}
           </b>
           <span className="text-[11px] opacity-85">en las prendas de la campaña</span>

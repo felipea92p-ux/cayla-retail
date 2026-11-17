@@ -182,6 +182,27 @@ excepción de una sola talla se volvía el precio de toda la prenda.
 Migración `20261116020000` (reservada). `pruebas:fusionar-productos` 49/49; con las funciones de antes fallan 29, 36, 37, 41, 42 y 43 (y 44-49 con versiones previas de esta migración), y sin el parche del candado
 de la terminal falla 35 (que ahora sí cambia el precio general).
 
+## Actualización 2026-11-16 (b): lo que se ve es lo que se cobra
+
+Auditoría adversarial (base local con todas las migraciones y la hoja real en el navegador). Tres hallazgos, arreglados:
+
+1. **Un precio de tienda cambiado mientras se mira la fusión no la frenaba.** `poner_precio_sede` no cambia la versión de la ficha, así que
+   el control PT409 no lo veía y la tienda quedaba cobrando otra cosa que la que se mostró (Lima a S/ 95 cuando la hoja decía S/ 84.90).
+   DECIDÍ: la hoja devuelve la lista que mostró (`precios_sede_vistos`); `fusionar_productos`, antes de escribir nada, compara su huella
+   (`fn_fusion_precios_sede_huella`: sede, conflicto, por defecto y precio y si es propio de cada ficha) con la de ese momento y, si
+   difiere, frena con PT409 `version_cambiada`; la hoja se vuelve a leer sola. Sin la clave (pantalla de antes), igual que siempre.
+   DESCARTÉ subir la versión de la ficha en cada precio de tienda: frenaría ediciones de la ficha que nada tienen que ver.
+2. **El precio bajo el costo se decía recién al confirmar.** La vista previa marca `bajo_costo` en la ficha cuyo precio de tienda
+   quedaría bajo el costo de alguna talla (`fn_fusion_precios_sede_con_costo`) y la hoja lo avisa antes de revisar. Es aviso: quien frena
+   sigue siendo el control exacto del final (que además mira el costo elegido).
+3. **«Toda la prenda a S/ X» exageraba:** una talla con precio propio en esa tienda lo conserva. Ahora «la prenda a S/ X».
+
+De paso: el aviso de error de la hoja agregaba «Las fichas siguen como estaban.» a todo mensaje; salía dos veces y, con la red cortada,
+afirmaba lo que no se sabía. Ahora lo dice solo `mensajeAlNoFusionar`, cuando la base dijo que no.
+
+Migración `20261116203000` (número sin reserva en el remoto: `pnpm reservar` falla desde la nube). Pruebas: `pruebas:fusionar-productos`
+casos 50 a 54 (54/54).
+
 ## Pendiente
 
 - «Esta no es repetida»: hoy un par sugerido que no es la misma prenda sigue en la lista. Si molesta, una tabla de pares descartados.

@@ -46,7 +46,9 @@
 .cmp-leyenda-raya { border-top-style: dashed; }
 
 /* Cómo te pagaron */
-.cmp-metodo { display: grid; grid-template-columns: 96px minmax(0, 1fr) 82px; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--color-sand); }
+/* 7.5rem: «Transferencia» con su punto pide 107,5 px y en 96 se pegaba a la barra. Fija (no max-content): cada fila es su propia
+   grilla y las barras de todos los medios tienen que empezar en la misma línea. */
+.cmp-metodo { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) 82px; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--color-sand); }
 .cmp-metodo:first-child { border-top: 0; }
 /* «carril», no «pista»: `.cmp-pista` es la de la marquesina de Campañas (campana-efectos.css) y el CSS es global: con el mismo nombre,
    la franja en marquesina se llevaba este fondo hueso redondeado de 12 px detrás de las letras. */

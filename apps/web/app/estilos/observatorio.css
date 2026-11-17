@@ -501,6 +501,11 @@
   .o-stk-f { grid-template-columns: minmax(0, 1fr) 70px 54px; }
 }
 
+/* ---------- con el dedo (ADR-0611, mejora 5): el segmento llega a 44 px; el indicador crece con él (top y bottom de 4 px) ---------- */
+@media (pointer: coarse) {
+  .o-sd button, .o-sd.chico button { height: 44px; }
+}
+
 /* ---------- movimiento reducido ---------- */
 @media (prefers-reduced-motion: reduce) {
   .obs *, .obs *::before, .obs *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; transition-delay: 0ms !important; }

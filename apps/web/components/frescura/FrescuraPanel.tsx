@@ -294,7 +294,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
     <button
       type="button"
       data-guia="frescura.como-se-lee"
-      className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13px]"
+      className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-sm"
       aria-expanded={comoSeLee}
       aria-controls="frescura-como-se-lee"
       onClick={() => setComoSeLee((v) => !v)}
@@ -411,7 +411,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 ) : (
                   <span className="text-sm font-semibold text-tinta">Esperan tu decisión</span>
                 )}
-                <button type="button" className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13.5px]" onClick={() => cambiar({ todas: true })}>
+                <button type="button" className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-sm" onClick={() => cambiar({ todas: true })}>
                   Ver todas las prendas ({enTabla.length})
                 </button>
               </div>
@@ -460,9 +460,9 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                       <TituloSeccion cuenta={grupos.length > 1 ? g.prendas.length : undefined}>{g.nombre}</TituloSeccion>
                     </div>
                     )}
-                    <div className="overflow-x-auto [scrollbar-width:thin]">
+                    <div className="@container overflow-x-auto [scrollbar-width:thin]">
                       <div className={ANCHO_MINIMO_TABLA}>
-                        <div className={`encabezado-tabla-cayla hidden gap-x-4 px-5 py-2 text-sm text-taupe md:grid ${PLANTILLA_FRESCURA}`} role="presentation">
+                        <div className={`encabezado-tabla-cayla hidden gap-x-4 px-5 py-2 text-sm text-taupe @min-[54rem]:grid ${PLANTILLA_FRESCURA}`} role="presentation">
                           <span>Prenda</span>
                           <span>Estado</span>
                           <span>Qué hacer</span>
@@ -516,7 +516,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 {efectivos.porDecidir && porDecidirOtras > 0 && (
                   <span className="w-full">
                     <TextoConNegritas texto={textoOtrasConPregunta(porDecidirOtras)} />{" "}
-                    <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={() => cambiar({ porDecidir: false })}>
+                    <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => cambiar({ porDecidir: false })}>
                       Verlas todas
                     </button>
                   </span>
@@ -524,7 +524,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 {pie && resumenDelPie?.guardadas && (
                   <span className="w-full">
                     {resumenDelPie.guardadas}{" "}
-                    <button type="button" className="btn-cayla btn-enlace text-[12.5px]" aria-expanded={verGuardadas} onClick={() => setVerGuardadas((v) => !v)}>
+                    <button type="button" className="btn-cayla btn-enlace text-sm" aria-expanded={verGuardadas} onClick={() => setVerGuardadas((v) => !v)}>
                       {verGuardadas ? "Ocultar" : "Ver cuáles"}
                     </button>
                     {verGuardadas && <span className="mt-1 block">{pie.guardadas.join(" · ")}.</span>}
@@ -533,7 +533,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 {pie && resumenDelPie?.nuncaColgadas && (
                   <span className="w-full">
                     {resumenDelPie.nuncaColgadas}{" "}
-                    <button type="button" className="btn-cayla btn-enlace text-[12.5px]" aria-expanded={verNuncaColgadas} onClick={() => setVerNuncaColgadas((v) => !v)}>
+                    <button type="button" className="btn-cayla btn-enlace text-sm" aria-expanded={verNuncaColgadas} onClick={() => setVerNuncaColgadas((v) => !v)}>
                       {verNuncaColgadas ? "Ocultar" : "Ver cuáles"}
                     </button>
                     {verNuncaColgadas && <span className="mt-1 block">{pie.nuncaColgadas.join(" · ")}.</span>}

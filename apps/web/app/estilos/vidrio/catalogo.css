@@ -126,3 +126,11 @@
     background: var(--gota-clara-encima);
   }
 }
+/* Con el dedo (ADR-0611, mejora 5): cada letra CRECE a 44 px de alto y 40 de ancho. No usa el `::after` de `area-dedo`: con 2 px entre
+   letras, las áreas de 44 px se pisarían y la de la derecha se quedaría con el toque de su vecina. El índice ya corre de lado. */
+@media (pointer: coarse) {
+  .indice-ranura > button {
+    height: 44px;
+    min-width: 40px;
+  }
+}

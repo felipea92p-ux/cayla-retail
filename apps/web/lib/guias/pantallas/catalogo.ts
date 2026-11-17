@@ -1218,11 +1218,25 @@ export const GUIA_CAMPANAS: Guia = {
       texto: "Abre una ventana para crearla con su nombre y, si quieres, su dibujo y sus fechas. Después respondes sus tres preguntas. Antes mira si ya existe: una campaña que ya pasó se repite, no se crea de nuevo. En la demo no lo tocamos.",
     },
     {
+      id: "poner-un-pct",
+      ancla: "rebaja.escaner",
+      opcional: true,
+      titulo: "Ponerle un % a una prenda",
+      texto: "Escanea la etiqueta o escribe su nombre: se abre una hoja que dice qué % tiene hoy. Eliges si va solo a esa prenda o a todo el modelo, y cuánto menos entre los % que ya hay en tu tienda. Rige hasta que alguien lo quite.",
+    },
+    {
+      id: "rebajas-de-tienda",
+      ancla: "rebaja.tienda",
+      opcional: true,
+      titulo: "Los % de tu tienda",
+      texto: "Cada tarjeta es un % que rige aquí y cuántas prendas tiene. Tócala para ver sus prendas con su precio de hoy y quitar las que ya no van.",
+    },
+    {
       id: "dos-ofertas",
       ancla: "sellos.dos-ofertas",
       opcional: true,
       titulo: "Prendas con dos ofertas",
-      texto: "Sale cuando una prenda quedó con dos ofertas, por ejemplo al marcarla con una insignia. Mientras no elijas, la caja cobra la que más le ahorra al cliente. «Elegir cuál queda» abre los pares: lo que elijas vale para todas sus prendas.",
+      texto: "Sale cuando una prenda quedó con dos ofertas, por ejemplo al marcarla con una insignia. Mientras no elijas, la caja cobra solo una de las dos. «Elegir cuál queda» abre los pares: lo que elijas vale para todas sus prendas.",
     },
     {
       id: "pila",

@@ -344,14 +344,14 @@ export function PorPagarLista({
         )}
         {bloques.map((b) => (
           <Fragment key={b.clave}>
-            {/* El id es el destino de la tarjeta «Vence esta semana»; `scroll-mt-24` compensa la cabecera fija. */}
+            {/* El id es el destino de la tarjeta «Vence esta semana»; la página descuenta la cabecera fija y `scroll-mt-8` deja su aire. */}
             <div
               id={agrupar === "urgencia" ? `tramo-${b.clave}` : undefined}
               ref={refDe(`b:${b.clave}`)}
               role="row"
-              className={`group scroll-mt-24 flex items-center justify-between gap-4 px-5 py-2 ${ESTILO_BANDA[b.tono]}`}
+              className={`group scroll-mt-8 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-2 ${ESTILO_BANDA[b.tono]}`}
             >
-              <p className="label-cayla flex flex-wrap items-center gap-x-2.5 text-[11px]">
+              <p className="label-cayla flex min-w-0 flex-wrap items-center gap-x-2.5 text-[11px]">
                 {b.proveedorId && (
                   <span aria-hidden className="font-display grid h-[26px] w-[26px] place-items-center rounded-full bg-sand text-[13px] normal-case tracking-normal text-tinta">
                     {b.titulo.trim().split(/\s+/).filter((w) => w.length > 2).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
@@ -360,12 +360,12 @@ export function PorPagarLista({
                 <span>{b.titulo}</span>
                 <span>· {contar(b.cantidad)}</span>
               </p>
-              <p className="flex shrink-0 items-center gap-3.5 text-sm tabular-nums">
+              <p className="ml-auto flex flex-wrap items-center justify-end gap-3.5 text-sm tabular-nums">
                 {b.proveedorId && (
                   <button
                     type="button"
                     onClick={() => setSeleccion(b.filas.map((f) => f.id))}
-                    className="label-cayla text-[11px] text-tinta opacity-0 transition-[opacity,color] duration-200 hover:text-rojo focus-visible:opacity-100 group-hover:opacity-100 max-sm:opacity-100"
+                    className="label-cayla area-dedo text-[11px] text-tinta opacity-0 transition-[opacity,color] duration-200 hover:text-rojo focus-visible:opacity-100 group-hover:opacity-100 max-sm:opacity-100 pointer-coarse:opacity-100"
                   >
                     Marcar todo
                   </button>
@@ -509,7 +509,7 @@ function SugerenciasDelProveedor({ proveedorId, compras, seleccion, ahora, onAgr
           type="button"
           onClick={() => onAgregar(o.id)}
           title={o.fechaVencimiento ? etiquetaVence(o.fechaVencimiento, ahora) : "Sin fecha de vencimiento"}
-          className="anim-revelar shrink-0 whitespace-nowrap rounded-full border border-dashed border-tinta/25 px-2.5 py-[3px] text-sm tabular-nums text-tinta/75 transition-colors duration-200 hover:border-solid hover:border-rojo hover:text-rojo"
+          className="anim-revelar shrink-0 whitespace-nowrap rounded-full border border-dashed border-tinta/25 px-2.5 py-[3px] text-sm tabular-nums text-tinta/75 transition-colors duration-200 hover:border-solid hover:border-rojo hover:text-rojo pointer-coarse:min-h-11 pointer-coarse:px-3"
           style={{ animationDelay: `${i * 50}ms` }}
         >
           ＋ {o.documento} · {soles(o.saldo)}
@@ -628,7 +628,7 @@ function FilaPorPagar({
           filas[filas.indexOf(e.currentTarget) + (e.key === "ArrowDown" ? 1 : -1)]?.focus();
         }
       }}
-      className={`group relative flex cursor-pointer items-start gap-3 px-4 py-3 transition-[background-color,opacity] duration-200 outline-none before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded-full before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.04] hover:before:scale-y-100 focus-visible:bg-tinta/[0.04] focus-visible:before:scale-y-100 @[40rem]:grid @[40rem]:items-center @[40rem]:gap-x-4 @[40rem]:px-5 ${PLANTILLA} ${
+      className={`group relative flex cursor-pointer items-start gap-3 px-4 py-3 transition-[background-color,opacity] duration-200 focus-visible:[outline-offset:calc(var(--foco-ancho)*-1)] before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded-full before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.04] hover:before:scale-y-100 focus-visible:bg-tinta/[0.04] focus-visible:before:scale-y-100 @[40rem]:grid @[40rem]:items-center @[40rem]:gap-x-4 @[40rem]:px-5 ${PLANTILLA} ${
         marcada ? "bg-rojo/[0.045] before:scale-y-100" : ""
       } ${eco || foco ? "bg-tinta/[0.04] before:scale-y-100" : ""} ${atenuada ? "opacity-40" : ""} ${destello ? "anim-destello-ok" : ""} ${
         sellada ? "pointer-events-none bg-verde/10 before:scale-y-100 before:bg-verde" : ""
@@ -643,9 +643,12 @@ function FilaPorPagar({
           <span className="label-cayla text-[11px]">Pagada</span>
         </span>
       )}
-      <span data-guia="por-pagar.casilla" className={`relative z-10 pt-0.5 @[40rem]:pt-0 ${sellada ? "opacity-55" : ""}`}>
+      {/* La casilla mide 20 px dentro de una fila que abre la vista rápida: tocar a 2 px de ella abría la factura en vez de marcarla. Su
+          <label> agranda lo que la marca en 6 px por lado (WCAG 2.5.8) y el margen negativo deja todo donde estaba, como la casilla de
+          Proveedores; la fila ya ignora el clic que nace en una <label>. */}
+      <label data-guia="por-pagar.casilla" className={`relative z-10 -m-1.5 cursor-pointer p-1.5 pt-2 @[40rem]:pt-1.5 ${sellada ? "opacity-55" : ""}`}>
         <Casilla marcada={marcada} onCambio={onAlternar} etiqueta={`Elegir ${c.documento} de ${c.proveedorNombre} para pagar`} />
-      </span>
+      </label>
       <div className={`min-w-0 flex-1 @[40rem]:flex-none ${sellada ? "opacity-55" : ""}`}>
         {/* La marca primero (ADR-0644): con marcas, son el título y la razón social baja a la línea de abajo; sin ellas, como antes. */}
         <span className={`block truncate text-sm text-tinta ${tituloDeCompra(marcas) ? "font-medium" : ""}`}>
