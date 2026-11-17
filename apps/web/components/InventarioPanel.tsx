@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Globito } from "@/components/ui/Globito";
-import { useCallback, useMemo, useRef, useState } from "react";
-import { Aviso } from "@/components/ui/Aviso";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, Eye, ListChecks, Moon, Package, PackageX, ScanLine, ShoppingBag, SignpostBig, Tag, TriangleAlert, X } from "lucide-react";
 import { urlRotulos } from "@/lib/rotulos-reglas";
 import { useRefrescoEnVivo } from "@/lib/useRefrescoEnVivo";
@@ -29,6 +28,8 @@ import {
 } from "@/components/existencias/hojas-bajo-demanda";
 import { usePrecargarEnReposo } from "@/components/HojaBajoDemanda";
 import { usePedidoDeAjuste } from "@/components/existencias/BotonAjustarStock";
+import { AvisoPisoSinCuadrar } from "@/components/existencias/AvisosExistencias";
+import { publicarEnCabecera } from "@/components/existencias/cabecera-existencias";
 // «Pedir para una clienta» (PedirOtraSedeModal) no vuelve: el rediseño del cajón (2026-09-28) no tiene esa entrada — el
 // mismo criterio ya documentado para «Apartar»/«Retirar del piso»/«Dónde más hay». «Eliminar el producto» (ADR-0252) salió del
 // detalle de la prenda el 2026-10-12 (ADR-0391, decisión de Felipe): es de Catálogo, y ahí sigue (la vista rápida de Productos).
@@ -120,26 +121,25 @@ function ChipHoy({ f, calculando }: { f: FilaExistencias; calculando: boolean })
     </>
   );
 }
-/** El piso nunca cuadrado, sobre las tarjetas (ADR-0391). Lo usan la lista y el lugar que la guarda mientras llega el plan: así no aparece
- *  de golpe sobre las prendas cuando el plan llega (Existencias en dos tiempos). */
-function AvisoPisoSinCuadrar() {
+/** El piso nunca cuadrado (ADR-0391), sobre las tarjetas: desde 640 px. En el celular es el ícono «Avisos» de la cabecera, que abre su
+ *  hoja (`AvisosExistencias`, Felipe 2026-11-17): la franja ocupaba ~120 px sobre la primera prenda. Lo usan la lista y el lugar que la
+ *  guarda mientras llega el plan: así no aparece de golpe sobre las prendas cuando el plan llega (Existencias en dos tiempos). La caja
+ *  de afuera es la que se esconde: el aviso es vidrio sin capa y una utilidad no le gana a su `display`. */
+function FranjaPisoSinCuadrar({ puedeCuadrar }: { puedeCuadrar: boolean }) {
   return (
-    <Aviso
-      tono="atencion"
-      guia="existencias.aviso-cuadre"
-      className="mb-3"
-      titulo="El piso de esta tienda nunca se ha cuadrado"
-      accion={
-        <Link href="/inventario/cuadrar" className="btn-cayla btn-secundario btn-chico whitespace-nowrap">
-          Cuadrar el piso
-        </Link>
-      }
-    >
-      {/* En el teléfono el título basta: la explicación empujaba la primera prenda bajo el pliegue (verificado a 375 px, 2026-11-02). */}
-      <span className="max-sm:hidden">
-        Lo que dice «en almacén» puede estar colgado: los números del almacén no están verificados hasta el primer cuadre.
-      </span>
-    </Aviso>
+    <div className="mb-3 max-sm:hidden">
+      <AvisoPisoSinCuadrar
+        guia="existencias.aviso-cuadre"
+        // «Cuadrar el piso» cuadra siempre la sede activa: mirando otra sede, la franja informa y no lleva botón (como «Pendientes»).
+        accion={
+          puedeCuadrar ? (
+            <Link href="/inventario/cuadrar" className="btn-cayla btn-secundario btn-chico whitespace-nowrap">
+              Cuadrar el piso
+            </Link>
+          ) : undefined
+        }
+      />
+    </div>
   );
 }
 
@@ -576,6 +576,10 @@ export function InventarioPanel({
   // «Colgar primero», las tres prendas que más convenía colgar sobre las tarjetas, se quitó el 2026-10-06 (Felipe: «quita esto»): la
   // lista ya va en el orden de la lista del día y el atajo «Por colgar» dice cuáles faltan (ADR-0344, «Quinta vuelta»).
   const filtrosPuestos = contarFiltrosActivos(elegidos);
+  // La fila de íconos de la cabecera (celular) la dibuja el servidor: el panel le dice cuántos filtros hay puestos y si el piso sigue sin
+  // cuadrar (`cabecera-existencias.ts`). Al desmontarse (otra sede, otra pantalla) lo retira: un dato viejo no se queda arriba.
+  useEffect(() => publicarEnCabecera({ filtrosPuestos, pisoSinCuadrar }), [filtrosPuestos, pisoSinCuadrar]);
+  useEffect(() => () => publicarEnCabecera(null), []);
   // Solo «Hoy» y/o «Condición» (sin texto, talla, color, marca ni categoría): la tarjeta enseña TODAS las tallas del color y atenúa las
   // que no cumplen, como la maqueta. Con otro filtro, las tallas que se ven son las que deja ese filtro (y la tarjeta lo dice).
   const soloHoyOCondicion = sinTexto && (elegidos.hoy !== null || elegidos.condicion !== null) && filtrosPuestos === (elegidos.hoy ? 1 : 0) + (elegidos.condicion ? 1 : 0);
@@ -1093,7 +1097,7 @@ export function InventarioPanel({
             <EsqueletoTabla filas={4} className="border-t border-sand" />
           ) : (
             <>
-              {pisoSinCuadrar && <AvisoPisoSinCuadrar />}
+              {pisoSinCuadrar && <FranjaPisoSinCuadrar puedeCuadrar={puedeBajarAlPiso} />}
               {/* La sombra de una fila de tarjetas, con su rejilla y su alto: las reales caen en su lugar. */}
               <div aria-hidden className={REJILLA_TARJETAS}>
                 {[0, 1, 2].map((i) => (
@@ -1155,7 +1159,7 @@ export function InventarioPanel({
           {/* El piso nunca cuadrado (ADR-0391, medido el 2026-10-12: 0 cuadres en las tres tiendas; TRU con 881 «guardadas» contra 403
               «colgadas»): el motor del piso ya está en pausa por eso (ADR-0328 d.5) y la cifra de arriba dice «por cuadrar», pero la tarjeta
               decía «+3 guardadas» como si fuera verdad. Hasta el primer cuadre de la sede, se dice aquí, con el camino. */}
-          {pisoSinCuadrar && <AvisoPisoSinCuadrar />}
+          {pisoSinCuadrar && <FranjaPisoSinCuadrar puedeCuadrar={puedeBajarAlPiso} />}
           <ExistenciasTarjetas
             modelos={paginaTarjetas.filas}
             separa={separa}

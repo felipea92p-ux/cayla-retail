@@ -722,3 +722,14 @@ ser tarjetas bajo la cabecera y sean un ícono que titila: en el celular las tre
   repintaba solo dentro del vidrio dejó lavada la pantalla de Vender en las Mac de las tiendas (`app/estilos/movimiento.css`).
 - **Solo mueve `transform` y `opacity`**, y se apaga con `prefers-reduced-motion`.
 - Que otra pantalla lleve sus avisos a la cabecera con esta pieza lo decide Felipe.
+
+## Actualización 2026-11-17 (b) — el mismo latido en el aviso de Existencias, solo en el celular
+
+Felipe, mirando Existencias a 375 px: «que solo titile, así no tener un espacio ocupado del aviso, sino que se abra como se abren los
+filtros». La franja «El piso de esta tienda nunca se ha cuadrado» ocupaba unos 120 px sobre la primera prenda, con el título partido en cuatro líneas y sin su explicación.
+
+- **Qué late:** el mismo punto ámbar de `PendienteDeCabecera`, detrás del número del ícono «Avisos» de la cabecera de Existencias
+  (`components/existencias/AvisosExistencias.tsx`). Ni pieza ni animación nueva: es la decisión de arriba, llevada a otra pantalla
+  por pedido de Felipe. Tocarlo abre una hoja con el aviso entero y «Cuadrar el piso».
+- **Solo bajo 640 px.** Desde 640 px la franja sigue sobre las tarjetas y nada late.
+- **Quieto, avisa el número** (ADR-0625), igual que en Productos.

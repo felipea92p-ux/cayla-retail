@@ -2,7 +2,7 @@
   "guia": "productos.marcas",
   "ruta": "/productos/marcas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 38,
+  "total": 40,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -23,9 +23,10 @@
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/MarcasLista.tsx": [
+      "Boton «marcas.resumen»",
+      "BotonFiltros «marcas.filtros»",
       "Boton «marcas.nueva»",
-      "button «marcas.desactivadas»",
-      "button «marcas.resumen»",
+      "Boton «Ver todas»",
       "Boton «Borrar la búsqueda»"
     ],
     "components/alta-producto/IdentidadAlta.tsx": [
@@ -50,7 +51,8 @@
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/marcas/FiltrosMarcas.tsx": [
-      "button «→() => onFiltro(f)»"
+      "button «→() => onFiltro(f)»",
+      "button «marcas.desactivadas»"
     ],
     "components/marcas/IndiceLetras.tsx": [
       "button «{letra === \"#\" ? \"Ir a las marcas que empiezan con un número\" : `Ir a la ${letra}»"
