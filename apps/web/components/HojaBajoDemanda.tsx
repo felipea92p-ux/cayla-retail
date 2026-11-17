@@ -45,3 +45,22 @@ export function hojaBajoDemanda<P extends object>(cargar: () => Promise<Componen
 
   return Object.assign(Hoja, { precargar });
 }
+
+/**
+ * Baja el código de una hoja apenas la pantalla queda libre, sin esperar al primer toque: para la hoja que es LA acción de la pantalla
+ * («Cerrar caja» en Caja) o que tiene que servir sin conexión («Prenda sin registrar» en Vender). Si en ese momento no hay red, se
+ * reintenta cuando vuelve.
+ */
+export function usePrecargarEnReposo(hoja: { precargar: () => void }) {
+  useEffect(() => {
+    const precargar = () => hoja.precargar();
+    const enReposo = typeof window.requestIdleCallback === "function" ? window.requestIdleCallback(precargar, { timeout: 4000 }) : null;
+    const reloj = enReposo === null ? window.setTimeout(precargar, 2500) : null;
+    window.addEventListener("online", precargar);
+    return () => {
+      if (enReposo !== null) window.cancelIdleCallback(enReposo);
+      if (reloj !== null) window.clearTimeout(reloj);
+      window.removeEventListener("online", precargar);
+    };
+  }, [hoja]);
+}

@@ -8,16 +8,15 @@ import { avisar } from "@/components/ui/Avisos";
 import { MovimientoCajaModal } from "@/components/MovimientoCajaModal";
 import { FilaMovimientoCaja, type EventoCaja } from "@/components/FilaMovimientoCaja";
 import { MovimientosCajaModal } from "@/components/MovimientosCajaModal";
-import { HistorialCierresModal } from "@/components/HistorialCierresModal";
-import { DetalleVentaModal } from "@/components/DetalleVentaModal";
+import { CerrarCajaBajoDemanda } from "@/components/caja/CerrarCajaBajoDemanda";
+import { DetalleVentaBajoDemanda, HistorialCierresBajoDemanda, RegistrarGastoBajoDemanda } from "@/components/caja/hojas-bajo-demanda";
+import { usePrecargarEnReposo } from "@/components/HojaBajoDemanda";
 import { DetalleMovimientoCajaModal } from "@/components/DetalleMovimientoCajaModal";
-import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { EVENTO_CERRAR_CAJA } from "@/lib/recordatorio-cierre-reglas";
 import { BarraCierreCaja, BotonCerrarCaja } from "@/components/BarraCierreCaja";
 import { estadoBotonCierre } from "@/lib/caja-cierre-boton-reglas";
 import { ComparativaCaja } from "@/components/CajaComparativa";
 import type { PagoDelDia } from "@/lib/caja-comparativa-reglas";
-import { RegistrarGastoModal } from "@/components/RegistrarGastoModal";
 import { GastoRapidoModal } from "@/components/GastoRapidoModal";
 import { IngresoRapidoModal } from "@/components/IngresoRapidoModal";
 import {
@@ -172,6 +171,8 @@ export function CajaAbiertaPanel({
   const alCambiarModo = useCallback((m: ModoCierres) => setModoCierres(m), []);
   // La fila cuyo detalle está abierto (una venta o un movimiento del cajón). Aparte de `modal`: se apila sobre «Ver todo».
   const [ventaAbiertaId, setVentaAbiertaId] = useState<string | null>(null);
+  // «Cerrar caja» es LA acción de esta pantalla: su código baja apenas la pantalla queda libre, no al tocar el botón (ADR-0674).
+  usePrecargarEnReposo(CerrarCajaBajoDemanda);
   const [movimientoAbiertoId, setMovimientoAbiertoId] = useState<string | null>(null);
   // Una sola puerta para toda la lista: la venta abre su detalle, la entrada o la salida del cajón abre el suyo.
   const abrirFila = useCallback((e: EventoCaja) => (e.icono === "venta" ? setVentaAbiertaId(e.id) : setMovimientoAbiertoId(e.id)), []);
@@ -296,7 +297,13 @@ export function CajaAbiertaPanel({
           Registrar ingreso
         </Boton>
       )}
-      <Boton type="button" data-guia="caja.historial" onClick={() => setModal("cierres")}>
+      <Boton
+        type="button"
+        data-guia="caja.historial"
+        onClick={() => setModal("cierres")}
+        onPointerEnter={HistorialCierresBajoDemanda.precargar}
+        onFocus={HistorialCierresBajoDemanda.precargar}
+      >
         Historial de cierres
       </Boton>
       {/* D-13: solo quien puede gestionar la caja la cierra. El candado real está en `cerrar_caja`. */}
@@ -540,7 +547,9 @@ export function CajaAbiertaPanel({
           onRetiro={() => setModal("movimiento")}
         />
       )}
-      {modal === "cerrar" && <CerrarCajaModalV2 cajaId={caja.id} cola={cola} fondo={fondoCierre} ubicacionId={caja.ubicacionId} onClose={() => setModal(null)} />}
+      {modal === "cerrar" && (
+        <CerrarCajaBajoDemanda cajaId={caja.id} cola={cola} fondo={fondoCierre} ubicacionId={caja.ubicacionId} onClose={() => setModal(null)} alFallar={() => setModal(null)} />
+      )}
       {modal === "gasto" && gasto && (
         <GastoRapidoModal
           caja={{ id: caja.id, ubicacionId: caja.ubicacionId }}
@@ -555,7 +564,8 @@ export function CajaAbiertaPanel({
         />
       )}
       {modal === "gastoCompleto" && gasto?.completo && (
-        <RegistrarGastoModal
+        <RegistrarGastoBajoDemanda
+          alFallar={() => setModal(null)}
           categorias={gasto.categorias}
           ubicaciones={gasto.completo.ubicaciones}
           proveedores={gasto.proveedores}
@@ -566,7 +576,15 @@ export function CajaAbiertaPanel({
           onCerrar={() => setModal(null)}
         />
       )}
-      {modal === "cierres" && <HistorialCierresModal cierres={cierresUbicacion} ubicacionId={caja.ubicacionId} ubicacionNombre={ubicacionNombre} onClose={() => setModal(null)} />}
+      {modal === "cierres" && (
+        <HistorialCierresBajoDemanda
+          cierres={cierresUbicacion}
+          ubicacionId={caja.ubicacionId}
+          ubicacionNombre={ubicacionNombre}
+          onClose={() => setModal(null)}
+          alFallar={() => setModal(null)}
+        />
+      )}
       {modal === "todos" && (
         <MovimientosCajaModal
           eventos={filtrados}
@@ -577,7 +595,8 @@ export function CajaAbiertaPanel({
         />
       )}
       {ventaAbiertaId && (
-        <DetalleVentaModal
+        <DetalleVentaBajoDemanda
+          alFallar={() => setVentaAbiertaId(null)}
           ventaId={ventaAbiertaId}
           vendedor={ventasHoy.find((v) => v.ventaId === ventaAbiertaId)?.vendedor ?? null}
           ubicacionNombre={ubicacionNombre}

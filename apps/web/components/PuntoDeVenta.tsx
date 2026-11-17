@@ -53,7 +53,8 @@ import { conCandadoDeSubida } from "@/lib/candado-subida";
 import { esErrorDeResponsable, firmar } from "@/lib/responsable-reglas";
 import { useFlipDelTicket } from "@/components/punto-de-venta/useFlipDelTicket";
 import { money } from "@/lib/money";
-import { hojaBajoDemanda } from "@/components/HojaBajoDemanda";
+import { hojaBajoDemanda, usePrecargarEnReposo } from "@/components/HojaBajoDemanda";
+import { CerrarCajaBajoDemanda } from "@/components/caja/CerrarCajaBajoDemanda";
 import { Modal } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
 import { PuntoDeVentaCatalogo } from "@/components/PuntoDeVentaCatalogo";
@@ -189,16 +190,16 @@ import { numeroDeMonto } from "@/lib/monto-plata-reglas";
  */
 export { ID_CARGO_ESPECIAL };
 
-/** Sin fichas de color: una sola referencia vacía, para que el `useMemo` de la ficha no se rearme en cada render. */
 // Hojas cuyo código baja recién al abrirlas (ADR-0674, actividad 7): Vender despierta antes en un teléfono lento. Solo lo que NO hace
-// falta para cobrar sin conexión: la hoja de cobro, «Venta registrada» y el cobro en duda se quedan fijos. «Cerrar caja» pide internet
-// de todos modos. «Prenda sin registrar» sí sirve sin red: por eso se precarga apenas la pantalla queda libre (ver el efecto de abajo).
-const CerrarCajaBajoDemanda = hojaBajoDemanda(() => import("@/components/CerrarCajaModalV2").then((m) => m.CerrarCajaModalV2), "«Cerrar caja»");
+// falta para cobrar sin conexión: la hoja de cobro, «Venta registrada» y el cobro en duda se quedan fijos. «Cerrar caja» (la de
+// `components/caja/CerrarCajaBajoDemanda.tsx`) pide internet de todos modos. «Prenda sin registrar» sí sirve sin red: por eso se precarga
+// apenas la pantalla queda libre (`usePrecargarEnReposo`).
 const PrendaSinRegistrarBajoDemanda = hojaBajoDemanda(
   () => import("@/components/PrendaSinRegistrarModal").then((m) => m.PrendaSinRegistrarModal),
   "«Prenda sin registrar»",
 );
 
+/** Sin fichas de color: una sola referencia vacía, para que el `useMemo` de la ficha no se rearme en cada render. */
 const SIN_MAQUINAS: readonly MaquinaDeCobro[] = [];
 const SIN_OFERTAS_DE_GRUPO: Readonly<Record<string, OfertaDeGrupoDeVariante>> = {};
 const SIN_MONTOS: readonly FilaOfertaDeMonto[] = [];
@@ -1047,19 +1048,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     if (bloqueado) borrar(claveEspera);
   }, [bloqueado, claveEspera]);
 
-  // «Prenda sin registrar» sirve también sin conexión: su código baja apenas la pantalla queda libre, no al primer toque. Si en ese
-  // momento no hay red, se reintenta cuando vuelve (ADR-0674, actividad 7).
-  useEffect(() => {
-    const precargar = () => PrendaSinRegistrarBajoDemanda.precargar();
-    const enReposo = typeof window.requestIdleCallback === "function" ? window.requestIdleCallback(precargar, { timeout: 4000 }) : null;
-    const reloj = enReposo === null ? window.setTimeout(precargar, 2500) : null;
-    window.addEventListener("online", precargar);
-    return () => {
-      if (enReposo !== null) window.cancelIdleCallback(enReposo);
-      if (reloj !== null) window.clearTimeout(reloj);
-      window.removeEventListener("online", precargar);
-    };
-  }, []);
+  // «Prenda sin registrar» sirve también sin conexión: su código baja apenas la pantalla queda libre, no al primer toque (ADR-0674).
+  usePrecargarEnReposo(PrendaSinRegistrarBajoDemanda);
 
   // Reflujo suave de las líneas del ticket al agregar o quitar una prenda (`useFlipDelTicket`): GSAP baja solo con las animaciones
   // encendidas (ADR-0674). El ref vive acá y el ticket solo lo recibe: sigue sin hooks (ADR-0043).

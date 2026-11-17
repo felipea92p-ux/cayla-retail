@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { History } from "lucide-react";
 import { Boton } from "@/components/ui/campos";
-import { HistorialCierresModal } from "@/components/HistorialCierresModal";
+import { HistorialCierresBajoDemanda } from "@/components/caja/hojas-bajo-demanda";
 import type { CierreCaja } from "@/lib/caja";
 
 /**
@@ -16,11 +16,26 @@ export function BotonHistorialCierres({ cierres, ubicacionId, ubicacionNombre }:
   const [abierto, setAbierto] = useState(false);
   return (
     <>
-      <Boton type="button" data-guia="caja.historial-todas" onClick={() => setAbierto(true)}>
+      <Boton
+        type="button"
+        data-guia="caja.historial-todas"
+        onClick={() => setAbierto(true)}
+        // El código del historial baja al acercar el mouse o el foco: al tocar, ya está (ADR-0674).
+        onPointerEnter={HistorialCierresBajoDemanda.precargar}
+        onFocus={HistorialCierresBajoDemanda.precargar}
+      >
         <History className="h-4 w-4" aria-hidden />
         Historial de cierres
       </Boton>
-      {abierto && <HistorialCierresModal cierres={cierres} ubicacionId={ubicacionId} ubicacionNombre={ubicacionNombre} onClose={() => setAbierto(false)} />}
+      {abierto && (
+        <HistorialCierresBajoDemanda
+          cierres={cierres}
+          ubicacionId={ubicacionId}
+          ubicacionNombre={ubicacionNombre}
+          onClose={() => setAbierto(false)}
+          alFallar={() => setAbierto(false)}
+        />
+      )}
     </>
   );
 }
