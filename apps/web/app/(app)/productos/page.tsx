@@ -237,6 +237,7 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
         titulo="Productos"
         subtitulo="Cada prenda del catálogo con sus colores, tallas, precios y cuántas hay en tu sede."
         ayuda={ayudaProductos}
+        accionesLlenan
         acciones={
           <>
             {/* Grilla o Tabla muestran el mismo catálogo de otra forma: el segmento de modo del sistema, con su icono y su
@@ -254,8 +255,10 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
             />
             {/* Rótulos de anaquel (ADR-0366) a la vista sin marcar nada (Felipe, 2026-10-09: «no encuentro el botón»): abre su buscador
                 y «Volver» regresa a esta misma vista. Con prendas marcadas, la barra de abajo los lleva ya elegidos. */}
-            {/* En el celular todas las acciones van en UNA fila de íconos (2026-10-09; desde el 2026-11-17 también «Nuevo producto», un
-                poco más ancho por ser la principal, Felipe): cada una conserva su palabra para el lector de pantalla, al pasar el mouse y desde 640 px. */}
+            {/* En el celular todas las acciones van en UNA fila de íconos (2026-10-09; desde el 2026-11-17 también «Nuevo producto»,
+                Felipe): cada una conserva su palabra para el lector de pantalla, al pasar el mouse y desde 640 px. «Nuevo producto» parte
+                de 44 px, como los demás, y se estira hasta el margen con lo que sobre en cada teléfono (`max-sm:grow` + `accionesLlenan`):
+                4 px en uno de 350, 29 en uno de 375, 84 en uno de 430. Con un ancho fijo de 58 px se caía solo a otra fila a 350 px. */}
             <BotonEnlace href={urlRotulos([], { productos: hrefConVista(vista) }) ?? "/rotulos"} peso="fantasma" title="Rótulos" className="max-sm:min-w-11 max-sm:!px-3" data-guia="productos.rotulos">
               <SignpostBig aria-hidden className="h-4 w-4" />
               <span className="max-sm:sr-only">Rótulos</span>
@@ -300,7 +303,7 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
               />
             )}
             {editaCatalogo && (
-              <BotonEnlace href="/productos/nuevo" peso="primario" title="Nuevo producto" className="max-sm:!px-5" data-guia="productos.nuevo">
+              <BotonEnlace href="/productos/nuevo" peso="primario" title="Nuevo producto" className="max-sm:min-w-11 max-sm:grow max-sm:!px-3" data-guia="productos.nuevo">
                 <Plus aria-hidden className="h-3.5 w-3.5 max-sm:h-4 max-sm:w-4" />
                 <span className="max-sm:sr-only">Nuevo producto</span>
               </BotonEnlace>
