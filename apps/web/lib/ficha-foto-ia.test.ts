@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TIPOS_POR_CATEGORIA } from "./nombre-de-prenda";
 import { familiaDeTejido, type FamiliaTejido } from "./tejido-visual";
-import { ACABADOS, esAcabado, fichaParaIA, FORMA_DE_CINTURA, SE_VE_PLANCHADA, TEJIDOS_CON_RELIEVE, TEJIDOS_DE_PUNTO, TEJIDOS_PLANOS, ZONA_POR_PREFIJO } from "./ficha-foto-ia";
+import { ACABADO_POR_TEJIDO, ACABADOS, esAcabado, fichaParaIA, FORMA_DE_CINTURA, SE_VE_PLANCHADA, TEJIDOS_CON_RELIEVE, TEJIDOS_DE_PUNTO, TEJIDOS_PLANOS, ZONA_POR_PREFIJO } from "./ficha-foto-ia";
 
 // La ficha que la IA de «Catálogo con IA» recibe de lo ya elegido (2026-11-14). El caso que la originó: un pantalón de LINO que la IA devolvió como
 // buzo. Cada prueba lleva su control: lo que se dice del lino NO se dice de un buzo de verdad.
@@ -166,8 +166,9 @@ describe("fase 2 (2026-11-16): el pantalón de lino del 14-nov, dicho en positiv
       for (const tejido of TEJIDOS) expect(fichaParaIA({ prefijo, tejido, patron: "Liso" })?.texto ?? "", `${prefijo} ${tejido}`).not.toMatch(/buzo|felpa|deportiv|jogger/i);
   });
 
-  it("la prenda va PLANCHADA con la textura de su tejido; el lino sigue siendo lino (Felipe 2026-11-16: «sin perder el tipo de tela»)", () => {
-    const lino = fichaParaIA({ prefijo: "PAN", tejido: "Lino", patron: "Liso" })?.texto ?? "";
+  it("«planchada» pide la textura de su tejido; el lino planchado sigue siendo lino (Felipe 2026-11-16: «sin perder el tipo de tela»)", () => {
+    // El lino ya no sale planchado de fábrica (2026-11-17, `ACABADO_POR_TEJIDO`): aquí se pide «planchada» a propósito, como en el laboratorio.
+    const lino = fichaParaIA({ prefijo: "PAN", tejido: "Lino", patron: "Liso" }, { acabado: "planchada" })?.texto ?? "";
     expect(lino).toMatch(/PLANCHADA: la prenda se ve planchada para una sesión de fotos/);
     // Se quita lo que deja el guardarla; la TELA va primero, y la foto de cerca manda.
     expect(lino).toMatch(/sin los dobleces ni las marcas de haberla guardado/);
@@ -224,8 +225,15 @@ describe("fase 2 (2026-11-16): el pantalón de lino del 14-nov, dicho en positiv
 describe("los tres acabados de la tela, para compararlos en el laboratorio (Felipe 2026-11-16, el lino Crudo)", () => {
   const lino = { prefijo: "PAN", tejido: "Lino", patron: "Liso" };
 
-  it("producción no cambia: sin acabado es «planchada», palabra por palabra", () => {
-    expect(fichaParaIA(lino)).toEqual(fichaParaIA(lino, { acabado: "planchada" }));
+  it("de fábrica: el lino sale «con arrugas finas» (Felipe 2026-11-17: planchado «se ve peor»); las demás telas, «planchada»", () => {
+    expect(ACABADO_POR_TEJIDO).toEqual({ lino: "arrugas-finas" });
+    expect(fichaParaIA(lino)).toEqual(fichaParaIA(lino, { acabado: "arrugas-finas" }));
+    for (const tejido of ["Gabardina", "Algodón", "Viscosa", "Denim", "Seda", "Sastre"]) {
+      const datos = { prefijo: "PAN", tejido, patron: "Liso" };
+      expect(fichaParaIA(datos), tejido).toEqual(fichaParaIA(datos, { acabado: "planchada" }));
+    }
+    // Sin tejido elegido, «planchada».
+    expect(fichaParaIA({ prefijo: "PAN", patron: "Liso" })).toEqual(fichaParaIA({ prefijo: "PAN", patron: "Liso" }, { acabado: "planchada" }));
     expect(ACABADOS.map((a) => a.valor)).toEqual(["planchada", "arrugas-finas", "sin-planchar"]);
   });
 
