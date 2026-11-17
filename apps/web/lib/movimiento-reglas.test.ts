@@ -2,14 +2,12 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  alternarMovimiento,
   ATRIBUTO_MOVIMIENTO,
   CLAVE_MOVIMIENTO,
   MOVIMIENTO_POR_DEFECTO,
   quedaQuieto,
   resolverMovimiento,
   SCRIPT_MOVIMIENTO_ANTES_DE_PINTAR,
-  textosDelBotonMovimiento,
 } from "./movimiento-reglas";
 
 describe("animaciones — reglas puras (ADR-0625)", () => {
@@ -25,21 +23,11 @@ describe("animaciones — reglas puras (ADR-0625)", () => {
     }
   });
 
-  it("alternar va y vuelve", () => {
-    expect(alternarMovimiento("quieto")).toBe("vivo");
-    expect(alternarMovimiento(alternarMovimiento("quieto"))).toBe("quieto");
-  });
-
   it("el aparato que pide menos movimiento gana siempre; si no, manda el botón", () => {
     expect(quedaQuieto("vivo", false)).toBe(false);
     expect(quedaQuieto("quieto", false)).toBe(true);
     expect(quedaQuieto("vivo", true)).toBe(true);
     expect(quedaQuieto("quieto", true)).toBe(true);
-  });
-
-  it("el nombre del botón no cambia; el título dice qué hará el clic", () => {
-    expect(textosDelBotonMovimiento("quieto")).toEqual({ etiqueta: "Animaciones", titulo: "Encender las animaciones" });
-    expect(textosDelBotonMovimiento("vivo")).toEqual({ etiqueta: "Animaciones", titulo: "Apagar las animaciones" });
   });
 });
 

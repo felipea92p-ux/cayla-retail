@@ -17,14 +17,15 @@
 //     computadores de escritorio viejos, que no eran el pedido. Y Safari en el iPhone dice 2 núcleos a propósito (WebKit,
 //     `NavigatorBase.cpp`): por núcleos, todo iPhone caería aquí.
 //   · O la persona pidió «ahorro de datos» en su navegador.
-// Una vez que alguien toca el botón, manda lo que eligió en ese aparato («si» o «no»). Los umbrales son una apuesta inicial: el
-// cronómetro del clic (ADR-0654) ya anota la clase del equipo, y con esos datos se mueven.
+// Una vez que alguien lo cambia a mano (en «Apariencia», al pie del menú), manda lo que eligió en ese aparato («si» o «no»), hasta que
+// toque «Volver a automático» (Felipe 2026-11-17). Los umbrales son una apuesta inicial: el cronómetro del clic (ADR-0654) ya anota la
+// clase del equipo, y con esos datos se mueven.
 
 import type { Equipo } from "./clase-de-equipo";
 
 export type Liviano = "si" | "no";
 
-/** Dónde se guarda lo que la persona eligió con el botón (localStorage del aparato). Sin nada guardado, decide el equipo. */
+/** Dónde se guarda lo que la persona eligió en «Apariencia» (localStorage del aparato). Sin nada guardado, decide el equipo. */
 export const CLAVE_LIVIANO = "cayla-liviano";
 
 /** El atributo de `<html>` del que cuelga el CSS macizo (`app/estilos/liviano.css`). Siempre vale «si» o «no». */
@@ -46,19 +47,19 @@ export function equipoEsLento(e: Equipo): boolean {
   return e.ram <= RAM_LENTA || (e.tactil && e.ram <= RAM_LENTA_TACTIL);
 }
 
-/** Lo que queda puesto: lo que eligió la persona con el botón, o si no, lo que pide el equipo. Lo guardado corrupto no cuenta. */
+/** Lo que queda puesto: lo que eligió la persona en «Apariencia», o si no, lo que pide el equipo. Lo guardado corrupto no cuenta. */
 export function resolverLiviano(guardado: unknown, equipo: Equipo): Liviano {
   if (esLiviano(guardado)) return guardado;
   return equipoEsLento(equipo) ? "si" : "no";
 }
 
-export function alternarLiviano(actual: Liviano): Liviano {
-  return actual === "si" ? "no" : "si";
-}
-
-/** Los textos del botón: el nombre no cambia y el estado va en `aria-pressed`, como el de las animaciones. El `title` dice qué hará el clic. */
-export function textosDelBotonLiviano(actual: Liviano): { etiqueta: string; titulo: string } {
-  return { etiqueta: "Modo liviano", titulo: actual === "si" ? "Apagar el modo liviano" : "Encender el modo liviano" };
+/**
+ * ¿Lo decide el equipo? Sí mientras nadie lo cambió a mano en este aparato (lo guardado corrupto tampoco cuenta como elección). Es el
+ * tercer estado de «Apariencia» (Felipe 2026-11-17): «Automático», con «Volver a automático» para salir de una elección vieja. Volver es
+ * BORRAR lo guardado, no guardar «auto»: así el script del `<head>` no cambia y sigue diciendo lo mismo que `resolverLiviano`.
+ */
+export function livianoEsAutomatico(guardado: unknown): boolean {
+  return !esLiviano(guardado);
 }
 
 /**

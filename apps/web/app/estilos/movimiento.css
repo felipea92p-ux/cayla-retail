@@ -53,14 +53,3 @@
 :root[data-movimiento="quieto"]::view-transition-new(*) {
   animation: none !important;
 }
-
-/* El botón de la cabecera: el ícono lo decide el atributo, como el del tema (sin destello ni desajuste al hidratar). Quieto, el
-   destello lleva una raya que lo cruza. */
-@layer components {
-  .boton-movimiento .movimiento-raya {
-    opacity: 0;
-  }
-  :root[data-movimiento="quieto"] .boton-movimiento .movimiento-raya {
-    opacity: 1;
-  }
-}
