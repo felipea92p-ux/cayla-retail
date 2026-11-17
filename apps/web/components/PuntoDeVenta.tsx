@@ -51,11 +51,11 @@ import { borrar, claveLocal, guardar, leer } from "@/lib/almacen-local";
 import { carritoPasaElUmbral, conStockComprometidoDescontado, firmaDeVentaEncolada, llevaCanje, stockComprometido, ventasSubidasEntre, ventaTrasFallo, type ParamsRegistrarVenta, type VentaEncolada } from "@/lib/ventas-offline";
 import { conCandadoDeSubida } from "@/lib/candado-subida";
 import { esErrorDeResponsable, firmar } from "@/lib/responsable-reglas";
-import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
+import { useFlipDelTicket } from "@/components/punto-de-venta/useFlipDelTicket";
 import { money } from "@/lib/money";
+import { hojaBajoDemanda } from "@/components/HojaBajoDemanda";
 import { Modal } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
-import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { PuntoDeVentaCatalogo } from "@/components/PuntoDeVentaCatalogo";
 import { OpcionesDePrendaModal } from "@/components/punto-de-venta/OpcionesDePrendaModal";
 import { PuntoDeVentaTicket } from "@/components/PuntoDeVentaTicket";
@@ -69,7 +69,6 @@ import { armarRecibo, textoNumeroRecibo, type ReciboVenta } from "@/lib/recibo-r
 import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
 import { useResponsable } from "@/lib/useResponsable";
 import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
-import { PrendaSinRegistrarModal } from "@/components/PrendaSinRegistrarModal";
 import { motivoParaRegistrar } from "@/lib/prenda-sin-registrar-motivo";
 import { prendasPosibles } from "@/lib/prenda-sin-registrar-posibles";
 import { rangoDePreciosDeCategoria } from "@/lib/prenda-sin-registrar-precio";
@@ -191,6 +190,15 @@ import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 export { ID_CARGO_ESPECIAL };
 
 /** Sin fichas de color: una sola referencia vacía, para que el `useMemo` de la ficha no se rearme en cada render. */
+// Hojas cuyo código baja recién al abrirlas (ADR-0674, actividad 7): Vender despierta antes en un teléfono lento. Solo lo que NO hace
+// falta para cobrar sin conexión: la hoja de cobro, «Venta registrada» y el cobro en duda se quedan fijos. «Cerrar caja» pide internet
+// de todos modos. «Prenda sin registrar» sí sirve sin red: por eso se precarga apenas la pantalla queda libre (ver el efecto de abajo).
+const CerrarCajaBajoDemanda = hojaBajoDemanda(() => import("@/components/CerrarCajaModalV2").then((m) => m.CerrarCajaModalV2), "«Cerrar caja»");
+const PrendaSinRegistrarBajoDemanda = hojaBajoDemanda(
+  () => import("@/components/PrendaSinRegistrarModal").then((m) => m.PrendaSinRegistrarModal),
+  "«Prenda sin registrar»",
+);
+
 const SIN_MAQUINAS: readonly MaquinaDeCobro[] = [];
 const SIN_OFERTAS_DE_GRUPO: Readonly<Record<string, OfertaDeGrupoDeVariante>> = {};
 const SIN_MONTOS: readonly FilaOfertaDeMonto[] = [];
@@ -1039,34 +1047,23 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     if (bloqueado) borrar(claveEspera);
   }, [bloqueado, claveEspera]);
 
-  // Reflujo suave de las líneas del ticket al agregar/quitar una prenda (Flip, ADR-0038
-  // — vuelve de V1 por ADR-0045): se captura la posición ANTES de que cambie la lista y
-  // GSAP anima desde ahí hacia la nueva, en vez de que las filas salten. Solo se captura
-  // cuando la lista cambia de largo — subir la cantidad no reordena nada. El ref vive acá
-  // y el ticket solo lo recibe: sigue sin hooks (ADR-0043).
-  const listaTicket = useRef<HTMLDivElement>(null);
-  const flipState = useRef<Flip.FlipState | null>(null);
-  function capturarFlip() {
-    if (listaTicket.current) flipState.current = Flip.getState(listaTicket.current.children);
-  }
-  useGSAP(() => {
-    if (!flipState.current) return;
-    Flip.from(flipState.current, {
-      duration: 0.32,
-      ease: "caylaEase",
-      // Solo la fila que SALE se saca del flujo (`position: absolute`) para poder
-      // deslizarse encima de las demás sin arrastrarlas. Con `absolute: true` (como
-      // estaba) TODAS las filas —también las que se quedan y la que entra— salían del
-      // flujo mientras duraba la animación: el contenedor de la lista perdía su alto
-      // real y, si el ticket ya llenaba el scroll, la fila nueva se dibujaba superpuesta
-      // a las demás hasta que Flip terminaba y las devolvía a su lugar (bug reportado
-      // 2026-09-17: "parpadeo" al agregar una prenda que excede el largo del ticket).
-      absoluteOnLeave: true,
-      onEnter: (elementos) => gsap.fromTo(elementos, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.32, ease: "caylaEase" }),
-      onLeave: (elementos) => gsap.to(elementos, { opacity: 0, duration: 0.18 }),
-    });
-    flipState.current = null;
-  }, [carrito.length]);
+  // «Prenda sin registrar» sirve también sin conexión: su código baja apenas la pantalla queda libre, no al primer toque. Si en ese
+  // momento no hay red, se reintenta cuando vuelve (ADR-0674, actividad 7).
+  useEffect(() => {
+    const precargar = () => PrendaSinRegistrarBajoDemanda.precargar();
+    const enReposo = typeof window.requestIdleCallback === "function" ? window.requestIdleCallback(precargar, { timeout: 4000 }) : null;
+    const reloj = enReposo === null ? window.setTimeout(precargar, 2500) : null;
+    window.addEventListener("online", precargar);
+    return () => {
+      if (enReposo !== null) window.cancelIdleCallback(enReposo);
+      if (reloj !== null) window.clearTimeout(reloj);
+      window.removeEventListener("online", precargar);
+    };
+  }, []);
+
+  // Reflujo suave de las líneas del ticket al agregar o quitar una prenda (`useFlipDelTicket`): GSAP baja solo con las animaciones
+  // encendidas (ADR-0674). El ref vive acá y el ticket solo lo recibe: sigue sin hooks (ADR-0043).
+  const { lista: listaTicket, capturar: capturarFlip } = useFlipDelTicket(carrito.length);
 
   const clienteTipoDoc = tipoDocumentoDeCliente(tipoComprobante ?? "boleta", clienteNumDoc, clienteDocIdentidad);
   const facturaSinRuc = tipoComprobante === "factura" && !clienteNumDoc;
@@ -2758,7 +2755,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       )}
 
       {manualAbierto && (
-        <PrendaSinRegistrarModal
+        <PrendaSinRegistrarBajoDemanda
+          alFallar={() => setManualAbierto(false)}
           listas={listasPrendaLibre}
           onAgregar={agregarPrendaSinRegistrar}
           // «¿Es alguna de estas?» (A2, auditoría 2026-10-14): las prendas del catálogo que coinciden y se pueden cobrar AHORA en
@@ -2796,7 +2794,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         </Modal>
       )}
       {modalCerrarVisible && cajaId && (
-        <CerrarCajaModalV2 cajaId={cajaId} cola={cola} ubicacionId={ubicacionId} onClose={() => setModalCaja(null)} />
+        <CerrarCajaBajoDemanda cajaId={cajaId} cola={cola} ubicacionId={ubicacionId} onClose={() => setModalCaja(null)} alFallar={() => setModalCaja(null)} />
       )}
 
       {ok && <VentaRegistradaModal ok={ok} ubicacionEtiqueta={ubicacionEtiqueta} onClose={cerrarVentaRegistrada} alCerrarEnfocar={buscador} />}
