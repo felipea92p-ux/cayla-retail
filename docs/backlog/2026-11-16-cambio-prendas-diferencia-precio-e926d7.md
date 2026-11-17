@@ -60,8 +60,10 @@ existió. Lo que corresponde es una nota de crédito sobre la boleta original y 
 - [x] El `.env.local` con el token (el mismo de producción) se borró al terminar la prueba del sandbox.
 - [x] `/milimetro` y `/chaos` en `/cambios` y `/vender/comprobantes` (2026-11-16). Arreglado: el foco con teclado de la hoja de opciones
       de Comprobantes y las dos carreras de gravedad 1 (liberar o anular la boleta mientras se guarda un cambio), con INV-30 ampliado.
-- [ ] Abiertos de `/chaos` en Cambios (gravedad 2, esperan a Felipe): el tope de S/ 700 se esquiva con un DNI de relleno; el nombre del
-      padrón queda pegado al cambiar de DNI (también en Vender); el nombre del cliente no tiene tope de largo.
+- [x] Los tres de gravedad 2 de `/chaos` en Cambios (Felipe: «Sí, arréglalos»): sobre S/ 700 no pasa un documento de un solo carácter
+      repetido; el nombre del padrón se borra al cambiar de DNI (también en Vender); el nombre tiene tope de 200 en la caja y en la base.
+      Casos 23 y 24 de `pruebas:cambio-con-comprobantes`. Probado en el navegador con el padrón simulado; a 375 px no se volvió a mirar
+      (no cambia el diseño).
 - [ ] `/milimetro`: el grave de Cambios es del sistema (etiquetas de 11 px en la hoja de vidrio a 4.47:1) → propuesta a `/color`; y tres
       medios de esta obra (dos «Enviar por WhatsApp», el nombre del campo en la guía, «Espera a SUNAT» contra «Por emitir»).
 - [ ] `/formidable` y `guias:recorrer`.

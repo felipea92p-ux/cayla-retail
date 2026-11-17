@@ -154,6 +154,19 @@ INV-30 suma `nota_sobre_original_muerta` (una nota emitida sobre una original an
 carrera dejaba sin aviso. Pruebas: los casos 19 a 22 de `pnpm pruebas:cambio-con-comprobantes` (dos psql de verdad, sin dejar nada
 guardado) y el 5b del vigía; fallaban antes del arreglo.
 
+Tres de gravedad 2, del cliente del comprobante nuevo (Felipe: «Sí, arréglalos»):
+- **El tope de S/ 700 se esquivaba con un DNI de relleno** («00000000» pasa el formato). DECIDÍ: sobre S/ 700, una boleta no pasa con un
+  documento de un solo carácter repetido («Más de S/ 700: escribe el documento real.»). Es lo único que se puede saber sin el padrón;
+  un número inventado que no se repite sigue pasando. DESCARTÉ exigir que el padrón conteste: si SUNAT no responde, el
+  cambio no se podría hacer (principio 9).
+- **El nombre que trajo el padrón quedaba pegado al cambiar de DNI** (una boleta con el nombre de otra persona). DECIDÍ: al cambiar el
+  número, `ConsultaDocumento` borra el nombre que puso el padrón, salvo que alguien lo haya cambiado a mano (`nombreAlCambiarElNumero`).
+  Es la misma pieza de Vender, que también lo arrastraba.
+- **El nombre no tenía tope** (se guardó uno de 1 646 letras). DECIDÍ: 200, en la caja (`maxLength`) y en la base, que lo rechaza en la
+  boleta y en la nota de venta (se imprime); la factura no se edita.
+`fn_problema_cliente_del_cambio` gana el nombre (firma de cinco; la de cuatro se borra antes de crear la nueva). Pruebas: los casos 23 y 24
+de `pnpm pruebas:cambio-con-comprobantes` y las reglas de la web; fallaban antes del arreglo.
+
 ## Producción
 
 **Antes de pegar:** el OK del contador (ver arriba). La prueba en el sandbox ya está hecha (arriba).
