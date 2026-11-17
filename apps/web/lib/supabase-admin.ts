@@ -5,7 +5,8 @@ import type { Database } from "@cayla-retail/database";
 // El cliente con la LLAVE DE SERVICIO: salta todo candado (RLS). Existe para: crear la cuenta de Auth de una terminal y
 // cambiarle la clave (`lib/terminales-alta.ts`), que solo se abre DESPUÉS de comprobar con la sesión de quien llama que es
 // líder; los trabajos programados (la cola de SUNAT, PL-113, `GET /api/lucode/reintentar`, y los demás `app/api/*` de cron),
-// que solo se abren con `CRON_SECRET` y escriben por las mismas funciones que la pantalla (`20260924113817`); anotar una lectura
+// que solo se abren con `CRON_SECRET` y escriben por las mismas funciones que la pantalla (`20260924113817`); escribir «anulado»
+// cuando Lucode dice que SUNAT confirmó una baja ya pedida (`lib/confirmar-baja-sunat.ts`, ADR-0673); anotar una lectura
 // del padrón para el nombre de una ficha (`lib/padron-lecturas.ts`, `fn_anotar_lectura_padron`); y la política y
 // los términos públicos del Club CAYLA (ADR-0288 act. g, `lib/club-pagina.ts`), que leen el id de una tienda activa. El
 // registro del cartel, que llamaba a `club_intento` y `registrarse_en_el_club`, se retiró el 2026-10-16 (el cartel lleva a la
