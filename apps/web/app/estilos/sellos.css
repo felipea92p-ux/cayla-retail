@@ -106,7 +106,10 @@
     scroll-margin-top: 2.75rem; /* el pase que se abre sube hasta quedar bajo la cabecera, que ya descuenta la página (`scroll-padding-top`, decisión 1A) */
     border-radius: 20px;
     background: var(--color-papel);
-    border: 1px solid var(--color-sand);
+    /* `borde-control` y no `sand` (Felipe 2026-11-17: «que se diferencie con el fondo»): el pase se toca, y lo que se toca lleva el borde
+       que pasa 3:1 (ADR-0169, ADR-0516 act.). Con `sand`, el pase de «Lo que viene» y el de «Guardadas», de cabecera clara, daban ~1,1:1
+       contra el fondo de la página y se fundían con él. */
+    border: 1px solid var(--color-borde-control);
     transition: transform 600ms var(--ease-cayla), margin 700ms var(--ease-cayla), box-shadow 600ms var(--ease-cayla);
     animation: sl-entra 600ms var(--ease-cayla) both;
     animation-delay: calc(var(--i, 0) * 55ms);
@@ -167,7 +170,7 @@
     height: 20px;
     border-radius: 50%;
     background: var(--color-crema);
-    border: 1px solid var(--color-sand);
+    border: 1px solid var(--color-borde-control); /* el mismo filo del pase: el recorte del ticket sigue su contorno */
   }
   .sl-perfo::before { left: -30px; }
   .sl-perfo::after { right: -30px; }

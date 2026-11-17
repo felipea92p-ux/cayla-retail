@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
-import { Award, CalendarHeart, ChevronRight, HandHeart, RefreshCw, Shirt } from "lucide-react";
+import { Award, CalendarHeart, ChevronRight, HandHeart, Plus, RefreshCw, Shirt } from "lucide-react";
 import { NOMBRE_DEL_DIBUJO, dibujoElegido } from "@cayla-retail/shared/insignias-visual";
 import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { avisar } from "@/components/ui/Avisos";
@@ -903,6 +903,10 @@ export function SellosPantalla({
               ¿Insignia, campaña u oferta? Ver el mapa
             </button>
           }
+          // En el celular, con «Cómo se ven en la web» al lado, «+ Nueva campaña» va en su «+» y se estira hasta el margen, como el de
+          // Productos (Felipe 2026-11-17): los dos en UNA fila en vez de dos. Sin vecino (Insignias) conserva su palabra: un «+» solo,
+          // estirado a todo el ancho, sería una barra negra muda.
+          accionesLlenan={esCampanas && disenoWeb}
           acciones={
             <>
               {esCampanas && disenoWeb && (
@@ -910,11 +914,19 @@ export function SellosPantalla({
                   Cómo se ven en la web
                 </BotonVer>
               )}
-              {puedeCrear && (
-                <Boton peso="primario" onClick={() => setAgregando(true)} data-guia="sellos.nuevo">
-                  {`+ ${T.nuevo}`}
-                </Boton>
-              )}
+              {puedeCrear &&
+                (esCampanas && disenoWeb ? (
+                  <Boton peso="primario" onClick={() => setAgregando(true)} data-guia="sellos.nuevo" title={T.nuevo} className="max-sm:min-w-11 max-sm:grow max-sm:!px-3">
+                    <span className="flex items-center gap-2">
+                      <Plus aria-hidden className="h-4 w-4 shrink-0" />
+                      <span className="max-sm:sr-only">{T.nuevo}</span>
+                    </span>
+                  </Boton>
+                ) : (
+                  <Boton peso="primario" onClick={() => setAgregando(true)} data-guia="sellos.nuevo">
+                    {`+ ${T.nuevo}`}
+                  </Boton>
+                ))}
             </>
           }
         />

@@ -2,7 +2,7 @@
   "guia": "productos.campanas",
   "ruta": "/productos/campanas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 178,
+  "total": 179,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -206,6 +206,7 @@
       "button «sellos.mapa»",
       "BotonVer «Cómo se ven en la web»",
       "Boton «sellos.nuevo»",
+      "Boton «sellos.nuevo» #2",
       "Pestanas «→cambiarVista»",
       "Boton «{`+ ${T.nuevo}»",
       "CampoTexto «Comentario (obligatorio)»",
