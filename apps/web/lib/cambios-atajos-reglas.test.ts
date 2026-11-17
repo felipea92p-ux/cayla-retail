@@ -76,6 +76,16 @@ describe("textoTicketCambio", () => {
     expect(textoTicketCambio({ ...base, diferencia: 20 })).toContain("Pagaste S/\u00a020.00 de diferencia");
     expect(textoTicketCambio({ ...base, comprobante: null, diferencia: -15.5 })).toContain("Te devolvimos S/\u00a015.50");
   });
+
+  it("con comprobantes del cambio (ADR-0671) los nombra y ya no dice que no hay comprobante", () => {
+    const t = textoTicketCambio({ ...base, diferencia: 20, documentos: ["Boleta B004-000040", "Nota de cr\u00e9dito BC04-000003"] });
+    expect(t).toContain("Comprobantes: Boleta B004-000040 \u00b7 Nota de cr\u00e9dito BC04-000003");
+    expect(t).not.toContain("no es un comprobante de pago");
+  });
+
+  it("con la lista vac\u00eda es como sin comprobantes", () => {
+    expect(textoTicketCambio({ ...base, diferencia: 20, documentos: [] })).toContain("no es un comprobante de pago");
+  });
 });
 
 describe("abrirDesdeLectura", () => {

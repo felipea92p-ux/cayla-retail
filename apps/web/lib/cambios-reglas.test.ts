@@ -371,6 +371,13 @@ describe("impactoCambio", () => {
     expect(impactoCambio({ ...base, condicion: "no_vendible" }).inventario[0]!.donde).toBe("entra a cuarentena en Tienda Lima");
   });
 
+  it("documento (ADR-0671): solo si se lo pasan; sin él, el cambio no promete ningún papel", () => {
+    expect(impactoCambio(base).documento).toBeUndefined();
+    expect(impactoCambio({ ...base, documento: null }).documento).toBeUndefined();
+    const documento = { titulo: "Nota de crédito y boleta nueva", detalle: "Nota de crédito por S/ 80.00 y boleta nueva por S/ 100.00." };
+    expect(impactoCambio({ ...base, diferencia: 20, documento }).documento).toEqual(documento);
+  });
+
   it("caja: sin diferencia no se mueve; en efectivo sí; con otro método no pasa por el cajón", () => {
     expect(impactoCambio(base).caja.titulo).toBe("Sin diferencia de precio");
     expect(impactoCambio({ ...base, diferencia: 40 }).caja).toEqual({

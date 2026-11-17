@@ -59,7 +59,8 @@ export type MontosDelMes = {
  *  y PDF pero no vale como comprobante de pago, y uno por enviar todavía no es de nadie. Una nota de
  *  crédito guarda su total en positivo (es el monto que devuelve) pero RESTA en todos los cubos: SUNAT la
  *  toma como IGV que ya no se debe. `cuantosDePrueba` cuenta los transmitidos al sandbox, en el estado
- *  que estén. Anulados y no emitidos no cuentan en ningún cubo. */
+ *  que estén. Anulados y no emitidos no cuentan en ningún cubo. La pareja de un cambio (ADR-0671) cuadra sola: su
+ *  nota resta lo que volvió y su comprobante nuevo (sin venta) suma lo que se llevó; neto, la diferencia cobrada. */
 export function montosDelMes(comprobantes: Comprobante[]): MontosDelMes {
   let facturado = 0;
   let notasDeCredito = 0;
@@ -102,6 +103,9 @@ export type AccionDelComprobante = "reintentar" | "liberar" | "anular" | "consul
  *  JUNTO a Transmitir). Un aceptado se anula; si su baja ya está en trámite, se consulta. `enviado`,
  *  `anulado` y `no_emitido` no tienen botón: no hay nada que hacer con ellos desde acá. */
 export function accionesDelComprobante(c: Comprobante): AccionDelComprobante[] {
+  // Un documento que sale de un cambio (ADR-0671) va a SUNAT con su pareja: nunca se anula ni se libera por separado (SUNAT quedaría
+  // sin la prenda que salió o con la que volvió; la base lo rechaza con `documento_de_un_cambio`). Sí se reintenta, como cualquiera.
+  if (c.cambio_id) return c.estado === "rechazado" || c.estado === "pendiente_reintento" ? ["reintentar"] : [];
   // Sin «Transmitir» desde 2026-09-22 (D-60): un `pendiente` se envía solo al cobrar, y si Lucode no
   // respondió pasa a la cola (`pendiente_reintento`), donde «Reintentar» lo adelanta sin esperar al barrido.
   if (c.estado === "pendiente") return ["liberar"];
@@ -170,7 +174,8 @@ export type TotalDelTipo = { tipo: TipoComprobante; cantidad: number; monto: num
 /** El pie de Emitidos: cuántos comprobantes hay de cada tipo y cuánto suman, en el orden de siempre
  *  (boleta, factura, notas). Anulados y liberados («no emitido») no cuentan: ya no valen. Las pruebas sí
  *  cuentan, porque el pie resume lo que se ve en la lista; el monto que vale ante SUNAT es la tarjeta
- *  «Monto facturado». La nota de crédito se muestra en positivo: el pie dice cuánto se devolvió. */
+ *  «Monto facturado». La nota de crédito se muestra en positivo: el pie dice cuánto corrigen las notas (lo devuelto y, desde
+ *  ADR-0671, la prenda que volvió en un cambio, cuyo comprobante nuevo suma como cualquier boleta: el par da la diferencia). */
 export function totalesPorTipo(comprobantes: Comprobante[]): TotalDelTipo[] {
   const porTipo = new Map<TipoComprobante, TotalDelTipo>();
   for (const c of comprobantes) {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { tipoDocumentoDeCliente } from "./comprobantes-reglas";
 import {
+  nombreAlCambiarElNumero,
   CODIGO_SUNAT_DOCUMENTO,
   documentoLegibleComprobante,
   esTipoDocComprobante,
@@ -101,5 +102,18 @@ describe("problemaDocumentoComprobante — lo que frena el cobro (la base rechaz
     expect(problemaDocumentoComprobante("factura", "carne_extranjeria", "CE12A3456")).toBe(
       "El RUC lleva solo dígitos: corrígelo, o vuelve a boleta para el carné o el pasaporte."
     );
+  });
+});
+
+describe("nombreAlCambiarElNumero — el nombre que trajo el padrón no se queda pegado a otro número (/chaos, 2026-11-16)", () => {
+  const puesto = { clave: "dni:45879632", nombre: "ANA PEREZ" };
+  it("cambiado el número, el nombre que puso el padrón se borra", () => {
+    expect(nombreAlCambiarElNumero({ puesto, clave: "dni:4587963", nombre: "ANA PEREZ" })).toBe("");
+    expect(nombreAlCambiarElNumero({ puesto, clave: "dni:11122233", nombre: "ANA PEREZ" })).toBe("");
+  });
+  it("lo que la persona escribió, o el mismo número, no se toca", () => {
+    expect(nombreAlCambiarElNumero({ puesto, clave: "dni:11122233", nombre: "LUIS TORRES" })).toBeNull();
+    expect(nombreAlCambiarElNumero({ puesto, clave: "dni:45879632", nombre: "ANA PEREZ" })).toBeNull();
+    expect(nombreAlCambiarElNumero({ puesto: null, clave: "dni:11122233", nombre: "ANA PEREZ" })).toBeNull();
   });
 });
