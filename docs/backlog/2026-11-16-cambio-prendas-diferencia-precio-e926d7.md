@@ -76,4 +76,8 @@ existió. Lo que corresponde es una nota de crédito sobre la boleta original y 
 - [x] Pegado en producción el 2026-11-17 (Felipe lo pidió): versiones `20261117141105`, `20261117141259` y `20261117141607` (apply_migration),
       huellas comprobadas contra la base aislada. Desde ahí la base emite; la web de esta obra todavía no está publicada.
 - [ ] Refrescar el volcado y correr `pnpm datos:generar:produccion` y `pnpm datos:comparar` (las tablas y funciones nuevas entran al diccionario).
+- [x] Destrabado el check «SQL pegado» con #1918 (Felipe: #1912 primero, con puente): `20261117143000_puente_baja_de_comprobante_0673.sql`
+      trae lo de ADR-0673 a esta rama; en producción no hace nada (no hace falta pegarlo).
+- [ ] **#1918** tiene que anclar su revisión de sede antes de «¿está aceptado?» (se le pidió a su sesión el 2026-11-17): si no, una base nueva
+      queda distinta de producción y volver a pegar su migración repite la revisión. Se fusiona después de #1912.
 - [ ] Obra aparte: volver a cambiar lo que se llevó en un cambio (15 días desde la compra original).

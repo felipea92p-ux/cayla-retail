@@ -185,6 +185,18 @@ nació con su línea base; los permisos, iguales. El OK del contador a la lectur
 **Con ADR-0673 (#1918).** Las dos tocan `anular_comprobante` y anclan en el mismo «El comprobante % no existe». En producción ADR-0673 entró
 primero y la parte 2 encontró su ancla. En una base nueva, como el CI, el orden es al revés: ADR-0673 entra bien después de la parte 2, pero
 volver a pegar la parte 2 repetía el candado, porque «ya aplicado» se reconocía por el bloque entero y ADR-0673 escribe en medio. Ahora el
-candado se reconoce por su comentario (`pg_temp.reemplazar_marcado_0671`); no cambia el cuerpo que queda (caso 25). Mientras la web de esta
+candado se reconoce por su comentario (`pg_temp.reemplazar_marcado_0671`); no cambia el cuerpo que queda (caso 25).
+
+**El puente (Felipe eligió el 2026-11-17 que #1912 se fusione primero).** Pegadas las dos, producción tiene la suma y el CI de cada PR solo lo
+suyo: el check «SQL pegado» de cada uno veía el cambio del otro (ADR-0251, «Dos PR pegan sobre la misma función»). DECIDÍ: la migración
+`20261117143000_puente_baja_de_comprobante_0673.sql` trae a esta rama, con el mismo texto, lo que ADR-0673 dejó en producción (la sede en
+`anular_comprobante`, «solo pide la baja», `fn_confirmar_baja_sunat` solo del servidor y sus permisos y comentarios), más el ajuste de #1918 a
+`anular_venta_comprobante.mjs`. La revisión de sede se ancla antes de «¿está aceptado?», no después de «no existe», para quedar donde está en
+producción: detrás del candado de ADR-0671 (la huella de la deriva mira el orden del código). Cada reemplazo se reconoce puesto por su
+comentario, así que en producción no hace nada. DESCARTÉ el puente en #1918: tendría que traer la columna, la tabla y los candados de este
+ADR. SE ROMPE SI #1918 se fusiona con su ancla de hoy: en una base nueva su revisión de sede queda antes del candado y la deriva diaria ve
+`anular_comprobante` distinta de producción. Por eso se le pidió anclar también antes de «¿está aceptado?», que además arregla que volver a
+pegarla en producción repita la revisión. Comprobado contra el texto exacto de producción (`8a6162…`) en los cuatro casos: este PR, pegado
+dos veces, una base nueva con #1918 como está (distinta) y con el ancla pedida (igual). Mientras la web de esta
 obra no se publique, la base ya emite: el barrido de hoy transmite la boleta nueva y la nota (las arma con las líneas de su propia fila y
 toma comprobantes sin venta); la nota «por emitir» espera al barrido nuevo, y el ticket no muestra los documentos.
