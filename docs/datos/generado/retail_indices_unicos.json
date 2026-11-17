@@ -185,6 +185,11 @@
   "tablename": "cajas"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX cambio_notas_pkey ON retail.cambio_notas USING btree (cambio_id)",
+  "indexname": "cambio_notas_pkey",
+  "tablename": "cambio_notas"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX cambio_salidas_cambio_id_variante_id_key ON retail.cambio_salidas USING btree (cambio_id, variante_id)",
   "indexname": "cambio_salidas_cambio_id_variante_id_key",
   "tablename": "cambio_salidas"
@@ -590,7 +595,7 @@
   "tablename": "compra_cierres_reabiertos"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX compra_correcciones_lote_dato ON retail.compra_correcciones USING btree (lote, papel_id, COALESCE(orden_compra_item_id, '00000000-0000-0000-0000-000000000000'::uuid), campo)",
+  "indexdef": "CREATE UNIQUE INDEX compra_correcciones_lote_dato ON retail.compra_correcciones USING btree (lote, papel_id, COALESCE(orden_compra_item_id, prenda_quitada_id, '00000000-0000-0000-0000-000000000000'::uuid), campo)",
   "indexname": "compra_correcciones_lote_dato",
   "tablename": "compra_correcciones"
  },
@@ -772,6 +777,11 @@
  {
   "indexdef": "CREATE UNIQUE INDEX comprobantes_token_cliente_key ON retail.comprobantes USING btree (token_cliente)",
   "indexname": "comprobantes_token_cliente_key",
+  "tablename": "comprobantes"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX comprobantes_un_documento_por_rol_del_cambio ON retail.comprobantes USING btree (cambio_id, ((tipo = 'nota_credito'::text))) WHERE (cambio_id IS NOT NULL)",
+  "indexname": "comprobantes_un_documento_por_rol_del_cambio",
   "tablename": "comprobantes"
  },
  {
@@ -1493,6 +1503,16 @@
   "indexdef": "CREATE UNIQUE INDEX huellas_llave_pkey ON retail.huellas_llave USING btree (id)",
   "indexname": "huellas_llave_pkey",
   "tablename": "huellas_llave"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX impresiones_pkey ON retail.impresiones USING btree (id)",
+  "indexname": "impresiones_pkey",
+  "tablename": "impresiones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX impresiones_una_viva_por_venta ON retail.impresiones USING btree (venta_id) WHERE (estado <> 'impresa'::text)",
+  "indexname": "impresiones_una_viva_por_venta",
+  "tablename": "impresiones"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX impuestos_pagos_movimiento_id_mes_concepto_key ON retail.impuestos_pagos USING btree (movimiento_id, mes, concepto)",
@@ -2588,6 +2608,16 @@
   "indexdef": "CREATE UNIQUE INDEX proveedores_produccion_ruc_unico ON retail.proveedores_produccion USING btree (ruc) WHERE (ruc IS NOT NULL)",
   "indexname": "proveedores_produccion_ruc_unico",
   "tablename": "proveedores_produccion"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX rebaja_cajones_pkey ON retail.rebaja_cajones USING btree (etiqueta_id)",
+  "indexname": "rebaja_cajones_pkey",
+  "tablename": "rebaja_cajones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX rebaja_cajones_uno_por_pct_y_tienda ON retail.rebaja_cajones USING btree (pct, ubicacion_id) NULLS NOT DISTINCT",
+  "indexname": "rebaja_cajones_uno_por_pct_y_tienda",
+  "tablename": "rebaja_cajones"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX recomendaciones_web_marca_unica ON retail.recomendaciones_web USING btree (cuenta_web_id, marca)",

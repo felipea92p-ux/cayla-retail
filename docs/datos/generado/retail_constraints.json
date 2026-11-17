@@ -945,6 +945,36 @@
   "tabla": "retail.cajas"
  },
  {
+  "conname": "cambio_notas_cambio_id_fkey",
+  "definicion": "FOREIGN KEY (cambio_id) REFERENCES retail.cambios(id)",
+  "tabla": "retail.cambio_notas"
+ },
+ {
+  "conname": "cambio_notas_comprobante_original_id_fkey",
+  "definicion": "FOREIGN KEY (comprobante_original_id) REFERENCES retail.comprobantes(id)",
+  "tabla": "retail.cambio_notas"
+ },
+ {
+  "conname": "cambio_notas_items_check",
+  "definicion": "CHECK (((jsonb_typeof(items) = 'array'::text) AND (jsonb_array_length(items) > 0)))",
+  "tabla": "retail.cambio_notas"
+ },
+ {
+  "conname": "cambio_notas_motivo_check",
+  "definicion": "CHECK ((motivo = ANY (ARRAY['06'::text, '07'::text])))",
+  "tabla": "retail.cambio_notas"
+ },
+ {
+  "conname": "cambio_notas_pkey",
+  "definicion": "PRIMARY KEY (cambio_id)",
+  "tabla": "retail.cambio_notas"
+ },
+ {
+  "conname": "cambio_notas_total_check",
+  "definicion": "CHECK ((total > (0)::numeric))",
+  "tabla": "retail.cambio_notas"
+ },
+ {
   "conname": "cambio_salidas_cambio_id_fkey",
   "definicion": "FOREIGN KEY (cambio_id) REFERENCES retail.cambios(id) DEFERRABLE INITIALLY DEFERRED",
   "tabla": "retail.cambio_salidas"
@@ -1335,8 +1365,18 @@
   "tabla": "retail.campana_reglas"
  },
  {
+  "conname": "campana_reglas_tope_70",
+  "definicion": "CHECK (((tipo <> 'nxm'::text) OR COALESCE(((paga * 10) >= (lleva * 3)), false)))",
+  "tabla": "retail.campana_reglas"
+ },
+ {
   "conname": "campana_sedes_etiqueta_id_fkey",
   "definicion": "FOREIGN KEY (etiqueta_id) REFERENCES retail.etiquetas(id)",
+  "tabla": "retail.campana_sedes"
+ },
+ {
+  "conname": "campana_sedes_ofertas_dentro_de_campana",
+  "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
   "tabla": "retail.campana_sedes"
  },
  {
@@ -2836,7 +2876,7 @@
  },
  {
   "conname": "compra_correcciones_campo_check",
-  "definicion": "CHECK ((campo = ANY (ARRAY['cantidad'::text, 'costo'::text, 'precio_venta'::text, 'nombre'::text, 'categoria'::text, 'marca'::text, 'tienda'::text, 'monto'::text, 'pagado'::text, 'medio_pago'::text])))",
+  "definicion": "CHECK ((campo = ANY (ARRAY['cantidad'::text, 'costo'::text, 'precio_venta'::text, 'nombre'::text, 'categoria'::text, 'marca'::text, 'tienda'::text, 'monto'::text, 'pagado'::text, 'medio_pago'::text, 'quitada'::text])))",
   "tabla": "retail.compra_correcciones"
  },
  {
@@ -2857,6 +2897,11 @@
  {
   "conname": "compra_correcciones_pkey",
   "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.compra_correcciones"
+ },
+ {
+  "conname": "compra_correcciones_quitada_con_su_prenda",
+  "definicion": "CHECK (((campo = 'quitada'::text) = ((prenda_quitada_id IS NOT NULL) AND (orden_compra_item_id IS NULL))))",
   "tabla": "retail.compra_correcciones"
  },
  {
@@ -3662,6 +3707,11 @@
  {
   "conname": "comprobantes_anulado_tiene_motivo",
   "definicion": "CHECK (((estado <> 'anulado'::text) OR (motivo_anulacion IS NOT NULL)))",
+  "tabla": "retail.comprobantes"
+ },
+ {
+  "conname": "comprobantes_cambio_id_fkey",
+  "definicion": "FOREIGN KEY (cambio_id) REFERENCES retail.cambios(id)",
   "tabla": "retail.comprobantes"
  },
  {
@@ -4956,7 +5006,7 @@
  },
  {
   "conname": "despacho_diferencias_causa",
-  "definicion": "CHECK ((((tipo = 'faltante'::text) AND (causa = ANY (ARRAY['no_vino'::text, 'se_perdio'::text, 'otra_sede'::text, 'devuelta'::text]))) OR ((tipo = 'sobrante'::text) AND (causa = ANY (ARRAY['regalo'::text, 'cobra_aparte'::text, 'proxima_compra'::text, 'reposicion_faltante'::text, 'otro'::text])))))",
+  "definicion": "CHECK ((((tipo = 'faltante'::text) AND (causa = ANY (ARRAY['no_vino'::text, 'se_perdio'::text, 'otra_sede'::text, 'devuelta'::text, 'otro'::text]))) OR ((tipo = 'sobrante'::text) AND (causa = ANY (ARRAY['regalo'::text, 'cobra_aparte'::text, 'proxima_compra'::text, 'reposicion_faltante'::text, 'otro'::text])))))",
   "tabla": "retail.despacho_diferencias"
  },
  {
@@ -5965,6 +6015,11 @@
   "tabla": "retail.etiquetas"
  },
  {
+  "conname": "etiquetas_campana_reactivada_sin_choques",
+  "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+  "tabla": "retail.etiquetas"
+ },
+ {
   "conname": "etiquetas_descuento_rango",
   "definicion": "CHECK (((descuento_pct IS NULL) OR ((descuento_pct > (0)::numeric) AND (descuento_pct <= (100)::numeric))))",
   "tabla": "retail.etiquetas"
@@ -6017,6 +6072,11 @@
  {
   "conname": "etiquetas_montos_finitos",
   "definicion": "CHECK ((abs(descuento_pct) < 'Infinity'::numeric))",
+  "tabla": "retail.etiquetas"
+ },
+ {
+  "conname": "etiquetas_ofertas_dentro_de_campana",
+  "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
   "tabla": "retail.etiquetas"
  },
  {
@@ -6973,6 +7033,46 @@
   "conname": "huellas_llave_pkey",
   "definicion": "PRIMARY KEY (id)",
   "tabla": "retail.huellas_llave"
+ },
+ {
+  "conname": "impresiones_estado_check",
+  "definicion": "CHECK ((estado = ANY (ARRAY['pendiente'::text, 'tomada'::text, 'impresa'::text])))",
+  "tabla": "retail.impresiones"
+ },
+ {
+  "conname": "impresiones_impresa_con_fecha",
+  "definicion": "CHECK (((estado = 'impresa'::text) = (impresa_en IS NOT NULL)))",
+  "tabla": "retail.impresiones"
+ },
+ {
+  "conname": "impresiones_intentos_check",
+  "definicion": "CHECK ((intentos >= 0))",
+  "tabla": "retail.impresiones"
+ },
+ {
+  "conname": "impresiones_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.impresiones"
+ },
+ {
+  "conname": "impresiones_tomada_con_fecha",
+  "definicion": "CHECK (((estado = 'pendiente'::text) OR (tomada_en IS NOT NULL)))",
+  "tabla": "retail.impresiones"
+ },
+ {
+  "conname": "impresiones_tomada_por_equipo_check",
+  "definicion": "CHECK (((tomada_por_equipo IS NULL) OR ((char_length(tomada_por_equipo) >= 1) AND (char_length(tomada_por_equipo) <= 80))))",
+  "tabla": "retail.impresiones"
+ },
+ {
+  "conname": "impresiones_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.impresiones"
+ },
+ {
+  "conname": "impresiones_venta_id_fkey",
+  "definicion": "FOREIGN KEY (venta_id) REFERENCES retail.ventas(id)",
+  "tabla": "retail.impresiones"
  },
  {
   "conname": "impuestos_pagos_concepto_check",
@@ -12155,6 +12255,31 @@
   "tabla": "retail.proveedores_produccion"
  },
  {
+  "conname": "rebaja_cajones_etiqueta_id_fkey",
+  "definicion": "FOREIGN KEY (etiqueta_id) REFERENCES retail.etiquetas(id)",
+  "tabla": "retail.rebaja_cajones"
+ },
+ {
+  "conname": "rebaja_cajones_pct",
+  "definicion": "CHECK (((pct > (0)::numeric) AND (pct <= (70)::numeric)))",
+  "tabla": "retail.rebaja_cajones"
+ },
+ {
+  "conname": "rebaja_cajones_pkey",
+  "definicion": "PRIMARY KEY (etiqueta_id)",
+  "tabla": "retail.rebaja_cajones"
+ },
+ {
+  "conname": "rebaja_cajones_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.rebaja_cajones"
+ },
+ {
+  "conname": "rebaja_cajones_uno_por_pct_y_tienda",
+  "definicion": "UNIQUE NULLS NOT DISTINCT (pct, ubicacion_id)",
+  "tabla": "retail.rebaja_cajones"
+ },
+ {
   "conname": "recomendaciones_web_archivada_leida",
   "definicion": "CHECK (((archivada_en IS NULL) OR (leida_en IS NOT NULL)))",
   "tabla": "retail.recomendaciones_web"
@@ -12812,6 +12937,16 @@
  {
   "conname": "separacion_items_precio_unitario_check",
   "definicion": "CHECK ((precio_unitario > (0)::numeric))",
+  "tabla": "retail.separacion_items"
+ },
+ {
+  "conname": "separacion_items_rebaja_etiqueta_id_fkey",
+  "definicion": "FOREIGN KEY (rebaja_etiqueta_id) REFERENCES retail.etiquetas(id)",
+  "tabla": "retail.separacion_items"
+ },
+ {
+  "conname": "separacion_items_rebaja_valida",
+  "definicion": "CHECK (((rebaja_unitaria IS NULL) OR ((rebaja_unitaria >= (0)::numeric) AND (rebaja_unitaria < precio_unitario) AND (round(rebaja_unitaria, 2) = rebaja_unitaria))))",
   "tabla": "retail.separacion_items"
  },
  {
