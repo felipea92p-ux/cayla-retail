@@ -2,16 +2,14 @@
   "guia": "productos",
   "ruta": "/productos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 115,
+  "total": 114,
   "controles": {
     "app/(app)/productos/page.tsx": [
       "Link «Existencias»",
       "SegmentoEnlaces «(sin nombre)»",
       "BotonEnlace «productos.rotulos»",
       "BotonEnlace «productos.revisar-precios»",
-      "BotonEnlace «productos.nuevo»",
-      "Link «Revisar»",
-      "Link «Crear desde Recibir»"
+      "BotonEnlace «productos.nuevo»"
     ],
     "components/AvisoCostoAtipico.tsx": [
       "CampoTexto «Por qué es correcto este costo · obligatorio»",
@@ -59,6 +57,10 @@
     "components/Paginacion.tsx": [
       "Link «Volver al inicio»",
       "Link «Siguiente página»"
+    ],
+    "components/PendienteDeCabecera.tsx": [
+      "BotonEnlace «{titulo}»",
+      "Boton «{titulo}»"
     ],
     "components/ProductoPiezas.tsx": [
       "button «{c.nombre}»",
@@ -111,7 +113,6 @@
       "button «{p.referencia}»"
     ],
     "components/fusionar-productos/PosiblesDuplicados.tsx": [
-      "button «Revisar»",
       "button «Revisar y fusionar»"
     ],
     "components/fusionar-productos/piezas.tsx": [
