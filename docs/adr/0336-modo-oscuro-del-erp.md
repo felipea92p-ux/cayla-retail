@@ -253,6 +253,13 @@ claro ya era idéntico (los 13 colores, al hex). Felipe eligió mirando (`docs/m
 - **El contrato** `docs/familia/contrato.json` (versión 2) guarda este oscuro en la capa «marca» y `lib/familia.test.ts` lo vigila. Lo que falta:
   aplicarlo en Dynamic (`aplicacion_pendiente` del contrato).
 
+## Actualización 2026-11-17 — el botón sale de la cabecera: el modo oscuro vive en «Apariencia»
+
+El modo oscuro se cambia ahora en **«Apariencia»**, la fila al pie del menú que abre la hoja de los ajustes del aparato (junto a las
+animaciones y el modo liviano), en el celular y en el escritorio (Felipe 2026-11-17). Ya no hay botón entre «Actividad» y la sede:
+`components/ui/BotonTema.tsx` y su CSS (`.boton-tema`) se borraron. El cambio sigue siendo el mismo (`cambiarTema`, con su fundido y
+`prefiereQuieto()`). Detalle: ADR-0674, «Actualización 2026-11-17».
+
 ## Cómo se verificó (actividad 13)
 
 `tsc` sin errores y las pruebas del tema en verde. Con la herramienta, contra el `next dev` local de esta rama: las 12 rutas con 6 cuentas a 1440 px (72 visitas), 24 escenarios con Admin, Integrante y Terminal de ventas a 1440 px (58 visitas) y a 375 px (58 visitas): **0 hallazgos solo en oscuro**. Mirando las capturas: la ficha de una clienta, Roles y accesos, el cartel (ahora rojo como saldrá impreso) y las etiquetas (papel blanco, como salen) se leen bien. Los escenarios que no abren algo son por el rol.

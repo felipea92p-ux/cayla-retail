@@ -2,7 +2,7 @@
 // en `movimiento-reglas.ts` (pura y con pruebas).
 //
 // `prefiereQuieto()` es LA pregunta de toda pieza que anima desde JavaScript (una cifra que cuenta, un vuelo, un scroll suave, la
-// salida de una hoja). Nadie pregunta `matchMedia("(prefers-reduced-motion: reduce)")` por su cuenta: no vería el botón. Lo vigila
+// salida de una hoja). Nadie pregunta `matchMedia("(prefers-reduced-motion: reduce)")` por su cuenta: no vería el interruptor de «Apariencia». Lo vigila
 // `lib/movimiento-reglas.test.ts`.
 
 import {
@@ -46,7 +46,7 @@ export function cambiarMovimiento(movimiento: Movimiento): void {
 }
 
 /**
- * Para `useSyncExternalStore`: avisa cuando cambia el atributo (por el botón o por otra pestaña) o la preferencia del sistema. Si
+ * Para `useSyncExternalStore`: avisa cuando cambia el atributo (por «Apariencia» o por otra pestaña) o la preferencia del sistema. Si
  * OTRA pestaña del aparato cambia, esta lo adopta (el evento `storage` solo llega a las demás pestañas).
  */
 export function suscribirMovimiento(avisar: () => void): () => void {

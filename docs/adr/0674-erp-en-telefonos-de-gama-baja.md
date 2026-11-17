@@ -201,3 +201,41 @@ desde la hoja diferida (se abrió y se canceló: no se cerró la caja de la base
 Actividad 7 (2026-11-17): `components/ui/FichasMedio.tsx` cambia UNA línea de import (el ícono del medio sale del ticket de Vender); no
 cambia cómo se ve ni qué hace. El vigilante puede abrir una tarea allá: no hay nada que copiar.
 No cambia `recetas.css` ni `contrato.json`; nada viaja solo.
+
+## Actualización 2026-11-17 — «Apariencia»: los tres ajustes del aparato en un solo lugar, y «Volver a automático»
+
+**El pedido (Felipe):** la barra de arriba del celular tenía botones que no son de trabajo (la luna del modo oscuro y el destello de las
+animaciones), y la pluma del modo liviano, al pie del menú junto a «Salir», casi no se descubría. Felipe decidió las tres preguntas de la
+propuesta (`docs/backlog/2026-11-17-friendly-faraday-ld7j6p.md`): se llama **«Apariencia»**; el modo liviano lleva **«Volver a
+automático»**; y va **en el celular y en el escritorio** («primero en celular, luego en PC»: dos commits, en ese orden).
+
+- **DECIDÍ:** una fila «Apariencia» al pie del menú, sobre la tarjeta de la persona, con la misma cara que las filas del menú (abierta,
+  plegada y en el cajón del celular). Abre una hoja (`components/HojaApariencia.tsx`, `<Modal conCerrar>`) con tres interruptores que se
+  aplican al tocar: Modo oscuro, Animaciones y Modo liviano, cada uno con su dibujo y su porqué en una línea. Los tres botones de la cabecera
+  (`BotonTema`, `BotonMovimiento`, `BotonLiviano`) se borraron, con su CSS y sus funciones de texto.
+- **DESCARTÉ:** ponerlos en «Mi perfil», porque una terminal no tiene perfil y son ajustes del aparato, no de la persona; y dejar los íconos en
+  la cabecera del escritorio, porque serían dos lugares para lo mismo.
+- **SE ROMPE SI:** quien cambia de tema varias veces al día en el escritorio extraña el clic único (ahora son dos: la fila y el interruptor).
+  La salida sería un atajo de teclado, no volver el ícono a la cabecera.
+
+**El tercer estado del modo liviano.** «Automático» = no hay nada guardado en `localStorage["cayla-liviano"]`: decide el equipo, como
+siempre. Si alguien lo cambia a mano, la hoja muestra «Volver a automático», que **borra** lo guardado (no guarda «auto») y vuelve a
+preguntarle al equipo (`volverLivianoAutomatico`, `lib/liviano-cliente.ts`). Así el script del `<head>` no cambia y `lib/liviano.test.ts`
+sigue exigiendo que diga lo mismo que `resolverLiviano`. La regla pura es `livianoEsAutomatico` (`lib/liviano-reglas.ts`). En una ventana
+privada, lo elegido vale para esa carga y no se muestra como «Automático».
+
+**Lo que no es:** no es un módulo (ADR-0306): no está en `lib/modulos.ts` ni en Roles y accesos; lo ve toda cuenta, también una terminal. No
+cambia qué hace ninguno de los tres ajustes: solo dónde se tocan.
+
+**Verificado (local, `next dev` y la base local):** a 375 y 320 px la barra de arriba queda con «Actividad», la sede (entera, 122 px a 320) y
+la lupa; la hoja sube desde abajo con su asa; cada interruptor cambia el ERP al momento y se mantiene al recargar; tocar el modo liviano a
+mano cambia «Automático» por «Volver a automático», y este lo devuelve (en el Mac de 16 GB, a «apagado»). En el escritorio, la fila mide 40
+px como las del menú, y plegada queda centrada con «Apariencia» entero debajo; Escape cierra la hoja y el foco vuelve a la fila. La auditoría
+del modo oscuro (`tema:auditar`, escenario `estructura.apariencia`) da 0 hallazgos propios; `/milimetro`: ficha `docs/milimetro/apariencia.md`
+y auditoría `docs/milimetro/auditorias/2026-11-17-apariencia.md`. `vitest` de `lib` completo (937 archivos), `tsc` y `knip` en verde.
+**No verificado:** un teléfono de gama baja real decidiendo «Automático» encendido.
+
+**Para Dynamic:** se borraron `components/ui/BotonTema.tsx`, `BotonMovimiento.tsx` y `BotonLiviano.tsx`, que Dynamic mira: **queda como
+tarea allá** (si Dynamic tiene sus propios botones, no se rompe nada; si quiere «Apariencia», la hoja vive en `components/`, fuera de lo
+que mira). No cambia `recetas.css` ni `contrato.json`; nada viaja solo.
+
