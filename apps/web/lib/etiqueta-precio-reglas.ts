@@ -9,7 +9,7 @@ import { conDesde, desdeSeguro } from "./vuelta-productos";
 import { vigenciaDe, type Vigencia } from "./etiqueta-vigencia";
 import { iconoDeEtiqueta, rotuloDeEtiqueta, type IconoEtiqueta } from "./etiqueta-visual";
 import { normalizarNombre } from "./patron-visual";
-import { descuentoDeCampana } from "./vender-reglas";
+import { descuentoDeCampana } from "./descuento-por-porcentaje";
 
 /** De qué empresa es la prenda y cómo se dice en el papel (ADR-0463): su nombre arriba, el colibrí solo si es CAYLA y el link al pie. */
 export type EmpresaEtiqueta = { nombre: string; conLogo: boolean; web: string };

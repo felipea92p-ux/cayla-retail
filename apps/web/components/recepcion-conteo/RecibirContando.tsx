@@ -33,7 +33,7 @@ import { agregarFotoPapel, guardarConteo, leerConteos } from "@/lib/recepcion-co
 import { conLoMasNuevo, conteosRecordados, recordarConteos } from "@/lib/recepcion-conteo-memoria";
 import { anotarCarga } from "@/lib/copia-de-pagina";
 import { navegacionSinEspera } from "@/components/ui/Espera";
-import { subirFotoPapel } from "@/lib/compra-rapida-acciones";
+import { subirFotoPapel } from "@/lib/papel-de-compra-acciones";
 import { EmpezarARecibir } from "@/components/recepcion-envio/EmpezarARecibir";
 import { LoQueTrae, origenDelEnvio } from "@/components/recepcion-envio/PiezasEnvio";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
