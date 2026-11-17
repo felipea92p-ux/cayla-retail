@@ -64,8 +64,9 @@ existió. Lo que corresponde es una nota de crédito sobre la boleta original y 
       repetido; el nombre del padrón se borra al cambiar de DNI (también en Vender); el nombre tiene tope de 200 en la caja y en la base.
       Casos 23 y 24 de `pruebas:cambio-con-comprobantes`. Probado en el navegador con el padrón simulado; a 375 px no se volvió a mirar
       (no cambia el diseño).
-- [ ] `/milimetro`: el grave de Cambios es del sistema (etiquetas de 11 px en la hoja de vidrio a 4.47:1) → propuesta a `/color`; y tres
-      medios de esta obra (dos «Enviar por WhatsApp», el nombre del campo en la guía, «Espera a SUNAT» contra «Por emitir»).
+- [x] `/milimetro`: el grave de Cambios es del sistema (etiquetas de 11 px en la hoja de vidrio a 4.47:1): anotado como propuesta a `/color`
+      en `docs/milimetro/propuestas.md` (2026-11-17).
+- [ ] `/milimetro`, tres medios de esta obra: dos «Enviar por WhatsApp», el nombre del campo en la guía, «Espera a SUNAT» contra «Por emitir».
 - [ ] `/formidable` y `guias:recorrer`.
 - [x] De #1910 (Felipe eligió esta rama): el papel de Vender con «CANCELADO» y la impresión sola con «Imprimir solo al cobrar».
 - [x] CI, tanda 4 (`pruebas:redondeo-efectivo`): al volver a pegar 20261003130000 y 20261003135000, `REHACER_TOKEN` volvía a pegar la
