@@ -289,6 +289,7 @@ function VistaNueve({
   return (
     <>
       <BarraAtributos
+        filtrosPuestos={grupo === "todas" ? 0 : 1}
         guia="atributos.barra-temporadas"
         etiqueta="Filtrar temporadas"
         filtros={

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   comoLlenarHueco,
+  anchoDeTallaPx,
   armarMatriz,
   coloresQueSeQuitan,
   coloresYaDesactivados,
@@ -128,6 +129,19 @@ describe("textos", () => {
     expect(tonoDeBarra(0)).toBe("cero");
     expect(tonoDeBarra(3)).toBe("bajo");
     expect(tonoDeBarra(4)).toBe("normal");
+  });
+
+  it("el ancho de la talla en el celular lo pide su nombre más largo", () => {
+    // Nombres cortos: los 80 px de siempre (la caja − N +).
+    expect(anchoDeTallaPx(["S", "M", "L", "XL"])).toBe(80);
+    expect(anchoDeTallaPx(["38", "40"])).toBe(80);
+    expect(anchoDeTallaPx([])).toBe(80);
+    // «Estándar» con su lápiz medía 84 px + 8 de aire en una columna de 80: se salía de la cabecera (2026-11-17).
+    expect(anchoDeTallaPx(["Estándar"])).toBeGreaterThanOrEqual(92);
+    // Todas miden lo mismo: manda la más larga.
+    expect(anchoDeTallaPx(["S", "Estándar"])).toBe(anchoDeTallaPx(["Estándar"]));
+    // Un nombre muy largo no se come la columna del color: se topa (y se corta con «…»).
+    expect(anchoDeTallaPx(["Talla única para todas"])).toBe(120);
   });
 
   it("el rango de precios", () => {
