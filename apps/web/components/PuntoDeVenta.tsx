@@ -161,6 +161,7 @@ import {
   TOPE_TICKETS_ABIERTOS,
 } from "@/lib/tickets-abiertos-reglas";
 import { ticketParaEspera } from "@/lib/vender-hoy-reglas";
+import { queHacerConLaFoto, recuperarEnLaEspera } from "@/lib/ticket-en-curso";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
 import { PedirEnOtraTienda } from "@/components/punto-de-venta/PedirEnOtraTienda";
 import { PedidosParaClientes } from "@/components/punto-de-venta/PedidosParaClientes";
@@ -563,6 +564,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // El cobro en curso (/chaos 2026-10-13, NAV-03): se anota antes de mandarlo y se borra al saber qué pasó. Si la página se recarga o
   // se cierra mientras se cobra, al volver Vender le pregunta a la base por ese envío y dice si la venta quedó.
   const claveCobro = claveLocal(ubicacionId, "cobro-en-curso");
+  // La foto del ticket que se está armando, en ESTA pestaña (ADR-0674, `lib/ticket-en-curso.ts`): si Android descarta la pestaña, al
+  // volver entra a «En espera». Bloqueada desde que sale un cobro hasta que se resuelve: un ticket ya cobrado no puede volver.
+  const claveFoto = claveLocal(ubicacionId, "en-curso");
+  const [fotoBloqueada, setFotoBloqueada] = useState(false);
+  const fotoLeida = useRef(false);
   // Un cobro que quedó en el aire en una visita anterior: al montar (y al volver la conexión) se le pregunta a la base y se dice si
   // la venta quedó (`useEnviosEnCurso`). El cobro en duda de ESTA pestaña lo resuelve su propia hoja (`CobroEnDuda`).
   useEnviosEnCurso({
@@ -790,9 +796,45 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // el efecto de abajo borra la llave pero este ya había cargado los tickets de ayer.
     // La clienta de cada uno se lee con tolerancia: los guardados antes de ADR-0288 la traen con `dni`.
     const guardados = esperaAlCargar(bloqueado, leer<TicketEnEspera[]>(claveEspera, []));
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEnEspera(guardados.map((t) => ({ ...t, clienta: clientaDeTicketGuardado(t.clienta) })));
-  }, [bloqueado, claveEspera]);
+    // El ticket que se estaba armando cuando la pestaña se cerró (ADR-0674) entra a «En espera»: se retoma con un toque y pasa por
+    // `retomar()`, que pone los precios al día. Se lee y se borra aquí, antes de que el efecto de abajo guarde el ticket vacío.
+    // UNA vez por montaje: este efecto vuelve a correr si la caja se abre o se cierra, y para entonces la foto ya es la del ticket que
+    // se está armando ahora (recuperarla lo duplicaría en la espera).
+    let espera = guardados;
+    if (!fotoLeida.current) {
+      fotoLeida.current = true;
+      const r = recuperarEnLaEspera(guardados, leer(claveFoto, null, "pestana"), bloqueado, crypto.randomUUID());
+      borrar(claveFoto, "pestana");
+      if (r.recuperado) {
+        espera = r.espera;
+        guardar(claveEspera, espera);
+        avisar.aviso("Recuperamos el ticket que estabas armando", { detalle: `Está en espera como «${r.recuperado.nombre}»: tócalo para seguir.` });
+      }
+    }
+    setEnEspera(espera.map((t) => ({ ...t, clienta: clientaDeTicketGuardado(t.clienta) })));
+  }, [bloqueado, claveEspera, claveFoto]);
+
+  // La foto del ticket que se está armando (ADR-0674): con cada cambio, en esta pestaña. Sin prendas o con un cobro en el aire, se borra.
+  useEffect(() => {
+    if (queHacerConLaFoto(carrito.length, fotoBloqueada) === "borrar") {
+      borrar(claveFoto, "pestana");
+      // Ticket vacío: el cobro que bloqueaba ya terminó (vendido, encolado o soltado); el siguiente ticket vuelve a guardarse.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (carrito.length === 0 && fotoBloqueada) setFotoBloqueada(false);
+      return;
+    }
+    const cobro: CobroDelTicket = {
+      responsableId: responsable.elegidoId,
+      comprobante: tipoComprobante,
+      docTipo: clienteDocIdentidad,
+      docNumero: clienteNumDoc,
+      clienteNombre,
+      celularBoleta,
+      pagos,
+      cupon: cuponClub.cupon,
+    };
+    guardar(claveFoto, ticketParaEspera({ carrito, nota, nombre: nombreActivo, clienta, cobro }, "en-curso", new Date().toISOString()), "pestana");
+  }, [carrito, fotoBloqueada, claveFoto, nota, nombreActivo, clienta, responsable.elegidoId, tipoComprobante, clienteDocIdentidad, clienteNumDoc, clienteNombre, celularBoleta, pagos, cuponClub.cupon]);
 
   useEffect(() => {
     // Misma razón que arriba: no existe `localStorage` en el servidor. A diferencia de
@@ -1831,6 +1873,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
   function anotarCobro(token: string) {
     guardar(claveCobro, conCobro(cobrosGuardados(leer(claveCobro, [])), { token, total, prendas, enviadoEn: new Date().toISOString() }));
+    // Desde aquí el ticket puede quedar cobrado: su foto se borra YA (no en el próximo render) y no se vuelve a guardar hasta que el
+    // cobro se resuelva (ADR-0674). Si la pestaña muere ahora, al volver manda el «cobro en duda», nunca un ticket recuperado.
+    borrar(claveFoto, "pestana");
+    setFotoBloqueada(true);
   }
   function olvidarCobro(token: string) {
     guardar(claveCobro, sinCobro(cobrosGuardados(leer(claveCobro, [])), token));
@@ -1947,8 +1993,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
     if (r.tipo === "error") {
       const error = r.error;
-      // La base dijo que no: no se guardó nada. El cobro anotado ya no está en el aire.
+      // La base dijo que no: no se guardó nada. El cobro anotado ya no está en el aire, y el ticket vuelve a tener su foto.
       olvidarCobro(r.token);
+      setFotoBloqueada(false);
       setLoading(false);
       // La base rechazó el cupón del Club (programa de puntos: otra caja lo usó, venció, la compra bajó del mínimo…): se quita, se vuelve a
       // leer lo que la base sabe y se dice. La venta NO se vuelve a mandar sola sin el cupón: el total subió y el cliente tiene que saberlo.
@@ -2038,6 +2085,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       await ventaRegistrada(typeof res.datos.venta_id === "string" ? res.datos.venta_id : null);
       return;
     }
+    // No quedó ninguna venta: el ticket vuelve a tener su foto (ADR-0674).
+    setFotoBloqueada(false);
     avisar.aviso(`El cobro de ${money(total)} no se registró`, {
       detalle: "No quedó ninguna venta guardada. El ticket sigue igual: revísalo y cobra de nuevo.",
     });
