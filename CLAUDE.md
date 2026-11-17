@@ -669,6 +669,8 @@ un cambio visual o se cree una nueva pantalla o se quiera auditar las pantallas 
 - **El PR lo dice:** su casilla «pasó por `/milimetro`» (o «Al milímetro no aplica», con el motivo). El check **«Al milímetro»**
   (`.github/workflows/al-milimetro.yml`, `scripts/milimetro/casilla.mjs`) sale rojo si un PR cambia un `.tsx` de `apps/web/components/`
   o `apps/web/app/`, o un `.css` de `apps/web/app/`, sin marcar ninguna. La tienda (`apps/tienda`) queda fuera: tiene su identidad (ADR-0616).
+- **La auditoría queda solo en su informe** (`docs/milimetro/auditorias/AAAA-MM-DD-<tema>.md`, con su título y su línea `Resumen:`), sin fila
+  en `docs/milimetro/README.md`: el CI la rechaza (ADR-0259, act. 2026-11-17). El tablero se arma solo: `pnpm milimetro:auditorias`.
 - **Va antes que las demás de interfaz y no las reemplaza:** primero `/milimetro` (la medida y el porqué), después `/formidable` (se
   entiende en 5 s), `/focus`, `/sugerir`, `/guia` y `/chaos` según lo que toque. Lo que una skill de afuera sugiera pasa por aquí.
 

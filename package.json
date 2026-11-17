@@ -21,6 +21,7 @@
     "familia:comparar": "node scripts/familia/comparar.mjs",
     "focus": "node scripts/focus/escanear.mjs",
     "sugerir": "node scripts/sugerir/escanear.mjs",
+    "milimetro:auditorias": "node scripts/milimetro/auditorias.mjs",
     "unificar:censo": "pnpm --filter web unificar:censo",
     "unificar:fotos": "pnpm --filter web unificar:fotos",
     "unificar:deuda": "pnpm --filter web unificar:deuda",
