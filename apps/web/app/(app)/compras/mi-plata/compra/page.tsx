@@ -39,7 +39,7 @@ export default async function CompraRapidaPage() {
           <AbrirRonda ultimaCerrada={null} />
         </div>
       ) : (
-        <RegistrarCompra datos={datos} />
+        <RegistrarCompra datos={datos} guardadas={plata?.compras.map((c) => c.id) ?? []} />
       )}
     </div>
   );

@@ -1,5 +1,5 @@
 import { Layers, Wallet } from "lucide-react";
-import { money } from "@/components/PuntoDeVenta";
+import { money } from "@/lib/money";
 import { textoDeEscalon } from "@/lib/campana-reglas";
 import type { EnMonto, GrupoEnTicket } from "@/lib/ofertas-de-grupo";
 

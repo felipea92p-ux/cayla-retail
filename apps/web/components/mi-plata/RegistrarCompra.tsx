@@ -15,6 +15,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { Modal } from "@/components/ui/Modal";
 import { Volver } from "@/components/ui/Volver";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
+import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { BotonVerMas } from "@/components/ui/VerMas";
 import { BarraDeAbajo, BarraDeAbajoResumen } from "@/components/ui/BarraDeAbajo";
@@ -35,6 +36,8 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { leerMontoPlata } from "@/lib/monto-plata-reglas";
+import { borrar, guardar as guardarEnElNavegador, leer } from "@/lib/almacen-local";
+import { claveDeCompraEnCurso, compraRecuperada, detalleDeRecuperada, fotoYaGuardada, queHacerConLaCompra, type FotoDeCompra } from "@/lib/compra-en-curso";
 import { soles } from "@/lib/compras-reglas";
 import type { ProveedorRegistrado } from "@/lib/proveedor-de-orden-reglas";
 import { cargarFotosDeHabituales, cargarHabituales, registrarCompraRapida, registrarMarcaDeCompra, subirFotoPapel } from "@/lib/compra-rapida-acciones";
@@ -182,7 +185,8 @@ const ANTERIOR: Partial<Record<PasoCompra, PasoCompra>> = {
   papel: "revisar",
 };
 
-export function RegistrarCompra({ datos }: { datos: Datos }) {
+/** `guardadas`: los identificadores de las compras que ya tiene anotadas (de «Mis compras»): una foto de la pestaña con uno de ellos no se recupera. */
+export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guardadas?: readonly string[] }) {
   const router = useRouter();
   const [id, setId] = useState(() => crypto.randomUUID());
   const [paso, setPaso] = useState<PasoCompra>("proveedor");
@@ -233,17 +237,21 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const [pagoParcial, setPagoParcial] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<{ titulo: string; texto: string; tono: "error" | "atencion" } | null>(null);
+  // La base ya dijo que esta compra existe (`compra_rapida_otros_datos`, ADR-0674): no hay nada que perder al salir, y su foto no se
+  // vuelve a guardar en la pestaña, o recargar la traería de vuelta.
+  const [yaEstaEnLaBase, setYaEstaEnLaBase] = useState(false);
   // `tieneAntes`: lo que tenía al guardar. Después de guardar, la pantalla se refresca y `datos.tiene` ya trae esta compra descontada:
   // restarla otra vez decía «Ahora tienes S/ 340» con S/ 400 (prueba ciega de /formidable, 2026-10-23).
   const [guardada, setGuardada] = useState<{ monto: number; pagado: number; prendas: number; tiendas: string[]; tieneAntes: number | null } | null>(null);
-  const esPersona = Boolean(useSedeActiva()?.personaSesionId);
+  const sede = useSedeActiva();
+  const esPersona = Boolean(sede?.personaSesionId);
   const responsable = useResponsable();
   const hojaTocada = enCurso !== null && firmaHoja(enCurso) !== hojaInicial;
   // En el celular, el gesto «atrás» (o un toque en el menú) sacaba de la pantalla y la compra a medias se perdía sin aviso: los pasos no
   // cambian la dirección. Con una prenda anotada (o la hoja de una a medio llenar), salir pregunta: la misma guardia de todo el ERP.
   // Guardada, ya no hay nada que perder.
   const salida = useSalidaSinGuardar(
-    paso !== "listo" && (lineas.length > 0 || hojaTocada),
+    paso !== "listo" && !yaEstaEnLaBase && (lineas.length > 0 || hojaTocada),
     lineas.length > 0
       ? `Llevas ${prendasDeLineas(lineas) === 1 ? "1 prenda anotada" : `${prendasDeLineas(lineas)} prendas anotadas`} en esta compra y todavía no se guarda. Si sales ahora, se pierde lo que anotaste.`
       : "Empezaste a anotar una prenda y la compra todavía no se guarda. Si sales ahora, se pierde lo que anotaste.",
@@ -340,6 +348,93 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   // El último proveedor elegido: con el internet lento del celular, quien elegía uno, volvía y elegía otro recibía las prendas del PRIMERO
   // si su respuesta llegaba después (y hasta su hoja de «Algo nuevo»). Solo cuenta la respuesta del último.
   const proveedorPedido = useRef<string | null>(null);
+
+  // La compra que se está anotando, en ESTA pestaña (ADR-0674, `lib/compra-en-curso.ts`): si Android descarta la pestaña mientras se toma
+  // la foto del papel o se paga por Yape, al volver la compra se rearma donde iba. Conserva su identificador: la base no la repite.
+  const claveFoto = claveDeCompraEnCurso(sede?.personaSesionId ?? null, sede?.ubicacionId ?? "");
+  const fotoLeida = useRef(false);
+
+  // Al abrir, UNA vez. Va antes del efecto que guarda: ese, en su primera pasada, todavía ve la pantalla vacía y borra la foto.
+  useEffect(() => {
+    if (fotoLeida.current) return;
+    fotoLeida.current = true;
+    const leido = leer<unknown>(claveFoto, null, "pestana");
+    // La pestaña murió justo al guardar y la compra sí llegó: no se recupera (la pantalla restaría su plata dos veces); se dice dónde está.
+    if (fotoYaGuardada(leido, new Set(guardadas))) {
+      borrar(claveFoto, "pestana");
+      avisar.aviso("La compra que estabas anotando ya se guardó", {
+        detalle: "Está en Mis compras.",
+        accion: { texto: "Ver Mis compras", onClick: () => router.push("/compras/mi-plata") },
+      });
+      return;
+    }
+    const r = compraRecuperada(leido, {
+      proveedores: new Set(datos.proveedores.map((p) => p.id)),
+      tiendas: new Set(datos.tiendas.map((t) => t.id)),
+      categorias: new Set(datos.categorias.map((c) => c.id)),
+    });
+    const p = r ? datos.proveedores.find((x) => x.id === r.foto.proveedorId) : undefined;
+    if (!r || !p) return borrar(claveFoto, "pestana");
+    const f = r.foto;
+    // Sin `elegirProveedor()`: abriría «Algo nuevo» si el proveedor no tiene prendas, y aquí la compra ya trae las suyas.
+    proveedorPedido.current = p.id;
+    /* eslint-disable react-hooks/set-state-in-effect -- la memoria de la pestaña no existe en el servidor: se lee después de montar */
+    setId(f.id);
+    setProveedor(p);
+    setMarcaElegida(f.marcaElegida);
+    setPorMarca(f.porMarca);
+    setLineas(f.lineas);
+    setTipo(f.tipo);
+    setMonto(f.monto);
+    setSerie(f.serie);
+    setNumero(f.numero);
+    setPago(f.pago);
+    setPagadoPropio(f.pagadoPropio);
+    setPagoParcial(f.pagoParcial);
+    setHabituales("cargando");
+    setPaso(r.paso);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    void cargarHabituales(p.id).then((leidos) => {
+      if (proveedorPedido.current !== p.id) return;
+      setHabituales(leidos);
+      if (f.marcaElegida && leidos?.some((h) => h.marcaId === f.marcaElegida?.id)) setMarcaHabitual(f.marcaElegida.id);
+      if (leidos?.length)
+        void cargarFotosDeHabituales(leidos.flatMap((h) => (h.productoId ? [h.productoId] : []))).then((fotosLeidas) => {
+          if (proveedorPedido.current === p.id) setFotos(fotosLeidas);
+        });
+    });
+    avisar.aviso("Seguimos con la compra que estabas anotando", {
+      detalle: detalleDeRecuperada(r, nombreSinSociedad(p.nombre)),
+      accion: { texto: "Empezar de nuevo", onClick: otraCompra },
+    });
+    // Solo al montar: lo que lee es de cuando la pestaña se cerró, no de lo que cambie después.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Con cada cambio, la foto de la compra en esta pestaña. Sin prendas, guardada o ya en la base, se borra.
+  useEffect(() => {
+    if (queHacerConLaCompra({ paso, hayProveedor: proveedor !== null, prendas: lineas.length, yaEstaEnLaBase }) === "borrar" || !proveedor) {
+      borrar(claveFoto, "pestana");
+      return;
+    }
+    const foto: FotoDeCompra = {
+      id,
+      proveedorId: proveedor.id,
+      marcaElegida,
+      porMarca,
+      lineas,
+      paso,
+      tipo,
+      monto,
+      serie,
+      numero,
+      pago,
+      pagadoPropio,
+      pagoParcial,
+      teniaFoto: archivo !== null,
+    };
+    guardarEnElNavegador(claveFoto, foto, "pestana");
+  }, [claveFoto, yaEstaEnLaBase, id, proveedor, marcaElegida, porMarca, lineas, paso, tipo, monto, serie, numero, pago, pagadoPropio, pagoParcial, archivo]);
 
   async function elegirProveedor(p: ProveedorParaComprar, marca: { id: string; nombre: string } | null = null) {
     proveedorPedido.current = p.id;
@@ -571,6 +666,18 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     setGuardando(false);
     if (!esPersona) responsable.despues(error);
     if (error) {
+      // La base ya tiene una compra con este identificador y no es igual a esta (se guardó antes de un corte o de que la pestaña se
+      // cerrara, y después se cambió algo): su foto se borra YA y no se vuelve a guardar. Si no, «recarga la pantalla» la traería de
+      // vuelta con el mismo identificador, y el mismo rechazo, sin salida (ADR-0674).
+      if (error.hint === "compra_rapida_otros_datos") {
+        borrar(claveFoto, "pestana");
+        setYaEstaEnLaBase(true);
+        return setRechazo({
+          titulo: "Esta compra ya estaba guardada",
+          texto: "Se guardó antes, con otros datos.",
+          tono: "atencion",
+        });
+      }
       return setRechazo(
         esFalloDeRed(error)
           ? { titulo: "Se cortó la conexión", texto: "No sabemos si se guardó. Vuelve a tocar «Guardar»: si ya se guardó, no se repite.", tono: "atencion" }
@@ -602,6 +709,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     setPagoParcial(false);
     setGuardada(null);
     setRechazo(null);
+    setYaEstaEnLaBase(false);
     setPaso("proveedor");
   }
 
@@ -1166,7 +1274,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           </div>
           {rechazo && (
             <div className="xl:col-span-2">
-              <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
+              <Aviso tono={rechazo.tono} titulo={rechazo.titulo} accion={yaEstaEnLaBase ? <Link href="/compras/mi-plata">Ver Mis compras</Link> : undefined}>
                 {rechazo.texto}
               </Aviso>
             </div>

@@ -3,7 +3,7 @@
 import { useRef, type KeyboardEvent } from "react";
 import { Check } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
-import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
+import { iconoMetodo } from "@/components/punto-de-venta/iconoMetodo";
 
 /**
  * Las fichas de medio de pago, ACOSTADAS (50 px): las mismas de la hoja de cobro de Vender —el ícono y el color de cada medio, se

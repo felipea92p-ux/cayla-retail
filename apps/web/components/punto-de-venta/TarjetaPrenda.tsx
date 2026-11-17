@@ -3,7 +3,8 @@
 import { useState, type CSSProperties, type KeyboardEvent } from "react";
 import { Globito } from "@/components/ui/Globito";
 import { Plus } from "lucide-react";
-import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
+import { money } from "@/lib/money";
+import type { ItemCarrito, VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { colorInicial, puntosAVista, resumenDePrenda, type GrupoCatalogo, type PrendaCatalogo } from "@/lib/catalogo-grupos";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { precargarMiniaturas } from "@/components/ui/precargar-miniaturas";

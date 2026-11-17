@@ -51,10 +51,12 @@ import { borrar, claveLocal, guardar, leer } from "@/lib/almacen-local";
 import { carritoPasaElUmbral, conStockComprometidoDescontado, firmaDeVentaEncolada, llevaCanje, stockComprometido, ventasSubidasEntre, ventaTrasFallo, type ParamsRegistrarVenta, type VentaEncolada } from "@/lib/ventas-offline";
 import { conCandadoDeSubida } from "@/lib/candado-subida";
 import { esErrorDeResponsable, firmar } from "@/lib/responsable-reglas";
-import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
+import { useFlipDelTicket } from "@/components/punto-de-venta/useFlipDelTicket";
+import { money } from "@/lib/money";
+import { hojaBajoDemanda, usePrecargarEnReposo } from "@/components/HojaBajoDemanda";
+import { CerrarCajaBajoDemanda } from "@/components/caja/CerrarCajaBajoDemanda";
 import { Modal } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
-import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { PuntoDeVentaCatalogo } from "@/components/PuntoDeVentaCatalogo";
 import { OpcionesDePrendaModal } from "@/components/punto-de-venta/OpcionesDePrendaModal";
 import { PuntoDeVentaTicket } from "@/components/PuntoDeVentaTicket";
@@ -68,7 +70,6 @@ import { armarRecibo, textoNumeroRecibo, type ReciboVenta } from "@/lib/recibo-r
 import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
 import { useResponsable } from "@/lib/useResponsable";
 import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
-import { PrendaSinRegistrarModal } from "@/components/PrendaSinRegistrarModal";
 import { motivoParaRegistrar } from "@/lib/prenda-sin-registrar-motivo";
 import { prendasPosibles } from "@/lib/prenda-sin-registrar-posibles";
 import { rangoDePreciosDeCategoria } from "@/lib/prenda-sin-registrar-precio";
@@ -161,6 +162,7 @@ import {
   TOPE_TICKETS_ABIERTOS,
 } from "@/lib/tickets-abiertos-reglas";
 import { ticketParaEspera } from "@/lib/vender-hoy-reglas";
+import { queHacerConLaFoto, recuperarEnLaEspera } from "@/lib/ticket-en-curso";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
 import { PedirEnOtraTienda } from "@/components/punto-de-venta/PedirEnOtraTienda";
 import { PedidosParaClientes } from "@/components/punto-de-venta/PedidosParaClientes";
@@ -187,6 +189,15 @@ import { numeroDeMonto } from "@/lib/monto-plata-reglas";
  * Inicio y Movimientos también lo excluyen; acá se re-exporta para PuntoDeVentaTicket.
  */
 export { ID_CARGO_ESPECIAL };
+
+// Hojas cuyo código baja recién al abrirlas (ADR-0674, actividad 7): Vender despierta antes en un teléfono lento. Solo lo que NO hace
+// falta para cobrar sin conexión: la hoja de cobro, «Venta registrada» y el cobro en duda se quedan fijos. «Cerrar caja» (la de
+// `components/caja/CerrarCajaBajoDemanda.tsx`) pide internet de todos modos. «Prenda sin registrar» sí sirve sin red: por eso se precarga
+// apenas la pantalla queda libre (`usePrecargarEnReposo`).
+const PrendaSinRegistrarBajoDemanda = hojaBajoDemanda(
+  () => import("@/components/PrendaSinRegistrarModal").then((m) => m.PrendaSinRegistrarModal),
+  "«Prenda sin registrar»",
+);
 
 /** Sin fichas de color: una sola referencia vacía, para que el `useMemo` de la ficha no se rearme en cada render. */
 const SIN_MAQUINAS: readonly MaquinaDeCobro[] = [];
@@ -352,7 +363,6 @@ const MAX_RESULTADOS = 6;
  *  que `abrirDescuento` traiga unas), sin motivo. */
 const DESCUENTO_VACIO: DescuentoForm = { modo: "porcentaje", pct: "", monto: "", elegidas: null, razon: "", razonOtro: "", argumento: "" };
 
-export const money = (n: number) => `S/${n.toFixed(2)}`;
 
 
 type Props = {
@@ -563,6 +573,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // El cobro en curso (/chaos 2026-10-13, NAV-03): se anota antes de mandarlo y se borra al saber qué pasó. Si la página se recarga o
   // se cierra mientras se cobra, al volver Vender le pregunta a la base por ese envío y dice si la venta quedó.
   const claveCobro = claveLocal(ubicacionId, "cobro-en-curso");
+  // La foto del ticket que se está armando, en ESTA pestaña (ADR-0674, `lib/ticket-en-curso.ts`): si Android descarta la pestaña, al
+  // volver entra a «En espera». Bloqueada desde que sale un cobro hasta que se resuelve: un ticket ya cobrado no puede volver.
+  const claveFoto = claveLocal(ubicacionId, "en-curso");
+  const [fotoBloqueada, setFotoBloqueada] = useState(false);
+  const fotoLeida = useRef(false);
   // Un cobro que quedó en el aire en una visita anterior: al montar (y al volver la conexión) se le pregunta a la base y se dice si
   // la venta quedó (`useEnviosEnCurso`). El cobro en duda de ESTA pestaña lo resuelve su propia hoja (`CobroEnDuda`).
   useEnviosEnCurso({
@@ -790,9 +805,45 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // el efecto de abajo borra la llave pero este ya había cargado los tickets de ayer.
     // La clienta de cada uno se lee con tolerancia: los guardados antes de ADR-0288 la traen con `dni`.
     const guardados = esperaAlCargar(bloqueado, leer<TicketEnEspera[]>(claveEspera, []));
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEnEspera(guardados.map((t) => ({ ...t, clienta: clientaDeTicketGuardado(t.clienta) })));
-  }, [bloqueado, claveEspera]);
+    // El ticket que se estaba armando cuando la pestaña se cerró (ADR-0674) entra a «En espera»: se retoma con un toque y pasa por
+    // `retomar()`, que pone los precios al día. Se lee y se borra aquí, antes de que el efecto de abajo guarde el ticket vacío.
+    // UNA vez por montaje: este efecto vuelve a correr si la caja se abre o se cierra, y para entonces la foto ya es la del ticket que
+    // se está armando ahora (recuperarla lo duplicaría en la espera).
+    let espera = guardados;
+    if (!fotoLeida.current) {
+      fotoLeida.current = true;
+      const r = recuperarEnLaEspera(guardados, leer(claveFoto, null, "pestana"), bloqueado, crypto.randomUUID());
+      borrar(claveFoto, "pestana");
+      if (r.recuperado) {
+        espera = r.espera;
+        guardar(claveEspera, espera);
+        avisar.aviso("Recuperamos el ticket que estabas armando", { detalle: `Está en espera como «${r.recuperado.nombre}»: tócalo para seguir.` });
+      }
+    }
+    setEnEspera(espera.map((t) => ({ ...t, clienta: clientaDeTicketGuardado(t.clienta) })));
+  }, [bloqueado, claveEspera, claveFoto]);
+
+  // La foto del ticket que se está armando (ADR-0674): con cada cambio, en esta pestaña. Sin prendas o con un cobro en el aire, se borra.
+  useEffect(() => {
+    if (queHacerConLaFoto(carrito.length, fotoBloqueada) === "borrar") {
+      borrar(claveFoto, "pestana");
+      // Ticket vacío: el cobro que bloqueaba ya terminó (vendido, encolado o soltado); el siguiente ticket vuelve a guardarse.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (carrito.length === 0 && fotoBloqueada) setFotoBloqueada(false);
+      return;
+    }
+    const cobro: CobroDelTicket = {
+      responsableId: responsable.elegidoId,
+      comprobante: tipoComprobante,
+      docTipo: clienteDocIdentidad,
+      docNumero: clienteNumDoc,
+      clienteNombre,
+      celularBoleta,
+      pagos,
+      cupon: cuponClub.cupon,
+    };
+    guardar(claveFoto, ticketParaEspera({ carrito, nota, nombre: nombreActivo, clienta, cobro }, "en-curso", new Date().toISOString()), "pestana");
+  }, [carrito, fotoBloqueada, claveFoto, nota, nombreActivo, clienta, responsable.elegidoId, tipoComprobante, clienteDocIdentidad, clienteNumDoc, clienteNombre, celularBoleta, pagos, cuponClub.cupon]);
 
   useEffect(() => {
     // Misma razón que arriba: no existe `localStorage` en el servidor. A diferencia de
@@ -997,34 +1048,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     if (bloqueado) borrar(claveEspera);
   }, [bloqueado, claveEspera]);
 
-  // Reflujo suave de las líneas del ticket al agregar/quitar una prenda (Flip, ADR-0038
-  // — vuelve de V1 por ADR-0045): se captura la posición ANTES de que cambie la lista y
-  // GSAP anima desde ahí hacia la nueva, en vez de que las filas salten. Solo se captura
-  // cuando la lista cambia de largo — subir la cantidad no reordena nada. El ref vive acá
-  // y el ticket solo lo recibe: sigue sin hooks (ADR-0043).
-  const listaTicket = useRef<HTMLDivElement>(null);
-  const flipState = useRef<Flip.FlipState | null>(null);
-  function capturarFlip() {
-    if (listaTicket.current) flipState.current = Flip.getState(listaTicket.current.children);
-  }
-  useGSAP(() => {
-    if (!flipState.current) return;
-    Flip.from(flipState.current, {
-      duration: 0.32,
-      ease: "caylaEase",
-      // Solo la fila que SALE se saca del flujo (`position: absolute`) para poder
-      // deslizarse encima de las demás sin arrastrarlas. Con `absolute: true` (como
-      // estaba) TODAS las filas —también las que se quedan y la que entra— salían del
-      // flujo mientras duraba la animación: el contenedor de la lista perdía su alto
-      // real y, si el ticket ya llenaba el scroll, la fila nueva se dibujaba superpuesta
-      // a las demás hasta que Flip terminaba y las devolvía a su lugar (bug reportado
-      // 2026-09-17: "parpadeo" al agregar una prenda que excede el largo del ticket).
-      absoluteOnLeave: true,
-      onEnter: (elementos) => gsap.fromTo(elementos, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.32, ease: "caylaEase" }),
-      onLeave: (elementos) => gsap.to(elementos, { opacity: 0, duration: 0.18 }),
-    });
-    flipState.current = null;
-  }, [carrito.length]);
+  // «Prenda sin registrar» sirve también sin conexión: su código baja apenas la pantalla queda libre, no al primer toque (ADR-0674).
+  usePrecargarEnReposo(PrendaSinRegistrarBajoDemanda);
+
+  // Reflujo suave de las líneas del ticket al agregar o quitar una prenda (`useFlipDelTicket`): GSAP baja solo con las animaciones
+  // encendidas (ADR-0674). El ref vive acá y el ticket solo lo recibe: sigue sin hooks (ADR-0043).
+  const { lista: listaTicket, capturar: capturarFlip } = useFlipDelTicket(carrito.length);
 
   const clienteTipoDoc = tipoDocumentoDeCliente(tipoComprobante ?? "boleta", clienteNumDoc, clienteDocIdentidad);
   const facturaSinRuc = tipoComprobante === "factura" && !clienteNumDoc;
@@ -1831,6 +1860,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
   function anotarCobro(token: string) {
     guardar(claveCobro, conCobro(cobrosGuardados(leer(claveCobro, [])), { token, total, prendas, enviadoEn: new Date().toISOString() }));
+    // Desde aquí el ticket puede quedar cobrado: su foto se borra YA (no en el próximo render) y no se vuelve a guardar hasta que el
+    // cobro se resuelva (ADR-0674). Si la pestaña muere ahora, al volver manda el «cobro en duda», nunca un ticket recuperado.
+    borrar(claveFoto, "pestana");
+    setFotoBloqueada(true);
   }
   function olvidarCobro(token: string) {
     guardar(claveCobro, sinCobro(cobrosGuardados(leer(claveCobro, [])), token));
@@ -1947,8 +1980,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
     if (r.tipo === "error") {
       const error = r.error;
-      // La base dijo que no: no se guardó nada. El cobro anotado ya no está en el aire.
+      // La base dijo que no: no se guardó nada. El cobro anotado ya no está en el aire, y el ticket vuelve a tener su foto.
       olvidarCobro(r.token);
+      setFotoBloqueada(false);
       setLoading(false);
       // La base rechazó el cupón del Club (programa de puntos: otra caja lo usó, venció, la compra bajó del mínimo…): se quita, se vuelve a
       // leer lo que la base sabe y se dice. La venta NO se vuelve a mandar sola sin el cupón: el total subió y el cliente tiene que saberlo.
@@ -2038,6 +2072,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       await ventaRegistrada(typeof res.datos.venta_id === "string" ? res.datos.venta_id : null);
       return;
     }
+    // No quedó ninguna venta: el ticket vuelve a tener su foto (ADR-0674).
+    setFotoBloqueada(false);
     avisar.aviso(`El cobro de ${money(total)} no se registró`, {
       detalle: "No quedó ninguna venta guardada. El ticket sigue igual: revísalo y cobra de nuevo.",
     });
@@ -2709,7 +2745,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       )}
 
       {manualAbierto && (
-        <PrendaSinRegistrarModal
+        <PrendaSinRegistrarBajoDemanda
+          alFallar={() => setManualAbierto(false)}
           listas={listasPrendaLibre}
           onAgregar={agregarPrendaSinRegistrar}
           // «¿Es alguna de estas?» (A2, auditoría 2026-10-14): las prendas del catálogo que coinciden y se pueden cobrar AHORA en
@@ -2747,7 +2784,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         </Modal>
       )}
       {modalCerrarVisible && cajaId && (
-        <CerrarCajaModalV2 cajaId={cajaId} cola={cola} ubicacionId={ubicacionId} onClose={() => setModalCaja(null)} />
+        <CerrarCajaBajoDemanda cajaId={cajaId} cola={cola} ubicacionId={ubicacionId} onClose={() => setModalCaja(null)} alFallar={() => setModalCaja(null)} />
       )}
 
       {ok && <VentaRegistradaModal ok={ok} ubicacionEtiqueta={ubicacionEtiqueta} onClose={cerrarVentaRegistrada} alCerrarEnfocar={buscador} />}

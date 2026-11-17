@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Archive, Bell, Check, MessageCircle, Printer, SearchX, SlidersHorizontal, Store } from "lucide-react";
-import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
+import { money } from "@/lib/money";
+import type { VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { ResumenApartados } from "@/lib/separaciones";
 import {
   EXTENSIONES_MAX,

@@ -108,9 +108,155 @@ El marco pasa de 936 KB (303 comprimidos) a 626 KB (200), y el JavaScript total 
   no hubo diferencia medible. Se mide en un teléfono real y con el punto 1. Tampoco se vieron el Inicio de almacén, el acompañante ni la vista
   previa de campañas (quedan cubiertos solo por la prueba del CSS), ni la estación de impresión encendida.
 
+## Actualización 2026-11-17 — Fase 2 (6a y 6b): lo que se está anotando no se pierde si Android cierra la pestaña
+
+**El problema.** En un teléfono de 2–4 GB, saltar a la cámara, a WhatsApp o a Yape hace que Android descarte la pestaña de Chrome; al volver
+la recarga. El ticket que se armaba en Vender y la compra que se anotaba en «Compré ropa» vivían solo en la pantalla y se perdían. La guardia
+de «salir sin guardar» no alcanza: nadie salió.
+
+**La regla común.** Mientras se anota, una FOTO en la memoria de ESA pestaña (`sessionStorage`, `lib/almacen-local.ts` con `"pestana"`):
+sobrevive a la recarga y al descarte, y no la ven otras pestañas ni otra cuenta. Nada se restaura en silencio: siempre hay un aviso.
+
+### 6a · El ticket de Vender (`lib/ticket-en-curso.ts`, `components/PuntoDeVenta.tsx`)
+
+- DECIDÍ: la foto vuelve como un ticket más de «En espera», con id nuevo, y se retoma con `retomar()` (precios y campañas al día). Desde que
+  sale un cobro la foto se borra y no se vuelve a guardar hasta que el cobro se resuelve.
+- DESCARTÉ: restaurar el ticket directo en pantalla, porque llegaría con los precios y las campañas de cuando se cerró la pestaña, y porque
+  un ticket que ya se cobró podría volver y cobrarse dos veces.
+- SE ROMPE SI: dos pestañas de Vender de la misma sede se recuperan en el mismo instante (las dos leen «En espera» vacía y la segunda pisa a
+  la primera). Android restaura una pestaña a la vez, al mirarla; probado con dos pestañas recargadas una tras otra: cada ticket volvió una vez.
+
+### 6b · La compra de «Compré ropa» (`lib/compra-en-curso.ts`, `components/mi-plata/RegistrarCompra.tsx`)
+
+- DECIDÍ: la foto conserva el IDENTIFICADOR de la compra y la compra se rearma donde iba (en «revisar», o en el papel si estaba ahí). No lleva
+  el candado de Vender porque la base no repite una compra con el mismo identificador (20261023005000). Una llave por cuenta
+  (`cayla:mis-compras:<persona>:en-curso`; una terminal, por su sede).
+- DESCARTÉ: darle un identificador nuevo al recuperarla (como el ticket), porque si la pestaña murió justo al guardar y la compra sí llegó,
+  guardarla otra vez la duplicaría y su plata bajaría dos veces.
+- SE ROMPE SI: la compra ya estaba guardada y se recupera igual. Dos redes: (1) al abrir, si su identificador ya está entre las compras de
+  «Mis compras» (`guardadas`, de `getMiPlata()`), no se recupera y se avisa «ya se guardó» —sin esto la pantalla final restaba su plata dos
+  veces, visto al probar—; (2) si la base responde `compra_rapida_otros_datos`, la foto se borra y no se vuelve a guardar: antes, «recarga la
+  pantalla» la traía de vuelta con el mismo identificador y el mismo rechazo, sin salida.
+- Lo que no vuelve: el archivo de la foto del papel (no cabe en la memoria de la pestaña; el aviso pide tomarla otra vez) y la hoja de una
+  prenda a medio escribir. Una prenda cuya tienda o categoría dejó de existir se saca y el aviso dice cuántas.
+
+**Verificado (local, 375 px, Playwright; base restaurada después con `estado.mjs`):** Compré ropa: recargar en «revisar» y en el papel
+vuelve con el mismo identificador, el tipo, el monto y el medio; «Empezar de nuevo» limpia; guardar, reponer la foto y recargar → «ya se
+guardó», una sola fila en `compra_papeles`; corte de red con la compra ya en la base + un cambio + guardar → «Esta compra ya estaba
+guardada», recargar abre limpio; dos compras de prueba, ninguna repetida. Vender: dos pestañas, cada una con su foto; recargadas, cada ticket
+entra una vez a «En espera» y otra recarga no lo duplica.
+**No verificado:** un teléfono real con la pestaña descartada por Android (aquí se simuló con una recarga); la corrida completa de `/chaos`
+(se hicieron a mano las familias «red y sesión» y «navegación torcida» sobre estos dos flujos).
+
+## Actualización 2026-11-17 (b) — Fase 2, actividad 7: partir el código (primer corte)
+
+**Lo que se midió antes de tocar** (cierre de imports fijos de cada pantalla, y el armado de producción): Caja, Apartados y «Compré ropa»
+pesaban más que Vender y bajaban al diferir piezas de Vender. La causa no eran sus modales: era UN import. `money` —una función de una
+línea— vivía exportada dentro de `components/PuntoDeVenta.tsx`, y `iconoMetodo`, dentro del ticket de Vender. Quien los importaba se llevaba
+la pantalla de Vender entera (298 archivos, 2,6 MB de fuente): Caja (por el gasto rápido), Apartados y, por `components/ui/FichasMedio.tsx`,
+todo lo que muestra fichas de medio de pago, Mis compras incluida.
+
+### 7.1 · Lo que sirve a varias pantallas no vive dentro de una pantalla
+
+- DECIDÍ: `money` va a `lib/money.ts` y los íconos de los medios a `components/punto-de-venta/iconoMetodo.tsx`; la prueba
+  `lib/vender-no-se-arrastra.test.ts` falla si alguien importa un VALOR de la pantalla de Vender o de su ticket (un `import type` no
+  arrastra), y si desde Caja, Apartados, Compré ropa o FichasMedio vuelve a haber un camino de imports fijos hasta ella.
+- DESCARTÉ: dejar `money` donde estaba y confiar en que el empaquetador descarte lo que no se usa, porque no lo descarta: un archivo
+  `"use client"` con efectos entra entero con todo lo que importa (medido: Compré ropa bajó 691 KB al mover dos imports).
+- SE ROMPE SI: otra pantalla grande exporta una utilidad que usan las vecinas (el mismo patrón, con otro archivo). La prueba solo vigila
+  Vender; el medidor de cierres (backlog, «Cómo medir») es lo que lo encuentra.
+
+### 7.2 · Hojas bajo demanda (`lib/bajo-demanda.ts`, `components/HojaBajoDemanda.tsx`)
+
+- DECIDÍ: en Vender bajan recién cuando hacen falta GSAP (solo con las animaciones encendidas; de paso el ticket deja de animar quieto, que
+  incumplía ADR-0625), «Cerrar caja» (al abrirla) y «Prenda sin registrar» (apenas la pantalla queda libre, porque sirve sin conexión, y se
+  reintenta al volver la red). Si el internet se cae justo al abrir: aviso «No se pudo abrir …», la hoja se cierra y la próxima vez reintenta.
+- DESCARTÉ: `next/dynamic` (lo que decía el plan), porque recuerda el fallo de la descarga y lanza el error al árbol: un corte de red al
+  tocar «Cerrar caja» tumbaba la pantalla hasta recargar. Y descarté diferir la hoja de cobro, «Venta registrada» y el cobro en duda: son lo
+  que hace falta para cobrar sin conexión (ADR-0092), y una venta no puede depender de una descarga.
+- SE ROMPE SI: alguien pasa a `hojaBajoDemanda` una pieza del cobro. La regla está escrita en la cabecera de `HojaBajoDemanda.tsx`; no hay
+  prueba que lo impida.
+
+**Medido** (armado de producción local, JavaScript total de la pantalla, crudo y comprimido):
+
+| Pantalla | Antes | Ahora | Cambio |
+|---|---|---|---|
+| `/compras/mi-plata/compra` | 2 097 KB (681) | 1 406 KB (441) | −33 % |
+| `/caja` | 2 241 (726) | 1 650 (520) | −26 % |
+| `/vender/apartados` | 2 137 (684) | 1 692 (531) | −21 % |
+| `/vender` | 1 938 (627) | 1 751 (561) | −10 % |
+
+Sin cambio: Existencias, Nuevo producto, Recibir, Productos, Cambios y Devoluciones (no pasaban por Vender; les toca su propio corte).
+
+**Verificado (local, Playwright, 375 y 1366 px):** Caja, Apartados y Mis compras abren sin errores; «Registrar gasto» de Caja y la hoja de
+cobro de Vender muestran los seis íconos y los montos; «Prenda sin registrar» abre sin pedir nada a la red (ya precargada); «Cerrar caja»
+sin red avisa y la pantalla sigue viva, y con red abre; quieto, agregar una prenda no descarga GSAP ni cambia estilos; con «Animaciones»
+encendidas baja y el ticket se reacomoda. `vitest` (943 archivos), `tsc`, `eslint`, `knip` y `knip:produccion` en verde.
+**No verificado:** el tiempo real de arranque en un teléfono barato (aquí se midió peso, no segundos), ni la caja cerrándose de verdad
+desde la hoja diferida (se abrió y se canceló: no se cerró la caja de la base local).
+
+## Actualización 2026-11-17 (c) — actividad 7, segundo corte: Caja
+
+Medido antes de tocar (`scripts/peso/cierres.mjs`, lo que es solo suyo de cada hoja, en fuente): «Registrar gasto» completo 174 KB, el
+detalle de una venta 154 (trae `qrcode.react`), el historial de cierres 114 y «Cerrar caja» 85. Las cuatro se abren con un toque y leen o
+guardan en la base: sin internet no sirven de todos modos.
+
+- DECIDÍ: las cuatro pasan a `hojaBajoDemanda`. «Cerrar caja» es LA acción de la pantalla: su código baja apenas la pantalla queda libre
+  (`usePrecargarEnReposo`), así que abre al instante; el historial empieza a bajar al acercar el mouse o el foco; las otras dos, al abrirlas.
+  Una sola definición de «Cerrar caja» para Caja y Vender (`components/caja/CerrarCajaBajoDemanda.tsx`).
+- DESCARTÉ: poner las cuatro en un solo archivo, porque el escáner de las guías interactivas (`guias/escaner.mjs`) sigue los `import()` de
+  cada archivo que una pantalla importa: le atribuía a Vender el historial, el detalle de venta y «Registrar gasto», que Vender no dibuja
+  (48 controles de más en su huella). Y descarté dejarlas en un `.ts`: el escáner solo sigue `.tsx`, y los controles de esas hojas salían
+  de la huella de Caja, es decir, su guía dejaba de estar vigilada. Aceptar la huella nueva habría «arreglado» la prueba rompiendo el candado.
+- SE ROMPE SI: alguien difiere una hoja desde un archivo que no es `.tsx` o junta hojas de pantallas distintas en un archivo: la prueba
+  `lib/guias.test.ts` lo marca (así salió), pero el mensaje habla de la guía, no de la extensión.
+
+**Corrección de los medidores:** `cierres.mjs` y `camino.mjs` seguían los imports de los archivos `"use server"` (las acciones del
+servidor) y contaban como código del teléfono lo que nunca viaja (el historial «alcanzaba» `next/headers`). Ahora un archivo de acciones es
+una hoja del recorrido.
+
+**Medido** (armado de producción local, ya con `main` del 2026-11-17 fusionado): `/caja` 1 650 → 1 454 KB (520 → 454 comprimido), −12 %; desde
+antes de la actividad 7, 2 241 → 1 454 (−35 %). El texto propio de cada una de las cuatro hojas ya no aparece en los 27 archivos de la
+carga inicial de `/caja`. Vender, Apartados y Compré ropa, sin cambio (1 750 · 1 690 · 1 404).
+
+**Verificado (local, Playwright, 1366 y 375 px):** «Cerrar caja» abre sin pedir nada a la red (precargada), también desde la barra de
+abajo del celular; el historial y el formulario completo de gasto abren y bajan su código al abrirse; recién cargada la pantalla y sin red,
+el historial avisa «No se pudo abrir el historial de cierres», la pantalla sigue viva, y con red abre. Sin errores de página. La base
+local quedó idéntica (no se guardó nada). `vitest` (945 archivos, huellas de guías sin cambio), `tsc`, `eslint`, `knip`, `knip:produccion`.
+**No verificado:** el detalle de una venta abierto desde Caja (la base local no tenía ventas de hoy; es la misma pieza y los mismos tipos
+que las otras tres), ni cerrar la caja de verdad.
+
+## Actualización 2026-11-17 (d) — actividad 7, tercer corte: Existencias
+
+Medido antes de tocar (`scripts/peso/cierres.mjs` sobre `components/InventarioPanel.tsx`): no había un arrastre de otra pantalla (como
+`money` en Vender); lo que pesaba era suyo. El panel de la prenda (`existencias/PanelTalla.tsx`, con la planilla de «Ajustar stock» y los
+flujos de colgar, subir, apartar y pedir) eran 625 KB de fuente en 54 archivos que bajaban aunque nadie tocara una prenda.
+
+- DECIDÍ: seis hojas pasan a `hojaBajoDemanda` (`components/existencias/hojas-bajo-demanda.tsx`). El panel de la prenda y la cámara para
+  escanear se precargan en reposo (`usePrecargarEnReposo`): son lo que más se abre —la cámara, en el celular— y así abren al instante.
+  «Ajustar inventario», el buscador de prendas, las dañadas y el resumen del stock bajan al abrirlos.
+- DESCARTÉ: dejar el panel fijo «porque se usa siempre», porque lo que se busca no es bajar menos código sino que la pantalla se pueda
+  usar antes: con la precarga en reposo, la lista de Existencias aparece y responde sin esperar a leer el panel. Y descarté partir el
+  panel por dentro (su planilla de ajuste aparte): son varias piezas y un gancho enlazados, y diferir el panel entero ya las saca todas.
+- SE ROMPE SI: alguien toca una prenda en los primeros segundos con la red caída: sale «No se pudo abrir la prenda» en vez del panel
+  (probado). Antes el panel ya estaba; pero sin red tampoco se podía hacer nada dentro de él.
+
+**Medido** (armado de producción local): `/inventario` 1 899 → 1 546 KB (603 → 494 comprimido), −19 %. Lo que la pantalla alcanza con imports
+fijos baja de 289 archivos y 2 836 KB de fuente a 189 y 1 664. El texto propio del panel, del buscador, de las dañadas y de la cámara ya no
+aparece en los 32 archivos de la carga inicial.
+
+**Verificado (local, Playwright, 1366 y 375 px):** el panel de la prenda y la cámara abren sin pedir nada a la red (precargados); el
+buscador de «Ajustar stock» abre y baja su código al abrirse; las dañadas abren desde su dirección (`?danados=1`, la hoja se pide al cargar);
+sin red desde que la pantalla pidió su código inicial, tocar una prenda avisa y la pantalla sigue viva, y con red abre; a 375 px el panel
+abre sin desborde. La base local quedó idéntica. `vitest` (945 archivos, huellas de guías sin cambio), `tsc`, `eslint`, `knip`, `knip:produccion`.
+**No verificado:** «Ajustar inventario» completo y el resumen del stock (con los datos de la base local no hay camino hasta ellos; misma
+pieza y mismos tipos que las otras cuatro), ni guardar nada desde el panel diferido (colgar, ajustar, apartar): se abrió y se cerró.
+
 ## Para Dynamic
 
 `components/ui/BotonLiviano.tsx` es una pieza nueva en una carpeta que Dynamic mira: **queda como tarea allá**, si quieren el modo liviano.
+Actividad 7 (2026-11-17): `components/ui/FichasMedio.tsx` cambia UNA línea de import (el ícono del medio sale del ticket de Vender); no
+cambia cómo se ve ni qué hace. El vigilante puede abrir una tarea allá: no hay nada que copiar.
 No cambia `recetas.css` ni `contrato.json`; nada viaja solo.
 
 ## Actualización 2026-11-17 — «Apariencia»: los tres ajustes del aparato en un solo lugar, y «Volver a automático»
