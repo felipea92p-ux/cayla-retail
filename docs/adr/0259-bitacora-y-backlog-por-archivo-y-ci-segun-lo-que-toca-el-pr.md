@@ -89,3 +89,36 @@ Una prueba de Postgres empieza a depender de la web por un camino que el detecto
 armada en tiempo de ejecución (`join(RAIZ, "apps", app)` con `app = "web"` en otra línea), o un proceso hijo que
 corre código de `apps/web`. Esa prueba se saltaría en un PR de pantallas y su rojo aparecería recién en `main`. Se evita
 escribiendo la ruta literal, que es como lo hacen las tres de hoy.
+
+## Actualización 2026-11-17 — el tablero de auditorías de «Al milímetro» entra a la misma regla
+
+**Qué había.** El mismo problema, en otro archivo. Desde el 2026-11-12 `/milimetro` es obligatoria en todo cambio visual, y cada
+auditoría dejaba dos cosas: su informe en `docs/milimetro/auditorias/` y una fila escrita a mano en la primera línea de la
+tabla de `docs/milimetro/README.md`. Dos PR visuales abiertos a la vez escribían siempre en esa misma línea. Medido el
+2026-11-17 sobre `origin/main`: 114 commits tocaron ese archivo en 7 días, y en 51 fusiones los dos lados lo habían tocado.
+El PR #1928 se quedó «con conflictos» por esa sola fila, con todo su código fusionando limpio.
+
+**DECIDÍ:** la auditoría es solo su informe (`docs/milimetro/auditorias/AAAA-MM-DD-<tema>.md`), y la fila ya no se escribe. El
+tablero se arma leyendo la carpeta (`pnpm milimetro:auditorias`, `scripts/milimetro/auditorias.mjs`) y no se guarda en ningún
+archivo. La tabla del README queda como historia, igual que `BITACORA.md`: se corrige, no recibe filas. El candado de este
+ADR (`scripts/docs/entradas-por-archivo.mjs`) ahora lleva una lista de archivos congelados, cada uno con su corte, y rechaza
+en el README una fila `| AAAA-MM-DD |` posterior al 2026-11-17. Las filas de los PR abiertos ese día pasan: nadie toca su PR.
+
+Como ya no hay una fila que resuma el informe, el informe tiene que alcanzar solo. El CI (`auditorias.mjs --verificar`) exige
+a todo informe posterior al corte su nombre `AAAA-MM-DD-<tema>.md`, su título en la primera línea y una línea `Resumen:`.
+A los 47 de antes no se les exige nada: de esos el tablero toma la primera línea que cuente graves.
+
+**DESCARTÉ:**
+- **Generar la tabla y guardarla en el README.** Un archivo que todo PR regenera choca igual: dos PR insertan su fila en el
+  mismo lugar del archivo generado. Solo cambia quién escribe la línea que choca.
+- **Borrar la tabla y pasar sus 62 filas a informes.** 22 filas no tienen informe: son lo único que queda de esas
+  auditorías. Pasarlas a mano es inventar 22 archivos para no ganar nada.
+- **Un candado aparte para el README.** Serían dos piezas resolviendo el mismo problema de dos formas. La regla es una
+  («una entrada, un archivo») y su candado también.
+
+**SE ROMPE SI:** dos PR auditan lo mismo el mismo día y eligen el mismo `<tema>`: los dos crean el mismo archivo y git lo
+marca como conflicto. Es el caso bueno (son la misma auditoría hecha dos veces), y se ve.
+
+**Lo que se pierde, dicho.** Ese conflicto obligaba a cada PR visual a traer `main` antes de fusionarse, y de casualidad
+hacía de prueba conjunta (ver «Lo que esto NO cubre», arriba). Desde hoy un PR visual puede fusionarse sin haber corrido
+junto al anterior. La red sigue siendo el CI que corre entero en cada push a `main`.

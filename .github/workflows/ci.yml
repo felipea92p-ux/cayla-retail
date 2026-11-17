@@ -269,9 +269,10 @@ jobs:
         run: node --test scripts/ci/vercel-ignorar.test.mjs scripts/ci/vercel-ignorar-tienda.test.mjs scripts/ci/vigia-vercel.test.mjs scripts/ci/vigia-salud.test.mjs
 
       # Una entrada nueva de bitácora o de backlog vive en su propio archivo (ADR-0259): BITACORA.md y BACKLOG.md eran los
-      # dos archivos más tocados del repo y cada PR chocaba ahí con el anterior. Van también las pruebas de «qué toca el
+      # dos archivos más tocados del repo y cada PR chocaba ahí con el anterior. Desde el 2026-11-17 el mismo candado cuida
+      # la tabla de auditorías de docs/milimetro/README.md, que chocaba igual. Van también las pruebas de «qué toca el
       # PR», que decide cuánto corre el job de Postgres. Solo leen archivos; no necesitan node_modules.
-      - name: Bitácora y backlog, una entrada por archivo
+      - name: Bitácora, backlog y auditorías, una entrada por archivo
         if: ${{ !cancelled() }}
         run: |
           node --test scripts/docs/entradas-por-archivo.test.mjs scripts/ci/alcance.test.mjs scripts/ci/pruebas-postgres.test.mjs
@@ -285,10 +286,14 @@ jobs:
         run: node --test scripts/sugerir/escanear.test.mjs scripts/focus/escanear.test.mjs
 
       # El check «Al milímetro» (`.github/workflows/al-milimetro.yml`): qué archivos cuentan como visuales y qué casilla lo deja
-      # pasar. Solo lee su lista; no necesita node_modules.
+      # pasar. Solo lee su lista; no necesita node_modules. Y el tablero de auditorías, que se arma desde la carpeta
+      # (`pnpm milimetro:auditorias`, ADR-0259 act. 2026-11-17): como ya no hay una fila que resuma cada auditoría, un informe
+      # nuevo sin su título o sin su línea `Resumen:` se rechaza aquí.
       - name: Check «Al milímetro»
         if: ${{ !cancelled() }}
-        run: node --test scripts/milimetro/casilla.test.mjs
+        run: |
+          node --test scripts/milimetro/casilla.test.mjs scripts/milimetro/auditorias.test.mjs
+          node scripts/milimetro/auditorias.mjs --verificar
 
       # `/chaos`: el catálogo de ataques y el detector de invariantes. Solo la parte pura (sin Docker); las consultas contra la base
       # las corre `node scripts/chaos/invariantes.mjs --autoprueba` en local.

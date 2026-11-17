@@ -43,12 +43,13 @@ export function ReabrirRonda({ ultimaCerrada }: { ultimaCerrada: RondaCerrada | 
   }
 
   // Va en la fila de «Ver lo que anoté» y «Mis envíos» (`UltimaRonda`), pegado a la derecha (Felipe 2026-10-29: «ahí hay espacio»), sin frase
-  // que lo explique: «Reabrir RC-…» ya dice qué hace, y la guía interactiva cuenta cuándo sirve. Si la base lo rechaza, el aviso baja a su propia
+  // que lo explique: «Reabrir RC-…» ya dice qué hace, y la guía interactiva cuenta cuándo sirve. En la tarjeta angosta (bajo 30 rem, el celular)
+  // no cabe en esa fila: baja a su renglón y lo llena de margen a margen (Felipe 2026-11-17). Si la base lo rechaza, el aviso baja a su propia
   // línea (`w-full`) bajo la fila.
   return (
     <>
-      <div className="ml-auto" data-guia="mi-plata.reabrir-ronda">
-        <Boton peso="fantasma" className="btn-chico" cargando={reabriendo} textoCargando="Reabriendo…" onClick={() => void reabrir()}>
+      <div className="grow @min-[30rem]:ml-auto @min-[30rem]:grow-0" data-guia="mi-plata.reabrir-ronda">
+        <Boton peso="fantasma" className="btn-chico w-full" cargando={reabriendo} textoCargando="Reabriendo…" onClick={() => void reabrir()}>
           Reabrir {ultimaCerrada.texto}
         </Boton>
       </div>

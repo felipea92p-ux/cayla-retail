@@ -366,7 +366,7 @@ decimal de dos coordenadas), y **Preguntas del equipo** quedó como la pantalla 
 ## Actualización 2026-11-17 (g) — actividad 7, quinto corte: Preguntas del equipo, y zod fuera de todo el navegador
 
 Tras el cuarto corte, la pantalla más pesada era Gestión ▸ Preguntas del equipo: 786 KB propios. Medida con `por-modulo.mjs`, 650 eran el
-texto de las 79 guías interactivas (`lib/guias/pantallas/*.ts`) y 52, zod. Ninguna de las dos cosas hacía falta en el navegador: eran tres
+texto de las 122 guías interactivas (`lib/guias/pantallas/*.ts`) y 52, zod. Ninguna de las dos cosas hacía falta en el navegador: eran tres
 arrastres como el de `money`, y los tres se quitan moviendo código, sin diferir nada y sin agregar ningún punto de falla.
 
 **1. El título de una guía lo resuelve el servidor.** La pantalla dice a qué pantalla llevó cada respuesta («→ Caja»). Para ese nombre,
@@ -405,6 +405,42 @@ armado por la IA (pide la clave); el cajón del asistente abierto (está apagado
 
 **Visto de paso.** El cajón del asistente y «Elegir demo» sí bajan el texto de todas las guías cuando se abren (van aparte del marco). El
 cajón las necesita para buscar; «Elegir demo» solo pregunta si una pantalla tiene guía. Queda en el backlog.
+
+## Actualización 2026-11-17 (h) — actividad 7, sexto corte: el texto de las guías ya no baja en cada sesión
+
+Felipe pidió seguir con «Elegir demo», que importaba el texto de todas las guías para saber si una pantalla tenía guía. Medido, recortar solo
+eso no ahorraba nada: el texto de las 122 guías es UN archivo del navegador (665 KB ya armados, 177 comprimidos) que «Demo», el acompañante del
+asistente y el motor de las guías comparten. Y el motor (`MotorGuias`, en el marco) lo pedía **en el primer momento libre de cada sesión, en
+toda pantalla y para todos**, solo para saber qué guía tenía la pantalla y ofrecerla la primera vez. No pesaba en la carga (`por-modulo.mjs` no
+lo ve: llega después), pero un teléfono de 2–4 GB lo bajaba y lo leía justo cuando la colaboradora empezaba a usar la pantalla.
+
+- DECIDÍ: el servidor manda un **índice** de las guías (id, ruta, título y resumen; `indiceDeGuias`, `lib/guias/titulos.ts`) desde
+  `app/(app)/layout.tsx` hasta el marco: unos 21 KB de datos, 6 comprimidos, una vez por carga completa. Con eso el motor sabe qué guía tiene
+  la pantalla y la ofrece, «Demo» arma su lista y el acompañante nombra la pantalla de un paso. El texto (los pasos) se pide recién **cuando una
+  demo va a correr** (`guiaCompleta`, `lib/guias/diferidas.ts`), con el loader si todavía no bajó, y empieza a bajar antes cuando hay una buena
+  razón: al ofrecer la demo de la primera visita y al abrir «Demo».
+- DESCARTÉ: un índice escrito (o generado) en el código del navegador, porque serían dos listas que mantener iguales y sumaría ~22 KB al marco
+  de todos; y mantener la carga en reposo solo en las pantallas cuya guía no se ha visto, porque igual necesita el índice y seguiría bajando
+  665 KB en la primera pantalla nueva de cada sesión.
+- SE ROMPE SI: un componente del marco vuelve a importar el registro de las guías (lo vigila `lib/vender-no-se-arrastra.test.ts`); o se pide
+  una demo sin internet (avisa «No se pudo abrir la demo» y el siguiente intento vuelve a pedir el texto).
+
+**Lo que se paga.** La primera demo de una sesión, si no se ofreció ni se abrió «Demo» antes, espera la descarga (177 KB comprimidos) con el
+loader de siempre. Desde «Demo» casi nunca se nota: el texto empieza a bajar mientras la persona elige.
+
+**De paso, un arreglo del principio 9.** `diferidas.ts` guardaba la promesa de la descarga aunque fallara: una sola falla de red dejaba las guías
+apagadas hasta recargar, sin aviso. Ahora usa `bajoDemanda` (7.2), que no recuerda los fallos.
+
+**Sigue bajando el texto** el cajón del asistente al abrirse (`CajonAsistente`): busca en los pasos de las guías para responder, así que lo
+necesita de verdad. Ya estaba diferido al abrirlo (ADR-0623).
+
+**Verificado.** Tipos, lint, Knip (los dos) y las pruebas; el candado nuevo (ni el marco, ni el motor, ni «Demo», ni el acompañante llegan al
+registro por un import fijo). En el navegador, en local, como líder en Caja: al cargar y esperar 9 s **no se pidió** el archivo de las guías;
+al abrir Mi perfil ▸ Demo la lista salió completa desde el índice («45 demos en tu menú», con «Esta pantalla: Caja») y recién ahí se pidió el
+texto; la demo de Caja arrancó («1 de 22»). Con la red cortada solo para ese archivo, «Demo» abrió igual, la demo avisó «No se pudo abrir la
+demo» sin romper nada y, al volver la red, el mismo camino la arrancó.
+**No verificado.** La oferta de la primera visita (la cuenta de prueba ya vio las guías), un tramo del asistente (apagado en la sede local), el
+botón «Demo» de una terminal, el peso real del índice dentro del HTML de producción (calculado: 21,5 KB, 5,9 comprimidos) y un teléfono real.
 
 ## Para Dynamic
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { History, Info, PauseCircle, Pencil, PlayCircle, SignpostBig, Trash2, Tag, Merge } from "lucide-react";
+import { History, Info, PackageSearch, PauseCircle, Pencil, PlayCircle, SignpostBig, Trash2, Tag, Merge } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
@@ -32,7 +32,6 @@ import { FotoVistaRapida } from "./FotoVistaRapida";
 import { MatrizUnidades } from "./MatrizUnidades";
 import { HistorialPrenda } from "@/components/historial-prenda/HistorialPrenda";
 import { useHistorialPrenda } from "@/components/historial-prenda/useHistorialPrenda";
-import { BotonVer } from "@/components/ui/BotonDescargar";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 import { fondoDelPunto } from "@/lib/color-combinado";
 
@@ -184,6 +183,90 @@ export function VistaRapidaProducto({
     }, quieto ? 0 : 190);
   };
   const hrefMovimientos = veMovimientos ? `/inventario/movimientos?q=${encodeURIComponent(producto.codigo ?? producto.referencia)}` : null;
+
+  // En el celular (Felipe 2026-11-17: «que estén plantadas pero solo como íconos y que en la parte inferior ya te salgan con nombre»), lo de
+  // todos los días va pegado abajo SOLO en ícono, en una fila de 44 px; antes eran tres filas de a dos más el aviso de etiquetas, media hoja
+  // tapando las unidades. Al final de la hoja los mismos botones están con su nombre, y mientras se ven la barra de íconos se aparta: nunca los
+  // dos a la vez. La barra se aparta con opacidad y no se recoge: recogerla cambiaría el alto de la hoja justo al final y la haría saltar.
+  // El pie llega por un `ref` de función y no por `useRef`: el contenido de `<Modal>` se monta un instante después que este componente, y un
+  // efecto que leyera `ref.current` al montar lo encontraba vacío y nunca vigilaba. Así el vigía se conecta cuando el pie existe de verdad, y
+  // otra vez al volver del historial (el pie es uno nuevo).
+  const [pieConNombres, setPieConNombres] = useState<HTMLDivElement | null>(null);
+  const [nombresALaVista, setNombresALaVista] = useState(false);
+  useEffect(() => {
+    if (!pieConNombres || typeof IntersectionObserver === "undefined") return;
+    const vigia = new IntersectionObserver(([e]) => setNombresALaVista(e.isIntersecting), { threshold: 0.4 });
+    vigia.observe(pieConNombres);
+    return () => {
+      vigia.disconnect();
+      setNombresALaVista(false);
+    };
+  }, [pieConNombres]);
+
+  // Los botones de la prenda, con su nombre (el pie) o solo el ícono (la barra del celular, con el nombre para el lector y al pasar el mouse).
+  // Las anclas de la guía van solo en los que tienen nombre: la demo los muestra y abre el historial desde ahí.
+  const botonesDeLaPrenda = (soloIcono: boolean) => {
+    const nombre = (texto: string) => (soloIcono ? <span className="sr-only">{texto}</span> : texto);
+    const titulo = soloIcono ? (texto: string) => texto : () => undefined;
+    return (
+      <>
+        {puedeEditar && (
+          <Link href={conDesde(`/productos/${producto.productoId}/editar`, pantalla)} className={BOTON} title={titulo("Editar")}>
+            <Pencil aria-hidden className="h-4 w-4" />
+            {nombre("Editar")}
+          </Link>
+        )}
+        {/* Sin unidades NO bloquea el botón: se vuelve a leer FRESCO al tocarlo (EnlaceEtiquetas), porque una lectura vieja de 0 no debe impedir
+            imprimir lo que acaba de entrar. Aquí solo se avisa antes y el botón se apaga un poco. */}
+        <EnlaceEtiquetas
+          href={hrefEtiquetas}
+          unidades={async () => {
+            const fresco = await leer([producto.productoId]);
+            return fresco ? unidadesEnSede(fresco, elegidasIds.length === 0 ? idsTodos : elegidasIds) : null;
+          }}
+          que={etiquetas.que}
+          varias={etiquetas.varias}
+          sede={sede}
+          data-sin-unidades={etiquetas.sinUnidades || undefined}
+          title={titulo(etiquetas.texto)}
+          className={(negado) => (negado ? "btn-cayla min-h-10 bg-rojo text-crema hover:bg-rojo-profundo" : BOTON)}
+        >
+          <Tag aria-hidden className="h-4 w-4" />
+          <span key={etiquetas.texto + etiquetas.cantidad} className="vr-texto">
+            {nombre(etiquetas.texto)}
+            {etiquetas.cantidad > 1 && <span className="vr-cuenta tabular-nums">{etiquetas.cantidad}</span>}
+          </span>
+        </EnlaceEtiquetas>
+        {/* El rótulo del anaquel de este modelo (ADR-0366; Felipe 2026-10-09: «que se pueda imprimir desde el modal del producto»). Es del
+            MODELO, no de las tallas elegidas, y no depende del stock: va siempre. «Volver» regresa a esta misma vista de Productos. */}
+        <Link href={urlRotulos([producto.productoId], { productos: pantalla }) ?? "/rotulos"} className={BOTON} title={titulo("Rótulo")}>
+          <SignpostBig aria-hidden className="h-4 w-4" />
+          {nombre("Rótulo")}
+        </Link>
+        {/* ADR-0354: entre «Etiquetas» y «Ver en Existencias». No navega: la hoja da vuelta la página. */}
+        <button
+          type="button"
+          onClick={() => irA("historial")}
+          className={BOTON}
+          title={titulo("Historial")}
+          data-ir-historial={soloIcono ? undefined : ""}
+          data-guia={soloIcono ? undefined : "vista-rapida.historial"}
+        >
+          <History aria-hidden className="h-4 w-4" />
+          {nombre("Historial")}
+        </button>
+        {/* Sin la flecha de `<BotonVer>` (Felipe 2026-11-17: «quitar la flecha de ver existencia»): lleva su ícono, como los otros cuatro y
+            como en la barra del celular; con la flecha, en una columna de 140 px el texto se salía del botón. */}
+        {hrefExistencias && (
+          // unificar-fijo: la fila de la vista rápida lleva ícono en cada botón; «Ver en Existencias» sin la flecha de accion.ver, por pedido de Felipe (2026-11-17)
+          <Link href={hrefExistencias} className={BOTON} title={titulo("Ver en Existencias")}>
+            <PackageSearch aria-hidden className="h-4 w-4" />
+            {nombre("Ver en Existencias")}
+          </Link>
+        )}
+      </>
+    );
+  };
 
   return (
     <>
@@ -339,8 +422,9 @@ export function VistaRapidaProducto({
         </div>
       </div>
 
-      {/* El pie fijo (`pie-hoja-fijo`): los botones nunca quedan bajo el pliegue, sean 6 variantes o 60. */}
-      <div className="pie-hoja-fijo vr-pie">
+      {/* El pie fijo (`pie-hoja-fijo`): los botones nunca quedan bajo el pliegue, sean 6 variantes o 60. En el celular no se pega: va al final
+          con sus nombres, y lo pegado es la barra de íconos de abajo (`vr-pie` en vista-rapida.css). */}
+      <div ref={setPieConNombres} className="pie-hoja-fijo vr-pie">
         {etiquetas.sinUnidades && (
           <p className="vr-motivo" key={etiquetas.cantidad === 0 ? "toda" : "elegidas"}>
             <Info aria-hidden />
@@ -354,49 +438,14 @@ export function VistaRapidaProducto({
         {/* Lo de todos los días con la prenda, en una fila pareja (Felipe 2026-11-13: con siete botones de letras distintas la fila se partía
             y «Eliminar» quedaba suelto). */}
         <div data-guia="vista-rapida.botones" className="vr-botones">
-          {puedeEditar && (
-            <Link href={conDesde(`/productos/${producto.productoId}/editar`, pantalla)} className={BOTON}>
-              <Pencil aria-hidden className="h-4 w-4" />
-              Editar
-            </Link>
-          )}
-          {/* Sin unidades NO bloquea el botón: se vuelve a leer FRESCO al tocarlo (EnlaceEtiquetas), porque una lectura vieja de 0 no debe impedir
-              imprimir lo que acaba de entrar. Aquí solo se avisa antes y el botón se apaga un poco. */}
-          <EnlaceEtiquetas
-            href={hrefEtiquetas}
-            unidades={async () => {
-              const fresco = await leer([producto.productoId]);
-              return fresco ? unidadesEnSede(fresco, elegidasIds.length === 0 ? idsTodos : elegidasIds) : null;
-            }}
-            que={etiquetas.que}
-            varias={etiquetas.varias}
-            sede={sede}
-            data-sin-unidades={etiquetas.sinUnidades || undefined}
-            className={(negado) => (negado ? "btn-cayla min-h-10 bg-rojo text-crema hover:bg-rojo-profundo" : BOTON)}
-          >
-            <Tag aria-hidden className="h-4 w-4" />
-            <span key={etiquetas.texto + etiquetas.cantidad} className="vr-texto">
-              {etiquetas.texto}
-              {etiquetas.cantidad > 1 && <span className="vr-cuenta tabular-nums">{etiquetas.cantidad}</span>}
-            </span>
-          </EnlaceEtiquetas>
-          {/* El rótulo del anaquel de este modelo (ADR-0366; Felipe 2026-10-09: «que se pueda imprimir desde el modal del producto»). Es del
-              MODELO, no de las tallas elegidas, y no depende del stock: va siempre. «Volver» regresa a esta misma vista de Productos. */}
-          <Link href={urlRotulos([producto.productoId], { productos: pantalla }) ?? "/rotulos"} className={BOTON}>
-            <SignpostBig aria-hidden className="h-4 w-4" />
-            Rótulo
-          </Link>
-          {/* ADR-0354: entre «Etiquetas» y «Ver en Existencias». No navega: la hoja da vuelta la página. */}
-          <button type="button" onClick={() => irA("historial")} className={BOTON} data-ir-historial data-guia="vista-rapida.historial">
-            <History aria-hidden className="h-4 w-4" />
-            Historial
-          </button>
-          {hrefExistencias && (
-            // Lleva a otra pantalla: el botón secundario con la flecha que avanza (ADR-0358, ronda 10), nunca el negro.
-            <BotonVer href={hrefExistencias} className="min-h-10">
-              Ver en Existencias
-            </BotonVer>
-          )}
+          {botonesDeLaPrenda(false)}
+        </div>
+      </div>
+      {/* Solo en el celular: los mismos botones en ícono, pegados abajo mientras se mira la prenda. Se apartan cuando los de arriba, con su
+          nombre, entran a la vista (`nombresALaVista`). */}
+      <div className="pie-hoja-fijo vr-iconos sm:hidden" data-apartada={nombresALaVista || undefined} aria-hidden={nombresALaVista || undefined} inert={nombresALaVista || undefined}>
+        <div role="group" aria-label={`Lo que haces con ${producto.referencia}`} className="vr-iconos-fila">
+          {botonesDeLaPrenda(true)}
         </div>
       </div>
       </div>

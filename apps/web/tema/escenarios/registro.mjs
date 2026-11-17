@@ -1231,6 +1231,9 @@ ESCENARIOS.push(
   { id: "existencias.todas.capa", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] button[aria-pressed=true]:has-text('En piso')", nombre: "Existencias · «Todas» con el filtro «En piso» puesto", preparar: secuencia(async (pagina) => { await pagina.locator("article.card-cayla").first().click({ position: { x: 12, y: 12 }, timeout: 8000 }); await esperar(pagina, 1100); }, clicRol("tab", /^Todas$/), clicRol("button", /^\d+\s*En piso$/i)) },
   { id: "existencias.pendientes", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog]:has-text('Pendientes de hoy')", nombre: "Existencias · la ventana «Pendientes de hoy»", preparar: abrirPendientes },
   { id: "existencias.resumen", ruta: "/inventario", cuentas: ["admin"], abre: "[role=dialog]:has-text('Resumen del stock')", nombre: "Existencias · «Resumen por categoría»", preparar: secuencia(abrirPendientes, clicRol("button", /^Resumen por categoría/i)) },
+  // Solo en el celular (bajo 640 px): el aviso del piso sin cuadrar es un ícono de la cabecera que abre su hoja (2026-11-17). Necesita una
+  // tienda que nunca cuadró su piso (en la base local, todas).
+  { id: "existencias.avisos", ruta: "/inventario", cuentas: INVENTARIO, ancho: "celular", abre: "[role=dialog]:has-text('Avisos')", nombre: "Existencias · la hoja «Avisos» del celular (el piso sin cuadrar)", preparar: clicRol("button", /^Avisos/i) },
   // Necesita una prenda dañada sin resolver en la sede (en la base local, una en Tienda Lima): sin ella, «Pendientes» no trae «Decidir».
   { id: "existencias.decidir", ruta: "/inventario", cuentas: ["admin"], ancho: "escritorio", abre: "[role=dialog]:has-text('Prendas dañadas')", nombre: "Existencias · «Decidir» sobre una prenda dañada", preparar: secuencia(abrirPendientes, clicRol("button", /^Decidir/i)) },
   // ADR-0564 (prendas dañadas en tienda): lo nuevo de la ventana «Prendas dañadas» (se llega como «Decidir») y los paneles de cada paso, y el

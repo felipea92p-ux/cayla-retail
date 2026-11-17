@@ -48,7 +48,13 @@ Por qué así: zod y dos arrastres se quitan sin agregar ningún punto de falla;
 Felipe se lleva: 4 commits locales sin subir. Decide si se borran los esquemas de zod (nadie los usa) y la recepción de la fase 4.
 
 ## 2026-11-17 (Actividad 7, quinto corte: Preguntas del equipo y zod fuera del navegador)
-Qué hice: Preguntas del equipo bajaba el texto de las 79 guías para decir el nombre de una pantalla; ahora ese nombre lo manda el servidor
+Qué hice: Preguntas del equipo bajaba el texto de las 122 guías para decir el nombre de una pantalla; ahora ese nombre lo manda el servidor
 y la pantalla pasa de 786 a 69 KB. Configuración bajaba zod por leer una constante: ya no. Ninguna pantalla baja zod.
 Por qué así: eran tres arrastres; se quitan moviendo código, sin diferir nada, así que no hay nada nuevo que pueda fallar.
 Felipe se lleva: va en un PR aparte, encima del #1925. Con preguntas de verdad no se probó: la base local no tiene ninguna.
+
+## 2026-11-17 (Actividad 7, sexto corte: el texto de las guías ya no baja en cada sesión)
+Qué hice: el motor de las guías bajaba el texto de las 122 guías (665 KB) en el primer momento libre de cada sesión, en toda pantalla. Ahora
+el servidor manda un índice liviano (6 KB comprimidos) y el texto baja solo cuando alguien va a ver una demo. «Demo» y el acompañante, igual.
+Por qué así: recortar solo «Elegir demo» no ahorraba nada (comparte ese archivo con el motor); el gasto de verdad era el motor.
+Felipe se lleva: va en un PR aparte, encima del #1926. La primera demo de una sesión puede esperar la descarga con el loader.

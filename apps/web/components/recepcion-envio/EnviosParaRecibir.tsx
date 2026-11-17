@@ -59,6 +59,7 @@ export function EnviosParaRecibir({
   proveedoresSinAviso = {},
   enStock = {},
   accionTitulo,
+  accionCelular,
 }: {
   envios: EnvioPorAbrir[];
   ordenes: OrdenDirecta[];
@@ -69,8 +70,10 @@ export function EnviosParaRecibir({
   proveedoresSinAviso?: Readonly<Record<string, string | null>>;
   /** Cuántas prendas de cada envío abierto ya entraron al stock (por id, de `fn_envios_a_medias`): lo dice bajo sus prendas. */
   enStock?: Readonly<Record<string, number>>;
-  /** A la derecha del título: «Sin Aviso», lo que llegó y no está en la lista. */
+  /** A la derecha del título: «Sin Aviso», lo que llegó y no está en la lista. Con la tarjeta angosta no sale aquí: va `accionCelular`. */
   accionTitulo?: ReactNode;
+  /** La misma acción para la tarjeta angosta (bajo 768 px: celular, tableta, laptop de 1024 con el menú abierto), sin su pregunta: va al final de la fila de filtros. */
+  accionCelular?: ReactNode;
 }) {
   const [buscar, setBuscar] = useState("");
   const [filtros, setFiltros] = useState<FiltrosEnvios>(SIN_FILTROS);
@@ -108,15 +111,21 @@ export function EnviosParaRecibir({
   };
   return (
     <section ref={tarjetaRef} data-guia="recibir.envios-oc" className="space-y-3" aria-labelledby="recibir-envios-oc">
+      {/* El título y la barra miran el ancho de ESTA caja (`barra-filtros`), no el de la ventana. Bajo 768 px (un celular, una tableta o un
+          laptop de 1024 px con el menú abierto) «Sin aviso» ya no cabe junto al título: baja a la fila de filtros. Bajo 640 px, además, las
+          píldoras sin nada puesto son solo su ícono (`FiltrosDeEnvios`). */}
+      <div className="@container/barra-filtros space-y-3">
       {/* Dos columnas en la misma fila: a la izquierda, el título con su leyenda; a la derecha, la pregunta con su botón. */}
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0 space-y-1">
           <TituloSeccion id="recibir-envios-oc">{porCategoria ? "Envíos por recibir en esta sede" : "Envíos de órdenes de compra para esta sede"}</TituloSeccion>
           <p className="text-[15px] text-taupe">{porCategoria ? <>Se cuentan modelo por modelo y entran al almacén de {sede}.</> : <>Se cuentan talla por talla y entran al almacén de {sede}.</>}</p>
         </div>
-        {accionTitulo}
+        {/* Con `accionCelular`, bajo 768 px de caja la acción vive en la fila de filtros: aquí caía a una fila propia, desalineada. */}
+        {accionTitulo && <div className={accionCelular ? "@max-[767.98px]:hidden" : undefined}>{accionTitulo}</div>}
       </div>
       <FiltrosDeEnvios
+        accionCelular={accionCelular}
         busqueda={buscar}
         onBusqueda={setBuscar}
         filtros={filtros}
@@ -125,6 +134,7 @@ export function EnviosParaRecibir({
         hoy={hoy}
         conteo={buscar.trim() || hayFiltros ? (coinciden === 1 ? "1 coincide" : `${coinciden} de ${total} coinciden`) : undefined}
       />
+      </div>
       <Tabla className="@container">
         <Encabezado plantilla={PLANTILLA} columnas={COLUMNAS} />
         {paginaActual.filas.map((f) => {

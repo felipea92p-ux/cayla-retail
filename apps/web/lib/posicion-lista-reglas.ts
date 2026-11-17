@@ -42,3 +42,24 @@ export function airePara({ controlTop, controlBottom, techo, piso, alto, separac
   const maxHeight = Math.min(alto, Math.max(aire, minimo));
   return { haciaAbajo, maxHeight };
 }
+
+/**
+ * Hacia dónde abre un menú que cuelga de su botón y PREFIERE subir (el «Más» de una tarjeta de Existencias: hacia arriba no alarga la
+ * página bajo el mouse, ADR-0185). Sube si cabe entero; si no, baja si ahí sí cabe entero; si no cabe en ninguno, va al lado con más
+ * aire y se desplaza por dentro (`maxHeight`). Así ninguna opción queda tapada por la cabecera fija ni por la barra de abajo: con la
+ * tarjeta pegada a la cabecera, el menú subía igual y la cabecera le cortaba las primeras opciones (Felipe 2026-11-17, a 350 × 750).
+ *
+ * `techo` y `piso` son los bordes de lo que SE VE del contenido: donde termina la cabecera fija y donde empieza la barra de abajo
+ * (o el borde de la ventana). `maxHeight` es `null` cuando el menú cabe entero.
+ */
+export function aireParaMenu({ controlTop, controlBottom, techo, piso, alto, separacion }: Pick<EntradaAire, "controlTop" | "controlBottom" | "techo" | "piso" | "alto" | "separacion">): {
+  haciaAbajo: boolean;
+  maxHeight: number | null;
+} {
+  const arriba = controlTop - techo - separacion - MARGEN;
+  const abajo = piso - controlBottom - separacion - MARGEN;
+  if (alto <= arriba) return { haciaAbajo: false, maxHeight: null };
+  if (alto <= abajo) return { haciaAbajo: true, maxHeight: null };
+  const haciaAbajo = abajo > arriba;
+  return { haciaAbajo, maxHeight: Math.max(haciaAbajo ? abajo : arriba, MINIMO_RECORTADA) };
+}

@@ -85,6 +85,7 @@ export function EnviosDeLaSede({
   costos,
   hoy,
   accionTitulo,
+  accionCelular,
 }: {
   envios: EnvioPorAbrir[];
   ordenes: OrdenDirecta[];
@@ -103,8 +104,11 @@ export function EnviosDeLaSede({
   costos?: Record<string, CostoRecepcion>;
   /** El día de Lima (ISO): con él, la fecha dice «hace 5 días». */
   hoy: string;
-  /** A la derecha del título: «Sin aviso», lo que llegó y no está en la lista. */
+  /** A la derecha del título: «Sin aviso», lo que llegó y no está en la lista. Con la tarjeta angosta no sale aquí: va `accionCelular`. */
   accionTitulo?: ReactNode;
+  /** La misma acción para la tarjeta angosta (bajo 768 px: celular, tableta, laptop de 1024 con el menú abierto), sin su pregunta: va al final
+   *  de la fila de herramientas. */
+  accionCelular?: ReactNode;
 }) {
   const router = useRouter();
   const todas = useMemo(
@@ -273,12 +277,14 @@ export function EnviosDeLaSede({
   }
 
   return (
-    <section data-guia="recibir.envios" className="space-y-4" aria-labelledby="recibir-envios">
+    // El título y la fila de herramientas miran el ancho de ESTA caja (`barra-filtros`), no el de la ventana: bajo 768 px «Sin aviso» ya no
+    // cabe junto al título y baja a la fila de herramientas (como en la tabla anterior, 2026-11-17).
+    <section data-guia="recibir.envios" className="@container/barra-filtros space-y-4" aria-labelledby="recibir-envios">
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <TituloSeccion id="recibir-envios" ayuda={<>Lo que Compras mandó a {sede} y lo que llegó sin aviso. Se cuenta modelo por modelo y entra a su almacén.</>}>
           Envíos · {sede}
         </TituloSeccion>
-        {accionTitulo}
+        {accionTitulo && <div className={accionCelular ? "@max-[767.98px]:hidden" : undefined}>{accionTitulo}</div>}
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div role="group" aria-label="Qué envíos ver" data-guia="recibir.envios-vista" className="flex flex-wrap gap-2">
@@ -302,6 +308,7 @@ export function EnviosDeLaSede({
             Ver todo lo recibido
           </EnlaceVer>
         )}
+        {accionCelular && <div className="ml-auto @min-[768px]:hidden">{accionCelular}</div>}
       </div>
       {sinLeerPorRecibir && vista !== "terminados" && (
         <Aviso tono="atencion" chico titulo="No se pudieron leer los envíos por recibir">
