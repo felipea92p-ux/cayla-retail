@@ -52,6 +52,13 @@ const MIGRACION = "supabase/migrations/20260921121500_anular_venta_libera_el_com
 
 // Mismas credenciales obvias que supabase/seed.sql y registrar_venta.mjs.
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
+
+// Lo que respondió SUNAT lo escribe solo el servidor (ADR-0675): `actualizar_transmision_comprobante` va con la llave de servicio
+// (`request.jwt.claim.role = 'service_role'`) y después se vuelve a la sesión de antes.
+const A_SERVIDOR = `select set_config('t.rol_sesion', coalesce(current_setting('request.jwt.claim.role', true), ''), true) as _rol_sesion \\gset
+select set_config('request.jwt.claim.role', 'service_role', true) as _rol_servidor \\gset`;
+const A_SESION = `select set_config('request.jwt.claim.role', current_setting('t.rol_sesion'), true) as _rol_de_vuelta \\gset`;
+
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed): no es líder
 
 const APLICAR_ANTES = process.env.APLICAR_ANTES ? readFileSync(process.env.APLICAR_ANTES, "utf8") : "";
@@ -154,7 +161,9 @@ select retail.anular_venta(:'c', 'prueba automatizada', ${ITEMS_ANULACION("c")})
 select ${VENTA_CON_BOLETA} as d \\gset
 ${ITEM_DE("d")}
 select id as d_cmp from retail.comprobantes where venta_id = :'d' \\gset
+${A_SERVIDOR}
 select retail.actualizar_transmision_comprobante(:'d_cmp', 'rechazado', 'sandbox', null, 'RUC no habido') as _rech_d \\gset
+${A_SESION}
 select retail.anular_venta(:'d', 'prueba automatizada', ${ITEMS_ANULACION("d")}) as _anul_d \\gset
 
 -- E: sin comprobante → se anula igual
@@ -212,7 +221,9 @@ create temp table _r (clave text, valor text);
 -- F: comprobante ENVIADO → anular se niega, y nada cambia
 select ${VENTA_CON_BOLETA} as f \\gset
 select id as f_cmp from retail.comprobantes where venta_id = :'f' \\gset
+${A_SERVIDOR}
 select retail.actualizar_transmision_comprobante(:'f_cmp', 'enviado', 'sandbox') as _env_f \\gset
+${A_SESION}
 select set_config('t.f', :'f', true) as _g1 \\gset
 do $$ begin
   begin
@@ -239,7 +250,9 @@ end $$;
 select ${VENTA_CON_BOLETA} as j \\gset
 ${ITEM_DE("j")}
 select id as j_cmp from retail.comprobantes where venta_id = :'j' \\gset
+${A_SERVIDOR}
 select retail.actualizar_transmision_comprobante(:'j_cmp', 'aceptado', 'sandbox', '{}'::jsonb, null) as _acep_j \\gset
+${A_SESION}
 select set_config('t.j', :'j', true) as _g3 \\gset
 select set_config('t.j_items', (${ITEMS_ANULACION("j")})::text, true) as _g4 \\gset
 do $$ begin
@@ -256,7 +269,9 @@ end $$;
 select ${VENTA_CON_BOLETA} as k \\gset
 ${ITEM_DE("k")}
 select id as k_cmp from retail.comprobantes where venta_id = :'k' \\gset
+${A_SERVIDOR}
 select retail.actualizar_transmision_comprobante(:'k_cmp', 'aceptado', 'sandbox', '{}'::jsonb, null) as _acep_k \\gset
+${A_SESION}
 select retail.anular_comprobante(:'k_cmp', 'se emitió por error', false, '{"estado":"PENDIENTE"}'::jsonb) as _baja_k \\gset
 select retail.anular_venta(:'k', 'prueba automatizada', ${ITEMS_ANULACION("k")}) as _anul_k \\gset
 select 'k_tras_baja|' || estado || '|' || (anulacion_solicitada_at is not null)::text from retail.comprobantes where id = :'k_cmp';

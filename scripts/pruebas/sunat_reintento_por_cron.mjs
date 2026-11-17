@@ -11,7 +11,8 @@
  *      funciones de escritura que usa `transmitirComprobante`).
  *   3. El barrido del líder (navegador) no cambió: sigue tomando un pendiente de 5 horas.
  *   4. Los candados siguen cerrados para quien no es ni líder ni la llave de servicio — también sin claims
- *      (psql directo), el caso en que `auth.role()` es null.
+ *      (psql directo), el caso en que `auth.role()` es null. Guardar lo que respondió Lucode es solo de la llave de
+ *      servicio (ADR-0675): ni el líder lo hace con su sesión.
  *
  * CÓMO. Igual que `comprobante_venta_anulada.mjs`: `docker exec ... psql`, una transacción por escenario que
  * termina SIEMPRE en ROLLBACK. La llave de servicio se simula como la arma PostgREST: `set local role
@@ -152,12 +153,14 @@ set local request.jwt.claim.role = '';`;
     "select * from retail.fn_tomar_comprobantes_para_reintento(null, 5)", "Solo un líder");
   denegado("una sesión sin persona no anota intentos", SIN_PERSONA,
     "select retail.fn_marcar_reintento_transmision(:'nuevo', 'x')", "No tienes permiso");
-  denegado("una sesión sin persona no guarda resultados", SIN_PERSONA,
-    "select retail.actualizar_transmision_comprobante(:'nuevo', 'aceptado', 'sandbox')", "No tienes permiso");
+  denegado("una sesión sin persona no guarda resultados (ni siquiera puede llamar la función)", SIN_PERSONA,
+    "select retail.actualizar_transmision_comprobante(:'nuevo', 'aceptado', 'sandbox')", "permission denied for function");
+  denegado("el líder tampoco guarda resultados con su sesión (ADR-0675)", COMO_FELIPE,
+    "select retail.actualizar_transmision_comprobante(:'nuevo', 'aceptado', 'sandbox')", "lo guarda el servidor");
   denegado("sin claims (auth.role() null) el candado de tomar sigue cerrado", SIN_CLAIMS,
     "select * from retail.fn_tomar_comprobantes_para_reintento(null, 5)", "Solo un líder");
   denegado("sin claims (auth.role() null) el candado de guardar sigue cerrado", SIN_CLAIMS,
-    "select retail.actualizar_transmision_comprobante(:'nuevo', 'aceptado', 'sandbox')", "No tienes permiso");
+    "select retail.actualizar_transmision_comprobante(:'nuevo', 'aceptado', 'sandbox')", "lo guarda el servidor");
 
   console.log(`\n${total - fallos}/${total} ${fallos === 0 ? "— todo bien" : "— HAY FALLOS"}`);
   process.exit(fallos === 0 ? 0 : 1);
