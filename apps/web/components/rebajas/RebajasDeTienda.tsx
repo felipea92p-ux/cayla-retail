@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { Tag } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -9,6 +9,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { Cajon } from "@/components/ui/Cajon";
+import { Modal } from "@/components/ui/Modal";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
@@ -29,8 +30,20 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
  * «Poner un %» y «Rebajas de tu tienda» (ADR-0669, Felipe 2026-11-16), arriba de las campañas: el escáner para ponerle un % a una prenda y,
  * debajo, cada % que hay en la tienda (los cajones y las campañas con su descuento de siempre) con cuántas prendas tiene. Tocar uno muestra
  * sus prendas y deja quitarlas. Quién lo hace se elige una vez por tienda y queda para los siguientes (`recordarEn`).
+ *
+ * Con `hoja` (Felipe 2026-11-17: «no quites esto, tenlo como información en un ícono»): en el celular las tarjetas no van bajo el escáner
+ * sino en una hoja que abre el ícono de la cabecera de Campañas; desde 640 px siguen a la vista. El escáner queda siempre a la vista.
  */
-export function RebajasDeTienda({ ubicacionId, sede }: { ubicacionId: string; sede: string }) {
+export function RebajasDeTienda({
+  ubicacionId,
+  sede,
+  hoja,
+}: {
+  ubicacionId: string;
+  sede: string;
+  /** La hoja del celular: la abre y la cierra la pantalla (su ícono vive en la cabecera); al cerrar, el foco vuelve a `alCerrarEnfocar`. */
+  hoja?: { abierta: boolean; onCerrar: () => void; alCerrarEnfocar?: RefObject<HTMLElement | null> };
+}) {
   const router = useRouter();
   const responsable = useResponsable({ ubicacionId, etiqueta: sede }, { recordarEn: claveResponsableConteo(`rebaja-${ubicacionId}`) });
   const [lugares, setLugares] = useState<LugarDeRebaja[] | null>(null);
@@ -68,26 +81,49 @@ export function RebajasDeTienda({ ubicacionId, sede }: { ubicacionId: string; se
     router.refresh();
   };
 
+  // Las tarjetas de cada %: las mismas a la vista (desde 640 px) y en la hoja del celular. Desde la hoja, tocar una la cierra y abre sus prendas.
+  const tarjetas = (lista: LugarDeRebaja[], clase: string, antes?: () => void) => (
+    <div className={clase}>
+      {lista.map((l) => (
+        <TarjetaCifra
+          key={l.etiquetaId}
+          etiqueta={l.esCajon ? "Sin fecha de fin" : l.nombre}
+          valor={textoPct(l.pct)}
+          compacta
+          activa={abierto?.etiquetaId === l.etiquetaId}
+          onClick={() => {
+            antes?.();
+            setAbierto(l);
+          }}
+          pie={plural(l.prendas, "prenda", "prendas")}
+        />
+      ))}
+    </div>
+  );
+
   return (
     <section className="space-y-4" aria-label={`Rebajas de ${sede}`}>
       <PonerUnPct ubicacionId={ubicacionId} sede={sede} responsable={responsable} onCambio={alCambiar} />
       {lugares && lugares.length > 0 && (
-        <div className="space-y-3" data-guia="rebaja.tienda">
+        <div className={`space-y-3 ${hoja ? "max-sm:hidden" : ""}`} data-guia="rebaja.tienda">
           <TituloSeccion cuenta={lugares.length}>{`Rebajas de ${sede}`}</TituloSeccion>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
-            {lugares.map((l) => (
-              <TarjetaCifra
-                key={l.etiquetaId}
-                etiqueta={l.esCajon ? "Sin fecha de fin" : l.nombre}
-                valor={textoPct(l.pct)}
-                compacta
-                activa={abierto?.etiquetaId === l.etiquetaId}
-                onClick={() => setAbierto(l)}
-                pie={plural(l.prendas, "prenda", "prendas")}
-              />
-            ))}
-          </div>
+          {tarjetas(lugares, "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6")}
         </div>
+      )}
+      {hoja?.abierta && (
+        <Modal titulo={`Rebajas de ${sede}`} subtitulo="Toca una para ver sus prendas." onClose={hoja.onCerrar} conCerrar alCerrarEnfocar={hoja.alCerrarEnfocar}>
+          {lugares === null ? (
+            <p className="text-sm text-tinta/70" role="status">
+              Buscando las rebajas…
+            </p>
+          ) : lugares.length > 0 ? (
+            tarjetas(lugares, "grid grid-cols-2 gap-3", hoja.onCerrar)
+          ) : (
+            <Vacio icono={<Tag />} titulo="Sin rebajas aquí" tamano="chico">
+              Esta tienda no tiene ningún % que rija hoy.
+            </Vacio>
+          )}
+        </Modal>
       )}
       {abierto && (
         <PrendasDeRebaja

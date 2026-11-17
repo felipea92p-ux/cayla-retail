@@ -101,12 +101,18 @@
   }
 
   /* ── El pase ── */
+  /* El filo de los pases y de la tarjeta de las tres preguntas, definido una vez (ver el comentario de `.sl-pase`). */
+  :where(.sl-pase, .sl-preguntas) { --sl-borde: color-mix(in srgb, var(--color-borde-control) 50%, var(--color-sand)); }
   .sl-pase {
     position: relative;
     scroll-margin-top: 2.75rem; /* el pase que se abre sube hasta quedar bajo la cabecera, que ya descuenta la página (`scroll-padding-top`, decisión 1A) */
     border-radius: 20px;
     background: var(--color-papel);
-    border: 1px solid var(--color-sand);
+    /* Un filo entre `sand` y `borde-control` (Felipe 2026-11-17: «que se diferencie con el fondo» y, al verlo con `borde-control` en toda
+       la pila, «que tenga borde pero que se vea bien»). Con `sand`, el pase de «Lo que viene» y el de «Guardadas», de cabecera clara, daban
+       ~1,1:1 contra el fondo y se fundían con él; con `borde-control` pleno, los contornos marrones de la pila apilada pesaban. A mitad de
+       camino se lee el contorno de cada pase (~1,8:1) sin la raya dura. El pase se reconoce además por su nombre y su ícono (WCAG 1.4.11). */
+    border: 1px solid var(--sl-borde);
     transition: transform 600ms var(--ease-cayla), margin 700ms var(--ease-cayla), box-shadow 600ms var(--ease-cayla);
     animation: sl-entra 600ms var(--ease-cayla) both;
     animation-delay: calc(var(--i, 0) * 55ms);
@@ -167,7 +173,7 @@
     height: 20px;
     border-radius: 50%;
     background: var(--color-crema);
-    border: 1px solid var(--color-sand);
+    border: 1px solid var(--sl-borde); /* el mismo filo del pase: el recorte del ticket sigue su contorno */
   }
   .sl-perfo::before { left: -30px; }
   .sl-perfo::after { right: -30px; }
@@ -272,6 +278,28 @@
   @media (hover: hover) {
     .sl-pregunta:hover { background: color-mix(in srgb, var(--color-tinta) 4%, transparent); }
   }
+  /* Las tres preguntas en UNA tarjeta (Felipe 2026-11-17: «mejora la visualización»). Sueltas, separadas solo por líneas `sand` (~1,1:1 contra el
+     fondo), no se leían como algo que se toca: ahora son una lista agrupada con el filo del pase (`--sl-borde`),
+     las filas con aire, las marcas más grandes y con más tono, y el hilo de «Sigue» dentro de la tarjeta. Solo esta lista: «Lo que tiene»
+     (`.sl-listo` sin `.sl-preguntas`) queda como estaba. */
+  .sl-preguntas {
+    overflow: hidden;
+    border: 1px solid var(--sl-borde); /* el mismo filo del pase */
+    border-radius: 16px;
+    background: var(--color-papel);
+  }
+  .sl-preguntas > .sl-listo-fila { min-height: 60px; padding: 12px 14px; }
+  .sl-preguntas > .sl-listo-fila:last-child { border-bottom: 0; }
+  .sl-preguntas .sl-pregunta { border-radius: 0; grid-template-columns: 28px auto minmax(0, 1fr) auto; }
+  @media (max-width: 639px) {
+    .sl-preguntas .sl-pregunta { grid-template-columns: 28px minmax(0, 1fr) auto; }
+  }
+  .sl-preguntas .sl-listo-marca { width: 28px; height: 28px; }
+  .sl-preguntas .sl-listo-marca svg { width: 16px; height: 16px; }
+  .sl-preguntas .sl-listo-fila[data-estado="falta"] .sl-listo-marca { background: color-mix(in srgb, var(--color-ambar) 22%, transparent); color: var(--color-ambar-profundo); }
+  .sl-preguntas .sl-listo-fila[data-estado="hecho"] .sl-listo-marca { background: color-mix(in srgb, var(--color-verde) 18%, transparent); }
+  /* La tarjeta recorta lo que sobresale: el anillo de foco va hacia adentro para que no quede cortado. */
+  .sl-preguntas .sl-pregunta:focus-visible { outline-offset: calc(-1 * var(--foco-ancho, 2px) - 2px); }
 
   /* El mapa «¿Insignia, campaña u oferta?» (ADR-0655): tres placas dentro de una hoja (la placa explica, ADR-0596) y la lista de tareas. */
   .mapa-placa { border: 1px solid var(--placa-borde); background: var(--placa-fondo); box-shadow: var(--placa-luz); border-radius: 18px; padding: 16px; }
