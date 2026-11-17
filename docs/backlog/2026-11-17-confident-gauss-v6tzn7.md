@@ -157,9 +157,10 @@ Lo que sigue, en orden de lo que más pesa (medir SIEMPRE antes: buscar primero 
   fuera de todo el navegador (Configuración 384 → 331). Las 138 pantallas sumadas: 27 849 KB (−13 % desde antes del cuarto corte).
 - [ ] No verificado del quinto corte: Preguntas del equipo con preguntas de verdad (la base local no tiene), el informe del lunes armado
   por la IA y el cajón del asistente abierto. Mirarlo en producción tras publicar.
-- [ ] «Elegir demo» (`components/guias/ElegirDemoModal.tsx`) baja el texto de las 79 guías (650 KB) solo para saber si una pantalla tiene
-  guía; y `Acompanante.tsx`, para el título de una pantalla. Van aparte del marco (bajan al abrirse), pero un índice del servidor los aligera.
-  El cajón del asistente sí necesita los textos para buscar.
+- [x] **Sexto corte (2026-11-17, ADR-0674 act. h): el texto de las guías ya no baja en cada sesión.** El motor, «Demo» y el acompañante usan
+  un índice que manda el servidor; los 665 KB (177 comprimidos) bajan solo al ir a correr una demo. Y una falla de red ya no apaga las guías.
+- [ ] No verificado del sexto corte: la oferta de la primera visita, un tramo del asistente, el botón «Demo» de una terminal y el peso real del
+  índice en el HTML de producción (calculado: 5,9 KB comprimidos).
 - [ ] **Lo que sigue, medido el 2026-11-17 tras el quinto corte** (KB propios; mediana 173): contar un envío 765, Vender 625, Recibir 597,
   Editar producto 588, Nuevo producto 579, Apartados 565, `/produccion/ordenes/[numero]` 553, Pedidos web 509, Campañas e Insignias 498.
   Ya no hay un bulto evidente: cada una pide `por-modulo.mjs <ruta> propio` (quién pone cada KB) y `si-corto.mjs` (cuánto saldría).

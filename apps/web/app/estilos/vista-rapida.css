@@ -860,6 +860,20 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
     }
+    /* Si el último queda solo en su fila («Ver en Existencias», el quinto), toma la fila entera: en media columna su nombre no cabía. */
+    .vr-botones > :last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
+    /* El pie con nombres ya no se pega en el celular (Felipe 2026-11-17): va al final de la hoja, y lo pegado es la barra de íconos
+       (`.vr-iconos`, abajo). Su relleno de abajo y su degradado son ahora de esa barra, que es la última. */
+    .vr-pie.pie-hoja-fijo {
+      position: static;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    .vr-pie.pie-hoja-fijo::before {
+      display: none;
+    }
     .vr-ficha-arreglo-botones {
       display: grid;
       width: 100%;
@@ -956,10 +970,14 @@
   .vr-onda,
   .vr-pie,
   .vr-pie .vr-motivo,
+  .vr-iconos,
   .vr-texto,
   .vr-cuenta,
   .vr-texto-cambia {
     animation: none !important;
+  }
+  .vr-iconos {
+    transition: none !important;
   }
   .vr-par,
   .vr-fila[data-color]::before,
@@ -974,3 +992,39 @@
     display: none;
   }
 }
+
+/* ---- La barra de íconos del celular (Felipe 2026-11-17) ----
+   Lo de todos los días con la prenda, pegado abajo y SOLO en ícono: una fila de 44 px en vez de tres filas de a dos. Al final de la hoja
+   están los mismos botones con su nombre (`.vr-pie`); mientras se ven, la barra se aparta (`data-apartada`): se desvanece y baja 8 px, sin
+   recogerse, para que el alto de la hoja no cambie justo al final. Va sin capa: el relleno de `btn-cayla` vive fuera de capa (vidrio) y una
+   regla en `@layer components` no lo alcanzaría; con cinco botones de ~52 px, su relleno de 16 px por lado no dejaba lugar al número de
+   «Etiquetas». Solo existe bajo 640 px (`sm:hidden` en el JSX). */
+.vr-iconos {
+  padding-top: 10px;
+  animation: vr-sube 520ms var(--ease-cayla) 260ms backwards;
+  transition:
+    opacity var(--t-cambio) var(--ease-cayla),
+    translate var(--t-cambio) var(--ease-cayla);
+}
+.vr-iconos[data-apartada] {
+  opacity: 0;
+  translate: 0 8px;
+  pointer-events: none;
+}
+.vr-iconos-fila {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.vr-iconos-fila > .btn-cayla {
+  min-height: 44px;
+  padding-inline: 0;
+  justify-content: center;
+  gap: 4px;
+}
+.vr-iconos [data-sin-unidades="true"] {
+  opacity: 0.6;
+}
+/* Con movimiento reducido, la barra no entra ni se desliza: está en la lista de abajo (`.vr-iconos`, el bloque que lee
+   `lib/vista-rapida-movimiento.test.ts`), que tiene que seguir siendo el último del archivo. */
