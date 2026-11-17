@@ -2,7 +2,7 @@ import type { Json } from "@cayla-retail/database";
 import { consultarAnulacionLucode, consultarEstadoLucode, entornoLucode, type TipoDocumentoLucode } from "@/lib/lucode";
 import { accionPorBaja, accionPorEmision, queConsultar, type AccionConsulta } from "@/lib/consulta-sunat-reglas";
 import { capturarError } from "@/lib/errores";
-import type { Cliente } from "@/lib/transmitir-comprobante";
+import type { Cliente, ClienteServidor } from "@/lib/transmitir-comprobante";
 
 // Preguntarle a Lucode por UN comprobante que quedó esperando a SUNAT —su emisión respondió PENDIENTE, o pidió
 // una baja que no se confirmó— y anotar la respuesta. Lo llama el barrido de `/api/lucode/reintentar` con lo que
@@ -11,8 +11,9 @@ import type { Cliente } from "@/lib/transmitir-comprobante";
 // CONTRATO
 //   PROMETE: solo LEE de Lucode (`/api/v3/status`): nunca reenvía un comprobante ni una baja. Escribe en la base
 //            únicamente un estado final que SUNAT confirmó (aceptado, rechazado o baja confirmada).
-//   ASUME:   el cliente trae la sesión de quien barre (RLS y `fn_puede_operar_ubicacion` deciden) o es la llave
-//            de servicio del trabajo programado.
+//   ASUME:   `supabase` trae la sesión de quien barre (RLS y `fn_puede_operar_ubicacion` deciden) o es la llave
+//            de servicio del trabajo programado. `servidor` es SIEMPRE la llave de servicio: el estado de la emisión
+//            solo lo escribe el servidor (ADR-0675).
 //   NO HACE: no decide qué significa cada respuesta: eso es `lib/consulta-sunat-reglas.ts`.
 
 /** La respuesta del envío con lo que dijo la consulta. Conserva la forma de `ResultadoLucode` en la raíz —la
@@ -33,7 +34,7 @@ function respuestaConConsulta(envio: unknown, consulta: Extract<Awaited<ReturnTy
 
 export type ResultadoConsulta = { id: string; consulta: "emision" | "baja" | null; accion: AccionConsulta["tipo"] | "error" };
 
-export async function consultarComprobante(supabase: Cliente, id: string): Promise<ResultadoConsulta> {
+export async function consultarComprobante(supabase: Cliente, id: string, servidor: ClienteServidor): Promise<ResultadoConsulta> {
   const { data: c, error } = await supabase
     .from("comprobantes")
     .select("id, tipo, serie, numero, estado, entorno_transmision, anulacion_solicitada_at, respuesta_sunat")
@@ -51,7 +52,7 @@ export async function consultarComprobante(supabase: Cliente, id: string): Promi
     if (!r.ok) return { id, consulta, accion: "error" };
     const accion = accionPorEmision(r.estado, r.mensaje);
     if (accion.tipo !== "actualizar") return { id, consulta, accion: accion.tipo };
-    const { error: errGuardar } = await supabase.rpc("actualizar_transmision_comprobante", {
+    const { error: errGuardar } = await servidor.rpc("actualizar_transmision_comprobante", {
       p_comprobante_id: c.id,
       p_estado: accion.estado,
       p_entorno: r.entorno,

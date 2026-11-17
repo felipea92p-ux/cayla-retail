@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import { crearClienteAdmin } from "@/lib/supabase-admin";
 import { firmaDeEncabezados, mensajeErrorResponsable } from "@/lib/responsable-reglas";
-import { transmitirComprobante } from "@/lib/transmitir-comprobante";
+import { transmitirComprobante, type ClienteServidor } from "@/lib/transmitir-comprobante";
+import { capturarError } from "@/lib/errores";
 
 // POST /api/lucode/emitir  { comprobante_id: string } | { venta_id: string }
 //
@@ -40,6 +42,20 @@ export async function POST(request: Request) {
     if (porResponsable) return Response.json({ error: porResponsable }, { status: 403 });
   }
 
-  const r = await transmitirComprobante(supabase, body.comprobante_id ? { comprobanteId: body.comprobante_id } : { ventaId: body.venta_id! });
+  // Lo que responda SUNAT lo guarda el servidor con su llave (ADR-0675), y se pide ANTES de llamar a Lucode: lo que llega a
+  // SUNAT no se deshace, así que sin llave no se transmite. El comprobante sigue pendiente y lo toma la cola.
+  let servidor: ClienteServidor;
+  try {
+    servidor = crearClienteAdmin();
+  } catch (e) {
+    capturarError("lucode/emitir: sin llave de servicio", e);
+    return Response.json({ error: "No se envió a SUNAT: el servidor no puede guardar la respuesta ahora. Sigue pendiente." }, { status: 503 });
+  }
+
+  const r = await transmitirComprobante(
+    supabase,
+    body.comprobante_id ? { comprobanteId: body.comprobante_id } : { ventaId: body.venta_id! },
+    servidor,
+  );
   return Response.json(r.body, { status: r.status });
 }

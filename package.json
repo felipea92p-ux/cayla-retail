@@ -271,6 +271,7 @@
     "pruebas:sunat-reintento-por-cron": "node scripts/pruebas/sunat_reintento_por_cron.mjs",
     "pruebas:sunat-estado-no-retrocede": "node scripts/pruebas/sunat_estado_no_retrocede.mjs",
     "pruebas:sunat-estado-no-retrocede-concurrencia": "node scripts/pruebas/sunat_estado_no_retrocede_concurrencia.mjs",
+    "pruebas:actualizar-transmision-permisos": "node scripts/pruebas/actualizar_transmision_permisos.mjs",
     "pruebas:insumos-devolucion": "node scripts/pruebas/insumos_devolucion.mjs",
     "pruebas:insumos-candados": "node scripts/pruebas/insumos_candados.mjs",
     "pruebas:clave-texto-invisibles": "node scripts/pruebas/clave-texto-invisibles.mjs",

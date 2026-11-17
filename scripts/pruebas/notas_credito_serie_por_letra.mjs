@@ -31,6 +31,12 @@ import { readFileSync } from "node:fs";
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 
+// Lo que respondió SUNAT lo escribe solo el servidor (ADR-0675): `actualizar_transmision_comprobante` va con la llave de servicio
+// (`request.jwt.claim.role = 'service_role'`) y después se vuelve a la sesión de antes.
+const A_SERVIDOR = `select set_config('t.rol_sesion', coalesce(current_setting('request.jwt.claim.role', true), ''), true) as _rol_sesion \\gset
+select set_config('request.jwt.claim.role', 'service_role', true) as _rol_servidor \\gset`;
+const A_SESION = `select set_config('request.jwt.claim.role', current_setting('t.rol_sesion'), true) as _rol_de_vuelta \\gset`;
+
 const APLICAR_ANTES = process.env.APLICAR_ANTES ? readFileSync(process.env.APLICAR_ANTES, "utf8") : "";
 
 function psql(sql) {
@@ -110,8 +116,10 @@ select ${REGISTRAR("nota_credito", "FC91")} as _fc \\gset
 select retail.emitir_comprobante(:'ubic', 'boleta', 84.75, 15.25, 100.00) as bol \\gset
 select retail.emitir_comprobante(:'ubic', 'factura', 84.75, 15.25, 100.00, null, 'ruc', '20605964550', 'CAYLA S.A.C.') as fac \\gset
 -- SUNAT solo admite notas sobre lo que ya aceptó (fn_valida_nota_referencia_aceptada)
+${A_SERVIDOR}
 select retail.actualizar_transmision_comprobante(:'bol', 'aceptado', 'sandbox', '{"prueba": true}'::jsonb) as _ab \\gset
 select retail.actualizar_transmision_comprobante(:'fac', 'aceptado', 'sandbox', '{"prueba": true}'::jsonb) as _af \\gset
+${A_SESION}
 -- Las dos notas de la boleta suman justo lo que cobró (90 + 10 = 100): desde 20261012120100 una nota que pasara de eso se rechaza.
 select retail.emitir_nota(:'bol', 'nota_credito', '07', 76.27, 13.73, 90.00) as nota_b \\gset
 select retail.emitir_nota(:'fac', 'nota_credito', '06', 84.75, 15.25, 100.00) as nota_f \\gset
@@ -161,7 +169,9 @@ ${INTENTA("indice", "insert into retail.series_comprobantes (ubicacion_id, tipo,
 
 -- una nota de FACTURA sin serie F… de nota: se niega, dice qué falta y NO gasta ningún número de la B…
 select retail.emitir_comprobante(:'ubic', 'factura', 84.75, 15.25, 100.00, null, 'ruc', '20605964550', 'CAYLA S.A.C.') as fac \\gset
+${A_SERVIDOR}
 select retail.actualizar_transmision_comprobante(:'fac', 'aceptado', 'sandbox', '{"prueba": true}'::jsonb) as _af \\gset
+${A_SESION}
 select set_config('t.fac', :'fac', true) as _g2 \\gset
 select siguiente_numero as bc_antes from retail.series_comprobantes where ubicacion_id = :'ubic' and serie = 'BC91' \\gset
 ${INTENTA("nota_sin_serie_f", "perform retail.emitir_nota(current_setting('t.fac')::uuid, 'nota_credito', '06', 84.75, 15.25, 100.00)")}

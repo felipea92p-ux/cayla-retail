@@ -1035,6 +1035,10 @@ export const PRUEBAS = [
   // que ya intentó salir a SUNAT no se libera. La carrera de dos conexiones (commitea) va aparte, en EXCLUIDAS. ROLLBACK.
   "pruebas:sunat-estado-no-retrocede",
 
+  // Lo que respondió SUNAT lo escribe solo el servidor (ADR-0675): `actualizar_transmision_comprobante` es de `service_role`;
+  // ni la integrante de la sede ni el líder lo escriben con su sesión. ROLLBACK.
+  "pruebas:actualizar-transmision-permisos",
+
   // Devolver insumos (ADR-0133, F3b): lo devuelto vuelve al último lote del que salió la orden, el costo de
   // tela/avíos de la orden queda neto, anular devuelve todo al estante y quien no opera el Taller no puede.
   // Cada caso termina en ROLLBACK.
