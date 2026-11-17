@@ -37,6 +37,8 @@ import { useMenuHolgado } from "@/components/useMenuHolgado";
 // asistente cuando la sede lo tiene encendido. Antes viajaban con cada pantalla.
 const cargarPerfil = () => import("@/components/PerfilModal");
 const PerfilModal = dynamic(() => cargarPerfil().then((m) => m.PerfilModal), { ssr: false });
+// «Apariencia» (Felipe 2026-11-17): la hoja de los ajustes del aparato, solo cuando se abre.
+const HojaApariencia = dynamic(() => import("@/components/HojaApariencia").then((m) => m.HojaApariencia), { ssr: false });
 const ElegirDemoModal = dynamic(() => import("@/components/guias/ElegirDemoModal").then((m) => m.ElegirDemoModal), { ssr: false });
 const Acompanante = dynamic(() => import("@/components/asistente/Acompanante").then((m) => m.Acompanante), { ssr: false });
 
@@ -170,15 +172,18 @@ function Icono({ d, className }: { d: string; className?: string }) {
   );
 }
 // Los trazos de los íconos del MENÚ viven en `lib/menu-iconos.ts` (`TRAZOS_MENU`): los comparten el lateral, Roles y accesos y
-// los accesos rápidos del Inicio, para que una pantalla se dibuje igual en los tres. Acá solo se suman los cuatro de la
-// cabecera, que no son nodos del árbol: «chevron», «menu», «cerrar» y «buscar».
-const IC: Record<ClaveIcono | "chevron" | "menu" | "cerrar" | "buscar", string> = {
+// los accesos rápidos del Inicio, para que una pantalla se dibuje igual en los tres. Acá solo se suman los que no son nodos del
+// árbol: los cuatro de la cabecera («chevron», «menu», «cerrar» y «buscar») y el de «Apariencia», al pie del menú.
+const IC: Record<ClaveIcono | "chevron" | "menu" | "cerrar" | "buscar" | "apariencia", string> = {
   ...TRAZOS_MENU,
   chevron: "M9 6l6 6-6 6",
   menu: "M4 7h16M4 12h16M4 17h16",
   cerrar: "M6 6l12 12M18 6L6 18",
   // Lupa: en el celular abre el buscador de pantallas (BuscadorGlobal).
   buscar: "M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-4.8-4.8",
+  // «Apariencia», al pie del menú: el sol y la luna de lucide («sun-moon»), en un solo trazo.
+  apariencia:
+    "M12 2v2M14.837 16.385a6 6 0 1 1-7.223-7.222c.624-.147.97.66.715 1.248a4 4 0 0 0 5.26 5.259c.589-.255 1.396.09 1.248.715M16 12a4 4 0 0 0-4-4M19 5l-1.256 1.256M20 12h2",
 };
 
 /* ------------------------------------------------------------------
@@ -675,6 +680,8 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
   const [perfilAbierto, setPerfilAbierto] = useState(false);
   // «Demo» de Mi perfil (ADR-0389): el selector de guías interactivas.
   const [demoAbierto, setDemoAbierto] = useState(false);
+  // «Apariencia» (Felipe 2026-11-17): modo oscuro, animaciones y modo liviano, juntos en una hoja que se abre al pie del menú.
+  const [aparienciaAbierta, setAparienciaAbierta] = useState(false);
   // "Más" (celular, ADR-0205): la misma hoja para cualquier perfil, sin estado propio más allá de abierto/cerrado.
   const esLider = persona.rol === "lider";
   const esAparato = !!persona.terminal;
@@ -738,7 +745,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
     const alTeclado = (e: KeyboardEvent) => {
       if (e.key !== "[" || e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable=''], [contenteditable='true'], [role='dialog']")) return;
-      if (perfilAbierto) return;
+      if (perfilAbierto || aparienciaAbierta) return;
       e.preventDefault();
       alternarLateral();
     };
@@ -1040,10 +1047,33 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
           ))}
         </nav>
 
+        {/* «Apariencia» (Felipe 2026-11-17, `docs/milimetro/apariencia.md`): modo oscuro, animaciones y modo liviano, juntos en una hoja.
+            Es una fila más del menú, con su misma cara, pero no lleva a una pantalla ni es un módulo (ADR-0306): son ajustes del APARATO,
+            los ve toda cuenta (también una terminal, que no tiene «Mi perfil») y sacarlos de la barra de arriba la deja para trabajar.
+            Abre una hoja: no cierra el cajón, como «Mi perfil». */}
+        <div data-pieza-cajon style={{ "--k": 1 + menu.riel.length } as React.CSSProperties} className="px-3 pt-2 sm:hidden [[data-compacto]_&]:px-2.5">
+          <button
+            type="button"
+            onClick={() => setAparienciaAbierta(true)}
+            onMouseEnter={(e) => entrarFila(e.currentTarget, "Apariencia")}
+            onMouseLeave={salirFila}
+            onFocus={(e) => entrarFila(e.currentTarget, "Apariencia")}
+            onBlur={salirFila}
+            aria-haspopup="dialog"
+            aria-expanded={aparienciaAbierta}
+            data-prof={0}
+            className="marco-fila group flex w-full items-center gap-3 overflow-hidden whitespace-nowrap text-tinta/80 hover:bg-tinta/6 hover:text-tinta"
+          >
+            <Icono d={IC.apariencia} className="marco-icono h-5 w-5 shrink-0 text-tinta/60 transition-colors group-hover:text-tinta" />
+            <span className="marco-etiqueta min-w-0 flex-1 truncate text-left">Apariencia</span>
+            <span aria-hidden className="marco-corto">Apariencia</span>
+          </button>
+        </div>
+
         {/* Abajo, la persona: una placa de vidrio con su foto, su nombre y su rol en la sede, y «Salir» como una gota redonda (Felipe
             2026-10-31: sin la firma de la marca, que ocupaba lugar sin decir nada; el aire de abajo ahora lo usan los módulos,
             useMenuHolgado). Plegado queda la foto sola, centrada. */}
-        <div data-pieza-cajon style={{ "--k": 1 + menu.riel.length } as React.CSSProperties} className="marco-yo">
+        <div data-pieza-cajon style={{ "--k": 2 + menu.riel.length } as React.CSSProperties} className="marco-yo">
           {esAparato ? (
             // Una terminal (ADR-0162) no es una persona: donde iría el avatar va el APARATO, y no hay «Mi perfil» que abrir
             // (no tiene ficha de RRHH en Dynamic). No es botón: nada que hacer al tocarlo. Plegado, el nombre sale al pasar
@@ -1089,11 +1119,6 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
               </span>
             </button>
           )}
-          {/* El modo liviano en el celular (ADR-0674): la cabecera no tiene lugar, así que va aquí, antes de «Salir». En escritorio está en
-              la cabecera, junto a «Animaciones». */}
-          <span className="contents sm:hidden">
-            <BotonLiviano />
-          </span>
           {/* Plegado «Salir» no cabe: se esconde y sale del tabulador (`inert`); el perfil sigue a un clic y ahí también se sale. */}
           <span className="marco-yo-salida" inert={compacto}>
             <LogoutButton nombre={persona.nombre} terminal={!!persona.terminal} forma="icono" />
@@ -1112,6 +1137,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
           }}
         />
       )}
+      {aparienciaAbierta && <HojaApariencia onClose={() => setAparienciaAbierta(false)} />}
       {demoAbierto && <ElegirDemoModal filas={menu.riel} onClose={() => setDemoAbierto(false)} />}
 
       {/* Etiqueta de una fila plegada. Fuera del <aside> a propósito: el aside recorta (`overflow-hidden`)
@@ -1208,15 +1234,12 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
             ) : null}
             {/* «Demo» (ADR-0389): una terminal no tiene «Mi perfil», que es donde una persona repite las guías interactivas. */}
             {esAparato ? <BotonDemo onClick={() => setDemoAbierto(true)} /> : null}
-            {/* Modo oscuro (ADR-0336): entre «Actividad» y la sede. Lo ve toda cuenta, también una terminal: es una preferencia
-                del aparato, no un módulo ni una pantalla. */}
-            <BotonTema />
-            {/* Animaciones (ADR-0625): junto al modo oscuro y por la misma razón, del aparato. El ERP arranca quieto. */}
-            <BotonMovimiento />
-            {/* Modo liviano (ADR-0674): junto a las animaciones y por la misma razón, del aparato. En un equipo lento ya viene encendido.
-                Solo en escritorio: en el celular la cabecera no tiene lugar (le quitaba 45 px a la sede; a 320 px la dejaba en 22) y
-                el botón va al pie del menú, junto a «Salir». */}
+            {/* Modo oscuro (ADR-0336), animaciones (ADR-0625) y modo liviano (ADR-0674): preferencias del aparato, no módulos. Solo en
+                escritorio: en el celular la barra de arriba queda para trabajar (le quitaban espacio a la sede) y los tres viven en
+                «Apariencia», al pie del menú (Felipe 2026-11-17). */}
             <span className="hidden sm:contents">
+              <BotonTema />
+              <BotonMovimiento />
               <BotonLiviano />
             </span>
             {/* La sede va en su propia caja: los botones de la isla se redondean (marco.css) y el combo conserva su aspecto. */}
