@@ -130,9 +130,22 @@ cambio; la nota de venta no emitía nada; el cliente no se editaba). El 2026-11-
 Las dos ramas no pueden fusionarse juntas (las dos crean `comprobantes.cambio_id`, INV-30 y la última siembra del vigía): cerrar #1910 lo
 decide Felipe.
 
+## La prueba en el sandbox de Lucode (2026-11-16)
+
+La vista previa de Vercel no tiene `LUCODE_TOKEN` (solo producción lo tiene), así que la prueba de la decisión 9 se hizo en local: la base
+aislada con las tres partes y el token de la organización CAYLA S.A.C., con `LUCODE_ENTORNO=sandbox`. El panel `sandbox.apisunat.pe` ahora
+redirige a `app.apisunat.pe` y el token es uno solo por RUC, pero la API del sandbox sigue en `sandbox.apisunat.pe` y no redirige (antes de
+emitir se comprobó con una consulta de solo lectura). Con series propias de prueba (B091, F091, BC91, FC91), **los nueve documentos
+salieron ACEPTADO** («El documento fue enviado correctamente y aceptado por SUNAT»):
+- tres originales: B091-1 (dos prendas), B091-2 (una) y F091-1 (factura a un RUC);
+- **la nota 07 de una sola prenda** (BC91-1, S/ 69.90, con su descuento) y su boleta nueva sin venta (B091-3): la que nunca se había probado;
+- una nota 06 (BC91-2) con su boleta nueva (B091-4);
+- una nota de factura (FC91-1, al RUC de la original) con su factura nueva al mismo RUC (F091-2).
+El vigía (INV-06, 07, 22 y 30) quedó limpio. No se probó contra la SUNAT real.
+
 ## Producción
 
-**Antes de pegar:** el OK del contador (ver arriba) y la prueba en la vista previa contra el sandbox de Lucode (decisión 9).
+**Antes de pegar:** el OK del contador (ver arriba). La prueba en el sandbox ya está hecha (arriba).
 
 Tres partes, en orden, cada una idempotente y con `lock_timeout` de 3 s, sin políticas: la 1 agrega la columna, los índices y la tabla; la 2,
 las funciones y los reemplazos anclados; la 3, el vigía y la fuente de metas, en la misma sesión que la 2. Desde que se pega la parte 2 la
