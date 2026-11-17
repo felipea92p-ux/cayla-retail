@@ -99,3 +99,13 @@ y el id de la sede. Los nombres de las sedes: `select id, nombre from retail.ubi
   `vercel logs --json` (CLI 64, ADR-0447).
 - **NO verificado:** con datos de producción (no hay hasta publicar), ni la receta contra un `vercel logs` real del ERP. **Cómo lo
   verificas:** tras publicar, entra a tres módulos del ERP en producción, espera 30 s y corre las dos líneas de arriba: tienen que salir.
+
+## Actualización 2026-11-17 — la clase del equipo (ADR-0674)
+
+Cada medición lleva ahora la **clase del equipo** que la tomó, para separar el teléfono de gama baja del Mac mini (Catálogo, Compras,
+Inventario y Ventas también se usan desde el celular, Felipe 2026-11-17): memoria aproximada (`navigator.deviceMemory`, que Chrome ya
+redondea a 0.25 · 0.5 · 1 · 2 · 4 · 8 GB), núcleos (tope 16), tipo de red que estima el navegador (`slow-2g`…`4g`) y si se pidió ahorrar
+datos. Safari y Firefox no dan memoria ni red: van en `null`. La línea del registro suma cuatro columnas planas (`ram`, `nucleos`, `red`,
+`ahorro_datos`) para filtrar con `jq` (por ejemplo `select(.ram != null and .ram <= 2)`). Una pestaña abierta antes del cambio manda sin
+equipo y la medición vale igual, con esas columnas en `null`; un equipo fuera de forma no tira la medición. Nada de esto identifica a la
+persona (ADR-0424): no van el modelo, el sistema ni la pantalla. Lo puro vive en `lib/clase-de-equipo.ts`, con su prueba.

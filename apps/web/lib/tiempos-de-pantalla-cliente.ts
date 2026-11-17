@@ -8,6 +8,7 @@ import {
   type TiempoDePantalla,
   type TipoDeNavegacion,
 } from "./tiempos-de-pantalla-reglas";
+import { leerEquipo, type Equipo } from "./clase-de-equipo";
 
 // ADR-0654 · El cronómetro del clic, del lado del navegador. Las reglas (qué se mide, cuándo llegó, el patrón, el lote) están en
 // `tiempos-de-pantalla-reglas.ts`; aquí solo se mira la página y se manda. Lo arranca `onRouterTransitionStart`
@@ -29,6 +30,10 @@ let marco: { pathname: string; params: ParametrosDeRuta; sedeId: string } | null
 let enCurso: CronometroEnCurso | null = null;
 let cuadro = 0;
 const cola: TiempoDePantalla[] = [];
+/** La clase de este equipo (ADR-0674): memoria y núcleos no cambian; la red sí, así que se lee de nuevo en cada medición. */
+function equipoAhora(): Equipo {
+  return leerEquipo(typeof navigator === "undefined" ? null : navigator);
+}
 
 /** El marco anota en qué ruta está y en qué sede (lo llama `CronometroDelClic` en cada cambio de ruta, al montarse la pantalla nueva). */
 export function anotarMarco(pathname: string, params: ParametrosDeRuta, sedeId: string) {
@@ -56,7 +61,14 @@ function mirar(ahora: number) {
   }
   enCurso = null;
   if (paso.estado === "llego" && marco) {
-    cola.push({ ruta: patronDeRuta(marco.pathname, marco.params), ms: paso.ms, sedeId: marco.sedeId, sinEsqueleto: paso.sinEsqueleto, version: VERSION });
+    cola.push({
+      ruta: patronDeRuta(marco.pathname, marco.params),
+      ms: paso.ms,
+      sedeId: marco.sedeId,
+      sinEsqueleto: paso.sinEsqueleto,
+      version: VERSION,
+      equipo: equipoAhora(),
+    });
     if (cola.length > MAX_EN_COLA) cola.splice(0, cola.length - MAX_EN_COLA);
   }
 }

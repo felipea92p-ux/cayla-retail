@@ -10,16 +10,19 @@
 // se mide, y lo dice (`sinEsqueleto`). Lo que pasa los 15 s de ADR-0628 no se cuenta: es una navegación que no llegó, no una lenta.
 //
 // QUÉ NO LLEVA (ADR-0424): ni nombres, ni la sesión, ni lo que se buscó, ni la dirección con su `?…`. Solo el PATRÓN de la ruta
-// (`/productos/[id]`, nunca el id), los milisegundos, la sede y la versión del ERP que lo midió.
+// (`/productos/[id]`, nunca el id), los milisegundos, la sede, la versión del ERP que lo midió y, desde ADR-0674, la CLASE del equipo
+// (memoria y núcleos en rangos gruesos, tipo de red, ahorro de datos: `clase-de-equipo.ts`), para separar el teléfono de gama baja del Mac mini.
 //
 // Aquí vive solo lo puro (qué cuenta como cambiar de pantalla, cuándo llegó, el patrón, el lote y su lectura en el servidor). Lo que mira
 // el navegador está en `tiempos-de-pantalla-cliente.ts`; lo que escribe la línea en los registros, en `app/api/tiempos/route.ts`.
+
+import { leerEquipoRecibido, type Equipo } from "./clase-de-equipo";
 
 /** Lo que tarda como máximo una pantalla en llegar para contarse: el mismo tope que el esqueleto del marco (`MS_TOPE_DESTINO`, ADR-0628). */
 const MS_TOPE = 15_000;
 /** Cuántas mediciones viajan juntas: de sobra para 30 s de clics, y un cuerpo de pocos KB. */
 const MAX_POR_LOTE = 50;
-/** El cuerpo más grande que el servidor acepta leer: 50 mediciones caben en ~8 KB; lo que pasa de esto no es nuestro. */
+/** El cuerpo más grande que el servidor acepta leer: 50 mediciones caben en ~10 KB (con la clase del equipo, ADR-0674); lo que pasa de esto no es nuestro. */
 const MAX_BYTES_LOTE = 16_384;
 const MAX_LARGO_RUTA = 120;
 
@@ -31,8 +34,11 @@ const FORMA_DE_VERSION = /^[A-Za-z0-9_-]{1,12}$/;
 export type TipoDeNavegacion = "push" | "replace" | "traverse";
 export type ParametrosDeRuta = Readonly<Record<string, string | readonly string[] | undefined>>;
 
-/** Una medición lista para viajar. `sedeId` es el id de la sede activa o `"global"` (CAYLA Global, ADR-0275). */
-export type TiempoDePantalla = { ruta: string; ms: number; sedeId: string; sinEsqueleto: boolean; version: string };
+/**
+ * Una medición lista para viajar. `sedeId` es el id de la sede activa o `"global"` (CAYLA Global, ADR-0275). `equipo` es la clase del
+ * equipo que la midió (ADR-0674); `null` si llegó de una pestaña abierta antes de que se midiera.
+ */
+export type TiempoDePantalla = { ruta: string; ms: number; sedeId: string; sinEsqueleto: boolean; version: string; equipo: Equipo | null };
 
 /** Una navegación que se está midiendo. `inicio` y `ahora` van en el reloj de `performance.now()`. */
 export type CronometroEnCurso = { inicio: number; desde: string; vioEsqueleto: boolean };
@@ -125,13 +131,13 @@ export function armarLote(cola: readonly TiempoDePantalla[]): { cuerpo: string; 
 
 function leerTiempo(x: unknown): TiempoDePantalla | null {
   if (typeof x !== "object" || x === null) return null;
-  const { ruta, ms, sedeId, sinEsqueleto, version } = x as Record<string, unknown>;
+  const { ruta, ms, sedeId, sinEsqueleto, version, equipo } = x as Record<string, unknown>;
   if (typeof ruta !== "string" || ruta.length > MAX_LARGO_RUTA || !FORMA_DE_RUTA.test(ruta)) return null;
   if (typeof ms !== "number" || !Number.isInteger(ms) || ms < 0 || ms > MS_TOPE) return null;
   if (typeof sedeId !== "string" || (sedeId !== "global" && !UUID.test(sedeId))) return null;
   if (typeof sinEsqueleto !== "boolean") return null;
   if (typeof version !== "string" || !FORMA_DE_VERSION.test(version)) return null;
-  return { ruta, ms, sedeId: sedeId.toLowerCase(), sinEsqueleto, version };
+  return { ruta, ms, sedeId: sedeId.toLowerCase(), sinEsqueleto, version, equipo: leerEquipoRecibido(equipo) };
 }
 
 /**
@@ -154,7 +160,22 @@ export function leerLote(texto: string): TiempoDePantalla[] {
     .filter((t): t is TiempoDePantalla => t !== null);
 }
 
-/** La línea de los registros del servidor: UNA por medición, para que `vercel logs --query tiempo_de_pantalla` dé las filas del p75. */
+/**
+ * La línea de los registros del servidor: UNA por medición, para que `vercel logs --query tiempo_de_pantalla` dé las filas del p75. La
+ * clase del equipo va en columnas planas (`ram`, `nucleos`, `red`, `ahorro_datos`; `null` si no se sabe) para poder filtrar por ellas.
+ */
 export function lineaDeRegistro(t: TiempoDePantalla): string {
-  return JSON.stringify({ evento: "tiempo_de_pantalla", ruta: t.ruta, ms: t.ms, sede_id: t.sedeId, sin_esqueleto: t.sinEsqueleto, version: t.version });
+  const e = t.equipo;
+  return JSON.stringify({
+    evento: "tiempo_de_pantalla",
+    ruta: t.ruta,
+    ms: t.ms,
+    sede_id: t.sedeId,
+    sin_esqueleto: t.sinEsqueleto,
+    version: t.version,
+    ram: e?.ram ?? null,
+    nucleos: e?.nucleos ?? null,
+    red: e?.red ?? null,
+    ahorro_datos: e ? e.ahorroDeDatos : null,
+  });
 }
