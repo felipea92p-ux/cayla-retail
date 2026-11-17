@@ -57,7 +57,7 @@ existió. Lo que corresponde es una nota de crédito sobre la boleta original y 
 - [ ] **Felipe:** `fn_claure_cambios` valora un cambio por varias del mismo modelo a precio de lista (anterior a este ADR, plata de CLAURE).
 - [x] PR #1912 abierto (borrador). Probado en el sandbox real de Lucode desde local (la vista previa no tiene token): nota 07 de una
       prenda, nota 06 y nota de factura, con sus comprobantes nuevos: los nueve documentos ACEPTADO.
-- [ ] Borrar `LUCODE_TOKEN` de `apps/web/.env.local` de este worktree (es el mismo token de producción).
+- [x] El `.env.local` con el token (el mismo de producción) se borró al terminar la prueba del sandbox.
 - [ ] `/milimetro auditar /cambios` y `/vender/comprobantes` (lo pide el check del PR), `/formidable`, `/chaos` y `guias:recorrer`.
 - [x] De #1910 (Felipe eligió esta rama): el papel de Vender con «CANCELADO» y la impresión sola con «Imprimir solo al cobrar».
 - [ ] **Contador:** confirma la lectura legal (nota de crédito + comprobante nuevo) antes de pegar el SQL. Cerrar #1910 lo decide Felipe.
