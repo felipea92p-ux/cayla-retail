@@ -1,0 +1,5 @@
+# 2026-11-16 · El color de la prenda ya no tiñe la foto al pasar el mouse por los colores
+
+- **Qué:** en Catálogo ▸ Productos (y toda tarjeta que cambia de foto por color), pasar el mouse por un punto de color teñía la caja de la foto del color nuevo hasta que su foto llegaba; con las fotos de IA (PNG transparentes) se veía la prenda anterior sobre azul marino o negro. `ImagenDePrenda` ahora pinta el color solo hasta la primera foto de la caja (ADR-0442, act. 2026-11-16).
+- **Verificado:** página de prueba local con las fotos reales de «Chompa Tenzada», sin precarga y con URLs que el optimizador no había procesado, registro cuadro por cuadro: antes, el negro 1,1 s y el azul 0,6 s detrás de la foto anterior; después, 0 cuadros con color en tres cambios lentos (1,6 s, 0,6 s y 1,3 s) y la primera carga sigue mostrando el color mientras llega.
+- **No verificado:** en producción con sesión (pide entrar al ERP); la prenda blanca o crema sobre el fondo claro de la tarjeta sigue pendiente de Felipe (ADR-0442, «Riesgos»).

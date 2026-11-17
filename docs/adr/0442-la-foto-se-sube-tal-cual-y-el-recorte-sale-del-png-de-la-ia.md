@@ -83,3 +83,16 @@ para que se vea algo mientras la foto llega, y un JPG lo tapaba entero. Un PNG t
 **Decidí:** el color se ve solo mientras la foto carga y se quita al cargar (`fondoDeLaFoto`, `lib/foto-prenda-reglas.ts`; se guarda por URL, igual
 que «rota»). Detrás de una foto transparente queda el fondo de su tarjeta. Pendiente, como ya decía «Riesgos»: una prenda blanca o crema sobre fondo
 claro, decisión de Felipe mirando prendas reales.
+
+## Actualización 2026-11-16 — al cambiar de color, el color no vuelve detrás de la foto
+
+Felipe lo vio en Catálogo ▸ Productos con las fotos de IA (PNG transparentes): al pasar el mouse por los puntos de color, la caja de la foto se teñía
+del color nuevo (azul marino, negro) hasta que llegaba su foto. Era el «se guarda por URL» de arriba: cada foto nueva volvía a pintar `fondo` mientras
+cargaba, y el navegador deja la foto anterior a la vista en ese rato, así que se veía la prenda anterior sobre el color nuevo. Medido en local con fotos
+que el optimizador aún no había procesado: el negro duró 1,1 s y el azul 0,6 s (en Vercel, la primera vez, más).
+
+**Decidí:** el color es de la CAJA, no de cada URL: se ve solo hasta que la caja muestra su primera foto y no vuelve al cambiar de foto
+(`ImagenDePrenda`, `yaSeVio`). Si una foto no carga, la caja pasa a la prenda sin foto y la siguiente vuelve a mostrar el color mientras llega. Un
+sí/no además no depende de qué URL trae el `onLoad`: next/image lee su `onLoad` desde una referencia que se actualiza después de pintar, y con una
+foto ya en caché podía llamar al de la foto anterior y dejar el color pegado. Vale para toda tarjeta que cambia de foto por color (Productos,
+Existencias, Vender).
