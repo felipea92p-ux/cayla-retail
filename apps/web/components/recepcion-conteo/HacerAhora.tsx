@@ -8,7 +8,7 @@ import { Boton } from "@/components/ui/campos";
 import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { HojaPrenda } from "@/components/recepcion-envio/HojaPrenda";
+import { HojaPrendaBajoDemanda } from "./hojas-bajo-demanda";
 import type { PrendaAnterior } from "@/lib/recepcion-igual-que-anterior";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
@@ -525,7 +525,7 @@ export function HacerAhora({
     if (vista.tipo === "agregar") {
       const volver = (prenda: PrendaRecepcion) => setVista({ tipo: "tallas", prenda, original: vista.original, escritas: vista.escritas });
       return (
-        <HojaPrenda
+        <HojaPrendaBajoDemanda
           destino={{
             modo: "agregar",
             despachoId: detalle.id,
@@ -557,7 +557,7 @@ export function HacerAhora({
     if (vista.tipo === "prenda") {
       const escritoAlContar = vista.desde?.descripcion ?? (item.tipo === "crear" ? item.pendiente.descripcion : null);
       return (
-        <HojaPrenda
+        <HojaPrendaBajoDemanda
           destino={{
             modo: "nueva",
             despachoId: detalle.id,

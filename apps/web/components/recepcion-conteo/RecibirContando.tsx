@@ -43,7 +43,7 @@ import { Chip } from "@/components/ui/Chip";
 import { ContarEnvio } from "./ContarEnvio";
 import { CancelarRecepcion } from "./CancelarRecepcion";
 import { CorregirProveedor } from "./CorregirProveedor";
-import { CerrarEnvio } from "./CerrarEnvio";
+import { CerrarEnvioBajoDemanda } from "./hojas-bajo-demanda";
 import { EnvioCerrado } from "./EnvioCerrado";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
 import { Trayecto } from "@/components/recepcion-envio/Trayecto";
@@ -508,7 +508,12 @@ export function RecibirContando({
       )}
 
       {estado === "abierto" && !otraSede && !noLoRecibe && paso === 3 && (
-        <CerrarEnvio
+        <CerrarEnvioBajoDemanda
+          // Sin internet al pasar a Cerrar (ADR-0674): avisa y se vuelve a Contar, con lo contado intacto.
+          alFallar={() => {
+            recordarEnCerrar(detalle.id, false);
+            setPaso(2);
+          }}
           detalle={detalle}
           version={version}
           lineas={lineas}
