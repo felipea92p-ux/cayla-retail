@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { Chip } from "@/components/ui/Chip";
-import { EnlaceVer } from "@/components/ui/EnlaceVer";
-import { BotonVer } from "@/components/ui/BotonDescargar";
+import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { resumenDeEnvios, type EnvioMio } from "@/lib/mis-envios-reglas";
 import type { RondaCerrada, UltimaRondaVista } from "@/lib/mi-plata-reglas";
 import { HojaDeRonda } from "./ListaDelDia";
@@ -61,11 +60,19 @@ export function UltimaRonda({
           </div>
         )}
       </dl>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-        <BotonVer chico onClick={() => setAbierta(true)} guia="mi-plata.ultima-detalle">
+      {/* Las dos que solo muestran van juntas, con la misma cara y sin flecha (Felipe 2026-11-17): con la flecha, «Ver lo que anoté» y
+          «Mis envíos» no cabían en una fila del celular (350 px) y la tarjeta apilaba tres botones. En la tarjeta angosta (bajo 30 rem, el
+          celular) los botones se reparten el ancho de su renglón, de margen a margen: los dos arriba y «Reabrir» abajo, a todo lo ancho
+          (`grow`: cada renglón reparte lo que le sobra). Desde 30 rem caben los tres en una fila, a su medida, con «Reabrir» a la derecha. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Boton type="button" className="btn-chico grow @min-[30rem]:grow-0" onClick={() => setAbierta(true)} data-guia="mi-plata.ultima-detalle">
           Ver lo que anoté
-        </BotonVer>
-        {envios && envios.length > 0 && <EnlaceVer href="/compras/mi-plata/envios">Mis envíos</EnlaceVer>}
+        </Boton>
+        {envios && envios.length > 0 && (
+          <BotonEnlace href="/compras/mi-plata/envios" className="btn-chico grow @min-[30rem]:grow-0">
+            Mis envíos
+          </BotonEnlace>
+        )}
         <ReabrirRonda ultimaCerrada={ultimaCerrada} />
       </div>
       {abierta && <HojaDeRonda e={u.ronda} envios={envios ?? []} hoy={hoy} onClose={() => setAbierta(false)} />}
