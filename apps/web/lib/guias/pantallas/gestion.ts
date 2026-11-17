@@ -448,6 +448,12 @@ export const GUIA_RENDIMIENTO: Guia = {
       texto: "Elige qué días se miran en toda la pantalla: las cifras, el gráfico y la tabla.",
     },
     {
+      id: "rango",
+      ancla: "rendimiento.rango",
+      titulo: "Tu propio rango de días",
+      texto: "Toca «Rango», elige el primer y el último día en el calendario y se aplica solo. Hasta 30 días.",
+    },
+    {
       id: "frase-arriba",
       ancla: "rendimiento.frase",
       titulo: "A quién reconocer y a quién acompañar",

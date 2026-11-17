@@ -1206,3 +1206,239 @@
     min-height: 44px;
   }
 }
+
+/* ====================================================================
+   El rango a medida (Felipe 2026-11-17; RangoRendimiento.tsx, maqueta docs/maquetas/rendimiento-rango-2026-11/): solo un calendario de un mes.
+   El panel flota con el vidrio de lo que flota; el día es una gota (las puntas) sobre una banda (lo de en medio). Los días que pasan de 30 se rayan.
+   ==================================================================== */
+.rango-panel {
+  position: fixed;
+  width: min(340px, calc(100vw - 16px));
+  overflow: auto;
+  padding: 16px 18px 14px;
+  border: 1px solid var(--serena-borde);
+  border-radius: 26px;
+  background: var(--vidrio-flota-fondo);
+  -webkit-backdrop-filter: var(--vidrio-flota-filtro);
+  backdrop-filter: var(--vidrio-flota-filtro);
+  box-shadow: var(--vidrio-flota-sombra);
+}
+.rango-marco {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+.rango-cabeza {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+.rango-mes-nombre {
+  font-family: var(--font-serif);
+  font-size: 21px;
+  line-height: 1.1;
+  text-align: center;
+  color: var(--color-tinta);
+}
+.rango-flecha {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--color-tinta);
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz), 0 0 0 1px var(--color-borde-control);
+  transition: opacity var(--t-resp) var(--ease-cayla);
+}
+.rango-flecha:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.rango-flecha:focus-visible,
+.rango-dia:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+}
+.rango-semana,
+.rango-dias {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.rango-semana {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-align: center;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto sobre el vidrio de lo que flota */
+}
+.rango-dias {
+  row-gap: 2px;
+}
+.rango-dia {
+  position: relative;
+  isolation: isolate;
+  height: 40px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-tinta);
+}
+.rango-dia::before {
+  content: "";
+  position: absolute;
+  inset: 3px 0;
+  z-index: -2;
+  background: transparent;
+  transition: background-color var(--t-resp) var(--ease-cayla);
+}
+.rango-dia::after {
+  content: "";
+  position: absolute;
+  inset: 2px 2px;
+  z-index: -1;
+  border-radius: 50%;
+  transition: background-color var(--t-resp) var(--ease-cayla), box-shadow var(--t-resp) var(--ease-cayla);
+}
+.rango-dia:disabled {
+  cursor: default;
+  opacity: 0.34;
+}
+/* Los que pasan de 30 días: rayados, no tachados. Apuntarlos dice «Pasa de 30 días» (title). */
+.rango-dia[data-largo]::after {
+  background: repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in srgb, var(--color-tinta) 14%, transparent) 4px 5px);
+}
+.rango-dia[data-tramo]::before {
+  background: color-mix(in srgb, var(--color-tinta) 9%, transparent);
+}
+.rango-dia[data-punta="inicio"]::before {
+  left: 50%;
+}
+.rango-dia[data-punta="fin"]::before {
+  right: 50%;
+}
+.rango-dia[data-izquierda]:not([data-punta="inicio"])::before {
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
+}
+.rango-dia[data-derecha]:not([data-punta="fin"])::before {
+  border-top-right-radius: 14px;
+  border-bottom-right-radius: 14px;
+}
+.rango-dia[data-hoy]::after {
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-tinta) 56%, transparent); /* contraste: gráfico sobre el vidrio de lo que flota */
+}
+.rango-dia[data-punta] {
+  color: var(--color-crema);
+}
+.rango-dia[data-punta]::after {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 86%, var(--color-taupe)), var(--color-tinta));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 30%, transparent), 0 8px 14px -8px var(--color-sombra);
+}
+@media (hover: hover) {
+  .rango-dia:not(:disabled):not([data-punta]):hover::after {
+    background: color-mix(in srgb, var(--color-tinta) 10%, transparent);
+  }
+}
+@media (pointer: coarse) {
+  .rango-dia {
+    height: 44px;
+  }
+}
+
+/* «El equipo»: la pila mide su caja; las caras que no caben se cuentan en «+N», que abre la lista con nombre (PilaDelEquipo.tsx). */
+.mesa-pila {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+.mesa-pila-caras {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+}
+.mesa-pila-caras > .mesa-persona-boton {
+  flex: none;
+}
+.mesa-pila-caras > .mesa-persona-boton .avatar {
+  box-shadow: 0 0 0 2px var(--color-papel);
+}
+.mesa-pila-caras > .mesa-persona-boton + .mesa-persona-boton {
+  margin-left: -6px;
+}
+.mesa-persona-boton[aria-pressed="true"] .avatar {
+  box-shadow: 0 0 0 2px var(--color-papel), 0 0 0 4px var(--c);
+}
+@media (hover: hover) {
+  .mesa-pila-caras:hover > .mesa-persona-boton + .mesa-persona-boton {
+    margin-left: 2px;
+  }
+}
+.mesa-pila-mas {
+  flex: none;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-tinta);
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz), 0 0 0 1px var(--color-borde-control);
+}
+.mesa-pila-mas[aria-pressed="true"],
+.mesa-pila-mas[aria-expanded="true"] {
+  box-shadow: var(--gota-luz), 0 0 0 2px var(--color-tinta);
+}
+.mesa-pila-mas:focus-visible,
+.mesa-pila-fila:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+}
+.mesa-pila-lista {
+  position: fixed;
+  display: grid;
+  width: min(284px, calc(100vw - 16px));
+  max-height: min(320px, 60dvh);
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid var(--serena-borde);
+  border-radius: 22px;
+  background: var(--vidrio-flota-fondo);
+  -webkit-backdrop-filter: var(--vidrio-flota-filtro);
+  backdrop-filter: var(--vidrio-flota-filtro);
+  box-shadow: var(--vidrio-flota-sombra);
+}
+.mesa-pila-fila {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border-radius: 14px;
+  text-align: left;
+  font-size: 14px;
+  color: var(--color-tinta);
+}
+.mesa-pila-fila[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--color-tinta) 10%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--color-tinta);
+}
+.mesa-pila-fila .avatar {
+  background: var(--c);
+  color: var(--color-crema-fija);
+}
+.mesa-pila-punto {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--tono, transparent);
+}
+@media (hover: hover) {
+  .mesa-pila-fila:not([aria-pressed="true"]):hover {
+    background: color-mix(in srgb, var(--color-tinta) 6%, transparent);
+  }
+}

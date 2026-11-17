@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { AvatarPersona, PilaPersonas } from "@/components/ui/AvatarPersona";
 import { CifraAnimada } from "@/components/ui/CifraAnimada";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import type { LecturaRitmo } from "@/lib/rendimiento-meta-reglas";
 import { cierreSimulado, simuladorDeCierre, type MedidaGrupo, type MedidaPersona } from "@/lib/rendimiento-vista-reglas";
 import type { DiaSerie } from "@/lib/rendimiento-meta-reglas";
+import { PilaDelEquipo } from "./PilaDelEquipo";
 
 const SOLES = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN", maximumFractionDigits: 0 });
 const NUMERO = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
@@ -227,25 +227,7 @@ export function CifrasRendimiento({ grupo, quien, tramoTexto, trazo, serieMes, h
           <TarjetaCifra
             etiqueta="El equipo"
             valor={
-              <PilaPersonas>
-                {medidas.map((m) => (
-                  <button
-                    key={m.personaId}
-                    type="button"
-                    className="mesa-persona-boton"
-                    style={{ "--c": colores.get(m.personaId) } as CSSProperties}
-                    title={m.nombre}
-                    aria-label={`Ver a ${m.nombre}`}
-                    aria-pressed={elegidas.includes(m.personaId)}
-                    data-apagada={elegidas.length > 0 && !elegidas.includes(m.personaId) ? "" : undefined}
-                    data-persona={m.personaId}
-                    disabled={!conPersonas}
-                    onClick={() => onPersona(m.personaId)}
-                  >
-                    <AvatarPersona personaId={m.personaId} nombre={m.nombre} tamano={32} />
-                  </button>
-                ))}
-              </PilaPersonas>
+              <PilaDelEquipo medidas={medidas} colores={colores} elegidas={elegidas} conPersonas={conPersonas} tonoLectura={(l) => TONO_LECTURA[l]} onPersona={onPersona} />
             }
             pie={
               hayLecturas ? (
