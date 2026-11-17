@@ -148,8 +148,10 @@ export function EnviosDeLaSede({
           const detalle = [marcas ? deQuien : null, f.sinAviso ? "llegó sin aviso" : null].filter(Boolean).join(" · ");
           return (
             <span className="block min-w-0">
-              <button type="button" className="block max-w-full truncate text-left font-medium text-tinta" title={f.marcas.length ? `Marca${f.marcas.length === 1 ? "" : "s"}: ${f.marcas.join(", ")}` : undefined}>
-                {titulo}
+              {/* `area-dedo`: con el dedo, el nombre se toca en 44 px sin cambiar su dibujo (ADR-0611). El corte con «…» va en el texto de
+                  adentro: en el botón recortaría también esa área. */}
+              <button type="button" className="area-dedo block max-w-full text-left font-medium text-tinta" title={f.marcas.length ? `Marca${f.marcas.length === 1 ? "" : "s"}: ${f.marcas.join(", ")}` : undefined}>
+                <span className="block truncate">{titulo}</span>
               </button>
               <span className="tv-sub truncate" title={f.proveedores.length > 1 ? f.proveedores.join(", ") : undefined}>
                 {titulo === codigo ? null : <span className="font-semibold tabular-nums text-tinta">{codigo}</span>}
@@ -271,7 +273,7 @@ export function EnviosDeLaSede({
   }
 
   return (
-    <section data-guia="recibir.envios" className="space-y-3" aria-labelledby="recibir-envios">
+    <section data-guia="recibir.envios" className="space-y-4" aria-labelledby="recibir-envios">
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <TituloSeccion id="recibir-envios" ayuda={<>Lo que Compras mandó a {sede} y lo que llegó sin aviso. Se cuenta modelo por modelo y entra a su almacén.</>}>
           Envíos · {sede}
