@@ -7,7 +7,7 @@ Al milímetro: $ARGUMENTS   (`diseñar <pieza>`, `auditar <ruta|pieza>`, `propon
 
 **Obligatoria (Felipe 2026-11-12):** pieza nueva → `diseñar` antes del código; cambio visual → `auditar` al terminar; auditoría de lo existente →
 `auditar`. El PR marca «pasó por `/milimetro`» con la ruta auditada, o el check «Al milímetro» sale rojo (`scripts/milimetro/casilla.mjs`).
-Deja la fila de la auditoría en `docs/milimetro/README.md`.
+La auditoría queda en su informe (`docs/milimetro/auditorias/<fecha>-<slug>.md`), **sin fila en `docs/milimetro/README.md`**: el CI la rechaza (ADR-0259, act. 2026-11-17).
 
 **Cada pieza del ERP se decide con un número, el token o la pieza del repo que lo cumple, una fuente con su nivel y la forma de medirlo. Lo que no se puede medir, no se afirma.**
 
@@ -133,7 +133,9 @@ Si un estado **no aplica**, la ficha lo dice con su motivo, por ejemplo «select
      una duración escrita a mano, una validación a la primera letra).
    - **Leve:** pulido de `[Práctica]` (1–2 px, una opacidad).
 4. **Entrega:** en el chat, primero los números («Botones: 2 graves, 1 media»), luego cada hallazgo como *qué · dónde · medido · regla · nivel · a quién va*,
-   y al final lo que no se midió. Archivo: `docs/milimetro/auditorias/<fecha>-<slug>.md`.
+   y al final lo que no se midió. Archivo: `docs/milimetro/auditorias/<fecha>-<slug>.md`. **Ese archivo es el único registro:** su título y su
+   línea `Resumen:` son su fila del tablero, que se arma desde la carpeta (`pnpm milimetro:auditorias`). No escribas una fila en
+   `docs/milimetro/README.md`: todas iban en la misma línea y el segundo PR en fusionarse chocaba siempre.
 
 ### `proponer`: el tablero de mejoras al repo, para que Felipe decida mirando
 
