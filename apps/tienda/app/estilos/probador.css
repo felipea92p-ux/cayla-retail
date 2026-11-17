@@ -28,11 +28,20 @@
 /* `clip` y no `hidden`: las que asoman a los lados salen de la escena, y con `hidden` el navegador la desplazaba de lado (un foco, un
    arrastre) y la figura quedaba corrida. `clip` no deja desplazarla nunca. */
 .pb-escena { position: relative; margin-top: 10px; aspect-ratio: 390 / 420; overflow: hidden; overflow: clip; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
-.pb-arco { position: absolute; left: 4.1%; right: 4.1%; top: 0; bottom: 0; border-radius: 179px 179px 4px 4px; background: radial-gradient(90% 70% at 50% 40%, var(--t-foto), var(--t-lamina)); box-shadow: inset 0 0 0 1px var(--sand); overflow: hidden; }
-.pb-arco-filo { position: absolute; inset: 10px; border-radius: 169px 169px 2px 2px; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--t-papel-fijo) 65%, transparent); }
+/* Los radios van en % (la mitad del ancho del arco, que en alto es el 42,6 %): con 179 px fijos, que es la medida del celular, en la computadora
+   (la figura mide 560 px) el arco quedaba con el techo plano. En el celular da los mismos 179 px. */
+.pb-arco { position: absolute; left: 4.1%; right: 4.1%; top: 0; bottom: 0; border-radius: 50% 50% 4px 4px / 42.6% 42.6% 4px 4px; background: radial-gradient(90% 70% at 50% 40%, var(--t-foto), var(--t-lamina)); box-shadow: inset 0 0 0 1px var(--sand); overflow: hidden; }
+.pb-arco-filo { position: absolute; inset: 10px; border-radius: 50% 50% 2px 2px / 42.25% 42.25% 2px 2px; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--t-papel-fijo) 65%, transparent); }
 .pb-piso { position: absolute; left: 50%; width: 54%; height: 22px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--t-tinta-fija) 14%, transparent), transparent); transition: top .55s var(--ease); }
 
-/* Las que siguen, asomando a los lados de la elegida. */
+/* Las que siguen, asomando a los lados de la elegida. Viven en una caja del tamaño del arco (`.pb-vecinas`) con un lienzo adentro del tamaño de la
+   escena (`-4.466 %` = 4,1 / 91,8), así sus medidas en % son las de siempre. En el celular claro la caja no recorta: salen del arco hasta el borde de la
+   pantalla, como en el lienzo. Se recortan al arco donde eso se veía roto (Felipe, 2026-11-16): en la computadora, porque la escena es una columna y la
+   prenda quedaba cortada en seco a media página; y de noche, porque fuera del arco la prenda al 32 % quedaba como una mancha sobre el fondo oscuro. */
+.pb-vecinas { position: absolute; left: 4.1%; right: 4.1%; top: 0; bottom: 0; pointer-events: none; }
+.pb-vecinas-lienzo { position: absolute; left: -4.466%; right: -4.466%; top: 0; bottom: 0; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pb-vecinas { overflow: hidden; border-radius: 50% 50% 4px 4px / 42.6% 42.6% 4px 4px; } }
+:root[data-theme="dark"] .pb-vecinas { overflow: hidden; border-radius: 50% 50% 4px 4px / 42.6% 42.6% 4px 4px; }
 .pb-vecina { position: absolute; opacity: .32; pointer-events: none; transition: left .55s var(--ease), top .55s var(--ease), width .55s var(--ease), height .55s var(--ease); }
 
 /* Cada prenda puesta: su caja a escala, el arrastre del dedo, el giro y la foto que entra. */
@@ -46,6 +55,11 @@
 .pb-pieza-foto { position: absolute; inset: 0; filter: drop-shadow(0 12px 14px var(--pb-sombra-prenda)); transition: filter .3s; }
 .pb-pieza[data-activa] .pb-pieza-foto { filter: drop-shadow(0 18px 18px color-mix(in srgb, var(--t-tinta-fija) 24%, transparent)); }
 .pb-recorte { object-fit: contain; pointer-events: none; -webkit-user-drag: none; }
+/* Al cambiar de prenda, la figura espera la foto nueva (`useFotosDeLaFigura`): la que se va se atenúa al instante (el toque se nota) y la nueva entra
+   cuando ya se puede pintar. Las fotos que están bajando van montadas pero sin verse, pedidas al mismo tamaño con que se van a ver. */
+.pb-pieza[data-saliendo] .pb-pieza-giro { opacity: .4; }
+.pb-precarga { position: absolute; left: 0; top: 0; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; }
+.pb-precarga > span { position: absolute; inset: 0; }
 
 /* Cómo entra: desde el lado del que vino, asomando (Sorpréndeme, o lo que vuelve al sacar un vestido) o fundida (otro color). Dos nombres
    iguales por tipo («-a» y «-b»): cambiar de nombre hace que la animación vuelva a empezar sin volver a montar la foto. */
@@ -75,7 +89,7 @@
    dice «Ajustando tu look…»; al llegar la medida el velo se levanta, el hilo deja su nudo y se va, y la etiqueta dice «✓ Listo». La etiqueta vive en una franja con
    alto reservado, fuera del estudio: con un pantalón largo las prendas llegan casi al piso y ahí taparía una prenda. Solo tokens. */
 .pb-figura { position: relative; }
-.pb-velo { position: absolute; left: 4.1%; right: 4.1%; top: 0; bottom: 0; border-radius: 179px 179px 4px 4px; background: var(--t-lamina); opacity: 0; z-index: 22; pointer-events: none; transition: opacity .5s var(--ease); }
+.pb-velo { position: absolute; left: 4.1%; right: 4.1%; top: 0; bottom: 0; border-radius: 50% 50% 4px 4px / 42.6% 42.6% 4px 4px; background: var(--t-lamina); opacity: 0; z-index: 22; pointer-events: none; transition: opacity .5s var(--ease); }
 .pb-escena[data-fase="espera"] .pb-velo { opacity: .35; transition-duration: .3s; }
 /* «Sorpréndeme» se apaga mientras tanto: cambiaría lo que se está midiendo. Las flechas se atenúan pero siguen sirviendo. */
 .pb-escena[data-fase="espera"] .pb-sorpresa { opacity: .4; pointer-events: none; }
@@ -332,6 +346,7 @@
   /* La figura se queda a la vista mientras se recorren las opciones de la derecha. */
   .pb-figura { grid-area: escena; margin-top: 14px; width: 100%; max-width: 560px; position: sticky; top: 16px; align-self: start; }
   .pb-figura .pb-escena { margin-top: 0; }
+  .pb-vecinas { overflow: hidden; border-radius: 50% 50% 4px 4px / 42.6% 42.6% 4px 4px; }
   /* Lo que la tienda ya cumple, bajo el total y el botón (como en la ficha): bajo la figura, la figura fija lo taparía. */
   .pb-pie { grid-area: pie; padding: 18px 0 0; margin: 0; }
   .pb-pie .cp-promesas { border-top: 0; padding-top: 0; }

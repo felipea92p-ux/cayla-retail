@@ -475,6 +475,26 @@ describe("la medida la saca la tienda: dónde se pide (Safari 26 le mete ruido a
     }
   });
 
+  it("el recorte de una foto de «Catálogo con IA» también se mide (su nombre lleva el de la foto: `<id>.png.ia-<sello>.png`)", () => {
+    // Nombres reales de producción (2026-11-16): el Polo Hilo y el Chaleco Impermeable. Sin esto la ruta respondía 404 y no había unión.
+    const deIA = ["bdb14942-3239-4a37-a8f1-cdfcf4010eb8.png.ia-ddff168d.png", "82bdda4b-a999-4361-9a5d-b0cb127a3131.png.ia-8f7ac49f.png"];
+    for (const nombre of [...deIA, "b5595d2a-3d69-41ed-9d0c-d73355d476fb.jpg.ia-7ee8fc70.png", "b5595d2a-3d69-41ed-9d0c-d73355d476fb.jpeg.ia.png"]) {
+      expect(esNombreDeRecorte(nombre)).toBe(true);
+    }
+    expect(direccionDeLaMedida(url.replace(RECORTE, deIA[0]))).toBe(`/api/medida/${deIA[0]}?v=${VERSION_DE_LA_MEDIDA}`);
+    // El tramo de la foto de IA no abre la puerta a carpetas, rutas relativas ni otros archivos.
+    for (const malo of [
+      "b5595d2a-3d69-41ed-9d0c-d73355d476fb.png.ia-7ee8fc70.svg",
+      "b5595d2a-3d69-41ed-9d0c-d73355d476fb..ia-7ee8fc70.png",
+      "b5595d2a-3d69-41ed-9d0c-d73355d476fb.png.ia/7ee8fc70.png",
+      "b5595d2a-3d69-41ed-9d0c-d73355d476fb.png.ia-../x.png",
+      "b5595d2a-3d69-41ed-9d0c-d73355d476fb.png.otra-7ee8fc70.png",
+      "b5595d2a-3d69-41ed-9d0c-d73355d476fb.png.ia-7ee8fc70.png/..",
+    ]) {
+      expect(esNombreDeRecorte(malo)).toBe(false);
+    }
+  });
+
   it("la ruta baja el recorte del almacén de la tienda, sin importar de qué host llegó el nombre", () => {
     expect(urlDelRecorte("https://tienda.supabase.co/", RECORTE)).toBe(`https://tienda.supabase.co/storage/v1/object/public/retail-productos-fotos/recortes/${RECORTE}`);
   });

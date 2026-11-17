@@ -647,6 +647,24 @@ export function puntoDe(zona: Zona, c: Caja): { x: number; y: number } {
   return { x: c.x + c.w - 14, y: c.y + 14 };
 }
 
+/** El ancho de la escena (px de pantalla) en la computadora y su tope en el celular (`.pb-figura` y `.pb`, en `probador.css`), y desde qué ancho es computadora. */
+const ESCENA_EN_PC = 560;
+const ESCENA_EN_CELULAR = 440;
+const ANCHO_DE_PC = 960;
+/** La unión puede agrandar una prenda después de pedida su foto (una blusa, hasta ×1,35): se pide con esta holgura para que no se vea borrosa. */
+const HOLGURA_DEL_TAMANO = 1.2;
+
+/**
+ * El tamaño con que se pide el recorte de una prenda para la figura (el `sizes` de la imagen), a partir de su caja POR SU LARGO (`cajaDe`), no de la
+ * que termina dibujada. Así el pedido es el mismo siempre para la misma prenda —puesta, asomando a un lado o precargada—: la que asoma ya dejó bajada
+ * la foto que se va a ver al pasarla, y la unión, que cambia la caja cuando llega su medida, no hace bajar la foto otra vez. En la computadora la
+ * figura mide 560 px, no los 440 del celular: antes se pedía chica y se estiraba.
+ */
+export function tamanoEnLaFigura(c: Caja): string {
+  const parte = (c.w / ESCENA.ancho) * HOLGURA_DEL_TAMANO;
+  return `(min-width: ${ANCHO_DE_PC}px) ${Math.round(parte * ESCENA_EN_PC)}px, (min-width: ${ESCENA_EN_CELULAR}px) ${Math.round(parte * ESCENA_EN_CELULAR)}px, ${Math.round(parte * 100)}vw`;
+}
+
 /** Una medida del lienzo como % del ancho o del alto de la escena. */
 export const enAncho = (px: number): string => `${((px / ESCENA.ancho) * 100).toFixed(3)}%`;
 export const enAlto = (px: number): string => `${((px / ESCENA.alto) * 100).toFixed(3)}%`;

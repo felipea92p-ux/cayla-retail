@@ -15,22 +15,27 @@ import {
   NOMBRE_ZONA,
   presentes,
   puntoDe,
+  tamanoEnLaFigura,
   vecinaDe,
   vecinasDe,
   ESCENA,
-  type Caja,
   type Look,
   type PrendaDelProbador,
   type Zona,
 } from "@/lib/probador";
+import { entradasQueSeVen, fotosDelLook, fotosQueSeMiden, zonasQueCambian, type EntradaVista } from "@/lib/fotos-de-la-figura";
 import { Icono } from "../Icono";
 import { Recorte } from "./Recorte";
 import { useFaseDelAjuste } from "./useFaseDelAjuste";
-import { useUnionDeLaFigura } from "./useUnionDeLaFigura";
+import { fotoLista, useFotosDeLaFigura } from "./useFotosDeLaFigura";
+import { useMedidasListas, useUnionDeLaFigura } from "./useUnionDeLaFigura";
 
 export type TipoDeEntrada = "der" | "izq" | "asoma" | "tinte";
 /** Cómo entró la última prenda de una zona; `vuelta` cambia en cada cambio para que la animación vuelva a empezar. */
 export type Entrada = { tipo: TipoDeEntrada; vuelta: number };
+
+/** Lo que la figura tiene dibujado: el outfit cuyas fotos ya llegaron y cómo entró cada prenda (con la cuenta de entradas de la figura). */
+type LoVisto = { look: Look; entradas: Partial<Record<Zona, EntradaVista<Entrada>>> };
 
 /** Cuánto espera cada zona cuando asoman varias a la vez (Sorpréndeme): de arriba abajo, como se viste una persona. */
 const ESPERA: Record<Zona, number> = { vestido: 0, arriba: 0, abajo: 70, encima: 140, bolso: 210 };
@@ -38,22 +43,21 @@ const ESPERA: Record<Zona, number> = { vestido: 0, arriba: 0, abajo: 70, encima:
 const UMBRAL_DEL_GESTO = 48;
 const UMBRAL_DEL_ARRASTRE = 8;
 
-/** Qué tan ancha se ve una caja del lienzo en la pantalla (el `sizes` del recorte). */
-const tamanoDe = (c: Caja) => `(min-width: 440px) ${Math.round((c.w / ESCENA.ancho) * 440)}px, ${Math.round((c.w / ESCENA.ancho) * 100)}vw`;
-
 /**
  * La figura del probador (lienzo v3, `V3Probador`): cada prenda puesta a escala desde su línea, la elegida un poco más grande y con su
  * sombra, las que siguen asomando a los lados, el número de cada una (con su candado si está fija), las flechas y «Sorpréndeme». Se
  * desliza con el dedo (o el mouse) sobre la prenda que se quiere cambiar; con el teclado, las flechas ← → sobre la prenda.
+ * Una prenda nueva entra recién cuando su foto ya se puede pintar: mientras baja, se ve el outfit de antes con la que se va atenuada y, si
+ * tarda, la figura lo dice («Ajustando tu outfit…»). Lo demás de la pantalla (la lista, el precio) cambia al instante.
  */
 export function Figura({
-  look,
+  look: lookPedido,
   indice,
   prendas,
   recordados,
   zona,
   fijos,
-  entradas,
+  entradas: entradasPedidas,
   numero,
   onElegir,
   onMover,
@@ -76,12 +80,27 @@ export function Figura({
   const ignorarClic = useRef(false);
   const [arrastre, setArrastre] = useState<{ zona: Zona; dx: number } | null>(null);
 
+  // El outfit que se dibuja es el pedido solo si ya llegaron sus fotos y sus medidas (así entra ya unido); si no, el que se venía viendo (con sus
+  // entradas), mientras las fotos bajan escondidas.
+  const pedidas = fotosDelLook(lookPedido, indice);
+  const medidasListas = useMedidasListas(fotosQueSeMiden(pedidas));
+  const { visto, esperando, faltan, demorada } = useFotosDeLaFigura(
+    { look: lookPedido, entradas: entradasPedidas },
+    lookPedido,
+    pedidas,
+    medidasListas,
+    (antes: LoVisto | null, pedido) => ({ look: pedido.look, entradas: entradasQueSeVen(antes?.entradas ?? {}, pedido.entradas) }),
+  );
+  const { look, entradas } = visto;
+  const saliendo = esperando ? zonasQueCambian(look, lookPedido) : [];
+
   const piezasPorLargo = presentes(look).flatMap((z) => {
     const pieza = look[z]!;
     const p = indice.get(pieza.id);
     if (!p) return [];
     const c = colorDeLaPieza(p, pieza);
-    return [{ z, p, c, caja: cajaDe(z, p.largo, c.foto.proporcion) }];
+    const caja = cajaDe(z, p.largo, c.foto.proporcion);
+    return [{ z, p, c, caja, tamanos: tamanoEnLaFigura(caja) }];
   });
   // Las fotos que probablemente se vean pronto (las vecinas de arriba y de abajo): se miden en segundo plano para que la unión sea inmediata.
   const cercanas = (["arriba", "abajo"] as const).flatMap((z) => {
@@ -90,8 +109,9 @@ export function Figura({
   });
   // La prenda de abajo se une a la de arriba: su pretina coincide con el borde de abajo de la otra (ADR-0449). `ajustando`: la medida tarda y se avisa.
   const { piezas, ajustando, hilo } = useUnionDeLaFigura(piezasPorLargo, cercanas);
-  // Mientras espera la medida: el hilo cose la cintura, la escena se atenúa y una etiqueta, debajo del arco, dice «Ajustando tu look…» (B1, ADR-0449 act. 2026-10-22).
-  const fase = useFaseDelAjuste(ajustando);
+  // Mientras espera la medida o la foto de la prenda que entra: el hilo cose la cintura, la escena se atenúa y una etiqueta, debajo del arco, dice
+  // «Ajustando tu outfit…» (B1, ADR-0449 act. 2026-10-22; la espera de la foto usa lo mismo desde el 2026-11-16).
+  const fase = useFaseDelAjuste(ajustando || demorada);
   // Si lo más largo no cabe, toda la figura se achica igual (las prendas siguen a escala entre ellas).
   const k = escalaDe(piezas.map((x) => x.caja));
   const dibujadas = piezas.map((x) => ({ ...x, caja: achicar(x.caja, k) }));
@@ -104,7 +124,9 @@ export function Figura({
     elegida && zona !== "bolso"
       ? vecinasDe(prendas, zona, elegida.p.id).map(({ lado, prenda }) => {
           const c = colorPara(prenda, recordados);
-          return { lado, prenda, c, caja: achicar(cajaVecina(cajaDe(zona, prenda.largo, c.foto.proporcion), lado), k) };
+          const porLargo = cajaDe(zona, prenda.largo, c.foto.proporcion);
+          // Pide la foto al tamaño con que se verá puesta, no al chico con que asoma: al pasarla con la flecha ya está bajada.
+          return { lado, prenda, c, caja: achicar(cajaVecina(porLargo, lado), k), tamanos: tamanoEnLaFigura(porLargo) };
         })
       : [];
   const hayFlechas = elegida !== null && vecinaDe(prendas, zona, elegida.p.id, 1) !== null;
@@ -173,18 +195,22 @@ export function Figura({
         <span className="pb-piso" style={{ top: enAlto(piso) }} />
       </div>
 
-      {vecinas.map((v) => (
-        <span
-          key={`${v.lado}-${v.prenda.id}`}
-          className="pb-vecina"
-          aria-hidden="true"
-          style={{ left: enAncho(v.caja.x), top: enAlto(v.caja.y), width: enAncho(v.caja.w), height: enAlto(v.caja.h) }}
-        >
-          <Recorte foto={v.c.foto} tamanos={tamanoDe(v.caja)} />
+      {/* Las que asoman: en el celular claro salen del arco hasta el borde de la pantalla; en la computadora y de noche se recortan al arco (`.pb-vecinas`). */}
+      <span className="pb-vecinas" aria-hidden="true">
+        <span className="pb-vecinas-lienzo">
+          {vecinas.map((v) => (
+            <span
+              key={`${v.lado}-${v.prenda.id}`}
+              className="pb-vecina"
+              style={{ left: enAncho(v.caja.x), top: enAlto(v.caja.y), width: enAncho(v.caja.w), height: enAlto(v.caja.h) }}
+            >
+              <Recorte foto={v.c.foto} tamanos={v.tamanos} alTerminar={() => fotoLista(v.c.foto.url)} />
+            </span>
+          ))}
         </span>
-      ))}
+      </span>
 
-      {dibujadas.map(({ z, p, c, caja }) => {
+      {dibujadas.map(({ z, p, c, caja, tamanos }) => {
         const activa = z === zona;
         const dx = arrastre?.zona === z ? arrastre.dx : 0;
         const entrada = entradas[z];
@@ -195,6 +221,7 @@ export function Figura({
             type="button"
             className="pb-pieza"
             data-activa={activa ? "" : undefined}
+            data-saliendo={saliendo.includes(z) ? "" : undefined}
             aria-pressed={activa}
             aria-label={`${numero[z]}. ${NOMBRE_ZONA[z]}: ${p.nombre}, ${c.nombre}. ${activa ? "Desliza para cambiarla" : "Tócala para cambiarla"}`}
             style={{
@@ -220,7 +247,7 @@ export function Figura({
             >
               <span className="pb-pieza-giro" style={{ transform: `rotate(${GIRO[z]}deg) scale(${activa ? 1.03 : 1})` }}>
                 <span className={`pb-pieza-foto ${clase}`} style={entrada?.tipo === "asoma" ? { animationDelay: `${ESPERA[z]}ms` } : undefined}>
-                  <Recorte foto={c.foto} tamanos={tamanoDe(caja)} pronto />
+                  <Recorte foto={c.foto} tamanos={tamanos} pronto alTerminar={() => fotoLista(c.foto.url)} />
                 </span>
               </span>
             </span>
@@ -236,6 +263,17 @@ export function Figura({
           </span>
         );
       })}
+
+      {/* Las fotos del outfit que está por entrar: bajan escondidas, pedidas igual que se van a ver. */}
+      {faltan.length > 0 && (
+        <span className="pb-precarga" aria-hidden="true">
+          {faltan.map((f) => (
+            <span key={f.url}>
+              <Recorte foto={f.foto} tamanos={f.tamanos} pronto alTerminar={() => fotoLista(f.url)} />
+            </span>
+          ))}
+        </span>
+      )}
 
       <span className="pb-velo" aria-hidden="true" />
       {fase !== "quieto" && costura && trazo && (
