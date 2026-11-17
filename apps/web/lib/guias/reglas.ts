@@ -67,7 +67,7 @@ export function rutaCoincide(patron: string, pathname: string): boolean {
 }
 
 /** La guía de la pantalla abierta, o null. Una ruta exacta gana a una con `[id]`. */
-export function guiaDeRuta(pathname: string, guias: readonly Guia[]): Guia | null {
+export function guiaDeRuta<G extends Pick<Guia, "ruta">>(pathname: string, guias: readonly G[]): G | null {
   const exacta = guias.find((g) => !g.ruta.includes("[") && rutaCoincide(g.ruta, pathname));
   return exacta ?? guias.find((g) => rutaCoincide(g.ruta, pathname)) ?? null;
 }
