@@ -6,7 +6,7 @@
 // («p1», «p2»…) de la lista que se le mandó, y `revisarInforme` descarta toda cita que no esté en esa lista. Una mejora que se queda sin
 // citas no se guarda. Cuántas preguntas la sostienen y de qué sedes no lo dice la IA: lo calcula la base al leer, de las citas.
 
-import * as z from "zod/v4";
+import type { InformeDeLaIA } from "./informe-esquema";
 
 export const MODELO_INFORME = "claude-sonnet-5-5";
 /** Lo que se espera a la IA: nadie está mirando (lo arma el trabajo del lunes), pero la ruta tiene 60 s en Vercel. */
@@ -41,21 +41,8 @@ export function semanaDelInforme(ahora: number = Date.now()): { semana: string; 
   };
 }
 
-/** Lo que la IA devuelve, siempre con esta forma (salida estructurada). */
-export const InformeDeLaIA = z.object({
-  mejoras: z.array(
-    z.object({
-      tipo: z.enum(TIPOS_MEJORA),
-      /** Qué hacer, en una línea (máx. 80 letras). */
-      titulo: z.string(),
-      /** Por qué y qué cambia para la tienda, en dos o tres frases (máx. 300 letras), sin cifras. */
-      detalle: z.string(),
-      /** Las referencias («p1», «p7»…) de las preguntas que la sostienen, tal cual vinieron en la lista. */
-      preguntas: z.array(z.string()),
-    }),
-  ),
-});
-export type InformeDeLaIA = z.infer<typeof InformeDeLaIA>;
+// Lo que la IA devuelve (`InformeDeLaIA`, un esquema de zod) vive en `informe-esquema.ts`: lo usa solo el servidor. Aquí quedaba al alcance de
+// la tarjeta del informe, que dibuja el navegador, y con ella bajaba zod entero (52 KB) en «Preguntas del equipo» (ADR-0674 act. g).
 
 export const INSTRUCCIONES_INFORME = `Eres quien revisa, cada lunes, lo que el equipo de una cadena peruana de tiendas de ropa (tiendas en Trujillo, Arequipa y Lima, y un taller) le preguntó durante la semana a la ayuda de su sistema de gestión. Tu trabajo es decirle al dueño qué mejorar en el sistema para que la gente encuentre las cosas sola.
 

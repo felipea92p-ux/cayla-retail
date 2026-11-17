@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Merge } from "lucide-react";
-import { Aviso } from "@/components/ui/Aviso";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
+import { PendienteDeCabecera } from "@/components/PendienteDeCabecera";
 import {
   MOTIVO_DUPLICADO,
   type ParDuplicado,
@@ -16,8 +16,12 @@ import {
 
 /**
  * «N posibles fichas repetidas» en Catálogo ▸ Productos (ADR-0650, decisión 3): el sistema sugiere los pares que parecen la misma
- * prenda y la persona decide. «Revisar» abre la lista; cada par abre la hoja de fusión con las dos fichas, donde se ve todo antes de
+ * prenda y la persona decide. El botón abre la lista; cada par abre la hoja de fusión con las dos fichas, donde se ve todo antes de
  * confirmar. Nada se fusiona solo.
+ *
+ * Desde el 2026-11-17 (Felipe) ya no es una tarjeta de aviso: en el celular ocupaba casi media pantalla antes de la primera prenda. Es
+ * un botón más de la cabecera con su número y su latido (`PendienteDeCabecera`). La frase que explicaba («no se pierden ventas, fotos
+ * ni stock») vive ahora en la hoja que se abre, donde se usa.
  */
 export function PosiblesDuplicados({ pares }: { pares: ParDuplicado[] }) {
   const [lista, setLista] = useState(false);
@@ -25,36 +29,27 @@ export function PosiblesDuplicados({ pares }: { pares: ParDuplicado[] }) {
     null,
   );
   if (pares.length === 0) return null;
+  const titulo =
+    pares.length === 1
+      ? "1 posible ficha repetida"
+      : `${pares.length.toLocaleString("es-PE")} posibles fichas repetidas`;
   return (
     <>
-      <Aviso
+      <PendienteDeCabecera
         guia="productos.posibles-duplicados"
-        tono="info"
-        titulo={
-          pares.length === 1
-            ? "1 posible ficha repetida"
-            : `${pares.length.toLocaleString("es-PE")} posibles fichas repetidas`
-        }
-        accion={
-          <button
-            type="button"
-            onClick={() => setLista(true)}
-            className="btn-cayla btn-enlace text-[13px]"
-          >
-            Revisar
-          </button>
-        }
-      >
-        Prendas con el nombre igual o casi igual. Si son la misma, fusiónalas:
-        las ventas, las fotos y el stock no se pierden.
-      </Aviso>
+        icono={<Merge aria-hidden className="h-4 w-4" />}
+        palabra="Fichas repetidas"
+        titulo={titulo}
+        n={pares.length}
+        onClick={() => setLista(true)}
+      />
       {lista && (
         <Modal
           variante="hoja"
           tamano="mediana"
           conCerrar
           titulo="Posibles fichas repetidas"
-          subtitulo="Revisa cada par. Si son la misma prenda, fusiónalas; si no, déjalas como están."
+          subtitulo="Si dos son la misma prenda, fusiónalas: no se pierden ventas, fotos ni stock."
           onClose={() => setLista(false)}
         >
           <ul className="divide-y divide-sand border-y border-sand">

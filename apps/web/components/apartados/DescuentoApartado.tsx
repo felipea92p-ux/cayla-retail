@@ -9,7 +9,7 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto, atributosPorcentajeTexto } from "@/components/ui/CampoMonto";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { money } from "@/components/PuntoDeVenta";
+import { money } from "@/lib/money";
 import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 import { RAZONES_DESCUENTO, RAZON_CAMPANA, totalDeLineas, type ModoDescuento } from "@/lib/vender-reglas";
 import {

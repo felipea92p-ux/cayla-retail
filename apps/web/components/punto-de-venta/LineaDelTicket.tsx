@@ -3,7 +3,8 @@
 import type { ReactNode } from "react";
 import { Percent, Trash2 } from "lucide-react";
 import type { CantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
-import { money, type ItemCarrito } from "@/components/PuntoDeVenta";
+import { money } from "@/lib/money";
+import type { ItemCarrito } from "@/components/PuntoDeVenta";
 import { filaDelTicket, type DetalleVariante, type TonoStock } from "@/lib/ticket-linea-reglas";
 import { textoDePrendaEnOtroTicket } from "@/lib/tickets-abiertos-reglas";
 import { Aviso } from "@/components/ui/Aviso";

@@ -57,7 +57,8 @@ import {
   type PrendaRecepcion,
   type ResultadoRecepcion,
 } from "@/lib/recepcion-envio-reglas";
-import { HojaPrenda, type DestinoHoja } from "./HojaPrenda";
+import type { DestinoHoja } from "./HojaPrenda";
+import { HojaPrendaBajoDemanda } from "@/components/recepcion-conteo/hojas-bajo-demanda";
 import { BotonAgregarExtra, TarjetaExtra, TarjetaLinea } from "./TarjetasRecepcion";
 
 // El formulario de la recepción de un envío abierto (ADR-0362, fase 4). Por cada línea: qué prenda es (nueva o una que ya existe), cuántas
@@ -452,7 +453,7 @@ export function FormularioRecepcion({
 
       {/* La hoja va FUERA del <form>: un submit que sube desde un modal llegaría al onSubmit de la recepción (CLAUDE.md, ADR-0128). */}
       {hoja && (
-        <HojaPrenda
+        <HojaPrendaBajoDemanda
           key={`${hoja.destino.modo}-${hoja.objetivo.tipo === "linea" ? hoja.objetivo.id : hoja.objetivo.clave}`}
           destino={hoja.destino}
           categoria={catalogo?.categorias.find((c) => c.id === hoja.destino.categoriaId) ?? null}

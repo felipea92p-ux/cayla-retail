@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { type DescuentoForm, type ItemCarrito, money } from "@/components/PuntoDeVenta";
+import { money } from "@/lib/money";
+import type { DescuentoForm, ItemCarrito } from "@/components/PuntoDeVenta";
 import { CabezaPaso } from "@/components/punto-de-venta/CabezaPaso";
 import { Casilla } from "@/components/ui/Casilla";
 import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto, atributosPorcentajeTexto } from "@/components/ui/CampoMonto";

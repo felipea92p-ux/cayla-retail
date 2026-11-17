@@ -14,6 +14,11 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.N
 // nueva» (ADR-0422, `lib/version-nueva-reglas.ts`). Fuera de Vercel (`next dev`) vale «desarrollo» y no se compara con nada.
 const versionDeEstaCompilacion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || "desarrollo";
 
+// Medir el peso en local (ADR-0674): `MEDIR_PESO=1 … next build` deja el mapa de cada archivo del navegador, y
+// `scripts/peso/por-modulo.mjs` dice cuántos KB pone cada archivo de fuente o librería. Nunca con la llave de Sentry a mano: en un
+// armado que publica, los mapas se suben a Sentry y se borran (ADR-0424), no se quedan junto al código.
+const MEDIR_PESO = process.env.MEDIR_PESO === "1" && !process.env.SENTRY_AUTH_TOKEN;
+
 const nextConfig: NextConfig = {
   // Solo en `next dev`: otros equipos de la misma red (celular de la tienda, otro computador) abren el ERP local por la IP de
   // esta máquina; sin esto Next 16 les bloquea los recursos de desarrollo (`/_next/*`, HMR) por venir de otro origen. No afecta
@@ -65,6 +70,10 @@ const nextConfig: NextConfig = {
   // ensucia cada arranque con un aviso y desalinea el rastreo de archivos entre local y
   // producción, que es justo la clase de diferencia que después cuesta horas entender.
   turbopack: { root: path.join(__dirname, "..", "..") },
+
+  // Solo para MEDIR en local (ADR-0674): ver `MEDIR_PESO`, arriba. La llave se agrega solo al medir: si existiera siempre (aunque
+  // fuera `false`), Sentry la tomaría por una decisión nuestra y dejaría de generar los mapas que sube en producción.
+  ...(MEDIR_PESO ? { productionBrowserSourceMaps: true } : {}),
 
   experimental: {
     // Caché del router del cliente: cuántos segundos puede reusarse una pantalla ya
@@ -173,7 +182,8 @@ export default withSentryConfig(nextConfig, {
   org: "cayla",
   project: "cayla-retail",
   authToken: process.env.SENTRY_AUTH_TOKEN,
-  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN, deleteSourcemapsAfterUpload: true },
+  // Al medir (`MEDIR_PESO`) los mapas se quedan en disco: Sentry los borra al terminar el armado aunque no suba nada.
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN, deleteSourcemapsAfterUpload: !MEDIR_PESO },
   widenClientFileUpload: true,
   silent: !process.env.CI,
   telemetry: false,

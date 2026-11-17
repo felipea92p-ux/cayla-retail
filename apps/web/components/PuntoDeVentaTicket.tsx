@@ -2,8 +2,7 @@
 
 import { duenosParaElegir, type UnidadesDeDueno } from "@/lib/dueno-reglas";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref, type RefObject } from "react";
-import { BadgePercent, Banknote, Check, CirclePause, CreditCard, Landmark, Percent, Play, QrCode, ShoppingBag, StickyNote, Star, Ticket, Trash2, Wallet, X } from "lucide-react";
-import type { MetodoPagoVenta } from "@cayla-retail/shared";
+import { BadgePercent, Check, CirclePause, Percent, Play, ShoppingBag, StickyNote, Star, Ticket, Trash2, Wallet, X } from "lucide-react";
 import type { TipoComprobante } from "@/lib/comprobantes-reglas";
 import { desgloseIgv, pasoDelCobro, totalDeLineas, type MomentoTicket } from "@/lib/vender-reglas";
 import { cuentaDelDescuento } from "@/lib/descuento-cuenta-reglas";
@@ -15,7 +14,8 @@ import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { nombreDeEspera } from "@/lib/vender-hoy-reglas";
-import { money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
+import { money } from "@/lib/money";
+import type { DescuentoForm, ItemCarrito, PagoAplicado, TicketEnEspera } from "@/components/PuntoDeVenta";
 import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
 import { PieDeGrupo } from "@/components/punto-de-venta/PieDeGrupo";
 import { lineaSinSuRebaja, type GrupoEnTicket } from "@/lib/ofertas-de-grupo";
@@ -57,57 +57,6 @@ const ID_MOTIVO = "ticket-motivo-bloqueo";
  *  azul de las marcas: el sistema tiene tres colores y el rojo es acento, no logo. */
 const ICONO = "h-5 w-5 shrink-0";
 const ICONO_CHICO = "h-3.5 w-3.5 shrink-0";
-
-/** Yape: la burbuja rellena con «S/» adentro, como su isotipo. */
-function IconoYape({ className }: { className?: string }) {
-  return (
-    <svg aria-hidden viewBox="0 0 24 24" className={className} fill="currentColor">
-      <path d="M12 2.5a8.5 8.5 0 0 0-6.3 14.2l-.6 4.1a.6.6 0 0 0 .9.6l3.5-2.1A8.5 8.5 0 1 0 12 2.5Z" />
-      <text x="12" y="14.4" textAnchor="middle" fontSize="8" fontWeight="700" fontFamily="ui-sans-serif, system-ui, sans-serif" className="fill-papel">
-        S/
-      </text>
-    </svg>
-  );
-}
-
-/** Plin: la burbuja en trazo con la palabra adentro, como su isotipo. */
-function IconoPlin({ className }: { className?: string }) {
-  return (
-    <svg aria-hidden viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinejoin="round">
-      <path d="M12 3a8.8 8.8 0 0 1 0 17.6c-1.4 0-2.7-.3-3.9-.9L4 21l.8-3.6A8.8 8.8 0 0 1 12 3Z" />
-      <text x="12" y="14.3" textAnchor="middle" fontSize="6.5" fontWeight="700" fontFamily="ui-sans-serif, system-ui, sans-serif" fill="currentColor" stroke="none">
-        plin
-      </text>
-    </svg>
-  );
-}
-
-/** El ícono de un medio, al tamaño que pida quien lo pinta: los cuadrados de la hoja de cobro lo quieren llenando el cuadro. */
-export function iconoMetodo(m: MetodoPagoVenta, className: string): React.ReactNode {
-  switch (m) {
-    case "efectivo":
-      return <Banknote className={className} aria-hidden />;
-    case "tarjeta":
-      return <CreditCard className={className} aria-hidden />;
-    case "qr":
-      return <QrCode className={className} aria-hidden />;
-    case "yape":
-      return <IconoYape className={className} />;
-    case "plin":
-      return <IconoPlin className={className} />;
-    case "transferencia":
-      return <Landmark className={className} aria-hidden />;
-  }
-}
-
-export const ICONO_METODO: Record<MetodoPagoVenta, React.ReactNode> = {
-  efectivo: iconoMetodo("efectivo", ICONO),
-  tarjeta: iconoMetodo("tarjeta", ICONO),
-  qr: iconoMetodo("qr", ICONO),
-  yape: iconoMetodo("yape", ICONO),
-  plin: iconoMetodo("plin", ICONO),
-  transferencia: iconoMetodo("transferencia", ICONO),
-};
 
 // Los colores de cada método viven en `globals.css` (`.metodo-efectivo`, …): los mismos tokens
 // que usa la dona de «Métodos de pago» de Caja, para que un método se reconozca con el mismo color

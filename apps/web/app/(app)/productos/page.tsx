@@ -4,7 +4,7 @@ import { EsperaPantalla } from "@/components/ui/Espera";
 import { getPendientesDeLaSede } from "@/lib/recepcion-conteo";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { BadgePercent, LayoutGrid, Rows3, SignpostBig } from "lucide-react";
+import { BadgePercent, ClipboardCheck, LayoutGrid, PackagePlus, Plus, Rows3, SignpostBig } from "lucide-react";
 import { exigirModulo, puede, veCostoDePrendaDe, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
@@ -34,7 +34,7 @@ import { COOKIE_PANEL_FILTROS, leerPanelFiltros } from "@/lib/panel-filtros";
 import { compararTallas } from "@/lib/tallas";
 import { BotonEnlace } from "@/components/ui/campos";
 import { urlRotulos } from "@/lib/rotulos-reglas";
-import { Aviso } from "@/components/ui/Aviso";
+import { PendienteDeCabecera } from "@/components/PendienteDeCabecera";
 import { getPorRevisarResumen } from "@/lib/revisar-productos-datos";
 import { getPosiblesDuplicados } from "@/lib/posibles-duplicados";
 import { PosiblesDuplicados } from "@/components/fusionar-productos/PosiblesDuplicados";
@@ -237,6 +237,7 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
         titulo="Productos"
         subtitulo="Cada prenda del catálogo con sus colores, tallas, precios y cuántas hay en tu sede."
         ayuda={ayudaProductos}
+        accionesLlenan
         acciones={
           <>
             {/* Grilla o Tabla muestran el mismo catálogo de otra forma: el segmento de modo del sistema, con su icono y su
@@ -254,65 +255,63 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
             />
             {/* Rótulos de anaquel (ADR-0366) a la vista sin marcar nada (Felipe, 2026-10-09: «no encuentro el botón»): abre su buscador
                 y «Volver» regresa a esta misma vista. Con prendas marcadas, la barra de abajo los lleva ya elegidos. */}
-            {/* En el celular las tres acciones van en UNA fila (2026-10-09): Grilla/Tabla y Rótulos quedan en su ícono, con la
-                palabra para el lector de pantalla y al pasar el mouse; «Nuevo producto» conserva la suya. */}
-            <BotonEnlace href={urlRotulos([], { productos: hrefConVista(vista) }) ?? "/rotulos"} peso="fantasma" title="Rótulos" className="max-sm:!px-3" data-guia="productos.rotulos">
+            {/* En el celular todas las acciones van en UNA fila de íconos (2026-10-09; desde el 2026-11-17 también «Nuevo producto»,
+                Felipe): cada una conserva su palabra para el lector de pantalla, al pasar el mouse y desde 640 px. «Nuevo producto» parte
+                de 44 px, como los demás, y se estira hasta el margen con lo que sobre en cada teléfono (`max-sm:grow` + `accionesLlenan`):
+                4 px en uno de 350, 29 en uno de 375, 84 en uno de 430. Con un ancho fijo de 58 px se caía solo a otra fila a 350 px. */}
+            <BotonEnlace href={urlRotulos([], { productos: hrefConVista(vista) }) ?? "/rotulos"} peso="fantasma" title="Rótulos" className="max-sm:min-w-11 max-sm:!px-3" data-guia="productos.rotulos">
               <SignpostBig aria-hidden className="h-4 w-4" />
               <span className="max-sm:sr-only">Rótulos</span>
             </BotonEnlace>
             {/* ADR-0641: las prendas cuyo precio conviene mirar, con su costo y sus parecidas; la IA propone, la persona aplica. */}
             {editaCatalogo && veCostoDePrendaDe(persona) && (
-              <BotonEnlace href="/productos/revisar-precios" peso="fantasma" title="Revisar precios" className="max-sm:!px-3" data-guia="productos.revisar-precios">
+              <BotonEnlace href="/productos/revisar-precios" peso="fantasma" title="Revisar precios" className="max-sm:min-w-11 max-sm:!px-3" data-guia="productos.revisar-precios">
                 <BadgePercent aria-hidden className="h-4 w-4" />
                 <span className="max-sm:sr-only">Revisar precios</span>
               </BotonEnlace>
             )}
+            {/* Lo pendiente del catálogo (Felipe 2026-11-17): un botón con su número y su latido por cada cosa, no una tarjeta de
+                aviso bajo la cabecera. Cada uno desaparece solo cuando no queda nada. */}
+            {/* ADR-0371: una prenda que se creó en un conteo o desde el Taller espera que quien edita el catálogo la apruebe o la
+                rechace; mientras tanto se puede vender. Vive aquí y no en la ficha (Felipe 2026-10-02). */}
+            {porRevisar !== null && porRevisar > 0 && (
+              <PendienteDeCabecera
+                guia="productos.por-revisar"
+                icono={<ClipboardCheck aria-hidden className="h-4 w-4" />}
+                palabra="Por revisar"
+                titulo={porRevisar === 1 ? "1 prenda por revisar" : `${porRevisar.toLocaleString("es-PE")} prendas por revisar`}
+                n={porRevisar}
+                href="/productos/por-revisar"
+              />
+            )}
+            {/* Las fichas que parecen repetidas (ADR-0650). */}
+            {posiblesDuplicados && posiblesDuplicados.length > 0 && <PosiblesDuplicados pares={posiblesDuplicados} />}
+            {/* ADR-0393 (decisión 4): lo que llegó y se contó como «nuevo» espera su ficha. Se crea desde Recibir («Crear ahora»),
+                con las tallas y colores que llegaron: así la prenda nace con su stock contado. */}
+            {recibidoPorCrear && recibidoPorCrear.porCrear > 0 && (
+              <PendienteDeCabecera
+                guia="productos.por-crear"
+                icono={<PackagePlus aria-hidden className="h-4 w-4" />}
+                palabra="Por crear"
+                titulo={
+                  recibidoPorCrear.porCrear === 1
+                    ? "1 prenda recibida por crear: se crea desde Recibir"
+                    : `${recibidoPorCrear.porCrear.toLocaleString("es-PE")} prendas recibidas por crear: se crean desde Recibir`
+                }
+                n={recibidoPorCrear.porCrear}
+                href="/recibir"
+              />
+            )}
             {editaCatalogo && (
-              <BotonEnlace href="/productos/nuevo" peso="primario" data-guia="productos.nuevo">
-                + Nuevo producto
+              <BotonEnlace href="/productos/nuevo" peso="primario" title="Nuevo producto" className="max-sm:min-w-11 max-sm:grow max-sm:!px-3" data-guia="productos.nuevo">
+                <Plus aria-hidden className="h-3.5 w-3.5 max-sm:h-4 max-sm:w-4" />
+                <span className="max-sm:sr-only">Nuevo producto</span>
               </BotonEnlace>
             )}
           </>
         }
       />
 
-
-      {porRevisar !== null && porRevisar > 0 && (
-        // ADR-0371: una prenda que se creó en un conteo o desde el Taller espera que quien edita el catálogo la apruebe o la rechace. Vive
-        // aquí y no en la ficha: Felipe quitó el aviso de Editar producto el 2026-10-02 («no me sirve»). No es una tarjeta de cifra porque
-        // esta pantalla no tiene fila de cifras; es un aviso que desaparece solo cuando no queda nada.
-        <Aviso
-          guia="productos.por-revisar"
-          tono="atencion"
-          titulo={porRevisar === 1 ? "1 prenda por revisar" : `${porRevisar.toLocaleString("es-PE")} prendas por revisar`}
-          accion={
-            <Link href="/productos/por-revisar" className="btn-cayla btn-enlace text-[13px]">
-              Revisar
-            </Link>
-          }
-        >
-          La propusieron en un conteo o desde el Taller. Mientras tanto se pueden vender.
-        </Aviso>
-      )}
-
-      {posiblesDuplicados && posiblesDuplicados.length > 0 && <PosiblesDuplicados pares={posiblesDuplicados} />}
-
-      {recibidoPorCrear && recibidoPorCrear.porCrear > 0 && (
-        // ADR-0393 (decisión 4): lo que llegó y se contó como «nuevo» espera su ficha. Se crea desde Recibir («Crear ahora»), con las
-        // tallas y colores que llegaron: así la prenda nace con su stock contado.
-        <Aviso
-          guia="productos.por-crear"
-          tono="info"
-          titulo={recibidoPorCrear.porCrear === 1 ? "1 prenda recibida por crear" : `${recibidoPorCrear.porCrear.toLocaleString("es-PE")} prendas recibidas por crear`}
-          accion={
-            <Link href="/recibir" className="btn-cayla btn-enlace text-[13px]">
-              Crear desde Recibir
-            </Link>
-          }
-        >
-          Llegaron a {persona.ubicacionEtiqueta} y se contaron como nuevas: están en el almacén, pero no se pueden vender hasta crearlas.
-        </Aviso>
-      )}
 
       {/* Las prendas sin temporada ya no tienen aviso propio (Felipe 2026-11-13: ocupaba mucho para lo que decía): se filtran
           con «Por completar ▸ Sin temporada», junto a lo demás que le falta a la ficha. Se completan de a varias en Atributos ▸

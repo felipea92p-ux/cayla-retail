@@ -2,7 +2,8 @@
 
 import { Buscador } from "@/components/ui/Buscador";
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
-import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
+import { money } from "@/lib/money";
+import type { ItemCarrito, VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { PrendaCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { codigoPrenda } from "@/lib/prenda-reglas";

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CloudOff, TriangleAlert } from "lucide-react";
-import { money } from "@/components/PuntoDeVenta";
+import { money } from "@/lib/money";
 import { type VentaEncolada } from "@/lib/ventas-offline";
 import { totalDeLineas } from "@/lib/vender-reglas";
 

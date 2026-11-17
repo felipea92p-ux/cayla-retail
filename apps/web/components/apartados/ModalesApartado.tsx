@@ -21,7 +21,8 @@ import { DescuentoApartado } from "@/components/apartados/DescuentoApartado";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { Modal, botonCancelar, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
-import { money, type ItemCarrito } from "@/components/PuntoDeVenta";
+import { money } from "@/lib/money";
+import type { ItemCarrito } from "@/components/PuntoDeVenta";
 import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
 import { PieDeGrupo } from "@/components/punto-de-venta/PieDeGrupo";
 import type { GrupoEnTicket } from "@/lib/ofertas-de-grupo";
@@ -29,7 +30,7 @@ import type { GrupoEnTicket } from "@/lib/ofertas-de-grupo";
 /** Una fila de `previsualizar_edicion_separacion` (20261114032000): lo de antes por su id y lo que se suma como «nueva-…», con su parte del
  *  grupo y cuántas le faltan. */
 type VistaDeLinea = { ref: string; variante_id: string; cantidad: number | string; descuento_grupo_unitario: number | string; faltan: number | string | null };
-import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
+import { ICONO_METODO } from "@/components/punto-de-venta/iconoMetodo";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { diaLima, hoyLima } from "@/lib/fechas-lima";

@@ -2,12 +2,9 @@ import { createClient } from "@/lib/supabase/client";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import type { FirmaOmitida } from "@/lib/responsable-omitido";
 import type { ErrorDeBase } from "@/lib/ordenes-compra-acciones";
-import { leerErrorStorage, objecionArchivo, tipoDeArchivo } from "@/lib/adjuntos-compra";
-import { BUCKET_FOTOS_GASTO_VIAJE } from "@/lib/rendicion-reglas";
 import { fotoPrincipal } from "@/lib/inventario-reglas";
 import { leerPorTandasDeIds, tolerar } from "@/lib/resultado";
 import {
-  CARPETA_PAPELES,
   RPC_HABITUALES_PROVEEDOR,
   RPC_REGISTRAR_COMPRA_RAPIDA,
   RPC_REGISTRAR_MARCA_DE_COMPRA,
@@ -24,6 +21,8 @@ import {
 // (`firmaOmitida("compra_rapida")`); desde una terminal, el combo «Responsable».
 
 export type { ErrorDeBase };
+// La foto del papel se sube desde `lib/papel-de-compra-acciones.ts` (también la usa Recibir, ADR-0674); se sigue exportando desde aquí.
+export { subirFotoPapel } from "@/lib/papel-de-compra-acciones";
 
 /** Los habituales de un proveedor. `null` si no se pudo leer (la pantalla lo dice, no muestra «no le compras nada»). */
 export async function cargarHabituales(proveedorId: string): Promise<Habitual[] | null> {
@@ -55,18 +54,6 @@ export async function cargarFotosDeHabituales(productoIds: readonly string[]): P
     if (url) fotos.set(id, url);
   }
   return fotos;
-}
-
-/** Sube la foto del papel. `motivo` dice, en palabras de tienda, por qué no se subió. */
-export async function subirFotoPapel(archivo: File): Promise<{ ruta: string | null; motivo: string | null }> {
-  const objecion = objecionArchivo(archivo);
-  if (objecion) return { ruta: null, motivo: objecion };
-  const tipo = tipoDeArchivo(archivo)!;
-  const extension = (archivo.name.toLowerCase().split(".").pop() ?? "").replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg";
-  const ruta = `${CARPETA_PAPELES}${crypto.randomUUID()}.${extension}`;
-  const subida = await createClient().storage.from(BUCKET_FOTOS_GASTO_VIAJE).upload(ruta, archivo, { contentType: tipo, upsert: false });
-  if (subida.error) return { ruta: null, motivo: leerErrorStorage(subida.error.message) };
-  return { ruta, motivo: null };
 }
 
 export async function registrarCompraRapida(
