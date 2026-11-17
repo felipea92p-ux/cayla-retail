@@ -30,8 +30,10 @@ const COMPROBANTE = {
   venta: { estado: "completada" },
 };
 
+/** La sesión (lee y encola) y el servidor (la llave de servicio, ADR-0675: el único que escribe lo que respondió SUNAT). Cada
+ *  llamada anota quién la hizo. El servidor no lee nada: lo que se lee va con la sesión, para que RLS decida. */
 function clienteFalso(fila: Record<string, unknown> = COMPROBANTE) {
-  const rpcs: { fn: string; args: Record<string, unknown> }[] = [];
+  const rpcs: { fn: string; args: Record<string, unknown>; por: "sesion" | "servidor" }[] = [];
   const cadena = (tabla: string, columnas = "") => {
     const q = {
       select: (c: string) => cadena(tabla, c),
@@ -50,11 +52,20 @@ function clienteFalso(fila: Record<string, unknown> = COMPROBANTE) {
   const cliente = {
     from: (tabla: string) => cadena(tabla),
     rpc: async (fn: string, args: Record<string, unknown>) => {
-      rpcs.push({ fn, args });
+      rpcs.push({ fn, args, por: "sesion" });
       return { data: null, error: null };
     },
   };
-  return { cliente: cliente as unknown as Cliente, rpcs };
+  const servidor = {
+    from: () => {
+      throw new Error("el servidor no lee: lo que se lee va con la sesión");
+    },
+    rpc: async (fn: string, args: Record<string, unknown>) => {
+      rpcs.push({ fn, args, por: "servidor" });
+      return { data: null, error: null };
+    },
+  };
+  return { cliente: cliente as unknown as Cliente, servidor: servidor as unknown as Cliente, rpcs };
 }
 
 const XML_URL = "https://app.apisunat.pe/xml/1/abc/20000000001-03-B005-262";
@@ -101,8 +112,8 @@ const envios = (ll: Llamada[]) => ll.filter((l) => l.url.endsWith("/api/v3/docum
 describe("transmitirComprobante cuando Lucode ya tiene el número", () => {
   it("es la nuestra y SUNAT la aceptó: queda aceptada, en producción, sin reenviarla ni encolarla", async () => {
     const llamadas = lucodeFalso();
-    const { cliente, rpcs } = clienteFalso();
-    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" });
+    const { cliente, servidor, rpcs } = clienteFalso();
+    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" }, servidor);
 
     expect(r.status).toBe(200);
     expect(r.body).toMatchObject({ estado: "aceptado", entorno: "produccion", xmlUrl: XML_URL, ya_emitido: true });
@@ -110,6 +121,8 @@ describe("transmitirComprobante cuando Lucode ya tiene el número", () => {
     expect(llamadas[1].body).toEqual({ documento: "boleta", serie: "B005", numero: 262 });
     expect(envios(llamadas)).toBe(1);
     expect(rpcs.map((x) => x.fn)).toEqual(["actualizar_transmision_comprobante"]);
+    // Lo escribe el servidor, no la sesión de quien transmitió (ADR-0675).
+    expect(rpcs[0].por).toBe("servidor");
     expect(rpcs[0].args).toMatchObject({ p_comprobante_id: "c-262", p_estado: "aceptado", p_entorno: "produccion" });
     // La respuesta guardada conserva la forma que leen las pantallas (`pdfUrl`, `xmlUrl` en la raíz) y dice de dónde salió.
     expect(rpcs[0].args.p_respuesta_sunat).toMatchObject({
@@ -122,23 +135,23 @@ describe("transmitirComprobante cuando Lucode ya tiene el número", () => {
 
   it("SUNAT todavía no responde: queda «enviado» (sale de la cola y lo sigue la consulta del barrido)", async () => {
     lucodeFalso({ estado: { status: 200, json: { payload: { estado: "PENDIENTE", xml: XML_URL } } } });
-    const { cliente, rpcs } = clienteFalso();
-    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" });
+    const { cliente, servidor, rpcs } = clienteFalso();
+    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" }, servidor);
     expect(r.status).toBe(200);
     expect(rpcs).toEqual([expect.objectContaining({ fn: "actualizar_transmision_comprobante", args: expect.objectContaining({ p_estado: "enviado" }) })]);
   });
 
   it("SUNAT la rechazó: queda rechazada con el motivo de SUNAT", async () => {
     lucodeFalso({ estado: { status: 200, json: { message: "El RUC del emisor no está activo", payload: { estado: "RECHAZADO", xml: XML_URL } } } });
-    const { cliente, rpcs } = clienteFalso();
-    await transmitirComprobante(cliente, { comprobanteId: "c-262" });
+    const { cliente, servidor, rpcs } = clienteFalso();
+    await transmitirComprobante(cliente, { comprobanteId: "c-262" }, servidor);
     expect(rpcs[0].args).toMatchObject({ p_estado: "rechazado", p_motivo_rechazo: "El RUC del emisor no está activo" });
   });
 
   it("Lucode tiene OTRO documento con nuestro número: no se da por declarada, queda «número ocupado» con la diferencia", async () => {
     const llamadas = lucodeFalso({ xml: { status: 200, texto: xmlDePrueba({ total: "89.90", lineas: 2 }) } });
-    const { cliente, rpcs } = clienteFalso();
-    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" });
+    const { cliente, servidor, rpcs } = clienteFalso();
+    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" }, servidor);
 
     expect(r.status).toBe(409);
     expect(r.body).toMatchObject({
@@ -147,6 +160,8 @@ describe("transmitirComprobante cuando Lucode ya tiene el número", () => {
       error: "B005-262 ya existe en Lucode con otro total (S/ 89.90 en Lucode, S/ 15.00 aquí), otras líneas (2 en Lucode, 1 aquí).",
     });
     expect(rpcs.map((x) => x.fn)).toEqual(["fn_marcar_reintento_transmision"]);
+    // Devolver a la cola no es una respuesta de SUNAT: sigue con la sesión.
+    expect(rpcs[0].por).toBe("sesion");
     expect(rpcs[0].args.p_error).toBe(
       "numero_ocupado: otro total (S/ 89.90 en Lucode, S/ 15.00 aquí), otras líneas (2 en Lucode, 1 aquí)",
     );
@@ -155,8 +170,8 @@ describe("transmitirComprobante cuando Lucode ya tiene el número", () => {
 
   it("Lucode no responde al preguntarle el estado: sigue en la cola como «ya emitido», sin escribir un estado", async () => {
     lucodeFalso({ estado: "caido" });
-    const { cliente, rpcs } = clienteFalso();
-    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" });
+    const { cliente, servidor, rpcs } = clienteFalso();
+    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" }, servidor);
     expect(r).toMatchObject({ status: 502, body: { motivo: "ya_emitido", encolado: true } });
     expect(rpcs).toHaveLength(1);
     expect(rpcs[0].fn).toBe("fn_marcar_reintento_transmision");
@@ -165,8 +180,8 @@ describe("transmitirComprobante cuando Lucode ya tiene el número", () => {
 
   it("el estado dice que no existe (Lucode se contradice): tampoco se escribe un estado", async () => {
     lucodeFalso({ estado: { status: 400, json: { success: false, message: "La boleta B005-262 no está registrada" } } });
-    const { cliente, rpcs } = clienteFalso();
-    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" });
+    const { cliente, servidor, rpcs } = clienteFalso();
+    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" }, servidor);
     expect(r.body).toMatchObject({ motivo: "ya_emitido" });
     expect(rpcs.map((x) => x.fn)).toEqual(["fn_marcar_reintento_transmision"]);
   });
@@ -174,8 +189,8 @@ describe("transmitirComprobante cuando Lucode ya tiene el número", () => {
   it("aunque SUNAT diga ACEPTADO, sin XML legible no se da por aceptada", async () => {
     for (const xml of ["caido", { status: 404, texto: "Not found" }, { status: 200, texto: "<html>mantenimiento</html>" }] as const) {
       lucodeFalso({ xml });
-      const { cliente, rpcs } = clienteFalso();
-      const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" });
+      const { cliente, servidor, rpcs } = clienteFalso();
+      const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" }, servidor);
       expect(r.body).toMatchObject({ motivo: "ya_emitido" });
       expect(rpcs.map((x) => x.fn)).toEqual(["fn_marcar_reintento_transmision"]);
       vi.unstubAllGlobals();
@@ -184,8 +199,8 @@ describe("transmitirComprobante cuando Lucode ya tiene el número", () => {
 
   it("un XML en una dirección que no es de Lucode ni se descarga", async () => {
     const llamadas = lucodeFalso({ estado: { status: 200, json: { payload: { estado: "ACEPTADO", xml: "https://otro-sitio.example/x.xml" } } } });
-    const { cliente, rpcs } = clienteFalso();
-    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" });
+    const { cliente, servidor, rpcs } = clienteFalso();
+    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" }, servidor);
     expect(llamadas.some((l) => l.url.includes("otro-sitio"))).toBe(false);
     expect(r.body).toMatchObject({ motivo: "ya_emitido" });
     expect(String(rpcs[0].args.p_error)).toContain("la dirección del XML no es de Lucode");
@@ -193,8 +208,8 @@ describe("transmitirComprobante cuando Lucode ya tiene el número", () => {
 
   it("un comprobante ya rechazado que se reintenta no vuelve a la cola (la base lo negaría), pero sí se confirma", async () => {
     lucodeFalso({ xml: { status: 200, texto: xmlDePrueba({ total: "1.00" }) } });
-    const { cliente, rpcs } = clienteFalso({ ...COMPROBANTE, estado: "rechazado" });
-    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" });
+    const { cliente, servidor, rpcs } = clienteFalso({ ...COMPROBANTE, estado: "rechazado" });
+    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" }, servidor);
     expect(r.body).toMatchObject({ motivo: "numero_ocupado", encolado: false });
     expect(rpcs).toEqual([]);
   });
@@ -203,8 +218,8 @@ describe("transmitirComprobante cuando Lucode ya tiene el número", () => {
 describe("lo que NO cambia", () => {
   it("un «ya emitido» que nombra OTRO número es un rechazo común: no se consulta nada", async () => {
     const llamadas = lucodeFalso({ envio: { status: 400, json: { message: "ERROR: La boleta B005-999 fue emitido anteriormente." } } });
-    const { cliente, rpcs } = clienteFalso();
-    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" });
+    const { cliente, servidor, rpcs } = clienteFalso();
+    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" }, servidor);
     expect(llamadas).toHaveLength(1);
     expect(r.body).toMatchObject({ motivo: "rechazado_por_lucode" });
     expect(rpcs[0].args.p_error).toBe("rechazado_por_lucode: ERROR: La boleta B005-999 fue emitido anteriormente.");
@@ -212,19 +227,19 @@ describe("lo que NO cambia", () => {
 
   it("un rechazo de verdad sigue como antes", async () => {
     const llamadas = lucodeFalso({ envio: { status: 400, json: { message: "El número de documento del cliente no es válido" } } });
-    const { cliente, rpcs } = clienteFalso();
-    await transmitirComprobante(cliente, { comprobanteId: "c-262" });
+    const { cliente, servidor, rpcs } = clienteFalso();
+    await transmitirComprobante(cliente, { comprobanteId: "c-262" }, servidor);
     expect(llamadas).toHaveLength(1);
     expect(rpcs[0]).toMatchObject({ fn: "fn_marcar_reintento_transmision", args: { p_error: "rechazado_por_lucode: El número de documento del cliente no es válido" } });
   });
 
   it("el envío normal que SUNAT acepta sigue como antes", async () => {
     const llamadas = lucodeFalso({ envio: { status: 200, json: { payload: { estado: "ACEPTADO", xml: XML_URL } } } });
-    const { cliente, rpcs } = clienteFalso();
-    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" });
+    const { cliente, servidor, rpcs } = clienteFalso();
+    const r = await transmitirComprobante(cliente, { comprobanteId: "c-262" }, servidor);
     expect(llamadas).toHaveLength(1);
     expect(r.body).toMatchObject({ estado: "aceptado" });
     expect(r.body).not.toHaveProperty("ya_emitido");
-    expect(rpcs[0]).toMatchObject({ fn: "actualizar_transmision_comprobante", args: { p_estado: "aceptado" } });
+    expect(rpcs[0]).toMatchObject({ fn: "actualizar_transmision_comprobante", args: { p_estado: "aceptado" }, por: "servidor" });
   });
 });

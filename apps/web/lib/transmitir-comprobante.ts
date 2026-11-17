@@ -15,8 +15,10 @@ import type { TipoDocComprobante } from "./documento-comprobante-reglas";
 // CONTRATO
 //   PROMETE: transmite un comprobante que `emitir_comprobante`/`emitir_nota` ya reservó, y deja su
 //            `estado` real en la base (enviado/aceptado/rechazado) — nunca inventa un resultado.
-//   ASUME:   el cliente de Supabase trae la sesión de quien pide (RLS decide si puede verlo), o es la llave
-//            de servicio del trabajo programado (PL-113, `GET /api/lucode/reintentar`).
+//   ASUME:   `supabase` trae la sesión de quien pide (RLS decide si puede verlo), o es la llave de servicio del
+//            trabajo programado (PL-113, `GET /api/lucode/reintentar`). `servidor` es SIEMPRE la llave de servicio
+//            (`crearClienteAdmin()`): lo que respondió SUNAT solo lo escribe el servidor (ADR-0675), y quien llama lo
+//            crea ANTES de transmitir, para no mandar a SUNAT algo que después no se pueda guardar.
 //   NO HACE: no reserva número ni serie (eso ya pasó). Si Lucode no responde, el comprobante pasa a
 //            "pendiente_reintento" (la cola visible) con su intento anotado — nunca se pierde ni
 //            cambia de número (principio 9).
@@ -26,6 +28,8 @@ import type { TipoDocComprobante } from "./documento-comprobante-reglas";
 
 /** El de la sesión (`lib/supabase/server.ts`) o el de la llave de servicio (`lib/supabase-admin.ts`). */
 export type Cliente = SupabaseClient<Database, "retail">;
+/** El de la llave de servicio (`crearClienteAdmin()`): el único que escribe lo que respondió SUNAT (ADR-0675). */
+export type ClienteServidor = Cliente;
 export type Destino = { comprobanteId: string } | { ventaId: string };
 export type Respuesta = { status: number; body: Record<string, unknown> };
 
@@ -53,7 +57,7 @@ type FilaComprobante = {
   anticipo_deducido?: number | string | null;
 };
 
-export async function transmitirComprobante(supabase: Cliente, destino: Destino): Promise<Respuesta> {
+export async function transmitirComprobante(supabase: Cliente, destino: Destino, servidor: ClienteServidor): Promise<Respuesta> {
   const comprobanteId = "comprobanteId" in destino ? destino.comprobanteId : null;
   const ventaId = "ventaId" in destino ? destino.ventaId : null;
 
@@ -160,7 +164,7 @@ export async function transmitirComprobante(supabase: Cliente, destino: Destino)
   // más de 15 s) sí llegó. No se reintenta: se le pregunta a Lucode qué tiene, se confirma con su XML que es esta venta
   // y se guarda lo que dice SUNAT. Sin esto quedaba en la cola para siempre (producción, 9 al 12-oct-2026).
   if (!resultado.ok && resultado.motivo === "rechazado_por_lucode" && esYaEmitido(resultado.detalle, fila.serie, fila.numero)) {
-    return resolverYaEmitido(supabase, fila, datos, resultado.detalle);
+    return resolverYaEmitido(supabase, servidor, fila, datos, resultado.detalle);
   }
 
   if (!resultado.ok) {
@@ -181,7 +185,8 @@ export async function transmitirComprobante(supabase: Cliente, destino: Destino)
   }
 
   const nuevoEstado = resultado.estado === "ACEPTADO" ? "aceptado" : resultado.estado === "RECHAZADO" ? "rechazado" : "enviado";
-  const { error: errActualizar } = await supabase.rpc("actualizar_transmision_comprobante", {
+  // Lo escribe el servidor, no la sesión (ADR-0675): la base solo le acepta este estado a la llave de servicio.
+  const { error: errActualizar } = await servidor.rpc("actualizar_transmision_comprobante", {
     p_comprobante_id: fila.id,
     p_estado: nuevoEstado,
     // El ambiente que devolvió la llamada, no el que hay ahora: son el mismo
@@ -224,9 +229,14 @@ export async function transmitirComprobante(supabase: Cliente, destino: Destino)
  * Los documentos de un cambio con diferencia (ADR-0671), en el acto: el comprobante nuevo y, si ya salió, la nota de crédito sobre la
  * original. Los dos los reservó `registrar_cambio` en su mismo guardado; aquí solo se transmiten, primero el nuevo y después la nota. Lo
  * que no esté `pendiente` (ya enviado, o la nota de venta, que es interna) no se toca. Si Lucode no responde, cada uno queda en la cola de
- * reintento como cualquier comprobante (principio 9): el cambio ya quedó guardado y no depende de esto.
+ * reintento como cualquier comprobante (principio 9): el cambio ya quedó guardado y no depende de esto. `servidor` es la llave de
+ * servicio, como en `transmitirComprobante`: lo que responda SUNAT lo escribe el servidor (ADR-0675).
  */
-export async function transmitirDocumentosDelCambio(supabase: Cliente, cambioId: string): Promise<Respuesta> {
+export async function transmitirDocumentosDelCambio(
+  supabase: Cliente,
+  cambioId: string,
+  servidor: ClienteServidor,
+): Promise<Respuesta> {
   const { data, error } = await supabase
     .from("comprobantes")
     .select("id, tipo")
@@ -238,7 +248,7 @@ export async function transmitirDocumentosDelCambio(supabase: Cliente, cambioId:
   if (filas.length === 0) return { status: 404, body: { error: "El cambio no tiene documentos por enviar", documentos: [] } };
   const documentos = [];
   for (const f of filas) {
-    const r = await transmitirComprobante(supabase, { comprobanteId: f.id });
+    const r = await transmitirComprobante(supabase, { comprobanteId: f.id }, servidor);
     documentos.push({ id: f.id, tipo: f.tipo, status: r.status, estado: r.body.estado ?? null, motivo: r.body.motivo ?? null });
   }
   return { status: 200, body: { documentos } };
