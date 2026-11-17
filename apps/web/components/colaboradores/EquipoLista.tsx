@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/vidrio/colaboradores.css";
 import { useMemo, useState } from "react";
 import { Check, LayoutGrid, List, MonitorSmartphone, SearchX, Users, X } from "lucide-react";
 import type { ColaboradorPendiente } from "@/lib/colaboradores";

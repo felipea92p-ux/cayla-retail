@@ -1,0 +1,4 @@
+/* El Observatorio (el Inicio del Admin, ADR-0322): su CSS y su vidrio, en este orden. Se importa desde los componentes que usan sus clases,
+   no desde globals.css: así no lo descarga ni lo compara cada pantalla del ERP (ADR-0674, CSS por pantalla). Lo vigila `lib/css-por-pantalla.test.ts`. */
+@import "../observatorio.css";
+@import "../vidrio/observatorio.css";

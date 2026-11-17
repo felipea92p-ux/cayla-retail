@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/rotulos.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Trash2, X } from "lucide-react";

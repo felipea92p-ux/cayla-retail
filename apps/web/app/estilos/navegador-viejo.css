@@ -1,0 +1,28 @@
+/* ---------- «Actualiza el navegador» (ADR-0674) ----------
+   El aviso que el servidor dibuja siempre, escondido, arriba de todo (`components/AvisoNavegadorViejo.tsx`). Se muestra cuando el script
+   del <head> marcó <html> con `data-navegador-viejo`: el navegador no entiende `color-mix()` y el ERP se vería roto.
+
+   Todo aquí es CSS de los viejos, fuera de toda capa: antes de Chrome 99 un `@layer` se ignora entero, y con él las variables de
+   Tailwind. Por eso cada color lleva su respaldo, la tinta y la crema de la marca escritas a mano. */
+.aviso-navegador-viejo {
+  display: none;
+}
+:root[data-navegador-viejo] .aviso-navegador-viejo {
+  display: block;
+  padding: 12px 16px;
+  background: var(--color-tinta, #1a1a18); /* tema-fijo: respaldo de la tinta para un navegador sin las variables de Tailwind */
+  color: var(--color-crema, #f5f0e8); /* tema-fijo: respaldo de la crema para un navegador sin las variables de Tailwind */
+  /* La DM Sans de la marca: `--font-dm-sans` lo pone next/font en <html>, fuera de toda capa, así que existe también aquí. */
+  font: 15px/1.4 var(--font-dm-sans, system-ui), system-ui, sans-serif;
+}
+/* El enlace a la Play Store solo en Android, de 44 px para el dedo. */
+.aviso-navegador-viejo-enlace {
+  display: none;
+}
+:root[data-navegador-viejo="android"] .aviso-navegador-viejo-enlace {
+  display: inline-block;
+  min-height: 44px;
+  padding-top: 12px;
+  color: inherit;
+  text-decoration: underline;
+}

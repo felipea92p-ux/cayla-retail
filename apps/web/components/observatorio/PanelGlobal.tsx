@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/observatorio.css";
 // El panel de la derecha con toda CAYLA (ADR-0322): «De un vistazo» (tickets, ticket medio y prendas), el ranking de las
 // tiendas por % de la meta (se reordena deslizándose) y la diferencia de cada una contra el periodo anterior.
 

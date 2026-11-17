@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/etiquetas-precio.css";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { RotateCcw, Tags, Trash2 } from "lucide-react";
 import { Volver } from "@/components/ui/Volver";
