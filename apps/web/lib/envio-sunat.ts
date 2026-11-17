@@ -24,6 +24,18 @@ export function enviarVentaASunat(ventaId: string): void {
   });
 }
 
+/** Los cambios que esta pestaña ya mandó a declarar: el mismo candado que las ventas (un doble clic devuelve el MISMO cambio). */
+const cambiosEnviados = new Set<string>();
+
+/** Declara los documentos de un cambio con diferencia recién guardado (ADR-0671): su comprobante nuevo y su nota de crédito. Una sola
+ *  vez por cambio en esta pestaña, en segundo plano y sin avisar nada: si no sale, lo recoge el barrido. */
+export function enviarCambioASunat(cambioId: string): void {
+  if (!primeraVez(cambioId, cambiosEnviados)) return;
+  fetch("/api/lucode/emitir", { ...OPCIONES, body: JSON.stringify({ cambio_id: cambioId }) }).catch(() => {
+    // Sin red: los documentos siguen `pendiente` y los recoge el próximo barrido.
+  });
+}
+
 /** Lo que hizo una pasada del barrido: cuántos comprobantes intentó, cuántos preguntó y cuántos cambiaron con la consulta.
  *  `lucodeNoDisponible`: algún envío falló porque Lucode no respondió o no aceptó la clave; seguir sería insistirle. */
 export type PasadaSunat = { tomados: number; consultados: number; actualizados: number; lucodeNoDisponible: boolean };

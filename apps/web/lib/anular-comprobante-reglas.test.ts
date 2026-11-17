@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { MAX_MOTIVO_BAJA, laBajaAnulaLaVenta, mensajeBajaSinAnularLaVenta, motivoDeAnulacionDeVenta, motivoDeBajaInvalido, motivoParaNoAnularLaVenta, motivoParaNoPedirBaja, type DatosParaPedirBaja, type VentaDelComprobante } from "./anular-comprobante-reglas";
+import { MAX_MOTIVO_BAJA, laBajaAnulaLaVenta, mensajeBajaSinAnularLaVenta, mensajeDelCambioAlLiberar, motivoDeAnulacionDeVenta, motivoDeBajaInvalido, motivoParaNoAnularLaVenta, motivoParaNoPedirBaja, type DatosParaPedirBaja, type VentaDelComprobante } from "./anular-comprobante-reglas";
 
-const listo: DatosParaPedirBaja = { veFacturacion: true, estado: "aceptado", anulacion_solicitada_at: null, notasVigentes: 0 };
+const listo: DatosParaPedirBaja = { veFacturacion: true, estado: "aceptado", anulacion_solicitada_at: null, notasVigentes: 0, cambioId: null };
 
 describe("motivoParaNoPedirBaja — lo que se revisa antes de llamar a Lucode", () => {
   it("quien ve Facturación (ya no solo un líder, ADR-0534) con un comprobante aceptado, sin baja pedida ni notas: se puede pedir", () => {
@@ -38,6 +38,33 @@ describe("motivoParaNoPedirBaja — lo que se revisa antes de llamar a Lucode", 
     const r = motivoParaNoPedirBaja({ ...listo, notasVigentes: 1 });
     expect(r?.status).toBe(409);
     expect(r?.error).toMatch(/nota/);
+  });
+
+  it("un documento que sale de un cambio no se da de baja por separado, aunque esté aceptado (ADR-0671)", () => {
+    const r = motivoParaNoPedirBaja({ ...listo, cambioId: "cb1" });
+    expect(r?.status).toBe(409);
+    expect(r?.error).toMatch(/cambio/);
+    expect(r?.error).toMatch(/no se anula por separado/);
+  });
+
+  it("el permiso sigue mirándose primero, también en un documento de un cambio", () => {
+    expect(motivoParaNoPedirBaja({ ...listo, veFacturacion: false, cambioId: "cb1" })?.status).toBe(403);
+  });
+});
+
+describe("mensajeDelCambioAlLiberar — lo que dice la pantalla si la base no deja liberar por un cambio (ADR-0671)", () => {
+  it("un documento de un cambio no se libera por separado", () => {
+    expect(mensajeDelCambioAlLiberar({ hint: "documento_de_un_cambio" })).toMatch(/no se libera por separado/);
+  });
+
+  it("la original de un cambio cuya nota no sale: dice por qué espera", () => {
+    expect(mensajeDelCambioAlLiberar({ hint: "original_de_un_cambio" })).toMatch(/no se libera mientras tanto/);
+  });
+
+  it("otro error (o ninguno) no es suyo: lo traduce `traducirError`", () => {
+    expect(mensajeDelCambioAlLiberar({ hint: "42501" })).toBeNull();
+    expect(mensajeDelCambioAlLiberar({ hint: null })).toBeNull();
+    expect(mensajeDelCambioAlLiberar(null)).toBeNull();
   });
 });
 

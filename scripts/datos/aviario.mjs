@@ -104,6 +104,9 @@ export const AVIARIO = [
       // ADR-0655 (Campañas y ofertas): los modelos elegidos uno por uno, las ofertas que le ceden a otra y las insignias que elige una oferta.
       // Se manejan desde la misma hoja de la oferta. Asignadas en el refresco del volcado del 2026-11-14.
       "campana_regla_productos", "campana_regla_cesiones", "campana_regla_insignias",
+      // ADR-0669 («Poner un %», 20261116182000): qué campañas son un cajón de % de una tienda. Se maneja desde Campañas y ofertas, como las
+      // ofertas de arriba. Asignada en el refresco del volcado del 2026-11-17.
+      "rebaja_cajones",
       // ADR-0463: la empresa a la que pertenece cada prenda (CAYLA o CLAURE) y en qué sedes opera cada una. La empresa es un dato del producto,
       // no de la marca ni de la factura (que sale siempre con el RUC de CAYLA): lo maneja quien responde por el catálogo. En producción desde
       // el 2026-10-20; las asignó el refresco del volcado del 2026-10-21.
@@ -196,6 +199,10 @@ export const AVIARIO = [
       "clientas", "codigos_descuento", "cambios", "devoluciones", "devolucion_items",
       // ADR-0470 (2026-10-21): las prendas que se lleva la clienta en un cambio por VARIAS prendas; hijas de `cambios`.
       "cambio_salidas",
+      // ADR-0671 (20261116212000): la nota de crédito que un cambio con diferencia le debe a su comprobante original, congelada al guardar
+      // el cambio. Hija de `cambios` (la escribe `registrar_cambio`, desde la pantalla de Cambios); el comprobante que sale de ella sí es de
+      // Cuervo. Asignada en el refresco del volcado del 2026-11-17.
+      "cambio_notas",
       // ADR-0249: qué ficha de clienta se unió a cuál (unir fichas repetidas). Refresco del 2026-09-28.
       "clientas_fusiones",
       // Separaciones (apartar prendas con adelanto) y lo que la clienta pidió y no había: nacen en el mostrador.
@@ -279,6 +286,9 @@ export const AVIARIO = [
       // ADR-0582: los teléfonos que piden el aviso de pedido web nuevo y su cola de envíos; son de los pedidos web (`pedidos_web`), el mismo pájaro.
       // Asignadas en el refresco del volcado del 2026-11-04.
       "canales_venta", "pedidos_web_push_aparatos", "pedidos_web_push_envios",
+      // La cola de impresión (20261116204000): la boleta que se vendió desde el celular y sale en la impresora de la caja. Es de Vender
+      // (`fn_exigir_modulo('vender')`), como `ventas`. Asignada en el refresco del volcado del 2026-11-17.
+      "impresiones",
     ] },
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",
     tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales",

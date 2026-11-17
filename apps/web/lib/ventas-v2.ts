@@ -5,6 +5,7 @@ import { documentoLegibleComprobante, esTipoDocComprobante } from "@/lib/documen
 import { clasificarBusqueda, DIAS_PLAZO_CAMBIO, type Busqueda } from "@/lib/cambios-reglas";
 import { diaLima, inicioDeDiaLima } from "@/lib/panel-serie";
 import { fotoDeVariante } from "@/lib/producto-fotos-reglas";
+import { originalDelCambio, type DocumentoOriginal, type FilaComprobanteDeVenta } from "@/lib/cambios-documentos-reglas";
 
 // Prioridad 1 (2026-09-12) — historial mínimo de ventas, necesario para que
 // la pantalla de Cambios pueda encontrar QUÉ línea de QUÉ venta se está
@@ -235,6 +236,10 @@ export type LineaVentaReciente = {
   comprobanteAceptado: boolean;
   /** Quién compró, si el comprobante lo guardó ("Ana Pérez · DNI 45879632"). */
   clienta: string | null;
+  /** El documento que un cambio con diferencia corrige (ADR-0671), elegido con la MISMA regla que `retail.fn_original_del_cambio`: su
+   *  tipo, número, estado ante SUNAT y el cliente en sus tres partes (prellenan el cliente del comprobante nuevo). `null` si la venta
+   *  no tiene; opcional para quien arma una línea a mano (Devoluciones y Ventas no lo usan). */
+  documentoOriginal?: DocumentoOriginal | null;
   /** Nombre de la sede donde se vendió, solo si NO es la sede desde la que se mira
    *  (resultado de buscar en todas las tiendas). */
   sedeVenta: string | null;
@@ -322,7 +327,7 @@ export async function getVentasRecientes(
   const quienVendio = (v: { asesora_id: string | null; usuario_id: string | null } | null) => v?.asesora_id ?? v?.usuario_id ?? null;
   const ids = filas.map((f) => f.id);
   const idsVendedores = Array.from(new Set(filas.map((f) => quienVendio(f.venta)).filter((v): v is string => !!v)));
-  const [cambiosRes, devolucionesRes, comprobantesRes, nombresRes] = await Promise.all([
+  const [cambiosRes, devolucionesRes, comprobantesRes, nombresRes, anticiposRes] = await Promise.all([
     supabase
       .from("cambios")
       .select(
@@ -342,13 +347,21 @@ export async function getVentasRecientes(
       .neq("devolucion.estado", "rechazada"),
     supabase
       .from("comprobantes")
-      .select("venta_id, tipo, serie, numero, estado, cliente_tipo_doc, cliente_num_doc, cliente_nombre, created_at")
+      .select("id, venta_id, tipo, serie, numero, estado, anulacion_solicitada_at, cliente_tipo_doc, cliente_num_doc, cliente_nombre, created_at")
       .in("venta_id", ventaIds)
       .in("tipo", ["boleta", "factura", "nota_venta"])
       .order("created_at"),
     // Nombres de quién registró cada venta — mismo patrón que `getDetalleCierre()`
     // (personas vive en public/Dynamic, PostgREST no embebe entre schemas).
     idsVendedores.length === 0 ? null : supabase.rpc("fn_nombres_personas", { p_ids: idsVendedores }),
+    // Los anticipos de apartado de esas ventas (ADR-0166): nunca son el original de un cambio (`fn_original_del_cambio`). Consulta aparte
+    // y tolerante, como en `transmitir-comprobante.ts`: `es_anticipo` todavía no está en los tipos generados, y si la columna faltara
+    // (42703) se lee como «ninguno es anticipo».
+    supabase
+      .from("comprobantes")
+      .select("id")
+      .in("venta_id", ventaIds)
+      .eq("es_anticipo" as never, true as never),
   ]);
 
   const cambiosPorItem = new Map<string, CambioHecho[]>();
@@ -391,8 +404,27 @@ export async function getVentasRecientes(
   // último: vienen ordenados por fecha y cada uno pisa al anterior.
   const comprobantePorVenta = new Map<string, { texto: string; clienta: string | null }>();
   const ventasConComprobanteAceptado = new Set<string>();
+  // El original de un cambio (ADR-0671) se elige aparte, con la regla de la base: aquí abajo queda «el último por fecha», que
+  // Devoluciones y Ventas siguen leyendo como texto.
+  const anticipos = new Set(anticiposRes.error?.code === "42703" ? [] : exigir(anticiposRes, "los anticipos de esas ventas").map((a) => a.id));
+  const filasPorVenta = new Map<string, FilaComprobanteDeVenta[]>();
   for (const c of exigir(comprobantesRes, "las boletas de esas ventas")) {
     if (!c.venta_id) continue;
+    const filas = filasPorVenta.get(c.venta_id) ?? [];
+    filas.push({
+      id: c.id,
+      tipo: c.tipo,
+      serie: c.serie,
+      numero: c.numero,
+      estado: c.estado,
+      esAnticipo: anticipos.has(c.id),
+      anulacionSolicitadaAt: c.anulacion_solicitada_at,
+      clienteTipoDoc: c.cliente_tipo_doc,
+      clienteNumDoc: c.cliente_num_doc,
+      clienteNombre: c.cliente_nombre,
+      creadoEn: c.created_at,
+    });
+    filasPorVenta.set(c.venta_id, filas);
     if (c.estado === "aceptado") ventasConComprobanteAceptado.add(c.venta_id);
     const documento = esTipoDocComprobante(c.cliente_tipo_doc) ? documentoLegibleComprobante(c.cliente_tipo_doc, c.cliente_num_doc) : null;
     const clienta = [c.cliente_nombre?.trim() || null, documento].filter(Boolean).join(" · ") || null;
@@ -433,6 +465,7 @@ export async function getVentasRecientes(
       comprobante: comprobante?.texto ?? null,
       comprobanteAceptado: ventasConComprobanteAceptado.has(f.venta_id),
       clienta: comprobante?.clienta ?? null,
+      documentoOriginal: originalDelCambio(filasPorVenta.get(f.venta_id) ?? []),
       sedeVenta: f.venta && f.venta.ubicacion_id !== ubicacionId ? (f.venta.ubicacion?.nombre ?? null) : null,
       ubicacionVentaId: f.venta?.ubicacion_id ?? null,
       anulada: f.venta?.estado === "anulada",

@@ -184,6 +184,50 @@ describe("accionesDelComprobante (qué botones le tocan a cada estado)", () => {
   it("enviado, anulado y no emitido: sin botones", () => {
     for (const estado of ["enviado", "anulado", "no_emitido"] as const) expect(accionesDelComprobante(c({ estado }))).toEqual([]);
   });
+
+  it("un documento de un cambio (ADR-0671) nunca se anula ni se libera: va a SUNAT con su pareja", () => {
+    for (const tipo of ["boleta", "factura", "nota_credito"] as const) {
+      expect(accionesDelComprobante(c({ tipo, cambio_id: "cb1", estado: "aceptado" }))).toEqual([]);
+      expect(accionesDelComprobante(c({ tipo, cambio_id: "cb1", estado: "pendiente", entorno_transmision: null }))).toEqual([]);
+    }
+  });
+
+  it("un documento de un cambio sí se reintenta, como cualquier comprobante", () => {
+    expect(accionesDelComprobante(c({ cambio_id: "cb1", estado: "rechazado" }))).toEqual(["reintentar"]);
+    expect(accionesDelComprobante(c({ tipo: "nota_credito", cambio_id: "cb1", estado: "pendiente_reintento" }))).toEqual(["reintentar"]);
+  });
+
+  it("la boleta original de un cambio sigue con sus botones: el candado es de la base y de la ruta de la baja", () => {
+    expect(accionesDelComprobante(c({ cambio_id: null, estado: "aceptado" }))).toEqual(["anular"]);
+  });
+});
+
+describe("montosDelMes con la pareja de un cambio (ADR-0671)", () => {
+  // Boleta de 59.90 aceptada; el cambio por una prenda de 89.90 deja su nota (59.90) y su boleta nueva (89.90) sin venta.
+  const original = c({ id: "o", total: 59.9 });
+  const nota = c({ id: "n", tipo: "nota_credito", total: 59.9, cambio_id: "cb1", comprobante_original_id: "o" });
+  const nueva = c({ id: "b", total: 89.9, cambio_id: "cb1", venta_id: null });
+
+  it("ni cuenta doble ni desaparece: lo facturado es lo que pagó el cliente en total (59.90 + 30)", () => {
+    const m = montosDelMes([original, nota, nueva]);
+    expect(m.facturado).toBe(89.9);
+    expect(m.notasDeCredito).toBe(59.9);
+    expect(m.emitidos).toBe(3);
+  });
+
+  it("con la nota todavía por enviar, lo que falta enviar resta la nota y lo facturado sube (IGV de más, nunca de menos)", () => {
+    const m = montosDelMes([original, { ...nota, estado: "pendiente", entorno_transmision: null }, nueva]);
+    expect(m.facturado).toBe(149.8);
+    expect(m.sinEnviar).toBe(-59.9);
+    expect(m.facturado + m.sinEnviar).toBeCloseTo(89.9, 2);
+  });
+
+  it("el pie suma cada tipo en positivo: la boleta nueva es una boleta más y la nota, una nota", () => {
+    expect(totalesPorTipo([original, nota, nueva])).toEqual([
+      { tipo: "boleta", cantidad: 2, monto: 149.8 },
+      { tipo: "nota_credito", cantidad: 1, monto: 59.9 },
+    ]);
+  });
 });
 
 describe("errorDeSerie", () => {
