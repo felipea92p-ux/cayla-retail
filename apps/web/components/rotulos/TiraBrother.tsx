@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/rotulos.css";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Scissors } from "lucide-react";
 import { RotuloAnaquel } from "@/components/RotuloAnaquel";

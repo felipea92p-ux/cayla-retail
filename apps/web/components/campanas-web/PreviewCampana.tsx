@@ -1,3 +1,4 @@
+import "@/app/estilos/campana-efectos.css";
 import type { CSSProperties } from "react";
 import { ArrowRight } from "lucide-react";
 import { colorDelSello, particulasDeEfecto, textoSobre, type ColoresDeCampana, type CuentaCampana, type DuracionCampana, type EfectoCampana, type EntradaCampana, type FranjaCampana, type IntensidadCampana } from "@cayla-retail/shared";

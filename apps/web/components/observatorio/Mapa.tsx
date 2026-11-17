@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/observatorio.css";
 // El mapa del Observatorio (ADR-0322), con el motor de la maqueta aprobada. Su estado vive fuera de React (`estado`): la
 // «caja» que se quiere mostrar y el contorno. El viewBox se calcula en cada cuadro con la proporción real del espacio
 // (`ajustar`), así el mapa llena su lado de la tarjeta aunque las columnas se estén reacomodando. Al elegir una tienda, el

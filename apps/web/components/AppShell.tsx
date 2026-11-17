@@ -9,6 +9,7 @@ import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 import { BotonActividad } from "@/components/actividad/BotonActividad";
 import { BotonTema } from "@/components/ui/BotonTema";
 import { BotonMovimiento } from "@/components/ui/BotonMovimiento";
+import { BotonLiviano } from "@/components/ui/BotonLiviano";
 import { veActividad } from "@/lib/actividad-reglas";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
 import { esGrupoMenu as esGrupo, hermanosDe, hojasDe, menuPara, modulosDeLasHojas, nombreCorto, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
@@ -1088,6 +1089,11 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
               </span>
             </button>
           )}
+          {/* El modo liviano en el celular (ADR-0674): la cabecera no tiene lugar, así que va aquí, antes de «Salir». En escritorio está en
+              la cabecera, junto a «Animaciones». */}
+          <span className="contents sm:hidden">
+            <BotonLiviano />
+          </span>
           {/* Plegado «Salir» no cabe: se esconde y sale del tabulador (`inert`); el perfil sigue a un clic y ahí también se sale. */}
           <span className="marco-yo-salida" inert={compacto}>
             <LogoutButton nombre={persona.nombre} terminal={!!persona.terminal} forma="icono" />
@@ -1207,6 +1213,12 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
             <BotonTema />
             {/* Animaciones (ADR-0625): junto al modo oscuro y por la misma razón, del aparato. El ERP arranca quieto. */}
             <BotonMovimiento />
+            {/* Modo liviano (ADR-0674): junto a las animaciones y por la misma razón, del aparato. En un equipo lento ya viene encendido.
+                Solo en escritorio: en el celular la cabecera no tiene lugar (le quitaba 45 px a la sede; a 320 px la dejaba en 22) y
+                el botón va al pie del menú, junto a «Salir». */}
+            <span className="hidden sm:contents">
+              <BotonLiviano />
+            </span>
             {/* La sede va en su propia caja: los botones de la isla se redondean (marco.css) y el combo conserva su aspecto. */}
             <div data-marco-sede className="flex items-center">
               {persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? (
