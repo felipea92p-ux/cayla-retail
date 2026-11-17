@@ -126,6 +126,20 @@ function medir(foto: Foto): Promise<void> {
   return tarea;
 }
 
+/**
+ * Pide ya la medida de estas fotos y dice si están todas (medidas, o dadas por no medibles). Es para el outfit que está por entrar a la figura
+ * (2026-11-16): se pide mientras bajan sus fotos, así la prenda entra ya unida en vez de entrar y acomodarse después. Sin fotos, nada que esperar.
+ */
+export function useMedidasListas(fotos: readonly Foto[]): boolean {
+  useSyncExternalStore(suscribir, () => version, () => 0);
+  const claves = fotos.map((f) => f.url).join("\n");
+  useEffect(() => {
+    if (!claves) return;
+    for (const url of claves.split("\n")) if (!medidas.has(url)) void medir({ url });
+  }, [claves]);
+  return fotos.every((f) => medidas.has(f.url));
+}
+
 /** Lo que la unión lee de cada pieza: su zona, si va metida, su recorte y su caja (la figura interactiva manda más; la quieta, solo esto). */
 export type PiezaDeLaFigura = { z: Zona; p: { metida: boolean; porTorso?: boolean; falda?: boolean }; c: { foto: FotoDelColor }; caja: Caja };
 

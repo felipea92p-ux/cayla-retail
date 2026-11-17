@@ -72,10 +72,15 @@ existió. Lo que corresponde es una nota de crédito sobre la boleta original y 
 - [x] CI, tanda 4 (`pruebas:redondeo-efectivo`): al volver a pegar 20261003130000 y 20261003135000, `REHACER_TOKEN` volvía a pegar la
       parte 2 del token, que ancla `registrar_cambio` con la firma que la parte 2 de este ADR borra. Ahora se ancla a la firma que haya
       (`registrar-venta-antes-de-precio-sede.mjs`). En un banco limpio con las tres partes: 90/90; sin el arreglo, los mismos 2 rojos del CI.
-- [ ] **Contador:** confirmar la lectura legal (nota de crédito + comprobante nuevo); el SQL ya está en producción. Cerrar #1910 lo decide Felipe.
-- [x] Pegado en producción el 2026-11-17 (Felipe lo pidió): versiones `20261117141105`, `20261117141259` y `20261117141607` (apply_migration),
-      huellas comprobadas contra la base aislada. Desde ahí la base emite; la web de esta obra todavía no está publicada.
-- [ ] Refrescar el volcado y correr `pnpm datos:generar:produccion` y `pnpm datos:comparar` (las tablas y funciones nuevas entran al diccionario).
+- [ ] **Contador:** confirma la lectura legal (nota de crédito + comprobante nuevo). Felipe eligió pegar sin esperarlo (2026-11-17):
+      la revisa después. #1910 se cerró ese día, por decisión de Felipe.
+- [x] **Partes 1, 2 y 3 EN PRODUCCIÓN** (2026-11-17, OK explícito de Felipe), por `apply_migration`: versiones `20261117141105`,
+      `20261117141259` y `20261117141607`, justo después de ADR-0673 (`20261117140654`).
+      - Antes, en solo lectura: las 12 anclas una vez cada una, nada de ADR-0671 en la base, y de los 29 invariantes solo cambiaba INV-22.
+      - Después: las 9 funciones nuevas y los 30 invariantes, idénticos al archivo; INV-30 con su línea base; solo la firma con `p_cliente`.
+        Las huellas también coinciden con la base aislada. Desde ahí la base emite; la web de esta obra todavía no está publicada.
+- [ ] Refrescar el volcado y correr `pnpm datos:generar:produccion` y `pnpm datos:comparar` (las tablas y funciones nuevas entran al
+      diccionario), en un PR aparte.
 - [x] Destrabado el check «SQL pegado» con #1918 (Felipe: #1912 primero, con puente): `20261117143000_puente_baja_de_comprobante_0673.sql`
       trae lo de ADR-0673 a esta rama; en producción no hace nada (no hace falta pegarlo).
 - [ ] **#1918** tiene que anclar su revisión de sede antes de «¿está aceptado?» (se le pidió a su sesión el 2026-11-17): si no, una base nueva
