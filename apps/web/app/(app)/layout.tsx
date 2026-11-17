@@ -18,6 +18,7 @@ import { RecordatorioCierreCaja } from "@/components/RecordatorioCierreCaja";
 import { EsperaAlVelo } from "@/components/login/EntradaColibri";
 import { getRecordatorioCierre, recibeRecordatorioCierre } from "@/lib/recordatorio-cierre";
 import { getAsistenteEncendido } from "@/lib/asistente/sedes-servidor";
+import { indiceDeGuias } from "@/lib/guias/titulos";
 
 // Fase UI 1 (2026-09-11): usa la persona V2 (`ubicacion_id`), no la V1
 // (`sede_id`). Fase 2 (2026-09-13): el selector de ubicación del líder ya
@@ -71,6 +72,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       pedidosWebPorConfirmar={pedidosWebPorConfirmar}
       asistenteEncendido={asistenteEncendido}
       lateralPlegado={lateralPlegado}
+      // Lo justo de cada guía (sin sus pasos): el texto de todas baja recién cuando alguien va a ver una demo (ADR-0674 act. h).
+      guias={indiceDeGuias()}
     >
       {/* Recién iniciada la sesión, la app espera a que el velo del colibrí tape la pantalla para mostrarse (Felipe 2026-10-13, «se ve el inicio»).
           Va fuera de todo `loading.tsx` (ninguno la envuelve), así mientras tanto queda el login a la vista. Fuera de esa entrada no hace nada. */}
