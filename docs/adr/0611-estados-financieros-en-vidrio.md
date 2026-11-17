@@ -156,3 +156,18 @@ puntos; con tres o más se desliza de lado (`safe center`), nunca corta un color
 - **DECIDÍ:** dibujar de 44 lo que es un ícono o un punto de color; el área invisible solo para lo que vive dentro de una frase o de otra pieza.
 - **DESCARTÉ:** el área invisible para todo (la «A» de la demo), porque los puntos de color quedaban en 30 px de ancho para no quitarle el toque al vecino.
 - **SE ROMPE SI:** una prenda de Existencias tiene muchos colores: la chapa se desliza y los últimos quedan fuera de la vista hasta deslizarla (siguen a un toque; «+N» abre todos).
+
+## Actualización 2026-11-17 — Mejora 5: «Filtros» y «Ordenar» en solo ícono también se DIBUJAN de 44 px con el dedo (Felipe)
+
+Al pasar «Filtros» del Historial a solo ícono en el celular, la auditoría `/milimetro` midió que la píldora solo ícono
+(`pildora-filtro-icono-celular`: «Filtros» con `soloIcono` y «Ordenar» con `soloIconoEnCelular`, bajo 640 px) dibujaba un círculo de 38 px con su
+botón de 44 adentro, al lado de píldoras y buscadores que con el dedo miden 44. Felipe confirmó igualarla. Entró a la lista de íconos dibujados de
+44 de `app/estilos/tacto.css` (solo `pointer: coarse`). Medido a 375 px táctil en Historial, Productos, Existencias, Categorías y la Vitrina: 44 × 44,
+mismo alto y mismo borde superior que su fila, sin scroll lateral. Desde 640 px (medido a 700 táctil) la píldora entera sigue en 109,8 × 44. Con mouse
+no cambia nada.
+
+- **DECIDÍ:** sumar la clase a la regla `min-width` / `min-height` de 44 px que ya tienen los íconos de fila, la × y los de la cabecera.
+- **DESCARTÉ:** un bloque propio con `width` y `height` de 44 dentro de un `@media (max-width: 639.98px)`, porque `lib/tacto.test.ts` exige un solo
+  `@media` en la hoja (todo vive en `pointer: coarse`) y el `min-` ya da el mismo resultado: desde 640 px la píldora mide lo que su botón.
+- **SE ROMPE SI:** una barra del celular junta el buscador con tres o más de estos íconos: cada uno le quita 6 px al buscador (en la Vitrina quedó en
+  151 px y «Busca un modelo» ya se cortaba antes del cambio).

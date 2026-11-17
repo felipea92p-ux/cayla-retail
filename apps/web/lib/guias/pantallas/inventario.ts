@@ -1571,7 +1571,8 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.envios-filtros",
       opcional: true,
       titulo: "Hallar un envío entre muchos",
-      texto: "Escribe un número, una guía o un proveedor, o usa las píldoras: «Estado» (abierto, por abrir —en camino o sin guía— o los que no puedes abrir tú), «Proveedor» y «Fechas», el día en que salió el envío («Hace más de una semana» muestra lo que tarda en llegar). «Limpiar todo» los quita.",
+      // En el celular (y con la columna angosta) las tres píldoras son solo su ícono mientras no tienen nada puesto: el texto lo dice.
+      texto: "Escribe un número, una guía o un proveedor, o usa las píldoras (en el celular, tres íconos): «Estado» (abierto, por abrir —en camino o sin guía— o los que no puedes abrir tú), «Proveedor» y «Fechas», el día en que salió el envío («Hace más de una semana» muestra lo que tarda en llegar). «Limpiar todo» los quita.",
     },
     {
       // ADR-0393 (decisión 4): sale solo si lo recibido en la sede tiene algo por terminar.
