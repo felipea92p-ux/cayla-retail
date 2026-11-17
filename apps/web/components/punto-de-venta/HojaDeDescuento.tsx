@@ -1,7 +1,8 @@
 "use client";
 
 import { BadgePercent } from "lucide-react";
-import { type DescuentoForm, type ItemCarrito, money } from "@/components/PuntoDeVenta";
+import { money } from "@/lib/money";
+import type { DescuentoForm, ItemCarrito } from "@/components/PuntoDeVenta";
 import { PanelDescuento } from "@/components/punto-de-venta/PanelDescuento";
 import { Boton } from "@/components/ui/campos";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";

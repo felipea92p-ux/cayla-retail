@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useReducer, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, Bookmark, CalendarClock, MapPin, MessageCircle, ShoppingBag, Truck, Undo2, Unlock, Wallet } from "lucide-react";
-import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
-import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
+import { money } from "@/lib/money";
+import type { VarianteBusqueda } from "@/components/PuntoDeVenta";
+import { ICONO_METODO } from "@/components/punto-de-venta/iconoMetodo";
 import { Modal } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, Campo } from "@/components/ui/campos";

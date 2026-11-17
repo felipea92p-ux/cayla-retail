@@ -52,6 +52,7 @@ import { carritoPasaElUmbral, conStockComprometidoDescontado, firmaDeVentaEncola
 import { conCandadoDeSubida } from "@/lib/candado-subida";
 import { esErrorDeResponsable, firmar } from "@/lib/responsable-reglas";
 import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
+import { money } from "@/lib/money";
 import { Modal } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
@@ -353,7 +354,6 @@ const MAX_RESULTADOS = 6;
  *  que `abrirDescuento` traiga unas), sin motivo. */
 const DESCUENTO_VACIO: DescuentoForm = { modo: "porcentaje", pct: "", monto: "", elegidas: null, razon: "", razonOtro: "", argumento: "" };
 
-export const money = (n: number) => `S/${n.toFixed(2)}`;
 
 
 type Props = {
