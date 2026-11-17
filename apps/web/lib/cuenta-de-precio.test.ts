@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { conRebajaCts, cuentaDelPrecio, IGV, motivoDeCosto, pisoDelPrecio, type BandaDeCosto } from "./cuenta-de-precio";
+import { conRebajaCts, cuentaDelPrecio, IGV, motivoDeCosto, pierdeConElPrecio, pisoDelPrecio, type BandaDeCosto } from "./cuenta-de-precio";
 import { readFileSync } from "node:fs";
 // La tabla vive junto a la prueba de la base (`scripts/pruebas/`): las dos la leen, y la de la base no queda «leyendo la web».
 const CASOS = JSON.parse(readFileSync(new URL("../../../scripts/pruebas/costo-dudoso-casos.json", import.meta.url), "utf8")) as {
@@ -75,5 +75,26 @@ describe("motivoDeCosto: el costo dudoso, el mismo de la base (ADR-0668, A4)", (
   it("usa el IGV que trae la lectura: con otra tasa, lo «sin IGV» es otro monto", () => {
     expect(motivoDeCosto(19.85, { anterior: null, deLaOrden: 21.83, banda: null }, 0.1)).toBe("sin_igv");
     expect(motivoDeCosto(19.85, { anterior: null, deLaOrden: 21.83, banda: null })).toBeNull();
+  });
+});
+
+describe("pierdeConElPrecio: «Pierdes», la misma regla de la base (ADR-0668, A5)", () => {
+  // La misma tabla que corre `scripts/pruebas/pierde_confirma.mjs` contra `retail.fn_pierde_con`.
+  const PIERDE = JSON.parse(readFileSync(new URL("../../../scripts/pruebas/pierde-casos.json", import.meta.url), "utf8")) as {
+    casos: { nombre: string; precio: number; costo: number; pierde: boolean }[];
+  };
+  for (const c of PIERDE.casos) {
+    it(`${c.nombre}: ${c.pierde ? "pierde" : "no pierde"}`, () => {
+      expect(pierdeConElPrecio(c.precio, c.costo)).toBe(c.pierde);
+    });
+  }
+  it("dice lo mismo que la línea «Te quedan»: pierde exactamente cuando la cuenta es negativa", () => {
+    for (let costo = 1; costo <= 120; costo += 0.37) {
+      for (let precio = costo; precio <= costo * 1.3; precio += 0.13) {
+        const c = Math.round(costo * 100) / 100;
+        const p = Math.round(precio * 100) / 100;
+        expect(pierdeConElPrecio(p, c)).toBe((cuentaDelPrecio(c, p)?.teQuedan ?? 0) < 0);
+      }
+    }
   });
 });
