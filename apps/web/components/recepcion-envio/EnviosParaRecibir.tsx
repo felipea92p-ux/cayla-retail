@@ -25,7 +25,7 @@ import { etapaDelEnvio } from "@/lib/trayecto-envio-reglas";
 
 // La tarjeta de la puerta de Recibir (ADR-0362, fase 4): arriba del formulario «Sin Aviso», lo que viene de una orden de compra para ESTA sede,
 // en una tabla (número, fecha de envío, estado, proveedor, guía, prendas y la acción) con un buscador y filtros (estado, proveedor, fechas) para
-// hallar uno entre muchos, del que salió hace más tiempo al más nuevo dentro de cada grupo. Cada envío en camino (o
+// hallar uno entre muchos, del que salió más recientemente al más antiguo (Felipe 2026-11-17: lo último, arriba). Cada envío en camino (o
 // ya abierto por alguien) con «Recibir», y cada orden «directo» que llegó sin guía con «Llegó esta orden» (decisión 48). Quien hizo la orden no
 // la recibe (decisión 17): en vez del botón, lo dice. Solo sale si hay algo; si la lectura falló, no sale y la puerta recibe igual (lo decide
 // la página).
@@ -90,7 +90,7 @@ export function EnviosParaRecibir({
   if (envios.length === 0 && ordenes.length === 0) return null;
   const hoy = hoyLima();
   const proveedorSinAviso = (envioId: string) => proveedoresSinAviso[envioId] ?? null;
-  // Primero el orden (grupo y, dentro del grupo, del envío más antiguo al más nuevo), después los filtros y al final lo escrito en el buscador.
+  // Primero el orden (una sola lista, del envío más nuevo al más antiguo), después los filtros y al final lo escrito en el buscador.
   const todas = ordenarFilasPorRecibir(envios, ordenes);
   const filas = filtrarFilas(todas, filtros, proveedorSinAviso).filter((f) =>
     coincideConBusqueda(f.tipo === "envio" ? textoBuscableDeEnvio(f.envio, proveedorSinAviso(f.envio.id)) : textoBuscableDeOrden(f.orden), buscar),
@@ -212,7 +212,7 @@ export function EnviosParaRecibir({
               <span className={celda("izq", "pointer-events-none relative hidden text-sm tabular-nums text-taupe @5xl:block")}>{e.numeroGuia ?? "—"}</span>
               <span className={celda("der", "pointer-events-none relative text-sm text-tinta")}>
                 {sinAviso ? "—" : prendas(e.unidades)}
-                {/* Lo que ya entró de un envío abierto también sale abajo, en «Terminados»: aquí se dice para que no parezca repetido. */}
+                {/* Lo que ya entró de un envío abierto se dice aquí: «Terminados» solo trae lo que terminó (Felipe 2026-11-17). */}
                 {yaEnStock && <small className="block whitespace-normal text-sm text-taupe">{yaEnStock}</small>}
               </span>
               <span className={celda("der", "relative overflow-visible whitespace-normal sm:flex sm:justify-end")}>

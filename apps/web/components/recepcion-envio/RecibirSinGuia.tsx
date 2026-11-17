@@ -34,7 +34,8 @@ export function RecibirSinGuia({ orden, sede }: { orden: OrdenDirecta; sede: str
   );
 }
 
-function HojaRecibirSinGuia({ orden, sede, onCerrar }: { orden: OrdenDirecta; sede: string; onCerrar: () => void }) {
+/** La hoja sola, para quien la abre desde otro lugar (la fila de la tarjeta «Envíos» de Recibir). */
+export function HojaRecibirSinGuia({ orden, sede, onCerrar }: { orden: OrdenDirecta; sede: string; onCerrar: () => void }) {
   const router = useRouter();
   const responsable = useResponsable();
   const [guardando, setGuardando] = useState(false);

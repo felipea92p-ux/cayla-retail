@@ -35,12 +35,12 @@ import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
 import { AccionSinAviso, BotonSinAviso, SinAvisoProvider } from "@/components/recepcion-conteo/SinAvisoContexto";
 import { EnviosParaRecibir } from "@/components/recepcion-envio/EnviosParaRecibir";
+import { EnviosDeLaSede } from "@/components/recepcion-envio/EnviosDeLaSede";
 import { getComprasPagadasHacia, getEnviosAMedias, getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
 import { diasAMedias, DIAS_PARA_RESALTAR, textoDeEnvioAMedias } from "@/lib/recepcion-salida-reglas";
 import { getConteosDelEnvio, recibirContandoDisponible } from "@/lib/recepcion-conteo";
-import { esEnvioSinAviso, marcasDelSinAviso, proveedorDelSinAviso } from "@/lib/recepcion-conteo-reglas";
+import { esEnvioSinAviso, marcasDelSinAviso, proveedoresDelSinAviso } from "@/lib/recepcion-conteo-reglas";
 import { LlegoSinAviso } from "@/components/recepcion-conteo/LlegoSinAviso";
-import { PendientesDeRecibir } from "@/components/recepcion-conteo/PendientesDeRecibir";
 import { RecibidoEnLaSede } from "@/components/recepcion-conteo/RecibidoEnLaSede";
 import { TERMINADOS_MAXIMO } from "@/lib/por-terminar-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -283,7 +283,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     const comprasPagadas = contando.disponible ? await getComprasPagadasHacia(persona.ubicacionId) : [];
     const sinAvisoAbiertos = contando.disponible ? (deOrdenes?.envios ?? []).filter(esEnvioSinAviso) : [];
     const conteosSinAviso = new Map(await Promise.all(sinAvisoAbiertos.map(async (e) => [e.id, (await getConteosDelEnvio(e.id)).conteos] as const)));
-    const proveedoresSinAviso = Object.fromEntries([...conteosSinAviso].map(([id, c]) => [id, proveedorDelSinAviso(c)] as const));
+    const proveedoresSinAviso = Object.fromEntries([...conteosSinAviso].map(([id, c]) => [id, proveedoresDelSinAviso(c)] as const));
     // La marca bajo el proveedor (Felipe 2026-11-07): la base la manda por las líneas del envío; uno sin aviso no tiene líneas, así que se
     // toma de lo que ya se contó.
     const porRecibirEnLaSede = deOrdenes && {
@@ -299,18 +299,26 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         recibidos={recibidos}
         costos={costos}
         vacio={`Todavía no llegó nada a ${persona.ubicacionEtiqueta}.`}
-        enviosAbiertos={(deOrdenes?.envios ?? []).filter((e) => e.estado === "abierto").map((e) => e.id)}
+        // Cada envío sale una sola vez (Felipe 2026-11-17): lo que se sigue recibiendo y lo que quedó por terminar no se repite en «Terminados».
+        enviosSinTerminar={[
+          ...(deOrdenes?.envios ?? []).filter((e) => e.estado === "abierto").map((e) => e.id),
+          ...(contando.disponible ? (contando.pendientes?.envios ?? []).map((e) => e.despachoId) : []),
+        ]}
       />
     );
     if (contando.disponible) {
+      // Los envíos a medias que no tienen fila en la tarjeta de esta sede (ver el comentario del aviso, más abajo).
+      const aMediasSinFila = aMedias.filter((e) => !(porRecibirEnLaSede?.envios ?? []).some((x) => x.id === e.id));
       return (
         <div className="space-y-6">
           {conEncabezado(`Abre un fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después. Entra al almacén de ${nombreMirada}.`)}
-          {/* Los envíos a medias son la misma clase de aviso: van juntos (8 px entre ellos), no a los 24 px que separan los bloques de la página.
-              El grupo es un contenedor: con menos de 640 px de ancho, «Seguir recibiendo» baja debajo del texto (recepcion-conteo.css). */}
-          {aMedias.length > 0 && (
+          {/* Los avisos pasan a la fila (Felipe 2026-11-17, ADR-0676): un envío a medias de ESTA sede ya lo dice en su fila de la tarjeta (cuánto
+              entró, y en ámbar si lleva días), y lo que quedó por terminar también es una fila. Aquí queda solo lo que no tiene fila: el envío
+              viejo de OTRA sede que `fn_envios_a_medias` le muestra al líder, o los de esta si la lista no se pudo leer. Van juntos (8 px entre
+              ellos) y el grupo es un contenedor: con menos de 640 px de ancho, «Seguir recibiendo» baja debajo del texto (recepcion-conteo.css). */}
+          {aMediasSinFila.length > 0 && (
             <div className="@container/rc-avisos space-y-2">
-              {aMedias.map((e) => (
+              {aMediasSinFila.map((e) => (
                 <Aviso
                   key={e.id}
                   tono={diasAMedias(e.desde) >= DIAS_PARA_RESALTAR ? "atencion" : "info"}
@@ -318,7 +326,6 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
                   // Con la columna angosta, «Seguir recibiendo» baja debajo del texto: a su derecha lo dejaba en cinco renglones.
                   className="rc-aviso-a-medias"
                   accion={
-                    // Un solo verbo para el mismo envío: la fila de «Envíos por recibir» también dice «Seguir recibiendo» (auditoría 2026-11-12).
                     <Link href={`/recibir/envio/${e.id}`} className="btn-cayla btn-enlace">
                       Seguir recibiendo
                     </Link>
@@ -329,12 +336,25 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
               ))}
             </div>
           )}
-          {contando.pendientes && <PendientesDeRecibir pendientes={contando.pendientes} conLista={false} guia="recibir.pendientes" />}
           <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
           <SinAvisoProvider>
-          {deOrdenes && (
-            <EnviosParaRecibir envios={porRecibirEnLaSede?.envios ?? []} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria proveedoresSinAviso={proveedoresSinAviso} enStock={Object.fromEntries(aMedias.map((e) => [e.id, e.enStock]))} accionTitulo={<AccionSinAviso />} accionCelular={<BotonSinAviso />} />
-          )}
+          {/* Una sola tarjeta (Felipe 2026-11-17, propuesta «C · Índice»): lo que falta recibir, lo que quedó por terminar y lo terminado, cada
+              envío una vez. Si los envíos por recibir no se pudieron leer, la tarjeta lo dice y muestra lo demás. Con la tarjeta angosta,
+              «Sin aviso» deja el título y va en la fila de herramientas, sin su pregunta (`accionCelular`). */}
+          <EnviosDeLaSede
+            envios={porRecibirEnLaSede?.envios ?? []}
+            ordenes={deOrdenes?.ordenes ?? []}
+            sinLeerPorRecibir={!deOrdenes}
+            sede={persona.ubicacionEtiqueta}
+            proveedoresSinAviso={proveedoresSinAviso}
+            aMedias={Object.fromEntries(aMedias.map((e) => [e.id, { enStock: e.enStock, contadas: e.contadas }]))}
+            pendientes={contando.pendientes}
+            recibidos={recibidos}
+            costos={costos}
+            hoy={hoyLima()}
+            accionTitulo={<AccionSinAviso />}
+            accionCelular={<BotonSinAviso />}
+          />
           <LlegoSinAviso
             key={claveDeLaRecepcion(persona.ubicacionId)}
             ubicacionId={persona.ubicacionId}
@@ -345,7 +365,6 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             hayListaArriba={(deOrdenes?.envios.length ?? 0) + (deOrdenes?.ordenes.length ?? 0) > 0}
           />
           </SinAvisoProvider>
-          {loRecibido}
         </div>
       );
     }

@@ -2,7 +2,7 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 152,
+  "total": 154,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «/recibir»",
@@ -158,9 +158,6 @@
       "ComboResponsable «{responsable}» #2",
       "Boton «{campos.frase ?? undefined}»"
     ],
-    "components/recepcion-conteo/PendientesDeRecibir.tsx": [
-      "Link «{e.numero ?? \"Envío\"}»"
-    ],
     "components/recepcion-conteo/ProveedorNuevoRecepcion.tsx": [
       "CampoTexto «{guia.etiqueta(\"razon-social\", \"Razón social\")}»",
       "CampoTexto «11 dígitos»",
@@ -173,7 +170,6 @@
     ],
     "components/recepcion-conteo/RecibidoPorEnvio.tsx": [
       "button «recibir.reciente»",
-      "BotonEnlace «Seguir recibiendo»",
       "button «{nombreMarca(m)}»",
       "button «recibir.desplegar»"
     ],
@@ -187,6 +183,12 @@
       "Boton «Cerrar»",
       "Boton «{guia.frase ?? undefined}»",
       "Boton «Cerrar» #2"
+    ],
+    "components/recepcion-envio/EnviosDeLaSede.tsx": [
+      "button «{f.marcas.length ? `Marca${f.marcas.length === 1 ? \"\" : \"s\"}»",
+      "BotonEnlace «{`${f.estado === \"contando\" ? \"Seguir recibiendo\" : \"Terminar\"}»",
+      "Boton «{f.estado === \"en_camino\" ? `Recibir ${f.numero}»",
+      "button «{v.clave === \"terminados\" ? \"recibir.envios-terminados\" : undefined}»"
     ],
     "components/recepcion-envio/EnviosParaRecibir.tsx": [
       "Link «{`/recibir/envio/${e.id}»",

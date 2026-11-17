@@ -66,7 +66,6 @@ import {
   ponerTallas,
   separadoParaBase,
   sumarPrenda,
-  textoAvisoPendientes,
   textoBotonCerrar,
   textoNoSeReabre,
   textoPisaste,
@@ -100,7 +99,7 @@ import {
   esEnvioSinAviso,
   marcaDeLinea,
   nombreDeLinea,
-  proveedorDelSinAviso,
+  proveedoresDelSinAviso,
   marcasDelSinAviso,
   prendasAnotadasDe,
   separarAnotada,
@@ -616,14 +615,13 @@ describe("«Hacer ahora», reabrir y el aviso de la sede", () => {
     expect(esEnvioSinAviso({ lineas: 0, ordenes: [] })).toBe(true);
     expect(esEnvioSinAviso({ lineas: 2, ordenes: [] })).toBe(false);
     expect(esEnvioSinAviso({ lineas: 0, ordenes: ["OC-000465"] })).toBe(false);
-    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedor_por_confirmar: true }))).toBe("proveedor por confirmar");
-    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV] }))).toBe(PROV.nombre);
-    expect(proveedorDelSinAviso(null)).toBeNull();
+    expect(proveedoresDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedor_por_confirmar: true }))).toEqual(["Proveedor por confirmar"]);
+    expect(proveedoresDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV] }))).toEqual([PROV.nombre]);
+    expect(proveedoresDelSinAviso(null)).toEqual([]);
     const P2 = { id: "p2", nombre: "Textiles Andina" };
-    const P3 = { id: "p3", nombre: "Confecciones del Sur" };
-    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV, P2] }))).toBe(`${PROV.nombre} y Textiles Andina`);
-    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV, P2, P3, { id: "p4", nombre: "X" }] }))).toBe(`${PROV.nombre}, Textiles Andina y 2 más`);
-    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedor_por_confirmar: true, proveedores: [P2] }))).toBe("Textiles Andina, y algo por confirmar");
+    expect(proveedoresDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV, P2] }))).toEqual([PROV.nombre, "Textiles Andina"]);
+    // Lo que falta confirmar cuenta como uno más: con otro proveedor ya son «varios».
+    expect(proveedoresDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedor_por_confirmar: true, proveedores: [P2] }))).toEqual(["Textiles Andina", "Proveedor por confirmar"]);
   });
 
   it("en la puerta, la marca de un envío sin aviso sale de lo ya contado: sin repetir y en orden alfabético", () => {
@@ -666,9 +664,8 @@ describe("«Hacer ahora», reabrir y el aviso de la sede", () => {
   it("el número de la sede, su texto y desde cuándo", () => {
     const p = leerPendientesDeLaSede({ por_separar: 3, por_detallar: 3, por_crear: 2, total: 8, desde: "2026-10-01T10:00:00Z", envios: [{ despacho_id: "d1", numero: "ENV-000061" }, {}] });
     expect(p.envios).toHaveLength(1);
-    expect(textoAvisoPendientes(p)).toBe("8 prendas para terminar");
-    expect(textoAvisoPendientes({ total: 1, envios: [p.envios[0], p.envios[0]] })).toBe("1 prenda para terminar en 2 envíos");
-    expect(textoAvisoPendientes(leerPendientesDeLaSede(null))).toBeNull();
+    expect(p.total).toBe(8);
+    expect(leerPendientesDeLaSede(null).total).toBe(0);
     // Días de calendario de Lima: del 1 (05:00 en Lima) al 9 (04:00 en Lima) son 8, aunque no pasen 8 × 24 h.
     expect(diasDesde("2026-10-01T10:00:00Z", new Date("2026-10-09T09:00:00Z"))).toBe(8);
     // Cerrado ayer 18:00 de Lima (23:00 UTC), mirado hoy 09:00: 1 día, no «hoy».
