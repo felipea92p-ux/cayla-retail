@@ -152,6 +152,22 @@ export function rangoEnDosLineas(montos: readonly number[]): { desde: string; ha
   return { desde: f(min), hasta: min === max ? null : `a ${f(max)}` };
 }
 
+/** El ancho de una talla de nombre corto («S», «38», «XXL»): lo que pide la caja − N +, la más ancha de las cuatro pestañas. */
+const ANCHO_TALLA_PX = 80;
+/** El tope: un nombre más largo que esto se corta con «…» (su `title` lo dice entero) antes que comerse la columna del color. */
+const ANCHO_TALLA_MAX_PX = 120;
+
+/**
+ * Cuánto mide la columna de cada talla en una tarjeta angosta (celular), donde las columnas tienen ancho fijo. Con 80 px «Estándar»
+ * y su lápiz (84 px) se salían de la cabecera y la tabla entera se corría de lado (2026-11-17). Todas las tallas miden lo mismo —lo
+ * que pide el nombre MÁS LARGO—, así cambiar de pestaña o agregar un color no corre nada.
+ * La cuenta: ~7,5 px por letra (DM Sans seminegrita de 12 px; «Estándar» mide 56) + 36 px del lápiz, su aire y el de la celda.
+ */
+export function anchoDeTallaPx(nombres: readonly string[]): number {
+  const masLargo = Math.max(0, ...nombres.map((n) => n.length));
+  return Math.min(ANCHO_TALLA_MAX_PX, Math.max(ANCHO_TALLA_PX, Math.ceil(masLargo * 7.5) + 36));
+}
+
 // ---------------------------------------------------------------------------
 // Etiquetas y colores que se quitan, desde la misma matriz (ADR-0313, act. 2026-10-03)
 // ---------------------------------------------------------------------------
