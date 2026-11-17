@@ -1,3 +1,4 @@
+import "@/app/estilos/inicio-almacen.css";
 import { tonoDeSede, type NuevoProducto } from "@/lib/inicio-almacen-reglas";
 
 /**

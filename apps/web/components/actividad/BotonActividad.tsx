@@ -1,24 +1,10 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Modal } from "@/components/ui/Modal";
-import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
-import { EnlaceVer } from "@/components/ui/EnlaceVer";
-import { LayoutGrid } from "lucide-react";
 import { TRAZOS_MENU } from "@/lib/menu-iconos";
-import { ListaActividad, useActividad } from "@/components/actividad/ListaActividad";
-import {
-  MODULOS_CON_ACTIVIDAD,
-  PERIODOS,
-  anotaActividad,
-  moduloDeRuta,
-  moduloInicialDelPanel,
-  nombreDeModulo,
-  opcionesDeModulo,
-  type Periodo,
-} from "@/lib/actividad-reglas";
-import type { ClaveModulo } from "@/lib/modulos";
+import { moduloDeRuta, moduloInicialDelPanel, nombreDeModulo } from "@/lib/actividad-reglas";
 
 // El botón «Actividad» de la cabecera (ADR-0207, Felipe 2026-09-25): junto a la sede, no en el lateral —no es una
 // pantalla más, es el historial de la pantalla donde uno está—. Al abrirlo muestra la actividad del módulo de esa
@@ -26,6 +12,10 @@ import type { ClaveModulo } from "@/lib/modulos";
 
 // El reloj con la flecha que vuelve: el mismo trazo del «Historial» del menú (`TRAZOS_MENU.historial`) y el de «Actividad» en Roles y accesos.
 const RUTA_HISTORIAL = TRAZOS_MENU.historial;
+
+// El panel se descarga aparte (ADR-0674): al acercar el mouse o el foco al botón ya empieza a bajar, así que abrirlo no espera.
+const cargarPanel = () => import("@/components/actividad/PanelActividad");
+const PanelActividad = dynamic(() => cargarPanel().then((m) => m.PanelActividad), { ssr: false });
 
 export function BotonActividad({ ubicacionId, ubicacionEtiqueta, esLider }: { ubicacionId: string | null; ubicacionEtiqueta: string; esLider: boolean }) {
   const pathname = usePathname();
@@ -37,6 +27,8 @@ export function BotonActividad({ ubicacionId, ubicacionEtiqueta, esLider }: { ub
       <button
         type="button"
         onClick={() => setAbierto(true)}
+        onPointerEnter={() => void cargarPanel()}
+        onFocus={() => void cargarPanel()}
         aria-label={`Actividad${modulo ? ` de ${nombreDeModulo(modulo)}` : ""}`}
         title="Quién hizo qué en este módulo"
         className="area-dedo flex h-9 items-center gap-1.5 rounded-lg px-2 text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:px-2.5"
@@ -56,77 +48,5 @@ export function BotonActividad({ ubicacionId, ubicacionEtiqueta, esLider }: { ub
         />
       ) : null}
     </>
-  );
-}
-
-function PanelActividad({
-  moduloInicial,
-  ubicacionId,
-  ubicacionEtiqueta,
-  esLider,
-  onClose,
-}: {
-  moduloInicial: ClaveModulo | null;
-  ubicacionId: string | null;
-  ubicacionEtiqueta: string;
-  esLider: boolean;
-  onClose: () => void;
-}) {
-  const [modulo, setModulo] = useState<ClaveModulo | null>(moduloInicial);
-  const [periodo, setPeriodo] = useState<Periodo>("hoy");
-  const pendiente = modulo !== null && !anotaActividad(modulo);
-  const actividad = useActividad({ modulo, ubicacionId, personaId: null, periodo }, !pendiente);
-  const titulo = modulo ? nombreDeModulo(modulo) : "Todos los módulos";
-  // El panel mira UNA sede (la del selector). La líder de tienda solo tiene la suya: la base la fuerza igual.
-  const verTodo = `/actividad${modulo ? `?modulo=${modulo}` : ""}`;
-
-  return (
-    <Modal
-      titulo={`Actividad · ${titulo}`}
-      subtitulo={`${ubicacionEtiqueta} · quién hizo qué y cuándo`}
-      onClose={onClose}
-      tamano="mediana"
-      variante="papel"
-    >
-      {(cerrar) => (
-        <div>
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            {/* La píldora de filtro del sistema (ADR-0358, ronda 6): dice su nombre y, puesta, lo elegido con su ✕. */}
-            <DesplegablePildora
-              icono={LayoutGrid}
-              etiqueta="Módulo"
-              valor={modulo ?? ""}
-              valorPorDefecto=""
-              onValor={(v) => setModulo((v || null) as ClaveModulo | null)}
-              opciones={opcionesDeModulo(modulo)}
-            />
-            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Periodo">
-              {PERIODOS.map((p) => (
-                <button key={p.clave} type="button" className="pildora-cayla" aria-pressed={periodo === p.clave} onClick={() => setPeriodo(p.clave)}>
-                  {p.etiqueta}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {pendiente ? (
-            <p className="nota-cayla">
-              <b>{nombreDeModulo(modulo)}</b> todavía no anota su actividad. Hoy la anotan{" "}
-              {MODULOS_CON_ACTIVIDAD.map(nombreDeModulo).join(", ").replace(/, ([^,]*)$/, " y $1")}; los demás módulos se suman por
-              etapas.
-            </p>
-          ) : (
-            <ListaActividad {...actividad} conSede={false} conModulo={modulo === null} />
-          )}
-
-          <div className="mt-5 flex items-center justify-between gap-3 border-t border-sand/70 pt-4">
-            <p className="text-sm text-taupe">{esLider ? "Ves la sede elegida arriba." : "Ves solo la actividad de tu tienda."}</p>
-            <EnlaceVer href={verTodo} alNavegar={cerrar}>
-              Ver todo el historial
-            </EnlaceVer>
-          </div>
-        </div>
-      )}
-    </Modal>
   );
 }

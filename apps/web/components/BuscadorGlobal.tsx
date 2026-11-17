@@ -7,7 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { createClient } from "@/lib/supabase/client";
-import { armarEquipo, textoEstado, type MiembroEquipo } from "@/lib/inicio-avisos";
+import { armarEquipo, textoEstado, type MiembroEquipo } from "@/lib/equipo-de-turno";
 import type { ItemMenu } from "@/lib/menu";
 import { SearchX } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";

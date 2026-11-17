@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/analisis-pestanas.css";
 import { useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono, type NombreIcono } from "@/components/analisis/iconos";

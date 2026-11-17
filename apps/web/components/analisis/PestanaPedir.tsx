@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/analisis-pestanas.css";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAnalisis } from "@/components/analisis/contexto";

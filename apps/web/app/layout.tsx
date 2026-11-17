@@ -12,6 +12,9 @@ import { SesionEntrePestanas } from "@/components/ui/SesionEntrePestanas";
 import { EntradaColibri } from "@/components/login/EntradaColibri";
 import { SCRIPT_TEMA_ANTES_DE_PINTAR } from "@/lib/tema-reglas";
 import { SCRIPT_MOVIMIENTO_ANTES_DE_PINTAR } from "@/lib/movimiento-reglas";
+import { SCRIPT_LIVIANO_ANTES_DE_PINTAR } from "@/lib/liviano-reglas";
+import { SCRIPT_NAVEGADOR_VIEJO } from "@/lib/navegador-viejo-reglas";
+import { AvisoNavegadorViejo } from "@/components/AvisoNavegadorViejo";
 
 // Las dos familias del sistema CAYLA (brandbook v3.0): EB Garamond es "el alma"
 // (títulos, cifras hero), DM Sans es "el sistema" (interfaz, cuerpo, etiquetas).
@@ -37,15 +40,21 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, view
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // `suppressHydrationWarning`: los scripts de abajo ponen `data-tema` y `data-movimiento` en <html> antes de que React hidrate (ADR-0336).
+    // `suppressHydrationWarning`: los scripts de abajo ponen `data-tema`, `data-movimiento`, `data-liviano` y `data-navegador-viejo` en <html> antes de que React hidrate (ADR-0336).
     <html lang="es" className={`${serif.variable} ${sans.variable}`} suppressHydrationWarning>
       <head>
         {/* El tema guardado se aplica ANTES de la primera pintura: sin esto, quien eligió oscuro vería un destello claro en cada carga. */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA_ANTES_DE_PINTAR }} />
         {/* Las animaciones, igual (ADR-0625): quieto salvo que este aparato las haya encendido; sin esto, la primera hoja se animaría. */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_MOVIMIENTO_ANTES_DE_PINTAR }} />
+        {/* El modo liviano (ADR-0674): en un equipo lento, macizo desde la primera pintura; sin esto se pintaría con vidrio y después cambiaría. */}
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_LIVIANO_ANTES_DE_PINTAR }} />
+        {/* «Actualiza el navegador» (ADR-0674): si no entiende `color-mix()`, marca <html> y el aviso de arriba del <body> se muestra. */}
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_NAVEGADOR_VIEJO }} />
       </head>
       <body className="antialiased">
+        {/* Escondido salvo en un navegador que no puede pintar el ERP (ADR-0674): HTML del servidor, sin JavaScript. */}
+        <AvisoNavegadorViejo />
         {children}
         {/* Avisos globales (arriba a la derecha): montado una sola vez, acá,
             para que valga también en /login y sobreviva a la navegación. */}

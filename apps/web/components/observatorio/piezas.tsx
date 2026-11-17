@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/observatorio.css";
 // Las piezas del Observatorio (ADR-0322), con el movimiento de la maqueta aprobada (docs/maquetas/inicio-admin-v3-2026-10/):
 // cifras que cuentan (`Cifra`) o ruedan dígito por dígito (`Odometro`), barras y anillos que crecen desde cero al llegar y
 // después van de su valor viejo al nuevo, trazos que se dibujan de izquierda a derecha (`Revela`) y se transforman punto
