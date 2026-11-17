@@ -18,6 +18,8 @@ function resolver(desde, espec) {
 }
 function importsDe(archivo) {
   const texto = readFileSync(archivo, "utf8");
+  // Un archivo de acciones del servidor (`"use server"`) no viaja al teléfono: el camino termina ahí.
+  if (/^\s*["']use server["']/.test(texto)) return [];
   const re = /^\s*(?:import|export)\s+(?!type\s)(?:[^"';]*?\sfrom\s+)?["']([^"']+)["']/gm;
   return [...texto.matchAll(re)].map((m) => resolver(archivo, m[1])).filter(Boolean);
 }

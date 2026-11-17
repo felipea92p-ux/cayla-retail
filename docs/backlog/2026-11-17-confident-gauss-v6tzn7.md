@@ -52,7 +52,7 @@ JavaScript total por pantalla, antes → después (armado de producción local):
 |---|---|---|
 | 6a | El ticket de **Vender** sobrevive a que Android cierre la pestaña | **Hecho** (commit `d837a8b`), verificado con dos pestañas; NO en producción |
 | 6b | La compra a medio registrar en **Mis compras** sobrevive igual | **Hecho** (2026-11-17), verificado en local a 375 px; NO en producción |
-| 7 | Partir el código de las pantallas pesadas | **Primer corte hecho** (2026-11-17): Vender, y el arrastre de Vender en Caja, Apartados y Mis compras. Faltan los cortes propios de cada pantalla (abajo) |
+| 7 | Partir el código de las pantallas pesadas | **Dos cortes hechos** (2026-11-17): Vender y su arrastre en Caja, Apartados y Mis compras (en el PR #1923); y las cuatro hojas de Caja (en la rama, sin subir). Faltan los cortes de las demás pantallas (abajo) |
 | 8 | Recorrer las pantallas de los 4 módulos a 375 px y arreglar lo roto | Sin empezar |
 | 9 | Probar en un teléfono barato real | Lo hace Felipe |
 
@@ -116,17 +116,21 @@ Falta antes de producción:
   a `lib/money.ts` y `components/punto-de-venta/iconoMetodo.tsx`; lo vigila `lib/vender-no-se-arrastra.test.ts`.
 - **Vender:** GSAP solo con las animaciones encendidas (`useFlipDelTicket`), «Cerrar caja» al abrirla y «Prenda sin registrar» en reposo
   (`hojaBajoDemanda`, que avisa y reintenta si no hay red). Lo de cobrar sin conexión (hoja de cobro, venta registrada, cobro en duda) NO se difiere.
-- **Medido** (JavaScript total, armado de producción): Compré ropa 2 097 → 1 406 KB (−33 %), Caja 2 241 → 1 650 (−26 %), Apartados
-  2 137 → 1 692 (−21 %), Vender 1 938 → 1 751 (−10 %). Sin cambio: Existencias 1 903, Recibir 1 754, Nuevo producto 1 742, Productos 1 640.
+- **Medido** (JavaScript total, armado de producción): Compré ropa 2 097 → 1 406 KB (−33 %), Caja 2 241 → 1 650 (−26 %; con el segundo
+  corte, 1 454: −35 %), Apartados 2 137 → 1 692 (−21 %), Vender 1 938 → 1 751 (−10 %). Sin cambio: Existencias 1 903, Recibir 1 754, Nuevo producto 1 742, Productos 1 640.
 
 **Los medidores viven en `scripts/peso/`** (ya no hay que reescribirlos): `cierres.mjs` (qué arrastra cada import fijo de un componente),
 `camino.mjs` (por dónde un archivo termina cargando a otro) y `por-pantalla.mjs` (JavaScript por ruta sobre un armado de producción).
 
 Lo que sigue, en orden de lo que más pesa (medir SIEMPRE antes: buscar primero un arrastre como el de `money`, después los modales):
-- [ ] **Caja** (hoy 1 650 KB). `node scripts/peso/cierres.mjs apps/web components/CajaAbiertaPanel.tsx` da, de lo que es solo suyo:
-  `HistorialCierresModal` 248 KB de fuente (19 archivos; alcanza `next/headers`, raro en una hoja del navegador: mirar ese camino),
-  `RegistrarGastoModal` 174, `DetalleVentaModal` 147 (trae `qrcode.react`), `CerrarCajaModalV2` 85. Los cuatro se abren con un toque y piden
-  red: candidatos a `hojaBajoDemanda`.
+- [x] **Caja** (2026-11-17, commit `17aede6`): cerrar caja, historial de cierres, detalle de venta y registrar gasto completo pasan a
+  `hojaBajoDemanda` (`components/caja/CerrarCajaBajoDemanda.tsx` y `hojas-bajo-demanda.tsx`). 1 650 → 1 454 KB. Decisiones en ADR-0674,
+  «Actualización 2026-11-17 (c)». Dos trampas que costaron tiempo: el archivo que define una hoja diferida tiene que ser **`.tsx`** y no
+  juntar hojas de pantallas distintas, o el escáner de las guías pierde o inventa controles (`lib/guias.test.ts` lo marca); y los medidores
+  contaban el código de las acciones del servidor (corregido).
+- [ ] **El detalle de una venta** (`DetalleVentaModal`, 154 KB de fuente) sigue fijo en Historial de ventas, Movimientos, Devoluciones,
+  Comprobantes y Pedidos web: `DetalleVentaBajoDemanda` ya existe, falta usarlo ahí (medir cada pantalla antes).
+- [ ] Abrir el detalle de una venta desde Caja con una venta de verdad (no se pudo: la base local no tenía ventas de hoy).
 - [ ] **Vender**, segunda pasada: `ClientaDelTicket` (114 KB solo suyos: partir su buscador, que solo sirve con red), `EscanerCamara` (52; hoy
   Vender importa de ese archivo también `precargarLectorQR`: separarlo primero), `PuntoDeVentaCatalogo` (109, siempre a la vista: no).
   El botón «Cerrar caja» vive en el menú «Más»: se le puede sumar `CerrarCajaBajoDemanda.precargar` al acercar el dedo o el foco.

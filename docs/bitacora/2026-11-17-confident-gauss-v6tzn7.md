@@ -22,3 +22,9 @@ Qué hice: `money` y el ícono de cada medio salieron de la pantalla de Vender, 
 Caja −26 %, Apartados −21 %. En Vender, GSAP, «Cerrar caja» y «Prenda sin registrar» bajan recién cuando hacen falta (−10 %).
 Por qué así: se midió antes de tocar y la causa era un import de una línea, no los modales; lo de cobrar sin conexión se queda fijo.
 Felipe se lleva: los cortes que faltan (Caja: historial de cierres y registrar gasto; Existencias; Nuevo producto; Recibir) y el teléfono real.
+
+## 2026-11-17 (Actividad 7, segundo corte: Caja; PR #1923 abierto)
+Qué hice: abrí el PR #1923 (auditoría `/milimetro` incluida) y diferí las cuatro hojas de Caja: cerrar caja, historial de cierres, detalle
+de venta y registrar gasto. Caja baja de 1 650 a 1 454 KB de JavaScript (2 241 antes de la actividad 7).
+Por qué así: las cuatro piden internet de todos modos; «Cerrar caja» se precarga en reposo para que abra al instante.
+Felipe se lleva: el corte de Caja está en la rama local, sin subir al PR; siguen Existencias, Recibir, Nuevo producto y el marco.

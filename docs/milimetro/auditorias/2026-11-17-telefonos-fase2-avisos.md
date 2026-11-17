@@ -37,3 +37,9 @@ Ninguna.
 - El área de toque con el dedo (`pointer: coarse`, 44 px) de «Empezar de nuevo» (130 × 33 px con mouse) y de «Ver Mis compras»: el navegador de la prueba tenía puntero fino. Queda para el teléfono real.
 - El foco del botón «Empezar de nuevo» del aviso flotante (dura 7 s) y el aviso «La compra que estabas anotando ya se guardó» (misma pieza que A; exige una compra guardada en la base).
 - El loader mientras baja una hoja bajo demanda (en local baja en milisegundos y no llega a verse).
+
+## Añadido el mismo día — el corte de Caja
+Las cuatro hojas de Caja que pasan a bajar bajo demanda usan la pieza D ya medida arriba (el mismo aviso de error, con otro nombre de hoja):
+«No se pudo abrir «Cerrar caja»», «… el historial de cierres», «… el detalle de la venta», «… «Registrar gasto»», todas con «Revisa la
+conexión y vuelve a intentarlo.». No hay pieza, color ni medida nueva; las hojas se ven igual que antes. Visto en Caja a 1366 px (el aviso
+del historial sin red) y a 375 px («Cerrar caja» desde la barra de abajo, sin desborde). No se volvieron a correr los medidores.

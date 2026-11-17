@@ -195,6 +195,37 @@ encendidas baja y el ticket se reacomoda. `vitest` (943 archivos), `tsc`, `eslin
 **No verificado:** el tiempo real de arranque en un teléfono barato (aquí se midió peso, no segundos), ni la caja cerrándose de verdad
 desde la hoja diferida (se abrió y se canceló: no se cerró la caja de la base local).
 
+## Actualización 2026-11-17 (c) — actividad 7, segundo corte: Caja
+
+Medido antes de tocar (`scripts/peso/cierres.mjs`, lo que es solo suyo de cada hoja, en fuente): «Registrar gasto» completo 174 KB, el
+detalle de una venta 154 (trae `qrcode.react`), el historial de cierres 114 y «Cerrar caja» 85. Las cuatro se abren con un toque y leen o
+guardan en la base: sin internet no sirven de todos modos.
+
+- DECIDÍ: las cuatro pasan a `hojaBajoDemanda`. «Cerrar caja» es LA acción de la pantalla: su código baja apenas la pantalla queda libre
+  (`usePrecargarEnReposo`), así que abre al instante; el historial empieza a bajar al acercar el mouse o el foco; las otras dos, al abrirlas.
+  Una sola definición de «Cerrar caja» para Caja y Vender (`components/caja/CerrarCajaBajoDemanda.tsx`).
+- DESCARTÉ: poner las cuatro en un solo archivo, porque el escáner de las guías interactivas (`guias/escaner.mjs`) sigue los `import()` de
+  cada archivo que una pantalla importa: le atribuía a Vender el historial, el detalle de venta y «Registrar gasto», que Vender no dibuja
+  (48 controles de más en su huella). Y descarté dejarlas en un `.ts`: el escáner solo sigue `.tsx`, y los controles de esas hojas salían
+  de la huella de Caja, es decir, su guía dejaba de estar vigilada. Aceptar la huella nueva habría «arreglado» la prueba rompiendo el candado.
+- SE ROMPE SI: alguien difiere una hoja desde un archivo que no es `.tsx` o junta hojas de pantallas distintas en un archivo: la prueba
+  `lib/guias.test.ts` lo marca (así salió), pero el mensaje habla de la guía, no de la extensión.
+
+**Corrección de los medidores:** `cierres.mjs` y `camino.mjs` seguían los imports de los archivos `"use server"` (las acciones del
+servidor) y contaban como código del teléfono lo que nunca viaja (el historial «alcanzaba» `next/headers`). Ahora un archivo de acciones es
+una hoja del recorrido.
+
+**Medido** (armado de producción local, ya con `main` del 2026-11-17 fusionado): `/caja` 1 650 → 1 454 KB (520 → 454 comprimido), −12 %; desde
+antes de la actividad 7, 2 241 → 1 454 (−35 %). El texto propio de cada una de las cuatro hojas ya no aparece en los 27 archivos de la
+carga inicial de `/caja`. Vender, Apartados y Compré ropa, sin cambio (1 750 · 1 690 · 1 404).
+
+**Verificado (local, Playwright, 1366 y 375 px):** «Cerrar caja» abre sin pedir nada a la red (precargada), también desde la barra de
+abajo del celular; el historial y el formulario completo de gasto abren y bajan su código al abrirse; recién cargada la pantalla y sin red,
+el historial avisa «No se pudo abrir el historial de cierres», la pantalla sigue viva, y con red abre. Sin errores de página. La base
+local quedó idéntica (no se guardó nada). `vitest` (945 archivos, huellas de guías sin cambio), `tsc`, `eslint`, `knip`, `knip:produccion`.
+**No verificado:** el detalle de una venta abierto desde Caja (la base local no tenía ventas de hoy; es la misma pieza y los mismos tipos
+que las otras tres), ni cerrar la caja de verdad.
+
 ## Para Dynamic
 
 `components/ui/BotonLiviano.tsx` es una pieza nueva en una carpeta que Dynamic mira: **queda como tarea allá**, si quieren el modo liviano.

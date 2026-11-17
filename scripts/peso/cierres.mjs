@@ -25,6 +25,12 @@ const cacheImports = new Map();
 function importsDe(archivo) {
   if (cacheImports.has(archivo)) return cacheImports.get(archivo);
   const texto = readFileSync(archivo, "utf8");
+  // Un archivo de acciones del servidor (`"use server"`) no viaja al teléfono: el navegador solo recibe un llamador. Cuenta el archivo, no lo que importa.
+  if (/^\s*["']use server["']/.test(texto)) {
+    const v = { fijos: [], paquetes: [] };
+    cacheImports.set(archivo, v);
+    return v;
+  }
   const fijos = [];
   const paquetes = [];
   // import … from "x" | import "x" | export … from "x"  (sin `import type` ni `import()`)
