@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { anularBoletaLucode, anularDocumentoLucode, entornoLucode } from "@/lib/lucode";
 import { firmaDeEncabezados, mensajeErrorResponsable } from "@/lib/responsable-reglas";
 import { capturarError } from "@/lib/errores";
+import { confirmarBajaEnLaBase } from "@/lib/confirmar-baja-sunat";
 import { laBajaAnulaLaVenta, mensajeBajaSinAnularLaVenta, motivoDeAnulacionDeVenta, motivoDeBajaInvalido, motivoParaNoAnularLaVenta, motivoParaNoPedirBaja } from "@/lib/anular-comprobante-reglas";
 import type { EstadoComprobante, TipoComprobante } from "@/lib/comprobantes-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -12,7 +13,9 @@ import { hoyLima } from "@/lib/fechas-lima";
 //   PROMETE: pide la baja de un comprobante ACEPTADO por el camino que SUNAT
 //            exige según su tipo (resumen diario para boletas, comunicación de
 //            baja para facturas y notas) y guarda el resultado real —
-//            distinguiendo "confirmada" de "en trámite". Y, si es una boleta o
+//            distinguiendo "confirmada" de "en trámite": el pedido va con la
+//            sesión (firmado), y «anulado» lo escribe el servidor con su llave
+//            (`fn_confirmar_baja_sunat`, ADR-0673). Y, si es una boleta o
 //            una factura de una venta, ANULA LA VENTA en el mismo acto
 //            (`anular_venta`: las prendas vuelven al stock, la caja lo
 //            descuenta), porque una baja con la venta viva es un estado
@@ -182,11 +185,12 @@ export async function POST(request: Request) {
     );
   }
 
-  // Firmada con el responsable de los encabezados (el cliente de arriba se creó con esa firma).
+  // El PEDIDO de la baja, firmado con el responsable de los encabezados (el cliente de arriba se creó con esa firma). La base ya
+  // no escribe «anulado» aquí (ADR-0673): eso va abajo, con la llave del servidor.
   const { error: errGuardar } = await supabase.rpc("anular_comprobante", {
     p_comprobante_id: comprobante.id,
     p_motivo: motivo,
-    p_confirmada: confirmada,
+    p_confirmada: false,
     p_respuesta: resultado,
   });
   if (errGuardar) {
@@ -203,6 +207,21 @@ export async function POST(request: Request) {
       },
       { status: 500 }
     );
+  }
+
+  // SUNAT ya la confirmó: «anulado» lo escribe el servidor (ADR-0673). Si no se puede, la baja queda pedida y «en trámite», y el
+  // barrido del cron la confirma al preguntarle a Lucode: se dice tal cual, sin pedirla otra vez.
+  let anulada = false;
+  if (confirmada) {
+    const { error: errConfirmar } = await confirmarBajaEnLaBase(comprobante.id, resultado);
+    if (errConfirmar) {
+      capturarError("lucode/anular: SUNAT confirmó la baja pero no se guardó la confirmación", new Error(errConfirmar), {
+        comprobante_id: comprobante.id,
+        comprobante: `${comprobante.serie}-${comprobante.numero}`,
+      });
+    } else {
+      anulada = true;
+    }
   }
 
   // La venta se anula en el mismo acto, con la misma firma. Cada prenda vuelve «vendible»: si la venta fue real y solo el documento
@@ -232,5 +251,5 @@ export async function POST(request: Request) {
     ventaAnulada = true;
   }
 
-  return Response.json({ confirmada, estado: resultado.estado, entorno: resultado.entorno, ventaAnulada });
+  return Response.json({ confirmada: anulada, estado: resultado.estado, entorno: resultado.entorno, ventaAnulada });
 }
