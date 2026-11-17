@@ -41,7 +41,6 @@ import { diasAMedias, DIAS_PARA_RESALTAR, textoDeEnvioAMedias } from "@/lib/rece
 import { getConteosDelEnvio, recibirContandoDisponible } from "@/lib/recepcion-conteo";
 import { esEnvioSinAviso, marcasDelSinAviso, proveedorDelSinAviso } from "@/lib/recepcion-conteo-reglas";
 import { LlegoSinAviso } from "@/components/recepcion-conteo/LlegoSinAviso";
-import { PendientesDeRecibir } from "@/components/recepcion-conteo/PendientesDeRecibir";
 import { RecibidoEnLaSede } from "@/components/recepcion-conteo/RecibidoEnLaSede";
 import { TERMINADOS_MAXIMO } from "@/lib/por-terminar-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -311,7 +310,12 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       return (
         <div className="space-y-6">
           {conEncabezado(`Abre un fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después. Entra al almacén de ${nombreMirada}.`)}
-          {aMedias.map((e) => (
+          {/* Los avisos pasan a la fila (Felipe 2026-11-17): un envío a medias de ESTA sede ya lo dice en su fila de la tarjeta (cuánto entró, y
+              en ámbar si lleva días), y lo que quedó por terminar también es una fila. Aquí queda solo lo que no tiene fila: el envío viejo de
+              OTRA sede que `fn_envios_a_medias` le muestra al líder, o los de esta si la lista no se pudo leer. */}
+          {aMedias
+            .filter((e) => !(porRecibirEnLaSede?.envios ?? []).some((x) => x.id === e.id))
+            .map((e) => (
             <Aviso
               key={e.id}
               tono={diasAMedias(e.desde) >= DIAS_PARA_RESALTAR ? "atencion" : "info"}
@@ -326,7 +330,6 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
               {textoDeEnvioAMedias(e, undefined, persona.ubicacionEtiqueta)}
             </Aviso>
           ))}
-          {contando.pendientes && <PendientesDeRecibir pendientes={contando.pendientes} conLista={false} guia="recibir.pendientes" />}
           <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
           <SinAvisoProvider>
           {/* Una sola tarjeta (Felipe 2026-11-17, propuesta «C · Índice»): lo que falta recibir, lo que quedó por terminar y lo terminado, cada

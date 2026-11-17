@@ -2019,13 +2019,6 @@ export function leerPendientesDeLaSede(data: unknown): PendientesDeLaSede {
   };
 }
 
-/** «8 prendas para terminar en 2 envíos» (o null si no hay nada). */
-export function textoAvisoPendientes(p: Pick<PendientesDeLaSede, "total" | "envios">): string | null {
-  if (p.total <= 0) return null;
-  const envios = p.envios.length;
-  return `${textoPrendas(p.total)} para terminar${envios > 1 ? ` en ${envios} envíos` : ""}`;
-}
-
 /**
  * Cuántos días lleva lo más antiguo (para el tono del aviso: más de 7 días es lo que ADR-0393 vigila). Días de CALENDARIO de Lima, no bloques de 24 h
  * (auditoría 2026-11-12): un envío cerrado ayer a las 18:00 y mirado hoy a las 09:00 decía «11/11» y «hoy» en la misma celda.

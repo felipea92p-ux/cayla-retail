@@ -1612,14 +1612,6 @@ export const GUIA_RECIBIR: Guia = {
       texto: "Arriba, sus marcas; debajo, su número y de quién llegó. Su botón dice lo que toca: «Recibir», «Seguir recibiendo» o «Terminar». Si hiciste la orden, la recibe otra persona.",
     },
     {
-      // ADR-0393 (decisión 4): sale solo si lo recibido en la sede tiene algo por terminar.
-      id: "pendientes",
-      ancla: "recibir.pendientes",
-      opcional: true,
-      titulo: "Lo recibido por terminar",
-      texto: "El resumen: prendas que ya se contaron y están en el almacén, pero no en el sistema (falta separarlas, ponerles tallas o crearlas). Si lo más antiguo pasa de una semana, el aviso cambia de color. Cada envío está más abajo, en «Lo recibido».",
-    },
-    {
       // ADR-0393: con la base al día, la puerta es «Llegó sin aviso» (reemplaza a «Llegó mercadería»).
       id: "sin-aviso",
       ancla: "recibir.sin-aviso",

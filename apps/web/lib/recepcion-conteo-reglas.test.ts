@@ -66,7 +66,6 @@ import {
   ponerTallas,
   separadoParaBase,
   sumarPrenda,
-  textoAvisoPendientes,
   textoBotonCerrar,
   textoNoSeReabre,
   textoPisaste,
@@ -666,9 +665,8 @@ describe("«Hacer ahora», reabrir y el aviso de la sede", () => {
   it("el número de la sede, su texto y desde cuándo", () => {
     const p = leerPendientesDeLaSede({ por_separar: 3, por_detallar: 3, por_crear: 2, total: 8, desde: "2026-10-01T10:00:00Z", envios: [{ despacho_id: "d1", numero: "ENV-000061" }, {}] });
     expect(p.envios).toHaveLength(1);
-    expect(textoAvisoPendientes(p)).toBe("8 prendas para terminar");
-    expect(textoAvisoPendientes({ total: 1, envios: [p.envios[0], p.envios[0]] })).toBe("1 prenda para terminar en 2 envíos");
-    expect(textoAvisoPendientes(leerPendientesDeLaSede(null))).toBeNull();
+    expect(p.total).toBe(8);
+    expect(leerPendientesDeLaSede(null).total).toBe(0);
     // Días de calendario de Lima: del 1 (05:00 en Lima) al 9 (04:00 en Lima) son 8, aunque no pasen 8 × 24 h.
     expect(diasDesde("2026-10-01T10:00:00Z", new Date("2026-10-09T09:00:00Z"))).toBe(8);
     // Cerrado ayer 18:00 de Lima (23:00 UTC), mirado hoy 09:00: 1 día, no «hoy».
