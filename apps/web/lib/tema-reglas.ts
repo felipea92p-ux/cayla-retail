@@ -3,7 +3,7 @@
 //
 // El tema es una preferencia del APARATO, no de la cuenta: las cuentas de mostrador son compartidas por tienda (una tablet de
 // TRU puede quedarse en oscuro de noche) y guardarla por cuenta exigiría una migración en producción por un gusto visual.
-// Arranca en claro: nadie se encuentra el ERP distinto el día del despliegue. Solo cambia cuando alguien pulsa el botón.
+// Arranca en claro: nadie se encuentra el ERP distinto el día del despliegue. Solo cambia cuando alguien lo cambia en «Apariencia», al pie del menú.
 
 export const TEMAS = ["claro", "oscuro"] as const;
 export type Tema = (typeof TEMAS)[number];
@@ -23,21 +23,6 @@ export function esTema(valor: unknown): valor is Tema {
 /** Lo guardado puede estar ausente, viejo o corrupto: todo lo que no sea un tema conocido cae al claro. */
 export function resolverTema(guardado: unknown): Tema {
   return esTema(guardado) ? guardado : TEMA_POR_DEFECTO;
-}
-
-export function alternarTema(actual: Tema): Tema {
-  return actual === "oscuro" ? "claro" : "oscuro";
-}
-
-/**
- * Los textos del botón. El NOMBRE accesible no cambia («Modo oscuro») y el estado va en `aria-pressed`: un lector de pantalla
- * dice «Modo oscuro, activado», no un nombre distinto cada vez. El `title` sí dice qué hará el clic.
- */
-export function textosDelBoton(actual: Tema): { etiqueta: string; titulo: string } {
-  return {
-    etiqueta: "Modo oscuro",
-    titulo: actual === "oscuro" ? "Cambiar a modo claro" : "Cambiar a modo oscuro",
-  };
 }
 
 /**

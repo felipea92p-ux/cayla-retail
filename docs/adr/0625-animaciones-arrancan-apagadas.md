@@ -47,3 +47,10 @@ Felipe eligió (2026-11-07):
   Para verlo como antes, el botón «Animaciones» de la cabecera, una vez por aparato.
 - Una pantalla nueva se revisa también quieta: lo que entra con una animación tiene que quedar en su lugar.
 - `components/ui/` cambió (botón nuevo, `campos.tsx`, `Espera.tsx`): Dynamic lo mira, no lo copia; queda como tarea allá (contrato de familia v4).
+
+## Actualización 2026-11-17 — el botón sale de la cabecera: las animaciones viven en «Apariencia»
+
+Las animaciones se encienden ahora en **«Apariencia»**, la fila al pie del menú que abre la hoja de los ajustes del aparato (junto al modo
+oscuro y el modo liviano), en el celular y en el escritorio (Felipe 2026-11-17). `components/ui/BotonMovimiento.tsx` y su CSS
+(`.boton-movimiento`) se borraron; `prefiereQuieto()` y el atributo de `<html>` no cambian. Detalle: ADR-0674, «Actualización 2026-11-17».
+

@@ -2,13 +2,12 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { leerEquipo, type NavegadorLike } from "./clase-de-equipo";
 import {
-  alternarLiviano,
   ATRIBUTO_LIVIANO,
   CLAVE_LIVIANO,
   equipoEsLento,
+  livianoEsAutomatico,
   resolverLiviano,
   SCRIPT_LIVIANO_ANTES_DE_PINTAR,
-  textosDelBotonLiviano,
 } from "./liviano-reglas";
 
 // ADR-0674 · El modo liviano del teléfono de gama baja.
@@ -67,11 +66,23 @@ describe("resolverLiviano: el botón manda sobre el equipo", () => {
   it("lo guardado corrupto no cuenta", () => {
     for (const malo of ["sí", "true", 1, "", undefined]) expect(resolverLiviano(malo, { ...NADA, ram: 2 })).toBe("si");
   });
+});
 
-  it("alternar va y vuelve; el nombre del botón no cambia y el título dice qué hará el clic", () => {
-    expect(alternarLiviano(alternarLiviano("si"))).toBe("si");
-    expect(textosDelBotonLiviano("no")).toEqual({ etiqueta: "Modo liviano", titulo: "Encender el modo liviano" });
-    expect(textosDelBotonLiviano("si")).toEqual({ etiqueta: "Modo liviano", titulo: "Apagar el modo liviano" });
+describe("livianoEsAutomatico: el tercer estado de «Apariencia»", () => {
+  it("sin nada guardado lo decide el equipo; lo corrupto tampoco cuenta como elección", () => {
+    for (const nada of [null, undefined, "", "sí", "auto", 1]) expect(livianoEsAutomatico(nada)).toBe(true);
+  });
+
+  it("lo que eligió la persona, para los dos lados, ya no es automático", () => {
+    expect(livianoEsAutomatico("si")).toBe(false);
+    expect(livianoEsAutomatico("no")).toBe(false);
+  });
+
+  it("«Volver a automático» borra lo guardado: entonces manda el equipo, igual que en el script del <head>", () => {
+    const lento = { ...TELEFONO, ram: 4 };
+    expect(resolverLiviano("no", lento)).toBe("no");
+    expect(resolverLiviano(null, lento)).toBe("si");
+    expect(correrScript(null, { deviceMemory: 4, hardwareConcurrency: 8 }, true)).toBe("si");
   });
 });
 

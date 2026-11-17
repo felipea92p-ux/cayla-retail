@@ -45,7 +45,7 @@ export function cambiarTema(tema: Tema): void {
 }
 
 /**
- * Para `useSyncExternalStore`: avisa cuando cambia el atributo de <html> (por el botón o por otra pestaña). Además, si OTRA
+ * Para `useSyncExternalStore`: avisa cuando cambia el atributo de <html> (por «Apariencia» o por otra pestaña). Además, si OTRA
  * pestaña del mismo aparato cambia el tema, esta lo adopta —el evento `storage` solo llega a las demás pestañas—.
  */
 export function suscribirTema(avisar: () => void): () => void {

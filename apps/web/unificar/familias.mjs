@@ -439,8 +439,9 @@ export const DECISIONES = {
       // paginación no son una vuelta: pasan de página (otra familia).
       "^\\s*←\\s+(?!Anterior\\b|Volver al inicio\\b)[A-ZÁÉÍÓÚ][^<{}]*$",
       // «Volver a contar / a revisar / a editar…» como texto de un botón. No cuentan los que NO vuelven a un paso: reintentar,
-      // restablecer, la salida de una pantalla de error ni el enlace dentro de una frase.
-      "^\\s*Volver (?:a|al) (?!intentar|lo predeterminado|la predeterminada|como está|la que propone|inicio|período)[^<{}\"]+\\s*$",
+      // restablecer (también «Volver a automático» de Apariencia, 2026-11-17), la salida de una pantalla de error ni el enlace dentro
+      // de una frase.
+      "^\\s*Volver (?:a|al) (?!intentar|automático|lo predeterminado|la predeterminada|como está|la que propone|inicio|período)[^<{}\"]+\\s*$",
       // El glifo seguido de una expresión («← {apilado ? "Atrás" : "Ticket"}»): la vuelta escrita a mano que las de arriba no veían
       // porque el texto va entre llaves (Apartados en el celular; control 2026-10-17).
       "←\\s*\\{",
