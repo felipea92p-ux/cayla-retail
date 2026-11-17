@@ -104,6 +104,11 @@
   "relkind": "r",
   "rls": true
  },
+ "cambio_notas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "cambio_salidas": {
   "forzado": false,
   "relkind": "r",
@@ -874,6 +879,11 @@
   "relkind": "r",
   "rls": true
  },
+ "impresiones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "impuestos_pagos": {
   "forzado": false,
   "relkind": "r",
@@ -1420,6 +1430,11 @@
   "rls": true
  },
  "proveedores_produccion": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "rebaja_cajones": {
   "forzado": false,
   "relkind": "r",
   "rls": true

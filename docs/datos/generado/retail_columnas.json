@@ -2165,6 +2165,98 @@
    "table_schema": "retail"
   }
  ],
+ "cambio_notas": [
+  {
+   "column_default": null,
+   "column_name": "cambio_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "cambio_notas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "comprobante_original_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "cambio_notas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "motivo",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "cambio_notas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "items",
+   "data_type": "jsonb",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "cambio_notas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "total",
+   "data_type": "numeric",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "cambio_notas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "usuario_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 6,
+   "table_name": "cambio_notas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "created_at",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 7,
+   "table_name": "cambio_notas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "0",
+   "column_name": "intentos",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 8,
+   "table_name": "cambio_notas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ultimo_intento_at",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 9,
+   "table_name": "cambio_notas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ultimo_error",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 10,
+   "table_name": "cambio_notas",
+   "table_schema": "retail"
+  }
+ ],
  "cambio_salidas": [
   {
    "column_default": "gen_random_uuid()",
@@ -6283,6 +6375,15 @@
    "ordinal_position": 9,
    "table_name": "compra_correcciones",
    "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "prenda_quitada_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 10,
+   "table_name": "compra_correcciones",
+   "table_schema": "retail"
   }
  ],
  "compra_gasto_correcciones": [
@@ -8845,6 +8946,15 @@
    "data_type": "uuid",
    "is_nullable": "YES",
    "ordinal_position": 41,
+   "table_name": "comprobantes",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cambio_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 42,
    "table_name": "comprobantes",
    "table_schema": "retail"
   }
@@ -15952,6 +16062,98 @@
    "is_nullable": "NO",
    "ordinal_position": 3,
    "table_name": "huellas_llave",
+   "table_schema": "retail"
+  }
+ ],
+ "impresiones": [
+  {
+   "column_default": "gen_random_uuid()",
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "impresiones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "venta_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "impresiones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "impresiones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "pedida_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "impresiones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "pedida_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 5,
+   "table_name": "impresiones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "'pendiente'::text",
+   "column_name": "estado",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "impresiones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "tomada_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 7,
+   "table_name": "impresiones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "tomada_por_equipo",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 8,
+   "table_name": "impresiones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "impresa_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 9,
+   "table_name": "impresiones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "0",
+   "column_name": "intentos",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 10,
+   "table_name": "impresiones",
    "table_schema": "retail"
   }
  ],
@@ -26741,6 +26943,53 @@
    "table_schema": "retail"
   }
  ],
+ "rebaja_cajones": [
+  {
+   "column_default": null,
+   "column_name": "etiqueta_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "rebaja_cajones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "pct",
+   "data_type": "numeric",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "rebaja_cajones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 3,
+   "table_name": "rebaja_cajones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "creado_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 4,
+   "table_name": "rebaja_cajones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "creado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "rebaja_cajones",
+   "table_schema": "retail"
+  }
+ ],
  "recomendaciones_web": [
   {
    "column_default": "gen_random_uuid()",
@@ -28485,6 +28734,24 @@
    "data_type": "uuid",
    "is_nullable": "YES",
    "ordinal_position": 13,
+   "table_name": "separacion_items",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "rebaja_unitaria",
+   "data_type": "numeric",
+   "is_nullable": "YES",
+   "ordinal_position": 14,
+   "table_name": "separacion_items",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "rebaja_etiqueta_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 15,
    "table_name": "separacion_items",
    "table_schema": "retail"
   }
@@ -32794,6 +33061,15 @@
    "data_type": "text",
    "is_nullable": "NO",
    "ordinal_position": 22,
+   "table_name": "ventas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "oferta_cambiada",
+   "data_type": "jsonb",
+   "is_nullable": "YES",
+   "ordinal_position": 23,
    "table_name": "ventas",
    "table_schema": "retail"
   }
