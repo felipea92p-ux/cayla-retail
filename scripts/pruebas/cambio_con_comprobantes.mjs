@@ -477,6 +477,33 @@ ${CAMBIAR("v_ves")}\n${DOCS}\n${CUADRA}`);
     r.ok && l[0] === "ok" && l[1] === "ok" && l[2].startsWith("nuevo=boleta|") && l[2].endsWith("nota=no pend=0") && l[3] === "t", r.ok ? l : r.mensaje);
 }
 
+// 23 · de /chaos (2026-11-16): una boleta nueva de más de S/ 700 no se esquiva con un documento de relleno («00000000», «AAAAAA»).
+{
+  const r = correr(`update retail.variantes set precio = 800 where id = :'v_ves';\n${ACEPTAR}
+${CAMBIAR_A("v_ves", '{"tipo_doc": "dni", "num_doc": "00000000", "nombre": ""}')}
+select count(*) from retail.cambios where venta_item_id = :'venta_item';
+select coalesce(x ->> 'problema', '-') from retail.previsualizar_documentos_cambio(:'venta_item', :'ubic', 1, 800, '{"tipo_doc": "pasaporte", "num_doc": "AAAAAA"}'::jsonb) x;
+select gen_random_uuid() as tok \\gset
+${CAMBIAR_A("v_ves", '{"tipo_doc": "dni", "num_doc": "45879632", "nombre": "Cliente"}')}`);
+  const l = r.ok ? r.lineas : [];
+  esperar("23 · más de S/ 700 con un DNI de relleno se rechaza (y no queda nada); un pasaporte «AAAAAA» tampoco pasa; con un DNI de verdad, sí",
+    r.ok && /documento real/.test(l[0] ?? "") && (l[0] ?? "").endsWith(":: documento_invalido") && l[1] === "0" && /documento real/.test(l[2] ?? "") && l[3] === "ok",
+    r.ok ? l : r.mensaje);
+}
+
+// 24 · de /chaos: el nombre del cliente del comprobante nuevo tiene tope (se guardó uno de 1 646 letras, con emoji y etiquetas).
+{
+  const nombre = (n) => "A".repeat(n);
+  const r = correr(`${ACEPTAR}
+${CAMBIAR_A("v_ves", `{"tipo_doc": "dni", "num_doc": "45879632", "nombre": "${nombre(201)}"}`)}
+select count(*) from retail.cambios where venta_item_id = :'venta_item';
+select gen_random_uuid() as tok \\gset
+${CAMBIAR_A("v_ves", `{"tipo_doc": "dni", "num_doc": "45879632", "nombre": "${nombre(200)}"}`)}`);
+  const l = r.ok ? r.lineas : [];
+  esperar("24 · un nombre de más de 200 letras se rechaza (y no queda nada); uno de 200, sí",
+    r.ok && /letras/.test(l[0] ?? "") && (l[0] ?? "").endsWith(":: documento_invalido") && l[1] === "0" && l[2] === "ok", r.ok ? l : r.mensaje);
+}
+
 // 18 · pegar dos veces
 {
   let ok = true;

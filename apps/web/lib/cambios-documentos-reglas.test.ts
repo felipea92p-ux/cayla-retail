@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { LARGO_NOMBRE_DEL_COMPROBANTE } from "./documento-comprobante-reglas";
 import {
   TEXTO_BOLETA_PIDE_DOCUMENTO,
   TOPE_BOLETA_SIN_DOCUMENTO,
@@ -269,6 +270,20 @@ describe("el cliente del comprobante nuevo", () => {
     // La nota de venta no va a SUNAT, y la factura no se edita.
     expect(problemaClienteDelCambio("nota_venta", sinDoc, 5000)).toBeNull();
     expect(problemaClienteDelCambio("factura", sinDoc, 5000)).toBeNull();
+  });
+
+  it("de /chaos: más de S/ 700 no se esquiva con un número de relleno, y el nombre del comprobante nuevo tiene tope", () => {
+    const base = { identidad: "dni" as const, numero: "", nombre: "" };
+    expect(problemaClienteDelCambio("boleta", { ...base, numero: "00000000" }, 900)).toMatch(/documento real/);
+    expect(problemaClienteDelCambio("boleta", { ...base, numero: "11111111" }, 900)).toMatch(/documento real/);
+    expect(problemaClienteDelCambio("boleta", { identidad: "pasaporte", numero: "AAAAAA", nombre: "" }, 900)).toMatch(/documento real/);
+    // Hasta S/ 700 no se pide documento: un número de relleno ahí no cambia nada (lo mismo que en Vender).
+    expect(problemaClienteDelCambio("boleta", { ...base, numero: "00000000" }, 700)).toBeNull();
+    expect(problemaClienteDelCambio("boleta", { ...base, numero: "45879632" }, 900)).toBeNull();
+    // El nombre: hasta el tope sí, uno más no; también en la nota de venta, que no va a SUNAT pero se imprime.
+    expect(problemaClienteDelCambio("boleta", { ...base, nombre: "A".repeat(LARGO_NOMBRE_DEL_COMPROBANTE) }, 50)).toBeNull();
+    expect(problemaClienteDelCambio("boleta", { ...base, nombre: "A".repeat(LARGO_NOMBRE_DEL_COMPROBANTE + 1) }, 50)).toMatch(/letras/);
+    expect(problemaClienteDelCambio("nota_venta", { ...base, nombre: "A".repeat(LARGO_NOMBRE_DEL_COMPROBANTE + 1) }, 50)).toMatch(/letras/);
   });
 
   it("el nombre ya conocido evita el padrón solo con el mismo DNI del original", () => {
