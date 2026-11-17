@@ -6,6 +6,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./schemas": "./src/schemas.ts",
     "./padron": "./src/padron.ts",
     "./busqueda": "./src/busqueda.ts",
     "./categorias-de-la-tienda": "./src/categorias-de-la-tienda.ts",
