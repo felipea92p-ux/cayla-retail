@@ -52,7 +52,7 @@ JavaScript total por pantalla, antes → después (armado de producción local):
 |---|---|---|
 | 6a | El ticket de **Vender** sobrevive a que Android cierre la pestaña | **Hecho** (commit `d837a8b`), verificado con dos pestañas; NO en producción |
 | 6b | La compra a medio registrar en **Mis compras** sobrevive igual | **Hecho** (2026-11-17), verificado en local a 375 px; NO en producción |
-| 7 | Partir el código de las pantallas pesadas | Sin empezar (datos y método abajo) |
+| 7 | Partir el código de las pantallas pesadas | **Primer corte hecho** (2026-11-17): Vender, y el arrastre de Vender en Caja, Apartados y Mis compras. Faltan los cortes propios de cada pantalla (abajo) |
 | 8 | Recorrer las pantallas de los 4 módulos a 375 px y arreglar lo roto | Sin empezar |
 | 9 | Probar en un teléfono barato real | Lo hace Felipe |
 
@@ -108,21 +108,35 @@ Falta antes de producción:
 - [ ] No vuelve la foto del papel (un `File` no cabe en la memoria de la pestaña): el aviso pide tomarla otra vez. Si en el teléfono real
   es justo la cámara la que mata la pestaña, vale subir la foto al tomarla y guardar su ruta (hoy se sube al guardar).
 
-### 7 · Partir el código de las pantallas pesadas
+### 7 · Partir el código de las pantallas pesadas (primer corte hecho; faltan los demás)
 
-Lo propio de cada pantalla (sin el marco), del armado de producción del 2026-11-17: Caja 980 KB · Mis compras 887 · Apartados 860 ·
-Vender 681 · Existencias 668 · Nuevo producto 505 · Campañas e Insignias 424 · Recibir 417 · Productos 403.
+**Hecho el 2026-11-17** (commits `635f257` y `81f5889`; decisiones y tabla en ADR-0674, «Actualización 2026-11-17 (b)»):
+- **El hallazgo:** Caja, Apartados y Mis compras cargaban la pantalla de Vender ENTERA por dos imports chicos (`money`, que vivía dentro de
+  `PuntoDeVenta.tsx`, e `iconoMetodo`, dentro de su ticket; este último llegaba a todo el ERP por `components/ui/FichasMedio.tsx`). Salieron
+  a `lib/money.ts` y `components/punto-de-venta/iconoMetodo.tsx`; lo vigila `lib/vender-no-se-arrastra.test.ts`.
+- **Vender:** GSAP solo con las animaciones encendidas (`useFlipDelTicket`), «Cerrar caja» al abrirla y «Prenda sin registrar» en reposo
+  (`hojaBajoDemanda`, que avisa y reintenta si no hay red). Lo de cobrar sin conexión (hoja de cobro, venta registrada, cobro en duda) NO se difiere.
+- **Medido** (JavaScript total, armado de producción): Compré ropa 2 097 → 1 406 KB (−33 %), Caja 2 241 → 1 650 (−26 %), Apartados
+  2 137 → 1 692 (−21 %), Vender 1 938 → 1 751 (−10 %). Sin cambio: Existencias 1 903, Recibir 1 754, Nuevo producto 1 742, Productos 1 640.
 
-Método (el mismo que funcionó en la Fase 1):
-- **Medir antes de tocar** qué arrastra cada componente: el script de cierres de import descrito en «Cómo medir», con la pantalla como raíz.
-  En la Fase 1 la causa no fue «muchos componentes», fue UN import (el buscador traía `inicio-avisos.ts` entero).
-- **Modales que se abren con un toque** → `next/dynamic` con `{ ssr: false }`, y precarga al acercarse al botón (`onPointerEnter`/`onFocus`),
-  como `PanelActividad` y `PerfilModal`. Candidatos en Vender: `AbrirCajaFormV2`, `CerrarCajaModalV2`, `HojaDeCobro`, `HojaDeDescuento`,
-  `PrendaSinRegistrarModal`, `VentaRegistradaModal`, `OpcionesDePrendaModal`, `CobroEnDuda`.
-- **GSAP** (`lib/motion-gsap.ts`, solo lo usa `PuntoDeVenta` para el Flip del ticket) se carga aunque las animaciones arrancan apagadas
-  (ADR-0625): cargarlo con `import()` solo si `prefiereQuieto()` es falso.
-- Comprobar después con el armado de producción y la tabla de arriba, y en el navegador que cada modal abre igual (y a 375 px en Vender,
-  Cambios y Devoluciones).
+**Los medidores viven en `scripts/peso/`** (ya no hay que reescribirlos): `cierres.mjs` (qué arrastra cada import fijo de un componente),
+`camino.mjs` (por dónde un archivo termina cargando a otro) y `por-pantalla.mjs` (JavaScript por ruta sobre un armado de producción).
+
+Lo que sigue, en orden de lo que más pesa (medir SIEMPRE antes: buscar primero un arrastre como el de `money`, después los modales):
+- [ ] **Caja** (hoy 1 650 KB). `node scripts/peso/cierres.mjs apps/web components/CajaAbiertaPanel.tsx` da, de lo que es solo suyo:
+  `HistorialCierresModal` 248 KB de fuente (19 archivos; alcanza `next/headers`, raro en una hoja del navegador: mirar ese camino),
+  `RegistrarGastoModal` 174, `DetalleVentaModal` 147 (trae `qrcode.react`), `CerrarCajaModalV2` 85. Los cuatro se abren con un toque y piden
+  red: candidatos a `hojaBajoDemanda`.
+- [ ] **Vender**, segunda pasada: `ClientaDelTicket` (114 KB solo suyos: partir su buscador, que solo sirve con red), `EscanerCamara` (52; hoy
+  Vender importa de ese archivo también `precargarLectorQR`: separarlo primero), `PuntoDeVentaCatalogo` (109, siempre a la vista: no).
+  El botón «Cerrar caja» vive en el menú «Más»: se le puede sumar `CerrarCajaBajoDemanda.precargar` al acercar el dedo o el foco.
+- [ ] **Existencias** (1 903), **Recibir** (1 754), **Nuevo producto** (1 742), **Productos** (1 640), **Apartados** (1 692), **Campañas**:
+  sin medir todavía. Correr `cierres.mjs` con su componente raíz.
+- [ ] **El marco** (1 073 KB de los ~1 400–1 900 de cada pantalla) es ya lo que más pesa en todas: la Fase 1 lo bajó de 936 a 626 KB
+  «propios» con otra cuenta; con la de `por-pantalla.mjs` (marco = `rootMainFiles` + los `layout`) son 1 073. Vale otra pasada de cierres
+  sobre `components/AppShell.tsx` y `app/(app)/layout.tsx`.
+- [ ] Otros tableros con el mismo patrón que `money`: una pantalla grande que exporta una utilidad que importan sus vecinas. La prueba
+  solo vigila Vender. Para buscarlos: `grep -rn 'from "@/components/<PantallaGrande>"'` sin `import type`.
 
 ### 8 · Las pantallas de los 4 módulos a 375 px
 
@@ -181,6 +195,8 @@ SUPABASE_INTERNAL_IMAGE_REGISTRY=docker.io npx -y supabase@2.118.0 start -x stud
 
 ## Cómo medir
 
+- **Desde el 2026-11-17 los medidores están en `scripts/peso/`** (`cierres.mjs`, `camino.mjs`, `por-pantalla.mjs`; cada uno dice su uso
+  arriba). Lo de abajo explica qué hacen.
 - **Armado de producción** sin revisar tipos (rápido): en `apps/web`, `NODE_OPTIONS=--max-old-space-size=8000 VERCEL=1 npx next build`.
 - **JavaScript por pantalla:** leer `.next/server/app/(app)/<ruta>/page_client-reference-manifest.js` (deja `globalThis.__RSC_MANIFEST`),
   sumar los `.js` de `entryJSFiles` más `rootMainFiles` de `.next/build-manifest.json`, y comprimir con `zlib.gzipSync`. Lo del marco son las

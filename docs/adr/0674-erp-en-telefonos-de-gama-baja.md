@@ -148,7 +148,56 @@ entra una vez a «En espera» y otra recarga no lo duplica.
 **No verificado:** un teléfono real con la pestaña descartada por Android (aquí se simuló con una recarga); la corrida completa de `/chaos`
 (se hicieron a mano las familias «red y sesión» y «navegación torcida» sobre estos dos flujos).
 
+## Actualización 2026-11-17 (b) — Fase 2, actividad 7: partir el código (primer corte)
+
+**Lo que se midió antes de tocar** (cierre de imports fijos de cada pantalla, y el armado de producción): Caja, Apartados y «Compré ropa»
+pesaban más que Vender y bajaban al diferir piezas de Vender. La causa no eran sus modales: era UN import. `money` —una función de una
+línea— vivía exportada dentro de `components/PuntoDeVenta.tsx`, y `iconoMetodo`, dentro del ticket de Vender. Quien los importaba se llevaba
+la pantalla de Vender entera (298 archivos, 2,6 MB de fuente): Caja (por el gasto rápido), Apartados y, por `components/ui/FichasMedio.tsx`,
+todo lo que muestra fichas de medio de pago, Mis compras incluida.
+
+### 7.1 · Lo que sirve a varias pantallas no vive dentro de una pantalla
+
+- DECIDÍ: `money` va a `lib/money.ts` y los íconos de los medios a `components/punto-de-venta/iconoMetodo.tsx`; la prueba
+  `lib/vender-no-se-arrastra.test.ts` falla si alguien importa un VALOR de la pantalla de Vender o de su ticket (un `import type` no
+  arrastra), y si desde Caja, Apartados, Compré ropa o FichasMedio vuelve a haber un camino de imports fijos hasta ella.
+- DESCARTÉ: dejar `money` donde estaba y confiar en que el empaquetador descarte lo que no se usa, porque no lo descarta: un archivo
+  `"use client"` con efectos entra entero con todo lo que importa (medido: Compré ropa bajó 691 KB al mover dos imports).
+- SE ROMPE SI: otra pantalla grande exporta una utilidad que usan las vecinas (el mismo patrón, con otro archivo). La prueba solo vigila
+  Vender; el medidor de cierres (backlog, «Cómo medir») es lo que lo encuentra.
+
+### 7.2 · Hojas bajo demanda (`lib/bajo-demanda.ts`, `components/HojaBajoDemanda.tsx`)
+
+- DECIDÍ: en Vender bajan recién cuando hacen falta GSAP (solo con las animaciones encendidas; de paso el ticket deja de animar quieto, que
+  incumplía ADR-0625), «Cerrar caja» (al abrirla) y «Prenda sin registrar» (apenas la pantalla queda libre, porque sirve sin conexión, y se
+  reintenta al volver la red). Si el internet se cae justo al abrir: aviso «No se pudo abrir …», la hoja se cierra y la próxima vez reintenta.
+- DESCARTÉ: `next/dynamic` (lo que decía el plan), porque recuerda el fallo de la descarga y lanza el error al árbol: un corte de red al
+  tocar «Cerrar caja» tumbaba la pantalla hasta recargar. Y descarté diferir la hoja de cobro, «Venta registrada» y el cobro en duda: son lo
+  que hace falta para cobrar sin conexión (ADR-0092), y una venta no puede depender de una descarga.
+- SE ROMPE SI: alguien pasa a `hojaBajoDemanda` una pieza del cobro. La regla está escrita en la cabecera de `HojaBajoDemanda.tsx`; no hay
+  prueba que lo impida.
+
+**Medido** (armado de producción local, JavaScript total de la pantalla, crudo y comprimido):
+
+| Pantalla | Antes | Ahora | Cambio |
+|---|---|---|---|
+| `/compras/mi-plata/compra` | 2 097 KB (681) | 1 406 KB (441) | −33 % |
+| `/caja` | 2 241 (726) | 1 650 (520) | −26 % |
+| `/vender/apartados` | 2 137 (684) | 1 692 (531) | −21 % |
+| `/vender` | 1 938 (627) | 1 751 (561) | −10 % |
+
+Sin cambio: Existencias, Nuevo producto, Recibir, Productos, Cambios y Devoluciones (no pasaban por Vender; les toca su propio corte).
+
+**Verificado (local, Playwright, 375 y 1366 px):** Caja, Apartados y Mis compras abren sin errores; «Registrar gasto» de Caja y la hoja de
+cobro de Vender muestran los seis íconos y los montos; «Prenda sin registrar» abre sin pedir nada a la red (ya precargada); «Cerrar caja»
+sin red avisa y la pantalla sigue viva, y con red abre; quieto, agregar una prenda no descarga GSAP ni cambia estilos; con «Animaciones»
+encendidas baja y el ticket se reacomoda. `vitest` (943 archivos), `tsc`, `eslint`, `knip` y `knip:produccion` en verde.
+**No verificado:** el tiempo real de arranque en un teléfono barato (aquí se midió peso, no segundos), ni la caja cerrándose de verdad
+desde la hoja diferida (se abrió y se canceló: no se cerró la caja de la base local).
+
 ## Para Dynamic
 
 `components/ui/BotonLiviano.tsx` es una pieza nueva en una carpeta que Dynamic mira: **queda como tarea allá**, si quieren el modo liviano.
+Actividad 7 (2026-11-17): `components/ui/FichasMedio.tsx` cambia UNA línea de import (el ícono del medio sale del ticket de Vender); no
+cambia cómo se ve ni qué hace. El vigilante puede abrir una tarea allá: no hay nada que copiar.
 No cambia `recetas.css` ni `contrato.json`; nada viaja solo.

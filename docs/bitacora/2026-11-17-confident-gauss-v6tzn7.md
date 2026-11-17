@@ -16,3 +16,9 @@ Qué hice: la compra que se anota en «Compré ropa» sobrevive a que Android ci
 si ya se había guardado, no se recupera y lo dice. Vender (6a) probado con dos pestañas. Rama `claude/confident-gauss-continue-f86c75`.
 Por qué así: conservar el identificador es lo que impide que la compra se guarde dos veces; la base ya no repite uno que existe.
 Felipe se lleva: abrir el PR (publica), decidir si un «cobro en duda» que no se registró devuelve el ticket a la espera, y el teléfono real.
+
+## 2026-11-17 (Fase 2, actividad 7: Caja, Apartados y Mis compras ya no cargan la pantalla de Vender)
+Qué hice: `money` y el ícono de cada medio salieron de la pantalla de Vender, y con ellos el arrastre: Compré ropa −33 % de JavaScript,
+Caja −26 %, Apartados −21 %. En Vender, GSAP, «Cerrar caja» y «Prenda sin registrar» bajan recién cuando hacen falta (−10 %).
+Por qué así: se midió antes de tocar y la causa era un import de una línea, no los modales; lo de cobrar sin conexión se queda fijo.
+Felipe se lleva: los cortes que faltan (Caja: historial de cierres y registrar gasto; Existencias; Nuevo producto; Recibir) y el teléfono real.
