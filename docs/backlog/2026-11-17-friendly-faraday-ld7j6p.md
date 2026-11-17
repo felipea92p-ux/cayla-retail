@@ -1,7 +1,7 @@
-# 2026-11-17 · «Pantalla»: los ajustes del aparato salen de la cabecera del celular
+# 2026-11-17 · «Apariencia»: los ajustes del aparato salen de la cabecera
 
-**Estado:** propuesta. Nada construido todavía. Falta el OK de Felipe en las tres preguntas del final.
-**Rama de origen:** `claude/friendly-faraday-ld7j6p`.
+**Estado:** construido en `claude/apariencia-ajustes-visuales-cf1643` (2026-11-17), sin PR todavía. Ver «Lo que se construyó» al final.
+**Rama de origen de la propuesta:** `claude/friendly-faraday-ld7j6p` (la propuesta se llamaba «Pantalla»; Felipe eligió «Apariencia»).
 
 ## El pedido (Felipe, 2026-11-17)
 
@@ -106,3 +106,27 @@ hoja.
 - En un aparato lento, «Modo liviano» dice «Automático» encendido. Apagarlo, tocar «Volver a automático» y recargar: vuelve
   a encenderse solo.
 - En escritorio no cambia nada.
+
+## Lo que decidió Felipe (2026-11-17)
+
+1. El nombre: **«Apariencia»**.
+2. **Sí** a «Volver a automático» en el modo liviano.
+3. **En los dos**, primero el celular y después el PC.
+
+## Lo que se construyó (2026-11-17, `claude/apariencia-ajustes-visuales-cf1643`)
+
+- [x] Commit 1 · celular: fila «Apariencia» al pie del menú del cajón, la hoja `components/HojaApariencia.tsx` y el tercer estado del modo
+  liviano (`livianoEsAutomatico`, `volverLivianoAutomatico`). La luna y el destello salen de la cabecera del celular y la pluma, del pie.
+- [x] Commit 2 · escritorio: la misma fila en el menú abierto y plegado; los tres botones de la cabecera se borraron con su CSS y sus textos;
+  el foco vuelve a la fila al cerrar la hoja.
+- [x] `/milimetro`: ficha `docs/milimetro/apariencia.md` y auditoría `docs/milimetro/auditorias/2026-11-17-apariencia.md` (0 graves abiertos).
+- [x] Modo oscuro: escenario `estructura.apariencia` en `tema/escenarios/registro.mjs` (0 hallazgos propios).
+- [x] ADR-0674 act. 2026-11-17, notas en ADR-0336 y ADR-0625, CLAUDE.md al día.
+
+## Lo que queda
+
+- [ ] Abrir el PR con `/abrir-pr` y marcar la casilla de `/milimetro`. Avisar en el PR: **«queda como tarea en Dynamic»** (se borraron
+  `components/ui/BotonTema.tsx`, `BotonMovimiento.tsx` y `BotonLiviano.tsx`, que Dynamic mira).
+- [ ] Ver «Automático» encendido en un teléfono de gama baja real (en el Mac de 16 GB decide «apagado»).
+- [ ] Si en el escritorio se extraña el clic único para el modo oscuro: un atajo de teclado, no el ícono de vuelta en la cabecera.
+
