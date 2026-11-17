@@ -17,7 +17,7 @@ import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 import type { Familia } from "@cayla-retail/shared";
 import { IconoCategoria } from "@/components/IconoCategoria";
 import { MuestraCategoria, tonoDeCategoria } from "@/components/MuestraCategoria";
-import { BarraAtributos, GRILLA_ATRIBUTOS, SinCoincidencias, TarjetaAtributo, TituloGrupo } from "@/components/atributos/kit";
+import { BarraAtributos, GRILLA_ATRIBUTOS, GrupoDesactivado, SinCoincidencias, TarjetaAtributo, TituloGrupo } from "@/components/atributos/kit";
 import { PUNTO_DEL_TONO, tonoDeFamilia } from "@/lib/categoria-tonos";
 import { avisoChoque, ejemploParaFamilia, prefijoDesdeNombre, quienUsaNombre, quienUsaPrefijo } from "@/lib/categoria-alta-reglas";
 import { existentesParecidos } from "@/lib/atributo-parecido";
@@ -427,6 +427,7 @@ export function CategoriasLista({
     <div className="space-y-6">
       <BarraAtributos
         etiqueta="Filtrar por familia"
+        filtrosPuestos={familiaActiva === "todas" ? 0 : 1}
         filtros={
           <>
             <BotonFiltro activo={familiaActiva === "todas"} onClick={() => setFamiliaFiltro("todas")} cuenta={totalRaices}>
@@ -831,28 +832,31 @@ export function CategoriasLista({
         </Modal>
       )}
 
-      {desactivadasVisibles.length > 0 && (
-        <section data-guia="categorias.desactivadas" className="space-y-2">
-          <p className="label-cayla text-[11px] text-tinta/65">Desactivadas — no aparecen al crear productos nuevos</p>
-          <div className="card-cayla flex flex-wrap gap-2 p-5">
-            {desactivadasVisibles.map((c) => (
+      {/* De 8 en 8, como lo desactivado de todo Atributos. En el celular cada una es un renglón entero (el nombre a la izquierda, su
+          acción a la derecha): sueltas, cada una medía lo que su nombre y la lista quedaba dentada. */}
+      <GrupoDesactivado titulo="Desactivadas — no aparecen al crear productos nuevos" lista={desactivadasVisibles} guia="categorias.desactivadas">
+        {(visibles) => (
+          <div className="card-cayla flex flex-wrap gap-2 p-3 sm:p-5">
+            {visibles.map((c) => (
               <span
                 key={c.id}
-                className="flex items-center gap-2 rounded-lg border border-tinta/10 bg-papel py-1.5 pl-2 pr-3 text-sm text-tinta/70"
+                className="flex w-full items-center gap-2 rounded-lg border border-tinta/10 bg-papel py-1.5 pl-2 pr-3 text-sm text-tinta/70 sm:w-auto"
               >
-                <span className="rounded bg-sand px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
-                {c.nombre}
+                <span className="shrink-0 rounded bg-sand px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
+                <span className="min-w-0 flex-1 truncate" title={c.nombre}>
+                  {c.nombre}
+                </span>
                 {/* Sin familia o sin prefijo no hay nada que reactivar: quedaría activa, sin código y fuera de toda
                     sección. La base lo rechaza igual (`fn_categorias_vigencia_candados`); acá no se ofrece el botón. */}
                 {puedeEditar && (!c.familia || !c.prefijo) && (
-                  <span className="text-sm text-tinta/65" title="Le falta la familia o el prefijo. Para usarla, crea una categoría nueva.">
+                  <span className="shrink-0 text-sm text-tinta/65" title="Le falta la familia o el prefijo. Para usarla, crea una categoría nueva.">
                     No se reactiva
                   </span>
                 )}
                 {puedeEditar && c.familia && c.prefijo && (
                   <Boton textoCargando="Reactivando…"
                     peso="discreto"
-                    className="px-2 py-1 text-sm"
+                    className="shrink-0 px-2 py-1 text-sm"
                     cargando={cambiandoId === c.id}
                     onClick={() => setConfirmando(confirmacionCatalogo("reactivar", c.nombre, () => cambiarEstado(c, true)))}
                   >
@@ -862,8 +866,8 @@ export function CategoriasLista({
               </span>
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </GrupoDesactivado>
 
       {confirmando && <ConfirmarConResponsable confirmacion={confirmando} onClose={() => setConfirmando(null)} />}
     </div>

@@ -854,7 +854,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       ancla: "vocabulario.filtros",
       opcional: true,
       titulo: "Filtra por grupo",
-      texto: "Cada píldora deja solo un grupo, con cuántos tiene: en Colores, una familia (Neutro, Tierra, Azul…). Tócala otra vez para ver todos.",
+      texto: "Cada píldora deja solo un grupo, con cuántos tiene: en Colores, una familia (Neutro, Tierra, Azul…). Tócala otra vez para ver todos. En el celular, las píldoras se abren con el ícono de filtros.",
     },
     {
       id: "buscador",
@@ -1493,7 +1493,7 @@ export const GUIA_CATEGORIAS: Guia = {
       id: "filtros",
       ancla: "vocabulario.filtros",
       titulo: "Por familia",
-      texto: "Las categorías se agrupan en familias: Indumentaria, Calzado, Accesorios… Toca una para ver solo las suyas.",
+      texto: "Las categorías se agrupan en familias: Indumentaria, Calzado, Accesorios… Toca una para ver solo las suyas. En el celular, las familias se abren con el ícono de filtros.",
     },
     {
       id: "buscador",

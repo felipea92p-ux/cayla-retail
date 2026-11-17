@@ -15,7 +15,7 @@ import { nivelMargen } from "@/lib/alta-producto";
 import { fondoDeColor } from "@/components/ui/MuestraColor";
 import { limpiarPrecio } from "@/lib/tabla-alta-reglas";
 import { margenDeFila, textosCostoFijo, type CampoBloque, type FilaFicha } from "@/lib/variantes-ficha-reglas";
-import { armarMatriz, etiquetaCambiada, rangoEnDosLineas, totalesMatriz, type Hueco } from "@/lib/matriz-ficha-reglas";
+import { anchoDeTallaPx, armarMatriz, etiquetaCambiada, rangoEnDosLineas, totalesMatriz, type Hueco } from "@/lib/matriz-ficha-reglas";
 import { cuentaDeLaTalla, fraseCostoPrenda } from "@/lib/costo-tallas-reglas";
 import { Ayuda } from "@/components/Ayuda";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
@@ -65,8 +65,6 @@ export type PrecioAquiMatriz = {
   onCambio: (escrito: string) => void;
 };
 
-/** El mínimo de cada talla: lo que pide la caja − N + (la más ancha de las cuatro pestañas). Igual en todas: no se corre nada. */
-const ANCHO_CELDA_PX = 80;
 /** La columna de la derecha (Total, Precio, Costo, Llevan). */
 const ANCHO_RESUMEN_PX = 60;
 /** La columna Color nunca baja de lo que pide un nombre corto con su lápiz y su tacho (la tabla se desliza antes de apretarla). */
@@ -214,6 +212,8 @@ export function MatrizStockFicha({
     ...(ctx.veCosto ? ([["costo", "Costos"]] as [VistaMatriz, string][]) : []),
     ["etiquetas", "Insignias"],
   ];
+  // Angosta, cada talla mide lo que pide el nombre más largo con su lápiz (80 px si son cortos): nada se sale de la cabecera.
+  const anchoTalla = anchoDeTallaPx(m.tallas.map((t) => n.talla(t) || "Única"));
   const nombreElegida = etiquetaElegida ? textoEtiqueta(etiquetaElegida) : null;
   // Todos los costos vienen de compras: en «Costos» no hay nada que escribir, ni de a una ni en bloque.
   const activas = filas.filter((f) => f.activo);
@@ -257,7 +257,11 @@ export function MatrizStockFicha({
         valor={vista}
         onCambio={(v) => cambiarVista(v as VistaMatriz)}
         opciones={pestanas.map(([v, t]) => ({ clave: v, etiqueta: t, guia: `editar.vista-${v}` }))}
-        className="w-full @lg:w-auto [&>button]:flex-auto [&>button]:justify-center [&>button]:px-1.5 @lg:[&>button]:flex-none @lg:[&>button]:px-3"
+        // Las cuatro palabras tienen que caber DENTRO del pozo también en un celular chico: con 6 px de aire fijo por lado pedían 290 px
+        // y en una tarjeta de 316 (un teléfono de 350) «Insignias» se salía 8 px. Angosto, el aire mínimo es de 2 px y lo que sobra se
+        // reparte solo entre las cuatro (`flex-auto`): a 350 px quedan 20 px de holgura, por si la letra tarda en cargar. Bajo 300 px
+        // de tarjeta (un teléfono de 320) baja también el espaciado de las versalitas. Medido a 320, 350, 360 y 375 px de pantalla.
+        className="w-full @lg:w-auto [&>button]:min-w-0 [&>button]:flex-auto [&>button]:justify-center [&>button]:px-0.5 @max-[299px]:[&>button]:tracking-[0.06em] @lg:[&>button]:flex-none @lg:[&>button]:px-3"
       />
       </div>
 
@@ -324,7 +328,7 @@ export function MatrizStockFicha({
             y en una pantalla angosta la tabla no se aprieta: se desliza de lado (el mínimo de abajo), con el color fijo a la izquierda. */}
         <table
           className="w-full table-fixed border-separate border-spacing-0 text-[13px]"
-          style={{ minWidth: ANCHO_COLOR_MIN_PX + m.tallas.length * ANCHO_CELDA_PX + (conColumnaTotal ? ANCHO_RESUMEN_PX : 0) }}
+          style={{ minWidth: ANCHO_COLOR_MIN_PX + m.tallas.length * anchoTalla + (conColumnaTotal ? ANCHO_RESUMEN_PX : 0) }}
           id="matriz-variantes"
         >
           {/* Desde `@lg` el color es una parte fija de la tabla (`anchoColor`). En una tarjeta angosta (celular) las tallas miden
@@ -333,7 +337,7 @@ export function MatrizStockFicha({
           <colgroup>
             <col className="@lg:w-(--ancho-color)" style={{ "--ancho-color": anchoColor(m.tallas.length) } as CSSProperties} />
             {m.tallas.map((t) => (
-              <col key={t ?? "sin-talla"} className="w-20 @lg:w-auto" />
+              <col key={t ?? "sin-talla"} className="w-(--ancho-talla) @lg:w-auto" style={{ "--ancho-talla": `${anchoTalla}px` } as CSSProperties} />
             ))}
             {conColumnaTotal && <col style={{ width: `${ANCHO_RESUMEN_PX}px` }} />}
           </colgroup>
@@ -352,9 +356,9 @@ export function MatrizStockFicha({
                 return (
                   <th key={t ?? "sin-talla"} scope="col" className="sticky top-0 z-[2] bg-hueso px-1 py-1.5 text-center text-xs font-semibold tabular-nums text-tinta @lg:px-1.5">
                     {/* El nombre (con su lápiz, si se puede corregir) y el tacho, como la fila de un color. En una columna angosta el tacho
-                        baja a una segunda línea en vez de empujar la tabla. */}
-                    <span className="inline-flex flex-wrap items-center justify-center gap-x-1 gap-y-0.5">
-                      <span className="inline-flex flex-col items-center leading-tight">
+                        baja a una segunda línea en vez de empujar la tabla, y un nombre que ni así cabe se corta con «…»: nada sale de la celda. */}
+                    <span className="flex flex-wrap items-center justify-center gap-x-1 gap-y-0.5">
+                      <span className="flex min-w-0 max-w-full flex-col items-center leading-tight">
                         {onCorregirTalla ? (
                           <button
                             type="button"
@@ -363,13 +367,15 @@ export function MatrizStockFicha({
                             data-guia="editar.corregir-talla"
                             title={`Corregir la talla ${nombreTalla}, si se registró mal`}
                             onClick={() => onCorregirTalla(t)}
-                            className="group inline-flex items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-0.5 transition-colors hover:bg-papel disabled:pointer-events-none"
+                            className="group inline-flex min-w-0 max-w-full items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-0.5 transition-colors hover:bg-papel disabled:pointer-events-none"
                           >
-                            {nombreTalla}
-                            <Pencil aria-hidden className="h-3 w-3 text-tinta/30 transition-colors group-hover:text-tinta/70" />
+                            <span className="min-w-0 truncate">{nombreTalla}</span>
+                            <Pencil aria-hidden className="h-3 w-3 shrink-0 text-tinta/30 transition-colors group-hover:text-tinta/70" />
                           </button>
                         ) : (
-                          <span className="whitespace-nowrap px-1.5 py-0.5">{nombreTalla}</span>
+                          <span className="max-w-full truncate px-1.5 py-0.5" title={nombreTalla}>
+                            {nombreTalla}
+                          </span>
                         )}
                         {tallaNueva && <span className="text-[9.5px] font-bold uppercase tracking-wide text-ambar-profundo">nueva</span>}
                       </span>
@@ -447,8 +453,13 @@ export function MatrizStockFicha({
                     const etiqueta = `${nombreColor} en ${n.talla(t) || "Única"}`;
                     return (
                       <td key={f.clave} className={`border-t border-sand p-0 ${fondoFila}`}>
+                        {/* En Costos la celda lleva dos pisos (la caja y su margen). Angosta, la fila crece lo que pidan: con el dedo la caja
+                            es más alta y el «52 %» se montaba sobre la fila de abajo (2026-11-17). Desde `@lg` caben en los 52 px de siempre,
+                            y cambiar de pestaña no mueve las filas. */}
                         <span
-                          className={`flex h-12 items-center justify-center px-0.5 @lg:h-[52px] ${vista === "costo" && ctx.veCosto ? "flex-col gap-px" : ""}`}
+                          className={`flex items-center justify-center px-0.5 ${
+                            vista === "costo" && ctx.veCosto ? "min-h-12 flex-col gap-0.5 py-1 @lg:h-[52px] @lg:gap-px @lg:py-0" : "h-12 @lg:h-[52px]"
+                          }`}
                         >
                           {enUnidades ? celdaUnidades(f, etiqueta) : enEtiquetas ? celdaEtiqueta(f, etiqueta) : celdaDinero(f, etiqueta, vista)}
                         </span>

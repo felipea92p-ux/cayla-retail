@@ -2,7 +2,7 @@
   "guia": "tienda-web.campanas.editor",
   "ruta": "/tienda-web/campanas/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 102,
+  "total": 104,
   "controles": {
     "app/(app)/tienda-web/campanas/[id]/page.tsx": [
       "Volver «/tienda-web/campanas»",
@@ -65,7 +65,9 @@
       "BotonDeshacer «Deshacer esta lectura»"
     ],
     "components/atributos/kit.tsx": [
+      "BotonFiltros «vocabulario.filtros»",
       "Boton «vocabulario.agregar»",
+      "Boton «vocabulario.agregar» #2",
       "Boton «Limpiar filtros»",
       "button «{abrir.titulo}»",
       "Boton «Aprobar»",
