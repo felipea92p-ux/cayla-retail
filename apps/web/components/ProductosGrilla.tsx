@@ -225,15 +225,10 @@ function TarjetaProducto({
       >
         {/* Detrás de una foto recortada (fondo transparente) se ve la arena suave de la foto de Vender, no el fondo de la pantalla. */}
         {activo?.fotoUrl ? <ImagenDePrenda src={activo.fotoUrl} alt={`${producto.referencia} — ${activo.nombre}`} fill sizes={SIZES_FOTO} className="object-cover" fondo={activo.hex} fallback={sinFoto} /> : sinFoto}
-        {/* Sobre la foto solo van las insignias, en gota: la empresa (ADR-0505: «CLAURE» en Lima), la campaña que la rebaja hoy y
-            «2 precios» si otra tienda la vende a otro. Arriba a la izquierda, donde no chocan con «Muestra — color» (a la derecha). */}
-        {(!!producto.empresa || !!deHoy || (otrosPrecios?.length ?? 0) > 0) && (
+        {/* Sobre la foto solo van las insignias, en gota. Arriba a la izquierda, lo que toca al precio: la campaña que la rebaja hoy y
+            «2 precios» si otra tienda la vende a otro; son cortas y no chocan con «Muestra» (a la derecha). */}
+        {(!!deHoy || (otrosPrecios?.length ?? 0) > 0) && (
           <span className="absolute top-2.5 left-2.5 flex flex-col items-start gap-1">
-            {producto.empresa && (
-              <span className="prod-sobre-foto rounded-full">
-                <InsigniaEmpresa nombre={producto.empresa} />
-              </span>
-            )}
             {deHoy && (
               <span className="prod-sobre-foto rounded-full" title={detalleCampana(deHoy)}>
                 <Chip tono="pizarra" versalitas={false}>
@@ -244,12 +239,23 @@ function TarjetaProducto({
             <InsigniaPrecios lista={otrosPrecios} className="prod-sobre-foto rounded-full" />
           </span>
         )}
-        {descontinuado && (
-          // Abajo a la izquierda: arriba a la derecha ya vive «Muestra — color» y en una tarjeta angosta chocarían.
-          <span className="prod-sobre-foto absolute bottom-2.5 left-2.5 rounded-full">
-            <Chip tono="apagado" tachado={false}>
-              Descontinuado
-            </Chip>
+        {/* Abajo a la izquierda, lo que dice de quién es y en qué estado está: la empresa (ADR-0505: «CLAURE» en Lima) y
+            «Descontinuado», pegado al borde. La empresa vivía arriba a la izquierda y, en el celular, se montaba sobre «Muestra»
+            (Felipe 2026-11-17: dos tarjetas de 138 px de foto, con «CLAURE» y «MUESTRA» de ~63 px cada una). */}
+        {(!!producto.empresa || descontinuado) && (
+          <span className="absolute bottom-2.5 left-2.5 flex flex-col items-start gap-1">
+            {producto.empresa && (
+              <span className="prod-sobre-foto rounded-full">
+                <InsigniaEmpresa nombre={producto.empresa} />
+              </span>
+            )}
+            {descontinuado && (
+              <span className="prod-sobre-foto rounded-full">
+                <Chip tono="apagado" tachado={false}>
+                  Descontinuado
+                </Chip>
+              </span>
+            )}
           </span>
         )}
       </button>
