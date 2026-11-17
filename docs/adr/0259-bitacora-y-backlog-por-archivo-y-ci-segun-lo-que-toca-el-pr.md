@@ -106,12 +106,12 @@ en el README una fila `| AAAA-MM-DD |` posterior al 2026-11-17. Las filas de los
 
 Como ya no hay una fila que resuma el informe, el informe tiene que alcanzar solo. El CI (`auditorias.mjs --verificar`) exige
 a todo informe posterior al corte su nombre `AAAA-MM-DD-<tema>.md`, su título en la primera línea y una línea `Resumen:`.
-A los 46 de antes no se les exige nada: de esos el tablero toma la primera línea que cuente graves.
+A los 47 de antes no se les exige nada: de esos el tablero toma la primera línea que cuente graves.
 
 **DESCARTÉ:**
 - **Generar la tabla y guardarla en el README.** Un archivo que todo PR regenera choca igual: dos PR insertan su fila en el
   mismo lugar del archivo generado. Solo cambia quién escribe la línea que choca.
-- **Borrar la tabla y pasar sus 61 filas a informes.** 22 filas no tienen informe: son lo único que queda de esas
+- **Borrar la tabla y pasar sus 62 filas a informes.** 22 filas no tienen informe: son lo único que queda de esas
   auditorías. Pasarlas a mano es inventar 22 archivos para no ganar nada.
 - **Un candado aparte para el README.** Serían dos piezas resolviendo el mismo problema de dos formas. La regla es una
   («una entrada, un archivo») y su candado también.
