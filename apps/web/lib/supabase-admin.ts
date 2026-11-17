@@ -13,6 +13,10 @@ import type { Database } from "@cayla-retail/database";
 // tienda online, 20261016154000). `server-only` hace que Next falle al compilar si algún
 // componente cliente lo importa, y la variable NO lleva `NEXT_PUBLIC_`: nunca viaja al navegador.
 //
+// También guarda lo que respondió SUNAT a una transmisión (`actualizar_transmision_comprobante`, ADR-0675): `/api/lucode/emitir` y
+// `/api/lucode/reintentar` lo crean ANTES de llamar a Lucode y se lo pasan a `lib/transmitir-comprobante.ts` como `servidor`; lo que se
+// lee sigue con la sesión de quien pide.
+//
 // Nunca se guarda en una variable de módulo: se crea en cada llamada y muere con la petición.
 
 export const FALTA_LLAVE = "Falta configurar SUPABASE_SERVICE_ROLE_KEY en el servidor";
