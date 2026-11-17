@@ -158,7 +158,7 @@ export const SE_VE_PLANCHADA: Readonly<Partial<Record<FamiliaTejido, string>>> =
  * - «planchada»: la de hoy, la que manda producción (`PLANCHADA` + `SE_VE_PLANCHADA`);
  * - «arrugas-finas»: sin los dobleces de guardarla, pero con las arrugas finas de una tela natural (aquí SÍ se nombran: es lo que se mide);
  * - «sin-planchar»: sin ninguna línea de acabado, la tela como venga en la foto.
- * Lo que Felipe elija pasa a ser el de fábrica (o el de un tejido). Mientras tanto producción no cambia: `fichaParaIA` usa «planchada».
+ * Lo elegido pasa a ser el de fábrica de un tejido (`ACABADO_POR_TEJIDO`); el lino, desde el 2026-11-17, «arrugas-finas». Los demás, «planchada».
  */
 export type Acabado = "planchada" | "arrugas-finas" | "sin-planchar";
 
@@ -168,6 +168,13 @@ export const ACABADOS: readonly { valor: Acabado; nombre: string }[] = [
   { valor: "arrugas-finas", nombre: "Con arrugas finas" },
   { valor: "sin-planchar", nombre: "Sin planchar" },
 ];
+
+/**
+ * El acabado de fábrica de un tejido que, planchado, deja de parecer él. El lino (Felipe 2026-11-17, mirando la tercera foto planchada del Crudo
+ * junto a las dos de antes: «se ve peor»): «con arrugas finas», lo que pidió al principio («retocar las arrugas sin perder el tipo de tela»). Si
+ * tampoco convence, lo siguiente es «sin-planchar» (las fotos de antes). Un tejido entra aquí solo después de verlo salir mal; los demás, «planchada».
+ */
+export const ACABADO_POR_TEJIDO: Readonly<Partial<Record<FamiliaTejido, Acabado>>> = { lino: "arrugas-finas" };
 
 /** Si lo que llegó (del navegador) es un acabado conocido. */
 export function esAcabado(valor: unknown): valor is Acabado {
@@ -244,7 +251,7 @@ function tipoDe(prefijo: string | null, elegido: string | null): string | null {
  * Lo que se suma al pedido, o `null` si no hay nada elegido que decir (entonces el pedido es el de siempre). Con el tejido, la IA deja de adivinar
  * «lino» o «buzo» de cómo cuelga la prenda; con la zona, el pedido habla de pretina y basta y no de cuello y hombros.
  */
-export function fichaParaIA(datos: DatosDePrenda | null | undefined, { acabado = "planchada" }: { acabado?: Acabado } = {}): FichaParaIA | null {
+export function fichaParaIA(datos: DatosDePrenda | null | undefined, { acabado: pedido }: { acabado?: Acabado } = {}): FichaParaIA | null {
   if (!datos) return null;
   const prefijo = limpiarPrefijo(datos.prefijo);
   const tipo = tipoDe(prefijo, limpiar(datos.tipo));
@@ -254,6 +261,8 @@ export function fichaParaIA(datos: DatosDePrenda | null | undefined, { acabado =
 
   const zona = prefijo ? (ZONA_POR_PREFIJO[prefijo] ?? null) : null;
   const familia = tejido ? familiaDeTejido(tejido) : null;
+  // El que se pidió (el laboratorio compara los tres); si no, el del tejido (`ACABADO_POR_TEJIDO`) o «planchada».
+  const acabado: Acabado = pedido ?? (familia ? ACABADO_POR_TEJIDO[familia] : undefined) ?? "planchada";
   // Sin tejido elegido vale lo de la categoría (el lino del 14-nov sigue defendido aunque falte la tela); con tejido, solo una tela claramente plana
   // es «pierna suelta». Lo ambiguo («Algodón», «Tela», «Algodón alicrado», «Mojado») no se afirma: un jogger de algodón existe.
   const plana = !tejido || Boolean(familia && TEJIDOS_PLANOS.has(familia));
@@ -276,8 +285,7 @@ export function fichaParaIA(datos: DatosDePrenda | null | undefined, { acabado =
     if (familia && TEJIDOS_PLANOS.has(familia)) partes.push("Es un tejido PLANO, hecho en telar: se ve su trama.");
   }
 
-  // La tela, según el acabado (`Acabado`: producción manda siempre «planchada»; el laboratorio compara los tres). Un tejido cuyo relieve es el
-  // tejido (el seersucker) no lleva ninguno.
+  // La tela, según el acabado (`Acabado`). Un tejido cuyo relieve es el tejido (el seersucker) no lleva ninguno.
   if (!familia || !TEJIDOS_CON_RELIEVE.has(familia)) {
     if (acabado === "planchada") {
       partes.push(PLANCHADA);

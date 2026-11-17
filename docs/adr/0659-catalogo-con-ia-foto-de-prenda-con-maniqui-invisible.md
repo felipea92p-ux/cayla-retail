@@ -267,3 +267,18 @@ planchada, la IA quita la única pista y rellena con una tela genérica: no pued
 
 **Qué sigue:** correr el laboratorio con la foto real de Crudo (y, si se puede, con una foto de cerca de la tela), mirar las tres versiones y
 elegir. Lo elegido pasa a ser el acabado de fábrica, o solo el del lino si las demás telas salen bien planchadas.
+
+## Actualización 2026-11-17 (g) — El lino sale «con arrugas finas» de fábrica
+
+**Nace de** la tercera foto planchada del lino Crudo, mirada junto a las dos de antes (Felipe 2026-11-17): «se sigue viendo de esta forma, se ve
+peor». Tres fotos planchadas, tres veces el lino perdió lo que lo hace lino. El laboratorio de la act. (f) existe, pero corre en local con la llave,
+y Felipe prueba en producción.
+
+**Lo que cambió** (`lib/ficha-foto-ia.ts`): `ACABADO_POR_TEJIDO = { lino: "arrugas-finas" }`. Sin acabado pedido, el lino sale «con arrugas finas»
+(lo que Felipe pidió al principio: «retocar las arrugas sin perder el tipo de tela»): sin los dobleces de guardarla, con las arrugas finas y parejas
+de una tela natural, y la textura de la foto real. Las demás telas siguen «planchada» (no hay evidencia de que les vaya mal); el laboratorio sigue
+pidiendo el acabado que se le diga. Las huellas de la blusa de seda y el chaleco de sastre no cambiaron.
+
+**Aquí SÍ se nombran las arrugas** (lo de octubre, «quita arrugas», redibujaba rayas): el lino de esta prueba es liso, sin rayas que redibujar. **Se
+rompe si** un lino rayado sale con las rayas cambiadas; entonces «Usar mi foto». **Si tampoco convence**, lo siguiente es `lino: "sin-planchar"`
+(las fotos de antes, con sus arrugas): una línea.
