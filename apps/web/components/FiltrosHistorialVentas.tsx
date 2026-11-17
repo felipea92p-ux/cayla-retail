@@ -215,7 +215,9 @@ export function FiltrosHistorialVentas({
           {/* La guía (ADR-0389) abre el panel con «historial.filtros» y lo cierra con «historial.filtros-cerrar»: un ancla por estado,
               para que cerrar nunca vuelva a abrir. `inline-flex` no cambia nada del lugar del botón. */}
           <span data-guia={panelAbierto ? "historial.filtros-cerrar" : "historial.filtros"} className="inline-flex">
-            <BotonFiltros abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />
+            {/* En el celular, solo el ícono (con su punto si hay filtros puestos): con la palabra, «Filtros» se comía media fila y cortaba
+                la píldora del período elegido («30 días» se leía «30»). Desde `sm`, la píldora entera. */}
+            <BotonFiltros soloIcono abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />
           </span>
         </div>
       </div>
