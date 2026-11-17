@@ -520,5 +520,34 @@ ${CAMBIAR_A("v_ves", `{"tipo_doc": "dni", "num_doc": "45879632", "nombre": "${no
   esperar("18 · las dos partes de la migración se pueden pegar dos veces, y el cambio sigue cuadrando", ok, detalle);
 }
 
+// 25 · otra migración escribe justo después del «no existe» (ADR-0673 lo hizo en anular_comprobante, ya en producción el 2026-11-17):
+// volver a pegar la parte 2 no repite el candado. Antes se reconocía «ya aplicado» por el bloque entero, que dejaba de estar junto.
+{
+  const CANDADO = "perform 1 from retail.comprobantes where id = p_comprobante_id for update;";
+  const cuenta = (firma) =>
+    `select (length(d) - length(replace(d, '${CANDADO}', ''))) / length('${CANDADO}') from (select pg_get_functiondef('${firma}'::regprocedure) d) x;`;
+  const separar = (firma) => `do $sep$
+declare d text := pg_get_functiondef('${firma}'::regprocedure);
+begin
+  if position(E'  end if;\\n  -- ADR-0671: bloqueado' in d) = 0 then raise exception 'la prueba no encontró el candado de ADR-0671 en ${firma}'; end if;
+  execute replace(d, E'  end if;\\n  -- ADR-0671: bloqueado', E'  end if;\\n  -- otra migración escribe aquí\\n  -- ADR-0671: bloqueado');
+end;
+$sep$;`;
+  const ANULAR = "retail.anular_comprobante(uuid,text,boolean,jsonb)";
+  const LIBERAR = "retail.marcar_comprobante_no_emitido(uuid,text)";
+  let ok = true;
+  let detalle = "";
+  try {
+    const salida = psql(`begin;\n${separar(ANULAR)}\n${separar(LIBERAR)}\n${PARTE2}\n${cuenta(ANULAR)}\n${cuenta(LIBERAR)}\nrollback;\n`);
+    const l = salida.trim().split("\n").filter((x) => x !== "");
+    ok = l.at(-2) === "1" && l.at(-1) === "1";
+    detalle = `candados en anular y en liberar: ${l.slice(-2).join(" y ")}`;
+  } catch (e) {
+    ok = false;
+    detalle = `${e.stderr ?? ""}`;
+  }
+  esperar("25 · si otra migración escribe después del «no existe», volver a pegar la parte 2 no repite el candado", ok, detalle);
+}
+
 console.log(fallos === 0 ? "\nTodo en orden." : `\n${fallos} caso(s) fallaron.`);
 process.exit(fallos === 0 ? 0 : 1);

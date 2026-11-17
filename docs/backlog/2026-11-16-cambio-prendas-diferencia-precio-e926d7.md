@@ -74,8 +74,11 @@ existió. Lo que corresponde es una nota de crédito sobre la boleta original y 
       (`registrar-venta-antes-de-precio-sede.mjs`). En un banco limpio con las tres partes: 90/90; sin el arreglo, los mismos 2 rojos del CI.
 - [ ] **Contador:** confirma la lectura legal (nota de crédito + comprobante nuevo). Felipe eligió pegar sin esperarlo (2026-11-17):
       la revisa después. #1910 se cerró ese día, por decisión de Felipe.
-- [x] **Partes 1, 2 y 3 EN PRODUCCIÓN** (2026-11-17, OK explícito de Felipe).
+- [x] **Partes 1, 2 y 3 EN PRODUCCIÓN** (2026-11-17, OK explícito de Felipe), por `apply_migration`: versiones `20261117141105`,
+      `20261117141259` y `20261117141607`, justo después de ADR-0673 (`20261117140654`).
       - Antes, en solo lectura: las 12 anclas una vez cada una, nada de ADR-0671 en la base, y de los 29 invariantes solo cambiaba INV-22.
       - Después: las 9 funciones nuevas y los 30 invariantes, idénticos al archivo; INV-30 con su línea base; solo la firma con `p_cliente`.
-- [ ] Refrescar el volcado (`pnpm datos:generar:produccion` y `datos:comparar`), en un PR aparte.
+        Las huellas también coinciden con la base aislada. Desde ahí la base emite; la web de esta obra todavía no está publicada.
+- [ ] Refrescar el volcado y correr `pnpm datos:generar:produccion` y `pnpm datos:comparar` (las tablas y funciones nuevas entran al
+      diccionario), en un PR aparte.
 - [ ] Obra aparte: volver a cambiar lo que se llevó en un cambio (15 días desde la compra original).
