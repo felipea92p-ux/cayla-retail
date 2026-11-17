@@ -373,6 +373,7 @@ export const PRUEBAS = [
   // confirmar; sin costos propios todo sigue igual. ROLLBACK.
   "pruebas:costo-por-prenda",
   "pruebas:costo-dudoso",
+  "pruebas:pierde-confirma",
   "pruebas:costo-quien-fija-precio",
 
   // Una terminal no cambia el precio de la prenda (Felipe 2026-10-26): vale en todas las tiendas; pone el de SU tienda. El mismo

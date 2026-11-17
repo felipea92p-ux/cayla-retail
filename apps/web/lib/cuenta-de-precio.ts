@@ -137,3 +137,17 @@ export function motivoDeCosto(costo: number | null, ref: ReferenciaDeCosto | nul
   if (ref.banda && (c < cts(ref.banda.lo) || c > cts(ref.banda.hi))) return "fuera_de_banda";
   return null;
 }
+
+/* ───────────────────────── «Pierdes» (ADR-0668, A5) ───────────────────────── */
+//
+// Felipe (2026-11-15, decisión 7): «Pierdes» —el precio sin IGV no cubre lo que se pagó— al guardar pide confirmar, no prohíbe. La base
+// decide con `retail.fn_pierde_con` (20261116040000) y esta es su espejo: la MISMA cuenta que la línea «Te quedan», así que la pantalla
+// pide confirmar exactamente cuando dice «Pierdes». Las dos corren `scripts/pruebas/pierde-casos.json`.
+
+/**
+ * ¿Este precio deja pérdida con este costo? Lo que queda, redondeado al céntimo como «Te quedan», es negativo. Sin precio o sin costo, no.
+ * @public Sin pantalla hasta A5b (la hoja «¿Lo dejas así?» de Recibir); hoy la usa su prueba, cruzada con la base.
+ */
+export function pierdeConElPrecio(precio: number, costo: number): boolean {
+  return (cuentaDelPrecio(costo, precio)?.teQuedan ?? 0) < 0;
+}

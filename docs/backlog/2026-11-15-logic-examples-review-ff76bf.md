@@ -36,7 +36,7 @@ la maqueta `docs/maquetas/precio-sugerido-2026-11/index.html`. Detalle técnico 
 | A2 | ~~**Una sola cuenta en Recibir y Nuevo producto; fuera «RUC ⇒ factura».**~~ **hecho** (la propuesta de la IA también sube al piso nuevo) | M | no | no |
 | A3 | ~~Quien fija precio ve el costo; el cliente nunca (con la prueba que lo vigila)~~ **construido** (rama `claude/precio-a3-costo-a-la-vista`): en la hoja que cambia el precio, no en la tabla de Productos; **SQL pegado en producción el 2026-11-15**. `fn_precio_referencia` pasa a A4 | M | sí | sí |
 | A4 | ~~Candados de costo: anterior, sin impuesto y fuera de la categoría; se confirma el **monto**~~ **construido** (rama `claude/precio-a4-candados-de-costo`): dos partes de SQL que **esperan tu OK**, pegadas en orden PARTE 1 → web → PARTE 2 | M/L | sí | sí |
-| A5 | «Pierdes» pide confirmar en vez de prohibir; dos personas a la vez no se pisan el precio | M | sí | sí |
+| A5 | «Pierdes» pide confirmar en vez de prohibir. **Partida en cuatro** (son 6 funciones, no 4): **A5a** la base (rama `claude/precio-a5-pierdes-confirma`, SQL espera tu OK) · A5b la hoja en Recibir · A5c precio de tienda y fusión · A5d «costo mayor que el precio» al recibir. El bloqueo optimista «otra persona lo dejó en S/ X» queda en el backlog | L | sí | sí |
 | A6 | La pieza única `<CuentaDelPrecio>` (barra, veredicto, piso, IA) en la hoja de Recibir | L | no | sí, la eliges mirando |
 | A7 | Recibir: la tabla del cierre y la Vitrina dicen lo mismo que la hoja | M | no | no |
 | A8 | Nuevo producto con la misma pieza | M | no | pregunta (c) |
@@ -75,7 +75,7 @@ Por qué este orden:
 - Finanzas y los Estados financieros no cambian salvo lo que decida el contador en A11.
 - Choques: #1874 (recepción y costo) y #1880 (precio por sede) están abiertos; A0 espera a #1874 y A5 a #1880.
 
-## Después de A4 (anotado al construirlo)
+## Después de A4 y A5a (anotado al construirlo)
 
 - Quitar el «sí» suelto (`confirma_costo: true` sin monto) para los motivos de antes cuando la web nueva lleve unos días publicada y la cola
   sin conexión de «Llegó mercadería» esté vacía: es la segunda mitad de la corrección 15.
@@ -95,3 +95,8 @@ Por qué este orden:
 - **A4 · PARTE 2 — `supabase/migrations/20261115205000_costo_dudoso_candados.sql`.** Se pega DESPUÉS de fusionar el PR #1883 (la web
   nueva manda los montos confirmados; con la web vieja, una duda nueva no se podría confirmar). La PARTE 1 (`20261115204000`) ya está en
   producción desde el 2026-11-15. La comprobación y la vuelta atrás están en el PR.
+- **A4 PARTE 2: pegada el 2026-11-15** (ya no está POR PEGAR): la comprobación dio lo esperado y las seis funciones tienen el md5 de la base
+  de prueba.
+- **(A5) Bloqueo optimista** «Otra persona lo dejó en S/ X» (corrección 16): sin casos medidos con 3 tiendas; se retoma si aparece un caso.
+- **(A5) La caja** sigue con su vara (`venta_descuento_bajo_costo`: el descuento a mano no baja del costo con IGV). Una prenda dejada en
+  pérdida a propósito no admite descuento a mano en caja; la campaña sí (nunca miró el costo).
