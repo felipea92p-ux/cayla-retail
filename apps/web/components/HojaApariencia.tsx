@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useSyncExternalStore, type ReactNode } from "react";
+import { useId, useSyncExternalStore, type ReactNode, type RefObject } from "react";
 import { Feather, Moon, Sparkles } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
@@ -18,14 +18,15 @@ import { MOVIMIENTO_POR_DEFECTO } from "@/lib/movimiento-reglas";
 // <html> que el script del `<head>` ya fijó, igual que lo hacían los botones de la cabecera: el servidor pinta el valor de fábrica y
 // `useSyncExternalStore` corrige al hidratar.
 
-export function HojaApariencia({ onClose }: { onClose: () => void }) {
+/** `alCerrarEnfocar`: la fila que la abrió. Al cerrar, el foco vuelve ahí (con el teclado no se pierde al inicio de la página). */
+export function HojaApariencia({ onClose, alCerrarEnfocar }: { onClose: () => void; alCerrarEnfocar?: RefObject<HTMLElement | null> }) {
   const tema = useSyncExternalStore(suscribirTema, temaDelDocumento, () => TEMA_POR_DEFECTO);
   const movimiento = useSyncExternalStore(suscribirMovimiento, movimientoDelDocumento, () => MOVIMIENTO_POR_DEFECTO);
   const liviano = useSyncExternalStore(suscribirLiviano, livianoDelDocumento, () => "no" as const);
   const automatico = useSyncExternalStore(suscribirLiviano, livianoEsAutomaticoAqui, () => true);
 
   return (
-    <Modal titulo="Apariencia" subtitulo="Cómo se ve el ERP en este aparato." onClose={onClose} conCerrar>
+    <Modal titulo="Apariencia" subtitulo="Cómo se ve el ERP en este aparato." onClose={onClose} alCerrarEnfocar={alCerrarEnfocar} conCerrar>
       {/* Una sola placa con las tres filas, separadas por la luz del vidrio (la «Lámina de vidrio» de una hoja, `vidrio/hoja.css`). */}
       <div className="card-cayla divide-y divide-sand overflow-hidden">
         <Ajuste

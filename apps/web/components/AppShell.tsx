@@ -7,9 +7,6 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 import { BotonActividad } from "@/components/actividad/BotonActividad";
-import { BotonTema } from "@/components/ui/BotonTema";
-import { BotonMovimiento } from "@/components/ui/BotonMovimiento";
-import { BotonLiviano } from "@/components/ui/BotonLiviano";
 import { veActividad } from "@/lib/actividad-reglas";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
 import { esGrupoMenu as esGrupo, hermanosDe, hojasDe, menuPara, modulosDeLasHojas, nombreCorto, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
@@ -682,6 +679,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
   const [demoAbierto, setDemoAbierto] = useState(false);
   // «Apariencia» (Felipe 2026-11-17): modo oscuro, animaciones y modo liviano, juntos en una hoja que se abre al pie del menú.
   const [aparienciaAbierta, setAparienciaAbierta] = useState(false);
+  const filaApariencia = useRef<HTMLButtonElement>(null);
   // "Más" (celular, ADR-0205): la misma hoja para cualquier perfil, sin estado propio más allá de abierto/cerrado.
   const esLider = persona.rol === "lider";
   const esAparato = !!persona.terminal;
@@ -1051,8 +1049,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
             Es una fila más del menú, con su misma cara, pero no lleva a una pantalla ni es un módulo (ADR-0306): son ajustes del APARATO,
             los ve toda cuenta (también una terminal, que no tiene «Mi perfil») y sacarlos de la barra de arriba la deja para trabajar.
             Abre una hoja: no cierra el cajón, como «Mi perfil». */}
-        <div data-pieza-cajon style={{ "--k": 1 + menu.riel.length } as React.CSSProperties} className="px-3 pt-2 sm:hidden [[data-compacto]_&]:px-2.5">
+        <div data-pieza-cajon style={{ "--k": 1 + menu.riel.length } as React.CSSProperties} className="px-3 pt-2 [[data-compacto]_&]:px-2.5">
           <button
+            ref={filaApariencia}
             type="button"
             onClick={() => setAparienciaAbierta(true)}
             onMouseEnter={(e) => entrarFila(e.currentTarget, "Apariencia")}
@@ -1137,7 +1136,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
           }}
         />
       )}
-      {aparienciaAbierta && <HojaApariencia onClose={() => setAparienciaAbierta(false)} />}
+      {aparienciaAbierta && <HojaApariencia onClose={() => setAparienciaAbierta(false)} alCerrarEnfocar={filaApariencia} />}
       {demoAbierto && <ElegirDemoModal filas={menu.riel} onClose={() => setDemoAbierto(false)} />}
 
       {/* Etiqueta de una fila plegada. Fuera del <aside> a propósito: el aside recorta (`overflow-hidden`)
@@ -1234,14 +1233,8 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
             ) : null}
             {/* «Demo» (ADR-0389): una terminal no tiene «Mi perfil», que es donde una persona repite las guías interactivas. */}
             {esAparato ? <BotonDemo onClick={() => setDemoAbierto(true)} /> : null}
-            {/* Modo oscuro (ADR-0336), animaciones (ADR-0625) y modo liviano (ADR-0674): preferencias del aparato, no módulos. Solo en
-                escritorio: en el celular la barra de arriba queda para trabajar (le quitaban espacio a la sede) y los tres viven en
-                «Apariencia», al pie del menú (Felipe 2026-11-17). */}
-            <span className="hidden sm:contents">
-              <BotonTema />
-              <BotonMovimiento />
-              <BotonLiviano />
-            </span>
+            {/* El modo oscuro (ADR-0336), las animaciones (ADR-0625) y el modo liviano (ADR-0674) ya no van aquí: viven en «Apariencia»,
+                al pie del menú, en el celular y en el escritorio (Felipe 2026-11-17). La barra de arriba queda para trabajar. */}
             {/* La sede va en su propia caja: los botones de la isla se redondean (marco.css) y el combo conserva su aspecto. */}
             <div data-marco-sede className="flex items-center">
               {persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? (

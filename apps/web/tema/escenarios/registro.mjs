@@ -204,7 +204,6 @@ export const ESCENARIOS = [
     id: "estructura.apariencia",
     abre: "[role=dialog]",
     ruta: "/",
-    ancho: "celular",
     nombre: "Apariencia abierta",
     async preparar(pagina) {
       const menu = pagina.getByRole("button", { name: "Abrir menú" });

@@ -25,7 +25,7 @@ import type { Equipo } from "./clase-de-equipo";
 
 export type Liviano = "si" | "no";
 
-/** Dónde se guarda lo que la persona eligió con el botón (localStorage del aparato). Sin nada guardado, decide el equipo. */
+/** Dónde se guarda lo que la persona eligió en «Apariencia» (localStorage del aparato). Sin nada guardado, decide el equipo. */
 export const CLAVE_LIVIANO = "cayla-liviano";
 
 /** El atributo de `<html>` del que cuelga el CSS macizo (`app/estilos/liviano.css`). Siempre vale «si» o «no». */
@@ -47,7 +47,7 @@ export function equipoEsLento(e: Equipo): boolean {
   return e.ram <= RAM_LENTA || (e.tactil && e.ram <= RAM_LENTA_TACTIL);
 }
 
-/** Lo que queda puesto: lo que eligió la persona con el botón, o si no, lo que pide el equipo. Lo guardado corrupto no cuenta. */
+/** Lo que queda puesto: lo que eligió la persona en «Apariencia», o si no, lo que pide el equipo. Lo guardado corrupto no cuenta. */
 export function resolverLiviano(guardado: unknown, equipo: Equipo): Liviano {
   if (esLiviano(guardado)) return guardado;
   return equipoEsLento(equipo) ? "si" : "no";
@@ -60,15 +60,6 @@ export function resolverLiviano(guardado: unknown, equipo: Equipo): Liviano {
  */
 export function livianoEsAutomatico(guardado: unknown): boolean {
   return !esLiviano(guardado);
-}
-
-export function alternarLiviano(actual: Liviano): Liviano {
-  return actual === "si" ? "no" : "si";
-}
-
-/** Los textos del botón: el nombre no cambia y el estado va en `aria-pressed`, como el de las animaciones. El `title` dice qué hará el clic. */
-export function textosDelBotonLiviano(actual: Liviano): { etiqueta: string; titulo: string } {
-  return { etiqueta: "Modo liviano", titulo: actual === "si" ? "Apagar el modo liviano" : "Encender el modo liviano" };
 }
 
 /**
