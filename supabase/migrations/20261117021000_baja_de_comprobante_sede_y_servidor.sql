@@ -32,7 +32,8 @@
 --
 -- CÓMO SE PEGA. Una sola parte: reemplazos anclados de funciones y permisos de una función, sin políticas, disparadores ni
 -- `alter table` (ADR-0195). Sin `select … into` dentro de un texto entre comillas (ADR-0288). Se puede pegar dos veces.
--- Va ANTES o DESPUÉS de las partes de ADR-0671 (20261116213000): las anclas no se tocan.
+-- En una base nueva corre DESPUÉS de las partes de ADR-0671 (20261116213000) y deja el candado de sede detrás de su bloqueo, como
+-- en producción. En producción no hace nada: ya está pegada (cada reemplazo se reconoce puesto).
 -- PRUEBA. `pnpm pruebas:anular-comprobante-permisos` y `pnpm pruebas:anular-venta-comprobante`.
 -- ============================================================================
 set lock_timeout = '3s';
@@ -59,20 +60,18 @@ begin
 end;
 $f$;
 
--- 1. La baja es de la sede del comprobante.
+-- 1. La baja es de la sede del comprobante. Ancla en «¿está aceptado?» y no justo después de «no existe»: así queda detrás del
+--    bloqueo de ADR-0671 (20261116213000, que corre antes en una base nueva), en el mismo lugar que en producción y que el puente
+--    20261117143000 (la huella de «SQL pegado» mira el orden del código).
 select pg_temp.reemplazar_0673(
   'retail.anular_comprobante(uuid, text, boolean, jsonb)',
-  $v$  if not found then
-    raise exception 'El comprobante % no existe', p_comprobante_id;
-  end if;
+  $v$  if v_comp.estado <> 'aceptado' then
 $v$,
-  $n$  if not found then
-    raise exception 'El comprobante % no existe', p_comprobante_id;
-  end if;
-  -- ADR-0673: pedir la baja es de quien opera la tienda del comprobante, como toda operación de una sede.
+  $n$  -- ADR-0673: pedir la baja es de quien opera la tienda del comprobante, como toda operación de una sede.
   if not fn_puede_operar_ubicacion(v_comp.ubicacion_id) then
     raise exception 'Este comprobante es de otra tienda: pide la baja desde una cuenta de esa tienda' using errcode = '42501';
   end if;
+  if v_comp.estado <> 'aceptado' then
 $n$
 );
 
