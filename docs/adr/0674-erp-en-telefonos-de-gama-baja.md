@@ -252,6 +252,56 @@ abre sin desborde. La base local quedó idéntica. `vitest` (945 archivos, huell
 **No verificado:** «Ajustar inventario» completo y el resumen del stock (con los datos de la base local no hay camino hasta ellos; misma
 pieza y mismos tipos que las otras cuatro), ni guardar nada desde el panel diferido (colgar, ajustar, apartar): se abrió y se cerró.
 
+## Actualización 2026-11-17 (e) — actividad 7: el marco se midió y NO se recorta
+
+Felipe pidió el corte del marco común (lo que baja en toda pantalla: 1 069 KB, 333 comprimido). Se midió antes de tocar, esta vez con lo
+que de verdad viaja: `scripts/peso/por-modulo.mjs` lee el mapa de cada archivo del navegador (armado con `MEDIR_PESO=1`) y dice cuántos KB
+ya armados pone cada archivo de fuente o librería. `cierres.mjs` cuenta fuente con comentarios y aquí engañaba: daba 250 KB «solo suyos» a
+`LogoutButton.tsx`, que armado pesa 2.
+
+| De quién es | KB armados | Parte |
+|---|---|---|
+| Next y React (`react-dom` 202, el enrutador, la caché de segmentos) | 486 | 46 % |
+| Supabase (sesión 96, tiempo real 55, archivos 24, consultas 15, el resto 25) | 215 | 20 % |
+| Radix, `react-remove-scroll`, lucide y otros paquetes | 42 | 4 % |
+| Arranque de Turbopack | 13 | 1 % |
+| Código del ERP, en 153 archivos | 311 | 29 % |
+
+El código nuestro no tiene un bulto: el archivo más grande pesa 22 KB (`lib/error-escritura.ts`, que casi toda pantalla usa igual) y
+`components/AppShell.tsx`, 21. La Fase 1 ya había apartado lo que se abre a pedido (perfil, apariencia, demo, asistente, actividad, la guía).
+`scripts/peso/si-corto.mjs` cruza el camino de imports con el peso armado y dice cuánto saldría con cada corte; los mayores:
+
+| Corte posible | Saldrían | Por qué no |
+|---|---|---|
+| El motor de las guías | 14 KB | Decide en cada pantalla si ofrece la guía: bajaría igual, solo un poco después |
+| Las fotos pendientes de la cola sin conexión | 10 KB | Es el camino que sube lo guardado sin red: no se le agrega un punto de falla por 10 KB |
+| El recordatorio de cierre de caja | 10 KB | Solo lo recibe quien cierra caja, pero ver «probado y deshecho» |
+| La estación de impresión de boletas | 7 KB | Imprime la boleta de una venta: tiene que estar |
+| El buscador global | 7 KB | Se abre con una tecla en cualquier momento |
+
+- DECIDÍ: no recortar el marco. Queda como está, y lo que se entrega es la medición y dos medidores nuevos para los cortes que siguen.
+- DESCARTÉ: diferir esas cinco piezas (49 KB entre todas, menos del 5 % del marco), porque cada una agrega un «sin internet al abrir» a algo que
+  hoy siempre está, y dos son de no perder datos o de imprimir una venta. Y descarté armar un cliente de Supabase a medida sin tiempo real
+  ni archivos (−80 KB): la librería los crea al nacer, habría que reemplazar la pieza por la que pasa toda lectura y escritura del ERP.
+  Eso es estructural y lo decide Felipe; no se hace por un 7 %.
+- SE ROMPE SI: alguien lee «el marco pesa 1 069 KB» como «hay 1 069 KB por recortar». Dos tercios son React, Next y Supabase.
+
+**Probado y deshecho** (un armado, nada quedó en el código):
+- *El relleno de `Buffer`*: Next agrega 22 KB a toda pantalla porque la librería de archivos de Supabase pregunta `typeof Buffer` para
+  codificar un encabezado que el ERP no usa (es el único código del navegador que lo nombra, medido sobre los 504 archivos). Se probó
+  apuntarlo a un archivo vacío con `turbopack.resolveAlias` (`buffer` y `node:buffer`): Turbopack no lo tomó, el relleno siguió ahí.
+  Quitarlo pide parchar la librería, y un parche a una dependencia se paga en cada actualización.
+- *El recordatorio de cierre con `next/dynamic` desde el layout del servidor*: sigue en la lista de archivos del layout y baja para todos.
+
+**Dónde sí hay peso** (las 138 pantallas, ordenadas por lo que cada una suma al marco; mediana 184 KB): `/recibir/envio/[id]` 1 034 KB,
+`/gestion/preguntas` 854, `/recibir` 684, `/vender` 681, `/productos/[id]/editar` 644, `/productos/nuevo` 635, `/vender/apartados` 621,
+`/produccion/ordenes/[numero]` 610, `/productos/campanas` e `/insignias` 554, `/productos` 532. De las que se usan en el celular, la más
+pesada del ERP es contar un envío de Recibir.
+
+**El interruptor `MEDIR_PESO`** (`apps/web/next.config.ts`): solo agrega `productionBrowserSourceMaps` al medir, y nunca con la llave de
+Sentry presente. Importa: si esa llave de la configuración existiera siempre (aunque fuera `false`), Sentry la tomaría por una decisión
+nuestra y dejaría de generar los mapas que sube en producción (ADR-0424). Sin `MEDIR_PESO`, la configuración que llega a Vercel es la de antes.
+
 ## Para Dynamic
 
 `components/ui/BotonLiviano.tsx` es una pieza nueva en una carpeta que Dynamic mira: **queda como tarea allá**, si quieren el modo liviano.

@@ -140,13 +140,17 @@ Lo que sigue, en orden de lo que más pesa (medir SIEMPRE antes: buscar primero 
   `ApartadosModal` (58 KB de fuente, se abre con un toque: candidato).
 - [ ] Abrir «Ajustar inventario» completo y el resumen del stock desde Existencias con datos que lleven hasta ellos, y guardar algo
   desde el panel diferido (colgar, ajustar): no se pudo o no se hizo en local.
-- [ ] **Recibir** (1 754), **Nuevo producto** (1 742), **Productos** (1 640), **Apartados** (1 692), **Campañas**: sin medir todavía.
-  Correr `cierres.mjs` con su componente raíz.
+- [ ] **Lo que sigue, medido el 2026-11-17** (KB que cada pantalla suma al marco; las 138 tienen mediana 184): **contar un envío de
+  Recibir** `/recibir/envio/[id]` 1 034 (la más pesada del ERP), **Recibir** 684, **Editar producto** 644, **Nuevo producto** 635,
+  **Apartados** 621, **Campañas** e **Insignias** 554, **Productos** 532. Fuera del celular: `/gestion/preguntas` 854 y
+  `/produccion/ordenes/[numero]` 610. Para cada una: `por-modulo.mjs <ruta> propio` (quién pone cada KB) y `si-corto.mjs` (cuánto saldría).
 - [ ] Visto al probar sin red: la guía interactiva (`MotorGuias`, `next/dynamic`) lanza `ChunkLoadError` si su código no baja. No tumbó
   la pantalla en la prueba, pero es el patrón que `hojaBajoDemanda` evita.
-- [ ] **El marco** (1 073 KB de los ~1 400–1 900 de cada pantalla) es ya lo que más pesa en todas: la Fase 1 lo bajó de 936 a 626 KB
-  «propios» con otra cuenta; con la de `por-pantalla.mjs` (marco = `rootMainFiles` + los `layout`) son 1 073. Vale otra pasada de cierres
-  sobre `components/AppShell.tsx` y `app/(app)/layout.tsx`.
+- [x] **El marco** (2026-11-17): medido archivo por archivo y **no se recorta**. De sus 1 069 KB, 486 son React y Next, 215 Supabase y 311
+  código nuestro en 153 archivos sin ningún bulto; los cortes posibles suman 49 KB y cada uno agrega un punto de falla. ADR-0674,
+  «Actualización 2026-11-17 (e)», con la tabla y lo que se probó y se deshizo. Quedan para Felipe, sin recomendación de hacerlos:
+  un cliente de Supabase sin tiempo real ni archivos (−80 KB, estructural) y parchar la librería de archivos para quitar el relleno de
+  `Buffer` (−22 KB en toda pantalla).
 - [ ] Otros tableros con el mismo patrón que `money`: una pantalla grande que exporta una utilidad que importan sus vecinas. La prueba
   solo vigila Vender. Para buscarlos: `grep -rn 'from "@/components/<PantallaGrande>"'` sin `import type`.
 
@@ -210,6 +214,11 @@ SUPABASE_INTERNAL_IMAGE_REGISTRY=docker.io npx -y supabase@2.118.0 start -x stud
 - **Desde el 2026-11-17 los medidores están en `scripts/peso/`** (`cierres.mjs`, `camino.mjs`, `por-pantalla.mjs`; cada uno dice su uso
   arriba). Lo de abajo explica qué hacen.
 - **Armado de producción** sin revisar tipos (rápido): en `apps/web`, `NODE_OPTIONS=--max-old-space-size=8000 VERCEL=1 npx next build`.
+- **Quién pone cada KB (desde el 2026-11-17, lo más fiable):** el mismo armado con `MEDIR_PESO=1` delante deja los mapas, y
+  `node scripts/peso/por-modulo.mjs apps/web <ruta> [marco|propio|todo] [mínimo KB]` suma los KB ya armados por archivo o librería
+  (`ABRIR=next` parte un paquete por carpeta). Con esa salida guardada, `scripts/peso/si-corto.mjs` dice cuánto saldría con cada corte.
+  `cierres.mjs` cuenta fuente con comentarios: sirve para encontrar un arrastre, no para saber cuánto pesa (dio 250 KB a un archivo de 2).
+  El mapa de un archivo no se llama como él: su nombre va en el comentario `sourceMappingURL` del final.
 - **JavaScript por pantalla:** leer `.next/server/app/(app)/<ruta>/page_client-reference-manifest.js` (deja `globalThis.__RSC_MANIFEST`),
   sumar los `.js` de `entryJSFiles` más `rootMainFiles` de `.next/build-manifest.json`, y comprimir con `zlib.gzipSync`. Lo del marco son las
   entradas `app/layout` y `app/(app)/layout`.

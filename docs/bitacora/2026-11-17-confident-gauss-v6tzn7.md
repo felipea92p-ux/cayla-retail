@@ -34,3 +34,9 @@ Qué hice: el corte de Caja subió al PR #1923. En Existencias, el panel de la p
 pasa de 1 899 a 1 546 KB de JavaScript. El panel y la cámara se precargan en reposo, así que abren al instante.
 Por qué así: aquí no había un arrastre de otra pantalla; lo pesado era el panel, que bajaba aunque nadie tocara una prenda.
 Felipe se lleva: el corte de Existencias está en la rama local, sin subir; siguen Recibir, Nuevo producto, Productos y el marco.
+
+## 2026-11-17 (Actividad 7: el marco se midió y no se recorta; Existencias subió al PR #1923)
+Qué hice: medí el marco común (1 069 KB) archivo por archivo con un medidor nuevo: 46 % es React y Next, 20 % Supabase y el resto, código
+nuestro repartido en 153 archivos sin ningún bulto. No lo recorté. Quedan dos medidores (`por-modulo.mjs`, `si-corto.mjs`).
+Por qué así: los cortes posibles suman 49 KB (menos del 5 %) y cada uno agrega un punto de falla a algo que hoy siempre está; no lo vale.
+Felipe se lleva: el peso está en las pantallas, no en el marco. La más pesada del ERP es contar un envío de Recibir (1 034 KB propios).
