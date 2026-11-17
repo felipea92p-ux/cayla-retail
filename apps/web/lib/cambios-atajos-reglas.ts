@@ -67,8 +67,9 @@ export function hrefPedirTraslado(origenId: string, destinoId: string, varianteI
   return `/inventario/mover?${p}`;
 }
 
-/** Lo que la clienta se lleva escrito del cambio: qué devolvió, qué se llevó y la diferencia. No es comprobante de
- *  SUNAT y lo dice, para que nadie lo tome por una boleta. */
+/** Lo que la clienta se lleva escrito del cambio: qué devolvió, qué se llevó y la diferencia. El resumen no es comprobante de SUNAT:
+ *  si el cambio emitió los suyos (ADR-0671: la nota de crédito y el comprobante nuevo), los nombra; si no, lo dice, para que nadie
+ *  tome el resumen por una boleta. */
 export function textoTicketCambio(t: {
   operacion: string;
   comprobante: string | null;
@@ -76,6 +77,8 @@ export function textoTicketCambio(t: {
   sellevo: string;
   diferencia: number;
   sede: string;
+  /** Los documentos que emitió el cambio, ya nombrados («Boleta B005-000301», «Nota de crédito BC05-000012»). Vacío o ausente: ninguno. */
+  documentos?: readonly string[];
 }): string {
   const diferencia =
     t.diferencia === 0
@@ -89,6 +92,6 @@ export function textoTicketCambio(t: {
     `Devolviste: ${t.devolvio}`,
     `Te llevaste: ${t.sellevo}`,
     diferencia,
-    "(Resumen del cambio, no es un comprobante de pago.)",
+    t.documentos && t.documentos.length > 0 ? `Comprobantes: ${t.documentos.join(" · ")}` : "(Resumen del cambio, no es un comprobante de pago.)",
   ].join("\n");
 }

@@ -21,6 +21,12 @@ const PRESUPUESTO_MS = 30_000;
 async function barrer(supabase: Cliente, ubicacionId: string | null) {
   const inicio = Date.now();
   const resultados = [];
+  // ADR-0671: primero las notas de crédito de cambios que esperaban a que SUNAT aceptara su original (las emite la base; esta
+  // pasada o la próxima las transmite). Si falla o la base todavía no la tiene, no frena el reintento.
+  const { error: errNotas } = await supabase.rpc("fn_emitir_notas_de_cambios_pendientes");
+  if (errNotas && errNotas.code !== "PGRST202" && errNotas.code !== "42883") {
+    capturarError("lucode/reintentar: no se pudieron emitir las notas de los cambios", errNotas);
+  }
   const { data: ids, error } = await supabase.rpc("fn_tomar_comprobantes_para_reintento", {
     p_ubicacion_id: ubicacionId ?? undefined,
     p_limite: 3,

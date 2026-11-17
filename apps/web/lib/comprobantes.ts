@@ -4,6 +4,7 @@ import { exigir, leerPorTandasDeIds, leerTodas, tolerar } from "@/lib/resultado"
 import { resumenPorEnviar, type ResumenPorEnviar } from "@/lib/facturacion-reglas";
 import { HORAS_REINTENTO_AUTOMATICO } from "@/lib/transmision-reglas";
 import type { Comprobante, EstadoComprobante, SerieComprobante } from "@/lib/comprobantes-reglas";
+import { armarExtras, documentosDeLosCambios, type CandidatoOriginal, type ExtraComprobante, type NotaLeida } from "@/lib/comprobantes-cambio-reglas";
 
 // Tipos y reglas puras (lo que un componente cliente puede necesitar como
 // VALOR: constantes, `tipoDocumentoDeCliente`) viven en comprobantes-reglas.ts,
@@ -11,6 +12,7 @@ import type { Comprobante, EstadoComprobante, SerieComprobante } from "@/lib/com
 // servidor (principio del repo: lib/ nunca escribe; la emisión pasa por RPC
 // desde el componente cliente).
 export type { Comprobante, SerieComprobante } from "@/lib/comprobantes-reglas";
+export type { ExtraComprobante } from "@/lib/comprobantes-cambio-reglas";
 
 export async function getComprobantesMes(desde: string, hasta: string): Promise<Comprobante[]> {
   const supabase = await createClient();
@@ -19,21 +21,42 @@ export async function getComprobantesMes(desde: string, hasta: string): Promise<
   // que ya existe —y eso ya es un problema con SUNAT, no de pantalla. Falla en duro.
   // Por páginas (`leerTodas`): un mes ya pasa de 1.000 comprobantes (sep-2026: 1.406; jul: 2.809) y PostgREST corta
   // en 1.000 SIN error — las tarjetas sumaban S/ 131 mil de los S/ 189 mil del mes (medido 2026-09-23). `id` desempata.
-  const res = await leerTodas((d, h) =>
-    supabase
-      .from("comprobantes")
-      .select(
-        "id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, entorno_transmision, motivo_rechazo, motivo_anulacion, motivo_no_emitido, anulacion_solicitada_at, created_at, ubicacion_id, respuesta_sunat, venta_id, comprobante_original_id"
-      )
-      // Facturación es lo que va (o fue) a SUNAT: la nota de venta es interna (ADR-0164) y vive en Vender e Historial.
-      .neq("tipo", "nota_venta")
-      .gte("created_at", desde)
-      .lt("created_at", hasta)
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: false })
-      .range(d, h)
-  );
+  const [res, resCambios] = await Promise.all([
+    leerTodas((d, h) =>
+      supabase
+        .from("comprobantes")
+        .select(
+          "id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, entorno_transmision, motivo_rechazo, motivo_anulacion, motivo_no_emitido, anulacion_solicitada_at, created_at, ubicacion_id, respuesta_sunat, venta_id, comprobante_original_id"
+        )
+        // Facturación es lo que va (o fue) a SUNAT: la nota de venta es interna (ADR-0164) y vive en Vender e Historial.
+        .neq("tipo", "nota_venta")
+        .gte("created_at", desde)
+        .lt("created_at", hasta)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(d, h)
+    ),
+    // ADR-0671: de qué cambio sale cada documento, aparte y TOLERANTE: si la web sale antes que la migración, la columna no existe
+    // (42703) y Facturación se ve como antes. Trae solo las filas que salen de un cambio (pocas). Si falla por otra causa, la fila
+    // pierde su «Cambio de …» y podría ofrecer Anular o Liberar: la base los rechaza (`documento_de_un_cambio`) y la ruta de la baja
+    // lo vuelve a mirar antes de llamar a Lucode.
+    leerTodas((d, h) =>
+      supabase
+        .from("comprobantes")
+        .select("id, cambio_id")
+        .not("cambio_id", "is", null)
+        .neq("tipo", "nota_venta")
+        .gte("created_at", desde)
+        .lt("created_at", hasta)
+        .order("id")
+        .range(d, h)
+    ),
+  ]);
   const filas = exigir(res, "los comprobantes del mes");
+  if (resCambios.error && resCambios.error.code !== "42703") {
+    console.error("Facturación: no se pudo leer de qué cambio sale cada comprobante:", resCambios.error.message);
+  }
+  const cambioDe = new Map((resCambios.data ?? []).map((c) => [c.id, c.cambio_id]));
   // `respuesta_sunat` es el `ResultadoLucode` completo tal como lo guardó
   // `/api/lucode/emitir` (lib/lucode.ts) — jsonb sin tipo propio en el
   // esquema, así que se lee con cuidado en vez de confiar en el cast de
@@ -43,6 +66,7 @@ export async function getComprobantesMes(desde: string, hasta: string): Promise<
     const r = respuesta_sunat as { pdfUrl?: unknown; xmlUrl?: unknown; cdrUrl?: unknown } | null;
     return {
       ...f,
+      cambio_id: cambioDe.get(f.id) ?? null,
       pdfUrl: typeof r?.pdfUrl === "string" ? r.pdfUrl : null,
       xmlUrl: typeof r?.xmlUrl === "string" ? r.xmlUrl : null,
       cdrUrl: typeof r?.cdrUrl === "string" ? r.cdrUrl : null,
@@ -221,32 +245,21 @@ export const getPorEnviar = cache(async (ubicacionId: string | null): Promise<Fi
   return [...deLaCola, ...sueltos].sort((a, b) => (b.horas_esperando ?? 0) - (a.horas_esperando ?? 0));
 });
 
-/** Lo que conecta cada comprobante con el resto del ERP (2026-09-26): su venta, el WhatsApp de la clienta, la nota
- *  de crédito que lo corrige (o el comprobante que corrige una nota) y la devolución que la originó. */
-export type ExtraComprobante = {
-  telefono: string | null;
-  /** La nota de crédito que corrige a este comprobante, si hay una. */
-  notaDeCredito: { id: string; numero: string } | null;
-  /** Si este es una nota de crédito: el comprobante que corrige. */
-  corrige: { id: string; numero: string } | null;
-  /** La devolución que emitió la nota (en una nota) o que se hizo sobre este comprobante (en el original). */
-  devolucionId: string | null;
-};
-
 /** Se lee DESPUÉS de los comprobantes y nunca tumba la pantalla: si una de estas lecturas falla, la fila solo
  *  pierde su enlace (`tolerar`), el comprobante se sigue viendo. El WhatsApp sale de la ficha de clienta, que solo lee
  *  la cuenta con el módulo «Clientas» (política `clientas_select`, ADR-0249 act. 2026-09-28): sin él, 0 filas y el
- *  comprobante queda sin el botón de WhatsApp, sin error. */
+ *  comprobante queda sin el botón de WhatsApp, sin error. Los documentos de un cambio (ADR-0671) se enlazan con su original
+ *  y su venta; cómo se lee cada cosa lo decide `armarExtras` (`comprobantes-cambio-reglas.ts`, con su prueba). */
 export async function getExtrasDeComprobantes(filas: Comprobante[]): Promise<Record<string, ExtraComprobante>> {
   if (filas.length === 0) return {};
   const supabase = await createClient();
-  const numero = (c: { serie: string; numero: number }) => `${c.serie}-${String(c.numero).padStart(6, "0")}`;
   const ids = filas.map((c) => c.id);
   const dnis = [...new Set(filas.filter((c) => c.cliente_tipo_doc === "dni" && c.cliente_num_doc).map((c) => c.cliente_num_doc as string))];
   const originales = [...new Set(filas.map((c) => c.comprobante_original_id).filter((x): x is string => !!x))];
   const notasDelMes = filas.filter((c) => c.tipo === "nota_credito").map((c) => c.id);
+  const cambios = [...new Set(filas.map((c) => c.cambio_id).filter((x): x is string => !!x))];
 
-  const [resClientas, resNotas, resOriginales, resDevoluciones] = await Promise.all([
+  const [resClientas, resNotas, resOriginales, resDevoluciones, resNotasDeCambios, resCambios] = await Promise.all([
     // El comprobante solo guarda DNI (y RUC), así que solo una ficha con DNI puede ser su dueña: un carné o un pasaporte
     // con los mismos dígitos es otra persona (ADR-0288 D-2).
     dnis.length
@@ -254,29 +267,82 @@ export async function getExtrasDeComprobantes(filas: Comprobante[]): Promise<Rec
       : Promise.resolve(null),
     // Las tres por tandas de ids: un mes tiene ~1.100 comprobantes y mil ids en la dirección (40 KB) no caben (`leerPorTandasDeIds`); si el
     // API la rechaza, `tolerar` lo traga y la fila pierde en silencio su enlace a la nota de crédito y a la devolución.
-    leerPorTandasDeIds(ids, (tanda) => supabase.from("comprobantes").select("id, serie, numero, comprobante_original_id").eq("tipo", "nota_credito").in("comprobante_original_id", tanda)),
+    leerNotasDe(supabase, ids),
     originales.length ? leerPorTandasDeIds(originales, (tanda) => supabase.from("comprobantes").select("id, serie, numero").in("id", tanda)) : Promise.resolve(null),
     leerPorTandasDeIds([...notasDelMes, ...ids], (tanda) => supabase.from("devoluciones").select("id, nota_credito_id").not("nota_credito_id", "is", null).in("nota_credito_id", tanda)),
+    // ADR-0671: la nota de cada cambio de la lista (su original es de donde sale el cambio), aunque sea de otro mes, y la venta del cambio
+    // (para «Ver la venta» y para encontrar la original cuando la nota todavía no sale). Solo si alguna fila sale de un cambio.
+    cambios.length
+      ? leerPorTandasDeIds(cambios, (tanda) => supabase.from("comprobantes").select("cambio_id, comprobante_original_id").eq("tipo", "nota_credito").in("cambio_id", tanda))
+      : Promise.resolve(null),
+    cambios.length ? leerPorTandasDeIds(cambios, (tanda) => supabase.from("cambios").select("id, venta_items(venta_id)").in("id", tanda)) : Promise.resolve(null),
   ]);
   const telefonos = new Map<string, string>();
   for (const cl of (resClientas ? tolerar(resClientas, "el WhatsApp de los clientes").datos : null) ?? []) {
     if (cl.documento_numero && cl.telefono_whatsapp) telefonos.set(cl.documento_numero, cl.telefono_whatsapp);
   }
-  const notaDe = new Map<string, { id: string; numero: string }>();
-  for (const n of (tolerar(resNotas, "las notas de crédito").datos ?? []) as { id: string; serie: string; numero: number; comprobante_original_id: string | null }[]) {
-    if (n.comprobante_original_id) notaDe.set(n.comprobante_original_id, { id: n.id, numero: numero(n) });
-  }
-  const originalPorId = new Map<string, string>();
-  for (const o of (resOriginales ? tolerar(resOriginales, "los comprobantes corregidos").datos : null) ?? []) originalPorId.set(o.id, numero(o));
   const devolucionDeNota = new Map<string, string>();
   for (const d of tolerar(resDevoluciones, "las devoluciones").datos ?? []) if (d.nota_credito_id) devolucionDeNota.set(d.nota_credito_id, d.id);
 
-  return Object.fromEntries(
-    filas.map((c) => {
-      const nc = notaDe.get(c.id) ?? null;
-      const corrige = c.comprobante_original_id ? { id: c.comprobante_original_id, numero: originalPorId.get(c.comprobante_original_id) ?? "otro mes" } : null;
-      const devolucionId = c.tipo === "nota_credito" ? (devolucionDeNota.get(c.id) ?? null) : nc ? (devolucionDeNota.get(nc.id) ?? null) : null;
-      return [c.id, { telefono: c.cliente_num_doc ? (telefonos.get(c.cliente_num_doc) ?? null) : null, notaDeCredito: nc, corrige, devolucionId }];
-    })
+  const notasDeLosCambios = (resNotasDeCambios ? tolerar(resNotasDeCambios, "las notas de los cambios").datos : null) ?? [];
+  const ventaDelCambio = new Map<string, string>();
+  for (const c of (resCambios ? tolerar(resCambios, "los cambios").datos : null) ?? []) {
+    const ventaId = c.venta_items?.venta_id;
+    if (ventaId) ventaDelCambio.set(c.id, ventaId);
+  }
+  const candidatos = cambios.length ? await leerOriginalesDeCambios(supabase, cambios, notasDeLosCambios, ventaDelCambio) : [];
+
+  return armarExtras(filas, {
+    telefonos,
+    notas: tolerar(resNotas, "las notas de crédito").datos ?? [],
+    originales: (resOriginales ? tolerar(resOriginales, "los comprobantes corregidos").datos : null) ?? [],
+    devolucionDeNota,
+    cambios: documentosDeLosCambios(cambios, notasDeLosCambios, ventaDelCambio, candidatos),
+  });
+}
+
+type Cliente = Awaited<ReturnType<typeof createClient>>;
+
+/** Las notas de crédito que corrigen a los comprobantes de la lista, con `cambio_id` para separar las de un cambio de las de una
+ *  devolución. Si la web sale antes que la migración (ADR-0671), la columna no existe (42703): se leen como antes, todas sin cambio. */
+async function leerNotasDe(supabase: Cliente, ids: string[]): Promise<{ data: NotaLeida[] | null; error: { message: string } | null }> {
+  const conCambio = await leerPorTandasDeIds(ids, (tanda) =>
+    supabase.from("comprobantes").select("id, serie, numero, comprobante_original_id, cambio_id").eq("tipo", "nota_credito").in("comprobante_original_id", tanda)
   );
+  if (conCambio.error?.code !== "42703") return conCambio;
+  const sinCambio = await leerPorTandasDeIds(ids, (tanda) =>
+    supabase.from("comprobantes").select("id, serie, numero, comprobante_original_id").eq("tipo", "nota_credito").in("comprobante_original_id", tanda)
+  );
+  return { data: sinCambio.data?.map((n) => ({ ...n, cambio_id: null })) ?? null, error: sinCambio.error };
+}
+
+/** Los comprobantes donde puede estar la original de cada cambio: el que corrige su nota y, si la nota todavía no sale, los de la venta
+ *  del cambio (`originalDeLaVenta` elige). Su sede es la de la venta («Ver la venta»). Si la lectura falla, la fila dice «De un cambio» sin
+ *  número: nunca tumba la vista. */
+async function leerOriginalesDeCambios(
+  supabase: Cliente,
+  cambios: string[],
+  notasDeLosCambios: { cambio_id: string | null; comprobante_original_id: string | null }[],
+  ventaDelCambio: Map<string, string>,
+): Promise<CandidatoOriginal[]> {
+  const conNota = new Set(notasDeLosCambios.map((n) => n.cambio_id));
+  const porId = [...new Set(notasDeLosCambios.map((n) => n.comprobante_original_id).filter((x): x is string => !!x))];
+  const porVenta = [...new Set(cambios.filter((c) => !conNota.has(c)).map((c) => ventaDelCambio.get(c)).filter((x): x is string => !!x))];
+  const [resPorId, resPorVenta] = await Promise.all([
+    porId.length ? leerPorTandasDeIds(porId, (tanda) => supabase.from("comprobantes").select("id, serie, numero, venta_id, ubicacion_id").in("id", tanda)) : Promise.resolve(null),
+    porVenta.length
+      ? leerPorTandasDeIds(porVenta, (tanda) =>
+          supabase
+            .from("comprobantes")
+            // `es_anticipo` no está en los tipos generados (son anteriores a los apartados): se lee con su forma real, abajo.
+            .select("id, serie, numero, venta_id, ubicacion_id, tipo, estado, created_at, es_anticipo")
+            .in("tipo", ["boleta", "factura", "nota_venta"])
+            .in("venta_id", tanda)
+        )
+      : Promise.resolve(null),
+  ]);
+  return [
+    ...((resPorId ? tolerar(resPorId, "los comprobantes de los cambios").datos : null) ?? []),
+    ...(((resPorVenta ? tolerar(resPorVenta, "las ventas de los cambios").datos : null) ?? []) as unknown as CandidatoOriginal[]),
+  ];
 }

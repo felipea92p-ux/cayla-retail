@@ -56,6 +56,9 @@ export type Comprobante = {
   /** Qué venta documenta (vacío en uno emitido a mano) y, en una nota de crédito, qué comprobante corrige. */
   venta_id?: string | null;
   comprobante_original_id?: string | null;
+  /** El cambio del que sale (ADR-0671): su comprobante nuevo (sin venta) o su nota de crédito sobre la original. No se anula
+   *  ni se libera por separado (la base lo rechaza con `documento_de_un_cambio`). */
+  cambio_id?: string | null;
 };
 
 export type SerieComprobante = {

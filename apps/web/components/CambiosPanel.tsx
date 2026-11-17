@@ -68,6 +68,7 @@ export function CambiosPanel({
   cajaAbierta,
   catalogo,
   aceptaQr,
+  emiteComprobantes = false,
   tallasQueNoCalzan,
   abrirItemId,
   sedes,
@@ -83,6 +84,8 @@ export function CambiosPanel({
   catalogo: VarianteCatalogo[];
   /** `fn_acepta_qr_en_cambios` (20261021184000): si la base ya acepta el QR como medio de la diferencia. */
   aceptaQr: boolean;
+  /** `fn_cambio_emite_comprobantes` (ADR-0671): la base ya emite la nota de crédito y el comprobante nuevo de un cambio con diferencia. */
+  emiteComprobantes?: boolean;
   tallasQueNoCalzan: TallaQueNoCalza[];
   abrirItemId?: string;
   /** Todas las sedes, para prellenar un traslado cuando la talla está en otra (`sedesDeOrigen`). */
@@ -192,6 +195,7 @@ export function CambiosPanel({
         sedes={sedes}
         catalogo={catalogo}
         aceptaQr={aceptaQr}
+        emiteComprobantes={emiteComprobantes}
         ahora={ahora}
         onCerrar={cerrarFlujo}
         onNuevo={() => {

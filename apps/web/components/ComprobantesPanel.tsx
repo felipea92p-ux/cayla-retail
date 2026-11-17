@@ -12,6 +12,7 @@ import { soles } from "@/lib/compras-reglas";
 import { chipDelComprobante } from "@/lib/facturacion-actividad";
 import { accionesDelComprobante, camposDeBusquedaDelComprobante, enlaceWhatsAppA, motivoDelComprobante, totalesPorTipo } from "@/lib/facturacion-comprobantes-reglas";
 import type { ExtraComprobante } from "@/lib/comprobantes";
+import { vinculosDeFila } from "@/lib/comprobantes-cambio-reglas";
 import { OpcionesComprobante } from "@/components/OpcionesComprobante";
 import { coincide } from "@/lib/facturacion-busqueda";
 import { diaYHoraLima } from "@/lib/fechas-lima";
@@ -21,7 +22,7 @@ import { SinCoincidencias } from "@/components/SinCoincidencias";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
-import { CircleCheck, FileText, Link2, MessageCircle, ReceiptText, Store } from "lucide-react";
+import { ArrowLeftRight, CircleCheck, FileText, Link2, MessageCircle, ReceiptText, Store } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
@@ -33,7 +34,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
-import { laBajaAnulaLaVenta, MAX_MOTIVO_BAJA } from "@/lib/anular-comprobante-reglas";
+import { laBajaAnulaLaVenta, MAX_MOTIVO_BAJA, mensajeDelCambioAlLiberar } from "@/lib/anular-comprobante-reglas";
 import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
 
 // Los botones de la fila y el motivo que va bajo su estado. Qué botones le tocan a cada estado lo
@@ -255,9 +256,10 @@ export function ComprobantesPanel({
   const estadosDelMes = [...new Set(comprobantes.map((c) => chipDelComprobante(c).texto))];
 
   const { texto: busqueda } = useFacturacionBusqueda();
+  // Lo que dice la fila de su enlace («Cambio de B004-000031») también se busca: escribir la boleta original encuentra su cambio.
   const visibles = comprobantes.filter(
     (c) =>
-      coincide(camposDeBusquedaDelComprobante(c), busqueda) &&
+      coincide([...camposDeBusquedaDelComprobante(c), ...vinculosDeFila(extras[c.id]).map((v) => v.texto)], busqueda) &&
       (filtroTipo === TODOS || c.tipo === filtroTipo) &&
       (filtroTienda === TODOS || c.ubicacion_id === filtroTienda) &&
       (filtroEstado === TODOS || chipDelComprobante(c).texto === filtroEstado)
@@ -370,6 +372,7 @@ export function ComprobantesPanel({
               const { dia, hora } = diaYHoraLima(c.created_at);
               const chip = chipDelComprobante(c);
               const cliente = c.cliente_nombre ?? "Cliente varios";
+              const vinculos = vinculosDeFila(extras[c.id]);
               return (
                 <div
                   key={c.id}
@@ -388,17 +391,17 @@ export function ComprobantesPanel({
                       </b>
                     </p>
                     <p className="mt-0.5 truncate text-sm text-tinta/65 @min-[900px]:hidden">{cliente}</p>
-                    {extras[c.id]?.notaDeCredito && (
-                      <p className="comprobante-vinculo mt-1 inline-flex items-center gap-1 text-sm text-pizarra">
-                        <Link2 aria-hidden size={12} />
-                        Tiene {extras[c.id]!.notaDeCredito!.numero}
-                      </p>
-                    )}
-                    {extras[c.id]?.corrige && (
-                      <p className="comprobante-vinculo mt-1 inline-flex items-center gap-1 text-sm text-pizarra">
-                        <Link2 aria-hidden size={12} />
-                        Corrige {extras[c.id]!.corrige!.numero}
-                      </p>
+                    {/* Con qué otro comprobante se enlaza: la nota que lo corrige, el que corrige una nota y, en un cambio
+                        (ADR-0671), de qué comprobante sale cada documento; con las flechas del cambio, no con el eslabón. */}
+                    {vinculos.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {vinculos.map((v) => (
+                          <p key={v.texto} className="comprobante-vinculo inline-flex items-center gap-1 text-sm text-pizarra">
+                            {v.tipo === "cambio" ? <ArrowLeftRight aria-hidden size={12} /> : <Link2 aria-hidden size={12} />}
+                            {v.texto}
+                          </p>
+                        ))}
+                      </div>
                     )}
                     <DocumentosSunat c={c} telefono={extras[c.id]?.telefono ?? null} />
                   </div>
@@ -451,7 +454,7 @@ export function ComprobantesPanel({
         <OpcionesComprobante
           comprobante={conOpciones}
           extra={extras[conOpciones.id]}
-          sede={nombreDeTienda(conOpciones.ubicacion_id)}
+          nombreDeSede={nombreDeTienda}
           esLider={esLider}
           onClose={() => setConOpciones(null)}
         />
@@ -610,7 +613,8 @@ function ModalLiberar({ comprobante, onClose }: { comprobante: Comprobante; onCl
     setEnviandoLiberacion(false);
     responsable.despues(error);
     if (error) {
-      avisar.error(traducirError(error, "liberar el comprobante"));
+      // Un documento de un cambio (o la original de uno cuya nota no sale) no se libera (ADR-0671): la base lo dice con su `hint`.
+      avisar.error(mensajeDelCambioAlLiberar(error) ?? traducirError(error, "liberar el comprobante"));
       return;
     }
     avisar.exito("Comprobante liberado", {

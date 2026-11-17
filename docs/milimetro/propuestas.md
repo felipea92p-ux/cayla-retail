@@ -45,6 +45,13 @@ hacen los mejores del mundo, hagámoslo». Cada propuesta dice qué se gana, de 
   (`recepcion-viva.css:86`, `lib/recepcion-dial-foco.test.ts`), por la demo que Felipe eligió mirando. Propuesta: el anillo para todos solo con el teclado
   (`:focus-visible` tras una tecla), o una selección de al menos 3:1, conservando el aspecto sin caja al tocar el número. `[Norma]` 2.4.7 AA ya pasa; 2.4.13 AAA y
   1.4.11 no. Riesgo: cambia lo que Felipe aprobó. Se mide con `color/referencia/medir.js` (foco) y el contraste de la selección contra el fondo del aro.
+- **`/color` (auditoría de Cambios, ADR-0671, 2026-11-16):** la etiqueta de un campo (`.campo-etiqueta`) y el título de grupo (`.titulo-grupo-texto`), 11 px en
+  versalitas, miden **4.47:1** dentro de la hoja Serena a 1440 px en claro, bajo el 4.5:1 de AA (APCA Lc 63). Su color es tinta al 62 %
+  (`app/estilos/campos-y-casillas.css:323`), medido «sobre papel, crema»; dentro de una hoja el fondo real es el vidrio al 70 % sobre el velo
+  (`bg-sombra/35`), algo más oscuro. En oscuro mide 5.86 y a 375 px en claro pasa. Afecta a toda hoja con un campo o un título de grupo, no a una
+  pantalla, así que no se tiñe a mano en la obra. Propuesta: subirlas al piso del texto tenue en claro (64 %, el mismo de ADR-0336 act. 2026-10-14)
+  y que `lib/tema-tokens.test.ts` mida también contra la hoja Serena sobre su velo, no solo contra el papel. `[Norma]` WCAG 1.4.3. Riesgo: bajo
+  (las etiquetas se ven un punto más oscuras en todo el ERP). Se mide con `color/referencia/medir.js` en una hoja abierta.
 
 ## Lo que decidió Felipe
 

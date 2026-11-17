@@ -111,3 +111,17 @@ function digitosQueFaltan(nombre: "DNI" | "RUC", n: string, largo: number): stri
   if (dif > 0) return `${art} le ${dif === 1 ? "falta 1 dígito" : `faltan ${dif} dígitos`}: tiene ${largo}.`;
   return `El ${nombre} tiene ${largo} dígitos: ${-dif === 1 ? "sobra 1" : `sobran ${-dif}`}.`;
 }
+
+/** Lo más largo que se acepta como nombre del cliente escrito a mano en un comprobante (en un cambio, la base lo exige igual: ADR-0671). Un
+ *  nombre del padrón no pasa por aquí: se muestra, no se escribe. /chaos (2026-11-16) guardó una boleta con un nombre de 1 646 letras. */
+export const LARGO_NOMBRE_DEL_COMPROBANTE = 200;
+
+/**
+ * El nombre que trajo el padrón deja de valer cuando cambia el número: si la `clave` (tipo y número) ya no es la de la consulta que lo
+ * puso y el nombre sigue siendo ese, se borra (`""`), para que el padrón traiga el del número nuevo o la persona lo escriba. Lo escrito a
+ * mano no se toca (`null`). /chaos (2026-11-16): el nombre de un DNI quedaba pegado a otro DNI que el padrón no encontraba, y salía impreso.
+ */
+export function nombreAlCambiarElNumero(p: { puesto: { clave: string; nombre: string } | null; clave: string; nombre: string }): "" | null {
+  if (!p.puesto || p.puesto.clave === p.clave) return null;
+  return p.nombre === p.puesto.nombre ? "" : null;
+}
