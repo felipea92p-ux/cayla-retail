@@ -2,7 +2,7 @@
   "guia": "cambios",
   "ruta": "/cambios",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 43,
+  "total": 57,
   "controles": {
     "components/BuscadorVentas.tsx": [
       "BotonBuscar «(sin nombre)»",
@@ -47,9 +47,18 @@
       "button «Iniciar cambio»",
       "button «cambios.iniciar»"
     ],
+    "components/CampoDocumentoClienta.tsx": [
+      "CampoSelect «{etiqueta}»",
+      "CampoTexto «{<> {etiqueta}»"
+    ],
     "components/ComprasAgrupadas.tsx": [
       "button «{f.texto}»",
       "Boton «Buscar en todas las tiendas»"
+    ],
+    "components/ConsultaDocumento.tsx": [
+      "CampoTexto «{contador ? ( <> {}»",
+      "BotonBuscar «→buscar»",
+      "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/EscanerBusqueda.tsx": [
       "button «Cerrar la cámara»",
@@ -64,10 +73,27 @@
       "button «{guia}»",
       "button «{children}»"
     ],
+    "components/cambios-documentos/DocumentosDelTicket.tsx": [
+      "BotonImprimir «Imprimir»"
+    ],
+    "components/clientas/club-piezas.tsx": [
+      "CampoTexto «{etiqueta}»",
+      "CampoTexto «Día del cumpleaños»",
+      "CampoSelect «Mes del cumpleaños»",
+      "CampoTexto «Año del cumpleaños (opcional)»",
+      "button «Omitir por ahora»"
+    ],
     "components/punto-de-venta/AnotarNoHabia.tsx": [
       "Boton «→anotar»",
       "button «{t}»",
       "ComboResponsable «{responsable}»"
+    ],
+    "components/punto-de-venta/DocumentoDelComprobante.tsx": [
+      "CampoTexto «{ID_NUMERO_DOC_COMPROBANTE}»",
+      "CampoTexto «Nombre del cliente»"
+    ],
+    "components/punto-de-venta/EnviarBoleta.tsx": [
+      "a «Abrir WhatsApp con la boleta»"
     ]
   }
 }

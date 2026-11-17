@@ -224,3 +224,32 @@ export async function transmitirComprobante(supabase: Cliente, destino: Destino,
     pdfUrl: resultado.pdfUrl,
   } };
 }
+
+/**
+ * Los documentos de un cambio con diferencia (ADR-0671), en el acto: el comprobante nuevo y, si ya salió, la nota de crédito sobre la
+ * original. Los dos los reservó `registrar_cambio` en su mismo guardado; aquí solo se transmiten, primero el nuevo y después la nota. Lo
+ * que no esté `pendiente` (ya enviado, o la nota de venta, que es interna) no se toca. Si Lucode no responde, cada uno queda en la cola de
+ * reintento como cualquier comprobante (principio 9): el cambio ya quedó guardado y no depende de esto. `servidor` es la llave de
+ * servicio, como en `transmitirComprobante`: lo que responda SUNAT lo escribe el servidor (ADR-0675).
+ */
+export async function transmitirDocumentosDelCambio(
+  supabase: Cliente,
+  cambioId: string,
+  servidor: ClienteServidor,
+): Promise<Respuesta> {
+  const { data, error } = await supabase
+    .from("comprobantes")
+    .select("id, tipo")
+    .eq("cambio_id", cambioId)
+    .in("tipo", ["boleta", "factura", "nota_credito"])
+    .eq("estado", "pendiente");
+  if (error) return { status: 503, body: { error: "No se pudieron leer los documentos del cambio. Reintenta." } };
+  const filas = [...(data ?? [])].sort((a, b) => Number(a.tipo === "nota_credito") - Number(b.tipo === "nota_credito"));
+  if (filas.length === 0) return { status: 404, body: { error: "El cambio no tiene documentos por enviar", documentos: [] } };
+  const documentos = [];
+  for (const f of filas) {
+    const r = await transmitirComprobante(supabase, { comprobanteId: f.id }, servidor);
+    documentos.push({ id: f.id, tipo: f.tipo, status: r.status, estado: r.body.estado ?? null, motivo: r.body.motivo ?? null });
+  }
+  return { status: 200, body: { documentos } };
+}

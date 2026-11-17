@@ -1694,6 +1694,7 @@ export type Database = {
           anulacion_solicitada_at: string | null
           anulado_at: string | null
           anulado_por: string | null
+          cambio_id: string | null
           cliente_nombre: string | null
           cliente_num_doc: string | null
           cliente_tipo_doc: string
@@ -1728,6 +1729,7 @@ export type Database = {
           anulacion_solicitada_at?: string | null
           anulado_at?: string | null
           anulado_por?: string | null
+          cambio_id?: string | null
           cliente_nombre?: string | null
           cliente_num_doc?: string | null
           cliente_tipo_doc?: string
@@ -1762,6 +1764,7 @@ export type Database = {
           anulacion_solicitada_at?: string | null
           anulado_at?: string | null
           anulado_por?: string | null
+          cambio_id?: string | null
           cliente_nombre?: string | null
           cliente_num_doc?: string | null
           cliente_tipo_doc?: string
@@ -9239,9 +9242,22 @@ export type Database = {
         }
         Returns: string
       }
+      previsualizar_documentos_cambio: {
+        Args: {
+          p_cantidad: number
+          p_cliente?: Json
+          p_total_nuevo: number
+          p_ubicacion_id: string
+          p_venta_item_id: string
+        }
+        Returns: Json
+      }
+      fn_emitir_notas_de_cambios_pendientes: { Args: never; Returns: number }
+      fn_cambio_emite_comprobantes: { Args: never; Returns: boolean }
       registrar_cambio: {
         Args: {
           p_cantidad?: number
+          p_cliente?: Json
           p_condicion?: string
           p_metodo_pago_diferencia?: string
           p_motivo?: string
@@ -9255,6 +9271,7 @@ export type Database = {
       registrar_cambio_varias: {
         Args: {
           p_cantidad?: number
+          p_cliente?: Json
           p_condicion?: string
           p_metodo_pago_diferencia?: string
           p_motivo?: string

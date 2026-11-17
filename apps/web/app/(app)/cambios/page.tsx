@@ -33,7 +33,7 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
   // decide qué se puede entregar (`registrar_cambio` rechaza lo que no está), y
   // `fn_stock_por_sede` dice dónde más hay cuando aquí no queda la talla.
   const supabase = await createClient();
-  const [lineas, catalogo, stock, resStockSedes, ubicaciones, estadisticas, tallasQueNoCalzan, caja, preciosSede, resAceptaQr] = await Promise.all([
+  const [lineas, catalogo, stock, resStockSedes, ubicaciones, estadisticas, tallasQueNoCalzan, caja, preciosSede, resAceptaQr, resEmiteComprobantes] = await Promise.all([
     getVentasRecientes(persona.ubicacionId, { busqueda: q, todasLasSedes, ventaItemId: item }),
     // Lo que se ofrece AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima.
     getCatalogoParaOfrecer(persona.ubicacionId),
@@ -49,8 +49,12 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
     // ¿La base ya acepta el QR como medio de la diferencia? (20261021184000). Si la función no existe todavía, el error deja el combo con
     // los cinco medios de siempre: nunca ofrece algo que la base rechazaría.
     supabase.rpc("fn_acepta_qr_en_cambios"),
+    // ¿La base ya emite los comprobantes de un cambio con diferencia? (ADR-0671, 20261116213000). Sin la función, la pantalla sigue como
+    // antes: no manda el cliente del comprobante nuevo (la base vieja rechazaría el cambio entero) ni promete ningún documento.
+    supabase.rpc("fn_cambio_emite_comprobantes"),
   ]);
   const aceptaQr = resAceptaQr.data === true;
+  const emiteComprobantes = resEmiteComprobantes.data === true;
   // Una venta de una tienda que ya cerró puede conservar su precio propio y la base lo usa (`fn_precio_para_cambio`): se leen también
   // los de las tiendas de las ventas listadas que no están entre las abiertas.
   const sinLeer = [...new Set(lineas.map((l) => l.ubicacionVentaId).filter((id): id is string => !!id && !(id in preciosSede.porSede)))];
@@ -99,6 +103,7 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
           colaboradora={persona.nombre}
           cajaAbierta={caja !== null}
           aceptaQr={aceptaQr}
+          emiteComprobantes={emiteComprobantes}
           tallasQueNoCalzan={tallasQueNoCalzan}
           abrirItemId={item}
           sedes={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))}

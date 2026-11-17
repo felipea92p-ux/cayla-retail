@@ -23,7 +23,8 @@
  *   9. `aceptado` SIN baja pedida sigue frenando la anulación (Historial no anula una venta facturada).
  *  10. `aceptado` CON la baja ya pedida a SUNAT (`anulacion_solicitada_at`, en trámite) deja anular la venta
  *      (`20261014165000`, ADR-0016 act. 2026-10-14: la baja anula la venta en el mismo acto); el comprobante sigue
- *      aceptado con su baja en trámite y, cuando SUNAT la confirma, queda anulado. La prenda vuelve al stock.
+ *      aceptado con su baja en trámite y, cuando SUNAT la confirma (lo escribe el servidor, `fn_confirmar_baja_sunat`, ADR-0673),
+ *      queda anulado. La prenda vuelve al stock.
  *  11. Quién libera o anula un comprobante (ADR-0534, 20261027164000; antes, solo un líder): sin el módulo
  *      Facturación, 42501 en `marcar_comprobante_no_emitido` y en `anular_comprobante`, y nada cambia; con
  *      Facturación, una integrante (no líder) lo libera y queda a su nombre.
@@ -274,7 +275,10 @@ ${A_SESION}
 select retail.anular_comprobante(:'k_cmp', 'se emitió por error', false, '{"estado":"PENDIENTE"}'::jsonb) as _baja_k \\gset
 select retail.anular_venta(:'k', 'prueba automatizada', ${ITEMS_ANULACION("k")}) as _anul_k \\gset
 select 'k_tras_baja|' || estado || '|' || (anulacion_solicitada_at is not null)::text from retail.comprobantes where id = :'k_cmp';
-select retail.anular_comprobante(:'k_cmp', 'se emitió por error', true, '{"estado":"ANULADO"}'::jsonb) as _conf_k \\gset
+-- La confirmación la escribe el servidor con su llave (ADR-0673), y después se vuelve a ser el líder.
+select set_config('request.jwt.claim.sub', '', true), set_config('request.jwt.claim.role', 'service_role', true) \\gset
+select retail.fn_confirmar_baja_sunat(:'k_cmp', '{"estado":"ANULADO"}'::jsonb) as _conf_k \\gset
+select set_config('request.jwt.claim.sub', '${FELIPE}', true), set_config('request.jwt.claim.role', '', true) \\gset
 select 'k_confirmado|' || estado from retail.comprobantes where id = :'k_cmp';
 select 'k_venta|' || estado from retail.ventas where id = :'k';
 select 'k_stock|' || count(*) from retail.movimientos where venta_item_id = :'k_item' and motivo = 'anulacion_venta' and tipo = 'entrada';
