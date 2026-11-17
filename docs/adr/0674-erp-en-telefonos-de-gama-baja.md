@@ -252,6 +252,117 @@ abre sin desborde. La base local quedó idéntica. `vitest` (945 archivos, huell
 **No verificado:** «Ajustar inventario» completo y el resumen del stock (con los datos de la base local no hay camino hasta ellos; misma
 pieza y mismos tipos que las otras cuatro), ni guardar nada desde el panel diferido (colgar, ajustar, apartar): se abrió y se cerró.
 
+## Actualización 2026-11-17 (e) — actividad 7: el marco se midió y NO se recorta
+
+Felipe pidió el corte del marco común (lo que baja en toda pantalla: 1 069 KB, 333 comprimido). Se midió antes de tocar, esta vez con lo
+que de verdad viaja: `scripts/peso/por-modulo.mjs` lee el mapa de cada archivo del navegador (armado con `MEDIR_PESO=1`) y dice cuántos KB
+ya armados pone cada archivo de fuente o librería. `cierres.mjs` cuenta fuente con comentarios y aquí engañaba: daba 250 KB «solo suyos» a
+`LogoutButton.tsx`, que armado pesa 2.
+
+| De quién es | KB armados | Parte |
+|---|---|---|
+| Next y React (`react-dom` 202, el enrutador, la caché de segmentos) | 486 | 46 % |
+| Supabase (sesión 96, tiempo real 55, archivos 24, consultas 15, el resto 25) | 215 | 20 % |
+| Radix, `react-remove-scroll`, lucide y otros paquetes | 42 | 4 % |
+| Arranque de Turbopack | 13 | 1 % |
+| Código del ERP, en 153 archivos | 311 | 29 % |
+
+El código nuestro no tiene un bulto: el archivo más grande pesa 22 KB (`lib/error-escritura.ts`, que casi toda pantalla usa igual) y
+`components/AppShell.tsx`, 21. La Fase 1 ya había apartado lo que se abre a pedido (perfil, apariencia, demo, asistente, actividad, la guía).
+`scripts/peso/si-corto.mjs` cruza el camino de imports con el peso armado y dice cuánto saldría con cada corte; los mayores:
+
+| Corte posible | Saldrían | Por qué no |
+|---|---|---|
+| El motor de las guías | 14 KB | Decide en cada pantalla si ofrece la guía: bajaría igual, solo un poco después |
+| Las fotos pendientes de la cola sin conexión | 10 KB | Es el camino que sube lo guardado sin red: no se le agrega un punto de falla por 10 KB |
+| El recordatorio de cierre de caja | 10 KB | Solo lo recibe quien cierra caja, pero ver «probado y deshecho» |
+| La estación de impresión de boletas | 7 KB | Imprime la boleta de una venta: tiene que estar |
+| El buscador global | 7 KB | Se abre con una tecla en cualquier momento |
+
+- DECIDÍ: no recortar el marco. Queda como está, y lo que se entrega es la medición y dos medidores nuevos para los cortes que siguen.
+- DESCARTÉ: diferir esas cinco piezas (49 KB entre todas, menos del 5 % del marco), porque cada una agrega un «sin internet al abrir» a algo que
+  hoy siempre está, y dos son de no perder datos o de imprimir una venta. Y descarté armar un cliente de Supabase a medida sin tiempo real
+  ni archivos (−80 KB): la librería los crea al nacer, habría que reemplazar la pieza por la que pasa toda lectura y escritura del ERP.
+  Eso es estructural y lo decide Felipe; no se hace por un 7 %.
+- SE ROMPE SI: alguien lee «el marco pesa 1 069 KB» como «hay 1 069 KB por recortar». Dos tercios son React, Next y Supabase.
+
+**Probado y deshecho** (un armado, nada quedó en el código):
+- *El relleno de `Buffer`*: Next agrega 22 KB a toda pantalla porque la librería de archivos de Supabase pregunta `typeof Buffer` para
+  codificar un encabezado que el ERP no usa (es el único código del navegador que lo nombra, medido sobre los 504 archivos). Se probó
+  apuntarlo a un archivo vacío con `turbopack.resolveAlias` (`buffer` y `node:buffer`): Turbopack no lo tomó, el relleno siguió ahí.
+  Quitarlo pide parchar la librería, y un parche a una dependencia se paga en cada actualización.
+- *El recordatorio de cierre con `next/dynamic` desde el layout del servidor*: sigue en la lista de archivos del layout y baja para todos.
+
+**Dónde sí hay peso** (las 138 pantallas, ordenadas por lo que cada una suma al marco; mediana 184 KB): `/recibir/envio/[id]` 1 034 KB,
+`/gestion/preguntas` 854, `/recibir` 684, `/vender` 681, `/productos/[id]/editar` 644, `/productos/nuevo` 635, `/vender/apartados` 621,
+`/produccion/ordenes/[numero]` 610, `/productos/campanas` e `/insignias` 554, `/productos` 532. De las que se usan en el celular, la más
+pesada del ERP es contar un envío de Recibir.
+
+**El interruptor `MEDIR_PESO`** (`apps/web/next.config.ts`): solo agrega `productionBrowserSourceMaps` al medir, y nunca con la llave de
+Sentry presente. Importa: si esa llave de la configuración existiera siempre (aunque fuera `false`), Sentry la tomaría por una decisión
+nuestra y dejaría de generar los mapas que sube en producción (ADR-0424). Sin `MEDIR_PESO`, la configuración que llega a Vercel es la de antes.
+
+## Actualización 2026-11-17 (f) — actividad 7, cuarto corte: zod fuera de 50 pantallas y contar un envío de Recibir
+
+Contar un envío (`/recibir/envio/[id]`) era la pantalla más pesada del ERP (1 031 KB propios) y es la que el almacén usa en el celular.
+Medida archivo por archivo (`por-modulo.mjs … propio`) no tenía un bulto: eran muchas piezas medianas. Lo que salió, en orden de hallazgo:
+
+**1. zod bajaba en 52 de las 139 pantallas y ninguna lo usaba.** El índice de `@cayla-retail/shared` reexportaba `./schemas`, que arma sus
+esquemas con zod apenas se carga. El armado no puede saber que eso no hace falta, así que toda pantalla que importaba un enum o un
+formateador del índice bajaba zod entero: 52 KB ya armados (más 2 de los esquemas) en Vender, Caja, Inicio, Recibir, Existencias, Cambios,
+Devoluciones… Los esquemas no tienen ningún consumidor desde julio (`enums.ts` ya lo decía en un comentario).
+
+- DECIDÍ: sacar `./schemas` del índice y dejarlo como subruta (`@cayla-retail/shared/schemas`). Lo vigila `lib/compartido-sin-zod.test.ts`:
+  desde el índice no se llega a ninguna librería.
+- DESCARTÉ: borrar `schemas.ts`, porque tres documentos de `docs/datos/` lo citan con línea como evidencia de promesas incumplidas y
+  borrarlo es decisión de Felipe (queda en el backlog); y `"sideEffects": false` en el paquete, porque deja la decisión en manos del
+  armado y un cambio de versión de Next la puede deshacer sin que nadie lo vea.
+- SE ROMPE SI: alguien vuelve a reexportar desde el índice un archivo que importa una librería (la prueba lo dice con el archivo).
+
+Quedan 2 pantallas con zod, las dos porque lo usan de verdad: Configuración (el precio propuesto con IA) y Preguntas del equipo (el asistente).
+
+**2. Dos arrastres como el de `money`** (un import chico que trae un módulo entero; sin punto de falla, solo se movió código):
+- La etiqueta de precio importaba `descuentoDeCampana` de `vender-reglas.ts` y con ella las reglas de la caja (13 KB). La cuenta vive ahora
+  en `lib/descuento-por-porcentaje.ts`, sin importar nada; `vender-reglas.ts` la sigue exportando. Es la misma función, sin tocar.
+- Recibir importaba `TIPOS_PAPEL` y `subirFotoPapel` de las reglas y acciones de «Compré ropa» (24 KB). Viven en `lib/papel-de-compra.ts`
+  y `lib/papel-de-compra-acciones.ts`; `compra-rapida-*` los sigue exportando.
+
+**3. Dos piezas que bajan cuando hacen falta** (`components/recepcion-conteo/hojas-bajo-demanda.tsx`), con el patrón de 7.2:
+- La hoja que crea una prenda o le agrega tallas y colores (`HojaPrenda`, 112 KB con las piezas de Nuevo producto que usa). La montan
+  Contar, «Hacer ahora» y la recepción de la fase 4; si no se puede abrir, se cierra como con su ×.
+- El paso «Cerrar» (`CerrarEnvio`, 65 KB). Si no hay red al pasar a él, avisa y la pantalla vuelve a Contar con lo contado intacto.
+- Contar las precarga apenas la pantalla queda libre (`usePrecargarEnReposo`): abren al instante. Las dos guardan en la base, así que sin
+  internet no servían de todos modos. **Contar no se difiere**: lo contado que todavía no llegó a la base vive en la pantalla.
+
+**Lo que no se cortó, y por qué.** «Llevar al stock» con su etiqueta y el QR (45 KB): es un botón de la tarjeta, no una hoja; diferirlo
+pide partir el archivo. El envío ya cerrado (28 KB) y la recepción de la fase 4 (29 KB) son caras completas, no hojas: el patrón de 7.2
+no dice qué se ve si fallan. «Nuevo modelo» (11 KB) es la acción de cada toque en un envío sin aviso. Cada uno queda bajo el 5 %.
+
+| KB propios (lo que cada pantalla suma al marco) | Antes | Después | |
+|---|---|---|---|
+| Contar un envío de Recibir | 1 031 | 765 | −26 % |
+| Recibir | 684 | 597 | −13 % |
+| Vender | 681 | 625 | −8 % |
+| Editar producto | 644 | 588 | −9 % |
+| Nuevo producto | 635 | 579 | −9 % |
+| Apartados | 621 | 565 | −9 % |
+| Productos | 532 | 477 | −10 % |
+| Existencias | 477 | 421 | −12 % |
+| Caja | 385 | 330 | −14 % |
+| Las 138 pantallas, sumadas | 31 878 | 28 619 | −10 % |
+
+51 pantallas bajaron 40 KB o más; la mediana pasó de 183 a 175 KB. El marco no cambió (1 068 KB).
+
+**Verificado.** Tipos, lint, Knip (los dos) y las pruebas. En el navegador a 375 px, con un envío abierto de la base local: Contar se ve
+igual; «Revisar y cerrar» abre sin pedir nada (ya estaba precargado); con la precarga apagada y la red cortada, avisa «No se pudo abrir el
+cierre del envío», se queda en Contar y al volver la red el mismo botón abre; lo mismo con «Agregar talla o color» (avisa, vuelve a la tabla
+de tallas y al reintentar abre la hoja). La base local quedó igual (mismas versiones de cada conteo).
+**No verificado.** Cerrar un envío de verdad y «Hacer ahora» en uno ya cerrado (escriben en la base local, que es compartida); la recepción
+de la fase 4 (no se alcanza con la base al día); `/chaos` y `guias:recorrer` sobre Recibir; un teléfono real.
+
+**Visto de paso** (al backlog, sin tocar): el dial de «¿Cuántas llegaron?» no hidrata igual en el servidor y en el navegador (el último
+decimal de dos coordenadas), y **Preguntas del equipo** quedó como la pantalla más pesada (786 KB): baja el texto de todas las guías (650 KB).
+
 ## Para Dynamic
 
 `components/ui/BotonLiviano.tsx` es una pieza nueva en una carpeta que Dynamic mira: **queda como tarea allá**, si quieren el modo liviano.

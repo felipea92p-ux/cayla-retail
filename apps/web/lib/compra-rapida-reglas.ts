@@ -4,6 +4,7 @@ import { MONTO_MAXIMO_PLATA, problemaDeMonto } from "./fondos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import { nombresParecidos } from "./nombres-parecidos";
 import { diasEntreFechas } from "./fechas-lima";
+import { TIPOS_PAPEL, type TipoPapel } from "./papel-de-compra";
 
 // Compras simple (ADR-0480, actividad 3): «Compré ropa» desde el celular. Las reglas puras: leer lo que manda la base (vieja o rota: nunca
 // se cae), buscar proveedores por nombre y por lo que venden, los habituales de uno, lo que se dice en cada paso, lo que falta en el paso del
@@ -16,8 +17,6 @@ export const RPC_HABITUALES_PROVEEDOR = "fn_habituales_proveedor";
 export const RPC_REGISTRAR_COMPRA_RAPIDA = "registrar_compra_rapida";
 export const RPC_REGISTRAR_MARCA_DE_COMPRA = "registrar_marca_de_compra";
 
-/** La carpeta de las fotos de los papeles dentro del depósito de las fotos de los gastos del viaje (la base exige que la ruta empiece así). */
-export const CARPETA_PAPELES = "papeles/";
 
 /** Cuántos habituales se ven antes de «Ver todos los suyos» (la maqueta aprobada). */
 export const HABITUALES_A_LA_VISTA = 6;
@@ -35,15 +34,9 @@ export function tandaDeLista<T>(lista: readonly T[], cuantos: number): { visible
   return { visibles: lista.slice(0, n), quedan: lista.length - n };
 }
 
-export type TipoPapel = "factura" | "boleta" | "nota_venta" | "sin_comprobante";
-
-/** Qué le dio el proveedor, en palabras de la tienda, con su ayuda. */
-export const TIPOS_PAPEL: Record<TipoPapel, { nombre: string; ayuda: string }> = {
-  factura: { nombre: "Factura", ayuda: "Con RUC" },
-  boleta: { nombre: "Boleta", ayuda: "Con número" },
-  nota_venta: { nombre: "Nota de venta", ayuda: "Papel simple" },
-  sin_comprobante: { nombre: "Sin papel", ayuda: "No me dieron nada" },
-};
+// Qué papel dio el proveedor (`TipoPapel`, `TIPOS_PAPEL`) vive en `lib/papel-de-compra.ts`, con la carpeta de sus fotos (ADR-0674): Recibir los
+// usa para mostrar los papeles de una compra y no tiene por qué cargar las reglas de «Compré ropa». Desde aquí se siguen exportando igual.
+export { TIPOS_PAPEL, type TipoPapel };
 
 const numero = (v: unknown): number | null => {
   const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN;

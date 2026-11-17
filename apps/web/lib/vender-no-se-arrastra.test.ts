@@ -118,3 +118,22 @@ describe("la pantalla de Vender no viaja a otras pantallas (ADR-0674)", () => {
     expect(camino(raiz, VENDER)?.join("\n  → ") ?? null).toBeNull();
   });
 });
+
+// El mismo candado para Recibir un envío (ADR-0674 act. f): era la pantalla más pesada del ERP (1 031 KB propios) y la que el almacén usa en
+// el celular. Lo que se difirió o se separó no puede volver por un import fijo sin que esto lo diga.
+describe("contar un envío no vuelve a cargar lo que se le quitó (ADR-0674)", () => {
+  const CONTAR = "components/recepcion-conteo/RecibirContando.tsx";
+
+  it.each([
+    ["la hoja que crea una prenda (baja al abrirla)", "components/recepcion-envio/HojaPrenda.tsx"],
+    ["el paso «Cerrar» (baja al pasar a él)", "components/recepcion-conteo/CerrarEnvio.tsx"],
+    ["las reglas de la caja (antes, por el descuento de campaña de la etiqueta de precio)", "lib/vender-reglas.ts"],
+    ["las reglas de «Compré ropa» (antes, por los tipos de papel y la foto del papel)", "lib/compra-rapida-reglas.ts"],
+  ])("desde contar un envío no hay camino de imports fijos hasta %s", (_nombre, pieza) => {
+    expect(camino(CONTAR, pieza)?.join("\n  → ") ?? null).toBeNull();
+  });
+
+  it("la recepción de antes (fase 4) tampoco importa fija la hoja de la prenda", () => {
+    expect(camino("components/recepcion-envio/RecibirEnvio.tsx", "components/recepcion-envio/HojaPrenda.tsx")?.join("\n  → ") ?? null).toBeNull();
+  });
+});

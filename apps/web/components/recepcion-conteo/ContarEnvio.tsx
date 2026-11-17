@@ -9,7 +9,9 @@ import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { HojaPrenda, type DestinoHoja } from "@/components/recepcion-envio/HojaPrenda";
+import type { DestinoHoja } from "@/components/recepcion-envio/HojaPrenda";
+import { usePrecargarEnReposo } from "@/components/HojaBajoDemanda";
+import { CerrarEnvioBajoDemanda, HojaPrendaBajoDemanda } from "./hojas-bajo-demanda";
 import { CorregirSalida, LlevarAlStock, SalidaHecha } from "./LlevarAlStock";
 import { leerSalidasDelEnvio } from "@/lib/recepcion-conteo-acciones";
 import { loQueSale, ultimaSalidaDe, type ResultadoDeSalida, type SalidaDelEnvio } from "@/lib/recepcion-salida-reglas";
@@ -335,6 +337,9 @@ export function ContarEnvio({
     { enModal: false },
   );
   const [hoja, setHoja] = useState<Hoja>(null);
+  // La hoja de la prenda y el paso «Cerrar» bajan cuando la pantalla queda libre (ADR-0674): contar no los espera, y abren al instante.
+  usePrecargarEnReposo(HojaPrendaBajoDemanda);
+  usePrecargarEnReposo(CerrarEnvioBajoDemanda);
   // «Igual que la anterior» (tarea 7 de Recibir): lo último que se agregó y se creó en este envío, para ofrecerlo de un toque en el siguiente.
   // La marca vive mientras la pantalla está abierta. Las prendas creadas salen de la base (innovar `recibir-crear-prenda#1`): las del conteo
   // creadas desde que se abrió el envío, así la ficha sobrevive a recargar; lo que se crea aquí se suma sin esperar a releer.
@@ -1223,7 +1228,7 @@ export function ContarEnvio({
       )}
 
       {hoja?.tipo === "crear" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
-        <HojaPrenda
+        <HojaPrendaBajoDemanda
           // Lo escrito al contar ya llena la hoja, igual que con «Crear ahora» de «Para después». Un nombre provisional («Blusa 1») no: aquí se le pone el de verdad.
           destino={{ ...destinoDe(detalle, lineaDeHoja, "nueva", null, proveedores.length, sinAviso), nombreEscrito: hoja.nueva.porDefecto ? null : hoja.nueva.descripcion, nota: hoja.nueva.nota, descripcionOrden: sinAviso ? null : (lineaDeHoja.linea?.descripcion ?? null) }}
           categoria={categoriaDeHoja}
@@ -1247,7 +1252,7 @@ export function ContarEnvio({
       )}
 
       {hoja?.tipo === "prenda" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
-        <HojaPrenda
+        <HojaPrendaBajoDemanda
           destino={{ ...destinoDe(detalle, lineaDeHoja, hoja.modo, hoja.prenda, proveedores.length, sinAviso), pedidas: hoja.pedidas, enTabla: hoja.enTabla }}
           categoria={categoriaDeHoja}
           colores={catalogo?.colores ?? []}
