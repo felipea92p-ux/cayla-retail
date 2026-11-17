@@ -1,0 +1,6 @@
+# 2026-11-16 · «Pierdes» pide confirmar, en la base (ADR-0668, A5a)
+
+- **QUÉ HICE:** la base deja de prohibir un precio bajo el costo y pasa a pedir confirmación cuando el precio sin impuesto no cubre lo que se pagó («Con S/ 40.00 pierdes S/ 2.10 por prenda»). La pantalla avisa que la persona confirmó con un encabezado; sin él, sigue la regla de siempre, así que la web de hoy no cambia hasta que se publique la hoja «¿Lo dejas así?» (A5b). Vale en el precio de tienda, el que se cambia al recibir y la fusión.
+- **POR QUÉ ASÍ:** Felipe decidió que un remate a propósito se puede dejar, viéndolo. El encabezado evita cambiar la firma de cinco funciones (que rompe la web publicada y tres pruebas) y llega solo a las llamadas internas.
+- **QUÉ SE ROMPERÍA SIN ESTO:** una blusa de S/ 36 a S/ 40 se guarda hoy en silencio aunque pierde S/ 2.10 por prenda en cuanto se paga el impuesto; y un remate a propósito bajo el costo es imposible fuera de una campaña.
+- **Verificado:** migración aplicada dos veces en una base privada (1213 migraciones); `pruebas:pierde-confirma` 14/14 (9 en rojo sin la migración); la vuelta atrás deja las cinco funciones con el md5 de producción; la pregunta previa del navegador en producción acepta el encabezado; web: la regla espejo con la misma tabla de casos. **No verificado:** en producción (espera tu OK), y la pantalla (A5b).
