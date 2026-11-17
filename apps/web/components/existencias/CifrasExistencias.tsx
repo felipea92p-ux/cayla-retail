@@ -29,6 +29,7 @@ export function CifrasExistencias({
   guardadas,
   disponibles,
   enCamino,
+  alElegir,
 }: {
   sede: string;
   separa: boolean;
@@ -40,9 +41,14 @@ export function CifrasExistencias({
   disponibles: { valor: number; nota?: string } | null;
   /** Lo que viene en traslados hacia aquí; `href` solo para quien ve Traslados. `null` si no viene nada. */
   enCamino: { valor: number; href?: string } | null;
+  /** Después de filtrar con una cifra. Dentro de la hoja «Resumen» del celular la cierra, para que se vea la lista ya filtrada. */
+  alElegir?: () => void;
 }) {
   const { filtros, aplicar } = useFiltrosExistencias(separa);
-  const alternar = (c: Condicion) => aplicar({ condicion: filtros.condicion === c ? null : c });
+  const alternar = (c: Condicion) => {
+    aplicar({ condicion: filtros.condicion === c ? null : c });
+    alElegir?.();
+  };
 
   const cifras: CifraResumen[] = [];
   if (separa && colgadas && guardadas !== null) {
