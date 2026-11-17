@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import ts from "typescript";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 // Candado de ADR-0674 (actividad 7): la pantalla de Vender no viaja a otras pantallas.
 //
@@ -81,6 +81,12 @@ function camino(desde: string, hasta: string): string[] | null {
   return null;
 }
 
+// Leer y analizar todos los archivos del ERP una sola vez, antes de las pruebas y con margen: con la suite completa en paralelo, la primera
+// prueba que lo pagaba pasaba de los 5 s de límite (2026-11-17). Después, cada camino sale de la memoria.
+beforeAll(() => {
+  for (const a of ["components", "app", "lib"].flatMap(archivosDe)) importsFijos(a);
+}, 60_000);
+
 const VENDER = "components/PuntoDeVenta.tsx";
 const TICKET = "components/PuntoDeVentaTicket.tsx";
 
@@ -139,7 +145,7 @@ describe("contar un envío no vuelve a cargar lo que se le quitó (ADR-0674)", (
 });
 
 // Y para «Preguntas del equipo» (ADR-0674 act. g): para decir «→ Caja» le pedía el título al registro de las guías desde el navegador, y con
-// él bajaba el texto de las 79 guías (650 KB de sus 786). El título lo resuelve el servidor (`lib/guias/titulos.ts`) y llega como dato.
+// él bajaba el texto de las 122 guías (650 KB de sus 786). El título lo resuelve el servidor (`lib/guias/titulos.ts`) y llega como dato.
 describe("Preguntas del equipo no baja el texto de las guías ni zod (ADR-0674)", () => {
   // Lo mismo con zod (52 KB): el esquema de lo que devuelve la IA vivía en `informe.ts`, que también importa la tarjeta del informe.
   it.each([
@@ -176,6 +182,20 @@ describe("ningún componente llega a zod por un import fijo (ADR-0674)", () => {
     }
     const culpables = [...alcanzan].filter((a) => a.startsWith("components/")).sort();
     expect(culpables, `Estos componentes llegan a zod por un import fijo y lo bajan entero. Lo que necesiten de ese archivo va en uno aparte, sin zod (como lib/asistente/limites.ts). Archivos con zod: ${conZod.join(", ")}`).toEqual([]);
+  });
+});
+
+// El texto de las guías interactivas (665 KB ya armados) no viaja con el marco (ADR-0674 act. h). El motor lo pedía en el primer momento
+// libre de cada sesión, en toda pantalla, solo para saber qué guía ofrecer; «Demo» y el acompañante lo importaban por el título. Eso lo
+// responde el índice que manda el servidor (`indiceDeGuias`); el texto baja con `import()` cuando una demo va a correr.
+describe("el marco no baja el texto de las guías (ADR-0674)", () => {
+  it.each([
+    ["el marco", "components/AppShell.tsx"],
+    ["el motor de las guías", "components/guias/MotorGuias.tsx"],
+    ["«Demo»", "components/guias/ElegirDemoModal.tsx"],
+    ["el acompañante del asistente", "components/asistente/Acompanante.tsx"],
+  ])("desde %s no hay camino de imports fijos hasta el registro de las guías", (_nombre, raiz) => {
+    expect(camino(raiz, "lib/guias/registro.ts")?.join("\n  → ") ?? null).toBeNull();
   });
 });
 

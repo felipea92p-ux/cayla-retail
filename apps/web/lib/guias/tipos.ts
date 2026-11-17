@@ -70,6 +70,10 @@ export type Guia = {
   dejarComoQuedo?: true;
 };
 
+/** Lo que hace falta para saber qué guía tiene una pantalla y ofrecerla, sin sus pasos (ADR-0674 act. h). Lo arma el servidor
+ *  (`indiceDeGuias`, `lib/guias/titulos.ts`) y viaja como dato: unos 6 KB comprimidos contra los 177 del texto de todas las guías. */
+export type GuiaEnIndice = Pick<Guia, "id" | "ruta" | "titulo" | "resumen">;
+
 /** Cómo se ve, para la regla de «no tocar», la pieza que el piloto está por tocar. Lo arma el motor desde el DOM. */
 export type PiezaATocar = {
   /** `button`, `a`, `input`, `div`… */

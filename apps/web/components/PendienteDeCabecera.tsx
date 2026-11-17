@@ -19,6 +19,7 @@ export function PendienteDeCabecera({
   palabra,
   titulo,
   n,
+  queCuenta = "pendientes",
   guia,
   href,
   onClick,
@@ -30,6 +31,8 @@ export function PendienteDeCabecera({
   /** La frase completa, al pasar el mouse («8 posibles fichas repetidas»). */
   titulo: string;
   n: number;
+  /** Lo que oye el lector junto al número, si no son «pendientes» («1 aviso» en Existencias). */
+  queCuenta?: string;
   /** Ancla de la guía interactiva (ADR-0389). */
   guia?: string;
   /** Si lleva a otra pantalla. */
@@ -58,7 +61,7 @@ export function PendienteDeCabecera({
       <span className="pointer-events-none absolute -right-1 -top-1 inline-flex transition-[translate] duration-200 group-hover:-translate-y-0.5">
         {/* El latido: un punto ámbar del tamaño del número, detrás de él; lo que se ve es su onda. */}
         <span aria-hidden className="punto-vivo absolute inset-0 rounded-full bg-ambar" />
-        <Globito n={n} pide esquina late etiqueta="pendientes" className="relative" />
+        <Globito n={n} pide esquina late etiqueta={queCuenta} className="relative" />
       </span>
     </span>
   );
