@@ -1295,7 +1295,7 @@ export const GUIA_TRASLADOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Lo de hoy",
-      texto: "El anillo se llena a medida que atiendes las cajas del día. Si dice «Nada pendiente hoy», no hay ninguna caja esperándote.",
+      texto: "El anillo se llena a medida que atiendes las cajas del día. Con «Nada pendiente hoy» o, en el celular, un visto (✓), no hay ninguna caja esperándote. En el celular, un número dice cuántas te tocan: tócalo y te lleva a la primera.",
     },
     {
       id: "buscador",
