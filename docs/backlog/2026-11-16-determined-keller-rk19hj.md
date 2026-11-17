@@ -9,6 +9,6 @@
       teléfono, pasar «Quitar» a la × sobre la foto, como en la grilla de la ficha.
 
 ### Tres acabados del lino (act. f del ADR-0659)
-- [ ] **Felipe elige el acabado mirando:** `/laboratorio/fotos` en local, «Comparar acabados» encendido, la foto real de Crudo (y una foto de cerca
+- [ ] **Felipe elige el acabado mirando** (2026-11-17: el lino ya sale «con arrugas finas» de fábrica en producción; falta verlo y, si no convence, pasar a «sin planchar»): `/laboratorio/fotos` en local, «Comparar acabados» encendido, la foto real de Crudo (y una foto de cerca
       de la tela, con luz de costado). Lo elegido pasa a `fichaParaIA` como acabado de fábrica, o solo para el lino (`SE_VE_PLANCHADA` / un mapa por
       tejido), en un PR aparte con su prueba.

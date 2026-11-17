@@ -10,7 +10,8 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { type DetalleEnvio } from "@/lib/recepcion-envio-reglas";
-import { TOPES_CONTEO, mensajeAlGuardar } from "@/lib/recepcion-conteo-reglas";
+import { TOPES_CONTEO, mensajeAlGuardar, type CierreDelEnvio } from "@/lib/recepcion-conteo-reglas";
+import { diaYHoraLima } from "@/lib/fechas-lima";
 import { reabrirEnvio } from "@/lib/recepcion-conteo-acciones";
 
 // Reabrir (ADR-0393, decisión 5): «encontramos las 2 que faltaban». El envío vuelve a contarse; lo que faltó o sobró deja de valer hasta el
@@ -22,7 +23,10 @@ export function ReabrirEnvio({
   responsable,
   onReabierto,
   onCerrar,
+  cierres = [],
 }: {
+  /** El rastro de cierres y reaperturas: vivía al pie del envío cerrado y desde el 2026-11-16 se lee aquí, donde importa (solo si hubo más de uno). */
+  cierres?: readonly CierreDelEnvio[];
   detalle: DetalleEnvio;
   responsable: ControlResponsable;
   onReabierto: () => void;
@@ -65,6 +69,16 @@ export function ReabrirEnvio({
           }}
           className="space-y-4"
         >
+          {cierres.length > 1 && (
+            <p className="text-sm text-taupe">
+              {cierres
+                .map((c) => {
+                  const h = c.hechoEn ? diaYHoraLima(c.hechoEn) : null;
+                  return `${c.tipo === "cierre" ? "Cerrado" : "Reabierto"}${h ? ` el ${h.dia} a las ${h.hora}` : ""}${c.hechoPor?.nombre ? ` por ${c.hechoPor.nombre}` : ""}${c.motivo ? ` («${c.motivo}»)` : ""}`;
+                })
+                .join(" · ")}
+            </p>
+          )}
           <CampoGuiado id="reabrir-motivo" guia={guia}>
             <CampoTexto
               etiqueta={guia.etiqueta("reabrir-motivo", "¿Por qué lo reabres?")}

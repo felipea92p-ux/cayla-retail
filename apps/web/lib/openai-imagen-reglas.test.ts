@@ -189,15 +189,25 @@ describe("pedidoDeCatalogo con la ficha de la prenda (lo ya elegido, 2026-11-14)
     expect(pedidoDeCatalogo({}, blusa).prompt).toBe(`${PROMPT_CATALOGO} ${blusa!.texto}`);
   });
 
-  it("con la ficha, la prenda va PLANCHADA y con su textura, dicho en positivo: sin la palabra «arrugas» ni «luz pareja» (lo de octubre que redibujaba)", () => {
-    // Felipe 2026-11-16: el pantalón de lino salía arrugado. Se pide planchada en la ficha (no medida), nunca en el cuerpo medido; y sin nombrar
-    // la arruga, que el modelo dibuja si la lee. Antes la ayuda del lino le decía «Se arruga (es parte de su gracia)».
+  it("con la ficha, una tela planchada lo pide en positivo: sin la palabra «arrugas» ni «luz pareja» (lo de octubre que redibujaba)", () => {
+    // Felipe 2026-11-16: se pide planchada en la ficha (no medida), nunca en el cuerpo medido; y sin nombrar la arruga, que el modelo dibuja si la
+    // lee. Una gabardina, que sale planchada de fábrica.
+    const gabardina = fichaParaIA({ prefijo: "PAN", tejido: "Gabardina", patron: "Liso" });
     for (const extras of [{}, { molde: true }, { espalda: true }]) {
-      const { prompt } = pedidoDeCatalogo(extras, lino);
+      const { prompt } = pedidoDeCatalogo(extras, gabardina);
       expect(prompt, JSON.stringify(extras)).toMatch(/PLANCHADA: la prenda se ve planchada para una sesión de fotos/);
       expect(prompt, JSON.stringify(extras)).toMatch(/La TELA es la misma de la foto real/);
-      expect(prompt, JSON.stringify(extras)).toMatch(/Es lino planchado y se ve lino/);
       expect(prompt, JSON.stringify(extras)).not.toMatch(/arrugas|luz pareja|se arruga|gracia/i);
+    }
+  });
+
+  it("el lino sale «con arrugas finas» (Felipe 2026-11-17: planchado «se ve peor»): las nombra, finas y parejas, sin los dobleces de guardarla", () => {
+    for (const extras of [{}, { molde: true }, { espalda: true }]) {
+      const { prompt } = pedidoDeCatalogo(extras, lino);
+      expect(prompt, JSON.stringify(extras)).toMatch(/ACABADO: la prenda lista para una sesión de fotos/);
+      expect(prompt, JSON.stringify(extras)).toMatch(/con las arrugas finas y naturales de su tela, repartidas parejo/);
+      expect(prompt, JSON.stringify(extras)).toMatch(/de textura rústica con «nudos» visibles/);
+      expect(prompt, JSON.stringify(extras)).not.toMatch(/PLANCHADA|Es lino planchado|se arruga|gracia/);
     }
   });
 });

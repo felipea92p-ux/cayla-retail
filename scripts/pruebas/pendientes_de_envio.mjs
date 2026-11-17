@@ -73,6 +73,9 @@ const MIGRACIONES = SIN_MIGRACION
       // ADR-0393 (2026-10-28): «Otro» como causa de lo de más y el regalo de fuera de la guía a S/ 0 (casos O). Parcha `cerrar_conteo_envio` y
       // `fn_recepcion_entrar` (que ya reescribieron las de arriba) y el candado de la causa.
       "20261028182000_recepcion_otro_y_regalo_sin_costo.sql",
+      // ADR-0393 (2026-11-16, Felipe): «Otro» también en lo que falta, con su explicación; no es deuda (casos O5 y O6). Parcha `cerrar_conteo_envio`
+      // (que ya reescribió la de arriba) y vuelve a poner el candado de la causa.
+      "20261116230000_recepcion_otro_tambien_si_falta.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -538,13 +541,31 @@ caso(
   "regalo:2:30.00",
 );
 caso(
-  "O5 el candado de la base acepta «otro» solo en un sobrante, y lo de siempre sigue igual",
-  `reset role;
-   select pg_temp.intento($q$insert into retail.despacho_diferencias (despacho_id, extra_posicion, proveedor_id, categoria_id, tipo, causa, cantidad, costo_unitario, creado_por)
-     values ((select id from retail.despachos limit 1), 1, (select id from retail.proveedores limit 1), (select id from retail.categorias limit 1), 'faltante', 'otro', 1, 0, (select id from public.personas limit 1))$q$) as falt \\gset
-   select concat_ws(' / ', split_part(:'falt', '|', 1),
-     (select pg_get_constraintdef(oid) like '%''otro''%' from pg_constraint where conrelid = 'retail.despacho_diferencias'::regclass and conname = 'despacho_diferencias_causa'));`,
-  "23514 / t",
+  "O5 el candado de la base acepta «otro» en un sobrante y también en un faltante (Felipe 2026-11-16); una causa inventada no",
+  `${BASE_D1}
+   reset role;
+   select pg_temp.intento(format($q$insert into retail.despacho_diferencias (despacho_id, despacho_item_id, proveedor_id, categoria_id, tipo, causa, cantidad, costo_unitario, nota, creado_por)
+     values (%L, %L, %L, (select categoria_id from retail.despacho_items where id = %L), 'faltante', 'otro', 1, 0, 'Caja abierta', (select id from public.personas limit 1))$q$,
+     :'d1', :'di_l1', :'prov', :'di_l1')) as falt_otro \\gset
+   select pg_temp.intento(format($q$insert into retail.despacho_diferencias (despacho_id, despacho_item_id, proveedor_id, categoria_id, tipo, causa, cantidad, costo_unitario, creado_por)
+     values (%L, %L, %L, (select categoria_id from retail.despacho_items where id = %L), 'faltante', 'regalo', 1, 0, (select id from public.personas limit 1))$q$,
+     :'d1', :'di_l1', :'prov', :'di_l1')) as falt_inventada \\gset
+   select concat_ws(' / ', split_part(:'falt_otro', '|', 1), split_part(:'falt_inventada', '|', 1));`,
+  "SIN_ERROR / 23514",
+);
+caso(
+  "O6 «otro» en lo que FALTA pide su explicación; con ella se cierra, queda con su nota y no es deuda del proveedor (lo asume CAYLA)",
+  `${BASE_D1}
+   select ${GUARDA("d1", "di_l1", 8, SEP([["prod_n", 8, [V("v_s", 4), V("v_m", 4)]]]))} \\g /dev/null
+   select ${GUARDA("d1", "di_l2", 4, SEP([["prod_p", 4, [V("pv_s", 4)]]]))} \\g /dev/null
+   ${VERS("d1", ["l1", "l2"])}
+   select pg_temp.e(${CIERRA("d1", [DEC("l1", { falt: "otro" }), DEC("l2")])}) as sin_nota \\gset
+   select ${CIERRA("d1", [DEC("l1", { falt: "otro", nota: "Caja abierta: faltaban 2" }), DEC("l2")])} as r \\gset
+   reset role;
+   select concat_ws(' / ', split_part(:'sin_nota', '|', 2), (select estado from retail.despachos where id = :'d1'),
+     (select string_agg(x.tipo || ':' || x.causa || ':' || x.cantidad || ':' || coalesce(x.nota, '-'), ',') from retail.despacho_diferencias x where x.despacho_id = :'d1'),
+     position('''otro''' in pg_get_functiondef('retail.fn_proveedor_nos_debe(uuid)'::regprocedure)) = 0);`,
+  "recepcion_faltante_otro / cerrado / faltante:otro:2:Caja abierta: faltaban 2 / t",
 );
 
 caso(

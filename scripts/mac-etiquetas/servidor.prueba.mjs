@@ -171,17 +171,17 @@ try {
   assert.equal(r.status, 400);
   ok("una medida fuera de la lista, o una consulta desconocida: 400");
 
-  // 6c. La boleta (versión 3, ADR-0670): `?tipo=ticket&largo=<mm>` la manda a la ticketera, en UNA hoja de 80 mm × su largo
+  // 6c. La boleta (versión 3, ADR-0670): `?tipo=ticket&largo=<mm>` la manda a la ticketera, en UNA hoja de 72 mm × su largo
   // (el largo lo mide la pantalla y viene también en el `@page` del documento) y con el corte al final.
   const ticket = `<!doctype html><html><head><meta charset="utf-8"><style>
-@page { size: 80mm 150mm; margin: 0 }
+@page { size: 72mm 150mm; margin: 0 }
 @media print { body { margin: 0 } #comprobante-print { width: 72mm; padding: 2mm 4mm 0; font: 8pt Arial } }
 </style></head><body><div id="comprobante-print"><p>CAYLA</p><p>BOLETA B001-000001</p><p>TOTAL S/ 79.90</p></div></body></html>`;
   r = await fetch(url("/imprimir?tipo=ticket&largo=150"), { method: "POST", headers: { Origin: ERP, "Content-Type": "text/html" }, body: ticket });
   assert.equal(r.status, 200, JSON.stringify(await r.clone().json()));
   const argsTicket = readFileSync(join(tmp, "lp-args.txt"), "utf8");
   assert.match(argsTicket, /-d EPSON_TM_FALSA/);
-  assert.match(argsTicket, /media=Custom\.80x150mm/);
+  assert.match(argsTicket, /media=Custom\.72x150mm/);
   assert.match(argsTicket, /TmxPaperCut=CutPerJob/);
   assert.doesNotMatch(argsTicket, /Brother/);
   const pdfTicket = readFileSync(join(tmp, "recibido.pdf"), "latin1");
@@ -189,7 +189,7 @@ try {
   const cajaTicket = pdfTicket.match(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/);
   const [anchoT, altoT] = [Number(cajaTicket[1]) / 72 * 25.4, Number(cajaTicket[2]) / 72 * 25.4];
   assert.equal(paginasTicket, 1, `páginas del ticket: ${paginasTicket}`);
-  assert.ok(Math.abs(anchoT - 80) < 0.3 && Math.abs(altoT - 150) < 0.3, `ticket de ${anchoT.toFixed(2)} × ${altoT.toFixed(2)} mm`);
+  assert.ok(Math.abs(anchoT - 72) < 0.3 && Math.abs(altoT - 150) < 0.3, `ticket de ${anchoT.toFixed(2)} × ${altoT.toFixed(2)} mm`);
   ok(`boleta con ?tipo=ticket&largo=150 → a la ticketera, PDF de 1 hoja de ${anchoT.toFixed(1)} × ${altoT.toFixed(1)} mm, con corte al final`);
   for (const mala of ["tipo=ticket", "tipo=ticket&largo=abc", "tipo=ticket&largo=10", "tipo=ticket&largo=5000", "tipo=ticket&largo=150;rm", "tipo=boleta&largo=150"]) {
     r = await fetch(url(`/imprimir?${mala}`), { method: "POST", headers: { Origin: ERP }, body: ticket });

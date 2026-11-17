@@ -2111,7 +2111,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Cerrar el envío",
-      texto: "Al lado dice en palabras qué falta; mientras falte algo, el botón no es negro y tocarlo te lleva a lo primero. Lo que tiene tallas entra al almacén de tu sede (las dañadas, a la cuarentena) y lo demás queda para después, ya contado. En la demo no lo tocamos.",
+      texto: "Al lado dice qué falta; mientras falte algo, el botón no es negro y te lleva a lo primero. Si algo no cuadró, antes de cerrar te pide firmar un resumen corto. Al cerrar, un aviso te deja imprimir las etiquetas, ver lo recibido o volver a la lista. En la demo no lo tocamos.",
     },
     // ---- Abierto: el formulario ----
     {
@@ -2241,7 +2241,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.cerrado",
       requiere: ["recepcion.cerrado"],
       titulo: "Cómo se cerró",
-      texto: "Cuántas se contaron y cuántas ya están en el stock, quién lo cerró y cuándo, y qué faltó o vino de más. El conteo ya es oficial: lo que falta se hace después, sin volver a contar.",
+      texto: "Arriba, quién lo cerró y cuándo. En una línea, cuántas esperabas y cuántas llegaron; debajo, lo que no cuadró con lo que se respondió al cerrar, y lo que quedó para después con su botón. El conteo ya es oficial.",
     },
     {
       id: "despues",
@@ -2249,15 +2249,15 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.cerrado"],
       titulo: "Lo que sigue",
-      texto: "Si algo ya se puede vender, «Bajar al piso» lo lleva al piso de venta; sus etiquetas de precio se imprimen abajo, en «Lo que entró». Si todo quedó guardado, el botón te lleva a terminar lo primero de «Para después». En la demo no los tocamos.",
+      texto: "«Imprimir» saca la etiqueta de precio de todo lo que entró: llega sin etiqueta. «Bajar al piso» lo lleva al piso de venta. Si nada entró, el botón te lleva a terminar lo primero que quedó para después. En la demo no los tocamos.",
     },
     {
       id: "lo-que-entro",
       ancla: "recepcion.lo-que-entro",
       opcional: true,
       requiere: ["recepcion.lo-que-entro"],
-      titulo: "Lo que entró al stock",
-      texto: "Cada prenda que ya entró, con cuántas llegaron de cada talla y color. Marca de cuáles quieres la etiqueta de precio y toca «Imprimir»: salen solo esas, una por prenda. Las dañadas no salen, quedan en cuarentena.",
+      titulo: "Qué entró",
+      texto: "Cada prenda que entró al stock, con cuántas. Tócala y ves su tabla de colores y tallas. Para imprimir solo algunas: «Más ▸ Elegir de cuáles imprimir» y toca las celdas que no quieres. Las dañadas no salen: quedan en cuarentena.",
     },
     {
       id: "para-despues",
@@ -2269,9 +2269,9 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
     {
       id: "reabrir",
       ancla: "recepcion.reabrir",
-      requiere: ["recepcion.para-despues"],
+      requiere: ["recepcion.reabrir"],
       titulo: "¿Encontraste algo más?",
-      texto: "Si aparecen las que faltaban, reabres el conteo, corriges y lo cierras de nuevo: lo que ya entró al stock no se toca. Se puede hasta que Compras resuelva lo que faltó; después la corrección la hace Compras.",
+      texto: "En «Más» está «Reabrir el conteo»: si aparecen las que faltaban, lo reabres, corriges y lo cierras de nuevo. Lo que ya entró al stock no se toca. Se puede hasta que Compras resuelva lo que faltó; después la corrección la hace Compras.",
     },
     {
       id: "fin",

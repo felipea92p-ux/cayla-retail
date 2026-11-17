@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  ANCHO_BOLETA_MM,
   avisoDelAyudante,
   ayudanteImprimeBoletas,
   COMANDO_INSTALAR,
@@ -120,7 +121,8 @@ describe("el ayudante y la web dicen lo mismo", () => {
     expect(Number(SERVIDOR.match(/^VERSION=(\d+)$/m)?.[1])).toBeGreaterThanOrEqual(VERSION_CON_BOLETAS);
     expect(SERVIDOR).toContain(`-lt ${LARGO_MIN_MM} ]`);
     expect(SERVIDOR).toContain(`-gt ${LARGO_MAX_MM} ]`);
-    expect(SERVIDOR).toContain('MEDIA="Custom.80x${LARGO_TICKET}mm"');
+    // El ancho del papel de la Epson es el del cabezal (72 mm): uno de 80 la hacía imprimir más lento (Trujillo, 2026-11-16).
+    expect(SERVIDOR).toContain(`MEDIA="Custom.${ANCHO_BOLETA_MM}x\${LARGO_TICKET}mm"`);
   });
 });
 
@@ -159,7 +161,7 @@ describe("documentoDeBoleta", () => {
   it("lleva la página exacta y empieza con el prefijo que exige el ayudante", () => {
     const doc = documentoDeBoleta({ estilos: ["<style>a{}</style>"], base: "https://x/", clases: "c", boleta: '<div id="comprobante-print">B</div>', largo: 154 });
     expect(doc.startsWith(PREFIJO_DOCUMENTO)).toBe(true);
-    expect(doc).toContain("@page{size:80mm 154mm;margin:0}");
+    expect(doc).toContain("@page{size:72mm 154mm;margin:0}");
     expect(doc).toContain('<div id="comprobante-print">B</div>');
   });
 });
