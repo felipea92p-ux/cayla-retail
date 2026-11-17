@@ -858,6 +858,30 @@ ESCENARIOS.push(
     nombre: "Cambios · paso 4: revisa y confirma (sin confirmar)",
     preparar: secuencia(iniciarCambio, elegirPrenda, continuar, clicRol("button", /Tiene un defecto/i), clicRol("button", /^Talla [A-Z0-9]+, compró esta/i), opcional(clicRol("button", /^Color .+, compró|^Color [^,]+$/i)), clicRol("button", /Con defecto o uso/i), clicRol("button", /Revisar el cambio/i)),
   },
+  {
+    // ADR-0671: con OTRA prenda (casi siempre de otro precio) el paso 4 dibuja el bloque «Comprobantes» y el cliente del comprobante nuevo.
+    // Elige la primera talla y el primer color con stock; si la otra prenda costara lo mismo, el bloque no sale y `abre` lo dice.
+    id: "cambios.comprobantes",
+    ruta: "/cambios",
+    cuentas: POSVENTA,
+    abre: "[data-guia='cambios.documentos']",
+    nombre: "Cambios · paso 4 con diferencia: los comprobantes y a nombre de quién (sin confirmar)",
+    preparar: secuencia(
+      iniciarCambio,
+      elegirPrenda,
+      continuar,
+      clicRol("button", /Prefiere otro color/i),
+      async (pagina) => {
+        await pagina.getByRole("combobox", { name: /Prenda que se lleva/i }).first().click({ timeout: 8000 });
+        await esperar(pagina, 600);
+        await pagina.getByRole("option").nth(1).click({ timeout: 8000 });
+        await esperar(pagina, 800);
+      },
+      opcional(clicRol("button", /^Talla [^,]+, \d+ en piso/i)),
+      opcional(clicRol("button", /^Color [^,]+$/i)),
+      clicRol("button", /Revisar el cambio/i),
+    ),
+  },
   { id: "cambios.donde-buscar", ruta: "/cambios", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Cambios · la lista «Dónde buscar la venta»", preparar: clicRol("combobox", /Dónde buscar la venta/i) },
   { id: "devoluciones.prendas", ruta: "/devoluciones", cuentas: POSVENTA, abre: "text=Prendas, paso actual", nombre: "Devoluciones · paso 2: qué prendas vuelven", preparar: iniciarDevolucion },
   {
