@@ -134,6 +134,9 @@ export function ayudanteImprimeBoletas(respuesta: unknown): boolean {
   return r.ok === true && typeof r.version === "number" && r.version >= VERSION_CON_BOLETAS && r.chrome !== false && r.ticketera === true;
 }
 
+/** El ancho del papel de la boleta: el que imprime el cabezal de la ticketera (576 puntos a 203 ppp) y el de `#comprobante-print`. */
+export const ANCHO_BOLETA_MM = 72;
+
 /** Topes del largo que acepta el ayudante (los mismos de `servidor.sh`). */
 export const LARGO_MIN_MM = 30;
 export const LARGO_MAX_MM = 3000;
@@ -148,10 +151,11 @@ export function largoDeLaBoleta(altoPx: number): number {
   return Math.min(LARGO_MAX_MM, Math.max(LARGO_MIN_MM, mm));
 }
 
-/** El documento de una boleta: el de las etiquetas más su página exacta (80 mm de ancho, el largo medido, sin márgenes) y la boleta
- *  centrada en el rollo (72 mm de 80, como la deja Chrome con el cuadro). */
+/** El documento de una boleta: el de las etiquetas más su página exacta, sin márgenes: 72 mm de ancho (lo que imprime el cabezal y el
+ *  ancho del papel «80 mm» en el driver de la Epson, `RP80x200` = 204,3 pt) y el largo medido. Una hoja de 80 mm llegaba a la Epson
+ *  como líneas de 640 puntos para un cabezal de 576, y el papel salía más lento que con el cuadro (Trujillo, 2026-11-16). */
 export function documentoDeBoleta({ estilos, base, clases, boleta, largo }: { estilos: string[]; base: string; clases: string; boleta: string; largo: number }): string {
-  const pagina = `<style>@page{size:80mm ${largo}mm;margin:0}#comprobante-print{margin-left:auto!important;margin-right:auto!important}</style>`;
+  const pagina = `<style>@page{size:${ANCHO_BOLETA_MM}mm ${largo}mm;margin:0}</style>`;
   return documentoParaAyudante({ estilos, base, clases, hoja: pagina + boleta });
 }
 

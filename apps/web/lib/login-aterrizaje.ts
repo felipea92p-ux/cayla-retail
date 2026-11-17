@@ -15,6 +15,33 @@
 /** A dónde va el login cuando no sabe a dónde: el Inicio, que decide solo. */
 export const DESTINO_SI_NO_SE = "/";
 
+/**
+ * EL NAVEGADOR OLVIDA LO QUE APRENDIÓ ANTES DE ESTA CUENTA (2026-11-16: «salí de la cuenta de Felipe, entré con una terminal y se quedó
+ * cargando; al recargar el login, sí entró»).
+ *
+ * EL PROBLEMA. Next guarda en el navegador, por 5 minutos, a qué pantalla lleva cada dirección para no volver a preguntarlo. Pero lo
+ * aprende con la sesión que había en ese momento: justo al salir, el marco todavía a la vista precarga «/» SIN sesión, el servidor la
+ * manda al login, y Next anota «"/" es el login». Al entrar con otra cuenta, el login navega a «/», Next usa esa nota sin preguntarle al
+ * servidor, «llega» al mismo login y el botón se queda en «Entrando…». Recargar pide la página de verdad: por eso entraba. Lo mismo vale
+ * para lo que aprendió con la cuenta anterior (su Inicio que redirigía a Vender, una pantalla que le decía «Sin acceso»). Visto en
+ * producción el 2026-11-16 (tres entradas seguidas sin un solo pedido de «/» al servidor) y reproducido en un banco local.
+ * `router.refresh()` no lo arregla: vacía los datos de las pantallas, no esas notas.
+ *
+ * LA SALIDA. Lo que Next prevé para la autenticación: cambiar una cookie dentro de una Server Action le dice al navegador que olvide todo
+ * lo aprendido (`marcarCambioDeCuenta`, `app/actions/entrada.ts`). El login la llama al abrir la sesión, a la par de la pregunta de a
+ * dónde entrar, y recién después navega. La cookie no guarda nada (se borra, y no existe): es solo la señal.
+ */
+export const COOKIE_CAMBIO_DE_CUENTA = "cayla_cambio_de_cuenta";
+
+/**
+ * ¿El proxy saca del login a quien ya tiene sesión? Solo al ABRIR la página (GET o HEAD) y sin un motivo en la dirección
+ * (`?error=sin_persona`: se queda para mostrarlo). Nunca un POST: es la Server Action del propio login (`marcarCambioDeCuenta`), que viaja
+ * a `/login` con la sesión recién abierta; redirigida al Inicio, se perdía y el navegador no olvidaba lo de antes.
+ */
+export function saleDelLogin({ haySesion, metodo, tieneError }: { haySesion: boolean; metodo: string; tieneError: boolean }): boolean {
+  return haySesion && !tieneError && (metodo === "GET" || metodo === "HEAD");
+}
+
 /** Lo más que el login espera la respuesta de a dónde ir, en ms; pasado eso, va al Inicio. */
 export const MS_TOPE_DEL_ATERRIZAJE = 5000;
 

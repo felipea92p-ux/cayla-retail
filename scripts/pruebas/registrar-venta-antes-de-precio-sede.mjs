@@ -97,8 +97,16 @@ begin
   execute replace(pg_get_functiondef('retail.entregar_separacion(uuid, jsonb, uuid)'::regprocedure), $q$${bloqueDelToken("entregar_separacion")}$q$, '');
 end $deshacer$;
 `;
-/** Rehacerlo es volver a pegar la parte 2 entera: es re-ejecutable y, en las otras nueve funciones, no cambia nada. */
-export const REHACER_TOKEN = TOKEN;
+/** La firma de `registrar_cambio` que ancla la parte 2. ADR-0671 (20261116213000) le sumó `p_cliente` y la borró: con ADR-0671 en la
+ *  base, la parte 2 ya no se puede volver a pegar tal cual («function … does not exist»). */
+const FIRMA_CAMBIO_DEL_TOKEN = "'retail.registrar_cambio(uuid, uuid, uuid, integer, text, uuid, text, text)'";
+if (!TOKEN.includes(FIRMA_CAMBIO_DEL_TOKEN)) throw new Error("registrar-venta-antes-de-precio-sede: la parte 2 del token ya no ancla registrar_cambio con la firma de antes");
+/** Rehacerlo es volver a pegar la parte 2 entera: es re-ejecutable y, en las otras nueve funciones, no cambia nada. `registrar_cambio`
+ *  se ancla a la firma que haya en la base: la de ADR-0671 si existe (ya trae su llamada, así que tampoco cambia nada), si no la de antes. */
+export const REHACER_TOKEN = TOKEN.replace(
+  FIRMA_CAMBIO_DEL_TOKEN,
+  `coalesce(to_regprocedure('retail.registrar_cambio(uuid,uuid,uuid,integer,text,uuid,text,text,jsonb)')::text, ${FIRMA_CAMBIO_DEL_TOKEN})`,
+);
 
 /** Inverso de 20261012190000 (ADR-0384): quita el candado `venta_sin_precio`. El reemplazo se lee del archivo (el de `registrar_venta`,
  *  el único de los cuatro que trae `venta_sin_precio`) para no copiarlo. Si la base no lo tiene, `replace` no cambia nada. */

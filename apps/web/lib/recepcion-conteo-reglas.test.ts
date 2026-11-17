@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { costoDelGrupo as costoDelGrupoStock, costoDeLoQueYaEntro, filasDeCostoEnStock, leerConteosDelEnvio as leerConteosStock, textoCostoEnStock, unidadesSinIdentificar as sinIdentificarStock } from "./recepcion-conteo-reglas";
 import { sePuedeCambiarCategoria, costoDeCatalogo, costosConCatalogo, DECISION_VACIA } from "./recepcion-conteo-reglas";
+import { filasDeLaFirma, lineaDelAviso, matrizDeLoQueEntro, noCuadroAgrupado, pideFirmaAlCerrar } from "./recepcion-conteo-reglas";
+import type { DiferenciaEnvio, RecibidoEnvio } from "./recepcion-envio-reglas";
 import {
   lineasSinModelosEnCero,
   modelosEnCeroDe,
@@ -91,7 +93,6 @@ import {
   BOTON_DE_PENDIENTE,
   insigniaDelEnvio,
   textoResumenDelCierre,
-  textoDelEnvioCerrado,
   veredictoDelCerrado,
   lineasALaVista,
   leerContadas,
@@ -359,13 +360,28 @@ describe("cerrar", () => {
   it("«Otro» (2026-10-28): se ofrece solo para lo de más, pide su explicación y la lleva como nota de la línea", () => {
     expect(causasDe(extra(1, 3))?.opciones.map((o) => o.valor)).toEqual(["regalo", "cobra_aparte", "proxima_compra", "otro"]);
     expect(causasDe(contada("i1", 10, 12), 2)?.opciones.map((o) => o.valor)).toEqual(["regalo", "cobra_aparte", "proxima_compra", "reposicion_faltante", "otro"]);
-    expect(causasDe(contada("i1", 10, 8))?.opciones.some((o) => o.valor === "otro")).toBe(false); // lo que faltó no cambia
+    // Lo que falta también lo ofrece desde el 2026-11-16 (abajo, en su prueba).
     const sin = faltaParaCerrar({ lineas: [extra(1, 3)], decisiones: { "extra:1": dec({ sobranteCausa: "otro" }) }, sinAviso: false, responsable: true });
     expect(sin.map((x) => x.texto)).toEqual(["Cuenta qué fue lo de más de Camisas · Marca Uno (fuera de la guía)"].map((t) => expect.stringContaining("Cuenta qué fue lo de más de")) as never);
     const con = faltaParaCerrar({ lineas: [extra(1, 3)], decisiones: { "extra:1": dec({ sobranteCausa: "otro", nota: "Muestra del proveedor" }) }, sinAviso: false, responsable: true });
     expect(con).toEqual([]);
     const [l] = lineasParaCerrar([extra(1, 3)], { "extra:1": dec({ sobranteCausa: "otro", nota: "  Muestra del proveedor " }) }, false);
     expect(l).toMatchObject({ sobrante_causa: "otro", nota: "Muestra del proveedor" });
+  });
+
+  it("«Otro» también en lo que FALTA (Felipe 2026-11-16): se ofrece al final, pide su explicación, la lleva como nota y dice que lo asume CAYLA", () => {
+    const opciones = causasDe(contada("i1", 10, 8))?.opciones ?? [];
+    expect(opciones.map((o) => o.valor)).toEqual(["no_vino", "se_perdio", "otra_sede", "otro"]);
+    expect(opciones.at(-1)?.ayuda).toContain("Lo asume CAYLA");
+    const sin = faltaParaCerrar({ lineas: [contada("i1", 10, 8)], decisiones: { "item:i1": dec({ faltanteCausa: "otro" }) }, sinAviso: false, responsable: true });
+    expect(sin.map((x) => x.texto)).toEqual([expect.stringContaining("Cuenta qué pasó con lo que falta de")]);
+    const con = faltaParaCerrar({ lineas: [contada("i1", 10, 8)], decisiones: { "item:i1": dec({ faltanteCausa: "otro", nota: "La caja llegó abierta" }) }, sinAviso: false, responsable: true });
+    expect(con).toEqual([]);
+    const [l] = lineasParaCerrar([contada("i1", 10, 8)], { "item:i1": dec({ faltanteCausa: "otro", nota: "  La caja llegó abierta " }) }, false);
+    expect(l).toMatchObject({ faltante_causa: "otro", sobrante_causa: null, nota: "La caja llegó abierta" });
+    // Con otra causa, lo escrito antes no viaja.
+    const [n] = lineasParaCerrar([contada("i1", 10, 8)], { "item:i1": dec({ faltanteCausa: "no_vino", nota: "quedó escrito" }) }, false);
+    expect(n).toMatchObject({ faltante_causa: "no_vino", nota: null });
   });
 
   it("un regalo de fuera de la guía no pide costo: entra a S/ 0 y no manda ni el de la línea ni el de sus prendas; uno de la guía sí lo conserva", () => {
@@ -851,12 +867,6 @@ describe("formidable 2026-10-13: el veredicto al cerrar y lo que pasa al cerrar"
     expect(veredictoDelCerrado([], [])).toMatchObject({ titulo: "Nada entró al stock", accion: null });
   });
 
-  it("el aviso del envío cerrado pluraliza bien (auditoría 2026-11-12)", () => {
-    expect(textoDelEnvioCerrado(1, 1)).toBe("1 prenda entró al stock; 1 queda para después");
-    expect(textoDelEnvioCerrado(6, 3)).toBe("6 prendas entraron al stock; 3 quedan para después");
-    expect(textoDelEnvioCerrado(0, 1)).toBe("1 prenda queda para después");
-    expect(textoDelEnvioCerrado(0, 0)).toBeUndefined();
-  });
 
   it("cambio 3: al cerrar, cuántas se pueden vender ya y cuántas quedan guardadas", () => {
     const l = extra({ contadas: 5, en_stock: 0, sin_separar: 5 });
@@ -1597,5 +1607,105 @@ describe("lo de fuera de la guía que ya entró entero al stock: su costo llega 
     const campos = camposDelCierre({ lineas: [vestidos], decisiones: { "extra:1": DECISION_VACIA }, sinAviso: true, responsable: true });
     expect(campos.some((c) => c.id === "costo-extra-1")).toBe(false);
     expect(faltaParaCerrar({ lineas: [vestidos], decisiones: { "extra:1": DECISION_VACIA }, sinAviso: true, responsable: true })).toEqual([]);
+  });
+});
+
+describe("lo que no cuadró, una fila por respuesta (maqueta recibir-cierre-recibo-2026-11)", () => {
+  const dif = (o: Partial<DiferenciaEnvio>): DiferenciaEnvio => ({ despachoItemId: null, extra: null, tipo: "sobrante", causa: "otro", cantidad: 1, categoria: null, marca: null, nota: null, ...o });
+  const entro = (o: Partial<RecibidoEnvio>): RecibidoEnvio => ({ despachoItemId: null, extra: null, varianteId: "v", prenda: null, talla: null, color: null, cantidad: 1, danadas: 0, costoUnitario: null, categoria: null, marca: null, ...o });
+
+  it("ENV-000023: tres extras con «Otro» y la misma nota son UNA fila de 203 con sus tres prendas", () => {
+    const c = leerConteosDelEnvio({
+      despacho_id: "d1",
+      estado: "cerrado",
+      conteos: [conteoCrudo({ extra_posicion: 1, contadas: 138 }), conteoCrudo({ extra_posicion: 2, contadas: 58 }), conteoCrudo({ extra_posicion: 3, contadas: 7 })],
+    });
+    const ls = lineasParaContar(
+      { lineas: [], recibidos: [entro({ extra: 1, prenda: "Polo Básico Cayla", cantidad: 138 }), entro({ extra: 2, prenda: "Pantalón Cayla Lino", cantidad: 58 }), entro({ extra: 3, prenda: "Vestido Amapola", cantidad: 7 })] },
+      c,
+    );
+    const nota = "Se mando a otra sede";
+    const g = noCuadroAgrupado([dif({ extra: 1, cantidad: 138, nota }), dif({ extra: 2, cantidad: 58, nota }), dif({ extra: 3, cantidad: 7, nota })], ls);
+    expect(g).toEqual([{ tipo: "sobrante", causa: "otro", nota, cantidad: 203, que: ["Polo Básico Cayla", "Pantalón Cayla Lino", "Vestido Amapola"] }]);
+  });
+
+  it("separa por clase, causa y nota; sin prendas que entraron, dice categoría y marca; descarta lo que viene en 0", () => {
+    const g = noCuadroAgrupado(
+      [
+        dif({ despachoItemId: "i1", tipo: "faltante", causa: "no_vino", cantidad: 3, categoria: "Faldas", marca: "Lima Knit" }),
+        dif({ extra: 1, causa: "regalo", cantidad: 2, categoria: "Polos" }),
+        dif({ extra: 2, causa: "otro", cantidad: 1, nota: "Una muestra" }),
+        dif({ extra: 3, causa: "otro", cantidad: 4, nota: "Otra cosa" }),
+        dif({ extra: 4, causa: "regalo", cantidad: 0 }),
+      ],
+      [],
+    );
+    expect(g.map((x) => [x.tipo, x.causa, x.nota, x.cantidad, x.que])).toEqual([
+      ["faltante", "no_vino", null, 3, ["Faldas · Lima Knit"]],
+      ["sobrante", "regalo", null, 2, ["Polos"]],
+      ["sobrante", "otro", "Una muestra", 1, ["Sin categoría"]],
+      ["sobrante", "otro", "Otra cosa", 4, ["Sin categoría"]],
+    ]);
+  });
+});
+
+describe("la firma del cierre (maqueta recibir-cierre-recibo-2026-11)", () => {
+  it("solo se pide si algo no cuadró: lo exacto se cierra de un toque", () => {
+    expect(pideFirmaAlCerrar({ faltan: 0, sobran: 0 })).toBe(false);
+    expect(pideFirmaAlCerrar({ faltan: 0, sobran: 203 })).toBe(true);
+    expect(pideFirmaAlCerrar({ faltan: 3, sobran: 0 })).toBe(true);
+  });
+
+  it("una palabra y un número por fila; solo las que tienen cifra, salvo «Al almacén»", () => {
+    expect(filasDeLaFirma({ alAlmacen: 227, sobran: 203, faltan: 0, paraDespues: 0 })).toEqual([
+      { texto: "Al almacén", cifra: "227", tono: "neutro" },
+      { texto: "De más · a Compras", cifra: "+203", tono: "ambar" },
+    ]);
+    expect(filasDeLaFirma({ alAlmacen: 30, sobran: 0, faltan: 3, paraDespues: 6 }).map((f) => [f.texto, f.cifra])).toEqual([
+      ["Al almacén", "30"],
+      ["Faltan · a Compras", "−3"],
+      ["Para después", "6"],
+    ]);
+    expect(filasDeLaFirma({ alAlmacen: 1234, sobran: 0, faltan: 0, paraDespues: 0 })).toEqual([{ texto: "Al almacén", cifra: "1,234", tono: "neutro" }]);
+  });
+});
+
+describe("la línea del aviso «ENV-… recibido» (maqueta recibir-cierre-recibo-2026-11)", () => {
+  it("qué entró y qué no cuadró; con guía y sin diferencias dice «llegó completo»", () => {
+    expect(lineaDelAviso({ alAlmacen: 227, paraDespues: 0, sobran: 203, faltan: 0, conGuia: true })).toBe("227 al almacén · 203 de más a Compras");
+    expect(lineaDelAviso({ alAlmacen: 90, paraDespues: 0, sobran: 0, faltan: 0, conGuia: true })).toBe("90 al almacén · llegó completo");
+    expect(lineaDelAviso({ alAlmacen: 30, paraDespues: 6, sobran: 0, faltan: 3, conGuia: true })).toBe("30 al almacén · 6 para después · faltan 3");
+    expect(lineaDelAviso({ alAlmacen: 4, paraDespues: 0, sobran: 0, faltan: 1, conGuia: true })).toBe("4 al almacén · falta 1");
+  });
+  it("sin guía nunca dice «llegó completo»; sin nada en el almacén lo dice", () => {
+    expect(lineaDelAviso({ alAlmacen: 22, paraDespues: 0, sobran: 0, faltan: 0, conGuia: false })).toBe("22 al almacén");
+    expect(lineaDelAviso({ alAlmacen: 0, paraDespues: 5, sobran: 0, faltan: 0, conGuia: false })).toBe("5 para después");
+    expect(lineaDelAviso({ alAlmacen: 0, paraDespues: 0, sobran: 0, faltan: 0, conGuia: false })).toBe("Nada entró al almacén");
+  });
+});
+
+describe("lo que entró, en tabla color × talla (maqueta recibir-cierre-recibo-2026-11)", () => {
+  it("las tallas en su orden de tienda; un color por fila con sus celdas y su total; el hueco queda vacío", () => {
+    const m = matrizDeLoQueEntro({
+      combinaciones: [
+        { varianteId: "b-s", talla: "S", color: "Blanco", cantidad: 5 },
+        { varianteId: "b-est", talla: "Estándar", color: "Blanco", cantidad: 5 },
+        { varianteId: "b-m", talla: "M", color: "Blanco", cantidad: 5 },
+        { varianteId: "m-l", talla: "L", color: "Moka", cantidad: 5 },
+        { varianteId: "m-s", talla: "S", color: "Moka", cantidad: 7 },
+      ],
+    });
+    expect(m.tallas).toEqual(["S", "M", "L", "Estándar"]);
+    expect(m.filas.map((f) => [f.color, f.total, Object.keys(f.celdas)])).toEqual([
+      ["Blanco", 15, ["S", "Estándar", "M"]],
+      ["Moka", 12, ["L", "S"]],
+    ]);
+    expect(m.filas[0].celdas.L).toBeUndefined();
+    expect(m.filas[1].celdas.S).toEqual({ varianteId: "m-s", cantidad: 7 });
+  });
+
+  it("sin talla es «Única» y sin color «Sin color»", () => {
+    const m = matrizDeLoQueEntro({ combinaciones: [{ varianteId: "v", talla: null, color: null, cantidad: 3 }] });
+    expect(m).toEqual({ tallas: ["Única"], filas: [{ color: "Sin color", celdas: { Única: { varianteId: "v", cantidad: 3 } }, total: 3 }] });
   });
 });

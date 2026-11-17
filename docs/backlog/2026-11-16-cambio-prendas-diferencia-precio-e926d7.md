@@ -60,6 +60,9 @@ existió. Lo que corresponde es una nota de crédito sobre la boleta original y 
 - [x] El `.env.local` con el token (el mismo de producción) se borró al terminar la prueba del sandbox.
 - [ ] `/milimetro auditar /cambios` y `/vender/comprobantes` (lo pide el check del PR), `/formidable`, `/chaos` y `guias:recorrer`.
 - [x] De #1910 (Felipe eligió esta rama): el papel de Vender con «CANCELADO» y la impresión sola con «Imprimir solo al cobrar».
+- [x] CI, tanda 4 (`pruebas:redondeo-efectivo`): al volver a pegar 20261003130000 y 20261003135000, `REHACER_TOKEN` volvía a pegar la
+      parte 2 del token, que ancla `registrar_cambio` con la firma que la parte 2 de este ADR borra. Ahora se ancla a la firma que haya
+      (`registrar-venta-antes-de-precio-sede.mjs`). En un banco limpio con las tres partes: 90/90; sin el arreglo, los mismos 2 rojos del CI.
 - [ ] **Contador:** confirma la lectura legal (nota de crédito + comprobante nuevo) antes de pegar el SQL. Cerrar #1910 lo decide Felipe.
 - [ ] Pegar en producción las partes 1, 2 y 3 en ese orden, con el OK de Felipe; después `pnpm datos:generar:produccion` y `datos:comparar`.
 - [ ] Obra aparte: volver a cambiar lo que se llevó en un cambio (15 días desde la compra original).

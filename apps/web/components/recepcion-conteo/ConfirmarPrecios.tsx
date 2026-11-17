@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
@@ -21,6 +22,7 @@ export function ConfirmarPrecios({
   cargando,
   onCancelar,
   onConfirmar,
+  arriba,
 }: {
   cambios: readonly CambioDePrecio[];
   sede: string;
@@ -32,10 +34,13 @@ export function ConfirmarPrecios({
   cargando: boolean;
   onCancelar: () => void;
   onConfirmar: () => void;
+  /** Lo que va antes de los precios: al cerrar un envío con algo que no cuadró, el resumen de la firma, para que sea UNA hoja y no dos seguidas. */
+  arriba?: ReactNode;
 }) {
   return (
     <Modal titulo={cambios.some((c) => c.tipo === "compra") ? "Vas a cambiar costos y precios" : "Vas a cambiar precios"} subtitulo={subtitulo} onClose={onCancelar} bloqueado={cargando} tamano="mediana">
       <div className="space-y-4">
+        {arriba}
         {(["compra", "venta"] as const).map((tipo) => {
           const lista = cambios.filter((c) => c.tipo === tipo);
           if (lista.length === 0) return null;
