@@ -1,7 +1,9 @@
 # ADR-0673 — La baja de un comprobante: la pide su sede, la confirma el servidor
 
 - **Fecha:** 2026-11-17 · **Estado:** construido en la rama `claude/anular-comprobante-permisos`. La migración
-  `20261117021000_baja_de_comprobante_sede_y_servidor.sql` se pega en producción con el OK de Felipe (2026-11-17), antes de publicar la web.
+  `20261117021000_baja_de_comprobante_sede_y_servidor.sql` está en producción desde el 2026-11-17, aplicada por `apply_migration` con el
+  OK de Felipe (registrada como `20261117140654 baja_de_comprobante_sede_y_servidor`), antes de publicar la web. Huellas antes:
+  `0d850f39…` / `4bae2f02…`; después, iguales a la base local con la migración: `da261895…` / `89e0b922…`.
 - **Decidió:** Felipe, 2026-11-17, eligiendo entre «sede + servidor» y «solo la sede».
 - **Sigue a:** ADR-0016 (la baja anula la venta), ADR-0534 (anula quien ve Facturación), `20261007200000` (`fn_confirmar_baja_sunat`).
 

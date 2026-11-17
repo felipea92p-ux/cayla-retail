@@ -4,9 +4,10 @@ Rama `claude/anular-comprobante-permisos`. Bitácora: `docs/bitacora/2026-11-17-
 
 ## Esperan a Felipe
 
-- [ ] **Pegar `20261117021000_baja_de_comprobante_sede_y_servidor.sql` en producción**, antes de publicar la web. Una sola parte, idempotente; se
-  aplica antes o después de las partes de ADR-0671 (`20261116212000`…`214000`). Huellas esperadas antes de pegar (copia de producción del
-  2026-11-16): `anular_comprobante` `0d850f39…`, `fn_confirmar_baja_sunat` `4bae2f02…`; si cambiaron, el reemplazo anclado se detiene sin aplicar nada.
+- [x] **Pegar `20261117021000_baja_de_comprobante_sede_y_servidor.sql` en producción** (2026-11-17, con OK de Felipe, por `apply_migration`:
+  registrada como `20261117140654`). Huellas antes `0d850f39…` / `4bae2f02…`, después `da261895…` / `89e0b922…`, iguales a la base local;
+  `authenticated` y `anon` ya no ejecutan `fn_confirmar_baja_sunat`. Las partes de ADR-0671 se aplican encima sin tocar estas anclas.
+- [ ] **Publicar la web** (este PR): mientras tanto, una baja que SUNAT confirma al instante queda en trámite hasta la pasada del cron.
 - [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) cuando la migración esté en producción y el volcado se refresque.
 
 ## Sin decisión
