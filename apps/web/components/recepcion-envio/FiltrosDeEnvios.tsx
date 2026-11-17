@@ -24,6 +24,13 @@ import {
 // muchos —Estado, Proveedor y Fechas (el día en que SALIÓ el envío)— con «Limpiar todo» cuando hay algo puesto. Es la misma barra de la
 // pestaña «Recibidas recientemente» (`FiltrosRecibidas`): dos o tres filtros a la vista, sin panel. La lista es corta y ya está en el
 // navegador, así que filtra ahí, sin URL ni base: lo que se pone se pierde al salir, como el buscador de arriba.
+//
+// Lo decide el ancho de la BARRA, no el de la ventana (Felipe 2026-11-17): quien la dibuja declara el contenedor `@container/barra-filtros`
+// (`EnviosParaRecibir`); sin él, la barra se queda en su forma angosta. Dos cortes:
+//   · bajo 768 px (un celular, una tableta o un laptop de 1024 px con el menú abierto) son dos filas: el buscador entero, con su marcador
+//     sin cortar, y debajo las píldoras con «Sin aviso» a su derecha (a ese ancho ya no cabe junto al título);
+//   · bajo 640 px, además, una píldora sin nada puesto es solo su ícono; con algo puesto vuelve a decir su valor y lleva su ✕, para que
+//     se vea qué filtra.
 
 export function FiltrosDeEnvios({
   busqueda,
@@ -33,6 +40,7 @@ export function FiltrosDeEnvios({
   proveedores,
   hoy,
   conteo,
+  accionCelular,
 }: {
   busqueda: string;
   onBusqueda: (texto: string) => void;
@@ -44,29 +52,33 @@ export function FiltrosDeEnvios({
   hoy: string;
   /** Debajo del buscador: «3 de 8 coinciden». */
   conteo?: ReactNode;
+  /** Bajo 768 px de barra, al final de la fila de píldoras: «Sin aviso» (con la barra ancha va junto al título de la tabla). */
+  accionCelular?: ReactNode;
 }) {
   const hayAlgo = contarFiltros(filtros) > 0 || busqueda.trim() !== "";
   return (
-    <div role="search" aria-label="Filtrar los envíos por recibir" data-guia="recibir.envios-filtros" className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
+    <div role="search" aria-label="Filtrar los envíos por recibir" data-guia="recibir.envios-filtros" className="flex flex-wrap items-center gap-x-2 gap-y-2.5 @min-[640px]:gap-x-3.5">
       <Buscador
         valor={busqueda}
         onCambio={onBusqueda}
         placeholder="Envío, guía, proveedor, marca u orden" // sugerir-fijo: dice en qué busca, no depende de nada elegido antes
         etiqueta="Buscar un envío por recibir"
         conteo={conteo}
-        className="w-full min-w-0 sm:w-auto sm:min-w-[16rem] sm:flex-1"
+        className="w-full min-w-0 @min-[768px]:w-auto @min-[768px]:min-w-[16rem] @min-[768px]:flex-1"
       />
 
       {/* Varios estados a la vez («Abierto» y «En camino»): la lista queda abierta y cada opción se marca o se desmarca. */}
       <DesplegablePildora
         icono={CircleDot}
         etiqueta="Estado"
+        soloIconoEnCelular={filtros.estados.length === 0}
         varias={{ valores: filtros.estados, onValores: (v) => onFiltros({ ...filtros, estados: v as EstadoDeFila[] }) }}
         opciones={ESTADOS_DE_FILA.map((e) => ({ valor: e.valor, texto: e.texto }))}
       />
       <DesplegablePildora
         icono={Truck}
         etiqueta="Proveedor"
+        soloIconoEnCelular={filtros.proveedor === null}
         valor={filtros.proveedor ?? TODOS}
         onValor={(v) => onFiltros({ ...filtros, proveedor: v === TODOS ? null : v })}
         opciones={[{ valor: TODOS, texto: "Todos" }, ...proveedores.map((p) => ({ valor: p, texto: p }))]}
@@ -83,6 +95,8 @@ export function FiltrosDeEnvios({
           Limpiar todo
         </BotonLimpiar>
       )}
+
+      {accionCelular && <div className="ml-auto @min-[768px]:hidden">{accionCelular}</div>}
     </div>
   );
 }
@@ -108,7 +122,8 @@ function PastillaFechas({ desde, hasta, hoy, onCambiar }: { desde: string; hasta
       ancho="w-[19rem]"
       alinear="end"
       envolver={(boton) => (
-        <div className="pildora-filtro shrink-0" data-puesta={activa || undefined} data-abierta={abierta || undefined}>
+        // Sin fechas puestas, bajo 640 px de barra es solo el calendario (como «Estado» y «Proveedor»); con fechas, dice cuáles.
+        <div className={`pildora-filtro shrink-0 ${activa ? "" : "pildora-filtro-icono-celular"}`} data-puesta={activa || undefined} data-abierta={abierta || undefined}>
           {boton}
         </div>
       )}

@@ -33,7 +33,7 @@ import { RecepcionesRecientes } from "@/components/RecepcionesRecientes";
 import { FunnelX, Receipt } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
-import { AccionSinAviso, SinAvisoProvider } from "@/components/recepcion-conteo/SinAvisoContexto";
+import { AccionSinAviso, BotonSinAviso, SinAvisoProvider } from "@/components/recepcion-conteo/SinAvisoContexto";
 import { EnviosParaRecibir } from "@/components/recepcion-envio/EnviosParaRecibir";
 import { getComprasPagadasHacia, getEnviosAMedias, getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
 import { diasAMedias, DIAS_PARA_RESALTAR, textoDeEnvioAMedias } from "@/lib/recepcion-salida-reglas";
@@ -306,26 +306,34 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       return (
         <div className="space-y-6">
           {conEncabezado(`Abre un fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después. Entra al almacén de ${nombreMirada}.`)}
-          {aMedias.map((e) => (
-            <Aviso
-              key={e.id}
-              tono={diasAMedias(e.desde) >= DIAS_PARA_RESALTAR ? "atencion" : "info"}
-              chico
-              accion={
-                // Un solo verbo para el mismo envío: la fila de «Envíos por recibir» también dice «Seguir recibiendo» (auditoría 2026-11-12).
-                <Link href={`/recibir/envio/${e.id}`} className="btn-cayla btn-enlace">
-                  Seguir recibiendo
-                </Link>
-              }
-            >
-              {textoDeEnvioAMedias(e, undefined, persona.ubicacionEtiqueta)}
-            </Aviso>
-          ))}
+          {/* Los envíos a medias son la misma clase de aviso: van juntos (8 px entre ellos), no a los 24 px que separan los bloques de la página.
+              El grupo es un contenedor: con menos de 640 px de ancho, «Seguir recibiendo» baja debajo del texto (recepcion-conteo.css). */}
+          {aMedias.length > 0 && (
+            <div className="@container/rc-avisos space-y-2">
+              {aMedias.map((e) => (
+                <Aviso
+                  key={e.id}
+                  tono={diasAMedias(e.desde) >= DIAS_PARA_RESALTAR ? "atencion" : "info"}
+                  chico
+                  // Con la columna angosta, «Seguir recibiendo» baja debajo del texto: a su derecha lo dejaba en cinco renglones.
+                  className="rc-aviso-a-medias"
+                  accion={
+                    // Un solo verbo para el mismo envío: la fila de «Envíos por recibir» también dice «Seguir recibiendo» (auditoría 2026-11-12).
+                    <Link href={`/recibir/envio/${e.id}`} className="btn-cayla btn-enlace">
+                      Seguir recibiendo
+                    </Link>
+                  }
+                >
+                  {textoDeEnvioAMedias(e, undefined, persona.ubicacionEtiqueta)}
+                </Aviso>
+              ))}
+            </div>
+          )}
           {contando.pendientes && <PendientesDeRecibir pendientes={contando.pendientes} conLista={false} guia="recibir.pendientes" />}
           <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
           <SinAvisoProvider>
           {deOrdenes && (
-            <EnviosParaRecibir envios={porRecibirEnLaSede?.envios ?? []} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria proveedoresSinAviso={proveedoresSinAviso} enStock={Object.fromEntries(aMedias.map((e) => [e.id, e.enStock]))} accionTitulo={<AccionSinAviso />} />
+            <EnviosParaRecibir envios={porRecibirEnLaSede?.envios ?? []} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria proveedoresSinAviso={proveedoresSinAviso} enStock={Object.fromEntries(aMedias.map((e) => [e.id, e.enStock]))} accionTitulo={<AccionSinAviso />} accionCelular={<BotonSinAviso />} />
           )}
           <LlegoSinAviso
             key={claveDeLaRecepcion(persona.ubicacionId)}

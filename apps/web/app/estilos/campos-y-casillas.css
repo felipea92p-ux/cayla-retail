@@ -309,6 +309,16 @@
     .pildora-filtro-icono-celular :is(.pildora-filtro-nombre, .pildora-filtro-valor, .pildora-filtro-flecha, .pildora-filtro-quitar, .pildora-filtro-cuenta) { display: none; }
     .pildora-filtro-icono-celular .pildora-filtro-icono { width: 16px; height: 16px; }
   }
+  /* La misma cara cuando lo angosto es la BARRA y no la ventana: una tableta con el menú abierto deja la columna en ~390 px, igual que un
+     celular. La pantalla declara el contenedor `barra-filtros` (`@container/barra-filtros`) y, bajo 640 px de ancho de ESE contenedor, la
+     píldora marcada es solo su ícono. Sin ese contenedor nada cambia. Son las cuatro líneas de arriba: si cambian, cambian las dos
+     (Recibir ▸ Envíos por recibir, Felipe 2026-11-17). */
+  @container barra-filtros (max-width: 639.98px) {
+    .pildora-filtro-icono-celular { width: 38px; height: 38px; justify-content: center; }
+    .pildora-filtro-icono-celular .pildora-filtro-boton { width: 100%; justify-content: center; padding: 0; }
+    .pildora-filtro-icono-celular :is(.pildora-filtro-nombre, .pildora-filtro-valor, .pildora-filtro-flecha, .pildora-filtro-quitar, .pildora-filtro-cuenta) { display: none; }
+    .pildora-filtro-icono-celular .pildora-filtro-icono { width: 16px; height: 16px; }
+  }
   @media (min-width: 640px) {
     .pildora-filtro-punto { display: none; }
   }
