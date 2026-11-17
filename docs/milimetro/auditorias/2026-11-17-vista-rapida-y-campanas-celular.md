@@ -35,3 +35,18 @@ Resumen: **0 graves · 0 medias · 0 leves abiertas** · 1 grave propia corregid
 
 - «Top Flower» y las prendas de producción (la base local no las tiene); se probó con «Bolso Tote Sol», también sin unidades en Lima.
 - `tema:auditar`.
+
+## Segunda pasada (el mismo día): Campañas — la cabecera con las rebajas, las tres preguntas y el filo de los pases
+
+Pedidos de Felipe tras ver la primera: «no quites esto, tenlo como información en un ícono a lado de cómo se ven en la web, quítale la flecha y
+ajusta el tamaño de todo para que entre» (eligió que lo del ícono sean las tarjetas «Rebajas de …»), «mejora la visualización» (la lista
+«Para que la caja haga algo») y, sobre el borde de los pases, «que tenga borde pero que se vea bien».
+
+| Pieza | Medida | Resultado |
+|---|---|---|
+| Cabecera a 350 | «Cómo se ven en la web» 199 px sin flecha (el texto cabe) · ícono de rebajas 44 · «+» 51 hasta el margen (334), los tres en la fila 181 | pasa |
+| Hoja «Rebajas de …» (celular) | se abre desde el ícono; sin rebajas, su vacío; al cerrar, el foco vuelve al ícono. Desde 640 px las tarjetas siguen a la vista y el ícono no se dibuja | pasa (con tarjetas, sin medir: Lima local no tiene rebajas) |
+| «Para que la caja haga algo» | una tarjeta con el filo del pase, filas de ≥ 60 px, marcas de 28 px (ámbar profundo / verde), el hilo de «Sigue» por dentro; foco 3/3 con el anillo hacia adentro (−4 px, la tarjeta recorta) | pasa |
+| Filo de los pases | `--sl-borde` = `borde-control` al 50 % con `sand` (~1,8:1 contra el fondo): se ve el contorno de cada pase sin la raya marrón de toda la pila; el pase se reconoce además por su nombre e ícono (WCAG 1.4.11) | pasa |
+| Contraste y toque (350, claro y oscuro) | 0 textos ni controles que fallen; 0 blancos bajo 44 | pasa |
+| Guías | `productos.campanas` a 375 (28 pasos: el ícono de rebajas ya se encuentra) y 1440 (27); `productos.sellos` a 375 (15); huellas aceptadas | pasa |
