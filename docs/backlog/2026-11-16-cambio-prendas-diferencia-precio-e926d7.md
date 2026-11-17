@@ -58,7 +58,13 @@ existió. Lo que corresponde es una nota de crédito sobre la boleta original y 
 - [x] PR #1912 abierto (borrador). Probado en el sandbox real de Lucode desde local (la vista previa no tiene token): nota 07 de una
       prenda, nota 06 y nota de factura, con sus comprobantes nuevos: los nueve documentos ACEPTADO.
 - [x] El `.env.local` con el token (el mismo de producción) se borró al terminar la prueba del sandbox.
-- [ ] `/milimetro auditar /cambios` y `/vender/comprobantes` (lo pide el check del PR), `/formidable`, `/chaos` y `guias:recorrer`.
+- [x] `/milimetro` y `/chaos` en `/cambios` y `/vender/comprobantes` (2026-11-16). Arreglado: el foco con teclado de la hoja de opciones
+      de Comprobantes y las dos carreras de gravedad 1 (liberar o anular la boleta mientras se guarda un cambio), con INV-30 ampliado.
+- [ ] Abiertos de `/chaos` en Cambios (gravedad 2, esperan a Felipe): el tope de S/ 700 se esquiva con un DNI de relleno; el nombre del
+      padrón queda pegado al cambiar de DNI (también en Vender); el nombre del cliente no tiene tope de largo.
+- [ ] `/milimetro`: el grave de Cambios es del sistema (etiquetas de 11 px en la hoja de vidrio a 4.47:1) → propuesta a `/color`; y tres
+      medios de esta obra (dos «Enviar por WhatsApp», el nombre del campo en la guía, «Espera a SUNAT» contra «Por emitir»).
+- [ ] `/formidable` y `guias:recorrer`.
 - [x] De #1910 (Felipe eligió esta rama): el papel de Vender con «CANCELADO» y la impresión sola con «Imprimir solo al cobrar».
 - [x] CI, tanda 4 (`pruebas:redondeo-efectivo`): al volver a pegar 20261003130000 y 20261003135000, `REHACER_TOKEN` volvía a pegar la
       parte 2 del token, que ancla `registrar_cambio` con la firma que la parte 2 de este ADR borra. Ahora se ancla a la firma que haya

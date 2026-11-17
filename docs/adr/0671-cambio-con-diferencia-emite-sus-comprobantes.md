@@ -143,6 +143,17 @@ salieron ACEPTADO** («El documento fue enviado correctamente y aceptado por SUN
 - una nota de factura (FC91-1, al RUC de la original) con su factura nueva al mismo RUC (F091-2).
 El vigía (INV-06, 07, 22 y 30) quedó limpio. No se probó contra la SUNAT real.
 
+## Lo que encontró /chaos (2026-11-16) y se arregló
+
+Dos carreras de gravedad 1 (semilla 671): liberar o anular la boleta original **mientras** se guardaba un cambio sobre la misma venta
+dejaba la original liberada con su nota por emitir para siempre, o anulada con la nota del cambio emitida encima. Liberar y anular
+revisaban «¿hay un cambio esperando?» sin candado y bloqueaban después; el cambio decidía con el estado viejo y bloqueaba al final.
+DECIDÍ: los tres bloquean la boleta y la releen **antes** de revisar o decidir (`fn_documentos_del_cambio`, y un ancla nueva en
+`anular_comprobante` y `marcar_comprobante_no_emitido`, apenas se sabe que existe). El segundo espera al primero y decide con lo que dejó.
+INV-30 suma `nota_sobre_original_muerta` (una nota emitida sobre una original anulada, liberada o con la baja en trámite), que la
+carrera dejaba sin aviso. Pruebas: los casos 19 a 22 de `pnpm pruebas:cambio-con-comprobantes` (dos psql de verdad, sin dejar nada
+guardado) y el 5b del vigía; fallaban antes del arreglo.
+
 ## Producción
 
 **Antes de pegar:** el OK del contador (ver arriba). La prueba en el sandbox ya está hecha (arriba).
