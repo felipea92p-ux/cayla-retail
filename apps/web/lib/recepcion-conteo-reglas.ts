@@ -603,15 +603,13 @@ export function esEnvioSinAviso(e: { lineas: number; ordenes: readonly string[] 
 }
 
 /**
- * De quién es un envío sin aviso, para la lista de Recibir: sus proveedores («A y B», «A, B y 2 más»), con «y uno por confirmar» si a lo contado le falta
- * el suyo, o `null` si todavía no se sabe nada (Felipe 2026-11-07: casi nunca llega de uno solo).
+ * De quién es un envío sin aviso, para la lista de Recibir: los nombres de sus proveedores, más «Proveedor por confirmar» si a lo contado le falta
+ * el suyo; `[]` si todavía no se sabe nada (Felipe 2026-11-07: casi nunca llega de uno solo). Son nombres sueltos, no una frase: la fila
+ * decide cómo decirlo (uno solo, su nombre; más de uno, «Proveedores varios», Felipe 2026-11-17).
  */
-export function proveedorDelSinAviso(c: ConteosDelEnvio | null): string | null {
-  if (!c) return null;
-  const nombres = c.proveedores.map((p) => p.nombre);
-  const lista = nombres.length <= 2 ? nombres.join(" y ") : `${nombres.slice(0, 2).join(", ")} y ${nombres.length - 2} más`;
-  if (c.proveedorPorConfirmar) return lista ? `${lista}, y algo por confirmar` : "proveedor por confirmar";
-  return lista || null;
+export function proveedoresDelSinAviso(c: ConteosDelEnvio | null): string[] {
+  if (!c) return [];
+  return [...c.proveedores.map((p) => p.nombre), ...(c.proveedorPorConfirmar ? ["Proveedor por confirmar"] : [])];
 }
 
 /** Las marcas de un envío sin aviso, para la puerta: las de lo que ya se contó (sin repetir, en orden alfabético); `[]` si no se sabe. */

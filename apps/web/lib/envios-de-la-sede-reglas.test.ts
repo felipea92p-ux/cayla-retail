@@ -8,6 +8,7 @@ import {
   ordenarPorInstante,
   parteEnStock,
   textoBuscableDeFila,
+  textoProveedores,
   textoRecibido,
   tramoDeFecha,
   vistaInicial,
@@ -64,8 +65,8 @@ describe("filasDeLaSede: cada envío, una sola fila con un solo estado", () => {
   });
   it("uno que llegó sin aviso no trae líneas: sus prendas son lo que ya se contó, o nada", () => {
     const sinAviso = envio({ id: "s", lineas: 0, ordenes: [], unidades: 0, estado: "abierto", proveedores: [] });
-    const [contado] = filasDeLaSede({ envios: [sinAviso], ordenes: [], aMedias: { s: { enStock: 60, contadas: 60 } }, proveedoresSinAviso: { s: "Jacard Perú SAC y 2 más" }, porTerminar: [], recibidos: [] });
-    expect(contado).toMatchObject({ sinAviso: true, unidades: 60, enStock: 60, proveedores: ["Jacard Perú SAC y 2 más"] });
+    const [contado] = filasDeLaSede({ envios: [sinAviso], ordenes: [], aMedias: { s: { enStock: 60, contadas: 60 } }, proveedoresSinAviso: { s: ["Jacard Perú SAC", "Janet Ramos"] }, porTerminar: [], recibidos: [] });
+    expect(contado).toMatchObject({ sinAviso: true, unidades: 60, enStock: 60, proveedores: ["Jacard Perú SAC", "Janet Ramos"] });
     const [sinContar] = filasDeLaSede({ envios: [sinAviso], ordenes: [], porTerminar: [], recibidos: [] });
     expect(sinContar.unidades).toBeNull();
   });
@@ -141,6 +142,19 @@ describe("lo recibido, en una línea", () => {
   it("la parte en el stock ordena; sin total, no tiene", () => {
     expect(parteEnStock(fila({ unidades: 120, enStock: 30 }))).toBe(0.25);
     expect(parteEnStock(fila({ unidades: null, enStock: 30 }))).toBeNull();
+  });
+});
+
+describe("de quién llegó, en la fila", () => {
+  it("uno solo, su nombre; más de uno, «Proveedores varios»; ninguno, nada", () => {
+    expect(textoProveedores(["Textiles Andina SAC"])).toBe("Textiles Andina SAC");
+    expect(textoProveedores(["Textiles Andina SAC", "Sur EIRL"])).toBe("Proveedores varios");
+    expect(textoProveedores([])).toBeNull();
+  });
+  it("aunque la fila diga «Proveedores varios», el buscador encuentra a cada uno por su nombre", () => {
+    const [f] = filasDeLaSede({ envios: [envio({ proveedores: ["Textiles Andina SAC", "Confecciones del Sur EIRL"] })], ordenes: [], porTerminar: [], recibidos: [] });
+    expect(textoProveedores(f.proveedores)).toBe("Proveedores varios");
+    expect(textoBuscableDeFila(f)).toContain("confecciones del sur");
   });
 });
 

@@ -68,8 +68,8 @@ export function filasDeLaSede(o: {
   ordenes: readonly OrdenDirecta[];
   /** Lo que ya se contó y lo que ya entró al stock de cada envío abierto (`fn_envios_a_medias`), por id. */
   aMedias?: Readonly<Record<string, { enStock: number; contadas: number }>>;
-  /** De quién es cada envío sin aviso abierto, por id. */
-  proveedoresSinAviso?: Readonly<Record<string, string | null>>;
+  /** De quién es cada envío sin aviso abierto, por id: los nombres de sus proveedores. */
+  proveedoresSinAviso?: Readonly<Record<string, readonly string[]>>;
   porTerminar: readonly EnvioPorTerminar[];
   recibidos: readonly RecepcionReciente[];
 }): FilaDeEnvio[] {
@@ -83,14 +83,13 @@ export function filasDeLaSede(o: {
     const sinAviso = esEnvioSinAviso(e);
     const medias = o.aMedias?.[e.id];
     const contadas = medias?.contadas ?? 0;
-    const proveedor = o.proveedoresSinAviso?.[e.id];
     return {
       clave: e.id,
       estado: e.estado === "abierto" ? "contando" : "en_camino",
       numero: e.numero,
       sinNumero: null,
       marcas: e.marcas,
-      proveedores: sinAviso ? (proveedor ? [proveedor] : []) : e.proveedores,
+      proveedores: sinAviso ? [...(o.proveedoresSinAviso?.[e.id] ?? [])] : e.proveedores,
       instante: e.despachadoEn,
       // Uno que llegó sin aviso no trae líneas: lo que se sabe de él es lo que ya se contó.
       unidades: sinAviso ? (contadas > 0 ? contadas : null) : e.unidades,
@@ -232,6 +231,16 @@ export function textoRecibido(f: FilaDeEnvio): string {
   if (f.enStock > 0) return f.enStock >= f.unidades ? `Las ${n(f.unidades)} en stock` : `${n(f.enStock)} de ${n(f.unidades)} en stock`;
   if (f.contadas > 0) return `${n(f.contadas)} de ${n(f.unidades)} contadas`;
   return `${n(f.unidades)} ${f.unidades === 1 ? "prenda" : "prendas"}`;
+}
+
+/**
+ * De quién llegó, en la fila (Felipe 2026-11-17: «casi siempre llegan muchos proveedores, así que solo deja el código del envío y si hay más de
+ * un proveedor ponle proveedores varios»): uno solo, su nombre; más de uno, «Proveedores varios»; ninguno, nada. Los nombres siguen en lo que
+ * la fila abre, y el buscador los encuentra.
+ */
+export function textoProveedores(proveedores: readonly string[]): string | null {
+  if (proveedores.length === 0) return null;
+  return proveedores.length === 1 ? proveedores[0] : "Proveedores varios";
 }
 
 /** Todo lo que se puede escribir para encontrar un envío, junto y normalizado. */

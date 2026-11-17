@@ -28,6 +28,7 @@ import {
   ordenarPorInstante,
   parteEnStock,
   textoBuscableDeFila,
+  textoProveedores,
   textoRecibido,
   tramoDeFecha,
   vistaInicial,
@@ -93,7 +94,7 @@ export function EnviosDeLaSede({
   /** Lo contado y lo que ya entró al stock de cada envío abierto, por id (`fn_envios_a_medias`). */
   aMedias?: Readonly<Record<string, { enStock: number; contadas: number }>>;
   /** De quién es cada envío sin aviso abierto, por id. */
-  proveedoresSinAviso?: Readonly<Record<string, string | null>>;
+  proveedoresSinAviso?: Readonly<Record<string, readonly string[]>>;
   /** Lo que quedó por terminar; `null` si no se pudo leer. */
   pendientes: PendientesDeLaSede | null;
   /** Las últimas llegadas a la sede (hasta `TERMINADOS_MAXIMO`). */
@@ -135,22 +136,25 @@ export function EnviosDeLaSede({
         principal: true,
         alinear: "izquierda",
         ancho: "minmax(0,2.2fr)",
-        // Lo que trae va arriba, como dice la etiqueta del paquete (ADR-0644); el número y de quién llegó, debajo. Toda la fila se toca con
-        // el mouse; el botón del nombre es lo que usan el teclado y el lector de pantalla (su Enter sube hasta la fila).
+        // Lo que trae va arriba, como dice la etiqueta del paquete (ADR-0644); debajo, el código del envío y de quién llegó. Casi siempre
+        // llega de muchos proveedores (Felipe 2026-11-17): con más de uno la fila dice «Proveedores varios»; sus nombres están en lo que la
+        // fila abre y el buscador los encuentra. Toda la fila se toca con el mouse; el botón del nombre es lo que usan el teclado y el lector
+        // de pantalla (su Enter sube hasta la fila).
         celda: (f, { debajo }) => {
-          const nombre = f.numero ?? f.sinNumero ?? "Envío";
-          const titulo = textoMarcas(f.marcas) ?? f.proveedores[0] ?? nombre;
-          const deQuien = textoMarcas(f.marcas) ? f.proveedores.join(", ") : f.proveedores.slice(1).join(", ");
+          const codigo = f.numero ?? f.sinNumero ?? "Envío";
+          const marcas = textoMarcas(f.marcas);
+          const deQuien = textoProveedores(f.proveedores);
+          const titulo = marcas ?? deQuien ?? codigo;
+          const detalle = [marcas ? deQuien : null, f.sinAviso ? "llegó sin aviso" : null].filter(Boolean).join(" · ");
           return (
             <span className="block min-w-0">
               <button type="button" className="block max-w-full truncate text-left font-medium text-tinta" title={f.marcas.length ? `Marca${f.marcas.length === 1 ? "" : "s"}: ${f.marcas.join(", ")}` : undefined}>
                 {titulo}
               </button>
-              <span className="tv-sub truncate" title={deQuien || undefined}>
-                {titulo === nombre ? null : <span className="font-semibold tabular-nums text-tinta">{nombre}</span>}
-                {titulo !== nombre && deQuien ? " · " : null}
-                {deQuien}
-                {f.sinAviso ? `${titulo !== nombre || deQuien ? " · " : ""}llegó sin aviso` : null}
+              <span className="tv-sub truncate" title={f.proveedores.length > 1 ? f.proveedores.join(", ") : undefined}>
+                {titulo === codigo ? null : <span className="font-semibold tabular-nums text-tinta">{codigo}</span>}
+                {titulo !== codigo && detalle ? " · " : null}
+                {detalle}
               </span>
               {debajo}
             </span>

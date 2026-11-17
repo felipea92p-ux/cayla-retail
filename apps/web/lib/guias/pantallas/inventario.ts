@@ -1609,7 +1609,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.envios-fila",
       opcional: true,
       titulo: "Cada envío",
-      texto: "Arriba, sus marcas; debajo, su número y de quién llegó. Su botón dice lo que toca: «Recibir», «Seguir recibiendo» o «Terminar». Si hiciste la orden, la recibe otra persona.",
+      texto: "Arriba, sus marcas; debajo, su código y su proveedor («Proveedores varios» si llegó de más de uno). Su botón dice lo que toca: «Recibir», «Seguir recibiendo» o «Terminar». Si hiciste la orden, la recibe otra persona.",
     },
     {
       // ADR-0393: con la base al día, la puerta es «Llegó sin aviso» (reemplaza a «Llegó mercadería»).

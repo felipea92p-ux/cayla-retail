@@ -99,7 +99,7 @@ import {
   esEnvioSinAviso,
   marcaDeLinea,
   nombreDeLinea,
-  proveedorDelSinAviso,
+  proveedoresDelSinAviso,
   marcasDelSinAviso,
   prendasAnotadasDe,
   separarAnotada,
@@ -615,14 +615,13 @@ describe("«Hacer ahora», reabrir y el aviso de la sede", () => {
     expect(esEnvioSinAviso({ lineas: 0, ordenes: [] })).toBe(true);
     expect(esEnvioSinAviso({ lineas: 2, ordenes: [] })).toBe(false);
     expect(esEnvioSinAviso({ lineas: 0, ordenes: ["OC-000465"] })).toBe(false);
-    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedor_por_confirmar: true }))).toBe("proveedor por confirmar");
-    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV] }))).toBe(PROV.nombre);
-    expect(proveedorDelSinAviso(null)).toBeNull();
+    expect(proveedoresDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedor_por_confirmar: true }))).toEqual(["Proveedor por confirmar"]);
+    expect(proveedoresDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV] }))).toEqual([PROV.nombre]);
+    expect(proveedoresDelSinAviso(null)).toEqual([]);
     const P2 = { id: "p2", nombre: "Textiles Andina" };
-    const P3 = { id: "p3", nombre: "Confecciones del Sur" };
-    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV, P2] }))).toBe(`${PROV.nombre} y Textiles Andina`);
-    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV, P2, P3, { id: "p4", nombre: "X" }] }))).toBe(`${PROV.nombre}, Textiles Andina y 2 más`);
-    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedor_por_confirmar: true, proveedores: [P2] }))).toBe("Textiles Andina, y algo por confirmar");
+    expect(proveedoresDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV, P2] }))).toEqual([PROV.nombre, "Textiles Andina"]);
+    // Lo que falta confirmar cuenta como uno más: con otro proveedor ya son «varios».
+    expect(proveedoresDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedor_por_confirmar: true, proveedores: [P2] }))).toEqual(["Textiles Andina", "Proveedor por confirmar"]);
   });
 
   it("en la puerta, la marca de un envío sin aviso sale de lo ya contado: sin repetir y en orden alfabético", () => {

@@ -39,7 +39,7 @@ import { EnviosDeLaSede } from "@/components/recepcion-envio/EnviosDeLaSede";
 import { getComprasPagadasHacia, getEnviosAMedias, getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
 import { diasAMedias, DIAS_PARA_RESALTAR, textoDeEnvioAMedias } from "@/lib/recepcion-salida-reglas";
 import { getConteosDelEnvio, recibirContandoDisponible } from "@/lib/recepcion-conteo";
-import { esEnvioSinAviso, marcasDelSinAviso, proveedorDelSinAviso } from "@/lib/recepcion-conteo-reglas";
+import { esEnvioSinAviso, marcasDelSinAviso, proveedoresDelSinAviso } from "@/lib/recepcion-conteo-reglas";
 import { LlegoSinAviso } from "@/components/recepcion-conteo/LlegoSinAviso";
 import { RecibidoEnLaSede } from "@/components/recepcion-conteo/RecibidoEnLaSede";
 import { TERMINADOS_MAXIMO } from "@/lib/por-terminar-reglas";
@@ -283,7 +283,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     const comprasPagadas = contando.disponible ? await getComprasPagadasHacia(persona.ubicacionId) : [];
     const sinAvisoAbiertos = contando.disponible ? (deOrdenes?.envios ?? []).filter(esEnvioSinAviso) : [];
     const conteosSinAviso = new Map(await Promise.all(sinAvisoAbiertos.map(async (e) => [e.id, (await getConteosDelEnvio(e.id)).conteos] as const)));
-    const proveedoresSinAviso = Object.fromEntries([...conteosSinAviso].map(([id, c]) => [id, proveedorDelSinAviso(c)] as const));
+    const proveedoresSinAviso = Object.fromEntries([...conteosSinAviso].map(([id, c]) => [id, proveedoresDelSinAviso(c)] as const));
     // La marca bajo el proveedor (Felipe 2026-11-07): la base la manda por las líneas del envío; uno sin aviso no tiene líneas, así que se
     // toma de lo que ya se contó.
     const porRecibirEnLaSede = deOrdenes && {
