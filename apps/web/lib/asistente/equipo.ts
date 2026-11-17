@@ -3,7 +3,6 @@
 // cifras las cuenta la base sobre TODO el período (la lista trae solo las 300 más recientes): aquí solo se juntan por clase.
 
 import type { TonoChip } from "../../components/ui/Chip";
-import { GUIAS } from "../guias/registro";
 import { MODULOS } from "../modulos";
 
 /** Lo que le pasó a la pregunta, en las cinco cajas que le importan al líder. */
@@ -59,9 +58,9 @@ export function queRespondio(p: Pick<PreguntaEquipo, "tipo" | "tema" | "motivo">
 
 /** Lo que se lee bajo la insignia de una pregunta, corto y con lo importante primero, para que no se corte: «→ Caja», «Le falta:
  *  Traslados», «Regla sin escribir» (Formidable 2026-10-27: «Vive en un módulo que su rol no tie…» se cortaba antes de decir cuál). */
-export function respuestaCorta(p: Pick<PreguntaEquipo, "tipo" | "tema" | "motivo" | "guiaId" | "modulo">): string {
+export function respuestaCorta(p: Pick<PreguntaEquipo, "tipo" | "tema" | "motivo" | "guiaId" | "modulo">, titulos: TitulosDeGuias): string {
   if (p.tipo === "guia") {
-    const pantalla = nombreDeGuia(p.guiaId);
+    const pantalla = nombreDeGuia(p.guiaId, titulos);
     return pantalla ? `→ ${pantalla}` : queRespondio(p);
   }
   if (p.tipo === "sin_acceso") {
@@ -71,10 +70,14 @@ export function respuestaCorta(p: Pick<PreguntaEquipo, "tipo" | "tema" | "motivo
   return queRespondio(p);
 }
 
+/** El título de cada guía por su id. Lo arma el servidor (`titulosDeGuias`, `lib/guias/titulos.ts`) y llega como dato: este archivo lo usa el
+ *  navegador y no importa el registro de las guías, que pesa 650 KB con el texto de todas (ADR-0674 act. g). */
+export type TitulosDeGuias = Readonly<Record<string, string>>;
+
 /** El nombre de la pantalla de una guía, o nada si la guía ya no existe. */
-export function nombreDeGuia(guiaId: string | null): string | null {
+export function nombreDeGuia(guiaId: string | null, titulos: TitulosDeGuias): string | null {
   if (!guiaId) return null;
-  return GUIAS.find((g) => g.id === guiaId)?.titulo ?? null;
+  return titulos[guiaId] ?? null;
 }
 
 /** El nombre del módulo, como en Roles y accesos. */

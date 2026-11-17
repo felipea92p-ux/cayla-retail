@@ -2,10 +2,11 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { claseDe, nombreDeGuia, nombreDeModulo, queRespondio } from "@/lib/asistente/equipo";
+import { InformeDeLaIA } from "@/lib/asistente/informe-esquema";
+import { titulosDeGuias } from "@/lib/guias/titulos";
 import {
   ESPERA_INFORME_MS,
   INSTRUCCIONES_INFORME,
-  InformeDeLaIA,
   leerDatosInforme,
   leerInformes,
   mensajeDelInforme,
@@ -67,10 +68,11 @@ export async function armarInforme(supabase: Cliente, ahora: number = Date.now()
   const { data: gastado, error: errorGasto } = await supabase.rpc("fn_asistente_gasto_del_mes");
   if (seLlegoAlTope(errorGasto ? null : Number(gastado))) return { estado: "tope" };
 
+  const titulos = titulosDeGuias();
   const { mensaje, refs } = mensajeDelInforme(datos.preguntas, {
     // La IA lee la caja de la respuesta como la ve el líder: «Resuelta · La llevó a la pantalla», «Sin respuesta · Regla sin escribir»…
     respuesta: (p) => `${claseDe(p.tipo) === "resuelta" ? "Resuelta" : "No resuelta"}: ${queRespondio({ tipo: p.tipo, tema: p.tema, motivo: null })}`,
-    guia: nombreDeGuia,
+    guia: (id) => nombreDeGuia(id, titulos),
     modulo: nombreDeModulo,
   });
 

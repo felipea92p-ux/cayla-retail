@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { GUIAS } from "../guias/registro";
+import { titulosDeGuias } from "../guias/titulos";
 import { CLASES, claseDe, filtrarPreguntas, leerPreguntasEquipo, nombreDeGuia, nombreDeModulo, ORDEN_CLASES, porcentaje, queRespondio, respuestaCorta } from "./equipo";
+
+// Los títulos que el servidor le pasa a la pantalla (ADR-0674 act. g): aquí, los de todas las guías.
+const TITULOS = titulosDeGuias();
 
 // Los tipos que puede tener una pregunta: el `check` de `asistente_preguntas.tipo` (20261027181000).
 const TIPOS = ["guia", "sin_acceso", "regla", "error", "no_existe", "fuera_de_tema", "basico"] as const;
@@ -35,9 +39,14 @@ describe("queRespondio", () => {
 
 describe("nombres", () => {
   it("una guía que existe da el nombre de su pantalla; una que ya no, nada", () => {
-    expect(nombreDeGuia(GUIAS[0]!.id)).toBe(GUIAS[0]!.titulo);
-    expect(nombreDeGuia("ya-no-existe")).toBeNull();
-    expect(nombreDeGuia(null)).toBeNull();
+    expect(nombreDeGuia(GUIAS[0]!.id, TITULOS)).toBe(GUIAS[0]!.titulo);
+    expect(nombreDeGuia("ya-no-existe", TITULOS)).toBeNull();
+    expect(nombreDeGuia(null, TITULOS)).toBeNull();
+  });
+  it("el servidor manda solo los títulos de las guías que se piden, y una que ya no existe no llega", () => {
+    const dos = GUIAS.slice(0, 2).map((g) => g.id);
+    expect(titulosDeGuias([...dos, "ya-no-existe", null])).toEqual({ [dos[0]!]: GUIAS[0]!.titulo, [dos[1]!]: GUIAS[1]!.titulo });
+    expect(Object.keys(TITULOS)).toHaveLength(GUIAS.length);
   });
   it("un módulo da su nombre de Roles y accesos", () => {
     expect(nombreDeModulo("por_pagar")).toBeTruthy();
@@ -98,13 +107,13 @@ describe("porcentaje", () => {
 describe("respuestaCorta (Formidable 2026-10-27: lo importante primero, sin cortarse)", () => {
   const base = { tema: null, motivo: null, guiaId: null, modulo: null };
   it("dice a qué pantalla la llevó y qué acceso le falta, por su nombre", () => {
-    expect(respuestaCorta({ ...base, tipo: "guia", guiaId: GUIAS[0]!.id })).toBe(`→ ${GUIAS[0]!.titulo}`);
-    expect(respuestaCorta({ ...base, tipo: "sin_acceso", modulo: "preguntas_equipo" })).toBe("Le falta: Preguntas del equipo");
+    expect(respuestaCorta({ ...base, tipo: "guia", guiaId: GUIAS[0]!.id }, TITULOS)).toBe(`→ ${GUIAS[0]!.titulo}`);
+    expect(respuestaCorta({ ...base, tipo: "sin_acceso", modulo: "preguntas_equipo" }, TITULOS)).toBe("Le falta: Preguntas del equipo");
   });
   it("sin pantalla o sin módulo conocidos, la frase de siempre", () => {
-    expect(respuestaCorta({ ...base, tipo: "guia", guiaId: "ya-no-existe" })).toBe("La llevó a la pantalla");
-    expect(respuestaCorta({ ...base, tipo: "sin_acceso" })).toBe("Le falta un acceso");
-    expect(respuestaCorta({ ...base, tipo: "no_existe", tema: "regla" })).toBe("Regla sin escribir");
+    expect(respuestaCorta({ ...base, tipo: "guia", guiaId: "ya-no-existe" }, TITULOS)).toBe("La llevó a la pantalla");
+    expect(respuestaCorta({ ...base, tipo: "sin_acceso" }, TITULOS)).toBe("Le falta un acceso");
+    expect(respuestaCorta({ ...base, tipo: "no_existe", tema: "regla" }, TITULOS)).toBe("Regla sin escribir");
   });
   it("ninguna caja se dibuja tachada: tachado es «anulada», y toda pregunta cuenta", () => {
     for (const c of ORDEN_CLASES) expect(CLASES[c].tono).not.toBe("apagado");
