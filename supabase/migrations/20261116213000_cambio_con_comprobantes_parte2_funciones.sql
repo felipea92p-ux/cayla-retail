@@ -507,11 +507,28 @@ begin
 end;
 $f$;
 
+-- Igual, pero «ya aplicado» se reconoce por una marca y no por el bloque entero: lo que este reemplazo agrega va justo después de un
+-- ancla que otras migraciones también usan, y una que escriba en medio (ADR-0673, en anular_comprobante) separaría el bloque y
+-- volver a pegar repetiría el candado.
+create or replace function pg_temp.reemplazar_marcado_0671(p_firma text, p_marca text, p_viejo text, p_nuevo text)
+returns void
+language plpgsql
+as $f$
+declare v_def text := pg_get_functiondef(p_firma::regprocedure);
+begin
+  if position(p_marca in v_def) > 0 then
+    return;  -- ya aplicado
+  end if;
+  execute pg_temp.anclar_0671(v_def, p_viejo, p_nuevo, p_firma);
+end;
+$f$;
+
 -- Primero: el comprobante se bloquea y se relee apenas se sabe que existe, ANTES de toda revisión (las carreras R1 a R3 de /chaos,
 -- 2026-11-16: revisaban «¿hay un cambio esperando?» sin candado y después bloqueaban, y actuaban con lo leído antes de esperar). Va
 -- aparte de su candado de abajo para que una base que ya tiene ese candado reciba solo esto.
-select pg_temp.reemplazar_0671(
+select pg_temp.reemplazar_marcado_0671(
   'retail.anular_comprobante(uuid, text, boolean, jsonb)',
+  '-- ADR-0671: bloqueado y releído antes de revisar nada.',
   $v$  if not found then
     raise exception 'El comprobante % no existe', p_comprobante_id;
   end if;$v$,
@@ -523,8 +540,9 @@ select pg_temp.reemplazar_0671(
   v_comp := (select c from retail.comprobantes c where c.id = p_comprobante_id);$n$
 );
 
-select pg_temp.reemplazar_0671(
+select pg_temp.reemplazar_marcado_0671(
   'retail.marcar_comprobante_no_emitido(uuid, text)',
+  '-- ADR-0671: bloqueado y releído antes de revisar nada.',
   $v$  if not found then
     raise exception 'El comprobante % no existe', p_comprobante_id;
   end if;$v$,
