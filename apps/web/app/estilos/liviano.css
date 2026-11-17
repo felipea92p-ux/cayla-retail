@@ -91,12 +91,3 @@
 :root[data-liviano="si"] .marco-aurora {
   display: none;
 }
-
-/* El botón de la cabecera (`components/ui/BotonLiviano.tsx`): encendido, la pluma sola; apagado, cruzada por una raya, como el destello
-   de «Animaciones». Lo decide el atributo que el script ya puso, así sale bien desde la primera pintura. */
-.boton-liviano .liviano-raya {
-  opacity: 1;
-}
-:root[data-liviano="si"] .boton-liviano .liviano-raya {
-  opacity: 0;
-}

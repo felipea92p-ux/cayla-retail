@@ -199,6 +199,24 @@ export const ESCENARIOS = [
     },
   },
   {
+    // «Apariencia» (Felipe 2026-11-17): modo oscuro, animaciones y modo liviano, en una hoja que se abre al pie del menú. La ve toda
+    // cuenta, también una terminal. En el celular, la fila vive dentro del cajón: primero se abre el menú.
+    id: "estructura.apariencia",
+    abre: "[role=dialog]",
+    ruta: "/",
+    nombre: "Apariencia abierta",
+    async preparar(pagina) {
+      const menu = pagina.getByRole("button", { name: "Abrir menú" });
+      if (await menu.isVisible()) {
+        await menu.click();
+        await esperar(pagina, 700);
+      }
+      // Por su nombre accesible: la fila lleva también su nombre corto (el del menú plegado), que el lector no repite.
+      await pagina.locator("aside").getByRole("button", { name: "Apariencia", exact: true }).evaluate((el) => el.click());
+      await esperar(pagina, 1100);
+    },
+  },
+  {
     // El Marcador (el aviso de cierre en el centro de la cabecera, ADR-0357; antes la «Isla») sale cuando la sede tiene `hora_cierre` y
     // faltan 15 min o menos, con la caja abierta. En la base local Tienda Lima no tiene hora de cierre, y aunque la tuviera dependería de
     // la hora a la que se corre. El escenario NO escribe en la base (es compartida con otras sesiones): contesta él la consulta que el

@@ -178,12 +178,12 @@ Catálogo ▸ Productos, la única hoja con movimiento rico por decisión de Fel
 `prefers-reduced-motion`. Los números exactos y el porqué: `docs/adr/0136-regla-de-movimiento-de-modales.md` y la sección
 «REGLA DE MODALES» de `apps/web/app/globals.css`. Referencia visual: `docs/maquetas/comprobantes-animaciones-2026-09/`.
 
-**Las animaciones arrancan apagadas (ADR-0625, Felipe 2026-11-07):** todo lo de arriba se ve solo si este aparato las encendió con el
-botón «Animaciones» de la cabecera, junto al modo oscuro (`localStorage["cayla-movimiento"]`; el script del `<head>` pone `data-movimiento`
+**Las animaciones arrancan apagadas (ADR-0625, Felipe 2026-11-07):** todo lo de arriba se ve solo si este aparato las encendió en
+**«Apariencia»** (la fila al pie del menú, junto al modo oscuro y el modo liviano, ADR-0674 act. 2026-11-17) (`localStorage["cayla-movimiento"]`; el script del `<head>` pone `data-movimiento`
 en `<html>`). Quieto, `app/estilos/movimiento.css` deja cada animación y transición en 0,01 ms. Las únicas que siguen moviéndose son las
 **señales de espera**: el hilo de «Guardando…», el loader y su anillo, el campo que consulta y el buscador que busca. Una señal nueva hecha en JSX lleva
 `data-senal`; una hecha en CSS se suma a la lista de `movimiento.css`. **Lo que anima desde JavaScript pregunta `prefiereQuieto()`
-(`lib/movimiento-cliente.ts`) o `useQuieto()`, nunca `matchMedia("(prefers-reduced-motion: reduce)")`**: no vería el botón. Lo vigila
+(`lib/movimiento-cliente.ts`) o `useQuieto()`, nunca `matchMedia("(prefers-reduced-motion: reduce)")`**: no vería el interruptor. Lo vigila
 `lib/movimiento-reglas.test.ts`. Si el aparato pide menos movimiento, eso gana siempre. Una pantalla nueva se diseña y se revisa también quieta.
 
 **Escape dentro de una hoja (ADR-0136, «Actualización 2026-09-26»):** la hoja se cierra solo con un Escape que ningún
@@ -301,8 +301,9 @@ es deuda, solo baja, y `lib/ancho-completo.test.ts` falla si una ruta nueva entr
 ## Modo oscuro (regla — ADR-0336, Felipe 2026-10-05)
 
 **El ERP tiene modo oscuro, y una pantalla que usa solo tokens lo alcanza sin hacer nada.** Es una preferencia del APARATO
-(`localStorage["cayla-tema"]`, arranca en claro, un script en el `<head>` pone `data-tema` antes de pintar), con su botón entre
-«Actividad» y la sede; lo ve toda cuenta y **no es un módulo** (ADR-0306). Los MISMOS tokens se redefinen bajo
+(`localStorage["cayla-tema"]`, arranca en claro, un script en el `<head>` pone `data-tema` antes de pintar), y se cambia en
+**«Apariencia»**, la fila al pie del menú que junta los ajustes del aparato (modo oscuro, animaciones y modo liviano; Felipe 2026-11-17,
+ADR-0674 act.); lo ve toda cuenta, también una terminal, y **no es un módulo** (ADR-0306). Los MISMOS tokens se redefinen bajo
 `:root[data-tema="oscuro"]` en `apps/web/app/estilos/tema.css`, con `tinta` y `crema` intercambiados (texto `#f5f0e8` y un fondo de negro cálido, `#1c1a17`, el oscuro de la familia CAYLA que comparte con Dynamic: ADR-0336, act. 2026-10-26):
 `bg-papel`, `text-tinta` y `border-sand` se invierten solos. Imprimir sale SIEMPRE en claro (el oscuro vive en `@media screen`).
 

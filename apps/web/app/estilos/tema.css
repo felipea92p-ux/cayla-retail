@@ -211,28 +211,6 @@
     --color-input: var(--color-sand);
     --color-ring: var(--color-rojo);
   }
-
-  /* ---------- El botón del tema (cabecera, entre «Actividad» y la sede) ----------
-     Las dos figuras comparten la celda y el atributo de <html> decide cuál se ve: sale bien desde la primera pintura, sin
-     esperar a React. Una se apaga girando un poco mientras la otra entra (ADR-0136: sin rebote, ~300 ms). */
-  .boton-tema > svg {
-    grid-area: 1 / 1;
-    transition:
-      opacity 0.24s var(--ease-cayla),
-      transform 0.32s var(--ease-cayla);
-  }
-  .boton-tema .tema-sol {
-    opacity: 0;
-    transform: rotate(-60deg) scale(0.6);
-  }
-  :root[data-tema="oscuro"] .boton-tema .tema-luna {
-    opacity: 0;
-    transform: rotate(60deg) scale(0.6);
-  }
-  :root[data-tema="oscuro"] .boton-tema .tema-sol {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 /* ---------- El piso de legibilidad del texto tenue (ADR-0336, actividad 8; también en claro desde el 2026-10-14) ----------
