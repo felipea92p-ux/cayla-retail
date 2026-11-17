@@ -238,3 +238,41 @@ queda como siguiente paso si la petición por recorte llegara a pesar.
 imagen grande da la misma fracción, lo que no es imagen lanza) y los casos de la dirección y de la respuesta en `union-prendas.test.ts`. 1081 pruebas de la
 tienda, `tsc`, `eslint`, `knip` y `knip:produccion` en verde. La ruta se probó con la tienda corriendo en local contra el almacén de producción.
 **No verificado:** la figura completa en Safari (la tienda local no tiene base); conviene mirarla en el Mac de Felipe y en un iPhone al publicarse.
+
+## Actualización 2026-11-16 — las fotos de «Catálogo con IA» también se unen, y la figura espera la foto antes de cambiar de prenda
+
+**Qué pasó.** Felipe mandó una captura de «Arma tu outfit» en su computadora (Polo Hilo con Pantalón Camelia): el polo chico sobre un pantalón más
+ancho que él, el arco con el techo plano y las prendas que asoman cortadas; y dijo que al cambiar de prenda «no da impresión de carga». Medido en la
+tienda publicada:
+
+1. **Las prendas con foto de «Catálogo con IA» (ADR-0659) nunca se unían.** Su recorte se llama `<id>.png.ia-<sello>.png` (el nombre de su foto,
+   `fotos/<id>.png.ia.png`, más el sello: `rutaDelRecorte` del ERP) y `NOMBRE_DE_RECORTE` solo aceptaba `<id>-<sello>.png`: `GET /api/medida/…` respondía
+   404 y la figura ni lo pedía. Sin medida, el polo no se ajustaba por su torso y el pantalón quedaba con su tamaño por largo: bajo del polo 67,5 px
+   (27 cm) contra una pretina de 83 px (33 cm). 5 de las 8 primeras prendas de «Arriba» eran de IA.
+2. **Al cambiar de prenda, la animación de entrada corría sobre la foto anterior** (el navegador la deja puesta hasta que llega la nueva) y la nueva
+   aparecía de golpe al terminar de bajar (180 a 650 ms por foto con buena conexión), sin nada que lo dijera. La que asoma a un lado sí estaba bajada,
+   pero pedida a otro tamaño (`sizes` por su caja achicada), así que en pantallas de 2× y 3× no servía de precarga.
+3. **El arco medía `179px` de radio fijo** (la medida del celular): con la figura de 560 px de la computadora quedaba un rectángulo de esquinas redondas.
+   Las que asoman, al 32 %, salían del arco: en la computadora la escena es una columna y quedaban cortadas en seco; de noche, eran manchas sobre el fondo.
+
+**Decisión.**
+- `NOMBRE_DE_RECORTE` acepta el tramo `.<ext>.ia` de la foto de IA (nada de carpetas ni rutas relativas: sigue siendo lo único que acepta la ruta).
+- **La figura cambia de prenda recién con la foto nueva en la mano** (`useFotosDeLaFigura`, `lib/fotos-de-la-figura.ts`): mientras baja, se ve el outfit
+  de antes con la prenda que se va atenuada (el toque se nota al instante); si tarda más de 180 ms, lo dice con lo mismo de B1 (el velo, el hilo y
+  «Ajustando tu outfit…»); al llegar, la prenda entra con su animación, ya con su foto **y ya unida** (se espera también su medida: una sola espera y
+  una sola entrada). Tope de 4 s: pasado eso cambia igual, como antes. La lista, el precio y los colores siguen cambiando al instante.
+- El tamaño con que se pide cada foto sale de la caja de la prenda por su largo (`tamanoEnLaFigura`), igual si está puesta, asomando o precargándose, y
+  sabe de la computadora (560 px): la que asoma deja bajada la foto que se verá al pasarla, y la unión ya no hace bajar la foto otra vez al cambiar la caja.
+- El arco y el velo llevan sus radios en % (`50% / 42.6%`: los mismos 179 px en el celular, un arco de verdad en la computadora).
+- Las que asoman se recortan al arco **en la computadora y de noche**; en el celular claro siguen saliendo hasta el borde de la pantalla, como en el lienzo.
+
+**Descarté.** (a) Cambiar al instante y mostrar un esqueleto en el hueco: la figura quedaba a medio vestir. (b) Un giro de carga nuevo: B1 ya es el
+lenguaje aprobado para «se está armando». (c) Recortar las que asoman también en el celular claro: es el diseño que Felipe aprobó y ahí no se ve roto.
+
+**Prueba.** `union-prendas.test.ts` (los nombres reales del Polo Hilo y del Chaleco Impermeable, y que el tramo nuevo no abre la puerta a otros archivos),
+`fotos-de-la-figura.test.ts` (qué se espera, qué se atenúa, las medidas, y que la entrada se anima aunque la figura se salte cambios). 1119 pruebas de
+la tienda, `tsc`, `eslint`, `knip` y `knip:produccion` en verde. Probado con la tienda en local y las prendas públicas de producción, en la computadora
+y a 375 px, en claro y en oscuro: con el arreglo el bajo del Polo Hilo mide 91,3 px y la pretina del pantalón 91,2 px; con la flecha, la prenda nueva
+está puesta en el primer cuadro y sin pedir nada a la red; con «Sorpréndeme», la figura espera, avisa y las dos prendas entran juntas.
+**No verificado:** Safari y un teléfono de verdad; y la demora exacta del aviso (el panel de prueba estaba oculto y frena los relojes).
+

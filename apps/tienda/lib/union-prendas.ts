@@ -331,8 +331,13 @@ export const MEDIDAS_QUE_SE_RECUERDAN = 300;
 // una vez por recorte: `app/api/medida/[archivo]/route.ts`. Todo navegador recibe el mismo número, y ninguna protección de privacidad lo toca.
 
 const CARPETA_DE_RECORTES = "/storage/v1/object/public/retail-productos-fotos/recortes/";
-/** El nombre de un recorte del almacén: el id de la foto y un sufijo (b5595d2a-…-d73355d476fb-7ee8fc70.png). Es lo único que acepta la ruta. */
-const NOMBRE_DE_RECORTE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:-[0-9a-f]{1,32})?\.(?:png|webp)$/i;
+/**
+ * El nombre de un recorte del almacén: el id de la foto y un sufijo (b5595d2a-…-d73355d476fb-7ee8fc70.png). Es lo único que acepta la ruta.
+ * El recorte de una foto de «Catálogo con IA» (ADR-0659) lleva en medio el nombre de su foto, que es la real más `.ia.png`
+ * (`fotos/<id>.jpg.ia.png` → `recortes/<id>.jpg.ia-<sello>.png`, `rutaDelRecorte` del ERP): sin ese tramo, la ruta respondía 404 a toda prenda
+ * con foto de IA y esas prendas nunca se unían con la de abajo (Felipe, 2026-11-16: el Polo Hilo sobre un pantalón más ancho que él).
+ */
+const NOMBRE_DE_RECORTE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:\.[a-z0-9]{2,5}\.ia)?(?:-[0-9a-f]{1,32})?\.(?:png|webp)$/i;
 /** La medida se guarda un año por su dirección: si cambia cómo se mide (`medirRecorte`), se sube este número para que se vuelva a calcular. */
 export const VERSION_DE_LA_MEDIDA = 1;
 
