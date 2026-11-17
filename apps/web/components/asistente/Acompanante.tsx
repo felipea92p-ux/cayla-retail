@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/acompanante.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { X } from "lucide-react";

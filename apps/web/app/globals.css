@@ -15,30 +15,21 @@
 @import "./estilos/estados-financieros.css";
 @import "./estilos/finanzas-dinero.css";
 @import "./estilos/finanzas-que-debes.css";
-@import "./estilos/finanzas-recorrido.css";
 @import "./estilos/telar.css";
 @import "./estilos/finanzas-bolsillos.css"; /* Resumen, camino «A · Bolsillos» (Felipe 2026-11-09). */
 @import "./estilos/alta-guia.css";
 @import "./estilos/paleta-color.css"; /* La paleta con todos los colores de «Nuevo color» (ADR-0663). */
 @import "./estilos/ayuda-cabecera.css"; /* El «?» de la cabecera y su globo (ronda 18 de /unificar) */
-@import "./estilos/campana-efectos.css";
 @import "./estilos/etiqueta-prendas.css";
 @import "./estilos/campana-hoja.css";
 @import "./estilos/guias.css";
-@import "./estilos/acompanante.css";
 @import "./estilos/roles.css";
 @import "./estilos/alta-parecidas.css";
 @import "./estilos/lista-compra.css";
 @import "./estilos/puntos-avance.css";
-@import "./estilos/inicio-almacen.css";
-@import "./estilos/observatorio.css";
-@import "./estilos/cartel-club.css";
-@import "./estilos/rotulo.css";
 @import "./estilos/perfil-vidrio.css";
 /* Rótulos de anaquel, la pantalla: la Brother y la tira que sale (ADR-0366, act. 2026-10-12, maqueta A «Rollo»). */
-@import "./estilos/rotulos-brother.css";
 /* Etiquetas de precio, la pantalla: filas por modelo, el paso − n +, el tacho y su movimiento (2026-10-09). */
-@import "./estilos/etiquetas-precio.css";
 @import "./estilos/caja-cerrada.css";
 @import "./estilos/pie-acciones.css";
 @import "./estilos/club-publico.css";
@@ -49,7 +40,6 @@
 @import "./estilos/ficha-taller.css";
 @import "./estilos/ajuste-modelo.css";
 @import "./estilos/orden-pagina.css";
-@import "./estilos/ordenes-lista.css";
 @import "./estilos/compra-celular.css";
 @import "./estilos/vista-rapida.css";
 @import "./estilos/historial-prenda.css";
@@ -76,12 +66,6 @@
 /* Recibir mercadería, rediseño «B» (Felipe 2026-10-29): Dial, odómetro y las piezas vivas del conteo. */
 @import "./estilos/recepcion-viva.css";
 @import "./estilos/login.css";
-@import "./estilos/analisis-hoy.css";
-@import "./estilos/analisis-acaba.css";
-@import "./estilos/analisis-quieta.css";
-@import "./estilos/analisis-piso.css";
-@import "./estilos/analisis-pedir.css";
-@import "./estilos/analisis-ficha.css";
 @import "./estilos/vacio-aviso-buscador.css";
 @import "./estilos/barra-apilada.css";
 @import "./estilos/avance-anillo-copiar.css";
@@ -129,15 +113,12 @@
 /* El marco con vidrio (ADR-0596): la aurora del fondo, el riel del menú con su gota, la bandeja de submódulos y las dos islas
    de la cabecera. La estructura vive en components/AppShell.tsx. */
 @import "./estilos/vidrio/marco.css";
-@import "./estilos/vidrio/observatorio.css"; /* El Observatorio con vidrio (el Inicio del Admin, ADR-0322 / ADR-0596) */
 @import "./estilos/vidrio/inicio.css"; /* El Inicio de una líder con vidrio (inicio-lider-vidrio-2026-10) */
 @import "./estilos/vidrio/vender.css"; /* El Punto de Venta con vidrio: la mesa al aire, el ticket en placa y la prenda «Foto al aire» (docs/maquetas/vender-vidrio-2026-11/) */
 @import "./estilos/vidrio/caja.css"; /* La Caja con vidrio: titular A · Ahumado, barra de cierre B · Isla */
 @import "./estilos/vidrio/historial.css"; /* Ventas ▸ Historial con vidrio: los días en gota y la pila en lentes (docs/maquetas/historial-ventas-vidrio-2026-11/) */
-@import "./estilos/vidrio/clientes.css"; /* Clientes ▸ Fichas con vidrio: las filas en la placa (A · Filas en la placa) */
 @import "./estilos/vidrio/posventa.css"; /* Cambios y Devoluciones con vidrio: el paso a paso «A · Hilo de vidrio» y la balanza «A · Balanza» (docs/maquetas/posventa-vidrio-2026-11/) */
 @import "./estilos/vidrio/frescura.css"; /* Frescura del piso (Gestión) con vidrio: la aguja «B · Lentes del tono» y la prenda por decidir «B · Fila hundida» (docs/maquetas/frescura-vidrio-2026-11/) */
-@import "./estilos/vidrio/colaboradores.css"; /* Colaboradores ▸ Equipo con vidrio: el rol «A · Gotas» y «Esperan tu ok» «A · Lente ámbar» (docs/maquetas/colaboradores-vidrio-2026-11/) */
 @import "./estilos/vidrio/proveedores.css"; /* Compras ▸ Proveedores con vidrio: «Qué hacer» A · Placa con filas y «Comparar» A · Placa con columnas (docs/maquetas/proveedores-vidrio-2026-11/) */
 @import "./estilos/vidrio/recibir-mesa.css"; /* Contar en tres columnas: Re stock y Nuevo, la lista, la placa y el resumen */
 @import "./estilos/vidrio/recibir.css"; /* Recibir mercadería «B» con vidrio: superficies A · Vidrio claro y avances B · Tubo; el movimiento de ADR-0575 no cambia (docs/maquetas/recibir-vidrio-2026-11/) */

@@ -1,3 +1,4 @@
+import "@/app/estilos/inicio-almacen.css";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { Anillo } from "@/components/ui/Anillo";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";

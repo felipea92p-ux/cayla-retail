@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/finanzas-recorrido.css";
 import { useState, type CSSProperties } from "react";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
 import { soles } from "@/lib/flujo-caja-reglas";

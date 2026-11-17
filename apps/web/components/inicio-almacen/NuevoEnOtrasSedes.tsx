@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/inicio-almacen.css";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { categoriaDe } from "@/components/ui/PrendaCelda";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";

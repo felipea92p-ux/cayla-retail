@@ -1,3 +1,4 @@
+import "@/app/estilos/por-pantalla/rotulos.css";
 import { esTallaUnica } from "@/lib/etiqueta-precio-reglas";
 import { ALTO_SOLO_NOMBRE_MM, INTERLINEA_NOMBRE, MAX_SOLO_NOMBRE_MM, medidaNombre, textoVarios, type MedirEm, type Rotulo } from "@/lib/rotulos-reglas";
 

@@ -1,3 +1,4 @@
+import "@/app/estilos/inicio-almacen.css";
 import { ICONO_DEL_ACCESO_ALMACEN, TRAZOS_MENU } from "@/lib/menu-iconos";
 
 // Íconos del Inicio de Almacén, a 1.6 como el resto del Inicio. Los que llevan a una pantalla del menú (Stock, Traslados, Recibir,

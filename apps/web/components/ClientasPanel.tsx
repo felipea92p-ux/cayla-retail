@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/vidrio/clientes.css";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
