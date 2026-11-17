@@ -72,6 +72,8 @@ export function BarraAtributos({
 }) {
   // Solo cuenta en el celular: desde `sm` las píldoras están siempre a la vista.
   const [abiertos, setAbiertos] = useState(false);
+  // Sin buscador ni «+» (Temporadas) no hay a quién hacerle lugar: las píldoras se quedan a la vista también en el celular.
+  const seGuardan = Boolean(busqueda || agregar);
   // «+ Agregar categoría»: en el celular queda el «+» solo; el nombre entero sigue para el lector de pantalla y al pasar el mouse.
   const nombreAgregar = agregar?.texto.replace(/^\s*\+\s*/, "");
   return (
@@ -85,10 +87,11 @@ export function BarraAtributos({
         onClick={(e) => {
           if ((e.target as Element).closest("button")) setAbiertos(false);
         }}
-        className={`flex flex-wrap items-center gap-1.5 max-sm:order-2 max-sm:w-full ${abiertos ? "anim-revelar" : "max-sm:hidden"}`}
+        className={`flex flex-wrap items-center gap-1.5 ${seGuardan ? `max-sm:order-2 max-sm:w-full ${abiertos ? "anim-revelar" : "max-sm:hidden"}` : ""}`}
       >
         {filtros}
       </div>
+      {seGuardan && (
       <div className="ml-auto flex w-full max-w-full items-center justify-end gap-2 sm:w-auto sm:gap-3">
         {busqueda && <Buscador {...busqueda} />}
         <span className="shrink-0 sm:hidden">
@@ -108,6 +111,7 @@ export function BarraAtributos({
           </>
         )}
       </div>
+      )}
     </div>
   );
 }

@@ -257,10 +257,11 @@ export function MatrizStockFicha({
         valor={vista}
         onCambio={(v) => cambiarVista(v as VistaMatriz)}
         opciones={pestanas.map(([v, t]) => ({ clave: v, etiqueta: t, guia: `editar.vista-${v}` }))}
-        // Las cuatro palabras tienen que caber DENTRO del pozo también en un celular chico: con 6 px de aire por lado pedían 290 px y
-        // en una tarjeta de 316 (un teléfono de 350) «Insignias» se salía 8 px. El aire baja con la tarjeta y, bajo 312 px (un
-        // teléfono de 320), también el espaciado de las versalitas. Medido a 320, 350, 360 y 375 px de pantalla.
-        className="w-full @lg:w-auto [&>button]:min-w-0 [&>button]:flex-auto [&>button]:justify-center [&>button]:px-1 @max-[311px]:[&>button]:px-0.5 @max-[311px]:[&>button]:tracking-[0.06em] @min-[330px]:[&>button]:px-1.5 @lg:[&>button]:flex-none @lg:[&>button]:px-3"
+        // Las cuatro palabras tienen que caber DENTRO del pozo también en un celular chico: con 6 px de aire fijo por lado pedían 290 px
+        // y en una tarjeta de 316 (un teléfono de 350) «Insignias» se salía 8 px. Angosto, el aire mínimo es de 2 px y lo que sobra se
+        // reparte solo entre las cuatro (`flex-auto`): a 350 px quedan 20 px de holgura, por si la letra tarda en cargar. Bajo 300 px
+        // de tarjeta (un teléfono de 320) baja también el espaciado de las versalitas. Medido a 320, 350, 360 y 375 px de pantalla.
+        className="w-full @lg:w-auto [&>button]:min-w-0 [&>button]:flex-auto [&>button]:justify-center [&>button]:px-0.5 @max-[299px]:[&>button]:tracking-[0.06em] @lg:[&>button]:flex-none @lg:[&>button]:px-3"
       />
       </div>
 
@@ -452,11 +453,12 @@ export function MatrizStockFicha({
                     const etiqueta = `${nombreColor} en ${n.talla(t) || "Única"}`;
                     return (
                       <td key={f.clave} className={`border-t border-sand p-0 ${fondoFila}`}>
-                        {/* En Costos la celda lleva dos pisos (la caja y su margen): la fila crece lo que pidan en vez de medir fija. Con el
-                            dedo la caja es más alta y el «52 %» se montaba sobre la fila de abajo (2026-11-17). */}
+                        {/* En Costos la celda lleva dos pisos (la caja y su margen). Angosta, la fila crece lo que pidan: con el dedo la caja
+                            es más alta y el «52 %» se montaba sobre la fila de abajo (2026-11-17). Desde `@lg` caben en los 52 px de siempre,
+                            y cambiar de pestaña no mueve las filas. */}
                         <span
                           className={`flex items-center justify-center px-0.5 ${
-                            vista === "costo" && ctx.veCosto ? "min-h-12 flex-col gap-0.5 py-1 @lg:min-h-[52px]" : "h-12 @lg:h-[52px]"
+                            vista === "costo" && ctx.veCosto ? "min-h-12 flex-col gap-0.5 py-1 @lg:h-[52px] @lg:gap-px @lg:py-0" : "h-12 @lg:h-[52px]"
                           }`}
                         >
                           {enUnidades ? celdaUnidades(f, etiqueta) : enEtiquetas ? celdaEtiqueta(f, etiqueta) : celdaDinero(f, etiqueta, vista)}
