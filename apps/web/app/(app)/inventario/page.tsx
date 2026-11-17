@@ -39,6 +39,8 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BotonAjustarStock } from "@/components/existencias/BotonAjustarStock";
 import { CifrasExistencias } from "@/components/existencias/CifrasExistencias";
 import { ResumenExistencias } from "@/components/existencias/ResumenExistencias";
+import { FiltrosEnCabecera } from "@/components/existencias/FiltrosEnCabecera";
+import { AvisosExistencias } from "@/components/existencias/AvisosExistencias";
 import { ValorInventarioExistencias } from "@/components/existencias/ValorInventarioExistencias";
 import { pideAjustar, vueltaAEditar } from "@/lib/existencias-ajustar-desde-editar";
 import { pideSepararDanada } from "@/lib/danadas-lugar";
@@ -375,10 +377,20 @@ export default async function InventarioPage({
         // Apartados siguen en el menú lateral. `/inventario/bajar` conserva su ruta, sin botón en esta pantalla. La única excepción es
         // «Ajustar stock» (ADR-0494, Felipe 2026-10-23): el stock se carga aquí y no en Catálogo, y lo que no se ve no se usa.
         // En el celular va junto a «Resumen», los dos en ícono: las cifras y el valor a costo se abren desde ahí (Felipe 2026-11-17).
+        // Y, también solo en el celular, «Filtros» (sale de la barra del buscador) y «Avisos» (el piso sin cuadrar ya no es una franja
+        // sobre las prendas: es un ícono que late y abre su hoja). Los dos hablan con la lista por `cabecera-existencias.ts`.
         acciones={
           <>
             <BotonAjustarStock ubicacionId={ubicacionActivaId} puedeAjustar={puede(persona, "ajustarStock")} />
             <ResumenExistencias key={`resumen-${ubicacionActivaId}`} cifras={propsCifras} valor={propsValor} />
+            {/* Sin prendas no hay barra de filtros que abra la hoja: el botón no se dibuja. */}
+            {stock.length > 0 && <FiltrosEnCabecera />}
+            <AvisosExistencias
+              key={`avisos-${ubicacionActivaId}`}
+              sede={ubicacionActiva?.nombre ?? "esta sede"}
+              pisoSinCuadrarAntes={pisoSinCuadrarAntes}
+              puedeCuadrar={puedeBajarAlPiso}
+            />
           </>
         }
       >
