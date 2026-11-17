@@ -2473,17 +2473,17 @@ Son la excepción al patrón "Server Component lee, RPC escribe": existen solo
 cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
 
 - `/api/export/inventario` → CSV del catálogo (`lib/catalogo.ts`).
+- `/api/lucode/anular` y `/api/lucode/consultar-anulacion` → piden a Lucode la baja de un comprobante aceptado y preguntan si
+  SUNAT la confirmó. El pedido se guarda con la sesión de quien lo pide (`anular_comprobante`, firmado, solo en la sede del
+  comprobante); «anulado» lo escribe el servidor con la llave de servicio cuando SUNAT confirma (`fn_confirmar_baja_sunat` vía
+  `lib/confirmar-baja-sunat.ts`). Si eso falla, la baja queda en trámite y la confirma el barrido de `/api/lucode/reintentar`.
+  ADR-0016, ADR-0673.
 - `/api/lucode/emitir` → transmite a SUNAT, vía Lucode (PSE), un comprobante
   que `emitir_comprobante`/`emitir_nota` ya reservó. Traduce el formato propio
   a la forma del proveedor en `lib/lucode.ts` — cambiar de PSE es cambiar ese
   archivo, no el esquema. Si Lucode no responde, el comprobante se queda en su
   estado real (`pendiente`/`rechazado`) y el botón sigue a la vista: nunca se
   le inventa un estado ni se reintenta solo. ADR-0009.
-- `/api/lucode/anular` y `/api/lucode/consultar-anulacion` → piden a Lucode la baja de un comprobante aceptado y preguntan si
-  SUNAT la confirmó. El pedido se guarda con la sesión de quien lo pide (`anular_comprobante`, firmado, solo en la sede del
-  comprobante); «anulado» lo escribe el servidor con la llave de servicio cuando SUNAT confirma (`fn_confirmar_baja_sunat` vía
-  `lib/confirmar-baja-sunat.ts`). Si eso falla, la baja queda en trámite y la confirma el barrido de `/api/lucode/reintentar`.
-  ADR-0016, ADR-0673.
 - `/api/fotos/catalogo` → `POST` multipart (`frente`, y opcionales `espalda`, `detalle`, `molde`): la foto de catálogo con IA de una prenda
   (ADR-0659). Pide sesión y el módulo Productos, 12 por persona por minuto; llama a OpenAI (`lib/openai-imagen-reglas.ts`, llave en
   `lib/foto-catalogo.ts`, solo servidor) y devuelve el PNG transparente 1024×1280 con `x-costo-usd`. Sin llave, 503. No guarda nada: la
