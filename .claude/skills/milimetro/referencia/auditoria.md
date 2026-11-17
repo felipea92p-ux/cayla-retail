@@ -30,6 +30,12 @@ Resumen: <n> graves · <n> medias · <n> leves · <n> decididos a propósito
 
 En el chat, primero la línea de resumen y los graves; lo demás, en el archivo.
 
+**El informe es el único registro de la auditoría** (ADR-0259, act. 2026-11-17): ya no se escribe una fila en `docs/milimetro/README.md`.
+`pnpm milimetro:auditorias` arma el tablero leyendo la carpeta, así que el CI exige tres cosas a todo informe nuevo
+(`node scripts/milimetro/auditorias.mjs --verificar`): el nombre `AAAA-MM-DD-<slug>.md` en minúsculas, la primera línea con su título
+(`# Auditoría al milímetro — …`) y una línea que empiece con `Resumen:`. En el resumen, di los graves **abiertos**; lo que se arregló en el
+camino va después («1 media corregida»).
+
 ## Tablero de `proponer` (`docs/milimetro/propuestas.md`)
 
 ```
