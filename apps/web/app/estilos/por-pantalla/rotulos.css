@@ -1,0 +1,4 @@
+/* Los rótulos de anaquel y la tira de la Brother, en este orden. Se importa desde los componentes que usan sus clases (ADR-0674, CSS por
+   pantalla). Lo vigila `lib/css-por-pantalla.test.ts`. */
+@import "../rotulo.css";
+@import "../rotulos-brother.css";

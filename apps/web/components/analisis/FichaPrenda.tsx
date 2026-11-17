@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/analisis-pestanas.css";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";

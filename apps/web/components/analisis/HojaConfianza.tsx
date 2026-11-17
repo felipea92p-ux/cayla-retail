@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/analisis-pestanas.css";
 import { Modal } from "@/components/ui/Modal";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { AnillosCondiciones, LineasDeLoQueFalta } from "@/components/analisis/TodaviaNo";

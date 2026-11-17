@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/ordenes-lista.css";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { Chip } from "@/components/ui/Chip";

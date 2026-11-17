@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/inicio-almacen.css";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Ico } from "./iconos";

@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/analisis-pestanas.css";
 import { ETIQUETA_LIQUIDAR_DESDE } from "@/lib/analisis-quietas";
 import { useRef, useState, type FormEvent } from "react";
 import { Modal } from "@/components/ui/Modal";
