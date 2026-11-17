@@ -23,7 +23,7 @@ export default async function PreguntasEquipoPage({ searchParams }: { searchPara
   const sede = persona.vista === "global" ? null : persona.ubicacionId;
   // El informe del lunes (actividad 10) junta todas las sedes: solo lo pide quien las ve (el líder o el Admin); la base lo vuelve a exigir.
   const veInforme = persona.rol === "lider" || persona.esAdmin;
-  const [{ datos, falla }, encendido, informes] = await Promise.all([
+  const [{ datos, titulos, falla }, encendido, informes] = await Promise.all([
     getPreguntasEquipo(desde, hasta, sede),
     getAsistenteEncendido(sede),
     veInforme ? getInformesAsistente() : Promise.resolve(null),
@@ -45,6 +45,7 @@ export default async function PreguntasEquipoPage({ searchParams }: { searchPara
       ) : datos ? (
         <PreguntasEquipo
           datos={datos}
+          titulos={titulos}
           encendido={encendido}
           puedeEncender={persona.modulos.some((x) => x.clave === "configuracion")}
           todasLasSedes={sede === null}

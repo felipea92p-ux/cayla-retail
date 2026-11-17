@@ -21,6 +21,7 @@ import {
   queRespondio,
   respuestaCorta,
   type DatosEquipo,
+  type TitulosDeGuias,
   type FiltroEquipo,
   type PreguntaEquipo,
 } from "@/lib/asistente/equipo";
@@ -45,7 +46,7 @@ const FILTROS: { clave: FiltroEquipo; texto: string }[] = [
   { clave: "no_sirvio", texto: "No le sirvió" },
 ];
 
-function FilaPregunta({ p, todasLasSedes }: { p: PreguntaEquipo; todasLasSedes: boolean }) {
+function FilaPregunta({ p, todasLasSedes, titulos }: { p: PreguntaEquipo; todasLasSedes: boolean; titulos: TitulosDeGuias }) {
   const clase = CLASES[claseDe(p.tipo)];
   const quien = p.persona ?? "Una terminal";
   return (
@@ -69,7 +70,7 @@ function FilaPregunta({ p, todasLasSedes }: { p: PreguntaEquipo; todasLasSedes: 
           {clase.nombre}
         </Chip>
         <span className="mt-1 block truncate text-sm text-taupe" title={queRespondio(p)}>
-          {respuestaCorta(p)}
+          {respuestaCorta(p, titulos)}
         </span>
       </span>
       <span role="cell">
@@ -88,6 +89,7 @@ function FilaPregunta({ p, todasLasSedes }: { p: PreguntaEquipo; todasLasSedes: 
 
 export function PreguntasEquipo({
   datos,
+  titulos,
   encendido,
   puedeEncender,
   todasLasSedes,
@@ -95,6 +97,8 @@ export function PreguntasEquipo({
   informe,
 }: {
   datos: DatosEquipo;
+  /** El título de cada guía que sale este mes: lo resuelve el servidor, para no bajar el texto de todas las guías. */
+  titulos: TitulosDeGuias;
   /** Si el asistente está encendido en la sede que se mira (en CAYLA Global, en alguna). */
   encendido: boolean;
   /** Si la cuenta ve Configuración, donde se enciende. */
@@ -175,7 +179,7 @@ export function PreguntasEquipo({
               {datos.pantallas.map((p) => (
                 <li key={p.guiaId}>
                   <div className="flex items-baseline justify-between gap-3 text-sm">
-                    <span className="min-w-0 truncate">{nombreDeGuia(p.guiaId) ?? p.guiaId}</span>
+                    <span className="min-w-0 truncate">{nombreDeGuia(p.guiaId, titulos) ?? p.guiaId}</span>
                     <span className="shrink-0 tabular-nums text-taupe">
                       {p.n}
                       {p.no > 0 ? ` · ${p.no} no le sirvió` : ""}
@@ -234,7 +238,7 @@ export function PreguntasEquipo({
             Las cifras de arriba cuentan todo el mes; la lista muestra las 300 más recientes.
           </Vacio>
         ) : (
-          enPagina.map((p) => <FilaPregunta key={p.id} p={p} todasLasSedes={todasLasSedes} />)
+          enPagina.map((p) => <FilaPregunta key={p.id} p={p} todasLasSedes={todasLasSedes} titulos={titulos} />)
         )}
         {totalPaginas > 1 ? (
           <div className="flex justify-end px-5 py-2.5">

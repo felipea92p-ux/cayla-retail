@@ -363,6 +363,49 @@ de la fase 4 (no se alcanza con la base al día); `/chaos` y `guias:recorrer` so
 **Visto de paso** (al backlog, sin tocar): el dial de «¿Cuántas llegaron?» no hidrata igual en el servidor y en el navegador (el último
 decimal de dos coordenadas), y **Preguntas del equipo** quedó como la pantalla más pesada (786 KB): baja el texto de todas las guías (650 KB).
 
+## Actualización 2026-11-17 (g) — actividad 7, quinto corte: Preguntas del equipo, y zod fuera de todo el navegador
+
+Tras el cuarto corte, la pantalla más pesada era Gestión ▸ Preguntas del equipo: 786 KB propios. Medida con `por-modulo.mjs`, 650 eran el
+texto de las 79 guías interactivas (`lib/guias/pantallas/*.ts`) y 52, zod. Ninguna de las dos cosas hacía falta en el navegador: eran tres
+arrastres como el de `money`, y los tres se quitan moviendo código, sin diferir nada y sin agregar ningún punto de falla.
+
+**1. El título de una guía lo resuelve el servidor.** La pantalla dice a qué pantalla llevó cada respuesta («→ Caja»). Para ese nombre,
+`lib/asistente/equipo.ts` buscaba en `GUIAS` (el registro, que importa el texto de todas las guías) desde el navegador.
+
+- DECIDÍ: `getPreguntasEquipo` (servidor) devuelve, junto con los datos, el título de las guías que salen ese mes (`lib/guias/titulos.ts`),
+  y `nombreDeGuia` / `respuestaCorta` lo reciben como parámetro. `equipo.ts` ya no importa el registro.
+- DESCARTÉ: un índice liviano de títulos escrito aparte, porque serían dos listas que hay que mantener iguales con una prueba; y bajar las
+  guías bajo demanda, porque la pantalla nunca necesitó su texto.
+- SE ROMPE SI: un componente del navegador importa `lib/guias/titulos.ts` o el registro (vuelve a bajar todo). Lo vigila el candado.
+
+**2. El esquema de zod del informe del lunes vive aparte** (`lib/asistente/informe-esquema.ts`). Estaba en `informe.ts`, que también
+importa la tarjeta del informe: por dos constantes y una función, el navegador bajaba zod y las instrucciones que se le dan a la IA.
+
+**3. Los límites del asistente viven aparte** (`lib/asistente/limites.ts`: el tope del mes y el largo de una pregunta). Configuración leía
+`TOPE_MENSUAL_USD` de `respuesta.ts`, que arma un esquema de zod al cargarse: el armado dejaba 0,6 KB de ese archivo y los 52 de zod.
+`respuesta.ts` sigue exportando lo que usa el servidor.
+
+| KB propios | Antes del quinto corte | Después | |
+|---|---|---|---|
+| Preguntas del equipo | 786 | 69 | −91 % |
+| Configuración | 384 | 331 | −14 % |
+| Pantallas que bajan zod | 2 (eran 52 antes del cuarto corte) | 0 | |
+| Las 138 pantallas, sumadas (31 878 antes del cuarto corte) | 28 619 | 27 849 | −13 % en total |
+
+La más pesada vuelve a ser contar un envío (765 KB); la mediana queda en 173. El marco no cambia (1 068 KB).
+
+**Candado** (`lib/vender-no-se-arrastra.test.ts`): desde la lista de preguntas y la tarjeta del informe no hay camino de imports fijos al
+registro de las guías ni al esquema; y, general, **ningún archivo de `components/` llega por imports fijos a un archivo que importa zod**.
+
+**Verificado.** Tipos, lint, Knip (los dos) y las pruebas (las de `equipo` cubren el título pedido, la guía que ya no existe y que el
+servidor manda solo los títulos que se piden). En el navegador, en local: Preguntas del equipo carga sin errores (vacía: la base local no
+tiene preguntas) y Configuración ▸ Empresa y tiendas dice «Este mes: US$ 0,00 de US$ 30,00».
+**No verificado.** La lista con preguntas de verdad (la base local no tiene ninguna y es compartida: no se sembraron); el informe del lunes
+armado por la IA (pide la clave); el cajón del asistente abierto (está apagado en la sede local). Los tres quedan cubiertos por tipos y pruebas.
+
+**Visto de paso.** El cajón del asistente y «Elegir demo» sí bajan el texto de todas las guías cuando se abren (van aparte del marco). El
+cajón las necesita para buscar; «Elegir demo» solo pregunta si una pantalla tiene guía. Queda en el backlog.
+
 ## Para Dynamic
 
 `components/ui/BotonLiviano.tsx` es una pieza nueva en una carpeta que Dynamic mira: **queda como tarea allá**, si quieren el modo liviano.

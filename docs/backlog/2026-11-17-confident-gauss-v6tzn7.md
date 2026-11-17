@@ -153,10 +153,16 @@ Lo que sigue, en orden de lo que más pesa (medir SIEMPRE antes: buscar primero 
   `SalidaHecha`), el envío ya cerrado (28) y `rendicion-reglas` (6, por una constante). Ninguno llega al 5 %.
 - [ ] El dial de «¿Cuántas llegaron?» (`recepcion-conteo/Dial.tsx`) no hidrata igual en servidor y navegador: el último decimal de dos
   coordenadas de una línea. React lo avisa en desarrollo y no lo corrige; redondear las coordenadas lo quita.
-- [ ] **Lo que sigue, medido el 2026-11-17 tras el cuarto corte** (KB propios; mediana 175): **Preguntas del equipo** 786 (baja el texto de
-  TODAS las guías, 650 KB: el candidato más claro), contar un envío 765, Vender 625, Recibir 597, Editar producto 588, Nuevo producto 579,
-  Apartados 565, `/produccion/ordenes/[numero]` 553, Pedidos web 509, Campañas e Insignias 498. Para cada una: `por-modulo.mjs <ruta> propio`
-  (quién pone cada KB) y `si-corto.mjs` (cuánto saldría).
+- [x] **Quinto corte (2026-11-17, ADR-0674 act. g): Preguntas del equipo 786 → 69 KB** (el título de una guía lo manda el servidor) y zod
+  fuera de todo el navegador (Configuración 384 → 331). Las 138 pantallas sumadas: 27 849 KB (−13 % desde antes del cuarto corte).
+- [ ] No verificado del quinto corte: Preguntas del equipo con preguntas de verdad (la base local no tiene), el informe del lunes armado
+  por la IA y el cajón del asistente abierto. Mirarlo en producción tras publicar.
+- [ ] «Elegir demo» (`components/guias/ElegirDemoModal.tsx`) baja el texto de las 79 guías (650 KB) solo para saber si una pantalla tiene
+  guía; y `Acompanante.tsx`, para el título de una pantalla. Van aparte del marco (bajan al abrirse), pero un índice del servidor los aligera.
+  El cajón del asistente sí necesita los textos para buscar.
+- [ ] **Lo que sigue, medido el 2026-11-17 tras el quinto corte** (KB propios; mediana 173): contar un envío 765, Vender 625, Recibir 597,
+  Editar producto 588, Nuevo producto 579, Apartados 565, `/produccion/ordenes/[numero]` 553, Pedidos web 509, Campañas e Insignias 498.
+  Ya no hay un bulto evidente: cada una pide `por-modulo.mjs <ruta> propio` (quién pone cada KB) y `si-corto.mjs` (cuánto saldría).
 - [ ] Visto al probar sin red: la guía interactiva (`MotorGuias`, `next/dynamic`) lanza `ChunkLoadError` si su código no baja. No tumbó
   la pantalla en la prueba, pero es el patrón que `hojaBajoDemanda` evita.
 - [x] **El marco** (2026-11-17): medido archivo por archivo y **no se recorta**. De sus 1 069 KB, 486 son React y Next, 215 Supabase y 311

@@ -46,3 +46,9 @@ Qué hice: al medir contar un envío salió que 52 de las 139 pantallas bajaban 
 envío, además, la hoja que crea una prenda y el paso «Cerrar» bajan cuando hacen falta: pasó de 1 031 a 765 KB. Las 138 pantallas, −10 %.
 Por qué así: zod y dos arrastres se quitan sin agregar ningún punto de falla; lo diferido guarda en la base, así que sin red no servía igual.
 Felipe se lleva: 4 commits locales sin subir. Decide si se borran los esquemas de zod (nadie los usa) y la recepción de la fase 4.
+
+## 2026-11-17 (Actividad 7, quinto corte: Preguntas del equipo y zod fuera del navegador)
+Qué hice: Preguntas del equipo bajaba el texto de las 79 guías para decir el nombre de una pantalla; ahora ese nombre lo manda el servidor
+y la pantalla pasa de 786 a 69 KB. Configuración bajaba zod por leer una constante: ya no. Ninguna pantalla baja zod.
+Por qué así: eran tres arrastres; se quitan moviendo código, sin diferir nada, así que no hay nada nuevo que pueda fallar.
+Felipe se lleva: va en un PR aparte, encima del #1925. Con preguntas de verdad no se probó: la base local no tiene ninguna.
