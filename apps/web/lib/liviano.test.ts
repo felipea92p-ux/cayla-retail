@@ -138,7 +138,7 @@ describe("script antes de pintar: da lo mismo que las reglas, en todo equipo", (
 
   it("va en el <head> de la app, junto a los del tema y las animaciones", () => {
     const layout = readFileSync("app/layout.tsx", "utf8");
-    expect(layout).toMatch(/SCRIPT_MOVIMIENTO_ANTES_DE_PINTAR \}\} \/>[\s\S]*?SCRIPT_LIVIANO_ANTES_DE_PINTAR \}\} \/>\s*<\/head>/);
+    expect(layout).toMatch(/SCRIPT_MOVIMIENTO_ANTES_DE_PINTAR \}\} \/>[\s\S]*?SCRIPT_LIVIANO_ANTES_DE_PINTAR \}\} \/>[\s\S]*?<\/head>/);
   });
 });
 

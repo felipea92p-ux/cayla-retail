@@ -111,6 +111,7 @@
 @import "./estilos/vidrio/recetas.css";
 @import "./estilos/vidrio/aguanta.css"; /* La versión maciza de las recetas (ADR-0611, mejora 7). */
 @import "./estilos/liviano.css"; /* El modo liviano del teléfono de gama baja (ADR-0674): la misma cara maciza, por atributo. */
+@import "./estilos/navegador-viejo.css"; /* «Actualiza el navegador» (ADR-0674): CSS de los viejos, fuera de toda capa. */
 /* La pantalla (cabecera, tarjetas de cifra, pestañas, tablas) antes que la hoja: dentro de una hoja manda la lámina de la hoja. */
 @import "./estilos/vidrio/pantalla.css";
 @import "./estilos/tabla-corte.css"; /* la tabla mira su ancho, no el de la ventana */
