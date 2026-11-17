@@ -47,6 +47,14 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "En el celular, los números de la tienda están aquí: cuántas prendas hay colgadas, guardadas y en camino, y el valor a costo. Toca «Colgadas» o «Guardadas» y la lista deja solo esas prendas.",
     },
     {
+      // Solo en el celular (bajo 640 px): en la computadora el aviso es la franja sobre las tarjetas (el paso «aviso-cuadre»).
+      id: "avisos",
+      ancla: "existencias.avisos",
+      opcional: true,
+      titulo: "Avisos de la tienda",
+      texto: "En el celular, este ícono aparece cuando hay algo que saber antes de fiarte de los números: hoy, que el piso nunca se cuadró. Tócalo y se abre el aviso con su explicación y «Cuadrar el piso». Sin avisos, el ícono no está.",
+    },
+    {
       id: "buscador",
       ancla: "existencias.buscador",
       opcional: true,
@@ -83,7 +91,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.filtros",
       opcional: true,
       titulo: "Filtros y vista",
-      texto: "Aquí se abren los filtros y la forma de ver la lista. El número en la esquina dice cuántos filtros tienes puestos (te lo abrimos).",
+      texto: "Aquí se abren los filtros y la forma de ver la lista. Cuando hay filtros puestos, el botón lo marca: con su número o, en el celular, con un punto (te lo abrimos).",
     },
     {
       id: "panel-filtros",
