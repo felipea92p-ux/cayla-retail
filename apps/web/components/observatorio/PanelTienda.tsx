@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/observatorio.css";
 // El panel de una tienda (ADR-0322), a la derecha del mapa acercado: su cabecera (caja, turno, ‹ › para pasar de tienda),
 // sus cifras y cuatro pestañas — Ritmo (el % de la meta acumulado contra el periodo anterior y, con un toque, la ventaja sobre
 // otra tienda o sobre el promedio de las demás; y las horas pico de 4 semanas), Productos (qué categorías pesan y lo que más sale), Equipo (cuánto vendió

@@ -1,3 +1,4 @@
+import "@/app/estilos/por-pantalla/observatorio.css";
 // Los íconos del Observatorio (ADR-0322): los mismos trazos de la maqueta aprobada (docs/maquetas/inicio-admin-v3-2026-10/),
 // dibujados con `currentColor` para que tomen el color de su texto.
 

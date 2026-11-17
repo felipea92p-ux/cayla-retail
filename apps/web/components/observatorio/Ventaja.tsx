@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/observatorio.css";
 // La ventaja (ADR-0322, act. 2026-11-05; Felipe eligió «A · La ventaja»): al apretar «vs», la pestaña Ritmo deja de encimar dos
 // curvas que siempre suben y dibuja UNA línea: cuántos soles le lleva esta tienda a la otra en cada momento. Por encima de
 // «Parejas» va adelante; por debajo, detrás. Las cuentas y las frases, puras, viven en `observatorio-reglas.ts`.

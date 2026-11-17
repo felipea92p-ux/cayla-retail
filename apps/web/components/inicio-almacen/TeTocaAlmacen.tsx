@@ -1,3 +1,4 @@
+import "@/app/estilos/inicio-almacen.css";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import type { Aviso, AvisosVisibles } from "@/lib/inicio-avisos";

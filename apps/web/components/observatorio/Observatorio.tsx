@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/observatorio.css";
 // Observatorio: el Inicio de las cuentas Admin (ADR-0322; maqueta aprobada: docs/maquetas/inicio-admin-v3-2026-10/). Quien
 // no vende y quiere ver cómo va el negocio: cuánto se vendió contra la meta, el mapa de las tiendas (al elegir una, el mapa
 // se acerca a su departamento y el panel de la derecha muestra su detalle), el Taller y lo que hay por revisar.

@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/rotulos.css";
 import { useEffect, useState } from "react";
 import { anchoEm, type MedirEm } from "@/lib/rotulos-reglas";
 

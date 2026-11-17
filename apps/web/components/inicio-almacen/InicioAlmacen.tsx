@@ -1,3 +1,4 @@
+import "@/app/estilos/inicio-almacen.css";
 import type { ReactNode } from "react";
 import type { DatosInicioAlmacen } from "@/lib/inicio-almacen";
 import type { AvisosVisibles } from "@/lib/inicio-avisos";

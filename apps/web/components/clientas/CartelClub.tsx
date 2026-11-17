@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/cartel-club.css";
 import { useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";

@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/observatorio.css";
 // Lo de abajo del Observatorio (ADR-0322): el Taller y «Por revisar». Cada aviso es un orbe con su cuenta y un aro que se
 // llena con los días que lleva esperando el más antiguo (a los 7, lleno); lo urgente respira. Tocar un orbe abre su
 // detalle debajo, con una transición que lleva el orbe a la tarjeta (View Transitions donde el navegador las tiene); un

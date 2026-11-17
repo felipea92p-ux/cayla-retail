@@ -106,7 +106,14 @@ describe("patronDeRuta: a los registros va el módulo, nunca el id", () => {
   });
 });
 
-const T: TiempoDePantalla = { ruta: "/productos/[id]", ms: 812, sedeId: SEDE, sinEsqueleto: false, version: "98b9137f3a1c" };
+const T: TiempoDePantalla = {
+  ruta: "/productos/[id]",
+  ms: 812,
+  sedeId: SEDE,
+  sinEsqueleto: false,
+  version: "98b9137f3a1c",
+  equipo: { ram: 2, nucleos: 8, red: "4g", ahorroDeDatos: false, tactil: true },
+};
 
 describe("armarLote: un envío solo cuando hay qué mandar, de a 50", () => {
   it("cola vacía: no se llama al servidor", () => {
@@ -152,6 +159,21 @@ describe("leerLote: el servidor solo cree lo que tiene la forma exacta", () => {
     expect(leerLote(cuerpo([T, ...malas, T]))).toEqual([T, T]);
   });
 
+  it("una pestaña abierta antes de ADR-0674 manda sin equipo: la medición vale igual, con equipo null", () => {
+    const vieja: Partial<TiempoDePantalla> = { ...T };
+    delete vieja.equipo;
+    expect(leerLote(cuerpo([vieja]))).toEqual([{ ...T, equipo: null }]);
+  });
+
+  it("un equipo fuera de forma no tira la medición: queda sin equipo", () => {
+    expect(leerLote(cuerpo([{ ...T, equipo: { ram: 3, nucleos: 8, red: "4g", ahorroDeDatos: false, tactil: true } }]))).toEqual([{ ...T, equipo: null }]);
+  });
+
+  it("50 mediciones con su equipo caben en un envío", () => {
+    const lote = armarLote(Array.from({ length: 50 }, () => ({ ...T, ruta: "/compras/factura/[compraId]" })));
+    expect(leerLote(lote!.cuerpo)).toHaveLength(50);
+  });
+
   it("la sede llega en minúsculas; un lote enorme no se lee", () => {
     expect(leerLote(cuerpo([{ ...T, sedeId: SEDE.toUpperCase() }]))[0]?.sedeId).toBe(SEDE);
     expect(leerLote(cuerpo(Array.from({ length: 400 }, () => T)))).toEqual([]);
@@ -159,7 +181,7 @@ describe("leerLote: el servidor solo cree lo que tiene la forma exacta", () => {
 });
 
 describe("lineaDeRegistro: una línea JSON por medición, sin nada personal", () => {
-  it("lleva el evento, la ruta, los ms, la sede, si hubo esqueleto y la versión; nada más", () => {
+  it("lleva el evento, la ruta, los ms, la sede, si hubo esqueleto, la versión y la clase del equipo; nada más", () => {
     expect(JSON.parse(lineaDeRegistro(T))).toEqual({
       evento: "tiempo_de_pantalla",
       ruta: "/productos/[id]",
@@ -167,6 +189,15 @@ describe("lineaDeRegistro: una línea JSON por medición, sin nada personal", ()
       sede_id: SEDE,
       sin_esqueleto: false,
       version: "98b9137f3a1c",
+      ram: 2,
+      nucleos: 8,
+      red: "4g",
+      ahorro_datos: false,
+      tactil: true,
     });
+  });
+
+  it("sin equipo, sus columnas van en null (no se confunde con «sin ahorro de datos»)", () => {
+    expect(JSON.parse(lineaDeRegistro({ ...T, equipo: null }))).toMatchObject({ ram: null, nucleos: null, red: null, ahorro_datos: null, tactil: null });
   });
 });

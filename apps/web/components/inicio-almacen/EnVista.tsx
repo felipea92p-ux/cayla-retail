@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/inicio-almacen.css";
 import type { CSSProperties, ReactNode } from "react";
 import { useAlVerse } from "./useAlVerse";
 
