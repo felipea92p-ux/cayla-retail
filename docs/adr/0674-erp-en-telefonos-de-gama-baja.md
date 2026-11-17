@@ -108,6 +108,46 @@ El marco pasa de 936 KB (303 comprimidos) a 626 KB (200), y el JavaScript total 
   no hubo diferencia medible. Se mide en un teléfono real y con el punto 1. Tampoco se vieron el Inicio de almacén, el acompañante ni la vista
   previa de campañas (quedan cubiertos solo por la prueba del CSS), ni la estación de impresión encendida.
 
+## Actualización 2026-11-17 — Fase 2 (6a y 6b): lo que se está anotando no se pierde si Android cierra la pestaña
+
+**El problema.** En un teléfono de 2–4 GB, saltar a la cámara, a WhatsApp o a Yape hace que Android descarte la pestaña de Chrome; al volver
+la recarga. El ticket que se armaba en Vender y la compra que se anotaba en «Compré ropa» vivían solo en la pantalla y se perdían. La guardia
+de «salir sin guardar» no alcanza: nadie salió.
+
+**La regla común.** Mientras se anota, una FOTO en la memoria de ESA pestaña (`sessionStorage`, `lib/almacen-local.ts` con `"pestana"`):
+sobrevive a la recarga y al descarte, y no la ven otras pestañas ni otra cuenta. Nada se restaura en silencio: siempre hay un aviso.
+
+### 6a · El ticket de Vender (`lib/ticket-en-curso.ts`, `components/PuntoDeVenta.tsx`)
+
+- DECIDÍ: la foto vuelve como un ticket más de «En espera», con id nuevo, y se retoma con `retomar()` (precios y campañas al día). Desde que
+  sale un cobro la foto se borra y no se vuelve a guardar hasta que el cobro se resuelve.
+- DESCARTÉ: restaurar el ticket directo en pantalla, porque llegaría con los precios y las campañas de cuando se cerró la pestaña, y porque
+  un ticket que ya se cobró podría volver y cobrarse dos veces.
+- SE ROMPE SI: dos pestañas de Vender de la misma sede se recuperan en el mismo instante (las dos leen «En espera» vacía y la segunda pisa a
+  la primera). Android restaura una pestaña a la vez, al mirarla; probado con dos pestañas recargadas una tras otra: cada ticket volvió una vez.
+
+### 6b · La compra de «Compré ropa» (`lib/compra-en-curso.ts`, `components/mi-plata/RegistrarCompra.tsx`)
+
+- DECIDÍ: la foto conserva el IDENTIFICADOR de la compra y la compra se rearma donde iba (en «revisar», o en el papel si estaba ahí). No lleva
+  el candado de Vender porque la base no repite una compra con el mismo identificador (20261023005000). Una llave por cuenta
+  (`cayla:mis-compras:<persona>:en-curso`; una terminal, por su sede).
+- DESCARTÉ: darle un identificador nuevo al recuperarla (como el ticket), porque si la pestaña murió justo al guardar y la compra sí llegó,
+  guardarla otra vez la duplicaría y su plata bajaría dos veces.
+- SE ROMPE SI: la compra ya estaba guardada y se recupera igual. Dos redes: (1) al abrir, si su identificador ya está entre las compras de
+  «Mis compras» (`guardadas`, de `getMiPlata()`), no se recupera y se avisa «ya se guardó» —sin esto la pantalla final restaba su plata dos
+  veces, visto al probar—; (2) si la base responde `compra_rapida_otros_datos`, la foto se borra y no se vuelve a guardar: antes, «recarga la
+  pantalla» la traía de vuelta con el mismo identificador y el mismo rechazo, sin salida.
+- Lo que no vuelve: el archivo de la foto del papel (no cabe en la memoria de la pestaña; el aviso pide tomarla otra vez) y la hoja de una
+  prenda a medio escribir. Una prenda cuya tienda o categoría dejó de existir se saca y el aviso dice cuántas.
+
+**Verificado (local, 375 px, Playwright; base restaurada después con `estado.mjs`):** Compré ropa: recargar en «revisar» y en el papel
+vuelve con el mismo identificador, el tipo, el monto y el medio; «Empezar de nuevo» limpia; guardar, reponer la foto y recargar → «ya se
+guardó», una sola fila en `compra_papeles`; corte de red con la compra ya en la base + un cambio + guardar → «Esta compra ya estaba
+guardada», recargar abre limpio; dos compras de prueba, ninguna repetida. Vender: dos pestañas, cada una con su foto; recargadas, cada ticket
+entra una vez a «En espera» y otra recarga no lo duplica.
+**No verificado:** un teléfono real con la pestaña descartada por Android (aquí se simuló con una recarga); la corrida completa de `/chaos`
+(se hicieron a mano las familias «red y sesión» y «navegación torcida» sobre estos dos flujos).
+
 ## Para Dynamic
 
 `components/ui/BotonLiviano.tsx` es una pieza nueva en una carpeta que Dynamic mira: **queda como tarea allá**, si quieren el modo liviano.

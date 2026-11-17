@@ -1,6 +1,7 @@
 # 2026-11-17 · El ERP en teléfonos de gama baja — TRASPASO para seguir en otra cuenta
 
-Rama `claude/confident-gauss-v6tzn7`. Bitácora: `docs/bitacora/2026-11-17-confident-gauss-v6tzn7.md`. Decisiones y números:
+Rama `claude/confident-gauss-continue-f86c75` (la `claude/confident-gauss-v6tzn7` se fusionó con la Fase 1 y sus dos commits de más
+se trajeron aquí el 2026-11-17). Bitácora: `docs/bitacora/2026-11-17-confident-gauss-v6tzn7.md`. Decisiones y números:
 `docs/adr/0674-erp-en-telefonos-de-gama-baja.md`. Auditoría: `docs/milimetro/auditorias/2026-11-17-telefonos-gama-baja.md`.
 
 **Para retomar:** abre una sesión en esta rama (`git fetch origin claude/confident-gauss-v6tzn7 && git checkout claude/confident-gauss-v6tzn7`),
@@ -49,8 +50,8 @@ JavaScript total por pantalla, antes → después (armado de producción local):
 
 | # | Actividad | Estado |
 |---|---|---|
-| 6a | El ticket de **Vender** sobrevive a que Android cierre la pestaña | **Hecho en esta rama** (commit `d837a8b`), NO en producción |
-| 6b | La compra a medio registrar en **Mis compras** sobrevive igual | Diseño listo (abajo), sin código |
+| 6a | El ticket de **Vender** sobrevive a que Android cierre la pestaña | **Hecho** (commit `d837a8b`), verificado con dos pestañas; NO en producción |
+| 6b | La compra a medio registrar en **Mis compras** sobrevive igual | **Hecho** (2026-11-17), verificado en local a 375 px; NO en producción |
 | 7 | Partir el código de las pantallas pesadas | Sin empezar (datos y método abajo) |
 | 8 | Recorrer las pantallas de los 4 módulos a 375 px y arreglar lo roto | Sin empezar |
 | 9 | Probar en un teléfono barato real | Lo hace Felipe |
@@ -72,34 +73,40 @@ y, al volver, el ticket NO reapareció (sin la guardia, se habría podido cobrar
 Falta antes de producción:
 - [ ] `/abrir-pr` (la casilla de 375 px de Vender: capturas en local; la de `/milimetro`: el único cambio visible es un `avisar.aviso` del
   sistema, así que «Al milímetro no aplica» con ese motivo, o `/milimetro auditar /vender`).
-- [ ] `/chaos` sobre Vender con las familias «red y sesión» y «navegación torcida» (lo de arriba fue un ataque a mano, no la corrida
-  completa). Dos pestañas de Vender en la misma sede: cada una tiene su foto (sessionStorage), comprobar que no se pisan.
+- [x] Dos pestañas de Vender en la misma sede (2026-11-17, Playwright a 375 px): cada una guarda su foto; recargadas una tras otra, cada
+  ticket entra UNA vez a «En espera» y otra recarga no lo duplica. Sin cobros: no se escribió en la base.
+- [ ] La corrida completa de `/chaos` sobre Vender (familias «red y sesión» y «navegación torcida») sigue pendiente: lo hecho son ataques
+  a mano sobre este flujo.
+- [ ] Visto en esa prueba: los dos tickets recuperados se llaman «Cliente 1» (cada pestaña numera por su cuenta). No rompe nada; si
+  molesta, renombrar al entrar a la espera cuando el nombre ya existe.
 - [ ] Decidir con Felipe si, cuando el «cobro en duda» se resuelve como «no se registró» tras una recarga, el ticket debería volver a la
   espera. Hoy se pierde (el comportamiento de antes); recuperarlo exigiría guardar la foto junto al cobro anotado.
 
-### 6b · Mis compras: la compra a medio registrar (diseño listo)
+### 6b · Mis compras: la compra a medio registrar (hecho, falta el PR)
 
-Archivo: `components/mi-plata/RegistrarCompra.tsx` (1 816 líneas; pasos `proveedor → habituales → revisar → papel → listo`).
+Qué hace (`lib/compra-en-curso.ts` con su prueba, `components/mi-plata/RegistrarCompra.tsx`, `compra/page.tsx`): mientras se anota, una foto
+en `sessionStorage` (`cayla:mis-compras:<persona>:en-curso`; una terminal, por su sede) con el identificador de la compra, el proveedor, las
+prendas, el paso y lo del papel. Al volver, la compra se rearma en «revisar» (o en el papel, si estaba ahí) con el aviso «Seguimos con la
+compra que estabas anotando» y el botón «Empezar de nuevo». Decisiones y lo que se descartó: ADR-0674, «Actualización 2026-11-17».
 
-**Lo que lo hace seguro:** cada compra lleva su `id` (`useState(() => crypto.randomUUID())`, viaja como `p_id` a `registrarCompraRapida`) y
-la base no repite una compra con el mismo id («si ya se guardó, no se repite»). Si la foto conserva ese `id`, recuperarla nunca duplica la
-compra, aunque la pestaña haya muerto en pleno guardado. No hace falta el candado de Vender.
+Dos cosas que el diseño no traía y salieron al probar:
+- **La compra ya estaba guardada** (la pestaña murió justo al guardar): la base no la duplica, pero la pantalla final restaba su plata dos
+  veces («Gastaste S/ 150 más» con una compra de S/ 75). Ahora la página pasa los identificadores de «Mis compras» (`guardadas`) y esa foto
+  no se recupera: avisa «La compra que estabas anotando ya se guardó» con «Ver Mis compras».
+- **El callejón de `compra_rapida_otros_datos`**: tras un corte ambiguo y un cambio, la base decía «recarga la pantalla» y la recarga traía
+  la misma compra con el mismo identificador. Ahora la foto se borra en ese rechazo, la guardia de salida se retira y el aviso lleva a Mis compras.
 
-Diseño:
-1. **Foto** en `sessionStorage` (`leer/guardar/borrar` de `lib/almacen-local.ts` con `"pestana"`; clave propia, por ejemplo
-   `cayla:mis-compras:en-curso`): `{ id, proveedorId, marcaElegida, porMarca, lineas, paso, tipo, monto, serie, numero, pago, pagadoPropio,
-   pagoParcial, teniaFoto }`. Se guarda en un efecto cuando `paso !== "listo"` y hay proveedor y prendas; se borra en `"listo"`, en
-   `otraCompra()` y sin prendas.
-2. **El archivo de la foto del papel NO se puede guardar** (`File`): al recuperar, la guía del papel ya pide la foto (`camposPapel` con
-   `conFoto: archivo !== null`). El aviso lo dice si `teniaFoto`.
-3. **Al montar**, una sola vez: si hay foto válida y su `proveedorId` está en `datos.proveedores`, rearmar la compra **sin** llamar a
-   `elegirProveedor()` (que abre «Algo nuevo» si el proveedor no tiene habituales): `setId(foto.id)`, `setProveedor`, `setMarcaElegida`,
-   `setHabituales("cargando")` + `cargarHabituales(p.id).then(setHabituales)` (con la guardia de `proveedorPedido`), `setLineas`, lo del papel,
-   y `setPaso(foto.paso === "papel" ? "papel" : "revisar")`. Aviso: `avisar.aviso("Seguimos con la compra que estabas anotando", { detalle:
-   "<proveedor> · N prendas", accion: { texto: "Empezar de nuevo", onClick: otraCompra } })` (los avisos aceptan `accion`).
-4. Lógica pura en `lib/compra-en-curso.ts` con su prueba (qué foto sirve, a qué paso vuelve), como `lib/ticket-en-curso.ts`.
-5. Verificar en local: Felipe ve Mis compras; elegir un proveedor, anotar una prenda, ir a «revisar», recargar → vuelve con la prenda y el
-   mismo `id`; guardar dos veces con el mismo `id` → una sola compra en `retail.compras`. Es pantalla que guarda: `/chaos`.
+Verificado en local a 375 px (Playwright, base restaurada con `estado.mjs` después): recargar en «revisar» y en el papel; «Empezar de nuevo»;
+guardar → reponer la foto → recargar → «ya se guardó» y una sola fila en `compra_papeles`; corte de red con la compra en la base + cambiar el
+medio + guardar → «Esta compra ya estaba guardada», y recargar abre limpio. `vitest` completo (941 archivos), `tsc`, `eslint`, `knip` y
+`knip:produccion` en verde. La huella de la guía de la pantalla se aceptó (un enlace nuevo, solo en ese aviso de error: no lleva paso).
+
+Falta antes de producción:
+- [ ] `/abrir-pr`. Casillas: Mis compras no está en PL-105, pero se probó a 375 px (capturas en local). `/milimetro`: lo visible son dos
+  avisos del sistema y un `<Aviso>` con enlace, piezas ya decididas; auditar `/compras/mi-plata/compra` o marcar «no aplica» con ese motivo.
+- [ ] La corrida completa de `/chaos` sobre «Compré ropa» (lo hecho son ataques a mano de «red y sesión» y «navegación torcida»).
+- [ ] No vuelve la foto del papel (un `File` no cabe en la memoria de la pestaña): el aviso pide tomarla otra vez. Si en el teléfono real
+  es justo la cámara la que mata la pestaña, vale subir la foto al tomarla y guardar su ruta (hoy se sube al guardar).
 
 ### 7 · Partir el código de las pantallas pesadas
 
@@ -144,6 +151,17 @@ módulo. `/multi-view-responsive` no cubre celular.
 - Sin verificar a la vista tras mover su CSS: el Inicio de almacén, el acompañante y la vista previa de campañas.
 - El medidor de color (`.claude/skills/color/referencia/medir.js`) da un falso positivo en el menú del celular con el modo liviano: cuenta el
   `::after` del menú (tinta al 22 %, una sombra de borde) como si cubriera todo el panel. Con píxeles: 8,79:1.
+
+## Cómo se probó en el Mac mini (2026-11-17)
+
+- Docker Desktop estaba apagado: `open -a Docker` y los contenedores `supabase_*_cayla-retail` suben solos. `next dev` cayó con un pánico de
+  Turbopack por una caché vieja de 8 GB: `rm -rf apps/web/.next/dev` y volver a levantar (`preview_start` → `cayla-retail-dev`, puerto 3011).
+- **Con el panel del navegador oculto** (la sesión no está abierta en ninguna ventana) la página no revela el contenido de `Suspense` a tiempo
+  y la emulación de 375 px se descuadra (llegó a 1500×3248): se usó Playwright, que no depende del panel.
+- La guardia de «salir sin guardar» abre el diálogo `beforeunload` al recargar y corta el guion de Playwright: aceptarlo con
+  `browser_handle_dialog` y leer el estado en otra llamada. Android no pregunta al descartar una pestaña.
+- «Compré ropa» pide una ronda abierta: la base local no tenía ninguna. Foto con `estado.mjs guardar`, «Abrir mi ronda», probar, y
+  `comparar` + `restaurar --si` al final (cambiaron solo `compra_rondas`, `compra_papeles`, `ordenes_compra`, sus ítems y `actividad`).
 
 ## Cómo levantar el ERP local en una sesión en la nube (lo que funcionó)
 
