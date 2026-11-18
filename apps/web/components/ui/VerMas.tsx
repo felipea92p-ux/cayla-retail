@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 /* ====================================================================
    «Ver más / Ver menos» — una sola pieza (ADR-0358, ronda 15, Felipe eligió P1 el 2026-10-15)
@@ -49,11 +49,73 @@ export function BotonVerMas({
   );
 }
 
-/** Las filas que la lista guarda: bajan en su lugar al abrir y, cerradas, no se alcanzan con el teclado. */
-export function FilasDeMas({ abierto, id, children, className = "" }: { abierto: boolean; id?: string; children: ReactNode; className?: string }) {
+/** Las filas que la lista guarda: bajan en su lugar al abrir y, cerradas, no se alcanzan con el teclado.
+ *
+ *  Ctrl+F las encuentra (2026-11-18, maqueta `docs/maquetas/mejoras-componentes-2026-11/`): cerradas, ya plegadas, pasan de `inert` a
+ *  `hidden="until-found"`, que las sigue escondiendo y sacando del teclado pero deja que el buscador del navegador (y un enlace
+ *  `#:~:text=`) las encuentre. Al encontrar algo, el navegador avisa con `beforematch` y la lista se abre con SU manera de siempre:
+ *  `alEncontrar` si se pasa, o el botón que la controla (`aria-controls` = su `id`, como `<BotonVerMas controla>`). Sin ninguno de los
+ *  dos, queda como antes (`inert`). Se ve y se mueve igual: `hidden` llega recién cuando terminó de plegarse, y el servidor la dibuja
+ *  `inert` como siempre. Sin `hidden="until-found"` (Safari) el atributo se lee como `hidden` a secas: sigue escondida, no se encuentra. */
+export function FilasDeMas({
+  abierto,
+  id,
+  alEncontrar,
+  children,
+  className = "",
+}: {
+  abierto: boolean;
+  id?: string;
+  /** Abre la lista cuando el buscador del navegador encuentra algo adentro. Sin él, se aprieta el botón con `aria-controls` = `id`. */
+  alEncontrar?: () => void;
+  children: ReactNode;
+  className?: string;
+}) {
+  const caja = useRef<HTMLDivElement>(null);
+  const dentro = useRef<HTMLDivElement>(null);
+  const buscable = !!alEncontrar || !!id;
+  const alEncontrarVivo = useRef(alEncontrar);
+  useEffect(() => {
+    alEncontrarVivo.current = alEncontrar;
+  });
+
+  useEffect(() => {
+    const el = dentro.current;
+    if (!el || !buscable) return;
+    const abrir = () => {
+      if (alEncontrarVivo.current) return alEncontrarVivo.current();
+      const boton = id ? document.querySelector<HTMLElement>(`[aria-controls~="${CSS.escape(id)}"]`) : null;
+      if (boton && boton.getAttribute("aria-expanded") !== "true") boton.click();
+    };
+    el.addEventListener("beforematch", abrir);
+    return () => el.removeEventListener("beforematch", abrir);
+  }, [buscable, id]);
+
+  useEffect(() => {
+    const fila = caja.current;
+    const el = dentro.current;
+    if (!fila || !el || !buscable) return;
+    if (abierto) {
+      el.removeAttribute("hidden");
+      return;
+    }
+    // Recién plegada: se espera a que termine el pliegue (con las animaciones apagadas, ADR-0625, dura ~0) para no cortarlo.
+    const segundos = Math.max(0, ...getComputedStyle(fila).transitionDuration.split(",").map((t) => parseFloat(t) || 0));
+    const ocultar = () => {
+      el.setAttribute("hidden", "until-found");
+      fila.inert = false; // `inert` le ganaría al buscador; `hidden="until-found"` ya la saca del teclado
+    };
+    if (segundos < 0.02) {
+      ocultar();
+      return;
+    }
+    const reloj = window.setTimeout(ocultar, segundos * 1000 + 60);
+    return () => window.clearTimeout(reloj);
+  }, [abierto, buscable]);
+
   return (
-    <div id={id} className={`filas-de-mas ${className}`} data-abierto={abierto || undefined} inert={!abierto}>
-      <div>{children}</div>
+    <div ref={caja} id={id} className={`filas-de-mas ${className}`} data-abierto={abierto || undefined} inert={!abierto}>
+      <div ref={dentro}>{children}</div>
     </div>
   );
 }

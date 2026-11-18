@@ -3,6 +3,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useDestinoFlotante } from "./useAnclaje";
+import { useCerrarSiSeVa } from "./useCerrarSiSeVa";
 
 /** El «?» junto al título de una pantalla y su globo de vidrio (ADR-0358, ronda 18 de `/unificar`; Felipe 2026-10-30).
  *
@@ -36,6 +37,8 @@ export function AyudaCabecera({
   const pico = useRef<HTMLSpanElement>(null);
   const id = useId();
   const destino = useDestinoFlotante(boton, abierto);
+  // Si la lista o la hoja se desplaza y el «?» sale de la vista, el globo no se queda flotando sobre otra cosa.
+  useCerrarSiSeVa(boton, abierto, () => setAbierto(false));
 
   // Se escribe directo en el estilo (no en estado), en `useLayoutEffect`: el primer cuadro ya sale en su lugar.
   useLayoutEffect(() => {

@@ -165,7 +165,7 @@ export function ParaHoy({
           <ol>{aLaVista.map(fila)}</ol>
           {guardadas.length > 0 && (
             <>
-              <FilasDeMas abierto={todas}>
+              <FilasDeMas abierto={todas} alEncontrar={() => setTodas(true)}>
                 <ol>{guardadas.map(fila)}</ol>
               </FilasDeMas>
               <BotonVerMas
