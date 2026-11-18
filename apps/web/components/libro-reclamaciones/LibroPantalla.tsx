@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { BookOpen, SearchX, Tag } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
@@ -36,9 +37,10 @@ const PLANTILLA = "grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[9rem_minmax(0,1f
 /**
  * Tienda web ▸ Libro de Reclamaciones (ADR-0679): las cifras (por responder, vencen pronto, vencidas, de este mes: las que filtran se
  * tocan), la lista en UNA tarjeta con su buscador y su filtro, y la nota. Tocar una fila abre la hoja completa al costado (la URL lo
- * recuerda: `?h=`). Las por responder van primero las que vencen antes. Nada se borra.
+ * recuerda: `?h=`), donde se responde con el combo «Responsable». Las por responder van primero las que vencen antes. Nada se borra.
  */
 export function LibroPantalla({ libro, abiertaInicial }: { libro: ListaLibro; abiertaInicial: string | null }) {
+  const router = useRouter();
   const [estado, setEstado] = useState<FiltroEstado>(ESTADO_POR_DEFECTO);
   const [q, setQ] = useState("");
   const [pagina, setPagina] = useState(1);
@@ -249,7 +251,7 @@ export function LibroPantalla({ libro, abiertaInicial }: { libro: ListaLibro; ab
         </p>
       </div>
 
-      {abierta && <HojaCajon hoja={abierta} hoy={libro.hoy} navegacion={navegacion} onClose={cerrar} />}
+      {abierta && <HojaCajon hoja={abierta} hoy={libro.hoy} navegacion={navegacion} onClose={cerrar} onCambio={() => router.refresh()} />}
     </div>
   );
 }

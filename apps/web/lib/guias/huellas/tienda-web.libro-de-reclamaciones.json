@@ -2,8 +2,15 @@
   "guia": "tienda-web.libro-de-reclamaciones",
   "ruta": "/tienda-web/libro-de-reclamaciones",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 2,
+  "total": 7,
   "controles": {
+    "components/libro-reclamaciones/HojaCajon.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Seguir escribiendo»",
+      "Boton «Sí, enviar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "textarea «{`respuesta-${h.id}»"
+    ],
     "components/libro-reclamaciones/LibroPantalla.tsx": [
       "DesplegablePildora «Estado»",
       "BotonLimpiar «Limpiar todo»"

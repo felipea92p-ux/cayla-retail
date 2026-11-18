@@ -282,6 +282,9 @@ const esquemaHoja = z.object({
   pedido: z.string(),
   /** Si la copia ya salió al correo (PARTE 2, 20261118150000). Sin el dato, como si no. */
   copia_enviada: z.boolean().optional().default(false),
+  /** La respuesta de CAYLA y cuándo (PARTE 4, 20261118152000). Sin el dato, todavía sin responder. */
+  respuesta: z.string().nullable().optional().default(null),
+  respondida_en: z.string().nullable().optional().default(null),
 });
 export type Hoja = z.infer<typeof esquemaHoja>;
 
@@ -323,11 +326,12 @@ export function leerProveedor(dato: unknown): DatosProveedor {
 /** Una copia por mandar, como la entrega `tienda_libro_copias_reclamar`: la hoja y la marca (para el enlace a su constancia). */
 export type CopiaPorMandar = { hoja: Hoja; marca: string; intentos: number };
 
-/** Las copias de `tienda_libro_copias_reclamar`, o null si la forma no se entiende. Una copia rara se salta (no tumba a las demás). */
-export function leerCopias(dato: unknown): CopiaPorMandar[] | null {
-  const r = z.object({ copias: z.array(z.unknown()) }).safeParse(dato);
+/** Las copias de `tienda_libro_copias_reclamar` (o las respuestas de `tienda_libro_respuestas_reclamar`, con `lista: "respuestas"`), o
+ *  null si la forma no se entiende. Una rara se salta (no tumba a las demás). */
+export function leerCopias(dato: unknown, lista: "copias" | "respuestas" = "copias"): CopiaPorMandar[] | null {
+  const r = z.object({ [lista]: z.array(z.unknown()) }).safeParse(dato);
   if (!r.success) return null;
-  return r.data.copias.flatMap((c) => {
+  return (r.data[lista] as unknown[]).flatMap((c) => {
     const x = z.object({ marca: z.string().uuid(), intentos: z.number(), hoja: z.unknown() }).safeParse(c);
     const hoja = x.success ? leerHoja(x.data.hoja) : null;
     return x.success && hoja ? [{ hoja, marca: x.data.marca, intentos: x.data.intentos }] : [];
@@ -417,6 +421,39 @@ export function correoDeLaHoja(h: Hoja, enlace: string): { asunto: string; texto
     ),
     `<p style="margin-top:20px"><a href="${escapar(enlace)}">Ver o imprimir tu hoja</a></p>`,
     `<p style="margin-top:20px;font-size:12px;color:#7a6e63">${escapar(NOTA_LEGAL)}</p>`, // tema-fijo: un correo no lee los tokens de la tienda
+    `</div>`,
+  ].join("");
+  return { asunto, texto, html };
+}
+
+/** El correo con la respuesta de CAYLA a una hoja: la respuesta primero y, debajo, lo que el cliente reclamó (todo escapado en el HTML). */
+export function correoDeLaRespuesta(h: Hoja, enlace: string): { asunto: string; texto: string; html: string } {
+  const asunto = `Respuesta a tu hoja de reclamación N.° ${h.codigo} · CAYLA`;
+  const intro = `Hola, ${h.consumidor.nombre}. Esta es la respuesta de CAYLA a tu ${h.tipo} del ${fechaDeLaHoja(h.creada_en)} (hoja N.° ${h.codigo}).`;
+  const respuesta = h.respuesta ?? "";
+  const texto = [
+    intro,
+    "",
+    "RESPUESTA DE CAYLA",
+    respuesta,
+    "",
+    "LO QUE RECLAMASTE",
+    `Detalle: ${h.detalle}`,
+    `Pedido: ${h.pedido}`,
+    "",
+    `Ver tu hoja completa: ${enlace}`,
+    "",
+    "Si no estás conforme con la respuesta, puedes acudir al Indecopi.",
+  ].join("\n");
+  const html = [
+    `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#1c1a17;max-width:640px">`, // tema-fijo: un correo no lee los tokens de la tienda
+    `<p>${escapar(intro)}</p>`,
+    `<h2 style="margin:20px 0 6px;font-size:12px;letter-spacing:.08em;text-transform:uppercase">Respuesta de CAYLA</h2>`,
+    `<p style="white-space:pre-line">${escapar(respuesta)}</p>`,
+    `<h2 style="margin:20px 0 6px;font-size:12px;letter-spacing:.08em;text-transform:uppercase">Lo que reclamaste</h2>`,
+    `<p style="white-space:pre-line;color:#7a6e63">${escapar(h.detalle)}<br>${escapar(h.pedido)}</p>`, // tema-fijo: un correo no lee los tokens de la tienda
+    `<p style="margin-top:20px"><a href="${escapar(enlace)}">Ver tu hoja completa</a></p>`,
+    `<p style="margin-top:20px;font-size:12px;color:#7a6e63">Si no estás conforme con la respuesta, puedes acudir al Indecopi.</p>`, // tema-fijo: un correo no lee los tokens de la tienda
     `</div>`,
   ].join("");
   return { asunto, texto, html };

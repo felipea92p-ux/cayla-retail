@@ -1064,8 +1064,8 @@ export const GUIA_RECOMENDACIONES: Guia = {
   alSalir: [{ tipo: "escape" }],
 };
 
-// Tienda web ▸ Libro de Reclamaciones (ADR-0679, Felipe 2026-11-18). Hoy solo se lee: la demo enciende las cifras, el filtro y la lista, abre
-// una hoja para mostrar su plazo y lo que reclama, y la cierra. No guarda nada.
+// Tienda web ▸ Libro de Reclamaciones (ADR-0679, Felipe 2026-11-18): la demo enciende las cifras, el filtro y la lista, abre una hoja para
+// mostrar su plazo, lo que reclama y cómo se responde (escribe un ejemplo, pero no lo envía), y la cierra. No guarda nada.
 export const GUIA_LIBRO_RECLAMACIONES: Guia = {
   id: "tienda-web.libro-de-reclamaciones",
   ruta: "/tienda-web/libro-de-reclamaciones",
@@ -1133,6 +1133,35 @@ export const GUIA_LIBRO_RECLAMACIONES: Guia = {
       texto: "Con sus palabras: qué pasó y qué le gustaría que CAYLA haga. Es lo que tu respuesta tiene que atender.",
     },
     {
+      id: "respuesta-dada",
+      ancla: "libro.respuesta-dada",
+      opcional: true,
+      titulo: "La respuesta que ya le dieron",
+      texto: "Si alguien ya respondió esta hoja, aquí ves qué le dijo CAYLA y si el correo ya le llegó. Una respuesta no se corrige.",
+    },
+    {
+      id: "respuesta",
+      ancla: "libro.respuesta",
+      opcional: true,
+      titulo: "Tu respuesta",
+      texto: "Lo que CAYLA le contesta, con tus palabras: qué se hará con lo que pidió. Le llega a su correo y queda en la hoja con la fecha.",
+      demostrar: [{ tipo: "escribir", ancla: "libro.respuesta", texto: "Lamentamos lo ocurrido. Acércate a cualquier tienda CAYLA y te lo resolvemos." }],
+    },
+    {
+      id: "responsable",
+      ancla: "libro.responsable",
+      opcional: true,
+      titulo: "Quién responde",
+      texto: "La persona del equipo que firma la respuesta. Queda anotada con su nombre.",
+    },
+    {
+      id: "acciones",
+      ancla: "libro.acciones",
+      opcional: true,
+      titulo: "Enviar la respuesta",
+      texto: "«Enviar respuesta» te pide confirmar antes, porque le llega al cliente y después no se corrige. En la demo no lo tocamos.",
+    },
+    {
       id: "nota",
       ancla: "libro.nota",
       preparar: [{ tipo: "escape" }],
@@ -1143,7 +1172,7 @@ export const GUIA_LIBRO_RECLAMACIONES: Guia = {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes leer el Libro de Reclamaciones. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Libro de Reclamaciones.",
+      texto: "Ya sabes leer y responder el Libro de Reclamaciones. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Libro de Reclamaciones.",
     },
   ],
   alSalir: [{ tipo: "escape" }],

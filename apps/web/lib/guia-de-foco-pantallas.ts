@@ -225,9 +225,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ADR-0408 (Felipe 2026-10-15): la lista solo lee y filtra; lo que se llena vive en la hoja de cada recomendación (abierta desde la misma
   // pantalla, `?r=`): la respuesta (opcional sin leer, obligatoria ya leída) y quién lo hace.
   "/tienda-web/recomendaciones": { estado: "aplicada", evidencia: ["components/recomendaciones/RecomendacionHoja.tsx"] },
-  // ADR-0679 (Felipe 2026-11-18): el Libro de Reclamaciones. Hoy solo se lee: la lista, su filtro y la hoja abierta al costado (`?h=`), que
-  // no se corrige. La respuesta al cliente llega en la actividad 5 y entonces pasa a «aplicada».
-  "/tienda-web/libro-de-reclamaciones": { estado: "no-aplica", motivo: "Solo lectura: la lista de hojas con su buscador y su filtro, y la hoja abierta al costado, que no se corrige. No hay campos que llenar ni pasos que seguir." },
+  // ADR-0679 (Felipe 2026-11-18): el Libro de Reclamaciones. La lista solo lee y filtra; lo que se llena vive en el cajón de cada hoja (`?h=`):
+  // la respuesta (de 10 a 3000 letras, lo que `responder_hoja_reclamacion` rechazaría) y quién responde.
+  "/tienda-web/libro-de-reclamaciones": { estado: "aplicada", evidencia: ["components/libro-reclamaciones/HojaCajon.tsx"] },
   // ADR-0408 (actividad 3): Tienda web ▸ Vitrina. Lo que se llena vive en sus dos hojas: la del modelo (precio web —lo que la base
   // rechaza: vacío, inválido o bajo el costo—, descripción opcional y quién lo cambia) y la del lote (cuánto subir o bajar, y quién).
   "/tienda-web/campanas/[id]": { estado: "aplicada", evidencia: ["components/campanas-web/EditorCampana.tsx"] },
@@ -443,6 +443,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   // Recomendaciones (ADR-0408): desde el 2026-10-17 la hoja es un `<Cajon>`, que la prueba también cuenta como hoja. Su guía: la respuesta,
   // que falta hasta estar bien escrita, y quién lo hace. «Falta» = lo que `responder_recomendacion` rechazaría (`lib/recomendaciones-guia.ts`).
   "components/recomendaciones/RecomendacionHoja.tsx": { estado: "aplicada", evidencia: ["components/recomendaciones/RecomendacionHoja.tsx"] },
+  // ADR-0679: el cajón de una hoja del Libro de Reclamaciones. «Falta» es lo que `responder_hoja_reclamacion` rechazaría (`lib/libro-reclamaciones-guia.ts`):
+  // la respuesta, de 10 a 3000 letras, y quién responde.
+  "components/libro-reclamaciones/HojaCajon.tsx": { estado: "aplicada", evidencia: ["components/libro-reclamaciones/HojaCajon.tsx"] },
   "components/alta-producto/ElegirColores.tsx": { estado: "no-aplica", motivo: "Elegir colores sirve a la fila «Colores» de Nuevo producto, que ya lleva su guía (FilaAlta). Su hoja «Nuevo color» (2026-10-02) pide solo nombre y tono: la familia y el código se llenan solos, y lo que falta se dice al tocar «Crear y elegir»." },
   "components/alta-producto/ProponerValor.tsx": { estado: "no-aplica", motivo: "Modal «Nuevo tejido / patrón / talla» (2026-10-02): un solo campo, el nombre; «Agregar» se apaga mientras está vacío." },
   "components/alta-producto/ElegirEtiquetas.tsx": { estado: "no-aplica", motivo: "Hoja de elegir etiquetas que sirve a la fila «Etiquetas» de Nuevo producto, que ya lleva su guía (FilaAlta); elegir es opcional y «Listo» aplica lo marcado." },

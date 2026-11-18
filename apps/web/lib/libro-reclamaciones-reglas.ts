@@ -34,6 +34,8 @@ const esquemaHoja = z.object({
   /** La respuesta de CAYLA (PARTE 4, 20261118152000). Sin el dato, todavía sin responder. */
   respuesta: z.string().nullable().optional().default(null),
   respondida_en: z.string().nullable().optional().default(null),
+  /** Si la respuesta ya salió al correo del cliente (la manda la tienda). */
+  respuesta_enviada: z.boolean().optional().default(false),
 });
 export type HojaLibro = z.infer<typeof esquemaHoja>;
 
@@ -90,7 +92,7 @@ export const fechaDelDia = (dia: string) => FECHA_LARGA.format(new Date(`${dia}T
 
 export const NOMBRE_DOCUMENTO = { dni: "DNI", ce: "Carné de extranjería", pasaporte: "Pasaporte" } as const;
 
-/** «S/ 89.90», o null sin monto. */
+/** El monto en soles, con el espacio duro entre «S/» y la cifra (no se corta), o null sin monto. */
 export function montoEnSoles(monto: number | string | null): string | null {
   if (monto === null || monto === "") return null;
   const n = Number(monto);
@@ -146,4 +148,46 @@ export function filtrar(hojas: readonly HojaLibro[], f: { estado: FiltroEstado; 
   };
   const lista = hojas.filter(pasa);
   return f.estado === "respondidas" || f.estado === "todas" ? lista : [...lista].sort((a, b) => a.dias_restantes - b.dias_restantes);
+}
+
+// ---------- La respuesta (PARTE 4, 20261118152000) ----------
+
+/** Los largos que acepta `responder_hoja_reclamacion`, contados después de limpiar el texto. */
+export const MIN_RESPUESTA = 10;
+export const MAX_RESPUESTA = 3000;
+
+/** El texto como lo guarda la base (`fn_recomendacion_texto`): sin invisibles, espacios seguidos en uno, a lo más una línea en blanco. */
+export function textoLimpio(texto: string): string {
+  return texto
+    .replace(/\r\n?/g, "\n")
+    .replace(/[\u0001-\u0008\u000B-\u001F\u007F-\u009F\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/g, "")
+    .replace(/[\t \u00A0\u2000-\u200A\u3000]+/g, " ")
+    .replace(/ ?\n ?/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+export const letras = (texto: string) => [...textoLimpio(texto)].length;
+
+/** Lo que `responder_hoja_reclamacion` rechazaría, en una frase; null si se puede enviar. */
+export function problemaDeLaRespuesta(texto: string): string | null {
+  const n = letras(texto);
+  if (n === 0) return "Escribe la respuesta.";
+  if (n < MIN_RESPUESTA) return `Escribe al menos ${MIN_RESPUESTA} letras.`;
+  if (n > MAX_RESPUESTA) return `Te pasaste por ${n - MAX_RESPUESTA} letras: acórtala un poco.`;
+  return null;
+}
+
+/** Lo que dice el error de la base al responder, en palabras de tienda; null si no es uno de los suyos. */
+export function avisoDelError(e: { hint?: string | null }): { titulo: string; detalle: string } | null {
+  switch (e.hint) {
+    case "libro_ya_respondida":
+      return { titulo: "Esta hoja ya tiene respuesta", detalle: "Alguien la respondió antes que tú. La lista se vuelve a leer para que la veas." };
+    case "libro_no_existe":
+      return { titulo: "Esa hoja ya no está", detalle: "Recarga la pantalla." };
+    case "libro_respuesta_corta":
+    case "libro_respuesta_larga":
+      return { titulo: "Revisa la respuesta", detalle: "Tiene que tener de 10 a 3000 letras." };
+    default:
+      return null;
+  }
 }

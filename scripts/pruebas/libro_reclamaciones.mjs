@@ -3,7 +3,8 @@
  * Libro de Reclamaciones de la tienda online (ADR-0679, Felipe 2026-11-18) contra el Postgres local — CAYLA V2.
  *
  * QUÉ PRUEBA. `20261118145000_libro_reclamaciones_tienda.sql` (PARTE 1, la hoja), `20261118150000_libro_reclamaciones_copia_al_correo.sql`
- * (PARTE 2, la copia) y `20261118151000_libro_reclamaciones_erp.sql` (PARTE 3, el ERP):
+ * (PARTE 2, la copia), `20261118151000_libro_reclamaciones_erp.sql` (PARTE 3, el ERP) y `20261118152000_libro_reclamaciones_respuesta.sql`
+ * (PARTE 4, la respuesta):
  *   E. Estructura y puerta: `hojas_reclamacion` y sus intentos con RLS, sin políticas y sin permisos para nadie (ni `tienda_web`); las
  *      tres `tienda_*` son security definer y solo de `tienda_web` (nunca de anon ni de authenticated).
  *   T. La tienda escribe SIN cuenta: la hoja completa se guarda con su número «000001-<año>», los datos de CAYLA copiados y el texto
@@ -20,6 +21,9 @@
  *   R. El ERP: el plazo (15 días hábiles desde el día siguiente, sin sábados, domingos ni feriados; cuántos quedan, 0 el último día y
  *      negativo si venció); el módulo nace en Tienda web, delegable y SIN rol; sin el módulo (Micaela, integrante) la lista dice 42501 y
  *      el líder la lee con cada hoja completa y su plazo; ni anon ni la tienda la ejecutan.
+ *   S. Responder: sin el módulo, 42501; corta o larga, su hint y nada cambia; el líder responde (firmada, con su fecha, en la Actividad);
+ *      el mismo texto otra vez es «ya_estaba» y otro texto, `libro_ya_respondida`; la respuesta no se corrige (ni como postgres); la
+ *      lista y la constancia la traen; la cola del correo la toma una vez y la marca enviada; la tienda no puede responder.
  *   M. Mutantes: el tope, la marca y el candado, rotos a propósito dentro de la transacción: la prueba lo nota.
  *   P. Las dos partes se pueden pegar dos veces.
  *
@@ -45,6 +49,7 @@ const MIGRACIONES = [
   "supabase/migrations/20261118145000_libro_reclamaciones_tienda.sql",
   "supabase/migrations/20261118150000_libro_reclamaciones_copia_al_correo.sql",
   "supabase/migrations/20261118151000_libro_reclamaciones_erp.sql",
+  "supabase/migrations/20261118152000_libro_reclamaciones_respuesta.sql",
 ];
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo
@@ -84,6 +89,8 @@ const PREPARAR = `
 begin;
 ${APLICAR_ANTES}
 set local search_path = retail, public, extensions;
+-- Una persona firma a su nombre (sin el combo «Responsable»): lo que se prueba aquí es la hoja, no el combo.
+update retail.configuracion_empresa set exige_responsable = false;
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select id as taller from retail.ubicaciones where tipo = 'taller' order by id limit 1 \\gset
 update retail.ubicacion_datos_web set mostrar = false where mostrar;
@@ -395,6 +402,76 @@ select format('%s|%s|%s|%s', jsonb_array_length(x -> 'hojas'), x #>> '{hojas,0,c
   );
 }
 
+// ---------- S. Responder ----------
+{
+  const m = randomUUID();
+  const RESP = "Lamentamos lo ocurrido. Puedes acercarte a cualquier tienda CAYLA y te la cambiamos.";
+  const r = escenario(`${COMO_TIENDA}
+select (${registrar(datos(), { marca: m }).replace(/^select /, "")}) ->> 'id' as h \\gset
+${COMO_POSTGRES}
+select set_config('prueba.h', :'h', false) is not null as _h \\gset
+delete from retail.rol_modulos where modulo = 'libro_reclamaciones';
+${COMO(MICAELA)}
+do $$ begin
+  perform retail.responder_hoja_reclamacion(current_setting('prueba.h')::uuid, 'Una respuesta suficiente.');
+  perform set_config('prueba.r', 'pasó', true);
+exception when insufficient_privilege then perform set_config('prueba.r', '42501', true);
+end $$;
+select current_setting('prueba.r');
+${COMO(FELIPE)}
+do $$ begin
+  perform retail.responder_hoja_reclamacion(current_setting('prueba.h')::uuid, 'corta');
+  perform set_config('prueba.r', 'pasó', true);
+exception when others then
+  declare v text; begin get stacked diagnostics v = pg_exception_hint; perform set_config('prueba.r', v, true); end;
+end $$;
+select current_setting('prueba.r');
+select retail.responder_hoja_reclamacion(:'h', '${RESP}') ->> 'estado';
+select retail.responder_hoja_reclamacion(:'h', '${RESP}') ->> 'estado';
+do $$ begin
+  perform retail.responder_hoja_reclamacion(current_setting('prueba.h')::uuid, 'Otra respuesta distinta y larga.');
+  perform set_config('prueba.r', 'pasó', true);
+exception when others then
+  declare v text; begin get stacked diagnostics v = pg_exception_hint; perform set_config('prueba.r', v, true); end;
+end $$;
+select current_setting('prueba.r');
+select x #>> '{hojas,0,respuesta}' = '${RESP}', x #>> '{hojas,0,respuesta_enviada}' from retail.fn_libro_reclamaciones() x;
+${COMO_POSTGRES}
+select respondida_por is not null and respondida_en is not null from retail.hojas_reclamacion where id = :'h';
+select count(*) from retail.actividad where registro_id = :'h' and accion = 'responder';
+${COMO_TIENDA}
+select retail.tienda_ver_hoja_reclamacion(:'h', '${m}') ->> 'respuesta' = '${RESP}';
+select jsonb_array_length(retail.tienda_libro_respuestas_reclamar(10) -> 'respuestas');
+select jsonb_array_length(retail.tienda_libro_respuestas_reclamar(10) -> 'respuestas');
+select retail.tienda_libro_respuesta_enviada(:'h') ->> 'estado';
+${COMO_POSTGRES}
+select respuesta_enviada_en is not null, respuesta_intentos from retail.hojas_reclamacion where id = :'h';`);
+  esperar(
+    "S1 · sin módulo 42501; corta, su hint; responde una vez, firmada y anotada; el mismo texto «ya_estaba», otro texto «libro_ya_respondida»; la cola del correo",
+    r.ok && r.salida === "42501\nlibro_respuesta_corta\nrespondida\nya_estaba\nlibro_ya_respondida\nt|false\nt\n1\nt\n1\n0\nok\nt|1",
+    r.mensaje ?? r.salida,
+  );
+}
+for (const [nombre, sql] of [
+  ["S2 · la respuesta no se corrige", "update retail.hojas_reclamacion set respuesta = 'Otra respuesta distinta y larga.'"],
+  ["S3 · quién respondió no cambia", "update retail.hojas_reclamacion set respondida_en = now() + interval '1 day'"],
+]) {
+  const r = escenario(`${COMO_TIENDA}
+select (${registrar(datos()).replace(/^select /, "")}) ->> 'id' as h \\gset
+${COMO(FELIPE)}
+select retail.responder_hoja_reclamacion(:'h', 'Ya la revisamos y te la cambiamos en tienda.') is not null;
+${COMO_POSTGRES}
+${sql};`);
+  esperar(`${nombre} (ni como postgres)`, !r.ok && /42501|no se corrige/.test(r.mensaje), r.ok ? "pasó sin error" : r.mensaje);
+}
+{
+  const r = escenario(`${COMO_POSTGRES}
+select has_function_privilege('tienda_web', 'retail.responder_hoja_reclamacion(uuid, text)', 'execute'),
+       has_function_privilege('anon', 'retail.responder_hoja_reclamacion(uuid, text)', 'execute'),
+       has_function_privilege('authenticated', 'retail.tienda_libro_respuestas_reclamar(integer)', 'execute');`);
+  esperar("S4 · ni la tienda ni anon responden; el ERP no toma la cola de la tienda", r.ok && r.salida === "f|f|f", r.mensaje ?? r.salida);
+}
+
 // ---------- M. Mutantes ----------
 {
   // Sin el candado, el update pasa: si la prueba C no lo notara, no estaría mirando nada.
@@ -424,7 +501,7 @@ select count(*) from retail.hojas_reclamacion where marca = '${m}';`);
 {
   const sql = MIGRACIONES.map((m) => readFileSync(m, "utf8")).join("\n");
   const r = correr(`begin;\n${sql}\n${sql}\nrollback;\n`);
-  esperar("P1 · las tres partes se pueden pegar dos veces", r.ok, r.mensaje);
+  esperar("P1 · las cuatro partes se pueden pegar dos veces", r.ok, r.mensaje);
 }
 
 console.log(`\n${total - fallos}/${total} ${fallos ? "con fallos" : "bien"}`);

@@ -61,7 +61,7 @@ export default async function ConstanciaDeHoja({ params, searchParams }: { param
               }
               bajada={`Tu hoja es la N.° ${h.codigo}. ${
                 h.copia_enviada ? `Te enviamos una copia a ${h.consumidor.correo}.` : `Te enviaremos una copia a ${h.consumidor.correo} en unos minutos.`
-              } CAYLA te responde a ese correo en un plazo máximo de 15 días hábiles.`}
+              } ${h.respuesta ? "CAYLA ya te respondió: la respuesta está aquí abajo y en tu correo." : "CAYLA te responde a ese correo en un plazo máximo de 15 días hábiles."}`}
             />
             <div className="lr-acciones">
               <BotonImprimirHoja />
@@ -70,6 +70,13 @@ export default async function ConstanciaDeHoja({ params, searchParams }: { param
               </Link>
             </div>
           </div>
+          {h.respuesta && (
+            <section className="lr-respuesta" aria-labelledby="lr-respuesta-t">
+              <h2 id="lr-respuesta-t">Respuesta de CAYLA</h2>
+              {h.respondida_en && <p className="lr-hoja-fecha">{fechaDeLaHoja(h.respondida_en)}</p>}
+              <p className="lr-respuesta-texto">{h.respuesta}</p>
+            </section>
+          )}
           <HojaImpresa h={h} />
         </div>
       </div>

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   BORRADOR_VACIO,
   correoDeLaHoja,
+  correoDeLaRespuesta,
   enlaceDeLaHoja,
   leerCopias,
   CAMPOS,
@@ -233,5 +234,25 @@ describe("la copia al correo", () => {
     expect(c.html).not.toContain("<script>");
     expect(c.html).toContain("&lt;script&gt;");
     expect(c.html).toContain("Lucía &lt;b&gt;Prueba&lt;/b&gt;");
+  });
+});
+
+describe("la respuesta por correo", () => {
+  it("lee las respuestas de la base con su propia lista", () => {
+    const hoja = {
+      id: "6f1d2c1e-0000-4000-8000-000000000001", codigo: "000007-2026", creada_en: "2026-11-18T14:45:00Z",
+      proveedor: { razon_social: "CAYLA S.A.C.", ruc: "20605964550", domicilio: "Trujillo" }, tienda: null,
+      consumidor: { nombre: "Ana", tipo_documento: "dni", documento: "09959901", domicilio: "Calle 1", telefono: "999000101", correo: "a@b.co", menor_de_edad: false, apoderado: null },
+      bien: { tipo: "producto", monto: null, descripcion: "Blusa" }, tipo: "queja", detalle: "Me atendieron mal", pedido: "Disculpas",
+      respuesta: "Lo sentimos <mucho>.", respondida_en: "2026-11-19T15:00:00Z",
+    };
+    const marca = "6f1d2c1e-0000-4000-8000-000000000002";
+    const [c] = leerCopias({ respuestas: [{ marca, intentos: 1, hoja }] }, "respuestas")!;
+    expect(c!.hoja.respuesta).toBe("Lo sentimos <mucho>.");
+    const correo = correoDeLaRespuesta(c!.hoja, "https://t.pe/x");
+    expect(correo.asunto).toBe("Respuesta a tu hoja de reclamación N.° 000007-2026 · CAYLA");
+    expect(correo.texto).toContain("Lo sentimos <mucho>.");
+    expect(correo.texto).toContain("Indecopi");
+    expect(correo.html).toContain("Lo sentimos &lt;mucho&gt;.");
   });
 });

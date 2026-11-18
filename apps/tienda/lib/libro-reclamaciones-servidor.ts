@@ -6,6 +6,7 @@ import { db, lecturaCompartida } from "./compartido-servidor";
 import { enviarCorreo } from "./correo-servidor";
 import {
   correoDeLaHoja,
+  correoDeLaRespuesta,
   enlaceDeLaHoja,
   leerCopias,
   leerHoja,
@@ -131,4 +132,45 @@ export async function mandarCopias(origen: string, { limite = 20, id = null }: {
     }
   }
   return { tomadas: copias.length, enviadas, fallidas, sinConfigurar };
+}
+
+// ---------- La respuesta por correo (PARTE 4, 20261118152000) ----------
+
+/**
+ * Manda las respuestas de CAYLA que todavía no salieron por correo (las escribe el ERP; la tienda las manda). Misma regla que las copias:
+ * lo que falla queda para la vuelta siguiente, hasta 5 intentos. null si la base no responde.
+ */
+export async function mandarRespuestas(origen: string, limite = 20): Promise<VueltaDeCopias> {
+  const respuestas = await leerConRespaldo<CopiaPorMandar[] | null>(
+    "tienda_libro_respuestas_reclamar_fallo",
+    async (db) => {
+      const [fila] = await db`select retail.tienda_libro_respuestas_reclamar(${limite}::integer) as r`;
+      return leerCopias(fila?.r, "respuestas");
+    },
+    null,
+  );
+  if (respuestas === null) return null;
+  let enviadas = 0;
+  let fallidas = 0;
+  let sinConfigurar = false;
+  for (const c of respuestas) {
+    const r = await enviarCorreo({ para: c.hoja.consumidor.correo, ...correoDeLaRespuesta(c.hoja, enlaceDeLaHoja(origen, c.hoja.id, c.marca)) });
+    const marcada =
+      r === "enviado" &&
+      (await leerConRespaldo<boolean>(
+        "tienda_libro_respuesta_enviada_fallo",
+        async (db) => {
+          await db`select retail.tienda_libro_respuesta_enviada(${c.hoja.id}::uuid)`;
+          return true;
+        },
+        false,
+      ));
+    if (marcada) enviadas++;
+    else {
+      fallidas++;
+      if (r === "sin_configurar") sinConfigurar = true;
+      if (c.intentos >= 5) console.error(JSON.stringify({ evento: "tienda_libro_respuesta_sin_enviar", codigo: c.hoja.codigo }));
+    }
+  }
+  return { tomadas: respuestas.length, enviadas, fallidas, sinConfigurar };
 }

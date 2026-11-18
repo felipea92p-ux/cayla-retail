@@ -6044,6 +6044,7 @@ export type Database = {
       // con su nombre. Las tres que escriben firman con el responsable del combo.
       fn_recomendaciones: { Args: never; Returns: Json }
       marcar_recomendacion_leida: { Args: { p_id: string }; Returns: Json }
+      responder_hoja_reclamacion: { Args: { p_id: string; p_respuesta: string }; Returns: Json }
       responder_recomendacion: { Args: { p_id: string; p_respuesta: string }; Returns: Json }
       archivar_recomendacion: { Args: { p_id: string; p_archivar: boolean }; Returns: Json }
       unirse_al_club: {
