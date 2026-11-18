@@ -3,11 +3,7 @@
  * (`poner_rebaja`, `quitar_rebaja`, 20261116182000); esto solo dice lo que la hoja muestra: qué % tiene la prenda, en qué lugares de % se
  * puede poner, cuánto quedaría, de dónde sale y qué falta para confirmar. No agrega reglas: el tope (70 %) y «una prenda, un lugar» son de la base.
  */
-import type { CampoDeGuia } from "./guia-campos";
 import { descuentoDeCampana, totalDeLineas } from "./vender-reglas";
-
-/** El tope de un %, el mismo de toda oferta (`rebaja_cajones_pct`, `poner_rebaja`). */
-export const PCT_MAX_REBAJA = 70;
 
 export type AlcanceRebaja = "prenda" | "modelo";
 
@@ -249,6 +245,93 @@ export function detalleDePieza(p: Pick<PiezaDeDescuento, "color" | "tallas" | "t
   return [p.color, p.todasLasTallas || p.tallas.length === 0 ? null : p.tallas.join(", ")].filter(Boolean).join(" · ");
 }
 
+/** Una talla que devuelve `buscar_prenda_para_rebaja`: por su código exacto (lo que lee la pistola) o por el nombre del modelo. */
+export type PrendaBuscada = PrendaDeLugar & {
+  codigo: string | null;
+  fotoUrl: string | null;
+  categoria: VitrinaDeTalla["categoria"];
+  /** Llegó por su código exacto: se agrega esa talla o todo su modelo, sin elegir en una lista. */
+  exacta: boolean;
+};
+
+export function leerPrendasBuscadas(filas: unknown): PrendaBuscada[] {
+  if (!Array.isArray(filas)) return [];
+  return filas
+    .map((x) => obj(x))
+    .filter((x) => typeof x.variante_id === "string" && typeof x.producto_id === "string")
+    .map((x) => ({
+      varianteId: x.variante_id as string,
+      productoId: x.producto_id as string,
+      referencia: texto(x.referencia) ?? "",
+      codigo: texto(x.codigo),
+      color: texto(x.color),
+      colorHex: texto(x.color_hex),
+      talla: texto(x.talla),
+      precio: num(x.precio) || 0,
+      fotoUrl: texto(x.foto),
+      categoria: { nombre: texto(x.categoria), prefijo: texto(x.categoria_prefijo), familia: texto(x.categoria_familia) },
+      exacta: x.exacta === true,
+    }));
+}
+
+/** Lo que se sugiere al buscar por nombre: un modelo en un color (con todas sus tallas), y si ya está en este descuento. */
+export type SugerenciaDeAgregar = {
+  clave: string;
+  productoId: string;
+  referencia: string;
+  color: string | null;
+  colorHex: string | null;
+  fotoUrl: string | null;
+  categoria: VitrinaDeTalla["categoria"];
+  precio: number;
+  yaEsta: boolean;
+};
+
+/** Las tallas buscadas, juntas por modelo y color, en el orden en que llegaron (la base pone primero lo que empieza con lo escrito). */
+export function sugerenciasDeAgregar(buscadas: readonly PrendaBuscada[], enElDescuento: ReadonlySet<string>): SugerenciaDeAgregar[] {
+  const porClave = new Map<string, SugerenciaDeAgregar>();
+  for (const b of buscadas) {
+    const clave = claveModeloColor(b.productoId, b.color);
+    const ya = porClave.get(clave);
+    if (ya) {
+      if (b.precio < ya.precio) ya.precio = b.precio;
+      continue;
+    }
+    porClave.set(clave, {
+      clave,
+      productoId: b.productoId,
+      referencia: b.referencia,
+      color: b.color,
+      colorHex: b.colorHex,
+      fotoUrl: b.fotoUrl,
+      categoria: b.categoria,
+      precio: b.precio,
+      yaEsta: enElDescuento.has(clave),
+    });
+  }
+  return [...porClave.values()];
+}
+
+/**
+ * Cómo se deshace haber agregado tallas a un descuento: cada una vuelve a donde estaba antes (`antes`, de `campanas_rebaja_de_variantes`):
+ * a su otro lugar, o a ningún % si no tenía. La que ya estaba en este descuento no se toca.
+ */
+export function comoDeshacerAgregar(
+  variantes: readonly string[],
+  antes: ReadonlyMap<string, string>,
+  destinoId: string,
+): { devolver: { varianteId: string; a: string }[]; quitar: string[] } {
+  const devolver: { varianteId: string; a: string }[] = [];
+  const quitar: string[] = [];
+  for (const v of new Set(variantes)) {
+    const estaba = antes.get(v);
+    if (estaba === destinoId) continue;
+    if (estaba) devolver.push({ varianteId: v, a: estaba });
+    else quitar.push(v);
+  }
+  return { devolver, quitar };
+}
+
 /** «Descuento −10 %, 15 prendas, todas las tiendas»: lo que oye el lector de pantalla en la fila. */
 export function nombreDeDescuento(d: Pick<DescuentoDeLista, "pct" | "prendas" | "todas">): string {
   return [`Descuento ${textoPct(d.pct)}`, `${d.prendas} ${d.prendas === 1 ? "prenda" : "prendas"}`, d.todas ? "todas las tiendas" : null].filter(Boolean).join(", ");
@@ -274,27 +357,6 @@ export function quedaBajoCosto(prenda: Pick<PrendaParaRebaja, "precio" | "piso">
   return prenda.piso !== null && pct > 0 && precioConPct(prenda.precio, pct) < prenda.piso;
 }
 
-/** Lo que se elige en la hoja: un lugar que ya existe, u «otro %» que se escribe. */
-export type EleccionDePct = { tipo: "lugar"; etiquetaId: string } | { tipo: "otro"; pct: number | null } | null;
-
-/** El % de lo elegido, o null si todavía no hay uno válido. */
-export function pctElegido(e: EleccionDePct, lugares: readonly LugarDeRebaja[]): number | null {
-  if (!e) return null;
-  if (e.tipo === "lugar") return lugares.find((l) => l.etiquetaId === e.etiquetaId)?.pct ?? null;
-  return e.pct !== null && Number.isFinite(e.pct) && e.pct > 0 && e.pct <= PCT_MAX_REBAJA ? e.pct : null;
-}
-
-/** «Otro %» que ya existe en la tienda: se usa ese lugar en vez de crear un cajón igual al lado (una campaña con ese % gana a un cajón nuevo). */
-export function lugarConPct(pct: number, lugares: readonly LugarDeRebaja[]): LugarDeRebaja | null {
-  const iguales = lugares.filter((l) => Math.round(l.pct * 100) === Math.round(pct * 100));
-  return iguales.find((l) => l.esCajon) ?? iguales[0] ?? null;
-}
-
-/** Los lugares de los que sale la prenda al ponerla en `destino` (los que le llegan a mano y se pueden mover). */
-export function saleDe(tiene: readonly RebajaQueTiene[], destinoId: string | null): string[] {
-  return tiene.filter((t) => t.como === "a_mano" && t.movible && t.etiquetaId !== destinoId).map((t) => nombreDeLugar(t));
-}
-
 /** Lo que le sigue llegando aunque se ponga otro % (por categoría, por una oferta o de otra tienda): la caja cobra el mayor. */
 export function sigueLlegando(tiene: readonly RebajaQueTiene[], destinoId: string | null): RebajaQueTiene[] {
   return tiene.filter((t) => !(t.como === "a_mano" && t.movible) && t.etiquetaId !== destinoId);
@@ -303,32 +365,6 @@ export function sigueLlegando(tiene: readonly RebajaQueTiene[], destinoId: strin
 /** El % que cobrará la caja con lo elegido: el mayor entre lo elegido y lo que le sigue llegando. */
 export function pctQueCobra(tiene: readonly RebajaQueTiene[], destinoId: string | null, pct: number | null): number {
   return Math.max(pct ?? 0, ...sigueLlegando(tiene, destinoId).map((t) => t.pct));
-}
-
-/** ¿Hay algo que «Quitar el %» pueda sacar? */
-export function hayQueQuitar(tiene: readonly RebajaQueTiene[]): boolean {
-  return tiene.some((t) => t.como === "a_mano" && t.movible);
-}
-
-/** Los campos de la guía de foco de la hoja: a qué, cuánto y quién. Sale de lo mismo que exige `poner_rebaja`. */
-export function camposDeRebaja(c: { alcance: AlcanceRebaja | null; eleccion: EleccionDePct; pct: number | null; responsableListo: boolean; responsableMotivo: string | null }): CampoDeGuia[] {
-  const escribiendoOtro = c.eleccion?.tipo === "otro";
-  return [
-    { id: "alcance", nombre: "A qué", requerido: true, hecho: c.alcance !== null, pendiente: "Elige si va solo a esta prenda o a todo el modelo." },
-    {
-      id: "pct",
-      nombre: "Cuánto",
-      requerido: true,
-      hecho: c.pct !== null,
-      pendiente: escribiendoOtro ? `Escribe un % de 1 a ${PCT_MAX_REBAJA}.` : "Elige cuánto menos.",
-    },
-    { id: "responsable", nombre: "Quién", requerido: true, hecho: c.responsableListo, pendiente: c.responsableMotivo ?? "Elige quién lo pone." },
-  ];
-}
-
-/** El botón que confirma: «Poner −20 %», o «Poner el %» si todavía no se eligió. */
-export function textoDelBoton(pct: number | null): string {
-  return pct === null ? "Poner el %" : `Poner ${textoPct(pct)}`;
 }
 
 /** La prenda en una línea: «Blusa Emma · Negro · M». */

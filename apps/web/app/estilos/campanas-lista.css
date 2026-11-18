@@ -185,6 +185,23 @@
   /* La que se quita sale corta mientras la base responde (ADR-0136: la salida, con `--ease-salida`). */
   .lc-pieza[data-sale] { animation: lc-sale var(--t-hoja) var(--ease-salida) forwards; pointer-events: none; }
 
+  /* ── Agregar (actividad 3): el buscador bajo la cabecera y, al escanear, la prenda leída con su pregunta ──
+     La prenda leída explica y ofrece dos botones: va en la placa (lo que explica es plano, ADR-0596). */
+  .lc-agregar { position: relative; display: grid; gap: 12px; margin-top: 24px; }
+  .lc-leida {
+    padding: 16px;
+    border: 1px solid var(--placa-borde);
+    border-radius: var(--radius-tarjeta);
+    background: var(--placa-fondo);
+    box-shadow: var(--placa-luz);
+    container-type: inline-size;
+  }
+  /* «Solo esta» y «Todo el modelo · N colores»: uno sobre otro si la tarjeta es angosta (en el celular), lado a lado si caben. */
+  .lc-leida-botones { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  @container (min-width: 26rem) {
+    .lc-leida-botones { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
   /* Con una sola columna, el panel va bajo su fila con el aire del pase abierto. */
   .lc-panel-en-linea { margin: 16px 2px 24px; }
 

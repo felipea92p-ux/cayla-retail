@@ -65,13 +65,23 @@ const FALTA = correr("select to_regprocedure('retail.poner_rebaja(uuid, text, nu
 // La lista de descuentos de la pantalla nueva (20261118001000, ADR-0677).
 const MIG_DESCUENTOS = readFileSync("supabase/migrations/20261118001000_campanas_descuentos.sql", "utf8");
 const FALTA_DESCUENTOS = correr("select to_regprocedure('retail.campanas_descuentos(uuid)') is null;").salida === "t" ? MIG_DESCUENTOS : "";
+// Dónde está cada talla antes de agregarla (20261118010000, ADR-0677): lo que usa «Deshacer».
+const MIG_VARIANTES = readFileSync("supabase/migrations/20261118010000_campanas_rebaja_de_variantes.sql", "utf8");
+const FALTA_VARIANTES = correr("select to_regprocedure('retail.campanas_rebaja_de_variantes(uuid[], uuid, boolean)') is null;").salida === "t" ? MIG_VARIANTES : "";
 
 const HOY = "retail.fn_hoy_lima()";
 const PARTIDA = (quien = FELIPE) => `begin;
 ${FALTA}
 ${FALTA_DESCUENTOS}
+${FALTA_VARIANTES}
 -- Nada más rige: sin otras campañas con descuento ni ofertas.
 update retail.etiquetas set descuento_pct = null where descuento_pct is not null;
+-- Ni cajones de antes: el escenario parte de una tienda sin «Poner un %» (una base de trabajo puede tenerlos). Va dentro de la
+-- transacción del escenario, que termina en ROLLBACK: no se borra nada de verdad.
+-- Sus campañas se apartan con otro nombre (el cajón nuevo se llama igual) en vez de borrarse.
+update retail.etiquetas e set nombre = e.nombre || ' · antes de la prueba', activo = false from retail.rebaja_cajones c where c.etiqueta_id = e.id;
+delete from retail.variante_etiquetas ve using retail.rebaja_cajones c where ve.etiqueta_id = c.etiqueta_id;
+delete from retail.rebaja_cajones;
 update retail.campana_reglas set estado = 'desactivada' where estado <> 'desactivada';
 set local request.jwt.claim.sub = '${quien}';
 select id as u from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
@@ -233,9 +243,41 @@ esperarValor(
 esperarValor("una campaña con su % no es un descuento: no sale", caso(`${EN_LIMA(15)}${DESCUENTOS()}`), "");
 esperarError("sin ver Campañas y ofertas, no", caso(DESCUENTOS(), MICAELA), "rebaja_sin_modulo");
 
+console.log("\n— Dónde está cada talla antes de agregarla (ADR-0677) —");
+const DONDE = (variantes = "array[:'a1']::uuid[]", sede = "u", todas = "false") =>
+  `select coalesce(string_agg(coalesce((select c.pct::text from retail.rebaja_cajones c where c.etiqueta_id = x.etiqueta_id), (select e.nombre from retail.etiquetas e where e.id = x.etiqueta_id)), ','), 'ninguno') from retail.campanas_rebaja_de_variantes(${variantes}, :'${sede}', ${todas}) x;\n`;
+esperarValor("una talla sin % no está en ningún lugar", caso(DONDE()), "ninguno");
+esperarValor("una talla en el −20 % de Lima dice ese cajón", caso(`${PONER(20, "prenda")}${DONDE()}`), "20.00");
+esperarValor(
+  "una talla en una campaña de Lima con su % dice esa campaña (es un lugar movible)",
+  caso(`${EN_LIMA(15)}${PONER("null", "prenda", ":'lima'")}${DONDE()}`),
+  "ZZ Liquidar lima",
+);
+esperarValor(
+  "una campaña de todas las tiendas no es un lugar movible desde Lima: no sale",
+  caso(`${EN_TODAS(25)}insert into retail.variante_etiquetas (variante_id, etiqueta_id) values (:'a1', :'todas');\n${DONDE()}`),
+  "ninguno",
+);
+esperarValor(
+  "…y mirando «todas las tiendas» (un líder), sí",
+  caso(`${EN_TODAS(25)}insert into retail.variante_etiquetas (variante_id, etiqueta_id) values (:'a1', :'todas');\n${DONDE("array[:'a1']::uuid[]", "u", "true")}`),
+  "ZZ Top todas",
+);
+const TALLAS_DEL_MODELO = Number(correr("select count(*) from retail.variantes v where v.producto_id = (select producto_id from retail.variantes where sku = 'BLU-EMMA-NEG-M') and v.activo;").salida);
+esperarValor(
+  "cada talla del modelo dice el suyo: todo el modelo a −20 %, una talla a −30 % (es lo que necesita «Deshacer»)",
+  caso(`${PONER(20, "modelo")}${PONER(30, "prenda")}select string_agg(x, ',' order by x) from (
+  select (select c.pct::text from retail.rebaja_cajones c where c.etiqueta_id = d.etiqueta_id) || ':' || count(*) as x
+  from retail.campanas_rebaja_de_variantes((select array_agg(v.id) from retail.variantes v where v.producto_id = :'modelo' and v.activo), :'u', false) d
+  group by d.etiqueta_id) y;\n`),
+  `20.00:${TALLAS_DEL_MODELO - 1},30.00:1`,
+);
+esperarError("sin ver Campañas y ofertas, no", caso(DONDE(), MICAELA), "rebaja_sin_modulo");
+
 console.log("\n— La migración —");
 esperarValor("se puede pegar dos veces", correr(`begin;\n${MIG}\n${MIG}\nselect 'ok';\nrollback;`), "ok");
 esperarValor("la de los descuentos se puede pegar dos veces", correr(`begin;\n${MIG_DESCUENTOS}\n${MIG_DESCUENTOS}\nselect 'ok';\nrollback;`), "ok");
+esperarValor("la de dónde está cada talla se puede pegar dos veces", correr(`begin;\n${MIG_VARIANTES}\n${MIG_VARIANTES}\nselect 'ok';\nrollback;`), "ok");
 
 console.log(`\n${total - fallos} de ${total} en verde.`);
 process.exit(fallos ? 1 : 0);

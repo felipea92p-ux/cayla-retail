@@ -59,3 +59,18 @@ elegida (`.pan-cab`, líneas 90–96), que la actividad 6 reusa para la campaña
 
 ## Propuestas
 Ninguna.
+
+## 2026-11-17 · actividad 3: agregar
+
+| Parte | Pieza | Rama del árbol |
+|---|---|---|
+| El buscador | `<Buscador icono="barras" atajo guia="rebaja.agregar">` (busca mientras se escribe; la pistola termina en Enter y busca al instante) | decidida (2026-10-08) |
+| Lo que sugiere por nombre | `<ListaSugerencias>` con `<MiniaturaPrenda>`: un modelo en su color, el precio con el % a la derecha o «Ya está» | decidida (2026-10-13) |
+| La prenda escaneada | una placa (`--placa-*`, «lo que explica es plano», ADR-0596) con su miniatura, los dos precios, `<Chip>` de lo que tiene hoy («Hoy: −10 %»), «La caja cobra −X %» si otra campaña le da más, «Bajo costo» | piezas decididas en una receta |
+| La pregunta | `<Boton>` «Solo esta» y «Todo el modelo · N colores»; la última respuesta va en `primario` y es la que repite Enter | decidida (2026-10-07) |
+
+- **Medido** (375 × 812, 2026-11-17): la tarjeta mide 339 px; los botones se apilan (305 px cada uno) bajo 26 rem de tarjeta y van lado a lado desde ahí
+  (`@container`), sin cortar «Todo el modelo · 2 colores».
+- **Estados:** loading → «Agregando…» en el botón elegido (`<Boton cargando>`), el buscador sigue escribiendo y el Enter espera; tras agregar, el foco vuelve
+  al buscador (escanear seguido). error → `avisar.error` con lo que dijo la base. Escape borra lo escrito o cierra la pregunta (y no sube).
+- **Deshacer:** antes de agregar se lee dónde estaba cada talla (`campanas_rebaja_de_variantes`); «Deshacer» la devuelve a ese lugar o la deja sin %.

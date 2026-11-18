@@ -1,28 +1,16 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import { Tag } from "lucide-react";
 import { FilaDeLista } from "@/components/campanas/FilaDeLista";
-import { PonerUnPct } from "@/components/rebajas/PonerUnPct";
 import { Globito } from "@/components/ui/Globito";
 import { descuentosDeLaTienda, nombreDeDescuento, textoPct, type DescuentoDeLista } from "@/lib/rebaja-rapida-reglas";
 import { claveResponsableConteo } from "@/lib/responsable-conteo";
 import { useResponsable } from "@/lib/useResponsable";
 
-/** Quién lo hace se elige una vez por tienda y queda para los siguientes: el escáner y el panel de un descuento recuerdan el mismo. */
+/** Quién lo hace se elige una vez por tienda y queda para los siguientes: el panel de cada descuento recuerda el mismo. */
 export const useResponsableDeRebaja = (ubicacionId: string, sede: string) =>
   useResponsable({ ubicacionId, etiqueta: sede }, { recordarEn: claveResponsableConteo(`rebaja-${ubicacionId}`) });
-
-/**
- * El escáner de «Poner un %» (ADR-0669), arriba de la lista de Campañas y ofertas. Va solo hasta que el buscador del panel de un descuento lo
- * reemplace (ADR-0677, actividad 3 de la maqueta `docs/maquetas/campanas-simple-2026-11/`).
- */
-export function EscanerDeRebaja({ ubicacionId, sede }: { ubicacionId: string; sede: string }) {
-  const router = useRouter();
-  const responsable = useResponsableDeRebaja(ubicacionId, sede);
-  return <PonerUnPct ubicacionId={ubicacionId} sede={sede} responsable={responsable} onCambio={() => router.refresh()} />;
-}
 
 /**
  * «Descuentos» (ADR-0677, Felipe 2026-11-17, cara A de la maqueta): lo primero de la lista de Campañas y ofertas. Cada cajón de «Poner un %» que
@@ -64,6 +52,7 @@ export function DescuentosDeLaTienda({
             abierta={d.etiquetaId === abiertoId}
             onAbrir={() => onAbrir(d.etiquetaId)}
             indice={i}
+            guia={i === 0 ? "rebaja.fila" : undefined}
           />
           {d.etiquetaId === abiertoId && panelEnLinea && <div className="sl-detalle sl-detalle-en-linea lc-panel-en-linea">{panelEnLinea}</div>}
         </div>

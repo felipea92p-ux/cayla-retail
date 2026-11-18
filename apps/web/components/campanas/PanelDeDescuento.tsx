@@ -4,6 +4,7 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Tag } from "lucide-react";
 import { BotonQuitarFoto } from "@/components/alta-producto/FotosAlta";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { AgregarAlDescuento, type Agregado } from "@/components/campanas/AgregarAlDescuento";
 import { useResponsableDeRebaja } from "@/components/rebajas/RebajasDeTienda";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
@@ -13,6 +14,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { traducirError } from "@/lib/error-escritura";
 import { rpcRebaja } from "@/lib/rebaja-rapida";
 import {
+  comoDeshacerAgregar,
   detalleDePieza,
   piezasDeDescuento,
   textoPct,
@@ -32,7 +34,7 @@ const plural = (n: number) => (n === 1 ? "prenda" : "prendas");
  * El panel de un descuento (ADR-0677, actividad 2 de la maqueta `docs/maquetas/campanas-simple-2026-11/`): se abre a la derecha de la lista,
  * donde va una campaña abierta, con el % en grande, cuántas prendas tiene, quién lo hace y sus prendas en grilla (un modelo en un color, con
  * su foto o su categoría sobre su color). La × de cada una la quita sin preguntar (todas sus tallas) y el aviso trae «Deshacer»: perdonar
- * antes que preguntar (/formidable, ley 7). Lo de agregar llega en la actividad 3. Un descuento de todas las tiendas solo lo toca un líder,
+ * antes que preguntar (/formidable, ley 7). Arriba, el buscador agrega (`AgregarAlDescuento`). Un descuento de todas las tiendas solo lo toca un líder,
  * como en la base (`fn_exigir_rebaja_rapida`).
  */
 export function PanelDeDescuento({
@@ -42,6 +44,8 @@ export function PanelDeDescuento({
   esLider,
   vitrina,
   tallasPorColor,
+  tallasPorClave,
+  tallasPorModelo,
   costos,
   volver,
   onConteo,
@@ -54,6 +58,9 @@ export function PanelDeDescuento({
   vitrina: ReadonlyMap<string, VitrinaDeTalla> | null;
   /** Cuántas tallas a la venta tiene cada modelo en su color (`claveModeloColor`). */
   tallasPorColor: ReadonlyMap<string, number>;
+  /** Las tallas a la venta de cada modelo en su color y de cada modelo entero: lo que agrega «todo el modelo» o un color. */
+  tallasPorClave: ReadonlyMap<string, string[]>;
+  tallasPorModelo: ReadonlyMap<string, string[]>;
   /** Lo que costó cada talla, para el aviso «Bajo costo» (vacío si quien mira no ve el dinero). */
   costos: ReadonlyMap<string, number>;
   /** La flecha de vuelta a la lista (solo con una columna, donde el panel tapa la lista). */
@@ -149,6 +156,41 @@ export function PanelDeDescuento({
     else avisar.exito(`${pieza.referencia} otra vez con ${textoPct(pct)}`, { detalle: detalleDePieza(pieza) });
   }
 
+  function alAgregar(a: Agregado) {
+    setRecientes((r) => [...a.claves, ...r.filter((c) => !a.claves.includes(c))]);
+    setVersion((v) => v + 1);
+    if (a.variantes.length === 0) return;
+    const antes = a.antes;
+    avisar.exito(a.texto, {
+      detalle: a.detalle,
+      ...(antes ? { accion: { texto: "Deshacer", onClick: () => void deshacerAgregar(a.variantes, antes, a.texto) } } : {}),
+    });
+  }
+
+  /** Cada talla vuelve a donde estaba: a su otro lugar (`poner_rebaja` en ese lugar la saca de aquí) o a ningún %. */
+  async function deshacerAgregar(variantes: string[], antes: ReadonlyMap<string, string>, texto: string) {
+    const { devolver, quitar } = comoDeshacerAgregar(variantes, antes, etiquetaId);
+    let error = null;
+    for (const d of devolver) {
+      const r = await firmar(
+        rpcRebaja("poner_rebaja", { p_variante_id: d.varianteId, p_alcance: "prenda", p_pct: null, p_etiqueta_id: d.a, p_ubicacion_id: ubicacionId, p_todas: todas }),
+        responsable.firma(),
+      );
+      responsable.despues(r.error);
+      if ((error = r.error)) break;
+    }
+    for (const v of error ? [] : quitar) {
+      const r = await firmar(rpcRebaja("quitar_rebaja", { p_variante_id: v, p_alcance: "prenda", p_ubicacion_id: ubicacionId, p_todas: todas }), responsable.firma());
+      responsable.despues(r.error);
+      if ((error = r.error)) break;
+    }
+    setVersion((n) => n + 1);
+    if (error) avisar.error(traducirError(error, "deshacer"));
+    else avisar.exito(`Deshecho: ${texto}`);
+  }
+
+  const enElDescuento = new Set(piezas.map((p) => p.clave));
+
   return (
     <section className="lc-panel" aria-label={`Descuento ${textoPct(pct)}`}>
       <div className="lc-panel-cab">
@@ -167,9 +209,21 @@ export function PanelDeDescuento({
               {plural(piezas.length)}
             </span>
           )}
-          {puedeTocar && piezas.length > 0 && <ComboResponsable control={responsable} deshabilitado={quitando !== null} enLinea />}
+          {puedeTocar && <ComboResponsable control={responsable} deshabilitado={quitando !== null} enLinea />}
         </div>
       </div>
+
+      {puedeTocar && (
+        <AgregarAlDescuento
+          descuento={descuento}
+          ubicacionId={ubicacionId}
+          responsable={responsable}
+          enElDescuento={enElDescuento}
+          tallasPorClave={tallasPorClave}
+          tallasPorModelo={tallasPorModelo}
+          onAgregado={alAgregar}
+        />
+      )}
 
       {!puedeTocar && (
         <Aviso tono="info" chico titulo="Rige en todas las tiendas" className="mt-6">

@@ -2,7 +2,7 @@
   "guia": "productos.campanas",
   "ruta": "/productos/campanas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 183,
+  "total": 177,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -90,8 +90,12 @@
       "button «Prenda anterior»",
       "button «Prenda siguiente»"
     ],
+    "components/campanas/AgregarAlDescuento.tsx": [
+      "Boton «Solo esta»",
+      "Boton «{p.modeloColores > 1 ? `Todo el modelo · ${p.modeloColores}»"
+    ],
     "components/campanas/FilaDeLista.tsx": [
-      "button «{etiqueta}»"
+      "button «{guia}»"
     ],
     "components/campanas/PanelDeDescuento.tsx": [
       "ComboResponsable «{responsable}»"
@@ -102,16 +106,6 @@
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
-    ],
-    "components/rebajas/HojaRebaja.tsx": [
-      "button «→() => setAlcance(\"prenda\")»",
-      "button «{`Todo el modelo · ${datos.r.prenda.modeloPrendas}»",
-      "button «{`${l.prendas}»",
-      "button «Otro %»",
-      "ComboResponsable «{responsable}»",
-      "Boton «Quitar el %»",
-      "Boton «Cancelar»",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/sellos/AvisoDosOfertas.tsx": [
       "Boton «Elegir cuál queda»",
@@ -202,7 +196,7 @@
     ],
     "components/sellos/SellosPantalla.tsx": [
       "Volver «→() => setDescuentoAbiertoId(null)»",
-      "button «→(ev) => abrir(e.id, ev.currentTarget)»",
+      "button «{indice === 0 && esCampanas ? \"sellos.primero\" : undefined}»",
       "BotonEditar «Corregir el nombre o cambiar el ícono de la insignia»",
       "button «{conGuia ? \"sellos.prendas\" : undefined}»",
       "button «{conGuia ? \"sellos.configurar\" : undefined}»",

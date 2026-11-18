@@ -17,6 +17,7 @@ export function FilaDeLista({
   onAbrir,
   indice,
   etiqueta,
+  guia,
 }: {
   /** El ícono de lucide de la lente (20 px; lo pone la clase). */
   icono: ReactNode;
@@ -35,6 +36,8 @@ export function FilaDeLista({
   indice: number;
   /** Lo que oye el lector de pantalla, si el texto visible no alcanza a decirlo entero. */
   etiqueta?: string;
+  /** El ancla de la guía interactiva (ADR-0389). */
+  guia?: string;
 }) {
   return (
     <button
@@ -43,6 +46,7 @@ export function FilaDeLista({
       aria-current={abierta ? "true" : undefined}
       aria-label={etiqueta}
       onClick={onAbrir}
+      data-guia={guia}
       style={{ "--i": indice } as CSSProperties}
     >
       <span className="lc-fila-lente" aria-hidden>

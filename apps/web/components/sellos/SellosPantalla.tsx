@@ -43,7 +43,7 @@ import { notaSinRegistrar, type LecturaRotacion } from "@/lib/etiqueta-rotacion"
 import { hoyLima } from "@/lib/fechas-lima";
 import { bajadaDesactivarInsignia, reglasDeCampana, reglasVivas, vigenciaDeRegla, type InsigniaDeOferta, type ParQueChoca, type ReglaCampana } from "@/lib/campana-reglas";
 import { AvisoDosOfertas } from "@/components/sellos/AvisoDosOfertas";
-import { DescuentosDeLaTienda, EscanerDeRebaja } from "@/components/rebajas/RebajasDeTienda";
+import { DescuentosDeLaTienda } from "@/components/rebajas/RebajasDeTienda";
 import { PanelDeDescuento } from "@/components/campanas/PanelDeDescuento";
 import { Volver } from "@/components/ui/Volver";
 import { claveModeloColor, type DescuentoDeLista } from "@/lib/rebaja-rapida-reglas";
@@ -231,10 +231,15 @@ export function SellosPantalla({
     () => (prendasVitrina ? new Map(prendasVitrina.map((t) => [t.id, { productoId: t.productoId, colorNombre: t.colorNombre, categoria: t.categoria, fotoUrl: t.fotoUrl }])) : null),
     [prendasVitrina],
   );
-  const tallasPorColor = useMemo(() => {
-    const n = new Map<string, number>();
-    for (const t of prendasVitrina ?? []) n.set(claveModeloColor(t.productoId, t.colorNombre), (n.get(claveModeloColor(t.productoId, t.colorNombre)) ?? 0) + 1);
-    return n;
+  const tallasDeLaVitrina = useMemo(() => {
+    const porClave = new Map<string, string[]>();
+    const porModelo = new Map<string, string[]>();
+    for (const t of prendasVitrina ?? []) {
+      const clave = claveModeloColor(t.productoId, t.colorNombre);
+      porClave.set(clave, [...(porClave.get(clave) ?? []), t.id]);
+      porModelo.set(t.productoId, [...(porModelo.get(t.productoId) ?? []), t.id]);
+    }
+    return { porClave, porModelo, porColor: new Map([...porClave].map(([k, vs]) => [k, vs.length])) };
   }, [prendasVitrina]);
   const costos = useMemo(() => new Map(prendasConCosto.map((p) => [p.id, p.costo])), [prendasConCosto]);
   const panelDescuento = descuentoAbierto ? (
@@ -245,7 +250,9 @@ export function SellosPantalla({
       sede={sede}
       esLider={esLider}
       vitrina={vitrinaPorTalla}
-      tallasPorColor={tallasPorColor}
+      tallasPorColor={tallasDeLaVitrina.porColor}
+      tallasPorClave={tallasDeLaVitrina.porClave}
+      tallasPorModelo={tallasDeLaVitrina.porModelo}
       costos={costos}
       volver={enLinea ? <Volver onClick={() => setDescuentoAbiertoId(null)} a="la lista" /> : undefined}
       onConteo={(n) => anotarConteo(descuentoAbierto.etiquetaId, n)}
@@ -604,7 +611,15 @@ export function SellosPantalla({
         data-guia={esAbierto ? "sellos.pase" : undefined}
         style={{ "--i": indice } as CSSProperties}
       >
-        <button type="button" className="sl-cab" aria-expanded={esAbierto} aria-controls={`pase-${e.id}`} onClick={(ev) => abrir(e.id, ev.currentTarget)}>
+        <button
+          type="button"
+          className="sl-cab"
+          aria-expanded={esAbierto}
+          aria-controls={`pase-${e.id}`}
+          // La guía vuelve a abrir el primer pase después de mostrar un descuento abierto (ADR-0677): lo que abre, lo cierra.
+          data-guia={indice === 0 && esCampanas ? "sellos.primero" : undefined}
+          onClick={(ev) => abrir(e.id, ev.currentTarget)}
+        >
           <SelloTinta nombre={e.nombre} icono={e.icono} imagen={e.imagen} imagenSilueta={e.imagenSilueta} estilo={e.estilo} anio={anio} tamano={44} giro={0} indice={indice} apagado={!e.activo} />
           <span className="min-w-0">
             <span className="sl-cab-nombre block truncate">{e.nombre}</span>
@@ -997,9 +1012,6 @@ export function SellosPantalla({
           }
         />
       </div>
-
-      {/* «Poner un %» (ADR-0669, Felipe 2026-11-16): escanear una prenda y ponerle un % en un toque, en la tienda de la cabecera. */}
-      {esCampanas && puedeEditarCampanas && sedeActualId && <EscanerDeRebaja ubicacionId={sedeActualId} sede={sede} />}
 
       {esCampanas && puedeEditarCampanas && <AvisoDosOfertas pares={choquesAbiertos} alElegir={() => router.refresh()} />}
 

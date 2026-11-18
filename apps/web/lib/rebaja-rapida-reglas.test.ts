@@ -1,22 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
-  camposDeRebaja,
   claveModeloColor,
+  comoDeshacerAgregar,
   descuentosDeLaTienda,
   detalleDePieza,
-  hayQueQuitar,
   leerDescuentos,
+  leerPrendasBuscadas,
   leerRebajaDePrenda,
-  lugarConPct,
   nombreDeDescuento,
   nombreDeLugar,
-  pctElegido,
   pctQueCobra,
   piezasDeDescuento,
   precioConPct,
   quedaBajoCosto,
-  saleDe,
-  textoDelBoton,
+  sugerenciasDeAgregar,
   textoPct,
   type LugarDeRebaja,
   type PrendaDeLugar,
@@ -55,33 +52,10 @@ describe("«Poner un %»: lo que dice la hoja (ADR-0669)", () => {
     expect(quedaBajoCosto({ precio: 79.9, piso: 32 }, 70)).toBe(true);
     expect(quedaBajoCosto({ precio: 79.9, piso: null }, 70)).toBe(false);
   });
-  it("lo elegido: un lugar da su %; «otro %» vale de 1 a 70", () => {
-    expect(pctElegido({ tipo: "lugar", etiquetaId: "liq" }, LUGARES)).toBe(15);
-    expect(pctElegido({ tipo: "otro", pct: 25 }, LUGARES)).toBe(25);
-    expect(pctElegido({ tipo: "otro", pct: 71 }, LUGARES)).toBeNull();
-    expect(pctElegido({ tipo: "otro", pct: null }, LUGARES)).toBeNull();
-    expect(pctElegido(null, LUGARES)).toBeNull();
-  });
-  it("«otro %» que ya existe usa ese lugar (el cajón antes que la campaña)", () => {
-    expect(lugarConPct(15, LUGARES)?.etiquetaId).toBe("liq");
-    expect(lugarConPct(10, [...LUGARES, { ...LUGARES[1], etiquetaId: "otra", pct: 10 }])?.etiquetaId).toBe("c10");
-    expect(lugarConPct(25, LUGARES)).toBeNull();
-  });
-  it("de dónde sale y qué le sigue llegando: la caja cobra el mayor", () => {
+  it("lo que le sigue llegando: la caja cobra el mayor", () => {
     const t = [tiene({}), tiene({ etiquetaId: "top", nombre: "Top", pct: 25, movible: false }), tiene({ etiquetaId: "ani", nombre: "Aniversario", pct: 10, como: "categoria" })];
-    expect(saleDe(t, "c10")).toEqual(["−15 % · Para liquidar"]);
-    expect(saleDe(t, "liq")).toEqual([]);
     expect(pctQueCobra(t, "c10", 20)).toBe(25);
     expect(pctQueCobra([tiene({})], "c10", 20)).toBe(20);
-    expect(hayQueQuitar(t)).toBe(true);
-    expect(hayQueQuitar([tiene({ como: "categoria" })])).toBe(false);
-  });
-  it("la guía: a qué, cuánto y quién, en ese orden", () => {
-    const c = camposDeRebaja({ alcance: null, eleccion: null, pct: null, responsableListo: false, responsableMotivo: null });
-    expect(c.map((x) => `${x.id}:${x.hecho}`)).toEqual(["alcance:false", "pct:false", "responsable:false"]);
-    expect(camposDeRebaja({ alcance: "modelo", eleccion: { tipo: "otro", pct: 90 }, pct: null, responsableListo: true, responsableMotivo: null })[1].pendiente).toBe("Escribe un % de 1 a 70.");
-    expect(textoDelBoton(null)).toBe("Poner el %");
-    expect(textoDelBoton(20)).toBe("Poner −20 %");
   });
 });
 
@@ -162,5 +136,37 @@ describe("Las prendas del panel de un descuento (ADR-0677)", () => {
     const vitrina = new Map([["m", { productoId: "falda", colorNombre: "Negro", categoria: { nombre: "Faldas", prefijo: "FAL", familia: "ROPA" }, fotoUrl: "/f.jpg" }]]);
     expect(piezasDeDescuento([talla({ varianteId: "m" })], 10, { ...sinNada, vitrina })[0]).toMatchObject({ fotoUrl: "/f.jpg", categoria: { prefijo: "FAL" } });
     expect(piezasDeDescuento([talla({ varianteId: "m" })], 10, sinNada)[0]).toMatchObject({ fotoUrl: null, categoria: null });
+  });
+});
+
+describe("Agregar prendas a un descuento (ADR-0677)", () => {
+  const fila = (o: Record<string, unknown>) => ({ variante_id: "v1", producto_id: "blusa", referencia: "Blusa Emma", codigo: "BLU-1", color: "Negro", color_hex: "#111111", talla: "M", precio: "79.90", foto: null, categoria: "Blusas", categoria_prefijo: "BLU", categoria_familia: "ROPA", exacta: false, ...o });
+
+  it("lee lo que devuelve la búsqueda; lo que no tiene forma no entra", () => {
+    const [b] = leerPrendasBuscadas([fila({ exacta: true }), { variante_id: 3 }]);
+    expect(b).toMatchObject({ varianteId: "v1", productoId: "blusa", precio: 79.9, exacta: true, categoria: { prefijo: "BLU" } });
+    expect(leerPrendasBuscadas(null)).toEqual([]);
+  });
+
+  it("sugiere un modelo en su color una sola vez, con su precio menor y si ya está en el descuento", () => {
+    const buscadas = leerPrendasBuscadas([
+      fila({ variante_id: "n-s", talla: "S", precio: 84.9 }),
+      fila({ variante_id: "n-m" }),
+      fila({ variante_id: "b-m", color: "Beige" }),
+    ]);
+    const s = sugerenciasDeAgregar(buscadas, new Set([claveModeloColor("blusa", "Beige")]));
+    expect(s.map((x) => [x.color, x.precio, x.yaEsta])).toEqual([
+      ["Negro", 79.9, false],
+      ["Beige", 79.9, true],
+    ]);
+  });
+
+  it("deshacer devuelve cada talla a donde estaba: a su otro lugar, o sin %; la que ya estaba aquí no se toca", () => {
+    const antes = new Map([["s", "c10"], ["m", "aqui"]]);
+    expect(comoDeshacerAgregar(["s", "m", "l", "l"], antes, "aqui")).toEqual({ devolver: [{ varianteId: "s", a: "c10" }], quitar: ["l"] });
+  });
+
+  it("CONTROL: sin saber dónde estaba, deshacer la dejaría sin % (y la del −10 % lo perdería)", () => {
+    expect(comoDeshacerAgregar(["s"], new Map(), "aqui")).toEqual({ devolver: [], quitar: ["s"] });
   });
 });
