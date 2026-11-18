@@ -60,7 +60,8 @@ Felipe, 2026-11-17:
 
 - **Base:** tres migraciones, solo funciones (ninguna tabla ni columna nueva): `20261118001000_campanas_descuentos`,
   `20261118010000_campanas_rebaja_de_variantes` y `20261118030000_descuentos_crear_cambiar_desactivar`. Van a producción en ese orden, después de las
-  de ADR-0669 (ya pegadas), y **solo con el OK de Felipe**, **antes de fusionar el PR**: la web nueva ya no trae el escáner de ADR-0669, así que
+  de ADR-0669 (ya pegadas), y **solo con el OK de Felipe**, **antes de fusionar el PR** (pegadas el 2026-11-18 por orden de Felipe, con los 9 md5
+  idénticos a la base de la rama): la web nueva ya no trae el escáner de ADR-0669, así que
   publicada sin ellas la tienda se quedaría sin «Poner un %» (la lectura falla, la lista de descuentos no se dibuja y quedan solo las campañas).
 - **Pruebas:** `pnpm pruebas:rebaja-rapida` (55 escenarios, sale de una tienda sin cajones dentro de su transacción), `lib/rebaja-rapida-reglas.test.ts`.
 - **Guía:** la de Campañas suma «Un descuento nuevo» y «Agregar prendas a un descuento» (29 pasos recorridos en escritorio y a 375 px). La guía de foco
