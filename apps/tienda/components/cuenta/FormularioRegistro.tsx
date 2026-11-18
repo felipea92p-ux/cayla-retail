@@ -35,7 +35,7 @@ import { Campo, Resultado } from "./CampoGuiado";
 import { useNombreEnLaTarjeta } from "./EntradaViva";
 
 // «Crea tu cuenta» (maqueta v4, `vRegistro` y `guiaRegistro`; ADR-0438: solo lo necesario). Correo (con su código), nombre, contraseña y
-// aceptar los términos; o «Continuar con Google», que no pide nada más. El documento y el celular se piden después, al separar por
+// aceptar los términos; o «Continuar con Google», que solo pide su propia casilla de aceptar (revisión legal 2026-11-18). El documento y el celular se piden después, al separar por
 // primera vez, y recién entonces se entra al Club CAYLA (`FormularioUnirseAlClub`). Cada campo dice su estado en su título (✓ Listo ·
 // Sigue aquí · Revisa) y debajo qué le falta o qué está mal; el de abajo dice lo primero que falta (cada cosa lleva a su campo) y
 // cuánto más, y el botón se enciende cuando no falta nada.
@@ -282,7 +282,7 @@ export function FormularioRegistro() {
     >
       <h1 className="w-titulo">Crear cuenta</h1>
 
-      <BotonGoogle volver={volver} texto="Crear mi cuenta con Google" />
+      <BotonGoogle volver={volver} texto="Crear mi cuenta con Google" casilla />
 
       <Campo campo="correo" idCaja={ID.correo} etiqueta="Correo" marca={marca("correo")} {...foco("correo")}>
         {/* «Obtener código» al lado del correo (Felipe 2026-10-15); con el correo confirmado, el botón se va y queda el ✓. La misma

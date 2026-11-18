@@ -6,6 +6,16 @@
    Solo tokens; movimiento de ADR-0136 (la raya se dibuja una vez, sin bucle).
    ===================================================================== */
 
+/* Dónde se parte la línea (2026-11-18, maqueta `docs/maquetas/mejoras-componentes-2026-11/`; Felipe: «solo la funcionalidad, sin
+   cambiar el diseño»). Un título que se parte en dos dejaba una palabra sola abajo («…en el / piso»): `balance` reparte las líneas
+   parejas. Una frase de dos o tres líneas dejaba la última palabra huérfana: `pretty` la acompaña. No cambia letra, tamaño, color ni
+   espacios, solo dónde se corta. En `@layer base` y con `:where()` (peso cero): lo que una pieza ya decida le gana. `balance` solo en
+   títulos (es caro y tiene tope de líneas); en Firefox `pretty` no existe y la frase se corta como siempre. */
+@layer base {
+  :where(h1, h2, h3, h4, .titulo-seccion-texto, .titulo-grupo-texto) { text-wrap: balance; }
+  :where(p, li, .texto-bajada, .texto-detalle) { text-wrap: pretty; }
+}
+
 @layer components {
   .titulo-seccion {
     display: flex;

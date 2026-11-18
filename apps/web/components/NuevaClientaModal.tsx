@@ -143,6 +143,7 @@ export function NuevaClientaModal({
       tienePermisoWhatsapp: false,
       clubDesde: null,
       publicidadDesde: null,
+      avisosClubDesde: null,
       codigoClub: null,
       cumpleAnio: null,
       cumpleDia: null,
