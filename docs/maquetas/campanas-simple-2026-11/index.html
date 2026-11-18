@@ -1,0 +1,1110 @@
+<!doctype html>
+<html lang="es" data-tema="oscuro" data-dir="lista" data-mov="vivo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Campañas y ofertas, simple</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Campañas y ofertas, más simple (2026-11-16)
+   Pedido de Felipe: los descuentos son lo principal; cada uno dice «Descuento» y solo cambia su %; al tocarlo se ven sus prendas como en
+   las campañas, se agregan y se quitan sin drama, se buscan por nombre y en el celular se escanean con la cámara. La configuración de una
+   oferta, sin el texto que sobra. Solo tokens (marco.css), datos inventados (el repo es público), sin rebote ni bucle (la línea del visor
+   de la cámara es la única que se repite: es la señal de espera, como el hilo de «Guardando…»).
+   ==================================================================== */
+.ciego .spk,.ciego .analisis{display:none}
+.vs-t{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--t65)}
+.glob{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:0;
+  background:var(--t12);color:var(--t80);font-variant-numeric:tabular-nums}
+.ic20{width:20px;height:20px}
+svg.ic{width:16px;height:16px}
+
+/* ---------- la mesa: la lista a la izquierda, lo elegido a la derecha ---------- */
+.mesa{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr);gap:36px;margin-top:32px;align-items:start}
+.lado{position:sticky;top:88px;display:grid;gap:24px;min-width:0}
+.tg{display:flex;align-items:center;gap:8px;margin:0 4px 10px}
+.tg .vs-t{color:var(--t65)}
+
+/* una fila de la lista: el descuento y la campaña son la MISMA pieza (A · En la lista) */
+.it{position:relative;display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:14px;width:100%;min-height:80px;padding:16px 20px 16px 16px;
+  border-radius:20px;text-align:left;border:1px solid var(--t12);background:color-mix(in srgb,var(--vidrio) 50%,transparent);
+  transition:background .25s var(--ease),border-color .25s,color .25s,transform .25s var(--ease);animation:sube .45s var(--ease) backwards;animation-delay:calc(var(--i,0) * 40ms)}
+[data-tema="oscuro"] .it{background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+.it+.it{margin-top:8px}
+@media (hover:hover){.it:not([aria-current="true"]):hover{transform:translateY(-1px);border-color:var(--t25)}}
+.it:active{transform:scale(.985)}
+.it:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+.it .lente{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:var(--t06);border:1px solid var(--t12);color:var(--t80)}
+.it .lente svg{width:20px;height:20px}
+.it .pre{display:block;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--t65)}
+.it .pct{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:32px;line-height:1.02;letter-spacing:-.01em;font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.it .nom{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:21px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it .sub2{display:block;font-size:14px;color:var(--t65);margin-top:2px}
+.it .der{text-align:right;white-space:nowrap}
+.it .der b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:26px;line-height:1;font-variant-numeric:lining-nums tabular-nums}
+.it .der span{display:block;margin-top:4px;font-size:14px;color:var(--t65)}
+.it .der .vs-t{font-size:11px;margin-top:4px}
+.it[aria-current="true"]{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 88%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));color:var(--crema);border-color:var(--tinta);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent),0 14px 26px -16px var(--sombra)}
+.it[aria-current="true"] :is(.pre,.sub2,.der span,.der .vs-t){color:color-mix(in srgb,var(--crema) 74%,transparent)}
+.it[aria-current="true"] .lente{background:color-mix(in srgb,var(--crema) 14%,transparent);border-color:color-mix(in srgb,var(--crema) 22%,transparent);color:var(--crema)}
+.it.nuevo{min-height:60px;grid-template-columns:44px minmax(0,1fr);border-style:dashed;border-color:var(--t25);background:transparent;color:var(--t80);font-size:15px;font-weight:600}
+.it.nuevo .lente{background:transparent;border-style:dashed}
+.plegable{display:flex;align-items:center;gap:8px;width:100%;height:44px;padding:0 6px;border-radius:12px;color:var(--t80)}
+.plegable svg{margin-left:auto;transition:transform .3s var(--ease)}
+.plegable[aria-expanded="true"] svg{transform:rotate(180deg)}
+@media (hover:hover){.plegable:hover{background:var(--t06)}}
+.plegado{display:grid;gap:8px;margin-top:6px}
+.plegado .it{min-height:68px}
+.plegado .it .nom{font-size:19px}
+
+/* B · Etiquetas colgadas: los descuentos cuelgan de un riel, como en la tienda */
+.riel-cab{display:flex;align-items:center;gap:8px;margin:28px 4px 0}
+.riel{position:relative;display:flex;gap:16px;padding:26px 4px 10px;overflow-x:auto;scrollbar-width:none}
+.riel::-webkit-scrollbar{display:none}
+.riel::before{content:"";position:absolute;left:0;right:0;top:12px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--t25) 3%,var(--t25) 97%,transparent)}
+.eti{position:relative;flex:none;width:148px;min-height:150px;padding:34px 16px 16px;border-radius:14px 14px 20px 20px;text-align:left;border:1px solid var(--t12);
+  background:color-mix(in srgb,var(--vidrio) 55%,transparent);transform-origin:50% -14px;transition:background .25s,color .25s,border-color .25s;
+  animation:sube .45s var(--ease) backwards;animation-delay:calc(var(--i,0) * 50ms)}
+[data-tema="oscuro"] .eti{background:color-mix(in srgb,var(--tinta) 7%,transparent)}
+.eti::before{content:"";position:absolute;left:50%;top:-15px;width:1.5px;height:29px;margin-left:-.75px;background:var(--t50)}
+.eti .ojal{position:absolute;left:50%;top:10px;width:12px;height:12px;margin-left:-6px;border-radius:50%;border:1.5px solid var(--t50);background:var(--crema)}
+.eti .pre{display:block;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--t65)}
+.eti .pct{display:block;margin-top:4px;font-family:'EB Garamond',serif;font-weight:500;font-size:40px;line-height:1;letter-spacing:-.01em;font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.eti .cnt{display:block;margin-top:10px;font-size:14px;color:var(--t65)}
+.eti[aria-current="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta);animation:mece .7s var(--ease)}
+.eti[aria-current="true"] :is(.pre,.cnt){color:color-mix(in srgb,var(--crema) 74%,transparent)}
+.eti[aria-current="true"] .ojal{background:var(--crema);border-color:color-mix(in srgb,var(--crema) 50%,transparent)}
+.eti.nuevo{display:grid;place-items:center;align-content:center;gap:8px;border-style:dashed;border-color:var(--t25);background:transparent;color:var(--t80);font-weight:600;font-size:15px;text-align:center}
+.eti.nuevo svg{width:22px;height:22px}
+@media (hover:hover){.eti:not([aria-current="true"]):hover{border-color:var(--t25)}}
+.eti:focus-visible{outline:2px solid var(--tinta);outline-offset:3px}
+@keyframes mece{0%{transform:rotate(-3.5deg)}100%{transform:rotate(0)}}
+[data-dir="etiquetas"] .mesa{margin-top:18px}
+
+/* ---------- lo elegido, a la derecha ---------- */
+.panel{min-width:0}
+.pan-cab{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 24px;animation:enfoca .5s var(--ease) backwards}
+.pan-pre{display:flex;align-items:center;gap:12px;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--taupe)}
+.pan-tit{margin-top:8px;font-family:'EB Garamond',serif;font-weight:500;font-size:72px;line-height:.95;letter-spacing:-.015em;font-variant-numeric:lining-nums}
+.pan-tit.nombre{font-size:56px}
+.pan-acc{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pan-cnt{font-size:15px;color:var(--t65);margin-right:6px}
+.pan-cnt b{font-family:'EB Garamond',serif;font-weight:600;font-size:26px;color:var(--tinta);margin-right:4px;font-variant-numeric:lining-nums tabular-nums}
+.btn.chico{height:40px;padding:0 16px;font-size:14px}
+.resp2{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 12px 0 4px;border-radius:999px;border:1px solid var(--borde);font-size:14px;font-weight:600;color:var(--tinta)}
+.resp2 .av2{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--sand);font-family:'EB Garamond',serif;font-size:14px;font-weight:600;color:var(--tinta)}
+.resp2 svg{color:var(--t65)}
+@media (hover:hover){.resp2:hover{background:var(--t06)}}
+.pz .chip{margin-top:6px}
+.btn.solo{width:40px;padding:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 11px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  background:var(--t06);color:var(--t80)}
+.chip.cp::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.verde{background:color-mix(in srgb,var(--verde) 16%,transparent);color:var(--verde)}
+.chip.ambar{background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar)}
+.chip.pizarra{background:color-mix(in srgb,var(--pizarra) 16%,transparent);color:var(--pizarra)}
+
+/* agregar: el buscador hundido (pozo) que también lee la pistola; en el celular, con su cámara */
+.agregar{position:relative;z-index:5;margin-top:24px;max-width:660px;animation:enfoca .5s var(--ease) .06s backwards}
+.bus .borrar{display:none}
+.bus:has(input:not(:placeholder-shown)) .borrar{display:grid}
+.bus:has(input:not(:placeholder-shown)) kbd{display:none}
+.bus{display:flex;align-items:center;gap:12px;height:52px;padding:0 6px 0 18px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);transition:background .25s,box-shadow .25s,border-color .25s}
+[data-tema="oscuro"] .bus{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.bus:focus-within{border-color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 62%,transparent),color-mix(in srgb,var(--vidrio) 32%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 4px color-mix(in srgb,var(--tinta) 10%,transparent)}
+.bus>svg{width:19px;height:19px;flex:none;color:var(--t65)}
+.bus input{flex:1;min-width:0;height:100%;border:0;outline:0;background:none;font-size:15px;color:var(--tinta)}
+.bus input::-webkit-search-cancel-button{display:none}
+/* lo que se repinta no vuelve a entrar animado: solo entra lo nuevo (Felipe: «sin mucho drama») */
+.cont[data-anim="nada"] :is(.ep-izq,.ep-acc,.it,.eti,.pan-cab,.agregar,.pz:not(.recien),.of,.ts){animation:none!important}
+.cont[data-anim="panel"] :is(.ep-izq,.ep-acc,.it,.eti){animation:none!important}
+.bus input::placeholder{color:var(--t65)}
+.bus kbd{margin-right:12px;padding:0 8px;border-radius:99px;border:1px solid var(--t25);font:600 11px/18px 'DM Sans';color:var(--t65)}
+.bus .camara{display:none;place-items:center;width:42px;height:42px;flex:none;border-radius:50%;color:var(--crema);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 82%,transparent),var(--tinta))}
+.bus .camara svg{width:20px;height:20px}
+.bus .borrar{place-items:center;width:32px;height:32px;border-radius:50%;color:var(--t65)}
+@media (hover:hover){.bus .borrar:hover{background:var(--t06);color:var(--tinta)}}
+
+/* lo que aparece al escribir (la pieza de ListaSugerencias) */
+.sug{position:absolute;z-index:30;left:0;right:0;top:calc(100% + 8px);max-height:440px;overflow:auto;overscroll-behavior:contain;padding:8px;border-radius:22px;
+  background:color-mix(in srgb,var(--papel) 95%,transparent);-webkit-backdrop-filter:blur(20px) saturate(1.4);backdrop-filter:blur(20px) saturate(1.4);
+  border:1px solid var(--t12);box-shadow:0 26px 50px -26px color-mix(in srgb,var(--sombra) 60%,transparent);animation:enfoca .22s var(--ease)}
+.sug .vs-t{display:flex;align-items:center;gap:8px;padding:10px 10px 6px}
+.sg{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:8px 8px 8px 10px;border-radius:16px}
+@media (hover:hover){.sg:hover{background:var(--t06)}}
+.sg.activa{background:var(--t06);box-shadow:inset 2px 0 0 var(--tinta)}
+.mini{display:grid;place-items:center;width:40px;height:52px;border-radius:10px;color:var(--crema-fija);flex:none}
+.mini.claro{color:var(--tinta-fija)}
+.mini svg{width:18px;height:18px;stroke-width:1.6}
+.sg .tx{min-width:0}
+.sg .tx b{display:block;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sg .tx span{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;color:var(--t65)}
+.sg .pr{font-size:14px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.sg .pr s{display:block;color:var(--t65)}
+.sg .pr b{font-weight:600}
+.sg .btn{height:36px;padding:0 14px;font-size:14px}
+.btn.peligro{color:var(--rojo-p);border:1px solid color-mix(in srgb,var(--rojo-p) 45%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent))}
+[data-tema="oscuro"] .btn.peligro{background:color-mix(in srgb,var(--rojo-p) 10%,transparent)}
+.hoy{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar)}
+.sug .nada{padding:18px 12px;font-size:14px;color:var(--t65)}
+
+/* la prenda leída por código (pistola o cámara): ¿esta o todo el modelo? */
+.elige{display:grid;grid-template-columns:56px minmax(0,1fr);gap:14px;align-items:center;padding:12px}
+.elige .mini{width:56px;height:72px;border-radius:12px}
+.elige .tx b{display:block;font-size:17px;font-weight:600}
+.elige .tx span{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;color:var(--t65);margin-top:2px}
+.elige .dos{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.elige .dos .btn{height:48px;padding:0 12px;font-size:15px;white-space:nowrap}
+@container disp (max-width:520px){.elige .dos .btn{font-size:14px;padding:0 8px}}
+
+/* la grilla de prendas: la misma de las campañas (foto al aire) */
+.ts{display:flex;align-items:center;gap:12px;margin-top:34px}
+.ts h3{font-family:'EB Garamond',serif;font-weight:500;font-size:21px;line-height:1.2}
+.ts .der{margin-left:auto}
+.grilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:24px 16px;margin-top:32px}
+.pz{position:relative;min-width:0;animation:sube .45s var(--ease) backwards;animation-delay:calc(var(--i,0) * 26ms)}
+.pz .foto{position:relative;display:grid;place-items:center;align-content:center;gap:8px;aspect-ratio:3/4;border-radius:16px;color:var(--crema-fija);overflow:hidden;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta-fija) 8%,transparent)}
+.pz .foto.claro{color:var(--tinta-fija)}
+.pz .foto>svg{width:46px;height:46px;stroke-width:1.5}
+.pz .foto .cat{font-size:9.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;opacity:.8}
+.pz .nom{margin-top:10px;font-size:15px;font-weight:600;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pz .det{font-size:14px;color:var(--t65)}
+.pz .pre{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin-top:2px;font-size:14px;font-variant-numeric:tabular-nums}
+.pz .pre b{font-size:15px;font-weight:600}
+.pz .pre s{color:var(--t65)}
+.qx{position:absolute;top:8px;right:8px;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;color:var(--tinta-fija);
+  background:color-mix(in srgb,var(--crema-fija) 84%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  box-shadow:0 6px 14px -8px color-mix(in srgb,var(--tinta-fija) 70%,transparent);transition:transform .2s var(--ease),background .2s}
+.qx svg{width:16px;height:16px}
+@media (hover:hover){.qx:hover{background:var(--crema-fija);transform:scale(1.06)}}
+.qx:active{transform:scale(.94)}
+/* el anillo doble (oscuro por fuera, claro por dentro) se ve sobre cualquier color de prenda */
+.qx:focus-visible{outline:2px solid var(--tinta-fija);outline-offset:2px;box-shadow:0 0 0 2px var(--crema-fija)}
+.pz.sale{animation:sale .28s var(--ease) forwards}
+@keyframes sale{to{opacity:0;transform:scale(.9);filter:blur(4px)}}
+.pz.recien .foto{box-shadow:0 0 0 2px var(--verde),0 14px 30px -18px var(--verde);animation:llega .6s var(--ease)}
+@keyframes llega{from{transform:translateY(-14px) scale(.96);opacity:0}}
+.vacio{display:grid;justify-items:center;gap:12px;margin-top:34px;padding:40px 20px;border-radius:24px;border:1px dashed var(--t25);text-align:center}
+.vacio .hueco{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:var(--t06);color:var(--t80)}
+.vacio .hueco svg{width:24px;height:24px}
+.vacio b{font-family:'EB Garamond',serif;font-weight:500;font-size:24px}
+.vacio span{font-size:15px;color:var(--t65)}
+
+/* las ofertas de una campaña: cada una es su propio cartel */
+.ofertas{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-top:14px}
+.of{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:118px;padding:18px 20px;border-radius:22px;text-align:left;border:1px solid var(--t12);
+  background:color-mix(in srgb,var(--vidrio) 50%,transparent);transition:transform .25s var(--ease),border-color .25s;animation:sube .45s var(--ease) backwards;animation-delay:calc(var(--i,0) * 50ms)}
+[data-tema="oscuro"] .of{background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+@media (hover:hover){.of:hover{transform:translateY(-2px);border-color:var(--t25)}}
+.of .gl{font-family:'EB Garamond',serif;font-weight:500;font-size:44px;line-height:1;letter-spacing:-.01em;white-space:nowrap;font-variant-numeric:lining-nums}
+.of .en{font-size:15px;color:var(--t80)}
+.of.nueva{justify-content:center;align-items:center;gap:8px;border-style:dashed;border-color:var(--t25);background:transparent;color:var(--t80);font-weight:600;font-size:15px}
+.of.nueva svg{width:22px;height:22px}
+
+/* ---------- los avisos (esquina de arriba a la derecha, con «Deshacer») ---------- */
+.avisos{position:absolute;z-index:90;top:84px;right:20px;width:min(460px,calc(100% - 40px));display:grid;justify-items:end;gap:8px;pointer-events:none}
+.aviso2{pointer-events:auto;display:flex;align-items:center;gap:12px;min-height:48px;max-width:100%;padding:6px 6px 6px 14px;border-radius:999px;color:var(--crema);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 88%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));box-shadow:0 18px 36px -18px var(--sombra);animation:enfoca .32s var(--ease)}
+.aviso2 .ok{display:grid;place-items:center;width:24px;height:24px;flex:none;border-radius:50%;background:var(--verde);color:var(--crema)}
+.aviso2 .ok svg{width:14px;height:14px;stroke-width:3}
+.aviso2 .tx{font-size:14px;line-height:1.3}
+.aviso2 .tx b{font-weight:600}
+.aviso2 button{height:36px;padding:0 14px;border-radius:999px;font-size:14px;font-weight:600;color:var(--crema);background:color-mix(in srgb,var(--crema) 15%,transparent)}
+.aviso2.sin-boton{padding-right:18px}
+.aviso2.se-va{animation:sale .25s var(--ease) forwards}
+
+/* ---------- las hojas (vidrio «Serena»; en el celular llegan desde abajo) ---------- */
+.capa2{position:absolute;inset:0;z-index:60;display:none;justify-content:center;align-items:flex-start;padding:48px 24px 24px}
+.capa2.abierta{display:flex}
+.velo2{position:absolute;inset:0;background:color-mix(in srgb,var(--sombra) 24%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);animation:funde .3s var(--ease) both}
+[data-tema="oscuro"] .velo2{background:color-mix(in srgb,var(--sombra) 52%,transparent)}
+.hoja2{position:relative;display:flex;flex-direction:column;max-height:calc(100% - 72px);width:min(448px,100%);padding:28px;border-radius:32px;background:color-mix(in srgb,var(--vidrio) 86%,transparent);border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 50px 90px -40px color-mix(in srgb,var(--sombra) 60%,transparent);animation:enfoca .5s var(--ease) both}
+[data-tema="oscuro"] .hoja2{background:color-mix(in srgb,var(--vidrio) 94%,transparent);border-color:color-mix(in srgb,var(--tinta) 14%,transparent)}
+.hoja2.mediana{width:min(576px,100%)}.hoja2.ancha{width:min(860px,100%)}
+.hoja2 h2{font-family:'EB Garamond',serif;font-weight:500;font-size:27px;line-height:1.1}
+.hoja2 .sub2{margin-top:4px;font-size:15px;color:var(--taupe)}
+.cerrar2{position:absolute;top:20px;right:20px;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;color:var(--t80);border:1px solid var(--t12)}
+@media (hover:hover){.cerrar2:hover{background:var(--t06);color:var(--tinta)}}
+/* la hoja se desplaza por dentro y su pie queda a la vista (pie-hoja-fijo) */
+.cuerpo2{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;margin:0 -28px;padding:2px 28px 6px;scrollbar-width:thin}
+.pie2{flex:none;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--t12)}
+.pie2 .sigue{margin-right:auto;display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--t80)}
+.pie2 .sigue b{font-weight:600;color:var(--tinta)}
+.bloque{position:relative}
+.bloque+.bloque{margin-top:24px}
+.bloque>.cab-b{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.bloque.hilo{padding-left:16px}
+.bloque.hilo::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:2px;border-radius:2px;background:var(--tinta);animation:dibuja-y .5s var(--ease) both;transform-origin:top}
+.bloque .sigue-p{margin-left:auto;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--tinta)}
+@keyframes dibuja-y{from{transform:scaleY(0)}}
+
+/* nueva oferta: elegir por el ejemplo, no por una explicación */
+.no{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:28px;margin-top:22px}
+.tipos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.tipo{display:grid;place-items:center;align-content:center;gap:8px;min-height:108px;padding:12px 8px;border-radius:20px;text-align:center;border:1px solid var(--t12);
+  background:color-mix(in srgb,var(--vidrio) 52%,transparent);transition:transform .25s var(--ease),background .25s,color .25s,border-color .25s}
+[data-tema="oscuro"] .tipo{background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+.tipo .gl{font-family:'EB Garamond',serif;font-weight:500;font-size:30px;line-height:1;white-space:nowrap;font-variant-numeric:lining-nums}
+.tipo .cap{font-size:14px;line-height:1.2;color:var(--t65)}
+.tipo[aria-pressed="true"]{color:var(--crema);border-color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 86%,transparent),var(--tinta))}
+.tipo[aria-pressed="true"] .cap{color:color-mix(in srgb,var(--crema) 76%,transparent)}
+@media (hover:hover){.tipo:not([aria-pressed="true"]):hover{transform:translateY(-2px);border-color:var(--t25)}}
+.tipo:active{transform:scale(.97)}
+.tipo:focus-visible,.pc:focus-visible,.seg button:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+.editor{display:flex;flex-wrap:wrap;align-items:center;gap:12px 14px;margin-top:12px;padding:14px 16px;border-radius:20px;border:1px solid var(--t12);
+  background:color-mix(in srgb,var(--vidrio) 36%,transparent);font-size:16px;animation:enfoca .3s var(--ease)}
+[data-tema="oscuro"] .editor{background:color-mix(in srgb,var(--tinta) 4%,transparent)}
+.paso{display:inline-flex;align-items:center;height:48px;padding:0 4px;border-radius:999px;border:1px solid var(--borde);background:color-mix(in srgb,var(--tinta) 5%,transparent);
+  box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .paso{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.paso button{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;color:var(--t80)}
+@media (hover:hover){.paso button:hover{background:var(--t06);color:var(--tinta)}}
+.paso button:active{transform:scale(.92)}
+.paso .num{min-width:54px;text-align:center;font-family:'EB Garamond',serif;font-weight:600;font-size:24px;font-variant-numeric:lining-nums tabular-nums}
+.chips-r{display:flex;flex-wrap:wrap;gap:8px;width:100%}
+.pc{height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--borde);font-size:14px;font-weight:600;color:var(--t80);font-variant-numeric:tabular-nums;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 60%,transparent),color-mix(in srgb,var(--vidrio) 26%,transparent))}
+[data-tema="oscuro"] .pc{background:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.pc[aria-pressed="true"]{color:var(--crema);border-color:var(--tinta);background:var(--tinta)}
+/* lo elegido no se dice solo con color (WCAG 1.4.1): lleva su ✓, como la píldora decidida del ERP */
+.pc[aria-pressed="true"]::before{content:"";display:inline-block;width:5px;height:9px;margin:0 9px 2px 1px;border:solid currentColor;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.tipo{position:relative}
+.tipo[aria-pressed="true"]::after{content:"";position:absolute;top:12px;right:14px;width:6px;height:11px;border:solid currentColor;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.seg button[aria-pressed="true"]{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent),0 4px 10px -4px var(--sombra)}
+.pc .n{margin-left:6px;opacity:.75}
+.seg{display:inline-flex;flex-wrap:wrap;padding:4px;border-radius:999px;border:1px solid var(--t12);background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+.seg button{height:38px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:600;color:var(--t80);transition:background .25s,color .25s}
+.seg button[aria-pressed="true"]{color:var(--crema);background:var(--tinta)}
+.cats{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.filas-d{margin-top:4px}
+.fila-d{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;border-top:1px solid var(--t12)}
+.fila-d:last-child{border-bottom:1px solid var(--t12)}
+.fila-d .k{font-size:15px;color:var(--t80)}
+.fila-d .v{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--borde);font-size:14px;font-weight:600}
+.fila-d .v svg{color:var(--t65)}
+.choque{display:flex;align-items:flex-start;gap:12px;margin-top:12px;padding:12px 14px;border-radius:16px;border-left:3px solid var(--ambar);
+  background:color-mix(in srgb,var(--ambar) 10%,transparent);font-size:14px;color:var(--tinta)}
+.choque svg{color:var(--ambar);margin-top:2px}
+.choque button{margin-left:auto;white-space:nowrap;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+/* «En caja»: lo que pagaría una compra de ejemplo, en vivo */
+.prev{position:sticky;top:0;align-self:start;padding:18px 18px 16px;border-radius:24px;border:1px solid var(--t12);background:color-mix(in srgb,var(--vidrio) 46%,transparent)}
+[data-tema="oscuro"] .prev{background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.prev .lin{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px dashed var(--t12);font-size:14px}
+.prev .lin .mini{width:28px;height:36px;border-radius:7px}
+.prev .lin .mini svg{width:14px;height:14px}
+.prev .lin span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prev .lin .p{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.prev .lin .p s{display:block;color:var(--t65)}
+.prev .lin .p b{font-weight:600}
+.prev .lin .p .gratis{color:var(--verde);font-weight:600}
+.prev .tot{display:flex;align-items:baseline;justify-content:space-between;margin-top:14px}
+.prev .tot span{font-size:14px;color:var(--t80)}
+.prev .tot b{font-family:'EB Garamond',serif;font-weight:600;font-size:32px;font-variant-numeric:lining-nums tabular-nums}
+.prev .aho{margin-top:2px;text-align:right;font-size:14px;font-weight:600;color:var(--verde)}
+.prev .aho.cero{color:var(--t65);font-weight:500}
+.prev-vacio{padding:28px 0;text-align:center;font-size:14px;color:var(--t65)}
+.err-campo{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:14px;font-weight:500;color:var(--rojo-p)}
+/* nuevo descuento: solo el % */
+.gran{display:grid;justify-items:center;gap:16px;margin-top:22px}
+.gran .paso{height:72px}
+.gran .paso button{width:56px;height:56px}
+.gran .paso .num{min-width:150px;font-size:52px;font-weight:500}
+.ya{display:flex;align-items:center;gap:12px;margin-top:16px;padding:12px 14px;border-radius:16px;border-left:3px solid var(--pizarra);background:color-mix(in srgb,var(--pizarra) 10%,transparent);font-size:14px}
+/* nueva campaña */
+.campo2+.campo2{margin-top:18px}
+.campo2 .et{display:block;margin-bottom:8px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.caja2{display:flex;align-items:center;width:100%;height:48px;padding:0 16px;border-radius:14px;border:1px solid var(--borde);font-size:15px;color:var(--tinta);outline:0;
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .caja2{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.caja2:focus{border-color:var(--tinta);box-shadow:0 0 0 4px color-mix(in srgb,var(--tinta) 10%,transparent)}
+.caja2::placeholder{color:var(--t65)}
+.dos-c{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.insignias{display:flex;flex-wrap:wrap;gap:8px}
+.ins{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;border:1px solid var(--borde);color:var(--t80)}
+.ins svg{width:20px;height:20px}
+.ins[aria-pressed="true"]{color:var(--crema);background:var(--tinta);border-color:var(--tinta)}
+.inter{display:flex;align-items:center;gap:12px;margin-top:12px;font-size:15px}
+.inter .sw{position:relative;width:46px;height:28px;flex:none;border-radius:999px;border:1px solid var(--borde);background:var(--t06);transition:background .25s}
+.inter .sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--crema);box-shadow:0 2px 6px -2px var(--sombra);transition:transform .25s var(--ease)}
+[data-tema="oscuro"] .inter .sw::after{background:var(--tinta)}
+.inter[aria-checked="true"] .sw{background:var(--tinta);border-color:var(--tinta)}
+.inter[aria-checked="true"] .sw::after{transform:translateX(18px);background:var(--crema)}
+.caja2[disabled]{opacity:.55}
+
+/* el menú «Más» */
+.menu2{position:absolute;z-index:70;min-width:236px;padding:6px;border-radius:18px;background:color-mix(in srgb,var(--papel) 96%,transparent);border:1px solid var(--t12);
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:0 24px 44px -22px color-mix(in srgb,var(--sombra) 60%,transparent);animation:enfoca .2s var(--ease)}
+.menu2 button{display:flex;align-items:center;gap:12px;width:100%;height:44px;padding:0 12px;border-radius:12px;font-size:15px;text-align:left}
+.menu2 button svg{color:var(--t65)}
+@media (hover:hover){.menu2 button:hover{background:var(--t06)}}
+.menu2 .peligro{color:var(--rojo-p)}.menu2 .peligro svg{color:var(--rojo-p)}
+.menu2 hr{height:1px;border:0;background:var(--t12);margin:4px 8px}
+
+/* ---------- la cámara (celular): negra en los dos temas, como los tres visores del ERP ---------- */
+.cam{position:absolute;inset:0;z-index:80;display:none;flex-direction:column;background:var(--tinta-fija);color:var(--crema-fija)}
+.cam.abierta{display:flex;animation:funde .25s var(--ease)}
+.cam-cab{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:46px 16px 8px}
+.cam-x{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:color-mix(in srgb,var(--crema-fija) 14%,transparent)}
+.cam-x svg{width:20px;height:20px}
+.cam-chip{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:999px;font-size:15px;font-weight:600;background:color-mix(in srgb,var(--crema-fija) 14%,transparent)}
+.cam-chip b{font-family:'EB Garamond',serif;font-size:20px;font-weight:600}
+.cam-visor{position:relative;flex:1;display:grid;place-items:center;align-content:center;gap:18px;overflow:hidden;
+  background:radial-gradient(60% 45% at 50% 45%,color-mix(in srgb,var(--crema-fija) 9%,transparent),transparent 70%),radial-gradient(40% 30% at 30% 70%,color-mix(in srgb,var(--rojo) 14%,transparent),transparent 70%)}
+.cam-marco{position:relative;width:232px;height:232px;border-radius:30px}
+.cam-marco i{position:absolute;width:44px;height:44px;border:3px solid var(--crema-fija)}
+.cam-marco i:nth-child(1){left:0;top:0;border-right:0;border-bottom:0;border-top-left-radius:30px}
+.cam-marco i:nth-child(2){right:0;top:0;border-left:0;border-bottom:0;border-top-right-radius:30px}
+.cam-marco i:nth-child(3){left:0;bottom:0;border-right:0;border-top:0;border-bottom-left-radius:30px}
+.cam-marco i:nth-child(4){right:0;bottom:0;border-left:0;border-top:0;border-bottom-right-radius:30px}
+.cam-linea{position:absolute;left:18px;right:18px;top:20px;height:2px;border-radius:2px;background:var(--rojo);box-shadow:0 0 12px var(--rojo);animation:barre 2.4s ease-in-out infinite alternate}
+@keyframes barre{to{top:calc(100% - 22px)}}
+.cam-pista{font-size:15px;color:color-mix(in srgb,var(--crema-fija) 82%,transparent);text-align:center}
+.cam-maq{position:absolute;top:12px;left:50%;transform:translateX(-50%);padding:6px 12px;border-radius:999px;border:1px dashed color-mix(in srgb,var(--crema-fija) 40%,transparent);font-size:12px;color:color-mix(in srgb,var(--crema-fija) 70%,transparent);white-space:nowrap}
+.cam-pie{padding:12px 14px 22px}
+.cam-card{border-radius:26px;padding:6px;background:var(--crema-fija);color:var(--tinta-fija);animation:sube .35s var(--ease)}
+.cam-card .elige .tx span{color:color-mix(in srgb,var(--tinta-fija) 66%,transparent)}
+.cam-card .btn.sec{color:var(--tinta-fija);border-color:color-mix(in srgb,var(--tinta-fija) 40%,transparent);background:color-mix(in srgb,var(--tinta-fija) 5%,transparent);box-shadow:none}
+.cam-card .btn.pri{color:var(--crema-fija);border-color:var(--tinta-fija);background:var(--tinta-fija);box-shadow:none}
+.cam-card .hoy{background:color-mix(in srgb,var(--ambar) 18%,transparent);color:var(--tinta-fija)}
+.cam-listo{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cam-ultimo{display:flex;align-items:center;gap:12px;margin-bottom:10px;padding:6px 6px 6px 10px;border-radius:999px;font-size:14px;line-height:1.3;
+  background:color-mix(in srgb,var(--crema-fija) 12%,transparent);color:color-mix(in srgb,var(--crema-fija) 88%,transparent);animation:sube .3s var(--ease)}
+.cam-ultimo b{color:var(--crema-fija);font-weight:600}
+.cam-ultimo>span:nth-child(2){flex:1;min-width:0}
+.cam-ultimo .ok{display:grid;place-items:center;width:24px;height:24px;flex:none;border-radius:50%;background:var(--crema-fija);color:var(--tinta-fija)}
+.cam-ultimo .ok svg{width:14px;height:14px;stroke-width:3}
+.cam-ultimo button{height:36px;padding:0 14px;border-radius:999px;font-size:14px;font-weight:600;color:var(--crema-fija);background:color-mix(in srgb,var(--crema-fija) 16%,transparent);flex:none}
+.cam-listo .cuenta{font-size:15px;color:color-mix(in srgb,var(--crema-fija) 82%,transparent)}
+.cam-listo .cuenta b{font-family:'EB Garamond',serif;font-size:24px;color:var(--crema-fija);margin-right:4px}
+.cam-listo .btn{height:48px;padding:0 26px;font-size:15px;color:var(--tinta-fija);background:var(--crema-fija);border-color:var(--crema-fija);box-shadow:none}
+.cam-flash{position:absolute;inset:0;pointer-events:none;background:var(--verde);opacity:0}
+.cam-flash.ya{animation:flash .45s var(--ease)}
+@keyframes flash{30%{opacity:.18}100%{opacity:0}}
+
+/* la isla de abajo en el celular: con una sola acción, la isla es el botón */
+.isla2{position:absolute;z-index:40;left:12px;right:12px;bottom:12px;display:none}
+.isla2 .btn{width:100%;height:56px;border-radius:18px;font-size:16px;gap:12px}
+.isla2 .btn svg{width:20px;height:20px}
+.volver2{display:none}
+
+/* ---------- celular y tableta ---------- */
+@container disp (max-width:900px){
+  .mesa{grid-template-columns:minmax(0,1fr);gap:24px}
+  .lado{position:static}
+  .mesa[data-vista="lista"] .panel{display:none}
+  .mesa[data-vista="detalle"] .lado,.mesa[data-vista="detalle"] ~ .riel-wrap{display:none}
+  .volver2{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;border:1px solid var(--t25);color:var(--tinta);flex:none}
+  .bus .camara{display:grid}
+  .bus kbd{display:none}
+  .no{grid-template-columns:minmax(0,1fr)}
+  .prev{position:static}
+  /* abierto un descuento o una campaña, la pantalla es suya: la cabecera de la página se va y vuelve con la flecha */
+  .cont:has(.mesa[data-vista="detalle"]) :is(.ep,.riel-wrap){display:none}
+}
+@container disp (max-width:520px){
+  .pan-tit{font-size:58px}.pan-tit.nombre{font-size:42px}
+  .grilla{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 12px}
+  .qx{width:36px;height:36px}
+  .agregar{margin-top:18px}
+  .capa2{padding:0;align-items:flex-end}
+  .hoja2,.hoja2.mediana,.hoja2.ancha{width:100%;max-height:94%;padding:12px 18px 18px;border-radius:28px 28px 0 0;animation:subehoja .42s var(--ease) both}
+  .cuerpo2{margin:0 -18px;padding:2px 18px 6px}
+  .hoja2::before{content:"";display:block;width:40px;height:5px;margin:0 auto 14px;border-radius:99px;background:var(--t25)}
+  .cerrar2{top:24px;right:16px}
+  .tipos{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pie2{display:grid;grid-template-columns:1fr 1fr}
+  .pie2:has(button:nth-of-type(3)) .btn.pri:last-child{grid-column:1/-1}
+  .pie2 .sigue{grid-column:1/-1}
+  .isla2.ve{display:block;animation:sube .4s var(--ease)}
+  .panel{padding-bottom:84px}
+  .avisos{top:auto;bottom:84px;left:12px;right:12px;justify-items:stretch}
+  .aviso2{max-width:none}
+  .eti{width:132px;min-height:140px}
+  .eti .pct{font-size:36px}
+  .it,.plegable,.seg button,.pc,.btn,.paso button,.resp2,.fila-d .v,.inter{min-height:44px}
+  .volver2,.btn.solo,.bus .camara{width:44px;min-width:44px;height:44px}
+  .paso button{width:44px;height:44px}
+  /* la × se dibuja de 36 px sobre la foto y se toca en 44 (lo que hace area-dedo en el ERP) */
+  .qx::after{content:"";position:absolute;inset:-4px;border-radius:50%}
+  .choque button{padding:12px 0;margin:-12px 0}
+  .ep [data-a="web"]{display:none}
+  .chip{height:28px}
+}
+@keyframes subehoja{from{transform:translateY(40px);opacity:0}}
+
+/* ---------- quieto: todo se queda en su sitio (la línea del visor sigue: es la señal de espera) ---------- */
+[data-mov="quieto"] *:not(.cam-linea),[data-mov="quieto"] *::before,[data-mov="quieto"] *::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}
+@media (prefers-reduced-motion:reduce){.cam-linea{animation:none;top:50%}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Campañas y ofertas, más simple · maqueta (2026-11-16)</span>
+  <span class="tag">Los descuentos</span><div class="seg-m" data-ctl="dir"><button data-v="lista">A · En la lista ✓</button><button data-v="etiquetas">B · Etiquetas colgadas</button></div>
+  <span class="tag">Abrir</span>
+  <button class="accion" data-acc="ir-desc">Descuento −10 %</button>
+  <button class="accion" data-acc="ir-camp">Black Friday</button>
+  <button class="accion" data-acc="ir-oferta">Nueva oferta</button>
+  <button class="accion" data-acc="ir-campana">Nueva campaña</button>
+  <button class="accion" data-acc="ir-camara">Cámara (375)</button>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="movil">375</button><button data-v="tablet">Tableta</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="escritorio">Tu ventana</button></div>
+  <span class="tag">Movimiento</span><div class="seg-m" data-ctl="mov"><button data-v="vivo">Vivo</button><button data-v="quieto">Quieto</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="isla2" id="isla2"></div>
+  <div class="capa2" id="capa2"></div>
+  <div class="cam" id="cam" role="dialog" aria-label="Escanear prendas"></div>
+  <div class="avisos" id="avisos" aria-live="polite"></div>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que pediste</h2>
+    <ul>
+      <li><b>Los descuentos van primero</b> y cada uno dice «Descuento»: lo único que cambia entre ellos es el %. Nada de «Prendas de 10%», «Para liquidar» o «Top ventas».</li>
+      <li><b>Al tocar uno, se ven sus prendas</b>, como en las campañas, y se agregan o quitan sin drama: buscando por nombre o, en el celular, con la cámara.</li>
+      <li><b>La configuración de una oferta, sin texto de más</b>: un 3x2 o un −20 % se entienden solos.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Hoy → en la maqueta</h2>
+    <table>
+      <tr><th>Hoy</th><th>En la maqueta</th></tr>
+      <tr><td>Un escáner suelto arriba («Escanea una prenda para ponerle un %») y tres tarjetas de cifra con el nombre de su campaña</td><td>Sin escáner suelto. <b>Descuentos</b> es lo primero de la lista: «Descuento −10 %», «−15 %», «−20 %», cada uno con cuántas prendas tiene</td></tr>
+      <tr><td>Al tocar un % se abre un cajón con una lista de texto y «Quitar» en cada fila</td><td>Se abre a la derecha, <b>igual que una campaña</b>: el % en grande, el buscador para agregar y la grilla de prendas con su × para quitar. Cada cambio se puede deshacer</td></tr>
+      <tr><td>Escanear abría una hoja con tres preguntas (a qué, cuánto, quién)</td><td>El % ya lo dice el descuento abierto: al escanear solo pregunta <b>«Solo esta» o «Todo el modelo»</b>. Enter repite la última respuesta</td></tr>
+      <tr><td>En el celular, los pases se montaban uno encima de otro</td><td>Lista → descuento → <b>«Escanear»</b> abre la cámara; se leen varias seguidas y «Listo» vuelve</td></tr>
+      <tr><td>Configurar una oferta: 4 pasos, «Ya registradas», una franja con la campaña, frases de ayuda y «Regalo» y «Club» que dicen «Pronto»</td><td><b>Una sola hoja</b>: el ejemplo es la opción (−20 %, 3x2, 2 por S/ 60, 2.ª −50 %, −S/ 30), los números se cambian ahí mismo, las prendas en un toque y lo que pagaría una compra se ve en vivo. Lo que aún no funciona no se muestra</td></tr>
+      <tr><td>El pase abierto de una campaña: chips, barra de días, «vendidas en 30 días», «en las tiendas», «Solo Tienda TRU», «Ver sus ofertas», «Más»</td><td>El nombre, tres chips (estado, fechas, tiendas), <b>sus ofertas como carteles</b> y sus prendas. Lo demás, en «Más»</td></tr>
+    </table>
+  </section>
+  <section>
+    <h2>Las dos caras de los descuentos: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td><b>A · En la lista</b> <span class="ev">Recomendada</span></td><td>Descuentos y campañas son la misma fila: se aprende una vez. Con 8 descuentos sigue ordenado, y en el celular es la lista de siempre.</td><td>Menos «de tienda»: el % no se ve como una etiqueta física.</td></tr>
+      <tr><td>B · Etiquetas colgadas</td><td>Se ve como el riel de la tienda: cada descuento es una etiqueta con su %. Se reconoce de lejos.</td><td>Con muchos % el riel se desplaza de costado y las campañas quedan en otra lista: dos formas en la misma pantalla.</td></tr>
+    </table>
+  </section>
+  <section>
+    <h2>Lo que no cambia</h2>
+    <p>Lo que hace hoy el módulo sigue: una prenda en un solo descuento por tienda (al agregarla a otro, se mueve), hasta 70 %, «todas las tiendas» solo para un líder, quién lo hizo (el responsable, una vez por tienda), las ofertas de una campaña (−%, 3x2, N por S/ X, la N.ª al X %, por monto con escalones), en qué prendas (toda la campaña, categorías, prendas sueltas, insignia), cuándo y dónde, los choques entre ofertas, repetir el año siguiente, imprimir etiquetas, cómo se ve en la web y desactivar. Lo que no está a la vista vive en «Más» o en la hoja.</p>
+  </section>
+  <section>
+    <h2>Lo que decides tú antes de construir</h2>
+    <ul>
+      <li><b>Las campañas que hoy hacen de descuento</b> («Prendas de 10%», «Para liquidar», «Top ventas»): ¿pasan a ser Descuentos con sus mismas prendas? Tienen fecha de fin y un Descuento no la tiene.</li>
+      <li><b>Dos descuentos con el mismo %</b> (uno solo de la tienda y otro de todas): ¿se ven como uno solo?</li>
+      <li><b>«Regalo» y «Club»</b> desaparecen de la hoja hasta que funcionen.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Medido (en local, con los medidores de las skills)</h2>
+    <table>
+      <tr><th>Qué</th><th>Hoy</th><th>Maqueta</th></tr>
+      <tr><td>Frases de 8 palabras o más</td><td>6 en la pantalla · 7 en la hoja de ofertas</td><td>0 · 0</td></tr>
+      <tr><td>Palabras de la hoja de ofertas (primer paso)</td><td>205</td><td>102 (nombres de opciones y precios de ejemplo)</td></tr>
+      <tr><td>Textos bajo 4,5:1 (claro y oscuro)</td><td>—</td><td>0 de 83</td></tr>
+      <tr><td>Foco con anillo, sin tapar</td><td>—</td><td>27 de 27</td></tr>
+      <tr><td>A 375 px, lo que se toca</td><td>—</td><td>44 px</td></tr>
+      <tr><td>Prueba ciega (un agente sin contexto)</td><td>—</td><td>3 de 3 tareas, sin perderse; lo que falló, ya arreglado</td></tr>
+    </table>
+  </section>
+  <section>
+    <h2>Cómo probarla</h2>
+    <p>Toca un descuento; escribe «blusa» o «polo» en el buscador; escribe el código <code>BLU-01-VIN-M</code> y Enter, como si fuera la pistola; quita una prenda con su × y usa «Deshacer». En la barra: «Cámara (375)» abre el celular con la cámara (toca el recuadro para leer una etiqueta). «Nueva oferta» abre la hoja nueva.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global ($, $$, sv, boton, encabezado, estado, pintar, MENU…); esta maqueta no los repite. -->
+<script>
+// ====================================================================
+// Datos inventados (el repo es público). Una «pieza» es un modelo en un color, como cuenta la grilla de las campañas.
+// ====================================================================
+const MENOS = '−';
+const pctTxt = (n) => `${MENOS}${n} %`;
+const soles = (n) => 'S/ ' + n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// La regla de la caja (descuentoUnitarioPorPorcentaje): el precio final baja al múltiplo de 10 céntimos.
+const conPct = (p, pct) => Math.floor((Math.round(p * 100) * (1000000 - Math.round(pct * 10000))) / 10000000) * 10 / 100;
+const sinTilde2 = (x) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const COL = { Vino: '#6e2430', Beige: '#c9a27e', Blanco: '#efe9df', Negro: '#262421', Celeste: '#9cc3d5', Rosado: '#e3a3b1', Oliva: '#6f7a4a', Azul: '#2c3e63', // tema-fijo: colores de prenda, son dato
+  Crema: '#e9dcc5', Terracota: '#b5643a', Mostaza: '#d9b44a', Gris: '#8a8782' }; // tema-fijo: colores de prenda, son dato
+const CLAROS = new Set(['Beige', 'Blanco', 'Celeste', 'Rosado', 'Crema', 'Mostaza', 'Gris']);
+const I = {
+  tag: 'M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42zM7 7.5a.5.5 0 1 0 1 0a.5.5 0 1 0-1 0',
+  mas: 'M12 5v14M5 12h14', x: 'M18 6 6 18M6 6l12 12', chev: 'm9 18 6-6-6-6', abajo: 'm6 9 6 6 6-6', ok: 'M20 6 9 17l-5-5',
+  lupa: 'M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-4.8-4.8', puntos: 'M11 12a1 1 0 1 0 2 0a1 1 0 1 0-2 0M18 12a1 1 0 1 0 2 0a1 1 0 1 0-2 0M4 12a1 1 0 1 0 2 0a1 1 0 1 0-2 0',
+  escanear: 'M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M8 7v10M12 7v10M16 7v10',
+  volver: 'M19 12H5M11 6l-6 6 6 6', lapiz: 'M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497zM15 5l4 4',
+  cal: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', tienda: 'M3 9l1.5-5h15L21 9M4 9v11h16V9M9 20v-6h6v6M3 9h18',
+  repetir: 'M17 2l4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3', imprimir: 'M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z',
+  web: 'M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0M12 2a14.5 14.5 0 0 0 0 20a14.5 14.5 0 0 0 0-20M2 12h20', apagar: 'M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10',
+  alerta: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z', info: 'M12 16v-4M12 8h.01M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0',
+  porciento: 'M19 5 5 19M4 6.5a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0M15 17.5a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0', vaciar: 'M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14',
+  // insignias de campaña
+  llama: 'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z',
+  estrella: 'M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z',
+  sol: 'M12 16a4 4 0 1 0 0-8a4 4 0 0 0 0 8zM12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41',
+  corazon: 'M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 000-7.8z',
+  regalo: 'M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z',
+  chispa: 'M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z',
+  // la prenda sin foto: el ícono de su categoría (ADR-0333)
+  polo: 'M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z',
+  vestido: 'M9 2h6l-1 4 5 16H5l5-16zM9.5 6h5', jean: 'M6 2h12l1.5 20h-6L12 10l-1.5 12h-6zM6 6h12', falda: 'M7 3h10l4 18H3zM7 7h10',
+};
+const CAT_IC = { Polos: 'polo', Blusas: 'polo', Tops: 'polo', Camisas: 'polo', Casacas: 'polo', Sacos: 'polo', Bodys: 'polo', Vestidos: 'vestido', Jeans: 'jean', Shorts: 'jean', Faldas: 'falda' };
+const ic = (k, c = 'ic') => sv(I[k], c);
+
+const MODELOS = [
+  { id: 'BLU-01', nom: 'Blusa Emma', cat: 'Blusas', p: 89.90, col: ['Vino', 'Beige', 'Blanco'], t: ['S', 'M', 'L'] },
+  { id: 'POL-02', nom: 'Polo Nube', cat: 'Polos', p: 49.90, col: ['Crema', 'Negro', 'Celeste', 'Rosado'], t: ['S', 'M', 'L', 'XL'] },
+  { id: 'JEA-03', nom: 'Jean Río', cat: 'Jeans', p: 129.90, col: ['Azul', 'Negro'], t: ['26', '28', '30', '32'] },
+  { id: 'VES-04', nom: 'Vestido Ara', cat: 'Vestidos', p: 159.90, col: ['Oliva', 'Negro'], t: ['S', 'M', 'L'] },
+  { id: 'FAL-05', nom: 'Falda Inti', cat: 'Faldas', p: 79.90, col: ['Terracota', 'Negro'], t: ['S', 'M', 'L'] },
+  { id: 'TOP-06', nom: 'Top Brisa', cat: 'Tops', p: 39.90, col: ['Blanco', 'Beige', 'Rosado', 'Negro', 'Vino', 'Celeste'], t: ['Única'] },
+  { id: 'CAS-07', nom: 'Casaca Lía', cat: 'Casacas', p: 189.90, col: ['Beige', 'Negro'], t: ['S', 'M', 'L'] },
+  { id: 'POL-08', nom: 'Polo Luna', cat: 'Polos', p: 45.90, col: ['Blanco', 'Gris', 'Mostaza'], t: ['S', 'M', 'L'] },
+  { id: 'BLU-09', nom: 'Blusa Coral', cat: 'Blusas', p: 69.90, col: ['Terracota', 'Crema'], t: ['S', 'M', 'L'] },
+  { id: 'VES-10', nom: 'Vestido Rubí', cat: 'Vestidos', p: 179.90, col: ['Vino'], t: ['S', 'M', 'L'] },
+  { id: 'JEA-11', nom: 'Jean Mar', cat: 'Jeans', p: 119.90, costo: 98, col: ['Celeste', 'Azul'], t: ['26', '28', '30'] },
+  { id: 'TOP-12', nom: 'Top Sol', cat: 'Tops', p: 42.90, col: ['Mostaza', 'Blanco'], t: ['Única'] },
+  { id: 'SHO-13', nom: 'Short Oliva', cat: 'Shorts', p: 59.90, col: ['Oliva', 'Beige'], t: ['S', 'M', 'L'] },
+  { id: 'SAC-14', nom: 'Saco Malva', cat: 'Sacos', p: 199.90, col: ['Vino', 'Negro'], t: ['S', 'M', 'L'] },
+  { id: 'CAM-15', nom: 'Camisa Mar', cat: 'Camisas', p: 99.90, col: ['Celeste', 'Blanco'], t: ['S', 'M', 'L'] },
+  { id: 'BOD-16', nom: 'Body Noa', cat: 'Bodys', p: 54.90, col: ['Negro', 'Crema'], t: ['S', 'M'] },
+];
+const MOD = Object.fromEntries(MODELOS.map((m) => [m.id, m]));
+const ABR = (c) => sinTilde2(c).slice(0, 3).toUpperCase();
+const codigo = (m, c, t) => `${m.id}-${ABR(c)}-${t === 'Única' ? 'U' : t}`;
+const pid = (m, c) => `${m}|${c}`;
+const partes = (p) => { const [m, c] = p.split('|'); return { m: MOD[m], c }; };
+
+// Los descuentos de Tienda TRU: % → piezas (con las tallas marcadas; null = todas).
+const nuevoMapa = (lista) => new Map(lista.map((x) => (Array.isArray(x) ? [pid(x[0], x[1]), x[2] || null] : [x, null])));
+let DESC = [
+  { pct: 10, piezas: nuevoMapa([['TOP-06', 'Blanco'], ['TOP-06', 'Beige'], ['TOP-06', 'Rosado'], ['TOP-06', 'Negro'], ['TOP-06', 'Vino'], ['TOP-06', 'Celeste'], ['TOP-12', 'Mostaza'], ['TOP-12', 'Blanco'],
+    ['POL-08', 'Blanco'], ['POL-08', 'Gris'], ['POL-08', 'Mostaza'], ['BLU-09', 'Crema', ['M']], ['FAL-05', 'Terracota'], ['FAL-05', 'Negro'], ['JEA-11', 'Celeste']]) },
+  { pct: 15, piezas: nuevoMapa([['JEA-03', 'Azul'], ['JEA-03', 'Negro'], ['VES-04', 'Oliva'], ['VES-04', 'Negro'], ['CAS-07', 'Beige'], ['CAS-07', 'Negro'], ['BLU-01', 'Beige'], ['BLU-01', 'Blanco'],
+    ['POL-02', 'Crema'], ['POL-02', 'Negro'], ['POL-02', 'Celeste'], ['POL-02', 'Rosado']]) },
+  { pct: 20, piezas: nuevoMapa([['VES-10', 'Vino'], ['BLU-01', 'Vino', ['S']], ['JEA-11', 'Azul']]) },
+];
+const CAMP = [
+  { id: 'bf', nom: 'Black Friday', ins: 'llama', fechas: '16 – 30 nov', dias: 14, estado: 'rige', tiendas: 'Todas las tiendas',
+    ofertas: [{ gl: '3x2', en: 'Polos' }, { gl: pctTxt(20), en: 'Jeans' }],
+    prendas: [['POL-02', 'Crema'], ['POL-02', 'Negro'], ['POL-02', 'Celeste'], ['POL-02', 'Rosado'], ['POL-08', 'Blanco'], ['POL-08', 'Gris'], ['POL-08', 'Mostaza'], ['JEA-03', 'Azul'], ['JEA-03', 'Negro'], ['JEA-11', 'Celeste'], ['JEA-11', 'Azul']] },
+  { id: 'nav', nom: 'Navidad', ins: 'estrella', fechas: '1 – 24 dic', dias: 15, estado: 'viene', tiendas: 'Todas las tiendas', ofertas: [{ gl: `${MENOS}S/ 30`, en: 'Desde S/ 300', programada: true }],
+    prendas: [['VES-04', 'Oliva'], ['VES-10', 'Vino'], ['SAC-14', 'Vino'], ['BLU-01', 'Vino']] },
+  { id: 'ver', nom: 'Verano 2026', ins: 'sol', fechas: '5 ene – 28 feb', estado: 'guardada', tiendas: 'Todas las tiendas', ofertas: [{ gl: '2x1', en: 'Tops' }], prendas: [['TOP-06', 'Blanco'], ['TOP-12', 'Mostaza']] },
+  { id: 'mad', nom: 'Día de la Madre', ins: 'corazon', fechas: '1 – 10 may', estado: 'guardada', tiendas: 'Todas las tiendas', ofertas: [], prendas: [] },
+  { id: 'fp', nom: 'Fiestas Patrias', ins: 'chispa', fechas: '20 – 31 jul', estado: 'guardada', tiendas: 'Solo Tienda TRU', ofertas: [], prendas: [] },
+  { id: 'cy', nom: 'Cyber Wow', ins: 'regalo', fechas: '7 – 11 oct', estado: 'guardada', tiendas: 'Todas las tiendas', ofertas: [], prendas: [] },
+];
+
+// ====================================================================
+// Estado de la pantalla
+// ====================================================================
+let sel = { k: 'desc', pct: 10 };         // lo que se ve a la derecha
+let vista = 'lista';                       // en el celular: la lista o lo abierto
+let q = '';                                // lo escrito en el buscador
+let leida = null;                          // la prenda leída por código: { m, c, t }
+let ultimoAlcance = 'modelo';              // Enter repite la última respuesta
+let marcada = 0;                            // la sugerencia marcada con ↑ ↓
+const plegado = { viene: false, guardadas: false };
+let recien = new Set();
+let hoja = null;                           // 'oferta' | 'campana' | 'desc'
+let cam = { abierta: false, leida: null, cuenta: 0, ultimo: null };
+let menu = null;
+
+const descAbierto = () => DESC.find((d) => d.pct === sel.pct);
+const campAbierta = () => CAMP.find((c) => c.id === sel.id);
+const dondeEsta = (p) => DESC.find((d) => d.piezas.has(p));
+const clonar = () => DESC.map((d) => ({ pct: d.pct, piezas: new Map(d.piezas) }));
+const angosto = () => $('#disp').getBoundingClientRect().width / zoomDisp() <= 900;
+
+// ====================================================================
+// Pintar
+// ====================================================================
+function fotoHTML(m, c, clase = 'foto') {
+  return `<div class="${clase}${CLAROS.has(c) ? ' claro' : ''}" data-color-dato style="background:${COL[c]}">${ic(CAT_IC[m.cat] || 'polo')}${clase === 'foto' ? `<span class="cat">${m.cat}</span>` : ''}</div>`;
+}
+function filaDesc(d, i) {
+  const on = sel.k === 'desc' && sel.pct === d.pct;
+  return `<button class="it" style="--i:${i}" data-desc="${d.pct}" aria-current="${on}">
+    <span class="lente">${ic('tag')}</span>
+    <span><span class="pre">Descuento</span><span class="pct">${pctTxt(d.pct)}</span></span>
+    <span class="der"><b>${d.piezas.size}</b><span>${d.piezas.size === 1 ? 'prenda' : 'prendas'}</span></span></button>`;
+}
+function filaCamp(c, i) {
+  const on = sel.k === 'camp' && sel.id === c.id;
+  const der = c.estado === 'rige' ? `<b>${c.dias}</b><span class="vs-t">días</span>` : c.estado === 'viene' ? `<b>${c.dias}</b><span class="vs-t">faltan</span>` : '';
+  return `<button class="it" style="--i:${i}" data-camp="${c.id}" aria-current="${on}">
+    <span class="lente">${ic(c.ins)}</span>
+    <span style="min-width:0"><span class="nom">${esc(c.nom)}</span><span class="sub2">${c.fechas}</span></span>
+    <span class="der">${der}</span></button>`;
+}
+function ladoHTML() {
+  const rigen = CAMP.filter((c) => c.estado === 'rige'), viene = CAMP.filter((c) => c.estado === 'viene'), guard = CAMP.filter((c) => c.estado === 'guardada');
+  const descuentos = estado.dir === 'etiquetas' ? '' : `<section aria-label="Descuentos">
+      <div class="tg"><span class="vs-t">Descuentos</span><span class="glob">${DESC.length}</span></div>
+      ${DESC.map(filaDesc).join('')}
+      <button class="it nuevo" data-a="nuevo-desc" style="margin-top:8px"><span class="lente">${ic('mas')}</span><span>Nuevo descuento</span></button>
+    </section>`;
+  const pleg = (k, et, lista) => lista.length ? `<div><button class="plegable" data-pleg="${k}" aria-expanded="${plegado[k]}"><span class="vs-t">${et}</span><span class="glob">${lista.length}</span>${ic('abajo')}</button>
+      ${plegado[k] ? `<div class="plegado">${lista.map(filaCamp).join('')}</div>` : ''}</div>` : '';
+  return `<div class="lado">${descuentos}
+    <section aria-label="Campañas">
+      <div class="tg"><span class="vs-t">Campañas</span><span class="glob">${rigen.length}</span></div>
+      ${rigen.map(filaCamp).join('')}
+      <div style="margin-top:10px;display:grid;gap:2px">${pleg('viene', 'Lo que viene', viene)}${pleg('guardadas', 'Guardadas', guard)}</div>
+    </section></div>`;
+}
+function rielHTML() {
+  return `<div class="riel-wrap"><div class="riel-cab"><span class="vs-t">Descuentos</span><span class="glob">${DESC.length}</span></div>
+    <div class="riel" role="list">${DESC.map((d, i) => { const on = sel.k === 'desc' && sel.pct === d.pct;
+      return `<button class="eti" role="listitem" style="--i:${i}" data-desc="${d.pct}" aria-current="${on}"><span class="ojal"></span><span class="pre">Descuento</span><span class="pct">${pctTxt(d.pct)}</span><span class="cnt">${d.piezas.size} ${d.piezas.size === 1 ? 'prenda' : 'prendas'}</span></button>`; }).join('')}
+      <button class="eti nuevo" data-a="nuevo-desc"><span class="ojal"></span>${ic('mas')}<span>Nuevo</span></button></div></div>`;
+}
+function volverHTML() { return `<button class="volver2" data-a="volver" aria-label="Volver a la lista">${ic('volver')}</button>`; }
+
+function panelDescHTML(d) {
+  const piezas = [...d.piezas.entries()].reverse(); // lo último que entró va primero: se ve llegar
+  const grilla = piezas.length ? `<div class="grilla">${piezas.map(([p, tallas], i) => {
+      const { m, c } = partes(p);
+      return `<article class="pz${recien.has(p) ? ' recien' : ''}" style="--i:${i}" data-pz="${p}">
+        ${fotoHTML(m, c).replace('</div>', `<button class="qx" data-quitar="${p}" aria-label="Quitar ${esc(m.nom)} ${c}" title="Quitar">${ic('x')}</button></div>`)}
+        <p class="nom">${esc(m.nom)}</p><p class="det">${c}${tallas ? ` · ${tallas.join(', ')}` : ''}</p>
+        <p class="pre"><b>${soles(conPct(m.p, d.pct))}</b><s>${soles(m.p)}</s></p>${m.costo && conPct(m.p, d.pct) < m.costo ? '<span class="chip cp ambar" title="Con este % se vende por debajo de lo que costó">Bajo costo</span>' : ''}</article>`; }).join('')}</div>`
+    : `<div class="vacio"><span class="hueco">${ic('tag')}</span><b>Todavía no hay prendas con ${pctTxt(d.pct)}</b><span>Escanéala o búscala por su nombre.</span></div>`;
+  return `<div class="pan-cab"><div><div class="pan-pre">${volverHTML()}<span>Descuento · Tienda TRU</span></div><h2 class="pan-tit">${pctTxt(d.pct)}</h2></div>
+      <div class="pan-acc"><span class="pan-cnt"><b>${d.piezas.size}</b>${d.piezas.size === 1 ? 'prenda' : 'prendas'}</span>
+        <button class="resp2" aria-label="Responsable: Lucía Ramos" title="Responsable">${'<span class="av2">LR</span>'}Lucía${ic('abajo')}</button>
+        <button class="btn sec chico solo" data-menu="desc" aria-label="Más opciones" title="Más">${ic('puntos')}</button></div></div>
+    <div class="agregar">
+      <label class="bus">${ic('lupa')}<input id="q" type="search" autocomplete="off" placeholder="${angosto() ? 'Agrega por nombre o código' : 'Agrega una prenda: nombre o código'}" value="${esc(q)}" aria-label="Agregar una prenda por su nombre o su código">
+        <button class="borrar" data-a="borrar-q" aria-label="Borrar lo escrito">${ic('x')}</button><kbd>/</kbd>
+        <button class="camara" data-a="camara" aria-label="Escanear con la cámara">${ic('escanear')}</button></label>
+      <div id="sug"></div>
+    </div>
+    ${grilla}`;
+}
+function panelCampHTML(c) {
+  const estadoChip = c.estado === 'rige' ? '<span class="chip cp verde">Vigente</span>' : c.estado === 'viene' ? '<span class="chip cp ambar">Empieza pronto</span>' : '<span class="chip cp">Guardada</span>';
+  return `<div class="pan-cab"><div><div class="pan-pre">${volverHTML()}<span>Campaña</span></div><h2 class="pan-tit nombre">${esc(c.nom)}</h2>
+      <div class="chips">${estadoChip}<span class="chip">${c.fechas}${c.dias && c.estado === 'rige' ? ` · ${c.dias} días` : ''}</span><span class="chip pizarra">${c.tiendas}</span></div></div>
+      <div class="pan-acc"><button class="btn sec chico">${ic('lapiz')}Editar</button><button class="btn sec chico solo" data-menu="camp" aria-label="Más opciones" title="Más">${ic('puntos')}</button></div></div>
+    <div class="ts"><h3>Ofertas</h3><span class="glob">${c.ofertas.length}</span></div>
+    <div class="ofertas">${c.ofertas.map((o, i) => `<button class="of" style="--i:${i}" data-a="ver-oferta"><span class="gl">${o.gl}</span><span class="en">${esc(o.en)}</span>${o.borrador ? '<span class="chip">Borrador</span>' : o.programada ? '<span class="chip cp ambar">Desde el 1 dic</span>' : ''}</button>`).join('')}
+      <button class="of nueva" data-a="nueva-oferta">${ic('mas')}Nueva oferta</button></div>
+    <div class="ts"><h3>Prendas</h3><span class="glob">${c.prendas.length}</span><span class="der"><button class="btn sec chico">${ic('mas')}Elegir prendas</button></span></div>
+    ${c.prendas.length ? `<div class="grilla">${c.prendas.map(([mi, co], i) => { const m = MOD[mi]; return `<article class="pz" style="--i:${i}">${fotoHTML(m, co)}<p class="nom">${esc(m.nom)}</p><p class="det">${co}</p></article>`; }).join('')}</div>`
+      : `<div class="vacio"><span class="hueco">${ic('polo')}</span><b>Todavía no tiene prendas</b><span>Elígelas por categoría o una por una.</span></div>`}`;
+}
+function pintarModulo(anim = 'nada') {
+  const cont = $('#cont');
+  cont.dataset.anim = anim;
+  const desc = sel.k === 'desc' ? descAbierto() : null;
+  const enc = encabezado({ sede: 'Tienda TRU', fecha: 'lunes, 16 de noviembre · 16:44', titulo: 'Campañas y ofertas',
+    acciones: [['sec', 'Cómo se ven en la web', 'flecha'], ['pri', 'Nueva campaña', 'mas']] });
+  const panel = desc ? panelDescHTML(desc) : panelCampHTML(campAbierta());
+  cont.innerHTML = `${enc}${estado.dir === 'etiquetas' ? rielHTML() : ''}<div class="mesa" data-vista="${vista}">${ladoHTML()}<section class="panel" aria-label="Lo abierto">${panel}</section></div>`;
+  // los botones de la cabecera
+  const [web, nueva] = $$('.ep .btn', cont); if (nueva) nueva.dataset.a = 'nueva-campana'; if (web) web.dataset.a = 'web';
+  pintarSug(); pintarIsla();
+  if (estado.dir === 'etiquetas' && angosto() && vista === 'detalle') { const r = $('.riel-wrap', cont); if (r) r.style.display = 'none'; }
+}
+function pintarIsla() {
+  const ve = angosto() && vista === 'detalle' && sel.k === 'desc' && $('#disp').dataset.ancho === 'movil';
+  $('#isla2').classList.toggle('ve', ve);
+  $('#isla2').innerHTML = ve ? `<button class="btn pri" data-a="camara">${ic('escanear')}Escanear prendas</button>` : '';
+}
+
+// ---------- lo que aparece al escribir ----------
+function buscarPiezas(texto) {
+  const t = sinTilde2(texto.trim());
+  if (t.length < 2) return [];
+  const out = [];
+  for (const m of MODELOS) {
+    if (!sinTilde2(m.nom).includes(t) && !sinTilde2(m.cat).includes(t) && !m.id.toLowerCase().startsWith(t)) continue;
+    for (const c of m.col) out.push(pid(m.id, c));
+  }
+  return out;
+}
+function exacta(texto) {
+  const t = texto.trim().toUpperCase();
+  for (const m of MODELOS) for (const c of m.col) for (const ta of m.t) if (codigo(m, c, ta) === t) return { m, c, t: ta };
+  return null;
+}
+function filaSug(p, d, k) {
+  const { m, c } = partes(p);
+  const otro = dondeEsta(p), aqui = otro === d;
+  const hoy = otro && !aqui ? `<span class="hoy">Hoy ${pctTxt(otro.pct)}</span>` : '';
+  return `<div class="sg${k === marcada ? ' activa' : ''}" role="option" aria-selected="${k === marcada}">
+    ${fotoHTML(m, c, 'mini')}
+    <span class="tx"><b>${esc(m.nom)}</b><span>${c} · ${m.t.length === 1 ? 'talla única' : `${m.t.length} tallas`}${hoy}</span></span>
+    <span class="pr"><s>${soles(m.p)}</s><b>${soles(conPct(m.p, d.pct))}</b></span>
+    ${aqui ? `<button class="btn peligro" data-quitar="${p}">Quitar</button>` : `<button class="btn sec" data-agregar="${p}">Agregar</button>`}</div>`;
+}
+function eligeHTML(l, d) {
+  const otro = dondeEsta(pid(l.m.id, l.c));
+  const n = l.m.col.length * l.m.t.length;
+  return `<div class="elige">${fotoHTML(l.m, l.c, 'mini')}
+    <span class="tx"><b>${esc(l.m.nom)}</b><span>${l.c} · ${l.t === 'Única' ? 'talla única' : `talla ${l.t}`}${otro && otro !== d ? `<span class="hoy">Hoy ${pctTxt(otro.pct)}</span>` : ''}</span></span>
+    <div class="dos"><button class="btn ${ultimoAlcance === 'prenda' ? 'pri' : 'sec'}" data-alcance="prenda">Solo esta</button><button class="btn ${ultimoAlcance === 'modelo' ? 'pri' : 'sec'}" data-alcance="modelo">Todo el modelo · ${n}</button></div></div>`;
+}
+function pintarSug() {
+  const caja = $('#sug'); if (!caja) return;
+  const d = descAbierto(); if (!d) return;
+  if (leida) { caja.innerHTML = `<div class="sug" role="dialog" aria-label="¿Solo esta o todo el modelo?">${eligeHTML(leida, d)}</div>`; return; }
+  if (q.trim().length < 2) { caja.innerHTML = ''; return; }
+  const todas = buscarPiezas(q);
+  const aqui = todas.filter((p) => d.piezas.has(p)), fuera = todas.filter((p) => !d.piezas.has(p));
+  if (!todas.length) { caja.innerHTML = `<div class="sug"><p class="nada">Nada coincide con «${esc(q)}».</p></div>`; return; }
+  let k = 0;
+  caja.innerHTML = `<div class="sug" role="listbox" aria-label="Prendas">
+    ${fuera.length ? `<div class="vs-t">Agregar</div>${fuera.slice(0, 8).map((p) => filaSug(p, d, k++)).join('')}` : ''}
+    ${aqui.length ? `<div class="vs-t">Ya tienen ${pctTxt(d.pct)}</div>${aqui.slice(0, 8).map((p) => filaSug(p, d, k++)).join('')}` : ''}</div>`;
+}
+
+// ====================================================================
+// Agregar, quitar y deshacer (todo se puede deshacer: el precio vuelve a ser el de antes)
+// ====================================================================
+function avisar(html, deshacer) {
+  const av = document.createElement('div');
+  av.className = 'aviso2' + (deshacer ? '' : ' sin-boton');
+  av.innerHTML = `<span class="ok">${ic('ok')}</span><span class="tx">${html}</span>${deshacer ? '<button>Deshacer</button>' : ''}`;
+  if (deshacer) av.querySelector('button').onclick = () => { deshacer(); av.remove(); };
+  $('#avisos').prepend(av);
+  while ($('#avisos').children.length > 3) $('#avisos').lastElementChild.remove();
+  setTimeout(() => { av.classList.add('se-va'); setTimeout(() => av.remove(), 260); }, deshacer ? 7000 : 3200);
+}
+function agregar(piezasNuevas, d, etiqueta) {
+  const antes = clonar();
+  const movidas = new Set();
+  for (const [p, tallas] of piezasNuevas) {
+    const otro = dondeEsta(p);
+    if (otro && otro !== d) { movidas.add(otro.pct); otro.piezas.delete(p); }
+    const ya = d.piezas.get(p);
+    d.piezas.set(p, tallas && ya !== undefined && ya !== null ? [...new Set([...ya, ...tallas])] : (ya === null ? null : tallas));
+  }
+  recien = new Set(piezasNuevas.map(([p]) => p));
+  q = ''; leida = null; marcada = 0;
+  pintarModulo();
+  setTimeout(() => { recien = new Set(); }, 1200);
+  const texto = `<b>${etiqueta}</b> con ${pctTxt(d.pct)}${movidas.size ? ` · antes ${[...movidas].map(pctTxt).join(', ')}` : ''}`;
+  const deshacer = () => { DESC = antes; pintarModulo(); if (cam.abierta) { cam.ultimo = null; cam.cuenta = Math.max(0, cam.cuenta - 1); pintarCam(); } };
+  // con la cámara abierta, la confirmación vive dentro de la cámara: el aviso de la esquina taparía la prenda siguiente
+  if (cam.abierta) cam.ultimo = { texto, deshacer }; else { avisar(texto, deshacer); $('#q')?.focus(); }
+}
+function quitar(p) {
+  const d = descAbierto(); if (!d) return;
+  const { m, c } = partes(p);
+  const antes = clonar();
+  const art = $(`.pz[data-pz="${CSS.escape(p)}"]`);
+  const hacer = () => { d.piezas.delete(p); pintarModulo(); avisar(`<b>${esc(m.nom)} · ${c}</b> sin descuento`, () => { DESC = antes; pintarModulo(); }); };
+  if (art && estado.mov !== 'quieto') { art.classList.add('sale'); setTimeout(hacer, 260); } else hacer();
+}
+function agregarLeida(alcance, l, d) {
+  ultimoAlcance = alcance;
+  if (alcance === 'modelo') agregar(l.m.col.map((c) => [pid(l.m.id, c), null]), d, `${esc(l.m.nom)} (todo el modelo)`);
+  else agregar([[pid(l.m.id, l.c), [l.t]]], d, `${esc(l.m.nom)} · ${l.c} · ${l.t === 'Única' ? 'única' : l.t}`);
+}
+
+// ====================================================================
+// Las hojas
+// ====================================================================
+const NO = { tipo: null, pct: 20, n: 3, m: 2, pk: 2, pkp: 60, seg: 50, desde: 300, ahorra: 30, en: 'cats', cats: new Set(['Polos']), cuando: 'Toda la campaña · 16 – 30 nov', donde: 'Todas las tiendas' };
+const TIPOS = [
+  { k: 'pct', gl: () => pctTxt(NO.pct), cap: () => 'Descuento' },
+  // sin elegir, la de grupos muestra sus dos ejemplos de tienda (la prueba ciega buscaba «2x1» y no lo veía)
+  { k: 'nxm', gl: () => (NO.tipo === 'nxm' ? `${NO.n}x${NO.m}` : '3x2 · 2x1'), cap: () => (NO.tipo === 'nxm' ? `Lleva ${NO.n}, paga ${NO.m}` : 'Lleva más, paga menos') },
+  { k: 'pack', gl: () => `${NO.pk} por S/ ${NO.pkp}`, cap: () => 'Precio por varias' },
+  { k: 'seg', gl: () => `2.ª ${pctTxt(NO.seg)}`, cap: () => 'La segunda' },
+  { k: 'monto', gl: () => `${MENOS}S/ ${NO.ahorra}`, cap: () => `Desde S/ ${NO.desde}` },
+];
+const pasoHTML = (k, valor, et) => `<span class="paso" role="group" aria-label="${et}"><button data-paso="${k}" data-d="-1" aria-label="Menos">${ic('x').replace(I.x, 'M5 12h14')}</button><span class="num">${valor}</span><button data-paso="${k}" data-d="1" aria-label="Más">${ic('mas')}</button></span>`;
+function editorHTML() {
+  switch (NO.tipo) {
+    case 'pct': return `<div class="editor">${pasoHTML('pct', `${MENOS}${NO.pct}`, 'Porcentaje')}<span>%</span>
+      <div class="chips-r">${[10, 15, 20, 25, 30, 40, 50].map((v) => `<button class="pc" data-set="pct" data-v="${v}" aria-pressed="${NO.pct === v}">${pctTxt(v)}</button>`).join('')}</div></div>`;
+    case 'nxm': return `<div class="editor"><span>Lleva</span>${pasoHTML('n', NO.n, 'Cuántas lleva')}<span>paga</span>${pasoHTML('m', NO.m, 'Cuántas paga')}</div>`;
+    case 'pack': return `<div class="editor">${pasoHTML('pk', NO.pk, 'Cuántas')}<span>por</span>${pasoHTML('pkp', `S/ ${NO.pkp}`, 'Precio')}</div>`;
+    case 'seg': return `<div class="editor"><span>La segunda a</span>${pasoHTML('seg', `${MENOS}${NO.seg}`, 'Porcentaje')}<span>%</span></div>`;
+    case 'monto': return `<div class="editor"><span>Desde</span>${pasoHTML('desde', `S/ ${NO.desde}`, 'Desde')}<span>ahorra</span>${pasoHTML('ahorra', `S/ ${NO.ahorra}`, 'Ahorra')}
+      <div class="chips-r"><button class="btn sec chico" style="height:36px">${ic('mas')}Otro escalón</button></div></div>`;
+    default: return '';
+  }
+}
+const CATS_CAMP = [['Polos', 7], ['Jeans', 4], ['Blusas', 6], ['Vestidos', 3], ['Tops', 8], ['Faldas', 2]];
+function prendasEjemplo() {
+  const deCat ={ Polos: [['POL-02', 'Crema'], ['POL-08', 'Blanco'], ['POL-02', 'Negro']], Jeans: [['JEA-03', 'Azul'], ['JEA-11', 'Celeste'], ['JEA-03', 'Negro']],
+    Blusas: [['BLU-01', 'Vino'], ['BLU-09', 'Terracota'], ['BLU-01', 'Beige']], Vestidos: [['VES-04', 'Oliva'], ['VES-10', 'Vino'], ['VES-04', 'Negro']],
+    Tops: [['TOP-06', 'Blanco'], ['TOP-12', 'Mostaza'], ['TOP-06', 'Negro']], Faldas: [['FAL-05', 'Terracota'], ['FAL-05', 'Negro'], ['FAL-05', 'Terracota']] };
+  const base = NO.tipo === 'monto' ? [['JEA-03', 'Azul'], ['VES-04', 'Oliva'], ['TOP-06', 'Blanco']]
+    : NO.en === 'cats' ? (NO.cats.size ? deCat[[...NO.cats][0]] || [] : [])
+    : [['POL-02', 'Crema'], ['JEA-03', 'Azul'], ['BLU-01', 'Vino']];
+  // tantas prendas como pide la oferta: un 2x1 se ve con 2, un 3x2 con 3 (la prueba ciega vio 3 prendas en un 2x1)
+  const n = NO.tipo === 'nxm' ? NO.n : NO.tipo === 'pack' ? NO.pk : NO.tipo === 'seg' ? 2 : 3;
+  return base.length ? Array.from({ length: n }, (_, k) => base[k % base.length]) : [];
+}
+function previaHTML() {
+  const lineas = prendasEjemplo().map(([mi, c]) => ({ m: MOD[mi], c, p: MOD[mi].p, paga: MOD[mi].p, gratis: false }));
+  if (!lineas.length) return `<aside class="prev" aria-label="Así se cobra"><div class="vs-t" style="margin-bottom:6px">En caja</div><p class="prev-vacio">Elige en qué prendas</p></aside>`;
+  const orden = [...lineas].sort((a, b) => a.p - b.p);
+  if (NO.tipo === 'pct') lineas.forEach((l) => { l.paga = conPct(l.p, NO.pct); });
+  if (NO.tipo === 'nxm' && lineas.length >= NO.n) orden.slice(0, NO.n - NO.m).forEach((l) => { l.paga = 0; l.gratis = true; });
+  if (NO.tipo === 'pack' && lineas.length >= NO.pk) { const grupo = orden.slice(-NO.pk); const suma = grupo.reduce((a, l) => a + l.p, 0); grupo.forEach((l) => { l.paga = Math.round((l.p / suma) * NO.pkp * 100) / 100; }); }
+  if (NO.tipo === 'seg' && lineas.length >= 2) { orden[0].paga = conPct(orden[0].p, NO.seg); }
+  let total = lineas.reduce((a, l) => a + l.paga, 0);
+  const lista = lineas.reduce((a, l) => a + l.p, 0);
+  if (NO.tipo === 'monto' && lista >= NO.desde) total = lista - NO.ahorra;
+  total = Math.round(total * 100) / 100;
+  const ahorro = Math.round((lista - total) * 100) / 100;
+  return `<aside class="prev" aria-label="Así se cobra"><div class="vs-t" style="margin-bottom:6px">En caja</div>
+    ${lineas.map((l) => `<div class="lin">${fotoHTML(l.m, l.c, 'mini')}<span>${esc(l.m.nom)}</span><span class="p">${l.paga !== l.p ? `<s>${soles(l.p)}</s>` : ''}${l.gratis ? '<span class="gratis">Gratis</span>' : `<b>${soles(l.paga)}</b>`}</span></div>`).join('')}
+    ${NO.tipo === 'monto' ? `<div class="lin" style="grid-template-columns:1fr auto"><span>${lista >= NO.desde ? `Desde S/ ${NO.desde}` : `Falta para S/ ${NO.desde}`}</span><span class="p"><b>${lista >= NO.desde ? `${MENOS}${soles(NO.ahorra)}` : soles(NO.desde - lista)}</b></span></div>` : ''}
+    <div class="tot"><span>Paga</span><b>${soles(total)}</b></div><div class="aho${ahorro ? '' : ' cero'}">${ahorro ? `Ahorra ${soles(ahorro)}` : 'Elige qué le das'}</div></aside>`;
+}
+function hojaOfertaHTML() {
+  const sigueQue = !NO.tipo;
+  const sigueEn = !sigueQue && NO.en === 'cats' && !NO.cats.size;
+  return `<div class="hoja2 ancha" role="dialog" aria-modal="true" aria-labelledby="t-oferta">
+    <h2 id="t-oferta">Nueva oferta</h2><p class="sub2">Black Friday</p>
+    <div class="cuerpo2"><div class="no"><div>
+      <div class="bloque${sigueQue ? ' hilo' : ''}"><div class="cab-b"><span class="vs-t">Qué le das</span>${sigueQue ? '<span class="sigue-p">Sigue</span>' : ''}</div>
+        <div class="tipos" role="group" aria-label="Qué le das">${TIPOS.map((t) => `<button class="tipo" data-tipo="${t.k}" aria-pressed="${NO.tipo === t.k}"><span class="gl">${t.gl()}</span><span class="cap">${t.cap()}</span></button>`).join('')}</div>
+        ${NO.errTipo && sigueQue ? `<p class="err-campo">${ic('alerta')}Elige qué le das.</p>` : ''}
+        ${editorHTML()}</div>
+      <div class="bloque${sigueEn ? ' hilo' : ''}"><div class="cab-b"><span class="vs-t">En qué prendas</span>${sigueEn ? '<span class="sigue-p">Sigue</span>' : ''}</div>
+        <div class="seg" role="group" aria-label="En qué prendas">${[['todo', 'Toda la campaña'], ['cats', 'Categorías'], ['algunas', 'Prendas']].map(([k, t]) => `<button data-en="${k}" aria-pressed="${NO.en === k}">${t}</button>`).join('')}</div>
+        ${NO.en === 'cats' ? `<div class="cats">${CATS_CAMP.map(([c, n]) => `<button class="pc" data-cat="${c}" aria-pressed="${NO.cats.has(c)}">${c}<span class="n">${n}</span></button>`).join('')}</div>` : ''}
+        ${NO.errCats && sigueEn ? `<p class="err-campo">${ic('alerta')}Elige al menos una categoría.</p>` : ''}
+        ${NO.en === 'algunas' ? `<div class="agregar" style="margin-top:12px"><label class="bus">${ic('lupa')}<input type="search" placeholder="Nombre o código" aria-label="Buscar una prenda"><button class="camara" aria-label="Escanear con la cámara">${ic('escanear')}</button></label></div>
+        <div class="tg" style="margin:16px 4px 8px"><span class="vs-t">O por insignia</span></div>
+        <div class="cats" style="margin-top:0">${[['Nuevo', 24], ['Últimas unidades', 9], ['Hecho a mano', 6]].map(([c, n]) => `<button class="pc" aria-pressed="false">${c}<span class="n">${n}</span></button>`).join('')}</div>` : ''}
+        ${NO.tipo && NO.en === 'cats' && NO.cats.has('Polos') ? `<div class="choque">${ic('alerta')}<span>2 polos ya tienen ${pctTxt(15)} en Tienda TRU.</span><button>Elegir cuál queda</button></div>` : ''}</div>
+      <div class="bloque"><div class="cab-b"><span class="vs-t">Cuándo y dónde</span></div>
+        <div class="filas-d"><div class="fila-d"><span class="k">Cuándo</span><button class="v" data-menu="cuando">${ic('cal')}${NO.cuando}${ic('abajo')}</button></div>
+          <div class="fila-d"><span class="k">Dónde</span><button class="v" data-menu="donde">${ic('tienda')}${NO.donde}${ic('abajo')}</button></div></div></div>
+    </div>${previaHTML()}</div></div>
+    <div class="pie2">${sigueQue ? '<span class="sigue">Sigue: <b>Qué le das</b></span>' : sigueEn ? '<span class="sigue">Sigue: <b>En qué prendas</b></span>' : ''}<button class="btn sec" data-a="cerrar-hoja">Cancelar</button><button class="btn sec" data-a="guardar-oferta" data-v="borrador">Guardar borrador</button><button class="btn pri" data-a="guardar-oferta">Activar</button></div></div>`;
+}
+const NC = { nombre: '', ins: 'estrella', sinFin: false, tiendas: new Set(['Todas']) };
+function hojaCampanaHTML() {
+  return `<div class="hoja2" role="dialog" aria-modal="true" aria-labelledby="t-camp">
+    <h2 id="t-camp">Nueva campaña</h2>
+    <div class="cuerpo2"><div style="margin-top:22px">
+      <label class="campo2"><span class="et">Nombre</span><input class="caja2" id="nc-nombre" value="${esc(NC.nombre)}" placeholder="Navidad" autocomplete="off"></label>
+      <div class="campo2"><span class="et">Insignia</span><div class="insignias" role="group" aria-label="Insignia">${['estrella', 'llama', 'regalo', 'corazon', 'sol', 'chispa'].map((k) => `<button class="ins" data-ins="${k}" aria-pressed="${NC.ins === k}" aria-label="${k}">${ic(k)}</button>`).join('')}</div></div>
+      <div class="campo2"><span class="et">Fechas</span><div class="dos-c"><input class="caja2" value="1 dic 2026" aria-label="Desde"><input class="caja2" value="${NC.sinFin ? 'Sin fin' : '24 dic 2026'}" aria-label="Hasta" ${NC.sinFin ? 'disabled' : ''}></div>
+        <button class="inter" role="switch" aria-checked="${NC.sinFin}" data-a="sin-fin"><span class="sw"></span>Sin fecha de fin</button></div>
+      <div class="campo2"><span class="et">Tiendas</span><div class="chips-r">${['Todas', 'TRU', 'AQP', 'LIM'].map((t) => `<button class="pc" data-tienda="${t}" aria-pressed="${NC.tiendas.has(t)}">${t}</button>`).join('')}</div></div>
+    </div>
+      <div class="campo2" style="margin-top:18px"><span class="et">Responsable</span><button class="resp2">${'<span class="av2">LR</span>'}Lucía Ramos${ic('abajo')}</button></div></div>
+    <div class="pie2"><button class="btn sec" data-a="cerrar-hoja">Cancelar</button><button class="btn pri" data-a="crear-campana">Crear campaña</button></div></div>`;
+}
+const ND = { pct: 25 };
+function hojaDescHTML() {
+  const ya = DESC.find((d) => d.pct === ND.pct);
+  return `<div class="hoja2" role="dialog" aria-modal="true" aria-labelledby="t-desc">
+    <h2 id="t-desc">Nuevo descuento</h2>
+    <div class="gran">${pasoHTML('nd', `${MENOS}${ND.pct} %`, 'Porcentaje')}
+      <div class="chips-r" style="justify-content:center">${[5, 10, 15, 20, 25, 30, 40, 50, 70].map((v) => `<button class="pc" data-set="nd" data-v="${v}" aria-pressed="${ND.pct === v}">${pctTxt(v)}</button>`).join('')}</div></div>
+    ${ya ? `<div class="ya">${ic('info')}<span>Ya existe, con ${ya.piezas.size} prendas.</span></div>` : ''}
+    <div class="pie2"><button class="btn sec" data-a="cerrar-hoja">Cancelar</button><button class="btn pri" data-a="crear-desc">${ya ? `Abrir ${pctTxt(ND.pct)}` : 'Crear'}</button></div></div>`;
+}
+function abrirHoja(k) { hoja = k; pintarHoja(); }
+function pintarHoja() {
+  const capa = $('#capa2');
+  if (!hoja) { capa.classList.remove('abierta'); capa.innerHTML = ''; return; }
+  const html = hoja === 'oferta' ? hojaOfertaHTML() : hoja === 'campana' ? hojaCampanaHTML() : hojaDescHTML();
+  const primera = !capa.classList.contains('abierta');
+  capa.innerHTML = `<div class="velo2" data-a="cerrar-hoja"></div>${html}`;
+  capa.classList.add('abierta');
+  if (!primera) $$('.hoja2,.velo2', capa).forEach((x) => { x.style.animation = 'none'; });
+}
+
+// ---------- la cámara ----------
+function pintarCam() {
+  const el = $('#cam');
+  el.classList.toggle('abierta', cam.abierta);
+  if (!cam.abierta) { el.innerHTML = ''; return; }
+  const d = descAbierto();
+  el.innerHTML = `<div class="cam-cab"><button class="cam-x" data-a="cerrar-cam" aria-label="Cerrar la cámara">${ic('x')}</button><span class="cam-chip">Descuento <b>${pctTxt(d.pct)}</b></span></div>
+    <div class="cam-visor" data-a="leer"><span class="cam-maq">Maqueta: toca el recuadro para leer una etiqueta</span><div class="cam-marco"><i></i><i></i><i></i><i></i><span class="cam-linea" data-senal></span></div>
+      <p class="cam-pista">Apunta al código de la etiqueta</p><span class="cam-flash" id="flash"></span></div>
+    <div class="cam-pie">${cam.ultimo ? `<div class="cam-ultimo"><span class="ok">${ic('ok')}</span><span>${cam.ultimo.texto}</span><button data-a="deshacer-cam">Deshacer</button></div>` : ''}${cam.leida ? `<div class="cam-card">${eligeHTML(cam.leida, d)}</div>`
+      : `<div class="cam-listo"><span class="cuenta"><b>${cam.cuenta}</b>${cam.cuenta === 1 ? 'agregada' : 'agregadas'}</span><button class="btn" data-a="cerrar-cam">Listo</button></div>`}</div>`;
+}
+function leerSimulada() {
+  const d = descAbierto();
+  const libres = [];
+  for (const m of MODELOS) for (const c of m.col) if (!d.piezas.has(pid(m.id, c))) libres.push({ m, c, t: m.t[Math.floor(m.t.length / 2)] });
+  cam.leida = libres[(cam.cuenta * 5 + 3) % libres.length];
+  pintarCam();
+}
+
+// ====================================================================
+// Eventos
+// ====================================================================
+document.addEventListener('click', (e) => {
+  const t = e.target;
+  if (menu && !t.closest('.menu2') && !t.closest('[data-menu]')) { cerrarMenu(); }
+  const d = t.closest('[data-desc]');
+  if (d) { sel = { k: 'desc', pct: +d.dataset.desc }; q = ''; leida = null; vista = 'detalle'; pintarModulo('panel'); $('#cont').scrollTop = 0; return; }
+  const c = t.closest('[data-camp]');
+  if (c) { sel = { k: 'camp', id: c.dataset.camp }; vista = 'detalle'; pintarModulo('panel'); $('#cont').scrollTop = 0; return; }
+  const pl = t.closest('[data-pleg]');
+  if (pl) { plegado[pl.dataset.pleg] = !plegado[pl.dataset.pleg]; pintarModulo(); return; }
+  const qu = t.closest('[data-quitar]');
+  if (qu) { e.preventDefault(); quitar(qu.dataset.quitar); return; }
+  const ag = t.closest('[data-agregar]');
+  if (ag) { const { m, c: co } = partes(ag.dataset.agregar); agregar([[ag.dataset.agregar, null]], descAbierto(), `${esc(m.nom)} · ${co}`); return; }
+  const al = t.closest('[data-alcance]');
+  if (al) {
+    const dd = descAbierto();
+    if (cam.abierta && cam.leida) { const l = cam.leida; ultimoAlcance = al.dataset.alcance; agregarLeida(al.dataset.alcance, l, dd); cam.leida = null; cam.cuenta++; pintarCam(); const f = $('#flash'); if (f) { f.classList.add('ya'); } return; }
+    if (leida) agregarLeida(al.dataset.alcance, leida, dd); return;
+  }
+  const mn = t.closest('[data-menu]');
+  if (mn) { abrirMenu(mn); return; }
+  // la hoja de la oferta
+  const tp = t.closest('[data-tipo]'); if (tp) { NO.tipo = tp.dataset.tipo; NO.errTipo = false; pintarHoja(); return; }
+  const ps = t.closest('[data-paso]');
+  if (ps) {
+    const k = ps.dataset.paso, s = +ps.dataset.d;
+    const lim = { pct: [5, 70, 5], n: [2, 6, 1], m: [1, 5, 1], pk: [2, 6, 1], pkp: [10, 500, 10], seg: [10, 100, 10], desde: [50, 1000, 50], ahorra: [10, 300, 10], nd: [5, 70, 5] }[k];
+    if (k === 'nd') ND.pct = Math.min(lim[1], Math.max(lim[0], ND.pct + s * lim[2]));
+    else { NO[k] = Math.min(lim[1], Math.max(lim[0], NO[k] + s * lim[2])); if (k === 'n' && NO.m >= NO.n) NO.m = NO.n - 1; if (k === 'm' && NO.m >= NO.n) NO.m = NO.n - 1; }
+    pintarHoja(); return;
+  }
+  const st = t.closest('[data-set]'); if (st) { if (st.dataset.set === 'nd') ND.pct = +st.dataset.v; else NO[st.dataset.set] = +st.dataset.v; pintarHoja(); return; }
+  const en = t.closest('[data-en]'); if (en) { NO.en = en.dataset.en; pintarHoja(); return; }
+  const ct = t.closest('[data-cat]'); if (ct) { const k = ct.dataset.cat; if (NO.cats.has(k)) NO.cats.delete(k); else { NO.cats.add(k); NO.errCats = false; } pintarHoja(); return; }
+  const ins = t.closest('[data-ins]'); if (ins) { NC.ins = ins.dataset.ins; pintarHoja(); return; }
+  const ti = t.closest('[data-tienda]'); if (ti) { const k = ti.dataset.tienda; if (k === 'Todas') NC.tiendas = new Set(['Todas']); else { NC.tiendas.delete('Todas'); if (NC.tiendas.has(k)) NC.tiendas.delete(k); else NC.tiendas.add(k); if (!NC.tiendas.size) NC.tiendas.add('Todas'); } pintarHoja(); return; }
+  const a = t.closest('[data-a]');
+  if (!a) return;
+  switch (a.dataset.a) {
+    case 'volver': vista = 'lista'; pintarModulo('todo'); break;
+    case 'borrar-q': q = ''; leida = null; pintarModulo(); $('#q')?.focus(); break;
+    case 'nuevo-desc': ND.pct = 25; abrirHoja('desc'); break;
+    case 'nueva-oferta': NO.tipo = null; abrirHoja('oferta'); break;
+    case 'ver-oferta': NO.tipo = 'nxm'; abrirHoja('oferta'); break;
+    case 'nueva-campana': NC.nombre = ''; abrirHoja('campana'); break;
+    case 'web': avisar('En la maqueta no se abre la web'); break;
+    case 'cerrar-hoja': hoja = null; pintarHoja(); break;
+    case 'sin-fin': NC.sinFin = !NC.sinFin; pintarHoja(); break;
+    case 'guardar-oferta': {
+      // lo que falta se dice bajo su campo, nunca en un aviso de esquina (guía de foco, ADR-0611 mejora 4)
+      if (!NO.tipo) { NO.errTipo = true; pintarHoja(); $('.hoja2 .bloque')?.scrollIntoView({ block: 'nearest' }); break; }
+      if (NO.en === 'cats' && !NO.cats.size) { NO.errCats = true; pintarHoja(); $$('.hoja2 .bloque')[1]?.scrollIntoView({ block: 'nearest' }); break; }
+      const camp = CAMP.find((x) => x.id === 'bf'); const tipo = TIPOS.find((x) => x.k === NO.tipo);
+      camp.ofertas.push({ gl: tipo.gl(), borrador: a.dataset.v === 'borrador', en: NO.en === 'todo' ? 'Toda la campaña' : NO.en === 'cats' ? [...NO.cats].join(', ') : 'Algunas prendas' });
+      hoja = null; pintarHoja(); sel = { k: 'camp', id: 'bf' }; vista = 'detalle'; pintarModulo('panel'); avisar(a.dataset.v === 'borrador' ? `<b>${tipo.gl()}</b> guardada como borrador` : `<b>${tipo.gl()}</b> activa en caja y en la web`); break;
+    }
+    case 'crear-campana': {
+      const nom = ($('#nc-nombre')?.value || '').trim() || 'Navidad';
+      const id = 'c' + Date.now(); CAMP.unshift({ id, nom, ins: NC.ins, fechas: NC.sinFin ? 'Desde el 1 dic' : '1 – 24 dic', dias: 15, estado: 'viene', tiendas: NC.tiendas.has('Todas') ? 'Todas las tiendas' : `Solo ${[...NC.tiendas].join(', ')}`, ofertas: [], prendas: [] });
+      plegado.viene = true; hoja = null; pintarHoja(); sel = { k: 'camp', id }; vista = 'detalle'; pintarModulo('panel'); avisar(`Campaña <b>${esc(nom)}</b> creada`); break;
+    }
+    case 'crear-desc': {
+      let dd = DESC.find((x) => x.pct === ND.pct);
+      if (!dd) { dd = { pct: ND.pct, piezas: new Map() }; DESC.push(dd); DESC.sort((x, y) => x.pct - y.pct); avisar(`Descuento <b>${pctTxt(ND.pct)}</b> creado`); }
+      hoja = null; pintarHoja(); sel = { k: 'desc', pct: dd.pct }; vista = 'detalle'; q = ''; pintarModulo('panel'); $('#q')?.focus(); break;
+    }
+    case 'camara': cam = { abierta: true, leida: null, cuenta: 0 }; pintarCam(); break;
+    case 'cerrar-cam': cam.abierta = false; pintarCam(); pintarModulo(); break;
+    case 'leer': if (!t.closest('.cam-card')) leerSimulada(); break;
+    case 'deshacer-cam': cam.ultimo?.deshacer(); break;
+    case 'menu-item': cerrarMenu(); if (a.dataset.campo) { NO[a.dataset.campo] = a.dataset.v; pintarHoja(); break; } if (a.dataset.v === 'cambiar') { ND.pct = sel.pct; abrirHoja('desc'); } else avisar(a.dataset.v === 'vaciar' ? 'En la maqueta no se vacía' : 'Solo en la maqueta'); break;
+  }
+});
+function abrirMenu(btn) {
+  cerrarMenu();
+  if (btn.dataset.menu === 'cuando' || btn.dataset.menu === 'donde') {
+    const ops = btn.dataset.menu === 'cuando' ? ['Toda la campaña · 16 – 30 nov', 'Fin de semana · 21 – 22 nov', '7 días · 16 – 22 nov', 'Hasta fin de mes · 16 – 30 nov', 'Elegir fechas y días']
+      : ['Todas las tiendas', 'Solo Tienda TRU', 'Solo Tienda AQP', 'Solo Tienda LIM'];
+    const m = document.createElement('div'); m.className = 'menu2'; m.setAttribute('role', 'menu');
+    m.innerHTML = ops.map((o) => `<button role="menuitemradio" aria-checked="${NO[btn.dataset.menu] === o}" data-a="menu-item" data-campo="${btn.dataset.menu}" data-v="${o}">${NO[btn.dataset.menu] === o ? ic('ok') : ic('ok').replace('<svg', '<svg style="opacity:0"')}${o}</button>`).join('');
+    const disp = $('#disp'), r = btn.getBoundingClientRect(), rd = disp.getBoundingClientRect(), z = zoomDisp();
+    m.style.top = `${(r.bottom - rd.top) / z + 6}px`; m.style.right = `${Math.max(12, (rd.right - r.right) / z)}px`;
+    disp.appendChild(m); menu = m; return;
+  }
+  const items = btn.dataset.menu === 'desc'
+    ? [['cambiar', 'Cambiar el %', 'porciento'], ['imprimir', 'Imprimir etiquetas', 'imprimir'], ['vaciar', 'Quitar todas las prendas', 'vaciar'], ['-'], ['apagar', `Desactivar ${pctTxt(sel.pct)}`, 'apagar', 1]]
+    : [['repetir', 'Repetir el próximo año', 'repetir'], ['imprimir', 'Imprimir etiquetas', 'imprimir'], ['web', 'Cómo se ve en la web', 'web'], ['-'], ['apagar', 'Desactivar la campaña', 'apagar', 1]];
+  const m = document.createElement('div'); m.className = 'menu2'; m.setAttribute('role', 'menu');
+  m.innerHTML = items.map(([v, t, i, p]) => (v === '-' ? '<hr>' : `<button role="menuitem" class="${p ? 'peligro' : ''}" data-a="menu-item" data-v="${v}">${ic(i)}${t}</button>`)).join('');
+  const disp = $('#disp'), r = btn.getBoundingClientRect(), rd = disp.getBoundingClientRect(), z = zoomDisp();
+  m.style.top = `${(r.bottom - rd.top) / z + 8}px`; m.style.right = `${Math.max(12, (rd.right - r.right) / z)}px`;
+  disp.appendChild(m); menu = m;
+}
+function cerrarMenu() { menu?.remove(); menu = null; }
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'q') { q = e.target.value; leida = null; marcada = 0; pintarSug(); }
+  if (e.target.id === 'nc-nombre') NC.nombre = e.target.value;
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { if (cam.abierta) { cam.abierta = false; pintarCam(); return; } if (hoja) { hoja = null; pintarHoja(); return; } if (leida || q) { q = ''; leida = null; pintarModulo(); return; } if (menu) cerrarMenu(); }
+  if (e.target.id === 'q') {
+    const d = descAbierto();
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (leida) { agregarLeida(ultimoAlcance, leida, d); return; }
+      const l = exacta(q);
+      if (l) { leida = l; pintarSug(); return; }
+      const fila = $$('#sug .sg')[marcada]; fila?.querySelector('button')?.click();
+    }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { const n = $$('#sug .sg').length; if (n) { e.preventDefault(); marcada = (marcada + (e.key === 'ArrowDown' ? 1 : -1) + n) % n; pintarSug(); } }
+  } else if (e.key === '/' && !hoja && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) { const i = $('#q'); if (i) { e.preventDefault(); i.focus(); } }
+});
+
+// ====================================================================
+// El menú con «Campañas y ofertas» en su lugar (Catálogo), y la barra de la maqueta
+// ====================================================================
+const cat = MENU.find((n) => n.id === 'catalogo');
+cat.hijos = [{ id: 'catalogo.productos', et: 'Productos', ic: 'productos' }, { id: 'catalogo.categorias', et: 'Categorías', ic: 'categorias' }, { id: 'catalogo.marcas', et: 'Marcas', ic: 'marcas' },
+  { id: 'catalogo.atributos', et: 'Atributos', ic: 'atributos' }, { id: 'catalogo.campanas', et: 'Campañas y ofertas', ic: 'liquidacion' }, { id: 'catalogo.insignias', et: 'Insignias', ic: 'insignias' }];
+activa = 'catalogo.campanas'; abiertos.clear(); abiertos.add('catalogo');
+const P = new URLSearchParams(location.search);
+if (P.has('ciego')) document.documentElement.classList.add('ciego');
+const inicio = { dir: P.get('dir') || 'lista', mov: P.get('mov') || 'vivo', tema: P.get('tema') || 'oscuro', ancho: P.get('ancho') || 'escritorio' };
+if (P.get('ver') === 'camp') sel = { k: 'camp', id: 'bf' };
+Marco.iniciar({
+  estado: inicio,
+  alPintar: () => { pintarModulo('todo'); pintarHoja(); pintarCam(); },
+  alAccion: (a) => {
+    if (a === 'ir-desc') { sel = { k: 'desc', pct: 10 }; vista = 'detalle'; hoja = null; cam.abierta = false; pintarModulo('panel'); pintarHoja(); pintarCam(); }
+    if (a === 'ir-camp') { sel = { k: 'camp', id: 'bf' }; vista = 'detalle'; hoja = null; cam.abierta = false; pintarModulo('panel'); pintarHoja(); pintarCam(); }
+    if (a === 'ir-oferta') { NO.tipo = null; abrirHoja('oferta'); }
+    if (a === 'ir-campana') { NC.nombre = ''; abrirHoja('campana'); }
+    if (a === 'ir-camara') { estado.ancho = 'movil'; pintar(); sel = { k: 'desc', pct: 10 }; vista = 'detalle'; hoja = null; pintarModulo(); pintarHoja(); cam = { abierta: true, leida: null, cuenta: 0 }; pintarCam(); }
+  },
+});
+if (P.get('abrir') === 'oferta') abrirHoja('oferta');
+if (P.get('abrir') === 'camara') { cam = { abierta: true, leida: null, cuenta: 0 }; pintarCam(); }
+</script>
+</body>
+</html>

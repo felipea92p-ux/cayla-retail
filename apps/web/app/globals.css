@@ -54,6 +54,7 @@
 @import "./estilos/titulos.css";
 @import "./estilos/traslados-pases.css";
 @import "./estilos/sellos.css";
+@import "./estilos/campanas-lista.css";
 /* Las ofertas de una campaña, «Tres preguntas» (Felipe 2026-10-23): la hoja de Configurar de Insignias ▸ Campañas. */
 @import "./estilos/ofertas.css";
 @import "./estilos/traslados-guia.css";
