@@ -262,4 +262,4 @@ paso anterior, y al avanzar de nuevo el paso que lo abría lo cerraba (y se salt
 - **Descarté que el Escape del piloto cierre el globo:** el Escape llega a todo el documento, y fuera de un diálogo puede querer
   decir otra cosa (borrar una búsqueda). Además no resolvía abrir sin cerrar.
 - **En las dos guías:** «Vale en todas partes» y el paso que sigue al mapa lo cierran, el mapa lo abre y `alSalir` lo cierra. Reemplaza
-  al segundo toque con `prepararSoloAlAvanzar` que el PR #1942 le ponía a «Cómo se ven en la tienda web».
+  al segundo toque con `prepararSoloAlAvanzar` que el PR #1942 le había puesto a «Cómo se ven en la tienda web».
