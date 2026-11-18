@@ -136,6 +136,119 @@ export function descuentosDeLaTienda(lista: readonly DescuentoDeLista[]): Descue
   return lista.filter((d) => d.activo && d.rigeAqui).sort((a, b) => a.pct - b.pct || Number(a.todas) - Number(b.todas));
 }
 
+/** Una talla marcada en un descuento, como la devuelve `campanas_rebaja_prendas` (con su precio en la tienda). */
+export type PrendaDeLugar = {
+  varianteId: string;
+  productoId: string;
+  referencia: string;
+  color: string | null;
+  colorHex: string | null;
+  talla: string | null;
+  precio: number;
+};
+
+/** Lo que la vitrina de la pantalla sabe de cada talla a la venta: su categoría y su foto (la prenda sin foto, ADR-0333). */
+export type VitrinaDeTalla = {
+  productoId: string;
+  colorNombre: string | null;
+  categoria: { nombre: string | null; prefijo: string | null; familia: string | null } | null;
+  fotoUrl: string | null;
+};
+
+/**
+ * Una prenda del panel de un descuento (ADR-0677): un modelo en un color, como cuentan las tiendas y la fila de la lista, con las tallas
+ * marcadas. Si no están todas las de ese color, el panel las nombra («Negro · S, M»). Quitarla saca todas sus tallas.
+ */
+export type PiezaDeDescuento = {
+  clave: string;
+  productoId: string;
+  referencia: string;
+  color: string | null;
+  colorHex: string | null;
+  categoria: VitrinaDeTalla["categoria"];
+  fotoUrl: string | null;
+  variantes: string[];
+  tallas: string[];
+  todasLasTallas: boolean;
+  /** El precio de hoy en la tienda (el menor de sus tallas) y con el %. */
+  precio: number;
+  precioConPct: number;
+  /** Con el %, alguna talla se vende por debajo de lo que costó (sin costo a la vista, nunca). */
+  bajoCosto: boolean;
+};
+
+/** La clave de un modelo en un color: la misma para la talla que llega de la base y la de la vitrina. */
+export const claveModeloColor = (productoId: string, color: string | null) => `${productoId}·${color ?? ""}`;
+
+/**
+ * Las prendas del panel: las tallas marcadas, juntas por modelo y color. Primero las que se agregaron recién (la más nueva arriba, para
+ * verla llegar) y después por nombre y color. `tallasPorColor` dice cuántas tallas a la venta tiene cada modelo en su color, y `costos`
+ * lo que costó cada talla (0 o ausente: sin costo a la vista).
+ */
+export function piezasDeDescuento(
+  prendas: readonly PrendaDeLugar[],
+  pct: number,
+  datos: {
+    vitrina: ReadonlyMap<string, VitrinaDeTalla> | null;
+    tallasPorColor: ReadonlyMap<string, number>;
+    costos: ReadonlyMap<string, number>;
+    recientes?: readonly string[];
+  },
+): PiezaDeDescuento[] {
+  const porClave = new Map<string, PiezaDeDescuento>();
+  for (const p of prendas) {
+    const clave = claveModeloColor(p.productoId, p.color);
+    const vitrina = datos.vitrina?.get(p.varianteId) ?? null;
+    const costo = datos.costos.get(p.varianteId) ?? 0;
+    const bajo = costo > 0 && precioConPct(p.precio, pct) < costo;
+    const ya = porClave.get(clave);
+    if (ya) {
+      ya.variantes.push(p.varianteId);
+      if (p.talla) ya.tallas.push(p.talla);
+      if (p.precio < ya.precio) ya.precio = p.precio;
+      ya.bajoCosto ||= bajo;
+      continue;
+    }
+    porClave.set(clave, {
+      clave,
+      productoId: p.productoId,
+      referencia: p.referencia,
+      color: p.color,
+      colorHex: p.colorHex,
+      categoria: vitrina?.categoria ?? null,
+      fotoUrl: vitrina?.fotoUrl ?? null,
+      variantes: [p.varianteId],
+      tallas: p.talla ? [p.talla] : [],
+      todasLasTallas: false,
+      precio: p.precio,
+      precioConPct: 0,
+      bajoCosto: bajo,
+    });
+  }
+  const recientes = datos.recientes ?? [];
+  const lugarReciente = (clave: string) => {
+    const i = recientes.indexOf(clave);
+    return i < 0 ? Number.POSITIVE_INFINITY : i;
+  };
+  return [...porClave.values()]
+    .map((pieza) => ({
+      ...pieza,
+      precioConPct: precioConPct(pieza.precio, pct),
+      todasLasTallas: pieza.variantes.length >= (datos.tallasPorColor.get(pieza.clave) ?? Number.POSITIVE_INFINITY),
+    }))
+    .sort(
+      (a, b) =>
+        lugarReciente(a.clave) - lugarReciente(b.clave) ||
+        a.referencia.localeCompare(b.referencia, "es") ||
+        (a.color ?? "").localeCompare(b.color ?? "", "es"),
+    );
+}
+
+/** La línea bajo el nombre: el color y, si no van todas sus tallas, cuáles. */
+export function detalleDePieza(p: Pick<PiezaDeDescuento, "color" | "tallas" | "todasLasTallas">): string {
+  return [p.color, p.todasLasTallas || p.tallas.length === 0 ? null : p.tallas.join(", ")].filter(Boolean).join(" · ");
+}
+
 /** «Descuento −10 %, 15 prendas, todas las tiendas»: lo que oye el lector de pantalla en la fila. */
 export function nombreDeDescuento(d: Pick<DescuentoDeLista, "pct" | "prendas" | "todas">): string {
   return [`Descuento ${textoPct(d.pct)}`, `${d.prendas} ${d.prendas === 1 ? "prenda" : "prendas"}`, d.todas ? "todas las tiendas" : null].filter(Boolean).join(", ");

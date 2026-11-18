@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { Fragment, useCallback, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { Award, CalendarHeart, ChevronRight, HandHeart, Plus, RefreshCw, Shirt } from "lucide-react";
@@ -44,7 +44,9 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { bajadaDesactivarInsignia, reglasDeCampana, reglasVivas, vigenciaDeRegla, type InsigniaDeOferta, type ParQueChoca, type ReglaCampana } from "@/lib/campana-reglas";
 import { AvisoDosOfertas } from "@/components/sellos/AvisoDosOfertas";
 import { DescuentosDeLaTienda, EscanerDeRebaja } from "@/components/rebajas/RebajasDeTienda";
-import type { DescuentoDeLista } from "@/lib/rebaja-rapida-reglas";
+import { PanelDeDescuento } from "@/components/campanas/PanelDeDescuento";
+import { Volver } from "@/components/ui/Volver";
+import { claveModeloColor, type DescuentoDeLista } from "@/lib/rebaja-rapida-reglas";
 import { tramoDeCampana, TEXTOS_MODO } from "@/lib/sellos-campanas";
 import {
   ESTILO_DE_VISTA,
@@ -115,7 +117,10 @@ export function SellosPantalla({
   nombresDeCampanas = {},
   choquesAbiertos = [],
   descuentos = null,
+  esLider = false,
 }: {
+  /** Un líder cambia también los descuentos de todas las tiendas (la base lo vuelve a exigir). */
+  esLider?: boolean;
   /** Qué fila del menú dibuja (ADR-0655): «Campañas y ofertas» o «Insignias». */
   modo: "campanas" | "insignias";
   /**
@@ -164,6 +169,17 @@ export function SellosPantalla({
   const [manuales, setManuales] = useState(variantesManuales);
   const [abiertoPorVista, setAbiertoPorVista] = useState<Partial<Record<VistaSellos, string>>>({});
   const [agregando, setAgregando] = useState(false);
+  // El descuento de la lista que está abierto (ADR-0677); con uno abierto, ninguna campaña lo está.
+  const [descuentoAbiertoId, setDescuentoAbiertoId] = useState<string | null>(null);
+  // Cuántas prendas tiene cada descuento según su panel, que las vuelve a leer después de cada cambio: pisa la cifra con que llegó la pantalla.
+  const [conteosDeDescuentos, setConteosDeDescuentos] = useState<Record<string, number>>({});
+  const anotarConteo = useCallback((id: string, n: number) => setConteosDeDescuentos((c) => (c[id] === n ? c : { ...c, [id]: n })), []);
+  // Con cifras nuevas del servidor (el escáner de arriba refresca la pantalla), mandan esas.
+  const [descuentosVistos, setDescuentosVistos] = useState(descuentos);
+  if (descuentosVistos !== descuentos) {
+    setDescuentosVistos(descuentos);
+    setConteosDeDescuentos({});
+  }
   const [nombre, setNombre] = useState("");
   // Cuándo rige la campaña que se está creando: opcional, vacías = rige siempre (Felipe 2026-10-28). Una insignia no las usa.
   const [fechasNuevas, setFechasNuevas] = useState({ desde: "", hasta: "" });
@@ -206,14 +222,46 @@ export function SellosPantalla({
   // Un descuento es una campaña sin fechas por dentro (un cajón de «Poner un %»): va en su sección, no también en «Guardadas» (ADR-0677).
   // Se sacan todos, también los de otras tiendas, que en esta no se dibujan.
   const idsDeDescuentos = useMemo(() => new Set((descuentos ?? []).map((d) => d.etiquetaId)), [descuentos]);
-  const nombresDeEtiquetas = useMemo(() => new Map(etiquetas.map((e) => [e.id, e.nombre])), [etiquetas]);
   const pilas = pilasDeLaVista(idsDeDescuentos.size > 0 ? etiquetas.filter((e) => !idsDeDescuentos.has(e.id)) : etiquetas, vista, hoy);
   const verDescuentos = esCampanas && puedeEditarCampanas && Boolean(sedeActualId) && descuentos !== null;
+  // El descuento abierto ocupa el lugar de la campaña abierta (ADR-0677): a la derecha o, con una sola columna, bajo su fila.
+  const descuentoAbierto = verDescuentos ? ((descuentos ?? []).find((d) => d.etiquetaId === descuentoAbiertoId && d.activo && d.rigeAqui) ?? null) : null;
+  // Lo que el panel sabe de cada talla sin volver a la base: foto y categoría (la vitrina de la pantalla), cuántas tallas tiene cada color y su costo.
+  const vitrinaPorTalla = useMemo(
+    () => (prendasVitrina ? new Map(prendasVitrina.map((t) => [t.id, { productoId: t.productoId, colorNombre: t.colorNombre, categoria: t.categoria, fotoUrl: t.fotoUrl }])) : null),
+    [prendasVitrina],
+  );
+  const tallasPorColor = useMemo(() => {
+    const n = new Map<string, number>();
+    for (const t of prendasVitrina ?? []) n.set(claveModeloColor(t.productoId, t.colorNombre), (n.get(claveModeloColor(t.productoId, t.colorNombre)) ?? 0) + 1);
+    return n;
+  }, [prendasVitrina]);
+  const costos = useMemo(() => new Map(prendasConCosto.map((p) => [p.id, p.costo])), [prendasConCosto]);
+  const panelDescuento = descuentoAbierto ? (
+    <PanelDeDescuento
+      key={descuentoAbierto.etiquetaId}
+      descuento={descuentoAbierto}
+      ubicacionId={sedeActualId}
+      sede={sede}
+      esLider={esLider}
+      vitrina={vitrinaPorTalla}
+      tallasPorColor={tallasPorColor}
+      costos={costos}
+      volver={enLinea ? <Volver onClick={() => setDescuentoAbiertoId(null)} a="la lista" /> : undefined}
+      onConteo={(n) => anotarConteo(descuentoAbierto.etiquetaId, n)}
+    />
+  ) : null;
   const seccionDescuentos = verDescuentos ? (
-    <DescuentosDeLaTienda ubicacionId={sedeActualId} sede={sede} descuentos={descuentos ?? []} nombres={nombresDeEtiquetas} />
+    <DescuentosDeLaTienda
+      descuentos={(descuentos ?? []).map((d) => (conteosDeDescuentos[d.etiquetaId] === undefined ? d : { ...d, prendas: conteosDeDescuentos[d.etiquetaId] }))}
+      abiertoId={descuentoAbierto?.etiquetaId ?? null}
+      onAbrir={(id) => setDescuentoAbiertoId(id)}
+      panelEnLinea={enLinea ? panelDescuento : undefined}
+    />
   ) : null;
   const abiertoId = abiertoPorVista[vista] ?? paseInicial(pilas)?.id ?? null;
-  const abierto = etiquetas.find((e) => e.id === abiertoId && vistaDeEstilo(e.estilo) === vista) ?? paseInicial(pilas);
+  // Con un descuento abierto, ninguna campaña lo está.
+  const abierto = descuentoAbierto ? null : (etiquetas.find((e) => e.id === abiertoId && vistaDeEstilo(e.estilo) === vista) ?? paseInicial(pilas));
 
   // La vista vive en la URL (se puede compartir) sin navegar: todo ya está leído, así que no hay loader ni ida a la base.
   function cambiarVista(v: string) {
@@ -229,7 +277,8 @@ export function SellosPantalla({
   // y quien tocaba quedaba a media altura del detalle, sin ver el pase (2026-11-02). Es un cambio de vista, no un bloque que se encogió:
   // se suelta <PaginaEstable> y el pase tocado sube hasta quedar bajo la cabecera (`scroll-margin-top` en `.sl-pase`).
   const abrir = (id: string, desde?: HTMLElement | null) => {
-    const yaAbierto = id === abiertoId;
+    const yaAbierto = id === abiertoId && !descuentoAbierto;
+    setDescuentoAbiertoId(null);
     setAbiertoPorVista((a) => ({ ...a, [vista]: id }));
     if (!enLinea || yaAbierto || !desde) return;
     soltarPaginaEstable();
@@ -1018,10 +1067,17 @@ export function SellosPantalla({
               ))}
             </div>
             </div>
-            {abierto && !enLinea && (
-              <aside key={abierto.id} className="sl-detalle" aria-live="polite" data-guia="sellos.detalle">
-                {detalle(abierto)}
+            {panelDescuento && !enLinea ? (
+              <aside key={descuentoAbierto?.etiquetaId} className="sl-detalle" aria-live="polite">
+                {panelDescuento}
               </aside>
+            ) : (
+              abierto &&
+              !enLinea && (
+                <aside key={abierto.id} className="sl-detalle" aria-live="polite" data-guia="sellos.detalle">
+                  {detalle(abierto)}
+                </aside>
+              )
             )}
           </div>
         </div>

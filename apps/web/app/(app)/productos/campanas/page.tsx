@@ -43,6 +43,7 @@ export default async function CampanasPage() {
       insignias={datos.insignias}
       choquesAbiertos={datos.choquesAbiertos ?? []}
       descuentos={datos.descuentos}
+      esLider={esLider}
     />
   );
 }

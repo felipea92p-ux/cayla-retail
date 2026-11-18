@@ -116,9 +116,87 @@
     color: var(--color-crema);
   }
 
+  /* Las filas de descuento van cada una en su caja (debajo puede ir su panel, con una sola columna). */
+  .lc-descuentos > div + div { margin-top: 8px; }
+
+  /* ── El panel de un descuento (actividad 2): la cabecera de la maqueta (`.pan-cab`) y sus prendas en grilla ──
+     La tarjeta de cada prenda es la de la campaña (`.sl-prenda`, sellos.css) con su precio debajo; la × es `BotonQuitarFoto`. */
+  .lc-panel-cab {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px 24px;
+  }
+  .lc-panel-pre {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+  .lc-panel-tit {
+    margin-top: 8px;
+    font-family: var(--font-serif);
+    font-size: clamp(48px, 5vw, 72px);
+    font-weight: 500;
+    line-height: 0.95;
+    letter-spacing: -0.015em;
+    font-variant-numeric: lining-nums tabular-nums;
+    white-space: nowrap;
+  }
+  .lc-panel-acc { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .lc-panel-cnt {
+    font-size: 15px;
+    color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+  }
+  .lc-panel-cnt b {
+    margin-right: 4px;
+    font-family: var(--font-serif);
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--color-tinta);
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+
+  .lc-grilla {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    gap: 24px 16px;
+    margin-top: 32px;
+  }
+  .lc-grilla > * {
+    animation: cayla-cascada var(--t-momento) var(--ease-cayla) backwards;
+    animation-delay: calc(min(var(--j, 0), 12) * 26ms);
+  }
+  .lc-pieza-precio {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .lc-pieza-precio b { font-size: 15px; font-weight: 600; }
+  .lc-pieza-precio s { color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
+  /* La que se quita sale corta mientras la base responde (ADR-0136: la salida, con `--ease-salida`). */
+  .lc-pieza[data-sale] { animation: lc-sale var(--t-hoja) var(--ease-salida) forwards; pointer-events: none; }
+
+  /* Con una sola columna, el panel va bajo su fila con el aire del pase abierto. */
+  .lc-panel-en-linea { margin: 16px 2px 24px; }
+
   /* Quieto o con menos movimiento: nada sube ni se encoge (el cambio de borde y de fondo sigue diciendo que responde). */
   :root[data-movimiento="quieto"] .lc-fila { translate: none; scale: none; }
   @media (prefers-reduced-motion: reduce) {
     .lc-fila { translate: none; scale: none; animation: none; }
+    .lc-grilla > * { animation: none; }
+    .lc-pieza[data-sale] { animation: none; opacity: 0.4; }
   }
+}
+
+@keyframes lc-sale {
+  to { opacity: 0; scale: 0.96; }
 }

@@ -332,7 +332,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/sellos/OfertasHoja.tsx": { estado: "aplicada", evidencia: ["components/sellos/OfertasHoja.tsx"] },
   // «Poner un %» (ADR-0669): a qué, cuánto y quién, con la luz de «Sigue»; lo que falta lo dice el pie y el botón que confirma.
   "components/rebajas/HojaRebaja.tsx": { estado: "aplicada", evidencia: ["components/rebajas/HojaRebaja.tsx"] },
-  "components/rebajas/RebajasDeTienda.tsx": { estado: "no-aplica", motivo: "El cajón de un % es una lista de prendas con «Quitar» en cada una: no hay nada que llenar salvo quién lo hace (un solo combo, que se elige una vez por tienda)." },
   "components/sellos/SellosPantalla.tsx": { estado: "no-aplica", motivo: "Sus dos ventanas propias tienen UN solo campo cada una (el comentario al aprobar, el motivo al rechazar) y el botón dice por qué espera; las que se llenan de verdad (nueva insignia o campaña, configurar) son de EtiquetasLista.tsx, con su guía." },
   "components/FamiliasLista.tsx": { estado: "aplicada", evidencia: ["components/FamiliasLista.tsx"] },
   "components/FiltrosExistencias.tsx": { estado: "no-aplica", motivo: "Hoja de filtros de Existencias en el celular (misma estructura que Productos, 2026-10-03): cada control filtra la lista al tocarlo y el botón dice cuántos productos quedan; no hay nada que completar ni pasos que seguir." },

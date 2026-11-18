@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   camposDeRebaja,
+  claveModeloColor,
   descuentosDeLaTienda,
+  detalleDePieza,
   hayQueQuitar,
   leerDescuentos,
   leerRebajaDePrenda,
@@ -10,12 +12,14 @@ import {
   nombreDeLugar,
   pctElegido,
   pctQueCobra,
+  piezasDeDescuento,
   precioConPct,
   quedaBajoCosto,
   saleDe,
   textoDelBoton,
   textoPct,
   type LugarDeRebaja,
+  type PrendaDeLugar,
   type RebajaQueTiene,
 } from "./rebaja-rapida-reglas";
 
@@ -111,5 +115,52 @@ describe("La lista de descuentos (ADR-0677)", () => {
   it("el lector oye el %, cuántas prendas y si es de todas las tiendas", () => {
     expect(nombreDeDescuento({ pct: 10, prendas: 15, todas: false })).toBe("Descuento −10 %, 15 prendas");
     expect(nombreDeDescuento({ pct: 12.5, prendas: 1, todas: true })).toBe("Descuento −12.5 %, 1 prenda, todas las tiendas");
+  });
+});
+
+describe("Las prendas del panel de un descuento (ADR-0677)", () => {
+  const talla = (o: Partial<PrendaDeLugar>): PrendaDeLugar => ({ varianteId: "v", productoId: "falda", referencia: "Falda Renata", color: "Negro", colorHex: null, talla: "M", precio: 74.9, ...o });
+  const sinNada = { vitrina: null, tallasPorColor: new Map<string, number>(), costos: new Map<string, number>() };
+
+  it("junta las tallas por modelo y color, como cuenta la fila", () => {
+    const piezas = piezasDeDescuento(
+      [talla({ varianteId: "n-s", talla: "S" }), talla({ varianteId: "n-m", talla: "M" }), talla({ varianteId: "b-m", color: "Beige" })],
+      10,
+      sinNada,
+    );
+    expect(piezas.map((p) => [p.clave, p.variantes])).toEqual([
+      [claveModeloColor("falda", "Beige"), ["b-m"]],
+      [claveModeloColor("falda", "Negro"), ["n-s", "n-m"]],
+    ]);
+  });
+
+  it("nombra las tallas solo si no van todas las de ese color", () => {
+    const tallasPorColor = new Map([[claveModeloColor("falda", "Negro"), 2], [claveModeloColor("falda", "Beige"), 3]]);
+    const piezas = piezasDeDescuento([talla({ varianteId: "n-s", talla: "S" }), talla({ varianteId: "n-m" }), talla({ varianteId: "b-m", color: "Beige" })], 10, { ...sinNada, tallasPorColor });
+    expect(piezas.map(detalleDePieza)).toEqual(["Beige · M", "Negro"]);
+  });
+
+  it("la que se agregó recién va primero, aunque por nombre fuera después", () => {
+    const prendas = [talla({ varianteId: "a", productoId: "blusa", referencia: "Blusa Emma" }), talla({ varianteId: "z", productoId: "vestido", referencia: "Vestido Sofía" })];
+    expect(piezasDeDescuento(prendas, 10, sinNada).map((p) => p.referencia)).toEqual(["Blusa Emma", "Vestido Sofía"]);
+    expect(piezasDeDescuento(prendas, 10, { ...sinNada, recientes: [claveModeloColor("vestido", "Negro")] }).map((p) => p.referencia)).toEqual(["Vestido Sofía", "Blusa Emma"]);
+  });
+
+  it("el precio es el menor de sus tallas, con el mismo redondeo de la caja", () => {
+    const [p] = piezasDeDescuento([talla({ varianteId: "s", precio: 79.9 }), talla({ varianteId: "m", precio: 74.9 })], 10, sinNada);
+    expect([p.precio, p.precioConPct]).toEqual([74.9, precioConPct(74.9, 10)]);
+  });
+
+  it("avisa «bajo costo» si alguna talla queda bajo lo que costó; sin costo a la vista, nunca", () => {
+    const prendas = [talla({ varianteId: "m", precio: 50 })];
+    expect(piezasDeDescuento(prendas, 30, { ...sinNada, costos: new Map([["m", 40]]) })[0].bajoCosto).toBe(true);
+    expect(piezasDeDescuento(prendas, 10, { ...sinNada, costos: new Map([["m", 40]]) })[0].bajoCosto).toBe(false);
+    expect(piezasDeDescuento(prendas, 30, { ...sinNada, costos: new Map([["m", 0]]) })[0].bajoCosto).toBe(false);
+  });
+
+  it("la foto y la categoría salen de la vitrina; sin vitrina, la prenda sin foto", () => {
+    const vitrina = new Map([["m", { productoId: "falda", colorNombre: "Negro", categoria: { nombre: "Faldas", prefijo: "FAL", familia: "ROPA" }, fotoUrl: "/f.jpg" }]]);
+    expect(piezasDeDescuento([talla({ varianteId: "m" })], 10, { ...sinNada, vitrina })[0]).toMatchObject({ fotoUrl: "/f.jpg", categoria: { prefijo: "FAL" } });
+    expect(piezasDeDescuento([talla({ varianteId: "m" })], 10, sinNada)[0]).toMatchObject({ fotoUrl: null, categoria: null });
   });
 });
