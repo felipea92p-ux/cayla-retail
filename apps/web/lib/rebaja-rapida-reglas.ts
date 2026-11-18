@@ -340,7 +340,7 @@ export const PCTS_SUGERIDOS = [5, 10, 15, 20, 25, 30, 40, 50, 70] as const;
 export function pctDeDescuento(n: number | null): number | null {
   if (n === null || !Number.isFinite(n)) return null;
   const pct = Math.round(n * 100) / 100;
-  return pct > 0 && pct <= 70 ? pct : null;
+  return pct >= 1 && pct <= 70 ? pct : null;
 }
 
 /** El descuento encendido que ya tiene ese % donde se mira (de la tienda, o de todas): «Ya existe». */

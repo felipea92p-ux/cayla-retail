@@ -330,6 +330,9 @@ esperarValor(
   "20.00",
 );
 esperarError("un % de 71 no", caso(CREAR(71)), "va de 1 a 70");
+// El piso es 1, como dice el mensaje (chaos 2026-11-18, semilla 1118, #1: un −0,5 % se creaba).
+esperarError("un % de 0,5 no", caso(CREAR(0.5)), "va de 1 a 70");
+esperarError("cambiar a 0,5 % no", caso(`${PONER(20)}select retail.cambiar_pct_de_descuento(${ID_DE(20)}, 0.5, :'u', false);\n`), "va de 1 a 70");
 esperarError("cambiar a 0 % no", caso(`${PONER(20)}select retail.cambiar_pct_de_descuento(${ID_DE(20)}, 0, :'u', false);\n`), "va de 1 a 70");
 esperarError(
   "desactivar desde Lima el descuento de Trujillo no",

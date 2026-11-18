@@ -33,7 +33,8 @@
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';
 
--- El % de un descuento, como lo valida `poner_rebaja`: de 1 a 70, a dos decimales.
+-- El % de un descuento: de 1 a 70, a dos decimales, como dice el mensaje. (`poner_rebaja` deja pasar más de 0: un −0,5 % se creaba,
+-- chaos 2026-11-18 #1; aquí el piso es 1.)
 create or replace function retail.fn_pct_de_descuento(p_pct numeric)
 returns numeric
 language plpgsql
@@ -42,7 +43,7 @@ as $function$
 declare
   v_pct numeric := round(p_pct, 2);
 begin
-  if v_pct is null or v_pct <= 0 or v_pct > 70 then
+  if v_pct is null or v_pct < 1 or v_pct > 70 then
     raise exception 'El %% va de 1 a 70.' using hint = 'rebaja_pct';
   end if;
   return v_pct;

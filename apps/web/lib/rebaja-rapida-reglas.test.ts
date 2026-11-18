@@ -181,6 +181,9 @@ describe("Nuevo descuento y cambiar el % (ADR-0677)", () => {
 
   it("un % vale de 1 a 70, a dos decimales (lo mismo que la base)", () => {
     expect([pctDeDescuento(25), pctDeDescuento(12.345), pctDeDescuento(70), pctDeDescuento(71), pctDeDescuento(0), pctDeDescuento(null), pctDeDescuento(NaN)]).toEqual([25, 12.35, 70, null, null, null, null]);
+    // El piso es 1, como dice el mensaje (chaos 2026-11-18, #1: un −0,5 % pasaba).
+    // A dos decimales, como `round(p_pct, 2)` de la base: 0,994 queda en 0,99 (no) y 0,995 sube a 1 (sí).
+    expect([pctDeDescuento(1), pctDeDescuento(0.5), pctDeDescuento(0.994), pctDeDescuento(0.995)]).toEqual([1, null, null, 1]);
   });
 
   it("«ya existe» es el encendido con ese % donde se mira: de la tienda o de todas, nunca uno apagado ni el mismo que se cambia", () => {
