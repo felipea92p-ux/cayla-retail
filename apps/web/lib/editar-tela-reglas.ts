@@ -78,7 +78,7 @@ export function problemasDeEditarTela(e: DatosDeLaTela): string[] {
   return problemasDeLaTela(e);
 }
 
-/** Los campos de la guía de foco: los de la tela (tejido y composición se SUGIEREN, nunca bloquean) y quién lo anota. */
+/** Los campos de la guía de foco: los de la tela (el tejido se SUGIERE y la composición es opcional; ninguno bloquea) y quién lo anota. */
 export function camposDeEditarTela(e: DatosDeLaTela & { responsableListo: boolean }): CampoDeGuia[] {
   return [...camposDeLaTela(e), { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién anota este cambio." }];
 }

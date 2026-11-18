@@ -153,7 +153,8 @@ export function TejidoYComposicion({
             value={composicion}
             onChange={(ev) => onComposicion(ev.target.value)}
             maxLength={160}
-            placeholder="Escribe lo que dice la etiqueta del proveedor"
+            // sugerir-fijo: la composición no depende de nada elegido antes; el ejemplo dice que basta lo que se sepa
+            placeholder="Lo que sepas, por ejemplo: Algodón"
           />
         </CampoGuiado>
       </div>

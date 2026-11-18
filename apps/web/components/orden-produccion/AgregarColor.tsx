@@ -17,11 +17,45 @@ import { familiaEnCarta } from "@/lib/color-estampado-reglas";
 
 /** El «×» de una fila de color: la misma píldora de Nuevo producto, sola. Quitar un color de entre varios no borra lo escrito en él: si vuelve a agregarse, sus números reaparecen.
  *  `onQuitar(conTeclado)`: con Enter o Espacio el clic llega con `detail === 0`; quien quita lo usa para dejar el cursor en la tabla (la fila donde estaba desaparece). */
-export function QuitarColor({ nombre, onQuitar }: { nombre: string; onQuitar: (conTeclado: boolean) => void }) {
+export function QuitarColor({ nombre, onQuitar, doble = false }: { nombre: string; onQuitar: (conTeclado: boolean) => void; doble?: boolean }) {
+  // `doble` (Felipe 2026-11-17: «que sea doble lo de borrar el color»): el primer toque convierte la «×» en «¿Quitar Beige?» en la misma fila y el
+  // segundo quita. Si pasan unos segundos o se toca otra cosa, vuelve sola: un clic de más ya no se lleva un color. Sin ventana aparte, para que no
+  // frene a quien sí quiere quitarlo.
+  const [armado, setArmado] = useState(false);
+  const confirmar = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!armado) return;
+    confirmar.current?.focus({ preventScroll: true });
+    const t = window.setTimeout(() => setArmado(false), ESPERA_DOBLE_MS);
+    return () => window.clearTimeout(t);
+  }, [armado]);
+  if (doble && armado) {
+    return (
+      <button
+        ref={confirmar}
+        type="button"
+        onClick={(e) => {
+          setArmado(false);
+          onQuitar(e.detail === 0);
+        }}
+        onBlur={() => setArmado(false)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.stopPropagation();
+            setArmado(false);
+          }
+        }}
+        aria-label={`Confirmar: quitar ${nombre}`}
+        className="btn-cayla btn-peligro btn-chico"
+      >
+        ¿Quitar {nombre}?
+      </button>
+    );
+  }
   return (
     <button
       type="button"
-      onClick={(e) => onQuitar(e.detail === 0)}
+      onClick={(e) => (doble ? setArmado(true) : onQuitar(e.detail === 0))}
       aria-label={`Quitar ${nombre}`}
       className="area-dedo grid h-6 w-6 place-items-center rounded-full text-[15px] leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
     >
@@ -29,6 +63,9 @@ export function QuitarColor({ nombre, onQuitar }: { nombre: string; onQuitar: (c
     </button>
   );
 }
+
+/** Cuánto espera «¿Quitar …?» el segundo toque antes de volver a ser la «×». */
+const ESPERA_DOBLE_MS = 4000;
 
 export function AgregarColor({
   colores,

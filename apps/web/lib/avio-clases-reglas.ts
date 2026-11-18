@@ -5,8 +5,8 @@ export type { UnidadMedidaAvio };
 // Las clases de avío (ADR-0580): botón, cierre, hilo, etiqueta, elástico y cinta, pretina, otro. Reglas puras, sin React ni red.
 //
 // EL PROBLEMA. Hasta hoy el sistema no sabía que un botón es un botón: `insumos.tipo` solo valía «tela» o «avio». Por eso la hoja proponía «unidades» para TODO avío —y el hilo, que se compra por
-// CONO, nacía mal medido para siempre (`fn_insumos_unidad_firme` congela la unidad al primer lote)— y la medida que de verdad distingue un avío de otro (18 L de línea, 40 cm de largo, 3 cm de
-// ancho, título 40) terminaba escrita dentro del nombre, donde `fn_clave_texto` no la ve: «Botón nácar 18mm» y «Botón nácar 18 mm» entraban como DOS fichas, cada una con su stock.
+// CONO, nacía mal medido para siempre (`fn_insumos_unidad_firme` congela la unidad al primer lote)— y la medida que de verdad distingue un avío de otro (1.5 cm de botón, 40 cm de largo, 3 cm de
+// ancho, título 40; el botón se midió en líneas hasta el 2026-11-17) terminaba escrita dentro del nombre, donde `fn_clave_texto` no la ve: «Botón nácar 18mm» y «Botón nácar 18 mm» entraban como DOS fichas, cada una con su stock.
 //
 // CONTRATO
 //   PROMETE: para un comportamiento dado, qué unidad se PROPONE, si la clase lleva color y qué medida admite — exactamente lo mismo que `retail.fn_medida_cuadra` y `retail.fn_material_leer`
@@ -33,9 +33,8 @@ export type ClaseDeAvio = {
 };
 
 export const UNIDADES_MEDIDA: Record<UnidadMedidaAvio, { corta: string; larga: string; ayuda: string }> = {
-  linea: { corta: "L", larga: "Líneas (L)", ayuda: "La medida de toda la vida del botón: 18 L ≈ 11,4 mm." },
-  milimetro: { corta: "mm", larga: "Milímetros", ayuda: "Para un avío que de verdad se mide así; un botón va SIEMPRE en líneas." },
-  centimetro: { corta: "cm", larga: "Centímetros", ayuda: "El largo del cierre o el ancho del elástico." },
+  milimetro: { corta: "mm", larga: "Milímetros", ayuda: "Para algo que se mide así. El botón va en centímetros." },
+  centimetro: { corta: "cm", larga: "Centímetros", ayuda: "El tamaño del botón, el largo del cierre o el ancho del elástico." },
   titulo: { corta: "título", larga: "Título del hilo", ayuda: "El grosor: 40 es más fino que 20." },
 };
 
@@ -72,12 +71,12 @@ export function problemaDelNombreDeClase(nombre: string): string | null {
 
 /** La tabla de verdad. Es la MISMA que `retail.fn_medida_cuadra` y los `raise` de `fn_material_leer`; `avio-clases-reglas.test.ts` lo comprueba comportamiento por comportamiento. */
 export const COMPORTAMIENTOS: Record<ComportamientoClase, ReglaDeComportamiento> = {
-  pieza: { medidas: ["linea"], requerida: false, comoSeLlama: "Medida", ejemplo: "18", porQue: "Un botón de 18 L y uno de 24 L son dos avíos distintos." },
+  pieza: { medidas: ["centimetro"], requerida: false, comoSeLlama: "Medida", ejemplo: "1.5", porQue: "Un botón de 1.5 cm y uno de 2 cm son dos avíos distintos." },
   largo: { medidas: ["centimetro"], requerida: true, comoSeLlama: "Largo", ejemplo: "40", porQue: "Un cierre de 20 cm y uno de 40 cm no se pueden mezclar." },
   ancho: { medidas: ["centimetro"], requerida: true, comoSeLlama: "Ancho", ejemplo: "3", porQue: "Lo que distingue un elástico de otro es su ancho." },
   titulo: { medidas: ["titulo"], requerida: true, comoSeLlama: "Título", ejemplo: "40", porQue: "El grosor del hilo: con el equivocado la costura se nota." },
   etiqueta: { medidas: [], requerida: false, comoSeLlama: "Medida", ejemplo: "", porQue: "Una etiqueta no se mide: lo que la distingue es su nombre." },
-  otro: { medidas: ["linea", "milimetro", "centimetro", "titulo"], requerida: false, comoSeLlama: "Medida", ejemplo: "", porQue: "Si este avío se distingue por una medida, escríbela; si no, déjala vacía." },
+  otro: { medidas: ["milimetro", "centimetro", "titulo"], requerida: false, comoSeLlama: "Medida", ejemplo: "", porQue: "Si este avío se distingue por una medida, escríbela; si no, déjala vacía." },
 };
 
 /** Las unidades de medida que admite un comportamiento. Vacío = esa clase no se mide (la etiqueta). */
@@ -113,9 +112,9 @@ export function textoDeMedida(valor: number | null, unidad: UnidadMedidaAvio | n
 }
 
 /**
- * El nombre con el que se lee una ficha de Insumos: el que le pusieron, más su medida («Botón nácar 18 L»).
+ * El nombre con el que se lee una ficha de Insumos: el que le pusieron, más su medida («Botón nácar 1.5 cm»).
  *
- * Es lo MISMO que compone la base en `fn_insumos_copias_de_la_tela` para el nombre de cada color («Botón nácar 18 L · Negro»): si la web lo dijera distinto, el título de la ficha y la lista
+ * Es lo MISMO que compone la base en `fn_insumos_copias_de_la_tela` para el nombre de cada color («Botón nácar 1.5 cm · Negro»): si la web lo dijera distinto, el título de la ficha y la lista
  * de sus colores no se leerían igual. Una tela no tiene medida, así que devuelve su nombre tal cual.
  */
 export function nombreDeMaterial(m: Pick<MaterialVista, "nombre" | "medida">): string {
