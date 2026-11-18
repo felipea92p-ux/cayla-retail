@@ -24,6 +24,7 @@ import { esDelModo, type ModoEtiquetas } from "@/lib/sellos-campanas";
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import type { TallaVitrina } from "@/lib/sellos-pases";
 import { paresDeFilas, reglaDeFila, type FilaParQueChoca, type FilaRegla, type InsigniaDeOferta, type ParQueChoca } from "@/lib/campana-reglas";
+import { leerDescuentos, type DescuentoDeLista } from "@/lib/rebaja-rapida-reglas";
 
 /** «Ninguna tienda con precio propio»: lo que se usa cuando no hace falta leerlos (la forma de `getPreciosDeLasTiendas`). */
 const sinPreciosDeTiendas = () => ({ nombres: new Map<string, string>(), porSede: {} as Record<string, Record<string, number>> });
@@ -34,6 +35,7 @@ export async function cargarEtiquetasPantalla({
   conRotacion,
   esLider,
   conVitrina = false,
+  sedeId = null,
 }: {
   /** Las filas de una pantalla (`esDelModo`) o, en Catálogo ▸ Insignias, todas. */
   modo: ModoEtiquetas | "todas";
@@ -44,6 +46,8 @@ export async function cargarEtiquetasPantalla({
   esLider: boolean;
   /** Modelo, color, categoría y foto de cada prenda a la venta (la vitrina de cada pase de Catálogo ▸ Insignias). */
   conVitrina?: boolean;
+  /** La tienda de la cabecera: en Campañas, los descuentos que rigen ahí (ADR-0677). */
+  sedeId?: string | null;
 }) {
   const supabase = await createClient();
   // El costo, por la puerta que revisa el permiso (20260923193700). Sin él (no ve el dinero), `costo` 0 nunca queda «por debajo».
@@ -79,6 +83,15 @@ export async function cargarEtiquetasPantalla({
     modo === "campanas" && puedeEditar
       ? (supabase.rpc("campanas_ofertas_que_chocan" as never) as unknown as PromiseLike<{ data: FilaParQueChoca[] | null; error: unknown }>).then(
           (r) => (r.error ? null : paresDeFilas(r.data)),
+          () => null,
+        )
+      : Promise.resolve(null);
+  // Los descuentos de Campañas (ADR-0677, 20261118001000): los cajones de «Poner un %», que van arriba de las campañas y no se repiten como
+  // campaña guardada. Sin la función en esa base (la web sale antes que el pegado) o si falla, `null`: la lista se dibuja como antes.
+  const cargaDescuentos: PromiseLike<DescuentoDeLista[] | null> =
+    modo === "campanas"
+      ? (supabase.rpc("campanas_descuentos" as never, { p_ubicacion_id: sedeId } as never) as unknown as PromiseLike<{ data: unknown; error: unknown }>).then(
+          (r) => (r.error ? null : leerDescuentos(r.data)),
           () => null,
         )
       : Promise.resolve(null);
@@ -226,6 +239,7 @@ export async function cargarEtiquetasPantalla({
     // El nombre de cada campaña (de todos los modos): Catálogo ▸ Insignias nombra la campaña de una oferta que usa la insignia que se
     // desactiva (ADR-0655).
     choquesAbiertos: await cargaChoques,
+    descuentos: await cargaDescuentos,
     nombresDeCampanas: Object.fromEntries(todasLasEtiquetas.filter((e) => e.estilo === "campana").map((e) => [e.id, e.nombre])) as Record<string, string>,
   };
 }

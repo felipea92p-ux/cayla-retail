@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "rol-local": "node scripts/rol-local.mjs",
     "medicion:leer": "node scripts/medicion-leer.mjs",
-    "peso:pagina": "node scripts/peso-de-pagina.mjs"
+    "peso:pagina": "node scripts/peso-de-pagina.mjs",
+    "union:auditar": "node scripts/union-auditar.mjs"
   },
   "dependencies": {
     "@cayla-retail/shared": "workspace:*",

@@ -187,20 +187,27 @@ const SOLO_LIDER_GRUPOS = [
   },
   {
     // ADR-0669 (Felipe 2026-11-16): «Poner un %» lo usa quien ve Campañas (fn_puede_campanas). fn_exigir_rebaja_rapida tiene una
-    // rama de solo líder, la de «En todas las tiendas»: por eso el detector la cuenta como ayudante-candado.
+    // rama de solo líder, la de «En todas las tiendas»: por eso el detector la cuenta como ayudante-candado. ADR-0677 (2026-11-18) suma
+    // los descuentos de la lista: crear, cambiar el %, desactivar y de dónde viene cada talla, con el mismo candado.
     modulo: "campanas",
     funciones: [
       "buscar_prenda_para_rebaja",
+      "cambiar_pct_de_descuento",
       "campanas_rebaja_de_prenda",
+      "campanas_rebaja_de_variantes",
       "campanas_rebaja_prendas",
       "campanas_rebajas_de_tienda",
+      "crear_descuento",
+      "desactivar_descuento",
       "poner_rebaja",
       "quitar_rebaja",
     ],
     razon:
-      "«Poner un %» (components/rebajas/*, en app/(app)/productos/campanas) lo usa quien ve el módulo: fn_exigir_rebaja_rapida pide " +
-      "fn_puede_campanas() y la tienda donde trabaja. Solo la rama «En todas las tiendas» (p_todas) exige líder, y las cuatro lecturas " +
-      "la llaman siempre con p_todas = false. La pantalla dibuja el interruptor «En todas las tiendas» solo si `es_lider` (HojaRebaja.tsx).",
+      "Los descuentos de Campañas y ofertas (components/campanas/* y components/rebajas/RebajasDeTienda.tsx, en app/(app)/productos/campanas) " +
+      "los usa quien ve el módulo: fn_exigir_rebaja_rapida pide fn_puede_campanas() y la tienda donde trabaja. Solo la rama «En todas las " +
+      "tiendas» (p_todas) exige líder: la hoja dibuja ese interruptor solo si es líder (HojaDeDescuento.tsx) y el panel de un descuento de " +
+      "todas las tiendas solo deja agregar, quitar, cambiar o desactivar a un líder (`puedeTocar` en PanelDeDescuento.tsx); quien no lo es " +
+      "lo ve con «Sus prendas las cambia un líder».",
   },
   {
     // ADR-0653 (Felipe 2026-11-13): el módulo Liquidación se retiró. Sus funciones siguen en la base (no se borra lo construido),

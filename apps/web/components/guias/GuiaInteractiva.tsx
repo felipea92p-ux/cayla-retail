@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { createPortal } from "react-dom";
 import { Boton } from "@/components/ui/campos";
 import { Volver } from "@/components/ui/Volver";
-import { caminoDelVelo, esperaPorAncla, pasoAplica, posicionTarjeta, recorteDe, totalEstimado, type Caja } from "@/lib/guias/reglas";
+import { caminoDelVelo, cierresAlVolver, esperaPorAncla, pasoAplica, posicionTarjeta, recorteDe, totalEstimado, type Caja } from "@/lib/guias/reglas";
 import type { AccionGuia, Guia, PasoGuia } from "@/lib/guias/tipos";
 import { anclasPresentes, ejecutar, esEscapeDelPiloto, esperarAncla, pausa } from "./piloto";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
@@ -119,9 +119,9 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
     [guia],
   );
 
-  /** Muestra el paso `i` (o el siguiente que aplique, en la dirección pedida). */
+  /** Muestra el paso `i` (o el siguiente que aplique, en la dirección pedida). `desde`: al volver, el paso que se deja. */
   const irA = useCallback(
-    async (i: number, direccion: 1 | -1) => {
+    async (i: number, direccion: 1 | -1, desde?: number) => {
       control.current?.abort();
       const ac = new AbortController();
       control.current = ac;
@@ -133,6 +133,11 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
       if (direccion === -1) {
         for (let n = 0; n < 4 && modalesAbiertos() > dialogosAlEmpezar.current; n++) await ejecutar({ tipo: "escape" }, senal, conMovimiento);
         if (senal.aborted) return;
+        // Y los pliegues que cerraban los pasos que se saltaron entre medio (`cierresAlVolver`): «atrás» no pasa por ellos.
+        if (desde !== undefined) {
+          for (const a of cierresAlVolver(guia.pasos, desde, i)) await ejecutar(a, senal, conMovimiento, apuntar);
+          if (senal.aborted) return;
+        }
       }
 
       let indice = i;
@@ -239,7 +244,7 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
   const atras = useCallback(() => {
     if (ocupada || enCurso < 2) return;
     const previo = historial.current[historial.current.length - 2]!;
-    void irA(previo, -1);
+    void irA(previo, -1, historial.current[historial.current.length - 1]);
   }, [irA, ocupada, enCurso]);
 
   // Teclado: → / Enter siguiente, ← atrás, Esc sale. En la CAPTURA de `window`, antes que los modales (Radix escucha en la

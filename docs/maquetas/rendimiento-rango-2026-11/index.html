@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-fondo="aurora" data-pila="corregida">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rendimiento: rango de fechas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Gestión ▸ Rendimiento: rango de fechas personalizado (máx. 30 días) + «El equipo» que ya no se sale
+   Pantalla real: app/(app)/rendimiento → components/rendimiento/MesaRendimiento.tsx (el segmento de período, `PRESETS`) y
+   CifrasRendimiento.tsx (la tarjeta «El equipo», con `PilaPersonas`). Aquí SOLO se dibuja la franja de arriba de la mesa: el buscador, el
+   período, la frase y las cifras. Armada con lo ya elegido: el segmento «modo» (la gota que se desliza), tarjetas de cifra A · Placa, el
+   vidrio de lo que flota, FiltroPuesto, Chip, tubo de los tres grupos. Solo tokens. Sin rebote ni bucle; todo se apaga con
+   prefers-reduced-motion. Datos inventados (el repo es público).
+   ==================================================================== */
+
+/* ---------- la pantalla ---------- */
+.pantalla{position:absolute;inset:0;z-index:1;overflow:auto;padding:28px 40px 60px}
+.eyebrow{display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.eyebrow::after{content:"";flex:0 0 48px;height:1px;background:var(--taupe);opacity:.6}
+.titulo-p{display:flex;align-items:center;gap:12px;margin-top:6px}
+.titulo-p h1{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:46px;line-height:1.05}
+.rg-ayuda{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--t65);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 1px color-mix(in srgb,var(--tinta) 14%,transparent)}
+
+/* la franja de controles */
+.controles{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;margin-top:22px;position:relative}
+.pozo{flex:1;min-width:200px;max-width:26rem;display:flex;align-items:center;gap:10px;height:42px;padding:0 16px;border-radius:999px;font-size:14px;color:var(--t65);
+  border:1px solid color-mix(in srgb,var(--tinta) 30%,transparent);background:var(--t06);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pozo{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pozo span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* el segmento de período: la caja hundida con la gota que se desliza (SegmentoDeslizante forma="modo") */
+.seg{position:relative;display:inline-flex;max-width:100%;padding:4px;border-radius:999px;background:var(--t06);
+  box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent),0 0 0 1px color-mix(in srgb,var(--tinta) 30%,transparent)}
+[data-tema="oscuro"] .seg{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.seg .rg-gota{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:999px;pointer-events:none;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 1px color-mix(in srgb,var(--tinta) 36%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 45%,transparent);
+  transition:left 260ms var(--ease),width 260ms var(--ease)}
+[data-tema="oscuro"] .seg .rg-gota{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.seg button{position:relative;z-index:1;display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 16px;border-radius:999px;font-size:11.5px;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--t65);white-space:nowrap;transition:color 200ms}
+.seg button[aria-checked="true"]{color:var(--tinta)}
+.seg button svg.ic{width:15px;height:15px}
+.seg button:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+@media (hover:hover){.seg button:not([aria-checked="true"]):hover{color:var(--tinta)}}
+.seg .rango-t{font-variant-numeric:tabular-nums}
+
+/* lo puesto: la píldora de «Días: …» con su ✕ (FiltroPuesto) */
+.puestos{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;min-height:0}
+.fpuesto{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 6px 0 14px;border-radius:999px;font-size:13px;color:var(--crema);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent));animation:sube 240ms var(--ease) both}
+.fpuesto button{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:var(--crema);background:color-mix(in srgb,var(--crema) 18%,transparent)}
+.fpuesto button svg.ic{width:12px;height:12px}
+@media (hover:hover){.fpuesto button:hover{background:color-mix(in srgb,var(--crema) 30%,transparent)}}
+
+.frase{margin-top:16px;font-size:16px;line-height:1.5;color:var(--t80);max-width:62ch;min-height:48px}
+.frase b{color:var(--tinta);font-weight:600}
+.frase[data-cambia]{animation:funde 280ms var(--ease) both}
+
+/* las cifras */
+.rg-cifras{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:20px;align-items:start}
+.placa{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.cif{padding:18px 20px 20px}
+.cif .vs{font-size:10.5px}
+.cif .valor{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:34px;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums}
+.cif small{display:block;font-size:13px;color:var(--t65);margin-top:2px}
+.cif .rg-ayuda{position:absolute;top:14px;right:14px}
+.cif .valor[data-cambia]{animation:funde 260ms var(--ease) both}
+
+/* ---- «El equipo» ---- */
+.equipo .caras{margin-top:12px}
+.pila{display:flex;align-items:center;min-height:36px}
+.pila .rg-av{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-weight:500;font-size:14px;letter-spacing:.02em;
+  color:var(--crema-fija);background:var(--c);box-shadow:0 0 0 2px var(--papel);transition:transform 260ms var(--ease),opacity 240ms,margin 300ms var(--ease)}
+.pila .rg-av+.rg-av{margin-left:-6px}
+.pila[data-vive]:hover .rg-av+.rg-av{margin-left:2px}
+.pila .rg-av[data-apagada]{opacity:.35}
+.pila .rg-av[aria-pressed="true"]{box-shadow:0 0 0 2px var(--papel),0 0 0 4px var(--c)}
+@media (hover:hover){.pila .rg-av:hover{transform:translateY(-3px)}}
+.pila button:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+/* «Como ahora»: la pila no se mide y se sale de la tarjeta (el defecto que se ve en la captura) */
+[data-pila="ahora"] .pila{width:max-content}
+.rg-mas{flex:none;margin-left:8px;display:inline-flex;align-items:center;height:32px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--tinta);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 1px color-mix(in srgb,var(--tinta) 30%,transparent)}
+[data-tema="oscuro"] .rg-mas{background:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--tinta) 30%,transparent)}
+.rg-mas[aria-pressed="true"],.rg-mas[aria-expanded="true"]{box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 2px var(--tinta)}
+.rg-mas:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+.grupos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:14px}
+.grupo{--c:var(--verde);display:flex;flex-direction:column;gap:4px;min-width:0;text-align:left;font-size:14px;line-height:1.15;color:var(--t80);transition:opacity 240ms var(--ease)}
+.grupo b{font-family:'EB Garamond',serif;font-size:24px;font-weight:600;line-height:1;color:var(--tinta);font-variant-numeric:tabular-nums}
+.grupo i{display:block;height:10px;border-radius:99px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),transparent 55%),var(--c);
+  box-shadow:inset 0 -2px 3px color-mix(in srgb,var(--sombra) 22%,transparent),0 2px 5px -2px color-mix(in srgb,var(--c) 55%,transparent);transition:transform 240ms var(--ease),box-shadow 200ms}
+.grupo span{min-height:2.3em}
+.grupo[aria-pressed="true"] i{box-shadow:0 0 0 2px var(--crema),0 0 0 4px var(--c)}
+.grupo[data-apagada]{opacity:.42}
+@media (hover:hover){.grupo:hover i{transform:scaleY(1.35)}}
+.grupo:focus-visible{outline:2px solid var(--tinta);outline-offset:3px;border-radius:6px}
+.hint{margin-top:10px;font-size:12.5px;color:var(--t65)}
+
+/* ---- las capas que flotan: vidrio de lo que flota ---- */
+.rg-velo{position:absolute;inset:0;z-index:40;display:none;background:color-mix(in srgb,var(--sombra) 14%,transparent)}
+.rg-velo[data-abierto]{display:block;animation:funde 200ms var(--ease) both}
+.flota{position:absolute;z-index:50;display:none;border-radius:26px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 82%,transparent),color-mix(in srgb,var(--vidrio) 68%,transparent));-webkit-backdrop-filter:blur(28px) saturate(1.5);backdrop-filter:blur(28px) saturate(1.5);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 30px 70px -26px color-mix(in srgb,var(--sombra) 55%,transparent),0 0 0 1px color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-tema="oscuro"] .flota{background:color-mix(in srgb,var(--vidrio) 86%,transparent);border-color:color-mix(in srgb,var(--tinta) 12%,transparent)}
+.flota[data-abierto]{display:block;animation:sube 240ms var(--ease) both}
+
+/* el calendario del rango: solo un mes; el rango se elige ahí y se aplica al tocar el segundo día */
+#cal{width:340px;padding:18px 20px 16px}
+.rg-meses{position:relative}
+.rg-nav{position:absolute;top:0;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--tinta);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 1px color-mix(in srgb,var(--tinta) 22%,transparent)}
+.rg-nav[disabled]{opacity:.3;pointer-events:none}
+.rg-nav.rg-izq{left:0}.rg-nav.rg-der{right:0}
+.rg-nav:focus-visible,.d:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+.mes-t{text-align:center;font-family:'EB Garamond',serif;font-size:22px;font-weight:500;height:36px;display:flex;align-items:center;justify-content:center;text-transform:capitalize}
+.sem{display:grid;grid-template-columns:repeat(7,1fr);margin:8px 0 2px}
+.sem span{text-align:center;font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--t65)}
+.dias{display:grid;grid-template-columns:repeat(7,1fr);row-gap:2px}
+.d{position:relative;height:40px;display:grid;place-items:center;font-size:14px;font-variant-numeric:tabular-nums;color:var(--tinta);border-radius:0}
+.d>span{position:relative;z-index:1;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;transition:background 160ms,color 160ms}
+.d::before{content:"";position:absolute;inset:2px 0;background:transparent}
+.d.en::before{background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+.d.ini::before{left:50%;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+.d.fin::before{right:50%;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+.d.ini.fin::before{display:none}
+.d.ini>span,.d.fin>span{background:var(--tinta);color:var(--crema);font-weight:600}
+.d.prev.fin>span{background:color-mix(in srgb,var(--tinta) 55%,transparent)}
+.d.hoy>span{box-shadow:inset 0 0 0 1.5px var(--t50)}
+.d.hoy.ini>span,.d.hoy.fin>span{box-shadow:none}
+.d.dis{color:color-mix(in srgb,var(--tinta) 30%,transparent);cursor:not-allowed}
+.d.dis.largo>span{background:repeating-linear-gradient(135deg,transparent 0 4px,color-mix(in srgb,var(--tinta) 10%,transparent) 4px 5px)}
+@media (hover:hover){.d:not(.dis):not(.ini):not(.fin):hover>span{background:var(--t12)}}
+.d-vacio{height:40px}
+.rg-asa{display:none;width:44px;height:5px;border-radius:99px;background:var(--t25);margin:0 auto 12px}
+
+/* la lista de «+N» del equipo */
+#masl{width:284px;padding:10px;max-height:320px;overflow:auto}
+.masl-t{padding:6px 10px 8px}
+.pers{display:flex;align-items:center;gap:10px;width:100%;height:44px;padding:0 10px;border-radius:14px;text-align:left;font-size:14px}
+.pers .av2{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:13px;color:var(--crema-fija);background:var(--c)}
+.pers .nom{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pers .rg-pt{width:9px;height:9px;border-radius:50%;background:var(--c2)}
+.pers[aria-pressed="true"]{background:var(--t12);box-shadow:inset 0 0 0 1.5px var(--tinta)}
+.pers:focus-visible{outline:2px solid var(--tinta);outline-offset:-2px}
+@media (hover:hover){.pers:hover{background:var(--t06)}}
+
+/* ---------- el celular: la hoja desde el borde (ADR-0479) y una sola columna ---------- */
+@container disp (max-width:700px){
+  .pantalla{padding:20px 16px 60px}
+  .titulo-p h1{font-size:34px}
+  .controles{margin-top:16px}
+  .seg{width:100%}
+  .seg button{flex:1;justify-content:center;padding:0 6px;font-size:11px;letter-spacing:.08em;height:44px}
+  .seg .rango-t{display:none}
+  .seg[data-rango] .rango-t{display:inline}
+  .seg[data-rango] button:nth-of-type(1),.seg[data-rango] button:nth-of-type(2),.seg[data-rango] button:nth-of-type(3){flex:0 0 auto;padding:0 12px}
+  .pozo{max-width:none}
+  .frase{font-size:15px}
+  .cifras,.rg-cifras{grid-template-columns:minmax(0,1fr)}
+  #cal{left:0!important;right:0;top:auto!important;bottom:0;width:auto;border-radius:28px 28px 0 0;padding:12px 16px 22px}
+  #cal[data-abierto]{animation:sube 260ms var(--ease) both}
+  .rg-asa{display:block}
+  .d{height:44px}.d>span{width:40px;height:40px}.d-vacio{height:44px}
+  #masl{width:min(300px,calc(100% - 32px))}
+}
+@media (prefers-reduced-motion:reduce){
+  .seg .rg-gota,.fpuesto,.flota[data-abierto],.rg-velo[data-abierto],.frase[data-cambia],.cif .valor[data-cambia]{animation:none!important;transition:none!important}
+}
+.nota-m{margin-top:26px;padding:14px 18px;border-radius:16px;background:var(--hueso);font-size:13.5px;color:var(--t80);max-width:72ch}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Gestión ▸ Rendimiento: rango de fechas (máx. 30 días) y «El equipo» que ya no se sale</span>
+  <span class="tag">Pila de personas</span>
+  <div class="seg-m" data-ctl="pila"><button data-v="ahora">Como ahora (se sale)</button><button data-v="corregida">Corregida · lo que cabe + «+N»</button></div>
+  <span class="tag">Hoy es</span><span style="font-size:12px">martes 17 nov 2026</span>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="escritorio">Escritorio</button></div>
+  <button class="accion" id="reiniciar">Reiniciar</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+
+  <main class="pantalla" id="pantalla">
+    <div class="eyebrow"><span>Trujillo · martes 17 de noviembre</span></div>
+    <div class="titulo-p"><h1>Rendimiento</h1><span class="rg-ayuda" title="Cómo va cada persona contra lo que le tocaba">?</span></div>
+
+    <div class="controles" id="controles">
+      <div class="pozo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Busca a alguien o escribe «del 5 al 12»</span></div>
+      <div id="periodo" data-guia="rendimiento.periodo"></div>
+    </div>
+    <div class="puestos" id="puestos"></div>
+    <p class="frase" id="frase" aria-live="polite"></p>
+    <div class="rg-cifras" id="cifras"></div>
+    <p class="nota-m">En la pantalla real hay más cifras, el gráfico y las tablas debajo: esta maqueta solo dibuja lo que cambia (el período) y la tarjeta que se sale (El equipo). Todo lo demás responde al rango elegido.</p>
+  </main>
+
+  <div class="rg-velo" id="velo"></div>
+  <div class="flota" id="cal" role="dialog" aria-modal="true" aria-label="Elige el primer y el último día"></div>
+  <div class="flota" id="masl" role="dialog" aria-label="Más personas"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>«Se está saliendo»:</b> <code>PilaPersonas</code> (<code>components/ui/AvatarPersona.tsx</code>) pinta a todas las personas en una fila de ancho libre (<code>inline-flex</code>, cada cara de 32 px con 6 px pisados). Con 14 personas la fila mide ~375 px y la tarjeta «El equipo» tiene ~290 px útiles: las últimas caras caen fuera del vidrio. Nada mide el espacio, y la pila ya tiene un «+N» (<code>mas</code>) que nadie calcula.</li>
+      <li><b>Sin rango:</b> el período es Hoy · 7 días · Este mes (<code>PRESETS</code> en <code>lib/rendimiento-vista-reglas.ts</code>). El <code>Tramo {desde, hasta}</code> ya admite cualquier par de días —hoy se llega con un día del gráfico o escribiendo «del 5 al 12» en el buscador—, pero nada lo ofrece a la vista y ese camino no tiene tope.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Lo que propongo</h2>
+    <table>
+      <tr><th>Pieza</th><th>Decisión</th><th>Por qué</th></tr>
+      <tr><td><b>Rango</b> (cuarto lugar del segmento)</td><td>Un cuarto botón con el calendario. Al elegir, el segmento muestra «5 – 12 nov» y aparece la píldora «Días: …» con su ✕ para quitarlo.</td><td>Mismo lugar, mismo gesto que Hoy / 7 días / Este mes: no hay un botón nuevo en otra parte. La píldora ya existe en la pantalla (<code>FiltroPuesto</code>).</td></tr>
+      <tr><td><b>Calendario</b></td><td>Solo un calendario, sin atajos, campos ni botones. Tocas el primer día y el último: al segundo toque el rango se aplica y se cierra. Las flechas cambian de mes. En el celular, una hoja desde abajo.</td><td>Un solo gesto, sin pasos extra. Un clic perdido se arregla volviendo a abrir; «Esc» o tocar fuera descarta.</td></tr>
+      <tr><td><b>Máximo 30 días</b></td><td>Se cuentan los dos extremos (5 nov → 4 dic = 30). Tras el primer día, los que pasan de 30 se rayan y dicen «Pasa de 30 días» al apuntarlos. Hoy en adelante y antes del mes pasado también se apagan.</td><td>Se bloquea antes de equivocarse, sin mensaje de error. El piso (1.º del mes pasado) es lo que ya carga <code>rangoDeLecturaPersonas</code>: sin pedirle más a la base.</td></tr>
+      <tr><td><b>El equipo</b></td><td>La pila mide su caja: caben las caras que caben y el resto se cuenta en «+N», que abre la lista con nombre. Tocar a alguien allí hace lo mismo que su cara.</td><td>Nadie queda fuera de alcance ni de la tarjeta. El teclado y el lector de pantalla pasan por la lista.</td></tr>
+    </table>
+    <h3>Cómo se prueba (toca todo)</h3>
+    <ul>
+      <li>Toca <b>RANGO</b> → toca un día (por ejemplo el 5 de oct) → mueve el mouse: la banda se estira y, pasados 30 días, los días se rayan.</li>
+      <li>Toca el segundo día: el rango se aplica y el calendario se cierra. Con las flechas puedes pasar de mes antes de tocarlo.</li>
+      <li>Un día anterior al primero lo reemplaza; el mismo día dos veces es un solo día. «Esc» o tocar fuera descarta. ← → ↑ ↓ mueven el día y Enter elige.</li>
+      <li>Para quitarlo: la ✕ de la píldora «Días: …» o cualquiera de los otros tres períodos.</li>
+      <li>Cambia la <b>pila de personas</b> arriba a «Como ahora» para ver el defecto, y baja el ancho a 375 para la hoja del celular.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Lo que cuesta y lo que queda abierto</h2>
+    <ul>
+      <li><b>Cambia solo la web, sin migración:</b> <code>MesaRendimiento.tsx</code> (4.º lugar del segmento), un <code>RangoRendimiento.tsx</code> nuevo (un mes; los días y los saltos de mes salen de <code>lib/estados-periodo.ts</code>, ya probados), <code>rendimiento-vista-reglas.ts</code> (<code>RANGO_MAX_DIAS = 30</code> y <code>tramoValido</code>, con su prueba) y <code>PilaPersonas</code> (la medida). Más su guía interactiva (<code>data-guia</code>) y la huella.</li>
+      <li><b>El borde del mes:</b> con el piso en el 1.º del mes pasado, un 1 de marzo (febrero tiene 28 días) solo deja volver 28 días, no 30. Es el único día así del año; lo digo antes de que sorprenda.</li>
+      <li><b>El buscador</b> («del 5 al 12») hoy no tiene tope: pasaría por la misma <code>tramoValido</code> y, si se pasa de 30, dice «Máximo 30 días» en lugar de aplicar.</li>
+      <li><b>Dinero, stock, permisos:</b> nada de eso se toca; es lectura.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+/* ------------------------------ fechas ------------------------------ */
+const HOY='2026-11-17', MIN='2026-10-01', MAXD=30;
+const MES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const MESC=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const DSEM=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+const d2=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(Date.UTC(y,m-1,d))};
+const iso=dt=>dt.toISOString().slice(0,10);
+const add=(s,n)=>{const dt=d2(s);dt.setUTCDate(dt.getUTCDate()+n);return iso(dt)};
+const diff=(a,b)=>Math.round((d2(b)-d2(a))/864e5);
+const dow=s=>(d2(s).getUTCDay()+6)%7;
+const primero=s=>s.slice(0,8)+'01';
+const sumMes=(s,n)=>{const dt=d2(primero(s));dt.setUTCMonth(dt.getUTCMonth()+n);return iso(dt)};
+const fc=s=>{const [,m,d]=s.split('-').map(Number);return d+' '+MESC[m-1]};
+const fl=s=>{const [,m,d]=s.split('-').map(Number);return DSEM[dow(s)]+' '+d+' de '+MES[m-1]};
+const nDias=t=>diff(t.desde,t.hasta)+1;
+const rangoTxt=t=>{if(t.desde===t.hasta)return fc(t.desde);const [,m1,d1]=t.desde.split('-').map(Number);const [,m2,d2_]=t.hasta.split('-').map(Number);return m1===m2?d1+' – '+d2_+' '+MESC[m2-1]:fc(t.desde)+' – '+fc(t.hasta)};
+const SOLES=new Intl.NumberFormat('es-PE',{style:'currency',currency:'PEN',maximumFractionDigits:0}).format;
+const pl=(n,a,b)=>n===1?a:b;
+
+/* ------------------------------ datos inventados ------------------------------ */
+const PERSONAS=['Ana M.','Brenda L.','Carla P.','Diana R.','Elena S.','Fabiola T.','Gina V.','Hilda W.','Irma X.','Julia Y.','Karen Z.','Lucía A.','Marta B.','Nora C.']
+ .map((nombre,i)=>({id:'p'+i,nombre,ini:nombre.split(' ').map(x=>x[0]).join('').slice(0,2),meta:i<11?[420,380,450,400,360,520,390,410,430,370,480][i]:null,
+   sesgo:[1.28,1.0,0.99,0.78,0.7,1.0,0.74,0.62,0.98,0.86,0.58,1,0.9,1.1][i],color:['--rojo','--verde','--pizarra','--ambar','--taupe','--rojo-p'][i%6]}));
+function rnd(i,s){let h=2166136261^(i*7919);for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}h^=h>>>13;h=Math.imul(h,0x5bd1e995);h^=h>>>15;return (h>>>0)/4294967296}
+function medir(p,i,t){
+  let vendido=0,ventas=0,tocaba=0,prendas=0;
+  for(let s=t.desde;s<=t.hasta;s=add(s,1)){
+    if(rnd(i,s+'w')<.18)continue;                       // ese día no tuvo turno
+    const parte=s===HOY?.55:1;                          // hoy solo cuenta lo que ya corrió del turno
+    const meta=p.meta||380;
+    const v=meta*p.sesgo*(.55+.9*rnd(i,s+'v'))*parte;
+    vendido+=v;ventas+=Math.max(1,Math.round(v/(118+rnd(i,s+'t')*30)));
+    if(p.meta)tocaba+=meta*parte;
+  }
+  prendas=Math.round(ventas*1.7);
+  const pct=p.meta&&tocaba?vendido/tocaba:null;
+  const lectura=pct===null?null:pct>=1.1?'Adelante':pct<=.9?'Por debajo':'En ritmo';
+  return {...p,vendido,ventas,tocaba,prendas,pct,lectura};
+}
+
+/* ------------------------------ estado ------------------------------ */
+const NUEVO=()=>({preset:'mes',rango:null,sel:new Set(),abierto:false,a:null,b:null,hover:null,vista:'2026-10-01',foco:null,masAbierto:false});
+let S=NUEVO();
+const tramoDe=()=>S.rango||({hoy:{desde:HOY,hasta:HOY},semana:{desde:add(HOY,-6),hasta:HOY},mes:{desde:primero(HOY),hasta:HOY}})[S.preset];
+const $=id=>document.getElementById(id);
+const IC={cal:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>',
+  x:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  izq:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
+  der:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>'};
+
+/* ------------------------------ la pantalla ------------------------------ */
+function pintarPeriodo(){
+  const t=tramoDe();
+  const opciones=[['hoy','Hoy'],['semana','7 días'],['mes','Este mes']];
+  $('periodo').innerHTML=`<div class="seg" role="radiogroup" aria-label="Período" ${S.rango?'data-rango':''}><span class="rg-gota"></span>`+
+    opciones.map(([c,e])=>`<button role="radio" type="button" aria-checked="${!S.rango&&S.preset===c}" data-preset="${c}">${e}</button>`).join('')+
+    `<button role="radio" type="button" id="b-rango" aria-checked="${!!S.rango}" aria-haspopup="dialog" aria-expanded="${S.abierto}" aria-label="Rango de fechas${S.rango?': '+rangoTxt(S.rango):''}">${IC.cal}<span class="rango-t">${S.rango?rangoTxt(S.rango):'Rango'}</span></button></div>`;
+  $('puestos').innerHTML=S.rango?`<span class="fpuesto">Días: ${rangoTxt(S.rango)} · ${nDias(S.rango)} ${pl(nDias(S.rango),'día','días')}<button type="button" id="quitar-rango" aria-label="Quitar el rango">${IC.x}</button></span>`:'';
+  posGota();
+}
+let ultimaGota=null;
+function posGota(){
+  const seg=document.querySelector('.seg');if(!seg)return;
+  const on=seg.querySelector('[aria-checked="true"]');const g=seg.querySelector('.rg-gota');
+  if(!on){g.style.width='0';return}
+  const ahora={left:on.offsetLeft,width:on.offsetWidth};
+  if(ultimaGota){g.style.transition='none';g.style.left=ultimaGota.left+'px';g.style.width=ultimaGota.width+'px';void g.offsetWidth;g.style.transition=''}
+  g.style.left=ahora.left+'px';g.style.width=ahora.width+'px';ultimaGota=ahora;
+}
+function frase(m,t,n){
+  const v=SOLES(Math.round(m.vendido)),vs=m.ventas;
+  const mismoMes=S.rango&&t.desde.slice(0,7)===t.hasta.slice(0,7);
+  const cuando=S.rango?(t.desde===t.hasta?'El '+fl(t.desde):mismoMes?`Del ${+t.desde.slice(8)} al ${+t.hasta.slice(8)} de ${MES[+t.hasta.slice(5,7)-1]} (${nDias(t)} días)`:`Del ${+t.desde.slice(8)} de ${MES[+t.desde.slice(5,7)-1]} al ${+t.hasta.slice(8)} de ${MES[+t.hasta.slice(5,7)-1]} (${nDias(t)} días)`):S.preset==='hoy'?'Hoy':S.preset==='semana'?'En los últimos 7 días':'Este mes';
+  const quien=S.sel.size?(S.sel.size===1?PERSONAS.find(p=>S.sel.has(p.id)).nombre:S.sel.size+' personas'):'el equipo';
+  return `${cuando}, ${S.sel.size?'<b>'+quien+'</b>':'<b>'+quien+'</b>'} lleva${S.sel.size>1?'n':''} <b>${v}</b> en <b>${vs}</b> ${pl(vs,'venta','ventas')}.`;
+}
+function pintarCifras(){
+  const t=tramoDe();
+  const todas=PERSONAS.map((p,i)=>medir(p,i,t));
+  const act=S.sel.size?todas.filter(m=>S.sel.has(m.id)):todas;
+  const vendido=act.reduce((s,m)=>s+m.vendido,0),ventas=act.reduce((s,m)=>s+m.ventas,0),prendas=act.reduce((s,m)=>s+m.prendas,0);
+  const tocaba=act.reduce((s,m)=>s+m.tocaba,0),conMeta=act.filter(m=>m.meta);
+  const vm=conMeta.reduce((s,m)=>s+m.vendido,0);
+  const pct=tocaba?Math.round(vm/tocaba*100):null;
+  const agr={vendido,ventas};
+  const nuevo=$('frase').dataset.k!==JSON.stringify([t,[...S.sel]]);
+  $('frase').innerHTML=frase(agr,t);$('frase').dataset.k=JSON.stringify([t,[...S.sel]]);
+  if(nuevo){$('frase').setAttribute('data-cambia','');setTimeout(()=>$('frase').removeAttribute('data-cambia'),300)}
+  const cuenta=g=>todas.filter(m=>m.lectura===g).length;
+  const caben=PERSONAS.length;
+  const tarjeta=(et,val,peq)=>`<article class="placa cif"><span class="vs">${et}</span><b class="valor" data-cambia>${val}</b><small>${peq}</small></article>`;
+  const quienes=S.sel.size?`de ${S.sel.size} ${pl(S.sel.size,'persona','personas')}`:'de todo el equipo';
+  const grupo=(g,c)=>{const miembros=todas.filter(m=>m.lectura===g).map(m=>m.id);const todos=miembros.length&&miembros.every(id=>S.sel.has(id));
+    return `<button class="grupo" type="button" style="--c:var(${c})" data-grupo="${g}" aria-pressed="${todos}" ${S.sel.size&&!todos&&!miembros.some(id=>S.sel.has(id))?'data-apagada':''}><b>${cuenta(g)}</b><span>${g}</span><i></i></button>`};
+  const equipo=`<article class="placa cif equipo" id="tarj-equipo"><span class="vs">El equipo</span><span class="rg-ayuda" title="«Adelante» o «Por debajo» son 10 % arriba o abajo de lo que tocaba">?</span>
+    <div class="caras"><div class="pila" id="pila"></div></div>
+    <div class="grupos">${grupo('Adelante','--verde')}${grupo('En ritmo','--pizarra')}${grupo('Por debajo','--ambar')}</div>
+    ${S.sel.size?'':'<p class="hint">Toca a alguien o a un grupo para verle solo.</p>'}</article>`;
+  $('cifras').innerHTML=
+    tarjeta('Vendido',SOLES(Math.round(vendido)),quienes)+
+    tarjeta('Ventas',ventas.toLocaleString('es-PE'),ventas?`ticket de ${SOLES(Math.round(vendido/ventas))}`:'sin ventas')+
+    tarjeta('Prendas por venta',ventas?(prendas/ventas).toFixed(1).replace('.',','):'—',`${prendas} ${pl(prendas,'prenda','prendas')} en total`)+
+    tarjeta('Contra lo que tocaba',pct===null?'—':pct+' %',pct===null?'sin meta en este período':pct>=100?'por encima de lo esperado':'de lo que tocaba hasta ahora')+
+    equipo;
+  pintarPila(todas);
+}
+function pintarPila(todas){
+  const pila=$('pila');if(!pila)return;
+  const av=m=>`<button class="rg-av" type="button" style="--c:var(${m.color})" title="${m.nombre}" aria-label="Ver a ${m.nombre}" aria-pressed="${S.sel.has(m.id)}" ${S.sel.size&&!S.sel.has(m.id)?'data-apagada':''} data-persona="${m.id}">${m.ini}</button>`;
+  let visibles=todas.length;
+  if(document.documentElement.dataset.pila!=='ahora'){
+    const w=pila.parentElement.clientWidth;               // lo que mide la caja de las caras
+    const paso=26,mas=48;                                  // 32 px de cara con 6 pisados; lo que ocupa el «+N»
+    visibles=Math.min(todas.length,Math.max(3,Math.floor((w-32-mas)/paso)+1));
+    if(visibles>=todas.length)visibles=todas.length;
+  }
+  const ocultas=todas.slice(visibles);
+  const hayOculta=ocultas.some(m=>S.sel.has(m.id));
+  pila.dataset.vive='';
+  pila.innerHTML=todas.slice(0,visibles).map(av).join('')+
+    (ocultas.length?`<button class="rg-mas" type="button" id="b-mas" aria-haspopup="dialog" aria-expanded="${S.masAbierto}" aria-pressed="${hayOculta}" aria-label="Ver ${ocultas.length} ${pl(ocultas.length,'persona más','personas más')}">+${ocultas.length}</button>`:'');
+  pila._ocultas=ocultas;
+  if(S.masAbierto)pintarMas(ocultas);
+}
+function pintarMas(ocultas){
+  $('masl').innerHTML=`<div class="masl-t vs">${ocultas.length} ${pl(ocultas.length,'persona más','personas más')}</div>`+ocultas.map(m=>`<button class="pers" type="button" style="--c:var(${m.color});--c2:var(${m.lectura==='Adelante'?'--verde':m.lectura==='Por debajo'?'--ambar':'--pizarra'})" data-persona="${m.id}" aria-pressed="${S.sel.has(m.id)}"><span class="av2">${m.ini}</span><span class="nom">${m.nombre}</span>${m.lectura?`<span class="rg-pt" title="${m.lectura}"></span>`:''}</button>`).join('');
+}
+function posicionarMas(){
+  const b=$('b-mas');if(!b)return;const D=$('disp').getBoundingClientRect(),r=b.getBoundingClientRect(),el=$('masl');
+  const w=el.offsetWidth||284;let left=r.left-D.left-20;left=Math.max(12,Math.min(left,D.width-w-12));
+  el.style.left=left+'px';el.style.top=(r.bottom-D.top+8)+'px';
+}
+function abrirMas(v){
+  S.masAbierto=v;const el=$('masl');
+  if(v){pintarMas($('pila')._ocultas);el.dataset.abierto='';posicionarMas();$('velo').dataset.abierto='';$('velo').dataset.por='mas';el.querySelector('.pers')?.focus()}
+  else{delete el.dataset.abierto;if($('velo').dataset.por==='mas')delete $('velo').dataset.abierto;}
+  const b=$('b-mas');if(b){b.setAttribute('aria-expanded',v);if(!v)b.focus()}
+}
+
+/* ------------------------------ el calendario ------------------------------ */
+const limite=a=>add(a,MAXD-1);
+function deshabilitado(s){return s>HOY||s<MIN||(S.a&&!S.b&&s>limite(S.a))}
+function motivo(s){return s>HOY?'Todavía no llega':s<MIN?'Antes de lo que se lee':(S.a&&!S.b&&s>limite(S.a))?'Pasa de 30 días':''}
+function ext(){
+  if(!S.a)return null;
+  if(S.b)return {lo:S.a,hi:S.b,prev:false};
+  const h=S.hover&&S.hover>S.a&&!deshabilitado(S.hover)?S.hover:S.a;
+  return {lo:S.a,hi:h,prev:true};
+}
+function mesHTML(p){
+  const [y,m]=p.split('-').map(Number);const n=new Date(Date.UTC(y,m,0)).getUTCDate(),lead=dow(p),e=ext();
+  let h=`<div class="mes"><div class="mes-t">${MES[m-1]} ${y}</div><div class="sem" aria-hidden="true">${'LMMJVSD'.split('').map(l=>`<span>${l}</span>`).join('')}</div><div class="dias" role="grid" aria-label="${MES[m-1]} ${y}">`;
+  for(let i=0;i<lead;i++)h+='<span class="d-vacio"></span>';
+  for(let d=1;d<=n;d++){
+    const s=p.slice(0,8)+String(d).padStart(2,'0');const dis=deshabilitado(s);
+    const c=['d'];if(dis)c.push('dis');if(dis&&s<=HOY&&s>=MIN)c.push('largo');if(s===HOY)c.push('hoy');
+    if(e){if(s===e.lo)c.push('ini');if(s===e.hi)c.push('fin');if(s>e.lo&&s<e.hi)c.push('en');if(e.prev)c.push('prev')}
+    const sel=e&&(s===e.lo||s===e.hi);
+    h+=`<button class="${c.join(' ')}" type="button" data-d="${s}" role="gridcell" aria-selected="${!!sel}" ${dis?'aria-disabled="true"':''} tabindex="${(S.foco||S.a||HOY)===s?0:-1}" aria-label="${fl(s)}${s===HOY?', hoy':''}${dis?', no disponible: '+motivo(s):''}" ${dis?`title="${motivo(s)}"`:''}><span>${d}</span></button>`;
+  }
+  return h+'</div></div>';
+}
+function pintarCal(){
+  const antes=S.vista<=primero(MIN),despues=S.vista>=primero(HOY);
+  $('cal').innerHTML=`<div class="rg-asa"></div><div class="rg-meses"><button class="rg-nav rg-izq" type="button" data-nav="-1" aria-label="Mes anterior" ${antes?'disabled':''}>${IC.izq}</button><button class="rg-nav rg-der" type="button" data-nav="1" aria-label="Mes siguiente" ${despues?'disabled':''}>${IC.der}</button>${mesHTML(S.vista)}</div>`;
+}
+function posicionarCal(){
+  const c=$('cal');
+  if($('disp').clientWidth>700){
+    const b=$('b-rango');const D=$('disp').getBoundingClientRect(),r=b.getBoundingClientRect();
+    const w=c.offsetWidth||340;let left=r.right-D.left-w;left=Math.max(16,Math.min(left,D.width-w-16));
+    c.style.left=left+'px';c.style.top=(r.bottom-D.top+10)+'px';c.style.bottom='auto';c.style.right='auto';
+  }else{c.style.left='';c.style.top='';}
+}
+function abrirCal(){
+  S.abierto=true;S.hover=null;
+  if(S.rango){S.a=S.rango.desde;S.b=S.rango.hasta}else{S.a=null;S.b=null}
+  S.foco=S.a||HOY;S.vista=primero(S.a||HOY);
+  pintarCal();$('velo').dataset.abierto='';$('velo').dataset.por='cal';$('cal').dataset.abierto='';posicionarCal();pintarPeriodo();
+  enfocaDia();
+}
+function cerrarCal(devuelveFoco=true){
+  S.abierto=false;delete $('cal').dataset.abierto;if($('velo').dataset.por==='cal')delete $('velo').dataset.abierto;
+  pintarPeriodo();if(devuelveFoco)$('b-rango')?.focus({preventScroll:true});
+}
+function enfocaDia(){const el=$('cal').querySelector(`[data-d="${S.foco}"]`);if(el)el.focus({preventScroll:true})}
+function elegir(s){
+  if(deshabilitado(s))return;
+  if(!S.a||S.b){S.a=s;S.b=null;S.foco=s;pintarCal();enfocaDia();return}   // el primer día
+  if(s<S.a){S.a=s;S.foco=s;pintarCal();enfocaDia();return}                 // uno anterior: pasa a ser el primero
+  aplicar({desde:S.a,hasta:s});                                              // el segundo día aplica y cierra
+}
+function aplicar(t){
+  S.rango=t;S.preset=null;S.sel=new Set();
+  if(S.abierto)cerrarCal();pintarPeriodo();pintarCifras();
+}
+function moverFoco(n){
+  let s=add(S.foco,n);if(s>HOY)s=HOY;if(s<MIN)s=MIN;S.foco=s;S.vista=primero(s);
+  pintarCal();enfocaDia();
+}
+
+/* ------------------------------ eventos ------------------------------ */
+document.addEventListener('click',e=>{
+  const t=e.target;
+  const pre=t.closest('[data-preset]');
+  if(pre){S.preset=pre.dataset.preset;S.rango=null;S.sel=new Set();pintarPeriodo();pintarCifras();return}
+  if(t.closest('#b-rango')){S.abierto?cerrarCal():abrirCal();return}
+  if(t.closest('#quitar-rango')){S.rango=null;S.preset='mes';pintarPeriodo();pintarCifras();$('b-rango')?.focus();return}
+  const nav=t.closest('[data-nav]');if(nav){S.vista=sumMes(S.vista,Number(nav.dataset.nav));pintarCal();return}
+  const dia=t.closest('.d');if(dia&&!dia.classList.contains('d-vacio')){elegir(dia.dataset.d);return}
+  if(t.closest('#velo')){S.abierto?cerrarCal(false):S.masAbierto&&abrirMas(false);return}
+  if(t.closest('#b-mas')){abrirMas(!S.masAbierto);return}
+  const per=t.closest('[data-persona]');
+  if(per){const id=per.dataset.persona;S.sel.has(id)?S.sel.delete(id):S.sel.add(id);const op=S.masAbierto;pintarCifras();if(op){const b=$('b-mas');S.masAbierto=true;pintarMas($('pila')._ocultas);posicionarMas();}return}
+  const gr=t.closest('[data-grupo]');
+  if(gr){const g=gr.dataset.grupo,t0=tramoDe();const ids=PERSONAS.map((p,i)=>medir(p,i,t0)).filter(m=>m.lectura===g).map(m=>m.id);
+    const todos=ids.length&&ids.every(id=>S.sel.has(id));ids.forEach(id=>todos?S.sel.delete(id):S.sel.add(id));pintarCifras();return}
+});
+document.addEventListener('mouseover',e=>{
+  if(!S.abierto)return;const d=e.target.closest('.d');
+  if(!d||d.classList.contains('d-vacio'))return;
+  if(S.a&&!S.b&&S.hover!==d.dataset.d){
+    S.hover=d.dataset.d;const f=document.activeElement&&document.activeElement.dataset?document.activeElement.dataset.d:null;
+    pintarCal();if(f)$('cal').querySelector(`[data-d="${f}"]`)?.focus({preventScroll:true});
+  }
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(S.abierto){e.stopPropagation();cerrarCal();return}
+    if(S.masAbierto){e.stopPropagation();abrirMas(false);return}
+  }
+  if(S.abierto&&e.target.closest('.d')){
+    const k={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}[e.key];
+    if(k){e.preventDefault();moverFoco(k);return}
+    if(e.key==='Home'){e.preventDefault();moverFoco(-dow(S.foco));return}
+    if(e.key==='End'){e.preventDefault();moverFoco(6-dow(S.foco));return}
+    if(e.key==='PageUp'||e.key==='PageDown'){e.preventDefault();const dt=d2(S.foco);dt.setUTCMonth(dt.getUTCMonth()+(e.key==='PageUp'?-1:1));moverFoco(diff(S.foco,iso(dt)));return}
+    if(e.key==='Enter'||e.key===' '){e.preventDefault();elegir(e.target.closest('.d').dataset.d)}
+  }
+  if(S.abierto&&e.key==='Tab'){ // el foco se queda dentro de la hoja
+    const f=[...$('cal').querySelectorAll('button:not([disabled]):not([tabindex="-1"])')];if(!f.length)return;
+    const a=f[0],z=f[f.length-1];if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}
+  }
+});
+
+/* ------------------------------ la barra de la maqueta ------------------------------ */
+document.querySelectorAll('.seg-m').forEach(g=>{
+  const sync=()=>g.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===(g.dataset.ctl==='tema'?document.documentElement.dataset.tema:g.dataset.ctl==='pila'?document.documentElement.dataset.pila:$('disp').dataset.ancho)));
+  g.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    if(g.dataset.ctl==='tema')document.documentElement.dataset.tema=b.dataset.v;
+    else if(g.dataset.ctl==='pila')document.documentElement.dataset.pila=b.dataset.v;
+    else $('disp').dataset.ancho=b.dataset.v;
+    document.querySelectorAll('.seg-m').forEach(x=>x._sync());
+    if(S.abierto)cerrarCal(false);if(S.masAbierto)abrirMas(false);
+    requestAnimationFrame(()=>{pintarPeriodo();pintarCifras()});});
+  g._sync=sync;sync();
+});
+$('reiniciar').addEventListener('click',()=>{S=NUEVO();$('cal').removeAttribute('data-abierto');$('masl').removeAttribute('data-abierto');$('velo').removeAttribute('data-abierto');pintarPeriodo();pintarCifras()});
+new ResizeObserver(()=>{if(!S.abierto&&!S.masAbierto){pintarPeriodo();const todas=PERSONAS.map((p,i)=>medir(p,i,tramoDe()));pintarPila(todas)}}).observe($('disp'));
+pintarPeriodo();pintarCifras();
+window.addEventListener('load',()=>{posGota();document.fonts&&document.fonts.ready.then(()=>{posGota();pintarCifras()})});
+</script>
+</body>
+</html>

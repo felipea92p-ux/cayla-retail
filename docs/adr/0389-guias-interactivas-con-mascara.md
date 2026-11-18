@@ -246,3 +246,49 @@ sin pasarse ni rebotar, ADR-0136), con el tiempo real de cada cuadro. Si la piez
 se desplazan, un modal termina de entrar), el agujero y la tarjeta van pegados a ella; el resorte queda solo para el viaje de
 una pieza a otra. La tarjeta cambia de texto cuando la pieza llegó y quedó quieta (`hastaQueQuieta`: 4 cuadros iguales, tope
 1,2 s), no a los 320 ms. El anillo y la tarjeta ya no tienen transición CSS de posición.
+
+## Actualización 2026-11-18 — un pliegue se abre o se cierra solo si hace falta
+
+Campañas y ofertas e Insignias abren el globo del «?» de la cabecera en «¿Insignia, campaña u oferta?»: el mapa vive adentro. El
+globo es un pliegue (`AyudaCabecera`, `aria-expanded`, `role="note"`): el mismo toque lo abre y lo cierra, y el Escape del piloto
+no lo ve porque solo sale si hay un diálogo abierto. Un toque a ciegas alternaba: al volver con ← el globo quedaba abierto sobre el
+paso anterior, y al avanzar de nuevo el paso que lo abría lo cerraba (y se saltaba, porque su pieza vive en el globo).
+
+- **El toque mira el estado:** `{ tipo: "clic", ancla, para: "abrir" | "cerrar" }`. La regla pura es `toqueDelPliegue`
+  (`lib/guias/reglas.ts`, con su prueba): «abrir» no toca un pliegue abierto y «cerrar» no toca uno cerrado, así que correrlo dos
+  veces deja lo mismo que una. Un control sin `aria-expanded` no se toca a ciegas: el paso lo avisa y el recorredor lo marca.
+- **«Cerrar» no espera:** si la pieza no está a la vista no hay nada que cerrar. Tampoco cuenta como algo que abre: no alarga la
+  espera del paso siguiente ni el total estimado.
+- **Descarté que el Escape del piloto cierre el globo:** el Escape llega a todo el documento, y fuera de un diálogo puede querer
+  decir otra cosa (borrar una búsqueda). Además no resolvía abrir sin cerrar.
+- **En las dos guías:** «Vale en todas partes» y el paso que sigue al mapa lo cierran, el mapa lo abre y `alSalir` lo cierra. Reemplaza
+  al segundo toque con `prepararSoloAlAvanzar` que el PR #1942 le había puesto a «Cómo se ven en la tienda web».
+
+## Actualización 2026-11-18 (b) — los demás pliegues dejan `prepararSoloAlAvanzar`
+
+De los 43 pasos con `prepararSoloAlAvanzar`, los que tocaban un pliegue (algo que abre y cierra con el mismo toque) pasaron a `para`:
+las secciones «Producto» y «Fotos» de Editar producto, «¿Cómo se lee esto?» de Frescura, «Cambios de meta» de Rendimiento, «Cómo se
+calcula todo esto» del Panel comercial y de Calidad, la fila de un gasto y el día del ritmo en Gastos, los avisos y el Resumen del Plan
+de campaña y el panel de filtros de Existencias. Los demás se quedan como estaban, porque no son pliegues: abren una hoja (que el motor
+ya cierra al volver), eligen una pestaña o marcan una casilla.
+
+- **El control del pliegue es el que lo dice:** dentro del ancla, el que lleva `aria-expanded`, o el `<summary>` de un `<details>`, que
+  se lee por su `open` (el navegador no le pone `aria-expanded`, y ponérselo a mano se desfasaría). Antes era el primer botón del ancla:
+  en los avisos del Plan, con algo urgente, era la línea que asoma y no el ícono.
+- **Cada paso pide lo que necesita:** el de antes de abrir cierra, el que abre abre, el siguiente cierra y `alSalir` cierra. Como el
+  toque es idempotente, un paso que vive dentro del pliegue puede pedir «abrir» también (las cifras del Resumen, el plazo de los
+  avisos, «Por talla» en Existencias): al volver con ←, el motor cierra los diálogos y ese paso los reabre en vez de saltarse.
+- **Al volver, también corren los cierres de los pasos saltados:** «atrás» salta directo al último paso que se mostró, y los de entre
+  medio (los opcionales que se saltaron al avanzar) no corren su `preparar`. En Rendimiento sin meta, «¿Cuadran las metas?», que cierra
+  «Cambios de meta», se salta, y el `<details>` quedaba abierto sobre todos los pasos de atrás. Ahora el motor corre, antes del paso de
+  destino, los `para: "cerrar"` de esos pasos (`cierresAlVolver`, con su prueba). Un cierre solo esconde y es idempotente: correrlo de
+  más no desarma nada.
+- **La nota de `<Linea>` que abre algo lo dice:** `NotaLinea.abierta` sale como `aria-expanded` (el día del ritmo de Gastos). Sirve al
+  lector de pantalla y a la guía.
+- **Un ancla en algo que se esconde montado existe solo mientras se ve:** la barra de cambios de Editar producto (`BarraFija`) baja fuera
+  de la pantalla con `inert`, y el motor la daba por visible: «Revisar y guardar» encendía un hueco al pie. Su botón lleva el ancla solo
+  con la barra a la vista. (El motor no mira `inert`: también lo usa el ticket de Vender en pausa, que sí se ve.)
+- **Existencias ya no cambia de ancla según el estado:** el botón «Filtros» llevaba `existencias.filtros-abrir` o `-cerrar` para que
+  cerrar no reabriera. Ahora la guía toca `existencias.filtros` con `para`. En el celular el botón de la cabecera dice siempre
+  «cerrado»: la hoja lo tapa mientras está abierta, y al volver la guía la cierra primero. Por eso los pasos que viven en esa hoja no
+  piden «abrir».

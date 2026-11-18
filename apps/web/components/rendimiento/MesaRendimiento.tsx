@@ -1,5 +1,6 @@
 "use client";
 
+import { CalendarDays } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
@@ -12,7 +13,7 @@ import type { SedeDeRendimiento } from "@/lib/rendimiento";
 import { sumarDias } from "@/lib/fechas-lima";
 import { minutosEnLima, primerDiaDelMes, repartePorHoras, resumenDeSede, type LecturaRitmo } from "@/lib/rendimiento-meta-reglas";
 import {
-  diasDelEje,
+  diasDelEjeConTramo,
   filasPorPersona,
   fraseDelEquipo,
   fraseEnTexto,
@@ -27,6 +28,7 @@ import {
   simuladorDeCierre,
   cierreSimulado,
   tramoDePreset,
+  tramoCorto,
   tramoEnPalabras,
   type IntencionBusqueda,
   type Preset,
@@ -37,6 +39,7 @@ import { CifrasRendimiento } from "./CifrasRendimiento";
 import { FilaAbierta } from "./FilaAbierta";
 import { GraficoRendimiento, type ModoGrafico } from "./GraficoRendimiento";
 import { DetalleRendimiento } from "./DetalleRendimiento";
+import { RangoRendimiento } from "./RangoRendimiento";
 import { SedesConAnillo } from "./SedesConAnillo";
 import { TablaRendimiento, useColumnasRendimiento } from "./TablaRendimiento";
 import { useFocoPersona } from "./useFocoPersona";
@@ -96,6 +99,14 @@ export function MesaRendimiento({
   useFocoPersona(raiz);
   const [activaId, setActivaId] = useState(inicialId);
   const [tramo, setTramo] = useState<Tramo>(tramoInicial);
+  // El rango a medida: el calendario abierto y, si el rango empieza en el mes pasado, desde dónde se alarga el eje del gráfico (se queda mientras se arrastra).
+  const [rangoAbierto, setRangoAbierto] = useState(false);
+  const [ejeDesde, setEjeDesde] = useState<string | null>(null);
+  const controlPeriodo = useRef<HTMLDivElement>(null);
+  const botonRango = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    botonRango.current = controlPeriodo.current?.querySelector<HTMLElement>('[data-guia="rendimiento.rango"]') ?? null;
+  });
   const [filtros, setFiltros] = useState<FiltrosVivos>({});
   const [orden, setOrden] = useState<OrdenViva | null>({ clave: "avance", dir: "desc" });
   const [porDia, setPorDia] = useState<number | null>(null);
@@ -197,7 +208,8 @@ export function MesaRendimiento({
   const partesFrase = fraseDelEquipo(hayFiltro ? vistas : medidas);
   const frase = partesFrase ? fraseEnTexto(partesFrase) : (grupo.meta === null ? `${quien} todavía no tiene meta: aquí se ve lo vendido, sin inventar cuánto tocaba.` : `${quien} lleva ${SOLES.format(grupo.vendido)} ${tramoTexto}.`);
 
-  const eje = useMemo(() => diasDelEje(hoy), [hoy]);
+  const ejeDesdeVivo = ejeDesde !== null && ejeDesde < tramo.desde ? ejeDesde : tramo.desde;
+  const eje = useMemo(() => diasDelEjeConTramo(hoy, { desde: ejeDesdeVivo, hasta: tramo.hasta }), [hoy, ejeDesdeVivo, tramo.hasta]);
   const serieCierre = useMemo(() => serieGrupo.filter((d) => d.fecha >= primerDiaDelMes(hoy)), [serieGrupo, hoy]);
   const simulador = useMemo(() => simuladorDeCierre(serieCierre, hoy), [serieCierre, hoy]);
 
@@ -226,7 +238,15 @@ export function MesaRendimiento({
   function ponerTramo(t: Tramo) {
     guardar();
     setRepitiendo(false);
+    setEjeDesde(null);
     setTramo(t);
+  }
+  // El segundo día del calendario: el rango se aplica, el calendario se cierra y el foco vuelve al botón del período.
+  function aplicarRango(t: Tramo) {
+    ponerTramo(t);
+    setEjeDesde(t.desde);
+    setRangoAbierto(false);
+    requestAnimationFrame(() => controlPeriodo.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus({ preventScroll: true }));
   }
 
   // Lo que se mira queda en la dirección, para compartirlo o recargar en lo mismo. Sin navegar: ni pide nada a la base ni mueve la vista.
@@ -416,14 +436,25 @@ export function MesaRendimiento({
               </p>
             ))}
         </div>
-        <div data-guia="rendimiento.periodo">
+        <div data-guia="rendimiento.periodo" ref={controlPeriodo}>
           <SegmentoDeslizante
             forma="modo"
             etiqueta="Período"
-            valor={preset ?? ""}
-            opciones={PRESETS.map((p) => ({ clave: p.clave, etiqueta: p.etiqueta }))}
-            onCambio={(c) => ponerTramo(tramoDePreset(c as Preset, hoy))}
+            valor={preset ?? "rango"}
+            opciones={[
+              ...PRESETS.map((p) => ({ clave: p.clave, etiqueta: p.etiqueta })),
+              {
+                clave: "rango",
+                etiqueta: preset === null ? <span className="tabular-nums">{tramoCorto(tramo)}</span> : "Rango",
+                icono: <CalendarDays aria-hidden className="h-4 w-4" />,
+                ayuda: "Elige un rango de fechas (hasta 30 días)",
+                soloIcono: preset !== null,
+                guia: "rendimiento.rango",
+              },
+            ]}
+            onCambio={(c) => (c === "rango" ? setRangoAbierto(true) : ponerTramo(tramoDePreset(c as Preset, hoy)))}
           />
+          {rangoAbierto && <RangoRendimiento actual={preset === null ? tramo : null} hoy={hoy} control={controlPeriodo} volverA={botonRango} onAplicar={aplicarRango} onCerrar={() => setRangoAbierto(false)} />}
         </div>
         {historia.length > 0 && (
           <span className="mesa-entra-rapido" data-guia="rendimiento.deshacer">

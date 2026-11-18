@@ -2,7 +2,7 @@
 // escribe un ejemplo o cierra como lo haría una persona. Antes de TOCAR algo le pregunta a `motivoParaNoTocar` (lib/guias):
 // la demo corre en la tienda de verdad y nunca guarda.
 
-import { motivoParaNoTocar } from "@/lib/guias/reglas";
+import { motivoParaNoTocar, toqueDelPliegue } from "@/lib/guias/reglas";
 import type { AccionGuia, PiezaATocar } from "@/lib/guias/tipos";
 
 /** El selector de una pieza de la guía. Las anclas son claves de texto simples («vender.buscador»). */
@@ -46,11 +46,34 @@ export async function esperarAncla(ancla: string, ms = 2200, senal?: AbortSignal
 
 export const pausa = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+/** Lo que se toca dentro de un ancla que es un contenedor: el primer control. */
+const TOCABLE = "button, a, input, [role=button], [role=tab]";
+
+/**
+ * El control de un pliegue (`AccionGuia` con `para`): el que dice si está abierto. Un ancla puede encerrar más de un botón (los avisos
+ * del Plan: la línea de lo urgente que asoma, y el ícono que abre y cierra), y el que importa es el que lleva `aria-expanded`, o el
+ * `<summary>` de un `<details>`. Sin ninguno, el primer control: `expandidoDe` dirá que no es un pliegue.
+ */
+function controlDelPliegue(el: HTMLElement): HTMLElement {
+  const pliegue = "[aria-expanded], details > summary";
+  if (el.matches(pliegue)) return el;
+  return el.querySelector<HTMLElement>(pliegue) ?? (el.matches(TOCABLE) ? el : (el.querySelector<HTMLElement>(TOCABLE) ?? el));
+}
+
+/**
+ * Si el pliegue está abierto, como lo dice el DOM: el `aria-expanded` del control o, si es el `<summary>` de un `<details>`, el `open`
+ * del `<details>` (el navegador sabe solo si está abierto y no le pone `aria-expanded`; ponérselo a mano se desfasaría).
+ */
+function expandidoDe(control: HTMLElement): string | null {
+  const detalles = control.tagName === "SUMMARY" ? control.parentElement : null;
+  if (detalles instanceof HTMLDetailsElement) return String(detalles.open);
+  return control.getAttribute("aria-expanded");
+}
+
 /** Lo que la regla necesita saber de la pieza. Si el ancla está en un contenedor, se mira el control de adentro. */
 export function describirPieza(el: HTMLElement): PiezaATocar {
-  const control = el.matches("button, a, input, select, textarea, [role=button], [role=tab]")
-    ? el
-    : (el.querySelector<HTMLElement>("button, a, input, [role=button], [role=tab]") ?? el);
+  const control = el.matches("button, a, input, select, textarea, summary, [role=button], [role=tab]") ? el : (el.querySelector<HTMLElement>(TOCABLE) ?? el);
+  // (`summary` solo cuenta si es el ancla misma: «Cómo se calcula todo esto». Dentro de un contenedor manda el primer botón, como siempre.)
   const texto = (control.innerText || control.getAttribute("aria-label") || control.getAttribute("title") || "").trim();
   return {
     etiqueta: control.tagName.toLowerCase(),
@@ -61,7 +84,7 @@ export function describirPieza(el: HTMLElement): PiezaATocar {
     // Una pestaña escrita como botón (las de abajo de Apartados en el celular) no lleva role="tab" (ADR-0358 lo reserva a
     // <Pestanas>), pero sí `aria-current`/`aria-selected`: marca la vista elegida. Un botón que guarda nunca lleva eso.
     abreVentana: !!control.getAttribute("aria-haspopup") && control.getAttribute("aria-haspopup") !== "false",
-    esPliegue: control.hasAttribute("aria-expanded"),
+    esPliegue: control.hasAttribute("aria-expanded") || control.tagName === "SUMMARY",
     rol: control.getAttribute("role") ?? (control.tagName === "BUTTON" && (control.hasAttribute("aria-current") || control.hasAttribute("aria-selected")) ? "tab" : null),
     rutaActual: window.location.pathname,
   };
@@ -146,16 +169,24 @@ export async function ejecutar(
     return { ok: true };
   }
 
-  const el = accion.tipo === "clic" && accion.siEsta ? buscarAncla(accion.ancla) : await esperarAncla(accion.ancla, 2200, senal);
-  if (!el && accion.tipo === "clic" && accion.siEsta) return { ok: true };
+  // Cerrar un pliegue que no está a la vista es no tener nada que cerrar, como `siEsta`.
+  const sinEsperar = accion.tipo === "clic" && (accion.siEsta || accion.para === "cerrar");
+  const el = sinEsperar ? buscarAncla(accion.ancla) : await esperarAncla(accion.ancla, 2200, senal);
+  if (!el && sinEsperar) return { ok: true };
   if (!el) return { ok: false, motivo: `no está a la vista (${accion.ancla})` };
 
   if (accion.tipo === "clic") {
-    const motivo = motivoParaNoTocar(describirPieza(el));
+    // Para un pliegue se juzga y se toca su control (el que dice si está abierto), no el primer botón del ancla.
+    const control = accion.para ? controlDelPliegue(el) : el.matches(TOCABLE) ? el : (el.querySelector<HTMLElement>(TOCABLE) ?? el);
+    const motivo = motivoParaNoTocar(describirPieza(accion.para ? control : el));
     if (motivo) return { ok: false, motivo };
+    if (accion.para) {
+      const toque = toqueDelPliegue(accion.para, expandidoDe(control));
+      if (toque === "no-es-pliegue") return { ok: false, motivo: `no dice si está abierto (${accion.ancla})` };
+      if (toque === "ya-esta") return { ok: true };
+    }
     el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: conMovimiento ? "smooth" : "auto" });
     await pausa(conMovimiento ? 220 : 0);
-    const control = el.matches("button, a, input, [role=button], [role=tab]") ? el : (el.querySelector<HTMLElement>("button, a, input, [role=button], [role=tab]") ?? el);
     if (apuntar && conMovimiento) await apuntar(control, "clic");
     if (senal?.aborted) return { ok: false, motivo: "la guía terminó" };
     // Una pieza de un gráfico (una nota de `<Linea>`) es SVG y no tiene `click()`: recibe el mismo clic como evento.

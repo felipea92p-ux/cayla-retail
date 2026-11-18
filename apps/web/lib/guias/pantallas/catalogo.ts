@@ -458,36 +458,37 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
     {
       id: "producto",
       ancla: "editar.seccion-producto",
+      // Las secciones son pliegues: cada toque dice si abre o cierra, y así el paso se ve igual al avanzar y al volver con ←.
+      preparar: [{ tipo: "clic", ancla: "editar.seccion-producto", para: "cerrar" }],
       titulo: "1 · Producto",
       texto: "Nombre, categoría, marca, proveedor, cómo llama el proveedor a la prenda (para volver a pedirla) y descripción. Cada sección dice arriba lo que tiene y lleva ✓ cuando está completa. Tócala para abrirla (te la abrimos).",
     },
     {
       id: "producto-abierta",
       ancla: "editar.seccion-producto",
-      preparar: [{ tipo: "clic", ancla: "editar.seccion-producto" }],
+      preparar: [{ tipo: "clic", ancla: "editar.seccion-producto", para: "abrir" }],
       titulo: "Cada campo dice su estado",
       texto: "Como en Nuevo producto, cada campo te dice si está listo, si falta o si es opcional, y «Sigue» marca el que conviene llenar. Lo que cambias se pinta en ámbar hasta que guardas. La cerramos de nuevo.",
     },
     {
       id: "tejido",
       ancla: "editar.seccion-tejido",
-      preparar: [{ tipo: "clic", ancla: "editar.seccion-producto" }],
+      preparar: [{ tipo: "clic", ancla: "editar.seccion-producto", para: "cerrar" }],
       titulo: "2 · Tejido, patrón y estado",
       texto: "De qué tela es, si es lisa o estampada, su temporada y si está activa o descontinuada. Una descontinuada ya no se ofrece para comprar, pero se puede vender lo que queda.",
     },
     {
       id: "fotos",
       ancla: "editar.seccion-fotos",
+      preparar: [{ tipo: "clic", ancla: "editar.seccion-fotos", para: "cerrar" }],
       titulo: "3 · Fotos",
       texto: "Una foto por color. Aquí las ves todas, las ordenas o quitas; la que le falta a un color se sube sobre la foto grande, en el panel de la prenda.",
     },
     {
       id: "catalogo-ia",
       ancla: "editar.catalogo-ia-interruptor",
-      // Vive dentro de «Fotos», que la demo encuentra plegada: se abre aquí y la cierra el paso que sigue. Opcional: sin la llave de la IA en el
-      // servidor no se dibuja.
-      preparar: [{ tipo: "clic", ancla: "editar.seccion-fotos" }],
-      prepararSoloAlAvanzar: true,
+      // Vive dentro de «Fotos»: se abre aquí y la cierra el paso que sigue. Opcional: sin la llave de la IA en el servidor no se dibuja.
+      preparar: [{ tipo: "clic", ancla: "editar.seccion-fotos", para: "abrir" }],
       opcional: true,
       titulo: "Catálogo con IA",
       texto: "Encendido, cada foto que subas sale como foto de catálogo: la prenda en un maniquí invisible, de frente y sin fondo. El primer color hace de molde y los demás salen con su misma forma. Si no te convence, «Usar mi foto» vuelve a la tuya.",
@@ -496,8 +497,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       id: "variantes",
       ancla: "editar.seccion-variantes",
       // Cierra «Fotos», que abrió el paso anterior.
-      preparar: [{ tipo: "clic", ancla: "editar.seccion-fotos" }],
-      prepararSoloAlAvanzar: true,
+      preparar: [{ tipo: "clic", ancla: "editar.seccion-fotos", para: "cerrar" }],
       titulo: "4 · Variantes y precios",
       texto: "Una fila por color y una columna por talla. En «Unidades» ves cuántas hay, con su candado: tócalo para ajustar el stock en Existencias. Una raya es una talla que no existe. El lápiz corrige un color o una talla; el tacho deja de vender ese color. Abajo, «Agregar color» y «Agregar talla».",
     },
@@ -687,6 +687,12 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       titulo: "¡Listo!",
       texto: "Ya sabes recorrer la ficha de una prenda y dónde se guarda. Para repasarlo: Mi perfil ▸ Demo ▸ Editar producto.",
     },
+  ],
+  // Si se sale a mitad, las dos secciones que la demo abre quedan plegadas (los modales los cierra el motor).
+  alSalir: [
+    { tipo: "escape" },
+    { tipo: "clic", ancla: "editar.seccion-producto", para: "cerrar" },
+    { tipo: "clic", ancla: "editar.seccion-fotos", para: "cerrar" },
   ],
 };
 
@@ -1063,6 +1069,8 @@ export const GUIA_SELLOS: Guia = {
     {
       id: "cabecera",
       ancla: "sellos.cabecera",
+      // Al volver con ← desde «¿Insignia, campaña u oferta?», cierra el globo del «?» que ese paso abrió.
+      preparar: [{ tipo: "clic", ancla: "sellos.ayuda", para: "cerrar" }],
       titulo: "Vale en todas partes",
       texto: "Una insignia se ve igual en las tres tiendas y en la tienda online.",
     },
@@ -1070,7 +1078,9 @@ export const GUIA_SELLOS: Guia = {
       id: "mapa",
       ancla: "sellos.mapa",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "sellos.ayuda" }],
+      // El globo del «?» es un pliegue: se abre solo si está cerrado (el mismo toque lo cerraría), y lo cierran el paso de antes y el
+      // de después, en las dos direcciones. Su pieza vive dentro del globo.
+      preparar: [{ tipo: "clic", ancla: "sellos.ayuda", para: "abrir" }],
       titulo: "¿Insignia, campaña u oferta?",
       texto: "Dentro del «?» del título está el mapa: una insignia dice qué es la prenda, una campaña es la fecha especial y una oferta es lo que el cliente paga de menos. Si dudas dónde se hace algo, ábrelo.",
     },
@@ -1078,6 +1088,7 @@ export const GUIA_SELLOS: Guia = {
       id: "nuevo",
       ancla: "sellos.nuevo",
       opcional: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.ayuda", para: "cerrar" }],
       titulo: "Una nueva",
       texto: "Abre una ventana para crearla con su nombre y, si quieres, su dibujo o tu propia imagen; nace en la pestaña donde estás. Antes mira si ya existe. En la demo no lo tocamos.",
     },
@@ -1172,7 +1183,7 @@ export const GUIA_SELLOS: Guia = {
       texto: "Ya sabes revisar una insignia y ver sus prendas. Para repasarlo: Mi perfil ▸ Demo ▸ Insignias.",
     },
   ],
-  alSalir: [{ tipo: "escape" }],
+  alSalir: [{ tipo: "escape" }, { tipo: "clic", ancla: "sellos.ayuda", para: "cerrar" }],
 };
 
 /** Catálogo ▸ Campañas y ofertas (ADR-0655, Felipe 2026-11-13): las fechas especiales y lo que el cliente paga de menos en ellas. Cada campaña
@@ -1192,6 +1203,8 @@ export const GUIA_CAMPANAS: Guia = {
     {
       id: "cabecera",
       ancla: "sellos.cabecera",
+      // Al volver con ← desde «¿Insignia, campaña u oferta?», cierra el globo del «?» que ese paso abrió.
+      preparar: [{ tipo: "clic", ancla: "sellos.ayuda", para: "cerrar" }],
       titulo: "Vale en todas partes",
       texto: "Una campaña rige en las tres tiendas y en la tienda online, salvo que la limites a algunas. Su oferta la cobra la caja sola en Vender, dentro de sus fechas.",
     },
@@ -1199,7 +1212,9 @@ export const GUIA_CAMPANAS: Guia = {
       id: "mapa",
       ancla: "sellos.mapa",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "sellos.ayuda" }],
+      // El globo del «?» es un pliegue: se abre solo si está cerrado (el mismo toque lo cerraría), y lo cierran el paso de antes y el
+      // de después, en las dos direcciones. Su pieza vive dentro del globo.
+      preparar: [{ tipo: "clic", ancla: "sellos.ayuda", para: "abrir" }],
       titulo: "¿Insignia, campaña u oferta?",
       texto: "Dentro del «?» del título está el mapa: una insignia dice qué es la prenda, una campaña es la fecha especial y una oferta es lo que el cliente paga de menos. Si dudas dónde se hace algo, ábrelo.",
     },
@@ -1207,6 +1222,7 @@ export const GUIA_CAMPANAS: Guia = {
       id: "diseno-web",
       ancla: "sellos.diseno-web",
       opcional: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.ayuda", para: "cerrar" }],
       titulo: "Cómo se ven en la tienda web",
       texto: "Lleva a Tienda web ▸ Campañas, donde se elige el diseño de la tienda online durante cada campaña. Las fechas y el descuento se siguen armando aquí.",
     },
@@ -1218,18 +1234,26 @@ export const GUIA_CAMPANAS: Guia = {
       texto: "Abre una ventana para crearla con su nombre y, si quieres, su dibujo y sus fechas. Después respondes sus tres preguntas. Antes mira si ya existe: una campaña que ya pasó se repite, no se crea de nuevo. En la demo no lo tocamos.",
     },
     {
-      id: "poner-un-pct",
-      ancla: "rebaja.escaner",
-      opcional: true,
-      titulo: "Ponerle un % a una prenda",
-      texto: "Escanea la etiqueta o escribe su nombre: se abre una hoja que dice qué % tiene hoy. Eliges si va solo a esa prenda o a todo el modelo, y cuánto menos entre los % que ya hay en tu tienda. Rige hasta que alguien lo quite.",
-    },
-    {
       id: "rebajas-de-tienda",
       ancla: "rebaja.tienda",
       opcional: true,
-      titulo: "Los % de tu tienda",
-      texto: "Cada tarjeta es un % que rige aquí y cuántas prendas tiene. Tócala para ver sus prendas con su precio de hoy y quitar las que ya no van. En el celular están detrás de este ícono.",
+      titulo: "Los descuentos de tu tienda",
+      texto: "Van primero en la lista: cada fila es un descuento que rige aquí y cuántas prendas tiene. Tócala y se abre con sus prendas y su precio de hoy. Si una dice «todas las tallas», tócala para ver cuáles. La × quita una, y el aviso trae «Deshacer».",
+    },
+    {
+      id: "nuevo-descuento",
+      ancla: "rebaja.nuevo",
+      opcional: true,
+      titulo: "Un descuento nuevo",
+      texto: "Eliges el % y se crea vacío; después le agregas sus prendas. Si ya hay uno con ese %, lo abre. En la demo no lo tocamos.",
+    },
+    {
+      id: "poner-un-pct",
+      ancla: "rebaja.agregar",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "rebaja.fila" }],
+      titulo: "Agregar prendas a un descuento",
+      texto: "Con el descuento abierto, escanea la etiqueta o escribe su nombre. Al escanear solo pregunta «Solo esta» o «Todo el modelo», y Enter repite la última respuesta. En el celular, la cámara lee una tras otra.",
     },
     {
       id: "dos-ofertas",
@@ -1241,6 +1265,7 @@ export const GUIA_CAMPANAS: Guia = {
     {
       id: "pila",
       ancla: "sellos.pila",
+      preparar: [{ tipo: "clic", ancla: "sellos.primero", siEsta: true }],
       titulo: "Una pila de pases",
       texto: "Cada campaña es un pase. Arriba, las que rigen hoy, con los días que les quedan; después, lo que viene, con los días que faltan; al final, las guardadas: sin fechas o ya pasadas. Toca un pase y se abre.",
     },
@@ -1468,7 +1493,7 @@ export const GUIA_CAMPANAS: Guia = {
       texto: "Ya sabes preparar una campaña: qué le das, en qué prendas y cuándo. Para repasarlo: Mi perfil ▸ Demo ▸ Campañas y ofertas.",
     },
   ],
-  alSalir: [{ tipo: "escape" }],
+  alSalir: [{ tipo: "escape" }, { tipo: "clic", ancla: "sellos.ayuda", para: "cerrar" }],
 };
 
 export const GUIA_CATEGORIAS: Guia = {

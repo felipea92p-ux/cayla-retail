@@ -200,7 +200,7 @@ export function PlanCampana({
         <>
           {subtituloDelPlan(momento.estado, totales.conPlan, plan.plan.nombre)}{" "}
           {/* «Cómo se calcula», antes una nota al pie, va en el «!» junto a la frase, como en Resultados e Historial (Felipe 2026-10-12). */}
-          <span data-guia="plan.como" className="inline-block align-middle">
+          <span className="inline-block align-middle">
             <Ayuda titulo="Cómo se calcula">
               <span className="block">
                 Con tus tres escenarios (flojo, normal y bueno), el sistema compra según cuánto cuesta quedarse corto (lo que dejas de ganar) frente
