@@ -190,10 +190,10 @@ describe("el CSS liviano es la cara maciza del vidrio, sin diseño propio", () =
     expect(Object.fromEntries(liviano), "Copia a `app/estilos/liviano.css` la receta maciza que cambió o nació").toEqual(Object.fromEntries(claro));
   });
 
-  it("vale para los dos temas, sin desenfoque y sin las nubes", () => {
+  it("vale para los dos temas, sin desenfoque y sin los pliegues del fondo", () => {
     expect(bloqueLiviano).toContain(':root[data-liviano="si"][data-tema="oscuro"]');
     expect(css).toMatch(/:root\[data-liviano="si"\] \*,[\s\S]*?backdrop-filter: none !important;/);
-    expect(css).toMatch(/:root\[data-liviano="si"\] \.marco-aurora \{\s*display: none;/);
+    expect(css).toMatch(/:root\[data-liviano="si"\] \.marco-seda \{\s*display: none;/);
   });
 
   it("se importa después de la cara maciza que copia", () => {

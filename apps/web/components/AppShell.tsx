@@ -954,14 +954,10 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
   return (
     // `data-lateral` cambia UN token (`--spacing-lateral`, globals.css): el aside, la cabecera, el <main> y las
     // barras fijas de abajo lo leen, así que plegar no obliga a tocar ninguno de los cuatro.
-    // Sin fondo propio: el crema es el del <body> y, encima, la aurora (que vive DETRÁS del contenido, marco.css).
+    // Sin fondo propio: el crema es el del <body> y, encima, Seda (que vive DETRÁS del contenido, marco.css).
     <div className="min-h-screen" data-lateral={plegado ? "plegado" : undefined}>
-      {/* El fondo con vidrio (ADR-0596, «B · Aurora»): tres nubes muy tenues, quietas, para que el vidrio tenga algo que desenfocar. */}
-      <div aria-hidden className="marco-aurora">
-        <i />
-        <i />
-        <i />
-      </div>
+      {/* El fondo con vidrio (ADR-0681, «Seda»): cuatro pliegues enormes, quietos, para que el vidrio tenga algo que doblar. Solo CSS. */}
+      <div aria-hidden className="marco-seda" />
       {/* Velo del cajón (celular): tocarlo cierra. Siempre montado para que también se APAGUE al cerrar (`.velo-cajon`,
           globals.css); cerrado no recibe toques. Su tinte y su desenfoque son del vidrio (`vidrio/marco.css`, «A · Hoja con
           profundidad»). */}

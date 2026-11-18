@@ -86,8 +86,8 @@
   backdrop-filter: none !important;
 }
 
-/* Las nubes del fondo (`.marco-aurora`, vidrio/marco.css): tres degradados de 600 px fijos detrás de todo. Sin vidrio, no hay nada que
-   se vea a través de ellas; solo cuestan. */
-:root[data-liviano="si"] .marco-aurora {
+/* Los pliegues del fondo (`.marco-seda`, vidrio/marco.css; antes las nubes de la Aurora): nueve degradados fijos detrás de todo. Sin
+   vidrio, no hay nada que se vea a través de ellos; solo cuestan. */
+:root[data-liviano="si"] .marco-seda {
   display: none;
 }
