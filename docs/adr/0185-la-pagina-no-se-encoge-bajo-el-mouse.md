@@ -167,6 +167,11 @@ subir hasta que la reserva sale de la vista se suelta (relleno de vuelta a 28 o 
 variable restada del `bottom`: pie 569..654 y 89 px de hueco. Capturas en `docs/capturas/2026-11-18-pie-pegado-y-reserva/`. Pruebas:
 `lib/pagina-estable-pie.test.ts` (10; sin el arreglo fallan la del `translate` y la de la escritura sin transición). Nada se guardó en la base.
 
+**Lo que vuelve a verse.** Desde el 2026-11-07 la reserva no servía con las animaciones apagadas, así que casi nadie veía el aire de esta decisión. Ahora
+vuelve en todo el ERP, como se decidió: la vista se queda quieta y queda aire al fondo. En una hoja donde lo que queda ya cabe entero, ese aire no puede
+salir de la vista y se queda hasta cerrar la hoja o hasta que el contenido vuelva a crecer (medido: 440 px entre el contenido y los botones en «Registrar
+gasto» a 1440 × 900). Si molesta, la salida es la de siempre: el bloque que cambia de alto reserva su lugar, o la hoja lleva `data-sin-reserva`.
+
 **Lo que no cubre.**
 - **Un pie pegado hecho a mano.** `ModalesApartado` (`sticky -bottom-6`), `.parecidas-hoja-pie` (`alta-parecidas.css`) y el de `FichaOrden` no usan la
   clase: siguen quedando arriba con la reserva puesta. Se arreglan pasándolos a `pie-hoja-fijo`.

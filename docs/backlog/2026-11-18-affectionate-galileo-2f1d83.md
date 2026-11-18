@@ -7,3 +7,5 @@
 - [ ] **Revisar qué más escribe un estilo y mide en el mismo tick.** Con las animaciones apagadas todo lleva una transición de 0,01 ms y la medida sale vieja. Solo se revisó `<PaginaEstable>`.
 - [ ] **Sin probar:** Safari y un iPhone real; la barra de íconos de la vista rápida (`.vr-iconos`) con las animaciones encendidas; el caso de un `<form>` más corto que la reserva (ver «Lo que no cubre» en el ADR).
 - [ ] **CAYLA Dynamic, a mano:** `pintarReserva` en su `PaginaEstable`, `VARIABLE_RESERVA` y `reservaPublicada` en sus reglas, las dos líneas en su `.pie-hoja-fijo` y la prueba. Nada llega solo (`recetas.css` no cambió).
+- [x] `/milimetro auditar` de la pieza con la reserva puesta: 0 graves, 0 medias (`docs/milimetro/auditorias/2026-11-18-pie-pegado-y-reserva.md`).
+- [ ] **Mirar con Felipe:** el aire de ADR-0185 vuelve a verse en todo el ERP (no servía desde el 2026-11-07). En una hoja donde lo que queda cabe entero, se queda hasta cerrarla (440 px en «Registrar gasto» a 1440 × 900).
