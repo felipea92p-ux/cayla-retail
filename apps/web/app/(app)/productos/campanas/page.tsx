@@ -18,6 +18,7 @@ export default async function CampanasPage() {
     conRotacion: esLider || veModulo(persona, "analisis"),
     esLider,
     conVitrina: true,
+    sedeId: persona.ubicacionId,
   });
 
   return (
@@ -41,6 +42,7 @@ export default async function CampanasPage() {
       reglasDisponibles={datos.reglasDisponibles}
       insignias={datos.insignias}
       choquesAbiertos={datos.choquesAbiertos ?? []}
+      descuentos={datos.descuentos}
     />
   );
 }

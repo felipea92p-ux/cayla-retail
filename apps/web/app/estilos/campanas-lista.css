@@ -1,0 +1,124 @@
+@layer components {
+  /* ====================================================================
+     Catálogo ▸ Campañas y ofertas · la lista (ADR-0677, Felipe 2026-11-17: cara A de docs/maquetas/campanas-simple-2026-11/)
+
+     El descuento y (desde la actividad 6) la campaña son la MISMA fila: una lente con su ícono, qué es y cuánto abarca. En reposo, el
+     vidrio claro y sin desenfoque (la lista se desplaza, ADR-0623); la abierta, el ahumado denso con la letra crema (no depende solo del
+     color: cambian el fondo, la letra y la lente). Solo tokens y recetas de vidrio/recetas.css: el oscuro sale solo (ADR-0336).
+     Cada medida y su porqué: docs/milimetro/fila-de-lista-campanas.md.
+
+     Movimiento (ADR-0136): las filas entran una vez en cascada (40 ms entre una y otra, con tope en la 8), suben 1 px con el mouse y se
+     encogen al presionar. Sin rebote ni bucle. Quieto (ADR-0625) o con menos movimiento pedido: nada sube ni se encoge; queda el cambio
+     de borde y de fondo.
+     ==================================================================== */
+
+  /* El mismo aire que entre dos pilas de la billetera (sellos.css, `.sl-pila + .sl-pila`). */
+  .lc-descuentos { margin-bottom: 26px; }
+
+  .lc-fila {
+    position: relative;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    min-height: 80px;
+    padding: 16px 20px 16px 16px;
+    border: 1px solid var(--vidrio-claro-borde);
+    border-radius: var(--radius-tarjeta);
+    background: var(--vidrio-claro-fondo);
+    box-shadow: var(--vidrio-claro-sombra);
+    color: var(--color-tinta);
+    text-align: left;
+    transition:
+      translate var(--t-cambio) var(--ease-cayla),
+      scale var(--t-resp) var(--ease-cayla),
+      border-color var(--t-cambio) var(--ease-cayla),
+      background var(--t-cambio) var(--ease-cayla),
+      color var(--t-cambio) var(--ease-cayla);
+    animation: cayla-cascada var(--t-momento) var(--ease-cayla) backwards;
+    animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+  }
+  .lc-fila + .lc-fila { margin-top: 8px; }
+  @media (hover: hover) {
+    .lc-fila:not([aria-current="true"]):hover {
+      translate: 0 -1px;
+      border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); /* contraste: no aplica — es un borde, no un texto */
+    }
+  }
+  .lc-fila:active { scale: 0.985; }
+
+  .lc-fila-lente {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    background: var(--lente-fondo);
+    box-shadow: var(--lente-luz);
+    color: color-mix(in srgb, var(--color-tinta) 80%, transparent); /* contraste: gráfico sobre la lente de vidrio claro */
+  }
+  .lc-fila-lente svg { width: 20px; height: 20px; }
+
+  .lc-fila-sobre {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+  }
+  .lc-fila-pct {
+    display: block;
+    font-family: var(--font-serif);
+    font-size: 32px;
+    font-weight: 500;
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+    font-variant-numeric: lining-nums tabular-nums;
+    white-space: nowrap;
+  }
+  .lc-fila-bajada {
+    display: block;
+    margin-top: 2px;
+    font-size: 14px;
+    color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+  }
+  .lc-fila-der { text-align: right; white-space: nowrap; }
+  .lc-fila-der b {
+    display: block;
+    font-family: var(--font-serif);
+    font-size: 26px;
+    font-weight: 500;
+    line-height: 1;
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+  .lc-fila-der span {
+    display: block;
+    margin-top: 4px;
+    font-size: 14px;
+    color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+  }
+
+  /* La abierta: el ahumado denso, como lo elegido en el resto del ERP. */
+  .lc-fila[aria-current="true"] {
+    border-color: var(--ahumado-denso-borde);
+    background: var(--ahumado-denso-fondo);
+    box-shadow: var(--ahumado-denso-luz);
+    color: var(--color-crema);
+  }
+  .lc-fila[aria-current="true"] :is(.lc-fila-sobre, .lc-fila-bajada, .lc-fila-der span) {
+    color: color-mix(in srgb, var(--color-crema) 74%, transparent);
+  }
+  .lc-fila[aria-current="true"] .lc-fila-lente {
+    background: color-mix(in srgb, var(--color-crema) 14%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-crema) 22%, transparent);
+    color: var(--color-crema);
+  }
+
+  /* Quieto o con menos movimiento: nada sube ni se encoge (el cambio de borde y de fondo sigue diciendo que responde). */
+  :root[data-movimiento="quieto"] .lc-fila { translate: none; scale: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .lc-fila { translate: none; scale: none; animation: none; }
+  }
+}

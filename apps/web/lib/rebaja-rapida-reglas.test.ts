@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   camposDeRebaja,
+  descuentosDeLaTienda,
   hayQueQuitar,
+  leerDescuentos,
   leerRebajaDePrenda,
   lugarConPct,
+  nombreDeDescuento,
   nombreDeLugar,
   pctElegido,
   pctQueCobra,
@@ -75,5 +78,38 @@ describe("«Poner un %»: lo que dice la hoja (ADR-0669)", () => {
     expect(camposDeRebaja({ alcance: "modelo", eleccion: { tipo: "otro", pct: 90 }, pct: null, responsableListo: true, responsableMotivo: null })[1].pendiente).toBe("Escribe un % de 1 a 70.");
     expect(textoDelBoton(null)).toBe("Poner el %");
     expect(textoDelBoton(20)).toBe("Poner −20 %");
+  });
+});
+
+describe("La lista de descuentos (ADR-0677)", () => {
+  const fila = (o: Record<string, unknown>) => ({ etiqueta_id: "c10", pct: "10.00", todas: false, rige_aqui: true, activo: true, prendas: 15, ...o });
+
+  it("lee las filas de la base, y sin forma conocida no dibuja la sección", () => {
+    expect(leerDescuentos([fila({})])).toEqual([{ etiquetaId: "c10", pct: 10, todas: false, rigeAqui: true, activo: true, prendas: 15 }]);
+    expect(leerDescuentos(null)).toBeNull();
+    expect(leerDescuentos({ error: "x" })).toBeNull();
+    expect(leerDescuentos([{ pct: 10 }, fila({ pct: "nada" })])).toEqual([]);
+  });
+
+  it("en la tienda salen los activos que rigen ahí, del menor al mayor; con el mismo %, el de la tienda antes que el de todas", () => {
+    const lista = leerDescuentos([
+      fila({ etiqueta_id: "t20", pct: 20, todas: true }),
+      fila({ etiqueta_id: "c20", pct: 20 }),
+      fila({ etiqueta_id: "c10", pct: 10 }),
+      fila({ etiqueta_id: "aqp", pct: 15, rige_aqui: false, prendas: 0 }),
+      fila({ etiqueta_id: "off", pct: 30, activo: false, prendas: 0 }),
+    ])!;
+    expect(descuentosDeLaTienda(lista).map((d) => d.etiquetaId)).toEqual(["c10", "c20", "t20"]);
+  });
+
+  it("CONTROL: sin filtrar, el de otra tienda y el apagado también saldrían", () => {
+    const lista = leerDescuentos([fila({ etiqueta_id: "aqp", rige_aqui: false }), fila({ etiqueta_id: "off", activo: false })])!;
+    expect(lista).toHaveLength(2);
+    expect(descuentosDeLaTienda(lista)).toHaveLength(0);
+  });
+
+  it("el lector oye el %, cuántas prendas y si es de todas las tiendas", () => {
+    expect(nombreDeDescuento({ pct: 10, prendas: 15, todas: false })).toBe("Descuento −10 %, 15 prendas");
+    expect(nombreDeDescuento({ pct: 12.5, prendas: 1, todas: true })).toBe("Descuento −12.5 %, 1 prenda, todas las tiendas");
   });
 });

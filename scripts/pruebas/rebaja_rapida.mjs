@@ -62,10 +62,14 @@ if (!correr("select 1;").ok) {
 }
 const MIG = readFileSync(MIGRACION, "utf8");
 const FALTA = correr("select to_regprocedure('retail.poner_rebaja(uuid, text, numeric, uuid, uuid, boolean)') is null;").salida === "t" ? MIG : "";
+// La lista de descuentos de la pantalla nueva (20261118001000, ADR-0677).
+const MIG_DESCUENTOS = readFileSync("supabase/migrations/20261118001000_campanas_descuentos.sql", "utf8");
+const FALTA_DESCUENTOS = correr("select to_regprocedure('retail.campanas_descuentos(uuid)') is null;").salida === "t" ? MIG_DESCUENTOS : "";
 
 const HOY = "retail.fn_hoy_lima()";
 const PARTIDA = (quien = FELIPE) => `begin;
 ${FALTA}
+${FALTA_DESCUENTOS}
 -- Nada más rige: sin otras campañas con descuento ni ofertas.
 update retail.etiquetas set descuento_pct = null where descuento_pct is not null;
 update retail.campana_reglas set estado = 'desactivada' where estado <> 'desactivada';
@@ -206,8 +210,32 @@ esperarValor(
   "Blusa Emma M",
 );
 
+console.log("\n— Los descuentos de la lista (ADR-0677) —");
+const COLORES_DEL_MODELO = correr("select count(distinct v.color_codigo) from retail.variantes v where v.producto_id = (select producto_id from retail.variantes where sku = 'BLU-EMMA-NEG-M') and v.activo;").salida;
+const DESCUENTOS = (sede = "u") =>
+  `select string_agg(pct::text || ':' || todas || ':' || rige_aqui || ':' || activo || ':' || prendas, ',' order by pct, todas) from retail.campanas_descuentos(:'${sede}');\n`;
+esperarValor(
+  "el −20 % de Lima y el de todas las tiendas son dos filas, y la de todas lo dice",
+  caso(`${PONER(20)}${PONER(20, "modelo", "null", "true")}${DESCUENTOS()}`),
+  `20.00:false:true:true:${COLORES_DEL_MODELO},20.00:true:true:true:${COLORES_DEL_MODELO}`,
+);
+esperarValor(
+  "el descuento de otra tienda también sale (para no dibujarlo como campaña), pero no rige aquí ni cuenta prendas",
+  caso(`${PONER(30, "modelo", "null", "false", "t")}${DESCUENTOS()}`),
+  "30.00:false:false:true:0",
+);
+esperarValor("…y en su tienda sí rige", caso(`${PONER(30, "modelo", "null", "false", "t")}${DESCUENTOS("t")}`), `30.00:false:true:true:${COLORES_DEL_MODELO}`);
+esperarValor(
+  "un descuento apagado sale apagado y sin prendas",
+  caso(`${PONER(20)}update retail.etiquetas set activo = false where id = (select etiqueta_id from retail.rebaja_cajones where pct = 20);\n${DESCUENTOS()}`),
+  "20.00:false:true:false:0",
+);
+esperarValor("una campaña con su % no es un descuento: no sale", caso(`${EN_LIMA(15)}${DESCUENTOS()}`), "");
+esperarError("sin ver Campañas y ofertas, no", caso(DESCUENTOS(), MICAELA), "rebaja_sin_modulo");
+
 console.log("\n— La migración —");
 esperarValor("se puede pegar dos veces", correr(`begin;\n${MIG}\n${MIG}\nselect 'ok';\nrollback;`), "ok");
+esperarValor("la de los descuentos se puede pegar dos veces", correr(`begin;\n${MIG_DESCUENTOS}\n${MIG_DESCUENTOS}\nselect 'ok';\nrollback;`), "ok");
 
 console.log(`\n${total - fallos} de ${total} en verde.`);
 process.exit(fallos ? 1 : 0);

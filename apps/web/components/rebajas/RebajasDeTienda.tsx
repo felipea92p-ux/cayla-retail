@@ -1,138 +1,105 @@
 "use client";
 
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Tag } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { FilaDeLista } from "@/components/campanas/FilaDeLista";
 import { PonerUnPct } from "@/components/rebajas/PonerUnPct";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { Cajon } from "@/components/ui/Cajon";
-import { Modal } from "@/components/ui/Modal";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Globito } from "@/components/ui/Globito";
 import { Vacio } from "@/components/ui/Vacio";
 import { traducirError } from "@/lib/error-escritura";
 import { rpcRebaja } from "@/lib/rebaja-rapida";
-import { nombreDeLugar, precioConPct, textoPct, type LugarDeRebaja } from "@/lib/rebaja-rapida-reglas";
+import { descuentosDeLaTienda, nombreDeDescuento, nombreDeLugar, precioConPct, textoPct, type DescuentoDeLista, type LugarDeRebaja } from "@/lib/rebaja-rapida-reglas";
 import { claveResponsableConteo } from "@/lib/responsable-conteo";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 
-type FilaLugar = { etiqueta_id: string; nombre: string; pct: number | string; es_cajon: boolean; movible: boolean; hasta: string | null; por_categoria: boolean; prendas: number };
 type FilaPrenda = { variante_id: string; referencia: string; codigo: string | null; color: string | null; talla: string | null; precio: number | string };
 
 const soles = (n: number) => `S/ ${n.toFixed(2)}`;
-const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+
+/** Quién lo hace se elige una vez por tienda y queda para los siguientes: el escáner y la lista recuerdan el mismo. */
+const useResponsableDeRebaja = (ubicacionId: string, sede: string) =>
+  useResponsable({ ubicacionId, etiqueta: sede }, { recordarEn: claveResponsableConteo(`rebaja-${ubicacionId}`) });
 
 /**
- * «Poner un %» y «Rebajas de tu tienda» (ADR-0669, Felipe 2026-11-16), arriba de las campañas: el escáner para ponerle un % a una prenda y,
- * debajo, cada % que hay en la tienda (los cajones y las campañas con su descuento de siempre) con cuántas prendas tiene. Tocar uno muestra
- * sus prendas y deja quitarlas. Quién lo hace se elige una vez por tienda y queda para los siguientes (`recordarEn`).
- *
- * Con `hoja` (Felipe 2026-11-17: «no quites esto, tenlo como información en un ícono»): en el celular las tarjetas no van bajo el escáner
- * sino en una hoja que abre el ícono de la cabecera de Campañas; desde 640 px siguen a la vista. El escáner queda siempre a la vista.
+ * El escáner de «Poner un %» (ADR-0669), arriba de la lista de Campañas y ofertas. Va solo hasta que el buscador del panel de un descuento lo
+ * reemplace (ADR-0677, actividad 3 de la maqueta `docs/maquetas/campanas-simple-2026-11/`).
  */
-export function RebajasDeTienda({
+export function EscanerDeRebaja({ ubicacionId, sede }: { ubicacionId: string; sede: string }) {
+  const router = useRouter();
+  const responsable = useResponsableDeRebaja(ubicacionId, sede);
+  return <PonerUnPct ubicacionId={ubicacionId} sede={sede} responsable={responsable} onCambio={() => router.refresh()} />;
+}
+
+/**
+ * «Descuentos» (ADR-0677, Felipe 2026-11-17, cara A de la maqueta): lo primero de la lista de Campañas y ofertas. Cada cajón de «Poner un %» que
+ * rige en la tienda es una fila «Descuento −10 %» con cuántas prendas tiene; el de todas las tiendas es otra fila y lo dice. Tocar una abre sus
+ * prendas para quitarlas (el panel con su buscador llega en la actividad 2). Sin descuentos que rijan aquí, la sección no sale.
+ */
+export function DescuentosDeLaTienda({
   ubicacionId,
   sede,
-  hoja,
+  descuentos,
+  nombres,
 }: {
   ubicacionId: string;
   sede: string;
-  /** La hoja del celular: la abre y la cierra la pantalla (su ícono vive en la cabecera); al cerrar, el foco vuelve a `alCerrarEnfocar`. */
-  hoja?: { abierta: boolean; onCerrar: () => void; alCerrarEnfocar?: RefObject<HTMLElement | null> };
+  descuentos: readonly DescuentoDeLista[];
+  /** El nombre de la campaña de cada cajón (`etiquetas.nombre`): el título del cajón de sus prendas. */
+  nombres: ReadonlyMap<string, string>;
 }) {
   const router = useRouter();
-  const responsable = useResponsable({ ubicacionId, etiqueta: sede }, { recordarEn: claveResponsableConteo(`rebaja-${ubicacionId}`) });
-  const [lugares, setLugares] = useState<LugarDeRebaja[] | null>(null);
-  const [version, setVersion] = useState(0);
-  const [abierto, setAbierto] = useState<LugarDeRebaja | null>(null);
-
-  useEffect(() => {
-    let vigente = true;
-    (async () => {
-      const { data, error } = await rpcRebaja<FilaLugar[]>("campanas_rebajas_de_tienda", { p_ubicacion_id: ubicacionId });
-      if (!vigente) return;
-      // Si no responde (o la base aún no la tiene), no se dibuja la lista: el escáner sigue funcionando.
-      setLugares(
-        error
-          ? []
-          : (data ?? []).map((f) => ({
-              etiquetaId: f.etiqueta_id,
-              nombre: f.nombre,
-              pct: Number(f.pct),
-              esCajon: f.es_cajon,
-              movible: f.movible,
-              hasta: f.hasta,
-              porCategoria: f.por_categoria === true,
-              prendas: Number(f.prendas) || 0,
-            })),
-      );
-    })();
-    return () => {
-      vigente = false;
-    };
-  }, [ubicacionId, version]);
-
-  const alCambiar = () => {
-    setVersion((v) => v + 1);
-    router.refresh();
-  };
-
-  // Las tarjetas de cada %: las mismas a la vista (desde 640 px) y en la hoja del celular. Desde la hoja, tocar una la cierra y abre sus prendas.
-  const tarjetas = (lista: LugarDeRebaja[], clase: string, antes?: () => void) => (
-    <div className={clase}>
-      {lista.map((l) => (
-        <TarjetaCifra
-          key={l.etiquetaId}
-          etiqueta={l.esCajon ? "Sin fecha de fin" : l.nombre}
-          valor={textoPct(l.pct)}
-          compacta
-          activa={abierto?.etiquetaId === l.etiquetaId}
-          onClick={() => {
-            antes?.();
-            setAbierto(l);
-          }}
-          pie={plural(l.prendas, "prenda", "prendas")}
-        />
-      ))}
-    </div>
-  );
+  const responsable = useResponsableDeRebaja(ubicacionId, sede);
+  const [abiertoId, setAbiertoId] = useState<string | null>(null);
+  const filas = descuentosDeLaTienda(descuentos);
+  const abierto = filas.find((d) => d.etiquetaId === abiertoId) ?? null;
+  if (filas.length === 0) return null;
 
   return (
-    <section className="space-y-4" aria-label={`Rebajas de ${sede}`}>
-      <PonerUnPct ubicacionId={ubicacionId} sede={sede} responsable={responsable} onCambio={alCambiar} />
-      {lugares && lugares.length > 0 && (
-        <div className={`space-y-3 ${hoja ? "max-sm:hidden" : ""}`} data-guia="rebaja.tienda">
-          <TituloSeccion cuenta={lugares.length}>{`Rebajas de ${sede}`}</TituloSeccion>
-          {tarjetas(lugares, "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6")}
-        </div>
-      )}
-      {hoja?.abierta && (
-        <Modal titulo={`Rebajas de ${sede}`} subtitulo="Toca una para ver sus prendas." onClose={hoja.onCerrar} conCerrar alCerrarEnfocar={hoja.alCerrarEnfocar}>
-          {lugares === null ? (
-            <p className="text-sm text-tinta/70" role="status">
-              Buscando las rebajas…
-            </p>
-          ) : lugares.length > 0 ? (
-            tarjetas(lugares, "grid grid-cols-2 gap-3", hoja.onCerrar)
-          ) : (
-            <Vacio icono={<Tag />} titulo="Sin rebajas aquí" tamano="chico">
-              Esta tienda no tiene ningún % que rija hoy.
-            </Vacio>
-          )}
-        </Modal>
-      )}
+    <section className="lc-descuentos" aria-label="Descuentos" data-guia="rebaja.tienda">
+      <h3 className="sl-pila-titulo">
+        Descuentos
+        <Globito n={filas.length} />
+      </h3>
+      {filas.map((d, i) => (
+        <FilaDeLista
+          key={d.etiquetaId}
+          icono={<Tag />}
+          sobre="Descuento"
+          titulo={textoPct(d.pct)}
+          bajada={d.todas ? "Todas las tiendas" : null}
+          cifra={d.prendas}
+          cifraTexto={d.prendas === 1 ? "prenda" : "prendas"}
+          etiqueta={nombreDeDescuento(d)}
+          abierta={d.etiquetaId === abiertoId}
+          onAbrir={() => setAbiertoId(d.etiquetaId)}
+          indice={i}
+        />
+      ))}
       {abierto && (
         <PrendasDeRebaja
-          lugar={abierto}
+          lugar={{
+            etiquetaId: abierto.etiquetaId,
+            nombre: nombres.get(abierto.etiquetaId) ?? textoPct(abierto.pct),
+            pct: abierto.pct,
+            esCajon: true,
+            // El de todas las tiendas no se cambia desde una tienda: desde el escáner, con «En todas las tiendas» (solo un líder).
+            movible: !abierto.todas,
+            hasta: null,
+            porCategoria: false,
+            prendas: abierto.prendas,
+          }}
           ubicacionId={ubicacionId}
           sede={sede}
           responsable={responsable}
-          onCambio={alCambiar}
-          onCerrar={() => setAbierto(null)}
+          onCambio={() => router.refresh()}
+          onCerrar={() => setAbiertoId(null)}
         />
       )}
     </section>
@@ -198,8 +165,8 @@ function PrendasDeRebaja({
     >
       <div className="space-y-4">
         {!lugar.movible && (
-          <Aviso tono="info" chico titulo="Rige en más tiendas">
-            Sus prendas se quitan desde la campaña.
+          <Aviso tono="info" chico titulo="Rige en todas las tiendas">
+            {lugar.esCajon ? "Sus prendas se quitan desde el escáner, con «En todas las tiendas»." : "Sus prendas se quitan desde la campaña."}
           </Aviso>
         )}
         {lugar.porCategoria && (

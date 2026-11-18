@@ -1228,8 +1228,8 @@ export const GUIA_CAMPANAS: Guia = {
       id: "rebajas-de-tienda",
       ancla: "rebaja.tienda",
       opcional: true,
-      titulo: "Los % de tu tienda",
-      texto: "Cada tarjeta es un % que rige aquí y cuántas prendas tiene. Tócala para ver sus prendas con su precio de hoy y quitar las que ya no van. En el celular están detrás de este ícono.",
+      titulo: "Los descuentos de tu tienda",
+      texto: "Van primero en la lista: cada fila es un descuento que rige aquí y cuántas prendas tiene. Tócala para ver sus prendas con su precio de hoy y quitar las que ya no van.",
     },
     {
       id: "dos-ofertas",

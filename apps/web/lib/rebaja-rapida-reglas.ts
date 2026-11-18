@@ -105,6 +105,42 @@ export function leerRebajaDePrenda(json: unknown): RebajaDePrenda | null {
   };
 }
 
+/**
+ * Un descuento de la lista de Campañas y ofertas (ADR-0677): un cajón de «Poner un %» con su %, si es de todas las tiendas, si rige en la
+ * tienda que se mira y cuántas prendas tiene ahí (`campanas_descuentos`, 20261118001000).
+ */
+export type DescuentoDeLista = { etiquetaId: string; pct: number; todas: boolean; rigeAqui: boolean; activo: boolean; prendas: number };
+
+/** Las filas de `campanas_descuentos` como las usa la pantalla. Sin forma conocida, `null`: la lista se dibuja sin la sección Descuentos. */
+export function leerDescuentos(filas: unknown): DescuentoDeLista[] | null {
+  if (!Array.isArray(filas)) return null;
+  const num = (v: unknown) => (typeof v === "number" ? v : Number(v));
+  return filas
+    .filter((f): f is Record<string, unknown> => typeof f === "object" && f !== null && typeof (f as { etiqueta_id?: unknown }).etiqueta_id === "string")
+    .map((f) => ({
+      etiquetaId: f.etiqueta_id as string,
+      pct: num(f.pct),
+      todas: f.todas === true,
+      rigeAqui: f.rige_aqui === true,
+      activo: f.activo === true,
+      prendas: num(f.prendas) || 0,
+    }))
+    .filter((d) => Number.isFinite(d.pct));
+}
+
+/**
+ * Las filas de «Descuentos» en la tienda que se mira: los activos que rigen ahí, del % menor al mayor y, con el mismo %, el de la tienda
+ * antes que el de todas (Felipe 2026-11-17: son dos filas, y la de todas lo dice).
+ */
+export function descuentosDeLaTienda(lista: readonly DescuentoDeLista[]): DescuentoDeLista[] {
+  return lista.filter((d) => d.activo && d.rigeAqui).sort((a, b) => a.pct - b.pct || Number(a.todas) - Number(b.todas));
+}
+
+/** «Descuento −10 %, 15 prendas, todas las tiendas»: lo que oye el lector de pantalla en la fila. */
+export function nombreDeDescuento(d: Pick<DescuentoDeLista, "pct" | "prendas" | "todas">): string {
+  return [`Descuento ${textoPct(d.pct)}`, `${d.prendas} ${d.prendas === 1 ? "prenda" : "prendas"}`, d.todas ? "todas las tiendas" : null].filter(Boolean).join(", ");
+}
+
 /** «−20 %», con hasta dos decimales y sin ceros de más. */
 export function textoPct(pct: number): string {
   return `−${Number.isInteger(pct) ? pct : Number(pct.toFixed(2))} %`;
