@@ -5,7 +5,9 @@
 //
 // CONTRATO
 //   PROMETE: toda combinación de finalidad, acción y medio tiene un título (y una fila «volvió a aceptar» de una miembro que ya estaba no se llama «Se unió») (un medio que la web no conoce se dice tal cual,
-//            nunca se esconde el evento); el punto del evento: club en taupe, publicidad que llega en verde, que se va en ámbar.
+//            nunca se esconde el evento); el punto del evento: club en taupe, publicidad o avisos que llegan en verde, que se van en
+//            ámbar. Los avisos del Club por WhatsApp (ADR-0680) tienen su propio título: solo tienen fila cuando ella los pidió con su
+//            casilla (la tienda online) y cuando se le quitan; los que vienen con la publicidad del cartel o de su mensaje no escriben la suya.
 //   ASUME:   los medios de `club_permisos_medio_valido` (tanda 1b, más `qr_web` del camino B, `pagina_cartel` de la 1g y
 //            `tienda_web` de la tienda online, ADR-0408).
 //   NO HACE: no ordena (la base ya la trae de la más vieja a la más nueva).
@@ -31,7 +33,7 @@ export const MEDIO_LEGIBLE: Readonly<Record<string, string>> = {
   qr_web: "desde la página de su QR",
   // Tanda 1g (G-1, G-10): ella se unió sola, escaneando el cartel de la tienda (sin quién registró: lo hizo ella).
   pagina_cartel: "se registró por su cuenta desde el cartel",
-  // Tienda online (ADR-0408): marcó «Avisos del Club por WhatsApp» al crear su cuenta (solo da la publicidad; lo hizo ella).
+  // Tienda online (ADR-0408, ADR-0680): marcó una de sus casillas de WhatsApp (cada una da su permiso; lo hizo ella).
   tienda_web: "desde su cuenta en la tienda online",
   whatsapp_propio: "escribió por su cuenta a la tienda",
   baja_whatsapp: "escribió BAJA",
@@ -51,6 +53,12 @@ const VOLVIO_A_ACEPTAR = "volvió a aceptar";
 function titulo(f: Pick<FilaPermiso, "finalidad" | "accion" | "medio" | "nota">): string {
   const vuelve = f.accion === "otorga" && (f.nota ?? "").startsWith(VOLVIO_A_ACEPTAR);
   if (f.finalidad === "club") return vuelve ? "Volvió a aceptar los textos del club" : f.accion === "otorga" ? "Se unió al club" : "Salió del club";
+  if (f.finalidad === "avisos_club_whatsapp") {
+    if (f.accion === "otorga") return "Pidió los avisos del Club por WhatsApp";
+    if (f.medio === "baja_whatsapp") return "Pidió BAJA de los avisos del Club";
+    if (f.medio === "cambio_celular") return "Dejó los avisos del Club al cambiar de celular";
+    return "Dejó los avisos del Club";
+  }
   if (vuelve) return "Volvió a aceptar el texto de la publicidad";
   if (f.accion === "otorga") return "Pidió la publicidad por WhatsApp";
   if (f.medio === "baja_whatsapp") return "Pidió BAJA de la publicidad";

@@ -20,7 +20,7 @@ import { Campo, Resultado } from "./CampoGuiado";
 // completan igual (Felipe 2026-10-16).
 
 type CampoDelForm = CampoClub | "cumple";
-const ID: Record<CampoDelForm | "avisos", string> = {
+const ID: Record<CampoDelForm | "avisos" | "avisosClub", string> = {
   documento: "club-documento",
   nombres: "club-nombres",
   apellidos: "club-apellidos",
@@ -29,6 +29,7 @@ const ID: Record<CampoDelForm | "avisos", string> = {
   mayor: "club-mayor",
   acepta: "club-acepta",
   avisos: "club-avisos",
+  avisosClub: "club-avisos-club",
 };
 const ID_UNIRME = "club-unirme";
 
@@ -38,7 +39,56 @@ const ESPERA_OTRO_MS = 700;
 
 const NO_DISPONIBLE: RespuestaUnirse = { campo: null, mensaje: MENSAJES.clubNoDisponible };
 
-export function FormularioUnirseAlClub({ hoy, casilla: casillaInicial, nombre }: { hoy: Dia; casilla: CasillaWhatsapp | null; nombre: string }) {
+/**
+ * Una casilla opcional de WhatsApp (ADR-0680: hay dos, cada una con su permiso): su título, el texto aprobado tal cual (el permiso cita
+ * esa versión) y, debajo, la ayuda o el aviso de que su texto cambió. Nace sin marcar.
+ */
+function CasillaDeWhatsapp({
+  id,
+  campo,
+  titulo,
+  ayuda,
+  texto,
+  marcada,
+  aviso,
+  alCambiar,
+}: {
+  id: string;
+  campo: "avisos" | "avisosClub";
+  titulo: string;
+  ayuda: string;
+  texto: string;
+  marcada: boolean;
+  aviso: string | null;
+  alCambiar: (marcada: boolean) => void;
+}) {
+  return (
+    <div className="w-campo w-avisos" data-campo={campo} data-estado={marcada ? "hecho" : "opcional"}>
+      <span className="w-campo-t">
+        {titulo} <span className="w-marca">{marcada ? TEXTO_MARCA.hecho : "Opcional"}</span>
+      </span>
+      <label className="w-check" htmlFor={id}>
+        <input id={id} type="checkbox" checked={marcada} onChange={(e) => alCambiar(e.target.checked)} aria-describedby={`${id}-res`} />
+        <span>{texto}</span>
+      </label>
+      <div className="w-res w-check-res" id={`${id}-res`} aria-live="polite">
+        {aviso ? <span className="w-res-aviso">{aviso}</span> : <p className="w-ayuda">{ayuda}</p>}
+      </div>
+    </div>
+  );
+}
+
+export function FormularioUnirseAlClub({
+  hoy,
+  casilla: casillaInicial,
+  casillaClub: casillaClubInicial,
+  nombre,
+}: {
+  hoy: Dia;
+  casilla: CasillaWhatsapp | null;
+  casillaClub: CasillaWhatsapp | null;
+  nombre: string;
+}) {
   const [r, setR] = useState<RegistroClub>(REGISTRO_CLUB_VACIO);
   // Lo que dijo el servidor del documento escrito, con su tipo («dni:12345678»): otro tipo u otro número es otra consulta.
   const [documentoRevisado, setDocumentoRevisado] = useState<{ valor: string; estado: ConsultaDocumento }>({ valor: "", estado: { estado: "sin_revisar" } });
@@ -46,6 +96,8 @@ export function FormularioUnirseAlClub({ hoy, casilla: casillaInicial, nombre }:
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
   const [casilla, setCasilla] = useState<CasillaWhatsapp | null>(casillaInicial);
   const [avisoCasilla, setAvisoCasilla] = useState<string | null>(null);
+  const [casillaClub, setCasillaClub] = useState<CasillaWhatsapp | null>(casillaClubInicial);
+  const [avisoCasillaClub, setAvisoCasillaClub] = useState<string | null>(null);
   const [enviando, iniciar] = useTransition();
   // A dónde va el cursor cuando la pantalla cambia. Se hace después de pintar.
   const [enfocar, setEnfocar] = useState<{ id: string } | null>(null);
@@ -110,9 +162,14 @@ export function FormularioUnirseAlClub({ hoy, casilla: casillaInicial, nombre }:
       if (e.casilla !== undefined) setCasilla(e.casilla);
       setR((actual) => ({ ...actual, avisos: false }));
       setAvisoCasilla(e.mensaje);
+    } else if (e.campo === "avisosClub") {
+      // Lo mismo con la casilla de los avisos del Club: su texto nuevo se lee y se vuelve a marcar.
+      if (e.casillaClub !== undefined) setCasillaClub(e.casillaClub);
+      setR((actual) => ({ ...actual, avisosClub: false }));
+      setAvisoCasillaClub(e.mensaje);
     } else setErrorGeneral(e.mensaje);
     // Al campo del problema.
-    const id = e.campo ? ID[e.campo as CampoDelForm | "avisos"] : undefined;
+    const id = e.campo ? ID[e.campo as CampoDelForm | "avisos" | "avisosClub"] : undefined;
     if (id) setEnfocar({ id });
   }
 
@@ -121,7 +178,9 @@ export function FormularioUnirseAlClub({ hoy, casilla: casillaInicial, nombre }:
     if (faltan.length > 0 || enviando) return;
     setErrorGeneral(null);
     iniciar(async () => {
-      const respuesta = await unirseAlClub({ registro: r, casilla: casilla?.version ?? null, volver }).catch((): RespuestaUnirse => NO_DISPONIBLE);
+      const respuesta = await unirseAlClub({ registro: r, casilla: casilla?.version ?? null, casillaClub: casillaClub?.version ?? null, volver }).catch(
+        (): RespuestaUnirse => NO_DISPONIBLE,
+      );
       if (respuesta) aplicarError(respuesta);
     });
   }
@@ -348,28 +407,37 @@ export function FormularioUnirseAlClub({ hoy, casilla: casillaInicial, nombre }:
           </label>
         </div>
 
+        {/* Dos casillas, dos permisos (revisión legal 2026-11-18, H2; ADR-0680): los avisos de su Club y, aparte, la publicidad. Cada una
+            con su título igual a su texto, opcional y sin marcar. Sin su texto (la base no contestó), esa casilla no se ofrece. */}
+        {casillaClub && (
+          <CasillaDeWhatsapp
+            id={ID.avisosClub}
+            campo="avisosClub"
+            titulo={MENSAJES.avisosClubTitulo}
+            ayuda={MENSAJES.avisosClubAyuda}
+            texto={casillaClub.texto}
+            marcada={r.avisosClub}
+            aviso={avisoCasillaClub}
+            alCambiar={(marcada) => {
+              setAvisoCasillaClub(null);
+              cambiar({ avisosClub: marcada });
+            }}
+          />
+        )}
         {casilla && (
-          <div className="w-campo w-avisos" data-campo="avisos" data-estado={r.avisos ? "hecho" : "opcional"}>
-            <span className="w-campo-t">
-              {MENSAJES.avisosTitulo} <span className="w-marca">{r.avisos ? TEXTO_MARCA.hecho : "Opcional"}</span>
-            </span>
-            <label className="w-check" htmlFor={ID.avisos}>
-              <input
-                id={ID.avisos}
-                type="checkbox"
-                checked={r.avisos}
-                onChange={(e) => {
-                  setAvisoCasilla(null);
-                  cambiar({ avisos: e.target.checked });
-                }}
-                aria-describedby={`${ID.avisos}-res`}
-              />
-              <span>{casilla.texto}</span>
-            </label>
-            <div className="w-res w-check-res" id={`${ID.avisos}-res`} aria-live="polite">
-              {avisoCasilla ? <span className="w-res-aviso">{avisoCasilla}</span> : <p className="w-ayuda">{MENSAJES.avisosAyuda}</p>}
-            </div>
-          </div>
+          <CasillaDeWhatsapp
+            id={ID.avisos}
+            campo="avisos"
+            titulo={MENSAJES.avisosTitulo}
+            ayuda={MENSAJES.avisosAyuda}
+            texto={casilla.texto}
+            marcada={r.avisos}
+            aviso={avisoCasilla}
+            alCambiar={(marcada) => {
+              setAvisoCasilla(null);
+              cambiar({ avisos: marcada });
+            }}
+          />
         )}
       </div>
 

@@ -82,6 +82,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { anclados } from "./_deshacer_claure.mjs";
 import { unionDeAntes } from "./union-de-fichas-de-antes.mjs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
@@ -240,6 +241,13 @@ function conPosteriores(nombre, cuerpo) {
       if (i < 0) throw new Error(`${archivo}: el ancla de ${nombre} no está en su cuerpo de la 1g`);
       resultado = resultado.slice(0, i) + m[3] + resultado.slice(i);
     }
+  }
+  // ADR-0680 (20261118160000): la BAJA también apaga los avisos del Club de quien solo tenía esos (reemplazos anclados, aplicados igual
+  // que en la base, en su orden).
+  for (const { firma, viejo, nuevo } of anclados("20261118160000_club_avisos_del_club_parte3_funciones.sql", ["retail.registrar_baja_whatsapp(text, uuid)"])) {
+    if (firma.slice(0, firma.indexOf("(")) !== nombre) continue;
+    if (resultado.split(viejo).length !== 2) throw new Error(`20261118160000: el ancla de ${nombre} no está una sola vez en su cuerpo`);
+    resultado = resultado.replace(viejo, () => nuevo);
   }
   return resultado;
 }

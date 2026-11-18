@@ -42,9 +42,13 @@ export const MENSAJES = {
   nombreAyuda: "Cómo te llamamos. Con tu nombre alcanza.",
   nombreFalta: "Escribe tu nombre.",
   clubNoDisponible: "No pudimos completar tus datos ahora. Intenta de nuevo en unos minutos.",
-  avisosTitulo: "Avisos del Club por WhatsApp",
-  avisosAyuda: "Te llegan al celular de arriba.",
-  avisosCambio: "El texto de los avisos cambió. Léelo y vuelve a marcarlo si quieres recibirlos.",
+  // Revisión legal 2026-11-18 (H2) y ADR-0680: dos casillas, cada una con su título igual a lo que dice su texto.
+  avisosTitulo: "Novedades y promociones por WhatsApp",
+  avisosClubTitulo: "Avisos de mi Club por WhatsApp",
+  avisosClubCambio: "El texto de los avisos de tu Club cambió. Léelo y vuelve a marcarlo si quieres recibirlos.",
+  avisosAyuda: "Te llegan al celular de arriba. Para que paren, responde BAJA a cualquier mensaje.",
+  avisosClubAyuda: "Te llegan al celular de arriba. Para que paren, responde BAJA a cualquier mensaje.",
+  avisosCambio: "El texto de las novedades y promociones cambió. Léelo y vuelve a marcarlo si quieres recibirlas.",
   avisosSinActivar: "Tus avisos por WhatsApp quedaron sin activar: en la tienda tenemos anotado otro celular tuyo. Para cambiarlo, acércate a una tienda CAYLA.",
   noDisponible: "No pudimos crear tu cuenta ahora. Intenta de nuevo en unos minutos.",
   limite: "Hiciste muchos intentos seguidos. Espera un rato y vuelve a intentarlo.",
@@ -69,6 +73,8 @@ export const MENSAJES = {
   entrarNoDisponible: "No pudimos entrar ahora. Intenta de nuevo en unos minutos.",
   // Entrar con Google (ADR-0438): lo que dice «Entrar» cuando Google vuelve con un problema (`?google=`).
   googleCancelado: "No pudimos entrar con Google. Vuelve a intentarlo, o entra con tu correo.",
+  // Revisión legal 2026-11-18 (H3): una cuenta nueva con Google solo nace si marca la casilla de su bloque.
+  googleFaltaAceptar: "Para crear tu cuenta con Google, marca la casilla de arriba y vuelve a tocar el botón.",
   googleNoDisponible: "No pudimos entrar con Google ahora. Intenta de nuevo en unos minutos, o entra con tu correo.",
   googleCorreoRepetido: "Ya hay una cuenta con el correo de tu Google. Entra con tu correo y tu contraseña.",
   googleCorreoDeOtraPersona: "El correo de tu Google ya está registrado en CAYLA con otros datos. Usa otro correo o, si es tuyo, acércate a una tienda CAYLA y lo revisamos.",

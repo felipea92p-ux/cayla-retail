@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { conAviso, hrefConVolver, PARAMETRO_VOLVER, rutaParaVolver } from "@/lib/entrada";
-import { COOKIE_GOOGLE_CORREO, COOKIE_GOOGLE_CORREO_S } from "@/lib/google";
+import { COOKIE_GOOGLE_CORREO, COOKIE_GOOGLE_CORREO_S, PARAMETRO_ACEPTO } from "@/lib/google";
 import { terminarConGoogle } from "@/lib/google-servidor";
 import { INICIO_CON_CUENTA } from "@/lib/sesion";
 
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   const codigo = url.searchParams.get("code");
   if (!codigo || codigo.length > 400) return fallo("cancelado");
-  const r = await terminarConGoogle(codigo);
+  const r = await terminarConGoogle(codigo, url.searchParams.get(PARAMETRO_ACEPTO));
   switch (r.estado) {
     case "ok":
       // `vinculada`: su correo ya era de una ficha de CAYLA y la cuenta se unió a ella (ADR-0469): se le dice con otras palabras.
@@ -34,6 +34,9 @@ export async function GET(request: NextRequest) {
       });
       return respuesta;
     }
+    case "falta_aceptar":
+      // Primera vez con Google sin la casilla: a «Crear cuenta», donde está, con el aviso de qué falta.
+      return hacia(`${hrefConVolver("/crear-cuenta", volver)}${volver ? "&" : "?"}google=acepta`);
     case "correo_de_otra_persona":
       return fallo("correo-de-otra-persona");
     case "correo_repetido":

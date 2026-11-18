@@ -2,7 +2,7 @@ import "server-only";
 import { leerMiCuentaEnBase, registrarCuentaSimpleEnBase, vincularCuentaGoogleEnBase } from "./cuentas-servidor";
 import { TEXTOS_VERSION } from "./cuentas";
 import { anotarEntradaEnBase, marcarEntradaDeHoy } from "./entrada-servidor";
-import { siguienteTrasVincular, usuarioDeGoogle } from "./google";
+import { aceptoLosTextos, siguienteTrasVincular, usuarioDeGoogle } from "./google";
 import { clienteAdmin, clienteSesion } from "./sesion-servidor";
 import { borrarSiNoTieneCuenta } from "./usuarios-servidor";
 
@@ -22,12 +22,19 @@ export type ResultadoGoogle =
   | { estado: "correo_de_otra_persona" }
   /** Ya hay una cuenta con ese correo que no es este usuario de Google. */
   | { estado: "correo_repetido" }
+  /** Es su primera vez con Google y no marcó la casilla de «Crear mi cuenta con Google» (o vino de «Entrar»): no se crea nada. */
+  | { estado: "falta_aceptar" }
   /** Su ficha ya tiene cuenta con OTRO correo (el nombre coincide): `correoCuenta`, a medias, es con el que entra (20261021182000). */
   | { estado: "otro_correo"; correoCuenta: string }
   | { estado: "sin_respuesta" };
 
-/** Canjea el código de Google por la sesión y deja la cuenta lista. Si algo falla, la sesión se cierra: nadie queda a medias. */
-export async function terminarConGoogle(codigo: string): Promise<ResultadoGoogle> {
+/**
+ * Canjea el código de Google por la sesión y deja la cuenta lista. Si algo falla, la sesión se cierra: nadie queda a medias. `acepto`:
+ * la versión de los textos que mandó el botón si marcó la casilla (`PARAMETRO_ACEPTO`). Una cuenta NUEVA (o unida a su ficha) solo nace
+ * con la versión vigente aceptada; sin ella, `falta_aceptar` y el usuario de Google recién creado se borra. Quien ya tenía cuenta entra
+ * igual: ya aceptó al crearla.
+ */
+export async function terminarConGoogle(codigo: string, acepto: string | null = null): Promise<ResultadoGoogle> {
   const sesion = await clienteSesion();
   if (!sesion) return { estado: "sin_respuesta" };
   const { data, error } = await sesion.auth.exchangeCodeForSession(codigo);
@@ -58,6 +65,8 @@ export async function terminarConGoogle(codigo: string): Promise<ResultadoGoogle
       if (admin) await borrarSiNoTieneCuenta(admin, usuario.id, { respetarRecientes: false });
       return resultado;
     };
+    // Sin la casilla marcada no nace ninguna cuenta: lo que se anota como aceptado tiene que haberse aceptado (revisión legal, H3).
+    if (!aceptoLosTextos(acepto, TEXTOS_VERSION)) return fallar({ estado: "falta_aceptar" });
     const vinculo = await vincularCuentaGoogleEnBase({ usuarioWebId: usuario.id, correo: usuario.correo, nombre: usuario.nombre, textos: TEXTOS_VERSION });
     const siguiente = siguienteTrasVincular(vinculo.estado);
     if (siguiente === "rechazar") return fallar({ estado: "correo_de_otra_persona" });
