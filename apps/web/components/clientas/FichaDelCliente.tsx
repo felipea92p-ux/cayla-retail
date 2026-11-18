@@ -148,7 +148,7 @@ export function HistorialDelCliente({ movimientos }: { movimientos: readonly Mov
       <LineaDelMes grupos={agruparPorMes(primeros)} />
       {resto.length > 0 && (
         <>
-          <FilasDeMas abierto={todas}>
+          <FilasDeMas abierto={todas} alEncontrar={() => setTodas(true)}>
             <LineaDelMes grupos={agruparPorMes(resto)} sinPrimerMes={ultimoMes(primeros)} />
           </FilasDeMas>
           <BotonVerMas forma="enlace" abierto={todas} onCambiar={setTodas} texto={`Ver las ${filtrados.length}`} />

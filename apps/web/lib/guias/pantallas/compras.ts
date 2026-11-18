@@ -1003,6 +1003,14 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       texto: "Antes de una campaña (Navidad, Día de la Madre, San Valentín…), aquí decides cuánto comprar de cada categoría. Imaginas una campaña floja, una normal y una buena, y el sistema te dice cuánto conviene comprar. Es una demo: no se guarda nada.",
     },
     {
+      id: "como",
+      // Desde la ronda 18 la frase del plan, con su «!», vive en el globo del «?» del título. Se enciende el «?» sin abrirlo (abierto, al
+      // volver con ← quedaría encima de los pasos de atrás) y al empezar, con la página arriba: al final, la cabecera lo tapaba a medias.
+      ancla: "plan.ayuda",
+      titulo: "Cómo se calcula",
+      texto: "Toca el «?» junto al título: ahí está la frase del plan y su «!», que explica el cálculo en palabras simples: cuánto cuesta quedarse corto frente a cuánto se pierde si sobra.",
+    },
+    {
       id: "empezar",
       ancla: "plan.empezar",
       opcional: true,
@@ -1048,8 +1056,9 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       id: "avisos-lista",
       ancla: "plan.avisos-panel",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "plan.avisos" }],
-      prepararSoloAlAvanzar: true,
+      // El ícono de los avisos abre y cierra la lista con el mismo toque: «abrir» no la cierra si ya está abierta. Los pasos que viven
+      // en la lista lo piden también, así se ven igual al volver con ← (al volver, el motor cierra la lista, que es un diálogo).
+      preparar: [{ tipo: "clic", ancla: "plan.avisos", para: "abrir" }],
       titulo: "Qué dice cada aviso",
       texto: "Cada aviso dice qué es y qué hacer, con su botón. «Ya lo vi» deja de contarlo hasta que cambie el dato; lo urgente no se puede marcar. Si hay más de los que caben, la lista corre por dentro. Te la abrimos.",
     },
@@ -1057,6 +1066,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       id: "plazo-cambiar",
       ancla: "plan.plazo-cambiar",
       opcional: true,
+      preparar: [{ tipo: "clic", ancla: "plan.avisos", para: "abrir" }],
       titulo: "Los días para llegar",
       texto: "El aviso del plazo dice el último día para pedir y que la mercadería llegue antes de que empiece la campaña. Si no fijas los días de espera, se cuenta con un supuesto (14), no con una medida. «Cambiar los días» abre una hoja donde dices cuánto tarda de verdad un pedido. Te la abrimos.",
     },
@@ -1064,7 +1074,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       id: "plazo-dias",
       ancla: "plazo-modal.dias",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "plan.plazo-cambiar" }],
+      preparar: [{ tipo: "clic", ancla: "plan.avisos", para: "abrir" }, { tipo: "clic", ancla: "plan.plazo-cambiar" }],
       titulo: "Cuántos días tarda en llegar",
       texto: "Cuenta desde que pides hasta que la mercadería está en la tienda. Mientras escribes, la hoja te dice qué fecha límite resulta. Ojo: cambiarlo mueve la fecha de todas las categorías de esta campaña.",
     },
@@ -1087,14 +1097,15 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       id: "stock",
       ancla: "plan.stock",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "plan.resumen" }],
-      prepararSoloAlAvanzar: true,
+      // «Resumen» abre su cajón y dice si está abierto: «abrir» no lo toca si ya lo está. Las cifras, que viven ahí, lo piden también.
+      preparar: [{ tipo: "clic", ancla: "plan.resumen", para: "abrir" }],
       titulo: "¿El stock está al día?",
       texto: "El plan descuenta lo que ya hay. Si una tienda no tiene el piso cuadrado o el almacén contado, aquí te avisa: el plan te pediría comprar de más. Cuéntalo antes de decidir.",
     },
     {
       id: "cifras",
       ancla: "plan.cifras",
+      preparar: [{ tipo: "clic", ancla: "plan.resumen", para: "abrir" }],
       titulo: "El plan en cifras",
       texto: "Toda CAYLA: cuántas categorías ya tienen plan, cuántas prendas comprar, cuánto cuesta al costo contra el tope y lo vendido. El plan es uno para todas las tiendas. Una cifra que filtra (las que siguen sin plan) filtra la tabla de atrás.",
     },
@@ -1283,15 +1294,9 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       texto: "«Enviar como pendientes de campaña» deja cada pedido esperando en Compras ▸ Órdenes, a tu nombre. Quien compra lo confirma allá y recién entonces nace la orden. Si cambias de idea antes, «Rectificar el envío». En la demo no se envía nada.",
     },
     {
-      id: "como",
-      ancla: "plan.como",
-      preparar: [{ tipo: "escape" }],
-      titulo: "Cómo se calcula",
-      texto: "Este «!», junto a la frase de arriba, explica el cálculo en palabras simples: cuánto cuesta quedarse corto frente a cuánto se pierde si sobra.",
-    },
-    {
       id: "fin",
       ancla: null,
+      preparar: [{ tipo: "escape" }],
       titulo: "¡Listo!",
       texto: "Ya sabes armar el plan de campaña. Para repasarlo: Mi perfil ▸ Demo ▸ Plan de campaña.",
     },

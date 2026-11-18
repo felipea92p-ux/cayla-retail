@@ -389,7 +389,7 @@ function BloqueoDelBalance({ bloqueos, chequeos, onArranque }: { bloqueos: Chequ
         </div>
       )}
       <BotonVerMas abierto={todas} onCambiar={setTodas} texto="Ver cada comprobación" forma="enlace" />
-      <FilasDeMas abierto={todas}>
+      <FilasDeMas abierto={todas} alEncontrar={() => setTodas(true)}>
         <ul className="fin-chequeos">
           {chequeos.map((x) => (
             <FilaChequeo key={x.clave} c={x} onArranque={onArranque} />

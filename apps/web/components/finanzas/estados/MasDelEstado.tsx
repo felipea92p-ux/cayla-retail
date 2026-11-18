@@ -28,7 +28,7 @@ export function MasDelEstado({ texto, guia, abierto: deInicio = false, children 
       <div className="estados-mas-boton">
         <BotonVerMas abierto={abierto} onCambiar={setAbierto} texto={texto} forma="enlace" data-guia={guia} />
       </div>
-      <FilasDeMas abierto={abierto}>
+      <FilasDeMas abierto={abierto} alEncontrar={() => setAbierto(true)}>
         <div ref={contenido} className="placa-estados estados-debajo estados-mas-contenido">
           {children}
         </div>

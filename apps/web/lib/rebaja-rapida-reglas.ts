@@ -4,10 +4,8 @@
  * puede poner, cuánto quedaría, de dónde sale y qué falta para confirmar. No agrega reglas: el tope (70 %) y «una prenda, un lugar» son de la base.
  */
 import type { CampoDeGuia } from "./guia-campos";
+import { compararTallas } from "./tallas";
 import { descuentoDeCampana, totalDeLineas } from "./vender-reglas";
-
-/** El tope de un %, el mismo de toda oferta (`rebaja_cajones_pct`, `poner_rebaja`). */
-export const PCT_MAX_REBAJA = 70;
 
 export type AlcanceRebaja = "prenda" | "modelo";
 
@@ -105,6 +103,333 @@ export function leerRebajaDePrenda(json: unknown): RebajaDePrenda | null {
   };
 }
 
+/**
+ * Un descuento de la lista de Campañas y ofertas (ADR-0677): un cajón de «Poner un %» con su %, si es de todas las tiendas, si rige en la
+ * tienda que se mira y cuántas prendas tiene ahí (`campanas_descuentos`, 20261118001000).
+ */
+export type DescuentoDeLista = { etiquetaId: string; pct: number; todas: boolean; rigeAqui: boolean; activo: boolean; prendas: number };
+
+/** Las filas de `campanas_descuentos` como las usa la pantalla. Sin forma conocida, `null`: la lista se dibuja sin la sección Descuentos. */
+export function leerDescuentos(filas: unknown): DescuentoDeLista[] | null {
+  if (!Array.isArray(filas)) return null;
+  const num = (v: unknown) => (typeof v === "number" ? v : Number(v));
+  return filas
+    .filter((f): f is Record<string, unknown> => typeof f === "object" && f !== null && typeof (f as { etiqueta_id?: unknown }).etiqueta_id === "string")
+    .map((f) => ({
+      etiquetaId: f.etiqueta_id as string,
+      pct: num(f.pct),
+      todas: f.todas === true,
+      rigeAqui: f.rige_aqui === true,
+      activo: f.activo === true,
+      prendas: num(f.prendas) || 0,
+    }))
+    .filter((d) => Number.isFinite(d.pct));
+}
+
+/**
+ * Las filas de «Descuentos» en la tienda que se mira: los activos que rigen ahí, del % menor al mayor y, con el mismo %, el de la tienda
+ * antes que el de todas (Felipe 2026-11-17: son dos filas, y la de todas lo dice).
+ */
+export function descuentosDeLaTienda(lista: readonly DescuentoDeLista[]): DescuentoDeLista[] {
+  return lista.filter((d) => d.activo && d.rigeAqui).sort((a, b) => a.pct - b.pct || Number(a.todas) - Number(b.todas));
+}
+
+/** Una talla marcada en un descuento, como la devuelve `campanas_rebaja_prendas` (con su precio en la tienda). */
+export type PrendaDeLugar = {
+  varianteId: string;
+  productoId: string;
+  referencia: string;
+  color: string | null;
+  colorHex: string | null;
+  talla: string | null;
+  precio: number;
+};
+
+/** Lo que la vitrina de la pantalla sabe de cada talla a la venta: su categoría y su foto (la prenda sin foto, ADR-0333). */
+export type VitrinaDeTalla = {
+  productoId: string;
+  colorNombre: string | null;
+  categoria: { nombre: string | null; prefijo: string | null; familia: string | null } | null;
+  fotoUrl: string | null;
+};
+
+/**
+ * Una prenda del panel de un descuento (ADR-0677): un modelo en un color, como cuentan las tiendas y la fila de la lista, con las tallas
+ * marcadas. Si no están todas las de ese color, el panel las nombra («Negro · S, M»). Quitarla saca todas sus tallas.
+ */
+export type PiezaDeDescuento = {
+  clave: string;
+  productoId: string;
+  referencia: string;
+  color: string | null;
+  colorHex: string | null;
+  categoria: VitrinaDeTalla["categoria"];
+  fotoUrl: string | null;
+  variantes: string[];
+  tallas: string[];
+  todasLasTallas: boolean;
+  /** El precio de hoy en la tienda (el menor de sus tallas) y con el %. */
+  precio: number;
+  precioConPct: number;
+  /** Con el %, alguna talla se vende por debajo de lo que costó (sin costo a la vista, nunca). */
+  bajoCosto: boolean;
+};
+
+/** La clave de un modelo en un color: la misma para la talla que llega de la base y la de la vitrina. */
+export const claveModeloColor = (productoId: string, color: string | null) => `${productoId}·${color ?? ""}`;
+
+/**
+ * Las prendas del panel: las tallas marcadas, juntas por modelo y color. Primero las que se agregaron recién (la más nueva arriba, para
+ * verla llegar) y después por nombre y color. `tallasPorColor` dice cuántas tallas a la venta tiene cada modelo en su color, y `costos`
+ * lo que costó cada talla (0 o ausente: sin costo a la vista).
+ */
+export function piezasDeDescuento(
+  prendas: readonly PrendaDeLugar[],
+  pct: number,
+  datos: {
+    vitrina: ReadonlyMap<string, VitrinaDeTalla> | null;
+    tallasPorColor: ReadonlyMap<string, number>;
+    costos: ReadonlyMap<string, number>;
+    recientes?: readonly string[];
+  },
+): PiezaDeDescuento[] {
+  const porClave = new Map<string, PiezaDeDescuento>();
+  for (const p of prendas) {
+    const clave = claveModeloColor(p.productoId, p.color);
+    const vitrina = datos.vitrina?.get(p.varianteId) ?? null;
+    const costo = datos.costos.get(p.varianteId) ?? 0;
+    const bajo = costo > 0 && precioConPct(p.precio, pct) < costo;
+    const ya = porClave.get(clave);
+    if (ya) {
+      ya.variantes.push(p.varianteId);
+      if (p.talla) ya.tallas.push(p.talla);
+      if (p.precio < ya.precio) ya.precio = p.precio;
+      ya.bajoCosto ||= bajo;
+      continue;
+    }
+    porClave.set(clave, {
+      clave,
+      productoId: p.productoId,
+      referencia: p.referencia,
+      color: p.color,
+      colorHex: p.colorHex,
+      categoria: vitrina?.categoria ?? null,
+      fotoUrl: vitrina?.fotoUrl ?? null,
+      variantes: [p.varianteId],
+      tallas: p.talla ? [p.talla] : [],
+      todasLasTallas: false,
+      precio: p.precio,
+      precioConPct: 0,
+      bajoCosto: bajo,
+    });
+  }
+  const recientes = datos.recientes ?? [];
+  const lugarReciente = (clave: string) => {
+    const i = recientes.indexOf(clave);
+    return i < 0 ? Number.POSITIVE_INFINITY : i;
+  };
+  return [...porClave.values()]
+    .map((pieza) => ({
+      ...pieza,
+      // De la más chica a la más grande (S, M, L), como en toda la tienda; la base las trae por nombre.
+      tallas: [...pieza.tallas].sort(compararTallas),
+      precioConPct: precioConPct(pieza.precio, pct),
+      todasLasTallas: pieza.variantes.length >= (datos.tallasPorColor.get(pieza.clave) ?? Number.POSITIVE_INFINITY),
+    }))
+    .sort(
+      (a, b) =>
+        lugarReciente(a.clave) - lugarReciente(b.clave) ||
+        a.referencia.localeCompare(b.referencia, "es") ||
+        (a.color ?? "").localeCompare(b.color ?? "", "es"),
+    );
+}
+
+/**
+ * La línea bajo el nombre: el color y qué tallas van. «Todas las tallas» lo dice con palabras (la prueba ciega del 2026-11-18 no sabía si
+ * «Negro» solo era todas o una); si el modelo tiene una sola talla, la nombra.
+ */
+export function detalleDePieza(p: Pick<PiezaDeDescuento, "color" | "tallas" | "todasLasTallas">): string {
+  const tallas = p.tallas.length === 0 ? null : p.todasLasTallas && p.tallas.length > 1 ? "todas las tallas" : p.tallas.join(", ");
+  return [p.color, tallas].filter(Boolean).join(" · ");
+}
+
+/**
+ * De dónde salió la prenda al agregarla, en palabras de tienda: el % de un descuento («Antes tenía −20 %») o el nombre de una campaña
+ * («Antes estaba en «Para liquidar»»), nunca el nombre interno del cajón («Rebaja −20 % · Tienda Lima», que la prueba ciega no entendió).
+ * `null` si no venía de ninguno.
+ */
+export function textoDeDondeSalio(lugares: readonly string[]): string | null {
+  if (lugares.length === 0) return null;
+  let soloDescuentos = true;
+  const partes = lugares.map((nombre) => {
+    const cajon = /^Rebaja (−\S+ %) · (.+)$/.exec(nombre);
+    if (!cajon) {
+      soloDescuentos = false;
+      return `«${nombre}»`;
+    }
+    return cajon[2] === "Todas las tiendas" ? `${cajon[1]} de todas las tiendas` : cajon[1];
+  });
+  const lista = new Intl.ListFormat("es", { type: "conjunction" }).format(partes);
+  return soloDescuentos ? `Antes tenía ${lista}` : `Antes estaba en ${lista}`;
+}
+
+/** Una talla que devuelve `buscar_prenda_para_rebaja`: por su código exacto (lo que lee la pistola) o por el nombre del modelo. */
+export type PrendaBuscada = PrendaDeLugar & {
+  codigo: string | null;
+  fotoUrl: string | null;
+  categoria: VitrinaDeTalla["categoria"];
+  /** Llegó por su código exacto: se agrega esa talla o todo su modelo, sin elegir en una lista. */
+  exacta: boolean;
+};
+
+export function leerPrendasBuscadas(filas: unknown): PrendaBuscada[] {
+  if (!Array.isArray(filas)) return [];
+  return filas
+    .map((x) => obj(x))
+    .filter((x) => typeof x.variante_id === "string" && typeof x.producto_id === "string")
+    .map((x) => ({
+      varianteId: x.variante_id as string,
+      productoId: x.producto_id as string,
+      referencia: texto(x.referencia) ?? "",
+      codigo: texto(x.codigo),
+      color: texto(x.color),
+      colorHex: texto(x.color_hex),
+      talla: texto(x.talla),
+      precio: num(x.precio) || 0,
+      fotoUrl: texto(x.foto),
+      categoria: { nombre: texto(x.categoria), prefijo: texto(x.categoria_prefijo), familia: texto(x.categoria_familia) },
+      exacta: x.exacta === true,
+    }));
+}
+
+/** Lo que se sugiere al buscar por nombre: un modelo en un color (con todas sus tallas), y si ya está en este descuento. */
+export type SugerenciaDeAgregar = {
+  clave: string;
+  productoId: string;
+  referencia: string;
+  color: string | null;
+  colorHex: string | null;
+  fotoUrl: string | null;
+  categoria: VitrinaDeTalla["categoria"];
+  precio: number;
+  yaEsta: boolean;
+};
+
+/** Las tallas buscadas, juntas por modelo y color, en el orden en que llegaron (la base pone primero lo que empieza con lo escrito). */
+export function sugerenciasDeAgregar(buscadas: readonly PrendaBuscada[], enElDescuento: ReadonlySet<string>): SugerenciaDeAgregar[] {
+  const porClave = new Map<string, SugerenciaDeAgregar>();
+  for (const b of buscadas) {
+    const clave = claveModeloColor(b.productoId, b.color);
+    const ya = porClave.get(clave);
+    if (ya) {
+      if (b.precio < ya.precio) ya.precio = b.precio;
+      continue;
+    }
+    porClave.set(clave, {
+      clave,
+      productoId: b.productoId,
+      referencia: b.referencia,
+      color: b.color,
+      colorHex: b.colorHex,
+      fotoUrl: b.fotoUrl,
+      categoria: b.categoria,
+      precio: b.precio,
+      yaEsta: enElDescuento.has(clave),
+    });
+  }
+  return [...porClave.values()];
+}
+
+/**
+ * Cómo se deshace haber agregado tallas a un descuento: cada una vuelve a donde estaba antes (`antes`, de `campanas_rebaja_de_variantes`):
+ * a su otro lugar, o a ningún % si no tenía. La que ya estaba en este descuento no se toca.
+ */
+export function comoDeshacerAgregar(
+  variantes: readonly string[],
+  antes: ReadonlyMap<string, string>,
+  destinoId: string,
+): { devolver: { varianteId: string; a: string }[]; quitar: string[] } {
+  const devolver: { varianteId: string; a: string }[] = [];
+  const quitar: string[] = [];
+  for (const v of new Set(variantes)) {
+    const estaba = antes.get(v);
+    if (estaba === destinoId) continue;
+    if (estaba) devolver.push({ varianteId: v, a: estaba });
+    else quitar.push(v);
+  }
+  return { devolver, quitar };
+}
+
+/**
+ * La base dice que el descuento (o el % adonde iba la prenda) ya no está en esta tienda: otra persona lo apagó, o se guardó sin que la
+ * respuesta llegara. Lo que se ve está viejo: la pantalla vuelve a leer la lista y avisa esto, en vez de pedir «vuelve a abrir la lista»
+ * (chaos 2026-11-18, semilla 1118, #2). `null` si el error es otro.
+ */
+export function avisoDeListaVieja(error: { hint?: string | null } | null | undefined): string | null {
+  if (error?.hint === "rebaja_descuento_no_esta") return "Ese descuento ya no estaba: la lista ya está al día.";
+  if (error?.hint === "rebaja_lugar_no_rige") return "Ese % ya no rige aquí: la lista ya está al día.";
+  return null;
+}
+
+/** Los % a un toque de «Nuevo descuento» (la maqueta elegida); cualquier otro de 1 a 70 se escribe. */
+export const PCTS_SUGERIDOS = [5, 10, 15, 20, 25, 30, 40, 50, 70] as const;
+
+/** Un % que la base acepta para un descuento: de 1 a 70, a dos decimales (`fn_pct_de_descuento`). */
+export function pctDeDescuento(n: number | null): number | null {
+  if (n === null || !Number.isFinite(n)) return null;
+  const pct = Math.round(n * 100) / 100;
+  return pct >= 1 && pct <= 70 ? pct : null;
+}
+
+/** El descuento encendido que ya tiene ese % donde se mira (de la tienda, o de todas): «Ya existe». */
+export function descuentoConPct(lista: readonly DescuentoDeLista[], pct: number | null, todas: boolean, salvo?: string): DescuentoDeLista | null {
+  if (pct === null) return null;
+  return lista.find((d) => d.activo && d.rigeAqui && d.todas === todas && Math.round(d.pct * 100) === Math.round(pct * 100) && d.etiquetaId !== salvo) ?? null;
+}
+
+/** Lo que dice el botón de la hoja: crear, abrir el que ya existe, cambiar el %, o juntar en el que ya tiene ese % (Felipe 2026-11-17). */
+export function textoDeLaHojaDeDescuento(c: { cambiando: boolean; existe: boolean; pct: number | null }): string {
+  const pct = c.pct === null ? "" : ` ${textoPct(c.pct)}`;
+  if (c.cambiando) return c.existe ? `Juntar en${pct}` : c.pct === null ? "Cambiar el %" : `Cambiar a${pct}`;
+  return c.existe ? `Abrir${pct}` : c.pct === null ? "Crear" : `Crear${pct}`;
+}
+
+/**
+ * Los campos de la guía de foco de la hoja (ADR-0284): el % y quién lo hace. Abrir uno que ya existe no guarda nada, así que no pide quién. Sale
+ * de lo mismo que exige la base (`fn_pct_de_descuento`, `fn_actor_persona_id`).
+ *
+ * El % llega puesto (25, o el que tiene al cambiarlo): es un valor de fábrica que importa (ADR-0284 act. h). Mientras nadie lo toque la luz
+ * pasa por él como «sugerido», sin bloquear; vacío o fuera de 1..70 es lo único que bloquea, como en la base.
+ */
+export function camposDeLaHojaDeDescuento(c: {
+  pct: number | null;
+  /** ¿La persona tocó el % (escribió, usó − / + o eligió un chip)? */
+  pctElegido: boolean;
+  existeSinCambiar: boolean;
+  responsableListo: boolean;
+  responsableMotivo: string | null;
+}): CampoDeGuia[] {
+  const valido = c.pct !== null;
+  return [
+    {
+      id: "pct",
+      nombre: "Porcentaje",
+      requerido: !valido,
+      sugerido: valido,
+      hecho: valido && c.pctElegido,
+      pendiente: valido ? `Elige el % (ahora dice ${textoPct(c.pct as number)}).` : "Elige un % de 1 a 70.",
+    },
+    ...(c.existeSinCambiar
+      ? []
+      : [{ id: "responsable", nombre: "Quién", requerido: true, hecho: c.responsableListo, pendiente: c.responsableMotivo ?? "Elige quién lo hace." }]),
+  ];
+}
+
+/** «Descuento −10 %, 15 prendas, todas las tiendas»: lo que oye el lector de pantalla en la fila. */
+export function nombreDeDescuento(d: Pick<DescuentoDeLista, "pct" | "prendas" | "todas">): string {
+  return [`Descuento ${textoPct(d.pct)}`, `${d.prendas} ${d.prendas === 1 ? "prenda" : "prendas"}`, d.todas ? "todas las tiendas" : null].filter(Boolean).join(", ");
+}
+
 /** «−20 %», con hasta dos decimales y sin ceros de más. */
 export function textoPct(pct: number): string {
   return `−${Number.isInteger(pct) ? pct : Number(pct.toFixed(2))} %`;
@@ -125,27 +450,6 @@ export function quedaBajoCosto(prenda: Pick<PrendaParaRebaja, "precio" | "piso">
   return prenda.piso !== null && pct > 0 && precioConPct(prenda.precio, pct) < prenda.piso;
 }
 
-/** Lo que se elige en la hoja: un lugar que ya existe, u «otro %» que se escribe. */
-export type EleccionDePct = { tipo: "lugar"; etiquetaId: string } | { tipo: "otro"; pct: number | null } | null;
-
-/** El % de lo elegido, o null si todavía no hay uno válido. */
-export function pctElegido(e: EleccionDePct, lugares: readonly LugarDeRebaja[]): number | null {
-  if (!e) return null;
-  if (e.tipo === "lugar") return lugares.find((l) => l.etiquetaId === e.etiquetaId)?.pct ?? null;
-  return e.pct !== null && Number.isFinite(e.pct) && e.pct > 0 && e.pct <= PCT_MAX_REBAJA ? e.pct : null;
-}
-
-/** «Otro %» que ya existe en la tienda: se usa ese lugar en vez de crear un cajón igual al lado (una campaña con ese % gana a un cajón nuevo). */
-export function lugarConPct(pct: number, lugares: readonly LugarDeRebaja[]): LugarDeRebaja | null {
-  const iguales = lugares.filter((l) => Math.round(l.pct * 100) === Math.round(pct * 100));
-  return iguales.find((l) => l.esCajon) ?? iguales[0] ?? null;
-}
-
-/** Los lugares de los que sale la prenda al ponerla en `destino` (los que le llegan a mano y se pueden mover). */
-export function saleDe(tiene: readonly RebajaQueTiene[], destinoId: string | null): string[] {
-  return tiene.filter((t) => t.como === "a_mano" && t.movible && t.etiquetaId !== destinoId).map((t) => nombreDeLugar(t));
-}
-
 /** Lo que le sigue llegando aunque se ponga otro % (por categoría, por una oferta o de otra tienda): la caja cobra el mayor. */
 export function sigueLlegando(tiene: readonly RebajaQueTiene[], destinoId: string | null): RebajaQueTiene[] {
   return tiene.filter((t) => !(t.como === "a_mano" && t.movible) && t.etiquetaId !== destinoId);
@@ -154,32 +458,6 @@ export function sigueLlegando(tiene: readonly RebajaQueTiene[], destinoId: strin
 /** El % que cobrará la caja con lo elegido: el mayor entre lo elegido y lo que le sigue llegando. */
 export function pctQueCobra(tiene: readonly RebajaQueTiene[], destinoId: string | null, pct: number | null): number {
   return Math.max(pct ?? 0, ...sigueLlegando(tiene, destinoId).map((t) => t.pct));
-}
-
-/** ¿Hay algo que «Quitar el %» pueda sacar? */
-export function hayQueQuitar(tiene: readonly RebajaQueTiene[]): boolean {
-  return tiene.some((t) => t.como === "a_mano" && t.movible);
-}
-
-/** Los campos de la guía de foco de la hoja: a qué, cuánto y quién. Sale de lo mismo que exige `poner_rebaja`. */
-export function camposDeRebaja(c: { alcance: AlcanceRebaja | null; eleccion: EleccionDePct; pct: number | null; responsableListo: boolean; responsableMotivo: string | null }): CampoDeGuia[] {
-  const escribiendoOtro = c.eleccion?.tipo === "otro";
-  return [
-    { id: "alcance", nombre: "A qué", requerido: true, hecho: c.alcance !== null, pendiente: "Elige si va solo a esta prenda o a todo el modelo." },
-    {
-      id: "pct",
-      nombre: "Cuánto",
-      requerido: true,
-      hecho: c.pct !== null,
-      pendiente: escribiendoOtro ? `Escribe un % de 1 a ${PCT_MAX_REBAJA}.` : "Elige cuánto menos.",
-    },
-    { id: "responsable", nombre: "Quién", requerido: true, hecho: c.responsableListo, pendiente: c.responsableMotivo ?? "Elige quién lo pone." },
-  ];
-}
-
-/** El botón que confirma: «Poner −20 %», o «Poner el %» si todavía no se eligió. */
-export function textoDelBoton(pct: number | null): string {
-  return pct === null ? "Poner el %" : `Poner ${textoPct(pct)}`;
 }
 
 /** La prenda en una línea: «Blusa Emma · Negro · M». */

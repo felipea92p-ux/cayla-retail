@@ -127,6 +127,17 @@
   background: color-mix(in srgb, var(--color-tinta) 9%, transparent);
   transition: background-color 200ms var(--ease-cayla);
 }
+/* Se dibuja de 22 × 16 px, pero se toca en 24 × 24 (WCAG 2.5.8): un área invisible centrada, que cabe en el relleno de 5 px de la chapa.
+   Va después del último punto, así que donde roza el área de 6 px de ese punto gana el «+N». Con el dedo se DIBUJA de 44 (tacto.css). */
+.vitrina-mas-colores::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 24px);
+  height: max(100%, 24px);
+  transform: translate(-50%, -50%);
+}
 @media (hover: hover) {
   .vitrina-mas-colores:hover { background: color-mix(in srgb, var(--color-tinta) 16%, transparent); }
 }

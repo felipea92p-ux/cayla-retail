@@ -9,7 +9,7 @@ export function VerMas({ cantidad, children }: { cantidad: number; children: Rea
   const [abierto, setAbierto] = useState(false);
   return (
     <>
-      <FilasDeMas abierto={abierto}>{children}</FilasDeMas>
+      <FilasDeMas abierto={abierto} alEncontrar={() => setAbierto(true)}>{children}</FilasDeMas>
       <BotonVerMas abierto={abierto} onCambiar={setAbierto} texto={`Ver ${cantidad} más`} />
     </>
   );

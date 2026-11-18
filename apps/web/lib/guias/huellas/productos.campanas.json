@@ -2,7 +2,7 @@
   "guia": "productos.campanas",
   "ruta": "/productos/campanas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 180,
+  "total": 186,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -65,6 +65,11 @@
       "button «→onOtras»",
       "BotonDeshacer «Deshacer esta lectura»"
     ],
+    "components/alta-producto/FotosAlta.tsx": [
+      "button «{etiqueta}»",
+      "input «(sin nombre)»",
+      "button «{etiqueta}» #2"
+    ],
     "components/atributos/kit.tsx": [
       "BotonFiltros «vocabulario.filtros»",
       "Boton «vocabulario.agregar»",
@@ -85,6 +90,26 @@
       "button «Prenda anterior»",
       "button «Prenda siguiente»"
     ],
+    "components/campanas/AgregarAlDescuento.tsx": [
+      "Boton «Solo esta»",
+      "Boton «Todo el modelo»",
+      "button «Escanear prendas con la cámara»",
+      "Boton «Solo esta» #2",
+      "Boton «{p.modeloColores > 1 ? `Todo el modelo · ${p.modeloColores}»"
+    ],
+    "components/campanas/FilaDeLista.tsx": [
+      "button «{guia}»"
+    ],
+    "components/campanas/HojaDeDescuento.tsx": [
+      "button «{textoPct(v)}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «(sin nombre)»"
+    ],
+    "components/campanas/PanelDeDescuento.tsx": [
+      "ComboResponsable «{responsable}»",
+      "button «{`${abierta ? \"Esconder\" : \"Ver\"}»"
+    ],
     "components/etiqueta-prendas/EtiquetaColgada.tsx": [
       "button «{`${x.producto.referencia}»"
     ],
@@ -92,19 +117,8 @@
       "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
-    "components/rebajas/HojaRebaja.tsx": [
-      "button «→() => setAlcance(\"prenda\")»",
-      "button «{`Todo el modelo · ${datos.r.prenda.modeloPrendas}»",
-      "button «{`${l.prendas}»",
-      "button «Otro %»",
-      "ComboResponsable «{responsable}»",
-      "Boton «Quitar el %»",
-      "Boton «Cancelar»",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
-    ],
     "components/rebajas/RebajasDeTienda.tsx": [
-      "ComboResponsable «{responsable}»",
-      "Boton «{responsable.motivo ?? undefined}»"
+      "button «rebaja.nuevo»"
     ],
     "components/sellos/AvisoDosOfertas.tsx": [
       "Boton «Elegir cuál queda»",
@@ -194,7 +208,8 @@
       "button «Registrar otra en vez de editar»"
     ],
     "components/sellos/SellosPantalla.tsx": [
-      "button «→(ev) => abrir(e.id, ev.currentTarget)»",
+      "Volver «→() => setDescuentoAbiertoId(null)»",
+      "button «{indice === 0 && esCampanas ? \"sellos.primero\" : undefined}»",
       "BotonEditar «Corregir el nombre o cambiar el ícono de la insignia»",
       "button «{conGuia ? \"sellos.prendas\" : undefined}»",
       "button «{conGuia ? \"sellos.configurar\" : undefined}»",
@@ -205,7 +220,6 @@
       "Boton «+ Elegir prendas»",
       "button «sellos.mapa»",
       "BotonEnlace «sellos.diseno-web»",
-      "Boton «rebaja.tienda»",
       "Boton «sellos.nuevo»",
       "Boton «sellos.nuevo» #2",
       "Pestanas «→cambiarVista»",

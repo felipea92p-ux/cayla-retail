@@ -344,7 +344,7 @@ function Desglose({
             {lista.slice(0, A_LA_VISTA).map(filaDeGasto)}
           </div>
           {lista.length > A_LA_VISTA && (
-            <FilasDeMas abierto={mas}>
+            <FilasDeMas abierto={mas} alEncontrar={() => onMas(true)}>
               <div className="hilo-gastos" data-con-sede={conSede || undefined}>
                 {lista.slice(A_LA_VISTA).map(filaDeGasto)}
               </div>

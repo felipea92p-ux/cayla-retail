@@ -21,6 +21,30 @@ export type EstadoDial = {
 
 const miles = (n: number): string => n.toLocaleString("es-PE");
 
+/** Un corte del aro: una raya corta que cruza el aro, de adentro hacia afuera, en coordenadas del `viewBox` del Dial. */
+type CorteDelDial = { x1: number; y1: number; x2: number; y2: number };
+
+/** A centésimas: el Dial mide 290 de ancho, así que una centésima es mucho menos que un píxel. */
+const centesimas = (n: number): number => Math.round(n * 100) / 100;
+
+/**
+ * Dónde va cada corte del aro (uno por prenda esperada, repartidos desde las 3 en punto). Redondeado a centésimas porque el Dial se dibuja
+ * primero en el servidor y después en el navegador, y `Math.cos`/`Math.sin` no dan siempre el mismo último decimal en los dos
+ * (`63.593612044262784` contra `63.5936120442628`): React avisaba que el HTML del servidor no coincidía. Redondeado, los dos escriben lo mismo.
+ */
+export function cortesDelDial(cortes: number, centro: number, radio: number, largo: number): CorteDelDial[] {
+  return Array.from({ length: cortes }, (_, i) => {
+    const t = (i / cortes) * Math.PI * 2;
+    const [cos, sin] = [Math.cos(t), Math.sin(t)];
+    return {
+      x1: centesimas(centro + cos * (radio - largo)),
+      y1: centesimas(centro + sin * (radio - largo)),
+      x2: centesimas(centro + cos * (radio + largo)),
+      y2: centesimas(centro + sin * (radio + largo)),
+    };
+  });
+}
+
 /**
  * Los dos atajos de suma, a la escala de lo que se cuenta: de 5 en 5 para 40 prendas, pero nadie llega a 12.000 de 5 en 5. Sin lo que dijeron (sin
  * aviso), la escala la da lo que ya se lleva contado.

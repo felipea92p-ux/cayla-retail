@@ -123,6 +123,7 @@ export function MarcoPlan({
         sede="Todas las tiendas"
         titulo="Plan de campaña"
         subtitulo={subtitulo}
+        guiaAyuda="plan.ayuda"
         acciones={
           <>
             <TooltipProvider delayDuration={150}>

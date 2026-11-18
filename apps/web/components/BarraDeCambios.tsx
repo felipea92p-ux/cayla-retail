@@ -50,9 +50,10 @@ export function BarraDeCambios({
   if (cantidad > 0 && cantidad !== ultima) setUltima(cantidad);
   const cifra = cantidad > 0 ? cantidad : ultima;
   const hayQueRecargar = versionCambiada || sinLeerVariantes;
+  const visible = cantidad > 0 || preparandoFoto;
   return (
     <BarraFija
-      visible={cantidad > 0 || preparandoFoto}
+      visible={visible}
       // En una tablet con el lateral abierto la barra mide ~550 px: con este piso el mensaje no se aplasta y los botones bajan a su línea.
       resumenMinimo="min-w-[17rem]"
       aviso={
@@ -99,7 +100,9 @@ export function BarraDeCambios({
           ) : (
             <Boton key="guardar" type="submit" peso="primario" className="max-sm:flex-1" cargando={bloqueada || preparandoFoto}
               textoCargando={preparandoFoto && !bloqueada ? "Preparando foto…" : undefined}
-              data-guia="editar.barra-guardar"
+              // El ancla de la guía solo mientras la barra está a la vista: escondida sigue montada (baja fuera de la pantalla, `inert`), y
+              // la demo, que no cambia nada, encendía un hueco al pie en vez de saltarse el paso (ADR-0389).
+              data-guia={visible ? "editar.barra-guardar" : undefined}
             >
               Revisar y guardar
             </Boton>

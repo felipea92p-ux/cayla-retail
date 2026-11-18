@@ -68,7 +68,7 @@ export function ResumenDecidir({ avisos: delResumen, parcial = false }: { avisos
       </ul>
       {avisos.length > VISIBLES && (
         <>
-          <FilasDeMas abierto={todos}>
+          <FilasDeMas abierto={todos} alEncontrar={() => setTodos(true)}>
             <ul className="fin-decidir fin-decidir-mas">{avisos.slice(VISIBLES).map(fila)}</ul>
           </FilasDeMas>
           <BotonVerMas forma="enlace" abierto={todos} onCambiar={setTodos} texto={`Ver ${avisos.length - VISIBLES} más`} data-guia="fin-resumen.ver-mas" className="mt-2" />
