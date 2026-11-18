@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/observatorio.css";
 // El mapa del Observatorio (ADR-0322), con el motor de la maqueta aprobada. Su estado vive fuera de React (`estado`): la
 // «caja» que se quiere mostrar y el contorno. El viewBox se calcula en cada cuadro con la proporción real del espacio
 // (`ajustar`), así el mapa llena su lado de la tarjeta aunque las columnas se estén reacomodando. Al elegir una tienda, el
@@ -62,6 +63,8 @@ const RETICULA_FINA = (() => {
   return d;
 })();
 const PERU_ENTERO = poligono(formaDe("TODAS"));
+// Cada gota de la estela: cuánto más tarde sale (empieza «antes de cero», así ya está en camino al llegar) y qué tan tenue va.
+const COLA_DEL_COMETA = [1, 2, 3, 4].map((i) => ({ retraso: (-0.36 + i * 0.07).toFixed(2), opacidad: (0.5 - i * 0.1).toFixed(2) }));
 const igual = (a: Caja, b: Caja) => a.every((v, i) => Math.abs(v - b[i]) < 0.01);
 const suave = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 
@@ -220,9 +223,18 @@ export function Mapa({
               {r.enCamino && <path className="estela" pathLength={1} d={d} />}
               {r.enCamino && !reducido && (
                 <circle className="cometa" r={3.4}>
-                  <animateMotion dur="3.4s" repeatCount="indefinite" path={d} />
+                  <animateMotion dur="3.4s" begin="-0.36s" repeatCount="indefinite" path={d} />
                 </circle>
               )}
+              {/* La estela del cometa (ADR-0596, maqueta observatorio-vidrio-2026-10): cuatro gotas que lo siguen, cada una 70 ms
+                  más atrás y más tenue. Es el mismo bucle-señal del traslado en camino (ADR-0322), no uno nuevo. */}
+              {r.enCamino &&
+                !reducido &&
+                COLA_DEL_COMETA.map((g) => (
+                  <circle key={g.retraso} className="cometa cola" r={3.4} style={{ "--o": g.opacidad } as CSSProperties}>
+                    <animateMotion dur="3.4s" begin={`${g.retraso}s`} repeatCount="indefinite" path={d} />
+                  </circle>
+                ))}
             </g>
           );
         })}

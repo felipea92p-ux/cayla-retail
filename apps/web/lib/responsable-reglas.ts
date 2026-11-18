@@ -163,7 +163,7 @@ export function motivoSinResponsable(estado: EstadoCombo, sede: string, modo: Mo
     case "falta":
       return modo === "atencion" ? "Elige quién está atendiendo." : "Elige quién hace esta operación.";
     case "nadie":
-      return `Nadie de turno en ${sede}: marca tu entrada en el kiosco para poder guardar.`;
+      return `Nadie marcó entrada hoy en ${sede}: márcala en la Terminal de marcaje para poder guardar.`;
     case "sin_lectura":
       return "No se pudo leer quién está de turno. Toca «Actualizar lista».";
     case "cargando":

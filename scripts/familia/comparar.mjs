@@ -10,8 +10,8 @@
 //   node scripts/familia/comparar.mjs tokens <tokens.json> --como retail|dynamic
 //       Un `tokens.json` de un artifact «Design System» (el de CAYLA Retail o el de CAYLA Dynamic) contra el contrato: los colores de los
 //       dos temas, los radios y las dos letras. Sale con código 1 si algo de la capa «marca» no coincide, salvo lo que el contrato declara en
-//       `aplicacion_pendiente` para esa aplicación: un tema entero (`tema: "oscuro"`) o unos tokens (`tokens: ["borde-control"]`); se dice como
-//       aviso: está decidido y falta aplicarlo.
+//       `aplicacion_pendiente` para esa aplicación: un tema entero (`tema: "oscuro"`) o unos tokens (`tokens: ["borde-control"]`, también radios:
+//       `tokens: ["radius-tarjeta"]`); se dice como aviso: está decidido y falta aplicarlo.
 //
 //   node scripts/familia/comparar.mjs --autoprueba
 //       Comprueba que este detector no esté ciego: arma unos tokens que cumplen el contrato, le cambia una cosa a la vez y exige que cada
@@ -112,14 +112,19 @@ export function compararTokens(contrato, tokens, como) {
   // Radios y letras.
   const radios = tokens.radius?.tokens ?? [];
   let radiosMalos = 0;
+  let radiosEnEspera = 0;
   for (const r of contrato.marca.radios) {
     const nombre = r[como];
     if (!nombre) continue;
     const t = radios.find((x) => x.name === nombre);
     const px = t ? Number.parseFloat(String(t.value)) : undefined;
-    if (px !== r.px) { falla(`radio · ${nombre} (${r.funcion}): tiene ${px ?? "nada"} px, la familia dice ${r.px} px`); radiosMalos++; }
+    if (px === r.px) continue;
+    const texto = `radio · ${nombre} (${r.funcion}): tiene ${px ?? "nada"} px, la familia dice ${r.px} px`;
+    const p = tokenPendiente(nombre);
+    if (p) { aviso(`${texto}; pendiente de aplicar en ${como} (decidido el ${p.desde})`); radiosEnEspera++; }
+    else { falla(texto); radiosMalos++; }
   }
-  if (radiosMalos === 0) ok("radios · control, superficie, flotante y píldora coinciden");
+  if (radiosMalos === 0) ok(radiosEnEspera === 0 ? "radios · los de cada pieza coinciden" : `radios · los demás coinciden (${radiosEnEspera} pendiente de aplicar)`);
   const familias = tokens.type?.families ?? {};
   for (const clave of ["sans", "serif"]) {
     const esperado = contrato.marca.tipografia[clave];
@@ -184,6 +189,21 @@ function autoprueba(contrato) {
   if (!compararTokens(conToken, aliasEnRetail, "retail").some((x) => x.nivel === "falla" && /borde-control/.test(x.texto))) fallos.push("el detector NO notó un token viejo en la aplicación que ya debería tenerlo (retail)");
   const otroRojo = structuredClone(aliasDeTaupe); otroRojo.color.tokens.find((c) => c.name === "rojo").value.claro = "#b8412e";
   if (!compararTokens(conToken, otroRojo, "dynamic").some((x) => x.nivel === "falla")) fallos.push("un token pendiente no debería tapar la falla de otro token");
+
+  // Lo mismo con un RADIO pendiente: Dynamic todavía pinta sus tres radios de antes, y eso se avisa; en Retail, que ya debería tenerlo, falla; y un radio que no está pendiente sigue fallando.
+  const conRadio = structuredClone(contrato);
+  conRadio.aplicacion_pendiente = [{ miembro: "dynamic", tema: "radios", tokens: ["radius-tarjeta"], que: "x", desde: "2026-11-05" }];
+  const radioViejo = structuredClone(tokensQueCumplen(contrato, "dynamic"));
+  radioViejo.radius.tokens.find((r) => r.name === "radius-tarjeta").value = "16px";
+  const rr = compararTokens(conRadio, radioViejo, "dynamic");
+  if (rr.some((x) => x.nivel === "falla")) fallos.push("un radio pendiente de aplicar declarado para dynamic no debería fallar en dynamic");
+  if (!rr.some((x) => x.nivel === "aviso" && /radius-tarjeta.*pendiente de aplicar/.test(x.texto))) fallos.push("un radio pendiente de aplicar debería salir como aviso");
+  const radioEnRetail = base();
+  radioEnRetail.radius.tokens.find((r) => r.name === "radius-tarjeta").value = "16px";
+  if (!compararTokens(conRadio, radioEnRetail, "retail").some((x) => x.nivel === "falla" && /radius-tarjeta/.test(x.texto))) fallos.push("el detector NO notó un radio viejo en la aplicación que ya debería tenerlo (retail)");
+  const otroRadio = structuredClone(radioViejo);
+  otroRadio.radius.tokens.find((r) => r.name === "radius-hoja").value = "10px";
+  if (!compararTokens(conRadio, otroRadio, "dynamic").some((x) => x.nivel === "falla" && /radius-hoja/.test(x.texto))) fallos.push("un radio pendiente no debería tapar la falla de otro radio");
 
   const a = structuredClone(contrato);
   const b = structuredClone(contrato);

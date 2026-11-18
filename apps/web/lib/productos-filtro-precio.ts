@@ -47,13 +47,6 @@ export function leerMonto(texto: string): number | null {
   return Number(limpio);
 }
 
-/** Lo que va a la URL desde una caja: el número normalizado («39,90» → «39.90»), o vacío si no es un monto. La URL solo
- *  acepta `\d+(\.\d+)?` (`filtrosProductosDesdeParams`): con la coma, el filtro se ignoraba en silencio. */
-export function montoParaUrl(texto: string): string {
-  const n = leerMonto(texto);
-  return n == null ? "" : String(n);
-}
-
 /** Lo que muestra una caja que no se está escribiendo: el monto de la URL con sus céntimos («79.9» → «79.90»). */
 export function montoParaCaja(enUrl: string): string {
   const n = leerMonto(enUrl);

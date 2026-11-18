@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { cifrasDe, estadoDe, fechaDelDia, filtrar, leerLibro, montoEnSoles, plazoEnPalabras, type HojaLibro } from "./libro-reclamaciones-reglas";
+import { leerLibro } from "./libro-reclamaciones-lectura";
+import { cifrasDe, estadoDe, fechaDelDia, filtrar, montoEnSoles, plazoEnPalabras, type HojaLibro } from "./libro-reclamaciones-reglas";
 
 const BASE = {
   codigo: "000001-2026",

@@ -1,6 +1,6 @@
 // Reglas puras de /colaboradores: sin base de datos ni React, para probarlas sin ninguno de los dos y
 // para que el servidor y el navegador digan exactamente lo mismo (importable desde ambos lados).
-import { diaLima, diaYHoraLima } from "./fechas-lima";
+import { diaLima } from "./fechas-lima";
 import type {
   Colaborador,
   DynamicDisponible,
@@ -86,12 +86,6 @@ export function fechaLima(iso: string): string {
   if (!dia) return "—";
   const [a, m, d] = dia.split("-");
   return `${d}/${m}/${a}`;
-}
-
-/** «22/09 11:15», en hora de Lima. */
-export function fechaHoraLima(iso: string): string {
-  const { dia, hora } = diaYHoraLima(iso);
-  return `${dia} ${hora}`;
 }
 
 export type FraseEvento = {

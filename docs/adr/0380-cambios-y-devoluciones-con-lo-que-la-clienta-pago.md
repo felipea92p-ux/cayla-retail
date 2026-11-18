@@ -62,6 +62,15 @@ Una sola parte (solo `create or replace` de tres funciones, sin tablas ni polít
 
 **Notas ya emitidas con el precio de lista:** ninguna. Una consulta de solo lectura del 2026-10-12 encontró **0 notas de crédito** en producción, así que no hay papel viejo que corregir.
 
+## Actualización 2026-11-14: el mismo modelo conserva su descuento (ADR-0655)
+
+Felipe cambió la «consecuencia que se aceptó» (cambiar la talla cobraba el descuento): con el 3x2, cada prenda del grupo lleva su parte, y
+cobrarla por la misma prenda en otra talla es una restricción que nadie le anuncia al cliente. Desde `20261114125000`
+(`fn_precio_mismo_modelo`), otra talla o color del MISMO modelo vale lo que se pagó por la devuelta más lo que la talla nueva cuesta de más
+hoy en la tienda de la compra, y nunca devuelve. Otro modelo sigue como decidió este ADR: su precio contra lo pagado. Lo mismo en
+`registrar_cambio_varias`, en las unidades del mismo modelo hasta las que se devuelven. La pantalla hace la misma cuenta
+(`precioMismoModelo`). Prueba: `pnpm pruebas:cambio-mismo-modelo`.
+
 ## Lo que este ADR no arregla: la nota de una devolución PARCIAL lleva todas las líneas
 
 `aprobar_devolucion` llama a `emitir_nota` sin `p_items`, y `emitir_nota` copia los ítems del comprobante original (`coalesce(p_items, v_original.items)`). Desde este ADR el **total** de la nota es lo pagado por lo devuelto, pero en una devolución parcial (motivo «07») los **ítems** siguen siendo todas las líneas de la boleta, y eso es lo que `itemsParaLucode` manda a SUNAT. Ejemplo: boleta con una polera de S/ 80 y una blusa de S/ 60; se devuelve la polera → nota por S/ 80 que declara las dos prendas (S/ 140). Se vio en el código el 2026-10-12, sin probarlo contra Lucode. Está latente: en producción hay 0 devoluciones en 30 días. Arreglo propuesto: que `aprobar_devolucion` pase `p_items` armados con lo devuelto. Es SUNAT, así que espera el OK de Felipe (backlog de este ADR).

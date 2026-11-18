@@ -7,6 +7,8 @@ import { CampoTexto, Boton } from "@/components/ui/campos";
 import { guardarEjesCategoria, proponerValorVocabulario, sumarAlEje, type EjeIds, type TipoVocabulario } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { sinTildes } from "@/lib/marcas";
+import { existentesParecidos } from "@/lib/atributo-parecido";
+import { ExisteTambien, faltaPorExistente, useExisteTambien } from "@/components/ui/ExisteTambien";
 import { sugerirValorNuevo } from "@/lib/sugerencias-alta-producto";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 import { Aviso } from "@/components/ui/Aviso";
@@ -15,7 +17,7 @@ import { Aviso } from "@/components/ui/Aviso";
 // (decidido con Felipe, 2026-09-18: salir a Atributos hacía perder lo llenado).
 //
 // Son DOS escrituras y se dicen así, porque la segunda puede fallar sola:
-//   1. crear el valor en el vocabulario (queda aprobado si quien lo crea es Líder);
+//   1. crear el valor en el vocabulario (nace aprobado, lo cree quien lo cree: ADR-0534);
 //   2. ofrecerlo en ESTA categoría (categoria_tallas / _tejidos / _patrones).
 // Si la 2 falla, el valor existe pero no aparece aquí: se avisa con esas
 // palabras y reintentar es seguro: como el valor ya existe, el reintento lo
@@ -40,6 +42,10 @@ import { Aviso } from "@/components/ui/Aviso";
 // patrones (`<Modal acciones=…>`), no como un enlace al fondo; y abre su propio modal corto en vez de desplegar el campo en
 // línea. El formulario es el mismo; solo cambió dónde se pide.
 
+// «Existe también» (ADR-0576): mientras se escribe, si el nombre se parece a uno del vocabulario («Rayas» frente a «Raya»), se pregunta antes de
+// crear otro. El mismo nombre exacto NO pasa por la pregunta: ya tiene su salida de arriba (lo ofrece en la categoría o dice que ya está), y
+// «Usar X» en un parecido hace exactamente eso con el que ya existe.
+//
 // El ejemplo de la caja ya no vive aquí: sigue a la familia de la categoría y evita lo que ya existe
 // (`lib/sugerencias-alta-producto.ts`, skill `/sugerir`). «Ej. 44» le decía «talla de zapato» a quien armaba una casaca.
 const TEXTOS: Record<TipoVocabulario, { boton: string; singular: string; titulo: string }> = {
@@ -72,7 +78,7 @@ export function ProponerValor(props: Props) {
         <Modal
           variante="hoja"
           titulo={t.titulo}
-          subtitulo="¿No está? Agrégalo. Si no eres Líder, queda pendiente hasta que un Líder lo apruebe."
+          subtitulo="¿No está? Agrégalo: queda en el catálogo y se ofrece en esta categoría."
           onClose={() => setAbierto(false)}
         >
           {(cerrar) => <ProponerValorAbierto {...props} onCerrar={cerrar} />}
@@ -89,14 +95,19 @@ function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, univer
   const firma = useFirmaDeMitad("alta_producto_valor");
   const t = TEXTOS[tipo];
 
-  async function agregar() {
-    const limpio = texto.trim();
-    if (!limpio || trabajando || !firma.listo) return;
+  const vocablo = tipo === "tallas" ? "talla" : tipo === "tejidos" ? "tejido" : "patron";
+  const existe = useExisteTambien(texto, existentesParecidos(texto, universo.map((v) => ({ id: v.id, nombre: v.texto }))).filter((c) => c.por !== "mismo-nombre"));
+  const faltaExiste = faltaPorExistente(vocablo, texto, existe);
+
+  /** `elegido`: el parecido que la persona dijo que es el mismo («Usar X»): se trata como si hubiera escrito su nombre. */
+  async function agregar(elegido?: ValorVocabulario) {
+    const limpio = (elegido?.texto ?? texto).trim();
+    if (!limpio || trabajando || !firma.listo || (!elegido && existe.bloquea)) return;
     setTrabajando(true);
     setError(null);
 
     const clave = (t: string) => sinTildes(t).replace(/\s+/g, " ");
-    const existente = universo.find((v) => clave(v.texto) === clave(limpio));
+    const existente = elegido ?? universo.find((v) => clave(v.texto) === clave(limpio));
     const idsDelEje = tipo === "tallas" ? ejesActuales.tallaIds : tipo === "tejidos" ? ejesActuales.tejidoIds : ejesActuales.patronIds;
     if (existente && idsDelEje.includes(existente.id)) {
       setError(`«${existente.texto}» ya está entre las opciones de arriba: tócala.`);
@@ -112,11 +123,11 @@ function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, univer
       setTrabajando(false);
       return;
     }
+    // Desde ADR-0534 todo valor nace aprobado. Si la base todavía no tiene ese cambio y lo dejó por aprobar, no se ofrece en la
+    // categoría (el alta lo rechazaría): se dice dónde quedó, sin cerrar la hoja.
     if (!valor.aprobado) {
-      avisar.aviso(`Propuesta enviada: ${valor.texto}`, { detalle: "Un Líder tiene que aprobarla en Catálogo → Atributos antes de poder usarla." });
+      setError(`«${valor.texto}» quedó por aprobar en Catálogo → Atributos: todavía no se puede usar en esta prenda.`);
       setTrabajando(false);
-      setTexto("");
-      onCerrar();
       return;
     }
 
@@ -153,12 +164,19 @@ function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, univer
         placeholder={sugerirValorNuevo(tipo, familia, universo).texto}
         disabled={trabajando}
       />
+      <ExisteTambien
+        que={vocablo}
+        nombre={texto}
+        estado={existe}
+        si={(o) => ({ texto: `Usar ${o.nombre}`, onClick: () => void agregar(universo.find((v) => v.id === o.id)) })}
+        deshabilitado={trabajando}
+      />
       <div className="flex flex-wrap items-center gap-2.5">
         <Boton peso="primario" cargando={trabajando}
           type="button"
           onClick={() => void agregar()}
-          disabled={!texto.trim() || trabajando || !firma.listo}
-          title={firma.motivo ?? undefined}
+          disabled={!texto.trim() || existe.bloquea || trabajando || !firma.listo}
+          title={firma.motivo ?? faltaExiste ?? undefined}
         >
           Agregar
         </Boton>

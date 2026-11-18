@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { AlertTriangle, Check, Plus, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
@@ -30,6 +30,8 @@ import {
   leerCantidad,
   leerPrecio,
   marcaEscrita,
+  TEXTO_POR_DEFINIR,
+  TEXTO_PRECIO_EN_ESPERA,
   nombreCortoTienda,
   textoAgregarPrenda,
   type BorradorNuevo,
@@ -60,7 +62,7 @@ export type PrendaNuevaDeHoja = {
   cambiar: (cambio: Partial<BorradorNuevo>) => void;
   proveedor: string;
   categorias: CategoriaParaComprar[];
-  /** Las categorías que ya le compras: van primero. */
+  /** Las categorías que ya le compras y las que ya anotaste en esta compra: van primero, en este orden (lo último anotado, antes). */
   suyas: ReadonlySet<string>;
   marcas: { id: string; nombre: string }[];
   /** Las marcas que trae este proveedor: van primero. */
@@ -83,6 +85,7 @@ export function HojaPrenda({
   onQuitar,
   onClose,
   nueva,
+  admitePrecioCero = false,
 }: {
   habitual: Habitual;
   borrador: BorradorPrenda;
@@ -100,11 +103,27 @@ export function HojaPrenda({
   onClose: () => void;
   /** Una prenda que todavía no le compras: la hoja pregunta además qué es, la marca y cómo se llama. */
   nueva?: PrendaNuevaDeHoja;
+  /** ¿La categoría de esta prenda admite venderla a S/ 0 (bolsas, cajas, empaque)? En una prenda nueva se lee de la categoría que se va eligiendo. Sin dato, no. */
+  admitePrecioCero?: boolean;
 }) {
   const n = nueva?.borrador;
+  const admiteCero = n ? nueva?.categorias.find((c) => c.id === n.categoriaId)?.admitePrecioCero === true : admitePrecioCero;
   const parecido = nueva && n ? habitualParecido(n.nombre, nueva.habituales, n.descartadas) : null;
-  const guia = useGuiaCampos(n ? camposPrendaNueva(n, parecido !== null, b) : camposPrenda(b));
-  const poner = (campo: "costo" | "venta") => (v: string) => cambiar({ [campo]: v });
+  const guia = useGuiaCampos(n ? camposPrendaNueva(n, parecido !== null, b, admiteCero) : camposPrenda(b, admiteCero));
+  // Escribir un precio de venta quita «a la espera» (ADR-0660): lo último que se hizo manda.
+  const poner = (campo: "costo" | "venta") => (v: string) => cambiar(campo === "venta" ? { venta: v, ventaPorDefinir: false } : { costo: v });
+  // «A la espera de precio sugerido» solo en una prenda que no es del catálogo: la del catálogo ya tiene su precio (la base lo exige igual).
+  const puedeEsperarPrecio = h.productoId === null;
+  const esperaPrecio = puedeEsperarPrecio && b.ventaPorDefinir === true;
+  // Prender «a la espera» vacía el precio (una prenda en espera no lleva precio). Si se prendió sin querer, apagarlo lo devuelve: antes el precio ya
+  // escrito se perdía con dos toques (auditoría 2026-11-15).
+  // Se recuerda junto a SU prenda: la hoja puede pasar de una prenda a otra sin desmontarse, y el precio de una no vuelve en otra.
+  const ventaAntesDeEsperar = useRef<{ de: unknown; venta: string } | null>(null);
+  const alternarEspera = () => {
+    if (esperaPrecio) return cambiar({ ventaPorDefinir: false, venta: ventaAntesDeEsperar.current?.de === h ? ventaAntesDeEsperar.current.venta : "" });
+    ventaAntesDeEsperar.current = { de: h, venta: b.venta };
+    cambiar({ ventaPorDefinir: true, venta: "" });
+  };
   // Cambiar cuántas rehace el reparto parejo entre las tiendas, salvo que se haya repartido a mano.
   const ponerCantidad = (v: string) => cambiar(conCantidad(b, v));
   const repartidas = b.destinos.length >= 2;
@@ -112,7 +131,7 @@ export function HojaPrenda({
   const faltaReparto = problemaReparto(b);
   const sumaReparto = b.destinos.reduce((s, d) => s + (leerCantidad(b.reparto[d] ?? "") ?? 0), 0);
   const cantidad = leerCantidad(b.cantidad);
-  const ganancia = gananciaPorPrenda(b);
+  const ganancia = gananciaPorPrenda(b, admiteCero);
   const laVezPasada = h.veces > 0 && h.ultimaCantidad != null && h.ultimaCantidad > 0 ? h.ultimaCantidad : null;
   const detalle = [h.categoria, h.marca].filter(Boolean).join(" · ");
   // Solo al cerrar la hoja: el «atrás» y los enlaces ya los cuida la guardia de «Compré ropa», que la contiene.
@@ -145,8 +164,8 @@ export function HojaPrenda({
           <CampoGuiado id="cantidad" guia={guia}>
             <div className="flex items-center justify-between gap-3">
               <span className="flex min-w-0 flex-col items-start gap-1">
-                <span className="text-[13px] font-semibold text-tinta">
-                  <ConMarca estado={guia.estado("cantidad")}>¿Cuántas?</ConMarca>
+                <span className="text-sm font-semibold text-tinta">
+                  <ConMarca estado={guia.estado("cantidad")}>¿Cuántas unidades?</ConMarca>
                 </span>
                 {laVezPasada != null && (
                   <Atajo elegido={cantidad === laVezPasada} onClick={() => ponerCantidad(String(laVezPasada))} guia="compra.igual">
@@ -162,7 +181,7 @@ export function HojaPrenda({
                   value: b.cantidad,
                   inputMode: "numeric",
                   autoComplete: "off",
-                  "aria-label": "¿Cuántas compraste?",
+                  "aria-label": "¿Cuántas unidades compraste?",
                   onChange: (e) => ponerCantidad(e.target.value),
                 }}
               />
@@ -194,17 +213,31 @@ export function HojaPrenda({
                 sinPie
                 inputMode="decimal"
                 autoComplete="off"
-                value={b.venta}
+                value={esperaPrecio ? "" : b.venta}
+                disabled={esperaPrecio}
                 data-guia="compra.venta"
                 onChange={(e) => poner("venta")(e.target.value)}
               />
               {h.venta != null && (
-                <Atajo elegido={leerPrecio(b.venta) === h.venta} onClick={() => poner("venta")(h.venta!.toFixed(2))} titulo={soles(h.venta)}>
+                <Atajo elegido={!esperaPrecio && leerPrecio(b.venta) === h.venta} onClick={() => poner("venta")(h.venta!.toFixed(2))} titulo={soles(h.venta)}>
                   Del catálogo
                 </Atajo>
               )}
             </CampoGuiado>
           </div>
+          {/* ADR-0660 (Felipe 2026-11-13): «crear opción a la espera de precio sugerido». Se anota sin precio y lo pone alguien después. En su
+              propia fila, alineada con «Se vende a»: en la columna no cabía la frase entera. */}
+          {puedeEsperarPrecio && (
+            <div className="-mt-2 flex justify-end">
+              <Atajo
+                elegido={esperaPrecio}
+                onClick={alternarEspera}
+                guia="compra.venta-espera"
+              >
+                {TEXTO_PRECIO_EN_ESPERA}
+              </Atajo>
+            </div>
+          )}
 
           {ganancia != null && (
             <p
@@ -216,8 +249,8 @@ export function HojaPrenda({
           )}
 
           <CampoGuiado id="tienda" guia={guia} titulo="¿A qué tienda va? · una o varias">
-            {/* Con dos tiendas, dos columnas: en tres quedaba un hueco al lado. */}
-            <div role="group" aria-label="¿A qué tienda va?" className={`grid gap-2 ${tiendas.length === 2 ? "grid-cols-2" : "grid-cols-3"}`} data-guia="compra.tiendas">
+            {/* Las columnas se reparten solas según cuántas tiendas haya (dos, tres o más), sin un hueco al lado. */}
+            <div role="group" aria-label="¿A qué tienda va?" className="grid grid-cols-[repeat(auto-fit,minmax(6rem,1fr))] gap-2" data-guia="compra.tiendas">
               {tiendas.map((t) => {
                 const elegida = b.destinos.includes(t.id);
                 return (
@@ -239,7 +272,7 @@ export function HojaPrenda({
 
           {/* Repartida entre tiendas: cuántas va a cada una, parejo de entrada; abajo, si cuadra con lo comprado. */}
           {repartidas && (
-            <CampoGuiado id="reparto" guia={guia} titulo="¿Cuántas a cada una?">
+            <CampoGuiado id="reparto" guia={guia} titulo="¿Cuántas unidades a cada una?">
               <ul className="flex flex-col gap-2" data-guia="compra.reparto">
                 {b.destinos.map((d) => {
                   const n = leerCantidad(b.reparto[d] ?? "") ?? 0;
@@ -254,7 +287,7 @@ export function HojaPrenda({
                           value: b.reparto[d] ?? "",
                           inputMode: "numeric",
                           autoComplete: "off",
-                          "aria-label": `Cuántas van a ${nombreTienda.get(d) ?? "la tienda"}`,
+                          "aria-label": `Cuántas unidades van a ${nombreTienda.get(d) ?? "la tienda"}`,
                           onChange: (e) => ponerParte(e.target.value),
                         }}
                       />
@@ -262,7 +295,7 @@ export function HojaPrenda({
                   );
                 })}
               </ul>
-              <p className={`mt-2 flex items-center gap-1.5 text-[13px] ${faltaReparto ? "text-ambar" : "text-verde"}`}>
+              <p className={`mt-2 flex items-center gap-1.5 text-sm ${faltaReparto ? "text-ambar" : "text-verde"}`}>
                 {faltaReparto ? <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden /> : <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />}
                 {faltaReparto ?? `Cuadra: ${sumaReparto} de ${cantidad ?? sumaReparto}`}
               </p>
@@ -286,10 +319,11 @@ export function HojaPrenda({
             <Boton
               type="submit"
               peso="primario"
-              disabled={!guia.puedeConfirmar}
+              confirma={guia}
               title={guia.frase ?? undefined}
               className={guia.claseConfirmar}
               data-guia="compra.agregar"
+              data-vuelo-origen
             >
               {textoAgregarPrenda(b, corrige)}
             </Boton>
@@ -312,8 +346,7 @@ function Atajo({ elegido, onClick, guia, titulo, children }: { elegido: boolean;
   );
 }
 
-/** Lo de arriba de la hoja de una prenda nueva: qué es y la marca, cómo se llama debajo, y la nota de que es solo una
- *  referencia. El ejemplo del nombre sigue a la categoría elegida (ADR-0290). */
+/** Lo de arriba de la hoja de una prenda nueva: qué es y la marca, cómo se llama debajo. El ejemplo del nombre sigue a la categoría elegida (ADR-0290). */
 function DescribirNueva({
   nueva,
   n,
@@ -326,18 +359,16 @@ function DescribirNueva({
   guia: GuiaCampos;
 }) {
   const categoria = nueva.categorias.find((c) => c.id === n.categoriaId) ?? null;
-  const ejemplo = categoria ? sugerirNombre(categoria) : null;
+  // Por definir, el ejemplo del nombre no promete una categoría: el texto neutro (ADR-0290).
+  const ejemplo = categoria ? sugerirNombre(categoria) : n.porDefinir ? sugerirNombre(null) : null;
   const escribeMarca = n.marcaNueva !== null;
   // Si lo escrito ya es una marca de la lista, no se crea otra: se usa esa (y se dice cuál).
   const escrita = escribeMarca ? marcaEscrita(n.marcaNueva ?? "", nueva.marcas) : undefined;
   const marcaYaEsta = escrita && !escrita.id.startsWith(MARCA_NUEVA_PREFIJO) ? escrita : null;
   return (
     <div className="space-y-4 border-b border-sand pb-4">
-      <p className="text-[12.5px] leading-snug text-taupe">
-        Úsala también si no la encuentras entre sus prendas o no sabes cómo la llaman en la tienda: descríbela como la conoces. Es solo una
-        referencia para la compra: no se crea en el catálogo; la tienda la registra cuando la recibe, con su color y sus tallas.
-      </p>
-      {/* Qué es y la marca, uno bajo otro: con chips, lado a lado se partían. Los chips son lo habitual de este proveedor y «Otra…» abre
+      {/* Sin párrafo de explicación arriba (Felipe 2026-11-11: «innecesario»): la bajada «De … · solo una referencia» ya lo dice.
+          Qué es y la marca, uno bajo otro: con chips, lado a lado se partían. Los chips son lo habitual de este proveedor y «Otra…» abre
           la lista completa (maqueta mis-compras-rediseno-2026-10, Felipe 2026-10-26). */}
       <div className="grid gap-4">
         <CampoGuiado id="categoria" guia={guia} titulo="¿Qué es?">
@@ -346,13 +377,27 @@ function DescribirNueva({
             etiqueta="¿Qué es?"
             marcadorSinChips="Elige una categoría"
             todas={nueva.categorias}
-            habituales={nueva.categorias.filter((c) => nueva.suyas.has(c.id)).map((c) => c.id)}
-            valor={n.categoriaId}
-            onValor={(v) => nueva.cambiar({ categoriaId: v || null })}
+            habituales={[...nueva.suyas].filter((id) => nueva.categorias.some((c) => c.id === id))}
+            valor={n.porDefinir ? null : n.categoriaId}
+            onValor={(v) => nueva.cambiar({ categoriaId: v || null, porDefinir: false })}
             opciones={opcionesCategoriaNueva(nueva.categorias, nueva.suyas)}
+            alFinal={
+              // ADR-0660 (Felipe 2026-11-13): «Hay que crear esa opción de por definir». La compra se guarda y lo dice alguien después.
+              <button
+                type="button"
+                aria-pressed={n.porDefinir}
+                className="pildora-cayla"
+                data-guia="compra.por-definir"
+                onClick={() => nueva.cambiar(n.porDefinir ? { porDefinir: false } : { porDefinir: true, categoriaId: null })}
+              >
+                {TEXTO_POR_DEFINIR}
+              </button>
+            }
           />
+          {n.porDefinir && <p className="mt-1.5 text-sm text-taupe">Lo dices tú o Compras después; si nadie lo hace, la tienda lo dice al recibirla.</p>}
         </CampoGuiado>
-        <CampoGuiado id="marca" guia={guia} titulo="¿De qué marca?">
+        {/* «· opcional» se calla mientras hay una marca empezada a escribir: esa sí hay que terminarla (o cerrar la caja con la ×). */}
+        <CampoGuiado id="marca" guia={guia} titulo="¿De qué marca?" ayuda={n.marcaNueva?.trim() ? undefined : "· opcional"}>
           {/* El «+» del final cambia la lista por una caja para escribir una marca que no está; la «×» vuelve a la lista (Felipe
               2026-10-24). La marca escrita se crea al guardar la compra, unida a este proveedor. */}
           <div className="flex items-start gap-2" data-guia="compra.marca-nueva">
@@ -375,7 +420,8 @@ function DescribirNueva({
                   todas={nueva.marcas}
                   habituales={nueva.marcasDelProveedor.map((m) => m.id)}
                   valor={n.marcaId}
-                  onValor={(v) => nueva.cambiar({ marcaId: v || null })}
+                  // Opcional (Felipe 2026-11-11): tocar otra vez la marca elegida la quita; la tienda la pone al recibir.
+                  onValor={(v) => nueva.cambiar({ marcaId: v && v !== n.marcaId ? v : null })}
                   opciones={opcionesMarcaNueva(nueva.marcas, nueva.marcasDelProveedor)}
                 />
               )}
@@ -383,7 +429,7 @@ function DescribirNueva({
             <Boton
               type="button"
               peso="fantasma"
-              className="h-10 w-10 shrink-0 px-0"
+              className="h-10 w-10 shrink-0 px-0 max-sm:h-11 max-sm:w-11 pointer-coarse:h-11 pointer-coarse:w-11"
               aria-label={escribeMarca ? "Volver a la lista de marcas" : "Escribir una marca nueva"}
               title={escribeMarca ? "Volver a la lista de marcas" : "Escribir una marca nueva"}
               aria-pressed={escribeMarca}
@@ -394,7 +440,7 @@ function DescribirNueva({
             </Boton>
           </div>
           {escribeMarca && marcaYaEsta && (
-            <p className="mt-1.5 text-xs text-taupe">Ya está en la lista: se usa «{marcaYaEsta.nombre}».</p>
+            <p className="mt-1.5 text-sm text-taupe">Ya está en la lista: se usa «{marcaYaEsta.nombre}».</p>
           )}
         </CampoGuiado>
       </div>

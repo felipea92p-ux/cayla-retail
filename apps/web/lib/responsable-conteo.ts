@@ -66,6 +66,15 @@ export function recordarResponsableGuardar(clave: string, personaId: string, alm
   avisarCambio();
 }
 
+/**
+ * Quien abre un envío de Recibir es quien lo cuenta: se recuerda para Contar, que si no lo vuelve a pedir. Lo llaman las TRES puertas de un envío —con aviso, la orden
+ * que llegó sin su envío y «sin aviso»— para que en una terminal «quién recibe» se elija una sola vez (tarea 4 de las 30 de Recibir, 2026-11-14: con aviso se elegía dos
+ * veces). Sin nadie elegido no guarda nada: Contar lo pide, como siempre.
+ */
+export function recordarQuienRecibe(despachoId: string, personaId: string | null, almacen: Almacen | null = almacenDelNavegador()): void {
+  if (personaId) recordarResponsableGuardar(claveResponsableRecepcion(despachoId), personaId, almacen);
+}
+
 export function recordarResponsableOlvidar(clave: string, almacen: Almacen | null = almacenDelNavegador()): void {
   try {
     almacen?.removeItem(clave);

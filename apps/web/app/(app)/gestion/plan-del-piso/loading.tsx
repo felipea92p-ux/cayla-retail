@@ -15,7 +15,7 @@ export default function LoadingPlanDelPiso() {
         </div>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-[104px] rounded-[20px] bg-sand/50" />
+            <div key={i} className="h-[104px] rounded-tarjeta bg-sand/50" />
           ))}
         </div>
         <div className="card-cayla divide-y divide-sand">

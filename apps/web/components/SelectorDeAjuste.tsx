@@ -61,10 +61,11 @@ export function SelectorDeAjuste({
               <span className="grid h-9 min-w-9 shrink-0 place-items-center rounded-lg bg-hueso px-1.5 text-sm font-semibold text-tinta">{f.talla}</span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-tinta">{f.principal}</p>
-                {f.detalle && <p className="text-xs text-taupe">{f.detalle}</p>}
+                {f.detalle && <p className="text-sm text-taupe">{f.detalle}</p>}
               </div>
               <PasoCantidad
                 className="shrink-0"
+                tono={problema ? "error" : undefined}
                 menos={{
                   onClick: () => menos !== null && onTexto(f.varianteId, menos),
                   deshabilitado: bloqueado || menos === null,
@@ -83,7 +84,8 @@ export function SelectorDeAjuste({
                   placeholder: modo === "contado" ? "—" : "0",
                   value: texto,
                   disabled: bloqueado,
-                  onChange: (e) => onTexto(f.varianteId, limpiarTextoAjuste(e.target.value, modo)),
+                  "aria-invalid": problema ? true : undefined,
+                  onChange: (e) => onTexto(f.varianteId, limpiarTextoAjuste(e.target.value)),
                   onFocus: (e) => e.currentTarget.select(),
                 }}
               />

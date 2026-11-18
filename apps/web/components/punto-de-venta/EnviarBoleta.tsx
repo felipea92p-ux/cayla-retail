@@ -22,12 +22,14 @@ const TERMINALES: readonly EstadoComprobante[] = ["rechazado", "anulado", "no_em
  * 20 s. Es una lectura (GET a Supabase): el loader global no se abre. Solo trae el enlace —`respuesta_sunat->>pdfUrl`—, no todo el
  * JSON de SUNAT. Si la base no responde, sigue como «esperando» y, a los 20 s, la tarjeta manda a Comprobantes (principio 9).
  */
-function useLecturaDelPdf(ventaId: string | null, activo: boolean): { lectura: Lectura | null; esperadoMs: number } {
+function useLecturaDelPdf(ventaId: string | null, activo: boolean, comprobanteId: string | null): { lectura: Lectura | null; esperadoMs: number } {
   const [lectura, setLectura] = useState<Lectura | null>(null);
   const [esperadoMs, setEsperadoMs] = useState(0);
 
   useEffect(() => {
-    if (!ventaId || !activo) return;
+    // Por el comprobante mismo, si se sabe cuál (el comprobante nuevo de un cambio no cuelga de ninguna venta, ADR-0671); si no, por la venta.
+    const [columna, valor] = comprobanteId ? (["id", comprobanteId] as const) : (["venta_id", ventaId] as const);
+    if (!valor || !activo) return;
     let vigente = true;
     let temporizador: ReturnType<typeof setTimeout> | undefined;
     const inicio = Date.now();
@@ -36,7 +38,7 @@ function useLecturaDelPdf(ventaId: string | null, activo: boolean): { lectura: L
       const { data } = await createClient()
         .from("comprobantes")
         .select("estado, entorno_transmision, pdf:respuesta_sunat->>pdfUrl")
-        .eq("venta_id", ventaId as string)
+        .eq(columna, valor as string)
         .maybeSingle();
       if (!vigente) return;
       const fila = data as { estado: EstadoComprobante; entorno_transmision: EntornoTransmision; pdf: unknown } | null;
@@ -53,7 +55,7 @@ function useLecturaDelPdf(ventaId: string | null, activo: boolean): { lectura: L
       vigente = false;
       if (temporizador) clearTimeout(temporizador);
     };
-  }, [ventaId, activo]);
+  }, [ventaId, comprobanteId, activo]);
 
   return { lectura, esperadoMs };
 }
@@ -67,17 +69,20 @@ function useLecturaDelPdf(ventaId: string | null, activo: boolean): { lectura: L
  */
 export function EnviarBoleta({
   ventaId,
+  comprobanteId = null,
   celular,
   comprobante,
   enFicha = null,
 }: {
   ventaId: string | null;
+  /** Lee el PDF por el comprobante y no por la venta: el comprobante nuevo de un cambio tiene `venta_id` vacío (ADR-0671). */
+  comprobanteId?: string | null;
   celular: string | null;
   comprobante: { tipo: TipoComprobante; serie: string; numero: number };
   /** Qué pasó al guardar este celular en la ficha del cliente (`agregar_celular_clienta`); `null` = nada que decir. */
   enFicha?: CelularEnFicha | null;
 }) {
-  const { lectura, esperadoMs } = useLecturaDelPdf(ventaId, Boolean(celular));
+  const { lectura, esperadoMs } = useLecturaDelPdf(ventaId, Boolean(celular), comprobanteId);
   const envio = envioDeLaBoleta({
     celular,
     comprobante,
@@ -101,13 +106,13 @@ export function EnviarBoleta({
         </a>
       )}
       {envio.fase === "esperando" && (
-        <p role="status" className="text-[12px] leading-snug text-tinta/65">
+        <p role="status" className="text-sm leading-snug text-tinta/65">
           Preparando el PDF de la {comprobante.tipo === "factura" ? "factura" : "boleta"}… En unos segundos aparece el botón.
         </p>
       )}
-      {envio.fase === "sin_pdf" && <p className="text-[12px] leading-snug text-tinta/65">{envio.motivo}</p>}
+      {envio.fase === "sin_pdf" && <p className="text-sm leading-snug text-tinta/65">{envio.motivo}</p>}
       {/* Lo que pasó con la ficha, aparte del envío: el celular se guarda igual aunque el PDF todavía no llegue. */}
-      {textoCelularEnFicha(enFicha) && <p className="border-t border-sand pt-2 text-[11.5px] leading-snug text-tinta/60">{textoCelularEnFicha(enFicha)}</p>}
+      {textoCelularEnFicha(enFicha) && <p className="border-t border-sand pt-2 text-sm leading-snug text-tinta/60">{textoCelularEnFicha(enFicha)}</p>}
     </div>
   );
 }

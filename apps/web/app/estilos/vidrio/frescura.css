@@ -1,0 +1,55 @@
+/* =====================================================================
+   GESTIÓN ▸ FRESCURA DEL PISO CON EL VIDRIO «SERENA» (ADR-0596; Felipe lo eligió mirando el 2026-11-02,
+   docs/maquetas/frescura-vidrio-2026-11/). El piloto de /formidable (ADR-0208).
+
+   Lo propio de Frescura, con las dos caras que eligió:
+   · «Lo que mueve la aguja» (`FrescuraAguja`), «B · Lentes del tono»: cada tarjeta deja de ser papel y pasa a la lente chica del tono
+     (`--lente-chica-*`, la hermana de la del aviso para una tarjeta dentro de otra): vidrio teñido apenas del tono de su insignia
+     —ámbar si la categoría se queda, verde si se lleva más—, del 6 % arriba al 12 % abajo, con un filo de ese tono al 30 %. La
+     categoría se reconoce de reojo, antes de leerla.
+   · La prenda «por decidir» (`FrescuraFila`), «B · Fila hundida»: en vez del filete de tinta al canto, la fila queda en un POZO (el de
+     los campos: lo hundido espera tu dato), con esquinas de 16 px y un margen de 6 × 10 px. La raya de la fila de abajo se oculta, y
+     varias filas seguidas por decidir quedan como pozos separados (sus márgenes se juntan en 6 px).
+
+   Los ganchos (`frescura-aguja-tarjeta` + `data-tono`, `data-por-decidir`) los ponen FrescuraAguja.tsx y FrescuraFila.tsx; nada cambia
+   qué hace la pantalla: qué decide, los filtros, los botones y lo que dice cada tarjeta son los de siempre, y los colores de los tramos
+   no se tocan. Solo recetas de recetas.css. Sin capa: le gana a `components` (el rayado y el hover de `.fila-cayla`) y a las utilidades.
+   Sin movimiento nuevo: la entrada en cascada y el hilo rojo de canto de la fila son los de `.fila-cayla`.
+   ===================================================================== */
+
+/* ---------- 1 · Lo que mueve la aguja: B · Lentes del tono ---------- */
+/* Sin `backdrop-filter`: la tarjeta va sobre la tarjeta de papel de la sección, no hay nada que desenfocar detrás. Sin sombra de
+   elevación (va pegada a su sección): solo la luz de arriba de la placa. */
+.frescura-aguja-tarjeta {
+  --c: var(--color-tinta);
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--c) var(--lente-chica-filo), transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--c) var(--lente-chica-tinte-arriba), var(--lente-chica-base-arriba)),
+    color-mix(in srgb, var(--c) var(--lente-chica-tinte-abajo), var(--lente-chica-base-abajo))
+  );
+  box-shadow: var(--placa-luz);
+}
+.frescura-aguja-tarjeta[data-tono="verde"] { --c: var(--color-verde); }
+.frescura-aguja-tarjeta[data-tono="ambar"] { --c: var(--color-ambar); }
+
+/* ---------- 2 · La prenda por decidir: B · Fila hundida ---------- */
+/* `background-color` y no `background`: la fila clicable dibuja su hilo rojo de canto con una imagen de fondo (`.fila-cayla`), y el
+   pozo no debe borrarlo. El pozo no cambia al pasar el mouse: ya dice «espera algo de ti»; lo que asoma es el hilo y la «›». */
+.fila-cayla[data-por-decidir] {
+  margin: 6px 10px;
+  border-radius: 16px;
+  border-top-color: transparent;
+  background-color: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+@media (hover: hover) {
+  .fila-cayla[data-por-decidir]:hover {
+    background-color: var(--pozo-fondo);
+  }
+}
+/* La raya de la fila de abajo se oculta: el pozo ya la separa. */
+.fila-cayla[data-por-decidir] + .fila-cayla {
+  border-top-color: transparent;
+}

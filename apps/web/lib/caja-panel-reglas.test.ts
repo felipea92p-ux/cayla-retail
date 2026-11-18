@@ -2,20 +2,14 @@ import { describe, it, expect } from "vitest";
 import {
   comparativoSemanaAnterior,
   duracionAbierta,
-  egresosElevados,
-  escalaTurno,
   esMotivoDeAjuste,
   formatoDuracion,
   metodosDe,
   textoMetodosDeVenta,
   motivosDeMovimiento,
   referenciaObligatoria,
-  rangoHorasCaja,
   ritmoDelDia,
-  senalCaja,
-  tendenciaCierres7Dias,
   turnoLargo,
-  ventasPorHora,
 } from "./caja-panel-reglas";
 
 function lima(anio: number, mes: number, dia: number, hora = 0, min = 0): Date {
@@ -120,49 +114,6 @@ describe("ritmoDelDia", () => {
   });
 });
 
-describe("ventasPorHora / rangoHorasCaja", () => {
-  it("agrupa por hora de Lima, no de UTC", () => {
-    const eventos = [
-      { hora: lima(2026, 9, 18, 14, 10).toISOString(), total: 50 },
-      { hora: lima(2026, 9, 18, 14, 45).toISOString(), total: 30 },
-      { hora: lima(2026, 9, 18, 15, 0).toISOString(), total: 20 },
-    ];
-    const mapa = ventasPorHora(eventos);
-    expect(mapa.get(14)).toBe(80);
-    expect(mapa.get(15)).toBe(20);
-  });
-
-  it("el rango va desde la hora de apertura hasta ahora, sin horas inventadas", () => {
-    const abierta = lima(2026, 9, 18, 9, 0).toISOString();
-    const ahora = lima(2026, 9, 18, 12, 30);
-    expect(rangoHorasCaja(abierta, ahora)).toEqual([9, 10, 11, 12]);
-  });
-});
-
-describe("tendenciaCierres7Dias", () => {
-  const ubicacionId = "sede-1";
-  const ahora = lima(2026, 9, 18, 20, 0);
-
-  it("suma cierres del mismo día y marca descuadre si alguno no cuadró", () => {
-    const cierres = [
-      { ubicacionId, cerradaEn: lima(2026, 9, 18, 13, 0).toISOString(), montoApertura: 100, montoCierreReal: 400, diferencia: 0 },
-      { ubicacionId, cerradaEn: lima(2026, 9, 18, 19, 0).toISOString(), montoApertura: 400, montoCierreReal: 450, diferencia: 5 },
-      { ubicacionId: "otra-sede", cerradaEn: lima(2026, 9, 18, 13, 0).toISOString(), montoApertura: 0, montoCierreReal: 9999, diferencia: 0 },
-    ];
-    const serie = tendenciaCierres7Dias(cierres, ubicacionId, ahora);
-    expect(serie).toHaveLength(7);
-    const hoy = serie[serie.length - 1]!;
-    expect(hoy.esHoy).toBe(true);
-    expect(hoy.monto).toBe(300 + 50);
-    expect(hoy.descuadre).toBe(true);
-  });
-
-  it("un día sin cierres queda en cero, no se inventa un valor", () => {
-    const serie = tendenciaCierres7Dias([], ubicacionId, ahora);
-    expect(serie.every((p) => p.monto === 0 && !p.descuadre)).toBe(true);
-  });
-});
-
 describe("comparativoSemanaAnterior", () => {
   it("null si la semana pasada fue cero — no hay con qué comparar", () => {
     expect(comparativoSemanaAnterior(500, 0, "jueves")).toBeNull();
@@ -172,42 +123,6 @@ describe("comparativoSemanaAnterior", () => {
   });
   it("negativo cuando hoy va peor", () => {
     expect(comparativoSemanaAnterior(400, 500, "jueves")).toEqual({ texto: "▼ 20% vs. jueves pasado", positivo: false });
-  });
-});
-
-describe("egresosElevados", () => {
-  it("no alerta sin ventas todavía, aunque haya egresos", () => {
-    expect(egresosElevados(50, 0)).toEqual({ alerta: false, pct: 0 });
-  });
-  it("alerta al cruzar el umbral", () => {
-    expect(egresosElevados(20, 100)).toEqual({ alerta: true, pct: 20 });
-  });
-  it("no alerta bajo el umbral", () => {
-    expect(egresosElevados(10, 100)).toEqual({ alerta: false, pct: 10 });
-  });
-});
-
-describe("senalCaja", () => {
-  it("verde sin cola pendiente", () => {
-    expect(senalCaja(0)).toEqual({ tono: "verde", texto: "Caja abierta · sin pendientes" });
-  });
-  it("ámbar con cola pendiente, singular vs plural", () => {
-    expect(senalCaja(1).texto).toBe("1 venta sin subir");
-    expect(senalCaja(3).texto).toBe("3 ventas sin subir");
-  });
-});
-
-describe("escalaTurno", () => {
-  it("un turno corriente cabe en la jornada de 8 h", () => {
-    expect(escalaTurno(170)).toEqual({ horas: 8, fraccion: 170 / 480 });
-  });
-  it("un turno largo estira la cinta a la hora siguiente, sin salirse", () => {
-    expect(escalaTurno(600)).toEqual({ horas: 11, fraccion: 600 / 660 });
-    expect(escalaTurno(480).fraccion).toBeLessThan(1);
-  });
-  it("una apertura en el futuro o un dato roto no dan negativos ni NaN", () => {
-    expect(escalaTurno(-5)).toEqual({ horas: 8, fraccion: 0 });
-    expect(escalaTurno(Number.NaN)).toEqual({ horas: 8, fraccion: 0 });
   });
 });
 
@@ -224,13 +139,12 @@ describe("turnoLargo", () => {
 });
 
 describe("motivosDeMovimiento", () => {
-  it("el líder ve el ajuste; quien no lo es, no", () => {
-    expect(motivosDeMovimiento("egreso", true)).toContain("Ajuste de caja (faltante)");
-    expect(motivosDeMovimiento("egreso", false)).not.toContain("Ajuste de caja (faltante)");
-    expect(motivosDeMovimiento("ingreso", false)).toEqual(["Otro"]);
+  it("el ajuste lo ve toda cuenta que opera la caja, no solo el líder (ADR-0534)", () => {
+    expect(motivosDeMovimiento("egreso")).toContain("Ajuste de caja (faltante)");
+    expect(motivosDeMovimiento("ingreso")).toEqual(["Ajuste de caja (sobrante)", "Otro"]);
   });
   it("todo motivo de ajuste se reconoce como tal", () => {
-    for (const m of motivosDeMovimiento("egreso", true).concat(motivosDeMovimiento("ingreso", true))) {
+    for (const m of motivosDeMovimiento("egreso").concat(motivosDeMovimiento("ingreso"))) {
       expect(esMotivoDeAjuste(m)).toBe(m.startsWith("Ajuste"));
     }
   });

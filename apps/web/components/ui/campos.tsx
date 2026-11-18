@@ -6,8 +6,9 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
-import { comboNecesitaBuscador, filtrarCombo, primeraElegible, siguienteElegible, tramosPorGrupo } from "@/lib/combo-reglas";
+import { comboNecesitaBuscador, enfocaBuscadorAlAbrir, filtrarCombo, primeraElegible, siguienteElegible, tramosPorGrupo } from "@/lib/combo-reglas";
 import { Vacio } from "@/components/ui/Vacio";
+import { montoParaMostrar } from "@/lib/monto-plata-reglas";
 
 /* ====================================================================
    Campos del sistema CAYLA · v3.1 (2026-09-08)
@@ -72,7 +73,7 @@ export function Hilo({
       />
       {trabajando && (
         <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
-          <span className="block h-full w-1/3 rounded-full bg-rojo [animation:cayla-hilo-barrido_1.1s_linear_infinite]" />
+          <span className="block h-full w-1/3 rounded-full bg-tinta [animation:cayla-hilo-barrido_1.1s_linear_infinite]" />
         </span>
       )}
     </>
@@ -111,6 +112,14 @@ const TONO_PIE = {
   ok: "text-verde-profundo",
 } as const;
 
+/** El id del pie de un campo: el control se une a él para que el lector de pantalla lea el error o la ayuda al llegar (ADR-0611, mejora 1). */
+const idPieDe = (idControl: string) => `${idControl}-pie`;
+/** Lo que el control de un campo necesita para quedar unido a su pie. Quien pasa su propio `aria-describedby` o `aria-invalid` manda. */
+const unidoAlPie = (id: string, pie: ReactNode, tono: CampoProps["tono"]) => ({
+  "aria-describedby": pie ? idPieDe(id) : undefined,
+  "aria-invalid": tono === "error" ? true : undefined,
+});
+
 export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtiqueta, etiquetaOculta = false, sinPie = false, children }: CampoProps) {
   return (
     // `campo`: la etiqueta se oscurece mientras su caja está encendida (ADR-0358, ronda 6; app/estilos/campos-y-casillas.css).
@@ -120,11 +129,11 @@ export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtique
         {ayuda}
       </label>
       <div className={etiquetaOculta ? "" : "mt-1.5"}>{children}</div>
-      {sinPie && !pie ? null : <div className={`mt-1 min-h-[0.9rem] text-xs leading-tight ${TONO_PIE[tono]}`}>
+      {sinPie && !pie ? null : <div id={htmlFor ? idPieDe(htmlFor) : undefined} className={`mt-1 min-h-[0.9rem] text-xs leading-tight ${TONO_PIE[tono]}`}>
         {/* El error de UN dato va aquí, bajo su campo, con su «!» que se dibuja (ADR-0358, ronda 5: lo de la hoja va en <Aviso>). */}
         {pie ? (
           tono === "error" ? (
-            <span className="pie-error trazo-dibuja anim-revelar">
+            <span role="alert" className="pie-error trazo-dibuja anim-revelar">
               <CircleAlert aria-hidden />
               <span>{pie}</span>
             </span>
@@ -162,6 +171,8 @@ type CampoTextoProps = InputHTMLAttributes<HTMLInputElement> & {
   caja?: boolean;
   /** Sin el renglón del pie reservado: para una caja en una FILA de tabla junto a combos (ver `Campo`). */
   sinPie?: boolean;
+  /** Lo que va fijo a la izquierda, dentro de la caja y sin poder borrarse: el tipo de prenda en el nombre de Nuevo producto («Blusa ▢»). */
+  antes?: ReactNode;
 };
 
 /* Safari (macOS/iOS) dibuja el `type="date"` con su propio editor interno
@@ -173,7 +184,7 @@ const FECHA_COMO_TEXTO =
   "[&::-webkit-datetime-edit-fields-wrapper]:p-0 [&::-webkit-date-and-time-value]:min-h-0 [&::-webkit-date-and-time-value]:text-left " +
   "[&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100";
 
-export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valido, caja = false, sinPie = false, className = "", ...props }: CampoTextoProps) {
+export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valido, caja = false, sinPie = false, antes, className = "", ...props }: CampoTextoProps) {
   // Un `id` propio permite enfocarlo desde un aviso (`avisar.error(…, { enfocar: id })`).
   const idPropio = useId();
   const id = props.id ?? idPropio;
@@ -187,12 +198,18 @@ export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valid
         data-trabajando={trabajando || undefined}
         data-tono={tono === "error" ? "error" : undefined}
       >
+        {antes != null && (
+          <span aria-hidden className="shrink-0 select-none pr-1.5 text-tinta/60">
+            {antes}
+          </span>
+        )}
         <input
           id={id}
           // Sin esto, Safari lee la etiqueta («Nombre», «Dirección», «Teléfono») y ofrece llenar el campo con la ficha
           // de contactos de quien está en la caja: el ícono azul de persona. En el ERP nunca se escribe el contacto
           // propio en un campo de catálogo o de clienta. Un campo que sí quiera autocompletar pasa su `autoComplete`.
           autoComplete="off"
+          {...unidoAlPie(id, pie, tono)}
           {...props}
           className={`self-stretch py-0 ${mono ? "font-mono tabular-nums tracking-wider" : ""} ${
             props.type === "date" || props.type === "time" ? FECHA_COMO_TEXTO : ""
@@ -219,10 +236,15 @@ type CampoMontoProps = InputHTMLAttributes<HTMLInputElement> & {
   etiquetaOculta?: boolean;
   /** Sin el renglón reservado para un error bajo la caja: la hoja dice lo que falta en otro lado (su «Falta: …»). */
   sinPie?: boolean;
+  /** Cómo lee esta hoja lo escrito, si entiende más que cifras (`leerMontoPlata`): así también ordena «1299,50» al salir. */
+  leer?: (texto: string) => number | null;
 };
 
-export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", etiquetaOculta = false, sinPie = false, className = "", ...props }: CampoMontoProps) {
+export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", etiquetaOculta = false, sinPie = false, className = "", leer, ...props }: CampoMontoProps) {
   const id = useId();
+  // Con el foco se edita lo escrito; sin él, se ve con miles y dos decimales (ADR-0611, mejora 3). Es solo lo que se ve: `value` sigue siendo del padre.
+  const [enFoco, setEnFoco] = useState(false);
+  const formatea = !enFoco && props.type !== "number" && (typeof props.value === "string" || typeof props.value === "number");
   return (
     <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={etiquetaOculta} sinPie={sinPie}>
       {/* La caja que se enciende, de 48 px (ADR-0358, ronda 6): la cifra sigue siendo lo más grande de la hoja. */}
@@ -232,7 +254,21 @@ export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", etiqueta
         </span>
         <input
           id={id}
+          {...unidoAlPie(id, pie, tono)}
           {...props}
+          value={formatea ? montoParaMostrar(String(props.value), leer) : props.value}
+          onFocus={(e) => {
+            const caja = e.currentTarget;
+            props.onFocus?.(e);
+            // Si quien lo usa selecciona todo al entrar, se vuelve a seleccionar tras repintar sin los miles.
+            const todo = caja.value !== "" && caja.selectionStart === 0 && caja.selectionEnd === caja.value.length;
+            setEnFoco(true);
+            if (todo) requestAnimationFrame(() => caja.select());
+          }}
+          onBlur={(e) => {
+            setEnFoco(false);
+            props.onBlur?.(e);
+          }}
           // Las flechitas del type=number rompen la lectura de instrumento.
           className={`font-display self-stretch py-0 text-2xl leading-none tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${className}`}
         />
@@ -469,8 +505,8 @@ const FORMA_DESPLEGABLE = {
   /** La `pildora-cayla` de una fila de píldoras que eligen un período (Historial: «Más años», 2026-10-12): la última píldora de la
    *  fila abre la lista de lo que no cupo. */
   pildora: { boton: "pildora-cayla", flecha: true, hilo: false, comoNativo: false, marcadorComoTexto: true },
-  /** Sola con su borde, en la cabecera (la sede). */
-  pastilla: { boton: "gap-2 rounded-md border bg-transparent px-2.5 py-1.5 label-cayla text-[11px] text-tinta hover:border-rojo", flecha: true, hilo: false, comoNativo: false },
+  /** Sola con su borde, en la cabecera (la sede). Con el vidrio (ADR-0596) es una gota en letra normal: `.combo-pastilla`, app/estilos/vidrio/. */
+  pastilla: { boton: "combo-pastilla gap-2 rounded-md border bg-transparent px-2.5 py-1.5 label-cayla text-[11px] text-tinta hover:border-rojo", flecha: true, hilo: false, comoNativo: false },
   /** Guía oficial (2026-09-22, ADR-0169): la caja hundida en hueso de las barras de filtros, la misma de `CampoTexto caja`.
    *  Hasta el 2026-09-26 salía transparente: un `bg-transparent` de todas las formas le ganaba a `.caja-cayla`. */
   caja: { boton: "caja-cayla caja-campo", flecha: true, hilo: false, comoNativo: false },
@@ -610,11 +646,13 @@ export function Desplegable<T extends string>({
     cerrar();
   }
 
+  // Con buscador, el foco va al campo de texto (para que tipear filtre ya mismo) salvo en una pantalla táctil, donde enfocarlo sube el
+  // teclado, que se come la hoja y deja la lista sin lugar: ahí el foco va a la lista y el teclado sale solo si se toca el campo.
+  const enfocaBuscador = mostrarBuscador && enfocaBuscadorAlAbrir();
   useEffect(() => {
     if (!listaVisible) return;
-    // Con buscador, el foco va al campo de texto (para que tipear filtre ya mismo); sin buscador, a la lista
-    // (patrón de siempre: las flechas mueven `activo` con la lista enfocada).
-    if (mostrarBuscador) buscador.current?.focus();
+    // Sin buscador (o en táctil), el foco va a la lista (patrón de siempre: las flechas mueven `activo` con la lista enfocada).
+    if (enfocaBuscador) buscador.current?.focus();
     else lista.current?.focus();
     const afuera = (e: MouseEvent) => {
       // La lista cuelga de un portal (ADR-0211), FUERA de `contenedor` en el DOM: el «¿tocó afuera?» tiene que
@@ -626,7 +664,7 @@ export function Desplegable<T extends string>({
     };
     document.addEventListener("mousedown", afuera);
     return () => document.removeEventListener("mousedown", afuera);
-  }, [listaVisible, mostrarBuscador]);
+  }, [listaVisible, enfocaBuscador]);
 
   // Al reabrir con una opción elegida más abajo (`mostrarDesde` ya la incluyó en `mostradas`), la lista arranca
   // scrolleada arriba del todo: sin esto quedaba resaltada pero fuera de la vista.
@@ -784,7 +822,7 @@ export function Desplegable<T extends string>({
             a quien está en el mostrador que el sistema no se colgó. */}
         {esPastilla && trabajando && (
           <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
-            <span className="block h-full w-1/3 rounded-full bg-rojo [animation:cayla-hilo-barrido_1.1s_linear_infinite]" />
+            <span className="block h-full w-1/3 rounded-full bg-tinta [animation:cayla-hilo-barrido_1.1s_linear_infinite]" />
           </span>
         )}
       </button>
@@ -844,9 +882,9 @@ export function Desplegable<T extends string>({
             role="listbox"
             aria-labelledby={idEtiqueta}
             aria-label={idEtiqueta ? undefined : etiquetaAccesible}
-            tabIndex={mostrarBuscador ? undefined : -1}
-            aria-activedescendant={mostrarBuscador ? undefined : `${id}-op-${activo}`}
-            onKeyDown={mostrarBuscador ? undefined : alTeclado}
+            tabIndex={enfocaBuscador ? undefined : -1}
+            aria-activedescendant={enfocaBuscador ? undefined : `${id}-op-${activo}`}
+            onKeyDown={enfocaBuscador ? undefined : alTeclado}
             onScroll={alHacerScroll}
             className="scroll-cayla min-h-0 flex-1 overflow-y-auto py-1.5 outline-none"
           >
@@ -906,6 +944,7 @@ export function CampoSelect<T extends string>({
   caja = false,
   id,
   deshabilitado,
+  sinPie = false,
 }: {
   etiqueta: ReactNode;
   ayuda?: ReactNode;
@@ -921,10 +960,12 @@ export function CampoSelect<T extends string>({
   id?: string;
   /** No se puede abrir (p. ej. «Sale de» sin cuentas para ese medio): el marcador dice por qué. */
   deshabilitado?: boolean;
+  /** Sin el renglón del pie reservado (ver `Campo`): para filas apiladas donde un error igual aparece, pero el espacio vacío sobra. */
+  sinPie?: boolean;
 }) {
   const idEtiqueta = useId();
   return (
-    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} idEtiqueta={idEtiqueta} etiquetaOculta={caja}>
+    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} idEtiqueta={idEtiqueta} etiquetaOculta={caja} sinPie={sinPie}>
       <Desplegable
         valor={valor}
         onValor={onValor}
@@ -954,7 +995,7 @@ const PESO_BOTON = {
   primario: "btn-primario",
   fantasma: "btn-secundario",
   discreto: "btn-sutil",
-  // Lo que borra, anula o desactiva: rojo desde el principio (ronda 4, la A).
+  // Lo que borra, anula o desactiva y NO es la acción principal de la hoja: la gota con letra roja (Felipe 2026-11-05). La principal es `primario`.
   peligro: "btn-peligro",
 } as const;
 
@@ -1005,16 +1046,21 @@ export function PalabraEnEspera({ cargando, texto = "Guardando…", children }: 
 export function HiloEnEspera({ claro = false }: { claro?: boolean }) {
   return (
     <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
-      <span className={`block h-full w-1/3 rounded-full [animation:cayla-hilo-barrido_1.1s_linear_infinite] ${claro ? "bg-crema" : "bg-rojo"}`} />
+      {/* `data-senal`: sigue barriendo con las animaciones apagadas (ADR-0625); sin él, un guardado lento parece colgado. */}
+      <span data-senal className={`block h-full w-1/3 rounded-full [animation:cayla-hilo-barrido_1.1s_linear_infinite] ${claro ? "bg-crema" : "bg-rojo"}`} />
     </span>
   );
 }
+
+/** Lo que `Boton` necesita de la guía de foco (`useGuiaCampos` ya lo da). */
+export type BotonConfirma = { puedeConfirmar: boolean; revisar: () => boolean };
 
 export function Boton({
   peso = "fantasma",
   cargando,
   textoCargando = "Guardando…",
   className = "",
+  confirma,
   children,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -1023,10 +1069,31 @@ export function Boton({
   cargando?: boolean;
   /** Otro verbo mientras espera, si lo que hace no es guardar («Abriendo…», «Cerrando…», «Anulando…»). */
   textoCargando?: string;
+  /**
+   * La guía de foco de la hoja. El botón no se apaga por lo que falta: apagado no dice qué falta ni deja preguntar. Al tocarlo, cada campo
+   * pendiente dice su error y el cursor va al primero (ADR-0611, mejora 4). Lo vigila `lib/boton-confirma.test.ts`.
+   */
+  confirma?: BotonConfirma;
 }) {
   const guarda = cargando !== undefined;
+  const falta = confirma && !confirma.puedeConfirmar;
   return (
-    <button {...props} disabled={props.disabled || cargando} aria-busy={cargando || undefined} className={claseBoton(peso, className)}>
+    <button
+      {...props}
+      onClickCapture={
+        falta
+          ? (e) => {
+              // En la captura: frena también el envío del formulario y el `onClick` de quien lo usa. Enter en un campo pasa por aquí.
+              e.preventDefault();
+              e.stopPropagation();
+              confirma.revisar();
+            }
+          : props.onClickCapture
+      }
+      disabled={props.disabled || cargando}
+      aria-busy={cargando || undefined}
+      className={claseBoton(peso, className)}
+    >
       {guarda ? (
         <PalabraEnEspera cargando={Boolean(cargando)} texto={textoCargando}>
           {conMas(children)}
@@ -1034,7 +1101,7 @@ export function Boton({
       ) : (
         <span className="relative">{conMas(children)}</span>
       )}
-      {cargando && <HiloEnEspera claro={peso === "primario" || peso === "peligro"} />}
+      {cargando && <HiloEnEspera claro={peso === "primario"} />}
     </button>
   );
 }

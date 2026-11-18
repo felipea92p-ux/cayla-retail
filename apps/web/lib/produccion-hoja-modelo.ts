@@ -23,7 +23,7 @@ import { compararTallas } from "./tallas";
 export const SIN_TALLA = "Sin talla";
 export const SIN_COLOR = "Sin color";
 
-/** Un color del modelo tal como lo conoce el catálogo: su nombre, su hex (si lo tiene) y la foto de ese color (si la tiene). La ficha del color (qué transmite y con qué se combina) NO viaja aquí: repetiría el vocabulario entero en cada modelo; la hoja la busca por el nombre en el vocabulario que el panel le da UNA sola vez (`FichasDeColor.tsx`). */
+/** Un color del modelo tal como lo conoce el catálogo: su nombre, su hex (si lo tiene) y la foto de ese color (si la tiene). */
 export type ColorParaHoja = { nombre: string; hex: string | null; fotoUrl: string | null };
 
 /** Una talla y color: lo vendido en la ventana y lo que queda en tiendas. Si «se vendió y ya no hay» no se manda: sale de estas dos cifras (`seVendioYYaNoHay`), y no pesa en cada celda de cada modelo. */

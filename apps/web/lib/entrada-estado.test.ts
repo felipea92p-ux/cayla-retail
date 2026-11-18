@@ -10,7 +10,7 @@ async function cargar({ menosMovimiento = false } = {}) {
     innerWidth: 1440,
     setTimeout: (f: () => void, ms: number) => globalThis.setTimeout(f, ms),
   });
-  vi.stubGlobal("document", { querySelector: () => ave, documentElement: { setAttribute: () => {}, removeAttribute: () => {} } });
+  vi.stubGlobal("document", { querySelector: () => ave, documentElement: { setAttribute: () => {}, removeAttribute: () => {}, getAttribute: () => "vivo" } }); // animaciones encendidas (ADR-0625): manda el aparato
   vi.resetModules();
   return import("./entrada-estado");
 }

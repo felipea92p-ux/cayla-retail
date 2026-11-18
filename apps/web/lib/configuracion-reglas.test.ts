@@ -14,7 +14,6 @@ import {
   ordenarCampanas,
   parsearMonto,
   parsearPorcentaje,
-  textoEfecto,
   trasladoParaDejarFondo,
   validarTienda,
 } from "./configuracion-reglas";
@@ -66,11 +65,6 @@ describe("campañas", () => {
       { nombre: "Aniversario CAYLA", desde: "2026-10-01", hasta: "2026-10-14" },
     ];
     expect(ordenarCampanas(cs, hoy).map((c) => c.nombre)).toEqual(["Aniversario CAYLA", "Navidad", "CyberWow", "Fiestas Patrias"]);
-  });
-  it("texto del efecto", () => {
-    expect(textoEfecto({ meta_pct: 25, fondo: 400 }, soles)).toBe("+25 % · fondo S/\u00a0400");
-    expect(textoEfecto({ meta_pct: -15, fondo: null }, soles)).toBe("−15 %");
-    expect(textoEfecto(undefined, soles)).toBe("lo normal");
   });
 });
 

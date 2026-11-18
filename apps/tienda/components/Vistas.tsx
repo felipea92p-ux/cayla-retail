@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense, ViewTransition } from "react";
+import { Suspense, useEffect, ViewTransition } from "react";
 import { claveDeVista } from "@/lib/esqueleto";
+import { terminaElViaje } from "./useRayaDelNav";
 
 /**
  * El fundido entre vistas (2026-10-17, Felipe: «cuando cambia de vista es muy abrupto»). Next navega dentro de una transición de React;
@@ -35,6 +36,12 @@ export function MarcaDeEspera() {
 }
 
 function Marca() {
+  // La dirección del viaje (la pestaña que se tocó, `useRayaDelNav`) vale solo para la transición que empieza con esta marca: medio segundo después se quita, y el paso
+  // siguiente (del esqueleto a la página) es el fundido de siempre.
+  useEffect(() => {
+    const t = window.setTimeout(terminaElViaje, 500);
+    return () => window.clearTimeout(t);
+  }, []);
   return (
     <ViewTransition enter="t-vista" exit="t-vista" update="none" default="none">
       <span className="t-vista-marca" aria-hidden="true" />

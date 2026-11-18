@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ChevronDown, SearchX, Tag } from "lucide-react";
+import { PanelRightOpen, Plus, SearchX, Tag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -35,10 +35,12 @@ import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
-import { Ayuda } from "@/components/Ayuda";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { ResumenMarcas } from "@/components/marcas/ResumenMarcas";
-import { FiltrosMarcas } from "@/components/marcas/FiltrosMarcas";
+import { FiltrosMarcas, NOMBRE_FILTRO_MARCAS } from "@/components/marcas/FiltrosMarcas";
+import { BotonFiltros } from "@/components/ui/FiltrosPildora";
+import { Modal } from "@/components/ui/Modal";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /**
  * Marcas del catálogo y sus proveedores (ADR-0109, `retail.marcas` +
@@ -67,14 +69,14 @@ import { FiltrosMarcas } from "@/components/marcas/FiltrosMarcas";
 
 export type { MarcaFila };
 
-/** El «!» del título (el texto de la pantalla de siempre, con una frase adaptada: desactivar y eliminar viven en «Más»). */
+/** Lo que el globo del «?» agrega a la frase (el texto de la pantalla de siempre: desactivar y eliminar viven en «Más»). */
 const AYUDA_MARCAS = (
-  <Ayuda titulo="Marcas">
+  <>
     De quién es cada prenda y qué proveedores la traen. Todo producto tiene una marca y un proveedor, y el proveedor tiene que traer esa marca: la base no
     deja guardar otra pareja. Una marca puede llegar por más de un proveedor. Con «Editar» cambias el nombre y quién la trae: un proveedor se quita solo si
     ninguno de sus productos lo usa. En «Más» desactivas la marca —no se puede si tiene productos activos— o la eliminas —solo si ningún producto la tiene,
     tampoco uno descontinuado—: si se creó por error, primero cámbiale la marca a sus productos en Productos.
-  </Ayuda>
+  </>
 );
 
 type Modo = { tipo: "nueva" } | { tipo: "editar"; marca: MarcaFila };
@@ -98,8 +100,12 @@ export function MarcasLista({
   const [modo, setModo] = useState<Modo | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
-  // El resumen nace colapsado (Felipe, 2026-10-10: las marcas primero) y no recuerda si quedó abierto.
+  // El resumen es una hoja que se abre con su ícono (Felipe 2026-11-17; antes, un acordeón sobre la lista que nacía cerrado).
   const [resumenAbierto, setResumenAbierto] = useState(false);
+  // Solo en el celular: las píldoras del filtro se guardan tras su ícono y se muestran bajo la fila al pedirlas (como en Atributos).
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
+  // Al cerrar la hoja «Resumen», el foco vuelve a su botón (`alCerrarEnfocar`); se guarda en el clic porque `<Boton>` no expone su `ref`.
+  const botonResumen = useRef<HTMLElement | null>(null);
   const [filtro, setFiltro] = useState<FiltroMarcas>("activas");
   const [verDesactivadas, setVerDesactivadas] = useState(false);
   const [pagina, setPagina] = useState(1);
@@ -135,7 +141,7 @@ export function MarcasLista({
   // Contra estas pregunta el formulario «¿no será una marca que ya existe?» (las mismas que ofrece Nuevo producto).
   const existentes = activas.map((m) => ({ id: m.id, nombre: m.nombre, proveedores: m.proveedores.map((p) => p.nombre) }));
 
-  const sinMovimiento = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const sinMovimiento = () => typeof window !== "undefined" && prefiereQuieto();
 
   // Después de guardar, la lista te lleva a donde quedó la marca: el orden es alfabético y una marca nueva (o renombrada) puede caer
   // en otra página. Suelta el filtro y la búsqueda para que se vea, y la destella una vez.
@@ -270,26 +276,9 @@ export function MarcasLista({
   return (
     <div className="space-y-6">
       <div data-guia="marcas.cabecera">
-        {/* La cabecera de Catálogo ▸ Productos (ADR-0254); la de Marcas queda igual hasta que Felipe decida otra (CLAUDE.md). */}
-        <EncabezadoPagina
-          sede={sede}
-          titulo={
-            <>
-              Marcas
-              {/* Letra y altura de la frase dentro del título: el globo no hereda la serif de 46 px. */}
-              <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal">{AYUDA_MARCAS}</span>
-            </>
-          }
-          subtitulo="De quién es cada prenda y quién la trae. Todo producto lleva una marca y un proveedor que la traiga."
-          acciones={
-            puedeEditar && (
-              <Boton peso="primario" data-guia="marcas.nueva" onClick={() => setModo({ tipo: "nueva" })}>
-                + Nueva marca
-              </Boton>
-            )
-          }
-        />
-        <ResumenMarcas resumen={resumen} filtro={verDesactivadas ? null : filtro} onFiltro={alFiltrar} abierto={resumenAbierto} />
+        {/* La cabecera de Catálogo ▸ Productos (ADR-0254). «+ Nueva marca» vive en la fila del buscador (Felipe 2026-11-17), junto a
+            «Resumen» y al filtro, como el «+» de Atributos: todo lo que se hace con la lista, en un solo lugar. */}
+        <EncabezadoPagina sede={sede} titulo="Marcas" subtitulo={AYUDA_MARCAS} />
       </div>
 
       {modo?.tipo === "nueva" && (
@@ -299,7 +288,10 @@ export function MarcasLista({
       {/* UNA tarjeta: buscador, filtros y lista (CLAUDE.md «Paleta y orden de pantalla»). */}
       {/* `@container`: el acomodo depende del ancho de ESTA tarjeta, no de la ventana. Con el menú lateral abierto en una ventana angosta
           (o en un celular) la tarjeta mide 300–400 px aunque la ventana mida más (Felipe 2026-10-10). */}
-      <section ref={cajaRef} className="card-cayla @container scroll-mt-20 space-y-4 p-4 sm:p-5" aria-label="Lista de marcas">
+      <section ref={cajaRef} className="card-cayla @container scroll-mt-4 space-y-4 p-4 sm:p-5" aria-label="Lista de marcas">
+        {/* La fila de herramientas (Felipe 2026-11-17): el buscador con el mayor espacio, la cuenta, «Resumen», el filtro y «+ Nueva
+            marca». Ancha (la tarjeta desde @2xl), todo en UNA fila. Angosta, el buscador arriba con todo el ancho y debajo los tres
+            botones, con «+ Nueva marca» estirándose hasta el margen; la cuenta, bajo ellos. */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
           <Buscador guia="marcas.buscador"
             valor={busqueda}
@@ -310,41 +302,74 @@ export function MarcasLista({
             sombra={{ cola: prediccion?.cola ?? "", alAceptar: (ir) => prediccion && aceptarPrediccion(prediccion.marca.id, prediccion.marca.nombre, ir) }}
             className="min-w-0 basis-full @2xl:flex-1 @2xl:basis-0 @2xl:max-w-[34rem]"
           />
-          <p className="text-sm text-tinta/70" aria-live="polite">
-            {verDesactivadas ? `${lista.length} desactivada${lista.length === 1 ? "" : "s"}` : buscandoAlgo || filtro !== "activas" ? `${lista.length} de ${resumen.activas}` : `${resumen.activas} marcas activas`}
+          <p className="text-sm text-tinta/70 @max-2xl:order-last @max-2xl:w-full" aria-live="polite">
+            {verDesactivadas
+              ? `${lista.length} desactivada${lista.length === 1 ? "" : "s"}`
+              : buscandoAlgo || filtro !== "activas"
+                ? `${lista.length} de ${resumen.activas}${filtro !== "activas" ? ` · ${NOMBRE_FILTRO_MARCAS[filtro]}` : ""}`
+                : `${resumen.activas} marcas activas`}
           </p>
-          <div className="ml-auto flex items-center gap-2">
-            {desactivadas.length > 0 && (
-              <button
-                type="button"
-                data-guia="marcas.desactivadas"
-                className="pildora-cayla"
-                aria-pressed={verDesactivadas}
-                onClick={() => {
-                  setVerDesactivadas((v) => !v);
-                  setFiltro("activas");
-                  setPagina(1);
-                }}
-              >
-                Desactivadas
-                <span className="ml-1 font-medium tabular-nums">{desactivadas.length}</span>
-              </button>
-            )}
-            <button
-              type="button"
+          <div className="flex w-full items-center gap-2 @2xl:ml-auto @2xl:w-auto">
+            {/* El resumen se abre en una hoja, con el ícono del «Resumen» del Plan de campaña y de Existencias (`PanelRightOpen`). */}
+            <Boton
+              peso="fantasma"
               data-guia="marcas.resumen"
-              className="btn-cayla btn-sutil inline-flex items-center gap-1.5"
+              title="Resumen"
               aria-expanded={resumenAbierto}
-              aria-controls="resumen-marcas"
-              onClick={() => setResumenAbierto((a) => !a)}
+              className="min-w-11 !px-3"
+              onClick={(e) => {
+                botonResumen.current = e.currentTarget;
+                setResumenAbierto(true);
+              }}
             >
-              Resumen
-              <ChevronDown aria-hidden className={`h-3.5 w-3.5 transition-transform duration-300 ease-cayla motion-reduce:transition-none ${resumenAbierto ? "rotate-180" : ""}`} />
-            </button>
+              <PanelRightOpen aria-hidden className="h-4 w-4" />
+              <span className="sr-only">Resumen</span>
+            </Boton>
+            {/* Solo en el celular: desde `sm` las píldoras están siempre a la vista. La misma ancla que las píldoras (la guía señala
+                la primera pieza que se ve, como en Atributos); el punto dice que hay un filtro puesto. */}
+            <span className="shrink-0 sm:hidden">
+              <BotonFiltros
+                soloIcono
+                abierto={filtrosAbiertos}
+                activos={verDesactivadas || filtro !== "activas" ? 1 : 0}
+                onClick={() => setFiltrosAbiertos((a) => !a)}
+                data-guia="marcas.filtros"
+              />
+            </span>
+            {puedeEditar && (
+              <Boton peso="primario" data-guia="marcas.nueva" className="@max-2xl:grow" onClick={() => setModo({ tipo: "nueva" })}>
+                {/* En una fila, como el contenido de `<BotonEditar>`: suelto, el «+» y la palabra se apilaban. */}
+                <span className="flex items-center gap-2">
+                  <Plus aria-hidden className="h-4 w-4 shrink-0" />
+                  Nueva marca
+                </span>
+              </Boton>
+            )}
           </div>
         </div>
 
-        {!resumenAbierto && <FiltrosMarcas resumen={resumen} filtro={verDesactivadas ? null : filtro} onFiltro={alFiltrar} />}
+        {/* En el celular el filtro se guarda tras su ícono; elegir una píldora lo vuelve a guardar (lo elegido lo dicen la cuenta y el
+            punto del ícono). Desde `sm`, siempre a la vista. */}
+        <div
+          id="filtros-panel"
+          className={filtrosAbiertos ? "anim-revelar" : "max-sm:hidden"}
+          onClick={(e) => {
+            if ((e.target as Element).closest("button")) setFiltrosAbiertos(false);
+          }}
+        >
+          <FiltrosMarcas
+            resumen={resumen}
+            filtro={verDesactivadas ? null : filtro}
+            onFiltro={alFiltrar}
+            desactivadas={desactivadas.length}
+            verDesactivadas={verDesactivadas}
+            onDesactivadas={() => {
+              setVerDesactivadas((v) => !v);
+              setFiltro("activas");
+              setPagina(1);
+            }}
+          />
+        </div>
 
         {lista.length > 0 && !buscandoAlgo && <IndiceLetras presentes={presentes} enEstaPagina={enEstaPagina} onLetra={irALetra} />}
 
@@ -355,8 +380,17 @@ export function MarcasLista({
         )}
 
         {lista.length === 0 && activas.length > 0 && !buscandoAlgo && (
-          <Vacio icono={<Tag />} titulo="Aquí no hay marcas">
-            Ninguna marca cae en este filtro. Toca «Todas» para ver las demás.
+          <Vacio
+            icono={<Tag />}
+            titulo="Aquí no hay marcas"
+            acciones={
+              // En el celular las píldoras están guardadas tras su ícono: «Ver todas» quita el filtro desde aquí.
+              <Boton type="button" peso="fantasma" onClick={() => alFiltrar("activas")}>
+                Ver todas
+              </Boton>
+            }
+          >
+            Ninguna marca cae en este filtro.
           </Vacio>
         )}
 
@@ -381,7 +415,10 @@ export function MarcasLista({
         )}
 
         {lista.length > 0 && (
-          <ul className="grid gap-3 @2xl:grid-cols-2 @6xl:grid-cols-3">
+          // `grid-cols-1` (una columna de `minmax(0, 1fr)`): sin ella la columna se estiraba al ancho de lo más largo que no se parte
+          // —un proveedor como «M & J Saavedra Inversiones SAC · 2 prod.»— y la tarjeta se salía del margen derecho en el celular
+          // (Felipe 2026-11-17). Así el nombre del proveedor se corta con «…» dentro de su píldora.
+          <ul className="grid grid-cols-1 gap-3 @2xl:grid-cols-2 @6xl:grid-cols-3">
             {pag.filas.map((m, i) => (
               <TarjetaMarca
                 key={m.id}
@@ -403,7 +440,9 @@ export function MarcasLista({
 
         {lista.length > 0 && (
           <div data-guia="marcas.pie" className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3 border-t border-sand pt-4">
-            <p className="text-sm text-tinta/70" aria-live="polite">
+            {/* Una línea que resume: si no cabe, se corta con «…» (decisión 3B de Felipe, 2026-11-16). El rango «de A… a Z…» lleva nombres de
+                marca, y uno sin espacios estiraba la página de lado; el nombre completo se sigue viendo en su tarjeta. */}
+            <p className="min-w-0 max-w-full truncate text-sm text-tinta/70" aria-live="polite">
               Mostrando{" "}
               <b className="font-semibold text-tinta">
                 {pag.desde}–{pag.hasta}
@@ -417,9 +456,23 @@ export function MarcasLista({
       </section>
 
       <p className="nota-cayla">
-        Una marca con productos activos no se puede desactivar. «Eliminar» solo se puede si ningún producto la tuvo, tampoco uno descontinuado: así no se pierde
-        historia.
+        Con productos activos, una marca no se desactiva. Se elimina solo si ningún producto la tuvo: así no se pierde historia.
       </p>
+
+      {resumenAbierto && (
+        // Las cuatro cifras en una hoja (Felipe 2026-11-17: «que se abra como lo hacen algunos filtros en otros módulos»): tocar una
+        // filtra la lista y cierra la hoja para que se vea el resultado. Solo se lee, así que lleva la ×.
+        <Modal titulo="Resumen" subtitulo="Toca una para filtrar la lista." tamano="mediana" onClose={() => setResumenAbierto(false)} conCerrar alCerrarEnfocar={botonResumen}>
+          <ResumenMarcas
+            resumen={resumen}
+            filtro={verDesactivadas ? null : filtro}
+            onFiltro={(f) => {
+              alFiltrar(f);
+              setResumenAbierto(false);
+            }}
+          />
+        </Modal>
+      )}
 
       {modo?.tipo === "editar" && (
         <EditarMarcaModal marca={modo.marca} proveedores={proveedores} onGuardado={(r) => alEditar(modo.marca, r)} onClose={() => setModo(null)} />

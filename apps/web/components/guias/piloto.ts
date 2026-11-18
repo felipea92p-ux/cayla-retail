@@ -2,7 +2,7 @@
 // escribe un ejemplo o cierra como lo haría una persona. Antes de TOCAR algo le pregunta a `motivoParaNoTocar` (lib/guias):
 // la demo corre en la tienda de verdad y nunca guarda.
 
-import { motivoParaNoTocar } from "@/lib/guias/reglas";
+import { motivoParaNoTocar, toqueDelPliegue } from "@/lib/guias/reglas";
 import type { AccionGuia, PiezaATocar } from "@/lib/guias/tipos";
 
 /** El selector de una pieza de la guía. Las anclas son claves de texto simples («vender.buscador»). */
@@ -81,7 +81,7 @@ function ponerValor(el: HTMLInputElement | HTMLTextAreaElement, valor: string) {
   el.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-/** El campo que el asistente puede rellenar (ADR-0529, actividad 6): solo uno dentro de una pieza marcada así, que es una lista blanca. */
+/** El campo que el asistente puede rellenar (ADR-0536, actividad 6): solo uno dentro de una pieza marcada así, que es una lista blanca. */
 const RELLENABLE = '[data-asistente="rellenable"]';
 
 /**
@@ -146,19 +146,28 @@ export async function ejecutar(
     return { ok: true };
   }
 
-  const el = accion.tipo === "clic" && accion.siEsta ? buscarAncla(accion.ancla) : await esperarAncla(accion.ancla, 2200, senal);
-  if (!el && accion.tipo === "clic" && accion.siEsta) return { ok: true };
+  // Cerrar un pliegue que no está a la vista es no tener nada que cerrar, como `siEsta`.
+  const sinEsperar = accion.tipo === "clic" && (accion.siEsta || accion.para === "cerrar");
+  const el = sinEsperar ? buscarAncla(accion.ancla) : await esperarAncla(accion.ancla, 2200, senal);
+  if (!el && sinEsperar) return { ok: true };
   if (!el) return { ok: false, motivo: `no está a la vista (${accion.ancla})` };
 
   if (accion.tipo === "clic") {
     const motivo = motivoParaNoTocar(describirPieza(el));
     if (motivo) return { ok: false, motivo };
+    const control = el.matches("button, a, input, [role=button], [role=tab]") ? el : (el.querySelector<HTMLElement>("button, a, input, [role=button], [role=tab]") ?? el);
+    if (accion.para) {
+      const toque = toqueDelPliegue(accion.para, control.getAttribute("aria-expanded"));
+      if (toque === "no-es-pliegue") return { ok: false, motivo: `no dice si está abierto (${accion.ancla})` };
+      if (toque === "ya-esta") return { ok: true };
+    }
     el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: conMovimiento ? "smooth" : "auto" });
     await pausa(conMovimiento ? 220 : 0);
-    const control = el.matches("button, a, input, [role=button], [role=tab]") ? el : (el.querySelector<HTMLElement>("button, a, input, [role=button], [role=tab]") ?? el);
     if (apuntar && conMovimiento) await apuntar(control, "clic");
     if (senal?.aborted) return { ok: false, motivo: "la guía terminó" };
-    control.click();
+    // Una pieza de un gráfico (una nota de `<Linea>`) es SVG y no tiene `click()`: recibe el mismo clic como evento.
+    if (typeof (control as Partial<HTMLElement>).click === "function") control.click();
+    else control.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
     return { ok: true };
   }
 

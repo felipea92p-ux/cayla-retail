@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { LIQUIDAR_DEFECTO, liquidarDesdeValido } from "@/lib/analisis-reglas";
 import { FALLA_LEER_LIQUIDAR, RPC_LEER_LIQUIDAR } from "@/lib/analisis-liquidar-reglas";
+import { unstable_rethrow } from "next/navigation";
 
 // Análisis v4 (ADR-0357): «Liquidar desde», uno para todas las tiendas y todas las personas (Felipe, 2026-10-06). Lo guarda la
 // base (`parametros_analisis`, 20261006216000) y lo lee toda cuenta de retail con `fn_liquidar_desde`. Si la base no responde (o la
@@ -18,6 +19,7 @@ export async function getLiquidarDesde(): Promise<{ dias: number; falla: string 
     }
     return { dias: liquidarDesdeValido(data), falla: null };
   } catch (e) {
+    unstable_rethrow(e);
     console.error(`${RPC_LEER_LIQUIDAR}: ${e instanceof Error ? e.message : String(e)}`);
     return { dias: LIQUIDAR_DEFECTO, falla: FALLA_LEER_LIQUIDAR };
   }

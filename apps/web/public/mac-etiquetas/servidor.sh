@@ -16,7 +16,12 @@ export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
 export LC_ALL=C
 
 # 2 (2026-10-09): acepta `?medida=` para los rótulos de anaquel (62 × 100 mm). Una pantalla que la necesita pide la 2.
-VERSION=2
+# 3 (2026-11-16): también imprime la BOLETA en la ticketera (`?tipo=ticket&largo=<mm>`), sin el cuadro de Chrome, desde el Chrome
+#   de siempre (ADR-0670). El largo lo mide la pantalla. Una pantalla que lo necesita pide la 3.
+# 4 (2026-11-16): `GET /calentar` despierta a Chrome antes de imprimir.
+# 5 (2026-11-16): la boleta va en papel de 72 mm de ancho, el del cabezal (en el driver de la Epson, «80 mm» = 204,3 pt). Con 80 mm el
+#   driver le mandaba líneas de 640 puntos a un cabezal de 576 y el papel salía más lento que con el cuadro de Chrome.
+VERSION=5
 DIR="${CAYLA_ETIQUETAS_DIR:-$HOME/Library/Application Support/CAYLA/etiquetas}"
 LP="${CAYLA_LP:-lp}"
 MAX_BYTES=2097152
@@ -35,7 +40,8 @@ CR=$(printf '\r')
 
 origen_permitido() {
   case "$1" in
-    https://cayla-retail.vercel.app | http://localhost:3000 | http://localhost:3010 | http://127.0.0.1:3000) return 0 ;;
+    # retail.cayla.pe: el dominio propio del ERP (2026-11-16: la tienda lo usaba y el ayudante no le contestaba).
+    https://cayla-retail.vercel.app | https://retail.cayla.pe | http://localhost:3000 | http://localhost:3010 | http://127.0.0.1:3000) return 0 ;;
   esac
   [ -f "$DIR/origenes.txt" ] && grep -qxF "$1" "$DIR/origenes.txt"
 }
@@ -71,6 +77,16 @@ buscar_chrome() {
     [ -n "$c" ] && [ -x "$c" ] && { printf '%s' "$c"; return 0; }
   done
   return 1
+}
+
+# La cola de la ticketera: la que dice `$DIR/ticketera` o, si no, la primera que por su nombre sea una térmica de tickets
+# (Epson TM-…, «Receipt», «Ticket», «POS-80»). Nunca la Brother: esa es de etiquetas.
+buscar_ticketera() {
+  if [ -s "$DIR/ticketera" ]; then
+    head -n 1 "$DIR/ticketera"
+    return 0
+  fi
+  lpstat -e 2>/dev/null | grep -v -i '^Brother' | grep -i -E '(^|[_-])TM[-_]?[A-Z0-9]|receipt|ticket|thermal|pos[-_]?(58|80)' | head -n 1
 }
 
 # La cola de la Brother: la que dice `$DIR/impresora` o, si no, la primera «Brother_QL…» que conozca la Mac.
@@ -122,28 +138,81 @@ case "$METODO $RUTA" in
     CHROME=$(buscar_chrome) && TIENE_CHROME=true || TIENE_CHROME=false
     COLA=$(buscar_cola)
     [ -n "$COLA" ] && TIENE_COLA=true || TIENE_COLA=false
-    responder "200 OK" "{\"ok\":true,\"version\":$VERSION,\"chrome\":$TIENE_CHROME,\"impresora\":$TIENE_COLA}"
+    TICKETERA=$(buscar_ticketera)
+    [ -n "$TICKETERA" ] && TIENE_TICKETERA=true || TIENE_TICKETERA=false
+    responder "200 OK" "{\"ok\":true,\"version\":$VERSION,\"chrome\":$TIENE_CHROME,\"impresora\":$TIENE_COLA,\"ticketera\":$TIENE_TICKETERA}"
+    ;;
+  "GET /calentar")
+    # Despierta a Chrome antes de imprimir (la web lo pide al abrir el cobro o una hoja con ticket). Tras unos segundos sin usarse,
+    # el primer Chrome sin ventana tarda ~1,1 s en armar el PDF; con uno corrido 3 a 8 s antes, 0,5 s (medido el 2026-11-16).
+    # Responde al tiro y recién después corre Chrome con una página en blanco: launchd mataría a un Chrome dejado atrás.
+    if ! origen_permitido "$ORIGEN"; then
+      responder "403 Forbidden" '{"ok":false,"error":"origen no permitido"}'
+      exit 0
+    fi
+    MARCA="$DIR/calentado"
+    # Una vez cada 10 s, como mucho: varias pestañas abiertas no lanzan un Chrome cada una.
+    if [ -f "$MARCA" ] && [ -n "$(find "$MARCA" -mtime -10s 2>/dev/null)" ]; then
+      responder "200 OK" '{"ok":true,"calentado":false}'
+      exit 0
+    fi
+    CHROME=$(buscar_chrome) || { responder "500 Internal Server Error" '{"ok":false,"error":"no encuentro Google Chrome"}'; exit 0; }
+    touch "$MARCA" 2>/dev/null
+    responder "200 OK" '{"ok":true,"calentado":true}'
+    exec >/dev/null 2>&1 </dev/null
+    TMP=$(mktemp -d "${TMPDIR:-/tmp}/cayla-cal.XXXXXX") || exit 0
+    trap 'pkill -9 -f "$TMP/perfil" 2>/dev/null; rm -rf "$TMP"' EXIT
+    "$CHROME" --headless --disable-gpu --no-first-run --no-default-browser-check --disable-background-networking \
+      --disable-component-update --use-mock-keychain --user-data-dir="$TMP/perfil" --dump-dom about:blank &
+    PID=$!
+    I=0
+    while [ "$I" -lt 100 ] && kill -0 "$PID" 2>/dev/null; do sleep 0.1; I=$((I + 1)); done
+    { kill -9 "$PID"; wait "$PID"; } 2>/dev/null
     ;;
   "POST /imprimir")
     if ! origen_permitido "$ORIGEN"; then
       responder "403 Forbidden" '{"ok":false,"error":"origen no permitido"}'
       exit 0
     fi
-    case "$CONSULTA" in
-      '') ;;
-      medida=*)
-        PEDIDA=${CONSULTA#medida=}
-        if ! medida_permitida "$PEDIDA"; then
-          responder "400 Bad Request" '{"ok":false,"error":"esa medida de papel no existe"}'
-          exit 0
-        fi
-        MEDIA="Custom.$PEDIDA"
-        ;;
-      *)
-        responder "400 Bad Request" '{"ok":false,"error":"la pantalla pidio algo que el ayudante no conoce"}'
+    # La consulta: `medida=…` (rótulos), o `tipo=ticket&largo=<mm>` (la boleta). Nada más; nunca llega a `lp` un texto que no
+    # se haya comprobado aquí.
+    TIPO=etiqueta
+    PEDIDA=""
+    LARGO_TICKET=""
+    RARO=false
+    set -f
+    VIEJO_IFS=$IFS
+    IFS='&'
+    for PAR in $CONSULTA; do
+      case "$PAR" in
+        '') ;;
+        medida=*) PEDIDA=${PAR#medida=} ;;
+        tipo=ticket) TIPO=ticket ;;
+        largo=*) LARGO_TICKET=${PAR#largo=} ;;
+        *) RARO=true ;;
+      esac
+    done
+    IFS=$VIEJO_IFS
+    set +f
+    if [ "$RARO" = true ]; then
+      responder "400 Bad Request" '{"ok":false,"error":"la pantalla pidio algo que el ayudante no conoce"}'
+      exit 0
+    fi
+    if [ -n "$PEDIDA" ]; then
+      if ! medida_permitida "$PEDIDA"; then
+        responder "400 Bad Request" '{"ok":false,"error":"esa medida de papel no existe"}'
         exit 0
-        ;;
-    esac
+      fi
+      MEDIA="Custom.$PEDIDA"
+    fi
+    if [ "$TIPO" = ticket ]; then
+      case "$LARGO_TICKET" in '' | *[!0-9]*) LARGO_TICKET=0 ;; esac
+      if [ "$LARGO_TICKET" -lt 30 ] || [ "$LARGO_TICKET" -gt 3000 ]; then
+        responder "400 Bad Request" '{"ok":false,"error":"el largo del ticket no es valido"}'
+        exit 0
+      fi
+      MEDIA="Custom.72x${LARGO_TICKET}mm"
+    fi
     if [ "$LARGO" -le 0 ] || [ "$LARGO" -gt "$MAX_BYTES" ]; then
       responder "413 Payload Too Large" '{"ok":false,"error":"las etiquetas no llegaron completas"}'
       exit 0
@@ -152,10 +221,18 @@ case "$METODO $RUTA" in
       responder "500 Internal Server Error" '{"ok":false,"error":"no hay Chrome en esta Mac"}'
       exit 0
     }
-    COLA=$(buscar_cola)
-    if [ -z "$COLA" ]; then
-      responder "500 Internal Server Error" '{"ok":false,"error":"la Mac no tiene la Brother agregada"}'
-      exit 0
+    if [ "$TIPO" = ticket ]; then
+      COLA=$(buscar_ticketera)
+      if [ -z "$COLA" ]; then
+        responder "500 Internal Server Error" '{"ok":false,"error":"la Mac no tiene la ticketera agregada"}'
+        exit 0
+      fi
+    else
+      COLA=$(buscar_cola)
+      if [ -z "$COLA" ]; then
+        responder "500 Internal Server Error" '{"ok":false,"error":"la Mac no tiene la Brother agregada"}'
+        exit 0
+      fi
     fi
 
     TMP=$(mktemp -d "${TMPDIR:-/tmp}/cayla-etq.XXXXXX") || exit 1
@@ -183,10 +260,11 @@ case "$METODO $RUTA" in
       --print-to-pdf="$TMP/etiquetas.pdf" "file://$TMP/etiquetas.html" >"$TMP/chrome.log" 2>&1 &
     PID=$!
     I=0
-    while [ "$I" -lt 80 ]; do
+    # Se mira cada 0,1 s (antes 0,5: hasta medio segundo de espera de más en cada boleta). 400 vueltas = el mismo tope de 40 s.
+    while [ "$I" -lt 400 ]; do
       grep -q 'bytes written to file' "$TMP/chrome.log" 2>/dev/null && break
       kill -0 "$PID" 2>/dev/null || break
-      sleep 0.5
+      sleep 0.1
       I=$((I + 1))
     done
     { kill -9 "$PID"; wait "$PID"; } 2>/dev/null
@@ -197,7 +275,13 @@ case "$METODO $RUTA" in
       exit 0
     fi
 
-    SALIDA=$("$LP" -d "$COLA" -t "Etiquetas CAYLA" -o "media=$MEDIA" -o CutMedia=EndOfPage -o print-scaling=none "$TMP/etiquetas.pdf" 2>&1)
+    # La ticketera: el ticket entero en una hoja de su largo y un corte al final (`TmxPaperCut` es de los drivers Epson TM; otro
+    # driver ignora la opción). La Brother: una etiqueta por corte.
+    if [ "$TIPO" = ticket ]; then
+      SALIDA=$("$LP" -d "$COLA" -t "Ticket CAYLA" -o "media=$MEDIA" -o print-scaling=none -o TmxPaperCut=CutPerJob "$TMP/etiquetas.pdf" 2>&1)
+    else
+      SALIDA=$("$LP" -d "$COLA" -t "Etiquetas CAYLA" -o "media=$MEDIA" -o CutMedia=EndOfPage -o print-scaling=none "$TMP/etiquetas.pdf" 2>&1)
+    fi
     if [ $? -ne 0 ]; then
       MENSAJE=$(printf '%s' "$SALIDA" | tr -d '"\\' | tr '\n' ' ' | cut -c1-160)
       responder "500 Internal Server Error" "{\"ok\":false,\"error\":\"la impresora no recibio el trabajo: $MENSAJE\"}"

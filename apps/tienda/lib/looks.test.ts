@@ -65,7 +65,7 @@ const JSON_LOOK = {
 const look = interpretarLook({ sede: TRUJILLO, look: JSON_LOOK })!.look as Look;
 
 describe("interpretar lo que devuelve la base", () => {
-  it("un look con sus prendas en su orden, en camelCase, y la tienda cuyo precio se usó", () => {
+  it("un outfit con sus prendas en su orden, en camelCase, y la tienda cuyo precio se usó", () => {
     expect(interpretarLook({ sede: TRUJILLO, look: JSON_LOOK })?.sede).toBe(TRUJILLO);
     expect(look).toMatchObject({ nombre: "Fin de semana en la ciudad", numero: 2, de: 4, total: 304.7, totalFinal: 289.7 });
     expect(look.piezas.map((p) => `${p.posicion}:${p.prenda.nombre}`)).toEqual(["1:Blusa Emma", "2:Falda Renata", "3:Vestido Sofía"]);
@@ -83,7 +83,7 @@ describe("interpretar lo que devuelve la base", () => {
     expect(look.piezas.map((x) => x.prenda.empresa)).toEqual([null, null, null]);
   });
 
-  it("la lista: un look raro se deja fuera; una respuesta rara es «no se pudo cargar» (null), nunca una página caída", () => {
+  it("la lista: un outfit raro se deja fuera; una respuesta rara es «no se pudo cargar» (null), nunca una página caída", () => {
     const lista = interpretarLooks({ sede: null, looks: [JSON_LOOK, { ...JSON_LOOK, id: "no-es-un-uuid" }] });
     expect(lista?.looks.map((l) => l.nombre)).toEqual(["Fin de semana en la ciudad"]);
     expect(interpretarLooks({ looks: "no" })).toBeNull();
@@ -92,7 +92,7 @@ describe("interpretar lo que devuelve la base", () => {
     expect(interpretarLooks({ sede: "trujillo", looks: [] })).toEqual({ sede: null, looks: [] });
   });
 
-  it("un look se ve completo o no se ve: con una prenda rara, una sola prenda o un precio final mayor que el precio, se descarta", () => {
+  it("un outfit se ve completo o no se ve: con una prenda rara, una sola prenda o un precio final mayor que el precio, se descarta", () => {
     for (const malo of [
       { ...JSON_LOOK, piezas: [JSON_LOOK.piezas[0], { ...JSON_LOOK.piezas[1], prenda: { ...JSON_LOOK.piezas[1].prenda, precio: 0 } }] },
       { ...JSON_LOOK, piezas: [JSON_LOOK.piezas[0]] },
@@ -103,7 +103,7 @@ describe("interpretar lo que devuelve la base", () => {
     }
   });
 
-  it("un look que ya no se ve llega como null (la página dice que ya no está)", () => {
+  it("un outfit que ya no se ve llega como null (la página dice que ya no está)", () => {
     expect(interpretarLook({ sede: null, look: null })).toEqual({ sede: null, look: null });
     expect(interpretarLook("raro")).toBeNull();
   });
@@ -115,7 +115,7 @@ describe("lo que se dibuja", () => {
     expect(precioDePieza(look.piezas[2])).toEqual({ principal: "S/ 134.90", anterior: "S/ 149.90", oferta: true });
   });
 
-  it("el total del look («desde» si una campaña no toca todas las tallas)", () => {
+  it("el total del outfit («desde» si una campaña no toca todas las tallas)", () => {
     expect(totalDelLook(look)).toBe("S/ 289.70");
     expect(totalDelLook({ ...look, desde: true })).toBe("Desde S/ 289.70");
   });
@@ -126,11 +126,11 @@ describe("lo que se dibuja", () => {
     expect(precioDelLook({ total: 165.8, totalFinal: 165.8, desde: false })).toEqual({ principal: "S/ 165.80", anterior: null, oferta: false });
   });
 
-  it("la lista va de a tres solo si llena sus filas (sin un look solo al final con media pantalla vacía)", () => {
+  it("la lista va de a tres solo si llena sus filas (sin un outfit solo al final con media pantalla vacía)", () => {
     expect([1, 2, 3, 4, 5, 6, 7, 8, 9].filter(looksDeATres)).toEqual([3, 6, 9]);
   });
 
-  it("«Otros looks» bajo un look abierto: los demás en su orden, sin el que se ve, hasta tres", () => {
+  it("«Otros outfits» bajo un outfit abierto: los demás en su orden, sin el que se ve, hasta tres", () => {
     const de = (...ids: string[]) => ids.map((id) => ({ id }) as Look);
     expect(otrosLooks(de("a", "b", "c"), "b").map((l) => l.id)).toEqual(["a", "c"]);
     expect(otrosLooks(de("a", "b", "c", "d", "e"), "a").map((l) => l.id)).toEqual(["b", "c", "d"]);
@@ -190,7 +190,7 @@ describe("elegir las tallas (propuesta h)", () => {
   });
 });
 
-describe("el look a la bolsa", () => {
+describe("el outfit a la bolsa", () => {
   const emma = { varianteId: ID(5), productoId: ID(1), nombre: "Blusa Emma", color: "Negro", talla: "S" };
   const falda = { varianteId: ID(6), productoId: ID(2), nombre: "Falda Renata", color: "Negro", talla: "Única" };
   const vestido = { varianteId: ID(7), productoId: ID(3), nombre: "Vestido Sofía", color: "Negro", talla: "M" };
@@ -208,20 +208,20 @@ describe("el look a la bolsa", () => {
   it("entraron todas: la hoja se cierra y el aviso dice cuántas y de qué look (como la maqueta)", () => {
     expect(avisoDelLook("Fin de semana", [emma, falda], { agregadas: [ID(5), ID(6)], agotadas: [], noEstan: [] })).toEqual({
       cerrar: true,
-      texto: "Agregaste 2 prendas del look «Fin de semana» a tu bolsa.",
+      texto: "Agregaste 2 prendas del outfit «Fin de semana» a tu bolsa.",
     });
     expect(avisoDelLook("Fin de semana", [falda], { agregadas: [ID(6)], agotadas: [], noEstan: [] }).texto).toBe(
-      "Agregaste 1 prenda del look «Fin de semana» a tu bolsa.",
+      "Agregaste 1 prenda del outfit «Fin de semana» a tu bolsa.",
     );
     // El que armó el cliente en el probador («Arma el tuyo») no tiene nombre: «de tu look».
-    expect(avisoDelLook(null, [emma, falda], { agregadas: [ID(5), ID(6)], agotadas: [], noEstan: [] }).texto).toBe("Agregaste 2 prendas de tu look a tu bolsa.");
+    expect(avisoDelLook(null, [emma, falda], { agregadas: [ID(5), ID(6)], agotadas: [], noEstan: [] }).texto).toBe("Agregaste 2 prendas de tu outfit a tu bolsa.");
   });
 
   it("entraron algunas: la hoja se cierra y el aviso dice cuál quedó fuera y por qué", () => {
     expect(avisoDelLook("Fin de semana", [emma, falda, vestido], { agregadas: [ID(5)], agotadas: [ID(6)], noEstan: [ID(7)] })).toEqual({
       cerrar: true,
       texto:
-        "Agregaste 1 prenda del look «Fin de semana» a tu bolsa. Falda Renata (Única) ya no está en ninguna tienda. Vestido Sofía (M) ya no está en la tienda online.",
+        "Agregaste 1 prenda del outfit «Fin de semana» a tu bolsa. Falda Renata (Única) ya no está en ninguna tienda. Vestido Sofía (M) ya no está en la tienda online.",
     });
   });
 

@@ -209,7 +209,7 @@ describe("el borrador, por sede", () => {
     creadoEn: "2026-10-04T13:00:00.000Z",
   };
 
-  it("la clave es de la SEDE (no de la cuenta): escanea Almacén y confirma un líder en el mismo navegador", () => {
+  it("la clave es de la SEDE (no de la cuenta): sobrevive a un cambio de cuenta en el mismo navegador", () => {
     expect(claveBorradorCuadre("sede-1")).toBe("cayla:cuadre:sede-1:borrador");
   });
 
@@ -380,7 +380,7 @@ describe("los rechazos de la base", () => {
     expect(e.tipo === "ya_hecho" && e.respuesta?.cuadreId).toBe(RESPUESTA_BASE.cuadre_id);
     expect(interpretarErrorDeCuadre({ message: "m", code: "P0001", hint: "cuadre_token_reusado" }).tipo).toBe("token_reusado");
     expect(interpretarErrorDeCuadre({ message: "m", code: "P0001", hint: "cuadre_nota_requerida" }).tipo).toBe("nota_requerida");
-    expect(interpretarErrorDeCuadre({ message: "m", code: "P0001", hint: "cuadre_solo_lider" }).tipo).toBe("solo_lider");
+    expect(interpretarErrorDeCuadre({ message: "m", code: "P0001", hint: "cuadre_sin_modulo" }).tipo).toBe("sin_modulo");
     expect(interpretarErrorDeCuadre({ message: "m", code: "P0001", hint: "cuadre_lista_invalida" })).toEqual({ tipo: "otro", mensaje: "m" });
     expect(interpretarErrorDeCuadre(null).tipo).toBe("otro");
   });
@@ -392,15 +392,20 @@ describe("los rechazos de la base", () => {
     for (const hint of ["cuadre_token_reusado", "cuadre_ya_hecho", "cuadre_almacen_movido", "cuadre_nota_requerida", "responsable_no_presente"]) {
       expect(respuestaResuelveLaMarcaCuadre({ message: "m", code: "P0001", hint })).toBe(true);
     }
-    for (const hint of ["cuadre_solo_lider", "cuadre_sin_tienda", "cuadre_lista_invalida", "cuadre_escaneo_invalido", "cuadre_sin_token"]) {
+    for (const hint of ["cuadre_sin_modulo", "cuadre_sin_tienda", "cuadre_lista_invalida", "cuadre_escaneo_invalido", "cuadre_sin_token"]) {
       expect(respuestaResuelveLaMarcaCuadre({ message: "m", code: "P0001", hint })).toBe(false);
     }
   });
 
   it("cada pista que levanta la migración y que la pantalla distingue existe en la migración", () => {
-    for (const hint of ["cuadre_almacen_movido", "cuadre_ya_hecho", "cuadre_conteo_abierto", "cuadre_token_reusado", "cuadre_solo_lider", "cuadre_tienda_sin_piso", "cuadre_escaneo_invalido", "cuadre_lista_invalida", "cuadre_sin_token"]) {
+    for (const hint of ["cuadre_almacen_movido", "cuadre_ya_hecho", "cuadre_conteo_abierto", "cuadre_token_reusado", "cuadre_tienda_sin_piso", "cuadre_escaneo_invalido", "cuadre_lista_invalida", "cuadre_sin_token"]) {
       expect(MIGRACION).toContain(`hint = '${hint}'`);
     }
+  });
+
+  it("la pista de «sin el módulo» la levanta la migración que quitó la validación del líder (ADR-0534)", () => {
+    const quitarLider = readFileSync(join(__dirname, "../../../supabase/migrations/20261027164000_quitar_validaciones_del_lider.sql"), "utf8");
+    expect(quitarLider).toContain("hint = 'cuadre_sin_modulo'");
   });
 });
 
@@ -428,12 +433,11 @@ describe("un conteo abierto en la sede (el cuadre no se confirma hasta cerrarlo)
     expect(interpretarErrorDeCuadre({ message: "m", code: "P0001", hint: "cuadre_conteo_abierto", details: "{roto" })).toMatchObject({ tipo: "conteo_abierto", conteo: null });
     expect(respuestaResuelveLaMarcaCuadre({ message: "m", code: "P0001", hint: "cuadre_conteo_abierto" })).toBe(true);
     const c = leerConteoAbierto(CONTEO_BASE)!;
-    expect(motivoNoConfirmar({ esLider: true, sede: "TRU", responsableMotivo: null, notaRequerida: false, nota: "", conteoAbierto: c })).toBe(
+    expect(motivoNoConfirmar({ responsableMotivo: null, notaRequerida: false, nota: "", conteoAbierto: c })).toBe(
       "Hay un conteo abierto (Conteo 12 del almacén): ciérralo o cancélalo en Conteo antes de cuadrar.",
     );
-    // Sin ser líder, lo primero es quién confirma; sin conteo, el botón vuelve a lo de siempre.
-    expect(motivoNoConfirmar({ esLider: false, sede: "TRU", responsableMotivo: null, notaRequerida: false, nota: "", conteoAbierto: c })).toMatch(/^Solo un líder/);
-    expect(motivoNoConfirmar({ esLider: true, sede: "TRU", responsableMotivo: null, notaRequerida: false, nota: "", conteoAbierto: null })).toBeNull();
+    // Sin conteo, el botón vuelve a lo de siempre.
+    expect(motivoNoConfirmar({ responsableMotivo: null, notaRequerida: false, nota: "", conteoAbierto: null })).toBeNull();
   });
 });
 
@@ -461,15 +465,13 @@ describe("la guía de foco", () => {
       for (const notaRequerida of [false, true])
         for (const nota of ["", "faltaba el estante del fondo"]) {
           const guia = sePuedeConfirmar(camposGuiaConfirmar({ responsableListo, notaRequerida, nota }));
-          const boton = motivoNoConfirmar({ esLider: true, sede: "TRU", responsableMotivo: responsableListo ? null : "Elige quién", notaRequerida, nota }) === null;
+          const boton = motivoNoConfirmar({ responsableMotivo: responsableListo ? null : "Elige quién", notaRequerida, nota }) === null;
           expect(guia).toBe(boton);
         }
   });
 
-  it("sin ser líder el botón no desaparece: se apaga y dice quién sí puede, en este equipo y con esta sede elegida arriba", () => {
-    expect(motivoNoConfirmar({ esLider: false, sede: "Tienda Trujillo", responsableMotivo: null, notaRequerida: false, nota: "" })).toBe(
-      "Solo un líder confirma el cuadre. Pídele que entre con su cuenta en este mismo equipo y elija Tienda Trujillo arriba: lo escaneado no se pierde.",
-    );
-    expect(motivoNoConfirmar({ esLider: true, sede: "TRU", responsableMotivo: null, notaRequerida: false, nota: "x".repeat(301) })).toMatch(/hasta 300/);
+  it("lo confirma quien escaneó, sin esperar la cuenta de un líder (ADR-0534); la nota tiene tope", () => {
+    expect(motivoNoConfirmar({ responsableMotivo: null, notaRequerida: false, nota: "" })).toBeNull();
+    expect(motivoNoConfirmar({ responsableMotivo: null, notaRequerida: false, nota: "x".repeat(301) })).toMatch(/hasta 300/);
   });
 });

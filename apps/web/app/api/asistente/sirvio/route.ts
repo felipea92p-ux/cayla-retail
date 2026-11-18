@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 // POST /api/asistente/sirvio  { preguntaId, sirvio, comentario? }  →  { ok }
 //
-// «¿Te sirvió?» de «Pregúntale a CAYLA» (ADR-0529, actividad 5) y, si no, «¿Qué buscabas?». Va por una ruta y no directo a la base
+// «¿Te sirvió?» de «Pregúntale a CAYLA» (ADR-0536, actividad 5) y, si no, «¿Qué buscabas?». Va por una ruta y no directo a la base
 // desde el navegador para no levantar el loader de pantalla completa por un toque de «Sí» (la pantalla lo pide con `x-espera: no`).
 // La base decide todo (`responder_pregunta_asistente`): solo la cuenta que preguntó, una vez, dentro de un día.
 //

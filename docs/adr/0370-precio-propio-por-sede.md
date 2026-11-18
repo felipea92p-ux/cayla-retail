@@ -209,3 +209,38 @@ gana en todas) o un promedio (descartado: un promedio escondería justo la tiend
   pantalla pase por `precioParaMargen` (si no, una pantalla nueva volvería a medir con la grilla a secas).
 - **Precio por talla:** se compara el precio propio más bajo de cualquier talla con el precio MÁS ALTO de las tallas. Hoy cada tienda vende todas las tallas a un
   mismo precio, así que es lo mismo; si algún día cambia, es la lectura prudente.
+
+## Actualización 2026-10-28 — una combinación (color y talla) puede valer distinto en una tienda
+
+**El problema.** Al cerrar un envío, quien recibe quería poner el costo y el precio por color y talla, y el precio de una tienda era de la prenda entera (decisión del 2026-10-10): para que una talla
+valiera otra cosa en Trujillo, toda la prenda tendría que valerla. Felipe eligió (2026-10-28) que la tienda también pueda tener precio por combinación, y que se pruebe en local antes de producción.
+
+**La decisión: una capa de excepciones encima, no volver a una fila por variante.** `fn_precio_en_sede(variante, sede)` —la única regla que leen Vender, la caja, Apartados, Cambios, Proformas, Ventas sin
+registrar y la tienda web— ahora busca, de arriba abajo: (0) la talla de obsequio vale 0; (1) **la excepción de esa combinación en esa tienda** (`precios_sede_variante`, nueva); (2) el precio de la prenda en esa tienda
+(`precios_sede_prenda`); (3) el general (`variantes.precio`). **Con la capa vacía todo precio sale igual que ayer, así que no se migra ningún dato de producción** (la prueba `pruebas:precio-sede-variante` lo compara
+una a una en todas las combinaciones y sedes, con su mutante). Ninguna función que cobra se tocó.
+
+**Por qué una capa y no copiar el precio a cada sede.** Copiar el general a una fila por tienda y combinación congela la grilla (al cambiarla, las tiendas dejan de seguirla): el error que esta decisión corrigió el 2026-10-10.
+Aquí una combinación nueva simplemente hereda el precio de su prenda, una talla que se apaga archiva su excepción, y una excepción que queda igual a lo de abajo se quita sola
+(`fn_precio_sede_variante_depurar`, en el mismo disparador diferido que ya depuraba el precio de la prenda).
+
+**Reglas de la capa.** Una sola vigente por combinación y tienda; se archiva, nunca se borra ni se edita. `poner_precio_sede_variantes` (todo o nada) lleva los candados del precio de la prenda (módulo, tienda abierta, solo
+la tuya) y los de cada combinación (es de la prenda y activa, no es de obsequio, de más de 0 a S/ 5 000, no baja del costo de esa talla). **Un precio nuevo de la prenda en una tienda archiva sus excepciones en esa
+tienda** («toda la prenda pasa a valer esto aquí»); quitar el precio de la prenda NO las toca. Lo que muestra precios por tienda las ve: `fn_precios_en_sede`, `fn_producto_historia` (las excepciones hacen que la prenda
+no se pueda eliminar), `fn_productos_filtro` y `fn_producto_tiene_precio_de_tienda`; `fn_precios_sede_variantes_producto` las lista para la ficha.
+
+**Lo que dejó de ser cierto.** «Hoy cada tienda vende todas las tallas a un mismo precio» (actualización del 2026-10-11, Producción): ya puede haber tallas distintas. `precioPropioMasBajo` y el margen de
+Producción miran talla por talla, así que siguen bien. Las pantallas que armaban «un precio por tienda» con la primera talla que encontraban se corrigieron (ADR-0393, act. 2026-10-28 (c)).
+
+**Costo medido** (Postgres local, 157 200 llamadas): ayer 1,54 s; con la capa vacía 1,75 s (+14 %, ≈ +1,3 µs por llamada); con 120 excepciones vigentes 2,13 s (+38 %). Una carga del catálogo de la tienda web llama
+a la regla ≈ 3 500 veces: ≈ +5 ms. `pnpm pruebas:tienda-rapida` no se pudo usar: ya falla en la base local compartida con o sin este cambio (los mismos 7 casos). El índice parcial único sirve también a la lectura.
+
+**Descartado:** reescribir `fn_precio_en_sede` entera (otra migración ya la parchó; el reemplazo anclado se detiene si la viva cambia); que quitar el precio de la prenda borre también las excepciones (una excepción es un
+precio absoluto que se ve y se quita aparte); dejar que una excepción cobre un obsequio.
+
+**Migraciones (SIN PEGAR EN PRODUCCIÓN; solo local).** `20261028230000_precio_de_tienda_por_combinacion_capa.sql` (tabla, disparadores y la regla), `20261028232000_precio_de_tienda_por_combinacion_escribir_y_leer.sql`
+(escribir, limpieza sola, lectores) y `20261028234000_recepcion_costo_y_precio_por_combinacion.sql` (la recepción). Cada una es UNA parte, re-ejecutable, sin políticas ni `drop trigger`; se pegan en ese orden, después de
+`20261026164000` (costo por prenda), `20261026180000` y `20261028182000`. Verificación: el bloque final de cada una falla si algo no quedó, y el md5 de `fn_precio_en_sede` local es `4c387dff06a6de9fa802f87c03eed16c`.
+**Escribir una migración que una prueba vieja recarga:** un reemplazo anclado no puede tocar el texto que otro reemplazo anclado ya espera intacto (las suites de recepción recargan las migraciones históricas sobre la base ya
+migrada); por eso la historia de la prenda se ancla en el renglón de ANTES y el regalo de «Otro» descarta los costos en la rama del regalo, no dentro del texto de ADR-0519.
+

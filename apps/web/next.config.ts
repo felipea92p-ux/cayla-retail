@@ -14,11 +14,27 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.N
 // nueva» (ADR-0422, `lib/version-nueva-reglas.ts`). Fuera de Vercel (`next dev`) vale «desarrollo» y no se compara con nada.
 const versionDeEstaCompilacion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || "desarrollo";
 
+// Medir el peso en local (ADR-0674): `MEDIR_PESO=1 … next build` deja el mapa de cada archivo del navegador, y
+// `scripts/peso/por-modulo.mjs` dice cuántos KB pone cada archivo de fuente o librería. Nunca con la llave de Sentry a mano: en un
+// armado que publica, los mapas se suben a Sentry y se borran (ADR-0424), no se quedan junto al código.
+const MEDIR_PESO = process.env.MEDIR_PESO === "1" && !process.env.SENTRY_AUTH_TOKEN;
+
 const nextConfig: NextConfig = {
+  // Solo en `next dev`: otros equipos de la misma red (celular de la tienda, otro computador) abren el ERP local por la IP de
+  // esta máquina; sin esto Next 16 les bloquea los recursos de desarrollo (`/_next/*`, HMR) por venir de otro origen. No afecta
+  // a producción: la opción solo la lee `next dev`.
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*", "172.*.*.*", "*.local"],
+
   // En qué entorno corre esta versión (ADR-0424), escrito dentro del código al armarla: Sentry solo avisa en `production`. Vercel da
   // `VERCEL_ENV` al armar (production, preview); en local no existe y queda «local». Se escribe aquí y no se lee de
   // `NEXT_PUBLIC_VERCEL_ENV` porque esa depende de una casilla del panel de Vercel.
   env: { NEXT_PUBLIC_BUILD_ID: versionDeEstaCompilacion, NEXT_PUBLIC_ENTORNO: process.env.VERCEL_ENV ?? "local" },
+
+  // Solo en Vercel, `next build` no vuelve a revisar los tipos (ADR-0648). Vercel cobra la compilación por minuto y por núcleo
+  // (82 % de la factura), y esa revisión ya la hizo el CI sobre el MISMO commit que llega a `main`: la cola de fusión exige
+  // «Tipos, lint y pruebas» (`pnpm typecheck`) y además compila la web con los tipos encendidos («Compila la web»). Afuera de
+  // Vercel —el CI, la máquina de cada uno— `next build` los sigue revisando: un error de tipos nunca llega a la cola sin verse.
+  typescript: { ignoreBuildErrors: process.env.VERCEL === "1" },
 
   images: {
     remotePatterns: supabaseUrl
@@ -55,6 +71,10 @@ const nextConfig: NextConfig = {
   // producción, que es justo la clase de diferencia que después cuesta horas entender.
   turbopack: { root: path.join(__dirname, "..", "..") },
 
+  // Solo para MEDIR en local (ADR-0674): ver `MEDIR_PESO`, arriba. La llave se agrega solo al medir: si existiera siempre (aunque
+  // fuera `false`), Sentry la tomaría por una decisión nuestra y dejaría de generar los mapas que sube en producción.
+  ...(MEDIR_PESO ? { productionBrowserSourceMaps: true } : {}),
+
   experimental: {
     // Caché del router del cliente: cuántos segundos puede reusarse una pantalla ya
     // visitada al volver a ella, sin repetir el viaje al servidor.
@@ -70,7 +90,18 @@ const nextConfig: NextConfig = {
     // y como mucho 30s, es un cambio hecho por OTRA persona en OTRA sede — y cada Encargada
     // opera la suya. Si algún día se agrega una mutación sin `router.refresh()`, ESTA es la
     // línea que la vuelve un bug visible. — ADR-0013, Fase 1.
+    //
+    // «Atrás» y «adelante» NO miran este número (medido el 2026-11-11; Next lo documenta así): el router dibuja siempre la página
+    // que guardó, tenga 5 segundos o 20 minutos. Una pantalla que se guarda sola SIN `router.refresh()` vuelve entonces con datos
+    // viejos bajo el dedo. Recibir ▸ Contar y recibir un traslado lo resuelven recordando lo que guardaron y pidiendo la página de nuevo
+    // si dibujan una copia (`lib/copia-de-pagina.ts`; ADR-0393 y ADR-0239, act. 2026-11-11), como el Conteo de inventario; quitar
+    // `staleTimes` no lo arreglaría.
     staleTimes: { dynamic: 30 },
+
+    // El cronómetro del clic (ADR-0654): con esto Next le pasa a `onRouterTransitionStart` (`instrumentation-client.ts`) la hora exacta
+    // en que empezó cada navegación, con su id. Existe desde Next 16.3; si algún día se va, el gancho sigue llamándose sin el evento y el
+    // cronómetro toma la hora de la llamada, que es el mismo instante.
+    instrumentationClientRouterTransitionEvents: true,
   },
 
   async redirects() {
@@ -124,11 +155,13 @@ const nextConfig: NextConfig = {
       { source: "/productos/tallas", destination: "/productos/atributos?tipo=tallas", permanent: false },
       { source: "/productos/tejidos", destination: "/productos/atributos?tipo=tejidos", permanent: false },
       { source: "/productos/patrones", destination: "/productos/atributos?tipo=patrones", permanent: false },
-      // Los sellos dejaron de ser una pestaña de Atributos y Campañas dejó de ser una fila aparte (Felipe 2026-10-22): las dos viven en
-      // Catálogo ▸ Insignias, con las campañas como primera vista. Los enlaces guardados a cualquiera de las tres siguen llegando.
+      // Los sellos dejaron de ser una pestaña de Atributos (Felipe 2026-10-22): viven en Catálogo ▸ Insignias. Los enlaces guardados a
+      // las dos formas viejas siguen llegando.
+      // `/productos/campanas` NO va aquí: desde ADR-0655 (2026-11-13) es la página propia de «Campañas y ofertas». El alias que la mandaba a
+      // Insignias (2026-10-22) quedó vivo ese día y tapaba la página: la fila del menú abría Insignias. Una ruta que tiene su `page.tsx` no
+      // lleva alias; lo vigila `lib/redirects-rutas-vivas.test.ts`.
       { source: "/productos/etiquetas", destination: "/productos/insignias?vista=rotacion", permanent: false },
       { source: "/productos/atributos", has: [{ type: "query", key: "tipo", value: "etiquetas" }], destination: "/productos/insignias?vista=rotacion", permanent: false },
-      { source: "/productos/campanas", destination: "/productos/insignias", permanent: false },
       // Facturación pasó a llamarse Comprobantes (2026-09-22, D-60): el envío a SUNAT es automático y
       // la pantalla es de series. Los enlaces viejos siguen llegando: la lista del mes es «Emitidos»,
       // y el Resumen y los códigos de descuento (que ya no se muestran) caen en Series.
@@ -149,7 +182,8 @@ export default withSentryConfig(nextConfig, {
   org: "cayla",
   project: "cayla-retail",
   authToken: process.env.SENTRY_AUTH_TOKEN,
-  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN, deleteSourcemapsAfterUpload: true },
+  // Al medir (`MEDIR_PESO`) los mapas se quedan en disco: Sentry los borra al terminar el armado aunque no suba nada.
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN, deleteSourcemapsAfterUpload: !MEDIR_PESO },
   widenClientFileUpload: true,
   silent: !process.env.CI,
   telemetry: false,

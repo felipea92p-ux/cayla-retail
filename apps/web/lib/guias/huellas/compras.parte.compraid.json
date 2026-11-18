@@ -2,7 +2,7 @@
   "guia": "compras.parte.compraid",
   "ruta": "/compras/parte/[compraId]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 28,
+  "total": 29,
   "controles": {
     "app/(app)/compras/parte/[compraId]/page.tsx": [
       "Volver «/compras/por-pagar»"
@@ -38,6 +38,7 @@
       "button «Completar con el último medio»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
+      "button «Volver a intentar»",
       "CampoSelect «{etiqueta}»"
     ]
   }

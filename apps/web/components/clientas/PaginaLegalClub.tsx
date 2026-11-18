@@ -30,19 +30,19 @@ export async function PaginaLegalClub({ cual, t }: { cual: "privacidad" | "termi
     <HojaClub>
       <p className="label-cayla mt-8 text-[11px] text-taupe-profundo">Club CAYLA</p>
       <h1 className="font-display mt-2 text-[32px] leading-tight tracking-tight text-tinta">{TITULOS[cual]}</h1>
-      <p className="mt-2 text-[13px] text-tinta/60">
+      <p className="mt-2 text-sm text-tinta/60">
         Versión {texto.version}
         {desde ? ` · vigente desde el ${desde}` : ""}
       </p>
       <div className="mt-6">
         <TextoLegal bloques={cuerpoLegal(texto.texto)} />
       </div>
-      <p className="mt-10 flex flex-wrap gap-x-4 gap-y-1 border-t border-sand pt-4 text-[13px]">
+      <p className="mt-10 flex flex-wrap gap-x-4 gap-y-1 border-t border-sand pt-4 text-sm">
         <a href={enlaceLegal(otro, volverA)} className="club-enlace club-enlace-amplio font-medium">
           {TITULOS[otro]}
         </a>
         <a href={DIRECCION_TIENDA_ONLINE} className="club-enlace club-enlace-amplio">
-          Únete al Club en tienda.cayla.pe
+          Únete al Club en cayla.pe
         </a>
       </p>
     </HojaClub>

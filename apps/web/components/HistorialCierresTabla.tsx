@@ -1,5 +1,6 @@
 "use client";
 
+import { corteDePlantilla } from "@/lib/tabla-corte-reglas";
 import { ArrowUp, Check, ChevronRight, X } from "lucide-react";
 import { Tabla, Encabezado, TABLA } from "@/components/ui/Tabla";
 import { useDetalleCierre } from "@/components/CierreCajaDetalle";
@@ -61,7 +62,7 @@ export function HistorialCierresTabla({ cierres, pie }: { cierres: CierreCaja[];
                       type="button"
                       onClick={() => abrir(c)}
                       aria-label={`Ver el detalle del cierre de ${c.ubicacionNombre} a las ${horaLima(c.cerradaEn)}: ${textoResultado(c.diferencia)}`}
-                      className={`group grid w-full gap-x-4 gap-y-1 px-5 py-3 text-left text-sm transition-colors hover:bg-sand/35 sm:items-center ${PLANTILLA}`}
+                      className={`group grid w-full gap-x-4 gap-y-1 px-5 py-3 text-left text-sm transition-colors hover:bg-sand/35 sm:items-center ${corteDePlantilla(PLANTILLA)} ${PLANTILLA}`}
                     >
                       <span className="min-w-0">
                         <span className="block truncate font-semibold text-tinta">{c.ubicacionNombre.replace(/^Tienda\s+/i, "")}</span>

@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { PAUSA_BUSQUEDA_MS, terminoParaBuscar } from "@cayla-retail/shared/busqueda";
 import { navegacionSinEspera } from "@/components/ui/Espera";
 
 /* ====================================================================
@@ -49,4 +50,73 @@ export function useBusquedaEnUrl() {
   );
 
   return { buscando, buscar };
+}
+
+/** A dónde lleva lo escrito. Con `vaciar`, la caja queda en blanco al mandarlo (Movimientos: lo escrito era un filtro, no una búsqueda). */
+type Destino = string | { href: string; vaciar: true };
+
+/* ====================================================================
+   El buscador que va a la URL, entero: lo que dice la caja, la pausa, y seguir a la URL cuando cambia desde afuera.
+
+   · Se manda solo tras `PAUSA_BUSQUEDA_MS` sin teclear, nunca por letra: cada búsqueda vuelve a pedir la pantalla completa.
+   · Una letra sola no se manda (`terminoParaBuscar`); borrar hasta quedar con una vuelve a la lista sin buscar.
+   · Siempre reemplaza la entrada del historial: «Atrás» no recorre lo que se fue escribiendo.
+   · `hrefDe` se lee al momento de mandar: si mientras se tecleaba cambió otro filtro, se parte de la URL de ahora.
+
+   Un cambio que NO es teclear (un chip, «Limpiar», un código escaneado) pasa por `fijar`: la caja cambia y la pausa no vuelve a mandarlo.
+   ==================================================================== */
+export function useBuscarAlEscribir(
+  valorUrl: string,
+  hrefDe: (termino: string) => Destino,
+  { largoMaximo }: { largoMaximo?: number } = {},
+) {
+  const { buscando, buscar } = useBusquedaEnUrl();
+  const [texto, setTexto] = useState(valorUrl);
+  const ultimoEnviado = useRef(valorUrl);
+  const hrefVigente = useRef(hrefDe);
+  useEffect(() => {
+    hrefVigente.current = hrefDe;
+  });
+
+  // Si la URL cambia desde afuera («Limpiar todo», atrás del navegador), la caja la sigue.
+  useEffect(() => {
+    if (valorUrl !== ultimoEnviado.current) {
+      ultimoEnviado.current = valorUrl;
+      setTexto(valorUrl);
+    }
+  }, [valorUrl]);
+
+  const mandar = useCallback(
+    (termino: string) => {
+      const destino = hrefVigente.current(termino);
+      const conVaciar = typeof destino !== "string";
+      ultimoEnviado.current = conVaciar ? "" : termino;
+      if (conVaciar) setTexto("");
+      buscar(conVaciar ? destino.href : destino, { reemplazar: true });
+    },
+    [buscar],
+  );
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      const termino = terminoParaBuscar(texto, largoMaximo);
+      // Comparado por la misma regla: un enlace viejo con `?q=a` no se manda solo al entrar.
+      if (termino !== terminoParaBuscar(ultimoEnviado.current, largoMaximo)) mandar(termino);
+    }, PAUSA_BUSQUEDA_MS);
+    return () => window.clearTimeout(t);
+  }, [texto, largoMaximo, mandar]);
+
+  /** La caja cambia por algo que no es teclear: lo que traiga ya viaja por su cuenta, la pausa no lo manda de nuevo. */
+  const fijar = useCallback((nuevo: string) => {
+    ultimoEnviado.current = nuevo.trim();
+    setTexto(nuevo);
+  }, []);
+
+  /** Enter: se manda ya lo que diga la caja, una letra incluida (ahí la persona lo pidió). */
+  const enviarYa = useCallback(() => {
+    const termino = texto.trim().slice(0, largoMaximo);
+    if (termino !== ultimoEnviado.current) mandar(termino);
+  }, [texto, largoMaximo, mandar]);
+
+  return { texto, setTexto, buscando, fijar, enviarYa };
 }

@@ -483,6 +483,15 @@ export type DeMasDeInsumo = {
   deMas: number;
 };
 
+/** Hasta cuánto pasa de lo pedido sin que parezca un error: el 5 % que eligió Felipe (2026-11-02, P04 del análisis del Taller). Más allá, el aviso sube de tono («¿un cero de más?»);
+ *  la base lo acepta igual. */
+export const MARGEN_DE_MAS_INSUMO = 0.05;
+
+/** ¿Pasa de lo pedido en más del margen? Con un pedido en cero (no debería) todo exceso es mucho. */
+export function deMasEsMucho(d: Pick<DeMasDeInsumo, "pedido" | "deMas">): boolean {
+  return d.pedido > 0 ? d.deMas / d.pedido > MARGEN_DE_MAS_INSUMO + 1e-9 : d.deMas > 0;
+}
+
 /** Las líneas pedidas a las que este papel les pone más de lo pedido (lo facturado antes en papeles vigentes, más esta vez). No bloquea:
  *  la base lo acepta y lo avisa (decisión 43). En milésimas hasta el final: 0.1 + 0.2 metros no son 0.30000000000000004. */
 export function deMasPorLineaInsumo(lineas: readonly LineaPapelInsumo[], pedidas: readonly PedidaInsumo[]): DeMasDeInsumo[] {

@@ -1,0 +1,4 @@
+## 2026-10-28 (Una fase «pendiente de registrar» ya lleva su costo y lo devenga aunque no se sepa a quién)
+Qué hice: bajo «Pendiente de registrar» ahora se escribe lo que cuesta (por prenda, fijo por orden, mínimo); ese costo se devenga como el de cualquier servicio y entra al costo de la orden y al de las prendas al pasar al stock. Sin monto, no suma nada, como antes.
+Por qué así: Felipe necesitaba devengar el gasto aunque el proveedor sea desconocido. La base ya devengaba cualquier servicio con tarifa o fijo; solo lo impedía que el pendiente se forzaba a cero. Se usan los mismos campos de un servicio para que haya una sola cuenta del costo.
+Qué se rompería sin esto: el costo de un servicio ya hecho no entraba al costo por prenda mientras no se registrara el proveedor, y la prenda se vendía con un costo más bajo que el real.

@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-hj="aire" data-pm="isla">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Apartados con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la página de Ventas ▸ Apartados con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   La pantalla real (app/(app)/vender/apartados → components/apartados/ApartadosPanel.tsx con sus tres vistas: Apartar, Entregar y
+   Todos): una HOJA de papel macizo de borde a borde, con su cabecera propia («Apartados · sede», las pestañas y «Opciones»), y en el
+   celular las pestañas fijas abajo, en una franja de PAPEL con borde arena.
+   Armada SOLO con lo ya elegido: tarjetas de cifra A · Placa, aviso B · Lente, filtros A · Gotas, buscador A · Pozo, títulos de sección,
+   avatar A · Placa (en lente), insignia A · Lente de color, pestañas A · La gota de Mi perfil, íconos de fila A · Gota al pasar, casilla A,
+   botones gota y la miniatura de prenda de hoy (la tarjeta de Productos todavía no tiene distribución elegida).
+   Lo PROPIO, con sus caras:
+     1. La hoja que encierra las tres vistas.
+     2. Las pestañas del celular (la barra fija de abajo).
+   PL-105: el celular es obligatorio (375 px). Solo tokens; los colores de las prendas son dato. Sin movimiento nuevo (la gota de la pestaña
+   viaja como la de Mi perfil); todo se apaga con prefers-reduced-motion. Datos inventados.
+   ==================================================================== */
+
+/* ---------- lo ya elegido ---------- */
+.placa{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.ap-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.cifra{min-width:0;padding:16px 18px}
+.cifra .vs{font-size:10.5px}.cifra b{display:block;font-family:'EB Garamond',serif;font-weight:400;font-size:30px;line-height:1.15;margin-top:2px;font-variant-numeric:tabular-nums}
+.cifra small{font-size:12px;color:var(--t65)}
+.cifra.alerta .vs,.cifra.alerta b{color:var(--rojo-p)}
+[data-tema="oscuro"] .cifra.alerta .vs,[data-tema="oscuro"] .cifra.alerta b{color:var(--rojo)}
+.aviso-l{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 14px 12px 16px;border-radius:18px;font-size:13.5px;border:1px solid color-mix(in srgb,var(--ambar) 30%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--ambar) 7%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--ambar) 12%,color-mix(in srgb,var(--vidrio) 55%,transparent)));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"] .aviso-l{background:linear-gradient(180deg,color-mix(in srgb,var(--ambar) 14%,transparent),color-mix(in srgb,var(--ambar) 8%,transparent))}
+.aviso-l svg{width:20px;height:20px;color:var(--ambar)}.aviso-l span{flex:1;min-width:0}.aviso-l b{color:var(--ambar)}
+.barra-f{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.fp{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:var(--t80);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.pozo-b{flex:1;min-width:200px;display:flex;align-items:center;gap:10px;height:42px;padding:0 16px;border-radius:999px;font-size:14px;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pozo-b{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pozo-b svg{width:16px;height:16px}.pozo-b span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tit{display:flex;align-items:center;gap:10px;font-family:'EB Garamond',serif;font-weight:500;font-size:21px}
+.tit .n{min-width:22px;height:22px;padding:0 7px;border-radius:999px;display:inline-grid;place-items:center;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--vidrio) 45%,transparent));box-shadow:inset 0 0 0 1px var(--t12)}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{--c:var(--ambar)}.chip.rojo{--c:var(--rojo-p)}
+.chip.vivo::before{animation:late 2.4s var(--ease) infinite}
+@keyframes late{0%{box-shadow:0 0 0 0 color-mix(in srgb,currentColor 50%,transparent)}70%,100%{box-shadow:0 0 0 6px transparent}}
+[data-tema="oscuro"] .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+[data-tema="oscuro"] .chip.rojo{--c:var(--rojo)}
+.av-l{width:38px;height:38px;flex:none;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:15px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:radial-gradient(circle at 34% 28%,color-mix(in srgb,var(--vidrio) 95%,transparent),color-mix(in srgb,var(--sand) 70%,transparent) 75%);box-shadow:inset 0 1px 1px var(--vidrio),0 4px 10px -6px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .av-l{background:color-mix(in srgb,var(--tinta) 14%,transparent);border-color:color-mix(in srgb,var(--tinta) 16%,transparent)}
+.mini{display:inline-block;width:32px;height:32px;border-radius:9px;background:var(--col);box-shadow:inset 0 1px 1px color-mix(in srgb,var(--crema-fija) 40%,transparent),0 0 0 2px color-mix(in srgb,var(--vidrio) 80%,transparent)}
+.mini+.mini{margin-left:-9px}
+.ib-f{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:999px;border:1px solid transparent;color:var(--t65)}
+.ib-f svg{width:16px;height:16px}
+@media (hover:hover){.ib-f:hover{color:var(--tinta);border-color:color-mix(in srgb,var(--borde) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 58%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}}
+.casilla{width:22px;height:22px;flex:none;border-radius:7px;display:grid;place-items:center;background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 18%,transparent);border:1px solid color-mix(in srgb,var(--borde) 70%,transparent)}
+.casilla[aria-checked="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.casilla svg{width:13px;height:13px;stroke-width:3}
+/* la barra del plazo (los 9 tramos del apartado): lo que falta, hundido; lo pasado, taupe; hoy, tinta; la gracia, rojo */
+.plazo{display:grid;grid-template-columns:repeat(9,1fr);gap:2px;width:150px;max-width:100%}
+.plazo i{height:6px;border-radius:2px;background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:inset 0 1px 1px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.plazo i.pa{background:color-mix(in srgb,var(--taupe) 50%,transparent);box-shadow:none}.plazo i.hoy{background:var(--tinta);box-shadow:none}.plazo i.gr{background:color-mix(in srgb,var(--rojo) 35%,transparent)}.plazo i.gr.pa,.plazo i.gr.hoy{background:var(--rojo)}
+/* las pestañas elegidas (A · La gota de Mi perfil) */
+.pest{position:relative;display:inline-grid;grid-template-columns:repeat(3,auto);padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pest{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pest button{position:relative;z-index:1;display:flex;align-items:center;gap:6px;height:36px;padding:0 16px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.pest button[aria-selected="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pest button[aria-selected="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.g-pide{min-width:20px;height:20px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;font-size:10.5px;letter-spacing:0;font-weight:700;color:var(--ambar);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--ambar) 10%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--ambar) 20%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ambar) 28%,transparent)}
+
+/* ============ 1 · LA HOJA ============ */
+.ap-hoja{margin-top:24px;border-radius:22px;border:1px solid var(--sand);background:var(--papel);overflow:hidden;animation:sube .5s var(--ease) backwards}
+.hoja-cab{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;min-height:64px;padding:12px 22px;border-bottom:1px solid var(--sand)}
+.hoja-cab .vs{color:var(--t80)}
+.hoja-cab .sep{width:1px;height:22px;background:var(--sand)}
+.hoja-cab .op{margin-left:auto}
+.hoja-cuerpo{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;padding:22px}
+/* A · Al aire: como la mesa de Vender elegida: sin hoja; la cabecera de Apartados es una fila plana con la gota de las pestañas, y lo de
+   adentro queda sobre el lienzo con sus placas. */
+[data-hj="aire"] .ap-hoja{border:0;background:none;overflow:visible;border-radius:0}
+[data-hj="aire"] .hoja-cab{border-bottom:0;padding:0;min-height:0}
+[data-hj="aire"] .hoja-cab .sep{background:var(--t12)}
+[data-hj="aire"] .hoja-cuerpo{padding:22px 0 0}
+/* B · Placa: la hoja pasa a ser una placa Serena grande, con su cabecera separada por una ranura. Todo Apartados queda «dentro» de algo. */
+[data-hj="placa"] .ap-hoja{border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 46%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 30px 60px -36px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"][data-hj="placa"] .ap-hoja{background:color-mix(in srgb,var(--vidrio) 72%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-hj="placa"] .hoja-cab{border-bottom:0;box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--tinta) 9%,transparent),0 1px 0 color-mix(in srgb,var(--vidrio) 70%,transparent)}
+[data-hj="placa"] .hoja-cab .sep{background:var(--t12)}
+/* Dentro de la hoja de papel (como hoy) las placas no van de vidrio: serían vidrio sobre papel */
+:root:not([data-hj]) .ap-hoja .placa{background:var(--papel);-webkit-backdrop-filter:none;backdrop-filter:none;border-color:var(--sand);box-shadow:none}
+
+/* la lista de apartados */
+.grupo{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.lista{padding:4px 6px}
+.fila{display:grid;grid-template-columns:minmax(190px,1.3fr) minmax(130px,1fr) 150px 170px auto;gap:8px 18px;align-items:center;padding:12px 14px}
+.fila+.fila{border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.fila .q{display:flex;align-items:center;gap:12px;min-width:0}.fila .q b{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fila small{display:block;font-size:12px;color:var(--t65);font-variant-numeric:tabular-nums}
+.fila .pr{display:flex;align-items:center;gap:8px;min-width:0}.fila .pr span:last-child{font-size:12.5px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fila .pg{font-size:14px;font-variant-numeric:tabular-nums}.fila .pg b{font-weight:600}
+.fila .es{display:grid;gap:5px}
+.fila .ac{display:flex;gap:4px;justify-content:flex-end;align-items:center}
+.fila .ac .btn{height:36px;padding:0 14px;font-size:13px}
+@container disp (max-width:1100px){.ap-cifras{grid-template-columns:repeat(2,minmax(0,1fr))}.fila{grid-template-columns:minmax(0,1fr) auto}.fila .pr,.fila .pg{display:none}.fila .es{grid-column:1/2}.fila .ac{grid-row:1;grid-column:2}}
+/* entregar */
+.dos{display:grid;gap:20px;grid-template-columns:minmax(0,1fr)}
+@container disp (min-width:1100px){.dos{grid-template-columns:minmax(0,1fr) 22rem;align-items:start}}
+.det{padding:18px 20px;display:grid;gap:14px}
+.det-cab{display:flex;align-items:center;gap:12px}.det-cab b{font-family:'EB Garamond',serif;font-weight:500;font-size:22px}
+.lin{display:flex;align-items:center;gap:12px;padding:10px 0}.lin+.lin{border-top:1px dashed color-mix(in srgb,var(--tinta) 10%,transparent)}
+.lin .mini{width:44px;height:44px;border-radius:12px}.lin .tx{flex:1;min-width:0}.lin .tx b{font-family:'EB Garamond',serif;font-weight:400;font-size:18px}.lin .tx small{display:block;font-size:12.5px;color:var(--t65)}
+.lin .m{font-variant-numeric:tabular-nums;font-weight:600}
+.cuenta{padding:18px 20px;display:grid;gap:10px}
+.cuenta .r{display:flex;justify-content:space-between;font-size:14px}.cuenta .r span{color:var(--t65)}
+.cuenta .saldo{padding-top:10px;border-top:1px solid color-mix(in srgb,var(--tinta) 10%,transparent);display:flex;justify-content:space-between;align-items:baseline}
+.cuenta .saldo b{font-family:'EB Garamond',serif;font-weight:400;font-size:30px}
+.cuenta .btn{height:52px;font-size:15px}
+
+/* ============ 2 · LAS PESTAÑAS DEL CELULAR ============ */
+.tabs-m{display:none}
+@container disp (max-width:1023px){
+  .hoja-cab .pest{display:none}
+  .cont{padding-bottom:110px!important}
+  .tabs-m{display:grid;grid-template-columns:repeat(3,1fr);position:absolute;z-index:6;left:0;right:0;bottom:0;height:64px;border-top:1px solid var(--sand);background:var(--papel)}
+  .tabs-m button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;color:var(--t50)}
+  .tabs-m button[aria-current="page"]{color:var(--tinta)}
+  .tabs-m svg{width:20px;height:20px}
+  .tabs-m .g-pide{position:absolute;top:6px;left:calc(50% + 6px);min-width:18px;height:18px;font-size:10px;color:var(--crema);border:1px solid color-mix(in srgb,var(--ambar) 70%,transparent);
+    background:linear-gradient(180deg,color-mix(in srgb,var(--ambar) 80%,transparent),color-mix(in srgb,var(--ambar) 96%,transparent));box-shadow:0 0 0 2px color-mix(in srgb,var(--vidrio) 75%,transparent)}
+  [data-tema="oscuro"] .tabs-m .g-pide{color:var(--tinta-fija)}
+  .tabs-m .gota-m{display:none}
+  /* A · Isla de pestañas: una isla de vidrio que flota a 12 px de los bordes (como la barra de abajo elegida), con la gota clara de las
+     pestañas que viaja a la elegida. */
+  [data-pm="isla"] .tabs-m{left:12px;right:12px;bottom:12px;height:62px;padding:5px;border-radius:999px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+    background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 64%,transparent));-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);
+    box-shadow:inset 0 1px 0 var(--vidrio),0 18px 36px -16px color-mix(in srgb,var(--sombra) 55%,transparent)}
+  [data-tema="oscuro"][data-pm="isla"] .tabs-m{background:color-mix(in srgb,var(--vidrio) 86%,transparent);border-color:color-mix(in srgb,var(--tinta) 14%,transparent)}
+  /* B · Franja de vidrio: como hoy, pegada al borde de abajo, pero de vidrio (deja pasar lo de atrás desenfocado) y con la gota en la elegida. */
+  [data-pm="franja"] .tabs-m{height:68px;padding:5px 8px calc(5px + env(safe-area-inset-bottom));border-top:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+    background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 76%,transparent),color-mix(in srgb,var(--vidrio) 66%,transparent));-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);box-shadow:0 -1px 0 var(--vidrio)}
+  [data-tema="oscuro"][data-pm="franja"] .tabs-m{background:color-mix(in srgb,var(--vidrio) 86%,transparent);border-top-color:color-mix(in srgb,var(--tinta) 12%,transparent)}
+  :is([data-pm="isla"],[data-pm="franja"]) .tabs-m .gota-m{display:block;position:absolute;top:5px;bottom:5px;left:5px;width:calc((100% - 10px) / 3);border-radius:999px;transform:translateX(calc(var(--k) * 100%));transition:transform .45s var(--ease);
+    background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 98%,transparent),color-mix(in srgb,var(--vidrio) 74%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+  [data-pm="franja"] .tabs-m .gota-m{left:8px;width:calc((100% - 16px) / 3);border-radius:18px;bottom:calc(5px + env(safe-area-inset-bottom))}
+  [data-tema="oscuro"]:is([data-pm="isla"],[data-pm="franja"]) .tabs-m .gota-m{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+  :is([data-pm="isla"],[data-pm="franja"]) .tabs-m button{z-index:1;color:var(--t65)}
+  :is([data-pm="isla"],[data-pm="franja"]) .tabs-m button[aria-current="page"]{color:var(--tinta);font-weight:600}
+  .hoja-cuerpo{padding:16px}
+  [data-hj="aire"] .hoja-cuerpo{padding:16px 0 0}
+}
+@container disp (max-width:520px){.ap-cifras{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}.cifra{padding:12px}.cifra b{font-size:24px}.hoja-cab{gap:8px 12px}.fila{padding:12px 10px}.fila .ac .ib-f{display:none}}
+@media (prefers-reduced-motion:reduce){.ap-hoja{animation:none}.tabs-m .gota-m{transition:none}.chip.vivo::before{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Ventas ▸ Apartados, con vidrio: la página entera con las piezas elegidas</span>
+  <span class="tag">Vista</span><div class="seg-m" data-ctl="vi"><button data-v="todos">Todos</button><button data-v="entregar">Entregar</button><button data-v="apartar">Apartar</button></div>
+  <span class="tag">La hoja</span><div class="seg-m" data-ctl="hj"><button data-v="ahora">Como ahora</button><button data-v="aire">A · Al aire ✓</button><button data-v="placa">B · Placa</button></div>
+  <span class="tag">Pestañas del celular</span><div class="seg-m" data-ctl="pm"><button data-v="ahora">Como ahora</button><button data-v="isla">A · Isla de pestañas ✓</button><button data-v="franja">B · Franja de vidrio</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <nav class="tabs-m" id="tabs-m" aria-label="Apartados"></nav>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>La pantalla</b> (<code>components/apartados/</code>): una <b>hoja de papel macizo</b> de borde a borde con su cabecera propia («Apartados · Trujillo», las pestañas Apartar · Entregar · Todos y «Opciones»). En Todos: cuatro cifras unidas en una caja, el aviso de a quién escribirle hoy, los filtros y el buscador, y los apartados agrupados (vencen pronto, vigentes, vencidos) con el cliente, las prendas, lo pagado, el estado con la barra del plazo y sus acciones. En Entregar: lo que se lleva y el saldo por cobrar. En Apartar: las prendas, el cliente y el adelanto.</li>
+      <li><b>En el celular</b> (obligatorio, PL-105) las tres pestañas bajan a una <b>franja de papel fija</b> abajo, con su globito.</li>
+      <li>Lo demás se arma con lo ya elegido. La prenda va en su miniatura de hoy: la tarjeta de Productos todavía no tiene distribución elegida.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>La hoja</b></td><td>A · Al aire <span class="ev">Elegida</span></td><td>Como la mesa de Vender que elegiste: sin la hoja; la cabecera de Apartados es una fila plana y lo de adentro son placas sobre el lienzo. Lo mismo en todo el mostrador.</td><td>Apartados deja de verse como «una herramienta aparte» dentro de la pantalla.</td></tr>
+      <tr><td>B · Placa</td><td>Una placa Serena grande: todo Apartados queda dentro de algo, con su cabecera.</td><td>Placas dentro de una placa: vidrio sobre vidrio, más pesado y con menos contraste en las de adentro.</td></tr>
+      <tr><td rowspan="2"><b>Pestañas del celular</b></td><td>A · Isla de pestañas <span class="ev">Elegida</span></td><td>Flota a 12 px de los bordes como la barra de abajo que elegiste; la gota clara de las pestañas viaja a la elegida. Se ve que es de esta pantalla, no el menú del ERP.</td><td>Tapa un poco más del final de la lista (por eso la lista deja 110 px abajo).</td></tr>
+      <tr><td>B · Franja de vidrio</td><td>Como hoy, pegada al borde, pero de vidrio y con la gota: se parece a la barra de pestañas del teléfono.</td><td>Se confunde con una barra de navegación del sistema (la del ERP es el ☰, ADR-0206).</td></tr>
+    </table>
+    <h3>Lo que no cambia</h3>
+    <p>Las tres vistas y su orden, los estados (vigente, vence pronto, vencido con su punto que late, por devolver), la barra del plazo con su gracia en rojo, «Escribirle por WhatsApp», reimprimir el ticket, aplazar, el saldo y su cobro, las opciones del líder y, en el celular, las pestañas abajo.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa, PRENDAS…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const D = { lupa: 'M11 3a8 8 0 1 0 0 16a8 8 0 1 0 0-16z M21 21l-4.3-4.3', print: 'M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z',
+    wa: 'M7.9 20A9 9 0 1 0 4 16.1L2 22Z', campana: 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0', ajustes: 'M21 4h-7 M10 4H3 M21 12h-9 M8 12H3 M21 20h-5 M12 20H3 M14 2v4 M8 10v4 M16 18v4',
+    flecha: 'M5 12h14M13 6l6 6-6 6', check: 'M20 6 9 17l-5-5', apartar: T.apartados, entregar: 'M20 7h-9 M14 17H5 M17 14a3 3 0 1 0 0 6a3 3 0 1 0 0-6z M7 4a3 3 0 1 0 0 6a3 3 0 1 0 0-6z', todos: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01' };
+  const s = (d) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  const P = (i) => PRENDAS[i];
+  const soles = (n) => 'S/ ' + n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // [iniciales, nombre, celular, código, prendas, adelanto, total, estado, texto, plazo (pasados, hoy), vence]
+  const GRUPOS = [
+    ['Vencen pronto', [['MQ', 'Mariela Quispe', '944 218 330', 'APT-0142', [0, 3], 60, 189.9, 'ambar', 'Vence en 2 días', [6, 1], 'dom 2 nov'], ['JS', 'Jorge Salinas', '951 004 877', 'APT-0139', [2], 50, 169.9, 'ambar', 'Vence mañana', [7, 1], 'sáb 1 nov']]],
+    ['Vigentes', [['RC', 'Rosa Chávez', '987 112 405', 'APT-0151', [5, 6, 10], 120, 339.7, 'verde', 'Vigente', [2, 1], 'lun 10 nov'], ['AT', 'Ana Torres', '912 660 218', 'APT-0150', [13], 80, 189.9, 'verde', 'Vigente', [3, 1], 'dom 9 nov']]],
+    ['Vencidos', [['PL', 'Patricia León', '976 503 119', 'APT-0128', [7], 40, 159.9, 'rojo', 'Vencida', [8, 1, 1], 'lun 27 oct']]],
+  ];
+  const fila = ([ini, nom, cel, cod, prs, ad, tot, tono, et, pl, vence]) => `<div class="fila"><div class="q"><span class="av-l">${ini}</span><div style="min-width:0"><b>${nom}</b><small>${cel} · ${cod}</small></div></div>
+    <div class="pr"><span>${prs.map((i) => `<span class="mini" data-color-dato style="--col:${P(i)[0]}"></span>`).join('')}</span><span>${prs.map((i) => P(i)[1].split(' ')[0]).join(', ')}</span></div>
+    <div class="pg"><b>${soles(ad)}</b> <small style="display:inline">de ${soles(tot)}</small><small>saldo ${soles(tot - ad)}</small></div>
+    <div class="es"><span><span class="chip ${tono}${tono === 'rojo' ? ' vivo' : ''}">${et}</span></span><span class="plazo">${Array.from({ length: 9 }, (_, k) => `<i class="${k < pl[0] ? 'pa' : k === pl[0] ? 'hoy' : ''}${k >= 7 ? ' gr' : ''}"></i>`).join('')}</span><small>vence ${vence}</small></div>
+    <div class="ac"><button class="ib-f" aria-label="Reimprimir el ticket de ${cod}" title="Reimprimir el ticket">${s(D.print)}</button><button class="ib-f" aria-label="Escribir a ${nom.split(' ')[0]} por WhatsApp" title="Escribirle por WhatsApp">${s(D.wa)}</button>${tono === 'rojo' ? '<button class="btn sec">Aplazar</button>' : `<button class="btn sec" data-vi="entregar">Entregar ${s(D.flecha)}</button>`}</div></div>`;
+  function cuerpo(vi) {
+    if (vi === 'todos') return `<div class="ap-cifras">${[['Por recoger', '5', '9 prendas guardadas'], ['En custodia', 'S/ 350', 'Adelantos: entran a ventas al entregar'], ['Por devolver', 'S/ 40', '1 cliente espera su dinero', 1], ['Vencen en 2 días', '2', 'Buen momento para escribirles']].map(([e, v, p, al], i) => `<div class="placa cifra${al ? ' alerta' : ''}" style="animation:sube .5s var(--ease) ${i * 60 + 80}ms backwards"><p class="vs">${e}</p><b>${v}</b><small>${p}</small></div>`).join('')}</div>
+      <div class="aviso-l">${s(D.campana)}<span><b>2 clientes por avisar hoy</b> · 1 ya avisado</span><button class="btn sec" style="height:36px;font-size:13px">Escribirles</button></div>
+      <div class="barra-f"><button class="fp" aria-pressed="true">Abiertos</button><button class="fp">Por devolver</button><button class="fp">Cerrados</button><div class="pozo-b">${s(D.lupa)}<span>Nombre, DNI, celular, APT- o B004-</span></div></div>
+      ${GRUPOS.map(([t, fs]) => `<section class="grupo"><h2 class="tit">${t} <span class="n">${fs.length}</span></h2><div class="placa lista">${fs.map(fila).join('')}</div></section>`).join('')}`;
+    if (vi === 'entregar') return `<div class="dos"><div class="placa det"><div class="det-cab"><span class="av-l">MQ</span><div><b>Mariela Quispe</b><p style="font-size:12.5px;color:var(--t65)">APT-0142 · apartó el 25 oct · vence dom 2 nov</p></div></div>
+        <div>${[[0, 'Blusa Emma', 'Vino · talla S', 129.9], [3, 'Polo Nube', 'Arena · talla M', 59.9]].map(([i, n, d, m]) => `<div class="lin"><span class="casilla" role="checkbox" aria-checked="true">${s(D.check)}</span><span class="mini" data-color-dato style="--col:${P(i)[0]}"></span><span class="tx"><b>${n}</b><small>${d}</small></span><span class="m">${soles(m)}</span></div>`).join('')}</div></div>
+      <aside class="placa cuenta"><div class="r"><span>Total</span><b>${soles(189.8)}</b></div><div class="r"><span>Adelanto (25 oct · Yape)</span><b>− ${soles(60)}</b></div>
+        <div class="saldo"><span style="font-size:14px;color:var(--t65)">Saldo por cobrar</span><b>${soles(129.8)}</b></div><button class="btn pri">Cobrar el saldo y entregar ${s(D.flecha)}</button></aside></div>`;
+    return `<div class="dos"><div style="display:grid;gap:14px"><div class="pozo-b" style="flex:none">${s(D.lupa)}<span>Busca o escanea la prenda que se aparta</span></div>
+        <div class="placa det">${[[2, 'Vestido Ara', 'Bosque · talla M', 169.9], [10, 'Blusa Coral', 'Coral · talla S', 139.9]].map(([i, n, d, m]) => `<div class="lin"><span class="mini" data-color-dato style="--col:${P(i)[0]}"></span><span class="tx"><b>${n}</b><small>${d}</small></span><span class="m">${soles(m)}</span></div>`).join('')}</div></div>
+      <aside class="placa cuenta"><div class="r"><span>Cliente</span><b>Ana Torres</b></div><div class="r"><span>Total</span><b>${soles(309.8)}</b></div><div class="r"><span>Adelanto (mínimo 20 %)</span><b>${soles(70)}</b></div>
+        <div class="saldo"><span style="font-size:14px;color:var(--t65)">Vence en 15 días</span><b style="font-size:20px">dom 16 nov</b></div><button class="btn pri">Apartar y cobrar ${soles(70)} ${s(D.flecha)}</button></aside></div>`;
+  }
+  function pantalla() {
+    const vi = estado.vi || 'todos', k = ['apartar', 'entregar', 'todos'].indexOf(vi);
+    const pest = [['apartar', 'Apartar', 0], ['entregar', 'Entregar', 0], ['todos', 'Todos', 2]];
+    $('#cont').innerHTML = `${encabezado({ sede: 'Trujillo', titulo: 'Apartados', frase: 'Prendas guardadas para un cliente hasta que vuelva a pagarlas.' })}
+      <section class="ap-hoja"><header class="hoja-cab"><p class="vs">Apartados · Trujillo</p><span class="sep"></span>
+        <div class="pest" role="tablist">${pest.map(([id, t, n]) => `<button role="tab" data-vi="${id}" aria-selected="${id === vi}">${t}${n ? ` <span class="g-pide">${n}</span>` : ''}</button>`).join('')}</div>
+        <button class="btn sec op" style="height:36px;font-size:12px">${s(D.ajustes)}Opciones</button></header>
+        <div class="hoja-cuerpo">${cuerpo(vi)}</div></section>`;
+    $('#tabs-m').style.setProperty('--k', k);
+    $('#tabs-m').innerHTML = `<span class="gota-m" aria-hidden="true"></span>${pest.map(([id, t, n]) => `<button data-vi="${id}" ${id === vi ? 'aria-current="page"' : ''}>${s(D[id])}${t}${n ? `<span class="g-pide">${n}</span>` : ''}</button>`).join('')}`;
+  }
+  document.addEventListener('click', (e) => {
+    const v = e.target.closest('[data-vi]'); if (v) { estado.vi = v.dataset.vi; pintar(); return; }
+    const c = e.target.closest('.casilla'); if (c) { const on = c.getAttribute('aria-checked') !== 'true'; c.setAttribute('aria-checked', on); c.innerHTML = on ? s(D.check) : ''; }
+  });
+  Marco.iniciar({ estado: { vi: 'todos', hj: 'aire', pm: 'isla' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
+})();
+</script>
+</body>
+</html>

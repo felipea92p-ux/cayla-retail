@@ -21,14 +21,14 @@ describe("agruparPorFamilia — una sola agrupación para Nuevo producto, Atribu
   const c = (id: string, familia: string | null) => ({ id, familia });
   const lista = [c("a", "azul"), c("n", "neutro"), c("x", "turquesa"), c("s", null), c("r", "rosado"), c("v", ""), c("y", "turquesa")];
 
-  it("las conocidas en el orden del espectro, luego cada desconocida con su nombre, al final «Sin familia»", () => {
+  it("las conocidas en el orden del espectro, luego cada desconocida con su nombre, al final «Varios colores»", () => {
     const g = agruparPorFamilia(lista, (x) => x.familia);
     expect(g.map((x) => [x.familia, x.texto])).toEqual([
       ["neutro", "Neutro"],
       ["rosado", "Rosado"],
       ["azul", "Azul"],
       ["turquesa", "Turquesa"],
-      ["sin-familia", "Sin familia"],
+      ["sin-familia", "Varios colores"],
     ]);
   });
 

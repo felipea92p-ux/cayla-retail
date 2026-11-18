@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gastos · «En qué se va» · A2 con su desglose</title>
+<style>
+  /* Maqueta: tokens de apps/web/app/globals.css y estilos/tema.css (ADR-0169, ADR-0336). Datos de ejemplo, no reales. */
+  :root{
+    --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0; --tinta:#1a1a18; --taupe:#805c4c;
+    --rojo:#b8412d; --verde:#48603f; --ambar:#74501a; --ease:cubic-bezier(.22,1,.36,1);
+    --k0:#1a1a18; --k1:#b8412d; --k2:#805c4c; --k3:#4c5d6e; --k4:#48603f; --k5:#74501a; --k6:#d3c8b4;
+    --s0:#3f6fb5; --s1:#cc6a35; --s2:#3f8f6a; --s3:#8a5bb0; --s4:#a89a88; --borde:#96786a;
+  }
+  :root[data-tema="oscuro"]{
+    --crema:#1c1a17; --papel:#26241f; --hueso:#33302a; --sand:#403b34; --tinta:#f5f0e8; --taupe:#c4a898; --rojo:#e8806a; --borde:#8d7a6e;
+    --verde:#9cbc8c; --ambar:#e0b067;
+    --k0:#f5f0e8; --k1:#e8806a; --k2:#c4a898; --k3:#9db4cb; --k4:#8fb07f; --k5:#d9a95a; --k6:#5a5448;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.45 "DM Sans",system-ui,sans-serif;padding:24px;transition:background .3s}
+  h1{font:500 28px/1.2 "EB Garamond",Georgia,serif;margin:0 0 4px}
+  .sub{color:var(--taupe);margin:0 0 16px;max-width:80ch}
+  .barra{display:flex;gap:8px;margin-bottom:26px;flex-wrap:wrap;align-items:center;position:sticky;top:0;z-index:5;background:var(--crema);padding:10px 0}
+  .pil{font:500 13px/1 inherit;font-family:inherit;padding:9px 14px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);color:var(--tinta);cursor:pointer;display:inline-flex;gap:7px;align-items:center}
+  .pil.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .pil i{width:8px;height:8px;border-radius:50%;display:block}
+  .sep{width:1px;height:22px;background:var(--sand);margin:0 6px}
+  .op{margin:0 0 44px}
+  .op h2{font:600 11px/1 inherit;font-family:inherit;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);margin:0 0 6px}
+  .op p.d{margin:0 0 12px;max-width:90ch}
+  .op p.d b{font-weight:600}
+  .tarj{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:22px 24px}
+  .tit{font:500 22px/1.2 "EB Garamond",Georgia,serif;margin:0}
+  .dato{color:var(--taupe);font-size:13px}
+  .cab{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+  .num{font-variant-numeric:tabular-nums}
+  .grande{font:500 44px/1 "EB Garamond",Georgia,serif;font-variant-numeric:tabular-nums}
+  .rk{font:500 12px/1 inherit;font-family:inherit;color:var(--taupe);font-variant-numeric:tabular-nums}
+  .leyS{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--taupe);align-items:center}
+  .leyS span{display:flex;gap:6px;align-items:center}.leyS i{width:8px;height:8px;border-radius:50%;display:block}
+  .enl{color:var(--rojo);font:600 11px/1 inherit;font-family:inherit;letter-spacing:.1em;text-transform:uppercase;display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+  .enl svg{transition:transform .25s var(--ease)}.enl:hover svg{transform:translateX(4px)}
+
+  /* ---------- A · Hilos (la original) ---------- */
+  .fila{display:grid;grid-template-columns:190px 1fr 92px 44px;gap:14px;align-items:center;padding:9px 8px;border-radius:10px;cursor:pointer;transition:opacity .25s,background .25s}
+  .filas:hover .fila{opacity:.45}
+  .filas .fila:hover{opacity:1;background:var(--hueso)}
+  .fila .nom{font-size:14px;display:flex;gap:8px;align-items:center}
+  .fila .nom .rk{width:16px}
+  .pista{height:12px;border-radius:6px;background:var(--hueso);overflow:hidden}
+  .rel{height:100%;display:flex;transform-origin:left;transform:scaleX(0);transition:transform .9s var(--ease);border-radius:6px;overflow:hidden}
+  .go .rel{transform:scaleX(1)}
+  .rel b{display:block;height:100%}
+  .fila .mon{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+  .fila .pc{text-align:right;color:var(--taupe);font-size:12px;font-variant-numeric:tabular-nums}
+  .det{grid-column:1/-1;display:none;gap:8px;flex-wrap:wrap;padding:6px 0 4px 24px}
+  .fila.ab .det{display:flex;animation:baja .35s var(--ease)}
+  .det span{font-size:12px;border:1px solid var(--sand);border-radius:999px;padding:4px 10px;display:flex;gap:6px;align-items:center;background:var(--papel)}
+  .det span i{width:7px;height:7px;border-radius:50%}
+  @keyframes baja{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  .mas{margin-top:8px;width:100%;border:0;border-top:1px solid var(--sand);background:none;color:var(--taupe);padding:12px;font:inherit;cursor:pointer}
+  .mas:hover{color:var(--tinta)}
+
+  /* ---------- A2 · Hilos con memoria ---------- */
+  .odo{display:inline-flex;height:1.3em;overflow:hidden;font:500 48px/1.3 "EB Garamond",Georgia,serif;font-variant-numeric:tabular-nums}
+  .rd{display:inline-block;height:1.3em;overflow:hidden}
+  .rd>span{display:block;text-align:center;line-height:1.3;transition:transform 1.1s var(--ease)}
+  .delta{font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;justify-self:start;transition:color .3s,background .3s}
+  .delta.sube{color:var(--ambar);background:color-mix(in srgb,var(--ambar) 13%,transparent)}
+  .delta.baja{color:var(--verde);background:color-mix(in srgb,var(--verde) 13%,transparent)}
+  .delta.igual{color:var(--taupe);background:color-mix(in srgb,var(--taupe) 10%,transparent)}
+  .a2-tot{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+  .a2-filas{position:relative}
+  .a2-fila{display:grid;grid-template-columns:22px minmax(170px,1.1fr) 2.3fr 92px 96px 84px;column-gap:18px;row-gap:0;align-items:center;padding:15px 12px 19px;border-radius:12px;cursor:pointer;transition:background .25s,opacity .25s}
+  .a2-fila.fuera{display:none}
+  .a2-filas:hover .a2-fila{opacity:.5}
+  .a2-filas .a2-fila:hover,.a2-filas .a2-fila.ab{opacity:1;background:var(--hueso)}
+  .a2-nom b{display:block;font-weight:500}.a2-nom small{color:var(--taupe);font-size:12px;font-variant-numeric:tabular-nums}
+  .a2-bar{position:relative}
+  .a2-pista{position:relative;height:14px;border-radius:7px;background:color-mix(in srgb,var(--sand) 70%,transparent)}
+  .a2-rel{position:absolute;inset:0 auto 0 0;display:flex;gap:0;border-radius:7px;overflow:hidden;transition:width .9s var(--ease),gap .3s var(--ease)}
+  .a2-fila:hover .a2-rel,.a2-fila.ab .a2-rel{gap:2px}
+  .a2-rel b{height:100%;transition:width .9s var(--ease);flex:none}
+  .a2-fant{position:absolute;top:-5px;bottom:-5px;width:2px;border-radius:1px;background:var(--tinta);transition:left .9s var(--ease),opacity .4s}
+  .a2-fant::after{content:"sep";position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--taupe);opacity:0;transition:opacity .2s}
+  .a2-fila:hover .a2-fant::after{opacity:1}
+  .a2-segley{position:absolute;top:100%;left:0;margin-top:6px;font-size:11px;color:var(--taupe);display:flex;gap:12px;white-space:nowrap;opacity:0;transform:translateY(-3px);transition:opacity .25s,transform .25s var(--ease)}
+  .a2-segley span{display:flex;gap:5px;align-items:center}.a2-segley i{width:6px;height:6px;border-radius:50%}
+  .a2-fila:hover .a2-segley{opacity:1;transform:none}
+  .a2-mon{text-align:right;font:500 18px/1 "EB Garamond",Georgia,serif;font-variant-numeric:tabular-nums}
+  .a2-spark{width:84px;height:26px;overflow:visible}
+  .a2-spark polyline{fill:none;stroke:var(--taupe);stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1.2s var(--ease) .4s}
+  .a2-spark path{fill:color-mix(in srgb,var(--taupe) 12%,transparent);opacity:0;transition:opacity .6s 1s}
+  .a2-spark circle{fill:var(--tinta);opacity:0;transition:opacity .3s 1.5s}
+  .go .a2-spark polyline{stroke-dashoffset:0}.go .a2-spark path,.go .a2-spark circle{opacity:1}
+  .a2-det{grid-column:1/-1;display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s var(--ease)}
+  .a2-fila.ab .a2-det{grid-template-rows:1fr}
+  .a2-det>div{overflow:hidden}
+  .a2-det .in{padding:18px 0 2px 40px;display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:10px 40px;align-items:end}
+  .sd{display:grid;grid-template-columns:86px 1fr 74px 38px;gap:12px;align-items:center;font-size:13px;padding:3px 0}
+  .sd>span:first-child{display:flex;gap:7px;align-items:center}.sd i{width:7px;height:7px;border-radius:50%}
+  .sdp{height:6px;border-radius:3px;background:color-mix(in srgb,var(--sand) 80%,transparent);overflow:hidden}
+  .sdp b{display:block;height:100%;border-radius:3px;transform-origin:left;transform:scaleX(0);transition:transform .7s var(--ease) .15s}
+  .a2-fila.ab .sdp b{transform:none}
+  .sd .m{text-align:right;font-variant-numeric:tabular-nums}.sd .p{text-align:right;color:var(--taupe);font-size:12px}
+  .fantm{width:2px!important;height:12px!important;border-radius:1px!important;background:var(--tinta)}
+
+  /* ---------- B · A2 con su desglose por sede ---------- */
+  .a2-fant{pointer-events:none}
+  .a2-rel b{transition:width .9s var(--ease),opacity .25s}
+  .a2-rel.dim b,.a2-rel.fija b{opacity:.22}.a2-rel.dim b.hot,.a2-rel.fija:not(.dim) b.sel{opacity:1}
+  .b-hits{position:absolute;left:0;top:-8px;bottom:-8px;display:flex;transition:width .9s var(--ease)}
+  .b-hits button{flex:none;height:100%;border:0;padding:0;background:none;cursor:pointer;transition:width .9s var(--ease)}
+  .b-hits button:focus-visible{outline:2px solid var(--tinta);outline-offset:1px;border-radius:4px}
+  .b-cajon{grid-column:1/-1;display:grid;grid-template-rows:0fr;transition:grid-template-rows .5s var(--ease)}
+  .a2-fila.ab .b-cajon{grid-template-rows:1fr}
+  .b-cajon>div{overflow:hidden}
+  .b-in{padding:20px 0 2px 40px;cursor:default}
+  .formas{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 12px;font-size:13px;color:var(--taupe)}
+  /* El selector de sede: tres formas para elegir mirando. Todas comparten .b-op (una opción) y .b-pz (la marca que se desliza a la elegida). */
+  .b-sel{position:relative}
+  .b-pz{position:absolute;z-index:0;pointer-events:none;transition:left .45s var(--ease),top .45s var(--ease),width .45s var(--ease),height .45s var(--ease)}
+  .b-op{position:relative;z-index:1;font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+  .b-op:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+  .b-op i{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none}
+  /* 1 · Píldoras: la pildora-cayla del ERP, con la tinta que se desliza */
+  .b-pil{display:flex;flex-wrap:wrap;gap:6px}
+  .b-pil .b-pz{border-radius:999px;background:var(--tinta)}
+  .b-pil .b-op{display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:5px 14px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);font-size:13px;font-weight:600;color:var(--taupe);white-space:nowrap;transition:color .25s,border-color .25s,background-color .25s}
+  .b-pil .b-op .m{font-weight:400;font-variant-numeric:tabular-nums}
+  @media (hover:hover){.b-pil .b-op:not(.on):hover{color:var(--tinta);border-color:var(--borde)}}
+  .b-pil .b-op.on{color:var(--crema);border-color:transparent;background-color:transparent}
+  /* 2 · El hilo en grande: el hilo de la categoría a todo el ancho, cada tramo se toca */
+  .b-hil-barra{display:flex;gap:3px;height:28px}
+  .b-seg{height:100%;min-width:8px;border-radius:6px;transform-origin:left;transform:scaleX(0);animation:crece .7s var(--ease) forwards;transition:opacity .25s,filter .25s}
+  .b-hil.fijo .b-seg{opacity:.22}.b-hil .b-seg.on,.b-hil .b-seg.hot{opacity:1}
+  @media (hover:hover){.b-hil .b-seg:hover{opacity:1;filter:brightness(1.07)}}
+  .b-hil-ley{position:relative;display:flex;flex-wrap:wrap;gap:2px 22px;margin-top:10px}
+  .b-hil .b-pz{border-radius:1px;background:var(--tinta)}
+  .b-et{display:inline-flex;align-items:center;gap:7px;min-height:34px;font-size:13px;color:var(--taupe);white-space:nowrap;font-variant-numeric:tabular-nums;transition:color .25s}
+  .b-et b{font-weight:600}.b-et small{font-size:12px}
+  .b-et.on{color:var(--tinta)}
+  @media (hover:hover){.b-et:hover{color:var(--tinta)}}
+  /* 3 · Columna: las sedes a la izquierda, sus gastos a la derecha */
+  .b-in.col{display:grid;grid-template-columns:232px minmax(0,1fr);gap:0 36px;align-items:start}
+  .b-col{display:grid;gap:2px}
+  .b-col .b-pz{border-radius:10px;background:var(--papel);box-shadow:inset 2px 0 0 var(--rojo)}
+  .b-col .b-op{display:grid;grid-template-columns:1fr auto;gap:7px 12px;align-items:center;text-align:left;padding:10px 12px 11px 16px;border-radius:10px;color:var(--taupe);opacity:0;animation:entra .45s var(--ease) forwards;transition:color .25s}
+  .b-col .b-op .n{display:flex;gap:7px;align-items:center;font-size:13px;font-weight:600}
+  .b-col .b-op .m{font:500 16px/1 "EB Garamond",Georgia,serif;font-variant-numeric:tabular-nums}
+  .b-col .b-op .t{grid-column:1/-1;display:flex;gap:1px;height:3px;border-radius:2px;background:color-mix(in srgb,var(--sand) 90%,transparent);overflow:hidden}
+  .b-col .b-op .t b{display:block;height:100%}
+  .b-col .b-op.on{color:var(--tinta)}
+  @media (hover:hover){.b-col .b-op:not(.on):hover{color:var(--tinta)}}
+  .b-det{min-width:0}
+  .b-res{margin:16px 0 4px;font-size:13px;color:var(--taupe)}.b-res b{color:var(--tinta);font-weight:600}
+  .b-in.col .b-res,.b-in:not(:has(.b-sel)) .b-res{margin-top:4px}
+  .b-caja{overflow:hidden}
+  .b-lista{list-style:none;margin:0;padding:0}
+  .b-lista li{position:relative;display:grid;grid-template-columns:52px minmax(0,1fr) 84px 120px 88px 12px;gap:14px;align-items:center;padding:10px 8px 10px 12px;margin:0 -8px 0 -12px;border-bottom:1px solid var(--sand);border-radius:8px;font-size:13px;cursor:pointer;opacity:0;transform:translateY(-6px);animation:entraLi .45s var(--ease) forwards;transition:background .2s}
+  .b-lista li:last-child{border-bottom:0}
+  .b-lista li::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:2px;border-radius:1px;background:var(--rojo);transform:scaleY(0);transition:transform .25s var(--ease)}
+  .b-lista.solo li{grid-template-columns:52px minmax(0,1fr) 120px 88px 12px}.b-lista.solo .gs{display:none}
+  .b-que{min-width:0}.b-que b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.b-que small{color:var(--taupe);font-size:12px}
+  .b-barra{height:5px;border-radius:3px;background:color-mix(in srgb,var(--sand) 80%,transparent);overflow:hidden}
+  .b-barra b{display:block;height:100%;border-radius:3px;transform-origin:left;transform:scaleX(0);animation:crece .7s var(--ease) forwards}
+  @keyframes crece{to{transform:none}}
+  .b-ir{color:var(--taupe);opacity:0;transform:translateX(-4px);transition:opacity .2s,transform .2s var(--ease)}
+  @media (hover:hover){.b-lista li:hover{background:var(--papel)}.b-lista li:hover::before{transform:scaleY(1)}.b-lista li:hover .b-ir{opacity:1;transform:none}}
+  .b-pie{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0 4px}
+  .b-mas{border:0;background:none;color:var(--taupe);font:inherit;font-size:13px;cursor:pointer;padding:6px 0;display:inline-flex;gap:6px;align-items:center}
+  @media (hover:hover){.b-mas:hover{color:var(--tinta)}}
+  .b-mas svg{transition:transform .3s var(--ease)}.b-mas.ab svg{transform:rotate(180deg)}
+  h2.antes{font:500 20px/1.2 "EB Garamond",Georgia,serif;color:var(--taupe);margin:56px 0 18px;padding-top:22px;border-top:1px solid var(--sand)}
+
+  /* ---------- A3 · Lo que pesa (Pareto) ---------- */
+  .titular{font:400 26px/1.25 "EB Garamond",Georgia,serif;margin:6px 0 0;max-width:30ch}
+  .titular b{font-weight:600;background:linear-gradient(transparent 62%,color-mix(in srgb,var(--rojo) 22%,transparent) 62%);padding:0 2px}
+  .a3{display:grid;grid-template-columns:1fr 160px;gap:22px;margin-top:26px}
+  .a3-fila{margin-bottom:6px;cursor:pointer}
+  .a3-banda{position:relative;display:grid;grid-template-columns:30px 1fr 64px 110px;column-gap:14px;align-items:center;padding:17px 18px;border-radius:12px;overflow:hidden;background:color-mix(in srgb,var(--hueso) 45%,transparent)}
+  .a3-fondo{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,color-mix(in srgb,var(--tinta) 5%,transparent),color-mix(in srgb,var(--tinta) 12%,transparent));border-right:2px solid color-mix(in srgb,var(--tinta) 45%,transparent);transform-origin:left;transform:scaleX(0);transition:transform 1.1s var(--ease),background .3s}
+  .go .a3-fondo{transform:none}
+  .a3-banda>span{position:relative}
+  .a3-fila:hover .a3-fondo,.a3-fila.ab .a3-fondo{background:linear-gradient(90deg,color-mix(in srgb,var(--tinta) 9%,transparent),color-mix(in srgb,var(--tinta) 20%,transparent))}
+  .a3-nom{font:500 19px/1.2 "EB Garamond",Georgia,serif}
+  .a3-pc{text-align:right;color:var(--taupe);font-size:12px;font-variant-numeric:tabular-nums}
+  .a3-mon{text-align:right;font:500 19px/1 "EB Garamond",Georgia,serif;font-variant-numeric:tabular-nums}
+  .a3-fila.chica{margin-bottom:3px}
+  .a3-fila.chica .a3-banda{padding:9px 18px;background:none}
+  .a3-fila.chica .a3-nom{font:400 14px/1.2 "DM Sans",system-ui,sans-serif;color:color-mix(in srgb,var(--tinta) 78%,transparent)}
+  .a3-fila.chica .a3-mon{font:500 14px/1 "DM Sans",system-ui,sans-serif}
+  .a3-fila.chica .a3-fondo{background:color-mix(in srgb,var(--tinta) 5%,transparent);border-right-color:color-mix(in srgb,var(--tinta) 20%,transparent)}
+  .a3-corte{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-top:1.5px dashed var(--taupe);margin:16px 0 10px;padding-top:8px}
+  .a3-corte span{font:600 11px/1 inherit;font-family:inherit;letter-spacing:.12em;text-transform:uppercase;color:var(--tinta)}
+  .a3-corte small{color:var(--taupe);font-size:12px}
+  .a3-cajon{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s var(--ease)}
+  .a3-fila.ab .a3-cajon{grid-template-rows:1fr}
+  .a3-cajon>div{overflow:hidden}
+  .gl{list-style:none;margin:0;padding:10px 18px 0 62px}
+  .gl li{display:grid;grid-template-columns:54px 1fr 92px 90px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--sand);font-size:13px;opacity:0;transform:translateY(-5px)}
+  .ab .gl li{animation:entraLi .45s var(--ease) forwards}
+  @keyframes entraLi{to{opacity:1;transform:none}}
+  .gd{color:var(--taupe);font-size:12px;font-variant-numeric:tabular-nums}
+  .gs{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--taupe)}.gs i{width:7px;height:7px;border-radius:50%}
+  .gm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+  .gpie{display:flex;justify-content:space-between;align-items:center;padding:10px 18px 12px 62px;font-size:12px;color:var(--taupe)}
+  .a3-curva{width:100%;overflow:visible;display:block}
+  .a3-curva text{fill:var(--taupe);font:11px "DM Sans",system-ui,sans-serif}
+  .a3-curva .g{stroke:var(--sand);stroke-width:1}
+  .a3-curva .g80{stroke:var(--taupe);stroke-width:1;stroke-dasharray:3 4}
+  .a3-curva polyline{fill:none;stroke:var(--tinta);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .a3-curva .dib{stroke-dasharray:1;stroke-dashoffset:1;animation:dibuja 1.6s var(--ease) .5s forwards}
+  @keyframes dibuja{to{stroke-dashoffset:0}}
+  .a3-curva circle{fill:var(--papel);stroke:var(--tinta);stroke-width:1.5;transition:r .25s var(--ease),fill .25s}
+  .a3-curva circle.hot{r:6;fill:var(--tinta)}
+  .a3-curva circle.cruce{fill:var(--rojo);stroke:var(--rojo)}
+
+  /* ---------- A4 · Mosaico de 100 ---------- */
+  .modo{display:inline-flex;background:var(--hueso);border-radius:10px;padding:3px;position:relative}
+  .modo button{position:relative;z-index:1;border:0;background:none;font:600 11px/1 inherit;font-family:inherit;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);padding:9px 14px;cursor:pointer;transition:color .3s}
+  .modo button.on{color:var(--crema)}
+  .modo .pz{position:absolute;top:3px;bottom:3px;border-radius:8px;background:var(--tinta);transition:left .4s var(--ease),width .4s var(--ease)}
+  .a4{display:grid;grid-template-columns:auto 1fr;gap:44px;align-items:start}
+  .waf{display:grid;grid-template-columns:repeat(10,36px);gap:5px}
+  .cel{width:36px;height:36px;border-radius:9px;transform:scale(.2);opacity:0;transition:transform .6s var(--ease),opacity .45s,background-color .55s var(--ease)}
+  .go .cel{transform:none;opacity:1}
+  .waf.fc .cel{opacity:.16}
+  .waf.fc .cel.hot{opacity:1;transform:translateY(-2px)}
+  .a4-pie{margin-top:12px;color:var(--taupe);font-size:12px}
+  .a4-li{display:grid;grid-template-columns:12px 1fr 140px 84px 40px;gap:12px;align-items:center;padding:8px 10px;border-radius:10px;cursor:default;transition:background .2s,opacity .25s}
+  .a4-lis.fc .a4-li{opacity:.4}.a4-lis .a4-li.hot{opacity:1;background:var(--hueso)}
+  .a4-li>i{width:12px;height:12px;border-radius:4px;display:block;transition:background-color .5s}
+  .a4-li .m{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+  .a4-li .p{text-align:right;font-size:12px;color:var(--taupe)}
+  .a4-li .b{height:5px;border-radius:3px;background:color-mix(in srgb,var(--sand) 80%,transparent);overflow:hidden}
+  .a4-li .b b{display:block;height:100%;border-radius:3px;transform-origin:left;transform:scaleX(0);transition:transform .9s var(--ease)}
+  .go .a4-li .b b{transform:none}
+  .a4-li{opacity:0;animation:entra .5s var(--ease) forwards}
+  @keyframes entra{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+  .tip{position:fixed;pointer-events:none;background:var(--papel);border:1px solid var(--sand);border-radius:10px;padding:9px 12px;font-size:12px;opacity:0;transition:opacity .15s;box-shadow:0 8px 24px color-mix(in srgb,#000 22%,transparent);z-index:9}
+  .tip b{display:block;font:500 15px/1.2 "EB Garamond",Georgia,serif}
+
+  @media (max-width:1100px){
+    .a2-fila{grid-template-columns:22px minmax(150px,1fr) 2fr 84px 96px}.a2-spark{display:none}
+    .a4{grid-template-columns:1fr}
+  }
+  @media (max-width:700px){
+    .a2-fila{grid-template-columns:18px 1fr auto;column-gap:12px;row-gap:8px}.a2-fila .rk{grid-column:1;grid-row:1}.a2-nom{grid-column:2;grid-row:1}.a2-mon{grid-column:3;grid-row:1}
+    .a2-bar{grid-column:2/-1;grid-row:2}.a2-fila .dl{display:none}
+    .a3{grid-template-columns:1fr}.a3-curva{display:none}.waf{grid-template-columns:repeat(10,1fr)}.cel{width:auto;aspect-ratio:1;height:auto}
+    .fila{grid-template-columns:120px 1fr 74px 0}.fila .pc{display:none}.a4-li{grid-template-columns:12px 1fr 84px 40px}.a4-li .b{display:none}
+    .b-in{padding-left:0}.b-pil,.b-hil-ley{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+    .b-in.col{grid-template-columns:1fr}.b-col{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}.b-col .b-op{flex:none;min-width:128px}.b-lista li,.b-lista.solo li{grid-template-columns:44px minmax(0,1fr) auto}.b-lista .gs,.b-barra,.b-ir{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.rel,.a3-fondo,.cel,.sdp b,.a4-li .b b,.b-seg,.b-barra b,.b-lista li{transform:none!important}.cel,.a4-li,.gl li,.b-lista li,.b-col .b-op{opacity:1!important}.a2-spark polyline,.a3-curva .dib{stroke-dashoffset:0}}
+</style>
+</head>
+<body>
+<h1>Gastos · «En qué se va»: la A2 con su desglose</h1>
+<p class="sub">Arriba, la que armamos con lo que elegiste. Abajo quedan las de antes, para comparar. Cifras de tu captura (S/ 8,362 en octubre); el reparto por sede, septiembre y los gastos de cada categoría son de ejemplo. La fila de sedes de aquí arriba hace de la sede de Finanzas (la de la mesa de mando).</p>
+<div class="barra" id="barra">
+  <button class="pil on" data-s="-1">Todas</button>
+  <button class="pil" data-s="0"><i style="background:var(--s0)"></i>TRU</button>
+  <button class="pil" data-s="1"><i style="background:var(--s1)"></i>AQP</button>
+  <button class="pil" data-s="2"><i style="background:var(--s2)"></i>LIM</button>
+  <button class="pil" data-s="3"><i style="background:var(--s3)"></i>Taller</button>
+  <button class="pil" data-s="4"><i style="background:var(--s4)"></i>Empresa</button>
+  <span class="sep"></span>
+  <button class="pil" id="rep">↻ Repetir animación</button>
+  <button class="pil" id="tema">◐ Modo oscuro</button>
+</div>
+
+<section class="op">
+  <h2>A2 + el desglose · la que armamos</h2>
+  <p class="d"><b>La A2, con el desglose de la A3 y las sedes en columna (la 3, elegida el 2026-10-30).</b> Toca una categoría y se abre debajo: a la izquierda, sus sedes con su monto; a la derecha, lo que se gastó exactamente: el día, en qué, a quién y cuánto, de mayor a menor. Toca una sede y la lista se queda solo con lo de esa sede, y en el hilo se enciende su tramo. También puedes ir directo: toca un color del hilo y se abre ya en esa sede. Aquí la primera categoría se abre sola, solo para que la veas.</p>
+  <div class="formas" hidden><div class="modo" id="Bforma"><span class="pz"></span><button data-f="pildoras">1 · Píldoras</button><button data-f="hilo">2 · El hilo en grande</button><button data-f="columna">3 · Columna</button></div></div>
+  <div class="tarj" id="B"></div>
+</section>
+
+<h2 class="antes">Las de antes, para comparar</h2>
+
+<section class="op">
+  <h2>A · Hilos (la primera que elegiste)</h2>
+  <p class="d">La de la ronda anterior, sin cambios: el ranking con el hilo partido por sedes.</p>
+  <div class="tarj" id="A"></div>
+</section>
+
+<section class="op">
+  <h2>A2 · Hilos con memoria</h2>
+  <p class="d"><b>La A, pero que compara.</b> Cada hilo trae una rayita de dónde estaba en septiembre y una píldora con cuánto subió o bajó, más su línea de los últimos 6 meses a la derecha. El total rueda como un contador. Al cambiar de sede las filas se reordenan deslizándose y los hilos crecen o se encogen desde donde estaban (no empiezan de cero). Al pasar el mouse, el hilo se separa por sedes; con un clic se abre el reparto por sede.</p>
+  <div class="tarj" id="A2"></div>
+</section>
+
+<section class="op">
+  <h2>A3 · Lo que pesa</h2>
+  <p class="d"><b>La A, pero que te da la conclusión.</b> Arriba, una frase: cuántas categorías explican el 80 % del gasto. Esas van grandes, como bandas que se llenan; una línea punteada corta ahí, y la «cola» sigue chica y tenue. A la derecha, la curva de lo acumulado se dibuja bajando junto a las filas (el punto rojo es donde cruza el 80 %). Un clic en una banda abre sus gastos uno por uno, sin salir de la pantalla.</p>
+  <div class="tarj" id="A3"></div>
+</section>
+
+<section class="op">
+  <h2>A4 · Mosaico de 100</h2>
+  <p class="d"><b>La A, pero que se ve de lejos.</b> 100 cuadritos, cada uno es el 1 % de lo gastado, que se llenan en ola. Al lado, el ranking de la A. Pasa el mouse por una fila y se encienden sus cuadritos (y al revés). Con «Por sede» el mismo mosaico se repinta en ola para mostrar de qué sede salió la plata. Es el mismo lenguaje de los 100 puntos de Tienda web ▸ Tráfico.</p>
+  <div class="tarj" id="A4"></div>
+</section>
+<div class="tip" id="tip"></div>
+
+<script>
+const SEDES=["TRU","AQP","LIM","Taller","Empresa"];
+// [categoría, octubre por sede, septiembre total]
+const RAW=[
+ ["Software y suscripciones",[880,420,60,0,732],1980],["Suministros y útiles",[700,540,150,222,50],1290],
+ ["Comisiones y gastos bancarios",[640,520,300,0,71],1610],["Tributos y licencias",[300,200,100,0,250],850],
+ ["Luz",[210,170,90,97,0],540],["Internet",[60,60,40,20,100],280],["Telefonía",[50,40,30,0,120],255],
+ ["Servicios básicos",[70,60,40,40,0],190],["Seguros",[60,50,30,0,50],190],["Atención al personal",[60,50,40,20,0],120],
+ ["Transporte y movilidad",[40,30,20,60,40],230],["Asesoría y honorarios",[0,0,0,0,160],160],
+ ["Publicidad y marketing",[50,40,30,0,0],60],["Agua",[30,30,20,20,0],95]];
+// [en qué, a quién] — a quién puede ir por sede (luz y agua cambian de empresa en cada ciudad)
+const QUE=[[["Plan de diseño","Canva"],["Correo y nube","Google Workspace"],["Sistema de facturación","Lucode"],["Música para tienda","Spotify"],["Editor de video","CapCut"]],
+ [["Bolsas y papel seda","Distribuidora Ríos"],["Tinta y etiquetas","Tai Loy"],["Útiles de oficina","Tai Loy"],["Artículos de limpieza","Makro"],["Ganchos y perchas","Perchas del Norte"]],
+ [["Comisión POS","Izipay"],["Mantenimiento de cuenta","BCP"],["Comisión por transferencia","Interbank"],["ITF","BCP"]],
+ [["Licencia de funcionamiento","Municipalidad"],["Arbitrios","Municipalidad"],["Defensa civil","Municipalidad"],["Trámite municipal","Municipalidad"]],
+ [["Recibo de luz",["Hidrandina","SEAL","Luz del Sur","Luz del Sur",""]]],
+ [["Fibra de la tienda","Movistar"],["Internet móvil","Claro"]],[["Plan móvil","Claro"],["Línea fija","Movistar"]],
+ [["Mantenimiento del local","Administración del local"],["Recojo de basura","Municipalidad"]],
+ [["Seguro del local","Rímac"],["Seguro de mercadería","Pacífico"]],[["Refrigerios","Tottus"],["Agua para el equipo","San Luis"],["Cumpleaños del mes","Pastelería"]],
+ [["Taxi a proveedor","Cabify"],["Courier","Olva Courier"],["Movilidad del taller",""]],[["Contabilidad","Estudio contable"],["Asesoría legal","Estudio jurídico"]],
+ [["Anuncios en redes","Meta"],["Volantes","Imprenta"]],[["Recibo de agua",["Sedalib","Sedapar","Sedapal","Sedapal",""]]]];
+function rnd(seed){let s=seed;return()=>{s=(s*1664525+1013904223)%4294967296;return s/4294967296}}
+const HIST=RAW.map(([n,v,sep],i)=>{const r=rnd(i*53+5);return[0,1,2,3].map(()=>sep*(.8+r()*.34)).concat([sep,v.reduce((a,b)=>a+b,0)])});
+const GASTOS=RAW.map(([n,v],i)=>{const r=rnd(i*31+7),out=[];v.forEach((x,j)=>{if(!x)return;const p=x<90?1:1+Math.floor(r()*3);let resto=x;
+  for(let k=0;k<p;k++){const m=k===p-1?resto:Math.round(resto*(.35+r()*.4));resto-=m;const[que,pv]=QUE[i][Math.floor(r()*QUE[i].length)];
+    out.push({que,prov:Array.isArray(pv)?pv[j]:pv,sede:j,dia:1+Math.floor(r()*29),m})}});return out});
+let S=-1;
+const fmt=n=>"S/ "+Math.round(n).toLocaleString("en-US");
+const pct=(a,b)=>b?Math.round(a/b*100):0;
+const $=s=>document.querySelector(s);
+const flecha=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
+function datos(){
+  const l=RAW.map(([n,v,sep],i)=>{const sed=v.map((x,j)=>S<0||S===j?x:0),tot=sed.reduce((a,b)=>a+b,0),all=v.reduce((a,b)=>a+b,0),f=all?tot/all:0;
+    return{n,i,sed,v:tot,sep:sep*f,hist:HIST[i].map(x=>x*f)}}).filter(c=>c.v>0).sort((a,b)=>b.v-a.v);
+  l.total=l.reduce((a,c)=>a+c.v,0);l.sep=l.reduce((a,c)=>a+c.sep,0);return l}
+function conteo(el,a,ms=900){const t0=performance.now();(function f(t){const p=Math.min(1,(t-t0)/ms),e=1-Math.pow(1-p,3);el.textContent=fmt(a*e);if(p<1)requestAnimationFrame(f)})(t0)}
+function arranca(el){el.classList.remove("go");void el.offsetWidth;requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add("go")))}
+function deltaHTML(v,sep){if(!sep)return`<span class="delta igual">nuevo</span>`;const d=(v-sep)/sep*100;
+  if(Math.abs(d)<2)return`<span class="delta igual">= sep</span>`;return`<span class="delta ${d>0?"sube":"baja"}">${d>0?"▲":"▼"} ${Math.abs(d).toFixed(0)} %</span>`}
+function gastosDe(c){return GASTOS[c.i].filter(x=>S<0||x.sede===S).sort((a,b)=>b.m-a.m)}
+
+/* ---------- A · original ---------- */
+let abierto=false;
+function A(){const L=datos(),max=L[0].v,N=6,box=$("#A");
+  const fila=(c,k)=>`<div class="fila"><div class="nom"><span class="rk">${k+1}</span>${c.n}</div>
+   <div class="pista"><div class="rel" style="width:${c.v/max*100}%;transition-delay:${k*55}ms">${c.sed.map((x,j)=>x?`<b style="width:${x/c.v*100}%;background:var(--s${j})"></b>`:"").join("")}</div></div>
+   <div class="mon">${fmt(c.v)}</div><div class="pc">${pct(c.v,L.total)} %</div>
+   <div class="det">${c.sed.map((x,j)=>x?`<span><i style="background:var(--s${j})"></i>${SEDES[j]} · ${fmt(x)}</span>`:"").join("")}</div></div>`;
+  box.innerHTML=`<div class="cab"><div><h3 class="tit">En qué se va</h3><div class="dato">Lo que más pesó: ${L.slice(0,3).map(c=>c.n.toLowerCase()).join(", ")}</div></div>
+   <div style="text-align:right"><div class="grande" id="At">S/ 0</div><div class="dato">gastado en octubre</div></div></div>
+   <div class="leyS" style="margin-bottom:6px">${SEDES.map((s,j)=>`<span><i style="background:var(--s${j})"></i>${s}</span>`).join("")}</div>
+   <div class="filas">${L.slice(0,N).map(fila).join("")}</div>
+   <div class="filas" style="${abierto?"":"display:none"}">${L.slice(N).map((c,k)=>fila(c,k+N)).join("")}</div>
+   ${L.length>N?`<button class="mas" id="Am">${abierto?"Ver menos ▴":`Ver ${L.length-N} más ▾`}</button>`:""}`;
+  box.querySelectorAll(".fila").forEach(f=>f.onclick=()=>f.classList.toggle("ab"));
+  const m=$("#Am");if(m)m.onclick=()=>{abierto=!abierto;A()};
+  conteo($("#At"),L.total,1000);arranca(box)}
+
+/* ---------- A2 · Hilos con memoria ---------- */
+function odo(el,n){const s=fmt(n),forma=s.replace(/\d/g,"0");
+  if(el.dataset.forma!==forma){el.dataset.forma=forma;el.innerHTML=[...s].map(ch=>/\d/.test(ch)?`<span class="rd"><span>${[0,1,2,3,4,5,6,7,8,9].join("<br>")}</span></span>`:`<span>${ch===" "?"&nbsp;":ch}</span>`).join("");void el.offsetHeight}
+  const dig=[...s].filter(ch=>/\d/.test(ch));el.querySelectorAll(".rd>span").forEach((sp,k)=>{sp.style.transitionDelay=k*55+"ms";sp.style.transform=`translateY(-${dig[k]*1.3}em)`})}
+function A2(){const box=$("#A2");
+  box.innerHTML=`<div class="cab"><div><h3 class="tit">En qué se va</h3><div class="dato" id="A2fr"></div></div>
+    <div class="a2-tot"><div class="odo" id="A2odo"></div><div id="A2d"></div></div></div>
+   <div class="leyS" style="margin:0 0 8px 12px">${SEDES.map((s,j)=>`<span><i style="background:var(--s${j})"></i>${s}</span>`).join("")}<span style="margin-left:10px"><i class="fantm"></i>dónde estaba en septiembre</span></div>
+   <div class="a2-filas" id="A2f">${RAW.map((c,i)=>`<div class="a2-fila" data-k="${i}">
+     <span class="rk"></span><div class="a2-nom"><b>${c[0]}</b><small></small></div>
+     <div class="a2-bar"><div class="a2-pista"><div class="a2-rel" style="width:0">${SEDES.map((_,j)=>`<b style="background:var(--s${j});width:0"></b>`).join("")}</div><i class="a2-fant" style="left:0;opacity:0"></i></div><div class="a2-segley"></div></div>
+     <span class="dl"></span><span class="a2-mon"></span>
+     <svg class="a2-spark" viewBox="0 0 84 26"><path/><polyline pathLength="1"/><circle r="2.5"/></svg>
+     <div class="a2-det"><div><div class="in"></div></div></div></div>`).join("")}</div>`;
+  box.querySelectorAll(".a2-fila").forEach(f=>f.onclick=()=>f.classList.toggle("ab"));
+  box.classList.remove("go");requestAnimationFrame(()=>requestAnimationFrame(()=>{box.classList.add("go");a2Pon(true)}))}
+function a2Pon(primera){const L=datos(),cont=$("#A2f");if(!cont)return;
+  const max=Math.max(...L.map(c=>Math.max(c.v,c.sep)));
+  const antes=new Map();cont.querySelectorAll(".a2-fila:not(.fuera)").forEach(e=>antes.set(e.dataset.k,e.getBoundingClientRect().top));
+  const vis=new Set(L.map(c=>String(c.i)));cont.querySelectorAll(".a2-fila").forEach(e=>e.classList.toggle("fuera",!vis.has(e.dataset.k)));
+  L.forEach((c,pos)=>{const e=cont.querySelector(`[data-k="${c.i}"]`);cont.appendChild(e);const d=primera?pos*60:0;
+    e.querySelector(".rk").textContent=pos+1;
+    e.querySelector("small").textContent=`${pct(c.v,L.total)} % de lo gastado`;
+    const rel=e.querySelector(".a2-rel");rel.style.transitionDelay=d+"ms";rel.style.width=c.v/max*100+"%";
+    rel.querySelectorAll("b").forEach((b,j)=>{b.style.transitionDelay=d+"ms";b.style.width=c.sed[j]/c.v*100+"%"});
+    const f=e.querySelector(".a2-fant");f.style.transitionDelay=d+"ms";f.style.left=`calc(${c.sep/max*100}% - 1px)`;f.style.opacity=".6";
+    e.querySelector(".a2-segley").innerHTML=c.sed.map((x,j)=>x?`<span><i style="background:var(--s${j})"></i>${SEDES[j]} ${pct(x,c.v)} %</span>`:"").join("");
+    e.querySelector(".dl").innerHTML=deltaHTML(c.v,c.sep);
+    e.querySelector(".a2-mon").textContent=fmt(c.v);
+    const mx=Math.max(...c.hist),pts=c.hist.map((v,k)=>[2+k*16,24-v/mx*20]);
+    e.querySelector(".a2-spark polyline").setAttribute("points",pts.map(p=>p.join(",")).join(" "));
+    e.querySelector(".a2-spark path").setAttribute("d",`M${pts[0][0]},26 `+pts.map(p=>"L"+p.join(",")).join(" ")+` L${pts[5][0]},26Z`);
+    const ci=e.querySelector(".a2-spark circle");ci.setAttribute("cx",pts[5][0]);ci.setAttribute("cy",pts[5][1]);
+    const g=gastosDe(c);
+    e.querySelector(".in").innerHTML=`<div>${c.sed.map((x,j)=>x?`<div class="sd"><span><i style="background:var(--s${j})"></i>${SEDES[j]}</span><div class="sdp"><b style="width:${x/c.v*100}%;background:var(--s${j})"></b></div><span class="m">${fmt(x)}</span><span class="p">${pct(x,c.v)} %</span></div>`:"").join("")}</div>
+      <a class="enl">Ver los ${g.length} gastos ${flecha}</a>`});
+  cont.querySelectorAll(".a2-fila.fuera").forEach(e=>cont.appendChild(e));
+  if(!primera)cont.querySelectorAll(".a2-fila:not(.fuera)").forEach(e=>{const a=antes.get(e.dataset.k);
+    if(a==null){e.animate([{opacity:0},{opacity:1}],{duration:400});return}
+    const dy=a-e.getBoundingClientRect().top;if(Math.abs(dy)>1)e.animate([{transform:`translateY(${dy}px)`},{transform:"none"}],{duration:700,easing:"cubic-bezier(.22,1,.36,1)"})});
+  odo($("#A2odo"),L.total);
+  $("#A2d").innerHTML=deltaHTML(L.total,L.sep).replace("</span>"," vs septiembre</span>");
+  const conSep=L.filter(c=>c.sep>0&&c.v>=L.total*.04).map(c=>({...c,d:(c.v-c.sep)/c.sep}));
+  const sube=conSep.reduce((a,c)=>c.d>a.d?c:a,{d:-9}),baja=conSep.reduce((a,c)=>c.d<a.d?c:a,{d:9});
+  $("#A2fr").innerHTML=`${sube.d>.02?`Lo que más subió: <b>${sube.n.toLowerCase()}</b> (+${(sube.d*100).toFixed(0)} %).`:""} ${baja.d<-.02?`Lo que más bajó: <b>${baja.n.toLowerCase()}</b> (−${Math.abs(baja.d*100).toFixed(0)} %).`:""}`}
+
+/* ---------- B · A2 con su desglose por sede ---------- */
+// bAb: la categoría abierta · bSede: la sede elegida en su desglose (-1 = todas) · bMas: «Ver N más» abierto
+let bAb=null,bSede=-1,bMas=false,bForma="columna";   // elegida: la 3 (las otras dos quedan en el código como registro)
+const chev=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`;
+function B(){const box=$("#B");bAb=null;bSede=-1;bMas=false;
+  box.innerHTML=`<div class="cab"><div><h3 class="tit">En qué se va</h3><div class="dato" id="Bfr"></div></div>
+    <div class="a2-tot"><div class="odo" id="Bodo"></div><div id="Bd"></div></div></div>
+   <div class="leyS" style="margin:0 0 8px 12px">${SEDES.map((s,j)=>`<span><i style="background:var(--s${j})"></i>${s}</span>`).join("")}<span style="margin-left:10px"><i class="fantm"></i>dónde estaba en septiembre</span></div>
+   <div class="a2-filas" id="Bf">${RAW.map((c,i)=>`<div class="a2-fila" data-k="${i}" tabindex="0" aria-expanded="false">
+     <span class="rk"></span><div class="a2-nom"><b>${c[0]}</b><small></small></div>
+     <div class="a2-bar"><div class="a2-pista"><div class="a2-rel" style="width:0">${SEDES.map((_,j)=>`<b style="background:var(--s${j});width:0"></b>`).join("")}</div>
+       <div class="b-hits" style="width:0">${SEDES.map((s,j)=>`<button data-j="${j}" aria-label="Ver lo gastado en ${s}" style="width:0"></button>`).join("")}</div>
+       <i class="a2-fant" style="left:0;opacity:0"></i></div><div class="a2-segley"></div></div>
+     <span class="dl"></span><span class="a2-mon"></span>
+     <svg class="a2-spark" viewBox="0 0 84 26"><path/><polyline pathLength="1"/><circle r="2.5"/></svg>
+     <div class="b-cajon"><div><div class="b-in"></div></div></div></div>`).join("")}</div>`;
+  box.querySelectorAll(".a2-fila").forEach(f=>{const k=+f.dataset.k,rel=f.querySelector(".a2-rel");
+    f.onclick=e=>{if(!e.target.closest(".b-cajon"))bAbre(k,-1,true)};
+    f.onkeydown=e=>{if(e.target===f&&(e.key==="Enter"||e.key===" ")){e.preventDefault();bAbre(k,-1,true)}};
+    f.querySelectorAll(".b-hits button").forEach(h=>{const j=+h.dataset.j,seg=rel.children[j];
+      h.onclick=e=>{e.stopPropagation();bAbre(k,j,false)};
+      h.onmouseenter=()=>{rel.classList.add("dim");seg.classList.add("hot");bTip(h,k,j)};
+      h.onmouseleave=()=>{rel.classList.remove("dim");seg.classList.remove("hot");$("#tip").style.opacity=0}})});
+  box.classList.remove("go");requestAnimationFrame(()=>requestAnimationFrame(()=>{box.classList.add("go");bPon(true)}));
+  // Solo en la maqueta: la primera categoría se abre sola, para comparar las formas de elegir la sede sin buscar
+  setTimeout(()=>{const p=$("#Bf .a2-fila:not(.fuera)");if(bAb==null&&p)bAbre(+p.dataset.k,-1,false)},1100)}
+function bFormaPon(){const m=$("#Bforma"),on=m.querySelector(`[data-f="${bForma}"]`),pz=m.querySelector(".pz");
+  m.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b===on));pz.style.left=on.offsetLeft+"px";pz.style.width=on.offsetWidth+"px"}
+// Las tres formas de elegir la sede. Cada opción es un .b-op con su data-s (-1 = todas).
+function bSelector(c,sedes){const ops=[{j:-1,x:c.v,n:"Todas"}].concat(sedes.map(([x,j])=>({j,x,n:SEDES[j]})));
+  const pto=o=>o.j>=0?`<i style="background:var(--s${o.j})"></i>`:"";
+  if(bForma==="pildoras")return`<div class="b-sel b-pil" role="tablist" aria-label="Ver por sede"><span class="b-pz"></span>
+    ${ops.map(o=>`<button class="b-op" role="tab" data-s="${o.j}">${pto(o)}${o.n}<span class="m">${fmt(o.x)}</span></button>`).join("")}</div>`;
+  if(bForma==="hilo")return`<div class="b-sel b-hil" role="tablist" aria-label="Ver por sede">
+    <div class="b-hil-barra">${ops.slice(1).map((o,k)=>`<button class="b-op b-seg" tabindex="-1" data-s="${o.j}" aria-label="${o.n} ${fmt(o.x)}" style="flex:${o.x} 1 0;background:var(--s${o.j});animation-delay:${180+k*70}ms"></button>`).join("")}</div>
+    <div class="b-hil-ley"><span class="b-pz"></span>${ops.map(o=>`<button class="b-op b-et" role="tab" data-s="${o.j}">${pto(o)}<b>${o.n}</b>${fmt(o.x)}${o.j>=0?`<small>${pct(o.x,c.v)} %</small>`:""}</button>`).join("")}</div></div>`;
+  return`<div class="b-sel b-col" role="tablist" aria-label="Ver por sede"><span class="b-pz"></span>
+    ${ops.map((o,k)=>`<button class="b-op" role="tab" data-s="${o.j}" style="animation-delay:${140+k*50}ms"><span class="n">${pto(o)}${o.n}</span><span class="m">${fmt(o.x)}</span>
+      <span class="t">${o.j<0?sedes.map(([x,j])=>`<b style="width:${x/c.v*100}%;background:var(--s${j})"></b>`).join(""):`<b style="width:${o.x/c.v*100}%;background:var(--s${o.j})"></b>`}</span></button>`).join("")}</div>`}
+// La marca de la elegida: la tinta (píldoras), la raya bajo el nombre (hilo) o la hoja con el hilo rojo (columna)
+function bMarca(inn,sinMover){const pz=inn.querySelector(".b-pz"),on=inn.querySelector(".b-op.on:not(.b-seg)");if(!pz||!on)return;
+  const raya=!!inn.querySelector(".b-hil");if(sinMover)pz.style.transition="none";
+  pz.style.left=on.offsetLeft+"px";pz.style.width=on.offsetWidth+"px";
+  pz.style.top=(raya?on.offsetTop+on.offsetHeight-3:on.offsetTop)+"px";pz.style.height=(raya?2:on.offsetHeight)+"px";
+  if(sinMover){void pz.offsetWidth;pz.style.transition=""}}
+function bTip(h,k,j){const c=datos().find(x=>x.i===k);if(!c)return;const tip=$("#tip");
+  tip.innerHTML=`<b>${SEDES[j]} · ${fmt(c.sed[j])}</b>${pct(c.sed[j],c.v)} % de ${c.n.toLowerCase()} · toca para ver en qué`;
+  const r=h.getBoundingClientRect();tip.style.left=Math.max(8,Math.min(innerWidth-tip.offsetWidth-8,r.left+r.width/2-tip.offsetWidth/2))+"px";
+  tip.style.top=r.top-tip.offsetHeight-2+"px";tip.style.opacity=1}
+function bPon(primera){const L=datos(),cont=$("#Bf");if(!cont)return;
+  const max=Math.max(...L.map(c=>Math.max(c.v,c.sep)));
+  const antes=new Map();cont.querySelectorAll(".a2-fila:not(.fuera)").forEach(e=>antes.set(e.dataset.k,e.getBoundingClientRect().top));
+  const vis=new Set(L.map(c=>String(c.i)));cont.querySelectorAll(".a2-fila").forEach(e=>e.classList.toggle("fuera",!vis.has(e.dataset.k)));
+  if(bAb!=null&&!vis.has(String(bAb)))bCierra();
+  L.forEach((c,pos)=>{const e=cont.querySelector(`[data-k="${c.i}"]`);cont.appendChild(e);const d=primera?pos*60:0;
+    e.querySelector(".rk").textContent=pos+1;
+    e.querySelector("small").textContent=`${pct(c.v,L.total)} % de lo gastado`;
+    const ancho=c.v/max*100+"%",rel=e.querySelector(".a2-rel"),hits=e.querySelector(".b-hits");
+    rel.style.transitionDelay=hits.style.transitionDelay=d+"ms";rel.style.width=hits.style.width=ancho;
+    rel.querySelectorAll("b").forEach((b,j)=>{b.style.transitionDelay=d+"ms";b.style.width=c.sed[j]/c.v*100+"%"});
+    hits.querySelectorAll("button").forEach((b,j)=>{b.style.width=c.sed[j]/c.v*100+"%";b.hidden=!c.sed[j]});
+    const f=e.querySelector(".a2-fant");f.style.transitionDelay=d+"ms";f.style.left=`calc(${c.sep/max*100}% - 1px)`;f.style.opacity=".6";
+    e.querySelector(".a2-segley").innerHTML=c.sed.map((x,j)=>x?`<span><i style="background:var(--s${j})"></i>${SEDES[j]} ${pct(x,c.v)} %</span>`:"").join("");
+    e.querySelector(".dl").innerHTML=deltaHTML(c.v,c.sep);
+    e.querySelector(".a2-mon").textContent=fmt(c.v);
+    const mx=Math.max(...c.hist),pts=c.hist.map((v,k)=>[2+k*16,24-v/mx*20]);
+    e.querySelector(".a2-spark polyline").setAttribute("points",pts.map(p=>p.join(",")).join(" "));
+    e.querySelector(".a2-spark path").setAttribute("d",`M${pts[0][0]},26 `+pts.map(p=>"L"+p.join(",")).join(" ")+` L${pts[5][0]},26Z`);
+    const ci=e.querySelector(".a2-spark circle");ci.setAttribute("cx",pts[5][0]);ci.setAttribute("cy",pts[5][1]);
+    if(bAb===c.i)bCajon(e,c,"nuevo")});
+  cont.querySelectorAll(".a2-fila.fuera").forEach(e=>cont.appendChild(e));
+  if(!primera)cont.querySelectorAll(".a2-fila:not(.fuera)").forEach(e=>{const a=antes.get(e.dataset.k);
+    if(a==null){e.animate([{opacity:0},{opacity:1}],{duration:400});return}
+    const dy=a-e.getBoundingClientRect().top;if(Math.abs(dy)>1)e.animate([{transform:`translateY(${dy}px)`},{transform:"none"}],{duration:700,easing:"cubic-bezier(.22,1,.36,1)"})});
+  odo($("#Bodo"),L.total);
+  $("#Bd").innerHTML=deltaHTML(L.total,L.sep).replace("</span>"," vs septiembre</span>");
+  const conSep=L.filter(c=>c.sep>0&&c.v>=L.total*.04).map(c=>({...c,d:(c.v-c.sep)/c.sep}));
+  const sube=conSep.reduce((a,c)=>c.d>a.d?c:a,{d:-9}),baja=conSep.reduce((a,c)=>c.d<a.d?c:a,{d:9});
+  $("#Bfr").innerHTML=`${sube.d>.02?`Lo que más subió: <b>${sube.n.toLowerCase()}</b> (+${(sube.d*100).toFixed(0)} %).`:""} ${baja.d<-.02?`Lo que más bajó: <b>${baja.n.toLowerCase()}</b> (−${Math.abs(baja.d*100).toFixed(0)} %).`:""}`}
+// Abre la categoría k en la sede j (-1 = todas). Con «alternar», tocar la fila abierta la cierra.
+function bAbre(k,j,alternar){const e=$("#Bf").querySelector(`[data-k="${k}"]`),c=datos().find(x=>x.i===k);if(!c)return;
+  if(bAb===k){if(alternar){bCierra();return}bSede=j;bMas=false;bCajon(e,c,"sede");return}
+  bCierra();bAb=k;bSede=j;bMas=false;e.classList.add("ab");e.setAttribute("aria-expanded","true");bCajon(e,c,"nuevo")}
+function bCierra(){$("#Bf").querySelectorAll(".a2-fila.ab").forEach(x=>{x.classList.remove("ab");x.setAttribute("aria-expanded","false");
+    const r=x.querySelector(".a2-rel");r.classList.remove("fija");[...r.children].forEach(b=>b.classList.remove("sel"))});bAb=null}
+// modo: "nuevo" (se abre, todo en cascada) · "sede" (cambió la sede: la píldora se desliza y la lista se rehace) · "mas" (solo entran las de más)
+function bCajon(e,c,modo){const inn=e.querySelector(".b-in"),ef=S>=0?S:bSede,N=6;
+  const sedes=c.sed.map((x,j)=>[x,j]).filter(([x])=>x>0),chips=S<0&&sedes.length>1;
+  if(modo==="nuevo"){
+    inn.className="b-in"+(chips&&bForma==="columna"?" col":"");
+    inn.innerHTML=`${chips?bSelector(c,sedes):""}<div class="b-det"><div class="b-res"></div><div class="b-caja"><ul class="b-lista"></ul></div><div class="b-pie"></div></div>`;
+    inn.querySelectorAll(".b-op").forEach(b=>b.onclick=()=>{bSede=+b.dataset.s;bMas=false;bCajon(e,c,"sede")});
+    inn.querySelectorAll(".b-et").forEach(b=>{const s=inn.querySelector(`.b-seg[data-s="${b.dataset.s}"]`);if(!s)return;
+      b.onmouseenter=()=>s.classList.add("hot");b.onmouseleave=()=>s.classList.remove("hot")})}
+  const sel=inn.querySelector(".b-sel");
+  if(sel){inn.querySelectorAll(".b-op").forEach(b=>{const on=+b.dataset.s===ef;b.classList.toggle("on",on);if(!b.classList.contains("b-seg"))b.setAttribute("aria-selected",on)});
+    sel.classList.toggle("fijo",ef>=0);bMarca(inn,modo==="nuevo");
+    // en el celular la fila de sedes corre de lado: deja la elegida a la vista, sin mover nada más
+    const fila=inn.querySelector(".b-pil,.b-hil-ley,.b-col"),on=inn.querySelector(".b-op.on:not(.b-seg)");
+    if(modo==="sede"&&on&&fila.scrollWidth>fila.clientWidth)fila.scrollTo({left:on.offsetLeft-(fila.clientWidth-on.offsetWidth)/2,behavior:"smooth"})}
+  const rel=e.querySelector(".a2-rel");rel.classList.toggle("fija",chips&&ef>=0);[...rel.children].forEach((b,j)=>b.classList.toggle("sel",j===ef));
+  const g=GASTOS[c.i].filter(x=>ef<0||x.sede===ef).sort((a,b)=>b.m-a.m),ver=bMas?g:g.slice(0,N),maxg=g.length?g[0].m:1,tot=g.reduce((a,x)=>a+x.m,0);
+  const un=g.length===1?"gasto":"gastos";
+  inn.querySelector(".b-res").innerHTML=ef>=0&&chips?`En <b>${SEDES[ef]}</b>: ${g.length} ${un} · ${fmt(tot)} · el ${pct(tot,c.v)} % de esta categoría`
+    :sedes.length===1?`Todo en <b>${SEDES[sedes[0][1]]}</b>: ${g.length} ${un} · ${fmt(tot)}`
+    :`<b>${g.length} ${un}</b> en ${sedes.length} sedes · ${fmt(tot)}`;
+  const caja=inn.querySelector(".b-caja"),lista=inn.querySelector(".b-lista"),h0=caja.offsetHeight;
+  const desde=modo==="mas"?(bMas?N:1e9):0,base=modo==="nuevo"?160:0;
+  lista.classList.toggle("solo",ef>=0||sedes.length===1);
+  lista.innerHTML=ver.map((x,k)=>{const quieta=k<desde,dl=base+(k-desde)*55;
+    return`<li style="${quieta?"animation:none;opacity:1;transform:none":`animation-delay:${dl}ms`}"><span class="gd">${x.dia} oct</span>
+     <span class="b-que"><b>${x.que}</b>${x.prov?`<small>${x.prov}</small>`:""}</span><span class="gs"><i style="background:var(--s${x.sede})"></i>${SEDES[x.sede]}</span>
+     <span class="b-barra"><b style="width:${x.m/maxg*100}%;background:var(--s${x.sede});${quieta&&modo==="mas"?"animation:none;transform:none":`animation-delay:${dl+80}ms`}"></b></span>
+     <span class="gm">${fmt(x.m)}</span><span class="b-ir">›</span></li>`}).join("");
+  if(modo!=="nuevo"){const h1=caja.offsetHeight;if(Math.abs(h0-h1)>1)caja.animate([{height:h0+"px"},{height:h1+"px"}],{duration:420,easing:"cubic-bezier(.22,1,.36,1)"})}
+  const resto=g.length-N;
+  inn.querySelector(".b-pie").innerHTML=`${resto>0?`<button class="b-mas ${bMas?"ab":""}">${bMas?"Ver menos":`Ver ${resto} más`} ${chev}</button>`:"<span></span>"}
+    <a class="enl">${g.length===1?"Ver este gasto":`Ver los ${g.length}`} en la tabla ${flecha}</a>`;
+  const m=inn.querySelector(".b-mas");if(m)m.onclick=()=>{bMas=!bMas;bCajon(e,c,"mas")}}
+
+/* ---------- A3 · Lo que pesa ---------- */
+let a3Ab=null;
+function A3(){const L=datos(),max=L[0].v,box=$("#A3");let ac=0,corte=-1;
+  const F=L.map((c,k)=>{ac+=c.v;const cum=ac/L.total;if(corte<0&&cum>=.795)corte=k;return{...c,cum}});
+  const top=F.slice(0,corte+1),cola=F.slice(corte+1),colaV=cola.reduce((a,c)=>a+c.v,0);
+  const fila=(c,k,chica)=>{const g=gastosDe(c),ver=g.slice(0,4),resto=g.slice(4);
+    return`<div class="a3-fila ${chica?"chica":""} ${a3Ab===c.i?"ab":""}" data-k="${c.i}" data-cum="${c.cum}">
+    <div class="a3-banda"><div class="a3-fondo" style="width:${c.v/max*100}%;transition-delay:${k*80}ms"></div>
+     <span class="rk">${k+1}</span><span class="a3-nom">${c.n}</span><span class="a3-pc">${pct(c.v,L.total)} %</span><span class="a3-mon">${fmt(c.v)}</span></div>
+    <div class="a3-cajon"><div><ul class="gl">${ver.map((x,j)=>`<li style="animation-delay:${120+j*60}ms"><span class="gd">${x.dia} oct</span><span>${x.que}</span><span class="gs"><i style="background:var(--s${x.sede})"></i>${SEDES[x.sede]}</span><span class="gm">${fmt(x.m)}</span></li>`).join("")}</ul>
+     <div class="gpie"><span>${resto.length?`y ${resto.length} más · ${fmt(resto.reduce((a,x)=>a+x.m,0))}`:`${g.length} ${g.length===1?"gasto":"gastos"} en el mes`}</span><a class="enl">Ver los ${g.length} ${flecha}</a></div></div></div></div>`};
+  box.innerHTML=`<div class="cab"><div><h3 class="tit">Lo que pesa</h3><p class="titular"><b>${top.length} de ${L.length}</b> categorías explican el <b>80 %</b> de lo que gastaste.</p></div>
+    <div style="text-align:right"><div class="grande" id="A3t">S/ 0</div><div class="dato">gastado en octubre</div></div></div>
+   <div class="a3"><div class="a3-filas" id="A3f">${top.map((c,k)=>fila(c,k,false)).join("")}
+     ${cola.length?`<div class="a3-corte"><span>Hasta aquí, el 80 %</span><small>Abajo, la cola: ${cola.length} ${cola.length===1?"categoría":"categorías"} que suman ${fmt(colaV)}</small></div>`:""}
+     ${cola.map((c,k)=>fila(c,k+top.length,true)).join("")}</div>
+     <svg class="a3-curva" id="A3c"></svg></div>`;
+  box.querySelectorAll(".a3-fila").forEach((f,k)=>{
+    f.onclick=()=>{const ab=!f.classList.contains("ab");box.querySelectorAll(".a3-fila.ab").forEach(x=>x.classList.remove("ab"));if(ab)f.classList.add("ab");a3Ab=ab?+f.dataset.k:null;sigue(500)};
+    f.onmouseenter=()=>{const c=$("#A3c").querySelectorAll("circle")[k];if(c)c.classList.add("hot")};
+    f.onmouseleave=()=>$("#A3c").querySelectorAll("circle.hot").forEach(c=>c.classList.remove("hot"))});
+  conteo($("#A3t"),L.total,1100);arranca(box);requestAnimationFrame(()=>a3Curva(true,corte))}
+let a3Corte=-1;
+function a3Curva(dibuja,corte){if(corte!=null)a3Corte=corte;const f=$("#A3f"),svg=$("#A3c");if(!f||!svg||!svg.clientWidth)return;
+  const R=f.getBoundingClientRect(),w=svg.clientWidth,h=f.offsetHeight,x=c=>10+c*(w-20);
+  const filas=[...f.querySelectorAll(".a3-fila")],pts=[[x(0),0]].concat(filas.map(e=>{const b=e.querySelector(".a3-banda").getBoundingClientRect();return[x(+e.dataset.cum),b.top-R.top+b.height/2]}));
+  svg.setAttribute("viewBox",`0 0 ${w} ${h}`);svg.style.height=h+"px";
+  svg.innerHTML=`<line class="g" x1="${x(0)}" x2="${x(0)}" y1="0" y2="${h}"/><line class="g" x1="${x(1)}" x2="${x(1)}" y1="0" y2="${h}"/><line class="g80" x1="${x(.8)}" x2="${x(.8)}" y1="0" y2="${h}"/>
+   <text x="${x(0)}" y="-8" text-anchor="middle">0 %</text><text x="${x(.8)}" y="-8" text-anchor="middle">80 %</text>
+   <polyline class="${dibuja?"dib":""}" pathLength="1" points="${pts.map(p=>p.join(",")).join(" ")}"/>
+   ${pts.slice(1).map((p,k)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${k===a3Corte?5:3.5}" class="${k===a3Corte?"cruce":""}" style="${dibuja?`opacity:0;animation:entraLi .3s ${.5+1.6*(k+1)/pts.length}s forwards`:""}"/>`).join("")}`}
+function sigue(ms){const t0=performance.now();(function f(t){a3Curva(false);if(t-t0<ms)requestAnimationFrame(f)})(t0)}
+addEventListener("resize",()=>{a3Curva(false);
+  const inn=document.querySelector("#Bf .a2-fila.ab .b-in");if(inn)bMarca(inn,true);bFormaPon()});
+
+/* ---------- A4 · Mosaico de 100 ---------- */
+let a4Modo="cat",a4Grupos=[];
+function a4Datos(){const L=datos();
+  const G=a4Modo==="cat"?L.map((c,k)=>({n:c.n,v:c.v,col:`var(--k${Math.min(k,6)})`}))
+    :SEDES.map((s,j)=>({n:s,v:L.reduce((a,c)=>a+c.sed[j],0),col:`var(--s${j})`})).filter(g=>g.v>0).sort((a,b)=>b.v-a.v);
+  const raw=G.map(g=>g.v/L.total*100),base=raw.map(Math.floor),falta=100-base.reduce((a,b)=>a+b,0);
+  raw.map((r,i)=>[r-Math.floor(r),i]).sort((a,b)=>b[0]-a[0]).slice(0,falta).forEach(([,i])=>base[i]++);
+  const celdas=[];G.forEach((g,i)=>{for(let k=0;k<base[i];k++)celdas.push(i)});G.total=L.total;G.celdas=celdas;G.base=base;return G}
+function A4(){const box=$("#A4");
+  box.innerHTML=`<div class="cab"><div><h3 class="tit">En qué se va</h3><div class="dato">Cada cuadrito es el 1 % de lo gastado</div></div>
+    <div style="display:flex;gap:28px;align-items:flex-end"><div class="modo" id="A4m"><span class="pz"></span><button data-m="cat">Por categoría</button><button data-m="sede">Por sede</button></div>
+    <div style="text-align:right"><div class="grande" id="A4t">S/ 0</div><div class="dato">gastado en octubre</div></div></div></div>
+   <div class="a4"><div><div class="waf" id="A4w">${Array.from({length:100},(_,k)=>`<div class="cel" style="transition-delay:${(Math.floor(k/10)+k%10)*24}ms,${(Math.floor(k/10)+k%10)*24}ms,0s"></div>`).join("")}</div><div class="a4-pie" id="A4p"></div></div>
+   <div class="a4-lis" id="A4l"></div></div>`;
+  box.querySelectorAll("#A4m button").forEach(b=>b.onclick=()=>{a4Modo=b.dataset.m;a4Pon(true)});
+  const w=$("#A4w"),tip=$("#tip");
+  w.querySelectorAll(".cel").forEach((c,k)=>{c.onmouseenter=e=>{const gi=a4Grupos.celdas[k],g=a4Grupos[gi];a4Foco(gi);
+      tip.innerHTML=`<b>${g.n}</b>${fmt(g.v)} · ${pct(g.v,a4Grupos.total)} %`;const r=c.getBoundingClientRect();tip.style.left=r.right+8+"px";tip.style.top=r.top-6+"px";tip.style.opacity=1};
+    c.onmouseleave=()=>{a4Foco(-1);tip.style.opacity=0}});
+  a4Pon(false);arranca(box);
+  setTimeout(()=>w.querySelectorAll(".cel").forEach(c=>c.style.transitionDelay="0s,0s,0s"),1400)}
+function a4Foco(gi){const w=$("#A4w"),l=$("#A4l");w.classList.toggle("fc",gi>=0);l.classList.toggle("fc",gi>=0);
+  w.querySelectorAll(".cel").forEach((c,k)=>c.classList.toggle("hot",a4Grupos.celdas[k]===gi));
+  l.querySelectorAll(".a4-li").forEach((e,k)=>e.classList.toggle("hot",k===gi))}
+function a4Pon(ola){a4Grupos=a4Datos();const G=a4Grupos,max=G[0].v;
+  const m=$("#A4m"),on=m.querySelector(`[data-m="${a4Modo}"]`),pz=m.querySelector(".pz");
+  m.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b===on));pz.style.left=on.offsetLeft+"px";pz.style.width=on.offsetWidth+"px";
+  $("#A4w").querySelectorAll(".cel").forEach((c,k)=>{if(ola)c.style.transitionDelay=`0s,0s,${(Math.floor(k/10)+k%10)*22}ms`;c.style.backgroundColor=G[G.celdas[k]].col});
+  if(ola)setTimeout(()=>$("#A4w").querySelectorAll(".cel").forEach(c=>c.style.transitionDelay="0s,0s,0s"),1000);
+  $("#A4p").textContent=`Cada cuadrito ≈ ${fmt(G.total/100)}`;
+  $("#A4l").innerHTML=G.map((g,k)=>`<div class="a4-li" style="animation-delay:${.3+k*.045}s"><i style="background:${g.col}"></i><span>${g.n}</span><span class="b"><b style="width:${g.v/max*100}%;background:${g.col};transition-delay:${.4+k*.05}s"></b></span><span class="m">${fmt(g.v)}</span><span class="p">${G.base[k]} %</span></div>`).join("");
+  $("#A4l").querySelectorAll(".a4-li").forEach((e,k)=>{e.onmouseenter=()=>a4Foco(k);e.onmouseleave=()=>a4Foco(-1)});
+  conteo($("#A4t"),G.total,900)}
+
+function todo(){B();A();A2();A3();A4()}
+$("#barra").addEventListener("click",e=>{const b=e.target.closest("[data-s]");if(!b)return;S=+b.dataset.s;
+  $("#barra").querySelectorAll("[data-s]").forEach(x=>x.classList.toggle("on",x===b));
+  bSede=-1;bMas=false;bPon(false);A();a2Pon(false);A3();a4Pon(true)});
+$("#rep").onclick=todo;
+$("#Bforma").querySelectorAll("button").forEach(b=>b.onclick=()=>{bForma=b.dataset.f;bFormaPon();
+  if(bAb==null){const p=$("#Bf .a2-fila:not(.fuera)");if(p)bAbre(+p.dataset.k,-1,false);return}
+  bCajon($("#Bf").querySelector(`[data-k="${bAb}"]`),datos().find(x=>x.i===bAb),"nuevo")});
+bFormaPon();
+$("#tema").onclick=()=>{const o=document.documentElement.dataset.tema==="oscuro";
+  if(o)delete document.documentElement.dataset.tema;else document.documentElement.dataset.tema="oscuro";
+  $("#tema").textContent=o?"◐ Modo oscuro":"◑ Modo claro"};
+todo();
+</script>
+</body>
+</html>

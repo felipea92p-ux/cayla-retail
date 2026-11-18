@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hoja del envío</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA · la hoja de un envío recibido (Recibir ▸ Terminados ▸ ENV-…), 2026-11-10
+   Pantalla real: EnvioAbierto y ColoresYTallas en components/recepcion-conteo/RecibidoPorEnvio.tsx (PR #1755).
+   Lo que Felipe vio mal en la hoja de hoy:
+     1. con UNA sola marca, el título del grupo «Y.J.J» es ruido;
+     2. la matriz color × talla queda angosta, en una caja de otro tono, y sus números no se alinean con nada;
+     3. los colores son solo palabras (sin su muestra);
+     4. el costo flota suelto abajo, en una píldora verde que parece un estado;
+     5. los datos del envío van en una sola línea larga de taupe.
+   Tres caras: A · Pulida (el mismo acordeón, ordenado) · B · Una ficha por prenda · C · La planilla abierta.
+   EJEMPLO INVENTADO con la forma de ENV-000013 y ENV-000012 (mismas cantidades); nombres no reales: el repo es público.
+   Solo tokens; sin movimiento nuevo (lo que abre usa el de las filas de hoy).
+   ==================================================================== */
+:root{--rojo:#b8412d;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;
+--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--borde:#96786a;--sombra:#1a1a18;--vidrio:#ffffff;--ease:cubic-bezier(.32,.72,.24,1)}
+:root[data-tema="oscuro"]{--crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--borde:#8d7a6e;
+--rojo:#e8806a;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;--sombra:#000000;--vidrio:#33302a}
+:root{--t65:color-mix(in srgb,var(--tinta) 66%,transparent);--t55:color-mix(in srgb,var(--tinta) 58%,transparent);
+--t12:color-mix(in srgb,var(--tinta) 12%,transparent);--t06:color-mix(in srgb,var(--tinta) 6%,transparent);--t03:color-mix(in srgb,var(--tinta) 3%,transparent)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;
+  background:radial-gradient(60% 50% at 15% 0%,color-mix(in srgb,var(--sand) 90%,transparent),transparent 70%),var(--crema)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:left}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tnum{font-variant-numeric:tabular-nums}
+
+.spk{position:sticky;top:0;z-index:300;background:#171614;color:#f5f0e8;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px 20px} /* tema-fijo: barra de la maqueta */
+.spk b{font-family:'EB Garamond',serif;font-size:18px;font-weight:500;margin-right:8px}
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden} /* tema-fijo: barra de la maqueta */
+.seg button{height:28px;padding:0 11px;font-size:12px;color:rgba(245,240,232,.75)} /* tema-fijo: barra de la maqueta */
+.seg button.on{background:#f5f0e8;color:#1a1a18;font-weight:600} /* tema-fijo: barra de la maqueta */
+
+.escena{display:flex;justify-content:center;padding:36px 16px 60px}
+.idea{max-width:768px;margin:0 auto 18px;padding:0 16px;font-size:14px;color:var(--t65)}
+.idea h2{font-family:'EB Garamond',serif;font-weight:500;font-size:22px;color:var(--tinta)}
+
+/* ---------- la hoja Serena ---------- */
+.hoja{position:relative;width:min(768px,100%);border-radius:32px;padding:30px 32px 24px;border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);
+  background:color-mix(in srgb,var(--papel) 90%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 40px 80px -30px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"] .hoja{border-color:var(--t12)}
+.hoja h1{font-family:'EB Garamond',serif;font-weight:500;font-size:30px;line-height:1.1;padding-right:56px}
+.cerrar{position:absolute;top:22px;right:22px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--borde)}
+.de{margin-top:4px;font-size:15px;color:var(--t65)}
+.de b{color:var(--tinta);font-weight:500}
+
+/* los datos del envío: cuatro datos cortos, no una línea larga */
+.datos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;margin-top:16px;border-radius:16px;overflow:hidden;border:1px solid color-mix(in srgb,var(--sand) 90%,transparent)}
+.datos div{padding:9px 14px;background:color-mix(in srgb,var(--vidrio) 45%,transparent)}
+[data-tema="oscuro"] .datos div{background:var(--t03)}
+.datos dt{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t55)}
+.datos dd{font-size:14px;font-weight:500}
+.datos dd.tenue{color:var(--t55);font-weight:400}
+
+.mchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12.5px;background:var(--t06);vertical-align:2px}
+.mchip i{width:8px;height:8px;border-radius:2px;background:var(--tinta)}
+
+.bloque{margin-top:18px;border-radius:20px;border:1px solid color-mix(in srgb,var(--sand) 90%,transparent);background:color-mix(in srgb,var(--vidrio) 50%,transparent);overflow:hidden}
+[data-tema="oscuro"] .bloque{background:var(--t03)}
+.enc{display:grid;grid-template-columns:28px minmax(0,1fr) 110px 80px;gap:12px;padding:10px 18px;font-size:12.5px;color:var(--taupe);border-bottom:1px solid color-mix(in srgb,var(--sand) 90%,transparent)}
+.der{text-align:right}
+.grupo{display:flex;align-items:center;gap:8px;padding:14px 18px 6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.grupo i{width:9px;height:9px;border-radius:2px;background:var(--c,var(--tinta))}
+.grupo .de2{letter-spacing:0;text-transform:none;font-weight:400;font-size:13px;color:var(--taupe)}
+.grupo .suma{margin-left:auto;letter-spacing:0;text-transform:none;font-weight:500;font-size:13px}
+.grupo::after{content:"";order:2;flex:1;height:1px;background:var(--sand)}
+.grupo .suma{order:3}
+
+/* A · la fila de la prenda con su costo a la derecha */
+.prenda{display:grid;grid-template-columns:28px minmax(0,1fr) 110px 80px;gap:12px;align-items:center;width:100%;padding:12px 18px;border-top:1px solid color-mix(in srgb,var(--sand) 70%,transparent)}
+.grupo + .prenda,.enc + .prenda{border-top:0}
+@media (hover:hover){.prenda:hover{background:var(--t03)}}
+.prenda .chev{color:var(--taupe);transition:transform .3s var(--ease)}
+.prenda[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.prenda .nom{font-size:15px}
+.prenda .sku{color:var(--t55)}
+.prenda .costo{text-align:right;font-size:13.5px;color:var(--t65)}
+.prenda .q{text-align:right;font-size:15px;font-weight:600}
+.prenda[aria-expanded="true"]{background:var(--t03)}
+
+/* A · la matriz, a lo ancho, alineada con la columna de cantidad */
+.matriz{display:none;padding:4px 18px 16px 58px;background:var(--t03)}
+.matriz.on{display:block}
+.matriz table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.matriz th,.matriz td{padding:7px 10px;text-align:center;font-weight:400}
+.matriz thead th{font-size:12.5px;color:var(--taupe);border-bottom:1px solid color-mix(in srgb,var(--sand) 90%,transparent)}
+.matriz th:first-child{text-align:left;padding-left:0}
+.matriz td:last-child,.matriz th:last-child{text-align:right;padding-right:0;font-weight:600;width:80px}
+.matriz tbody tr+tr{border-top:1px solid color-mix(in srgb,var(--sand) 55%,transparent)}
+.matriz .vacio{color:color-mix(in srgb,var(--tinta) 30%,transparent)}
+.matriz tfoot td,.matriz tfoot th{border-top:1px solid var(--t12);color:var(--t65);font-weight:500}
+.muestra{display:inline-block;flex:none;width:14px;height:14px;border-radius:50%;margin-right:10px;vertical-align:-2px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta-fija,#1a1a18) 16%,transparent)} /* tema-fijo: el anillo de una muestra de color es dato */
+.costo-linea{display:flex;justify-content:flex-end;gap:18px;margin-top:10px;font-size:13.5px;color:var(--t65)}
+.costo-linea b{color:var(--tinta);font-weight:600}
+
+/* B · la ficha por prenda */
+.fichas{display:grid;gap:12px;margin-top:18px}
+.ficha{border-radius:20px;border:1px solid color-mix(in srgb,var(--sand) 90%,transparent);background:color-mix(in srgb,var(--vidrio) 50%,transparent);padding:14px 16px}
+[data-tema="oscuro"] .ficha{background:var(--t03)}
+.ficha .cab{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:14px;align-items:center}
+.mini{width:56px;height:56px;border-radius:14px;display:grid;place-items:center;color:var(--crema-fija,#f5f0e8)} /* tema-fijo: ícono sobre el color de la prenda */
+.mini svg{width:26px;height:26px;stroke-width:1.5}
+.ficha .nom{font-size:15.5px;font-weight:500}
+.ficha .sub{font-size:13.5px;color:var(--t65)}
+.ficha .tot{text-align:right}
+.ficha .tot b{display:block;font-size:20px;font-family:'EB Garamond',serif;font-weight:500;line-height:1}
+.ficha .tot span{font-size:13px;color:var(--t65)}
+.colores{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:8px;margin-top:12px}
+.color{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:14px;background:var(--t03);font-size:14px}
+.color .n{margin-left:auto;font-weight:600}
+.tallas{display:flex;gap:4px}
+.tallas span{min-width:34px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;background:var(--t06);color:var(--t65)}
+.tallas span b{color:var(--tinta);font-weight:600;margin-left:3px}
+
+/* C · la planilla abierta */
+.plan{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.plan th,.plan td{padding:8px 10px;text-align:center;font-weight:400}
+.plan thead th{font-size:12.5px;color:var(--taupe);border-bottom:1px solid color-mix(in srgb,var(--sand) 90%,transparent);position:sticky;top:0;background:var(--papel)}
+.plan th:first-child,.plan td:first-child{text-align:left;padding-left:18px}
+.plan td:last-child,.plan th:last-child{text-align:right;padding-right:18px;font-weight:600}
+.plan tr.mod td{padding-top:16px;font-size:15px;font-weight:500;border-top:1px solid color-mix(in srgb,var(--sand) 90%,transparent)}
+.plan tr.mod td .sku{color:var(--t55);font-weight:400}
+.plan tr.mod td .costo{font-weight:400;font-size:13px;color:var(--t65)}
+.plan tr.mod:first-child td{border-top:0}
+.plan tr.col td:first-child{padding-left:34px}
+.plan .vacio{color:color-mix(in srgb,var(--tinta) 30%,transparent)}
+.plan tr.sub td{color:var(--t65);font-weight:500;border-top:1px dashed var(--t12)}
+
+.pie{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:12px;border-top:1px solid var(--t12);font-size:14px;color:var(--t55)}
+.ver{display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--rojo)}
+@media (max-width:640px){.datos{grid-template-columns:repeat(2,minmax(0,1fr))}.hoja{padding:24px 18px}}
+</style>
+</head>
+<body>
+<div class="spk">
+  <b>Hoja del envío</b>
+  <div class="seg" id="segProp"><button data-v="A" class="on">A · Pulida</button><button data-v="B">B · Ficha por prenda</button><button data-v="C">C · Planilla abierta</button></div>
+  <div class="seg" id="segEnv"><button data-v="13" class="on">ENV-000013 (1 marca)</button><button data-v="12">ENV-000012 (4 proveedores)</button></div>
+  <div class="seg" id="segTema"><button data-v="claro" class="on">Claro</button><button data-v="oscuro">Oscuro</button></div>
+</div>
+<div class="idea" id="idea" style="margin-top:28px"></div>
+<div class="escena"><div class="hoja" id="hoja"></div></div>
+
+<script>
+// EJEMPLO INVENTADO con la forma de ENV-000013 y ENV-000012.
+const HEX = { Celeste: "#8fb8d8", Rojo: "#b33a2e", Perla: "#e9e4da", Negro: "#1d1c1a", Beige: "#d8c3a2", Blanco: "#f4f1ea", Rosa: "#e3a5b4", Verde: "#5f7a4e", Azul: "#2f4a7a" }; // tema-fijo: color de la prenda es dato
+const M = (color, t) => ({ color, t });
+const ENVIOS = {
+  13: { n: "ENV-000013", prov: ["Rosa Quispe"], llego: "09/11/2026", fin: "09/11/2026", guia: null, sede: "Tienda TRU", rec: "Lucía Torres", prendas: [
+    { nom: "Polo Sira", sku: "POL-0081", marca: "Lunara", prov: "Rosa Quispe", costo: 21.33, cat: "polo", tallas: ["S", "L"], m: [M("Celeste", { S: 1, L: 1 }), M("Rojo", { S: 1, L: 1 }), M("Perla", { S: 1, L: 1 }), M("Negro", { S: 2, L: 2 }), M("Beige", { S: 1, L: 1 })] },
+    { nom: "Polo Cuello Camisero", sku: "POL-0082", marca: "Lunara", prov: "Rosa Quispe", costo: 24.5, cat: "polo", tallas: ["S", "M", "L"], m: [M("Blanco", { S: 2, M: 2, L: 2 }), M("Negro", { S: 2, M: 2, L: 2 })] },
+    { nom: "Chaleco Importado", sku: "CHA-0021", marca: "Lunara", prov: "Rosa Quispe", costo: 38, cat: "chaleco", tallas: ["M", "L"], m: [M("Beige", { M: 3, L: 3 }), M("Negro", { M: 3, L: 3 })] }] },
+  12: { n: "ENV-000012", prov: ["Julio Ramos", "Víctor Paz", "Tejidos Norte SAC", "Carmen López"], llego: "09/11/2026", fin: "09/11/2026", guia: null, sede: "Tienda TRU", rec: "Lucía Torres", prendas: [
+    { nom: "Straple Destellos", sku: "TOP-0150", marca: "Nativa", prov: "Víctor Paz", costo: 18, cat: "top", tallas: ["S", "M", "L"], m: [M("Negro", { S: 2, M: 2, L: 1 }), M("Rosa", { S: 1, M: 2, L: 1 })] },
+    { nom: "Top Peplum Asimétrico", sku: "TOP-0145", marca: "Bella Moda", prov: "Julio Ramos", costo: 22, cat: "top", tallas: ["S", "M"], m: [M("Blanco", { S: 1, M: 2 }), M("Negro", { S: 1, M: 1 })] },
+    { nom: "Top Estampado con Lunares", sku: "TOP-0144", marca: "Bella Moda", prov: "Julio Ramos", costo: 20, cat: "top", tallas: ["S", "M"], m: [M("Negro", { S: 1, M: 2 })] },
+    { nom: "Short Biker", sku: "SHO-0061", marca: "Kora", prov: "Tejidos Norte SAC", costo: 15, cat: "short", tallas: ["S", "M", "L"], m: [M("Negro", { S: 2, M: 2, L: 1 }), M("Verde", { M: 2 })] },
+    { nom: "Falda Larga Mesh", sku: "FAL-0033", marca: null, prov: "Carmen López", costo: null, cat: "falda", tallas: ["Única"], m: [M("Negro", { "Única": 3 }), M("Beige", { "Única": 2 })] },
+    { nom: "Vestido Diva", sku: "VES-0071", marca: null, prov: "Carmen López", costo: null, cat: "vestido", tallas: ["S", "M"], m: [M("Rojo", { S: 2, M: 3 })] }] },
+};
+const COLOR_MARCA = ["var(--tinta)", "var(--taupe)", "var(--pizarra)", "var(--borde)"];
+const ICONO = { polo: '<path d="M8 3 4 6l2 4 2-1v12h8V9l2 1 2-4-4-3a4 4 0 0 1-8 0Z"/>', top: '<path d="M8 3v4l-3 4v10h14V11l-3-4V3"/>', chaleco: '<path d="M8 3 5 6v15h5l2-6 2 6h5V6l-3-3-4 6Z"/>', short: '<path d="M5 4h14l1 10h-6l-2-4-2 4H4Z"/>', falda: '<path d="M8 4h8l4 16H4Z"/>', vestido: '<path d="M9 3h6l-1 5 5 13H5l5-13Z"/>' };
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const tot = (p) => p.m.reduce((a, c) => a + Object.values(c.t).reduce((x, y) => x + y, 0), 0);
+const totColor = (c) => Object.values(c.t).reduce((x, y) => x + y, 0);
+const soles = (n) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const unidades = (n) => `${n} ${n === 1 ? "unidad" : "unidades"}`;
+const muestra = (c) => `<span class="muestra" style="background:${HEX[c] ?? "var(--sand)"}"></span>`;
+const mini = (p) => { const c = p.m[0].color, claro = ["Perla", "Blanco", "Beige", "Celeste", "Rosa"].includes(c);
+  return `<span class="mini" style="background:${HEX[c]};color:${claro ? "#1a1a18" : "#f5f0e8"}"><svg class="ic" viewBox="0 0 24 24">${ICONO[p.cat]}</svg></span>`; }; // tema-fijo: ícono sobre el color de la prenda
+
+function marcas(e) {
+  const m = new Map();
+  for (const p of e.prendas) { const k = p.marca; const x = m.get(k) ?? { marca: k, u: 0, provs: new Set(), ps: [] }; x.u += tot(p); x.provs.add(p.prov); x.ps.push(p); m.set(k, x); }
+  return [...m.values()].sort((a, b) => (a.marca === null) - (b.marca === null) || b.u - a.u);
+}
+function cabecera(e, ms) {
+  const una = ms.length === 1 && ms[0].marca;
+  return `<button class="cerrar" aria-label="Cerrar"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    <h1>${e.n}</h1>
+    <p class="de">${una ? `<span class="mchip"><i></i>${esc(ms[0].marca)}</span> ` : ""}de <b>${esc(e.prov.length > 2 ? `${e.prov.length} proveedores` : e.prov.join(" y "))}</b>${e.prov.length > 2 ? ` · ${esc(e.prov.join(", "))}` : ""}</p>
+    <dl class="datos">
+      <div><dt>Llegó</dt><dd>${e.llego}</dd></div>
+      <div><dt>Guía</dt><dd class="${e.guia ? "" : "tenue"}">${e.guia ?? "Sin guía"}</dd></div>
+      <div><dt>Sede</dt><dd>${e.sede}</dd></div>
+      <div><dt>Recibió</dt><dd>${esc(e.rec)}</dd></div>
+    </dl>`;
+}
+const grupo = (ms, m, varios) => ms.length === 1 && m.marca ? "" :
+  `<div class="grupo"><i style="--c:${m.marca === null ? "var(--ambar)" : COLOR_MARCA[ms.filter((x) => x.marca).indexOf(m)] ?? "color-mix(in srgb,var(--tinta) 25%,transparent)"}"></i><span${m.marca === null ? ' style="color:var(--ambar)"' : ""}>${esc(m.marca ?? "Sin marca")}</span>${varios ? `<span class="de2">de ${esc([...m.provs].join(" y "))}</span>` : ""}<span class="suma">${unidades(m.u)}</span></div>`;
+
+let abiertas = new Set(["Polo Sira", "Straple Destellos"]);
+const VISTAS = {
+  A: {
+    titulo: "A · Pulida: el mismo acordeón, ordenado",
+    texto: "Arriba, la marca (si es una sola) y de quién, y cuatro datos cortos en vez de una línea larga. Cada prenda dice su costo a la derecha, junto a la cantidad. Al abrirla, la matriz va a lo ancho, con la muestra de cada color y el total por talla abajo, alineada con la columna «Cantidad». Con una sola marca no se repite su título.",
+    cuerpo(e, ms, varios) {
+      return `<div class="bloque"><div class="enc"><span></span><span>Prenda</span><span class="der">Costo</span><span class="der">Cantidad</span></div>${ms.map((m) => grupo(ms, m, varios) + m.ps.map((p) => {
+        const on = abiertas.has(p.nom), t = tot(p);
+        return `<button class="prenda" aria-expanded="${on}" data-p="${esc(p.nom)}"><svg class="ic chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+          <span class="nom">${esc(p.nom)} <span class="sku">· ${p.sku}</span></span><span class="costo">${p.costo ? `${soles(p.costo)} c/u` : "Sin costo"}</span><span class="q tnum">${t}</span></button>
+          <div class="matriz${on ? " on" : ""}"><table><thead><tr><th>Color</th>${p.tallas.map((x) => `<th>${x}</th>`).join("")}<th>Total</th></tr></thead><tbody>${p.m.map((c) =>
+            `<tr><th>${muestra(c.color)}${c.color}</th>${p.tallas.map((x) => `<td class="${c.t[x] ? "" : "vacio"}">${c.t[x] ?? "—"}</td>`).join("")}<td>${totColor(c)}</td></tr>`).join("")}</tbody>
+            <tfoot><tr><th>Por talla</th>${p.tallas.map((x) => `<td>${p.m.reduce((a, c) => a + (c.t[x] ?? 0), 0)}</td>`).join("")}<td>${t}</td></tr></tfoot></table>
+            ${p.costo ? `<div class="costo-linea"><span>Costo <b>${soles(p.costo)}</b> c/u</span><span>Entró por <b>${soles(p.costo * t)}</b></span></div>` : ""}</div>`;
+      }).join("")).join("")}</div>`;
+    },
+  },
+  B: {
+    titulo: "B · Una ficha por prenda",
+    texto: "Cada prenda es una ficha a la vista, sin abrir nada: su miniatura (el ícono de su categoría sobre su color, como en todo el ERP), cuántas llegaron y a qué costo. Debajo, una pastilla por color con su muestra y sus tallas («S 1 · L 1»). Se lee como se cuenta la prenda en la mesa.",
+    cuerpo(e, ms, varios) {
+      return `<div class="fichas">${ms.map((m) => grupo(ms, m, varios) + m.ps.map((p) => `<article class="ficha"><div class="cab">${mini(p)}<div><div class="nom">${esc(p.nom)}</div><div class="sub">${p.sku}${p.costo ? ` · ${soles(p.costo)} c/u` : " · sin costo"}</div></div>
+        <div class="tot"><b class="tnum">${tot(p)}</b><span>unidades</span></div></div>
+        <div class="colores">${p.m.map((c) => `<div class="color">${muestra(c.color)}<span>${c.color}</span><span class="tallas">${Object.entries(c.t).map(([x, n]) => `<span>${x}<b>${n}</b></span>`).join("")}</span><span class="n tnum">${totColor(c)}</span></div>`).join("")}</div></article>`).join("")).join("")}</div>`;
+    },
+  },
+  C: {
+    titulo: "C · La planilla abierta",
+    texto: "Todo a la vista en una sola planilla, como la hoja de conteo: cada prenda con sus colores debajo y las tallas en columnas (las de todo el envío, en su orden). Sirve para revisar contra la guía de un vistazo; con muchas prendas la hoja se hace larga.",
+    cuerpo(e, ms, varios) {
+      const ORDEN = ["XS", "S", "M", "L", "XL", "Única"];
+      const tallas = [...new Set(e.prendas.flatMap((p) => p.tallas))].sort((a, b) => ORDEN.indexOf(a) - ORDEN.indexOf(b));
+      return `<div class="bloque"><table class="plan"><thead><tr><th>Prenda y color</th>${tallas.map((x) => `<th>${x}</th>`).join("")}<th>Total</th></tr></thead><tbody>${ms.map((m) =>
+        (grupo(ms, m, varios) ? `<tr><td colspan="${tallas.length + 2}" style="padding:0">${grupo(ms, m, varios)}</td></tr>` : "") + m.ps.map((p) =>
+          `<tr class="mod"><td colspan="${tallas.length + 1}">${esc(p.nom)} <span class="sku">· ${p.sku}</span> <span class="costo">· ${p.costo ? `${soles(p.costo)} c/u` : "sin costo"}</span></td><td class="tnum">${tot(p)}</td></tr>` +
+          p.m.map((c) => `<tr class="col"><td>${muestra(c.color)}${c.color}</td>${tallas.map((x) => `<td class="${c.t[x] ? "" : "vacio"}">${c.t[x] ?? "·"}</td>`).join("")}<td>${totColor(c)}</td></tr>`).join("")).join("")).join("")}</tbody></table></div>`;
+    },
+  },
+};
+
+const est = { prop: "A", env: "13" };
+function pintar() {
+  const e = ENVIOS[est.env], ms = marcas(e), v = VISTAS[est.prop];
+  document.getElementById("idea").innerHTML = `<h2>${v.titulo}</h2><p>${v.texto}</p>`;
+  const conMarca = ms.filter((m) => m.marca).length, t = e.prendas.reduce((a, p) => a + tot(p), 0);
+  document.getElementById("hoja").innerHTML = cabecera(e, ms) + v.cuerpo(e, ms, e.prov.length > 1) +
+    `<div class="pie"><span>${unidades(t)} · ${e.prendas.length} prendas · ${conMarca} ${conMarca === 1 ? "marca" : "marcas"}</span></div>`;
+}
+document.getElementById("hoja").addEventListener("click", (ev) => {
+  const b = ev.target.closest(".prenda"); if (!b) return;
+  const k = b.dataset.p; abiertas.has(k) ? abiertas.delete(k) : abiertas.add(k); pintar();
+});
+for (const [seg, fn] of [["segProp", (x) => (est.prop = x)], ["segEnv", (x) => (est.env = x)], ["segTema", (x) => (document.documentElement.dataset.tema = x)]]) {
+  document.getElementById(seg).addEventListener("click", (ev) => {
+    const b = ev.target.closest("button"); if (!b) return;
+    for (const x of document.querySelectorAll(`#${seg} button`)) x.classList.toggle("on", x === b);
+    fn(b.dataset.v); pintar();
+  });
+}
+const u = new URLSearchParams(location.search);
+for (const [k, seg] of [["prop", "segProp"], ["env", "segEnv"], ["tema", "segTema"]]) if (u.get(k)) document.querySelector(`#${seg} [data-v="${u.get(k)}"]`)?.click();
+pintar();
+</script>
+</body>
+</html>

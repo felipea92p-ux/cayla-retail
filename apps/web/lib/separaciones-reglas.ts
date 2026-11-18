@@ -7,7 +7,12 @@ import type { MetodoPago } from "@cayla-retail/shared";
 import { filtrarPrendasV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 import { TOPE_VUELTO, UNIDAD_EFECTIVO, efectivoACobrar, redondeoDelEfectivo } from "./redondeo-efectivo-reglas";
 import type { ReservaEnOrigen } from "./pedidos-con-cliente-reglas";
+import { direccionDeEnvioValida } from "./canales-venta-reglas";
 import { diaLima, diaMes } from "./fechas-lima";
+import { motivoDeLaLinea } from "./ticket-linea-reglas";
+import { porcentajeDeLinea, RAZON_CAMPANA } from "./vender-reglas";
+import { titularDeOferta } from "./campana-reglas";
+import { soles as solesErp } from "./compras-reglas";
 
 /** D3 (Felipe, 2026-09-22): 7 días para recoger, aviso cuando faltan 2, 2 días para decidir tras vencer. */
 export const PLAZO_DIAS = 7;
@@ -31,6 +36,18 @@ export type PrendaApartada = {
   cantidad: number;
   precioUnitario: number;
   descuentoUnitario: number;
+  /** ADR-0584: por qué se descontó A MANO (la lista de la venta). null sin descuento o con descuento de campaña (o con una base
+   *  anterior a 20261030234000, que no lo devuelve: todo descuento se ve como campaña, como antes). */
+  motivoDescuento: string | null;
+  /** El texto de un motivo «otro». */
+  motivoDescuentoDetalle: string | null;
+  /** El argumento escrito de un descuento a mano pasado el 15 %: es de la tienda, no se imprime. */
+  argumentoDescuento: string | null;
+  /** ADR-0655 (parte 4): la parte de su oferta de grupo (3x2, N por S/, la N.ª al X %) que le toca a la prenda, por unidad. Está DENTRO de
+   *  `descuentoUnitario`; 0 sin oferta de grupo o con una base anterior a 20261114032000. */
+  descuentoGrupoUnitario: number;
+  /** La oferta de grupo con la que entró al apartado, con el trato de ese día («3 x 2» y el nombre de su campaña). */
+  ofertaGrupo: { titular: string; nombre: string } | null;
 };
 
 /** Un pago del apartado: el adelanto (abono = false) o un abono a cuenta (20260927100000). */
@@ -63,6 +80,14 @@ export type Apartado = {
   pagos: PagoApartado[];
   /** El lugar en el estante de Apartados (A-01…), solo mientras está abierto (20260927110000). */
   estante: string | null;
+  /** ADR-0607: por dónde se vendió (`tienda`, `tiktok`…) y cómo se entrega. En la tienda siempre `recojo`. */
+  canal: string;
+  modoEntrega: "recojo" | "envio";
+  direccionEnvio: string | null;
+  /** Cuándo se marcó enviado (un envío ya despachado), o null. */
+  enviadoEn: string | null;
+  /** La guía o la agencia con que se envió (opcional). */
+  guiaEnvio: string | null;
 };
 
 /** Estado que VE la colaboradora: se calcula contra la fecha de hoy, nunca se guarda. */
@@ -191,9 +216,12 @@ export type FormularioApartado = {
   devolucionNumero: string;
   devolucionCci: string;
   acepta: boolean;
+  /** ADR-0607: cómo se entrega un apartado de un canal online. En la tienda no se pregunta y queda en `recojo`. */
+  modoEntrega?: "recojo" | "envio";
+  direccionEnvio?: string;
 };
 
-export type CampoApartado = "nombres" | "apellidos" | "celular" | "dni" | "ruc" | "razonSocial" | "asesora" | "pago" | "devolucion" | "acepta";
+export type CampoApartado = "nombres" | "apellidos" | "celular" | "dni" | "ruc" | "razonSocial" | "asesora" | "pago" | "devolucion" | "acepta" | "direccionEnvio";
 
 export const adelantoDe = (pagos: readonly PagoAdelanto[]) => Math.round(pagos.reduce((a, p) => a + (Number(p.monto) || 0), 0) * 100) / 100;
 
@@ -232,6 +260,8 @@ export function erroresDelApartado(f: FormularioApartado, total: number): Partia
     if (!f.razonSocial.trim()) e.razonSocial = "Escribe la razón social.";
   }
   if (f.faltaAsesora) e.asesora = "Toca a quien atendió.";
+  // ADR-0607: un envío dice a dónde va (la base lo exige igual: `direccion_envio_falta`).
+  if (f.modoEntrega === "envio" && !direccionDeEnvioValida(f.direccionEnvio ?? "")) e.direccionEnvio = "Escribe a dónde va: dirección y agencia.";
   const adelanto = adelantoDe(f.pagos);
   if (f.pagos.length === 0) e.pago = "Elige cómo dejó el adelanto.";
   else if (f.pagos.some((p) => !(p.monto > 0))) e.pago = "Cada medio lleva un monto mayor a cero.";
@@ -252,15 +282,10 @@ export function erroresDelApartado(f: FormularioApartado, total: number): Partia
   return e;
 }
 
-/** La barra de 3 tramos (clienta → adelanto → devolución), igual que el cobro del Punto de venta. */
+/** Los 3 pasos del apartado (cliente → adelanto → devolución), numerados como los del cobro del Punto de venta. */
 export type PasoApartado = 0 | 1 | 2;
-export const TEXTO_PASO_APARTADO: Record<PasoApartado, string> = {
-  0: "Anota al cliente y elige quién hace el apartado.",
-  1: "Registra cuánto deja de adelanto y cómo.",
-  2: "Cómo se le devuelve si no recoge, y que acepte.",
-};
 export function pasoDelApartado(e: Partial<Record<CampoApartado, string>>): PasoApartado {
-  if (e.nombres || e.apellidos || e.celular || e.dni || e.ruc || e.razonSocial || e.asesora) return 0;
+  if (e.nombres || e.apellidos || e.celular || e.dni || e.ruc || e.razonSocial || e.asesora || e.direccionEnvio) return 0;
   if (e.pago) return 1;
   return 2;
 }
@@ -360,6 +385,39 @@ export function mensajeWhatsapp(a: Pick<Apartado, "nombres" | "codigo" | "venceE
   return `Hola ${a.nombres}, tu apartado ${a.codigo} te espera en CAYLA ${tienda} hasta el ${ddmm(a.venceEl)}. ${saldo}`;
 }
 
+/** Por qué se libera un apartado (`liberar_separacion.p_motivo`): la misma lista que elige «¿Liberar el apartado?». */
+export type MotivoLiberacion = "vencio" | "clienta_desistio" | "error_de_carga";
+
+/**
+ * El aviso de que el apartado se canceló (Felipe 2026-11-16): al liberar, la tienda le escribe al cliente desde su WhatsApp, y
+ * después, desde la fila del apartado liberado (también el que «se liberó solo» al vencer su gracia).
+ * Dice por qué, en palabras del motivo elegido, y cómo vuelve su adelanto: se libera con el adelanto «por devolver», así
+ * que se nombra el medio que el cliente dejó anotado. Lo envía la persona (wa.me), no el sistema.
+ */
+export function mensajeLiberacion(
+  a: Pick<Apartado, "nombres" | "codigo" | "adelanto" | "devolucionMedio" | "devolucionNumero" | "devolucionCciFinal">,
+  tienda: string,
+  /** null: no se sabe por qué (la fila de la lista no trae el motivo); el mensaje solo dice que se canceló. */
+  motivo: MotivoLiberacion | null,
+): string {
+  const que =
+    motivo === null
+      ? `cancelamos tu apartado ${a.codigo} en CAYLA ${tienda}.`
+      : motivo === "vencio"
+        ? `tu apartado ${a.codigo} en CAYLA ${tienda} venció y lo cancelamos.`
+        : motivo === "clienta_desistio"
+          ? `como nos pediste, cancelamos tu apartado ${a.codigo} en CAYLA ${tienda}.`
+          : `cancelamos el apartado ${a.codigo} en CAYLA ${tienda}: se registró por error.`;
+  if (a.adelanto <= 0) return `Hola ${a.nombres}, ${que}`;
+  const numero = formatoCelular(a.devolucionNumero ?? "");
+  const por =
+    a.devolucionMedio === "transferencia"
+      ? `por transferencia${a.devolucionCciFinal ? ` a tu cuenta (CCI …${a.devolucionCciFinal})` : ""}`
+      : `por ${a.devolucionMedio === "yape" ? "Yape" : "Plin"}${numero ? ` al ${numero}` : ""}`;
+  // El monto con el formato del ERP («S/ 90.00», espacio que no se parte: /textos, ADR-0413), no el «S/90.00» de `mensajeWhatsapp`.
+  return `Hola ${a.nombres}, ${que} Te devolvemos tu adelanto de ${solesErp(a.adelanto)} ${por}.`;
+}
+
 /** Lo que la base sabe de los avisos de un apartado (`fn_avisos_separaciones`, 20260926233000). */
 export type AvisoApartado = { avisos: number; ultimoEn: string; ultimoPor: string | null };
 
@@ -389,6 +447,68 @@ export function colaPorAvisar(
 }
 export function enlaceWhatsapp(celular: string, mensaje: string): string {
   return `https://wa.me/51${soloDigitos(celular)}?text=${encodeURIComponent(mensaje)}`;
+}
+
+const textoONulo = (x: unknown) => (typeof x === "string" && x.trim() ? x.trim() : null);
+
+/** El descuento de una prenda apartada, como lo ven el detalle, Entregar y la constancia (ADR-0584). */
+export type DescuentoDePrenda = {
+  /** De la campaña (sin motivo) o puesto a mano por la colaboradora. */
+  campana: boolean;
+  /** «Campaña», el nombre del motivo («Cerrar la venta») o, con «Otro», su texto. */
+  motivo: string;
+  pct: number;
+  /** El argumento escrito de un descuento a mano; null si no hay o es de campaña. */
+  argumento: string | null;
+  /** Lo que se cobra por unidad: el precio de etiqueta menos el descuento. */
+  precioAcordado: number;
+  /** ADR-0655: la parte de una oferta de grupo («3 x 2 · Verano») y lo que ahorra la línea con ella; null sin oferta de grupo. Lo de arriba
+   *  (`campana`, `motivo`, `pct`, `argumento`) habla del RESTO del descuento (campaña o a mano), que es `resto` por unidad. */
+  grupo: { titular: string; nombre: string; ahorro: number } | null;
+  /** El descuento por unidad que no es de la oferta de grupo: 0 si todo el descuento es del grupo. */
+  resto: number;
+};
+
+/** De dónde viene el descuento de una prenda apartada y en palabras de la tienda; null si no tiene. Un descuento sin motivo es de
+ *  campaña: la base no deja guardar uno sin etiqueta de campaña ni motivo (`separacion_items_descuento_con_origen`), salvo la parte de
+ *  una oferta de grupo, que viene de su oferta. El nombre del motivo es el de la fila del ticket de Vender (`motivoDeLaLinea`): la misma
+ *  regla, no otra. */
+export function descuentoDePrenda(
+  p: Pick<PrendaApartada, "precioUnitario" | "descuentoUnitario" | "motivoDescuento" | "motivoDescuentoDetalle" | "argumentoDescuento"> &
+    Partial<Pick<PrendaApartada, "cantidad" | "descuentoGrupoUnitario" | "ofertaGrupo">>,
+): DescuentoDePrenda | null {
+  if (p.descuentoUnitario <= 0) return null;
+  const grupoUnitario = p.descuentoGrupoUnitario ?? 0;
+  const resto = Math.round((p.descuentoUnitario - grupoUnitario) * 100) / 100;
+  const campana = !p.motivoDescuento;
+  return {
+    campana,
+    motivo: motivoDeLaLinea({
+      descuentoUnitario: resto,
+      razonDescuento: p.motivoDescuento ?? RAZON_CAMPANA,
+      razonDescuentoOtro: p.motivoDescuentoDetalle ?? "",
+      campana: null,
+    }),
+    pct: porcentajeDeLinea({ precioUnitario: p.precioUnitario, descuentoUnitario: resto }),
+    argumento: campana ? null : p.argumentoDescuento,
+    precioAcordado: Math.round((p.precioUnitario - p.descuentoUnitario) * 100) / 100,
+    grupo:
+      grupoUnitario > 0 && p.ofertaGrupo
+        ? { titular: p.ofertaGrupo.titular, nombre: p.ofertaGrupo.nombre, ahorro: Math.round(grupoUnitario * (p.cantidad ?? 1) * 100) / 100 }
+        : null,
+    resto,
+  };
+}
+
+/** La oferta de grupo que `buscar_separaciones` devuelve en cada prenda (20261114032000): el trato de ese día, dicho como en la caja. */
+function ofertaGrupoDeFila(o: unknown): PrendaApartada["ofertaGrupo"] {
+  if (!o || typeof o !== "object") return null;
+  const x = o as Record<string, unknown>;
+  // Un monto (actividad 8): el apartado no trae sus escalones, solo que es de monto; su parte ya va en la prenda.
+  if (x.tipo === "monto") return { titular: "Por monto", nombre: String(x.etiqueta ?? x.nombre ?? "") };
+  if (x.tipo !== "nxm" && x.tipo !== "n_por_monto" && x.tipo !== "nesima_pct") return null;
+  const titular = titularDeOferta({ tipo: x.tipo, lleva: Number(x.lleva ?? 0), paga: Number(x.paga ?? 0), monto: Number(x.monto ?? 0), porcentaje: Number(x.porcentaje ?? 0) });
+  return { titular, nombre: String(x.etiqueta ?? x.nombre ?? "") };
 }
 
 /** Normaliza una fila cruda de `buscar_separaciones` (numeric llega como texto desde PostgREST). */
@@ -426,9 +546,20 @@ export function apartadoDeFila(f: Record<string, unknown>): Apartado {
       cantidad: n(i.cantidad),
       precioUnitario: n(i.precio_unitario),
       descuentoUnitario: n(i.descuento_unitario),
+      motivoDescuento: textoONulo(i.motivo_descuento),
+      motivoDescuentoDetalle: textoONulo(i.motivo_descuento_detalle),
+      argumentoDescuento: textoONulo(i.argumento_descuento),
+      descuentoGrupoUnitario: n(i.descuento_grupo_unitario),
+      ofertaGrupo: ofertaGrupoDeFila(i.oferta_grupo),
     })),
     pagos: pagos.map((p) => ({ metodo: p.metodo as MetodoPago, monto: n(p.monto), fecha: (p.fecha as string | null) ?? null, abono: Boolean(p.abono) })),
     estante: (f.estante as string | null) ?? null,
+    // Una base sin la migración no trae estas columnas: todo apartado es de la tienda y se recoge.
+    canal: typeof f.canal === "string" && f.canal ? f.canal : "tienda",
+    modoEntrega: f.modo_entrega === "envio" ? "envio" : "recojo",
+    direccionEnvio: (f.direccion_envio as string | null) ?? null,
+    enviadoEn: (f.enviado_en as string | null) ?? null,
+    guiaEnvio: (f.guia_envio as string | null) ?? null,
   };
 }
 

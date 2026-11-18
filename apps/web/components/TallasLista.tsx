@@ -12,8 +12,11 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { existentesParecidos } from "@/lib/atributo-parecido";
+import { ExisteTambien, faltaPorExistente, useExisteTambien } from "@/components/ui/ExisteTambien";
 import {
   BarraAtributos,
+  GrupoDesactivado,
   BotonesPendiente,
   BotonReactivar,
   DesactivarTarjeta,
@@ -141,10 +144,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
         ordenar([...actual, { id: datos.talla.id, valor: datos.talla.valor, activo: true, notas: datos.talla.notas, estado: datos.talla.estado }])
       );
       responsable.despues(null);
-      avisar.exito(
-        datos.talla.estado === "pendiente" ? `${datos.talla.valor} agregada — ya la puedes usar` : `Talla ${datos.talla.valor} agregada`,
-        datos.talla.estado === "pendiente" ? { detalle: "Queda pendiente de que un Líder la apruebe, pero eso no te frena." } : undefined
-      );
+      avisar.exito(`Talla ${datos.talla.valor} agregada`);
       setAgregando(false);
       setValor("");
     } catch {
@@ -240,6 +240,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
   return (
     <div className="space-y-6">
       <BarraAtributos
+        filtrosPuestos={tipo !== "todas" ? 1 : 0}
         guia="atributos.barra-tallas"
         etiqueta="Filtrar tallas"
         filtros={
@@ -310,21 +311,33 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
         })}
       </div>
 
-      {desactivadosVisibles.length > 0 && (
-        <section className="space-y-3">
-          <TituloGrupo cuenta={desactivadosVisibles.length}>Desactivadas — ya no se pueden elegir en una prenda nueva</TituloGrupo>
+      <GrupoDesactivado titulo="Desactivadas — ya no se pueden elegir en una prenda nueva" lista={desactivadosVisibles}>
+        {(visibles) => (
           <div className={GRILLA_ATRIBUTOS}>
-            {desactivadosVisibles.map((t) => (
+            {visibles.map((t) => (
               <TarjetaTalla key={t.id} t={t} apagada>
                 {puedeEditar && <BotonReactivar onClick={() => abrirReactivar(t)} />}
               </TarjetaTalla>
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </GrupoDesactivado>
 
       {agregando && (
-        <NuevaTallaModal valor={valor} onValor={setValor} responsable={responsable} guardando={guardando} onGuardar={guardar} onClose={() => setAgregando(false)} />
+        <NuevaTallaModal
+          valor={valor}
+          onValor={setValor}
+          existentes={tallas.map((t) => ({ id: t.id, nombre: t.valor, activo: t.activo }))}
+          onVer={(nombreExistente) => {
+            setTipo("todas");
+            setBusqueda(nombreExistente);
+            setAnimar(true);
+          }}
+          responsable={responsable}
+          guardando={guardando}
+          onGuardar={guardar}
+          onClose={() => setAgregando(false)}
+        />
       )}
 
       {aprobandoTalla && (
@@ -390,6 +403,8 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
 function NuevaTallaModal({
   valor,
   onValor,
+  existentes,
+  onVer,
   responsable,
   guardando,
   onGuardar,
@@ -397,13 +412,20 @@ function NuevaTallaModal({
 }: {
   valor: string;
   onValor: (v: string) => void;
+  /** Todas las tallas, también las desactivadas: la base rechaza un nombre que ya tuvo una (ADR-0576). */
+  existentes: readonly { id: string; nombre: string; activo: boolean }[];
+  /** «Ver» la talla que ya existe: la lista de atrás se queda buscándola. */
+  onVer: (nombre: string) => void;
   responsable: ControlResponsable;
   guardando: boolean;
   onGuardar: () => void;
   onClose: () => void;
 }) {
+  // «Existe también» (ADR-0576): al abrir la ventana el estado nace limpio, y muere con ella.
+  const existe = useExisteTambien(valor, existentesParecidos(valor, existentes));
+  const faltaExiste = faltaPorExistente("talla", valor, existe);
   const guia = useGuiaCampos([
-    { id: "valor", nombre: "Valor de la talla", requerido: true, hecho: valor.trim() !== "", pendiente: "Escribe la talla: M, 38, XSS…" },
+    { id: "valor", nombre: "Valor de la talla", requerido: true, hecho: valor.trim() !== "" && !existe.bloquea, pendiente: faltaExiste ?? "Escribe la talla: M, 38, XSS…" },
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
   ]);
   return (
@@ -413,6 +435,13 @@ function NuevaTallaModal({
           <CampoGuiado id="valor" guia={guia}>
             <CampoTexto etiqueta={guia.etiqueta("valor", "Valor de la talla")} value={valor} onChange={(e) => onValor(e.target.value)} placeholder="Ej. M, 38, XSS" autoFocus />
           </CampoGuiado>
+          <ExisteTambien
+            que="talla"
+            nombre={valor}
+            estado={existe}
+            si={(o) => ({ texto: `Ver ${o.nombre}`, onClick: () => { onVer(o.nombre); cerrar(); } })}
+            deshabilitado={guardando}
+          />
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
@@ -425,8 +454,8 @@ function NuevaTallaModal({
               peso="primario"
               onClick={onGuardar}
               cargando={guardando}
-              disabled={!valor.trim() || !responsable.listo}
-              title={responsable.motivo ?? guia.frase ?? undefined}
+              disabled={!valor.trim() || existe.bloquea || !responsable.listo}
+              title={responsable.motivo ?? faltaExiste ?? guia.frase ?? undefined}
               className={`flex-1 ${guia.claseConfirmar}`}
             >
               Guardar

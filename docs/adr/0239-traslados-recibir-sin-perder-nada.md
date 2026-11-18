@@ -125,3 +125,23 @@ SE ROMPE SI: la otra sede abre la caja y empieza a contar mientras se anula. Las
   `caja_cierre_traslado.mjs`, `fn_movimientos_referencias.mjs`.
 - En el navegador, en local: enviar de Trujillo a Lima, contar a ciegas, recargar a mitad, confirmar con una prenda de
   menos y vender la que llegó; y anular un envío.
+
+## Actualización 2026-11-11: al volver con «atrás», lo contado no retrocede
+
+**El problema (medido en local, caja 294 de Trujillo a Lima).** Blusa Emma M en 1 → «+» (2, guardado) → ir a Conteo por el menú → «atrás»: la casilla
+decía 1 con 2 en la base. El siguiente «+» (o el siguiente pistoletazo) mandaba 2: la prenda contada se perdía sin aviso, y lo recibido entra al stock
+de la sede. La misma causa que Recibir ▸ Contar (ADR-0393, act. 2026-11-11): Next dibuja en «atrás» la página que guardó su router sin preguntarle al
+servidor; cada casilla se guarda sola sin `router.refresh()`; y `registrar_recepcion_traslado` recibe el número ENTERO, sin versión, y gana el último.
+
+**Decisión (solo de pantalla, sin cambio de regla).** Dos piezas, las mismas que en Contar:
+1. La pestaña recuerda lo que la base confirmó de cada prenda y cuándo (`lib/recepcion-traslado-memoria.ts`; lo anota `useRecepcion`). Sobre una
+   copia de la página, `useTrasladoAlDia` pone encima lo guardado DESPUÉS de dibujarla; sobre una página nueva, manda la página.
+2. La página manda un identificador nuevo en cada lectura (`carga`, `EscenarioPase`); si ya se dibujó en la pestaña, el reverso pide la página de
+   nuevo sin loader (`lib/copia-de-pagina.ts`, la pieza común con Contar). Así llega lo que contó otra persona y el estado del traslado.
+
+Medido con clics reales: tras «atrás» dice 2 (antes, 1); con otra pestaña que sumó una, pasa de 2 a 3 en 210 ms sin loader; y a 375 px, igual.
+
+**Lo que NO cubre, y es de Felipe.** Dos personas contando la MISMA prenda a la vez siguen con «gana el último» (`registrar_recepcion_traslado` no
+recibe versión). Cerrarlo es cambiar cómo se guarda (que la base rechace un número hecho sobre otro que ya cambió), como en Contar.
+
+**Pruebas:** `lib/recepcion-traslado-memoria.test.ts` y `lib/copia-de-pagina.test.ts`.

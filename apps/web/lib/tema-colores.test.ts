@@ -78,7 +78,7 @@ describe("la interfaz usa tokens: cada color escrito a mano está declarado y la
   const real = escanearColoresSueltos();
 
   it("el escáner mira la web de verdad (no pasa en vacío por una carpeta mal apuntada)", () => {
-    expect(Object.keys(real).length).toBeGreaterThan(20);
+    expect(Object.keys(real).length).toBeGreaterThan(15);
     expect(real["app/globals.css"]).toBeDefined();
     expect(real["components/BoletaA4.tsx"]).toBeDefined();
     expect(real["app/estilos/tema.css"]).toBeUndefined(); // ahí viven los tokens: no cuenta

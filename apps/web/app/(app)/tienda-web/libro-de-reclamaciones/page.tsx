@@ -1,6 +1,6 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
-import { leerLibro } from "@/lib/libro-reclamaciones-reglas";
+import { leerLibro } from "@/lib/libro-reclamaciones-lectura";
 import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { LibroPantalla } from "@/components/libro-reclamaciones/LibroPantalla";

@@ -71,7 +71,7 @@ export function CorazonDelLook({
       className="pb-corazon"
       aria-pressed={actual !== null}
       aria-busy={trabajando}
-      aria-label={actual ? "Quitar el look de tus favoritos" : "Guardar el look en tus favoritos"}
+      aria-label={actual ? "Quitar el outfit de tus favoritos" : "Guardar el outfit en tus favoritos"}
       onClick={alternar}
     >
       <Icono nombre="corazon" />

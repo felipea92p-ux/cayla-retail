@@ -170,8 +170,9 @@ select 'A3 ni el gasto con factura (ni su factura)', (select pg_temp.intento(for
 select 'A3 Lima, el mismo mes, sigue abierta', (select pg_temp.intento(format('select retail.registrar_gasto(%L, ''publicidad'', ''Anuncio LIM'', ''2025-03-20'', 50, null, ''yape'')', :'lim')) = 'SIN_ERROR');
 select 'A3 lo «de la empresa», el mismo mes, sigue abierto', (select pg_temp.intento('select retail.registrar_gasto(null, ''publicidad'', ''Anuncio general'', ''2025-03-20'', 50, null, ''yape'')') = 'SIN_ERROR');
 select 'A3 HOY sigue libre: un gasto de TRU con fecha de hoy', (select pg_temp.intento(format('select retail.registrar_gasto(%L, ''publicidad'', ''Anuncio de hoy'', %L, 50, null, ''yape'')', :'tru', ${HOY})) = 'SIN_ERROR');
-select 'A4 una factura de mercadería de TRU con fecha de marzo no entra',
-  (select pg_temp.intento(format('insert into retail.compras (proveedor_id, serie, numero, condicion, fecha_emision, fecha_vencimiento, subtotal, igv, total, ubicacion_gestion_id) values (%L, ''F9M'', ''2'', ''credito'', ''2025-03-25'', ''2025-04-25'', 100, 18, 118, %L)', :'prov', :'tru')) like 'Marzo 2025 de Tienda Trujillo está cerrado%');
+select 'A4 una factura de mercadería de TRU con fecha de marzo entra en el mes abierto con su fecha real (tarea 20)',
+  (select pg_temp.intento(format('insert into retail.compras (proveedor_id, serie, numero, condicion, fecha_emision, fecha_vencimiento, subtotal, igv, total, ubicacion_gestion_id) values (%L, ''F9M'', ''2'', ''credito'', ''2025-03-25'', ''2025-04-25'', 100, 18, 118, %L)', :'prov', :'tru')) = 'SIN_ERROR');
+select 'A4 y cuenta en el mes abierto, con su fecha real', (select fecha_contable is not null and fecha_emision = '2025-03-25' from retail.compras where serie = 'F9M' and numero = '2');
 select 'A4 ni se anula la de marzo', (select pg_temp.intento(format('update retail.compras set estado = ''anulada'', motivo_anulacion = ''x'' where id = %L', :'c3')) = 'Marzo 2025 de Tienda Trujillo está cerrado: reábrelo con motivo para anular esta factura.');
 select 'A4 ni cambia su monto ni su fecha', (select pg_temp.intento(format('update retail.compras set fecha_emision = ''2025-04-01'' where id = %L', :'c3')) like '%para cambiar esta factura.');
 select 'A4 un pago con fecha de marzo no entra', (select pg_temp.intento(format('select retail.registrar_pago_compra(%L, 100, ''transferencia'', null, ''2025-03-28'')', :'c3')) like 'Marzo 2025 de Tienda Trujillo está cerrado%');
@@ -330,9 +331,10 @@ ${cambiaA(MICAELA)}
 select 'F1 una colaboradora sin el módulo no ve el panel', (select pg_temp.intento('select retail.fn_cierre_panel()') = 'El cierre de mes necesita el módulo «Cierre de mes» en tu rol.');
 select 'F1 ni cierra', (select pg_temp.intento(format('select retail.cerrar_periodo(''2025-03-01'', ''ubicacion'', %L)', :'lim')) = 'Cerrar el mes necesita el módulo «Cierre de mes» en tu rol.');
 select 'F1 ni reabre', (select pg_temp.intento(format('select retail.reabrir_periodo(''2025-03-01'', ''ubicacion'', %L, ''porque sí, prueba'')', :'tru')) = 'Reabrir el mes necesita el módulo «Cierre de mes» en tu rol.');
-select 'F2 con «Reportes financieros» ve que SU tienda está cerrada (y nada más)', (select count(*) = 1 and bool_and(ubicacion_id = :'tru') from retail.fn_periodos_mes('2025-03-01'));
+select 'F2 con «Reportes financieros» ve que su tienda está cerrada (la única cerrada de la escena)', (select count(*) = 1 and bool_and(ubicacion_id = :'tru') from retail.fn_periodos_mes('2025-03-01'));
 select 'F2 y fn_diario le da lo congelado de su tienda', (select count(*) = (:'r'::jsonb ->> 'lineas')::int and bool_and(congelado) from retail.fn_diario('2025-03-01', '2025-03-31', :'tru'));
-select 'F2 pero no el de otra tienda', (select pg_temp.intento(format('select count(*) from retail.fn_diario(''2025-03-01'', ''2025-03-31'', %L)', :'lim')) = 'No puedes ver los números de esa ubicación.');
+-- ADR-0585: con el módulo se mira CAYLA entera (antes, pedir otra tienda daba «No puedes ver los números de esa ubicación»). Mirar no es cerrar (F1).
+select 'F2 y puede mirar el de otra tienda', (select pg_temp.intento(format('select count(*) from retail.fn_diario(''2025-03-01'', ''2025-03-31'', %L)', :'lim')) = 'SIN_ERROR');
 set local role authenticated;
 select 'F3 nadie lee las tablas directo (períodos, cierres, diario congelado)',
   (select pg_temp.intento('select count(*) from retail.periodos') like 'permission denied%')
@@ -366,6 +368,10 @@ select 'G1 y «sin costo» tampoco las cuenta (excluye «Cargo especial»)', (se
 
 -- Un líder cierra la cola de TRU (la función real de ADR-0334): las dos pasan a «cerrada sin prenda».
 insert into retail.cola_arranque_plazo (ubicacion_id, hasta) values (:'tru', ${HOY} + 30) on conflict (ubicacion_id) do update set hasta = excluded.hasta;
+-- Desde 20261027174000 (ADR-0334 act. 2026-10-14, A6) cerrar la cola en bloque exige un cuadre del piso guardado después de la última venta
+-- que se cierra. Dentro de la transacción now() es fijo: este cuadre vale también para el segundo cierre (G5), que corta en el mismo instante.
+insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, nota)
+  values (:'tru', (select id from public.personas where auth_user_id = '${FELIPE}'), gen_random_uuid(), md5('fixture cierre de mes'), now(), '{}'::jsonb, 'Cuadre de prueba (fixture)');
 select retail.cerrar_cola_arranque(:'tru', now() - interval '1 second', 'no_se_sabe', 'prueba del cierre de mes') as cola \\gset
 select 'G2 cerrada la cola, el chequeo AVISA (no bloquea) y dice cuántas y cuánto: 2 ventas, S/ 150',
   (select not (x ->> 'ok')::boolean and not (x ->> 'bloquea')::boolean and (x -> 'datos' ->> 'n')::int = 2 and (x -> 'datos' ->> 'monto')::numeric = 150

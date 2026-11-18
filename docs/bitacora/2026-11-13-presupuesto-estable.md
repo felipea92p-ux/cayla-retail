@@ -1,0 +1,5 @@
+## 2026-11-13 — El presupuesto de rendimiento mide lo mismo en cada corrida (ADR-0656, actualización b)
+
+- **Qué hice:** `scripts/rendimiento/presupuesto.mjs` deja la base como si nadie la hubiera usado antes de medir: `vacuum (analyze)` de toda la base y `reindex schema concurrently retail`. Main estaba en rojo porque `fn_productos_facetas` medía 55 mil o 112 mil bloques según qué pruebas corrieron antes en la tanda.
+- **Por qué así:** en copias de la base recién creadas se aislaron dos causas. Las tablas sin estadísticas (219 mil contra 65 mil en `fn_resumen_finanzas`) y los índices que el ROLLBACK deja hinchados (194 mil contra 39 mil) cambian el plan. Subir la tolerancia lo habría callado sin arreglarlo.
+- **Cómo se verifica:** en una copia nueva, medir, hinchar las tablas cargando y deshaciendo el volumen, y volver a medir dos veces: las 18 cifras iguales (diferencia máxima de 0,03 %). Con el script anterior, la misma secuencia da 62 mil → 117 mil en `fn_productos_facetas`. El presupuesto se vuelve a aceptar desde el CI de este PR.

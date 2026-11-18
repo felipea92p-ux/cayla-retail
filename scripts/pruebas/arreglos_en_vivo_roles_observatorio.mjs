@@ -58,7 +58,10 @@ if (!OBS_DE_ANTES) throw new Error("No encontré fn_observatorio_tienda en 20261
 
 // md5 del cuerpo normalizado de producción (consulta de solo lectura del 2026-10-22).
 const HUELLA_ROL = "b6a16dec874857d57ce37305df3d9af5";
-const HUELLA_OBS = "7fdc1bb21942eda1b93a3b014b31e6e7";
+// La de producción el 2026-10-22 (la que deja 20261022201000) y la que deja `main` DESPUÉS de 20261029023000 (ADR-0560, 6a): esa migración parcha la
+// función para que lo vendido de CLAURE no sume en el Observatorio. Con `--en-seco` solo se cargan las dos migraciones de octubre: la primera.
+const HUELLA_OBS_22_OCT = "7fdc1bb21942eda1b93a3b014b31e6e7";
+const HUELLA_OBS = EN_SECO ? HUELLA_OBS_22_OCT : "d7fd0f508b589cb2fe6201c47f8c4dc9";
 
 // Seed local: Felipe (líder, y Admin una vez que se le sube el rol en Dynamic) y Micaela (colaboradora de Trujillo).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -287,7 +290,7 @@ caso(
   ATRIBUTOS_DE_PRODUCCION,
 );
 caso(
-  "Observatorio: el cuerpo que deja `main` es el de producción (huella del 2026-10-22)",
+  "Observatorio: el cuerpo que deja `main` es el esperado (huella de 20261029023000 sobre el de producción del 2026-10-22)",
   HUELLA_DEL_CUERPO("retail.fn_observatorio_tienda(uuid)"),
   HUELLA_OBS,
 );

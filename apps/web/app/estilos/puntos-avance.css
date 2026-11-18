@@ -24,6 +24,13 @@
   }
 }
 
+/* Dentro de una hoja (Crear la prenda, en Recibir): la hoja ya es la que corre y es de vidrio. Sin fondo propio y sin pegarse arriba. */
+.hoja-con-pasos .puntos-avance {
+  position: static;
+  padding-block: 0;
+  background: transparent;
+}
+
 /* La línea va del centro del primer punto al del último: la mitad del cuadro de cada punto (`--marca`). */
 .puntos-linea {
   position: relative;

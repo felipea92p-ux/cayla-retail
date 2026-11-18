@@ -81,15 +81,15 @@ export function EstadoLinea({ estado, debeHaber, contada, diferencia, confirmada
     <span role="status" data-critico className={`flex min-w-0 flex-col items-start justify-center gap-0.5 ${className}`}>
       <span className={asienta ? "anim-asentar" : undefined}>
         {/* En un panel muy angosto (celular de 320 px) el chip pierde el punto y baja a 12 px para que «Hay 12 de más» entre en su columna. */}
-        <Chip tono={etiqueta.tono} className="@max-[20rem]:px-2 @max-[20rem]:text-[12px] @max-[20rem]:before:hidden">
+        <Chip tono={etiqueta.tono} className="@max-[20rem]:px-2 @max-[20rem]:text-sm @max-[20rem]:before:hidden">
           {etiqueta.texto}
         </Chip>
       </span>
-      {efectivo === "en_reconteo" && antes !== null && <span className="text-[11px] leading-4 text-taupe">antes contaste {antes}</span>}
+      {efectivo === "en_reconteo" && antes !== null && <span className="text-sm leading-4 text-taupe">antes contaste {antes}</span>}
       {conDiferencia && (!sinReserva || etiqueta.confirmada) && (
         <span
           aria-hidden={etiqueta.confirmada ? undefined : true}
-          className={`inline-flex items-center gap-1 text-[11px] leading-4 text-taupe ${etiqueta.confirmada ? "" : "invisible"}`}
+          className={`inline-flex items-center gap-1 text-sm leading-4 text-taupe ${etiqueta.confirmada ? "" : "invisible"}`}
         >
           <Check aria-hidden strokeWidth={2} className="h-3 w-3" />
           Confirmado

@@ -45,6 +45,8 @@ export type ItemVentaEncolada = { varianteId: string; cantidad: number };
 /** Un ítem de `p_items`, tal cual lo arma `cobrar()` hoy en `PuntoDeVenta.tsx`. */
 export type ItemRegistrarVenta = {
   variante_id: string;
+  /** ADR-0542: de qué empresa sale esta prenda (solo si en la sede hay de las dos). `registrar_venta` la ignora: viaja en `x-dueno-lineas`. */
+  empresa_id?: string;
   cantidad: number;
   precio_unitario: number;
   descuento_unitario: number;
@@ -57,13 +59,18 @@ export type ItemRegistrarVenta = {
    *  `p_codigo_descuento`; reparto de `ticketConVale`, la base lo recalcula y rechaza si no coincide, `cupon_descuento_distinto`). Se
    *  arma con `descuentosParaRegistrar` de `lib/club-cupon-reparto-reglas.ts`. */
   descuento_club_unitario?: number;
+  /** La parte de `descuento_unitario` que es de una oferta de grupo (3x2, N por S/, la N.ª al X %; ADR-0655) y de cuál. La base vuelve a
+   *  armar los grupos y la rechaza si no coincide (`venta_grupo_omitido`, `venta_grupo_no_coincide`). Cada prenda de un grupo va en su línea. */
+  descuento_grupo_unitario?: number;
+  oferta_grupo_id?: string;
   /** Solo en una «Prenda sin registrar» (ADR-0179): lo que almacén necesita para regularizarla. */
   descripcion_libre?: string;
   categoria_id?: string;
   talla_id?: string;
   color_codigo?: string;
-  /** Solo en una pieza de liquidación (ADR-0379): el código de su etiqueta vigente. */
-  pieza_liquidacion_codigo?: string;
+  /** Solo en una «Prenda sin registrar»: por qué se anotó a mano (20261106233000) y, con «otro», su texto. */
+  motivo_sin_registrar?: string;
+  motivo_sin_registrar_detalle?: string;
 };
 
 /** El payload de `registrar_venta` que manda la caja (`p_cliente_id` se sumó en la tanda 1a del club, ADR-0288; el cupón del Club

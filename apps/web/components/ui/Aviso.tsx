@@ -73,3 +73,12 @@ export function Aviso({ tono, titulo, children, accion, chico = false, id, class
     </div>
   );
 }
+
+/**
+ * Lo que queda de señal en una hoja cuya acción principal no se deshace (Felipe 2026-11-05): el botón es negro como todos y la hoja es de vidrio
+ * como todas, así que esto es lo único que separa «Anular» de «Aprobar». Va justo sobre los botones. Solo donde es verdad: una acción que se puede
+ * volver a hacer («Quitar paso», que se agrega de nuevo) no lo lleva.
+ */
+export function AvisoNoSeDeshace({ className = "" }: { className?: string }) {
+  return <Aviso tono="error" chico titulo="No se puede deshacer" className={className} />;
+}

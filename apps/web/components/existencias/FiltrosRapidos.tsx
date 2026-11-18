@@ -3,6 +3,7 @@
 import { type ComponentType } from "react";
 import { Clock, LayoutGrid, Moon, Pause, PackageX, ShoppingBag, TriangleAlert } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
+import { Calculando } from "@/components/Esqueleto";
 import { ATAJOS_RAPIDOS, atajoElegido, CLAVES_RECOMENDADAS, cuentaDeAtajo, rotuloDeAtajo, type ClaveRapida } from "@/lib/existencias-rapidos";
 import type { ClaveUrl, ConteosFiltros, FiltrosElegidos } from "@/lib/existencias-filtros";
 
@@ -48,6 +49,7 @@ export function FiltrosRapidos({
   onCambiar,
   enPausa = 0,
   avisoPausa = null,
+  calculando = false,
 }: {
   elegidos: Pick<FiltrosElegidos, "hoy" | "condicion">;
   conteos: Pick<ConteosFiltros, "hoy" | "condicion">;
@@ -56,6 +58,8 @@ export function FiltrosRapidos({
   enPausa?: number;
   /** La frase completa de la pausa (`avisoPausaDelPiso`), para la etiqueta y el mouse de «Por colgar». */
   avisoPausa?: string | null;
+  /** «Hoy» viene en camino (Existencias en dos tiempos): «Por colgar» y «Sin stock atrás» guardan el lugar de su cifra, sin un 0 que no se sabe. */
+  calculando?: boolean;
 }) {
   const encendido = atajoElegido(elegidos);
 
@@ -72,8 +76,11 @@ export function FiltrosRapidos({
         const primeraRecomendada = a.clave === CLAVES_RECOMENDADAS[0];
         const cuenta = cuentaDeAtajo(a.clave, conteos);
         const puesto = encendido === a.clave;
-        const pausado = a.clave === "por_colgar" && enPausa > 0;
-        const rotulo = pausado ? `${a.texto}: en pausa. ${avisoPausa ?? ""}`.trim() : rotuloDeAtajo(a, cuenta);
+        // Lo que cuenta el plan del piso: mientras llega, su cifra se calcula (el botón sigue sirviendo: la lista lo dice).
+        const delPlan = a.clave === "por_colgar" || a.clave === "sin_stock_atras";
+        const esperando = calculando && delPlan;
+        const pausado = !esperando && a.clave === "por_colgar" && enPausa > 0;
+        const rotulo = esperando ? `${a.texto}: calculando` : pausado ? `${a.texto}: en pausa. ${avisoPausa ?? ""}`.trim() : rotuloDeAtajo(a, cuenta);
         return (
           <span key={a.clave} className="contents">
             {primeraRecomendada && (
@@ -89,19 +96,23 @@ export function FiltrosRapidos({
               aria-label={rotulo}
               title={pausado ? (avisoPausa ?? undefined) : a.ayuda}
               onClick={() => onCambiar(a.cambios)}
-              className={`inline-flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border pl-2.5 pr-2 text-[13px] transition-colors ${
+              className={`area-dedo inline-flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border pl-2.5 pr-2 text-sm transition-colors ${
                 puesto ? TONO_ENCENDIDO[a.clave] : "border-tinta/15 bg-papel text-tinta/75 hover:border-tinta/30 hover:text-tinta"
               }`}
             >
               <Icono aria-hidden className="h-4 w-4 shrink-0" />
               <span>{a.texto}</span>
-              {pausado ? (
+              {esperando ? (
+                <span aria-hidden className="ml-0.5 inline-flex">
+                  <Calculando className="h-4 w-6 rounded-full" />
+                </span>
+              ) : pausado ? (
                 <b aria-hidden className={`ml-0.5 grid h-[18px] w-[18px] place-items-center rounded-full ${puesto ? "bg-tinta/10" : "bg-pizarra/10 text-pizarra"}`}>
                   <Pause /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-2.5 w-2.5" strokeWidth={3} />
                 </b>
               ) : (
                 cuenta !== null && (
-                  <b aria-hidden className={`ml-0.5 rounded-full px-[5px] text-[11px] font-semibold leading-[18px] tabular-nums ${puesto ? "bg-tinta/10" : "bg-sand/70 text-tinta/75"}`}>
+                  <b aria-hidden className={`ml-0.5 rounded-full px-[5px] text-sm font-semibold leading-[18px] tabular-nums ${puesto ? "bg-tinta/10" : "bg-sand/70 text-tinta/75"}`}>
                     {cuenta.toLocaleString("es-PE")}
                   </b>
                 )

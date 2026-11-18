@@ -8,7 +8,6 @@ import {
   lineasDeMoverModelo,
   tallasParaReponer,
   textoFilaSinAlcance,
-  topeDeTalla,
 } from "./reponer-prenda-reglas";
 import { argumentosDeBajada } from "./bajada-reglas";
 
@@ -45,12 +44,12 @@ describe("cantidades: el selector no deja pedir lo imposible", () => {
     expect(acotarCantidad(3, 0)).toBe(0);
   });
 
-  it("lo tecleado: vacío y letras son cero, y nunca pasa del tope", () => {
+  it("lo tecleado: vacío es cero, nunca pasa del tope, y lo que no es una cantidad no es ningún número (de a una letra: `cantidad-escrita-campos.test.ts`)", () => {
     expect(leerCantidadTecleada("", 4)).toBe(0);
-    expect(leerCantidadTecleada("abc", 4)).toBe(0);
     expect(leerCantidadTecleada("3", 4)).toBe(3);
     expect(leerCantidadTecleada("99", 4)).toBe(4);
-    expect(leerCantidadTecleada("-2", 4)).toBe(2); // el guion se ignora: «−» es el botón, no el teclado
+    expect(leerCantidadTecleada("abc", 4)).toBeNull();
+    expect(leerCantidadTecleada("-2", 4)).toBeNull();
   });
 });
 
@@ -118,12 +117,6 @@ describe("un MODELO con todos sus colores (ADR-0317)", () => {
 
 
 
-
-  it("el tope depende del rumbo: el almacén al bajar, el piso al subir", () => {
-    const m = colores[0].tallas.find((t) => t.talla === "M")!; // piso 1, almacén 8
-    expect(topeDeTalla(m, "bajar")).toBe(8);
-    expect(topeDeTalla(m, "subir")).toBe(1);
-  });
 
   it("arranca en cero: sin elegir nada, ninguna línea (ADR-0231)", () => {
     expect(lineasDeMoverModelo(colores, {}, "bajar")).toEqual([]);

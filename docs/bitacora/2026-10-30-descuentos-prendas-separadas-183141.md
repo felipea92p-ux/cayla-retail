@@ -1,0 +1,4 @@
+## 2026-10-30 (Al apartar se puede descontar a mano, como en la venta — ADR-0584)
+Qué hice: Apartados tiene su hoja «Descuento» (% o S/, motivo, argumento pasado el 15 %, a qué prendas) y el descuento puesto en el ticket de Vender llega a Apartar con las prendas; la base lo exige con `retail.fn_exigir_descuento_manual`, la línea guarda su motivo y la entrega lo lleva a la venta (migración `20261030220000`, sin pegar).
+Por qué así: Felipe eligió las mismas reglas de la venta; la regla está en una función y una prueba gemela corre cada rechazo en Apartar y en `registrar_venta` y exige el mismo error, porque `registrar_venta` no se tocó (lleva más de veinte parches y es lo que cobra la caja).
+Qué se rompería sin esto: la clienta que pide un 10 % para cerrar no podía apartar, y la entrega habría marcado «campaña» un descuento a mano (margen perdido sin motivo, o una venta rechazada por `venta_items_campana_coherente`).

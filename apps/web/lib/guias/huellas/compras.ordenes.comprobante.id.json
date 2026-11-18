@@ -2,7 +2,7 @@
   "guia": "compras.ordenes.comprobante.id",
   "ruta": "/compras/ordenes/comprobante/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 37,
+  "total": 38,
   "controles": {
     "app/(app)/compras/ordenes/comprobante/[id]/page.tsx": [
       "Volver «/compras/ordenes»",
@@ -23,6 +23,7 @@
       "Boton «+ Agregar otro medio de pago»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
+      "button «Volver a intentar»",
       "CampoSelect «{etiqueta}»"
     ],
     "components/ordenes-compra/RegistrarComprobanteOrden.tsx": [

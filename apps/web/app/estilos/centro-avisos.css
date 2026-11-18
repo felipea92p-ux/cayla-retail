@@ -1,0 +1,372 @@
+/* ====================================================================
+   El centro de avisos del Plan de campaña (tarea #4 de la auditoría, Felipe 2026-10-26: «que se vea tal cual en la maqueta»).
+   Maqueta: docs/maquetas/plan-campana-vision-2026-10/2-avisos.html (y su base.css). Componente: components/plan-compra/CentroDeAvisos.tsx.
+
+   Es la maqueta traducida a los tokens del sistema (claro y oscuro salen solos): el ícono de campana en una píldora de 40 px con su número al
+   lado (ámbar; rojo si hay algo urgente), la línea roja que asoma junto a él, y el panel que flota debajo con su lista y su propia barra.
+   Cada aviso: franja de 5 px a la izquierda con el color de su nivel, el ícono, la etiqueta del nivel y el título en negrita, la frase debajo y
+   los botones en una columna a la derecha. Un solo bucle, el punto de la línea que asoma (una señal de «esto urge», como el de «Vencida»); se
+   apaga con `prefers-reduced-motion`. Los `:hover` van dentro de `@media (hover: hover)`.
+   ==================================================================== */
+
+.ca-centro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ca-ancla {
+  position: relative;
+}
+
+/* El botón: campana + número. Abierto se invierte y dice «Ocultar»; cerrado va sin palabra. */
+.ca-boton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  min-width: 40px;
+  padding: 0 12px;
+  border-radius: 99px;
+  border: 1px solid var(--color-borde-control);
+  background: var(--color-papel);
+  color: var(--color-tinta);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform 200ms var(--ease-cayla),
+    background-color 200ms var(--ease-cayla),
+    border-color 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .ca-boton:hover {
+    transform: translateY(-2px);
+    background: var(--color-hueso);
+  }
+}
+.ca-boton svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.ca-n {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 99px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--color-ambar);
+  /* La letra se invierte junto con el relleno (ámbar oscuro con letra crema en claro; ámbar claro con letra oscura en oscuro): con `crema-fija` pasaba 1,6:1 en oscuro. */
+  color: var(--color-crema);
+}
+.ca-boton[data-urgente] .ca-n {
+  background: var(--color-rojo);
+}
+.ca-boton[data-vacio] .ca-n {
+  display: none;
+}
+.ca-boton[aria-expanded="true"] {
+  background: var(--color-tinta);
+  color: var(--color-crema);
+  border-color: var(--color-tinta);
+}
+.ca-boton[aria-expanded="true"] .ca-n {
+  background: var(--color-crema);
+  color: var(--color-tinta);
+}
+.ca-txt {
+  display: none;
+  font-size: 14px;
+}
+.ca-boton[aria-expanded="true"] .ca-txt {
+  display: inline;
+}
+
+/* Lo urgente asoma una línea junto al ícono aunque el centro esté cerrado. */
+.ca-asoma {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--color-rojo) 12%, var(--color-papel));
+  border: 1px solid color-mix(in srgb, var(--color-rojo) 45%, transparent);
+  color: var(--color-rojo-profundo);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ca-asoma::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-rojo);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ca-asoma {
+    animation: cayla-revelar 350ms var(--ease-cayla) both;
+  }
+  .ca-asoma::before {
+    animation: ca-late 1600ms ease-in-out infinite;
+  }
+}
+@keyframes ca-late {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* El panel: flota debajo del botón, no mueve la página y su lista corre por dentro con su barra. */
+.ca-panel {
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 8px 12px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--color-sand);
+  background: var(--color-papel);
+  box-shadow: 0 18px 40px -18px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+  outline: none;
+}
+.ca-titulo {
+  padding: 2px 4px;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-tinta-60);
+}
+.ca-lista {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 6px 2px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-taupe) transparent;
+}
+.ca-lista:focus-visible {
+  outline: 2px solid var(--color-rojo);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+.ca-lista::-webkit-scrollbar {
+  width: 8px;
+}
+.ca-lista::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-taupe) 55%, transparent);
+  border-radius: 99px;
+}
+.ca-vacia {
+  padding: 14px;
+  text-align: center;
+  color: var(--color-tinta-60);
+}
+
+/* Cada aviso: franja de su nivel, ícono, etiqueta + título, frase, y los botones a la derecha. */
+.ca-aviso {
+  --c: var(--color-pizarra);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border-left: 5px solid var(--c);
+  border-top: 1px solid var(--color-sand);
+  border-right: 1px solid var(--color-sand);
+  border-bottom: 1px solid var(--color-sand);
+  background: var(--color-papel);
+}
+.ca-aviso[data-nivel="urgente"] {
+  --c: var(--color-rojo);
+}
+.ca-aviso[data-nivel="pendiente"] {
+  --c: var(--color-ambar);
+}
+.ca-aviso[data-nivel="info"] {
+  --c: var(--color-pizarra);
+}
+.ca-aviso[data-nivel="ok"] {
+  --c: var(--color-verde);
+}
+.ca-ic {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  color: var(--c);
+}
+.ca-ic svg {
+  width: 22px;
+  height: 22px;
+}
+.ca-aviso b {
+  display: block;
+  font-weight: 650;
+}
+.ca-etiqueta {
+  margin-right: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--c);
+}
+.ca-d {
+  font-size: 14px;
+  color: var(--color-tinta-60);
+}
+.ca-acc {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+/* Los botones de un aviso: píldoras chicas; «Ya lo vi» y «Entendido» van como texto subrayado. */
+.ca-btn {
+  padding: 4px 11px;
+  border-radius: 99px;
+  border: 1px solid var(--color-borde-control);
+  background: transparent;
+  color: var(--color-tinta);
+  font: inherit;
+  font-size: 14px;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 200ms var(--ease-cayla),
+    background-color 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .ca-btn:hover {
+    transform: translateY(-2px);
+    background: var(--color-hueso);
+  }
+}
+.ca-btn-texto {
+  border-color: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* fin del centro de avisos */
+
+/* ====================================================================
+   EL CENTRO DE AVISOS CON EL VIDRIO «SERENA»: «B · Lentes del tono» (ADR-0596; Felipe lo eligió mirando el 2026-11-02,
+   docs/maquetas/plan-campana-vidrio-2026-11/). Sin capa, como todo el vidrio, y al final para ganarle a la cara de papel de arriba.
+   · La campana es una gota clara, la de las píldoras de filtro (vidrio/campos-y-botones.css); abierta, la gota ahumada (el ahumado denso
+     de lo puesto). Su número, una gota de su tono: ámbar si hay algo por atender, roja si algo urge (lo que significa cada color no cambia).
+   · Lo urgente que asoma es una lente roja: vidrio teñido de rojo, más abajo que arriba, con su filo. La letra sigue en rojo profundo
+     en los dos temas (la maqueta la pasaba a rojo en oscuro: 4,6:1; el rojo profundo da 5,7:1).
+   · La lista flota en el vidrio claro de los combos y el menú «Más» (`--vidrio-flota-*`), con esquinas de 20 px.
+   · Cada aviso es una LENTE DEL TONO DE SU NIVEL (`--lente-tono-*`, la del aviso de la esquina) sin la franja de 5 px: el ícono y la
+     etiqueta conservan su color. En oscuro, la lente chica (`--lente-chica-*`): el tono directo, sin la base de vidrio, que aclaraba la
+     lente y bajaba el texto tenue.
+   · Sus botones, gotas (los secundarios del sistema); «Ya lo vi» sigue siendo texto.
+   Solo recetas de vidrio/recetas.css; sin movimiento nuevo (el punto que late de lo urgente es el de arriba). Qué dice y qué hace cada
+   aviso no cambia: eso vive en CentroDeAvisos.tsx y lib/plan-compra-avisos.ts.
+   ==================================================================== */
+.ca-boton {
+  border-color: var(--color-borde-control);
+  background: var(--gota-fondo-encima);
+  box-shadow: var(--gota-luz);
+}
+@media (hover: hover) {
+  .ca-boton:hover {
+    background: var(--gota-marca);
+  }
+}
+.ca-boton[aria-expanded="true"] {
+  color: var(--color-crema);
+  border-color: var(--ahumado-denso-borde);
+  background: var(--ahumado-denso-fondo);
+  box-shadow: var(--ahumado-denso-luz);
+}
+/* El número: una gota del tono, casi llena (96 % → 100 %) con su luz arriba: la letra es de 14 px y la gota de la maqueta (80 → 96 %)
+   la dejaba en 3,4:1 arriba. La letra es la crema del TEMA: en claro, crema sobre el tono oscuro; en oscuro (el tono se aclara solo), el
+   negro cálido, como la gota roja de Caja (con la crema fija, la de la maqueta, bajaba a 2,5:1 sobre el rojo y a 1,7:1 sobre el ámbar).
+   Medido el 2026-11-02, en el punto más claro de la gota: claro 4,5:1 (rojo) y 5,8:1 (ámbar); oscuro 6,0:1 y 8,9:1; abierta, sobre el
+   ahumado, 5,0:1 o más. */
+.ca-n,
+.ca-boton[aria-expanded="true"] .ca-n {
+  --c: var(--color-ambar);
+  color: var(--color-crema);
+  border: 1px solid color-mix(in srgb, var(--c) 70%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 96%, transparent), var(--c));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 35%, transparent);
+}
+.ca-boton[data-urgente] .ca-n {
+  --c: var(--color-rojo);
+}
+.ca-asoma {
+  border-color: color-mix(in srgb, var(--color-rojo) 30%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-rojo) 8%, color-mix(in srgb, var(--color-vidrio) 80%, transparent)),
+    color-mix(in srgb, var(--color-rojo) 14%, transparent)
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 85%, transparent);
+}
+.ca-panel {
+  border-radius: 20px;
+  border-color: var(--placa-borde);
+  background: var(--vidrio-flota-fondo);
+  -webkit-backdrop-filter: var(--vidrio-flota-filtro);
+  backdrop-filter: var(--vidrio-flota-filtro);
+  box-shadow: var(--vidrio-flota-sombra);
+}
+.ca-aviso {
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--c) var(--lente-tono-filo), transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--c) var(--lente-tono-tinte-arriba), var(--lente-tono-base-arriba)),
+    color-mix(in srgb, var(--c) var(--lente-tono-tinte-abajo), var(--lente-tono-base-abajo))
+  );
+  box-shadow: var(--placa-luz);
+}
+.ca-btn:not(.ca-btn-texto) {
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz);
+}
+@media (hover: hover) {
+  .ca-btn:not(.ca-btn-texto):hover {
+    background: var(--gota-fondo-encima);
+  }
+  .ca-btn-texto:hover {
+    background: var(--gota-fondo);
+  }
+}
+@media screen {
+  /* En oscuro, la campana como las píldoras: la crema a poca opacidad, su borde y sin luz. */
+  :root[data-tema="oscuro"] .ca-boton:not([aria-expanded="true"]) {
+    border-color: color-mix(in srgb, var(--color-tinta) 30%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    background: color-mix(in srgb, var(--color-tinta) 9%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    box-shadow: none;
+  }
+  /* La etiqueta «Urgente» en oscuro: el rojo sobre su lente quedaba en 4,2:1 (12 px); el rojo profundo, que en oscuro es el más claro,
+     da 5,3:1. El ícono sigue en rojo (es un gráfico: 4,2:1 pasa el 3:1). */
+  :root[data-tema="oscuro"] .ca-aviso[data-nivel="urgente"] .ca-etiqueta {
+    color: var(--color-rojo-profundo);
+  }
+  :root[data-tema="oscuro"] .ca-aviso {
+    border-color: color-mix(in srgb, var(--c) var(--lente-chica-filo), transparent);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--c) var(--lente-chica-tinte-arriba), var(--lente-chica-base-arriba)),
+      color-mix(in srgb, var(--c) var(--lente-chica-tinte-abajo), var(--lente-chica-base-abajo))
+    );
+  }
+}
+
+/* fin del centro de avisos con vidrio */

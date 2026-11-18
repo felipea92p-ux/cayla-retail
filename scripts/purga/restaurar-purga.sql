@@ -94,7 +94,7 @@ set local session_replication_role = replica;
 
 do $$
 declare
-  r record; v_cols text; v_sel text; v_col text; v_nombre text := current_setting('cayla_purga.nombre'); v_producto text;
+  r record; v_cols text; v_sel text; v_identidad text; v_col text; v_nombre text := current_setting('cayla_purga.nombre'); v_producto text;
 begin
   -- Padres antes que hijos. Cada tabla se devuelve con TODAS sus columnas menos las generadas.
   --
@@ -108,19 +108,25 @@ begin
   --     «era nula»; esas se devuelven tal cual vinieron.
   --   · Una columna NOT NULL SIN valor de fábrica que el respaldo no trae no se inventa: la restauración se niega y dice qué
   --     tabla y qué columna es (el `exception` de abajo).
+  --
+  -- UNA COLUMNA QUE LA BASE NUMERA SOLA (`generated always as identity`, como `costo_historial.orden`, ADR-0614) rechaza un valor escrito a mano
+  -- si no se dice `overriding system value`. La fila vuelve con su número, para que siga en su lugar. Un respaldo viejo no lo trae: toma el siguiente.
   for r in select t as tabla from unnest(pg_temp.tablas_en_orden()) with ordinality as x(t, n) order by n
   loop
     select string_agg(format('%I', c.column_name), ', ' order by c.ordinal_position),
-           string_agg(case when c.is_nullable = 'NO' and c.column_default is not null
+           string_agg(case when c.is_identity = 'YES'
+                           then format('coalesce(%I, nextval(pg_get_serial_sequence(%L, %L)))', c.column_name, 'retail.' || quote_ident(r.tabla), c.column_name)
+                           when c.is_nullable = 'NO' and c.column_default is not null
                            then format('coalesce(%I, %s)', c.column_name, c.column_default)
-                           else format('%I', c.column_name) end, ', ' order by c.ordinal_position)
-      into v_cols, v_sel
+                           else format('%I', c.column_name) end, ', ' order by c.ordinal_position),
+           case when bool_or(c.is_identity = 'YES') then 'overriding system value' else '' end
+      into v_cols, v_sel, v_identidad
       from information_schema.columns c
      where c.table_schema = 'retail' and c.table_name = r.tabla and c.is_generated = 'NEVER';
     begin
       execute format(
-        'insert into retail.%I (%s) select %s from jsonb_populate_recordset(null::retail.%I, (select coalesce(jsonb_agg(fila), ''[]''::jsonb) from respaldo_purgas.filas where purga = %L and tabla = %L))',
-        r.tabla, v_cols, v_sel, r.tabla, v_nombre, r.tabla);
+        'insert into retail.%I (%s) %s select %s from jsonb_populate_recordset(null::retail.%I, (select coalesce(jsonb_agg(fila), ''[]''::jsonb) from respaldo_purgas.filas where purga = %L and tabla = %L))',
+        r.tabla, v_cols, v_identidad, v_sel, r.tabla, v_nombre, r.tabla);
     exception when not_null_violation then
       get stacked diagnostics v_col = column_name;
       raise exception '[restaurar] No se restaura nada: el respaldo «%» trae filas de «%» sin un dato que hoy es obligatorio y no tiene valor de fábrica (columna «%»). Esa columna se agregó después de la purga; hay que decidir a mano qué valor llevan esas filas. Detalle de la base: %',

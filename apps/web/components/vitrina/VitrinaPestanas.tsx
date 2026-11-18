@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Pestanas } from "@/components/ui/Pestanas";
 
 /**
@@ -6,8 +7,10 @@ import { Pestanas } from "@/components/ui/Pestanas";
  * (`vitrina_web`, ADR-0306): la pestaña solo lleva a su dirección. Es la pestaña de vista del sistema (ADR-0358): cambia de sección, no
  * filtra.
  */
-export function VitrinaPestanas({ activa }: { activa: "modelos" | "looks" | "probador" }) {
-  return (
+export function VitrinaPestanas({ activa, derecha }: { activa: "modelos" | "looks" | "probador"; derecha?: ReactNode }) {
+  // `derecha`: lo que va a la derecha de las pestañas, a la altura de su centro (hoy, «¿Qué precio ve el cliente?» de Modelos). Es la fila de las
+  // pestañas con lo suyo; si una pantalla no pasa nada, queda exactamente como estaba.
+  const pestanas = (
     <Pestanas
       etiquetaAccesible="Vitrina web"
       activa={activa}
@@ -16,8 +19,11 @@ export function VitrinaPestanas({ activa }: { activa: "modelos" | "looks" | "pro
       items={[
         { clave: "modelos", etiqueta: "Modelos", href: "/tienda-web/vitrina", ayuda: "Qué modelos se ven en la tienda online" },
         { clave: "looks", etiqueta: "Looks", href: "/tienda-web/vitrina/looks", ayuda: "Las combinaciones de «Arma tu look»" },
-        { clave: "probador", etiqueta: "Probador", href: "/tienda-web/vitrina/probador", ayuda: "Las prendas recortadas para «Arma el tuyo»" },
+        // Probador oculto (Felipe, 2026-10-31): la pantalla y su guía siguen en el código, solo no se llega desde la Vitrina.
+        // Para volver a mostrarla basta devolver esta entrada.
       ]}
     />
   );
+  if (!derecha) return pestanas;
+  return <div className="flex flex-wrap items-center gap-x-4">{pestanas}{derecha}</div>;
 }

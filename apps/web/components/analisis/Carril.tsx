@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/analisis-pestanas.css";
 import { useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono, type NombreIcono } from "@/components/analisis/iconos";
@@ -135,7 +136,7 @@ export function Carril({
             </div>
           ))}
           {g.corte !== undefined && !abiertos.has(g.clave) && g.prendas.length > g.corte && (
-            <button type="button" className="c-mas" onClick={() => setAbiertos((s) => new Set(s).add(g.clave))}>
+            <button type="button" className="c-mas area-dedo" onClick={() => setAbiertos((s) => new Set(s).add(g.clave))}>
               {textoVerMas(g.prendas.length - g.corte)}
               <Icono nombre="sigue" />
             </button>

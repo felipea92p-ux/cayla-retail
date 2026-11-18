@@ -50,7 +50,8 @@ function psql(sql) {
 const sesion = (uid) => `
 set local request.jwt.claim.sub = '${uid}';
 set local request.jwt.claims = '{"sub":"${uid}","role":"authenticated"}';
-select set_config('request.headers', json_build_object('x-ubicacion', :'tru')::text, true) as _h \\gset
+
+select set_config('request.headers', json_build_object('x-ubicacion', :'tru', 'x-dueno', 'ca71a000-0000-4000-8000-000000000001')::text, true) as _h \\gset
 `;
 
 const PRELUDIO = `
@@ -498,6 +499,9 @@ const PRENDA_BASE = `select id as vv, precio as vv_general, producto_id as vp fr
 {
   const r = correr(MICAELA, `
 ${montarSede("tru")}
+-- ADR-0671: un cambio con diferencia emite su boleta nueva en la tienda del cambio. En la semilla local Lima y Trujillo comparten B001
+-- (en producción cada tienda tiene la suya) y chocarían: aquí Trujillo lleva una serie propia, solo dentro de esta transacción.
+update retail.series_comprobantes set serie = 'B093' where ubicacion_id = :'tru' and tipo = 'boleta' and archivada_at is null;
 ${PRENDA_BASE}
 select id as vv2 from retail.variantes where producto_id = :'vp' and id <> :'vv' and activo order by id limit 1 \\gset
 -- Otra prenda con un solo precio, cuyo costo deja poner :vv_general + 25 como precio de Trujillo (diferencia exacta de +15).
@@ -832,7 +836,8 @@ for (const c of REGLA) {
   const EN_PR = "retail.fn_categoria_admite_precio_cero(pr.categoria_id)";
   const EN_P = "retail.fn_categoria_admite_precio_cero(p.categoria_id)";
   const MUTANTES = [
-    ["fn_precio_en_sede", EN_PR, ["24b", "25c"], ["24a", "25a"]],
+    // La regla vive en fn_precios_en_sedes desde 20261031161000; fn_precio_en_sede le pregunta a ella.
+    ["fn_precios_en_sedes", EN_PR, ["24b", "25c"], ["24a", "25a"]],
     ["fn_productos_filtro", EN_P, ["24b", "30"], ["24a", "30"]],
     ["poner_precio_sede", EN_PR, ["24b", "27a"], ["24a", "26a"]],
     ["quitar_precio_sede", EN_PR, ["29b"], ["28b"]],

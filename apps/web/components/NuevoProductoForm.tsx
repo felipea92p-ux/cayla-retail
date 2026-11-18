@@ -1,5 +1,8 @@
 "use client";
 
+import { LineaMargen } from "@/components/ui/LineaMargen";
+import { margenALaVista } from "@/lib/margen-a-la-vista";
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -9,6 +12,7 @@ import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
 import { ElegirEmpresa, TarjetaEmpresa } from "@/components/alta-producto/ElegirEmpresa";
+import { conDueno } from "@/lib/dueno-reglas";
 import { ElegirEtiquetas } from "@/components/alta-producto/ElegirEtiquetas";
 import { ElegirMuestra } from "@/components/alta-producto/ElegirMuestra";
 import { ElegirTemporada } from "@/components/alta-producto/ElegirTemporada";
@@ -17,15 +21,20 @@ import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProv
 import { ConfigurarCategoria } from "@/components/alta-producto/ConfigurarCategoria";
 import { ProductoCreado, type ResumenCreado } from "@/components/alta-producto/ProductoCreado";
 import { ChipOpcion, FilaAlta, PasoAlta, PlegableAlta } from "@/components/alta-producto/piezas";
-import { ElegirColores } from "@/components/alta-producto/ElegirColores";
+import { PropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
+import { FotosYColores, useFotosEnCurso } from "@/components/alta-producto/FotosYColores";
+import { InterruptorCatalogoIA } from "@/components/alta-producto/FotosDeColores";
 import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
 import { ParecidasBajoNombre, PieConParecidas, RevisaParecidasDelPaso } from "@/components/alta-producto/ParecidasDelAlta";
 import { RetencionLuzContexto } from "@/components/guia-de-foco/useRetenerLuz";
-import { asegurarVisible, estaEscribiendo, irAlIdCampo, useGuiaAlta } from "@/components/alta-producto/useGuiaAlta";
+import { estaEscribiendo, irAlIdCampo, useGuiaAlta } from "@/components/alta-producto/useGuiaAlta";
 import { FichaPrevia } from "@/components/alta-producto/FichaPrevia";
+import { YaExiste } from "@/components/alta-producto/YaExiste";
+import { NombreDePrenda, TIPO_LIBRE } from "@/components/alta-producto/NombreDePrenda";
+import { armarReferencia, avisosDelNombre, floresLibres, lineaDescriptiva, nombreDelProveedorComoNombre, otrosTipos, tiposDeCategoria } from "@/lib/nombre-de-prenda";
 import { PuntosAvance, type PasoConNombre } from "@/components/alta-producto/PuntosAvance";
 import { IdentidadAltaProveedor, QuienRegistra, irAQuienRegistra } from "@/components/alta-producto/IdentidadAlta";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
@@ -51,7 +60,8 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { compararTallas } from "@/lib/tallas";
 import { textoLoQueFalta } from "@/lib/marca-proveedor-reglas";
-import { subirFotoProducto } from "@/lib/producto-fotos";
+import { subirFotoProducto, subirParDeCatalogo } from "@/lib/producto-fotos";
+import { useCatalogoIAAlta } from "@/components/alta-producto/useCatalogoIAAlta";
 import { debeEncolarse } from "@/lib/error-escritura";
 import { nombreEnCola, nuevaOperacion } from "@/lib/cola-offline";
 import { useColaProductos } from "@/lib/useColaProductos";
@@ -68,8 +78,6 @@ import {
   faltaDelPaso as faltaDelPasoProblema,
   leerCantidad,
   leerErrorAlta,
-  margenPorcentaje,
-  nivelMargen,
   ordenarColores,
   ordenarFotosAlta,
   pasoAbrible,
@@ -90,22 +98,20 @@ import {
 import type { ContextoAlta, EtiquetaAlta } from "@/lib/alta-producto-datos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 import { sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
-import { celdaSinPrecio, montoDeCelda, nombreCelda } from "@/lib/tabla-alta-reglas";
+import { celdaSinPrecio, limpiarPrecio, montoDeCelda, nombreCelda } from "@/lib/tabla-alta-reglas";
 import { precioValido } from "@/lib/variantes-ficha-reglas";
 import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada, type CargaInicialSede } from "@/lib/carga-inicial-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
-import { MAX_DESCRIPCION_PRODUCTO, MAX_NOMBRE_PRODUCTO } from "@/lib/catalogo-topes";
+import { MAX_DESCRIPCION_PRODUCTO } from "@/lib/catalogo-topes";
 import { ArrowRight } from "lucide-react";
-
-/** Con la carga inicial de la sede cerrada, ninguna cantidad viaja (un objeto fijo: no cambia en cada render). */
-const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // "Nuevo producto" en 4 PREGUNTAS (spike v2 2026-09-28, docs/maquetas/producto-nuevo-v2-2026-09; antes 5 pasos, spike
 // 2026-09-24, y antes 7 bloques, ADR-0109):
 //   1 ¿A qué categoría pertenece? (familia → categoría) · 2 ¿Cómo es? (nombre, descripción, marca y proveedor, tejido,
-//   patrón; temporada y etiquetas plegadas) · 3 ¿En qué tallas y colores? (tallas, colores y la tabla talla × color, con
-//   la foto en la fila de su color) · 4 ¿Cuánto cuesta y cuántas hay? (precio, costo, la MISMA tabla con cantidades
+//   patrón; temporada y etiquetas plegadas) · 3 ¿En qué tallas y colores? (tallas, «Fotos y colores» —los colores salen
+//   de la foto, ADR-0663— y la tabla talla × color) · 4 ¿Cuánto cuesta y cuántas hay? (precio, costo, la MISMA tabla con cantidades
 //   —ADR-0212: la carga inicial de lo que ya está en tienda, en la misma transacción que el producto— y quién lo registra).
 // Por qué así (README del spike v2): el paso «Cómo se hace» había crecido a 7 campos; cada color aparecía 4 veces (chips,
 // casillas de fotos, tabla de variantes, tabla de stock); había tres marcadores de avance a la vez (barra de 5 segmentos,
@@ -113,7 +119,7 @@ const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
 // Ahora tejido y patrón van con el nombre; la tabla se arma una vez (paso 3) y en el 4 se llena; y el único marcador de
 // avance son los 4 puntos de arriba (`PuntosAvance`, ADR-0260 act. 2026-10-06): reemplazaron a los números del acordeón y a
 // la lista «Avance» de la ficha.
-// TEMPORADA y ETIQUETAS van en «Temporada y etiquetas · opcional», a la vista al abrir el paso pero plegables (plegado, la
+// TEMPORADA y ETIQUETAS van en «Temporada y etiquetas · opcional», plegado al abrir el paso (Felipe 2026-10-28; plegado, la
 // línea dice lo elegido): son opcionales y casi nunca cambian entre prendas de una misma colección. Las etiquetas
 // conservan su selector con dibujo por concepto (`ElegirEtiquetas`, ADR-0109 «Actualización b»); tejido y patrón, su foto
 // o dibujo real (`contexto.imagenes`).
@@ -130,8 +136,8 @@ const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
 //     («Opcional · …») y el rojo queda para los errores.
 //
 // El alta es UNA transacción (`crear_producto_con_stock_inicial`, que envuelve a `crear_producto_con_variantes`): producto,
-// variantes, etiquetas y el stock de hoy entran juntos o no entra nada. Las FOTOS se eligen en la tabla del paso 3 (en la
-// fila de su color) pero se guardan en el navegador y se suben DESPUÉS de que la base creó el producto (ver `FotosAlta`):
+// variantes, etiquetas y el stock de hoy entran juntos o no entra nada. Las FOTOS se suben en «Fotos y colores» del paso 3
+// (una por color) pero se guardan en el navegador y se suben DESPUÉS de que la base creó el producto (ver `FotosAlta`):
 // cancelar no deja archivos huérfanos, y si una foto no sube, el producto ya existe y la pantalla de éxito dice cuál
 // falta. Las filas de `producto_fotos` se escriben directo: su política `producto_fotos_write_lider`
 // (fn_puede_editar_catalogo) es la misma que exige esta pantalla.
@@ -163,14 +169,17 @@ export function NuevoProductoForm({
   contexto,
   destino,
   cargaInicial = null,
-  puedeAprobarEtiquetas,
+  proponePrecio = false,
+  catalogoIADisponible = false,
 }: {
+  /** El servidor tiene la llave de OpenAI: se ofrece «Catálogo con IA» en las fotos (`fotoCatalogoDisponible`). */
+  catalogoIADisponible?: boolean;
   contexto: ContextoAlta;
   destino: DestinoStock;
   /** La carga inicial de la sede del stock (ADR-0328): su fecha de cierre y el «hoy» de la base. `null` = no se sabe (no se avisa). */
   cargaInicial?: CargaInicialSede | null;
-  /** Quien crea una etiqueta y la deja aprobada de una: líder o un rol con el módulo Etiquetas (`fn_puede_editar_etiquetas`). */
-  puedeAprobarEtiquetas: boolean;
+  /** «Proponer precio» (ADR-0641): la IA mira costos de las parecidas, así que solo para quien ve el dinero de Compras. */
+  proponePrecio?: boolean;
 }) {
   const router = useRouter();
   const token = useRef<string>(crypto.randomUUID());
@@ -204,19 +213,31 @@ export function NuevoProductoForm({
     }),
     []
   );
-  // ADR-0463: antes de la categoría, a qué tienda pertenece el producto — solo desde una sede donde operan dos (Lima). `contexto.empresas` nulo
-  // = Trujillo, Arequipa o una base sin tiendas: sin pregunta, y el producto nace en CAYLA. Ninguna viene marcada (Felipe 2026-10-20).
-  const [empresaId, setEmpresaId] = useState("");
-  const empresas = contexto.empresas;
-  const exigeEmpresa = Boolean(empresas && empresas.length > 0);
-  const empresa = empresas?.find((t) => t.id === empresaId) ?? null;
-  const faltaEmpresa = exigeEmpresa && !empresaId;
   const [categoriaId, setCategoriaId] = useState("");
   const [marcaId, setMarcaId] = useState("");
+  // ADR-0463 y ADR-0542: de quién es lo que se crea — solo desde una sede donde operan dos (Lima). `contexto.empresas` nulo = Trujillo,
+  // Arequipa o una base sin tiendas: el producto nace en CAYLA. Lo indica la persona (Felipe, 2026-10-27): ni la marca ni el proveedor
+  // deciden (ADR-0532 queda reemplazada). Ninguna opción viene marcada. La respuesta es la ficha Y el dueño de su stock inicial (`x-dueno`).
+  const [empresaElegida, setEmpresaId] = useState("");
+  const empresas = contexto.empresas;
+  const exigeEmpresa = Boolean(empresas && empresas.length > 0);
+  const empresaId = empresaElegida;
+  const preguntaEmpresa = exigeEmpresa;
+  const empresa = empresas?.find((t) => t.id === empresaId) ?? null;
+  const faltaEmpresa = preguntaEmpresa && !empresaId;
   const [proveedorId, setProveedorId] = useState("");
   const [marcaNombre, setMarcaNombre] = useState("");
   const [proveedorNombre, setProveedorNombre] = useState("");
+  // Lo que la persona escribe en «Nombre». Con el estándar de ADR-0556 es solo la flor («Dalia»): el tipo («Blusa») lo pone la categoría y el
+  // nombre completo es `referenciaCompleta`. Con «Otro nombre» (o una categoría sin tipo: belleza, papelería) es el nombre entero, como antes.
   const [referencia, setReferencia] = useState("");
+  // El tipo elegido en los chips; `null` = el de fábrica de la categoría. Se olvida al cambiar de categoría.
+  const [tipoElegido, setTipoElegido] = useState<string | null>(null);
+  // La respuesta a «¿Ya existe?» (ADR-0556): `true` = «Ninguna, es un diseño nuevo»; `false` = «Cambiar» (la volvió a abrir); `null` = no dijo nada
+  // aquí, y entonces cuenta lo que respondió en la hoja «Ver y comparar». Guía, no candado.
+  const [existeRespuesta, setExisteRespuesta] = useState<boolean | null>(null);
+  // Cómo llama el proveedor a la prenda (ADR-0556, Felipe 2026-10-28): se guarda aparte para compras y, si sirve como nombre, se sugiere primero.
+  const [nombreProveedor, setNombreProveedor] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [tallasElegidas, setTallasElegidas] = useState<string[]>([]);
   const [tejidoId, setTejidoId] = useState("");
@@ -225,6 +246,11 @@ export function NuevoProductoForm({
   const [temporada, setTemporada] = useState(SIN_PROPIA);
   const [coloresElegidos, setColoresElegidos] = useState<string[]>([]);
   const [fotos, setFotos] = useState<FotoPendiente[]>([]);
+  // Fotos de «Fotos y colores» que todavía no tienen color (se leen o esperan una respuesta): bloquean crear, o se perderían (ADR-0663).
+  // Las fotos que «Fotos y colores» todavía lee o pregunta: las guarda la pantalla, no el paso, para que no se pierdan al cambiar de paso
+  // mientras la IA las prepara (Felipe 2026-11-14). Mientras haya alguna, no se crea: se perdería.
+  const fotosEnCurso = useFotosEnCurso();
+  const fotosSinColor = fotosEnCurso.pendientes.length;
   const [precioBase, setPrecioBase] = useState("");
   const [costoBase, setCostoBase] = useState("");
   const [costoTocado, setCostoTocado] = useState(false);
@@ -237,12 +263,10 @@ export function NuevoProductoForm({
   // (`router.refresh()` al «crear otro parecido») y ya las trae, `unirEtiquetas` no las duplica.
   const [etiquetasNuevas, setEtiquetasNuevas] = useState<EtiquetaAlta[]>([]);
   const vocabEtiquetas = useMemo(() => unirEtiquetas(contexto.etiquetas, etiquetasNuevas), [contexto.etiquetas, etiquetasNuevas]);
-  // Lo que alguien sin permiso de aprobar propuso desde el campo y espera a un líder: vive aquí (no en el campo) para que
-  // sobreviva a plegar y abrir el paso 2 y no se ofrezca «Crear» otra vez algo que ya está propuesto.
-  const [etiquetasPropuestas, setEtiquetasPropuestas] = useState<string[]>([]);
-  // «Temporada y etiquetas · opcional» (paso 2) arranca ABIERTO (Felipe 2026-09-29): plegado se pasaba de largo y nadie
-  // sabía que ahí se elige la temporada y las etiquetas. Sigue siendo plegable, y plegado la línea dice lo elegido.
-  const [masAbierto, setMasAbierto] = useState(true);
+  // «Temporada y etiquetas · opcional» (paso 2) arranca PLEGADO (Felipe 2026-10-28, que reemplaza el «abierto» del 2026-09-29): con el
+  // nombre al final del paso, abierto empujaba el nombre hacia arriba y llenaba el paso de opciones que casi nunca cambian. Plegado, su
+  // línea dice lo elegido y se abre con un toque.
+  const [masAbierto, setMasAbierto] = useState(false);
   // Paso 4 (ADR-0212): lo que ya hay en tienda. `cantidades` por clave de celda («talla|color»), como lo tipeó la persona.
   const [cantidades, setCantidades] = useState<Record<string, string>>({});
   const [sinStock, setSinStock] = useState(false);
@@ -274,7 +298,7 @@ export function NuevoProductoForm({
   // está en la base). Con el producto creado no hay nada que perder; tras «crear otro parecido» vuelve a preguntar, porque
   // lo copiado también se perdería. La foto de apertura es la del formulario vacío.
   const fotoActual = fotoFormulario({
-    empresaId, categoriaId, marcaId, proveedorId, referencia, descripcion, tallasElegidas, tejidoId, patronId, temporada,
+    empresaId, categoriaId, marcaId, proveedorId, referencia: `${tipoElegido ?? ""}|${referencia}|${nombreProveedor}`, descripcion, tallasElegidas, tejidoId, patronId, temporada,
     coloresElegidos, fotos: fotos.map((f) => f.clave), precioBase, costoBase, excluidas: [...excluidas].sort(),
     overridePrecio, overrideCosto, etiquetasElegidas, cantidades, sinStock, lugarCarga,
   });
@@ -289,6 +313,10 @@ export function NuevoProductoForm({
   const exige = Boolean(familia?.exigeTejidoPatron);
   // Lo que decide los ejemplos de esta pantalla (skill `/sugerir`): la categoría elegida en el paso 1 y su familia.
   const contextoSugerencia = { familia: categoria?.familia ?? null, prefijo: categoria?.prefijo ?? null };
+  // El estándar de nombres (ADR-0556): el tipo sale de la categoría; sin tipo (belleza, papelería, una categoría nueva) el nombre es libre.
+  const tipos = tiposDeCategoria(contextoSugerencia);
+  const tipo = tipos.length === 0 ? TIPO_LIBRE : tipoElegido === TIPO_LIBRE || (tipoElegido && tipos.includes(tipoElegido)) ? tipoElegido : tipos[0];
+  const referenciaCompleta = tipo === TIPO_LIBRE ? referencia : armarReferencia(tipo, referencia);
 
   const tallasCategoria = useMemo(
     () => [...(ejes.tallas[categoriaId] ?? [])].sort((a, b) => compararTallas(a.texto, b.texto)),
@@ -303,10 +331,12 @@ export function NuevoProductoForm({
   // Las elegidas en el orden de la curva (S, M, L), no en el orden en que se tocaron.
   const tallasOrdenadas = tallasCategoria.filter((t) => tallasElegidas.includes(t.id));
 
-  const nombreFinal = tituloReferencia(referencia);
+  const nombreFinal = tituloReferencia(referenciaCompleta);
   // Lo elegido en tejido y patrón, en palabras: lo usa la comparación con las prendas que ya existen, la ficha y la línea del paso plegado.
   const tejidoTexto = [...tejidosCategoria, ...universo.tejidos].find((t) => t.id === tejidoId)?.texto ?? null;
   const patronTexto = [...patronesCategoria, ...universo.patrones].find((t) => t.id === patronId)?.texto ?? null;
+  // La línea que va bajo el nombre (ADR-0556): el detalle, el tejido y el patrón, armados solos.
+  const lineaBajoNombre = lineaDescriptiva({ detalle: descripcion, tejido: tejidoTexto, patron: patronTexto });
 
   // ---------- ¿ya existe algo así? (la base frena; «Prendas parecidas» avisa y ordena) ----------
   // Devuelve lo mismo que devolvía `useParecidos` (con su espera de 350 ms al tipear) y suma la alerta del resumen, la hoja «Ver y comparar» y el
@@ -323,6 +353,17 @@ export function NuevoProductoForm({
     enLinea,
   });
   const comprobandoNombre = Boolean(categoriaId) && parecidos.comprobando;
+  // «¿Ya existe?» solo pregunta si hay algo que mirar: sin red, sin lectura o en una categoría vacía no hay pregunta (ADR-0556).
+  const existeAplica = parecidos.existentes.disponible && parecidos.existentes.lista.length > 0;
+  // Si en la hoja «Ver y comparar» respondió que ninguna es su prenda, la pregunta queda contestada (y «Cambiar» la vuelve a abrir).
+  const existeRespondido = existeRespuesta ?? parecidos.existentes.todasRevisadas;
+  // Las flores libres de la categoría y los avisos del nombre: lógica pura (`lib/nombre-de-prenda.ts`), sin red.
+  const nombresColores = useMemo(() => colores.flatMap((c) => [c.nombre, ...(c.sinonimos ?? [])]), [colores]);
+  const floresSugeridas = tipo === TIPO_LIBRE ? [] : floresLibres({ referencias: contexto.nombresPorCategoria[categoriaId] ?? [], tipos, colores: nombresColores });
+  const avisosNombre = tipo === TIPO_LIBRE ? [] : avisosDelNombre(referencia, { tipos, colores: nombresColores, otrosTipos: otrosTipos(categoria?.prefijo) });
+  // «Proveedor primero, si sirve» (Felipe 2026-10-28): si lo que trae el proveedor es un nombre de verdad, va antes que las flores.
+  const delProveedor =
+    tipo === TIPO_LIBRE ? null : nombreDelProveedorComoNombre(nombreProveedor, { tipos, otrosTipos: otrosTipos(categoria?.prefijo), colores: nombresColores, marca: marcaNombre });
   const confirmo = parecidos.confirmo;
 
   function irAPaso(n: NumeroPaso) {
@@ -342,8 +383,8 @@ export function NuevoProductoForm({
     if (pasoPrevio.current === paso) return;
     pasoPrevio.current = paso;
     soltarPaginaEstable();
-    const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    // Al título del paso (la sección lleva `scroll-mt-24`, así que queda bajo la cabecera). Con «nearest», elegir la categoría dejaba
+    const reducido = prefiereQuieto();
+    // Al título del paso (la página descuenta la cabecera y la sección lleva su `scroll-mt`, así que queda bajo ella). Con «nearest», elegir la categoría dejaba
     // el paso 2 con su título cortado arriba y el campo «Nombre» pegado al borde (prueba con una trabajadora, 2026-09-29).
     requestAnimationFrame(() =>
       document.getElementById(`paso-${paso}`)?.closest("section")?.scrollIntoView({ block: "start", behavior: reducido ? "auto" : "smooth" }),
@@ -353,6 +394,8 @@ export function NuevoProductoForm({
   // ---------- elegir / cambiar categoría ----------
   function elegirCategoria(id: string) {
     setCategoriaId(id);
+    setTipoElegido(null);
+    setExisteRespuesta(null);
     setTallasElegidas(ejes.habituales[id] ?? []); // la curva habitual viene marcada
     setTejidoId("");
     setPatronId("");
@@ -373,6 +416,8 @@ export function NuevoProductoForm({
   function cambiarCategoria() {
     setCopiadoDe(null);
     setCategoriaId("");
+    setTipoElegido(null);
+    setExisteRespuesta(null);
     setTallasElegidas([]);
     setTejidoId("");
     setPatronId("");
@@ -393,12 +438,13 @@ export function NuevoProductoForm({
     }
   }
 
-  // «+ Nuevo color» desde el alta (spike v2): antes había que ir a Catálogo → Atributos en otra pestaña y volver a
-  // «actualizar los colores». El color creado entra a la lista y queda elegido.
-  function colorCreado(color: ColorAlta) {
-    setColoresNuevos((prev) => (prev.some((c) => c.codigo === color.codigo) ? prev : [...prev, color]));
-    setColoresElegidos((prev) => (prev.includes(color.codigo) ? prev : [...prev, color.codigo]));
+  // «Cambiar» en una tarjeta de «Fotos y colores» (ADR-0663): el color cambia en su lugar y sus fotos lo siguen. Si el nuevo ya estaba
+  // elegido, las dos tarjetas se juntan (es la misma prenda vista dos veces).
+  function cambiarColor(de: string, a: string) {
+    setColoresElegidos((prev) => (prev.includes(a) ? prev.filter((x) => x !== de) : prev.map((x) => (x === de ? a : x))));
+    setFotos((prev) => prev.map((f) => (f.colorCodigo === de ? { ...f, colorCodigo: a } : f)));
   }
+
 
   // ---------- al configurar una categoría o proponer un valor sin salir del alta ----------
   // Es el `onOfrecido` de ElegirTallas y ElegirMuestra: el valor ya quedó ofrecido en la categoría (desde su hoja «Ver
@@ -428,17 +474,17 @@ export function NuevoProductoForm({
     coloresElegidos
   );
   const celdasIncluidas = celdas.filter((c) => !excluidas.has(c.clave));
-  // ADR-0328 (actividad 4): la carga inicial de esta sede. Cerrada, el alta va sin unidades —«Cuántas tienes hoy» no se ofrece y
-  // lo escrito antes no viaja; la base lo rechazaría igual (`carga_inicial_cerrada`)—; abierta con fecha, se avisa cuánto falta.
+  // ADR-0328 (actividad 4): la carga inicial de esta sede; abierta con fecha, se avisa cuánto falta. Cerrada, lo que se escribe en la
+  // tabla ya no es «lo que tienes hoy» sino lo que LLEGÓ del proveedor (act. 2026-10-28, Felipe: «se debe poder ingresar unidades por
+  // ahí»): el alta va por `crear_producto_con_llegada`, que crea la prenda y la recibe como «Llegó mercadería», en un solo paso.
   const cargaCerrada = !cargaAbierta(cargaInicial);
   const avisoCarga = avisoCargaInicial(cargaInicial);
-  const cantidadesVigentes = cargaCerrada ? SIN_CANTIDADES : cantidades;
-  const sinStockVigente = sinStock || cargaCerrada;
   const stock = resumenStock(
-    cantidadesVigentes,
+    cantidades,
     celdasIncluidas.map((c) => c.clave)
   );
-  const destinoTexto = textoDestinoStock(destino.etiqueta, lugarCarga, destino.separaPiso);
+  // Una llegada entra al almacén de entrada, como todo lo que llega de un proveedor (`recibir_lote`): no se pregunta piso o almacén.
+  const destinoTexto = cargaCerrada ? `${destino.separaPiso ? "almacén de " : ""}${destino.etiqueta}` : textoDestinoStock(destino.etiqueta, lugarCarga, destino.separaPiso);
   // ADR-0384: una celda de «Precios» con 0 crearía esa variante a S/ 0. Se nombra como en la tabla, para que se encuentre.
   const celdaEnCero = celdaSinPrecio(celdasIncluidas, overridePrecio);
   const nombreCeldaEnCero = celdaEnCero
@@ -447,10 +493,11 @@ export function NuevoProductoForm({
 
   // ---------- qué falta ----------
   const estado: EstadoAlta = {
-    exigeEmpresa,
+    // La guía y la validación piden la tienda solo si se pregunta (sin la marca de CAYLA en la base): si la decide la marca, siempre está.
+    exigeEmpresa: preguntaEmpresa,
     empresaId,
     categoriaId,
-    referencia,
+    referencia: referenciaCompleta,
     comprobandoNombre,
     nombreBloqueado: parecidos.hayIdentico,
     nombreSinConfirmar: parecidos.hayUnaLetra && !confirmo,
@@ -465,11 +512,14 @@ export function NuevoProductoForm({
     precioBase,
     costoBase,
     celdaSinPrecio: nombreCeldaEnCero,
+    fotosSinColor,
     stockTotal: stock.total,
     stockInvalidas: stock.invalidas,
-    sinStock: sinStockVigente,
+    sinStock,
     separaPiso: destino.separaPiso,
     lugarCarga,
+    llegada: cargaCerrada,
+    proveedorElegido: Boolean(proveedorId),
   };
   const problemas = problemasAlta(estado);
   const puedeGuardar = problemas.length === 0 && !cargando;
@@ -480,6 +530,8 @@ export function NuevoProductoForm({
     descripcionEscrita: descripcion.trim() !== "",
     marcaElegida: Boolean(marcaId && proveedorId),
     responsableListo: responsable.listo,
+    existeAplica: existeAplica,
+    existeRespondido,
   });
   const est = estadosDeCampos(campos, paso, escribiendoEn);
   const ahoraCampo = campoAhora(campos, paso, escribiendoEn);
@@ -510,18 +562,11 @@ export function NuevoProductoForm({
       guia.alAbrirPaso();
       return;
     }
-    // Nunca se desplaza la página mientras la persona teclea: al escribir el nombre, «Sigue aquí» pasa de la marca al tejido
-    // (el tinte se mueve) pero la vista no salta. Se prueba con el foco, no con la tecla: sirve igual con teclado, lector o
-    // pantalla táctil.
-    // Tampoco si la luz VUELVE a un campo porque la persona lo está tocando (`escribiendoEn`): ya está ahí. En el celular, deslizar la
-    // pantalla soltaba «Colores» y el siguiente círculo tocado lo volvía a encender; la guía lo «traía a la vista» y, como la carta es
-    // más alta que la pantalla, la subía al inicio de los colores (Felipe, 2026-10-09).
+    // Que la luz cambie de campo nunca mueve la pantalla (Felipe 2026-11-05). La única excepción la pidió él: marca y proveedor recién elegidos y el
+    // nombre todavía vacío llevan AL nombre, con el cursor listo (2026-10-09: en el celular la luz pasaba al nombre pero el cursor seguía en
+    // «Proveedor»). Es la única pausa que la persona cierra eligiendo, no escribiendo, así que nadie está tecleando en otro lado.
     if (ahoraCampo && previa.ahora !== ahoraCampo && ahoraCampo !== escribiendoEn && !estaEscribiendo()) {
-      // Marca y proveedor recién elegidos y el nombre todavía vacío: se lleva a la persona AL nombre, con el cursor listo (Felipe,
-      // 2026-10-09: en el celular la luz pasaba al nombre pero el cursor seguía en «Proveedor»). Es la única pausa que la persona
-      // cierra eligiendo, no escribiendo, así que nadie está tecleando en otro lado.
       if (previa.ahora === "marca" && ahoraCampo === "nombre" && referencia.trim() === "") irAlIdCampo("nombre", { destello: false, cursor: true });
-      else asegurarVisible(ahoraCampo);
     }
     // `referencia` se lee solo cuando cambia el campo de turno: no debe disparar el efecto en cada letra.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -535,8 +580,11 @@ export function NuevoProductoForm({
 
   const precioNum = Number(precioBase);
   const costoNum = Number(costoBase);
-  const margen = costoBase.trim() === "" ? null : margenPorcentaje(precioNum, costoNum);
-  const nivel = nivelMargen(margen);
+  // La cuenta única (ADR-0668, Felipe 2026-11-15): la cifra grande, su línea en soles y la ficha dicen lo mismo que Recibir. Todas las
+  // prendas igual, con o sin factura: a la venta se le quita la parte de SUNAT; ámbar si el precio no aguanta una rebaja de 35 %.
+  const margenVivo = costoBase.trim() === "" ? null : margenALaVista(costoBase, precioBase);
+  const margen = margenVivo?.pct ?? null;
+  const nivel = margenVivo ? (margenVivo.tono === "pierdes" ? "negativo" : margenVivo.tono) : null;
   const sugerido = categoriaId ? contexto.costoSugerido[categoriaId] : undefined;
 
   // Sin fila de «más usados» (Felipe, 2026-09-28): los colores se eligen buscándolos o en la carta por familia.
@@ -566,14 +614,36 @@ export function NuevoProductoForm({
   const nombresEtiquetas = etiquetasAManda.map((id) => vocabEtiquetas.find((e) => e.id === id)?.nombre).filter((n): n is string => Boolean(n));
 
   const fotosOrdenadas = ordenarFotosAlta(fotos, coloresElegidos);
+  // «Catálogo con IA» (2026-11-13): la foto de catálogo de cada color se prepara en su fila mientras se sigue; al crear, se espera.
+  const catalogo = useCatalogoIAAlta({
+    // Al encender la IA, también se preparan las fotos que esperan su color, no solo las ya puestas (Felipe 2026-11-16).
+    fotosEnCurso,
+    // Mientras se crea no se pide ninguna IA (tampoco desde el «Volver a intentar» de un aviso).
+    bloqueado: cargando,
+    disponible: catalogoIADisponible,
+    fotos,
+    setFotos,
+    colores: coloresElegidos,
+    nombreColor: (c) => (c === null ? "todos los colores" : (colorPorCodigo(c)?.nombre ?? c)),
+    // Categoría, tipo, tejido y patrón se eligen ANTES que las fotos (pasos 1 y 2): la IA recibe qué es la prenda y no lo adivina de cómo cuelga.
+    prenda: { prefijo: categoria?.prefijo, tipo: tipo === TIPO_LIBRE ? null : tipo, tejido: tejidoTexto, patron: patronTexto },
+  });
+  // Al crear se lee la lista de DESPUÉS de esperar a la IA, no la de cuando se tocó «Crear».
+  const fotosRef = useRef(fotos);
+  useEffect(() => {
+    fotosRef.current = fotos;
+  }, [fotos]);
 
   // ---------- guardar ----------
   // Un segundo clic (o Enter) mientras el alta viaja no la manda otra vez: con el mismo token la base devuelve el mismo producto y no
   // duplica el stock, pero las fotos se suben DESPUÉS de cada respuesta y quedarían dos veces (/chaos de Catálogo 2026-10-14, DC-01).
   const enviando = useRef(false);
+  const frenoCantidades = useRef<() => boolean>(null);
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (enviando.current) return;
+    // Lo escrito en la tabla no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (frenoCantidades.current?.()) return;
     enviando.current = true;
     try {
       await crear();
@@ -598,7 +668,7 @@ export function NuevoProductoForm({
       const precio = montoDeCelda(overridePrecio[c.clave], precioNum);
       const costo = montoDeCelda(overrideCosto[c.clave], costoDeTodas);
       // Solo viaja la cantidad de la celda que tiene stock: sin la clave, la base no carga nada (y no inventa un cero).
-      const cantidad = leerCantidad(cantidadesVigentes[c.clave] ?? "") ?? 0;
+      const cantidad = leerCantidad(cantidades[c.clave] ?? "") ?? 0;
       return { talla_id: c.tallaId, color_codigo: c.color, precio, costo, ...(cantidad > 0 ? { cantidad } : {}) };
     });
     // La misma regla que Editar producto (`precioValido`): mayor que 0. `problemasAlta` ya lo frena; esto es por si llega un envío
@@ -642,11 +712,36 @@ export function NuevoProductoForm({
     };
     const firma = responsable.firma();
     // ADR-0463: desde una sede con dos tiendas (Lima), el alta va por `crear_producto_con_empresa` (la de siempre + la tienda, en la misma
-    // transacción); sin ellas, por la de siempre y el producto nace en CAYLA. La cola sin conexión guarda cuál usó.
-    const rpcAlta = exigeEmpresa ? "crear_producto_con_empresa" : "crear_producto_con_stock_inicial";
-    const paramsAlta = exigeEmpresa ? { ...params, p_empresa_id: empresaId, p_sede_id: destino.ubicacionId } : params;
+    // transacción); sin ellas, por la de siempre y el producto nace en CAYLA. Con la carga cerrada y unidades, por `crear_producto_con_llegada`
+    // (ADR-0328 act. 2026-10-28), que lleva la tienda adentro. La cola sin conexión guarda cuál usó.
+    const conLlegada = cargaCerrada && conStock;
+    const paramsLlegada = {
+      p_referencia: params.p_referencia,
+      p_categoria_id: params.p_categoria_id,
+      p_variantes: params.p_variantes,
+      p_ubicacion_id: destino.ubicacionId,
+      p_proveedor_id: proveedorId,
+      p_descripcion: params.p_descripcion,
+      p_token: params.p_token,
+      p_tejido_id: params.p_tejido_id,
+      p_patron_id: params.p_patron_id,
+      p_confirmo_distinto: params.p_confirmo_distinto,
+      p_etiqueta_ids: params.p_etiqueta_ids,
+      p_marca_id: params.p_marca_id,
+      p_temporada: params.p_temporada,
+      p_empresa_id: exigeEmpresa ? empresaId : undefined,
+    };
+    const rpcAlta = conLlegada ? "crear_producto_con_llegada" : exigeEmpresa ? "crear_producto_con_empresa" : "crear_producto_con_stock_inicial";
+    const paramsAlta = conLlegada ? paramsLlegada : exigeEmpresa ? { ...params, p_empresa_id: empresaId, p_sede_id: destino.ubicacionId } : params;
     const { data: productoId, error, status } = await firmar(
-      exigeEmpresa ? supabase.rpc("crear_producto_con_empresa", { ...params, p_empresa_id: empresaId, p_sede_id: destino.ubicacionId }) : supabase.rpc("crear_producto_con_stock_inicial", params),
+      conDueno(
+        conLlegada
+          ? supabase.rpc("crear_producto_con_llegada", paramsLlegada)
+          : exigeEmpresa
+            ? supabase.rpc("crear_producto_con_empresa", { ...params, p_empresa_id: empresaId, p_sede_id: destino.ubicacionId })
+            : supabase.rpc("crear_producto_con_stock_inicial", params),
+        exigeEmpresa ? empresaId : null,
+      ),
       firma,
     );
 
@@ -662,6 +757,7 @@ export function NuevoProductoForm({
         rpc: rpcAlta,
         params: paramsAlta,
         firma: firmaCola,
+        dueno: exigeEmpresa ? empresaId : null,
         resumen: `${nombreFinal} · ${variantes.length} variante${variantes.length === 1 ? "" : "s"}${conStock ? ` · ${stock.total} u.` : ""} · ${categoria?.nombre ?? ""}`,
       });
       if (!colaOffline.encolar(op)) {
@@ -678,7 +774,11 @@ export function NuevoProductoForm({
       setFotos([]);
       setCargando(false);
       setCopiadoDe(null);
-      avisar.aviso("Producto guardado sin conexión", { detalle: "Recibe su código cuando vuelva el internet." });
+      avisar.aviso("Producto guardado sin conexión", {
+        detalle: nombreProveedor.trim()
+          ? "Recibe su código cuando vuelva el internet. Cómo lo llama el proveedor no viaja sin conexión: agrégalo después en Editar producto."
+          : "Recibe su código cuando vuelva el internet.",
+      });
       setCreado({
         id: null,
         nombre: nombreFinal,
@@ -686,7 +786,7 @@ export function NuevoProductoForm({
         variantes: variantes.length,
         colores: coloresDatos.filter((c) => celdasIncluidas.some((x) => x.color === c.codigo)),
         fotos: { subidas: 0, fallidas: fotosGuardadas ? [] : fotosOrdenadas.map((f) => `${f.archivo.name}: este navegador no pudo guardarla`), coloresConFoto: [] },
-        stock: conStock ? { unidades: stock.total, donde: destinoTexto } : null,
+        stock: conStock ? { unidades: stock.total, donde: destinoTexto, llegadaDe: conLlegada ? proveedorNombre || "su proveedor" : null } : null,
         sinMarcaProveedor: textoLoQueFalta(marcaId, proveedorId),
         fotosEnEspera: fotosGuardadas ? fotosOrdenadas.length : 0,
         token: op.token,
@@ -714,14 +814,23 @@ export function NuevoProductoForm({
       return;
     }
 
-    // El producto YA existe. Recién ahora suben las fotos: una que falle no deshace nada, se dice en la pantalla de éxito.
+    // El producto YA existe. Cómo lo llama el proveedor va aparte (ADR-0556): si falla (o la base todavía no tiene la función), la prenda queda
+    // creada igual y se dice dónde completarlo.
+    if (nombreProveedor.trim()) {
+      const { error: errorProveedor } = await firmar(supabase.rpc("fijar_nombre_proveedor", { p_producto_id: productoId, p_nombre: nombreProveedor.trim() }), firma);
+      if (errorProveedor) avisar.aviso("La prenda se creó, pero no se guardó cómo la llama el proveedor.", { detalle: "Agrégalo en Editar producto." });
+    }
+
+    // Recién ahora suben las fotos: una que falle no deshace nada, se dice en la pantalla de éxito. Antes se espera a la IA: si una foto de
+    // catálogo venía en camino, se sube ella (con su real al lado) y no la real sola.
+    const paraSubir = ordenarFotosAlta(await catalogo.esperar(fotosRef.current), coloresElegidos);
     const fallidas: string[] = [];
     const conFoto = new Set<string>();
     let subidas = 0;
-    if (fotosOrdenadas.length > 0) {
+    if (paraSubir.length > 0) {
       const filas: { producto_id: string; url: string; orden: number; es_principal: boolean; color_codigo: string | null }[] = [];
-      for (const f of fotosOrdenadas) {
-        const r = await subirFotoProducto(supabase, f.archivo);
+      for (const f of paraSubir) {
+        const r = f.ia?.usar ? await subirParDeCatalogo(supabase, f.archivo, f.ia.png) : await subirFotoProducto(supabase, f.archivo);
         if ("error" in r) {
           fallidas.push(`${f.archivo.name}: ${r.error}`);
           continue;
@@ -751,7 +860,7 @@ export function NuevoProductoForm({
       // Solo los colores que quedaron en alguna variante: uno desmarcado en la tabla no necesita foto.
       colores: coloresDatos.filter((c) => celdasIncluidas.some((x) => x.color === c.codigo)),
       fotos: { subidas, fallidas, coloresConFoto: [...conFoto] },
-      stock: conStock ? { unidades: stock.total, donde: destinoTexto } : null,
+      stock: conStock ? { unidades: stock.total, donde: destinoTexto, llegadaDe: conLlegada ? proveedorNombre || "su proveedor" : null } : null,
       sinMarcaProveedor: textoLoQueFalta(marcaId, proveedorId),
     });
   }
@@ -762,6 +871,8 @@ export function NuevoProductoForm({
     setCopiadoDe(creado.nombre);
     setCreado(null);
     setReferencia("");
+    setExisteRespuesta(null);
+    setNombreProveedor("");
     setDescripcion("");
     parecidos.reiniciar();
     setColoresElegidos([]);
@@ -782,7 +893,7 @@ export function NuevoProductoForm({
     setTimeout(() => document.getElementById("nombre-producto")?.focus(), 50);
   }
 
-  const etiquetaNivel = { negativo: "Pierdes dinero en cada venta", bajo: "Margen bajo", normal: "Buen margen" } as const;
+  const etiquetaNivel = { negativo: "Pierdes dinero en cada venta", bajo: "Aguanta poca rebaja", normal: "Buen precio" } as const;
 
   if (creado) {
     // Un alta guardada sin conexión se sigue en la cola: la pantalla cambia sola cuando sube (o si la base la rechaza).
@@ -824,7 +935,7 @@ export function NuevoProductoForm({
       : "",
     4: [
       precioNum > 0 ? `S/\u00a0${precioNum.toFixed(2)}` : null,
-      stock.total > 0 ? `${plural(stock.total, "unidad", "unidades")} · ${destinoTexto}` : sinStockVigente ? "Sin stock todavía" : null,
+      stock.total > 0 ? `${plural(stock.total, "unidad", "unidades")} · ${destinoTexto}` : sinStock ? "Sin stock todavía" : null,
     ]
       .filter(Boolean)
       .join(" · "),
@@ -854,8 +965,11 @@ export function NuevoProductoForm({
       <Volver onClick={() => irAPaso((n - 1) as NumeroPaso)} deshabilitado={cargando} a="Volver al paso anterior" />
     );
     const cierre =
+      // Una `key` por botón: sin ella, React reusa el MISMO <button> y «Seguir» del paso 3 se volvía `submit` antes de que el navegador
+      // terminara el clic, y creaba la prenda sin pasar por el paso 4 (lib/botones-que-cambian-de-tipo.test.ts).
       n < 4 ? (
         <button
+          key="seguir"
           type="button"
           onClick={() => irAPaso((n + 1) as NumeroPaso)}
           disabled={Boolean(faltaDelPasoProblema(problemas, n))}
@@ -869,6 +983,7 @@ export function NuevoProductoForm({
       ) : (
         // El paso 4 cierra el alta: aquí termina la persona, así que aquí está «Crear» (la ficha conserva el suyo).
         <button
+          key="crear"
           type="submit"
           disabled={cargando || !puedeGuardar || !responsable.listo}
           title={responsable.motivo ?? undefined}
@@ -896,8 +1011,8 @@ export function NuevoProductoForm({
     if (n === 1) {
       return (
         <div className="space-y-3">
-          <p className="text-[13px] text-taupe">
-            Con la categoría, el sistema ya sabe el código, las tallas y los tejidos que suele llevar. Al tocarla pasas solo al siguiente paso.
+          <p className="text-sm text-taupe">
+            La categoría trae el código, las tallas y los tejidos. Al tocarla, pasas al siguiente paso.
           </p>
           {/* Sin tienda no se elige categoría (ADR-0463): se ve el camino, atenuado, y se enciende al elegir la tienda. La pregunta vive en su propia tarjeta, sobre este paso. */}
           <div inert={faltaEmpresa} className={faltaEmpresa ? "opacity-50 transition-opacity" : "transition-opacity"}>
@@ -910,9 +1025,9 @@ export function NuevoProductoForm({
       const ayudaOpcional = (texto: string) => (exige ? texto : `Opcional · ${texto}`);
       return (
         <div>
-          {/* Marca y proveedor va ARRIBA del nombre (Felipe, 2026-09-30): con la marca elegida la lectura de lo que ya existe de esa marca empieza antes de que
-              se escriba una letra, y al teclear el nombre la alerta ya tiene con qué comparar. Sigue siendo OPCIONAL y la guía no la señala: «Sigue aquí»
-              va al nombre, que es lo primero que falta. */}
+          {/* Marca y proveedor va PRIMERO (Felipe, 2026-09-30): con la marca elegida la lectura de lo que ya existe de esa marca empieza antes de mirar
+              «¿Ya existe?» y de escribir una letra. Sigue siendo OPCIONAL. El orden de abajo es el de ADR-0556: ¿ya existe? → tejido → patrón → detalle →
+              nombre: se bautiza cuando ya se sabe qué es la prenda. */}
           <FilaAlta etiqueta="Marca y proveedor" ayuda="Quién la hace y quién te la trae · opcional" campo="marca" estado={est.marca}>
             <ElegirMarcaProveedor
               opcional
@@ -935,32 +1050,37 @@ export function NuevoProductoForm({
               puedeCrear
             />
           </FilaAlta>
-          <FilaAlta etiqueta="Nombre" ayuda="Como se lo dirías a un cliente" campo="nombre" estado={est.nombre}>
-            <div className="space-y-2">
-              <CampoTexto
-                id="nombre-producto"
-                etiqueta="Nombre"
-                maxLength={MAX_NOMBRE_PRODUCTO}
-                caja
-                className="!h-12 text-base"
-                placeholder={sugerirNombre(contextoSugerencia).texto}
-                value={referencia}
-                onChange={(e) => setReferencia(e.target.value)}
-                autoComplete="off"
-                pie={
-                  nombreFinal && nombreFinal !== referencia.trim() ? (
-                    <span>
-                      Se guardará como <strong className="text-tinta">{nombreFinal}</strong>
-                    </span>
-                  ) : undefined
-                }
+          <FilaAlta etiqueta="Cómo lo llama el proveedor" ayuda="Opcional · el nombre o código de su etiqueta o su guía: así el comprador sabe qué pedir">
+            <CampoTexto
+              etiqueta="Cómo lo llama el proveedor"
+              caja
+              maxLength={80}
+              // sugerir-fijo: muestra las dos formas en que llega (un nombre o un código), no depende de la categoría ni de la marca
+              placeholder="Ej. Evaluna o SS25 311"
+              value={nombreProveedor}
+              onChange={(e) => setNombreProveedor(e.target.value)}
+            />
+          </FilaAlta>
+          {/* ADR-0556: antes de bautizarla, mirar lo que ya existe en la categoría. La misma prenda en otro color no se crea: se abre y se le agrega el color. */}
+          {categoria && (
+            <FilaAlta
+              etiqueta="¿Ya existe?"
+              ayuda="Si es una de estas en otro color, no la crees: ábrela y agrégale el color"
+              campo={existeAplica ? "existe" : undefined}
+              estado={existeAplica ? est.existe : undefined}
+            >
+              <YaExiste
+                lista={parecidos.existentes.lista}
+                cargando={parecidos.existentes.cargando}
+                disponible={parecidos.existentes.disponible}
+                fallo={parecidos.existentes.fallo}
+                categoria={{ nombre: categoria.nombre, prefijo: categoria.prefijo, familia: categoria.familia, categoria: categoria.nombre }}
+                respondido={existeRespondido}
+                onResponder={setExisteRespuesta}
+                onVer={(id) => parecidos.abrirHoja(id)}
               />
-              <ParecidasBajoNombre p={parecidos.bajoNombre} />
-            </div>
-          </FilaAlta>
-          <FilaAlta etiqueta="Descripción" ayuda="Opcional · lo que no dice el nombre: corte, largo, detalles" campo="descripcion" estado={est.descripcion}>
-            <CampoTexto etiqueta="Descripción" caja maxLength={MAX_DESCRIPCION_PRODUCTO} placeholder={sugerirDescripcion(contextoSugerencia).texto} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
-          </FilaAlta>
+            </FilaAlta>
+          )}
 
           {/* Tejido y patrón describen la prenda: van aquí, con el nombre y la marca (spike v2), no con sus variantes. */}
           {(exige || tejidosCategoria.length > 0) && (
@@ -1025,6 +1145,44 @@ export function NuevoProductoForm({
             </FilaAlta>
           )}
 
+          <FilaAlta etiqueta="Detalle" ayuda="Opcional · corte, largo o un detalle: lo que no dice el nombre" campo="descripcion" estado={est.descripcion}>
+            <CampoTexto
+              etiqueta="Detalle"
+              caja
+              maxLength={MAX_DESCRIPCION_PRODUCTO}
+              placeholder={sugerirDescripcion(contextoSugerencia).texto}
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              pie={lineaBajoNombre ? <span>Se leerá bajo el nombre: <strong className="text-tinta">{lineaBajoNombre}</strong></span> : undefined}
+            />
+          </FilaAlta>
+          <FilaAlta etiqueta="Nombre" ayuda={tipo === TIPO_LIBRE ? "Como se lo dirías a un cliente" : "El tipo lo pone la categoría; tú escribes el resto"} campo="nombre" estado={est.nombre}>
+            <div className="space-y-2">
+              <NombreDePrenda
+                id="nombre-producto"
+                tipos={tipos}
+                tipo={tipo}
+                onTipo={setTipoElegido}
+                valor={referencia}
+                onValor={setReferencia}
+                sugeridas={floresSugeridas}
+                delProveedor={delProveedor}
+                avisos={avisosNombre}
+                placeholderLibre={sugerirNombre(contextoSugerencia).texto}
+                nombreFinal={nombreFinal}
+                // Con el nombre libre la caja ya es el nombre entero: solo se avisa si la base lo va a escribir distinto (mayúsculas).
+                pie={
+                  tipo === TIPO_LIBRE && nombreFinal && nombreFinal !== referencia.trim() ? (
+                    <span>
+                      Se guardará como <strong className="text-tinta">{nombreFinal}</strong>
+                    </span>
+                  ) : undefined
+                }
+              />
+              <ParecidasBajoNombre p={parecidos.bajoNombre} />
+            </div>
+          </FilaAlta>
+
           <PlegableAlta titulo="Temporada y etiquetas" resumen={resumenMas} abierto={masAbierto} onAlternar={() => setMasAbierto((v) => !v)}>
             <FilaAlta
               etiqueta="Temporada"
@@ -1033,7 +1191,7 @@ export function NuevoProductoForm({
               {contexto.temporadas ? (
                 <ElegirTemporada temporadas={listaTemporadas} clave={temporada} onElegir={setTemporada} />
               ) : (
-                <p className="text-xs text-taupe">
+                <p className="text-sm text-taupe">
                   La lista de temporadas no está disponible ahora (todavía no se activa, o no se pudo leer). Podrás ponerla después, desde la ficha del
                   producto.
                 </p>
@@ -1048,11 +1206,8 @@ export function NuevoProductoForm({
                 categoriaId={categoriaId}
                 elegidas={etiquetasElegidas}
                 onElegidas={setEtiquetasElegidas}
-                puedeAprobar={puedeAprobarEtiquetas}
                 enLinea={enLinea}
                 onCreada={(e) => setEtiquetasNuevas((prev) => [...prev, e])}
-                propuestas={etiquetasPropuestas}
-                onPropuesta={(nombre) => setEtiquetasPropuestas((prev) => [...prev, nombre])}
               />
             </FilaAlta>
           </PlegableAlta>
@@ -1102,16 +1257,38 @@ export function NuevoProductoForm({
           </FilaAlta>
 
           <FilaAlta
-            etiqueta="Colores"
+            etiqueta="Fotos y colores"
             campo="colores"
             estado={est.colores}
             retiene="fila"
-            ayuda={coloresElegidos.length ? plural(coloresElegidos.length, "elegido", "elegidos") : "Si no tiene color (un llavero, un cuaderno), déjalo vacío"}
+            ayuda={coloresElegidos.length ? plural(coloresElegidos.length, "color", "colores") : "Una foto por color"}
           >
-            <ElegirColores colores={colores} grupos={grupos} elegidos={coloresElegidos} onAlternar={alternarColor} onCreado={colorCreado} />
+            {/* Los colores salen de las fotos (ADR-0663): la carta queda para «Cambiar» y «Elegir sin foto». Es el único lugar de las fotos. */}
+            {catalogo.disponible && (
+              <div className="mb-2 flex justify-end" data-guia="nuevo.catalogo-ia">
+                <InterruptorCatalogoIA catalogo={catalogo} disabled={cargando} />
+              </div>
+            )}
+            <FotosYColores
+              carta={colores}
+              grupos={grupos}
+              elegidos={coloresElegidos}
+              fotos={fotos}
+              onFotos={setFotos}
+              onColorNuevo={(color) => setColoresNuevos((prev) => (prev.some((c) => c.codigo === color.codigo) ? prev : [...prev, color]))}
+              onAgregarColor={(codigo) => setColoresElegidos((prev) => (prev.includes(codigo) ? prev : [...prev, codigo]))}
+              onQuitarColor={(codigo) => {
+                if (coloresElegidos.includes(codigo)) alternarColor(codigo);
+              }}
+              onCambiarColor={cambiarColor}
+              disabled={cargando}
+              guia="nuevo.fotos-colores"
+              catalogo={catalogo}
+              enCurso={fotosEnCurso}
+            />
           </FilaAlta>
 
-          {/* La prenda: una fila por color (con su foto) y una columna por talla. En el paso 4 es la MISMA tabla, con números. */}
+          {/* La prenda: una fila por color y una columna por talla. En el paso 4 es la MISMA tabla, con números. */}
           <div className="border-t border-sand pt-3.5">
             {tallasCategoria.length > 0 && tallasElegidas.length === 0 ? (
               <Aviso tono="info">Elige al menos una talla y aquí aparece la prenda: una fila por color, una columna por talla.</Aviso>
@@ -1122,43 +1299,48 @@ export function NuevoProductoForm({
                 colores={coloresDatos}
                 excluidas={excluidas}
                 onExcluidas={setExcluidas}
-                fotos={fotos}
-                onFotos={setFotos}
                 disabled={cargando}
               />
             )}
+            {catalogo.hoja}
           </div>
         </div>
       );
     }
-    // Paso 4: tres filas guiadas (ADR-0284) —precio y costo, las unidades de hoy, quién lo registra—. Antes eran tres bloques
+    // Paso 4: tres filas guiadas (ADR-0284) —costo y precio (en ese orden y con el margen al final, tarea 8 de Recibir), las unidades de hoy, quién lo registra—. Antes eran tres bloques
     // sueltos y nada decía que «cuántas hay hoy» (o «todavía no tengo») era una decisión obligatoria.
     return (
       <div>
-        <FilaAlta etiqueta="Precio y costo" ayuda="El costo es opcional" campo="precio" estado={est.precio}>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <CampoMonto etiqueta="Precio de venta" pie="Para todas las tallas y colores" inputMode="decimal" placeholder="0.00" value={precioBase} onChange={(e) => setPrecioBase(e.target.value)} />
-            <CampoMonto
-              etiqueta="Costo"
-              pie={sugerido && !costoTocado ? `Sugerido: el último en ${categoria?.nombre} (${sugerido.referencia})` : "Opcional"}
-              inputMode="decimal"
-              placeholder="0.00"
-              value={costoBase}
-              onChange={(e) => {
-                setCostoTocado(true);
-                setCostoBase(e.target.value);
-              }}
-            />
-            <div>
-              <p className="label-cayla text-[11px] text-tinta/65">Margen</p>
-              <p
-                className={`font-display mt-1.5 pb-1 text-[1.75rem] leading-none tabular-nums ${
-                  margen === null ? "text-tinta/25" : nivel === "negativo" ? "text-rojo-profundo" : nivel === "bajo" ? "text-ambar" : "text-verde"
-                }`}
-              >
-                {margen === null ? "—" : `${margen.toFixed(0)} %`}
-              </p>
-              <p className="mt-1 text-xs text-taupe">{margen === null ? "Con el costo, se calcula" : nivel ? etiquetaNivel[nivel] : ""}</p>
+        <FilaAlta etiqueta="Costo y precio" ayuda="El costo es opcional" campo="precio" estado={est.precio}>
+          {/* Tres columnas solo si el bloque da 384 px (cada monto con su «S/» necesita ~120); si no, uno debajo del otro. */}
+          <div className="@container">
+            <div className="grid gap-4 @sm:grid-cols-3">
+              <CampoMonto
+                etiqueta="Costo"
+                pie={sugerido && !costoTocado ? `Sugerido: el último en ${categoria?.nombre} (${sugerido.referencia})` : "Opcional"}
+                inputMode="decimal"
+                placeholder="0.00"
+                value={costoBase}
+                onChange={(e) => {
+                  setCostoTocado(true);
+                  // La misma limpieza que las celdas de la tabla: «S/ 59» pegado o «59,90» se leen bien (/chaos 2026-10-28).
+                  setCostoBase(limpiarPrecio(e.target.value));
+                }}
+              />
+              <CampoMonto etiqueta="Precio de venta" pie="Para todas las tallas y colores" inputMode="decimal" placeholder="0.00" value={precioBase} onChange={(e) => setPrecioBase(limpiarPrecio(e.target.value))} />
+              <div>
+                <p className="label-cayla text-[11px] text-tinta/65">Margen</p>
+                <p
+                  className={`font-display mt-1.5 pb-1 text-[1.75rem] leading-none tabular-nums ${
+                    margen === null ? "text-tinta/25" : nivel === "negativo" ? "text-rojo-profundo" : nivel === "bajo" ? "text-ambar" : "text-verde"
+                  }`}
+                >
+                  {margen === null ? "—" : `${margen.toFixed(0)} %`}
+                </p>
+                {/* Tarea 8 de Recibir: el margen también en soles, con la misma cuenta y los mismos colores que la línea de Recibir. */}
+                {margen !== null && <LineaMargen costo={costoBase} precio={precioBase} soloSoles className="mt-1" />}
+                <p className="mt-1 text-sm text-taupe">{margen === null ? "Con el costo, se calcula" : nivel ? etiquetaNivel[nivel] : ""}</p>
+              </div>
             </div>
           </div>
           {nivel === "negativo" && (
@@ -1168,12 +1350,27 @@ export function NuevoProductoForm({
               </Aviso>
             </div>
           )}
+          {/* ADR-0641: la IA propone el precio mirando el costo y las parecidas; la persona decide si lo usa. Mira costos: solo quien
+              ve el dinero de Compras. */}
+          {proponePrecio && (
+            <PropuestaDePrecio
+              categoriaId={categoriaId}
+              tejidoId={tejidoId}
+              referencia={referencia}
+              descripcion={descripcion}
+              costoBase={costoBase}
+              precioBase={precioBase}
+              disabled={cargando}
+              onUsar={setPrecioBase}
+            />
+          )}
         </FilaAlta>
 
-        {/* La tabla del paso 3, ahora con números: cuántas hay hoy (ADR-0212) o, en su segmento, el precio distinto. */}
+        {/* La tabla del paso 3, ahora con números: cuántas hay hoy (ADR-0212) —o, con la carga cerrada, cuántas llegaron (ADR-0328
+            act. 2026-10-28)— o, en su segmento, el precio distinto. */}
         <FilaAlta
-          etiqueta="Unidades de hoy"
-          ayuda={cargaCerrada ? `La carga inicial de ${destino.etiqueta} ya se cerró` : `Lo que ya tienes en ${destino.etiqueta}. Si no tienes, márcalo abajo`}
+          etiqueta={cargaCerrada ? "Unidades que llegaron" : "Unidades de hoy"}
+          ayuda={cargaCerrada ? `Lo que llegó del proveedor a ${destino.etiqueta}. Entra con fecha de hoy y queda como una llegada de mercadería. Si no tienes, márcalo abajo` : `Lo que ya tienes en ${destino.etiqueta}. Se escribe una sola vez: al crear, queda sellado y después se ajusta en Existencias. Si no tienes, márcalo abajo`}
           campo="stock"
           estado={est.stock}
         >
@@ -1195,18 +1392,39 @@ export function NuevoProductoForm({
               costos={overrideCosto}
               onCosto={(clave, valor) => setOverrideCosto((prev) => ({ ...prev, [clave]: valor }))}
               destinoEtiqueta={destino.etiqueta}
-              cantidadesCerradas={cargaCerrada ? avisoCarga : null}
+              llegada={cargaCerrada}
+              freno={frenoCantidades}
+              teclado
             />
 
-            {cargaCerrada ? (
-              // La salida, dicha donde se iba a escribir: el producto se crea sin unidades y lo que haya entra por otra puerta.
-              <Aviso tono="info">
-                {avisoCarga} Este producto se crea sin unidades: lo que llegue de un proveedor entra por Recibir.
-              </Aviso>
-            ) : stock.total > 0 ? (
+            {cargaCerrada && stock.total > 0 ? (
+              // Una llegada entra a nombre de su proveedor (`lotes.proveedor_id`): sin él, se dice aquí mismo y se lleva a elegirlo.
+              proveedorId ? (
+                <p className="text-sm leading-snug text-taupe">
+                  Entran {destino.separaPiso ? `al almacén de ${destino.etiqueta}` : `a ${destino.etiqueta}`} como una llegada de{" "}
+                  {proveedorNombre || "su proveedor"}, con fecha de hoy.{destino.separaPiso ? " Para venderlas, primero hay que bajarlas al piso." : ""}
+                </p>
+              ) : (
+                <Aviso
+                  tono="atencion"
+                  chico
+                  accion={
+                    <button type="button" className="btn-cayla btn-enlace" onClick={() => {
+                        const marca = campos.find((c) => c.id === "marca");
+                        if (marca) irACampo(marca);
+                      }}
+                    >
+                      Elegir proveedor
+                    </button>
+                  }
+                >
+                  Lo que llegó entra a nombre de su proveedor: elígelo en «¿Cómo es?».
+                </Aviso>
+              )
+            ) : !cargaCerrada && stock.total > 0 ? (
               destino.separaPiso && (
                 <div className="space-y-2">
-                  <p className="text-[12.5px] font-semibold text-tinta">¿Dónde están hoy?</p>
+                  <p className="text-sm font-semibold text-tinta">¿Dónde están hoy?</p>
                   <div className="flex flex-wrap gap-1.5">
                     <ChipOpcion elegido={lugarCarga === "piso"} onClick={() => setLugarCarga("piso")}>
                       Colgadas en el piso de venta
@@ -1216,7 +1434,7 @@ export function NuevoProductoForm({
                     </ChipOpcion>
                   </div>
                   {/* Lo que cambia cada respuesta, en palabras de tienda: es lo que la persona necesita para no elegir a ciegas. */}
-                  <p className="text-[12px] leading-snug text-taupe">
+                  <p className="text-sm leading-snug text-taupe">
                     {lugarCarga === "piso"
                       ? "La caja las puede cobrar desde ya."
                       : lugarCarga === "almacen"
@@ -1231,8 +1449,13 @@ export function NuevoProductoForm({
               </ChipOpcion>
             )}
 
-            {!cargaCerrada && (
-              <p className="nota-cayla text-[12.5px]">
+            {cargaCerrada ? (
+              <p className="nota-cayla text-sm">
+                La carga inicial de {destino.etiqueta} ya se cerró: lo que escribas aquí entra como una <strong>llegada de mercadería</strong>{" "}
+                del proveedor y queda en Movimientos como «Recepción», igual que en «Llegó mercadería».
+              </p>
+            ) : (
+              <p className="nota-cayla text-sm">
                 Es la <strong>carga inicial</strong>: entra al inventario de {destino.etiqueta} sin comprobante y queda en Movimientos como «Carga
                 inicial». Lo que llegue después se registra al recibirlo.
                 {avisoCarga && <span className="mt-1 block font-medium text-tinta">{avisoCarga}</span>}
@@ -1289,12 +1512,13 @@ export function NuevoProductoForm({
           onSubmit={onSubmit}
           // Crear un producto es un acto explícito: Enter dentro de un campo (corregir el nombre con todo ya lleno, cerrar un
           // precio) NO lo envía. Sin esto, con el resto completo, un Enter de costumbre habría creado una prenda que no se borra.
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();
-          }}
+          onKeyDown={enterNoGuarda}
           className="space-y-4"
         >
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+          {/* El resumen a la derecha recién desde 1280 px de ventana (`xl:`): con el lateral fijo de 272 px, a 1024 la columna del formulario
+              quedaba en 328 px, menos que un celular. El corte es el mismo en FichaPrevia (aside y barra), PasoAlta (pie pegado),
+              ElegirColores (su barra) y alta-parecidas.css (la hoja a pantalla completa): se mueven juntos. */}
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
             <div className="min-w-0 space-y-2.5">
               {/* Los 4 puntos, pegados arriba mientras se baja por el paso (ADR-0260 act. 2026-10-06). */}
               <PuntosAvance pasos={avance} onAbrir={(n) => irAPaso(n as NumeroPaso)} />
@@ -1318,7 +1542,7 @@ export function NuevoProductoForm({
                 </Aviso>
               )}
               {/* Solo el paso abierto: los demás están en los puntos de arriba. `key` lo vuelve a montar al cambiar de paso (entra con su revelado). */}
-              {paso === 1 && empresas && (
+              {paso === 1 && empresas && preguntaEmpresa && (
                 <TarjetaEmpresa>
                   <FilaAlta etiqueta="Tienda" campo="empresa" estado={est.empresa}>
                     <ElegirEmpresa empresas={empresas} empresaId={empresaId} onElegir={setEmpresaId} />
@@ -1339,7 +1563,7 @@ export function NuevoProductoForm({
                 marca: marcaId ? marcaNombre || null : null,
                 tejido: tejidoTexto,
                 variantes: categoria && tallasElegidas.length > 0 ? celdasIncluidas.length : null,
-                hoy: stock.total > 0 ? stock.total : sinStockVigente ? 0 : null,
+                hoy: stock.total > 0 ? stock.total : sinStock ? 0 : null,
                 precio: precioNum > 0 ? precioNum : null,
                 margen,
                 campana: campanaHoy,

@@ -2,7 +2,7 @@
   "guia": "ordenes-insumos.comprobante.id",
   "ruta": "/ordenes-insumos/comprobante/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 33,
+  "total": 34,
   "controles": {
     "app/(app)/ordenes-insumos/comprobante/[id]/page.tsx": [
       "Volver «{RUTA_ORDENES_INSUMO}»",
@@ -22,6 +22,7 @@
       "Boton «+ Agregar otro medio de pago»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
+      "button «Volver a intentar»",
       "CampoSelect «{etiqueta}»"
     ],
     "components/ordenes-insumo/RegistrarComprobanteOrdenInsumo.tsx": [

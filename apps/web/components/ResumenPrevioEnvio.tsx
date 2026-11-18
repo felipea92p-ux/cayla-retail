@@ -76,7 +76,7 @@ export function ResumenPrevioEnvio({
                 </span>
                 <span className="min-w-0 text-sm text-tinta">
                   {f.proveedorNombre}
-                  <span className="block text-xs text-tinta/65">
+                  <span className="block text-sm text-tinta/65">
                     {f.documento}
                     {f.faltan > 0 ? ` · faltan ${f.faltan}: ${f.decisiones.join(", ")}` : " · llegó completo"}
                   </span>
@@ -91,7 +91,7 @@ export function ResumenPrevioEnvio({
                 </span>
                 <span className="min-w-0 text-sm text-tinta">
                   Fuera de comprobante
-                  <span className="block truncate text-xs text-tinta/65">{fueraDetalle}</span>
+                  <span className="block truncate text-sm text-tinta/65">{fueraDetalle}</span>
                 </span>
                 <span className="font-display text-[22px] tabular-nums text-tinta">+{fuera.toLocaleString("es-PE")}</span>
               </div>
@@ -103,13 +103,13 @@ export function ResumenPrevioEnvio({
                 </span>
                 <span className="min-w-0 text-sm text-tinta">
                   Faltantes que se cierran
-                  <span className="block text-xs text-tinta/65">Bajan lo que se le debe al proveedor</span>
+                  <span className="block text-sm text-tinta/65">Bajan lo que se le debe al proveedor</span>
                 </span>
                 <span className="font-display text-[22px] tabular-nums text-tinta">−{soles(cierresMonto)}</span>
               </div>
             )}
           </div>
-          <p className="mt-3 border-l-2 border-taupe pl-3 text-[12.5px] text-tinta/65">
+          <p className="mt-3 border-l-2 border-taupe pl-3 text-sm text-tinta/65">
             Cada prenda entra como un movimiento del historial. Después no se edita: si algo estuvo mal, se corrige con un ajuste.
           </p>
           <ComboResponsable control={responsable} deshabilitado={cargando} className="mt-5" />

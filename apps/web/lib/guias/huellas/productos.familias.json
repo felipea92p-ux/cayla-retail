@@ -20,7 +20,7 @@
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{responsable.motivo ?? faltaExiste ?? guia.frase ?? undefined}»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "BotonImprimir «Imprimir etiquetas»",

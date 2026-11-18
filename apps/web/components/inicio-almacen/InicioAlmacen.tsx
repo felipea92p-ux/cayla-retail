@@ -1,7 +1,8 @@
+import "@/app/estilos/inicio-almacen.css";
 import type { ReactNode } from "react";
 import type { DatosInicioAlmacen } from "@/lib/inicio-almacen";
 import type { AvisosVisibles } from "@/lib/inicio-avisos";
-import { avanceDelDia, hrefColgarEnTandas, sigueAhora, TITULO_NUEVOS } from "@/lib/inicio-almacen-reglas";
+import { avanceDelDia, hrefColgarEnTandas, hrefSepararDanada, sigueAhora, TITULO_NUEVOS } from "@/lib/inicio-almacen-reglas";
 import { AccesosAlmacen, EnCaminoAlmacen, PorColgarAlmacen, PulsoAlmacen, type AccesoAlmacen } from "./BloquesLaterales";
 import { CabinaAlmacen } from "./CabinaAlmacen";
 import { DockAlmacen } from "./DockAlmacen";
@@ -42,6 +43,7 @@ export function InicioAlmacen({
   const { ahora, despues } = sigueAhora(visibles.activos);
   const avance = avanceDelDia(visibles);
   const hrefColgar = hrefColgarEnTandas(datos.existencias);
+  const hrefDanada = hrefSepararDanada(datos.existencias);
   return (
     <>
       <EfectosInicio atajoNuevo="/productos/nuevo" />
@@ -57,6 +59,7 @@ export function InicioAlmacen({
           avance={avance}
           hayColaSinLeer={visibles.activos.some((a) => a.nivel === "sinleer")}
           hrefColgar={hrefColgar}
+          hrefDanada={hrefDanada}
         />
         <div className="ia-gA">
           <div className="ia-cL">
@@ -72,7 +75,7 @@ export function InicioAlmacen({
           </div>
         </div>
       </div>
-      <DockAlmacen veRecibir={veRecibir} hrefColgar={hrefColgar} />
+      <DockAlmacen veRecibir={veRecibir} hrefColgar={hrefColgar} hrefDanada={hrefDanada} />
     </>
   );
 }

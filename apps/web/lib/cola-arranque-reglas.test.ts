@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { MOTIVOS_CIERRE, MOTIVOS_REAPERTURA, armarSugerencias, avisoAlReabrir, avisosDePlazo, diasDePlazo, errorDeSugerencias, paresParaConfirmar, textoCierreHecho, motivoLegible, plazoVigente, sedesParaCerrar, type FilaDeCola, type PrendaDelCatalogo, type VentaPendiente } from "./cola-arranque-reglas";
+import { MOTIVOS_CIERRE, MOTIVOS_REAPERTURA, armarSugerencias, avisoAlReabrir, avisosDePlazo, diasDePlazo, errorDeSugerencias, faltaCuadre, paresParaConfirmar, textoCierreHecho, motivoLegible, plazoVigente, sedesParaCerrar, type FilaDeCola, type PrendaDelCatalogo, type VentaPendiente } from "./cola-arranque-reglas";
 
 // 2026-10-04 12:00 en Lima = 17:00 UTC.
 const AHORA = new Date("2026-10-04T17:00:00Z");
@@ -162,15 +162,44 @@ describe("armarSugerencias / paresParaConfirmar", () => {
   });
 });
 
+describe("sedesParaCerrar con el cuadre del piso (A6, ADR-0334 act. 2026-10-14)", () => {
+  const filas = [fila({ vendidoEn: "2026-10-03T15:00:00.123456+00:00" }), fila({ vendidoEn: "2026-10-04T12:00:00+00:00" })];
+  it("sin dato de cuadres no se juzga: como antes, manda el plazo", () => {
+    expect(sedesParaCerrar(filas, { [TRU]: "2026-10-15" }, AHORA)[0]).toMatchObject({ sinCuadre: false, puedeCerrar: true });
+    expect(sedesParaCerrar(filas, { [TRU]: "2026-10-15" }, AHORA, {})[0]).toMatchObject({ sinCuadre: false, puedeCerrar: true });
+  });
+  it("nunca cuadrada, o cuadrada antes de la última venta pendiente: sin botón", () => {
+    expect(sedesParaCerrar(filas, { [TRU]: "2026-10-15" }, AHORA, { [TRU]: null })[0]).toMatchObject({ sinCuadre: true, puedeCerrar: false });
+    expect(sedesParaCerrar(filas, { [TRU]: "2026-10-15" }, AHORA, { [TRU]: "2026-10-04T11:59:59+00:00" })[0]).toMatchObject({ sinCuadre: true, puedeCerrar: false });
+  });
+  it("cuadrada después de la última venta pendiente (o en el mismo instante): se puede cerrar", () => {
+    expect(sedesParaCerrar(filas, { [TRU]: "2026-10-15" }, AHORA, { [TRU]: "2026-10-04T12:00:00+00:00" })[0]).toMatchObject({ sinCuadre: false, puedeCerrar: true });
+    expect(sedesParaCerrar(filas, { [TRU]: "2026-10-15" }, AHORA, { [TRU]: "2026-10-05T09:00:00+00:00" })[0]).toMatchObject({ sinCuadre: false, puedeCerrar: true });
+  });
+  it("el plazo vencido sigue mandando aunque haya cuadre", () => {
+    expect(sedesParaCerrar(filas, { [TRU]: "2026-10-03" }, AHORA, { [TRU]: "2026-10-05T09:00:00+00:00" })[0]).toMatchObject({ sinCuadre: false, puedeCerrar: false });
+  });
+  it("faltaCuadre, la regla sola", () => {
+    expect(faltaCuadre(undefined, TRU, "2026-10-04T12:00:00+00:00")).toBe(false);
+    expect(faltaCuadre({}, TRU, "2026-10-04T12:00:00+00:00")).toBe(false);
+    expect(faltaCuadre({ [TRU]: null }, TRU, "2026-10-04T12:00:00+00:00")).toBe(true);
+    expect(faltaCuadre({ [TRU]: "2026-10-04T12:00:00+00:00" }, TRU, "2026-10-04T12:00:00+00:00")).toBe(false);
+  });
+});
+
 describe("avisosDePlazo", () => {
   const sede = (p: Partial<import("./cola-arranque-reglas").SedeParaCerrar>) => ({
     ubicacionId: "x", sede: "Tienda AQP", pendientes: 3, soles: 10, desde: "2026-10-01T00:00:00+00:00", corte: "2026-10-02T00:00:00+00:00",
-    plazoHasta: "2026-10-15", diasDePlazo: 11, puedeCerrar: true, ...p,
+    plazoHasta: "2026-10-15", diasDePlazo: 11, sinCuadre: false, puedeCerrar: true, ...p,
   });
   it("con plazo vigente dice hasta cuándo y cuántos días quedan", () => {
     expect(avisosDePlazo([sede({})])).toEqual(["Tienda AQP: puedes cerrar su cola de arranque hasta el 15/10 (11 días más)."]);
     expect(avisosDePlazo([sede({ diasDePlazo: 1 })])[0]).toContain("(1 día más)");
     expect(avisosDePlazo([sede({ diasDePlazo: 0 })])).toEqual(["Tienda AQP: hoy es el último día para cerrar su cola de arranque."]);
+  });
+  it("sin un cuadre del piso después de la última venta (A6), lo dice y manda a cuadrar; el plazo vencido se dice antes", () => {
+    expect(avisosDePlazo([sede({ sinCuadre: true, puedeCerrar: false })])[0]).toContain("primero cuadra el piso");
+    expect(avisosDePlazo([sede({ sinCuadre: true, puedeCerrar: false, diasDePlazo: null })])[0]).toContain("venció el 15/10");
   });
   it("vencido o sin plazo lo dice, en vez de dejar un botón que desaparece sin explicación", () => {
     expect(avisosDePlazo([sede({ puedeCerrar: false, diasDePlazo: null })])[0]).toContain("venció el 15/10");
@@ -182,7 +211,7 @@ describe("avisosDePlazo", () => {
 });
 
 describe("textoCierreHecho", () => {
-  it("dice la cifra que cerró la base, no la que vio el líder", () => {
+  it("dice la cifra que cerró la base, no la que vio quien cierra", () => {
     expect(textoCierreHecho("Tienda TRU", 92)).toBe("92 prendas de Tienda TRU quedaron cerradas sin prenda.");
     expect(textoCierreHecho("Tienda TRU", 1)).toBe("1 prenda de Tienda TRU quedó cerrada sin prenda.");
   });
@@ -205,7 +234,7 @@ describe("errorDeSugerencias", () => {
     expect(r?.texto).toContain("«Blusa negra M»");
   });
   it("otro error no se toca: lo traduce traducirError", () => {
-    expect(errorDeSugerencias({ message: "cola_solo_lider" })).toBeNull();
+    expect(errorDeSugerencias({ message: "cola_sin_modulo" })).toBeNull();
     expect(errorDeSugerencias(null)).toBeNull();
   });
 });

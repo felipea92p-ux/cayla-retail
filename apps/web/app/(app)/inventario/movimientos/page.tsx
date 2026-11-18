@@ -34,6 +34,10 @@ import {
   rangoPerdidas,
   type ParamsPerdidas,
 } from "@/lib/perdidas-reglas";
+import { IngresosVista } from "@/components/ingresos/IngresosVista";
+import { getIngresosPorModelo } from "@/lib/ingresos";
+import { hrefIngresos, rangoIngresos, type ParamsIngresos } from "@/lib/ingresos-reglas";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
 import { FiltrosMovimientos } from "@/components/FiltrosMovimientos";
 import { TiposMovimiento } from "@/components/movimientos/TiposMovimiento";
 import { MovimientosLista } from "@/components/MovimientosLista";
@@ -62,9 +66,11 @@ import { PaginacionCursor } from "@/components/Paginacion";
 // 2026-09-26 (ADR-0234, decisiones de Felipe D1 y D2): se lee DESDE LA TIENDA. «Entró» es todo lo que sumó stock a la
 // sede —también el traslado que llegó— y «Salió», todo lo que lo restó; las cifras cuentan OPERACIONES (lo que se guardó
 // de una sola vez), no filas, y la lista muestra cada operación como una fila que se despliega.
-export default async function MovimientosPage({ searchParams }: { searchParams: Promise<ParamsMovimientos & ParamsPerdidas> }) {
+export default async function MovimientosPage({ searchParams }: { searchParams: Promise<ParamsMovimientos & ParamsPerdidas & ParamsIngresos> }) {
   const persona = await requirePersonaActualV2();
   const params = await searchParams;
+  // La pestaña «Ingresos»: qué prendas entraron, por modelo. Como Pérdidas, es una vista de Movimientos, no un módulo.
+  if (params.vista === "ingresos") return <PaginaIngresos ubicacionId={persona.ubicacionId} params={params} />;
   // ADR-0328 act. 14: «Pérdidas» es una pestaña de Movimientos, no un módulo (ADR-0306): quien ve Movimientos la ve.
   if (params.vista === "perdidas") {
     // Los respaldos («Conteo 7», «Traslado 24») enlazan solo si la cuenta ve esa pantalla (ADR-0161, como los atajos).
@@ -80,7 +86,9 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
 
   // Las sububicaciones van antes que la lista: «?sub=piso» se traduce a SU id, que solo se sabe mirando la ubicación.
   // No dependen de la lista de ubicaciones (la sede sale de la persona): las dos a la vez, una espera menos.
-  const [ubicaciones, sububicaciones] = await Promise.all([getUbicaciones(), getSububicaciones(ubicacionActivaId)]);
+  // Las empresas de la sede (ADR-0532): en Lima, el filtro «Tienda» (CAYLA / CLAURE); con una sola, no hay filtro.
+  const [ubicaciones, sububicaciones, empresasAqui] = await Promise.all([getUbicaciones(), getSububicaciones(ubicacionActivaId), getEmpresasAqui(ubicacionActivaId)]);
+  const empresasFiltro = empresasAqui && empresasAqui.length > 1 ? empresasAqui : null;
   const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
   const sede = ubicacionActiva?.nombre ?? "esta sede";
   // «Hoy» por defecto en el celular (ADR-0241): la pregunta de la tienda es «qué pasó hoy», y en el teléfono cada fila
@@ -88,7 +96,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
   // un parpadeo de «30 días» a «Hoy». Una tableta o la computadora siguen en 30 días.
   const esCelular = userAgent({ headers: await headers() }).device.type === "mobile";
   const porDefecto = esCelular ? "hoy" : "30";
-  const { periodo, sub, ...filtros } = filtrosDesdeParams(params, { sububicaciones, porDefecto });
+  const { periodo, sub, ...filtros } = filtrosDesdeParams(params, { sububicaciones, porDefecto, empresas: empresasFiltro });
   const cursor = cursorDesdeParams(params);
 
   // Las cifras de las píldoras cuentan con los demás filtros, pero no con el proceso: con «Merma» elegida, «Ajustes 3»
@@ -142,7 +150,9 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
         {!resumen && <p className="nota-cayla text-sm">Las cifras no se pudieron leer ahora; la lista está completa.</p>}
       </aside>
       <div className="order-2 min-w-0 space-y-6 lg:order-1">
-      <section aria-label="Movimientos de la sede" className="card-cayla overflow-hidden">
+      {/* `overflow-clip`, no `hidden`: `hidden` vuelve a la tarjeta el contenedor de scroll de la búsqueda fija (`sticky top-…` de
+          FiltrosMovimientos) y la dejaba 58 px más abajo, con un hueco vacío arriba (2026-11-02). */}
+      <section aria-label="Movimientos de la sede" className="card-cayla overflow-clip">
         <FiltrosMovimientos
           sububicaciones={sububicaciones}
           sub={sub}
@@ -152,6 +162,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
           desde={filtros.desde ?? ""}
           hasta={filtros.hasta ?? ""}
           resumen={resumenSinProceso ?? resumen}
+          empresas={empresasFiltro}
         />
         {/* `data-resultados` (main, ADR-0149): se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
         <div data-resultados>
@@ -159,7 +170,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
             <MovimientosVacio
               sede={sede}
               periodo={periodo === "todo" ? "todo el historial" : periodo === "personalizado" ? "el período elegido" : periodo === "hoy" ? "hoy" : `los últimos ${periodo} días`}
-              conFiltros={!!(filtros.busqueda || filtros.categoria || filtros.motivo || filtros.sububicacionId)}
+              conFiltros={!!(filtros.busqueda || filtros.categoria || filtros.motivo || filtros.sububicacionId || filtros.empresaId)}
               en90={en90}
               params={params}
             />
@@ -212,9 +223,9 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
   );
 }
 
-/** Las dos vistas de Movimientos (ADR-0328 act. 14): el libro entero y lo que se perdió. Enlaces, no estado: la vista vive en
- *  la URL, se comparte y «atrás» funciona (ADR-0111). */
-function PestanasMovimientos({ activa }: { activa: "movimientos" | "perdidas" }) {
+/** Las tres vistas de Movimientos (ADR-0328 act. 14): el libro entero, lo que entró por modelo y lo que se perdió. Enlaces, no
+ *  estado: la vista vive en la URL, se comparte y «atrás» funciona (ADR-0111). */
+function PestanasMovimientos({ activa }: { activa: "movimientos" | "ingresos" | "perdidas" }) {
   return (
     <Pestanas
       idIndicador="movimientos-vistas"
@@ -223,9 +234,26 @@ function PestanasMovimientos({ activa }: { activa: "movimientos" | "perdidas" })
       activa={activa}
       items={[
         { clave: "movimientos", etiqueta: "Movimientos", href: "/inventario/movimientos", guia: "movimientos.pestana-movimientos" },
+        { clave: "ingresos", etiqueta: "Ingresos", href: hrefIngresos(), guia: "movimientos.pestana-ingresos" },
         { clave: "perdidas", etiqueta: "Pérdidas", href: hrefPerdidas(), guia: "movimientos.pestana-perdidas" },
       ]}
     />
+  );
+}
+
+/** La pestaña «Ingresos»: el rango de la URL (por defecto, 7 días) y la lectura por modelo. Sin filtros de Movimientos: es otra
+ *  pregunta («¿qué llegó?»), con su propio período. Si la base no responde, la vista lo dice (`null`), nunca un 0. */
+async function PaginaIngresos({ ubicacionId, params }: { ubicacionId: string; params: ParamsIngresos }) {
+  const hoy = hoyLima();
+  const rango = rangoIngresos(params, hoy);
+  const [ubicaciones, ingresos] = await Promise.all([getUbicaciones(), getIngresosPorModelo(ubicacionId, rango.desde, rango.hasta)]);
+  const sede = ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "esta sede";
+  return (
+    <div className="space-y-6">
+      <EncabezadoPagina sede={sede} titulo="Movimientos" subtitulo="Ingresos: qué prendas entraron a esta sede, por modelo." />
+      <PestanasMovimientos activa="ingresos" />
+      <IngresosVista ingresos={ingresos} rango={rango} sede={sede} hoy={hoy} />
+    </div>
   );
 }
 

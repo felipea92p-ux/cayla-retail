@@ -107,6 +107,9 @@ const PREFIJOS_METIDOS: readonly string[] = ["BOD"];
 /** Las prendas de arriba que se dibujan por su propio torso (ADR-0449 act. c): blusas, camisas, polos y tops. Las de abrigo (casacas, chalecos, blazers) quedan con la regla de siempre. */
 const PREFIJOS_POR_TORSO: readonly string[] = ["CMS", "BLU", "TOP", "POL", "COR"];
 
+/** Las prendas de abajo que se miden también contra el ancho de la blusa al unirse (ADR-0449 act. 2026-11-09): las faldas. Pantalones, shorts y jeans no. */
+const PREFIJOS_FALDA: readonly string[] = ["FAL"];
+
 /** La zona de una categoría, por su prefijo (nunca por el nombre visible, que se renombra). null: no entra al probador. La regla vive
  *  en `packages/shared` (`zonaDelProbador`): el ERP cuenta con la misma qué prendas preparar (Tienda web ▸ Vitrina ▸ Probador). */
 export function zonaDe(categoria: Prenda["categoria"]): Zona | null {
@@ -155,23 +158,12 @@ export type PrendaDelProbador = {
   metida: boolean;
   /** Se dibuja por el ancho de su propio torso (blusa, camisa, polo, top) y no solo por el largo típico de su categoría. */
   porTorso?: boolean;
+  /** Es una falda: al unirse a la blusa, no se ve más de ×1,05 su ancho (sin que su pretina baje del 92 % del bajo). */
+  falda?: boolean;
   largo: number;
   /** Los colores que se ofrecen, en el orden del catálogo. Al menos uno. */
   colores: ColorDelProbador[];
 };
-
-/**
- * Lo que dice cada color de su stock: la misma nota de la tarjeta del catálogo (`notaDeStock`) y, donde la tarjeta calla porque hay de
- * sobra, dónde hay («Hay en todas las tiendas», «Hay en 2 tiendas»): en el probador cada color dice siempre cuánto hay.
- */
-export function notaDelColor(stock: StockModelo | null, elegida: Tienda | null, tiendas: readonly Tienda[]): NotaStock | null {
-  const nota = notaDeStock(stock, elegida, tiendas);
-  if (nota || !stock || tiendas.length === 0) return nota;
-  const con = tiendas.filter((t) => hayAlgo(stock.sedes[t.id]));
-  if (con.length === 0) return null;
-  if (tiendas.length === 1) return { texto: `Hay en ${tiendas[0].nombre}`, tono: "ok" };
-  return { texto: con.length === tiendas.length ? "Hay en todas las tiendas" : `Hay en ${con.length} tiendas`, tono: "ok" };
-}
 
 /** ¿Hay de este color en la tienda elegida (con «Todas», en alguna)? Sin el dato, sí. */
 export function hayDelColor(stock: StockModelo | null, elegida: Tienda | null): boolean {
@@ -234,7 +226,7 @@ export function armarProbador(
           desde: leido.desde,
           pct: leido.campana && leido.precioFinal < leido.precio ? leido.campana.pct : null,
           hay: hayDelColor(leido.stock, elegida),
-          nota: notaDelColor(leido.stock, elegida, tiendas),
+          nota: notaDeStock(leido.stock, elegida, tiendas),
           solo: conTiendas.length === 1 ? conTiendas[0].nombre : null,
           foto: { ...foto, optimizar: optimizable(foto.url) },
         },
@@ -251,6 +243,7 @@ export function armarProbador(
         zona,
         metida: clave !== null && PREFIJOS_METIDOS.includes(clave),
         porTorso: zona === "arriba" && clave !== null && PREFIJOS_POR_TORSO.includes(clave),
+        falda: zona === "abajo" && clave !== null && PREFIJOS_FALDA.includes(clave),
         largo: extra.largo,
         colores,
       },
@@ -652,6 +645,24 @@ export function puntoDe(zona: Zona, c: Caja): { x: number; y: number } {
   if (zona === "encima") return { x: c.x + 14, y: c.y + 16 };
   if (zona === "bolso") return { x: c.x + c.w - 12, y: c.y + 10 };
   return { x: c.x + c.w - 14, y: c.y + 14 };
+}
+
+/** El ancho de la escena (px de pantalla) en la computadora y su tope en el celular (`.pb-figura` y `.pb`, en `probador.css`), y desde qué ancho es computadora. */
+const ESCENA_EN_PC = 560;
+const ESCENA_EN_CELULAR = 440;
+const ANCHO_DE_PC = 960;
+/** La unión puede agrandar una prenda después de pedida su foto (una blusa, hasta ×1,35): se pide con esta holgura para que no se vea borrosa. */
+const HOLGURA_DEL_TAMANO = 1.2;
+
+/**
+ * El tamaño con que se pide el recorte de una prenda para la figura (el `sizes` de la imagen), a partir de su caja POR SU LARGO (`cajaDe`), no de la
+ * que termina dibujada. Así el pedido es el mismo siempre para la misma prenda —puesta, asomando a un lado o precargada—: la que asoma ya dejó bajada
+ * la foto que se va a ver al pasarla, y la unión, que cambia la caja cuando llega su medida, no hace bajar la foto otra vez. En la computadora la
+ * figura mide 560 px, no los 440 del celular: antes se pedía chica y se estiraba.
+ */
+export function tamanoEnLaFigura(c: Caja): string {
+  const parte = (c.w / ESCENA.ancho) * HOLGURA_DEL_TAMANO;
+  return `(min-width: ${ANCHO_DE_PC}px) ${Math.round(parte * ESCENA_EN_PC)}px, (min-width: ${ESCENA_EN_CELULAR}px) ${Math.round(parte * ESCENA_EN_CELULAR)}px, ${Math.round(parte * 100)}vw`;
 }
 
 /** Una medida del lienzo como % del ancho o del alto de la escena. */

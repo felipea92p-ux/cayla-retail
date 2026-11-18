@@ -1,0 +1,8 @@
+- 2026-11-11 · Recibir (ADR-0636 act. 2026-11-11): «unir» ya no se frena por prendas contadas en el envío de Compras si nada entró al stock (`20261111152000`, sin pegar). Script `scripts/regularizar/2026-11-11-envios-recibidos-sin-aviso.sql` para ENV-009 y ENV-011 de TRU (llegaron sin aviso por ENV-007), sin pegar. 26 pruebas en verde en una base propia con todas las migraciones.
+- 2026-11-11 · Aplicado en producción con el OK de Felipe: la migración y el script. ENV-009 (2 contadas descartadas) y ENV-011 (10) anulados y unidos a ENV-007; las dos compras pasaron al libro; stock y movimientos sin cambio.
+- 2026-11-11 · OC-000008 y OC-000018 seguían en Recibir como «Llegó esta orden» tras unirlas: tres lecturas calculaban lo por mandar sin mirar las uniones. Migración `20261111165000` (sin pegar), prueba U20, 27/27.
+- 2026-11-11 · `20261111165000` aplicada en producción con el OK de Felipe; en TRU ya no queda ninguna orden «Sin guía».
+- 2026-11-11 · ENV-010: `corregir_proveedor_de_marca` (una marca en una recepción cerrada) y unir con faltante solo Admin (Felipe: «Unir con 27»). Migración `20261111175000` y script, sin pegar. 29/29.
+- 2026-11-11 · ENV-010 regularizado en producción con el OK de Felipe: anulado, unido a ENV-005 con 27, compra «completado»; stock y movimientos sin cambio.
+- 2026-11-11 · ENV-002: `dar_compras_por_llegadas` (solo Admin) para compras que entraron por «Nuevo producto» o ajustes; no pasa al libro (antes del arranque). Migración `20261111181000` y script, sin pegar. 30/30 + 84 casos vecinos.
+- 2026-11-11 · ENV-002 regularizado en producción con el OK de Felipe: anulado, 6 compras dadas por llegadas por otra entrada; libros y stock sin cambio. En TRU quedan abiertos ENV-016 y ENV-017.

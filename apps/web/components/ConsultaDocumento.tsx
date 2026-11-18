@@ -6,6 +6,8 @@ import { largoDocumento, soloDigitos, validarDocumento } from "@cayla-retail/sha
 import type { RespuestaPadron } from "@/lib/padron";
 import { Ayuda } from "@/components/Ayuda";
 import { CampoTexto } from "@/components/ui/campos";
+import { useValidarAlSalir } from "@/components/ui/useValidarAlSalir";
+import { LARGO_NOMBRE_DEL_COMPROBANTE, nombreAlCambiarElNumero } from "@/lib/documento-comprobante-reglas";
 
 // Campo de identificación de la clienta para un comprobante: se tipea el número
 // y el sistema muestra a quién pertenece ANTES de emitir.
@@ -79,6 +81,8 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
   // Qué se pidió por última vez, para no repetir la misma llamada (cada una se paga).
   const ultima = useRef<string>("");
   const enVuelo = useRef<AbortController | null>(null);
+  // El nombre que puso el padrón y para qué número: al cambiar el número, no se queda pegado (`nombreAlCambiarElNumero`).
+  const puesto = useRef<{ clave: string; nombre: string } | null>(null);
 
   const etiqueta = ETIQUETA[tipo];
   const validacion = validarDocumento(tipo, numero);
@@ -104,13 +108,26 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
       setConsulta({ clave, fase: "listo", datos });
       // El nombre oficial manda sobre lo escrito a mano: es el que va impreso
       // en el comprobante y el que SUNAT contrasta.
-      if (datos.nombre) onNombre(datos.nombre);
+      if (datos.nombre) {
+        onNombre(datos.nombre);
+        puesto.current = { clave, nombre: datos.nombre };
+      }
     } catch (e) {
       if ((e as Error).name !== "AbortError") {
         setConsulta({ clave, fase: "error", mensaje: "No se pudo consultar" });
       }
     }
   }
+
+  // Otro número: el nombre que trajo el padrón para el anterior se borra (si nadie lo cambió a mano). Si el número nuevo está en el
+  // padrón, la consulta trae el suyo; si no, la caja queda vacía para escribirlo, nunca con el nombre de otra persona.
+  useEffect(() => {
+    const queda = nombreAlCambiarElNumero({ puesto: puesto.current, clave, nombre });
+    if (queda === null) return;
+    puesto.current = null;
+    onNombre(queda);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clave]);
 
   // Modo automático: en cuanto el número es válido, con medio segundo de
   // espera: sin eso, tipear un RUC de 11 dígitos dispararía consultas a medio
@@ -164,13 +181,15 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
   );
 
   const datos = actual?.fase === "listo" ? actual.datos : null;
+  // Un número a medias no está mal: está a medias. Se avisa al salir del campo (ADR-0611, mejora 2); mientras, el contador dice cuánto falta.
+  const avisoNumero = useValidarAlSalir(!vacio && !validacion.valido ? validacion.motivo : null);
 
   // Una sola línea de estado bajo el campo, por prioridad: nunca dos mensajes
   // peleando (si el número es inválido no se dispara consulta, así que en la
   // práctica solo uno puede estar vivo — el orden lo deja garantizado).
   const estado: { pie: React.ReactNode; tono: "neutro" | "error" | "aviso" | "ok" } =
-    !vacio && !validacion.valido
-      ? { pie: validacion.motivo, tono: "error" }
+    avisoNumero.motivo
+      ? { pie: avisoNumero.motivo, tono: "error" }
       : contador && validacion.valido && problemaExterno
         ? { pie: problemaExterno, tono: "error" }
       : actual?.fase === "cargando"
@@ -235,6 +254,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
       placeholder={tipo === "dni" ? "8 dígitos" : "11 dígitos"}
       value={numero}
       onChange={(e) => onNumero(soloDigitos(e.target.value).slice(0, largoDocumento(tipo)))}
+      onBlur={avisoNumero.alSalir}
       onKeyDown={
         disparo === "boton"
           ? (e) => {
@@ -325,6 +345,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
           id="documento-nombre"
           etiqueta={etiqueta.nombre}
           required={obligatorio}
+          maxLength={LARGO_NOMBRE_DEL_COMPROBANTE}
           value={nombre}
           onChange={(e) => onNombre(e.target.value)}
         />

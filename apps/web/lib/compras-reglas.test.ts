@@ -255,3 +255,35 @@ describe("fechaCorta: una fecha o un instante, siempre el día de Lima", () => {
     expect(fechaCorta("2026-10-12T15:00:00.123+00:00")).toBe("12/10/2026");
   });
 });
+
+import { notaSinEnvio, numeroDeEnvioEnNota } from "./compras-reglas";
+describe("número de envío en la nota del lote", () => {
+  it("lo lee y lo quita de la nota", () => {
+    expect(numeroDeEnvioEnNota("Envío ENV-000254 · Costo atípico confirmado")).toBe("ENV-000254");
+    expect(notaSinEnvio("Envío ENV-000254 · Costo atípico confirmado")).toBe("Costo atípico confirmado");
+    expect(notaSinEnvio("Envío ENV-000254")).toBeNull();
+    expect(numeroDeEnvioEnNota("caja mojada")).toBeNull();
+    expect(notaSinEnvio("caja mojada")).toBe("caja mojada");
+  });
+});
+
+import { ofreceAnularCompra } from "./compras-reglas";
+// Auditoría 2026-11-15: el detalle ofrecía «Anular comprobante» en una compra de «Mis compras» ya recibida.
+describe("¿se ofrece «Anular comprobante»?", () => {
+  const compra = { estado: "vigente", pagado: 0, recibidoCantidad: 0, naturaleza: "mercaderia" } as const;
+  const permisos = { tieneRecepciones: false, permiteFacturas: true };
+  it("vigente, sin pagos y sin nada recibido: sí", () => {
+    expect(ofreceAnularCompra(compra, permisos)).toBe(true);
+    expect(ofreceAnularCompra({ ...compra, naturaleza: undefined }, permisos)).toBe(true);
+  });
+  it("con mercadería que entró antes del comprobante (no deja movimientos en sus líneas): no", () => {
+    expect(ofreceAnularCompra({ ...compra, recibidoCantidad: 12 }, permisos)).toBe(false);
+  });
+  it("con recepciones contra la factura, con pagos, anulada, de gasto o sin permiso: no", () => {
+    expect(ofreceAnularCompra(compra, { ...permisos, tieneRecepciones: true })).toBe(false);
+    expect(ofreceAnularCompra({ ...compra, pagado: 10 }, permisos)).toBe(false);
+    expect(ofreceAnularCompra({ ...compra, estado: "anulada" }, permisos)).toBe(false);
+    expect(ofreceAnularCompra({ ...compra, naturaleza: "gasto" }, permisos)).toBe(false);
+    expect(ofreceAnularCompra(compra, { ...permisos, permiteFacturas: false })).toBe(false);
+  });
+});

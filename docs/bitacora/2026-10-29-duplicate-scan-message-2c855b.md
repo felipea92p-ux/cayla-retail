@@ -1,0 +1,5 @@
+## 2026-10-29 (El aviso de prenda repetida se entiende a la primera: franja chica y cámara tapada)
+Qué hice: rediseñé `AvisoRepetida` («Ya está en la lista · ¿Sumar otra?», foto, «1 → 2», Sumar / No, «Cambiar cantidad»), saqué la píldora de lecturas ignoradas, el «Esc =» y el triángulo, y en la cámara (`EscanerConteo`, prop `pregunta`) el aviso tapa el visor con un velo y la cámara deja de leer hasta responder. Textos de ayuda y guías al día.
+Por qué así: Felipe eligió mirando la franja chica; «Sumar» y «No» pesan igual para no empujar al error que el aviso evita; la regla pura (`decidirLectura`) no cambió. Sin migración.
+Después, `/formidable` (leyes 7,0, oficio 8; informe `docs/formidable/inventario-bajar.md`) y sus 3 cambios con tu OK: la bandeja de la cámara sin −/+ mientras pregunta, el nombre entero con la tarjeta topada, y el rastro «No se sumó» con «Deshacer». `/chaos` en la pantalla real con un banco propio: 9 ataques, 0 hallazgos, 0 violaciones nuevas.
+Felipe se lleva: verlo con la cámara del teléfono y la pistola en la tienda (en el navegador probé franja a 394 y 1440 px y la cámara sin video).

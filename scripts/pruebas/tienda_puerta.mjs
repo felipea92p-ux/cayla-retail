@@ -235,8 +235,9 @@ function main() {
     "ZZ Corta",
   );
   esperarValor(
-    "una de urgencia («Para liquidar») no se anuncia aunque termine antes",
-    correr(`${PREPARAR}${campana("ZZ Corta", { hasta: 3 })}${campana("ZZ Liquidar", { estilo: "urgencia", pct: 40, hasta: 1 })}${NOMBRE}`),
+    "una campaña con «Anunciar en la portada» apagado («Para liquidar», ADR-0655) no se anuncia aunque termine antes",
+    correr(`${PREPARAR}${campana("ZZ Corta", { hasta: 3 })}${campana("ZZ Liquidar", { pct: 40, hasta: 1 })}update retail.etiquetas set anunciar_en_portada = false where nombre = 'ZZ Liquidar';
+${NOMBRE}`),
     "ZZ Corta",
   );
   for (const [caso, opciones] of [

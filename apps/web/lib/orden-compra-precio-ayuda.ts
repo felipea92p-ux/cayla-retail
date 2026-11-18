@@ -27,16 +27,10 @@
 // (`fn_costo_fuera_de_banda`: sube > 2×, baja < 2/3), para que la orden avise ANTES de que lo haga la recepción.
 
 import { soles } from "./compras-reglas";
+import { conRebajaCts, cts, GANANCIA_TRAS_REBAJA_POR_MIL, IGV, margenPorMilCts, REBAJA_FUERTE_PCT } from "./cuenta-de-precio";
 
-/** La tasa del IGV. */
-export const IGV = 1.18;
-
-/** La rebaja fuerte con la que se prueba el piso: el tope de un líder a mano en caja (ADR-0054). */
-export const REBAJA_FUERTE_PCT = 35;
 /** La rebaja que se muestra al lado: desde ahí caja pide un argumento escrito (2026-09-25). */
 export const REBAJA_MEDIA_PCT = 15;
-/** Lo que debe quedar del precio ya rebajado, en milésimas (20 %). */
-export const GANANCIA_TRAS_REBAJA_POR_MIL = 200;
 /** La ganancia en lista a partir de la cual se pide confirmar costo y precio, en milésimas (85 %). */
 export const GANANCIA_SOSPECHOSA_POR_MIL = 850;
 /** Menos prendas que esto en la categoría y no hay con qué comparar. */
@@ -55,7 +49,8 @@ export type ClaveMotivo = "alto" | "bajo" | "perdida" | "cero" | "confirmar" | "
 
 export type Motivos = { pregunta: string; opciones: readonly string[] };
 
-/** Las listas cortas que la franja ofrece cuando un aviso abre una pregunta. */
+/** Las listas cortas que la franja ofrece cuando un aviso abre una pregunta.
+ *  @internal La ayuda de precio de «Nueva orden de compra» espera su pantalla (`knip.ts`, `ignoreFiles` de producción); desde `recibir-margen#1` el archivo ya lo importa la línea del margen, que solo usa `cuentaDeLinea`. */
 export const MOTIVOS: Readonly<Record<ClaveMotivo, Motivos>> = {
   alto: {
     pregunta: "¿Qué ve el cliente que justifique pagar más? (puedes marcar varias)",
@@ -187,22 +182,10 @@ export type AyudaDePrecio = {
 
 /* ───────────────────────── La cuenta, en céntimos enteros ───────────────────────── */
 
-const cts = (n: number): number => Math.round(n * 100);
 const soles2 = (c: number): number => c / 100;
 
-/** Hacia abajo al S/ 0.10 (ADR-0403), en céntimos. */
-function conRebajaCts(precioCts: number, pct: number): number {
-  return Math.floor((precioCts * (100 - pct)) / 1000) * 10;
-}
-
-/** La ganancia sobre el precio sin IGV, en milésimas redondeadas a un decimal de %. `null` si el precio no es positivo. */
-function margenPorMilCts(precioCts: number, costoRealCts: number): number | null {
-  if (precioCts <= 0) return null;
-  const ps = precioCts / IGV;
-  return Math.round(((ps - costoRealCts) / ps) * 1000);
-}
-
-/** ¿Este precio, ya rebajado `REBAJA_FUERTE_PCT` %, deja al menos `dejando` milésimas? */
+/** ¿Este precio, ya rebajado `REBAJA_FUERTE_PCT` %, deja al menos `dejando` milésimas? Con el margen redondeado a una décima, como lo muestra
+ *  esta ayuda; el piso de la cuenta única compara sin redondear (`pisoDelPrecio`, ADR-0668). */
 function aguantaCts(precioCts: number, costoRealCts: number, dejando: number): boolean {
   const pd = conRebajaCts(precioCts, REBAJA_FUERTE_PCT);
   if (pd <= 0) return false;
@@ -611,6 +594,7 @@ function avisosConPrecio(d: Datos): AvisoDePrecio[] {
 /**
  * La ayuda de una línea: la cuenta, la rebaja y los avisos. Pura y total: cualquier combinación de campos vacíos o raros devuelve algo
  * coherente (sin `NaN` en los textos) y nunca lanza.
+ * @internal La ayuda de precio de «Nueva orden de compra» espera su pantalla (`knip.ts`, `ignoreFiles` de producción); desde `recibir-margen#1` el archivo ya lo importa la línea del margen, que solo usa `cuentaDeLinea`.
  */
 export function ayudaDePrecio(e: EntradaAyudaPrecio): AyudaDePrecio {
   const vacia: AyudaDePrecio = { cuenta: null, rebaja15: null, rebaja35: null, precioMinimo: null, precioHabitual: null, avisos: [] };

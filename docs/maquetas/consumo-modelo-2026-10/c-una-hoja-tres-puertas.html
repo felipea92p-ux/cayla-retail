@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>C · Una hoja, tres puertas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+<style>
+  /* Dirección C · UNA hoja «Ficha de consumo» que se abre desde Editar producto, desde Nueva orden y desde la orden abierta. Quien la guarda elige el alcance. */
+  .hoja-orden{border:1px solid var(--color-sand);border-radius:20px;background:var(--color-papel);padding:22px 24px}
+  .hoja-orden h2{font:400 24px/1.15 var(--font-serif)}
+  .alcance{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 4px}
+  .alcance label{display:grid;grid-template-columns:20px 1fr;gap:10px;padding:10px 12px;border:1px solid var(--color-sand);border-radius:12px;cursor:pointer;align-items:start}
+  .alcance label:has(input:checked){border-color:var(--color-tinta);background:color-mix(in srgb,var(--color-hueso) 55%,transparent)}
+  .alcance label.off{opacity:.55;cursor:not-allowed}
+  .alcance input{margin-top:3px;accent-color:var(--color-tinta)}
+  .alcance b{display:block}
+  .h-cols{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:22px;align-items:start;margin-top:14px}
+  @media (max-width:900px){.h-cols{grid-template-columns:1fr}}
+  @media (max-width:700px){.alcance{grid-template-columns:1fr}}
+  .t3{display:grid;grid-template-columns:minmax(120px,1fr) repeat(2,112px);gap:10px 12px;align-items:end;margin-top:8px}
+  .peldanos{display:grid;gap:0;position:relative;margin:4px 0 0;padding-left:2px}
+  .peldano{display:grid;grid-template-columns:22px 1fr;gap:10px;padding:0 0 14px;position:relative}
+  .peldano:not(:last-child)::before{content:"";position:absolute;left:10px;top:20px;bottom:0;width:1px;background:var(--color-sand)}
+  .peldano .bola{width:20px;height:20px;border-radius:999px;border:1.5px solid var(--color-sand);display:grid;place-items:center;background:var(--color-papel);color:var(--color-papel)}
+  .peldano.hecho .bola{border-color:var(--color-verde);background:var(--color-verde)}
+  .peldano.ahora .bola{border-color:var(--color-tinta);box-shadow:0 0 0 3px color-mix(in srgb,var(--color-tinta) 12%,transparent)}
+  .peldano.ahora .bola::after{content:"";width:8px;height:8px;border-radius:999px;background:var(--color-tinta)}
+  .peldano b{display:block;font-size:13.5px}
+  .peldano small{display:block;font-size:12px;color:var(--color-tinta-60)}
+  .peldano.futuro{opacity:.6}
+  .av3{display:grid;grid-template-columns:minmax(130px,1fr) 150px minmax(190px,auto) 28px;gap:8px 12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--color-sand)}
+  .av3:last-of-type{border-bottom:0}
+  .av3 .nom b{display:block;font-weight:600}.av3 .nom small{font-size:12px;color:var(--color-tinta-60)}
+  .av3 .sub{grid-column:1/-1;font-size:12.5px;color:var(--color-tinta-60);display:flex;flex-wrap:wrap;gap:4px 12px}
+  .av3 .sub .falta{color:var(--color-ambar-profundo);font-weight:600}
+  .av3 .sub span{display:inline-flex;gap:6px;align-items:center}
+  .puerta{display:inline-flex;gap:6px;align-items:center}
+  .seccion-ficha{border:1px solid var(--color-sand);border-radius:14px;padding:14px 16px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--color-papel)}
+  .seccion-ficha b{font:400 17px/1.2 var(--font-serif)}
+  .orden-sec{border:1px solid var(--color-sand);border-radius:16px;background:var(--color-papel);padding:18px 20px}
+</style>
+</head>
+<body>
+<script src="_comun.js" charset="utf-8"></script>
+<script>
+/* Dirección C — «Una hoja, tres puertas». DECISIÓN que propone: la ficha de consumo se escribe en UN solo lugar (la hoja), y esa hoja se abre desde las tres pantallas donde
+   hoy se habla de tela: Editar producto, Nueva orden y la orden abierta. Quien la guarda elige: «solo esta orden» o «esta orden y la ficha del modelo». Lo medido manda solo
+   desde la 3.ª orden cerrada (regla de Felipe, 16 oct), a la vista y con «Volver a Audaces». */
+const ESTADOS = [
+  { id: 'producto', txt: 'Puerta 1 · Editar producto' },
+  { id: 'nueva', txt: 'Puerta 2 · Nueva orden' },
+  { id: 'abierta', txt: 'Puerta 3 · Orden abierta' },
+  { id: 'aproximado', txt: 'Solo se sabe un número' },
+  { id: 'medido', txt: 'Lo medido manda (3.ª orden)' },
+  { id: 'solo-lectura', txt: 'Sin permiso de Producción' },
+];
+const H = { alcance: 'orden', pest: 'tela', modo: 'talla', S: '1.150', M: '1.200', una: '1.200', avios: [], medido: false, revertido: false, lectura: false, origen: 'nueva', n: 2 };
+const CABLE = { api: null };
+let ULTIMO = null;
+
+function arrancarHoja(est) {
+  H.origen = est === 'producto' || est === 'solo-lectura' ? 'producto' : est === 'abierta' ? 'abierta' : 'nueva';
+  H.alcance = H.origen === 'producto' ? 'ficha' : 'orden';
+  H.pest = 'tela'; H.modo = est === 'aproximado' ? 'una' : 'talla';
+  H.S = FICHA_AUDACES.tela.S; H.M = FICHA_AUDACES.tela.M; H.una = '1.200';
+  H.avios = FICHA_AUDACES.avios.map((a) => ({ ...a }));
+  H.medido = est === 'medido'; H.revertido = false; H.lectura = est === 'solo-lectura'; H.n = est === 'medido' ? 3 : 2;
+  if (est === 'medido') { const m = medidoDeCerradas(FICHA_AUDACES.tela); H.S = m.S; H.M = m.M; }
+}
+/** En qué escalón está lo que dice la ficha hoy. */
+const escalon = () => (H.modo === 'una' ? 'estimado' : H.medido && !H.revertido ? 'medido' : 'audaces');
+
+function dibujar(est, host) {
+  if (ULTIMO !== est) { ULTIMO = est; arrancarHoja(est); }
+  const marco = H.origen === 'producto' ? paginaProducto() : H.origen === 'abierta' ? paginaOrdenAbierta() : paginaNuevaOrden();
+  host.innerHTML = marco;
+  if (H.origen !== 'producto') montarBloque(est);
+  const puerta = $('#puerta');
+  puerta && puerta.addEventListener('click', () => abrir());
+  abrir();
+}
+
+/* ── las tres puertas ── */
+function paginaProducto() {
+  return cabecera({ eyebrow: 'Catálogo · Productos', titulo: 'Editar producto', frase: `${MODELO.cod} · ${MODELO.nombre} · 4 colores · tallas S y M · S/ ${MODELO.precio}` }) +
+    `<div class="stack"><div class="seccion-ficha" style="opacity:.6"><b>Precios y existencias</b><span class="sutil">Sin cambios</span></div>
+     <div class="seccion-ficha" data-guia="puerta-producto"><div><b>Ficha de consumo</b><p class="sutil">Cuánta tela y qué avíos lleva una prenda de este modelo. Es lo que usan las órdenes de producción.</p></div>
+       <div class="fila-flex"><span class="chip ${escalon() === 'medido' ? 'verde' : escalon() === 'estimado' ? 'ambar hueco sin' : 'pizarra'}">${{ medido: 'Medido', estimado: 'Aproximado', audaces: 'Audaces' }[escalon()]}</span><span class="sutil num">S ${H.modo === 'una' ? H.una : H.S} · M ${H.modo === 'una' ? H.una : H.M} m</span><button class="btn sec puerta" id="puerta" type="button">${ic('lapiz', 's')}${H.lectura ? 'Ver la ficha' : 'Abrir la ficha'}</button></div></div></div>`;
+}
+function paginaNuevaOrden() {
+  return cabecera({ eyebrow: 'Producción · Órdenes', titulo: 'Nueva orden', frase: `${MODELO.nombre} · ${TOTAL} prendas en 4 colores` }) +
+    `<div class="hoja-orden"><div class="fila-flex" style="justify-content:space-between;margin-bottom:14px"><h2>${MODELO.nombre}</h2><span class="sutil num">${TOTAL} prendas · ${prendasTalla('S')} S · ${prendasTalla('M')} M</span></div><div id="bloque"></div>
+      <div class="pie-acciones"><button class="btn sec" type="button">Cancelar</button><button class="btn prim" type="button">Abrir orden</button></div></div>`;
+}
+function paginaOrdenAbierta() {
+  return cabecera({ eyebrow: 'Producción · Órdenes', titulo: 'OP-339', frase: `${MODELO.nombre} · ${TOTAL} prendas · en Corte`, derecha: '<span class="chip pizarra">En proceso</span>' }) +
+    `<div class="orden-sec"><div id="bloque"></div></div>
+     <p class="sutil" style="margin-top:12px">Si ya se anotó tela usada en esta orden, la hoja no deja quitar esa tela (regla de ADR-0510): solo corregir cuánto lleva cada prenda.</p>`;
+}
+function montarBloque(est) {
+  const ficha = { tela: H.modo === 'una' ? { una: H.una } : { S: H.S, M: H.M }, avios: FICHA_AUDACES.avios.map((a) => ({ ...a })) };
+  CABLE.api = BloqueOrden($('#bloque'), {
+    modo: 'puerta', ficha,
+    cabecera: (api) => `${api.s.soloEsta ? '<span class="chip ambar sin">Ajustada solo para esta orden</span>' : `<span class="chip ${escalon() === 'medido' ? 'verde' : escalon() === 'estimado' ? 'ambar hueco sin' : 'pizarra'}">Ficha del modelo · ${{ medido: 'medido', estimado: 'aproximado', audaces: 'Audaces' }[escalon()]}</span>`}<button class="btn chico sec puerta" id="puerta" type="button">${ic('puerta', 's')}Ficha de consumo</button>`,
+    alMontar: (h) => { const p = $('#puerta', h); p && p.addEventListener('click', () => abrir()); },
+  });
+}
+
+
+/** Lo que pediría la orden de ejemplo con lo que dice la hoja (por color), para que se vea qué cambia al escribir. */
+function pedidoEjemplo(total) {
+  const c = H.modo === 'una' ? { S: Number(H.una), M: Number(H.una) } : { S: Number(H.S), M: Number(H.M) };
+  if (total === null) return '';
+  return `<div style="margin-top:14px"><span class="etq">Si abrieras hoy la orden de ejemplo</span><table class="tabla num" style="margin-top:4px"><tbody>
+    ${COLORES.map((x) => `<tr><td><span class="punto" style="--hex:${x.hex}"></span> ${x.n}</td><td class="r sutil">${prendasColor(x.c)} prendas</td><td class="r"><b>${H.modo === 'una' ? '≈ ' : ''}${f1(aPedir(planTela(x.c, c), 'metro'))} m</b></td></tr>`).join('')}
+    <tr><td><b>Tela en total</b></td><td class="r sutil">${TOTAL} prendas</td><td class="r"><b>${H.modo === 'una' ? '≈ ' : ''}${f1(total)} m</b></td></tr></tbody></table></div>`;
+}
+
+/* ── la hoja: la misma en las tres puertas ── */
+function abrir() {
+  const plan = () => {
+    const c = H.modo === 'una' ? { S: Number(H.una), M: Number(H.una) } : { S: Number(H.S), M: Number(H.M) };
+    return Number.isFinite(c.S) && c.S > 0 && Number.isFinite(c.M) && c.M > 0 ? COLORES.reduce((s, x) => s + aPedir(planTela(x.c, c), 'metro'), 0) : null;
+  };
+  const med = medidoDeCerradas(FICHA_AUDACES.tela);
+  const tituloAccion = H.alcance === 'ficha' ? 'Guardar en la ficha' : 'Guardar para esta orden';
+  const cuerpo = (hoja) => {
+    const ro = H.lectura;
+    const e = escalon();
+    const total = plan();
+    const sn = Number(H.S), mn = Number(H.M);
+    const alc = H.origen === 'producto' ? '' : `<div class="alcance" role="radiogroup" aria-label="Para qué guardar">
+        <label><input type="radio" name="alc" value="orden" ${H.alcance === 'orden' ? 'checked' : ''}><span><b>Solo esta orden</b><span class="sutil">La ficha del modelo no cambia.</span></span></label>
+        <label class="${ro ? 'off' : ''}"><input type="radio" name="alc" value="ficha" ${H.alcance === 'ficha' ? 'checked' : ''} ${ro ? 'disabled' : ''}><span><b>Esta orden y la ficha del modelo</b><span class="sutil">La próxima orden lo propone sola. Las abiertas no cambian.</span></span></label></div>`;
+    const avioFila = H.avios.map((a) => {
+      const r = resolverAvio(a);
+      return `<div class="av3"><div class="nom"><b>${esc(a.nombre)}</b><small>${{ todas: 'Toda la orden', color: 'Cada color', talla: 'Cada talla' }[a.para]}</small></div>
+        <div class="campo"><div class="caja mono ${ro ? 'lectura' : ''}"><input data-f="av-${a.id}" data-fa="${a.id}" inputmode="decimal" value="${esc(a.cant)}" ${ro ? 'readonly' : ''} aria-label="${esc(a.nombre)} por prenda"><span class="suf">${UNIDADES[a.unidad].corta}/prenda</span></div></div>
+        <div class="seg" role="group" aria-label="Para">${[['todas', 'Toda'], ['color', 'Color'], ['talla', 'Talla']].map(([v, t]) => `<button type="button" data-para="${a.id}:${v}" aria-pressed="${a.para === v}" ${ro ? 'disabled' : ''}>${t}</button>`).join('')}</div>
+        <button class="btn chico sut" type="button" data-quita="${a.id}" aria-label="Quitar ${esc(a.nombre)}" ${ro ? 'disabled' : ''}>${ic('x', 's')}</button>
+        ${a.para === 'todas' ? '' : `<div class="sub">${r.lineas.map((l) => `<span class="${l.falta ? 'falta' : ''}">${l.hex ? `<span class="punto" style="--hex:${l.hex}"></span>` : ''}${l.etq}: ${l.falta ? 'sin insumo de ese color' : fq(l.pedir, a.unidad)}</span>`).join('')}</div>`}</div>`;
+    }).join('');
+
+    const telaCuerpo = `<div class="fila-flex" style="justify-content:space-between;margin-top:14px"><div><h3 class="serif" style="font:400 17px/1.2 var(--font-serif)">Tela principal</h3><p class="sutil">Metros que lleva una prenda.</p></div>
+        <div class="seg" role="group" aria-label="Cuántas cifras"><button type="button" data-modo="una" aria-pressed="${H.modo === 'una'}" ${ro ? 'disabled' : ''}>Una cifra</button><button type="button" data-modo="talla" aria-pressed="${H.modo === 'talla'}" ${ro ? 'disabled' : ''}>Por talla</button></div></div>
+      ${H.modo === 'talla'
+        ? `<div class="t3"><span></span>${TALLAS.map((t) => `<div class="campo"><label for="h-${t}">Talla ${t}</label><div class="caja mono ${ro ? 'lectura' : ''}"><input id="h-${t}" data-f="${t}" inputmode="decimal" value="${esc(H[t])}" ${ro ? 'readonly' : ''}><span class="suf">m</span></div></div>`).join('')}</div>
+           <p class="sutil num" style="margin-top:8px">${total !== null ? `La M gasta ${pct(mn, sn)} que la S.` : 'Escribe los metros con punto, por ejemplo 1.150.'}</p>${pedidoEjemplo(total)}`
+        : `<div class="t3" style="grid-template-columns:minmax(0,1fr) 160px auto"><span></span><div class="campo"><label for="h-u">Todas las tallas</label><div class="caja mono ${ro ? 'lectura' : ''}"><input id="h-u" data-f="una" inputmode="decimal" value="${esc(H.una)}" ${ro ? 'readonly' : ''}><span class="suf">m</span></div></div><div style="align-self:end"><button class="btn chico sec" type="button" id="separar" ${ro ? 'disabled' : ''}>Separar por talla</button></div></div>
+           <div class="aviso" style="margin-top:10px">${ic('alerta')}<span>Con un solo número, la orden pide <b class="num">≈ ${total !== null ? f1(total) : '—'} m</b> y se marca «aproximado». Es un punto de partida: lo medido lo afina.</span></div>${pedidoEjemplo(total)}`}`;
+
+    const pasos = [
+      ['estimado', 'Estimado', 'Un número para todas las tallas'],
+      ['audaces', 'Audaces', 'El consumo calculado por talla'],
+      ['medido', 'Medido', 'Lo que se gastó de verdad, desde la 3.ª orden cerrada'],
+    ];
+    const idx = ['estimado', 'audaces', 'medido'].indexOf(e);
+    const lado = `<aside class="stack" aria-label="De dónde sale cada número">
+      <div><p class="eyebrow" style="margin-bottom:10px">De dónde sale el número</p><div class="peldanos">${pasos.map(([k, t, d], i) => `<div class="peldano ${i < idx ? 'hecho' : i === idx ? 'ahora' : 'futuro'}"><span class="bola">${i < idx ? ic('check', 's') : ''}</span><div><b>${t}</b><small>${i === idx ? d : d}</small></div></div>`).join('')}</div></div>
+      <div class="cifra" style="padding:10px 14px"><span class="sutil">Órdenes cerradas de este modelo</span>
+        <div class="fila-flex" style="margin-top:6px;justify-content:space-between"><b class="serif num" style="font:400 24px/1 var(--font-serif)">${H.medido ? 3 : H.n} de 3</b><span class="chip ${H.medido && !H.revertido ? 'verde' : 'sin'}">${H.medido && !H.revertido ? 'Manda lo medido' : 'Manda ' + (H.modo === 'una' ? 'tu estimado' : 'Audaces')}</span></div>
+        <div class="barra ${H.medido ? 'ok' : ''}" style="margin-top:8px"><i style="width:${Math.round(((H.medido ? 3 : H.n) / 3) * 100)}%"></i></div></div>
+      ${H.medido ? `<div class="aviso exito">${ic('check')}<span>${H.revertido ? 'Volviste a Audaces.' : `Con la OP-338 mandó lo medido: <b class="num">${med.porPrenda.toFixed(3)} m</b> en promedio, ${pct(med.porPrenda, med.promDecl)} sobre Audaces. Las órdenes abiertas no cambian.`}</span></div>
+        <div class="fila-flex"><button class="btn chico sec" type="button" id="revierte" ${ro ? 'disabled' : ''}>${ic('deshacer', 's')}${H.revertido ? 'Usar lo medido otra vez' : 'Volver a Audaces'}</button><button class="btn chico sut" type="button" id="hist">${ic('historial', 's')}Ver las 3 órdenes</button></div>
+        <div id="historial"></div>` : `<div class="nota">${ic('info')}<span>Todavía no manda lo medido: faltan ${3 - H.n} ${3 - H.n === 1 ? 'orden cerrada' : 'órdenes cerradas'}. Cuando llegue la 3.ª, la ficha toma lo que se gastó de verdad y te lo dice aquí.</span></div>`}</aside>`;
+
+    hoja.querySelector('.cuerpo').innerHTML = `${ro ? `<div class="aviso info" style="margin-top:10px">${ic('lock')}<span>La ficha de consumo la edita el Taller (quien tiene Producción). Tu cuenta la ve, pero no la cambia.</span></div>` : ''}${alc}
+      <div class="h-cols"><div>
+        <div class="pest" role="group" aria-label="Qué parte"><button type="button" data-p="tela" aria-pressed="${H.pest === 'tela'}">Tela</button><button type="button" data-p="avios" aria-pressed="${H.pest === 'avios'}">Avíos</button></div>
+        ${H.pest === 'tela' ? telaCuerpo : `<div style="margin-top:10px">${avioFila || '<p class="sutil">Sin avíos.</p>'}</div>`}</div>${lado}</div>`;
+    hoja.querySelector('#guarda').textContent = tituloAccion;
+    hoja.querySelector('#guarda').disabled = ro;
+    enlazar(hoja);
+  };
+  abrirHoja({ ancho: 940, html: `<h2>Ficha de consumo · ${MODELO.nombre}</h2><p class="bajada">${H.origen === 'producto' ? 'Lo que lleva una prenda de este modelo. Las órdenes nuevas lo proponen.' : H.origen === 'abierta' ? 'OP-339 · cambia lo que lleva esta orden, y si quieres, el modelo.' : 'Lo que lleva una prenda, para esta orden y, si quieres, para el modelo.'}</p><div class="cuerpo"></div>
+      <div class="pie-acciones"><button class="btn sec" data-cierra type="button">${H.lectura ? 'Cerrar' : 'Cancelar'}</button><button class="btn prim" type="button" id="guarda">Guardar</button></div>`,
+    alMontar: (hoja, cerrar) => {
+      H.pintarCuerpo = cuerpo;
+      cuerpo(hoja);
+      $('#guarda', hoja).addEventListener('click', () => {
+        const tela = H.modo === 'una' ? { una: H.una } : { S: H.S, M: H.M };
+        if (CABLE.api) CABLE.api.poner({ tela, avios: H.avios, enFicha: H.alcance === 'ficha' });
+        cerrar();
+        toast(H.alcance === 'ficha' ? 'Guardado en la ficha del modelo. (Maqueta: no se escribió nada.)' : 'Guardado para esta orden. La ficha del modelo sigue igual.');
+        if (H.origen === 'producto') { ULTIMO = null; NAV.estado = 'producto'; }
+      });
+    } });
+}
+
+function enlazar(hoja) {
+  const repinta = () => { const cuerpoEl = hoja.querySelector('.cuerpo'); const foco = document.activeElement; const f = foco && cuerpoEl.contains(foco) ? { f: foco.dataset.f, p: foco.selectionStart } : null; abrirContenido(hoja); if (f && f.f) { const n = $(`[data-f="${f.f}"]`, hoja); if (n && !n.readOnly) { n.focus(); try { n.setSelectionRange(f.p, f.p); } catch (_) { /* sin selección */ } } } };
+  $$('[data-p]', hoja).forEach((b) => b.addEventListener('click', () => { H.pest = b.dataset.p; repinta(); }));
+  $$('[data-modo]', hoja).forEach((b) => b.addEventListener('click', () => { if (H.modo === b.dataset.modo) return; H.modo = b.dataset.modo; repinta(); }));
+  $$('input[data-f="S"],input[data-f="M"],input[data-f="una"]', hoja).forEach((i) => i.addEventListener('input', () => { H[i.dataset.f] = i.value.trim(); repinta(); }));
+  $$('input[data-fa]', hoja).forEach((i) => i.addEventListener('input', () => { H.avios.find((a) => a.id === i.dataset.fa).cant = i.value.trim(); repinta(); }));
+  $$('[data-para]', hoja).forEach((b) => b.addEventListener('click', () => { const [id, v] = b.dataset.para.split(':'); H.avios.find((a) => a.id === id).para = v; repinta(); }));
+  $$('[data-quita]', hoja).forEach((b) => b.addEventListener('click', () => { H.avios = H.avios.filter((a) => a.id !== b.dataset.quita); repinta(); }));
+  $$('input[name="alc"]', hoja).forEach((r) => r.addEventListener('change', () => { H.alcance = r.value; repinta(); }));
+  const sep = $('#separar', hoja); sep && sep.addEventListener('click', () => { H.S = H.una; H.M = H.una; H.modo = 'talla'; repinta(); });
+  const rev = $('#revierte', hoja); rev && rev.addEventListener('click', () => {
+    H.revertido = !H.revertido;
+    const m = medidoDeCerradas(FICHA_AUDACES.tela);
+    H.S = H.revertido ? FICHA_AUDACES.tela.S : m.S; H.M = H.revertido ? FICHA_AUDACES.tela.M : m.M;
+    repinta();
+  });
+  const hist = $('#hist', hoja); hist && hist.addEventListener('click', () => {
+    const c = $('#historial', hoja);
+    c.innerHTML = c.innerHTML ? '' : `<table class="tabla num" style="margin-top:8px"><tbody>${CERRADAS.map((o) => `<tr><td>${o.op}</td><td class="r">${o.buenas} buenas</td><td class="r">${(o.metros / o.buenas).toFixed(3)} m</td></tr>`).join('')}</tbody></table>`;
+  });
+}
+/** Repinta el cuerpo de la hoja ya abierta (misma función que la primera vez). */
+function abrirContenido(hoja) { H.pintarCuerpo && H.pintarCuerpo(hoja); }
+
+arrancarMaqueta({ clave: 'c', titulo: 'Consumo del modelo · C «Una hoja, tres puertas»', estados: ESTADOS, inicial: 'nueva', lateralActivo: 'ordenes', dibujar });
+</script>
+</body>
+</html>

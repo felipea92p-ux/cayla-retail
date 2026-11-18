@@ -286,10 +286,56 @@ function prendasYDeDonde(prendas: number, aMano: number, categorias: readonly st
   return `${n}: ${prendas - aMano} de ${cats} y ${marcadas}`;
 }
 
-export type ItemListo = { clave: "fechas" | "prendas" | "descuento" | "ofertas"; nombre: string; hecho: boolean; opcional: boolean; detalle: string };
+export type PreguntaCampana = { clave: "oferta" | "prendas" | "cuando"; nombre: string; hecho: boolean; detalle: string };
 
-/** Lo que ya tiene una campaña. Fechas y prendas son lo que la hace funcionar; el descuento es opcional (una campaña puede ser solo
- *  de vitrina). Sale de lo mismo que ya decide la pantalla («Sin prendas», «Sin preparar»): no agrega reglas. */
+/**
+ * Las tres preguntas de una campaña en Catálogo ▸ Campañas y ofertas (ADR-0655, Felipe 2026-11-13): qué le das al cliente, en qué prendas y
+ * cuándo y dónde. Reemplazan a «Lo que ya tiene» y a los cuatro botones del pase: cada una dice si está respondida y lleva a donde se responde.
+ * Una oferta en borrador no cuenta como respondida: todavía no baja nada en la caja. «Cuándo y dónde» siempre está respondida: sin fechas, la
+ * campaña rige siempre (Felipe 2026-10-28) y sin tiendas elegidas rige en todas (ADR-0486). Sale de lo que la pantalla ya decide: no agrega reglas.
+ */
+export function preguntasDeCampana(
+  f: FilaSello,
+  prendas: number,
+  categorias: readonly string[],
+  hoy: string,
+  aMano: number,
+  ofertas: { activas: number; borradores: number },
+  dondeRige: string | null,
+  /** Alguna de sus ofertas elige sus propias prendas (categorías, modelos, insignias o toda la compra; ADR-0655): la campaña llega a
+   *  prendas aunque no tenga ninguna propia. Sin esto decía «Ninguna todavía» y llevaba a marcar prendas sueltas. */
+  ofertasEligen = false,
+): PreguntaCampana[] {
+  const propias = prendas > 0 || categorias.length > 0;
+  const llega = propias || ofertasEligen;
+  const pct = f.descuentoPct !== null ? f.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 }) : null;
+  const porActivar = ofertas.borradores > 0 ? ` · ${plural(ofertas.borradores, "por activar", "por activar")}` : "";
+  const oferta =
+    ofertas.activas > 0
+      ? `${plural(ofertas.activas, "oferta activa", "ofertas activas")}${porActivar}`
+      : pct !== null
+        ? `${pct} % en todas sus prendas${porActivar}`
+        : ofertas.borradores > 0
+          ? `${plural(ofertas.borradores, "oferta sin activar", "ofertas sin activar")}: todavía no baja nada`
+          : "Ninguna: sin oferta, la campaña solo pone su insignia";
+  const cuando = rangoCorto(f.vigenteDesde, f.vigenteHasta, hoy) ?? "Sin fechas: rige siempre";
+  return [
+    { clave: "oferta", nombre: "Qué le das", hecho: ofertas.activas > 0 || pct !== null, detalle: oferta },
+    {
+      clave: "prendas",
+      nombre: "En qué prendas",
+      hecho: llega,
+      detalle: propias ? prendasYDeDonde(prendas, aMano, categorias) : ofertasEligen ? "Las eligen sus ofertas" : "Ninguna todavía",
+    },
+    { clave: "cuando", nombre: "Cuándo y dónde", hecho: true, detalle: `${cuando} · ${dondeRige ?? "en todas las tiendas"}` },
+  ];
+}
+
+export type ItemListo = { clave: "fechas" | "prendas" | "ofertas" | "promociones"; nombre: string; hecho: boolean; opcional: boolean; detalle: string };
+
+/** Lo que ya tiene una campaña. Fechas y prendas son lo que la hace funcionar; las ofertas y promociones son opcionales (una campaña puede
+ *  ser solo de vitrina). Ya no hay fila «Descuento»: desde ADR-0496 el descuento se arma con ofertas, no se guarda en la campaña (Felipe
+ *  2026-10-28). Sale de lo mismo que ya decide la pantalla («Sin prendas», «Sin preparar»): no agrega reglas. */
 export function loQueTiene(f: FilaSello, prendas: number, categorias: readonly string[], hoy: string, aMano = 0, ofertas?: { total: number; borradores: number }): ItemListo[] {
   const llega = prendas > 0 || categorias.length > 0;
   const items: ItemListo[] = [
@@ -301,9 +347,8 @@ export function loQueTiene(f: FilaSello, prendas: number, categorias: readonly s
       opcional: false,
       detalle: llega ? prendasYDeDonde(prendas, aMano, categorias) : "ninguna todavía",
     },
-    { clave: "descuento", nombre: "Descuento", hecho: f.descuentoPct !== null, opcional: true, detalle: f.descuentoPct !== null ? pct(f.descuentoPct) : "sin descuento" },
   ];
-  // Las ofertas de la campaña («Tres preguntas», 2026-10-23): opcionales como el descuento; solo se dicen si la pantalla las conoce.
+  // Las ofertas de la campaña («Tres preguntas», 2026-10-23): opcionales; solo se dicen si la pantalla las conoce.
   if (ofertas) {
     items.push({
       clave: "ofertas",
@@ -312,6 +357,9 @@ export function loQueTiene(f: FilaSello, prendas: number, categorias: readonly s
       opcional: true,
       detalle: ofertas.total > 0 ? `${plural(ofertas.total, "oferta", "ofertas")}${ofertas.borradores > 0 ? ` · ${plural(ofertas.borradores, "en borrador", "en borrador")}` : ""}` : "ninguna todavía",
     });
+    // Promociones (Felipe 2026-10-28, debajo de Ofertas): todavía no hay un segundo tipo en la base (solo «un % menos», que ya cuenta la fila
+    // de arriba), así que dice «ninguna todavía» hasta que exista el primero (2x1, soles menos…).
+    items.push({ clave: "promociones", nombre: "Promociones", hecho: false, opcional: true, detalle: "ninguna todavía" });
   }
   return items;
 }

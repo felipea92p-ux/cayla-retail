@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-dir="a" data-mov="vivo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fusionar productos repetidos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Catálogo ▸ Productos ▸ «Fusionar productos repetidos», rediseño (2026-11-13; sigue de ADR-0650)
+   Felipe probó la hoja y pidió: que lo elegido no sea un bloque de color sólido, que las fichas no cambien de lugar al elegir, y un
+   diseño más claro, estético e interactivo, con un botón para ver cada ficha completa y comparar. Lo ya decidido (10 preguntas):
+   lado a lado · la elegida en gota de vidrio con ✓ · orden fijo · una hoja para comparar · ventas, stock por sede, tallas y precio ·
+   galería de fotos · matriz visual de tallas · movimiento rico una vez · «Revisar y fusionar».
+   Dos direcciones para elegir mirando:
+     A · La mesa: todo en columnas alineadas, como una tabla que compara. Cada fila distinta se elige tocando la celda.
+     B · La ficha que se arma: las fichas a la izquierda y, a la derecha, la ficha final que se va armando con cada elección.
+   Solo tokens (marco.css); el color de cada prenda es dato. Todo se apaga con «Animaciones: apagadas» y con prefers-reduced-motion.
+   Datos inventados (el repo es público).
+   ==================================================================== */
+:root{--fus-ancho:1080px}
+/* ---------- la hoja ancha ---------- */
+.capa{padding:3% 20px 20px;align-items:flex-start}
+.hoja.fus{width:min(var(--fus-ancho),100%);max-height:calc(100% - 8px);overflow:auto;padding:28px 30px 0;display:flex;flex-direction:column;scrollbar-width:thin}
+.hoja.fus>*{flex-shrink:0}
+.hoja.fus .x{position:absolute;top:18px;right:18px;width:36px;height:36px;border-radius:999px;display:grid;place-items:center}
+.hoja.fus header.cab-h{padding-right:44px}
+.hoja.fus h2 small{display:block;font-family:'DM Sans',sans-serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-bottom:4px}
+.paso-tit{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:22px 0 10px}
+.paso-tit b{font-size:14px;font-weight:600}
+.paso-tit span:not(.ok){font-size:13px;color:var(--taupe);flex:1 1 280px}
+.paso-tit .ok{width:20px;height:20px;border-radius:999px;display:grid;place-items:center;background:color-mix(in srgb,var(--verde) 18%,transparent);color:var(--verde);flex:none;align-self:center}
+.paso-tit .ok svg{width:12px;height:12px;stroke-width:3}
+
+/* ---------- vidrio claro (lo que no está elegido) y la gota (lo elegido) ---------- */
+.vclaro{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 46%,transparent),color-mix(in srgb,var(--vidrio) 26%,transparent));border:1px solid color-mix(in srgb,var(--borde) 45%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 70%,transparent)}
+[data-tema="oscuro"] .vclaro{background:color-mix(in srgb,var(--tinta) 5%,transparent);border-color:color-mix(in srgb,var(--tinta) 12%,transparent);box-shadow:none}
+.elegida{position:relative;border:1px solid color-mix(in srgb,var(--tinta) 70%,transparent)!important;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 94%,transparent),color-mix(in srgb,var(--vidrio) 66%,transparent))!important;
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 8%,transparent),0 14px 30px -18px color-mix(in srgb,var(--sombra) 45%,transparent)!important}
+[data-tema="oscuro"] .elegida{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 16%,transparent),color-mix(in srgb,var(--tinta) 8%,transparent))!important;
+  border-color:color-mix(in srgb,var(--tinta) 60%,transparent)!important;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 14px 30px -18px var(--sombra)!important}
+.visto{position:absolute;top:10px;right:10px;width:24px;height:24px;border-radius:999px;display:grid;place-items:center;background:var(--tinta);color:var(--crema);z-index:2}
+.visto svg{width:14px;height:14px;stroke-width:3;stroke-dasharray:24;stroke-dashoffset:0}
+[data-mov="vivo"] .elegida .visto{animation:asienta .42s var(--ease) both}[data-mov="vivo"] .elegida .visto svg{animation:traza .4s .12s var(--ease) both}
+@keyframes asienta{from{transform:scale(.6);opacity:0}}
+@keyframes traza{from{stroke-dashoffset:24}}
+[data-mov="vivo"] .elegida{animation:posa .38s var(--ease)}
+@keyframes posa{40%{transform:translateY(-3px)}}
+
+/* ---------- la columna de una ficha ---------- */
+.mesa{display:grid;grid-template-columns:120px repeat(var(--n),minmax(0,1fr));gap:12px}
+.mesa>.et-m{align-self:start;padding-top:8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.dos .mesa{grid-template-columns:100px repeat(var(--n),minmax(0,1fr))}
+.col{position:relative;border-radius:22px;padding:12px;text-align:left;cursor:pointer;transition:border-color .25s var(--ease),box-shadow .25s var(--ease)}
+[data-mov="vivo"] .col{animation:enfoca .55s var(--ease) both;animation-delay:calc(var(--i) * 70ms)}
+@media (hover:hover){.col:not(.elegida):hover{border-color:color-mix(in srgb,var(--tinta) 35%,transparent)}}
+.fus-foto{position:relative;aspect-ratio:5/4;border-radius:14px;overflow:hidden;display:grid;place-items:center;background:var(--col)}
+.fus-foto svg.silueta{width:42%;height:42%;stroke:var(--sobre);fill:none;stroke-width:1.2;opacity:.7}
+.fus-foto .lente{position:absolute;right:8px;bottom:8px;height:32px;padding:0 11px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--tinta);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 62%,transparent));-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);box-shadow:0 6px 14px -8px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tema="oscuro"] .fus-foto .lente{background:color-mix(in srgb,var(--vidrio) 82%,transparent);border-color:color-mix(in srgb,var(--tinta) 16%,transparent)}
+.fus-foto .lente svg{width:14px;height:14px}
+.fus-foto .nfotos{position:absolute;left:8px;bottom:8px;font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:999px;color:var(--tinta-fija);background:color-mix(in srgb,var(--crema-fija) 80%,transparent)}
+.col h3{font-size:15.5px;font-weight:600;margin-top:10px;line-height:1.25}
+.col .cod{font-size:13px;color:var(--taupe);margin-top:2px}
+.datos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}
+.datos div{padding:7px 8px;border-radius:12px;background:color-mix(in srgb,var(--tinta) 4%,transparent)}
+.datos b{display:block;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+.datos small{display:block;font-size:11.5px;color:var(--t65);line-height:1.2}
+.pista{display:inline-flex;align-items:center;gap:6px;margin-top:9px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 12%,transparent)}
+.queda-chip{display:inline-flex;align-items:center;gap:6px;margin-left:6px;vertical-align:2px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--tinta);color:var(--crema)}
+.col .quitar{position:absolute;top:10px;left:10px;width:28px;height:28px;border-radius:999px;display:grid;place-items:center;z-index:2;color:var(--tinta-fija);background:color-mix(in srgb,var(--crema-fija) 82%,transparent)}
+.col .quitar svg{width:13px;height:13px}
+.agregar{border-radius:22px;border:1.5px dashed color-mix(in srgb,var(--borde) 70%,transparent);padding:14px;display:flex;flex-direction:column;gap:10px;justify-content:center;min-height:200px}
+.agregar .pozo{display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:999px;font-size:13.5px;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.agregar .sug{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:14px;text-align:left;font-size:13.5px}
+.agregar .sug i{width:30px;height:30px;border-radius:9px;flex:none;background:var(--col)}
+.agregar .sug small{display:block;color:var(--t65);font-size:12px}
+
+/* ---------- las filas que se eligen ---------- */
+.filas{display:grid;gap:10px}
+.fila-e{display:grid;grid-template-columns:120px repeat(var(--n),minmax(0,1fr));gap:12px;align-items:stretch}
+.fila-e>span{align-self:center;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.opc{position:relative;min-height:46px;padding:10px 40px 10px 14px;border-radius:16px;text-align:left;font-size:14px;line-height:1.35;cursor:pointer}
+.opc .visto{top:50%;translate:0 -50%;right:10px;width:22px;height:22px}
+.opc.igual{opacity:.55;cursor:default;border-style:dashed}
+.opc small{display:block;font-size:12px;color:var(--t65)}
+[data-mov="vivo"] .opc{transition:border-color .2s var(--ease)}
+.fila-e[data-igual] .opc{pointer-events:none}
+
+/* ---------- la matriz de tallas ---------- */
+.matriz{display:grid;grid-template-columns:110px repeat(var(--t),minmax(56px,1fr));gap:6px;align-items:center}
+.matriz .h{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t65);text-align:center}
+.matriz .c{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:500}
+.matriz .c i{width:16px;height:16px;border-radius:999px;background:var(--col);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 18%,transparent)}
+.celda{position:relative;height:52px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;font-size:15px;font-weight:600}
+.celda small{font-size:10.5px;font-weight:600;letter-spacing:.04em}
+.celda[data-t="vacia"]{color:var(--t25);font-weight:400}
+.celda[data-t="queda"]{background:color-mix(in srgb,var(--tinta) 4%,transparent)}
+.celda[data-t="pasa"]{background:color-mix(in srgb,var(--pizarra) 12%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--pizarra) 35%,transparent)}
+.celda[data-t="pasa"] small{color:var(--pizarra)}
+.celda[data-t="junta"]{background:color-mix(in srgb,var(--verde) 12%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--verde) 40%,transparent)}
+.celda[data-t="junta"] small{color:var(--verde)}
+[data-mov="vivo"] .celda:not([data-t="vacia"]){animation:enfoca .45s var(--ease) both;animation-delay:calc(var(--k) * 35ms)}
+.leyenda{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12.5px;color:var(--t65)}
+.leyenda span{display:inline-flex;align-items:center;gap:6px}
+.leyenda i{width:12px;height:12px;border-radius:4px}
+.frase-m{margin-top:10px;font-size:14px}
+
+/* ---------- el pie ---------- */
+.pie-f{position:sticky;bottom:0;margin:22px -30px 0;padding:14px 30px 18px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;justify-content:flex-end;
+  background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--vidrio) 72%,transparent) 30%);}
+[data-tema="oscuro"] .pie-f{background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--vidrio) 90%,transparent) 30%)}
+.pie-f .nodes{margin-right:auto;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--rojo)}
+.pie-f .nodes svg{width:16px;height:16px}
+
+/* ---------- B · la ficha que se arma ---------- */
+.dos{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:22px;align-items:start}
+.final{position:sticky;top:0;border-radius:26px;padding:16px}
+.final .vs{display:flex;align-items:center;gap:8px}
+.final .vs i{width:8px;height:8px;border-radius:999px;background:var(--verde)}
+.final .fus-foto{aspect-ratio:4/3;margin-top:10px}
+.final h3{font-family:'EB Garamond',serif;font-size:24px;font-weight:500;margin-top:12px;line-height:1.1}
+.final dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin-top:10px;font-size:13.5px}
+.final dt{color:var(--t65)}.final dd{font-weight:600;text-align:right}
+.cambia{display:inline-block}
+[data-mov="vivo"] .cambia.nuevo{animation:voltea .5s var(--ease) both}
+@keyframes voltea{0%{transform:rotateX(90deg);opacity:0}100%{transform:none;opacity:1}}
+.final .mini-m{margin-top:12px;padding-top:12px;border-top:1px solid color-mix(in srgb,var(--tinta) 10%,transparent)}
+.final .mini-m .matriz{grid-template-columns:70px repeat(var(--t),minmax(28px,1fr));gap:4px}
+.final .mini-m .celda{height:36px;font-size:13px;border-radius:10px}
+.final .mini-m .celda small{font-size:9.5px}
+.dos .fila-e{grid-template-columns:100px repeat(var(--n),minmax(0,1fr))}
+.dos .agregar{flex-direction:row;flex-wrap:wrap;align-items:center;min-height:0;margin-top:10px;padding:10px 12px}
+.dos .agregar .pozo{flex:1 1 220px}.dos .agregar .vs{margin:0!important}
+
+/* ---------- revisar y fusionar · y listo ---------- */
+.revisar{display:grid;grid-template-columns:300px minmax(0,1fr);gap:24px;align-items:start}
+.revisar .final{position:static}
+.lista-r{display:grid;gap:8px;font-size:14.5px}
+.lista-r li{display:flex;gap:10px;list-style:none;padding:10px 12px;border-radius:14px}
+.lista-r li svg{width:16px;height:16px;margin-top:2px;flex:none}
+.listo{display:grid;place-items:center;text-align:center;padding:34px 0 30px}
+.sello{width:120px;height:120px;border-radius:999px;display:grid;place-items:center;border:3px solid var(--verde);color:var(--verde);font-family:'EB Garamond',serif;font-size:22px;rotate:-8deg}
+[data-mov="vivo"] .sello{animation:estampa .6s var(--ease) both}
+@keyframes estampa{0%{transform:scale(1.8);opacity:0}70%{transform:scale(.96);opacity:1}100%{transform:none}}
+.listo h3{font-family:'EB Garamond',serif;font-size:28px;font-weight:500;margin-top:18px}
+.listo p{color:var(--taupe);max-width:46ch;margin-top:6px}
+[data-mov="vivo"] .se-va{animation:seva .7s var(--ease) both}
+@keyframes seva{to{opacity:0;transform:translateX(calc(var(--dx,0) * 1px)) scale(.6)}}
+
+/* ---------- la hoja para comparar ---------- */
+.comp{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:14px}
+.comp .col{cursor:default}
+.galeria .grande{aspect-ratio:4/3;max-height:260px;width:100%;border-radius:16px;overflow:hidden;display:grid;place-items:center;background:var(--col)}
+.galeria .grande svg{width:44%;height:44%;stroke:var(--sobre);fill:none;stroke-width:1.1;opacity:.7}
+.galeria .chicas{display:flex;gap:6px;margin-top:8px}
+.galeria .chicas button{width:44px;height:52px;border-radius:10px;background:var(--col);outline-offset:2px}
+.galeria .chicas button[aria-pressed="true"]{outline:2px solid var(--tinta)}
+.bloque{margin-top:12px;padding:10px 12px;border-radius:14px;background:color-mix(in srgb,var(--tinta) 4%,transparent)}
+.bloque .vs{font-size:10.5px;margin-bottom:6px}
+.bloque dl{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:13.5px}
+.bloque dd{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.bloque .barra{height:6px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 8%,transparent);overflow:hidden;margin-top:3px;grid-column:1/-1}
+.bloque .barra i{display:block;height:100%;width:calc(var(--p) * 100%);background:var(--tinta);border-radius:inherit}
+[data-mov="vivo"] .bloque .barra i{animation:llena .7s .2s var(--ease) both}
+@keyframes llena{from{width:0}}
+.comp .matriz{grid-template-columns:62px repeat(var(--t),minmax(26px,1fr));gap:4px}
+.comp .matriz .celda{height:30px;font-size:12.5px;border-radius:8px}
+
+/* ---------- 375 px ---------- */
+@container disp (max-width:700px){
+  .capa{padding:0;align-items:flex-end}
+  .hoja.fus{width:100%;max-height:94%;border-radius:28px 28px 0 0;padding:22px 16px 0}
+  .hoja.fus::before{content:"";position:sticky;top:-14px;display:block;margin:-8px auto 10px;width:40px;height:5px;border-radius:999px;background:var(--t25)}
+  .mesa,.dos .mesa{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:78%;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.mesa>.et-m{display:none}
+  .mesa>*{scroll-snap-align:start}
+  .fila-e,.dos .fila-e{grid-template-columns:repeat(var(--n),minmax(0,1fr))}.fila-e>span{grid-column:1/-1}
+  .dos,.revisar{grid-template-columns:minmax(0,1fr)}
+  .final{position:static}
+  .matriz{grid-template-columns:70px repeat(var(--t),minmax(36px,1fr))}
+  .pie-f{margin:18px -16px 0;padding:12px 16px 16px}.pie-f .btn{flex:1}
+  .comp{grid-auto-flow:column;grid-auto-columns:86%;grid-template-columns:none;overflow-x:auto;scroll-snap-type:x mandatory}
+}
+/* ---------- quieto ---------- */
+[data-mov="quieto"] *,[data-mov="quieto"] *::before{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* el fondo de Productos detrás (solo para que la hoja se vea en su lugar) */
+.grilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-top:20px}
+.grilla div{aspect-ratio:3/4;border-radius:18px;background:color-mix(in srgb,var(--vidrio) 50%,transparent);border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent)}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Catálogo ▸ Productos ▸ Fusionar productos repetidos: el rediseño</span>
+  <span class="tag">Dirección</span><div class="seg-m" data-ctl="dir"><button data-v="a">A · La mesa</button><button data-v="b">B · La ficha que se arma</button></div>
+  <span class="tag">Fichas</span><div class="seg-m" data-ctl="fichas"><button data-v="2">Dos</button><button data-v="3">Tres</button></div>
+  <span class="tag">Animaciones</span><div class="seg-m" data-ctl="mov"><button data-v="vivo">Encendidas</button><button data-v="quieto">Apagadas</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="movil">375</button><button data-v="escritorio">Escritorio</button></div>
+  <button class="accion" id="reabrir">Volver a abrir la hoja</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio" data-hoja>
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+  <div class="capa" id="capa"><div class="velo"></div><div class="hoja fus" id="hoja" role="dialog" aria-modal="true" aria-labelledby="h-tit"></div></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy (y lo que Felipe vio al probarla)</h2>
+    <ul>
+      <li><b>Lo elegido es un bloque de color sólido</b> (<code>bg-hueso</code>): la tarjeta de «¿Cuál se queda?» y cada opción de «Lo que es distinto». Desentona con el vidrio de todo el ERP.</li>
+      <li><b>Al elegir la que queda, las tarjetas cambian de lugar</b>: la hoja vuelve a pedir el plan y la base pone primero la que queda. Confunde.</li>
+      <li><b>Es una hoja larga</b> de 768 px: fichas, cuál queda, lo distinto, fotos y un resumen en frases, uno debajo de otro. Para comparar hay que subir y bajar.</li>
+      <li><b>No hay cómo ver una ficha completa</b>: ni la foto en grande ni las ventas o el stock por sede.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las dos direcciones</h2>
+    <table>
+      <tr><th>Dirección</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td><b>A · La mesa</b></td><td>Todo alineado en columnas: la foto, las cifras y cada dato distinto quedan uno debajo del otro, como una tabla que compara. Eliges la columna que queda y, fila por fila, el valor. Se lee de un vistazo con 2 o 3 fichas.</td><td>Lo que va a quedar no se ve armado hasta «Revisar y fusionar»: hay que imaginarlo mientras se elige.</td></tr>
+      <tr><td><b>B · La ficha que se arma</b></td><td>A la derecha está la ficha final, con su foto, sus datos y la matriz de tallas, y cambia con cada elección (el dato nuevo entra volteándose). Se ve el resultado antes de confirmar.</td><td>Ocupa más ancho: con tres fichas las columnas de la izquierda quedan angostas; en el celular, la ficha final baja al final.</td></tr>
+    </table>
+    <h3>Lo que tienen las dos (lo que ya decidiste)</h3>
+    <ul>
+      <li><b>La elegida es una gota de vidrio con ✓ y «Queda»</b>; las demás, vidrio claro. Nada se pinta de color sólido y <b>nada cambia de lugar</b>: el orden es en el que se agregaron.</li>
+      <li><b>«Ver ficha»</b> sobre la foto de cada una abre una hoja para comparar: galería de fotos, ventas, stock por sede, tallas y colores, precio, costo y alta.</li>
+      <li><b>La matriz de tallas</b>: cada color × talla dice si queda, si pasa (de la otra ficha) o si se junta (con el +3 que se suma).</li>
+      <li><b>«Revisar y fusionar»</b>: un último vistazo grande antes del «Sí, fusionar» (no se deshace), y al terminar el sello «Fusionado».</li>
+      <li><b>La hoja es más ancha</b> (1080 px, una hoja de diseño propio con su <code>unificar-fijo</code>): con 768 px no caben dos o tres columnas con su foto.</li>
+    </ul>
+    <h3>Cómo probarla</h3>
+    <p>Toca una columna para elegir la que queda (fíjate que no se mueve), toca un valor en cada fila distinta, «Ver ficha» sobre una foto, y «Revisar y fusionar». «Fichas: Tres» agrega la «Blusa Ema». Arriba: tema, ancho y animaciones.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (estado, pintar, activa…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const s = (d, c = 'ic') => `<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  const T = { check: 'M20 6 9 17l-5-5', x: 'M18 6 6 18M6 6l12 12', lente: 'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7', merge: 'M8 18V6M16 18v-4a8 8 0 0 0-8-8M12 2 8 6l4 4',
+    lupa: 'M11 3a8 8 0 1 0 0 16a8 8 0 1 0 0-16z M21 21l-4.3-4.3', alerta: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+    flecha: 'M5 12h14M13 6l6 6-6 6', volver: 'M19 12H5M11 6l-6 6 6 6', mas: 'M12 5v14M5 12h14', etiqueta: 'M20 12l-8 8-9-9V3h8z M7 7h.01' };
+  const PRENDA = { blusa: 'M8 3 4 6l2 4 2-1v12h8V9l2 1 2-4-4-3c-1 2-2.5 3-4 3S9 5 8 3z', capa: 'M12 3c-2 0-3 1-3 2L4 19c3 2 13 2 16 0L15 5c0-1-1-2-3-2z M9 5c1 2 5 2 6 0' };
+  // El color de cada prenda es DATO (la baldosa de la prenda, como MosaicoPrenda): no cambia con el tema.
+  const COL = { NEG: ['Negro', '#1f1d1b', '#f5f0e8'], BEI: ['Beige', '#d8c3a5', '#1a1a18'], BLA: ['Blanco', '#f1ece3', '#1a1a18'], VIN: ['Vino', '#6b2a33', '#f5f0e8'] };
+  const TALLAS = ['S', 'M', 'L', 'XL'];
+  const F = {
+    capa: { nombre: 'Capa Emma', cod: 'CAS-0003', cat: 'Casacas', ic: 'capa', precio: 89.9, costo: 35, desc: 'Capa de dos piezas, va con la blusa', creado: '5 nov. 2026', vendio: 3, ventas: 3, ultima: 'hace 4 días',
+      stock: [['Lima', 3, 0], ['Trujillo', 3, 0], ['Arequipa', 0, 0], ['Taller', 0, 0]], tallas: { NEG: { M: 2, L: 1 }, BLA: { M: 3 } }, fotos: ['NEG', 'NEG', 'BLA'] },
+    emma: { nombre: 'Blusa Emma', cod: 'CMS-0001', cat: 'Camisas y Blusas', ic: 'blusa', precio: 79.9, costo: 32, desc: 'Blusa manga larga, cuello redondo', creado: '3 sep. 2026', vendio: 46, ventas: 41, ultima: 'ayer',
+      stock: [['Lima', 12, 6], ['Trujillo', 9, 4], ['Arequipa', 7, 0], ['Taller', 0, 2]], tallas: { NEG: { S: 4, M: 6, L: 5 }, BEI: { S: 3, M: 7, L: 5 } }, fotos: ['NEG', 'NEG', 'BEI', 'BEI'] },
+    ema: { nombre: 'Blusa Ema', cod: 'CMS-0003', cat: 'Camisas y Blusas', ic: 'blusa', precio: 79.9, costo: 32, desc: '', creado: '10 nov. 2026', vendio: 0, ventas: 0, ultima: '—',
+      stock: [['Lima', 0, 0], ['Trujillo', 2, 0], ['Arequipa', 0, 0], ['Taller', 0, 0]], tallas: { NEG: { XL: 2 }, VIN: { M: 1 } }, fotos: ['VIN'] },
+  };
+  const CAMPOS = [['nombre', 'Nombre', (p) => p.nombre], ['cat', 'Categoría', (p) => p.cat], ['precio', 'Precio', (p) => `S/ ${p.precio.toFixed(2)}`],
+    ['costo', 'Costo', (p) => `S/ ${p.costo.toFixed(2)}`, 'sin compras: solo cambian las tallas nuevas'], ['desc', 'Descripción', (p) => p.desc || 'Sin descripción']];
+
+  // Se abrió desde la vista rápida de la Capa: la Capa va primero y la Blusa después. Se propone que quede la Blusa (la que más vendió).
+  let st = nuevo();
+  function nuevo() { return { ids: estado.fichas === '3' ? ['capa', 'emma', 'ema'] : ['capa', 'emma'], queda: 'emma', elec: {}, vista: 'armar', comparar: null, foto: {}, nuevoCampo: null }; }
+  const total = (p) => p.stock.reduce((a, [, pi, al]) => a + pi + al, 0);
+  const sobre = (c) => COL[c][2];
+
+  function foto(id, conLente = true, grande = false) {
+    const p = F[id], c = p.fotos[0] || 'NEG';
+    return `<div class="fus-foto" data-color-dato style="--col:${COL[c][1]};--sobre:${sobre(c)}">${s(PRENDA[p.ic], 'silueta')}
+      ${p.fotos.length > 1 ? `<span class="nfotos">${p.fotos.length} fotos</span>` : ''}
+      ${conLente ? `<button class="lente" data-ver="${id}" aria-label="Ver la ficha completa de ${p.nombre}">${s(T.lente)}Ver ficha</button>` : ''}</div>`;
+  }
+  function columna(id, i) {
+    const p = F[id], el = id === st.queda, mas = id === 'emma' && Object.values(F).every((x) => x === p || x.vendio < p.vendio);
+    return `<div class="col ${el ? 'elegida' : 'vclaro'}" role="radio" aria-checked="${el}" tabindex="0" data-queda="${id}" style="--i:${i}">
+      ${el ? `<span class="visto">${s(T.check)}</span>` : ''}${st.ids.length > 2 && !el ? `<button class="quitar" data-quitar="${id}" aria-label="Quitar ${p.nombre} de la fusión">${s(T.x)}</button>` : ''}
+      ${foto(id)}
+      <h3>${p.nombre}${el ? '<span class="queda-chip">Queda</span>' : ''}</h3>
+      <p class="cod">${p.cod} · ${p.cat}</p>
+      <div class="datos"><div><b>${p.vendio}</b><small>vendidas</small></div><div><b>${total(p)}</b><small>en stock</small></div><div><b>${p.creado.split(' ').slice(0, 2).join(' ')}</b><small>creada</small></div></div>
+      ${mas ? '<span class="pista">El que más vendió</span>' : ''}</div>`;
+  }
+  const agregar = () => st.ids.length < 3 ? `<div class="agregar"><div class="pozo">${s(T.lupa)}Busca otra ficha de esta prenda</div>
+      <p class="vs" style="margin-top:4px">¿Es esta?</p><button class="sug vclaro" data-agregar="ema"><i data-color-dato style="--col:${COL.VIN[1]}"></i><span>Blusa Ema<small>CMS-0003 · una letra de diferencia</small></span></button></div>` : '';
+
+  // El valor que queda de un campo: lo elegido, o el del que queda.
+  const fuente = (k) => st.elec[k] || st.queda;
+  function filas(estrecho) {
+    const n = st.ids.length, hueco = !estrecho && n < 3 ? 1 : 0;
+    return CAMPOS.map(([k, et, val, nota]) => {
+      const vals = st.ids.map((id) => val(F[id])), iguales = new Set(vals).size === 1;
+      if (iguales) return '';
+      const elegido = val(F[fuente(k)]);
+      return `<div class="fila-e" style="--n:${n + hueco}"><span>${et}${nota && !estrecho ? `<br><small style="text-transform:none;letter-spacing:0;font-weight:400">${nota}</small>` : ''}</span>
+        ${st.ids.map((id) => { const v = val(F[id]), si = v === elegido; return `<button class="opc ${si ? 'elegida' : 'vclaro'}" role="radio" aria-checked="${si}" data-campo="${k}" data-de="${id}">${v}${si ? `<span class="visto">${s(T.check)}</span>` : ''}</button>`; }).join('')}${hueco ? '<i aria-hidden="true"></i>' : ''}</div>`;
+    }).join('');
+  }
+  // La matriz del producto final: cada color × talla queda, pasa o se junta.
+  function celdas() {
+    const colores = [...new Set(st.ids.flatMap((id) => Object.keys(F[id].tallas)))];
+    const tallas = TALLAS.filter((t) => st.ids.some((id) => Object.values(F[id].tallas).some((x) => x[t])));
+    let k = 0;
+    const filasM = colores.map((c) => [c, tallas.map((t) => {
+      const q = F[st.queda].tallas[c]?.[t] || 0, otros = st.ids.filter((id) => id !== st.queda).reduce((a, id) => a + (F[id].tallas[c]?.[t] || 0), 0);
+      const tipo = q && otros ? 'junta' : q ? 'queda' : otros ? 'pasa' : 'vacia';
+      return { tipo, q, otros, k: k++ };
+    })]);
+    return { colores, tallas, filasM };
+  }
+  function matriz() {
+    const { tallas, filasM } = celdas();
+    return `<div class="matriz" style="--t:${tallas.length}"><span></span>${tallas.map((t) => `<span class="h">${t}</span>`).join('')}
+      ${filasM.map(([c, cs]) => `<span class="c"><i data-color-dato style="--col:${COL[c][1]}"></i>${COL[c][0]}</span>${cs.map(({ tipo, q, otros, k }) =>
+        `<span class="celda" data-t="${tipo}" style="--k:${k}">${tipo === 'vacia' ? '—' : tipo === 'junta' ? `${q + otros}<small>+${otros}</small>` : tipo === 'pasa' ? `${otros}<small>pasa</small>` : q}</span>`).join('')}`).join('')}</div>
+      <div class="leyenda"><span><i style="background:color-mix(in srgb,var(--tinta) 8%,transparent)"></i>Ya estaba</span><span><i style="background:color-mix(in srgb,var(--pizarra) 30%,transparent)"></i>Pasa de la otra ficha</span><span><i style="background:color-mix(in srgb,var(--verde) 30%,transparent)"></i>Se junta y suma</span></div>`;
+  }
+  function fraseMatriz() {
+    const todas = celdas().filasM.flatMap(([, cs]) => cs), pasan = todas.filter((x) => x.tipo === 'pasa').length, juntan = todas.filter((x) => x.tipo === 'junta'), suma = juntan.reduce((a, x) => a + x.otros, 0);
+    return `${pasan} talla${pasan === 1 ? '' : 's'} y color${pasan === 1 ? '' : 'es'} pasa${pasan === 1 ? '' : 'n'} tal cual; ${juntan.length} se junta${juntan.length === 1 ? '' : 'n'} y suma${juntan.length === 1 ? '' : 'n'} ${suma} prenda${suma === 1 ? '' : 's'}. No se pierde ninguna venta ni foto.`;
+  }
+  function fichaFinal(enRevisar) {
+    const q = F[st.queda], v = (k) => CAMPOS.find((c) => c[0] === k)[2](F[fuente(k)]);
+    const marca = (k) => `<span class="cambia${st.nuevoCampo === k ? ' nuevo' : ''}">${v(k)}</span>`;
+    const vendidas = st.ids.reduce((a, id) => a + F[id].vendio, 0), stock = st.ids.reduce((a, id) => a + total(F[id]), 0);
+    return `<aside class="final ${enRevisar ? 'vclaro' : 'vidrio'}" aria-label="La ficha final"><p class="vs"><i></i>Así va a quedar</p>${foto(st.queda, false)}
+      <h3>${marca('nombre')}</h3>
+      <dl><dt>Categoría</dt><dd>${marca('cat')}</dd><dt>Precio</dt><dd>${marca('precio')}</dd><dt>Vendidas</dt><dd>${vendidas}</dd><dt>En stock</dt><dd>${stock}</dd><dt>Fotos</dt><dd>${st.ids.reduce((a, id) => a + F[id].fotos.length, 0)}</dd></dl>
+      ${enRevisar ? '' : `<div class="mini-m">${matriz()}</div>`}</aside>`;
+  }
+
+  function hojaArmar() {
+    const dir = estado.dir, n = st.ids.length, dif = filas(dir === 'b'), hueco = dir === 'a' && n < 3 ? 1 : 0;
+    const fichas = `<div class="paso-tit"><span class="ok">${s(T.check)}</span><b>¿Cuál se queda?</b><span>Toca la ficha que queda. Las demás pasan a esa; ninguna se mueve de su lugar.</span></div>
+      <div class="mesa" role="radiogroup" aria-label="La ficha que se queda" style="--n:${n + hueco}"><span class="et-m">Fichas</span>${st.ids.map(columna).join('')}${hueco ? agregar() : ''}</div>${!hueco ? agregar() : ''}`;
+    const distinto = dif ? `<div class="paso-tit"><span class="ok">${s(T.check)}</span><b>Lo que es distinto</b><span>Toca el dato con el que se queda. Lo que no está aquí es igual en las fichas.</span></div><div class="filas">${dif}</div>` : '';
+    const tallas = `<div class="paso-tit"><b>Las tallas y colores</b><span>${fraseMatriz()}</span></div>${matriz()}`;
+    const cuerpo = dir === 'a' ? `${fichas}${distinto}${tallas}` : `<div class="dos"><div>${fichas}${distinto}</div>${fichaFinal()}</div>`;
+    return `<header class="cab-h"><h2 id="h-tit" class="serif"><small>Catálogo · Productos</small>Fusionar productos repetidos</h2><p class="sub">Junta las fichas de una misma prenda en una sola. Las ventas, las fotos y el stock no se pierden.</p></header>
+      <button class="x gota" data-cerrar aria-label="Cerrar">${s(T.x)}</button>${cuerpo}
+      <div class="pie-f"><button class="btn sec" data-cerrar>Cancelar</button><button class="btn pri" data-revisar>Revisar y fusionar ${s(T.flecha)}</button></div>`;
+  }
+  function hojaRevisar() {
+    const otros = st.ids.filter((id) => id !== st.queda).map((id) => F[id].nombre).join(' y ');
+    const suma = celdas().filasM.flatMap(([, cs]) => cs).filter((x) => x.tipo === 'junta').reduce((a, x) => a + x.otros, 0);
+    return `<header class="cab-h"><h2 id="h-tit" class="serif"><small>Último vistazo</small>Revisa y fusiona</h2><p class="sub">«${otros}» pasa${st.ids.length > 2 ? 'n' : ''} a «${F[st.queda].nombre}». Esto no se deshace.</p></header>
+      <button class="x gota" data-cerrar aria-label="Cerrar">${s(T.x)}</button>
+      <div class="revisar">${fichaFinal(true)}<div><ul class="lista-r">
+        <li class="vclaro">${s(T.check)}Las ventas de ${otros} cuentan en la ficha que queda.</li>
+        <li class="vclaro">${s(T.check)}${suma} prenda${suma === 1 ? '' : 's'} se suma${suma === 1 ? '' : 'n'} a las tallas que ya existían; las demás pasan tal cual.</li>
+        <li class="vclaro">${s(T.etiqueta)}Las etiquetas ya impresas siguen sirviendo al escanearlas.</li>
+        <li class="vclaro">${s(T.check)}La ficha repetida queda archivada con su historia; nunca se borra.</li></ul>
+        <div style="margin-top:16px">${matriz()}</div></div></div>
+      <div class="pie-f"><span class="nodes">${s(T.alerta)}No se puede deshacer</span><button class="btn sec" data-volver>${s(T.volver)}Volver</button><button class="btn pri" data-fusionar>${s(T.merge)}Sí, fusionar</button></div>`;
+  }
+  function hojaListo() {
+    return `<button class="x gota" data-cerrar aria-label="Cerrar">${s(T.x)}</button><div class="listo"><div class="sello">Fusionado</div><h3 id="h-tit">«${F[st.queda].nombre}» es ahora una sola ficha</h3>
+      <p>Lleva ${st.ids.reduce((a, id) => a + F[id].vendio, 0)} prendas vendidas y ${st.ids.reduce((a, id) => a + total(F[id]), 0)} en stock. La ficha repetida quedó archivada.</p>
+      <div style="margin-top:18px"><button class="btn pri">Ver la ficha ${s(T.flecha)}</button></div></div>`;
+  }
+  function hojaComparar() {
+    const n = st.ids.length;
+    return `<header class="cab-h"><h2 id="h-tit" class="serif"><small>Para comparar</small>Las fichas, una al lado de la otra</h2><p class="sub">Lo que importa de cada una para decidir cuál queda.</p></header>
+      <button class="x gota" data-cerrar-comp aria-label="Volver a la fusión">${s(T.x)}</button>
+      <div class="comp" style="--n:${n}">${st.ids.map((id, i) => {
+        const p = F[id], f = st.foto[id] || 0, c = p.fotos[f] || 'NEG', tot = total(p), max = Math.max(...st.ids.map((x) => total(F[x])), 1);
+        const ts = TALLAS.filter((t) => Object.values(p.tallas).some((x) => x[t]));
+        return `<div class="col ${id === st.queda ? 'elegida' : 'vclaro'}" style="--i:${i}">${id === st.queda ? `<span class="visto">${s(T.check)}</span>` : ''}
+          <div class="galeria"><div class="grande" data-color-dato style="--col:${COL[c][1]};--sobre:${sobre(c)}">${s(PRENDA[p.ic])}</div>
+            <div class="chicas">${p.fotos.map((x, j) => `<button data-color-dato style="--col:${COL[x][1]}" data-foto="${id}:${j}" aria-pressed="${j === f}" aria-label="Foto ${j + 1} de ${p.nombre}"></button>`).join('')}</div></div>
+          <h3>${p.nombre}${id === st.queda ? '<span class="queda-chip">Queda</span>' : ''}</h3><p class="cod">${p.cod} · ${p.cat}</p>
+          <div class="bloque"><p class="vs">Ventas</p><dl><dt>Vendidas</dt><dd>${p.vendio}</dd><dt>En ventas</dt><dd>${p.ventas}</dd><dt>Última venta</dt><dd>${p.ultima}</dd></dl></div>
+          <div class="bloque"><p class="vs">Stock por sede · ${tot}</p><dl>${p.stock.map(([sd, pi, al]) => `<dt>${sd}</dt><dd>${pi + al}${al ? ` <small style="font-weight:400;color:var(--t65)">(${al} alm.)</small>` : ''}</dd><span class="barra" style="--p:${(pi + al) / max}"><i></i></span>`).join('')}</dl></div>
+          <div class="bloque"><p class="vs">Tallas y colores</p><div class="matriz" style="--t:${ts.length}"><span></span>${ts.map((t) => `<span class="h">${t}</span>`).join('')}
+            ${Object.entries(p.tallas).map(([cc, xs]) => `<span class="c"><i data-color-dato style="--col:${COL[cc][1]}"></i>${COL[cc][0]}</span>${ts.map((t) => `<span class="celda" data-t="${xs[t] ? 'queda' : 'vacia'}">${xs[t] || '—'}</span>`).join('')}`).join('')}</div></div>
+          <div class="bloque"><p class="vs">Precio y alta</p><dl><dt>Precio</dt><dd>S/ ${p.precio.toFixed(2)}</dd><dt>Costo</dt><dd>S/ ${p.costo.toFixed(2)}</dd><dt>Marca</dt><dd>CAYLA</dd><dt>Proveedor</dt><dd>CAYLA SAC</dd><dt>Creada</dt><dd>${p.creado}</dd></dl></div></div>`;
+      }).join('')}</div>
+      <div class="pie-f"><button class="btn pri" data-cerrar-comp>${s(T.volver)}Volver a la fusión</button></div>`;
+  }
+
+  function pintarHoja() {
+    const h = $('#hoja');
+    h.innerHTML = st.comparar ? hojaComparar() : st.vista === 'revisar' ? hojaRevisar() : st.vista === 'listo' ? hojaListo() : hojaArmar();
+    st.nuevoCampo = null;
+  }
+  function pantalla() {
+    activa = 'catalogo.productos';
+    $('#cont').innerHTML = `${encabezado({ sede: 'Lima', titulo: 'Productos', acciones: [['sec', 'Rótulos'], ['pri', 'Nuevo producto', 'mas']] })}<div class="grilla">${'<div></div>'.repeat(10)}</div>`;
+    pintarHoja();
+  }
+
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (t.closest('[data-ver]')) { e.stopPropagation(); st.comparar = t.closest('[data-ver]').dataset.ver; pintarHoja(); $('#hoja').scrollTop = 0; return; }
+    if (t.closest('[data-cerrar-comp]')) { st.comparar = null; pintarHoja(); return; }
+    if (t.closest('[data-foto]')) { const [id, j] = t.closest('[data-foto]').dataset.foto.split(':'); st.foto[id] = +j; pintarHoja(); return; }
+    if (t.closest('[data-quitar]')) { e.stopPropagation(); st.ids = st.ids.filter((x) => x !== t.closest('[data-quitar]').dataset.quitar); pintarHoja(); return; }
+    if (t.closest('[data-agregar]')) { st.ids.push(t.closest('[data-agregar]').dataset.agregar); pintarHoja(); return; }
+    if (t.closest('[data-queda]')) { const id = t.closest('[data-queda]').dataset.queda; if (id !== st.queda) { st.queda = id; st.elec = {}; st.nuevoCampo = 'nombre'; } pintarHoja(); return; }
+    if (t.closest('[data-campo]')) { const b = t.closest('[data-campo]'); st.elec[b.dataset.campo] = b.dataset.de; st.nuevoCampo = b.dataset.campo; const y = $('#hoja').scrollTop; pintarHoja(); $('#hoja').scrollTop = y; return; }
+    if (t.closest('[data-revisar]')) { st.vista = 'revisar'; pintarHoja(); $('#hoja').scrollTop = 0; return; }
+    if (t.closest('[data-volver]')) { st.vista = 'armar'; pintarHoja(); return; }
+    if (t.closest('[data-fusionar]')) { st.vista = 'listo'; pintarHoja(); return; }
+    if (t.closest('[data-cerrar]')) { $('#disp').removeAttribute('data-hoja'); return; }
+  });
+  $('#reabrir').addEventListener('click', () => { st = nuevo(); $('#disp').setAttribute('data-hoja', ''); pintarHoja(); });
+
+  activa = 'catalogo.productos';
+  Marco.iniciar({ estado: { dir: 'a', fichas: '2', mov: 'vivo' }, alPintar: () => { const ab = $('#disp').hasAttribute('data-hoja'); const ant = st.ids.length; if ((estado.fichas === '3') !== (ant === 3)) st = nuevo(); pantalla(); if (!ab) $('#disp').removeAttribute('data-hoja'); } });
+})();
+</script>
+</body>
+</html>

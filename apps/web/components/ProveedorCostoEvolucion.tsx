@@ -71,15 +71,17 @@ export function ProveedorCostoEvolucion({ evolucion }: { evolucion: EvolucionCos
             etiqueta={`Costo de ${evolucion.referencia}: ${costos.map((c) => soles(c)).join(", ")}`}
           />
 
-          <div className="flex justify-between text-xs">
+          {/* En la tarjeta angosta (celular, o media fila en una tablet) quedan la primera compra y la última: las del medio no caben
+              y su monto sigue en el globito de la línea y en su etiqueta para el lector. */}
+          <div className="flex justify-between gap-x-2 text-sm">
             {puntos.map((p, i) => (
-              <span key={p.documento} className={i === 0 ? "text-left" : i === puntos.length - 1 ? "text-right" : "text-center"}>
+              <span key={p.documento} className={i === 0 ? "text-left" : i === puntos.length - 1 ? "text-right" : "hidden text-center @min-[26rem]:inline"}>
                 <b className="block font-semibold tabular-nums text-tinta">{soles(p.costo)}</b>
                 <span className="text-tinta/55">{diaMes(p.fecha)}</span>
               </span>
             ))}
           </div>
-          <p className="mt-3 border-t border-tinta/10 pt-3 text-xs text-tinta/65">
+          <p className="mt-3 border-t border-tinta/10 pt-3 text-sm text-tinta/65">
             {subeEnCadaCompra(costos)
               ? "Sube en cada compra: el dato para pactar el precio del próximo pedido."
               : "Compara con lo que se pagó en cada compra antes de pactar el precio del próximo pedido."}

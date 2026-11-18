@@ -25,6 +25,13 @@ const PANEL: PanelImpuestos = {
 };
 
 describe("pulsoImpuestos", () => {
+  it("lo que se le paga a SUNAT va en soles enteros, impuesto por impuesto, y el total es su suma", () => {
+    const p = pulsoImpuestos({ ...PANEL, foco: mes({ aPagar: 8400.49 }), renta: { base: 89000.4, tasa: 0.01, monto: 890.5 } });
+    if (p.estado !== "a_pagar") throw new Error("a pagar");
+    expect([p.igv, p.renta, p.total]).toEqual([8400, 891, 9291]);
+    expect(p.cuenta.filter((t) => ["igv", "renta", "total"].includes(t.clave)).map((t) => t.monto)).toEqual([8400, 891, 9291]);
+  });
+
   it("a pagar: la cifra grande es IGV + renta, con la cuenta que la explica y lo que falta hacer", () => {
     const p = pulsoImpuestos(PANEL);
     expect(p.estado).toBe("a_pagar");
@@ -33,6 +40,8 @@ describe("pulsoImpuestos", () => {
     expect(p.verbo).toBe("le pagas");
     expect(p.frase).toBe("Por lo que vendiste en septiembre, en octubre le pagas a SUNAT S/ 9,290 (S/ 8,400 de IGV y S/ 890 de renta a cuenta). El día exacto depende del último dígito de tu RUC.");
     expect(p.deCada).toBe("De cada S/ 118 que cobras, S/ 18 son de SUNAT; te devuelven el IGV que pagaste en tus compras con factura.");
+    // Es lo declarable: sale de los comprobantes. «IGV de tus ventas» es otra cifra, la de Ganancias, y no pueden llamarse igual.
+    expect(p.cuenta[0]?.nombre).toBe("IGV de tus boletas y facturas");
     expect(p.cuenta.map((t) => [t.clave, t.monto, t.tipo])).toEqual([
       ["cobrado", 16020, "entra"],
       ["descontado", 7620, "sale"],

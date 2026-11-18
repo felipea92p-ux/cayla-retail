@@ -7,6 +7,7 @@ import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } 
 import { Modal } from "@/components/ui/Modal";
 import { BotonSonidoConfirmar } from "@/components/BotonSonidoConfirmar";
 import { FiltrosRapidos } from "@/components/existencias/FiltrosRapidos";
+import { usePedidoDeFiltros } from "@/components/existencias/cabecera-existencias";
 import { avisar } from "@/components/ui/Avisos";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, guardarPanelFiltros, type EstadoPanelFiltros } from "@/lib/panel-filtros";
@@ -14,7 +15,8 @@ import { TEXTO_HOY, TIPOS_HOY } from "@/lib/existencias-hoy";
 import type { ConteoDeLista } from "@/lib/existencias-tarjetas";
 import { opcionesConConteo } from "@/lib/productos-facetas";
 import { alternarColor, estadoDeColor, listaParaUrl, opcionesDeColor, separarColor } from "@/lib/productos-filtros";
-import { bordeDeMuestra, FAMILIAS_COLOR, fondoDeMuestra } from "@/lib/colores-familias";
+import { fondoDeColor } from "@/components/ui/MuestraColor";
+import { bordeDeMuestra, FAMILIAS_COLOR } from "@/lib/colores-familias";
 import {
   chipsDeFiltros,
   CONDICIONES,
@@ -27,7 +29,9 @@ import {
 } from "@/lib/existencias-filtros";
 import { atajoElegido } from "@/lib/existencias-rapidos";
 import { Buscador } from "@/components/ui/Buscador";
+import { Calculando } from "@/components/Esqueleto";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 /* ====================================================================
    La barra de filtros de Existencias (2026-10-03): la MISMA estructura que la de Productos (ADR-0308) —buscador con «/»,
@@ -45,7 +49,7 @@ const MEDIA_ESCRITORIO = "(min-width: 768px)";
 
 /** Un color de la sede, con lo que la lista necesita para agruparlo por familia y pintar su muestra. `id` es su nombre (único
  *  en la base): es lo que va en la URL. */
-export type ColorBarra = { id: string; nombre: string; hex: string | null; familia: string | null; tipo: string | null };
+export type ColorBarra = { id: string; nombre: string; hex: string | null; familia: string | null; tipo: string | null; /** Una mezcla (ADR-0643): su punto se parte. */ tonos?: readonly string[] | null };
 
 /** Cómo se ve la lista: tarjetas (de entrada), la tabla por prenda o la tabla con una fila por talla. */
 export type VistaLista = "tarjetas" | "tabla" | "talla";
@@ -90,6 +94,7 @@ export function FiltrosExistencias({
   alLadoDeFiltros,
   enPausa = 0,
   avisoPausa = null,
+  calculando = false,
 }: {
   busqueda: string;
   onTeclear: (texto: string) => void;
@@ -134,10 +139,21 @@ export function FiltrosExistencias({
   /** Tallas que esperan el cuadre del piso: el atajo «Por colgar» va en pausa y lleva la explicación (`FiltrosRapidos`). */
   enPausa?: number;
   avisoPausa?: string | null;
+  /** «Hoy» viene en camino (Existencias en dos tiempos, 2026-11-13): los atajos «Por colgar» y «Sin stock atrás» y, con un caso de «Hoy»
+   *  puesto, la cifra de la lista dicen «calculando» en vez de un 0 que no se sabe. */
+  calculando?: boolean;
 }) {
   const [panelAbierto, setPanelAbierto] = useState(panelInicial === "abierto");
   const [hojaAbierta, setHojaAbierta] = useState(false);
   const esEscritorio = useConsultaMedia(MEDIA_ESCRITORIO);
+  // «Filtros» de la cabecera (solo en el celular, `FiltrosEnCabecera`): cada toque abre la hoja (patrón «previo + comparación», como
+  // «Ajustar stock»). El número vive fuera del componente: al montarse arranca en el de ahora y un toque viejo no abre nada.
+  const pedidoDeCabecera = usePedidoDeFiltros();
+  const [pedidoVisto, setPedidoVisto] = useState(pedidoDeCabecera);
+  if (pedidoDeCabecera !== pedidoVisto) {
+    setPedidoVisto(pedidoDeCabecera);
+    setHojaAbierta(true);
+  }
 
   function alTocarFiltros() {
     if (window.matchMedia(MEDIA_ESCRITORIO).matches) {
@@ -216,7 +232,7 @@ export function FiltrosExistencias({
                       <span
                         aria-hidden
                         className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-tinta/15 bg-hueso align-middle"
-                        style={{ background: fondoDeMuestra(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
+                        style={{ background: o.color.tonos ? fondoDelPunto(o.color.hex, o.color.tonos) : fondoDeColor(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
                       />
                     ),
                   }
@@ -378,13 +394,14 @@ export function FiltrosExistencias({
               data-guia="existencias.escanear"
               aria-label="Escanear etiqueta"
               title="Escanear etiqueta"
-              className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sand bg-papel text-tinta/70 transition-colors hover:border-taupe hover:text-tinta sm:inline-flex"
+              className="area-dedo hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sand bg-papel text-tinta/70 transition-colors hover:border-taupe hover:text-tinta sm:inline-flex"
             >
               <ScanLine aria-hidden className="h-4 w-4" />
             </button>
           )}
-          {/* «Filtros»: solo el icono, con cuántos hay puestos en la esquina (2026-10-06). */}
-          <span data-guia="existencias.filtros" className="flex shrink-0">
+          {/* «Filtros»: solo el icono, con cuántos hay puestos en la esquina (2026-10-06). Bajo 640 px vive en la fila de íconos de la
+              cabecera, junto a «Resumen» (`FiltrosEnCabecera`, Felipe 2026-11-17): aquí se esconde y el buscador toma su lugar. */}
+          <span data-guia="existencias.filtros" className="flex shrink-0 max-sm:hidden">
             <BotonFiltros
               soloIcono
               abierto={hojaAbierta || (esEscritorio && panelAbierto)}
@@ -398,18 +415,25 @@ export function FiltrosExistencias({
         </div>
 
         {/* La cifra: cuántas tarjetas trae la lista (y, con «Hoy», cuántas tallas). Sin frase de ayuda: ocupaba una línea entera. */}
-        <p className="order-3 min-w-0 flex-1 text-[13px] text-tinta/70 xl:order-2 xl:flex-none">
+        <p className="order-3 min-w-0 flex-1 text-sm text-tinta/70 xl:order-2 xl:flex-none">
           <span aria-live="polite">
-            <strong className="font-semibold text-tinta">{conteo.total.toLocaleString("es-PE")}</strong>{" "}
-            {conteo.total === 1 ? conteo.unidad.uno : conteo.unidad.varios}
-            {/* Con «Hoy», la cifra que trajo a la persona («15 tallas por colgar» del Inicio), tan visible como la de arriba: es la que
-                suman las pastillas de las tarjetas. */}
-            {conteo.tallas && (
-              <span>
-                {" · "}
-                <strong className="font-semibold text-tinta">{conteo.tallas.cifra.toLocaleString("es-PE")}</strong> {conteo.tallas.texto}
-                {conteo.aclaracion && <span className="text-tinta/55"> ({conteo.aclaracion})</span>}
-              </span>
+            {calculando && elegidos.hoy ? (
+              // Con un caso de «Hoy» puesto la cifra es del plan: mientras llega, su lugar, no un «0 prendas».
+              <Calculando className="h-4 w-64 max-w-full rounded" />
+            ) : (
+              <>
+                <strong className="font-semibold text-tinta">{conteo.total.toLocaleString("es-PE")}</strong>{" "}
+                {conteo.total === 1 ? conteo.unidad.uno : conteo.unidad.varios}
+                {/* Con «Hoy», la cifra que trajo a la persona («15 tallas por colgar» del Inicio), tan visible como la de arriba: es la que
+                    suman las pastillas de las tarjetas. */}
+                {conteo.tallas && (
+                  <span>
+                    {" · "}
+                    <strong className="font-semibold text-tinta">{conteo.tallas.cifra.toLocaleString("es-PE")}</strong> {conteo.tallas.texto}
+                    {conteo.aclaracion && <span className="text-tinta/55"> ({conteo.aclaracion})</span>}
+                  </span>
+                )}
+              </>
             )}
           </span>
           {/* Con el panel abierto los chips no se ven: «Limpiar filtros» queda aquí, a la vista. */}
@@ -443,7 +467,7 @@ export function FiltrosExistencias({
         {/* Atajos de lo que más se pregunta en el piso (`lib/existencias-rapidos.ts`), siempre con su nombre. Su propia fila. */}
         {separa && (
           <div className="order-2 min-w-0 basis-full xl:order-4">
-            <FiltrosRapidos elegidos={elegidos} conteos={conteos} onCambiar={onCambiar} enPausa={enPausa} avisoPausa={avisoPausa} />
+            <FiltrosRapidos elegidos={elegidos} conteos={conteos} onCambiar={onCambiar} enPausa={enPausa} avisoPausa={avisoPausa} calculando={calculando} />
           </div>
         )}
       </div>
@@ -452,7 +476,7 @@ export function FiltrosExistencias({
       {panelAbierto && !hojaAbierta && <div className="hidden md:block">{panel}</div>}
 
       {hojaAbierta && (
-        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} tamano="mediana" mediaAltura>
+        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} tamano="mediana">
           {panel}
           <div className="pie-hoja-fijo pie-acciones mt-4">
             {activos > 0 && (

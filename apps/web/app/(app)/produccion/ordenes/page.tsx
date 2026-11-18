@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getTaller, getOrdenesProduccion, getModelosProducibles, getVocabularioModeloNuevo, getOpcionesNuevaOrden } from "@/lib/produccion";
+import { getTaller, getOrdenesProduccion, getModelosProducibles, getVocabularioModeloNuevo, getOpcionesNuevaOrden, getHistorialDeMoldes } from "@/lib/produccion";
 import { getListaDeOrdenes } from "@/lib/ordenes-lista";
 import { OrdenesLista } from "@/components/ordenes-lista/OrdenesLista";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
@@ -23,8 +23,8 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 //
 // Desde la actividad 5 de ADR-0400 (2026-10-15) la pantalla es una LISTA («A · Lista», elegida por Felipe): cada fila lleva a la página de su orden
 // (`/produccion/ordenes/OP-000012`) y «Hoy en el Taller» cuenta por fase. Las filas salen de `fn_ordenes_produccion_lista` (lib/ordenes-lista.ts), que trae de cada
-// orden lo mismo que su página; las órdenes con el formato de siempre (`getOrdenesProduccion`) siguen alimentando el cajón (`?orden=`, pasar al stock y anular hasta
-// la actividad 6), «Nueva orden» y el consejo de la red.
+// orden lo mismo que su página; las órdenes con el formato de siempre (`getOrdenesProduccion`) siguen alimentando «Nueva orden» y el consejo
+// de la red.
 //
 // Vive en `/produccion/ordenes` desde ADR-0133 (F1): `/produccion` pasó a ser el
 // módulo padre y hoy redirige acá. Quién entra (`puedeVerProduccion`, decisión
@@ -40,8 +40,7 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
   const sp = await searchParams;
   const persona = await requirePersonaActualV2();
   if (!puedeVerProduccion(persona)) {
-    if (!persona.puedeCambiarUbicacion) redirect("/");
-    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} />;
+    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} puedeCambiarUbicacion={persona.puedeCambiarUbicacion} />;
   }
 
   const taller = await getTaller();
@@ -51,7 +50,7 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
         <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Órdenes" />
         <div className="card-cayla">
           <Vacio icono={<Factory />} titulo="No hay un Taller activo">
-            Producción necesita una ubicación de tipo Taller para saber dónde entra el stock. Pídele al líder que active el Taller.
+            Falta el Taller. Pídele al líder que lo active.
           </Vacio>
         </div>
       </div>
@@ -63,7 +62,7 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
   // es `fn_puede_editar_catalogo()` en la base. Los demás ven a quién pedírselo.
   const puedeEditarCatalogo = puede(persona, "editarCatalogo");
   const hoy = hoyLima();
-  const [ordenesBase, modelosBase, datosInsumos, vocabulario, preciosTiendas, opcionesNuevaOrden, listaDeOrdenes] = await Promise.all([
+  const [ordenesBase, modelosBase, datosInsumos, vocabulario, preciosTiendas, opcionesNuevaOrden, listaDeOrdenes, historialDeMoldes] = await Promise.all([
     getOrdenesProduccion(taller.id, { conCostos: esLider }),
     getModelosProducibles(),
     getInsumosDelTaller(taller.id, { conCostos: esLider, hoy }),
@@ -76,11 +75,12 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
     getOpcionesNuevaOrden(taller.id),
     // Las filas de la lista: si no se leen, la pantalla lo dice (nunca una lista vacía que parezca «no hay órdenes»).
     getListaDeOrdenes(taller.id, hoy),
+    // Qué modelos ya tienen molde (muestra hecha o lote abierto): decide qué dice «Nueva orden» sobre el tipo. Secundario: sin esto, la hoja pregunta.
+    getHistorialDeMoldes(taller.id),
   ]);
-  // `?orden=<id>` (los enlaces del Resumen y de antes) abría el cajón de la orden. Desde ADR-0400 (actividad 6) una orden CON fases se sigue en su página: se va allá. El cajón queda solo
-  // para las abiertas antes de las fases (las que la lista marca `legado`).
+  // `?orden=<id>` (los enlaces del Resumen y de antes) lleva a la página de la orden.
   const pedida = sp.orden ? listaDeOrdenes.lista?.filas.find((f) => f.id === sp.orden) : undefined;
-  if (pedida && !pedida.legado) redirect(pedida.href);
+  if (pedida) redirect(pedida.href);
   const ordenes = preciosTiendas ? conPreciosMasBajos(ordenesBase, preciosTiendas) : ordenesBase;
   const modelos = preciosTiendas ? conPreciosMasBajosDeModelos(modelosBase, preciosTiendas) : modelosBase;
 
@@ -91,7 +91,7 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
 
   return (
     <div className="space-y-6">
-      <OrdenesLista tallerId={taller.id} tallerNombre={taller.nombre} lista={listaDeOrdenes.lista} falla={listaDeOrdenes.falla} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} decision={decision} ordenInicialId={sp.orden ?? null} nuevaInicial={sp.nueva ?? null} sugeridaInicial={sp.sugerida === "1"} tipoInicial={tipoDeParametro(sp.tipo)} puedeEditarCatalogo={puedeEditarCatalogo} vocabulario={vocabulario} opcionesNuevaOrden={opcionesNuevaOrden} />
+      <OrdenesLista tallerId={taller.id} tallerNombre={taller.nombre} lista={listaDeOrdenes.lista} falla={listaDeOrdenes.falla} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} decision={decision} nuevaInicial={sp.nueva ?? null} sugeridaInicial={sp.sugerida === "1"} tipoInicial={tipoDeParametro(sp.tipo)} puedeEditarCatalogo={puedeEditarCatalogo} vocabulario={vocabulario} opcionesNuevaOrden={opcionesNuevaOrden} historialDeMoldes={historialDeMoldes} />
     </div>
   );
 }

@@ -95,13 +95,16 @@ export function ListaNotificaciones({ filas, total, busqueda }: { filas: FilaNot
         <ul className="n-lista">
           {filas.map((f) => (
             <li key={f.clave} className="n-fila">
-              <input
-                type="checkbox"
-                className="n-casilla"
-                aria-label={`Seleccionar: ${f.titulo}`}
-                checked={seleccion.has(f.clave)}
-                onChange={() => alternar(f.clave)}
-              />
+              {/* La etiqueta solo agranda dónde se toca la casilla (44 px de ancho y todo el alto de la fila); el dibujo y el estado son los de siempre. */}
+              <label className="n-casilla-zona">
+                <input
+                  type="checkbox"
+                  className="n-casilla"
+                  aria-label={`Seleccionar: ${f.titulo}`}
+                  checked={seleccion.has(f.clave)}
+                  onChange={() => alternar(f.clave)}
+                />
+              </label>
               <Link className="n-enlace" href={f.href} onClick={() => marcarLeidaEnEsteAparato(f.clave)}>
                 <span className="n-ic" aria-hidden="true">
                   <Icono nombre={f.tipo === "respuesta" ? "chat" : "campana"} />

@@ -1,5 +1,6 @@
 import { CodigoQR } from "@/components/CodigoQR";
 import { IconoEtiquetaPapel } from "@/components/IconoEtiquetaPapel";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { campanaSaleEnLaFila, esTallaUnica, fechaVigencia, precioEtiqueta, type EtiquetaPrecio as DatosEtiqueta } from "@/lib/etiqueta-precio-reglas";
 
 /** El QR, lo más grande que entra en 40,1 × 62 mm: 19 mm con o sin campaña (el lado incluye la zona muda, `lib/qr.ts`).
@@ -28,19 +29,17 @@ export function EtiquetaPrecio({ etiqueta: e, impreso }: { etiqueta: DatosEtique
   return (
     <article data-papel className={e.campana ? "etiqueta-precio etq-con-campana" : "etiqueta-precio"} aria-label={`Etiqueta de precio de ${e.prenda}`}>
       <header className="etq-cab">
-        {/* El colibrí en vector (calcado de /cayla-isotipo.png, 223 × 150): el PNG de 223 px, ennegrecido con filtro,
-            salía serruchado en la Brother (Felipe, 2026-09-25). En vector la térmica lo dibuja nítido a su resolución.
-            Trazo 9 de 223 en 6,2 mm = 0,25 mm (3 puntos): con 7 quedaba en 2,3, bajo el mínimo de globals.css. */}
-        {/* El colibrí es la marca de CAYLA: el papel de otra empresa (CLAURE) lleva solo su nombre (Felipe, 2026-10-20, ADR-0463). */}
-        {e.empresa.conLogo && (
-          <svg viewBox="0 0 223 150" aria-hidden fill="none" stroke="#000" strokeWidth={9} strokeLinejoin="round">
-            <path d="M3,6 C45,14 95,28 118,50 C134,64 136,96 124,112 C110,130 80,138 47,146 L68,102" />
-            <path d="M3,6 C10,40 40,70 70,80 C85,85 100,87 112,87" />
-            <path d="M104,40 C102,22 118,6 140,5 C155,4 165,10 172,16 L220,12" />
-            <path d="M172,16 C156,22 144,38 134,62" />
-          </svg>
+        {/* El logo oficial (ADR-0446), en vector y negro: el mismo dibujo del lateral, nunca «CAYLA» escrito con una letra del sistema
+            (Felipe, 2026-10-26). En vector la Brother lo dibuja nítido a su resolución (el PNG salía serruchado, 2026-09-25).
+            Es la marca de CAYLA: el papel de otra empresa (CLAURE) lleva solo su nombre (Felipe, 2026-10-20, ADR-0463). */}
+        {e.empresa.conLogo ? (
+          <>
+            <LogoCayla tinta="negro" className="etq-logo" />
+            <span className="sr-only">{e.empresa.nombre}</span>
+          </>
+        ) : (
+          <b>{e.empresa.nombre}</b>
         )}
-        <b>{e.empresa.nombre}</b>
       </header>
 
       {e.tallasDelModelo.length > 0 && (

@@ -198,12 +198,24 @@ export type LineaRecepcion = {
   sku: string | null;
   talla: string | null;
   color: string | null;
+  /** La marca de la prenda (`productos.marca_id`): «Terminados» de Recibir la pone al frente. `null` si la prenda no tiene marca;
+   *  ausente donde la lectura no la trae. */
+  marca?: string | null;
+  /** Cómo se pinta la muestra del color (`fondoDeMuestra`: el hex, o el metálico o jaspeado); `null` si el color no tiene hex
+   *  (Estampado, Multicolor): la muestra dibuja «varios colores». Ausente donde la lectura no lo trae. */
+  colorFondo?: string | null;
   cantidad: number;
 };
 
 export type RecepcionReciente = {
   loteId: string;
+  /** El envío (`despachos`) del que salió este lote: un envío con dos proveedores deja dos lotes. `null` en una llegada sin envío. */
+  despachoId: string | null;
+  /** «ENV-000254», o `null` sin envío. */
+  envioNumero: string | null;
   fecha: string;
+  /** Cuándo la sede abrió el envío para recibirlo (`despachos.abierto_en`); null si el lote no viene de un envío. */
+  llegoEn?: string | null;
   ubicacion: string;
   /** De quién llegó: la puerta «Llegó mercadería» avisa si ese proveedor ya entró hoy en la sede (ADR-0330). */
   proveedorId: string | null;
@@ -421,3 +433,38 @@ export function esRelacionAusente(error: { code?: string | null } | null | undef
   return error?.code === "PGRST205" || error?.code === "42P01";
 }
 
+
+/**
+ * El número del envío («ENV-000254») con que la recepción abre la nota del lote: «Envío ENV-000254 · Costo atípico…» (`recibir_envio` y el cierre
+ * del conteo). `despachos` no se lee directo desde la pantalla, y el lote sí trae su nota. `null` si la nota no empieza así.
+ */
+export function numeroDeEnvioEnNota(nota: string | null): string | null {
+  return /^Envío (ENV-\d+)/.exec(nota ?? "")?.[1] ?? null;
+}
+
+/** La nota del lote sin el «Envío ENV-… · » con que empieza (el número ya se ve aparte); `null` si no queda nada que decir. */
+export function notaSinEnvio(nota: string | null): string | null {
+  const t = (nota ?? "").replace(/^Envío ENV-\d+(\s*·\s*)?/, "").trim();
+  return t === "" ? null : t;
+}
+
+/**
+ * ¿El detalle ofrece «Anular comprobante»? Vigente, sin pagos, de mercadería y sin nada recibido. «Recibido» se pregunta de dos formas porque la mercadería
+ * entra por dos caminos: por Recibir contra la factura (`tieneRecepciones`, los movimientos de sus líneas) y, en una compra de «Mis compras», ANTES de que
+ * exista el comprobante (`compra_item_recibido_antes`): esa no deja movimientos en sus líneas, pero sí cuenta en `recibidoCantidad`. Sin la segunda, el botón
+ * aparecía en una compra «Recibida 12 de 12» (auditoría 2026-11-15). Es una defensa de la pantalla: el candado de verdad va en `anular_compra`, que al
+ * 2026-11-15 todavía solo mira los movimientos (pendiente de decisión de Felipe: toca stock y dinero).
+ */
+export function ofreceAnularCompra(
+  compra: Pick<CompraResumen, "estado" | "pagado" | "recibidoCantidad" | "naturaleza">,
+  { tieneRecepciones, permiteFacturas }: { tieneRecepciones: boolean; permiteFacturas: boolean },
+): boolean {
+  return (
+    compra.estado === "vigente" &&
+    compra.pagado === 0 &&
+    !tieneRecepciones &&
+    !(compra.recibidoCantidad > 0) &&
+    permiteFacturas &&
+    (compra.naturaleza ?? "mercaderia") === "mercaderia"
+  );
+}

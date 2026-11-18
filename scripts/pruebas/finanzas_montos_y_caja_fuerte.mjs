@@ -70,7 +70,7 @@ set constraints all immediate;
 select id as lima from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select id as fuerte from retail.cuentas_dinero where tipo = 'caja_fuerte' and ubicacion_id = :'lima' \\gset
 select retail.crear_cuenta_dinero('ZZ Banco de prueba', 'banco', 0) as banco \\gset
-select retail.registrar_movimiento_dinero('aporte', 100, null, :'fuerte', current_date, 'colchón de prueba', 0, null, null, gen_random_uuid()) as _aporte \\gset
+select retail.registrar_movimiento_dinero('aporte', 100, null, :'fuerte', retail.fn_hoy_lima(), 'colchón de prueba', 0, null, null, gen_random_uuid()) as _aporte \\gset
 select ${SALDO("fuerte")} as saldo \\gset
 `;
 }
@@ -87,17 +87,17 @@ function esperar(nombre, ok, detalle) {
 }
 const rechaza = (r, marca) => !r.ok && r.error.includes(marca);
 
-const gasto = (monto, { descripcion = "'Luz'", fecha = "current_date", cuenta = "null", medio = "'transferencia'" } = {}) =>
+const gasto = (monto, { descripcion = "'Luz'", fecha = "retail.fn_hoy_lima()", cuenta = "null", medio = "'transferencia'" } = {}) =>
   `select retail.registrar_gasto(:'lima', 'servicios_basicos', ${descripcion}, ${fecha}, ${monto}, null, ${medio}, null, null, null, gen_random_uuid(), null, ${cuenta});`;
 const movimiento = (tipo, monto, origen, destino) =>
-  `select retail.registrar_movimiento_dinero('${tipo}', ${monto}, ${origen}, ${destino}, current_date, null, 0, null, null, gen_random_uuid());`;
+  `select retail.registrar_movimiento_dinero('${tipo}', ${monto}, ${origen}, ${destino}, retail.fn_hoy_lima(), null, 0, null, null, gen_random_uuid());`;
 
 // --- 1. Montos que no son números, montos gigantes y textos sin tope: rechazados por la tabla, con control ---
 const ATAQUES = [
   ["el saldo inicial de una cuenta en NaN", `select retail.crear_cuenta_dinero('ZZ Cuenta de prueba', 'banco', 'NaN'::numeric);`, "cuentas_dinero_montos_finitos"],
   ["un gasto fijo en NaN", `select retail.guardar_gasto_fijo(null, :'lima', 'servicios_basicos', 'Luz', null, 'factura', 'NaN'::numeric, false, 5);`, "gastos_fijos_montos_finitos"],
   ["el mínimo de caja en NaN", `select retail.guardar_parametros_finanzas('NaN'::numeric, 10, 5);`, "parametros_finanzas_montos_finitos"],
-  ["un activo en NaN", `select retail.registrar_activo(:'lima', 'equipos', 'Parlante', current_date, 'NaN'::numeric, null, 'transferencia');`, "activos_fijos_montos_finitos"],
+  ["un activo en NaN", `select retail.registrar_activo(:'lima', 'equipos', 'Parlante', retail.fn_hoy_lima(), 'NaN'::numeric, null, 'transferencia');`, "activos_fijos_montos_finitos"],
   ["un gasto de S/ 1 000 000.01", gasto("1000000.01"), "gastos_monto_con_tope"],
   ["un aporte de S/ 99 999 999 a la caja fuerte", movimiento("aporte", 99999999, "null", ":'fuerte'"), "movimientos_dinero_monto_con_tope"],
   ["una descripción de gasto de 201 letras", gasto(50, { descripcion: "repeat('x', 201)" }), "gastos_textos_con_tope"],
@@ -149,14 +149,14 @@ select 'ok|despues_de_aportar';`);
 
 // --- 3. Un gasto anterior al inicio de Finanzas ---
 {
-  const conInicio = `update retail.parametros_finanzas set inicio_finanzas = date_trunc('month', current_date)::date where id;\n`;
+  const conInicio = `update retail.parametros_finanzas set inicio_finanzas = date_trunc('month', retail.fn_hoy_lima())::date where id;\n`;
   const sin = correr(`${preparar({ sinFechaInicio: true })}${conInicio}${gasto(50, { fecha: "'1990-01-01'::date" })}`);
   esperar("CONTROL sin la migración: un gasto fechado en 1990 entraba", sin.ok, sin.error);
   esperar("un gasto anterior al inicio de Finanzas se rechaza (gasto_antes_del_inicio)",
     rechaza(correr(`${preparar()}${conInicio}${gasto(50, { fecha: "'1990-01-01'::date" })}`), "gasto_antes_del_inicio"), "pasó");
-  const elDia = correr(`${preparar()}${conInicio}${gasto(50, { fecha: "date_trunc('month', current_date)::date" })}`);
+  const elDia = correr(`${preparar()}${conInicio}${gasto(50, { fecha: "date_trunc('month', retail.fn_hoy_lima())::date" })}`);
   esperar("un gasto del mismo día del inicio se acepta", elDia.ok, elDia.error);
-  const sinInicio = correr(`${preparar()}update retail.parametros_finanzas set inicio_finanzas = null where id;\n${gasto(50, { fecha: "current_date - 400" })}`);
+  const sinInicio = correr(`${preparar()}update retail.parametros_finanzas set inicio_finanzas = null where id;\n${gasto(50, { fecha: "retail.fn_hoy_lima() - 400" })}`);
   esperar("sin un inicio elegido, la fecha no se frena (solo la futura, como siempre)", sinInicio.ok, sinInicio.error);
 }
 
@@ -165,11 +165,11 @@ select 'ok|despues_de_aportar';`);
   const t = "c0ffee00-0000-4000-8000-000000014121";
   const CASOS = [
     ["registrar_movimiento_dinero: un aporte de 100 y luego de 300",
-      (m) => `retail.registrar_movimiento_dinero('aporte', ${m}, null, :'fuerte', current_date, null, 0, null, null, '${t}')`, [100, 300]],
+      (m) => `retail.registrar_movimiento_dinero('aporte', ${m}, null, :'fuerte', retail.fn_hoy_lima(), null, 0, null, null, '${t}')`, [100, 300]],
     ["registrar_activo: un parlante de 900 y luego de 3000",
-      (m) => `retail.registrar_activo(:'lima', 'equipos', 'Parlante', current_date, ${m}, null, 'transferencia', null, null, null, null, null, '${t}')`, [900, 3000]],
+      (m) => `retail.registrar_activo(:'lima', 'equipos', 'Parlante', retail.fn_hoy_lima(), ${m}, null, 'transferencia', null, null, null, null, null, '${t}')`, [900, 3000]],
     ["cargar_activo_inicial: un parlante de 900 y luego de 3000",
-      (m) => `retail.cargar_activo_inicial(:'lima', 'equipos', 'Parlante', current_date - 30, ${m}, null, null, null, '${t}')`, [900, 3000]],
+      (m) => `retail.cargar_activo_inicial(:'lima', 'equipos', 'Parlante', retail.fn_hoy_lima() - 30, ${m}, null, null, null, '${t}')`, [900, 3000]],
   ];
   const dos = (f, [a, b], opciones) => correr(`${preparar(opciones)}select 'uno|' || ${f(a)};\nselect 'dos|' || ${f(b)};`);
   const iguales = (r) => r.ok && r.salida.match(/^uno\|(.*)$/m)?.[1] === r.salida.match(/^dos\|(.*)$/m)?.[1];
@@ -202,7 +202,7 @@ set local request.jwt.claim.sub = '${FELIPE}';
 set constraints all immediate;
 select id as lima from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select id as fuerte from retail.cuentas_dinero where tipo = 'caja_fuerte' and ubicacion_id = :'lima' \\gset
-select retail.registrar_movimiento_dinero('aporte', 100, null, :'fuerte', current_date, null, 0, null, null, gen_random_uuid()) as _a \\gset
+select retail.registrar_movimiento_dinero('aporte', 100, null, :'fuerte', retail.fn_hoy_lima(), null, 0, null, null, gen_random_uuid()) as _a \\gset
 select pg_sleep(${dormir});`;
   const primera = sesion(retiraTodo(2.5));
   await new Promise((r) => setTimeout(r, 1000));

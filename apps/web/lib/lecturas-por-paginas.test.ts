@@ -116,10 +116,10 @@ describe("leerPorTandasDeIds", () => {
 
 describe("nadie lee de un solo golpe lo que pasa de 1.000 filas", () => {
   // Estas RPC devuelven una fila por prenda, comprobante o línea de diario: una llamada suelta se corta en 1.000. Se leen con
-  // `leerRpcPorPaginas` (o su lector propio). `fn_existencias` con `p_producto_ids` (Buscar) está acotada por esos productos.
+  // `leerRpcPorPaginas` (o su lector propio). `fn_existencias` con `p_producto_ids` (Buscar; el detalle de Fusionar, 2 o 3 fichas por sede) está acotada por esos productos.
   const RAIZ = join(__dirname, "..");
   const POR_PAGINAS = ["fn_precios_en_sede", "fn_impuestos_registro_ventas", "fn_impuestos_registro_compras", "fn_diario", "fn_existencias", "fn_gastos_lista"];
-  const ACOTADAS = new Set([join("app", "(app)", "buscar", "page.tsx")]);
+  const ACOTADAS = new Set([join("app", "(app)", "buscar", "page.tsx"), join("lib", "fusionar-productos-detalle.ts")]);
 
   function archivos(dir: string): string[] {
     return readdirSync(dir).flatMap((nombre) => {

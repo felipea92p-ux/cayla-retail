@@ -31,11 +31,6 @@ export function ajustarCelular(numero: string): string {
   return (d.length > 9 && d.startsWith("51") ? d.slice(2) : d).slice(0, 9);
 }
 
-/** El texto vigente de un tipo, o null si no hay (sin texto `club` no se ofrece «Invitar»). */
-export function textoVigente(textos: readonly TextoClub[], tipo: TipoTextoClub): TextoClub | null {
-  return textos.filter((t) => t.tipo === tipo).sort((a, b) => b.version - a.version)[0] ?? null;
-}
-
 /** «C-0142»: así se lee el código en caja, en la ficha y en el mensaje que llega. */
 export function codigoClubLegible(codigo: string | null): string | null {
   return codigo ? codigo.toUpperCase() : null;

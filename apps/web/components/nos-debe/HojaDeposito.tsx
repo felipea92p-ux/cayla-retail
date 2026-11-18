@@ -203,9 +203,8 @@ function HojaDeposito({
             Te debe <b className="font-semibold text-tinta">{queDebe(deuda)}</b> ({deuda.montoConIgv != null ? `${soles(deuda.montoConIgv)} con IGV` : soles(deuda.montoPendiente)}):{" "}
             {porQueDebeEnFrase(deuda, hoy)}.
           </p>
-          <p className="nota-cayla text-[13px]">
-            Úsalo si el proveedor no las va a mandar y ya te devolvió la plata. Se registra un documento interno por lo que pagaste por ellas y el
-            depósito que entró, juntos. No suma prendas al stock.
+          <p className="nota-cayla text-sm">
+            Para cuando no las va a mandar y ya te devolvió la plata. No suma prendas al stock.
           </p>
           {deuda.sinPapel > 0 && (
             <Aviso tono="info" chico>
@@ -252,11 +251,11 @@ function HojaDeposito({
                     <p className="text-sm text-tinta">
                       Vale <b className="font-semibold tabular-nums">{cuantoVale(valorAlDia)}</b>, lo que costaron en su comprobante.
                     </p>
-                    <p className="mt-1 text-[13px] text-tinta/75">{fraseDeposito(proveedorNombre, valorAlDia)}</p>
-                    {fraseNotaDeLaFactura(valorAlDia) && <p className="mt-1 text-[13px] text-tinta/75">{fraseNotaDeLaFactura(valorAlDia)}</p>}
+                    <p className="mt-1 text-sm text-tinta/75">{fraseDeposito(proveedorNombre, valorAlDia)}</p>
+                    {fraseNotaDeLaFactura(valorAlDia) && <p className="mt-1 text-sm text-tinta/75">{fraseNotaDeLaFactura(valorAlDia)}</p>}
                   </>
                 ) : (
-                  <p className="text-[13px] text-tinta/65">{valor && valor.cantidad === n ? "No pude calcular cuánto vale: la base lo revisará al registrarlo." : "Calculando cuánto vale…"}</p>
+                  <p className="text-sm text-tinta/65">{valor && valor.cantidad === n ? "No pude calcular cuánto vale: la base lo revisará al registrarlo." : "Calculando cuánto vale…"}</p>
                 )}
               </div>
             ))}
@@ -312,6 +311,8 @@ function HojaDeposito({
                 sentido="entra"
                 cuentas={cuentas.cuentas}
                 listo={cuentas.listo}
+                falla={cuentas.falla}
+                reintentar={cuentas.reintentar}
                 clase="reembolso"
                 medio={borrador.metodo}
                 valor={cuentaEntra}
@@ -328,6 +329,8 @@ function HojaDeposito({
               sentido="entra"
               cuentas={cuentas.cuentas}
               listo={cuentas.listo}
+                falla={cuentas.falla}
+                reintentar={cuentas.reintentar}
               clase="reembolso"
               medio={borrador.metodo}
               valor={cuentaEntra}
@@ -398,7 +401,7 @@ function HojaDeposito({
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={guardando} disabled={cuentas.falla} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               {textoBotonDeposito(monto)}
             </Boton>
           </div>

@@ -4,6 +4,10 @@
 import { createClient } from "./supabase/server";
 import { exigir, leerTodas } from "./resultado";
 import { resueltasDesde, vencidasDesde } from "./por-regularizar-reglas";
+import { textoDeMotivo } from "./prenda-sin-registrar-motivo";
+// Reglas puras y relativas (no `./cuadre-piso`, que importa por alias `@/` y vitest no lo resuelve al probar este archivo).
+import { RPC_ESTADO, leerEstadoCuadre } from "./cuadre-piso-reglas";
+import type { CuadresPorSede } from "./cola-arranque-reglas";
 
 export type FilaPorRegularizar = {
   id: string;
@@ -26,13 +30,10 @@ export type FilaPorRegularizar = {
   categoriaFamilia: string | null;
   precioCobrado: number;
   vendidoPor: string;
-  /** Quién la vendió, como id de persona (`null` = no quedó registrado): la mesa avisa ANTES del botón que nadie regulariza su propia
-   *  venta (20261004204000, `motivoPropiaVenta`). */
-  vendidoPorId: string | null;
   vendidoEn: string;
   ubicacionId: string;
   sede: string;
-  /** `cerrada_sin_prenda` (ADR-0334): un líder la dio por hecha en el cierre de arranque, sin identificar la prenda ni mover stock. */
+  /** `cerrada_sin_prenda` (ADR-0334): se dio por hecha en el cierre de arranque, sin identificar la prenda ni mover stock. */
   estado: "pendiente" | "regularizada" | "anulada" | "cerrada_sin_prenda";
   /** Solo cerrada (o anulada después de cerrada): por qué se cerró y cuándo. */
   cierre: { motivo: string; cerradoEn: string } | null;
@@ -40,6 +41,8 @@ export type FilaPorRegularizar = {
   prendaReal: string | null;
   forma: "ya_registrada" | "llego_nueva" | null;
   diferencia: number | null;
+  /** Por qué la caja la anotó a mano, dicho en palabras («La pistola no la lee»). `null`: venta de antes del 2026-11-06 o sin motivo. */
+  motivo: string | null;
 };
 
 const COLUMNAS = `id, venta_item_id, ubicacion_id, descripcion, categoria_id, talla_id, color_codigo, precio_cobrado, vendido_por, vendido_en, estado, forma, diferencia,
@@ -81,7 +84,7 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
   const yaResueltas = [...exigir(resueltas, "las prendas ya regularizadas"), ...exigir(cerradas, "las ventas cerradas sin prenda")].sort(
     (a, b) => Date.parse(b.vendido_en) - Date.parse(a.vendido_en) || a.id.localeCompare(b.id),
   );
-  // Las lecturas no comparten foto de la base: una prenda que almacén regulariza (o un líder cierra) justo entre las lecturas saldría en
+  // Las lecturas no comparten foto de la base: una prenda que almacén regulariza (o alguien cierra) justo entre las lecturas saldría en
   // dos y se pintaría dos veces. Gana la resuelta, que es la más nueva. (En el sentido contrario, que no salga en ninguna, solo dura
   // hasta el siguiente refresco.)
   const idsResueltas = new Set(yaResueltas.map((f) => f.id));
@@ -95,6 +98,16 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
     const { data } = await supabase.rpc("fn_correcciones_prenda_sin_registrar", { p_ids: corregibles });
     // Vienen de la más nueva a la más vieja: la primera de cada venta es la última corrección.
     for (const c of data ?? []) if (!correcciones.has(c.prenda_id)) correcciones.set(c.prenda_id, { veces: c.veces, ultimaEn: c.ultima_en, ultimaPor: c.ultima_por, antes: c.antes });
+  }
+
+  // Por qué se anotó a mano (20261106233000). Es lo accesorio y va aparte: hasta que la migración esté en producción la columna no
+  // existe, y meterla en `COLUMNAS` tumbaría la lista entera (principio 9). Solo las que lo tienen (las nuevas): son pocas.
+  const motivos = new Map<string, { motivo: string | null; detalle: string | null }>();
+  {
+    let consulta = supabase.from("prendas_por_regularizar").select("id, motivo, motivo_detalle" as "id").not("motivo" as "id", "is", null);
+    if (ubicacionId) consulta = consulta.eq("ubicacion_id", ubicacionId);
+    const { data } = await consulta.range(0, 999);
+    for (const m of (data ?? []) as unknown as { id: string; motivo: string | null; motivo_detalle: string | null }[]) motivos.set(m.id, { motivo: m.motivo, detalle: m.motivo_detalle });
   }
 
   // `personas` vive en `public` (Dynamic): PostgREST no la embebe; se nombra con la misma función que Historial.
@@ -120,7 +133,6 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
     categoriaFamilia: f.categoria?.familia ?? null,
     precioCobrado: Number(f.precio_cobrado),
     vendidoPor: (f.vendido_por && nombres.get(f.vendido_por)) || "—",
-    vendidoPorId: f.vendido_por ?? null,
     vendidoEn: f.vendido_en,
     ubicacionId: f.ubicacion_id,
     sede: f.ubicacion?.nombre ?? "",
@@ -129,6 +141,7 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
     prendaReal: f.variante ? `${f.variante.producto?.referencia ?? ""} · ${f.variante.sku}` : null,
     forma: f.forma as FilaPorRegularizar["forma"],
     diferencia: f.diferencia === null ? null : Number(f.diferencia),
+    motivo: textoDeMotivo(motivos.get(f.id)?.motivo, motivos.get(f.id)?.detalle),
   });
   return filas.map(aFila);
 }
@@ -163,4 +176,23 @@ export async function getPlazosColaArranque(): Promise<Record<string, string>> {
   const { data, error } = await supabase.from("cola_arranque_plazo").select("ubicacion_id, hasta");
   if (error || !data) return {};
   return Object.fromEntries(data.map((p) => [p.ubicacion_id, p.hasta]));
+}
+
+/**
+ * Cuándo se guardó el último cuadre del piso de cada tienda con ventas pendientes (`fn_cuadre_piso_estado.cuadrado_en`; ADR-0334 act.
+ * 2026-10-14, A6): cerrar la cola en bloque exige uno posterior a la última venta que se cierra. `null` = nunca se cuadró. Una tienda
+ * cuyo estado no se pudo leer NO entra al mapa: la pantalla no la juzga y la base vuelve a exigirlo al cerrar. Nunca lanza.
+ */
+export async function getUltimoCuadrePorSede(ubicacionIds: readonly string[]): Promise<CuadresPorSede> {
+  const unicas = [...new Set(ubicacionIds)];
+  if (unicas.length === 0) return {};
+  const supabase = await createClient();
+  const lecturas = await Promise.all(unicas.map((id) => supabase.rpc(RPC_ESTADO as never, { p_ubicacion_id: id } as never).then((r) => r, () => ({ data: null, error: { message: "sin leer" } }))));
+  const cuadres: Record<string, string | null> = {};
+  unicas.forEach((id, i) => {
+    const { data, error } = lecturas[i]! as { data: unknown; error: unknown };
+    const estado = error ? null : leerEstadoCuadre(data);
+    if (estado) cuadres[id] = estado.cuadradoEn;
+  });
+  return cuadres;
 }

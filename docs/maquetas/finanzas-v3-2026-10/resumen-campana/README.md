@@ -180,3 +180,23 @@ Vistas con cifras de ejemplo (solo en desarrollo): `/finanzas/resumen?inversion=
 
 
 **Contrato aprobado por Felipe (2026-10-26, en el chat del Plan):** columna `visibilidad_finanzas` con `'todo' | 'escenarios' | 'nada'` (por defecto `'todo'`) y una lectura del plan que devuelve, por campaña, valor sin IGV, IGV y lo que sale de caja **separados en «falta pedir» y «pedido»**, más la lista de pagos y la visibilidad. Nombre y formato son definitivos; **construirlo aún no está aprobado** (tarea #10 del Plan). Cuando exista la función, `leerInversion` se adapta a su forma (hoy lee `plan_sin_igv`, `igv`, `pedido` y `pagado`) y `getInversionMercaderia` llama a la RPC; el resto del Resumen no cambia.
+
+## Hecho por el Plan de campaña (2026-10-26, noche · ADR-0527): el contrato ya tiene quien lo cumpla
+
+La sesión del Plan construyó su parte (rama `claude/campaign-plan-audit-652032`; **migración `20261026212000` solo en local**, producción espera el OK de Felipe). Lo que cambia para el Resumen:
+
+- **`getInversionMercaderia` ya no devuelve `null`**: llama a `leerInversionDeLasCampanas` (`lib/plan-compra-inversion-lectura.ts`) y su resultado pasa por `leerInversion` **sin cambiarla**. Las claves son las del contrato
+  (`id, nombre, desde, hasta, plan_sin_igv, igv, tope, pedido, pagado, fecha_limite, pagos, visibilidad_finanzas, href_plan`); `historia` y `costos` **no se entregan todavía** (siguen siendo opcionales: sin ellos esas pestañas no existen).
+- **Qué significa cada monto** (todo SIN IGV; el IGV es el 18 % del valor sin IGV, venga el costo del plan con él o sin él): `pedido` = lo pedido en órdenes de la campaña (las que llegan dentro de sus fechas); `pagado` = lo ya
+  pagado de las facturas de esas órdenes (cada una aporta lo pagado en la proporción de su subtotal sobre su total); `plan_sin_igv` = **`pedido` + lo que todavía falta pedir** (la compra que el Plan aún pide, sin lo que hay ni lo que
+  viene en camino), así que `plan = pagado + pedido sin pagar + falta pedir` se cumple por construcción y `pasaDelPlan` queda en 0. `pagos` describe cómo se paga **lo que falta pedir** (suma 100 % y la base lo exige).
+  `fecha_limite` es la del Plan (inicio de la campaña menos los días para llegar; con el supuesto de 14 días si nadie los fijó, y `null` cuando la campaña ya empezó).
+- **Qué campañas llegan:** las que el Plan dejó en «todo», sin archivar, con algo planeado, que no terminaron y que empiezan en los próximos 120 días (las 4 más cercanas). Las de «solo Escenarios» y «no mostrarla» **no se leen**
+  (el Resumen no las necesita; cuando Escenarios las lea, hará su propia lectura).
+- **Si algo cae:** esa campaña no se dibuja a medias y `falla` trae «No se pudo leer el plan de campaña…». **Un cambio mínimo en el Resumen:** `page.tsx` pasa `inversionFalla` al panel y éste muestra un `<Aviso>` antes del bloque
+  (el contrato lo pedía y hoy nadie lo mostraba). Una cuenta **sin el módulo «Plan de campaña»** no ve el bloque (las funciones del Plan lo piden) y no se le dice nada: «no te corresponde» no es una falla.
+- **Lo que NO está hecho y sigue siendo de Finanzas:** que `todo` entre al flujo de caja de Reportes y a Escenarios (`fn_flujo_caja_proyeccion` no suma la compra planeada). La pantalla del Plan **lo dice** («Todavía no la leen») y no
+  promete lo que no existe. Y dos preguntas abiertas para Felipe, que tocan lo que muestra el bloque (ADR-0527, «Objeciones»): el tope del Plan mide solo lo que **falta pedir**, el del Resumen lo mide contra **todo lo planeado**; y
+  el tope está en las unidades del costo que se escribe (con o sin IGV) mientras el Resumen lo compara con el plan **sin IGV**.
+- **Al pegar la migración en producción** el valor por defecto es «todo»: el Resumen **empezará a mostrar** la inversión de las campañas que ya tengan plan, sin que nadie toque nada.
+

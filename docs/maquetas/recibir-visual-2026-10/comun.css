@@ -1,0 +1,88 @@
+/* Recibir mercadería · 3 spikes visuales (2026-10-29). Tokens reales de apps/web/app/globals.css y estilos/tema.css (ADR-0169, ADR-0336).
+   Sin hex fuera de esta tabla. Los `--dato-*` son colores de PRENDA (dato, no tema: ADR-0333). Movimiento de ADR-0136: una vez, sin rebote,
+   sin bucle (salvo las señales marcadas), y todo se apaga con prefers-reduced-motion.
+   Regla de esta ronda (las chicas de tienda): nada de letra chica. Mínimo 14 px, el cuerpo en 16-18 px, y las cifras en grande. */
+:root{
+  --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0; --tinta:#1a1a18; --tinta-60:#5b544c; --taupe:#805c4c;
+  --borde-control:#96786a; --rojo:#b8412d; --rojo-profundo:#8b2a1f; --verde:#48603f; --verde-profundo:#44583a; --ambar:#74501a; --pizarra:#4c5d6e;
+  --sombra:#1a1a18; --tinta-fija:#1a1a18; --crema-fija:#f5f0e8;
+  --dato-rosado:#e3a3b8; --dato-beige:#dcc6a3; --dato-negro:#3a3835; --dato-azul:#9db4cb; --dato-verde:#a9c19b; --dato-terracota:#c98a6b;
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+:root[data-tema="oscuro"]{
+  --crema:#1c1a17; --papel:#26241f; --hueso:#33302a; --sand:#403b34; --tinta:#f5f0e8; --tinta-60:#b9b2a7; --taupe:#c4a898;
+  --borde-control:#8d7a6e; --rojo:#e8806a; --rojo-profundo:#f29a86; --verde:#9ccb8d; --verde-profundo:#a8d49a; --ambar:#e4b968; --pizarra:#a2b8cd;
+  --sombra:#000000;
+}
+*{box-sizing:border-box}
+html{color-scheme:light}
+:root[data-tema="oscuro"]{color-scheme:dark}
+body{margin:0;background:var(--crema);color:var(--tinta);font:17px/1.4 "DM Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:"EB Garamond",Georgia,serif;font-weight:500;margin:0;letter-spacing:-.01em}
+button{font:inherit;color:inherit;cursor:pointer}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---- barra del spike (no es parte del diseño: solo navegar entre los tres) ---- */
+.barra-spike{display:flex;align-items:center;gap:12px;padding:12px 24px;border-bottom:1px solid var(--sand);background:var(--papel);position:sticky;top:0;z-index:20;flex-wrap:wrap}
+.barra-spike a{color:var(--taupe);text-decoration:none;font-weight:500;font-size:15px}
+.barra-spike a:hover{color:var(--rojo-profundo)}
+.barra-spike .quien{margin-left:auto;display:flex;gap:10px;align-items:center;font-size:15px;color:var(--tinta-60)}
+.tema{width:44px;height:44px;border-radius:999px;border:1px solid var(--borde-control);background:var(--papel);display:grid;place-items:center}
+.tema svg{width:20px;height:20px}
+
+/* ---- botones: la voz de hoja (letra normal, 16 px, 48 px de alto: se tocan con el pulgar) ---- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:0 22px;border-radius:12px;border:1px solid var(--borde-control);background:var(--papel);font-weight:600;font-size:16px;position:relative;overflow:hidden;transition:transform .2s var(--ease),box-shadow .2s var(--ease),background .2s var(--ease)}
+.btn svg{width:20px;height:20px;flex:none}
+.btn.primario{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+:root[data-tema="oscuro"] .btn.primario{background:var(--tinta);color:var(--crema)}
+.btn.grande{min-height:60px;font-size:18px;padding:0 30px;border-radius:14px}
+.btn[disabled]{opacity:.45;cursor:default}
+@media (hover:hover){
+  .btn:not([disabled]):hover{transform:translateY(-2px);box-shadow:0 10px 24px -12px color-mix(in srgb,var(--sombra) 45%,transparent)}
+  .btn.primario:not([disabled]):hover{background:var(--rojo-profundo);border-color:var(--rojo-profundo);color:var(--crema-fija)}
+}
+.btn:not([disabled]):active{transform:translateY(0) scale(.98)}
+
+/* ---- entrada en cascada: cada pieza sube 14 px y aparece, con --i de desfase ---- */
+.cae{opacity:0;transform:translateY(14px);animation:cae .55s var(--ease) forwards;animation-delay:calc(var(--i,0)*70ms)}
+@keyframes cae{to{opacity:1;transform:none}}
+
+/* ---- la prenda: ícono de su categoría sobre el color de la prenda (ADR-0333) ---- */
+.prenda{position:relative;border-radius:16px;display:grid;place-items:center;color:var(--tinta-fija);background:var(--c,var(--dato-beige));aspect-ratio:1/1}
+.prenda svg{width:52%;height:52%;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---- chips de estado: punto + palabra, 15 px ---- */
+.chip{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;font-weight:600;font-size:15px;background:color-mix(in srgb,var(--c,var(--pizarra)) 14%,transparent);color:var(--c,var(--pizarra))}
+.chip::before{content:"";width:8px;height:8px;border-radius:99px;background:currentColor}
+.chip.verde{--c:var(--verde-profundo)} .chip.ambar{--c:var(--ambar)} .chip.rojo{--c:var(--rojo-profundo)} .chip.pizarra{--c:var(--pizarra)}
+
+/* ---- anillo (se dibuja una vez) ---- */
+.anillo{--p:0;position:relative;display:grid;place-items:center}
+.anillo svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.anillo circle{fill:none;stroke-width:10;stroke-linecap:round}
+.anillo .pista{stroke:var(--hueso)}
+.anillo .arco{stroke:var(--tinta);stroke-dasharray:var(--len);stroke-dashoffset:calc(var(--len)*(1 - var(--p)));transition:stroke-dashoffset .9s var(--ease),stroke .4s}
+.anillo.listo .arco{stroke:var(--verde)}
+.anillo .centro{position:relative;text-align:center;line-height:1}
+.num{font-family:"EB Garamond",Georgia,serif;font-weight:500;font-variant-numeric:tabular-nums}
+
+/* ---- sello que se estampa (una vez, sin rebote) ---- */
+.sello{display:inline-grid;place-items:center;width:84px;height:84px;border-radius:99px;border:3px solid var(--verde);color:var(--verde);transform:scale(1.5) rotate(-12deg);opacity:0}
+.sello svg{width:44px;height:44px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.sello.ya{animation:sello .5s var(--ease) forwards}
+@keyframes sello{to{transform:scale(1) rotate(-6deg);opacity:1}}
+
+/* ---- aviso que sale de abajo ---- */
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,24px);opacity:0;background:var(--tinta);color:var(--crema);padding:14px 22px;border-radius:14px;font-weight:600;font-size:16px;z-index:50;transition:all .4s var(--ease);pointer-events:none;display:flex;gap:10px;align-items:center}
+.toast.ver{opacity:1;transform:translate(-50%,0)}
+.toast svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .barra-spike{padding:10px 16px}
+  .barra-spike .quien span{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-delay:0ms!important;transition-duration:.001ms!important}
+  .cae{opacity:1;transform:none}
+}

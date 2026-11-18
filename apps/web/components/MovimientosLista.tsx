@@ -65,6 +65,8 @@ export function MovimientosLista({
   // pedido) — ajustar stock sigue viviendo en Existencias, nunca dentro del detalle de un movimiento.
   const operacionAbierta = abiertoId ? (operaciones.find((op) => op.filas.some((f) => f.id === abiertoId)) ?? null) : null;
   const abierto = operacionAbierta?.filas.find((f) => f.id === abiertoId) ?? operacionAbierta?.filas[0] ?? null;
+  // ↑ ↓ del cajón: recorren las operaciones de la página en el orden de la lista (por hora, de la más nueva a la más vieja).
+  const indiceAbierto = operacionAbierta ? operaciones.indexOf(operacionAbierta) : -1;
 
   function sincronizarUrl(id: string | null) {
     const p = new URLSearchParams(window.location.search);
@@ -172,6 +174,18 @@ export function MovimientosLista({
               : undefined
           }
           onCerrar={cerrar}
+          navegacion={
+            indiceAbierto >= 0 && operaciones.length > 1
+              ? {
+                  indice: indiceAbierto,
+                  total: operaciones.length,
+                  onNavegar: (delta) => {
+                    const op = operaciones[indiceAbierto + delta];
+                    if (op) abrir(op.filas[0]);
+                  },
+                }
+              : undefined
+          }
         />
       )}
       {venta?.venta && (

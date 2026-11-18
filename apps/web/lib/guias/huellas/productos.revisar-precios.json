@@ -1,0 +1,30 @@
+{
+  "guia": "productos.revisar-precios",
+  "ruta": "/productos/revisar-precios",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 12,
+  "controles": {
+    "app/(app)/productos/revisar-precios/page.tsx": [
+      "Volver «/productos»",
+      "BotonEnlace «{filtro ? \"Ver todas\" : \"Ir a Productos\"}»"
+    ],
+    "components/AplicarPrecioHoja.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/Paginacion.tsx": [
+      "Link «Volver al inicio»",
+      "Link «Siguiente página»"
+    ],
+    "components/RevisarPreciosLista.tsx": [
+      "Boton «Proponer»",
+      "Boton «Cambiar a»",
+      "button «Proponer otro»"
+    ],
+    "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "BotonImprimir «Imprimir etiquetas»",
+      "button «Descartar el aviso de etiquetas pendientes»"
+    ]
+  }
+}

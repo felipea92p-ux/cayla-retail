@@ -115,7 +115,7 @@ const CONTROLES = [
   // Las piezas de una sola función de `/unificar` (rondas 10 a 15, ADR-0358): un control que se migra a ellas sigue en la huella.
   "BotonDescargar", "BotonVer", "BotonImprimir", "BotonLimpiar", "FiltroPuesto", "BotonEditar", "LapizEditar", "BotonCopiar", "BotonPuntos",
   "BotonBuscar", "BotonDeshacer", "BotonVerMas",
-  "CampoTexto", "CampoSelect", "CampoMonto", "CampoFecha", "Desplegable", "DesplegablePildora", "ComboBuscable", "ComboResponsable",
+  "CampoTexto", "CampoSelect", "CampoMonto", "EntradaMonto", "CampoFecha", "Desplegable", "DesplegablePildora", "ComboBuscable", "ComboResponsable",
   "Casilla", "Pestanas", "SegmentoDeslizante", "SegmentoEnlaces", "Pastilla", "Volver",
 ];
 const RE_CONTROL = new RegExp(`<(${CONTROLES.join("|")})(?=[\\s>/])`, "g");

@@ -2,8 +2,11 @@
   "guia": "produccion.recibir",
   "ruta": "/produccion/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 19,
+  "total": 20,
   "controles": {
+    "components/ProduccionSoloEnTaller.tsx": [
+      "BotonVer «Volver al inicio»"
+    ],
     "components/RecibirComprobanteModal.tsx": [
       "input «{`Cantidad que llegó de ${l.insumo}»",
       "input «{`Código de lote de ${l.insumo}»",

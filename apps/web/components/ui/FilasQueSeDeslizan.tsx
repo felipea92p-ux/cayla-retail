@@ -18,7 +18,17 @@ function marcar(fila: HTMLElement) {
   fila.toggleAttribute("data-mas-der", derecha);
 }
 
-const marcarTodas = () => document.querySelectorAll<HTMLElement>(FILAS).forEach(marcar);
+// Primero se leen todas y después se marcan (ADR-0623): leer y escribir intercalados, fila por fila, obligaba al navegador a recalcular
+// la página entre una y otra mientras se escribe en un buscador que filtra.
+const marcarTodas = () => {
+  const filas = Array.from(document.querySelectorAll<HTMLElement>(FILAS));
+  if (!filas.length) return;
+  const bordes = filas.map((f) => bordesQueFaltan(f.scrollLeft, f.clientWidth, f.scrollWidth));
+  filas.forEach((f, i) => {
+    if (f.hasAttribute("data-mas-izq") !== bordes[i].izquierda) f.toggleAttribute("data-mas-izq", bordes[i].izquierda);
+    if (f.hasAttribute("data-mas-der") !== bordes[i].derecha) f.toggleAttribute("data-mas-der", bordes[i].derecha);
+  });
+};
 
 export function FilasQueSeDeslizan() {
   useEffect(() => {

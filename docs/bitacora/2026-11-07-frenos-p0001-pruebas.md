@@ -1,0 +1,5 @@
+# 2026-11-07 · Cinco pruebas de dinero tenían frenos que no probaban nada
+
+- **Qué pasó:** el `debeFallar` de `comision_estimada`, `gasto_fecha_pago`, `pago_planilla_y_sunat`, `planilla_conceptos` y `puente_residuo` lanzaba «tendría que haber fallado» con el código de fábrica (P0001) y lo atrapaba como si fuera el freno esperado: un freno P0001 que no frenaba pasaba en verde. Con el freno anulado a propósito, `gasto_fecha_pago` daba 10 de 10. Lo destapó el control de `pos_pagos.mjs` (PR #1722).
+- **Arreglo:** el aviso lleva su propio código (`XX999`). Las cinco pasan en una base con todas las migraciones (`comision_estimada`, salvo 7 montos que también fallan con la versión de main en esa base: son datos de prueba previos), y con cada freno anulado los 28 casos «debe fallar» caen. Ningún freno de la base resultó roto. `planilla_salidas` (código XX991) y `movimientos_dinero_inicio_y_empresa` (compara el mensaje exacto) ya eran honestas.
+- **Pendiente:** nada de esta obra; una prueba nueva copia el `debeFallar` con `XX999`.

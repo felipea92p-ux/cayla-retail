@@ -12,6 +12,7 @@ import { CampoFin, InputFin, RadiosFin, SalidaFin, SelectFin } from "@/component
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { Aviso } from "@/components/ui/Aviso";
+import { sePuedeLlevarAGasto } from "@/lib/activo-umbral-reglas";
 import { CampoCuentaFin, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { cuentaDeSalida, medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sellada-reglas";
 import { choqueConElFijo, claveDeFijo, fijosQueSeParecen, mesDelFijo, textoFechaDeFijo } from "@/lib/fijos-del-mes-reglas";
@@ -86,6 +87,7 @@ export function RegistrarGastoModal({
   fijo,
   clase = "gasto",
   tiposActivo = [],
+  umbralActivo = null,
   fijosDelMes = [],
   hoy,
   onCerrar,
@@ -103,6 +105,8 @@ export function RegistrarGastoModal({
   /** F2b: «activo» registra un activo fijo en vez de un gasto. */
   clase?: "gasto" | "activo";
   tiposActivo?: TipoActivo[];
+  /** ¼ de la UIT del año (ADR-0594): un activo que cuesta menos avisa que puede llevarse a gasto. Es un aviso, no un candado; sin él (`null`) no se dice nada. */
+  umbralActivo?: { soles: number; uit: number } | null;
   /** Los fijos (de varios meses y de todas las tiendas, cada fila con su fecha esperada): con ellos, un gasto suelto pregunta si es uno de los que faltan. Sin ellos, no pregunta. */
   fijosDelMes?: GastoFijoMes[];
   hoy: string;
@@ -308,7 +312,7 @@ export function RegistrarGastoModal({
           : !egreso && conCuentas && salida
             ? `Salió de ${salida.nombre}.`
           : esActivo
-            ? "Se deprecia desde el próximo mes."
+            ? "Se deprecia desde el mes de la compra."
             : undefined,
     });
     // El refresco va DESPUÉS de retirar la guardia de «¿Salir sin guardar?» (`retirarYa`): juntos, Next podía volver a montar
@@ -478,7 +482,7 @@ export function RegistrarGastoModal({
               htmlFor="activo-tipo"
               ayuda={
                 tipoActivo
-                  ? `Cuenta ${tipoActivo.cuenta}.${monto.ok ? ` Se deprecia ${soles((monto.valor - igv) / Math.max(1, tipoActivo.vidaUtilMeses))} al mes desde el próximo mes${igv ? ", sobre el costo sin IGV" : ""}.` : ""}`
+                  ? `Cuenta ${tipoActivo.cuenta}.${monto.ok ? ` Se deprecia ${soles((monto.valor - igv) / Math.max(1, tipoActivo.vidaUtilMeses))} al mes desde el mes de la compra${igv ? ", sobre el costo sin IGV" : ""}.` : ""}`
                   : "La sugiere el tipo de bien; el contador la confirma."
               }
             >
@@ -498,7 +502,7 @@ export function RegistrarGastoModal({
               htmlFor="gasto-categoria"
               ayuda={
                 fijo
-                  ? `${categoria ? `Va a la cuenta ${categoria.cuenta}. ` : ""}Viene del fijo «${fijo.descripcion}»: si es otro gasto, regístralo aparte; si la categoría del fijo está mal, se corrige en Configuración ▸ Gastos fijos.`
+                  ? `${categoria ? `Va a la cuenta ${categoria.cuenta}. ` : ""}Viene del fijo «${fijo.descripcion}»: si es otro gasto, regístralo aparte; si la categoría del fijo está mal, se corrige en Configuración ▸ Gastos.`
                   : categoria
                     ? `Va a la cuenta ${categoria.cuenta}. Nadie la elige: viene con la categoría.`
                     : "Sin «Otros»: si no calza en ninguna, avisa al líder."
@@ -591,6 +595,15 @@ export function RegistrarGastoModal({
             <SalidaFin>{b.comprobante === "factura" ? soles(igv) : "S/\u00a00.00"}</SalidaFin>
           </CampoFin>
         </div>
+
+        {/* ADR-0594: bajo ¼ de la UIT se puede llevar a gasto. Un aviso, nunca un candado: un conjunto de piezas que solo funciona junto sí es activo. */}
+        {esActivo && monto.ok && umbralActivo && sePuedeLlevarAGasto(monto.valor - igv, umbralActivo.soles) && (
+          <div className="mb-4" data-sin-cascada>
+            <Aviso tono="atencion" chico titulo={`Cuesta ${soles(monto.valor - igv)} sin IGV: ¼ de la UIT es ${soles(umbralActivo.soles)}`}>
+              Lo normal es llevarlo a gasto, para no depreciarlo durante años. Déjalo como activo solo si es parte de un conjunto que funciona junto, como una máquina con sus piezas. Puedes registrarlo igual.
+            </Aviso>
+          </div>
+        )}
 
         {/* Guía interactiva (ADR-0389): la condición y de dónde salió, juntas en un recorte. */}
         {!egreso && (

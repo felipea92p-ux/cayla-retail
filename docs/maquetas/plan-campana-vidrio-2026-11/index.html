@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-br="esmerilada" data-ca="filas">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plan de campaña con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la página de Compras ▸ Plan de campaña con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   La pantalla real (app/(app)/compras/plan → components/plan-compra/PlanCampana.tsx, MarcoPlan; ADR-0349): la cabecera con el selector de
+   campaña y su estado, las pestañas (Plan · Calendario · Presupuesto · Resultados · Historial), el centro de avisos (`CentroDeAvisos`, la
+   campana con su número que abre una lista flotante; estilos/centro-avisos.css), las cifras (`CifrasPlan`) y la tabla de categorías
+   (`ListaCategorias` → `FilaCategoria`) con la BARRA DE RANGO (`BarraRango`: arriba la banda flojo → bueno con la marca del normal; abajo la
+   barra apilada: lo que ya hay, lo que viene, lo que hay que comprar; el rombo, lo vendido).
+   Armada SOLO con lo ya elegido: cabecera A con sus gotas, el combo A · Gota viajera (la campaña), pestañas A, tarjetas de cifra A ·
+   Placa, tabla B · Placa Serena, buscador A · Pozo, filtros A · Gotas, el segmento de modo, insignia A, globito A, barra apilada (gráficos
+   B · Tinta sobre vidrio), menú y descargar en gota, botones gota.
+   Lo PROPIO, con sus caras:
+     1. La barra de rango de cada categoría.
+     2. El centro de avisos (la campana, lo urgente que asoma y su lista).
+   FUERA: la hoja «Configuración» de una campaña es diseño propio (ADR-0488): no está aquí; si entra, conserva su movimiento.
+   Solo tokens. Sin movimiento nuevo; todo se apaga con prefers-reduced-motion. Datos inventados.
+   ==================================================================== */
+
+/* ---------- lo ya elegido ---------- */
+.placa{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{--c:var(--ambar)}.chip.pizarra{--c:var(--pizarra)}.chip.tinta{--c:var(--tinta)}
+[data-tema="oscuro"] .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+.pest{display:inline-flex;max-width:100%;overflow-x:auto;scrollbar-width:none;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pest{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pest a{flex:none;display:flex;align-items:center;height:38px;padding:0 16px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);text-decoration:none}
+.pest a[aria-current]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pest a[aria-current]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.pozo-b{flex:1;min-width:180px;max-width:24rem;display:flex;align-items:center;gap:10px;height:42px;padding:0 16px;border-radius:999px;font-size:14px;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pozo-b{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pozo-b svg{width:16px;height:16px}.pozo-b span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:var(--t80);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.fp svg{width:14px;height:14px}
+.modo{display:inline-flex;padding:3px;border-radius:12px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.modo button{height:32px;padding:0 12px;border-radius:9px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.modo button[aria-pressed="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .modo button[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.gota-i{width:40px;height:40px;padding:0;border-radius:50%}
+.tc-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.cif{padding:16px 18px}.cif .vs{font-size:10.5px}.cif b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:34px;line-height:1.1;margin-top:4px;font-variant-numeric:tabular-nums}
+.cif small{font-size:12.5px;color:var(--t65)}
+.cif.filtra{cursor:pointer}.cif.puesta{box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 16%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.mini-ap{display:flex;gap:2px;height:6px;margin-top:10px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 7%,transparent)}
+.mini-ap i{display:block;height:100%}
+
+/* ---------- la cabecera de la pantalla y el selector ---------- */
+.fila-sel{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:4px}
+.sel-camp{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:999px;font-size:14px;font-weight:600;border:1px solid var(--borde);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .sel-camp{background:color-mix(in srgb,var(--tinta) 9%,transparent);border-color:color-mix(in srgb,var(--tinta) 30%,transparent);box-shadow:none}
+.sel-camp svg{width:14px;height:14px}
+.barra-nav{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:22px}
+
+/* ============ 1 · EL CENTRO DE AVISOS ============ */
+.ca-centro{display:flex;align-items:center;gap:12px}
+.ca-boton{position:relative;display:inline-flex;align-items:center;gap:8px;height:40px;min-width:40px;padding:0 12px;border-radius:99px;border:1px solid var(--borde);background:var(--papel);color:var(--tinta)}
+.ca-boton svg{width:18px;height:18px}
+.ca-n{min-width:20px;height:20px;padding:0 5px;border-radius:99px;display:grid;place-items:center;font-size:11.5px;font-weight:700;background:var(--rojo);color:var(--crema)}
+.ca-boton[aria-expanded="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.ca-boton[aria-expanded="true"] .ca-n{background:var(--crema);color:var(--tinta)}
+.ca-txt{display:none;font-size:12.5px}.ca-boton[aria-expanded="true"] .ca-txt{display:inline}
+.ca-asoma{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:99px;font-size:13px;font-weight:600;color:var(--rojo-p);
+  background:color-mix(in srgb,var(--rojo) 12%,var(--papel));border:1px solid color-mix(in srgb,var(--rojo) 45%,transparent)}
+[data-tema="oscuro"] .ca-asoma{color:var(--rojo)}
+.ca-asoma::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--rojo)}
+.ca-panel{position:absolute;z-index:20;top:calc(100% + 8px);right:0;width:min(440px,100%);display:flex;flex-direction:column;gap:8px;padding:12px 8px 12px 12px;border-radius:16px;
+  border:1px solid var(--sand);background:var(--papel);box-shadow:0 18px 40px -18px color-mix(in srgb,var(--sombra) 45%,transparent);animation:sube .3s var(--ease) backwards}
+.ca-panel[hidden]{display:none}
+.ca-titulo{padding:2px 4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--t65)}
+.ca-lista{display:grid;gap:10px;max-height:360px;overflow-y:auto;padding:2px 6px 2px 0}
+.ca-aviso{--c:var(--pizarra);display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:12px;border:1px solid var(--sand);border-left:5px solid var(--c);background:var(--papel)}
+.ca-aviso[data-nivel="urgente"]{--c:var(--rojo)}.ca-aviso[data-nivel="pendiente"]{--c:var(--ambar)}.ca-aviso[data-nivel="ok"]{--c:var(--verde)}
+.ca-ic{flex:none;color:var(--c)}.ca-ic svg{width:22px;height:22px}
+.ca-aviso b{display:block;font-size:14px}.ca-aviso p{font-size:13px;color:var(--t65);margin-top:2px}
+.ca-et{margin-right:6px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--c)}
+.ca-acc{display:flex;gap:8px;margin-top:8px}.ca-acc .btn{height:32px;padding:0 12px;font-size:12.5px}
+/* A · Lista de vidrio con filas: la campana es una gota (y abierta, la gota ahumada); el número, el globito de esquina; lo urgente que asoma,
+   la lente roja; la lista, la de los combos y el menú «Más» (vidrio claro); cada aviso, una fila con la franja de su nivel en una gota al canto. */
+:is([data-ca="filas"],[data-ca="lentes"]) .ca-boton{border-color:var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"]:is([data-ca="filas"],[data-ca="lentes"]) .ca-boton{background:color-mix(in srgb,var(--tinta) 9%,transparent);border-color:color-mix(in srgb,var(--tinta) 30%,transparent);box-shadow:none}
+:is([data-ca="filas"],[data-ca="lentes"]) .ca-boton[aria-expanded="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+:is([data-ca="filas"],[data-ca="lentes"]) .ca-n{border:1px solid color-mix(in srgb,var(--rojo) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 80%,transparent),color-mix(in srgb,var(--rojo) 96%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 35%,transparent)}
+:is([data-ca="filas"],[data-ca="lentes"]) .ca-n{color:var(--crema-fija)}
+:is([data-ca="filas"],[data-ca="lentes"]) .ca-boton[aria-expanded] .ca-n{color:var(--crema-fija);background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 80%,transparent),color-mix(in srgb,var(--rojo) 96%,transparent))}
+[data-tema="oscuro"] .ca-boton[aria-expanded="true"] .ca-n{color:var(--crema-fija);background:var(--rojo)}
+:is([data-ca="filas"],[data-ca="lentes"]) .ca-asoma{background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 8%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--rojo) 14%,transparent));border-color:color-mix(in srgb,var(--rojo) 30%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent)}
+:is([data-ca="filas"],[data-ca="lentes"]) .ca-panel{border-radius:20px;border-color:color-mix(in srgb,var(--vidrio) 60%,transparent);background:color-mix(in srgb,var(--vidrio) 76%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 26px 54px -24px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-tema="oscuro"]:is([data-ca="filas"],[data-ca="lentes"]) .ca-panel{background:color-mix(in srgb,var(--vidrio) 90%,transparent);border-color:color-mix(in srgb,var(--tinta) 12%,transparent)}
+[data-ca="filas"] .ca-lista{gap:0}
+[data-ca="filas"] .ca-aviso{position:relative;border:0;border-radius:14px;background:none;padding:12px 14px 12px 20px}
+[data-ca="filas"] .ca-aviso+.ca-aviso{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 8%,transparent)}
+[data-ca="filas"] .ca-aviso::before{content:"";position:absolute;left:6px;top:14px;bottom:14px;width:4px;border-radius:4px;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 70%,var(--vidrio)),var(--c))}
+/* B · Lentes del tono: lo mismo, y cada aviso de la lista es una lente teñida de su nivel, como los avisos de la esquina que elegiste. */
+[data-ca="lentes"] .ca-aviso{border-radius:16px;border:1px solid color-mix(in srgb,var(--c) 28%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 5%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 60%,transparent)));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"][data-ca="lentes"] .ca-aviso{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 12%,transparent),color-mix(in srgb,var(--c) 7%,transparent))}
+
+/* ---------- la tabla de categorías ---------- */
+.lista-p{margin-top:18px;overflow:visible}
+.herr{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:16px 20px}
+.herr .pc-der{margin-left:auto;display:flex;gap:8px}
+.leyenda{display:flex;flex-wrap:wrap;align-items:center;gap:4px 18px;padding:0 20px 12px;font-size:12px;color:var(--t65)}
+.leyenda span{display:inline-flex;align-items:center;gap:6px}
+.leyenda i{display:inline-block;width:16px;height:8px;border-radius:999px}
+.leyenda .rombo{width:9px;height:9px;border-radius:2px;transform:rotate(45deg);background:var(--pizarra)}
+.cab-t,.fc{display:grid;grid-template-columns:minmax(180px,1.3fr) minmax(220px,1.6fr) 90px 110px 110px auto;gap:12px 18px;align-items:center;padding:0 20px}
+.cab-t{min-height:42px;font-size:12px;color:var(--t65);background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 10%,transparent)}
+.cab-t span:nth-child(n+3),.fc>:nth-child(n+3):not(:last-child){text-align:center}
+.fc{min-height:78px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);cursor:pointer;transition:background-color .2s var(--ease)}
+@media (hover:hover){.fc:hover{background:color-mix(in srgb,var(--tinta) 3%,transparent)}}
+.fc .cat b{display:flex;align-items:center;gap:8px;font-family:'EB Garamond',serif;font-weight:400;font-size:19px}
+.fc .cat .chs{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.fc .pc-num{font-variant-numeric:tabular-nums;font-size:15px}.fc .pc-num small{display:block;font-size:12px;color:var(--t65)}
+.fc .comprar b{font-family:'EB Garamond',serif;font-weight:400;font-size:24px}
+.fc .btn{height:34px;padding:0 14px;font-size:13px}
+.leer{display:block;font-size:12px;color:var(--t65);margin-top:4px;font-variant-numeric:tabular-nums}.leer b{color:var(--tinta);font-weight:600}
+
+/* ============ 2 · LA BARRA DE RANGO ============ */
+.rango{position:relative;display:block;min-width:0}
+.rango .banda{position:relative;display:block;height:8px}
+.rango .banda i{position:absolute;top:2px;bottom:2px;border-radius:999px;background:color-mix(in srgb,var(--taupe) 30%,transparent)}
+.rango .banda b{position:absolute;top:-1px;bottom:-1px;width:2px;border-radius:2px;background:var(--taupe);transform:translateX(-50%)}
+.rango .ap{position:relative;display:flex;gap:2px;height:8px;margin-top:6px;border-radius:999px;background:var(--sand);overflow:visible}
+.rango .ap i{display:block;height:100%}
+.rango .ap i:first-child{border-radius:999px 0 0 999px}
+.rango .ap .hay{background:var(--verde)}.rango .ap .viene{background:color-mix(in srgb,var(--verde) 40%,transparent)}.rango .ap .ap-co{background:var(--tinta);border-radius:0 999px 999px 0}
+.rango .vend{position:absolute;top:50%;width:10px;height:10px;border-radius:2px;background:var(--pizarra);transform:translate(-50%,-50%) rotate(45deg);box-shadow:0 0 0 2px var(--papel)}
+/* A · Banda esmerilada: lo que se espera vender (flojo → bueno) es una franja de vidrio esmerilado sobre la pista, con su filo y la marca del
+   normal en tinta; abajo, la barra apilada elegida (la pista, un pozo fino); el rombo de lo vendido, una gota pizarra con aro de vidrio. */
+[data-br="esmerilada"] .rango .banda{height:12px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 4%,transparent)}
+[data-br="esmerilada"] .rango .banda i{top:0;bottom:0;border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--taupe) 22%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"][data-br="esmerilada"] .rango .banda i{border-color:color-mix(in srgb,var(--tinta) 16%,transparent);background:color-mix(in srgb,var(--taupe) 32%,transparent);box-shadow:none}
+[data-br="esmerilada"] .rango .banda b{top:-2px;bottom:-2px;background:var(--tinta)}
+:is([data-br="esmerilada"],[data-br="punteada"]) .rango .ap{background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 18%,transparent)}
+:is([data-br="esmerilada"],[data-br="punteada"]) .rango .vend{box-shadow:0 0 0 2px color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 1px 0 color-mix(in srgb,var(--vidrio) 40%,transparent)}
+/* B · Banda punteada: la banda deja de ser un relleno: es su contorno punteado (como lo que «se supone»), y el normal, una marca de tinta. */
+[data-br="punteada"] .rango .banda i{top:1px;bottom:1px;background:none;border:1.5px dashed color-mix(in srgb,var(--taupe) 70%,transparent)}
+[data-br="punteada"] .rango .banda b{background:var(--tinta)}
+
+@container disp (max-width:1180px){.cab-t{display:none}.fc{grid-template-columns:minmax(0,1fr) auto;gap:8px 14px;padding:14px 20px}.fc .rango{grid-column:1/-1}.fc>.pc-num,.fc>.costo{display:none}.fc .comprar{grid-column:2;grid-row:1;text-align:right!important}.fc>:last-child{display:none}.tc-cifras{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container disp (max-width:640px){.herr,.leyenda{padding-left:14px;padding-right:14px}.herr .pc-der{margin-left:0}.fc{padding:12px 14px}.ca-txt{display:none!important}.cif b{font-size:28px}}
+@media (prefers-reduced-motion:reduce){.ca-panel{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Compras ▸ Plan de campaña, con vidrio: la página entera con las piezas elegidas</span>
+  <span class="tag">La barra de rango</span><div class="seg-m" data-ctl="br"><button data-v="ahora">Como ahora</button><button data-v="esmerilada">A · Banda esmerilada</button><button data-v="punteada">B · Banda punteada</button></div>
+  <span class="tag">El centro de avisos</span><div class="seg-m" data-ctl="ca"><button data-v="ahora">Como ahora</button><button data-v="filas">A · Lista de vidrio con filas</button><button data-v="lentes">B · Lentes del tono</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+  <span class="tag">Ver abierto</span><button class="accion" data-acc="avisos">El centro de avisos</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>La pantalla</b> (<code>components/plan-compra/</code>, ADR-0349): la cabecera con la campaña elegida y su estado, el resumen, descargar y «Empezar»; las pestañas Plan · Calendario · Presupuesto · Resultados · Historial; el centro de avisos; cuatro cifras (la primera filtra la tabla); y la tabla de categorías: la categoría con su puesto, la barra de rango, lo que ya hay, cuánto comprar y cuánto cuesta.</li>
+      <li><b>La barra de rango</b>: arriba una <b>banda taupe</b> del diciembre flojo al bueno, con la marca del normal; abajo la barra apilada (verde lo que ya hay, verde claro lo que viene, <b>tinta</b> lo que hay que comprar) y un <b>rombo pizarra</b> con lo vendido.</li>
+      <li><b>El centro de avisos</b> (Felipe, 2026-10-26): una campana de <b>papel</b> con su número en <b>rojo sólido</b>, lo urgente que asoma en una <b>píldora roja</b> y una lista flotante de <b>papel</b> con cada aviso en una <b>tarjeta con franja</b> de su nivel.</li>
+      <li>La hoja «Configuración» de una campaña es diseño propio (ADR-0488) y no está en esta maqueta.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>La barra de rango</b></td><td>A · Banda esmerilada <span class="ev">Recomendada</span></td><td>Lo que se espera vender es una franja de vidrio esmerilado con su filo; el normal, una marca de tinta; abajo, la barra apilada elegida. Se lee de un vistazo, como hoy.</td><td>La banda gana 4 px de alto.</td></tr>
+      <tr><td>B · Banda punteada</td><td>La banda es solo su contorno punteado: dice «esto se supone», no «esto hay».</td><td>Un contorno punteado de 8 px se pierde en una tabla larga, sobre todo en oscuro.</td></tr>
+      <tr><td rowspan="2"><b>El centro de avisos</b></td><td>A · Lista de vidrio con filas <span class="ev">Recomendada</span></td><td>La campana es una gota (ahumada al abrir), el número el globito de esquina; la lista, la de los combos y el menú «Más»; cada aviso, una fila con su nivel en una gota al canto. Una lista se lee como lista.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Lentes del tono</td><td>Cada aviso es una lente de su nivel, como los avisos de la esquina que elegiste.</td><td>Muchas lentes juntas en una lista de 6 u 8 avisos: mucho color en poco lugar.</td></tr>
+    </table>
+    <h3>Lo que no cambia</h3>
+    <p>Lo que dice cada barra (flojo · normal · bueno, lo que hay, lo que viene, lo que hay que comprar, lo vendido) y sus colores, la leyenda de la barra, el orden de las categorías, «Empezar» como el único botón negro, lo urgente que asoma junto a la campana, «ya lo vi», y la hoja «Configuración» de cada campaña con su movimiento propio.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const D = { lupa: 'M11 3a8 8 0 1 0 0 16a8 8 0 1 0 0-16z M21 21l-4.3-4.3', campana: 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0', abajo: 'M6 9l6 6 6-6',
+    panel: 'M3 4h18v16H3z M15 4v16', desc: 'M12 3v12M7 10l5 5 5-5M5 21h14', flecha: 'M5 12h14M13 6l6 6-6 6', alerta: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+    reloj: 'M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20z M12 6v6l4 2', info: 'M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20z M12 16v-4M12 8h.01', ok: 'M20 6 9 17l-5-5' };
+  const s = (d) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  const soles = (n) => 'S/ ' + Math.round(n).toLocaleString('es-PE');
+  // [categoría, puesto, chips, flojo, normal, bueno, hay, viene, comprar, vendido, costo]
+  const CATS = [['Blusas', 1, [['verde', 'Con plan']], 180, 240, 310, 96, 30, 114, 92, 3420], ['Vestidos', 2, [['ambar', 'Falta llenar']], 120, 160, 220, 54, 0, 106, 71, 4770],
+    ['Polos', 3, [['verde', 'Con plan']], 140, 200, 260, 110, 40, 50, 64, 1250], ['Faldas', 0, [['pizarra', 'Sugerido']], 40, 60, 90, 38, 0, 22, 18, 770], ['Casacas', 0, [['verde', 'Con plan']], 30, 45, 70, 12, 10, 23, 9, 1610]];
+  const AVISOS = [['urgente', 'alerta', 'Plazo', 'Faltan 3 días para mandar el plan a Compras', 'Después de ese día, Compras arma la ronda con lo que haya.', ['pri', 'Enviar a Compras']],
+    ['pendiente', 'reloj', 'Stock', 'El stock de Trujillo se contó hace 41 días', 'Lo que ya hay puede no ser cierto: cuenta antes de comprar.', ['sec', 'Ir a Conteo']],
+    ['pendiente', 'info', 'Categorías', 'Vestidos todavía no tiene plan', 'Es la segunda que más vende en diciembre.', ['sec', 'Planificar']],
+    ['ok', 'ok', 'Listo', 'Blusas, Polos y Casacas ya tienen plan', '', null]];
+  let abierto = false;
+  function rango([, , , fl, no, bu, hay, vi, co, ve]) {
+    const esc = Math.max(bu, hay + vi + co) * 1.08, p = (v) => (v / esc) * 100;
+    return `<span class="rango" role="img" aria-label="Flojo ${fl}, normal ${no}, bueno ${bu}. Ya hay ${hay}. Vienen ${vi}. Comprar ${co}."><span class="banda"><i style="left:${p(fl)}%;width:${p(bu) - p(fl)}%"></i><b style="left:${p(no)}%"></b></span>
+      <span class="ap"><i class="hay" style="width:${p(hay)}%"></i>${vi ? `<i class="viene" style="width:${p(vi)}%"></i>` : ''}<i class="ap-co" style="width:${p(co)}%"></i>${ve ? `<span class="vend" style="left:${p(ve)}%"></span>` : ''}</span>
+      <span class="leer">${fl} · <b>${no}</b> · ${bu}</span></span>`;
+  }
+  function pantalla() {
+    $('#cont').innerHTML = `${encabezado({ sede: 'Toda la empresa', titulo: 'Plan de campaña', frase: 'Cuánto comprar de cada categoría para la campaña, según lo que se vende y lo que ya hay.', acciones: [['sec', 'Descargar', 'descargar'], ['pri', 'Empezar', 'flecha']] })}
+      <div class="fila-sel"><button class="sel-camp">Navidad 2026 ${s(D.abajo)}</button><span class="chip pizarra">Durante · día 12 de 31</span></div>
+      <div class="barra-nav"><nav class="pest" aria-label="Plan de campaña"><a href="#" aria-current="page">Plan</a><a href="#">Calendario</a><a href="#">Presupuesto</a><a href="#">Resultados</a><a href="#">Historial</a></nav>
+        <div class="ca-centro"><button class="ca-asoma">Faltan 3 días para el plazo</button>
+          <button class="ca-boton" aria-expanded="${abierto}" data-acc="avisos" aria-label="Avisos del plan">${s(D.campana)}<span class="ca-txt">Ocultar</span><span class="ca-n">4</span></button>
+          <div class="ca-panel" ${abierto ? '' : 'hidden'}><p class="ca-titulo">Avisos del plan · 4</p><div class="ca-lista">${AVISOS.map(([n, ic, et, t, d, acc]) => `<div class="ca-aviso" data-nivel="${n}"><span class="ca-ic">${s(D[ic])}</span><div><b><span class="ca-et">${et}</span>${t}</b>${d ? `<p>${d}</p>` : ''}${acc ? `<div class="ca-acc"><button class="btn ${acc[0]}">${acc[1]}</button><button class="btn sec">Ya lo vi</button></div>` : ''}</div></div>`).join('')}</div></div></div></div>
+      <div class="tc-cifras">${[['Categorías con plan', '3 de 5', 'toca para ver las que faltan', 1], ['Prendas a comprar', '315', 'en las 5 categorías'], ['Cuesta', 'S/ 11,820', 'con IGV · tope S/ 15,000', 0, 1], ['De las que más venden', '1 falta', 'Vestidos, la 2.ª']].map(([e, v, d, f, ap]) => `<div class="placa cif${f ? ' filtra' : ''}"><p class="vs">${e}</p><b>${v}</b><small>${d}</small>${ap ? '<div class="mini-ap"><i style="flex:79;background:var(--tinta)"></i><i style="flex:21;background:transparent"></i></div>' : ''}</div>`).join('')}</div>
+      <section class="placa lista-p"><div class="herr"><div class="pozo-b">${s(D.lupa)}<span>Busca una categoría</span></div><div class="modo"><button aria-pressed="true">Tabla</button><button>Paso a paso</button></div>
+          <div class="pc-der"><button class="fp" aria-pressed="true">Todas</button><button class="fp">Por llenar</button><button class="fp">Familia ${s(D.abajo)}</button></div></div>
+        <p class="leyenda"><span>Cómo leer la barra:</span><span><i style="background:var(--verde)"></i>Ya hay</span><span><i style="background:color-mix(in srgb,var(--verde) 40%,transparent)"></i>Viene en órdenes</span><span><i style="background:var(--tinta)"></i>Comprar</span><span><i style="background:color-mix(in srgb,var(--taupe) 30%,transparent)"></i>Lo que se espera vender (flojo · normal · bueno)</span></p>
+        <div class="cab-t"><span>Categoría</span><span>Rango</span><span>Ya hay</span><span>Comprar</span><span>Cuesta</span><span></span></div>
+        ${CATS.map((c) => { const [n, pu, chs, , , , hay, vi, co, , cos] = c; return `<div class="fc"><div class="cat"><b>${n}${pu ? `<span class="chip tinta">${pu}.ª en ventas</span>` : ''}</b><div class="chs">${chs.map(([t, x]) => `<span class="chip ${t}">${x}</span>`).join('')}</div></div>
+          ${rango(c)}<span class="pc-num">${hay}${vi ? `<small>+${vi} vienen</small>` : ''}</span><span class="comprar pc-num"><b>${co}</b></span><span class="pc-num costo">${soles(cos)}</span><button class="btn sec">Planificar</button></div>`; }).join('')}
+      </section>`;
+  }
+  Marco.iniciar({ estado: { br: 'esmerilada', ca: 'filas' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); }, alAccion: (a) => { if (a === 'avisos') { abierto = !abierto; pantalla(); } } });
+})();
+</script>
+</body>
+</html>

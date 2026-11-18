@@ -82,7 +82,8 @@ export function agruparPorFamilia<C>(
   const ajenas = [...new Set(colores.map(familiaDe).filter((v): v is string => !!v && !conocidas.has(v)))];
   for (const v of ajenas) grupos.push({ familia: v, texto: textoDeFamilia(v), colores: colores.filter((c) => familiaDe(c) === v) });
   const sin = colores.filter((c) => !familiaDe(c));
-  if (sin.length > 0) grupos.push({ familia: "sin-familia", texto: "Sin familia", colores: [...sin] });
+  // En una carta de colores, lo que no tiene familia es de varios colores (Multicolor): la API no deja crear un color de un tono sin familia.
+  if (sin.length > 0) grupos.push({ familia: "sin-familia", texto: "Varios colores", colores: [...sin] });
   return grupos;
 }
 

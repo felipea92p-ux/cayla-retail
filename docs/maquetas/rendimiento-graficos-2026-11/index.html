@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rendimiento en gráficos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Gestión ▸ Rendimiento, tercera ronda (2026-11-04): «haz 3 más, con gráficos entendibles y amigables, con full animaciones;
+   no tiene que ser nada súper elaborado». Tres pantallas normales, cada una con UN tipo de gráfico que todos conocen.
+   Datos inventados; nada guarda. «Adelante / En ritmo / Por debajo» es lecturaDeRitmo (±10 puntos). Solo tokens.
+   Los colores de persona son los validados en la segunda ronda: siempre van con su nombre o sus iniciales.
+   ==================================================================== */
+:root{--p0:#b84a7a;--p1:#2f6aa3;--p2:#c26a2e;--p3:#1d8a72;--p4:#8a4fa8;--p5:#7c8a2e;--barra:color-mix(in srgb,var(--taupe) 34%,var(--sand))}
+:root[data-tema="oscuro"]{--p0:#cc6b98;--p1:#5b93cc;--p2:#cf7f3f;--p3:#2fa98a;--p4:#9f78cc;--p5:#8f9c40;--barra:color-mix(in srgb,var(--taupe) 42%,var(--sand));color-scheme:dark}
+.pag{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.ent{animation:sube .55s var(--ease) both;animation-delay:calc(var(--i,0)*70ms)}
+@keyframes sube{from{opacity:0;transform:translateY(16px)}}
+
+/* ---------- piezas ---------- */
+.pl{position:relative;min-width:0;padding:20px 22px;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 80%,transparent),0 10px 30px -22px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"] .pl{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.pl h2{font-family:'EB Garamond',serif;font-weight:500;font-size:21px;line-height:1.2}
+.t-fila{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 14px;margin-bottom:14px}
+.ley{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--t65)}
+.ley span{display:inline-flex;align-items:center;gap:6px}.ley i{width:2px;height:12px;background:var(--tinta)}.ley i.hoy{background:none;border-left:2px dotted var(--t65)}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent);animation:chip .35s var(--ease) both}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}.chip.ambar{--c:var(--ambar)}.chip.pizarra{--c:var(--pizarra)}.chip.tinta{--c:var(--t65)}
+@keyframes chip{from{opacity:0;transform:scale(.88)}}
+.avl{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:14px;color:var(--crema-fija);background:var(--c)}
+.mandos{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.modo{position:relative;display:inline-flex;max-width:100%;padding:3px;border-radius:12px;overflow-x:auto;scrollbar-width:none;background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.modo .pie{position:absolute;top:3px;bottom:3px;left:0;width:0;border-radius:9px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 2px 7px -2px color-mix(in srgb,var(--sombra) 35%,transparent);transition:left .42s var(--ease),width .42s var(--ease)}
+[data-tema="oscuro"] .modo .pie{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.modo button{position:relative;flex:none;height:34px;padding:0 14px;border-radius:9px;font-size:13px;color:var(--t65);white-space:nowrap;transition:color .2s}
+.modo button[aria-pressed="true"]{color:var(--tinta);font-weight:600}
+.quien{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 12px 0 4px;border-radius:999px;border:1px solid var(--borde);font-size:13.5px;animation:chip .35s var(--ease) both}
+.quien .avl{width:32px;height:32px}.quien svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2}
+.frase{font-family:'EB Garamond',serif;font-size:21px;line-height:1.3;max-width:70ch}
+.frase.cambia{animation:frase .45s var(--ease) both}@keyframes frase{from{opacity:0;transform:translateY(6px)}}
+.pista{position:relative;height:12px;border-radius:99px;background:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.rel{position:absolute;left:0;top:0;bottom:0;width:0;min-width:0;border-radius:99px;background:var(--c,var(--tinta));transition:width 1s var(--ease),background .3s}
+.tik{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:var(--tinta);opacity:0;transition:left 1s var(--ease),opacity .4s .5s}
+.tik.hoy{background:none;border-left:2px dotted var(--t65);width:0}
+.vis .tik{opacity:1}.tik[hidden]{display:none}
+[data-p]{transition:opacity .25s}[data-p].apaga{opacity:.28}
+
+/* ---------- cabecera de cifras (A) ---------- */
+.hero{display:grid;gap:12px}
+.h-a{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 16px}
+.vs2{font-size:13px;color:var(--t65)}
+.h-n{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 10px}
+.h-n b{font-family:'EB Garamond',serif;font-weight:500;font-size:52px;line-height:1.05;font-variant-numeric:tabular-nums;letter-spacing:-.01em}.h-n span{font-size:16px;color:var(--t65)}
+.h-b{font-size:14px;color:var(--t80)}
+.dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+@container disp (max-width:1180px){.dos{grid-template-columns:minmax(0,1fr)}}
+
+/* ---------- filas de barras (A) ---------- */
+.filas{display:grid;gap:4px}
+.fp{display:grid;grid-template-columns:minmax(0,158px) minmax(0,1fr) 84px;align-items:center;gap:12px;width:100%;padding:8px;border-radius:14px;text-align:left;transition:background .2s,opacity .25s}
+@media (hover:hover){.fp:hover{background:color-mix(in srgb,var(--tinta) 5%,transparent)}}
+.fp[aria-pressed="true"]{background:color-mix(in srgb,var(--c) 10%,transparent)}
+.fp-q{display:flex;align-items:center;gap:8px;min-width:0}.fp-q b{font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp-d{text-align:right;font-variant-numeric:tabular-nums}.fp-d b{display:block;font-size:15px;font-weight:600}.fp-d small{font-size:12.5px;color:var(--t65)}
+.fp-t{display:grid;justify-items:start;gap:3px;min-width:0}.fp-c{display:flex;min-height:24px}
+.fp .ok{position:absolute;right:-9px;top:50%;width:20px;height:20px;margin-top:-10px;border-radius:50%;background:var(--c);color:var(--crema-fija);display:grid;place-items:center;opacity:0;transition:opacity .25s .8s}
+.fp .ok svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:3;stroke-dasharray:24;stroke-dashoffset:24;transition:stroke-dashoffset .4s var(--ease) .9s}
+.fp .ok::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--c);opacity:0}
+.fp .ok.si{opacity:1}.fp .ok.si svg{stroke-dashoffset:0}.fp .ok.si::after{animation:onda .9s var(--ease) 1s 1}
+@keyframes onda{0%{opacity:.8;transform:scale(1)}100%{opacity:0;transform:scale(2.4)}}
+@container (max-width:430px){.fp{grid-template-columns:minmax(0,1fr) auto}.fp .pista{grid-column:1/-1;grid-row:2}}
+.cq{container-type:inline-size}
+
+/* ---------- columnas (A y B) ---------- */
+.c-plot{position:relative;display:flex;align-items:flex-end;gap:clamp(1px,.5cqw,5px);height:220px}
+.col{position:relative;flex:1 1 0;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:1px;border-radius:6px 6px 0 0}
+.col::before{content:"";position:absolute;inset:0;border-radius:6px;background:color-mix(in srgb,var(--tinta) 6%,transparent);opacity:0;transition:opacity .15s}
+@media (hover:hover){.col:hover::before{opacity:1}}
+.col i{position:relative;display:block;height:0;background:var(--c,var(--barra));transition:height .8s var(--ease),background .3s;transition-delay:calc(var(--k,0)*var(--paso,0ms))}
+.col i.tope{border-radius:5px 5px 0 0}
+.col.hoy i:not([style*="--c"]){background:var(--tinta)}
+.c-val{position:absolute;left:50%;transform:translateX(-50%);margin-bottom:5px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;opacity:0;transition:bottom .8s var(--ease),opacity .4s .5s;pointer-events:none}
+.c-val.ini{left:0;transform:none}.c-val.fin{left:auto;right:0;transform:none}.c-val.si{opacity:1}
+.c-raya{position:absolute;left:0;right:0;height:0;border-top:2px dotted var(--t50);pointer-events:none;opacity:0;transition:bottom .8s var(--ease),opacity .4s .5s}
+.c-raya.si{opacity:1}.c-raya span{position:absolute;right:0;bottom:3px;padding:0 5px;border-radius:6px;font-size:12px;color:var(--t80);background:color-mix(in srgb,var(--crema) 74%,transparent)}
+.c-et{display:flex;gap:clamp(1px,.5cqw,5px);margin-top:6px;border-top:1px solid var(--t12);padding-top:6px}
+.c-et span{flex:1 1 0;min-width:0;text-align:center;font-size:11.5px;color:var(--t65);white-space:nowrap;display:flex;justify-content:center}
+.c-et span.hoy{color:var(--tinta);font-weight:700}
+.leyp{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:10px;font-size:12.5px;color:var(--t80)}.leyp button{display:inline-flex;align-items:center;gap:6px}.leyp i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+
+/* ---------- anillos (B) ---------- */
+.ba{display:grid;grid-template-columns:minmax(280px,340px) minmax(0,1fr);gap:14px;align-items:stretch}
+@container disp (max-width:1040px){.ba{grid-template-columns:minmax(0,1fr)}}
+.dona{position:relative;width:min(100%,272px);aspect-ratio:1;margin:0 auto}
+.dona svg{width:100%;height:100%;display:block;transform:rotate(-90deg);overflow:visible}
+.dona circle{fill:none;stroke-width:24}.dona .fondo{stroke:color-mix(in srgb,var(--tinta) 7%,transparent)}
+.dona .seg{stroke:var(--c);cursor:pointer;stroke-dasharray:0 100;stroke-dashoffset:0;transition:stroke-dasharray 1.1s var(--ease),stroke-dashoffset 1.1s var(--ease),stroke-width .25s var(--ease),opacity .25s}
+.dona .seg.foco{stroke-width:30}
+.dona-c{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;text-align:center;pointer-events:none;padding:0 46px}
+.dona-c small{font-size:12.5px;color:var(--t65)}.dona-c b{font-family:'EB Garamond',serif;font-weight:500;font-size:36px;line-height:1.1;font-variant-numeric:tabular-nums}.dona-c span{font-size:13px;color:var(--t65)}
+.d-ley{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:2px 12px;margin-top:14px}.d-ley button{display:flex;align-items:center;gap:7px;min-height:32px;padding:0 8px;border-radius:9px;font-size:13.5px;transition:background .2s,opacity .25s}.d-ley i{flex:none;width:10px;height:10px;border-radius:3px;background:var(--c)}.d-ley b{margin-left:auto;font-weight:600;font-variant-numeric:tabular-nums}
+@media (hover:hover){.d-ley button:hover{background:color-mix(in srgb,var(--tinta) 6%,transparent)}}
+.d-pie{margin-top:12px;text-align:center;font-size:14px;color:var(--t80)}
+.rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px}
+.an{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 10px 12px;border-radius:18px;background:color-mix(in srgb,var(--tinta) 3%,transparent);text-align:center;transition:transform .25s var(--ease),background .2s,opacity .25s}
+@media (hover:hover){.an:hover{transform:translateY(-3px);background:color-mix(in srgb,var(--c) 9%,transparent)}}
+.an[aria-pressed="true"]{background:color-mix(in srgb,var(--c) 13%,transparent)}
+.aro{position:relative;width:104px;height:104px}.aro svg{width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.aro circle{fill:none;stroke-width:10}.aro .pa{stroke:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.aro .ar{stroke:var(--c);stroke-linecap:round;stroke-dasharray:0 100;transition:stroke-dasharray 1.2s var(--ease)}
+.aro line{stroke:var(--tinta);stroke-width:2.5;stroke-linecap:round;transform-origin:52px 52px;transition:transform 1.1s var(--ease),opacity .4s .6s}
+.aro-c{position:absolute;inset:0;display:grid;place-content:center}.aro-c b{font-family:'EB Garamond',serif;font-weight:500;font-size:26px;font-variant-numeric:tabular-nums}
+.aro .halo{position:absolute;inset:-2px;border-radius:50%;border:3px solid var(--c);opacity:0}.an.lleno .aro .halo{animation:onda2 1s var(--ease) 1.1s 1}
+@keyframes onda2{0%{opacity:.75;transform:scale(.96)}100%{opacity:0;transform:scale(1.28)}}
+.an-n{font-size:14.5px;font-weight:500}.an-v{font-size:13px;color:var(--t65);font-variant-numeric:tabular-nums}
+
+/* ---------- línea (C) ---------- */
+.cl{display:grid;grid-template-columns:minmax(0,1fr) 216px;gap:14px;align-items:stretch}
+@container disp (max-width:1040px){.cl{grid-template-columns:minmax(0,1fr)}}
+.lineaw{position:relative;height:320px;touch-action:pan-y}.lineaw svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.lineaw text{font-family:'DM Sans',sans-serif;font-size:12px;fill:var(--t65)}.lineaw text.fu{fill:var(--tinta);font-weight:600;font-size:12.5px}.lineaw text.hoy{fill:var(--tinta);font-weight:700}.lineaw text.fu{paint-order:stroke;stroke:var(--crema);stroke-width:4px;stroke-linejoin:round}
+.l-rej{stroke:var(--t12);stroke-width:1}
+.l-area{fill:var(--c,var(--tinta));opacity:.1;transition:fill .3s}
+.l-lin{fill:none;stroke:var(--c,var(--tinta));stroke-width:2.75;stroke-linecap:round;stroke-linejoin:round;transition:stroke .3s}
+.l-punto{fill:var(--c,var(--tinta));stroke:var(--crema);stroke-width:3;transition:fill .3s}
+.l-meta{stroke:var(--tinta);stroke-width:1.5}.l-toc{fill:none;stroke:var(--t50);stroke-width:1.5;stroke-dasharray:2 5;stroke-linecap:round}.l-pro{fill:none;stroke:var(--c,var(--tinta));stroke-width:2;stroke-dasharray:6 6;stroke-linecap:round;opacity:.6;transition:stroke .3s}
+.l-extra{transition:opacity .5s}.l-cruz{stroke:var(--t25);stroke-width:1}
+.tiles{display:grid;gap:10px;grid-auto-rows:1fr}
+@container disp (max-width:1040px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:auto}}
+@container disp (max-width:520px){.tiles{grid-template-columns:minmax(0,1fr)}}
+.ti{display:flex;flex-direction:column;justify-content:center;padding:14px 18px;border-radius:18px}
+.ti small{font-size:13px;color:var(--t65)}.ti b{font-family:'EB Garamond',serif;font-weight:500;font-size:32px;line-height:1.15;font-variant-numeric:tabular-nums}.ti span{font-size:13px;color:var(--t65)}
+.minis{display:grid;grid-template-columns:repeat(auto-fill,minmax(216px,1fr));gap:10px}
+.mi{display:grid;gap:6px;padding:14px;border-radius:18px;text-align:left;background:color-mix(in srgb,var(--tinta) 3%,transparent);transition:transform .25s var(--ease),background .2s,opacity .25s}
+@media (hover:hover){.mi:hover{transform:translateY(-3px);background:color-mix(in srgb,var(--c) 9%,transparent)}}
+.mi[aria-pressed="true"]{background:color-mix(in srgb,var(--c) 13%,transparent)}
+.mi-a{display:flex;align-items:center;gap:8px}.mi-a b{flex:1;min-width:0;font-weight:500;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mi-a em{font-style:normal;font-weight:600;font-size:14.5px;font-variant-numeric:tabular-nums}
+.mi-g{height:58px}.mi-g svg{display:block;width:100%;height:100%;overflow:visible}
+.mi-l{fill:none;stroke:var(--c);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.mi-d{stroke:var(--t50);stroke-width:1.5;stroke-dasharray:2 4;stroke-linecap:round}
+.mi-p{fill:var(--c);opacity:0;transition:opacity .25s .9s}.mi-p.si{opacity:1}
+.mi-b{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:24px;font-size:13px;color:var(--t65)}
+
+/* ---------- globo ---------- */
+.globo{position:absolute;z-index:60;left:0;top:0;min-width:120px;max-width:230px;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.35;pointer-events:none;color:var(--crema);background:var(--tinta);box-shadow:0 10px 24px -10px color-mix(in srgb,var(--sombra) 60%,transparent);opacity:0;transition:opacity .15s,transform .2s var(--ease)}
+.globo.si{opacity:1}.globo b{display:block;font-weight:600}.globo p{display:flex;justify-content:space-between;gap:12px}
+
+.nota-m{font-size:13.5px;color:var(--t65)}
+@media (prefers-reduced-motion:reduce){.ent,.chip,.quien,.frase.cambia,.fp .ok.si::after,.an.lleno .aro .halo{animation:none!important}.rel,.tik,.col i,.c-val,.c-raya,.dona .seg,.aro .ar,.aro line,.mi-p,.modo .pie{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Gestión ▸ Rendimiento, tercera ronda: gráficos simples y animados (datos inventados, nada guarda)</span>
+  <span class="tag">Opción</span><div class="seg-m" data-ctl="op"><button data-v="barras">A · Barras</button><button data-v="anillos">B · Anillos</button><button data-v="linea">C · Línea</button></div>
+  <span class="tag">Ver como</span><div class="seg-m" data-ctl="rol"><button data-v="admin">Admin</button><button data-v="lider">Líder de la sede</button></div>
+  <span class="tag">Caso</span><div class="seg-m" data-ctl="caso"><button data-v="meta">Con meta</button><button data-v="sinmeta">Sin meta</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Ventana</button></div>
+  <button class="accion" data-acc="repetir">↻ Repetir animación</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="globo" id="globo" role="status"></div>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Tres pantallas sencillas, una idea en cada una</h2>
+    <p>Las tres muestran lo mismo y se usan igual: eliges tienda y período, tocas a una persona y todo se acomoda a ella; la tocas otra vez y vuelve el equipo.</p>
+    <table>
+      <thead><tr><th>Opción</th><th>El gráfico principal</th><th>Responde rápido</th><th>Lo que cuesta</th></tr></thead>
+      <tbody>
+        <tr><td><b>A · Barras</b> (recomendada)</td><td>Una barra por persona contra su meta, y columnas por día u hora.</td><td>¿Quién llegó, quién va bien y quién necesita ayuda?</td><td>Es la más sobria de las tres.</td></tr>
+        <tr><td><b>B · Anillos</b></td><td>Un anillo que se cierra por persona y una dona con lo que aportó cada una.</td><td>¿Cuánto le falta a cada una? ¿Quién aportó qué?</td><td>Comparar anillos a ojo es menos exacto que comparar barras.</td></tr>
+        <tr><td><b>C · Línea</b></td><td>Lo vendido que sube contra la línea de lo que tocaba, y a dónde llegamos si sigue así.</td><td>¿Vamos arriba o abajo de lo que tocaba?</td><td>Un acumulado cuesta un poco más de leer la primera vez.</td></tr>
+      </tbody>
+    </table>
+    <h3>Lo que hay que saber</h3>
+    <ul>
+      <li><b>Datos:</b> por tienda, el día y la hora ya existen (<code>fn_rendimiento_detalle</code>). Por persona, día a día y hora a hora, hace falta una lectura nueva.</li>
+      <li><b>Lo que tocaba:</b> aquí se reparte por tiempo transcurrido, para simplificar. El ERP lo reparte por horas programadas y Lima no tiene horarios, por eso sus personas no llevan «Adelante / En ritmo / Por debajo».</li>
+      <li><b>Hoy y semana:</b> aquí la meta del mes se divide entre los días. Si te gusta tener estos períodos, hay que decidir cómo se reparte de verdad.</li>
+      <li><b>Reglas que se mantienen:</b> sin dinero ni comisiones, solo encargadas y Admin, nunca se mezclan tiendas, sin rojo para juzgar y sin meta no se inventa cuánto tocaba.</li>
+      <li><b>Movimiento:</b> una vez, sin rebote ni bucle, y apagado con <code>prefers-reduced-motion</code>. Al construir se escribe su excepción en ADR-0136.</li>
+    </ul>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<script>
+(() => {
+  const FECHA = 'sábado, 24 de octubre · 16:42';
+  const hash = (s) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const azar = (sem) => () => { sem = (sem + 0x6D2B79F5) >>> 0; let t = sem; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  // Sábado 24 a las 16:42. La tienda abre de 10 a 22.
+  const HORA = 6.7 / 12, FRAC = { hoy: HORA, semana: (5 + HORA) / 7, mes: (23 + HORA) / 31 };
+  const IDX = { hoy: 6, semana: 5, mes: 23 };
+  const ETQ = { hoy: Array.from({ length: 12 }, (_, i) => String(10 + i)), semana: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'], mes: Array.from({ length: 31 }, (_, i) => String(i + 1)) };
+  const PERT = { hoy: 'hoy', semana: 'esta semana', mes: 'este mes' };
+  const DOW = [.75, .8, .85, .9, 1.05, 1.45, 1.2], CURVA = [.4, .7, .9, 1, .9, .8, .8, .9, 1.1, 1.3, 1.4, .9];
+  const crear = ([nombre, metaMes, f, ticket], i) => {
+    const r = azar(hash(nombre)), dia = metaMes / 31;
+    const hoy = CURVA.map((c, h) => (h > 6 ? null : Math.round(dia * f * 1.2 * c / 10.2 * (.75 + .5 * r()) * (h === 6 ? .7 : 1) / 10) * 10));
+    const totalHoy = hoy.reduce((a, b) => a + (b || 0), 0);
+    const crudo = Array.from({ length: 23 }, (_, d) => DOW[(d + 3) % 7] * (.65 + .7 * r()));
+    const objetivo = metaMes * f * FRAC.mes - totalHoy, sc = objetivo / crudo.reduce((a, b) => a + b, 0);
+    const mes = [...crudo.map((c) => Math.round(c * sc / 10) * 10), totalHoy, ...Array(7).fill(null)];
+    return { i, nombre, ini: nombre.split(' ').map((x) => x[0]).join(''), corto: nombre.split(' ')[0], metaMes, ticket, c: `var(--p${i})`, hoy, mes, semana: mes.slice(18, 25) };
+  };
+  const SEDES_R = {
+    tru: { n: 'Trujillo', gente: [['Ana Torres', 14000, 1.34, 96], ['Carla Ruiz', 12000, 1.03, 88], ['Diana Paz', 10000, .78, 81], ['Elena Vera', 12000, 1.15, 102], ['Bruno Salas', 9000, .97, 79]].map(crear) },
+    aqp: { n: 'Arequipa', gente: [['Gaby Núñez', 11000, 1.01, 92], ['Hilda Quispe', 9000, 1.17, 85], ['Irene Soto', 8000, .84, 77], ['Julia Mamani', 7000, 1.04, 90]].map(crear) },
+    lim: { n: 'Lima', sinHorarios: true, gente: [['Karen Díaz', 13000, 1.09, 110], ['Lidia Flores', 11000, .92, 98], ['Mónica Reyes', 10000, 1.02, 104]].map(crear) },
+  };
+  const U = { sede: 'tru', per: 'mes', sel: null };
+  const sede = () => SEDES_R[estado.rol === 'lider' ? 'tru' : U.sede];
+  const conMeta = () => estado.caso === 'meta';
+  const persona = () => (U.sel === null ? null : sede().gente[U.sel]);
+  const lista = () => (persona() ? [persona()] : sede().gente);
+  const num = (v) => Math.round(v).toLocaleString('es-PE'), sol = (v) => 'S/ ' + num(v);
+  const serieDe = (p, per = U.per) => p[per];
+  const serie = (l = lista(), per = U.per) => ETQ[per].map((_, k) => (l[0][per][k] === null ? null : l.reduce((a, p) => a + p[per][k], 0)));
+  const total = (l = lista(), per = U.per) => serie(l, per).reduce((a, b) => a + (b || 0), 0);
+  const metaDe = (l = lista(), per = U.per) => { if (!conMeta()) return null; const m = l.reduce((a, p) => a + p.metaMes, 0); return per === 'mes' ? m : per === 'semana' ? m * 7 / 31 : m / 31; };
+  // lecturaDeRitmo (lib/rendimiento-meta-reglas.ts): lo vendido sobre la meta, menos lo que tocaba, con ±10 puntos.
+  const lectura = (v, m) => { if (!m) return null; const d = Math.round((v / m - FRAC[U.per]) * 1000) / 1000; return d >= .1 ? 'Adelante' : d <= -.1 ? 'Por debajo' : 'En ritmo'; };
+  const lecturaDe = (p) => (sede().sinHorarios ? null : lectura(total([p]), metaDe([p])));
+  const CHIP = { Adelante: '', 'En ritmo': ' pizarra', 'Por debajo': ' ambar' };
+  const chip = (t) => (t ? `<span class="chip${CHIP[t]}">${t}</span>` : '');
+  const chipDe = (p) => (!conMeta() ? '' : sede().sinHorarios ? '<span class="chip tinta">Sin horarios</span>' : chip(lecturaDe(p)));
+  const nombres = (a) => (a.length === 1 ? a[0] : a.slice(0, -1).join(', ') + ' y ' + a[a.length - 1]);
+  const etiquetaBloque = (k, per = U.per) => (per === 'hoy' ? `${ETQ.hoy[k]}:00` : per === 'semana' ? `${ETQ.semana[k]} ${19 + k}` : `Día ${k + 1}`);
+  const mejor = (l = lista(), per = U.per) => { const s = serie(l, per); let m = 0; s.forEach((v, k) => { if (v !== null && v > s[m]) m = k; }); return m; };
+
+  // ---------- movimiento ----------
+  const ease = (t) => 1 - Math.pow(1 - t, 3);
+  function contar(el, a, f = sol, ms = 900) {
+    if (!el) return;
+    const de = el._v ?? 0; el._v = a; const id = (el._id = (el._id || 0) + 1);
+    if (quieto() || de === a) { el.textContent = f(a); return; }
+    const t0 = performance.now();
+    const paso = (ahora) => { if (el._id !== id) return; const t = Math.max(0, Math.min(1, (ahora - t0) / ms)); el.textContent = f(de + (a - de) * ease(t)); if (t < 1) requestAnimationFrame(paso); };
+    requestAnimationFrame(paso);
+    setTimeout(() => { if (el._id === id) el.textContent = f(a); }, ms + 400);
+  }
+  function fraseNueva(el, html) { if (el.innerHTML === html) return; el.innerHTML = html; el.classList.remove('cambia'); void el.offsetWidth; el.classList.add('cambia'); }
+  function ponerChip(el, html) { if (el && el._h !== html) { el._h = html; el.innerHTML = html; } }
+  function pieA(m, animar = true) {
+    const p = $('.pie', m), b = $('button[aria-pressed="true"]', m); if (!p || !b) return;
+    if (!animar) p.style.transition = 'none';
+    p.style.left = b.offsetLeft + 'px'; p.style.width = b.offsetWidth + 'px';
+    if (!animar) requestAnimationFrame(() => (p.style.transition = ''));
+  }
+  const modo = (id, ops, val, aria) => `<div class="modo" data-modo="${id}" role="group" aria-label="${aria}"><span class="pie" aria-hidden="true"></span>${ops.map(([v, t]) => `<button data-${id}="${v}" aria-pressed="${v === val}">${t}</button>`).join('')}</div>`;
+
+  // ---------- globo ----------
+  function globo(html, e) {
+    const g = $('#globo'), d = $('#disp').getBoundingClientRect(), z = zoomDisp();
+    g.innerHTML = html; g.classList.add('si');
+    const w = g.offsetWidth, h = g.offsetHeight, x = (e.clientX - d.left) / z, y = (e.clientY - d.top) / z;
+    g.style.transform = `translate(${Math.min(Math.max(8, x - w / 2), d.width / z - w - 8)}px,${Math.max(8, y - h - 14)}px)`;
+  }
+  const sinGlobo = () => $('#globo').classList.remove('si');
+
+  // ---------- lo común de arriba ----------
+  function arriba() {
+    const admin = estado.rol === 'admin';
+    return `<div class="ent" style="--i:0">${encabezado({ sede: admin ? sede().n : 'Trujillo', fecha: FECHA, titulo: 'Rendimiento' })}</div>
+      <div class="mandos ent" style="--i:1">${admin ? modo('sede', [['tru', 'Trujillo'], ['aqp', 'Arequipa'], ['lim', 'Lima']], U.sede, 'Tienda') : ''}${modo('per', [['hoy', 'Hoy'], ['semana', 'Esta semana'], ['mes', 'Este mes']], U.per, 'Período')}<span id="quien"></span></div>
+      <p class="frase ent" id="frase" style="--i:2"></p>`;
+  }
+  function pintarArriba() {
+    const p = persona();
+    let f;
+    if (p) {
+      const v = total([p]), k = mejor([p]), vs = Math.round(v / p.ticket), l = lecturaDe(p);
+      const dicho = { Adelante: 'va adelante', 'En ritmo': 'va en ritmo', 'Por debajo': 'va por debajo de lo que tocaba' }[l];
+      f = `${p.corto}${dicho ? ` ${dicho}:` : ':'} ${sol(v)} en ${num(vs)} ventas. Su mejor momento fue ${U.per === 'hoy' ? `a las ${ETQ.hoy[k]}:00` : U.per === 'semana' ? `el ${ETQ.semana[k].toLowerCase()} ${19 + k}` : `el día ${k + 1}`}.`;
+    } else if (!conMeta()) {
+      f = `${sede().n} todavía no tiene meta este mes. Aquí se ve lo vendido, sin inventar cuánto tocaba.`;
+    } else if (sede().sinHorarios) {
+      f = `Lima todavía no tiene horarios, así que no se mide el ritmo de cada persona. Sí se ve cuánto lleva cada una.`;
+    } else {
+      const ad = sede().gente.filter((x) => lecturaDe(x) === 'Adelante').map((x) => x.corto), de = sede().gente.filter((x) => lecturaDe(x) === 'Por debajo').map((x) => x.corto);
+      f = [ad.length ? `${nombres(ad)} ${ad.length > 1 ? 'van' : 'va'} adelante.` : '', de.length ? `Conviene acompañar a ${nombres(de)}.` : '', !ad.length && !de.length ? 'Todo el equipo va en ritmo.' : ''].filter(Boolean).join(' ');
+    }
+    fraseNueva($('#frase'), f);
+    const q = $('#quien');
+    const nuevo = p ? `<button class="quien" data-todos aria-label="Volver a todo el equipo"><span class="avl" style="--c:${p.c}">${p.ini}</span>${p.corto}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>` : '';
+    if (q._h !== nuevo) { q._h = nuevo; q.innerHTML = nuevo; }
+    $$('[data-p]', $('#cont')).forEach((x) => { const on = U.sel !== null && +x.dataset.p === U.sel; x.classList.toggle('apaga', U.sel !== null && !on); if (x.hasAttribute('aria-pressed')) x.setAttribute('aria-pressed', on); });
+    $$('.modo').forEach((m) => pieA(m));
+  }
+
+  // ---------- secciones ----------
+  const PINTA = {};
+  const vista = () => $('#cont .pag');
+  // A: el total con su barra
+  const secHero = (i) => `<section class="pl hero ent" style="--i:${i}" data-sec="hero"><div class="h-a"><div><p class="vs2" id="h-que"></p><p class="h-n"><b id="h-v">S/ 0</b><span id="h-de"></span></p></div><span id="h-chip"></span></div><div class="pista" id="h-p"><i class="rel" id="h-rel"></i><i class="tik hoy" id="h-tik" title="Hasta hoy"></i></div><p class="h-b" id="h-b"></p></section>`;
+  PINTA.hero = (el) => {
+    const p = persona(), l = lista(), v = total(l), m = metaDe(l);
+    $('#h-que').textContent = `${p ? p.corto : sede().n} lleva ${PERT[U.per]}`;
+    contar($('#h-v'), v); $('#h-de').textContent = m ? `de ${sol(m)}` : '';
+    const rel = $('#h-rel'); rel.style.setProperty('--c', p ? p.c : 'var(--tinta)');
+    $('#h-p').hidden = !m; $('#h-tik').style.left = FRAC[U.per] * 100 + '%';
+    rel.style.width = m ? Math.min(100, v / m * 100) + '%' : '0';
+    ponerChip($('#h-chip'), p ? chipDe(p) : m ? chip(lectura(v, m)) : '');
+    const fal = m ? m - v : 0, cuanto = U.per === 'mes' ? `${sol(fal / 8)} por día hasta el 31` : U.per === 'semana' ? `${sol(fal / 2)} por día hasta el domingo` : 'antes del cierre';
+    $('#h-b').textContent = !m ? 'Cuando la tienda tenga su meta, aquí verás cuánto falta.' : fal <= 0 ? `Ya pasó la meta por ${sol(-fal)}.` : `La raya punteada es lo que tocaba hasta ahora (${sol(m * FRAC[U.per])}). Faltan ${sol(fal)}${U.per === 'hoy' ? ' antes del cierre' : `: ${cuanto}`}.`;
+  };
+  // A: una barra por persona
+  const secFilas = (i) => `<section class="pl cq ent" style="--i:${i}" data-sec="filas"><div class="t-fila"><h2>Cada persona contra su meta</h2><div class="ley" id="f-ley"></div></div><div class="filas" id="filas"></div></section>`;
+  PINTA.filas = (el) => {
+    const g = sede().gente, box = $('#filas'), meta = conMeta();
+    if (!box.children.length) box.innerHTML = g.map((p) => `<button class="fp" data-p="${p.i}" aria-pressed="false" style="--c:${p.c}"><span class="fp-q"><span class="avl">${p.ini}</span><span class="fp-t"><b>${p.nombre}</b><span class="fp-c"></span></span></span><span class="pista"><i class="rel"></i><i class="tik" hidden></i><i class="tik hoy" hidden></i><span class="ok"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span></span><span class="fp-d"><b class="v">S/ 0</b><small class="pc"></small></span></button>`).join('');
+    $('#f-ley').innerHTML = meta ? `<span><i></i>Su meta</span>${sede().sinHorarios ? '' : '<span><i class="hoy"></i>Lo que tocaba hasta ahora</span>'}` : '<span>Comparadas con la que más vendió</span>';
+    const d = g.map((p) => { const v = total([p]), m = metaDe([p]); return { p, v, m, pct: m ? v / m * 100 : 0 }; });
+    const maxV = Math.max(...d.map((x) => x.v), 1), esc = meta ? Math.max(105, ...d.map((x) => x.pct * 1.05)) : 100;
+    d.forEach(({ p, v, pct }) => {
+      const f = $(`.fp[data-p="${p.i}"]`, box), [tm, th] = $$('.tik', f);
+      $('.rel', f).style.width = (meta ? pct / esc * 100 : v / maxV * 100) + '%';
+      tm.hidden = !meta; th.hidden = !meta || !!sede().sinHorarios; tm.style.left = 100 / esc * 100 + '%'; th.style.left = FRAC[U.per] * 100 / esc * 100 + '%';
+      contar($('.v', f), v); const pc = $('.pc', f); if (meta) contar(pc, pct, (x) => `${Math.round(x)} %`); else pc.textContent = `${num(v / p.ticket)} ventas`;
+      ponerChip($('.fp-c', f), chipDe(p));
+      const ok = $('.ok', f); ok.classList.toggle('si', meta && pct >= 100); ok.style.left = meta ? `calc(${pct / esc * 100}% - 11px)` : ''; ok.style.right = 'auto';
+    });
+    const orden = [...d].sort((a, b) => (meta ? b.pct - a.pct : b.v - a.v)).map((x) => $(`.fp[data-p="${x.p.i}"]`, box));
+    if (orden.some((f, k) => box.children[k] !== f)) {
+      const z = zoomDisp(), antes = new Map(orden.map((f) => [f, f.getBoundingClientRect().top]));
+      orden.forEach((f) => box.appendChild(f));
+      if (!quieto()) orden.forEach((f) => { const dy = (antes.get(f) - f.getBoundingClientRect().top) / z; if (dy) f.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 620, easing: EASE }); });
+    }
+    box.classList.add('vis');
+    box.closest('.pl').classList.add('vis');
+  };
+  // A y B: columnas (B: apiladas con el color de cada persona)
+  const secCols = (i, apilado) => `<section class="pl cq ent" style="--i:${i}" data-sec="cols" data-apilado="${apilado ? 1 : 0}"><div class="t-fila"><h2 id="c-t"></h2></div><div class="c-plot" id="c-plot"></div><div class="c-et" id="c-et"></div>${apilado ? `<div class="leyp">${sede().gente.map((p) => `<button data-p="${p.i}" data-elige="${p.i}" style="--c:${p.c}"><i></i>${p.corto}</button>`).join('')}</div>` : ''}</section>`;
+  PINTA.cols = (el) => {
+    const api = el.dataset.apilado === '1', per = U.per, n = ETQ[per].length, plot = $('#c-plot'), g = sede().gente, l = lista(), s = serie(l), hoyK = IDX[per];
+    $('#c-t').textContent = per === 'hoy' ? 'Ventas por hora' : per === 'semana' ? 'Ventas de cada día de la semana' : 'Ventas de cada día del mes';
+    const nueva = plot.dataset.k !== per;
+    if (nueva) {
+      plot.dataset.k = per;
+      const segs = api ? g.map((p) => `<i data-s="${p.i}" style="--c:${p.c};--k:${0}"></i>`).join('') : '<i data-s="t"></i>';
+      plot.innerHTML = `<div class="c-raya" id="c-raya"><span></span></div>` + ETQ[per].map((_, k) => `<div class="col${k === hoyK ? ' hoy' : ''}" data-k="${k}" style="--k:${k};--paso:${Math.round(420 / n)}ms">${segs.replaceAll(`--k:0`, `--k:${k}`)}</div>`).join('') + `<span class="c-val" id="c-val"></span>`;
+      const paso = per === 'mes' ? (k) => k === 0 || (k + 1) % 5 === 0 : () => true;
+      $('#c-et').innerHTML = ETQ[per].map((t, k) => `<span class="${k === hoyK ? 'hoy' : ''}">${k === hoyK ? (per === 'hoy' ? t : per === 'semana' ? t : t) : paso(k) && !(per === 'mes' && Math.abs(k - hoyK) === 1) ? t : ''}</span>`).join('');
+      void plot.offsetWidth;
+    }
+    const m = metaDe(l), esperado = m ? m / n : 0;
+    const top = Math.max(...s.map((v) => v || 0), esperado, 1) * 1.16;
+    $$('.col', plot).forEach((c) => {
+      const k = +c.dataset.k;
+      if (api) {
+        const vivos = l.map((p) => p.i), visibles = [];
+        $$('i', c).forEach((seg) => { const id = +seg.dataset.s, v = g[id][per][k]; const h = vivos.includes(id) && v ? v / top * 100 : 0; seg.style.height = h + '%'; seg.classList.remove('tope'); if (h > 0) visibles.push(seg); });
+        if (visibles[0]) visibles[0].classList.add('tope');
+      } else {
+        const seg = $('i', c); seg.classList.add('tope'); seg.style.height = (s[k] || 0) / top * 100 + '%';
+        if (persona()) seg.style.setProperty('--c', persona().c); else seg.style.removeProperty('--c');
+      }
+    });
+    if (nueva) setTimeout(() => $$('.col', plot).forEach((c) => c.style.setProperty('--paso', '0ms')), 1300);
+    const best = mejor(l), val = $('#c-val'), wbest = 100 / n;
+    val.textContent = sol(s[best]); val.style.bottom = (s[best] / top * 100) + '%';
+    val.classList.toggle('ini', best < 2); val.classList.toggle('fin', best > n - 3);
+    val.style.left = best < 2 ? '0' : best > n - 3 ? 'auto' : `${(best + .5) * wbest}%`; val.classList.add('si');
+    const raya = $('#c-raya'); raya.classList.toggle('si', !!esperado); raya.style.bottom = esperado / top * 100 + '%'; $('span', raya).textContent = esperado ? `Esperado ${per === 'hoy' ? 'por hora' : 'por día'}: ${sol(esperado)}` : '';
+  };
+  // B: dona de quién aportó
+  const secDona = (i) => `<section class="pl ent" style="--i:${i}" data-sec="dona"><div class="t-fila"><h2>Lo que aportó cada una</h2></div><div class="dona"><svg viewBox="0 0 200 200" role="img" aria-label="Lo vendido, por persona"><circle class="fondo" cx="100" cy="100" r="82" pathLength="100"/>${sede().gente.map((p) => `<circle class="seg" data-p="${p.i}" data-elige="${p.i}" style="--c:${p.c}" cx="100" cy="100" r="82" pathLength="100"/>`).join('')}</svg><div class="dona-c"><small id="d-q"></small><b id="d-v">S/ 0</b><span id="d-m"></span></div></div><div class="d-ley">${sede().gente.map((p) => `<button data-p="${p.i}" data-elige="${p.i}" style="--c:${p.c}"><i></i><span>${p.corto}</span><b></b></button>`).join('')}</div><p class="d-pie" id="d-pie"></p></section>`;
+  const dCentro = (p) => {
+    const v = p ? total([p]) : total(sede().gente), tot = total(sede().gente), m = metaDe(p ? [p] : sede().gente);
+    $('#d-q').textContent = p ? p.corto : sede().n; contar($('#d-v'), v, sol, 500);
+    $('#d-m').textContent = p ? `${Math.round(v / tot * 100)} % de la tienda` : m ? `de ${sol(m)}` : PERT[U.per];
+  };
+  PINTA.dona = () => {
+    const g = sede().gente, tot = total(g) || 1; let ac = 0;
+    g.forEach((p) => { const pct = total([p]) / tot * 100, seg = $(`.seg[data-p="${p.i}"]`); seg.style.strokeDasharray = `${Math.max(0, pct - .8)} ${100 - Math.max(0, pct - .8)}`; seg.style.strokeDashoffset = -ac; ac += pct; contar($(`.d-ley [data-p="${p.i}"] b`), pct, (x) => `${Math.round(x)} %`); });
+    dCentro(persona());
+    const m = metaDe(g); $('#d-pie').textContent = !m ? 'Pasa el mouse para ver a cada una.' : `La tienda lleva el ${Math.round(tot / m * 100)} % de su meta. Tocaba el ${Math.round(FRAC[U.per] * 100)} %.`;
+  };
+  // B: un anillo por persona
+  const secAros = (i) => `<section class="pl ent" style="--i:${i}" data-sec="aros"><div class="t-fila"><h2>${conMeta() ? 'Cuánto le falta a cada una' : 'Cuánto lleva cada una'}</h2>${conMeta() ? `<div class="ley">${sede().sinHorarios ? '<span>Se cierra al llegar a su meta</span>' : '<span><i></i>Lo que tocaba hasta ahora</span><span>Se cierra al llegar a su meta</span>'}</div>` : '<div class="ley"><span>Su parte de lo vendido</span></div>'}</div><div class="rejilla">${sede().gente.map((p) => `<button class="an" data-p="${p.i}" aria-pressed="false" style="--c:${p.c}"><span class="aro"><span class="halo"></span><svg viewBox="0 0 104 104" aria-hidden="true"><circle class="pa" cx="52" cy="52" r="46" pathLength="100"/><circle class="ar" cx="52" cy="52" r="46" pathLength="100"/><line x1="89" y1="52" x2="103" y2="52" style="transform:rotate(0deg);opacity:0"/></svg><span class="aro-c"><b>0 %</b></span></span><span class="an-n">${p.nombre}</span><span class="an-v"></span><span class="an-c"></span></button>`).join('')}</div></section>`;
+  PINTA.aros = () => {
+    const g = sede().gente, tot = total(g) || 1;
+    g.forEach((p) => {
+      const c = $(`.an[data-p="${p.i}"]`), v = total([p]), m = metaDe([p]), pct = m ? v / m * 100 : v / tot * 100;
+      const arc = Math.min(100, pct); $('.ar', c).style.strokeDasharray = `${arc} ${100 - arc}`;
+      contar($('.aro-c b', c), pct, (x) => `${Math.round(x)} %`, 1100);
+      const li = $('line', c); li.style.transform = `rotate(${FRAC[U.per] * 360}deg)`; li.style.opacity = m && !sede().sinHorarios ? 1 : 0;
+      $('.an-v', c).textContent = m ? `${sol(v)} de ${sol(m)}` : sol(v);
+      ponerChip($('.an-c', c), chipDe(p));
+      c.classList.toggle('lleno', !!m && pct >= 100);
+    });
+  };
+  // C: la línea del acumulado
+  const N = 64;
+  const secLinea = (i) => `<section class="pl cq ent" style="--i:${i}" data-sec="linea"><div class="t-fila"><h2 id="l-t"></h2><div class="ley" id="l-ley"></div></div><div class="lineaw" id="lw"><svg aria-hidden="true"><g id="l-gr"></g><path class="l-area" id="l-area"/><line class="l-meta l-extra" id="l-meta"/><path class="l-toc l-extra" id="l-toc"/><path class="l-pro l-extra" id="l-pro"/><path class="l-lin" id="l-lin"/><text class="fu l-extra" id="l-mt" text-anchor="end"></text><text class="fu l-extra" id="l-pt" text-anchor="end"></text><line class="l-cruz" id="l-cruz" y1="0" style="opacity:0"/><circle class="l-punto" id="l-pu" r="6"/></svg></div></section>`;
+  const secTiles = (i) => `<div class="tiles ent" style="--i:${i}" data-sec="tiles"><div class="pl ti"><small>Ventas</small><b id="t-a">0</b><span id="t-a2"></span></div><div class="pl ti"><small>Ticket promedio</small><b id="t-b">S/ 0</b><span>por venta</span></div><div class="pl ti"><small id="t-c0"></small><b id="t-c">S/ 0</b><span id="t-c2"></span></div></div>`;
+  const secMinis = (i) => `<section class="pl ent" style="--i:${i}" data-sec="minis"><div class="t-fila"><h2>Cada persona</h2><div class="ley">${conMeta() && !sede().sinHorarios ? '<span><i class="hoy"></i>Lo que tocaba: arriba de la raya, va bien</span>' : ''}</div></div><div class="minis" id="minis">${sede().gente.map((p) => `<button class="mi" data-p="${p.i}" aria-pressed="false" style="--c:${p.c}"><span class="mi-a"><span class="avl">${p.ini}</span><b>${p.nombre}</b><em class="v">S/ 0</em></span><span class="mi-g"></span><span class="mi-b"><span class="pc"></span><span class="ch"></span></span></button>`).join('')}</div></section>`;
+  let LC = null;
+  function acumulado(l, per) {
+    const s = serie(l, per), n = s.length, pts = [[0, 0]]; let ac = 0;
+    s.forEach((v, k) => { if (v === null) return; ac += v; pts.push([k === IDX[per] ? FRAC[per] : (k + 1) / n, ac]); });
+    return { pts, ac };
+  }
+  const valorEn = (pts, x) => { for (let j = 1; j < pts.length; j++) if (x <= pts[j][0]) { const [a, b] = [pts[j - 1], pts[j]]; return a[1] + (b[1] - a[1]) * (x - a[0]) / Math.max(1e-6, b[0] - a[0]); } return pts[pts.length - 1][1]; };
+  function objetivoLinea() {
+    const w = $('#lw'), W = w.clientWidth, H = w.clientHeight, per = U.per, l = lista(), { pts, ac } = acumulado(l, per), m = metaDe(l), f = FRAC[per], proy = ac / f;
+    const top = Math.max(m || 0, m ? proy : 0, ac) * 1.14 || 1, pb = 26, pt = 8, y = (v) => H - pb - (v / top) * (H - pb - pt);
+    return { W, H, pb, ys: Array.from({ length: N }, (_, i) => y(valorEn(pts, f * i / (N - 1)))), xf: f * W, yM: m ? y(m) : y(0), y0: y(0), yP: y(proy), m: m || 0, proy, top, ac, r: 1 };
+  }
+  function pintaLinea(c) {
+    if (!$('#l-lin')) return;
+    const lastF = c.r * (N - 1), last = Math.floor(lastF), X = (i) => c.xf * i / (N - 1), Yr = (i) => c.ys[i];
+    let d = `M0 ${Yr(0).toFixed(1)}`; for (let i = 1; i <= last; i++) d += `L${X(i).toFixed(1)} ${Yr(i).toFixed(1)}`;
+    const fr = lastF - last, tx = last < N - 1 ? X(last) + (X(last + 1) - X(last)) * fr : X(last), ty = last < N - 1 ? Yr(last) + (Yr(last + 1) - Yr(last)) * fr : Yr(last);
+    d += `L${tx.toFixed(1)} ${ty.toFixed(1)}`;
+    $('#l-lin').setAttribute('d', d); $('#l-area').setAttribute('d', `${d}L${tx.toFixed(1)} ${c.y0}L0 ${c.y0}Z`);
+    const pu = $('#l-pu'); pu.setAttribute('cx', tx); pu.setAttribute('cy', ty);
+    const con = !!c.m, ve = c.r >= 1 && con;
+    $$('.l-extra').forEach((x) => (x.style.opacity = ve ? '' : 0));
+    const me = $('#l-meta'); me.setAttribute('x1', 0); me.setAttribute('x2', c.W); me.setAttribute('y1', c.yM); me.setAttribute('y2', c.yM);
+    $('#l-toc').setAttribute('d', `M0 ${c.y0}L${c.W} ${c.yM}`); $('#l-pro').setAttribute('d', `M${c.xf} ${Yr(N - 1)}L${c.W} ${c.yP}`);
+    const pa = c.proy >= c.m, mt = $('#l-mt'), pT = $('#l-pt');
+    mt.setAttribute('x', c.W); pT.setAttribute('x', c.W); mt.textContent = `Meta: ${sol(c.m)}`; pT.textContent = `Si sigue así: ${sol(c.proy)}`;
+    const cerca = Math.abs(c.yP - c.yM) < 18;
+    mt.setAttribute('y', pa ? c.yM + 17 : c.yM - 7); pT.setAttribute('y', pa ? c.yP - 8 : c.yP + (cerca ? 34 : 18));
+    if (pa && cerca) pT.setAttribute('y', c.yP - 8);
+  }
+  function tweenLinea(a, b, ms) {
+    const id = (tweenLinea.id = (tweenLinea.id || 0) + 1);
+    if (quieto()) { LC = b; pintaLinea(b); return; }
+    const t0 = performance.now(), mezcla = (x, y, t) => x + (y - x) * t;
+    const paso = (ahora) => {
+      if (tweenLinea.id !== id) return;
+      const t = ease(Math.max(0, Math.min(1, (ahora - t0) / ms)));
+      LC = { ...b, xf: mezcla(a.xf, b.xf, t), yM: mezcla(a.yM, b.yM, t), yP: mezcla(a.yP, b.yP, t), m: mezcla(a.m, b.m, t), proy: mezcla(a.proy, b.proy, t), ys: b.ys.map((v, i) => mezcla(a.ys[i], v, t)), r: mezcla(a.r, b.r, t) };
+      pintaLinea(LC);
+      if (t < 1) requestAnimationFrame(paso); else { LC = b; pintaLinea(b); }
+    };
+    requestAnimationFrame(paso);
+    setTimeout(() => { if (tweenLinea.id === id && LC && LC.r < 1) { LC = b; pintaLinea(b); } }, ms + 600);
+  }
+  PINTA.linea = (el) => {
+    const p = persona(), per = U.per, lw = $('#lw');
+    $('#l-t').textContent = `Lo que lleva ${p ? p.corto : sede().n}, ${PERT[per]}`;
+    lw.style.setProperty('--c', p ? p.c : 'var(--tinta)');
+    $('#l-ley').innerHTML = metaDe() ? '<span><i class="hoy"></i>Lo que tocaba</span><span><i></i>Meta</span>' : '<span>Lo vendido, sumado día a día</span>';
+    const b = objetivoLinea();
+    // Etiquetas de abajo
+    const n = ETQ[per].length, marcas = per === 'mes' ? [0, 4, 9, 14, 19, 23, 29] : ETQ[per].map((_, k) => k);
+    $('#l-gr').innerHTML = `<line class="l-rej" x1="0" x2="${b.W}" y1="${b.y0}" y2="${b.y0}"/>` + marcas.map((k) => { const x = (k + 1) / n * b.W; return `<text x="${x}" y="${b.H - 6}" text-anchor="${k === n - 1 ? 'end' : 'middle'}" class="${k === IDX[per] ? 'hoy' : ''}">${ETQ[per][k]}</text>`; }).join('');
+    if (!LC) { LC = { ...b, r: 0 }; tweenLinea({ ...b, r: 0 }, b, 1400); } else tweenLinea(LC, b, 800);
+  };
+  PINTA.tiles = () => {
+    const l = lista(), v = total(l), vs = l.reduce((a, p) => a + total([p]) / p.ticket, 0), k = mejor(l), s = serie(l);
+    contar($('#t-a'), vs, num); $('#t-a2').textContent = PERT[U.per];
+    contar($('#t-b'), v / Math.max(1, vs));
+    $('#t-c0').textContent = U.per === 'hoy' ? 'La mejor hora' : 'El mejor día'; contar($('#t-c'), s[k]); $('#t-c2').textContent = U.per === 'hoy' ? `a las ${ETQ.hoy[k]}:00` : U.per === 'semana' ? `${ETQ.semana[k]} ${19 + k}` : `día ${k + 1}`;
+  };
+  PINTA.minis = () => {
+    sede().gente.forEach((p) => {
+      const c = $(`.mi[data-p="${p.i}"]`), g = $('.mi-g', c), W = g.clientWidth || 180, H = 58, f = FRAC[U.per], { pts, ac } = acumulado([p], U.per), m = metaDe([p]);
+      const top = Math.max(m || 0, ac) * 1.08 || 1, y = (v) => H - 3 - (v / top) * (H - 8), linea = pts.map(([x, v], i) => `${i ? 'L' : 'M'}${(x * W).toFixed(1)} ${y(v).toFixed(1)}`).join('');
+      g.innerHTML = `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true">${m && !sede().sinHorarios ? `<line class="mi-d" x1="0" y1="${y(0)}" x2="${W}" y2="${y(m)}"/>` : ''}<path class="mi-l" d="${linea}"/><circle class="mi-p" r="4" cx="${f * W}" cy="${y(ac)}"/></svg>`;
+      const lin = $('.mi-l', g), L = lin.getTotalLength();
+      if (!quieto()) { lin.animate([{ strokeDasharray: `${L}`, strokeDashoffset: L }, { strokeDasharray: `${L}`, strokeDashoffset: 0 }], { duration: 1000, easing: EASE, delay: p.i * 90 }); }
+      requestAnimationFrame(() => $('.mi-p', g).classList.add('si'));
+      contar($('.v', c), ac); $('.pc', c).textContent = m ? `${Math.round(ac / m * 100)} % de ${sol(m)}` : `${num(ac / p.ticket)} ventas`;
+      ponerChip($('.ch', c), chipDe(p));
+    });
+  };
+
+  const OPCIONES = {
+    barras: () => secHero(3) + `<div class="dos">${secFilas(4)}${secCols(5, false)}</div>`,
+    anillos: () => `<div class="ba">${secDona(3)}${secAros(4)}</div>` + secCols(5, true),
+    linea: () => `<div class="cl">${secLinea(3)}${secTiles(4)}</div>` + secMinis(5),
+  };
+
+  // ---------- pintar ----------
+  let visor = null;
+  function escena() {
+    sinGlobo(); LC = null; U.sel = null; tweenLinea.id = (tweenLinea.id || 0) + 1;
+    $('#cont').innerHTML = `<div class="pag">${arriba()}${OPCIONES[estado.op]()}</div>`;
+    $('#cont').scrollTop = 0;
+    pintarArriba(); $$('.modo').forEach((m) => pieA(m, false));
+    visor && visor.disconnect();
+    visor = new IntersectionObserver((es) => es.forEach((e) => {
+      if (!e.isIntersecting || e.target.dataset.visto) return;
+      e.target.dataset.visto = '1'; visor.unobserve(e.target);
+      setTimeout(() => { if (e.target.isConnected) PINTA[e.target.dataset.sec](e.target); }, 180 + (+e.target.style.getPropertyValue('--i') || 0) * 70);
+    }), { threshold: .12 });
+    $$('[data-sec]').forEach((s) => visor.observe(s));
+  }
+  function actualizar() {
+    sinGlobo(); pintarArriba();
+    $$('[data-sec]').forEach((s) => { if (s.dataset.visto) PINTA[s.dataset.sec](s); });
+  }
+  const elegir = (i) => { U.sel = U.sel === i ? null : i; actualizar(); };
+
+  // ---------- gestos ----------
+  const cont = $('#cont');
+  cont.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-per],[data-sede],[data-todos]');
+    if (b) {
+      if (b.dataset.per) { if (U.per === b.dataset.per) return; U.per = b.dataset.per; $$('[data-per]').forEach((x) => x.setAttribute('aria-pressed', x === b)); actualizar(); }
+      else if (b.dataset.sede) { if (U.sede === b.dataset.sede) return; U.sede = b.dataset.sede; escena(); }
+      else { U.sel = null; actualizar(); }
+      return;
+    }
+    const p = e.target.closest('[data-p]'); if (p) elegir(+p.dataset.p);
+  });
+  // Pasar por una persona enciende lo suyo en toda la pantalla.
+  cont.addEventListener('pointerover', (e) => {
+    const p = e.target.closest('[data-p]');
+    const seg = e.target.closest('.seg'); $$('.seg').forEach((s) => s.classList.toggle('foco', s === seg));
+    if ($('#d-q')) dCentro(seg ? sede().gente[+seg.dataset.p] : persona());
+    if (U.sel !== null) return;
+    $$('[data-p]', cont).forEach((x) => x.classList.toggle('apaga', !!p && x.dataset.p !== p.dataset.p));
+  });
+  cont.addEventListener('pointerleave', () => { if (U.sel === null) $$('[data-p]', cont).forEach((x) => x.classList.remove('apaga')); });
+  cont.addEventListener('pointermove', (e) => {
+    const col = e.target.closest('.col');
+    if (col) {
+      const k = +col.dataset.k, per = U.per, s = serie()[k];
+      if (s === null) { globo(`<b>${etiquetaBloque(k)}</b>Todavía no llega`, e); return; }
+      const filas = col.closest('[data-apilado="1"]') && !persona() ? sede().gente.map((p) => `<p><span>${p.corto}</span><span>${sol(p[per][k])}</span></p>`).join('') : '';
+      globo(`<b>${etiquetaBloque(k)}${k === IDX[per] ? ' · va en curso' : ''}</b>${sol(s)}${filas}`, e); return;
+    }
+    const seg = e.target.closest('.seg');
+    if (seg) { const p = sede().gente[+seg.dataset.p], v = total([p]); globo(`<b>${p.nombre}</b>${sol(v)} · ${Math.round(v / total(sede().gente) * 100)} %`, e); return; }
+    const lw = e.target.closest('#lw');
+    if (lw && LC) {
+      const r = lw.getBoundingClientRect(), z = zoomDisp(), x = (e.clientX - r.left) / z, per = U.per, n = ETQ[per].length, k = Math.max(0, Math.min(IDX[per], Math.floor(x / LC.W * n)));
+      const { pts } = acumulado(lista(), per), pt = pts[k + 1], cx = pt[0] * LC.W, cy = LC.y0 - (pt[1] / LC.top) * (LC.H - LC.pb - 8), cz = $('#l-cruz');
+      cz.setAttribute('x1', cx); cz.setAttribute('x2', cx); cz.setAttribute('y2', LC.y0); cz.style.opacity = 1;
+      const pu = $('#l-pu'); pu.setAttribute('cx', cx); pu.setAttribute('cy', cy);
+      globo(`<b>${etiquetaBloque(k)}</b><p><span>Ese ${per === 'hoy' ? 'rato' : 'día'}</span><span>${sol(serie()[k])}</span></p><p><span>Sumado</span><span>${sol(pt[1])}</span></p>`, e);
+      return;
+    }
+    sinGlobo();
+  });
+  cont.addEventListener('pointerout', (e) => {
+    if (e.target.closest('#lw') && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('#lw')) && LC) { $('#l-cruz').style.opacity = 0; pintaLinea(LC); }
+    if (!e.relatedTarget || !e.relatedTarget.closest || !e.relatedTarget.closest('.col,.seg,#lw')) sinGlobo();
+  });
+  const ro = new ResizeObserver(() => { if ($('#lw') && LC && LC.r >= 1) { const b = objetivoLinea(); if (b.W !== LC.W) PINTA.linea($('[data-sec="linea"]')); } if ($('#minis') && $('[data-sec="minis"]').dataset.visto && ro.w !== cont.clientWidth) { ro.w = cont.clientWidth; PINTA.minis(); } $$('.modo').forEach((m) => pieA(m, false)); });
+  ro.observe(cont);
+
+  let clave = '';
+  Marco.iniciar({
+    estado: { op: 'barras', rol: 'admin', caso: 'meta' },
+    alPintar: () => { const k = `${estado.op}|${estado.rol}|${estado.caso}`; if (k !== clave) { clave = k; escena(); } },
+    alAccion: (a) => { if (a === 'repetir') escena(); },
+  });
+  document.addEventListener('click', (e) => { if (e.target.closest('.seg-m [data-v]')) requestAnimationFrame(() => $$('.modo').forEach((m) => pieA(m, false))); });
+  window.__rg = { U, escena, actualizar, LC: () => LC };
+})();
+</script>
+</body>
+</html>

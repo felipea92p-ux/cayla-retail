@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { siguienteDe } from "./guia-campos";
 import { camposGuiaPrenda } from "./prenda-sin-registrar-guia";
 import { faltaEnPrendaSinRegistrar, type DatosPrendaSinRegistrar } from "./prenda-sin-registrar-reglas";
+import { FALTA_DETALLE_MOTIVO, FALTA_MOTIVO, faltaEnMotivo } from "./prenda-sin-registrar-motivo";
 
 const completa: DatosPrendaSinRegistrar = { descripcion: "Vestidos · Negro · Talla M", categoriaId: "c", tallaId: "t", colorCodigo: "NEG", precio: 89 };
 const vacios: Partial<DatosPrendaSinRegistrar>[] = [
@@ -46,5 +47,30 @@ describe("camposGuiaPrenda", () => {
     const d = { ...completa, descripcion: "V", precio: 0 };
     expect(siguienteDe(camposGuiaPrenda(d), "descripcion")?.id).toBe("descripcion");
     expect(siguienteDe(camposGuiaPrenda(d))?.id).toBe("precio");
+  });
+});
+
+describe("camposGuiaPrenda con el motivo (al anotar en Vender)", () => {
+  const motivos = [
+    { valor: "", detalle: "" },
+    { valor: "cola", detalle: "" },
+    { valor: "otro", detalle: "" },
+    { valor: "otro", detalle: "  " },
+    { valor: "otro", detalle: "La trajo de otra tienda" },
+  ];
+  it("el motivo va primero y los cinco de siempre después", () => {
+    expect(camposGuiaPrenda(completa, motivos[0]).map((c) => c.id)).toEqual(["motivo", "categoria", "talla", "color", "descripcion", "precio"]);
+  });
+  it("coherencia: «hay algo sin hacer» ⇔ falta el motivo o falta un dato, en 64 × 5 escenarios", () => {
+    for (const d of escenarios())
+      for (const m of motivos) {
+        const pendiente = camposGuiaPrenda(d, m).some((c) => c.requerido && !c.hecho);
+        expect(pendiente).toBe(faltaEnMotivo(m.valor, m.detalle) !== null || faltaEnPrendaSinRegistrar(d) !== null);
+      }
+  });
+  it("sin motivo, la guía lo pide primero aunque lo demás esté lleno; con «otro» vacío, pide el texto", () => {
+    expect(siguienteDe(camposGuiaPrenda(completa, motivos[0]))?.pendiente).toBe(`${FALTA_MOTIVO}.`);
+    expect(siguienteDe(camposGuiaPrenda(completa, motivos[2]))?.pendiente).toBe(`${FALTA_DETALLE_MOTIVO}.`);
+    expect(siguienteDe(camposGuiaPrenda(completa, motivos[4]))).toBeNull();
   });
 });

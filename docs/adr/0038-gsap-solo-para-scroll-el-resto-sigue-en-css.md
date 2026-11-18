@@ -107,3 +107,22 @@ Deliberadamente NO se tocó: `Segmentado` (`components/ui/campos.tsx`) — su
 indicador deslizante ya usa `transition-transform` de CSS puro y funciona bien;
 meterle GSAP habría sido decoración, no una mejora real. Ese es el límite que
 esta ADR pide vigilar.
+
+## Actualización 2026-11-09 — ScrollTrigger sale; GSAP queda solo para `Flip`
+
+`RevelarAlScroll` ya no existe y nadie usaba `ScrollTrigger`, pero `lib/motion-gsap.ts` lo seguía
+registrando y `PuntoDeVenta` lo cargaba con Vender (unos 18 KB comprimidos, medido sobre el archivo
+publicado de gsap 3.15.0). Se quitó. El motivo de arriba («soporte de navegador parejo») también
+cambió: con Firefox 159 (2026-10-27) las animaciones por scroll en CSS funcionan en Chrome, Safari 26
+y Firefox.
+
+**No se migraron los listeners de scroll que quedan.** Felipe pidió medir antes de decidir. Con el
+procesador frenado 4× en desarrollo local, `FilasQueSeDeslizan` gastó unos 3 ms de cada ~2100 ms al
+escribir en un buscador (Movimientos y Compras) y 27 ms como máximo en 246 cuadros al deslizar a
+375 px. Pasarlo a CSS dejaría la máscara siempre puesta sobre el vidrio de `<Pestanas>`, algo que
+hoy se evita a propósito, a cambio de casi nada.
+
+**Si algún día se usa una animación decorativa ligada al scroll:** el modo quieto (ADR-0625) no la
+frena, porque acorta la duración y aquí el avance lo da el scroll (Chrome 152: opacidad 0,505 igual
+con y sin la regla). Se apaga con `animation: none !important`, nunca con `animation-timeline: none`:
+con `fill-mode: both` deja el elemento en su primer cuadro (opacidad 0, contenido invisible).

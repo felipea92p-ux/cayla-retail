@@ -35,13 +35,13 @@ export function SeccionFicha({
   guia?: string;
 }) {
   return (
-    <section id={id} data-guia={guia} className="taller-sec anim-revelar scroll-mt-24" data-hecho={hecho} data-abierta={abierta} style={{ animationDelay: `${retraso}ms` }}>
+    <section id={id} data-guia={guia} className="taller-sec anim-revelar scroll-mt-8" data-hecho={hecho} data-abierta={abierta} style={{ animationDelay: `${retraso}ms` }}>
       <button type="button" className="taller-sec-cab" aria-expanded={abierta} aria-controls={`${id}-cuerpo`} onClick={() => onAbierta(!abierta)}>
         <span className="taller-num" aria-label={hecho ? "Completa" : `Paso ${numero}`}>
           {hecho ? "✓" : numero}
         </span>
         <span className="text-[15px] font-semibold text-tinta">{titulo}</span>
-        <span className="min-w-0 flex-1 truncate text-[13px] text-taupe">{resumen}</span>
+        <span className="min-w-0 flex-1 truncate text-sm text-taupe">{resumen}</span>
         <ChevronDown aria-hidden className="taller-chev h-4 w-4" />
       </button>
       <div className="taller-sec-cuerpo" id={`${id}-cuerpo`}>

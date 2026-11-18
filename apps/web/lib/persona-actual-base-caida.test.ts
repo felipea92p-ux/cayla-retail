@@ -26,6 +26,7 @@ vi.mock("@/lib/supabase/server", () => ({
 // Las pruebas de `apps/web` no tienen el alias `@/` (solo rutas relativas): las importaciones `@/…` de `persona-actual.ts` se atienden con los
 // módulos de verdad por su ruta relativa. Agregar una `vitest.config.ts` con el alias le cambia a Knip qué pruebas reconoce.
 vi.mock("@/lib/base-caida-reglas", () => import("./base-caida-reglas"));
+vi.mock("@/lib/mi-sesion-reglas", () => import("./mi-sesion-reglas"));
 vi.mock("@/lib/modulos", () => import("./modulos"));
 vi.mock("@/lib/vista-global", () => import("./vista-global"));
 vi.mock("next/navigation", () => ({
@@ -105,5 +106,47 @@ describe("lo que SÍ es «sin acceso» sigue siendo «sin acceso» (falla cerrad
   it("un error de Auth que no es de red (token inválido) también va al login", async () => {
     estado.claims = { data: null, error: Object.assign(new Error("invalid JWT"), { name: "AuthApiError", status: 401 }) };
     expect(await adonde()).toBe("/login");
+  });
+});
+
+// ADR-0657: las seis respuestas llegan en un viaje (`fn_mi_sesion`). Los casos de arriba recorren el camino de respaldo (sin la función,
+// el `rpc` de mentira devuelve vacío y se preguntan las seis); estos recorren el del viaje único y su vuelta a las seis.
+describe("«quién eres» en un viaje (fn_mi_sesion): los mismos destinos", () => {
+  const FILA = { nombre: "Micaela", es_lider: false, ubicacion_id: "u-tru", ubicacion_nombre: "Tienda Trujillo", ubicacion_tipo: "tienda" };
+  const SESION = { resumen: [FILA], terminal: null, modulos: [{ clave: "vender", completo: true }], persona_id: "p-1", es_admin: false, pantalla_principal: null };
+  // Las seis, respondiendo como si todo estuviera bien: si el camino las pregunta cuando no debe, la cuenta «ENTRA».
+  const LAS_SEIS_BIEN = { fn_persona_actual_resumen: { data: FILA, error: null, status: 200 } };
+
+  it("con la sesión, entra sin preguntar las seis", async () => {
+    estado.respuestas = { fn_mi_sesion: { data: SESION, error: null, status: 200 } };
+    expect(await adonde()).toBe("ENTRA");
+  });
+
+  it("la base no responde al pedir la sesión: /sin-base, sin probar seis veces más", async () => {
+    estado.respuestas = { ...LAS_SEIS_BIEN, fn_mi_sesion: { data: null, error: { message: "TypeError: Failed to fetch", code: "" }, status: 0 } };
+    expect(await adonde()).toBe(SIN_BASE_DE_CAJA);
+  });
+
+  it("la sesión dice que no hay fila: /login con «sin_persona» (falla cerrado)", async () => {
+    estado.respuestas = { ...LAS_SEIS_BIEN, fn_mi_sesion: { data: { ...SESION, resumen: [], modulos: [] }, error: null, status: 200 } };
+    expect(await adonde()).toBe("/login?error=sin_persona");
+  });
+
+  it("dos filas (persona y terminal a la vez): /login con «sin_persona», como .maybeSingle()", async () => {
+    estado.respuestas = { ...LAS_SEIS_BIEN, fn_mi_sesion: { data: { ...SESION, resumen: [FILA, FILA] }, error: null, status: 200 } };
+    expect(await adonde()).toBe("/login?error=sin_persona");
+  });
+
+  it("la base todavía no tiene fn_mi_sesion (PGRST202): pregunta las seis y entra", async () => {
+    estado.respuestas = { ...LAS_SEIS_BIEN, fn_mi_sesion: { data: null, error: { code: "PGRST202", message: "Could not find the function" }, status: 404 } };
+    expect(await adonde()).toBe("ENTRA");
+  });
+
+  it("sin fn_mi_sesion y con la base caída en el resumen: igual va a /sin-base (el respaldo conserva ADR-0450)", async () => {
+    estado.respuestas = {
+      fn_mi_sesion: { data: null, error: { code: "PGRST202", message: "Could not find the function" }, status: 404 },
+      fn_persona_actual_resumen: { data: null, error: { code: "57014", message: "canceling statement due to statement timeout" }, status: 500 },
+    };
+    expect(await adonde()).toBe(SIN_BASE_DE_CAJA);
   });
 });

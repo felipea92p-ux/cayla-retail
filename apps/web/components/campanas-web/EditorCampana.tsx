@@ -250,8 +250,10 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
     avisar.exito(programar ? `Programada: la tienda la muestra ${ficha.campana.estado === "prog" && ficha.campana.desde ? `desde el ${fechaCortaDicha(ficha.campana.desde)}` : "ahora"}` : "Pasó a borrador: la tienda ya no la muestra");
   }
 
+  // `@container`: los pasos y la vista previa van lado a lado según el ancho del editor, no el de la ventana. Con el menú abierto
+  // a 1024 px la previa quedaba en 236 px y se cortaba el titular que se está diseñando; desde 56 rem le quedan unos 440.
   return (
-    <div className="space-y-5">
+    <div className="@container space-y-5">
       {terminada && (
         <Aviso tono="info" titulo="Esta campaña ya terminó">
           Su diseño ya no se cambia: la tienda volvió sola a verse como siempre.
@@ -259,7 +261,7 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
       )}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1" data-guia="campana-editor.estado">
         <Chip tono={estado === "programado" ? "verde" : estado === "borrador" ? "ambar" : "neutro"}>{estado === "programado" ? "Programada" : estado === "borrador" ? "Borrador" : "Sin diseño"}</Chip>
-        <p className="text-[13px] text-tinta/80">
+        <p className="text-sm text-tinta/80">
           {estado === "programado"
             ? "La tienda muestra este diseño mientras dure la campaña. Lo que guardes se ve en menos de un minuto."
             : estado === "borrador"
@@ -267,7 +269,7 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
               : "Elige un ambiente o sube tu imagen y guárdalo como borrador."}
         </p>
       </div>
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,27rem)_minmax(0,1fr)]">
+      <div className="grid gap-6 @min-[56rem]:grid-cols-[minmax(0,27rem)_minmax(0,1fr)]">
         <div className="space-y-3">
           <PasoDelEditor
             numero={1}
@@ -290,12 +292,12 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
                     setBorrador((b) => conModo(b, modo));
                     setErrorGuardar(null);
                   }}
-                  className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-colors ${borrador.modo === modo ? "border-tinta bg-papel shadow-[0_0_0_1px_var(--color-tinta)]" : "border-sand bg-crema hover:bg-hueso"}`}
+                  className="tw-opcion flex items-center gap-3 rounded-xl border p-3 text-left"
                 >
                   <Icono className="h-4 w-4 shrink-0" aria-hidden />
                   <span className="min-w-0">
-                    <b className="block text-[13px] font-semibold">{nombre}</b>
-                    <small className="block text-[11.5px] leading-snug text-tinta/65">{ayuda}</small>
+                    <b className="block text-sm font-semibold">{nombre}</b>
+                    <small className="block text-sm leading-snug text-tinta/65">{ayuda}</small>
                   </span>
                 </button>
               ))}
@@ -315,14 +317,14 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
                       aria-pressed={puesto}
                       disabled={terminada || guardando}
                       onClick={() => elegirAmbiente(a.clave)}
-                      className={`flex flex-col gap-1 rounded-xl border p-2 text-left transition-colors ${puesto ? "border-tinta bg-papel shadow-[0_0_0_1px_var(--color-tinta)]" : "border-sand bg-crema hover:bg-hueso"}`}
+                      className="tw-opcion flex flex-col gap-1 rounded-xl border p-2 text-left"
                     >
                       <span className="relative block h-14 rounded-lg" style={{ backgroundColor: p.fondo, color: p.texto }} data-color-dato>
                         <b className="absolute bottom-2 left-2 font-sans text-sm uppercase tracking-wide">Aa</b>
                         <i className="absolute right-2 top-2 block h-3.5 w-3.5 rounded-full" style={{ backgroundColor: p.acento }} />
                       </span>
-                      <b className="text-[13px] font-semibold">{a.nombre}</b>
-                      <small className="text-[11.5px] leading-snug text-tinta/65">{a.para}</small>
+                      <b className="text-sm font-semibold">{a.nombre}</b>
+                      <small className="text-sm leading-snug text-tinta/65">{a.para}</small>
                     </button>
                   );
                 })}
@@ -371,8 +373,7 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
                     </Aviso>
                   )}
                   <p className="nota-cayla">
-                    El texto de la campaña va dentro de tu imagen. Deja libre la parte de abajo a la izquierda: ahí se ponen «Ver la campaña» y «Lo nuevo». El descuento lo pone el
-                    sello de cada prenda. Sin versión para celular, se recorta la imagen del computador al centro.
+                    El texto va dentro de tu imagen. Deja libre abajo a la izquierda: ahí van «Ver la campaña» y «Lo nuevo».
                   </p>
                 </div>
               </CampoGuiado>
@@ -397,7 +398,7 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
                 </CampoGuiado>
                 <div data-guia="campana-editor.lectura">
                   <p className="campo-etiqueta">¿Se lee bien?</p>
-                  <ul className="mt-2 space-y-1.5 text-[13px]">
+                  <ul className="mt-2 space-y-1.5 text-sm">
                     {lectura.items.map((x) => (
                       <li key={x.nombre} className="flex items-center gap-2">
                         <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${x.ok ? "bg-verde/15 text-verde" : "bg-rojo/10 text-rojo-profundo"}`} aria-hidden>
@@ -409,7 +410,7 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
                       </li>
                     ))}
                   </ul>
-                  <p className="nota-cayla mt-3">Los demás colores salen de tu imagen: aquí solo eliges el del botón. «Lo nuevo» va en vidrio oscuro para que se lea sobre cualquier foto.</p>
+                  <p className="nota-cayla mt-3">Los demás colores salen de tu imagen: aquí solo eliges el del botón.</p>
                 </div>
               </div>
             )}
@@ -427,7 +428,7 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
                           aria-pressed={puesta}
                           disabled={terminada || guardando}
                           onClick={() => setBorrador((b) => conPaleta(b, i))}
-                          className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-[13px] transition-colors ${puesta ? "border-tinta bg-papel shadow-[0_0_0_1px_var(--color-tinta)]" : "border-sand bg-crema hover:bg-hueso"}`}
+                          className="tw-opcion flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-sm"
                         >
                           <span className="font-semibold">{p.nombre}</span>
                           <span className="flex gap-1" aria-hidden data-color-dato>
@@ -452,7 +453,7 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
 
                 <div data-guia="campana-editor.lectura">
                   <p className="campo-etiqueta">¿Se lee bien?</p>
-                  <ul className="mt-2 space-y-1.5 text-[13px]">
+                  <ul className="mt-2 space-y-1.5 text-sm">
                     {lectura.items.map((x) => (
                       <li key={x.nombre} className="flex items-center gap-2">
                         <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${x.ok ? "bg-verde/15 text-verde" : "bg-rojo/10 text-rojo-profundo"}`} aria-hidden>
@@ -465,7 +466,7 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
                     ))}
                   </ul>
                   <p className="nota-cayla mt-3">
-                    Si un color no se lee bien, la campaña no se programa. Así ninguna campaña deja la tienda con letras que no se ven.
+                    Si un color no se lee bien, la campaña no se programa.
                   </p>
                 </div>
               </div>
@@ -522,14 +523,14 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
                             setBorrador((b) => conMovimiento(b, "efecto", e));
                             setVuelta((n) => n + 1);
                           }}
-                          className={`flex h-11 items-center justify-center rounded-xl border transition-colors ${borrador.efecto === e ? "border-tinta bg-tinta text-crema" : "border-sand bg-crema text-tinta hover:bg-hueso"}`}
+                          className="tw-opcion tw-opcion-icono flex h-11 items-center justify-center rounded-xl border text-tinta"
                         >
                           <Icono className="h-4 w-4" aria-hidden />
                         </button>
                       );
                     })}
                   </div>
-                  <p className="mt-2 text-[12px] text-tinta/65">
+                  <p className="mt-2 text-sm text-tinta/65">
                     Elegido: <b className="text-tinta">{NOMBRE_DE_EFECTO[borrador.efecto]}</b>
                   </p>
                 </div>
@@ -571,7 +572,7 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
                   <RotateCcw className="h-4 w-4" aria-hidden /> Ver la entrada otra vez
                 </Boton>
                 <p className="nota-cayla">
-                  Quien tiene «reducir movimiento» en su celular o computador no ve nada de esto: la tienda se queda quieta. Pruébalo con el botón de la vista previa.
+                  Con «reducir movimiento» encendido, la tienda se queda quieta. Pruébalo en la vista previa.
                 </p>
               </div>
             )}
@@ -619,7 +620,7 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
                       onChange={(e) => setBorrador((b) => conTexto(b, "boton", e.target.value))}
                     />
                     <p className="nota-cayla">
-                      El descuento y las fechas no se escriben aquí: salen de la campaña en Etiquetas, para que la tienda nunca diga un precio distinto al de la caja.
+                      El descuento y las fechas salen de la campaña, para que la web nunca diga otro precio que la caja.
                     </p>
                   </div>
                 </CampoGuiado>
@@ -658,7 +659,9 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
           </PasoDelEditor>
         </div>
 
-        <div className="space-y-3 lg:sticky lg:top-4 lg:self-start" data-guia="campana-editor.vista">
+        {/* Pegada bajo la cabecera fija (64 px + 16 de aire, como las demás columnas pegadas del ERP): con `top-4` sus selectores
+            quedaban debajo de la cabecera al bajar (WCAG 2.4.11, auditoría /milimetro 2026-11-16). */}
+        <div className="space-y-3 @min-[56rem]:sticky @min-[56rem]:top-20 @min-[56rem]:self-start" data-guia="campana-editor.vista">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <SegmentoDeslizante
               forma="modo"
@@ -707,7 +710,7 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
               }}
             />
           </div>
-          <p className="text-[12px] text-taupe">Es un dibujo para decidir los colores; la tienda de verdad se ve con las fotos de las prendas.</p>
+          <p className="text-sm text-taupe">Es un dibujo para decidir los colores; la tienda de verdad se ve con las fotos de las prendas.</p>
         </div>
       </div>
 
@@ -728,7 +731,9 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
         </Aviso>
       )}
 
-      <div className="pie-hoja-fijo flex flex-wrap items-end gap-x-4 gap-y-3 border-t border-sand pt-4">
+      {/* En el celular el pie va en su lugar, sin pegarse: pegado ocupaba un tercio de la pantalla (Responsable, la guía, la vista
+          previa y los dos botones) y dejaba poco para ver los pasos. Sin pegarse tampoco desenfoca, porque corre con la página. */}
+      <div className="pie-hoja-fijo flex flex-wrap items-end gap-x-4 gap-y-3 border-t border-sand pt-4 max-sm:static max-sm:before:hidden max-sm:[-webkit-backdrop-filter:none]! max-sm:[backdrop-filter:none]!">
         <div className="min-w-[16rem] flex-1 space-y-2">
           <CampoGuiado id="responsable" guia={guia}>
             <div data-guia="campana-editor.responsable" className="max-w-sm">
@@ -808,9 +813,9 @@ function PasoDelEditor({
         </span>
         <span className="min-w-0 flex-1">
           <b className="block text-[14px] font-semibold">{titulo}</b>
-          <small className="block truncate text-[12px] text-tinta/65">{resumen}</small>
+          <small className="block truncate text-sm text-tinta/65">{resumen}</small>
         </span>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">{falta ? "Falta" : hecho ? "Listo" : bloqueado ? "" : "Sigue aquí"}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">{falta ? "Falta" : hecho ? "Listo" : bloqueado ? "" : "Sigue"}</span>
       </button>
       {abierto && <div className="border-t border-sand px-4 pb-4 pt-3">{children}</div>}
     </section>
@@ -931,10 +936,10 @@ function SubidaDeImagen({
           </div>
         </div>
       ) : (
-        <label htmlFor={id} className={`flex flex-col items-center gap-1 rounded-xl border border-dashed border-taupe bg-hueso px-4 py-5 text-center text-[13px] ${deshabilitado ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>
+        <label htmlFor={id} className={`flex flex-col items-center gap-1 rounded-xl border border-dashed border-taupe bg-hueso px-4 py-5 text-center text-sm ${deshabilitado ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>
           <IconoImagen className="h-4 w-4" aria-hidden />
           <b>{subiendo ? "Subiendo…" : "Sube tu imagen"}</b>
-          <small className="max-w-[40ch] text-[11.5px] text-tinta/65">JPG, PNG o WebP · ideal {medida} · se reduce a 300 KB o menos al subirla.</small>
+          <small className="max-w-[40ch] text-sm text-tinta/65">JPG, PNG o WebP · ideal {medida} · se reduce a 300 KB o menos al subirla.</small>
         </label>
       )}
       <input

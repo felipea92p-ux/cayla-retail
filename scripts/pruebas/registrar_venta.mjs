@@ -650,12 +650,13 @@ rollback;
 // S/ 0 aunque la tienda le ponga precio a la bolsa. (La primera versión de esa migración, sin pegar, dejaba en S/ 0 también la ropa con
 // precio de tienda: estos casos, y el mutante del final, lo dicen al revés.)
 
-/** Rompe a propósito `fn_precio_en_sede` dentro de la transacción (vuelve con el ROLLBACK): toda talla en 0 pasa por la de obsequio. */
+/** Rompe a propósito la regla del precio (`fn_precios_en_sedes`, la que usa `fn_precio_en_sede` desde 20261031161000) dentro de la
+ * transacción (vuelve con el ROLLBACK): toda talla en 0 pasa por la de obsequio. */
 const ropaComoObsequio = `do $m$
-declare d text := pg_get_functiondef('retail.fn_precio_en_sede(uuid, uuid)'::regprocedure);
+declare d text := pg_get_functiondef('retail.fn_precios_en_sedes(uuid[], uuid[])'::regprocedure);
 begin
   if position('retail.fn_categoria_admite_precio_cero(pr.categoria_id)' in d) = 0 then
-    raise exception 'mutante vacío: fn_precio_en_sede no pregunta la categoría de la prenda';
+    raise exception 'mutante vacío: fn_precios_en_sedes no pregunta la categoría de la prenda';
   end if;
   execute replace(d, 'retail.fn_categoria_admite_precio_cero(pr.categoria_id)', 'true');
 end $m$;

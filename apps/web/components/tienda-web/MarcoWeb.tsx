@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { Lock } from "lucide-react";
 import { DIRECCION_TIENDA_ONLINE } from "@/lib/club-qr-reglas";
 
-/** «tienda.cayla.pe»: la dirección que ve el cliente, sin el «https://». */
+/** «cayla.pe»: la dirección que ve el cliente, sin el «https://». */
 export const DOMINIO_TIENDA = DIRECCION_TIENDA_ONLINE.replace(/^https?:\/\//, "");
 
 /**

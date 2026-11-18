@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-cl="pozo" data-gd="visto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Configuración, vista por vista</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+.pz-t{position:relative;display:inline-flex;gap:2px;margin-top:20px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);max-width:100%;overflow-x:auto;scrollbar-width:none}
+[data-tema="oscuro"] .pz-t{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pz-t button{flex:none;height:34px;padding:0 16px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.pz-t button[aria-selected="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pz-t button[aria-selected="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.cas{position:relative;display:inline-block}
+.cas input{width:5.2rem;height:34px;padding:0 10px;border-radius:8px;border:1px solid var(--sand);background:var(--hueso);font:500 13.5px 'DM Sans';color:var(--tinta);text-align:right;font-variant-numeric:tabular-nums;outline:none;transition:border-color .15s,background .2s,box-shadow .2s}
+.cas.ancha input{width:6.6rem}.cas.chica input{width:4.4rem}
+.cas input:focus{border-color:color-mix(in srgb,var(--taupe) 55%,transparent)}
+[data-cl="pozo"] .cas input{border-radius:999px;border-color:color-mix(in srgb,var(--borde) 70%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-cl="pozo"] .cas input{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-cl="pozo"] .cas input:focus{border-color:var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 8px 18px -10px color-mix(in srgb,var(--sombra) 40%,transparent)}
+.cas .hilo{position:absolute;left:14px;right:14px;bottom:1px;height:2px;border-radius:2px;background:var(--rojo);transform:scaleX(0);transition:transform .3s var(--ease),background .3s;pointer-events:none}
+.cas .visto{position:absolute;right:-20px;top:50%;width:16px;height:16px;margin-top:-8px;display:grid;place-items:center;border-radius:50%;color:var(--crema);background:var(--verde);opacity:0;scale:.6;transition:opacity .2s,scale .3s var(--ease);pointer-events:none}
+.cas .visto svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:20;stroke-dashoffset:20}
+[data-gd="visto"] .cas.ok .visto{opacity:1;scale:1}
+[data-gd="visto"] .cas.ok .visto svg{animation:traza .32s var(--ease) .08s forwards}
+@keyframes traza{to{stroke-dashoffset:0}}
+
+/* ====================================================================
+   MAQUETA · Configuración, vista por vista (Felipe 2026-11-04). Solo piezas ya elegidas del vidrio (ADR-0596): la placa Serena, el pozo, la
+   gota, la casilla «A · Pozo en la celda» con «A · Visto en la celda», las pestañas de vidrio, el chip, «Ver más». Datos inventados: el repo es público.
+   ==================================================================== */
+.pz-t{flex-wrap:wrap;margin-top:0}
+.pz-t button{height:34px;padding:0 14px}
+.tira{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin-top:20px}
+.resp{display:inline-flex;align-items:center;gap:10px;height:42px;padding:0 14px 0 6px;border-radius:999px;font-size:13.5px;color:var(--tinta);border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 10%,transparent)}
+.resp i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:500 13px 'EB Garamond',serif;font-style:normal;background:var(--sand)}
+.resp small{font-size:12px;color:var(--taupe)}
+.vista{display:grid;gap:18px;margin-top:18px}
+.placa{container:placa/inline-size;border-radius:22px;padding:18px 20px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.3);backdrop-filter:blur(24px) saturate(1.3);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 12px 32px -22px color-mix(in srgb,var(--sombra) 50%,transparent);animation:sube .5s var(--ease) backwards}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.tit{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 20px;margin-bottom:10px}
+.tit h2{font-family:'EB Garamond',serif;font-weight:400;font-size:21px;line-height:1.2}
+.tit p{font-size:14px;color:var(--taupe);max-width:70ch}
+.tit .dcha{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.dos{display:grid;gap:18px;align-items:start}
+@container disp (min-width:1180px){.dos.par{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@container disp (min-width:1700px){.dos.metas{grid-template-columns:minmax(0,2.4fr) minmax(0,1fr)}}
+.lista.fechas{display:grid;gap:0 32px}
+@container placa (min-width:720px){.lista.fechas{grid-template-columns:1fr 1fr}.lista.fechas li:nth-child(2){box-shadow:none}}
+.tb .sel{min-width:6.4rem}.sel span{overflow:hidden;text-overflow:ellipsis}
+.tb{overflow-x:auto;margin:0 -6px}
+.tb table{width:100%;border-collapse:collapse;font-size:14px}
+.tb th{padding:8px 6px;font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--t65);text-align:right;white-space:nowrap;box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--tinta) 10%,transparent)}
+.tb td{padding:7px 6px;text-align:right;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 7%,transparent);vertical-align:middle}
+.tb th.iz,.tb td.iz{text-align:left}
+.tb th:first-child,.tb td:first-child{text-align:left;padding-left:10px}
+.tb th:last-child,.tb td:last-child{padding-right:24px}
+.tb td b{display:block;font-weight:600}.tb td small{display:block;font-size:14px;color:var(--taupe)}
+.tb tr.base td{background:color-mix(in srgb,var(--tinta) 3%,transparent)}
+.tb tr.tenue td{opacity:.72}
+.pie{margin-top:10px;font-size:14px;color:var(--taupe);max-width:90ch}
+.pil{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);font-size:13.5px;color:var(--tinta)}
+.pil[aria-pressed="true"]{color:var(--crema);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent));border-color:transparent}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12.5px;white-space:nowrap;color:var(--t80);background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 10%,transparent)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.verde{color:var(--verde);background:color-mix(in srgb,var(--verde) 12%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--verde) 26%,transparent)}
+.chip.ambar{color:var(--ambar);background:color-mix(in srgb,var(--ambar) 12%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ambar) 26%,transparent)}
+.chip.nada::before{display:none}
+.int{display:inline-flex;align-items:center;width:38px;height:22px;padding:2px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 14%,transparent);box-shadow:inset 0 1px 3px color-mix(in srgb,var(--sombra) 18%,transparent);transition:background .25s}
+.int::after{content:"";width:18px;height:18px;border-radius:50%;background:var(--vidrio);box-shadow:0 1px 3px color-mix(in srgb,var(--sombra) 35%,transparent);transition:transform .25s var(--ease)}
+.int[aria-checked="true"]{background:var(--tinta)}.int[aria-checked="true"]::after{transform:translateX(16px);background:var(--crema)}
+.lap{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;color:var(--t65)}
+@media (hover:hover){.lap:hover{background:var(--t06);color:var(--tinta)}}
+.sel{display:inline-flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-width:9.5rem;height:36px;padding:0 12px;border-radius:999px;font-size:13.5px;white-space:nowrap;border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 10%,transparent)}
+.sel svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;color:var(--t65)}
+.datos{display:grid;gap:12px 28px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.datos dt{font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--t65)}
+.datos dd{font-size:15px;margin-top:2px}
+.grupo{display:flex;align-items:center;gap:10px;margin:14px 0 2px;font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.grupo::after{content:"";flex:1;height:1px;background:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.lista{list-style:none}
+.lista li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 2px;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 7%,transparent)}
+.lista li:first-child{box-shadow:none}
+.lista b{display:block;font-weight:600}.lista small{display:block;font-size:14px;color:var(--taupe)}
+.lista .der{display:flex;align-items:center;gap:8px;flex:none}
+.vermas{display:flex;align-items:center;justify-content:center;gap:8px;width:calc(100% + 40px);margin:12px -20px -18px;padding:13px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);font-size:13.5px;color:var(--taupe);border-radius:0 0 22px 22px}
+@media (hover:hover){.vermas:hover{background:var(--t06);color:var(--tinta)}}
+.vermas svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;transition:transform .4s var(--ease)}
+.vermas[aria-expanded="true"] svg{transform:rotate(180deg)}
+.frase{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:10px 2px;font-size:15px;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 7%,transparent)}
+.frase:first-of-type{box-shadow:none}
+.frase small{flex-basis:100%;font-size:14px;color:var(--taupe)}
+.nota{display:flex;gap:10px;padding:12px 16px;border-radius:16px;font-size:14px;color:var(--t80);background:color-mix(in srgb,var(--vidrio) 40%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 8%,transparent)}
+.vacio{display:grid;justify-items:center;gap:6px;padding:26px 16px 12px;text-align:center}
+.vacio svg{width:36px;height:36px;fill:none;stroke:var(--taupe);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.vacio h3{font-family:'EB Garamond',serif;font-weight:400;font-size:21px}
+.vacio p{max-width:56ch;color:var(--taupe)}
+.vacio .acc{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:10px}
+.topes{display:grid;gap:0 32px}
+@container placa (min-width:720px){.topes{grid-template-columns:1fr 1fr}.topes li:nth-child(2){box-shadow:none}}
+.cifras3{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.cf-reparto{display:grid;gap:0 32px}
+@container placa (min-width:720px){.cf-reparto{grid-template-columns:1fr 1fr}.cf-reparto li:nth-child(2){box-shadow:none}}
+.btn.chico{height:32px;padding:0 12px;font-size:12.5px}
+.tres{display:grid;gap:18px}
+@container disp (min-width:900px){.tres{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@container placa (max-width:600px){
+  .tb{overflow:visible;margin:0}.tb thead{display:none}.tb table,.tb tbody{display:block}
+  .tb tr{display:flex;flex-wrap:wrap;gap:0 12px;padding:10px 0;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 10%,transparent)}
+  .tb td,.tb td.iz,.tb td:first-child,.tb td:last-child{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:4px 18px 4px 0;box-shadow:none;text-align:left}
+  .tb td:first-child{display:block}
+  .tb td[data-l]::before{content:attr(data-l);font-size:13px;color:var(--t80)}
+  .tb td.dia{width:calc(50% - 6px);padding-right:14px}
+  .tb td.dia .cas input{width:3.4rem!important}
+  .tb tr.base td{background:none}
+  .chip{white-space:normal;height:auto;min-height:24px;padding:3px 10px}
+}
+@container disp (max-width:520px){.placa{padding:14px;border-radius:18px}.vermas{width:calc(100% + 28px);margin:12px -14px -14px}.resp{width:100%}}
+.analisis td b{white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.placa,.vermas svg,.int,.int::after{animation:none;transition:none}}
+
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Configuración, vista por vista</span>
+  <span class="tag">Pestañas</span><div class="seg-m" data-ctl="pest"><button data-v="cinco">5 juntas (recomendada)</button><button data-v="ocho">8 como hoy</button></div>
+  <span class="tag">Campañas</span><div class="seg-m" data-ctl="camp"><button data-v="plegadas">Plegadas (recomendada)</button><button data-v="quitar">Quitarlas</button></div>
+  <span class="tag">Topes de gasto</span><div class="seg-m" data-ctl="top"><button data-v="vacio">Aún sin topes</button><button data-v="con">Con topes</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="escritorio">1440</button><button data-v="w1920">1920</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Qué se quita, qué se junta y qué queda</h2>
+    <p>Salió de mirar quién lee cada dato en el código y cuánto se ha usado cada sección en la base real (las cifras, en el chat: el repo es público). Solo la fila de Campañas y la de WhatsApp piden una decisión de negocio.</p>
+    <table>
+      <tr><th>Sección de hoy</th><th>Propuesta</th><th>Por qué</th></tr>
+      <tr><td>Datos de la empresa</td><td><b>Se achica</b></td><td>Solo se lee: una franja, no dos tarjetas con campos.</td></tr>
+      <tr><td>Datos fiscales, WhatsApp, Pregúntale a CAYLA, Carga inicial</td><td><b>Se juntan</b> en «Cada sede»</td><td>Eran cuatro tablas con las mismas filas. Ahora una fila por sede y una columna por dato.</td></tr>
+      <tr><td>Fondo de caja y hora de cierre</td><td><b>Se mudan</b> a «Cada sede»</td><td>No son metas: son de la sede. Sale de la tabla de metas lo que no responde «cuánto vender».</td></tr>
+      <tr><td>Lo normal + Meta mes por mes</td><td><b>Se juntan</b> en una tabla</td><td>«Lo normal» es la primera fila; cada mes hereda de ella en gris. Una tienda a la vez.</td></tr>
+      <tr><td>Fechas especiales</td><td><b>Queda</b>, al costado</td><td>Se usa de verdad. Lista corta al lado de la tabla, aprovecha el ancho (ADR-0462).</td></tr>
+      <tr><td>Campañas: lo que cambian en la caja</td><td><b>Se pliega, o se quita</b></td><td>Nadie la está usando y mes y fecha especial hacen casi lo mismo. Quitarla es de Felipe: es la única forma de subir el fondo solo en una campaña. Míralo en la barra.</td></tr>
+      <tr><td>Cuentas y cobros + Caja y avisos</td><td><b>Se juntan</b> en «Dinero»</td><td>Se acaba el cruce de nombres con «caja». Lo más tocado, a qué cuenta entra cada cobro, va primero.</td></tr>
+      <tr><td>Cuenta contable, Tipo y «activa» en cada cuenta</td><td><b>Se quitan</b> de la lista</td><td>No ayudan a decidir: la cuenta contable se ve al editar, el tipo es el grupo y solo una archivada lleva marca.</td></tr>
+      <tr><td>Cajones y cajas fuertes</td><td><b>Se pliegan</b></td><td>Nacen con cada sede y aquí solo se miran.</td></tr>
+      <tr><td>Gastos fijos + Presupuesto + Reparto CLAURE</td><td><b>Se juntan</b> en «Gastos»</td><td>Las tres responden lo mismo: qué se gasta y de quién es.</td></tr>
+      <tr><td>Presupuesto (48 casillas)</td><td><b>Empieza vacío</b></td><td>Sin topes se ve un solo botón para sugerirlos; con topes, una sede a la vez. Otras pantallas lo leen: no se puede borrar sin tocarlas. Míralo en la barra.</td></tr>
+      <tr><td>Impuestos: 7 bloques iguales</td><td><b>Se ordenan</b></td><td>Primero lo que falta confirmar con el contador; lo de arrancar, plegado.</td></tr>
+      <tr><td>La franja «Cada casilla se guarda sola» + «Eres admin»</td><td><b>Una sola</b>, junto a las pestañas</td><td>Salía en 6 de 8 pestañas. Y un solo título: el de sección, en serif.</td></tr>
+    </table>
+    <h3>Lo que no cambia</h3>
+    <p>Lo que hace cada casilla, cada función de la base, quién ve qué, las hojas de editar y la firma del responsable. Nada de esto toca dinero, stock, permisos ni SUNAT.</p>
+    <h3>Dos cosas que vi y no son de diseño</h3>
+    <ul>
+      <li><b>El WhatsApp de cada tienda se edita en dos pantallas</b> (aquí y en Tienda web ▸ Datos y plazos). Las dos escriben lo mismo y no se pisan, pero conviene dejar una.</li>
+      <li><b>La hora de cierre hace falta aunque parezca que sobra.</b> Sin ella no sale el aviso de cierre de caja ni la proyección del día: si está vacía, es un dato que falta, no una sección que sobra.</li>
+    </ul>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<script>
+// En su propio bloque: marco.js usa nombres globales (SEDES, fila, estado…) que aquí no se pisan.
+{
+const CH = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+const LAPIZ = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+const svV = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const n = (v) => v.toLocaleString('es-PE');
+const S = (v) => `S/ ${n(v)}`;
+const cas = (v, et, w = '4.6rem', ph = '—') => `<span class="cas"><input style="width:${w}" value="${v ?? ''}" placeholder="${ph}" aria-label="${et}"><span class="hilo"></span><span class="visto">${svV('M5 12.5l4.5 4.5L19 7.5')}</span></span>`;
+const chip = (t, c = '') => `<span class="chip ${c}">${t}</span>`;
+const lapiz = (q) => `<button class="lap" aria-label="Editar ${q}" title="Editar ${q}">${LAPIZ}</button>`;
+const sel = (t) => `<button class="sel" aria-haspopup="listbox"><span>${t}</span>${CH}</button>`;
+const placa = (titulo, cuerpo, { frase = '', dcha = '', pie = '' } = {}) => `<section class="placa"><div class="tit"><div><h2>${titulo}</h2>${frase ? `<p>${frase}</p>` : ''}</div>${dcha ? `<div class="dcha">${dcha}</div>` : ''}</div>${cuerpo}${pie ? `<p class="pie">${pie}</p>` : ''}</section>`;
+const verMas = (clave, texto) => `<button class="vermas" data-abre="${clave}" aria-expanded="${!!abierto[clave]}">${abierto[clave] ? 'Ver menos' : texto}${CH}</button>`;
+const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+// ---------- datos inventados ----------
+const SEDES = [
+  { n: 'Trujillo', dir: 'Av. España 1240', serie: 'B001 · F001', wa: '987654321', cierra: '21:00', fondo: 300, ia: true, carga: ['Cerró el 28 de octubre', ''] },
+  { n: 'Arequipa', dir: 'Calle Mercaderes 312', serie: 'B002 · F002', wa: '956112480', cierra: '20:30', fondo: 250, ia: true, carga: ['Cerró el 28 de octubre', ''] },
+  { n: 'Lima', dir: 'Jr. de la Unión 880', serie: 'B003 · F003', wa: '', cierra: '', fondo: 300, ia: true, carga: ['Abierta hasta el 30 de noviembre', 'ambar'] },
+  { n: 'Taller', dir: 'Sin punto de emisión', serie: '', taller: true, ia: false, carga: ['Abierta hasta el 30 de noviembre', 'ambar'] },
+];
+const METAS = {
+  Trujillo: { tipo: [3800, 3800, 3800, 3800, 4200, 5200, 4000], meses: { 'Diciembre 2026': [6200, 6200, 6200, 6200, 7400, 9800, 7200], 'Enero 2027': [3400, 3400, 3400, 3400, 3800, 4800, 3600] } },
+  Arequipa: { tipo: [3200, 3200, 3200, 3200, 3600, 4800, 3500], meses: { 'Diciembre 2026': [5400, 5400, 5400, 5400, 6200, 8400, 6000] } },
+  Lima: { tipo: [4000, 4000, 4000, 4000, 4500, 5600, 4200], meses: { 'Diciembre 2026': [6800, 6800, 6800, 6800, 7900, 10400, 7800] } },
+};
+const MESES = ['Noviembre 2026', 'Diciembre 2026', 'Enero 2027', 'Febrero 2027', 'Marzo 2027', 'Abril 2027'];
+const FECHAS = [['24 dic', 'jue', 'Lima', 12800, 'Nochebuena'], ['24 dic', 'jue', 'Trujillo', 11600, 'Nochebuena'], ['25 dic', 'vie', 'Lima', 0, 'No abre'], ['1 ene', 'vie', 'Trujillo', 0, 'No abre']];
+const CAMPANAS = [['Black Friday', '9 nov – 30 nov', 'viene'], ['Navidad', '11 dic – 25 dic', 'viene'], ['Cyber Wow', 'sin fechas', 'sin fechas']];
+const CUENTAS = { 'Bancos y billeteras': [['BCP', 'Recibe Yape y transferencias · ****4412', 18420], ['Interbank', 'Sale la planilla · ****0935', 6210], ['Yape del líder', '', 940]], 'Por depositar': [['Por depositar Izipay', 'QR de las 3 tiendas · tarjeta de Lima', 1180], ['Por depositar Vendemás', 'Tarjeta de Trujillo y Arequipa', 650]] };
+const CAJONES = [['Cajón · Trujillo', 295], ['Cajón · Arequipa', 220], ['Cajón · Lima', 310], ['Caja fuerte · Trujillo', 0], ['Caja fuerte · Arequipa', 0], ['Caja fuerte · Lima', 0], ['Fondo fijo · Taller', 150]];
+const FIJOS = [['Alquiler de Trujillo', 'Alquileres', 'Trujillo', 'Inmobiliaria Sol', 6500, 'Día 1'], ['Alquiler de Arequipa', 'Alquileres', 'Arequipa', 'Galerías Misti', 5200, 'Día 1'], ['Luz de Lima', 'Servicios básicos · variable', 'Lima', 'Luz del Sur', 420, 'Día 18'], ['Contador', 'Asesoría y honorarios', 'De la empresa', 'Estudio Ríos', 1200, 'Día 5'], ['Internet del Taller', 'Servicios básicos', 'Taller', 'Movistar', 149, 'Día 12']];
+const RUBROS = [['Alquileres', 12000], ['Luz · Agua · Internet · Telefonía', 1400], ['Software · Comisiones bancarias', 900], ['Transporte · Viaje de compra', 1500], ['Suministros y útiles', 350], ['Mantenimiento y reparaciones', 400], ['Publicidad y marketing', 2200], ['Asesoría y honorarios', 1600], ['Tributos y licencias', 300], ['Seguros', 280], ['Atención al personal', 500], ['Traer la mercadería', 1800]];
+const REPARTO = [['Alquiler', 50], ['Servicios', 50], ['Personal de tienda', 40], ['Publicidad', 30], ['Útiles', 50], ['Mantenimiento', 50], ['Movilidad', 25], ['Comisiones', 50]];
+const CONFIRMAR = [['UIT de 2026', 'S/ 5,500', 'Es el valor que trae el sistema'], ['Régimen de 2026', 'Régimen MYPE Tributario', 'Decide el pago a cuenta y el límite de ventas'], ['Límite de ventas de 2026', '300 UIT', 'Pasado este límite, SUNAT pide Diario y Mayor'], ['Pago a cuenta de 2026', '1 %', 'Sale de la venta neta de cada mes']];
+
+// ---------- cada vista ----------
+const vistas = {
+  empresa: () => `
+    ${placa('Datos de la empresa', `<dl class="datos">${[['RUC', '20600000000'], ['Razón social', 'Empresa de Ejemplo S.A.C.'], ['Nombre comercial', 'CAYLA'], ['Correo', 'contacto@ejemplo.pe'], ['Teléfono', '044 000 000']].map(([a, b]) => `<div><dt>${a}</dt><dd>${b}</dd></div>`).join('')}</dl>`, { dcha: chip('Solo se lee', 'nada'), pie: 'Salen en boletas y facturas. Se corrigen con el contador y el proveedor de facturación: un RUC mal escrito hace que SUNAT rechace cada comprobante.' })}
+    ${placa('Cada sede', `<div class="tb"><table><thead><tr><th>Sede</th><th>WhatsApp</th><th>Cierra</th><th>Fondo de caja</th><th class="iz">Preguntar</th><th class="iz">Carga inicial</th></tr></thead><tbody>${SEDES.map((s) => `<tr>
+        <td><b>${s.n}</b><small>${s.dir}${s.serie ? ` · ${s.serie}` : ''}</small></td>
+        <td data-l="WhatsApp">${s.taller ? '<span class="tenue">—</span>' : cas(s.wa, `WhatsApp de ${s.n}`, '7.2rem')}</td>
+        <td data-l="Cierra">${s.taller ? '—' : cas(s.cierra, `Hora de cierre de ${s.n}`, '4.6rem', 'sin hora')}</td>
+        <td data-l="Fondo de caja">${s.taller ? '—' : cas(s.fondo, `Fondo de caja de ${s.n}`, '4.6rem')}</td>
+        <td class="iz" data-l="Preguntar"><button class="int" role="switch" aria-checked="${s.ia}" aria-label="Preguntar en ${s.n}" data-int></button></td>
+        <td class="iz" data-l="Carga inicial"><span style="display:inline-flex;align-items:center;gap:4px">${chip(s.carga[0], s.carga[1])}${lapiz(`la carga inicial de ${s.n}`)}</span></td></tr>`).join('')}</tbody></table></div>`,
+      { dcha: chip('Preguntar este mes: US$ 4,20 de US$ 30', 'verde'), pie: 'Sin WhatsApp, la tienda no muestra el QR del club ni sale en la web. Sin hora de cierre, la caja no proyecta el día ni avisa que falta cerrar.' })}`,
+
+  metas: () => {
+    const m = METAS[est.tienda];
+    const suma = (a) => a.reduce((x, y) => x + y, 0) * 4.3;
+    const mes = (mesN) => m.meses[mesN] || m.tipo;
+    const fila = (t, sub, val, ph, total, cl = '') => `<tr class="${cl}"><td><b>${t}</b>${sub ? `<small>${sub}</small>` : ''}</td>${DIAS.map((d, i) => `<td class="dia" data-l="${d}">${cas(val ? val[i] : '', `Meta del ${d} · ${t}, ${est.tienda}`, '4.4rem', ph ? n(ph[i]) : '—')}</td>`).join('')}<td data-l="Meta del mes"><b>${S(Math.round(total / 100) * 100)}</b></td></tr>`;
+    const camp = est.camp === 'quitar'
+      ? `<div class="nota">Para subir la meta de una campaña se usa la semana de ese mes o una fecha especial. El fondo de caja de cada tienda queda en Empresa y tiendas.</div>`
+      : `<section class="placa"><div class="tit"><div><h2>Campañas</h2><p>Solo si una campaña sube la meta o el fondo. Vacío = lo normal. Se crean en Catálogo ▸ Insignias.</p></div><div class="dcha">${chip('Nada cambia hoy', 'nada')}</div></div>
+         ${abierto.camp ? `<div class="tb"><table><thead><tr><th>Campaña</th><th class="iz">Fechas</th>${['Trujillo', 'Arequipa', 'Lima'].map((t) => `<th>${t}: meta · fondo</th>`).join('')}</tr></thead><tbody>${CAMPANAS.map(([c, f, e]) => `<tr><td><b>${c}</b></td><td class="iz" data-l="Fechas">${f}</td>${['Trujillo', 'Arequipa', 'Lima'].map((t) => `<td data-l="${t}: meta · fondo">${e === 'sin fechas' ? '<span class="tenue">ponle fechas</span>' : `${cas('', `Cuánto sube la meta en ${c}, ${t}`, '3.4rem')} % ${cas('', `Fondo en ${c}, ${t}`, '4.2rem')}`}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : ''}
+         ${verMas('camp', 'Ver las 3 por venir (11 ya pasaron)')}</section>`;
+    return `
+    <div class="cifras3">${[['Hoy', S(m.tipo[2]), 'Miércoles · rige lo normal'], ['Este mes', S(Math.round(suma(m.tipo) / 100) * 100), 'Con IGV · suma de los días'], ['Diciembre', S(Math.round(suma(mes('Diciembre 2026')) / 100) * 100), 'Tiene su propia semana']].map(([a, b, c]) => `<div class="tc"><span class="tc-nom">${a}</span><span class="tc-val"><span class="num">${b}</span></span><span class="tc-ctx"><span>${c}</span></span></div>`).join('')}</div>
+    <div class="dos metas">
+      ${placa('Meta de cada día', `<div class="tb"><table><thead><tr><th>${est.tienda}</th>${DIAS.map((d) => `<th class="dia">${d}</th>`).join('')}<th>Del mes</th></tr></thead><tbody>
+          ${fila('Lo normal', 'Vale todo el año', m.tipo, null, suma(m.tipo), 'base')}
+          ${MESES.map((t, i) => fila(t, i === 0 ? 'Este mes' : '', m.meses[t], m.tipo, suma(mes(t)))).join('')}
+        </tbody></table></div>`, { dcha: ['Trujillo', 'Arequipa', 'Lima'].map((t) => `<button class="pil" data-tienda="${t}" aria-pressed="${est.tienda === t}">${t}</button>`).join(''), pie: 'Con IGV. En gris, lo que usa de «Lo normal»: se escribe solo el mes que cambia.' })}
+      ${placa('Fechas especiales', `<ul class="lista fechas">${FECHAS.filter((f) => f[2] === est.tienda).concat(FECHAS.filter((f) => f[2] !== est.tienda)).map(([f, d, t, v, nt]) => `<li><span><b>${f} · ${d}</b><small>${t} · ${nt}</small></span><span class="der">${cas(v, `Meta del ${f} en ${t}`, '4.8rem')}</span></li>`).join('')}</ul>
+          <div style="margin-top:12px"><button class="btn sec chico">${svV('M12 5v14M5 12h14').replace('<svg', '<svg class="ic"')}Agregar una fecha</button></div>`, { frase: 'Un día con su propia meta. Con 0, la tienda no abre.' })}
+    </div>
+    ${camp}`;
+  },
+
+  cuentas: () => `
+    ${placa('A qué cuenta entra cada cobro', `<div class="tb"><table><thead><tr><th>Sede</th>${['Yape', 'Plin', 'Tarjeta', 'QR', 'Transferencia'].map((m) => `<th class="iz">${m}</th>`).join('')}</tr></thead><tbody>
+        ${[['Trujillo', 'BCP', 'BCP', 'Por depositar Vendemás', 'Por depositar Izipay', 'BCP'], ['Arequipa', 'BCP', 'BCP', 'Por depositar Vendemás', 'Por depositar Izipay', 'BCP'], ['Lima', 'Interbank', 'Elige una cuenta', 'Por depositar Izipay', 'Por depositar Izipay', 'Interbank'], ['Taller', '', '', '', '', 'BCP']].map(([s, ...c]) => `<tr><td><b>${s}</b></td>${c.map((x, i) => `<td class="iz" data-l="${['Yape', 'Plin', 'Tarjeta', 'QR', 'Transferencia'][i]}">${x ? sel(x) : '<span class="tenue">—</span>'}</td>`).join('')}</tr>`).join('')}
+      </tbody></table></div>`, { frase: 'Si cambias el Yape de una sede, desde hoy Finanzas lo cuenta ahí. Lo pasado no se mueve.', pie: 'El efectivo siempre cae al cajón de la tienda.' })}
+    <div class="dos par">
+      <section class="placa"><div class="tit"><h2>Cuentas de CAYLA</h2><div class="dcha"><button class="btn pri chico">${svV('M12 5v14M5 12h14').replace('<svg', '<svg class="ic"')}Agregar cuenta</button></div></div>
+        ${Object.entries(CUENTAS).map(([g, l]) => `<div class="grupo">${g}</div><ul class="lista">${l.map(([c, s, v]) => `<li><span><b>${c}</b>${s ? `<small>${s}</small>` : ''}</span><span class="der">${S(v)}${lapiz(c)}</span></li>`).join('')}</ul>`).join('')}
+        ${abierto.cajones ? `<div class="grupo">Cajones y cajas de las sedes</div><ul class="lista">${CAJONES.map(([c, v]) => `<li><span><b>${c}</b></span><span class="der">${S(v)}</span></li>`).join('')}</ul>` : ''}
+        ${verMas('cajones', 'Ver los 7 cajones y cajas de las sedes')}</section>
+      <div class="vista" style="margin:0">
+        ${placa('Máquinas de cobro', `<ul class="lista"><li><span><b>Izipay</b><small>Tarjeta y QR · 2,38 % + IGV · deposita el mismo día</small></span><span class="der">${lapiz('Izipay')}</span></li><li><span><b>Vendemás</b><small>Tarjeta · sin tarifa · avisa pasados 3 días hábiles</small></span><span class="der">${lapiz('Vendemás')}</span></li></ul>`, { pie: 'La tarifa solo estima: la comisión real sale de cada depósito.' })}
+        ${placa('De qué cuenta sale la planilla', `<ul class="lista"><li><span><b>Quienes cobran en BCP</b></span><span class="der">${sel('BCP')}</span></li><li><span><b>Quienes cobran en Interbank</b></span><span class="der">${sel('Interbank')}</span></li></ul>`)}
+      </div>
+    </div>`,
+
+  caja: () => placa('Caja y avisos', `
+      <div class="frase">Avísame si la caja proyectada baja de S/ ${cas('5000', 'Mínimo de caja', '5.6rem')}<small>Entre todas las cuentas, sin la tarjeta de crédito ni la parte de CLAURE.</small></div>
+      <div class="frase">Un gasto está fuera de lo normal si supera su promedio en ${cas('30', 'Aviso de gasto, en porcentaje', '3.8rem')} %<small>Compara con los últimos 6 meses del mismo proveedor y tienda.</small></div>
+      <div class="frase">Avísame de los vencimientos con ${cas('7', 'Días de aviso', '3.4rem')} días de anticipación</div>
+      <div class="frase">Finanzas cuenta desde <span style="width:15rem;display:inline-block">${sel('Octubre 2026')}</span> <button class="btn sec chico">Guardar</button><small>Lo de antes no entra a los estados. Lleva botón porque cambia lo que muestran.</small></div>`),
+
+  fijos: () => `<section class="placa"><div class="tit"><div><h2>Gastos que se repiten</h2><p>Cada mes aparecen en Gastos ▸ Fijos del mes, para registrarlos con lo que llegó de verdad.</p></div><div class="dcha">${chip('24 fijos · S/ 31,200 al mes', 'nada')}<button class="btn pri chico">${svV('M12 5v14M5 12h14').replace('<svg', '<svg class="ic"')}Agregar fijo</button></div></div>
+      <div class="tb"><table><thead><tr><th>Gasto</th><th class="iz">Sede</th><th class="iz">Se le paga a</th><th>Monto</th><th>Vence</th><th></th></tr></thead><tbody>${FIJOS.map(([g, c, u, p, m, v]) => `<tr><td><b>${g}</b><small>${c}</small></td><td class="iz" data-l="Sede">${u}</td><td class="iz" data-l="Se le paga a">${p}</td><td data-l="Monto">${S(m)}</td><td data-l="Vence">${v}</td><td>${lapiz(g)}</td></tr>`).join('')}</tbody></table></div>
+      ${verMas('fijos', 'Ver los 19 que siguen')}</section>`,
+
+  topes: () => est.top === 'vacio'
+    ? placa('Topes de gasto', `<div class="vacio">${svV('M4 20V10M10 20V4M16 20v-7M21 20H3')}<h3>Noviembre todavía no tiene topes</h3><p>Sin topes, ¿Ganamos? compara solo contra las ventas. Lo más rápido es partir de lo que se gastó.</p><div class="acc"><button class="btn pri" data-accion-top>Sugerir según los últimos 3 meses</button><button class="btn sec" data-accion-top>Escribirlos a mano</button></div></div>`, { dcha: `<span style="width:13rem;display:inline-block">${sel('Noviembre 2026 · este mes')}</span>` })
+    : placa('Topes de gasto', `<ul class="lista topes">${RUBROS.map(([r, v]) => `<li><span><b style="font-weight:500">${r}</b></span><span class="der">${cas(n(v), `Tope de ${r}, ${est.unidad}`, '5.4rem')}</span></li>`).join('')}</ul>`, { frase: 'Sin IGV, como el Estado de resultados. Vacío = sin tope.', dcha: `${['Trujillo', 'Arequipa', 'Lima', 'Taller', 'Empresa'].map((t) => `<button class="pil" data-unidad="${t}" aria-pressed="${est.unidad === t}">${t}</button>`).join('')}<span style="width:13rem;display:inline-block">${sel('Noviembre 2026 · este mes')}</span>` }),
+
+  claure: () => placa('Reparto con CLAURE', `<ul class="lista cf-reparto">${REPARTO.map(([c, p]) => `<li><span><b style="font-weight:500">${c}</b><small>${p} % de Claudia · ${100 - p} % de CAYLA</small></span><span class="der">${cas(p, `Parte de CLAURE en ${c}`, '3.6rem')} %</span></li>`).join('')}</ul>`, { frase: 'Qué parte de cada gasto de la tienda es de Claudia. Baja lo que se le debe, y un porcentaje nuevo vale también para los gastos de antes.', dcha: chip('Solo el líder', 'nada') }),
+
+  impuestos: () => `
+    ${placa('Falta confirmar con el contador', `<ul class="lista">${CONFIRMAR.map(([a, b, c]) => `<li><span><b>${a}: ${b}</b><small>${c}</small></span><span class="der"><button class="btn sec chico">Ya lo confirmó</button></span></li>`).join('')}</ul>`, { dcha: chip('4 por confirmar', 'ambar') })}
+    <div class="tres">
+      ${placa('Tasa de IGV', `<ul class="lista"><li><span><b>Desde el 1 de marzo de 2011</b></span><span class="der">${cas('18', 'Tasa de IGV', '3.4rem')} %</span></li></ul><div style="margin-top:10px"><button class="btn sec chico">Nueva tasa desde una fecha</button></div>`)}
+      ${placa('Valor de la UIT', `<ul class="lista"><li><span><b>2026</b></span><span class="der">S/ ${cas('5500', 'UIT 2026', '4.6rem')}</span></li><li><span><b>2025</b></span><span class="der">S/ ${cas('5350', 'UIT 2025', '4.6rem')}</span></li></ul><div style="margin-top:10px"><button class="btn sec chico">UIT de un año nuevo</button></div>`)}
+      ${placa('Tope de la planilla de movilidad', `<p class="pie" style="margin:0">Sin tope: lo fija el contador. Mientras no haya, ningún taxi ni cargador se marca.</p><div style="margin-top:10px"><button class="btn sec chico">Tope desde una fecha</button></div>`)}
+    </div>
+    ${placa('Régimen de renta, año por año', `<div class="tb"><table><thead><tr><th>Año</th><th class="iz">Régimen</th><th>Límite (UIT)</th><th>Aviso (UIT)</th><th>Límite en soles</th><th>Pago a cuenta</th></tr></thead><tbody><tr><td><b>2026</b></td><td class="iz" data-l="Régimen">${sel('Régimen MYPE Tributario')}</td><td data-l="Límite (UIT)">${cas('300', 'Límite', '4rem')}</td><td data-l="Aviso (UIT)">${cas('250', 'Aviso', '4rem')}</td><td data-l="Límite en soles">S/ 1,650,000</td><td data-l="Pago a cuenta">${cas('1', 'Pago a cuenta', '3rem')} %</td></tr></tbody></table></div>`, { dcha: '<button class="btn sec chico">Año nuevo</button>' })}
+    <section class="placa"><div class="tit"><div><h2>Para arrancar</h2><p>Se llena una vez, con la última declaración. Después no se vuelve a tocar.</p></div><div class="dcha">${chip('Falta el saldo a favor', 'ambar')}</div></div>
+      ${abierto.arranque ? `<ul class="lista"><li><span><b>Saldo a favor de IGV al empezar</b><small>Sin él, el IGV se calcula desde cero y puede salir de más.</small></span><span class="der"><button class="btn sec chico">Saldo de un mes</button></span></li><li><span><b>Ajuste de ventas de 2026</b><small>Opcional: lo que el contador suma a lo registrado, sin IGV.</small></span><span class="der">S/ ${cas('0', 'Ajuste de ventas', '5rem')}</span></li><li><span><b>Utilidad del contador</b><small>Antes de impuestos; con signo menos si fue pérdida.</small></span><span class="der">S/ ${cas('0', 'Utilidad', '5rem')}</span></li><li><span><b>Compras sin factura</b><small>Nota de venta o nada; aproximado sirve.</small></span><span class="der">S/ ${cas('0', 'Compras', '5rem')}</span></li><li><span><b>Renta pagada a cuenta</b><small>La suma de los PDT 621.</small></span><span class="der">S/ ${cas('0', 'Renta pagada', '5rem')}</span></li></ul>` : ''}
+      ${verMas('arranque', 'Ver lo de arranque')}</section>`,
+};
+
+// ---------- las pestañas: 5 juntas o 8 como hoy (las mismas vistas, solo cambia cómo se agrupan) ----------
+const PESTANAS = {
+  cinco: [['Empresa y tiendas', ['empresa']], ['Metas', ['metas']], ['Dinero', ['cuentas', 'caja']], ['Gastos', ['fijos', 'topes', 'claure']], ['Impuestos', ['impuestos']]],
+  ocho: [['Empresa y tiendas', ['empresa']], ['Metas', ['metas']], ['Cuentas y cobros', ['cuentas']], ['Caja y avisos', ['caja']], ['Gastos fijos', ['fijos']], ['Presupuesto', ['topes']], ['Impuestos', ['impuestos']], ['Reparto CLAURE', ['claure']]],
+};
+const est = { tab: 'Metas', tienda: 'Trujillo', unidad: 'Trujillo', camp: 'plegadas', top: 'vacio' };
+const abierto = {};
+function pintarC(e) {
+  est.camp = e.camp; est.top = e.top;
+  const lista = PESTANAS[e.pest];
+  // Al pasar de 8 a 5 (o al revés), la pestaña abierta cae en la que ahora contiene lo mismo.
+  if (!lista.some(([t]) => t === est.tab)) { const veia = PESTANAS[e.pest === 'cinco' ? 'ocho' : 'cinco'].find(([t]) => t === est.tab)?.[1][0]; est.tab = lista.find(([, v]) => v.includes(veia))?.[0] ?? 'Metas'; }
+  const cont = $('#cont'), arriba = cont.scrollTop;
+  const activa = lista.find(([t]) => t === est.tab);
+  cont.innerHTML = `${encabezado({ sede: 'Toda CAYLA', titulo: 'Configuración' })}
+    <div class="tira"><div class="pz-t" role="tablist" aria-label="Secciones de Configuración">${lista.map(([t]) => `<button role="tab" data-tab="${t}" aria-selected="${t === est.tab}">${t}</button>`).join('')}</div>
+      <span class="resp" title="Cada casilla se guarda sola al salir de ella, a nombre de quien firma."><i>LR</i><span>Lucía Ramos<br><small>Firma lo que cambies</small></span></span></div>
+    <div class="vista">${activa[1].map((v) => vistas[v]()).join('')}</div>`;
+  cont.scrollTop = arriba;
+}
+document.addEventListener('click', (ev) => {
+  const t = ev.target.closest('[data-tab]'); if (t) { est.tab = t.dataset.tab; $('#cont').scrollTop = 0; pintarC(estado); return; }
+  const p = ev.target.closest('[data-tienda]'); if (p) { est.tienda = p.dataset.tienda; pintarC(estado); return; }
+  const u = ev.target.closest('[data-unidad]'); if (u) { est.unidad = u.dataset.unidad; pintarC(estado); return; }
+  const a = ev.target.closest('[data-abre]'); if (a) { abierto[a.dataset.abre] = !abierto[a.dataset.abre]; pintarC(estado); return; }
+  const i = ev.target.closest('[data-int]'); if (i) { i.setAttribute('aria-checked', i.getAttribute('aria-checked') !== 'true'); return; }
+  if (ev.target.closest('[data-accion-top]')) { estado.top = 'con'; pintar(); }
+});
+document.addEventListener('focusin', (ev) => { const i = ev.target.closest('.cas input'); if (i) i.dataset.antes = i.value; });
+document.addEventListener('focusout', (ev) => {
+  const i = ev.target.closest('.cas input'); if (!i || i.value === i.dataset.antes) return;
+  const c = i.closest('.cas'); c.classList.remove('ok', 'sale'); void c.offsetWidth; c.classList.add('ok');
+  setTimeout(() => c.classList.add('sale'), 900); setTimeout(() => c.classList.remove('ok', 'sale'), 1600);
+});
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && ev.target.closest('.cas input')) ev.target.blur(); });
+Marco.iniciar({ estado: { cl: 'pozo', gd: 'visto', pest: 'cinco', camp: 'plegadas', top: 'vacio' }, alPintar: (e) => pintarC(e) });
+}
+</script>
+</body>
+</html>

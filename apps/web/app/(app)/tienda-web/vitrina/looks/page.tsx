@@ -1,6 +1,6 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
-import { leerLooks } from "@/lib/vitrina-looks-reglas";
+import { leerLooks, leerPorTienda } from "@/lib/vitrina-looks-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { LooksPantalla } from "@/components/vitrina/LooksPantalla";
@@ -13,7 +13,11 @@ export default async function VitrinaLooksPage() {
   // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
   const persona = await exigirModulo("vitrina_web");
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_vitrina_looks");
+  // En qué tiendas sale cada look (ADR-0468): se pide a la vez, y si falla (o todavía no está en la base) la lista se ve igual, solo sin los chips por tienda.
+  const [{ data, error }, porTienda] = await Promise.all([
+    supabase.rpc("fn_vitrina_looks"),
+    supabase.rpc("fn_vitrina_looks_por_tienda").then(({ data: d, error: e }) => (e ? null : leerPorTienda(d))),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -29,7 +33,7 @@ export default async function VitrinaLooksPage() {
           Recarga la página; si sigue, avísale al líder.
         </Aviso>
       ) : (
-        <LooksPantalla lectura={leerLooks(data)} />
+        <LooksPantalla lectura={leerLooks(data)} porTienda={porTienda} />
       )}
     </div>
   );

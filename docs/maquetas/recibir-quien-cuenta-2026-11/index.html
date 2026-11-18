@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es" class="eb_garamond_f19dc1cf-module__ZEdURa__variable dm_sans_822025aa-module__BMxp8G__variable" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recibir · quién cuenta, desde el inicio</title>
+<link rel="stylesheet" href="../recibir-boceto-2026-11/app.css">
+<link rel="stylesheet" href="../recibir-boceto-2026-11/maqueta.css">
+<link rel="stylesheet" href="quien.css">
+</head>
+<body class="antialiased">
+<div class="marco-aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+<main class="qc-pagina">
+  <header class="qc-chapa">
+    <div class="qc-chapa-fila">
+      <p class="qc-chapa-titulo">Maqueta · ¿Dónde se pide «Quién cuenta»?</p>
+      <div class="qc-grupo" role="group" aria-label="Qué cuenta entra">
+        <span class="qc-rotulo">Quien entra</span>
+        <button type="button" class="qc-seg" data-cuenta="terminal" aria-pressed="true">Terminal · Almacén Trujillo</button>
+        <button type="button" class="qc-seg" data-cuenta="persona" aria-pressed="false">Persona con sesión</button>
+      </div>
+      <button type="button" class="qc-seg" id="reiniciar">Reiniciar</button>
+    </div>
+    <div class="qc-chapa-fila">
+      <div class="qc-grupo" role="group" aria-label="Opción">
+        <span class="qc-rotulo">Opción</span>
+        <button type="button" class="qc-seg" data-opcion="hoy">Hoy</button>
+        <button type="button" class="qc-seg" data-opcion="a">A · Al empezar</button>
+        <button type="button" class="qc-seg" data-opcion="b">B · Franja en Contar</button>
+        <button type="button" class="qc-seg" data-opcion="c">C · En la hoja</button>
+        <button type="button" class="qc-seg" data-opcion="rec">A + C (mi propuesta)</button>
+      </div>
+    </div>
+    <p class="qc-nota" id="nota"></p>
+    <ol class="qc-pasos" id="pasos"></ol>
+  </header>
+  <section id="escena" class="qc-escena" aria-live="polite"></section>
+</main>
+<div class="qc-avisos" id="avisos"></div>
+<script src="../recibir-boceto-2026-11/iconos.js"></script>
+<script src="quien.js"></script>
+</body>
+</html>

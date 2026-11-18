@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useState, type ReactNode } from
 import { hrefEtiquetasDeSubidas, juntarSubidas } from "@/lib/matriz-ficha-reglas";
 import { conDesde } from "@/lib/vuelta-productos";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { X } from "lucide-react";
 
 // Recordatorio de «Imprimir etiquetas» (2026-10-02, Felipe: «que sea bastante visible y que no desaparezca hasta
 // cambiar de módulo»). Cuando un ajuste de stock desde la ficha de un producto SUBE alguna talla, hay una prenda más
@@ -80,13 +81,13 @@ function BannerRecordatorio({ pendientes, onLimpiar }: { pendientes: readonly Li
     <div role="status" className="anim-revelar mb-4 -mt-1 rounded-xl border border-ambar/50 bg-[color-mix(in_srgb,var(--color-ambar)_10%,var(--color-papel))] px-4 py-3 sm:px-5">
       <div className="mx-auto flex max-w-[1480px] flex-wrap items-center gap-x-3 gap-y-1.5">
         <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full bg-ambar" />
-        <p className="shrink-0 text-[13.5px] font-semibold text-ambar-profundo">
+        <p className="shrink-0 text-[15px] font-semibold text-ambar-profundo">
           {pendientes.length} {pendientes.length === 1 ? "prenda nueva sin etiquetar" : "prendas nuevas sin etiquetar"}
         </p>
-        <p className="min-w-0 flex-1 truncate text-[12.5px] text-tinta/60" title={detalle}>
+        <p className="min-w-0 flex-1 truncate text-sm text-tinta/60" title={detalle}>
           {detalle}
         </p>
-        <BotonImprimir href={href} peso="primario" className="shrink-0 text-[12.5px]">
+        <BotonImprimir href={href} peso="primario" className="shrink-0 text-sm">
           Imprimir etiquetas
         </BotonImprimir>
         <button
@@ -94,9 +95,9 @@ function BannerRecordatorio({ pendientes, onLimpiar }: { pendientes: readonly Li
           onClick={onLimpiar}
           aria-label="Descartar el aviso de etiquetas pendientes"
           title="Descartar"
-          className="shrink-0 rounded px-1.5 py-1 text-tinta/45 transition-colors hover:bg-tinta/[0.06] hover:text-tinta"
+          className="area-dedo grid h-9 w-9 shrink-0 place-items-center rounded-full text-tinta/55 transition-colors hover:bg-tinta/[0.06] hover:text-tinta"
         >
-          ✕
+          <X aria-hidden className="h-4 w-4" />
         </button>
       </div>
     </div>

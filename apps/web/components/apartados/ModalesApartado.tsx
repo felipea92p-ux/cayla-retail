@@ -3,18 +3,34 @@
 import { useEffect, useMemo, useState } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { useRouter } from "next/navigation";
-import { Check, MessageCircle, Trash2 } from "lucide-react";
+import { BadgePercent, Check, MessageCircle } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
-import { CampoMonto } from "@/components/ui/CampoMonto";
+import { EntradaMonto } from "@/components/ui/CampoMonto";
 import { codigoPrenda } from "@/lib/prenda-reglas";
-import { descuentoDeCampana } from "@/lib/vender-reglas";
+import { RAZON_CAMPANA, descuentoDeCampana, totalDeLineas } from "@/lib/vender-reglas";
+import {
+  descuentoParaGuardar,
+  descuentosVigentes,
+  lineaDescontada,
+  quitarDelApartado,
+  totalDescontado,
+  type DescuentoManual,
+} from "@/lib/apartar-descuento-reglas";
+import { DescuentoApartado } from "@/components/apartados/DescuentoApartado";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { Modal, botonCancelar, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
-import { money } from "@/components/PuntoDeVenta";
-import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
+import { money } from "@/lib/money";
+import type { ItemCarrito } from "@/components/PuntoDeVenta";
+import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
+import { PieDeGrupo } from "@/components/punto-de-venta/PieDeGrupo";
+import type { GrupoEnTicket } from "@/lib/ofertas-de-grupo";
+
+/** Una fila de `previsualizar_edicion_separacion` (20261114032000): lo de antes por su id y lo que se suma como «nueva-…», con su parte del
+ *  grupo y cuántas le faltan. */
+type VistaDeLinea = { ref: string; variante_id: string; cantidad: number | string; descuento_grupo_unitario: number | string; faltan: number | string | null };
+import { ICONO_METODO } from "@/components/punto-de-venta/iconoMetodo";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { diaLima, hoyLima } from "@/lib/fechas-lima";
@@ -32,16 +48,18 @@ import {
   esConstancia,
   estadoVisible,
   formatoCelular,
+  mensajeLiberacion,
   mensajeWhatsapp,
   paraQuienPedido,
+  type MotivoLiberacion,
   soloDigitos,
   sumarDiasIso,
   textoDevolucion,
   type Apartado,
   type MedioDevolucionReal,
 } from "@/lib/separaciones-reglas";
-import { NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
-import { EstadoChip, FotoPrenda, ReciboApartado, fechaCorta } from "@/components/apartados/piezas";
+import { NOMBRE_CORTO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
+import { EstadoChip, ReciboApartado, fechaCorta } from "@/components/apartados/piezas";
 import { TicketDeEntrega, useReciboDeApartado } from "@/components/apartados/useReciboDeApartado";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -55,26 +73,23 @@ import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@/lib/cuenta-sellada-reglas";
 import { CampoSelect, Boton } from "@/components/ui/campos";
 import { Aviso } from "@/components/ui/Aviso";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 import { Casilla } from "@/components/ui/Casilla";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { imprimirBoleta, useDespertarAyudante } from "@/components/impresion/imprimirBoleta";
+
+const CANTIDAD_DE_LINEA = reglaDeEntero();
 
 /** La tienda del apartado: el combo «Responsable» lista a quien está de turno AHÍ, no en otra sede activa. */
 export type UbicacionApartado = { ubicacionId: string; etiqueta: string };
 
 /** Imprime y cierra cuando el navegador avisa que terminó (mismo criterio que «Venta registrada»). */
 function imprimirYSeguir(cerrar: () => void) {
-  let hecho = false;
-  const terminar = () => {
-    if (hecho) return;
-    hecho = true;
-    window.removeEventListener("afterprint", terminar);
-    clearTimeout(respaldo);
-    cerrar();
-  };
-  window.addEventListener("afterprint", terminar);
-  const respaldo = setTimeout(terminar, 4000);
-  window.print();
+  void imprimirBoleta().then((fin) => {
+    if (fin !== "frenada") cerrar();
+  });
 }
 
 /** Los botones van en un pie pegado al fondo de la hoja: con la pantalla baja (captura de Felipe, 2026-09-26) quedaban
@@ -86,14 +101,14 @@ function Botones({ cerrar, principal }: { cerrar: () => void; principal: string 
         {principal}
       </BotonImprimir>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => window.print()} className={botonCancelar}>
+        <button type="button" onClick={() => void imprimirBoleta()} className={botonCancelar}>
           Solo imprimir
         </button>
         <button type="button" onClick={cerrar} className={botonCancelar}>
           Sin imprimir
         </button>
       </div>
-      <p className="text-center text-[11px] text-tinta/55">Enter imprime · Esc sigue sin imprimir</p>
+      <p className="text-center text-sm text-tinta/55">Enter imprime · Esc sigue sin imprimir</p>
     </div>
   );
 }
@@ -101,6 +116,8 @@ function Botones({ cerrar, principal }: { cerrar: () => void; principal: string 
 /** «Apartado registrado»: la forma de «Venta registrada» más lo propio de apartar — la fecha límite y lo que hay que
  *  hacer con la prenda en la mano. */
 export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { apartado: Apartado; vuelto: number; sede: string; onClose: () => void }) {
+  // Despierta al ayudante de la Mac: al imprimir, la boleta sale en 0,5 s y no en 1,1 (ADR-0670).
+  useDespertarAyudante();
   const a = apartado;
   useTituloDeImpresion(a.codigo); // el PDF sale como «APT-TRU-0004.pdf», no «Retail - CAYLA.pdf»
   const [hechos, setHechos] = useState<boolean[]>([false, false, false]);
@@ -138,7 +155,7 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
             <div className="w-14 shrink-0 overflow-hidden rounded-lg border border-sand bg-papel text-center">
               <p className="bg-rojo py-0.5 text-[10px] font-semibold tracking-[0.14em] text-papel">{mes}</p>
               <p className="font-display text-3xl leading-tight text-tinta">{dia}</p>
-              <p className="pb-1 text-[10px] text-tinta/60">{semana}</p>
+              <p className="pb-1 text-sm text-tinta/60">{semana}</p>
             </div>
             <div className="min-w-0 flex-1">
               <p className="label-cayla text-[11px] text-tinta/60">Recoger hasta</p>
@@ -150,7 +167,7 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
                   <span key={i} className={`h-1 rounded-sm ${i === 0 ? "bg-tinta" : i === PLAZO_DIAS - 1 ? "bg-rojo" : "bg-sand"}`} />
                 ))}
               </div>
-              <p className="mt-1.5 text-[11.5px] text-tinta/60">El aviso para escribirle sale el {fechaCorta(sumarDiasIso(a.venceEl, -AVISO_DIAS))}.</p>
+              <p className="mt-1.5 text-sm text-tinta/60">El aviso para escribirle sale el {fechaCorta(sumarDiasIso(a.venceEl, -AVISO_DIAS))}.</p>
             </div>
           </div>
           <div className="card-cayla space-y-2.5 p-4 text-sm">
@@ -160,18 +177,18 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
                   <span className="text-tinta">
                     Constancia <span className="font-mono">{a.codigo}</span>
                   </span>
-                  <span className="text-[11px] text-tinta/60">No es comprobante de pago</span>
+                  <span className="text-sm text-tinta/60">No es comprobante de pago</span>
                 </>
               ) : (
                 <>
                   <span className="text-tinta">
                     Boleta <span className="font-mono">{a.comprobanteAnticipo}</span> · anticipo
                   </span>
-                  <span className="text-[11px] text-tinta/60">Pendiente de enviar</span>
+                  <span className="text-sm text-tinta/60">Pendiente de enviar</span>
                 </>
               )}
             </div>
-            <div className="space-y-0.5 border-t border-sand pt-2.5 text-xs text-tinta/80">
+            <div className="space-y-0.5 border-t border-sand pt-2.5 text-sm text-tinta/80">
               {a.pagos.map((p, i) => (
                 <p key={i} className="flex justify-between tabular-nums">
                   <span>{NOMBRE_METODO[p.metodo] ?? p.metodo}</span>
@@ -179,7 +196,7 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
                 </p>
               ))}
             </div>
-            <p className="border-t border-sand pt-2.5 text-xs text-tinta/70">
+            <p className="border-t border-sand pt-2.5 text-sm text-tinta/70">
               Cliente: <span className="text-tinta">{a.nombres} {a.apellidos}</span> · si no recoge: {textoDevolucion(a)}
             </p>
           </div>
@@ -202,6 +219,8 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
 }
 
 export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo = 0, sede, onClose }: { apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number; /** Lo que no se cobró por llevar el efectivo del saldo a S/ 0.10 (ADR-0311). */ redondeo?: number; sede: string; onClose: () => void }) {
+  // Despierta al ayudante de la Mac: al imprimir, la boleta sale en 0,5 s y no en 1,1 (ADR-0670).
+  useDespertarAyudante();
   const a = apartado;
   useTituloDeImpresion(a.codigo);
   // Un apartado nuevo imprime LA boleta o factura de siempre (con su QR y su número); uno viejo, su ticket de antes (ADR-0399).
@@ -223,7 +242,7 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo =
               <span className="font-display text-3xl text-tinta">{money(vuelto)}</span>
             </div>
           )}
-          <div className="card-cayla space-y-2 p-4 text-xs text-tinta/80">
+          <div className="card-cayla space-y-2 p-4 text-sm text-tinta/80">
             <p className="flex justify-between tabular-nums"><span>Total de las prendas</span><span>{money(a.total)}</span></p>
             <p className="flex justify-between tabular-nums"><span>(−) {esConstancia(a) ? "Adelanto" : a.pagos.some((p) => p.abono) ? "Anticipos (apartado y abonos)" : `Anticipo ${a.comprobanteAnticipo}`}</span><span>−{money(a.adelanto)}</span></p>
             {pagadoHoy.map((p, i) => (
@@ -248,6 +267,8 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo =
  * No escribe nada: solo vuelve a dibujar lo que la base ya tiene.
  */
 export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado: Apartado; sede: string; onClose: () => void }) {
+  // Despierta al ayudante de la Mac: al imprimir, la boleta sale en 0,5 s y no en 1,1 (ADR-0670).
+  useDespertarAyudante();
   const a = apartado;
   const conFinal = a.estado === "entregada" && !!a.comprobanteFinal;
   const constancia = esConstancia(a);
@@ -270,14 +291,14 @@ export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado:
               <span className="text-tinta">
                 {cual === "anticipo" && constancia ? "Constancia" : "Boleta"} <span className="font-mono">{numero ?? "—"}</span>
               </span>
-              <span className="text-[11px] text-tinta/60">{cual === "final" ? (constancia ? "por el total" : "final") : constancia ? "no es comprobante de pago" : "anticipo"}</span>
+              <span className="text-sm text-tinta/60">{cual === "final" ? (constancia ? "por el total" : "final") : constancia ? "no es comprobante de pago" : "anticipo"}</span>
             </p>
-            <p className="text-xs text-tinta/70">
+            <p className="text-sm text-tinta/70">
               {a.nombres} {a.apellidos} · {cual === "final" ? `total ${money(a.total)}` : `adelanto ${money(a.adelanto)} de ${money(a.total)}`}
             </p>
-            <p className="text-xs text-tinta/60">Apartado el {fechaCorta(diaLima(a.creadaEn))} · sale marcado como COPIA.</p>
+            <p className="text-sm text-tinta/60">Apartado el {fechaCorta(diaLima(a.creadaEn))} · sale marcado como COPIA.</p>
           </div>
-          <BotonImprimir peso="primario" autoFocus onClick={() => window.print()} className="w-full">
+          <BotonImprimir peso="primario" autoFocus onClick={() => void imprimirBoleta()} className="w-full">
             Imprimir la copia
           </BotonImprimir>
           {cual === "final" && reciboFinal ? <TicketDeEntrega recibo={reciboFinal} codigo={a.codigo} /> : <ReciboApartado key={cual} apartado={a} tipo={cual} sede={sede} copia />}
@@ -287,10 +308,16 @@ export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado:
   );
 }
 
+/**
+ * Liberar = cancelar el apartado. Al quedar liberado, la hoja no se cierra: ofrece avisarle al cliente por WhatsApp
+ * (Felipe 2026-11-16), con un mensaje según el motivo. El chat se abre en el toque de «Avisar por WhatsApp» (el navegador
+ * no deja abrir una ventana después de esperar a la base) y lo envía la persona; no se anota nada más en la base.
+ */
 export function LiberarModal({ apartado, ubicacion, onClose }: { apartado: Apartado; ubicacion: UbicacionApartado; onClose: () => void }) {
   const router = useRouter();
   const [enviando, setEnviando] = useState(false);
-  const [motivo, setMotivo] = useState<"vencio" | "clienta_desistio" | "error_de_carga" | null>(null);
+  const [motivo, setMotivo] = useState<MotivoLiberacion | null>(null);
+  const [liberado, setLiberado] = useState(false);
   // Liberar guarda en la tienda (las prendas vuelven a venderse): pide Responsable (ADR-0161), vacío al abrir.
   const responsable = useResponsable(ubicacion, { modo: "atencion" }); // módulo Punto de venta: «¿Quién está atendiendo?», vacío al abrir
   async function liberar(cerrar: () => void) {
@@ -305,41 +332,96 @@ export function LiberarModal({ apartado, ubicacion, onClose }: { apartado: Apart
     if (error) return avisar.error(traducirError(error, "liberar el apartado"));
     avisar.exito("Prendas liberadas", { detalle: `Falta devolver ${money(apartado.adelanto)} a ${apartado.nombres}.` });
     router.refresh();
-    cerrar();
+    // Sin celular (ADR-0367) no hay a quién escribirle: se cierra como siempre.
+    if (!apartado.celular) return cerrar();
+    setLiberado(true);
   }
+  const mensaje = motivo ? mensajeLiberacion(apartado, ubicacion.etiqueta, motivo) : "";
   const opciones: { id: NonNullable<typeof motivo>; texto: string }[] = [
     { id: "vencio", texto: "Venció y no vino" },
     { id: "clienta_desistio", texto: "El cliente desistió" },
     { id: "error_de_carga", texto: "Fue un error al apartar" },
   ];
   return (
-    <Modal titulo="¿Liberar el apartado?" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo}`} onClose={onClose}>
-      {(cerrar) => (
-        <div className="space-y-4">
-          <p className="text-sm text-tinta/80">
-            Las prendas vuelven a estar disponibles para vender. El adelanto de <b>{money(apartado.adelanto)}</b> queda por devolver, por {textoDevolucion(apartado)}.
-          </p>
-          <div role="radiogroup" aria-label="Por qué se libera" className="grid gap-1.5">
-            {opciones.map((o) => (
-              <button key={o.id} type="button" role="radio" aria-checked={motivo === o.id} onClick={() => setMotivo(o.id)} className={`rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${motivo === o.id ? "border-tinta bg-tinta text-papel" : "border-sand hover:border-tinta/40"}`}>
-                {o.texto}
-              </button>
-            ))}
+    <Modal
+      titulo={liberado ? `Avisarle a ${apartado.nombres}` : "¿Liberar el apartado?"}
+      subtitulo={liberado ? `${apartado.codigo} · ${formatoCelular(apartado.celular)}` : `${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo}`}
+      onClose={onClose}
+    >
+      {(cerrar) =>
+        liberado ? (
+          <AvisoDeCancelacion apartado={apartado} mensaje={mensaje} cerrar={cerrar} />
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-tinta/80">
+              Las prendas vuelven a estar disponibles para vender. El adelanto de <b>{money(apartado.adelanto)}</b> queda por devolver, por {textoDevolucion(apartado)}.
+            </p>
+            <div role="radiogroup" aria-label="Por qué se libera" className="grid gap-1.5">
+              {opciones.map((o) => (
+                <button key={o.id} type="button" role="radio" aria-checked={motivo === o.id} onClick={() => setMotivo(o.id)} className={`rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${motivo === o.id ? "border-tinta bg-tinta text-papel" : "border-sand hover:border-tinta/40"}`}>
+                  {o.texto}
+                </button>
+              ))}
+            </div>
+            <ComboResponsable control={responsable} deshabilitado={enviando} />
+            <div className="pie-acciones">
+              <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
+              <Boton peso="primario" cargando={enviando} textoCargando="Liberando…"
+                type="button"
+                disabled={!motivo || enviando || !responsable.listo}
+                title={!motivo ? "Elige por qué se libera." : (responsable.motivo ?? undefined)}
+                onClick={() => liberar(cerrar)}
+              >
+                Liberar prendas
+              </Boton>
+            </div>
           </div>
-          <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="pie-acciones">
-            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
-            <Boton peso="primario" cargando={enviando} textoCargando="Liberando…"
-              type="button"
-              disabled={!motivo || enviando || !responsable.listo}
-              title={!motivo ? "Elige por qué se libera." : (responsable.motivo ?? undefined)}
-              onClick={() => liberar(cerrar)}
-            >
-              Liberar prendas
-            </Boton>
-          </div>
-        </div>
-      )}
+        )
+      }
+    </Modal>
+  );
+}
+
+/** El mensaje de «apartado cancelado» y su botón: lo comparten la hoja de liberar (al terminar) y la fila de un apartado liberado.
+ *  El chat se abre en el mismo toque (el navegador no deja abrir una ventana después de esperar) y lo envía la persona. */
+function AvisoDeCancelacion({ apartado, mensaje, cerrar }: { apartado: Apartado; mensaje: string; cerrar: () => void }) {
+  return (
+    <div className="space-y-4">
+      <div className="card-cayla space-y-2 p-4">
+        <p className="label-cayla text-[11px] text-tinta/60">Mensaje para {apartado.nombres}</p>
+        <p className="rounded-xl rounded-bl-sm bg-hueso px-3.5 py-3 text-[15px] text-tinta">{mensaje}</p>
+      </div>
+      <div className="pie-acciones">
+        <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Ahora no</button>
+        <Boton
+          type="button"
+          peso="primario"
+          autoFocus
+          onClick={() => {
+            window.open(enlaceWhatsapp(apartado.celular, mensaje), "_blank", "noopener,noreferrer");
+            cerrar();
+          }}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <MessageCircle className="-my-1 h-4 w-4" aria-hidden />
+            Avisar por WhatsApp
+          </span>
+        </Boton>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Avisar desde la fila de un apartado liberado (Felipe 2026-11-16): para el que «se liberó solo» al vencer su gracia, que nunca pasó
+ * por la hoja de liberar, y para el que se liberó con «Ahora no». La fila no trae el motivo: el que se liberó solo venció; del otro,
+ * el mensaje solo dice que se canceló. No anota nada en la base.
+ */
+export function AvisoCancelacionModal({ apartado, ubicacion, onClose }: { apartado: Apartado; ubicacion: UbicacionApartado; onClose: () => void }) {
+  const mensaje = mensajeLiberacion(apartado, ubicacion.etiqueta, apartado.liberadaSola ? "vencio" : null);
+  return (
+    <Modal titulo={`Avisarle a ${apartado.nombres}`} subtitulo={`${apartado.codigo} · ${formatoCelular(apartado.celular)}`} onClose={onClose}>
+      {(cerrar) => <AvisoDeCancelacion apartado={apartado} mensaje={mensaje} cerrar={cerrar} />}
     </Modal>
   );
 }
@@ -395,7 +477,7 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
           <div className="card-cayla p-4 text-center">
             <p className="label-cayla text-[11px] text-rojo-profundo">A devolver</p>
             <p className="font-display mt-1 text-3xl text-tinta">{money(apartado.adelanto)}</p>
-            <p className="mt-1 text-xs text-tinta/70">Pidió que se le devuelva por {textoDevolucion(apartado)}</p>
+            <p className="mt-1 text-sm text-tinta/70">Pidió que se le devuelva por {textoDevolucion(apartado)}</p>
           </div>
           <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1">
             {medios.map((m) => (
@@ -405,15 +487,15 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
                 aria-pressed={medio === m}
                 onClick={() => setMedio(m)}
                 style={medio === m ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined}
-                className={`metodo-${m} flex h-14 flex-col items-center justify-center gap-1 rounded-lg text-[10px] capitalize transition-colors ${medio === m ? "shadow-sm" : "text-tinta/60 hover:bg-papel/60"}`}
+                className={`metodo-${m} flex h-14 flex-col items-center justify-center gap-1 rounded-lg text-sm capitalize transition-colors ${medio === m ? "shadow-sm" : "text-tinta/60 hover:bg-papel/60"}`}
               >
                 {ICONO_METODO[m]}
-                {m}
+                <span className="max-w-full truncate">{NOMBRE_CORTO[m] ?? m}</span>
               </button>
             ))}
           </div>
           {medio === "efectivo" ? (
-            <p className={`rounded-lg border px-3 py-2 text-xs ${sinCaja ? "border-rojo/30 text-rojo-profundo" : "border-sand bg-crema text-tinta/75"}`}>
+            <p className={`rounded-lg border px-3 py-2 text-sm ${sinCaja ? "border-rojo/30 text-rojo-profundo" : "border-sand bg-crema text-tinta/75"}`}>
               {sinCaja ? "Para devolver en efectivo abre primero la caja de la tienda." : "Solo si el cliente vino a la tienda. Sale del cajón como «Devolución de apartado»."}
             </p>
           ) : (
@@ -422,13 +504,13 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
                 <label className="block">
                   <span className={campoEtiqueta}>CCI (si cambió)</span>
                   <input value={cci} onChange={(e) => setCci(e.target.value)} inputMode="numeric" placeholder={apartado.devolucionCciFinal ? `…${apartado.devolucionCciFinal}` : "20 dígitos"} className={`${campoTexto} font-mono`} />
-                  {intento && cciMalo && <span className="text-xs text-rojo-profundo">El CCI tiene 20 dígitos.</span>}
+                  {intento && cciMalo && <span className="text-sm text-rojo-profundo">El CCI tiene 20 dígitos.</span>}
                 </label>
               )}
               <label className="block">
                 <span className={campoEtiqueta}>N.º de operación</span>
                 <input value={operacion} onChange={(e) => setOperacion(e.target.value)} placeholder="Obligatorio" className={`${campoTexto} font-mono`} />
-                {intento && faltaOperacion && <span className="text-xs text-rojo-profundo">Anótalo: es la prueba de que se devolvió.</span>}
+                {intento && faltaOperacion && <span className="text-sm text-rojo-profundo">Anótalo: es la prueba de que se devolvió.</span>}
               </label>
               <div className="sm:col-span-2">
                 <CampoSelect
@@ -443,7 +525,7 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
               </div>
             </div>
           )}
-          <p className="text-xs text-tinta/60">
+          <p className="text-sm text-tinta/60">
             {esConstancia(apartado)
               ? "Solo se registra que el dinero volvió al cliente: no hay comprobante que anular, así que no se gasta ningún correlativo."
               : `Se intentará la nota de crédito sobre la boleta ${apartado.comprobanteAnticipo}; si SUNAT aún no la aceptó, queda pendiente con aviso.`}
@@ -539,10 +621,10 @@ export function RecordarModal({
                     >
                       <span className="min-w-0 flex-1">
                         <b className="font-semibold">{a.nombres} {a.apellidos}</b>{" "}
-                        <span className="text-xs text-tinta/55 tabular-nums">{formatoCelular(a.celular)}</span>
+                        <span className="text-sm text-tinta/55 tabular-nums">{formatoCelular(a.celular)}</span>
                       </span>
                       {hechas.has(a.id) ? (
-                        <span className="flex items-center gap-1 text-xs text-verde-profundo"><Check className="h-3.5 w-3.5" aria-hidden /> Avisado</span>
+                        <span className="flex items-center gap-1 text-sm text-verde-profundo"><Check className="h-3.5 w-3.5" aria-hidden /> Avisado</span>
                       ) : (
                         <EstadoChip {...estadoVisible(a, hoy)} />
                       )}
@@ -554,8 +636,8 @@ export function RecordarModal({
           )}
           <div className="card-cayla space-y-2 p-4">
             <p className="label-cayla text-[11px] text-tinta/60">Mensaje para {actual.nombres}</p>
-            <p className="rounded-xl rounded-bl-sm bg-hueso px-3.5 py-3 text-[13.5px] text-tinta">{mensaje}</p>
-            <p className="text-xs text-tinta/60">Se abre WhatsApp con este texto y lo envías tú. Al volver, queda anotado quién le escribió y cuándo.</p>
+            <p className="rounded-xl rounded-bl-sm bg-hueso px-3.5 py-3 text-[15px] text-tinta">{mensaje}</p>
+            <p className="text-sm text-tinta/60">Se abre WhatsApp con este texto y lo envías tú. Al volver, queda anotado quién le escribió y cuándo.</p>
           </div>
           <div className="pie-acciones">
             {varias ? (
@@ -694,10 +776,10 @@ export function AbonarFormulario({
             aria-checked={metodo === m}
             onClick={() => setMetodo(m)}
             style={metodo === m ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined}
-            className={`metodo-${m} flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] capitalize transition-colors ${metodo === m ? "shadow-sm" : "text-tinta/60 hover:bg-papel/60"}`}
+            className={`metodo-${m} flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-sm capitalize transition-colors ${metodo === m ? "shadow-sm" : "text-tinta/60 hover:bg-papel/60"}`}
           >
             {ICONO_METODO[m]}
-            {m}
+            <span className="max-w-full truncate">{NOMBRE_CORTO[m] ?? m}</span>
           </button>
         ))}
       </div>
@@ -705,33 +787,33 @@ export function AbonarFormulario({
         <span className="text-sm">Abona</span>
         <span className="flex items-center gap-1 border-b border-tinta/20 text-lg">
           <span className="text-tinta/50">S/</span>
-          <CampoMonto aria-label="Monto del abono" valor={monto} onCambio={setMonto} className="w-24 bg-transparent py-1 text-right tabular-nums outline-none" />
+          <EntradaMonto aria-label="Monto del abono" valor={monto} onCambio={setMonto} className="w-24 bg-transparent py-1 text-right tabular-nums outline-none" />
         </span>
       </label>
       <div className="flex flex-wrap gap-1.5">
         {rapidos.map((x) => (
-          <button key={x} type="button" onClick={() => setMonto(x)} className="rounded-full border border-sand px-3 py-1 text-xs tabular-nums hover:border-taupe">
+          <button key={x} type="button" onClick={() => setMonto(x)} className="rounded-full border border-sand px-3 py-1 text-sm tabular-nums hover:border-taupe">
             {money(x)}
           </button>
         ))}
-        <button type="button" onClick={() => setMonto(saldo)} className="rounded-full border border-sand px-3 py-1 text-xs tabular-nums hover:border-taupe">
+        <button type="button" onClick={() => setMonto(saldo)} className="rounded-full border border-sand px-3 py-1 text-sm tabular-nums hover:border-taupe">
           Todo · {money(saldo)}
         </button>
       </div>
       <BarraAvance pct={((apartado.adelanto + Math.max(0, monto)) / apartado.total) * 100} decorativa />
-      <p className="flex justify-between text-xs text-tinta/60 tabular-nums">
+      <p className="flex justify-between text-sm text-tinta/60 tabular-nums">
         <span>Pagado {money(apartado.adelanto + Math.max(0, monto))} de {money(apartado.total)}</span>
         <b className="text-tinta">Queda {money(Math.max(0, saldo - monto))}</b>
       </p>
       {monto > saldo && <Aviso tono="error" chico>El abono no puede pasar lo que falta ({money(saldo)}).</Aviso>}
-      <label className="flex cursor-pointer items-start gap-2.5 text-[13px] text-tinta/85">
+      <label className="flex cursor-pointer items-start gap-2.5 text-sm text-tinta/85">
         <Casilla marcada={esperar} onCambio={() => setEsperar(!esperar)} etiqueta={`Esperarla ${dias} días más`} className="mt-0.5 shrink-0" />
         <span>
           Esperarla {dias} días más: recoge hasta el <b>{fechaCorta(nuevaFecha)}</b>
-          <span className="block text-xs text-tinta/55">{dias === 3 ? "Abona la mitad o más de lo que le faltaba: 3 días." : "Con la mitad o más de lo que le falta serían 3 días."} Sin marcar, la fecha sigue el {fechaCorta(apartado.venceEl)}.</span>
+          <span className="block text-sm text-tinta/55">{dias === 3 ? "Abona la mitad o más de lo que le faltaba: 3 días." : "Con la mitad o más de lo que le falta serían 3 días."} Sin marcar, la fecha sigue el {fechaCorta(apartado.venceEl)}.</span>
         </span>
       </label>
-      <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">{esConstancia(apartado) ? "El abono se suma al adelanto y no emite comprobante. Al recoger, sale una sola boleta o factura por el total." : "Sale una boleta de anticipo por el abono. Al recoger, la boleta final descuenta todos los anticipos."}</p>
+      <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-sm text-tinta/75">{esConstancia(apartado) ? "El abono se suma al adelanto y no emite comprobante. Al recoger, sale una sola boleta o factura por el total." : "Sale una boleta de anticipo por el abono. Al recoger, la boleta final descuenta todos los anticipos."}</p>
       <ComboResponsable control={responsable} deshabilitado={enviando} />
       </fieldset>
       {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
@@ -754,6 +836,8 @@ export function AbonarFormulario({
  * Editar las prendas de un apartado abierto (paso 4 — 20260927120000): quitar, sumar o cambiar la talla, todo o nada.
  * Lo nuevo entra con el precio y la campaña de HOY; el adelanto ya recibido no cambia. Si el nuevo total quedara por
  * debajo de lo que ya pagó, la base lo rechaza (qué hacer con esa diferencia lo decide Felipe).
+ * Lo que se suma puede llevar un descuento a mano (ADR-0584, Felipe 2026-10-30), con la misma hoja y las mismas cuentas que Apartar;
+ * lo que ya estaba conserva el suyo y no se toca.
  */
 export function EditarApartadoModal({
   apartado,
@@ -768,9 +852,13 @@ export function EditarApartadoModal({
 }) {
   const router = useRouter();
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
+  const escrita = useCantidadEscrita(CANTIDAD_DE_LINEA);
   const [quitar, setQuitar] = useState<ReadonlySet<string>>(() => new Set());
   const [sumar, setSumar] = useState<{ varianteId: string; cantidad: number }[]>([]);
   const [texto, setTexto] = useState("");
+  // ADR-0584: los descuentos a mano de lo que se suma, por variante, y la hoja abierta (con las prendas que arrancan marcadas).
+  const [descuentos, setDescuentos] = useState<Record<string, DescuentoManual>>({});
+  const [hojaDescuento, setHojaDescuento] = useState<string[] | null>(null);
   // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): si la respuesta se pierde, la hoja se congela hasta saber si
   // la edición quedó.
   const envio = useIntento("editar_separacion");
@@ -779,18 +867,68 @@ export function EditarApartadoModal({
   const responsable = useResponsable(ubicacion, { modo: "atencion" });
 
   const quedan = apartado.prendas.filter((p) => !quitar.has(p.itemId));
-  const totalNuevo =
-    quedan.reduce((t, p) => t + (p.precioUnitario - p.descuentoUnitario) * p.cantidad, 0) +
-    sumar.reduce((t, l) => {
-      const p = porId.get(l.varianteId);
-      return p ? t + (p.precio - descuentoHoy(p)) * l.cantidad : t;
-    }, 0);
+  // Lo que se suma, con el descuento que de verdad lleva: el puesto a mano si supera a su campaña; si no, la campaña (ADR-0584).
+  const conDescuento = descuentosVigentes(descuentos, sumar.map((l) => l.varianteId));
+  const lineasNuevas = sumar.flatMap((l) => {
+    const p = porId.get(l.varianteId);
+    return p ? [lineaDescontada(p, l.cantidad, conDescuento[l.varianteId])] : [];
+  });
+  const nuevaDe = new Map(lineasNuevas.map((l) => [l.varianteId, l]));
+  const descontadoNuevo = totalDescontado(lineasNuevas);
+  const totalQuedan = quedan.reduce((t, p) => t + (p.precioUnitario - p.descuentoUnitario) * p.cantidad, 0);
+  // ADR-0655 (parte 4): con una oferta de grupo en juego (lo apartado o lo que se suma), los grupos se vuelven a armar con el trato que el
+  // apartado guardó, y el total lo da la base (`previsualizar_edicion_separacion`): la hoja no lo adivina. Sin grupos, como siempre.
+  const cambio = quitar.size > 0 || sumar.length > 0;
+  const conGrupos = apartado.prendas.some((p) => p.ofertaGrupo) || sumar.some((l) => porId.get(l.varianteId)?.ofertaGrupo);
+  const paraLaBase = {
+    p_separacion_id: apartado.id,
+    p_quitar: [...quitar],
+    p_agregar: lineasNuevas.map((l) => ({
+      variante_id: l.varianteId,
+      cantidad: l.cantidad,
+      precio_unitario: l.precioUnitario,
+      ...descuentoParaGuardar(l),
+    })),
+  };
+  const claveVista = cambio && conGrupos ? JSON.stringify(paraLaBase) : null;
+  const [vista, setVista] = useState<{ clave: string; total: number; lineas: VistaDeLinea[] } | { clave: string; error: string } | null>(null);
+  useEffect(() => {
+    if (!claveVista) return;
+    let vigente = true;
+    const espera = window.setTimeout(async () => {
+      const { data, error } = await createClient().rpc("previsualizar_edicion_separacion" as never, JSON.parse(claveVista) as never);
+      if (!vigente) return;
+      if (error || !data) return setVista({ clave: claveVista, error: traducirError(error, "calcular el total con la oferta", { lectura: true }) });
+      const d = data as { total: number | string; lineas?: VistaDeLinea[] };
+      setVista({ clave: claveVista, total: Number(d.total), lineas: d.lineas ?? [] });
+    }, 300);
+    return () => {
+      vigente = false;
+      window.clearTimeout(espera);
+    };
+  }, [claveVista]);
+  const vistaAlDia = vista && claveVista && vista.clave === claveVista ? vista : null;
+  const totalVista = vistaAlDia && "total" in vistaAlDia ? vistaAlDia.total : null;
+  const calculando = claveVista !== null && !vistaAlDia;
+  const totalNuevo = claveVista ? (totalVista ?? totalQuedan + totalDeLineas(lineasNuevas)) : totalQuedan + totalDeLineas(lineasNuevas);
+  /** Lo que la vista previa dice de cada fila (por su id; lo nuevo, por prenda), como lo dice el ticket. */
+  const grupoDeFila = (ref: string | null, varianteId: string, oferta: { titular: string; nombre: string } | null | undefined): GrupoEnTicket | null => {
+    if (!oferta) return null;
+    const filas = (vistaAlDia && "lineas" in vistaAlDia ? vistaAlDia.lineas : []).filter((x) => (ref ? x.ref === ref : x.ref.startsWith("nueva-") && x.variante_id === varianteId));
+    if (filas.length === 0) return null;
+    const ahorro = filas.reduce((a, x) => a + Math.round(Number(x.descuento_grupo_unitario) * Number(x.cantidad) * 100), 0) / 100;
+    return { titular: oferta.titular, nombre: oferta.nombre, ahorro, faltan: Math.max(...filas.map((x) => Number(x.faltan ?? 0))) };
+  };
   const debajo = totalNuevo < apartado.adelanto;
   const sinPrendas = quedan.length + sumar.length === 0;
-  const cambio = quitar.size > 0 || sumar.length > 0;
   const sinId = apartado.prendas.some((p) => !p.itemId);
 
   const disponibleParaSumar = (id: string) => (porId.get(id)?.stockAqui ?? 0) - (sumar.find((l) => l.varianteId === id)?.cantidad ?? 0);
+  /** Deja de sumar una prenda y, con ella, su descuento a mano (si vuelve, vuelve sin él). */
+  function noSumar(varianteId: string) {
+    setSumar((ls) => ls.filter((x) => x.varianteId !== varianteId));
+    setDescuentos((d) => quitarDelApartado(d, [varianteId]));
+  }
   function agregar(varianteId: string) {
     if (disponibleParaSumar(varianteId) <= 0) return avisar.error("No queda disponible para apartar en esta tienda.");
     setSumar((ls) => (ls.some((l) => l.varianteId === varianteId) ? ls.map((l) => (l.varianteId === varianteId ? { ...l, cantidad: l.cantidad + 1 } : l)) : [...ls, { varianteId, cantidad: 1 }]));
@@ -810,17 +948,19 @@ export function EditarApartadoModal({
   }, [texto, prendas]);
 
   async function guardar(cerrar: () => void) {
-    if (!cambio || debajo || sinPrendas || !responsable.listo) return;
-    const params = {
-      p_separacion_id: apartado.id,
-      p_quitar: [...quitar],
-      p_agregar: sumar.map((l) => {
-        const p = porId.get(l.varianteId)!;
-        return { variante_id: l.varianteId, cantidad: l.cantidad, precio_unitario: p.precio, descuento_unitario: descuentoHoy(p) };
-      }),
-    };
+    // Lo escrito en una cantidad no valió: antes de guardar lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (escrita.frenar()) return;
+    if (!cambio || debajo || sinPrendas || !responsable.listo || calculando || (claveVista && totalVista === null)) return;
+    const params = paraLaBase;
+    // ADR-0655: con grupos, se guarda solo si el total es el que se vio (`editar_separacion_con_total`); la marca es la de `editar_separacion`,
+    // que es quien la anota.
     const res = await envio.enviar(huellaDe(params), (token, senal) =>
-      firmar(createClient().rpc("editar_separacion", { ...params, p_token: token }), responsable.firma()).abortSignal(senal),
+      firmar(
+        claveVista
+          ? createClient().rpc("editar_separacion_con_total" as never, { ...params, p_token: token, p_total_esperado: totalVista } as never)
+          : createClient().rpc("editar_separacion", { ...params, p_token: token }),
+        responsable.firma(),
+      ).abortSignal(senal),
     );
     if (res.tipo === "ocupado") return;
     if (res.tipo === "congelado") return avisarCongelado(avisar);
@@ -857,65 +997,133 @@ export function EditarApartadoModal({
           <fieldset disabled={envio.incierto} className="min-w-0 space-y-4">
           {sinId && <Aviso tono="atencion" chico>Para editar hace falta la actualización de la base de este paso: todavía no está aplicada.</Aviso>}
           <ul className="divide-y divide-sand overflow-hidden rounded-xl border border-sand">
+            {/* Cada prenda es la fila del ticket de Vender (`LineaDelTicket`). Las que ya estaban apartadas van de solo lectura
+                (su cantidad y su descuento no se tocan aquí): se pueden quitar —con «Deshacer»— o cambiar de talla; las que se suman
+                llevan su «− 1 +» y su descuento, como en Apartar. */}
             {apartado.prendas.map((pr) => {
               const v = porId.get(pr.varianteId);
               const fuera = quitar.has(pr.itemId);
               const hermanas = v ? prendas.filter((h) => h.referencia === v.referencia && h.color === v.color) : [];
+              // ADR-0655: su grupo como queda con la edición (la vista previa) o, sin cambios, como se apartó.
+              const grupo = fuera
+                ? null
+                : (grupoDeFila(pr.itemId, pr.varianteId, pr.ofertaGrupo) ??
+                  (pr.descuentoGrupoUnitario > 0 && pr.ofertaGrupo ? { ...pr.ofertaGrupo, ahorro: Math.round(pr.descuentoGrupoUnitario * pr.cantidad * 100) / 100, faltan: 0 } : null));
+              const linea: ItemCarrito = {
+                claveLinea: pr.itemId || pr.varianteId,
+                varianteId: pr.varianteId,
+                referencia: pr.referencia,
+                sku: pr.sku,
+                codigo: v?.codigo ?? null,
+                cantidad: pr.cantidad,
+                precioUnitario: pr.precioUnitario,
+                // ADR-0655: la fila dice su propio descuento; la parte de la oferta de grupo va debajo, con el grupo armado de nuevo.
+                descuentoUnitario: pr.descuentoUnitario - pr.descuentoGrupoUnitario,
+                stockAqui: v?.stockAqui ?? 0,
+                razonDescuento: pr.motivoDescuento ?? (pr.descuentoUnitario - pr.descuentoGrupoUnitario > 0 ? RAZON_CAMPANA : ""),
+                razonDescuentoOtro: pr.motivoDescuentoDetalle ?? "",
+                argumentoDescuento: pr.argumentoDescuento ?? "",
+                campana: null,
+              };
               return (
-                <li key={pr.itemId || pr.varianteId} className={`flex flex-wrap items-center gap-3 px-3.5 py-3 ${fuera ? "bg-crema/70" : ""}`}>
-                  <FotoPrenda fotoUrl={v?.fotoUrl} referencia={pr.referencia} colorHex={v?.colorHex} categoria={v?.categoria} categoriaPrefijo={v?.categoriaPrefijo} categoriaFamilia={v?.categoriaFamilia} ancho={40} className="w-10" />
-                  <div className="min-w-0 flex-1">
-                    <p className={`truncate text-sm font-semibold ${fuera ? "text-tinta/45 line-through" : "text-tinta"}`}>{pr.referencia}</p>
-                    <p className="text-xs text-tinta/60">{v ? detalleVariante(v) : pr.sku} · {pr.cantidad} u.</p>
-                  </div>
-                  {!fuera && hermanas.length > 1 && (
-                    <div className="flex gap-1" role="group" aria-label="Cambiar la talla">
-                      {hermanas.map((h) => (
-                        <button
-                          key={h.varianteId}
-                          type="button"
-                          disabled={h.varianteId !== pr.varianteId && h.stockAqui <= 0}
-                          onClick={() => h.varianteId !== pr.varianteId && cambiarTalla(pr.itemId, h.varianteId)}
-                          className={`h-8 min-w-8 rounded-lg border px-2 text-xs font-semibold disabled:opacity-35 ${h.varianteId === pr.varianteId ? "border-tinta bg-tinta text-papel" : "border-sand hover:border-tinta/40"}`}
-                        >
-                          {h.talla ?? "—"}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <span className="w-20 text-right text-sm tabular-nums">{money((pr.precioUnitario - pr.descuentoUnitario) * pr.cantidad)}</span>
-                  <button
-                    type="button"
-                    disabled={!pr.itemId}
-                    onClick={() => setQuitar((q) => (q.has(pr.itemId) ? new Set([...q].filter((x) => x !== pr.itemId)) : new Set([...q, pr.itemId])))}
-                    className="label-cayla text-[10px] text-rojo-profundo disabled:opacity-40"
-                  >
-                    {fuera ? "Dejar" : "Quitar"}
-                  </button>
+                <li key={pr.itemId || pr.varianteId} className={fuera ? "bg-crema/70" : ""}>
+                  <LineaDelTicket
+                    linea={linea}
+                    detalle={v ? { color: v.color, talla: v.talla } : undefined}
+                    bloqueado={enviando}
+                    soloLectura
+                    quitada={fuera}
+                    onQuitar={() => {
+                      if (!pr.itemId) return;
+                      setQuitar((q) => (q.has(pr.itemId) ? new Set([...q].filter((x) => x !== pr.itemId)) : new Set([...q, pr.itemId])));
+                    }}
+                    onCantidad={() => {}}
+                    escrita={escrita}
+                    onDescuento={() => {}}
+                    pie={
+                      <>
+                      {grupo && <PieDeGrupo g={grupo} />}
+                      {!fuera && hermanas.length > 1 ? (
+                        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Cambiar la talla">
+                          <span>Cambiar talla</span>
+                          {hermanas.map((h) => (
+                            <button
+                              key={h.varianteId}
+                              type="button"
+                              disabled={h.varianteId !== pr.varianteId && h.stockAqui <= 0}
+                              onClick={() => h.varianteId !== pr.varianteId && cambiarTalla(pr.itemId, h.varianteId)}
+                              className={`h-7 min-w-7 rounded-lg border px-2 text-xs font-semibold disabled:opacity-35 ${h.varianteId === pr.varianteId ? "border-tinta bg-tinta text-papel" : "border-sand hover:border-tinta/40"}`}
+                            >
+                              {h.talla ?? "—"}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                      </>
+                    }
+                  />
                 </li>
               );
             })}
             {sumar.map((l) => {
               const p = porId.get(l.varianteId)!;
+              const nueva = nuevaDe.get(l.varianteId);
+              if (!nueva) return null;
+              const linea: ItemCarrito = {
+                claveLinea: l.varianteId,
+                varianteId: l.varianteId,
+                referencia: p.referencia,
+                sku: p.sku,
+                codigo: p.codigo,
+                cantidad: l.cantidad,
+                precioUnitario: nueva.precioUnitario,
+                descuentoUnitario: nueva.descuentoUnitario,
+                stockAqui: p.stockAqui,
+                razonDescuento: nueva.razonDescuento,
+                razonDescuentoOtro: nueva.razonDescuentoOtro,
+                argumentoDescuento: nueva.argumentoDescuento,
+                campana: nueva.campana,
+              };
               return (
-                <li key={`n-${l.varianteId}`} className="flex flex-wrap items-center gap-3 bg-verde/5 px-3.5 py-3">
-                  <FotoPrenda fotoUrl={p.fotoUrl} referencia={p.referencia} colorHex={p.colorHex} categoria={p.categoria} categoriaPrefijo={p.categoriaPrefijo} categoriaFamilia={p.categoriaFamilia} ancho={40} className="w-10" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{p.referencia} <span className="ml-1 text-[11px] font-normal text-verde-profundo">nueva</span></p>
-                    <p className="text-xs text-tinta/60">{detalleVariante(p)}</p>
-                  </div>
-                  <PasoCantidad
-                    menos={{ onClick: () => setSumar((ls) => ls.flatMap((x) => (x.varianteId !== l.varianteId ? [x] : x.cantidad > 1 ? [{ ...x, cantidad: x.cantidad - 1 }] : []))), etiqueta: "Una menos" }}
-                    mas={{ onClick: () => agregar(l.varianteId), etiqueta: "Una más" }}
-                  >
-                    {l.cantidad}
-                  </PasoCantidad>
-                  <span className="w-20 text-right text-sm tabular-nums">{money((p.precio - descuentoHoy(p)) * l.cantidad)}</span>
-                  <button type="button" aria-label="No sumar" onClick={() => setSumar((ls) => ls.filter((x) => x.varianteId !== l.varianteId))} className="text-rojo-profundo"><Trash2 className="h-3.5 w-3.5" aria-hidden /></button>
+                <li key={`n-${l.varianteId}`} className="bg-verde/5">
+                  <LineaDelTicket
+                    linea={linea}
+                    detalle={{ color: p.color, talla: p.talla }}
+                    bloqueado={enviando}
+                    onQuitar={noSumar}
+                    onCantidad={(clave, valor) => {
+                      if (!Number.isFinite(valor) || valor < 1) return;
+                      // Subir de a una pasa por `agregar` (avisa si ya no queda); un número escrito se topa con el stock.
+                      if (valor === l.cantidad + 1) agregar(clave);
+                      else setSumar((ls) => ls.map((x) => (x.varianteId === clave ? { ...x, cantidad: Math.min(Math.floor(valor), p.stockAqui) } : x)));
+                    }}
+                    escrita={escrita}
+                    onDescuento={(clave) => setHojaDescuento([clave])}
+                    pie={
+                      <>
+                        {grupoDeFila(null, l.varianteId, p.ofertaGrupo) && <PieDeGrupo g={grupoDeFila(null, l.varianteId, p.ofertaGrupo)!} />}
+                        <span className="text-verde-profundo">Se suma al apartado</span>
+                      </>
+                    }
+                  />
                 </li>
               );
             })}
           </ul>
+          {escrita.problema && (
+            <Aviso tono="error" chico>
+              {escrita.problema}
+            </Aviso>
+          )}
+          {/* El descuento a mano de lo que se suma (ADR-0584): el mismo de Apartar y de la venta. Lo que ya estaba conserva el suyo. */}
+          {sumar.length > 0 && (
+            <div className="flex items-center justify-between gap-3">
+              <button type="button" onClick={() => setHojaDescuento(sumar.map((l) => l.varianteId))} className="btn-cayla btn-secundario btn-chico">
+                <BadgePercent className="h-4 w-4" aria-hidden /> Descuento a lo nuevo
+              </button>
+              {descontadoNuevo > 0 && <span className="text-sm tabular-nums text-tinta/70">Descuento −{money(descontadoNuevo)}</span>}
+            </div>
+          )}
           <div className="relative">
             <Buscador valor={texto} onCambio={setTexto} placeholder="Sumar una prenda: nombre, color o código" />
             {buscados.length > 0 && (
@@ -923,8 +1131,8 @@ export function EditarApartadoModal({
                 {buscados.map((p) => (
                   <li key={p.varianteId}>
                     <button type="button" onClick={() => agregar(p.varianteId)} className="flex w-full items-center gap-3 px-3.5 py-2 text-left text-sm hover:bg-crema/60">
-                      <span className="min-w-0 flex-1"><b className="font-semibold">{p.referencia}</b> <span className="text-xs text-tinta/60">{detalleVariante(p)}</span></span>
-                      <span className="text-xs tabular-nums">{money(p.precio - descuentoHoy(p))} · {p.stockAqui} disp.</span>
+                      <span className="min-w-0 flex-1"><b className="font-semibold">{p.referencia}</b> <span className="text-sm text-tinta/60">{detalleVariante(p)}</span></span>
+                      <span className="text-sm tabular-nums">{money(p.precio - descuentoHoy(p))} · {p.stockAqui} disp.</span>
                     </button>
                   </li>
                 ))}
@@ -933,13 +1141,16 @@ export function EditarApartadoModal({
           </div>
           <div className="card-cayla space-y-1 p-4 text-sm tabular-nums">
             <p className="flex justify-between"><span className="text-tinta/60">Total antes</span><span>{money(apartado.total)}</span></p>
-            <p className="flex justify-between"><span className="text-tinta/60">Total ahora</span><b>{money(totalNuevo)}</b></p>
+            <p className="flex justify-between"><span className="text-tinta/60">Total ahora</span><b>{calculando ? "Calculando…" : money(totalNuevo)}</b></p>
             <p className="flex justify-between"><span className="text-tinta/60">Ya pagó</span><span>−{money(apartado.adelanto)}</span></p>
-            <p className="flex justify-between border-t border-sand pt-2 text-base"><span>Saldo al recoger</span><b>{money(Math.max(0, totalNuevo - apartado.adelanto))}</b></p>
+            <p className="flex justify-between border-t border-sand pt-2 text-base"><span>Saldo al recoger</span><b>{calculando ? "…" : money(Math.max(0, totalNuevo - apartado.adelanto))}</b></p>
           </div>
+          {vistaAlDia && "error" in vistaAlDia && <Aviso tono="error" chico>{vistaAlDia.error}</Aviso>}
+          {/* ADR-0655: por qué el total puede subir al quitar una prenda de un 3x2. */}
+          {conGrupos && cambio && <p className="text-sm text-tinta/65">Con una oferta de grupo, el grupo se vuelve a armar con el trato del día en que se apartó.</p>}
           {debajo && !sinPrendas && <Aviso tono="error" chico>El nuevo total queda por debajo de lo que ya pagó ({money(apartado.adelanto)}): suma otra prenda o libera el apartado.</Aviso>}
           {sinPrendas && <Aviso tono="error" chico>El apartado no puede quedarse sin prendas: si ya no quiere nada, libéralo.</Aviso>}
-          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Se guarda todo junto o nada: lo que sale vuelve a la tienda, lo nuevo se aparta con el precio de hoy. El adelanto ya recibido sigue valiendo.</p>
+          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-sm text-tinta/75">Se guarda todo junto o nada: lo que sale vuelve a la tienda, lo nuevo se aparta con el precio de hoy (y su descuento, si le pones uno); lo que ya estaba conserva el suyo. El adelanto ya recibido sigue valiendo.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           </fieldset>
           {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
@@ -947,13 +1158,28 @@ export function EditarApartadoModal({
             <button type="button" onClick={cerrar} disabled={envio.incierto} className="btn-cayla btn-secundario">Mejor no</button>
             <Boton peso="primario" cargando={enviando}
               type="button"
-              disabled={!cambio || debajo || sinPrendas || enviando || revisando || !responsable.listo || sinId}
+              disabled={!cambio || debajo || sinPrendas || enviando || revisando || !responsable.listo || sinId || calculando || (claveVista !== null && totalVista === null)}
               title={responsable.motivo ?? undefined}
               onClick={() => guardar(cerrar)}
             >
               {envio.incierto ? "Volver a intentar" : "Guardar cambios"}
             </Boton>
           </div>
+          {hojaDescuento && (
+            <DescuentoApartado
+              lineas={lineasNuevas}
+              prendas={porId}
+              nombreDe={(id) => {
+                const p = porId.get(id);
+                return p ? [p.referencia, detalleVariante(p)].filter(Boolean).join(" · ") : "Prenda";
+              }}
+              elegidasAlAbrir={hojaDescuento}
+              totalAparte={totalQuedan}
+              onAplicar={setDescuentos}
+              onQuitar={(ids) => setDescuentos((d) => quitarDelApartado(d, ids))}
+              onClose={() => setHojaDescuento(null)}
+            />
+          )}
         </div>
       )}
     </Modal>
@@ -1005,7 +1231,7 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
                 <span>
                   <b className="text-sm">{PRESETS_APARTADOS[k].titulo}</b>
                   {k === "completo" && <Chip tono="pizarra" versalitas={false} className="ml-2">de fábrica</Chip>}
-                  <span className="block text-xs text-tinta/60">{PRESETS_APARTADOS[k].texto}</span>
+                  <span className="block text-sm text-tinta/60">{PRESETS_APARTADOS[k].texto}</span>
                 </span>
               </button>
             ))}
@@ -1020,7 +1246,7 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
                     <li key={f.clave} className="flex items-center gap-3 py-2.5">
                       <span className="min-w-0 flex-1">
                         <b className="block text-sm font-medium">{f.titulo}</b>
-                        <span className="text-xs text-tinta/60">{f.texto}</span>
+                        <span className="text-sm text-tinta/60">{f.texto}</span>
                       </span>
                       <button
                         type="button"
@@ -1038,7 +1264,7 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
               </ul>
             </div>
           ))}
-          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Apagar una función esconde sus botones en esta tienda. Lo que ya se hizo con ella (un abono, un estante) sigue contando.</p>
+          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-sm text-tinta/75">Apagar una función esconde sus botones en esta tienda. Lo que ya se hizo con ella (un abono, un estante) sigue contando.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
@@ -1105,14 +1331,14 @@ export function EnviarPedidoModal({ pedido, prenda, ubicacion, onClose }: { pedi
           <fieldset disabled={envio.incierto} className="min-w-0 space-y-4">
           <div className="card-cayla p-4 text-sm">
             <p className="font-semibold">{prenda?.referencia ?? "Prenda"} · {pedido.cantidad} u.</p>
-            <p className="text-xs text-tinta/60">{prenda ? detalleVariante(prenda) : ""}</p>
-            {pedido.nota && <p className="mt-2 text-xs text-tinta/70">Nota: {pedido.nota}</p>}
+            <p className="text-sm text-tinta/60">{prenda ? detalleVariante(prenda) : ""}</p>
+            {pedido.nota && <p className="mt-2 text-sm text-tinta/70">Nota: {pedido.nota}</p>}
           </div>
           <label className="block">
             <span className={campoEtiqueta}>¿Cuándo llega?</span>
             <input type="date" value={llega} min={manana.slice(0, 10)} onChange={(e) => setLlega(e.target.value)} className={campoTexto} />
           </label>
-          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Sale de tu almacén como un traslado más; Traslados lo muestra en camino hasta que {pedido.otraSede} lo reciba.</p>
+          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-sm text-tinta/75">Sale de tu almacén como un traslado más; Traslados lo muestra en camino hasta que {pedido.otraSede} lo reciba.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           </fieldset>
           {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}

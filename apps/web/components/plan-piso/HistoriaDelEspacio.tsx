@@ -65,8 +65,8 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
       <section className="card-cayla overflow-hidden anim-sube" style={{ "--i": 2 } as React.CSSProperties} aria-label="Fotos del espacio del piso" data-guia="plan-piso.historia-fotos">
         <div className="border-b border-sand px-5 py-4">
           <TituloSeccion>Fotos del riel</TituloSeccion>
-          <p className="mt-0.5 max-w-2xl text-[13px] text-tinta/70">
-            Cada lunes de madrugada el sistema anota cuántas prendas había colgadas de cada grupo. No se puede reconstruir después: por eso se guarda desde ya.
+          <p className="mt-0.5 max-w-2xl text-sm text-tinta/70">
+            Cada lunes de madrugada se anota cuántas prendas colgaba cada grupo.
           </p>
         </div>
         {h.filas.length === 0 ? (
@@ -117,7 +117,7 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
 function MezclaDelRiel({ fecha, cuadrada, grupos, porGrupo }: { fecha: string; cuadrada: boolean; grupos: GrupoMix[]; porGrupo: Record<string, number> }) {
   const segmentos = grupos.map((g, i) => ({ clave: g.clave, nombre: g.nombre, valor: porGrupo[g.clave] ?? 0, color: colorDeGrupo(i) }));
   const visibles = segmentos.filter((s) => s.valor > 0);
-  if (visibles.length === 0) return <span className="text-xs text-taupe">sin datos</span>;
+  if (visibles.length === 0) return <span className="text-sm text-taupe">sin datos</span>;
   return (
     <BarraApilada
       segmentos={segmentos}

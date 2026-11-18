@@ -14,8 +14,7 @@ import { EficienciaTallerPanel } from "@/components/EficienciaTallerPanel";
 export default async function EficienciaPage() {
   const persona = await requirePersonaActualV2();
   if (!puedeVerProduccion(persona)) {
-    if (!persona.puedeCambiarUbicacion) redirect("/");
-    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} />;
+    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} puedeCambiarUbicacion={persona.puedeCambiarUbicacion} />;
   }
   if (persona.rol !== "lider") return <ProduccionSoloLider titulo="Eficiencia" />;
 

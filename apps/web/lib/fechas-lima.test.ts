@@ -15,6 +15,24 @@ describe("hoyLima", () => {
   });
 });
 
+describe("hoyLima: el formateador guardado dice lo mismo que la forma de antes", () => {
+  const deAntes = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+
+  it("en miles de instantes de 2024 a 2031, también a las 18:59, 19:00 y 23:59 de Lima, y en meses y días de un dígito", () => {
+    const inicio = Date.UTC(2024, 0, 1);
+    const fin = Date.UTC(2031, 11, 31);
+    // Cada 7 h 13 min: recorre todas las horas del día a lo largo de los años.
+    for (let t = inicio; t < fin; t += 26_000_000) expect(hoyLima(new Date(t))).toBe(deAntes(new Date(t)));
+    for (const iso of ["2026-01-05T23:59:59Z", "2026-01-06T00:00:00Z", "2026-11-13T23:59:59.999Z", "2026-11-14T00:00:00Z", "2026-11-14T04:59:59Z", "2026-11-14T05:00:00Z", "2026-12-31T23:59:59Z", "2027-01-01T05:00:00Z"]) {
+      expect(hoyLima(new Date(iso)), iso).toBe(deAntes(new Date(iso)));
+    }
+  });
+
+  it("una fecha que no se lee responde como antes, sin lanzar", () => {
+    expect(hoyLima(new Date(Number.NaN))).toBe(deAntes(new Date(Number.NaN)));
+  });
+});
+
 describe("anioLima", () => {
   it("el 31 de diciembre a las 20:00 de Lima todavía es el año que termina (en UTC ya es el siguiente)", () => {
     expect(anioLima(new Date("2027-01-01T01:00:00Z"))).toBe(2026);

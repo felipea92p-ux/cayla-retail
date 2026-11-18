@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ARCHIVO_DE_LA_HISTORIA, hrefTuLook, textoAlCompartir } from "@/lib/compartir-look";
+import { ARCHIVO_DE_LA_HISTORIA, enlaceParaCompartir, hrefTuLook, textoAlCompartir } from "@/lib/compartir-look";
 import { HojaNativa } from "../instalar/HojaNativa";
 
 type Imagen = { estado: "cargando" } | { estado: "lista"; archivo: File; url: string } | { estado: "sin_imagen" };
@@ -28,7 +28,7 @@ export function CompartirLook({ id, codigo }: { id: string; codigo: string }) {
 function HojaDeCompartir({ id, codigo, alCerrar }: { id: string; codigo: string; alCerrar: () => void }) {
   const [imagen, setImagen] = useState<Imagen>({ estado: "cargando" });
   const [copiado, setCopiado] = useState<"si" | "no" | null>(null);
-  const enlace = typeof window === "undefined" ? hrefTuLook(codigo) : `${window.location.origin}${hrefTuLook(codigo)}`;
+  const enlace = typeof window === "undefined" ? hrefTuLook(codigo) : enlaceParaCompartir(window.location.origin, codigo);
 
   useEffect(() => {
     let vivo = true;
@@ -74,15 +74,15 @@ function HojaDeCompartir({ id, codigo, alCerrar }: { id: string; codigo: string;
   }
 
   return (
-    <HojaNativa etiqueta="Comparte tu look" alCerrar={alCerrar}>
+    <HojaNativa etiqueta="Comparte tu outfit" alCerrar={alCerrar}>
       <h2 className="t-inst-tit">
-        Comparte tu <em>look</em>
+        Comparte tu <em>outfit</em>
       </h2>
-      <p className="t-inst-txt">La imagen lleva la marca y el enlace a la tienda. Quien lo abre ve tu look sin precios y puede armar el suyo.</p>
+      <p className="t-inst-txt">La imagen lleva la marca y el enlace a la tienda. Quien lo abre ve tu outfit sin precios y puede armar el suyo.</p>
       <div className="cl-previa" data-estado={imagen.estado}>
         {imagen.estado === "lista" ? (
           // eslint-disable-next-line @next/next/no-img-element -- es la imagen recién armada para esta persona (un blob), no una foto del catálogo
-          <img src={imagen.url} alt="Tu look en una imagen para estados, con la marca y el enlace a la tienda" />
+          <img src={imagen.url} alt="Tu outfit en una imagen para estados, con la marca y el enlace a la tienda" />
         ) : imagen.estado === "cargando" ? (
           <span role="status">Preparando tu imagen…</span>
         ) : (

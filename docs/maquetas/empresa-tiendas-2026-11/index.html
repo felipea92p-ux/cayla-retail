@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Empresa y tiendas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+.pz-t{position:relative;display:inline-flex;gap:2px;margin-top:20px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);max-width:100%;overflow-x:auto;scrollbar-width:none}
+[data-tema="oscuro"] .pz-t{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pz-t button{flex:none;height:34px;padding:0 16px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.pz-t button[aria-selected="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pz-t button[aria-selected="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.pz-t{flex-wrap:wrap;margin-top:0}
+.pz-t button{height:34px;padding:0 14px}
+
+/* ====================================================================
+   MAQUETA · Configuración ▸ Empresa y tiendas, en tres direcciones (Felipe 2026-11-04: «mucho texto innecesario y super pequeño, que sea algo más
+   visual y entendible… full animaciones y sofisticada»). Cada dato se ve antes de leerse: un QR que se arma, un reloj con su hora, las monedas del fondo,
+   un candado que se cierra. Nada baja de 14 px, salvo las versalitas de las pestañas. Movimiento: una vez al entrar o al guardar, sin rebote ni bucle,
+   y todo se apaga con prefers-reduced-motion (ADR-0136). Solo tokens; datos inventados.
+   ==================================================================== */
+.pz-t{flex-wrap:wrap;margin-top:0}.pz-t button{height:36px;padding:0 15px}
+.et-tira{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin-top:20px}
+.et-resp{display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 16px 0 6px;border-radius:999px;font-size:15px;border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 10%,transparent)}
+.et-resp i{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font:500 14px 'EB Garamond',serif;font-style:normal;background:var(--sand)}
+.et-raiz{display:grid;gap:18px;margin-top:18px}
+.et-quieto .et-raiz *,.et-quieto .et-raiz *::before,.et-quieto .et-raiz *::after{animation:none!important}
+
+/* ---------- el vidrio de un bloque ---------- */
+.et-placa{position:relative;container:etplaca/inline-size;border-radius:24px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 66%,transparent),color-mix(in srgb,var(--vidrio) 42%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.3);backdrop-filter:blur(24px) saturate(1.3);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 14px 34px -24px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-tema="oscuro"] .et-placa{background:color-mix(in srgb,var(--vidrio) 72%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.et-entra{animation:et-enfoca .7s var(--ease) calc(var(--e,0) * 90ms) backwards}
+@keyframes et-enfoca{from{opacity:0;filter:blur(10px);transform:translateY(14px)}}
+
+/* ---------- el carnet de la empresa ---------- */
+.et-carnet{display:flex;flex-wrap:wrap;align-items:center;gap:16px 36px;padding:18px 22px;overflow:hidden}
+.et-carnet::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,transparent 40%,color-mix(in srgb,var(--vidrio) 75%,transparent) 50%,transparent 60%);transform:translateX(-110%);animation:et-barre 1.5s var(--ease) .5s}
+@keyframes et-barre{to{transform:translateX(110%)}}
+.et-marca{min-width:0}
+.et-marca b{display:block;font:500 34px/1.05 'EB Garamond',serif}
+.et-marca span{display:block;font-size:15px;color:var(--taupe);margin-top:2px}
+.et-ruc small,.et-dato small{display:block;font-size:14px;color:var(--taupe)}
+.et-digitos{display:flex;font:500 27px/1.2 'EB Garamond',serif;font-variant-numeric:lining-nums tabular-nums;letter-spacing:.01em}
+.et-dig{display:block;height:1.2em;overflow:hidden}
+.et-dig span{display:block;transform:translateY(calc(var(--d) * -1.2em));animation:et-rueda 1.1s var(--ease) calc(.2s + var(--k) * 45ms) backwards}
+.et-dig i{display:block;height:1.2em;font-style:normal}
+@keyframes et-rueda{from{transform:translateY(0)}}
+.et-dato b{display:block;font-size:16px;font-weight:500}
+.et-carnet .et-fin{display:flex;align-items:center;gap:14px;margin-left:auto}
+.et-consumo{display:grid;gap:5px;width:172px}
+.et-consumo span{display:flex;justify-content:space-between;font-size:14px;color:var(--taupe)}
+.et-consumo span b{color:var(--tinta);font-weight:600}
+.et-consumo i{display:block;height:6px;border-radius:99px;background:color-mix(in srgb,var(--tinta) 9%,transparent);overflow:hidden}
+.et-consumo em{display:block;height:100%;width:var(--p);border-radius:inherit;background:var(--tinta);transform-origin:left;animation:et-llena 1s var(--ease) .6s backwards}
+@keyframes et-llena{from{transform:scaleX(0)}}
+.et-solo{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;color:var(--t65);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 10%,transparent)}
+.et-solo svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.et-sol{position:relative;display:inline-flex}
+.et-globo{position:absolute;z-index:30;right:0;top:calc(100% + 10px);width:280px;padding:14px 16px;border-radius:18px;font-size:15px;line-height:1.45;color:var(--tinta);background:color-mix(in srgb,var(--vidrio) 86%,transparent);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 8%,transparent),0 18px 34px -16px color-mix(in srgb,var(--sombra) 55%,transparent);animation:et-enfoca .35s var(--ease)}
+
+/* ---------- los datos: un dibujo que dice lo que vale ---------- */
+.et-t{position:relative;display:flex;align-items:center;gap:14px;width:100%;min-height:72px;padding:12px 14px;border-radius:18px;text-align:left;cursor:pointer;color:var(--tinta);background:color-mix(in srgb,var(--vidrio) 26%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent);transition:transform .3s var(--ease),box-shadow .3s var(--ease),background .3s;animation:et-sube .55s var(--ease) calc(.15s + var(--i,0) * 70ms) backwards}
+@keyframes et-sube{from{opacity:0;transform:translateY(10px)}}
+@media (hover:hover){.et-t:not(.edita):hover{transform:translateY(-2px);background:color-mix(in srgb,var(--vidrio) 58%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 10%,transparent),0 12px 22px -14px color-mix(in srgb,var(--sombra) 55%,transparent)}.et-t:not(.edita):hover .et-vis{transform:scale(1.07)}}
+.et-t:focus-visible,.et-pt:focus-visible,.et-falta-b:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+.et-vis{flex:none;display:grid;place-items:center;width:46px;height:46px;transition:transform .35s var(--ease)}
+.et-vis svg{display:block;width:100%;height:100%;overflow:visible}
+.et-tx{min-width:0;flex:1}
+.et-lb{display:block;font-size:14px;color:var(--taupe);line-height:1.25}
+.et-v{display:block;font:500 22px/1.2 'EB Garamond',serif;font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.et-t.falta{background:color-mix(in srgb,var(--ambar) 9%,transparent);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--ambar) 42%,transparent)}
+.et-t.falta .et-v{color:var(--ambar)}
+.et-t.falta::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:0 0 0 0 color-mix(in srgb,var(--ambar) 50%,transparent);animation:et-llama 1.4s var(--ease) calc(.9s + var(--i,0) * 70ms)}
+@keyframes et-llama{to{box-shadow:0 0 0 10px transparent}}
+.et-t.apagado .et-v{color:var(--t65)}
+/* escribir: el pozo con su hilo, dentro del mismo dato */
+.et-in{width:100%;height:36px;padding:0 12px;border-radius:999px;font:500 17px 'DM Sans';border:1px solid var(--borde);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);outline:none;font-variant-numeric:tabular-nums}
+.et-pozo{position:relative;display:block;margin-top:2px;animation:et-sube .25s var(--ease)}
+.et-pozo::after{content:"";position:absolute;left:14px;right:14px;bottom:1px;height:2px;border-radius:2px;background:var(--rojo);animation:et-hilo .3s var(--ease)}
+@keyframes et-hilo{from{transform:scaleX(0)}}
+.et-t.edita{cursor:text;background:color-mix(in srgb,var(--vidrio) 60%,transparent)}
+.et-visto{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;display:none;place-items:center;color:var(--crema);background:var(--verde)}
+.et-visto svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:20;stroke-dashoffset:20;animation:et-traza .35s var(--ease) .1s forwards}
+@keyframes et-traza{to{stroke-dashoffset:0}}
+.et-t.recien .et-visto{display:grid;animation:et-sello 1.9s var(--ease) forwards}
+@keyframes et-sello{0%{opacity:0;transform:scale(.5)}14%{opacity:1;transform:scale(1)}80%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+.et-t.recien{animation:et-destello .8s var(--ease)}
+@keyframes et-destello{0%{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--verde) 70%,transparent),0 0 0 0 color-mix(in srgb,var(--verde) 45%,transparent)}100%{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent),0 0 0 12px transparent}}
+/* el interruptor del asistente */
+.et-int{flex:none;display:inline-flex;align-items:center;width:46px;height:27px;padding:3px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 14%,transparent);box-shadow:inset 0 1px 3px color-mix(in srgb,var(--sombra) 20%,transparent);transition:background .3s}
+.et-int::after{content:"";width:21px;height:21px;border-radius:50%;background:var(--vidrio);box-shadow:0 1px 3px color-mix(in srgb,var(--sombra) 35%,transparent);transition:transform .3s var(--ease),width .15s}
+.et-int[aria-checked="true"]{background:var(--tinta)}.et-int[aria-checked="true"]::after{transform:translateX(19px);background:var(--crema)}
+
+/* QR que se arma módulo por módulo */
+.vq rect{fill:currentColor;transform-box:fill-box;transform-origin:center;animation:vq .4s var(--ease) calc(.2s + var(--i,0) * 70ms + var(--k) * 22ms) backwards}
+@keyframes vq{from{opacity:0;transform:scale(.2)}}
+.vq.no rect{opacity:.14;animation:none}.vq.no .marco{fill:none;stroke:var(--ambar);stroke-width:1.5;stroke-dasharray:4 4;opacity:1}
+/* el reloj y sus manecillas */
+.vr circle{fill:color-mix(in srgb,var(--vidrio) 50%,transparent);stroke:currentColor;stroke-width:1.6}
+.vr line{stroke:currentColor;stroke-linecap:round;transform-origin:20px 20px;transform:rotate(var(--a));animation:vr 1.1s var(--ease) calc(.25s + var(--i,0) * 70ms) backwards}
+.vr .h{stroke-width:2.4}.vr .m{stroke-width:1.6}
+@keyframes vr{from{transform:rotate(0)}}
+.vr.no circle{stroke:var(--ambar);stroke-dasharray:3 4;fill:none}.vr.no line{stroke:var(--ambar);animation:none}
+/* las monedas del fondo */
+.vm rect{fill:color-mix(in srgb,var(--ambar) 72%,var(--vidrio));stroke:var(--ambar);stroke-width:1;animation:vm .42s var(--ease) calc(.25s + var(--i,0) * 70ms + var(--k) * 75ms) backwards}
+@keyframes vm{from{opacity:0;transform:translateY(-14px)}}
+.vm.no rect{fill:none;stroke-dasharray:3 3;animation:none}
+/* la chispa de Preguntar */
+.vc path{fill:transparent;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round;stroke-dasharray:1;animation:vc .8s var(--ease) calc(.25s + var(--i,0) * 70ms) backwards}
+@keyframes vc{from{stroke-dashoffset:1}}
+.vc.on path{fill:var(--rojo);stroke:var(--rojo);transition:fill .4s}
+.vc.no path{opacity:.45}
+/* el candado de la carga inicial */
+.vk rect{fill:color-mix(in srgb,var(--vidrio) 50%,transparent);stroke:currentColor;stroke-width:1.7}
+.vk path{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.vk.cerrado{color:var(--verde)}.vk.cerrado rect{fill:color-mix(in srgb,var(--verde) 16%,transparent)}
+.vk.cerrado path{animation:vk .7s var(--ease) calc(.6s + var(--i,0) * 70ms) backwards}
+@keyframes vk{from{transform:translateY(-6px)}}
+.vk.abierto path{transform:translateY(-5px)}
+.vk.no{color:var(--ambar)}.vk.no rect{stroke-dasharray:3 3}.vk.no path{transform:translateY(-5px);stroke-dasharray:3 3}
+
+/* el anillo de cada sede */
+.et-an{position:relative;display:inline-grid;place-items:center;flex:none;width:var(--t,58px);height:var(--t,58px)}
+.et-an svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.et-an circle{fill:none;stroke-width:4}
+.et-an .pista{stroke:color-mix(in srgb,var(--tinta) 9%,transparent)}
+.et-an .arco{stroke:var(--verde);stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:var(--off);transition:stroke-dashoffset .7s var(--ease),stroke .4s;animation:et-arco 1.2s var(--ease) .35s backwards}
+.et-an.faltan .arco{stroke:var(--ambar)}
+@keyframes et-arco{from{stroke-dashoffset:100}}
+
+.et-an b{font:500 calc(var(--t,58px) * .28)/1 'EB Garamond',serif;font-variant-numeric:lining-nums}
+.et-an b svg{position:static;transform:none;width:calc(var(--t,58px) * .42);height:calc(var(--t,58px) * .42);fill:none;stroke:var(--verde);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:24;animation:et-traza2 .5s var(--ease) 1.2s backwards}
+@keyframes et-traza2{from{stroke-dashoffset:24}}
+.et-ser{display:inline-flex;gap:6px;flex-wrap:wrap}
+.et-ser span{display:inline-flex;align-items:center;height:26px;padding:0 9px;border-radius:7px;font-size:14px;font-variant-numeric:tabular-nums;color:var(--t80);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 9%,transparent)}
+
+/* ========== A · LAS VITRINAS ========== */
+.et-vitrinas{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));align-items:start}
+.et-vit{--c:var(--sede-tru);padding:20px 16px 16px;overflow:hidden;transition:transform .35s var(--ease),box-shadow .35s var(--ease)}
+.et-vit::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--c);transform-origin:left;animation:et-llena 1s var(--ease) calc(.25s + var(--e) * 90ms) backwards}
+@media (hover:hover){.et-vit:hover{transform:translateY(-3px);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 26px 40px -28px color-mix(in srgb,var(--c) 70%,var(--sombra))}}
+.et-vit header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:0 4px 12px}
+.et-vit h2{font:500 30px/1.05 'EB Garamond',serif;overflow:hidden}
+.et-vit h2 span{display:block;animation:et-ranura .7s var(--ease) calc(.1s + var(--e) * 90ms) backwards}
+@keyframes et-ranura{from{transform:translateY(105%)}}
+.et-vit .et-dir{font-size:14px;color:var(--taupe);margin-top:3px}
+.et-vit .et-ser{margin-top:8px}
+.et-lista{display:grid;gap:8px}
+
+/* ========== B · EL MAPA VIVO ========== */
+.et-b{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+@container disp (min-width:1180px){.et-b{grid-template-columns:minmax(300px,.74fr) minmax(0,1.5fr)}}
+.et-mapa{padding:14px;display:grid;justify-items:center}
+.et-mapa svg{display:block;width:100%;max-width:370px;max-height:520px;overflow:visible}
+.et-peru{fill:color-mix(in srgb,var(--tinta) 5%,transparent);stroke:color-mix(in srgb,var(--tinta) 30%,transparent);stroke-width:1.2;stroke-linejoin:round;stroke-dasharray:1;animation:et-pais 2s var(--ease) backwards}
+@keyframes et-pais{from{stroke-dashoffset:1;fill:transparent}}
+.et-hilo{fill:none;stroke:var(--rojo);stroke-width:1.5;stroke-dasharray:2 5;stroke-linecap:round}
+.et-mask{fill:none;stroke:#fff;stroke-width:6;stroke-dasharray:1;animation:et-cose 1.6s var(--ease) .7s backwards} /* tema-fijo: una máscara de SVG se pinta en blanco */
+@keyframes et-cose{from{stroke-dashoffset:1}}
+.et-pt{cursor:pointer;outline-offset:4px}
+.et-pt .halo{fill:var(--c);opacity:.14;transition:opacity .3s,r .3s var(--ease)}
+.et-pt .pto{fill:var(--c);stroke:var(--vidrio);stroke-width:2;transform-box:fill-box;transform-origin:center;animation:et-asoma .6s var(--ease) calc(1s + var(--k) * 180ms) backwards}
+@keyframes et-asoma{from{transform:scale(0);opacity:0}}
+.et-pt text{font:500 19px 'EB Garamond',serif;fill:var(--tinta);animation:funde .6s var(--ease) calc(1.2s + var(--k) * 180ms) backwards}
+.et-pt.on .halo{opacity:.3}
+.et-pt .aviso{fill:var(--ambar);stroke:var(--vidrio);stroke-width:1.5}
+.et-onda{fill:none;stroke:var(--c);stroke-width:2;transform-box:fill-box;transform-origin:center;animation:et-onda .9s var(--ease) forwards}
+@keyframes et-onda{from{transform:scale(.3);opacity:.9}to{transform:scale(2.6);opacity:0}}
+.et-gota{fill:var(--rojo);filter:drop-shadow(0 0 5px color-mix(in srgb,var(--rojo) 70%,transparent))}
+.et-pills{display:none;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px}
+.et-pil{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 16px;border-radius:999px;font-size:15px;border:1px solid color-mix(in srgb,var(--borde) 70%,transparent)}
+.et-pil i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.et-pil[aria-pressed="true"]{color:var(--crema);border-color:transparent;background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent))}
+@container disp (max-width:700px){.et-pills{display:flex}.et-mapa svg{max-height:290px}}
+.et-fic{--c:var(--sede-tru);padding:24px 24px 22px;overflow:hidden}
+.et-fic::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c);transform-origin:top;animation:et-baja .8s var(--ease) backwards}
+@keyframes et-baja{from{transform:scaleY(0)}}
+.et-fic header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin-bottom:18px}
+.et-fic h2{font:500 56px/1 'EB Garamond',serif;overflow:hidden}
+.et-fic h2 span{display:block;animation:et-ranura .75s var(--ease) backwards}
+.et-fic .et-dir{font-size:16px;color:var(--taupe);margin:6px 0 8px;animation:funde .7s var(--ease) .2s backwards}
+.et-rejilla{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(264px,1fr))}
+.et-fic .et-t{min-height:96px;padding:16px}
+.et-fic .et-vis{width:58px;height:58px}
+.et-fic .et-v{font-size:27px}
+@container etplaca (max-width:760px){.et-fic .et-v{font-size:23px}.et-fic .et-t{gap:10px;padding:14px 12px}}
+
+/* ========== C · EL TABLERO DE LUCES ========== */
+.et-ver{display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px;padding:20px 24px}
+.et-ver h2{font:500 38px/1.08 'EB Garamond',serif;overflow:hidden}
+.et-ver h2 span{display:block;animation:et-ranura .75s var(--ease) .1s backwards}
+.et-faltas{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.et-falta-b{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:999px;font-size:15px;color:var(--ambar);background:color-mix(in srgb,var(--ambar) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ambar) 34%,transparent);animation:et-sube .5s var(--ease) calc(.4s + var(--k) * 80ms) backwards;transition:background .25s}
+@media (hover:hover){.et-falta-b:hover{background:color-mix(in srgb,var(--ambar) 20%,transparent)}}
+.et-falta-b::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.et-ver-tx{min-width:0;flex:1}
+.et-mesa{display:grid;grid-auto-flow:column;grid-template-rows:auto repeat(5,minmax(84px,auto));grid-template-columns:minmax(150px,.7fr) repeat(4,minmax(0,1fr));gap:8px;padding:14px}
+.et-col-h{display:flex;align-items:center;gap:9px;padding:6px 10px 10px;font:500 24px/1 'EB Garamond',serif;animation:et-sube .5s var(--ease) calc(.1s + var(--k) * 70ms) backwards}
+.et-col-h i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.et-fil-h{display:flex;align-items:center;padding:0 10px;font-size:16px;color:var(--t80);border-radius:14px;transition:background .25s,color .25s;animation:et-sube .5s var(--ease) calc(.15s + var(--k) * 70ms) backwards}
+.et-mesa .et-t{flex-direction:column;justify-content:center;gap:6px;min-height:84px;padding:10px 8px;text-align:center}
+.et-mesa .et-lb{display:none}
+.et-mesa .et-vis{width:38px;height:38px}
+.et-mesa .et-v{font-size:19px}
+.et-mesa .et-t:not(.falta):not(.apagado){background:color-mix(in srgb,var(--c) 8%,color-mix(in srgb,var(--vidrio) 40%,transparent))}
+.et-mesa .et-int{position:absolute;right:8px;top:8px;width:36px;height:21px;padding:2px}.et-mesa .et-int::after{width:17px;height:17px}.et-mesa .et-int[aria-checked="true"]::after{transform:translateX(15px)}
+.et-nada{display:grid;place-items:center;min-height:84px;color:var(--t25);font-size:18px;border-radius:18px;background:repeating-linear-gradient(135deg,transparent 0 6px,color-mix(in srgb,var(--tinta) 3%,transparent) 6px 12px)}
+.et-mesa.cruz [data-cruz-f].fila-activa,.et-mesa.cruz [data-cruz-c].col-activa{background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+.et-t.busca{animation:et-busca 1.2s var(--ease)}
+@keyframes et-busca{0%,100%{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--ambar) 42%,transparent)}30%{box-shadow:inset 0 0 0 3px var(--rojo),0 0 0 6px color-mix(in srgb,var(--rojo) 18%,transparent)}}
+@container etplaca (max-width:760px){
+  .et-mesa{grid-auto-flow:row;grid-template-rows:none;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .et-fil-h{display:none}.et-col-h{grid-column:1/-1;padding-top:12px}.et-nada{display:none}
+  .et-mesa .et-lb{display:block}
+}
+
+/* ---------- la hoja y el aviso ---------- */
+.et-hoja .sub{font-size:15px}
+.et-hoja .caja{height:48px;margin-bottom:10px}
+.et-hoja input{width:100%;background:none;border:0;outline:none;font-size:16px}
+.et-hoja .cons{display:flex;gap:10px;align-items:center;padding:12px 14px;margin-bottom:14px;border-radius:16px;font-size:15px;background:color-mix(in srgb,var(--vidrio) 40%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 7%,transparent)}
+.et-hoja .cons .et-vis{width:36px;height:36px}
+.et-av{position:absolute;z-index:40;top:76px;right:20px;max-width:340px;padding:11px 16px;border-radius:16px;font-size:15px;background:linear-gradient(180deg,color-mix(in srgb,var(--verde) 10%,color-mix(in srgb,var(--vidrio) 86%,transparent)),color-mix(in srgb,var(--verde) 16%,color-mix(in srgb,var(--vidrio) 70%,transparent)));-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--verde) 30%,transparent),0 14px 28px -14px color-mix(in srgb,var(--sombra) 50%,transparent);animation:et-enfoca .45s var(--ease)}
+.et-av.mal{background:color-mix(in srgb,var(--ambar) 16%,color-mix(in srgb,var(--vidrio) 90%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ambar) 40%,transparent),0 14px 28px -14px color-mix(in srgb,var(--sombra) 50%,transparent)}
+@container disp (max-width:520px){.et-fic{padding:20px 16px 16px}.et-fic .et-v{font-size:23px}.et-fic .et-t{gap:10px;padding:14px 12px}.et-carnet{padding:16px}.et-marca b{font-size:30px}.et-carnet .et-fin{margin-left:0;width:100%;justify-content:space-between}.et-digitos{font-size:24px}.et-av{left:12px;right:12px;top:70px}.et-resp{width:100%}.et-fic h2{font-size:44px}.et-ver h2{font-size:30px}}
+@media (prefers-reduced-motion:reduce){.et-raiz *,.et-raiz *::before,.et-raiz *::after,.et-av,.hoja{animation:none!important;transition:none!important}.et-carnet::after{display:none}}
+
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Configuración ▸ Empresa y tiendas</span>
+  <span class="tag">Dirección</span><div class="seg-m" data-ctl="prop"><button data-v="a">A · Las vitrinas (recomendada)</button><button data-v="b">B · El mapa vivo</button><button data-v="c">C · El tablero de luces</button></div>
+  <button class="accion" data-acc="repetir">Repetir la entrada</button>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="escritorio">1440</button><button data-v="w1920">1920</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Las tres: lo que gana y lo que cuesta</h2>
+    <p>Las tres traen los mismos datos y hacen lo mismo. Toca cualquier dato para cambiarlo: en la carga inicial se abre su hoja, porque cerrar una sede no debe pasar por un Tab de más.</p>
+    <table>
+      <tr><th>Cara</th><th>La idea</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td><b>A · Las vitrinas</b> <span class="ev">Recomendada</span></td><td>Una tarjeta por sede, con su anillo.</td><td>Se entiende sin explicar: cada tienda es una tarjeta. Se ven todas a la vez y cabe igual de bien en el celular.</td><td>Es la menos sorprendente. Comparar el mismo dato entre sedes pide mover los ojos.</td></tr>
+      <tr><td><b>B · El mapa vivo</b></td><td>El Perú cosido con el hilo; una gota viaja a la sede que tocas.</td><td>La más memorable: se siente CAYLA. La sede abierta tiene todo el espacio.</td><td>Se ve una sede a la vez, y hay que tocar para saber qué tiene otra. El mapa ocupa lugar y no da un dato.</td></tr>
+      <tr><td><b>C · El tablero de luces</b></td><td>Una frase dice qué falta; cada dato es una luz.</td><td>Responde en 5 segundos «¿qué le falta a cada sede?», y tocar lo que falta te lleva al dato. La mejor para comparar.</td><td>Es la más densa y la más técnica de mirar; en el celular deja de ser tablero y pasa a lista.</td></tr>
+    </table>
+    <h3>Lo que cambia frente a hoy, en las tres</h3>
+    <ul>
+      <li><b>Cuatro tablas pasan a una sola idea</b>, y los datos fiscales a un carnet. Las explicaciones se van detrás del candado o del aviso que sale al guardar.</li>
+      <li><b>Nada baja de 14 px</b>, salvo las pestañas en versalitas, y el valor de cada dato se lee en grande.</li>
+      <li><b>Cada dato se ve antes de leerse</b>: QR que se arma, reloj con su hora, monedas según el fondo, candado que se cierra. En ámbar, lo que falta.</li>
+    </ul>
+    <h3>Dos supuestos para que me corrijas</h3>
+    <ul>
+      <li><b>«Falta» cuenta</b> WhatsApp, hora de cierre, fondo de caja y fecha de carga. Preguntar apagado no cuenta como falta: es una elección.</li>
+      <li><b>El movimiento corre una vez y sin rebote</b> (ADR-0136), al entrar o al guardar. Con «Reducir movimiento» del sistema, todo se apaga. Entrar a producción pedirá sumar esta excepción a la regla.</li>
+    </ul>
+    <h3>Lo que no cambia</h3>
+    <p>Las funciones de la base, los permisos (reabrir una carga sigue siendo solo del Admin), la firma del responsable y la historia. Datos inventados.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<script>
+// En su propio bloque: marco.js usa nombres globales que aquí no se pisan.
+{
+
+const HOY = '2026-11-04';
+const MESES_C = ['ene','feb','mar','abr','may','jun','jul','ago','set','oct','nov','dic'];
+const fechaC = (f) => { const [, m, d] = f.split('-'); return `${+d} ${MESES_C[+m - 1]}`; };
+const hora12 = (h) => { const [a, b] = h.split(':').map(Number); return `${a % 12 || 12}:${String(b).padStart(2, '0')} ${a >= 12 ? 'p. m.' : 'a. m.'}`; };
+const celu = (w) => `${w.slice(0, 3)} ${w.slice(3, 6)} ${w.slice(6)}`;
+const svgI = (d, x = '') => `<svg viewBox="0 0 24 24" aria-hidden="true" ${x}><path d="${d}"/></svg>`;
+const OK = 'M5 12.5l4.5 4.5L19 7.5';
+const SEDES_D = [
+  { id: 'tru', n: 'Trujillo', c: 'var(--sede-tru)', dir: 'Av. España 1240', serie: ['B001', 'F001'], wa: '987654321', cierra: '21:00', fondo: 300, ia: true, carga: '2026-10-28', lon: -79.03, lat: -8.11, tienda: true },
+  { id: 'aqp', n: 'Arequipa', c: 'var(--sede-aqp)', dir: 'Calle Mercaderes 312', serie: ['B002', 'F002'], wa: '956112480', cierra: '20:30', fondo: 250, ia: true, carga: '2026-10-28', lon: -71.53, lat: -16.41, tienda: true },
+  { id: 'lim', n: 'Lima', c: 'var(--sede-lim)', dir: 'Jr. de la Unión 880', serie: ['B003', 'F003'], wa: '', cierra: '', fondo: 300, ia: true, carga: '2026-11-30', lon: -77.04, lat: -12.05, tienda: true },
+  { id: 'tal', n: 'Taller', c: 'var(--sede-tal)', dir: 'En Lima', serie: [], wa: '', cierra: '', fondo: null, ia: false, carga: '', lon: -75.3, lat: -11.2, tienda: false },
+];
+const sedeDe = (id) => SEDES_D.find((s) => s.id === id);
+const CAMPOS = (s) => (s.tienda ? ['wa', 'cierra', 'fondo', 'ia', 'carga'] : ['ia', 'carga']);
+const NOMBRE = { wa: 'WhatsApp', cierra: 'Cierra', fondo: 'Fondo de caja', ia: 'Preguntar', carga: 'Carga inicial' };
+const NOMBRE_F = { wa: 'WhatsApp', cierra: 'hora de cierre', fondo: 'fondo de caja', carga: 'fecha de carga' };
+const falta = (s, c) => (c === 'wa' && !s.wa) || (c === 'cierra' && !s.cierra) || (c === 'fondo' && (s.fondo === null || s.fondo === '')) || (c === 'carga' && !s.carga);
+const faltasDe = (s) => CAMPOS(s).filter((c) => c !== 'ia' && falta(s, c));
+const avance = (s) => { const r = CAMPOS(s).filter((c) => c !== 'ia'); return { hechos: r.length - faltasDe(s).length, total: r.length }; };
+
+// ---------- los dibujos ----------
+const PATRON = [1,1,1,0,1,0,1,1,0,1,1,0,0,1,1,1,1,0,1,1,1,0,0,1,1,0,0,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,1,1,0,1,0,1];
+const vQr = (on, i) => `<svg class="vq ${on ? '' : 'no'}" style="--i:${i}" viewBox="0 0 40 40" aria-hidden="true">${on ? '' : '<rect class="marco" x="1" y="1" width="38" height="38" rx="6"/>'}${PATRON.map((p, k) => (p ? `<rect style="--k:${k}" x="${4 + (k % 7) * 4.6}" y="${4 + Math.floor(k / 7) * 4.6}" width="4" height="4" rx="1"/>` : '')).join('')}</svg>`;
+const vReloj = (h, i) => { const on = !!h; const [a, b] = (h || '12:00').split(':').map(Number); const am = (a % 12) * 30 + b / 2, mm = b * 6; return `<svg class="vr ${on ? '' : 'no'}" style="--i:${i}" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17"/><line class="h" style="--a:${am}deg" x1="20" y1="20" x2="20" y2="11"/><line class="m" style="--a:${mm}deg" x1="20" y1="20" x2="20" y2="7"/></svg>`; };
+const vMonedas = (m, i) => { const on = m !== null && m !== ''; const n = on ? Math.max(1, Math.min(6, Math.round(m / 60))) : 3; return `<svg class="vm ${on ? '' : 'no'}" style="--i:${i}" viewBox="0 0 40 40" aria-hidden="true">${Array.from({ length: n }, (_, k) => `<rect style="--k:${k}" x="7" y="${32 - k * 5.4}" width="26" height="6.4" rx="3"/>`).join('')}</svg>`; };
+const vChispa = (on, i) => `<svg class="vc ${on ? 'on' : 'no'}" style="--i:${i}" viewBox="0 0 40 40" aria-hidden="true"><path pathLength="1" d="M20 4c1.6 8.8 5.2 12.4 14 14-8.8 1.6-12.4 5.200-14 14-1.600-8.800-5.200-12.400-14-14 8.800-1.600 12.400-5.200 14-14z"/></svg>`;
+const vCandado = (f, i) => { const est = !f ? 'no' : f < HOY ? 'cerrado' : 'abierto'; return `<svg class="vk ${est}" style="--i:${i}" viewBox="0 0 40 40" aria-hidden="true"><path d="M13 19v-6a7 7 0 0 1 14 0v6"/><rect x="8" y="19" width="24" height="17" rx="5"/></svg>`; };
+const textoCarga = (f) => (!f ? 'Falta' : f < HOY ? `Cerró ${fechaC(f)}` : `Hasta ${fechaC(f)}`);
+
+function dato(s, c, i = 0) {
+  const fa = falta(s, c);
+  const vis = { wa: () => vQr(!!s.wa, i), cierra: () => vReloj(s.cierra, i), fondo: () => vMonedas(s.fondo, i), ia: () => vChispa(s.ia, i), carga: () => vCandado(s.carga, i) }[c]();
+  const val = { wa: () => (s.wa ? celu(s.wa) : 'Falta'), cierra: () => (s.cierra ? hora12(s.cierra) : 'Falta'), fondo: () => (fa ? 'Falta' : `<span data-cuenta="${s.fondo}" data-pre="S/ ">S/ ${s.fondo}</span>`), ia: () => (s.ia ? 'Encendido' : 'Apagado'), carga: () => textoCarga(s.carga) }[c]();
+  return `<div class="et-t ${fa ? 'falta' : ''} ${c === 'ia' && !s.ia ? 'apagado' : ''}" role="button" tabindex="0" data-s="${s.id}" data-c="${c}" style="--i:${i};--c:${s.c}" aria-label="${NOMBRE[c]} de ${s.n}: ${String(val).replace(/<[^>]+>/g, '')}"${c === 'ia' ? ` data-cruz-f="${c}"` : ''}>
+    <span class="et-vis">${vis}</span><span class="et-tx"><span class="et-lb">${NOMBRE[c]}</span><span class="et-v">${val}</span></span>
+    ${c === 'ia' ? `<span class="et-int" role="switch" aria-checked="${s.ia}" aria-hidden="true"></span>` : ''}
+    <span class="et-visto">${svgI(OK)}</span></div>`;
+}
+function anillo(s, t = 58) {
+  const a = avance(s), ok = a.hechos === a.total;
+  return `<span class="et-an ${ok ? '' : 'faltan'}" data-anillo="${s.id}" style="--t:${t}px;--off:${100 - (a.hechos / a.total) * 100}" title="${a.hechos} de ${a.total} listos"><svg viewBox="0 0 36 36" aria-hidden="true"><circle class="pista" cx="18" cy="18" r="15.9"/><circle class="arco" cx="18" cy="18" r="15.9" pathLength="100"/></svg><b>${ok ? svgI(OK) : `${a.hechos}/${a.total}`}</b></span>`;
+}
+const carnet = () => `<section class="et-placa et-carnet et-entra" style="--e:0" aria-label="Datos de la empresa">
+    <div class="et-marca"><b>CAYLA</b><span>Empresa de Ejemplo S.A.C.</span></div>
+    <div class="et-ruc"><small>RUC</small><div class="et-digitos" aria-label="20600000000">${'20600000000'.split('').map((d, k) => `<span class="et-dig" style="--d:${d};--k:${k}"><span>${'0123456789'.split('').map((x) => `<i>${x}</i>`).join('')}</span></span>`).join('')}</div></div>
+    <div class="et-dato"><small>Correo</small><b>contacto@ejemplo.pe</b></div>
+    <div class="et-dato"><small>Teléfono</small><b>044 000 000</b></div>
+    <div class="et-fin"><div class="et-consumo" title="Lo gastado por Preguntar este mes"><span>Preguntar <b>US$ 4,20 de 30</b></span><i><em style="--p:14%"></em></i></div>
+      <span class="et-sol"><button class="et-solo" data-ayuda aria-label="Por qué no se pueden cambiar estos datos">${svgI('M7 11V8a5 5 0 0 1 10 0v3M6 11h12a1 1 0 0 1 1 1v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7a1 1 0 0 1 1-1z')}</button></span></div>
+  </section>`;
+
+// ---------- A · las vitrinas ----------
+const vistaA = () => `${carnet()}<div class="et-vitrinas">${SEDES_D.map((s, e) => `<article class="et-placa et-vit et-entra" style="--e:${e + 1};--c:${s.c}">
+    <header><div><h2><span>${s.n}</span></h2><p class="et-dir">${s.dir}</p>${s.serie.length ? `<div class="et-ser">${s.serie.map((x) => `<span>${x}</span>`).join('')}</div>` : ''}</div>${anillo(s)}</header>
+    <div class="et-lista">${CAMPOS(s).map((c, i) => dato(s, c, e * 2 + i)).join('')}</div></article>`).join('')}</div>`;
+
+// ---------- B · el mapa vivo ----------
+const PERU = [[-80.3,-3.4],[-80.1,-4.3],[-79,-5],[-78.7,-4.5],[-78.3,-3.4],[-77,-2.9],[-75.6,-1.6],[-75.2,-0.1],[-74.2,-1],[-72.9,-2.4],[-71.7,-2.2],[-70.1,-2.7],[-70,-4.2],[-72,-5],[-73.1,-6.5],[-73.9,-7.3],[-73.4,-9.2],[-72.2,-10],[-70.6,-9.6],[-70.6,-11],[-69.6,-11],[-68.7,-12.5],[-69,-14],[-69.4,-15.5],[-69,-16.4],[-69.5,-17.3],[-69.9,-18.2],[-70.4,-18.35],[-71.4,-17.4],[-72.1,-17],[-73.5,-16.3],[-75.2,-15.4],[-76.3,-14],[-76.8,-13],[-77.2,-12],[-78.2,-10],[-79,-8.2],[-79.9,-6.9],[-81.1,-6],[-81.3,-4.6]];
+const px = (lon, lat) => [((lon + 81.5) / 13.2) * 340 + 10, (-lat / 18.6) * 480 + 8];
+const xy = (s) => px(s.lon, s.lat);
+const arco = (a, b, k = 0.18) => { const [x1, y1] = xy(a), [x2, y2] = xy(b); const mx = (x1 + x2) / 2 - (y2 - y1) * k, my = (y1 + y2) / 2 + (x2 - x1) * k; return `M${x1} ${y1}Q${mx} ${my} ${x2} ${y2}`; };
+const puntoHtml = (s, k) => { const [x, y] = xy(s); const izq = s.id === 'tru' || s.id === 'lim'; return `<g class="et-pt ${est.sede === s.id ? 'on' : ''}" role="button" tabindex="0" aria-label="${s.n}" data-ir-sede="${s.id}" style="--c:${s.c};--k:${k}"><circle class="halo" cx="${x}" cy="${y}" r="${est.sede === s.id ? 22 : 15}"/><circle class="pto" cx="${x}" cy="${y}" r="8"/>${faltasDe(s).length ? `<circle class="aviso" cx="${x + 7}" cy="${y - 7}" r="4.5"/>` : ''}<text x="${izq ? x - 16 : x + 16}" y="${y + 6}" text-anchor="${izq ? 'end' : 'start'}">${s.n}</text></g>`; };
+const fichaHtml = (s) => `<div class="et-placa et-fic" style="--c:${s.c}" id="et-ficha"><header><div><h2><span>${s.n}</span></h2><p class="et-dir">${s.dir}</p>${s.serie.length ? `<div class="et-ser">${s.serie.map((x) => `<span>${x}</span>`).join('')}</div>` : ''}</div>${anillo(s, 92)}</header><div class="et-rejilla">${CAMPOS(s).map((c, i) => dato(s, c, i)).join('')}</div></div>`;
+const vistaB = () => { const [t, l, a, ta] = ['tru', 'lim', 'aqp', 'tal'].map(sedeDe); const hilos = `${arco(t, l)}${arco(l, a)}${arco(l, ta, 0.4)}`; return `${carnet()}<div class="et-b">
+    <section class="et-placa et-mapa et-entra" style="--e:1" aria-label="Mapa de las sedes"><svg viewBox="0 0 360 500" id="et-svg"><path class="et-peru" pathLength="1" d="M${PERU.map(([a1, b1]) => px(a1, b1).join(' ')).join('L')}Z"/>
+      <mask id="et-m" maskUnits="userSpaceOnUse" x="0" y="0" width="360" height="500"><path class="et-mask" pathLength="1" d="${hilos}"/></mask><path class="et-hilo" d="${hilos}" mask="url(#et-m)"/><g id="et-puntos">${SEDES_D.map(puntoHtml).join('')}</g></svg>
+      <div class="et-pills">${SEDES_D.map((s) => `<button class="et-pil" style="--c:${s.c}" data-ir-sede="${s.id}" aria-pressed="${est.sede === s.id}"><i></i>${s.n}</button>`).join('')}</div></section>
+    <div id="et-ficha-lugar">${fichaHtml(sedeDe(est.sede))}</div></div>`; };
+
+// ---------- C · el tablero de luces ----------
+const veredicto = () => { const f = SEDES_D.flatMap((s) => faltasDe(s).map((c) => [s, c])); const sedes = new Set(f.map(([s]) => s.id)).size; const t = SEDES_D.reduce((x, s) => x + avance(s).total, 0), h = SEDES_D.reduce((x, s) => x + avance(s).hechos, 0);
+  const tx = !f.length ? 'Todas las sedes están listas' : sedes === 1 ? `A ${SEDES_D.find((s) => faltasDe(s).length).n} ${f.length === 1 ? 'le falta 1 cosa' : `le faltan ${f.length} cosas`}` : `Faltan ${f.length} cosas en ${sedes} sedes`;
+  return `<span class="et-an ${f.length ? 'faltan' : ''}" style="--t:96px;--off:${100 - (h / t) * 100}"><svg viewBox="0 0 36 36" aria-hidden="true"><circle class="pista" cx="18" cy="18" r="15.9"/><circle class="arco" cx="18" cy="18" r="15.9" pathLength="100"/></svg><b>${f.length ? `${h}/${t}` : svgI(OK)}</b></span><div class="et-ver-tx"><h2><span>${tx}</span></h2>${f.length ? `<div class="et-faltas">${f.map(([s, c], k) => `<button class="et-falta-b" style="--k:${k}" data-busca="${s.id}|${c}">${s.n}: ${NOMBRE_F[c]}</button>`).join('')}</div>` : ''}</div>`; };
+const vistaC = () => { const filas = ['wa', 'cierra', 'fondo', 'ia', 'carga'];
+  return `<section class="et-placa et-ver et-entra" style="--e:0" id="et-veredicto">${veredicto()}</section>${carnet().replace('--e:0', '--e:1')}
+  <section class="et-placa et-entra" style="--e:2" aria-label="Lo de cada sede"><div class="et-mesa cruz" id="et-mesa">
+    <div></div>${filas.map((f, k) => `<div class="et-fil-h" data-cruz-f="${f}" style="--k:${k}">${NOMBRE[f]}</div>`).join('')}
+    ${SEDES_D.map((s, col) => `<div class="et-col-h" data-cruz-c="${s.id}" style="--c:${s.c};--k:${col}"><i></i>${s.n}</div>${filas.map((f, r) => (CAMPOS(s).includes(f) ? dato(s, f, r + col * 2) : '<div class="et-nada" aria-hidden="true">—</div>')).join('')}`).join('')}
+  </div></section>`; };
+
+// ---------- pintar ----------
+const est = { sede: 'lim', tab: 'Empresa y tiendas' };
+let ultimaProp = null;
+function pintarE(e, forzar) {
+  const cont = $('#cont'), arriba = cont.scrollTop;
+  const nueva = forzar || e.prop !== ultimaProp;
+  document.documentElement.classList.toggle('et-quieto', !nueva);
+  cont.innerHTML = `${encabezado({ sede: 'Toda CAYLA', fecha: 'miércoles, 4 de noviembre · 16:42', titulo: 'Configuración' })}
+    <div class="et-tira"><div class="pz-t" role="tablist" aria-label="Secciones de Configuración">${['Empresa y tiendas', 'Metas', 'Dinero', 'Gastos', 'Impuestos'].map((t) => `<button role="tab" data-otra="${t}" aria-selected="${t === est.tab}">${t}</button>`).join('')}</div>
+      <span class="et-resp" title="Cada dato se guarda solo al salir de él, a nombre de quien firma."><i>LR</i>Lucía Ramos</span></div>
+    <div class="et-raiz">${{ a: vistaA, b: vistaB, c: vistaC }[e.prop]()}</div>`;
+  cont.scrollTop = nueva ? 0 : arriba;
+  if (nueva) { ultimaProp = e.prop; cuentaTodo(cont); }
+}
+const sinMovimiento = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+function cuentaTodo(r) { if (sinMovimiento()) return; r.querySelectorAll('[data-cuenta]').forEach((el) => { const fin = +el.dataset.cuenta, t0 = performance.now() + 300, pre = el.dataset.pre || ''; const paso = (t) => { const p = Math.min(1, Math.max(0, (t - t0) / 900)); el.textContent = pre + Math.round(fin * (1 - (1 - p) ** 3)); if (p < 1) requestAnimationFrame(paso); }; el.textContent = pre + '0'; requestAnimationFrame(paso); }); }
+function derivados() {
+  document.querySelectorAll('[data-anillo]').forEach((el) => { const s = sedeDe(el.dataset.anillo), a = avance(s), ok = a.hechos === a.total; el.classList.toggle('faltan', !ok); el.style.setProperty('--off', 100 - (a.hechos / a.total) * 100); el.querySelector('b').innerHTML = ok ? svgI(OK) : `${a.hechos}/${a.total}`; });
+  const v = $('#et-veredicto'); if (v) v.innerHTML = veredicto();
+  const p = $('#et-puntos'); if (p) { p.innerHTML = SEDES_D.map(puntoHtml).join(''); p.querySelectorAll('*').forEach((x) => { x.style.animation = 'none'; }); }
+}
+let avisoT;
+function avisar(tx, mal) { document.querySelectorAll('.et-av').forEach((a) => a.remove()); $('#disp').insertAdjacentHTML('beforeend', `<div class="et-av ${mal ? 'mal' : ''}" role="status">${tx}</div>`); clearTimeout(avisoT); avisoT = setTimeout(() => document.querySelectorAll('.et-av').forEach((a) => a.remove()), 3200); }
+function rehacer(el, recien) { const s = sedeDe(el.dataset.s), c = el.dataset.c; const i = +(el.style.getPropertyValue('--i') || 0); const tmp = document.createElement('div'); tmp.innerHTML = dato(s, c, i); const n = tmp.firstElementChild; if (recien) n.classList.add('recien'); else n.style.animation = 'none'; el.replaceWith(n); if (recien) { cuentaTodo(n); setTimeout(() => n.classList.remove('recien'), 2000); } return n; }
+
+// ---------- escribir un dato ----------
+function abrir(el) {
+  const s = sedeDe(el.dataset.s), c = el.dataset.c;
+  if (c === 'ia') { s.ia = !s.ia; rehacer(el, true); derivados(); avisar(s.ia ? `${s.n}: ya puede preguntarle a CAYLA.` : `${s.n}: Preguntar apagado.`); return; }
+  if (c === 'carga') { abrirHoja(s, el); return; }
+  if (el.classList.contains('edita')) return;
+  el.classList.add('edita');
+  const v = c === 'wa' ? s.wa : c === 'cierra' ? s.cierra : s.fondo ?? '';
+  const tipo = c === 'cierra' ? 'type="time"' : 'inputmode="numeric"';
+  el.querySelector('.et-v').innerHTML = `<span class="et-pozo"><input class="et-in" ${tipo} value="${v}" aria-label="${NOMBRE[c]} de ${s.n}"></span>`;
+  const i = el.querySelector('input'); i.focus(); i.select?.(); let hecho = false;
+  const cerrar = (guardar) => { if (hecho) return; hecho = true;
+    const t = i.value.trim();
+    if (!guardar || t === String(v)) { rehacer(el, false); return; }
+    if (c === 'wa' && t && !/^9\d{8}$/.test(t)) { avisar('Tiene 9 dígitos y empieza en 9.', true); rehacer(el, false); return; }
+    if (c === 'fondo' && t && !/^\d+$/.test(t)) { avisar('El fondo es un monto en soles.', true); rehacer(el, false); return; }
+    if (c === 'wa') s.wa = t; if (c === 'cierra') s.cierra = t; if (c === 'fondo') s.fondo = t ? +t : null;
+    rehacer(el, true); derivados();
+    avisar(c === 'wa' ? (t ? `${s.n}: su QR del club ya se puede imprimir.` : `${s.n}: sin WhatsApp, no muestra QR.`) : c === 'cierra' ? (t ? `${s.n} cierra a las ${hora12(t)}.` : `${s.n}: sin hora de cierre.`) : `Fondo de ${s.n}: ${t ? `S/ ${t}` : 'sin fondo'}.`);
+  };
+  i.addEventListener('blur', () => cerrar(true));
+  i.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') i.blur(); if (ev.key === 'Escape') cerrar(false); });
+}
+function abrirHoja(s, el) {
+  const d = $('#disp'); d.querySelector('.capa')?.remove();
+  const cons = (f) => (!f ? 'Elige hasta qué día.' : f < HOY ? `${s.n} ya no carga sin comprobante.` : `${s.n} carga sin comprobante hasta el ${fechaC(f)}.`);
+  d.insertAdjacentHTML('beforeend', `<div class="capa et-hoja"><div class="velo" data-cierra></div><div class="hoja" role="dialog" aria-label="Carga inicial de ${s.n}"><h2>Carga inicial de ${s.n}</h2><p class="sub">Hasta qué día carga lo que ya tenía.</p><div class="et-marco"><div class="caja"><input type="date" value="${s.carga}" aria-label="Último día de carga"></div></div><div class="cons"><span class="et-vis" id="et-cv">${vCandado(s.carga, 0)}</span><span id="et-ct">${cons(s.carga)}</span></div><div class="pie"><button class="b sec" data-cierra>Cancelar</button><button class="b pri" data-guarda>Guardar</button></div></div></div>`);
+  d.setAttribute('data-hoja', '');
+  const capa = d.querySelector('.capa'), i = capa.querySelector('input');
+  i.addEventListener('input', () => { capa.querySelector('#et-cv').innerHTML = vCandado(i.value, 0); capa.querySelector('#et-ct').textContent = cons(i.value); });
+  const fin = () => { capa.remove(); d.removeAttribute('data-hoja'); };
+  capa.addEventListener('click', (ev) => { if (ev.target.closest('[data-cierra]')) fin(); if (ev.target.closest('[data-guarda]')) { s.carga = i.value; fin(); const vivo = document.querySelector(`.et-t[data-s="${s.id}"][data-c="carga"]`); if (vivo) rehacer(vivo, true); derivados(); avisar(`Carga inicial de ${s.n} guardada.`); } });
+}
+
+// ---------- el vuelo entre sedes ----------
+function irA(id) {
+  if (id === est.sede) return;
+  const de = sedeDe(est.sede), a = sedeDe(id); est.sede = id;
+  const lugar = $('#et-ficha-lugar'), svg = $('#et-svg');
+  const llegar = () => { lugar.innerHTML = fichaHtml(a); cuentaTodo(lugar); const p = $('#et-puntos'); p.innerHTML = SEDES_D.map(puntoHtml).join(''); p.querySelectorAll('*').forEach((x) => { x.style.animation = 'none'; }); const [x, y] = xy(a); p.insertAdjacentHTML('beforeend', `<circle class="et-onda" style="--c:${a.c}" cx="${x}" cy="${y}" r="14"/>`); setTimeout(() => p.querySelector('.et-onda')?.remove(), 950); document.querySelectorAll('.et-pil').forEach((b) => b.setAttribute('aria-pressed', b.dataset.irSede === id)); };
+  if (sinMovimiento() || !svg) { llegar(); return; }
+  const ruta = document.createElementNS('http://www.w3.org/2000/svg', 'path'); ruta.setAttribute('d', arco(de, a, 0.22));
+  const gota = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); gota.setAttribute('r', 6); gota.setAttribute('class', 'et-gota'); svg.appendChild(gota);
+  const largo = ruta.getTotalLength(), t0 = performance.now(), dura = 620; let cambio = false;
+  const f = (t) => { const p = Math.min(1, (t - t0) / dura), e = p < .5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2, q = ruta.getPointAtLength(largo * e); gota.setAttribute('cx', q.x); gota.setAttribute('cy', q.y); if (p > .55 && !cambio) { cambio = true; llegar(); } if (p < 1) requestAnimationFrame(f); else gota.remove(); };
+  requestAnimationFrame(f);
+}
+
+// ---------- lo que se toca ----------
+document.addEventListener('click', (ev) => {
+  const ay = ev.target.closest('[data-ayuda]');
+  document.querySelectorAll('.et-globo').forEach((g) => g.remove());
+  if (ay) { ay.parentElement.insertAdjacentHTML('beforeend', '<div class="et-globo" role="status"><b>Solo se lee.</b> Salen en boletas y facturas. Se corrigen con el contador: un RUC mal escrito hace que SUNAT rechace cada comprobante.</div>'); return; }
+  const otra = ev.target.closest('[data-otra]'); if (otra && otra.dataset.otra !== est.tab) { avisar('Esta maqueta es solo de Empresa y tiendas.'); return; }
+  const ir = ev.target.closest('[data-ir-sede]'); if (ir) { irA(ir.dataset.irSede); return; }
+  const bu = ev.target.closest('[data-busca]'); if (bu) { const [s, c] = bu.dataset.busca.split('|'); const t = document.querySelector(`.et-t[data-s="${s}"][data-c="${c}"]`); if (t) { t.scrollIntoView({ block: 'center', behavior: sinMovimiento() ? 'auto' : 'smooth' }); t.classList.remove('busca'); void t.offsetWidth; t.classList.add('busca'); setTimeout(() => { t.classList.remove('busca'); if (c !== 'carga') abrir(t); }, 800); } return; }
+  const t = ev.target.closest('.et-t'); if (t && !ev.target.closest('input')) abrir(t);
+});
+document.addEventListener('keydown', (ev) => {
+  const el = ev.target; if (ev.key !== 'Enter' && ev.key !== ' ') return;
+  if (el.classList?.contains('et-t')) { ev.preventDefault(); abrir(el); }
+  const g = el.closest?.('.et-pt'); if (g) { ev.preventDefault(); irA(g.dataset.irSede); }
+});
+// la cruz del tablero: la fila y la sede del dato que se apunta
+document.addEventListener('mouseover', (ev) => { const m = $('#et-mesa'); if (!m) return; m.querySelectorAll('.fila-activa,.col-activa').forEach((x) => x.classList.remove('fila-activa', 'col-activa')); const t = ev.target.closest?.('#et-mesa .et-t'); if (!t) return; m.querySelector(`[data-cruz-f="${t.dataset.c}"].et-fil-h`)?.classList.add('fila-activa'); m.querySelector(`[data-cruz-c="${t.dataset.s}"]`)?.classList.add('col-activa'); });
+Marco.iniciar({ estado: { prop: 'a' }, alPintar: (e) => pintarE(e), alAccion: (a) => { if (a === 'repetir') pintarE(estado, true); } });
+
+}
+</script>
+</body>
+</html>

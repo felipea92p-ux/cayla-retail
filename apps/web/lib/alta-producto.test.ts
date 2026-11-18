@@ -4,14 +4,13 @@ import {
   claveReferencia,
   codigoBasePrevisto,
   codigoVariantePrevisto,
-  codigosRepetidos,
   construirCeldas,
-  desbloqueos,
   estadoSubidaSinConexion,
   faltaDelPaso,
   fraseStockCreado,
   leerCantidad,
   limpiarCantidad,
+  textoCantidadRechazada,
   ordenarFotosAlta,
   PASOS_ALTA,
   pasoAbrible,
@@ -21,7 +20,6 @@ import {
   textoTallas,
   textoDestinoStock,
   TEXTO_FALTA_LUGAR,
-  pasoAlcanzable,
   pasoDeProblema,
   pasoHecho,
   leerErrorAlta,
@@ -64,6 +62,8 @@ describe("tituloReferencia — espejo del trigger de la base", () => {
   it("una sola forma de escribir, sin importar cómo se tipee", () => {
     expect(tituloReferencia("  blusa   CAMILA ")).toBe("Blusa Camila");
     expect(tituloReferencia("chompa CON rayas")).toBe("Chompa con Rayas");
+    expect(tituloReferencia("polo a rayas")).toBe("Polo a Rayas");
+    expect(tituloReferencia("blusa a")).toBe("Blusa A");
   });
   it("el conector al inicio sí lleva mayúscula", () => {
     expect(tituloReferencia("con botones")).toBe("Con Botones");
@@ -256,12 +256,41 @@ describe("paso 4 — cuántas hay hoy (carga inicial, ADR-0212)", () => {
     expect(leerCantidad("9999")).toBe(9999);
     for (const malo of ["10000", "2.5", "-1", "dos", "1e3", "3,0"]) expect(leerCantidad(malo)).toBeNull();
   });
-  it("limpiarCantidad: al tipear solo quedan dígitos, hasta 4 (una cantidad imposible ni se escribe)", () => {
+  it("limpiarCantidad: una cantidad se deja como está, y los miles se juntan", () => {
     expect(limpiarCantidad("12")).toBe("12");
-    expect(limpiarCantidad("-3")).toBe("3");
-    expect(limpiarCantidad("2.5")).toBe("25");
-    expect(limpiarCantidad("abc")).toBe("");
-    expect(limpiarCantidad("123456")).toBe("1234");
+    expect(limpiarCantidad("007")).toBe("007");
+    expect(limpiarCantidad("")).toBe("");
+    expect(limpiarCantidad(" 12 ")).toBe("12");
+    expect(limpiarCantidad("1,200")).toBe("1200");
+    expect(limpiarCantidad("1.200")).toBe("1200");
+    expect(limpiarCantidad("1 200")).toBe("1200");
+  });
+  it("limpiarCantidad: lo que no es una cantidad se queda como se escribió, para que se vea y no se guarde (Felipe 2026-11-03)", () => {
+    for (const malo of ["2,5", "2.5", "12,50", "-3", "-", "1e3", "abc", "12 u.", "S/ 12", "12 34", "12\t34", "123456", "1,20", "1,2345"]) {
+      expect(limpiarCantidad(malo), malo).toBe(malo);
+      expect(leerCantidad(limpiarCantidad(malo)), malo).toBeNull();
+    }
+  });
+  it("limpiarCantidad: tecleado de a una letra, «2,5» y «1.5» nunca pasan por otro número", () => {
+    const tecleado = (escrito: string) => {
+      const pasos: string[] = [];
+      let caja = "";
+      for (const tecla of escrito) {
+        caja = limpiarCantidad(caja + tecla);
+        pasos.push(caja);
+      }
+      return pasos;
+    };
+    expect(tecleado("2,5")).toEqual(["2", "2,", "2,5"]);
+    expect(tecleado("1.5")).toEqual(["1", "1.", "1.5"]);
+    expect(tecleado("-5")).toEqual(["-", "-5"]);
+    expect(tecleado("1,200").at(-1)).toBe("1200");
+    expect(tecleado("1200").at(-1)).toBe("1200");
+  });
+  it("textoCantidadRechazada dice qué pasó, mientras se escribe y al salir", () => {
+    expect(textoCantidadRechazada("2,5", false)).toBe("«2,5» no es una cantidad: escribe un número entero, de 0 a 9999.");
+    expect(textoCantidadRechazada("2,5", true)).toBe("«2,5» no se guardó: las cantidades son números enteros, de 0 a 9999.");
+    expect(textoCantidadRechazada("x".repeat(40), true).length).toBeLessThan(100);
   });
   it("resumenStock suma solo las celdas que siguen en la tabla", () => {
     const cantidades = { a: "3", b: "", c: "2", quitada: "50" };
@@ -279,29 +308,12 @@ describe("paso 4 — cuántas hay hoy (carga inicial, ADR-0212)", () => {
   });
 });
 
-describe("desbloqueos — cada bloque se abre al resolver el anterior", () => {
-  it("sin categoría no hay nada abierto", () => {
-    expect(desbloqueos({ ...base, categoriaId: "" })).toEqual({ marca: false, nombre: false, atributos: false, colores: false, precio: false });
-  });
-  it("con categoría se abre lo siguiente: marca y proveedor son opcionales (ADR-0283), no traban el nombre ni piden nada", () => {
-    expect(desbloqueos({ ...base, referencia: "" })).toEqual({ marca: true, nombre: true, atributos: false, colores: false, precio: false });
+describe("problemasAlta — marca opcional y comprobación del nombre", () => {
+  it("marca y proveedor son opcionales (ADR-0283): no traban el nombre ni piden nada", () => {
     expect(problemasAlta(base).map((p) => p.bloque)).not.toContain("marca");
   });
-  it("con la categoría se abre el nombre; sin nombre no se abren los atributos", () => {
-    expect(desbloqueos({ ...base, referencia: "" })).toEqual({ marca: true, nombre: true, atributos: false, colores: false, precio: false });
-  });
-  it("mientras se comprueba el nombre, los atributos siguen cerrados y el resumen lo dice", () => {
-    expect(desbloqueos({ ...base, comprobandoNombre: true }).atributos).toBe(false);
+  it("mientras se comprueba el nombre, el resumen lo dice", () => {
     expect(problemasAlta({ ...base, comprobandoNombre: true })[0].texto).toMatch(/Comprobando/);
-  });
-  it("un nombre bloqueado o sin confirmar deja cerrados los atributos", () => {
-    expect(desbloqueos({ ...base, nombreBloqueado: true }).atributos).toBe(false);
-    expect(desbloqueos({ ...base, nombreSinConfirmar: true }).atributos).toBe(false);
-  });
-  it("colores y precio se abren cuando tallas y (si se exige) tejido/patrón están resueltos", () => {
-    expect(desbloqueos(base)).toEqual({ marca: true, nombre: true, atributos: true, colores: true, precio: true });
-    expect(desbloqueos({ ...base, tejidoId: "" })).toEqual({ marca: true, nombre: true, atributos: true, colores: false, precio: false });
-    expect(desbloqueos({ ...base, tallasElegidas: 0 }).colores).toBe(false);
   });
 });
 
@@ -389,18 +401,15 @@ describe("pasos del alta — cada problema cae en su paso (4 preguntas, spike v2
     const p = problemasAlta(base);
     expect(PASOS_ALTA).toEqual([1, 2, 3, 4]);
     expect(PASOS_ALTA.map((n) => pasoHecho(p, n))).toEqual([true, true, true, true]);
-    expect(pasoAlcanzable(p)).toBe(4);
   });
   it("el stock cae en el paso 4, junto al precio: con el 3 completo se entra al 4", () => {
     const p = problemasAlta({ ...base, stockTotal: 0 });
     expect(p.map(pasoDeProblema)).toEqual([4]);
     expect(pasoHecho(p, 3)).toBe(true);
     expect(pasoHecho(p, 4)).toBe(false);
-    expect(pasoAlcanzable(p)).toBe(4);
   });
   it("sin categoría todo está pendiente y solo se entra al paso 1", () => {
     const p = problemasAlta({ ...base, categoriaId: "" });
-    expect(pasoAlcanzable(p)).toBe(1);
     expect(pasoHecho(p, 3)).toBe(false);
   });
   it("nombre, tejido y patrón son el paso 2; tallas y tabla el 3; precio y stock el 4", () => {
@@ -435,7 +444,7 @@ describe("pasos del alta — cada problema cae en su paso (4 preguntas, spike v2
 describe("piePaso y siguienteDelAlta — el pie de cada paso y la línea de la ficha", () => {
   const listo = { listo: true, faltaElegir: false, motivo: null };
   const sinElegir = { listo: false, faltaElegir: true, motivo: "Elige quién hace esta operación." };
-  const nadie = { listo: false, faltaElegir: false, motivo: "Nadie de turno en TRU: marca tu entrada en el kiosco para poder guardar." };
+  const nadie = { listo: false, faltaElegir: false, motivo: "Nadie marcó entrada hoy en TRU: márcala en la Terminal de marcaje para poder guardar." };
 
   it("un paso con algo pendiente dice qué le falta", () => {
     const p = problemasAlta({ ...base, tejidoId: "" });
@@ -507,22 +516,21 @@ describe("alta sin conexión: qué pasó y qué decir del stock (ADR-0210 + ADR-
   });
   it("la frase del stock nunca dice «ya aparecen en Existencias» de algo que no entró", () => {
     const s = { unidades: 12, donde: "almacén de Tienda TRU" };
-    expect(fraseStockCreado(s, false, undefined)).toBe("12 unidades cargadas al inventario (almacén de Tienda TRU): ya aparecen en Existencias.");
+    expect(fraseStockCreado(s, false, undefined)).toBe("12 unidades cargadas al inventario (almacén de Tienda TRU) como stock inicial: ya aparecen en Existencias, donde desde ahora se ajustan.");
     expect(fraseStockCreado(s, true, "subio")).toMatch(/ya aparecen en Existencias/);
     for (const subida of ["esperando", "rechazada", "descartada"] as const) {
       expect(fraseStockCreado(s, true, subida)).not.toMatch(/Existencias/);
     }
     expect(fraseStockCreado(s, true, "descartada")).toMatch(/no se cargaron/);
     expect(fraseStockCreado(s, true, "rechazada")).toMatch(/todavía no entraron/);
-    expect(fraseStockCreado({ unidades: 1, donde: "Taller" }, false, undefined)).toBe("1 unidad cargada al inventario (Taller): ya aparecen en Existencias.");
+    expect(fraseStockCreado({ unidades: 1, donde: "Taller" }, false, undefined)).toBe("1 unidad cargada al inventario (Taller) como stock inicial: ya aparecen en Existencias, donde desde ahora se ajustan.");
   });
-});
-
-describe("codigosRepetidos — la fila nueva que choca con una que ya existe", () => {
-  it("marca solo la segunda aparición", () => {
-    expect(codigosRepetidos(["CMS-0001-BLA-L", "CMS-0001-NEG-L", "CMS-0001-BLA-L"])).toEqual([2]);
-  });
-  it("un código desconocido no se compara", () => {
-    expect(codigosRepetidos([null, null, "CMS-0001-U"])).toEqual([]);
+  it("con la carga cerrada (ADR-0328 act. 2026-10-28) dice que llegaron del proveedor, nunca «stock inicial»", () => {
+    const s = { unidades: 5, donde: "almacén de Tienda Trujillo", llegadaDe: "Confecciones del Sur EIRL" };
+    expect(fraseStockCreado(s, false, undefined)).toBe(
+      "5 unidades recibidas de Confecciones del Sur EIRL (almacén de Tienda Trujillo) como una llegada de hoy: ya aparecen en Existencias, donde desde ahora se ajustan."
+    );
+    expect(fraseStockCreado(s, false, undefined)).not.toMatch(/stock inicial/);
+    expect(fraseStockCreado(s, true, "esperando")).not.toMatch(/Existencias/);
   });
 });

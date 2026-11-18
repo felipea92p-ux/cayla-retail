@@ -14,8 +14,9 @@ import { TEXTO_TIPO_CUENTA, TIPOS_QUE_SE_AGREGAN, type CuentaDinero, type TipoCu
 import { cambiosDeCuenta, formInicial, leerDetalleCuenta, salidaDeCuenta, textoUsos, type DetalleCuenta, type FormCuenta } from "@/lib/cuenta-editar-reglas";
 import { MAX_NOMBRE_CUENTA, MAX_NUMERO_CUENTA } from "@/lib/finanzas-topes";
 import { Boton } from "@/components/ui/campos";
+import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
 
-// Configuración ▸ Cuentas y cobros ▸ «Editar cuenta» (ADR-0195 F3, actualización 2026-09-25). Lo que se puede cambiar lo
+// Configuración ▸ Dinero ▸ «Editar cuenta» (ADR-0195 F3, actualización 2026-09-25). Lo que se puede cambiar lo
 // dice la base (`fn_cuenta_dinero_detalle`) y lo vuelve a exigir al guardar: el nombre y el número siempre; el tipo mientras
 // nadie la usó; el saldo inicial sin conciliación vigente y con su mes abierto. Una cuenta sin uso se ELIMINA de verdad;
 // una usada se archiva (sus movimientos se quedan). Todo firmado con el responsable.
@@ -127,37 +128,41 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
               <InputFin id="ed-cta-numero" value={form.numero} disabled={bloqueado} onChange={(e) => poner({ numero: e.target.value })} placeholder="•••• 1942" maxLength={MAX_NUMERO_CUENTA} />
             </CampoFin>
           </div>
-          <div className="fin-dos-campos">
-            <CampoFin
-              etiqueta={esTarjeta ? "Lo que se debe al empezar" : "Saldo con el que empieza"}
-              htmlFor="ed-cta-saldo"
-              ayuda={detalle?.motivoSaldo ?? undefined}
-              tono={detalle?.motivoSaldo ? "aviso" : undefined}
-            >
-              <InputFin
-                id="ed-cta-saldo"
-                inputMode="decimal"
-                value={form.saldo}
-                disabled={bloqueado || !detalle?.puedeCambiarSaldo}
-                onChange={(e) => poner({ saldo: e.target.value })}
-              />
-            </CampoFin>
-            <CampoFin etiqueta="Al empezar el día" htmlFor="ed-cta-desde">
-              <InputFin
-                id="ed-cta-desde"
-                type="date"
-                max={hoy}
-                value={form.desde}
-                disabled={bloqueado || !detalle?.puedeCambiarSaldo}
-                onChange={(e) => poner({ desde: e.target.value })}
-              />
-            </CampoFin>
-          </div>
         </>
       )}
 
+      {/* El cajón no lleva saldo inicial: su punto de partida es la caja que se cierra. La caja fuerte y «por rendir», sí (tarea 4 de «Las 36»). */}
+      {detalle?.tipo !== "cajon" && (
+        <div className="fin-dos-campos">
+          <CampoFin
+            etiqueta={esTarjeta ? "Lo que se debe al empezar" : "Saldo con el que empieza"}
+            htmlFor="ed-cta-saldo"
+            ayuda={detalle?.motivoSaldo ?? undefined}
+            tono={detalle?.motivoSaldo ? "aviso" : undefined}
+          >
+            <InputFin
+              id="ed-cta-saldo"
+              inputMode="decimal"
+              value={form.saldo}
+              disabled={bloqueado || !detalle?.puedeCambiarSaldo}
+              onChange={(e) => poner({ saldo: e.target.value })}
+            />
+          </CampoFin>
+          <CampoFin etiqueta="Al empezar el día" htmlFor="ed-cta-desde">
+            <InputFin
+              id="ed-cta-desde"
+              type="date"
+              max={hoy}
+              value={form.desde}
+              disabled={bloqueado || !detalle?.puedeCambiarSaldo}
+              onChange={(e) => poner({ desde: e.target.value })}
+            />
+          </CampoFin>
+        </div>
+      )}
+
       {/* Quién la usa: decide si se elimina o se archiva. El lugar se reserva mientras llega, para que la hoja no salte. */}
-      <p className="mb-4 min-h-[2.6em] text-[12.5px] leading-snug text-taupe">
+      <p className="mb-4 min-h-[2.6em] text-sm leading-snug text-taupe">
         {!detalle
           ? " "
           : detalle.automatica
@@ -166,20 +171,21 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
               ? `Por esta cuenta ya pasaron ${usos}. Por eso no se elimina: si deja de usarse, se archiva y su historia se queda.`
               : "Todavía no se usó: puedes cambiarle todo, o eliminarla si fue un error."}
       </p>
-      {salida?.accion === "archivar" && salida.bloqueo && <p className="nota-cayla mb-4 text-[12.5px]">{salida.bloqueo}</p>}
+      {salida?.accion === "archivar" && salida.bloqueo && <p className="nota-cayla mb-4 text-sm">{salida.bloqueo}</p>}
 
       <ComboResponsable control={responsable} deshabilitado={guardando} />
 
       {confirmarEliminar ? (
         <div /* unificar-fijo: la confirmación de eliminar con sus dos botones (Finanzas), no un aviso */ className="mt-4 rounded-[10px] border border-rojo/30 bg-rojo/5 px-4 py-3" role="alertdialog" aria-label="Confirmar eliminación">
-          <p className="text-[13.5px]">
-            <b>¿Eliminar «{detalle?.nombre}»?</b> Desaparece de Finanzas y no se puede deshacer; queda anotada en la historia de Configuración.
+          <p className="text-[15px]">
+            <b>¿Eliminar «{detalle?.nombre}»?</b> Desaparece de Finanzas; queda anotada en la historia de Configuración.
           </p>
+          <AvisoNoSeDeshace className="mt-3" />
           <div className="fin-botones mt-3">
             <button type="button" className="btn-cayla btn-secundario" onClick={() => setConfirmarEliminar(false)} disabled={guardando}>
               No, volver
             </button>
-            <Boton peso="peligro" cargando={guardando} textoCargando="Eliminando…"
+            <Boton peso="primario" cargando={guardando} textoCargando="Eliminando…"
               type="button"
               disabled={guardando || !responsable.listo}
               onClick={() =>

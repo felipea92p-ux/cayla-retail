@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan de campaña · la visión (spikes)</title>
+<link rel="stylesheet" href="base.css?v=13">
+<style>
+.hub{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));margin:18px 0}
+.hub a{display:block;text-decoration:none;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:18px 20px;transition:transform .2s var(--ease),border-color .2s}
+@media (hover:hover){.hub a:hover{transform:translateY(-3px);border-color:var(--tinta)}}
+.hub .n{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--t60)}
+.hub h3{font:600 22px/1.2 var(--serif);margin:4px 0 6px}
+.hub p{color:var(--t60);font-size:13.5px}
+.hub .q{margin-top:10px;font-size:12.5px;border-top:1px solid var(--sand);padding-top:8px}
+.hub .q b{color:var(--rojo-p)} :root[data-tema="oscuro"] .hub .q b{color:var(--rojo)}
+</style>
+</head>
+<body>
+<div id="chrome"></div>
+<p class="frase" style="max-width:80ch">Siete spikes tocables del Plan de campaña. Cada uno muestra una idea de las que pediste, <b>con variantes para elegir mirando</b> (no por descripción). Los números son de ejemplo; la cuenta del plan es la real de <code>plan-compra-reglas.ts</code>. Nada se guarda en el ERP: lo que muevas queda solo en tu navegador.</p>
+<div class="hub">
+  <a href="1-calendario.html"><div class="n">① Calendario</div><h3>Elige con cuáles campañas te quedas</h3><p>Activar o no cada fecha del sistema, que se repita cada año o solo este, pausarla por días, meses o años, quitarla, editarla y crear una que no existe. Con lo que dice tu historia de ventas al lado.</p><div class="q"><b>Elegiste:</b> pestaña «Calendario» · las dos vistas, lista por defecto</div></a>
+  <a href="2-avisos.html"><div class="n">② Avisos</div><h3>Un ícono con el número, y se abre a pedido</h3><p>El centro de avisos compacto a la altura de las pestañas. Se abre, se cierra y cambia de ícono. Lo urgente (el plazo para pedir) no se puede esconder.</p><div class="q"><b>Elegiste:</b> flota encima, sin palabra (lo urgente sigue asomando: lo apagas en el spike)</div></a>
+  <a href="3-paso-2.html"><div class="n">③ Paso 2</div><h3>De la categoría a los colores y a las tallas</h3><p>Reparte la compra entre colores (parejo, lo que propone el sistema o a mano), al tocar un color eliges sus tallas, y si quieres más prendas cambias el total con un aviso chico de que también cambia el paso 1.</p><div class="q"><b>Elegiste:</b> colores → tallas, con el total editable</div></a>
+  <a href="4-presupuesto.html"><div class="n">④ Presupuesto</div><h3>Cuánto cuesta, si cabe y qué cambia si lo ajustas</h3><p>El costo por categoría, tu tope, el plan corregido por el tope lado a lado, y las versiones del plan para volver atrás.</p><div class="q"><b>Elegiste:</b> todo bien (plan con tope lado a lado, tú aceptas)</div></a>
+  <a href="5-finanzas.html"><div class="n">⑤ Finanzas</div><h3>Cuándo se paga y cómo queda la caja</h3><p>Tandas de compra, formas de pago y cómo se ve en el flujo de caja de Finanzas, con interruptor para mostrarla u ocultarla. No es un gasto: es inversión en mercadería.</p><div class="q"><b>Elegiste:</b> tres estados que mandan en el Resumen y en todo Finanzas · nombre «Inversión en mercadería»</div></a>
+  <a href="6-modelos.html"><div class="n">⑥ Modelos</div><h3>¿Qué modelo compro?</h3><p>Dentro del paso 2: el ranking de modelos (con su marca) y, de cada modelo, sus colores más vendidos y sus tallas, editables. Lo que no eliges queda como «modelos nuevos por elegir» y el total siempre cuadra con el paso 1.</p><div class="q"><b>Elegiste:</b> ranking de modelos, con tallas editables por color</div></a>
+  <a href="7-enviar-a-compras.html"><div class="n">⑦ A Compras</div><h3>Enviar lo elegido a pedir</h3><p>Cuando el presupuesto te convence, mandas los modelos, colores y tallas a Compras como «Pendiente de campaña, falta confirmar», con la fecha en que piensas pedir (o «pedir ya») y un botón para rectificar.</p><div class="q"><b>Mira:</b> dónde se envía, cómo llega a Compras y cómo se rectifica</div></a>
+</div>
+<div class="nota"><b>Cómo mirarlas.</b> La barra negra de arriba te lleva de un spike a otro; la pestaña, el ícono de avisos y el tope que muevas se recuerdan entre ellos. Prueba el modo oscuro con el botón de la derecha. A 375 px también se leen.</div>
+<script src="app.js?v=13"></script>
+<script>PC.chrome({ activa: "", frase: "Navidad 2026: cuánto comprar, de qué colores, cuánto cuesta y cuándo se paga." });</script>
+</body>
+</html>

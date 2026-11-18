@@ -60,7 +60,7 @@ export function PaginacionCursor({
   }
 
   return (
-    <div data-guia={guia} className="flex flex-wrap items-center justify-between gap-3 text-xs text-tinta/65">
+    <div data-guia={guia} className="flex flex-wrap items-center justify-between gap-3 text-sm text-tinta/65">
       <span>
         {mostradas === 0 ? "Sin resultados en esta página." : `${mostradas} ${mostradas === 1 ? sustantivo[0] : sustantivo[1]} en esta página`}
       </span>
@@ -113,7 +113,7 @@ export function PaginacionPaginas({
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-tinta/65">
+    <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-tinta/65">
       <span>
         {totalItems.toLocaleString("es-PE")} {totalItems === 1 ? sustantivo[0] : sustantivo[1]}
         {totalPaginas > 1 && ` · página ${pagina} de ${totalPaginas}`}

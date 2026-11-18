@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
-import type { ModeloRotulo } from "@/lib/rotulos-reglas";
+import type { MarcaRotulo, ModeloRotulo } from "@/lib/rotulos-reglas";
 import { ID_PRODUCTO_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 
 /** Un modelo que se puede sumar desde el buscador de la pantalla: ya trae lo que dice su rótulo (marca y tallas), así sumarlo
@@ -35,9 +35,11 @@ function aModeloRotulo(p: FilaModelo): ModeloRotulo {
  * sin volver al servidor: antes cada prenda era una navegación (loader a pantalla completa y la pantalla armada de nuevo).
  * Medido en producción el 2026-10-12: 195 modelos y 1.266 variantes, unos 75 KB.
  */
-export async function getRotulos(productoIds: readonly string[]): Promise<{ modelos: ModeloRotulo[]; catalogo: ModeloElegible[] }> {
+export async function getRotulos(
+  productoIds: readonly string[],
+): Promise<{ modelos: ModeloRotulo[]; catalogo: ModeloElegible[]; marcas: MarcaRotulo[] }> {
   const supabase = await createClient();
-  const [pedidos, catalogo] = await Promise.all([
+  const [pedidos, catalogo, marcas] = await Promise.all([
     productoIds.length === 0
       ? Promise.resolve([])
       : leerModelos(supabase, productoIds),
@@ -55,8 +57,16 @@ export async function getRotulos(productoIds: readonly string[]): Promise<{ mode
         .order("id")
         .range(desde, hasta),
     ).then((r) => exigir(r, "los modelos del catálogo")),
+    // Las marcas activas, para el rótulo de marca (Felipe 2026-11-13): solo su nombre.
+    supabase
+      .from("marcas")
+      .select("id, nombre")
+      .eq("activo", true)
+      .order("nombre")
+      .then((r) => exigir(r, "las marcas")),
   ]);
   return {
+    marcas,
     modelos: pedidos,
     catalogo: catalogo.map((p) => ({ ...aModeloRotulo(p), codigo: p.codigo, categoria: p.categoria?.nombre ?? null })),
   };

@@ -2,23 +2,24 @@ import { describe, expect, it } from "vitest";
 import fixture from "./flujo-caja.fixture.json";
 import { leerFilaER, type FilaER } from "./resultados-reglas";
 import {
+  solesCentimos,
   PALANCAS_INICIALES,
+  SIN_COMPRA_DE_CAMPANA,
   alquilerDe,
+  alquilerDePartida,
   alquilerDeFijos,
+  cajaDiaria,
   campanasDeSemana,
   conclusiones,
+  etiquetaMesBase,
   etiquetaSemana,
   etiquetasEje,
-  fraseDelFlujo,
   hayCambios,
   leerFlujoReal,
   leerProyeccion,
   leerSemanas,
   csvEscenario,
-  csvFlujo,
   rangoDelMes,
-  textoPeriodo,
-  listasDelFlujo,
   proyectar,
   queFaltaEnLaProyeccion,
   puntoMasBajo,
@@ -29,6 +30,7 @@ import {
   sumarMesesIso,
   textoCategoria,
   textoSinCuenta,
+  textoSinAlquiler,
   tiendaInicial,
   tiendasDeLaProyeccion,
   tonoDiasDeCaja,
@@ -86,6 +88,8 @@ const CHICA: Proyeccion = {
   ],
 };
 
+const pintar = (l: (string | { b: string })[]) => l.map((p) => (typeof p === "string" ? p : p.b)).join("");
+
 describe("Lo que ya pasó (fn_flujo_caja_real)", () => {
   it("lee lo que devuelve la base (los numeric llegan como texto) y cuadra: inicial + entró − salió + ajustes = final", () => {
     const f = leerFlujoReal({ saldo_inicial: "100.50", saldo_final: "130.50", entro: "50", salio: "20", ajustes: "0", descuadre: "0", categorias: [], semanas: [] });
@@ -99,34 +103,6 @@ describe("Lo que ya pasó (fn_flujo_caja_real)", () => {
     const suma = REAL.semanas.reduce((a, s) => a + s.entro, 0);
     expect(Math.round(suma * 100) / 100).toBe(REAL.entro);
     expect(REAL.semanas.at(-1)!.saldo).toBe(REAL.saldoFinal);
-  });
-
-  it("las listas del spike: lo que entró en el orden de los medios, lo que salió de mayor a menor, los ajustes aparte y sin ceros", () => {
-    const l = listasDelFlujo({
-      categorias: [
-        { clave: "plin", lado: "entra", monto: 10 },
-        { clave: "efectivo", lado: "entra", monto: 5 },
-        { clave: "dueno_pone", lado: "entra", monto: 99 },
-        { clave: "yape", lado: "entra", monto: 0.001 },
-        { clave: "qr", lado: "entra", monto: 40 },
-        { clave: "gastos", lado: "sale", monto: 30 },
-        { clave: "mercaderia", lado: "sale", monto: 80 },
-        { clave: "faltantes_caja", lado: "ajuste", monto: -12 },
-      ],
-    });
-    expect(l.entradas.map((c) => c.clave)).toEqual(["efectivo", "plin", "qr", "dueno_pone"]);
-    expect(l.salidas.map((c) => c.clave)).toEqual(["mercaderia", "gastos"]);
-    expect(l.ajustes.map((c) => c.clave)).toEqual(["faltantes_caja"]);
-  });
-
-  it("la frase dice por qué: salió más que entró por pagar mercadería, o entró más y el saldo subió", () => {
-    const baja = fraseDelFlujo({ ...REAL, entro: 100, salio: 180, saldoInicial: 500, saldoFinal: 420, categorias: [{ clave: "mercaderia", lado: "sale", monto: 150 }] });
-    expect(baja.tono).toBe("aviso");
-    expect(baja.partes).toContainEqual({ b: "S/\u00a080 más de lo que entró" });
-    expect(String(baja.partes.at(-1))).toContain("mercadería antes de venderla");
-    const sube = fraseDelFlujo({ ...REAL, entro: 300, salio: 100, saldoInicial: 500, saldoFinal: 700 });
-    expect(sube.tono).toBe("neutro");
-    expect(String(sube.partes.at(-1))).toContain("de S/\u00a0500 a S/\u00a0700");
   });
 
   it("lo «sin cuenta» se dice aparte, de mayor a menor, sin ceros", () => {
@@ -330,21 +306,26 @@ describe("Escenarios: la utilidad (sobre el estado de resultados de F5)", () => 
       utilidad: utilidadConCambios(ER, palancas),
       palancas,
       nombreTienda: "Tienda LIM",
-      semanasBase: proyectar(CHICA),
-      semanasNuevas: proyectar(CHICA, palancas, 6_200),
+      cajaBase: cajaDiaria(CHICA),
+      cajaNueva: cajaDiaria(CHICA, palancas, 6_200),
+      semanas: CHICA.semanas.length,
       minimo: CHICA.minimoCaja,
       pagoMovido: { titulo: "Distribuidora Norte", monto: 4_000, de: "2026-09-28", a: "2026-10-05" },
     }).map((l) => l.map((p) => (typeof p === "string" ? p : p.b)).join(""));
     expect(texto[0]).toBe("CAYLA pasaría de −S/\u00a01,971 a S/\u00a0716 al mes (+S/\u00a02,687).");
     expect(texto[1]).toContain("Tienda LIM dejaría S/\u00a0203 al mes; necesitaría vender");
+    expect(texto[1]).toContain("sin IGV para no perder.");
     expect(texto[2]).toContain("La caja seguiría bajando del mínimo");
     expect(texto[3]).toBe("Pasar S/\u00a04,000 de Distribuidora Norte del 28 sep al 5 oct: hay que hablarlo con el proveedor.");
   });
 
   it("sin estado de resultados (F5 no disponible), solo habla de la caja", () => {
-    const texto = conclusiones({ utilidad: null, palancas: PALANCAS_INICIALES, nombreTienda: null, semanasBase: proyectar(PROY), semanasNuevas: proyectar(PROY), minimo: PROY.minimoCaja, pagoMovido: null });
+    const texto = conclusiones({ utilidad: null, palancas: PALANCAS_INICIALES, nombreTienda: null, cajaBase: cajaDiaria(PROY), cajaNueva: cajaDiaria(PROY), semanas: PROY.semanas.length, minimo: PROY.minimoCaja, pagoMovido: null });
     expect(texto).toHaveLength(1);
-    expect(texto[0]!.map((p) => (typeof p === "string" ? p : p.b)).join("")).toContain("seguiría bajando del mínimo: lo más bajo sería S/\u00a012,405");
+    const dias = cajaDiaria(PROY).puntos;
+    const bajo = dias.reduce((a, x) => (x.saldo < a.saldo ? x : a), dias[0]!);
+    expect(bajo.saldo).toBeLessThanOrEqual(12_500);
+    expect(texto[0]!.map((p) => (typeof p === "string" ? p : p.b)).join("")).toContain(`seguiría bajando del mínimo: lo más bajo sería ${soles(bajo.saldo)} el `);
   });
 });
 
@@ -356,19 +337,86 @@ describe("La URL y la descarga", () => {
   it("el mes en curso se mira hasta hoy; uno que terminó, entero", () => {
     expect(rangoDelMes("2026-09", "2026-09-24")).toEqual({ desde: "2026-09-01", hasta: "2026-09-24" });
     expect(rangoDelMes("2026-08", "2026-09-24")).toEqual({ desde: "2026-08-01", hasta: "2026-08-31" });
-    expect(textoPeriodo("2026-09-01", "2026-09-24", "2026-09-24")).toBe("septiembre al 24");
-    expect(textoPeriodo("2026-08-01", "2026-08-31", "2026-09-24")).toBe("agosto");
-    expect(textoPeriodo("2025-12-01", "2025-12-31", "2026-01-10")).toBe("diciembre 2025");
   });
 
-  it("el CSV lleva las dos partes, separado por «;» y con los montos exactos", () => {
-    const t = csvFlujo(REAL, PROY);
-    expect(t.startsWith("﻿Lo que ya pasó;2026-09-01;2026-09-24")).toBe(true);
-    expect(t).toContain(`Saldo al empezar;;;;${REAL.saldoInicial.toFixed(2)}`);
-    expect(t).toContain("Lo que viene;2026-09-25;2026-11-05");
-    expect(t.split("\r\n").filter((l) => l.includes(";sí;")).length).toBe(PROY.semanas.filter((w) => w.bajoMinimo).length);
-    const e = csvEscenario(proyectar(CHICA), proyectar(CHICA, con({ ventasTodas: 10 })), null);
+  it("el CSV del escenario va separado por «;» y con los montos exactos", () => {
+    const e = csvEscenario(proyectar(CHICA), proyectar(CHICA, con({ ventasTodas: 10 })), null, "2026-08");
     expect(e.split("\r\n")[1]).toBe("25 sep – 1 oct;4500.00;4650.00;150.00");
+  });
+});
+
+// Tareas 46 y 73: una sola cuenta del saldo día por día, con hoy incluido, en todo el horizonte y respetando las palancas.
+describe("cajaDiaria", () => {
+  const CUADRA: Proyeccion = { ...CHICA, semanas: [{ ...CHICA.semanas[0]!, saldo: 4_500, bajoMinimo: true }, { ...CHICA.semanas[1]!, saldo: 2_300, bajoMinimo: true }] };
+  const texto = (l: Parameters<typeof pintar>[0]) => pintar(l);
+
+  it("arranca hoy, sigue día por día hasta el final y cierra cada bloque con el saldo de la base", () => {
+    const c = cajaDiaria(CUADRA);
+    expect(c.porSemana).toBe(false);
+    expect(c.puntos[0]).toEqual({ fecha: "2026-09-24", saldo: 10_000 });
+    expect(c.puntos.at(-1)).toEqual({ fecha: "2026-10-08", saldo: 2_300 });
+    expect(c.puntos).toHaveLength(15);
+    expect(c.puntos.find((x) => x.fecha === "2026-09-26")!.saldo).toBe(11_500);
+    expect(c.puntos.find((x) => x.fecha === "2026-10-01")!.saldo).toBe(4_500);
+  });
+  it("con palancas da lo mismo que `proyectar` al cierre de cada bloque, y mueve el día", () => {
+    const palancas = con({ ventasTodas: 10, moverPago: { id: "compras:a", semanas: 1 } });
+    const c = cajaDiaria(CUADRA, palancas);
+    for (const w of proyectar(CUADRA, palancas)) expect(c.puntos.find((x) => x.fecha === w.hasta)!.saldo).toBe(w.saldo);
+    // El pago de S/ 4,000 ya no sale el 28 sino el 5 de octubre.
+    expect(c.puntos.find((x) => x.fecha === "2026-09-28")!.saldo).toBe(11_650);
+  });
+  it("si no cuadra con los bloques (una base más vieja), hoy más los cierres que dijo la base, y las palancas suman su diferencia", () => {
+    const c = cajaDiaria(CHICA);
+    expect(c.porSemana).toBe(true);
+    expect(c.puntos.map((x) => x.saldo)).toEqual([10_000, 0, 0]);
+    expect(c.puntos[1]!.semana).toEqual({ desde: "2026-09-25", hasta: "2026-10-01" });
+    expect(cajaDiaria(CHICA, con({ ventasTodas: 10 })).puntos.map((x) => x.saldo)).toEqual([10_000, 150, 280]);
+  });
+
+  describe("«Qué pasaría» habla del día, no del cierre de la semana", () => {
+    const frase = (p: Proyeccion, palancas: Palancas = PALANCAS_INICIALES) => {
+      const [l] = conclusiones({ utilidad: null, palancas, nombreTienda: null, cajaBase: cajaDiaria(p), cajaNueva: cajaDiaria(p, palancas), semanas: p.semanas.length, minimo: p.minimoCaja, pagoMovido: null });
+      return texto(l!);
+    };
+    const salida = (fecha: string, monto: number): Proyeccion["salidas"][number] => ({ tipo: "planilla", id: `p:${fecha}`, fecha, vence: fecha, titulo: "Planilla", detalle: "", clase: "planilla", ubicacionId: null, unidad: null, monto, atrasada: false });
+    const cobro = (fecha: string, monto: number): Proyeccion["cobros"][number] => ({ fecha, ubicacionId: "t1", tienda: "Uno", monto, origen: "meta", metaPct: 0, campanas: [] });
+    const semanas = [
+      { desde: "2026-11-09", hasta: "2026-11-15", entra: 0, sale: 0, saldo: 42_000, bajoMinimo: false },
+      { desde: "2026-11-16", hasta: "2026-11-22", entra: 0, sale: 0, saldo: 42_000, bajoMinimo: false },
+    ];
+    const COMO_HOY: Proyeccion = { ...CHICA, hoy: "2026-11-08", desde: "2026-11-09", hasta: "2026-11-22", saldoHoy: 14_000, minimoCaja: 15_000, semanas, salidas: [], cobros: [cobro("2026-11-09", 3_000), cobro("2026-11-12", 25_000)] };
+
+    it("con hoy bajo el mínimo lo dice y nombra lo que tienes; lo que viene, por día", () => {
+      expect(frase(COMO_HOY)).toBe(`Hoy ya estás bajo tu mínimo: tienes ${soles(14_000)}, te faltan ${soles(1_000)}. En las próximas 2 semanas no volverías a bajar de él (lo más bajo: ${soles(17_000)}, el 9 de noviembre).`);
+    });
+    it("con hoy bajo y otra caída más adelante, dice cuánto y cuándo", () => {
+      const p: Proyeccion = { ...COMO_HOY, salidas: [salida("2026-11-20", 40_000)], cobros: [...COMO_HOY.cobros, cobro("2026-11-21", 40_000)] };
+      expect(frase(p)).toBe(`Hoy ya estás bajo tu mínimo: tienes ${soles(14_000)}, te faltan ${soles(1_000)}. Más adelante también quedarías bajo él: lo más bajo sería ${soles(2_000)} el 20 de noviembre.`);
+    });
+    it("una caída dentro de una semana que cierra bien sí cuenta, y «bajaría» se compara por día", () => {
+      const sano: Proyeccion = { ...COMO_HOY, saldoHoy: 42_000, cobros: [cobro("2026-11-21", 40_000)], salidas: [salida("2026-11-20", 40_000)] };
+      expect(frase(sano)).toBe(`La caja seguiría bajando del mínimo: lo más bajo sería ${soles(2_000)} el 20 de noviembre.`);
+      const movida = con({ moverPago: { id: "p:2026-11-20", semanas: 1 } });
+      expect(frase(sano, movida)).toBe(`La caja no bajaría de tu mínimo en 2 semanas (lo más bajo: ${soles(42_000)}, hoy; hoy bajaría a ${soles(2_000)}).`);
+    });
+    it("si no cuadra con los bloques, sigue hablando de la semana", () => {
+      expect(frase(CHICA)).toBe(`La caja seguiría bajando del mínimo: lo más bajo sería ${soles(0)} la semana del 25 sep – 1 oct.`);
+    });
+  });
+});
+
+// Tarea 176: la utilidad «de antes» es la del último mes completo, no la de hoy.
+describe("La columna del mes base", () => {
+  it("dice el nombre del mes, en minúscula, y sale del mes base", () => {
+    expect(etiquetaMesBase("2026-10")).toBe("En octubre");
+    expect(etiquetaMesBase("2026-11")).toBe("En noviembre");
+  });
+  it("el CSV titula la utilidad con el mes base; la caja sigue siendo de hoy", () => {
+    const u = utilidadConCambios(ER, PALANCAS_INICIALES);
+    const filas = csvEscenario(proyectar(CHICA), proyectar(CHICA), u, "2026-10").split("\r\n");
+    expect(filas[0]).toBe("\ufeffTu caja;Hoy;Con el cambio;Diferencia");
+    expect(filas).toContain("Utilidad al mes;En octubre;Con el cambio;Diferencia");
   });
 });
 
@@ -382,6 +430,11 @@ describe("La proyección dice con qué se apoya (ADR-0433, actividad 4)", () => 
       ...base, historia_dias: 16, saldo_inicial_declarado: false, hay_facturas_de_proveedor: false, incluye_impuestos: true, dias_de_caja_confiable: false,
     });
     expect(p).toMatchObject({ historiaDias: 16, saldoInicialDeclarado: false, hayFacturasDeProveedor: false, incluyeImpuestos: true, diasDeCajaConfiable: false });
+  });
+  it("lee lo que se le debe a Claudia y ya se restó del saldo (ADR-0560, actividad 16); una base más vieja no lo trae y no se inventa", () => {
+    expect(leerProyeccion({ ...base, de_claudia: "291.69" }).deClaudia).toBe(291.69);
+    expect(leerProyeccion({ ...base, de_claudia: 0 }).deClaudia).toBe(0);
+    expect(leerProyeccion(base).deClaudia).toBeNull();
   });
   it("una base más vieja que la web (sin esos campos) no dice nada: ni provisional ni lista, no inventa", () => {
     const p = leerProyeccion(base);
@@ -437,5 +490,82 @@ describe("La proyección dice con qué se apoya (ADR-0433, actividad 4)", () => 
   it("los pagos de la planilla y de SUNAT tienen su rótulo en lo que salió", () => {
     expect(textoCategoria("planilla")).toBe("Pago de la planilla");
     expect(textoCategoria("impuestos")).toBe("Pago a SUNAT (IGV)");
+  });
+});
+
+describe("solesCentimos (ADR-0609)", () => {
+  it("siempre con dos decimales y el signo delante", () => {
+    expect(solesCentimos(1752)).toBe("S/\u00a01,752.00");
+    expect(solesCentimos(-25.34)).toBe("−S/\u00a025.34");
+    expect(solesCentimos(0)).toBe("S/\u00a00.00");
+    expect(solesCentimos(0.1 + 0.2)).toBe("S/\u00a00.30");
+  });
+});
+
+// ADR-0621: lo por volver de compras viene de la base; una base más vieja no lo manda y no se inventa.
+describe("lo por volver de compras", () => {
+  it("se lee de la proyección y del flujo real", () => {
+    expect(leerProyeccion({ ...fixture.proyeccion, por_volver_compras: 285 }).porVolverCompras).toBe(285);
+    expect(leerFlujoReal({ ...fixture.real, por_volver_compras: "285.50" }).porVolverCompras).toBe(285.5);
+  });
+  it("sin el dato queda null", () => {
+    expect(leerProyeccion(fixture.proyeccion).porVolverCompras).toBeNull();
+    expect(leerFlujoReal(fixture.real).porVolverCompras).toBeNull();
+  });
+});
+
+// Tarea 11: una tienda cuyo mes base no trae su alquiler (sin cuenta 635), pero sí lo tiene en sus gastos fijos. Cifras inventadas.
+describe("Escenarios: el alquiler parte del mismo monto en la tabla y en la caja", () => {
+  const SIN_635: FilaER[] = [
+    fila("t1", "tienda", "Tienda Uno", 20_000, 10_000, 0, 0, 8_000, 0, 3_000),
+    fila("t2", "tienda", "Tienda Dos", 10_000, 5_000, 0, 0, 5_000, 0, 0),
+    fila(null, "empresa", "De la empresa", 0, 0, 0, 0, 1_000, 0, 0),
+  ];
+  const t2 = (u: ReturnType<typeof utilidadConCambios>) => u.unidades.find((x) => x.ubicacionId === "t2")!;
+
+  it("la tienda sin cuenta de alquiler parte de sus gastos fijos y lo dice", () => {
+    expect(alquilerDePartida(SIN_635[1], CHICA.salidas, "t2")).toEqual({ monto: 2_000, sinEnResultado: true });
+    expect(alquilerDePartida(SIN_635[0], CHICA.salidas, "t1")).toEqual({ monto: 3_000, sinEnResultado: false });
+    // Sin estado de resultados no hay «parte sin él»: no hay resultado que se vea mejor.
+    expect(alquilerDePartida(undefined, CHICA.salidas, "t2")).toEqual({ monto: 2_000, sinEnResultado: false });
+    expect(alquilerDePartida(SIN_635[1], [], "t2")).toEqual({ monto: null, sinEnResultado: false });
+    const texto = textoSinAlquiler("2026-10", "Tienda Dos", 2_000);
+    expect(texto).toContain("no trae el alquiler de Tienda Dos");
+    expect(texto).toContain(soles(2_000));
+  });
+
+  it("bajarle el alquiler de 2,000 a 1,900 la hace GANAR 100, en la tabla y en la caja (control: contra el mes base perdía 1,900)", () => {
+    const p = con({ tienda: "t2", alquilerTienda: 1_900 });
+    const partida = alquilerDePartida(SIN_635[1], CHICA.salidas, "t2").monto;
+    const u = utilidadConCambios(SIN_635, p, partida);
+    expect(t2(u).despues - t2(u).antes).toBe(100);
+    expect(u.cayla.despues - u.cayla.antes).toBe(100);
+    // Control: sin pasarle la partida resta contra el alquiler del mes base (0), el error de antes.
+    expect(t2(utilidadConCambios(SIN_635, p)).despues - t2(utilidadConCambios(SIN_635, p)).antes).toBe(-1_900);
+    const caja = proyectar(CHICA, p, partida);
+    expect(caja.at(-1)!.saldo - proyectar(CHICA).at(-1)!.saldo).toBe(100);
+  });
+
+  it("volver al alquiler de partida no cambia nada", () => {
+    const p = con({ tienda: "t2", alquilerTienda: 2_000 });
+    const u = utilidadConCambios(SIN_635, p, 2_000);
+    expect(t2(u).despues).toBe(t2(u).antes);
+    expect(hayCambios(p, 2_000)).toBe(false);
+  });
+
+  it("si el resultado y los fijos difieren, la caja cambia en los mismos soles que la tabla (no en proporción)", () => {
+    // El mes base dice 2,500 de alquiler para t2; sus fijos, 2,000. Bajar a 2,000 resta 500 en los dos lados.
+    const conER = [SIN_635[0]!, fila("t2", "tienda", "Tienda Dos", 10_000, 5_000, 0, 0, 5_000, 0, 2_500), SIN_635[2]!];
+    const partida = alquilerDePartida(conER[1], CHICA.salidas, "t2").monto;
+    expect(partida).toBe(2_500);
+    const p = con({ tienda: "t2", alquilerTienda: 2_000 });
+    const u = utilidadConCambios(conER, p, partida);
+    expect(t2(u).despues - t2(u).antes).toBe(500);
+    // Control: escalar por 2,000 / 2,500 habría restado solo 400 de los 2,000 de los fijos.
+    expect(proyectar(CHICA, p, partida).at(-1)!.saldo - proyectar(CHICA).at(-1)!.saldo).toBe(500);
+  });
+
+  it("la caja dice que no trae la compra planeada de campaña", () => {
+    expect(SIN_COMPRA_DE_CAMPANA).toMatch(/no incluye la compra planeada de campaña/);
   });
 });

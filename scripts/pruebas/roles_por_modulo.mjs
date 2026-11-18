@@ -394,12 +394,12 @@ caso(
 caso(
   "Etiquetas (ADR-0293): el rol crea (aprobada), edita, configura la campaña CON descuento y etiqueta prendas, con o sin descuento",
   conRol("Etiquetas", ["etiquetas"]) +
-    `insert into retail.etiquetas (nombre, descuento_pct) values ('ZZ con descuento', 20) returning id as etq_desc \\gset\n` +
+    `insert into retail.etiquetas (nombre, estilo, descuento_pct) values ('ZZ con descuento', 'campana', 20) returning id as etq_desc \\gset\n` +
     como(MICAELA_AUTH) +
     `select concat_ws(',', fn_puede_editar_etiquetas(), fn_puede_dar_descuento_por_etiqueta());\n` +
     `set local role authenticated;\n` +
-    `insert into retail.etiquetas (nombre) values ('ZZ sin descuento') returning estado \\gset\nselect :'estado';\n` +
-    intento(`insert into retail.etiquetas (nombre, descuento_pct) values ('ZZ intento con descuento', 10)`) + "\n" +
+    `insert into retail.etiquetas (nombre, estilo) values ('ZZ sin descuento', 'campana') returning estado \\gset\nselect :'estado';\n` +
+    intento(`insert into retail.etiquetas (nombre, estilo, descuento_pct) values ('ZZ intento con descuento', 'campana', 10)`) + "\n" +
     `with u as (update retail.etiquetas set nombre = 'ZZ sin descuento 2' where nombre = 'ZZ sin descuento' returning 1) select count(*) from u;\n` +
     `with u as (update retail.etiquetas set nombre = 'ZZ tocada' where id = :'etq_desc' returning 1) select count(*) from u;\n` +
     intento(`update retail.etiquetas set descuento_pct = 10 where nombre = 'ZZ sin descuento 2'`) + "\n" +
@@ -429,7 +429,9 @@ caso(
   }
 );
 caso(
-  "Etiquetas: sin el módulo, una etiqueta nueva es solo una propuesta y no se edita",
+  // ADR-0534 (20261027164000): lo que se crea nace aprobado para cualquiera (antes, sin el módulo, era solo una propuesta);
+  // editarla y ponerle prendas sigue siendo de quien ve Etiquetas.
+  "Etiquetas: sin el módulo, una etiqueta nueva nace aprobada (ADR-0534), pero no se edita ni se le ponen prendas",
   como(MICAELA_AUTH) +
     `set local role authenticated;\n` +
     `insert into retail.etiquetas (nombre) values ('ZZ propuesta') returning estado \\gset\nselect :'estado';\n` +
@@ -437,7 +439,7 @@ caso(
     intento(`select retail.etiquetar_variantes('[]'::jsonb)`),
   (s) => {
     const l = s.split("\n");
-    return l[0] === "pendiente" && l[1] === "0" && l[2].startsWith("42501|");
+    return l[0] === "aprobado" && l[1] === "0" && l[2].startsWith("42501|");
   }
 );
 caso(
@@ -889,7 +891,7 @@ caso(
   conRol("Catálogo", ["productos"]) +
     // Las crea el líder (la sesión que deja `conRol`): así nacen aprobadas, y la de descuento puede tenerlo.
     `insert into retail.etiquetas (nombre) values ('ZZ P4 sin descuento') returning id as e_sin \\gset\n` +
-    `insert into retail.etiquetas (nombre, descuento_pct) values ('ZZ P4 con descuento', 15) returning id as e_con \\gset\n` +
+    `insert into retail.etiquetas (nombre, estilo, descuento_pct) values ('ZZ P4 con descuento', 'campana', 15) returning id as e_con \\gset\n` +
     como(MICAELA_AUTH) +
     `select concat_ws(',', fn_puede_editar_etiquetas(), fn_puede_editar_catalogo());\n` +
     ETIQUETAS_DE(`:'e_sin'::uuid`) +

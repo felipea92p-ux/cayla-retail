@@ -1,0 +1,5 @@
+# 2026-11-13 · Cuadrar con el banco: un retiro posterior ya no rompe el cuadre de hoy
+
+- **Qué:** Felipe cuadró BCP Empresa, registró un retiro de S/ 280.39 con fecha de ese día y el cuadre pasó a «No cuadra» por el monto del retiro. La causa: el saldo del banco se guarda por día y el del sistema sumaba el día entero, incluido lo registrado después. Ahora el saldo de hoy se corta al anotarlo (`conciliaciones.movido_del_dia`) y la pantalla dice lo que entró o salió después (ADR-0652, Felipe eligió esta de tres).
+- **Dónde:** `supabase/migrations/20261113170000_cuadre_se_corta_al_anotar.sql` (y su vuelta `pegar-en-produccion-vuelta-…`), `apps/web/lib/cuadrar-reglas.ts`, `lib/cuentas-dinero-reglas.ts`, `components/finanzas/CuentasDinero.tsx`, `scripts/pruebas/cuentas_dinero.mjs` (caso 11).
+- **Verificado:** el caso 11 pasa con la migración y falla sin ella (control); la migración y su vuelta, cada una dos veces en una transacción, dejan las funciones con la misma huella; typecheck y pruebas de la web en verde. **No** se miró en el navegador ni está pegada en producción.

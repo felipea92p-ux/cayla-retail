@@ -69,6 +69,10 @@
 .lr-respuesta h2 { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .lr-respuesta-texto { margin: 0; font-size: 15px; line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; }
 
+/* El diseño de la tienda (ADR-0615): los bloques con borde entero llevan la esquina de la escala, como las tarjetas de la ayuda. La franja
+   de la respuesta y el «qué es» tienen borde de un solo lado: se quedan rectos (ADR-0616). */
+:root[data-diseno="nuevo"] :is(.lr-proveedor, .lr-ley, .lr-grupo, .lr-hoja) { border-radius: var(--dn-r-m); }
+
 /* Al imprimir sale solo la hoja, en blanco y negro: sin la cabecera, el pie de la tienda ni los botones. */
 @media print {
   .t-cab, .t-nav, .t-menu-grandes, .t-pie, .lr-acciones { display: none !important; }

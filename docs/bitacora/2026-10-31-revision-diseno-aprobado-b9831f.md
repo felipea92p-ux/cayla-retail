@@ -1,0 +1,4 @@
+## 2026-10-31 (Tienda web ▸ Tráfico: «C · La cifra manda» reemplaza a «B · Zona marcada»)
+Qué hice: se comparó la captura del ERP con la maqueta aprobada («B»): el naranja era café y el rótulo cambiaba de texto. Se prefirió «C · La cifra manda» con el naranja claro del diseño: riel punteado grueso, estación llena y «−42» grande con su porcentaje; sin recuadro ni rótulo. Token nuevo `--color-naranja` (#bf8029 claro, #dba04a oscuro; 3.13:1 sobre papel, el de la maqueta daba 2.77). Detalle en ADR-0568, «Actualización 2026-10-31 (b)».
+Qué se verificó: pruebas de tokens, colores, movimiento, guías, unificar y hover (388), `tsc` y `eslint`; el componente real con datos inventados en claro, oscuro y 375 px.
+Qué queda: mirarlo con visitas de producción; Felipe confirma el naranja nuevo en la paleta y qué paso se marca (`dondeSeAtora`).

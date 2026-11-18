@@ -22,10 +22,6 @@ export type ClientaDelTicket = {
   celular: string | null;
 };
 
-/** El número a medias en pantalla (71•••482): el mostrador lo ve la clienta de al lado. Completo viaja al comprobante.
- *  Se conserva el nombre por quienes ya lo importan; la regla vive en `documento-clienta-reglas.ts`. */
-export { numeroEnmascarado as dniEnmascarado } from "./documento-clienta-reglas";
-
 /** Lo que se lee de ella en la fila del ticket: nombre (o, si la ficha no lo tiene, el documento) y un dato para
  *  confirmar que es ella. El documento sale con su tipo: «DNI 71•••482», «CE 00•••567», «Pasaporte AB•••456». */
 export function lineaDeClienta(c: ClientaDelTicket): { titulo: string; detalle: string } {

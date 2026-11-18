@@ -16,10 +16,12 @@ import {
   type Forma,
   type Prenda,
 } from "./catalogo";
+import { SALIDAS_MAX } from "./desfile";
 import { hrefLooks } from "./looks";
 import { hrefDelProbador } from "./probador";
 import { gruposDe, MENUS, type Menu } from "./grupos";
 import type { Campana } from "./portada";
+import type { NotaStock } from "./stock";
 
 // El Inicio con cuenta y la cabecera de la tienda (ADR-0408, actividad 5; maqueta v4, `vInicio`, `heroCampana`, `heroNuevo`,
 // `circulosCats`, `megaHTML`). Lo que se arma con el catálogo ya leído (y ya filtrado por la tienda elegida): qué va en el héroe, las
@@ -30,9 +32,12 @@ import type { Campana } from "./portada";
 export type Hero =
   /** La campaña que anuncia la portada (la misma de la franja), con hasta 3 prendas suyas que hay en la tienda elegida. */
   | { tipo: "campana"; campana: Campana; piezas: Prenda[]; campanaId: string | null }
-  /** Sin campaña: lo que llegó hace menos. */
+  /** Sin campaña: lo que llegó hace menos, hasta seis prendas: las salidas del desfile (`lib/desfile.ts`). */
   | { tipo: "nuevo"; piezas: Prenda[] }
-  /** Sin campaña ni nada nuevo: la frase de la marca. */
+  /** Sin campaña ni nada que llegara hace menos de 30 días, pero con prendas en la tienda: el desfile sigue siendo la portada y sale con lo que hay (hasta
+   *  seis, con foto primero), sin llamarlo «nuevo». Felipe 2026-10-27: «no existe la pasarela». */
+  | { tipo: "vitrina"; piezas: Prenda[] }
+  /** Sin campaña ni prendas en la tienda elegida: la frase de la marca. */
   | { tipo: "marca" };
 
 
@@ -54,9 +59,21 @@ export function heroDelInicio(campana: Campana | null, prendas: readonly Prenda[
       };
     }
   }
-  const nuevas = prendas.filter((p) => p.nuevo);
-  if (nuevas.length > 0) return { tipo: "nuevo", piezas: [...nuevas].sort((a, b) => conFotoPrimero(a, b) || porLlegada(a, b)).slice(0, 3) };
+  const nuevas = lasNuevas(prendas);
+  if (nuevas.length > 0) return { tipo: "nuevo", piezas: nuevas.slice(0, SALIDAS_MAX) };
+  const enVitrina = lasEnVitrina(prendas).slice(0, SALIDAS_MAX);
+  if (enVitrina.length > 0) return { tipo: "vitrina", piezas: enVitrina };
   return { tipo: "marca" };
+}
+
+/** Lo que hay en la tienda, con foto primero: lo que sale en el desfile y en su programa cuando nada llegó hace menos de 30 días. */
+export function lasEnVitrina(prendas: readonly Prenda[]): Prenda[] {
+  return [...prendas].sort(conFotoPrimero);
+}
+
+/** Lo que llegó hace menos, con foto primero y luego lo más reciente: las salidas del desfile y las filas de su programa, en ese orden. */
+export function lasNuevas(prendas: readonly Prenda[]): Prenda[] {
+  return prendas.filter((p) => p.nuevo).sort((a, b) => conFotoPrimero(a, b) || porLlegada(a, b));
 }
 
 /* ---------------- Las categorías ---------------- */
@@ -201,7 +218,12 @@ export function datosDeCabecera(prendas: readonly Prenda[], sede: string | null,
 
 /** El buscador de la cabecera: todo lo publicado en la tienda elegida, con lo que dice cada tarjeta (precio, oferta, foto) y nada más. Lo
  *  pide la cabecera recién cuando el cliente va a buscar (`app/acciones/buscador.ts`), no con cada página. */
-export function indiceDelBuscador(prendas: readonly Prenda[], sede: string | null, origenFotos: string | undefined): ItemBusqueda[] {
+export function indiceDelBuscador(
+  prendas: readonly Prenda[],
+  sede: string | null,
+  origenFotos: string | undefined,
+  nota: (p: Prenda) => NotaStock | null = () => null,
+): ItemBusqueda[] {
   return prendas.map((p) => {
     const foto = fotosDeTarjeta(p)[0];
     return {
@@ -216,6 +238,9 @@ export function indiceDelBuscador(prendas: readonly Prenda[], sede: string | nul
       optimizar: foto ? fotoOptimizable(foto, origenFotos) : false,
       forma: formaDe(p.categoria?.prefijo),
       color: colorDeDibujo(p),
+      nota: nota(p),
+      // Fijada en Lo nuevo sin días (llegó hace más de 30): va al final de lo recién llegado.
+      diasNuevo: p.nuevo ? (p.nuevo.dias ?? 31) : null,
     };
   });
 }

@@ -46,7 +46,8 @@
     align-items: baseline;
     gap: 12px;
   }
-  .login-panel-marca span { font-family: var(--font-serif); font-size: 20px; letter-spacing: 0.24em; }
+  /* El logo oficial (ADR-0446) en crema, no «CAYLA» escrito: la palabra del logo queda del alto de la letra de antes. */
+  .login-panel-logo { height: 34px; align-self: center; }
   .login-panel-marca small {
     font-size: 10px;
     font-weight: 600;

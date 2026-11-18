@@ -34,6 +34,7 @@ import { firmar, type Firma } from "@/lib/responsable-reglas";
 import { firmaOmitida, type FirmaOmitida } from "@/lib/responsable-omitido";
 import { camposDeFirma, esPedidoDeNombre, firmaEnPantalla, mandaNombre, type FirmaDelPaso } from "@/lib/firma-heredada";
 import { claveResponsableRecepcion } from "@/lib/responsable-conteo";
+import { recordarRecibido } from "@/lib/recepcion-traslado-memoria";
 
 export type VarianteBusqueda = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null; codigosBarras: string[] };
 
@@ -41,7 +42,8 @@ export type VarianteBusqueda = { varianteId: string; sku: string; referencia: st
 // cambios respecto del panel de antes):
 //  · D-130, se cuenta a ciegas: lo enviado aparece recién al terminar de contar.
 //  · Cada casilla se guarda sola (`registrar_recepcion_traslado`, agrupando los toques de ~600 ms, en fila y SIN el loader global:
-//    `x-espera: no`). Al volver a la pantalla, lo contado sigue ahí. Si la red falla, queda en pantalla con «no se guardó ·
+//    `x-espera: no`). Al volver a la pantalla, lo contado sigue ahí: también con «atrás», que dibuja la copia del router
+//    (`useTrasladoAlDia`, 2026-11-11). Si la red falla, queda en pantalla con «no se guardó ·
 //    reintentar» y se reintenta al volver la red; si se sale antes de los 600 ms, lo último se manda igual.
 //  · D-129/D-131: confirmar hace entrar lo que coincide, en el piso de venta o el almacén.
 //  · ADR-0328: el nombre se pide UNA vez por recepción; si la base igual lo pide, el combo aparece entonces.
@@ -133,6 +135,8 @@ export function useRecepcion({
       })
       .then(
         () => {
+          // Para la pestaña: si se vuelve a esta pantalla con «atrás», la copia del router no lo trae (`useTrasladoAlDia`).
+          recordarRecibido(t.id, varianteId, valor);
           if (versiones.current.get(varianteId) === version) ponerEstado(varianteId, { tipo: "guardado" });
           return true;
         },
@@ -300,6 +304,7 @@ export function useRecepcion({
       setError(traducirError(error, "anotar la prenda de más"));
       return;
     }
+    recordarRecibido(t.id, varianteId, 1);
     setAvisoEscaneo(null);
     avisar.exito("Prenda de más anotada", { detalle: "Quedó en la lista con 1; súmale si llegaron más." });
     router.refresh();

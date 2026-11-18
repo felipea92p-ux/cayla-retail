@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { prefiereQuieto } from "./movimiento-cliente";
 
 /**
  * Cuenta desde 0 hasta `valor` cuando `valor` cambia (KPI de Caja/Vender que
@@ -23,7 +24,7 @@ export function useCountUp(valor: number, duracionMs = 700): number {
     const hasta = valor;
     if (desde === hasta) return;
 
-    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (typeof window !== "undefined" && prefiereQuieto()) {
       anterior.current = hasta;
       // eslint-disable-next-line react-hooks/set-state-in-effect -- salto directo al valor final, no hay cascada: es la única escritura de este efecto en esta rama.
       setMostrado(hasta);

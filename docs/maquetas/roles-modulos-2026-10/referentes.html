@@ -1,0 +1,144 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Roles y accesos · 3 diseños de referentes</title><style>
+:root{--crema:#f5f0e8;--papel:#fbf8f2;--tinta:#1a1a18;--rojo:#b8412d;--sand:#e8e0d0;--taupe:#805c4c;--hueso:#eae1d2;--verde:#48603f;--borde:#96786a;--t60:#5b544c;--ease:cubic-bezier(.2,.7,.2,1)}
+*{box-sizing:border-box}body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.45 "DM Sans",system-ui,sans-serif}
+h1,h3{font-family:"EB Garamond",Georgia,serif;font-weight:500;margin:0}button{font-family:inherit;color:inherit}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 20px 60px}
+.top{display:flex;flex-wrap:wrap;gap:16px;align-items:end;justify-content:space-between;margin-bottom:16px}
+.top h1{font-size:34px}.top p{margin:4px 0 0;color:var(--t60)}
+.tabs{display:flex;gap:4px;background:var(--hueso);padding:4px;border-radius:999px}
+.tabs button{border:0;background:none;padding:8px 16px;border-radius:999px;font:600 11.5px/1 inherit;letter-spacing:.08em;text-transform:uppercase;color:var(--t60);cursor:pointer}
+.tabs button[aria-pressed=true]{background:var(--tinta);color:var(--crema)}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px;overflow:hidden}
+.head{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--sand)}
+.head b{font-family:"EB Garamond",serif;font-size:22px;font-weight:500}.head small{color:var(--t60)}
+.meta{color:var(--t60);font-size:13px;display:flex;gap:14px;align-items:center}.meta strong{color:var(--tinta)}
+.enlace{border:0;background:none;text-decoration:underline;text-decoration-color:var(--sand);text-underline-offset:3px;cursor:pointer;font:600 12.5px inherit;padding:0}
+.enlace:hover{color:#8b2a1f;text-decoration-color:var(--rojo)}
+.btn{border:1px solid var(--borde);background:none;border-radius:999px;padding:5px 13px;font:600 12.5px inherit;cursor:pointer}.btn:hover{background:var(--hueso)}
+.bar{height:4px;border-radius:9px;background:var(--hueso);overflow:hidden}.bar i{display:block;height:100%;background:var(--tinta);transition:width .3s var(--ease)}.bar i.full{background:var(--verde)}
+.sw{width:36px;height:20px;border-radius:999px;background:var(--hueso);border:1px solid var(--borde);position:relative;flex:none;transition:background .2s var(--ease)}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--papel);border:1px solid var(--borde);transition:transform .2s var(--ease)}
+[aria-pressed=true]>.sw{background:var(--tinta);border-color:var(--tinta)}[aria-pressed=true]>.sw::after{transform:translateX(16px)}
+/* acordeón */
+.ac{border-top:1px solid var(--sand)}.ac:first-of-type{border-top:0}
+.ac>.cab{display:flex;align-items:center;gap:16px;width:100%;padding:16px 20px;background:none;border:0;cursor:pointer;text-align:left}
+.ac>.cab:hover{background:var(--hueso)}
+.chev{width:10px;height:10px;border-right:2px solid var(--t60);border-bottom:2px solid var(--t60);transform:rotate(-45deg);transition:transform .25s var(--ease);flex:none;margin:0 4px}
+.ac.open .chev{transform:rotate(45deg)}
+.ac .nom{font:500 21px "EB Garamond",serif;min-width:130px}
+.ac .prog{width:110px}.ac .num{font-size:13px;color:var(--t60);min-width:44px;text-align:right}
+.cuerpo{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s var(--ease)}
+.ac.open .cuerpo{grid-template-rows:1fr}.cuerpo>div{overflow:hidden}
+.in{padding:4px 20px 18px 56px}
+.tools{display:flex;justify-content:flex-end;padding-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
+.ch{font-size:12px;padding:3px 10px;border-radius:999px;background:var(--hueso);white-space:nowrap}
+.ch.vacio{background:none;color:var(--t60);padding-left:0}
+.ac.open .chips{display:none}
+/* D */
+.D .fila{display:flex;align-items:center;gap:12px;width:100%;padding:9px 10px;border:0;background:none;border-radius:10px;cursor:pointer;text-align:left}
+.D .fila:hover{background:var(--hueso)}.D .fila .t{flex:1}
+.D .lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:2px 20px}
+/* E */
+.E .lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.E .mod{display:flex;gap:14px;align-items:center;padding:12px 14px;border:1px solid var(--sand);border-radius:12px;background:var(--papel);cursor:pointer;text-align:left;width:100%;transition:.15s}
+.E .mod[aria-pressed=true]{border-color:var(--tinta);background:var(--crema)}
+.E .mod:hover{border-color:var(--borde)}.E .mod .t{flex:1}.E .mod b{display:block;font-weight:600}.E .mod small{color:var(--t60)}
+/* F */
+.F .lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:2px 16px}
+.F .chk{display:flex;gap:10px;align-items:center;width:100%;padding:8px;border:0;background:none;text-align:left;cursor:pointer;border-radius:8px}
+.F .chk:hover{background:var(--hueso)}.F .chk[aria-pressed=false]{color:var(--t60)}
+.F .box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--borde);display:grid;place-items:center;flex:none}
+.F .chk[aria-pressed=true] .box{background:var(--tinta);border-color:var(--tinta)}
+.F .chk[aria-pressed=true] .box::after{content:"";width:8px;height:4px;border-left:2px solid var(--crema);border-bottom:2px solid var(--crema);transform:rotate(-45deg) translate(1px,-1px)}
+.pie{margin-top:18px;padding:14px 16px;border:1px dashed var(--borde);border-radius:12px;color:var(--t60);font-size:13px}.pie b{color:var(--tinta)}
+/*x*/@media(max-width:700px){.ac .prog{display:none}.in{padding-left:20px}.chips{display:none}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style><style>
+.busca{display:flex;gap:10px;align-items:center;padding:12px 20px;border-bottom:1px solid var(--sand);flex-wrap:wrap}
+.busca input{flex:1;min-width:200px;height:38px;border:1px solid var(--borde);background:var(--hueso);border-radius:10px;padding:0 12px;font:inherit;color:inherit}
+.busca input:focus{outline:2px solid var(--tinta);background:var(--papel)}
+.seg{display:flex;background:var(--hueso);border-radius:999px;padding:3px}.seg button{border:0;background:none;padding:6px 12px;border-radius:999px;font:600 12px inherit;cursor:pointer;color:var(--t60)}.seg button[aria-pressed=true]{background:var(--tinta);color:var(--crema)}
+.G .fila{display:flex;align-items:center;gap:12px;width:100%;padding:9px 10px;border:0;background:none;border-radius:10px;cursor:pointer;text-align:left}.G .fila:hover{background:var(--hueso)}.G .fila .t{flex:1}
+.G .lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:2px 20px}
+.G mark{background:color-mix(in srgb,var(--rojo) 18%,transparent);color:inherit;border-radius:3px}
+.vacio{padding:28px;text-align:center;color:var(--t60)}
+.ac .cab .grp{font-size:12px;color:var(--t60)}
+button.sw[aria-pressed=true]{background:var(--tinta);border-color:var(--tinta)}button.sw[aria-pressed=true]::after{transform:translateX(16px)}
+/* H master-detail con cajón */
+.H .layout{display:grid;grid-template-columns:1fr 340px}.H .izq{border-right:1px solid var(--sand)}
+.H .fila{display:flex;align-items:center;gap:12px;width:100%;padding:11px 20px;border:0;border-top:1px solid var(--sand);background:none;cursor:pointer;text-align:left}
+.H .fila:hover{background:var(--hueso)}.H .fila.sel{background:var(--hueso);box-shadow:inset 3px 0 0 var(--tinta)}.H .fila .t{flex:1}.H .fila small{color:var(--t60);display:block}
+.H .der{padding:20px;position:sticky;top:0;align-self:start}
+.H .der h3{font-size:24px;margin:4px 0 8px}.H .der .et{font:700 11px/1 inherit;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe)}
+.H .der ul{padding-left:18px;margin:8px 0 14px;color:var(--t60)}.H .der .sw2{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--sand);border-bottom:1px solid var(--sand);margin:14px 0}
+.H .rolchips{display:flex;gap:6px;flex-wrap:wrap}
+.chp{font-size:12px;padding:3px 10px;border-radius:999px;background:var(--hueso)}
+/* I matriz */
+.I table{border-collapse:collapse;width:100%}.I th,.I td{padding:0;border-top:1px solid var(--sand);text-align:center}
+.I thead th{position:sticky;top:0;background:var(--papel);font:700 11px/1.2 inherit;letter-spacing:.08em;text-transform:uppercase;color:var(--taupe);padding:12px 6px;border-top:0}
+.I thead th.act{color:var(--tinta);box-shadow:inset 0 -3px 0 var(--tinta)}
+.I td.n,.I th.n{text-align:left;padding:10px 20px}
+.I tr.gr td{background:var(--hueso);text-align:left;padding:8px 20px;cursor:pointer;font:700 11.5px/1 inherit;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe)}
+.I tr.gr .cnt{font-weight:400;letter-spacing:0;text-transform:none;margin-left:6px}
+.I .cel{width:100%;height:38px;border:0;background:none;cursor:pointer;display:grid;place-items:center}
+.I .cel:hover{background:var(--hueso)}
+.pt{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--borde)}
+.cel[aria-pressed=true] .pt{background:var(--tinta);border-color:var(--tinta);position:relative}
+.cel[aria-pressed=true] .pt::after{content:"";position:absolute;left:3px;top:3px;width:8px;height:4px;border-left:2px solid var(--crema);border-bottom:2px solid var(--crema);transform:rotate(-45deg)}
+.I td.act{background:color-mix(in srgb,var(--tinta) 4%,transparent)}
+@media(max-width:800px){.H .layout{grid-template-columns:1fr}.H .izq{border-right:0}}
+</style></head><body><div class="wrap">
+<div class="top"><div><h1>Roles y accesos · diseños basados en producto real</h1>
+<p>Tres patrones que usan Shopify, GitLab y las matrices de permisos. <b>Maqueta: no guarda nada.</b></p></div>
+<div class="tabs" id="tabs"><button data-v="G" aria-pressed="true">G · Buscar y filtrar</button><button data-v="H" aria-pressed="false">H · Lista + detalle</button><button data-v="I" aria-pressed="false">I · Comparar roles</button></div></div>
+<div id="out"></div><div class="pie" id="pie"></div></div>
+<script>
+const G=[
+["General",[["Inicio","Tablero del día y accesos rápidos"]]],
+["Ventas",[["Punto de venta","Registrar ventas"],["Apartados","Apartar con adelanto"],["Caja","Abrir, cerrar y movimientos"],["Cambios","Cambiar una prenda"],["Devoluciones","Solicitar devoluciones"],["Historial de ventas","Consultar y reimprimir"],["Facturación","Boletas, facturas y notas"]]],
+["Tienda web",[["Resumen de la tienda web","Lo que pide la tienda online hoy"],["Tráfico de la tienda web","Cuánta gente entra y por dónde"],["Pedidos web","Confirmar, cobrar y entregar"],["Vitrina web","Qué modelos se ven en la web"],["Campañas de la tienda web","Cómo se ve cada campaña"],["Recomendaciones","Leer y responder"],["Datos y plazos de la tienda web","Horarios, WhatsApp y plazos"]]],
+["Clientes",[["Fichas de clientes","Registrar y ver compras"],["Avisos del club","Mensajes a miembros"],["Beneficios del club","Puntos, cupones y regalos"]]],
+["Inventario",[["Existencias","Qué hay en cada sede"],["Conteos","Contar y cuadrar stock"],["Traslados","Mover prendas entre sedes"],["Movimientos","Historial de stock"],["Recibir mercadería","Ingresar lo que llega"]]],
+["Catálogo",[["Productos","Fichas, fotos y precios"],["Categorías, marcas y atributos","Ordenar el catálogo"],["Insignias","Etiquetas y promociones"],["Campañas","Fechas y descuentos"],["Liquidación","Rebajar lo que no sale"]]],
+["Compras",[["Mis compras","Compras de mi tienda"],["Historial de compras","Todas las facturas"],["Por pagar","Deudas con proveedores"],["Revisar compras","Verificar lo recibido"],["Proveedores","Datos y ranking"],["Plan de campaña","Qué comprar para la campaña"]]],
+["Producción",[["Órdenes de producción","Lo que se cose en el taller"],["Órdenes de insumos","Telas y avíos"]]],
+["Gestión",[["Análisis","Qué se vende y qué no"],["Frescura del piso","Prendas viejas en tienda"],["Plan del piso","Qué debe estar en el piso"],["Colaboradores","Equipo y accesos"],["Roles y accesos","Quién ve qué"],["Configuración","Ajustes del sistema"],["Actividad","Quién hizo qué"],["CAYLA Global","Vista de todas las sedes"],["Rendimiento","Cómo va el sistema"],["Preguntas del equipo","Dudas de las sedes"]]],
+["Finanzas",[["Gastos","Registrar y revisar"],["Cuentas y dinero","Saldos y movimientos"],["Reportes financieros","Resultados del mes"],["Impuestos","IGV y renta"],["Cierre de mes","Cuadrar y cerrar"]]]];
+
+const ROLES=["Vendedora","Encargada","Almacén","Líder"];
+const R={"Vendedora":new Set(["Inicio","Punto de venta","Apartados","Caja","Cambios","Existencias","Productos","Mis compras"])};
+R["Encargada"]=new Set([...R.Vendedora,"Devoluciones","Historial de ventas","Conteos","Traslados","Movimientos"]);
+R["Almacén"]=new Set(["Inicio","Existencias","Conteos","Traslados","Movimientos","Recibir mercadería","Productos"]);
+R["Líder"]=new Set(G.flatMap(g=>g[1].map(m=>m[0])));
+let on=R.Vendedora,v="G",rolAct="Vendedora",q="",filtro="todos",sel="Punto de venta";const abiertos=new Set(["Ventas"]);
+const tot=G.reduce((a,g)=>a+g[1].length,0),cnt=(g,s=on)=>g[1].filter(m=>s.has(m[0])).length,esc=s=>s.replace(/&/g,"&amp;");
+const norm=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+const resal=t=>{if(!q)return t;const i=norm(t).indexOf(norm(q));return i<0?t:t.slice(0,i)+"<mark>"+t.slice(i,i+q.length)+"</mark>"+t.slice(i+q.length)};
+const head=()=>`<div class="head"><div><b>${rolAct}</b><br><small>Rol · 3 cuentas</small></div><div class="meta"><span>Ve <strong>${on.size}</strong> de ${tot} módulos</span></div></div>`;
+function G_(){const vis=g=>g[1].filter(m=>(!q||norm(m[0]).includes(norm(q)))&&(filtro=="todos"||on.has(m[0])));
+const gs=G.map(g=>[g,vis(g)]).filter(x=>x[1].length);
+const body=gs.length?gs.map(([g,ms])=>{const c=cnt(g),all=c==g[1].length,o=q||abiertos.has(g[0]);
+return `<section class="ac ${o?"open":""}"><button class="cab" data-a="${g[0]}"><i class="chev"></i><span class="nom">${g[0]}</span><span style="flex:1"></span><span class="prog bar"><i class="${all?"full":""}" style="width:${c/g[1].length*100}%"></i></span><span class="num">${c}/${g[1].length}</span></button><div class="cuerpo"><div><div class="in"><div class="tools"><button class="enlace" data-g="${g[0]}">${all?"Quitar todos":"Todos"}</button></div><div class="lista">${ms.map(m=>`<button class="fila" aria-pressed="${on.has(m[0])}" data-m="${esc(m[0])}"><span class="t">${resal(m[0])}</span><span class="sw"></span></button>`).join("")}</div></div></div></div></section>`}).join(""):`<div class="vacio">Ningún módulo coincide con «${q}».<br><button class="enlace" data-clr="1">Borrar la búsqueda</button></div>`;
+return `<div class="card">${head()}<div class="busca"><input id="q" placeholder="Buscar un módulo… (ej. caja, tráfico)" value="${q}"><div class="seg"><button data-f="todos" aria-pressed="${filtro=="todos"}">Todos</button><button data-f="on" aria-pressed="${filtro=="on"}">Solo los que ve</button></div></div>${body}</div>`}
+function H_(){const m=G.flatMap(g=>g[1].map(x=>[g[0],...x])).find(x=>x[1]==sel);const p=on.has(sel);
+const otros=ROLES.filter(r=>r!=rolAct&&R[r].has(sel));
+return `<div class="card">${head()}<div class="layout"><div class="izq">${G.map(g=>`<div style="padding:14px 20px 8px;display:flex;justify-content:space-between" class="lbl2"><span style="font:700 11.5px inherit;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe)">${g[0]} <span style="font-weight:400;letter-spacing:0;text-transform:none;color:var(--t60)">${cnt(g)}/${g[1].length}</span></span><button class="enlace" data-g="${g[0]}">${cnt(g)==g[1].length?"Quitar todos":"Todos"}</button></div>`+g[1].map(x=>`<div class="fila ${x[0]==sel?"sel":""}" data-sel="${esc(x[0])}" role="button" tabindex="0"><span class="t">${x[0]}<small>${x[1]}</small></span><button class="sw" style="padding:0;cursor:pointer" aria-pressed="${on.has(x[0])}" data-m="${esc(x[0])}" aria-label="Activar"></button></div>`).join("")).join("")}</div>
+<aside class="der"><span class="et">${m[0]}</span><h3>${m[1]}</h3><p style="color:var(--t60);margin:0">${m[2]}.</p><div class="sw2"><b>${p?"Este rol lo ve":"Este rol no lo ve"}</b><button class="sw" style="padding:0;cursor:pointer" aria-pressed="${p}" data-m="${esc(sel)}" aria-label="Activar"></button></div>
+<span class="et">Quien lo hace aquí</span><ul><li>Ver y usar la pantalla completa</li><li>Todo lo que hay dentro (botones y hojas)</li></ul>
+<span class="et">También lo ven</span><div class="rolchips" style="margin-top:8px">${otros.length?otros.map(r=>`<span class="chp">${r}</span>`).join(""):'<span style="color:var(--t60)">Ningún otro rol</span>'}</div></aside></div></div>`}
+function I_(){return `<div class="card"><div class="head"><div><b>Comparar roles</b><br><small>Toca una celda para cambiar. La columna marcada es el rol que editas.</small></div></div><table><thead><tr><th class="n" style="text-align:left;padding-left:20px">Módulo</th>${ROLES.map(r=>`<th class="${r==rolAct?"act":""}" style="width:110px;cursor:pointer" data-r="${r}">${r}<br><span style="font-weight:400;letter-spacing:0;text-transform:none">${R[r].size}/${tot}</span></th>`).join("")}</tr></thead><tbody>${G.map(g=>{const o=abiertos.has(g[0]);return `<tr class="gr" data-a="${g[0]}"><td class="n">${o?"▾":"▸"} ${g[0]}<span class="cnt">${g[1].length} módulos</span></td>${ROLES.map(r=>`<td style="font:600 12px inherit;letter-spacing:0;color:var(--t60)">${cnt(g,R[r])}/${g[1].length}</td>`).join("")}</tr>`+(o?g[1].map(m=>`<tr><td class="n">${m[0]}</td>${ROLES.map(r=>`<td class="${r==rolAct?"act":""}"><button class="cel" aria-pressed="${R[r].has(m[0])}" data-rm="${r}|${esc(m[0])}" ${r=="Líder"?"disabled style='opacity:.5;cursor:default'":""}><i class="pt"></i></button></td>`).join("")}</tr>`).join(""):"")}).join("")}</tbody></table></div>`}
+function draw(){const f=document.activeElement&&document.activeElement.id=="q";const out=document.getElementById("out");out.innerHTML=`<div class="${v}">${{G:G_,H:H_,I:I_}[v]()}</div>`;
+if(f){const i=document.getElementById("q");i.focus();i.setSelectionRange(q.length,q.length)}
+document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v==v));
+document.getElementById("pie").innerHTML={G:"<b>G · como Shopify:</b> buscador para encontrar un módulo al instante, filtro «Solo los que ve» y grupos que se abren. Shopify rehízo su selector así cuando la lista creció. Mejor para muchos módulos.",H:"<b>H · como GitLab:</b> la lista a la izquierda y, al tocar un módulo, su detalle a la derecha: qué incluye y qué otros roles también lo ven. Explica sin saturar la lista.",I:"<b>I · matriz de roles:</b> todos los roles como columnas para comparar de un vistazo (Vendedora vs Encargada). Es el patrón clásico de permisos; el Líder va fijo. Mejor para comparar, más pesado para editar uno solo."}[v]}
+document.addEventListener("input",e=>{if(e.target.id=="q"){q=e.target.value;draw()}});
+document.addEventListener("click",e=>{const t=e.target.closest("[data-v],[data-m],[data-g],[data-a],[data-f],[data-clr],[data-sel],[data-r],[data-rm]");if(!t)return;const d=t.dataset;
+if(d.v){v=d.v}else if(d.f)filtro=d.f;else if(d.clr)q="";
+else if(d.rm){const[r,m]=d.rm.split("|");if(r=="Líder")return;R[r].has(m)?R[r].delete(m):R[r].add(m);on=R[rolAct]}
+else if(d.r){rolAct=d.r;on=R[rolAct]}
+else if(d.a){abiertos.has(d.a)?abiertos.delete(d.a):abiertos.add(d.a)}
+else if(d.g){const g=G.find(x=>x[0]==d.g),all=cnt(g)==g[1].length;g[1].forEach(m=>all?on.delete(m[0]):on.add(m[0]))}
+else if(d.m){on.has(d.m)?on.delete(d.m):on.add(d.m);e.stopPropagation()}
+else if(d.sel)sel=d.sel;draw()});draw();
+</script></body></html>

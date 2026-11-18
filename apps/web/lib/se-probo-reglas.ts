@@ -30,12 +30,6 @@ export const TEXTO_RAZON: Record<RazonSeProbo, string> = {
   lo_piensa: "Lo piensa",
 };
 
-/** Las razones en el orden en que se muestran, listas para chips o un combo. */
-export const OPCIONES_RAZON: readonly { valor: RazonSeProbo; texto: string }[] = RAZONES_SE_PROBO.map((valor) => ({
-  valor,
-  texto: TEXTO_RAZON[valor],
-}));
-
 export function esMotivoPedido(valor: unknown): valor is MotivoPedido {
   return typeof valor === "string" && (MOTIVOS_PEDIDO as readonly string[]).includes(valor);
 }

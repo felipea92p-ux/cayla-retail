@@ -1129,6 +1129,7 @@ export type Database = {
           aprobado_por: string | null
           codigo: string
           combina_con: string[]
+          componentes: string[] | null
           descripcion: string | null
           estado: string
           familia_color: string | null
@@ -1148,6 +1149,7 @@ export type Database = {
           aprobado_por?: string | null
           codigo: string
           combina_con?: string[]
+          componentes?: string[] | null
           descripcion?: string | null
           estado?: string
           familia_color?: string | null
@@ -1167,6 +1169,7 @@ export type Database = {
           aprobado_por?: string | null
           codigo?: string
           combina_con?: string[]
+          componentes?: string[] | null
           descripcion?: string | null
           estado?: string
           familia_color?: string | null
@@ -1691,6 +1694,7 @@ export type Database = {
           anulacion_solicitada_at: string | null
           anulado_at: string | null
           anulado_por: string | null
+          cambio_id: string | null
           cliente_nombre: string | null
           cliente_num_doc: string | null
           cliente_tipo_doc: string
@@ -1725,6 +1729,7 @@ export type Database = {
           anulacion_solicitada_at?: string | null
           anulado_at?: string | null
           anulado_por?: string | null
+          cambio_id?: string | null
           cliente_nombre?: string | null
           cliente_num_doc?: string | null
           cliente_tipo_doc?: string
@@ -1759,6 +1764,7 @@ export type Database = {
           anulacion_solicitada_at?: string | null
           anulado_at?: string | null
           anulado_por?: string | null
+          cambio_id?: string | null
           cliente_nombre?: string | null
           cliente_num_doc?: string | null
           cliente_tipo_doc?: string
@@ -2751,6 +2757,7 @@ export type Database = {
           conteo_item_id: string | null
           created_at: string
           devolucion_item_id: string | null
+          empresa_id: string | null
           id: string
           lote_id: string | null
           motivo: string | null
@@ -2774,6 +2781,7 @@ export type Database = {
           conteo_item_id?: string | null
           created_at?: string
           devolucion_item_id?: string | null
+          empresa_id?: string | null
           id?: string
           lote_id?: string | null
           motivo?: string | null
@@ -2797,6 +2805,7 @@ export type Database = {
           conteo_item_id?: string | null
           created_at?: string
           devolucion_item_id?: string | null
+          empresa_id?: string | null
           id?: string
           lote_id?: string | null
           motivo?: string | null
@@ -3114,52 +3123,79 @@ export type Database = {
       prendas_danadas: {
         Row: {
           cambio_id: string | null
+          arreglo_costo: number | null
+          arreglo_no_se_pudo_motivo: string | null
+          arreglo_resultado: string | null
+          arreglo_volvio_en: string | null
           cantidad: number
           created_at: string
           devolucion_item_id: string | null
+          en_arreglo_desde: string | null
           estado: string
           id: string
           motivo_reporte: string | null
           movimiento_entrada_id: string
           movimiento_salida_id: string | null
           nota: string | null
+          nota_arreglo: string | null
           proveedor_id: string | null
           resuelto_en: string | null
           resuelto_por: string | null
+          ruta_arreglo: string | null
+          sacada_por: string | null
+          tipo_dano: string | null
           ubicacion_id: string
           variante_id: string
         }
         Insert: {
           cambio_id?: string | null
+          arreglo_costo?: number | null
+          arreglo_no_se_pudo_motivo?: string | null
+          arreglo_resultado?: string | null
+          arreglo_volvio_en?: string | null
           cantidad: number
           created_at?: string
           devolucion_item_id?: string | null
+          en_arreglo_desde?: string | null
           estado?: string
           id?: string
           motivo_reporte?: string | null
           movimiento_entrada_id: string
           movimiento_salida_id?: string | null
           nota?: string | null
+          nota_arreglo?: string | null
           proveedor_id?: string | null
           resuelto_en?: string | null
           resuelto_por?: string | null
+          ruta_arreglo?: string | null
+          sacada_por?: string | null
+          tipo_dano?: string | null
           ubicacion_id: string
           variante_id: string
         }
         Update: {
           cambio_id?: string | null
+          arreglo_costo?: number | null
+          arreglo_no_se_pudo_motivo?: string | null
+          arreglo_resultado?: string | null
+          arreglo_volvio_en?: string | null
           cantidad?: number
           created_at?: string
           devolucion_item_id?: string | null
+          en_arreglo_desde?: string | null
           estado?: string
           id?: string
           motivo_reporte?: string | null
           movimiento_entrada_id?: string
           movimiento_salida_id?: string | null
           nota?: string | null
+          nota_arreglo?: string | null
           proveedor_id?: string | null
           resuelto_en?: string | null
           resuelto_por?: string | null
+          ruta_arreglo?: string | null
+          sacada_por?: string | null
+          tipo_dano?: string | null
           ubicacion_id?: string
           variante_id?: string
         }
@@ -3273,6 +3309,7 @@ export type Database = {
           fecha_entrega: string | null
           id: string
           inventariado_at: string | null
+          ingreso_al_stock: string
           nota: string | null
           producto_id: string
           token_cliente: string | null
@@ -3293,6 +3330,7 @@ export type Database = {
           fecha_entrega?: string | null
           id?: string
           inventariado_at?: string | null
+          ingreso_al_stock?: string
           nota?: string | null
           producto_id: string
           token_cliente?: string | null
@@ -3313,6 +3351,7 @@ export type Database = {
           fecha_entrega?: string | null
           id?: string
           inventariado_at?: string | null
+          ingreso_al_stock?: string
           nota?: string | null
           producto_id?: string
           token_cliente?: string | null
@@ -3426,8 +3465,11 @@ export type Database = {
           es_prueba: boolean
           estado: string
           estado_alta: string
+          fusionado_en: string | null
+          fusionado_en_id: string | null
           id: string
           marca_id: string | null
+          nombre_proveedor: string | null
           patron_id: string | null
           permitir_venta_sin_stock: boolean
           propuesto_por: string | null
@@ -3450,8 +3492,11 @@ export type Database = {
           es_prueba?: boolean
           estado?: string
           estado_alta?: string
+          fusionado_en?: string | null
+          fusionado_en_id?: string | null
           id?: string
           marca_id?: string | null
+          nombre_proveedor?: string | null
           patron_id?: string | null
           permitir_venta_sin_stock?: boolean
           propuesto_por?: string | null
@@ -3474,8 +3519,11 @@ export type Database = {
           es_prueba?: boolean
           estado?: string
           estado_alta?: string
+          fusionado_en?: string | null
+          fusionado_en_id?: string | null
           id?: string
           marca_id?: string | null
+          nombre_proveedor?: string | null
           patron_id?: string | null
           permitir_venta_sin_stock?: boolean
           propuesto_por?: string | null
@@ -4092,6 +4140,9 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          lugar: string | null
+          lugar_en: string | null
+          lugar_por: string | null
           nombre: string
           tipo: string | null
           ubicacion_id: string
@@ -4099,6 +4150,9 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          lugar?: string | null
+          lugar_en?: string | null
+          lugar_por?: string | null
           nombre: string
           tipo?: string | null
           ubicacion_id: string
@@ -4106,6 +4160,9 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          lugar?: string | null
+          lugar_en?: string | null
+          lugar_por?: string | null
           nombre?: string
           tipo?: string | null
           ubicacion_id?: string
@@ -4661,6 +4718,7 @@ export type Database = {
           color_codigo: string | null
           costo: number
           created_at: string
+          fusionada_en_id: string | null
           id: string
           precio: number
           producto_id: string
@@ -4673,6 +4731,7 @@ export type Database = {
           color_codigo?: string | null
           costo?: number
           created_at?: string
+          fusionada_en_id?: string | null
           id?: string
           precio: number
           producto_id: string
@@ -4685,6 +4744,7 @@ export type Database = {
           color_codigo?: string | null
           costo?: number
           created_at?: string
+          fusionada_en_id?: string | null
           id?: string
           precio?: number
           producto_id?: string
@@ -5396,15 +5456,6 @@ export type Database = {
         Args: { p_persona_id: string; p_terminal: string; p_ubicacion_id: string }
         Returns: undefined
       }
-      ajustar_insumo_por_conteo: {
-        Args: {
-          p_cantidad_contada: number
-          p_insumo_id: string
-          p_motivo: string
-          p_ubicacion_id: string
-        }
-        Returns: string
-      }
       anular_compra: {
         Args: { p_compra_id: string; p_motivo: string }
         Returns: undefined
@@ -5494,12 +5545,16 @@ export type Database = {
           clienta_apellidos: string
           clienta_celular: string
           clienta_dni: string | null
+          canal: string
           clienta_nombres: string
           codigo: string
           comprobante_anticipo: string | null
           comprobante_final: string | null
           creada_en: string
           devolucion_cci_final: string | null
+          direccion_envio: string | null
+          enviado_en: string | null
+          guia_envio: string | null
           devolucion_medio: string
           devolucion_numero: string | null
           estado: string
@@ -5507,6 +5562,7 @@ export type Database = {
           extensiones: number
           id: string
           items: Json
+          modo_entrega: string
           liberada_sola: boolean
           nota_credito: string | null
           pagos: Json
@@ -5514,6 +5570,52 @@ export type Database = {
           total: number
           vence_el: string
         }[]
+      }
+      // Ventas online (ADR-0607, 20261104004000). Escritos a mano con la forma que da `supabase gen types`: regenerar al pegar la migración.
+      marcar_separacion_enviada: {
+        Args: { p_guia?: string; p_separacion_id: string }
+        Returns: string
+      }
+      fn_canales_venta: {
+        Args: Record<PropertyKey, never>
+        Returns: { clave: string; nombre: string; es_fisico: boolean }[]
+      }
+      fn_canales_de_roles: {
+        Args: Record<PropertyKey, never>
+        Returns: { rol_id: string; canal: string }[]
+      }
+      fn_canales_de_la_cuenta: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
+      guardar_canales_rol: {
+        Args: { p_canales: string[]; p_rol_id: string; p_version_esperada?: number }
+        Returns: number
+      }
+      separar_prendas_online: {
+        Args: {
+          p_asesora_id?: string
+          p_canal: string
+          p_cliente_razon_social?: string
+          p_cliente_ruc?: string
+          p_clienta_apellidos: string
+          p_clienta_celular: string
+          p_clienta_dni?: string
+          p_clienta_id?: string
+          p_clienta_nombres: string
+          p_comprobante_tipo?: string
+          p_devolucion_cci?: string
+          p_devolucion_medio: string
+          p_devolucion_numero?: string
+          p_direccion_envio: string | null
+          p_items: Json
+          p_modo_entrega: string
+          p_nota?: string
+          p_pagos: Json
+          p_token?: string
+          p_ubicacion_id: string
+        }
+        Returns: string
       }
       entregar_separacion: {
         Args: { p_pagos?: Json; p_separacion_id: string; p_token?: string }
@@ -5947,8 +6049,18 @@ export type Database = {
       fn_campana_diseno: { Args: { p_etiqueta_id: string }; Returns: Json }
       guardar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null; p_diseno: Json }; Returns: Json }
       programar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null }; Returns: Json }
+      // ADR-0564 (20261029034000): la foto opcional del daño de una prenda dañada (registrar una ya subida / leer las rutas visibles).
+      registrar_foto_danada: { Args: { p_bytes: number; p_danada_id: string; p_nombre: string; p_ruta: string; p_tipo: string }; Returns: Json }
+      fotos_de_danadas: { Args: { p_ids: string[] }; Returns: { danada_id: string; ruta: string }[] }
+      // ADR-0564 (20261029033000): la prenda que salió a arreglarse volvió SIN arreglo.
+      no_se_pudo_arreglar: { Args: { p_id: string; p_motivo?: string }; Returns: Json }
+      // ADR-0564 (20261029032000): «Salió a arreglar»: marca que una dañada en cuarentena salió de la tienda a arreglarse.
+      sacar_danada_a_arreglar: { Args: { p_id: string; p_nota?: string; p_ruta: string }; Returns: Json }
+      // ADR-0564 (20261029031000): marca (o borra, con texto vacío) el lugar físico donde la tienda deja las prendas dañadas.
+      definir_lugar_danadas: { Args: { p_lugar: string; p_ubicacion_id: string }; Returns: Json }
       desprogramar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null }; Returns: Json }
       crear_campana_vista_previa: { Args: { p_etiqueta_id: string }; Returns: Json }
+      color_combinado: { Args: { p_componentes: string[] }; Returns: Json }
       // Vitrina web ▸ Esperan una talla (ADR-0408, actividad 12; 20261015030000): lo que esperan los clientes, sin datos personales.
       fn_vitrina_esperan: { Args: never; Returns: Json }
       // Vitrina web (ADR-0408, actividad 3; 20261014225000). Sin precio web: en la web vale el precio de cada tienda.
@@ -5997,6 +6109,10 @@ export type Database = {
       }
       // Vitrina web ▸ Looks (ADR-0408, actividad 11; 20261015031000): las combinaciones de «Arma tu look».
       fn_vitrina_looks: { Args: never; Returns: Json }
+      // En qué tiendas sale cada look y qué prenda le falta a cada una (20261027204000): las mismas reglas que la tienda online.
+      fn_vitrina_looks_por_tienda: { Args: never; Returns: Json }
+      // En qué tiendas hay cada prenda en cada color, para filtrar y avisar al armar un look (20261027204000).
+      fn_vitrina_prendas_por_tienda: { Args: never; Returns: Json }
       vitrina_guardar_look: {
         Args: {
           p_look_id: string | null
@@ -6047,6 +6163,8 @@ export type Database = {
       responder_hoja_reclamacion: { Args: { p_id: string; p_respuesta: string }; Returns: Json }
       responder_recomendacion: { Args: { p_id: string; p_respuesta: string }; Returns: Json }
       archivar_recomendacion: { Args: { p_id: string; p_archivar: boolean }; Returns: Json }
+      // Tienda web ▸ Tráfico (ADR-0495; 20261023231000): personas que entraron a la tienda online y hasta qué paso llegaron. Pide el módulo.
+      resumen_trafico_web: { Args: { p_desde: string; p_hasta: string; p_camino?: string; p_ciudad?: string }; Returns: Json }
       unirse_al_club: {
         Args: {
           p_clienta_id: string
@@ -6470,6 +6588,10 @@ export type Database = {
           similitud: number
         }[]
       }
+      campanas_firma: {
+        Args: { p_ubicacion_id?: string }
+        Returns: string
+      }
       campanas_sedes: {
         Args: never
         Returns: {
@@ -6687,7 +6809,7 @@ export type Database = {
       }
       // ADR-0328 act. 10 (20261005140000): «Se arregló» — la dañada vuelve al almacén de su sede. Solo el líder.
       arreglar_prenda_danada: {
-        Args: { p_id: string; p_nota: string; p_token: string }
+        Args: { p_costo?: number; p_destino?: string; p_id: string; p_medio_pago?: string; p_nota: string; p_token: string }
         Returns: Json
       }
       asignar_temporada_categoria: {
@@ -6728,6 +6850,10 @@ export type Database = {
       fijar_cierre_carga_inicial: {
         Args: { p_fecha: string | null; p_ubicacion_id: string }
         Returns: Json
+      }
+      fijar_nombre_proveedor: {
+        Args: { p_nombre: string; p_producto_id: string }
+        Returns: undefined
       }
       fn_carga_inicial_sedes: { Args: never; Returns: Json }
       fijar_meta_persona: {
@@ -6806,6 +6932,67 @@ export type Database = {
           orden: number
         }[]
       }
+      fn_vendido_por_empresa: {
+        Args: {
+          p_comprobante?: string
+          p_desde?: string
+          p_estado?: string
+          p_hasta?: string
+          p_incluir_prueba?: boolean
+          p_pago?: string
+          p_sede_id?: string
+          p_vendedor_id?: string
+        }
+        Returns: {
+          clave: string
+          empresa_id: string
+          nombre: string
+          orden: number
+          total: number
+          unidades: number
+          ventas: number
+        }[]
+      }
+      // ADR-0542: de quién son las unidades de cada prenda en una sede con dos empresas (solo las prendas con unidades de alguien que no es la casa).
+      fn_stock_por_dueno: {
+        Args: { p_ubicacion_id: string }
+        Returns: { variante_id: string; empresa_id: string; clave: string; cantidad: number; cantidad_apartada: number }[]
+      }
+      fn_tallas_sin_costo: { Args: { p_ubicacion_id: string }; Returns: Json }
+      fn_valor_inventario_existencias: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          ubicacion_id: string
+          sede: string
+          tipo: string
+          unidades: number
+          valor: number
+          unidades_sin_costo: number
+          prendas_sin_costo: number
+          valor_con_costo_de_compra: number
+          unidades_danadas: number
+          valor_danadas: number
+          unidades_claure: number
+          valor_claure: number
+        }[]
+      }
+      fn_empresa_de_ventas: {
+        Args: { p_ventas: string[] }
+        Returns: { empresa_id: string; monto: number; venta_id: string }[]
+      }
+      fn_vendido_por_empresa_de_cajas: {
+        Args: { p_cajas: string[] }
+        Returns: {
+          caja_id: string
+          clave: string
+          empresa_id: string
+          nombre: string
+          orden: number
+          total: number
+          unidades: number
+          ventas: number
+        }[]
+      }
       crear_producto_con_empresa: {
         Args: {
           p_al_piso?: boolean
@@ -6823,6 +7010,25 @@ export type Database = {
           p_empresa_id: string
           p_token?: string
           p_ubicacion_id?: string
+          p_variantes: Json
+        }
+        Returns: string
+      }
+      crear_producto_con_llegada: {
+        Args: {
+          p_categoria_id: string
+          p_confirmo_distinto?: boolean
+          p_descripcion?: string
+          p_empresa_id?: string
+          p_etiqueta_ids?: string[]
+          p_marca_id?: string
+          p_patron_id?: string
+          p_proveedor_id: string
+          p_referencia: string
+          p_tejido_id?: string
+          p_temporada?: string
+          p_token?: string
+          p_ubicacion_id: string
           p_variantes: Json
         }
         Returns: string
@@ -6936,6 +7142,35 @@ export type Database = {
       eliminar_producto_con_historia: {
         Args: { p_producto_id: string }
         Returns: string
+      }
+      // Fusionar productos duplicados (ADR-0650, 20261112205000, 210000 y 212000). Escritos a mano con la forma que da `supabase gen types`.
+      fn_productos_posibles_duplicados: {
+        Args: { p_limite?: number }
+        Returns: {
+          motivo: string
+          producto_a: string
+          producto_b: string
+          referencia_a: string
+          referencia_b: string
+          similitud: number
+        }[]
+      }
+      fusionar_productos: {
+        Args: {
+          p_duplicados: string[]
+          p_elecciones?: Json
+          p_queda: string
+          p_versiones?: Json
+        }
+        Returns: Json
+      }
+      previsualizar_fusion_productos: {
+        Args: {
+          p_duplicados: string[]
+          p_elecciones?: Json
+          p_queda: string
+        }
+        Returns: Json
       }
       emitir_comprobante: {
         Args: {
@@ -7228,24 +7463,6 @@ export type Database = {
           variante_id: string
         }[]
       }
-      fn_costo_historial: {
-        Args: { p_variante_id: string }
-        Returns: {
-          cantidad_nueva: number
-          compra_documento: string
-          costo_anterior: number
-          costo_resultante: number
-          costo_unitario_nuevo: number
-          created_at: string
-          id: string
-          lote_guia: string
-          origen: string
-          produccion_referencia: string
-          proveedor_nombre: string
-          stock_previo: number
-          usuario_nombre: string
-        }[]
-      }
       fn_cotizacion_maquila_vigente: {
         Args: { p_categoria_id: string }
         Returns: {
@@ -7442,6 +7659,7 @@ export type Database = {
           p_hasta?: string
           p_limite?: number
           p_motivo?: string
+          p_empresa_id?: string
           p_producto_id?: string
           p_sububicacion_id?: string
           p_ubicacion_id: string
@@ -7534,6 +7752,7 @@ export type Database = {
         Args: {
           p_busqueda?: string
           p_desde?: string
+          p_empresa_id?: string
           p_hasta?: string
           p_motivo?: string
           p_sububicacion_id?: string
@@ -8497,6 +8716,10 @@ export type Database = {
       fn_fuera_de_mi_alcance: { Args: never; Returns: { persona_id: string }[] }
       // 20260925220000: Inicio módulo apagable + pantalla principal por rol.
       fn_mi_pantalla_principal: { Args: never; Returns: string | null }
+      // 20261027140000 (ADR-0533): la persona de mi cuenta; NULL en una terminal o sin sesión, sin rechazar.
+      fn_mi_persona_id: { Args: never; Returns: string | null }
+      // 20261113200000 (ADR-0657): las seis respuestas de identidad del marco en un viaje (la web las traduce en lib/mi-sesion-reglas.ts).
+      fn_mi_sesion: { Args: never; Returns: Json }
       // 20260925210000: la foto de perfil de Dynamic (ruta en el bucket fotos-perfil) de cada colaborador pedido.
       fn_fotos_personas: { Args: { p_ids: string[] }; Returns: { persona_id: string; foto_ruta: string }[] }
       guardar_modulos_rol: {
@@ -9021,9 +9244,22 @@ export type Database = {
         }
         Returns: string
       }
+      previsualizar_documentos_cambio: {
+        Args: {
+          p_cantidad: number
+          p_cliente?: Json
+          p_total_nuevo: number
+          p_ubicacion_id: string
+          p_venta_item_id: string
+        }
+        Returns: Json
+      }
+      fn_emitir_notas_de_cambios_pendientes: { Args: never; Returns: number }
+      fn_cambio_emite_comprobantes: { Args: never; Returns: boolean }
       registrar_cambio: {
         Args: {
           p_cantidad?: number
+          p_cliente?: Json
           p_condicion?: string
           p_metodo_pago_diferencia?: string
           p_motivo?: string
@@ -9037,6 +9273,7 @@ export type Database = {
       registrar_cambio_varias: {
         Args: {
           p_cantidad?: number
+          p_cliente?: Json
           p_condicion?: string
           p_metodo_pago_diferencia?: string
           p_motivo?: string
@@ -9272,12 +9509,13 @@ export type Database = {
         }
         Returns: string
       }
-      // ADR-0328 act. 10 (20261005140000): reporta una prenda dañada desde Existencias (lo libre del piso o del almacén → cuarentena).
+      // ADR-0328 act. 10 (20261005140000) + ADR-0564 (20261029024000): reporta una prenda dañada desde Existencias (lo libre del piso o del almacén → cuarentena), con su tipo de daño.
       reportar_danada: {
         Args: {
           p_cantidad: number
           p_desde: string
           p_motivo: string
+          p_tipo?: string
           p_token: string
           p_ubicacion_id: string
           p_variante_id: string

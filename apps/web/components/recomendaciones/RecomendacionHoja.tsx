@@ -64,8 +64,9 @@ function sinClave<T>(registro: Record<string, T>, clave: string): Record<string,
  * (ADR-0162). Un doble toque no manda dos veces: el botón se apaga mientras la base responde y la base no repite (la
  * misma respuesta otra vez es «ya estaba»; otra encima de una que ya está se rechaza y la lista se relee).
  *
- * Es un cajón lateral SIN velo (Felipe 2026-10-17, maqueta `docs/maquetas/recomendacion-hoja-2026-10/`): la bandeja sigue viva detrás,
- * tocar otra fila o ↑ ↓ cambia la recomendación sin cerrar el cajón, y lo escrito en cada una se guarda mientras el cajón esté abierto.
+ * Es un cajón lateral CON velo (Felipe 2026-11-02, antes sin velo: maqueta `docs/maquetas/recomendacion-hoja-2026-10/`): oscurece la
+ * bandeja y tocar afuera lo cierra, como los demás cajones. ↑ ↓ (o las flechas del pie) cambian la recomendación sin cerrarlo, y lo
+ * escrito en cada una se guarda mientras el cajón esté abierto.
  * Al responder o archivar, la hoja se queda mostrando lo hecho y ofrece «Siguiente por responder». Se lee como una conversación
  * (Felipe 2026-10-16): el mensaje del cliente y la respuesta de CAYLA en dos globos, cada uno con su hora; el estado no lleva insignia
  * porque lo dice la conversación. A un Admin no se le muestra el aviso del responsable cuando no hay nada que hacer.
@@ -295,7 +296,6 @@ export function RecomendacionHoja({
   return (
     <Cajon
       onCerrar={cerrarHoja}
-      velo={false}
       ancho="ancho"
       clave={r.id}
       marca={nombre ? <AvatarPersona personaId={null} nombre={nombre} tamano={40} /> : <UserX aria-hidden className="h-10 w-10 p-2 text-taupe" />}
@@ -386,7 +386,7 @@ export function RecomendacionHoja({
               peso="primario"
               cargando={guardando === "respondida"}
               textoCargando="Enviando…"
-              disabled={!guia.puedeConfirmar || ocupado}
+              disabled={ocupado} confirma={guia}
               title={guia.frase ?? undefined}
               className={guia.claseConfirmar}
               onClick={enviar}
@@ -418,12 +418,12 @@ export function RecomendacionHoja({
         <div className="max-w-[88%]">
           {/* Lo que escribió, tal cual (es texto: lo que parezca código se lee como texto). */}
           <blockquote
-            className="whitespace-pre-line break-words rounded-2xl rounded-tl-md border border-sand bg-hueso/70 px-4 py-3 font-serif text-[18px] leading-snug text-tinta"
+            className="whitespace-pre-line break-words tw-cita rounded-2xl rounded-tl-md border px-4 py-3 font-serif text-[18px] leading-snug text-tinta"
             data-guia="recomendacion.texto"
           >
             {r.texto}
           </blockquote>
-          <p className="mt-1.5 pl-1 text-[12px] text-taupe">
+          <p className="mt-1.5 pl-1 text-sm text-taupe">
             Llegó {haceCuanto(r.creadaEn, ahora)} · {cuando(r.creadaEn)}
             {/* Una vieja que alguien marcó leída sin responder: el «visto» dice algo mientras no hay respuesta. */}
             {v.leidaEn && v.respuesta === null && !v.archivadaEn && <> · vista {v.leidaPor ? `por ${v.leidaPor}` : `el ${cuando(v.leidaEn)}`}</>}
@@ -435,7 +435,7 @@ export function RecomendacionHoja({
             <p className="whitespace-pre-line break-words rounded-2xl rounded-tr-md bg-tinta px-4 py-3 text-[14.5px] leading-snug text-crema">
               {v.respuesta}
             </p>
-            <p className="mt-1.5 pr-1 text-right text-[12px] text-taupe">
+            <p className="mt-1.5 pr-1 text-right text-sm text-taupe">
               Respondió {v.respondidaPor ?? "CAYLA"}
               {v.respondidaEn ? ` · ${cuando(v.respondidaEn)}` : ""} · lo lee en su cuenta de la tienda online
             </p>
@@ -448,7 +448,7 @@ export function RecomendacionHoja({
             <p className="whitespace-pre-line break-words rounded-2xl rounded-tr-md bg-tinta px-4 py-3 text-[14.5px] leading-snug text-crema opacity-60">
               {pendiente.texto}
             </p>
-            <p className="mt-1.5 flex flex-wrap items-center justify-end gap-x-2 pr-1 text-right text-[12px] text-taupe" role="status">
+            <p className="mt-1.5 flex flex-wrap items-center justify-end gap-x-2 pr-1 text-right text-sm text-taupe" role="status">
               Se envía en {segundosQueFaltan(pendiente.vence, ahoraMs)} s
               <BotonDeshacer onClick={deshacerEnvio} disabled={ocupado} />
             </p>
@@ -456,14 +456,14 @@ export function RecomendacionHoja({
         )}
 
         {!r.cliente && (
-          <p className="flex items-center gap-2 text-[13px] text-taupe">
+          <p className="flex items-center gap-2 text-sm text-taupe">
             <UserX aria-hidden className="h-5 w-5 shrink-0" />
-            Su ficha se anonimizó: la recomendación se queda, sin su nombre ni sus datos, y ya no se le responde.
+            Su ficha se anonimizó: la recomendación queda sin su nombre y ya no se le responde.
           </p>
         )}
 
         {v.archivadaEn && (
-          <p className="flex items-center gap-1.5 text-[12px] text-taupe">
+          <p className="flex items-center gap-1.5 text-sm text-taupe">
             <Archive aria-hidden className="h-3.5 w-3.5 shrink-0" />
             Archivada {v.archivadaPor ? `por ${v.archivadaPor} ` : ""}el {cuando(v.archivadaEn)}
             {v.respuesta === null ? " sin responder: el cliente la ve como leída" : ""}
@@ -484,7 +484,7 @@ export function RecomendacionHoja({
       {puedeResponder && !pendiente && (
         // Formas de empezar que siguen lo que escribió (ADR-0290): saludan por su nombre y dicen qué se hará; el resto lo escribe quien responde.
         <div className="flex flex-wrap items-center gap-1.5" data-guia="recomendacion.inicios">
-          <span className="mr-0.5 text-[12px] text-taupe">Empieza con</span>
+          <span className="mr-0.5 text-sm text-taupe">Empieza con</span>
           {inicios.map((i) => (
             <button key={i.etiqueta} type="button" className="pildora-cayla" disabled={ocupado} onClick={() => usarInicio(i.texto)}>
               {i.etiqueta}

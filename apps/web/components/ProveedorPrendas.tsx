@@ -34,19 +34,19 @@ function FilaPrenda({ p }: { p: PrendaDeProveedor }) {
     <div className={fila(PLANTILLA)}>
       <span className={celda("izq")}>
         <span className="block truncate text-sm text-tinta">{p.referencia}</span>
-        <span className="block truncate text-xs text-taupe">
+        <span className="block truncate text-sm text-taupe">
           {[p.codigo, p.categoria, p.primeraEntrada ? `desde ${fechaCorta(p.primeraEntrada)}` : null].filter(Boolean).join(" · ")}
         </span>
       </span>
       <span className={celda("der", "text-sm text-tinta")} title={p.unidadesCarga > 0 ? `${p.unidadesCarga.toLocaleString("es-PE")} de estas unidades vienen de la carga inicial (estimadas, costo por confirmar)${p.unidadesCompras > 0 ? `; ${p.unidadesCompras.toLocaleString("es-PE")} llegaron por Compras` : ""}` : p.unidadesSinFactura > 0 ? `${p.unidadesSinFactura.toLocaleString("es-PE")} llegaron sin factura (un envío sin guía)` : undefined}>
         {p.unidadesCompradas.toLocaleString("es-PE")}
-        {p.unidadesCarga > 0 && <span className="block text-[10px] leading-none text-taupe">{p.unidadesCompras === 0 ? "carga inicial" : `${p.unidadesCarga.toLocaleString("es-PE")} de carga`}</span>}
-        {p.unidadesCarga === 0 && p.unidadesSinFactura > 0 && <span className="block text-[10px] leading-none text-taupe">sin factura</span>}
+        {p.unidadesCarga > 0 && <span className="block text-sm leading-none text-taupe">{p.unidadesCompras === 0 ? "carga inicial" : `${p.unidadesCarga.toLocaleString("es-PE")} de carga`}</span>}
+        {p.unidadesCarga === 0 && p.unidadesSinFactura > 0 && <span className="block text-sm leading-none text-taupe">sin factura</span>}
       </span>
       <span className={celda("der", "text-sm text-tinta")}>{soles(p.gasto)}</span>
       <span className={celda("izq", "overflow-visible")}>
         <span className="block text-sm tabular-nums text-tinta">
-          {p.unidadesVendidas.toLocaleString("es-PE")} <span className="text-xs text-taupe">· {pctTexto(t.vendidoPct)}</span>
+          {p.unidadesVendidas.toLocaleString("es-PE")} <span className="text-sm text-taupe">· {pctTexto(t.vendidoPct)}</span>
         </span>
         <BarraAvance pct={t.vendidoPct ?? 0} alto="fina" tono="tinta" decorativa className="mt-1" />
       </span>
@@ -63,7 +63,7 @@ export function ProveedorPrendas({ prendas }: { prendas: PrendaDeProveedor[] }) 
         <TituloSeccion>Lo que le compré</TituloSeccion>
         <div className="card-cayla">
           <Vacio icono={<Shirt />} titulo="Todavía no hay prendas de este proveedor">
-            Cuando entren al inventario prendas con este proveedor (o se registre una factura con sus líneas), aquí verás cuántas compraste, cuánto gastaste y cuánto ya se vendió.
+            Cuando entren prendas suyas al inventario verás cuántas compraste, cuánto gastaste y cuánto se vendió.
           </Vacio>
         </div>
       </section>
@@ -113,7 +113,7 @@ export function ProveedorPrendas({ prendas }: { prendas: PrendaDeProveedor[] }) 
             { clave: "carga", nombre: "De la carga inicial", valor: total.unidadesCarga, clase: "bg-tinta/25" },
           ]}
         />
-        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-taupe">
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-taupe">
           <span className="inline-flex items-center gap-1.5">
             <MuestraTramo clase="bg-verde" /> Por Compras ({total.unidadesCompras.toLocaleString("es-PE")})
           </span>
@@ -172,7 +172,7 @@ export function ProveedorPrendas({ prendas }: { prendas: PrendaDeProveedor[] }) 
                 {g.marca} <span className="text-sm text-taupe">· {g.prendas} {g.prendas === 1 ? "prenda" : "prendas"}</span>
               </span>
               <span className="text-sm tabular-nums text-tinta">
-                {soles(g.gasto)} <span className="text-xs text-taupe">· {pctTexto(pesoDelGasto(g.gasto, total.gasto))} de lo que gastaste · vendido {pctTexto(g.vendidoPct)}</span>
+                {soles(g.gasto)} <span className="text-sm text-taupe">· {pctTexto(pesoDelGasto(g.gasto, total.gasto))} de lo que gastaste · vendido {pctTexto(g.vendidoPct)}</span>
               </span>
             </summary>
             <Tabla className="@container rounded-none border-0 shadow-none">
@@ -186,8 +186,7 @@ export function ProveedorPrendas({ prendas }: { prendas: PrendaDeProveedor[] }) 
       </div>
 
       <p className="nota-cayla">
-        «Por Compras» es lo que llegó por una recepción, con el costo de su factura (o de su lote si llegó sin guía). «Carga inicial» es lo que ya estaba cuando se cargó el inventario: se estima con lo vendido más lo que queda y se valora al costo de la carga, que se confirma cuando lleguen compras.
-        El margen y la plata sin vender solo se calculan con lo que tiene costo real; las unidades valen para los dos orígenes. Los cambios, devoluciones y traslados entre sedes no cuentan como compra.
+        «Por Compras» llegó con su factura; «Carga inicial» ya estaba al cargar el inventario y su costo es estimado. El margen solo cuenta lo que tiene costo real. Cambios, devoluciones y traslados no son compras.
       </p>
     </section>
   );

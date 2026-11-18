@@ -117,9 +117,9 @@ export function RecepcionesCompraLista({
         <span className={celda("izq", "text-sm tabular-nums text-tinta")}>{diaMes(diaLima(r.fechaRecepcion))}</span>
         <span className={celda("izq")}>
           <span className="text-sm text-tinta">
-            {r.proveedorNombre} <span className="ml-1 text-xs tabular-nums text-tinta/65">{r.documento}</span>
+            {r.proveedorNombre} <span className="ml-1 text-sm tabular-nums text-tinta/65">{r.documento}</span>
           </span>
-          <span className="block truncate text-xs text-tinta/55">
+          <span className="block truncate text-sm text-tinta/55">
             Guía {r.numeroGuia ?? "—"} · {r.ubicacionNombre}
           </span>
         </span>
@@ -161,7 +161,7 @@ export function RecepcionesCompraLista({
             <ChevronRight aria-hidden className={`h-3.5 w-3.5 shrink-0 text-tinta/55 transition-transform duration-300 ease-cayla ${abierto ? "rotate-90" : ""}`} />
             Envío de {g.proveedores} proveedores
           </span>
-          <span className="block truncate pl-5 text-xs text-tinta/55">
+          <span className="block truncate pl-5 text-sm text-tinta/55">
             Guía {g.numeroGuia ?? "—"} · {g.ubicacionNombre}
             {g.parcial ? " · esta lista muestra solo una parte" : ""}
           </span>

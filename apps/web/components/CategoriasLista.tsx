@@ -17,11 +17,15 @@ import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 import type { Familia } from "@cayla-retail/shared";
 import { IconoCategoria } from "@/components/IconoCategoria";
 import { MuestraCategoria, tonoDeCategoria } from "@/components/MuestraCategoria";
-import { BarraAtributos, GRILLA_ATRIBUTOS, SinCoincidencias, TarjetaAtributo, TituloGrupo } from "@/components/atributos/kit";
+import { BarraAtributos, GRILLA_ATRIBUTOS, GrupoDesactivado, SinCoincidencias, TarjetaAtributo, TituloGrupo } from "@/components/atributos/kit";
 import { PUNTO_DEL_TONO, tonoDeFamilia } from "@/lib/categoria-tonos";
 import { avisoChoque, ejemploParaFamilia, prefijoDesdeNombre, quienUsaNombre, quienUsaPrefijo } from "@/lib/categoria-alta-reglas";
+import { existentesParecidos } from "@/lib/atributo-parecido";
+import { claveTexto } from "@/lib/nombres-parecidos";
+import { ExisteTambien, faltaPorExistente, useExisteTambien } from "@/components/ui/ExisteTambien";
 import { FolderTree, Grid3x3, Layers, Ruler, Shapes } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { PieAcciones } from "@/components/ui/PieAcciones";
 import { BotonEditar } from "@/components/ui/BotonEditar";
 import { MAX_NOMBRE_CATALOGO } from "@/lib/catalogo-topes";
 
@@ -194,6 +198,9 @@ export function CategoriasLista({
   };
 
   function abrirBorrador(b: Borrador | null) {
+    // Lo que se contestó en la vez anterior («No, es otra») no vale para esta: el formulario es el mismo componente, no nace de nuevo.
+    existe.reiniciar();
+    existeSub.reiniciar();
     setViendoId(null);
     setBorrador(b);
     setPrefijoPropio(Boolean(b?.id));
@@ -386,6 +393,24 @@ export function CategoriasLista({
   const subChoquePrefijo = quienUsaPrefijo(subDraft.prefijo, categorias, null);
   const subChoqueNombre = quienUsaNombre(subDraft.nombre, categorias, null);
 
+  // «Existe también» (ADR-0576): lo que NO es idéntico pero se parece («Blusa» frente a «Blusas»). El idéntico ya lo dice `choqueNombre`,
+  // bajo el campo. Al editar, solo si cambió el nombre: una categoría que ya tiene un parecido no puede quedar sin poder editarse por eso.
+  const paraParecer = categorias.map((c) => ({ id: c.id, nombre: c.nombre, activo: c.activo }));
+  const nombreOriginal = borrador?.id ? (categorias.find((c) => c.id === borrador.id)?.nombre ?? "") : null;
+  const nombreCambio = borrador !== null && (nombreOriginal === null || claveTexto(borrador.nombre) !== claveTexto(nombreOriginal));
+  const existe = useExisteTambien(
+    borrador?.nombre ?? "",
+    borrador && nombreCambio ? existentesParecidos(borrador.nombre, paraParecer, { excluirId }).filter((c) => c.por !== "mismo-nombre") : []
+  );
+  const existeSub = useExisteTambien(subDraft.nombre, existentesParecidos(subDraft.nombre, paraParecer).filter((c) => c.por !== "mismo-nombre"));
+  const faltaExiste = faltaPorExistente("categoria", borrador?.nombre ?? "", existe);
+  const faltaExisteSub = faltaPorExistente("categoria", subDraft.nombre, existeSub);
+  // «Ver» lleva a la tarjeta que ya existe: la lista de atrás se queda buscándola, sin filtro de familia.
+  function verExistente(nombreExistente: string) {
+    setBusqueda(nombreExistente);
+    setFamiliaFiltro("todas");
+  }
+
   // Lo que se ve, calculado una vez: las familias (todas, o solo la elegida en las píldoras) con sus categorías raíz que responden
   // al buscador. Buscando, una familia sin nada que mostrar no aparece («Sin categorías todavía» mentiría); sin buscar, una
   // familia vacía sí (un Líder que acaba de crearla tiene que verla).
@@ -402,6 +427,7 @@ export function CategoriasLista({
     <div className="space-y-6">
       <BarraAtributos
         etiqueta="Filtrar por familia"
+        filtrosPuestos={familiaActiva === "todas" ? 0 : 1}
         filtros={
           <>
             <BotonFiltro activo={familiaActiva === "todas"} onClick={() => setFamiliaFiltro("todas")} cuenta={totalRaices}>
@@ -573,6 +599,14 @@ export function CategoriasLista({
               />
             </div>
 
+            <ExisteTambien
+              que="categoria"
+              nombre={borrador.nombre}
+              estado={existe}
+              si={(o) => ({ texto: `Ver ${o.nombre}`, onClick: () => { verExistente(o.nombre); cerrar(); } })}
+              deshabilitado={guardando}
+            />
+
             <Campo etiqueta="Notas internas (opcional)">
               <textarea
                 className="caja-campo-input resize-none"
@@ -585,7 +619,7 @@ export function CategoriasLista({
             </Campo>
 
             {editando && temporadaPorCategoria && borrador.id && (
-              <p className="text-xs text-tinta/65">
+              <p className="text-sm text-tinta/65">
                 Temporada por defecto: <span className="font-medium text-tinta">{temporadaPorCategoria[borrador.id] ?? "sin temporada"}</span>.{" "}
                 Se elige en{" "}
                 <Link href={HREF_TEMPORADAS} className="btn-enlace">
@@ -615,7 +649,7 @@ export function CategoriasLista({
                           categoriaPadreId: h.categoriaPadreId,
                         })
                       }
-                      className="flex items-center gap-1.5 rounded-lg border border-tinta/10 bg-papel py-1 pl-1.5 pr-2.5 text-xs text-tinta hover:border-rojo/40 hover:text-rojo"
+                      className="flex items-center gap-1.5 rounded-lg border border-tinta/10 bg-papel py-1 pl-1.5 pr-2.5 text-sm text-tinta hover:border-rojo/40 hover:text-rojo"
                     >
                       <span className="rounded bg-sand px-1.5 py-0.5 font-mono text-[10px] font-semibold text-tinta/65">{h.prefijo ?? "—"}</span>
                       {h.nombre}
@@ -628,6 +662,7 @@ export function CategoriasLista({
                 </Vacio>
               )}
               {puedeEditar && (
+                <>
                 <div className="mt-3 flex items-end gap-2">
                   <div className="flex-1">
                     <CampoTexto
@@ -661,19 +696,29 @@ export function CategoriasLista({
                   <Boton
                     peso="fantasma"
                     cargando={subGuardando}
-                    disabled={!subDraft.nombre.trim() || subDraft.prefijo.length !== 3 || !!subChoquePrefijo || !!subChoqueNombre || !borrador.id || !responsable.listo}
-                    title={responsable.motivo ?? undefined}
+                    disabled={!subDraft.nombre.trim() || subDraft.prefijo.length !== 3 || !!subChoquePrefijo || !!subChoqueNombre || existeSub.bloquea || !borrador.id || !responsable.listo}
+                    title={responsable.motivo ?? faltaExisteSub ?? undefined}
                     onClick={() => guardarSubcategoria({ id: borrador.id!, familia: borrador.familia })}
                   >
                     + Agregar
                   </Boton>
                 </div>
+                <div className="mt-3">
+                  <ExisteTambien
+                    que="categoria"
+                    nombre={subDraft.nombre}
+                    estado={existeSub}
+                    si={(o) => ({ texto: `Ver ${o.nombre}`, onClick: () => { verExistente(o.nombre); cerrar(); } })}
+                    deshabilitado={subGuardando}
+                  />
+                </div>
+                </>
               )}
             </div>
           )}
 
           {editando && borrador.categoriaPadreId && (
-            <p className="mt-3 text-xs text-tinta/65">
+            <p className="mt-3 text-sm text-tinta/65">
               Es subcategoría de{" "}
               <span className="font-medium text-tinta">
                 {categorias.find((c) => c.id === borrador.categoriaPadreId)?.nombre ?? "una categoría"}
@@ -703,7 +748,7 @@ export function CategoriasLista({
                 {ejesDraft.tallaIds.length > 0 && (
                   <div className="mt-3">
                     <p className="label-cayla text-[11px] text-tinta/65">Curva habitual</p>
-                    <p className="mt-0.5 text-xs text-tinta/70">Las que vienen marcadas de antemano al crear un producto de esta categoría.</p>
+                    <p className="mt-0.5 text-sm text-tinta/70">Las que vienen marcadas de antemano al crear un producto de esta categoría.</p>
                     <div className="mt-1.5">
                       <SelectorMultiple
                         opciones={universo.tallas.filter((v) => ejesDraft.tallaIds.includes(v.id)).map((v) => ({ valor: v.id, texto: v.texto }))}
@@ -747,65 +792,71 @@ export function CategoriasLista({
 
                 )}
               </div>
-              {puedeEditar && <p className="text-xs text-tinta/70">Se guarda junto con el resto al pulsar &ldquo;Guardar cambios&rdquo;.</p>}
+              {puedeEditar && <p className="text-sm text-tinta/70">Se guarda junto con el resto al pulsar &ldquo;Guardar cambios&rdquo;.</p>}
             </div>
           )}
 
           <ComboResponsable control={responsable} deshabilitado={guardando || subGuardando || cambiandoId !== null} className="mt-5" />
-          <div data-guia="categorias.form-pie" className="mt-5 flex items-center justify-between gap-2">
-            {editando ? (
-              // Lo peligroso, rojo desde el principio (ADR-0358, `accion.eliminar`): `btn-peligro`, como en Familias.
-              <Boton cargando={cambiandoId === borrador.id} textoCargando="Desactivando…"
-                type="button"
-                peso="peligro"
-                onClick={() => {
-                  const c = categorias.find((x) => x.id === borrador.id);
-                  if (c) cambiarEstado(c);
-                }}
-                disabled={cambiandoId === borrador.id || !responsable.listo}
-                title={responsable.motivo ?? undefined}
-              >
-                Desactivar categoría
-              </Boton>
-            ) : (
-              <span />
-            )}
-            <div className="pie-acciones">
-              <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
-                Cancelar
-              </Boton>
-              <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!borrador.nombre.trim() || borrador.prefijo.length !== 3 || !!choquePrefijo || !!choqueNombre || !responsable.listo} title={responsable.motivo ?? undefined}>
-                {editando ? "Guardar cambios" : "Guardar categoría"}
-              </Boton>
-            </div>
-          </div>
+          {/* El pie del sistema (`<PieAcciones>`): en el celular «Desactivar categoría» baja a su propia fila y Cancelar y Guardar quedan en
+              mitades. Antes iban en una fila sin salto y, a 375 px, «Guardar cambios» se montaba sobre «Cancelar». */}
+          <PieAcciones
+            className="mt-5"
+            guia="categorias.form-pie"
+            izquierda={
+              editando ? (
+                // Lo peligroso, rojo desde el principio (ADR-0358, `accion.eliminar`): `btn-peligro`, como en Familias.
+                <Boton cargando={cambiandoId === borrador.id} textoCargando="Desactivando…"
+                  type="button"
+                  peso="peligro"
+                  onClick={() => {
+                    const c = categorias.find((x) => x.id === borrador.id);
+                    if (c) cambiarEstado(c);
+                  }}
+                  disabled={cambiandoId === borrador.id || !responsable.listo}
+                  title={responsable.motivo ?? undefined}
+                >
+                  Desactivar categoría
+                </Boton>
+              ) : null
+            }
+          >
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
+              Cancelar
+            </Boton>
+            <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!borrador.nombre.trim() || borrador.prefijo.length !== 3 || !!choquePrefijo || !!choqueNombre || existe.bloquea || !responsable.listo} title={responsable.motivo ?? faltaExiste ?? undefined}>
+              {editando ? "Guardar cambios" : "Guardar categoría"}
+            </Boton>
+          </PieAcciones>
             </>
           )}
         </Modal>
       )}
 
-      {desactivadasVisibles.length > 0 && (
-        <section data-guia="categorias.desactivadas" className="space-y-2">
-          <p className="label-cayla text-[11px] text-tinta/65">Desactivadas — no aparecen al crear productos nuevos</p>
-          <div className="card-cayla flex flex-wrap gap-2 p-5">
-            {desactivadasVisibles.map((c) => (
+      {/* De 8 en 8, como lo desactivado de todo Atributos. En el celular cada una es un renglón entero (el nombre a la izquierda, su
+          acción a la derecha): sueltas, cada una medía lo que su nombre y la lista quedaba dentada. */}
+      <GrupoDesactivado titulo="Desactivadas — no aparecen al crear productos nuevos" lista={desactivadasVisibles} guia="categorias.desactivadas">
+        {(visibles) => (
+          <div className="card-cayla flex flex-wrap gap-2 p-3 sm:p-5">
+            {visibles.map((c) => (
               <span
                 key={c.id}
-                className="flex items-center gap-2 rounded-lg border border-tinta/10 bg-papel py-1.5 pl-2 pr-3 text-sm text-tinta/70"
+                className="flex w-full items-center gap-2 rounded-lg border border-tinta/10 bg-papel py-1.5 pl-2 pr-3 text-sm text-tinta/70 sm:w-auto"
               >
-                <span className="rounded bg-sand px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
-                {c.nombre}
+                <span className="shrink-0 rounded bg-sand px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
+                <span className="min-w-0 flex-1 truncate" title={c.nombre}>
+                  {c.nombre}
+                </span>
                 {/* Sin familia o sin prefijo no hay nada que reactivar: quedaría activa, sin código y fuera de toda
                     sección. La base lo rechaza igual (`fn_categorias_vigencia_candados`); acá no se ofrece el botón. */}
                 {puedeEditar && (!c.familia || !c.prefijo) && (
-                  <span className="text-[11px] text-tinta/65" title="Le falta la familia o el prefijo. Para usarla, crea una categoría nueva.">
+                  <span className="shrink-0 text-sm text-tinta/65" title="Le falta la familia o el prefijo. Para usarla, crea una categoría nueva.">
                     No se reactiva
                   </span>
                 )}
                 {puedeEditar && c.familia && c.prefijo && (
                   <Boton textoCargando="Reactivando…"
                     peso="discreto"
-                    className="px-2 py-1 text-[10.5px]"
+                    className="shrink-0 px-2 py-1 text-sm"
                     cargando={cambiandoId === c.id}
                     onClick={() => setConfirmando(confirmacionCatalogo("reactivar", c.nombre, () => cambiarEstado(c, true)))}
                   >
@@ -815,8 +866,8 @@ export function CategoriasLista({
               </span>
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </GrupoDesactivado>
 
       {confirmando && <ConfirmarConResponsable confirmacion={confirmando} onClose={() => setConfirmando(null)} />}
     </div>
@@ -851,13 +902,13 @@ function TarjetaCategoria({
       abrir={{ onClick, titulo: `Ver ${c.nombre}` }}
       detalle={
         <>
-          <p className="text-xs tabular-nums text-tinta/65">
+          <p className="text-sm tabular-nums text-tinta/65">
             <span className="mr-1.5 font-mono text-[10.5px] font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
             {subcategorias > 0 ? `${subcategorias} sub · ` : ""}
             {productos === 0 ? "sin productos" : `${productos} ${productos === 1 ? "producto" : "productos"}`}
           </p>
-          {temporada && <p className="text-xs text-taupe-profundo">{temporada}</p>}
-          {subcategoriasQueCoinciden.length > 0 && <p className="text-xs text-tinta/65">Sub: {subcategoriasQueCoinciden.join(", ")}</p>}
+          {temporada && <p className="text-sm text-taupe-profundo">{temporada}</p>}
+          {subcategoriasQueCoinciden.length > 0 && <p className="text-sm text-tinta/65">Sub: {subcategoriasQueCoinciden.join(", ")}</p>}
         </>
       }
     />
@@ -929,7 +980,7 @@ function VistaRapidaCategoria({
           </Link>
 
           {padre && (
-            <p className="text-xs text-tinta/65">
+            <p className="text-sm text-tinta/65">
               Subcategoría de <span className="font-medium text-tinta">{padre.nombre}</span>
             </p>
           )}
@@ -943,7 +994,7 @@ function VistaRapidaCategoria({
                     key={h.id}
                     type="button"
                     onClick={() => onVerHija(h.id)}
-                    className="flex items-center gap-1.5 rounded-lg border border-tinta/10 bg-papel py-1 pl-1.5 pr-2.5 text-xs text-tinta hover:border-rojo/40 hover:text-rojo"
+                    className="flex items-center gap-1.5 rounded-lg border border-tinta/10 bg-papel py-1 pl-1.5 pr-2.5 text-sm text-tinta hover:border-rojo/40 hover:text-rojo"
                   >
                     <span className="rounded bg-sand px-1.5 py-0.5 font-mono text-[10px] font-semibold text-tinta/65">{h.prefijo ?? "—"}</span>
                     {h.nombre}
@@ -963,7 +1014,7 @@ function VistaRapidaCategoria({
             <div data-guia="categorias.vista-temporada">
               <p className="label-cayla text-[10.5px] text-tinta/70">Temporada por defecto</p>
               <p className="mt-1 text-sm text-tinta">{temporada.nombre ?? "Sin temporada"}</p>
-              <p className="mt-0.5 text-xs text-tinta/70">
+              <p className="mt-0.5 text-sm text-tinta/70">
                 La heredan sus prendas que no tienen la suya.
                 {puedeEditar && (
                   <>
@@ -980,7 +1031,7 @@ function VistaRapidaCategoria({
           {categoria.notas && (
             <div>
               <p className="label-cayla text-[10.5px] text-tinta/70">Notas internas</p>
-              <p className="mt-1 text-xs text-tinta/70">{categoria.notas}</p>
+              <p className="mt-1 text-sm text-tinta/70">{categoria.notas}</p>
             </div>
           )}
         </div>

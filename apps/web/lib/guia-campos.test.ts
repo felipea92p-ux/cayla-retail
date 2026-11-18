@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estadosDe, faltanDe, fraseDeLoQueFalta, sePuedeConfirmar, siguienteDe, type CampoDeGuia } from "./guia-campos";
+import { campoDeMasArriba, errorDeCampo, estadosDe, pendientesAlRevisar, revisadosVigentes, faltanDe, fraseDeLoQueFalta, palabraDeGrado, primeroQueBloquea, sePuedeConfirmar, separarFaltan, siguienteDe, type CampoDeGuia, rectangulosChocan, resumenDelPie } from "./guia-campos";
 
 const campo = (id: string, o: Partial<CampoDeGuia> = {}): CampoDeGuia => ({ id, nombre: id, requerido: true, hecho: false, pendiente: `Llena ${id}.`, ...o });
 
@@ -126,5 +126,162 @@ describe("campos de varias opciones (tallas, colores) con el foco retenido", () 
     expect(estadosDe(campos).colores).toBe("ahora");
     expect(estadosDe(campos, "tallas")).toEqual({ tallas: "ahora", colores: "falta" });
     expect(estadosDe(campos, null)).toEqual({ tallas: "hecho", colores: "ahora" });
+  });
+});
+
+describe("el grado de cada campo en palabras (P09 del análisis del Taller: «Sigue aquí» en un campo que no es obligatorio)", () => {
+  it("un campo por hacer dice si es obligatorio, si conviene o si es opcional; uno hecho no dice nada (ya lleva su ✓)", () => {
+    expect(palabraDeGrado(campo("nombre"))).toBe("obligatorio");
+    expect(palabraDeGrado(campo("composicion", { requerido: false, sugerido: true }))).toBe("conviene");
+    expect(palabraDeGrado(campo("merma", { requerido: false }))).toBe("opcional");
+    expect(palabraDeGrado(campo("nombre", { hecho: true }))).toBeNull();
+    expect(palabraDeGrado(campo("merma", { requerido: false, hecho: true }))).toBeNull();
+  });
+
+  it("separarFaltan: lo obligatorio va aparte de lo que solo conviene; lo opcional no se lista", () => {
+    const campos = [campo("nombre"), campo("composicion", { requerido: false, sugerido: true }), campo("merma", { requerido: false }), campo("quien", { hecho: true })];
+    const { obligatorios, convienen } = separarFaltan(faltanDe(campos));
+    expect(obligatorios.map((c) => c.id)).toEqual(["nombre"]);
+    expect(convienen.map((c) => c.id)).toEqual(["composicion"]);
+  });
+
+  it("lo obligatorio nunca se mezcla con lo que conviene: «Faltan:» no lista nada que se pueda dejar vacío", () => {
+    const { obligatorios } = separarFaltan(faltanDe([campo("composicion", { requerido: false, sugerido: true })]));
+    expect(obligatorios).toEqual([]);
+  });
+});
+
+describe("guardar con algo pendiente — el error va a su campo (ADR-0611, mejora 1)", () => {
+  const pendientes = [campo("monto", { hecho: true }), campo("sede", { pendiente: "Elige la sede." }), campo("nota", { requerido: false, pendiente: "Agrega una nota." }), campo("motivo", { pendiente: "Escribe el motivo." })];
+
+  it("el primero que bloquea es el primer requerido sin hacer, no un opcional ni uno hecho", () => {
+    expect(primeroQueBloquea(pendientes)?.id).toBe("sede");
+    expect(primeroQueBloquea([campo("nota", { requerido: false }), campo("a", { hecho: true })])).toBeNull();
+  });
+
+  it("un sugerido no bloquea ni dice error: la guía no cambia qué se puede confirmar", () => {
+    const campos = [campo("color", { requerido: false, sugerido: true, pendiente: "Elige un color." })];
+    expect(primeroQueBloquea(campos)).toBeNull();
+    expect(errorDeCampo(campos, "color", true)).toBeNull();
+  });
+
+  it("al intentar guardar se recuerdan los que faltaban; uno que aparece después no regaña", () => {
+    expect(pendientesAlRevisar(pendientes)).toEqual(["sede", "motivo"]);
+    expect(pendientesAlRevisar([campo("a", { hecho: true }), campo("n", { requerido: false })])).toEqual([]);
+  });
+
+  it("primeroQueBloquea existe si y solo si no se puede confirmar", () => {
+    for (const campos of [pendientes, [campo("a", { hecho: true })], [campo("n", { requerido: false })], []]) {
+      expect(primeroQueBloquea(campos) === null).toBe(sePuedeConfirmar(campos));
+    }
+  });
+
+  it("antes de intentar guardar, un campo vacío no regaña a nadie", () => {
+    expect(errorDeCampo(pendientes, "sede", false)).toBeNull();
+  });
+
+  it("al intentarlo, cada requerido sin hacer dice lo suyo; lo hecho y lo opcional callan", () => {
+    expect(errorDeCampo(pendientes, "sede", true)).toBe("Elige la sede.");
+    expect(errorDeCampo(pendientes, "motivo", true)).toBe("Escribe el motivo.");
+    expect(errorDeCampo(pendientes, "monto", true)).toBeNull();
+    expect(errorDeCampo(pendientes, "nota", true)).toBeNull();
+    expect(errorDeCampo(pendientes, "no-existe", true)).toBeNull();
+  });
+
+  it("un error que devolvió el guardado manda, aunque el campo parezca hecho o no se hubiera intentado", () => {
+    expect(errorDeCampo(pendientes, "monto", false, "El monto no puede pasar de S/ 1 000 000.")).toBe("El monto no puede pasar de S/ 1 000 000.");
+  });
+});
+
+describe("«Guardar y registrar otro» no deja una hoja limpia regañando (/chaos 2026-11-05)", () => {
+  const faltan = [campo("monto"), campo("sede", { hecho: true })];
+  const listos = [campo("monto", { hecho: true }), campo("sede", { hecho: true })];
+  const revisados = new Set(["monto", "sede"]);
+
+  it("mientras algo falta, lo revisado se recuerda", () => {
+    expect(revisadosVigentes(revisados, faltan)).toBe(revisados);
+  });
+
+  it("cuando ya no falta nada, se olvida: la hoja que se limpia después empieza sin errores", () => {
+    const vigentes = revisadosVigentes(revisados, listos);
+    expect(vigentes.size).toBe(0);
+    expect(errorDeCampo(faltan, "monto", vigentes.has("monto"))).toBeNull();
+  });
+
+  it("sin nada que olvidar devuelve lo mismo, para no repintar en bucle", () => {
+    const vacio = new Set<string>();
+    expect(revisadosVigentes(vacio, listos)).toBe(vacio);
+  });
+});
+
+describe("«llevarte al campo» va a la hoja que ves, no a la de atrás (/chaos 2026-11-05)", () => {
+  // Cada campo con el número de su hoja en orden de apertura; -1 es la pantalla, sin hoja.
+  const hojaDe = (c: { hoja: number }) => c.hoja;
+
+  it("el campo existe en la pantalla y en la hoja abierta encima: manda la hoja", () => {
+    const pila = { nombre: "pila", hoja: -1 };
+    const hoja = { nombre: "hoja", hoja: 0 };
+    expect(campoDeMasArriba([pila, hoja], hojaDe)).toBe(hoja);
+    expect(campoDeMasArriba([hoja, pila], hojaDe)).toBe(hoja);
+  });
+
+  it("con dos hojas abiertas, manda la de más arriba", () => {
+    const abajo = { nombre: "abajo", hoja: 0 };
+    const arriba = { nombre: "arriba", hoja: 1 };
+    expect(campoDeMasArriba([abajo, arriba], hojaDe)).toBe(arriba);
+  });
+
+  it("sin hoja abierta, el primero de la pantalla; sin campo, nada", () => {
+    const a = { nombre: "a", hoja: -1 };
+    const b = { nombre: "b", hoja: -1 };
+    expect(campoDeMasArriba([a, b], hojaDe)).toBe(a);
+    expect(campoDeMasArriba([], hojaDe)).toBeNull();
+  });
+});
+
+describe("«Sigue» se calla si no le cabe", () => {
+  const palabra = { left: 100, right: 140, top: 0, bottom: 18 };
+  it("choca con lo que tiene encima", () => {
+    expect(rectangulosChocan(palabra, { left: 120, right: 200, top: 4, bottom: 30 })).toBe(true);
+  });
+  it("no choca con lo que solo le toca el borde o está en otra línea", () => {
+    expect(rectangulosChocan(palabra, { left: 140, right: 200, top: 0, bottom: 18 })).toBe(false);
+    expect(rectangulosChocan(palabra, { left: 100, right: 140, top: 18, bottom: 40 })).toBe(false);
+  });
+  it("un rectángulo sin área no pisa nada", () => {
+    expect(rectangulosChocan(palabra, { left: 110, right: 110, top: 0, bottom: 18 })).toBe(false);
+  });
+});
+
+describe("lo que no se puede escribir no se le pide a la persona", () => {
+  const documento: CampoDeGuia = { id: "documento", nombre: "Documento", requerido: true, hecho: false, pendiente: "Escribe el número." };
+  const padron: CampoDeGuia = { id: "nombre", nombre: "Nombre del padrón", requerido: true, hecho: false, pendiente: "Lo trae el padrón.", noSeEscribe: true };
+
+  it("no aparece en lo que falta, ni recibe la luz, ni da error al intentar guardar", () => {
+    expect(faltanDe([documento, padron]).map((c) => c.id)).toEqual(["documento"]);
+    expect(siguienteDe([{ ...documento, hecho: true }, padron])).toBeNull();
+    expect(pendientesAlRevisar([documento, padron])).toEqual(["documento"]);
+  });
+  it("pero sigue impidiendo confirmar: la guía no cambia qué se puede guardar", () => {
+    expect(sePuedeConfirmar([{ ...documento, hecho: true }, padron])).toBe(false);
+    expect(sePuedeConfirmar([{ ...documento, hecho: true }, { ...padron, hecho: true }])).toBe(true);
+    expect(primeroQueBloquea([{ ...documento, hecho: true }, padron])?.id).toBe("nombre");
+  });
+});
+
+describe("el pie antes de intentar guardar dice lo que sigue y cuánto queda", () => {
+  const a: CampoDeGuia = { id: "a", nombre: "A", requerido: true, hecho: false, pendiente: "" };
+  const b: CampoDeGuia = { id: "b", nombre: "B", requerido: true, hecho: false, pendiente: "" };
+  const s: CampoDeGuia = { id: "s", nombre: "S", requerido: false, sugerido: true, hecho: false, pendiente: "" };
+
+  it("nombra el que sigue, aunque no sea el primero de la lista", () => {
+    expect(resumenDelPie([a, b], "b")).toEqual({ sigue: b, quedan: 1, soloSugeridas: false });
+  });
+  it("sin el que sigue en la lista (se escribe en otro), nombra el primero", () => {
+    expect(resumenDelPie([a, b], "x")?.sigue.id).toBe("a");
+  });
+  it("con solo lo sugerido avisa que se puede seguir, y sin nada no dice nada", () => {
+    expect(resumenDelPie([s], "s")?.soloSugeridas).toBe(true);
+    expect(resumenDelPie([], null)).toBeNull();
   });
 });

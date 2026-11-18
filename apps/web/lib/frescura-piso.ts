@@ -301,21 +301,6 @@ export function conteoDeTodo(anterior: PisoAnterior): ConteoPiso {
   return c;
 }
 
-/** Las unidades de hace 4 semanas de UNA familia (la misma regla de familia que la barra de hoy). */
-export function conteoDeFamilia(
-  anterior: PisoAnterior,
-  codigo: string | null,
-  o: { familiaDe: (categoriaId: string) => string | null; familias: readonly Familia[] },
-): ConteoPiso {
-  const porCodigo = new Map(o.familias.map((f) => [f.codigo, f]));
-  const c = conteoVacio();
-  for (const fila of anterior.porCategoria) {
-    if (familiaResuelta(fila.categoriaId, o.familiaDe, porCodigo) !== codigo) continue;
-    for (const k of TRAMOS_PISO) c[k] += fila.unidades[k];
-  }
-  return c;
-}
-
 /** Lo primero que le falta a una tienda para pasar la puerta (las condiciones de `preparacionDeSede`, en su orden). */
 export type FaltaPuerta = "venta_identificada" | "piso_cuadrado" | "almacen_contado";
 

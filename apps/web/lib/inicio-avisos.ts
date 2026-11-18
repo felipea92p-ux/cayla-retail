@@ -8,6 +8,7 @@
 //
 // Lo URGENTE no se puede ocultar: es el canal que no se apaga (Square, Zebra; investigación en el README del spike).
 
+import { diasAMedias, DIAS_PARA_RESALTAR, textoDeEnvioAMedias, type EnvioAMedias } from "./recepcion-salida-reglas";
 import type { ClaveModulo } from "./modulos";
 import { diasDesde, type PendientesDeLaSede } from "./recepcion-conteo-reglas";
 import type { Permiso } from "./menu";
@@ -16,9 +17,9 @@ import { HORAS_REINTENTO_AUTOMATICO } from "./transmision-reglas";
 import { DIAS_PARA_PREGUNTAR } from "./pedidos-con-cliente-reglas";
 import { DIAS_PARA_ENVIAR } from "./para-enviar-reglas";
 import { hrefPerdidas, type AvisoPerdidas } from "./perdidas-reglas";
-import { montosSinCorte } from "./montos-sin-corte";
 import { hrefPrendasSinLlegar, textoPrendasSinLlegar } from "./igv-en-espera-reglas";
 import { soles as solesConCentimos } from "./compras-reglas";
+import { textoAvisoPorDefinir, type ModeloPorDefinir } from "./por-definir-reglas";
 
 export type NivelAviso = "urgente" | "toca" | "info" | "aldia" | "sinleer";
 
@@ -34,19 +35,23 @@ export type ClaveAviso =
   | "paraEnviar"
   | "conteo"
   | "perdidas"
+  | "danadas"
   | "regularizar"
   | "porPagar"
   | "cuentasBancarias"
+  | "planillaSalidas"
   | "prendasSinLlegar"
+  | "porDefinir"
   | "recibir"
   | "porTerminar"
+  | "enviosAMedias"
   | "reponer"
   | "fotos"
   | "completar";
 
 export type Aviso = {
   clave: ClaveAviso;
-  grupo: "Ventas y posventa" | "Inventario" | "Compras" | "Catálogo";
+  grupo: "Ventas y posventa" | "Inventario" | "Compras" | "Finanzas" | "Catálogo";
   titulo: string;
   detalle: string;
   /** La frase de «Sigue ahora» (Inicio de Almacén): lo mismo que el aviso, dicho como tarea («Atiende 2 traslados»).
@@ -88,20 +93,31 @@ export type FuentesAvisos = {
   conteoAbierto?: boolean | null;
   /** Pérdidas que se repiten en los últimos 30 días (ADR-0328 act. 14): solo del líder, con la regla de `perdidas-reglas`. */
   perdidas?: AvisoPerdidas | null;
+  /** ADR-0564: dañadas de ESTA sede que llevan 7 días o más separadas sin que nadie las saque a arreglar ni decida (`contarDanadasViejas`).
+   *  Solo para el líder que ve Existencias. */
+  danadasViejas?: number | null;
   prendasVencidas?: number | null;
   /** Deuda con proveedores: lo vencido y lo que vence en los próximos 7 días. */
   porPagar?: { vencidas: number; montoVencido: number; semana: number; montoSemana: number } | null;
   /** Proveedores que cambiaron su cuenta bancaria en los últimos 7 días (20261013161000). Solo se lee para el líder. */
   cuentasBancarias?: { cambios: number; proveedores: number; ultimoProveedorId: string | null; ultimoProveedor: string | null; ultimoEn?: string | null } | null;
+  /** ADR-0567: la planilla que Dynamic pagó sin su salida del banco registrada (o que Dynamic cambió después). Solo el líder; sin nada,
+   *  no viene. */
+  planillaSalidas?: { salidas: number; total: number; cambios: number } | null;
   /** ADR-0362 fase 5b (actividad 4): facturas cuya plata ya volvió con un documento interno y esperan la nota del proveedor (su IGV, en la
    *  cuenta puente). `dias`: lo que lleva esperando la más antigua. Para quien ve Notas de crédito. */
   /** ADR-0362 fase 5b (actividad 4): prendas de una factura que no llegaron y siguen sin resolver (su IGV, en el crédito fiscal sin la
    *  mercadería). Para quien ve Proveedores. */
   prendasSinLlegar?: { prendas: number; facturas: number; igv: number; proveedores: number; proveedorId: string | null } | null;
+  /** ADR-0660: las prendas de Mis compras que esperan su categoría o su precio (la misma lectura que la sección de «Revisar compras»).
+   *  Para quien ve «Revisar compras»; sin la función en la base, el aviso no existe. */
+  porDefinir?: readonly Pick<ModeloPorDefinir, "categoriaPorDefinir" | "precioPorDefinir">[] | null;
   /** Facturas de mercadería que aún le faltan a esta sede, con la primera («F001-2231 · Confecciones Andina») para el detalle. */
   porRecibir?: { facturas: number; primera: string | null } | null;
   /** ADR-0393 (decisión 4): lo recibido en la sede que todavía no está en el stock (por separar, por poner tallas, por crear). */
   recibidoPorTerminar?: PendientesDeLaSede | null;
+  /** ADR-0393 (act. 2026-11-03): envíos abiertos con algo ya en el stock. Que no se olviden: a los 3 días se resaltan y también le aparecen al líder. */
+  enviosAMedias?: readonly EnvioAMedias[] | null;
   /** Tallas «por colgar» de la sede y sus unidades guardadas: la misma cuenta que «Para hoy» de Existencias (`porColgarDeLaSede`),
    *  con la decisión del motor del piso (`lib/piso-plan.ts`). `enPausa` = cuántas tallas esperan el cuadre del piso (ADR-0328,
    *  decisión 5): con el piso sin cuadrar `tallas` es 0 y el aviso dice esa cifra, nunca «al día». */
@@ -317,6 +333,23 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
   // ADR-0328 act. 14 (Felipe, 2026-10-04): se avisa CUANDO SE REPITE —la misma prenda o la misma zona pierde en dos días
   // distintos de los últimos 30, o se quitaron muchas sin nota—, no cada faltante. Sin un tope en % inventado. Lleva a la
   // pestaña «Pérdidas» de Movimientos, filtrada si es un solo hallazgo. Por hacer, no urgente: no es plata que no cuadra.
+  // ADR-0564: las prendas dañadas que nadie lleva a arreglar. A los 7 días ya es plata parada: urgente, como en «Para hoy» de Existencias,
+  // y lleva a la lista de Dañadas para sacarlas a arreglar o decidir su destino.
+  if (f.danadasViejas !== undefined) {
+    const n = f.danadasViejas;
+    avisos.push({
+      clave: "danadas",
+      grupo: "Inventario",
+      titulo: "Dañadas sin decidir",
+      cantidad: n,
+      nivel: n === null ? "sinleer" : n > 0 ? "urgente" : "aldia",
+      ahora: n ? `Decide ${n} ${plural(n, "prenda dañada", "prendas dañadas")}` : "",
+      detalle: n === null ? SIN_LEER : n === 0 ? "Ninguna lleva 7 días separada sin decidirse." : `${n} ${plural(n, "lleva", "llevan")} 7 días o más separadas sin que nadie las lleve a arreglar.`,
+      href: "/inventario?danados=1",
+      ocultable: true,
+      urgenteSi: "Cuando una lleva 7 días o más separada",
+    });
+  }
   if (f.perdidas !== undefined) {
     const p = f.perdidas;
     const n = p === null ? null : p.cantidad;
@@ -393,6 +426,27 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       ocultable: false,
     });
   }
+  // ADR-0567: Dynamic pagó la planilla y no se sabe de qué banco salió. No se oculta: es plata que no cuadra en el banco (su saldo en el
+  // ERP queda alto hasta registrarla) y la conciliación no cierra.
+  if (f.planillaSalidas !== undefined) {
+    const p = f.planillaSalidas;
+    const n = p === null ? null : p.salidas + p.cambios;
+    avisos.push({
+      clave: "planillaSalidas",
+      grupo: "Finanzas",
+      titulo: p && p.salidas === 0 ? "Dynamic cambió una planilla ya registrada" : "Planilla pagada sin su salida del banco",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: !n || !p ? "" : p.salidas > 0 ? `Registra de qué banco salió la planilla (${solesConCentimos(p.total)})` : "Revisa la planilla que Dynamic cambió",
+      detalle:
+        p === null ? SIN_LEER
+          : p.salidas > 0
+            ? `Dynamic la marcó pagada: ${solesConCentimos(p.total)} en ${p.salidas} ${plural(p.salidas, "salida", "salidas")} por registrar. Hasta registrarla${plural(p.salidas, "", "s")}, el saldo del banco en el ERP queda alto.`
+            : `Dynamic cambió lo pagado después de registrar su salida: revisa si del banco salió otra cosa.`,
+      href: "/finanzas/dinero",
+      ocultable: false,
+    });
+  }
   // ADR-0362 fase 5b, actividad 4 (Felipe 2026-10-15): el IGV de lo que no llegó, mientras no se regularice. No se oculta: es crédito
   // fiscal que no cuadra con la mercadería. El aviso hermano, «Notas de crédito por pedir», se retiró con su módulo (ADR-0480).
   if (f.prendasSinLlegar !== undefined) {
@@ -409,6 +463,23 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       detalle: t?.detalle ?? SIN_LEER,
       href: p ? hrefPrendasSinLlegar(p) : "/compras/proveedores",
       ocultable: false,
+    });
+  }
+  // ADR-0660 (Felipe 2026-11-13: «un aviso en pantalla. Ejemplo: 3 productos a la espera de definir categoría»). Lleva a cada prenda.
+  if (f.porDefinir !== undefined) {
+    const p = f.porDefinir;
+    const n = p === null ? null : p.length;
+    const t = p === null ? null : textoAvisoPorDefinir(p);
+    avisos.push({
+      clave: "porDefinir",
+      grupo: "Compras",
+      titulo: "Prendas por definir",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: n ? `Define ${n} ${plural(n, "prenda", "prendas")} de Mis compras` : "",
+      detalle: p === null ? SIN_LEER : t ? [t.titulo, t.detalle].filter(Boolean).join(" · ") : "Ninguna prenda espera su categoría ni su precio.",
+      href: "/compras/fondos#por-definir",
+      ocultable: true,
     });
   }
   // Inicio de Almacén (2026-09-30). Mercadería de compras que aún le falta a esta sede.
@@ -453,6 +524,23 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       href: "/recibir",
       ocultable: true,
       urgenteSi: "Cuando lo más antiguo pasa de 7 días",
+    });
+  }
+  if (f.enviosAMedias != null && f.enviosAMedias.length > 0) {
+    const lista = f.enviosAMedias;
+    const n = lista.length;
+    const masViejo = Math.max(...lista.map((e) => diasAMedias(e.desde)));
+    avisos.push({
+      clave: "enviosAMedias",
+      grupo: "Inventario",
+      titulo: "Envíos a medias",
+      cantidad: n,
+      nivel: nivelDe(n, masViejo >= DIAS_PARA_RESALTAR ? "urgente" : "toca"),
+      ahora: `Termina de contar ${n === 1 ? lista[0].numero : `${n} envíos`}`,
+      detalle: lista.slice(0, 2).map((e) => textoDeEnvioAMedias(e)).join(". "),
+      href: n === 1 ? `/recibir/envio/${lista[0].id}` : "/recibir",
+      ocultable: false,
+      urgenteSi: `Cuando pasan ${DIAS_PARA_RESALTAR} días`,
     });
   }
   // «Por colgar» (2026-10-04): la fila de «Para hoy» en Existencias, con su misma cifra (tallas, `porColgarDeLaSede`, con la decisión
@@ -681,83 +769,6 @@ export function accesosRapidos(perfil: {
 }
 
 // ── Equipo de hoy ────────────────────────────────────────────────────────────────────────────────
+// Vive en `equipo-de-turno.ts` (ADR-0674): el buscador de la cabecera lo usa en toda pantalla y aquí arrastraba todas estas reglas.
 
-export type MiembroEquipo = {
-  personaId: string;
-  nombre: string;
-  /** 'presente' | 'en_pausa' | 'salio' | 'programada' (fn_asesoras_de_turno), o null si firmó sin marcar asistencia. */
-  estado: string | null;
-  /** Solo para quien ve la actividad (ADR-0207). null = no se lee para quien mira. */
-  ventas: number | null;
-  monto: number | null;
-  ultima: { hora: string; texto: string } | null;
-};
-
-type FilaTurno = { persona_id: string; nombre_corto: string; estado_ahora: string; es_de_esta_sede: boolean };
-type FilaActividad = {
-  ocurrio_at: string;
-  accion: string;
-  descripcion: string;
-  persona_id: string | null;
-  persona_nombre: string | null;
-  detalle: unknown;
-  /** De qué tabla es el registro citado (`'ventas'` en las acciones de una venta) y su id: con eso se empareja una venta con su anulación. */
-  tabla?: string | null;
-  registro_id?: string | null;
-};
-
-/**
- * Junta la asistencia (quién está) con la actividad de hoy (qué hizo). La actividad llega de la más nueva a la más vieja.
- * Quien firmó algo hoy sin marcar asistencia también sale (estado null): se ve que operó, no se esconde.
- * `actividad` null = quien mira no ve la actividad (o no se pudo leer): la fila queda solo con el nombre.
- *
- * La bitácora de Actividad es inmutable: una venta anulada deja dos líneas («vendió…» y «anuló…»). Aquí no se cuenta como
- * venta ni como última acción de quien la registró; y si era de prueba (`detalle.es_prueba`, que solo trae la línea de la
- * anulación), ninguna de sus líneas aparece — es un dato archivado, igual que en Historial y Caja.
- */
-export function armarEquipo(turno: FilaTurno[], actividad: FilaActividad[] | null): MiembroEquipo[] {
-  const porId = new Map<string, MiembroEquipo>();
-  for (const t of turno) {
-    if (!t.es_de_esta_sede || t.estado_ahora === "programada") continue;
-    porId.set(t.persona_id, { personaId: t.persona_id, nombre: t.nombre_corto, estado: t.estado_ahora, ventas: actividad ? 0 : null, monto: actividad ? 0 : null, ultima: null });
-  }
-  const anuladas = new Set<string>();
-  const deLaPrueba = new Set<string>();
-  for (const a of actividad ?? []) {
-    if (a.tabla !== "ventas" || !a.registro_id) continue;
-    if (a.accion === "venta_anulada") anuladas.add(a.registro_id);
-    if ((a.detalle as { es_prueba?: unknown } | null)?.es_prueba === true) deLaPrueba.add(a.registro_id);
-  }
-  for (const a of actividad ?? []) {
-    if (!a.persona_id) continue;
-    if (a.tabla === "ventas" && a.registro_id) {
-      if (deLaPrueba.has(a.registro_id)) continue;
-      if (a.accion === "venta_registrada" && anuladas.has(a.registro_id)) continue;
-    }
-    let m = porId.get(a.persona_id);
-    if (!m) {
-      m = { personaId: a.persona_id, nombre: primerNombre(a.persona_nombre), estado: null, ventas: 0, monto: 0, ultima: null };
-      porId.set(a.persona_id, m);
-    }
-    m.ultima ??= { hora: a.ocurrio_at, texto: montosSinCorte(a.descripcion) }; // la descripción la escribe Postgres
-    if (a.accion === "venta_registrada") {
-      const total = Number((a.detalle as { total?: unknown } | null)?.total ?? 0);
-      m.ventas = (m.ventas ?? 0) + 1;
-      m.monto = (m.monto ?? 0) + (Number.isFinite(total) ? total : 0);
-    }
-  }
-  const pesoEstado = (e: string | null) => (e === "presente" ? 0 : e === "en_pausa" ? 1 : e === null ? 2 : 3);
-  return [...porId.values()].sort((x, y) => pesoEstado(x.estado) - pesoEstado(y.estado) || (y.monto ?? 0) - (x.monto ?? 0) || x.nombre.localeCompare(y.nombre));
-}
-
-function primerNombre(nombre: string | null): string {
-  const partes = (nombre ?? "").trim().split(/\s+/);
-  return partes.length > 1 ? `${partes[0]} ${partes[1]![0]}.` : partes[0] || "Sin nombre";
-}
-
-export function textoEstado(estado: string | null): string {
-  if (estado === "presente") return "En tienda";
-  if (estado === "en_pausa") return "En pausa";
-  if (estado === "salio") return "Ya salió";
-  return "Sin marcar asistencia";
-}
+export { armarEquipo, textoEstado, type MiembroEquipo } from "./equipo-de-turno";

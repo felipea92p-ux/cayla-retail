@@ -5,6 +5,7 @@ import { direccionDeSinBase } from "@/lib/base-caida-reglas";
 import { RUTA_ELEGIR_SEDE, rutaDeLaVistaGlobal, VALOR_VISTA_GLOBAL } from "@/lib/vista-global";
 import { esRutaPublica } from "@/lib/rutas-publicas";
 import { pasaComoCron } from "@/lib/rutas-cron";
+import { saleDelLogin } from "@/lib/login-aterrizaje";
 
 // Este archivo se llamaba `middleware.ts` hasta Next 16, que renombró la convención a
 // `proxy` (el nombre viejo sigue funcionando pero avisa en cada build que está deprecado).
@@ -119,8 +120,10 @@ export async function proxy(request: NextRequest) {
   // Si viene con ?error=sin_persona, se queda en /login mostrando el aviso — si no,
   // entraría en un bucle infinito con requirePersonaActual() (login.tsx/lib/persona.ts),
   // que manda para acá cuando el usuario está autenticado pero no tiene fila en `personas`.
+  // Solo al abrir la página: el POST de la Server Action del login (`marcarCambioDeCuenta`) viaja aquí con la sesión recién
+  // abierta y tiene que llegar (`saleDelLogin`, lib/login-aterrizaje.ts).
   const tieneError = request.nextUrl.searchParams.has("error");
-  if (haySesion && isLoginPage && !tieneError) {
+  if (isLoginPage && saleDelLogin({ haySesion, metodo: request.method, tieneError })) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);
@@ -158,5 +161,6 @@ export const config = {
   // cookies de la app a veces, y un redirect a /login lo rompería; la página sin conexión no tiene nada privado.
   // `mac-etiquetas/` (ADR-0304), igual: el instalador del ayudante se baja con `curl`, sin sesión; redirigido al login,
   // Terminal recibía HTML y la instalación fallaba. Son dos scripts públicos, sin datos.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|sin-conexion\\.html|mac-etiquetas/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  // `manifest.webmanifest` (ADR-0582), igual: el navegador lo pide sin cookies; redirigido al login, el ERP no se podía instalar.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|sin-conexion\\.html|manifest\\.webmanifest|mac-etiquetas/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

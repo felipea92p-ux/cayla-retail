@@ -360,7 +360,7 @@ const POLITICAS_CON_LA_PUERTA = {
     "codigos_barras_select", "codigos_correlativos_select", "codigos_descuento_select", "colores_select", "colores_insert_autenticado",
     "configuracion_empresa_select", "cotizaciones_maquila_select", "etiqueta_categorias_select", "etiquetas_select",
     "etiquetas_insert_autenticado", "familias_select", "gastos_select", "insumos_select_autenticado", "marca_proveedores_select",
-    "marcas_select", "modulos_select", "patrones_select", "patrones_insert_autenticado", "producto_fotos_select", "productos_select",
+    "marcas_select", "materiales_select_autenticado", "modulos_select", "patrones_select", "patrones_insert_autenticado", "producto_fotos_select", "productos_select",
     "proveedores_select", "sububicaciones_select", "tallas_select", "tallas_insert_autenticado", "tejidos_select",
     "tejidos_insert_autenticado", "ubicacion_datos_fiscales_select", "ubicaciones_select", "variante_etiquetas_select", "variantes_select",
   ],
@@ -370,7 +370,7 @@ const POLITICAS_CON_LA_PUERTA = {
 };
 const lista = (nombres) => nombres.map((n) => `'${n}'`).join(", ");
 caso(
-  "RADIO DEL CAMBIO: las únicas políticas que usan la puerta son las de 20261015221000 y 20261015222000 (antes pedían solo tener sesión, que una terminal ya tenía), y ninguna vista ni función de otro schema depende de ella",
+  "RADIO DEL CAMBIO: las únicas políticas que usan la puerta son las de 20261015221000 y 20261015222000 (antes pedían solo tener sesión, que una terminal ya tenía) y la de lectura de las telas, `materiales`, de 20261028175000 (ADR-0554: se lee igual que `insumos`), y ninguna vista ni función de otro schema depende de ella",
   `select concat_ws(',',
      (select count(*) from pg_policies where coalesce(qual, '') || coalesce(with_check, '') ~ 'fn_tiene_acceso_retail'
         and not ((schemaname = 'retail' and policyname in (${lista(POLITICAS_CON_LA_PUERTA.retail)}))

@@ -4,7 +4,7 @@
 // CONTRATO
 //   PROMETE: leer los días que manda la base (descartando lo mal formado sin caerse), armar el texto corto del horario («Lun–Sáb 10 a. m.–9 p. m.»)
 //            y decir si la tienda está abierta, cuándo cierra o cuándo vuelve a abrir, con los cierres por fecha.
-//   ASUME:   horas de la misma jornada (de las 0:00 a las 24:00, de a media hora): una tienda que cierra pasada la medianoche no cabe todavía.
+//   ASUME:   horas de la misma jornada (de las 0:00 a las 24:00, de a 15 minutos): una tienda que cierra pasada la medianoche no cabe todavía.
 //            La hora de Lima no tiene horario de verano (UTC−5 todo el año).
 //   NO HACE: guardar nada ni conocer la base: la base repite los topes en sus CHECK (`ubicacion_horario_web_*`).
 
@@ -12,20 +12,21 @@
 export const DIAS_CORTOS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
 export const DIAS_LARGOS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"] as const;
 
-/** De la apertura al cierre de un día, en minutos desde la medianoche y de a media hora (10 a. m. = 600; 9 p. m. = 1260). */
+/** De la apertura al cierre de un día, en minutos desde la medianoche y de a 15 (10 a. m. = 600; 8:15 a. m. = 495; 9 p. m. = 1260). */
 export type TramoDia = { abre: number; cierra: number };
 
 /** Siete lugares, de lunes a domingo; `null` es un día cerrado. */
 export type SemanaDeTienda = (TramoDia | null)[];
 
-export const PASO_DE_HORA = 30;
+/** Cada cuánto se puede abrir o cerrar: de a 15 minutos (8:15, 9:45). La base lo repite en su CHECK (`ubicacion_horario_web_horas`, 20261026205000). */
+export const PASO_DE_HORA = 15;
 export const MINUTOS_DEL_DIA = 24 * 60;
 /** Lo más que cabe en el texto corto del horario (el tope de `ubicacion_datos_web.horario`). */
 export const LARGO_MAXIMO_RESUMEN = 120;
 
 export const semanaVacia = (): SemanaDeTienda => Array.from({ length: 7 }, () => null);
 
-/** ¿Es un tramo que la base aceptaría? Enteros, de a media hora, y la apertura antes del cierre dentro del mismo día. */
+/** ¿Es un tramo que la base aceptaría? Enteros, de a 15 minutos, y la apertura antes del cierre dentro del mismo día. */
 export function tramoValido(t: unknown): t is TramoDia {
   if (typeof t !== "object" || t === null) return false;
   const { abre, cierra } = t as Record<string, unknown>;

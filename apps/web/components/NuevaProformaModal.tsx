@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Shirt, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
-import { lineasDeLaProforma, numeroDeProforma, TOPE_DESCUENTO_PROFORMA, totalesDeLineas, type Proforma } from "@/lib/proformas-reglas";
+import { diasDeLaProforma, lineasDeLaProforma, numeroDeProforma, TOPE_DESCUENTO_PROFORMA, totalesDeLineas, type Proforma } from "@/lib/proformas-reglas";
 import { descuentoUnitarioPorPorcentaje, RAZONES_DESCUENTO } from "@/lib/vender-reglas";
 import { venceDentroDe } from "@/lib/facturacion-proformas-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -23,6 +23,10 @@ import { usePistola } from "@/components/ui/usePistola";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
+import { CLASE_MONTO_ILEGIBLE } from "@/components/ui/CampoMonto";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { limpiarCantidad } from "@/lib/alta-producto";
+import { enteroEscrito, reglaDeEntero, type ReglaCantidad } from "@/lib/cantidad-escrita-reglas";
 import { conPrecioDeLaSede } from "@/lib/precio-sede-reglas";
 
 /** Una prenda del catálogo que se puede poner en una proforma (la arma la página Proformas desde `getCatalogo`). */
@@ -31,6 +35,11 @@ export type PrendaParaProforma = PrendaBuscableV2 & { codigo: string | null; pre
 type Fila = { prenda: PrendaParaProforma; cantidad: number; pct: number; motivo: string; detalle: string };
 
 const PCT_MAX = Math.round(TOPE_DESCUENTO_PROFORMA * 100);
+const PCT_ESCRITO: ReglaCantidad = {
+  ...reglaDeEntero(),
+  decir: (escrito, alSalir) => (alSalir ? `«${escrito}» no se guardó: el descuento es un % entero, hasta ${PCT_MAX}.` : `«${escrito}» no vale: escribe un % entero, hasta ${PCT_MAX}.`),
+};
+const TEXTO_DIAS = "Un número entero de días, de 1 a 60.";
 const descuentoDe = (f: Fila) => descuentoUnitarioPorPorcentaje(f.prenda.precio, f.pct);
 
 // «Nueva proforma» (spec 2026-09-22): prendas del catálogo con cantidad y descuento (hasta 20 %, con motivo),
@@ -59,6 +68,7 @@ export function NuevaProformaModal({
   const [loading, setLoading] = useState(false);
   // Crear una proforma guarda en Facturación: pide Responsable (ADR-0161, A7).
   const responsable = useResponsable();
+  const escrita = useCantidadEscrita(PCT_ESCRITO);
   const [ubicacionId, setUbicacionId] = useState(inicial?.ubicacion_id ?? ubicacionActualId);
   // Las prendas al precio de la tienda elegida: cambiar la tienda cambia el precio de las filas (cada fila toma la prenda de AHORA).
   const prendas = useMemo(() => conPrecioDeLaSede(prendasCatalogo, preciosPorSede[ubicacionId], (p) => p.varianteId), [prendasCatalogo, preciosPorSede, ubicacionId]);
@@ -95,7 +105,7 @@ export function NuevaProformaModal({
   const resultados = useMemo(() => (q.trim() ? filtrarPrendasV2(q, prendas, 6) : []), [q, prendas]);
   const totales = totalesDeLineas(filas.map((f) => ({ cantidad: f.cantidad, precio_unitario: f.prenda.precio, descuento_unitario: descuentoDe(f) })));
   const faltaMotivo = filas.some((f) => f.pct > 0 && (!f.motivo || (f.motivo === "otro" && !f.detalle.trim())));
-  const diasValidos = Math.max(1, Math.min(60, Math.round(Number(dias)) || 7));
+  const diasValidos = diasDeLaProforma(dias);
 
   // La pistola, la misma pieza de Vender (`usePistola`): lo leído es un código exacto (nunca la primera sugerencia), no se pega
   // a lo que había escrito y se lee aunque la pistola no mande Enter. El campo queda vacío para la siguiente lectura.
@@ -128,8 +138,14 @@ export function NuevaProformaModal({
 
   async function onCrear(e: React.FormEvent) {
     e.preventDefault();
+    // Lo escrito en un descuento no valió: antes de crear la proforma con lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (escrita.frenar()) {
+      if (escrita.problema) avisar.aviso(escrita.problema);
+      return;
+    }
     if (filas.length === 0) return void avisar.error("Agrega al menos una prenda.");
     if (faltaMotivo) return void avisar.error("Cada descuento necesita su motivo.");
+    if (diasValidos === null) return void avisar.error(TEXTO_DIAS, { enfocar: "proforma-dias" });
     if (!responsable.listo) return;
     setLoading(true);
     const { error } = await firmar(createClient().rpc("crear_proforma", {
@@ -202,7 +218,7 @@ export function NuevaProformaModal({
                       <Foto prenda={p} />
                       <span className="min-w-0 flex-1">
                         <b className="font-semibold">{p.referencia}</b> · {[p.talla, p.color].filter(Boolean).join(" · ")}
-                        <span className="block text-xs text-tinta/55">{p.codigo ?? p.sku}</span>
+                        <span className="block text-sm text-tinta/55">{p.codigo ?? p.sku}</span>
                       </span>
                       <span className="tabular-nums">{soles(p.precio)}</span>
                     </button>
@@ -228,7 +244,7 @@ export function NuevaProformaModal({
                     <Foto prenda={f.prenda} />
                     <div className="min-w-[9rem] flex-1">
                       <p className="text-sm font-semibold text-tinta">{f.prenda.referencia}</p>
-                      <p className="text-xs text-tinta/60">{[f.prenda.talla, f.prenda.color, f.prenda.codigo].filter(Boolean).join(" · ")}</p>
+                      <p className="text-sm text-tinta/60">{[f.prenda.talla, f.prenda.color, f.prenda.codigo].filter(Boolean).join(" · ")}</p>
                     </div>
                     <PasoCantidad
                       menos={{ onClick: () => (f.cantidad > 1 ? cambiar(id, { cantidad: f.cantidad - 1 }) : quitar(id)), etiqueta: `Una ${f.prenda.referencia} menos` }}
@@ -236,19 +252,13 @@ export function NuevaProformaModal({
                     >
                       <span aria-label="Cantidad">{f.cantidad}</span>
                     </PasoCantidad>
-                    <label className="flex items-center gap-1 text-xs text-tinta/70">
+                    <label className="flex items-center gap-1 text-sm text-tinta/70">
                       Dscto.
                       <input
-                        type="number"
-                        min={0}
-                        max={PCT_MAX}
-                        step={1}
-                        inputMode="numeric"
-                        value={f.pct || ""}
+                        {...escrita.campo(id, f.pct ? String(f.pct) : "", (t) => cambiar(id, { pct: Math.min(PCT_MAX, enteroEscrito(t) ?? 0) }), PCT_MAX)}
                         placeholder="0"
-                        onChange={(e) => cambiar(id, { pct: Math.min(PCT_MAX, Math.max(0, Math.round(Number(e.target.value) || 0))) })}
                         aria-label={`Descuento en % de ${f.prenda.referencia} (hasta ${PCT_MAX} %)`}
-                        className="caja-campo-input min-h-8 w-12 px-2 text-right text-xs tabular-nums"
+                        className={`caja-campo-input min-h-8 w-12 px-2 text-right text-xs tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
                       />
                       %
                     </label>
@@ -266,7 +276,7 @@ export function NuevaProformaModal({
                       <input value={f.detalle} onChange={(e) => cambiar(id, { detalle: e.target.value })} placeholder="¿Por qué?" aria-label="Detalle del motivo" className="caja-campo-input min-h-8 w-32 px-2 text-xs" />
                     )}
                     <p className="ml-auto w-24 text-right tabular-nums">
-                      {descuento > 0 && <span className="block text-xs text-tinta/55 line-through">{soles(f.prenda.precio * f.cantidad)}</span>}
+                      {descuento > 0 && <span className="block text-sm text-tinta/55 line-through">{soles(f.prenda.precio * f.cantidad)}</span>}
                       <b className="font-semibold">{soles((f.prenda.precio - descuento) * f.cantidad)}</b>
                     </p>
                     <button type="button" aria-label={`Quitar ${f.prenda.referencia}`} onClick={() => quitar(id)} className="grid h-7 w-7 place-items-center rounded-md text-tinta/60 hover:bg-tinta/10 hover:text-tinta">
@@ -276,6 +286,11 @@ export function NuevaProformaModal({
                 );
               })}
             </ul>
+          )}
+          {escrita.problema && (
+            <Aviso tono="error" chico>
+              {escrita.problema}
+            </Aviso>
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -293,7 +308,15 @@ export function NuevaProformaModal({
                 ] as const}
               />
               <ConsultaDocumento tipo={tipoDoc} obligatorio={false} numero={clienteDoc} onNumero={setClienteDoc} nombre={clienteNombre} onNombre={setClienteNombre} disparo="boton" />
-              <CampoTexto etiqueta="Vale por (días)" type="number" min="1" max="60" inputMode="numeric" value={dias} onChange={(e) => setDias(e.target.value)} />
+              <CampoTexto
+                etiqueta="Vale por (días)"
+                id="proforma-dias"
+                inputMode="numeric"
+                value={dias}
+                tono={diasValidos === null ? "error" : undefined}
+                pie={diasValidos === null ? TEXTO_DIAS : undefined}
+                onChange={(e) => setDias(limpiarCantidad(e.target.value))}
+              />
               <CampoTexto etiqueta="Nota para el cliente" pie="Sale impresa al pie. Opcional." maxLength={500} value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Incluye caja de regalo" />
             </div>
             <dl data-guia="proformas.modal-total" className="space-y-1 self-end rounded-[12px] bg-tinta/[0.03] px-4 py-3 text-sm">

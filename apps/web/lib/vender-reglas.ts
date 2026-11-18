@@ -10,6 +10,9 @@ export { TOPE_VUELTO };
 import { motivoNoCobrable } from "./vender-stock-local";
 import { precioValido } from "./variantes-ficha-reglas";
 import { repartirVale } from "./club-cupon-reparto-reglas";
+import { descuentoDeCampana, descuentoUnitarioPorPorcentaje } from "./descuento-por-porcentaje";
+
+export { descuentoDeCampana, descuentoUnitarioPorPorcentaje };
 
 /** Los momentos del ticket (ADR-0044). En «armar» solo se ven las líneas y el total;
  *  «descuento» es el apartado para decidir un descuento (vuelve a «armar»); «espera» es
@@ -355,30 +358,8 @@ export function motivoBloqueoCobro(v: {
 // `venta_items` ya tiene (≥ 0, ≤ precio, subtotal generado) y que `registrar_venta`
 // recibe — así queda medido por prenda en vez de disfrazado de "precio más bajo".
 
-/** Un % convertido a monto por unidad, con el precio que queda SIN CÉNTIMOS SUELTOS: la cuenta exacta
- *  `precio × (100 − %) / 100` se baja al múltiplo de S/ 0.10 de abajo y el descuento es lo que falta para llegar ahí
- *  (Felipe, 2026-10-14, ADR-0403: «que no se tenga que pagar céntimos; que sea más fácil de pagar y de entender»).
- *  S/ 39.00 con 20 % da 31.20 (ya es múltiplo) y S/ 89.90 con 20 % da 71.92 → 71.90, así que descuenta 18.00.
- *  Siempre hacia abajo: nunca se cobra más que el % anunciado (Ley 29571 art. 44; la clienta no paga de más), y el extra que
- *  se regala es de 0 a 0.09 por unidad. Es la única cuenta de «un % se vuelve soles» de la caja: la usan el descuento
- *  manual en % y el de campaña (`descuentoDeCampana`). Fuera de 0..100 se recorta: 0 (o inválido) no descuenta; 100 regala
- *  la prenda, nunca más — el candado `venta_items_descuento_no_supera_precio` lo rechazaría igual.
- *
- *  ES LA MISMA CUENTA QUE `retail.fn_descuento_campana` (ADR-0403): la base la usa para verificar las campañas y los topes
- *  del 15 y del 35 %. Va en enteros (céntimos × diezmilésimas de %), no en coma flotante: en coma flotante el medio
- *  céntimo de una cuenta cae a un lado u otro según el error de la máquina (medido el 2026-10-01 en ADR-0302: 10 758 de
- *  5 940 000 combinaciones), y la caja y la base tienen que coincidir al céntimo. El % se toma con hasta 4 decimales; el
- *  de una campaña tiene 2 (`etiquetas.descuento_pct` es numeric(5,2)). */
-export function descuentoUnitarioPorPorcentaje(precioUnitario: number, porcentaje: number): number {
-  if (!Number.isFinite(porcentaje) || porcentaje <= 0) return 0;
-  if (porcentaje >= 100) return precioUnitario;
-  const precioC = Math.round(precioUnitario * 100);
-  const pct4 = Math.round(porcentaje * 10_000); // 33.33 % → 333 300
-  // precioC × (1 000 000 − pct4) / 1 000 000 es el precio final exacto en céntimos; entre 10 000 000 y × 10 lo baja al
-  // múltiplo de 10 céntimos. Cabe de sobra en un entero de JS: S/ 99 999.99 → 10^13 < 2^53.
-  const finalC = Math.floor((precioC * (1_000_000 - pct4)) / 10_000_000) * 10;
-  return (precioC - finalC) / 100;
-}
+// La cuenta de «un % se vuelve soles» (`descuentoUnitarioPorPorcentaje`) vive en `lib/descuento-por-porcentaje.ts`: la usa también la etiqueta de
+// precio, que no tiene por qué cargar las reglas de la caja (ADR-0674). Desde aquí se sigue exportando igual.
 
 /** Cómo la colaboradora le dice la cantidad al apartado «Descuento»: en % del precio de cada prenda, o en soles del total de
  *  lo elegido. */
@@ -441,18 +422,7 @@ export const SIN_DETALLE_DESCUENTO: DetalleDescuento = { razon: "", razonOtro: "
 /** El motivo con que viaja el descuento de una campaña: uno más en `venta_items`. */
 export const RAZON_CAMPANA = "campana";
 
-/**
- * El descuento por unidad de una campaña: el % de la campaña sobre el precio, con el precio que queda bajado al múltiplo de
- * S/ 0.10 (Felipe, 2026-10-14, ADR-0403; antes era exacto al céntimo, ADR-0302). S/ 39.00 con 20 % se cobra S/ 31.20 y
- * S/ 89.90 con 20 % se cobra S/ 71.90 (la cuenta exacta da 71.92): como mucho 9 céntimos más de descuento por prenda, nunca
- * menos que el % del papel.
- *
- * ES LA MISMA CUENTA, AL CÉNTIMO, QUE `retail.fn_descuento_campana`: la caja la calcula y `registrar_venta`,
- * `separar_prendas` y `editar_separacion` la verifican. Si divergen, la venta se rechaza en el mostrador.
- */
-export function descuentoDeCampana(precio: number, pct: number): number {
-  return descuentoUnitarioPorPorcentaje(precio, pct);
-}
+// `descuentoDeCampana` vive en `lib/descuento-por-porcentaje.ts` (ADR-0674) y se sigue exportando desde aquí.
 
 /** Lo que se cobra por unas líneas: Σ cantidad × (precio − descuento), sumado en céntimos exactos (como `ticketConCumple`).
  *  Es el ÚNICO total de un ticket en la web: caja, apartados, ventas en espera y la cola sin conexión. En coma flotante,
@@ -465,6 +435,10 @@ export function totalDeLineas(lineas: readonly { cantidad: number; precioUnitari
 /** La campaña que rige hoy para una prenda: la de mayor % (la elige la base). */
 export type CampanaLinea = { etiquetaId: string; nombre: string; pct: number };
 
+/** Un descuento puesto a mano que quedó DETRÁS de la campaña porque daba menos (ADR-0655, casuística 2026-11-16): la línea lleva la campaña,
+ *  pero si su prenda se va con una oferta de grupo (y deja su rebaja) o la campaña termina, vuelve este. Sin él se perdía sin aviso. */
+export type DescuentoTrasCampana = { monto: number; razon: string; razonOtro: string; argumento: string };
+
 type LineaDescontable = {
   claveLinea: string;
   precioUnitario: number;
@@ -473,8 +447,7 @@ type LineaDescontable = {
   razonDescuentoOtro: string;
   argumentoDescuento: string;
   campana?: CampanaLinea | null;
-  /** Una pieza de liquidación tiene precio final: ningún descuento del ticket la toca (ADR-0379). */
-  liquidacion?: { codigo: string } | null;
+  manualTrasCampana?: DescuentoTrasCampana | null;
 };
 
 /** ¿El descuento que lleva esta línea es el de su campaña (no uno puesto a mano)? */
@@ -518,24 +491,50 @@ export function conCampanas<L extends LineaDescontable & { varianteId: string }>
   return carrito.map((l) => {
     const campana = porVariante.get(l.varianteId) ?? null;
     if (!campana) {
-      const limpia = { ...l, campana: null };
-      return esDescuentoDeCampana(l)
-        ? { ...limpia, descuentoUnitario: 0, razonDescuento: "", razonDescuentoOtro: "", argumentoDescuento: "" }
-        : limpia;
+      const limpia = { ...l, campana: null, manualTrasCampana: null };
+      if (!esDescuentoDeCampana(l)) return limpia;
+      // La campaña terminó: vuelve el descuento a mano que había quedado detrás, si lo había.
+      return l.manualTrasCampana && l.manualTrasCampana.monto > 0
+        ? { ...limpia, ...comoDescuento(l.manualTrasCampana) }
+        : { ...limpia, descuentoUnitario: 0, razonDescuento: "", razonDescuentoOtro: "", argumentoDescuento: "" };
     }
     const conCampana = { ...l, campana };
-    const manualMayor =
-      l.descuentoUnitario > 0 &&
-      !esDescuentoDeCampana(l) &&
-      redondear2(l.descuentoUnitario - descuentoDeCampana(l.precioUnitario, campana.pct)) > 0.01;
-    return manualMayor ? conCampana : conDescuentoDeCampana(conCampana);
+    // El descuento a mano de la línea: el que lleva, o el que quedó detrás de su campaña.
+    const manual = manualDeLinea(l);
+    if (manual && redondear2(manual.monto - descuentoDeCampana(l.precioUnitario, campana.pct)) > 0.01) {
+      return { ...conCampana, ...comoDescuento(manual), manualTrasCampana: null };
+    }
+    return { ...conDescuentoDeCampana(conCampana), manualTrasCampana: manual };
   });
 }
 
-/** ¿El descuento del apartado alcanza a esta línea? Las de `claves` (o todas, si viene vacío: «todo el ticket»), menos las
- *  piezas de liquidación (ADR-0379). */
-export function entraAlDescuento(l: { claveLinea: string; liquidacion?: { codigo: string } | null }, claves: readonly string[] | null): boolean {
-  return !l.liquidacion && (claves === null || claves.length === 0 || claves.includes(l.claveLinea));
+/** El descuento a mano de una línea: el que lleva (si no es el de su campaña) o el que quedó detrás de ella. */
+function manualDeLinea(l: LineaDescontable): DescuentoTrasCampana | null {
+  if (l.descuentoUnitario > 0 && !esDescuentoDeCampana(l)) {
+    return { monto: l.descuentoUnitario, razon: l.razonDescuento, razonOtro: l.razonDescuentoOtro, argumento: l.argumentoDescuento };
+  }
+  return l.manualTrasCampana && l.manualTrasCampana.monto > 0 ? l.manualTrasCampana : null;
+}
+
+/** Los campos de la línea que dicen un descuento a mano. */
+export function comoDescuento(m: DescuentoTrasCampana): { descuentoUnitario: number; razonDescuento: string; razonDescuentoOtro: string; argumentoDescuento: string } {
+  return { descuentoUnitario: m.monto, razonDescuento: m.razon, razonDescuentoOtro: m.razon === "otro" ? m.razonOtro : "", argumentoDescuento: m.argumento };
+}
+
+/** La línea como queda si se le pide `pedido` por unidad con `detalle`: el pedido o, si su campaña da igual o más, la campaña con el pedido
+ *  guardado detrás (`manualTrasCampana`). Lo usan «Aplicar» y la vista previa «Quedaría en», así las dos dicen lo mismo. */
+export function lineaConDescuentoPedido<L extends LineaDescontable>(l: L, pedido: number, detalle: DetalleDescuento): L {
+  const { monto, prevaleceCampana } = descuentoResultante(l, pedido);
+  if (prevaleceCampana) {
+    const tras = pedido > 0 ? { monto: redondear2(pedido), razon: detalle.razon, razonOtro: detalle.razonOtro, argumento: detalle.argumento } : null;
+    return { ...conDescuentoDeCampana(l), manualTrasCampana: tras };
+  }
+  return { ...l, ...comoDescuento({ monto, razon: detalle.razon, razonOtro: detalle.razonOtro, argumento: detalle.argumento }), manualTrasCampana: null };
+}
+
+/** ¿El descuento del apartado alcanza a esta línea? Las de `claves` (o todas, si viene vacío: «todo el ticket»). */
+export function entraAlDescuento(l: { claveLinea: string }, claves: readonly string[] | null): boolean {
+  return claves === null || claves.length === 0 || claves.includes(l.claveLinea);
 }
 
 function aplicarConMonto<L extends LineaDescontable>(
@@ -545,18 +544,7 @@ function aplicarConMonto<L extends LineaDescontable>(
   montosPara: (alcanzadas: L[]) => Map<string, number>,
 ): L[] {
   const pedidos = montosPara(carrito.filter((l) => entraAlDescuento(l, claves)));
-  return carrito.map((l) => {
-    if (!entraAlDescuento(l, claves)) return l;
-    const { monto, prevaleceCampana } = descuentoResultante(l, pedidos.get(l.claveLinea) ?? 0);
-    if (prevaleceCampana) return conDescuentoDeCampana(l);
-    return {
-      ...l,
-      descuentoUnitario: monto,
-      razonDescuento: detalle.razon,
-      razonDescuentoOtro: detalle.razon === "otro" ? detalle.razonOtro : "",
-      argumentoDescuento: detalle.argumento,
-    };
-  });
+  return carrito.map((l) => (entraAlDescuento(l, claves) ? lineaConDescuentoPedido(l, pedidos.get(l.claveLinea) ?? 0, detalle) : l));
 }
 
 /** Devuelve un carrito nuevo con el % aplicado a las líneas de `claves` — o a todas si

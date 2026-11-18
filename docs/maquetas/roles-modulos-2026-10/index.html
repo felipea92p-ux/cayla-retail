@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Roles y accesos · 3 maquetas de módulos</title>
+<style>
+:root{--crema:#f5f0e8;--papel:#fbf8f2;--tinta:#1a1a18;--rojo:#b8412d;--sand:#e8e0d0;--taupe:#805c4c;--hueso:#eae1d2;--verde:#48603f;--borde:#96786a;--t60:#5b544c;--ease:cubic-bezier(.2,.7,.2,1)}
+*{box-sizing:border-box}body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.45 "DM Sans",system-ui,sans-serif}
+h1,h2,h3{font-family:"EB Garamond",Georgia,serif;font-weight:500;margin:0}
+.wrap{max-width:1280px;margin:0 auto;padding:24px 20px 60px}
+.top{display:flex;flex-wrap:wrap;gap:16px;align-items:end;justify-content:space-between;margin-bottom:16px}
+.top h1{font-size:36px}.top p{margin:4px 0 0;color:var(--t60)}
+.tabs{display:flex;gap:4px;background:var(--hueso);padding:4px;border-radius:999px}
+.tabs button{border:0;background:none;padding:8px 16px;border-radius:999px;font:600 11.5px/1 inherit;letter-spacing:.08em;text-transform:uppercase;color:var(--t60);cursor:pointer}
+.tabs button[aria-pressed=true]{background:var(--tinta);color:var(--crema)}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.head{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--sand)}
+.head b{font-family:"EB Garamond",serif;font-size:22px;font-weight:500}.head small{color:var(--t60)}
+.meta{color:var(--t60);font-size:13px}.meta strong{color:var(--tinta)}
+.note{margin:14px 0 0;padding:12px 16px;background:var(--hueso);border-radius:12px;color:var(--t60);font-size:13px}
+.nota-op{margin-top:6px;font-size:13px;color:var(--t60)}
+.btn{border:1px solid var(--borde);background:none;border-radius:999px;padding:6px 14px;font:600 12.5px inherit;cursor:pointer;color:var(--tinta)}
+.btn:hover{background:var(--hueso)}
+.enlace{border:0;background:none;color:var(--tinta);text-decoration:underline;text-decoration-color:var(--sand);text-underline-offset:3px;cursor:pointer;font:600 12.5px inherit;padding:0}
+.enlace:hover{color:#8b2a1f;text-decoration-color:var(--rojo)}
+/* interruptor */
+.sw{width:36px;height:20px;border-radius:999px;background:var(--hueso);border:1px solid var(--borde);position:relative;flex:none;transition:background .2s var(--ease)}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--papel);border:1px solid var(--borde);transition:transform .2s var(--ease)}
+[aria-pressed=true]>.sw,[aria-checked=true] .sw{background:var(--tinta);border-color:var(--tinta)}
+[aria-pressed=true]>.sw::after,[aria-checked=true] .sw::after{transform:translateX(16px);border-color:var(--papel)}
+.bar{height:4px;border-radius:9px;background:var(--hueso);overflow:hidden}.bar i{display:block;height:100%;background:var(--tinta);transition:width .3s var(--ease)}
+.bar i.full{background:var(--verde)}
+.lbl{font:700 11.5px/1 inherit;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe)}
+button{font-family:inherit;color:inherit}
+/* A */
+.A .grupo{display:grid;grid-template-columns:200px 1fr;gap:8px 24px;padding:18px 20px;border-top:1px solid var(--sand)}
+.A .grupo:first-of-type{border-top:0}
+.A .gh .lbl{display:block;margin-bottom:8px}.A .gh .bar{margin-bottom:8px}
+.A .gh .n{font-size:13px;color:var(--t60);display:flex;justify-content:space-between;align-items:center}
+.A .lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:4px 20px}
+.A .fila{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:10px;background:none;border:0;text-align:left;cursor:pointer;width:100%}
+.A .fila:hover{background:var(--hueso)}.A .fila span.t{flex:1}
+/* B */
+.B .cuadro{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:16px}
+.B .gc{padding:0;overflow:hidden}
+.B .gc header{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--sand)}
+.B .gc header h3{font-size:20px;flex:1}
+.B .gc header .cnt{font:600 12px inherit;color:var(--t60)}
+.B .gc ul{list-style:none;margin:0;padding:6px 8px}
+.B .chk{display:flex;gap:10px;align-items:center;width:100%;padding:8px;border:0;background:none;text-align:left;cursor:pointer;border-radius:8px}
+.B .chk:hover{background:var(--hueso)}
+.B .box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--borde);display:grid;place-items:center;flex:none;transition:.15s}
+.B .chk[aria-pressed=true] .box{background:var(--tinta);border-color:var(--tinta)}
+.B .chk[aria-pressed=true] .box::after{content:"";width:8px;height:4px;border-left:2px solid var(--crema);border-bottom:2px solid var(--crema);transform:rotate(-45deg) translate(1px,-1px)}
+.B .chk[aria-pressed=false]{color:var(--t60)}
+.B .gc footer{padding:10px 16px;border-top:1px solid var(--sand);display:flex;justify-content:flex-end}
+/* C */
+.C .split{display:grid;grid-template-columns:260px 1fr;min-height:480px}
+.C .nav{border-right:1px solid var(--sand);padding:10px}
+.C .nav button{display:block;width:100%;text-align:left;border:0;background:none;padding:10px 12px;border-radius:10px;cursor:pointer;margin-bottom:2px}
+.C .nav button:hover{background:var(--hueso)}
+.C .nav button[aria-current=true]{background:var(--tinta);color:var(--crema)}
+.C .nav .r{display:flex;justify-content:space-between;font-weight:600}
+.C .nav .bar{margin-top:7px;background:color-mix(in srgb,var(--tinta) 14%,transparent)}
+.C .nav [aria-current=true] .bar i{background:var(--crema)}
+.C .nav [aria-current=true] .bar{background:color-mix(in srgb,var(--crema) 25%,transparent)}
+.C .det{padding:8px 24px 20px}
+.C .dh{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--sand)}
+.C .dh h3{font-size:26px}
+.C .mod{display:flex;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid var(--sand);width:100%;border-left:0;border-right:0;border-top:0;background:none;text-align:left;cursor:pointer}
+.C .mod .t{flex:1}.C .mod b{display:block;font-weight:600}.C .mod small{color:var(--t60)}
+.C .mod:hover b{color:#8b2a1f}
+@media(max-width:700px){.A .grupo{grid-template-columns:1fr}.C .split{grid-template-columns:1fr}.C .nav{border-right:0;border-bottom:1px solid var(--sand);display:flex;overflow:auto;gap:6px}.C .nav button{min-width:150px}}
+.ver{display:none}.ver.on{display:block}
+.pie{margin-top:18px;padding:14px 16px;border:1px dashed var(--borde);border-radius:12px;color:var(--t60);font-size:13px}
+.pie b{color:var(--tinta)}
+</style></head><body><div class="wrap">
+<div class="top"><div><h1>Roles y accesos · ¿qué módulos ve este rol?</h1>
+<p>Tres maneras de ordenar lo mismo. Todo es tocable (se prende y apaga). Colores solo de los tokens del ERP. <b>Es una maqueta: no guarda nada.</b></p></div>
+<div class="tabs" id="tabs"><button data-v="A" aria-pressed="true">A · Interruptores</button><button data-v="B" aria-pressed="false">B · Tarjetas por grupo</button><button data-v="C" aria-pressed="false">C · Grupos a la izquierda</button></div></div>
+<div id="out"></div>
+<div class="pie" id="pie"></div>
+</div>
+<script>
+const G=[
+["General",[["Inicio","Tablero del día y accesos rápidos"]]],
+["Ventas",[["Punto de venta","Registrar ventas"],["Apartados","Apartar con adelanto"],["Caja","Abrir, cerrar y movimientos"],["Cambios","Cambiar una prenda"],["Devoluciones","Solicitar devoluciones"],["Historial de ventas","Consultar y reimprimir"],["Facturación","Boletas, facturas y notas"]]],
+["Tienda web",[["Resumen de la tienda web","Lo que pide la tienda online hoy"],["Tráfico de la tienda web","Cuánta gente entra y por dónde"],["Pedidos web","Confirmar, cobrar y entregar"],["Vitrina web","Qué modelos se ven en la web"],["Campañas de la tienda web","Cómo se ve cada campaña"],["Recomendaciones","Leer y responder"],["Datos y plazos de la tienda web","Horarios, WhatsApp y plazos"]]],
+["Clientes",[["Fichas de clientes","Registrar y ver compras"],["Avisos del club","Mensajes a miembros"],["Beneficios del club","Puntos, cupones y regalos"]]],
+["Inventario",[["Existencias","Qué hay en cada sede"],["Conteos","Contar y cuadrar stock"],["Traslados","Mover prendas entre sedes"],["Movimientos","Historial de stock"],["Recibir mercadería","Ingresar lo que llega"]]],
+["Catálogo",[["Productos","Fichas, fotos y precios"],["Categorías, marcas y atributos","Ordenar el catálogo"],["Insignias","Etiquetas y promociones"],["Campañas","Fechas y descuentos"],["Liquidación","Rebajar lo que no sale"]]],
+["Compras",[["Mis compras","Compras de mi tienda"],["Historial de compras","Todas las facturas"],["Por pagar","Deudas con proveedores"],["Revisar compras","Verificar lo recibido"],["Proveedores","Datos y ranking"],["Plan de campaña","Qué comprar para la campaña"]]],
+["Producción",[["Órdenes de producción","Lo que se cose en el taller"],["Órdenes de insumos","Telas y avíos"]]],
+["Gestión",[["Análisis","Qué se vende y qué no"],["Frescura del piso","Prendas viejas en tienda"],["Plan del piso","Qué debe estar en el piso"],["Colaboradores","Equipo y accesos"],["Roles y accesos","Quién ve qué"],["Configuración","Ajustes del sistema"],["Actividad","Quién hizo qué"],["CAYLA Global","Vista de todas las sedes"],["Rendimiento","Cómo va el sistema"],["Preguntas del equipo","Dudas de las sedes"]]],
+["Finanzas",[["Gastos","Registrar y revisar"],["Cuentas y dinero","Saldos y movimientos"],["Reportes financieros","Resultados del mes"],["Impuestos","IGV y renta"],["Cierre de mes","Cuadrar y cerrar"]]]];
+const on=new Set(["Inicio","Punto de venta","Apartados","Caja","Cambios","Existencias","Productos","Mis compras"]);
+let v="A",sel="Ventas";
+const tot=G.reduce((a,g)=>a+g[1].length,0);
+const cnt=g=>g[1].filter(m=>on.has(m[0])).length;
+const esc=s=>s.replace(/&/g,"&amp;");
+function head(){return `<div class="head"><div><b>Vendedora de tienda</b><br><small>Rol · 3 cuentas</small></div><div class="meta">Ve <strong>${on.size}</strong> de ${tot} módulos</div></div>`}
+function toggleG(n){const g=G.find(x=>x[0]===n),all=cnt(g)===g[1].length;g[1].forEach(m=>all?on.delete(m[0]):on.add(m[0]))}
+function A(){return `<div class="card A">${head()}${G.map(g=>{const c=cnt(g),all=c===g[1].length;return `<div class="grupo"><div class="gh"><span class="lbl">${g[0]}</span><div class="bar"><i class="${all?"full":""}" style="width:${c/g[1].length*100}%"></i></div><div class="n"><span>${c} de ${g[1].length}</span><button class="enlace" data-g="${g[0]}">${all?"Quitar todos":"Todos"}</button></div></div><div class="lista">${g[1].map(m=>`<button class="fila" aria-pressed="${on.has(m[0])}" data-m="${esc(m[0])}"><span class="t">${m[0]}</span><span class="sw"></span></button>`).join("")}</div></div>`}).join("")}</div>`}
+function B(){return `<div class="card">${head()}</div><div class="cuadro">${G.map(g=>{const c=cnt(g),all=c===g[1].length;return `<section class="card gc"><header><h3>${g[0]}</h3><span class="cnt">${c}/${g[1].length}</span></header><div style="padding:0 16px"><div class="bar" style="margin-top:12px"><i class="${all?"full":""}" style="width:${c/g[1].length*100}%"></i></div></div><ul>${g[1].map(m=>`<li><button class="chk" aria-pressed="${on.has(m[0])}" data-m="${esc(m[0])}"><span class="box"></span>${m[0]}</button></li>`).join("")}</ul><footer><button class="enlace" data-g="${g[0]}">${all?"Quitar todos":"Marcar todos"}</button></footer></section>`}).join("")}</div>`}
+function C(){const g=G.find(x=>x[0]===sel),c=cnt(g),all=c===g[1].length;return `<div class="card">${head()}<div class="split"><nav class="nav">${G.map(x=>`<button data-s="${x[0]}" aria-current="${x[0]===sel}"><span class="r"><span>${x[0]}</span><span>${cnt(x)}/${x[1].length}</span></span><div class="bar"><i style="width:${cnt(x)/x[1].length*100}%"></i></div></button>`).join("")}</nav><div class="det"><div class="dh"><h3>${g[0]}</h3><button class="btn" data-g="${g[0]}">${all?"Quitar todos":"Todos"}</button></div>${g[1].map(m=>`<button class="mod" aria-pressed="${on.has(m[0])}" data-m="${esc(m[0])}"><span class="t"><b>${m[0]}</b><small>${m[1]}</small></span><span class="sw"></span></button>`).join("")}</div></div></div>`}
+const notas={A:"<b>A:</b> la más parecida a hoy, pero cada módulo es un interruptor en su fila y cada grupo trae su barra. Se lee de arriba abajo, sin adivinar qué está prendido. Poco cambio de código.",B:"<b>B:</b> cada grupo es una tarjeta con casillas. Se ven todos los grupos a la vez y se compara de un vistazo. Ideal si quieres ver el panorama completo sin hacer clic.",C:"<b>C:</b> eliges el grupo a la izquierda y ves sus módulos con una línea que explica qué hace cada uno. La más clara para alguien nuevo, pero ves un grupo a la vez."};
+function draw(){document.getElementById("out").innerHTML=`<div class="${v}">${{A,B,C}[v]()}</div>`;document.getElementById("pie").innerHTML=notas[v]+" <i>(Las descripciones cortas de C son de ejemplo.)</i>";document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===v))}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-v],[data-m],[data-g],[data-s]");if(!t)return;
+if(t.dataset.v)v=t.dataset.v;else if(t.dataset.s)sel=t.dataset.s;else if(t.dataset.g)toggleG(t.dataset.g);else{const m=t.dataset.m;on.has(m)?on.delete(m):on.add(m)}draw()});
+draw();
+</script></body></html>

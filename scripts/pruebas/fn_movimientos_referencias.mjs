@@ -428,14 +428,14 @@ ${K("n_lista", "(select count(*) from pg_proc p join pg_namespace n on n.oid = p
 ${K("n_resumen", "(select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'fn_movimientos_resumen')")}
 ${K("n_busqueda", "(select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'fn_movimientos_busqueda')")}
 ${K("n_comprobante", "(select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'fn_movimientos_de_comprobante')")}
-${K("anon_lista", "has_function_privilege('anon', 'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure, 'EXECUTE')")}
+${K("anon_lista", "has_function_privilege('anon', 'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid, uuid)'::regprocedure, 'EXECUTE')")}
 ${K("anon_resumen", "has_function_privilege('anon', 'retail.fn_movimientos_resumen(uuid, date, date, text, text, uuid, uuid)'::regprocedure, 'EXECUTE')")}
 ${K("anon_busqueda", "has_function_privilege('anon', 'retail.fn_movimientos_busqueda(text)'::regprocedure, 'EXECUTE')")}
 ${K("anon_comprobante", "has_function_privilege('anon', 'retail.fn_movimientos_de_comprobante(text[], text, integer)'::regprocedure, 'EXECUTE')")}
-${K("auth_lista", "has_function_privilege('authenticated', 'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure, 'EXECUTE')")}
+${K("auth_lista", "has_function_privilege('authenticated', 'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid, uuid)'::regprocedure, 'EXECUTE')")}
 ${K("auth_resumen", "has_function_privilege('authenticated', 'retail.fn_movimientos_resumen(uuid, date, date, text, text, uuid, uuid)'::regprocedure, 'EXECUTE')")}
 -- Las dos columnas nuevas van AL FINAL de la salida: quien lee por posición no nota nada.
-${K("ultimas", "(select (array_agg(x order by ord desc))[1] || ',' || (array_agg(x order by ord desc))[2] from (select unnest(p.proargnames) as x, generate_subscripts(p.proargnames, 1) as ord from pg_proc p where p.oid = 'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure) t)")}
+${K("ultimas", "(select (array_agg(x order by ord desc))[1] || ',' || (array_agg(x order by ord desc))[2] from (select unnest(p.proargnames) as x, generate_subscripts(p.proargnames, 1) as ord from pg_proc p where p.oid = 'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid, uuid)'::regprocedure) t)")}
 rollback;`,
   (d) => {
     for (const [clave, nombre] of [

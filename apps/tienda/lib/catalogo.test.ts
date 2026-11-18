@@ -178,6 +178,34 @@ describe("la tarjeta", () => {
     expect(hrefDePrenda(emma, "trujillo")).toBe("/catalogo/3f0e8a8e-2f1b-4c3e-9a55-111111111111?sede=trujillo");
   });
 
+  it("con color y talla elegidos en los filtros (ADR-0512), la ficha abre ya con eso", () => {
+    expect(hrefDePrenda(emma, "trujillo", { color: "NEG", talla: "M" })).toBe("/catalogo/3f0e8a8e-2f1b-4c3e-9a55-111111111111?sede=trujillo&color=NEG&talla=M");
+    expect(hrefDePrenda(emma, null, { color: "NEG" })).toBe("/catalogo/3f0e8a8e-2f1b-4c3e-9a55-111111111111?color=NEG");
+    expect(hrefDePrenda(emma, "trujillo", { color: null, talla: "UNICA" })).toBe("/catalogo/3f0e8a8e-2f1b-4c3e-9a55-111111111111?sede=trujillo&talla=UNICA");
+    expect(hrefDePrenda(emma, "trujillo", { color: null, talla: null })).toBe("/catalogo/3f0e8a8e-2f1b-4c3e-9a55-111111111111?sede=trujillo");
+  });
+
+  it("con un color elegido, su muestra va primera, su foto es la que se ve y su color, el del dibujo", () => {
+    // Emma: Beige (sin foto propia) y Negro (con foto).
+    expect(muestras(emma, 5, ["NEG"]).visibles.map((c) => c.codigo)).toEqual(["NEG", "BEI"]);
+    expect(muestras(emma, 5, []).visibles.map((c) => c.codigo)).toEqual(["BEI", "NEG"]);
+    // Si la prenda tiene más colores de los que caben, el elegido se ve aunque estuviera al final.
+    const muchos = leer({ ...EMMA, colores: ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF", "NEG"].map((codigo) => ({ codigo, nombre: codigo, hex: "#112233", foto: null })) });
+    expect(muestras(muchos, 5, ["NEG"]).visibles[0].codigo).toBe("NEG");
+    expect(muestras(muchos, 5, ["NEG"]).mas).toBe(2);
+    // La foto: la del color elegido si la tiene; si no, la de siempre.
+    const FOTO_BEI = `${FOTO}?bei`;
+    const dosFotos = leer({ ...EMMA, fotos: [FOTO], colores: [{ codigo: "BEI", nombre: "Beige", hex: "#D5BA98", foto: FOTO_BEI }, { codigo: "NEG", nombre: "Negro", hex: "#2D2C2F", foto: null }] });
+    expect(fotosDeTarjeta(dosFotos, "BEI")).toEqual([FOTO_BEI, FOTO]);
+    expect(fotosDeTarjeta(dosFotos, "NEG")).toEqual([FOTO, null]);
+    expect(fotosDeTarjeta(dosFotos, "XXX")).toEqual([FOTO, null]);
+    expect(fotosDeTarjeta(dosFotos)).toEqual([FOTO, null]);
+    // El dibujo de la prenda sin foto toma el color elegido; sin elegir (o con uno que no tiene), el primero.
+    expect(colorDeDibujo(emma, "NEG")).toBe("#2D2C2F");
+    expect(colorDeDibujo(emma, "XXX")).toBe("#D5BA98");
+    expect(colorDeDibujo(emma)).toBe("#D5BA98");
+  });
+
   it("solo se optimizan las fotos del almacén público de prendas del origen permitido", () => {
     expect(fotoOptimizable(FOTO, "https://x.supabase.co")).toBe(true);
     expect(fotoOptimizable(FOTO, "https://otro.supabase.co")).toBe(false);
@@ -242,6 +270,22 @@ describe("la lista: categorías y orden", () => {
     expect(hrefLista({ categoria: null, orden: "destacado", grupo: "arriba", menu: "ropa" })).toBe("/catalogo?menu=ropa&grupo=arriba");
     expect(hrefLista({ categoria: "CMS", orden: "precio-asc", menu: "ropa" })).toBe("/catalogo?menu=ropa&categoria=CMS&orden=precio-asc");
     expect(hrefLista({ categoria: "Ropa & más", orden: "destacado" })).toBe("/catalogo?categoria=Ropa+%26+m%C3%A1s");
+  });
+
+  it("la dirección lleva color y talla (ADR-0512) en su orden fijo, con las comas a la vista, y no los repite si no hay nada elegido", () => {
+    expect(hrefLista({ categoria: null, orden: "destacado", colorTalla: { color: [], talla: [] } })).toBe("/catalogo");
+    expect(hrefLista({ categoria: null, orden: "destacado", colorTalla: null })).toBe("/catalogo");
+    expect(hrefLista({ sede: "trujillo", categoria: null, orden: "destacado", colorTalla: { color: ["negro"], talla: [] } })).toBe(
+      "/catalogo?sede=trujillo&color=negro",
+    );
+    // Lo desordenado o repetido sale como lo escribe la tienda: negro antes que blanco, S antes que M, la única al final.
+    expect(
+      hrefLista({ sede: "trujillo", categoria: "FAL", orden: "precio-asc", colorTalla: { color: ["blanco", "negro", "negro"], talla: ["UNICA", "M", "S"] } }),
+    ).toBe("/catalogo?sede=trujillo&categoria=FAL&orden=precio-asc&color=negro,blanco&talla=S,M,UNICA");
+    // Una talla con espacios o símbolos sí se escapa; las comas que separan, no.
+    expect(hrefLista({ categoria: null, orden: "destacado", colorTalla: { color: [], talla: ["Talla 38", "S"] } })).toBe("/catalogo?talla=S,Talla%2038");
+    // Los favoritos no se filtran: ahí no va.
+    expect(hrefLista({ categoria: null, orden: "destacado", lista: "favoritos", colorTalla: { color: ["negro"], talla: ["M"] } })).toBe("/catalogo?lista=favoritos");
   });
 
   it("cuántas hay: en singular y plural, con la categoría, la tienda elegida y lo que hay en las otras", () => {
@@ -422,12 +466,13 @@ describe("la empresa de la prenda (ADR-0465)", () => {
   it("sin «Nuevo»: la empresa va ARRIBA, antes del puesto y de la oferta", () => {
     expect(dicen(con({ empresa: CAYLA }))).toEqual(["empresa:CAYLA"]);
     const p = con({ empresa: CAYLA, precio_final: 63.9, campana: { nombre: "Aniversario", pct: 20 } });
-    expect(dicen(p, { puesto: 2 })).toEqual(["empresa:CAYLA", "puesto:N.º 2", "oferta:−20 %"]);
+    expect(dicen(p, { puesto: 2 })).toEqual(["empresa:CAYLA", "oferta:−20 %"]);
   });
 
-  it("con todas: puesto, oferta, «Nuevo» y la empresa al final", () => {
+  it("una sola insignia automática: el descuento le gana al puesto y a «Nuevo» (rediseño Premium)", () => {
     const p = con({ empresa: CLAURE, nuevo: { dias: 1 }, precio_final: 63.9, campana: { nombre: "Aniversario", pct: 20 } });
-    expect(dicen(p, { puesto: 1 })).toEqual(["puesto:N.º 1", "oferta:−20 %", "nuevo:Nuevo", "empresa:CLAURE"]);
+    expect(dicen(p, { puesto: 1 })).toEqual(["empresa:CLAURE", "oferta:−20 %"]);
+    expect(dicen(con({ nuevo: { dias: 1 } }), { puesto: 3 })).toEqual(["puesto:N.º 3"]);
   });
 
   it("en Lo nuevo (sin «Nuevo» en cada tarjeta) la empresa sube arriba", () => {
@@ -471,11 +516,11 @@ describe("las insignias de Catálogo ▸ Insignias en la tarjeta (ADR-0489, act.
     expect(dicen(con({ insignias: CINCO }))).toBe("Halloween,Reedición,Hecho a mano|+2");
   });
 
-  it("«Nuevo» cuenta contra el tope (como el descuento y el puesto): caben 2 y quedan «+3»", () => {
+  it("la insignia automática (una sola: descuento, puesto o «Nuevo») cuenta contra el tope: caben 2 y quedan «+3»", () => {
     expect(dicen(con({ insignias: CINCO, nuevo: { dias: 3 } }))).toBe("Halloween,Reedición|+3");
     const oferta = con({ insignias: CINCO, nuevo: { dias: 3 }, precio_final: 63.9, campana: { nombre: "Aniversario", pct: 20 } });
-    expect(dicen(oferta)).toBe("Halloween|+4");
-    expect(dicen(oferta, { puesto: 1 })).toBe("-|+5");
+    expect(dicen(oferta)).toBe("Halloween,Reedición|+3");
+    expect(dicen(oferta, { puesto: 1 })).toBe("Halloween,Reedición|+3");
   });
 
   it("la empresa (CAYLA o CLAURE) NO cuenta contra el tope", () => {

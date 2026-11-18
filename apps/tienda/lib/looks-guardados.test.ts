@@ -49,14 +49,14 @@ const PRENDAS = [TOP, PANTALON, VESTIDO, CARTERA];
 
 const guardado = (n: number, piezas: [number, string][], extra: Partial<LookGuardado> = {}): LookGuardado => ({
   id: id(100 + n),
-  nombre: `Look ${n}`,
+  nombre: `Outfit ${n}`,
   guardadoEn: "2026-10-16T20:00:00Z",
   piezas: piezas.map(([p, c], i) => ({ posicion: i + 1, productoId: id(p), color: c, seVe: true })),
   ...extra,
 });
 
 describe("interpretarMisLooks: lo que dice la base", () => {
-  it("lee los looks con sus prendas en su orden y salta lo mal formado", () => {
+  it("lee los outfits con sus prendas en su orden y salta lo mal formado", () => {
     const looks = interpretarMisLooks({
       looks: [
         {
@@ -103,7 +103,7 @@ describe("¿ya está guardado?", () => {
   });
 });
 
-describe("un look guardado puesto en el probador", () => {
+describe("un outfit guardado puesto en el probador", () => {
   it("cada prenda en su lugar; las que ya no están, aparte", () => {
     const g = guardado(1, [
       [1, "RPA"],
@@ -144,7 +144,7 @@ describe("lo que dice la pantalla", () => {
     expect(cuandoSeGuardo("2026-10-14T20:00:00Z", "2026-10-16")).toBe("Guardado el 14 de octubre");
     expect(cuandoSeGuardo("nada", "2026-10-16")).toBe("Guardado");
   });
-  it("la respuesta de guardar: el look si se guardó; sin cuenta es sin sesión; lo raro, sin respuesta", () => {
+  it("la respuesta de guardar: el outfit si se guardó; sin cuenta es sin sesión; lo raro, sin respuesta", () => {
     expect(leerRespuestaGuardar({ estado: "guardado", id: id(5), nombre: "Look de sábado", nuevo: true })).toEqual({ estado: "guardado", id: id(5), nombre: "Look de sábado" });
     expect(leerRespuestaGuardar({ estado: "tope", tope: 30 })).toEqual({ estado: "tope", id: null, nombre: null });
     expect(leerRespuestaGuardar({ estado: "sin_cuenta" }).estado).toBe("sin_sesion");
@@ -153,12 +153,12 @@ describe("lo que dice la pantalla", () => {
   });
   it("cada estado tiene su frase", () => {
     expect(avisoAlGuardar("guardado")).toBe("Guardado en tus favoritos");
-    expect(avisoAlGuardar("tope")).toMatch(/30 looks/);
+    expect(avisoAlGuardar("tope")).toMatch(/30 outfits/);
     expect(avisoAlGuardar("invalido")).toMatch(/al menos dos/);
   });
 });
 
-describe("la página del look guardado", () => {
+describe("la página del outfit guardado", () => {
   it("su dirección lleva la tienda elegida", () => {
     expect(hrefDelGuardado(id(100))).toBe(`/looks/guardado/${id(100)}`);
     expect(hrefDelGuardado(id(100), "trujillo")).toBe(`/looks/guardado/${id(100)}?sede=trujillo`);
@@ -169,7 +169,7 @@ describe("la página del look guardado", () => {
   });
   it("la figura se lee en el orden de sus números", () => {
     const { look } = lookDelGuardado(guardado(1, [[4, "NEG"], [1, "RPA"], [2, "GRI"]]), PRENDAS);
-    expect(etiquetaDelLook(look, indizar(PRENDAS))).toBe("Tu look: 1, Prenda 1 en rpa; 2, Prenda 2 en gri; 3, Prenda 4 en neg");
+    expect(etiquetaDelLook(look, indizar(PRENDAS))).toBe("Tu outfit: 1, Prenda 1 en rpa; 2, Prenda 2 en gri; 3, Prenda 4 en neg");
   });
   it("lo que falta y la nota del final", () => {
     expect(textoDeLasQueFaltan(0)).toBeNull();

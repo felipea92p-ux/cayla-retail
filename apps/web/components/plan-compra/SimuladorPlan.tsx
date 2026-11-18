@@ -11,20 +11,20 @@ import { simular } from "@/lib/plan-compra-propuesta";
 // de lo que sobra y ver al instante cuánto se compraría y si cabe en el tope. Solo simula: no guarda nada. Usa la misma cuenta que el Plan.
 // Abajo, el acceso a Análisis ▸ Qué pedir para la prenda exacta (eso ya existe: no se repite aquí).
 
-export function SimuladorPlan({ filas, tope, recuperoDefecto, veAnalisis }: { filas: readonly FilaPlan[]; tope: number | null; recuperoDefecto: number | null; veAnalisis: boolean }) {
+export function SimuladorPlan({ filas, tope, recuperoDefecto, veAnalisis, precioDeLaPlata = 0 }: { filas: readonly FilaPlan[]; tope: number | null; recuperoDefecto: number | null; veAnalisis: boolean; /** El precio de la plata del plan con tope que la campaña usa (0 = el plan de siempre). */ precioDeLaPlata?: number }) {
   // Con lo que ya hay y lo que ya viene en órdenes: la misma cuenta que «Comprar» en la tabla.
   const lineas = filas.flatMap((f) => (f.linea ? [{ ...f.linea, stock: f.stock + f.enCamino }] : []));
   const [mult, setMult] = useState(30);
   const [rec, setRec] = useState(recuperoDefecto ?? 40);
   if (lineas.length === 0) return null;
   const hoy = lineas.reduce((a, l) => {
-    const c = calcular(l, l.stock);
+    const c = calcular(l, l.stock, precioDeLaPlata);
     return { prendas: a.prendas + c.comprar, inversion: a.inversion + c.inversion };
   }, { prendas: 0, inversion: 0 });
-  const sim = simular(lineas, mult / 10, rec, calcular);
+  const sim = simular(lineas, mult / 10, rec, (l, stock) => calcular(l, stock, precioDeLaPlata));
   const dif = sim.inversion - hoy.inversion;
   return (
-    <section data-guia="plan.simulador" className="card-cayla grid gap-5 p-5">
+    <section data-guia="presupuesto.simulador" className="card-cayla grid gap-5 p-5">
       <div className="space-y-3">
         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.13em] text-taupe">
           ¿Y si la campaña vende distinto?

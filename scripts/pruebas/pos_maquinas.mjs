@@ -23,9 +23,17 @@
  * USO
  *   pnpm pruebas:pos-maquinas                                    → contra el local compartido
  *   pnpm pruebas:pos-maquinas -- --contenedor supabase_db_<pila> → contra una pila propia
+ *   pnpm pruebas:pos-maquinas -- --con-migracion supabase/migrations/<archivo>.sql
+ *                                  → prueba una migración que el local aún no tiene, dentro de cada transacción (se deshace)
  */
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+
+// `--con-migracion <archivo>`: se aplica DENTRO de la transacción de cada escenario y se deshace con su ROLLBACK (como en
+// `cuentas_dinero.mjs`, ADR-0548). Sirve para comprobar que una migración posterior no rompe lo que prometen las máquinas.
+const ARG_MIGRACION = process.argv.indexOf("--con-migracion");
+const MIGRACION_EN_LA_TRANSACCION = ARG_MIGRACION > 0 ? readFileSync(process.argv[ARG_MIGRACION + 1], "utf8") : "";
 
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
@@ -73,6 +81,7 @@ $f$;
  *  de sobra y una variante `:v` a S/ 100. */
 const ESCENA = `
 begin;
+${MIGRACION_EN_LA_TRANSACCION}
 ${INTENTO}
 ${AYUDAS}
 ${cambiaA(FELIPE)}
@@ -85,6 +94,10 @@ select id as izipay_cta from retail.cuentas_dinero where nombre = 'Por depositar
 select id as vendemas_cta from retail.cuentas_dinero where nombre = 'Por depositar Vendemás' and archivada_en is null \\gset
 select id as izipay from retail.pos_maquinas where nombre = 'Izipay' and archivada_en is null \\gset
 select id as vendemas from retail.pos_maquinas where nombre = 'Vendemás' and archivada_en is null \\gset
+-- La tarea 14 sembró la tarifa de Vendemás (20261106012000): aquí se prueba una máquina que todavía no tiene ninguna.
+set local session_replication_role = replica;
+delete from retail.pos_tarifas where maquina_id = :'vendemas';
+set local session_replication_role = origin;
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
   select u, 'Piso de venta', 'piso_venta' from unnest(array[:'tru', :'lim']::uuid[]) u
    where not exists (select 1 from retail.sububicaciones s where s.ubicacion_id = u and s.tipo = 'piso_venta');
@@ -353,7 +366,7 @@ select retail.fn_texto_movimiento_dinero('abono_tarjeta');`);
 {
   const r = correr(`${ESCENA}
 select retail.fn_dias_habiles(date '2026-10-16', date '2026-10-19'), retail.fn_dias_habiles(date '2026-10-17', date '2026-10-18'), retail.fn_dias_habiles(date '2026-10-17', date '2026-10-19'), retail.fn_dias_habiles(date '2026-10-16', date '2026-10-16');
-select tasa_pct, igv_sobre_tasa, cargo_fijo, dias_abono from retail.fn_pos_tarifa(:'izipay', 'qr', retail.fn_hoy_lima());
+select tasa_pct, igv_sobre_tasa, cargo_fijo, dias_abono, gratis_hasta_dia from retail.fn_pos_tarifa(:'izipay', 'qr', retail.fn_hoy_lima());
 select (retail.fn_pos_tarifa(:'vendemas', 'tarjeta', retail.fn_hoy_lima())).id is null;
 select pg_temp.intento(format('select retail.guardar_pos_tarifa(%L, ''tarjeta'', 101, true, 0, 2)', :'vendemas'));
 select pg_temp.intento(format('select retail.guardar_pos_tarifa(%L, ''tarjeta'', 3, true, 51, 2)', :'vendemas'));
@@ -367,7 +380,7 @@ select vigente_desde from retail.pos_tarifas where id = :'t1';
 select coalesce((select esperado from retail.fn_pos_pendientes(:'vendemas_cta') where fecha = retail.fn_hoy_lima()), 0) as e0 \\gset
 ${venta("v1", "tru", [["tarjeta", 60], ["qr", 40]])}
 select n_pagos > 0, esperado - :e0, dias_habiles, atrasado from retail.fn_pos_pendientes(:'vendemas_cta') where fecha = retail.fn_hoy_lima();
-select retail.fn_pos_comision_estimada(:'vendemas', 'tarjeta', 60, 1, retail.fn_hoy_lima()), retail.fn_pos_comision_estimada(:'izipay', 'qr', 40, 1, retail.fn_hoy_lima()), retail.fn_pos_comision_estimada(:'izipay', 'tarjeta', 40, 1, retail.fn_hoy_lima()), retail.fn_pos_comision_estimada(:'izipay', 'qr', 40, 1, date '2026-10-09'), retail.fn_pos_comision_estimada(:'izipay', 'qr', 40, 1, date '2026-09-30'), retail.fn_pos_comision_estimada(:'izipay', 'qr', 40, 1, date '2026-09-10');
+select retail.fn_pos_comision_estimada(:'vendemas', 'tarjeta', 60, 1, retail.fn_hoy_lima()), retail.fn_pos_comision_estimada(:'izipay', 'qr', 40, 1, date '2026-11-15'), retail.fn_pos_comision_estimada(:'izipay', 'tarjeta', 40, 1, retail.fn_hoy_lima()), retail.fn_pos_comision_estimada(:'izipay', 'qr', 40, 1, date '2026-10-09'), retail.fn_pos_comision_estimada(:'izipay', 'qr', 40, 1, date '2026-09-30'), retail.fn_pos_comision_estimada(:'izipay', 'qr', 40, 1, date '2026-09-10');
 select retail.guardar_pos_tarifa(:'vendemas', 'tarjeta', 3, true, 0.20, 2) as t2 \\gset
 select vigente_desde = retail.fn_hoy_lima(), (select count(*) from retail.pos_tarifas where maquina_id = :'vendemas') from retail.pos_tarifas where id = :'t2';
 select count(*) from retail.configuracion_historial where que = 'pos_tarifa' and detalle ->> 'maquina_id' = :'vendemas';
@@ -380,12 +393,12 @@ select pg_temp.intento(format('select retail.guardar_pos_tarifa(%L, ''tarjeta'',
 select pg_temp.intento('select count(*) from retail.fn_pos_alertas()');`);
   const [habiles, izipayQr, vendemasSin, t101, c51, d16, yape, qrNoOpera, nan, repetida, desde, pendiente, estimadas, cambio, historial, editar, retroceder, alertas, maquinas, micaela, micaelaVe] = lineas(r);
   esperar("días hábiles: el sábado cuenta y el domingo no; el día de partida no", r.ok && habiles === "2|0|1|0", r);
-  esperar("el QR de Izipay hoy cobra 2.38 % + IGV y deposita el mismo día (20261017174000: cobró 0 % hasta el 2026-10-09); Vendemás nace sin tarifa", r.ok && izipayQr === "2.38|t|0.00|0" && vendemasSin === "t", r);
+  esperar("el QR de Izipay hoy cobra 2.38 % + IGV, gratis hasta el día 10 de cada mes (ADR-0629), y deposita el mismo día (20261017174000: cobró 0 % hasta el 2026-10-09); Vendemás nace sin tarifa", r.ok && izipayQr === "2.38|t|0.00|0|10" && vendemasSin === "t", r);
   esperar("la base rechaza una tasa de 101, un cargo de 51, 16 días, un medio que no es de máquina, un medio con el que no cobra y NaN",
     r.ok && t101.includes("0 a 100") && c51.includes("0 a S/ 50") && d16.includes("0 a 15") && yape.includes("tarjeta o del QR") && qrNoOpera.includes("no cobra con QR") && nan.includes("0 a 100"), r);
   esperar("la misma tarifa dos veces no abre una fila nueva; la primera vale para todo lo anterior", r.ok && repetida === "t|1" && desde === "1900-01-01", r);
   esperar("con la tarifa, el día pendiente trae la comisión esperada (3,5 % + IGV sobre S/ 60 + S/ 0.20 = S/ 2.68) y no está atrasado", r.ok && pendiente === "t|2.68|0|f", r);
-  esperar("la estimación: S/ 2.68 para la tarjeta de Vendemás; S/ 1.12 (2.38 % + IGV sobre S/ 40) para el QR y la tarjeta de Izipay; el QR de Izipay sigue la historia: 0 el 2026-10-09 (primeros días gratis de octubre), 1.12 el 2026-09-30 y 0 el 2026-09-10 (primeros días gratis de septiembre)", r.ok && estimadas === "2.68|1.12|1.12|0.00|1.12|0.00", r);
+  esperar("la estimación: S/ 2.68 para la tarjeta de Vendemás; S/ 1.12 (2.38 % + IGV sobre S/ 40) para el QR de Izipay un 15 de noviembre (fuera de sus días gratis, ADR-0629) y para su tarjeta hoy; el QR de Izipay sigue la historia: 0 el 2026-10-09 (primeros días gratis de octubre), 1.12 el 2026-09-30 y 0 el 2026-09-10 (primeros días gratis de septiembre)", r.ok && estimadas === "2.68|1.12|1.12|0.00|1.12|0.00", r);
   esperar("cambiarla abre una fila desde hoy y deja su rastro en la historia de Configuración", r.ok && cambio === "t|2" && historial === "2", r);
   esperar("una tarifa no se edita", r.ok && editar.includes("no se edita ni se borra"), r);
   esperar("una venta de hace 9 días sin depósito aparece ATRASADA en las dos máquinas (su tarjeta en Vendemás, su QR en Izipay)",
@@ -430,6 +443,30 @@ select count(*) from retail.fn_pos_pendientes(:'izipay_cta') where fecha = retai
   esperar("la segunda vez no mueve nada (idempotente)", r.ok && otraVez === "0", r);
   esperar("el rastro no se borra, y el sello sigue cerrado después de la corrección", r.ok && borrarRastro.includes("no se edita ni se borra") && aManoDespues.includes("se sella al cobrar"), r);
   esperar("el QR corregido aparece como día pendiente de depósito en Izipay", r.ok && Number(pendiente) >= 1, r);
+}
+
+// El banco de cada máquina (tarea 3 de «Las 36»): viene puesto en el depósito, solo a un banco vigente, y un banco archivado deja de proponerse.
+{
+  const r = correr(`${ESCENA}
+select id as visa_prueba from retail.cuentas_dinero where tipo = 'por_abonar' limit 1 \\gset
+select retail.crear_cuenta_dinero('Banco fijo prueba', 'banco', 0, retail.fn_hoy_lima()) as banco_fijo \\gset
+select m.id as maq from retail.pos_maquinas m where m.archivada_en is null order by m.nombre limit 1 \\gset
+select retail.guardar_banco_de_maquina(:'maq', :'banco_fijo') \\g /dev/null
+select banco_id = :'banco_fijo' from retail.fn_pos_bancos_de_maquinas() where maquina_id = :'maq';
+select pg_temp.intento(format('select retail.guardar_banco_de_maquina(%L, %L)', :'maq', :'visa_prueba'));
+update retail.cuentas_dinero set archivada_en = now() where id = :'banco_fijo';
+select banco_id is null from retail.fn_pos_bancos_de_maquinas() where maquina_id = :'maq';
+select retail.guardar_banco_de_maquina(:'maq', null) \\g /dev/null
+select (select banco_id from retail.pos_maquinas where id = :'maq') is null;
+${cambiaA(MICAELA)}
+select pg_temp.intento(format('select retail.guardar_banco_de_maquina(%L, null)', :'maq'));
+select pg_temp.intento('select * from retail.fn_pos_bancos_de_maquinas()');`);
+  const [puesto, noBanco, archivado, quitado, sinPermisoGuardar, sinPermisoLeer] = lineas(r);
+  esperar("el banco elegido viene de vuelta en la lectura", r.ok && puesto === "t", r);
+  esperar("una cuenta que no es banco se rechaza", r.ok && /banco vigente/.test(noBanco ?? ""), r);
+  esperar("un banco archivado deja de proponerse", r.ok && archivado === "t", r);
+  esperar("se puede quitar", r.ok && quitado === "t", r);
+  esperar("quien no configura no lo cambia ni lo lee", r.ok && /líder/.test(sinPermisoGuardar ?? "") && /líder/.test(sinPermisoLeer ?? ""), r);
 }
 
 console.log(fallos === 0 ? `\nTodo en orden (${casos} casos) · contenedor: ${CONTENEDOR_LOCAL}` : `\n${fallos} de ${casos} caso(s) fallaron · contenedor: ${CONTENEDOR_LOCAL}`);

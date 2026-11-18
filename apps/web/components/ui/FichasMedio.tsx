@@ -3,7 +3,7 @@
 import { useRef, type KeyboardEvent } from "react";
 import { Check } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
-import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
+import { iconoMetodo } from "@/components/punto-de-venta/iconoMetodo";
 
 /**
  * Las fichas de medio de pago, ACOSTADAS (50 px): las mismas de la hoja de cobro de Vender —el ícono y el color de cada medio, se
@@ -73,9 +73,11 @@ export function FichasMedio<M extends MetodoPagoVenta>({
               <span className="hoja-cobro-icono">{iconoMetodo(o.clave, "h-full w-full")}</span>
               <span className="hoja-cobro-nombre label-cayla font-bold leading-none">
                 {o.corta ? (
+                  // El corto sale en el celular y también en una ficha angosta en cualquier pantalla (la ficha es su propio contenedor, como
+                  // en la hoja de cobro): mirando solo el ancho de la pantalla, una ficha angosta en un computador recortaba «TRANSFERENCIA».
                   <>
-                    <span className="max-sm:hidden">{o.etiqueta}</span>
-                    <span className="sm:hidden">{o.corta}</span>
+                    <span className="hoja-cobro-nombre-largo max-sm:hidden">{o.etiqueta}</span>
+                    <span className="hoja-cobro-nombre-corto max-sm:inline">{o.corta}</span>
                   </>
                 ) : (
                   o.etiqueta

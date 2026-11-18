@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apartar · la fila como la de Vender</title>
+<style>
+  /* Tokens oficiales de apps/web/app/globals.css (ADR-0169). */
+  :root {
+    --crema:#f5f0e8; --papel:#fbf8f2; --tinta:#1a1a18; --rojo:#b8412d; --rojo-profundo:#8b2a1f;
+    --sand:#e8e0d0; --taupe:#805c4c; --hueso:#eae1d2; --borde-control:#96786a;
+    --verde:#48603f; --ambar:#74501a;
+  }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--crema); color:var(--tinta); font:14px/1.4 -apple-system,"Inter","Helvetica Neue",Arial,sans-serif; padding:32px 24px 56px; }
+  h1 { font:400 28px/1.15 Georgia,"Times New Roman",serif; }
+  .frase { color:color-mix(in srgb,var(--tinta) 65%,transparent); margin:6px 0 28px; max-width:70ch; }
+  .par { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,440px)); gap:32px; align-items:start; }
+  .etq { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--taupe); margin-bottom:10px; display:flex; gap:8px; align-items:center; }
+  .etq b { background:var(--tinta); color:var(--crema); padding:2px 8px; border-radius:99px; font-weight:500; letter-spacing:.06em; }
+  .etq b.hoy { background:var(--hueso); color:var(--tinta); }
+
+  .panel { background:var(--papel); border:1px solid var(--sand); border-radius:16px; overflow:hidden; }
+  .cab { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:65px; padding:10px 20px; border-bottom:1px solid var(--sand); }
+  .cab h2 { font:400 21px/1.1 Georgia,serif; display:inline-flex; gap:10px; align-items:center; }
+  .cab small { font-size:12px; color:color-mix(in srgb,var(--tinta) 60%,transparent); }
+  svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+
+  /* ===== La fila de Vender (LineaDelTicket) ===== */
+  .lin { padding:10px 20px; border-bottom:1px solid var(--sand); }
+  .lin .fila { display:flex; align-items:center; gap:8px; }
+  .lin .nom { flex:1; min-width:0; }
+  .lin h3 { font-size:14px; line-height:1.3; font-weight:600; }
+  .lin .det { margin-top:2px; font-size:12px; line-height:1.3; color:color-mix(in srgb,var(--tinta) 65%,transparent); display:flex; flex-wrap:wrap; gap:0 8px; align-items:center; }
+  .lin .st { display:inline-flex; align-items:center; gap:4px; }
+  .lin .st i { width:6px; height:6px; border-radius:50%; background:var(--verde); }
+  .lin .st.amb i { background:var(--ambar); }
+  .paso { flex:none; display:inline-flex; align-items:center; height:36px; background:var(--hueso); border:1px solid var(--borde-control); border-radius:8px; }
+  .paso button { all:unset; display:grid; place-items:center; width:30px; height:100%; cursor:pointer; color:var(--tinta); }
+  .paso button:disabled { opacity:.35; cursor:default; }
+  .paso span { min-width:22px; text-align:center; font-weight:600; font-variant-numeric:tabular-nums; }
+  .imp { flex:none; display:flex; align-items:center; gap:4px; padding:2px 4px 2px 6px; margin-right:-4px; border-radius:6px; background:none; border:0; font:inherit; color:inherit; text-align:right; cursor:pointer; }
+  .imp:hover { background:color-mix(in srgb,var(--sand) 40%,transparent); }
+  .imp svg { width:12px; height:12px; color:color-mix(in srgb,var(--tinta) 35%,transparent); }
+  .imp.d svg { color:var(--rojo-profundo); }
+  .imp .v { min-width:68px; display:block; }
+  .imp .v b { display:block; font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .imp .v s { display:block; font-size:11px; color:color-mix(in srgb,var(--tinta) 45%,transparent); font-variant-numeric:tabular-nums; }
+  .quitar { flex:none; width:28px; height:28px; display:grid; place-items:center; border:0; background:none; border-radius:6px; color:var(--rojo-profundo); cursor:pointer; }
+  .quitar:hover { background:color-mix(in srgb,var(--rojo) 10%,transparent); }
+  .nota { margin-top:4px; font-size:11px; line-height:1.3; color:var(--rojo-profundo); }
+  .nota.n { color:color-mix(in srgb,var(--tinta) 65%,transparent); }
+
+  /* ===== La fila de hoy en Apartar (para comparar) ===== */
+  .hoyfila { padding:16px 20px; border-bottom:1px solid var(--sand); }
+  .hoyfila .t { display:flex; justify-content:space-between; gap:12px; }
+  .hoyfila .t p:first-child { font-size:15px; font-weight:600; }
+  .hoyfila .t p+p, .hoyfila .sub { font-size:12px; color:color-mix(in srgb,var(--tinta) 60%,transparent); }
+  .hoyfila .q { font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--rojo-profundo); display:flex; gap:4px; align-items:center; height:28px; }
+  .hoyfila .q svg { width:14px; height:14px; }
+  .hoyfila .g { margin-top:10px; display:grid; grid-template-columns:auto 1fr auto; gap:4px 16px; align-items:end; }
+  .hoyfila .g .c { font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:color-mix(in srgb,var(--tinta) 55%,transparent); }
+  .hoyfila .g .c:last-of-type { text-align:right; }
+  .hoyfila .g b { font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .chip { display:inline-block; margin-top:10px; background:var(--hueso); color:var(--ambar); font-size:12px; padding:3px 10px; border-radius:99px; font-weight:500; }
+  .hoyfila .tenue { margin-top:8px; font-size:11px; color:var(--taupe); }
+
+  /* pie común */
+  .desc { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 20px; border-bottom:1px solid var(--sand); }
+  .btn { display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 14px; border:1px solid var(--borde-control); background:transparent; border-radius:8px; font:inherit; font-size:13.5px; color:var(--tinta); }
+  .desc span { font-size:12.5px; color:color-mix(in srgb,var(--tinta) 70%,transparent); font-variant-numeric:tabular-nums; }
+  .pie { padding:20px; display:grid; gap:12px; }
+  .pie .tot { display:flex; justify-content:space-between; align-items:flex-end; }
+  .pie .tot p { font-size:12.5px; color:color-mix(in srgb,var(--tinta) 60%,transparent); }
+  .pie .tot div { text-align:right; }
+  .pie .tot div small { display:block; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:color-mix(in srgb,var(--tinta) 60%,transparent); }
+  .pie .tot div b { font:400 44px/1 Georgia,serif; font-variant-numeric:tabular-nums; }
+  .apartar { display:flex; justify-content:space-between; align-items:center; height:56px; padding:0 20px; background:var(--tinta); color:var(--crema); border-radius:8px; }
+  .apartar span:first-child { display:flex; gap:10px; align-items:center; font-size:11px; letter-spacing:.1em; text-transform:uppercase; }
+  .apartar span:last-child { font:400 20px Georgia,serif; font-variant-numeric:tabular-nums; }
+
+  .notas { margin-top:36px; max-width:78ch; display:grid; gap:10px; }
+  .notas h2 { font:400 21px Georgia,serif; margin-bottom:2px; }
+  .notas li { margin-left:18px; color:color-mix(in srgb,var(--tinta) 80%,transparent); }
+  .notas li b { font-weight:600; color:var(--tinta); }
+</style>
+</head>
+<body>
+
+<h1>Apartar · la fila de cada prenda, como en Vender</h1>
+<p class="frase">Mismo orden que el ticket de Vender: nombre y detalle a la izquierda, <b>− 1 +</b>, el importe (que abre el descuento) y la papelera. Sin foto: Vender no la lleva.</p>
+
+<div class="par">
+
+  <!-- ====== HOY ====== -->
+  <section>
+    <p class="etq"><b class="hoy">Hoy</b> la fila a mano de Apartar</p>
+    <div class="panel">
+      <div class="cab"><h2>Por apartar</h2><small>1 prenda</small></div>
+      <div class="hoyfila">
+        <div class="t">
+          <div><p>Casaca Jean Crop</p><p>Azul claro · L · <span style="font:11px ui-monospace,Menlo,monospace">CAS-0009-AZC-L</span></p></div>
+          <span class="q"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg> Quitar</span>
+        </div>
+        <div class="g">
+          <span class="c">Cantidad</span><span class="c">Precio</span><span class="c">Importe</span>
+          <span class="paso" style="height:36px"><button>−</button><span>1</span><button>+</button></span>
+          <b>S/89.10</b><b style="text-align:right">S/89.10</b>
+        </div>
+        <span class="chip">−S/9.90 c/u · HKJ</span>
+        <p class="tenue">Quedan 0 disponibles en sede tras apartar</p>
+      </div>
+      <div class="desc"><button class="btn">Descuento</button><span>Descuento −S/9.90</span></div>
+    </div>
+  </section>
+
+  <!-- ====== PROPUESTA ====== -->
+  <section>
+    <p class="etq"><b>Propuesta</b> la fila de Vender</p>
+    <div class="panel">
+      <div class="cab">
+        <h2><svg viewBox="0 0 24 24" style="width:20px;height:20px;opacity:.7"><path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> Por apartar</h2>
+        <small>2 prendas</small>
+      </div>
+
+      <!-- Prenda con descuento a mano -->
+      <article class="lin">
+        <div class="fila">
+          <div class="nom" title="CAS-0009-AZC-L">
+            <h3>Casaca Jean Crop</h3>
+            <p class="det"><span>Azul claro · L</span><span class="st amb"><i></i>Stock: 1</span></p>
+          </div>
+          <span class="paso"><button aria-label="Reducir cantidad" disabled><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button><span>1</span><button aria-label="Aumentar cantidad" disabled><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></svg></button></span>
+          <button class="imp d" title="Descuento de esta prenda">
+            <svg viewBox="0 0 24 24"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+            <span class="v"><b>S/89.10</b><s>S/99.00</s></span>
+          </button>
+          <button class="quitar" aria-label="Quitar Casaca Jean Crop" title="Quitar"><svg viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5"/></svg></button>
+        </div>
+        <p class="nota">−S/9.90 c/u · HKJ</p>
+        <p class="nota n">Quedará 0 en sede tras apartar</p>
+      </article>
+
+      <!-- Prenda sin descuento -->
+      <article class="lin">
+        <div class="fila">
+          <div class="nom" title="BER-0014-CEL-28">
+            <h3>Bermuda Mom</h3>
+            <p class="det"><span>Celeste · Talla 28</span><span class="st"><i></i>Stock: 3</span></p>
+          </div>
+          <span class="paso"><button aria-label="Reducir cantidad" disabled><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button><span>1</span><button aria-label="Aumentar cantidad"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></svg></button></span>
+          <button class="imp" title="Descuento de esta prenda">
+            <svg viewBox="0 0 24 24"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+            <span class="v"><b>S/85.00</b></span>
+          </button>
+          <button class="quitar" aria-label="Quitar Bermuda Mom" title="Quitar"><svg viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5"/></svg></button>
+        </div>
+      </article>
+
+      <div class="desc">
+        <button class="btn"><svg viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76z"/><path d="m15 9-6 6M9.5 9.5h.01M14.5 14.5h.01"/></svg> Descuento</button>
+        <span>Descuento −S/9.90</span>
+      </div>
+
+      <div class="pie">
+        <div class="tot"><p>Precio congelado<br>hasta el sáb 8 nov</p><div><small>Total</small><b>S/174.10</b></div></div>
+        <div class="apartar"><span><svg viewBox="0 0 24 24"><path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> Apartar</span><span>S/174.10</span></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="notas">
+  <h2>Qué cambia</h2>
+  <ul>
+    <li><b>Una fila de ~50 px</b> en vez de ~150: nombre · detalle · cantidad · importe · quitar, igual que Vender.</li>
+    <li><b>Sin los rótulos CANTIDAD / PRECIO / IMPORTE</b> ni la columna «Precio»: el importe ya dice el precio con descuento y el de lista va tachado debajo.</li>
+    <li><b>El importe es el botón del descuento</b> de esa prenda (el «%» chico lo anuncia), como en Vender. Hoy hay un chip suelto con «Cambiar».</li>
+    <li><b>«Quitar» pasa a la papelera</b> sola, igual que Vender; hoy es un botón en versalitas.</li>
+    <li><b>El stock</b> se dice con el punto de color («● Stock: 1»), como Vender. El SKU baja al <i>title</i> del nombre.</li>
+    <li><b>El descuento a mano</b> (−S/9.90 c/u · HKJ) se dice con la misma nota roja de Vender, bajo la fila.</li>
+    <li><b>Lo propio de Apartar se conserva</b>: «Quedará 0 en sede tras apartar», la elección de dueño y el aviso «Llegó de …».</li>
+  </ul>
+</div>
+
+</body>
+</html>

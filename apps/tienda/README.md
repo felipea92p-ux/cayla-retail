@@ -107,6 +107,11 @@ seguridad «Email address changed» encendido con `correo-cambiado.html`, y `htt
 - **Lo que es igual para todos se comparte entre visitas** con `lecturaCompartida` (`lib/compartido-servidor.ts`): el catálogo, los looks
   y la ficha 30 s; la campaña y las tiendas 60 s; los plazos y los beneficios del Club 300 s. Lo de una persona (su cuenta, sus favoritos,
   su bolsa, sus pedidos) nunca: se lee en cada visita. Una lectura nueva de la base decide primero de cuál de los dos es.
+- **El catálogo, los filtros y el probador se rearman solo si algo cambió** (`lecturaPorHuella`, cambiar-de-modulo#11, 2026-11-13): cada 30 s
+  la tienda pregunta la huella `retail.tienda_catalogo_version()` (~18 ms en producción; migración `20261113202000`) y solo si cambió vuelve a pedir la lectura
+  cara, que la base arma junto con su huella en la misma consulta. Con las tiendas cerradas no se rearma nada; el tope, aunque nada cambie, es
+  de 10 min (`SEGUNDOS_SIN_CAMBIOS`). **Si una de esas tres funciones empieza a leer una tabla nueva, súmala a la huella:**
+  `pnpm pruebas:tienda-catalogo-version` recorre lo que leen y falla si una queda fuera.
 - **El 404 raíz (`app/not-found.tsx`) y el layout raíz nunca leen la sesión ni cookies:** en Next 16 son parte de toda ruta, y al leerlas
   todas las páginas se armaban en cada visita. Así `/`, `/entrar` y `/crear-cuenta` salen estáticas (`○` en `next build`) y Vercel las
   sirve desde su caché.

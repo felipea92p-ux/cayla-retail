@@ -9,6 +9,7 @@
 import { createClient } from "./supabase/server";
 import { leerPreciosEnSede } from "./precio-sede-reglas";
 import { leerPreciosPropiosDeSede } from "./precios-propios-de-sede";
+import { unstable_rethrow } from "next/navigation";
 
 export async function getPreciosPorSede(ubicacionIds: readonly string[]): Promise<Record<string, Record<string, number>>> {
   const sedes = [...new Set(ubicacionIds.filter(Boolean))];
@@ -35,7 +36,8 @@ export async function getPreciosDeLasTiendas(): Promise<{ nombres: Map<string, s
     const { data, error } = await supabase.from("ubicaciones").select("id, nombre").eq("tipo", "tienda").eq("activo", true);
     if (error || !data) return { nombres: new Map(), porSede: {} };
     return { nombres: new Map(data.map((u) => [u.id, u.nombre])), porSede: await getPreciosPorSede(data.map((u) => u.id)) };
-  } catch {
+  } catch (e) {
+    unstable_rethrow(e);
     return { nombres: new Map(), porSede: {} };
   }
 }

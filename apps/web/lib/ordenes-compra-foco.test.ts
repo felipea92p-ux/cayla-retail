@@ -28,14 +28,19 @@ describe("órdenes de compra: al cerrar «Anular comprobante», el foco vuelve a
   });
 });
 
-// Lo mismo con la hoja «Anular envío» (fase 3): se abre desde el botón «Anular envío» de la fila del envío y, al cerrarla, el foco vuelve a
-// ese botón.
+// Lo mismo con la hoja «Anular envío» (fase 3): se abre desde el botón «Anular envío» de la fila del envío (o, desde el 2026-11-13, del
+// detalle de un envío en Mis envíos) y, al cerrarla, el foco vuelve a ese botón. La hoja vive en su archivo (`AnularEnvioModal`).
 const envios = readFileSync(join(__dirname, "..", "components/ordenes-compra/EnviosDeOrden.tsx"), "utf8");
+const hojaAnular = readFileSync(join(__dirname, "..", "components/ordenes-compra/AnularEnvioModal.tsx"), "utf8");
+const misEnvios = readFileSync(join(__dirname, "..", "components/mi-plata/HojaEnvio.tsx"), "utf8");
 
 describe("órdenes de compra: al cerrar «Anular envío», el foco vuelve al botón", () => {
   it("el botón se recuerda al pulsarlo y la hoja se lo pasa a <Modal>", () => {
     expect(envios).toMatch(/origen\.current = ev\.currentTarget/);
-    expect(envios).toMatch(/alCerrarEnfocar=\{volverA\}/);
+    expect(hojaAnular).toMatch(/alCerrarEnfocar=\{volverA\}/);
     expect(envios).toMatch(/<AnularEnvioModal[\s\S]*?volverA=\{origen\}/);
+    // Mis envíos: el mismo trato.
+    expect(misEnvios).toMatch(/botonAnular\.current = ev\.currentTarget/);
+    expect(misEnvios).toMatch(/<AnularEnvioModal[\s\S]*?volverA=\{botonAnular\}/);
   });
 });

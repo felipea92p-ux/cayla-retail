@@ -1,0 +1,5 @@
+# 2026-11-09 — Buscadores: una sola pausa, sin consultas de más
+
+Qué se hizo: la pausa de los 9 buscadores que van a la URL pasó a `useBuscarAlEscribir` (Productos conserva la suya, que también cubre el precio, con la misma constante y la misma regla); Notificaciones de la tienda, que consultaba por cada tecla, ya espera; una letra sola no busca y «Atrás» ya no recorre lo escrito en Compras, Movimientos y Recibidas.
+Por qué así: casi todos ya tenían debounce, pero cada copia era un poco distinta. Cada búsqueda recarga la pantalla entera y el router no cancela la anterior, así que lo que se ahorra es recargar sin motivo. La base no era el problema: buscar en Productos tarda 11–16 ms en local, por eso no se agregaron índices.
+Cómo se verificó: tipos, 166.975 pruebas del ERP, 1.069 de la tienda y Knip en verde; con Playwright contra la base local, 7 pantallas teclean de verdad: una letra = 0 consultas, «blusa» de corrido = 1, y «Atrás» sale de la pantalla. Sin probar en navegador: Notificaciones (la tienda no tiene entorno local aquí) y las dos de órdenes (no hay órdenes en la base local y el buscador no sale).

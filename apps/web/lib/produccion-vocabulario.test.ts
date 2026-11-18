@@ -13,12 +13,6 @@ const RAIZ = join(__dirname, "..");
 const CARPETAS = ["components/orden-pagina", "components/ordenes-lista", "components/orden-produccion", "components/produccion-resumen", "components/proveedores-produccion", "components/insumos-taller"];
 const ARCHIVOS = [
   "components/NuevaOrdenProduccionForm.tsx",
-  "components/OrdenCierre.tsx",
-  "components/OrdenInsumos.tsx",
-  "components/OrdenModales.tsx",
-  "components/OrdenPanel.tsx",
-  "components/OrdenTarjeta.tsx",
-  "components/MatrizOrden.tsx",
   "components/ResumenProduccionPanel.tsx",
   "components/InsumosPanel.tsx",
   "components/InsumoModales.tsx",

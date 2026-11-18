@@ -65,7 +65,7 @@ export function FrescuraPiso({
   const cerrada = puerta === null || !puerta.puedeHablar;
   const paso = pasoDeLaPuerta(puerta, acceso);
   return (
-    <section aria-labelledby="frescura-piso-titulo" data-guia="frescura.piso" className="card-cayla px-4 py-4 sm:px-5">
+    <section aria-labelledby="frescura-piso-titulo" data-guia="frescura.piso" className="@container card-cayla px-4 py-4 sm:px-5">
       <TituloSeccion
         id="frescura-piso-titulo"
         dato={
@@ -87,20 +87,20 @@ export function FrescuraPiso({
 
       <BarraApilada segmentos={segmentosDelPiso(principal)} alto={12} unidad="unidades colgadas" className="mt-3" />
 
-      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 @min-[36rem]:grid-cols-4">
         {tramosConNumero(principal).map((t) =>
           t === "sin_saber" ? (
             <CifraSinSaber key={t} pct={pct[t]} cuantas={principal.unidades.sin_saber} causas={principal.sinSaberPor} />
           ) : (
           <div key={t} className="min-w-0">
-            <dt className="flex items-center gap-1.5 text-[13px] text-taupe">
+            <dt className="flex items-center gap-1.5 text-sm text-taupe">
               <MuestraTramo clase={CLASE_TRAMO_PISO[t]} />
               {NOMBRE_TRAMO_PISO[t]}
             </dt>
             <dd className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
               {/* La cifra nunca se parte («25» arriba y «%» abajo a 375 px): lo que va al lado baja de línea. */}
               <span className="whitespace-nowrap font-display text-[28px] leading-none tabular-nums">{pct[t]} %</span>
-              <span className="text-[12.5px] tabular-nums text-taupe">
+              <span className="text-sm tabular-nums text-taupe">
                 {unidades(principal.unidades[t])}
                 {t === "envejeciendo" && principal.soles && principal.soles.envejeciendo > 0 && <> · {solesEnteros(principal.soles.envejeciendo)}</>}
               </span>
@@ -111,21 +111,21 @@ export function FrescuraPiso({
       </dl>
 
       {antes && (
-        <p className="mt-3 text-[13px] tabular-nums text-taupe">
+        <p className="mt-3 text-sm tabular-nums text-taupe">
           Hace 4 semanas: {antes.fresca} % fresca · {antes.vigente} % vigente · {antes.envejeciendo} % envejeciendo
         </p>
       )}
 
 
       {lineas.length > 0 && (
-        <ul aria-label="Cada familia" className="mt-4 divide-y divide-sand border-t border-sand">
+        <ul aria-label="Cada familia" className="@container mt-4 divide-y divide-sand border-t border-sand">
           {lineas.map((f) => (
-            <li key={f.codigo ?? "otras"} className="grid grid-cols-1 items-center gap-x-4 gap-y-1.5 py-2.5 sm:grid-cols-[minmax(140px,1fr)_minmax(180px,2fr)_minmax(0,2fr)]">
+            <li key={f.codigo ?? "otras"} className="grid grid-cols-1 items-center gap-x-4 gap-y-1.5 py-2.5 @min-[40rem]:grid-cols-[minmax(140px,1fr)_minmax(180px,2fr)_minmax(0,2fr)]">
               <span className="text-[14px] font-semibold leading-tight">
-                {f.nombre} <span className="text-[12.5px] font-normal tabular-nums text-taupe">· {unidades(f.total)}</span>
+                {f.nombre} <span className="text-sm font-normal tabular-nums text-taupe">· {unidades(f.total)}</span>
               </span>
               <BarraApilada segmentos={segmentosDelPiso(f)} alto={8} unidad="unidades colgadas" />
-              <span className="text-[12.5px] leading-snug tabular-nums text-taupe">{lineaDelPiso(f)}</span>
+              <span className="text-sm leading-snug tabular-nums text-taupe">{lineaDelPiso(f)}</span>
             </li>
           ))}
         </ul>
@@ -133,12 +133,12 @@ export function FrescuraPiso({
 
       {clasicos > 0 && (
         // Con su muestra: el tablero pinta los clásicos con este color y la tarjeta es su leyenda (revisión adversaria).
-        <p className="mt-3 flex items-center gap-1.5 text-[12.5px] text-taupe">
+        <p className="mt-3 flex items-center gap-1.5 text-sm text-taupe">
           <MuestraTramo clase={CLASE_TRAMO_PISO.clasico} />Y {unidades(clasicos)} de clásicos aparte: no se miden por novedad.
         </p>
       )}
       {dudasFallo && (
-        <p className="mt-2 text-[12.5px] text-taupe">No se pudo leer lo vendido sin registrar: alguna unidad ya vendida puede contarse como colgada.</p>
+        <p className="mt-2 text-sm text-taupe">No se pudo leer lo vendido sin registrar: alguna unidad ya vendida puede contarse como colgada.</p>
       )}
 
       {cerrada && (

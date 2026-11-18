@@ -2,7 +2,8 @@
 
 import { Buscador } from "@/components/ui/Buscador";
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
-import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
+import { money } from "@/lib/money";
+import type { ItemCarrito, VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { PrendaCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { codigoPrenda } from "@/lib/prenda-reglas";
@@ -15,6 +16,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { TarjetaPrenda } from "@/components/punto-de-venta/TarjetaPrenda";
 import { etiquetaPrecioDeSede } from "@/lib/precio-sede-reglas";
 import { Interruptor } from "@/components/ui/campos";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 /**
  * Cuántas tarjetas se pintan de entrada y cuántas se suman cada vez que el centinela del fondo entra a la
@@ -191,11 +193,11 @@ export function PuntoDeVentaCatalogo({
     // campo de escaneo nunca sale de la vista, por larga que sea la categoría.
     <section
       aria-label="Escanear o buscar prendas"
-      className="flex min-w-0 flex-col border-b border-sand lg:min-h-0 lg:flex-1 lg:border-b-0"
+      className="flex min-w-0 flex-col lg:min-h-0 lg:flex-1"
     >
       {/* `@container`: la fila de captura decide por el ancho del PANEL, no de la ventana. En una laptop con el lateral
           abierto el panel mide ~290 px aunque la ventana sea de escritorio. */}
-      <div className="anim-sube @container px-4 pt-3 sm:px-6 sm:pt-4">
+      <div className="pv-cat-aire anim-sube @container px-4 pt-3 sm:px-6 sm:pt-4">
         {/* Fila de captura: el campo manda (flex-1); «Prenda sin registrar» (ADR-0179) es la
             tercera vía de captura (la prenda aún no está en el sistema), por eso vive al lado
             del campo y no entre los chips, donde le robaba ancho a las categorías.
@@ -247,7 +249,7 @@ export function PuntoDeVentaCatalogo({
                 role="listbox" // unificar-fijo: la lista con fotos y stock de la búsqueda del mostrador
                 data-guia="vender.resultados"
                 aria-label="Prendas encontradas"
-                className="card-cayla anim-globo absolute top-16 right-0 left-0 divide-y divide-sand overflow-hidden !p-0 shadow-lg"
+                className="card-cayla anim-globo scroll-cayla absolute top-16 right-0 left-0 max-h-[max(12rem,min(30rem,calc(100dvh-15rem)))] divide-y divide-sand overflow-y-auto overscroll-contain !p-0 shadow-lg"
               >
                 {resultados.length ? (
                   resultados.map((v, i) => {
@@ -277,32 +279,32 @@ export function PuntoDeVentaCatalogo({
                         )}
                         <span className={`min-w-0 flex-1 ${apagada ? "opacity-80" : ""}`}>
                           <span className="block truncate font-semibold text-tinta">{v.referencia}</span>
-                          <span className="mt-0.5 flex items-center gap-1.5 text-xs text-tinta/65">
+                          <span className="mt-0.5 flex items-center gap-1.5 text-sm text-tinta/65">
                             {v.talla && <span className="shrink-0 rounded-md border border-sand bg-crema px-1.5 py-px font-semibold text-tinta">{v.talla}</span>}
                             {v.color && (
                               <span className="flex min-w-0 items-center gap-1.5">
-                                <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/25" style={{ backgroundColor: estiloMosaicoColor(v.colorHex)?.fondo ?? "transparent" }} />
+                                <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/25" style={{ background: fondoDelPunto(estiloMosaicoColor(v.colorHex)?.fondo, v.colorTonos) ?? "transparent" }} />
                                 <span className="truncate">{v.color}</span>
                               </span>
                             )}
                           </span>
-                          <span className="mt-0.5 block truncate text-[11px] tracking-wide text-tinta/50">{codigoPrenda(v)}</span>
+                          <span className="mt-0.5 block truncate font-mono text-sm text-tinta/60">{codigoPrenda(v)}</span>
                           <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                             <Chip tono={TONO_STOCK[motivo]} tachado={false}>
                               {textoStockDeFila(v)}
                             </Chip>
                             {/* Dónde más hay: la venta que se perdía cuando solo decía «sin stock». */}
-                            {otras && <span className="text-[11px] text-tinta/55">{otras}</span>}
+                            {otras && <span className="text-sm text-tinta/55">{otras}</span>}
                             {/* Lista angosta (celular): el precio sube a esta línea en vez de abrir otra. */}
                             <span className="ml-auto text-sm font-semibold tabular-nums text-tinta @[26rem]:hidden">
                               {money(v.precio)}
-                              {v.precioDeSede && <span className="ml-1 text-[10.5px] text-ambar-profundo">· {etiquetaPrecioDeSede(ubicacionEtiqueta)}</span>}
+                              {v.precioDeSede && <span className="ml-1 text-sm text-ambar-profundo">· {etiquetaPrecioDeSede(ubicacionEtiqueta)}</span>}
                             </span>
                           </span>
                         </span>
                         <span className="hidden shrink-0 text-right @[26rem]:block">
                           <span className="block text-sm font-semibold tabular-nums text-tinta">{money(v.precio)}</span>
-                          {v.precioDeSede && <span className="block whitespace-nowrap text-[10.5px] font-semibold text-ambar-profundo">{etiquetaPrecioDeSede(ubicacionEtiqueta)}</span>}
+                          {v.precioDeSede && <span className="block whitespace-nowrap text-sm font-semibold text-ambar-profundo">{etiquetaPrecioDeSede(ubicacionEtiqueta)}</span>}
                         </span>
                       </button>
                     </li>
@@ -398,7 +400,7 @@ export function PuntoDeVentaCatalogo({
               // (D-40): se dice cuántos, para que se sepa que apagando el filtro aparecen. Cuenta COLORES (los puntos de
               // las tarjetas, ADR-0323), no unidades. `leading-tight`: en dos líneas cabe en el alto del interruptor, y la
               // fila no cambia de alto al prenderlo o apagarlo (ADR-0185).
-              <span className="anim-asentar text-right text-[11px] leading-tight text-tinta/60">
+              <span className="anim-asentar text-right text-sm leading-tight text-tinta/60">
                 {ocultasEnAlmacen > 0
                   ? `${ocultasSinStock} ${ocultasSinStock === 1 ? "color oculto" : "colores ocultos"} (${ocultasEnAlmacen} con stock en el almacén)`
                   : `${ocultasSinStock} ${ocultasSinStock === 1 ? "color agotado oculto" : "colores agotados ocultos"}`}
@@ -406,8 +408,10 @@ export function PuntoDeVentaCatalogo({
             )}
           </div>
 
-          {/* Catálogo, la ruta secundaria: las categorías tienen ahora toda la fila. */}
-          <div data-guia="vender.categorias" className="scroll-cayla -mx-1 mt-1 flex gap-2 overflow-x-auto px-1 pb-3 pt-1">
+          {/* Catálogo, la ruta secundaria: las categorías tienen ahora toda la fila. `scroll-px-24`: con el Tab, el navegador no corre
+              la fila si la píldora asoma aunque sea 2 px por el borde, y quedaba enfocada sin verse (WCAG 2.4.11, auditoría /milimetro
+              2026-11-16). Con 6 rem de margen la corre siempre que el centro de la píldora quede afuera (la más ancha mide 172 px). */}
+          <div data-guia="vender.categorias" className="scroll-cayla -mx-1 mt-1 flex gap-2 overflow-x-auto px-1 pb-3 pt-1 scroll-px-24">
             {categorias.map((c, i) => (
               <button
                 key={c}
@@ -425,7 +429,7 @@ export function PuntoDeVentaCatalogo({
         </div>
       </div>
 
-      <div className="scroll-cayla min-h-0 flex-1 overflow-y-auto px-4 pb-5 sm:px-6">
+      <div className="pv-cat-aire pv-cat-scroll scroll-cayla min-h-0 flex-1 overflow-y-auto px-4 pb-5 sm:px-6">
         {/* Solo la grilla se colapsa con el botón de arriba. «Ventas de hoy» ya no vive aquí abajo: es la píldora
             «Hoy» de la cabecera (spike 2026-09-26). `@container`: las columnas dependen del ancho del catálogo, no de
             la pantalla — con el lateral abierto o cerrado, cada tarjeta mide lo mismo. */}
@@ -433,7 +437,7 @@ export function PuntoDeVentaCatalogo({
         <TooltipProvider delayDuration={250}>
           {/* Una tarjeta por prenda (ADR-0323), foto cuadrada y de 2 a 5 columnas según el ancho del catálogo, no de la
               ventana: con el lateral abierto o cerrado, en una laptop o a 320 px, cada tarjeta mide parecido. */}
-          <div className="grid grid-cols-2 gap-2.5 @md:grid-cols-3 @2xl:grid-cols-4 @4xl:grid-cols-5">
+          <div className="pv-grilla grid grid-cols-2 gap-2.5 @md:grid-cols-3 @2xl:grid-cols-4 @4xl:grid-cols-5">
             {prendas.length === 0 && (
               <p className="col-span-full py-10 text-center text-sm text-tinta/60">
                 {soloConStock ? `Nada con stock en ${ubicacionEtiqueta}` : "No hay prendas"}

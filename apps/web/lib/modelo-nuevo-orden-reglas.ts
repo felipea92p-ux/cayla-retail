@@ -31,9 +31,10 @@ export function vieneDeProduccion(crudo: string | string[] | undefined | null): 
   return valor === VALOR_DESDE;
 }
 
-/** Nueva orden → Nuevo producto. Conserva el tipo elegido para que el retorno abra la misma orden que se empezó. */
-export function hrefAltaDesdeProduccion(tipo: TipoOrden): string {
-  return `/productos/nuevo?desde=${VALOR_DESDE}&tipo=${tipo}`;
+/** Nueva orden → Nuevo producto. Conserva el tipo elegido para que el retorno abra la misma orden que se empezó; sin tipo elegido no lleva ninguno, y al volver
+ *  el modelo ya existe, así que la orden toma el de un modelo existente (lote, ADR-0396) a la vista y con su interruptor. */
+export function hrefAltaDesdeProduccion(tipo: TipoOrden | null): string {
+  return `/productos/nuevo?desde=${VALOR_DESDE}${tipo ? `&tipo=${tipo}` : ""}`;
 }
 
 /** Nuevo producto → Nueva orden con el modelo recién creado ya elegido (`?nueva=<id>` lo abre Órdenes; ver `OrdenesLista`). */

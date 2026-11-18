@@ -15,7 +15,7 @@
 
 export const UMBRAL_PARECIDO = 8;
 
-type Lab = readonly [number, number, number];
+export type Lab = readonly [number, number, number];
 
 export function esHexValido(hex: string | null | undefined): hex is string {
   return typeof hex === "string" && /^#[0-9a-f]{6}$/i.test(hex);
@@ -36,8 +36,11 @@ export function hexALab(hex: string): Lab {
   return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
 }
 
-/** CIEDE2000 (Sharma, Wu y Dalal, 2005), con kL = kC = kH = 1. */
-export function deltaE2000([L1, a1, b1]: Lab, [L2, a2, b2]: Lab): number {
+/**
+ * CIEDE2000 (Sharma, Wu y Dalal, 2005), con kC = kH = 1. `kL` (1 de fábrica) pesa la diferencia de luz: con 2, como la regla CMC 2:1
+ * con que la industria textil acepta un lote, la sombra y el brillo de una misma tela cuentan la mitad (lo usa `colores-de-la-foto.ts`).
+ */
+export function deltaE2000([L1, a1, b1]: Lab, [L2, a2, b2]: Lab, kL = 1): number {
   const rad = Math.PI / 180;
   const C1 = Math.hypot(a1, b1);
   const C2 = Math.hypot(a2, b2);
@@ -84,11 +87,27 @@ export function deltaE2000([L1, a1, b1]: Lab, [L2, a2, b2]: Lab): number {
   const SC = 1 + 0.045 * Cpm;
   const SH = 1 + 0.015 * Cpm * T;
   const RT = -Math.sin(2 * dTheta * rad) * RC;
-  return Math.sqrt((dL / SL) ** 2 + (dC / SC) ** 2 + (dH / SH) ** 2 + RT * (dC / SC) * (dH / SH));
+  return Math.sqrt((dL / (kL * SL)) ** 2 + (dC / SC) ** 2 + (dH / SH) ** 2 + RT * (dC / SC) * (dH / SH));
 }
 
 export function distanciaEntreHex(a: string, b: string): number {
   return deltaE2000(hexALab(a), hexALab(b));
+}
+
+// Los neutros de los extremos —casi negro y casi blanco— se comparan con la luz a la mitad (kL = 2, la regla CMC 2:1 con que la
+// industria textil acepta un lote): ahí casi toda la diferencia es de luz, y en una foto la luz la pone la cámara, no la tela (una
+// prenda negra fotografiada sale entre #0a0a0a y #222222). Nació de «NER» (#100f0f) frente a Negro (#2D2C2F), 2026-11-15: con la
+// luz entera quedan a ΔE 9,0 y el aviso callaba (umbral 8); con la luz a la mitad, a 4,9. Medido contra la carta de producción de
+// ese día, es el único par que se suma (26 → 27). Fuera de los extremos la luz cuenta entera: medir todo con kL = 2 llevaba los
+// pares a 81 y avisaba de colores distintos de verdad (Gris y Gris melange, Negro y Gris antracita). ADR-0576, act. 2026-11-15.
+const NEUTRO_EXTREMO = { croma: 6, oscuro: 25, claro: 92 } as const;
+
+function esNeutroExtremo([L, a, b]: Lab): boolean {
+  return Math.hypot(a, b) < NEUTRO_EXTREMO.croma && (L < NEUTRO_EXTREMO.oscuro || L > NEUTRO_EXTREMO.claro);
+}
+
+function distanciaDeTono(a: Lab, b: Lab): number {
+  return deltaE2000(a, b, esNeutroExtremo(a) && esNeutroExtremo(b) ? 2 : 1);
 }
 
 type ColorComparable = { codigo: string; nombre: string; hex: string | null; familiaColor: string | null };
@@ -104,7 +123,7 @@ export function coloresParecidos<C extends ColorComparable>(
   const lab = hexALab(hex);
   return colores
     .filter((c) => c.codigo !== excluir && esHexValido(c.hex) && (c.familiaColor === "metalico") === metalico)
-    .map((color) => ({ color, distancia: deltaE2000(lab, hexALab(color.hex!)) }))
+    .map((color) => ({ color, distancia: distanciaDeTono(lab, hexALab(color.hex!)) }))
     .filter((p) => p.distancia < umbral)
     .sort((a, b) => a.distancia - b.distancia);
 }

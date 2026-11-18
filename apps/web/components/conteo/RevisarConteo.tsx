@@ -71,7 +71,7 @@ function sinClave<V>(o: Record<string, V>, clave: string): Record<string, V> {
 /** «▬ Beige · M»: el color como muestra y su nombre en texto (el celular ya lo escribe solo), y la talla. */
 function ColorYTalla({ color, colorHex, talla, conTalla = false }: { color: string | null; colorHex: string | null; talla: string | null; conTalla?: boolean }) {
   return (
-    <span className="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-taupe">
+    <span className="mt-0.5 flex min-w-0 items-center gap-2 text-sm text-taupe">
       {color ? <MuestraColor nombre={color} hex={colorHex} compacta /> : null}
       <span className={`min-w-0 truncate ${color ? "max-sm:hidden" : ""}`}>{color ?? "Sin color"}</span>
       {conTalla && <span className="whitespace-nowrap">· {talla ?? "Única"}</span>}
@@ -226,7 +226,7 @@ export function RevisarConteo({
         <>
           <Aviso tono="atencion">{textoFaltanPorContar(resumen.pendientes)}</Aviso>
 
-          <section ref={tarjetaPend} data-guia="revisar.pendientes" className="card-cayla @container scroll-mt-24 overflow-hidden">
+          <section ref={tarjetaPend} data-guia="revisar.pendientes" className="card-cayla @container scroll-mt-8 overflow-hidden">
             <div className="space-y-1 border-b border-sand px-4 py-4 @[36rem]:px-5">
               <TituloSeccion>Pendientes de contar</TituloSeccion>
               <p className="text-sm text-taupe">Estas variantes todavía no fueron verificadas.</p>
@@ -279,7 +279,7 @@ export function RevisarConteo({
       )}
 
       {diferencias.length > 0 ? (
-        <section ref={tarjetaDif} data-guia="revisar.diferencias" className="card-cayla @container scroll-mt-24 overflow-hidden">
+        <section ref={tarjetaDif} data-guia="revisar.diferencias" className="card-cayla @container scroll-mt-8 overflow-hidden">
           <div className="space-y-1 border-b border-sand px-4 py-4 @[36rem]:px-5">
             {/* Aquí vuelve el foco cuando la fila tocada se va (ver `actuar`): el id y el tabIndex van en la caja del título. */}
             <div id="revisar-diferencias" tabIndex={-1} className="outline-none">
@@ -308,11 +308,11 @@ export function RevisarConteo({
                     </div>
                     <div className="col-span-2 row-start-2 flex flex-wrap items-center gap-x-5 gap-y-1 @[36rem]:col-span-1 @[56rem]:contents">
                       <p className="whitespace-nowrap text-sm tabular-nums">
-                        <span className="text-xs text-taupe">CAYLA dice: </span>
+                        <span className="text-sm text-taupe">CAYLA dice: </span>
                         <span className="font-semibold text-tinta">{f.debeHaber}</span>
                       </p>
                       <p className="whitespace-nowrap text-sm tabular-nums">
-                        <span className="text-xs text-taupe">Contaste: </span>
+                        <span className="text-sm text-taupe">Contaste: </span>
                         <span className="font-semibold text-tinta">{f.contada}</span>
                       </p>
                     </div>
@@ -345,7 +345,7 @@ export function RevisarConteo({
                       )}
                     </div>
                   </div>
-                  {nota && <p className="mt-2 text-[11px] leading-[15px] text-taupe">{nota}</p>}
+                  {nota && <p className="mt-2 text-sm leading-[15px] text-taupe">{nota}</p>}
                   {error && (
                     <Aviso tono="error" chico className="mt-2">
                       {error}

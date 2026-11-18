@@ -1,11 +1,8 @@
 import { BarraApilada } from "@/components/ui/BarraApilada";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { TONOS_DE_INVERSION as TONOS_TOPE } from "@/components/plan-compra/tonos-de-inversion";
 import { enteroES, segmentosDelTope, solesES, type EstadoCampana, type FilaPlan, type FiltroPlan, type TotalesPlan } from "@/lib/plan-compra-reglas";
-
-// Un tono por tramo de la barra del tope: de la categoría que más cuesta a las demás, siempre tinta (nunca un color nuevo; debajo de /50 no llega a
-// 3:1, por eso lo que dice la barra también se dice en texto).
-const TONOS_TOPE = ["bg-tinta", "bg-tinta/85", "bg-tinta/70", "bg-tinta/60", "bg-tinta/50", "bg-tinta/35"];
 
 // Las cifras del plan de campaña (ADR-0349): cuántas categorías ya tienen plan (y filtra la tabla), cuántas prendas comprar y cuánto
 // cuesta y, la cuarta, la que cambia con el momento: antes, cuántas de las que más venden faltan por llenar; durante y después, lo que
@@ -37,6 +34,10 @@ export function CifrasPlan({
   const excede = tope.valor !== null ? Math.max(0, Math.round((totales.inversion - tope.valor) * 100) / 100) : 0;
   const lasQueMasVenden = filas.filter((f) => f.puesto !== null);
   const faltan = lasQueMasVenden.filter((f) => !f.linea).length;
+  // El paso 2 (ADR-0526): de las categorías que piden comprar algo, cuántas ya dijeron qué modelos, colores y tallas. Solo se cuenta si la base sabe del paso 2.
+  const conCompra = filas.filter((f) => f.linea && (f.calculo?.comprar ?? 0) > 0);
+  const conPaso2 = filas.some((f) => f.paso2 !== undefined) && conCompra.length > 0;
+  const hechas = conCompra.filter((f) => f.paso2 && f.paso2.total === (f.calculo?.comprar ?? -1)).length;
   return (
     <div data-guia="plan.cifras" className="grid gap-3">
       {/* Las cifras cuentan una vez al entrar y cuando cambian (al guardar una categoría): el ojo nota qué se movió (maqueta, ADR-0136). */}
@@ -92,6 +93,18 @@ export function CifrasPlan({
         // «Por llenar primero» no se entendía (prueba ciega, 2026-10-10): la etiqueta dice qué se cuenta.
         <TarjetaCifra etiqueta="Las que más venden, sin plan" valor={<CifraQueCuenta valor={faltan} alMontar />} onClick={faltan > 0 ? onSeguirLlenando : undefined}>
           {faltan === 0 ? `Las ${lasQueMasVenden.length} ya tienen plan` : `de ${lasQueMasVenden.length} · llénalas una por una`}
+        </TarjetaCifra>
+      )}
+      {conPaso2 && (
+        <TarjetaCifra
+          etiqueta="Paso 2 hecho"
+          valor={
+            <>
+              <CifraQueCuenta valor={hechas} alMontar /> de {enteroES.format(conCompra.length)}
+            </>
+          }
+        >
+          {hechas === conCompra.length ? "Todas ya dicen qué modelos, colores y tallas" : "De qué modelos, colores y tallas comprar cada categoría"}
         </TarjetaCifra>
       )}
     </div>

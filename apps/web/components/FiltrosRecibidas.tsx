@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Calendar, ChevronDown, Truck } from "lucide-react";
 import { CampoFecha } from "@/components/ui/CampoFecha";
-import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { useBuscarAlEscribir } from "@/components/ui/BusquedaEnUrl";
 import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
 import {
   PERIODOS_RECIBIDAS,
@@ -56,36 +56,17 @@ export function FiltrosRecibidas({
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const [busqueda, setBusqueda] = useState(filtros.busqueda ?? "");
-  const temporizador = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const { buscando, buscar } = useBusquedaEnUrl();
+  // La búsqueda se manda sola al dejar de tipear —sin botón, pero sin una consulta por tecla— o al instante con Enter.
+  const { texto: busqueda, setTexto: setBusqueda, buscando, fijar, enviarYa } = useBuscarAlEscribir(filtros.busqueda ?? "", (q) =>
+    hrefConCambios(pathname, params.toString(), { q }),
+  );
 
-  /** `tipeado`: viene del buscador (se escribió): navega sin el loader, con «Buscando…». */
-  function aplicar(cambios: Record<string, string>, { tipeado = false } = {}) {
-    const href = hrefConCambios(pathname, params.toString(), cambios);
-    if (tipeado) buscar(href);
-    else router.push(href);
-  }
-
-  // El temporizador de la búsqueda llama a la versión más reciente de `aplicar`: si mientras se
-  // tipea cambia otro filtro, la URL siguiente parte de la URL de ahora, no de la de la primera tecla.
-  const aplicarActual = useRef(aplicar);
-  useEffect(() => {
-    aplicarActual.current = aplicar;
-  });
-  useEffect(() => () => clearTimeout(temporizador.current), []);
-
-  // La búsqueda se manda sola al dejar de tipear (350 ms) — sin botón, pero sin una consulta por
-  // tecla — o al instante con Enter.
-  function alTipear(texto: string) {
-    setBusqueda(texto);
-    clearTimeout(temporizador.current);
-    temporizador.current = setTimeout(() => aplicarActual.current({ q: texto.trim() }, { tipeado: true }), 350);
+  function aplicar(cambios: Record<string, string>) {
+    router.push(hrefConCambios(pathname, params.toString(), cambios));
   }
 
   function limpiarTodo() {
-    clearTimeout(temporizador.current);
-    setBusqueda("");
+    fijar("");
     aplicar({ q: "", prov: "", desde: "", hasta: "", res: "" });
   }
 
@@ -96,12 +77,10 @@ export function FiltrosRecibidas({
     <div role="search" aria-label="Filtrar las recepciones" data-guia="recibidas.filtros" className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
       <Buscador
         valor={busqueda}
-        onCambio={alTipear}
+        onCambio={setBusqueda}
         buscando={buscando}
         onKeyDown={(e) => {
-          if (e.key !== "Enter") return;
-          clearTimeout(temporizador.current);
-          aplicar({ q: busqueda.trim() }, { tipeado: true });
+          if (e.key === "Enter") enviarYa();
         }}
         placeholder="Documento, proveedor o guía"
         etiqueta="Buscar por documento, proveedor o guía"

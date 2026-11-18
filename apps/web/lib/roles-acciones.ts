@@ -21,6 +21,8 @@ export type AccionesRoles = {
     pantallaPrincipal: ClaveModulo | null,
     firma: Firma | null,
   ) => Promise<ResultadoRol>;
+  /** ADR-0607: los canales de venta que opera el rol (`tienda`, `tiktok`…). Devuelve la versión nueva del rol. */
+  guardarCanales: (rolId: string, canales: readonly string[], version: number | null, firma: Firma | null) => Promise<ResultadoRol>;
   renombrar: (rolId: string, nombre: string, descripcion: string, firma: Firma | null) => Promise<ResultadoRol>;
   archivar: (rolId: string, firma: Firma | null) => Promise<ResultadoRol>;
   restaurar: (rolId: string, firma: Firma | null) => Promise<ResultadoRol>;
@@ -40,6 +42,17 @@ export const accionesRolesSupabase: AccionesRoles = {
         p_modulos: [...modulos],
         p_version_esperada: version,
         p_pantalla_principal: pantallaPrincipal,
+      }),
+      firma,
+    );
+    return { error, version: typeof data === "number" ? data : undefined };
+  },
+  guardarCanales: async (rolId, canales, version, firma) => {
+    const { data, error } = await firmar(
+      createClient().rpc("guardar_canales_rol", {
+        p_rol_id: rolId,
+        p_canales: [...canales],
+        ...(version === null ? {} : { p_version_esperada: version }),
       }),
       firma,
     );

@@ -6,7 +6,7 @@ import { Check, ChevronDown, FunnelX, Minus, SearchX, SlidersHorizontal, X, type
 import { type OpcionCombo } from "@/components/ui/ComboBuscable";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
-import { comboNecesitaBuscador, filtrarCombo, tramosPorGrupo } from "@/lib/combo-reglas";
+import { comboNecesitaBuscador, enfocaBuscadorAlAbrir, filtrarCombo, tramosPorGrupo } from "@/lib/combo-reglas";
 import { TODOS, alternarEnLista, textoPildora, textoPildoraVarias, type EstadoCasilla } from "@/lib/pildora-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 
@@ -217,9 +217,11 @@ export function DesplegablePildora({
     cerrar();
   }
 
+  // En una pantalla táctil el foco no va al buscador: subiría el teclado y se comería la hoja (ver `Desplegable`).
+  const enfocaBuscador = mostrarBuscador && enfocaBuscadorAlAbrir();
   useEffect(() => {
     if (!listaVisible) return;
-    if (mostrarBuscador) buscador.current?.focus();
+    if (enfocaBuscador) buscador.current?.focus();
     else lista.current?.focus();
     const afuera = (e: MouseEvent) => {
       // La lista cuelga de un portal (ADR-0211), FUERA de `contenedor` en el DOM: el «¿tocó afuera?» tiene que
@@ -231,7 +233,7 @@ export function DesplegablePildora({
     };
     document.addEventListener("mousedown", afuera);
     return () => document.removeEventListener("mousedown", afuera);
-  }, [listaVisible, mostrarBuscador]);
+  }, [listaVisible, enfocaBuscador]);
 
   useEffect(() => {
     if (!listaVisible) return;
@@ -365,8 +367,8 @@ export function DesplegablePildora({
             role="listbox"
             aria-label={etiqueta}
             aria-multiselectable={varias ? true : undefined}
-            tabIndex={mostrarBuscador ? undefined : -1}
-            onKeyDown={mostrarBuscador ? undefined : alTeclado}
+            tabIndex={enfocaBuscador ? undefined : -1}
+            onKeyDown={enfocaBuscador ? undefined : alTeclado}
             onScroll={alHacerScroll}
             className="scroll-cayla min-h-0 flex-1 overflow-y-auto p-1"
           >

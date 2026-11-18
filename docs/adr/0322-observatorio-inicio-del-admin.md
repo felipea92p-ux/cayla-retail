@@ -114,3 +114,21 @@ y ordena el ranking por lo vendido hasta que se cargue en Configuración) y **el
 **DECIDÍ:** copiar el cuerpo de producción a `main` tal cual (`20261022201000_observatorio_tienda_prenda_sin_registrar_en_su_categoria.sql`, «YA ESTÁ EN PRODUCCIÓN, NO SE VUELVE A PEGAR»), con `pnpm pruebas:arreglos-en-vivo-roles-observatorio` para que el CI avise si alguien lo pisa.
 **DESCARTÉ:** (a) *dejarlo solo en producción*: la próxima migración que recree la función desde `main` le devolvería esas ventas a «Sin categoría» en silencio, que es lo que ya le pasó a Análisis con el PR 397; (b) *revertir producción a la versión de `main`*: cambia lo que ve el Admin hoy sin que nadie lo haya pedido, y una migración que lo hiciera tocaría producción; (c) *mejorar la función de paso*: mezcla dos decisiones, y lo que corre hoy en producción es lo único que ya está probado allá.
 **SE ROMPE SI:** alguien vuelve a pegar `20261004020000` entero (por ejemplo, para reparar `fn_observatorio`): el caso «la prenda sin registrar cuenta en su categoría» de la prueba sale rojo; o `prendas_por_regularizar.venta_item_id` deja de ser único y la unión duplica ventas.
+
+
+## Actualización 2026-11-05 — «vs» deja de encimar líneas: La ventaja
+
+**Felipe, mirando TRU contra CAYLA: «solo se puntea una línea y poco más».** Se le dibujaron cuatro opciones y eligió «A · La ventaja». Al apretar «vs», la pestaña Ritmo cambia las curvas por UNA línea: cuántos soles le lleva la tienda a la otra en cada momento, sobre una raya punteada que dice «Parejas», y un titular arriba («TRU le saca S/ 3,250 a AQP. Iban parejas hasta el 16 oct.»). «Sola» sigue siendo el gráfico de siempre, y ahora es con lo que abre la tienda.
+
+**DECIDÍ:**
+- **Comparar en soles (`calcularVentaja`, `lib/observatorio-reglas.ts`).** Comparar en % de la meta borraba la línea en silencio cuando una tienda tenía meta y la otra no. Como los soles favorecen a la tienda grande, si las dos tienen meta el titular suma el % de cada una.
+- **«vs otras» en vez de «vs CAYLA»: el promedio de las demás tiendas.** CAYLA incluye a la tienda que se mira, así que se comparaba con un total que la contenía. Además una tienda sin meta sumaba sus ventas pero no su meta, y eso inflaba el % de CAYLA. Con dos tiendas la opción no aparece: la única otra ya es su propio «vs».
+- **«Parejas» es una diferencia menor a lo que vende la mayor en un día promedio** (con «Hoy», en una hora). Menos que eso se da vuelta con una tarde buena y no dice quién va ganando. De ahí sale también «hasta cuándo iban parejas».
+- **El control va en su propia fila, arriba, y la leyenda y el titular guardan el mismo alto (ADR-0185):** el titular es largo y empujaba el control hacia abajo justo bajo el mouse.
+- **La curva termina en el total también después de las 9 p. m.** (`acumulado`): una venta de las 9:30 en Arequipa quedaba fuera del último punto, y el gráfico decía menos que la cabecera.
+
+**DESCARTÉ:** (a) *mejorar las tres líneas con otro color*: una curva acumulada siempre sube, y dos tiendas cualesquiera se ven parecidas; el problema no era el color. (b) *Mantener «vs CAYLA» como su parte de la empresa*: es otra pregunta («cuánto pesa», no «cómo va») y no decía quién ganaba. (c) *El porqué, día por día y en qué le gana* (opciones B, C y D): quedaron en el backlog; se agregan si La ventaja se queda corta.
+
+**SE ROMPE SI:** una función nueva le pasa a `calcularVentaja` un rival que incluye a la propia tienda (la ventaja se achica sin aviso) o rivales de otro periodo (los puntos no coinciden); o alguien vuelve a abrir la tienda en una comparación: lo primero que se pregunta de una tienda es cómo va contra su meta.
+
+**Verificado:** `lib/observatorio-reglas.test.ts` (ir adelante, detrás, parejas, sin ventas, contra el promedio, tienda sin meta, «Hoy» por horas); en el navegador a 1440 y 375 px, claro y oscuro, con ventas de demostración que solo vivieron en esa página (la base no se tocó), y `guias:recorrer --guia inicio` en los dos anchos. **Sin mirar con ventas reales:** la lectura de producción quedó bloqueada en esa sesión, así que la primera mirada con cifras reales es al publicarse.

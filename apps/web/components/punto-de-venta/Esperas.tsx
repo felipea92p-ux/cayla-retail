@@ -4,6 +4,7 @@ import { Modal } from "@/components/ui/Modal";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { Boton } from "@/components/ui/campos";
 import type { PestanaDeTicket } from "@/lib/tickets-abiertos-reglas";
+import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
 
 /**
  * Antes de cerrar la caja con tickets que tienen prendas (Felipe, 2026-10-25, pregunta 19): al cerrar la caja la espera se vacía
@@ -26,7 +27,7 @@ export function TicketsSinCobrarModal({ tickets, onSeguir, onClose }: { tickets:
             {tickets.map((t) => (
               <li key={t.id ?? "caja"} className="flex items-center gap-3 px-4 py-2.5 text-sm">
                 <b className="min-w-0 flex-1 truncate font-semibold">{t.nombre}</b>
-                <span className="shrink-0 text-xs text-tinta/60">
+                <span className="shrink-0 text-sm text-tinta/60">
                   {t.prendas} {t.prendas === 1 ? "prenda" : "prendas"}
                 </span>
                 <span className="shrink-0 font-semibold tabular-nums">S/{t.total.toFixed(2)}</span>
@@ -40,13 +41,59 @@ export function TicketsSinCobrarModal({ tickets, onSeguir, onClose }: { tickets:
             </Boton>
             <Boton
               type="button"
-              peso="peligro"
+              peso="primario"
               onClick={() => {
                 onSeguir();
                 cerrar();
               }}
             >
               Seguir con el cierre
+            </Boton>
+          </PieAcciones>
+        </>
+      )}
+    </Modal>
+  );
+}
+
+/** Antes de tirar un ticket que espera (el basurero de la vista «En espera»): no se puede deshacer, así que se pregunta. */
+export function DescartarTicketModal({
+  nombre,
+  prendas,
+  total,
+  onDescartar,
+  onClose,
+}: {
+  nombre: string;
+  prendas: number;
+  total: number;
+  onDescartar: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal
+      titulo="Descartar este ticket"
+      subtitulo={`${nombre} · ${prendas} ${prendas === 1 ? "prenda" : "prendas"} · S/${total.toFixed(2)}`}
+      variante="hoja"
+      onClose={onClose}
+    >
+      {(cerrar) => (
+        <>
+          <p className="text-sm text-tinta/70">Se pierden las prendas y todo lo que ya se había anotado para este cliente.</p>
+          <AvisoNoSeDeshace className="mt-4" />
+          <PieAcciones className="mt-5">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
+              Cancelar
+            </Boton>
+            <Boton
+              type="button"
+              peso="primario"
+              onClick={() => {
+                onDescartar();
+                cerrar();
+              }}
+            >
+              Descartar ticket
             </Boton>
           </PieAcciones>
         </>

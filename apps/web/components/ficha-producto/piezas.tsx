@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
+import { ArmarMezcla } from "@/components/alta-producto/ArmarMezcla";
+import { esCombinado, MAX_ACOMPANANTES, puedeAcompanar, tonosDeMezcla } from "@/lib/color-combinado";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
 import type { CeldaAlta, ColorAlta } from "@/lib/alta-producto";
 import type { EstadoVariante, NombresFicha } from "@/lib/variantes-ficha-reglas";
 import type { Sububicacion } from "@/lib/sububicaciones";
+import type { CostoEnLaFicha } from "@/lib/costo-tallas-reglas";
 import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
 
 // Piezas de la sección «Variantes» de la ficha de una prenda (ADR-0263). Lo que comparten la sección y sus modales:
@@ -48,16 +52,30 @@ export type ContextoFicha = {
   puedeCorregir: boolean;
   /** Ajustar el stock desde la ficha. `null` o ausente = la cuenta no puede ajustar stock: no se ofrece. */
   ajusteStock?: AjusteStockFicha | null;
+  /** Una terminal (Felipe 2026-10-26): el precio de la prenda vale en todas las tiendas y la base no se lo deja cambiar
+   *  (`variantes_terminal_no_cambia_precio`). Trae el nombre de su tienda, donde sí pone el suyo («Precio en …»); `""` si la
+   *  terminal no está en una tienda. Ausente = la cuenta cambia el precio de la prenda como siempre. Una talla NUEVA sí lleva su precio. */
+  precioFijoEn?: string | null;
+  /** Costos (ADR-0631): cuánto cuesta hoy cada prenda y la última compra de cada talla gris. Ausente o `null` = la ficha no lo dice
+   *  (alta de una prenda, sin permiso de dinero o la base sin la función): la celda gris explica en palabras. */
+  costo?: CostoEnLaFicha | null;
+  /** Para llevar al Historial ▸ Costo de la prenda. Ausente en el alta. */
+  productoId?: string | null;
 };
 
 /** Valor del combo para «Sin color»: los códigos de color son 3 mayúsculas, este no choca con ninguno. */
 export const SIN_COLOR = "sin-color";
 
-/** El punto de color de un color del vocabulario; «Sin color» es un círculo punteado vacío. */
+/** Los tonos con que se parte el punto de una mezcla («Hueso con azul», ADR-0643), sacados de la lista que ya tiene la pantalla. */
+function tonosEn(c: ColorAlta, colores: readonly ColorAlta[]) {
+  return esCombinado(c) ? tonosDeMezcla(c, new Map(colores.map((x) => [x.codigo, x]))) : null;
+}
+
+/** El punto de color de un color del vocabulario; «Sin color» es un círculo punteado vacío. Una mezcla se parte, con la base a la izquierda. */
 export function PuntoColor({ codigo, colores }: { codigo: string | null; colores: readonly ColorAlta[] }) {
   const c = codigo ? colores.find((x) => x.codigo === codigo) : null;
   if (!c) return <span aria-hidden className="inline-block h-2.5 w-2.5 shrink-0 rounded-full border border-dashed border-tinta/40" />;
-  return <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />;
+  return <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} tonos={tonosEn(c, colores)} />;
 }
 
 /** Elegir UN color (para corregir): buscando por nombre o sinónimo, con su punto. «Sin color» solo si se ofrece. */
@@ -68,6 +86,7 @@ export function ElegirUnColor({
   ofrecerSinColor,
   etiqueta,
   id,
+  mezcla,
 }: {
   /** Código del color, `SIN_COLOR` o "" (todavía nada). */
   valor: string;
@@ -76,18 +95,118 @@ export function ElegirUnColor({
   ofrecerSinColor: boolean;
   etiqueta: string;
   id?: string;
+  /**
+   * «+ acompañante» (ADR-0643): el color elegido se vuelve una mezcla («Hueso con azul») que se elige en su lugar. Corregir color de la
+   * ficha lo ofrece: una prenda que se registró «Hueso» y en verdad es «Hueso con azul». Sin esto, solo se elige un color.
+   */
+  mezcla?: {
+    /** La carta entera, con las mezclas guardadas: de aquí salen los acompañantes y se reconoce una mezcla que ya existe. */
+    todos: readonly ColorAlta[];
+    /** A qué color se le arma si todavía no se eligió ninguno: el que ya tiene (corrigiendo solo el color, ese no está en la lista). */
+    baseSiNada: string | null;
+    /** La mezcla lista (nueva o la que ya existía): quien la recibe la suma a su vocabulario. Después se elige sola. */
+    onCreado: (color: ColorAlta) => void;
+  };
 }) {
+  // La base a la que se le arma una mezcla y sus acompañantes; `null` = solo se elige un color.
+  const [armando, setArmando] = useState<ColorAlta | null>(null);
+  const [acompanantes, setAcompanantes] = useState<string[]>([]);
+  const todos = mezcla ? [...mezcla.todos, ...colores.filter((c) => !mezcla.todos.some((x) => x.codigo === c.codigo))] : colores;
+  const porCodigo = new Map(todos.map((c) => [c.codigo, c]));
+  // Las mezclas guardadas no se ofrecen para elegir (ADR-0649: son de una prenda; se arman de nuevo mirándola), salvo la que ya está elegida.
+  const ofrecidos = colores.filter((c) => !esCombinado(c) || c.codigo === valor);
   const opciones = [
     ...(ofrecerSinColor ? [{ valor: SIN_COLOR, texto: "Sin color", icono: <PuntoColor codigo={null} colores={colores} /> }] : []),
-    ...colores.map((c) => ({ valor: c.codigo, texto: c.nombre, claves: c.sinonimos, icono: <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} /> })),
+    ...ofrecidos.map((c) => ({ valor: c.codigo, texto: c.nombre, claves: c.sinonimos, icono: <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} tonos={tonosEn(c, todos)} /> })),
   ];
-  const elegido = valor && valor !== SIN_COLOR ? colores.find((c) => c.codigo === valor) : null;
+  const elegido = valor && valor !== SIN_COLOR ? (porCodigo.get(valor) ?? null) : null;
+  // La base de la mezcla: lo elegido si es de un tono; sin nada elegido, el que ya tiene.
+  const codigoBase = elegido ? (esCombinado(elegido) ? null : elegido.codigo) : valor === "" ? (mezcla?.baseSiNada ?? null) : null;
+  const base = mezcla && codigoBase ? (porCodigo.get(codigoBase) ?? null) : null;
+  const deLaBase = base?.nombre.toLocaleLowerCase("es") ?? "";
+
+  function cerrarMezcla() {
+    setArmando(null);
+    setAcompanantes([]);
+  }
+  function tocarAcompanante(codigo: string) {
+    setAcompanantes((xs) => (xs.includes(codigo) ? xs.filter((x) => x !== codigo) : xs.length >= MAX_ACOMPANANTES ? xs : [...xs, codigo]));
+  }
+
   return (
-    <div className="flex items-center gap-2">
-      <span className="grid h-10 w-6 shrink-0 place-items-center">
-        {valor ? <PuntoColor codigo={elegido ? elegido.codigo : null} colores={colores} /> : null}
-      </span>
-      <ComboBuscable caja id={id} className="min-w-0 flex-1" etiquetaAccesible={etiqueta} marcador="Busca el color: negro, plomo, coral…" valor={valor} onValor={onValor} opciones={opciones} />
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <span className="grid h-10 w-6 shrink-0 place-items-center">
+          {valor ? <PuntoColor codigo={elegido ? elegido.codigo : null} colores={todos} /> : null}
+        </span>
+        <ComboBuscable
+          caja
+          id={id}
+          className="min-w-0 flex-1"
+          etiquetaAccesible={etiqueta}
+          marcador="Busca el color: negro, plomo, coral…"
+          valor={valor}
+          onValor={(v) => {
+            cerrarMezcla();
+            onValor(v);
+          }}
+          opciones={opciones}
+        />
+      </div>
+      {base && !armando && (
+        <p className="pl-8 text-sm text-taupe">
+          ¿{elegido ? "Lleva" : `El ${deLaBase} lleva`} otro color además?{" "}
+          <button
+            type="button"
+            onClick={() => {
+              setArmando(base);
+              setAcompanantes([]);
+            }}
+            aria-label={`Agregar un color que acompaña al ${deLaBase}`}
+            title="Si la prenda tiene otro color además de este (hueso con azul), agrégalo aquí"
+            className="btn-cayla btn-enlace"
+          >
+            + acompañante
+          </button>
+        </p>
+      )}
+      {mezcla && armando && (
+        // Alineado con el buscador de arriba (a la derecha de su punto). La base va en la etiqueta y en el panel, no en el marcador: con
+        // «azul marino» no cabía a 375 px y se cortaba a media palabra (ADR-0290).
+        <div className="space-y-2 pl-8">
+          <ComboBuscable
+            caja
+            etiquetaAccesible={`Buscar un color que acompaña al ${armando.nombre.toLocaleLowerCase("es")}`}
+            marcador="Busca el otro color"
+            valor=""
+            varios
+            onValor={tocarAcompanante}
+            opciones={todos
+              .filter((c) => puedeAcompanar(c, armando.codigo))
+              .map((c) => ({
+                valor: c.codigo,
+                texto: c.nombre,
+                claves: c.sinonimos,
+                detalle: acompanantes.includes(c.codigo) ? "elegido" : undefined,
+                icono: <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />,
+              }))}
+          />
+          <ArmarMezcla
+            base={armando}
+            colores={[...todos]}
+            acompanantes={acompanantes}
+            onQuitar={tocarAcompanante}
+            onCerrar={cerrarMezcla}
+            desde="buscador"
+            onLista={(m) => {
+              // La prenda es UNA: la mezcla queda elegida en lugar de su base.
+              mezcla.onCreado(m);
+              onValor(m.codigo);
+              cerrarMezcla();
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -98,10 +217,10 @@ export function VistaPreviaCodigos({ filas }: { filas: { clave: string; antes: s
   const cambian = filas.some((f) => f.despues && f.despues !== f.antes);
   return (
     <div className="rounded-lg border border-sand bg-papel px-3 py-2.5">
-      <p className="text-[11.5px] text-taupe">Así quedan</p>
+      <p className="text-sm text-taupe">Así quedan</p>
       <ul className="mt-1 space-y-1">
         {filas.map((f) => (
-          <li key={f.clave} className="flex flex-wrap items-baseline gap-x-2 text-[13px]">
+          <li key={f.clave} className="flex flex-wrap items-baseline gap-x-2 text-sm">
             <span className="font-mono text-xs text-tinta/60">{f.antes}</span>
             <span aria-hidden className="text-tinta/40">
               →
@@ -111,7 +230,7 @@ export function VistaPreviaCodigos({ filas }: { filas: { clave: string; antes: s
           </li>
         ))}
       </ul>
-      {cambian && <p className="mt-1.5 text-[11.5px] text-taupe">Las etiquetas ya pegadas siguen sonando en la caja: el código anterior queda como otro código de la misma prenda.</p>}
+      {cambian && <p className="mt-1.5 text-sm text-taupe">Las etiquetas ya pegadas siguen sonando en la caja: el código anterior queda como otro código de la misma prenda.</p>}
     </div>
   );
 }
@@ -136,12 +255,12 @@ export function MontosNuevas({
   return (
     <div className="grid grid-cols-2 gap-3">
       <label className="block">
-        <span className="text-[12.5px] font-semibold text-tinta">Precio de venta</span>
+        <span className="text-sm font-semibold text-tinta">Precio de venta</span>
         <input {...atributosMontoTexto(precio)} placeholder="0.00" value={precio} onChange={(e) => onPrecio(e.target.value)} className={`mt-1 ${CLASE_MONTO_ILEGIBLE} ${CAMPO_MONTO}`} />
       </label>
       {veCosto && (
         <label className="block">
-          <span className="text-[12.5px] font-semibold text-tinta">Costo (opcional)</span>
+          <span className="text-sm font-semibold text-tinta">Costo (opcional)</span>
           <input {...atributosMontoTexto(costo)} placeholder="0.00" value={costo} onChange={(e) => onCosto(e.target.value)} className={`mt-1 ${CLASE_MONTO_ILEGIBLE} ${CAMPO_MONTO}`} />
         </label>
       )}
@@ -209,14 +328,14 @@ export function MatrizNuevas({
   }
   return (
     <div className="overflow-x-auto rounded-xl border border-sand">
-      <table className="w-full border-collapse text-[13px]">
+      <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="bg-hueso">
-            <th scope="col" className="px-3 py-2 text-left text-xs font-semibold text-tinta">
+            <th scope="col" className="px-3 py-2 text-left text-sm font-semibold text-tinta">
               Color
             </th>
             {columnas.map((t) => (
-              <th key={t ?? "sin-talla"} scope="col" className="px-2 py-2 text-xs font-semibold tabular-nums text-tinta">
+              <th key={t ?? "sin-talla"} scope="col" className="px-2 py-2 text-sm font-semibold tabular-nums text-tinta">
                 {textoTalla(t)}
               </th>
             ))}

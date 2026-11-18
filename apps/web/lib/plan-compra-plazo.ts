@@ -11,6 +11,7 @@
 //   NO HACE: no distingue proveedores ni al Taller (un solo plazo por campaña) ni sabe si el pedido ya se hizo (eso lo dice `enCamino` en
 //            la fila: la pantalla no muestra el plazo de una categoría que ya tiene su orden).
 
+import { textoCantidadRechazada } from "./alta-producto";
 import { diaMes, diasEntreFechas, diaYHoraLima, sumarDias } from "./fechas-lima";
 
 /** Con lo que arranca una campaña sin plazo fijado: lo que se supone cuando no hay historia de recepciones. Es un supuesto y la pantalla lo dice. */
@@ -46,8 +47,11 @@ export function leerDiasParaLlegar(t: string): number | null {
   return n >= 1 && n <= MAX_DIAS_PARA_LLEGAR ? n : null;
 }
 
-export const problemaDeLosDias = (t: string): string | null =>
-  leerDiasParaLlegar(t) === null ? `Escribe cuántos días tarda un pedido en estar en las tiendas (de 1 a ${MAX_DIAS_PARA_LLEGAR}).` : null;
+export function problemaDeLosDias(t: string): string | null {
+  if (leerDiasParaLlegar(t) !== null) return null;
+  const escrito = t.trim();
+  return escrito === "" ? `Escribe cuántos días tarda un pedido en estar en las tiendas (de 1 a ${MAX_DIAS_PARA_LLEGAR}).` : textoCantidadRechazada(escrito, false, `, de 1 a ${MAX_DIAS_PARA_LLEGAR}`);
+}
 
 const dias = (n: number) => (Math.abs(n) === 1 ? "1 día" : `${Math.abs(n)} días`);
 
@@ -96,6 +100,16 @@ export function plazoDePedido(desde: string, hasta: string, hoy: string, diasPar
     texto: `Pedir antes del ${diaMes(limite)}`,
     detalle: `El último día para pedir es el ${diaMes(limite)} (${cuando}): ${dias(diasParaLlegar)} para llegar a las tiendas antes del ${diaMes(desde)}.`,
   };
+}
+
+/**
+ * Hasta cuándo conviene tener cuadrado el stock (A1 de la auditoría del 2026-10-26): «Comprar» resta lo que ya hay, y si «Hay hoy» está incompleto la compra sale
+ * inflada. Contar sirve hasta el último día para pedir: con tiempo, dice esa fecha; si ya es tarde o la campaña empezó, «antes de pedir»; terminada, nada.
+ */
+export function fraseDelConteoAntesDelPlazo(p: Pick<PlazoDePedido, "estado" | "limite">): string | null {
+  if (p.estado === "termino") return null;
+  if ((p.estado === "a_tiempo" || p.estado === "justo") && p.limite !== null) return `Cuéntalo antes del ${diaMes(p.limite)}: es el último día para pedir.`;
+  return "Cuéntalo antes de pedir.";
 }
 
 export const RPC_PLAZO = "fn_plan_compra_plazo";

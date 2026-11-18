@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Producción · Resumen — tareas 1 a 4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--t60:#5f5b53;--t45:#7a756b;
+  --taupe:#805c4c;--borde:#96786a;--rojo:#b8412d;--rojo-p:#8b2a1f;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+:root[data-tema="oscuro"]{
+  --crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--t60:#b9b2a7;--t45:#a39c90;
+  --taupe:#c4a898;--borde:#8d7a6e;--rojo:#e0765f;--rojo-p:#ee9582;--verde:#9bbb8c;--ambar:#d9a24a;--pizarra:#9db0c2;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.5 'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:400}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px 80px}
+
+/* ---- barra de la maqueta (no es parte de la pantalla) ---- */
+.mq{position:sticky;top:0;z-index:20;background:var(--tinta);color:var(--crema);padding:10px 20px}
+:root[data-tema="oscuro"] .mq{background:var(--hueso);color:var(--tinta)}
+.mq-in{max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.mq b{font-weight:600}
+.mq small{opacity:.8}
+.seg{display:inline-flex;background:rgba(255,255,255,.14);border-radius:999px;padding:3px}
+.seg button{all:unset;cursor:pointer;padding:5px 14px;border-radius:999px;font-size:12.5px;font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--crema);color:#1a1a18}
+:root[data-tema="oscuro"] .seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.mq label{display:inline-flex;gap:6px;align-items:center;cursor:pointer;font-size:12.5px}
+.mq .tema{all:unset;cursor:pointer;font-size:12.5px;padding:4px 10px;border:1px solid currentColor;border-radius:999px;opacity:.85}
+.nota-maqueta{margin:14px 0 0;padding:10px 14px;background:var(--hueso);border-radius:12px;color:var(--t60);font-size:12.5px}
+
+/* ---- cabecera de la pantalla ---- */
+.cab{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:26px 0 8px}
+.cab .linea{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--t60);display:flex;align-items:center;gap:10px}
+.cab .linea:before{content:"";width:34px;border-top:1px solid var(--taupe)}
+.cab h1{font-size:46px;line-height:1.05;margin:6px 0 4px}
+.cab p{margin:0;color:var(--t60);max-width:520px}
+.btns{display:flex;gap:8px}
+.btn{all:unset;cursor:pointer;box-sizing:border-box;display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 16px;border-radius:10px;border:1px solid var(--borde);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+.btn.pri{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+@media (hover:hover){.btn.pri:hover{background:var(--rojo-p)}.btn:hover{transform:translateY(-2px)}}
+.btn{transition:transform .2s var(--ease)}
+.tabs{display:inline-flex;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:4px;margin:14px 0 22px}
+.tabs span{padding:7px 16px;border-radius:9px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t60)}
+.tabs span.on{background:var(--tinta);color:var(--crema)}
+
+/* ---- secciones ---- */
+.tit{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:26px 0 10px}
+.tit h2{font-family:'EB Garamond',serif;font-weight:400;font-size:21px;margin:0;display:flex;align-items:center;gap:8px}
+.tit .dato{font-size:12px;color:var(--t60)}
+.glob{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--hueso);color:var(--t60);font:600 11px 'DM Sans'}
+
+/* ---- tarjeta «Para decidir» ---- */
+.dec{display:flex;gap:16px;align-items:center;padding:14px 16px;background:var(--papel);border:1px solid var(--sand);border-left:3px solid var(--ambar);border-radius:16px}
+.tiles{display:flex;flex:none}
+.tile{width:40px;height:40px;border-radius:10px;border:2px solid var(--papel);margin-left:-12px;display:grid;place-items:center;color:var(--t60)}
+.tile:first-child{margin-left:0}
+.dec .cuerpo{flex:1;min-width:0}
+.dec h3{margin:0;font:500 15px/1.35 'DM Sans'}
+.dec p{margin:3px 0 0;color:var(--t60);font-size:12.5px}
+.dec .acc{display:flex;gap:10px;align-items:center;flex:none}
+.btn-s{all:unset;cursor:pointer;display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--borde);font-size:13.5px;transition:transform .2s var(--ease)}
+@media (hover:hover){.btn-s:hover{transform:translateY(-2px)}}
+.enlace{all:unset;cursor:pointer;color:var(--t60);font-size:13px;text-decoration:underline;text-decoration-color:var(--sand);text-underline-offset:3px}
+@media (hover:hover){.enlace:hover{color:var(--rojo-p);text-decoration-color:var(--rojo-p)}}
+.porque{margin:8px 0 0;padding:14px 16px;background:var(--hueso);border-radius:14px;font-size:13px;display:none;animation:abre .28s var(--ease)}
+.porque.on{display:block}
+.porque h4{margin:0 0 6px;font:600 11px 'DM Sans';letter-spacing:.12em;text-transform:uppercase;color:var(--t60)}
+.porque ul{margin:0;padding-left:18px}.porque li{margin:3px 0}
+@keyframes abre{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.hoy-solo{display:none}.nuevo-solo{display:block}
+body.hoy .hoy-solo{display:block}body.hoy .nuevo-solo{display:none}
+body.hoy .col-falta{display:none}
+body.hoy .filtros{display:none}
+
+/* ---- chips ---- */
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font:600 10.5px 'DM Sans';letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;background:var(--hueso);color:var(--t60)}
+.chip:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar)}
+.chip.pizarra{background:color-mix(in srgb,var(--pizarra) 16%,transparent);color:var(--pizarra)}
+.chip.sin{padding:0 9px}.chip.sin:before{display:none}
+
+/* ---- filtros (tarea 4) ---- */
+.filtros{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.pil{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--borde);font-size:13px;transition:background .2s var(--ease),color .2s var(--ease),transform .2s var(--ease)}
+.pil .g{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--hueso);color:var(--t60);font:600 11px 'DM Sans'}
+.pil[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.pil[aria-pressed="true"] .g{background:rgba(255,255,255,.2);color:inherit}
+:root[data-tema="oscuro"] .pil[aria-pressed="true"] .g{background:rgba(0,0,0,.15)}
+.pil.cero{opacity:.7}
+@media (hover:hover){.pil:hover{transform:translateY(-1px)}}
+.busca{margin-left:auto;display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;background:var(--hueso);border-radius:999px;min-width:220px}
+.busca input{all:unset;flex:1;font-size:13px}
+.busca input::placeholder{color:var(--t45)}
+.sep{color:var(--t45);font-size:12px}
+
+/* ---- tabla ---- */
+.tabla{background:var(--papel);border:1px solid var(--sand);border-radius:16px;overflow:hidden}
+.fila{display:grid;grid-template-columns:minmax(220px,1.7fr) 64px 118px minmax(170px,1.2fr) 118px 130px;gap:14px;align-items:center;padding:10px 16px;border-top:1px solid var(--sand)}
+body.hoy .fila{grid-template-columns:minmax(220px,1.7fr) 64px 118px minmax(170px,1.2fr) 130px}
+.fila.enc{border-top:0;padding-top:12px;padding-bottom:10px;font:600 11px 'DM Sans';letter-spacing:.12em;text-transform:uppercase;color:var(--t60)}
+.fila.enc .r,.fila .r{text-align:right}
+.fila:not(.enc):nth-child(even){background:color-mix(in srgb,var(--hueso) 40%,transparent)}
+.modelo{display:flex;gap:12px;align-items:center;min-width:0}
+.modelo .tl{flex:none;width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:var(--hueso);color:var(--t60)}
+.modelo b{font-weight:500;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.modelo small{color:var(--t60);font-size:12px}
+.num{font-variant-numeric:tabular-nums}
+.ventas .n{font-variant-numeric:tabular-nums}
+.ventas small{display:block;color:var(--t60);font-size:12px;margin-top:2px}
+.cob{display:flex;flex-direction:column;gap:3px}
+.barra{position:relative;height:6px;border-radius:999px;background:var(--hueso)}
+.barra i{position:absolute;inset:0 auto 0 0;border-radius:999px;background:var(--tinta);opacity:.75}
+.barra u{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--taupe)}
+.cob span{font-size:12px;color:var(--t60)}
+.falta b{font:500 20px 'EB Garamond',serif;display:inline}
+.falta small{color:var(--t60);font-size:12px;margin-left:3px}
+.falta .nd{color:var(--t45);font-size:12.5px}
+.pie{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--sand);background:var(--papel)}
+.pie .suma{display:flex;align-items:baseline;gap:8px}
+.pie .suma b{font:500 22px 'EB Garamond',serif}
+.verMas{all:unset;cursor:pointer;color:var(--t60);font-size:13px;display:inline-flex;gap:6px;align-items:center}
+@media (hover:hover){.verMas:hover{color:var(--tinta)}}
+.vacio{padding:42px 16px;text-align:center}
+.vacio h3{font:400 22px 'EB Garamond',serif;margin:8px 0 4px}
+.vacio p{margin:0 0 12px;color:var(--t60)}
+.nota{margin-top:12px;padding:10px 14px;background:var(--hueso);border-radius:12px;color:var(--t60);font-size:12.5px;display:flex;gap:8px}
+.nota i{font-style:normal;font-weight:600;color:var(--taupe)}
+
+/* ---- resaltar lo nuevo ---- */
+body.rn:not(.hoy) .nuevo{outline:2px dashed var(--rojo);outline-offset:3px;border-radius:12px}
+.marca{display:none;position:absolute;transform:translateY(-100%);font:600 10px 'DM Sans';letter-spacing:.1em;text-transform:uppercase;color:var(--rojo);background:var(--crema);padding:0 6px}
+body.rn:not(.hoy) .rel{position:relative}
+body.rn:not(.hoy) .rel>.marca{display:block;top:-4px;left:10px}
+
+/* ---- versión simple (propuesta) ---- */
+#simple[hidden],#clasico[hidden]{display:none}
+.s-hero{margin:6px 0 16px}
+.s-hero h2{font:400 32px/1.15 'EB Garamond',serif;margin:0 0 6px}
+.s-hero p{margin:0;color:var(--t60);max-width:660px;font-size:15px}
+.s-lista{background:var(--papel);border:1px solid var(--sand);border-radius:16px;overflow:hidden}
+.s-fila{display:grid;grid-template-columns:56px 1fr auto auto;gap:6px 18px;align-items:center;padding:14px 18px;border-top:1px solid var(--sand)}
+.s-fila:first-child{border-top:0}
+.s-fila.primera{background:color-mix(in srgb,var(--ambar) 7%,transparent)}
+.s-tile{width:56px;height:56px;border-radius:12px;display:grid;place-items:center;background:var(--hueso);color:var(--t60)}
+.s-nombre{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.s-nombre b{font-weight:500;font-size:16px}
+.s-sub{color:var(--t60);font-size:13.5px;margin-top:2px}
+.s-cuanto{text-align:right;min-width:96px}
+.s-cuanto small{display:block;color:var(--t60);font-size:12px}
+.s-cuanto b{font:500 28px/1 'EB Garamond',serif}
+.s-porque-b{margin-top:4px}
+.s-why{grid-column:1/-1;margin:6px 0 2px 74px;padding:12px 14px;background:var(--hueso);border-radius:12px;font-size:13px;animation:abre .28s var(--ease)}
+.s-why .barra{margin:8px 0 4px;max-width:340px}
+.s-why small{color:var(--t60)}
+.btn-s.pri{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+@media (hover:hover){.btn-s.pri:hover{background:var(--rojo-p)}}
+.s-mas{display:flex;justify-content:center;padding:12px;border-top:1px solid var(--sand)}
+.s-vigilar{margin-top:14px;background:var(--papel);border:1px solid var(--sand);border-radius:16px;overflow:hidden}
+.s-vig-cab{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:14px 18px}
+.s-vig-cab b{font-weight:500;font-size:15px}
+.s-vig-cab p{margin:2px 0 0;color:var(--t60);font-size:13px}
+.s-vig-fila{display:flex;justify-content:space-between;gap:12px;padding:9px 18px;border-top:1px solid var(--sand);font-size:13.5px}
+.s-vig-fila span:last-child{color:var(--t60);white-space:nowrap}
+.s-aparte{margin-top:12px;color:var(--t60);font-size:13px}
+.s-sec-t{margin:34px 0 10px;display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.s-sec-t h2{font:400 21px 'EB Garamond',serif;margin:0}
+.s-sec-t span{font-size:12px;color:var(--t60)}
+.s-cifras{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.s-cifra{padding:14px 16px;background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.s-cifra .k{font:600 10.5px 'DM Sans';letter-spacing:.12em;text-transform:uppercase;color:var(--t60)}
+.s-cifra .v{font:400 26px/1.2 'EB Garamond',serif;margin-top:6px}
+.s-cifra .v.nd{font-size:20px;color:var(--t60)}
+.s-cifra p{margin:3px 0 0;color:var(--t60);font-size:12.5px}
+.s-taller{display:flex;flex-wrap:wrap;gap:10px}
+.s-taller div{flex:1;min-width:180px;padding:12px 16px;background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.s-taller b{font:400 24px 'EB Garamond',serif}
+.s-taller span{display:block;color:var(--t60);font-size:12.5px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:40;background:var(--tinta);color:var(--crema);padding:12px 18px;border-radius:12px;font-size:13px;max-width:480px;animation:abre .28s var(--ease)}
+@media (max-width:860px){.s-cifras{grid-template-columns:1fr 1fr}.s-fila{grid-template-columns:48px 1fr;}.s-cuanto{text-align:left;grid-column:2}.s-fila .btn-s{grid-column:2;justify-self:start}.s-why{margin-left:0}}
+@media (max-width:860px){
+  .dec{flex-direction:column;align-items:flex-start}
+  .tabla{overflow-x:auto}
+  .fila{min-width:860px}
+  .cab h1{font-size:36px}
+  .busca{margin-left:0;flex:1}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body class="rn">
+
+<div class="mq"><div class="mq-in">
+  <b>Maqueta · Producción ▸ Resumen</b>
+  <span class="seg" role="group" aria-label="Versión">
+    <button id="vHoy" aria-pressed="false">Como está hoy</button>
+    <button id="vNuevo" aria-pressed="false">Con las tareas 1 a 4</button>
+    <button id="vSimple" aria-pressed="true">Versión simple (propuesta)</button>
+  </span>
+  <label><input type="checkbox" id="rn" checked> Resaltar lo nuevo</label>
+  <button class="tema" id="tema">Modo oscuro</button>
+</div></div>
+
+<div class="wrap">
+  <p class="nota-maqueta"><b>Cómo leerla:</b> los nombres, el stock y las ventas son <b>reales</b> (producción, 27-oct). Aquí salen <b>54</b> modelos y no 81 porque la maqueta usa una ventana fija de 28 días; la pantalla de verdad mide el ritmo sobre los días con stock y dice 81. La cantidad «Falta fabricar» es un cálculo simple: ventas ÷ 28 × 30 − stock. Los botones, filtros y el «¿Por qué?» se tocan; nada se guarda.</p>
+
+  <div class="cab">
+    <div>
+      <div class="linea">Taller · martes, 27 de octubre</div>
+      <h1 class="serif">Resumen</h1>
+      <p>¿Qué necesita tu decisión hoy? Lo que pide acción en el Taller, del más urgente al menos.</p>
+    </div>
+    <div class="btns"><span class="btn">Ver órdenes</span><span class="btn pri">+ Nueva orden</span></div>
+  </div>
+  <div class="tabs"><span class="on">Hoy</span><span>Eficiencia</span></div>
+
+  <div id="clasico">
+  <!-- ===== Para decidir ===== -->
+  <div class="tit"><h2>Para decidir <span class="glob" id="gDecidir">26</span></h2><span class="dato">se ven 4</span></div>
+
+  <div class="dec rel" id="tarjeta">
+    <div class="tiles" aria-hidden="true" id="tiles"></div>
+    <div class="cuerpo">
+      <h3 id="decTitulo"></h3>
+      <p id="decDetalle"></p>
+    </div>
+    <div class="acc" id="decAcc"></div>
+  </div>
+  <div class="porque" id="porque" role="region" aria-label="Por qué">
+    <h4>¿Qué quiere decir «por producir»?</h4>
+    <ul>
+      <li><b>Producir</b> = al ritmo al que se ha vendido, lo que hay en tiendas dura <b>7 días o menos</b>, y con lo que ya hay y viene <b>no se cubren 30 días</b>.</li>
+      <li><b>«Con base»</b> = 3 o más ventas en el último mes. Con 2 o menos (<b>«poca base»</b>) la cifra es casi ruido: no se sugiere cantidad.</li>
+      <li><b>«Ninguno tiene orden»</b> = ninguno aparece en una orden de producción del ERP. Hoy hay 4 órdenes, creadas hoy, y ninguna es de estos modelos.</li>
+      <li id="ejemploPorque"></li>
+    </ul>
+  </div>
+
+  <!-- ===== ¿Qué producir? ===== -->
+  <div class="tit"><h2 class="serif">¿Qué producir?</h2><span class="dato">días que dura el stock de las tiendas al ritmo medido · marcas en 7 y 30 días</span></div>
+
+  <div class="filtros rel nuevo" id="filtros">
+    <button class="pil" data-f="todos" aria-pressed="true">Todos <span class="g" id="cTodos"></span></button>
+    <button class="pil" data-f="base" aria-pressed="false">Con base <span class="g" id="cBase"></span></button>
+    <button class="pil" data-f="poca" aria-pressed="false">Poca base <span class="g" id="cPoca"></span></button>
+    <button class="pil" data-f="agotado" aria-pressed="false">Agotados <span class="g" id="cAgot"></span></button>
+    <button class="pil cero" data-f="orden" aria-pressed="false">Con orden abierta <span class="g">0</span></button>
+    <label class="busca"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" placeholder="Buscar un modelo…" autocomplete="off"></label>
+  </div>
+
+  <div class="tabla" id="tabla">
+    <div class="fila enc" id="enc">
+      <span>Modelo</span><span class="r">Stock</span><span class="r">Ventas · 28 d</span><span>Cobertura</span>
+      <span class="r col-falta rel nuevo">Falta fabricar<span class="marca">Nuevo</span></span><span>Sugerencia</span>
+    </div>
+    <div id="filas"></div>
+    <div class="pie" id="pie"></div>
+  </div>
+
+  <div class="nota nuevo-solo"><i>i</i><span>«Poca base» son 2 ventas o menos en el último mes: la cifra existe, pero con tan pocas ventas es casi ruido, y por eso no sugerimos cuánto fabricar. Mira esos modelos, no cortes tela por ellos todavía.</span></div>
+  </div><!-- /clasico -->
+
+  <div id="simple"></div>
+</div>
+
+<script>
+// Datos reales de producción (2026-10-27): [modelo, stock en tiendas y almacenes, ventas en 28 días, falta ≈ ventas/28×30 − stock]
+const DATOS = [["Falda Jean",4,18,16],["Pantalón Palazo Lino",4,18,16],["Top Rib",2,18,18],["Camisa M/corta con Amarre",0,12,13],["Capa de Encaje",0,11,12],["Guantes",2,10,9],["Top Sofi",0,8,9],["Crop Manga Larga",1,7,7],["Pantalon Zenit Botón Asimétrico",0,7,8],["Blusa Valeria",0,6,7],["Camisa Crop con Amarre",1,6,6],["Top Bandana",1,6,6],["Blusa de Encaje Asimetrica",0,5,6],["Blusa Encaje",0,5,6],["Top Kei",0,5,6],["Blusa Manga Larga con Amarre",0,4,5],["Camisa Brillos Oversize",0,4,5],["Camisa Rayas Larga",0,4,5],["Vestido Campanita",0,4,5],["Blusa Mei de Cuello Chino",0,3,4],["Capa Larga Encaje",0,3,4],["Falda Nicole",0,3,4],["Bolso de Mano Vintage",0,2,3],["Conjunto Gris Floral",0,2,3],["Gabardina Elizabeth",0,2,3],["Guantes Largos",0,2,3],["Kit Charleston",0,2,3],["Polo Basico Corto",0,2,3],["Polo Manga Larga Cuello V",0,2,3],["Set Coneja Negro Gamuzado",0,2,3],["Short Lino con Pretina Blanca",0,2,3],["Alas de Hada",0,1,2],["Aretes Calavera",0,1,2],["Blusa Alba Rayas",0,1,2],["Blusa Camisera Tiana",0,1,2],["Blusa Crop Manga Larga",0,1,2],["Body Amat",0,1,2],["Bolso Boston de Cuero",0,1,2],["Bolso Hobo Repuntes",0,1,2],["Camisa Manga Larga A Rayas",0,1,2],["Capa de Encaje Botones",0,1,2],["Conjunto Chicas de los Años 20",0,1,2],["Pañoleta Pirata de Gasa",0,1,2],["Pantys Malla",0,1,2],["Polo Mesh con Amarre",0,1,2],["Set Cat Negro",0,1,2],["Set Conejo Rosado",0,1,2],["Set Parche Pirata",0,1,2],["Set Pirata",0,1,2],["Short con Lentejuelas",0,1,2],["Tocado Diosa",0,1,2],["Top Asim",0,1,2],["Top Cuadros Lalesh",0,1,2],["Top Hill",0,1,2]];
+const UMBRAL_POCA_BASE = 2;      // = UMBRAL_POCA_BASE_VENTAS de inventario-reglas.ts
+const PASO = 12;
+
+const filas = DATOS.map(([n, stock, u, falta]) => {
+  const ritmoDia = u / 28;
+  return { n, stock, u, falta, dias: stock / ritmoDia, poca: u <= UMBRAL_POCA_BASE };
+}).sort((a, b) => a.dias - b.dias || b.u - a.u || a.n.localeCompare(b.n, 'es'));   // como filasPorModelo: días, luego lo que más se vende
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const conBase = filas.filter((f) => !f.poca), pocaBase = filas.filter((f) => f.poca), agotados = filas.filter((f) => f.stock === 0);
+const faltanFirmes = conBase.reduce((s, f) => s + f.falta, 0);
+
+let version = 'simple', filtro = 'todos', texto = '', visibles = PASO;
+let verFirmes = 6, verVigilar = false;
+const abiertos = new Set();
+
+const PERCHA = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6a2 2 0 1 1 2 2c-1 .5-2 1-2 2v1"/><path d="M12 11 3.5 17a1 1 0 0 0 .6 1.8h15.8a1 1 0 0 0 .6-1.8z"/></svg>';
+
+function textoDias(f) { return f.stock <= 0 ? 'agotado' : (Math.max(1, Math.round(f.dias)) === 1 ? '1 día' : Math.max(1, Math.round(f.dias)) + ' días'); }
+const porSemana = (f) => (Math.round(f.u / 28 * 7 * 10) / 10).toLocaleString('es-PE');
+
+function pintarTarjeta() {
+  const top3 = filas.slice(0, 3);
+  $('tiles').innerHTML = top3.map((f, i) => `<span class="tile" style="background:${['#d8cbb6','#c9d3d6','#e0c9c4'][i]};color:#1a1a18">${PERCHA}</span>`).join('');
+  if (version === 'hoy') {
+    $('decTitulo').textContent = `${filas.length} modelos por producir y ninguno tiene orden abierta`;
+    $('decDetalle').textContent = `Los más urgentes (ventas de los últimos 30 días): ${top3.map((f) => `«${f.n}» (ya se agotó, ${porSemana(f)} por semana, ${f.u} ventas)`).join(', ')}; y ${filas.length - 3} más.`;
+    $('decAcc').innerHTML = `<button class="btn-s" data-ir="todos">Ver los ${filas.length} modelos</button>`;
+  } else {
+    $('decTitulo').textContent = `${filas.length} modelos por producir: ${conBase.length} con base de ventas y ${pocaBase.length} con poca base`;
+    $('decDetalle').innerHTML = `Para cubrir 30 días faltan <b>~${faltanFirmes} prendas</b> en los ${conBase.length} con base. En los ${pocaBase.length} de poca base (2 ventas o menos) no sugerimos cantidad. Ninguno tiene orden abierta.`;
+    $('decAcc').innerHTML = `<button class="enlace" id="bPorque" aria-expanded="false">¿Por qué?</button><button class="btn-s" data-ir="base">Ver los ${conBase.length} con base</button>`;
+    $('bPorque').onclick = () => { const p = $('porque'); const on = p.classList.toggle('on'); $('bPorque').setAttribute('aria-expanded', on); };
+  }
+  document.querySelectorAll('[data-ir]').forEach((b) => b.onclick = () => { filtro = b.dataset.ir; visibles = PASO; pintar(); $('tabla').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  const ej = filas.find((f) => f.n === 'Blusa Valeria');
+  $('ejemploPorque').innerHTML = `<b>Un ejemplo, «${esc(ej.n)}»:</b> ${ej.u} ventas en 28 días y 0 en tiendas. Cubrir 30 días de venta serían ~${Math.ceil(ej.u / 28 * 30)} prendas.`;
+}
+
+function lista() {
+  let l = filas;
+  if (version === 'nuevo') {
+    if (filtro === 'base') l = conBase; else if (filtro === 'poca') l = pocaBase; else if (filtro === 'agotado') l = agotados; else if (filtro === 'orden') l = [];
+  }
+  const q = texto.trim().toLowerCase();
+  if (q) l = l.filter((f) => f.n.toLowerCase().includes(q));
+  return l;
+}
+
+/* ===== Versión simple (propuesta): una pregunta, una lista, una frase por modelo ===== */
+function frase(f) { return `${f.stock > 0 ? `Quedan ${f.stock} en tiendas` : 'Se agotó en las tiendas'} · vendió ${f.u} en el último mes`; }
+function barraHtml(f) {
+  const pct = f.stock <= 0 ? 0 : Math.min(100, f.dias / 60 * 100);
+  return `<div class="barra"><i style="width:${pct}%"></i><u style="left:${7 / 60 * 100}%"></u><u style="left:${30 / 60 * 100}%"></u></div>`;
+}
+function pintarSimple() {
+  const firmes = [...conBase].sort((a, b) => b.u - a.u || a.stock - b.stock || a.n.localeCompare(b.n, 'es'));
+  const vigilar = [...pocaBase].sort((a, b) => b.u - a.u || a.n.localeCompare(b.n, 'es'));
+  const shown = firmes.slice(0, verFirmes);
+  const filasHtml = shown.map((f, i) => {
+    const abierto = abiertos.has(f.n);
+    const dura = f.stock > 0 ? `lo que queda dura unos ${Math.max(1, Math.round(f.dias))} días` : 'hoy no queda ninguna';
+    return `<div class="s-fila${i === 0 ? ' primera' : ''}">
+      <span class="s-tile">${PERCHA.replace('width="18" height="18"', 'width="26" height="26"')}</span>
+      <div>
+        <div class="s-nombre">${i === 0 ? '<span class="chip ambar sin">Empieza por aquí</span>' : ''}<b>${esc(f.n)}</b></div>
+        <div class="s-sub">${frase(f)}</div>
+        <button class="enlace s-porque-b" data-why="${esc(f.n)}" aria-expanded="${abierto}">¿Por qué?</button>
+      </div>
+      <div class="s-cuanto"><small>Fabricar</small><b>unas ${f.falta}</b><small>prendas</small></div>
+      <button class="btn-s${i === 0 ? ' pri' : ''}" data-orden="${esc(f.n)}" data-n="${f.falta}">Preparar orden</button>
+      ${abierto ? `<div class="s-why">Vendió <b>${f.u}</b> en los últimos 28 días y ${dura}. Para tener 30 días de venta hacen falta unas <b>${f.falta}</b> prendas.${barraHtml(f)}<small>La barra muestra cuántos días dura lo que queda. Las rayitas marcan 7 y 30 días.</small></div>` : ''}
+    </div>`;
+  }).join('');
+  const resto = firmes.length - shown.length;
+  const vigFilas = verVigilar ? vigilar.map((f) => `<div class="s-vig-fila"><span>${esc(f.n)}</span><span>vendió ${f.u} · ${f.stock > 0 ? `quedan ${f.stock}` : 'agotado'}</span></div>`).join('') : '';
+
+  $('simple').innerHTML = `
+    <div class="s-hero">
+      <h2>¿Qué fabrico primero?</h2>
+      <p>Estos modelos se están agotando y <b>sí se venden</b>. Hoy ninguno tiene una orden abierta. Empieza por el primero.</p>
+    </div>
+    <div class="s-lista">
+      ${filasHtml}
+      ${resto > 0 ? `<div class="s-mas"><button class="verMas" data-mas="1">Ver ${Math.min(6, resto)} más de los ${firmes.length} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button></div>` : ''}
+    </div>
+    <div class="s-vigilar">
+      <div class="s-vig-cab">
+        <div><b>${vigilar.length} modelos para vigilar</b><p>Vendieron 1 o 2 prendas en el mes: todavía no sabemos si se venden de verdad. Míralos, pero no cortes tela por ellos todavía.</p></div>
+        <button class="btn-s" data-vig="1" aria-expanded="${verVigilar}">${verVigilar ? 'Ocultar' : 'Verlos'}</button>
+      </div>
+      ${vigFilas}
+    </div>
+    <p class="s-aparte">Aparte: 22 modelos tienen stock de sobra (no produzcas más). Siguen en «Para decidir».</p>
+
+    <div class="s-sec-t"><h2>Hoy en el Taller</h2><span>4 órdenes abiertas, todavía sin fecha de entrega</span></div>
+    <div class="s-taller">
+      <div><b>3 lotes</b><span>Por plotear · 180 prendas</span></div>
+      <div><b>1 lote</b><span>Por cortar · 16 prendas</span></div>
+      <div><b>0 lotes</b><span>En costura · ninguno ahora</span></div>
+    </div>
+
+    <div class="s-sec-t"><h2>Tus números</h2><span>El sistema lleva 4 semanas de ventas (desde el 29 de setiembre): las cantidades son una guía.</span></div>
+    <div class="s-cifras">
+      <div class="s-cifra"><div class="k">Insumos (tela y avíos)</div><div class="v nd">Aún sin cargar</div><p>Cárgalos y verás aquí cuánto tienes.</p></div>
+      <div class="s-cifra"><div class="k">Producción en proceso</div><div class="v nd">Sin costos todavía</div><p>Hay 4 órdenes abiertas sin costo cargado.</p></div>
+      <div class="s-cifra"><div class="k">Por pagar a proveedores</div><div class="v">S/ 0.00</div><p>No se debe nada.</p></div>
+      <div class="s-cifra"><div class="k">Entregas</div><div class="v nd">4 sin fecha</div><p>Ponles fecha y te avisamos si se atrasan.</p></div>
+    </div>`;
+}
+let _toast;
+function avisoToast(t) { clearTimeout(_toast); let e = $('toast'); if (!e) { e = document.createElement('div'); e.id = 'toast'; e.className = 'toast'; document.body.appendChild(e); } e.textContent = t; _toast = setTimeout(() => e.remove(), 3800); }
+
+function pintar() {
+  const simple = version === 'simple';
+  $('clasico').hidden = simple; $('simple').hidden = !simple;
+  $('vSimple').setAttribute('aria-pressed', simple);
+  if (simple) { $('vHoy').setAttribute('aria-pressed', false); $('vNuevo').setAttribute('aria-pressed', false); document.body.classList.remove('hoy'); pintarSimple(); return; }
+  $('vSimple').setAttribute('aria-pressed', false);
+  document.body.classList.toggle('hoy', version === 'hoy');
+  $('vHoy').setAttribute('aria-pressed', version === 'hoy'); $('vNuevo').setAttribute('aria-pressed', version === 'nuevo');
+  $('cTodos').textContent = filas.length; $('cBase').textContent = conBase.length; $('cPoca').textContent = pocaBase.length; $('cAgot').textContent = agotados.length;
+  document.querySelectorAll('.pil').forEach((p) => p.setAttribute('aria-pressed', p.dataset.f === filtro));
+  pintarTarjeta();
+
+  const l = lista();
+  const trozo = l.slice(0, visibles);
+  const hayFalta = version === 'nuevo';
+  if (l.length === 0) {
+    $('filas').innerHTML = filtro === 'orden' && !texto
+      ? `<div class="vacio"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7h16M4 12h16M4 17h10"/></svg><h3>Ningún modelo tiene orden abierta todavía</h3><p>Hoy hay 4 órdenes y ninguna es de estos modelos. Cuando abras una, el modelo aparecerá aquí.</p><button class="btn-s" data-ir="todos">Ver todos</button></div>`
+      : `<div class="vacio"><h3>No hay modelos con ese filtro</h3><p>Prueba con otra palabra o quita el filtro.</p><button class="btn-s" data-ir="todos">Quitar filtros</button></div>`;
+    document.querySelectorAll('#filas [data-ir]').forEach((b) => b.onclick = () => { filtro = 'todos'; texto = ''; $('q').value = ''; pintar(); });
+    $('pie').innerHTML = '';
+    $('enc').style.display = 'none';
+    return;
+  }
+  $('enc').style.display = '';
+  $('filas').innerHTML = trozo.map((f) => {
+    const pct = f.stock <= 0 ? 0 : Math.min(100, f.dias / 60 * 100);
+    const ventas = f.poca ? `<span class="chip pizarra sin">Poca base</span><small>solo ${f.u} en 28 d</small>` : `<span class="n">${f.u}</span><small>${porSemana(f)} por semana</small>`;
+    const falta = hayFalta ? `<div class="falta r">${f.poca ? '<span class="nd">sin cantidad · poca base</span>' : `<b>${f.falta}</b><small>prendas</small>`}</div>` : '';
+    return `<div class="fila">
+      <div class="modelo"><span class="tl">${PERCHA}</span><div style="min-width:0"><b>${esc(f.n)}</b><small>${f.stock > 0 ? `${f.stock} en tiendas` : 'ya se agotó en las tiendas'}</small></div></div>
+      <div class="r num">${f.stock}</div>
+      <div class="r ventas">${ventas}</div>
+      <div class="cob"><div class="barra"><i style="width:${pct}%"></i><u style="left:${7 / 60 * 100}%"></u><u style="left:${30 / 60 * 100}%"></u></div><span>${textoDias(f)}</span></div>
+      ${falta}
+      <div><span class="chip ambar">Producir ya</span></div>
+    </div>`;
+  }).join('');
+
+  const resto = l.length - trozo.length;
+  const suma = l.filter((f) => !f.poca).reduce((s, f) => s + f.falta, 0);
+  const sumaHtml = hayFalta && l.every((f) => f.poca) ? `<span style="color:var(--t60);font-size:12.5px">Con poca base no sugerimos cantidad: míralos antes de cortar tela.</span>` : hayFalta ? `<div class="suma nuevo rel"><span class="marca">Nuevo</span><span style="color:var(--t60);font-size:12.5px">Suma de lo que falta${filtro === 'todos' && !texto ? ' (solo los con base)' : ''}</span><b>${suma}</b><span style="color:var(--t60);font-size:12.5px">prendas</span></div>` : `<span style="color:var(--t60);font-size:12.5px">Mostrando ${trozo.length} de ${l.length}</span>`;
+  $('pie').innerHTML = sumaHtml + (resto > 0 ? `<button class="verMas" id="vm">Ver ${Math.min(PASO, resto)} más <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>` : `<span style="color:var(--t60);font-size:12.5px">${l.length} de ${l.length}</span>`);
+  if ($('vm')) $('vm').onclick = () => { visibles += PASO; pintar(); };
+}
+
+document.querySelectorAll('.pil').forEach((p) => p.onclick = () => { filtro = p.dataset.f; visibles = PASO; pintar(); });
+$('q').oninput = (e) => { texto = e.target.value; visibles = PASO; pintar(); };
+$('vHoy').onclick = () => { version = 'hoy'; filtro = 'todos'; visibles = PASO; $('porque').classList.remove('on'); pintar(); };
+$('vNuevo').onclick = () => { version = 'nuevo'; visibles = PASO; pintar(); };
+$('vSimple').onclick = () => { version = 'simple'; pintar(); };
+$('simple').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.why) { abiertos.has(b.dataset.why) ? abiertos.delete(b.dataset.why) : abiertos.add(b.dataset.why); pintarSimple(); }
+  else if (b.dataset.mas) { verFirmes += 6; pintarSimple(); }
+  else if (b.dataset.vig) { verVigilar = !verVigilar; pintarSimple(); }
+  else if (b.dataset.orden) avisoToast(`En la pantalla real se abre «Nueva orden» con «${b.dataset.orden}» y unas ${b.dataset.n} prendas ya escritas, repartidas por talla. Aquí no se guarda nada.`);
+});
+$('rn').onchange = (e) => document.body.classList.toggle('rn', e.target.checked);
+$('tema').onclick = () => { const o = document.documentElement.dataset.tema === 'oscuro'; if (o) delete document.documentElement.dataset.tema; else document.documentElement.dataset.tema = 'oscuro'; $('tema').textContent = o ? 'Modo oscuro' : 'Modo claro'; };
+pintar();
+</script>
+</body>
+</html>

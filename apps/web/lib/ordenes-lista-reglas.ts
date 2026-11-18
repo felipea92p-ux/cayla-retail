@@ -25,7 +25,7 @@ import {
 // contradecirse porque no hay una segunda fórmula.
 //
 // CONTRATO
-//   PROMETE: que una fila dice dónde está la orden, quién la tiene y cuánto lleva ahí; que «pide algo» es exactamente `rojoDeLaOrden`; que «Hoy en el Taller» cuenta lotes y prendas
+//   PROMETE: que una fila dice dónde está la orden, quién la tiene y cuánto lleva ahí; que «pide algo» es exactamente `rojoDeLaOrden`; que «Hoy en el Taller» cuenta órdenes y prendas
 //            por la fase en que está cada orden abierta (una orden con todas las fases hechas cuenta en la última: espera pasar al stock); que una orden no se pierde al filtrar sin
 //            que la pantalla diga cuántas hay; y que la búsqueda no distingue tildes ni mayúsculas ni el guion de «OP-000012».
 //   ASUME:   las fechas llegan como `aaaa-mm-dd` y «hoy» es el de Lima (`hoyLima()`), como en la página de la orden.
@@ -49,6 +49,7 @@ export type FilaDeLista = {
   /** «negro, caqui» o `null` si la orden no tiene líneas. */
   colores: string | null;
   esMuestra: boolean;
+  urgente: boolean;
   estado: EstadoOrden;
   /** Las del plan; en una orden que pasó al stock, las que salieron buenas. */
   cuantas: number;
@@ -71,8 +72,6 @@ export type FilaDeLista = {
   abierta: string;
   /** Lo que se lee de una orden que ya no está en proceso: «45 buenas de 48 · en el stock desde el 12 oct». */
   cierre: string | null;
-  /** Una orden abierta ANTES de que existieran las fases: no trae ninguna, se lee de sus etapas de siempre (`conEtapasDeAntes`) y se sigue desde el cajón, no desde su página. */
-  legado: boolean;
 };
 
 export type ListaDeOrdenes = { filas: FilaDeLista[]; alStockMes: { lotes: number; prendas: number } };
@@ -115,6 +114,7 @@ function textoDeCierre(p: OrdenPagina): string | null {
   const o = p.orden;
   if (o.estado === "terminada") {
     const buenas = `${o.cantidadBuenas ?? 0} buenas de ${o.cantidadPlan}`;
+    if (o.ingresoAlStock === "ya_estaba") return `${buenas} · ya estaban registradas, no sumó al stock`;
     if (o.inventariadoEn) return `${buenas} · en el stock desde el ${diaCorto(fechaLimaDe(o.inventariadoEn))}`;
     return o.esMuestra ? `${buenas} · muestra, no entra al stock` : buenas;
   }
@@ -149,6 +149,7 @@ export function filaDeLaLista(p: OrdenPagina, hoy: string): FilaDeLista {
     colorHex,
     colores,
     esMuestra: o.esMuestra,
+    urgente: o.urgente,
     estado: o.estado,
     cuantas: o.estado === "terminada" && o.cantidadBuenas !== null ? o.cantidadBuenas : o.cantidadPlan,
     grupo: !enProceso ? null : lista ? (p.fases[p.fases.length - 1]?.clave ?? null) : (actual?.clave ?? null),
@@ -161,7 +162,6 @@ export function filaDeLaLista(p: OrdenPagina, hoy: string): FilaDeLista {
     causas: rojoDeLaOrden(p, hoy),
     abierta,
     cierre: enProceso ? null : textoDeCierre(p),
-    legado: enProceso && p.fases.length === 0,
   };
 }
 
@@ -173,24 +173,6 @@ const ETAPA_DE_ANTES: Record<string, { texto: string; grupo: FaseClave | null }>
   muestra: { texto: "En muestra y aprobación", grupo: null },
   escalado: { texto: "En escalado y ploteo", grupo: null },
 };
-
-/**
- * Una orden abierta antes de las fases no tiene ninguna: dónde está se lee de sus etapas de siempre (una tercerizada sigue en curso: la prenda no volvió). Lo demás —el color, las
- * causas, la entrega— sale igual, de la misma lectura. Una fila con fases queda como está.
- */
-export function conEtapasDeAntes(f: FilaDeLista, etapas: Partial<Record<EtapaClave, EstadoEtapa>> | undefined): FilaDeLista {
-  if (!f.legado) return f;
-  const actual = etapaActual(etapas ?? {}, f.esMuestra);
-  if (actual === "listo") return { ...f, grupo: "acabado", lista: true, chip: { texto: "Lista para pasar al stock", tono: "verde" }, quien: "Orden de antes de las fases", dias: null };
-  const e = ETAPA_DE_ANTES[actual];
-  const afuera = (etapas ?? {})[actual] === "tercerizado";
-  return {
-    ...f,
-    grupo: e?.grupo ?? null,
-    chip: { texto: `${e?.texto ?? "En proceso"}${afuera ? " · afuera" : ""}`, tono: "pizarra" },
-    quien: afuera ? "Con un servicio · orden de antes de las fases" : "Orden de antes de las fases",
-  };
-}
 
 /**
  * La respuesta de `fn_ordenes_produccion_lista` leída. `null` si no se parece a lo que la base manda (la pantalla dice «no se pudo leer», nunca una lista vacía que parezca «no hay
@@ -211,7 +193,8 @@ export function leerListaDeOrdenes(crudo: unknown, hoy: string): ListaDeOrdenes 
 
 // ---------- Hoy en el Taller ----------
 
-export type CifraDeFase = { clave: FaseClave; titulo: string; lotes: number; prendas: number; contexto: string; atencion: boolean };
+/** `ordenes` cuenta las órdenes abiertas en la fase (lotes y muestras); `unidad` es la palabra que va junto a esa cifra. */
+export type CifraDeFase = { clave: FaseClave; titulo: string; ordenes: number; unidad: string; prendas: number; contexto: string; atencion: boolean };
 
 const TITULO_DE_FASE: Record<FaseClave, string> = {
   ploteo: "Por plotear",
@@ -246,7 +229,10 @@ const ORDEN_DE_FASES: FaseClave[] = [
 const TARJETAS_SIEMPRE: readonly FaseClave[] = ["corte", "costura"];
 
 /**
- * «Hoy en el Taller»: una tarjeta por fase con lo que hay ahí AHORA (lotes y prendas de las órdenes abiertas, muestras incluidas). Corte y Costura siempre; las demás fases (Ploteo, Habilitado, Limpiar y revisar, Planchado, Etiquetar, Acabado de las órdenes de antes, Bordado, Estampado, Lavandería…) solo si alguna orden está ahí. Cada una dice lo que importa de esa fase: sin tela en el corte, lo que está afuera y con quién en un servicio, y las que esperan pasar al stock.
+ * «Hoy en el Taller»: una tarjeta por fase con lo que hay ahí AHORA (órdenes y prendas de las abiertas, muestras incluidas). La cifra no llama «lotes» a una
+ * muestra (la misma pantalla pide distinguirlas, y una muestra no entra al stock): son «lotes» si todas son lotes, «muestras» si todas lo son y «órdenes» si
+ * hay de las dos, con «1 muestra» en su detalle (Formidable, 2026-10-30).
+ * Corte y Costura siempre; las demás fases (Ploteo, Habilitado, Limpiar y revisar, Planchado, Etiquetar, Acabado de las órdenes de antes, Bordado, Estampado, Lavandería…) solo si alguna orden está ahí. Cada una dice lo que importa de esa fase: sin tela en el corte, lo que está afuera y con quién en un servicio, y las que esperan pasar al stock.
  */
 export function cifrasHoyEnElTaller(filas: readonly FilaDeLista[]): CifraDeFase[] {
   const abiertas = filas.filter((f) => f.estado === "en_proceso" && f.grupo !== null);
@@ -258,15 +244,19 @@ export function cifrasHoyEnElTaller(filas: readonly FilaDeLista[]): CifraDeFase[
     const afuera = aca.reduce((s, f) => s + f.afuera, 0);
     const listas = aca.filter((f) => f.lista).length;
     const servicios = [...new Set(aca.filter((f) => f.afuera > 0).map((f) => f.quien.split(" · ")[0]))];
+    const muestras = aca.filter((f) => f.esMuestra).length;
+    const mezcla = muestras > 0 && muestras < aca.length;
+    const unidad = muestras === 0 ? (aca.length === 1 ? "lote" : "lotes") : mezcla ? (aca.length === 1 ? "orden" : "órdenes") : muestras === 1 ? "muestra" : "muestras";
     const partes: string[] = [];
     if (aca.length === 0) partes.push("ninguna ahora");
     else {
       partes.push(cuantas(prendas, "prenda", "prendas"));
+      if (mezcla) partes.push(cuantas(muestras, "muestra", "muestras"));
       if (afuera > 0) partes.push(`${afuera} afuera${servicios.length > 0 ? ` con ${servicios.join(" y ")}` : ""}`);
       if (sinTela > 0) partes.push(`${sinTela} sin tela`);
       if (listas > 0) partes.push(`${cuantas(listas, "lista", "listas")} para el stock`);
     }
-    return { clave, titulo: TITULO_DE_FASE[clave], lotes: aca.length, prendas, contexto: partes.join(" · "), atencion: sinTela > 0 || aca.some((f) => f.causas.length > 0) };
+    return { clave, titulo: TITULO_DE_FASE[clave], ordenes: aca.length, unidad, prendas, contexto: partes.join(" · "), atencion: sinTela > 0 || aca.some((f) => f.causas.length > 0) };
   });
 }
 

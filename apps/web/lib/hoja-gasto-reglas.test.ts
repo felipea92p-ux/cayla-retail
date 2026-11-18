@@ -11,6 +11,7 @@ import {
   motivoDelMonto,
   hojaSiguiente,
   hojaVacia,
+  igvDelQr,
   plantillasDe,
   proveedorDelRuc,
   serieNumeroLegible,
@@ -32,6 +33,53 @@ const llena = (cambios: Partial<HojaGasto> = {}): HojaGasto => ({
   descripcion: "Bolsas",
   comprobante: "sin_comprobante",
   ...cambios,
+});
+
+describe("lo que dice el papel (tarea 15)", () => {
+  const banco = { medio: "transferencia" as const, cajaId: "", referencia: "", cuentaId: "bcp", banco: true };
+  const factura = (cambios: Partial<HojaGasto> = {}) => llena({ comprobante: "factura", ruc: "20100070970", serieNumero: "F001-1", monto: "118", fecha: "2026-09-10", ...cambios });
+  const comprobante = (h: HojaGasto, salida: SalidaDeLaHoja = banco) => {
+    const r = validarHoja(h, "p1", salida, HOY);
+    if (!r.ok) throw new Error(r.error);
+    return r.valor.p_comprobante;
+  };
+
+  it("el QR de una exonerada deja IGV 0 y llega a la base", () => {
+    expect(igvDelQr({ tipo: "factura", igv: 0, total: 118 }, 118)).toBe("0.00");
+    expect(comprobante(factura({ igvPapel: igvDelQr({ tipo: "factura", igv: 0, total: 118 }, 118) }))?.igv).toBe(0);
+  });
+  it("el QR de otro monto, o de una boleta, no deja IGV", () => {
+    expect(igvDelQr({ tipo: "factura", igv: 18, total: 118 }, 200)).toBe("");
+    expect(igvDelQr({ tipo: "boleta", igv: 18, total: 118 }, 118)).toBe("");
+  });
+  it("vacío: no se manda, y la base usa la tasa", () => {
+    expect(comprobante(factura())).not.toHaveProperty("igv");
+  });
+  it("una boleta no lleva IGV aunque quede algo escrito", () => {
+    expect(comprobante(factura({ comprobante: "boleta", igvPapel: "5" }))).not.toHaveProperty("igv");
+  });
+  it("ilegible o fuera de rango no se guarda", () => {
+    expect(validarHoja(factura({ igvPapel: "abc" }), "p1", banco, HOY)).toMatchObject({ ok: false, campo: "igv" });
+    expect(validarHoja(factura({ igvPapel: "118" }), "p1", banco, HOY)).toMatchObject({ ok: false, error: "El IGV tiene que estar entre cero y el total." });
+  });
+  it("«Así queda» dice el IGV del papel, no el de la tasa", () => {
+    const ctx = { categoriaNombre: null, sedeNombre: null, salidaNombre: null, proveedorNombre: null };
+    const exonerada = ticketDeLaHoja(factura({ igvPapel: "0" }), ctx);
+    expect(exonerada.lineas).toContainEqual({ etiqueta: "IGV del papel", valor: expect.stringContaining("0.00") });
+    expect(exonerada.pasara).toContain("Esta factura no trae IGV que recuperar.");
+    expect(ticketDeLaHoja(factura(), ctx).lineas).toContainEqual({ etiqueta: "IGV 18 %", valor: expect.stringContaining("18.00") });
+  });
+  it("«¿Cuándo salió?» solo si sale por banco y es otro día", () => {
+    const dias = factura({ fechaPago: "2026-09-12" });
+    expect(comprobante(dias)?.fecha_pago).toBe("2026-09-12");
+    expect(comprobante(factura({ fechaPago: "2026-09-10" }))).not.toHaveProperty("fecha_pago");
+    expect(comprobante(dias, { ...banco, banco: false })).not.toHaveProperty("fecha_pago");
+    expect(comprobante(factura({ fechaPago: "2026-09-12", pagado: "no", vence: "2026-10-01" }))).not.toHaveProperty("fecha_pago");
+  });
+  it("no antes del papel ni después de hoy", () => {
+    expect(validarHoja(factura({ fechaPago: "2026-09-01" }), "p1", banco, HOY).ok).toBe(false);
+    expect(validarHoja(factura({ fechaPago: "2099-01-01" }), "p1", banco, HOY).ok).toBe(false);
+  });
 });
 
 describe("la guía de la hoja dice lo mismo que su validación", () => {
@@ -57,6 +105,18 @@ describe("la guía de la hoja dice lo mismo que su validación", () => {
     const campos = camposDeLaHoja(h, ctx);
     const v = validarHoja(h, ctx.proveedorListo ? "prov-1" : "", salida, HOY);
     expect(sePuedeConfirmar(campos)).toBe(v.ok);
+  });
+
+  it.each(caminos)("%s: el error de guardar lleva a un campo que está en la hoja", (_nombre, h, ctx, salida) => {
+    const v = validarHoja(h, ctx.proveedorListo ? "prov-1" : "", salida, HOY);
+    if (v.ok || !v.campo) return;
+    expect(camposDeLaHoja(h, ctx).map((c) => c.id)).toContain(v.campo);
+  });
+
+  it("un monto mal escrito dice por qué bajo el campo, no «escribe cuánto se pagó»", () => {
+    const monto = camposDeLaHoja(llena({ monto: "abc" }), listo).find((c) => c.id === "monto");
+    expect(monto?.pendiente).not.toBe("Escribe cuánto se pagó.");
+    expect(camposDeLaHoja(llena({ monto: "" }), listo).find((c) => c.id === "monto")?.pendiente).toBe("Escribe cuánto se pagó.");
   });
 
   it("sin comprobante no pide RUC ni serie; a crédito pide cuándo vence en vez de «salió de»", () => {
@@ -139,24 +199,31 @@ describe("«Salió de» (chaos 2026-10-23, hallazgo 1: proponía un banco y camb
   });
   const CUENTAS = [c("interbank", "banco", null, true, ["transferencia"]), c("fuerte-lima", "caja_fuerte", "lima"), c("cajon-lima", "cajon", "lima"), c("cajon-tru", "cajon", "tru", false)];
 
-  it("sin comprobante y con la caja de esa sede abierta, propone el cajón (no un banco)", () => {
-    expect(salidaDeLaHoja(CUENTAS, { sede: "lima", comprobante: "sin_comprobante" }, "", false)).toBe("cajon-lima");
-    expect(salidaDeLaHoja(CUENTAS, { sede: "lima", comprobante: "" }, "", false)).toBe("cajon-lima");
-  });
-
-  it("con comprobante, o con la caja cerrada, propone lo de siempre", () => {
-    expect(salidaDeLaHoja(CUENTAS, { sede: "lima", comprobante: "factura" }, "", false)).toBe("interbank");
-    expect(salidaDeLaHoja(CUENTAS, { sede: "tru", comprobante: "sin_comprobante" }, "", false)).toBe("interbank");
+  it("no propone ninguna cuenta: ni el cajón sin comprobante ni un banco con comprobante (Felipe 2026-11-13)", () => {
+    expect(salidaDeLaHoja(CUENTAS, "")).toBeNull();
   });
 
   it("lo que la persona eligió se queda mientras sirva", () => {
-    expect(salidaDeLaHoja(CUENTAS, { sede: "lima", comprobante: "sin_comprobante" }, "fuerte-lima", false)).toBe("fuerte-lima");
+    expect(salidaDeLaHoja(CUENTAS, "fuerte-lima")).toBe("fuerte-lima");
+    expect(salidaDeLaHoja(CUENTAS, "interbank")).toBe("interbank");
   });
 
   it("al cambiar de sede, si la cuenta ya no sirve, queda por elegir; si sirve (un banco), se queda", () => {
     const sinCajonDeLima = CUENTAS.filter((x) => x.id !== "cajon-lima");
-    expect(salidaDeLaHoja(sinCajonDeLima, { sede: "tru", comprobante: "sin_comprobante" }, "cajon-lima", true)).toBeNull();
-    expect(salidaDeLaHoja(sinCajonDeLima, { sede: "tru", comprobante: "sin_comprobante" }, "interbank", true)).toBe("interbank");
+    expect(salidaDeLaHoja(sinCajonDeLima, "cajon-lima")).toBeNull();
+    expect(salidaDeLaHoja(sinCajonDeLima, "interbank")).toBe("interbank");
+  });
+
+  it("el cajón de una caja cerrada no se puede usar", () => {
+    expect(salidaDeLaHoja(CUENTAS, "cajon-tru")).toBeNull();
+  });
+
+  it("de un banco sin decir cómo, no guarda y pide el camino", () => {
+    const h = { ...hojaVacia("2026-11-13", "lima"), monto: "51.97", categoria: "tributos", descripcion: "Licencia", comprobante: "sin_comprobante" as const };
+    const r = validarHoja(h, "", { medio: "", cuentaId: "interbank", cajaId: "", referencia: "", banco: true }, "2026-11-13");
+    expect(r).toMatchObject({ ok: false, campo: "salida", error: "Di cómo salió del banco: transferencia, Yape o Plin." });
+    const conYape = validarHoja(h, "", { medio: "yape", cuentaId: "interbank", cajaId: "", referencia: "", banco: true }, "2026-11-13");
+    expect(conYape.ok && conYape.valor.p_medio_pago).toBe("yape");
   });
 });
 

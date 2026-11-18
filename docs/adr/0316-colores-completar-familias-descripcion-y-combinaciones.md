@@ -115,3 +115,17 @@ set activo = false where codigo in (...)`; las dos columnas son inofensivas si s
 - Las fichas de Azul eléctrico, Azul medio, Violeta y Perla se **reescriben** (la migración `20261003200000`): se habían escrito para hex que el
   0317 corrige. Las otras 87 fichas no se tocan.
 - Los 4 colores creados a mano ya no son «decisión abierta»: Perla y Mantequilla, ADR-0314; Medio e Intermedio, ADR-0317.
+
+## Actualización 2026-11-13 — «Combina bien con» sale de todo el ERP (Felipe)
+
+Felipe pidió quitar «Combina bien con» de todo el ERP. Se quitó de la pantalla en los cinco lugares donde se veía: la vista rápida de
+Catálogo ▸ Productos (los círculos, «¿Por qué?» y la frase «Combina bien con un pantalón…»), «Todo de la prenda» en Vender (la frase, los
+círculos y las prendas sugeridas), el pie de la carta de colores de Nuevo producto, la hoja «Ver el modelo» de Producción ▸ Resumen y
+Catálogo ▸ Colores (la línea «Combina con» de cada tarjeta y su campo al crear o editar un color). Con eso se fueron `lib/combinar-reglas.ts`,
+`lib/ficha-del-color.ts` y `components/ui/FichaDelColor.tsx` (git los guarda), y Catálogo ▸ Productos deja de leer el catálogo entero y el
+piso de la sede, que solo servían para la frase.
+
+**Lo que NO se tocó (principio: nunca borrar datos):** la columna `retail.colores.combina_con` y sus candados siguen en la base con lo que se
+escribió; `/api/productos/colores` sigue aceptando `combinaCon` pero ya ninguna pantalla lo manda, y al editar un color sin esa clave la
+columna no se toca. `venta_items.origen_sugerencia` guarda las líneas que se vendieron desde la sugerencia; Vender ya no la manda.
+**La descripción del color se queda:** se escribe y se ve en Catálogo ▸ Colores. Volver atrás es un `git revert` del PR: los datos siguen ahí.

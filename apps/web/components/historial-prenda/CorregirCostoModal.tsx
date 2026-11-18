@@ -147,7 +147,7 @@ export function CorregirCostoModal({
           </CampoGuiado>
 
           {previa && fraseDeVistaPrevia(previa) && (
-            <p role="status" className="anim-revelar text-[13px] tabular-nums text-tinta/80">
+            <p role="status" className="anim-revelar text-sm tabular-nums text-tinta/80">
               {fraseDeVistaPrevia(previa)}
             </p>
           )}

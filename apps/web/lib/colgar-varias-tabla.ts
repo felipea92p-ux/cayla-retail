@@ -11,6 +11,7 @@
      piso en pausa el motor no pide nada (ADR-0328, decisión 5) y la tabla no se llena sola.
    ==================================================================== */
 
+import { reglaDeEntero } from "./cantidad-escrita-reglas";
 import type { FilaPrenda } from "./existencias-prendas";
 
 type Talla = Pick<FilaPrenda, "varianteId" | "pisoDisponible" | "almacenDisponible">;
@@ -51,6 +52,16 @@ export function llenarTodasCon(tallas: readonly Talla[], n: number | null, rumbo
     if (hay > 0) cant[t.varianteId] = n === null ? 0 : Math.min(hay, Math.max(0, n));
   }
   return cant;
+}
+
+/** «Llenar todas con»: de 0 a 99, como siempre. */
+export const REGLA_RELLENO = reglaDeEntero(2);
+
+/** Lo que deja en la tabla lo escrito en «Llenar todas con». Lo que no es una cantidad no llena nada: la tabla queda como estaba al entrar a la caja (`antes`), nunca en otro número ni en 0. */
+export function cantDelRelleno(tallas: readonly Talla[], escrito: string, antes: Record<string, number>, rumbo: "bajar" | "subir"): Record<string, number> {
+  const n = REGLA_RELLENO.leer(escrito);
+  if (n === null) return antes;
+  return llenarTodasCon(tallas, escrito.trim() === "" ? null : n, rumbo);
 }
 
 /** Los totales de la tabla: por color (fila), por talla (columna) y el general. */

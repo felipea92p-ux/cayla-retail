@@ -1,7 +1,7 @@
 "use client";
 
+import "@/app/estilos/etiquetas-precio.css";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { createPortal } from "react-dom";
 import { RotateCcw, Tags, Trash2 } from "lucide-react";
 import { Volver } from "@/components/ui/Volver";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -15,6 +15,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { EtiquetaPrecio } from "@/components/EtiquetaPrecio";
 import { BotonGuiaImpresion } from "@/components/GuiaImpresion";
 import { AvisoAyudanteMac, useImpresionBrother } from "@/components/impresion/useImpresionBrother";
+import { guardarModoDeEtiquetas, HojaEtiquetasPrecio, ID_HOJA_ETIQUETAS, modoDeEtiquetasGuardado, type ModoDeEtiquetas } from "@/components/impresion/HojaEtiquetasPrecio";
 import { soles } from "@/lib/compras-reglas";
 import { useContar } from "@/lib/useContar";
 import {
@@ -30,6 +31,8 @@ import {
   type EtiquetaPrecio as DatosEtiqueta,
 } from "@/lib/etiqueta-precio-reglas";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { useCantidadEscrita, type CantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { reglaDeEntero, textoEnLaCaja } from "@/lib/cantidad-escrita-reglas";
 
 // Una fila por color y talla, juntas bajo el nombre de su prenda (Felipe, 2026-10-09: «que no se haga tan cansado de ver tantas
 // cosas»): el nombre se dice una vez por grupo y cada fila dice solo lo que cambia —el color con su cápsula, la talla, el precio— y
@@ -48,16 +51,10 @@ const columnasDe = (sinElDescuento: boolean): Columna[] => [
   },
   { titulo: "Imprimir", alinear: "der", ayuda: "Cuántas etiquetas de esta prenda. Si alguna ya tiene la suya, baja el número; el tacho la saca de la lista." },
 ];
+const CUANTAS_ETIQUETAS = reglaDeEntero();
 /** Lo que dura la fila en irse (`.etq-fila[data-saliendo]`, etiquetas-precio.css): después se quita de verdad. */
 const SALIDA_MS = 320;
 
-const modoGuardado = (): "girada" | "derecha" => {
-  try {
-    return localStorage.getItem("cayla.etiquetas.modo") === "derecha" ? "derecha" : "girada";
-  } catch {
-    return "girada";
-  }
-};
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 /** Lo que dice el interruptor de «sin el descuento»: qué rebaja hoy la caja (si algo) y qué insignia de campaña lleva el papel (rebaje
  *  o no aquí), para que se sepa QUÉ se está quitando. */
@@ -106,6 +103,7 @@ export function ImprimirEtiquetasPrecio({
   sede: string;
 }) {
   const [cantidades, setCantidades] = useState<Record<string, string>>(() => Object.fromEntries(delServidor.map((e) => [e.varianteId, String(e.cantidad)])));
+  const escrita = useCantidadEscrita(CUANTAS_ETIQUETAS);
   // «Imprimir sin el descuento» (Felipe, 2026-10-23): en una campaña de todo el catálogo (el aniversario) el papel que sale hoy tiene
   // que servir mañana. Siempre empieza apagado —por defecto el papel dice lo que la caja cobra— y no se recuerda: una campaña de
   // liquidación SÍ tiene que verse en el papel, y un interruptor olvidado de ayer la escondería sin que nadie lo note. Es solo del
@@ -134,12 +132,10 @@ export function ImprimirEtiquetasPrecio({
 
   // Cómo se manda la hoja al driver (ver `globals.css`, #etiquetas-precio-print). Se recuerda por computadora: cada una
   // tiene su driver y gira distinto.
-  const [elegido, setElegido] = useState<"girada" | "derecha" | null>(null);
-  const elegirModo = (m: "girada" | "derecha") => {
+  const [elegido, setElegido] = useState<ModoDeEtiquetas | null>(null);
+  const elegirModo = (m: ModoDeEtiquetas) => {
     setElegido(m);
-    try {
-      localStorage.setItem("cayla.etiquetas.modo", m);
-    } catch {}
+    guardarModoDeEtiquetas(m);
   };
 
   const fuera = useMemo(() => new Set([...quitadas, ...saliendo]), [quitadas, saliendo]);
@@ -196,20 +192,31 @@ export function ImprimirEtiquetasPrecio({
   // El portal queda montado siempre, así Ctrl+P también imprime las etiquetas y no la pantalla. En la Mac con ayudante, la
   // hoja va con la forma A (girada): allí la página SÍ mide 62 × 40,1 y nadie la vuelve a girar.
   const { montado, porAyudante, enviando, avisoMac, instalar, imprimir: mandar } = useImpresionBrother({
-    idHoja: "etiquetas-precio-print",
+    idHoja: ID_HOJA_ETIQUETAS,
     total,
     pieza: "etiqueta",
     detalleEspera: "Preparando las etiquetas para la Brother…",
     prepararCopia: (copia) => copia.setAttribute("data-modo", "girada"),
   });
-  const modo = elegido ?? (montado ? modoGuardado() : "girada");
+  const modo = elegido ?? (montado ? modoDeEtiquetasGuardado() : "girada");
 
   // La guía va al lado del botón que imprime: quien se traba lo hace justo ahí, con el diálogo de impresión recién visto.
   // El número del botón cuenta hasta el nuevo cada vez que se sube, se baja o se quita algo.
   const imprimir = (
     <div className="flex flex-wrap items-center gap-2">
       <BotonGuiaImpresion />
-      <BotonImprimir peso="primario" disabled={total === 0 || enviando} onClick={mandar}>
+      <BotonImprimir
+        peso="primario"
+        disabled={total === 0 || enviando}
+        onClick={() => {
+          // Lo escrito en una fila no valió. El botón está arriba y la lista puede ser larga: el porqué sale también aquí.
+          if (escrita.frenar()) {
+            if (escrita.problema) avisar.aviso(escrita.problema);
+            return;
+          }
+          mandar();
+        }}
+      >
         {total === 0 ? (
           "Nada que imprimir"
         ) : enviando ? (
@@ -332,6 +339,7 @@ export function ImprimirEtiquetasPrecio({
                     columnaCantidad={encabezado.columnaCantidad}
                     saliendo={saliendo.has(e.varianteId)}
                     estilo={cascada()}
+                    escrita={escrita}
                     onTexto={(t) => cambiar(e.varianteId, t)}
                     onQuitar={(cuando) => quitar([e], cuando)}
                   />
@@ -351,6 +359,11 @@ export function ImprimirEtiquetasPrecio({
               )}
             </div>
           </Tabla>
+          {escrita.problema && (
+            <Aviso tono="error" chico>
+              {escrita.problema}
+            </Aviso>
+          )}
 
           {/* Una columna: la vista previa va aquí, justo después de la tabla. Dos columnas: a la derecha. */}
           {vistaPrevia && <div className="xl:hidden">{vistaPrevia}</div>}
@@ -375,7 +388,7 @@ export function ImprimirEtiquetasPrecio({
               </div>
             )}
           </div>
-          <p className="px-1 text-xs leading-relaxed text-taupe">
+          <p className="px-1 text-sm leading-relaxed text-taupe">
             {sinElDescuento
               ? "Salen con el precio normal, sin la campaña: no hace falta reimprimirlas cuando termine."
               : "Sale lo que la caja cobra hoy, con la campaña si hay una; cuando termine, reimprímelas desde la campaña."}{" "}
@@ -385,18 +398,7 @@ export function ImprimirEtiquetasPrecio({
         {vistaPrevia && <div className="hidden xl:block">{vistaPrevia}</div>}
       </div>
 
-      {montado &&
-        createPortal(
-          <div id="etiquetas-precio-print" data-modo={modo} aria-hidden>
-            {hoja.map((e, i) => (
-              // Cada etiqueta en su hoja del tamaño del corte: `globals.css` (.etq-hoja) la gira o la deja derecha según el modo.
-              <div key={i} className="etq-hoja">
-                <EtiquetaPrecio etiqueta={e} impreso={impreso} />
-              </div>
-            ))}
-          </div>,
-          document.body,
-        )}
+      {montado && <HojaEtiquetasPrecio hoja={hoja} impreso={impreso} modo={modo} />}
     </div>
   );
 }
@@ -443,6 +445,7 @@ function FilaEtiqueta({
   columnaCantidad,
   saliendo,
   estilo,
+  escrita,
   onTexto,
   onQuitar,
 }: {
@@ -452,6 +455,8 @@ function FilaEtiqueta({
   columnaCantidad: string;
   saliendo: boolean;
   estilo?: CSSProperties;
+  /** El borrador de lo que se teclea: vive en la pantalla, que dice por qué no valió y frena «Imprimir». */
+  escrita: CantidadEscrita;
   onTexto: (t: string) => void;
   onQuitar: (cuando: number) => void;
 }) {
@@ -512,23 +517,32 @@ function FilaEtiqueta({
               tabIndex={cambiado ? 0 : -1}
               aria-hidden={!cambiado}
               title={`${columnaCantidad}: ${e.cantidad}. Toca para volver a ese número.`}
-              onClick={() => onTexto(String(e.cantidad))}
+              onClick={() => {
+                escrita.olvidar();
+                onTexto(String(e.cantidad));
+              }}
             >
               de {e.cantidad}
             </button>
             <PasoCantidad
-              menos={{ onClick: () => onTexto(String(numero - 1)), deshabilitado: numero <= 0, etiqueta: `Una etiqueta menos de ${nombre}` }}
-              mas={{ onClick: () => onTexto(String(numero + 1)), deshabilitado: numero >= MAX_POR_PRENDA, etiqueta: `Una etiqueta más de ${nombre}` }}
-              campo={{
-                type: "number",
-                inputMode: "numeric",
-                min: 0,
-                max: MAX_POR_PRENDA,
-                value: texto,
-                onChange: (ev) => onTexto(ev.target.value),
-                onFocus: (ev) => ev.currentTarget.select(),
-                "aria-label": `Etiquetas de ${nombre}`,
+              tono={escrita.invalida(e.varianteId) ? "error" : undefined}
+              menos={{
+                onClick: () => {
+                  escrita.olvidar();
+                  onTexto(String(numero - 1));
+                },
+                deshabilitado: numero <= 0,
+                etiqueta: `Una etiqueta menos de ${nombre}`,
               }}
+              mas={{
+                onClick: () => {
+                  escrita.olvidar();
+                  onTexto(String(numero + 1));
+                },
+                deshabilitado: numero >= MAX_POR_PRENDA,
+                etiqueta: `Una etiqueta más de ${nombre}`,
+              }}
+              campo={{ ...escrita.campo(e.varianteId, texto, (t) => onTexto(textoEnLaCaja(t, MAX_POR_PRENDA)), MAX_POR_PRENDA), "aria-label": `Etiquetas de ${nombre}` }}
             />
             <button type="button" className="etq-tacho" aria-label={`Quitar ${nombre}`} title="Quitar esta fila" onClick={(ev) => onQuitar(ev.timeStamp)}>
               <Trash2 aria-hidden />

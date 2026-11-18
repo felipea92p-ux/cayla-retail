@@ -33,7 +33,7 @@ const [miembros, codigo, puntos, cupones, devoluciones, avisos, cambios, conserv
  * versión anterior hasta entonces; la cuenta registra la versión que aceptó). Las cifras (puntos por sol, lo que valen, el canje, la
  * compra mínima, los días del cupón y el regalo de cumpleaños) salen de la base, las mismas que usa la caja (`tienda_puntos_config`); si
  * la base no contesta, se dicen sin cifras. Cómo se lee (la letra, el índice fijo al costado, cada título con su número) es el de la
- * revisión «a nivel mundial» (2026-10-16).
+ * revisión «a nivel mundial» (2026-10-16). Sin el sello «Borrador: lo revisa el abogado» sobre el título (Felipe, 2026-11-07).
  */
 export default async function TerminosDelClub() {
   const c = await leerConfigDePuntosDelClub();
@@ -49,7 +49,6 @@ export default async function TerminosDelClub() {
         <article className="ay-legal">
           <EncabezadoAyuda
             apilado
-            sello={<span className="w-borrador">Borrador: lo revisa el abogado</span>}
             titulo={
               <>
                 Términos del <em>Club CAYLA</em>

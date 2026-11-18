@@ -1,30 +1,34 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
+import { Lock, Pencil, Plus, Trash2 } from "lucide-react";
 import { TONOS } from "@/components/MuestraEtiqueta";
 import { estiloConocido } from "@/lib/etiqueta-grupos";
 import { EtiquetasDeLaMatriz, ordenarEtiquetas, type EtiquetaMatriz } from "./EtiquetasDeLaMatriz";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
-import { ComboResponsable } from "@/components/ComboResponsable";
-import { CampoTexto, Desplegable } from "@/components/ui/campos";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { Aviso } from "@/components/ui/Aviso";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { avisar } from "@/components/ui/Avisos";
-import { limpiarCantidad, nivelMargen } from "@/lib/alta-producto";
-import { fondoDeMuestra } from "@/lib/colores-familias";
+import { nivelMargen } from "@/lib/alta-producto";
+import { fondoDeColor } from "@/components/ui/MuestraColor";
 import { limpiarPrecio } from "@/lib/tabla-alta-reglas";
 import { margenDeFila, textosCostoFijo, type CampoBloque, type FilaFicha } from "@/lib/variantes-ficha-reglas";
-import { armarMatriz, etiquetaCambiada, rangoDePrecios, totalesMatriz, type Hueco } from "@/lib/matriz-ficha-reglas";
-import { AYUDA_ENCONTRE_PRENDAS, notaSuficiente, type MotivoAjuste } from "@/lib/ajuste-reglas";
-import { ConMarca } from "./TiraFicha";
+import { anchoDeTallaPx, armarMatriz, etiquetaCambiada, rangoEnDosLineas, totalesMatriz, type Hueco } from "@/lib/matriz-ficha-reglas";
+import { cuentaDeLaTalla, fraseCostoPrenda } from "@/lib/costo-tallas-reglas";
+import { Ayuda } from "@/components/Ayuda";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import type { ContextoFicha } from "./piezas";
 import type { StockFicha } from "./useStockFicha";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
+import { tonosDeMezcla } from "@/lib/color-combinado";
 
 // La matriz color × talla de Editar producto, con el diseño de «Unidades de hoy» de Nuevo producto (`MatrizCantidades`, Felipe
-// 2026-10-02 noche): la misma tabla con cabecera, franja y punto del color, filas alternadas, la caja − N + por celda (que también
-// se escribe) y la fila «Total» fija abajo. Quien cargó la prenda en el alta reconoce la tabla al volver a editarla.
+// 2026-10-02 noche): la misma tabla con cabecera, franja y punto del color, filas alternadas y la fila «Total» fija abajo.
+// Desde el 2026-10-27 (ADR-0494, actividad 3) la pestaña «Unidades» es de SOLO LECTURA: cada número guardado lleva su candado y tocarlo abre
+// «Ajustar stock» (Existencias). Solo una variante nueva, sin guardar, lleva la caja − N + de sus unidades de partida.
 //
 // Lo que Editar tiene y el alta no, sigue aquí: la pestaña «Etiquetas» (Precios y Costos por celda también los tiene el alta desde el
 // 2026-10-10; aquí el costo sale solo si la cuenta lo ve, con el margen de cada talla debajo), «Cambiar en bloque» en Precios y Costos (`bloque`), la variante nueva marcada
@@ -48,8 +52,19 @@ export type BotonesDeColor = {
 
 export type VistaMatriz = "unidades" | CampoBloque | "etiquetas";
 
-/** El mínimo de cada talla: lo que pide la caja − N + (la más ancha de las cuatro pestañas). Igual en todas: no se corre nada. */
-const ANCHO_CELDA_PX = 80;
+/** En una terminal, la pestaña «Precios» escribe el precio de SU tienda (Felipe 2026-10-27: «que sea más simple, como en costos»).
+ *  Es uno para toda la prenda, así que todas las tallas guardadas muestran el mismo número y escribir en una lo cambia en todas. */
+export type PrecioAquiMatriz = {
+  sede: string;
+  /** Lo que se ve en la celda de una talla guardada: lo escrito o, sin tocar, el precio al que vende hoy la tienda. */
+  valor: (f: FilaFicha) => string;
+  /** Lo escrito cambia el precio de la tienda (se pinta en ámbar, como un costo cambiado). */
+  cambiado: boolean;
+  /** El precio al que vende hoy la tienda, para el «Antes» de la celda; null si cambia según la talla. */
+  antes: number | null;
+  onCambio: (escrito: string) => void;
+};
+
 /** La columna de la derecha (Total, Precio, Costo, Llevan). */
 const ANCHO_RESUMEN_PX = 60;
 /** La columna Color nunca baja de lo que pide un nombre corto con su lápiz y su tacho (la tabla se desliza antes de apretarla). */
@@ -62,13 +77,6 @@ function anchoColor(tallas: number): string {
 }
 const TITULO_RESUMEN: Record<VistaMatriz, string> = { unidades: "Total", precio: "Precio", costo: "Costo", etiquetas: "Llevan" };
 
-
-/** El borrador sin esa celda: al salir de ella vuelve a mostrar su número. */
-function sinClave(b: Record<string, string>, clave: string): Record<string, string> {
-  const salida = { ...b };
-  delete salida[clave];
-  return salida;
-}
 
 const texto = (n: string) => {
   const v = Number(n);
@@ -87,7 +95,7 @@ export function MatrizStockFicha({
   onElegirColor,
   onVerColor,
   onCambioFila,
-  onAbrirModal,
+  onAjustar,
   etiquetas,
   avisoEtiquetas,
   onEtiqueta,
@@ -95,7 +103,9 @@ export function MatrizStockFicha({
   onCorregirTalla,
   onQuitarTalla,
   huecos,
+  precioAqui = null,
   deshabilitado,
+  freno,
 }: {
   ctx: ContextoFicha;
   filas: FilaFicha[];
@@ -110,8 +120,8 @@ export function MatrizStockFicha({
   /** Al pasar el mouse por un color, el panel lo muestra (sin elegirlo). `undefined` = vuelve al elegido. */
   onVerColor: (c: string | null | undefined) => void;
   onCambioFila: (clave: string, cambio: Partial<Pick<FilaFicha, CampoBloque>>) => void;
-  /** Una talla que faltó en un conteo cerrado: el «+» abre el ajuste de siempre, que pregunta si es esa (ADR-0291). */
-  onAbrirModal: (color: string | null) => void;
+  /** El candado de una talla guardada: abre «Ajustar stock» (la puerta a Existencias, ADR-0494). `etiqueta` es «S · Blanco». */
+  onAjustar: (varianteId: string, etiqueta: string) => void;
   /** Las etiquetas que esta cuenta puede poner (sin las de descuento si no es líder). */
   etiquetas: readonly EtiquetaMatriz[];
   avisoEtiquetas?: string;
@@ -125,18 +135,31 @@ export function MatrizStockFicha({
   onQuitarTalla: (talla: string | null) => void;
   /** La celda «—» (esa combinación no se vende): qué pasaría al tocarla y cómo se agrega (`comoLlenarHueco`). */
   huecos: { como: (color: string | null, talla: string | null) => Hueco; onLlenar: (color: string | null, talla: string | null) => void };
+  /** En una terminal: el precio de su tienda se escribe en la tabla (`PrecioAquiMatriz`). */
+  precioAqui?: PrecioAquiMatriz | null;
   deshabilitado: boolean;
+  /** Para el botón que sigue de la pantalla (`useCantidadEscrita`): que no se lleve lo que acaba de rechazarse sin que se lea. */
+  freno?: Ref<() => boolean>;
 }) {
   const n = ctx.nombres;
   const m = armarMatriz(filas, n);
   const numero = (f: FilaFicha) => (f.id && f.guardada ? stock.numero(f.id) : stock.numeroNueva(f.clave));
   const totales = totalesMatriz(m, numero);
   const [tocadas, setTocadas] = useState<ReadonlySet<string>>(new Set());
+  // Las unidades de partida SE SELLAN al guardar (ADR-0494): la variante que era nueva y ya está guardada cambia su caja por el candado,
+  // con un destello de una sola vez. Se sabe porque en la pintada anterior su clave era de una fila sin guardar.
+  const eranNuevas = useRef<ReadonlySet<string>>(new Set());
+  const [selladas, setSelladas] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => {
+    const recien = filas.filter((f) => f.guardada && eranNuevas.current.has(f.clave)).map((f) => f.clave);
+    eranNuevas.current = new Set(filas.filter((f) => !f.guardada).map((f) => f.clave));
+    if (recien.length === 0) return;
+    setSelladas((a) => new Set([...a, ...recien]));
+    const t = window.setTimeout(() => setSelladas(new Set()), 1400);
+    return () => window.clearTimeout(t);
+  }, [filas]);
   // Lo que se está escribiendo en una celda de unidades (puede quedar vacío un instante); al salir, la celda vuelve a su número.
-  const [borrador, setBorrador] = useState<Record<string, string>>({});
-  // Celdas cuyo número escrito quedó bajo lo apartado. Se avisa al SALIR de la celda, no con cada tecla: al escribir «10» sobre una
-  // talla con 2 apartadas, la tecla «1» no es un error (revisión del 2026-10-03).
-  const bajoApartado = useRef(new Set<string>());
+  const escrita = useCantidadEscrita(undefined, freno);
   const relojes = useRef(new Map<string, number>());
   // La etiqueta que se está poniendo o quitando en la pestaña «Etiquetas». Si ya no se ofrece, la primera.
   const [etiquetaPedida, setEtiquetaPedida] = useState<string | null>(null);
@@ -150,7 +173,7 @@ export function MatrizStockFicha({
   function cambiarVista(v: VistaMatriz) {
     onVista(v);
     if (v !== "etiquetas" || vista === "etiquetas") return;
-    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const quieto = prefiereQuieto();
     window.setTimeout(() => raiz.current?.scrollIntoView({ behavior: quieto ? "auto" : "smooth", block: "start" }), 40);
   }
 
@@ -170,37 +193,13 @@ export function MatrizStockFicha({
     }
   }
 
+  /** Solo una variante NUEVA (sin guardar) lleva − y +: sus unidades de partida. Una guardada tiene candado (`celdaUnidades`). */
   function paso(f: FilaFicha, p: 1 | -1) {
-    if (f.id && f.guardada) {
-      const r = stock.paso(f.id, p);
-      if (r.abrirModal) return onAbrirModal(f.guardada.colorCodigo);
-    } else stock.pasoNueva(f.clave, p);
+    escrita.olvidar();
+    stock.pasoNueva(f.clave, p);
     destellar([f.clave]);
   }
 
-  function escribir(f: FilaFicha, valor: string) {
-    const limpio = limpiarCantidad(valor);
-    setBorrador((b) => ({ ...b, [f.clave]: limpio }));
-    bajoApartado.current.delete(f.clave);
-    if (limpio === "") return;
-    const objetivo = Number(limpio);
-    if (f.id && f.guardada) {
-      const r = stock.fijar(f.id, objetivo);
-      if (r.abrirModal) {
-        setBorrador((b) => sinClave(b, f.clave));
-        return onAbrirModal(f.guardada.colorCodigo);
-      }
-      if (r.rechazado) bajoApartado.current.add(f.clave);
-    } else stock.fijarNueva(f.clave, objetivo);
-  }
-
-  /** Al salir de la celda vuelve a su número; si lo escrito quedó bajo lo apartado, recién ahí se dice por qué no se tomó. */
-  function salirDeCelda(f: FilaFicha) {
-    if (bajoApartado.current.delete(f.clave)) avisar.error("Esa talla tiene unidades apartadas para clientes: no puede quedar en menos.");
-    setBorrador((b) => sinClave(b, f.clave));
-  }
-
-  const donde = stock.lugar === "piso" ? "en el piso de venta" : stock.lugar === "almacen" ? "en el almacén" : "en esta sede";
   const enUnidades = vista === "unidades";
   const enEtiquetas = vista === "etiquetas";
   // La columna de la derecha está en TODAS las pestañas (Felipe 2026-10-03: «debe estar todo en el mismo lugar»): si apareciera solo
@@ -208,31 +207,48 @@ export function MatrizStockFicha({
   const conColumnaTotal = m.tallas.length > 1;
   const conFilaTotal = enUnidades && m.colores.length > 1;
   const pestanas: [VistaMatriz, string][] = [
-    ["unidades", "Unidades de hoy"],
+    ["unidades", "Unidades"],
     ["precio", "Precios"],
     ...(ctx.veCosto ? ([["costo", "Costos"]] as [VistaMatriz, string][]) : []),
-    ["etiquetas", "Insignias y campañas"],
+    ["etiquetas", "Insignias"],
   ];
+  // Angosta, cada talla mide lo que pide el nombre más largo con su lápiz (80 px si son cortos): nada se sale de la cabecera.
+  const anchoTalla = anchoDeTallaPx(m.tallas.map((t) => n.talla(t) || "Única"));
   const nombreElegida = etiquetaElegida ? textoEtiqueta(etiquetaElegida) : null;
   // Todos los costos vienen de compras: en «Costos» no hay nada que escribir, ni de a una ni en bloque.
   const activas = filas.filter((f) => f.activo);
   const costosTodosFijos = activas.length > 0 && activas.every((f) => f.costoFijo);
+  // Una terminal no cambia el precio de la prenda (vale en todas las tiendas): en sus tallas guardadas escribe el de SU tienda
+  // (`precioAqui`), y «Cambiar en bloque» no sale (escribir en una talla ya las cambia todas).
+  const precioFijo = ctx.precioFijoEn != null;
 
-  /** Lo que dice la columna de la derecha en la fila de un color, según la pestaña. */
-  function resumenDeFila(c: string | null, delColor: readonly FilaFicha[]): string {
+  /** Lo que dice la columna de la derecha en la fila de un color, según la pestaña. Precio y costo, sin «S/» y en dos líneas si
+   *  varían («45» / «a 48»): la columna mide 60 px y «S/ 45–48» se cortaba (Short Sohanna, 2026-11-07). */
+  function resumenDeFila(c: string | null, delColor: readonly FilaFicha[]): ReactNode {
     if (enUnidades) return stock.cargando ? "…" : String(totales.porColor.get(c) || "");
     if (enEtiquetas) {
       if (!etiquetaElegida) return "";
       return `${delColor.filter((f) => f.etiquetaIds.includes(etiquetaElegida)).length}/${delColor.length}`;
     }
-    const montos = delColor.map((f) => Number(vista === "precio" ? f.precio : f.costo)).filter((x) => x > 0);
-    return montos.length > 0 ? rangoDePrecios(montos) : "—";
+    const montos = delColor
+      .map((f) => Number(vista === "precio" ? (precioAqui && f.guardada ? precioAqui.valor(f) : f.precio) : f.costo))
+      .filter((x) => x > 0);
+    if (montos.length === 0) return "—";
+    const r = rangoEnDosLineas(montos);
+    return (
+      <span className="flex flex-col leading-tight" title={r.hasta ? `De ${r.desde} ${r.hasta}` : undefined}>
+        <span>{r.desde}</span>
+        {r.hasta && <span>{r.hasta}</span>}
+      </span>
+    );
   }
+  // Costos (ADR-0631): cuánto cuesta hoy cada prenda, la misma cifra del Historial ▸ Costo. Sin compras, o sin permiso, no se dice.
+  const costoPrenda = ctx.costo?.prenda ? fraseCostoPrenda(ctx.costo.prenda) : null;
 
   if (m.colores.length === 0) return <p className="text-sm text-taupe">Esta prenda no tiene variantes activas. Agrega un color.</p>;
 
   return (
-    <div className="scroll-mt-20 space-y-2" ref={raiz}>
+    <div className="scroll-mt-4 space-y-2" ref={raiz}>
       {/* La misma tabla con otro dato a la vista: el segmento de modo del sistema (ADR-0358). Angosto, ocupa todo el ancho. */}
       <div data-guia="editar.vistas">
       <SegmentoDeslizante
@@ -241,23 +257,54 @@ export function MatrizStockFicha({
         valor={vista}
         onCambio={(v) => cambiarVista(v as VistaMatriz)}
         opciones={pestanas.map(([v, t]) => ({ clave: v, etiqueta: t, guia: `editar.vista-${v}` }))}
-        className="w-full @lg:w-auto [&>button]:flex-auto [&>button]:justify-center [&>button]:px-1.5 @lg:[&>button]:flex-none @lg:[&>button]:px-3"
+        // Las cuatro palabras tienen que caber DENTRO del pozo también en un celular chico: con 6 px de aire fijo por lado pedían 290 px
+        // y en una tarjeta de 316 (un teléfono de 350) «Insignias» se salía 8 px. Angosto, el aire mínimo es de 2 px y lo que sobra se
+        // reparte solo entre las cuatro (`flex-auto`): a 350 px quedan 20 px de holgura, por si la letra tarda en cargar. Bajo 300 px
+        // de tarjeta (un teléfono de 320) baja también el espaciado de las versalitas. Medido a 320, 350, 360 y 375 px de pantalla.
+        className="w-full @lg:w-auto [&>button]:min-w-0 [&>button]:flex-auto [&>button]:justify-center [&>button]:px-0.5 @max-[299px]:[&>button]:tracking-[0.06em] @lg:[&>button]:flex-none @lg:[&>button]:px-3"
       />
       </div>
 
       {/* Las bajadas apiladas en la misma celda de grid: la más larga fija el alto, y cambiar de pestaña no mueve la tabla (ADR-0185). */}
       <div className="grid text-[12.5px] text-taupe">
         <p className={`col-start-1 row-start-1 ${enUnidades ? "" : "invisible"}`} aria-hidden={!enUnidades}>
-          Lo que hay hoy {donde}.{stock.puedeAjustar ? " Toca − / + o escribe el número: se guarda con «Revisar y guardar»." : ""}{" "}
+          Lo que hay hoy en esta sede.{stock.puedeAjustar ? " Cada número tiene candado: tócalo para ajustar el stock en Existencias." : ""}{" "}
           <span className="text-tinta/45">—</span> = no existe: tócala para agregarla.
         </p>
         <p className={`col-start-1 row-start-1 ${vista === "precio" ? "" : "invisible"}`} aria-hidden={vista !== "precio"}>
-          Escribe el precio de cada talla, o cambia varias de una vez aquí abajo. Lo que cambió se ve en ámbar hasta guardarlo.
+          {precioFijo
+            ? precioAqui
+              ? `El precio al que se vende en ${precioAqui.sede}. Escríbelo en cualquier talla: vale para todas. Se guarda con «Revisar y guardar».`
+              : "El precio de la prenda vale en todas las tiendas: desde esta terminal se ve, no se cambia."
+            : "Escribe el precio de cada talla, o cambia varias de una vez aquí abajo. Lo que cambió se ve en ámbar hasta guardarlo."}
         </p>
-        <p className={`col-start-1 row-start-1 ${vista === "costo" ? "" : "invisible"}`} aria-hidden={vista !== "costo"}>
-          {costosTodosFijos ? "El costo de cada talla, con su margen debajo. " : "Escribe el costo de cada talla; debajo, el margen. "}
-          {filas.some((f) => f.activo && f.costoFijo) ? `${textosCostoFijo(ctx.costoSinComprobar).nota} Se ve sin caja.` : ""}
-        </p>
+        <div className={`col-start-1 row-start-1 space-y-1 ${vista === "costo" ? "" : "invisible"}`} aria-hidden={vista !== "costo"}>
+          {costoPrenda && (
+            // Una sola frase que corre (no piezas que se parten en renglones): la cifra, lo que la explica y el enlace al final.
+            <p data-guia="editar.costo-prenda" className="text-sm text-taupe">
+              {costoPrenda.cifra && (
+                <>
+                  <span className="text-tinta/80">Cada prenda te cuesta hoy </span>
+                  <span className="font-semibold tabular-nums text-tinta">{costoPrenda.cifra}</span>
+                  {" · "}
+                </>
+              )}
+              {costoPrenda.detalle}
+              {ctx.productoId && (
+                <>
+                  {" "}
+                  <EnlaceVer href={`/productos/${ctx.productoId}/historial?ver=costo`} className="ml-1 align-baseline">
+                    Ver la historia del costo
+                  </EnlaceVer>
+                </>
+              )}
+            </p>
+          )}
+          <p>
+            {costosTodosFijos ? "El costo de cada talla, con su margen debajo. " : "Escribe el costo de cada talla; debajo, el margen. "}
+            {filas.some((f) => f.activo && f.costoFijo) ? textosCostoFijo(ctx.costoSinComprobar).nota : ""}
+          </p>
+        </div>
         <p className={`col-start-1 row-start-1 ${enEtiquetas ? "" : "invisible"}`} aria-hidden={!enEtiquetas}>
           Elige una etiqueta abajo y toca cada talla para ponérsela o quitársela (✓ = la lleva), o ponla en todas. Se guarda con «Revisar y guardar».
         </p>
@@ -273,15 +320,15 @@ export function MatrizStockFicha({
       )}
 
       {/* Oculto en «Unidades de hoy», pero montado: un monto escrito y no aplicado no se pierde al cambiar de pestaña. */}
-      {bloque && <div hidden={enUnidades || enEtiquetas || (vista === "costo" && costosTodosFijos)}>{bloque}</div>}
+      {bloque && <div hidden={enUnidades || enEtiquetas || (vista === "costo" && costosTodosFijos) || (vista === "precio" && precioFijo)}>{bloque}</div>}
 
-      <div className="max-h-[520px] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
+      <div className="max-h-[min(520px,60dvh)] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
         {/* Columnas de ancho FIJO (table-fixed + colgroup): agregar un color de nombre largo («Gris perla · nueva») o cambiar de
             pestaña no corre las tallas. El color tiene su ancho y su nombre se corta con «…»; las tallas se reparten lo que queda,
             y en una pantalla angosta la tabla no se aprieta: se desliza de lado (el mínimo de abajo), con el color fijo a la izquierda. */}
         <table
           className="w-full table-fixed border-separate border-spacing-0 text-[13px]"
-          style={{ minWidth: ANCHO_COLOR_MIN_PX + m.tallas.length * ANCHO_CELDA_PX + (conColumnaTotal ? ANCHO_RESUMEN_PX : 0) }}
+          style={{ minWidth: ANCHO_COLOR_MIN_PX + m.tallas.length * anchoTalla + (conColumnaTotal ? ANCHO_RESUMEN_PX : 0) }}
           id="matriz-variantes"
         >
           {/* Desde `@lg` el color es una parte fija de la tabla (`anchoColor`). En una tarjeta angosta (celular) las tallas miden
@@ -290,7 +337,7 @@ export function MatrizStockFicha({
           <colgroup>
             <col className="@lg:w-(--ancho-color)" style={{ "--ancho-color": anchoColor(m.tallas.length) } as CSSProperties} />
             {m.tallas.map((t) => (
-              <col key={t ?? "sin-talla"} className="w-20 @lg:w-auto" />
+              <col key={t ?? "sin-talla"} className="w-(--ancho-talla) @lg:w-auto" style={{ "--ancho-talla": `${anchoTalla}px` } as CSSProperties} />
             ))}
             {conColumnaTotal && <col style={{ width: `${ANCHO_RESUMEN_PX}px` }} />}
           </colgroup>
@@ -309,9 +356,9 @@ export function MatrizStockFicha({
                 return (
                   <th key={t ?? "sin-talla"} scope="col" className="sticky top-0 z-[2] bg-hueso px-1 py-1.5 text-center text-xs font-semibold tabular-nums text-tinta @lg:px-1.5">
                     {/* El nombre (con su lápiz, si se puede corregir) y el tacho, como la fila de un color. En una columna angosta el tacho
-                        baja a una segunda línea en vez de empujar la tabla. */}
-                    <span className="inline-flex flex-wrap items-center justify-center gap-x-1 gap-y-0.5">
-                      <span className="inline-flex flex-col items-center leading-tight">
+                        baja a una segunda línea en vez de empujar la tabla, y un nombre que ni así cabe se corta con «…»: nada sale de la celda. */}
+                    <span className="flex flex-wrap items-center justify-center gap-x-1 gap-y-0.5">
+                      <span className="flex min-w-0 max-w-full flex-col items-center leading-tight">
                         {onCorregirTalla ? (
                           <button
                             type="button"
@@ -320,13 +367,15 @@ export function MatrizStockFicha({
                             data-guia="editar.corregir-talla"
                             title={`Corregir la talla ${nombreTalla}, si se registró mal`}
                             onClick={() => onCorregirTalla(t)}
-                            className="group inline-flex items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-0.5 transition-colors hover:bg-papel disabled:pointer-events-none"
+                            className="group inline-flex min-w-0 max-w-full items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-0.5 transition-colors hover:bg-papel disabled:pointer-events-none"
                           >
-                            {nombreTalla}
-                            <Pencil aria-hidden className="h-3 w-3 text-tinta/30 transition-colors group-hover:text-tinta/70" />
+                            <span className="min-w-0 truncate">{nombreTalla}</span>
+                            <Pencil aria-hidden className="h-3 w-3 shrink-0 text-tinta/30 transition-colors group-hover:text-tinta/70" />
                           </button>
                         ) : (
-                          <span className="whitespace-nowrap px-1.5 py-0.5">{nombreTalla}</span>
+                          <span className="max-w-full truncate px-1.5 py-0.5" title={nombreTalla}>
+                            {nombreTalla}
+                          </span>
                         )}
                         {tallaNueva && <span className="text-[9.5px] font-bold uppercase tracking-wide text-ambar-profundo">nueva</span>}
                       </span>
@@ -361,7 +410,7 @@ export function MatrizStockFicha({
               // La franja y la zebra de la tabla del alta (maqueta B de docs/maquetas/matriz-color-identificacion-2026-10/): no se
               // pierde la fila de vista al mirar de lejos, y el anillo interior hace legible incluso un blanco o un crema.
               const conZebra = i % 2 === 1;
-              const franja = color ? (fondoDeMuestra(color.hex, color.familiaColor, color.tipo) ?? "var(--color-sand)") : "var(--color-sand)";
+              const franja = color ? fondoDeColor(color.hex, color.familiaColor, color.tipo) : "var(--color-sand)";
               const fondoFila = conZebra ? "bg-hueso/40" : "bg-papel";
               return (
                 <tr key={c ?? "sin-color"} id={`matriz-color-${c ?? "sin-color"}`} className={esNuevo ? "taller-fila-nueva" : undefined}>
@@ -380,7 +429,7 @@ export function MatrizStockFicha({
                       onMouseLeave={() => onVerColor(undefined)}
                       className="-ml-1 flex min-w-0 items-center gap-1.5 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-hueso aria-pressed:bg-hueso"
                     >
-                      {color ? <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} /> : <Punto hex={null} />}
+                      {color ? <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} tonos={tonosDeMezcla(color, new Map(ctx.colores.map((x) => [x.codigo, x])))} /> : <Punto hex={null} />}
                       {/* «nueva» va DEBAJO del nombre: al lado le quitaba espacio y «Azul eléctrico» salía cortado. */}
                       <span className="flex min-w-0 flex-col leading-tight">
                         <span className="truncate" title={nombreColor}>
@@ -404,8 +453,13 @@ export function MatrizStockFicha({
                     const etiqueta = `${nombreColor} en ${n.talla(t) || "Única"}`;
                     return (
                       <td key={f.clave} className={`border-t border-sand p-0 ${fondoFila}`}>
+                        {/* En Costos la celda lleva dos pisos (la caja y su margen). Angosta, la fila crece lo que pidan: con el dedo la caja
+                            es más alta y el «52 %» se montaba sobre la fila de abajo (2026-11-17). Desde `@lg` caben en los 52 px de siempre,
+                            y cambiar de pestaña no mueve las filas. */}
                         <span
-                          className={`flex h-12 items-center justify-center px-0.5 @lg:h-[52px] ${vista === "costo" && ctx.veCosto ? "flex-col gap-px" : ""}`}
+                          className={`flex items-center justify-center px-0.5 ${
+                            vista === "costo" && ctx.veCosto ? "min-h-12 flex-col gap-0.5 py-1 @lg:h-[52px] @lg:gap-px @lg:py-0" : "h-12 @lg:h-[52px]"
+                          }`}
                         >
                           {enUnidades ? celdaUnidades(f, etiqueta) : enEtiquetas ? celdaEtiqueta(f, etiqueta) : celdaDinero(f, etiqueta, vista)}
                         </span>
@@ -442,6 +496,13 @@ export function MatrizStockFicha({
           )}
         </table>
       </div>
+
+      {/* También en las otras pestañas: si se esconde, el freno del botón detendría un clic sin decir por qué. */}
+      {escrita.problema && (
+        <Aviso tono="atencion" chico>
+          {escrita.problema}
+        </Aviso>
+      )}
 
       {enEtiquetas && (
         <EtiquetasDeLaMatriz
@@ -525,13 +586,14 @@ export function MatrizStockFicha({
     );
   }
 
-  /** La caja − N + de la celda: el stock de HOY en el lugar que se ajusta, más lo tocado (en ámbar hasta guardarlo). */
+  /** La celda de unidades. Una talla GUARDADA es un número con candado: tocarlo abre «Ajustar stock» (ADR-0494). Una variante NUEVA
+   *  lleva la caja − N + de sus unidades de partida: se escriben una sola vez, antes de guardar. */
   function celdaUnidades(f: FilaFicha, etiqueta: string) {
     const guardada = !!(f.id && f.guardada);
     const u = numero(f);
     // Mientras llega el stock de la base, «…»: un 0 de relleno se lee como «no hay nada» (Felipe, 2026-10-02).
     const esperando = guardada && stock.cargando;
-    // Sin «Ajustar stock» se ve el número, no la caja. Una variante nueva también: nace en 0 y no se le puede poner stock inicial
+    // Sin «Ajustar stock» se ve el número, sin candado ni caja. Una variante nueva también: nace en 0 y no se le puede poner stock inicial
     // (la carga es un ajuste: `cargarNuevas` no podría hacerla y se perdería en silencio).
     if (!stock.puedeAjustar) {
       return (
@@ -543,47 +605,63 @@ export function MatrizStockFicha({
         </span>
       );
     }
-    const antes = guardada ? stock.numeroGuardado(f.id!) : 0;
-    const cambiada = guardada ? u !== antes : u > 0;
-    const puedeBajar = guardada ? !esperando && stock.puedeBajar(f.id!) : u > 0;
-    // ADR-0328: con la carga inicial cerrada, una talla que nunca estuvo en la tienda suma solo con «Encontré prendas». Con otro
-    // motivo la celda queda quieta (sin cambios no hay nada que restar) y dice por qué; la línea bajo el motivo dice qué hacer.
-    const bloqueo = guardada ? stock.bloqueoDeSubida(f.id!) : stock.bloqueoNuevas;
-    const quieta = !!bloqueo && u === 0;
-    const valor = borrador[f.clave] ?? (esperando ? "" : String(u));
+    if (guardada) {
+      const abrir = () => onAjustar(f.id!, etiqueta);
+      return (
+        <PasoCantidad
+          tamano="celda"
+          sinTab
+          className="matriz-paso cursor-pointer"
+          data-candado="true"
+          data-sellada={selladas.has(f.clave) || undefined}
+          title="Tiene candado: el stock se ajusta en Existencias"
+          onClick={abrir}
+          menos={{ onClick: () => {}, bloqueado: true, etiqueta: `Ajustar stock de ${etiqueta}` }}
+          mas={{ onClick: () => {}, bloqueado: true, etiqueta: `Ajustar stock de ${etiqueta}` }}
+        >
+          <span className="inline-flex items-center justify-center gap-1">
+            {esperando ? "…" : u}
+            <Lock aria-hidden className="candado-sellado h-3 w-3 text-taupe" />
+          </span>
+        </PasoCantidad>
+      );
+    }
+    const invalida = escrita.invalida(f.clave);
     return (
       <PasoCantidad
         tamano="celda"
         sinTab
+        tono={invalida ? "error" : undefined}
         className="matriz-paso"
         data-tocada={tocadas.has(f.clave) || undefined}
-        data-cambiada={cambiada || undefined}
-        data-nueva={!guardada || undefined}
-        title={
-          bloqueo ??
-          (cambiada ? (guardada ? `Antes ${antes} · se guarda con «Revisar y guardar»` : "Entra como stock inicial al guardar") : undefined)
-        }
-        menos={{ onClick: () => paso(f, -1), deshabilitado: deshabilitado || !puedeBajar, etiqueta: `Restar a ${etiqueta}` }}
-        mas={{
-          onClick: () => paso(f, 1),
-          deshabilitado: deshabilitado || esperando || !!bloqueo,
-          etiqueta: bloqueo ? `Sumar a ${etiqueta}: ${bloqueo}` : `Sumar a ${etiqueta}`,
-        }}
+        data-cambiada={u > 0 || undefined}
+        data-nueva
+        title="Unidades de partida: entran como stock inicial al guardar. Después, el stock se ajusta en Existencias"
+        menos={{ onClick: () => paso(f, -1), deshabilitado: deshabilitado || u <= 0, etiqueta: `Restar a ${etiqueta}` }}
+        mas={{ onClick: () => paso(f, 1), deshabilitado, etiqueta: `Sumar a ${etiqueta}` }}
         campo={{
           type: "text",
           inputMode: "numeric",
           pattern: "[0-9]*",
-          maxLength: 4,
+          maxLength: 7,
           autoComplete: "off",
-          "aria-label": `Cuántas hay de ${etiqueta}`,
-          placeholder: esperando ? "…" : "0", // sugerir-fijo: una cantidad vacía es cero, sea cual sea la prenda
-          value: valor,
-          disabled: deshabilitado || esperando || quieta,
-          onChange: (e) => escribir(f, e.target.value),
-          onFocus: (e) => e.currentTarget.select(),
-          onBlur: () => salirDeCelda(f),
+          "aria-label": `Con cuántas unidades nace ${etiqueta}`,
+          "aria-invalid": invalida || undefined,
+          placeholder: "0", // sugerir-fijo: una cantidad vacía es cero, sea cual sea la prenda
+          value: escrita.texto(f.clave) ?? String(u),
+          disabled: deshabilitado,
+          // Vacía mientras se escribe no cambia el número: al salir de la celda vuelve a verse.
+          onChange: (e) =>
+            escrita.escribir(f.clave, e.target.value, String(u), (v) => {
+              if (v !== "") stock.fijarNueva(f.clave, Number(v));
+            }),
+          onFocus: (e) => {
+            escrita.empezar(f.clave, String(u));
+            e.currentTarget.select();
+          },
+          onBlur: () => escrita.terminar(f.clave),
           // El «0» de una celda vacía es un fantasma a propósito (25 %), como en Nuevo producto.
-          className: `@lg:w-9 placeholder:text-tinta/25 ${cambiada ? "text-ambar-profundo" : ""}`,
+          className: `@lg:w-9 placeholder:text-tinta/25 ${u > 0 ? "text-ambar-profundo" : ""}`,
         }}
       />
     );
@@ -633,11 +711,46 @@ export function MatrizStockFicha({
     const valor = campo === "precio" ? f.precio : f.costo;
     const antes = f.guardada ? (campo === "precio" ? f.guardada.precio : f.guardada.costo) : null;
     const cambiado = antes !== null && Number(antes) !== Number(valor);
+    if (campo === "precio" && precioFijo && f.guardada && precioAqui) {
+      const antesAqui = precioAqui.antes ?? Number(f.precio);
+      return (
+        <input
+          type="text"
+          inputMode="decimal"
+          autoComplete="off"
+          id={`producto-variante-${f.clave}-precio`}
+          aria-label={`Precio de ${etiqueta} en ${precioAqui.sede} (vale para todas las tallas)`}
+          value={precioAqui.valor(f)}
+          disabled={deshabilitado}
+          title={
+            precioAqui.cambiado
+              ? `Antes S/\u00a0${texto(String(antesAqui))} · vale para todas las tallas · se guarda con «Revisar y guardar»`
+              : `En ${precioAqui.sede} todas las tallas se venden a un mismo precio`
+          }
+          onChange={(e) => precioAqui.onCambio(limpiarPrecio(e.target.value))}
+          onFocus={(e) => e.currentTarget.select()}
+          className={`w-[58px] rounded-[7px] border border-borde-control bg-hueso px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none focus:border-taupe focus:bg-papel @lg:w-[66px] ${
+            precioAqui.cambiado ? "font-semibold text-ambar-profundo" : "text-tinta"
+          }`}
+        />
+      );
+    }
+    if (campo === "precio" && precioFijo && f.guardada) {
+      return (
+        <span className="px-1 text-[13px] tabular-nums text-tinta" title="El precio de la prenda vale en todas las tiendas: desde una terminal no se cambia">
+          {texto(valor)}
+        </span>
+      );
+    }
     if (campo === "costo" && f.costoFijo) {
+      // El «?» dice de dónde sale (ADR-0631): la última compra de la talla si su cuenta termina en este costo; si no (la base sin la
+      // función, sin permiso o algo lo movió después), el porqué en palabras. Nunca solo al pasar el mouse (ley 6 de /formidable).
+      const porque = (f.id ? cuentaDeLaTalla(ctx.costo?.tallas?.[f.id], Number(valor)) : null) ?? textosCostoFijo(ctx.costoSinComprobar).celda;
       return (
         <>
-          <span className="px-1 text-[13px] tabular-nums text-tinta/60" title={textosCostoFijo(ctx.costoSinComprobar).celda}>
+          <span className="px-1 text-[13px] tabular-nums text-tinta/60">
             {texto(valor)}
+            <Ayuda titulo={`Costo de ${etiqueta}`}>{porque}</Ayuda>
           </span>
           {margenBajo(f)}
         </>
@@ -664,66 +777,4 @@ export function MatrizStockFicha({
       </>
     );
   }
-}
-
-/** «Registrar los ajustes de stock de esta visita como [Conteo físico]» — el motivo, el lugar y quién, UNA vez por visita. */
-export function MotivoDeLaVisita({ stock, deshabilitado }: { stock: StockFicha; deshabilitado: boolean }) {
-  if (!stock.puedeAjustar) {
-    return <p className="mt-2.5 text-[12px] text-taupe">Tu rol ve el stock de cada talla; para ajustarlo hace falta el módulo «Ajustar stock».</p>;
-  }
-  return (
-    <div className="mt-2.5 space-y-2">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] text-taupe">
-        <span>Registrar los ajustes de stock de esta visita como</span>
-        <Desplegable<MotivoAjuste>
-          id="ficha-stock-motivo"
-          forma="cajaBaja"
-          className="w-auto min-w-[9.5rem]"
-          etiquetaAccesible="Motivo de los ajustes de stock"
-          valor={stock.motivo}
-          onValor={stock.cambiarMotivo}
-          opciones={stock.motivos}
-          deshabilitado={deshabilitado}
-        />
-        {stock.separaPisoAlmacen && (
-          <>
-            <span>en</span>
-            <Desplegable<"almacen" | "piso">
-              forma="cajaBaja"
-              className="w-auto min-w-[10rem]"
-              etiquetaAccesible="Dónde se ajusta el stock"
-              valor={stock.ubicado}
-              onValor={stock.cambiarUbicado}
-              opciones={[
-                { valor: "almacen", texto: "el almacén" },
-                { valor: "piso", texto: "el piso de venta" },
-              ]}
-              deshabilitado={deshabilitado || stock.hayPendientes}
-            />
-          </>
-        )}
-      </div>
-      {/* ADR-0328: «Encontré prendas» dice dónde estaban (la base la exige: 3 letras o más). Va junto al motivo que la pide, con su
-          marca de la guía: ✓ cuando ya alcanza, «falta» mientras no. Sin «Encontré prendas» no se ve ni se envía. */}
-      {stock.pideNota && (
-        <div className="max-w-sm">
-          <CampoTexto
-            id="ficha-stock-nota"
-            etiqueta={<ConMarca estado={notaSuficiente(stock.motivo, stock.nota) ? "hecho" : "falta"}>{stock.ayudaNota.etiqueta}</ConMarca>}
-            ayuda={AYUDA_ENCONTRE_PRENDAS}
-            value={stock.nota}
-            disabled={deshabilitado}
-            onChange={(e) => stock.cambiarNota(e.target.value)}
-            maxLength={200}
-            placeholder={stock.ayudaNota.placeholder}
-          />
-        </div>
-      )}
-      <div id="ficha-stock-responsable" className="max-w-sm">
-        <ComboResponsable control={stock.responsable} compacto deshabilitado={deshabilitado} />
-      </div>
-      {/* ADR-0328: hasta cuándo esta sede carga lo que ya tenía (o que ya se cerró), antes de tocar una talla nueva. */}
-      {stock.avisoCarga && <p className="text-[12px] text-taupe">{stock.avisoCarga}</p>}
-    </div>
-  );
 }

@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLAURE · Pendientes</title>
+<meta name="description" content="Todo lo que queda por decidir, pegar en producción y revisar de las cuentas con Claudia (ADR-0560).">
+<style>
+  :root {
+    --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0; --tinta: #1a1a18; --taupe: #805c4c;
+    --rojo: #b8412d; --rojo-p: #8b2a1f; --verde: #48603f; --ambar: #74501a; --pizarra: #4c5d6e; --borde: #96786a;
+    --verde-bg: #e4ecdf; --ambar-bg: #f3e8d3; --rojo-bg: #f4dcd6; --pizarra-bg: #dde5ed;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-tema="claro"]) {
+      --crema: #1c1a17; --papel: #26241f; --hueso: #33302a; --sand: #403b34; --tinta: #f5f0e8; --taupe: #c4a898;
+      --rojo: #e8806a; --rojo-p: #f0a090; --verde: #9ccb8d; --ambar: #e4b968; --pizarra: #a2b8cd; --borde: #8a7466;
+      --verde-bg: #2b3527; --ambar-bg: #3a2f1a; --rojo-bg: #3d2520; --pizarra-bg: #27313b;
+    }
+  }
+  :root[data-tema="oscuro"] {
+    --crema: #1c1a17; --papel: #26241f; --hueso: #33302a; --sand: #403b34; --tinta: #f5f0e8; --taupe: #c4a898;
+    --rojo: #e8806a; --rojo-p: #f0a090; --verde: #9ccb8d; --ambar: #e4b968; --pizarra: #a2b8cd; --borde: #8a7466;
+    --verde-bg: #2b3527; --ambar-bg: #3a2f1a; --rojo-bg: #3d2520; --pizarra-bg: #27313b;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--crema); color: var(--tinta); font: 15px/1.5 "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .serif { font-family: "EB Garamond", Georgia, "Times New Roman", serif; }
+  .pagina { max-width: 1180px; margin: 0 auto; padding: 32px 20px 96px; }
+  header .ojo { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); margin: 0 0 8px; }
+  header h1 { font-size: clamp(32px, 5vw, 52px); line-height: 1.05; margin: 0 0 12px; font-weight: 500; }
+  header p.sub { max-width: 66ch; color: var(--taupe); margin: 0; font-size: 16px; }
+  .barra { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 20px; }
+  .tema { margin-left: auto; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .chip { border: 1px solid var(--borde); background: transparent; border-radius: 999px; padding: 6px 14px; font-size: 13px; min-height: 36px; }
+  .chip[aria-pressed="true"] { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+  .chip:focus-visible, .caso summary:focus-visible, input:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+
+  .cifras { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 28px 0 8px; }
+  .cifra { background: var(--papel); border: 1px solid var(--sand); border-radius: 14px; padding: 16px 18px; }
+  .cifra b { display: block; font-size: 34px; line-height: 1; font-weight: 500; font-family: "EB Garamond", Georgia, serif; }
+  .cifra span { display: block; margin-top: 6px; color: var(--taupe); font-size: 13px; }
+  .cifra.dec b { color: var(--rojo-p); } .cifra.pro b { color: var(--ambar); } .cifra.tec b { color: var(--pizarra); } .cifra.ok b { color: var(--verde); }
+
+  h2 { font-size: 26px; font-weight: 500; margin: 44px 0 6px; font-family: "EB Garamond", Georgia, serif; }
+  h2 + p { color: var(--taupe); margin: 0 0 14px; max-width: 70ch; }
+
+  .pasos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+  .paso { background: var(--papel); border: 1px solid var(--sand); border-radius: 12px; padding: 10px 12px; font-size: 13px; position: relative; }
+  .paso b { display: block; font-size: 12px; color: var(--verde); letter-spacing: .04em; }
+  .paso small { color: var(--taupe); display: block; margin-top: 2px; word-break: break-all; }
+  .paso::after { content: "✓"; position: absolute; right: 10px; top: 8px; color: var(--verde); font-weight: 700; }
+
+  .lista { display: grid; gap: 10px; }
+  .caso { background: var(--papel); border: 1px solid var(--sand); border-left-width: 5px; border-radius: 12px; }
+  .caso[data-tipo="decision"] { border-left-color: var(--rojo); }
+  .caso[data-tipo="produccion"] { border-left-color: var(--ambar); }
+  .caso[data-tipo="tecnico"] { border-left-color: var(--pizarra); }
+  .caso[data-hecho="1"] { opacity: .6; }
+  .caso[data-hecho="1"] .titulo { text-decoration: line-through; }
+  .caso summary { list-style: none; display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 14px 16px; cursor: pointer; }
+  .caso summary::-webkit-details-marker { display: none; }
+  .caso summary::after { content: "›"; font-size: 22px; color: var(--taupe); transition: transform .2s; }
+  .caso[open] summary::after { transform: rotate(90deg); }
+  .check { width: 22px; height: 22px; accent-color: var(--verde); }
+  .titulo { font-weight: 600; }
+  .etq { display: inline-flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .pil { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 2px 9px; background: var(--hueso); color: var(--tinta); }
+  .pil.alta { background: var(--rojo-bg); color: var(--rojo-p); } .pil.media { background: var(--ambar-bg); color: var(--ambar); } .pil.baja { background: var(--pizarra-bg); color: var(--pizarra); }
+  .cuerpo { padding: 0 16px 16px 50px; display: grid; gap: 10px; }
+  .cuerpo dl { margin: 0; display: grid; grid-template-columns: 130px 1fr; gap: 6px 12px; }
+  .cuerpo dt { color: var(--taupe); font-size: 12px; letter-spacing: .05em; text-transform: uppercase; padding-top: 2px; }
+  .cuerpo dd { margin: 0; }
+  code { background: var(--hueso); padding: 1px 6px; border-radius: 6px; font-size: .88em; }
+
+  .orden { counter-reset: p; list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
+  .orden li { counter-increment: p; display: grid; grid-template-columns: 34px 1fr; gap: 12px; background: var(--papel); border: 1px solid var(--sand); border-radius: 12px; padding: 12px 14px; align-items: start; }
+  .orden li::before { content: counter(p); width: 28px; height: 28px; border-radius: 50%; background: var(--tinta); color: var(--crema); display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+  .orden li small { display: block; color: var(--taupe); }
+  .orden li.web::before { background: var(--rojo); color: #fff; }
+  .vacio { display: none; padding: 18px; border: 1px dashed var(--borde); border-radius: 12px; color: var(--taupe); }
+  .pie { margin-top: 56px; color: var(--taupe); font-size: 13px; }
+  @media (max-width: 760px) {
+    .cifras { grid-template-columns: repeat(2, 1fr); }
+    .cuerpo { padding-left: 16px; } .cuerpo dl { grid-template-columns: 1fr; }
+    .tema { margin-left: 0; }
+  }
+  @media print { .barra, .tema { display: none; } .caso { break-inside: avoid; } .caso .cuerpo { display: grid; } }
+</style>
+</head>
+<body>
+<div class="pagina">
+  <header>
+    <p class="ojo">CAYLA · ADR-0560 · actualizado el 29 de octubre de 2026</p>
+    <h1 class="serif">CLAURE: lo que queda por decidir, pegar y mirar</h1>
+    <p class="sub">Las 16 actividades vigentes están construidas y probadas (la 15 se retiró: ya la hace tu ADR-0558), también sobre una copia de la base de <code>main</code> con la 0558 puesta. <b>El SQL ya está en producción</b> (las 17 migraciones, pegadas el 29-oct con tu OK); <b>la web no está publicada y no se abrió ningún PR</b>: lo que sigue es tuyo. Marca lo que vayas cerrando; el tablero lo recuerda en este navegador.</p>
+    <div class="barra" role="group" aria-label="Filtros">
+      <button class="chip" data-filtro="todo" aria-pressed="true">Todo</button>
+      <button class="chip" data-filtro="decision" aria-pressed="false">Decisiones tuyas</button>
+      <button class="chip" data-filtro="produccion" aria-pressed="false">Producción</button>
+      <button class="chip" data-filtro="tecnico" aria-pressed="false">Técnico</button>
+      <button class="chip" data-filtro="abiertos" aria-pressed="false">Solo abiertos</button>
+      <button class="chip tema" id="tema" aria-label="Cambiar entre tema claro y oscuro">Tema</button>
+    </div>
+  </header>
+
+  <section class="cifras" aria-label="Resumen">
+    <div class="cifra dec"><b id="n-dec">0</b><span>decisiones o validaciones tuyas abiertas</span></div>
+    <div class="cifra pro"><b id="n-pro">0</b><span>pasos de producción</span></div>
+    <div class="cifra tec"><b id="n-tec">0</b><span>pendientes técnicos</span></div>
+    <div class="cifra ok"><b>16 de 16</b><span>actividades vigentes, probadas sobre main</span></div>
+  </section>
+
+  <h2>Lo construido</h2>
+  <p>Un commit por actividad (la 14 y la 15 van juntas), en la rama <code>claude/reverent-mcclintock-755f41</code>.</p>
+  <ol class="pasos">
+    <li class="paso"><b>1 · La cuenta</b>pestaña CLAURE<small>7814315c6</small></li>
+    <li class="paso"><b>2 · Pagar</b>pago a Claudia<small>01fc850bd</small></li>
+    <li class="paso"><b>3 · Cierre</b>aviso en Caja<small>e0eeb4af8</small></li>
+    <li class="paso"><b>4 · Disponible</b>lo real en cuentas<small>8ab4df374</small></li>
+    <li class="paso"><b>5 · Finanzas</b>fuera de las cifras<small>2ddc3bb17</small></li>
+    <li class="paso"><b>6a · Inicio</b>y Observatorio<small>aa6abc78d</small></li>
+    <li class="paso"><b>6b · Rendimiento</b>metas y Comercial<small>7acf962fd</small></li>
+    <li class="paso"><b>6c · Club</b>y clientes<small>a3d9eac17</small></li>
+    <li class="paso"><b>6d · Análisis</b>y motores<small>f43335f12</small></li>
+    <li class="paso"><b>7 · Apartados</b>y pedidos web<small>16326e26d</small></li>
+    <li class="paso"><b>8 · Gastos</b>por empresa<small>2e1892ff1</small></li>
+    <li class="paso"><b>9 · Cierre</b>ADR, caos y tablero<small>2b39a2816</small></li>
+    <li class="paso"><b>10 · IGV</b>se le descuenta<small>cc79735eb</small></li>
+    <li class="paso"><b>11 · Efectivo</b>«Se queda con Claudia»<small>95028c305</small></li>
+    <li class="paso"><b>12 · Servicios</b>agua, internet, baño 100 %<small>0c54b0af3</small></li>
+    <li class="paso"><b>13 · Cambios</b>la plata sigue a la prenda<small>e57168629</small></li>
+    <li class="paso"><b>14 · Pérdidas</b>y dañadas por dueño<small>d7853738c</small></li>
+    <li class="paso"><b>15 · Balance</b>retirada: ya la hace la 0558<small>d7853738c</small></li>
+    <li class="paso"><b>16 · ¿Me alcanza?</b>sin la plata de Claudia<small>a8fac8343</small></li>
+    <li class="paso"><b>17 · Porcentajes</b>pantalla en Configuración<small>1ecd0e212</small></li>
+    <li class="paso"><b>+ Motor</b>demanda, con cifra<small>a8facd1af</small></li>
+  </ol>
+
+  <h2>Cómo pegarlo en producción</h2>
+  <p>Solo con tu OK. Cada paso es una ejecución aparte en el SQL Editor y todas van <b>antes</b> de la web. Los pasos con reemplazos anclados <b>abortan sin cambiar nada</b> si la función de producción no tiene el texto esperado y dicen cuál: no pude leer los textos vivos, así que ese aborto es el aviso.</p>
+  <ol class="orden">
+    <li><div><b>20261029004000</b> · la cuenta con CLAURE<small>Columnas nuevas y funciones propias.</small></div></li>
+    <li><div><b>20261029011000</b> · pagar a CLAURE<small>4 reemplazos anclados.</small></div></li>
+    <li><div><b>20261029013000</b> · aviso en el cierre de caja<small>Función nueva.</small></div></li>
+    <li><div><b>20261029020000</b> · Finanzas fuera de las cifras<small>1 reemplazo anclado y un enganche condicional. <b>Reemplaza la <code>fn_asientos_claure</code> de la 0558</b> (misma firma): desde aquí la deuda es lo cobrado, en la 479.</small></div></li>
+    <li><div><b>20261029023000</b> · Inicio y Observatorio<small>2 reemplazos anclados; define la regla común.</small></div></li>
+    <li><div><b>20261029030000</b> · Rendimiento, metas y Comercial<small>11 reemplazos anclados.</small></div></li>
+    <li><div><b>20261029035000</b> · Club y ficha del cliente<small>5 reemplazos anclados.</small></div></li>
+    <li><div><b>20261029041000</b> · Análisis y motores<small>20 reemplazos en 13 funciones: la que más probabilidad tiene de abortar.</small></div></li>
+    <li><div><b>20261029043000</b> · apartados y pedidos web<small>Una función propia.</small></div></li>
+    <li><div><b>20261029044000</b> · gastos por empresa<small>Una tabla, dos categorías y reemplazos. Antes que la web.</small></div></li>
+    <li><div><b>20261029142000</b> · el IGV se le descuenta<small>5 reemplazos sobre el cierre. Si ya pegaste 144000, esta no se repega.</small></div></li>
+    <li><div><b>20261029144000</b> · «Se queda con Claudia»<small>Un <code>alter table</code> y 11 reemplazos sobre el cierre de caja, el libro, el flujo y el Diario: la más delicada junto con la 041000.</small></div></li>
+    <li><div><b>20261029153000</b> · servicios 100 %<small>Solo datos. Antes que la web (Gasto rápido manda «Luz» a su categoría).</small></div></li>
+    <li><div><b>20261029154000</b> · pérdidas y dañadas por dueño<small>6 reemplazos sobre Pérdidas, calidad, el Diario y el Estado de resultados.</small></div></li>
+    <li><div><b>20261029160000</b> · «¿Me alcanza?» sin su plata<small>3 reemplazos sobre la proyección de caja.</small></div></li>
+    <li><div><b>20261029161000</b> · pantalla de porcentajes<small>Una columna y dos funciones. Antes que la web (la pestaña las llama).</small></div></li>
+    <li><div><b>20261029162000</b> · los cambios con prendas de CLAURE<small>6 reemplazos sobre la cuenta, el cierre y el Diario.</small></div></li>
+    <li class="web"><div><b>La web</b> (Vercel, al fusionar) <small>Después de las 17: Gasto rápido manda «bolsas», «limpieza» y «Luz» a sus categorías, y Configuración llama a las funciones del reparto.</small></div></li>
+  </ol>
+
+  <h2>Lo que queda abierto</h2>
+  <p>Toca un caso para ver por qué importa, qué hace el sistema hoy y qué hace falta.</p>
+  <div class="lista" id="lista"></div>
+  <p class="vacio" id="vacio">No hay nada con ese filtro.</p>
+
+  <p class="pie">Detalle y decisiones: <code>docs/adr/0560-cuentas-con-claudia.md</code> y <code>docs/backlog/2026-10-28-reverent-mcclintock-755f41.md</code>.</p>
+</div>
+
+<script>
+const CASOS = [
+  {
+    "id": "d0",
+    "tipo": "decision",
+    "prio": "alta",
+    "titulo": "Tu ADR-0558 y esta rama: resuelto, manda lo cobrado; mira qué cambia en octubre",
+    "por": "La 0558 (consignación a costo, cuenta 4699) <b>sí está pegada en producción</b>; lo revisé en solo lectura. Esta rama dice que se le debe lo cobrado sin IGV ni comisión, en la 479. Las dos definen <code>fn_asientos_claure</code>: la que se pega última gana, y la cadena de CLAURE va después.",
+    "hoy": "Listo en el código: las 17 migraciones se aplican limpias sobre una copia de main con la 0558, retiré la actividad 15 (la 0558 ya saca el stock de CLAURE del Balance; restarlo otra vez lo descontaría dos veces) y la 4699 queda sin movimiento. Las 18 suites de CLAURE y la del Balance (16/16) pasan; en producción no hay meses cerrados, y CLAURE tiene 6 líneas vendidas, todas desde el 24-oct.",
+    "falta": "Tu OK para pegar. Dos cosas que cambian y que quiero que sepas: (1) las 6 líneas de octubre pasan de la 4699 (a costo) a la 479 (lo cobrado); (2) una pérdida de prenda de CLAURE ya no la responde CAYLA (la 0558 la dejaba como gasto de CAYLA y deuda con CLAURE; tú lo decidiste así en la actividad 14). Si prefieres el criterio de la 0558 para las pérdidas, dímelo."
+  },
+  {
+    "id": "d1",
+    "tipo": "decision",
+    "prio": "alta",
+    "titulo": "Validar con el contador que el IGV se le descuente a Claudia",
+    "por": "Decidiste que se le descuente: la boleta sale con el RUC de CAYLA, que declara y paga ese IGV. Ahora lo que se le debe es lo cobrado sin IGV, igual que la cuenta 479 del Diario.",
+    "hoy": "Está construido y probado: la pestaña CLAURE, el aviso del cierre, el Resumen y la proyección restan el IGV.",
+    "falta": "El visto del contador, y avisarle a Claudia que recibe menos de lo que cobró (en el ejemplo, S/ 36 de S/ 295)."
+  },
+  {
+    "id": "d2",
+    "tipo": "decision",
+    "prio": "media",
+    "titulo": "La cuenta 479 sigue siendo provisional",
+    "por": "«Otras cuentas por pagar — relacionadas» es mi propuesta; la dejaste hasta que la valide el contador.",
+    "hoy": "Todo lo que se le debe a Claudia se asienta en la 479; cambiarla es una línea del Diario (los meses ya cerrados conservan la vieja).",
+    "falta": "Que el contador diga la cuenta definitiva."
+  },
+  {
+    "id": "d3",
+    "tipo": "decision",
+    "prio": "media",
+    "titulo": "Los «Luz» anotados antes en servicios básicos ahora cuentan 100 % de CLAURE",
+    "por": "La luz volvió a su categoría (50/50) y agua, internet y baño van 100 % a CLAURE. Un «Luz» que Gasto rápido anotó en servicios básicos desde el 23-oct hoy cuenta como 100 % de CLAURE en vez de 50 %.",
+    "hoy": "No se tocó ningún gasto ya registrado.",
+    "falta": "Decidir si los de «Luz» desde el 23-oct se pasan uno a uno a la categoría <code>luz</code> (yo te muestro la lista y tú apruebas)."
+  },
+  {
+    "id": "d4",
+    "tipo": "decision",
+    "prio": "baja",
+    "titulo": "La meta de Lima para CAYLA sola la cargas tú",
+    "por": "El Inicio y Rendimiento comparan lo de CAYLA contra la meta de toda la sede, así que Lima parece vender menos.",
+    "hoy": "La meta no se tocó.",
+    "falta": "Cargar la que corresponda en Configuración ▸ Tiendas y caja, cuando quieras."
+  },
+  {
+    "id": "d5",
+    "tipo": "decision",
+    "prio": "baja",
+    "titulo": "«¿Me alcanza?» resta lo que se le debe HOY, no lo que se le deberá",
+    "por": "La proyección parte de lo que hay menos lo que se le debe a Claudia, pero sus cobros esperados (lo que CLAURE venderá) siguen entrando como cobros futuros de CAYLA.",
+    "hoy": "El Flujo real y las cuentas no restan nada, a propósito (deben cuadrar con los saldos).",
+    "falta": "Decidir si los cobros futuros también se separan por dueño."
+  },
+  {
+    "id": "d6",
+    "tipo": "decision",
+    "prio": "baja",
+    "titulo": "Las pérdidas en traslados entre sedes siguen sumando prendas de CLAURE",
+    "por": "Un traslado no dice de quién era lo que se perdió en el camino, así que no se pudo separar.",
+    "hoy": "Pérdidas por movimiento, anulaciones, la calidad de dañadas, el Diario y el Balance sí están separados.",
+    "falta": "Decidir cómo atribuirlas (por ejemplo, por el dueño de cada prenda trasladada)."
+  },
+  {
+    "id": "d7",
+    "tipo": "decision",
+    "prio": "baja",
+    "titulo": "Un cambio no reasigna el costo ni la comisión del POS",
+    "por": "La plata de un cambio sí sigue a la prenda (deuda y Diario), pero el costo de la prenda se sigue ajustando solo por la diferencia, y la comisión del POS no se reparte entre el dueño viejo y el nuevo.",
+    "hoy": "Es lo que el sistema ya hacía con los cambios.",
+    "falta": "Decidir si hace falta (un apartado cambiado tampoco entra en la proporción pagada)."
+  },
+  {
+    "id": "d8",
+    "tipo": "decision",
+    "prio": "baja",
+    "titulo": "Cambiar un porcentaje de reparto cambia también lo de antes",
+    "por": "La parte de CLAURE de un gasto se calcula al leerlo, con el porcentaje de hoy.",
+    "hoy": "La pantalla lo dice. Cada cambio queda en la historia con quién lo hizo.",
+    "falta": "Si quieres congelar el reparto de cada mes cerrado, habría que guardarlo con el gasto."
+  },
+  {
+    "id": "p1",
+    "tipo": "produccion",
+    "prio": "baja",
+    "titulo": "Las 17 migraciones ya están en producción (hecho el 29-oct)",
+    "por": "Las pegué con tu OK, en orden y una por una; ninguna abortó, ni siquiera las de reemplazos anclados (la 041000 y la 144000).",
+    "hoy": "Comprobado en solo lectura: el Diario reclasifica las 5 ventas de CLAURE (20 líneas, cuadradas a 0,00), la 4699 quedó sin líneas, y la pantalla dice que se le debe S/ 246,69. La 479 muestra S/ 279,66 porque incluye el efectivo que ya tiene Claudia.",
+    "falta": "Nada del SQL. Faltan el PR de la web, refrescar el diccionario de datos y mirar el Balance cuando se carguen los saldos de arranque."
+  },
+  {
+    "id": "p2",
+    "tipo": "produccion",
+    "prio": "alta",
+    "titulo": "La web va después de todo el SQL",
+    "por": "Gasto rápido manda «bolsas», «limpieza» y «Luz» a sus categorías, y Configuración llama a las funciones del reparto: sin las migraciones 044000, 153000 y 161000, fallan.",
+    "hoy": "Las 17 migraciones están en producción desde el 29-oct.",
+    "falta": "El SQL ya está pegado: la web puede fusionarse cuando abras el PR."
+  },
+  {
+    "id": "p3",
+    "tipo": "produccion",
+    "prio": "media",
+    "titulo": "Qué mirar justo después de pegar",
+    "por": "La mayoría de las pruebas usan datos inventados.",
+    "hoy": "—",
+    "falta": "Cuenta y dinero ▸ CLAURE (el saldo), el Balance (la mercadería de Lima baja lo que valen las prendas de CLAURE y la tabla de causas no se descuadra), Reportes ▸ Estado de resultados y un cierre de caja de Lima."
+  },
+  {
+    "id": "p4",
+    "tipo": "produccion",
+    "prio": "media",
+    "titulo": "Refrescar el diccionario de la base",
+    "por": "Una migración no está terminada hasta que su tabla está en el diccionario.",
+    "hoy": "No se pudo: depende de pegar antes en producción.",
+    "falta": "<code>pnpm datos:generar:produccion</code> y <code>pnpm datos:comparar</code> después de pegar."
+  },
+  {
+    "id": "p5",
+    "tipo": "produccion",
+    "prio": "alta",
+    "titulo": "Abrir el PR con /abrir-pr",
+    "por": "El repo es público y subir la rama publica el trabajo. No lo hice sin tu orden.",
+    "hoy": "La rama está solo en esta máquina.",
+    "falta": "Que digas «abre el PR»; el choque con main ya está resuelto en el código (la tarjeta de arriba). Después: trae main, revisa las reservas (los 18 números ya son de esta rama; el de la retirada queda sin archivo) y busca choques."
+  },
+  {
+    "id": "t1",
+    "tipo": "tecnico",
+    "prio": "media",
+    "titulo": "Las pruebas de la base local que ya fallaban",
+    "por": "Salieron al correr las suites (plan de compra, estado de resultados, arreglos en vivo, club…) y fallan igual sin este trabajo.",
+    "hoy": "Una sesión aparte («Ordenar las pruebas de Postgres que ya fallaban») las está ordenando en su propia rama y con una base aislada; terminó su primer turno sin tocar la base compartida.",
+    "falta": "Su reporte (qué quedó en verde, qué migraciones nuevas pide pegar) y su PR, cuando tú lo pidas."
+  },
+  {
+    "id": "t2",
+    "tipo": "tecnico",
+    "prio": "baja",
+    "titulo": "Tres motores siguen sin escena con cifra",
+    "por": "El motor de demanda ya se prueba con cifra. <code>fn_plan_compra</code> (necesita una campaña con su plan), <code>fn_frescura_decisiones</code> (necesita decisiones de rebaja anteriores) y la vitrina (necesita el catálogo publicado) no.",
+    "hoy": "Su parche es la misma línea de siempre y lo cubre el chequeo final de la migración.",
+    "falta": "Armar sus escenas, que es más grande que el cambio."
+  },
+  {
+    "id": "t3",
+    "tipo": "tecnico",
+    "prio": "media",
+    "titulo": "Qué se miró en pantalla y qué no",
+    "por": "Las cifras salen de pruebas de Postgres; las pantallas se vieron en el navegador con datos temporales ya retirados.",
+    "hoy": "Vistas: la pestaña CLAURE (claro, oscuro, 375 px), el Resumen, el Inicio, Configuración ▸ Gastos con CLAURE (claro y oscuro, guardando y revirtiendo), el modal de cierre con «Se queda con Claudia» (su vista previa, sin confirmar), y las guías de CLAURE y de Configuración. <b>No se vio</b> el paso 3 del cierre de caja, Rendimiento y Comercial con cifras de CLAURE, ni la pestaña de porcentajes a 375 px.",
+    "falta": "Una pasada tuya por Dónde está ▸ CLAURE, un cierre de caja de Lima, Configuración y Reportes con datos reales."
+  },
+  {
+    "id": "t4",
+    "tipo": "tecnico",
+    "prio": "media",
+    "titulo": "Caos: se corrió a nivel de base, no en el navegador",
+    "por": "Dieciséis sesiones a la vez sobre el reparto (diez cambios válidos y seis hostiles), dos cierres simultáneos de la misma caja con «Se queda con Claudia», y tres pagos con el mismo token y con tokens distintos.",
+    "hoy": "Encontró UN defecto, ya arreglado: dos personas cambiando la misma categoría a la vez rompían la cadena «antes → después» de la historia (ahora se hacen en fila). Lo demás se portó bien: un solo cierre pasa y el otro dice «ya está cerrada», el mismo token no duplica el pago y los valores hostiles se rechazan. 0 violaciones nuevas en las invariantes.",
+    "falta": "No se corrieron los ataques del navegador (doble clic, recargar a mitad, dos pestañas, red caída, teclado, celular) ni los 69 del catálogo."
+  },
+  {
+    "id": "t5",
+    "tipo": "tecnico",
+    "prio": "baja",
+    "titulo": "Tres invariantes de la base local siguen rojas desde antes del 23-oct",
+    "por": "INV-09 (una venta de prueba del 6-oct sin pagos que no cuadra en el Diario), INV-10 (8 movimientos de octubre sin responsable) e INV-11 (10 sospechas de doble cobro).",
+    "hoy": "Sin relación con CLAURE; las otras 20 están en verde.",
+    "falta": "Revisarlas aparte."
+  },
+  {
+    "id": "t6",
+    "tipo": "tecnico",
+    "prio": "baja",
+    "titulo": "El aviso «cambios por revisar» ya casi no se usa",
+    "por": "Ahora todos los cambios con prendas de CLAURE cuentan, así que ese aviso de la pestaña no se dibuja nunca.",
+    "hoy": "Se dejó el código por si una fila llega sin contar.",
+    "falta": "Quitarlo si prefieres menos código."
+  }
+];
+
+const KEY = "cayla-claure-pendientes";
+let hechos = {};
+try { hechos = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { hechos = {}; }
+const guardar = () => { try { localStorage.setItem(KEY, JSON.stringify(hechos)); } catch (e) {} };
+const PRIO = { alta: "Alta", media: "Media", baja: "Baja" };
+const TIPO = { decision: "Decisión tuya", produccion: "Producción", tecnico: "Técnico" };
+let filtro = "todo";
+
+function pinta() {
+  const lista = document.getElementById("lista");
+  lista.innerHTML = "";
+  let visibles = 0;
+  for (const c of CASOS) {
+    const hecho = !!hechos[c.id];
+    if (filtro === "abiertos" ? hecho : (filtro !== "todo" && c.tipo !== filtro)) continue;
+    visibles++;
+    const d = document.createElement("details");
+    d.className = "caso"; d.dataset.tipo = c.tipo; d.dataset.hecho = hecho ? "1" : "0";
+    d.innerHTML = `<summary><input type="checkbox" class="check" aria-label="Marcar como cerrado" ${hecho ? "checked" : ""}>
+      <div><span class="titulo">${c.titulo}</span><div class="etq"><span class="pil ${c.prio}">${PRIO[c.prio]}</span><span class="pil">${TIPO[c.tipo]}</span></div></div></summary>
+      <div class="cuerpo"><dl><dt>Por qué importa</dt><dd>${c.por}</dd><dt>Hoy el sistema</dt><dd>${c.hoy}</dd><dt>Qué hace falta</dt><dd>${c.falta}</dd></dl></div>`;
+    const cb = d.querySelector(".check");
+    cb.addEventListener("click", (e) => e.stopPropagation());
+    cb.addEventListener("change", () => { if (cb.checked) hechos[c.id] = 1; else delete hechos[c.id]; guardar(); pinta(); resumen(); });
+    lista.appendChild(d);
+  }
+  document.getElementById("vacio").style.display = visibles ? "none" : "block";
+}
+function resumen() {
+  const abiertos = (t) => CASOS.filter((c) => c.tipo === t && !hechos[c.id]).length;
+  document.getElementById("n-dec").textContent = abiertos("decision");
+  document.getElementById("n-pro").textContent = abiertos("produccion");
+  document.getElementById("n-tec").textContent = abiertos("tecnico");
+}
+document.querySelectorAll(".chip[data-filtro]").forEach((b) => b.addEventListener("click", () => {
+  filtro = b.dataset.filtro;
+  document.querySelectorAll(".chip[data-filtro]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  pinta();
+}));
+document.getElementById("tema").addEventListener("click", () => {
+  const r = document.documentElement;
+  const oscuro = getComputedStyle(r).getPropertyValue("--crema").trim() === "#1c1a17";
+  r.dataset.tema = oscuro ? "claro" : "oscuro";
+});
+pinta(); resumen();
+</script>
+</body>
+</html>

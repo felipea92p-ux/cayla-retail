@@ -82,7 +82,7 @@ export function AgregarLook({
       {conBoton && (
         <button className="t-btn t-btn-ancho" type="button" aria-haspopup="dialog" onClick={abrir}>
           <Icono nombre="bolsa" />
-          Agregar el look a mi bolsa
+          Agregar el outfit a mi bolsa
         </button>
       )}
       {/* `<dialog>` con showModal: el navegador atrapa el foco, cierra con Escape y deja inerte lo de atrás. Tocar el velo también cierra. */}

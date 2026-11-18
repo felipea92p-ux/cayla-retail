@@ -168,6 +168,39 @@
     .cmp-fila:hover .cmp-total { transform: translateX(-2px); }
   }
 
+  /* ---------- La fila apilada (auditoría al milímetro, 2026-11-12) ---------- */
+  /* Bajo el corte de la tabla (880 px de TABLA, no de ventana: tabla-corte.css, ADR-0610 act.) la fila pasaba a un dato por
+     renglón: 10 renglones por factura a 1024 px con el lateral abierto, y el Total abajo, a la izquierda y sin su título. Esta es
+     su cara propia: proveedor con el Total (y su título) a la derecha; debajo, fecha y documento lado a lado; al final, los dos
+     estados (uno bajo el otro si la tabla no llega a 560 px, o sus chips se pisan). El corte no cambia, solo cómo se ve la fila.
+     Gana sobre el `!important` de tabla-corte.css porque esta capa (`components`) es una capa y aquel no: entre `!important`,
+     lo que está en una capa le gana a lo que no. */
+  @container tabla (max-width: 879.98px) {
+    .cmp-fila.tabla-corte-880 {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto !important;
+      grid-template-areas: "proveedor proveedor total" "emision documento documento" "recepcion pago pago";
+      /* `!important` también aquí: `gap-y-1` y `sm:items-baseline` de la fila son utilidades, que van en una capa posterior. */
+      row-gap: 8px !important;
+      align-items: start !important;
+    }
+    .cmp-fila .cmp-c-emision { grid-area: emision; }
+    .cmp-fila .cmp-c-proveedor { grid-area: proveedor; }
+    .cmp-fila .cmp-c-documento { grid-area: documento; }
+    .cmp-fila .cmp-c-recepcion { grid-area: recepcion; }
+    .cmp-fila .cmp-c-pago { grid-area: pago; }
+    .cmp-fila.tabla-corte-880 > .cmp-total {
+      grid-area: total;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      text-align: right !important;
+    }
+    .cmp-fila .cmp-total-titulo { display: block !important; } /* le gana a `hidden`, una utilidad */
+  }
+  @container tabla (max-width: 559.98px) {
+    .cmp-fila.tabla-corte-880 { grid-template-areas: "proveedor proveedor total" "emision documento documento" "recepcion recepcion recepcion" "pago pago pago"; }
+  }
+
   /* ---------- «Vencida»: el punto que late ---------- */
   .cmp-punto-vivo {
     flex: none;

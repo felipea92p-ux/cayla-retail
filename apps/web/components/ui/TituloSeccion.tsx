@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { AyudaCabecera } from "./AyudaCabecera";
 
 /* ====================================================================
    Títulos de sección (ADR-0358, ronda 7: Felipe los eligió tocándolos el 2026-10-13). Tres piezas, una por pregunta:
@@ -11,6 +12,8 @@ import type { CSSProperties, ReactNode } from "react";
      VERSALITAS de 11 px y una raya fina que se DIBUJA hasta el borde al abrir la hoja (`retraso` para escalonarlas).
    · CUÁNTOS HAY en el bloque o el grupo (`cuenta`, ronda 9: Felipe lo eligió tocándolo el 2026-10-13) va PEGADO al nombre, en el globito
      de las pestañas («PRENDAS DEL ENVÍO 110»): la misma función con la misma pieza. A la derecha queda solo lo que resume.
+   · LO QUE EXPLICA el bloque (cómo se lee un gráfico, el porqué de una regla; `ayuda`, ronda 19: Felipe 2026-10-30, F1) no va a la vista:
+     lo abre el «?» de vidrio arriba a la derecha de la última palabra, el mismo de la cabecera en chico. A la vista queda una línea corta.
    · <SeparadorDia>: el «Hoy», «Ayer», «Sábado 10» de una lista larga por fecha (ventas del mostrador, Actividad, Conteos, Movimientos):
      VERSALITAS con el total del día a la derecha; al bajar, el día se QUEDA PEGADO arriba sobre un velo de papel mientras pasan sus
      filas. «Hoy» lleva un punto rojo.
@@ -36,6 +39,7 @@ export function TituloSeccion({
   cuenta,
   dato,
   accion,
+  ayuda,
   nivel = 2,
   id,
   className = "",
@@ -48,6 +52,8 @@ export function TituloSeccion({
   dato?: ReactNode;
   /** Su acción a la derecha: un <EnlaceVer>. */
   accion?: ReactNode;
+  /** Lo que explica el bloque: en el globo del «?» pegado al nombre, nunca a la vista. */
+  ayuda?: ReactNode;
   nivel?: Nivel;
   id?: string;
   /** Su lugar en la pantalla (márgenes), nunca su letra. */
@@ -59,6 +65,11 @@ export function TituloSeccion({
     <div className={`titulo-seccion ${className}`} data-guia={guia}>
       <Etiqueta nivel={nivel} id={id} className="titulo-seccion-texto">
         {children}
+        {ayuda && (
+          <AyudaCabecera tamano="seccion" nombre={typeof children === "string" ? children : undefined}>
+            {ayuda}
+          </AyudaCabecera>
+        )}
         {cuenta !== undefined && <Cuenta n={cuenta} />}
       </Etiqueta>
       {(dato || accion) && (

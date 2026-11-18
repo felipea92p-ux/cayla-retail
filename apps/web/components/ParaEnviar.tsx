@@ -72,7 +72,7 @@ export function YaNoLaEnvioModal({ prenda, ubicacion, onClose }: { prenda: Prend
               type="button"
               peso="primario"
               cargando={enviando}
-              disabled={!guia.puedeConfirmar}
+              confirma={guia}
               title={responsable.motivo ?? guia.frase ?? undefined}
               onClick={() => quitar(cerrar)}
               className={`flex-1 ${guia.claseConfirmar}`}

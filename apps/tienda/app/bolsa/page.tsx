@@ -1,15 +1,17 @@
 import { BotonDeFormulario } from "@/components/BotonDeFormulario";
+import { TituloConLetras } from "@/components/TituloConLetras";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { elegirTiendaDeRecojo, quitarDeLaBolsa } from "@/app/acciones/bolsa";
 import { CantidadEnLaBolsa } from "@/components/bolsa/CantidadEnLaBolsa";
 import { FormularioSeparar } from "@/components/bolsa/FormularioSeparar";
 import { Miniatura } from "@/components/bolsa/Miniatura";
-import { Promesas } from "@/components/bolsa/Promesas";
+import { TotalQueCuenta } from "@/components/bolsa/NumeroQueCuenta";
 import { SigueMirando } from "@/components/bolsa/SigueMirando";
 import { SubirAlLlenar } from "@/components/bolsa/SubirAlLlenar";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import { Icono } from "@/components/Icono";
+import { pasosDelPedido } from "@/lib/ayuda";
 import { leerAyuda } from "@/lib/ayuda-servidor";
 import {
   carrilesDeLaBolsaVacia,
@@ -31,7 +33,6 @@ import { leerDisenoDeCampana } from "@/lib/diseno-campana-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
 import { pctTexto } from "@/lib/portada";
 import { leerGuardadosEnBase } from "@/lib/club-servidor";
-import { promesasDeCompra } from "@/lib/ficha";
 import { detalleDeLaPrenda, nombreTienda } from "@/lib/pedidos";
 import { claveDeSede, sedesEnOrden, soloTiendas } from "@/lib/sede-elegida";
 import { sedeDeLaPagina } from "@/lib/sede-servidor";
@@ -100,13 +101,13 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
           <div className="t-vacio">
             <Icono nombre="bolsa" />
             <h3>Tu bolsa está vacía</h3>
-            <p>Elige una prenda y su talla, o agrega un look completo.</p>
+            <p>Elige una prenda y su talla, o agrega un outfit completo.</p>
             <div className="cp-vacio-acciones">
               <Link className="t-btn" href="/catalogo">
                 Ver toda la tienda
               </Link>
               <Link className="t-btn t-btn-sec" href="/looks">
-                Ver los looks
+                Ver outfits listos
               </Link>
             </div>
           </div>
@@ -120,6 +121,7 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
               origenFotos={origenFotos}
               nota={(p) => notaDeStock(p.stock, elegida, tiendas)}
               guardados={favoritos}
+              sinNuevo={c.lista === "nuevo"}
             />
           ))}
         </div>
@@ -147,7 +149,7 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
       />
     );
   const v = vistaBolsa(enBase);
-  const promesas = promesasDeCompra(plazos);
+  const pasos = pasosDelPedido(plazos);
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
   const sedeDeLaFicha = v.sede ? claveDeSede(v.sede.nombre) : null;
   const totalPrendas = bolsa.lineas.reduce((n, l) => n + l.cantidad, 0);
@@ -157,9 +159,7 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
       <div className="t-ancho">
         <header className="t-lista-cab t-bolsa-cab cp-sec-cab">
           <span className="t-ceja">Tu bolsa</span>
-          <h1>
-            {cuantas(totalPrendas)} <em>por separar</em>
-          </h1>
+          <TituloConLetras primera={cuantas(totalPrendas)} cursiva="por separar" />
           <Link className="t-ver" href="/catalogo">
             Seguir mirando <Icono nombre="flecha" />
           </Link>
@@ -167,7 +167,7 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
         <div className="t-bolsa">
           <div className="t-bolsa-principal">
             <div className="t-bolsa-items">
-              {v.lineas.map(({ linea, marca, importe: monto, antes }) => {
+              {v.lineas.map(({ linea, marca, importe: monto, antes, grupo }, orden) => {
                 const texto = textoDeLaMarca(marca);
                 // «Quitar» saca la prenda entera (la cantidad se baja con «−»), y dice cuál para quien usa lector de pantalla. Si la
                 // prenda ya no se puede separar (agotada o fuera de la tienda online), quitarla es lo que toca: va como botón, no enlace.
@@ -184,7 +184,7 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                 );
                 if (yaNoEsta(linea)) {
                   return (
-                    <div key={linea.varianteId} className="t-bolsa-item" data-marca="no_esta">
+                    <div key={linea.varianteId} className="t-bolsa-item" data-marca="no_esta" style={{ "--i": orden } as React.CSSProperties}>
                       <div className="t-bolsa-foto">
                         <Miniatura foto={null} optimizar={false} forma="percha" color={null} />
                       </div>
@@ -199,7 +199,7 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                 const href = hrefDePrenda({ id: linea.productoId }, sedeDeLaFicha);
                 const leer = prendaParaLeer(linea);
                 return (
-                  <div key={linea.varianteId} className="t-bolsa-item" data-marca={marca.tipo}>
+                  <div key={linea.varianteId} className="t-bolsa-item" data-marca={marca.tipo} style={{ "--i": orden } as React.CSSProperties}>
                     <Link href={href} tabIndex={-1} aria-hidden="true" className="t-bolsa-foto">
                       <Miniatura
                         foto={linea.foto}
@@ -220,6 +220,32 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                         <span className="t-bolsa-campana" style={{ background: diseno.sello.fondo, color: diseno.sello.texto }}>
                           {linea.campana.nombre} −{pctTexto(linea.campana.pct)} %
                         </span>
+                      )}
+                      {/* «Llevar varias y pagar menos» (ADR-0655): la oferta de la prenda y lo que ahorra, o cuántas le faltan al grupo. */}
+                      {grupo && (
+                        <small className="t-bolsa-grupo">
+                          <b>{grupo.titular}</b>
+                          {grupo.campana ? ` · ${grupo.campana}` : ""}:{" "}
+                          {grupo.monto !== undefined ? (
+                            // Un monto (actividad 8): lo que ahorra, y cuánto le falta a la compra para el escalón que sigue.
+                            grupo.ahorro > 0 ? (
+                              <>
+                                ahorras <span className="num">{soles(grupo.ahorro)}</span>
+                                {grupo.monto ? <> · con <span className="num">{soles(grupo.monto.falta)}</span> más, {grupo.monto.siguiente}</> : null}
+                              </>
+                            ) : grupo.monto ? (
+                              <>te faltan <span className="num">{soles(grupo.monto.falta)}</span></>
+                            ) : null
+                          ) : grupo.ahorro > 0 ? (
+                            // Decisión 2: si el grupo le ahorra más que su rebaja, va en vez de ella (nunca las dos).
+                            <>ahorras <span className="num">{soles(grupo.ahorro)}</span>{grupo.dejaRebaja > 0 ? " en vez de su rebaja" : ""}</>
+                          ) : grupo.faltan > 0 ? (
+                            `lleva ${grupo.faltan} más`
+                          ) : (
+                            // Grupo completo que no conviene (su rebaja ahorra más, o «N por S/» cuesta más): antes decía «lleva 0 más».
+                            "con su precio de hoy ya pagas menos"
+                          )}
+                        </small>
                       )}
                       {texto &&
                         (marca.tipo === "hay" ? (
@@ -319,13 +345,31 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                     <span className="num t-ahorro">−{soles(v.ahorro)}</span>
                   </div>
                 )}
+                {v.ahorroGrupo > 0 && (
+                  <div>
+                    <span>Ahorras con las ofertas</span>
+                    <span className="num t-ahorro">−{soles(v.ahorroGrupo)}</span>
+                  </div>
+                )}
                 <div className="tot">
                   <span>Total de tu pedido</span>
-                  <span className="num">{soles(v.total)}</span>
+                  {/* G · Pasarela (ADR-0524): el total rueda hasta su valor al llegar y cada vez que cambia. */}
+                  <span className="num">
+                    <TotalQueCuenta valor={v.total} />
+                  </span>
+                </div>
+                {/* Lo que se paga al tocar «Separar»: nada (rediseño Premium). El pago se coordina después con la tienda. */}
+                <div className="t-pagas-hoy">
+                  <span>Pagas hoy</span>
+                  <span className="num">{soles(0)}</span>
                 </div>
               </div>
-              {/* Lo que la tienda ya cumple, en corto (el detalle está en la ficha y en «Cómo separar»). */}
-              <Promesas promesas={promesas} compacta />
+              {/* Lo que sigue, en orden y con sus plazos (el detalle está en «Cómo separar»). */}
+              <ol className="t-bolsa-pasos" aria-label="Lo que sigue">
+                {pasos.map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ol>
             </aside>
 
             {/* El aviso de un intento que no separó se queda mientras la bolsa sea la misma (su marca); al quitar una prenda o cambiar

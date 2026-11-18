@@ -1,0 +1,5 @@
+# 2026-11-10 · Horario de la tienda: el día que no se trabaja
+
+- **Qué:** en Tienda web ▸ Ajustes, cada día del horario tiene su interruptor de abierto/cerrado (antes solo la letra, sin pista de que cerraba). Un día cerrado queda en «Cerrado» y el mouse ya no lo toca: un arrastre sin querer sobre un domingo cerrado le «pintaba» una barra de 30 min que no se podía agarrar. Un día que se abre toma el horario del día abierto de antes (el sábado, el del viernes). «Copiar lunes a los abiertos» ya no abre el domingo. Las horas se leen escritas a la derecha cuando la barra no tiene lugar para ellas.
+- **Por qué así:** el cierre semanal es lo normal (CAYLA no abre domingos); la pantalla lo trataba como una barra más que había que borrar. Lógica en `lib/horario-edicion-reglas.ts` (`tramoAlAbrirDia`, `lunesALosDiasAbiertos`; se retiró `tramoPintado`).
+- **Verificado:** `horario-edicion-reglas.test.ts`, `guias.test.ts` (huella aceptada) y `tsc` en verde; en el navegador (escritorio y 375 px) con una página de prueba aparte, ya borrada. No se probó contra la base real (sin Docker local) ni el guardado.

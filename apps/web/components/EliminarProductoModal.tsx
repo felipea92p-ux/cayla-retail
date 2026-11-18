@@ -23,6 +23,7 @@ import {
   type ComoEliminar,
 } from "@/lib/eliminar-producto-reglas";
 import { BotonEditar } from "@/components/ui/BotonEditar";
+import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
 
 /**
  * «Eliminar» un producto (ADR-0218 sin historia, ADR-0252 con su historia de stock). Lo hace quien edita el catálogo
@@ -142,6 +143,9 @@ export function EliminarProductoModal({
           )}
 
           {puede && <ComboResponsable control={responsable} deshabilitado={eliminando} />}
+
+          {/* Con historia sí hay vuelta: queda un respaldo (TEXTO_RESPALDO). */}
+          {puede && !conHistoria && <AvisoNoSeDeshace />}
 
           <div className="pie-acciones">
             {hayAccion && (

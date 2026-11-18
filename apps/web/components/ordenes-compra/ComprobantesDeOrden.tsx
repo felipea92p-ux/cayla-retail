@@ -6,7 +6,7 @@ import { Ban } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -82,7 +82,7 @@ export function ComprobantesDeOrden({ orden }: { orden: DetalleOrden }) {
                 {ETIQUETA_TIPO_DOCUMENTO[c.tipo as TipoDocumentoCompra] ?? c.tipo}
                 {CONDICION[c.condicion] ? ` · ${CONDICION[c.condicion]}` : ""}
                 {/* Sin columnas: lo demás en un renglón, con su contexto. */}
-                <span className="mt-0.5 block text-xs tabular-nums text-taupe @min-[40rem]:hidden">
+                <span className="mt-0.5 block text-sm tabular-nums text-taupe @min-[40rem]:hidden">
                   {c.fechaEmision ? `${fechaCorta(c.fechaEmision)} · ` : ""}
                   {soles(c.total)}
                   {vigente && c.saldo > 0 ? ` · por pagar ${soles(c.saldo)}` : ""}
@@ -98,7 +98,7 @@ export function ComprobantesDeOrden({ orden }: { orden: DetalleOrden }) {
                 {sePuedeAnularComprobante(c) ? (
                   <Boton
                     peso="peligro"
-                    className="px-3 py-1.5 text-[11px]"
+                    className="px-3 py-1.5 text-sm"
                     data-guia="orden.anular-comprobante"
                     onClick={(e) => {
                       origen.current = e.currentTarget;
@@ -110,7 +110,7 @@ export function ComprobantesDeOrden({ orden }: { orden: DetalleOrden }) {
                     </span>
                   </Boton>
                 ) : vigente ? (
-                  <span className="text-xs text-taupe" title="Un comprobante con pagos no se anula">
+                  <span className="text-sm text-taupe" title="Un comprobante con pagos no se anula">
                     Con pagos
                   </span>
                 ) : null}
@@ -218,13 +218,12 @@ function AnularComprobanteModal({
           className="space-y-5"
         >
           <p className="text-sm text-tinta/75">
-            El comprobante deja de contar en Por pagar y la orden vuelve a tener pendiente lo que traía. No se borra: queda a la vista, anulado y con su motivo.{" "}
-            <b className="font-medium text-tinta">Esto no se puede deshacer.</b>
+            El comprobante deja de contar en Por pagar y la orden vuelve a tener pendiente lo que traía. No se borra: queda a la vista, anulado y con su motivo.
           </p>
           {/* El título va en el bloque (`titulo`, con su marca de la guía): la caja hundida deja su etiqueta solo para el lector. */}
           <CampoGuiado id="motivo" guia={guia} titulo="Por qué se anula">
             <CampoTexto etiqueta="Por qué se anula" caja autoFocus maxLength={MAX_MOTIVO_COMPROBANTE} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
-            <p className="mt-1.5 text-xs text-taupe">Lo verá quien revise la orden después.</p>
+            <p className="mt-1.5 text-sm text-taupe">Lo verá quien revise la orden después.</p>
           </CampoGuiado>
           {!esPersona && (
             <CampoGuiado id="responsable" guia={guia} titulo="Quién lo anula">
@@ -237,11 +236,12 @@ function AnularComprobanteModal({
               {error}
             </Aviso>
           )}
+          <AvisoNoSeDeshace />
           <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton textoCargando="Anulando…" type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton textoCargando="Anulando…" type="submit" peso="primario" cargando={guardando} confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               Anular comprobante
             </Boton>
           </div>

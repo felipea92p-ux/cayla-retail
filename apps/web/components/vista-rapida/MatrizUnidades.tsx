@@ -23,6 +23,7 @@ import {
   type RepartoLugares,
 } from "@/lib/vista-rapida-producto-reglas";
 import { hayPunteroFino, useCifraConRetraso } from "./movimiento";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 /** Cada celda entra a su hora (`--vr-i` × 34 ms + 320 ms, vista-rapida.css): su número empieza a contar cuando ella aparece. */
 const retrasoDeCelda = (i: number) => i * 34 + 360;
@@ -324,7 +325,7 @@ function UnidadesElegidas({ n, donde, lugares }: { n: number; donde: Donde; luga
 }
 
 function FilaSwatch({ fila }: { fila: FilaColor | undefined }) {
-  return <span className="vr-sw" style={{ background: fila?.hex, width: 18, height: 18 }} />;
+  return <span className="vr-sw" style={{ background: fila ? fondoDelPunto(fila.hex, fila.tonos) : undefined, width: 18, height: 18 }} />;
 }
 
 function Fila({
@@ -373,7 +374,7 @@ function Fila({
           alternar(ids);
         }}
       >
-        <span className="vr-sw" style={{ background: fila.hex }} />
+        <span className="vr-sw" style={{ background: fondoDelPunto(fila.hex, fila.tonos) }} />
         <span className="vr-n">
           {fila.nombre}
           <span className="vr-s">{unidadesDeLaFila(fila.total, donde)}</span>

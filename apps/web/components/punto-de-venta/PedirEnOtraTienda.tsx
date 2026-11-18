@@ -12,14 +12,14 @@ export function PedirEnOtraTienda({ candidatos, onPedir }: { candidatos: readonl
   const texto = textoSugerenciaPedir(candidatos);
   if (!texto) return null;
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-sand bg-papel px-3 py-2.5 text-xs text-tinta/80">
+    <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border px-3 py-2.5 text-sm text-tinta/80 [background:var(--placa-fondo)] [border-color:var(--placa-borde)] [box-shadow:var(--placa-luz)]">
       <Truck className="h-4 w-4 shrink-0" aria-hidden />
-      <span className="min-w-[12rem] flex-1">{texto}</span>
+      <span className="min-w-[12rem] flex-1 leading-5">{texto}</span>
       <button
         type="button"
         onClick={onPedir}
         // Claro, como «Anotar que no había»: el botón oscuro de la ventana es «Listo» (un solo principal por vista).
-        className="btn-cayla btn-secundario ml-auto inline-flex h-8 shrink-0 items-center px-2.5 text-[12.5px]"
+        className="btn-cayla btn-secundario ml-auto min-h-10 shrink-0"
       >
         Pedir y apartar para este cliente
       </button>

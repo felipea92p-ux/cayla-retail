@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { diaLima } from "./fechas-lima";
 
 // Tienda web ▸ Libro de Reclamaciones (ADR-0679, Felipe 2026-11-18): la lógica pura de la pantalla. Lee lo que devuelve
@@ -9,52 +8,38 @@ export const POR_PAGINA = 25;
 /** Desde cuántos días hábiles restantes una hoja «vence pronto» (ámbar): con 3 o menos, la encargada tiene que moverse ya. */
 export const DIAS_VENCE_PRONTO = 3;
 
-const esquemaHoja = z.object({
-  id: z.string().uuid(),
-  codigo: z.string(),
-  creada_en: z.string(),
-  tipo: z.enum(["reclamo", "queja"]),
-  tienda: z.string().nullable(),
-  consumidor: z.object({
-    nombre: z.string(),
-    tipo_documento: z.enum(["dni", "ce", "pasaporte"]),
-    documento: z.string(),
-    domicilio: z.string(),
-    telefono: z.string(),
-    correo: z.string(),
-    menor_de_edad: z.boolean(),
-    apoderado: z.string().nullable(),
-  }),
-  bien: z.object({ tipo: z.enum(["producto", "servicio"]), monto: z.union([z.number(), z.string()]).nullable(), descripcion: z.string() }),
-  detalle: z.string(),
-  pedido: z.string(),
-  copia_enviada: z.boolean(),
-  vence_el: z.string(),
-  dias_restantes: z.number(),
-  /** La respuesta de CAYLA (PARTE 4, 20261118152000). Sin el dato, todavía sin responder. */
-  respuesta: z.string().nullable().optional().default(null),
-  respondida_en: z.string().nullable().optional().default(null),
+/** Una hoja como la devuelve `fn_libro_reclamaciones` (la lee `lib/libro-reclamaciones-lectura.ts`, que es la única con zod: los
+ *  componentes importan este archivo y no deben bajar zod entero, ADR-0674). */
+export type HojaLibro = {
+  id: string;
+  codigo: string;
+  creada_en: string;
+  tipo: "reclamo" | "queja";
+  tienda: string | null;
+  consumidor: {
+    nombre: string;
+    tipo_documento: "dni" | "ce" | "pasaporte";
+    documento: string;
+    domicilio: string;
+    telefono: string;
+    correo: string;
+    menor_de_edad: boolean;
+    apoderado: string | null;
+  };
+  bien: { tipo: "producto" | "servicio"; monto: number | string | null; descripcion: string };
+  detalle: string;
+  pedido: string;
+  copia_enviada: boolean;
+  vence_el: string;
+  dias_restantes: number;
+  /** La respuesta de CAYLA (PARTE 4, 20261118152000). Null: todavía sin responder. */
+  respuesta: string | null;
+  respondida_en: string | null;
   /** Si la respuesta ya salió al correo del cliente (la manda la tienda). */
-  respuesta_enviada: z.boolean().optional().default(false),
-});
-export type HojaLibro = z.infer<typeof esquemaHoja>;
+  respuesta_enviada: boolean;
+};
 
 export type ListaLibro = { hoy: string; hojas: HojaLibro[]; hayMas: boolean };
-
-/** La lista de `fn_libro_reclamaciones`, o null si la forma no se entiende (la pantalla dice que no se pudo leer). Una hoja rara se
- *  salta: no tumba a las demás. */
-export function leerLibro(dato: unknown): ListaLibro | null {
-  const r = z.object({ hoy: z.string(), hojas: z.array(z.unknown()), hay_mas: z.boolean() }).safeParse(dato);
-  if (!r.success) return null;
-  return {
-    hoy: r.data.hoy,
-    hayMas: r.data.hay_mas,
-    hojas: r.data.hojas.flatMap((h) => {
-      const x = esquemaHoja.safeParse(h);
-      return x.success ? [x.data] : [];
-    }),
-  };
-}
 
 export type EstadoHoja = "por_responder" | "vence_pronto" | "vencida" | "respondida";
 

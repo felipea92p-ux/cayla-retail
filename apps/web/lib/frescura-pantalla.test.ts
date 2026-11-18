@@ -42,7 +42,6 @@ import {
   textoSinTemporada,
   segmentosDe,
   tableroVista,
-  tramoBarraDe,
   varaTablero,
   mayoriaAproximada,
   esAproximada,
@@ -55,7 +54,7 @@ import {
 import {
   analizarSede,
   leerFrescuraSede,
-  tramoDe,
+  tramoDosRelojes,
   type Cortes,
   type EstadoFrescura,
   type Sugerencia,
@@ -671,7 +670,7 @@ describe("corrección del paso 4 · la cabecera no dice más de lo que se sabe",
 describe("corrección del paso 4 · el redondeo de los días no choca en la misma frase", () => {
   /** Una prenda del semáforo con su reloj y los cortes de las demás SIN ella; el tramo lo decide la regla real. */
   const conReloj = (dias: number, c: Cortes) => {
-    const t = tramoDe(dias * DIA, c, 60 * DIA)!;
+    const t = tramoDosRelojes(dias * DIA, dias * DIA, c, 60 * DIA)!;
     return prenda({
       reloj: { segundos: dias * DIA, alMenos: false },
       primeraExhibicion: null,
@@ -1088,17 +1087,6 @@ describe("el tablero por categoría (nivel 1; ADR-0208, act. 2026-10-07)", () =>
     expect(accionDeFila(con([]), c, false)).toBeNull();
     expect(accionDeFila(con(["cambiar_lugar"], { pisoHoy: 0 }), c, false)).toBeNull();
     expect(accionDeFila(con(["cambiar_lugar"]), c, true)).toBeNull();
-  });
-
-  it("tramoBarraDe: el semáforo manda, en las palabras de la tienda; el clásico va aparte; lo demás, «aún no se sabe»", () => {
-    expect(tramoBarraDe(prenda({ estado: sem("nueva") }))).toBe("fresca");
-    expect(tramoBarraDe(prenda({ estado: sem("vigente") }))).toBe("vigente");
-    expect(tramoBarraDe(prenda({ estado: sem("envejecida") }))).toBe("envejeciendo");
-    expect(tramoBarraDe(prenda({ estado: sem("critica") }))).toBe("envejeciendo");
-    expect(tramoBarraDe(prenda({ estado: { ...ESTADO_BASE, tipo: "clasico", fueraDeSuEstacion: true } }))).toBe("clasico");
-    for (const tipo of ["sin_vara", "sin_ventas_sede", "sin_edad_conocida", "dudosa"] as const) {
-      expect(tramoBarraDe(prenda({ estado: { ...ESTADO_BASE, tipo } }))).toBe("sin_saber");
-    }
   });
 });
 

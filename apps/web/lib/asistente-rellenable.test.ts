@@ -3,7 +3,7 @@ import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * Lo que «Pregúntale a CAYLA» puede rellenar es una LISTA BLANCA (ADR-0529, actividad 6; tensión 1 del ADR).
+ * Lo que «Pregúntale a CAYLA» puede rellenar es una LISTA BLANCA (ADR-0536, actividad 6; tensión 1 del ADR).
  *
  * El piloto solo escribe el dato de la persona en una pieza marcada `data-asistente="rellenable"`. Un campo nuevo nace SIN marca, y
  * marcar uno lo decide Felipe: hoy solo el `<Buscador>` (buscar no guarda nada). Nunca un monto, una cantidad, un comprobante, el combo
@@ -36,7 +36,7 @@ describe("lo que el asistente puede rellenar es una lista blanca", () => {
     .map((ruta) => relative(WEB, ruta));
 
   it("solo las piezas de la lista llevan data-asistente", () => {
-    expect(marcadas.filter((r) => !(r in MARCADAS)), "Una pieza nueva lleva data-asistente: marcar un campo como rellenable lo decide Felipe (ADR-0529)").toEqual([]);
+    expect(marcadas.filter((r) => !(r in MARCADAS)), "Una pieza nueva lleva data-asistente: marcar un campo como rellenable lo decide Felipe (ADR-0536)").toEqual([]);
   });
 
   it("cada pieza de la lista sigue marcada (si no, el relleno no tendría dónde escribir)", () => {

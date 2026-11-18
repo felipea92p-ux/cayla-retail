@@ -9,6 +9,7 @@
 // Lenguaje de tienda: nada de «devengo» ni «conciliación bancaria» en lo que lee Felipe; «cuadrar el banco», «cargar los
 // alquileres». Cada pieza dice dónde se arregla.
 
+import { quedanPorRegistrar } from "./costo-estimado-reglas";
 import { soles } from "./flujo-caja-reglas";
 import type { ResumenProvision } from "./planilla-provision-reglas";
 
@@ -18,17 +19,18 @@ export type HechosConfianza = {
   mes: string;
   hasta: string;
   corte: string | null;
-  costo: { unidadesEstimadas: number; ventaEstimada: number; unidadesSinCosto: number; ventaSinCosto: number; unidadesTotal: number; ventaTotal: number };
+  /** `pendientes`: cuántas siguen por registrar. La base no lo trae: lo suma el cargador. `undefined` o `null`: no se sabe. */
+  costo: { unidadesEstimadas: number; ventaEstimada: number; unidadesSinCosto: number; ventaSinCosto: number; unidadesTotal: number; ventaTotal: number; pendientes?: number | null };
   fijos: { configurados: number; sedesActivas: number; sedesConFijos: number; faltanMes: number };
   facturas: { lotesSinFactura: number; egresosSinClasificar: number };
-  saldos: { registrados: number; bancos: number };
+  saldos: { registrados: number; bancos: number; /** Filas del arranque del Balance; `null` si la base todavía no lo manda. */ arranqueBalance: number | null };
   tarjeta: { porAbonarCuentas: number; directoAlBanco: boolean; cobrosMes: number };
   /**
    * `provision`: lo que corresponde pagar hasta hoy según las boletas de Dynamic, del período sin pagar (ADR-0453). La base de la
    * confianza no la trae (`fn_planilla_provision` es otra lectura): la suma el cargador. Sin ella (Dynamic no abrió el período,
-   * o la lectura falló), el mes se ve sin sueldos, como antes.
+   * o la lectura falló), el mes se ve sin sueldos, como antes. `sinLeer`: la lectura se cayó; no es que Dynamic no haya pagado, y se dice (tarea 43).
    */
-  planilla: { visible: boolean; mesPagada: boolean; provision?: ResumenProvision | null };
+  planilla: { visible: boolean; mesPagada: boolean; provision?: ResumenProvision | null; sinLeer?: boolean };
   conciliacion: { bancos: number; conciliadosMes: number };
 };
 
@@ -86,7 +88,7 @@ export function leerHechosConfianza(data: unknown): HechosConfianza {
     },
     fijos: { configurados: num(f.configurados), sedesActivas: num(f.sedes_activas), sedesConFijos: num(f.sedes_con_fijos), faltanMes: num(f.faltan_mes) },
     facturas: { lotesSinFactura: num(fa.lotes_sin_factura), egresosSinClasificar: num(fa.egresos_sin_clasificar) },
-    saldos: { registrados: num(s.registrados), bancos: num(s.bancos) },
+    saldos: { registrados: num(s.registrados), bancos: num(s.bancos), arranqueBalance: s.arranque_balance === undefined ? null : num(s.arranque_balance) },
     tarjeta: { porAbonarCuentas: num(t.por_abonar_cuentas), directoAlBanco: bool(t.directo_al_banco), cobrosMes: num(t.cobros_mes) },
     planilla: { visible: bool(p.visible), mesPagada: bool(p.mes_pagada), provision: null },
     conciliacion: { bancos: num(k.bancos), conciliadosMes: num(k.conciliados_mes) },
@@ -103,7 +105,7 @@ export function calcularConfianza(h: HechosConfianza): Confianza {
   // 1. El costo de lo vendido: lo estimado y lo que sigue en 0, como parte de la venta.
   {
     const peso = PESOS.costo;
-    const { ventaTotal, ventaEstimada, ventaSinCosto, unidadesEstimadas, unidadesSinCosto } = h.costo;
+    const { ventaTotal, ventaEstimada, ventaSinCosto, unidadesEstimadas, unidadesSinCosto, pendientes = null } = h.costo;
     if (ventaTotal <= 0) {
       piezas.push({ clave: "costo", titulo: "Costo de lo vendido", estado: "ok", detalle: "Todavía no hay ventas en el mes.", peso, logrado: peso });
     } else {
@@ -115,9 +117,10 @@ export function calcularConfianza(h: HechosConfianza): Confianza {
       piezas.push({
         clave: "costo", titulo: "Costo de lo vendido",
         estado: parte === 0 ? "ok" : parte < 0.2 ? "parcial" : "falta",
-        detalle: parte === 0 ? "Cada prenda vendida tiene su costo real." : `${trozos.join(" y ")}.`,
+        detalle: parte === 0 ? "Cada prenda vendida tiene su costo real." : [`${trozos.join(" y ")}.`, unidadesEstimadas > 0 ? "Ese costo se queda así, salvo que reabras esas ventas." : "", quedanPorRegistrar(pendientes)].filter(Boolean).join(" "),
         peso, logrado: Math.round(peso * (1 - parte) * 100) / 100,
-        href: parte === 0 ? undefined : "/inventario/por-regularizar", accion: parte === 0 ? undefined : "Registrar las prendas",
+        // Las cerradas sin prenda no se registran desde ahí: el enlace sale solo si queda algo (tarea 75).
+        ...(parte === 0 || pendientes === 0 ? {} : { href: "/inventario/por-regularizar", accion: "Registrar las que quedan" }),
       });
     }
   }
@@ -171,9 +174,9 @@ export function calcularConfianza(h: HechosConfianza): Confianza {
     piezas.push({
       clave: "saldos", titulo: "Con cuánto empezaste",
       estado,
-      detalle: bancos === 0 ? "No hay ningún banco cargado en Cuentas y dinero." : estado === "ok" ? "Cada banco tiene su saldo de arranque." : registrados === 0 ? "Ningún banco tiene saldo de arranque: la plata que tienes parte de cero." : `${registrados} de ${bancos} bancos tienen su saldo de arranque.`,
+      detalle: (bancos === 0 ? "No hay ningún banco cargado en Cuentas y dinero." : estado === "ok" ? "Cada banco tiene su saldo de arranque." : registrados === 0 ? "Ningún banco tiene su saldo de arranque (monto y fecha) en Cuentas y dinero: la plata que tienes parte de cero." : `${registrados} de ${bancos} bancos tienen su saldo de arranque.`) + (h.saldos.arranqueBalance === 0 ? " Aparte, falta cargar el arranque del Balance (capital y deudas)." : ""),
       peso, logrado: Math.round(peso * logrado * 100) / 100,
-      href: estado === "ok" ? undefined : bancos === 0 ? "/configuracion" : "/finanzas/reportes/balance", accion: estado === "ok" ? undefined : bancos === 0 ? "Crear el banco" : "Anotar los saldos",
+      href: estado === "ok" ? undefined : bancos === 0 ? "/configuracion" : "/finanzas/dinero", accion: estado === "ok" ? undefined : bancos === 0 ? "Crear el banco" : "Anotar los saldos",
     });
   }
 
@@ -200,7 +203,7 @@ export function calcularConfianza(h: HechosConfianza): Confianza {
   //    persona es la misma que Dynamic pagará, y lo único que falta es que Dynamic confirme el pago. De ahí 4/5 del peso, no la mitad.
   {
     const peso = PESOS.planilla;
-    const { visible, mesPagada, provision } = h.planilla;
+    const { visible, mesPagada, provision, sinLeer } = h.planilla;
     piezas.push(
       !visible
         ? { clave: "planilla", titulo: "Sueldos del mes", estado: "sin_dato", detalle: "Solo el líder ve la planilla de Dynamic.", peso, logrado: 0 }
@@ -212,7 +215,7 @@ export function calcularConfianza(h: HechosConfianza): Confianza {
                 detalle: `Dynamic todavía no pagó el período: el mes lleva ${soles(provision.devengado)} de sueldos provisionados hasta hoy con las boletas de ${provision.personas} ${plural(provision.personas, "persona", "personas")}${provision.deHoy > 0 ? ` (${soles(provision.deHoy)} son de hoy, y se corrigen cuando cada persona cierra su jornada)` : ""}. Se corrige solo cuando Dynamic pague.`,
                 peso, logrado: Math.round(peso * 0.8 * 100) / 100,
               }
-            : { clave: "planilla", titulo: "Sueldos del mes", estado: "parcial", detalle: "Dynamic todavía no pagó el período: hasta que lo haga, el mes se ve sin sueldos.", peso, logrado: peso / 2 }
+            : { clave: "planilla", titulo: "Sueldos del mes", estado: "parcial", detalle: sinLeer ? "No se pudieron leer los sueldos de Dynamic: estas cifras no los restan. Vuelve a cargar en un rato." : "Dynamic todavía no pagó el período: hasta que lo haga, el mes se ve sin sueldos.", peso, logrado: peso / 2 }
     );
   }
 
@@ -252,4 +255,12 @@ export function tonoPieza(estado: EstadoPieza): "verde" | "ambar" | "rojo" | "ap
 
 export function textoEstado(estado: EstadoPieza): string {
   return estado === "ok" ? "Completo" : estado === "parcial" ? "A medias" : estado === "falta" ? "Falta" : "Sin dato";
+}
+
+/**
+ * Lo que dice el chip del medidor: el nivel en palabras, sin cifra (tarea 28; Felipe 2026-11-05, ADR-0433). El porcentaje sale de pesos de diseño
+ * (30·20·15·10·10·10·5) que nadie midió, así que «86 %» sugería una precisión que no hay; el nivel y la lista de lo que falta, sí se sostienen.
+ */
+export function etiquetaNivel(nivel: Confianza["nivel"]): string {
+  return nivel === "alto" ? "Número confiable" : nivel === "medio" ? "Número a medias" : "Número poco seguro";
 }

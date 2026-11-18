@@ -2,20 +2,54 @@
   "guia": "finanzas.reportes.balance",
   "ruta": "/finanzas/reportes/balance",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 14,
+  "total": 36,
   "controles": {
     "components/finanzas/BalancePanel.tsx": [
+      "Link «{m.enlace.texto}»",
+      "button «{m.enlace.texto}»",
       "button «fin-balance.arranque»",
-      "BotonDescargar «Descargar Excel»",
+      "button «fin-balance.arranque» #2",
       "Boton «Registrar saldos de arranque»",
       "Link «{enlace.texto}»",
-      "button «{enlace.texto}»"
+      "button «{enlace.texto}»",
+      "BotonVerMas «Ver cada comprobación»"
     ],
     "components/finanzas/SaldosArranqueModal.tsx": [
+      "Link «Ir a Cuentas y dinero»",
       "button «Usar esta cifra»",
       "ComboResponsable «{responsable}»",
       "button «Cancelar»",
-      "Boton «→guardar»"
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/finanzas/estados/CabeceraEstados.tsx": [
+      "Pestanas «(sin nombre)»"
+    ],
+    "components/finanzas/estados/DescargarContador.tsx": [
+      "BotonDescargar «Descargar Excel»"
+    ],
+    "components/finanzas/estados/InformeEstado.tsx": [
+      "button «{guiaContador}»",
+      "button «{texto}»"
+    ],
+    "components/finanzas/estados/MasDelEstado.tsx": [
+      "BotonVerMas «{guia}»"
+    ],
+    "components/finanzas/estados/Recomendaciones.tsx": [
+      "BotonVer «{r.accion.texto}»"
+    ],
+    "components/finanzas/estados/SelectorPeriodo.tsx": [
+      "button «{`Ver el ${queSeMira}»",
+      "button «{una ? p.al : p.titulo}»",
+      "button «{`Ver el ${queSeMira}» #2",
+      "CampoTexto «Desde»",
+      "CampoTexto «{una ? \"Fecha\" : \"Hasta\"}»",
+      "Boton «Ver»",
+      "button «Cerrar»",
+      "button «{a.titulo}»",
+      "button «{dicho}»",
+      "button «Meses anteriores»",
+      "button «Meses siguientes»",
+      "button «{fechaLarga(d.iso)}»"
     ],
     "components/finanzas/telar/MesaDeMando.tsx": [
       "button «Todas»",

@@ -138,9 +138,12 @@ ${CAMBIAR}`);
   // La ROPA vale el precio de la tienda aunque su ficha diga S/ 0: en la tienda con precio propio se cambia a ese precio; en otra, sin
   // precio propio, sigue sin precio y se rechaza como en el caso 2. Solo la talla de OBSEQUIO sigue en S/ 0 aunque la tienda le ponga
   // precio. (La primera versión de esa migración, sin pegar, rechazaba también la ropa con precio de tienda.)
+  // ADR-0671: un cambio con diferencia emite su boleta nueva en la tienda del cambio. La semilla local le da a todas las tiendas la misma
+  // serie «B001» (en producción cada una tiene la suya), así que la de Trujillo chocaría con el B001-1 de Lima: aquí lleva una propia.
   const ROPA_EN_CERO_CON_PRECIO_EN_TRUJILLO = `select producto_id as p_new from retail.variantes where id = :'v_new' \\gset
 select retail.poner_precio_sede(:'p_new', :'tru', 99, 'prueba automatizada') as _ps \\gset
 update retail.variantes set precio = 0 where id = :'v_new';
+update retail.series_comprobantes set serie = 'B091' where ubicacion_id = :'tru' and tipo = 'boleta' and archivada_at is null;
 `;
   /** La diferencia que quedó en el cambio, y la que se espera: el precio de la tienda (99) menos lo que se pagó. */
   const DIFERENCIA = `select diferencia from retail.cambios where venta_item_id = :'venta_item';
@@ -176,13 +179,13 @@ ${QUEDO}`);
     obsequio.ok ? lo : obsequio.mensaje,
   );
 
-  // MUTANTE: una `fn_precio_en_sede` que confunde la ropa con el obsequio (toda talla en 0 sería de obsequio): el caso de Trujillo se
+  // MUTANTE: una regla del precio (`fn_precios_en_sedes`, la de `fn_precio_en_sede` desde 20261031161000) que confunde la ropa con el obsequio (toda talla en 0 sería de obsequio): el caso de Trujillo se
   // pone rojo. Vive solo dentro de su transacción.
   const mutante = correr(`do $m$
-declare d text := pg_get_functiondef('retail.fn_precio_en_sede(uuid, uuid)'::regprocedure);
+declare d text := pg_get_functiondef('retail.fn_precios_en_sedes(uuid[], uuid[])'::regprocedure);
 begin
   if position('retail.fn_categoria_admite_precio_cero(pr.categoria_id)' in d) = 0 then
-    raise exception 'mutante vacío: fn_precio_en_sede no pregunta la categoría de la prenda';
+    raise exception 'mutante vacío: fn_precios_en_sedes no pregunta la categoría de la prenda';
   end if;
   execute replace(d, 'retail.fn_categoria_admite_precio_cero(pr.categoria_id)', 'true');
 end $m$;
@@ -193,7 +196,11 @@ ${ROPA_EN_CERO_CON_PRECIO_EN_TRUJILLO}${CAMBIAR}`, "Tienda Trujillo");
     mutante.ok ? mutante.lineas : mutante.mensaje,
   );
 }
-{
+// ADR-0671 (20261116213000) le sumó `p_cliente` a registrar_cambio y borró la firma que esta migración ancla: desde ahí ya no se vuelve a
+// pegar (está en producción desde el 2026-10-12). El caso queda para una base que todavía no tiene ADR-0671.
+if (psql("select to_regprocedure('retail.registrar_cambio(uuid,uuid,uuid,integer,text,uuid,text,text,jsonb)') is not null;").trim() === "t") {
+  console.log("· 5 · omitido: ADR-0671 cambió la firma de registrar_cambio; esta migración ya no se vuelve a pegar");
+} else {
   const sql = readFileSync(MIGRACION, "utf8");
   let ok = true;
   let mensaje = "";

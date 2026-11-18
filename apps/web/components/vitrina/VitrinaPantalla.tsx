@@ -7,7 +7,6 @@ import { CircleCheck, LayoutGrid, List, MonitorSmartphone, SearchX, Shirt, Spark
 import { BarraFija } from "@/components/ui/BarraFija";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
-import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { avisar } from "@/components/ui/Avisos";
 import { Casilla } from "@/components/ui/Casilla";
 import { Chip } from "@/components/ui/Chip";
@@ -48,6 +47,7 @@ import {
   type ModeloVitrina,
   type ModoLote,
 } from "@/lib/vitrina-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Cómo se llama cada estado en la píldora y en el filtro puesto. «Encendidos sin precio» es lo que el Resumen cuenta: los que alguien
 // prendió y no se ven porque ninguna tienda de la web les pone precio.
@@ -75,9 +75,10 @@ const cargarHojaLote = () => import("@/components/vitrina/VitrinaLoteHoja").then
 const VitrinaModeloHoja = dynamic(cargarHojaModelo);
 const VitrinaLoteHoja = dynamic(cargarHojaLote);
 
-// En el celular la fila es una tarjeta: casilla, modelo e interruptor arriba y lo libre en cada tienda bajo el nombre; desde `sm`,
-// columnas.
-const PLANTILLA = "grid-cols-[1.5rem_minmax(0,1fr)_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_12rem_4.5rem]";
+// Angosta, la fila es una tarjeta: casilla, modelo e interruptor arriba y lo libre en cada tienda bajo el nombre; con la TABLA de 34 rem o
+// más, columnas. Lo decide el ancho de la tabla (`.tabla-cayla` es contenedor), no el de la ventana: con el menú abierto a 768 px, las
+// columnas dejaban al nombre del modelo en unos 2 px.
+const PLANTILLA = "grid-cols-[1.5rem_minmax(0,1fr)_2.75rem] @min-[34rem]:grid-cols-[1.5rem_minmax(0,1fr)_12rem_4.5rem]";
 
 // «Columnas» (pantalla grande, hasta 8 tiendas): casilla · modelo · categoría · colores · una columna por tienda · estado · interruptor.
 // Los anchos tienen tope (el modelo, 22 rem; la categoría, 10) para que el stock no quede a un mundo del nombre; lo que sobra lo toma el
@@ -129,8 +130,6 @@ export function VitrinaPantalla({
   const [elegidos, setElegidos] = useState<string[]>([]);
   const [abierto, setAbierto] = useState<string | null>(null);
   const [lote, setLote] = useState<{ modo: ModoLote; ids: string[] } | null>(null);
-  // La regla del precio (qué precio ve el cliente) se abre a un toque: antes era un subtítulo y una nota de tres frases siempre a la vista.
-  const [reglaAbierta, setReglaAbierta] = useState(false);
 
   const { tiendas } = lectura;
   const cifras = cifrasDe(modelos);
@@ -169,7 +168,7 @@ export function VitrinaPantalla({
     if (!saltoAlInicio.current) return;
     saltoAlInicio.current = false;
     soltarPaginaEstable();
-    const sinMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const sinMovimiento = prefiereQuieto();
     cajaRef.current?.scrollIntoView({ block: "start", behavior: sinMovimiento ? "auto" : "smooth" });
   });
   // Las categorías de lo que se está mirando: con «Empaque», las del empaque; si no, las de la ropa (una categoría de bolsas no
@@ -255,19 +254,6 @@ export function VitrinaPantalla({
 
   return (
     <div className="tw space-y-6">
-      {/* `mb-3` reemplaza el aire de 24 px del `space-y-6`: el enlace queda pegado a las cifras que explica. */}
-      <div className="mb-3">
-        <BotonVerMas forma="enlace" className="relative tw-toque" data-guia="vitrina.nota" abierto={reglaAbierta} onCambiar={setReglaAbierta} texto="¿Qué precio ve el cliente?" controla="vitrina-regla-precio" />
-        <FilasDeMas abierto={reglaAbierta} id="vitrina-regla-precio">
-          <div className="nota-cayla mt-2 space-y-2 text-[13px]">
-            <p>
-              En la web cada modelo vale lo mismo que en la tienda que el cliente elige; con «Todas», el precio más alto entre ellas. Las campañas se
-              aplican encima con la misma regla de la caja. El precio, las fotos, los colores y las tallas se cambian en su ficha, en Catálogo ▸
-              Productos.
-            </p>
-          </div>
-        </FilasDeMas>
-      </div>
       <div className="grid gap-3 sm:grid-cols-3" data-guia="vitrina.cifras">
         <TarjetaCifra
           punto="verde"
@@ -308,7 +294,7 @@ export function VitrinaPantalla({
         </TarjetaCifra>
       </div>
 
-      <section ref={cajaRef} className="card-cayla scroll-mt-20 space-y-0">
+      <section ref={cajaRef} className="card-cayla scroll-mt-4 space-y-0">
         {/* El buscador, los filtros (un botón que abre un panel flotante) y cómo ver la lista, en una sola fila: bajo `sm` los dos últimos son solo
             íconos y el buscador conserva su ancho. */}
         <div className="flex items-center gap-3 border-b border-sand px-4 py-4 sm:px-5">
@@ -384,7 +370,7 @@ export function VitrinaPantalla({
                 </button>
               )}
               {lista.length > 0 && (
-                <p className="text-[13px] tabular-nums text-taupe" aria-live="polite">
+                <p className="text-sm tabular-nums text-taupe" aria-live="polite">
                   Mostrando{" "}
                   <b className="font-semibold text-tinta">
                     {pag.desde}–{pag.hasta}
@@ -398,8 +384,8 @@ export function VitrinaPantalla({
 
         {filtro === "empaque" && (
           <div className="border-b border-sand px-5 py-3">
-            <p className="nota-cayla text-[13px]">
-              El empaque (bolsas, cajas) se vende desde el ticket, en la caja: no va en la web ni se puede prender. Se ve aquí solo para saber cuánto hay.
+            <p className="nota-cayla text-sm">
+              El empaque se vende desde la caja, no en la web: aquí solo ves cuánto hay.
             </p>
           </div>
         )}
@@ -411,8 +397,7 @@ export function VitrinaPantalla({
             </Vacio>
           ) : !hayRopa && filtro !== "empaque" ? (
             <Vacio icono={<MonitorSmartphone />} titulo="Todavía no hay modelos para la web">
-              Los modelos que se pueden vender (activos y con precio en alguna tienda que se ve en la web) aparecen aquí para mostrarlos en la
-              tienda online.
+              Los modelos activos y con precio salen aquí para mostrarlos en la tienda online.
             </Vacio>
           ) : (
             <Vacio
@@ -448,6 +433,7 @@ export function VitrinaPantalla({
           <Tabla className="rounded-none border-0 shadow-none" guia="vitrina.lista">
             <Encabezado
               plantilla={plantillaLista}
+              visible={modoLista === "filas" ? "hidden @min-[34rem]:grid" : undefined}
               columnas={[
                 {
                   titulo: (
@@ -503,7 +489,7 @@ export function VitrinaPantalla({
             <span className="font-semibold text-tinta">
               {elegidos.length} {elegidos.length === 1 ? "modelo elegido" : "modelos elegidos"}
             </span>
-            <button type="button" className="btn-enlace text-[13px]" data-guia="vitrina.desmarcar" onClick={() => setElegidos([])}>
+            <button type="button" className="btn-enlace text-sm" data-guia="vitrina.desmarcar" onClick={() => setElegidos([])}>
               Desmarcar todos
             </button>
           </span>
@@ -541,14 +527,15 @@ export function VitrinaPantalla({
  *  antes el motivo solo vivía en la hoja del modelo. El empaque («Solo en la caja») no es un problema: va sin él. Un clic aquí no abre la hoja. */
 function RazonDelChip({ razon }: { razon: NonNullable<ReturnType<typeof razonNoSeMuestra>> }) {
   const [abierta, setAbierta] = useState(false);
-  if (razon.tono !== "ambar") return <Chip tono={razon.tono}>{razon.chip}</Chip>;
+  // `chip-envuelve`: en una carta angosta «Aún en el Taller: no se ve» baja de línea en vez de salirse de la carta.
+  if (razon.tono !== "ambar") return <Chip tono={razon.tono} className="chip-envuelve">{razon.chip}</Chip>;
   return (
     <>
-      <Chip tono={razon.tono}>{razon.chip}</Chip>
-      <button type="button" className="btn-cayla btn-enlace text-[12px]" aria-expanded={abierta} onClick={() => setAbierta((a) => !a)}>
+      <Chip tono={razon.tono} className="chip-envuelve">{razon.chip}</Chip>
+      <button type="button" className="btn-cayla btn-enlace text-sm" aria-expanded={abierta} onClick={() => setAbierta((a) => !a)}>
         ¿Por qué?
       </button>
-      {abierta && <span className="basis-full text-[12px] leading-snug text-taupe">{razon.frase}</span>}
+      {abierta && <span className="basis-full text-sm leading-snug text-taupe">{razon.frase}</span>}
     </>
   );
 }
@@ -586,7 +573,7 @@ function FilaModelo({
       }}
       className={`${fila(PLANTILLA, "cursor-pointer items-center sm:items-center")} ${elegido ? "bg-rojo/[0.045]" : ""}`}
     >
-      <label data-guia="vitrina.casilla" className="tw-toque-casilla row-span-2 sm:row-span-1">
+      <label data-guia="vitrina.casilla" className="tw-toque-casilla area-dedo row-span-2 @min-[34rem]:row-span-1">
         <Casilla marcada={elegido} onCambio={onElegir} etiqueta={`Elegir ${m.nombre}`} />
       </label>
       <span className="flex min-w-0 items-center gap-3">
@@ -602,7 +589,7 @@ function FilaModelo({
           <button type="button" onClick={onAbrir} data-guia="vitrina.abrir" className="block max-w-full truncate text-left font-medium text-tinta hover:text-rojo-profundo">
             <span data-guia="vitrina.modelo">{m.nombre}</span>
           </button>
-          <span className="block truncate text-[12px] text-taupe">
+          <span className="block truncate text-sm text-taupe">
             {[m.categoria, `${m.colores.length} ${m.colores.length === 1 ? "color" : "colores"}`, sinFoto ? `${sinFoto} sin foto propia` : null]
               .filter(Boolean)
               .join(" · ")}
@@ -616,7 +603,7 @@ function FilaModelo({
           )}
         </span>
       </span>
-      <span className="col-start-2 row-start-2 text-[13px] tabular-nums text-tinta sm:col-start-auto sm:row-start-auto">
+      <span className="col-start-2 row-start-2 text-sm tabular-nums text-tinta @min-[34rem]:col-start-auto @min-[34rem]:row-start-auto">
         {stockEnTiendas(m, tiendas).map((s, i) => (
           <span key={s.sede} className={s.cantidad === 0 ? "text-tinta/40" : ""}>
             {i > 0 && <span className="text-taupe"> · </span>}
@@ -624,7 +611,7 @@ function FilaModelo({
           </span>
         ))}
       </span>
-      <span className="col-start-3 row-start-1 flex justify-end self-center sm:col-start-auto sm:row-start-auto" data-guia="vitrina.interruptor">
+      <span className="col-start-3 row-start-1 flex justify-end self-center @min-[34rem]:col-start-auto @min-[34rem]:row-start-auto" data-guia="vitrina.interruptor">
         <button
           type="button"
           role="switch" // unificar-fijo: la cara del interruptor del sistema en una fila de tabla; su título es la columna «En la web»
@@ -674,7 +661,7 @@ function FilaColumnas({
       }}
       className={`${fila(PLANTILLA_COLUMNAS[tiendas.length]!, "cursor-pointer items-center sm:items-center")} ${elegido ? "bg-rojo/[0.045]" : ""}`}
     >
-      <label data-guia="vitrina.casilla" className="tw-toque-casilla">
+      <label data-guia="vitrina.casilla" className="tw-toque-casilla area-dedo">
         <Casilla marcada={elegido} onCambio={onElegir} etiqueta={`Elegir ${m.nombre}`} />
       </label>
       <span className="flex min-w-0 items-center gap-3">
@@ -683,7 +670,7 @@ function FilaColumnas({
           <button type="button" onClick={onAbrir} data-guia="vitrina.abrir" className="block max-w-full truncate text-left font-medium text-tinta hover:text-rojo-profundo">
             <span data-guia="vitrina.modelo">{m.nombre}</span>
           </button>
-          {sinFoto > 0 && <span className="block truncate text-[12px] text-taupe">{sinFoto} sin foto propia</span>}
+          {sinFoto > 0 && <span className="block truncate text-sm text-taupe">{sinFoto} sin foto propia</span>}
           {(razon || (v && v.enLoNuevo !== "automatico")) && (
             <span className="mt-1 flex flex-wrap gap-1.5">
               {razon && <RazonDelChip razon={razon} />}
@@ -693,14 +680,14 @@ function FilaColumnas({
           )}
         </span>
       </span>
-      <span className="truncate text-[13px] text-taupe">{m.categoria ?? "—"}</span>
-      <span className="text-right text-[13px] tabular-nums text-tinta">{m.colores.length}</span>
+      <span className="truncate text-sm text-taupe">{m.categoria ?? "—"}</span>
+      <span className="text-right text-sm tabular-nums text-tinta">{m.colores.length}</span>
       {stockEnTiendas(m, tiendas).map((s) => (
-        <span key={s.sede} className={`text-right text-[13px] tabular-nums ${s.cantidad === 0 ? "text-tinta/40" : "text-tinta"}`}>
+        <span key={s.sede} className={`text-right text-sm tabular-nums ${s.cantidad === 0 ? "text-tinta/40" : "text-tinta"}`}>
           {s.cantidad}
         </span>
       ))}
-      <span className="text-[13px] text-taupe">{encendido ? "Se ve en la web" : "No se ve"}</span>
+      <span className="text-sm text-taupe">{encendido ? "Se ve en la web" : "No se ve"}</span>
       <span className="flex justify-end" data-guia="vitrina.interruptor">
         <button
           type="button"

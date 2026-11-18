@@ -49,7 +49,7 @@ export function TarjetaMuestraBase({
   // Lo que un `<TooltipTrigger asChild>` le inyecta a su hijo (el `ref` con que ancla la burbuja, los eventos del mouse y del
   // teclado, `aria-describedby`). Sin pasarlo al `<button>`, la burbuja de una tarjeta envuelta nunca se abre ni sabe dónde ponerse.
 } & Omit<ComponentProps<"button">, "onClick" | "title" | "children" | "disabled" | "className" | "type" | "aria-pressed" | "aria-disabled">) {
-  const base = "flex min-w-0 flex-col gap-1 rounded-md border p-1.5 text-left text-[12.5px] transition-colors disabled:cursor-not-allowed";
+  const base = "flex min-w-0 flex-col gap-1 rounded-md border p-1.5 text-left text-sm transition-colors disabled:cursor-not-allowed";
   const estilo = cubierta
     ? "cursor-default border-dashed border-tinta/30 bg-tinta/[0.03] text-tinta/70"
     : elegido
@@ -80,8 +80,8 @@ export function TileVerTodos({ total, singular, plural, onClick }: { total: numb
       aria-haspopup="dialog"
       className="flex min-h-[70px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-md border border-dashed border-tinta/25 p-1.5 text-center text-taupe transition-colors hover:border-tinta/50 hover:bg-tinta/[0.04]"
     >
-      <span className="text-[13px] font-semibold text-tinta">Ver todos</span>
-      <span className="text-[12px] tabular-nums">
+      <span className="text-sm font-semibold text-tinta">Ver todos</span>
+      <span className="text-sm tabular-nums">
         {total} {total === 1 ? singular : plural}
       </span>
     </button>

@@ -1,4 +1,4 @@
-# ADR-0497 — Cuentas y dinero en El telar: tres caras por sede (frascos, burbujas y pares)
+# ADR-0497 — Cuentas y dinero en El telar: tres caras por sede (cuentas, burbujas y pares)
 
 - **Fecha:** 2026-10-23
 - **Estado:** aceptado. Felipe aprobó la lista de 7 actividades («aprueba a todos y que tenga en cuenta esa barra») y las
@@ -32,11 +32,11 @@ Cada cara es una ruta, para que los enlaces de Resumen, Impuestos, Balance y Con
 
 | Cara | Ruta | Qué muestra |
 |---|---|---|
-| **Dónde está** | `/finanzas/dinero` | Cada cuenta es un frasco que se llena hasta su saldo, con la raíz cuadrada para que un cajón se vea al lado de un banco, en la repisa de su sede. |
+| **Dónde está** | `/finanzas/dinero` | Un círculo reparte la plata entre las sedes y, debajo, una tarjeta por sede con cada cuenta y su saldo (nació como un frasco por cuenta; cambió el 2026-10-28, ver «Actualización 2026-10-28»). |
 | **Qué debes** | `/finanzas/dinero/por-pagar` | Cada factura es una burbuja del color de su sede y del tamaño de su saldo, en un calendario de 30 días. |
 | **Cuadrar con el banco** | `/finanzas/dinero/conciliacion` | Cada línea que anotó CAYLA va junto a «¿está en el extracto?», unidas por un hilo que se vuelve verde al revisarla. |
 
-**Efectivo por tienda se retira.** El frasco del cajón dice lo mismo que esa pestaña (`fn_efectivo_por_tienda`, la cuenta del cierre),
+**Efectivo por tienda se retira.** La fila del cajón dice lo mismo que esa pestaña (`fn_efectivo_por_tienda`, la cuenta del cierre),
 y la caja fuerte dice hace cuánto se depositó: en ámbar pasados 3 días. Su ruta solo redirige, con la sede que traía.
 
 ### 2. De quién es cada peso (D1–D4: con lo que la base ya trae, sin migración)
@@ -75,7 +75,7 @@ sobrantes.
 ### 6. Movimiento (D7, la excepción de Finanzas de ADR-0493)
 
 Una sola vez y sin rebote:
-- el líquido de los frascos sube;
+- las porciones del círculo de «Dónde está» se trazan en cascada (antes, el líquido de los frascos subía);
 - las burbujas caen a su fecha;
 - el hilo de un par se dibuja verde al revisarlo.
 
@@ -99,3 +99,70 @@ Todo se apaga con `prefers-reduced-motion`.
   - la burbuja que abre el pago;
   - «Sí, está» con un banco de prueba, que después se anuló y se archivó;
   - el dock y «Te toca» con la sede.
+
+## Actualización 2026-10-28 — «Dónde está» deja los frascos
+
+Felipe vio la pantalla con datos reales y la rechazó: los frascos con líquido son decoración y no sirven para gestionar. Pidió que se
+presente como un informe de Anthropic o de Apple, con un gráfico circular o algo con estilo, y no como una lista aburrida.
+
+**DECIDÍ:** «Dónde está» abre con un resumen (`RepartoDeDinero`): un círculo que es toda la plata de CAYLA, partido en los lugares donde está
+(cada cuenta con saldo), con lo que hay al centro y, al lado, una leyenda con monto y porcentaje de cada una. Debajo, una tarjeta por sede
+con una fila por cuenta (nombre, qué es, estado, saldo a la derecha y una barra fina de cuánto pesa). Los verdes son los bancos, los
+terracotas las tiendas y la pizarra lo que viene en camino.
+
+**DESCARTÉ:**
+- **Seguir con los frascos.** El nivel salía de una raíz cuadrada, así que el dibujo mentía: S/ 500 parecía la mitad de un banco de
+  S/ 18,000. Y lo que sí importa (qué es la cuenta, si lleva 12 días sin depositar, cuánto hay) quedaba en letra chica bajo el dibujo.
+- **Solo la lista de filas.** Era correcta pero fría: no tenía una imagen que se lea de un vistazo.
+- **Una sola tabla con subtotales.** Pierde la tarjeta por sede y los colores que la barra común ya usa. Queda como alternativa si
+  Felipe prefiere un estado de cuenta.
+
+**SE ROMPE SI:** una cuenta con saldo negativo es lo normal y no una anomalía (hoy «En camino» sale en negativo cuando se anotaron más
+depósitos que ventas con tarjeta): un círculo reparte partes mayores que cero, así que lo negativo se dice aparte y el total lo resta.
+
+**Cómo funciona:**
+- El círculo está siempre, con todas las sedes y con una sola: con una sede reparte su cajón y su caja fuerte; con una sola cuenta con plata
+  es un anillo entero («toda la plata está en un solo lugar») y sin ninguna, un anillo vacío que lo dice. Antes se escondía con menos de dos
+  cuentas y Felipe, al cambiar a Lima, preguntó «¿no muestra el gráfico?» (2026-10-28): que un gráfico desaparezca al cambiar de sede confunde.
+- La primera versión repartía por sede y «CAYLA entera» era una sola porción de casi todo el círculo (77 %). Felipe, viéndola con datos
+  reales, pidió que el círculo fuera el todo y que cada parte se viera con color: ahora cada porción es una cuenta, así los bancos se
+  ven uno por uno. Una cuenta que pesa menos de 1 % dice «<1 %» y no le quita un punto a otra.
+- Los colores son tokens: verde y verde claro para los bancos, pareja de terracotas por tienda (en el orden de la lista de ubicaciones, así
+  una tienda lleva los mismos tonos con todas las sedes que con una sola), pizarra para lo en camino. Seis colores de dato nuevos
+  (`--color-reparto-*`, en claro y en oscuro) siguen el precedente de los de sede; la paleta oficial no cambia. El color de una cuenta no
+  depende de su saldo: no cambia de un día a otro.
+- Los porcentajes enteros suman 100 (método del mayor resto): tres tercios dan 33 + 33 + 34, no 99.
+- Lo negativo no entra al círculo; «Tienes hoy» lo resta y coincide con la cabecera.
+- La barra de cada fila es lineal contra la cuenta con más plata. La cifra va escrita al lado, así que ya no hace falta deformarla.
+- Dentro de la tarjeta de una sede, el nombre pierde el lugar repetido: «Caja Operativa», no «Caja Operativa · Tienda AQP».
+- Un saldo negativo se escribe siempre igual (por ejemplo `−S/ 24,000`, con el menos de verdad) en la fila y en el total del grupo.
+
+**Piezas y reglas:** `lib/dinero-reparto-reglas.ts` (qué porción y qué color le toca a cada cuenta), `components/finanzas/dinero/RepartoDeDinero.tsx`
+(el círculo y la leyenda; el único estado es qué porción se mira) y `components/finanzas/dinero/GruposDeCuentas.tsx` (las tarjetas).
+Las barras son `BarraAvance` y los chips, `Chip`. Movimiento (ADR-0136, excepción de Finanzas, D7): las porciones se trazan una vez
+y en cascada, sin rebote ni bucle, y se apagan con `prefers-reduced-motion`. Tampoco se ven con el `:hover` de CSS: la porción que se
+destaca la elige el mouse en la leyenda.
+
+**Tensión conocida con ADR-0358:** allí la dona de lo cobrado pasó a la barra apilada, y aquí vuelve un círculo. Es una decisión de Felipe
+de este día, para el gráfico propio de este submódulo (ADR-0493); si quiere el mismo reparto como barra, es `BarraApilada`.
+
+## Actualización 2026-10-28 (b) — «Empresa» y «Todas» no son lo mismo
+
+**Decidí:** en «Dónde está», `?sede=empresa` mira solo lo que no es de ninguna sede (grupos `empresa` y `camino`: bancos, lo entregado al líder, lo que viene
+en camino) y suma la deuda de la tarjeta de crédito; `?sede=todas` sigue siendo toda la plata, un grupo por sede, y la empresa es una de esas partes. El
+mismo sentido que la barra común ya le daba a «Empresa» en Gastos (`soloEmpresa`) y en Por pagar. El grupo que se llamaba «CAYLA entera» pasa a llamarse
+«Empresa» (el mismo nombre de su hilo en la barra); «CAYLA entera» queda para el total. «En camino» cuenta dentro de «Empresa»
+(Felipe lo confirmó el 2026-10-28): con los datos de ese día, bancos y lo del líder más lo que las máquinas aún no depositan.
+
+**Descarté:** dejar «Empresa» leída como «todas» porque «la empresa no tiene cajón». Es cierta la premisa y falsa la conclusión: no tiene cajón pero sí
+cuentas, y las dos opciones de la barra mostraban lo mismo. También descarté la otra lectura de «Todas» (solo las sedes, sin los bancos): rompería que las
+partes del orillo sumen el todo y que «Todas» sea el total que Gastos y el Resumen ya usan.
+
+**Se rompe si:** una cuenta de la empresa lleva `ubicacion_id` de una sede (`grupoDe` la manda a su sede y «Empresa» no la ve), o si Felipe quiere que lo
+«en camino» tenga sede (hoy cuenta en la empresa, igual que en el orillo): entonces `GRUPOS_DE_LA_EMPRESA` cambia en un solo lugar.
+
+**Piezas:** `lib/dinero-telar-reglas.ts` (`GRUPOS_DE_LA_EMPRESA`, `gruposDelAlcance`, `cuentasDelAlcance`, `movimientosDeLaEmpresa`; `gruposDeDinero` acepta una
+lista de grupos), `lib/dinero-reparto-reglas.ts` (`textosDelReparto`), `app/(app)/finanzas/dinero/page.tsx` y `CuentasPanel` (la tabla «A qué cuenta entra
+cada cobro» es por sede y solo sale con «Todas»; la plata del dueño y lo que no dice su cuenta salen con «Todas» y con «Empresa»). El efectivo de hoy y los
+cierres con diferencia son del cajón de una tienda y no se leen con «Empresa».
+

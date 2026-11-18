@@ -182,6 +182,9 @@ const MIRAN_LA_CUENTA = [
   // ADR-0362 fase 4: «quién mira» en Recibir (la persona de la cuenta, null en una terminal) para avisar «tú hiciste la orden» antes
   // de que la base lo frene; es identidad, no firma: quien recibe firma con fn_actor_persona_id(true).
   "fn_recepcion_quien_mira",
+  // ADR-0517 (20261026161000): la persona de la cuenta que mira, sin la excepción del Admin (`fn_recepcion_quien_mira` ahora la llama).
+  // Es identidad, no firma: sirve para decir «tú compraste esto» en el detalle del envío.
+  "fn_recepcion_mi_persona",
   // ADR-0362 fase 6 (20261013182000 y 20261013212000): el fondo por rendir es de UNA persona, y estas preguntan por la cuenta que
   // entró, no por el responsable del combo. Es permiso o identidad, no firma (entregar, devolver y anular firman con
   // fn_actor_persona_id(true)): nadie se entrega plata, registra su devolución ni anula lo de su propio fondo
@@ -191,6 +194,10 @@ const MIRAN_LA_CUENTA = [
   // fn_persona_de_la_cuenta (la tarjeta «Tu fondo», las fotos de un gasto del viaje, rendir, quién no aprueba, retirar la propia).
   "fn_fondo_exigir_otra_persona", "fn_fondos", "fn_fondos_movimientos", "fn_fondos_opciones", "fn_fondo_para_pagar", "fn_mi_fondo",
   "fn_persona_de_la_cuenta",
+  // ADR-0533 (20261027140000): la persona de la cuenta que mira, o null (una terminal, sin sesión), sin rechazar. Es identidad, no firma ni
+  // permiso: la leen `requirePersonaActualV2` (para proponerla en el combo «Responsable») y fn_mi_pantalla_principal. Antes eso era
+  // fn_actor_persona_id(false), que a una terminal la rechazaba y llenaba el registro de Postgres.
+  "fn_mi_persona_id",
 ].sort();
 // Las de roles por módulo (20260923030000) se clasifican y se vigilan en `roles_por_modulo.mjs`: `fn_mi_rol_id` mira la
 // cuenta (permiso) y sus 6 RPC firman con el actor de no-tienda, una vez cada una. Se excluyen acá para que este conteo
@@ -211,7 +218,8 @@ caso(
   `select concat_ws(',',
      count(*) filter (where d ~ 'fn_actor_persona_id\\(true\\)'),
      -- fn_mi_pantalla_principal (20260925220000): «mi» preferencia de aterrizaje, mismo patrón que fn_mi_terminal/fn_es_admin —
-     -- mira la cuenta (false), nunca un responsable delegado (una terminal no tiene pantalla principal propia que otro le fije).
+     -- mira la cuenta, nunca un responsable delegado (una terminal no tiene pantalla principal propia que otro le fije). Desde 20261027140000
+     -- (ADR-0533) la cuenta se lee con fn_mi_persona_id() y ya no llama a fn_actor_persona_id(false); sigue en la lista de abajo por las bases sin esa migración.
      -- fn_mis_ventas_del_dia, fn_mi_meta y fn_mis_ventas_por_dia (ADR-0325, D-149): «lo mío» de la integrante. Preguntan por la CUENTA que
      -- consulta, no por un responsable: una terminal compartida recibe 0 filas y nadie ve lo de otra persona poniéndose un responsable.
      -- fn_guia_quien (ADR-0389, 20261007180000): «ya te ofrecí esta guía» es de la cuenta que mira la pantalla (persona o
@@ -225,8 +233,9 @@ caso(
      -- —«nadie regulariza su propia venta»—: un permiso, como fn_alcanzo_a.
      count(*) filter (where (length(d) - length(replace(d, 'fn_actor_persona_id(', ''))) / length('fn_actor_persona_id(') > 1
                         -- suspender: permiso (cuenta) + firma (responsable). guardar_proveedor_produccion (20260923240000): una
-                        -- firma en el alta y otra en la edición, caminos excluyentes.
-                        and d !~ 'FUNCTION retail\\.(suspender_colaborador|guardar_proveedor_produccion|regularizar_prenda)\\('))
+                        -- firma en el alta y otra en la edición, caminos excluyentes. guardar_oferta_completa (20261114060000, ADR-0655):
+                        -- las dos con el responsable (true), una en la historia de las insignias y otra en la de la forma.
+                        and d !~ 'FUNCTION retail\\.(suspender_colaborador|guardar_proveedor_produccion|regularizar_prenda|guardar_oferta_completa)\\('))
    from (select pg_get_functiondef(oid) d from pg_proc where pronamespace = 'retail'::regnamespace and proname <> 'fn_actor_persona_id' and ${SIN_ROLES}) x;`,
   // Pisos, no números exactos: el total depende de qué migraciones tiene la base (local 41/29 con Apartados y series;
   // CI desde cero 41/28). Que cada función calce con SU lista lo prueban la re-ejecución y la falla cerrada de abajo.
@@ -378,10 +387,11 @@ caso(
   `${sesion(T_ADMIN, { resp: "rosa" })}${COMO_API}${COLOR}`,
   (s) => s.startsWith("aprobado,") && s.endsWith(",t")
 );
+// ADR-0534 (20261027164000): lo que se crea nace aprobado para cualquiera; antes, la terminal de ventas (sin Catálogo) lo dejaba pendiente.
 caso(
-  "catálogo — terminal de ventas + Rosa propone un color: PENDIENTE, propuesto por Rosa",
+  "catálogo — terminal de ventas (sin Catálogo) + Rosa crea un color: también APROBADO (ADR-0534), propuesto y aprobado por Rosa",
   `${sesion(T_VENTAS, { resp: "rosa" })}${COMO_API}${COLOR}`,
-  "pendiente,t,f"
+  "aprobado,t,t"
 );
 caso(
   "catálogo — terminal administrativa SIN responsable: el disparador rechaza (42501)",

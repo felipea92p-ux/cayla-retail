@@ -93,7 +93,7 @@ export const GUIA_COMPROBANTES_MES: Guia = {
       id: "lista",
       ancla: "comprobantes.lista",
       titulo: "Todos los comprobantes",
-      texto: "Uno por fila: la fecha, el número, el cliente, el total y su estado. Al pie, cuánto suma cada tipo. Un comprobante nunca se borra: si se anula, queda anotado.",
+      texto: "Uno por fila: la fecha, el número, el cliente, el total y su estado. Bajo el número, con qué otro se enlaza: su nota o su cambio. Al pie, cuánto suma cada tipo. Un comprobante nunca se borra: si se anula, queda anotado.",
     },
     {
       id: "estado",
@@ -107,7 +107,7 @@ export const GUIA_COMPROBANTES_MES: Guia = {
       ancla: "comprobantes.acciones",
       opcional: true,
       titulo: "Lo que haces con cada uno",
-      texto: "Según su estado: «Reintentar» lo manda a SUNAT ya. Solo el líder ve «Anular» y «Liberar sin espera» (para uno que nunca se envió: su número queda sin usar). En la demo no los tocamos.",
+      texto: "Según su estado: «Reintentar» lo manda a SUNAT ya. Quien tiene Facturación ve «Anular» y «Liberar sin espera» (para uno que nunca se envió: su número queda sin usar). Lo que sale de un cambio no se anula ni se libera. En la demo no los tocamos.",
     },
     {
       id: "opciones",
@@ -394,22 +394,36 @@ export const GUIA_CAJA: Guia = {
       id: "ultimo-cierre",
       ancla: "caja.ultimo-cierre",
       opcional: true,
-      titulo: "Cómo se cerró la última vez",
-      texto: "Lo que esperaba el sistema, lo que se contó y lo que quedó en el cajón para este turno. Sirve para saber con cuánto deberías abrir.",
+      titulo: "Quién cerró y cuánto dejó",
+      texto: "Quién cerró la caja la última vez y cuánto debería haber hoy en el cajón.",
+    },
+    {
+      id: "cierres-anteriores",
+      ancla: "caja.cierres-anteriores",
+      opcional: true,
+      titulo: "Cierres anteriores",
+      texto: "Los últimos cierres de esta tienda, con lo que quedó en el cajón y si cuadró. Toca uno para ver su detalle: lo cobrado por medio de pago, cómo cuadró y los movimientos del turno.",
     },
     {
       id: "abrir",
       ancla: "caja.abrir",
       opcional: true,
       titulo: "Abrir la caja",
-      texto: "Cuenta el efectivo del cajón, escribe el monto y elige quién abre. Si no coincide con lo que dejó el último cierre, te pide el motivo y le avisa al líder. Abrir la caja la deja lista para vender.",
+      texto: "Escribe cuánto hay en el cajón y elige quién abre. Si no coincide con el cierre, te pide qué pasó y le avisa al líder. «Contar billetes y monedas» te ayuda a sumar.",
+    },
+    {
+      id: "resumen",
+      ancla: "caja.resumen",
+      opcional: true,
+      titulo: "El resumen",
+      texto: "Lo que debería haber, lo que contaste y la diferencia. Abajo, el responsable y el botón de abrir, que dice qué falta.",
     },
     {
       id: "historial-todas",
       ancla: "caja.historial-todas",
       opcional: true,
       titulo: "Historial de cierres",
-      texto: "Con la caja cerrada, este botón te lleva a los cierres de todas las tiendas: si cuadraron, cuánto faltó o sobró y el detalle de cada turno.",
+      texto: "Los cierres de esta tienda, mes por mes: si cuadraron, cuánto faltó o sobró y, al tocar uno, el detalle del turno. Es el mismo con la caja abierta o cerrada.",
     },
     {
       id: "turno",
@@ -424,6 +438,14 @@ export const GUIA_CAJA: Guia = {
       opcional: true,
       titulo: "Hoy contra ayer",
       texto: "En una frase, cómo vas comparado con ayer a esta misma hora, con lo vendido, las ventas y la venta promedio. El círculo dice cuánto llevas de lo que se vendió ayer.",
+    },
+    {
+      // ADR-0532: solo en Lima, donde CAYLA y CLAURE comparten la caja.
+      id: "reparto-empresas",
+      ancla: "caja.reparto-empresas",
+      opcional: true,
+      titulo: "De quién es lo vendido",
+      texto: "Cuánto de lo vendido hoy es de CAYLA y cuánto de CLAURE, prenda por prenda. El efectivo y los demás pagos siguen juntos: es un solo cajón.",
     },
     {
       id: "cajon",
@@ -496,11 +518,28 @@ export const GUIA_CAJA: Guia = {
       texto: "Para un gasto de la tienda (movilidad, limpieza, un arreglo). Abre una hoja corta: tocas uno de los gastos de siempre, el monto y cómo lo pagaste: del cajón, o con el Yape o el Plin de la tienda, que no tocan el cajón. Queda en Finanzas. En la demo no lo tocamos.",
     },
     {
+      // La hoja del gasto (ADR-0536): el asistente que acompaña un gasto real termina aquí; la hoja misma dice qué falta (guía de
+      // foco). La demo no la abre, así que se salta (opcional).
+      id: "gasto-pie",
+      ancla: "gasto-rapido.pie",
+      opcional: true,
+      titulo: "Llena la hoja y registra el gasto",
+      texto: "La hoja te dice qué sigue en cada campo: qué fue, cuánto y cómo lo pagaste. Cuando dice «Todo listo», lo registras tú.",
+    },
+    {
       id: "ingreso",
       ancla: "caja.ingreso",
       opcional: true,
       titulo: "Registrar ingreso",
       texto: "Para la plata que entra al cajón y no es una venta: sencillo que trajeron, un préstamo de otra sede. Si sale plata y no es un gasto (un retiro, un depósito al banco), lo haces desde «Retiro o depósito», dentro de la hoja de gasto. En la demo no lo tocamos.",
+    },
+    {
+      // La hoja del ingreso (ADR-0536), como la del gasto.
+      id: "ingreso-pie",
+      ancla: "ingreso-rapido.pie",
+      opcional: true,
+      titulo: "Llena la hoja y registra el ingreso",
+      texto: "La hoja te dice qué sigue: de dónde viene la plata y cuánto entra. Cuando dice «Todo listo», lo registras tú.",
     },
     {
       id: "historial",
@@ -560,7 +599,7 @@ export const GUIA_CAJA: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Cerrar la caja",
-      texto: "Esta barra se queda a la vista y te avisa cuándo toca cerrar. «Cerrar caja» pide contar el efectivo, dice cuánto dejar para el próximo turno y anota la diferencia. Lo hace un líder. En la demo no la cerramos.",
+      texto: "Esta barra se queda a la vista y te avisa cuándo toca cerrar. «Cerrar caja» pide contar el efectivo, dice cuánto dejar para el próximo turno y anota la diferencia. Lo hace un líder. En Lima, al terminar también dice cuánto se le debe a Claudia (CLAURE). En la demo no la cerramos.",
     },
     {
       id: "barra-movil",
@@ -669,7 +708,7 @@ export const GUIA_CAMBIOS: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Cambiar una prenda",
-      texto: "Cuando un cliente trae una prenda para cambiarla por otra talla, color o modelo, se hace aquí. La prenda que trae vuelve al stock y la nueva sale. Es una demo: no se cambia nada.",
+      texto: "Cuando un cliente trae una prenda para cambiarla por otra talla, color o modelo, se hace aquí. La prenda que trae vuelve al stock y la nueva sale; si cuesta distinto, salen también sus comprobantes. Es una demo: no se cambia nada.",
     },
     {
       id: "cifras",
@@ -744,7 +783,7 @@ export const GUIA_CAMBIOS: Guia = {
       ancla: null,
       preparar: [{ tipo: "clic", ancla: "cambios.iniciar" }],
       titulo: "Así se ve un cambio por dentro",
-      texto: "Te abrimos el cambio de esa compra para que veas sus pasos. Mientras no confirmes, no se guarda nada: el stock y la caja quedan igual.",
+      texto: "Te abrimos el cambio de esa compra para que veas sus pasos. Mientras no confirmes, no se guarda nada: ni el stock, ni la caja, ni sale ningún comprobante.",
     },
     {
       id: "flujo-prendas",
@@ -788,21 +827,35 @@ export const GUIA_CAMBIOS: Guia = {
       ancla: "cambios.validaciones",
       opcional: true,
       titulo: "Lo que revisa el sistema",
-      texto: "Mientras eliges, revisa que la compra esté en plazo y la prenda se pueda cambiar, que elijas el motivo y una prenda nueva con stock y, si hay diferencia en efectivo, que la caja esté abierta. El círculo cuenta lo que ya está listo.",
+      texto: "Mientras eliges, revisa que la compra esté en plazo y la prenda se pueda cambiar, que elijas el motivo y una prenda nueva con stock y, si hay diferencia en efectivo, que la caja esté abierta. El círculo cuenta lo que ya está listo. Debajo, qué pasa con el stock, la caja y los comprobantes.",
     },
     {
       id: "pie-reemplazo",
       ancla: "cambios.pie-reemplazo",
       opcional: true,
       titulo: "Revisar antes de confirmar",
-      texto: "«Revisar el cambio» lleva al último paso: el resumen, quién lo registra y «Confirmar cambio», que recién ahí mueve el stock y la caja. La flecha vuelve al paso anterior.",
+      texto: "«Revisar el cambio» lleva al último paso: el resumen, los comprobantes que salen si hay diferencia (si es un regalo, ahí cambias a nombre de quién va la boleta nueva), quién lo registra y «Confirmar cambio», que recién ahí mueve el stock y la caja y los emite. La flecha vuelve al paso anterior.",
+    },
+    {
+      id: "documentos",
+      ancla: "cambios.documentos",
+      opcional: true,
+      titulo: "Los comprobantes del cambio",
+      texto: "Si la prenda nueva cuesta distinto, salen dos: una nota de crédito por lo que devolvió y una boleta nueva por todo lo que se lleva (con nota de venta, solo la nota de venta nueva). Si SUNAT aún no acepta la boleta de la compra, la nota sale sola después.",
+    },
+    {
+      id: "cliente-comprobante",
+      ancla: "cambios.cliente-comprobante",
+      opcional: true,
+      titulo: "A nombre de quién sale",
+      texto: "La boleta nueva sale a nombre del mismo cliente. Si es un regalo, cámbialo aquí; una boleta de más de S/\u00a0700 lleva su documento. Una factura va siempre al mismo RUC.",
     },
     {
       id: "flujo-volver",
       ancla: "posventa.flujo-volver",
       opcional: true,
       titulo: "Volver sin cambiar nada",
-      texto: "Esta flecha te regresa a la lista de compras desde cualquier paso, sin guardar nada. Hasta que no confirmas, el stock y la caja no se mueven.",
+      texto: "Esta flecha te regresa a la lista de compras desde cualquier paso, sin guardar nada. Hasta que no confirmas, no se mueve el stock ni la caja, ni sale ningún comprobante.",
     },
     {
       id: "fin",
@@ -825,7 +878,7 @@ export const GUIA_DEVOLUCIONES: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Devolver una compra",
-      texto: "Cuando un cliente devuelve una prenda, se registra aquí y un líder la aprueba: recién ahí vuelve el stock y sale la nota de crédito. Es una demo: no se devuelve nada.",
+      texto: "Cuando un cliente devuelve una prenda, se registra aquí y, al revisarla, se aprueba: recién ahí vuelve el stock y sale la nota de crédito. Es una demo: no se devuelve nada.",
     },
     {
       id: "cifras",
@@ -872,7 +925,7 @@ export const GUIA_DEVOLUCIONES: Guia = {
       ancla: "devoluciones.pestanas",
       opcional: true,
       titulo: "Tres vistas",
-      texto: "«Compras» son las ventas recientes que se pueden devolver; «Por aprobar», las devoluciones que esperan a un líder; «Resueltas», las aprobadas y rechazadas.",
+      texto: "«Compras» son las ventas recientes que se pueden devolver; «Por aprobar», las devoluciones que esperan que alguien las revise; «Resueltas», las aprobadas y rechazadas.",
     },
     {
       id: "filtros",
@@ -917,7 +970,51 @@ export const GUIA_DEVOLUCIONES: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Devolver",
-      texto: "Abre la devolución: eliges las prendas, en qué estado vuelven, el motivo y cómo se reembolsa. Queda «por aprobar» y el stock no cambia hasta que un líder la aprueba. En la demo no lo tocamos.",
+      texto: "Abre la devolución: eliges las prendas, en qué estado vuelven, el motivo y cómo se reembolsa. Queda «por aprobar» y el stock no cambia hasta que alguien la revisa y la aprueba. En la demo no lo tocamos.",
+    },
+    // El flujo que abre «Devolver» (ADR-0536): el asistente que acompaña una devolución real los enciende uno a uno. La demo no abre el
+    // flujo, así que se saltan solos (opcionales).
+    {
+      id: "devolucion-prendas",
+      ancla: "devolucion.prendas",
+      opcional: true,
+      titulo: "Qué prendas devuelve",
+      texto: "Marca las prendas que el cliente trae de vuelta y, si compró varias iguales, cuántas. Cada una dice si se puede devolver.",
+    },
+    {
+      id: "devolucion-pie-prendas",
+      ancla: "devolucion.pie-prendas",
+      opcional: true,
+      titulo: "Continuar",
+      texto: "Pasa a contar por qué la devuelve y en qué estado vuelve.",
+    },
+    {
+      id: "devolucion-motivo",
+      ancla: "devolucion.motivo",
+      opcional: true,
+      titulo: "Por qué la devuelve",
+      texto: "Elige el motivo (no le quedó, tiene un defecto, otro…) y, si quieres, anota algo más.",
+    },
+    {
+      id: "devolucion-pie-motivo",
+      ancla: "devolucion.pie-motivo",
+      opcional: true,
+      titulo: "Revisar la devolución",
+      texto: "Muestra todo junto antes de registrarla: las prendas, el motivo y cuánto se le devuelve.",
+    },
+    {
+      id: "devolucion-responsable",
+      ancla: "devolucion.responsable",
+      opcional: true,
+      titulo: "Quién la registra",
+      texto: "Elige quién atiende: la devolución queda a su nombre.",
+    },
+    {
+      id: "devolucion-confirmar",
+      ancla: "devolucion.confirmar",
+      opcional: true,
+      titulo: "Registrar la devolución",
+      texto: "La deja por aprobar: el stock y el dinero no se mueven hasta que alguien la revisa y la aprueba. La registras tú.",
     },
     {
       id: "anular",
@@ -932,7 +1029,7 @@ export const GUIA_DEVOLUCIONES: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "devoluciones.pestana-pendientes" }],
       titulo: "Por aprobar",
-      texto: "Las devoluciones registradas que esperan. El líder revisa cada una y la aprueba o la rechaza: al aprobarla se mueve el stock y sale la nota de crédito.",
+      texto: "Las devoluciones registradas que esperan. Revisas cada una y la apruebas o la rechazas: al aprobarla se mueve el stock y sale la nota de crédito.",
     },
     {
       id: "resueltas",

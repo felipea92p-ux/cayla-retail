@@ -1,3 +1,4 @@
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 // El vuelo de una prenda a la etiqueta (ADR-0136: responde a marcarla o escanearla, 480 ms, sin rebote). Una copia de la miniatura
 // sale de donde estaba (su fila o el lector) y llega al lugar de su pieza en el mosaico; la pieza aparece recién al llegar. Sin
 // movimiento (`prefers-reduced-motion`) no vuela: la pieza ya está.
@@ -6,7 +7,7 @@
  *  lectura recién entonces existe). */
 export type Vuelo = { desde: () => Element | null; ids: readonly string[] };
 
-export const sinMovimiento = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+export const sinMovimiento = () => typeof window !== "undefined" && !!prefiereQuieto();
 
 /** Vuela una copia de `desde` hasta `hasta` y devuelve cuándo llegó. */
 export function volar(desde: Element, hasta: Element): Promise<void> {

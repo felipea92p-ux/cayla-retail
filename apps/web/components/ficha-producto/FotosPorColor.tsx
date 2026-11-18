@@ -2,9 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
-import { Camera } from "lucide-react";
+import { Camera, Sparkles } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { Desplegable, type Opcion } from "@/components/ui/campos";
+import { Desplegable, HiloEnEspera, Interruptor, type Opcion } from "@/components/ui/campos";
+import { Chip } from "@/components/ui/Chip";
+import { esFotoIA } from "@/lib/foto-catalogo-reglas";
+import type { CatalogoIA } from "./useCatalogoIA";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { BotonFoto, BotonQuitarFoto } from "@/components/alta-producto/FotosAlta";
 import type { ColorAlta } from "@/lib/alta-producto";
@@ -55,6 +58,7 @@ export function FotosPorColor({
   colores,
   vocabulario,
   nombreColor,
+  catalogo,
   disabled = false,
 }: {
   /** Las fotos como se ven (cada una en el color que le toca tras las correcciones pendientes). */
@@ -67,6 +71,8 @@ export function FotosPorColor({
   /** El vocabulario de colores (nombre, muestra): para pintar cada punto. */
   vocabulario: readonly ColorAlta[];
   nombreColor: (codigo: string | null) => string;
+  /** «Catálogo con IA» (`useCatalogoIA`): la opción del título, la hoja de ángulos y lo que se está preparando. */
+  catalogo: CatalogoIA;
   disabled?: boolean;
 }) {
   // La subida termina después de un `await`: sin esto, las fotos que se agregaran entre medio se perderían al pisar la lista.
@@ -104,11 +110,34 @@ export function FotosPorColor({
   // La × de la tarjeta: con una sola foto la quita (se guarda con «Guardar», como cualquier cambio de la ficha); con varias abre la hoja para elegir cuál.
   const quitarDe = (delColor: FotoLocal[], hoja: string | null) => (delColor.length === 1 ? onFotos(sinLaFoto(fotos, delColor[0].clientKey)) : setViendo(hoja));
   const pasar = (clientKey: string, destino: string) => onFotos(pasadaAColor(fotos, clientKey, destino === TODOS ? null : destino));
+  // Con «Catálogo con IA» encendido, elegir la foto de un color abre la hoja de ángulos; apagado, sube tal cual (ADR-0442).
+  const agregarA = (archivos: File[], color: string | null) => (catalogo.encendido ? catalogo.abrir(archivos, color) : elegir(archivos, color));
 
   return (
     <div className="space-y-3">
-      <TituloSeccion dato={cuenta || undefined}>Fotos por color</TituloSeccion>
-      <p className="max-w-[72ch] text-[13px] text-taupe">
+      <TituloSeccion
+        dato={cuenta || undefined}
+        ayuda={catalogo.disponible ? "Catálogo con IA: maniquí invisible, sin fondo." : undefined}
+        accion={
+          catalogo.disponible ? (
+            <span data-guia="editar.catalogo-ia-interruptor">
+              <Interruptor
+                activo={catalogo.encendido}
+                onActivo={catalogo.cambiarEncendido}
+                etiqueta={
+                  <span className="inline-flex items-center gap-1.5 font-medium text-tinta">
+                    <Sparkles aria-hidden className="h-3.5 w-3.5" />
+                    Catálogo con IA
+                  </span>
+                }
+              />
+            </span>
+          ) : undefined
+        }
+      >
+        Fotos por color
+      </TituloSeccion>
+      <p className="max-w-[72ch] text-sm text-taupe">
         {vista.general.sinColores ? (
           <>Toca el rectángulo para <b className="font-semibold text-tinta">agregar la foto de la prenda</b>, o para ver, cambiar o quitar las que ya tiene.</>
         ) : (
@@ -133,7 +162,9 @@ export function FotosPorColor({
               bloqueado={bloqueado}
               onAbrir={() => setViendo(t.codigo)}
               onQuitar={() => quitarDe(t.fotos, t.codigo)}
-              onElegir={(archivos) => elegir(archivos, t.codigo)}
+              onElegir={(archivos) => agregarA(archivos, t.codigo)}
+              preparando={catalogo.preparandoDe(t.codigo)}
+              alternativa={t.fotos[0] ? catalogo.alternativa(t.fotos[0]) : null}
             />
           </li>
         ))}
@@ -151,7 +182,9 @@ export function FotosPorColor({
               bloqueado={bloqueado}
               onAbrir={() => setViendo(null)}
               onQuitar={() => quitarDe(vista.general.fotos, null)}
-              onElegir={(archivos) => elegir(archivos, null)}
+              onElegir={(archivos) => agregarA(archivos, null)}
+              preparando={catalogo.preparandoDe(null)}
+              alternativa={vista.general.fotos[0] ? catalogo.alternativa(vista.general.fotos[0]) : null}
             />
           </li>
         )}
@@ -166,7 +199,7 @@ export function FotosPorColor({
           {vista.huerfanas.map((f) => (
             <div key={f.clientKey} className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
               <Miniatura foto={f} ancho="w-14" />
-              <p className="min-w-0 flex-1 basis-32 text-[13px] text-tinta">
+              <p className="min-w-0 flex-1 basis-32 text-sm text-tinta">
                 Era de <b className="font-semibold">{nombreColor(f.colorCodigo)}</b>
               </p>
               <Desplegable
@@ -187,7 +220,12 @@ export function FotosPorColor({
         </Aviso>
       )}
 
-      <p className="text-xs text-tinta/45">JPG, PNG o WebP, hasta 5 MB. Se sube tal cual la entregas. Un PNG con fondo transparente además entra al armador de looks.</p>
+      {/* Con la IA encendida la foto no se sube «tal cual» (formidable, 2026-11-13): se dice solo el formato. */}
+      <p className="text-sm text-tinta/45">
+        {catalogo.encendido
+          ? "JPG, PNG o WebP, hasta 5 MB."
+          : "JPG, PNG o WebP, hasta 5 MB. Se sube tal cual la entregas. Un PNG con fondo transparente además entra al armador de looks."}
+      </p>
 
       {viendo !== undefined && (
         <HojaDeFotos
@@ -201,7 +239,10 @@ export function FotosPorColor({
           opcionesPasar={opcionesPasar(viendo)}
           onFotos={onFotos}
           onPasar={pasar}
-          onElegir={(archivos) => elegir(archivos, viendo)}
+          onElegir={(archivos) => {
+            if (catalogo.encendido) setViendo(undefined);
+            agregarA(archivos, viendo);
+          }}
           onClose={() => setViendo(undefined)}
         />
       )}
@@ -242,6 +283,8 @@ function Tarjeta({
   onAbrir,
   onQuitar,
   onElegir,
+  preparando,
+  alternativa,
 }: {
   titulo: string;
   punto: ReactNode;
@@ -258,11 +301,27 @@ function Tarjeta({
   /** La × sobre la portada: quita la foto si es una sola; con varias, abre la hoja. */
   onQuitar: () => void;
   onElegir: (archivos: File[]) => void;
+  /** La vista local de la foto que la IA está preparando para este color (`useCatalogoIA`), o `null`. */
+  preparando: string | null;
+  /** «Usar mi foto» / «Usar la de IA» bajo la tarjeta, o `null`. */
+  alternativa: { texto: string; usar: () => void } | null;
 }) {
   const portada = fotos[0];
   return (
     <div className="space-y-2">
-      {portada ? (
+      {preparando ? (
+        // La foto se prepara en su cuadro: la propia, atenuada, con el hilo de espera (sigue con las animaciones apagadas, ADR-0625).
+        <div aria-busy className="relative aspect-[4/5] w-full overflow-hidden rounded-xl border border-sand bg-papel">
+          {/* eslint-disable-next-line @next/next/no-img-element -- vista local (blob:), no pasa por el optimizador */}
+          <img src={preparando} alt="" className="absolute inset-0 h-full w-full object-cover opacity-40 grayscale-[.4]" />
+          <span className="absolute inset-x-0 bottom-0 grid justify-items-center gap-2 px-3 pb-3 text-sm font-medium text-tinta">
+            <span className="relative block h-[2px] w-2/3">
+              <HiloEnEspera />
+            </span>
+            Preparando…
+          </span>
+        </div>
+      ) : portada ? (
         <div className="relative">
           <button
             type="button"
@@ -273,7 +332,7 @@ function Tarjeta({
             <ImagenDePrenda src={portada.url} alt="" fill sizes="220px" className="object-cover" fallback={null} />
             {fotos.some((f) => f.esPrincipal) && <span className={INSIGNIA_PRINCIPAL}>Principal</span>}
             {pendiente && <span className={INSIGNIA_NUEVA}>{pendiente === "nueva" ? "Nueva" : "Movida"}</span>}
-            <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-crema/95 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-tinta shadow-sm">
+            <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-crema/95 px-2.5 py-1 text-sm font-semibold tabular-nums text-tinta shadow-sm">
               <Camera aria-hidden className="h-3 w-3" />
               {fotos.length}
             </span>
@@ -296,17 +355,27 @@ function Tarjeta({
           }`}
         >
           <Camera /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ aria-hidden className="h-6 w-6" strokeWidth={1.5} />
-          <span className="text-[12.5px] font-semibold leading-tight">{textoVacio}</span>
-          <span className="text-[11.5px] font-normal text-taupe">{subVacio}</span>
+          <span className="text-sm font-semibold leading-tight">{textoVacio}</span>
+          <span className="text-sm font-normal text-taupe">{subVacio}</span>
         </BotonFoto>
       )}
-      <div className="flex min-w-0 items-center gap-2 text-[13.5px] font-medium text-tinta">
+      <div className="flex min-w-0 items-center gap-2 text-[15px] font-medium text-tinta">
         {punto}
         <span className="min-w-0 truncate">{titulo}</span>
         {(!general || fotos.length > 0) && (
-          <small className={`ml-auto shrink-0 text-xs font-normal ${estado === "sin-foto" ? "font-medium text-ambar-profundo" : "text-taupe"}`}>{textoEstadoColor(estado, fotos.length)}</small>
+          <small className={`ml-auto shrink-0 text-sm font-normal ${estado === "sin-foto" && !preparando ? "font-medium text-ambar-profundo" : "text-taupe"}`}>
+            {preparando ? "Preparando…" : textoEstadoColor(estado, fotos.length)}
+          </small>
         )}
       </div>
+      {alternativa && !preparando && (
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          {portada && esFotoIA(portada.url) && <Chip tono="pizarra">Con IA</Chip>}
+          <button type="button" disabled={bloqueado} onClick={alternativa.usar} className="btn-cayla btn-enlace text-sm">
+            {alternativa.texto}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -346,7 +415,10 @@ function HojaDeFotos({
       : "Se ven en los colores que no tienen la suya. ¿Es de un solo color? Pásala a ese color."
     : "Con una foto alcanza. La principal es la que representa a toda la prenda en Productos.";
   return (
-    <Modal titulo={`Fotos de ${general ? titulo.toLowerCase() : titulo}`} subtitulo={subtitulo} onClose={onClose} tamano="mediana">
+    // Ancha (768): tres fotos por fila con sus acciones a la vista, y la foto lo bastante grande para juzgarla (las arrugas, la tela). En «mediana»
+    // cada columna medía ~160 px y «Principal» y «Quitar», forzados a ir lado a lado, se montaban y empujaban el combo a la foto vecina (Felipe
+    // 2026-11-16: «hay como una colisión de las opciones»). El foco va a la hoja: el primer control era «Principal», y su anillo parecía «elegida».
+    <Modal titulo={`Fotos de ${general ? titulo.toLowerCase() : titulo}`} subtitulo={subtitulo} onClose={onClose} tamano="ancha" focoEnLaHoja>
       {(cerrar) => (
         <div className="space-y-4">
           {fotos.length === 0 && <p className="text-sm text-taupe">Ya no quedan fotos aquí. Agrega otra con el rectángulo de abajo.</p>}
@@ -354,42 +426,43 @@ function HojaDeFotos({
             {fotos.map((f) => {
               const pendiente = pendienteDeFoto(f, guardadasPorClave);
               return (
-                <div key={f.clientKey} className="space-y-2">
+                <div key={f.clientKey} className="flex min-w-0 flex-col gap-2">
                   <div className={`relative aspect-[4/5] overflow-hidden rounded-xl border bg-papel ${pendiente ? "border-ambar ring-1 ring-ambar" : "border-sand"}`}>
-                    <ImagenDePrenda src={f.url} alt={`Foto de ${titulo}`} fill sizes="200px" className="object-cover" fallback={null} />
+                    <ImagenDePrenda src={f.url} alt={`Foto de ${titulo}`} fill sizes="240px" className="object-cover" fallback={null} />
                     {f.esPrincipal && <span className={INSIGNIA_PRINCIPAL}>Principal</span>}
                     {pendiente && <span className={INSIGNIA_NUEVA}>{pendiente === "nueva" ? "Nueva" : "Movida"}</span>}
                   </div>
-                  <div className="grid gap-1.5">
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {f.esPrincipal ? (
-                        <p className="self-center text-center text-xs text-taupe">Es la principal</p>
-                      ) : (
-                        <button type="button" disabled={bloqueado} onClick={() => onFotos(comoPrincipal(todas, f.clientKey))} className="btn-cayla btn-sutil btn-chico">
-                          Principal
-                        </button>
-                      )}
-                      <button type="button" disabled={bloqueado} onClick={() => onFotos(sinLaFoto(todas, f.clientKey))} className="btn-cayla btn-peligro btn-chico">
-                        Quitar
-                      </button>
-                    </div>
-                    {sePuedePonerPrimera(todas, f.clientKey) && (
-                      <button type="button" disabled={bloqueado} onClick={() => onFotos(primeraEnSuColor(todas, f.clientKey))} className="btn-cayla btn-enlace justify-self-start text-[12.5px]">
-                        Ponerla primera
+                  {/* Cada botón a su ancho: si los dos no caben en la fila, el segundo baja a la de abajo en vez de montarse sobre el primero. */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {f.esPrincipal ? (
+                      <p className="flex-auto self-center text-center text-sm text-taupe">Es la principal</p>
+                    ) : (
+                      <button type="button" disabled={bloqueado} onClick={() => onFotos(comoPrincipal(todas, f.clientKey))} className="btn-cayla btn-sutil btn-chico flex-auto">
+                        Hacer principal
                       </button>
                     )}
-                    {opcionesPasar.length > 0 && (
-                      <Desplegable
-                        forma="campo"
-                        valor=""
-                        onValor={(v) => v && onPasar(f.clientKey, v)}
-                        opciones={opcionesPasar}
-                        marcador="Pasar a otro color…"
-                        etiquetaAccesible={`Pasar esta foto de ${titulo} a otro color`}
-                        deshabilitado={bloqueado}
-                      />
-                    )}
+                    <button type="button" disabled={bloqueado} onClick={() => onFotos(sinLaFoto(todas, f.clientKey))} className="btn-cayla btn-peligro btn-chico flex-auto">
+                      Quitar
+                    </button>
                   </div>
+                  {opcionesPasar.length > 0 && (
+                    <Desplegable
+                      forma="campo"
+                      className="w-full min-w-0"
+                      valor=""
+                      onValor={(v) => v && onPasar(f.clientKey, v)}
+                      opciones={opcionesPasar}
+                      marcador="Pasar a otro color…"
+                      etiquetaAccesible={`Pasar esta foto de ${titulo} a otro color`}
+                      deshabilitado={bloqueado}
+                    />
+                  )}
+                  {/* Al final: así los combos de las fotos quedan a la misma altura, la tenga o no. */}
+                  {sePuedePonerPrimera(todas, f.clientKey) && (
+                    <button type="button" disabled={bloqueado} onClick={() => onFotos(primeraEnSuColor(todas, f.clientKey))} className="btn-cayla btn-enlace self-start text-[12.5px]">
+                      Ponerla primera
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -403,7 +476,8 @@ function HojaDeFotos({
               <span className="text-xs font-semibold uppercase tracking-wide">Agregar otra</span>
             </BotonFoto>
           </div>
-          <div className="flex justify-end">
+          {/* Pegado abajo: con tres fotos o más la hoja pasa del alto de un laptop (900 px) y «Listo» quedaba bajo el borde. */}
+          <div className="pie-hoja-fijo flex justify-end pt-2">
             <button type="button" onClick={cerrar} className="btn-cayla btn-primario">
               Listo
             </button>

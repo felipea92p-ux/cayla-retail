@@ -14,6 +14,7 @@ import {
   esMostrador,
   hermanosDe,
   hojasDe,
+  modulosDeLasHojas,
   menuPara,
   permisosDe,
   puedeVerProduccion,
@@ -301,9 +302,13 @@ const TOPE_HIJAS = 6;
 // «Pagos» (Por pagar + Fondos + Notas de crédito) como recomendación, y eligió no regrupar. «Órdenes de compra» entró como séptima hija
 // mientras «Recibir mercadería» vivía en Compras (decisión 38); Recibir se mudó a Inventario el 2026-10-14 (ADR-0393, 20261014210000) y
 // Compras bajó de 8 a 7: desde ese día la excepción es solo por Fondos por rendir, y no vuelve a subir.
-// VENTAS, cerrado (ADR-0430, 2026-10-16): fue 7 mientras «Pedidos web» vivió en Ventas (ADR-0408, act. 8); desde que se mudó a
-// «Tienda web», Ventas vuelve a 6 y cabe en el tope general: la excepción se borra y no vuelve.
-const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 7 };
+// VENTAS, 7 (Felipe, 2026-11-03): fue 7 mientras «Pedidos web» vivió en Ventas (ADR-0408, act. 8) y volvió a 6 cuando se mudó a «Tienda web»
+// (ADR-0430), con la nota «la excepción se borra y no vuelve». Felipe la REABRE por «Reportes» (reporte de ventas del mes y ranking de prendas,
+// con su propio módulo): se le preguntó con tres caminos —una séptima hija, agrupar Historial y Reportes, o una pestaña dentro de Historial— y
+// eligió la séptima hija. Se descartó la pestaña porque una pestaña no es un módulo (ADR-0306) y la vería todo el que ve el Historial.
+// TIENDA WEB, 7 (Felipe, 2026-10-23; ADR-0495): «Tráfico» entra como séptima hija, entre Recomendaciones y Conf. Tienda, con su propio
+// módulo. Se descartó hacerla pestaña del Resumen: una pestaña no es un módulo (ADR-0306) y la vería todo el que ve el Resumen.
+const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 7, tiendaWeb: 7, venta: 7 };
 const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE_HIJAS;
 
 // Todos los grupos que hay dentro de `fs`, en cualquier profundidad: un subgrupo (D-84) tiene que cumplir el mismo tope
@@ -601,11 +606,13 @@ describe("reglas de menuPara", () => {
     expect(ids([])).toEqual([]);
   });
 
-  it("Catálogo ▸ Insignias sigue abriéndose con Campañas sola: el alterno de antes no cambió", () => {
+  it("Catálogo ▸ Campañas y ofertas abre con Campañas o con Insignias; Insignias, solo con su módulo (ADR-0655): nadie gana ni pierde acceso", () => {
     // Con una sola hija, el grupo sale como fila suelta con el nombre del grupo: se mira el destino, no el id.
     const destinos = (modulos: ClaveModulo[]) => menuPara({ permisos: LIDER, ubicacionTipo: "tienda", modulos }).riel.flatMap(hojasDe).map((h) => h.href);
-    expect(destinos(["campanas"])).toContain("/productos/insignias");
-    expect(destinos(["etiquetas"])).toContain("/productos/insignias");
+    expect(destinos(["campanas"])).toContain("/productos/campanas");
+    expect(destinos(["campanas"])).not.toContain("/productos/insignias");
+    expect(destinos(["etiquetas"])).toEqual(expect.arrayContaining(["/productos/campanas", "/productos/insignias"]));
+    expect(destinos(["existencias"])).not.toContain("/productos/campanas");
     expect(destinos(["existencias"])).not.toContain("/productos/insignias");
   });
 
@@ -929,5 +936,28 @@ describe("hermanosDe (un solo grupo abierto por nivel)", () => {
   });
   it("un id desconocido no cierra nada", () => {
     expect(hermanosDe("zzz", filas)).toEqual([]);
+  });
+});
+
+describe("modulosDeLasHojas: el módulo de cada pantalla, para el buscador de la cabecera", () => {
+  const riel = [
+    { id: "inicio", etiqueta: "Inicio", href: "/", icono: "inicio" },
+    {
+      id: "inv",
+      etiqueta: "Inventario",
+      icono: "inventario",
+      hijos: [
+        { id: "exi", etiqueta: "Existencias", href: "/inventario", icono: "inventario" },
+        { id: "sub", etiqueta: "Mover", icono: "traslados", hijos: [{ id: "tra", etiqueta: "Traslados", href: "/inventario/traslados", icono: "traslados" }] },
+      ],
+    },
+  ] as unknown as Parameters<typeof modulosDeLasHojas>[0];
+
+  it("da el grupo de cada hoja, con los subgrupos unidos por « · »", () => {
+    expect(modulosDeLasHojas(riel)).toEqual({ "/inventario": "Inventario", "/inventario/traslados": "Inventario · Mover" });
+  });
+
+  it("una pantalla suelta en la raíz no tiene módulo", () => {
+    expect(modulosDeLasHojas(riel)["/"]).toBeUndefined();
   });
 });

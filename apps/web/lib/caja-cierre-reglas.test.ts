@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   diferenciaApertura,
+  destinosDelCierre,
   etiquetaDestino,
   fondoTrasCierre,
   leerMonto,
@@ -68,6 +69,16 @@ describe("diferenciaApertura", () => {
   });
 });
 
+describe("destinosDelCierre (ADR-0560, actividad 11)", () => {
+  it("«Se queda con Claudia» solo se ofrece donde opera CLAURE; los demás destinos van siempre", () => {
+    expect(destinosDelCierre(true).map((d) => d.valor)).toEqual(["caja_fuerte", "banco", "lider", "claudia"]);
+    expect(destinosDelCierre(false).map((d) => d.valor)).toEqual(["caja_fuerte", "banco", "lider"]);
+  });
+  it("no pide referencia ni bloquea el cierre", () => {
+    expect(motivoTrasladoInvalido({ contado: 300, trasladado: 100, destino: "claudia", referencia: "" })).toBeNull();
+  });
+});
+
 describe("motivoAperturaValido y etiquetaDestino", () => {
   it("el motivo pide al menos 3 letras, como el candado de la base", () => {
     expect(motivoAperturaValido("  ok ")).toBe(false);
@@ -75,6 +86,7 @@ describe("motivoAperturaValido y etiquetaDestino", () => {
   });
   it("etiqueta legible de cada destino", () => {
     expect(etiquetaDestino("banco")).toBe("Depósito bancario");
+    expect(etiquetaDestino("claudia")).toBe("Se queda con Claudia");
     expect(etiquetaDestino("desconocido")).toBe("desconocido");
   });
 });

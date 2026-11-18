@@ -9,9 +9,10 @@
 // Lógica pura, probada en `hoja-gasto-reglas.test.ts`.
 import { soloDigitos, validarRuc } from "@cayla-retail/shared";
 import type { CampoDeGuia } from "./guia-campos";
-import { cuentaDeSalida, cuentasDeLaClase, usable, type CuentaElegible } from "./cuenta-sellada-reglas";
+import { cuentasDeLaClase, usable, type CuentaElegible } from "./cuenta-sellada-reglas";
 import { igvDeFactura, montoDentroDelTope, parsearMonto, partirSerieNumero, validarGasto, type BorradorGasto, type MedioGasto, type PayloadGasto, type ProveedorGasto, type TipoComprobante } from "./gastos-reglas";
 import { soles } from "./compras-reglas";
+import { leerMontoPlata } from "./monto-plata-reglas";
 
 export type HojaGasto = {
   monto: string;
@@ -29,11 +30,17 @@ export type HojaGasto = {
   serieNumero: string;
   pagado: "si" | "no";
   vence: string;
+  /** Tarea 15: el IGV que dice la factura. Vacío: el de la tasa. */
+  igvPapel: string;
+  /** Tarea 15: cuándo salió del banco. Vacío: el día del comprobante. */
+  fechaPago: string;
   /** Si se está clasificando una salida de caja como gasto: su id. El monto, la sede y la fecha vienen de ella y la plata ya salió del cajón. */
   egresoId: string;
 };
 
 export const hojaVacia = (hoy: string, sede = ""): HojaGasto => ({
+  igvPapel: "",
+  fechaPago: "",
   monto: "",
   sede,
   categoria: "",
@@ -68,8 +75,8 @@ export const conComprobante = (h: Pick<HojaGasto, "comprobante">) => h.comproban
 /** A crédito solo con comprobante: sin papel no hay a quién deberle en Por pagar. */
 export const aCredito = (h: Pick<HojaGasto, "comprobante" | "pagado"> & { egresoId?: string }) => !h.egresoId && conComprobante(h) && h.pagado === "no";
 
-/** De dónde salió la plata, ya resuelto por la hoja con las cuentas de la tienda (`cuentaDeSalida`) o con el medio elegido. */
-export type SalidaDeLaHoja = { medio: MedioGasto | ""; cuentaId?: string; cajaId: string; referencia: string };
+/** De dónde salió la plata, ya resuelto por la hoja con la cuenta que eligió la persona (`salidaDeLaHoja`) o con el medio elegido. */
+export type SalidaDeLaHoja = { medio: MedioGasto | ""; cuentaId?: string; cajaId: string; referencia: string; /** Sale de un banco: solo entonces cuenta «¿Cuándo salió?». */ banco?: boolean };
 
 /** La hoja → el borrador de siempre. `proveedorId` es el del RUC (el que ya estaba o el recién sumado). */
 /** `gastoFijoId`: el gasto fijo que este gasto cierra, si la persona contestó «Sí, es este» a «¿es ese fijo?» (#1271). */
@@ -95,7 +102,19 @@ export function borradorDeLaHoja(h: HojaGasto, proveedorId: string, salida: Sali
     referencia: h.egresoId || credito ? "" : salida.referencia,
     ...(salida.cuentaId && !credito && !h.egresoId ? { cuentaId: salida.cuentaId } : {}),
     ...(gastoFijoId ? { gastoFijoId } : {}),
+    ...(h.comprobante === "factura" && igvEscrito(h) !== null ? { igv: igvEscrito(h)! } : {}),
+    ...(salida.banco && !credito && !h.egresoId && h.fechaPago && h.fechaPago !== h.fecha ? { fechaPago: h.fechaPago } : {}),
   };
+}
+
+/** El IGV escrito en la hoja, o `null` si se dejó al de la tasa (o no se puede leer: `validarHoja` lo dice). */
+function igvEscrito(h: Pick<HojaGasto, "igvPapel">): number | null {
+  return h.igvPapel.trim() === "" ? null : leerMontoPlata(h.igvPapel);
+}
+
+/** El IGV que el QR deja en la hoja: solo si el papel es de este monto; si no, es otro papel y se queda el de la tasa. */
+export function igvDelQr(leido: { tipo: string; igv: number; total: number }, monto: number): string {
+  return leido.tipo === "factura" && Math.abs(leido.total - monto) < 0.01 ? leido.igv.toFixed(2) : "";
 }
 
 /**
@@ -111,19 +130,20 @@ export function validarHoja(
   proveedorListo = true,
   /** El gasto fijo que cierra (ver `borradorDeLaHoja`). */
   gastoFijoId?: string,
-): { ok: true; valor: PayloadGasto } | { ok: false; error: string } {
+): { ok: true; valor: PayloadGasto } | { ok: false; error: string; campo?: string } {
   // En el orden de la guía (el /chaos del 2026-10-23 vio «Di si tiene comprobante» con la hoja vacía, cuando la guía marcaba el monto):
   // el primer aviso es el primer campo que la guía enciende. Los textos son los de `camposDeLaHoja`.
   const monto = montoDentroDelTope(parsearMonto(h.monto));
-  if (!monto.ok) return { ok: false, error: h.monto.trim() ? monto.error : "Escribe cuánto se pagó." };
-  if (!h.sede) return { ok: false, error: "Elige a qué sede se le carga." };
-  if (!h.categoria) return { ok: false, error: "Elige en qué se gastó." };
-  if (!h.descripcion.trim()) return { ok: false, error: "Escribe qué se pagó." };
-  if (!h.comprobante) return { ok: false, error: "Di si tiene comprobante." };
-  if (conComprobante(h) && !proveedorListo) return { ok: false, error: validarRuc(h.ruc).valido ? "Escribe la razón social." : "Escribe el RUC del comprobante." };
-  if (conComprobante(h) && !serieNumeroLegible(h.serieNumero)) return { ok: false, error: "Escribe la serie y el número, como F001-2231." };
+  if (!monto.ok) return { ok: false, campo: "monto", error: h.monto.trim() ? monto.error : "Escribe cuánto se pagó." };
+  if (!h.sede) return { ok: false, campo: "sede", error: "Elige a qué sede se le carga." };
+  if (!h.categoria) return { ok: false, campo: "categoria", error: "Elige en qué se gastó." };
+  if (!h.descripcion.trim()) return { ok: false, campo: "descripcion", error: "Escribe qué se pagó." };
+  if (!h.comprobante) return { ok: false, campo: "comprobante", error: "Di si tiene comprobante." };
+  if (conComprobante(h) && !proveedorListo) return { ok: false, campo: "ruc", error: validarRuc(h.ruc).valido ? "Escribe la razón social." : "Escribe el RUC del comprobante." };
+  if (conComprobante(h) && !serieNumeroLegible(h.serieNumero)) return { ok: false, campo: "serie", error: "Escribe la serie y el número, como F001-2231." };
+  if (h.comprobante === "factura" && h.igvPapel.trim() !== "" && igvEscrito(h) === null) return { ok: false, campo: "igv", error: "Escribe el IGV como dice la factura, por ejemplo 18.00, o déjalo vacío." };
   if (aCredito(h) && (!h.vence || h.vence < h.fecha)) return { ok: false, error: "Di cuándo vence (no antes de la fecha)." };
-  if (!aCredito(h) && !h.egresoId && !salida.medio) return { ok: false, error: "Di de dónde salió la plata." };
+  if (!aCredito(h) && !h.egresoId && !salida.medio) return { ok: false, campo: "salida", error: salida.banco ? "Di cómo salió del banco: transferencia, Yape o Plin." : "Di de dónde salió la plata." };
   return validarGasto(borradorDeLaHoja(h, proveedorId, salida, gastoFijoId), hoy);
 }
 
@@ -148,7 +168,7 @@ export function camposDeLaHoja(h: HojaGasto, ctx: ContextoGuia): CampoDeGuia[] {
   const papel = conComprobante(h);
   const credito = aCredito(h);
   const campos: CampoDeGuia[] = [
-    { id: "monto", nombre: "Monto", requerido: true, hecho: monto.ok, pendiente: "Escribe cuánto se pagó." },
+    { id: "monto", nombre: "Monto", requerido: true, hecho: monto.ok, pendiente: !monto.ok && h.monto.trim() ? monto.error : "Escribe cuánto se pagó." },
     { id: "sede", nombre: "Sede", requerido: true, hecho: Boolean(h.sede), pendiente: "Elige a qué sede se le carga." },
     { id: "categoria", nombre: "En qué", requerido: true, hecho: Boolean(h.categoria), pendiente: "Elige en qué se gastó." },
     { id: "descripcion", nombre: "Qué fue", requerido: true, hecho: Boolean(h.descripcion.trim()), pendiente: "Escribe qué se pagó." },
@@ -196,13 +216,17 @@ export function ticketDeLaHoja(
     if (ctx.proveedorNombre) lineas.push({ etiqueta: "De", valor: ctx.proveedorNombre });
   } else if (h.comprobante === "sin_comprobante") lineas.push({ etiqueta: "Comprobante", valor: "Sin comprobante" });
   if (total !== null && h.comprobante === "factura") {
-    const igv = igvDeFactura(total);
-    lineas.push({ etiqueta: "Base", valor: soles(total - igv) }, { etiqueta: "IGV 18 %", valor: soles(igv) });
+    const escrito = igvEscrito(h);
+    const igv = escrito ?? igvDeFactura(total);
+    lineas.push({ etiqueta: "Base", valor: soles(total - igv) }, { etiqueta: escrito === null ? "IGV 18 %" : "IGV del papel", valor: soles(igv) });
   }
   if (total !== null) lineas.push({ etiqueta: "Total", valor: soles(total), fuerte: true });
 
   if (total !== null && ctx.categoriaNombre && ctx.sedeNombre) pasara.push(`Se suma a lo gastado en ${ctx.categoriaNombre.toLowerCase()} de ${ctx.sedeNombre}.`);
-  if (total !== null && h.comprobante === "factura") pasara.push(`Recuperas ${soles(igvDeFactura(total))} de IGV.`);
+  if (total !== null && h.comprobante === "factura") {
+    const igv = igvEscrito(h) ?? igvDeFactura(total);
+    pasara.push(igv > 0 ? `Recuperas ${soles(igv)} de IGV.` : "Esta factura no trae IGV que recuperar.");
+  }
   else if (h.comprobante === "boleta") pasara.push("Una boleta no recupera IGV: con factura lo recuperarías.");
   else if (h.comprobante === "sin_comprobante") pasara.push("Sin comprobante no recuperas IGV.");
   if (aCredito(h)) pasara.push(h.vence ? `Queda en Por pagar hasta el ${h.vence.split("-").reverse().join("/")}.` : "Queda en Por pagar.");
@@ -241,27 +265,13 @@ export function hojaDePlantilla(p: PlantillaGasto, fecha: string): HojaGasto {
 }
 
 /**
- * De qué cuenta salió la plata, propuesta por la hoja (Felipe 2026-10-23, tras el /chaos: la hoja proponía «Interbank · transferencia»
- * para unas bolsas pagadas del cajón, y al cambiar de sede reemplazaba en silencio el cajón elegido por el banco):
- *   · lo que la persona eligió se queda mientras sirva;
- *   · después de cambiar de sede (`porElegir`), si lo de antes ya no sirve, queda POR ELEGIR (null): la guía lo pide, nadie lo cambia;
- *   · sin comprobante y con la caja de esa sede abierta, el cajón de esa sede (lo de todos los días sale de ahí);
- *   · si no, lo de siempre (`cuentaDeSalida`: la propuesta para una transferencia y, si no hay banco, la de efectivo).
+ * De qué cuenta salió la plata: la que eligió la persona, mientras sirva; si no eligió (o ya no sirve, al cambiar de sede), POR ELEGIR (null).
+ * La hoja no propone ninguna (Felipe 2026-11-13): proponía el cajón de la sede para lo que no tiene comprobante, y un pago hecho por Yape
+ * desde la cuenta de la empresa quedó guardado como efectivo del cajón sin que nadie lo notara. Antes (2026-10-23) proponía un banco para
+ * unas bolsas pagadas del cajón. En los dos casos la propuesta se guardaba sin que nadie la eligiera: de dónde salió lo dice quien pagó.
  */
-export function salidaDeLaHoja(
-  cuentas: readonly CuentaElegible[],
-  h: Pick<HojaGasto, "sede" | "comprobante">,
-  elegida: string,
-  porElegir: boolean,
-): string | null {
-  const sirven = cuentasDeLaClase(cuentas, "pago").filter(usable);
-  if (elegida && sirven.some((c) => c.id === elegida)) return elegida;
-  if (porElegir) return null;
-  if (!conComprobante(h) && h.sede && h.sede !== "empresa") {
-    const cajon = sirven.find((c) => c.tipo === "cajon" && c.ubicacionId === h.sede);
-    if (cajon) return cajon.id;
-  }
-  return cuentaDeSalida(cuentas, "pago", null);
+export function salidaDeLaHoja(cuentas: readonly CuentaElegible[], elegida: string): string | null {
+  return elegida && cuentasDeLaClase(cuentas, "pago").some((c) => c.id === elegida && usable(c)) ? elegida : null;
 }
 
 /** Por qué el monto escrito no sirve, para el pie de su caja (el /chaos del 2026-10-23 vio que 0, −0.01 o 12.505 no se aceptaban sin

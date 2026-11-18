@@ -44,7 +44,7 @@ import { BloquePrenda, ElegirOpcion } from "./BloquePrenda";
 // SOLO si el proveedor debe algo de esa categoría y marca (`opcionesSobrante`, que la pantalla calcula y pasa en `opcionesDeMas`); si se
 // elige y pasa de lo que debe, la pregunta lo dice (`problemaDeMas`) y la base lo rechazaría igual.
 
-const TITULO = "mb-1.5 flex flex-wrap items-baseline gap-x-2 text-[13px] font-semibold text-tinta";
+const TITULO = "mb-1.5 flex flex-wrap items-baseline gap-x-2 text-sm font-semibold text-tinta";
 
 type Comunes = {
   guia: GuiaCampos;
@@ -73,7 +73,7 @@ function CampoCosto({ id, guia, etiqueta, valor, onValor, original, obligatorio 
           value={valor}
           onChange={(e) => onValor(e.target.value)}
         />
-        {!obligatorio && !mostrarProblema && !corregido && <p className="mt-1 text-xs text-taupe">El de la guía. Corrígelo si el papel dice otro.</p>}
+        {!obligatorio && !mostrarProblema && !corregido && <p className="mt-1 text-sm text-taupe">El de la guía. Corrígelo si el papel dice otro.</p>}
       </div>
     </CampoGuiado>
   );
@@ -119,7 +119,7 @@ function PreguntaDiferencia({
             {problema}
           </Aviso>
         ) : (
-          <p className="mt-1.5 text-xs text-taupe">
+          <p className="mt-1.5 text-sm text-taupe">
             {elegida ? elegida.ayuda : (reposicion?.aviso ?? "Elige una: queda anotado para Compras.")}
           </p>
         )}
@@ -155,7 +155,7 @@ export function TarjetaLinea({
   const s = sumasDe(b, b.prenda);
   const contado = contadoDeLinea(b);
   const dif = b.noLlego || b.prenda ? diferenciaDe(l.enviado, contado) : { tipo: null, cantidad: 0 };
-  const prendaTexto = [l.categoria.nombre, l.marca.nombre].join(" · ");
+  const prendaTexto = [l.categoria.nombre, l.marca?.nombre ?? "Sin marca"].join(" · ");
 
   return (
     <article data-guia="recepcion.linea" aria-label={`${nombreLineaGuia(indice)}: ${prendaTexto}`} className="@container card-cayla space-y-4 p-4 sm:p-5">
@@ -164,7 +164,7 @@ export function TarjetaLinea({
           <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-taupe-profundo">{nombreLineaGuia(indice)}</p>
           <TituloSeccion className="mt-0.5">{prendaTexto}</TituloSeccion>
           {l.descripcion && <p className="text-sm text-tinta/75">{l.descripcion}</p>}
-          <p className="mt-1 text-[13px] tabular-nums text-taupe">
+          <p className="mt-1 text-sm tabular-nums text-taupe">
             Vienen <span className="font-semibold text-tinta">{l.enviado.toLocaleString("es-PE")}</span>
             {l.orden.numero ? ` · ${l.orden.numero}` : ""}
             {conProveedor && l.proveedor ? ` · ${l.proveedor.nombre}` : ""}
@@ -182,7 +182,7 @@ export function TarjetaLinea({
         conteo={b}
         prenda={b.prenda}
         categoria={l.categoria}
-        marca={l.marca}
+        marca={l.marca ?? { id: null, nombre: "Sin marca" }}
         colores={colores}
         enviado={l.enviado}
         sinPrendaAbajo={
@@ -237,7 +237,7 @@ export function TarjetaLinea({
           onValor={(v) => onCambio({ sobranteCausa: v as CausaSobrante })}
         />
       ) : b.prenda && s.contado > 0 ? (
-        <p className="text-[13px] text-verde">Llegó justo lo que venía.</p>
+        <p className="text-sm text-verde">Llegó justo lo que venía.</p>
       ) : null}
     </article>
   );
@@ -289,7 +289,7 @@ export function TarjetaExtra({
         <div>
           <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-taupe-profundo">{nombre}</p>
           <TituloSeccion className="mt-0.5">No estaba en la guía</TituloSeccion>
-          <p className="text-[13px] text-taupe">Dile a Compras qué es y qué pasa con ello: entra al stock como todo lo demás.</p>
+          <p className="text-sm text-taupe">Dile a Compras qué es y qué pasa con ello: entra al stock como todo lo demás.</p>
         </div>
         <button type="button" onClick={onQuitar} className="btn-cayla btn-sutil h-8 w-8 shrink-0 p-0" aria-label={`Quitar ${nombre}`} title="Quitar esto de la recepción">
           <X aria-hidden className="h-4 w-4" />

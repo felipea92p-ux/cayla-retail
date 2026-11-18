@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDestinoFlotante } from "@/components/ui/useAnclaje";
+import { AyudaCabecera } from "@/components/ui/AyudaCabecera";
 
 // Botón de ayuda "(!)" — se toca y explica un concepto en lenguaje CAYLA, sin
 // tecnicismos (protocolo de docencia: dejar a Felipe más capaz de discutir, no de
@@ -13,6 +14,10 @@ import { useDestinoFlotante } from "@/components/ui/useAnclaje";
 // ya encendido en rojo porque falta algo de verdad — quien lo pinta decide CUÁNDO
 // mostrarlo, y el globo dice QUÉ falta. El default deja el resto de las pantallas
 // exactamente como estaban.
+//
+// Ronda 19 de /unificar (Felipe 2026-10-30, A1): la ayuda ya no es un «!» con un globo de 12 px. Es el mismo «?» de vidrio de la
+// cabecera, en chico (14 px), arriba a la derecha de la última palabra, y su globo lee en 16 px (`AyudaCabecera tamano="texto"`). El
+// «!» queda solo para `tono="falta"`: algo falta de verdad.
 export function Ayuda({
   titulo,
   tono = "ayuda",
@@ -22,6 +27,17 @@ export function Ayuda({
   tono?: "ayuda" | "falta";
   children: React.ReactNode;
 }) {
+  if (tono === "ayuda") {
+    return (
+      <AyudaCabecera tamano="texto" nombre={titulo} etiqueta={titulo ? `Qué es ${titulo}` : "Más información"}>
+        {children}
+      </AyudaCabecera>
+    );
+  }
+  return <AvisoFalta titulo={titulo}>{children}</AvisoFalta>;
+}
+
+function AvisoFalta({ titulo, children }: { titulo?: string; children: React.ReactNode }) {
   const [abierto, setAbierto] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
   const globoRef = useRef<HTMLSpanElement>(null);
@@ -83,15 +99,11 @@ export function Ayuda({
       <button
         type="button"
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAbierto((v) => !v); }}
-        aria-label={tono === "falta" ? `Falta: ${titulo ?? "algo por completar"}` : titulo ? `Qué es ${titulo}` : "Más información"}
+        aria-label={`Falta: ${titulo ?? "algo por completar"}`}
         // h-5 y no h-4: con la etiqueta ya en 11px, el "!" se desbordaba de un
         // círculo de 16px. `active:scale-90` da el acuse de tacto que faltaba.
         className={`ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full border text-[11px] font-semibold leading-none transition-all active:scale-90 ${
-          abierto
-            ? "border-rojo bg-rojo text-crema"
-            : tono === "falta"
-              ? "border-rojo bg-rojo/8 text-rojo hover:bg-rojo hover:text-crema"
-              : "border-tinta/30 text-tinta/65 hover:border-rojo hover:bg-rojo/8 hover:text-rojo"
+          abierto ? "border-rojo bg-rojo text-crema" : "border-rojo bg-rojo/8 text-rojo hover:bg-rojo hover:text-crema"
         }`}
       >
         !

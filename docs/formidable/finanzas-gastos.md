@@ -1,5 +1,342 @@
 # Formidable · Finanzas ▸ Gastos — la fila de un gasto del viaje   (`/finanzas/gastos`)
 
+## La lista por día, después de los 3 cambios (OK de Felipe) · 2026-10-30, noche — medida otra vez y segunda prueba ciega
+
+- **SHA:** `836ce2c4d`   · **Qué cambió:** los 3 cambios de la pasada de abajo (ADR-0493, actualización (e)):
+  1. «Ver los días de antes» dice lo que esconde que pide algo, con el tono de su marca («1 vencida» en rojo; «N vencen esta semana» y
+     «N sin comprobante» en ámbar) (`b39ab6f2b`);
+  2. la hoja del gasto abre con la misma marca de la fila y su porqué, «Ir a Por pagar» con el módulo y «Pago» en pasado si ya venció; en el
+     celular la acción baja bajo el texto (`6b933af9b`);
+  3. el chip de la cifra, la bandeja y «Te toca» cuentan lo mismo que la lista, lo de S/ 300 o más sin comprobante, con el IGV que se
+     recuperaría; «Ver cuáles» pone el filtro nuevo «Sin comprobante, de S/ 300 o más» (`836ce2c4d`).
+- **Lo que no se hizo del cambio 1:** la bajada de la tarjeta «Por pagar de gastos» no dice «· 1 ya venció». La tarjeta suma la deuda de todos
+  los meses y la única lectura que sabe cuál venció (`fn_por_pagar_consolidado`) exige el módulo Cuentas y dinero; contar con la lista del mes
+  daría un número falso cuando vence una factura de un mes anterior. Hace falta que `fn_gastos_panel` devuelva las vencidas: es una migración en
+  producción y espera la decisión de Felipe.
+- **Entorno:** el mismo (13 gastos y 2 facturas a crédito de ejemplo, foto `formidable-cambios`, borrados por id al final).
+
+### Medido (antes → después)
+| Comprobación | Antes | Después |
+|---|---|---|
+| ¿Se ve que hay algo vencido sin abrir los días de antes? | no | sí: «1 vencida» en el botón (1440 y 375, un renglón) |
+| El porqué de la marca, con el dedo | no existe (solo `title`) | en la hoja, a un toque, el mismo texto de la fila |
+| «Sin comprobante»: chip / bandeja / «Te toca» / marcas de la lista | 21 / 21 / 21 / 1 | 1 / 1 / 1 / 1 |
+| «Ver cuáles» de la bandeja | 21 filas (todo lo sin papel) | 1 fila (lo que se avisó) |
+| La hoja de la vencida a 375 | — | el texto en su ancho, «Ir a Por pagar» debajo |
+| Oficio (lista) | 6 de 8 (las 2 que fallan: piezas del sistema) | igual |
+| Guía de Gastos | 36 pasos ✓ | 36 pasos ✓ |
+
+### Notas (0–10) después
+| Eje | Antes | Después | Evidencia |
+|---|---|---|---|
+| 1 Sin manual | 6 | **8** | [Observado] segunda ciega: las tres respuestas bien **al primer intento**, 12 pasos, 8 dudas, 0 errores · real: sin probar (tope 8) |
+| 2 Una pregunta, una respuesta | 5 | **7** | [Medido] «sin comprobante» es un solo número en las cuatro partes; queda «23 gastos» arriba y «24» al pie (duda 1 de la ciega) |
+| 3 Simplicidad profunda | 7 | **8** | [Observado] contó «4 gastos» = 1 + 3 sin ayuda; el «3» dudó hasta abrirlo |
+| 4 Lenguaje de tienda | 8 | 8 | [Observado] en la lista, ninguna palabra no entendida |
+| 5 Contenido primero | 7 | 7 | sin cambios: la lista empieza a 1 904 px a 1440 |
+| 6 Lo difícil, a un toque | 4 | **8** | [Observado] usó el porqué de la hoja: «con factura recuperarías S/ 68.64 de IGV, así que habría que pedirla» |
+| 7 Perdonar | — | — | solo lee |
+| 8 Quitar antes de agregar | 7 | 7 | el pie «24 gastos» sigue |
+| 9 De punta a punta | 7 | **8** | [Medido] la hoja a 375 arreglada; filtros con todos los días; «Te toca» se degrada si la lista no responde |
+| **Leyes (promedio)** | 6,4 | **7,6** | ninguna ley bajo 7 |
+| **Oficio visual** | 8 | 8 | [Medido] igual |
+
+### Segunda prueba ciega (Opus, 7 capturas nuevas de 1440 px)
+| Medida | Resultado |
+|---|---|
+| Lectura de 5 s | ✓ «la lista de gastos día por día… revisar las marcas de color («Sin comprobante», «Por pagar · vence 4 nov», «1 vencida»)» |
+| Primer intento | ✓ (antes ✗): «la marca "1 vencida" me llevó a ella» |
+| Pasos | 12 (antes 13) |
+| Dudas | 8 (antes 11): «23» y «24 gastos»; «Tienda Lima» y «Todas»; «Empresa» como sede; un mototaxi por transferencia (datos de ejemplo); ¿lo sin comprobante ya pagado se arregla?; ¿lo que vence el 4 nov cuenta como «pagar»?; los egresos por clasificar; «Te toca 8» |
+| Palabras no entendidas | ninguna de la lista; de fuera: «cuenta 634», «IGV descontable», «Dynamic», «Te toca», «Activos fijos», «Fijos del mes», «Egresos de caja por clasificar», atajos |
+| Errores | 0 (antes 1) |
+
+### Lo que queda (no se ejecuta sin Felipe)
+1. La tarjeta «Por pagar de gastos» con «· 1 ya venció» (necesita la migración de `fn_gastos_panel`, arriba).
+2. El pie «24 gastos» contra «23» arriba (ley 8): «23 gastos y 1 anulado», o quitarlo.
+3. Lo grande sin comprobante ya pagado no tiene cómo «arreglarse» desde la hoja: la ciega buscó un botón para sumar la factura y solo hay
+   «Anular…». Es un flujo de negocio (¿se anula y se registra de nuevo con la factura?): lo decide Felipe.
+4. El «3» del grupo sin unidad («3 veces»), la fila suelta del grupo abierto, la planilla de movilidad (D2) y lo de la pantalla (barra flotante, «Tienda Lima» con «Todas»).
+
+### Historial
+| Fecha | SHA | Leyes | Oficio | Cambios cerrados |
+|---|---|---|---|---|
+| 2026-10-30 | `41596987f` | 6,4 (ley 6 en 4) | 8 | D1 arreglado |
+| 2026-10-30 | `836ce2c4d` | 7,6 | 8 | los 3 (el 1 sin la bajada de la tarjeta) |
+
+## La lista por día (L1) · 2026-10-30, noche — medida, con prueba ciega y escéptico
+
+- **Fecha / SHA:** 2026-10-30 · `41596987f` (rama `claude/gastos-extracto-por-dia`)   · **Dispositivo que manda:** escritorio (Mac mini); 1024 y 375 px se adaptan
+- **Pregunta que debería resolver (1 frase):** ¿qué se gastó, cuándo y hay algo que pagar o arreglar?   · **Protagonista:** el dinero
+- **Veredicto en una línea:** «Se lee como el extracto del banco y la ciega contestó las tres preguntas, pero **la factura vencida quedó escondida
+  tras "Ver los días de antes"** (no lo logró al primer intento) y **el porqué de cada marca solo se ve con el mouse** (ley 6 en 4).»
+- **Alcance:** solo la lista de la pestaña «Gastos» (`ExtractoGastos`, ADR-0493 act. (d)). El resto de la pantalla no se recalificó.
+- **Entorno:** base local con 13 gastos y 2 facturas a crédito de ejemplo (foto `formidable-lista`, borrados por id al final), «hoy» = 30 oct.
+  `medir-oficio.js` acotado a la tarjeta de la lista, en un Chromium sin pantalla. 2 agentes de 4: un ciego (Opus, 7 capturas de 1440 px) y un escéptico (Sonnet).
+- **Arreglado durante el análisis** (defectos de lo construido hoy, no propuestas): con un filtro de categoría, sede o comprobante (lo que ponen
+  «Ver cuáles» y «Ver en la tabla») la lista seguía escondiendo días tras el botón; ahora con cualquier filtro se ven todos. El ADR-0493 (d)
+  decía que el porqué de la marca estaba en la hoja del gasto, y no está: corregido. Y `--k-dia`, que nadie leía, se fue (`41596987f`).
+
+### Notas (0–10)
+| Eje | Nota | Evidencia |
+|---|---|---|
+| 1 Sin manual | 6 | [Observado] ciega: las tres respuestas bien, **no al primer intento** (la a) cambió al abrir los días de antes), 13 pasos, 11 dudas, 1 casi error · real: sin probar |
+| 2 Una pregunta, una respuesta | 5 | [Medido] arriba «21 sin comprobante» en ámbar y la lista marca 1 (H3); el pie dice «24 gastos» y la cifra «23» (el anulado); la lista dice «Vencida · 27 oct» y la hoja, «Por pagar» (H2) · [Observado] dudas 4, 5 y 6 |
+| 3 Simplicidad profunda | 7 | [Observado] las marcas se leyeron como veredicto («es lo más urgente»); el «3» del grupo sin unidad y «4 gastos» con 2 filas a la vista confundieron hasta abrir (H4) |
+| 4 Lenguaje de tienda | 8 | [Observado] en la lista, cero palabras no entendidas («Hoy», «Solo anulados», «Vencida», «A crédito» se entendieron); las que no, son de fuera de la lista («Te toca», «cuenta 634», «IGV descontable», «Dynamic») |
+| 5 Contenido primero | 7 | [Medido] los montos y el total del día mandan en cada fila; la lista empieza a 1 904 px a 1440 (2 260 a 1024, 2 785 a 375): es el orden de la página, no de la lista |
+| 6 Lo difícil, a un toque | 4 | [Medido] el porqué de la marca («con factura recuperarías S/ 68.64», «faltan S/ 708: venció el 27 oct») solo vive en el `title` y en texto para lector: con el dedo no existe, y la hoja del gasto no lo dice · [Observado] duda 7 |
+| 7 Perdonar antes que preguntar | — | la lista solo lee; abrir y cerrar un grupo o los días de antes se deshace con el mismo toque |
+| 8 Quitar antes de agregar | 7 | [Medido] de 8 columnas a 3 o 4; la cuenta contable salió de la fila. Queda el pie «24 gastos», que repite la cifra de arriba con otro número |
+| 9 De punta a punta | 7 | [Medido] vacío, búsqueda, filtros (arreglado), una sede, 1440/1024/375, claro y oscuro, teclado (Tab llega a cada fila con anillo de 2 px; Enter abre la hoja o el grupo). La vencida de un mes anterior nunca sale en la lista del mes (es la lista del mes; la tarjeta sí la cuenta) |
+| **Leyes (promedio)** | **6,4** | **la ley 6 en 4**: el porqué de cada marca no está a un toque |
+| **Oficio visual** | **8** | [Medido] 6 de 8 pasan; las dos que fallan son piezas del sistema: el texto de 11 px del separador del día (`<SeparadorDia>`) y 10,5 px del globito (`<Globito>`), y la fila de herramientas (buscador de 38 px junto a píldoras de 32). Montos y totales del día en el mismo borde derecho (1 116 px), contraste sin fallas, sin desborde |
+
+### Medido
+| Comprobación | 1440 × 900 | 1024 × 768 | 375 × 812 |
+|---|---|---|---|
+| Dónde empieza la lista | 1 904 px | 2 262 px | 2 785 px |
+| Separador del día | un renglón (35 px) | un renglón | un renglón, sin el mes |
+| Borde derecho de montos y totales del día | el mismo | el mismo | el mismo |
+| Blancos bajo el mínimo (24 / 44 px) | 0 | 0 | 3, todos piezas del sistema (buscador 38 px, píldoras 32 px) |
+| Texto bajo 4,5 : 1 | ninguno | ninguno | ninguno |
+| Rojo a la vista | 1 (el punto de «Hoy»); los otros 2 que contó el medidor son del buscador mientras busca | igual | igual |
+| Falsos del medidor (refutados) | «bordes casi alineados»: son bordes IZQUIERDOS de cifras alineadas a la derecha; «4 radios»: 999 px y 3,3e7 px son la misma píldora; un `sr-only` contado como texto chico | | |
+
+### Los 3 cambios de mayor impacto (esperan el OK de Felipe; nada se tocó)
+1. **Lo vencido no se esconde tras «Ver los días de antes».** Antes: el botón dice «Ver los 6 días de antes» y nada más; la única factura
+   vencida (S/ 708, en rojo) estaba ahí, y la tarjeta «Por pagar de gastos» dice «2 con factura a crédito» sin decir que una ya venció.
+   Después: el botón lleva lo que esconde que pide algo, con la misma marca de la lista («Ver los 6 días de antes» + «1 vencida» en rojo,
+   «1 vence esta semana» en ámbar), y la bajada de la tarjeta suma «· 1 ya venció». Ley 2 y 9. Se verifica con la misma ciega: la a) al primer
+   intento. Esfuerzo S. Presentación (no cambia qué se debe ni cuándo vence).
+2. **La hoja del gasto dice lo mismo que la lista, y por qué.** Antes: lista «Vencida · 27 oct», hoja «Estado: Por pagar» y «A crédito, vence
+   27 oct» (presente sobre una fecha pasada); «recuperarías S/ 68.64 de IGV» solo con el mouse. Después: la hoja abre con un `<Aviso>` con la marca
+   y su porqué, el mismo texto de la lista (`marcaDelGasto`): rojo para la vencida («Venció el 27 oct: faltan S/ 708.00. Se paga desde Compras ▸
+   Por pagar», con el enlace si la cuenta ve Compras), ámbar para lo grande sin comprobante; y «Pago» dice «venció el 27 oct». Ley 6 y 4. Se
+   verifica: con el dedo (375 px) se llega al porqué en un toque. Esfuerzo S. Presentación.
+3. **Una sola cuenta de «sin comprobante».** Antes: el chip de arriba (ámbar), la bandeja y «Te toca» dicen «21 sin comprobante: sin comprobante
+   no recuperas su IGV» (también del mototaxi de S/ 6), y la lista marca 1, la de S/ 300 o más. Después: lo que avisa en ámbar cuenta lo mismo que
+   la lista («1 gasto de S/ 300 o más sin comprobante»); los otros 20 siguen en el filtro, sin alarma. Ley 2. Se verifica: el número del chip, la
+   bandeja y la lista coinciden en las mismas capturas. Esfuerzo M (la bandeja y «Te toca» cuentan con el panel de la base). **Regla de dinero
+   (cómo se avisa del IGV): OK obligatorio de Felipe.**
+
+### Lo que sobra (ley 8)
+- El pie «24 gastos · los anulados se quedan a la vista»: repite la cifra de arriba con otro número; proponer «23 gastos y 1 anulado» o quitarlo.
+
+### Lo que no pediste y importa más
+- Una factura vencida de un mes anterior no aparece nunca en la lista del mes (es lista de gastos, no de deudas): solo la tarjeta y «Te toca»
+  la cuentan. Con el cambio 1, la tarjeta diría «ya venció»; si la lista debe mostrar deudas de otros meses es una decisión de Felipe.
+
+### Lista aparte (no se ejecuta)
+1. El «3» del grupo sin unidad: «3 veces» en la línea de abajo (H4, S).
+2. Con un grupo abierto y la página bajada, una fila de adentro sola bajo el día se lee como un gasto aparte (H5, baja).
+3. La planilla de movilidad: el panel la cuenta como «sin comprobante» y el filtro y la marca no (D2, de antes; casi nunca llega a S/ 300).
+4. De la pantalla, no de la lista: «Te toca» tiene la vencida pero está a un clic; la barra flotante tapa la columna de sede al pasar (H6, refutado como defecto de la lista); `pnpm focus` sigue con la hoja «Anular» sin guía de foco y `pnpm sugerir` con dos ejemplos escritos a mano (deuda de `GastosPanel.tsx`); 3 lecturas en cadena y sin streaming (`scripts/rendimiento/ui.mjs`).
+
+### Prueba ciega (Opus, 7 capturas de 1440 px; no navegó)
+| Medida | Resultado |
+|---|---|
+| Lectura de 5 s | ✓ «la pantalla donde se apunta lo que la tienda gasta… la lista va día por día, como un estado de cuenta del banco» |
+| Primer intento | ✗ la a) quedó incompleta hasta abrir «Ver los 6 días de antes» |
+| Pasos | 13 |
+| Dudas | 11: «4 gastos» con 2 filas; «Mototaxi 3»; «Tienda Lima» y «Todas»; «21 sin comprobante» y 1 marca; «23» y «24 gastos»; «Vencida» y «Por pagar»; ¿«Sin comprobante» se arregla?; «Egresos por clasificar» y «Salidas de caja»; «Solo anulados»; un mototaxi por transferencia (datos de ejemplo); la fila suelta del grupo |
+| Palabras no entendidas | ninguna de la lista; de fuera: «Te toca», «cuenta 634», «IGV descontable», «Empresa» como sede, «Fijos del mes», «Activos fijos», «Egresos de caja por clasificar», «Dynamic», atajos G/F/E/A |
+| Errores | 1 casi: leyó la fila «Mototaxi S/ 8.00» de un grupo abierto como otro gasto |
+
+### Veredictos del escéptico
+- H1 (vencida escondida): **MATIZADO**, lo principal confirmado y estructural (una vencida es vieja por definición); «Te toca» sí la dice, a un clic.
+- H2 (hoja distinta, porqué solo con mouse): **CONFIRMADO**; además, el ADR decía lo contrario (corregido).
+- H3 (21 contra 1; 24 contra 23): **CONFIRMADO / MATIZADO** (el pie ya dice que los anulados se quedan).
+- H4 («3» sin unidad, «4 gastos»): **CONFIRMADO**. H5 (fila suelta): **MATIZADO**, baja. H6 (barra flotante): **REFUTADO** como defecto de la lista.
+- Nuevos: D1 (los filtros escondían días) **arreglado**; D2 (planilla de movilidad) a la lista aparte.
+
+### Antes de decir «listo»
+- Concurrencia: no aplica (la lista solo lee; la hoja del gasto y «Anular» no cambiaron).
+- Caída externa: si la lectura de la lista falla, la pantalla ya dice «Una parte de Gastos no respondió» (de antes); la lista sale vacía con su `<Vacio>`.
+- Persona sin contexto: la ciega lo respondió (arriba); colaboradora real: sin probar.
+
+### Historial
+| Fecha | SHA | Leyes | Oficio | Cambios cerrados |
+|---|---|---|---|---|
+| 2026-10-30 | `41596987f` | 6,4 (ley 6 en 4) | 8 | D1 arreglado; los 3 cambios esperan OK |
+
+## Después de los 3 cambios (OK de Felipe) · 2026-10-30, noche — medido otra vez y segunda prueba ciega
+
+- **SHA:** `cc1a10a64` + el nombre único de los fijos   · **Qué cambió:** los 3 cambios de la pasada de abajo, tal cual se propusieron (ADR-0493,
+  actualización (c)). Y uno que pidió la segunda ciega: el «si sigue así», la leyenda y el día abierto decían «fijos sin registrar» y «fijo que
+  falta pagar», y el chip de la cifra «fijos por confirmar»; ahora todos dicen **«por confirmar»**.
+- **Entorno:** el mismo (159 gastos de ejemplo, «hoy» = 30 de octubre, foto restaurada al final). Ojo: a fin de mes, «a esta altura» casi no se
+  distingue del mes entero; el caso del 10 de octubre lo cubren las pruebas puras (`gastos-hilos-reglas.test.ts`: el chip, la píldora y la frase
+  dicen «subió», como «Cuándo»).
+
+### Medido (antes → después)
+| Comprobación | Antes | Después |
+|---|---|---|
+| Dónde empieza «Cuándo», 1440 × 900 | 1 293 px | **1 100 px** |
+| Dónde empieza «Cuándo», 375 × 812 | 1 730 px | **1 476 px** |
+| Dónde empieza la lista, 1440 × 900 | 2 091 px | 1 940 px |
+| A 1024 × 768 | «En qué se va» en 624 px | en 699 px: el chip «▲ 6 % vs septiembre a esta altura» pasa a una segunda fila (+30 px) y la frase a dos líneas; «Cuándo» igual sube (1 378 → 1 259 px) |
+| La frase de los hilos a 1024 | — | se partía dejando «%)» solo abajo: **arreglado** con un espacio duro entre el número y su «%» |
+| Contraste, desborde | sin fallas | sin fallas (claro y oscuro: `tema:auditar`, 0 hallazgos solo en oscuro) |
+| Oficio de las dos secciones | 5 de 8 (piezas del sistema) | igual |
+
+### Notas (0–10) después
+| Eje | Antes | Ahora | Evidencia |
+|---|---|---|---|
+| 1 Sin manual | 7 | 8 | [Observado] segunda ciega: las cuatro bien al primer intento, en 12 pasos (antes 14); el cierre, «seguridad alta», explicado con sus partes (antes «media a baja») · real: sin probar (tope 8) |
+| 2 Una pregunta, una respuesta | 5 | 8 | [Medido] el chip, las píldoras, la rayita y las dos frases comparan igual (pruebas del 10 de octubre); [Observado] usó el chip y «Cuándo» sin contradecirse |
+| 3 Simplicidad profunda | 7 | 8 | [Observado] «Es S/ 10,967 más un día normal (S/ 186) por el día que falta, más S/ 210 de 2 fijos»; queda «¿cómo sale un día normal?» |
+| 4 Lenguaje de tienda | 7 | 8 | [Observado] «a esta altura» se entendió («hasta el mismo día del mes»); los tres nombres de los fijos, ya uno; «Empresa» como sede sigue (de antes) |
+| 5 Contenido primero | 6 | 7 | [Medido] «Cuándo» 193 px más arriba a 1440 y 254 a 375; a 1440 sigue bajo el pliegue (la cabecera ocupa 576 px) |
+| 6 Lo difícil, a un toque | 7 | 7 | sin cambio: el día y la categoría a un toque; cómo se calcula un día normal no está |
+| 7 Perdonar antes que preguntar | — | — | solo lee |
+| 8 Quitar antes de agregar | 6 | 7 | [Medido] el chip ya no contradice; queda el doble mensaje del mes vacío en «En qué se va» |
+| 9 De punta a punta | 8 | 8 | [Medido] 375, 1024, oscuro, mes cerrado, mes vacío |
+| **Leyes (promedio)** | 6,6 | **7,6** | ninguna ley bajo 7 |
+| **Oficio visual** | 7 | **7** | [Medido] igual: lo que falla son piezas del sistema |
+
+### Segunda prueba ciega (Opus, sobre 5 capturas nuevas de 1440 px; la de Sonnet la cortó un filtro de seguridad de la API a mitad del informe y se relanzó una vez con otro modelo, como pide `prueba-ciega.md`)
+| Medida | Resultado | Pasa |
+|---|---|---|
+| Lectura de 5 s | «la pantalla de "Gastos"… cuánto se gastó en el mes (S/ 10,967) y en qué se va, empezando por Alquileres» | sí |
+| Primer intento | las cuatro bien: más (S/ 599, ▲ 6 %), Alquileres (S/ 5,400), el lunes 5 con sus 4 gastos (S/ 3,095, sumó), ≈ S/ 11,362 con sus partes | sí |
+| Pasos | 12 y uno que tocaría (antes 14) | casi |
+| Dudas | 14; de lo nuevo: «un día normal» (¿cómo sale?) y un sol de redondeo; los tres nombres de los fijos (**arreglado**); dos vienen de cómo se sacaron las capturas (el día 5 ya abierto en la captura 3 y un globito del día 7 donde estaba el mouse), no de la pantalla | no |
+| Palabras no entendidas | 9, casi todas de antes («Por pagar», «Te toca», «Activos fijos», «Empresa»…); de lo nuevo, «un día normal» y «Llevabas» (las interpretó bien) | no |
+| Errores evitables | 0 en las respuestas; 4 casi errores (un «▲ 6 %» que coincide en el total y en Suministros, «TIENDA LIMA» arriba con «Todas» elegido, el globito de la captura, la nota del 3 al 5) | casi |
+
+**Refutado al revisarlo:** «las barritas al lado de cada gasto salen vacías» en el desglose. Medido en vivo: se llenan (100 %, 87,5 %, 37,5 %); la
+captura se sacó 1 s después del clic, con la animación de llenado aún corriendo.
+
+### Lo que queda (no se ejecuta sin Felipe)
+- «¿Cómo sale un día normal?»: el porqué no está a un toque (un globito sobre el «≈» o la frase: «lo de un día sin fijos ni gastos grandes»).
+- «TIENDA LIMA» arriba a la derecha con «Ver sede · Todas» elegido: la ciega dudó si veía solo Lima (es la sede de la cuenta; viene del marco).
+- El desglose no tiene cómo cerrarse a la vista (se cierra tocando la fila otra vez).
+- La lista aparte de la pasada de abajo (N2, el globito de `<Linea>`, el dock que tapa datos).
+
+### Historial
+| Fecha | SHA | Leyes | Oficio | Cambios cerrados |
+|---|---|---|---|---|
+| 2026-10-30 (noche) | `cc1a10a64` + nombre de los fijos | 7,6 (ley 1: 8; ninguna bajo 7) | 7 | los 3 cambios con el OK de Felipe; «%)» huérfano a 1024; un solo nombre para los fijos |
+
+---
+
+## «En qué se va» (hilos) y «Cuándo» (ritmo del mes) · 2026-10-30 — medido, con prueba ciega
+
+- **Fecha / SHA:** 2026-10-30 · `33a3bef5b` (rama `claude/setup-local-finance-module-6e4e54`)   · **Dispositivo que manda:** escritorio (Mac mini); 375 px se adapta
+- **Pregunta que deberían resolver (1 frase):** ¿en qué se nos va la plata este mes y vamos más rápido o más lento que el mes pasado?   · **Protagonista:** el dinero
+- **Veredicto en una línea:** «Se entiende sin ayuda: la prueba ciega contestó las cuatro preguntas bien al primer intento. Pero a mitad de mes la pantalla compara contra septiembre de dos maneras que se contradicen, y «Cuándo» queda bajo el pliegue.»
+- **Alcance:** solo las dos secciones rehechas hoy (ADR-0493, actualizaciones del 2026-10-30). El resto de la pantalla no se recalificó: sigue lo de las pasadas de abajo.
+- **Entorno:** base local con 159 gastos y 5 fijos de ejemplo en septiembre y octubre (foto `ritmo-cuando`, restaurada al final), «hoy» = 30 de octubre. Medido con `medir-oficio.js` en un Chromium sin pantalla (el panel del navegador estaba oculto y React no revela su contenido sin cuadros de animación), con dos ajustes para un gráfico: mide dentro de la sección y toma el `fill` como color de un texto SVG. 2 agentes de 4: un ciego (sobre 5 capturas de 1440 px) y un escéptico.
+- **Arreglado durante el análisis** (eran defectos de lo construido hoy, no propuestas):
+  - un mes sin gastos dibujaba en «Cuándo» una línea en cero con «S/ 0» y un eje «0, 1, 1»; ahora dice «Sin gastos en agosto todavía.» (`8d93946eb`);
+  - al tocar o hacer clic en el gráfico, el foco ponía el globito en «hoy» antes de que el clic eligiera su día, y en el teléfono quedaba pegado
+    sobre la cifra y la nota (lo encontró el escéptico); ahora solo el teclado lo pone al entrar. Medido: tras tocar la nota a 375 no queda globito,
+    y a 1440 muestra el día que está bajo el mouse (`33a3bef5b`);
+  - las lecturas para comparar (los meses de antes, el mes anterior, el inicio de Finanzas) esperaban a las del mes: van en la misma vuelta, de 4
+    esperas seguidas a 3 (`scripts/rendimiento/ui.mjs`; `33a3bef5b`).
+
+### Notas (0–10)
+| Eje | Nota | Evidencia |
+|---|---|---|
+| 1 Sin manual | 7 | [Observado] ciega: las cuatro respuestas bien al primer intento, con 14 pasos, 10 dudas y 4 casi errores (abajo) · real: sin probar (tope 8) |
+| 2 Una pregunta, una respuesta | 5 | [Medido] tres comparaciones con septiembre en la misma pantalla (el chip de la cifra, la frase de «En qué se va» y la de «Cuándo») que a mitad de mes se contradicen: el 10 de octubre el chip diría «▼ 28 %» y «Cuándo», «S/ 157 menos a esta altura» (H1) · [Observado] duda 3 |
+| 3 Simplicidad profunda | 7 | [Observado] «a esta altura» y «si sigue así» se entendieron solas; no supo si el «si sigue así» cuenta los fijos (duda 8) y leyó «Alquileres · 3 al 5 oct» como un día (casi error 1) |
+| 4 Lenguaje de tienda | 7 | [Observado] las palabras nuevas se entendieron; «0 % de lo gastado» para S/ 53 (H3); «Empresa» como sede, no (de antes) |
+| 5 Contenido primero | 6 | [Medido] «Cuándo» empieza a 1 293 px a 1440 × 900 y a 1 730 px a 375 · [Observado] respondió la primera pregunta a los 5 s con el chip de arriba |
+| 6 Lo difícil, a un toque | 7 | [Observado] el día y la categoría, a un toque (capturas 4 y 5); cómo se calcula el «si sigue así» no está en ningún lado |
+| 7 Perdonar antes que preguntar | — | solo lee: elegir un día o una categoría se deshace tocándolo otra vez |
+| 8 Quitar antes de agregar | 6 | [Medido] el chip «vs septiembre» repite la comparación de «Cuándo» (y la contradice a mitad de mes); en un mes vacío, «En qué se va» dice dos veces que no hay gastos |
+| 9 De punta a punta | 8 | [Medido] mes vacío (arreglado), mes cerrado, una sede, 375, oscuro, lectura fallida con su aviso; el globito pegado (arreglado); queda N2 |
+| **Leyes (promedio)** | **6,6** | **la ley 2 en 5**: la pantalla compara contra el mes anterior de dos maneras |
+| **Oficio visual** | **7** | [Medido] en las dos secciones: contraste sin fallas, desborde 0, el gráfico se recorre con el teclado (deslizador con su etiqueta; las notas son botones). 5 de 8 comprobaciones fallan, todas en piezas del sistema (abajo, H5) |
+
+### Medido (Chromium sin pantalla, las dos secciones)
+| Comprobación | 1440 × 900 | 1024 × 768 | 375 × 812 |
+|---|---|---|---|
+| Dónde empieza «En qué se va» / «Cuándo» / la lista | 576 / 1 293 / 2 091 px | 624 / 1 378 / 2 303 px | 746 / 1 730 / 3 011 px |
+| Con 6 categorías y «Ver 4 más», «Cuándo» empezaría en | ~1 086 px | — | ~1 443 px |
+| Desborde de la página | 0 | 0 | 0 |
+| Texto bajo 4,5 : 1 | ninguno | ninguno | ninguno |
+| Comprobaciones de oficio que fallan (de 8) | 5 (6 con un día abierto) | 5 | 4 (6 con un día abierto) |
+| Lo que falla | tramos de la barra de 12 px de alto; «Ver los N en la tabla» de 14 px; ejes de la línea a 10,5 px; 5 a 7 radios; un borde SVG a 1 px | igual | lo mismo; los nombres de categoría son botones de 36 px (bajo 44 con dedo) |
+
+### Los 3 cambios de mayor impacto (esperan el OK de Felipe; nada se tocó)
+1. **En el mes en curso, todo compara a la misma altura.** Antes: el chip de la cifra grande, la píldora ▲/▼ de cada categoría, su rayita y la frase de
+   «En qué se va» comparan lo gastado hasta hoy contra el mes anterior **entero**; solo «Cuándo» compara a la misma altura. Con los datos de ejemplo,
+   el 10 de octubre: chip «▼ 28 % vs septiembre» contra «S/ 157 menos que septiembre a esta altura», y «Transporte ▼ 51 %» cuando a la misma altura
+   subió 75 %. → Después: en el mes en curso, todos contra el mes anterior hasta el mismo día (la lista de ese mes ya se lee hoy); en un mes cerrado,
+   el mes entero, como ahora; el último punto de la línea de meses dice que es «a hoy». Leyes 2 y 3. Se verifica con pruebas puras del caso del 10 de
+   octubre (chip, píldora y frase dicen lo mismo) y otra ciega. Esfuerzo M. **Decide Felipe:** es cómo se dice el dinero.
+2. **El «si sigue así» dice de qué está hecho.** Antes: «≈ 11.4 mil · si sigue así»; la ciega no supo si contaba los fijos que faltan, y debajo dice
+   «Sin contar 2 fijos por confirmar (S/ 210)». → Después: la frase de abajo del gráfico, a todo ancho (hoy solo en el angosto): «Si sigue así, cierras
+   octubre en ≈ S/ 11,362: un día normal de S/ 185 por cada día que falta, más S/ 210 de 2 fijos sin registrar.» Leyes 3 y 6. Se verifica con la
+   ciega (que no dude) y una prueba pura del texto. Esfuerzo S. Decide Felipe (texto de dinero).
+3. **«En qué se va», más corta y con su frase clara.** Antes: las 10 categorías empujan «Cuándo» a 1 293 px; la frase dice «lo que más subió fue
+   transporte (+20 %)» con «Atención al personal ▲ 75 %» a la vista (la frase solo cuenta lo que pesa 4 % o más, sin decirlo); «0 % de lo gastado».
+   → Después: las 6 más grandes y «Ver 4 más» (como el desglose; «Cuándo» sube ~207 px a 1440 y ~287 px a 375, medido); «Entre lo que más pesa, lo
+   que más subió fue…»; «menos de 1 %». Leyes 4, 5 y 8. Se verifica midiendo dónde empieza «Cuándo» y con la ciega. Esfuerzo S. Presentación: OK de Felipe.
+
+### Lo que sobra (ley 8)
+- El chip «▲ 6 % vs septiembre» de la cifra grande, si «Cuándo» ya dice la comparación a la misma altura (o, con el cambio 1, que digan lo mismo).
+- En un mes vacío, la frase «Todavía no hay gastos registrados en agosto 2026.» junto al vacío «Sin gastos en agosto 2026 todavía.»: dicen lo mismo.
+
+### Lo que no pediste y importa más
+**La barra flotante tapa los datos.** El dock del telar («Registrar gasto · Fijos del mes · Salidas de caja · Activos fijos», ADR-0493) flota sobre
+la pantalla: en la captura de entrada tapa la fila «Luz», y en el día abierto la ciega no vio entero el monto de «Movilidad» y lo sacó restando
+[Observado]. Con más filas y más gráficos, tapa algo en casi cualquier altura. Es una pieza de todo Finanzas: lo decide Felipe.
+
+### Lista aparte (no se ejecuta)
+- **N2:** a 375 px se esconde la píldora ▲/▼ (y la línea de meses ya se escondía bajo 680 px); la rayita es `aria-hidden`, así que quien usa lector
+  de pantalla en el teléfono pierde cuánto subió o bajó cada categoría (la frase de arriba sí lo resume).
+- **Piezas del sistema (H5, matizado):** el tramo de la barra tiene 24 px de alto para tocar pero 12 px de ancho en los finos (la fila entera, de 60 px,
+  y la columna del desglose ya cubren lo mismo); «Ver los N en la tabla» mide 14 px (`EnlaceVer`, /unificar); el eje y los cierres de `<Linea>` van a
+  10,5 px, también cifras como «10.4 mil / septiembre».
+- **El globito de `<Linea>` (H6, matizado):** su tope supone 180 px de ancho y el de «Cuándo» mide ~200: asoma ~10 px por el borde, y a 375 se corta.
+  Es pasajero (se va al sacar el mouse).
+- Lo que la ciega no entendió y es de antes: «Empresa» como sede, «por confirmar», «Te toca», «Activos fijos», «Salidas de caja», y si «86 sin
+  comprobante» y «Sin contar 2 fijos» entran en la cifra.
+- Siguen sin decidir los cambios 2 y 3 de la pasada del 22-oct (una sola respuesta arriba, la lista de gastos).
+
+### Prueba ciega (un agente sin contexto, Sonnet, sobre 5 capturas de 1440 px; no navegó)
+Tarea, en palabras de tienda: «Dime si este mes vamos gastando más o menos que el mes pasado, en qué se nos va más la plata, y qué se pagó exactamente
+el día que más se gastó. Y si seguimos así, ¿con cuánto cerramos el mes?»
+
+| Medida | Resultado | Pasa |
+|---|---|---|
+| Lectura de 5 s | «la pantalla de "Gastos"… cuánto gastó CAYLA este mes: "S/ 10,967", con un "▲ 6 % vs septiembre"… lo que sigue es bajar para ver el resto de la lista y algún gráfico, o tocar una fila» | sí |
+| Primer intento | las cuatro bien: más (S/ 599), Alquileres (S/ 5,400), el lunes 5 con sus 4 gastos (S/ 3,095, sumó y cuadró), ≈ S/ 11,400 | sí |
+| Pasos | 14 (el mínimo, unos 5: la frase de «Cuándo», la fila 1, tocar el día, leer el cierre) | no |
+| Dudas | 10; en lo de hoy: «▲ 6 % vs septiembre» (¿entero o a esta altura?), «lo que más subió… (+20 %)» frente a «▲ 75 %», la rayita (la entendió con la leyenda), «Alquileres · 3 al 5 oct» (¿uno o tres días?), «si sigue así» (¿cuenta los fijos?), un globito de otro día (era el defecto N1, arreglado) | no |
+| Palabras no entendidas | 7, todas de antes: «Fijos del mes», «por confirmar», «Activos fijos», «Salidas de caja», «Te toca», «Por pagar», «Empresa» | no |
+| Errores evitables | 0 en las respuestas; 4 casi errores (el rango de días como un día, el globito del día 30, «▲ 75 %» como «en qué se va», el cierre de septiembre) | casi |
+
+### Veredictos del escéptico
+| Hallazgo | Veredicto | Por qué |
+|---|---|---|
+| H1 · dos comparaciones con septiembre que se contradicen a mitad de mes | CONFIRMADO | `chipDelMesAnterior` y la píldora usan el mes cerrado (`gastos-hilos-reglas.ts:112,125,135`, `page.tsx` con `rangoMes`); «Cuándo» usa `anteriorAEstaAltura`. Las cifras cuadran con la base. También la frase de los hilos |
+| H2 · «Cuándo» bajo el pliegue por las 10 filas | MATIZADO | Cierto, pero solo en parte: «En qué se va» ya empieza en 576 px; con 5 filas seguiría bajo el pliegue a 1440. A 375 sí cambia mucho |
+| H3 · «0 % de lo gastado» | CONFIRMADO | 0,48 % redondeado (`gastos-hilos-reglas.ts:131`) |
+| H4 · lecturas para comparar en cadena | CONFIRMADO, peor | Además esperaban al inicio de Finanzas, pedido después: dos vueltas. **Arreglado** (`33a3bef5b`) |
+| H5 · blancos y textos chicos | MATIZADO | Son piezas del sistema; el tramo tiene 24 px de alto para tocar (`::before`), falla solo de ancho en los finos |
+| H6 · el globito tapa las cifras del final | MATIZADO | Pasajero; asoma ~10 px por el tope de 180 px. La captura citada mostraba en realidad N1 |
+| H7 · la frase de los hilos frente a «▲ 75 %» | CONFIRMADO | El corte de 4 % no se dice; a 375 no se ve el choque (la píldora se esconde) |
+| N1 (lo encontró él) · el globito salta a «hoy» al tocar | CONFIRMADO | `onFocus` del gráfico antes del clic. **Arreglado** (`33a3bef5b`) |
+| N2 (lo encontró él) · a 375 se pierde el ▲/▼ para el lector de pantalla | CONFIRMADO, menor | A la lista aparte |
+
+### Antes de decir «listo»
+- **Concurrencia:** las dos secciones solo leen; dos personas a la vez ven lo mismo.
+- **Caída externa:** si el resumen de un mes de antes o la lista del mes anterior no responde, los gráficos salen sin comparar y el aviso de arriba lo
+  dice; si no responde la base, el ERP manda a `/sin-base` (ADR-0450).
+- **Persona sin contexto:** ciega con un agente sobre capturas (arriba); con una colaboradora real, sin probar.
+
+### Historial
+| Fecha | SHA | Leyes | Oficio | Cambios cerrados |
+|---|---|---|---|---|
+| 2026-10-30 | `33a3bef5b` | 6,6 (ley 1: 7; ley 2: 5), de las dos secciones nuevas | 7 | arreglados en el análisis: el mes vacío de «Cuándo», el globito que saltaba a «hoy» y las lecturas en cadena; 3 cambios nuevos esperan OK |
+
+---
+
 ## Después de las tareas #1 a #3 · 2026-10-22, noche — la lista de Fijos y el titular, medidos (`rapido` + el código nuevo)
 
 - **SHA:** `e6b2227aa` (tres commits sobre `3b63baf00`)   · **Qué cambió:** el cambio 1 de la pasada de arriba (**Fijos del mes como una sola lista**, con el mes,

@@ -94,7 +94,7 @@ export function SelectorColor({
   if (!caja) return fila;
   return (
     <div>
-      <span className="mb-1 block text-xs font-semibold text-tinta">{etiqueta}</span>
+      <span className="mb-1 block text-sm font-semibold text-tinta">{etiqueta}</span>
       {fila}
     </div>
   );

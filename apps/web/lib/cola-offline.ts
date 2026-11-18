@@ -32,6 +32,8 @@ export type OperacionEncolada<P = Record<string, unknown>> = {
   params: P;
   /** Responsable y sede tal como se eligieron al guardar, con `momento` = `creadoEn`. `null` si la pantalla no firmó. */
   firma: Firma | null;
+  /** ADR-0542: de quién es lo que mueve la operación (el botón de Lima), para mandarlo en `x-dueno` al subir. Ausente = no se pregunta. */
+  dueno?: string | null;
   creadoEn: string;
   /** Una línea para la pantalla («12 unidades · Tienda Trujillo»): la cola se muestra sin reinterpretar `params`. */
   resumen: string;
@@ -93,13 +95,14 @@ export function claveCola(modulo: string): string {
 
 /** Arma la operación a encolar. La firma se congela con la hora de ahora: al subir mañana, la base valida que el
  *  responsable estaba presente CUANDO se hizo, no cuando volvió el internet. */
-export function nuevaOperacion<P>(o: { token: string; rpc: string; params: P; firma: Firma | null; resumen: string; ahora?: Date }): OperacionEncolada<P> {
+export function nuevaOperacion<P>(o: { token: string; rpc: string; params: P; firma: Firma | null; resumen: string; dueno?: string | null; ahora?: Date }): OperacionEncolada<P> {
   const creadoEn = (o.ahora ?? new Date()).toISOString();
   return {
     token: o.token,
     rpc: o.rpc,
     params: o.params,
     firma: o.firma ? { ...o.firma, momento: creadoEn } : null,
+    ...(o.dueno ? { dueno: o.dueno } : {}),
     creadoEn,
     resumen: o.resumen,
     rechazo: null,

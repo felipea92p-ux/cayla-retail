@@ -92,7 +92,8 @@ const CABLES: { archivo: string; cable: string; patron: RegExp }[] = [
   {
     archivo: "components/punto-de-venta/TarjetaPrenda.tsx",
     cable: "la casilla de talla apartada NO se tacha y usa el token informativo (agotada sí: `line-through`)",
-    patron: /motivoNoCobrable\(t\.variante\) === "apartada" \? "border-pizarra\/50 text-pizarra" : "border-sand text-tinta\/35 line-through"/,
+    // El borde punteado de cada una lo pone su `data-talla` (vidrio/vender.css, «B · Foto al aire»); aquí, la letra y el tachado.
+    patron: /motivoNoCobrable\(t\.variante\) === "apartada" \? "text-pizarra" : "text-tinta\/35 line-through"/,
   },
   {
     archivo: "components/punto-de-venta/TarjetaPrenda.tsx",

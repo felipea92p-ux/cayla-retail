@@ -5,7 +5,6 @@ import {
   colgadasDe,
   inicioDelMesLima,
   relojDeLaUnidad,
-  tramoDe,
   tramoDosRelojes,
   type LecturaFrescuraConPiso,
   type TallaFrescuraCruda,
@@ -120,7 +119,7 @@ describe("tramoDosRelojes: Fresca por el modelo, lo demás por la unidad", () =>
   it("reponer no la hace Fresca otra vez (decisión 9), pero tampoco la envejece: lo colgado hace 2 días de un modelo de 40 es Vigente", () => {
     expect(tramoDosRelojes(40 * D, 2 * D, polos, 20 * D)).toEqual({ tramo: "vigente", alMenos: false });
     // Con el reloj del modelo para todo, salía Crítica.
-    expect(tramoDe(40 * D, polos, 20 * D)).toEqual({ tramo: "critica", alMenos: false });
+    expect(tramoDosRelojes(40 * D, 40 * D, polos, 20 * D)).toEqual({ tramo: "critica", alMenos: false });
   });
 
   it("la unidad que pasa P75 se está quedando; la que pasa P90, más todavía", () => {
@@ -134,9 +133,48 @@ describe("tramoDosRelojes: Fresca por el modelo, lo demás por la unidad", () =>
     expect(tramoDosRelojes(30 * D, 15 * D, { p50: 9 * D, p75: null, p90: null }, 20 * D)).toEqual({ tramo: "vigente", alMenos: false });
   });
 
-  it("con la unidad igual al modelo es exactamente tramoDe", () => {
-    const cortesDe = [polos, { p50: 3 * D, p75: null, p90: null }, { p50: 3 * D, p75: 5 * D, p90: null }, { p50: 2 * D, p75: 2 * D, p90: 2 * D }];
-    for (const c of cortesDe) for (let dias = 0; dias <= 30; dias += 0.5) expect(tramoDosRelojes(dias * D, dias * D, c, 20 * D)).toEqual(tramoDe(dias * D, c, 20 * D));
+  // Con un solo reloj (unidad = modelo) se comporta como la regla de un reloj que había antes (`tramoDe`, ya borrada: ninguna
+  // pantalla la usaba). Estos casos venían de su prueba y siguen valiendo para la regla de dos relojes.
+  describe("con un solo reloj (unidad = modelo)", () => {
+    const c = { p50: 5 * D, p75: 10 * D, p90: 20 * D };
+    const uno = (segundos: number, cortes: { p50: number | null; p75: number | null; p90: number | null }, tMax: number) => tramoDosRelojes(segundos, segundos, cortes, tMax);
+    it.each<[number, string]>([
+      [0, "nueva"],
+      [4.9, "nueva"],
+      [5, "vigente"],
+      [9.9, "vigente"],
+      [10, "envejecida"],
+      [20, "critica"],
+      [90, "critica"],
+    ])("%s días → %s", (dias, tramo) => {
+      expect(uno(dias * D, c, 30 * D)).toEqual({ tramo, alMenos: false });
+    });
+
+    it("un corte que la curva no alcanza queda después de su observación más larga: antes de eso el tramo es exacto; después, «al menos» el tramo que ya pasó (revisión 4)", () => {
+      const sinP90 = { p50: 5 * D, p75: 10 * D, p90: null };
+      expect(uno(14 * D, sinP90, 15 * D)).toEqual({ tramo: "envejecida", alMenos: false });
+      expect(uno(16 * D, sinP90, 15 * D)).toEqual({ tramo: "envejecida", alMenos: true });
+      expect(uno(70 * D, { p50: 10 * D, p75: 30 * D, p90: null }, 45 * D)).toEqual({ tramo: "envejecida", alMenos: true });
+      expect(uno(70 * D, { p50: 10 * D, p75: null, p90: null }, 45 * D)).toEqual({ tramo: "vigente", alMenos: true });
+    });
+
+    it("en el borde exacto (segundos = tMax) el tramo sigue siendo exacto (revisión 4, mutante w20)", () => {
+      expect(uno(10 * D, { p50: 2 * D, p75: null, p90: null }, 10 * D)).toEqual({ tramo: "vigente", alMenos: false });
+    });
+
+    it("con tolerancia: un error de coma flotante de 1e-11 no cambia el tramo, ni en tMax ni en un corte (revisión 4)", () => {
+      expect(uno(345223.80700000003, { p50: 3 * D, p75: null, p90: null }, 345223.807)).toEqual({ tramo: "vigente", alMenos: false });
+      expect(uno(5 * D - 1e-11, c, 30 * D)).toEqual({ tramo: "vigente", alMenos: false });
+      expect(uno(5 * D - 1, c, 30 * D)).toEqual({ tramo: "nueva", alMenos: false });
+      expect(uno(10 * D + 1, { p50: 2 * D, p75: null, p90: null }, 10 * D)).toEqual({ tramo: "vigente", alMenos: true });
+    });
+
+    it("sin P50 nadie tiene tramo: «aún sin referencia», nunca «Nueva» (ADR-0208, decisión 6)", () => {
+      for (const dias of [0, 3, 14, 59]) {
+        expect(uno(dias * D, { p50: null, p75: null, p90: null }, 60 * D)).toBeNull();
+        expect(uno(dias * D, { p50: null, p75: 10 * D, p90: 20 * D }, 60 * D)).toBeNull();
+      }
+    });
   });
 });
 

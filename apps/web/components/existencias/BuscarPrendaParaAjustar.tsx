@@ -1,45 +1,98 @@
 "use client";
 
-import { useId, useState } from "react";
-import { PencilLine, SearchX } from "lucide-react";
+import { useEffect, useId, useState } from "react";
+import { Bandage, Camera, PencilLine, SearchX } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Buscador } from "@/components/ui/Buscador";
 import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { Vacio } from "@/components/ui/Vacio";
-import { detalleDelModelo, modelosParaAjustar } from "@/lib/existencias-buscar-ajuste";
+import { EscanerBusqueda } from "@/components/EscanerBusqueda";
+import { detalleDelModelo, detalleSinStock, modelosParaAjustar, TOPE_MODELOS, type DondeHay } from "@/lib/existencias-buscar-ajuste";
+import { sinStockQueCoincide, type ProductoSinStock } from "@/lib/existencias-vacio";
+import { leerExistenciasProductos } from "@/lib/productos-stock";
+import { createClient } from "@/lib/supabase/client";
 import type { IndiceBusquedaEspecial } from "@/lib/filtro-busqueda-especial";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 
 // «¿Qué prenda vas a ajustar?» — lo que abre «Ajustar stock» de la cabecera de Existencias (ADR-0494). Se escribe el nombre o el código
 // (o se escanea la etiqueta), se elige el modelo y el modal de la prenda abre su planilla con esa talla en foco. Busca mientras se
 // escribe, con el mismo índice que el buscador de la lista (`indiceDeExistencias`).
+//
+// Una prenda que esta sede NUNCA movió (recién creada, o que no llegó) no tiene ni una fila de `stock`, así que el índice no la conoce: se
+// busca también entre «en el catálogo, sin stock aquí» (`sinStock`) y, al elegirla, abre la planilla del producto entero, donde cada talla
+// entra como stock inicial (ADR-0235). Es donde se le carga su primer stock: sin esto, «Polo Venus» no aparecía.
 
 export function BuscarPrendaParaAjustar({
+  modo = "ajustar",
   indice,
   sedeNombre,
+  ubicacionId,
+  sinStock,
   onElegir,
+  onElegirSinStock,
   onClose,
 }: {
+  /** «ajustar» (de la cabecera) o «danada» (el botón «Separé una dañada» de las cuentas de caja y almacén, ADR-0564): esta última solo ofrece
+   *  prendas con stock aquí (algo se puede separar de lo que existe) y lleva directo a «Reportar dañada». */
+  modo?: "ajustar" | "danada";
   indice: IndiceBusquedaEspecial<FilaExistencias>;
   sedeNombre: string;
+  /** La sede que se mira: «dónde más hay» de una prenda sin movimientos aquí se lee desde ella. */
+  ubicacionId: string;
+  /** Los productos del catálogo que esta sede nunca movió: también se pueden ajustar (su primera carga). */
+  sinStock: readonly ProductoSinStock[];
   /** La prenda (modelo + color) y la talla en que entra la planilla. */
   onElegir: (clave: string, varianteId: string) => void;
+  /** Un producto sin ninguna fila aquí: la planilla abre con todos sus colores y tallas. */
+  onElegirSinStock: (productoId: string) => void;
   onClose: () => void;
 }) {
   const [texto, setTexto] = useState("");
   const [activa, setActiva] = useState(0);
+  // La cámara lee UNA etiqueta y la deja escrita en el buscador: la lista ya sabe encontrar por código (misma búsqueda que al teclear).
+  const [camara, setCamara] = useState(false);
   const idLista = useId();
   const modelos = modelosParaAjustar(indice, texto);
-  const abierta = modelos.length > 0;
+  // Los que la sede nunca movió van después de los que sí, y entre los dos no pasan del tope de la lista.
+  const sinFila = texto.trim() && modo === "ajustar" ? sinStockQueCoincide(texto, indice.vocabulario, sinStock, { limite: Math.max(0, TOPE_MODELOS - modelos.length) }).productos : [];
+  const total = modelos.length + sinFila.length;
+  // Dónde más hay lo que esta sede nunca movió: una lectura por lo que se ve (a lo más 8 productos), con la misma cifra de Productos
+  // (`fn_existencias_productos`). Hasta que vuelve, la línea dice solo «Sin stock aquí todavía»; si falla, se queda así: nunca inventa.
+  const [dondeHay, setDondeHay] = useState<ReadonlyMap<string, DondeHay>>(new Map());
+  const idsSinFila = sinFila.map((p) => p.id).join(",");
+  useEffect(() => {
+    const ids = idsSinFila ? idsSinFila.split(",").filter((id) => !dondeHay.has(id)) : [];
+    if (ids.length === 0) return;
+    let vigente = true;
+    void createClient()
+      .rpc("fn_existencias_productos" as never, { p_producto_ids: ids, p_ubicacion_id: ubicacionId } as never)
+      .then(({ data, error }) => {
+        if (!vigente || error) return;
+        const leidas = leerExistenciasProductos(data);
+        setDondeHay((previas) => {
+          const nuevas = new Map(previas);
+          for (const id of ids) nuevas.set(id, (leidas.get(id)?.otras ?? []).map((o) => ({ sede: o.sede, disponible: o.disponible })));
+          return nuevas;
+        });
+      });
+    return () => {
+      vigente = false;
+    };
+    // `dondeHay` solo se consulta para no repetir lo ya leído: no debe re-disparar la lectura.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsSinFila, ubicacionId]);
+  const abierta = total > 0;
 
   function elegir(i: number) {
     const m = modelos[i];
-    if (m) onElegir(m.clave, m.varianteId);
+    if (m) return onElegir(m.clave, m.varianteId);
+    const p = sinFila[i - modelos.length];
+    if (p) onElegirSinStock(p.id);
   }
 
   return (
-    <Modal variante="hoja" tamano="mediana" conCerrar titulo="¿Qué prenda vas a ajustar?" subtitulo="Escribe su nombre o su código, o escanea su etiqueta." onClose={onClose}>
+    <Modal variante="hoja" tamano="mediana" conCerrar titulo={modo === "danada" ? "¿Qué prenda está dañada?" : "¿Qué prenda vas a ajustar?"} subtitulo="Escribe su nombre o su código, o escanea su etiqueta." onClose={onClose}>
       {() => (
         <div className="grid gap-3">
           <Buscador
@@ -49,7 +102,18 @@ export function BuscarPrendaParaAjustar({
               setActiva(0);
             }}
             autoFocus
-            etiqueta="Buscar la prenda que vas a ajustar"
+            accion={
+              <button
+                type="button"
+                onClick={() => setCamara(true)}
+                aria-label="Escanear etiqueta con la cámara"
+                title="Escanear etiqueta"
+                className="mr-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-tinta/70 transition-colors hover:text-tinta"
+              >
+                <Camera aria-hidden className="h-5 w-5" />
+              </button>
+            }
+            etiqueta={modo === "danada" ? "Buscar la prenda dañada" : "Buscar la prenda que vas a ajustar"}
             // sugerir-fijo: dice qué se puede buscar; no depende de nada elegido antes
             placeholder="Nombre, código o color"
             {...ariaDelBuscador(idLista, abierta, abierta ? activa : null)}
@@ -57,7 +121,7 @@ export function BuscarPrendaParaAjustar({
               if (!abierta) return;
               if (e.key === "ArrowDown" || e.key === "ArrowUp") {
                 e.preventDefault();
-                setActiva((a) => (a + (e.key === "ArrowDown" ? 1 : modelos.length - 1)) % modelos.length);
+                setActiva((a) => (a + (e.key === "ArrowDown" ? 1 : total - 1)) % total);
               } else if (e.key === "Enter") {
                 e.preventDefault();
                 elegir(activa);
@@ -65,8 +129,10 @@ export function BuscarPrendaParaAjustar({
             }}
           />
           {!texto.trim() ? (
-            <Vacio tamano="chico" alinear="izquierda" icono={<PencilLine aria-hidden className="h-5 w-5" />}>
-              Elige una prenda y se abre su planilla, con todos sus colores y tallas en {sedeNombre}.
+            <Vacio tamano="chico" alinear="izquierda" icono={modo === "danada" ? <Bandage aria-hidden className="h-5 w-5" /> : <PencilLine aria-hidden className="h-5 w-5" />}>
+              {modo === "danada"
+                ? `Elige la prenda y te pregunto la talla, dónde estaba y qué tiene. La sacamos del stock de ${sedeNombre} y queda separada, sin perderse.`
+                : `Elige una prenda y se abre su planilla, con todos sus colores y tallas en ${sedeNombre}.`}
             </Vacio>
           ) : abierta ? (
             <ListaSugerencias
@@ -76,17 +142,41 @@ export function BuscarPrendaParaAjustar({
               activa={activa}
               onActiva={setActiva}
               onElegir={elegir}
-              sugerencias={modelos.map((m) => ({
-                clave: m.productoId,
-                miniatura: <MiniaturaPrenda fotoUrl={m.fila.fotoUrl} colorHex={m.fila.colorHex} tamano="md" {...categoriaDe(m.fila)} />,
-                titulo: m.referencia,
-                detalle: detalleDelModelo(m),
-              }))}
+              sugerencias={[
+                ...modelos.map((m) => ({
+                  clave: m.productoId,
+                  miniatura: <MiniaturaPrenda fotoUrl={m.fila.fotoUrl} colorHex={m.fila.colorHex} tamano="md" {...categoriaDe(m.fila)} />,
+                  titulo: m.referencia,
+                  detalle: detalleDelModelo(m),
+                })),
+                ...sinFila.map((p) => ({
+                  clave: p.id,
+                  miniatura: <MiniaturaPrenda fotoUrl={p.fotoUrl ?? null} colorHex={null} tamano="md" categoria={p.categoria} familia={p.familia ?? null} />,
+                  titulo: p.referencia,
+                  detalle: detalleSinStock(p, dondeHay.get(p.id)),
+                })),
+              ]}
             />
           ) : (
             <Vacio tamano="chico" alinear="izquierda" icono={<SearchX aria-hidden className="h-5 w-5" />}>
               No encuentro «{texto.trim()}» en {sedeNombre}. Prueba con otra palabra o con el código de la etiqueta.
             </Vacio>
+          )}
+          {camara && (
+            <EscanerBusqueda
+              titulo="Escanear prenda"
+              pista="Centra la etiqueta de la prenda en el cuadro"
+              onCodigo={(codigo) => {
+                const leido = codigo.trim();
+                setTexto(leido);
+                setActiva(0);
+                setCamara(false);
+                // El bip dice si la encontró (verde) o no (ámbar: mira la pantalla).
+                return { tono: modelosParaAjustar(indice, leido).length > 0 ? "verde" : "ambar" };
+              }}
+              onEscribir={() => setCamara(false)}
+              onClose={() => setCamara(false)}
+            />
           )}
         </div>
       )}

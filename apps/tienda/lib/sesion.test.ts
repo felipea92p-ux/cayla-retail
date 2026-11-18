@@ -22,7 +22,7 @@ describe("a dónde lleva el proxy", () => {
     expect(redireccionDelProxy("/catalogo", "GET", "no", "?lista=nuevo")).toBeNull();
   });
 
-  it("el catálogo, los precios, los looks, la bolsa y lo público se ven sin cuenta (Felipe 2026-10-17)", () => {
+  it("el catálogo, los precios, los outfits, la bolsa y lo público se ven sin cuenta (Felipe 2026-10-17)", () => {
     for (const ruta of [
       "/inicio",
       "/catalogo",
@@ -51,6 +51,12 @@ describe("a dónde lleva el proxy", () => {
     for (const usuario of ["si", "no", "no_se"] as const) expect(redireccionDelProxy("/", "GET", usuario)).toBe("/inicio");
   });
 
+  it("al Inicio llegan solo las marcas del enlace (utm), para que Tráfico sepa por dónde llegó la persona (ADR-0495)", () => {
+    expect(redireccionDelProxy("/", "GET", "no", "?utm_source=qr")).toBe("/inicio?utm_source=qr");
+    expect(redireccionDelProxy("/", "GET", "no", "?utm_source=whatsapp&utm_medium=look&x=1")).toBe("/inicio?utm_source=whatsapp&utm_medium=look");
+    expect(redireccionDelProxy("/", "GET", "no", "?sede=lima&volver=/cuenta")).toBe("/inicio");
+  });
+
   it("si el proyecto de clientes no contesta, o es una acción (POST), no manda a nadie a ningún lado", () => {
     expect(redireccionDelProxy("/cuenta", "GET", "no_se")).toBeNull();
     expect(redireccionDelProxy("/cuenta/pedidos", "GET", "no_se")).toBeNull();
@@ -67,7 +73,7 @@ describe("volver a la página pedida después de entrar", () => {
     expect(PARAMETRO_VOLVER_DEL_PROXY).toBe(PARAMETRO_VOLVER);
     const destino = redireccionDelProxy("/cuenta/pedidos", "GET", "no", "?pagina=2");
     expect(destino).toBe("/entrar?volver=%2Fcuenta%2Fpedidos%3Fpagina%3D2");
-    const volver = new URL(destino!, "https://tienda.cayla.pe").searchParams.get(PARAMETRO_VOLVER);
+    const volver = new URL(destino!, "https://cayla.pe").searchParams.get(PARAMETRO_VOLVER);
     expect(rutaParaVolver(volver)).toBe("/cuenta/pedidos?pagina=2");
     expect(redireccionDelProxy("/cuenta/pedidos/W-0001", "GET", "no", "")).toBe("/entrar?volver=%2Fcuenta%2Fpedidos%2FW-0001");
     // Con sesión, nada cambia.

@@ -11,8 +11,6 @@ import { describe, expect, it } from "vitest";
 const PERMITIDOS: Record<string, string> = {
   "components/ui/ImagenDePrenda.tsx": "es la pieza: decide por foto si va optimizada o no (`fotoOptimizable`)",
   "components/existencias/FotoAmpliada.tsx": "«ver en grande»: la persona quiere el detalle del original, no una versión reducida",
-  "components/ReciboTermico.tsx": "el isotipo de CAYLA (archivo local, no una foto del Storage)",
-  "components/CambioTicket.tsx": "el isotipo de CAYLA (archivo local, no una foto del Storage)",
   "components/GeneradorDibujo.tsx": "un dibujo recién generado (URL temporal), no una foto de prenda",
   "components/MuestraTejido.tsx": "la muestra de un tejido (otro bucket, una por tejido), no una foto de prenda",
   "components/MuestraPatron.tsx": "la muestra de un patrón (otro bucket, una por patrón), no una foto de prenda",

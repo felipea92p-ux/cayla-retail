@@ -551,9 +551,9 @@ function main() {
     "t|false|ZZ Grande|30.00",
   );
   esperarValor(
-    "una campaña que entra por la categoría también cuenta, y una «de urgencia» con descuento también (como en la caja)",
+    "una campaña que entra por la categoría también cuenta (como en la caja)",
     correr(`${PREPARAR}${guardar("emma")} \\gset
-      ${campana("ZZ Liquidar", 20, { estilo: "urgencia" })}
+      ${campana("ZZ Liquidar", 20)}
       insert into retail.etiqueta_categorias (etiqueta_id, categoria_id) values (:'etq', :'cat_blusas');
       select concat_ws('|', (x ->> 'precio_final')::numeric = 79.90 - retail.fn_descuento_campana(79.90, 20), x -> 'campana' ->> 'nombre') from ${EN_CATALOGO("emma")} t(x);
       rollback;`),

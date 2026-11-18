@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>B · La orden propone y la orden guarda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+<style>
+  /* Dirección B · Producción ▸ Nueva orden. La ficha NO tiene pantalla propia: se escribe aquí, en la orden, y el modelo la aprende. */
+  .hoja-orden{border:1px solid var(--color-sand);border-radius:20px;background:var(--color-papel);padding:22px 24px}
+  .hoja-orden h2{font:400 24px/1.15 var(--font-serif)}
+  .cols{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:24px;align-items:start}
+  @media (max-width:1180px){.cols{grid-template-columns:1fr}}
+  .sw{display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-size:13.5px}
+  .sw input{position:absolute;opacity:0;width:1px;height:1px}
+  .sw .pista{width:36px;height:20px;border-radius:999px;background:var(--color-sand);position:relative;flex:none;transition:background .2s var(--ease-cayla)}
+  .sw .pista::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:999px;background:var(--color-papel);box-shadow:0 1px 2px color-mix(in srgb,var(--color-sombra) 30%,transparent);transition:transform .2s var(--ease-cayla)}
+  .sw input:checked + .pista{background:var(--color-tinta)}
+  .sw input:checked + .pista::after{transform:translateX(16px);background:var(--color-crema)}
+  .sw input:focus-visible + .pista{outline:2px solid color-mix(in srgb,var(--color-rojo) 55%,transparent);outline-offset:2px}
+  .sw input:disabled + .pista{opacity:.45}
+  .guardado{margin-top:10px;display:grid;gap:8px}
+  .rap{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .op{display:grid;gap:10px;margin:14px 0}
+  .op label{display:grid;grid-template-columns:20px 1fr;gap:10px;padding:12px 14px;border:1px solid var(--color-sand);border-radius:12px;cursor:pointer;align-items:start}
+  .op label:has(input:checked){border-color:var(--color-tinta);background:color-mix(in srgb,var(--color-hueso) 55%,transparent)}
+  .op label.off{opacity:.55;cursor:not-allowed}
+  .op input{margin-top:3px;accent-color:var(--color-tinta)}
+  .med-res{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .med-res div{background:color-mix(in srgb,var(--color-hueso) 60%,transparent);border-radius:10px;padding:8px 12px}
+  .med-res b{display:block;font:400 22px/1.1 var(--font-serif);margin-top:2px}
+</style>
+</head>
+<body>
+<script src="_comun.js" charset="utf-8"></script>
+<script>
+/* Dirección B — «En la orden». DECISIÓN que propone: no hay pantalla nueva. La ficha de consumo se escribe donde se usa (Nueva orden y «Editar tela y avíos»),
+   por talla y con avíos, y se guarda en el modelo con el interruptor que ya existe («Dejar como la ficha del modelo»). Lo medido se pregunta al cerrar. */
+const ESTADOS = [
+  { id: 'primera', txt: 'Primera orden del modelo (sin ficha)' },
+  { id: 'aproximado', txt: 'Solo se sabe un número' },
+  { id: 'propone', txt: 'La orden propone la ficha' },
+  { id: 'sin-permiso', txt: 'Corregir la ficha: sin permiso' },
+  { id: 'cierre', txt: 'Al pasar al stock: lo medido' },
+];
+const B = { fijar: true, cerr: 3, eleccion: 'medido', puedeCorregir: true };
+let ULTIMO = null;
+
+function dibujar(est, host) {
+  if (ULTIMO !== est) { ULTIMO = est; B.fijar = est === 'primera' || est === 'aproximado'; B.puedeCorregir = est !== 'sin-permiso'; B.cerr = 3; B.eleccion = 'medido'; }
+  host.innerHTML = cabecera({ eyebrow: 'Producción · Órdenes', titulo: 'Nueva orden', frase: `${MODELO.nombre} · ${MODELO.cod} · ${TOTAL} prendas en 4 colores`, derecha: '' }) +
+    `<div class="hoja-orden"><div class="fila-flex" style="justify-content:space-between;margin-bottom:14px"><h2>${MODELO.nombre}</h2><span class="sutil">Fecha de entrega · 20 nov</span></div>
+      <div class="cols"><div><span class="etq">Cantidades</span><div style="margin-top:6px">${tablaCantidades()}</div></div><div id="bloque"></div></div>
+      <div id="pie-guarda" class="guardado"></div>
+      <div class="pie-acciones"><button class="btn sec" type="button">Cancelar</button><button class="btn prim" type="button" id="abrir">Abrir orden</button></div></div>`;
+  const ficha = est === 'primera' ? null : est === 'aproximado' ? { tela: { una: '1.200' }, avios: [] } : { tela: { ...FICHA_AUDACES.tela }, avios: FICHA_AUDACES.avios.map((a) => ({ ...a })) };
+  const api = BloqueOrden($('#bloque'), {
+    modo: 'escribe', ficha,
+    cabecera: (a) => {
+      const chip = !ficha ? '<span class="chip pizarra">El modelo todavía no tiene ficha</span>' : est === 'aproximado' ? '<span class="chip ambar hueco sin">Aproximado: un número para todas las tallas</span>' : '<span class="chip pizarra">Propuesto por la ficha del modelo</span>';
+      return chip;
+    },
+    aviso: (a) => !ficha
+      ? `<div class="nota">${ic('info')}<span>Escribe lo que lleva <b>una</b> prenda. Con una sola talla escrita, la otra la copia y queda marcada como aproximada. Lo que escribas queda como la ficha del modelo.</span></div>`
+      : est === 'aproximado'
+        ? `<div class="nota">${ic('info')}<span>La ficha solo sabe un número (1.200 m). Escribe la talla S y la M por separado y el pedido se afina.</span></div>` : '',
+    alMontar: (h, a) => {
+      // atajos para sumar avíos cuando la orden todavía no los trae
+      if (!$('#rap', h)) {
+        const puestos = new Set(a.s.avios.filter((x) => !a.s.quitados.has(x.id)).map((x) => x.id));
+        const quedan = [['bot', 'Botones'], ['hilo', 'Hilo por color'], ['ett', 'Etiqueta de talla'], ['etm', 'Etiqueta de marca']].filter(([id]) => !puestos.has(id));
+        if (quedan.length) {
+          const bar = el(`<div class="rap" id="rap"><span class="sutil">Agregar avío:</span>${quedan.map(([id, t]) => `<button class="btn chico sut" type="button" data-av="${id}">${ic('mas', 's')}${t}</button>`).join('')}</div>`);
+          h.querySelector('section').append(bar);
+          $$('[data-av]', bar).forEach((b) => b.addEventListener('click', () => a.agregarAvio({ ...FICHA_AUDACES.avios.find((x) => x.id === b.dataset.av) })));
+        }
+      }
+      pieGuarda(a);
+    },
+    alCambiar: (a) => pieGuarda(a),
+  });
+  $('#abrir').addEventListener('click', () => { toast('Orden abierta. (Maqueta: no se escribió nada.)'); });
+  if (est === 'cierre') abrirCierre();
+  function pieGuarda(a) {
+    const cont = $('#pie-guarda');
+    if (!cont) return;
+    const cambia = a.hayCambios();
+    if (!ficha) {
+      cont.innerHTML = `<label class="sw"><input type="checkbox" id="fijar" ${B.fijar ? 'checked' : ''}><span class="pista"></span><span>Dejar tela y avíos como la <b>ficha del modelo</b></span></label>
+        <span class="sutil" style="padding-left:46px">${B.fijar ? 'Es la primera orden de este modelo: la próxima los propone sola. Lo medido al pasar un lote al stock los corrige.' : 'Solo esta orden usará lo que escribiste; la próxima empieza de cero.'}</span>`;
+    } else if (cambia && B.puedeCorregir) {
+      cont.innerHTML = `<label class="sw"><input type="checkbox" id="fijar" ${B.fijar ? 'checked' : ''}><span class="pista"></span><span>Dejar estos cambios como la <b>ficha del modelo</b></span></label>
+        <span class="sutil" style="padding-left:46px">Hoy la ficha dice ${est === 'aproximado' ? '1.200 m para todas las tallas' : 'S 1.150 m · M 1.200 m'} (Audaces). Las órdenes ya abiertas no cambian.</span>`;
+    } else if (cambia && !B.puedeCorregir) {
+      cont.innerHTML = `<div class="nota">${ic('lock')}<span>Cambiaste la ficha, pero corregir la ficha del modelo es de quien edita el catálogo: <b>solo esta orden</b> usa tus números. Pídele el cambio a Catálogo si quieres que quede.</span></div>`;
+    } else cont.innerHTML = '';
+    const f = $('#fijar'); f && f.addEventListener('change', () => { B.fijar = f.checked; pieGuarda(a); });
+  }
+}
+
+/* ── «Pasar al stock»: lo medido se pregunta al cerrar ── */
+function abrirCierre() {
+  const render = (hoja) => {
+    const n = B.cerr;
+    const m = medidoDeCerradas(FICHA_AUDACES.tela, n);
+    const manda = n >= 3;
+    if (!manda && B.eleccion === 'medido') B.eleccion = 'queda';
+    const o = CERRADAS[n - 1];
+    hoja.querySelector('.cuerpo').innerHTML = `
+      <div class="fila-flex" style="margin:10px 0 4px"><span class="sutil">Esta es la orden cerrada n.º</span><div class="seg" role="group" aria-label="Cuántas órdenes cerradas lleva el modelo">${[1, 2, 3].map((k) => `<button type="button" data-n="${k}" aria-pressed="${k === n}">${k}</button>`).join('')}</div></div>
+      <div class="med-res"><div><span class="sutil">Se gastó por prenda (${o.op})</span><b class="num">${(o.metros / o.buenas).toFixed(3)} m</b></div><div><span class="sutil">Promedio de las ${n} cerradas</span><b class="num">${m.porPrenda.toFixed(3)} m</b></div><div><span class="sutil">La ficha decía (Audaces)</span><b class="num">${m.promDecl.toFixed(3)} m <small style="font-size:13px">${pct(m.porPrenda, m.promDecl)}</small></b></div></div>
+      <div class="op" role="radiogroup" aria-label="Qué hacer con la ficha">
+        <label class="${manda ? '' : 'off'}"><input type="radio" name="el" value="medido" ${B.eleccion === 'medido' ? 'checked' : ''} ${manda ? '' : 'disabled'}><span><b>Usar lo que se gastó de verdad</b><br><span class="sutil">S ${m.S} · M ${m.M}. La forma sigue siendo la de Audaces; sube el nivel. Las órdenes ya abiertas no cambian.</span>${manda ? '' : `<br><span class="sutil" style="color:var(--color-ambar-profundo)">Todavía faltan ${3 - n} ${3 - n === 1 ? 'orden cerrada' : 'órdenes cerradas'}: lo medido manda desde la 3.ª.</span>`}</span></label>
+        <label><input type="radio" name="el" value="queda" ${B.eleccion === 'queda' ? 'checked' : ''}><span><b>Dejar la ficha como está</b><br><span class="sutil">Sigue mandando Audaces: S 1.150 · M 1.200. Te lo volvemos a preguntar en la próxima orden que cierres.</span></span></label></div>`;
+    $$('[data-n]', hoja).forEach((b) => b.addEventListener('click', () => { B.cerr = Number(b.dataset.n); B.eleccion = B.cerr >= 3 ? 'medido' : 'queda'; render(hoja); }));
+    $$('input[name="el"]', hoja).forEach((r) => r.addEventListener('change', () => { B.eleccion = r.value; }));
+  };
+  abrirHoja({ ancho: 720, html: `<h2>Pasar al stock · OP-338</h2><p class="bajada">60 prendas buenas del Chaleco de Prueba · 75.5 m de tela gastados</p><div class="cuerpo"></div>
+      <div class="pie-acciones"><button class="btn sec" data-cierra type="button">Cancelar</button><button class="btn prim" type="button" id="pasa">Pasar al stock</button></div>`,
+    alMontar: (hoja, cerrar) => { render(hoja); $('#pasa', hoja).addEventListener('click', () => { cerrar(); toast(B.eleccion === 'medido' ? 'Pasó al stock. La ficha ahora usa lo medido. (Maqueta.)' : 'Pasó al stock. La ficha sigue como estaba. (Maqueta.)'); }); } });
+}
+
+arrancarMaqueta({ clave: 'b', titulo: 'Consumo del modelo · B «En la orden»', estados: ESTADOS, inicial: 'primera', lateralActivo: 'ordenes', dibujar });
+</script>
+</body>
+</html>

@@ -17,8 +17,8 @@ import { LoaderCircle, Search, X } from "lucide-react";
 
    Lo que pidió Felipe al elegir: «que no salga buscando cuando no sea necesario, y que siempre se priorice que se vaya actualizando
    conforme se vaya escribiendo». Por eso:
-     – la lista se filtra MIENTRAS se escribe (`onCambio` en cada tecla; quien filtra en la base lo hace con `useBusquedaEnUrl` y su
-       pausa corta), nunca esperando un Enter;
+     – la lista se filtra MIENTRAS se escribe (`onCambio` en cada tecla; quien filtra en la base lo hace con `useBuscarAlEscribir` y
+       su pausa corta), nunca esperando un Enter;
      – «Buscando…» y el hilo salen SOLO si la espera de verdad tarda (`buscando` sigue en true pasados 350 ms). Lo que se filtra en
        el navegador nunca lo muestra, y una respuesta rápida tampoco: no parpadea.
 
@@ -176,7 +176,7 @@ export function Buscador({
   const caja = (
     <div
       data-guia={conteo === undefined ? guia : undefined}
-      // «Pregúntale a CAYLA» puede escribir aquí lo que la persona dijo (ADR-0529, actividad 6): buscar no guarda nada. Es la única
+      // «Pregúntale a CAYLA» puede escribir aquí lo que la persona dijo (ADR-0536, actividad 6): buscar no guarda nada. Es la única
       // pieza marcada; agregar otra lo decide Felipe y la vigila `lib/asistente-rellenable.test.ts`.
       data-asistente="rellenable"
       className={`buscador ${mostrador ? "mostrador" : ""} ${conteo === undefined ? className : ""}`}

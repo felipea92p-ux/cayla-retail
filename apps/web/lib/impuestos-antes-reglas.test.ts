@@ -78,7 +78,7 @@ describe("antesDeDeclarar: una sola lista", () => {
     it("entre el aviso y el límite: «habla con tu contador», con lo que falta y qué cuenta", () => {
       const l = con({}, { umbral: aviso });
       const x = l.find((p) => p.id === "aviso_umbral")!;
-      expect(x.titulo).toBe("Llevas S/ 1,400,000 vendidos este año, a S/ 250,000 de las 300 UIT: habla con tu contador.");
+      expect(x.titulo).toBe("Llevas S/ 1,400,000 vendidos este año, sin IGV, a S/ 250,000 de las 300 UIT: habla con tu contador.");
       expect(x.detalle).toBe("Pasadas las 300 UIT, el pago a cuenta de renta deja de ser el 1 % de lo vendido. Mejor verlo antes de que pase. El aviso cuenta lo registrado en el sistema: puede quedar por debajo de la cifra real.");
       expect(x.href).toBeNull();
     });

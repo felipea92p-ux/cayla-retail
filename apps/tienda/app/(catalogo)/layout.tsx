@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import { Anuncio } from "@/components/Anuncio";
 import { ProveedorGuardados } from "@/components/club/Guardados";
 import { EsqueletoDePagina } from "@/components/EsqueletoDePagina";
-import { SegunSesion } from "@/components/cuenta/SegunSesion";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
+import { leerAyuda } from "@/lib/ayuda-servidor";
 import { leerGuardadosEnBase } from "@/lib/club-servidor";
 import { leerDisenoDeCampana } from "@/lib/diseno-campana-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
@@ -18,15 +18,14 @@ import { leerSesion } from "@/lib/sesion-servidor";
 // Lo que la cuenta guardó con el corazón se lee aquí una vez por petición y se reparte a TODA tarjeta (`ProveedorGuardados`): ninguna
 // página tiene que pasárselo. Sin cuenta, o si la base no lo da, los corazones salen vacíos (tocar uno pide entrar).
 export default async function CatalogoLayout({ children }: { children: React.ReactNode }) {
-  // La campaña es la misma para todos: sale en la cáscara armada por adelantado. Solo la última frase de la franja cambia con la cuenta
-  // («Crea tu cuenta…» o «Tus beneficios están en Mi perfil»). Lo que mira la cuenta (quién es, qué guardó) se lee por detrás, dentro de su
+  // La campaña es la misma para todos: sale en la cáscara armada por adelantado, con la franja. Lo que mira la cuenta (quién es, qué guardó) se lee por detrás, dentro de su
   // <Suspense>, y mientras tanto se ve la cabecera con la página que brilla (ADR-0432).
-  const { campana } = await leerPortada();
+  const [{ campana }, { diasParaCambiar }] = await Promise.all([leerPortada(), leerAyuda()]);
   // El diseño de la campaña (si el líder la programó con uno): la franja y el héroe se visten con él; sin él, como siempre.
   const diseno = await leerDisenoDeCampana(campana?.nombre);
   return (
     <div className="tienda">
-      <SegunSesion visitante={<Anuncio frases={anuncios(campana, false)} diseno={diseno} />} conCuenta={<Anuncio frases={anuncios(campana, true)} diseno={diseno} />} />
+      <Anuncio frases={anuncios(campana, diasParaCambiar)} diseno={diseno} />
       <Suspense fallback={<EsqueletoDePagina campana={campana} diseno={diseno} />}>
         <ConSesion>{children}</ConSesion>
       </Suspense>

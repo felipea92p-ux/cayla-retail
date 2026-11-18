@@ -47,11 +47,13 @@ export function Mancuerna({ propuesta: p }: { propuesta: PropuestaMix }) {
 
   return (
     <section className="card-cayla mc anim-sube" style={{ "--i": 3 } as CSSProperties} aria-label="Hoy, punto de partida, tus ventas y propuesta de cada grupo" data-guia="plan-piso.mancuerna">
-      <TituloSeccion nivel={3}>Dónde está cada grupo</TituloSeccion>
-      <p className="mc-bajada">
-        En % de cada total (lo que cuelga, los lugares del riel, tus ventas). Cuando los puntos caen juntos, la mezcla se parece; cuando se separan, se ve quién empuja hacia dónde. Pasa el cursor por un grupo, o tócalo, para leer sus
-        cifras. Las prendas que faltan están en la tabla.
-      </p>
+      <TituloSeccion
+        nivel={3}
+        ayuda="Cuando los puntos caen juntos, la mezcla se parece; cuando se separan, se ve quién empuja hacia dónde. Toca un grupo para leer sus cifras. Las prendas que faltan están en la tabla."
+      >
+        Dónde está cada grupo
+      </TituloSeccion>
+      <p className="mc-bajada">En % de cada total: lo que cuelga, los lugares del riel y tus ventas.</p>
 
       <ul className="mc-leyenda" aria-label="Qué es cada marca (toca una para resaltarla en todos los grupos)">
         {TIPOS_DE_MARCA.map((t) => (
@@ -161,7 +163,7 @@ export function Mancuerna({ propuesta: p }: { propuesta: PropuestaMix }) {
       {!p.cuadrado && (
         <p className="mc-nota">
           <Chip tono="ambar">Por cuadrar</Chip>
-          El círculo de «Hoy» sale apagado: sin cuadrar el piso, lo que el sistema dice que cuelga no es lo que hay.
+          Sin cuadrar el piso, el círculo de «Hoy» sale apagado.
         </p>
       )}
     </section>

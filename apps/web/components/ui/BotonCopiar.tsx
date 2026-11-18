@@ -7,8 +7,8 @@ import { avisar } from "@/components/ui/Avisos";
 /* ====================================================================
    Copiar — una sola pieza (ADR-0358, ronda 13, Felipe eligió P1 el 2026-10-15)
 
-   · `forma="icono"`: junto a un dato que ya se ve (una cuenta, un CCI, el código de una talla), el ícono solo de 32 px, como el lápiz de
-     Editar, con «Copiar <que>» al pasar el mouse y para el lector.
+   · `forma="icono"`: junto a un dato que ya se ve (una cuenta, un CCI, el código de una talla), el ícono solo de 32 px (su gota aparece al
+     pasar el mouse o con el foco), como el lápiz de Editar (`icono-fila`, «A · Gota al pasar», ADR-0596), con «Copiar <que>» al pasar el mouse y para el lector.
    · `forma="boton"` (la de fábrica): suelto, el secundario «Copiar mensaje», «Copiar CCI», «Copiar enlace» (con el eslabón, `icono="enlace"`).
    · Al copiar, el ícono se vuelve un ✓ verde que se dibuja y dice «Copiado» 1,8 s, sin que nada cambie de ancho.
    · Si el navegador no deja usar el portapapeles, prueba el camino viejo (un texto oculto que se copia con `execCommand`, como hacía
@@ -97,7 +97,7 @@ export function BotonCopiar({ texto, que, forma = "boton", icono = "copiar", chi
         title={nombre}
         data-guia={guia}
         data-copiado={copiado || undefined}
-        className={`copiar-icono relative grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/60 transition-colors duration-200 ease-cayla hover:bg-hueso hover:text-tinta disabled:cursor-not-allowed disabled:opacity-45 ${className}`}
+        className={`copiar-icono icono-fila relative grid h-8 w-8 shrink-0 place-items-center disabled:cursor-not-allowed disabled:opacity-45 ${className}`}
       >
         <span className="copiar-a">
           <Dibujo aria-hidden className="h-4 w-4" />

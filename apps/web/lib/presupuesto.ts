@@ -16,7 +16,7 @@ export async function getPresupuestoVsReal(mes: string): Promise<Lectura<FilaPpt
   return { datos: ((data ?? []) as Record<string, unknown>[]).map(leerFilaPpto), falla: null };
 }
 
-/** Configuración ▸ Presupuesto (solo el líder): unidades, rubros, topes del mes y la meta de ventas de cada tienda. */
+/** Configuración ▸ Gastos (solo el líder): unidades, rubros, topes del mes y la meta de ventas de cada tienda. */
 export async function getPresupuestoConfig(mes: string): Promise<Lectura<ConfigPpto | null>> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_presupuesto_configuracion" as never, { p_mes: `${mes}-01` } as never);

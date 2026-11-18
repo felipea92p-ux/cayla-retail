@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/por-pantalla/observatorio.css";
 // Observatorio: el Inicio de las cuentas Admin (ADR-0322; maqueta aprobada: docs/maquetas/inicio-admin-v3-2026-10/). Quien
 // no vende y quiere ver cómo va el negocio: cuánto se vendió contra la meta, el mapa de las tiendas (al elegir una, el mapa
 // se acerca a su departamento y el panel de la derecha muestra su detalle), el Taller y lo que hay por revisar.
@@ -107,7 +108,8 @@ export function Observatorio({
   const [foco, setFoco] = useState(() => (focoInicial === "TODAS" || datosIniciales.tiendas.some((t) => t.id === focoInicial) ? focoInicial : "TODAS"));
   const [tab, setTab] = useState<Tab>("ritmo");
   const [dirTab, setDirTab] = useState<"" | "de-der" | "de-izq">("");
-  const [comparar, setComparar] = useState("TODAS");
+  // Abre en «Sola»: el ritmo contra la meta es lo primero que se pregunta de una tienda; comparar es una pregunta más.
+  const [comparar, setComparar] = useState("nadie");
   const [cat, setCat] = useState("todas");
   const [alerta, setAlerta] = useState<string | null>(null);
   const [replay, setReplay] = useState<number | null>(null);

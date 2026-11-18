@@ -14,13 +14,19 @@
  *                  (`scripts/ci/pruebas-web.mjs`), sobre un Postgres igual al de siempre.
  *   · `completo` — cualquier otro archivo (migraciones, scripts, paquetes, package.json, el propio CI…), un push a
  *                  `main`, o cualquier duda: corre todo.
+ * LA COLA DE FUSIÓN (`merge_group`, 2026-11-07). Con la cola, GitHub arma un commit con `main` de ese momento más el PR
+ * (y los PR que van antes en la fila) y corre el CI sobre él antes de fusionar. Se mide igual que un PR: `HEAD^1` es la
+ * base de la cola y `HEAD` el commit que va a quedar en `main`, así que lo que cambia es lo del PR. Corre lo que correría
+ * en el PR, pero sobre la combinación de verdad: ese es el punto de la cola.
+ *
  * Ante la duda, siempre `completo`: si este script se equivoca, se equivoca hacia correr de más, nunca hacia saltarse
  * una prueba. Si falla del todo, el job de Postgres lo toma como `completo` (ver `ci.yml`).
  *
  * EL PUSH A `main` (ADR-0345). Antes corría todo, siempre: ~1.860 de los ~6.770 minutos de Actions del 1 al 5 de octubre
  * de 2026, a $0,008 el minuto. Pero el ruleset `main-protegida` exige `strict_required_status_checks_policy`: un PR solo
  * se fusiona si su rama estaba al día con `main`, así que el CI del PR corrió sobre el MISMO árbol que ahora queda en
- * `main`. Repetirlo no agrega señal. Un push que llega de un PR (asunto `… (#123)` o `Merge pull request #123 …`) se
+ * `main`. Repetirlo no agrega señal. Desde la cola de fusión (ADR-0627) la premisa la cumple la cola: el commit que queda
+ * en `main` es el que ella probó. Un push que llega de un PR (asunto `… (#123)` o `Merge pull request #123 …`) se
  * mide con el mismo diff contra su padre, y:
  *   · el PR era `completo` o `nada` → nada que repetir: ni `verificar` ni Postgres.
  *   · el PR era `web`              → `verificar` ya corrió entero en el PR, pero Postgres corrió solo 3 pruebas: aquí
@@ -106,6 +112,11 @@ export function clasificarPush(asunto, archivos) {
   };
 }
 
+/** ¿Este evento se mide como un PR (lo que cambia contra su base)? El PR y la cola de fusión, sí; el push a `main`, no. */
+export function seMideComoPr(evento) {
+  return evento === "pull_request" || evento === "merge_group";
+}
+
 function archivosDelPr() {
   const salida = execFileSync("git", ["diff", "--name-only", "HEAD^1", "HEAD"], { encoding: "utf8" });
   return salida.split("\n").filter(Boolean);
@@ -121,12 +132,13 @@ function main() {
   let compilar = "si";
   let compilarTienda = "si";
   let ultimoMotivo = "";
-  if (process.env.GITHUB_EVENT_NAME === "pull_request") {
+  if (seMideComoPr(process.env.GITHUB_EVENT_NAME)) {
     const archivos = archivosDelPr();
     alcance = clasificar(archivos);
     compilar = compilaLaWeb(archivos) ? "si" : "no";
     compilarTienda = compilaLaTienda(archivos) ? "si" : "no";
-    console.log(`${archivos.length} archivo(s) cambiados contra main → alcance «${alcance}», compilar «${compilar}», compilar la tienda «${compilarTienda}»`);
+    const donde = process.env.GITHUB_EVENT_NAME === "merge_group" ? "en la cola de fusión, " : "";
+    console.log(`${donde}${archivos.length} archivo(s) cambiados contra main → alcance «${alcance}», compilar «${compilar}», compilar la tienda «${compilarTienda}»`);
     if (alcance === "completo") {
       const motivo = archivos.find((a) => !SOLO_DOCUMENTOS.some((r) => r.test(a)) && !WEB.test(a));
       console.log(`  corre todo por: ${motivo}`);

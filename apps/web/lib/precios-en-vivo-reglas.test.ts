@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { conPreciosAlDia, mismosPrecios, ticketConPreciosAlDia, type PreciosReleidos } from "./precios-en-vivo-reglas";
+import { conPreciosAlDia, firmaDeOfertas, mismosPrecios, ticketConPreciosAlDia, type PreciosReleidos } from "./precios-en-vivo-reglas";
+import type { FilaOfertaDeMonto, OfertaDeGrupoDeVariante } from "./ofertas-de-grupo";
 import { RAZON_CAMPANA, type CampanaLinea } from "./vender-reglas";
 
 const VERANO: CampanaLinea = { etiquetaId: "e1", nombre: "Verano", pct: 20 };
@@ -89,5 +90,31 @@ describe("mismosPrecios", () => {
     expect(mismosPrecios(releido({ a: 1 }, { a: VERANO }), releido({ a: 1 }, { a: { ...VERANO } }))).toBe(true);
     expect(mismosPrecios(releido({ a: 1 }, { a: VERANO }), releido({ a: 1 }, {}))).toBe(false);
     expect(mismosPrecios(releido({ a: 1 }), releido({ a: 2 }))).toBe(false);
+  });
+});
+
+describe("las ofertas de grupo y los montos releídos (ADR-0655)", () => {
+  const tresPorDos = (reglaId = "r1"): OfertaDeGrupoDeVariante => ({
+    reglaId, tipo: "nxm", lleva: 3, paga: 2, monto: null, porcentaje: null, agrupa: "campana", modeloId: "m1", nombre: "Verano", titular: "3 x 2",
+  });
+  const monto = (variantes: string[]): FilaOfertaDeMonto => ({
+    regla_id: "m", oferta_nombre: "Monto", etiqueta_nombre: "Verano", escalones: [{ desde: 300, ahorra: 30 }], ahorro_en: "soles", cuenta: "campana",
+    variantes, excluidas: [],
+  });
+  it("la firma no depende del orden en que llegan las filas", () => {
+    expect(firmaDeOfertas({ a: tresPorDos(), b: tresPorDos() }, [monto(["x", "y"])])).toBe(firmaDeOfertas({ b: tresPorDos(), a: tresPorDos() }, [monto(["y", "x"])]));
+  });
+  it("cambia si se activa, cambia o se retira un 3x2 o un monto", () => {
+    const hoy = firmaDeOfertas({ a: tresPorDos() }, []);
+    expect(firmaDeOfertas({}, [])).not.toBe(hoy);
+    expect(firmaDeOfertas({ a: { ...tresPorDos(), paga: 1 } }, [])).not.toBe(hoy);
+    expect(firmaDeOfertas({ a: tresPorDos("r2") }, [])).not.toBe(hoy);
+    expect(firmaDeOfertas({ a: tresPorDos() }, [monto(["x"])])).not.toBe(hoy);
+  });
+  it("una lectura con otras ofertas no es «lo mismo» aunque precios y campañas no cambien", () => {
+    const con = (firma: string): PreciosReleidos => ({ ...releido({ a: 1 }, {}), ofertas: { grupo: {}, monto: [], firma } });
+    expect(mismosPrecios(con("x"), con("x"))).toBe(true);
+    expect(mismosPrecios(con("x"), con("y"))).toBe(false);
+    expect(mismosPrecios(releido({ a: 1 }, {}), con("x"))).toBe(false);
   });
 });

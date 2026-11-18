@@ -1,0 +1,220 @@
+// Estados financieros ▸ «Descargar para el contador» (ADR-0585, actividad 8).
+//
+// PROMETE: la lista de archivos que se bajan uno por uno (Felipe 2026-10-30: «que al presionar el botón despliegue opciones para no
+// descargar cosas que no sean necesarias»), el nombre de cada archivo y cómo se arma cada CSV que no existía: el flujo de efectivo y el
+// estado de cambios en el patrimonio en su formato formal, los saldos por cuenta (la balanza de comprobación) y el libro diario del mes.
+// Las cuentas, que ya no se muestran en pantalla, van aquí: cada archivo lleva su columna «Cuenta» donde la tiene.
+// ASUME: toda cifra viene de la base; aquí solo se ordena y se escribe. El formato es el de los demás CSV de Finanzas: separado por «;»
+// (Excel en español), montos exactos con punto, con BOM (`csvDe`).
+
+import { csvDe, mesNombre, mesTitulo, nombreCorto, type FilaER, type LineaDiario } from "./resultados-reglas";
+import { loQueNoCubre, partesDelFlujo } from "./plata-reglas";
+import { cuadroFormalPatrimonio, tieneExtremos } from "./patrimonio-reglas";
+import { etiquetaSemana, rangoDelMes, type FlujoReal } from "./flujo-caja-reglas";
+import type { Periodo } from "./estados-periodo";
+import type { PatrimonioCambios } from "./estados-financieros-reglas";
+
+export type ArchivoContador = "resultados" | "flujo" | "balance" | "patrimonio" | "saldos" | "diario";
+
+/**
+ * Los archivos, en el orden del menú: los cuatro estados (en el orden de sus pestañas) y después lo que el contador usa para cuadrar.
+ * `deTodo`: es de CAYLA entera y lo baja solo quien ve los Estados financieros de todo (una terminal, no; la base lo exige igual).
+ */
+export const ARCHIVOS_CONTADOR: readonly { clave: ArchivoContador; etiqueta: string; archivo: string; deTodo: boolean }[] = [
+  { clave: "resultados", etiqueta: "Estado de resultados", archivo: "estado-de-resultados", deTodo: false },
+  { clave: "flujo", etiqueta: "Flujo de efectivo", archivo: "flujo-de-efectivo", deTodo: true },
+  { clave: "balance", etiqueta: "Balance general", archivo: "balance-general", deTodo: true },
+  { clave: "patrimonio", etiqueta: "Cambios en el patrimonio", archivo: "cambios-en-el-patrimonio", deTodo: true },
+  { clave: "saldos", etiqueta: "Saldos por cuenta", archivo: "saldos-por-cuenta", deTodo: true },
+  { clave: "diario", etiqueta: "Libro diario del mes", archivo: "libro-diario", deTodo: true },
+];
+
+/** `?archivo=` → cuál; cualquier otra cosa, `null`. */
+export const leerArchivoContador = (v: string | null | undefined): ArchivoContador | null => ARCHIVOS_CONTADOR.find((a) => a.clave === v)?.clave ?? null;
+
+/** «estado-de-resultados-2026-10.csv». */
+export const nombreArchivoContador = (clave: ArchivoContador, mes: string) => `${ARCHIVOS_CONTADOR.find((a) => a.clave === clave)!.archivo}-${mes}.csv`;
+
+/** Pone avisos antes de la primera línea de un archivo, después de la marca que le dice a Excel que va en UTF-8. Sin avisos, el archivo queda igual. */
+export function conPrimerasLineas(csv: string, avisos: readonly string[]): string {
+  if (!avisos.length) return csv;
+  return `${csvDe(avisos.map((a) => [a]))}${csv.replace(/^\uFEFF/, "")}`;
+}
+
+/** Por qué una opción no se baja (`null`: se baja): lo de CAYLA entera no lo baja una terminal. */
+export const motivoArchivoContador = (clave: ArchivoContador, veTodo: boolean): string | null =>
+  !veTodo && ARCHIVOS_CONTADOR.find((a) => a.clave === clave)!.deTodo ? "Es de CAYLA entera: se baja desde una cuenta personal con el módulo." : null;
+
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/** El estado de flujos de efectivo por el método directo: cada partida bajo su actividad, el total de cada una y el efectivo al inicio y al
+ *  final; debajo, lo que entró y salió semana a semana (lo mismo que su pantalla, plegado). */
+export function csvFlujoContador(real: FlujoReal, mes: string): string {
+  const filas: (string | number)[][] = [[`Estado de flujos de efectivo · ${mesTitulo(mes)}`], [`Del ${real.desde} al ${real.hasta}`], [], ["Actividad", "Partida", "S/"]];
+  for (const p of partesDelFlujo(real)) {
+    for (const l of p.lineas) filas.push([p.formal, l.nombre, r2(l.monto)]);
+    filas.push([p.formal, "Total", p.total]);
+  }
+  // ADR-0609: con una cuenta que arrancó a mitad del mes, el contador recibe lo mismo que la pantalla: no un «aumento» que no se puede afirmar.
+  const noCubre = loQueNoCubre(real);
+  if (noCubre) {
+    filas.push([], ["", "Saldo de partida (cuentas que arrancaron a mitad de período, con el de ese día)", r2(real.saldoInicial)], ["", "Efectivo al final", r2(real.saldoFinal)]);
+    filas.push([], [`Este estado no tiene todo el período: ${noCubre.cuentas.length === 1 ? "una cuenta arrancó" : `${noCubre.cuentas.length} cuentas arrancaron`} con su saldo ${noCubre.cuando}. Lo anterior ya está dentro de ese saldo.`]);
+    filas.push(["Cuenta", "Arrancó", "Saldo con que arrancó", "Cobró antes", "Gastó y pagó antes", "Entre cuentas antes"]);
+    for (const a of noCubre.cuentas) filas.push([a.cuenta, a.desde, r2(a.saldoInicial), r2(a.cobros), r2(a.salidas), r2(a.entreCuentas)]);
+    filas.push(["Cobrado en todo el período", "", "", noCubre.cobrosDelPeriodo]);
+  } else {
+    filas.push([], ["", "Efectivo al inicio", r2(real.saldoInicial)], ["", "Aumento (o disminución) del efectivo", r2(real.saldoFinal - real.saldoInicial)], ["", "Efectivo al final", r2(real.saldoFinal)]);
+  }
+  if (real.semanas.length) {
+    filas.push([], ["Semana a semana"], ["Semana", "Entró", "Salió", "Ajustes", "Quedó"]);
+    for (const w of real.semanas) filas.push([etiquetaSemana(w.desde, w.hasta), w.entro, w.salio, w.ajustes, w.saldo]);
+  }
+  return csvDe(filas);
+}
+
+/** El estado de cambios en el patrimonio por columna, con la cuenta de cada columna en su encabezado. Sin arranque, lo dice. */
+export function csvPatrimonioContador(p: PatrimonioCambios, mes: string): string {
+  const titulo = [`Estado de cambios en el patrimonio · ${mesTitulo(mes)}`];
+  if (!tieneExtremos(p)) return csvDe([titulo, ["Faltan los saldos de arranque: el líder los registra en Balance general."]]);
+  return csvDe([
+    titulo,
+    [],
+    ["Partida", "Capital (50)", "Aportes (52)", "Resultados acumulados (59 y resultado del mes)", "Total"],
+    ...cuadroFormalPatrimonio(p).map((f) => [f.nombre, f.capital, f.aportes, f.utilidades, f.total]),
+  ]);
+}
+
+/** Una cuenta de `fn_saldos_por_cuenta`, en el signo del debe (un pasivo, el patrimonio y un ingreso salen negativos). */
+export type SaldoCuenta = { cuenta: string; nombre: string; tipo: string; saldoInicial: number; debe: number; haber: number; saldoFinal: number };
+
+export function leerSaldoCuenta(r: Record<string, unknown>): SaldoCuenta {
+  const n = (v: unknown) => (v == null ? 0 : Number(v));
+  return {
+    cuenta: String(r.cuenta ?? ""),
+    nombre: String(r.nombre ?? ""),
+    tipo: String(r.tipo ?? ""),
+    saldoInicial: n(r.saldo_inicial),
+    debe: n(r.debe),
+    haber: n(r.haber),
+    saldoFinal: n(r.saldo_final),
+  };
+}
+
+const TIPO: Readonly<Record<string, string>> = { activo: "Activo", pasivo: "Pasivo", patrimonio: "Patrimonio", ingreso: "Ingreso", gasto: "Gasto" };
+
+/** La balanza de comprobación: cada cuenta con su saldo al empezar, el debe y el haber del mes y su saldo al cerrar; al pie, los totales. */
+export function csvSaldosContador(saldos: readonly SaldoCuenta[], mes: string): string {
+  const suma = (k: "saldoInicial" | "debe" | "haber" | "saldoFinal") => r2(saldos.reduce((a, s) => a + s[k], 0));
+  return csvDe([
+    [`Saldos por cuenta (balanza de comprobación) · ${mesTitulo(mes)}`],
+    ["Saldos en el signo del debe: un pasivo, el patrimonio y un ingreso salen negativos. Si el diario cuadra, el total de cada saldo es 0."],
+    [],
+    ["Cuenta", "Nombre", "Tipo", "Saldo al empezar", "Debe del mes", "Haber del mes", "Saldo al cerrar"],
+    ...saldos.map((s) => [s.cuenta, s.nombre, TIPO[s.tipo] ?? s.tipo, s.saldoInicial, s.debe, s.haber, s.saldoFinal]),
+    ["Total", "", "", suma("saldoInicial"), suma("debe"), suma("haber"), suma("saldoFinal")],
+  ]);
+}
+
+/** De dónde sale el nombre de una sede en el diario: las columnas del estado de resultados («Trujillo»), que ya trae la base. */
+export const sedesDelDiario = (filas: readonly FilaER[]) => new Map(filas.filter((f) => f.ubicacionId).map((f) => [f.ubicacionId!, nombreCorto(f)]));
+
+/** El libro diario del mes: cada línea de cada asiento, con la cuenta, su nombre y la sede; al pie, el debe y el haber (que deben ser iguales). */
+export function csvDiarioContador(lineas: readonly LineaDiario[], cuentas: ReadonlyMap<string, string>, sedes: ReadonlyMap<string, string>, mes: string): string {
+  const debe = r2(lineas.reduce((a, l) => a + l.debe, 0));
+  const haber = r2(lineas.reduce((a, l) => a + l.haber, 0));
+  return csvDe([
+    [`Libro diario · ${mesTitulo(mes)}`],
+    [],
+    ["Fecha", "Asiento", "Cuenta", "Nombre de la cuenta", "Debe", "Haber", "Glosa", "Sede"],
+    ...lineas.map((l) => [l.fecha, l.asiento, l.cuenta, cuentas.get(l.cuenta) ?? "", l.debe, l.haber, l.glosa, l.ubicacionId ? (sedes.get(l.ubicacionId) ?? "") : "De la empresa"]),
+    ["Total", "", "", "", debe, haber, "", ""],
+  ]);
+}
+
+// ---- Ver en pantalla (Felipe 2026-10-31: «un menú para ver las seis en pantalla») ---------------------------------------------
+
+export type GrupoSaldos = { tipo: string; nombre: string; filas: SaldoCuenta[]; saldoInicial: number; debe: number; haber: number; saldoFinal: number };
+
+const ORDEN_TIPO = ["activo", "pasivo", "patrimonio", "ingreso", "gasto"] as const;
+const PLURAL_TIPO: Readonly<Record<string, string>> = { activo: "Lo que tiene (activo)", pasivo: "Lo que debe (pasivo)", patrimonio: "Lo tuyo (patrimonio)", ingreso: "Ingresos", gasto: "Gastos" };
+
+/** Los saldos por cuenta en la pantalla: por tipo (en el orden del plan de cuentas), cada grupo con su total. Lo que no tiene tipo va al final. */
+export function gruposDeSaldos(saldos: readonly SaldoCuenta[]): GrupoSaldos[] {
+  const tipos = [...ORDEN_TIPO, ...new Set(saldos.map((s) => s.tipo).filter((t) => !(ORDEN_TIPO as readonly string[]).includes(t)))];
+  return tipos
+    .map((tipo) => {
+      const filas = saldos.filter((s) => s.tipo === tipo);
+      const suma = (k: "saldoInicial" | "debe" | "haber" | "saldoFinal") => r2(filas.reduce((a, s) => a + s[k], 0));
+      return { tipo, nombre: PLURAL_TIPO[tipo] ?? (tipo || "Sin tipo"), filas, saldoInicial: suma("saldoInicial"), debe: suma("debe"), haber: suma("haber"), saldoFinal: suma("saldoFinal") };
+    })
+    .filter((g) => g.filas.length);
+}
+
+/** ¿Cuadra la balanza? La suma de los saldos al cerrar es 0 y el debe del mes es igual al haber (al céntimo). */
+export function balanzaCuadra(saldos: readonly SaldoCuenta[]): boolean {
+  const final = r2(saldos.reduce((a, s) => a + s.saldoFinal, 0));
+  const debe = r2(saldos.reduce((a, s) => a + s.debe, 0));
+  const haber = r2(saldos.reduce((a, s) => a + s.haber, 0));
+  return final === 0 && debe === haber;
+}
+
+const sinTildes = (t: string) => t.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+
+/** El libro diario filtrado por lo que se escribe en el buscador: la cuenta (número o nombre), el asiento o la glosa. Sin tildes ni mayúsculas. */
+export function filtrarDiario(lineas: readonly LineaDiario[], buscado: string, cuentas: ReadonlyMap<string, string>): LineaDiario[] {
+  const q = sinTildes(buscado.trim());
+  if (!q) return [...lineas];
+  return lineas.filter((l) => [l.cuenta, cuentas.get(l.cuenta) ?? "", l.asiento, l.glosa].some((c) => sinTildes(c).includes(q)));
+}
+
+// ---- La barra de las siete vistas (Felipe 2026-10-31: primero «el menú Ver», después «una barra horizontal») -------------------
+
+/** Lo que se puede mirar: las respuestas, o uno de los seis cuadros del contador (los mismos seis que se descargan). */
+
+/** La pantalla de los saldos por cuenta y el libro diario (`?cuadro=saldos|diario`: `?ver=` ya es la sede en el telar). */
+export const RUTA_CUENTAS = "/finanzas/reportes/cuentas";
+export type VerCuentas = "saldos" | "diario";
+export const leerVerCuentas = (v: string | undefined): VerCuentas => (v === "diario" ? "diario" : "saldos");
+
+export type OpcionContador = { clave: string; etiqueta: string } & ({ href: string } | { archivo: ArchivoContador });
+
+const DESCARGA: Readonly<Record<ArchivoContador, string>> = {
+  resultados: "estado de resultados",
+  flujo: "flujo de efectivo",
+  balance: "Balance general",
+  patrimonio: "cambios en el patrimonio",
+  saldos: "saldos por cuenta",
+  diario: "libro diario",
+};
+
+/** Qué trae el archivo: «de octubre», «de noviembre (a la fecha)»; el Balance, «al 31 de octubre». Los archivos van por mes, se elija lo que se elija en el calendario (tarea 86). */
+function queBaja(clave: ArchivoContador, mes: string, hoy: string): string {
+  const { hasta } = rangoDelMes(mes, hoy);
+  const anio = mes.slice(0, 4) === hoy.slice(0, 4) ? "" : ` de ${mes.slice(0, 4)}`;
+  const aLaFecha = mes === hoy.slice(0, 7) ? " (a la fecha)" : "";
+  return clave === "balance" ? `al ${Number(hasta.slice(8))} de ${mesNombre(mes)}${anio}${aLaFecha}` : `de ${mesNombre(mes)}${anio}${aLaFecha}`;
+}
+
+/** El aviso antes de bajar cuando lo que se mira no es un mes entero: también unos días dentro de un mes. `null` si coincide. */
+export function avisoDelContador(periodo: Pick<Periodo, "mes" | "unMes" | "titulo" | "al">, hoy: string, esBalance: boolean): string | null {
+  if (periodo.unMes) return null;
+  const mes = queBaja("resultados", periodo.mes, hoy).replace(/^de /, "");
+  return `Estás viendo «${esBalance ? periodo.al : periodo.titulo}», pero los archivos de «Para el contador» van por mes: bajarás ${mes}; el Balance, ${queBaja("balance", periodo.mes, hoy)}.`;
+}
+
+/**
+ * Lo que hay en «Para el contador» (ADR-0611): ver los dos cuadros que no son un estado y bajar, uno por uno, los archivos del mes con sus cuentas. Cada opción dice qué período trae. Cada estado en su
+ * formato formal se abre dentro del estado mismo. Lo que es de CAYLA entera no se ofrece a una terminal: la base lo exige igual.
+ */
+export function opcionesDelContador({ veTodo, hrefCuentas, mes, hoy }: { veTodo: boolean; hrefCuentas: (ver: VerCuentas) => string; mes: string; hoy: string }): OpcionContador[] {
+  return [
+    ...(veTodo
+      ? [
+          { clave: "ver-saldos", etiqueta: "Ver saldos por cuenta", href: hrefCuentas("saldos") },
+          { clave: "ver-diario", etiqueta: "Ver el libro diario", href: hrefCuentas("diario") },
+        ]
+      : []),
+    ...ARCHIVOS_CONTADOR.filter((a) => !motivoArchivoContador(a.clave, veTodo)).map((a) => ({ clave: `bajar-${a.clave}`, etiqueta: `Descargar ${DESCARGA[a.clave]} ${queBaja(a.clave, mes, hoy)}`, archivo: a.clave })),
+  ];
+}

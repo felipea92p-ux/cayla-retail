@@ -1,7 +1,24 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { avisoDelAyudante, COMANDO_INSTALAR, documentoParaAyudante, estadoDelAyudante, PREFIJO_DOCUMENTO, resultadoDeImpresion, URL_AYUDANTE } from "./mac-etiquetas";
+import {
+  ANCHO_BOLETA_MM,
+  avisoDelAyudante,
+  ayudanteImprimeBoletas,
+  COMANDO_INSTALAR,
+  documentoDeBoleta,
+  documentoParaAyudante,
+  estadoDelAyudante,
+  HOLGURA_MM,
+  LARGO_MAX_MM,
+  LARGO_MIN_MM,
+  largoDeLaBoleta,
+  PREFIJO_DOCUMENTO,
+  resultadoDeBoleta,
+  resultadoDeImpresion,
+  URL_AYUDANTE,
+  VERSION_CON_BOLETAS,
+} from "./mac-etiquetas";
 
 const SERVIDOR = readFileSync(join(__dirname, "../public/mac-etiquetas/servidor.sh"), "utf8");
 const INSTALAR = readFileSync(join(__dirname, "../public/mac-etiquetas/instalar.sh"), "utf8");
@@ -94,8 +111,66 @@ describe("el ayudante y la web dicen lo mismo", () => {
     expect(INSTALAR).toContain(`PUERTO=${puerto}`);
     expect(COMANDO_INSTALAR).toContain("https://cayla-retail.vercel.app/mac-etiquetas/instalar.sh");
     expect(SERVIDOR).toContain("https://cayla-retail.vercel.app");
+    // El ERP también vive en su dominio propio: sin él, el ayudante no le contesta y todo sale por el cuadro.
+    expect(SERVIDOR).toContain("https://retail.cayla.pe");
   });
   it("la medida que manda a la Brother es la del corte (ADR-0180)", () => {
     expect(SERVIDOR).toContain("Custom.62x40.1mm");
+  });
+  it("la versión que imprime boletas y los topes del largo", () => {
+    expect(Number(SERVIDOR.match(/^VERSION=(\d+)$/m)?.[1])).toBeGreaterThanOrEqual(VERSION_CON_BOLETAS);
+    expect(SERVIDOR).toContain(`-lt ${LARGO_MIN_MM} ]`);
+    expect(SERVIDOR).toContain(`-gt ${LARGO_MAX_MM} ]`);
+    // El ancho del papel de la Epson es el del cabezal (72 mm): uno de 80 la hacía imprimir más lento (Trujillo, 2026-11-16).
+    expect(SERVIDOR).toContain(`MEDIA="Custom.${ANCHO_BOLETA_MM}x\${LARGO_TICKET}mm"`);
+  });
+});
+
+describe("ayudanteImprimeBoletas", () => {
+  it("solo con la versión 3, Chrome y la ticketera", () => {
+    expect(ayudanteImprimeBoletas({ ok: true, version: 3, chrome: true, impresora: false, ticketera: true })).toBe(true);
+    expect(ayudanteImprimeBoletas({ ok: true, version: 4, chrome: true, ticketera: true })).toBe(true);
+  });
+  it("un ayudante viejo, sin ticketera, sin Chrome o sin respuesta sigue con el cuadro", () => {
+    expect(ayudanteImprimeBoletas({ ok: true, version: 2, chrome: true, impresora: true })).toBe(false);
+    expect(ayudanteImprimeBoletas({ ok: true, chrome: true, impresora: true })).toBe(false);
+    expect(ayudanteImprimeBoletas({ ok: true, version: 3, chrome: true, ticketera: false })).toBe(false);
+    expect(ayudanteImprimeBoletas({ ok: true, version: 3, chrome: false, ticketera: true })).toBe(false);
+    expect(ayudanteImprimeBoletas({ ok: false, version: 3, ticketera: true })).toBe(false);
+    expect(ayudanteImprimeBoletas(null)).toBe(false);
+    expect(ayudanteImprimeBoletas("ok")).toBe(false);
+  });
+});
+
+describe("largoDeLaBoleta", () => {
+  it("pasa los píxeles a milímetros, redondea hacia arriba y suma la holgura", () => {
+    // 96 px = 25,4 mm → 26 + holgura
+    expect(largoDeLaBoleta(96)).toBe(26 + HOLGURA_MM < LARGO_MIN_MM ? LARGO_MIN_MM : 26 + HOLGURA_MM);
+    // 567 px ≈ 150,0 mm
+    expect(largoDeLaBoleta(567)).toBe(151 + HOLGURA_MM);
+  });
+  it("nunca menos ni más de lo que acepta el ayudante", () => {
+    expect(largoDeLaBoleta(10)).toBe(LARGO_MIN_MM);
+    expect(largoDeLaBoleta(0)).toBe(LARGO_MIN_MM);
+    expect(largoDeLaBoleta(Number.NaN)).toBe(LARGO_MIN_MM);
+    expect(largoDeLaBoleta(1_000_000)).toBe(LARGO_MAX_MM);
+  });
+});
+
+describe("documentoDeBoleta", () => {
+  it("lleva la página exacta y empieza con el prefijo que exige el ayudante", () => {
+    const doc = documentoDeBoleta({ estilos: ["<style>a{}</style>"], base: "https://x/", clases: "c", boleta: '<div id="comprobante-print">B</div>', largo: 154 });
+    expect(doc.startsWith(PREFIJO_DOCUMENTO)).toBe(true);
+    expect(doc).toContain("@page{size:72mm 154mm;margin:0}");
+    expect(doc).toContain('<div id="comprobante-print">B</div>');
+  });
+});
+
+describe("resultadoDeBoleta", () => {
+  it("calla si salió y explica si no", () => {
+    expect(resultadoDeBoleta(200, { ok: true })).toBeNull();
+    expect(resultadoDeBoleta(null, null)?.detalle).toMatch(/Recarga/);
+    expect(resultadoDeBoleta(500, { ok: false, error: "la Mac no tiene la ticketera agregada" })?.detalle).toBe("El ayudante dijo: la Mac no tiene la ticketera agregada.");
+    expect(resultadoDeBoleta(400, {})?.detalle).toBe("El ayudante dijo: respuesta 400.");
   });
 });

@@ -10,7 +10,7 @@
 // espera; con movimiento reducido queda quieto.
 import { EsperaPantalla } from "@/components/ui/Espera";
 
-const PLANTILLA = "sm:grid-cols-[8rem_1fr_7.5rem_10.75rem_11rem_7.25rem_1rem]";
+const PLANTILLA = "sm:grid-cols-[6.5rem_1fr_7.5rem_10rem_9.5rem_6.5rem_1rem]";
 
 export default function LoadingCompras() {
   return (
@@ -22,15 +22,17 @@ export default function LoadingCompras() {
           <div className="cmp-sk h-7 w-64" />
           <div className="cmp-sk h-3 w-96 max-w-full" />
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="card-cayla space-y-2 p-4">
-              <div className="cmp-sk h-3 w-20" />
-              <div className="cmp-sk h-7 w-32" />
-              <div className="cmp-sk h-3 w-24" />
-              {i < 2 && <div className="cmp-sk h-1 w-full" />}
-            </div>
-          ))}
+        <div className="@container">
+          <div className="grid grid-cols-2 gap-3 @[36rem]:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="card-cayla space-y-2 p-4">
+                <div className="cmp-sk h-3 w-20" />
+                <div className="cmp-sk h-7 w-32" />
+                <div className="cmp-sk h-3 w-24" />
+                {i < 2 && <div className="cmp-sk h-1 w-full" />}
+              </div>
+            ))}
+          </div>
         </div>
         <div className="flex gap-6 border-b border-tinta/10 pb-3">
           {[0, 1, 2, 3, 4].map((i) => (

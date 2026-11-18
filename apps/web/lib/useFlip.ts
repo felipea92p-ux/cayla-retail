@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useLayoutEffect, useRef } from "react";
+import { prefiereQuieto } from "./movimiento-cliente";
 
 /**
  * FLIP para una lista que se reordena o se filtra (ADR-0128): las filas que ya estaban se DESLIZAN de
@@ -38,7 +39,7 @@ export function useFlip(clave: string, ms = 460) {
   useLayoutEffect(() => {
     const ahora = new Map<string, number>();
     elementos.current.forEach((el, id) => ahora.set(id, posicion(el)));
-    const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const reducido = prefiereQuieto();
     if (claveAnterior.current !== clave && !reducido) {
       ahora.forEach((top, id) => {
         const antes = tops.current.get(id);

@@ -630,14 +630,14 @@ describe("las filas del modal, en voz de tienda y sin códigos (Felipe, 2026-10-
     expect(textoTrasPaso("0", 1, "contado", 5, 0)).toBe("1");
   });
 
-  it("al teclear: al contar solo dígitos; al sumar o restar, un «−» al comienzo y dígitos", () => {
-    expect(limpiarTextoAjuste("a4b", "contado")).toBe("4");
-    expect(limpiarTextoAjuste("-4", "contado")).toBe("4");
-    expect(limpiarTextoAjuste("-12", "diferencia")).toBe("-12");
-    expect(limpiarTextoAjuste("−3", "diferencia")).toBe("-3"); // el menos tipográfico que escribe un teclado en español
-    expect(limpiarTextoAjuste("+2", "diferencia")).toBe("2");
-    expect(limpiarTextoAjuste("1-2", "diferencia")).toBe("12");
-    expect(limpiarTextoAjuste("-", "diferencia")).toBe("-");
+  it("al teclear: el «−» y el «+» se entienden; lo que no es un entero se queda a la vista, sin volverse otro número", () => {
+    expect(limpiarTextoAjuste("a4b")).toBe("a4b");
+    expect(limpiarTextoAjuste("-4")).toBe("-4");
+    expect(limpiarTextoAjuste("-12")).toBe("-12");
+    expect(limpiarTextoAjuste("−3")).toBe("-3"); // el menos tipográfico que escribe un teclado en español
+    expect(limpiarTextoAjuste("+2")).toBe("2");
+    expect(limpiarTextoAjuste("1-2")).toBe("1-2");
+    expect(limpiarTextoAjuste("-")).toBe("-");
   });
 
   it("la segunda línea junta cómo queda, lo apartado y, en una prenda nueva, dónde entra; sin nada que decir, queda vacía", () => {

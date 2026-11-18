@@ -1,11 +1,13 @@
 "use client";
 
-import { Fragment, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { Award, CalendarHeart, HandHeart, RefreshCw, Shirt } from "lucide-react";
+import { Fragment, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
+import { Award, BadgePercent, CalendarHeart, ChevronRight, HandHeart, Plus, RefreshCw, Shirt } from "lucide-react";
 import { NOMBRE_DEL_DIBUJO, dibujoElegido } from "@cayla-retail/shared/insignias-visual";
 import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton, BotonEnlace, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { Globito } from "@/components/ui/Globito";
@@ -13,7 +15,8 @@ import { Pestanas } from "@/components/ui/Pestanas";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
-import { BotonVer } from "@/components/ui/BotonDescargar";
+import { BotonEditar } from "@/components/ui/BotonEditar";
+import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
 import { Vacio } from "@/components/ui/Vacio";
@@ -21,9 +24,10 @@ import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import { BotonesPendiente, BotonReactivar } from "@/components/atributos/kit";
 import { CampanaModal, NuevaEtiquetaModal, botonCampana, ordenarEtiquetas, type CategoriaOpcion, type Etiqueta } from "@/components/EtiquetasLista";
-import { CambiarDibujoModal } from "@/components/sellos/CambiarDibujoModal";
+import { EditarEtiquetaModal, type CambiosDeEtiqueta } from "@/components/sellos/EditarEtiquetaModal";
 import { SelloTinta } from "@/components/sellos/SelloTinta";
 import { OfertasHoja } from "@/components/sellos/OfertasHoja";
+import { MapaCampanas } from "@/components/sellos/MapaCampanas";
 import { useColumnasDeLaBilletera, useCupoDelLookbook } from "@/components/sellos/useMedidasDeSellos";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
@@ -32,12 +36,14 @@ import { createClient } from "@/lib/supabase/client";
 import { subirImagenDeInsignia } from "@/lib/imagen-de-insignia";
 import { eleccionDeLoGuardado, type EleccionDeDibujo } from "@/lib/eleccion-de-dibujo";
 import { AYUDA_COMENTARIO_APROBAR, avisoEtiquetaAgregada, cuerpoAprobarEtiqueta, verboAprobacion } from "@/lib/etiqueta-aprobacion-reglas";
-import { chipDeTarjeta, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
-import { vigenciaDe } from "@/lib/etiqueta-vigencia";
+import { avisoReimprimir, chipDeTarjeta, destinoReimprimir, prendasQueCambianDePrecioHoy, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
+import { textoRango, vigenciaDe } from "@/lib/etiqueta-vigencia";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { notaSinRegistrar, type LecturaRotacion } from "@/lib/etiqueta-rotacion";
 import { hoyLima } from "@/lib/fechas-lima";
-import { reglasDeCampana, reglasVivas, vigenciaDeRegla, type ReglaCampana } from "@/lib/campana-reglas";
+import { bajadaDesactivarInsignia, reglasDeCampana, reglasVivas, vigenciaDeRegla, type InsigniaDeOferta, type ParQueChoca, type ReglaCampana } from "@/lib/campana-reglas";
+import { AvisoDosOfertas } from "@/components/sellos/AvisoDosOfertas";
+import { RebajasDeTienda } from "@/components/rebajas/RebajasDeTienda";
 import { tramoDeCampana, TEXTOS_MODO } from "@/lib/sellos-campanas";
 import {
   ESTILO_DE_VISTA,
@@ -51,14 +57,17 @@ import {
   lookbookVisible,
   marcaDelPase,
   paseInicial,
+  preguntasDeCampana,
   pilasDeLaVista,
   prendasDelSello,
   vistaDeEstilo,
+  type PreguntaCampana,
   type PrendasDelSello,
   type TallaVitrina,
   type TonoPase,
   type VistaSellos,
 } from "@/lib/sellos-pases";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /* ====================================================================
    Catálogo ▸ Insignias · la billetera de pases (Felipe 2026-10-22: eligió la «II · Pases» de docs/maquetas/sellos-2026-10/)
@@ -69,6 +78,10 @@ import {
    abre uno a la vez, y al lado se ve en grande con sus prendas reales (su foto o, sin foto, su categoría sobre su color).
    Lo que guarda es lo mismo de siempre y por las mismas puertas (`/api/productos/etiquetas` y las hojas de `EtiquetasLista.tsx`):
    crear (desde cada vista nace con su grupo), aprobar, rechazar, configurar o repetir, poner prendas, desactivar y reactivar.
+
+   Desde el 2026-11-13 (ADR-0655) la misma pieza dibuja dos filas del menú: `modo="campanas"` es Catálogo ▸ Campañas y ofertas (solo la vista
+   Campañas, con las tres preguntas —qué le das, en qué prendas, cuándo y dónde— en vez de «Lo que ya tiene» y de los cuatro botones del pase) y
+   `modo="insignias"` es Catálogo ▸ Insignias (Rotación, Artesanal y General). Felipe no encontraba los descuentos dentro de «Insignias».
    ==================================================================== */
 
 const ICONO_VISTA: Record<VistaSellos, ReactNode> = {
@@ -80,6 +93,7 @@ const ICONO_VISTA: Record<VistaSellos, ReactNode> = {
 
 
 export function SellosPantalla({
+  modo,
   sede,
   etiquetasIniciales,
   categorias,
@@ -96,8 +110,14 @@ export function SellosPantalla({
   disenoWeb,
   reglas: reglasIniciales,
   reglasDisponibles,
-  esLider,
+  insignias = [],
+  nombresDeCampanas = {},
+  choquesAbiertos = [],
 }: {
+  /** Qué fila del menú dibuja (ADR-0655): «Campañas y ofertas» o «Insignias». */
+  modo: "campanas" | "insignias";
+  /** Los pares de ofertas que comparten prendas sin resolver (ADR-0655, decisión 2): el aviso de Campañas. Vacío, no hay aviso. */
+  choquesAbiertos?: readonly ParQueChoca[];
   sede: string;
   etiquetasIniciales: Etiqueta[];
   categorias: CategoriaOpcion[];
@@ -111,7 +131,7 @@ export function SellosPantalla({
   prendasVitrina: TallaVitrina[] | null;
   /** Unidades y ventas de 30 días por talla: solo quien puede analizar; `null`, sin esas cifras. */
   rotacion: LecturaRotacion | null;
-  /** Las vistas que la cuenta ve (Campañas con Insignias o Campañas; las otras tres, con Insignias). */
+  /** Las vistas de esta fila: solo Campañas en «Campañas y ofertas»; Rotación, Artesanal y General en «Insignias». */
   vistas: VistaSellos[];
   vistaInicial: VistaSellos;
   /** Crear, configurar y poner prendas a una insignia (líder o un rol con Insignias; la base lo vuelve a exigir). */
@@ -124,22 +144,31 @@ export function SellosPantalla({
   reglas: ReglaCampana[];
   /** La base responde por las ofertas: si no, «Configurar» abre la hoja de siempre. */
   reglasDisponibles: boolean;
-  /** Un líder activa y retira lo que ya rige; los demás dejan borradores. */
-  esLider: boolean;
+  /** Las insignias que una oferta puede elegir (ADR-0655, por insignia); vacío en Catálogo ▸ Insignias, que no edita ofertas. */
+  insignias?: InsigniaDeOferta[];
+  /** El nombre de cada campaña: al desactivar una insignia, la confirmación nombra las ofertas que la usan con su campaña (ADR-0655). */
+  nombresDeCampanas?: Record<string, string>;
 }) {
   const hoy = hoyLima();
+  const router = useRouter();
   const responsable = useResponsable();
   const [vista, setVista] = useState<VistaSellos>(vistaInicial);
   const [etiquetas, setEtiquetas] = useState(() => ordenarEtiquetas(etiquetasIniciales));
   const [manuales, setManuales] = useState(variantesManuales);
   const [abiertoPorVista, setAbiertoPorVista] = useState<Partial<Record<VistaSellos, string>>>({});
   const [agregando, setAgregando] = useState(false);
+  // En el celular, las rebajas de la tienda se abren en una hoja desde su ícono de la cabecera (Felipe 2026-11-17); al cerrar, el foco
+  // vuelve al ícono (se guarda en el clic: `<Boton>` no expone su `ref`).
+  const [rebajasAbiertas, setRebajasAbiertas] = useState(false);
+  const botonRebajas = useRef<HTMLElement | null>(null);
   const [nombre, setNombre] = useState("");
+  // Cuándo rige la campaña que se está creando: opcional, vacías = rige siempre (Felipe 2026-10-28). Una insignia no las usa.
+  const [fechasNuevas, setFechasNuevas] = useState({ desde: "", hasta: "" });
   // El dibujo (o la imagen propia) elegido al crear (ADR-0490); `null` = todavía nada: se queda el que sugiere el nombre. Y el de una que ya
   // existe: su hoja y si está guardando.
   const [eleccion, setEleccion] = useState<EleccionDeDibujo | null>(null);
-  const [cambiandoDibujo, setCambiandoDibujo] = useState<Etiqueta | null>(null);
-  const [guardandoDibujo, setGuardandoDibujo] = useState(false);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [aprobandoAbierto, setAprobandoAbierto] = useState<string | null>(null);
   const [comentarioAprobar, setComentarioAprobar] = useState("");
@@ -154,6 +183,7 @@ export function SellosPantalla({
   const [ofertandoId, setOfertandoId] = useState<string | null>(null);
   const [etiquetando, setEtiquetando] = useState<Etiqueta | null>(null);
   const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
+  const [viendoMapa, setViendoMapa] = useState(false);
   // La billetera tiene dos columnas (la pila y el pase en grande) o una, según su ancho (una consulta de contenedor en sellos.css). Con
   // una, el pase en grande va justo debajo del pase abierto: en el celular no queda al final de toda la pila, lejos de lo que tocaste.
   const [refBilletera, columnasBilletera] = useColumnasDeLaBilletera();
@@ -179,11 +209,23 @@ export function SellosPantalla({
     const nueva = v as VistaSellos;
     setVista(nueva);
     const url = new URL(window.location.href);
-    if (nueva === "campanas") url.searchParams.delete("vista");
+    if (nueva === vistas[0]) url.searchParams.delete("vista");
     else url.searchParams.set("vista", nueva);
     window.history.replaceState(window.history.state, "", url);
   }
-  const abrir = (id: string) => setAbiertoPorVista((a) => ({ ...a, [vista]: id }));
+  const editando = editandoId ? (etiquetas.find((x) => x.id === editandoId) ?? null) : null;
+  // Con una sola columna (el celular), el pase en grande se abre debajo del pase tocado y el que estaba abierto se cierra: la página se acorta
+  // y quien tocaba quedaba a media altura del detalle, sin ver el pase (2026-11-02). Es un cambio de vista, no un bloque que se encogió:
+  // se suelta <PaginaEstable> y el pase tocado sube hasta quedar bajo la cabecera (`scroll-margin-top` en `.sl-pase`).
+  const abrir = (id: string, desde?: HTMLElement | null) => {
+    const yaAbierto = id === abiertoId;
+    setAbiertoPorVista((a) => ({ ...a, [vista]: id }));
+    if (!enLinea || yaAbierto || !desde) return;
+    soltarPaginaEstable();
+    const pase = desde.closest("article");
+    const sinMovimiento = prefiereQuieto();
+    window.setTimeout(() => pase?.scrollIntoView({ block: "start", behavior: sinMovimiento ? "auto" : "smooth" }), 80);
+  };
 
   // ---- Lo que guarda: lo mismo que la lista de antes, por las mismas puertas --------------------------------------------------
 
@@ -194,7 +236,12 @@ export function SellosPantalla({
       const res = await fetch("/api/productos/etiquetas", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ nombre, estilo, ...(eleccion?.tipo === "dibujo" ? { icono: eleccion.clave } : {}) }),
+        body: JSON.stringify({
+          nombre,
+          estilo,
+          ...(eleccion?.tipo === "dibujo" ? { icono: eleccion.clave } : {}),
+          ...(esCampanas ? { vigenteDesde: fechasNuevas.desde, vigenteHasta: fechasNuevas.hasta } : {}),
+        }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -211,14 +258,14 @@ export function SellosPantalla({
         icono: dibujoElegido(datos.etiqueta.icono),
         imagen: null,
         imagenSilueta: false,
-        vigenteDesde: null,
-        vigenteHasta: null,
+        vigenteDesde: datos.vigenteDesde ?? null,
+        vigenteHasta: datos.vigenteHasta ?? null,
         descuentoPct: null,
         categoriaIds: [],
         sedeIds: [],
       };
       // Una imagen propia se sube DESPUÉS de crearla: su ruta lleva el id de la insignia, que antes no existía. Si esa subida falla, la insignia
-      // quedó y se ve por su nombre; se dice, y se puede subir desde «Dibujo» en su pase.
+      // quedó y se ve por su nombre; se dice, y se puede subir desde «Editar» en su pase.
       let avisoImagen: string | null = null;
       if (eleccion?.tipo === "imagen") {
         const puesta = await subirYFijarImagen(nueva.id, eleccion.archivo, eleccion.silueta);
@@ -233,11 +280,13 @@ export function SellosPantalla({
       const { titulo, detalle } = avisoEtiquetaAgregada(datos.etiqueta.nombre, datos.etiqueta.estado, esCampanas ? "campanas" : "sellos");
       avisar.exito(titulo, detalle ? { detalle } : undefined);
       // Una campaña se crea y su dibujo se fija después: si esa segunda escritura falló, la campaña quedó y se dice (se ve por su nombre).
-      if (datos.avisoDibujo) avisar.aviso("El dibujo no se guardó", { detalle: `${datos.avisoDibujo} Elígelo desde «Dibujo» en su pase.` });
-      if (avisoImagen) avisar.aviso("La imagen no se guardó", { detalle: `${avisoImagen} Sube otra desde «Dibujo» en su pase.` });
+      if (datos.avisoFechas) avisar.aviso("Las fechas no se guardaron", { detalle: datos.avisoFechas });
+      if (datos.avisoDibujo) avisar.aviso("El ícono no se guardó", { detalle: `${datos.avisoDibujo} Elígelo desde «Editar» en su pase.` });
+      if (avisoImagen) avisar.aviso("La imagen no se guardó", { detalle: `${avisoImagen} Sube otra desde «Editar» en su pase.` });
       setAgregando(false);
       setNombre("");
       setEleccion(null);
+      setFechasNuevas({ desde: "", hasta: "" });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
@@ -312,49 +361,131 @@ export function SellosPantalla({
     return { imagen: subida.ruta };
   }
 
-  // Cambiar el dibujo de una que ya existe: un dibujo de la lista es UNA escritura por la función de la base (`fijar_icono_etiqueta`); una imagen
-  // propia, la subida y esa misma escritura. Siempre con la firma del combo.
-  async function guardarDibujo(e: Etiqueta, nuevo: EleccionDeDibujo) {
-    setGuardandoDibujo(true);
+  // Editar una que ya existe: el nombre (una corrección) va por su PATCH y se guarda primero; el dibujo, por la función de la base
+  // (`fijar_icono_etiqueta`; una imagen propia, la subida y esa misma escritura). Solo se escribe lo que cambió, siempre con la firma del combo.
+  // Si el nombre ya quedó y el dibujo falla, la hoja sigue abierta con el nombre nuevo para reintentar solo el dibujo.
+  async function guardarEdicion(e: Etiqueta, cambios: CambiosDeEtiqueta) {
+    setGuardandoEdicion(true);
+    const que = e.estilo === "campana" ? "la campaña" : "la insignia";
     try {
+      let nombreFinal = e.nombre;
+      if (cambios.nombre !== null) {
+        const res = await fetch("/api/productos/etiquetas", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+          body: JSON.stringify({ id: e.id, nombre: cambios.nombre }),
+        });
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          avisar.error(datos.error ?? `No se pudo cambiar el nombre de ${que}.`);
+          return;
+        }
+        nombreFinal = datos.etiqueta?.nombre ?? cambios.nombre;
+        setEtiquetas((actual) => ordenarEtiquetas(actual.map((x) => (x.id === e.id ? { ...x, nombre: nombreFinal } : x))));
+      }
+      const nuevo = cambios.dibujo;
       let icono = e.icono;
       let imagen = e.imagen;
       let imagenSilueta = e.imagenSilueta;
-      if (nuevo.tipo === "imagen") {
+      let dibujoCambiado = false;
+      if (nuevo?.tipo === "imagen") {
         const puesta = await subirYFijarImagen(e.id, nuevo.archivo, nuevo.silueta);
         if ("error" in puesta) {
-          avisar.error(puesta.error);
+          avisar.error(cambios.nombre !== null ? `El nombre ya quedó como «${nombreFinal}», pero ${puesta.error.charAt(0).toLowerCase()}${puesta.error.slice(1)}` : puesta.error);
           return;
         }
         icono = null;
         imagen = puesta.imagen;
         imagenSilueta = nuevo.silueta;
-      } else if (nuevo.tipo === "dibujo") {
+        dibujoCambiado = true;
+      } else if (nuevo?.tipo === "dibujo") {
         const res = await fetch("/api/productos/etiquetas", {
           method: "PATCH",
           headers: { "Content-Type": "application/json", ...responsable.encabezados() },
           body: JSON.stringify({ id: e.id, icono: nuevo.clave }),
         });
-        const datos = await res.json();
+        const datos = await res.json().catch(() => ({}));
         if (!res.ok) {
-          avisar.error(datos.error ?? `No se pudo cambiar el dibujo ${e.estilo === "campana" ? "de la campaña" : "de la insignia"}.`);
+          const motivo = datos.error ?? `No se pudo cambiar el ícono ${que === "la campaña" ? "de la campaña" : "de la insignia"}.`;
+          avisar.error(cambios.nombre !== null ? `El nombre ya quedó como «${nombreFinal}», pero ${motivo.charAt(0).toLowerCase()}${motivo.slice(1)}` : motivo);
           return;
         }
         icono = nuevo.clave;
         imagen = null;
         imagenSilueta = false;
-      } else {
-        setCambiandoDibujo(null);
-        return;
+        dibujoCambiado = true;
       }
-      setEtiquetas((actual) => actual.map((x) => (x.id === e.id ? { ...x, icono, imagen, imagenSilueta } : x)));
+      if (dibujoCambiado) setEtiquetas((actual) => actual.map((x) => (x.id === e.id ? { ...x, icono, imagen, imagenSilueta } : x)));
+      // Las fechas de una campaña (Felipe 2026-10-28): la puerta de siempre guarda descuento, fechas y categorías juntos, así que se mandan los
+      // de hoy tal cual y solo cambian las fechas. Sin `sedeIds`: no se toca lo que esta hoja no vio.
+      let detalleFechas: string | undefined;
+      let reimprimir: ReturnType<typeof avisoReimprimir> = null;
+      let destino: string | null = null;
+      if (cambios.fechas !== null) {
+        const { desde, hasta } = cambios.fechas;
+        const yaQuedo = [cambios.nombre !== null ? `el nombre quedó como «${nombreFinal}»` : null, dibujoCambiado ? "el ícono ya cambió" : null].filter(Boolean).join(" y ");
+        const res = await fetch("/api/productos/etiquetas", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+          body: JSON.stringify({ id: e.id, campana: { descuentoPct: e.descuentoPct, vigenteDesde: desde, vigenteHasta: hasta, categoriaIds: e.categoriaIds } }),
+        });
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const motivo = datos.error ?? "No se pudieron guardar las fechas de la campaña.";
+          avisar.error(yaQuedo ? `Ya quedó guardado: ${yaQuedo}. Pero ${motivo.charAt(0).toLowerCase()}${motivo.slice(1)}` : motivo);
+          return;
+        }
+        // Si cambiar las fechas movió HOY el precio en caja de alguna prenda, su etiqueta de papel quedó vieja: el aviso lo dice y lleva a imprimir.
+        const cambian = prendasQueCambianDePrecioHoy(
+          e,
+          { descuentoPct: e.descuentoPct, vigenteDesde: desde, vigenteHasta: hasta, categoriaIds: e.categoriaIds, sedeIds: e.sedeIds },
+          prendasConCosto,
+          new Set(manuales[e.id] ?? []),
+          hoy,
+          { tiendas, aqui: sedeActualId },
+        );
+        destino = destinoReimprimir(cambian, e.id);
+        reimprimir = avisoReimprimir(cambian, destino !== null);
+        setEtiquetas((actual) => actual.map((x) => (x.id === e.id ? { ...x, vigenteDesde: desde, vigenteHasta: hasta } : x)));
+        detalleFechas = textoRango(desde, hasta) ? `Ahora rige ${textoRango(desde, hasta)}.` : "Ahora rige sin fechas.";
+      }
+      // «Anunciar en la portada» (ADR-0655): su propia puerta, después de lo demás.
+      let detalleAnuncio: string | undefined;
+      if (cambios.anunciar !== null) {
+        const res = await fetch("/api/productos/etiquetas", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+          body: JSON.stringify({ id: e.id, anunciarEnPortada: cambios.anunciar }),
+        });
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          avisar.error(datos.error ?? "No se pudo cambiar si la campaña se anuncia en la portada.");
+          return;
+        }
+        setEtiquetas((actual) => actual.map((x) => (x.id === e.id ? { ...x, anunciarEnPortada: cambios.anunciar as boolean } : x)));
+        detalleAnuncio = cambios.anunciar ? "La portada de la tienda online puede anunciarla." : "Ya no sale en la portada de la tienda online.";
+      }
       responsable.despues(null);
-      avisar.exito(`Dibujo de ${e.nombre} cambiado`, { detalle: nuevo.tipo === "dibujo" ? `Ahora lleva: ${NOMBRE_DEL_DIBUJO[nuevo.clave]}.` : nuevo.tipo === "imagen" && nuevo.silueta ? "Ahora lleva tu imagen, pintada del color del sello." : "Ahora lleva tu imagen." });
-      setCambiandoDibujo(null);
+      const detalleDibujo =
+        nuevo?.tipo === "dibujo" ? `Ahora lleva: ${NOMBRE_DEL_DIBUJO[nuevo.clave]}.` : nuevo?.tipo === "imagen" && nuevo.silueta ? "Ahora lleva tu imagen, pintada del color del sello." : nuevo?.tipo === "imagen" ? "Ahora lleva tu imagen." : undefined;
+      const titulo =
+        cambios.nombre !== null
+          ? `${que === "la campaña" ? "Campaña" : "Insignia"} ahora se llama ${nombreFinal}`
+          : nuevo === null && cambios.fechas !== null
+            ? `Fechas de ${nombreFinal} guardadas`
+            : nuevo === null && cambios.anunciar !== null
+              ? `${nombreFinal}: ${cambios.anunciar ? "se anuncia en la portada" : "no se anuncia en la portada"}`
+              : `Ícono de ${nombreFinal} cambiado`;
+      const detalle = [detalleDibujo, detalleFechas, detalleAnuncio, reimprimir?.detalle].filter(Boolean).join(" ");
+      avisar.exito(titulo, {
+        ...(detalle ? { detalle } : {}),
+        ...(destino && reimprimir?.boton ? { accion: { texto: reimprimir.boton, onClick: () => router.push(destino as string) } } : {}),
+      });
+      setEditandoId(null);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
-      setGuardandoDibujo(false);
+      setGuardandoEdicion(false);
     }
   }
 
@@ -399,6 +530,8 @@ export function SellosPantalla({
     const chip = e.activo && e.estado === "aprobado" ? chipDeTarjeta(vigencia, p.modelos.length + e.categoriaIds.length, hoy) : null;
     const dondeRige = e.descuentoPct !== null ? textoSedesDeCampana(e.sedeIds, tiendas) : null;
     const anio = e.vigenteDesde ? e.vigenteDesde.slice(0, 4) : null;
+    // Lo mismo que habilita las acciones del pase (`accionesDelPase`): una aprobada y activa que quien mira puede tocar.
+    const puedeEditarEste = puedeEditar(e) && e.activo && e.estado === "aprobado";
     const ofertas = e.estilo === "campana" && reglasDisponibles ? reglasDeCampana(reglas, e.id) : [];
     const ofertasVivas = reglasVivas(ofertas, hoy);
     const porActivar = ofertasVivas.filter((r) => vigenciaDeRegla(r, hoy) === "borrador").length;
@@ -411,7 +544,7 @@ export function SellosPantalla({
         data-guia={esAbierto ? "sellos.pase" : undefined}
         style={{ "--i": indice } as CSSProperties}
       >
-        <button type="button" className="sl-cab" aria-expanded={esAbierto} aria-controls={`pase-${e.id}`} onClick={() => abrir(e.id)}>
+        <button type="button" className="sl-cab" aria-expanded={esAbierto} aria-controls={`pase-${e.id}`} onClick={(ev) => abrir(e.id, ev.currentTarget)}>
           <SelloTinta nombre={e.nombre} icono={e.icono} imagen={e.imagen} imagenSilueta={e.imagenSilueta} estilo={e.estilo} anio={anio} tamano={44} giro={0} indice={indice} apagado={!e.activo} />
           <span className="min-w-0">
             <span className="sl-cab-nombre block truncate">{e.nombre}</span>
@@ -428,16 +561,30 @@ export function SellosPantalla({
           <div>
             <div className="sl-perfo" />
             <div className="sl-dentro">
-              {(chip || e.estado !== "aprobado" || porActivar > 0) && (
-                <div className="flex flex-wrap gap-1.5" style={{ "--i": 0 } as CSSProperties}>
+              {(chip || e.estado !== "aprobado" || porActivar > 0 || (puedeEditarEste && e.estilo !== "campana") || (e.estilo === "campana" && e.anunciarEnPortada === false)) && (
+                <div className="flex flex-wrap items-center gap-1.5" style={{ "--i": 0 } as CSSProperties}>
                   {e.estado === "pendiente" && <Chip tono="ambar">Por aprobar</Chip>}
                   {e.estado === "rechazado" && <Chip tono="apagado" tachado={false}>Rechazado</Chip>}
                   {chip && <Chip tono={chip.tono} title={chip.title}>{chip.texto}</Chip>}
                   {chip?.alerta && <Chip tono="ambar" title={chip.title}>{chip.alerta}</Chip>}
+                  {e.estilo === "campana" && e.anunciarEnPortada === false && (
+                    <Chip tono="pizarra" versalitas={false} title="La portada de la tienda online no la anuncia. Se cambia en «Más ▸ Cambiar nombre, ícono o fechas».">
+                      No sale en la portada
+                    </Chip>
+                  )}
                   {porActivar > 0 && (
-                    <Chip tono="ambar" title="Hay ofertas guardadas como borrador: un líder las activa para que bajen el precio.">
+                    <Chip tono="ambar" title="Hay ofertas guardadas como borrador: falta activarlas para que bajen el precio.">
                       {porActivar === 1 ? "1 oferta por activar" : `${porActivar} ofertas por activar`}
                     </Chip>
+                  )}
+                  {puedeEditarEste && e.estilo !== "campana" && (
+                    <BotonEditar
+                      chico
+                      onClick={() => setEditandoId(e.id)}
+                      guia={esAbierto ? "sellos.editar" : undefined}
+                      title="Corregir el nombre o cambiar el ícono de la insignia"
+                      className="ml-auto"
+                    />
                   )}
                 </div>
               )}
@@ -452,7 +599,7 @@ export function SellosPantalla({
               {avance && e.vigenteDesde && e.vigenteHasta && (
                 <div style={{ "--i": 2 } as CSSProperties}>
                   <BarraAvance pct={avance.pct} alto="fina" tono="tinta" etiqueta={`Lo que lleva ${e.nombre}`} texto={`Día ${avance.dia} de ${avance.total}`} />
-                  <div className="mt-1.5 flex justify-between text-[11px] tabular-nums text-tinta/65">
+                  <div className="mt-1.5 flex justify-between text-sm tabular-nums text-tinta/65">
                     <span>{fechaCorta(e.vigenteDesde)}</span>
                     <span>hoy, día {avance.dia} de {avance.total}</span>
                     <span>{fechaCorta(e.vigenteHasta)}</span>
@@ -471,11 +618,11 @@ export function SellosPantalla({
                     <strong>{ofertasVivas.length}</strong>
                     {ofertasVivas.length === 1 ? "oferta o promoción" : "ofertas y promociones"}
                   </div>
-                ) : (
+                ) : e.estilo === "campana" ? (
                   <div>
                     <strong>{e.descuentoPct !== null ? `${e.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %` : "—"}</strong>descuento
                   </div>
-                )}
+                ) : null /* Una insignia nunca baja el precio (ADR-0655): no hay descuento que contar. */}
               </div>
               {dondeRige && (
                 <div style={{ "--i": 3 } as CSSProperties}>
@@ -496,7 +643,7 @@ export function SellosPantalla({
 
   // `conGuia`: solo el pase abierto lleva las anclas de la guía (los cerrados tienen los mismos botones, escondidos e inertes).
   function accionesDelPase(e: Etiqueta, conGuia: boolean) {
-    if (!puedeEditar(e)) return <p className="text-xs text-tinta/65">Solo lo cambia quien tiene el módulo {e.estilo === "campana" ? "Campañas o Insignias" : "Insignias"}.</p>;
+    if (!puedeEditar(e)) return <p className="text-sm text-tinta/65">Solo lo cambia quien tiene el módulo {e.estilo === "campana" ? "Campañas o Insignias" : "Insignias"}.</p>;
     if (!e.activo) {
       return (
         <div className="w-40">
@@ -520,9 +667,9 @@ export function SellosPantalla({
     }
     const vigencia = vigenciaDe(e.vigenteDesde, e.vigenteHasta, hoy);
     const imprimir = e.descuentoPct !== null && vigencia?.estado !== "proxima";
+    if (e.estilo === "campana") return accionesDeCampana(e, conGuia, imprimir);
+    // Una insignia se configura con la hoja de siempre (`CampanaModal`); las campañas, con sus tres preguntas (arriba, ADR-0655).
     const boton = botonCampana(e, hoy);
-    // Una campaña se configura con sus ofertas («Tres preguntas», ADR-0496); la hoja de siempre (`CampanaModal`) solo queda si la base aún no las tiene.
-    const conOfertas = e.estilo === "campana" && reglasDisponibles;
     return (
       <>
         <button type="button" onClick={() => setEtiquetando(e)} data-guia={conGuia ? "sellos.prendas" : undefined} className="btn-cayla btn-sutil btn-chico">
@@ -530,34 +677,80 @@ export function SellosPantalla({
         </button>
         <button
           type="button"
-          onClick={() => (conOfertas ? setOfertandoId(e.id) : setConfigurando(e))}
-          title={conOfertas ? (boton.texto === "Repetir" ? boton.title : "Sus ofertas y sus fechas") : boton.title}
+          onClick={() => setConfigurando(e)}
+          title={boton.title}
           data-guia={conGuia ? "sellos.configurar" : undefined}
           className="btn-cayla btn-sutil btn-chico"
         >
           {boton.texto}
-        </button>
-        <button type="button" onClick={() => setCambiandoDibujo(e)} data-guia={conGuia ? "sellos.dibujo" : undefined} className="btn-cayla btn-sutil btn-chico">
-          Dibujo
         </button>
         {imprimir && (
           <BotonImprimir href={urlEtiquetasDePrecio({ campana: e.id })} chico>
             {vigencia?.estado === "terminada" ? "Precio normal" : "Etiquetas de precio"}
           </BotonImprimir>
         )}
-        {e.estilo === "campana" && disenoWeb && e.descuentoPct !== null && (
-          <BotonVer href={`/tienda-web/campanas/${e.id}`} chico>
-            Diseño web
-          </BotonVer>
-        )}
         <button
           type="button"
           disabled={cambiandoId === e.id}
-          onClick={() => setConfirmando(confirmacionCatalogo("desactivar", e.nombre, () => cambiarActivo(e, false)))}
+          onClick={() =>
+            setConfirmando(
+              confirmacionCatalogo(
+                "desactivar",
+                e.nombre,
+                () => cambiarActivo(e, false),
+                // ADR-0655: las ofertas que eligen esta insignia dejan de llegar a sus prendas; la confirmación las nombra.
+                bajadaDesactivarInsignia(reglas, e.id, hoy, (id) => nombresDeCampanas[id] ?? "su campaña") ?? undefined,
+              ),
+            )
+          }
           className="btn-cayla btn-peligro btn-chico ml-auto"
         >
           {cambiandoId === e.id ? "Desactivando…" : "Desactivar"}
         </button>
+      </>
+    );
+  }
+
+  // ---- Las tres preguntas de una campaña (ADR-0655) ------------------------------------------------------------------------
+  // Cada pregunta abre la hoja que ya la responde: las ofertas (o la hoja de siempre si la base aún no las tiene), las prendas y las fechas.
+
+  function preguntasDe(e: Etiqueta) {
+    const p = prendasDe(e);
+    const vivas = reglasDisponibles ? reglasVivas(reglasDeCampana(reglas, e.id), hoy) : [];
+    const borradores = vivas.filter((r) => vigenciaDeRegla(r, hoy) === "borrador").length;
+    // Una oferta que elige sus propias prendas (categorías, modelos, insignias o toda la compra) responde «En qué prendas» (ADR-0655).
+    // Una insignia desactivada o sin aprobar no le da prendas (20261114130000): si todas las de la oferta lo están, no responde (casuística
+    // 2026-11-16: el pase decía «Las eligen sus ofertas» ✓ con ofertas que ya no rebajaban nada).
+    const insigniaViva = (id: string) => etiquetas.some((x) => x.id === id && x.activo && x.estado === "aprobado");
+    const eligen = vivas.some(
+      (r) => r.categoriasSolo.length > 0 || r.productosSolo.length > 0 || r.insigniasSolo.some(insigniaViva) || (r.tipo === "monto" && r.cuenta !== "campana"),
+    );
+    return preguntasDeCampana(e, p.modelos.length, categoriasDe(e), hoy, p.aMano, { activas: vivas.length - borradores, borradores }, textoSedesDeCampana(e.sedeIds, tiendas), eligen);
+  }
+  function responder(e: Etiqueta, clave: "oferta" | "prendas" | "cuando") {
+    if (clave === "oferta") return reglasDisponibles ? setOfertandoId(e.id) : setConfigurando(e);
+    if (clave === "prendas") return setEtiquetando(e);
+    setEditandoId(e.id);
+  }
+
+  function accionesDeCampana(e: Etiqueta, conGuia: boolean, imprimir: boolean) {
+    const sigue = preguntasDe(e).find((x) => !x.hecho);
+    const yaPaso = tramoDeCampana(e.vigenteDesde, e.vigenteHasta, hoy) === "pasaron";
+    const items: ItemMenu[] = [
+      { clave: "editar", etiqueta: yaPaso ? "Repetir el próximo año" : "Cambiar nombre, ícono o fechas", onSelect: () => setEditandoId(e.id) },
+      { clave: "prendas", etiqueta: "Marcar prendas sueltas", onSelect: () => setEtiquetando(e) },
+      ...(imprimir ? [{ clave: "imprimir", etiqueta: vigenciaDe(e.vigenteDesde, e.vigenteHasta, hoy)?.estado === "terminada" ? "Imprimir el precio normal" : "Imprimir etiquetas de precio", onSelect: () => router.push(urlEtiquetasDePrecio({ campana: e.id })) }] : []),
+      ...(disenoWeb && e.descuentoPct !== null ? [{ clave: "web", etiqueta: "Ver su diseño en la tienda web", onSelect: () => router.push(`/tienda-web/campanas/${e.id}`) }] : []),
+      { clave: "desactivar", etiqueta: cambiandoId === e.id ? "Desactivando…" : "Desactivar", peligro: true, onSelect: () => setConfirmando(confirmacionCatalogo("desactivar", e.nombre, () => cambiarActivo(e, false))) },
+    ];
+    return (
+      <>
+        <Boton peso={sigue ? "primario" : "fantasma"} className="btn-chico" onClick={() => responder(e, sigue?.clave ?? "oferta")} data-guia={conGuia ? "sellos.preparar" : undefined}>
+          {sigue ? "Preparar la campaña" : "Ver sus ofertas"}
+        </Boton>
+        <span className="ml-auto">
+          <MenuAcciones texto="Más" etiqueta={`Más acciones de ${e.nombre}`} items={items} guia={conGuia ? "sellos.mas" : undefined} />
+        </span>
       </>
     );
   }
@@ -569,7 +762,7 @@ export function SellosPantalla({
 
   // ---- El pase abierto, en grande --------------------------------------------------------------------------------------------
 
-  /** Cuántas ofertas vivas tiene una campaña y cuántas esperan a un líder (para «Lo que ya tiene»). */
+  /** Cuántas ofertas vivas tiene una campaña y cuántas siguen en borrador (para «Lo que ya tiene»). */
   function ofertasDe(e: Etiqueta) {
     const vivas = reglasVivas(reglasDeCampana(reglas, e.id), hoy);
     return { total: vivas.length, borradores: vivas.filter((r) => vigenciaDeRegla(r, hoy) === "borrador").length };
@@ -663,7 +856,10 @@ export function SellosPantalla({
               </Vacio>
             </div>
           ) : null)}
-        {e.estilo === "campana" && tramo !== "pasaron" && (
+        {e.estilo === "campana" && e.activo && e.estado === "aprobado" && tramo !== "pasaron" && (
+          <TresPreguntas preguntas={preguntasDe(e)} editable={editable} onResponder={(clave) => responder(e, clave)} />
+        )}
+        {e.estilo === "campana" && !(e.activo && e.estado === "aprobado") && tramo !== "pasaron" && (
           <div className="sl-listo mt-6" data-guia="sellos.listo" style={{ "--i": 3 } as CSSProperties}>
             <p className="label-cayla pb-1.5 pt-3.5 text-[10px] text-tinta/65">Lo que ya tiene</p>
             {loQueTiene(e, p.modelos.length, cats, hoy, p.aMano, e.estilo === "campana" && reglasDisponibles ? ofertasDe(e) : undefined).map((x, i) => (
@@ -698,24 +894,78 @@ export function SellosPantalla({
       <div data-guia="sellos.cabecera">
         <EncabezadoPagina
           sede={sede}
-          titulo="Insignias"
-          subtitulo="Lo que se le marca a una prenda. Primero las campañas; con las pestañas, las demás insignias."
+          guiaAyuda="sellos.ayuda"
+          titulo={modo === "campanas" ? "Campañas y ofertas" : "Insignias"}
+          subtitulo={
+            modo === "campanas"
+              ? "Las fechas especiales de la tienda y lo que el cliente paga de menos en ellas: una rebaja, «lleva varias y paga menos» o un descuento por gastar un monto."
+              : "Lo que dice cada prenda sobre sí misma: «Nuevo», «Hecho a mano», «Últimas unidades». Se ve sobre la foto en la web, en la etiqueta de papel y en la ficha."
+          }
+          ayuda={
+            <button type="button" className="btn-enlace" onClick={() => setViendoMapa(true)} data-guia="sellos.mapa">
+              ¿Insignia, campaña u oferta? Ver el mapa
+            </button>
+          }
+          // En el celular, con «Cómo se ven en la web» al lado, «+ Nueva campaña» va en su «+» y se estira hasta el margen, como el de
+          // Productos (Felipe 2026-11-17): los dos en UNA fila en vez de dos. Sin vecino (Insignias) conserva su palabra: un «+» solo,
+          // estirado a todo el ancho, sería una barra negra muda.
+          accionesLlenan={esCampanas && disenoWeb}
           acciones={
             <>
               {esCampanas && disenoWeb && (
-                <BotonVer href="/tienda-web/campanas" guia="sellos.diseno-web">
+                // Sin la flecha de `<BotonVer>` (Felipe 2026-11-17: «quítale la flecha y ajusta el tamaño de todo para que entre»): en el
+                // celular comparte la fila con el ícono de las rebajas y el «+», y con la flecha no cabían los tres.
+                // unificar-fijo: «Cómo se ven en la web» sin la flecha de accion.ver, por pedido de Felipe (2026-11-17), para que quepa en la fila
+                <BotonEnlace href="/tienda-web/campanas" peso="fantasma" data-guia="sellos.diseno-web" className="max-sm:!px-4">
                   Cómo se ven en la web
-                </BotonVer>
+                </BotonEnlace>
               )}
-              {puedeCrear && (
-                <Boton peso="primario" onClick={() => setAgregando(true)} data-guia="sellos.nuevo">
-                  {`+ ${T.nuevo}`}
+              {esCampanas && puedeEditarCampanas && sedeActualId && (
+                // Solo en el celular: las tarjetas «Rebajas de …» (cada % de la tienda) se abren en una hoja desde aquí; desde 640 px están
+                // a la vista bajo el escáner. Lleva el ancla de la guía de esas tarjetas: la guía enciende la primera que se ve.
+                <Boton
+                  peso="fantasma"
+                  title={`Rebajas de ${sede}`}
+                  aria-expanded={rebajasAbiertas}
+                  data-guia="rebaja.tienda"
+                  className="min-w-11 !px-3 sm:hidden"
+                  onClick={(e) => {
+                    botonRebajas.current = e.currentTarget;
+                    setRebajasAbiertas(true);
+                  }}
+                >
+                  <BadgePercent aria-hidden className="h-4 w-4" />
+                  <span className="sr-only">{`Rebajas de ${sede}`}</span>
                 </Boton>
               )}
+              {puedeCrear &&
+                (esCampanas && disenoWeb ? (
+                  <Boton peso="primario" onClick={() => setAgregando(true)} data-guia="sellos.nuevo" title={T.nuevo} className="max-sm:min-w-11 max-sm:grow max-sm:!px-3">
+                    <span className="flex items-center gap-2">
+                      <Plus aria-hidden className="h-4 w-4 shrink-0" />
+                      <span className="max-sm:sr-only">{T.nuevo}</span>
+                    </span>
+                  </Boton>
+                ) : (
+                  <Boton peso="primario" onClick={() => setAgregando(true)} data-guia="sellos.nuevo">
+                    {`+ ${T.nuevo}`}
+                  </Boton>
+                ))}
             </>
           }
         />
       </div>
+
+      {/* «Poner un %» (ADR-0669, Felipe 2026-11-16): escanear una prenda y ponerle un % en un toque, en la tienda de la cabecera. */}
+      {esCampanas && puedeEditarCampanas && sedeActualId && (
+        <RebajasDeTienda
+          ubicacionId={sedeActualId}
+          sede={sede}
+          hoja={{ abierta: rebajasAbiertas, onCerrar: () => setRebajasAbiertas(false), alCerrarEnfocar: botonRebajas }}
+        />
+      )}
+
+      {esCampanas && puedeEditarCampanas && <AvisoDosOfertas pares={choquesAbiertos} alElegir={() => router.refresh()} />}
 
       {vistas.length > 1 && (
         <Pestanas
@@ -731,12 +981,11 @@ export function SellosPantalla({
             conteo: etiquetas.filter((e) => e.activo && vistaDeEstilo(e.estilo) === v).length,
             pide: "activos",
             tono: "neutro" as const,
-            guia: `sellos.pestana-${v}`,
           }))}
         />
       )}
 
-      {nota && <p className="nota-cayla max-w-3xl text-xs">{nota}</p>}
+      {nota && <p className="nota-cayla max-w-3xl text-sm">{nota}</p>}
 
       {pilas.length === 0 ? (
         <Vacio
@@ -791,26 +1040,32 @@ export function SellosPantalla({
           onNombre={setNombre}
           eleccion={eleccion}
           onEleccion={setEleccion}
+          {...(esCampanas ? { fechas: fechasNuevas, onFechas: setFechasNuevas } : {})}
           responsable={responsable}
           guardando={guardando}
           onGuardar={guardar}
           onClose={() => {
             setAgregando(false);
             setEleccion(null);
+            setFechasNuevas({ desde: "", hasta: "" });
           }}
         />
       )}
 
-      {cambiandoDibujo && (
-        <CambiarDibujoModal
-          nombre={cambiandoDibujo.nombre}
-          actual={eleccionDeLoGuardado({ nombre: cambiandoDibujo.nombre, icono: cambiandoDibujo.icono, imagen: cambiandoDibujo.imagen, silueta: cambiandoDibujo.imagenSilueta })}
-          esDelNombre={!cambiandoDibujo.icono && !esRutaDeImagenDeInsignia(cambiandoDibujo.imagen)}
-          esCampana={cambiandoDibujo.estilo === "campana"}
+      {editando && (
+        <EditarEtiquetaModal
+          key={editando.id}
+          nombre={editando.nombre}
+          actual={eleccionDeLoGuardado({ nombre: editando.nombre, icono: editando.icono, imagen: editando.imagen, silueta: editando.imagenSilueta })}
+          esDelNombre={!editando.icono && !esRutaDeImagenDeInsignia(editando.imagen)}
+          esCampana={editando.estilo === "campana"}
+          fechas={editando.estilo === "campana" ? { desde: editando.vigenteDesde, hasta: editando.vigenteHasta } : undefined}
+          anunciar={editando.estilo === "campana" ? editando.anunciarEnPortada !== false : undefined}
+          hoy={hoy}
           responsable={responsable}
-          guardando={guardandoDibujo}
-          onGuardar={(nuevo) => guardarDibujo(cambiandoDibujo, nuevo)}
-          onClose={() => setCambiandoDibujo(null)}
+          guardando={guardandoEdicion}
+          onGuardar={(cambios) => guardarEdicion(editando, cambios)}
+          onClose={() => setEditandoId(null)}
         />
       )}
 
@@ -856,7 +1111,7 @@ export function SellosPantalla({
           sedeActualId={sedeActualId}
           prendasConCosto={prendasConCosto}
           variantesManuales={manuales[ofertando.id] ?? []}
-          esLider={esLider}
+          insignias={insignias}
           hoy={hoy}
           puedeDarDescuento={puedeEditar(ofertando)}
           alGuardarCampana={(cambios) => setEtiquetas((actual) => ordenarEtiquetas(actual.map((x) => (x.id === ofertando.id ? { ...x, ...cambios } : x))))}
@@ -902,6 +1157,72 @@ export function SellosPantalla({
       )}
 
       {confirmando && <ConfirmarConResponsable confirmacion={confirmando} onClose={() => setConfirmando(null)} />}
+      {viendoMapa && <MapaCampanas aqui={modo} onClose={() => setViendoMapa(false)} />}
+    </div>
+  );
+}
+
+/** Las tres preguntas de una campaña (ADR-0655): la fila de «Lo que ya tiene», pero tocable, con el hilo de la guía de foco en la que sigue
+ *  (`hilo-fila`, ADR-0284) y sin rojo. Cada fila abre la hoja que la responde; quien no puede editar solo la lee. */
+function TresPreguntas({
+  preguntas,
+  editable,
+  onResponder,
+}: {
+  preguntas: PreguntaCampana[];
+  editable: boolean;
+  onResponder: (clave: "oferta" | "prendas" | "cuando") => void;
+}) {
+  const sigue = preguntas.find((x) => !x.hecho)?.clave;
+  return (
+    <div className="sl-listo mt-6" data-guia="sellos.preguntas" style={{ "--i": 3 } as CSSProperties}>
+      <p className="label-cayla pb-2.5 pt-3.5 text-[11px] text-tinta/65">
+        {sigue ? "Para que la caja haga algo" : "Lista: la caja y la tienda web la cobran solas"}
+      </p>
+      {/* Las tres en UNA tarjeta con el borde de lo que se toca (Felipe 2026-11-17: «mejora la visualización»): sueltas, separadas solo por
+          líneas `sand`, no se leían como algo que se toca y se fundían con el fondo. */}
+      <div className="sl-preguntas">
+      {preguntas.map((x, i) => {
+        const contenido = (
+          <>
+            <span className="sl-listo-marca" aria-hidden>
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                <path d={x.hecho ? "M6 12.5l4 4L18 8.5" : "M12 7v6M12 16.5v.1"} strokeWidth="2.2" />
+              </svg>
+            </span>
+            <span className="font-medium">
+              {x.nombre}
+              <span className="sr-only">{x.hecho ? ": respondida" : ": falta"}</span>
+            </span>
+            <span className="sl-listo-detalle">{x.detalle}</span>
+            {editable && (
+              <span className="sl-pregunta-ir" aria-hidden>
+                {x.clave === sigue ? <span className="hilo-etiqueta">Sigue</span> : null}
+                <ChevronRight className="h-4 w-4" />
+              </span>
+            )}
+          </>
+        );
+        return editable ? (
+          <button
+            key={x.clave}
+            type="button"
+            data-guia={x.clave === "oferta" ? "sellos.pregunta-oferta" : undefined}
+            className={`sl-listo-fila sl-pregunta ${x.clave === sigue ? "sl-pregunta-sigue" : ""}`}
+            data-estado={x.hecho ? "hecho" : "falta"}
+            style={{ "--i": i } as CSSProperties}
+            onClick={() => onResponder(x.clave)}
+          >
+            {contenido}
+          </button>
+        ) : (
+          <div key={x.clave} className="sl-listo-fila" data-estado={x.hecho ? "hecho" : "falta"} style={{ "--i": i } as CSSProperties}>
+            {contenido}
+          </div>
+        );
+      })}
+      </div>
+      {sigue === "oferta" && <p className="mt-3 text-sm text-tinta/65">Una campaña sin oferta solo pone su insignia en las prendas y en la web: no cambia ningún precio.</p>}
     </div>
   );
 }

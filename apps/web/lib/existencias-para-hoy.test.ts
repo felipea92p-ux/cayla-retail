@@ -95,6 +95,16 @@ describe("el motor del piso en «Para hoy» (integración de la ola 1, 2026-10-0
     expect(tareasParaHoy({ ...vacia, piso: { enPausa: 1, fallo: false } })[0].texto).toBe("talla espera el cuadre del piso");
   });
 
+  it("mientras el plan llega dice que se calcula: ni «no se pudo» ni «Todo al día» (Existencias en dos tiempos)", () => {
+    const tareas = tareasParaHoy({ ...vacia, piso: { enPausa: 0, fallo: false, calculando: true } });
+    expect(tareas.map((t) => t.tipo)).toEqual(["piso_calculando"]);
+    expect(tareas[0].cifra).toBeNull();
+    // Gana a «fallo»: el que falló era el plan de antes, el de ahora todavía puede llegar.
+    expect(tareasParaHoy({ ...vacia, piso: { enPausa: 3, fallo: true, calculando: true } }).map((t) => t.tipo)).toEqual(["piso_calculando"]);
+    // En el Taller (no separa piso y almacén) no hay nada que calcular.
+    expect(tareasParaHoy({ ...vacia, separa: false, piso: { enPausa: 0, fallo: false, calculando: true } })).toEqual([]);
+  });
+
   it("si el motor no respondió, lo dice sin número (no lo calla ni inventa un «al día»)", () => {
     const tareas = tareasParaHoy({ ...vacia, piso: { enPausa: 0, fallo: true } });
     expect(tareas).toHaveLength(1);
@@ -136,7 +146,19 @@ describe("lo que encontró la revisión (2026-10-04)", () => {
   });
   it("las dañadas solo piden «tu decisión» a quien puede decidir", () => {
     expect(tareasParaHoy({ ...vacia, danadas: 1, resuelveDanadas: true })[0].detalle).toMatch(/tu decisión/);
-    expect(tareasParaHoy({ ...vacia, danadas: 1, resuelveDanadas: false })[0].detalle).toMatch(/un líder decide/);
+    expect(tareasParaHoy({ ...vacia, danadas: 1, resuelveDanadas: false })[0].detalle).toMatch(/en su sede se decide/);
+  });
+
+  it("dañadas de 7 días o más sin decidirse (ADR-0564): la fila sube a rojo y lo dice; sin viejas, ámbar como siempre", () => {
+    const sin = tareasParaHoy({ ...vacia, danadas: 3, danadasViejas: 0 })[0];
+    expect([sin.tono, sin.detalle]).toEqual(["ambar", expect.stringMatching(/tu decisión/)]);
+    const una = tareasParaHoy({ ...vacia, danadas: 3, danadasViejas: 1 })[0];
+    expect(una.tono).toBe("rojo");
+    expect(una.detalle).toBe("1 lleva 7 días o más separadas sin decidirse: sácalas a arreglar o decide su destino.");
+    expect(tareasParaHoy({ ...vacia, danadas: 3, danadasViejas: 2 })[0].detalle).toMatch(/^2 llevan 7 días/);
+    // Mirando otra sede, informa sin mandar a hacer; y nunca dice más viejas que dañadas.
+    expect(tareasParaHoy({ ...vacia, danadas: 3, danadasViejas: 2, resuelveDanadas: false })[0].detalle).toMatch(/en su sede se decide/);
+    expect(tareasParaHoy({ ...vacia, danadas: 1, danadasViejas: 5 })[0].detalle).toMatch(/^1 lleva/);
   });
 });
 

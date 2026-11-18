@@ -2,7 +2,7 @@
  * Las lecturas de UNA tienda para el panel de Rendimiento, separadas de `rendimiento.ts` para poder probarlas: ese archivo importa con el
  * alias `@/` (Supabase, sesión) y los tests de este repo no lo resuelven; este solo usa imports relativos y recibe quien llama a la base.
  *
- * PROMETE: las TRES lecturas (serie de ventas, historial de cambios de meta, ventas por hora) se piden SIEMPRE, para cada tienda que la cuenta
+ * PROMETE: las CUATRO lecturas (serie de ventas, historial de cambios de meta, ventas por hora, lo de cada persona por día) se piden SIEMPRE, para cada tienda que la cuenta
  * ve, sin depender de cuál tienda se mira (la pantalla cambia de tienda en el navegador y todo ya tiene que estar cargado); y si alguna falla,
  * la CAUSA queda en el log (código y mensaje de la base, nunca un dato de una persona) aunque la pantalla solo diga «no se pudo leer».
  * Una falla nunca se confunde con «no hay datos»: devuelve el `error` intacto y quien llama decide qué dibujar.
@@ -23,14 +23,18 @@ export async function leerLecturasDeSede(
   ubicacionId: string,
   desde: string,
   hasta: string,
-): Promise<{ serie: ResultadoRpc; historial: ResultadoRpc; detalle: ResultadoRpc }> {
-  const [serie, historial, detalle] = await Promise.all([
+  /** Lo de cada persona por día abarca también el mes pasado (`rangoDeLecturaPersonas`), para poder compararlo. */
+  rangoPersonas: { desde: string; hasta: string },
+): Promise<{ serie: ResultadoRpc; historial: ResultadoRpc; detalle: ResultadoRpc; personaDias: ResultadoRpc }> {
+  const [serie, historial, detalle, personaDias] = await Promise.all([
     llamar("fn_rendimiento_serie", { p_ubicacion_id: ubicacionId, p_desde: desde, p_hasta: hasta }),
     llamar("fn_metas_historial", { p_ubicacion_id: ubicacionId }),
     llamar("fn_rendimiento_detalle", { p_ubicacion_id: ubicacionId, p_desde: desde, p_hasta: hasta }),
+    llamar("fn_rendimiento_persona_dias", { p_ubicacion_id: ubicacionId, p_desde: rangoPersonas.desde, p_hasta: rangoPersonas.hasta }),
   ]);
   dejarCausa("la serie de ventas de la tienda", serie.error);
   dejarCausa("el historial de cambios de meta", historial.error);
   dejarCausa("las ventas por hora", detalle.error);
-  return { serie, historial, detalle };
+  dejarCausa("lo de cada persona por día", personaDias.error);
+  return { serie, historial, detalle, personaDias };
 }

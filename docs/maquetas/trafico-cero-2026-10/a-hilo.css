@@ -1,0 +1,440 @@
+/* =====================================================================
+   A · «El hilo» (prefijo hl-): el recorrido es una cinta que nace de los siete caminos, se junta y se adelgaza paso a paso.
+   Un tono secuencial (la tinta: corrientes tenues → cinta plena → caídas en taupe) y un acento (el nudo rojo de «aquí se atora»).
+   ===================================================================== */
+.hl-hilo {
+  margin-top: 16px;
+  padding: 14px 20px 8px;
+}
+.hl-cab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 16px;
+}
+.hl-cab .tr-veredicto {
+  margin: 0;
+}
+.hl-lienzo {
+  position: relative;
+  margin-top: 8px;
+}
+.hl-svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+/* El paso más tenue de la escala se queda en 2:1 contra el papel (validate_palette --ordinal, dataviz). */
+.hl-corriente {
+  fill: color-mix(in srgb, var(--color-tinta) 33%, transparent);
+  transition: fill 220ms var(--ease-cayla), opacity 220ms var(--ease-cayla);
+}
+.hl-corriente[data-elegida] {
+  fill: color-mix(in srgb, var(--color-tinta) 50%, transparent);
+}
+.hl-corriente[data-fuera] {
+  opacity: 0.55;
+}
+.hl-lienzo[data-resalta] .hl-corriente {
+  opacity: 0.35;
+}
+.hl-lienzo[data-resalta] .hl-corriente[data-resaltada] {
+  opacity: 1;
+  fill: color-mix(in srgb, var(--color-tinta) 55%, transparent);
+}
+.hl-cinta {
+  fill: var(--color-tinta);
+}
+.hl-hebras-linea {
+  stroke: var(--color-crema);
+  stroke-opacity: 0.16;
+  stroke-width: 1;
+}
+.hl-caida {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-taupe) 34%, transparent);
+}
+[data-tema="oscuro"] .hl-caida {
+  stroke: color-mix(in srgb, var(--color-taupe) 42%, transparent);
+}
+[data-tema="oscuro"] .hl-corriente {
+  fill: color-mix(in srgb, var(--color-tinta) 30%, transparent);
+}
+[data-tema="oscuro"] .hl-corriente[data-elegida] {
+  fill: color-mix(in srgb, var(--color-tinta) 60%, transparent);
+}
+/* La leyenda del hilo: qué es cada trazo (la identidad nunca va solo en el color). */
+.hl-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-left: auto;
+  font-size: 12.5px;
+  color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+}
+.hl-leyenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hl-leyenda i {
+  display: inline-block;
+  width: 16px;
+  height: 7px;
+  border-radius: 2px;
+}
+.hl-leyenda .l-corriente {
+  background: color-mix(in srgb, var(--color-tinta) 33%, transparent);
+}
+.hl-leyenda .l-cinta {
+  background: var(--color-tinta);
+}
+.hl-leyenda .l-caida {
+  background: color-mix(in srgb, var(--color-taupe) 45%, transparent);
+}
+.hl-puerta {
+  stroke: color-mix(in srgb, var(--color-tinta) 14%, transparent);
+  stroke-width: 1;
+}
+.hl-nudo {
+  fill: none;
+  stroke: var(--color-rojo);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.hl-nudo-fondo {
+  fill: none;
+  stroke: var(--color-papel);
+  stroke-width: 5.5;
+  stroke-linecap: round;
+}
+
+/* Los caminos: botones a la izquierda, de donde nace cada corriente. */
+.hl-camino {
+  position: absolute;
+  left: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 24px;
+  padding: 3px 10px 3px 6px;
+  border-radius: 8px;
+  text-align: right;
+  line-height: 1.15;
+  transform: translateY(-50%);
+  transition: background-color 180ms var(--ease-cayla), color 180ms var(--ease-cayla);
+}
+.hl-chico .hl-camino {
+  gap: 4px;
+  padding-right: 6px;
+}
+.hl-chico .hl-camino__nombre {
+  font-size: 12.5px;
+}
+.hl-camino__nombre {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.hl-camino__nombre svg {
+  width: 12px;
+  height: 12px;
+}
+.hl-camino__n {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--color-tinta) 68%, transparent);
+}
+@media (hover: hover) {
+  .hl-camino:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--color-sand) 55%, transparent);
+  }
+}
+.hl-camino[aria-pressed="true"] {
+  background: var(--color-tinta);
+  color: var(--color-crema);
+}
+.hl-camino[aria-pressed="true"] .hl-camino__n {
+  color: color-mix(in srgb, var(--color-crema) 80%, transparent);
+}
+.hl-camino[aria-pressed="true"]:focus-visible {
+  outline-color: var(--color-tinta);
+}
+.hl-camino:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* Los pasos: el rótulo sobre el tramo que lleva a cada puerta. */
+.hl-paso {
+  position: absolute;
+  top: 0;
+  display: grid;
+  align-content: start;
+  gap: 1px;
+  pointer-events: none;
+}
+.hl-paso__nombre {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  line-height: 1.25;
+  color: var(--color-taupe-profundo);
+}
+.hl-paso__n {
+  font-variant-numeric: proportional-nums;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.05;
+}
+.hl-paso__de {
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+}
+.hl-paso__atora {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--color-rojo);
+}
+.hl-chico .hl-paso__n {
+  font-size: 21px;
+}
+
+/* La fila de abajo: ciudades, horas y la más mirada. */
+.hl-fila {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+@container pantalla (max-width: 760px) {
+  .hl-fila {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .hl-tendedero {
+    grid-column: 1 / -1;
+  }
+}
+.hl-bloque {
+  padding: 14px 20px;
+  min-width: 0;
+}
+.hl-ciudades {
+  display: grid;
+  gap: 0;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.hl-ciudad {
+  display: grid;
+  grid-template-columns: minmax(84px, 9.5em) 1fr 46px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 24px;
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: left;
+  transition: background-color 180ms var(--ease-cayla);
+}
+.hl-ciudad__nombre {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.hl-ciudad__nombre svg {
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+.hl-ciudad__hilo {
+  position: relative;
+  height: 14px;
+}
+.hl-ciudad__hilo i {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-tinta) 60%, transparent);
+  transform-origin: left;
+}
+.hl-ciudad__hilo i::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  top: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-tinta);
+}
+.hl-ciudad__n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+@media (hover: hover) {
+  .hl-ciudad:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--color-sand) 50%, transparent);
+  }
+}
+.hl-ciudad[aria-pressed="true"] {
+  background: var(--color-hueso);
+  font-weight: 600;
+}
+.hl-ciudad[aria-pressed="true"] .hl-ciudad__hilo i {
+  background: var(--color-tinta);
+  height: 3px;
+}
+.hl-ciudad:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.hl-tienda {
+  display: inline-flex;
+  vertical-align: -2px;
+  color: var(--color-taupe-profundo);
+}
+.hl-tienda svg {
+  width: 13px;
+  height: 13px;
+}
+
+.hl-horas {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  align-items: start;
+  height: 96px;
+  margin-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--color-tinta) 22%, transparent);
+}
+/* La columna entera es la zona del mouse (no el hilo de 2 px). */
+.hl-hora-col {
+  display: flex;
+  justify-content: center;
+  height: 100%;
+}
+.hl-hora {
+  position: relative;
+  width: 2px;
+  border-radius: 0 0 2px 2px;
+  background: color-mix(in srgb, var(--color-tinta) 38%, transparent);
+  transform-origin: top;
+}
+.hl-hora::after {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background: inherit;
+}
+.hl-hora[data-pico] {
+  width: 3px;
+  background: var(--color-tinta);
+}
+.hl-ejes {
+  position: relative;
+  height: 16px;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+.hl-ejes span {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.hl-ejes span:first-child {
+  transform: none;
+}
+
+.hl-cordel {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: 12px;
+  padding-top: 8px;
+}
+.hl-cordel__linea {
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: 8px;
+  height: 1.5px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-tinta) 45%, transparent);
+  transform-origin: left;
+}
+.hl-colgada {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  min-width: 0;
+  padding: 0 0 2px;
+  border-radius: 10px;
+  text-align: left;
+  transform-origin: top center;
+  transition: transform 260ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .hl-colgada:hover {
+    transform: translateY(2px);
+  }
+  .hl-colgada:hover .hl-colgada__nombre {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+.hl-pinza {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  width: 6px;
+  height: 14px;
+  margin-left: -3px;
+  border-radius: 2px;
+  background: var(--color-taupe);
+  z-index: 1;
+}
+.hl-colgada .tr-mosaico {
+  margin-top: 4px;
+  border-radius: 10px;
+}
+.hl-colgada__nombre {
+  max-width: 100%;
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.hl-colgada__n {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+}
+.hl-colgada--1 .hl-colgada__nombre {
+  font-family: var(--font-serif);
+  font-size: 17px;
+}

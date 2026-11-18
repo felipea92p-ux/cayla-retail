@@ -4,6 +4,7 @@ import { pedidoEntreSedesDeFila, type PedidoEntreSedes } from "@/lib/pedidos-ent
 import { pedidoConClienteDeFila } from "@/lib/pedidos-con-cliente-reglas";
 import { filaPorAtenderDeFila, type FilaPorAtender } from "@/lib/pedidos-por-atender-reglas";
 import { paraEnviarDeFila, type PrendaParaEnviar } from "@/lib/para-enviar-reglas";
+import { unstable_rethrow } from "next/navigation";
 
 // «Pedir a otra sede» (ADR-0242 D-7, 20260927210000): los pedidos de reposición que la sede hizo o le hicieron.
 // Solo la lectura server-side; las escrituras (`pedir_a_otra_sede`, `enviar_pedido_a_otra_sede`,
@@ -34,6 +35,7 @@ export const leerPedidosConCliente = cache(async (ubicacionId: string): Promise<
     }
     return (data ?? []).map((f) => pedidoConClienteDeFila(f as unknown as Record<string, unknown>));
   } catch (e) {
+    unstable_rethrow(e);
     console.error("No se pudieron leer los pedidos para clientes:", e);
     return null;
   }
@@ -63,6 +65,7 @@ export const getPedidosPorAtender = cache(async (ubicacionId: string): Promise<F
       return fila ? [fila] : [];
     });
   } catch (e) {
+    unstable_rethrow(e);
     console.error("No se pudieron leer los pedidos por atender:", e);
     return null;
   }
@@ -80,6 +83,7 @@ export const leerParaEnviar = cache(async (ubicacionId: string): Promise<PrendaP
     }
     return (data ?? []).map((f) => paraEnviarDeFila(f as unknown as Record<string, unknown>));
   } catch (e) {
+    unstable_rethrow(e);
     console.error("No se pudo leer la lista para enviar:", e);
     return null;
   }

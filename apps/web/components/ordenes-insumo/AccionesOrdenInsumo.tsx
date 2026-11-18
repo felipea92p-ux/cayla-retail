@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Ban, ReceiptText } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { Boton, BotonEnlace, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -34,6 +34,7 @@ import { baseConPapelDeInsumos } from "@/lib/comprobante-orden-insumo-reglas";
 import { anularOrdenInsumo } from "@/lib/ordenes-insumo-acciones";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { BotonEditar } from "@/components/ui/BotonEditar";
+import { imprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
 
 // Lo que se hace con una orden de insumos (ADR-0362, fase 7 · actividad 2), como en la orden de compra (fase 1): «Imprimir o guardar
 // PDF» siempre; «Editar» y «Anular orden» solo mientras está «generada». Con papel (fase 7 parte 2, actividad 1) se suma «Registrar
@@ -59,7 +60,7 @@ export function AccionesOrdenInsumo({ orden, empresa, lugar }: { orden: DetalleO
   useTituloDeImpresion(numeroOrdenInsumo(orden.numero));
 
   const imprimir = (
-    <BotonImprimir onClick={() => window.print()} title="También sirve para guardar la orden en PDF" guia="oi.imprimir">
+    <BotonImprimir onClick={() => imprimirAqui("hoja")} title="También sirve para guardar la orden en PDF" guia="oi.imprimir">
       Imprimir la orden
     </BotonImprimir>
   );
@@ -206,7 +207,7 @@ function AnularOrdenInsumoModal({
         >
           <p className="text-sm text-tinta/75">
             La orden queda anulada: deja de contar en lo pedido y su número no vuelve a usarse. No se borra; queda a la vista con quién la
-            anuló, cuándo y por qué. <b className="font-medium text-tinta">Esto no se puede deshacer.</b>
+            anuló, cuándo y por qué.
           </p>
           <CampoGuiado id="motivo" guia={guia} titulo="Por qué se anula">
             <CampoTexto
@@ -220,7 +221,7 @@ function AnularOrdenInsumoModal({
                 setMotivo(e.target.value);
               }}
             />
-            <p className="mt-1.5 text-xs text-taupe">Lo verá quien revise la orden después.</p>
+            <p className="mt-1.5 text-sm text-taupe">Lo verá quien revise la orden después.</p>
           </CampoGuiado>
           {!esPersona && (
             <CampoGuiado id="responsable" guia={guia} titulo="Quién la anula">
@@ -249,11 +250,12 @@ function AnularOrdenInsumoModal({
             </Aviso>
           )}
           <PieGuia guia={guia} listo="Todo listo para anular." />
+          <AvisoNoSeDeshace />
           <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton textoCargando="Anulando…" type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton textoCargando="Anulando…" type="submit" peso="primario" cargando={guardando} confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               Anular orden
             </Boton>
           </div>

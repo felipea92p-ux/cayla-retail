@@ -26,11 +26,11 @@ export function celdaRecepcion(c: CompraResumen, ahora: Date = new Date()): Celd
   if (c.estado === "anulada") return { tono: "apagado", texto: "Anulada", sub: "—", pct: null };
   const cubierto = c.recibidoCantidad + c.cerradoCantidad;
   if (c.estadoRecepcion === "recibida") {
-    return { tono: "verde", texto: "Recibida", sub: c.cerradoCantidad > 0 ? `${unidades(c.recibidoCantidad)} · ${unidades(c.cerradoCantidad)} cerradas` : `${unidades(c.recibidoCantidad)} recibidas`, pct: null };
+    return { tono: "verde", texto: "Recibida", sub: c.cerradoCantidad > 0 ? `${unidades(c.recibidoCantidad)} · ${unidades(c.cerradoCantidad)} cerradas` : unidades(c.recibidoCantidad), pct: null };
   }
   const atraso = diasDeAtraso(c, ahora);
   const parcial = c.estadoRecepcion === "parcial";
-  const avance = `${c.recibidoCantidad} de ${c.facturadoCantidad} u. recibidas`;
+  const avance = `${c.recibidoCantidad} de ${c.facturadoCantidad} u.`;
   const pct = avanceParcial(c.recibidoCantidad, c.facturadoCantidad);
   if (atraso > 0 || c.recepcionAtrasada) {
     return { tono: "ambar", texto: `Atrasada ${Math.max(atraso, 1)} ${Math.max(atraso, 1) === 1 ? "día" : "días"}`, sub: parcial ? avance : textoEsperada(c, ahora), pct };

@@ -88,7 +88,7 @@ export function ApartadosModal({
               <p className="text-sm text-tinta">
                 {liberando.referencia} <span className="text-tinta/55">· {liberando.cantidad} {liberando.cantidad === 1 ? "prenda" : "prendas"}</span>
               </p>
-              <p className="text-xs text-tinta/65">
+              <p className="text-sm text-tinta/65">
                 Apartada para {liberando.clienta} · {liberando.contacto}
               </p>
             </div>
@@ -152,8 +152,8 @@ export function ApartadosModal({
                           </a>
                         </p>
                       )}
-                      {a.nota && <p className="text-xs text-tinta/65">{a.nota}</p>}
-                      <p className="text-[11px] text-tinta/45">Apartó {a.apartoNombre ?? "—"}</p>
+                      {a.nota && <p className="text-sm text-tinta/65">{a.nota}</p>}
+                      <p className="text-sm text-tinta/45">Apartó {a.apartoNombre ?? "—"}</p>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5">
                       {a.pedidoWeb ? (

@@ -272,14 +272,14 @@ export function NuevaMarcaForm({
     }
   };
 
-  const etiqueta = "text-[12.5px] font-semibold text-tinta";
+  const etiqueta = "text-sm font-semibold text-tinta";
   const elegida = "flex items-center gap-2.5 rounded-lg bg-hueso px-3 py-2 text-sm text-tinta";
 
   return (
     <div className="space-y-3.5 rounded-xl border border-sand bg-crema px-4 py-3.5">
       <div>
         <p className="text-sm font-semibold text-tinta">Registrar marca o proveedor</p>
-        <p className="mt-0.5 text-[12.5px] text-taupe">Sirve para una marca nueva o para sumarle un proveedor a una marca que ya tienes.</p>
+        <p className="mt-0.5 text-sm text-taupe">Sirve para una marca nueva o para sumarle un proveedor a una marca que ya tienes.</p>
       </div>
 
       {/* ---------- la marca: una que existe o una nueva, en el mismo campo ---------- */}
@@ -384,7 +384,7 @@ export function NuevaMarcaForm({
                 className="tabular-nums"
               />
             </div>
-            <p className="text-xs text-taupe">
+            <p className="text-sm text-taupe">
               Con esto alcanza para seguir; el contacto, el banco y el plazo se completan después en Compras.
               {lista.length > 0 && (
                 <>

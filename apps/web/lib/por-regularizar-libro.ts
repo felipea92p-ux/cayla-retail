@@ -17,6 +17,7 @@
 import { createClient } from "./supabase/server";
 import { leerTodas } from "./resultado";
 import { libroDesdeFilas, type LibroPorVenta } from "./por-regularizar-deduccion";
+import { unstable_rethrow } from "next/navigation";
 
 export async function getLibroPorVenta(ubicacionId: string | null): Promise<LibroPorVenta | null> {
   try {
@@ -30,6 +31,7 @@ export async function getLibroPorVenta(ubicacionId: string | null): Promise<Libr
     if (r.error || !r.data) throw new Error(r.error?.message ?? "sin datos");
     return libroDesdeFilas(r.data);
   } catch (e) {
+    unstable_rethrow(e);
     console.error("Ventas sin registrar: no se pudo leer el libro para sugerir «¿Cómo estaba?»:", e);
     return null;
   }

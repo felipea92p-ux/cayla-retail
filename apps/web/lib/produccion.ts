@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional, leerTodas, opcional, type Tolerado } from "@/lib/resultado";
 import { compararTallas } from "@/lib/tallas";
 import { categoriasFueraDeMotores } from "@/lib/familias-motores";
+import type { OrdenParaMolde } from "@/lib/orden-modelo-reglas";
 import { armarVocabulario, type FilaCategoria, type VocabularioModeloNuevo } from "@/lib/modelo-nuevo-reglas";
 
 // Producción del Taller (restaurada 2026-09-15 sobre V2). Solo lecturas: toda
@@ -14,6 +15,9 @@ import { armarVocabulario, type FilaCategoria, type VocabularioModeloNuevo } fro
 export type { EtapaClave, EstadoEtapa, EstadoOrden } from "@/lib/produccion-reglas";
 import { datosDeVariante, esProducible, type EtapaClave, type EstadoEtapa, type EstadoOrden, type PrecioMasBajo } from "@/lib/produccion-reglas";
 import { RPC_TELA_EN_CAMINO, leerTelaEnCamino } from "@/lib/tela-del-taller-reglas";
+import { FASES, RPC_PROCESOS, leerProcesos, leerProcesosDeModelos, type FaseClave, type FaseDelCatalogo } from "@/lib/orden-fases-reglas";
+import type { AvioDelModelo, ConsumoDelModelo } from "@/lib/orden-tela-reglas";
+import type { IngresoAlStock } from "@/lib/orden-pagina-reglas";
 
 export type LineaOrden = {
   varianteId: string;
@@ -52,6 +56,8 @@ export type OrdenProduccion = {
   fechaEntrega: string | null;
   nota: string | null;
   inventariadoEn: string | null;
+  /** `ya_estaba`: las prendas ya estaban registradas en una sede y el cierre no las sumó al stock (ADR-0551 C). */
+  ingresoAlStock: IngresoAlStock;
   creadoEn: string;
   lineas: LineaOrden[];
 };
@@ -87,7 +93,7 @@ export async function getOrdenesProduccion(tallerId: string, opciones: { conCost
       .from("producciones")
       .select(
         `id, producto_id, estado, es_muestra, etapas,
-         cantidad_plan, cantidad_buenas, fecha_entrega, nota, inventariado_at, created_at,
+         cantidad_plan, cantidad_buenas, fecha_entrega, nota, inventariado_at, ingreso_al_stock, created_at,
          producto:productos ( referencia, categoria:categorias ( nombre ), variantes ( id, precio ) ),
          lineas:produccion_lineas (
            variante_id, cantidad_plan, cantidad_buenas,
@@ -119,6 +125,7 @@ export async function getOrdenesProduccion(tallerId: string, opciones: { conCost
     fechaEntrega: p.fecha_entrega,
     nota: p.nota,
     inventariadoEn: p.inventariado_at,
+    ingresoAlStock: p.ingreso_al_stock === "ya_estaba" ? "ya_estaba" : "movimiento",
     creadoEn: p.created_at,
     lineas: (p.lineas ?? [])
       .map((l) => ({
@@ -156,6 +163,8 @@ export type ModeloProducible = {
   tejidoId?: string | null;
   tejidoNombre?: string | null;
   variantes: VarianteDeModelo[];
+  /** Las variantes DESACTIVADAS del modelo (no salen en la tabla): «+ Talla» y «+ Color» de Nueva orden no ofrecen lo que ellas ocupan (/chaos 2026-10-31). Falta en un modelo virtual. */
+  desactivadas?: { talla: string | null; color: string | null; colorCodigo: string | null }[];
   /** Solo el líder (`conPreciosMasBajosDeModelos`): el precio propio más bajo de una tienda, si queda bajo la grilla (ADR-0370). */
   precioMasBajo?: PrecioMasBajo;
 };
@@ -207,6 +216,12 @@ export async function getModelosProducibles(opciones: { soloProducibles?: boolea
           precio: Number(v.precio),
         }))
         .sort(compararLineas),
+      desactivadas: (p.variantes ?? [])
+        .filter((v) => !v.activo)
+        .map((v) => {
+          const { talla, color, colorCodigo } = datosDeVariante(v);
+          return { talla, color, colorCodigo };
+        }),
     }))
     .filter((m) => m.variantes.length > 0);
 }
@@ -243,26 +258,83 @@ export async function getVocabularioModeloNuevo(): Promise<Tolerado<VocabularioM
   return leido ? { datos: leido, fallo: null } : { datos: null, fallo };
 }
 
+/** El historial mínimo de órdenes del Taller para saber qué modelos ya tienen molde (`moldeDelModelo`): solo producto, estado, tipo y fases, sin joins ni tope de 60 como el tablero.
+ *  Dato SECUNDARIO: si no se lee, devuelve `null` y la hoja pregunta «¿ya tienen el molde?» en vez de deducirlo. */
+export async function getHistorialDeMoldes(tallerId: string): Promise<OrdenParaMolde[] | null> {
+  return opcional(
+    (async () => {
+      const supabase = await createClient();
+      const filas = exigir(await supabase.from("producciones").select("producto_id, estado, es_muestra, etapas").eq("ubicacion_id", tallerId).neq("estado", "anulada").limit(5000), "el historial de moldes");
+      return filas.map((f) => ({ productoId: f.producto_id, estado: f.estado, esMuestra: f.es_muestra, etapas: (f.etapas ?? null) as OrdenParaMolde["etapas"] }));
+    })(),
+    "el historial de moldes",
+  );
+}
+
 /** Lo que la hoja «Nueva orden» ofrece elegir (ADR-0400, actividad 2): los proveedores que hacen servicios con su lista de precios, cuánta tela lleva cada modelo
  *  (declarado desde Audaces o medido al cerrar) y los metros de cada tela ya comprometidos por las órdenes en proceso. Una sola RPC (`fn_nueva_orden_opciones`),
  *  que responde a quien puede leer Producción en ese Taller. Es dato SECUNDARIO: si no se lee, la orden se abre igual con sus fases en el Taller y sin tela. */
 export type OpcionesNuevaOrden = {
   proveedores: { id: string; nombre: string; rubro: string; activo: boolean; tarifas: { faseClave: string; tarifa: number; minimo: number | null; fijo: number; vigenteDesde: string }[] }[];
   /** Por modelo: metros de tela por prenda y de dónde sale el número. */
-  consumos: Record<string, { telaPorPrenda: number; fuente: "declarado" | "medido" }>;
+  consumos: Record<string, ConsumoDelModelo>;
+  /** Por modelo: los avíos que ya tiene (botones, hilo, etiquetas), para que Nueva orden los proponga sola (ADR-0513). */
+  aviosModelo: Record<string, AvioDelModelo[]>;
   /** Por tela: metros que las órdenes en proceso ya tienen comprometidos (plan − descontado). */
   comprometido: Record<string, number>;
   /** Por tela: lo que viene en camino (lo que falta recibir de los pedidos, sin los atrasados; `fn_tela_en_camino`, regla de Felipe del 2026-10-16). Sin ello, nada viene. */
   enCamino: Record<string, number>;
+  /** Por modelo que ya contestó: si lleva ojales y botones (ADR-0551). Un modelo que NO sale acá es uno que nadie ha preguntado, distinto de «no lleva». Sin lectura, ninguno contesta. */
+  ojalesBotones: Record<string, boolean>;
+  /** Por modelo: lo que dijo de cada proceso (`producto_procesos`, ADR-0570 actividad 5). «El modelo sugiere y la orden manda». */
+  procesosDelModelo: Record<string, Record<FaseClave, boolean>>;
+  /** El catálogo de procesos (`fn_procesos_produccion`); si no se pudo leer, el de respaldo. */
+  procesos: ReadonlyArray<FaseDelCatalogo>;
 };
 
 type OpcionesLeidas = {
   proveedores?: { id: string; nombre: string; rubro: string; activo: boolean; tarifas?: { fase_clave: string; tarifa_prenda: number | string; cantidad_minima: number | null; fijo_orden: number | string; vigente_desde: string }[] }[];
-  consumos?: { producto_id: string; tela_por_prenda: number | string; fuente: "declarado" | "medido" }[];
+  consumos?: {
+    producto_id: string;
+    tela_por_prenda: number | string;
+    fuente: "declarado" | "medido";
+    por_talla?: Record<string, number | string> | null;
+    declarado_por_prenda?: number | string | null;
+    medido_por_prenda?: number | string | null;
+    ordenes_medidas?: number | string | null;
+  }[];
   comprometido?: { insumo_id: string; cantidad: number | string }[];
+  avios_modelo?: { producto_id: string; insumo_id: string; color_codigo: string | null; cantidad_por_prenda: number | string }[];
 };
 
 export const RPC_NUEVA_ORDEN_OPCIONES = "fn_nueva_orden_opciones";
+/** Lo que cada modelo dijo de cada proceso (ADR-0570, actividad 5; reemplaza a `fn_ojales_botones_de_modelos`). */
+export const RPC_PROCESOS_DE_MODELOS = "fn_procesos_de_modelos";
+
+/** Los avíos vigentes de cada modelo, en el orden en que la base los entrega; una cantidad que no se lee no entra. */
+function aviosPorModelo(filas: NonNullable<OpcionesLeidas["avios_modelo"]>): Record<string, AvioDelModelo[]> {
+  const salida: Record<string, AvioDelModelo[]> = {};
+  for (const f of filas) {
+    const cantidad = Number(f.cantidad_por_prenda);
+    if (!Number.isFinite(cantidad) || cantidad <= 0) continue;
+    (salida[f.producto_id] ??= []).push({ insumoId: f.insumo_id, colorCodigo: f.color_codigo, cantidadPorPrenda: cantidad });
+  }
+  return salida;
+}
+
+/** Un consumo de `fn_nueva_orden_opciones` como lo usa la hoja: lo que manda, la forma por talla (si la hay) y de dónde sale (ADR-0513). Un campo que no llega queda sin dato, nunca en cero. */
+function consumoDelModelo(c: NonNullable<OpcionesLeidas["consumos"]>[number]): ConsumoDelModelo {
+  const numeroONulo = (v: number | string | null | undefined) => (v === null || v === undefined || Number.isNaN(Number(v)) ? null : Number(v));
+  const porTalla = c.por_talla && typeof c.por_talla === "object" ? Object.fromEntries(Object.entries(c.por_talla).flatMap(([t, v]) => (numeroONulo(v) !== null ? [[t, Number(v)] as const] : []))) : null;
+  return {
+    telaPorPrenda: Number(c.tela_por_prenda),
+    fuente: c.fuente,
+    porTalla: porTalla && Object.keys(porTalla).length > 0 ? porTalla : null,
+    declaradoPorPrenda: numeroONulo(c.declarado_por_prenda),
+    medidoPorPrenda: numeroONulo(c.medido_por_prenda),
+    ordenesMedidas: numeroONulo(c.ordenes_medidas) ?? 0,
+  };
+}
 
 export async function getOpcionesNuevaOrden(tallerId: string): Promise<Tolerado<OpcionesNuevaOrden>> {
   const fallo = "No se pudieron cargar los servicios ni las telas para la orden. La orden igual se puede abrir con sus fases en el Taller.";
@@ -279,6 +351,12 @@ export async function getOpcionesNuevaOrden(tallerId: string): Promise<Tolerado<
       // Lo que viene en camino es dato SECUNDARIO de lo secundario: si la lectura falla, la hoja sigue (sin contar nada en camino).
       const camino = await (supabase.rpc(RPC_TELA_EN_CAMINO as never, { p_ubicacion_id: tallerId } as never) as unknown as PromiseLike<{ data: unknown; error: { message: string } | null }>);
       const enCamino = camino.error ? null : leerTelaEnCamino(camino.data);
+      // Lo que cada modelo dijo de sus procesos también es secundario: si la función aún no está en la base o falla, ningún modelo contesta y la hoja pregunta (nunca prende un paso a ciegas).
+      const delModelo = await (supabase.rpc(RPC_PROCESOS_DE_MODELOS as never) as unknown as PromiseLike<{ data: unknown; error: { message: string } | null }>);
+      const procesosDelModelo = delModelo.error ? {} : leerProcesosDeModelos(delModelo.data);
+      const ojalesBotones = Object.fromEntries(Object.entries(procesosDelModelo).flatMap(([id, p]) => (typeof p.ojales_botones === "boolean" ? [[id, p.ojales_botones] as const] : [])));
+      // El catálogo de procesos: sin él, la hoja ofrece los de respaldo (los de siempre).
+      const catalogo = await (supabase.rpc(RPC_PROCESOS as never) as unknown as PromiseLike<{ data: unknown; error: { message: string } | null }>);
       return {
         proveedores: (o.proveedores ?? []).map((p) => ({
           id: p.id,
@@ -293,9 +371,13 @@ export async function getOpcionesNuevaOrden(tallerId: string): Promise<Tolerado<
             vigenteDesde: t.vigente_desde,
           })),
         })),
-        consumos: Object.fromEntries((o.consumos ?? []).map((c) => [c.producto_id, { telaPorPrenda: Number(c.tela_por_prenda), fuente: c.fuente }])),
+        consumos: Object.fromEntries((o.consumos ?? []).map((c) => [c.producto_id, consumoDelModelo(c)])),
+        aviosModelo: aviosPorModelo(o.avios_modelo ?? []),
         comprometido: Object.fromEntries((o.comprometido ?? []).map((c) => [c.insumo_id, Number(c.cantidad)])),
         enCamino: Object.fromEntries([...(enCamino ?? [])].filter(([, c]) => c.cuenta > 0).map(([id, c]) => [id, c.cuenta])),
+        ojalesBotones,
+        procesosDelModelo,
+        procesos: (catalogo.error ? null : leerProcesos(catalogo.data)) ?? FASES,
       } satisfies OpcionesNuevaOrden;
     })(),
     "los servicios y las telas de la orden",

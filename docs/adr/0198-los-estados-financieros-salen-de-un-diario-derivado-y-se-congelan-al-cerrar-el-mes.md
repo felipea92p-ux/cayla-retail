@@ -2,6 +2,8 @@
 
 > **Renumerado el 2026-09-25:** nació como ADR-0109 en el PR #170, que nunca se fusionó. Ese número ya lo tenía «Crear producto es un árbol de decisión» en `main`. Las referencias de Finanzas dicen ahora ADR-0198.
 
+> **Corregido el 2026-11-06 por ADR-0619:** el Balance ya no se esconde por una cuenta que difiere; sale con aviso. Solo se esconde si falla el arranque, el diario o la ecuación.
+
 **Fecha:** 2026-09-18
 **Estado:** **APROBADO por Felipe el 2026-09-18** (opción C), con tres decisiones de negocio
 que están más abajo. No hay código ni migración todavía: este documento fija el modelo; las

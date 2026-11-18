@@ -5,6 +5,7 @@ import { Boton } from "@/components/ui/campos";
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { agruparPorFamilia } from "@/lib/colores-familias";
+import { familiaEnCarta } from "@/lib/color-estampado-reglas";
 
 // Los colores de un MODELO NUEVO dentro de «Nueva orden de producción» (ADR-0396, A2). Antes los colores se elegían arriba, en el bloque de «Modelo nuevo», y las cantidades se
 // escribían mucho más abajo: quien cambiaba de idea tenía que subir, quitar y volver a bajar. Ahora cada color elegido es una FILA de la tabla de cantidades (con su «×» para
@@ -16,18 +17,55 @@ import { agruparPorFamilia } from "@/lib/colores-familias";
 
 /** El «×» de una fila de color: la misma píldora de Nuevo producto, sola. Quitar un color de entre varios no borra lo escrito en él: si vuelve a agregarse, sus números reaparecen.
  *  `onQuitar(conTeclado)`: con Enter o Espacio el clic llega con `detail === 0`; quien quita lo usa para dejar el cursor en la tabla (la fila donde estaba desaparece). */
-export function QuitarColor({ nombre, onQuitar }: { nombre: string; onQuitar: (conTeclado: boolean) => void }) {
+export function QuitarColor({ nombre, onQuitar, doble = false }: { nombre: string; onQuitar: (conTeclado: boolean) => void; doble?: boolean }) {
+  // `doble` (Felipe 2026-11-17: «que sea doble lo de borrar el color»): el primer toque convierte la «×» en «¿Quitar Beige?» en la misma fila y el
+  // segundo quita. Si pasan unos segundos o se toca otra cosa, vuelve sola: un clic de más ya no se lleva un color. Sin ventana aparte, para que no
+  // frene a quien sí quiere quitarlo.
+  const [armado, setArmado] = useState(false);
+  const confirmar = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!armado) return;
+    confirmar.current?.focus({ preventScroll: true });
+    const t = window.setTimeout(() => setArmado(false), ESPERA_DOBLE_MS);
+    return () => window.clearTimeout(t);
+  }, [armado]);
+  if (doble && armado) {
+    return (
+      <button
+        ref={confirmar}
+        type="button"
+        onClick={(e) => {
+          setArmado(false);
+          onQuitar(e.detail === 0);
+        }}
+        onBlur={() => setArmado(false)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.stopPropagation();
+            setArmado(false);
+          }
+        }}
+        aria-label={`Confirmar: quitar ${nombre}`}
+        className="btn-cayla btn-peligro btn-chico"
+      >
+        ¿Quitar {nombre}?
+      </button>
+    );
+  }
   return (
     <button
       type="button"
-      onClick={(e) => onQuitar(e.detail === 0)}
+      onClick={(e) => (doble ? setArmado(true) : onQuitar(e.detail === 0))}
       aria-label={`Quitar ${nombre}`}
-      className="grid h-6 w-6 place-items-center rounded-full text-[15px] leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
+      className="area-dedo grid h-6 w-6 place-items-center rounded-full text-[15px] leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
     >
       ×
     </button>
   );
 }
+
+/** Cuánto espera «¿Quitar …?» el segundo toque antes de volver a ser la «×». */
+const ESPERA_DOBLE_MS = 4000;
 
 export function AgregarColor({
   colores,
@@ -50,7 +88,7 @@ export function AgregarColor({
   useEffect(() => {
     recorrio.current = false;
   }, [elegidos]);
-  const grupos = useMemo(() => agruparPorFamilia(colores, (c) => c.familiaColor), [colores]);
+  const grupos = useMemo(() => agruparPorFamilia(colores, familiaEnCarta), [colores]);
 
   /** Antes que el buscador (captura): con la lista abierta, la primera fila ya viene resaltada aunque no se haya escrito nada, y un Enter «de costumbre» agregaba el primer color
    *  (Blanco) sin que nadie lo pidiera. Sin escribir ni recorrer la lista, Enter no elige a ciegas (como el buscador de modelos de A1). */
@@ -89,7 +127,7 @@ export function AgregarColor({
         <Boton type="button" peso="fantasma" aria-expanded={abierto} onClick={() => setAbierto((v) => !v)}>
           {abierto ? "Listo con los colores" : "+ Agregar color"}
         </Boton>
-        {elegidos.length === 0 && <span className="text-[12.5px] text-tinta/70">Opcional: si no tiene color, déjalo así.</span>}
+        {elegidos.length === 0 && <span className="text-sm text-tinta/70">Opcional: si no tiene color, déjalo así.</span>}
       </div>
       {/* Sin marco propio: la carta de colores ya trae el suyo, y dos marcos iguales uno dentro del otro se veían como un error. */}
       {abierto && <ElegirColores colores={colores} grupos={grupos} elegidos={elegidos} onAlternar={onAlternar} onCreado={onCreado} cartaAbierta={false} sinElegidos enfocarBuscador />}

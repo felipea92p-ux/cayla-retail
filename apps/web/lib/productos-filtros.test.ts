@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   empresaDeUrl,
   faltaDeUrl,
+  faltasVisibles,
   temporadaDeUrl,
   disponibilidadDeUrl,
   rotuloDisponibilidad,
@@ -55,7 +56,7 @@ describe("productos-filtros — cajas que se escriben", () => {
     expect(cambiosTipeados("q=blusa", { q: " blusa " })).toEqual({});
     expect(cambiosTipeados("q=blusa", { q: "" })).toEqual({ q: "" });
     // Nunca reaparece una caja que no se tocó (antes el precio viejo volvía con la primera letra del buscador).
-    expect(cambiosTipeados("stock=reponer", { q: "b" })).toEqual({ q: "b" });
+    expect(cambiosTipeados("stock=reponer", { q: "bl" })).toEqual({ q: "bl" });
   });
 
   it("el precio se manda normalizado y a medio escribir se espera, sin borrar el filtro", () => {
@@ -323,6 +324,15 @@ describe("productos-filtros — temporada y «por completar»", () => {
     expect(temporadaDeUrl("'; drop")).toBeUndefined();
     expect(faltaDeUrl("foto")).toBe("foto");
     expect(faltaDeUrl("precio")).toBeUndefined();
+    expect(faltaDeUrl("costo")).toBe("costo");
+  });
+
+  it("«Sin costo» solo se ofrece a quien ve el costo, y su chip lo dice", () => {
+    expect(faltasVisibles(true)).toContain("costo");
+    expect(faltasVisibles(false)).not.toContain("costo");
+    expect(faltasVisibles(false)).toEqual(["foto", "temporada", "marca", "proveedor"]);
+    const nombres = { categoria: () => undefined, marca: () => undefined, proveedor: () => undefined, color: () => undefined };
+    expect(chipsDeFiltros("falta=costo", nombres).map((c) => c.texto)).toEqual(["Por completar: Sin costo"]);
   });
 
   it("los chips dicen el nombre de la temporada y qué falta, y cuentan como filtros", () => {

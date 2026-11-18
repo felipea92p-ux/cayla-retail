@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useId, useMemo, useState } from "react";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Modal } from "@/components/ui/Modal";
@@ -42,6 +43,7 @@ export function NuevoRolModal({
       {(cerrar) => (
         <form
           className="mt-5 space-y-4"
+          onKeyDown={enterNoGuarda}
           onSubmit={async (e) => {
             e.preventDefault();
             if (!valido || enviando || !responsable.listo) return;
@@ -90,6 +92,7 @@ export function RenombrarRolModal({
       {(cerrar) => (
         <form
           className="mt-5 space-y-4"
+          onKeyDown={enterNoGuarda}
           onSubmit={async (e) => {
             e.preventDefault();
             if (!valido || enviando || !responsable.listo) return;
@@ -224,13 +227,14 @@ export function AsignarRolModal({
   return (
     <Modal
       titulo={cuentaFija ? `Rol de ${cuentaFija.nombre}` : `Asignar «${rolFijo?.nombre ?? ""}»`}
-      subtitulo="Una cuenta tiene un solo rol. El cambio se aplica en su próxima pantalla: el menú y lo que puede hacer salen de su rol."
+      subtitulo="Una cuenta tiene un solo rol. El cambio se ve en su próxima pantalla."
       tamano="mediana"
       onClose={onClose}
     >
       {(cerrar) => (
         <form
           className="mt-5 space-y-4"
+          onKeyDown={enterNoGuarda}
           onSubmit={async (e) => {
             e.preventDefault();
             if (!listo || !cuenta || enviando || !responsable.listo) return;
@@ -261,7 +265,7 @@ export function AsignarRolModal({
           {conSede && (
             <CampoSelect etiqueta="Sede donde queda" valor={ubicacionId} onValor={setUbicacionId} opciones={opcionesSede} marcador="Elige una sede" />
           )}
-          {cuenta && rolId && rolId === cuenta.rolId && <p className="text-xs text-tinta/65">Ya tiene ese rol.</p>}
+          {cuenta && rolId && rolId === cuenta.rolId && <p className="text-sm text-tinta/65">Ya tiene ese rol.</p>}
           {cuenta && destino && rolId !== cuenta.rolId && destino.fijo && (
             <Aviso tono="atencion">Como líder verá y hará todo en todas las sedes, incluidos Colaboradores y Roles y accesos.</Aviso>
           )}

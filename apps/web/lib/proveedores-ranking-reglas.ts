@@ -180,13 +180,6 @@ export function paraHoy<P extends ProveedorDeHoy>(proveedores: readonly P[]) {
   };
 }
 
-/** Qué parte de lo que compras (en la medida elegida) es de tus `n` primeros proveedores: con pocos, dependes de ellos. */
-export function concentracion(filas: readonly Pick<FilaRanking, "unidadesCompradas" | "gasto">[], medida: MedidaRanking, n = 10): number {
-  const valores = filas.map((f) => valorDe(f, medida)).sort((a, b) => b - a);
-  const total = valores.reduce((a, v) => a + v, 0);
-  return total > 0 ? (valores.slice(0, n).reduce((a, v) => a + v, 0) / total) * 100 : 0;
-}
-
 // ---------------------------------------------------------------------------
 // Las ventas por día de cada proveedor (`fn_proveedores_ventas_diarias`, 20261026172000): la línea chica de cada fila y «N esta semana».
 // ---------------------------------------------------------------------------

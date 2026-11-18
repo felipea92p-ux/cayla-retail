@@ -15,6 +15,7 @@ import { textoCierre, type RondaCerrada } from "@/lib/mi-plata-reglas";
 // único que se le pide: abrirla al salir a comprar. La abre ella misma (decisión de Felipe), de un toque y sin preguntas: abrir no mueve
 // plata, y dos toques no abren dos (la base devuelve la que ya estaba). Debajo, cómo cerró la última, si Compras todavía no la recibió.
 // La usan Mi plata y «Compré ropa» (si se llega ahí sin ronda).
+// Reabrir la última ronda vive en «Tu última ronda» (`ReabrirRonda`), junto a la ronda que se reabre.
 export function AbrirRonda({ ultimaCerrada }: { ultimaCerrada: RondaCerrada | null }) {
   const router = useRouter();
   const [abriendo, setAbriendo] = useState(false);

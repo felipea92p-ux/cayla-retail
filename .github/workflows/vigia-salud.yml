@@ -12,7 +12,7 @@ name: Vigía de salud
 #
 # Lo que hay que configurar una vez (Settings ▸ Secrets and variables ▸ Actions ▸ pestaña VARIABLES, no secretos: son direcciones públicas):
 #   URL_SALUD_ERP     la ruta completa del ERP, terminada en /api/salud
-#   URL_SALUD_TIENDA  la ruta completa de la tienda, https://tienda.cayla.pe/api/salud
+#   URL_SALUD_TIENDA  la ruta completa de la tienda, https://cayla.pe/api/salud
 # Pega ANTES la migración 20261017225000 (`retail.fn_salud()`) en producción: sin ella el ERP contesta «falta_fn_salud» y el vigía avisa.
 # Sin ninguna variable, el trabajo no hace nada y lo dice. Para probarlo: Actions ▸ Vigía de salud ▸ Run workflow (con «ensayo» no escribe avisos).
 on:

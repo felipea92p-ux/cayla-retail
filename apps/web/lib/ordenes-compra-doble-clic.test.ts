@@ -49,7 +49,7 @@ describe("órdenes de compra: un segundo clic en el mismo instante no vuelve a g
     });
   });
   it("la hoja «Anular envío» pone el candado antes de anular", () => {
-    expect(candadoAntesDe(leer("components/ordenes-compra/EnviosDeOrden.tsx"), "anularEnvioDeOrden")).toEqual({
+    expect(candadoAntesDe(leer("components/ordenes-compra/AnularEnvioModal.tsx"), "anularEnvioDeOrden")).toEqual({
       declara: true,
       revisaAntes: true,
       poneAntes: true,

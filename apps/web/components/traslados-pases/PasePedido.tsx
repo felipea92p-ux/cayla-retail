@@ -263,7 +263,7 @@ function ReversoPedido({ pedido: p, modo, sede, onModo }: { pedido: PedidoEntreS
               </p>
             )}
             <div>
-              <p className="mb-1.5 text-[13px] font-semibold text-tinta">¿Cuándo llega?</p>
+              <p className="mb-1.5 text-sm font-semibold text-tinta">¿Cuándo llega?</p>
               <div className="flex flex-wrap gap-2" role="group" aria-label="¿Cuándo llega?">
                 {opciones.map((o) => (
                   <button key={o.clave} type="button" className="pildora-cayla" aria-pressed={llegada.clave === o.clave} onClick={() => setLlegada(o)} disabled={ocupado}>
@@ -306,11 +306,11 @@ function ReversoPedido({ pedido: p, modo, sede, onModo }: { pedido: PedidoEntreS
             </button>
             <Boton
               type="button"
-              peso={modo === "enviar" ? "primario" : "peligro"}
+              peso="primario"
               cargando={Boolean(trabajando || intento.enviando)}
               textoCargando={modo === "enviar" ? "Enviando…" : "Cancelando…"}
               onClick={() => void (modo === "enviar" ? enviar() : cancelar())}
-              disabled={revisando || !guia.puedeConfirmar}
+              disabled={revisando} confirma={guia}
               title={guia.frase ?? undefined}
               className={`tp-grande ${guia.claseConfirmar}`}
             >

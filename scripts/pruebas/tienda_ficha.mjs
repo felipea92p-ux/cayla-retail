@@ -554,7 +554,7 @@ begin
 end $m$;\n`;
     valor(
       "MUTANTE la pieza común con «Todas» toma el MENOR: las cuatro bajan JUNTAS a 69.90 (ninguna tiene su propio precio)",
-      `${PREPARAR}${CON_LOOK}${PRECIOS_PROPIOS}${MUTAR("max(retail.fn_precio_en_sede(v.id, s.id))", "min(retail.fn_precio_en_sede(v.id, s.id))")}
+      `${PREPARAR}${CON_LOOK}${PRECIOS_PROPIOS}${MUTAR("select x.variante_id, max(x.precio) as precio", "select x.variante_id, min(x.precio) as precio")}
         select pg_temp.las_cuatro(:'neg_m', null, :'look');\nrollback;`,
       "bolsa=69.90/69.90/- catalogo=69.90/69.90/- ficha=69.90/69.90/- look=69.90/69.90/-",
     );
@@ -698,10 +698,10 @@ end $m$;
   valor(
     "MUTANTE fn_precio_en_sede confunde la ropa con el obsequio: la talla de ropa en S/ 0 deja de ofrecerse en Trujillo y con «Todas», en las tres JUNTAS (ninguna decide por su cuenta)",
     `${CERO_CON_PRECIO_PROPIO}do $m$
-declare d text := pg_get_functiondef('retail.fn_precio_en_sede(uuid, uuid)'::regprocedure);
+declare d text := pg_get_functiondef('retail.fn_precios_en_sedes(uuid[], uuid[])'::regprocedure);
 begin
   if position('retail.fn_categoria_admite_precio_cero(pr.categoria_id)' in d) = 0 then
-    raise exception 'mutante vacío: fn_precio_en_sede no pregunta la categoría de la prenda';
+    raise exception 'mutante vacío: fn_precios_en_sedes no pregunta la categoría de la prenda';
   end if;
   execute replace(d, 'retail.fn_categoria_admite_precio_cero(pr.categoria_id)', 'true');
 end $m$;

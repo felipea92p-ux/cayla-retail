@@ -119,6 +119,8 @@ export function camposDeLlegada(p: {
   responsableMotivo: string | null;
   /** `null`: el proveedor no tiene facturas pendientes aquí (no se pregunta). `true`/`false`: si ya se contestó. */
   facturaRespondida?: boolean | null;
+  /** ADR-0542: `null`/ausente = aquí no se pregunta de quién es lo que llega (una sola empresa); `true` = falta elegirlo; `false` = ya se eligió. */
+  duenoFalta?: boolean | null;
 }): CampoDeGuia[] {
   const factura: CampoDeGuia[] =
     p.facturaRespondida == null
@@ -128,6 +130,9 @@ export function camposDeLlegada(p: {
     { id: "llegada-proveedor", nombre: "De quién", requerido: true, hecho: p.proveedorId !== "", pendiente: "Elige el proveedor." },
     ...factura,
     { id: "llegada-prendas", nombre: "Qué llegó", requerido: true, hecho: totalUnidades(p.lineas) > 0, pendiente: "Escanea o busca las prendas que llegaron." },
+    ...(p.duenoFalta === null || p.duenoFalta === undefined
+      ? []
+      : [{ id: "llegada-dueno", nombre: "De quién es", requerido: true, hecho: !p.duenoFalta, pendiente: "Elige si lo que llegó es de CAYLA o de CLAURE." }]),
     {
       id: "llegada-responsable",
       nombre: "Quién recibe",
@@ -155,8 +160,9 @@ export function pedidoRecibirLote(p: {
       variante_id: l.varianteId,
       cantidad: l.cantidad,
       ...(l.costo !== "" ? { costo_unitario: numeroDeMonto(l.costo) } : {}),
-      // Solo en el reintento tras `costo_atipico` y solo en las líneas que vio el líder (20260930122000).
-      ...(p.confirmadas?.includes(n + 1) ? { confirma_costo: true } : {}),
+      // Solo en el reintento tras `costo_atipico` y solo en las líneas que vio quien confirma (20260930122000). ADR-0668 (A4): con su monto,
+      // que es el que la base vuelve a comparar (un «sí» suelto ya no alcanza para un costo fuera de lo que suele costar).
+      ...(p.confirmadas?.includes(n + 1) ? { confirma_costo: true, ...(l.costo !== "" ? { confirma_montos: [numeroDeMonto(l.costo)] } : {}) } : {}),
     })),
     p_numero_guia: p.numeroGuia.trim() || undefined,
     p_token: p.token,

@@ -23,7 +23,7 @@ versalitas, la caja con el valor, la pastilla de Cambios y Finanzas).
 
 1. **Dónde se escribe y dónde se elige · P1, la caja que se enciende.** Todo campo y todo combo de una hoja es la caja hundida en hueso de
    40 px (`caja-cayla caja-campo`). Con el cursor adentro o la lista abierta, la caja sube a papel, su borde se afirma y su borde de abajo
-   DIBUJA el hilo rojo desde el centro. El hilo conserva lo que hacía sobre la línea: verde y fijo cuando el dato está bien
+   DIBUJA el hilo desde el centro (de tinta desde el 2026-11-05, ADR-0284 act. j: el rojo es solo del error). El hilo conserva lo que hacía sobre la línea: verde y fijo cuando el dato está bien
    (`valido`, el RUC encontrado), barre mientras consulta (`trabajando`), y el borde se pone rojo suave cuando el dato falta o está mal.
    El monto es la misma caja de 48 px con su «S/» y la cifra en serif; el Responsable, la misma caja de 48 px con su avatar.
    ComboBuscable lleva su lupa adentro: ahí se escribe para buscar.

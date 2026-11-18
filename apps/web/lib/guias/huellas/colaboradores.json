@@ -2,7 +2,7 @@
   "guia": "colaboradores",
   "ruta": "/colaboradores",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 77,
+  "total": 81,
   "controles": {
     "components/ColaboradoresModales.tsx": [
       "ComboResponsable «{responsable}»",
@@ -10,9 +10,13 @@
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/ColaboradoresPanel.tsx": [
-      "button «{guia}»",
       "Boton «colaboradores.actividad»",
-      "Boton «colaboradores.dar-acceso»"
+      "Boton «colaboradores.dar-acceso»",
+      "Pestanas «→(c) => setSeccion(c === \"roles\" ? \"roles\" : \"cuentas\")»",
+      "ComboResponsable «{responsable}»"
+    ],
+    "components/RolesCanales.tsx": [
+      "Casilla «{`${c.nombre}»"
     ],
     "components/RolesModales.tsx": [
       "input «rol-nombre»",
@@ -34,19 +38,21 @@
       "Boton «Cancelar» #4",
       "Boton «{responsable.motivo ?? undefined}» #4"
     ],
+    "components/RolesModulos.tsx": [
+      "button «→() => alternarArea(grupo)»",
+      "Casilla «{`${m.nombre}»",
+      "button «{todoEncendido ? `Quitar todo ${grupo}»"
+    ],
     "components/RolesPanel.tsx": [
       "ComboResponsable «{responsable}»",
-      "Boton «{rol.fijo ? \"Asignar a una persona\" : \"Asignar a una cuenta\"}»",
+      "Boton «Asignar»",
       "Desplegable «{`pantalla-principal-${rol.id}»",
-      "button «{todoEncendido ? \"Quitar todos\" : \"Todos\"}»",
-      "button «{`${m.nombre}»",
       "Boton «Descartar»",
       "Boton «{responsable.motivo ?? undefined}»",
-      "button «roles.nuevo»",
+      "Boton «roles.nuevo»",
       "button «Archivados (»",
       "button «{r.nombre}»",
-      "button «{rol.nombre}»",
-      "SegmentoDeslizante «Dónde está parado»"
+      "button «{rol.descripcion ?? undefined}»"
     ],
     "components/TerminalesModales.tsx": [
       "BotonCopiar «el correo y la clave»",
@@ -78,27 +84,29 @@
     ],
     "components/colaboradores/EquipoLista.tsx": [
       "button «{guia}»",
-      "ComboResponsable «{responsable}»",
-      "button «Sí, rechazar»",
-      "button «Volver»",
-      "button «{responsable.motivo ?? undefined}»",
+      "button «{guia}» #2",
+      "button «Sí»",
       "button «No»",
-      "button «{a.etiqueta}»",
+      "button «{`Rechazar el alta de ${p.nombre}»",
+      "button «{`Aprobar a ${p.nombre}»",
+      "ComboResponsable «{responsable}»",
+      "button «→() => onFiltro(a.filtro)»",
       "Boton «colaboradores.nueva-terminal»",
+      "SegmentoDeslizante «Vista»",
       "Boton «Borrar la búsqueda»"
     ],
     "components/colaboradores/FichaColaborador.tsx": [
       "button «{texto}»",
       "ComboResponsable «{responsable}»",
-      "button «{r.nombre}»",
+      "button «Sí, quitar»",
+      "button «Volver»",
+      "button «Quitar acceso»",
+      "button «→() => setRolElegido(r.id)»",
       "button «{u.nombre}»",
       "button «{responsable.motivo ?? guia.frase ?? undefined}»",
       "button «{u.nombre}» #2",
       "input «{`motivo-${persona.id}»",
-      "button «{responsable.motivo ?? guia.frase ?? undefined}» #2",
-      "button «Sí, quitar acceso»",
-      "button «Volver»",
-      "button «Quitar acceso»"
+      "button «{responsable.motivo ?? guia.frase ?? undefined}» #2"
     ],
     "components/colaboradores/FichaTerminal.tsx": [
       "button «{texto}»"

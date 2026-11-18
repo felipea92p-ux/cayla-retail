@@ -1,5 +1,5 @@
 import type { createClient } from "@/lib/supabase/client";
-import { ADJUNTOS_BUCKET, ADJUNTOS_MAX_BYTES, ADJUNTOS_TIPOS, tamanoLegible } from "@/lib/compras-reglas";
+import { ADJUNTOS_BUCKET, ADJUNTOS_MAX_BYTES, ADJUNTOS_TIPOS, tamanoLegible, type AdjuntoCompra } from "@/lib/compras-reglas";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import type { FirmaOmitida } from "@/lib/responsable-omitido";
 
@@ -116,4 +116,31 @@ export function leerErrorStorage(mensaje: string): string {
   if (m.includes("mime type") || m.includes("not supported")) return "Ese tipo de archivo no está permitido.";
   if (m.includes("row-level security") || m.includes("unauthorized")) return "No tienes permiso para subir archivos.";
   return `No se pudo subir: ${mensaje}`;
+}
+
+/**
+ * Los adjuntos de un comprobante leídos desde el NAVEGADOR (la hoja de un gasto, ADR-0588): lo mismo que `getAdjuntosCompra` (compras.ts) del
+ * servidor, con su URL firmada de una hora. La base solo los muestra a quien ve el dinero de Compras (`fn_puede_ver_dinero_de_compras`); sin
+ * permiso, o si no responde, vuelve vacío y la hoja no dice nada (es un dato secundario).
+ */
+export async function cargarAdjuntosDeComprobante(supabase: Cliente, compraId: string): Promise<AdjuntoCompra[]> {
+  const { data, error } = await supabase
+    .from("compra_adjuntos" as never)
+    .select("id, ruta, nombre, tipo, bytes, created_at")
+    .eq("compra_id", compraId)
+    .is("archivado_en", null)
+    .order("created_at", { ascending: true });
+  const filas = (error ? [] : ((data ?? []) as unknown as { id: string; ruta: string; nombre: string; tipo: string; bytes: number; created_at: string }[]));
+  if (filas.length === 0) return [];
+  let urls = new Map<string, string>();
+  try {
+    const firmadas = await supabase.storage.from(ADJUNTOS_BUCKET).createSignedUrls(
+      filas.map((f) => f.ruta),
+      60 * 60,
+    );
+    urls = new Map((firmadas.data ?? []).flatMap((d) => (d.signedUrl && d.path ? [[d.path, d.signedUrl] as const] : [])));
+  } catch {
+    // Sin Storage no hay enlaces; la lista igual sale.
+  }
+  return filas.map((f) => ({ id: f.id, nombre: f.nombre, tipo: f.tipo, bytes: f.bytes, creadoEn: f.created_at, url: urls.get(f.ruta) ?? null }));
 }

@@ -8,6 +8,7 @@ import { getPedidosPorAtender } from "@/lib/pedidos-entre-sedes";
 import { numeroDelMenuTraslados } from "@/lib/pedidos-por-atender-reglas";
 import type { FirmaVigente } from "@/lib/firma-heredada";
 import { esEstadoSobrante, type SobranteTraslado } from "@/lib/traslados-sobrantes-reglas";
+import { unstable_rethrow } from "next/navigation";
 
 // Traslados en dos fases (20260916150000): envío → en tránsito →
 // confirmación en destino. Las RPC de escritura (iniciar_traslado,
@@ -354,6 +355,7 @@ export async function getWhatsappDeSedes(): Promise<Map<string, string>> {
     }
     return new Map(data.flatMap((u) => (u.whatsapp_numero ? [[u.id, u.whatsapp_numero] as const] : [])));
   } catch (e) {
+    unstable_rethrow(e);
     console.error("WhatsApp de las sedes:", e);
     return new Map();
   }
@@ -392,6 +394,9 @@ type FilaContador = {
 export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCerrarDiferencia: boolean): Promise<number | null> => {
   try {
     const supabase = await createClient();
+    // Lo de más por revisar (ADR-0404) va en paralelo con los traslados: no depende de ellos, y este contador corre en el marco
+    // de TODA pantalla (antes eran dos idas a la base en serie antes de pintar).
+    const deMasP = puedeCerrarDiferencia ? leerSobrantesPorRevisar(supabase, ubicacionId) : null;
     const { data, error } = await supabase
       .from("transferencias")
       .select("estado, ubicacion_origen_id, ubicacion_destino_id, fecha_estimada_llegada, confirmado_en, transferencia_items!inner ( variante_id )")
@@ -412,9 +417,10 @@ export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCer
       { miUbicacionId: ubicacionId, puedeCerrarDiferencia, ahoraIso: new Date().toISOString() }
     );
     // ADR-0404: lo de más que me toca revisar (la sede que recibió y quien puede cerrar la diferencia), con la misma regla del pase.
-    const deMas = puedeCerrarDiferencia ? [...(await leerSobrantesPorRevisar(supabase, ubicacionId)).values()].filter((x) => x.recibe).length : 0;
+    const deMas = deMasP ? [...(await deMasP).values()].filter((x) => x.recibe).length : 0;
     return porRecibir + deMas;
   } catch (e) {
+    unstable_rethrow(e);
     console.error("Contador de traslados:", e);
     return null;
   }

@@ -174,6 +174,9 @@ export function camposDeRegistrar(h: HojaRegistrar): CampoDeGuia[] {
       requerido: true,
       hecho: pendienteNombre === null,
       pendiente: pendienteNombre ?? "",
+      // Con DNI el nombre lo trae el padrón: mientras espera los 8 dígitos o la respuesta, no le toca a la persona. Si el padrón no lo encontró o no
+      // respondió, sí: tiene que revisar el número o volver a intentar.
+      noSeEscribe: origenDelNombre(h.documentoTipo) === "padron" && (h.padron.estado === "sin_consultar" || h.padron.estado === "consultando"),
     },
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: h.responsableListo, pendiente: h.responsableMotivo ?? "Elige quién registra." },
   ];

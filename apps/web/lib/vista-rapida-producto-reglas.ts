@@ -47,6 +47,8 @@ export type FilaColor = {
   clave: string;
   nombre: string;
   hex: string;
+  /** Si el color es una mezcla (ADR-0643): sus tonos, para partir la muestra (`fondoDelPunto`). `hex` sigue tiñendo la foto que falta. */
+  tonos: readonly string[] | null;
   fotoUrl: string | null;
   /** Una por columna, en el orden de `Matriz.columnas`; `null` = esa prenda no existe en esa talla. */
   celdas: (CeldaMatriz | null)[];
@@ -135,6 +137,7 @@ export function armarMatriz(
       clave,
       nombre: clave === "" ? "Sin color" : clave,
       hex: deColor.find((v) => v.colorHex)?.colorHex ?? HEX_SIN_COLOR,
+      tonos: deColor.find((v) => v.colorTonos)?.colorTonos ?? null,
       fotoUrl: deColor.find((v) => v.fotoUrl)?.fotoUrl ?? null,
       celdas,
       total: sumar(celdas.flatMap((c) => (c ? [c.unidades] : []))),

@@ -31,8 +31,8 @@ export type EstadoOrden = "en_proceso" | "terminada" | "anulada";
 // Umbrales del semáforo — margen = precio de venta − costo directo, como % del
 // precio. Alto a propósito: de ese margen salen costura, taller y utilidad
 // (mano de obra fija que el costo directo no incluye). Heredado de V1.
-export const UMBRAL_GANA = 0.6;
-export const UMBRAL_FILO = 0.4;
+const UMBRAL_GANA = 0.6;
+const UMBRAL_FILO = 0.4;
 
 export type Semaforo = { tono: "gana" | "filo" | "pierde"; margen: number };
 
@@ -40,13 +40,6 @@ export type Semaforo = { tono: "gana" | "filo" | "pierde"; margen: number };
  *  POSITIVO y se leía como pérdida de dinero (/formidable 2026-10-10, el ciego no lo entendió hasta abrir el panel): significa «el margen no alcanza para costura,
  *  taller y utilidad». Se llama «Margen bajo», como en Nuevo producto. El nombre del tono y los umbrales NO cambian: son una regla de precios. */
 export const TEXTO_SEMAFORO: Record<Semaforo["tono"], string> = { gana: "Gana", filo: "Al filo", pierde: "Margen bajo" };
-
-/** La leyenda del medidor del panel, con los mismos umbrales que `semaforoMargen`. */
-export const LEYENDA_SEMAFORO = {
-  pierde: `margen bajo < ${Math.round(UMBRAL_FILO * 100)}%`,
-  filo: "al filo",
-  gana: `gana ≥ ${Math.round(UMBRAL_GANA * 100)}%`,
-} as const;
 
 /** null cuando no hay con qué comparar (modelo sin precio o costo en cero). */
 export function semaforoMargen(precioVenta: number, costoUnitario: number): Semaforo | null {
@@ -164,97 +157,11 @@ export function datosDeVariante(v: VarianteLeida | null | undefined): { sku: str
   };
 }
 
-type LineaMatriz = { varianteId: string; talla: string | null; color: string | null; colorHex: string | null; cantidadPlan: number; cantidadBuenas: number | null };
-export type CeldaMatriz = { varianteId: string; plan: number; buenas: number | null };
-export type MatrizOrden = {
-  colores: { nombre: string; hex: string | null }[];
-  tallas: string[];
-  /** Clave `color|talla`; ausente = esa combinación no está en la orden (se pinta «—»). */
-  celdas: Record<string, CeldaMatriz>;
-  totalPorTalla: Record<string, number>;
-  totalPorColor: Record<string, number>;
-  total: number;
-};
-
-export const claveCelda = (color: string, talla: string) => `${color}|${talla}`;
-
-/** Las líneas de una orden como grilla color × talla — como el Taller arma la curva sobre la mesa de corte.
- *  Tallas en orden canónico (S · M · L), colores en el orden en que aparecen. Sin color o sin talla el
- *  modelo igual se dibuja («Sin color» / «Única»). */
-export function matrizDeLineas(lineas: LineaMatriz[]): MatrizOrden {
-  const colores: MatrizOrden["colores"] = [];
-  const tallas: string[] = [];
-  const celdas: MatrizOrden["celdas"] = {};
-  const totalPorTalla: Record<string, number> = {};
-  const totalPorColor: Record<string, number> = {};
-  let total = 0;
-  for (const l of lineas) {
-    const color = l.color ?? "Sin color";
-    const talla = l.talla ?? "Única";
-    if (!colores.some((c) => c.nombre === color)) colores.push({ nombre: color, hex: l.colorHex });
-    if (!tallas.includes(talla)) tallas.push(talla);
-    celdas[claveCelda(color, talla)] = { varianteId: l.varianteId, plan: l.cantidadPlan, buenas: l.cantidadBuenas };
-    totalPorTalla[talla] = (totalPorTalla[talla] ?? 0) + l.cantidadPlan;
-    totalPorColor[color] = (totalPorColor[color] ?? 0) + l.cantidadPlan;
-    total += l.cantidadPlan;
-  }
-  tallas.sort(compararTallas);
-  return { colores, tallas, celdas, totalPorTalla, totalPorColor, total };
-}
-
-/** Cuántas prendas «salieron buenas»: lo que el cierre reparte el costo. Entradas vacías o negativas cuentan 0. */
-export function totalBuenas(buenas: Record<string, number | string>): number {
-  return Object.values(buenas).reduce<number>((s, v) => s + Math.max(0, Math.floor(Number(v) || 0)), 0);
-}
-
-/** Lo más que puede anotarse como bueno de una talla (ADR-0415): el doble de lo pedido, o 5 más si la talla es chica. Que salgan
- *  algunas más es real (el corte rindió); más que eso es casi siempre un cero de más. La base dice lo mismo (`buenas_de_mas`). */
-export function topeDeBuenas(plan: number): number {
-  return Math.max(plan * 2, plan + 5);
-}
-
-/** La frase de la primera talla que pasa el tope, para decirlo antes de mandar; null si todas caben. */
-export function problemaDeBuenas(lineas: readonly { varianteId: string; cantidadPlan: number }[], buenas: Readonly<Record<string, number | string>>): string | null {
-  for (const l of lineas) {
-    const anotadas = Math.max(0, Math.floor(Number(buenas[l.varianteId]) || 0));
-    if (anotadas > topeDeBuenas(l.cantidadPlan)) {
-      return `De una talla se pidieron ${l.cantidadPlan} y anotaste ${anotadas} buenas: más del doble de lo pedido. Revisa la cantidad; si de verdad salieron tantas, anota hasta ${topeDeBuenas(l.cantidadPlan)} y abre otra orden con el resto.`;
-    }
-  }
-  return null;
-}
-
 /** La entrega es una promesa del Taller: no puede ser antes de hoy (ADR-0415, `entrega_pasada`). Vacía es válida (es opcional). */
 export function problemaDeEntrega(fecha: string, hoy: string): string | null {
   return fecha !== "" && fecha < hoy ? "La entrega no puede ser antes de hoy: elige el día en que el Taller la va a entregar, o déjala en blanco." : null;
 }
 
-/** Lo planeado que no salió bueno (segundas o pérdidas). Nunca negativo. */
-export function segundas(plan: number, buenas: number): number {
-  return Math.max(0, plan - buenas);
-}
-
-export type ParteCosto = { clave: "tela" | "avios" | "maquila"; etiqueta: string; valor: number; parte: number };
-
-/** Los tres costos como partes de un todo (para la barra apilada). `parte` va de 0 a 1; con costo cero
- *  todas valen 0 y la barra no se dibuja. */
-export function desgloseCosto(costoTela: number, costoAvios: number, costoMaquila: number): { total: number; partes: ParteCosto[] } {
-  const total = costoTela + costoAvios + costoMaquila;
-  const parte = (v: number) => (total > 0 ? v / total : 0);
-  return {
-    total,
-    partes: [
-      { clave: "tela", etiqueta: "Tela", valor: costoTela, parte: parte(costoTela) },
-      { clave: "avios", etiqueta: "Avíos", valor: costoAvios, parte: parte(costoAvios) },
-      { clave: "maquila", etiqueta: "Servicios de afuera", valor: costoMaquila, parte: parte(costoMaquila) },
-    ],
-  };
-}
-
-/** Dónde cae el margen en el medidor (0 a 1, recortado): pierde < 40 % · al filo · gana ≥ 60 %. */
-export function posicionEnMedidor(margen: number): number {
-  return Math.min(1, Math.max(0, margen));
-}
 
 type OrdenParaResumen = {
   estado: EstadoOrden;

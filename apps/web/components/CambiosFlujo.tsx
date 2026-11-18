@@ -16,7 +16,6 @@ import { ChipEstado, MetaCompra, formatearHora } from "@/components/ComprasAgrup
 import { ImpactoVista, ComparacionPrendas, type PrendaFicha } from "@/components/CambioResumen";
 import {
   BotonPrincipal,
-  BotonRojo,
   BotonSecundario,
   Dato,
   EncabezadoFlujo,
@@ -24,6 +23,7 @@ import {
   PieDelPaso,
   useEscapeRetrocede,
   useFocoAlCambiarDePaso,
+  useVistaDelPaso,
 } from "@/components/FlujoGuiado";
 import { CambioReemplazo } from "@/components/CambioReemplazo";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
@@ -67,11 +67,28 @@ import {
   type Validacion,
 } from "@/lib/cambios-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { codigoPrenda } from "@/lib/prenda-reglas";
+import { codigoDeEtiqueta, codigoPrenda } from "@/lib/prenda-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { avisosDelCambio, type CambioArmado } from "@/lib/cambios-cambio-de-sede";
+import { valorPagado } from "@/lib/devoluciones-reglas";
+import { enviarCambioASunat } from "@/lib/envio-sunat";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { ComprobantesDelCambio, usePreviaDocumentos } from "@/components/cambios-documentos/ComprobantesDelCambio";
+import {
+  clienteCambiado,
+  clienteInicial,
+  clienteLegible,
+  clienteParaBase,
+  conCambioDelCliente,
+  documentosDelCambio,
+  problemaClienteDelCambio,
+  textoDelImpacto,
+  type ClienteDelComprobante,
+  type DocumentosDelCambio,
+} from "@/lib/cambios-documentos-reglas";
 
 const PASOS = ["Venta", "Prenda", "Reemplazo", "Confirmación"] as const;
 type Paso = 2 | 3 | 4 | "exito";
@@ -107,6 +124,7 @@ export function CambiosFlujo({
   sedes,
   catalogo: catalogoProp,
   aceptaQr,
+  emiteComprobantes = false,
   ahora,
   onCerrar,
   onNuevo,
@@ -125,6 +143,9 @@ export function CambiosFlujo({
   catalogo: VarianteCatalogo[];
   /** `fn_acepta_qr_en_cambios`: ofrece el QR entre los medios de la diferencia. */
   aceptaQr: boolean;
+  /** `fn_cambio_emite_comprobantes` (ADR-0671): la base emite la nota de crédito y el comprobante nuevo de un cambio con diferencia. Sin
+   *  ella, el cambio se ve y se guarda como antes: no promete documentos ni manda el cliente del comprobante nuevo. */
+  emiteComprobantes?: boolean;
   ahora: Date;
   onCerrar: () => void;
   onNuevo: () => void;
@@ -183,6 +204,8 @@ export function CambiosFlujo({
   const [esperandoPistola, setEsperandoPistola] = useState(false);
   const [lectura, setLectura] = useState<{ tono: TonoAvisoLinea; texto: string } | null>(null);
   const campoPrenda = useRef<HTMLInputElement>(null);
+  const frenoCantidad = useRef<() => boolean>(null);
+  const refCantidad = useRef<HTMLInputElement>(null);
 
   // Lo armado, al día, para `TrabajoPorSede`: si la sede cambia, el cambio queda guardado en ESTA sede. Registrado, ya no hay nada que
   // guardar.
@@ -202,6 +225,7 @@ export function CambiosFlujo({
     );
   }, [reportarCambio, paso, sede, seleccion, venta, lineaInicialId, lineaId, compra.clienta, compra.comprobante, faseDelEnvio, instantaneaDelEnvio]);
 
+  const raiz = useRef<HTMLDivElement>(null);
   const titulo = useRef<HTMLHeadingElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const refMotivo = useRef<HTMLFieldSetElement>(null);
@@ -243,6 +267,65 @@ export function CambiosFlujo({
       : [];
   const bloqueo = primerBloqueo(validaciones);
 
+  // Los comprobantes del cambio (ADR-0671): con diferencia, la nota de crédito sobre la compra y el comprobante nuevo por todo lo que se
+  // lleva. Lo dice la regla de la pantalla al instante y, en el paso «Revisa y confirma», la base (`previsualizar_documentos_cambio`), que
+  // tiene la última palabra. Las cifras son las de la diferencia: nuevo = lo pagado de lo devuelto + la diferencia.
+  const original = linea?.documentoOriginal ?? compra.documentoOriginal ?? null;
+  const conDocumentos = emiteComprobantes && totales !== null && totales.diferencia !== 0;
+  const pagadoDevuelto = linea && seleccion ? valorPagado(linea, seleccion.cantidad) : 0;
+  const totalNuevo = totales ? Math.round((pagadoDevuelto + totales.diferencia) * 100) / 100 : 0;
+  const documentosLocales: DocumentosDelCambio =
+    conDocumentos && totales ? documentosDelCambio({ diferencia: totales.diferencia, totalNuevo, pagado: pagadoDevuelto, original }) : { emite: false };
+  const tipoLocal = documentosLocales.emite ? documentosLocales.nuevo.tipo : "boleta";
+  const clienteElegido: ClienteDelComprobante = seleccion?.cliente ?? clienteInicial(original);
+  // El cliente solo viaja si la persona lo cambió (una boleta o nota de venta): si no, la base usa el de la compra.
+  const mandaCliente = conDocumentos && clienteCambiado(tipoLocal, seleccion?.cliente, original);
+  const { previa, problemaBloque, problemaCliente: problemaClienteRemoto } = usePreviaDocumentos(
+    paso === 4 && conDocumentos && linea && seleccion
+      ? {
+          ventaItemId: linea.ventaItemId,
+          ubicacionId,
+          cantidad: seleccion.cantidad,
+          totalNuevo,
+          cliente: mandaCliente ? clienteParaBase(tipoLocal, clienteElegido) : null,
+        }
+      : null,
+  );
+  const documentos: DocumentosDelCambio = conDocumentos ? (previa?.documentos ?? documentosLocales) : { emite: false };
+  const editableCliente = documentos.emite && documentos.nuevo.tipo !== "factura" && (previa?.cliente?.editable ?? true);
+  const clienteFijo = previa?.cliente
+    ? clienteLegible(previa.cliente.tipoDoc, previa.cliente.numDoc, previa.cliente.nombre)
+    : original
+      ? clienteLegible(original.clienteTipoDoc, original.clienteNumDoc, original.clienteNombre)
+      : null;
+  // Lo que impide emitir: lo del cliente se dice bajo el cliente (la pantalla lo sabe al instante; la base, un momento después, y solo
+  // para el cliente escrito ahora); lo de la tienda (sus series, el techo de las notas), en el bloque, con lo último que dijo la base de
+  // esta línea, que no cambia al escribir. El botón de confirmar no deja guardar con ninguno de los dos.
+  const problemaCliente =
+    (documentos.emite && editableCliente ? problemaClienteDelCambio(documentos.nuevo.tipo, clienteElegido, documentos.nuevo.total) : null) ??
+    (editableCliente ? problemaClienteRemoto : null);
+  // La guía de foco del bloque (ADR-0284): solo lo que falta lleva marca. El cliente viene lleno (el de la compra): sin problema es
+  // opcional y no se marca; con uno, es lo que sigue. Lo de la tienda no lo arregla quien atiende (`noSeEscribe`): frena igual.
+  const guiaDocumentos = useGuiaCampos(
+    documentos.emite
+      ? [
+          { id: "comprobantes", nombre: "Comprobantes", requerido: problemaBloque !== null, hecho: false, pendiente: problemaBloque ?? "", noSeEscribe: true },
+          ...(editableCliente
+            ? [{ id: "cliente-comprobante", nombre: "Cliente del comprobante", requerido: problemaCliente !== null, hecho: false, pendiente: problemaCliente ?? "" }]
+            : []),
+        ]
+      : [],
+    { enModal: false },
+  );
+  // Solo lo que cambió, unido DENTRO del updater: el combo del documento manda el tipo y el número en el mismo evento, y copiar el cliente
+  // de esta pantalla en cada uno hacía que el segundo pisara al primero (el tipo volvía a DNI).
+  const tipoDelNuevo = documentos.emite ? documentos.nuevo.tipo : tipoLocal;
+  function cambiarCliente(parche: Partial<ClienteDelComprobante>) {
+    setSeleccion((actual) =>
+      actual ? { ...actual, cliente: conCambioDelCliente(tipoDelNuevo, actual.cliente ?? clienteInicial(original), parche, original) } : actual,
+    );
+  }
+
   const devueltaTexto = linea ? `${linea.referencia} · ${varianteLegible(linea)}` : "";
   const nuevaTexto = r?.varianteNueva ? `${r.varianteNueva.referencia} · ${varianteLegible(r.varianteNueva)}` : "";
   const impacto =
@@ -258,10 +341,11 @@ export function CambiosFlujo({
           diferencia: totales.diferencia,
           metodo: seleccion.metodo,
           sede,
+          documento: documentos.emite ? textoDelImpacto(documentos) : null,
         })
       : null;
 
-  useFocoAlCambiarDePaso(titulo, paso);
+  useVistaDelPaso(paso, raiz, titulo);
   // Si la base rechazó el cambio, el foco va al aviso, al lado del botón.
   useFocoAlCambiarDePaso(errorRef, error);
 
@@ -343,6 +427,12 @@ export function CambiosFlujo({
   }
 
   function continuarAConfirmar() {
+    // Lo escrito en «¿Cuántas cambia?» no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (frenoCantidad.current?.()) {
+      // El aviso está junto a la caja y este botón al fondo de la página: sin esto, el clic no haría nada a la vista.
+      refCantidad.current?.focus();
+      return;
+    }
     if (!bloqueo) {
       setAvisoContinuar(null);
       setPaso(4);
@@ -378,6 +468,9 @@ export function CambiosFlujo({
       p_metodo_pago_diferencia: totales.diferencia !== 0 ? seleccion.metodo : undefined,
       p_motivo: seleccion.motivo,
       p_condicion: r.condicion,
+      // ADR-0671: el cliente del comprobante nuevo, solo si la base lo acepta (la sonda) y la persona lo cambió. Va en `params`: entra a la
+      // huella del envío, así un reintento con otro cliente no devuelve el cambio anterior.
+      ...(mandaCliente && editableCliente ? { p_cliente: clienteParaBase(documentos.emite ? documentos.nuevo.tipo : tipoLocal, clienteElegido) } : {}),
     };
     // Con una sola prenda, el cambio de siempre (`registrar_cambio`, sin tocar). Con varias (ADR-0470), `registrar_cambio_varias`: todas
     // las prendas, la diferencia total y el stock en un solo guardado.
@@ -397,6 +490,11 @@ export function CambiosFlujo({
     // En duda: el paso lo dice sobre los botones y se congela hasta saber qué pasó.
     if (res.tipo === "incierto") return;
     if (res.tipo === "error") {
+      // El documento del cliente que la base no acepta se dice bajo el cliente, no en un aviso suelto (ADR-0611, mejora 4).
+      if (res.error.hint === "documento_invalido" && editableCliente) {
+        guiaDocumentos.marcarError("cliente-comprobante", res.error.message);
+        return;
+      }
       setError(traducirError(res.error, "registrar el cambio"));
       return;
     }
@@ -417,10 +515,23 @@ export function CambiosFlujo({
 
   function registrado(data: unknown) {
     if (!linea || !seleccion || !r || !totales || !r.varianteNueva) return;
+    const cambioId = String(data ?? "");
+    // ADR-0671: los documentos del cambio salen a SUNAT ya (una vez por cambio en esta pestaña, en segundo plano); si no, el barrido.
+    if (documentos.emite && cambioId) enviarCambioASunat(cambioId);
     // El ticket del cambio (spike 2026-09-26): lo que la clienta se lleva. `nombreResponsable` se lee ANTES de que el
     // combo se vacíe tras guardar.
     setResultado({
-      operacion: String(data ?? "").slice(0, 8).toUpperCase(),
+      operacion: cambioId.slice(0, 8).toUpperCase(),
+      cambioId,
+      documentos: documentos.emite
+        ? {
+            esperado: documentos,
+            metodo: seleccion.metodo,
+            prendas: Object.fromEntries(
+              totales.salidas.map((x) => [x.variante.varianteId, { referencia: x.variante.referencia, codigo: codigoDeEtiqueta(x.variante) || null, detalle: varianteLegible(x.variante) }]),
+            ),
+          }
+        : undefined,
       comprobante: compra.comprobante,
       clienta: compra.clienta,
       // Una prenda por varias (ADR-0470): cada prenda lleva su cantidad en el texto, y la del ticket queda en 1 para que no se repita en las dos.
@@ -439,7 +550,7 @@ export function CambiosFlujo({
   }
 
   return (
-    <div className="space-y-6">
+    <div ref={raiz} className="scroll-mt-8 space-y-6">
       {paso !== "exito" && (
         <EncabezadoFlujo
           volverA="Volver a Cambios"
@@ -455,7 +566,8 @@ export function CambiosFlujo({
 
       {paso === 2 && (
         <div className="anim-revelar space-y-5">
-          <div data-guia="cambios.flujo-prendas" className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
+          {/* Las tarjetas del flujo son la placa Serena (`posv-placa`, vidrio/posventa.css). */}
+          <div data-guia="cambios.flujo-prendas" className="posv-placa p-5 sm:p-6">
             <MetaCompra compra={compra} dia={etiquetaDia(compra.creadoEn, ahora)} />
             <fieldset className="mt-4">
               <legend className="sr-only">Prenda que el cliente quiere cambiar</legend>
@@ -467,10 +579,12 @@ export function CambiosFlujo({
                     <label
                       key={l.ventaItemId}
                       data-guia="cambios.prenda-elegir"
-                      // En el celular el chip baja a su propia línea (con 375 px se salía de la tarjeta).
-                      className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors duration-200 ${
-                        estado.cambiable ? "cursor-pointer hover:bg-crema/70" : "cursor-not-allowed"
-                      } ${elegida ? "bg-crema ring-1 ring-tinta/30" : ""}`}
+                      // En el celular el chip baja a su propia línea (con 375 px se salía de la tarjeta). La elegida es una gota (`posv-fila`).
+                      data-tocable={estado.cambiable ? "" : undefined}
+                      data-elegida={elegida ? "" : undefined}
+                      className={`posv-fila flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors duration-200 ${
+                        estado.cambiable ? "cursor-pointer" : "cursor-not-allowed"
+                      }`}
                     >
                       <input
                         type="radio"
@@ -484,7 +598,7 @@ export function CambiosFlujo({
                       <span className={`min-w-0 flex-1 ${estado.cambiable ? "" : "opacity-60"}`}>
                         <span className="block text-[15px] font-semibold text-tinta">{l.referencia}</span>
                         <span className="block text-sm text-tinta/75">{varianteLegible(l)}</span>
-                        <span className="mt-0.5 block text-xs text-tinta/70">
+                        <span className="mt-0.5 block text-sm text-tinta/70">
                           <span className="font-mono">{codigoPrenda(l)}</span> · {soles(pagadoPorUnidad(l))}
                         </span>
                       </span>
@@ -510,8 +624,10 @@ export function CambiosFlujo({
       {paso === 3 && linea && seleccion && r && (
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-            <div data-guia="cambios.reemplazo" className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
+            <div data-guia="cambios.reemplazo" className="posv-placa p-5 sm:p-7">
               <CambioReemplazo
+                frenoCantidad={frenoCantidad}
+                refCantidad={refCantidad}
                 linea={linea}
                 seleccion={seleccion}
                 r={r}
@@ -568,8 +684,9 @@ export function CambiosFlujo({
       {paso === 4 && linea && seleccion && r && totales && r.varianteNueva && impacto && (
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-            <div className="space-y-8 rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
-              <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
+            {/* Al confirmar, los datos y el impacto van cada uno en su placa y la balanza queda al aire entre ellos (A · Balanza). */}
+            <div className="min-w-0 space-y-6">
+              <dl className="posv-placa grid gap-x-8 gap-y-4 p-5 text-sm sm:grid-cols-2 sm:p-7">
                 <Dato titulo="Venta">
                   {compra.comprobante ?? "Venta sin comprobante"} · {etiquetaDia(compra.creadoEn, ahora).toLowerCase()} {formatearHora(compra.creadoEn)}
                 </Dato>
@@ -582,19 +699,36 @@ export function CambiosFlujo({
               </dl>
               <ComparacionPrendas
                 devuelta={ficha(linea, r.pagadoUnitario, textoPagoConDescuento(linea))}
-                nueva={ficha(r.varianteNueva, r.precioNueva ?? r.varianteNueva.precio)}
+                nueva={ficha(r.varianteNueva, r.precioNueva ?? r.varianteNueva.precio, r.detalleNueva)}
                 cantidad={seleccion.cantidad}
                 diferencia={totales.diferencia}
                 otras={totales.salidas.slice(1).map((x) => ({ ...ficha(x.variante, x.precio), cantidad: x.cantidad }))}
               />
-              <div className="border-t border-tinta/[0.08] pt-7">
-                <ImpactoVista impacto={impacto} />
+              <div className="posv-placa p-5 sm:p-7">
+                {/* Con diferencia, los comprobantes van en su propio bloque (abajo): aquí no se repiten. */}
+                <ImpactoVista impacto={documentos.emite ? { ...impacto, documento: undefined } : impacto} />
               </div>
+              {documentos.emite && (
+                <ComprobantesDelCambio
+                  documentos={documentos}
+                  original={original}
+                  cliente={clienteElegido}
+                  onCliente={cambiarCliente}
+                  editable={editableCliente}
+                  clienteFijo={clienteFijo}
+                  problemaBloque={problemaBloque}
+                  guia={guiaDocumentos}
+                  deshabilitado={enviando || envio.incierto}
+                />
+              )}
             </div>
             <PanelValidaciones validaciones={validaciones} />
           </div>
 
           <ComboResponsable control={responsable} deshabilitado={enviando || envio.incierto} className="max-w-sm" />
+
+          {/* Lo que falta para que salgan los comprobantes, sobre el botón. Siempre que salen comprobantes, para que nada salte al escribir. */}
+          {documentos.emite && <PieGuia guia={guiaDocumentos} listo="Comprobantes listos." />}
 
           {envio.incierto && <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} />}
 
@@ -614,10 +748,19 @@ export function CambiosFlujo({
               </BotonSecundario>
               {/* Como «Cobrar» en Vender: qué se hace a la izquierda; cuánto, a la derecha. Solo si
                   hay diferencia que mover: sin ella, el botón no promete plata. */}
-              <BotonRojo onClick={confirmar} cargando={enviando} textoCargando="Registrando…" disabled={revisando || !responsable.listo} monto={totales.diferencia !== 0 ? soles(Math.abs(totales.diferencia)) : undefined}>
+              {/* El botón no se apaga por lo que falta de los comprobantes (ADR-0611, mejora 4): al tocarlo, la guía dice qué y lleva hasta allá. */}
+              <BotonPrincipal
+                onClick={() => {
+                  if (guiaDocumentos.revisar()) void confirmar();
+                }}
+                cargando={enviando}
+                textoCargando="Registrando…"
+                disabled={revisando || !responsable.listo}
+                monto={totales.diferencia !== 0 ? soles(Math.abs(totales.diferencia)) : undefined}
+              >
                 <Check className="h-4 w-4" aria-hidden />
                 {envio.incierto ? "Volver a intentar" : "Confirmar cambio"}
-              </BotonRojo>
+              </BotonPrincipal>
             </div>
           </PieDelPaso>
         </div>

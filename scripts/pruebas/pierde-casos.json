@@ -1,0 +1,77 @@
+{
+  "_que_es": "ADR-0668 (A5): los casos de «Pierdes». Los corren las dos mitades de la misma regla: la web (apps/web/lib/cuenta-de-precio.test.ts, pierdeConElPrecio) y la base (scripts/pruebas/pierde_confirma.mjs, retail.fn_pierde_con). Pierde = lo que queda (precio ÷ 1.18 − costo), redondeado al céntimo como la pantalla, es negativo.",
+  "casos": [
+    {
+      "nombre": "40 con costo 33.90: queda −0.17 céntimos, la pantalla dice S/ 0.00",
+      "precio": 40,
+      "costo": 33.9,
+      "pierde": false
+    },
+    {
+      "nombre": "42.47 con costo 36: queda −0.85 céntimos, pierde",
+      "precio": 42.47,
+      "costo": 36,
+      "pierde": true
+    },
+    {
+      "nombre": "42.48 con costo 36: queda 0 justo",
+      "precio": 42.48,
+      "costo": 36,
+      "pierde": false
+    },
+    {
+      "nombre": "justo el costo: pierde el impuesto",
+      "precio": 36,
+      "costo": 36,
+      "pierde": true
+    },
+    {
+      "nombre": "el piso de A1 no pierde",
+      "precio": 81.9,
+      "costo": 36,
+      "pierde": false
+    },
+    {
+      "nombre": "bajo el costo: pierde",
+      "precio": 30,
+      "costo": 36,
+      "pierde": true
+    },
+    {
+      "nombre": "sin precio, nada que decir",
+      "precio": 0,
+      "costo": 36,
+      "pierde": false
+    },
+    {
+      "nombre": "sin costo, nada que decir",
+      "precio": 40,
+      "costo": 0,
+      "pierde": false
+    },
+    {
+      "nombre": "medio céntimo apenas debajo (queda -0.508 céntimos): pierde",
+      "precio": 36.22,
+      "costo": 30.7,
+      "pierde": true
+    },
+    {
+      "nombre": "medio céntimo apenas encima (queda -0.492 céntimos): no pierde",
+      "precio": 35.76,
+      "costo": 30.31,
+      "pierde": false
+    },
+    {
+      "nombre": "precios grandes: queda 0 justo",
+      "precio": 1180,
+      "costo": 1000,
+      "pierde": false
+    },
+    {
+      "nombre": "precios grandes, un céntimo menos: pierde",
+      "precio": 1179.99,
+      "costo": 1000,
+      "pierde": true
+    }
+  ]
+}

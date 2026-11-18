@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { limpiarCantidad } from "@/lib/alta-producto";
 import { validarDocumento } from "@cayla-retail/shared";
 import { createClient } from "@/lib/supabase/client";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
@@ -9,7 +10,7 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Boton, Campo, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { ETIQUETA_TIPO_PROVEEDOR, agregarRubro, alternarRubro, claveRubro, normalizarCci, normalizarCelular, opcionesDeRubro, proveedorConRuc, proveedoresParecidos, type TipoProveedor } from "@/lib/proveedores-reglas";
+import { ETIQUETA_TIPO_PROVEEDOR, agregarRubro, alternarRubro, claveRubro, normalizarCci, normalizarCelular, opcionesDeRubro, problemaDePlazoCredito, proveedorConRuc, proveedoresParecidos, type TipoProveedor } from "@/lib/proveedores-reglas";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { Modal } from "@/components/ui/Modal";
 import {
@@ -30,6 +31,7 @@ import {
   validarCuentas,
   type CuentasForm,
 } from "@/lib/proveedores-cuentas-form";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Alta y edición de un proveedor (extraído de ProveedoresPanel el 2026-09-18 para que la lista y la
 // ficha abran el MISMO formulario: la ficha ganó el botón «Editar» y el formulario no se duplica).
@@ -273,6 +275,8 @@ export function ProveedorModal({
         { enfocar: "proveedor-parecido" }
       );
     }
+    const problemaPlazo = problemaDePlazoCredito(plazoCreditoDias);
+    if (problemaPlazo) return void avisar.error(problemaPlazo, { enfocar: "proveedor-plazo-dias" });
     // Las cuentas se validan ANTES del paso 1: no se guarda el proveedor para descubrir después que el CCI estaba mal.
     const problema = primerErrorCuentas(errores);
     if (problema) {
@@ -340,7 +344,7 @@ export function ProveedorModal({
     avisar.exito(editando ? "Proveedor actualizado" : "Proveedor registrado", { detalle: nombre.trim() });
     // El ✓ se ve un instante y recién ahí el modal se va: la confirmación es parte del gesto, no un aviso aparte.
     setFase("listo");
-    const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const reducido = prefiereQuieto();
     setTimeout(cerrar, reducido ? 0 : 520);
   }
 
@@ -472,7 +476,7 @@ export function ProveedorModal({
             />
             {plazoOtro && (
               <div className="anim-revelar mt-2 max-w-[12rem]">
-                <CampoTexto etiqueta="Días" type="number" min={1} step={1} autoComplete="off" placeholder="20" value={plazoCreditoDias} onChange={(e) => setPlazoCreditoDias(e.target.value)} />
+                <CampoTexto etiqueta="Días" id="proveedor-plazo-dias" inputMode="numeric" autoComplete="off" placeholder="20" value={plazoCreditoDias} tono={problemaDePlazoCredito(plazoCreditoDias) ? "error" : undefined} pie={problemaDePlazoCredito(plazoCreditoDias) ?? undefined} onChange={(e) => setPlazoCreditoDias(limpiarCantidad(e.target.value))} />
               </div>
             )}
           </Campo>
@@ -617,7 +621,7 @@ export function ProveedorModal({
                 {fase === "guardando" && (
                   // El mismo hilo que barre en el spike mientras se guarda: se ve que el sistema trabaja.
                   <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden">
-                    <span className="block h-full w-1/3 bg-crema [animation:cayla-hilo-barrido_0.9s_linear_infinite]" />
+                    <span data-senal className="block h-full w-1/3 bg-crema [animation:cayla-hilo-barrido_0.9s_linear_infinite]" />
                   </span>
                 )}
                 {fase === "listo" ? (

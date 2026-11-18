@@ -1311,14 +1311,6 @@ export type FilaTablero = {
   vara: VaraTablero | null;
 };
 
-/** El tramo de la PRENDA (por su unidad más vieja) en las palabras de la barra: Envejecida y Crítica son Envejeciendo; el clásico aparte;
- *  lo demás (sin referencia, sin edad, dudosa) «aún no se sabe». La barra cuenta unidad por unidad (`tramosDeLaPrenda`). */
-export function tramoBarraDe(p: FrescuraPrenda): TramoBarra {
-  if (p.estado.tipo === "semaforo") return p.estado.tramo === "nueva" ? "fresca" : p.estado.tramo === "vigente" ? "vigente" : "envejeciendo";
-  if (p.estado.tipo === "clasico") return "clasico";
-  return "sin_saber";
-}
-
 /** Las filas del tablero: una por categoría con prendas en la tabla, ordenadas por lo que más pide decidir. */
 export function tableroVista(prendas: readonly FrescuraPrenda[], ctx: ContextoFrescura): FilaTablero[] {
   const filas = new Map<string, FilaTablero>();

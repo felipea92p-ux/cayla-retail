@@ -42,16 +42,16 @@
       "button «{`Quitar ${f.nombre}»"
     ],
     "components/ProveedoresLoQueNoSeVe.tsx": [
-      "button «{p.nombre}»",
-      "Link «Ir a pagar»",
-      "Link «Ir a recibir»"
+      "Link «{t.ayuda}»",
+      "button «{t.ayuda}»"
     ],
     "components/ProveedoresPanel.tsx": [
       "Boton «proveedores.registrar»",
       "Pestanas «(sin nombre)»",
-      "button «{o.etiqueta}»",
-      "button «proveedores.sin-pago»",
-      "button «{o.ayuda}»",
+      "DesplegablePildora «Rubro»",
+      "DesplegablePildora «Ritmo»",
+      "DesplegablePildora «Datos de pago»",
+      "BotonLimpiar «Limpiar filtros»",
       "Boton «Registrar el primero»",
       "Boton «Registrar uno»",
       "Boton «Borrar la búsqueda»",
@@ -66,7 +66,7 @@
       "Boton «Reactivar»"
     ],
     "components/ProveedoresRanking.tsx": [
-      "button «→() => onMedida(o.m)»",
+      "SegmentoDeslizante «Ordenar el ranking por»",
       "BotonVerMas «{`Ver los ${resto.length}»",
       "Casilla «{`Comparar ${f.nombre}»",
       "button «proveedores.nombre»",

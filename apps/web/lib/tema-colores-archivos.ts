@@ -23,8 +23,6 @@ export const COLORES_A_MANO: Record<string, ColoresAMano> = {
   "components/BoletaA4.tsx": { cuenta: 23, motivo: PAPEL_A4 },
   "components/ProformaA4.tsx": { cuenta: 22, motivo: PAPEL_A4 },
   "components/ProformasPanel.tsx": { cuenta: 1, motivo: "El papel blanco de la vista previa de la proforma A4 (ver ProformaA4)." },
-  "components/EtiquetaPrecio.tsx": { cuenta: 1, motivo: "Etiqueta de precio que se imprime en la térmica: solo negro sobre blanco." },
-  "components/liquidacion/EtiquetaLiquidacion.tsx": { cuenta: 1, motivo: "Etiqueta de liquidación que se imprime en la térmica: solo negro sobre blanco." },
   "app/estilos/rotulo.css": { cuenta: 4, motivo: "Rótulo de anaquel que se imprime en la térmica (ADR-0366): #000/#fff a propósito, la térmica no imprime otro color." },
   "components/IconoEtiquetaPapel.tsx": { cuenta: 2, motivo: "Dibujo del papel de la etiqueta (negro y blanco literales): representa el papel, no la pantalla." },
 
@@ -41,7 +39,6 @@ export const COLORES_A_MANO: Record<string, ColoresAMano> = {
   "lib/muestra-atributo.ts": { cuenta: 1, motivo: "Lienzo de una imagen que se genera: el blanco es el fondo de la muestra, no un color de pantalla." },
 
   // ---------- Permanentes: marca y máscaras ----------
-  "components/ui/IsotipoCayla.tsx": { cuenta: 1, motivo: "El rojo de la MARCA (muestreado del propio logo): no cambia con el tema." },
   "app/estilos/inicio-almacen.css": { cuenta: 6, motivo: MASCARA },
   "app/estilos/observatorio.css": { cuenta: 6, motivo: MASCARA },
   "app/global-error.tsx": { cuenta: 8, motivo: "Pantalla de error global: se dibuja sin globals.css (el layout raíz reventó), así que lleva su propia paleta en dos juegos de variables, claro y oscuro, con los valores de tema.css, más la tinta y la crema fijas del texto de Aventurero." },

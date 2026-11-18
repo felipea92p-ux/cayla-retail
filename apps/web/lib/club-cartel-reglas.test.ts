@@ -59,7 +59,7 @@ describe("el cartel «Invitación»: lo que dice sale de la configuración de lo
 
   it("lo fijo del cartel es el texto del diseño C", () => {
     expect(CARTEL_INVITACION).toEqual({
-      sello: "CLUB CAYLA",
+      sello: "CLUB",
       titulo: "Te invitamos",
       bajada: "a ser parte del club. Es gratis.",
       escanea: "Escanea y únete en un minuto",

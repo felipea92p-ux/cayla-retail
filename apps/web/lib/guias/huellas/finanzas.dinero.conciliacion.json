@@ -2,25 +2,38 @@
   "guia": "finanzas.dinero.conciliacion",
   "ruta": "/finanzas/dinero/conciliacion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 33,
+  "total": 63,
   "controles": {
-    "components/finanzas/CuentasDinero.tsx": [
-      "Boton «fin-dinero.registrar»",
-      "button «fin-dinero.aviso-registrar»",
-      "button «fin-dinero.poner-plata»",
-      "button «Sacar plata»",
-      "Link «Cambiar en Configuración»",
-      "button «fin-dinero.decir-cuenta»",
-      "button «{b.nombre}»",
+    "components/finanzas/CuadrarDepositos.tsx": [
+      "button «Reintentar»",
       "ComboResponsable «{responsable}»",
-      "Volver «→() => ir(actual.cuenta.id)»",
-      "button «(sin nombre)»",
-      "button «{`Desmarcar ${l.detalle}»",
-      "button «Sí, está»",
+      "Boton «Cancelar»",
+      "Boton «{listas.length > 1 ? `Cuadrar ${listas.length}»",
+      "ComboResponsable «{responsable}» #2",
+      "Boton «Cambiar por lo real»"
+    ],
+    "components/finanzas/CuentasDinero.tsx": [
+      "Boton «fin-dinero.cuadrar»",
+      "Boton «fin-dinero.registrar»",
+      "button «fin-dinero.decir-cuenta»",
+      "button «{inicialesDeBanco(c.nombre)}»",
+      "ComboResponsable «{responsable}»",
       "button «Anular este saldo…»",
       "Boton «{guia.frase ?? undefined}»",
+      "Volver «→() => ir(actual.cuenta.id)»",
+      "SegmentoDeslizante «Qué líneas ver»",
+      "button «{textoMarcarRevisadas(r.porRevisar.length)}»",
+      "button «{`Desmarcar ${l.detalle}»",
+      "button «Marcar revisada»",
       "button «{fechaCorta(h.fecha, true)}»",
+      "button «Volver a intentar»",
+      "button «Volver a intentar» #2",
       "Casilla «{`${textoLote(l)}»",
+      "BotonVerMas «{textoCuantosPagos(d, eleccion)}»",
+      "Casilla «{`${textoPago(p)}»",
+      "button «Marcar solo ese pago»",
+      "button «Usar ese monto»",
+      "Casilla «Sí, revisé el extracto: la comisión es esa»",
       "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
       "Boton «Registrar»",
@@ -32,6 +45,33 @@
     "components/finanzas/PagosSinCuenta.tsx": [
       "Boton «Guardar»",
       "ComboResponsable «{responsable}»"
+    ],
+    "components/finanzas/dinero/CuadrarConExtracto.tsx": [
+      "button «fin-conciliacion.extracto»",
+      "input «(sin nombre)»",
+      "Boton «Elegir el .txt del banco»",
+      "textarea «07/11/2026 09/11/2026 - . Abono QR IBK S/ 45.90 S/ 2,793.69»",
+      "Boton «Leer lo pegado»",
+      "button «Usar otro extracto»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Guardar este extracto»",
+      "Boton «Reintentar»",
+      "Boton «→() => void registrar(p)»",
+      "Boton «Reintentar» #2",
+      "Boton «Registrar el depósito»"
+    ],
+    "components/finanzas/dinero/DeudaDeMaquinas.tsx": [
+      "button «Registrar el depósito»"
+    ],
+    "components/finanzas/dinero/HistorialDinero.tsx": [
+      "button «fin-dinero.movimiento»",
+      "button «fin-dinero.historial»",
+      "SegmentoDeslizante «Período del historial»",
+      "button «Período anterior»",
+      "button «Período siguiente»"
+    ],
+    "components/finanzas/dinero/PieDePaginas.tsx": [
+      "SegmentoDeslizante «Cuántas por página»"
     ],
     "components/finanzas/telar/DockTelar.tsx": [
       "Link «{`${a.texto}»",

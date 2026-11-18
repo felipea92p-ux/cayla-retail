@@ -35,7 +35,7 @@ Llega un envío `ENV-000061` (o una orden «directo» llega sin guía, decisión
   `reportar_danada`, `20261005140000`). Las salidas (liquidar, regalar, desechar, devolver al proveedor) ya existen en Existencias.
 - Crear la prenda: `crear_producto_con_variantes` (nombre único por marca, tejido y patrón si la familia los pide, talla habilitada en la
   categoría, color activo, precio > 0, la pareja marca–proveedor registrada). Hoy pide `fn_puede_editar_catalogo()`.
-- Las lecturas de la fase 3: `fn_envios_por_abrir`, `fn_envio_detalle` (las abre Órdenes de compra o Recibir).
+- Las lecturas de la fase 3: `fn_envios_por_abrir`, `fn_envio_detalle` (las abre Órdenes de compra o Recibir; desde el 2026-11-03, quien solo tiene Recibir, las de su sede: ADR-0387, actualización).
 
 **No se reutilizan** `recibir_envio`, `recibir_compras` ni `cerrar_linea_compra`: topan por tienda contra `compra_item_destinos` (que en
 un comprobante de orden está todo en la gestora, decisión 46) y rechazan las líneas sin prenda.

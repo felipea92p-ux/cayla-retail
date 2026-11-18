@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 141,
+  "total": 180,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -34,6 +34,8 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
       "CampoTexto «{guia.etiqueta(\"nombre\", `Nombre ${delUno}»",
+      "CampoFecha «Desde» #2",
+      "CampoFecha «Hasta» #2",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #2",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
@@ -64,7 +66,9 @@
       "BotonDeshacer «Deshacer esta lectura»"
     ],
     "components/atributos/kit.tsx": [
+      "BotonFiltros «vocabulario.filtros»",
       "Boton «vocabulario.agregar»",
+      "Boton «vocabulario.agregar» #2",
       "Boton «Limpiar filtros»",
       "button «{abrir.titulo}»",
       "Boton «Aprobar»",
@@ -88,7 +92,37 @@
       "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
-    "components/sellos/CambiarDibujoModal.tsx": [
+    "components/rebajas/HojaRebaja.tsx": [
+      "button «→() => setAlcance(\"prenda\")»",
+      "button «{`Todo el modelo · ${datos.r.prenda.modeloPrendas}»",
+      "button «{`${l.prendas}»",
+      "button «Otro %»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Quitar el %»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/rebajas/RebajasDeTienda.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/sellos/AvisoDosOfertas.tsx": [
+      "Boton «Elegir cuál queda»",
+      "Boton «{`Que quede «${p.oferta.nombre}»",
+      "Boton «{`Que quede «${p.otra.nombre}»"
+    ],
+    "components/sellos/ChoquesDeOferta.tsx": [
+      "button «Que las prendas con otra oferta no cuenten»",
+      "button «Que «»"
+    ],
+    "components/sellos/EditarEtiquetaModal.tsx": [
+      "CampoTexto «{`Nombre ${delUno}»",
+      "button «{`Repetir en ${repeticion.anio}»",
+      "BotonDeshacer «→volverAlAnio»",
+      "CampoFecha «Desde»",
+      "CampoFecha «Hasta»",
+      "button «{avisoDia.boton}»",
+      "BotonDeshacer «(sin nombre)»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
@@ -100,12 +134,19 @@
       "Casilla «Pintar con el color del sello»"
     ],
     "components/sellos/OfertasHoja.tsx": [
-      "button «{g.activo ? \"sellos.oferta-rebaja\" : undefined}»",
+      "CampoMonto «{etiqueta}»",
+      "button «{g.icono}»",
       "button «{g.activo ? undefined : \"Llega pronto\"}»",
       "button «Un % menos»",
       "button «Llega pronto»",
       "button «Llega pronto» #2",
       "button «{v}»",
+      "button «{f.texto}»",
+      "CampoMonto «Precio del grupo»",
+      "button «Soles menos»",
+      "button «Un % menos» #2",
+      "button «{`Quitar el escalón ${i + 1}»",
+      "button «Otro escalón»",
       "button «{t.nombre}»",
       "button «Todos los días»",
       "button «Solo algunos días»",
@@ -115,22 +156,31 @@
       "button «{a.texto}»",
       "CampoFecha «Desde»",
       "CampoFecha «Hasta»",
+      "button «Sí, cualquiera de estas»",
+      "button «Solo del mismo modelo»",
+      "button «Toda la compra»",
+      "button «Solo prendas de la campaña»",
+      "button «Incluir las de Claurè»",
+      "SegmentoDeslizante «Cómo eliges las prendas»",
+      "Casilla «{i.nombre}»",
+      "Casilla «{m.nombre}»",
       "button «Elegir todas»",
       "button «Quitar todas»",
-      "button «Incluir las de Claurè»",
+      "button «Incluir las de Claurè» #2",
       "button «{masQ3 ? \"Menos opciones\" : \"Más opciones\"}»",
       "CampoTexto «Nombre»",
       "button «Usar el nombre automático»",
-      "button «{n === 3 ? \"sellos.oferta-paso-3\" : n === 2 ? \"sellos.oferta-paso-2\" : undefined}»",
+      "button «{hecho ? <Check aria-hidden strokeWidth={3}»",
       "Boton «sellos.oferta-atajo»",
       "Boton «Siguiente»",
       "Boton «Siguiente» #2",
+      "Boton «Siguiente» #3",
       "Boton «Guardar cambios»",
       "Boton «{edita ? \"Guardar cambios\" : \"Guardar como borrador\"}»",
       "Boton «sellos.oferta-activar»",
       "Volver «→() => ir((paso - 1) as Paso)»",
       "Boton «Cancelar»",
-      "button «{r.nombre}»",
+      "button «{viva ? \"Toca para editarla\" : undefined}»",
       "Boton «Activar»",
       "button «Retirar»",
       "Boton «Sí, retirar»",
@@ -141,27 +191,23 @@
       "Boton «No» #2",
       "BotonVerMas «{`Ver ${resto}»",
       "button «Quitar el límite»",
-      "button «sellos.ofertas-campana»",
-      "CampoFecha «La campaña empieza»",
-      "CampoFecha «La campaña termina»",
-      "button «{avisoDia.boton}»",
-      "BotonDeshacer «(sin nombre)»",
-      "Boton «Cancelar» #2",
-      "Boton «Guardar fechas»",
       "button «Registrar otra en vez de editar»"
     ],
     "components/sellos/SellosPantalla.tsx": [
-      "button «→() => abrir(e.id)»",
+      "button «→(ev) => abrir(e.id, ev.currentTarget)»",
+      "BotonEditar «Corregir el nombre o cambiar el ícono de la insignia»",
       "button «{conGuia ? \"sellos.prendas\" : undefined}»",
       "button «{conGuia ? \"sellos.configurar\" : undefined}»",
-      "button «{conGuia ? \"sellos.dibujo\" : undefined}»",
       "BotonImprimir «(sin nombre)»",
-      "BotonVer «Diseño web»",
       "button «{cambiandoId === e.id ? \"Desactivando…\" : \"Desactivar\"}»",
+      "Boton «{conGuia ? \"sellos.preparar\" : undefined}»",
       "button «→() => setEtiquetando(e)»",
       "Boton «+ Elegir prendas»",
-      "BotonVer «Cómo se ven en la web»",
+      "button «sellos.mapa»",
+      "BotonEnlace «sellos.diseno-web»",
+      "Boton «rebaja.tienda»",
       "Boton «sellos.nuevo»",
+      "Boton «sellos.nuevo» #2",
       "Pestanas «→cambiarVista»",
       "Boton «{`+ ${T.nuevo}»",
       "CampoTexto «Comentario (obligatorio)»",
@@ -169,7 +215,8 @@
       "Boton «→() => aprobar(aprobandoEtiqueta)»",
       "CampoTexto «Motivo (opcional)»",
       "Boton «Cancelar» #2",
-      "Boton «Confirmar rechazo»"
+      "Boton «Confirmar rechazo»",
+      "button «{x.clave === \"oferta\" ? \"sellos.pregunta-oferta\" : undefined}»"
     ]
   }
 }

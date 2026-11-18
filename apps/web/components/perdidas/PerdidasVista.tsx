@@ -234,7 +234,7 @@ function MasFaltan({ resumen }: { resumen: ResumenPerdidas }) {
               </span>
               <span className="shrink-0 text-right text-sm tabular-nums text-tinta">
                 {unidadesTexto(m.unidades)}
-                <span className="block text-xs text-taupe">{m.veces === 1 ? "en 1 día" : `en ${m.veces} días`}</span>
+                <span className="block text-sm text-taupe">{m.veces === 1 ? "en 1 día" : `en ${m.veces} días`}</span>
               </span>
             </li>
           ))}
@@ -258,11 +258,11 @@ function PorRazon({ resumen }: { resumen: ResumenPerdidas }) {
             <li key={r.razon} className="flex items-baseline gap-3 py-2.5" title={AYUDA_RAZON[r.razon as RazonPerdida]}>
               <span className="min-w-0 flex-1 text-sm text-tinta">
                 {textoRazon(r.razon, "perdida")}
-                {AYUDA_RAZON[r.razon as RazonPerdida] && <span className="block text-xs text-taupe">{AYUDA_RAZON[r.razon as RazonPerdida]}</span>}
+                {AYUDA_RAZON[r.razon as RazonPerdida] && <span className="block text-sm text-taupe">{AYUDA_RAZON[r.razon as RazonPerdida]}</span>}
               </span>
               <span className="shrink-0 text-right text-sm tabular-nums text-tinta">
                 {unidadesTexto(r.unidades)}
-                {r.soles !== null && <span className="block text-xs text-taupe">{solesPerdidas(r.soles)}</span>}
+                {r.soles !== null && <span className="block text-sm text-taupe">{solesPerdidas(r.soles)}</span>}
               </span>
             </li>
           ))}
@@ -280,7 +280,7 @@ function PorCategoriaYTalla({ resumen }: { resumen: ResumenPerdidas }) {
     <li key={clave} className="flex items-baseline gap-3 py-2">
       <span className="min-w-0 flex-1 truncate text-sm text-tinta">{etiqueta}</span>
       <span className="shrink-0 text-sm tabular-nums text-tinta">{unidadesTexto(unidades)}</span>
-      {soles !== null && <span className="w-24 shrink-0 text-right text-xs tabular-nums text-taupe">{solesPerdidas(soles)}</span>}
+      {soles !== null && <span className="w-24 shrink-0 text-right text-sm tabular-nums text-taupe">{solesPerdidas(soles)}</span>}
     </li>
   );
   return (
@@ -300,7 +300,7 @@ function PorCategoriaYTalla({ resumen }: { resumen: ResumenPerdidas }) {
 // Lo mismo que avisa el Inicio del líder, con un enlace por hallazgo a la pestaña filtrada.
 function SeRepite({ repeticiones }: { repeticiones: Repeticion[] }) {
   return (
-    <section id="se-repite" aria-labelledby="se-repite-titulo" data-guia="perdidas.se-repite" className="card-cayla scroll-mt-24 p-5">
+    <section id="se-repite" aria-labelledby="se-repite-titulo" data-guia="perdidas.se-repite" className="card-cayla scroll-mt-8 p-5">
       <TituloSeccion id="se-repite-titulo">Se repite</TituloSeccion>
       <p className="mt-1 text-sm text-taupe">
         En los últimos 30 días: la misma prenda o la misma zona perdió en dos días distintos, o se quitaron muchas sin nota.
@@ -375,7 +375,7 @@ function ListaHechos({
                     <Link href={hrefPerdidas({ periodo, varianteId: h.varianteId })} className="btn-enlace">
                       {etiquetaPrenda(h)}
                     </Link>
-                    {h.codigo && <span className="ml-1.5 text-xs text-taupe">{h.codigo}</span>}
+                    {h.codigo && <span className="ml-1.5 text-sm text-taupe">{h.codigo}</span>}
                   </span>
                   <span className={celda("izq", "text-sm text-tinta")}>{textoRazon(h.razon, h.lado)}</span>
                   <span className={celda("izq", "text-sm text-tinta/75")}>{etiquetaZona(h) ?? (h.razon === "traslado" ? "En el camino" : "—")}</span>

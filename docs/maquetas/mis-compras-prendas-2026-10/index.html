@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>¿Qué le compraste? · tres diseños</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=EB+Garamond:wght@400;500&display=swap">
+<style>
+/* Mis compras ▸ Compré ropa ▸ paso 2 «¿Qué le compraste?» (Felipe 2026-10-28: «no me termina de gustar este diseño, mejóralo, y que al
+   agregar la prenda se vea que se va a Tu compra»). Tres propuestas TOCABLES: cada una redibuja la tarjeta de la prenda y la hoja donde se
+   anota (cuántas, costo, venta, tiendas). El efecto de «vuelo» es el mismo en las tres: la prenda sale de donde se anotó, cruza en arco y
+   aterriza en su línea de «Tu compra» (en el celular, en la isla de abajo); el total cuenta hasta la cifra nueva.
+   No cambia qué hace la pantalla ni las reglas de negocio (cuánto, a cuánto, a qué tienda, cuadra el reparto): solo cómo se ve y cómo se
+   siente. Tokens de «CAYLA Dynamic» (globals.css / tema.css). Movimiento: ADR-0136 (sin rebote, sin bucle, 200–500 ms, --ease-cayla); el
+   VUELO dura ~600 ms y es nuevo: pide un OK de Felipe porque se sale de la franja de 500 ms.
+   DATOS: los nombres y cifras salen de la pantalla de Felipe (2026-10-28); lo demás (marcas, costos de catálogo) es ejemplo inventado. */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --tinta: #1a1a18; --sand: #e8e0d0; --hueso: #eae1d2; --taupe: #805c4c; --borde-control: #96786a;
+  --rojo: #b8412d; --verde: #48603f; --verde-suave: #e3e4d9; --ambar: #74501a; --ambar-suave: #ece0cf; --sobre: #f5f0e8;
+  --sombra: 26, 26, 24;
+  --serif: "EB Garamond", Georgia, serif; --sans: "DM Sans", system-ui, sans-serif;
+  --ease: cubic-bezier(0.32, 0.72, 0.24, 1);
+  --vel: 1; /* «cámara lenta» lo sube a 2.5 */
+}
+:root[data-theme="dark"] {
+  --crema: #1c1a17; --papel: #26241f; --tinta: #f5f0e8; --sand: #3a3730; --hueso: #2e2c27; --taupe: #c7a894; --borde-control: #8a7468;
+  --rojo: #d9674f; --verde: #9db48f; --verde-suave: #2c3328; --ambar: #d9b27a; --ambar-suave: #3a3022; --sobre: #1c1a17; --sombra: 0, 0, 0; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--crema); color: var(--tinta); font-family: var(--sans); font-size: 15px; line-height: 1.45; padding: 24px 20px 64px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+input { font: inherit; color: inherit; }
+.tn { font-variant-numeric: tabular-nums; }
+.marco { max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.eyebrow { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+h1 { font-family: var(--serif); font-weight: 400; font-size: 38px; line-height: 1.05; margin: 4px 0 6px; }
+.bajada { color: var(--taupe); max-width: 84ch; margin: 0; }
+.mando { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: center; background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; padding: 12px 16px; }
+.mando .g { display: flex; align-items: center; gap: 8px; }
+.mando .g > span { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+.seg { display: inline-flex; background: var(--hueso); border-radius: 12px; padding: 3px; gap: 3px; }
+.seg button { border: 0; background: transparent; border-radius: 9px; min-height: 34px; padding: 0 14px; font-weight: 500; font-size: 13.5px; }
+.seg button[aria-pressed="true"] { background: var(--tinta); color: var(--sobre); }
+.btn { border: 1px solid var(--borde-control); background: transparent; border-radius: 12px; min-height: 36px; padding: 0 14px; font-weight: 500; font-size: 13.5px; }
+.chk { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; }
+.nota-d { margin: 0; background: var(--hueso); border-radius: 14px; padding: 12px 16px; font-size: 14px; color: var(--tinta); max-width: 100ch; }
+.nota-d b { font-weight: 600; }
+.escena { overflow-x: auto; padding-bottom: 8px; }
+.pie-m { font-size: 13px; color: var(--taupe); max-width: 100ch; margin: 0; }
+.pie-m b { color: var(--tinta); font-weight: 600; }
+
+/* ───────── La pantalla (marco de la app) ───────── */
+.pantalla { position: relative; margin: 0 auto; width: min(1180px, 100%); background: var(--crema); border: 1px solid var(--sand); border-radius: 22px; padding: 22px 22px 26px; overflow: hidden; min-height: 760px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+.pantalla.movil { width: 375px; grid-template-columns: minmax(0, 1fr); padding: 16px 14px 96px; min-height: 780px; }
+.pantalla h2.pregunta { font-family: var(--serif); font-weight: 400; font-size: 31px; margin: 0 0 2px; line-height: 1.1; }
+.sub { color: var(--taupe); font-size: 14px; margin: 0 0 14px; }
+.pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.pill { border: 1px solid var(--sand); background: var(--papel); border-radius: 999px; min-height: 34px; padding: 0 14px; font-size: 13.5px; font-weight: 500; color: var(--taupe); }
+.pill i { font-style: normal; font-weight: 400; margin-left: 6px; opacity: .8; }
+.pill[aria-pressed="true"] { background: var(--tinta); color: var(--sobre); border-color: var(--tinta); }
+.algo { display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: center; width: 100%; text-align: left; border: 1px dashed var(--borde-control); background: var(--papel); border-radius: 18px; padding: 11px 14px; margin-top: 14px; }
+.algo .mas { width: 40px; height: 40px; border-radius: 50%; background: var(--tinta); color: var(--sobre); display: grid; place-items: center; font-size: 22px; line-height: 1; }
+.algo b { display: block; font-weight: 500; } .algo small { color: var(--taupe); font-size: 12.5px; }
+
+/* mosaico de la prenda: el ícono de su categoría sobre su color (ADR-0333); con foto, la foto */
+.mos { display: grid; place-items: center; background: var(--c, #e3d5c8); color: #7a5646; border-radius: 12px; position: relative; overflow: hidden; flex: none; }
+.mos svg { width: 46%; height: 46%; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.mos.foto { background: radial-gradient(120% 90% at 30% 20%, #f3e6d3 0%, #d9c3a5 45%, #b99a78 100%); }
+.mos.foto::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(115deg, rgba(255,255,255,.18) 0 6px, transparent 6px 14px); }
+.mos.foto svg { display: none; }
+.ins { position: absolute; top: 6px; right: 6px; min-width: 24px; height: 24px; border-radius: 999px; background: var(--tinta); color: var(--sobre); font-size: 12px; font-weight: 600; display: grid; place-items: center; padding: 0 6px; z-index: 1; }
+.ins.v { background: var(--verde); color: var(--sobre); }
+.dato { font-size: 12.5px; color: var(--taupe); }
+.dato b { color: var(--tinta); font-weight: 600; }
+
+/* ───────── Grillas por diseño ───────── */
+.g-a { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.pantalla.movil .g-a { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ca { text-align: left; background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; padding: 9px; display: flex; flex-direction: column; gap: 8px; position: relative;
+  transition: transform calc(220ms * var(--vel)) var(--ease), border-color 160ms; }
+@media (hover: hover) { .ca:hover { transform: translateY(-2px); border-color: var(--borde-control); } }
+.ca .mos { width: 100%; aspect-ratio: 16 / 10; }
+.ca .nm { font-weight: 600; font-size: 14px; line-height: 1.2; padding: 0 3px; }
+.ca .px { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 3px 2px; }
+.ca .px div { background: var(--hueso); border-radius: 10px; padding: 5px 8px; line-height: 1.15; }
+.ca .px small { display: block; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+.ca .px b { font-size: 14px; font-variant-numeric: tabular-nums; }
+.ca .vz { position: absolute; left: 16px; top: 16px; background: color-mix(in srgb, var(--papel) 92%, transparent); border-radius: 999px; font-size: 11px; font-weight: 600; padding: 2px 9px; color: var(--taupe); z-index: 1; }
+.pantalla.movil .ca .px { grid-template-columns: 1fr; gap: 4px; }
+.pantalla.movil .ca .px div { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 9px; }
+.pantalla.movil .ca .px small { font-size: 10px; } .pantalla.movil .ca .px b { font-size: 13.5px; white-space: nowrap; }
+.ca.en { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+
+.g-b { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.pantalla.movil .g-b { grid-template-columns: minmax(0, 1fr); }
+.cb { text-align: left; background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; padding: 10px; display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; align-items: center; position: relative; }
+.cb .mos { width: 64px; height: 64px; }
+.cb .nm { font-weight: 600; font-size: 14.5px; line-height: 1.2; }
+.cb .dato { margin-top: 3px; }
+.cb.en { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+.cb.sel { background: var(--hueso); border-color: var(--tinta); }
+.cb .ins { top: 4px; right: 4px; }
+
+.g-c { display: flex; flex-direction: column; background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; overflow: hidden; }
+.rc { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto 18px; gap: 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--sand); text-align: left; background: transparent; border-left: 0; border-right: 0; border-bottom: 0; width: 100%; }
+.rc:first-child { border-top: 0; }
+.rc .mos { width: 48px; height: 48px; border-radius: 10px; }
+.rc .nm { font-weight: 600; font-size: 14.5px; line-height: 1.2; }
+.rc .ya { font-size: 12px; font-weight: 600; background: var(--verde-suave); color: var(--verde); border-radius: 999px; padding: 3px 10px; }
+.rc .rapido { border: 1px solid var(--borde-control); background: transparent; border-radius: 12px; min-height: 40px; padding: 0 14px; font-weight: 600; font-size: 13.5px; white-space: nowrap; }
+.rc .rapido small { display: block; font-weight: 400; font-size: 10.5px; color: var(--taupe); margin-top: -2px; }
+.rc .chev { color: var(--taupe); }
+@media (hover: hover) { .rc:hover { background: var(--hueso); } .rapido:hover { background: var(--tinta); color: var(--sobre); } }
+
+/* ───────── Tu compra (panel de PC) ───────── */
+.der { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 0; }
+.pantalla.movil .der { display: none; }
+.tuc { background: var(--papel); border: 1px solid var(--sand); border-radius: 22px; padding: 16px 16px 14px; position: relative; }
+.tuc .arr { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+.tuc .big { font-family: var(--serif); font-size: 46px; line-height: 1.05; margin: 6px 0 8px; display: flex; align-items: baseline; gap: 4px; }
+.tuc .big small { font-size: 22px; color: var(--taupe); }
+.tuc .prov { display: flex; align-items: center; gap: 10px; font-size: 14px; margin-bottom: 8px; }
+.ini { width: 34px; height: 34px; border-radius: 10px; background: var(--sand); display: grid; place-items: center; font-family: var(--serif); font-size: 14px; flex: none; }
+.tuc .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.tuc .chips span { background: var(--hueso); color: var(--taupe); border-radius: 999px; padding: 2px 10px; font-size: 12.5px; }
+.lin { display: grid; }
+.ln { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--sand); border-radius: 8px; }
+.ln .mos { width: 40px; height: 40px; border-radius: 9px; }
+.ln .t { font-size: 14px; line-height: 1.2; } .ln .t small { display: block; color: var(--taupe); font-size: 12.5px; margin-top: 2px; }
+.ln b { font-weight: 600; font-size: 14px; }
+.ln.oculta .mos { visibility: hidden; }
+.ln.oculta .t, .ln.oculta b { opacity: 0; }
+.ln.llega { animation: llega calc(900ms * var(--vel)) var(--ease) both; }
+@keyframes llega { 0% { background: color-mix(in srgb, var(--verde) 22%, transparent); } 100% { background: transparent; } }
+.ln.llega .t, .ln.llega b { animation: aparece calc(300ms * var(--vel)) var(--ease) both; }
+@keyframes aparece { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.tuc .gana { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; border-top: 1px solid var(--sand); padding-top: 9px; margin-top: 2px; }
+.tuc .gana b { color: var(--verde); font-size: 15px; }
+.sig { display: flex; align-items: center; gap: 8px; background: var(--sand); border-radius: 12px; padding: 9px 12px; font-size: 13.5px; margin-top: 10px; }
+.tuc.pulso { animation: pulso calc(800ms * var(--vel)) var(--ease) both; }
+@keyframes pulso { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--verde) 38%, transparent); } 100% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--verde) 0%, transparent); } }
+.vacio { color: var(--taupe); font-size: 13.5px; padding: 8px 0 4px; }
+
+/* isla del celular */
+.isla { position: absolute; left: 12px; right: 12px; bottom: 12px; background: var(--tinta); color: var(--sobre); border-radius: 18px; padding: 10px 10px 10px 12px; display: none; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 10px; align-items: center; z-index: 5; }
+.pantalla.movil .isla { display: grid; }
+.isla .bolsa { width: 38px; height: 38px; border-radius: 12px; background: color-mix(in srgb, var(--sobre) 14%, transparent); display: grid; place-items: center; }
+.isla .bolsa svg { width: 20px; height: 20px; stroke: var(--sobre); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.isla .tt { font-family: var(--serif); font-size: 22px; line-height: 1; white-space: nowrap; } .isla small { display: block; font-size: 12px; opacity: .75; margin-top: 2px; }
+.isla .seguir { background: var(--sobre); color: var(--tinta); border: 0; border-radius: 12px; min-height: 40px; padding: 0 16px; font-weight: 600; font-size: 14px; }
+.isla.pulso { animation: pulso-i calc(800ms * var(--vel)) var(--ease) both; }
+@keyframes pulso-i { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--verde) 55%, transparent); } 100% { box-shadow: 0 0 0 10px transparent; } }
+
+/* ───────── La hoja (A y C; en celular también B) ───────── */
+.velo { position: absolute; inset: 0; background: rgba(var(--sombra), .38); backdrop-filter: blur(3px); display: flex; overflow: auto; z-index: 20; padding: 18px;
+  animation: velo-in calc(220ms * var(--vel)) var(--ease) both; }
+.velo.sale { animation: velo-out calc(200ms * var(--vel)) var(--ease) both; pointer-events: none; }
+@keyframes velo-in { from { opacity: 0; } to { opacity: 1; } } @keyframes velo-out { to { opacity: 0; } }
+.hoja { width: 100%; max-width: 470px; margin: auto; overflow: visible; background: var(--papel); border-radius: 24px; padding: 18px 18px 16px; position: relative;
+  animation: hoja-in calc(280ms * var(--vel)) var(--ease) both; }
+.velo.sale .hoja { animation: hoja-out calc(200ms * var(--vel)) var(--ease) both; }
+@keyframes hoja-in { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes hoja-out { to { opacity: 0; transform: translateY(8px) scale(.98); } }
+.pantalla.movil .velo { padding: 0; }
+.pantalla.movil .hoja { margin: auto 0 0; max-height: 94%; overflow: auto; max-width: none; border-radius: 24px 24px 0 0; padding-top: 22px; animation-name: hoja-sube; }
+.pantalla.movil .hoja::before { content: ""; position: absolute; top: 8px; left: 50%; width: 38px; height: 4px; border-radius: 4px; background: var(--sand); transform: translateX(-50%); }
+@keyframes hoja-sube { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.velo.sale .hoja { animation-name: hoja-out; }
+.x { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--hueso); font-size: 16px; line-height: 1; }
+/* cascada: título, bajada y campos entran con 55 ms de desfase */
+.hoja .casc > * { animation: casc calc(300ms * var(--vel)) var(--ease) both; animation-delay: calc(var(--i, 0) * 55ms * var(--vel)); }
+@keyframes casc { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.h-cab { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 14px; align-items: center; padding-right: 36px; }
+.h-cab .mos { width: 64px; height: 64px; border-radius: 16px; }
+.h-cab h3 { font-family: var(--serif); font-weight: 400; font-size: 26px; line-height: 1.05; margin: 0; }
+.h-cab p { margin: 3px 0 0; font-size: 13px; color: var(--taupe); }
+.cuerpo { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+.lbl { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); font-weight: 600; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.lbl small { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 12px; }
+
+/* cantidad grande con atajos */
+.cant { display: grid; grid-template-columns: 52px minmax(0, 1fr) 52px; gap: 8px; }
+.cant button { height: 52px; border-radius: 14px; border: 1px solid var(--borde-control); background: var(--papel); font-size: 24px; line-height: 1; transition: transform calc(120ms * var(--vel)); }
+.cant button:active { transform: scale(.96); }
+.cant button:disabled { opacity: .4; cursor: default; }
+.cant input { height: 52px; border-radius: 14px; border: 1px solid var(--borde-control); background: var(--hueso); text-align: center; font-family: var(--serif); font-size: 30px; width: 100%; min-width: 0; }
+.cant input:focus, .caja input:focus { outline: 0; background: var(--papel); box-shadow: 0 0 0 2px var(--tinta); }
+.atajos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.at { border: 1px solid var(--sand); background: transparent; border-radius: 999px; min-height: 30px; padding: 0 12px; font-size: 12.5px; color: var(--taupe); font-weight: 500; }
+.at.on { background: var(--tinta); color: var(--sobre); border-color: var(--tinta); }
+.at.ult { border-style: dashed; border-color: var(--borde-control); }
+.at.ult.on { border-style: solid; }
+
+.dos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.caja { display: flex; align-items: center; gap: 6px; background: var(--hueso); border: 1px solid var(--borde-control); border-radius: 14px; height: 52px; padding: 0 12px; }
+.caja span { color: var(--taupe); font-family: var(--serif); font-size: 18px; }
+.caja input { border: 0; background: transparent; width: 100%; min-width: 0; font-family: var(--serif); font-size: 26px; padding: 0; border-radius: 6px; }
+.hint { display: block; margin-top: 5px; font-size: 12px; color: var(--taupe); background: transparent; border: 0; padding: 0; text-align: left; }
+.hint.ok { color: var(--verde); }
+.hint u { text-underline-offset: 3px; }
+
+.res { background: var(--verde-suave); color: var(--verde); border-radius: 16px; padding: 10px 14px; display: grid; gap: 4px; }
+.res.mal { background: var(--ambar-suave); color: var(--ambar); }
+.res .fila { display: flex; justify-content: space-between; align-items: baseline; font-size: 13.5px; gap: 10px; }
+.res .fila b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.res .gr { font-size: 12px; opacity: .9; }
+.res .barra { height: 6px; border-radius: 6px; background: color-mix(in srgb, currentColor 18%, transparent); overflow: hidden; margin: 2px 0; }
+.res .barra i { display: block; height: 100%; background: currentColor; border-radius: 6px; transition: width calc(300ms * var(--vel)) var(--ease); }
+
+.tt { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tt button { min-height: 46px; border-radius: 14px; border: 1px solid var(--sand); background: var(--papel); font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 160ms, border-color 160ms; }
+.tt button[aria-pressed="true"] { border-color: var(--tinta); background: var(--hueso); box-shadow: inset 0 0 0 1px var(--tinta); }
+.tt button[aria-pressed="true"]::before { content: "✓"; font-size: 13px; }
+.rep { display: grid; gap: 8px; margin-top: 10px; }
+.rep .r { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; font-weight: 500; }
+.mini { display: inline-grid; grid-template-columns: 34px 52px 34px; gap: 4px; }
+.mini button { height: 34px; border-radius: 10px; border: 1px solid var(--borde-control); background: var(--papel); font-size: 17px; line-height: 1; }
+.mini input { height: 34px; border-radius: 10px; border: 1px solid var(--borde-control); background: var(--hueso); text-align: center; width: 100%; font-size: 15px; }
+.cuadra { font-size: 12.5px; color: var(--verde); display: flex; gap: 6px; align-items: center; margin-top: 2px; }
+.cuadra.mal { color: var(--ambar); }
+
+.pie-h { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; position: sticky; bottom: -16px; padding: 12px 0 2px; background: linear-gradient(to top, var(--papel) 70%, transparent); }
+.pie-h .cancelar { border: 1px solid var(--borde-control); background: transparent; border-radius: 14px; min-height: 48px; padding: 0 18px; font-weight: 500; }
+.pie-h .agregar { flex: 1; white-space: nowrap; border: 0; background: var(--tinta); color: var(--sobre); border-radius: 14px; min-height: 48px; padding: 0 20px; font-weight: 600; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 160ms; }
+.pie-h .agregar:disabled { opacity: .4; cursor: default; }
+@media (hover: hover) { .pie-h .agregar:not(:disabled):hover { background: #8b2a1f; color: #f5f0e8; } }
+
+/* ───────── B · editor en la columna ───────── */
+.ed { background: var(--papel); border: 1px solid var(--sand); border-radius: 22px; padding: 16px; position: relative; animation: ed-in calc(280ms * var(--vel)) var(--ease) both; }
+@keyframes ed-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+.ed.vacio-e { border-style: dashed; border-color: var(--borde-control); background: transparent; color: var(--taupe); font-size: 14px; display: grid; gap: 4px; place-items: center; text-align: center; padding: 26px 18px; animation: none; }
+.ed .h-cab { grid-template-columns: 52px minmax(0, 1fr); padding-right: 30px; }
+.ed .h-cab .mos { width: 52px; height: 52px; border-radius: 14px; }
+.ed .h-cab h3 { font-size: 22px; }
+.ed .cuerpo { gap: 12px; margin-top: 12px; }
+.ed .pie-h { position: static; background: none; padding-top: 4px; margin-top: 12px; }
+.ed .pie-h .agregar { min-height: 46px; padding: 0 12px; } .ed .pie-h .cancelar { min-height: 46px; padding: 0 14px; }
+
+/* ───────── C · el talón ───────── */
+.hoja.tal { padding: 0; background: transparent; overflow: visible; max-width: 440px; margin: auto; }
+.pantalla.movil .hoja.tal .x { top: 24px !important; right: 12px !important; }
+.pantalla.movil .hoja.tal { max-height: none; overflow: visible; margin: auto 0 0; padding: 14px 0 0; }
+.pantalla.movil .hoja.tal { background: transparent; }
+.talon { background: var(--papel); border-radius: 6px; padding: 20px 20px 22px; position: relative;
+  -webkit-mask: conic-gradient(from -45deg at bottom, transparent, #000 1deg 89deg, transparent 90deg) bottom / 16px 51% repeat-x, linear-gradient(#000, #000) top / 100% 52% no-repeat; mask: conic-gradient(from -45deg at bottom, transparent, #000 1deg 89deg, transparent 90deg) bottom / 16px 51% repeat-x, linear-gradient(#000, #000) top / 100% 52% no-repeat; padding-bottom: 30px; }
+.talon .kk { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--taupe); font-weight: 600; display: flex; justify-content: space-between; }
+.talon .pr { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 14px; align-items: center; margin: 10px 0 4px; }
+.talon .pr .mos { width: 56px; height: 56px; border-radius: 14px; }
+.talon h3 { font-family: var(--serif); font-weight: 400; font-size: 27px; margin: 0; line-height: 1.05; }
+.talon .pr p { margin: 2px 0 0; font-size: 13px; color: var(--taupe); }
+.talon .corte { border-top: 2px dotted var(--borde-control); margin: 12px 0; opacity: .6; }
+.fl { display: grid; grid-template-columns: auto minmax(8px, 1fr) auto; gap: 8px; align-items: center; padding: 6px 0; }
+.fl > span:first-child { font-size: 14px; font-weight: 500; }
+.fl .pt { border-bottom: 2px dotted var(--sand); height: 1px; align-self: end; margin-bottom: 7px; }
+.fl .caja { height: 42px; border-radius: 12px; width: 150px; } .fl .caja input { font-size: 21px; text-align: right; }
+.fl .mini { grid-template-columns: 34px 54px 34px; }
+.fl .tt { grid-template-columns: repeat(3, 56px); gap: 6px; } .fl .tt button { min-height: 38px; border-radius: 12px; font-size: 13px; }
+.fl .rev { border: 1px solid var(--sand); background: transparent; border-radius: 10px; width: 30px; height: 30px; color: var(--taupe); font-size: 15px; margin-left: 6px; }
+.fl-w { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.tot { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; padding: 3px 0; }
+.tot.g { font-family: var(--serif); font-size: 36px; line-height: 1; padding: 6px 0 2px; }
+.tot.g small { font-family: var(--sans); font-size: 12px; color: var(--taupe); }
+.tot.v { color: var(--verde); font-weight: 600; }
+.talon .pie-h { position: static; background: none; padding: 14px 0 0; margin: 0; }
+
+
+/* ───────── Algo nuevo: qué es, de qué marca, cómo se llama ───────── */
+.nv { display: grid; gap: 12px; }
+.nv-nota { margin: 0; font-size: 12.5px; line-height: 1.4; color: var(--taupe); }
+.nv-b { display: grid; gap: 6px; }
+.nv-c .fl { padding: 2px 0; }
+.chips-n { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.cp { border: 1px solid var(--sand); background: var(--papel); border-radius: 999px; min-height: 36px; padding: 0 14px; font-size: 13.5px; font-weight: 500; color: var(--tinta); transition: background 160ms, border-color 160ms; }
+.cp.on { background: var(--tinta); color: var(--sobre); border-color: var(--tinta); }
+.cp.otra { border-style: dashed; border-color: var(--borde-control); color: var(--taupe); }
+.marca-fila { display: flex; align-items: flex-start; gap: 8px; }
+.marca-fila > .chips-n, .marca-fila > .caja { flex: 1; }
+.marca-fila .caja { height: 42px; } .marca-fila .caja input { font-family: var(--sans); font-size: 15px; }
+.mas-m { flex: none; width: 36px; height: 36px; border-radius: 12px; border: 1px solid var(--borde-control); background: transparent; font-size: 20px; line-height: 1; }
+.mas-m[aria-pressed="true"] { background: var(--hueso); }
+.nv .caja input { font-family: var(--sans); font-size: 15px; }
+.nv-ya { margin: 0; font-size: 12px; color: var(--taupe); }
+.sigue { display: inline-block; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; background: var(--sand); color: var(--tinta); border-radius: 999px; padding: 2px 9px; font-weight: 600; }
+.parecido { display: grid; gap: 4px; background: var(--ambar-suave); color: var(--tinta); border-radius: 14px; padding: 10px 12px; font-size: 13px; }
+.parecido span { color: var(--taupe); }
+.parecido .pa { display: flex; gap: 8px; margin-top: 4px; }
+.btn-s { border: 0; background: var(--tinta); color: var(--sobre); border-radius: 10px; min-height: 34px; padding: 0 14px; font-weight: 600; font-size: 13px; }
+.btn-g { border: 1px solid var(--borde-control); background: transparent; border-radius: 10px; min-height: 34px; padding: 0 14px; font-weight: 500; font-size: 13px; }
+.falta { margin: 12px 0 0; font-size: 12.5px; color: var(--taupe); display: flex; flex-wrap: wrap; gap: 4px; }
+.falta span { background: var(--hueso); border-radius: 999px; padding: 1px 9px; color: var(--tinta); }
+.falta.ok { color: var(--verde); }
+
+/* ───────── El vuelo ───────── */
+.vuelo-x, .vuelo-y { position: fixed; left: 0; top: 0; z-index: 9999; pointer-events: none; will-change: transform; }
+.vuelo-y .mos { box-shadow: 0 10px 26px rgba(var(--sombra), .28); }
+.vuelo-y .ins { top: -8px; right: -8px; }
+.estela { position: fixed; z-index: 9998; pointer-events: none; border-radius: 50%; background: color-mix(in srgb, var(--verde) 55%, transparent); }
+@media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div class="marco">
+  <header>
+    <div class="eyebrow">Maqueta · Compras ▸ Mis compras ▸ Compré ropa · paso 2 de 3</div>
+    <h1>¿Qué le compraste? — tres diseños</h1>
+    <p class="bajada">Cada diseño redibuja la tarjeta de la prenda y la hoja donde se anota. Toca una prenda, cámbiale la cantidad y presiona <b>Agregar</b>: la prenda <b>vuela hasta «Tu compra»</b> y el total cuenta hasta la cifra nueva. Prueba también en <b>Celular</b>, donde aterriza en la isla de abajo.</p>
+  </header>
+
+  <div class="mando">
+    <div class="g"><span>Diseño</span><div class="seg" id="seg-d"></div></div>
+    <div class="g"><span>Ancho</span><div class="seg" id="seg-a"></div></div>
+    <div class="g"><span>Tema</span><div class="seg" id="seg-t"></div></div>
+    <label class="chk"><input type="checkbox" id="lento"> Cámara lenta del vuelo</label>
+    <button class="btn" id="reiniciar" type="button">Reiniciar la compra</button>
+  </div>
+
+  <p class="nota-d" id="nota-d"></p>
+  <div class="escena"><div class="pantalla" id="pantalla"></div></div>
+  <p class="pie-m" id="pie-m"></p>
+</div>
+
+<script>
+(() => {
+  /* ───────── Datos (nombres y cifras de la pantalla de Felipe; lo demás, ejemplo inventado) ───────── */
+  const SHIRT = '<svg viewBox="0 0 24 24"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>';
+  const SHORTS = '<svg viewBox="0 0 24 24"><path d="M4 3h16l1 17h-6.2l-2.8-9-2.8 9H3z"/><path d="M4 7.5h16"/></svg>';
+  const BAG = '<svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>';
+  const PRODUCTOS = [
+    { id: "p1", n: "Polo ateriza", cat: "Polos", marca: "Matic Moda", ico: SHIRT, c: "#e3d5c8", veces: 1, uq: 5, uc: 20, uv: 35.9 },
+    { id: "p2", n: "Polo Odaly", cat: "Polos", marca: "Matic Moda", ico: SHIRT, c: "#d9d2c3", veces: 3, uq: 9, uc: 17, uv: 33.9 },
+    { id: "p3", n: "Polo vec…", cat: "Polos", marca: "Matic Moda", ico: SHIRT, c: "#e6d3c4", veces: 2, uq: 9, uc: 18, uv: 33.9 },
+    { id: "p4", n: "Polos Brillo", cat: "Polos", marca: "Matic Moda", ico: SHIRT, c: "#dccdbf", veces: 2, uq: 9, uc: 20, uv: 35.9 },
+    { id: "p5", n: "Short Nenesse", cat: "Shorts", marca: "Matic Moda", ico: SHORTS, c: "#e0d9cf", veces: 0, uq: null, uc: 20, uv: 34.9 },
+    { id: "p6", n: "Blusa Encaje", cat: "Camisas y Blusas", marca: "Matic Moda", ico: SHIRT, c: "#e8d8c0", foto: true, veces: 0, uq: null, uc: 38, uv: 69.9 },
+  ];
+  const SKIRT = '<svg viewBox="0 0 24 24"><path d="M9 3h6l4 17H5z"/><path d="M8.5 7h7"/></svg>';
+  const COAT = '<svg viewBox="0 0 24 24"><path d="M8 3 3 6l2 4 3-1v12h8V9l3 1 2-4-5-3-2 3h-4z"/></svg>';
+  // «Algo nuevo»: qué es (lo habitual de este proveedor primero y «Otra…» abre el resto) y de qué marca (ejemplos inventados).
+  const CATEGORIAS = [
+    { id: "polos", n: "Polos", ico: SHIRT, c: "#e3d5c8", ej: "Polo Aurora", suya: true },
+    { id: "shorts", n: "Shorts", ico: SHORTS, c: "#e0d9cf", ej: "Short Lima", suya: true },
+    { id: "blusas", n: "Camisas y Blusas", ico: SHIRT, c: "#e8d8c0", ej: "Blusa Violeta", suya: true },
+    { id: "pantalones", n: "Pantalones", ico: SHORTS, c: "#d9d2c3", ej: "Pantalón Milagros" },
+    { id: "casacas", n: "Casacas", ico: COAT, c: "#d6cabb", ej: "Casaca Emilia" },
+    { id: "faldas", n: "Faldas", ico: SKIRT, c: "#e6d3c4", ej: "Falda Capri" },
+    { id: "vestidos", n: "Vestidos", ico: SKIRT, c: "#dccdbf", ej: "Vestido Sol" },
+  ];
+  const MARCAS = [{ id: "matic", n: "Matic Moda", suya: true }, { id: "brisa", n: "Brisa", suya: true }, { id: "kero", n: "Kero" }, { id: "lupe", n: "Lupe Kids" }];
+  const TIENDAS = ["AQP", "LIM", "TRU"];
+  const NOMBRE_TIENDA = { AQP: "Arequipa", LIM: "Lima", TRU: "Trujillo" };
+  const P = (id) => (id === "nuevo" && hoja && hoja.nuevo ? pseudoNuevo() : PRODUCTOS.find((p) => p.id === id));
+  const catDe = (id) => CATEGORIAS.find((c) => c.id === id);
+  const marcaDe = (nv) => (nv.marcaNueva !== null ? (nv.marcaNueva.trim() || null) : (MARCAS.find((m) => m.id === nv.marcaId) || {}).n || null);
+  function pseudoNuevo() {
+    const nv = hoja.nuevo; const c = catDe(nv.catId);
+    return { id: "nuevo", nuevo: true, n: nv.nombre.trim() || "Prenda nueva", cat: c ? c.n : "", marca: marcaDe(nv) || "", ico: c ? c.ico : SHIRT, c: c ? c.c : "#e3d5c8", veces: 0, uq: null, uc: null, uv: null };
+  }
+  const norm = (t) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  // «¿Es esa?»: las palabras de lo escrito (sin la «s» final) están todas en una prenda ya conocida, o al revés.
+  const palabras = (t) => new Set(norm(t).split(/\s+/).filter((w) => w.length > 2).map((w) => w.replace(/s$/, "")));
+  function parecidoA(nv) {
+    const A = palabras(nv.nombre); if (A.size === 0 || norm(nv.nombre).length < 5) return null;
+    const dentro = (X, Y) => [...X].every((w) => Y.has(w));
+    return PRODUCTOS.find((p) => { if (p.nuevo || nv.descartadas.includes(p.id)) return false; const B = palabras(p.n); return Math.min(A.size, B.size) >= 2 ? dentro(A, B) || dentro(B, A) : A.size === 1 && B.size === 1 && dentro(A, B); }) || null;
+  }
+  function faltaNuevo() {
+    const f = [], nv = hoja.nuevo, k = calc();
+    if (!nv.catId) f.push("¿Qué es?"); if (!marcaDe(nv)) f.push("¿De qué marca?"); if (nv.nombre.trim().length < 3) f.push("¿Cómo se llama?");
+    if (k.c <= 0) f.push("cuánto te costó"); if (k.v <= 0) f.push("a cuánto se vende");
+    return f;
+  }
+  let contadorNuevo = 0;
+  const inicial = () => [
+    { id: "p5", q: 28, costo: 20, venta: 34.9, rep: { TRU: 28 } },
+    { id: "p6", q: 2, costo: 38, venta: 69.9, rep: { TRU: 2 } },
+  ];
+
+  const NOTAS = {
+    A: ["A · Hoja con foto", "La hoja de hoy, ordenada: la prenda con su foto arriba, la cantidad en grande con atajos (la vez pasada, 10, 20, 30), costo y venta en cajas limpias con su «de dónde sale» como texto pequeño, y un recuadro verde que dice cuánto ganas por cada una Y en total. La tarjeta de la grilla trae menos hueco: costo y venta en dos fichas, ‘la vez pasada’ como etiqueta sobre la foto."],
+    B: ["B · Mesa de dos columnas", "En PC ya no hay hoja que tape la pantalla: eliges a la izquierda, anotas en el editor de la derecha y ves caer la línea justo debajo, en Tu compra. El vuelo es corto y se entiende solo. La tarjeta es horizontal (foto + datos), así caben más prendas. En celular vuelve a ser una hoja desde abajo."],
+    C: ["C · El talón", "La hoja se lee como el talón que te dieron: renglones con puntitos (cuántas, te costó, se vende, tienda), un corte punteado y al pie lo que importa: el total de la prenda y lo que ganas, con el borde dentado. La lista de prendas es una lista con foto y un botón de atajo «+9» que agrega con lo de la vez pasada sin abrir la hoja (idea opcional: cambia el flujo, decide Felipe). «Algo nuevo» abre este mismo talón con tres preguntas arriba (¿Qué es?, ¿De qué marca? y ¿Cómo se llama?), el aviso «¿Es …?» si ya existe una parecida, y al pie dice qué falta."],
+  };
+
+  /* ───────── Estado ───────── */
+  let d = "A", movil = false, filtro = "Todos";
+  let cart = inicial();
+  let hoja = null; // { pid, q, costo, venta, destinos:[], rep:{}, custom:false, edita:bool }
+  let sale = false;
+  const $ = (s, r = document) => r.querySelector(s);
+  const soles = (n) => "S/ " + (Math.round(n * 100) / 100).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const num = (v) => { const x = parseFloat(String(v).replace(",", ".")); return Number.isFinite(x) ? x : 0; };
+  const totalCart = () => cart.reduce((s, l) => s + l.q * l.costo, 0);
+  const prendasCart = () => cart.reduce((s, l) => s + l.q, 0);
+  const gananciaCart = () => cart.reduce((s, l) => s + l.q * (l.venta - l.costo), 0);
+  const lineaDe = (id) => cart.find((l) => l.id === id);
+  const repartoParejo = (q, destinos) => { const o = {}; const n = destinos.length || 1; destinos.forEach((t, i) => (o[t] = Math.floor(q / n) + (i < q % n ? 1 : 0))); return o; };
+  const textoTiendas = (rep) => { const k = Object.keys(rep).filter((t) => rep[t] > 0); return k.length === 1 ? k[0] : k.map((t) => `${t} ${rep[t]}`).join(" · "); };
+  const mos = (p, extra = "", badge = "") => `<div class="mos ${p.foto ? "foto" : ""} ${extra}" style="--c:${p.c}" data-color-dato>${p.ico}${badge}</div>`;
+
+  /* ───────── Piezas ───────── */
+  function pills() {
+    const cats = ["Todos", ...new Set(PRODUCTOS.map((p) => p.cat))];
+    return `<div class="pills">${cats.map((c) => { const n = c === "Todos" ? PRODUCTOS.length : PRODUCTOS.filter((p) => p.cat === c).length; return `<button class="pill" data-a="filtro" data-v="${c}" aria-pressed="${filtro === c}">${c}<i>${n}</i></button>`; }).join("")}</div>`;
+  }
+  const visibles = () => PRODUCTOS.filter((p) => filtro === "Todos" || p.cat === filtro);
+  const insignia = (p) => { const l = lineaDe(p.id); return l ? `<span class="ins v" aria-label="${l.q} en la compra">${l.q}</span>` : ""; };
+
+  function cardA(p) {
+    const l = lineaDe(p.id);
+    return `<button class="ca ${l ? "en" : ""}" data-a="abrir" data-id="${p.id}">
+      ${p.veces > 0 ? `<span class="vz">La vez pasada · ${p.uq}</span>` : ""}
+      ${mos(p, "", insignia(p))}
+      <span class="nm">${p.n}</span>
+      <span class="px"><div><small>Te costó</small><b>${soles(l ? l.costo : p.uc)}</b></div><div><small>Vendes</small><b>${soles(l ? l.venta : p.uv)}</b></div></span>
+      ${l ? `<span class="dato" style="padding:0 3px 2px"><b>${textoTiendas(l.rep)}</b> · ya en tu compra</span>` : ""}
+    </button>`;
+  }
+  function cardB(p) {
+    const l = lineaDe(p.id);
+    return `<button class="cb ${l ? "en" : ""} ${hoja && hoja.pid === p.id ? "sel" : ""}" data-a="abrir" data-id="${p.id}">
+      ${mos(p, "", insignia(p))}
+      <span><span class="nm">${p.n}</span>
+        <div class="dato">${p.veces > 0 ? `La vez pasada: <b>${p.uq}</b> a <b>${soles(p.uc)}</b>` : l ? `<b>${l.q}</b> × ${soles(l.costo)} · ${textoTiendas(l.rep)}` : "Todavía no se la compraste"}</div>
+        <div class="dato">Se vende a <b>${soles(l ? l.venta : p.uv)}</b></div></span>
+    </button>`;
+  }
+  function filaC(p) {
+    const l = lineaDe(p.id);
+    return `<div class="rc" role="row">
+      <button style="display:contents" data-a="abrir" data-id="${p.id}" aria-label="Abrir ${p.n}">${mos(p)}</button>
+      <button style="all:unset;cursor:pointer;min-width:0" data-a="abrir" data-id="${p.id}"><span class="nm">${p.n}</span>
+        <div class="dato">Te costó <b>${soles(p.uc)}</b> · vendes <b>${soles(p.uv)}</b>${p.veces > 0 ? ` · antes: <b>${p.uq}</b>` : ""}</div></button>
+      ${l ? `<span class="ya">${l.q} en la compra</span>` : p.veces > 0 ? `<button class="rapido" data-a="rapido" data-id="${p.id}" title="Agrega ${p.uq} con lo de la vez pasada">+ ${p.uq}<small>como la vez pasada</small></button>` : `<span></span>`}
+      <span class="chev">›</span></div>`;
+  }
+
+  function tuCompra() {
+    const t = totalCart();
+    return `<div class="tuc" id="tuc">
+      <div class="arr"><span>Tu compra</span><span>Paso 2 de 3</span></div>
+      <div class="big"><small>S/</small><span id="big-t" class="tn">${t.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+      <div class="prov"><span class="ini">VH</span><span>Victor Hugo Pun Renteria</span></div>
+      ${cart.length ? `<div class="chips"><span id="chip-p">${prendasCart()} prendas</span><span id="chip-m">${cart.length} ${cart.length === 1 ? "modelo" : "modelos"}</span></div>
+      <div class="lin" id="lin">${cart.map(linea).join("")}</div>
+      <div class="gana"><span>Si se vende todo, ganas</span><b class="tn" id="gana-t">${soles(gananciaCart())}</b></div>`
+        : `<div class="vacio">Cuando elijas las prendas, aparecen aquí.</div>`}
+      <div class="sig">➜ Sigue: revisar las prendas</div></div>`;
+  }
+  function linea(l) {
+    const p = P(l.id);
+    return `<div class="ln" data-linea="${l.id}">${mos(p)}<span class="t">${p.n}<small>${l.q} × ${soles(l.costo)} · ${textoTiendas(l.rep)}</small></span><b class="tn">${soles(l.q * l.costo)}</b></div>`;
+  }
+  function isla() {
+    return `<div class="isla" id="isla"><span class="bolsa" id="bolsa">${BAG}</span><span><span class="tt tn" id="isla-t">${soles(totalCart())}</span><small id="isla-s">${prendasCart()} prendas · ${cart.length} modelos</small></span><button class="seguir" type="button">Seguir →</button></div>`;
+  }
+
+  /* ───────── Contenido de la hoja (cambia por diseño) ───────── */
+  const calc = () => {
+    const h = hoja; const q = Math.max(0, Math.round(num(h.q))); const c = num(h.costo); const v = num(h.venta);
+    const suma = h.destinos.reduce((s, t) => s + (h.rep[t] || 0), 0);
+    return { q, c, v, gc: v - c, gt: q * (v - c), tot: q * c, margen: v > 0 ? ((v - c) / v) * 100 : 0, suma, cuadra: h.destinos.length > 0 && suma === q && q > 0 };
+  };
+  const ctaTexto = () => { const k = calc(); return `${hoja.edita ? "Actualizar" : "Agregar"} ${k.q} · ${soles(k.tot)}`; };
+
+  function bloqueCantidad(p, big) {
+    const k = calc();
+    return `<div style="--i:1"><div class="lbl"><span>¿Cuántas?</span>${p.veces > 0 ? `<small>La vez pasada: ${p.uq}</small>` : ""}</div>
+      <div class="cant"><button type="button" data-a="q-" aria-label="Una menos" ${k.q <= 1 ? "disabled" : ""}>−</button><input data-i="q" value="${hoja.q}" inputmode="numeric" aria-label="¿Cuántas compraste?"><button type="button" data-a="q+" aria-label="Una más">+</button></div>
+      <div class="atajos">${p.veces > 0 ? `<button type="button" class="at ult ${k.q === p.uq ? "on" : ""}" data-a="q=" data-v="${p.uq}">La vez pasada · ${p.uq}</button>` : ""}${[10, 20, 30].map((n) => `<button type="button" class="at ${k.q === n ? "on" : ""}" data-a="q=" data-v="${n}">${n}</button>`).join("")}</div></div>`;
+  }
+  function cajaPrecio(campo, etiqueta, ref, refTxt) {
+    const igual = ref !== null && Math.abs(num(hoja[campo]) - ref) < 0.005;
+    return `<div><div class="lbl"><span>${etiqueta}</span></div><label class="caja"><span>S/</span><input data-i="${campo}" value="${hoja[campo]}" inputmode="decimal" aria-label="${etiqueta}" placeholder="0.00"></label>
+      ${ref === null ? `<span class="hint">${refTxt}</span>` : igual ? `<span class="hint ok" data-h="${campo}">✓ ${refTxt}</span>` : `<button type="button" class="hint" data-a="ref" data-v="${campo}" data-h="${campo}">Volver a <u>${soles(ref)}</u> · ${refTxt}</button>`}</div>`;
+  }
+  const refTxt = (p, campo) => (p.nuevo ? (campo === "costo" ? "Como te lo cobraron" : "A cuánto la vas a vender") : campo === "costo" ? (p.veces > 0 ? "la vez pasada" : "del catálogo") : "del catálogo");
+  function bloqueResultado() {
+    const k = calc(); const mal = k.gc < 0;
+    return `<div class="res ${mal ? "mal" : ""}" data-b="res"><div class="fila"><span>${mal ? "Se vende por debajo de lo que costó" : "Por cada una ganas"}</span><b data-b="gc">${soles(Math.abs(k.gc))}</b></div>
+      <div class="barra"><i data-b="barra" style="width:${Math.max(0, Math.min(100, k.margen))}%"></i></div>
+      <div class="fila gr"><span data-b="margen">${Math.max(0, Math.round(k.margen))} % de lo que cobras es ganancia</span><span>Total: <b style="font-size:13px" data-b="gt">${soles(k.gt)}</b></span></div></div>`;
+  }
+  function bloqueTiendas() {
+    const k = calc();
+    const filas = hoja.destinos.length >= 2 ? `<div class="rep">${hoja.destinos.map((t) => `<div class="r"><span>${NOMBRE_TIENDA[t]}</span><span class="mini"><button type="button" data-a="r-" data-t="${t}" aria-label="Una menos a ${t}">−</button><input data-i="rep" data-t="${t}" value="${hoja.rep[t] || 0}" inputmode="numeric"><button type="button" data-a="r+" data-t="${t}" aria-label="Una más a ${t}">+</button></span></div>`).join("")}
+      <div class="cuadra ${k.cuadra ? "" : "mal"}" data-b="cuadra">${k.cuadra ? "✓ Cuadra: " + k.suma + " de " + k.q : "⚠ Van " + k.suma + " y compraste " + k.q}</div></div>` : "";
+    return `<div><div class="lbl"><span>¿A qué tienda va?</span><small>una o varias</small></div><div class="tt">${TIENDAS.map((t) => `<button type="button" data-a="tienda" data-t="${t}" aria-pressed="${hoja.destinos.includes(t)}">${t}</button>`).join("")}</div>${filas}</div>`;
+  }
+  const puedeAgregar = () => { const k = calc(); return k.cuadra && k.c > 0 && k.v > 0 && (!hoja.nuevo || faltaNuevo().length === 0); };
+  const pie = (cancel = true) => `${pieFalta()}<div class="pie-h">${cancel ? `<button type="button" class="cancelar" data-a="cerrar">Cancelar</button>` : ""}<button type="button" class="agregar" data-a="agregar" id="cta" ${puedeAgregar() ? "" : "disabled"}><span data-b="cta">${ctaTexto()}</span> <span aria-hidden="true">→</span></button></div>`;
+
+  const chip = (a, v, txt, on, extra = "") => `<button type="button" class="cp ${on ? "on" : ""}" data-a="${a}" data-v="${v}" aria-pressed="${on}" ${extra}>${on ? "✓ " : ""}${txt}</button>`;
+  function bloqueNuevo(est) {
+    const nv = hoja.nuevo; const c = catDe(nv.catId); const par = parecidoA(nv); const falta = faltaNuevo();
+    const habit = CATEGORIAS.filter((x) => x.suya), resto = CATEGORIAS.filter((x) => !x.suya);
+    const titulo = (t, extra = "") => (est === "C" ? `<div class="fl"><span>${t}</span><span class="pt"></span><span>${extra}</span></div>` : `<div class="lbl"><span>${t}</span>${extra ? `<small>${extra}</small>` : ""}</div>`);
+    const marcasChips = MARCAS.filter((m) => m.suya).map((m) => chip("n-marca", m.id, m.n, nv.marcaNueva === null && nv.marcaId === m.id));
+    const otrasM = nv.otrasM ? MARCAS.filter((m) => !m.suya).map((m) => chip("n-marca", m.id, m.n, nv.marcaNueva === null && nv.marcaId === m.id)).join("") : "";
+    const escribe = nv.marcaNueva !== null; const yaEsta = escribe && MARCAS.find((m) => norm(m.n) === norm(nv.marcaNueva));
+    return `<div class="nv ${est === "C" ? "nv-c" : ""}">
+      <p class="nv-nota">Úsala también si no la encuentras entre sus prendas o no sabes cómo la llaman en la tienda. Es solo una referencia para la compra: no se crea en el catálogo; la tienda la registra cuando la recibe, con su color y sus tallas.</p>
+      <div class="nv-b" data-campo="cat">${titulo("¿Qué es?", nv.catId ? "" : '<span class="sigue">Sigue aquí</span>')}
+        <div class="chips-n">${habit.map((x) => chip("n-cat", x.id, x.n, nv.catId === x.id)).join("")}${nv.otras ? resto.map((x) => chip("n-cat", x.id, x.n, nv.catId === x.id)).join("") : ""}<button type="button" class="cp otra" data-a="n-otras" aria-expanded="${nv.otras}">${nv.otras ? "Menos" : "Otra…"}</button></div></div>
+      <div class="nv-b" data-campo="marca">${titulo("¿De qué marca?", nv.catId && !marcaDe(nv) ? '<span class="sigue">Sigue aquí</span>' : "")}
+        <div class="marca-fila">${escribe ? `<label class="caja"><input data-i="n-marca" value="${nv.marcaNueva}" placeholder="Como dice su etiqueta" maxlength="40" aria-label="Marca nueva" ${nv.enfocaMarca ? "autofocus" : ""}></label>` : `<div class="chips-n">${marcasChips.join("")}${otrasM}<button type="button" class="cp otra" data-a="n-otrasm">${nv.otrasM ? "Menos" : "Otra…"}</button></div>`}
+          <button type="button" class="mas-m" data-a="n-escribir" aria-pressed="${escribe}" aria-label="${escribe ? "Volver a la lista de marcas" : "Escribir una marca nueva"}" title="${escribe ? "Volver a la lista de marcas" : "Escribir una marca nueva"}">${escribe ? "×" : "+"}</button></div>
+        ${yaEsta ? `<p class="nv-ya">Ya está en la lista: se usa «${yaEsta.n}».</p>` : ""}</div>
+      <div class="nv-b" data-campo="nombre">${titulo("¿Cómo se llama?")}
+        <label class="caja"><input data-i="n-nombre" value="${nv.nombre.replace(/"/g, "&quot;")}" maxlength="40" placeholder="${c ? "Ej. " + c.ej : "Primero elige qué es"}" aria-label="¿Cómo se llama?"></label></div>
+      <div data-b="parecido">${par ? parecidoHTML(par) : ""}</div>
+    </div>`;
+  }
+  function parecidoHTML(par) {
+    return `<div class="parecido"><b>¿Es «${par.n}»?</b><span>${par.veces > 0 ? "Ya se la compraste: para no anotarla dos veces, úsala." : "Ya le compras esa prenda a este proveedor: si es esa, úsala."}</span>
+      <span class="pa"><button type="button" class="btn-s" data-a="n-usar" data-v="${par.id}">Usar esa</button><button type="button" class="btn-g" data-a="n-otra" data-v="${par.id}">No, es otra</button></span></div>`;
+  }
+  const pieFalta = () => { const f = hoja.nuevo ? faltaNuevo() : []; return hoja.nuevo ? `<p class="falta ${f.length ? "" : "ok"}" data-b="falta">${f.length ? "Falta: " + f.map((t) => `<span>${t}</span>`).join(" · ") : "✓ Lista para agregar a la compra."}</p>` : ""; };
+
+  function contenidoA(p) {
+    return `<div class="casc"><div class="h-cab" style="--i:0">${mos(p, "", "")}<div><h3 data-b="nombre-h">${p.n}</h3><p>${p.nuevo ? (p.cat ? p.cat + (p.marca ? " · " + p.marca : "") : "Descríbela como la conoces") : p.cat + " · " + p.marca}</p></div></div></div>
+      <div class="cuerpo casc">${hoja.nuevo ? `<div style="--i:1">${bloqueNuevo("A")}</div>` : ""}${bloqueCantidad(p)}<div class="dos" style="--i:2">${cajaPrecio("costo", "Te costó c/u", p.uc, refTxt(p, "costo"))}${cajaPrecio("venta", "Se vende a", p.uv, refTxt(p, "venta"))}</div><div style="--i:3">${bloqueResultado()}</div><div style="--i:4">${bloqueTiendas()}</div></div>${pie()}`;
+  }
+  function contenidoB(p) {
+    return `<div class="h-cab">${mos(p)}<div><h3 data-b="nombre-h">${p.n}</h3><p>${p.nuevo ? (p.cat ? p.cat + (p.marca ? " · " + p.marca : "") : "Descríbela como la conoces") : p.cat + " · " + p.marca}</p></div></div>
+      <div class="cuerpo">${hoja.nuevo ? bloqueNuevo("B") : ""}${bloqueCantidad(p)}<div class="dos">${cajaPrecio("costo", "Te costó c/u", p.uc, refTxt(p, "costo"))}${cajaPrecio("venta", "Se vende a", p.uv, refTxt(p, "venta"))}</div>${bloqueResultado()}${bloqueTiendas()}</div>${pie()}`;
+  }
+  function contenidoC(p) {
+    const k = calc(); const mal = k.gc < 0;
+    const rev = (campo, ref) => (ref === null || Math.abs(num(hoja[campo]) - ref) < 0.005 ? "" : `<button class="rev" type="button" data-a="ref" data-v="${campo}" title="Volver a ${soles(ref)}" aria-label="Volver a ${soles(ref)}">↺</button>`);
+    const filasRep = hoja.destinos.length >= 2 ? hoja.destinos.map((t) => `<div class="fl"><span>&nbsp;&nbsp;↳ ${NOMBRE_TIENDA[t]}</span><span class="pt"></span><span class="mini"><button type="button" data-a="r-" data-t="${t}">−</button><input data-i="rep" data-t="${t}" value="${hoja.rep[t] || 0}" inputmode="numeric"><button type="button" data-a="r+" data-t="${t}">+</button></span></div>`).join("") + `<div class="cuadra ${k.cuadra ? "" : "mal"}" data-b="cuadra" style="justify-content:flex-end">${k.cuadra ? "✓ Cuadra: " + k.suma + " de " + k.q : "⚠ Van " + k.suma + " y compraste " + k.q}</div>` : "";
+    return `<div class="talon casc"><div class="kk" style="--i:0"><span>Talón de compra${p.nuevo ? " · algo nuevo" : ""}</span><span data-b="marca-h">${p.marca}</span></div>
+      <div class="pr" style="--i:1">${mos(p)}<div><h3 data-b="nombre-h">${p.n}</h3><p>${p.nuevo ? (p.cat ? p.cat + (p.marca ? " · " + p.marca : "") : "Descríbela como la conoces") : p.cat + (p.veces > 0 ? ` · la vez pasada: ${p.uq}` : "")}</p></div></div><div class="corte"></div>${hoja.nuevo ? bloqueNuevo("C") + '<div class="corte"></div>' : ""}
+      <div style="--i:2"><div class="fl"><span>¿Cuántas?</span><span class="pt"></span><span class="mini"><button type="button" data-a="q-" aria-label="Una menos">−</button><input data-i="q" value="${hoja.q}" inputmode="numeric"><button type="button" data-a="q+" aria-label="Una más">+</button></span></div>
+      ${p.veces > 0 ? `<div class="atajos" style="justify-content:flex-end;margin:0 0 4px"><button type="button" class="at ult ${k.q === p.uq ? "on" : ""}" data-a="q=" data-v="${p.uq}">La vez pasada · ${p.uq}</button></div>` : ""}
+      <div class="fl"><span>Te costó c/u</span><span class="pt"></span><span class="fl-w">${rev("costo", p.uc)}<label class="caja"><span>S/</span><input data-i="costo" value="${hoja.costo}" inputmode="decimal"></label></span></div>
+      <div class="fl"><span>Se vende a</span><span class="pt"></span><span class="fl-w">${rev("venta", p.uv)}<label class="caja"><span>S/</span><input data-i="venta" value="${hoja.venta}" inputmode="decimal"></label></span></div>
+      <div class="fl"><span>¿A qué tienda?</span><span class="pt"></span><span class="tt">${TIENDAS.map((t) => `<button type="button" data-a="tienda" data-t="${t}" aria-pressed="${hoja.destinos.includes(t)}">${t}</button>`).join("")}</span></div>${filasRep}</div>
+      <div class="corte" style="--i:3"></div>
+      <div style="--i:4"><div class="tot"><span>Total de esta prenda</span><span></span></div><div class="tot g tn" data-b="tot">${soles(k.tot)}</div>
+      <div class="tot v ${mal ? "" : ""}" style="${mal ? "color:var(--ambar)" : ""}"><span data-b="gtxt">${mal ? "Pierdes" : "Ganas"} <small style="color:inherit;opacity:.8">(${soles(Math.abs(k.gc))} c/u)</small></span><span class="tn" data-b="gt">${soles(Math.abs(k.gt))}</span></div></div>
+      <div style="--i:5">${pie()}</div></div>`;
+  }
+  const contenido = () => { const p = P(hoja.pid); return d === "A" ? contenidoA(p) : d === "B" ? contenidoB(p) : contenidoC(p); };
+
+  /* ───────── Render de la pantalla ───────── */
+  const enPanel = () => d === "B" && !movil;
+  function editorPanel() {
+    if (!hoja) return `<div class="ed vacio-e"><b style="color:var(--tinta);font-weight:500">Anota aquí lo que compraste</b><span>Toca una prenda de la izquierda: se abre este recuadro.</span></div>`;
+    return `<div class="ed" id="editor"><button class="x" data-a="cerrar" aria-label="Cerrar">×</button><div id="hoja-in">${contenido()}</div></div>`;
+  }
+  function render() {
+    const cards = d === "A" ? `<div class="g-a">${visibles().map(cardA).join("")}</div>` : d === "B" ? `<div class="g-b">${visibles().map(cardB).join("")}</div>` : `<div class="g-c" role="table">${visibles().map(filaC).join("")}</div>`;
+    const izq = `<div class="izq"><h2 class="pregunta">¿Qué le compraste?</h2><p class="sub">Toca una prenda de las suyas: viene con lo de la vez pasada. Si es otra, usa «Algo nuevo».</p>${pills()}${cards}
+      <button class="algo" type="button" data-a="algo-nuevo"><span class="mas">+</span><span><b>Algo nuevo</b><small>Una prenda que no está en la lista</small></span></button></div>`;
+    const der = `<div class="der">${tuCompra()}${enPanel() ? editorPanel() : ""}</div>`;
+    const overlay = hoja && !enPanel() ? `<div class="velo ${sale ? "sale" : ""}" id="velo"><div class="hoja ${d === "C" ? "tal" : ""}" role="dialog" aria-label="${P(hoja.pid).n}"><button class="x" data-a="cerrar" aria-label="Cerrar" ${d === "C" ? 'style="top:-12px;right:-12px;z-index:2;background:var(--papel);border:1px solid var(--sand)"' : ""}>×</button><div id="hoja-in">${contenido()}</div></div></div>` : "";
+    $("#pantalla").className = "pantalla" + (movil ? " movil" : "");
+    $("#pantalla").innerHTML = izq + der + isla() + overlay;
+  }
+  function renderHojaIn() { const h = $("#hoja-in"); if (!h) return; h.querySelectorAll(".casc").forEach((x) => x.classList.remove("casc")); h.innerHTML = contenido(); h.querySelectorAll(".casc").forEach((x) => x.classList.remove("casc")); h.querySelectorAll("*").forEach((x) => (x.style.animation = "none")); }
+  function pintarSeg() {
+    $("#seg-d").innerHTML = ["A", "B", "C"].map((x) => `<button data-a="d" data-v="${x}" aria-pressed="${d === x}">${x} · ${NOTAS[x][0].split(" · ")[1]}</button>`).join("");
+    $("#seg-a").innerHTML = [["pc", "PC"], ["cel", "Celular 375"]].map(([v, t]) => `<button data-a="ancho" data-v="${v}" aria-pressed="${(v === "cel") === movil}">${t}</button>`).join("");
+    $("#seg-t").innerHTML = ["Claro", "Oscuro"].map((t) => `<button data-a="tema" data-v="${t}" aria-pressed="${(document.documentElement.dataset.theme === "dark") === (t === "Oscuro")}">${t}</button>`).join("");
+    $("#nota-d").innerHTML = `<b>${NOTAS[d][0]}.</b> ${NOTAS[d][1]}`;
+    $("#pie-m").innerHTML = `<b>Qué NO cambia:</b> las reglas (cuántas, costo, venta, a qué tienda, que el reparto cuadre, que no se agregue en cero) ni qué guarda la pantalla. <b>El vuelo</b> dura ~600 ms con la curva del sistema, una sola vez, sin rebote ni bucle; con «reducir movimiento» no vuela (solo se ilumina la línea). Datos: nombres y cifras de tu pantalla, el resto es ejemplo inventado.`;
+  }
+
+  /* ───────── Cálculo en vivo (sin perder el cursor) ───────── */
+  function refrescarCalculos() {
+    const k = calc(); const r = $("#hoja-in"); if (!r) return;
+    const set = (b, t) => r.querySelectorAll(`[data-b="${b}"]`).forEach((e) => (e.textContent = t));
+    set("gc", soles(Math.abs(k.gc))); set("gt", soles(Math.abs(k.gt))); set("tot", soles(k.tot)); set("cta", ctaTexto());
+    set("margen", `${Math.max(0, Math.round(k.margen))} % de lo que cobras es ganancia`);
+    const b = r.querySelector('[data-b="barra"]'); if (b) b.style.width = Math.max(0, Math.min(100, k.margen)) + "%";
+    const res = r.querySelector('[data-b="res"]'); if (res) res.classList.toggle("mal", k.gc < 0);
+    const cu = r.querySelector('[data-b="cuadra"]'); if (cu) { cu.classList.toggle("mal", !k.cuadra); cu.textContent = k.cuadra ? `✓ Cuadra: ${k.suma} de ${k.q}` : `⚠ Van ${k.suma} y compraste ${k.q}`; }
+    const cta = $("#cta"); if (cta) cta.disabled = !puedeAgregar();
+    if (hoja.nuevo) { const f = faltaNuevo(); const fe = r.querySelector('[data-b="falta"]'); if (fe) { fe.classList.toggle("ok", f.length === 0); fe.innerHTML = f.length ? "Falta: " + f.map((t) => `<span>${t}</span>`).join(" · ") : "✓ Lista para agregar a la compra."; } }
+    r.querySelectorAll('.at[data-a="q="]').forEach((e) => e.classList.toggle("on", Number(e.dataset.v) === k.q));
+    if (!hoja.nuevo) ["costo", "venta"].forEach((c) => { const p = P(hoja.pid); const ref = c === "costo" ? p.uc : p.uv; const ok = Math.abs(num(hoja[c]) - ref) < 0.005; const h = r.querySelector(`[data-h="${c}"]`); if (h && ok !== h.classList.contains("ok")) renderHojaIn(); });
+  }
+  function reparte() { if (!hoja.custom) hoja.rep = repartoParejo(Math.max(0, Math.round(num(hoja.q))), hoja.destinos); }
+
+  /* ───────── Abrir / cerrar ───────── */
+  function abrirNuevo() {
+    hoja = { pid: "nuevo", nuevo: { catId: null, otras: false, marcaId: null, marcaNueva: null, nombre: "", descartadas: [] }, q: 10, costo: "", venta: "", destinos: ["TRU"], rep: {}, custom: false, edita: false };
+    reparte(); sale = false; render();
+  }
+  function abrir(id) {
+    const p = P(id); const l = lineaDe(id);
+    hoja = l ? { pid: id, q: l.q, costo: l.costo.toFixed(2), venta: l.venta.toFixed(2), destinos: Object.keys(l.rep).filter((t) => l.rep[t] > 0), rep: { ...l.rep }, custom: false, edita: true }
+      : { pid: id, q: p.uq || 10, costo: p.uc.toFixed(2), venta: p.uv.toFixed(2), destinos: ["TRU"], rep: {}, custom: false, edita: false };
+    reparte(); sale = false; render();
+  }
+  function cerrar(animado = true) {
+    if (!hoja) return;
+    const v = $("#velo");
+    if (animado && v) { v.classList.add("sale"); setTimeout(() => { hoja = null; render(); }, 200 * vel()); } else { hoja = null; render(); }
+  }
+  const vel = () => (document.documentElement.style.getPropertyValue("--vel") ? Number(document.documentElement.style.getPropertyValue("--vel")) : 1);
+  const reducido = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ───────── Agregar + el vuelo ───────── */
+  function contar(el, de, a, ms, fmt) {
+    if (!el) return; const t0 = performance.now();
+    const paso = (t) => { const x = Math.min(1, (t - t0) / ms); const e = 1 - Math.pow(1 - x, 3); el.textContent = fmt(de + (a - de) * e); if (x < 1) requestAnimationFrame(paso); };
+    requestAnimationFrame(paso);
+  }
+  function vuela(origen, pid, cantidad, destinoEl, alLlegar) {
+    if (reducido() || !origen || !destinoEl) { alLlegar(); return; }
+    const p = P(pid); const o = origen.getBoundingClientRect(); const t = destinoEl.getBoundingClientRect();
+    const w = o.width, h = o.height; const escala = Math.max(0.3, t.width / w);
+    const x0 = o.left, y0 = o.top; const dx = t.left + t.width / 2 - (x0 + w / 2), dy = t.top + t.height / 2 - (y0 + h / 2);
+    const X = document.createElement("div"), Y = document.createElement("div");
+    X.className = "vuelo-x"; Y.className = "vuelo-y"; X.style.transform = `translate(${x0}px, ${y0}px)`;
+    Y.innerHTML = `<div style="position:relative"><div class="mos ${p.foto ? "foto" : ""}" style="--c:${p.c};width:${w}px;height:${h}px">${p.ico}</div><span class="ins v" style="top:-8px;right:-8px">${cantidad}</span></div>`;
+    X.appendChild(Y); document.body.appendChild(X);
+    const ms = 620 * vel();
+    // El arco: X y Y viajan con curvas distintas; sube un poco antes de bajar a su lugar.
+    const ax = X.animate([{ transform: `translate(${x0}px, ${y0}px)` }, { transform: `translate(${x0 + dx}px, ${y0}px)` }], { duration: ms, easing: "cubic-bezier(0.45, 0.05, 0.25, 1)", fill: "forwards" });
+    const subida = Math.min(70, Math.abs(dy) * 0.35 + 24);
+    Y.animate([{ transform: "translateY(0) scale(1)", offset: 0 }, { transform: `translateY(${-subida}px) scale(${1 - (1 - escala) * 0.25})`, offset: 0.32, easing: "cubic-bezier(0.4, 0, 0.6, 1)" }, { transform: `translateY(${dy}px) scale(${escala})`, offset: 1 }], { duration: ms, easing: "cubic-bezier(0.55, 0, 0.3, 1)", fill: "forwards" });
+    // estela: tres puntos suaves que se desvanecen por el camino (solo decorativos, una vez)
+    for (let i = 1; i <= 3; i++) {
+      const k = i / 4;
+      setTimeout(() => {
+        const e = document.createElement("div"); e.className = "estela"; const r = o.width * 0.12 * (1 - k * 0.6);
+        const px = x0 + w / 2 + dx * Math.pow(k, 1.1), py = y0 + h / 2 + dy * k - Math.sin(k * Math.PI) * subida * 0.5;
+        e.style.cssText += `width:${r * 2}px;height:${r * 2}px;left:${px - r}px;top:${py - r}px`; document.body.appendChild(e);
+        e.animate([{ opacity: 0.55, transform: "scale(1)" }, { opacity: 0, transform: "scale(.4)" }], { duration: 380 * vel(), easing: "ease-out", fill: "forwards" }).onfinish = () => e.remove();
+      }, ms * k * 0.8);
+    }
+    ax.onfinish = () => { X.remove(); alLlegar(); };
+  }
+  function mostrarAntes(antes) {
+    // Hasta que la prenda aterriza, Tu compra sigue diciendo lo de antes (si no, la cifra se adelanta al vuelo).
+    const set = (id, t) => { const e = $(id); if (e) e.textContent = t; };
+    set("#big-t", antes.total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })); set("#isla-t", soles(antes.total));
+    set("#chip-p", `${antes.prendas} prendas`); set("#chip-m", `${antes.modelos} ${antes.modelos === 1 ? "modelo" : "modelos"}`); set("#gana-t", soles(antes.gana));
+    set("#isla-s", `${antes.prendas} prendas · ${antes.modelos} ${antes.modelos === 1 ? "modelo" : "modelos"}`);
+  }
+  const fotoAntes = () => ({ total: totalCart(), prendas: prendasCart(), modelos: cart.length, gana: gananciaCart() });
+  function llego(pid, antes) {
+    // La línea se revela, el recuadro de Tu compra hace UN pulso y el total cuenta hasta la cifra nueva.
+    const ln = $(`[data-linea="${pid}"]`); if (ln) { ln.classList.remove("oculta"); ln.classList.add("llega"); }
+    const tuc = $("#tuc"), is = $("#isla"); (movil ? is : tuc)?.classList.add("pulso");
+    contar($("#big-t"), antes.total, totalCart(), 520 * vel(), (n) => n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    contar($("#isla-t"), antes.total, totalCart(), 520 * vel(), soles);
+    const cp = $("#chip-p"); if (cp) cp.textContent = `${prendasCart()} prendas`; const cm = $("#chip-m"); if (cm) cm.textContent = `${cart.length} ${cart.length === 1 ? "modelo" : "modelos"}`; const is2 = $("#isla-s"); if (is2) is2.textContent = `${prendasCart()} prendas · ${cart.length} ${cart.length === 1 ? "modelo" : "modelos"}`;
+    contar($("#gana-t"), antes.gana, gananciaCart(), 520 * vel(), soles);
+    setTimeout(() => { tuc?.classList.remove("pulso"); is?.classList.remove("pulso"); ln?.classList.remove("llega"); }, 950 * vel());
+  }
+  function aplicarEnCompra(linea) {
+    const i = cart.findIndex((l) => l.id === linea.id); if (i >= 0) cart[i] = linea; else cart.push(linea);
+  }
+  function agregarDesdeHoja() {
+    const k = calc(); if (!puedeAgregar()) return;
+    let pid = hoja.pid; const edita = hoja.edita; const antes = fotoAntes();
+    if (hoja.nuevo) { const q0 = pseudoNuevo(); pid = "nv" + ++contadorNuevo; PRODUCTOS.push({ ...q0, id: pid, uc: k.c, uv: k.v }); }
+    const rep = {}; hoja.destinos.forEach((t) => { if (hoja.rep[t] > 0) rep[t] = hoja.rep[t]; });
+    const origen = $("#hoja-in .mos") || $("#hoja-in");
+    const rect = origen.getBoundingClientRect(); const fantasma = { getBoundingClientRect: () => rect };
+    aplicarEnCompra({ id: pid, q: k.q, costo: k.c, venta: k.v, rep });
+    const v = $("#velo"); if (v) v.classList.add("sale");
+    const cerrarYVolar = () => {
+      hoja = null; render(); mostrarAntes(antes);
+      const ln = $(`[data-linea="${pid}"]`);
+      if (edita || !ln) { if (ln) ln.classList.add("llega"); llego(pid, antes); return; }
+      ln.classList.add("oculta");
+      const destino = movil ? $("#bolsa") : ln.querySelector(".mos");
+      vuela(fantasma, pid, k.q, destino, () => llego(pid, antes));
+    };
+    if (enPanel()) cerrarYVolar(); else setTimeout(cerrarYVolar, 120 * vel());
+  }
+  function agregarRapido(pid) {
+    const p = P(pid); const antes = fotoAntes(); const src = document.querySelector(`.rc [data-a="abrir"][data-id="${pid}"] .mos`) || document.querySelector(`[data-id="${pid}"]`);
+    const rect = src.getBoundingClientRect(); const fantasma = { getBoundingClientRect: () => rect };
+    aplicarEnCompra({ id: pid, q: p.uq, costo: p.uc, venta: p.uv, rep: { TRU: p.uq } }); render(); mostrarAntes(antes);
+    const ln = $(`[data-linea="${pid}"]`); ln.classList.add("oculta");
+    vuela(fantasma, pid, p.uq, movil ? $("#bolsa") : ln.querySelector(".mos"), () => llego(pid, antes));
+  }
+
+  /* ───────── Eventos ───────── */
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-a]"); if (!b) return; const a = b.dataset.a, v = b.dataset.v;
+    if (a === "d") { d = v; hoja = null; render(); pintarSeg(); return; }
+    if (a === "ancho") { movil = v === "cel"; hoja = null; render(); pintarSeg(); return; }
+    if (a === "tema") { document.documentElement.dataset.theme = v === "Oscuro" ? "dark" : "light"; pintarSeg(); return; }
+    if (a === "filtro") { filtro = v; render(); return; }
+    if (a === "abrir") { abrir(b.dataset.id); return; }
+    if (a === "rapido") { agregarRapido(b.dataset.id); return; }
+    if (a === "cerrar") { cerrar(); return; }
+    if (a === "algo-nuevo") { abrirNuevo(); return; }
+    if (!hoja) return;
+    if (a === "q-" || a === "q+") { hoja.q = Math.max(1, Math.round(num(hoja.q)) + (a === "q+" ? 1 : -1)); reparte(); renderHojaIn(); }
+    if (a === "q=") { hoja.q = Number(v); reparte(); renderHojaIn(); }
+    if (a === "ref" && !hoja.nuevo) { const p = P(hoja.pid); hoja[v] = (v === "costo" ? p.uc : p.uv).toFixed(2); renderHojaIn(); }
+    if (a === "tienda") { const t = b.dataset.t; const i = hoja.destinos.indexOf(t); if (i >= 0) { if (hoja.destinos.length > 1) hoja.destinos.splice(i, 1); } else hoja.destinos.push(t); hoja.destinos.sort((x, y) => TIENDAS.indexOf(x) - TIENDAS.indexOf(y)); hoja.custom = false; reparte(); renderHojaIn(); }
+    if (a === "r+" || a === "r-") { const t = b.dataset.t; hoja.rep[t] = Math.max(0, (hoja.rep[t] || 0) + (a === "r+" ? 1 : -1)); hoja.custom = true; renderHojaIn(); }
+    if (a === "agregar") agregarDesdeHoja();
+    if (hoja.nuevo) {
+      const nv = hoja.nuevo;
+      if (a === "n-cat") { nv.catId = nv.catId === v ? null : v; renderHojaIn(); }
+      if (a === "n-otras") { nv.otras = !nv.otras; renderHojaIn(); }
+      if (a === "n-marca") { nv.marcaId = nv.marcaId === v ? null : v; renderHojaIn(); }
+      if (a === "n-otrasm") { nv.otrasM = !nv.otrasM; renderHojaIn(); }
+      if (a === "n-escribir") { nv.marcaNueva = nv.marcaNueva === null ? "" : null; if (nv.marcaNueva !== null) nv.marcaId = null; renderHojaIn(); document.querySelector('[data-i="n-marca"]')?.focus(); }
+      if (a === "n-otra") { nv.descartadas.push(v); renderHojaIn(); }
+      if (a === "n-usar") { abrir(v); }
+    }
+  });
+  document.addEventListener("input", (e) => {
+    const i = e.target.dataset?.i; if (!i || !hoja) return;
+    if (i === "q") { hoja.q = e.target.value.replace(/\D/g, ""); reparte(); const k = calc(); document.querySelectorAll('[data-i="rep"]').forEach((x) => (x.value = hoja.rep[x.dataset.t] || 0)); }
+    else if (i === "n-nombre") { hoja.nuevo.nombre = e.target.value; const r = $("#hoja-in"); r.querySelectorAll('[data-b="nombre-h"]').forEach((x) => (x.textContent = hoja.nuevo.nombre.trim() || "Prenda nueva")); const par = parecidoA(hoja.nuevo); const slot = r.querySelector('[data-b="parecido"]'); if (slot) slot.innerHTML = par ? parecidoHTML(par) : ""; }
+    else if (i === "n-marca") { hoja.nuevo.marcaNueva = e.target.value; const r = $("#hoja-in"); const m = marcaDe(hoja.nuevo); r.querySelectorAll('[data-b="marca-h"]').forEach((x) => (x.textContent = m || "")); }
+    else if (i === "rep") { hoja.rep[e.target.dataset.t] = Math.max(0, Math.round(num(e.target.value))); hoja.custom = true; }
+    else hoja[i] = e.target.value;
+    refrescarCalculos();
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && hoja) cerrar(); if (e.key === "Enter" && hoja && e.target.matches("input")) { e.preventDefault(); agregarDesdeHoja(); } });
+  $("#lento").addEventListener("change", (e) => document.documentElement.style.setProperty("--vel", e.target.checked ? "2.5" : "1"));
+  $("#reiniciar").addEventListener("click", () => { for (let j = PRODUCTOS.length - 1; j >= 0; j--) if (PRODUCTOS[j].nuevo) PRODUCTOS.splice(j, 1); cart = inicial(); hoja = null; render(); });
+  pintarSeg(); render();
+})();
+</script>
+</body>
+</html>

@@ -1,11 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { BookOpen } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { Aviso } from "@/components/ui/Aviso";
+import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { avisar } from "@/components/ui/Avisos";
 import { Cajon } from "@/components/ui/Cajon";
 import { Boton, Campo } from "@/components/ui/campos";
@@ -36,8 +36,8 @@ type Navegacion = { indice: number; total: number; que: string; onNavegar: (d: 1
  * Una hoja del Libro de Reclamaciones, completa, en el cajón de la derecha (ADR-0679): el plazo arriba (cuándo vence y cuántos días
  * hábiles quedan), lo mismo que firmó el cliente (sus datos, lo que compró o contrató, lo que reclama) y, si todavía no tiene, la
  * respuesta de CAYLA: se escribe, se elige quién responde y, como le llega al cliente por correo y no se corrige, se confirma antes de
- * enviarla. Sin velo: la lista sigue viva detrás y ↑ ↓ pasan a la hoja de al lado (lo escrito en cada una se guarda mientras el cajón
- * siga abierto).
+ * enviarla. Con el velo de las hojas (difumina la lista de atrás); ↑ ↓ pasan a la hoja de al lado (lo escrito en cada una se guarda
+ * mientras el cajón siga abierto). Vidrio Serena (ADR-0596): el plazo es una placa (`nota-cayla`), la confirmación, `AvisoNoSeDeshace`.
  */
 export function HojaCajon({
   hoja,
@@ -99,16 +99,11 @@ export function HojaCajon({
     <Cajon
       onCerrar={onClose}
       clave={h.id}
-      velo={false}
       guia="libro.cajon"
       sobre={h.tipo === "reclamo" ? "Reclamo" : "Queja"}
       titulo={`Hoja N.° ${h.codigo}`}
       frase={`Llegó el ${fechaCorta(h.creada_en)} · ${h.tienda ?? "Tienda online"}`}
-      marca={
-        <span className="grid h-10 w-10 place-items-center rounded-full bg-hueso text-tinta" aria-hidden>
-          <BookOpen className="h-5 w-5" />
-        </span>
-      }
+      marca={<AvatarPersona personaId={null} nombre={h.consumidor.nombre} tamano={40} />}
       debajo={
         <span className="flex flex-wrap items-center gap-2">
           <Chip tono={INSIGNIA[e].tono}>{INSIGNIA[e].texto}</Chip>
@@ -138,11 +133,7 @@ export function HojaCajon({
               </div>
             </CampoGuiado>
             {confirmando !== h.id && <PieGuia guia={guia} listo="Lista para enviar." />}
-            {confirmando === h.id && (
-              <Aviso tono="atencion" titulo="¿Enviar la respuesta?" chico>
-                Le llega a {h.consumidor.correo} y queda en la hoja con tu nombre y la fecha. Después no se corrige.
-              </Aviso>
-            )}
+            {confirmando === h.id && <AvisoNoSeDeshace />}
           </div>
         ) : undefined
       }
@@ -163,7 +154,7 @@ export function HojaCajon({
                 type="button"
                 peso="primario"
                 cargando={false}
-                disabled={!guia.puedeConfirmar}
+                confirma={guia}
                 title={guia.frase ?? undefined}
                 className={guia.claseConfirmar}
                 onClick={() => setConfirmando(h.id)}
@@ -176,7 +167,7 @@ export function HojaCajon({
       }
     >
       <div className="space-y-6">
-        <section data-guia="libro.plazo" className="rounded-[14px] bg-hueso px-4 py-3 text-[13.5px]">
+        <section data-guia="libro.plazo" className="nota-cayla sin-i text-[13.5px]">
           <p className="font-semibold text-tinta">{plazoEnPalabras(h)}</p>
           {!h.respuesta && (
             <p className="text-taupe">
@@ -189,7 +180,7 @@ export function HojaCajon({
           <section className="space-y-2" data-guia="libro.respuesta-dada">
             <TituloGrupo>La respuesta de CAYLA</TituloGrupo>
             <p className="whitespace-pre-line break-words text-[14px] leading-relaxed text-tinta">{h.respuesta}</p>
-            <p className="text-[12px] text-taupe">
+            <p className="texto-detalle">
               {h.respuesta_enviada === false
                 ? "En camino al correo del cliente: la tienda la manda en unos minutos."
                 : `Le llegó a ${h.consumidor.correo}.`}

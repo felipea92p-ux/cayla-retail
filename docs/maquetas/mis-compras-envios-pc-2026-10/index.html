@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mis compras · PC · inicio y envíos</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=EB+Garamond:wght@400;500&display=swap">
+<style>
+/* Mis compras y Mis envíos en ESCRITORIO (Felipe 2026-10-26: «el celular está bien, hay que arreglar la PC, sin afectar el móvil»).
+   Tres propuestas por pantalla, tocables, con los mismos datos de la maqueta de envíos. El celular (≤ 640 px) no cambia en ninguna.
+   Tokens de la guía «CAYLA Dynamic» (apps/web/app/globals.css) y su oscuro (estilos/tema.css). */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --tinta: #1a1a18; --sand: #e8e0d0; --hueso: #eae1d2; --taupe: #805c4c;
+  --rojo: #b8412d; --verde: #48603f; --verde-suave: #e3e4d9; --ambar: #74501a; --ambar-suave: #ece0cf;
+  --pizarra: #4c5d6e; --pizarra-suave: #e1e1dc; --velo: rgba(26,26,24,.34); --sobre: #f5f0e8;
+  --serif: "EB Garamond", Georgia, "Times New Roman", serif;
+  --sans: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --crema: #1c1a17; --papel: #26241f; --tinta: #f5f0e8; --sand: #3a3730; --hueso: #2e2c27; --taupe: #c7a894; --rojo: #d9674f;
+  --verde: #9db48f; --verde-suave: #2c3328; --ambar: #d9b27a; --ambar-suave: #3a3022; --pizarra: #a9b8c6; --pizarra-suave: #2b2f33;
+  --velo: rgba(0,0,0,.55); --sobre: #1c1a17; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --crema: #1c1a17; --papel: #26241f; --tinta: #f5f0e8; --sand: #3a3730; --hueso: #2e2c27; --taupe: #c7a894; --rojo: #d9674f;
+  --verde: #9db48f; --verde-suave: #2c3328; --ambar: #d9b27a; --ambar-suave: #3a3022; --pizarra: #a9b8c6; --pizarra-suave: #2b2f33;
+  --velo: rgba(0,0,0,.55); --sobre: #1c1a17; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--crema); color: var(--tinta); font-family: var(--sans); font-size: 15px; line-height: 1.45; padding: 24px 20px 56px; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.eyebrow { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+.mini { font-size: 12px; color: var(--taupe); }
+.sub { font-size: 13.5px; color: var(--taupe); margin: 0; }
+
+/* ---------- Barra de la maqueta ---------- */
+.marco { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.marco h1 { font-family: var(--serif); font-weight: 400; font-size: 40px; line-height: 1.05; margin: 4px 0 6px; }
+.marco .bajada { color: var(--taupe); max-width: 78ch; margin: 0; }
+.mando { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; padding: 12px 16px; }
+.mando .grupo { display: flex; align-items: center; gap: 8px; }
+.mando .grupo > span { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+.seg { display: inline-flex; background: var(--hueso); border-radius: 12px; padding: 3px; gap: 3px; }
+.seg button { border: 0; background: transparent; border-radius: 9px; min-height: 34px; padding: 0 14px; font-weight: 500; font-size: 13.5px; }
+.seg button[aria-pressed="true"] { background: var(--tinta); color: var(--sobre); }
+.nota-op { font-size: 13.5px; color: var(--tinta); background: var(--hueso); border-radius: 14px; padding: 12px 16px; display: grid; gap: 4px; }
+.nota-op b { font-family: var(--serif); font-weight: 400; font-size: 21px; }
+.nota-op ul { margin: 2px 0 0; padding-left: 18px; color: var(--taupe); }
+
+/* ---------- La «ventana»: el área de contenido del ERP a 1440 px ---------- */
+.ajuste { width: 100%; max-width: 1160px; margin: 0 auto; overflow: hidden; border: 1px solid var(--sand); border-radius: 18px; background: var(--crema); }
+.pc { width: 1160px; min-height: 720px; padding: 26px 30px 40px; display: flex; flex-direction: column; gap: 18px; position: relative; transform-origin: top left; }
+.cabeza { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; }
+.cabeza .linea { display: flex; align-items: center; gap: 10px; }
+.cabeza .linea i { display: block; width: 36px; height: 1px; background: var(--taupe); }
+.cabeza h2 { font-family: var(--serif); font-weight: 400; font-size: 46px; line-height: 1.02; margin: 6px 0 6px; }
+.volver { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--sand); background: var(--papel); display: grid; place-items: center; font-size: 15px; }
+
+/* piezas */
+.card { background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; }
+.titulo-s { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.titulo-s h3 { font-family: var(--serif); font-weight: 400; font-size: 21px; margin: 0; display: flex; align-items: center; gap: 8px; }
+.globo { min-width: 22px; height: 22px; border-radius: 11px; background: var(--hueso); color: var(--taupe); font: 600 12px var(--sans); display: inline-grid; place-items: center; padding: 0 6px; }
+.ver { color: var(--rojo); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; border: 0; background: transparent; padding: 4px 0; }
+.btn { border: 1px solid var(--sand); background: var(--papel); border-radius: 12px; min-height: 40px; padding: 0 16px; font-weight: 600; font-size: 13.5px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn.primario { background: var(--tinta); color: var(--sobre); border-color: var(--tinta); }
+.btn.sutil { border: 0; background: transparent; color: var(--taupe); text-decoration: underline; text-underline-offset: 3px; font-weight: 500; }
+.btn.ancho { width: 100%; }
+.chip-e { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
+.chip-e::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip-e.pizarra { background: var(--pizarra-suave); color: var(--pizarra); }
+.chip-e.verde { background: var(--verde-suave); color: var(--verde); }
+.chip-e.ambar { background: var(--ambar-suave); color: var(--ambar); }
+.chip-e.neutro { background: var(--hueso); color: var(--taupe); }
+.cod { font-family: var(--serif); font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.franja { border-radius: 14px; padding: 11px 14px; display: flex; align-items: center; gap: 12px; text-align: left; border: 0; width: 100%; background: var(--ambar-suave); color: var(--ambar); }
+.franja b { color: var(--tinta); display: block; font-size: 14px; }
+.franja .ir { margin-left: auto; font-weight: 600; white-space: nowrap; }
+.pildora { border: 1px solid var(--sand); background: var(--papel); border-radius: 999px; min-height: 34px; padding: 0 14px; font-weight: 500; font-size: 13px; }
+.pildora[aria-pressed="true"] { background: var(--tinta); color: var(--sobre); border-color: var(--tinta); }
+.buscador { display: flex; align-items: center; gap: 8px; background: var(--hueso); border-radius: 12px; min-height: 40px; padding: 0 12px; }
+.buscador input { border: 0; background: transparent; width: 100%; }
+.buscador input:focus { outline: none; }
+.tabs { display: inline-flex; background: var(--hueso); border-radius: 14px; padding: 4px; gap: 2px; }
+.tabs button { border: 0; background: transparent; border-radius: 11px; min-height: 36px; padding: 0 16px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; color: var(--taupe); }
+.tabs button[aria-pressed="true"] { background: var(--tinta); color: var(--sobre); }
+.tabs button[aria-pressed="true"] .globo { background: color-mix(in srgb, var(--sobre) 22%, transparent); color: var(--sobre); }
+
+/* billetera */
+.billetera { background: var(--tinta); color: var(--sobre); border-radius: 22px; padding: 18px 22px; display: flex; flex-direction: column; gap: 10px; }
+.billetera .arriba { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; opacity: .78; }
+.billetera .cifra { font-family: var(--serif); font-size: 46px; line-height: 1; font-variant-numeric: tabular-nums; }
+.billetera .cifra small { font-size: 21px; margin-right: 4px; opacity: .75; }
+.cuenta3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding-top: 10px; border-top: 1px solid color-mix(in srgb, var(--sobre) 18%, transparent); }
+.cuenta3 div { display: flex; flex-direction: column; font-size: 11.5px; opacity: .8; }
+.cuenta3 b { font-size: 14px; font-variant-numeric: tabular-nums; font-weight: 600; opacity: 1; }
+.billetera.ancha { flex-direction: row; align-items: center; gap: 36px; padding: 18px 26px; }
+.billetera.ancha .izq { display: flex; flex-direction: column; gap: 6px; min-width: 250px; }
+.billetera.ancha .cuenta3 { border-top: 0; padding: 0 0 0 36px; border-left: 1px solid color-mix(in srgb, var(--sobre) 18%, transparent); flex: 1; gap: 24px; }
+.billetera.ancha .cuenta3 b { font-size: 20px; font-family: var(--serif); font-weight: 400; }
+.billetera.ancha .cuenta3 div { font-size: 12px; }
+.camino { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.camino div { display: flex; flex-direction: column; gap: 5px; font-size: 11.5px; color: var(--taupe); }
+.camino i { display: block; height: 4px; border-radius: 3px; background: var(--sand); }
+.camino .hecho i { background: var(--verde); } .camino .hecho { color: var(--verde); }
+.camino .ahora i { background: var(--tinta); } .camino .ahora { color: var(--tinta); font-weight: 600; }
+
+/* acciones */
+.acciones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.accion { border: 1px solid var(--sand); background: var(--papel); border-radius: 18px; padding: 14px; text-align: left; display: flex; flex-direction: column; gap: 6px; min-height: 100px; }
+.accion .i { width: 36px; height: 36px; border-radius: 50%; background: var(--hueso); display: grid; place-items: center; font-size: 16px; }
+.accion .n { font-family: var(--serif); font-size: 20px; line-height: 1.1; }
+.accion .d { font-size: 12px; color: var(--taupe); }
+.accion.grande { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 14px; min-height: 78px; background: var(--tinta); color: var(--sobre); border-color: var(--tinta); }
+.accion.grande .i { background: var(--sobre); color: var(--tinta); width: 44px; height: 44px; }
+.accion.grande .n { font-size: 24px; } .accion.grande .d { color: inherit; opacity: .75; }
+.acciones.fila3 { grid-template-columns: 1.4fr 1fr 1fr; }
+.acciones.fila3 .accion.grande { grid-column: auto; }
+
+/* listas */
+.lista { display: flex; flex-direction: column; }
+.fila { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 11px 4px; border: 0; border-top: 1px solid var(--sand); background: transparent; text-align: left; width: 100%; }
+.fila:first-child { border-top: 0; }
+.fila .ico { width: 34px; height: 34px; border-radius: 50%; background: var(--hueso); display: grid; place-items: center; font-size: 14px; }
+.fila .t { font-weight: 600; font-size: 14px; }
+.fila .d { font-size: 12px; color: var(--taupe); }
+.fila .m { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.fila .m .mas { color: var(--verde); }
+
+/* tarjeta de envío */
+.env { border: 1px solid var(--sand); background: var(--papel); border-radius: 16px; padding: 12px 14px; display: grid; gap: 4px; text-align: left; width: 100%; }
+.env:hover, .env[aria-current="true"] { border-color: var(--tinta); }
+.env .arr { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.env .cod { font-size: 22px; }
+.env .d { font-size: 12.5px; color: var(--taupe); }
+.env .nota { font-size: 12px; color: var(--ambar); }
+
+/* tabla */
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); font-weight: 600; padding: 10px 14px; border-bottom: 1px solid var(--sand); white-space: nowrap; }
+td { padding: 12px 14px; border-top: 1px solid var(--sand); font-size: 14px; vertical-align: middle; }
+tr.dato { cursor: pointer; }
+tr.dato:hover td, tr.dato[aria-current="true"] td { background: var(--hueso); }
+tr.ronda td { background: var(--hueso); font-size: 12px; color: var(--taupe); font-weight: 600; letter-spacing: .04em; padding: 8px 14px; border-top: 1px solid var(--sand); }
+tr.ronda td b { color: var(--tinta); font-family: var(--serif); font-size: 17px; font-weight: 500; margin-right: 8px; letter-spacing: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* panel de detalle */
+.codigo { display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--hueso); border-radius: 16px; padding: 16px; text-align: center; }
+.codigo .n { font-family: var(--serif); font-size: 44px; line-height: 1; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.par { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tiempo { display: flex; flex-direction: column; gap: 9px; margin: 2px 0; }
+.tiempo div { display: grid; grid-template-columns: 16px 1fr; gap: 10px; font-size: 13.5px; color: var(--taupe); align-items: start; }
+.tiempo i { width: 10px; height: 10px; border-radius: 50%; background: var(--sand); margin-top: 5px; display: block; }
+.tiempo .ok { color: var(--tinta); } .tiempo .ok i { background: var(--verde); }
+.tiempo .ahora { color: var(--tinta); font-weight: 600; } .tiempo .ahora i { background: var(--tinta); }
+.cuaderno { background: var(--hueso); border-radius: 14px; padding: 4px 14px; font-variant-numeric: tabular-nums; }
+.cuaderno div { display: flex; justify-content: space-between; padding: 7px 0; font-size: 14px; border-top: 1px solid var(--sand); }
+.cuaderno div:first-child { border-top: 0; }
+.lleva { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-top: 1px solid var(--sand); }
+.lleva:first-child { border-top: 0; }
+.panel { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.panel h3 { font-family: var(--serif); font-weight: 400; font-size: 26px; margin: 0; }
+.vacio-p { color: var(--taupe); text-align: center; padding: 60px 20px; display: grid; gap: 8px; place-items: center; }
+
+/* cajón / hoja */
+.velo { position: absolute; inset: 0; background: var(--velo); z-index: 5; display: flex; justify-content: flex-end; }
+.velo.centro { justify-content: center; align-items: center; }
+.cajon { width: 460px; background: var(--papel); height: 100%; overflow-y: auto; border-left: 1px solid var(--sand); }
+.hoja { width: 520px; background: var(--papel); border-radius: 22px; padding: 20px; display: flex; flex-direction: column; gap: 14px; border: 1px solid var(--sand); }
+.cerrar { border: 0; background: transparent; font-size: 20px; width: 34px; height: 34px; border-radius: 50%; }
+.cab-cajon { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px 0; }
+
+/* tablero (kanban) */
+.tablero { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.col { background: var(--hueso); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 10px; min-height: 280px; }
+.col > header { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px; }
+.col > header b { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; }
+.sin { font-size: 13px; color: var(--taupe); padding: 18px 6px; text-align: center; }
+.rondita { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--taupe); font-weight: 600; margin: 4px 2px 0; }
+
+
+/* compra, plata y gasto en PC */
+.pasos3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.pasos3 div { font-size: 12px; color: var(--taupe); display: flex; flex-direction: column; gap: 5px; }
+.pasos3 i { height: 4px; border-radius: 3px; background: var(--sand); display: block; }
+.pasos3 .hecho i { background: var(--verde); } .pasos3 .ahora i { background: var(--tinta); } .pasos3 .ahora { color: var(--tinta); font-weight: 600; }
+.pregunta { font-family: var(--serif); font-weight: 400; font-size: 32px; line-height: 1.1; margin: 0; }
+.prov { border: 1px solid var(--sand); background: var(--papel); border-radius: 16px; padding: 12px 14px; display: grid; grid-template-columns: 44px minmax(0,1fr) 16px; gap: 12px; align-items: center; text-align: left; width: 100%; }
+.prov[aria-pressed="true"] { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+.ini { width: 44px; height: 44px; border-radius: 12px; background: var(--sand); display: grid; place-items: center; font-family: var(--serif); font-size: 17px; }
+.prov .n { font-weight: 600; font-size: 14.5px; } .prov .d { font-size: 12px; color: var(--taupe); }
+.nuevo-prov { border: 1.5px dashed var(--sand); background: transparent; border-radius: 16px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; text-align: left; width: 100%; }
+.mas-i { width: 40px; height: 40px; border-radius: 50%; background: var(--tinta); color: var(--sobre); display: grid; place-items: center; font-size: 20px; flex: none; }
+.pren { border: 1px solid var(--sand); background: var(--papel); border-radius: 18px; padding: 10px; display: flex; flex-direction: column; gap: 6px; text-align: left; position: relative; }
+.pren .foto-p { aspect-ratio: 4/3; border-radius: 12px; background: var(--hueso); display: grid; place-items: center; font-size: 30px; }
+.pren .n { font-weight: 600; font-size: 13.5px; } .pren .c { font-size: 11.5px; color: var(--taupe); }
+.pren.en { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+.pren .globo-p { position: absolute; right: 16px; top: 16px; min-width: 24px; height: 24px; border-radius: 12px; background: var(--tinta); color: var(--sobre); font-size: 12px; font-weight: 600; display: grid; place-items: center; padding: 0 6px; }
+.pren.nuevo { border: 1.5px dashed var(--sand); background: transparent; align-items: center; justify-content: center; text-align: center; min-height: 170px; color: var(--taupe); }
+.pren.nuevo b { color: var(--tinta); font-size: 14px; }
+.resumen { padding: 16px; display: flex; flex-direction: column; gap: 12px; position: sticky; top: 10px; }
+.resumen h4 { font-family: var(--serif); font-weight: 400; font-size: 21px; margin: 0; }
+.resumen .linea { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 6px 0; border-top: 1px solid var(--sand); }
+.resumen .linea:first-of-type { border-top: 0; }
+.resumen .total { font-family: var(--serif); font-size: 30px; }
+.dock { position: sticky; bottom: 10px; background: var(--tinta); color: var(--sobre); border-radius: 18px; padding: 12px 14px 12px 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.dock .r { font-size: 12px; opacity: .8; } .dock .c { font-family: var(--serif); font-size: 26px; line-height: 1.05; }
+.dock .btn { background: var(--sobre); color: var(--tinta); border-color: transparent; min-height: 46px; padding: 0 26px; }
+.acord { padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; }
+.acord .cab-a { display: flex; align-items: center; gap: 12px; }
+.num { width: 24px; height: 24px; border-radius: 50%; background: var(--hueso); color: var(--taupe); display: grid; place-items: center; font-size: 12px; font-weight: 600; flex: none; }
+.num.ok { background: var(--verde); color: var(--sobre); }
+.fichas { display: grid; gap: 8px; }
+.ficha { border: 1px solid var(--sand); background: var(--papel); border-radius: 14px; padding: 12px; text-align: left; display: flex; flex-direction: column; gap: 2px; min-height: 64px; position: relative; }
+.ficha b { font-size: 14.5px; } .ficha span { font-size: 12px; color: var(--taupe); }
+.ficha[aria-pressed="true"] { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+.ficha[aria-pressed="true"]::after { content: "✓"; position: absolute; right: 10px; top: 8px; width: 18px; height: 18px; border-radius: 50%; background: var(--tinta); color: var(--sobre); font-size: 11px; display: grid; place-items: center; }
+.ficha.mini-f { align-items: center; justify-content: center; text-align: center; min-height: 76px; gap: 6px; }
+.etq { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); font-weight: 600; display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.monto { display: flex; align-items: baseline; gap: 6px; background: var(--hueso); border-radius: 14px; padding: 8px 16px; }
+.monto span { font-family: var(--serif); font-size: 22px; color: var(--taupe); }
+.monto input { border: 0; background: transparent; font-family: var(--serif); font-size: 34px; width: 100%; font-variant-numeric: tabular-nums; }
+.monto input:focus { outline: none; }
+.foto { border: 1.5px dashed var(--sand); border-radius: 14px; min-height: 64px; display: flex; align-items: center; gap: 12px; padding: 0 14px; color: var(--taupe); font-size: 13.5px; width: 100%; background: transparent; text-align: left; }
+.foto b { color: var(--tinta); display: block; }
+.pie-hoja { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--sand); padding-top: 14px; }
+.pie-hoja .falta { font-size: 13px; color: var(--taupe); display: flex; gap: 8px; align-items: center; }
+.pie-hoja .btns { display: flex; gap: 10px; }
+.btn[disabled] { opacity: .45; cursor: default; }
+.hoja.ancha2 { width: 780px; }
+
+.pie-maq { font-size: 12px; color: var(--taupe); }
+</style>
+</head>
+<body>
+<div class="marco">
+  <header>
+    <div class="eyebrow">Compras ▸ Mis compras · escritorio · maqueta tocable · 26 de octubre de 2026</div>
+    <h1>Mis compras y Mis envíos en PC</h1>
+    <p class="bajada">El celular ya está bien y <b>no cambia</b>: estas propuestas solo valen desde 1024 px de ancho. Abajo ves el área de contenido del ERP a 1440 px (sin el menú lateral). Elige una pantalla, prueba las tres opciones y toca las filas, el buscador y los filtros.</p>
+  </header>
+
+  <div class="mando">
+    <div class="grupo"><span>Pantalla</span>
+      <div class="seg" id="seg-pantalla"></div></div>
+    <div class="grupo"><span>Propuesta</span>
+      <div class="seg" id="seg-op"></div></div>
+    <div class="grupo" id="g-paso" hidden><span>Paso</span>
+      <div class="seg" id="seg-paso"></div></div>
+    <div class="grupo"><span>Modo</span>
+      <div class="seg" id="seg-tema"><button data-tema="claro" aria-pressed="true">Claro</button><button data-tema="oscuro" aria-pressed="false">Oscuro</button></div></div>
+  </div>
+
+  <div class="nota-op" id="nota"></div>
+  <div class="ajuste" id="ajuste"><div class="pc" id="pc"></div></div>
+  <div class="pie-maq">Datos de ejemplo: Marisol compra en Lima, manda a Trujillo y Arequipa. Con la ronda cerrada, «Mis envíos» sube a la cabecera, como hoy.</div>
+</div>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const ESTADOS = { en_camino: ["En camino", "pizarra"], abierto: ["La tienda cuenta", "ambar"], cerrado: ["Recibido", "verde"] };
+  const RONDA = { texto: "RC-000613", desde: "hoy 08:30" };
+  const ENV = [
+    { cod: "ENV-000118", t: "Trujillo", cuando: "Hoy 09:48", n: 4, f: 1, est: "en_camino", ronda: "RC-000613", prendas: ["Casaca Corta × 4"] },
+    { cod: "ENV-000117", t: "Arequipa", cuando: "Hoy 09:20", n: 8, f: 1, est: "abierto", ronda: "RC-000613", prendas: ["Vestido Aurora × 8"] },
+    { cod: "ENV-000109", t: "Arequipa", cuando: "24/10 16:20", n: 24, f: 2, est: "cerrado", ronda: "RC-000612", rec: "Sáb 25/10 10:05 · Rosa", cont: 24, prendas: ["Jean Recto × 14", "Blusa Luz × 10"] },
+    { cod: "ENV-000104", t: "Trujillo", cuando: "22/10 09:12", n: 12, f: 1, est: "cerrado", ronda: "RC-000612", rec: "Mié 22/10 17:30 · Micaela", cont: 10, prendas: ["Polo Tito × 12"] },
+    { cod: "ENV-000098", t: "Lima", cuando: "19/10 18:40", n: 8, f: 1, est: "cerrado", ronda: "RC-000611", rec: "Lun 20/10 09:15 · Camila", cont: 8, prendas: ["Casaca Corta × 8"] },
+    { cod: "ENV-000095", t: "Trujillo", cuando: "18/10 17:05", n: 9, f: 1, est: "en_camino", ronda: "RC-000611", atraso: 9, prendas: ["Falda Plisada × 9"] },
+  ];
+  const RONDAS_ANT = [{ t: "RC-000612", f: "22 – 24 oct" }, { t: "RC-000611", f: "18 – 19 oct" }];
+  const faltan = (e) => e.est === "cerrado" && e.cont < e.n;
+  const chip = (e) => `<span class="chip-e ${ESTADOS[e.est][1]}">${ESTADOS[e.est][0]}</span>`;
+  const nota = (e) => faltan(e) ? `faltaron ${e.n - e.cont}` : e.atraso ? `hace ${e.atraso} días` : "";
+  const plural = (n, a, b) => `${n} ${n === 1 ? a : b}`;
+  const deRonda = (r) => ENV.filter((e) => e.ronda === r);
+  function resumen(r) {
+    const l = deRonda(r), sin = l.filter((e) => e.est !== "cerrado").length, dif = l.filter(faltan).length;
+    const txt = `${plural(l.length, "envío", "envíos")} · ${plural(l.reduce((s, e) => s + e.n, 0), "prenda", "prendas")}`;
+    const c = sin ? `<span class="chip-e ${l.some((e) => e.atraso) ? "ambar" : "pizarra"}">${sin} sin recibir</span>` : dif ? `<span class="chip-e ambar">${dif} con diferencias</span>` : `<span class="chip-e verde">Todo recibido</span>`;
+    return { txt, c };
+  }
+
+  const PANTALLAS = [["inicio", "Inicio"], ["compra", "Compré ropa"], ["plata", "Me dieron plata"], ["gasto", "Gasté en otra cosa"], ["envios", "Mis envíos"], ["codigo", "Código al mandar"]];
+  const OPS = { inicio: ["A", "B", "C"], compra: ["A", "B"], plata: ["A", "B"], gasto: ["A", "B"], envios: ["A", "B", "C"], codigo: ["A", "B"] };
+  const NOTAS = {
+    inicio: {
+      A: ["A · Tres columnas, de izquierda a derecha como se trabaja", ["Columna 1: tu plata y lo que haces (anotar, comprar, cerrar). Columna 2: «Manda», con la franja de lo que falta mandar y los envíos con su código. Columna 3: el registro de la ronda y las anteriores.", "Todo cabe sin bajar: nada queda a un scroll de distancia en 1440 px.", "Lo bueno: sigue el camino de la ronda (Anota → Manda → Registro). Lo malo: tres columnas se sienten apretadas bajo 1280 px (ahí pasaría a dos)."]],
+      B: ["B · Tablero: tu plata arriba, ancha; abajo, dos mitades", ["La plata ocupa todo el ancho con la cuenta en tres cifras grandes. Debajo, «Compré ropa» y las otras dos acciones en una sola fila.", "Mitad izquierda: «Falta mandar» y «Envíos de esta ronda». Mitad derecha: «En esta ronda». «Cerrar mi ronda» y «Rondas anteriores» al pie.", "Lo bueno: la plata se lee de un vistazo y los envíos quedan a la vista. Lo malo: baja un poco más (un scroll corto)."]],
+      C: ["C · Izquierda para actuar, derecha con pestañas para revisar", ["A la izquierda se queda todo lo que haces. A la derecha, «Falta mandar» siempre arriba y tres pestañas: En esta ronda · Envíos · Rondas anteriores.", "Las listas largas no se apilan: cada una tiene su pestaña y su espacio ancho.", "Lo bueno: la pantalla no crece, aunque la ronda tenga 30 cosas. Lo malo: los envíos no se ven si estás en otra pestaña (la franja ámbar y un globo de «sin recibir» lo avisan)."]],
+    },
+    compra: {
+      A: ["A · Un paso a la vez, con «Tu compra» siempre a la derecha", ["Los mismos tres pasos del celular (proveedor · prendas · papel y pago), pero usando el ancho: los proveedores en dos columnas, las prendas en cuatro y el papel y el pago lado a lado.", "A la derecha, «Tu compra» se va llenando (proveedor, prendas por tienda, total) y trae el botón de seguir: reemplaza a la barra de abajo del celular.", "Lo bueno: es lo más parecido al celular, se aprende una vez. Lo malo: sigue siendo un paso por pantalla."]],
+      B: ["B · Todo en una página: los pasos hechos se pliegan", ["Los tres pasos viven en una sola página, uno bajo otro. El que ya hiciste se pliega en una línea («1 · CAYLA SAC ✓ Cambiar») y el que toca está abierto.", "Abajo, una barra con el resumen y «Guardar compra» siempre a la vista.", "Lo bueno: con mouse se salta de un paso a otro sin «Atrás». Lo malo: más para mirar de golpe; requiere cuidar que no se pierda la guía de «qué sigue»."]],
+    },
+    plata: {
+      A: ["A · Hoja ancha en dos columnas", ["Izquierda: ¿cómo te llegó? (las cuatro formas en dos por dos) y, si fue transferencia, ¿de qué banco salió? Derecha: ¿cuánto fue? y la foto del voucher.", "Todo a la vista sin bajar; el botón queda al pie con lo que falta, como en el celular.", "Lo bueno: no hay que desplazarse. Lo malo: tapa la pantalla (es una hoja centrada)."]],
+      B: ["B · Cajón lateral con la lista de la ronda detrás", ["Un cajón a la derecha con los mismos pasos en vertical, como el celular. La lista «En esta ronda» sigue viva a la izquierda.", "Se ve la plata ya anotada mientras se anota la nueva.", "Lo bueno: no se pierde de vista lo que ya hiciste. Lo malo: más largo hacia abajo."]],
+    },
+    gasto: {
+      A: ["A · Hoja ancha en dos columnas", ["Izquierda: ¿en qué gastaste? (los seis conceptos en tres columnas). Derecha: ¿cuánto fue? y la foto del papel, opcional.", "El botón «Anotar el gasto» al pie con lo que falta."]],
+      B: ["B · Cajón lateral con la lista de la ronda detrás", ["Igual que en «Me dieron plata»: un cajón a la derecha y la lista de la ronda viva a la izquierda."]],
+    },
+    envios: {
+      A: ["A · Tabla ancha con el detalle en un cajón", ["Una fila por envío con columnas: código, tienda, cuándo, prendas, fardos, ronda y estado. Las rondas anteriores se separan con una franja de ronda dentro de la misma tabla.", "Al tocar una fila, el detalle se abre en un cajón a la derecha y la lista sigue viva detrás.", "Lo bueno: es lo más rápido para buscar y comparar. Lo malo: es más «de oficina» que de tienda."]],
+      B: ["B · Lista y detalle lado a lado (siempre a la vista)", ["Izquierda: los envíos agrupados por ronda. Derecha: el detalle del elegido, fijo, sin abrir nada: el código grande ya está ahí para copiarlo.", "Se elige el primero por defecto: la pantalla nunca queda con un hueco.", "Lo bueno: un solo toque para ver y copiar un código. Lo malo: la lista queda más angosta."]],
+      C: ["C · Tablero por estado: qué espera a la tienda", ["Tres columnas: En camino · La tienda cuenta · Recibido. Cada envío es una tarjeta con su código; la ronda va chica arriba de cada grupo.", "Responde la pregunta que importa: ¿qué falta que la tienda reciba? Lo atrasado sale en ámbar.", "Lo bueno: se ve lo pendiente sin leer. Lo malo: no sirve para recorrer por ronda; los filtros se vuelven menos útiles."]],
+    },
+    codigo: {
+      A: ["A · Hoja centrada (como hoy en PC, mejor dibujada)", ["La hoja de «Mandar» se queda en el centro, con el código grande, copiar y compartir en una fila, y «Mandar a la siguiente tienda» o «Ver mis envíos».", "No cambia lo que ya aprobaste; solo aprovecha el ancho: los dos botones lado a lado."]],
+      B: ["B · Hoja con el mensaje para la tienda a la vista", ["Igual que A, pero con el texto que se enviará por WhatsApp visible y editable antes de compartir.", "Útil en PC porque ahí no hay WhatsApp abierto: se copia el mensaje completo, no solo el código."]],
+    },
+  };
+  let st = { paso: 2, medio: "transferencia", banco: "BCP", concepto: "taxi", p: "inicio", o: "A", sel: "ENV-000118", ver: null, tab: "ronda", alcance: "esta", q: "", filtro: "todos", centro: false, copiado: false, abierta: { "RC-000612": true } };
+
+  /* ---------------- Piezas ---------------- */
+  const cab = (titulo, sub, volver, acc) => `<div class="cabeza"><div><div class="linea">${volver ? '<span class="volver">←</span>' : ""}<i></i><span class="eyebrow">Tienda Lima · lunes, 26 de octubre · 12:50</span></div><h2>${titulo}</h2><p class="sub">${sub}</p></div>${acc || ""}</div>`;
+  const camino = () => `<div class="camino"><div class="hecho"><i></i>✓ Abre tu ronda</div><div class="hecho"><i></i>✓ Anota</div><div class="ahora"><i></i>Manda</div><div><i></i>Ciérrala</div></div>`;
+  const billetera = (ancha) => ancha
+    ? `<div class="billetera ancha"><div class="izq"><div class="arriba"><span>Tienes para comprar</span></div><div class="cifra"><small>S/</small>1,178.00</div><span class="mini" style="color:inherit;opacity:.75">Ronda ${RONDA.texto} · incluye S/ 0.00 que tenías al abrirla</span></div><div class="cuenta3"><div>Te dieron<b>S/ 1,500.00</b></div><div>Compraste<b>− S/ 304.00</b></div><div>Gastaste<b>S/ 18.00</b></div></div></div>`
+    : `<div class="billetera"><div class="arriba"><span>Tienes para comprar</span><span>Ronda ${RONDA.texto}</span></div><div class="cifra"><small>S/</small>1,178.00</div><div class="cuenta3"><div>Te dieron<b>S/ 1,500.00</b></div><div>Compraste<b>− S/ 304.00</b></div><div>Gastaste<b>S/ 18.00</b></div></div></div>`;
+  const acciones = (fila3) => `<div class="acciones ${fila3 ? "fila3" : ""}"><button class="accion grande"><span class="i">🛍</span><span><div class="n">Compré ropa</div><div class="d">A un proveedor, en la calle o por pedido</div></span></button><button class="accion"><span class="i">💸</span><span class="n">Me dieron plata</span><span class="d">Yape, transferencia o efectivo</span></button><button class="accion"><span class="i">🧾</span><span class="n">Gasté en otra cosa</span><span class="d">Taxi, cargador, comida…</span></button></div>`;
+  const faltaMandar = () => `<button class="franja" data-ver="mandar"><span>📦</span><span><b>Falta mandar 10 prendas</b>LIM 6 · TRU 4</span><span class="ir">Mandar →</span></button>`;
+  const cerrarBtn = () => `<button class="btn ancho">🏁 Cerrar mi ronda ${RONDA.texto}</button>`;
+  const movs = () => `<div class="lista">
+    <div class="fila"><span class="ico">🛍</span><span><div class="t">Compra a Moda Gamarra</div><div class="d">09:15 · 4 prendas · Boleta · enviada · ENV-000118</div></span><span class="m">− S/ 220.00<span class="chip-e pizarra">Compras la revisa</span></span></div>
+    <div class="fila"><span class="ico">🛍</span><span><div class="t">Compra a Textiles Rosa</div><div class="d">10:02 · 10 prendas · Factura · falta mandar a LIM</div></span><span class="m">− S/ 84.00<span class="chip-e pizarra">Compras la revisa</span></span></div>
+    <div class="fila"><span class="ico">🚕</span><span><div class="t">Taxi</div><div class="d">09:40 · Sin papel</div></span><span class="m">− S/ 18.00<span class="chip-e pizarra">Compras lo revisa</span></span></div>
+    <div class="fila"><span class="ico">💸</span><span><div class="t">Te transfirieron</div><div class="d">08:40 · Transferencia</div></span><span class="m"><span class="mas">+ S/ 1,500.00</span><span class="chip-e pizarra">Compras la confirma</span></span></div></div>`;
+  const anteriores = () => `<div class="lista">${RONDAS_ANT.map((r) => { const x = resumen(r.t); return `<button class="fila" style="grid-template-columns:34px minmax(0,1fr) auto" data-ver="ronda" data-r="${r.t}"><span class="ico">🏁</span><span><div class="t">Ronda ${r.t}</div><div class="d">${r.f} · ${x.txt}</div></span><span class="m">${x.c}</span></button>`; }).join("")}</div>`;
+  const tarjetaEnv = (e, conRonda) => `<button class="env" data-sel="${e.cod}" aria-current="${st.sel === e.cod}"><span class="arr"><span class="cod">${e.cod}</span>${chip(e)}</span><span class="d">${e.t} · ${e.cuando} · ${plural(e.n, "prenda", "prendas")} · ${plural(e.f, "fardo", "fardos")}${conRonda ? " · " + e.ronda : ""}</span>${nota(e) ? `<span class="nota">${nota(e)}</span>` : ""}</button>`;
+  const enviosEsta = (modo) => `<div style="display:${modo === "tabla" ? "block" : "grid"};gap:8px">${deRonda(RONDA.texto).map((e) => tarjetaEnv(e)).join("")}</div>`;
+
+  /* detalle de un envío */
+  function detalle(e) {
+    const pasos = e.est === "cerrado" ? [["ok", `Salió · ${e.cuando}`], ["ok", "La tienda lo abrió y lo contó"], ["ok", "Recibido · " + e.rec]] : e.est === "abierto" ? [["ok", `Salió · ${e.cuando}`], ["ahora", "La tienda lo está contando"], ["", "Recibido"]] : [["ok", `Salió · ${e.cuando}`], ["ahora", "En camino: la tienda todavía no lo abre"], ["", "Recibido"]];
+    return `<div class="codigo"><span class="eyebrow">Código del envío</span><span class="n">${e.cod}</span>${chip(e)}</div>
+      <div class="par"><button class="btn" data-acc="copiar">${st.copiado ? "✓ Copiado" : "Copiar el código"}</button><button class="btn">Compartir por WhatsApp</button></div>
+      <div class="tiempo">${pasos.map(([c, t]) => `<div class="${c}"><i></i><span>${t}</span></div>`).join("")}</div>
+      ${e.atraso ? `<div class="franja" style="cursor:default"><span>⏳</span><span><b>Salió hace ${e.atraso} días y la tienda no lo abrió</b>Avísale a ${e.t} el código ${e.cod}.</span></div>` : ""}
+      ${faltan(e) ? `<div class="franja" style="cursor:default"><span>⚠</span><span><b>La tienda contó ${e.cont} de ${e.n}</b>Faltaron ${e.n - e.cont}: Compras lo revisa con el proveedor.</span></div>` : ""}
+      <div class="cuaderno"><div><span>Tienda</span><span>${e.t}</span></div><div><span>Prendas</span><span>${e.n}</span></div><div><span>Fardos</span><span>${e.f}</span></div><div><span>Ronda</span><span>${e.ronda}${e.ronda === RONDA.texto ? " · abierta" : " · cerrada"}</span></div></div>
+      <div><div class="mini" style="margin-bottom:4px">Lo que llevaba</div>${e.prendas.map((p) => `<div class="lleva"><span>${p.split(" ×")[0]}</span><span>× ${p.split("×")[1]}</span></div>`).join("")}</div>`;
+  }
+  const selEnv = () => ENV.find((e) => e.cod === st.sel) || ENV[0];
+
+  /* ---------------- Inicio ---------------- */
+  const titulo = (txt, n, acc) => `<div class="titulo-s"><h3>${txt}${n !== undefined ? `<span class="globo">${n}</span>` : ""}</h3>${acc || ""}</div>`;
+  function inicio() {
+    const pie = ``;
+    if (st.o === "A") return cab("Mis compras", "Lo que tienes para comprar, lo que compraste y lo que mandas a la tienda.") + `
+      <div style="display:grid;grid-template-columns:312px minmax(0,1fr) minmax(0,1fr);gap:26px;align-items:start">
+        <div style="display:grid;gap:14px">${camino()}${billetera()}${acciones()}${cerrarBtn()}</div>
+        <div style="display:grid;gap:14px">${titulo("Manda", undefined)}${faltaMandar()}${titulo("Envíos de esta ronda", 2, '<button class="ver" data-ir="envios">Ver todos →</button>')}${enviosEsta()}</div>
+        <div style="display:grid;gap:10px">${titulo("En esta ronda", 4, `<span class="mini">desde ${RONDA.desde}</span>`)}${movs()}${titulo("Rondas anteriores", undefined, '<button class="ver" data-ir="envios-ant">Ver 2 →</button>')}${anteriores()}</div>
+      </div>`;
+    if (st.o === "B") return cab("Mis compras", "Lo que tienes para comprar, lo que compraste y lo que mandas a la tienda.") + camino() + billetera(true) + acciones(true) + `
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:30px;align-items:start">
+        <div style="display:grid;gap:12px">${faltaMandar()}${titulo("Envíos de esta ronda", 2, '<button class="ver" data-ir="envios">Ver todos →</button>')}${enviosEsta()}</div>
+        <div style="display:grid;gap:10px">${titulo("En esta ronda", 4, `<span class="mini">desde ${RONDA.desde}</span>`)}${movs()}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--sand);padding-top:16px"><div style="display:flex;gap:14px;align-items:center"><b style="font-family:var(--serif);font-size:21px;font-weight:400">Rondas anteriores</b>${RONDAS_ANT.map((r) => `<button class="pildora" data-ver="ronda" data-r="${r.t}">${r.t} · ${resumen(r.t).txt.split(" · ")[0]}</button>`).join("")}</div><button class="btn primario" style="min-width:260px">🏁 Cerrar mi ronda ${RONDA.texto}</button></div>`;
+    // C
+    const tabs = [["ronda", "En esta ronda", 4], ["envios", "Envíos", 2], ["ant", "Rondas anteriores", 2]];
+    const cuerpo = st.tab === "ronda" ? movs() : st.tab === "envios" ? `<table><thead><tr><th>Código</th><th>Tienda</th><th>Salió</th><th class="num">Prendas</th><th>Estado</th></tr></thead><tbody>${deRonda(RONDA.texto).map((e) => `<tr class="dato" data-sel="${e.cod}"><td class="cod">${e.cod}</td><td>${e.t}</td><td>${e.cuando}</td><td class="num">${e.n}</td><td>${chip(e)}</td></tr>`).join("")}</tbody></table>` : anteriores();
+    return cab("Mis compras", "Lo que tienes para comprar, lo que compraste y lo que mandas a la tienda.") + `
+      <div style="display:grid;grid-template-columns:340px minmax(0,1fr);gap:30px;align-items:start">
+        <div style="display:grid;gap:14px">${camino()}${billetera()}${acciones()}${cerrarBtn()}</div>
+        <div style="display:grid;gap:14px">${faltaMandar()}
+          <div style="display:flex;justify-content:space-between;align-items:center"><div class="tabs">${tabs.map(([k, n, c]) => `<button data-tab="${k}" aria-pressed="${st.tab === k}">${n}<span class="globo">${c}</span></button>`).join("")}</div><button class="ver" data-ir="envios">Abrir Mis envíos →</button></div>
+          <div class="card" style="padding:6px 16px">${cuerpo}</div></div>
+      </div>`;
+  }
+
+  /* ---------------- Mis envíos ---------------- */
+  function filtrar(l) {
+    const q = st.q.trim().toLowerCase();
+    return l.filter((e) => (st.filtro === "todos" || (st.filtro === "sin" ? e.est !== "cerrado" : e.est === "cerrado")) && (!q || [e.cod, e.t, e.ronda].some((x) => x.toLowerCase().includes(q))));
+  }
+  const barra = (conAlcance) => `<div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap"><div style="display:flex;gap:14px;align-items:center">${conAlcance ? `<div class="tabs"><button data-alc="esta" aria-pressed="${st.alcance === "esta"}">Esta ronda<span class="globo">2</span></button><button data-alc="anteriores" aria-pressed="${st.alcance === "anteriores"}">Rondas anteriores<span class="globo">4</span></button></div>` : ""}<div style="display:flex;gap:8px">${[["todos", "Todos"], ["sin", "Sin recibir"], ["rec", "Recibidos"]].map(([k, n]) => `<button class="pildora" data-filtro="${k}" aria-pressed="${st.filtro === k}">${n}</button>`).join("")}</div></div><label class="buscador" style="width:340px">🔎<input id="q" placeholder="Busca un código, una tienda o una ronda" value="${st.q}" autocomplete="off"></label></div>`;
+  const filaTabla = (e, conRonda) => `<tr class="dato" data-sel="${e.cod}" aria-current="${st.sel === e.cod}"><td class="cod">${e.cod}</td><td>${e.t}</td><td>${e.cuando}</td><td class="num">${e.n}</td><td class="num">${e.f}</td>${conRonda ? `<td>${e.ronda}</td>` : ""}<td>${chip(e)} ${nota(e) ? `<span class="mini" style="color:var(--ambar);margin-left:6px">${nota(e)}</span>` : ""}</td></tr>`;
+  function envios() {
+    const buscando = st.q.trim() !== "";
+    const cabEnv = cab("Mis envíos", "Los paquetes que mandaste a las tiendas, con su código y en qué van.", true, "");
+    if (st.o === "C") {
+      const todos = filtrar(ENV);
+      const col = (k, nom) => { const l = todos.filter((e) => (k === "en_camino" ? e.est === "en_camino" : e.est === k)); return `<div class="col"><header><b>${nom}</b><span class="globo">${l.length}</span></header>${l.length ? l.map((e) => `${e.ronda !== RONDA.texto || true ? "" : ""}<div class="rondita">${e.ronda}${e.ronda === RONDA.texto ? " · abierta" : ""}</div>${tarjetaEnv(e)}`).join("") : '<div class="sin">Nada aquí</div>'}</div>`; };
+      return cabEnv + barra(false) + `<div class="tablero">${col("en_camino", "En camino")}${col("abierto", "La tienda cuenta")}${col("cerrado", "Recibido")}</div>` + (st.ver === "detalle" ? cajonDetalle() : "");
+    }
+    if (st.o === "B") {
+      const grupos = [[RONDA.texto, `abierta · desde ${RONDA.desde}`], ...RONDAS_ANT.map((r) => [r.t, `${r.f} · cerrada`])];
+      const lista = grupos.map(([r, f]) => { const l = filtrar(deRonda(r)); if (!l.length) return ""; const x = resumen(r); return `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 4px 6px"><span><b style="font-family:var(--serif);font-weight:500;font-size:19px">Ronda ${r}</b> <span class="mini">· ${f}</span></span>${x.c}</div><div style="display:grid;gap:8px">${l.map((e) => tarjetaEnv(e)).join("")}</div>`; }).join("");
+      return cabEnv + barra(false) + `<div style="display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:26px;align-items:start"><div>${lista || '<div class="vacio-p">No hay un envío así.</div>'}</div><div class="card panel" style="position:sticky;top:60px">${detalle(selEnv())}</div></div>`;
+    }
+    // A: tabla + cajón
+    const filas = buscando || st.alcance === "esta" ? "" : "";
+    let cuerpo;
+    if (buscando) { const l = filtrar(ENV); cuerpo = `<table><thead><tr><th>Código</th><th>Tienda</th><th>Salió</th><th class="num">Prendas</th><th class="num">Fardos</th><th>Ronda</th><th>Estado</th></tr></thead><tbody>${l.map((e) => filaTabla(e, true)).join("") || '<tr><td colspan="7" class="mini">No hay un envío así. Revisa el código o quita el filtro.</td></tr>'}</tbody></table>`; }
+    else if (st.alcance === "esta") { const l = filtrar(deRonda(RONDA.texto)); cuerpo = `<table><thead><tr><th>Código</th><th>Tienda</th><th>Salió</th><th class="num">Prendas</th><th class="num">Fardos</th><th>Estado</th></tr></thead><tbody><tr class="ronda"><td colspan="6"><b>Ronda ${RONDA.texto}</b>abierta · desde ${RONDA.desde}</td></tr>${l.map((e) => filaTabla(e)).join("") || '<tr><td colspan="6" class="mini">Nada con ese filtro.</td></tr>'}</tbody></table>`; }
+    else { cuerpo = `<table><thead><tr><th>Código</th><th>Tienda</th><th>Salió</th><th class="num">Prendas</th><th class="num">Fardos</th><th>Estado</th></tr></thead><tbody>${RONDAS_ANT.map((r) => { const l = filtrar(deRonda(r.t)); if (!l.length) return ""; const x = resumen(r.t); return `<tr class="ronda"><td colspan="5"><b>Ronda ${r.t}</b>${r.f} · cerrada · ${x.txt}</td><td style="text-align:right">${x.c}</td></tr>${l.map((e) => filaTabla(e)).join("")}`; }).join("")}</tbody></table>`; }
+    return cabEnv + barra(true) + (st.alcance === "esta" && !buscando ? faltaMandar() : "") + `<div class="card" style="padding:0 6px 6px;overflow:hidden">${cuerpo}</div>` + (st.ver === "detalle" ? cajonDetalle() : "");
+  }
+  function cajonDetalle() { return `<div class="velo" data-fondo="1"><div class="cajon"><div class="cab-cajon"><span class="eyebrow">${selEnv().t}</span><button class="cerrar" data-acc="cerrar" aria-label="Cerrar">×</button></div><div class="panel">${detalle(selEnv())}</div></div></div>`; }
+
+  /* ---------------- Código al mandar ---------------- */
+  function codigo() {
+    const e = ENV[0];
+    const msg = `Hola, te mandé el envío ${e.cod} a Tienda ${e.t}: ${plural(e.n, "prenda", "prendas")} en ${plural(e.f, "fardo", "fardos")}. Búscalo en Recibir con ese código.`;
+    return cab("Mis compras", "Lo que tienes para comprar, lo que compraste y lo que mandas a la tienda.") + camino() + `<div style="opacity:.45;pointer-events:none">${billetera(true)}</div>
+      <div class="velo centro"><div class="hoja"><div style="display:flex;justify-content:space-between;align-items:center"><h3 style="font-family:var(--serif);font-weight:400;font-size:26px;margin:0">Salió el envío a ${e.t}</h3><button class="cerrar">×</button></div>
+        <div class="codigo"><span class="eyebrow">Código del envío</span><span class="n">${e.cod}</span><span class="sub">${plural(e.n, "prenda", "prendas")} · ${plural(e.f, "fardo", "fardos")}</span></div>
+        <p class="sub" style="text-align:center">Avísale a la tienda este código: lo busca en <b style="color:var(--tinta)">Recibir</b> y lo cuenta.</p>
+        ${st.o === "B" ? `<label class="mini">Mensaje para la tienda</label><div style="background:var(--hueso);border-radius:12px;padding:12px 14px;font-size:14px">${msg}</div>` : ""}
+        <div class="par"><button class="btn primario" data-acc="copiar">${st.copiado ? "✓ Copiado" : st.o === "B" ? "Copiar el mensaje" : "Copiar el código"}</button><button class="btn">Compartir por WhatsApp</button></div>
+        <button class="btn sutil">Mandar a la siguiente tienda (1)</button></div></div>`;
+  }
+
+  /* hojas sencillas (mandar, ronda) */
+  function hojaExtra() {
+    if (st.ver === "mandar") return `<div class="velo centro" data-fondo="1"><div class="hoja"><div style="display:flex;justify-content:space-between"><h3 style="font-family:var(--serif);font-weight:400;font-size:26px;margin:0">Mandar a la tienda</h3><button class="cerrar" data-acc="cerrar">×</button></div><p class="sub">Toca «Mandar» cuando entregues el paquete (el fardo) al transporte. Te damos el código para avisar a la tienda.</p><div class="card" style="padding:14px;display:grid;gap:8px"><b>Tienda Lima</b><span class="mini">6 prendas de 1 compra · Blusa Emma × 6</span><button class="btn primario">🚚 Mandar a Tienda Lima</button></div></div></div>`;
+    if (st.ver === "ronda") { const x = resumen(st.r); return `<div class="velo centro" data-fondo="1"><div class="hoja"><div style="display:flex;justify-content:space-between"><h3 style="font-family:var(--serif);font-weight:400;font-size:26px;margin:0">Ronda ${st.r}</h3><button class="cerrar" data-acc="cerrar">×</button></div><div class="titulo-s"><h3 style="font-size:19px">Envíos de esta ronda</h3>${x.c}</div><div class="lista">${deRonda(st.r).map((e) => `<div class="fila" style="grid-template-columns:minmax(0,1fr) auto"><span><div class="t"><span class="cod" style="font-size:16px">${e.cod}</span> · ${e.t}</div><div class="d">${e.cuando} · ${plural(e.n, "prenda", "prendas")}</div></span><span class="m">${chip(e)}</span></div>`).join("")}</div></div></div>`; }
+    return "";
+  }
+
+
+  /* ---------------- Compré ropa / Me dieron plata / Gasté ---------------- */
+  const PROVS = [["CA", "CAYLA SAC", "Le compraste hoy · 4 compras"], ["MG", "Moda Gamarra", "Le compraste ayer · 2 compras"], ["TR", "Textiles Rosa", "Vende polos, jeans"], ["CS", "Confecciones del Sur EIRL", "Vende vestidos, casacas"], ["AN", "Andina Textil", "Todavía no le compras"], ["HI", "Hidrandina S.A.", "Todavía no le compras"]];
+  const PRENDAS = [["🧥", "Casaca Corta", "TRU · × 4"], ["👖", "Jean Mom", "TRU · × 6"], ["👚", "Blusa Emma", "LIM · × 6"], ["👕", "Polo Tito", "AQP"], ["👗", "Vestido Aurora", "AQP"], ["🩳", "Falda Plisada", ""], ["🧣", "Chalina Lana", ""]];
+  const ELEG = { 0: 4, 1: 6, 2: 6 };
+  const pasos3 = (n) => `<div class="pasos3">${["El proveedor", "Las prendas", "Papel y pago"].map((t, i) => `<div class="${i + 1 < n ? "hecho" : i + 1 === n ? "ahora" : ""}"><i></i>${i + 1 < n ? "✓ " : ""}${t}</div>`).join("")}</div>`;
+  const resumenCompra = (n) => `<div class="card resumen"><h4>Tu compra</h4>
+      <div class="linea"><span class="mini">Proveedor</span><b>${n >= 2 ? "CAYLA SAC" : "—"}</b></div>
+      ${n >= 2 ? `<div class="linea"><span>Casaca Corta · TRU</span><span>× 4</span></div><div class="linea"><span>Jean Mom · TRU</span><span>× 6</span></div><div class="linea"><span>Blusa Emma · LIM</span><span>× 6</span></div>` : '<div class="mini">Cuando elijas las prendas, aparecen aquí.</div>'}
+      ${n >= 2 ? `<div class="linea"><span>16 prendas · 2 tiendas</span><span class="total">S/ 300.00</span></div>` : ""}
+      <button class="btn primario ancho" ${n === 1 ? "disabled" : ""}>${n === 3 ? "Guardar la compra" : "Seguir →"}</button></div>`;
+  const cuerpoPaso = (n, ancho) => {
+    if (n === 1) return `<h3 class="pregunta">¿A quién le compraste?</h3><label class="buscador" style="min-height:48px">🔎<input placeholder="Nombre del proveedor"></label>
+      <button class="nuevo-prov"><span class="mas-i">+</span><span><b>Es un proveedor nuevo</b><div class="mini">¿Primera vez que le compras? Regístralo aquí</div></span></button>
+      <div class="etq">Les compraste hace poco</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${PROVS.slice(0, 2).map(([i, nom, d]) => `<button class="prov"><span class="ini">${i}</span><span><div class="n">${nom}</div><div class="d">${d}</div></span><span>›</span></button>`).join("")}</div>
+      <div class="etq">Los demás</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${PROVS.slice(2).map(([i, nom, d]) => `<button class="prov"><span class="ini">${i}</span><span><div class="n">${nom}</div><div class="d">${d}</div></span><span>›</span></button>`).join("")}</div>`;
+    if (n === 2) return `<h3 class="pregunta">¿Qué le compraste a CAYLA SAC?</h3><div class="mini">Toca una prenda para elegir cuántas y para qué tienda. Lo que no está, va en «Algo nuevo».</div>
+      <div style="display:grid;grid-template-columns:repeat(${ancho},1fr);gap:12px"><button class="pren nuevo"><span class="mas-i">+</span><b>Algo nuevo</b><span>Una prenda que todavía no está</span></button>${PRENDAS.map(([e, n2, c], i) => `<button class="pren ${ELEG[i] ? "en" : ""}">${ELEG[i] ? `<span class="globo-p">${ELEG[i]}</span>` : ""}<span class="foto-p">${e}</span><span class="n">${n2}</span><span class="c">${c || "Sin elegir"}</span></button>`).join("")}</div>`;
+    return `<h3 class="pregunta">El papel y el pago</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:26px"><div style="display:grid;gap:14px"><div><div class="etq"><span class="num ok">✓</span>El papel que te dieron</div><div class="fichas" style="grid-template-columns:1fr 1fr"><button class="ficha" aria-pressed="false"><b>Factura</b><span>Con RUC</span></button><button class="ficha" aria-pressed="true"><b>Boleta</b><span>De venta</span></button><button class="ficha"><b>Nota de venta</b><span>Sin RUC</span></button><button class="ficha"><b>Sin papel</b><span>No me dieron</span></button></div></div><div><div class="etq">Foto del papel</div><button class="foto"><span>📷</span><span><b>Foto del papel</b>Si te lo dieron</span></button></div></div>
+      <div style="display:grid;gap:14px"><div><div class="etq"><span class="num ok">✓</span>¿Cuánto dice el papel?</div><div class="monto"><span>S/</span><input value="300.00"></div></div><div><div class="etq"><span class="num ok">✓</span>¿Cuánto pagaste tú?</div><div class="fichas" style="grid-template-columns:1fr 1fr"><button class="ficha" aria-pressed="true"><b>Todo</b><span>S/ 300.00</span></button><button class="ficha"><b>Una parte</b><span>Compras paga el resto</span></button></div></div></div></div>`;
+  };
+  function compra() {
+    const n = st.paso;
+    const cabc = `<div class="cabeza"><div class="linea" style="display:flex;align-items:center;gap:12px"><span class="volver">←</span><div><h2 style="font-size:34px;margin:0">Compré ropa</h2><div class="mini">Paso ${n} de 3</div></div></div></div>`;
+    if (st.o === "A") return cabc + pasos3(n) + `<div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:30px;align-items:start"><div style="display:grid;gap:14px">${cuerpoPaso(n, 4)}</div>${resumenCompra(n)}</div>`;
+    // B: acordeón
+    const cerrado = (num, t, v) => `<div class="card acord"><div class="cab-a"><span class="num ok">✓</span><b>${t}</b><span style="margin-left:6px">${v}</span><button class="btn sutil" style="margin-left:auto">Cambiar</button></div></div>`;
+    const abierto = (num, t, cuerpo) => `<div class="card acord" style="border-color:var(--tinta)"><div class="cab-a"><span class="num" style="background:var(--tinta);color:var(--sobre)">${num}</span><b>${t}</b></div>${cuerpo}</div>`;
+    const cerr3 = `<div class="card acord"><div class="cab-a"><span class="num">3</span><b style="color:var(--taupe)">Papel y pago</b></div></div>`;
+    return cabc + (n === 1 ? abierto(1, "El proveedor", cuerpoPaso(1)) + `<div class="card acord"><div class="cab-a"><span class="num">2</span><b style="color:var(--taupe)">Las prendas</b></div></div>` + cerr3
+      : n === 2 ? cerrado(1, "El proveedor", "CAYLA SAC") + abierto(2, "Las prendas", cuerpoPaso(2, 6)) + cerr3
+      : cerrado(1, "El proveedor", "CAYLA SAC") + cerrado(2, "Las prendas", "16 prendas · TRU 10 · LIM 6") + abierto(3, "Papel y pago", cuerpoPaso(3)))
+      + `<div class="dock"><div><div class="r">${n === 1 ? "Elige un proveedor" : "CAYLA SAC · 16 prendas · 2 tiendas"}</div><div class="c">${n === 1 ? "—" : "S/ 300.00"}</div></div><button class="btn" ${n === 1 ? "disabled" : ""}>${n === 3 ? "Guardar la compra" : "Seguir →"}</button></div>`;
+  }
+  const fondoInicio = () => { const o = st.o; st.o = "A"; const h = inicio(); st.o = o; return h; };
+  const contMedio = (m) => `<div class="etq"><span class="num ok">✓</span>¿Cómo te llegó la plata?</div><div class="fichas" style="grid-template-columns:${st.o === "A" ? "1fr 1fr" : "1fr 1fr"}">${[["transferencia", "Transferencia", "Del banco"], ["yape", "Yape o Plin", "Al celular"], ["efectivo", "Efectivo", "En la mano"], ["ya", "Ya la tenía", "De antes"]].map(([k, n, d]) => `<button class="ficha" aria-pressed="${st.medio === k}"><b>${n}</b><span>${d}</span></button>`).join("")}</div>`;
+  const contBanco = () => `<div class="etq" style="margin-top:14px"><span class="num ok">✓</span>¿De qué banco salió?</div><div class="fichas" style="grid-template-columns:1fr 1fr"><button class="ficha" aria-pressed="${st.banco === "BCP"}"><b>BCP</b><span>Cuenta de la empresa</span></button><button class="ficha" aria-pressed="${st.banco === "Interbank"}"><b>Interbank</b><span>Cuenta de la empresa</span></button></div>`;
+  const contMonto = (t) => `<div class="etq"><span class="num">·</span>${t}</div><div class="monto"><span>S/</span><input placeholder="0.00"></div>`;
+  const contFoto = (t, d) => `<div class="etq">${t} <span style="text-transform:none;letter-spacing:0;font-weight:400">· opcional</span></div><button class="foto"><span>📷</span><span><b>${d[0]}</b>${d[1]}</span></button>`;
+  const pie = (falta, boton) => `<div class="pie-hoja"><span class="falta">Faltan: <span class="chip-e neutro">Cuánto</span></span><div class="btns"><button class="btn">Cancelar</button><button class="btn primario" disabled>${boton}</button></div></div>`;
+  function plata() {
+    const bloque = (ancho) => ancho
+      ? `<div style="display:grid;grid-template-columns:1.15fr 1fr;gap:26px"><div>${contMedio()}${contBanco()}</div><div style="display:grid;gap:14px">${contMonto("¿Cuánto fue?")}${contFoto("Foto del voucher", ["Foto del voucher", "Un pantallazo o una foto"])}</div></div>${pie("", "Anotar la plata")}`
+      : `<div>${contMedio()}${contBanco()}</div>${contMonto("¿Cuánto fue?")}${contFoto("Foto del voucher", ["Foto del voucher", "Un pantallazo o una foto"])}${pie("", "Anotar la plata")}`;
+    return fondoInicio() + (st.o === "A"
+      ? `<div class="velo centro"><div class="hoja ancha2"><div style="display:flex;justify-content:space-between"><div><h3 style="font-family:var(--serif);font-weight:400;font-size:28px;margin:0">Me dieron plata</h3><p class="sub">Anota la plata que te dieron para comprar; Compras la confirma.</p></div><button class="cerrar">×</button></div>${bloque(true)}</div></div>`
+      : `<div class="velo"><div class="cajon" style="padding:6px 22px 22px;display:flex;flex-direction:column;gap:16px"><div class="cab-cajon" style="padding:14px 0 0"><div><span class="eyebrow">Mis compras</span><h3 style="font-family:var(--serif);font-weight:400;font-size:26px;margin:2px 0 0">Me dieron plata</h3></div><button class="cerrar">×</button></div>${bloque(false)}</div></div>`);
+  }
+  function gasto() {
+    const conceptos = [["🚕", "Taxi"], ["🔌", "Cargador"], ["🍴", "Comida"], ["📦", "Envío"], ["🛍", "Bolsas"], ["⋯", "Otro"]];
+    const grid = (cols) => `<div class="etq"><span class="num">·</span>¿En qué gastaste?</div><div class="fichas" style="grid-template-columns:repeat(${cols},1fr)">${conceptos.map(([e, n]) => `<button class="ficha mini-f" aria-pressed="${n.toLowerCase() === st.concepto}"><span style="font-size:20px">${e}</span><b>${n}</b></button>`).join("")}</div>`;
+    return fondoInicio() + (st.o === "A"
+      ? `<div class="velo centro"><div class="hoja ancha2"><div style="display:flex;justify-content:space-between"><div><h3 style="font-family:var(--serif);font-weight:400;font-size:28px;margin:0">Gasté en otra cosa</h3><p class="sub">No es ropa: no se suma al costo de las prendas.</p></div><button class="cerrar">×</button></div><div style="display:grid;grid-template-columns:1.15fr 1fr;gap:26px"><div>${grid(3)}</div><div style="display:grid;gap:14px">${contMonto("¿Cuánto fue?")}${contFoto("Foto del papel", ["Foto del papel, si te dieron", "Un taxi o un cargador pueden ir sin papel"])}</div></div>${pie("", "Anotar el gasto")}</div></div>`
+      : `<div class="velo"><div class="cajon" style="padding:6px 22px 22px;display:flex;flex-direction:column;gap:16px"><div class="cab-cajon" style="padding:14px 0 0"><div><span class="eyebrow">Mis compras</span><h3 style="font-family:var(--serif);font-weight:400;font-size:26px;margin:2px 0 0">Gasté en otra cosa</h3></div><button class="cerrar">×</button></div>${grid(3)}${contMonto("¿Cuánto fue?")}${contFoto("Foto del papel", ["Foto del papel, si te dieron", "Un taxi o un cargador pueden ir sin papel"])}${pie("", "Anotar el gasto")}</div></div>`);
+  }
+
+  /* ---------------- Render ---------------- */
+  function render() {
+    $("#seg-pantalla").innerHTML = PANTALLAS.map(([k, n]) => `<button data-p="${k}" aria-pressed="${st.p === k}">${n}</button>`).join("");
+    $("#seg-op").innerHTML = OPS[st.p].map((o) => `<button data-o="${o}" aria-pressed="${st.o === o}">${o}</button>`).join("");
+    const [t, b] = NOTAS[st.p][st.o];
+    $("#nota").innerHTML = `<b>${t}</b><ul>${b.map((x) => `<li>${x}</li>`).join("")}</ul>`;
+    const pc = $("#pc");
+    $("#g-paso").hidden = st.p !== "compra";
+    $("#seg-paso").innerHTML = [1, 2, 3].map((n) => `<button data-paso="${n}" aria-pressed="${st.paso === n}">${n}</button>`).join("");
+    pc.innerHTML = (st.p === "inicio" ? inicio() : st.p === "envios" ? envios() : st.p === "compra" ? compra() : st.p === "plata" ? plata() : st.p === "gasto" ? gasto() : codigo()) + (st.p === "inicio" || st.p === "envios" ? hojaExtra() : "");
+    ajustar();
+  }
+  function ajustar() {
+    const pc = $("#pc"), caja = $("#ajuste");
+    const k = Math.min(1, (caja.clientWidth) / 1160);
+    pc.style.transform = `scale(${k})`;
+    caja.style.height = `${pc.offsetHeight * k}px`;
+  }
+  window.addEventListener("resize", ajustar);
+  document.addEventListener("input", (e) => { if (e.target.id === "q") { st.q = e.target.value; const p = e.target.selectionStart; render(); const q = $("#q"); q.focus(); q.setSelectionRange(p, p); } });
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest("button, tr.dato, .velo"); if (!el) return; const d = el.dataset;
+    if (d.fondo) { if (e.target === el) { st.ver = null; render(); } return; }
+    if (d.paso) { st.paso = Number(d.paso); render(); return; }
+    if (d.p) { st.p = d.p; st.o = "A"; st.ver = null; st.q = ""; render(); return; }
+    if (d.o) { st.o = d.o; st.ver = null; render(); return; }
+    if (d.tema) { document.documentElement.dataset.theme = d.tema === "oscuro" ? "dark" : "light"; document.querySelectorAll("#seg-tema button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tema === d.tema)); return; }
+    if (d.ir) { st.p = "envios"; st.o = "A"; st.alcance = d.ir === "envios-ant" ? "anteriores" : "esta"; st.ver = null; render(); return; }
+    if (d.sel) { st.sel = d.sel; st.copiado = false; if (st.p === "envios" && st.o !== "B") st.ver = "detalle"; else if (st.p === "inicio") { st.p = "envios"; st.o = "B"; } render(); return; }
+    if (d.tab) { st.tab = d.tab; render(); return; }
+    if (d.alc) { st.alcance = d.alc; render(); return; }
+    if (d.filtro) { st.filtro = d.filtro; render(); return; }
+    if (d.ver) { st.ver = d.ver; st.r = d.r; render(); return; }
+    if (d.acc === "cerrar") { st.ver = null; render(); return; }
+    if (d.acc === "copiar") { st.copiado = true; render(); setTimeout(() => { st.copiado = false; render(); }, 1500); }
+  });
+  $("#seg-tema").addEventListener("click", () => {});
+  render();
+})();
+</script>
+</body>
+</html>

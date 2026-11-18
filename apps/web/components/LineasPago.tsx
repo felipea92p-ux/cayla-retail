@@ -109,7 +109,7 @@ export function LineasPago({
   /** Ruta de la ficha del proveedor: si falta el dato del medio elegido, ofrece «Agregar en su ficha». */
   enlaceFicha?: string;
   /** ADR-0195 F3b: con las cuentas, cada línea pregunta «Sale de» (propuesta según el medio). Sin ellas, como siempre. */
-  cuentas?: { lista: readonly CuentaElegible[]; listo: boolean };
+  cuentas?: { lista: readonly CuentaElegible[]; listo: boolean; falla?: boolean; reintentar?: () => void };
   /** El total del COMPROBANTE (no lo que falta pagar): de S/ 2 000 o más, avisa lo que queda «no deducible» (ADR-0362, fase 6). */
   totalComprobante?: number;
 }) {
@@ -272,6 +272,8 @@ export function LineasPago({
                       etiqueta={lineas.length > 1 ? `Sale de (${i + 1})` : "Sale de"}
                       cuentas={cuentas.lista}
                       listo={cuentas.listo}
+                      falla={cuentas.falla}
+                      reintentar={cuentas.reintentar}
                       clase="pago"
                       medio={l.metodo}
                       valor={cuentaEfectiva(cuentas.lista, "pago", l.metodo, l.cuentaId)}

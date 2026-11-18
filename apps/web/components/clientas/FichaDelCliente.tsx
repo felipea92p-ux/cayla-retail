@@ -34,7 +34,7 @@ function FilaDeContacto({ icono, titulo, valor, copiable, que }: { icono: ReactN
       </span>
       <div className="min-w-0 flex-1">
         <p className="label-cayla text-[10px] leading-tight text-tinta/60">{titulo}</p>
-        <p className="break-words text-[13.5px] leading-snug text-tinta">{valor ?? <span className="text-tinta/60">Sin dato</span>}</p>
+        <p className="break-words text-[15px] leading-snug text-tinta">{valor ?? <span className="text-tinta/60">Sin dato</span>}</p>
       </div>
       {valor && copiable && <BotonCopiar texto={copiable} que={que} forma="icono" />}
     </div>
@@ -70,7 +70,7 @@ export function PerfilDelCliente({ d, children }: { d: DatosDelPerfil; children?
             {d.estado.texto}
           </Chip>
           {d.novedades && (
-            <span className="inline-flex items-center gap-1.5 text-[12.5px] text-tinta/80">
+            <span className="inline-flex items-center gap-1.5 text-sm text-tinta/80">
               <span aria-hidden className={`h-[7px] w-[7px] rounded-full border-[1.5px] ${d.novedades.recibe ? "border-verde bg-verde" : "border-taupe bg-transparent"}`} />
               {d.novedades.texto}
             </span>
@@ -86,7 +86,7 @@ export function PerfilDelCliente({ d, children }: { d: DatosDelPerfil; children?
         {d.codigo && <FilaDeContacto icono={<Hash />} titulo="Código de miembro" valor={d.codigo} copiable={d.completos?.codigo} que="el código de miembro" />}
       </div>
       {!d.completos && (
-        <p className="flex items-start gap-2 text-xs leading-snug text-tinta/65">
+        <p className="flex items-start gap-2 text-sm leading-snug text-tinta/65">
           <Lock aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           Los datos salen a medias. Un líder los ve completos.
         </p>
@@ -102,7 +102,7 @@ export function CifraDeLaFicha({ titulo, valor, detalle }: { titulo: string; val
     <div className="rounded-2xl border border-sand p-3.5">
       <p className="label-cayla text-[10px] text-tinta/60">{titulo}</p>
       <p className="mt-0.5 font-display text-[28px] leading-[1.1] tabular-nums text-tinta">{valor}</p>
-      {detalle && <p className="text-xs leading-snug text-tinta/65">{detalle}</p>}
+      {detalle && <p className="text-sm leading-snug text-tinta/65">{detalle}</p>}
     </div>
   );
 }
@@ -203,7 +203,7 @@ function MovimientoDelHistorial({ m, ultimo }: { m: Movimiento; ultimo: boolean 
               {m.estado}
             </Chip>
           )}
-          {m.sede && <span className="text-xs text-tinta/65">{suSedeLegible(m.sede)}</span>}
+          {m.sede && <span className="text-sm text-tinta/65">{suSedeLegible(m.sede)}</span>}
         </div>
         {m.monto !== null && <span className="row-span-2 col-start-2 row-start-1 whitespace-nowrap text-[17px] font-medium tabular-nums text-tinta">{m.tipo === "devolucion" ? "−" : ""}{SOLES(m.monto)}</span>}
         <p className="col-start-1 break-words text-sm text-tinta">{m.detalle}</p>

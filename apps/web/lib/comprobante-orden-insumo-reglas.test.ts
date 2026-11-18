@@ -7,6 +7,7 @@ import {
   costoNetoDiezmilesimas,
   costoParaCaja,
   deMasPorLineaInsumo,
+  deMasEsMucho,
   detalleDeRegistroInsumo,
   leerResultadoPapelInsumo,
   papelDeOrdenInsumo,
@@ -312,6 +313,18 @@ describe("el papel de una orden de insumos: de más, lo que viaja y lo que vuelv
     const conAntes = pedidasDeLaOrden({ ...DETALLE, facturacion: [{ posicion: 1, itemId: "it-lino", facturado: 10, recibido: 0 }, DETALLE.facturacion[1]!] });
     expect(deMasPorLineaInsumo([renglon({ cantidad: "5" })], conAntes).map((d) => d.deMas)).toEqual([2.5]);
     expect(deMasPorLineaInsumo([renglon({ cantidad: "2.5" })], conAntes)).toEqual([]);
+  });
+
+  it("P04 del análisis del Taller: pasar de lo pedido en más de 5 % se marca como «mucho» (un cero de más); el aviso de siempre queda igual", () => {
+    const [chico] = deMasPorLineaInsumo([renglon({ cantidad: "12.9" })], pedidas); // 12.5 pedidos: 3,2 % de más
+    const [grande] = deMasPorLineaInsumo([renglon({ cantidad: "13.2" })], pedidas); // 5,6 % de más
+    const [absurdo] = deMasPorLineaInsumo([renglon({ cantidad: "8510" })], pedidas);
+    expect(deMasEsMucho(chico!)).toBe(false);
+    expect(deMasEsMucho(grande!)).toBe(true);
+    expect(deMasEsMucho(absurdo!)).toBe(true);
+    // Justo en el margen (5 %) todavía no es mucho: el margen es el que decidió Felipe.
+    const [justo] = deMasPorLineaInsumo([renglon({ cantidad: "13.125" })], pedidas);
+    expect(deMasEsMucho(justo!)).toBe(false);
   });
 
   it("lo que viaja: la línea pedida por su id, la de fuera por su insumo, los números como texto canónico", () => {

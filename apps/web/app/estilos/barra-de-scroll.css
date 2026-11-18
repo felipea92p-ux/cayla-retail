@@ -1,0 +1,84 @@
+/* =====================================================================
+   LA BARRA DE SCROLL (Felipe 2026-11-13: «se sale del modal y no va con el diseño del sistema»)
+
+   UNA sola barra para todo lo que corre dentro de una hoja (`<Modal>`, `<ModalRuta>`, `<Cajon>`, un `Dialog.Content` propio y las listas
+   de sus combos: todos son `[role="dialog"]` o viven dentro de uno) y para todo lo que lleva `.scroll-cayla` (el menú lateral, las listas
+   flotantes). Una pantalla nueva no hace nada para tenerla.
+
+   La forma: una píldora de 6 px, a 3 px del borde, en tinta a medias (en oscuro la tinta es crema: se invierte sola; 3:1 sobre el vidrio), sin pista ni flechas.
+   Con el mouse encima se oscurece y se ensancha a 8 px; al arrastrarla, un punto más. Su recorrido se detiene antes de la curva de la
+   hoja (el 75 % de su radio), así que nunca se dibuja sobre la esquina redonda.
+
+   POR QUÉ NO `scrollbar-width` / `scrollbar-color` (lo que había antes en `.scroll-cayla`): desde Chrome 121, si un elemento tiene
+   cualquiera de las dos, Chrome IGNORA los `::-webkit-scrollbar` y dibuja su barra nativa: recta, pegada al borde y cortando la esquina
+   de 32 px de la hoja (la captura de «Fusionar productos repetidos»). Por eso esas dos van SOLO para el navegador que no conoce
+   `::-webkit-scrollbar` (Firefox), detrás de `@supports not selector(…)`.
+
+   Todo va en `@layer base` y con `:where`: una fila de chips que esconde su barra (`[scrollbar-width:none]`,
+   `[&::-webkit-scrollbar]:hidden`, o un `display: none` en su propio CSS) le sigue ganando, en todos los navegadores.
+   ===================================================================== */
+
+:root {
+  /* 3:1 contra el vidrio de la hoja, en claro y oscuro (WCAG 1.4.11: la barra la dibujamos nosotros, ya no es la del navegador). Medido el
+     2026-11-13 con /milimetro: hace falta 48 % de tinta sobre el vidrio claro y 44 % de crema sobre el oscuro; con 22 % daba 1,6:1. */
+  --scroll-pulgar: color-mix(in srgb, var(--color-tinta) 50%, transparent); /* contraste: gráfico sobre papel, crema */
+  --scroll-pulgar-encima: color-mix(in srgb, var(--color-tinta) 64%, transparent);
+  --scroll-pulgar-activo: color-mix(in srgb, var(--color-tinta) 76%, transparent);
+}
+
+@layer base {
+  :where(.scroll-cayla, [role="dialog"], [role="dialog"] *)::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+    background: transparent;
+  }
+  :where(.scroll-cayla, [role="dialog"], [role="dialog"] *)::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 6px;
+  }
+  :where(.scroll-cayla, [role="dialog"], [role="dialog"] *)::-webkit-scrollbar-thumb {
+    /* El borde transparente es el aire: la píldora que se ve mide 12 − 2×3 = 6 px. */
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-color: var(--scroll-pulgar);
+    background-clip: padding-box;
+    min-height: 40px;
+    min-width: 40px;
+  }
+  @media (hover: hover) {
+    :where(.scroll-cayla, [role="dialog"], [role="dialog"] *)::-webkit-scrollbar-thumb:hover {
+      border-width: 2px;
+      background-color: var(--scroll-pulgar-encima);
+    }
+  }
+  :where(.scroll-cayla, [role="dialog"], [role="dialog"] *)::-webkit-scrollbar-thumb:active {
+    border-width: 2px;
+    background-color: var(--scroll-pulgar-activo);
+  }
+  :where(.scroll-cayla, [role="dialog"], [role="dialog"] *)::-webkit-scrollbar-corner,
+  :where(.scroll-cayla, [role="dialog"], [role="dialog"] *)::-webkit-scrollbar-button {
+    display: none;
+    background: transparent;
+  }
+
+  /* Firefox no conoce `::-webkit-scrollbar`: su barra fina, en el mismo tono, sin pista. */
+  @supports not selector(::-webkit-scrollbar) {
+    :where(.scroll-cayla, [role="dialog"], [role="dialog"] *) {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scroll-pulgar-encima) transparent;
+    }
+  }
+}
+
+/* La hoja es la que corre, y su esquina es redonda: el recorrido de la píldora empieza y termina donde la curva ya pasó. Sin capa,
+   para ganarle al margen de arriba. */
+:is(.hoja-serena, .hoja-vidrio)::-webkit-scrollbar-track {
+  margin-block: calc(var(--vidrio-hoja-radio) * 0.75);
+}
+@media (max-width: 639.98px) {
+  /* En el celular la hoja tiene 26 px arriba y nada abajo (llega al borde de la pantalla). */
+  :is(.hoja-serena, .hoja-vidrio)::-webkit-scrollbar-track {
+    margin-block: 20px 6px;
+  }
+}
+/* El cajón no corre entero (corre su cuerpo, entre la banda y el pie): su cuerpo ya queda lejos de las esquinas con el margen de arriba. */

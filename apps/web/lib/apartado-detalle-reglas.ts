@@ -176,7 +176,7 @@ export function textoDiasMas(desde: string, fecha: string): string {
 }
 
 /** Los tres modos de la hoja de detalle: leer, registrar un abono o aplazar. */
-export type ModoDetalle = "ver" | "abonar" | "aplazar";
+export type ModoDetalle = "ver" | "abonar" | "aplazar" | "enviar";
 /** `ocupado`: algo va en camino a la base y la hoja no se deja cerrar (la × apagada, Escape quieto). */
 export type HojaDetalle = { modo: ModoDetalle; ocupado: boolean };
 export type AccionHoja = { tipo: "ir"; modo: ModoDetalle } | { tipo: "ocupado"; valor: boolean } | { tipo: "volver" };

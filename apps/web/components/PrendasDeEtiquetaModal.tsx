@@ -66,6 +66,7 @@ import { Casilla as CasillaSistema } from "@/components/ui/Casilla";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /**
  * «Prendas de una etiqueta»: elegir qué prendas llevan, por ejemplo, «Black Friday». Desde el 2026-10-22 es «la etiqueta que se
@@ -257,6 +258,9 @@ export function PrendasDeEtiquetaModal({
   // La hoja mide del alto de la pantalla: lo que ocupa su título se descuenta del alto de la lista (`.eqp-hoja`, etiqueta-prendas.css).
   // `offsetTop` y no `getBoundingClientRect`: la hoja entra con un `transform` que movería la medida. Es una ref de función y no un
   // efecto: el contenido de `<Modal>` llega por el portal de Radix un render después, y un efecto del primer render no lo encuentra.
+  // Con el teclado del celular arriba la hoja NO se mide de nuevo: `<Modal>` le suma abajo el alto del teclado como relleno
+  // (`data-teclado`, useHojaSobreElTeclado) y descontarlo la aplastaba a su mínimo, con la lista encimada al pie (2026-10-26).
+  // El teclado pasa por encima de la hoja; `--eqp-alto` guarda el alto de antes para que tampoco lo achique un `vh` que cambie.
   const hoja = useCallback((el: HTMLDivElement | null) => {
     if (!el) return;
     let cuadro = 0;
@@ -266,15 +270,22 @@ export function PrendasDeEtiquetaModal({
         cuadro = requestAnimationFrame(medir);
         return;
       }
+      if (el.closest("[data-teclado]")) return;
       const abajo = parseFloat(getComputedStyle(panel).paddingBottom) || 0;
       el.style.setProperty("--eqp-encima", `${el.offsetTop + abajo + 2}px`);
+      el.style.setProperty("--eqp-alto", `${el.offsetHeight}px`);
     };
     medir();
-    // El título puede pasar a dos líneas al angostar la ventana.
-    window.addEventListener("resize", medir);
+    // El título puede pasar a dos líneas al angostar la ventana. Un cuadro después: el teclado avisa por `visualViewport` y por
+    // `window`, y así `data-teclado` ya está puesto cuando se mide.
+    const alCambiar = () => {
+      cancelAnimationFrame(cuadro);
+      cuadro = requestAnimationFrame(medir);
+    };
+    window.addEventListener("resize", alCambiar);
     return () => {
       cancelAnimationFrame(cuadro);
-      window.removeEventListener("resize", medir);
+      window.removeEventListener("resize", alCambiar);
     };
   }, []);
 
@@ -411,7 +422,7 @@ export function PrendasDeEtiquetaModal({
     const caja = lista.current;
     const fila = caja?.querySelector<HTMLElement>(`[data-fila="${CSS.escape(senalada.id)}"]`);
     if (!caja || !fila) return;
-    const quieto = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const quieto = prefiereQuieto();
     const destino = caja.scrollTop + fila.getBoundingClientRect().top - caja.getBoundingClientRect().top;
     caja.scrollTo({ top: Math.max(0, destino), behavior: quieto ? "auto" : "smooth" });
     fila.querySelector<HTMLElement>("[aria-expanded]")?.focus({ preventScroll: true });
@@ -566,7 +577,7 @@ export function PrendasDeEtiquetaModal({
             {leida ? (
               <LecturaReciente leida={leida} pct={etiqueta.descuentoPct} onDeshacer={deshacerLeida} onOtras={ponerOtras} deshabilitado={guardando} />
             ) : (
-              <p className="flex items-center gap-2 text-[12.5px] text-taupe max-md:hidden">
+              <p className="flex items-center gap-2 text-sm text-taupe max-md:hidden">
                 <ScanLine aria-hidden className="h-4 w-4 shrink-0" />
                 {tactil
                   ? "Toca «Cámara» y escanea las etiquetas una tras otra: cada prenda leída se marca sola."
@@ -575,7 +586,7 @@ export function PrendasDeEtiquetaModal({
             )}
 
             <CampoGuiado id="prendas" guia={guia} className="eqp-caja-lista">
-              <div className="flex items-center justify-between gap-2 border-b border-tinta/10 px-3 py-1.5 text-xs text-taupe">
+              <div className="flex items-center justify-between gap-2 border-b border-tinta/10 px-3 py-1.5 text-sm text-taupe">
                 <span className="min-w-0 truncate tabular-nums">
                   {listo ? (
                     <>
@@ -659,7 +670,7 @@ export function PrendasDeEtiquetaModal({
                               </span>
                               <span className="min-w-0 flex-1">
                                 <span className="block truncate text-sm text-tinta">{nombre}</span>
-                                <span className="block truncate text-xs text-taupe">
+                                <span className="block truncate text-sm text-taupe">
                                   {p.categoria} · {textoTallas(p, marcadas, heredada)}
                                   {p.codigo ? <span> · {p.codigo}</span> : null}
                                 </span>
@@ -752,7 +763,7 @@ export function PrendasDeEtiquetaModal({
           {/* ---- Quién registra y los botones, siempre a la vista ---- */}
           <div className="eqp-pie space-y-2.5">
             {!enConfirmacion && (
-              <p className="text-[12.5px] leading-snug text-tinta/75 max-md:hidden" aria-live="polite">
+              <p className="text-sm leading-snug text-tinta/75 max-md:hidden" aria-live="polite">
                 {hayCambio ? textoCambio(cambio, productos, quitadasFuera.length) : "Todavía no cambias nada: marca o escanea prendas."}
               </p>
             )}
@@ -828,11 +839,11 @@ function LecturaReciente({ leida, pct, onDeshacer, onOtras, deshabilitado }: { l
       <span className="min-w-0 flex-1">
         <span className="eqp-leida-estado block">{leida.estado}</span>
         <span className="block truncate text-sm font-medium text-tinta">{leida.titulo}</span>
-        <span className="block truncate text-xs text-taupe">{leida.detalle}</span>
+        <span className="block truncate text-sm text-taupe">{leida.detalle}</span>
       </span>
       {precio && (
         <span className="hidden shrink-0 text-right tabular-nums leading-tight sm:block">
-          <span className="block text-[11px] text-taupe line-through">{soles(precio.antes)}</span>
+          <span className="block text-sm text-taupe line-through">{soles(precio.antes)}</span>
           <span className="block text-sm font-medium text-tinta">{precio.despues === 0 ? "Gratis" : soles(precio.despues)}</span>
         </span>
       )}
@@ -897,7 +908,7 @@ function Revision({
           </div>
         )}
         {quitadasFuera > 0 && (
-          <p className="text-xs text-tinta/65">
+          <p className="text-sm text-tinta/65">
             Además se la quitarás a {quitadasFuera} {quitadasFuera === 1 ? "prenda que ya no se vende" : "prendas que ya no se venden"}.
           </p>
         )}
@@ -910,10 +921,10 @@ function Revision({
  *  baja el precio a la vista, que es justo lo que va a pasar en la caja. */
 function PrecioFila({ precio, lleva }: { precio: { antes: number; despues: number; desde: boolean }; lleva: boolean }) {
   const desde = precio.desde ? "desde " : "";
-  if (!lleva) return <span className="shrink-0 text-right text-xs tabular-nums text-taupe">{desde}{soles(precio.antes)}</span>;
+  if (!lleva) return <span className="shrink-0 text-right text-sm tabular-nums text-taupe">{desde}{soles(precio.antes)}</span>;
   return (
     <span className="shrink-0 text-right tabular-nums leading-tight">
-      <span className="block text-[11px] text-taupe line-through">{soles(precio.antes)}</span>
+      <span className="block text-sm text-taupe line-through">{soles(precio.antes)}</span>
       <span className="block text-sm text-tinta">{desde}{precio.despues === 0 ? "Gratis" : soles(precio.despues)}</span>
     </span>
   );

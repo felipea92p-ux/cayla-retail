@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { History, Info, PauseCircle, Pencil, PlayCircle, SignpostBig, Trash2, Tag } from "lucide-react";
+import { History, Info, PackageSearch, PauseCircle, Pencil, PlayCircle, SignpostBig, Trash2, Tag, Merge } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
@@ -32,15 +32,11 @@ import { FotoVistaRapida } from "./FotoVistaRapida";
 import { MatrizUnidades } from "./MatrizUnidades";
 import { HistorialPrenda } from "@/components/historial-prenda/HistorialPrenda";
 import { useHistorialPrenda } from "@/components/historial-prenda/useHistorialPrenda";
-import { FichaDelColor } from "@/components/ui/FichaDelColor";
-import { fichaDelColor, type ColorConFicha } from "@/lib/ficha-del-color";
-import { categoriasQueCombinan, fraseCombina, indiceDeColores, type TarjetaLook } from "@/lib/combinar-reglas";
-import { BotonVer } from "@/components/ui/BotonDescargar";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
-const SIN_COLORES: ColorConFicha[] = [];
-const SIN_TARJETAS: TarjetaLook[] = [];
-
-const BOTON = "btn-cayla btn-secundario min-h-10 text-[12.5px]";
+// Todos los botones del pie con la misma medida (40 px, la letra de una hoja): con letras distintas la fila se veía descuadrada (Felipe 2026-11-13).
+const BOTON = "btn-cayla btn-secundario min-h-10";
 // El botón que cambia el estado vive junto al chip de estado, en el encabezado (Felipe 2026-10-09: al fondo a la derecha «es difícil de ver»).
 // Compacto, para que la línea de datos no crezca: 32 px con mouse y 44 con el dedo (ADR-0350).
 const BOTON_ESTADO = "btn-cayla min-h-8 px-3 py-1 text-[12px] max-sm:min-h-11";
@@ -79,10 +75,9 @@ export function VistaRapidaProducto({
   puedeEliminar,
   onEliminar,
   onCambiarEstado,
+  onFusionar,
   preciosAqui,
   campanasHoy,
-  colores = SIN_COLORES,
-  tarjetasLook = SIN_TARJETAS,
 }: {
   producto: ProductoListado;
   /** Precio propio de esta sede por variante (ADR-0370): la matriz muestra el que cobra su caja. */
@@ -90,11 +85,6 @@ export function VistaRapidaProducto({
   /** La campaña que cobra la caja hoy por variante (ADR-0472): la cabecera tacha el precio de lista y dice el de la caja, la campaña y
    *  hasta cuándo. La matriz sigue con el precio de lista de cada talla. Ausente = no se pudo leer: el precio de siempre. */
   campanasHoy?: Record<string, CampanaDeVariante>;
-  /** La ficha de cada color activo (ADR-0316; Felipe 2026-10-10): bajo la foto, con qué se combina el color que está en ella. Vacío = nada. */
-  colores?: ColorConFicha[];
-  /** El catálogo de la sede como tarjetas prenda×color con su piso (`tarjetasDesdeVariantes`): la frase «Combina bien con un jean o una
-   *  cartera» del color de la foto. Vacío = sin frase. */
-  tarjetasLook?: TarjetaLook[];
   stock: StockDeModelo;
   /** Las mismas unidades repartidas por lugar dentro de la sede (`useStockEnSede().lugaresDe`). Sin esto, la ficha no ofrece «Dónde». */
   lugares?: LugaresDeModelo;
@@ -116,6 +106,8 @@ export function VistaRapidaProducto({
   /** «Desactivar» (activa) o «Reactivar» (descontinuada): abre la hoja que cambia el estado de la prenda. Quien lo ve es quien edita el
    *  catálogo (`puedeEditar`, el mismo permiso de `cambiar_estado_productos`). Debe cerrar ESTA hoja y abrir la otra. */
   onCambiarEstado: () => void;
+  /** «Fusionar» (ADR-0650): abre la hoja que junta esta ficha con otra de la misma prenda. Quien edita el catálogo. Debe cerrar ESTA hoja. */
+  onFusionar?: () => void;
 }) {
   const pantalla = usePantallaActual();
   const mapa = stock && stock !== "error" ? stock : null;
@@ -150,22 +142,6 @@ export function VistaRapidaProducto({
   const fotosDeLosColores = useMemo(() => matriz.filas.map((f) => f.fotoUrl), [matriz.filas]);
   const claveEnFoto = vista ?? fijado;
   const filaEnFoto = matriz.filas.find((f) => f.clave === claveEnFoto) ?? matriz.filas[0];
-  // La ficha del color que está en la foto: la fila de la matriz lleva el NOMBRE del color (único en el vocabulario, `colores_clave_unica`),
-  // y por él se llega al código y a su ficha. Sin stock del catálogo entero a mano, los compañeros no dicen cuántos cuelgan aquí.
-  const vocabularioColores = useMemo(() => {
-    const porCodigo = new Map(colores.map((c) => [c.codigo, c]));
-    const codigoPorNombre = new Map(colores.map((c) => [c.nombre, c.codigo]));
-    return { porCodigo, codigoPorNombre };
-  }, [colores]);
-  const fichaEnFoto = filaEnFoto ? fichaDelColor(vocabularioColores.codigoPorNombre.get(filaEnFoto.nombre), vocabularioColores.porCodigo) : null;
-  // «Combina bien con un jean o una cartera» (Felipe 2026-10-10): qué categorías pareja tienen piso aquí en un color aprobado por la ficha
-  // del color de la foto. Una línea de alto fijo; las prendas concretas (con su talla) viven en Vender, donde se cobran.
-  const indiceColores = useMemo(() => indiceDeColores(colores), [colores]);
-  const fraseEnFoto = useMemo(() => {
-    if (!filaEnFoto || tarjetasLook.length === 0) return null;
-    const ancla = { productoId: producto.productoId, categoriaPrefijo: producto.categoriaPrefijo ?? null, colorCodigo: vocabularioColores.codigoPorNombre.get(filaEnFoto.nombre) ?? null };
-    return fraseCombina(categoriasQueCombinan(ancla, tarjetasLook, indiceColores));
-  }, [filaEnFoto, tarjetasLook, producto.productoId, producto.categoriaPrefijo, vocabularioColores, indiceColores]);
   const etiquetas = etiquetasDeLaSeleccion(matriz, elegidas, producto.referencia);
   const idsTodos = producto.variantes.map((v) => v.varianteId);
   const elegidasIds = matriz.celdas.filter((c) => elegidas.has(c.varianteId)).map((c) => c.varianteId);
@@ -197,7 +173,7 @@ export function VistaRapidaProducto({
   const historial = useHistorialPrenda(producto.productoId, yaAbrioHistorial);
   const irA = (destino: "ficha" | "historial") => {
     if (destino === pagina) return;
-    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const quieto = prefiereQuieto();
     if (destino === "historial") setYaAbrioHistorial(true);
     setPaso(destino === "historial" ? "hp-sale-izq" : "hp-sale-der");
     window.setTimeout(() => {
@@ -207,6 +183,90 @@ export function VistaRapidaProducto({
     }, quieto ? 0 : 190);
   };
   const hrefMovimientos = veMovimientos ? `/inventario/movimientos?q=${encodeURIComponent(producto.codigo ?? producto.referencia)}` : null;
+
+  // En el celular (Felipe 2026-11-17: «que estén plantadas pero solo como íconos y que en la parte inferior ya te salgan con nombre»), lo de
+  // todos los días va pegado abajo SOLO en ícono, en una fila de 44 px; antes eran tres filas de a dos más el aviso de etiquetas, media hoja
+  // tapando las unidades. Al final de la hoja los mismos botones están con su nombre, y mientras se ven la barra de íconos se aparta: nunca los
+  // dos a la vez. La barra se aparta con opacidad y no se recoge: recogerla cambiaría el alto de la hoja justo al final y la haría saltar.
+  // El pie llega por un `ref` de función y no por `useRef`: el contenido de `<Modal>` se monta un instante después que este componente, y un
+  // efecto que leyera `ref.current` al montar lo encontraba vacío y nunca vigilaba. Así el vigía se conecta cuando el pie existe de verdad, y
+  // otra vez al volver del historial (el pie es uno nuevo).
+  const [pieConNombres, setPieConNombres] = useState<HTMLDivElement | null>(null);
+  const [nombresALaVista, setNombresALaVista] = useState(false);
+  useEffect(() => {
+    if (!pieConNombres || typeof IntersectionObserver === "undefined") return;
+    const vigia = new IntersectionObserver(([e]) => setNombresALaVista(e.isIntersecting), { threshold: 0.4 });
+    vigia.observe(pieConNombres);
+    return () => {
+      vigia.disconnect();
+      setNombresALaVista(false);
+    };
+  }, [pieConNombres]);
+
+  // Los botones de la prenda, con su nombre (el pie) o solo el ícono (la barra del celular, con el nombre para el lector y al pasar el mouse).
+  // Las anclas de la guía van solo en los que tienen nombre: la demo los muestra y abre el historial desde ahí.
+  const botonesDeLaPrenda = (soloIcono: boolean) => {
+    const nombre = (texto: string) => (soloIcono ? <span className="sr-only">{texto}</span> : texto);
+    const titulo = soloIcono ? (texto: string) => texto : () => undefined;
+    return (
+      <>
+        {puedeEditar && (
+          <Link href={conDesde(`/productos/${producto.productoId}/editar`, pantalla)} className={BOTON} title={titulo("Editar")}>
+            <Pencil aria-hidden className="h-4 w-4" />
+            {nombre("Editar")}
+          </Link>
+        )}
+        {/* Sin unidades NO bloquea el botón: se vuelve a leer FRESCO al tocarlo (EnlaceEtiquetas), porque una lectura vieja de 0 no debe impedir
+            imprimir lo que acaba de entrar. Aquí solo se avisa antes y el botón se apaga un poco. */}
+        <EnlaceEtiquetas
+          href={hrefEtiquetas}
+          unidades={async () => {
+            const fresco = await leer([producto.productoId]);
+            return fresco ? unidadesEnSede(fresco, elegidasIds.length === 0 ? idsTodos : elegidasIds) : null;
+          }}
+          que={etiquetas.que}
+          varias={etiquetas.varias}
+          sede={sede}
+          data-sin-unidades={etiquetas.sinUnidades || undefined}
+          title={titulo(etiquetas.texto)}
+          className={(negado) => (negado ? "btn-cayla min-h-10 bg-rojo text-crema hover:bg-rojo-profundo" : BOTON)}
+        >
+          <Tag aria-hidden className="h-4 w-4" />
+          <span key={etiquetas.texto + etiquetas.cantidad} className="vr-texto">
+            {nombre(etiquetas.texto)}
+            {etiquetas.cantidad > 1 && <span className="vr-cuenta tabular-nums">{etiquetas.cantidad}</span>}
+          </span>
+        </EnlaceEtiquetas>
+        {/* El rótulo del anaquel de este modelo (ADR-0366; Felipe 2026-10-09: «que se pueda imprimir desde el modal del producto»). Es del
+            MODELO, no de las tallas elegidas, y no depende del stock: va siempre. «Volver» regresa a esta misma vista de Productos. */}
+        <Link href={urlRotulos([producto.productoId], { productos: pantalla }) ?? "/rotulos"} className={BOTON} title={titulo("Rótulo")}>
+          <SignpostBig aria-hidden className="h-4 w-4" />
+          {nombre("Rótulo")}
+        </Link>
+        {/* ADR-0354: entre «Etiquetas» y «Ver en Existencias». No navega: la hoja da vuelta la página. */}
+        <button
+          type="button"
+          onClick={() => irA("historial")}
+          className={BOTON}
+          title={titulo("Historial")}
+          data-ir-historial={soloIcono ? undefined : ""}
+          data-guia={soloIcono ? undefined : "vista-rapida.historial"}
+        >
+          <History aria-hidden className="h-4 w-4" />
+          {nombre("Historial")}
+        </button>
+        {/* Sin la flecha de `<BotonVer>` (Felipe 2026-11-17: «quitar la flecha de ver existencia»): lleva su ícono, como los otros cuatro y
+            como en la barra del celular; con la flecha, en una columna de 140 px el texto se salía del botón. */}
+        {hrefExistencias && (
+          // unificar-fijo: la fila de la vista rápida lleva ícono en cada botón; «Ver en Existencias» sin la flecha de accion.ver, por pedido de Felipe (2026-11-17)
+          <Link href={hrefExistencias} className={BOTON} title={titulo("Ver en Existencias")}>
+            <PackageSearch aria-hidden className="h-4 w-4" />
+            {nombre("Ver en Existencias")}
+          </Link>
+        )}
+      </>
+    );
+  };
 
   return (
     <>
@@ -233,7 +293,10 @@ export function VistaRapidaProducto({
               {descontinuado ? "Descontinuado" : "Activo"}
             </Chip>
             {puedeEditar && (
-              <button type="button" onClick={onCambiarEstado} className={`${BOTON_ESTADO} ${descontinuado ? "btn-secundario" : "btn-peligro"}`} data-cambiar-estado>
+              <button type="button" onClick={onCambiarEstado} className={`${BOTON_ESTADO} ${descontinuado ? "btn-secundario" : "btn-peligro"}`}
+                title={descontinuado ? "Vuelve a venderse" : "Deja de venderse; sus ventas y su historia quedan"}
+                data-cambiar-estado
+              >
                 {descontinuado ? <PlayCircle aria-hidden className="h-3.5 w-3.5" /> : <PauseCircle aria-hidden className="h-3.5 w-3.5" />}
                 {descontinuado ? "Reactivar" : "Desactivar"}
               </button>
@@ -281,21 +344,14 @@ export function VistaRapidaProducto({
           <FotoVistaRapida producto={producto} fila={filaEnFoto} onAmpliar={setFotoGrande} botonAmpliar={botonAmpliar} precargar={fotosDeLosColores} />
           <div>
             <div className="vr-pie-foto">
-              <span className="vr-sw" style={{ background: filaEnFoto?.hex, width: 20, height: 20 }} />
+              <span className="vr-sw" style={{ background: filaEnFoto ? fondoDelPunto(filaEnFoto.hex, filaEnFoto.tonos) : undefined, width: 20, height: 20 }} />
               <span key={filaEnFoto?.nombre} className="vr-nom vr-texto-cambia">
                 {filaEnFoto?.nombre}
               </span>
               <span className="vr-est">{vista !== null && vista !== fijado ? "vista previa" : "fijado"}</span>
             </div>
-            <p className="vr-pista">Pasa el mouse por un color de la lista y la foto lo muestra. Un clic lo deja fijo.</p>
-            {/* Con qué se combina el color de la foto (ADR-0316; Felipe 2026-10-10): sigue a la foto (vista previa al pasar, fijado al clic),
-                en una caja de alto fijo para que la hoja no cambie de tamaño bajo el mouse (ADR-0185); la frase, tras «¿Por qué?». */}
-            {fichaEnFoto && (
-              <div className="vr-color-ficha">
-                <FichaDelColor key={filaEnFoto?.clave} ficha={fichaEnFoto} forma="bloque" />
-                {fraseEnFoto && <p className="vr-combina">{fraseEnFoto}</p>}
-              </div>
-            )}
+            {/* Sin la instrucción «Pasa el mouse por un color…» (ronda 19): «vista previa» y «fijado», junto al color, ya lo dicen. «Combina bien
+                con» salió de todo el ERP (Felipe 2026-11-13, ADR-0316 act.): bajo la foto solo queda el color que se mira. */}
           </div>
           {/* Lo que se escribió en «Descripción» al crear o editar la prenda. Sin descripción no se dibuja nada: el campo es opcional. */}
           {producto.descripcion && (
@@ -336,11 +392,39 @@ export function VistaRapidaProducto({
               </div>
             ))}
           </dl>
+          {/* Lo que arregla la FICHA misma —una repetida o una creada por error—, con la pregunta que dice cuándo se usa (Felipe 2026-11-13: «Eliminar»
+              junto a «Desactivar» no decía para qué servía cada uno). Va bajo la ficha corta y no en el pie fijo:
+              es raro, y en el celular el pie ya ocupa lo suyo.
+              «Desactivar», en el encabezado, es otra cosa: la prenda deja de venderse y su historia queda. */}
+          {((puedeEditar && onFusionar) || puedeEliminar) && (
+            <div className="vr-ficha-arreglo">
+              <p className="vr-ficha-arreglo-pregunta">¿Ficha repetida o creada por error?</p>
+              <div className="vr-ficha-arreglo-botones">
+                {/* ADR-0650: esta ficha y otra de la misma prenda pasan a ser una sola, sin perder ventas, fotos ni stock. Antes de «Eliminar»:
+                    para una ficha repetida, fusionar es lo que conviene (borrar perdería su historia). */}
+                {puedeEditar && onFusionar && (
+                  <button type="button" onClick={onFusionar} className={BOTON} data-guia="vista-rapida.fusionar">
+                    <Merge aria-hidden className="h-4 w-4" />
+                    Fusionar
+                  </button>
+                )}
+                {/* Abre una ventana que pregunta a la base qué se puede borrar; con ventas, compras o traslados explica por qué no y ofrece
+                    desactivarla. La gota con letra roja (ADR-0358, `accion.eliminar`): abre una confirmación, no borra al toque. */}
+                {puedeEliminar && (
+                  <button type="button" onClick={onEliminar} className="btn-cayla btn-peligro min-h-10">
+                    <Trash2 aria-hidden className="h-4 w-4" />
+                    Eliminar
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* El pie fijo (`pie-hoja-fijo`): los botones nunca quedan bajo el pliegue, sean 6 variantes o 60. */}
-      <div className="pie-hoja-fijo vr-pie">
+      {/* El pie fijo (`pie-hoja-fijo`): los botones nunca quedan bajo el pliegue, sean 6 variantes o 60. En el celular no se pega: va al final
+          con sus nombres, y lo pegado es la barra de íconos de abajo (`vr-pie` en vista-rapida.css). */}
+      <div ref={setPieConNombres} className="pie-hoja-fijo vr-pie">
         {etiquetas.sinUnidades && (
           <p className="vr-motivo" key={etiquetas.cantidad === 0 ? "toda" : "elegidas"}>
             <Info aria-hidden />
@@ -351,58 +435,17 @@ export function VistaRapidaProducto({
             </span>
           </p>
         )}
+        {/* Lo de todos los días con la prenda, en una fila pareja (Felipe 2026-11-13: con siete botones de letras distintas la fila se partía
+            y «Eliminar» quedaba suelto). */}
         <div data-guia="vista-rapida.botones" className="vr-botones">
-          {puedeEditar && (
-            <Link href={conDesde(`/productos/${producto.productoId}/editar`, pantalla)} className={BOTON}>
-              <Pencil aria-hidden className="h-4 w-4" />
-              Editar
-            </Link>
-          )}
-          {/* Sin unidades NO bloquea el botón: se vuelve a leer FRESCO al tocarlo (EnlaceEtiquetas), porque una lectura vieja de 0 no debe impedir
-              imprimir lo que acaba de entrar. Aquí solo se avisa antes y el botón se apaga un poco. */}
-          <EnlaceEtiquetas
-            href={hrefEtiquetas}
-            unidades={async () => {
-              const fresco = await leer([producto.productoId]);
-              return fresco ? unidadesEnSede(fresco, elegidasIds.length === 0 ? idsTodos : elegidasIds) : null;
-            }}
-            que={etiquetas.que}
-            varias={etiquetas.varias}
-            sede={sede}
-            data-sin-unidades={etiquetas.sinUnidades || undefined}
-            className={(negado) => (negado ? "btn-cayla min-h-10 bg-rojo text-[12.5px] text-crema hover:bg-rojo-profundo" : BOTON)}
-          >
-            <Tag aria-hidden className="h-4 w-4" />
-            <span key={etiquetas.texto + etiquetas.cantidad} className="vr-texto">
-              {etiquetas.texto}
-              {etiquetas.cantidad > 1 && <span className="vr-cuenta tabular-nums">{etiquetas.cantidad}</span>}
-            </span>
-          </EnlaceEtiquetas>
-          {/* El rótulo del anaquel de este modelo (ADR-0366; Felipe 2026-10-09: «que se pueda imprimir desde el modal del producto»). Es del
-              MODELO, no de las tallas elegidas, y no depende del stock: va siempre. «Volver» regresa a esta misma vista de Productos. */}
-          <Link href={urlRotulos([producto.productoId], { productos: pantalla }) ?? "/rotulos"} className={BOTON}>
-            <SignpostBig aria-hidden className="h-4 w-4" />
-            Rótulo
-          </Link>
-          {/* ADR-0354: entre «Etiquetas» y «Ver en Existencias». No navega: la hoja da vuelta la página. */}
-          <button type="button" onClick={() => irA("historial")} className={BOTON} data-ir-historial data-guia="vista-rapida.historial">
-            <History aria-hidden className="h-4 w-4" />
-            Historial
-          </button>
-          {hrefExistencias && (
-            // Lleva a otra pantalla: el botón secundario con la flecha que avanza (ADR-0358, ronda 10), nunca el negro.
-            <BotonVer href={hrefExistencias} className="min-h-10 text-[12.5px]">
-              Ver en Existencias
-            </BotonVer>
-          )}
-          {/* Quien edita el catálogo. Abre una ventana que pregunta a la base qué se puede borrar; con ventas, compras o traslados explica por
-              qué no y ofrece desactivarla (el botón «Desactivar» del encabezado hace lo mismo sin pasar por aquí). */}
-          {puedeEliminar && (
-            <button type="button" onClick={onEliminar} className="btn-cayla btn-peligro vr-eliminar min-h-10 text-[12.5px]">
-              <Trash2 aria-hidden className="h-4 w-4" />
-              Eliminar
-            </button>
-          )}
+          {botonesDeLaPrenda(false)}
+        </div>
+      </div>
+      {/* Solo en el celular: los mismos botones en ícono, pegados abajo mientras se mira la prenda. Se apartan cuando los de arriba, con su
+          nombre, entran a la vista (`nombresALaVista`). */}
+      <div className="pie-hoja-fijo vr-iconos sm:hidden" data-apartada={nombresALaVista || undefined} aria-hidden={nombresALaVista || undefined} inert={nombresALaVista || undefined}>
+        <div role="group" aria-label={`Lo que haces con ${producto.referencia}`} className="vr-iconos-fila">
+          {botonesDeLaPrenda(true)}
         </div>
       </div>
       </div>

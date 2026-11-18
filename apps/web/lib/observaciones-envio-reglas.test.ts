@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { deLaLinea, ejemploDeTipo, leerObservacion, leerObservaciones, MAX_MENSAJE_OBSERVACION, nombreDeTipo, problemaDeObservacion, TIPOS_OBSERVACION } from "./observaciones-envio-reglas";
+import { deLasLineas, ejemploDeTipo, leerObservacion, leerObservaciones, MAX_MENSAJE_OBSERVACION, nombreDeTipo, problemaDeObservacion, TIPOS_OBSERVACION } from "./observaciones-envio-reglas";
 
 const MIGRACION = readFileSync(join(__dirname, "..", "..", "..", "supabase", "migrations", "20261024235000_observaciones_de_envio.sql"), "utf8");
 
@@ -42,10 +42,12 @@ describe("observaciones de un envío (ADR-0507)", () => {
     expect(leerObservaciones(null)).toEqual([]);
   });
 
-  it("separa las de una línea de las del envío entero", () => {
+  it("separa las de unas líneas de las del envío entero", () => {
     const o = (id: string, item: string | null) => ({ id, despachoItemId: item, tipo: "otro" as const, mensaje: "m", creadoPor: null, creadoEn: null });
     const todas = [o("a", "i1"), o("b", null), o("c", "i1"), o("d", "i2")];
-    expect(deLaLinea(todas, "i1").map((x) => x.id)).toEqual(["a", "c"]);
-    expect(deLaLinea(todas, null).map((x) => x.id)).toEqual(["b"]);
+    expect(deLasLineas(todas, ["i1"]).map((x) => x.id)).toEqual(["a", "c"]);
+    expect(deLasLineas(todas, [null]).map((x) => x.id)).toEqual(["b"]);
+    // Una categoría junta las de todas sus líneas, sin cambiar el orden.
+    expect(deLasLineas(todas, ["i2", "i1"]).map((x) => x.id)).toEqual(["a", "c", "d"]);
   });
 });

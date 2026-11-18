@@ -16,7 +16,11 @@ function Recomendacion({ r }: { r: MiRecomendacion }) {
         </span>
         <span className={`w-estado-chip t-${insignia.tono}`}>{insignia.texto}</span>
       </div>
-      <p className="r-texto">{r.texto}</p>
+      {/* La conversación completa: lo que escribió (siempre) y, debajo, lo que respondió CAYLA. */}
+      <div className="r-tuyo">
+        <span className="r-tuyo-t">Tú escribiste · {fechaCorta(r.creadaEn)}</span>
+        <p className="r-texto">{r.texto}</p>
+      </div>
       {r.respuesta && (
         <div className="r-respuesta">
           <span className="r-respuesta-t">

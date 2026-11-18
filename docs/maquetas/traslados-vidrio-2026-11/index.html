@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-pm="tono" data-pe="aire">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traslados con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la página de Inventario ▸ Traslados con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   La pantalla real es la billetera de pases (ADR-0355, la opción D de Felipe del 2026-10-06; components/traslados-pases/,
+   estilos/traslados-pases.css): a la izquierda «hoy te toca» con su anillo, el buscador, Llegan · Envías · Terminados y la pila de pases;
+   a la derecha, el pase grande en su escenario. Felipe pidió (2026-11-02) pasarla al vidrio CON EL MISMO MOVIMIENTO: el camión que corre,
+   las letras, el sello que cae y el pase que entra siguen iguales; aquí solo cambia el MATERIAL.
+   Lo ya elegido: cabecera A, buscador A · Pozo, pestañas A · La gota de Mi perfil, paginación A · Gota en su pozo, botones gota.
+   Lo PROPIO, con sus caras:
+     1. El pase (grande y mini): hoy PAPEL MACIZO con la banda del color de lo que te toca y la perforación pintada del color del fondo.
+     2. El escenario del pase grande: hoy una caja de HUESO de 640 px.
+   Solo tokens (el color de cada tono, como en estilos/traslados-pases.css). Sin movimiento nuevo; todo se apaga con prefers-reduced-motion.
+   Datos inventados.
+   ==================================================================== */
+:root{--oliva:color-mix(in srgb,var(--verde) 66%,var(--ambar))}
+[data-tono="llega"]{--c:var(--oliva)}[data-tono="atraso"]{--c:var(--ambar)}[data-tono="contando"]{--c:var(--pizarra)}
+[data-tono="sale"]{--c:var(--tinta)}[data-tono="cerrado"]{--c:var(--verde)}
+[data-tono]{--bg:color-mix(in srgb,var(--c) 7%,var(--papel));--md:color-mix(in srgb,var(--c) 15%,var(--papel));--ln:color-mix(in srgb,var(--c) 32%,var(--sand))}
+
+/* ---------- lo ya elegido ---------- */
+.pozo-b{display:flex;align-items:center;gap:10px;height:44px;padding:0 16px;border-radius:999px;font-size:14px;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pozo-b{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pozo-b svg{width:16px;height:16px}
+.pozo-b span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pest{position:relative;display:grid;grid-template-columns:repeat(3,1fr);padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pest{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pest .gota-p{position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px) / 3);border-radius:999px;transform:translateX(calc(var(--k,0) * 100%));transition:transform .45s var(--ease);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pest .gota-p{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.pest button{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:6px;height:38px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.pest button[aria-selected="true"]{color:var(--tinta)}
+.pest .n{min-width:20px;height:20px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;font-size:10.5px;letter-spacing:0;font-weight:700;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--vidrio) 45%,transparent));box-shadow:inset 0 0 0 1px var(--t12)}
+.pest .n.pide{color:var(--ambar);background:linear-gradient(180deg,color-mix(in srgb,var(--ambar) 10%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--ambar) 20%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ambar) 28%,transparent)}
+.paginas{position:absolute;left:50%;bottom:22px;translate:-50% 0;display:inline-flex;align-items:center;gap:2px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+[data-tema="oscuro"] .paginas{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.paginas button{display:grid;place-items:center;width:34px;height:34px;border-radius:999px;color:var(--t80)}
+.paginas span{padding:0 12px;height:34px;display:grid;place-items:center;border-radius:999px;font-size:13px;font-weight:600;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .paginas span{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.paginas svg{width:16px;height:16px}
+
+/* ---------- la billetera ---------- */
+.cols{display:grid;grid-template-columns:minmax(0,1fr);gap:28px;align-items:start;margin-top:24px}
+@container disp (min-width:1024px){.cols{grid-template-columns:380px minmax(0,1fr)}.billetera{position:sticky;top:-16px}}
+@container disp (max-width:1023px){.cols[data-con-pase] .billetera,.cols:not([data-con-pase]) .lado{display:none}}
+.billetera{min-width:0;display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.dia{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:18px;background:var(--papel);border:1px solid var(--sand)}
+.dia p{min-width:0;font-size:14px;font-weight:600}.dia small{display:block;font-size:12.5px;font-weight:400;color:var(--t65)}
+.anillo-d{position:relative;flex:none;width:52px;height:52px;display:grid;place-items:center;font-size:12px;font-weight:700}
+.anillo-d svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.anillo-d circle{fill:none;stroke-width:5}
+.anillo-d .f{stroke:var(--hueso)}.anillo-d .v{stroke:var(--verde);stroke-linecap:round;stroke-dasharray:125.7;stroke-dashoffset:calc(125.7 * (1 - var(--fr)));animation:anillo-d 1.1s .3s var(--ease) backwards}
+@keyframes anillo-d{from{stroke-dashoffset:125.7}}
+.pila{display:flex;flex-direction:column;padding-bottom:8px}
+.mini{position:relative;display:block;width:100%;text-align:left;border-radius:18px;background:var(--papel);overflow:hidden;
+  box-shadow:0 -1px 0 color-mix(in srgb,var(--tinta) 6%,transparent),0 14px 28px -18px color-mix(in srgb,var(--sombra) 55%,transparent);transition:transform .35s var(--ease),margin .45s var(--ease),box-shadow .3s}
+.mini+.mini{margin-top:-58px}
+@media (hover:hover){.mini:hover{transform:translateY(-8px)}}
+.mini[aria-current="page"]{margin-bottom:58px;transform:translateX(8px);box-shadow:0 0 0 2px var(--c),0 18px 34px -18px color-mix(in srgb,var(--sombra) 55%,transparent)}
+.mini:last-child[aria-current="page"]{margin-bottom:0}
+@container disp (max-width:1023px){.mini[aria-current="page"]{transform:none;margin-bottom:0}}
+.mini-banda{display:flex;align-items:center;gap:10px;height:46px;padding:0 14px 0 10px;background:var(--md);color:var(--c)}
+.mini-banda b{flex:1;min-width:0;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-banda small{font-size:12px;font-weight:700;color:var(--t65)}
+.sello{display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:9px;background:var(--papel);color:var(--c);box-shadow:inset 0 0 0 1.5px var(--ln)}
+.sello svg{width:56%;height:56%}
+.mini-ruta{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:10px;height:58px;padding:0 14px}
+.cod{font-family:'EB Garamond',serif;font-size:26px;line-height:1;letter-spacing:.03em;white-space:nowrap}
+.mini .cifra{text-align:right;line-height:1;min-width:62px}.mini .cifra b{font-family:'EB Garamond',serif;font-weight:400;font-size:24px;color:var(--c)}
+.mini .cifra small{display:block;margin-top:3px;font-size:10.5px;color:var(--t65)}
+/* la línea del viaje */
+.linea{position:relative;height:34px}
+.linea .base{position:absolute;left:0;right:0;top:50%;border-top:2px dashed var(--ln)}
+.linea .hecha{position:absolute;left:0;top:50%;height:2.5px;margin-top:-1.25px;border-radius:2px;width:calc(var(--p) * 100%);background:var(--c);transform-origin:left;animation:llena 1.1s .2s var(--ease) backwards}
+.linea .fin{position:absolute;right:-6px;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;background:var(--papel);box-shadow:inset 0 0 0 2.5px var(--c)}
+.camion{position:absolute;top:50%;left:calc(var(--p) * (100% - 26px));display:grid;place-items:center;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;background:var(--papel);color:var(--c);
+  box-shadow:0 0 0 1.5px var(--ln),0 6px 14px -8px color-mix(in srgb,var(--sombra) 50%,transparent);animation:viaja 1.2s .2s var(--ease) backwards}
+.camion svg{width:19px;height:19px}
+.camion[data-tarde]{color:var(--ambar);box-shadow:0 0 0 2px var(--ambar)}
+@keyframes llena{from{transform:scaleX(0)}}
+@keyframes viaja{from{left:0;opacity:0}15%{opacity:1}}
+.mini .linea{height:16px}.mini .linea .fin{display:none}.mini .linea .hecha{animation:none;height:2px}
+.mini .camion{width:20px;height:20px;margin:-10px 0 0 -10px;box-shadow:none;animation:none;left:calc(var(--p) * (100% - 12px))}.mini .camion svg{width:14px;height:14px}
+
+/* ---------- el escenario y el pase grande ---------- */
+.lado{min-width:0}
+.escenario{position:relative;min-height:640px;border-radius:26px;background:var(--hueso);display:grid;place-items:center;padding:34px 24px 84px;overflow:hidden}
+@container disp (max-width:1023px){.escenario{min-height:0;padding:8px 0 84px;background:transparent!important;box-shadow:none!important;border:0!important;border-radius:0}}
+.volver-m{display:none;margin-bottom:6px}
+@container disp (max-width:1023px){.volver-m{display:inline-flex}}
+.pase{position:relative;width:min(460px,100%);border-radius:24px;background:var(--papel);overflow:hidden;
+  box-shadow:0 30px 60px -30px color-mix(in srgb,var(--sombra) 50%,transparent),0 2px 8px -4px color-mix(in srgb,var(--sombra) 20%,transparent);animation:entra .42s var(--ease) both}
+@keyframes entra{from{transform:translateY(12px);opacity:0}}
+.banda{display:flex;align-items:center;gap:12px;min-height:64px;padding:0 20px 0 14px;background:var(--md);color:var(--c)}
+.banda .sello{width:40px;height:40px;border-radius:12px}
+.banda b{flex:1;font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.banda small{font-size:13px;font-weight:700;color:var(--t65)}
+.ruta{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;padding:26px 24px 8px}
+.ruta .cod{display:block;font-size:58px;line-height:.95}.ruta .cod.largo{font-size:42px;letter-spacing:0}
+.ruta small{display:block;margin-top:6px;font-size:12px;color:var(--t65)}
+.ruta .der{text-align:right}
+.campos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:18px 24px 6px}
+.campos small{display:block;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t65)}
+.campos b{display:block;margin-top:4px;font-family:'EB Garamond',serif;font-weight:400;font-size:22px;line-height:1.15}
+.campos em{display:block;margin-top:2px;font-style:normal;font-size:11.5px;color:var(--t65)}
+.campos [data-tarde] b,.campos [data-tarde] em{color:var(--ambar)}
+.perfo{position:relative;height:30px;margin:6px 0}
+.perfo::before{content:"";position:absolute;left:24px;right:24px;top:50%;border-top:2px dashed var(--sand)}
+.perfo i{position:absolute;top:50%;width:26px;height:26px;margin-top:-13px;border-radius:50%;background:var(--hueso)}
+.perfo i:first-child{left:-13px}.perfo i:last-child{right:-13px}
+.pie-p{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 24px 14px}
+.fotos{display:flex}.fotos i{width:36px;height:36px;border-radius:10px;background:var(--col);box-shadow:0 0 0 2px var(--papel)}.fotos i+i{margin-left:-10px}
+.fotos em{margin-left:8px;align-self:center;font-style:normal;font-size:12.5px;color:var(--t65)}
+.envia{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--t65)}
+.envia i{width:22px;height:22px;border-radius:50%;background:var(--hueso);color:var(--taupe);display:inline-grid;place-items:center;font-size:10.5px;font-weight:700;font-style:normal}
+.pase .btn{display:flex;width:calc(100% - 48px);margin:4px 24px 24px;height:52px;font-size:15px}
+.estampa{position:absolute;left:112px;top:262px;transform:rotate(-9deg);border:3px double var(--c);color:var(--c);border-radius:12px;padding:7px 16px 6px;font-weight:800;letter-spacing:.18em;font-size:21px;text-align:center;opacity:.9;pointer-events:none;
+  background:color-mix(in srgb,var(--papel) 55%,transparent);animation:sella .36s .5s cubic-bezier(.2,.8,.25,1) both}
+.estampa small{display:block;margin-top:1px;font-size:10px;letter-spacing:.16em;font-weight:700}
+@keyframes sella{from{transform:rotate(-17deg) scale(1.9);opacity:0}to{transform:rotate(-9deg) scale(1);opacity:.9}}
+
+/* ============ 1 · EL MATERIAL DEL PASE ============ */
+/* El hueco de la perforación se recorta DE VERDAD en el vidrio (una máscara), en vez de pintarse del color del fondo: así deja ver el
+   lienzo desenfocado, sea cual sea el fondo detrás. --perfo-y lo mide el script. */
+:is([data-pm="claro"],[data-pm="tono"]) .pase{-webkit-mask:radial-gradient(circle 13px at 0 var(--perfo-y,330px),transparent 97%,#000 100%),radial-gradient(circle 13px at 100% var(--perfo-y,330px),transparent 97%,#000 100%);
+  -webkit-mask-composite:source-in;mask:radial-gradient(circle 13px at 0 var(--perfo-y,330px),transparent 97%,#000 100%) intersect,radial-gradient(circle 13px at 100% var(--perfo-y,330px),transparent 97%,#000 100%)}
+:is([data-pm="claro"],[data-pm="tono"]) .perfo i{display:none}
+:is([data-pm="claro"],[data-pm="tono"]) .perfo::before{border-top-color:color-mix(in srgb,var(--tinta) 16%,transparent)}
+/* A · Vidrio claro: el pase es la placa de vidrio (más firme que una tarjeta: es lo que se toca), con su luz arriba; la banda, vidrio teñido
+   del color de lo que te toca; el sello, el ícono y la flecha, igual. Los mini pases, igual. */
+:is([data-pm="claro"],[data-pm="tono"]) :is(.pase,.mini){border:1px solid color-mix(in srgb,var(--vidrio) 65%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 84%,transparent),color-mix(in srgb,var(--vidrio) 66%,transparent));-webkit-backdrop-filter:blur(26px) saturate(1.6);backdrop-filter:blur(26px) saturate(1.6)}
+:is([data-pm="claro"],[data-pm="tono"]) .pase{box-shadow:inset 0 1px 0 var(--vidrio),0 34px 70px -32px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-tema="oscuro"]:is([data-pm="claro"],[data-pm="tono"]) :is(.pase,.mini){background:color-mix(in srgb,var(--vidrio) 86%,transparent);border-color:color-mix(in srgb,var(--tinta) 12%,transparent)}
+:is([data-pm="claro"],[data-pm="tono"]) :is(.banda,.mini-banda){background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 60%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--c) 20%,transparent)}
+[data-tema="oscuro"]:is([data-pm="claro"],[data-pm="tono"]) :is(.banda,.mini-banda){background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 14%,transparent))}
+:is([data-pm="claro"],[data-pm="tono"]) .sello{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1.5px var(--ln)}
+[data-tema="oscuro"]:is([data-pm="claro"],[data-pm="tono"]) .sello{background:color-mix(in srgb,var(--tinta) 10%,transparent)}
+:is([data-pm="claro"],[data-pm="tono"]) :is(.camion,.linea .fin){background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 98%,transparent),color-mix(in srgb,var(--vidrio) 78%,transparent))}
+[data-tema="oscuro"]:is([data-pm="claro"],[data-pm="tono"]) :is(.camion,.linea .fin){background:var(--vidrio)}
+:is([data-pm="claro"],[data-pm="tono"]) .fotos i{box-shadow:inset 0 1px 1px color-mix(in srgb,var(--crema-fija) 50%,transparent),0 0 0 2px color-mix(in srgb,var(--vidrio) 80%,transparent)}
+:is([data-pm="claro"],[data-pm="tono"]) .envia i{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:inset 0 0 0 1px var(--t12)}
+:is([data-pm="claro"],[data-pm="tono"]) .estampa{background:color-mix(in srgb,var(--vidrio) 45%,transparent);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+/* B · Lente del tono: todo el pase se tiñe apenas del color de lo que te toca (como el aviso y la insignia elegidos), no solo la banda:
+   en la pila, cada pase se reconoce por su color entero. */
+[data-pm="tono"] :is(.pase,.mini){border-color:color-mix(in srgb,var(--c) 30%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 6%,color-mix(in srgb,var(--vidrio) 82%,transparent)),color-mix(in srgb,var(--c) 12%,color-mix(in srgb,var(--vidrio) 62%,transparent)))}
+[data-tema="oscuro"][data-pm="tono"] :is(.pase,.mini){background:linear-gradient(180deg,color-mix(in srgb,var(--c) 12%,color-mix(in srgb,var(--vidrio) 88%,transparent)),color-mix(in srgb,var(--c) 18%,color-mix(in srgb,var(--vidrio) 82%,transparent)))}
+
+/* ============ 2 · EL ESCENARIO ============ */
+/* A · Al aire: sin caja de hueso: el pase grande flota sobre el lienzo, como el mapa del Observatorio; la pila y el pase quedan en el
+   mismo plano. */
+[data-pe="aire"] .escenario{background:none}
+/* B · Pozo: el escenario es un pozo hundido donde descansa el pase (como el lugar de una tarjeta en la billetera del teléfono). */
+[data-pe="pozo"] .escenario{background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 3px 10px color-mix(in srgb,var(--sombra) 14%,transparent);border:1px solid color-mix(in srgb,var(--vidrio) 50%,transparent)}
+[data-tema="oscuro"][data-pe="pozo"] .escenario{background:color-mix(in srgb,var(--sombra) 30%,transparent);box-shadow:inset 0 3px 12px color-mix(in srgb,var(--sombra) 50%,transparent);border-color:color-mix(in srgb,var(--tinta) 8%,transparent)}
+/* «Hoy te toca» y su anillo: placa de vidrio en las caras (el anillo sigue siendo el de los pases) */
+:is([data-pe="aire"],[data-pe="pozo"]) .dia{border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"]:is([data-pe="aire"],[data-pe="pozo"]) .dia{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+:is([data-pe="aire"],[data-pe="pozo"]) .anillo-d .f{stroke:color-mix(in srgb,var(--tinta) 8%,transparent)}
+
+@container disp (max-width:520px){.ruta .cod{font-size:46px}.ruta .cod.largo{font-size:34px}.campos{gap:8px;padding:16px 18px 6px}.campos b{font-size:18px}.ruta,.pie-p{padding-left:18px;padding-right:18px}.pase .btn{width:calc(100% - 36px);margin:4px 18px 20px}.estampa{left:60px}}
+@media (prefers-reduced-motion:reduce){.pase,.estampa,.linea .hecha,.camion,.anillo-d .v{animation:none}.mini,.pest .gota-p{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Inventario ▸ Traslados, con vidrio: la billetera de pases, mismo movimiento</span>
+  <span class="tag">El pase</span><div class="seg-m" data-ctl="pm"><button data-v="ahora">Como ahora</button><button data-v="claro">A · Vidrio claro</button><button data-v="tono">B · Lente del tono ✓</button></div>
+  <span class="tag">El escenario</span><div class="seg-m" data-ctl="pe"><button data-v="ahora">Como ahora</button><button data-v="aire">A · Al aire ✓</button><button data-v="pozo">B · Pozo</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>La billetera de pases</b> (ADR-0355): «hoy te toca» con su anillo, el buscador, Llegan · Envías · Terminados y la pila de pases (de cada uno se ve la franja; el elegido, entero). A la derecha, el pase grande: la banda del color de lo que te toca, de qué sede a cuál en grande con el camión en la línea, tres datos, la perforación, las prendas, quién envía y UN botón; al terminar, le cae un sello. En el celular se ve una cosa a la vez.</li>
+      <li><b>El pase</b> (grande y mini) es <b>papel macizo</b>; los huecos de la perforación están <b>pintados del color del fondo</b> (hueso o crema), así que solo funcionan sobre ese color.</li>
+      <li><b>El escenario</b> es una caja de <b>hueso</b> de 640 px de alto.</li>
+      <li>Lo que ya elegiste se aplica: cabecera A, buscador A · Pozo, pestañas A · La gota de Mi perfil, paginación A, botones gota. El movimiento propio de los pases (aprobado aparte en ADR-0355) <b>no cambia</b>: aquí corren el camión, la línea, el anillo, el pase que entra y el sello que cae (en «Terminados»).</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>El pase</b></td><td>A · Vidrio claro</td><td>El pase es la placa de vidrio, con su luz; la banda, vidrio teñido de lo que te toca. Los huecos de la perforación se recortan de verdad y dejan ver el fondo, sea cual sea.</td><td>Casi nada; el pase se sigue leyendo como un pase por su banda, su perforación y su sello.</td></tr>
+      <tr><td>B · Lente del tono <span class="ev">Elegida</span></td><td>Todo el pase se tiñe apenas del color de lo que te toca: en la pila se reconoce cada caja por su color entero.</td><td>Cinco colores de pase en la misma pila; el tinte compite con la banda, que era la que decía el estado.</td></tr>
+      <tr><td rowspan="2"><b>El escenario</b></td><td>A · Al aire <span class="ev">Elegida</span></td><td>Sin caja: el pase grande flota sobre el lienzo, en el mismo plano que la pila. Más liviano.</td><td>Sin el marco de hueso, el pase grande ya no tiene un «lugar» propio: se sostiene solo por su sombra.</td></tr>
+      <tr><td>B · Pozo</td><td>El pase descansa en un pozo hundido, como el lugar de una tarjeta en la billetera del teléfono.</td><td>Un pozo de 640 px es mucho «hundido» en una pantalla donde hundido dice «espera tu dato».</td></tr>
+    </table>
+    <h3>Lo que decidió Felipe (2026-11-02): B y A</h3>
+    <p><b>El pase B · Lente del tono y el escenario A · Al aire.</b> Cada pase es de vidrio teñido apenas del color de lo que te toca (en la pila se reconoce por su color entero), con la banda teñida y los huecos de la perforación recortados de verdad; el pase grande flota sobre el lienzo, sin la caja de hueso.</p>
+    <h3>Lo que no cambia</h3>
+    <p>Todo el movimiento de los pases (ADR-0355): el giro para contar, las letras que giran como en un aeropuerto, el camión que corre hasta su punto, el anillo que se llena y el sello que cae; los colores de lo que te toca; un solo botón negro por pase; la pila con su franja; en el celular, una cosa a la vez.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const G = { llega: 'M3 13h11V6H3z M14 9h4l3 3v1h-7 M7 17a2 2 0 1 0 0-4a2 2 0 1 0 0 4z M17 17a2 2 0 1 0 0-4a2 2 0 1 0 0 4z', atraso: 'M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20z M12 6v6l4 2',
+    contando: 'M11 3a8 8 0 1 0 0 16a8 8 0 1 0 0-16z M21 21l-4.3-4.3', sale: 'M12 3v12M7 8l5-5 5 5M5 21h14', cerrado: 'M20 6 9 17l-5-5',
+    camion: 'M3 13h11V6H3z M14 9h4l3 3v1h-7 M7 17a2 2 0 1 0 0-4a2 2 0 1 0 0 4z M17 17a2 2 0 1 0 0-4a2 2 0 1 0 0 4z', lupa: 'M11 3a8 8 0 1 0 0 16a8 8 0 1 0 0-16z M21 21l-4.3-4.3',
+    flecha: 'M5 12h14M13 6l6 6-6 6', izq: 'M15 6l-6 6 6 6', der: 'M9 6l6 6-6 6', volver: 'M19 12H5M11 6l-6 6 6 6' };
+  const s = (d) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  // [id, tono, nombre de la banda, número, origen, sede origen, destino, sede destino, progreso, tarde, campos, prendas, envía, botón, pestaña, sello]
+  const PASES = [
+    ['T-0418', 'llega', 'Llega hoy', 'T-0418', 'LIM', 'Lima', 'TRU', 'Trujillo · tú', .72, 0, [['Salió', 'Ayer', '18:40'], ['Llega', 'Hoy', 'cerca de las 16:00'], ['Prendas', '24', 'en 3 cajas']], [0, 3, 6, 9], 'Rosa', 'Recibir la caja', 0],
+    ['T-0415', 'atraso', 'Se atrasó', 'T-0415', 'AQP', 'Arequipa', 'TRU', 'Trujillo · tú', .92, 1, [['Salió', 'Lun 27', '09:15'], ['Llegaba', 'Ayer', '1 día tarde', 1], ['Prendas', '12', 'en 1 caja']], [2, 5], 'Mateo', 'Ya llegó: recibir', 0],
+    ['T-0412', 'contando', 'Contando', 'T-0412', 'TALLER', 'Taller', 'TRU', 'Trujillo · tú', 1, 0, [['Llegó', 'Hoy', '10:05'], ['Contadas', '18 de 30', 'falta 1 caja'], ['Prendas', '30', 'en 2 cajas']], [7, 10, 13], 'Carmen', 'Seguir contando', 0],
+    ['T-0419', 'sale', 'Por enviar', 'T-0419', 'TRU', 'Trujillo · tú', 'LIM', 'Lima', 0, 0, [['Pidió', 'Lima', 'hoy 09:40'], ['Sale', 'Hoy', 'con el bus de 21:00'], ['Prendas', '8', 'en 1 caja']], [4, 11], 'Lucía', 'Enviar a LIM', 1],
+    ['T-0409', 'cerrado', 'Recibida', 'T-0409', 'LIM', 'Lima', 'TRU', 'Trujillo · tú', 1, 0, [['Salió', 'Sáb 25', '20:10'], ['Llegó', 'Mar 28', '11:30'], ['Prendas', '40', 'cuadró']], [1, 8, 14, 15], 'Rosa', 'Ver lo que llegó', 2, ['RECIBIDA', '28 OCT']],
+  ];
+  let pest = 0, sel = 'T-0418', abierto = false;
+  const linea = (p, tarde, mini) => `<span class="linea" style="--p:${p}"><span class="base"></span><span class="hecha"></span><span class="fin"></span>${p > 0 && p < 1 || mini ? `<span class="camion" ${tarde ? 'data-tarde' : ''}>${s(G.camion)}</span>` : ''}</span>`;
+  function mini(x) {
+    const [id, tono, nom, num, o, , d, , p, tarde, campos] = x;
+    const cifra = campos[2][1];
+    return `<button class="mini" data-tono="${tono}" data-pase="${id}" ${id === sel ? 'aria-current="page"' : ''}>
+      <span class="mini-banda"><span class="sello">${s(G[tono])}</span><b>${nom}</b><small>${num}</small></span>
+      <span class="mini-ruta"><span class="cod">${o.length > 3 ? o.slice(0, 3) : o}</span>${linea(p, tarde, 1)}<span class="cod">${d}</span><span class="cifra"><b>${cifra}</b><small>prendas</small></span></span></button>`;
+  }
+  function pase(x) {
+    const [id, tono, nom, num, o, so, d, sd, p, tarde, campos, fotos, envia, boton, , sello] = x;
+    return `<article class="pase" data-tono="${tono}" aria-label="${nom}: ${num}">
+      <header class="banda"><span class="sello">${s(G[tono])}</span><b>${nom}</b><small>${num}</small></header>
+      <div class="ruta"><div><b class="cod${o.length > 3 ? ' largo' : ''}">${o}</b><small>${so}</small></div>${linea(p, tarde)}<div class="der"><b class="cod${d.length > 3 ? ' largo' : ''}">${d}</b><small>${sd}</small></div></div>
+      <dl class="campos">${campos.map(([e, v, det, t]) => `<div ${t ? 'data-tarde' : ''}><dt><small>${e}</small></dt><dd><b>${v}</b><em>${det}</em></dd></div>`).join('')}</dl>
+      <div class="perfo" aria-hidden="true"><i></i><i></i></div>
+      <div class="pie-p"><div><span class="fotos">${fotos.slice(0, 3).map((i) => `<i data-color-dato style="--col:${PRENDAS[i][0]}"></i>`).join('')}${fotos.length > 3 ? `<em>+${fotos.length - 3} más</em>` : ''}</span><div class="envia"><i>${envia[0]}</i>Envía ${envia}</div></div></div>
+      <button class="btn ${tono === 'cerrado' ? 'sec' : 'pri'}">${boton} ${s(G.flecha)}</button>
+      ${sello ? `<div class="estampa" role="img" aria-label="Sello: ${sello[0]}">${sello[0]}<small>${sello[1]}</small></div>` : ''}</article>`;
+  }
+  function pantalla() {
+    const lista = PASES.filter((x) => x[14] === pest), elegido = PASES.find((x) => x[0] === sel) || lista[0];
+    $('#cont').innerHTML = `${encabezado({ sede: 'Trujillo', titulo: 'Traslados', frase: 'Cada caja: de dónde viene, cuándo llega y qué te toca.', acciones: [['sec', 'Pedir a otra sede'], ['sec', 'Nuevo traslado', 'mas']] })}
+      <div class="cols" ${abierto ? 'data-con-pase' : ''}>
+        <aside class="billetera" aria-label="Tus cajas">
+          <div class="dia"><span class="anillo-d" style="--fr:.4"><svg viewBox="0 0 48 48" aria-hidden="true"><circle class="f" cx="24" cy="24" r="20"/><circle class="v" cx="24" cy="24" r="20"/></svg>2/5</span>
+            <p>Hoy te tocan 5 cajas<small>Recibiste 2. Faltan 2 por recibir y 1 por enviar.</small></p></div>
+          <div class="pozo-b">${s(G.lupa)}<span>Busca una caja por número, sede o prenda</span></div>
+          <div class="pest" role="tablist" aria-label="Qué cajas ver" style="--k:${pest}"><span class="gota-p" aria-hidden="true"></span>
+            ${[['Llegan', 3, 1], ['Envías', 1, 1], ['Terminados', 14, 0]].map(([t, n, pide], i) => `<button role="tab" data-pest="${i}" aria-selected="${i === pest}">${t} <span class="n${pide ? ' pide' : ''}">${n}</span></button>`).join('')}</div>
+          <div class="pila">${lista.map(mini).join('')}</div>
+        </aside>
+        <div class="lado"><button class="volver volver-m" data-acc="cerrar-pase" aria-label="Volver a tus cajas" title="Volver a tus cajas">${s(G.volver)}</button>
+          <div class="escenario">${pase(elegido)}
+            <nav class="paginas" aria-label="Pasar de caja"><button data-paso="-1" aria-label="Caja anterior">${s(G.izq)}</button><span>${lista.indexOf(elegido) + 1} de ${lista.length}</span><button data-paso="1" aria-label="Caja siguiente">${s(G.der)}</button></nav></div></div>
+      </div>`;
+    medirPerfo();
+  }
+  function medirPerfo() { const pa = $('#cont .pase'), pf = pa && $('.perfo', pa); if (pf) pa.style.setProperty('--perfo-y', `${pf.offsetTop + pf.offsetHeight / 2}px`); }
+  document.addEventListener('click', (e) => {
+    const m = e.target.closest('[data-pase]'); if (m) { sel = m.dataset.pase; abierto = true; pantalla(); return; }
+    const t = e.target.closest('[data-pest]'); if (t) { pest = +t.dataset.pest; sel = PASES.find((x) => x[14] === pest)[0]; pantalla(); return; }
+    const pg = e.target.closest('[data-paso]'); if (pg) { const lista = PASES.filter((x) => x[14] === pest), i = lista.findIndex((x) => x[0] === sel); sel = lista[(i + +pg.dataset.paso + lista.length) % lista.length][0]; pantalla(); }
+  });
+  addEventListener('resize', medirPerfo);
+  Marco.iniciar({ estado: { pm: 'tono', pe: 'aire' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); }, alAccion: (a) => { if (a === 'cerrar-pase') { abierto = false; pantalla(); } } });
+})();
+</script>
+</body>
+</html>

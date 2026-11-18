@@ -27,7 +27,6 @@ import {
   relojNovedad,
   varaPorVentanas,
   sugerenciasDe,
-  tramoDe,
   unidadesParaVara,
   vendidasDe,
   type Curva,
@@ -176,51 +175,6 @@ describe("elegirVentana", () => {
   it("no depende del orden en que llegan las ventanas", () => {
     const v = elegirVentana([vara(120, todasVendidas(60)), vara(60, todasVendidas(25)), vara(30, todasVendidas(5)), vara(90, todasVendidas(40))]);
     expect(v.ventanaDias).toBe(60);
-  });
-});
-
-describe("tramoDe (por los cortes de su categoría en su sede)", () => {
-  const c = { p50: 5 * D, p75: 10 * D, p90: 20 * D };
-  it.each<[number, Tramo]>([
-    [0, "nueva"],
-    [4.9, "nueva"],
-    [5, "vigente"],
-    [9.9, "vigente"],
-    [10, "envejecida"],
-    [20, "critica"],
-    [90, "critica"],
-  ])("%s días → %s", (dias, tramo) => {
-    expect(tramoDe(dias * D, c, 30 * D)).toEqual({ tramo, alMenos: false });
-  });
-
-  it("un corte que la curva no alcanza queda después de su observación más larga: antes de eso el tramo es exacto; después, «al menos» el tramo que ya pasó (revisión 4)", () => {
-    const sinP90 = { p50: 5 * D, p75: 10 * D, p90: null };
-    expect(tramoDe(14 * D, sinP90, 15 * D)).toEqual({ tramo: "envejecida", alMenos: false });
-    // Pasó el P75 y todo lo que la curva vio: por lo menos Envejecida (antes: null, «aún sin referencia»).
-    expect(tramoDe(16 * D, sinP90, 15 * D)).toEqual({ tramo: "envejecida", alMenos: true });
-    expect(tramoDe(70 * D, { p50: 10 * D, p75: 30 * D, p90: null }, 45 * D)).toEqual({ tramo: "envejecida", alMenos: true });
-    expect(tramoDe(70 * D, { p50: 10 * D, p75: null, p90: null }, 45 * D)).toEqual({ tramo: "vigente", alMenos: true });
-  });
-
-  it("en el borde exacto (segundos = tMax) el tramo sigue siendo exacto: la prenda más vieja es la observación más larga (revisión 4, mutante w20)", () => {
-    expect(tramoDe(10 * D, { p50: 2 * D, p75: null, p90: null }, 10 * D)).toEqual({ tramo: "vigente", alMenos: false });
-  });
-
-  it("con tolerancia: un error de coma flotante de 1e-11 no cambia el tramo, ni en tMax ni en un corte (revisión 4)", () => {
-    // El caso real: reloj 345223.80700000003 contra tMax 345223.807.
-    expect(tramoDe(345223.80700000003, { p50: 3 * D, p75: null, p90: null }, 345223.807)).toEqual({ tramo: "vigente", alMenos: false });
-    // El espejo: un reloj que debía ser igual al P50 y quedó 1e-11 abajo ya es Vigente.
-    expect(tramoDe(5 * D - 1e-11, c, 30 * D)).toEqual({ tramo: "vigente", alMenos: false });
-    // Un segundo sí cuenta.
-    expect(tramoDe(5 * D - 1, c, 30 * D)).toEqual({ tramo: "nueva", alMenos: false });
-    expect(tramoDe(10 * D + 1, { p50: 2 * D, p75: null, p90: null }, 10 * D)).toEqual({ tramo: "vigente", alMenos: true });
-  });
-
-  it("sin P50 (su categoría no vendió ni la mitad) nadie tiene tramo: «aún sin referencia», nunca «Nueva» (ADR-0208, decisión 6)", () => {
-    for (const dias of [0, 3, 14, 59]) {
-      expect(tramoDe(dias * D, { p50: null, p75: null, p90: null }, 60 * D)).toBeNull();
-      expect(tramoDe(dias * D, { p50: null, p75: 10 * D, p90: 20 * D }, 60 * D)).toBeNull();
-    }
   });
 });
 

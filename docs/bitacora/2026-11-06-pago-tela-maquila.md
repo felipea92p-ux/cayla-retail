@@ -1,0 +1,5 @@
+# 2026-11-06 · el pago de la tela y de la maquila del Taller
+
+- **Hecho:** dos categorías de gasto nuevas (`20261106234000`): «Telas e insumos del Taller» → 241 (materias primas) y «Maquila del Taller» → 231 (productos en proceso), con su ícono (rollo y prenda). La regla `gasto` del diario ya lleva cada gasto a la cuenta de su categoría: pagar tela o maquila llena el inventario del Taller, y la ropa pasa a costo recién al venderse. Caso N6 en `scripts/pruebas/balance.mjs`.
+- **Por qué:** desde `20261106171000` el diario saca de la 241 la tela que se corta y de la 231 la prenda terminada, pero nada entraba a esas cuentas por el lado del dinero; una orden nueva las dejaba bajas en el Balance. Como gasto del mes, la ropa se habría restado dos veces (al pagarla y al venderla).
+- **Cómo se usa:** en Gastos, la compra de tela, botones o cierres para producir va en «Telas e insumos del Taller»; lo que se le paga a quien cose, corta o borda, en «Maquila del Taller». El hilo general, las agujas y el aceite siguen en «Consumibles del Taller» (gasto del mes).

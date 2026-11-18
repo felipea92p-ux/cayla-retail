@@ -3,7 +3,7 @@
 //
 // Hoy son las del Club CAYLA (ADR-0288 act. g), que abre un cliente en su celular, desde internet, sin cuenta:
 //   · `/club/<uuid de la tienda>`: la dirección de los carteles ya impresos. Desde el 2026-10-16 solo lleva a la tienda online
-//     (tienda.cayla.pe), donde se crea la cuenta y se entra al Club (20261016154000); el registro que vivía aquí, con sus acciones
+//     (cayla.pe), donde se crea la cuenta y se entra al Club (20261016154000); el registro que vivía aquí, con sus acciones
 //     de servidor y su `/api/club/nombre`, se retiró;
 //   · `/club/privacidad` y `/club/terminos`: los textos que aceptó quien se unió por el cartel.
 // Y las dos del aviso de «sin conexión con la base» (ADR-0450): `/sin-base`, la pantalla donde se espera cuando la base no

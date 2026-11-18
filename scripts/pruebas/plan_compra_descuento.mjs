@@ -43,11 +43,14 @@ function correr(sql) {
 const como = (auth) => `set local request.jwt.claim.sub = '${auth}';\nset local request.jwt.claims = '{"sub":"${auth}","role":"authenticated"}';\n`;
 
 // La base de local ya trae B1–B5 y lo demás del plan; la migración nueva se carga dentro de cada caso (idempotente: corre igual con la base
-// al día o sin la nueva).
+// al día o sin la nueva). Salvo si la base es MÁS NUEVA que esta migración: con la firma de 13 parámetros (ADR-0520, el historial de las líneas)
+// la guarda de 20261024215000 no encuentra la que busca, y volver a cargarla dejaría dos sobrecargas; ahí se prueba lo que la base ya tiene.
+const BASE_MAS_NUEVA =
+  correr(`select to_regprocedure('retail.guardar_plan_compra_linea(uuid,uuid,integer,integer,integer,numeric,numeric,integer,jsonb,text,integer,numeric,jsonb)') is not null;`).salida === "t";
 const PRELUDIO = `
 begin;
 set local search_path = retail, public, extensions;
-${sinControl(MIGRACION)}
+${BASE_MAS_NUEVA ? "" : sinControl(MIGRACION)}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
 declare v_estado text; v_msg text;
@@ -200,7 +203,7 @@ caso(
    select split_part(pg_temp.intento(format('select retail.fn_plan_compra_descuento(%L)', current_setting('pc.plan'))), '|', 1) || ',' ||
           split_part(pg_temp.guarda('10'), '|', 1) || ',' ||
           has_function_privilege('anon', 'retail.fn_plan_compra_descuento(uuid)', 'execute') || ',' ||
-          has_function_privilege('anon', 'retail.guardar_plan_compra_linea(uuid,uuid,integer,integer,integer,numeric,numeric,integer,jsonb,text,integer,numeric)', 'execute');`,
+          (select bool_or(has_function_privilege('anon', p.oid, 'execute')) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'guardar_plan_compra_linea');`,
   "42501,42501,false,false",
 );
 caso(

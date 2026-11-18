@@ -1,7 +1,9 @@
+import "@/app/estilos/campana-efectos.css";
 import type { CSSProperties } from "react";
 import { ArrowRight } from "lucide-react";
 import { colorDelSello, particulasDeEfecto, textoSobre, type ColoresDeCampana, type CuentaCampana, type DuracionCampana, type EfectoCampana, type EntradaCampana, type FranjaCampana, type IntensidadCampana } from "@cayla-retail/shared";
 import { IconoPercha } from "@/components/ui/IconoPercha";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { fechaCortaDicha, pctDicho } from "@/lib/campanas-web-reglas";
 import { DONDE_TODO, type Donde } from "@/lib/campanas-web-editor";
 
@@ -72,12 +74,15 @@ export function PreviewCampana({
   const frase = `${nombre} · ${pctDicho(pct)}${hasta ? ` hasta el ${fechaCortaDicha(hasta)}` : ""}`;
   const franjaVestida = !!colores && donde.franja;
 
+  // `@container`: la portada de computador mide su letra y su relleno contra el ancho de la vista previa (`cqi`), no de la ventana.
   return (
-    <div className={`papel-fijo overflow-hidden rounded-lg border border-sand bg-papel text-tinta ${quieto ? "cmp-quieto" : ""}`} style={vars} data-color-dato aria-label="Vista previa de la tienda">
+    <div className={`@container papel-fijo overflow-hidden rounded-lg border border-sand bg-papel text-tinta ${quieto ? "cmp-quieto" : ""}`} style={vars} data-color-dato aria-label="Vista previa de la tienda">
       <Franja frase={frase} modo={franjaVestida ? movimiento.franja : "rota"} vestida={franjaVestida} />
       <div className="flex items-center justify-between border-b border-sand px-4 py-3">
         <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">{celular ? "☰" : "Lo nuevo · Ropa · Looks"}</span>
-        <span className="font-serif text-lg tracking-[0.3em]">CAYLA</span>
+        {/* El logo oficial, como la cabecera de la tienda (ADR-0446). */}
+        <LogoCayla className="h-6" />
+        <span className="sr-only">CAYLA</span>
         <span className="w-6" />
       </div>
       {pieza === "portada" && imagenes && !!colores && donde.portada && <PortadaConImagen colores={colores} imagenes={imagenes} celular={celular} movimiento={movimiento} />}
@@ -142,14 +147,16 @@ function Portada({
   const acento = vestida && colores ? { color: colores.acento } : undefined;
   return (
     <div
-      className={`relative isolate overflow-hidden ${celular ? "px-5 py-6" : "grid grid-cols-[1.1fr_1fr] items-center gap-4 px-8 py-8"} ${vestida ? "" : "bg-hueso"}`}
+      // En computador, el relleno y la letra del titular se encogen con la vista previa (`cqi`) y nunca pasan de lo de siempre: angosta
+      // (el celular, o el editor a 768 px), la columna del titular quedaba en ~140 px y una palabra larga en 36 px se cortaba.
+      className={`relative isolate overflow-hidden ${celular ? "px-5 py-6" : "grid grid-cols-[1.1fr_1fr] items-center gap-4 px-[min(5cqi,2rem)] py-[min(5cqi,2rem)]"} ${vestida ? "" : "bg-hueso"}`}
       style={vestida ? { backgroundColor: "var(--cmp-fondo)", color: "var(--cmp-texto)" } : undefined}
       data-entrada={vestida ? movimiento.entrada : undefined}
     >
       {vestida && <EfectoDePreview efecto={movimiento.efecto} intensidad={movimiento.intensidad} duracion={movimiento.duracion} />}
       <div className="relative z-[3] min-w-0">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-90">{`Campaña${hasta ? ` · hasta el ${fechaCortaDicha(hasta)}` : ""}`}</p>
-        <h3 className={`mt-3 font-sans font-medium uppercase leading-[1.02] ${celular ? "text-2xl" : "text-4xl"}`}>
+        <h3 className={`mt-3 font-sans font-medium uppercase leading-[1.02] ${celular ? "text-2xl" : "text-[length:clamp(1.25rem,6cqi,2.25rem)]"}`}>
           {cabeza}
           {cola && (
             <em className="block font-serif text-[1.18em] font-normal normal-case italic" style={acento}>
@@ -159,7 +166,7 @@ function Portada({
         </h3>
         {textos.bajada && <p className="mt-3 max-w-[34ch] text-[13px] opacity-90">{textos.bajada}</p>}
         <p className="mt-3 flex items-baseline gap-3">
-          <b className="font-serif text-3xl font-normal italic" style={acento}>
+          <b className={`font-serif font-normal italic ${celular ? "text-3xl" : "text-[length:clamp(1.25rem,5cqi,1.875rem)] leading-[1.2]"}`} style={acento}>
             {pctDicho(pct)}
           </b>
           <span className="text-[11px] opacity-85">en las prendas de la campaña</span>

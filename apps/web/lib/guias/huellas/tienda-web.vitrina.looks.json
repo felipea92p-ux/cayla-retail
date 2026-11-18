@@ -2,18 +2,26 @@
   "guia": "tienda-web.vitrina.looks",
   "ruta": "/tienda-web/vitrina/looks",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 17,
+  "total": 23,
   "controles": {
+    "components/vitrina/ElegirPrendasLook.tsx": [
+      "button «{`Todas · ${modelos.length}»",
+      "button «{`${c.nombre}»",
+      "button «Cualquier tienda»",
+      "button «{`${nombreCortoDeTienda(t.nombre)}»",
+      "button «{elegido ? `Quitar ${m.nombre}»"
+    ],
     "components/vitrina/LookHoja.tsx": [
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del look\")}»",
       "textarea «Frase del look»",
       "Desplegable «{p.color}»",
       "button «{`Quitar ${nombrePrenda}»",
-      "ComboBuscable «→agregar»",
       "CampoSelect «Lugar en «Arma tu look»»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»"
+      "Boton «{guia.frase ?? undefined}»",
+      "button «{i}»",
+      "button «Otras ideas»"
     ],
     "components/vitrina/LookMostrarHoja.tsx": [
       "ComboResponsable «{responsable}»",

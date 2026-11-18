@@ -14,8 +14,16 @@
    degradado de varios tonos: «esto es de varios colores», no «no sé cuál».
    ==================================================================== */
 
+import { fondoDeMuestra } from "../../lib/colores-familias";
+import { fondoDeMezclaEnFranja } from "../../lib/color-combinado";
+
 /** Para los colores sin hex: varios tonos del propio catálogo, en rueda. */
 export const VARIOS_COLORES = "conic-gradient(from 20deg, #C0272D, #F2C14E, #3E7A4E, #1B2A4A, #5B3A78, #C0272D)";
+
+/** El fondo de la muestra de un color: el de `fondoDeMuestra` y, sin hex, la rueda de «varios colores». Toda muestra de color se pinta con esto. */
+export function fondoDeColor(hex: string | null, familia?: string | null, tipo?: string | null): string {
+  return fondoDeMuestra(hex, familia, tipo) ?? VARIOS_COLORES;
+}
 
 /** La cápsula sola, sin el nombre: para cuando el nombre ya está escrito al lado (Etiquetas de precio). Decorativa: no se
  *  enfoca ni la lee el lector de pantalla. `fondo` es un hex o lo que da `fondoDeMuestra` (metálico, jaspeado). */
@@ -33,7 +41,8 @@ export function CapsulaColor({ fondo, compacta = false, className = "" }: { fond
   );
 }
 
-export function MuestraColor({ nombre, hex, compacta = false }: { nombre: string | null; hex: string | null; compacta?: boolean }) {
+/** `tonos`: si el color es una mezcla («Hueso con azul», ADR-0643), la cápsula se parte, con la base a la izquierda. */
+export function MuestraColor({ nombre, hex, compacta = false, tonos }: { nombre: string | null; hex: string | null; compacta?: boolean; tonos?: readonly string[] | null }) {
   if (!nombre) return <span className="text-tinta/45">—</span>;
 
   return (
@@ -45,7 +54,7 @@ export function MuestraColor({ nombre, hex, compacta = false }: { nombre: string
       aria-label={`Color ${nombre}`}
     >
       <CapsulaColor
-        fondo={hex}
+        fondo={tonos && tonos.length >= 2 ? fondoDeMezclaEnFranja(tonos) : hex}
         compacta={compacta}
         className="transition-transform duration-300 ease-cayla group-hover:scale-110 group-focus-visible:scale-110 group-focus-visible:ring-2 group-focus-visible:ring-rojo/50 motion-reduce:transition-none"
       />

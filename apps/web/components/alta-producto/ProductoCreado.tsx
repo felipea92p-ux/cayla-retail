@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { fraseStockCreado, type SubidaSinConexion } from "@/lib/alta-producto";
 import { etiquetasDelAlta } from "@/lib/etiqueta-precio-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { SelloStockInicial } from "./SelloStockInicial";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { hrefOrdenDesdeAlta, textoAbrirOrden, tipoDeParametro, vieneDeProduccion } from "@/lib/modelo-nuevo-orden-reglas";
 import { BotonVer } from "@/components/ui/BotonDescargar";
@@ -46,7 +47,7 @@ export type ResumenCreado = {
   /** Lo que el producto todavía no tiene («Sin marca ni proveedor», «Sin marca», «Sin proveedor»), o null si está completo (ADR-0283). */
   sinMarcaProveedor?: string | null;
   /** La carga inicial que entró con el producto (ADR-0212), o null si se creó sin stock. Sin conexión, entra al subir. */
-  stock: { unidades: number; donde: string } | null;
+  stock: { unidades: number; donde: string; llegadaDe?: string | null } | null;
   /** Sin conexión: cuántas fotos quedaron guardadas en este navegador para subir después del producto. */
   fotosEnEspera?: number;
   /** Sin conexión: el token de la operación en la cola, para seguirla hasta que suba. */
@@ -97,7 +98,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
   }, [creado.id]);
 
   return (
-    <div className="space-y-5">
+    <div className="@container space-y-5">
       <div role="status" className="card-cayla flex items-start gap-4 p-5">
         {sinConexion ? (
           <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-ambar text-ambar-profundo">
@@ -169,6 +170,8 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
             </p>
           )}
         </div>
+        {/* El stock inicial queda SELLADO: desde ahora se ajusta solo en Existencias (ADR-0494). Solo si ya entró (con conexión). */}
+        {creado.stock && creado.stock.unidades > 0 && !sinConexion && <SelloStockInicial unidades={creado.stock.unidades} llegada={Boolean(creado.stock.llegadaDe)} />}
       </div>
 
       {abrirOrden && subida !== "descartada" && (
@@ -192,7 +195,9 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
         </Aviso>
       )}
 
-      <div className={`grid gap-4 ${etiquetas ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
+      {/* Las columnas las decide el ancho del bloque (576 px para dos, 672 para tres), no el de la ventana: a 768, con el lateral, tres
+          tarjetas de 135 px no dejaban caber «Crear otro parecido». */}
+      <div className={`grid gap-4 ${etiquetas ? "@xl:grid-cols-2" : "@2xl:grid-cols-3"}`}>
         {/* La salida principal: las fotos (lo que falte de ellas). Un alta descartada no tiene ficha ni fotos que agregar. */}
         {subida !== "descartada" && (
           <div className="card-cayla flex flex-col justify-between gap-4 border-tinta/40 p-5">
@@ -222,7 +227,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
               {faltanColores.length > 0 && (
                 <ul className="flex flex-wrap gap-1.5 pt-1">
                   {faltanColores.map((c) => (
-                    <li key={c.codigo} className="flex items-center gap-1.5 rounded-md border border-tinta/15 px-2 py-1 text-xs text-tinta/80">
+                    <li key={c.codigo} className="flex items-center gap-1.5 rounded-md border border-tinta/15 px-2 py-1 text-sm text-tinta/80">
                       {c.hex && <span aria-hidden className="h-2.5 w-2.5 rounded-full border border-tinta/20" style={{ background: c.hex }} />}
                       {c.nombre}
                     </li>
@@ -235,7 +240,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
                 {completas ? "Ver las fotos" : "Agregar fotos"}
               </Link>
             ) : (
-              <p className="text-xs text-taupe">La ficha existe cuando el producto sube: ahí se agregan o cambian fotos.</p>
+              <p className="text-sm text-taupe">La ficha existe cuando el producto sube: ahí se agregan o cambian fotos.</p>
             )}
           </div>
         )}

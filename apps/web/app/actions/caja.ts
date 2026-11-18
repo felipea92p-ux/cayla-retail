@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { getCierresDelMes, getMovimientosCaja, type CierreCaja } from "@/lib/caja";
 import { cobrosPorMedio, type CobroMedio } from "@/lib/historial-cierres-reglas";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { getVendidoPorEmpresaDeCajas } from "@/lib/vendido-por-empresa";
+import { repartoDeEmpresas, type RepartoEmpresas } from "@/lib/vendido-por-empresa-reglas";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -25,7 +28,12 @@ export type EventoCaja =
   | { tipo: "cambio"; id: string; hora: string; diferencia: number; metodo: string | null };
 
 /** Lo que trae el detalle de un cierre: el flujo de la caja y lo cobrado por medio de pago (sin ventas anuladas). */
-export type DetalleCierre = { eventos: EventoCaja[]; cobros: { total: number; anticipo: number; medios: CobroMedio[] } };
+export type DetalleCierre = {
+  eventos: EventoCaja[];
+  cobros: { total: number; anticipo: number; medios: CobroMedio[] };
+  /** De quién fue lo vendido en ese turno (ADR-0532): solo en Lima, donde CAYLA y CLAURE comparten la caja. `null` en las demás o sin lectura. */
+  reparto: RepartoEmpresas | null;
+};
 
 /**
  * Todo lo que pasó por una caja ya cerrada, en orden cronológico — para el botón "ver
@@ -45,11 +53,12 @@ export type DetalleCierre = { eventos: EventoCaja[]; cobros: { total: number; an
 export async function getDetalleCierre(cajaId: string): Promise<DetalleCierre> {
   const supabase = await createClient();
 
-  const [ventasRes, movimientos, devolucionesRes, cambiosRes] = await Promise.all([
+  const [ventasRes, movimientos, devolucionesRes, cambiosRes, reparto] = await Promise.all([
     supabase.from("ventas").select("id, created_at, estado, usuario_id, asesora_id").eq("caja_id", cajaId),
     getMovimientosCaja(cajaId),
     supabase.from("devoluciones").select("id, aprobado_en, reembolso_monto, reembolso_metodo").eq("caja_id", cajaId),
     supabase.from("cambios").select("id, created_at, diferencia, metodo_pago_diferencia").eq("caja_id", cajaId),
+    repartoDelTurno(cajaId),
   ]);
 
   const filasVentas = exigir(ventasRes, "las ventas de esta caja");
@@ -134,5 +143,14 @@ export async function getDetalleCierre(cajaId: string): Promise<DetalleCierre> {
   const enPie = new Set(filasVentas.filter((v) => v.estado !== "anulada").map((v) => v.id));
   const cobros = cobrosPorMedio(filasPagos.filter((p) => enPie.has(p.venta_id)).map((p) => ({ ventaId: p.venta_id, metodo: p.metodo, monto: Number(p.monto) })));
 
-  return { eventos: eventos.sort((a, b) => a.hora.localeCompare(b.hora)), cobros };
+  return { eventos: eventos.sort((a, b) => a.hora.localeCompare(b.hora)), cobros, reparto };
+}
+
+/** Lo vendido del turno por empresa (ADR-0532). Es un dato de más: si algo no se puede leer, `null` y el detalle sale como antes. */
+async function repartoDelTurno(cajaId: string): Promise<RepartoEmpresas | null> {
+  const supabase = await createClient();
+  const { data: caja } = await supabase.from("cajas").select("ubicacion_id").eq("id", cajaId).maybeSingle();
+  if (!caja) return null;
+  const [empresas, porCaja] = await Promise.all([getEmpresasAqui(caja.ubicacion_id), getVendidoPorEmpresaDeCajas([cajaId])]);
+  return repartoDeEmpresas(porCaja ? (porCaja.get(cajaId) ?? []) : null, empresas);
 }

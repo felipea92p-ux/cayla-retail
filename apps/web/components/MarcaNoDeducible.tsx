@@ -12,7 +12,7 @@ export function MarcaNoDeducible({ nd, montoDeLaFila, className = "" }: { nd: No
   return (
     <span className={`flex flex-wrap items-baseline gap-x-2 gap-y-0.5 ${className}`}>
       <Chip tono="pizarra">{t.etiqueta}</Chip>
-      <span className="text-xs text-taupe">{t.porque}</span>
+      <span className="text-sm text-taupe">{t.porque}</span>
     </span>
   );
 }

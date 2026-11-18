@@ -1,12 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Newsreader } from "next/font/google";
+import { Playfair_Display, Public_Sans } from "next/font/google";
 import { Suspense } from "react";
 import { AvisoDeLaUrl } from "@/components/cuenta/AvisoDeLaUrl";
 import { ProveedorInstalar } from "@/components/instalar/ProveedorInstalar";
 import { Medicion } from "@/components/Medicion";
+import { Visita } from "@/components/Visita";
+import { RevelaAlBajar } from "@/components/RevelaAlBajar";
 import { VigiaDelCamino } from "@/components/EnCamino";
 import { RecordarPrendaTocada } from "@/components/PrendaTocada";
 import { SCRIPT_DEL_AVISO } from "@/lib/instalar";
+import { SCRIPT_DEL_TEMA } from "@/lib/tema";
 import "./globals.css";
 // Las páginas de la cuenta (crear, entrar, recuperar, «Mi cuenta», privacidad y términos) y el aviso «Listo: …», que también
 // sale en la portada al salir de la cuenta.
@@ -19,13 +22,13 @@ import "./estilos/cabecera.css";
 import "./estilos/instalar.css";
 // El paso de una vista a otra: el fundido, lo fijo que no se mueve y la foto que viaja a la ficha (components/Vistas.tsx).
 import "./estilos/vistas.css";
+// La identidad rosa y rojo CAYLA (ADR-0615): actúa con `<html data-diseno="nuevo">`. Va al final: pisa lo de arriba.
+import "./estilos/diseno-nuevo.css";
 
-// Las letras de la dirección «A · Muro» (Felipe 2026-10-17, docs/maquetas/tienda-rediseno-2026-10/a-muro.html; el 2026-10-19 eligió A
-// completa sobre Heebo, ADR-0446): Archivo para todo el texto y, ensanchada (eje `wdth` hasta 125), para los títulos en mayúsculas, como la
-// señalética de una galería; Newsreader en cursiva para el nombre de cada prenda, como la cédula de una obra. La palabra CAYLA no va con
-// ninguna letra: es el dibujo del logo (`components/Marca.tsx`).
-const sans = Archivo({ subsets: ["latin"], axes: ["wdth"], variable: "--font-archivo", display: "swap" });
-const nombre = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], axes: ["opsz"], variable: "--font-newsreader", display: "swap" });
+// Las letras de la tienda: Public Sans para todo el texto y Playfair Display para los títulos (ADR-0615; antes DM Serif, ADR-0612).
+// La palabra CAYLA no va con ninguna letra: es el dibujo del logo (`components/Marca.tsx`).
+const sans = Public_Sans({ subsets: ["latin"], variable: "--font-public", display: "swap" });
+const titulos = Playfair_Display({ subsets: ["latin"], weight: ["400", "500"], style: ["normal", "italic"], variable: "--font-titulos", display: "swap" });
 
 export const metadata: Metadata = {
   title: "CAYLA · Tienda online",
@@ -38,15 +41,18 @@ export const metadata: Metadata = {
 // El color de la barra del navegador en el celular: el crema del tema claro y el fondo del oscuro (los de globals.css).
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ecebe7" },
-    { media: "(prefers-color-scheme: dark)", color: "#161615" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0b0b" },
   ],
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" className={`${sans.variable} ${nombre.variable}`}>
+    // `suppressHydrationWarning`: el script del tema marca `<html>` antes de que React lo hidrate, y esa marca no viene del servidor.
+    <html lang="es" data-diseno="nuevo" className={`${sans.variable} ${titulos.variable}`} suppressHydrationWarning>
       <head>
+        {/* El tema elegido (claro, oscuro o el del aparato) se aplica antes de pintar: sin esto, quien eligió oscuro vería un destello blanco (lib/tema.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_DEL_TEMA }} />
         {/* Guarda el aviso de instalar de Chrome si llega antes de que la página se arme (ADR-0431): llega una sola vez. */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_DEL_AVISO }} />
       </head>
@@ -62,6 +68,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </Suspense>
         {/* Cuánto tarda la tienda en el aparato del cliente, en 1 de cada 2 visitas (ADR-0447). No dibuja nada. */}
         <Medicion />
+        {/* «Entró», una vez por visita, para Tienda web ▸ Tráfico (ADR-0495). No dibuja nada; lee la ruta: va en su Suspense. */}
+        <Suspense fallback={null}>
+          <Visita />
+        </Suspense>
+        {/* Lo que sube y se aclara al bajar la página, una sola vez (components/RevelaAlBajar.tsx). No dibuja nada. */}
+        <RevelaAlBajar />
       </body>
     </html>
   );

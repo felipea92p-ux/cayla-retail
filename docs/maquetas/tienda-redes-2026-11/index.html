@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Redes en la tienda CAYLA</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Maqueta de la tienda online (apps/tienda): las redes sociales de CAYLA. Los tokens son copia de apps/tienda/app/globals.css («G · Pasarela»):
+   blanco, negro y humo; el rojo solo en el logo. Arriba va la barra gris de la maqueta, que NO es parte del diseño.
+   Cada vista se dibuja dos veces con el mismo HTML: en un marco de computadora y en uno de 375 px; las reglas que cambian con el ancho son
+   consultas de contenedor (`@container tienda`), como en la tienda real. */
+:root {
+  --crema: #ffffff; --papel: #ffffff; --hueso: #f1f1ef; --sand: #dededb; --tinta: #0b0b0b; --taupe: #666664;
+  --rojo: #b3261e; --verde: #1f6b44; --marfil: #f4f1ea; --t-logo: #d13730;
+  --t-hero: #0b0b0b; --t-hero-2: #1f1f1e; --t-hero-tinta: #f4f1ea; --t-hero-filo: rgba(244, 241, 234, .22); --t-hero-suave: rgba(244, 241, 234, .66);
+  --sombra: rgba(11, 11, 11, .16);
+  /* La barra de la maqueta (no es la tienda) */
+  --m-fondo: #e9e9e6; --m-barra: #2b2b29; --m-barra-tinta: #f4f1ea; --m-barra-suave: rgba(244, 241, 234, .62); --m-nota: #fbfbf8; --m-nota-filo: #d6d6d1;
+  --bien: #1f6b44; --mal: #b3261e;
+  /* El color de cada red, solo al pasar el puntero (en el escenario negro de la banda B se usan siempre los del oscuro). */
+  --c-facebook: #0866ff; --c-pinterest: #bd081c; --c-youtube: #e00000; --c-spotify: #12823c; --c-tiktok: #0b0b0b; --c-instagram: #e1306c;
+  --c-facebook-osc: #4d8dff; --c-pinterest-osc: #ff4d63; --c-youtube-osc: #ff4d4d; --c-spotify-osc: #1ed760; --c-tiktok-osc: #f4f1ea; --c-instagram-osc: #ff5a95;
+  --sans: "Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: "DM Serif Display", Georgia, "Times New Roman", serif;
+  --ease: cubic-bezier(.2, .7, .2, 1); --ease-cortina: cubic-bezier(.76, 0, .24, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --crema: #0b0b0b; --papel: #141413; --hueso: #1b1b1a; --sand: #2e2e2c; --tinta: #f4f1ea; --taupe: #a6a39c; --rojo: #f0786f; --verde: #5fc08c;
+    --t-hero: #151514; --t-hero-2: #232321; --sombra: rgba(0, 0, 0, .6);
+    --m-fondo: #050505; --m-barra: #1d1d1b; --m-nota: #141413; --m-nota-filo: #2e2e2c; --bien: #5fc08c; --mal: #f0786f;
+    --c-facebook: #4d8dff; --c-pinterest: #ff4d63; --c-youtube: #ff4d4d; --c-spotify: #1ed760; --c-tiktok: #f4f1ea; --c-instagram: #ff5a95;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --crema: #0b0b0b; --papel: #141413; --hueso: #1b1b1a; --sand: #2e2e2c; --tinta: #f4f1ea; --taupe: #a6a39c; --rojo: #f0786f; --verde: #5fc08c;
+  --t-hero: #151514; --t-hero-2: #232321; --sombra: rgba(0, 0, 0, .6);
+  --m-fondo: #050505; --m-barra: #1d1d1b; --m-nota: #141413; --m-nota-filo: #2e2e2c; --bien: #5fc08c; --mal: #f0786f;
+  --c-facebook: #4d8dff; --c-pinterest: #ff4d63; --c-youtube: #ff4d4d; --c-spotify: #1ed760; --c-tiktok: #f4f1ea; --c-instagram: #ff5a95;
+    color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--m-fondo); color: var(--tinta); font-family: var(--sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+svg.ic { width: 18px; height: 18px; flex: none; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- La barra de la maqueta ---------- */
+.m-barra { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: var(--m-barra); color: var(--m-barra-tinta); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--m-barra); }
+.m-barra-in { max-width: 1320px; margin: 0 auto; padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.m-titulo { font-size: 12px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; margin-right: auto; }
+.m-titulo small { display: block; font-weight: 400; letter-spacing: .04em; text-transform: none; color: var(--m-barra-suave); font-size: 12px; }
+.m-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.m-tab { border: 1px solid transparent; background: none; color: var(--m-barra-suave); font: 500 13px/1 var(--sans); padding: 9px 12px; cursor: pointer; text-decoration: none; }
+.m-tab[aria-current="true"] { color: var(--m-barra-tinta); border-color: var(--m-barra-suave); }
+.m-tab:focus-visible, .m-tema:focus-visible { outline: 2px solid var(--m-barra-tinta); outline-offset: 2px; }
+.m-tema { border: 1px solid var(--m-barra-suave); background: none; color: var(--m-barra-tinta); font: 500 12px/1 var(--sans); padding: 9px 12px; cursor: pointer; }
+
+.m-pagina { max-width: 1320px; margin: 0 auto; padding-block: 28px 80px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+.m-cab h1 { margin: 0; font: 400 clamp(30px, 4vw, 44px)/1.05 var(--display); letter-spacing: -.01em; text-wrap: balance; }
+.m-cab h1 em { font-style: italic; }
+.m-cab p { margin: 10px 0 0; max-width: 68ch; color: var(--taupe); font-size: 15px; }
+.m-ceja { display: block; margin-bottom: 10px; font-size: 12px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--taupe); }
+.m-nota { background: var(--m-nota); border: 1px solid var(--m-nota-filo); padding: 18px 20px; display: grid; gap: 10px; min-width: 0; }
+.m-nota h2 { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--taupe); }
+.m-nota ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.m-nota p { margin: 0; }
+.m-fila { display: grid; gap: 28px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 820px) { .m-fila { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); } }
+.m-fila > div { min-width: 0; }
+.m-marco-tit { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); }
+.m-marco-tit span:last-child { letter-spacing: .04em; text-transform: none; font-weight: 400; }
+.m-compu { border: 1px solid var(--m-nota-filo); background: var(--crema); overflow: hidden; }
+.m-compu-barra { height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 12px; background: var(--hueso); border-bottom: 1px solid var(--sand); }
+.m-compu-barra i { width: 9px; height: 9px; border-radius: 50%; background: var(--sand); }
+.m-compu-barra b { margin-left: 10px; font-size: 11px; font-weight: 500; color: var(--taupe); }
+.m-cel { width: min(375px, 100%); justify-self: center; border: 1px solid var(--m-nota-filo); background: var(--crema); overflow: hidden; border-radius: 28px; }
+.m-cel-in { max-height: 760px; overflow-y: auto; }
+.m-cel-hueco { height: 26px; display: grid; place-items: center; background: var(--crema); }
+.m-cel-hueco i { width: 90px; height: 6px; border-radius: 6px; background: var(--sand); }
+.tienda { container: tienda / inline-size; background: var(--crema); color: var(--tinta); }
+.m-recorte { position: relative; }
+.m-recorte::before { content: "… la página sigue arriba"; display: block; padding: 10px 16px; font-size: 11px; letter-spacing: .08em; color: var(--taupe); background: repeating-linear-gradient(135deg, var(--hueso) 0 6px, var(--crema) 6px 12px); border-bottom: 1px solid var(--sand); }
+.marca-nuevo { outline: 2px dashed var(--t-logo); outline-offset: 6px; position: relative; }
+.m-sin-marcas .marca-nuevo { outline: 0; }
+.m-pista { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--taupe); }
+.m-pista i { width: 18px; height: 0; border-top: 2px dashed var(--t-logo); }
+.m-pista label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+
+/* ---------- La tienda: piezas copiadas de apps/tienda ---------- */
+.t-ancho { width: 100%; max-width: 1440px; margin-inline: auto; padding-inline: clamp(16px, 4cqi, 64px); }
+.t-logo { display: inline-flex; color: var(--tinta); }
+.t-marca-logo { display: block; height: 26px; width: auto; color: var(--t-logo); }
+.t-pie-tit { margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--taupe); }
+
+/* El pie (pie.css) */
+.t-pie { background: var(--crema); color: var(--tinta); border-top: 1px solid var(--tinta); padding-block: 34px 26px; }
+.ay-pie-ayuda { margin-bottom: 30px; padding-bottom: 6px; border-bottom: 1px solid var(--sand); }
+.ay-pie-ayuda ul, .t-pie-in ul { list-style: none; margin: 0; padding: 0; display: grid; }
+.ay-pie-ayuda li + li { border-top: 1px solid var(--sand); }
+.ay-pie-tema { display: grid; grid-template-columns: 40px minmax(0, 1fr) 16px; align-items: center; gap: 14px; min-height: 72px; padding: 12px 0; text-decoration: none; }
+.ay-pie-tema-ic { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid var(--sand); color: var(--t-logo); }
+.ay-pie-tema b { font-size: 14.5px; font-weight: 600; }
+.ay-pie-tema > svg { width: 16px; height: 16px; color: var(--taupe); }
+.t-pie-in { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 16px; }
+.t-pie-marca { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; }
+.t-pie-marca .t-marca-logo { height: 30px; }
+.t-pie-lema { margin: 0; color: var(--taupe); font-size: 13.5px; max-width: 30ch; }
+.t-pie-in li a { display: flex; align-items: center; min-height: 44px; font-size: 14px; text-decoration: none; }
+.t-pie-legal { margin: 32px 0 0; padding-top: 16px; border-top: 1px solid var(--sand); font-size: 12px; color: var(--taupe); display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between; align-items: center; }
+@container tienda (min-width: 700px) { .t-pie-in { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container tienda (min-width: 960px) {
+  .t-pie { padding-block: 44px 28px; }
+  .ay-pie-ayuda { margin-bottom: 40px; padding-bottom: 14px; }
+  .ay-pie-ayuda ul { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ay-pie-ayuda li + li { border-top: 0; border-left: 1px solid var(--sand); }
+  .ay-pie-tema { padding: 18px 28px; grid-template-columns: 44px minmax(0, 1fr) 16px; }
+  .ay-pie-ayuda li:first-child .ay-pie-tema { padding-left: 0; }
+  .ay-pie-ayuda li:last-child .ay-pie-tema { padding-right: 0; }
+  .ay-pie-tema-ic { width: 44px; height: 44px; }
+  .t-pie-in { grid-template-columns: minmax(0, 1.8fr) repeat(3, minmax(0, 1fr)); gap: 32px; }
+  .t-pie-marca { grid-column: auto; }
+  .t-pie-marca .t-marca-logo { height: 36px; }
+  .t-pie-in li a { min-height: 0; padding: 4px 0; }
+}
+
+/* ---------- LO NUEVO · la fila de redes (A y C) ----------
+   Seis casillas cuadradas de 44 px (se tocan con el dedo), con su filo de 1 px y el ícono en tinta: quietas son monocromas, como todo en la Pasarela.
+   Al pasar el puntero, el efecto de la banda B (Felipe 2026-11-13): solo el ícono se pinta con el color de su red y crece un poco
+   (Instagram con su degradado; TikTok, negro con su eco celeste y rojo). La casilla no se rellena ni cambia de color. */
+.redes { display: grid; gap: 10px; }
+.t-pie-marca .redes { margin-top: 10px; }
+/* Con `.redes` delante: le gana a `.t-pie-in ul` y a `.t-pie-in li a` del pie. */
+.redes .redes-fila { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.redes .red { width: 44px; height: 44px; min-height: 0; padding: 0; display: grid; place-items: center; border: 1px solid var(--sand); color: var(--tinta); }
+.red svg { width: 18px; height: 18px; fill: currentColor; transition: color .3s var(--ease), filter .3s var(--ease), transform .3s var(--ease); }
+.red-instagram { --marca: var(--c-instagram); } .red-tiktok { --marca: var(--c-tiktok); } .red-facebook { --marca: var(--c-facebook); }
+.red-pinterest { --marca: var(--c-pinterest); } .red-youtube { --marca: var(--c-youtube); } .red-spotify { --marca: var(--c-spotify); }
+.red:focus-visible { outline: 2px solid var(--tinta); outline-offset: 3px; }
+@media (hover: hover) {
+  .redes .red:hover svg { color: var(--marca); transform: scale(1.08); }
+  .red-instagram:hover svg { fill: url(#g-instagram); }
+  .red-tiktok:hover svg { filter: drop-shadow(1.2px 1.2px 0 #fe2c55) drop-shadow(-1.2px -1.2px 0 #25f4ee); }
+}
+.red:focus-visible svg { color: var(--marca); }
+.redes-cuenta { font-size: 13px; color: var(--taupe); }
+.redes-cuenta b { color: var(--tinta); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .red svg { transition: none; } .red:hover svg { transform: none; } }
+/* Con mouse, 36 px (con el dedo siguen en 44): así las seis caben en una fila en la columna de la marca, desde una laptop chica. */
+@media (hover: hover) and (pointer: fine) { .redes .redes-fila { gap: 4px; } .redes .red { width: 36px; height: 36px; } }
+
+/* El menú del celular (cabecera.css · .t-menu) con la fila al final */
+.t-menu { background: var(--crema); display: flex; flex-direction: column; border-right: 1px solid var(--sand); }
+.t-menu-cab { display: flex; align-items: center; justify-content: space-between; padding: 10px 10px 10px 16px; border-bottom: 1px solid var(--sand); }
+.t-ico { width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: none; color: var(--tinta); }
+.t-menu-grandes { display: flex; flex-direction: column; padding: 14px 20px 8px; }
+.t-menu-grandes > span { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; font: 400 29px/1.1 var(--display); letter-spacing: -.01em; }
+.t-menu-grandes > span.mas::after { content: "+"; font: 200 24px/1 var(--sans); }
+.t-menu-pie { padding: 14px 20px 24px; border-top: 1px solid var(--sand); display: grid; }
+.t-menu-pie > span { min-height: 44px; display: flex; align-items: center; font-size: 15px; }
+.t-menu-pie .t-pie-tit { margin: 6px 0 4px; }
+.t-menu-redes { margin-top: 14px; padding-top: 18px; border-top: 1px solid var(--sand); }
+
+/* ---------- LO NUEVO · B: la banda «Síguenos», antes del pie ----------
+   El escenario negro de la portada (--t-hero) a todo lo ancho; título en la serif con su cursiva, y seis casillas que dicen la red,
+   la cuenta y qué hay ahí. En el celular, filas de 64 px. */
+.banda { background: var(--t-hero); color: var(--t-hero-tinta); padding-block: clamp(40px, 6cqi, 88px); }
+.banda-in { display: grid; gap: 28px; }
+.banda-ceja { display: block; margin-bottom: 14px; font-size: 12px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; color: var(--t-hero-suave); }
+.banda h2 { margin: 0; font: 400 clamp(34px, 5cqi, 64px)/1 var(--display); letter-spacing: -.01em; text-transform: uppercase; }
+.banda h2 em { text-transform: none; font-style: italic; }
+.banda p { margin: 14px 0 0; color: var(--t-hero-suave); font-size: 15px; max-width: 42ch; }
+.banda-lista { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--t-hero-filo); }
+.banda-lista li { border-bottom: 1px solid var(--t-hero-filo); }
+.banda-red { display: grid; grid-template-columns: 24px minmax(0, 1fr) 16px; align-items: center; gap: 16px; min-height: 64px; padding: 10px 0; text-decoration: none; color: var(--t-hero-tinta); }
+.banda-red svg.logo-red { width: 22px; height: 22px; fill: currentColor; transition: color .3s var(--ease), filter .3s var(--ease), transform .3s var(--ease); }
+.banda-red.red-instagram { --marca: var(--c-instagram-osc); } .banda-red.red-tiktok { --marca: var(--c-tiktok-osc); } .banda-red.red-facebook { --marca: var(--c-facebook-osc); }
+.banda-red.red-pinterest { --marca: var(--c-pinterest-osc); } .banda-red.red-youtube { --marca: var(--c-youtube-osc); } .banda-red.red-spotify { --marca: var(--c-spotify-osc); }
+.banda-red b { display: block; font-size: 15px; font-weight: 600; }
+.banda-red small { display: block; font-size: 13px; color: var(--t-hero-suave); }
+.banda-red > svg.flecha { width: 16px; height: 16px; color: var(--t-hero-suave); transition: transform .3s var(--ease); }
+.banda-red:focus-visible { outline: 2px solid var(--t-hero-tinta); outline-offset: 4px; }
+@media (hover: hover) {
+  .banda-red:hover > svg.flecha { transform: translate(3px, -3px); color: var(--t-hero-tinta); }
+  .banda-red:hover svg.logo-red { color: var(--marca); transform: scale(1.08); }
+  .banda-red.red-instagram:hover svg.logo-red { fill: url(#g-instagram); }
+  .banda-red.red-tiktok:hover svg.logo-red { filter: drop-shadow(1.5px 1.5px 0 #fe2c55) drop-shadow(-1.5px -1.5px 0 #25f4ee); }
+}
+@container tienda (min-width: 960px) {
+  /* El título arriba con su frase al lado, y las seis redes debajo a todo lo ancho (al lado del título quedaban de 130 px y cada frase en cuatro líneas). */
+  .banda-in { gap: 40px; }
+  .banda-in > div:first-child { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 64px; align-items: end; }
+  .banda-in > div:first-child .banda-ceja { grid-column: 1 / -1; }
+  .banda p { margin: 0; justify-self: end; }
+  .banda-lista { grid-template-columns: repeat(6, minmax(0, 1fr)); border-top: 0; border-left: 1px solid var(--t-hero-filo); }
+  .banda-lista li { border-bottom: 0; border-right: 1px solid var(--t-hero-filo); }
+  .banda-red { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; align-content: start; gap: 18px; min-height: 196px; padding: 22px 20px; }
+  .banda-red > svg.flecha { justify-self: end; align-self: end; }
+  .banda-red svg.logo-red { width: 26px; height: 26px; }
+}
+
+/* ---------- LO NUEVO · C: después de separar ---------- */
+.w-ficha { max-width: 620px; margin-inline: auto; padding: 28px 0 8px; display: grid; gap: 20px; }
+.t-separado-cab { text-align: center; display: grid; gap: 8px; justify-items: center; padding: 28px 18px; border: 1px solid var(--sand); }
+.t-sello { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--tinta); color: var(--crema); }
+.t-ceja { font-size: 12px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; color: var(--taupe); }
+.w-titulo { margin: 0; font: 400 clamp(30px, 6cqi, 44px)/1.05 var(--display); text-transform: uppercase; }
+.w-titulo em { text-transform: none; }
+.w-texto-sec { margin: 0; color: var(--taupe); font-size: 14.5px; max-width: 40ch; }
+.w-pasos { margin: 0; padding: 0; list-style: none; counter-reset: paso; display: grid; }
+.w-pasos li { counter-increment: paso; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 14px; padding: 14px 0; border-top: 1px solid var(--sand); font-weight: 600; font-size: 14.5px; }
+.w-pasos li::before { content: counter(paso); width: 28px; height: 28px; border: 1px solid var(--tinta); display: grid; place-items: center; font-size: 12px; }
+.w-pasos small { display: block; font-weight: 400; color: var(--taupe); font-size: 13px; margin-top: 2px; }
+.t-btn { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 54px; padding: 0 32px; background: var(--tinta); color: var(--crema); font-size: 12px; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; text-decoration: none; }
+.sep-redes { display: grid; gap: 14px; padding: 22px 0 6px; border-top: 1px solid var(--sand); }
+.sep-redes h2 { margin: 0; font: 400 24px/1.15 var(--display); }
+.sep-redes h2 em { font-style: italic; }
+.sep-redes p { margin: 0; color: var(--taupe); font-size: 14px; }
+
+/* ---------- El mapa de lugares ---------- */
+.mapa { display: grid; gap: 28px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .mapa { grid-template-columns: 300px minmax(0, 1fr); } }
+.esquema { border: 1px solid var(--m-nota-filo); background: var(--crema); padding: 14px; display: grid; gap: 8px; align-content: start; }
+.esq { border: 1px solid var(--sand); padding: 10px 12px; font-size: 12px; display: flex; justify-content: space-between; gap: 8px; color: var(--taupe); }
+.esq b { color: var(--tinta); font-weight: 600; }
+.esq.si { border-color: var(--bien); }
+.esq.si b::before { content: "✓ "; color: var(--bien); }
+.esq.no { border-style: dashed; }
+.esq.no b::before { content: "× "; color: var(--mal); }
+.esq.alto { min-height: 120px; align-items: flex-start; }
+.lugares { display: grid; gap: 0; border-top: 1px solid var(--m-nota-filo); }
+.lugar { display: grid; grid-template-columns: 86px minmax(0, 1fr); gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--m-nota-filo); }
+.veredicto { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; padding-top: 3px; }
+.veredicto.si { color: var(--bien); }
+.veredicto.no { color: var(--mal); }
+.veredicto.tal { color: var(--taupe); }
+.lugar h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+.lugar p { margin: 0; color: var(--taupe); }
+.tabla-envoltura { overflow-x: auto; border: 1px solid var(--m-nota-filo); background: var(--m-nota); }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 13.5px; }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--m-nota-filo); vertical-align: top; }
+th { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); }
+td code { font-size: 12.5px; word-break: break-all; }
+td .ic-red { width: 18px; height: 18px; fill: var(--tinta); vertical-align: -4px; margin-right: 8px; }
+.ojo { color: var(--rojo); font-weight: 600; }
+.recomendada { display: inline-block; margin-left: 8px; padding: 3px 8px; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; background: var(--tinta); color: var(--crema); vertical-align: 3px; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="logo" viewBox="0 0 2000 580"><path fill="currentColor" fill-rule="evenodd" d="M542 0l20-0.5 15 1.1 18 3.1 17 4.8 18 7.1 12 6 19 11.9 12 9.2 175-8.2 6 2.1 3.4 3.4 2 4-0.1 7-2.1 4-2.2 2.3-3 1.9-4 1-170 18.5-21 12.1-18 11.8-17 13.2-15.2 14.2-15.1 17-17.1 23-13 20-19 32-22.4 41-1.2 1.1-8.2-38.1 20.9-37 25.1-41 18-25 9.2-10.5 11-10.9 12-9.8 10-7.1 38-22.7-6-5.3-15-9.9-14-7.3-9-3.9-12-4.1-15-3.8-14-2-12-0.6-15 0.5-14 1.9-10 2.3-15 4.7-12 5.4-12 6.8-7 4.9-11 9.3-11.3 12.1-6.1 8-6.9 11-6 12-4.8 13-3.3 12-2 13-0.8 10 29.4 27 11 12 14.1 18 10.9 17 7 13 8.2 19 5.9 18 5 22 2.1 16 1 14 0.1 14-1.1 25-2 15-5.2 20-5.8 15-7.2 14-7 11-10.7 14-13.5 14.5-12 10.8-17 13.1-20 13-22 12-17 8.1-26 10.7-17 6.2-22 7.1-25 6.9-25 6-36 7.1-52 7.7-1.3-0.2 0-1 86-185 2.3-3.6 22 10.1 0.4 1.5-67.4 145.5 11-1.2 34-6.9 46-12.1 38-13 26-10.9 16-8 23-13.1 16-11 20-16.9 13.4-14.4 9.7-13 8.2-14 7.1-17 5-19 2-18 0.4-26-2.5-27-4-19-8-24-6.9-15-11.1-19-14.1-19-12.2-13.5-18-16.8-10-8.1-18-13-17-10.9-24-13.2-22-10.7-19-8.3-48-17.8-35-10.9-29-8-24-6.2-57-12.9-75-15-0.1 1.3 3.8 13 6.1 18 12.7 32 13.1 27 19.2 32 20 27 19.2 21.7 25 23.6 23 17.9 30 19.2 27 13.9 29 12.1 21 7 17 4.8 32 7.1 36 5.1 32 1.9 18 0.1 16-0.9 1.3 0.5 2.1 21 0.2 3-0.6 0.9-27 0.7-29-1.2-22-2.2-25-3.7-34-7.3-21-5.7-19-6.3-30-11.8-27-13-21-12-20-13.1-16-11.9-18-15.2-13-12.3-14.4-14.9-19.9-24-16.9-24-11-18-9.3-17-11.9-25-10.8-27-7.2-21-5.9-20-8.8-36 1.1-0.6 3 0.4 83 16.8 60 13 49 12.1 45 12.9 39 13.1 45 18 37 17.9 34 20.2 0.7-0.8 2.9-15 2.2-8 5-14 5.9-13 6.9-12 10-14 6.9-8 10.5-10.5 11-8.9 10-6.9 15-8.2 11-4.7 23-7.1 11-2.1zM774.2 224l20.8-0.9 11 0.7 11 1.7 9 2.3 10 3.7 14 7.2 10 7 4.8 4.3 8.8 9 5.8 7 6 9 6 11 6 15-2.4 2.5-30 14-3 0.5-3.4-4-3.2-8-4.3-8-7.7-11-10.4-10.1-12-7.3-7-2.8-8-2.2-8-1.1-11 0-11 1.1-5 1.2-12 4.7-10 6.2-7 6.2-6.3 7.1-6.1 9-4.7 9-5.2 13-3.1 10-2 9-2.1 18 0.3 12 3.9 22 7 20 4.9 10 5.1 8 5.8 7 7.5 7.4 7 4.9 10 5.1 9 3 6 1.1 13 0.8 12-0.9 9-2.1 9-3.7 10-6.2 6-5.3 7.3-8.1 4.2-6 6-11 3.1-8 4.4-5.3 4-0.1 22 10.9 4.6 2.5 3.8 4-1.2 5-3.7 9-10.2 18-11 14-13.3 12.3-7 5-11 6.1-12 4.8-12 3.1-13 1.9-10 0.3-14-0.3-13-1.8-15-4-13-6-14-9-10.9-9.4-8.3-9-10-14-8-15-6.1-16-4.8-19-2.2-13-1.2-12 0-19 2.2-19 3.9-18 5.9-18 6.1-13 7.2-12 11.1-14 12.1-11.4 8-5.9 12-7.1 9-3.9 10-3.2zM1049.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0.1 2-1.2 2-4.2 2.4-30-0.1-2-1.3-1.2-2-8.8-26.1-48 0-97 0-1 0.2-1.4 2.9-8.1 22-1.5 2.7-2 1.6-29 0.1-4-1.7-1.5-1.7-0.5-2 92.5-263 2.4-5zM1197.8 224l2.2-0.9 28 0 7 0.8 3.3 2.1 75.3 120 1.4 0.8 76-120.7 4-2.4 6-0.6 28 0 2 0.5 1.3 1.4 0.3 3-2.2 6-55.1 86-40.7 63-0.1 108-0.8 5-1.7 2.1-4 1.4-26 0-4-0.9-2-1.7-1.4-3.9-0.1-110-95-148-2.8-6-0.1-3zM1519.3 224l3.7-0.9 26 0 4 1.3 2.5 3.6 0.5 231 134 0.8 3.4 3.2 0.5 3 0.1 26-0.7 4-3.5 3-3.8 0.5-163 0-4-0.9-2.4-2.6-0.8-5 0-260 0.7-4zM1854.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0 2-1.1 2-4.2 2.3-30 0-2-1.2-1.3-2.1-8.7-26-48-0.1-97 0-1 0.3-1 1.8-8.6 23-1.7 3-1.7 1.3-29 0.1-3.7-1.4-2.1-3 1.4-7 88.1-249 4.1-11zM1074.7 262l2.7 6 57.1 165-1.5 0.6-58 0-60 0-0.6-0.6 56.2-161zM1878.7 263l1.3-0.9 0.5 0.9 58.9 170-1.4 0.6-57 0-60 0-1.9-0.6z"/></symbol>
+  <symbol id="r-instagram" viewBox="0 0 24 24"><path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/></symbol>
+  <symbol id="r-tiktok" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></symbol>
+  <symbol id="r-facebook" viewBox="0 0 24 24"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/></symbol>
+  <symbol id="r-pinterest" viewBox="0 0 24 24"><path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.401.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.39 18.592.026 11.985.026L12.017 0z"/></symbol>
+  <symbol id="r-youtube" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></symbol>
+  <symbol id="r-spotify" viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></symbol>
+  <linearGradient id="g-instagram" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#feda75"/><stop offset=".3" stop-color="#fa7e1e"/><stop offset=".55" stop-color="#d62976"/><stop offset=".8" stop-color="#962fbf"/><stop offset="1" stop-color="#4f5bd5"/></linearGradient>
+  <symbol id="i-flecha" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-diagonal" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M8 7h9v9"/></symbol>
+  <symbol id="i-bolsa" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 7h12l1 13H5L6 7zM9 7a3 3 0 0 1 6 0"/></symbol>
+  <symbol id="i-traslado" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 8h13l-3-3M20 16H7l3 3"/></symbol>
+  <symbol id="i-tienda" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 10l1.5-5h13L20 10M5 10v9h14v-9M4 10h16M10 19v-5h4v5"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M4 8h16M4 16h16"/></symbol>
+  <symbol id="i-cerrar" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-lupa" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+</svg>
+
+<header class="m-barra">
+  <div class="m-barra-in">
+    <div class="m-titulo">Maqueta · Tienda web<small>Las redes de CAYLA: dónde irían y cómo se verían</small></div>
+    <nav class="m-tabs" aria-label="Vistas de la maqueta">
+      <a class="m-tab" href="#mapa" data-vista="mapa">Dónde van</a>
+      <a class="m-tab" href="#a" data-vista="a">A · En el pie</a>
+      <a class="m-tab" href="#b" data-vista="b">B · Banda Síguenos</a>
+      <a class="m-tab" href="#c" data-vista="c">C · En el momento justo</a>
+    </nav>
+    <button class="m-tema" id="tema" type="button">Ver en oscuro</button>
+  </div>
+</header>
+
+<main class="m-pagina" id="vista"></main>
+
+<script>
+(() => {
+  // Los enlaces, limpios: sin «?locale=es_LA» ni «?hl=es-la» (son del navegador de quien los copió; la red ya elige el idioma de cada visita).
+  const REDES = [
+    { id: "instagram", nombre: "Instagram", cuenta: "@caylaperu", url: "https://www.instagram.com/caylaperu/", que: "Fotos y reels de cada estreno" },
+    { id: "tiktok", nombre: "TikTok", cuenta: "@caylaperu", url: "https://www.tiktok.com/@caylaperu", que: "Cómo se ve puesto, en video" },
+    { id: "facebook", nombre: "Facebook", cuenta: "caylaperu", url: "https://www.facebook.com/caylaperu/", que: "Novedades y promociones" },
+    { id: "pinterest", nombre: "Pinterest", cuenta: "caylaperu", url: "https://www.pinterest.com/caylaperu/", que: "Ideas para combinar" },
+    { id: "youtube", nombre: "YouTube", cuenta: "@caylaperu3004", url: "https://www.youtube.com/@caylaperu3004/videos", que: "Las colecciones en video" },
+    { id: "spotify", nombre: "Spotify", cuenta: "caylaperu", url: "https://open.spotify.com/user/caylaperu", que: "La música que suena en tienda" },
+  ];
+  const ic = (id, cls = "ic") => `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
+  const logo = `<svg class="t-marca-logo" viewBox="0 0 2000 580" aria-hidden="true"><use href="#logo"/></svg>`;
+  const fuera = 'target="_blank" rel="noopener noreferrer"';
+
+  /* La fila de redes: 5 casillas de 44 px. Cada una dice a quién lleva y que se abre aparte (para el lector de pantalla y al pasar el mouse). */
+  const filaRedes = ({ titulo = "Síguenos", marca = true } = {}) => `
+    <div class="redes ${marca ? "marca-nuevo" : ""}">
+      ${titulo ? `<h2 class="t-pie-tit" style="margin:0">${titulo}</h2>` : ""}
+      <ul class="redes-fila">
+        ${REDES.map((r) => `<li><a class="red red-${r.id}" href="${r.url}" ${fuera} aria-label="CAYLA en ${r.nombre} (se abre en otra pestaña)" title="${r.nombre}">
+          <svg aria-hidden="true"><use href="#r-${r.id}"/></svg></a></li>`).join("")}
+      </ul>
+      <span class="redes-cuenta">Estamos como <b>@caylaperu</b></span>
+    </div>`;
+
+  const columna = (titulo, enlaces) => `<div><h2 class="t-pie-tit">${titulo}</h2><ul>${enlaces.map((e) => `<li><a href="#" onclick="return false">${e}</a></li>`).join("")}</ul></div>`;
+
+  /* El pie de hoy (components/Pie.tsx), con `enMarca` (la fila bajo el lema) y `enLegal` (la cuenta junto al ©). */
+  const pie = ({ enMarca = false, enLegal = false } = {}) => `
+    <footer class="t-pie"><div class="t-ancho">
+      <div class="ay-pie-ayuda"><h2 class="t-pie-tit" style="margin-bottom:4px">Ayuda</h2><ul>
+        ${[["i-bolsa", "Cómo separar"], ["i-traslado", "Cambios y devoluciones"], ["i-tienda", "Nuestras tiendas"]].map(([i, t]) =>
+          `<li><a class="ay-pie-tema" href="#" onclick="return false"><span class="ay-pie-tema-ic">${ic(i)}</span><span><b>${t}</b></span>${ic("i-flecha")}</a></li>`).join("")}
+      </ul></div>
+      <div class="t-pie-in">
+        <div class="t-pie-marca"><span class="t-logo">${logo}</span><p class="t-pie-lema">Donde el estilo transforma.</p>${enMarca ? filaRedes() : ""}</div>
+        ${columna("Comprar", ["Lo nuevo", "Ofertas", "Más vendidos", "Outfits listos", "Arma tu outfit", "Toda la tienda"])}
+        ${columna("Ayuda", ["Cómo separar", "Cambios y devoluciones", "Nuestras tiendas", "Preguntas frecuentes", "Envíanos una sugerencia"])}
+        ${columna("Club CAYLA", ["Cómo funciona el Club", "Crear mi cuenta", "Entrar", "Términos del Club", "Privacidad"])}
+      </div>
+      <p class="t-pie-legal"><span>© 2026 CAYLA</span>${enLegal ? `<span class="marca-nuevo">@caylaperu en Instagram, TikTok, Facebook, Pinterest, YouTube y Spotify</span>` : ""}</p>
+    </div></footer>`;
+
+  /* El menú del celular (HojaMenu de CabeceraConCuenta.tsx), con la fila al final */
+  const menuCelular = () => `
+    <div class="t-menu">
+      <div class="t-menu-cab"><span class="t-logo">${logo}</span><span class="t-ico">${ic("i-cerrar")}</span></div>
+      <nav class="t-menu-grandes" aria-hidden="true"><span>Lo nuevo</span><span class="mas">Ropa</span><span class="mas">Accesorios</span><span>Outfits</span><span>Ofertas</span></nav>
+      <div class="t-menu-pie">
+        <p class="t-pie-tit">Tu cuenta y servicios</p>
+        <span>Entrar</span><span>Favoritos</span><span>Cómo separar</span><span>Tiendas</span><span>Modo oscuro</span>
+        <div class="t-menu-redes">${filaRedes()}</div>
+      </div>
+    </div>`;
+
+  const banda = () => `
+    <section class="banda marca-nuevo"><div class="t-ancho banda-in">
+      <div>
+        <span class="banda-ceja">@caylaperu</span>
+        <h2>Síguenos <em>en redes</em></h2>
+        <p>Lo nuevo sale primero ahí, y ahí ves cómo queda puesto antes de separarlo.</p>
+      </div>
+      <ul class="banda-lista">
+        ${REDES.map((r) => `<li><a class="banda-red red-${r.id}" href="${r.url}" ${fuera} aria-label="CAYLA en ${r.nombre}, ${r.cuenta} (se abre en otra pestaña)">
+          <svg class="logo-red" aria-hidden="true"><use href="#r-${r.id}"/></svg>
+          <span><b>${r.nombre}</b><small>${r.que}</small></span>
+          ${ic("i-diagonal", "flecha")}</a></li>`).join("")}
+      </ul>
+    </div></section>`;
+
+  const separado = () => `
+    <div class="t-ancho"><div class="w-ficha">
+      <div class="t-separado-cab">
+        <span class="t-sello">${ic("i-check")}</span>
+        <span class="t-ceja">Pedido W-1042 · por confirmar</span>
+        <h1 class="w-titulo">¡Listo, <em>lo separaste!</em></h1>
+        <p class="w-texto-sec">Ahora mándalo por WhatsApp a CAYLA Trujillo para que te confirmen la separación.</p>
+      </div>
+      <a class="t-btn" href="#" onclick="return false">Enviar por WhatsApp</a>
+      <ol class="w-pasos">
+        <li><span>Envía el mensaje por WhatsApp<small>Ya va escrito, con tu número de pedido W-1042.</small></span></li>
+        <li><span>CAYLA Trujillo te confirma<small>Revisa que tus prendas estén y te responde por el mismo chat.</small></span></li>
+        <li><span>Coordinas el pago y lo recoges<small>Por WhatsApp acuerdas con la tienda cómo pagas, y lo recoges en CAYLA Trujillo.</small></span></li>
+      </ol>
+      <div class="sep-redes marca-nuevo">
+        <h2>Mientras te confirman, <em>míralo puesto</em></h2>
+        <p>En nuestras redes salen las prendas en movimiento y las ideas para combinarlas.</p>
+        ${filaRedes({ titulo: "", marca: false })}
+      </div>
+    </div></div>`;
+
+  /* La computadora a todo lo ancho (así el pie se dibuja como en una pantalla de computadora) y, debajo, el celular con las notas al lado. */
+  const compu = (titulo, html, recorte = true) => `
+    <div><div class="m-marco-tit"><span>${titulo} · computadora</span><span>al ancho de esta ventana</span></div>
+      <div class="m-compu"><div class="m-compu-barra"><i></i><i></i><i></i><b>tienda.cayla.pe</b></div>
+        <div class="tienda ${recorte ? "m-recorte" : ""}">${html}</div></div></div>`;
+  const cel = (titulo, html, recorte = true) => `
+    <div><div class="m-marco-tit"><span>${titulo} · celular</span><span>375 px</span></div>
+      <div class="m-cel"><div class="m-cel-hueco"><i></i></div><div class="m-cel-in"><div class="tienda ${recorte ? "m-recorte" : ""}">${html}</div></div></div></div>`;
+  const fila = (...piezas) => `<div class="m-fila">${piezas.join("")}</div>`;
+
+  const pista = `<span class="m-pista"><i></i> lo nuevo · <label><input type="checkbox" id="marcas" checked> mostrar la marca</label></span>`;
+
+  const nota = (titulo, items) => `<section class="m-nota"><h2>${titulo}</h2><ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul></section>`;
+
+  const VISTAS = {
+    mapa: () => `
+      <div class="m-cab"><span class="m-ceja">Dónde van</span>
+        <h1>Las redes, <em>donde la gente las busca</em></h1>
+        <p>Revisé cada lugar de la tienda web. Las redes llevan a la persona fuera de la tienda, así que van donde ya terminó lo que vino a hacer: al final de la página, al final del menú del celular y después de separar. Nunca arriba ni junto al botón de comprar.</p></div>
+      <div class="mapa">
+        <div class="esquema" aria-label="Esquema de una página de la tienda">
+          <div class="esq no"><b>Franja de anuncio</b><span>arriba</span></div>
+          <div class="esq no"><b>Cabecera</b><span>logo, menú, bolsa</span></div>
+          <div class="esq alto no"><b>La página</b><span>catálogo, ficha de prenda</span></div>
+          <div class="esq si"><b>Banda antes del pie</b><span>propuesta B</span></div>
+          <div class="esq si"><b>Pie de página</b><span>A y C</span></div>
+          <div class="esq si"><b>Menú del celular, al final</b><span>A y C</span></div>
+          <div class="esq si"><b>Después de separar</b><span>solo C</span></div>
+        </div>
+        <div class="lugares">
+          <div class="lugar"><span class="veredicto si">Sí</span><div><h3>Pie de página, en todas las páginas</h3><p>Es donde todo el mundo busca las redes de una marca. Va junto al logo y al lema, que es «quiénes somos».</p></div></div>
+          <div class="lugar"><span class="veredicto si">Sí</span><div><h3>Menú del celular, al final</h3><p>En el celular el pie queda muy abajo. El menú ya cierra con «Tu cuenta y servicios», y las redes van debajo.</p></div></div>
+          <div class="lugar"><span class="veredicto si">Sí</span><div><h3>Después de separar</h3><p>La prenda ya está separada y la persona espera que la tienda le responda. Es el mejor momento para invitarla a seguirnos, debajo del WhatsApp y sin competir con él.</p></div></div>
+          <div class="lugar"><span class="veredicto tal">Puede ser</span><div><h3>Una banda «Síguenos» antes del pie</h3><p>Se ve más, pero ocupa una pantalla entera en el celular. Si se elige, mejor solo en el Inicio.</p></div></div>
+          <div class="lugar"><span class="veredicto no">No</span><div><h3>Cabecera y franja de anuncio</h3><p>Ahí la persona recién llega. Un ícono de Instagram arriba la invita a irse antes de ver una prenda.</p></div></div>
+          <div class="lugar"><span class="veredicto no">No</span><div><h3>Ficha de la prenda</h3><p>Está junto a «Agregar a la bolsa». Un enlace a TikTok ahí compite con la compra. Lo de «mírala puesta» va mejor después de separar.</p></div></div>
+        </div>
+      </div>
+      <section><div class="m-marco-tit"><span>Los seis enlaces</span><span>limpios, listos para la tienda</span></div>
+        <div class="tabla-envoltura"><table>
+          <thead><tr><th>Red</th><th>Cuenta</th><th>Enlace que se usa</th><th>Nota</th></tr></thead>
+          <tbody>${REDES.map((r) => `<tr><td><svg class="ic-red" aria-hidden="true"><use href="#r-${r.id}"/></svg>${r.nombre}</td><td>${r.cuenta}</td><td><code>${r.url}</code></td><td>${
+            r.id === "youtube" ? `<span class="ojo">Es la única que no es @caylaperu.</span> Si YouTube deja cambiar el nombre a @caylaperu, todo queda igual.`
+            : r.id === "facebook" ? "Sin «?locale=es_LA»: Facebook ya elige el idioma de quien entra."
+            : r.id === "instagram" ? "Sin «?hl=es-la», por lo mismo."
+            : r.id === "spotify" ? "Es un perfil de usuario: ahí se ven las playlists públicas de CAYLA. Conviene tener al menos una antes de poner el ícono." : "Tal cual."}</td></tr>`).join("")}</tbody>
+        </table></div>
+      </section>
+      ${nota("Cómo se ven en las tres propuestas", [
+        "Quietos, los íconos van en negro: en la tienda el único color es el de las prendas, y seis logos de colores le quitarían protagonismo.",
+        "Al pasar el puntero, cada ícono se pinta con el color de su red: Instagram con su degradado, TikTok con su eco celeste y rojo, y crece un poco, como en la banda B. La casilla no cambia de color. Pruébalo en cualquier propuesta.",
+        "Cada ícono mide 44 px y se toca bien con el dedo. En el celular no hay puntero, así que ahí se quedan en negro.",
+        "Se abren en otra pestaña, así la tienda queda abierta detrás y no se pierde lo que estaba en la bolsa.",
+        "El orden es Instagram, TikTok, Facebook, Pinterest, YouTube y Spotify: primero donde se busca ropa en el Perú y al final la música. Lo puedes cambiar.",
+      ])}`,
+
+    a: () => `
+      <div class="m-cab"><span class="m-ceja">Propuesta A · La más simple <span class="recomendada">la elegida</span></span>
+        <h1>En el pie, <em>junto al logo</em></h1>
+        <p>Seis íconos bajo «Donde el estilo transforma.», en todas las páginas, y los mismos al final del menú del celular. Es lo que hacen la mayoría de casas de moda. No cambia nada más del pie. Al pasar el puntero, el efecto de la banda B: solo el ícono toma el color de su red y crece un poco.</p>${pista}</div>
+      ${compu("Pie de página", pie({ enMarca: true }))}
+      ${fila(cel("Pie de página", pie({ enMarca: true })), cel("Menú", menuCelular(), false), nota("Qué cambia", [
+        "<b>Pie:</b> una fila nueva en la columna de la marca, con «Síguenos» arriba y «Estamos como @caylaperu» abajo. En el celular la marca va arriba, así que las redes aparecen antes que las columnas de enlaces.",
+        "<b>Menú del celular:</b> la misma fila al final, separada por una línea, debajo de «Modo oscuro».",
+        "<b>Lo que no hace:</b> no se nota mucho. Quien no baja hasta el pie no las ve.",
+        "<b>Al pasar el puntero:</b> el efecto de la banda B. Solo el ícono se pinta con el color de su red y crece un poco; la casilla queda como está, sin relleno ni filo de color.",
+        "<b>Esfuerzo:</b> poco. Una lista de redes en un solo archivo y una pieza que la dibuja en los dos lugares.",
+      ]))}`,
+
+    b: () => `
+      <div class="m-cab"><span class="m-ceja">Propuesta B · La más visible</span>
+        <h1>Una banda <em>«Síguenos»</em></h1>
+        <p>Una franja negra a todo lo ancho, justo antes del pie, con el mismo negro de la portada. Cada red dice qué vas a encontrar ahí. El pie queda como está, con «@caylaperu» junto al ©.</p>${pista}</div>
+      ${compu("Banda y pie", banda() + pie({ enLegal: true }))}
+      ${fila(cel("Banda y pie", banda() + pie({ enLegal: true })), nota("Qué cambia", [
+        "<b>Más presencia:</b> se ve sí o sí al bajar, y cada red tiene un motivo para seguirla.",
+        "<b>Lo que cuesta:</b> en el celular ocupa casi una pantalla entera. En todas las páginas cansa: mejor solo en el Inicio y en «Lo nuevo».",
+        "<b>Los textos de cada red son un ejemplo inventado.</b> Hay que escribirlos según lo que de verdad publica CAYLA en cada una. Si una red casi no se usa, mejor no ponerla.",
+        "<b>Menú del celular:</b> lleva la misma fila de la propuesta A.",
+      ]))}`,
+
+    c: () => `
+      <div class="m-cab"><span class="m-ceja">Propuesta C · La que recomendé</span>
+        <h1>A, más <em>el momento justo</em></h1>
+        <p>Todo lo de la propuesta A (pie y menú del celular) y, además, las redes en la página «¡Listo, lo separaste!», debajo de los pasos. Ahí la persona ya separó y está esperando que la tienda le responda.</p>${pista}</div>
+      ${compu("Después de separar", separado(), false)}
+      ${fila(cel("Después de separar", separado(), false), nota("Por qué la recomiendo", [
+        "<b>No le quita una sola venta a la tienda:</b> las redes salen donde la persona ya terminó. Nunca antes de comprar.",
+        "<b>En «Después de separar» rinde más:</b> quien acaba de separar ya confía en la marca y tiene unos minutos de espera. Es el momento en que más gente sigue a una tienda.",
+        "<b>No compite con WhatsApp:</b> el botón negro de WhatsApp sigue arriba, solo. Las redes van al final, con una línea arriba y en tamaño chico.",
+        "<b>Esfuerzo:</b> poco más que A. Es la misma pieza en tres lugares.",
+      ]))}`,
+  };
+
+  const vista = document.getElementById("vista");
+  const tabs = [...document.querySelectorAll(".m-tab")];
+  function mostrar() {
+    const id = (location.hash || "#mapa").slice(1);
+    const clave = VISTAS[id] ? id : "mapa";
+    vista.innerHTML = VISTAS[clave]();
+    tabs.forEach((t) => t.setAttribute("aria-current", String(t.dataset.vista === clave)));
+    const marcas = document.getElementById("marcas");
+    if (marcas) marcas.addEventListener("change", () => vista.classList.toggle("m-sin-marcas", !marcas.checked));
+    vista.classList.remove("m-sin-marcas");
+  }
+  window.addEventListener("hashchange", () => { mostrar(); window.scrollTo(0, 0); });
+  mostrar();
+
+  const boton = document.getElementById("tema");
+  const raiz = document.documentElement;
+  const oscuroAhora = () => raiz.dataset.theme ? raiz.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  const pintarBoton = () => (boton.textContent = oscuroAhora() ? "Ver en claro" : "Ver en oscuro");
+  boton.addEventListener("click", () => { raiz.dataset.theme = oscuroAhora() ? "light" : "dark"; pintarBoton(); });
+  pintarBoton();
+})();
+</script>
+
+</html>

@@ -60,7 +60,7 @@ export function EtiquetasDeLaMatriz({
   const cuenta = elegida ? cuentaEtiqueta(filas, elegida) : null;
 
   return (
-    <section aria-label="Insignias y campañas" className="space-y-3 rounded-xl border border-sand bg-papel p-3 @lg:p-4" id="matriz-etiquetas">
+    <section aria-label="Insignias" className="space-y-3 rounded-xl border border-sand bg-papel p-3 @lg:p-4" id="matriz-etiquetas">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5">
         <p className="text-[13px] text-tinta">
           {nombre && cuenta ? (

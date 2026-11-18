@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { CSSProperties } from "react";
 import { Store } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
@@ -10,7 +11,8 @@ import { MUESTRA_MINIMA, FACTOR_ATENCION, DEVUELTAS_MINIMAS_ATENCION, textoLectu
 
 /** La tabla de tienda × mes: sus columnas de mes cambian con el panel, así que la plantilla viaja en `--cols` (la pone la `Tabla`). */
 const COLS_VARIABLES = "grid-cols-[var(--cols)]";
-const PLANTILLA_CALIDAD = "grid-cols-[minmax(9rem,1.6fr)_4.5rem_4.75rem_4rem_6.5rem_4.5rem_minmax(9rem,1.4fr)]";
+// Bajo 820 px de tabla (una laptop chica, una tablet, un celular) cada fila es una tarjeta: lo que se mide arriba, las cifras de a tres con su título y la lectura al final.
+const PLANTILLA_CALIDAD = "grid-cols-[minmax(9rem,1.6fr)_4.5rem_4.75rem_4rem_6.5rem_4.5rem_minmax(9rem,1.4fr)] @max-[820px]:grid-cols-3";
 
 // Vista del panel de calidad (ADR-0214). Solo PINTA: cada número ya viene contado por el SQL y cada criterio
 // ("requiere atención", "muestra chica") ya viene decidido por `calidad-reglas.ts`.
@@ -35,7 +37,7 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
 
   return (
     <div className="space-y-8">
-      <p className="max-w-3xl text-xs leading-relaxed text-tinta/65" data-guia="calidad.periodo">
+      <p className="max-w-3xl text-sm leading-relaxed text-tinta/65" data-guia="calidad.periodo">
         Ventas del <strong>{fechaCorta(panel.cohorteDesde)}</strong> al <strong>{fechaCorta(panel.cohorteHasta)}</strong>. No se
         cuentan las ventas de las últimas {panel.plazoDias}{" "}días: todavía no cumplieron su plazo de cambio y contarlas como
         &quot;vendidas y no devueltas&quot; haría parecer que todo va mejor de lo que va.
@@ -108,7 +110,7 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
       <section aria-labelledby="titulo-danadas" className="space-y-3" data-guia="calidad.danadas">
         <div>
           <TituloSeccion id="titulo-danadas">Prendas dañadas por tienda y mes</TituloSeccion>
-          <p className="mt-1 max-w-3xl text-xs text-tinta/60">
+          <p className="mt-1 max-w-3xl text-sm text-tinta/60">
             Prendas que volvieron dañadas (a reparar o a donar) por una devolución o una venta anulada, el mes en que se
             registró. Lo que se devolvió al proveedor va aparte.
           </p>
@@ -122,7 +124,7 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
           </Tabla>
         ) : (
           <Tabla style={{ "--cols": `minmax(7rem,1.4fr) repeat(${panel.meses.length}, minmax(5.5rem,1fr)) minmax(6.5rem,1fr)` } as CSSProperties}>
-            <div role="table" aria-label="Prendas dañadas por tienda y por mes" className="min-w-[30rem] divide-y divide-sand text-xs tabular-nums">
+            <div role="table" aria-label="Prendas dañadas por tienda y por mes" className="min-w-[30rem] divide-y divide-sand text-sm tabular-nums">
               <Encabezado
                 siempre
                 plantilla={COLS_VARIABLES}
@@ -154,7 +156,7 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
         )}
       </section>
 
-      <details className="card-cayla p-4 text-xs text-tinta/75" data-guia="calidad.como-se-calcula">
+      <details className="card-cayla p-4 text-sm text-tinta/75" data-guia="calidad.como-se-calcula">
         <summary className="cursor-pointer font-semibold text-tinta" data-guia="calidad.como-abrir">Cómo se calcula todo esto</summary>
         <ul className="mt-3 list-disc space-y-1.5 pl-5 leading-relaxed">
           <li>
@@ -189,6 +191,15 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
   );
 }
 
+function CifraCalidad({ titulo, fuerte = false, children }: { titulo: string; fuerte?: boolean; children: ReactNode }) {
+  return (
+    <span role="cell" className={celda("der", `text-right @max-[820px]:text-left ${fuerte ? "text-tinta" : "text-tinta/85"}`)}>
+      <span className="hidden text-taupe @max-[820px]:block">{titulo}</span>
+      {children}
+    </span>
+  );
+}
+
 function TablaCalidad({
   id,
   titulo,
@@ -207,13 +218,13 @@ function TablaCalidad({
     <section aria-labelledby={`titulo-${id}`} className="space-y-3" data-guia={`calidad.tabla-${id}`}>
       <div>
         <TituloSeccion id={`titulo-${id}`}>{titulo}</TituloSeccion>
-        <p className="mt-1 max-w-3xl text-xs text-tinta/60">{pregunta}</p>
+        <p className="mt-1 max-w-3xl text-sm text-tinta/60">{pregunta}</p>
       </div>
       <Tabla>
-        <div role="table" aria-label={titulo} className="min-w-[40rem] divide-y divide-sand text-xs tabular-nums">
+        <div role="table" aria-label={titulo} className="divide-y divide-sand text-sm tabular-nums">
           <Encabezado
             siempre
-            plantilla={PLANTILLA_CALIDAD}
+            plantilla={`${PLANTILLA_CALIDAD} @max-[820px]:hidden!`}
             columnas={[
               { titulo: titulo.replace("Por ", ""), clase: "first-letter:uppercase" },
               { titulo: "Vendidas", alinear: "der" },
@@ -226,18 +237,18 @@ function TablaCalidad({
           />
           {visibles.map((f) => (
             <div key={f.clave || f.etiqueta} role="row" className={fila(PLANTILLA_CALIDAD)}>
-              <span role="rowheader" className={`min-w-0 ${f.estado === "atencion" ? "font-semibold text-tinta" : "text-tinta"}`}>
+              <span role="rowheader" className={`min-w-0 @max-[820px]:col-span-3 ${f.estado === "atencion" ? "font-semibold text-tinta" : "text-tinta"}`}>
                 {f.etiqueta}
               </span>
-              <span role="cell" className={celda("der", "text-right text-tinta/85")}>{f.vendidas}</span>
-              <span role="cell" className={celda("der", "text-right text-tinta/85")}>{f.devueltas}</span>
-              <span role="cell" className={celda("der", "text-right text-tinta")}>{pct(f.tasa)}</span>
-              <span role="cell" className={celda("der", "text-right text-tinta/85")}>
+              <CifraCalidad titulo="Vendidas">{f.vendidas}</CifraCalidad>
+              <CifraCalidad titulo="Devueltas">{f.devueltas}</CifraCalidad>
+              <CifraCalidad titulo="Tasa" fuerte>{pct(f.tasa)}</CifraCalidad>
+              <CifraCalidad titulo="Dañadas">
                 {f.danadas}
                 {f.aProveedor > 0 && <span className="ml-1 text-tinta/55">(+{f.aProveedor} prov.)</span>}
-              </span>
-              <span role="cell" className={celda("der", "text-right text-tinta/85")}>{f.cambiadas}</span>
-              <span role="cell" className={`min-w-0 ${f.estado === "atencion" ? "font-semibold text-rojo" : "text-tinta/60"}`}>
+              </CifraCalidad>
+              <CifraCalidad titulo="Cambios">{f.cambiadas}</CifraCalidad>
+              <span role="cell" className={`min-w-0 @max-[820px]:col-span-3 ${f.estado === "atencion" ? "font-semibold text-rojo" : "text-tinta/60"}`}>
                 {textoLectura(f)}
               </span>
             </div>

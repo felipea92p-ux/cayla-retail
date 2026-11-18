@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Banknote, Check, FileText, ImageOff, Package, TriangleAlert, Wallet, ZoomIn } from "lucide-react";
@@ -10,6 +11,7 @@ import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
+import { CorreccionesDeCompra } from "./CorreccionesDeCompra";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -28,10 +30,13 @@ import {
   destinosDePapel,
   ejemploSerie,
   fraseCompletar,
+  lineaMarcas,
   llegadaDePapel,
+  marcasDePapel,
   notaNoCuadra,
   pagoPapel,
   pideSerie,
+  recibioQuienCompro,
   sobrePapel,
   subtituloPapel,
   textoFaltan,
@@ -40,6 +45,7 @@ import {
   type ProveedorOpcion,
 } from "@/lib/revisar-compras-reglas";
 import type { PapelConFoto } from "@/lib/revisar-compras";
+import { TEXTO_LO_RECIBIO_QUIEN_COMPRO } from "@/lib/recepcion-envio-reglas";
 import { PanelDetalle } from "./PanelDetalle";
 
 // Compras simple (ADR-0480, actividad 7): «Revisar compras» ▸ las compras que anotaron las compradoras. Rediseño (2026-10-23): cada papel
@@ -83,7 +89,7 @@ function FotoPapel({ papel }: { papel: PapelConFoto }) {
       <div className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-2xl bg-hueso p-5 text-center">
         <ImageOff className="h-5 w-5 text-taupe" aria-hidden />
         <span className="text-sm font-medium text-tinta">{papel.fotoRuta ? "La foto no se pudo abrir" : "Sin foto"}</span>
-        <span className="text-xs text-taupe">
+        <span className="text-sm text-taupe">
           {papel.fotoRuta ? "Recarga la pantalla" : papel.tipo === "sin_comprobante" ? "No le dieron papel" : `Pídele el papel a ${primerNombre(papel.persona)}`}
         </span>
       </div>
@@ -141,7 +147,7 @@ function Bloque({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[15px] font-semibold text-tinta">{titulo}</span>
-          {linea && <span className="block text-[13px] text-taupe">{linea}</span>}
+          {linea && <span className="block text-sm text-taupe">{linea}</span>}
         </span>
         {derecha}
       </div>
@@ -166,25 +172,29 @@ function Veredicto({ papel: p, monto }: { papel: PapelConFoto; monto: number }) 
     );
   }
   return (
-    <div className="rounded-2xl bg-ambar/10 px-4 py-3.5" data-guia="fondos.papel-veredicto">
-      <div className="flex items-center justify-between gap-3">
+    <div
+      /* unificar-fijo: el veredicto lleva la diferencia en grande y las dos cifras lado a lado: es un dato de la revisión, no un aviso con título y frase */
+      className="rounded-2xl bg-ambar/10 px-4 py-3.5"
+      data-guia="fondos.papel-veredicto"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <span className="flex items-center gap-2.5 text-[15px] font-semibold text-ambar-profundo">
           <TriangleAlert className="h-5 w-5" aria-hidden />
           No cuadra
         </span>
-        <span className="whitespace-nowrap font-serif text-[32px] leading-none tabular-nums text-ambar-profundo">{soles(diferencia)}</span>
+        <span className="ml-auto whitespace-nowrap font-serif text-[clamp(1.75rem,8vw,2rem)] leading-none tabular-nums text-ambar-profundo">{soles(diferencia)}</span>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2.5">
         <span className="rounded-xl bg-papel px-3 py-2">
-          <span className="label-cayla block text-[10.5px] text-taupe">Papel</span>
+          <span className="label-cayla block text-[11px] text-taupe">Papel</span>
           <span className="block text-sm font-semibold tabular-nums text-tinta">{soles(v.pagado)}</span>
         </span>
         <span className="rounded-xl bg-papel px-3 py-2">
-          <span className="label-cayla block text-[10.5px] text-taupe">Anotó {primerNombre(p.persona)}</span>
+          <span className="label-cayla block text-[11px] text-taupe">Anotó {primerNombre(p.persona)}</span>
           <span className="block text-sm font-semibold tabular-nums text-tinta">{soles(v.anotado)}</span>
         </span>
       </div>
-      <span className="mt-2 block text-xs text-ambar-profundo">{notaNoCuadra(p.tipo)}</span>
+      <span className="mt-2 block text-sm text-ambar-profundo">{notaNoCuadra(p.tipo)}</span>
     </div>
   );
 }
@@ -234,6 +244,8 @@ function Prendas({ papel }: { papel: PapelConFoto }) {
   // Abiertas de entrada solo si faltó algo: ahí está lo que dijo la tienda.
   const [abierto, setAbierto] = useState(() => papel.lineas.some((x) => x.faltan.length > 0));
   if (papel.lineas.length === 0) return null;
+  // Con una sola marca ya la dice la cabecera; con varias, cada prenda dice la suya.
+  const variasMarcas = marcasDePapel(papel).length > 1;
   return (
     <div className="flex flex-col gap-1">
       <BotonVerMas
@@ -252,7 +264,8 @@ function Prendas({ papel }: { papel: PapelConFoto }) {
                 <span className="block truncate text-tinta">
                   {x.cantidad} · {x.nombre}
                 </span>
-                <span className="block text-xs text-taupe">
+                <span className="block text-sm text-taupe">
+                  {variasMarcas && x.marca ? `${x.marca} · ` : ""}
                   {soles(x.costo)} c/u · {x.destino}
                   {textoFaltan(x) ? <span className="text-ambar-profundo"> · {textoFaltan(x)}</span> : null}
                 </span>
@@ -284,8 +297,9 @@ export function DetallePapel({
   const router = useRouter();
   const [proveedorId, setProveedorId] = useState(papel.proveedorId);
   const [cambiaProveedor, setCambiaProveedor] = useState(false);
-  const [serie, setSerie] = useState("");
-  const [numero, setNumero] = useState("");
+  // Lo que la compradora copió al comprar (ADR-0574): Compras solo lo corrige. De antes, vacío: se copia de la foto.
+  const [serie, setSerie] = useState(papel.serie ?? "");
+  const [numero, setNumero] = useState(papel.numero ?? "");
   const [cambiaMonto, setCambiaMonto] = useState(false);
   const [monto, setMonto] = useState(papel.monto.toFixed(2));
   const [guardando, setGuardando] = useState(false);
@@ -390,7 +404,7 @@ export function DetallePapel({
           />
         </CampoGuiado>
       ) : (
-        <p className="text-xs text-taupe">Va con un número interno (SC-…): no le dieron papel.</p>
+        <p className="text-sm text-taupe">Va con un número interno (SC-…): no le dieron papel.</p>
       )}
       {cambiaMonto && (
         <CampoGuiado id="monto" guia={guia} titulo="Lo que dice el papel">
@@ -403,7 +417,7 @@ export function DetallePapel({
             disabled={guardando}
             onChange={(e) => limpiar(setMonto)(e.target.value)}
           />
-          <p className="mt-1.5 text-xs text-taupe">
+          <p className="mt-1.5 text-sm text-taupe">
             {nombre} anotó {soles(papel.monto)}
           </p>
         </CampoGuiado>
@@ -419,7 +433,12 @@ export function DetallePapel({
         <Veredicto papel={papel} monto={montoLeido ?? papel.monto} />
         <Llegada papel={papel} />
         <Pago papel={papel} />
-        {papel.esMia && <p className="text-xs text-taupe">Que la complete otra persona de Compras.</p>}
+        {papel.noPasoPor && (
+          <Aviso tono="atencion" titulo="No pasó sola a los libros">
+            {papel.noPasoPor}
+          </Aviso>
+        )}
+        {papel.esMia && <p className="text-sm text-taupe">Que la complete otra persona de Compras.</p>}
         {campos && <div className="mt-2 flex flex-col gap-3">{campos}</div>}
       </div>
     </div>
@@ -453,6 +472,7 @@ export function DetallePapel({
         </div>
       )}
       <Prendas papel={papel} />
+      <CorreccionesDeCompra papelId={papel.id} />
     </div>
   );
 
@@ -461,9 +481,22 @@ export function DetallePapel({
       guia="fondos.papel-detalle"
       sobre={sobrePapel(papel)}
       titulo={proveedor}
+      bajoTitulo={lineaMarcas(papel)}
       subtitulo={subtituloPapel(papel)}
       monto={soles(papel.monto)}
-      estado={papel.esMia ? <Chip tono="pizarra">Es tuya</Chip> : undefined}
+      // ADR-0517: si un Admin recibió lo que él mismo compró, quien completa el papel (que nunca es quien compró) lo ve aquí.
+      estado={
+        papel.esMia || recibioQuienCompro(papel) ? (
+          <span className="flex flex-wrap justify-end gap-1.5">
+            {papel.esMia && <Chip tono="pizarra">Es tuya</Chip>}
+            {recibioQuienCompro(papel) && (
+              <Chip tono="ambar" versalitas={false} title="La misma persona hizo la compra y cerró el conteo en la tienda: nadie más contó esta mercadería.">
+                {TEXTO_LO_RECIBIO_QUIEN_COMPRO}
+              </Chip>
+            )}
+          </span>
+        ) : undefined
+      }
     >
       {editable ? (
         <form
@@ -471,6 +504,7 @@ export function DetallePapel({
             e.preventDefault();
             void confirmar();
           }}
+          onKeyDown={enterNoGuarda}
           className="flex min-w-0 flex-col gap-5"
         >
           {cuerpo}
@@ -487,7 +521,7 @@ export function DetallePapel({
           )}
           <PieGuia guia={guia} listo="Todo listo para completarla." conFrase />
           <div className="flex flex-wrap items-center gap-3 border-t border-sand pt-4">
-            {posicion && <span className="text-[13px] text-taupe">{posicion}</span>}
+            {posicion && <span className="text-sm text-taupe">{posicion}</span>}
             <div className="pie-acciones ml-auto">
               {alSaltar && (
                 <Boton type="button" peso="fantasma" onClick={alSaltar} disabled={guardando}>
@@ -499,13 +533,15 @@ export function DetallePapel({
                 peso="primario"
                 cargando={guardando}
                 textoCargando="Guardando…"
-                disabled={!guia.puedeConfirmar}
+                confirma={guia}
                 title={guia.frase ?? undefined}
                 className={guia.claseConfirmar}
                 data-guia="fondos.papel-completar"
               >
-                <Check className="h-4 w-4" aria-hidden />
-                {fraseCompletar()}
+                <span className="inline-flex items-center gap-2">
+                  <Check className="h-4 w-4" aria-hidden />
+                  {fraseCompletar()}
+                </span>
               </Boton>
             </div>
           </div>

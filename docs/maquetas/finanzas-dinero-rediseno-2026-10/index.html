@@ -1,0 +1,485 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cuentas y dinero · rediseño</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="campana.css">
+<style>
+/* Cuentas y dinero · rediseño visual (solo estética y orden; ninguna función cambia). Solo var(--…) de base.css. */
+.pagina{max-width:none;margin:0;padding:22px clamp(16px,3vw,40px) 90px;display:flex;flex-direction:column;gap:20px}
+.btn{height:auto;border-color:var(--sand);background:var(--papel)}.btn.pri{height:40px;background:var(--tinta);border-color:var(--tinta)}
+.mq-nota{max-width:none;padding-inline:clamp(16px,3vw,40px)}
+.cab{display:flex;justify-content:space-between;align-items:flex-end;gap:18px 28px;flex-wrap:wrap}
+.cab .linea{display:flex;align-items:center;gap:10px}.cab .linea::after{content:"";width:72px;height:1px;background:var(--taupe);opacity:.55}
+.cab h1{font-size:clamp(34px,5vw,46px);line-height:1.02;margin-top:4px}.cab .frase{max-width:60ch;font-size:15px;margin-top:6px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:9px 16px;font-size:13.5px;cursor:pointer;transition:transform .25s var(--ease-cayla),background .2s}
+.btn.pri{background:var(--tinta);color:var(--crema);border-color:var(--tinta);font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;height:40px}
+@media(hover:hover){.btn:hover{transform:translateY(-2px)}.btn.pri:hover{background:var(--rojo-p)}}
+.pest{display:inline-flex;padding:4px;border-radius:999px;background:var(--hueso);gap:2px;flex-wrap:wrap;align-self:flex-start}
+.pest button{border:0;background:transparent;padding:8px 14px;border-radius:999px;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;cursor:pointer;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.pest button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.pest .g{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:9px;background:var(--ambar);color:var(--crema);font-size:10.5px;margin-left:6px;padding:0 5px}
+.sedes{display:flex;flex-wrap:wrap;gap:8px}
+.sede{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:6px 14px 6px 10px;cursor:pointer;font-size:13.5px;transition:all .2s var(--ease-cayla)}
+.sede i{width:9px;height:9px;border-radius:50%;background:var(--c)}.sede .n{font-variant-numeric:tabular-nums;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.sede[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}.sede[aria-pressed="true"] .n{color:color-mix(in srgb,var(--crema) 78%,transparent)}
+.tarj{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio)}
+.tarj>header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;padding:16px 20px 12px}
+.tarj>header h2{font-size:21px}.tarj>header small{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.chip{background:color-mix(in srgb,var(--c,var(--pizarra)) 14%,transparent);color:var(--c,var(--pizarra))}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.am{--c:var(--ambar)}.rj{--c:var(--rojo-p)}.vd{--c:var(--verde)}
+.sec{display:none;flex-direction:column;gap:20px}.sec.on{display:flex}
+.cuenta-in{animation:ent .5s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0)*45ms)}
+@keyframes ent{from{opacity:0;transform:translateY(8px)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.neg{color:var(--rojo-p)}
+.pista{height:6px;border-radius:99px;background:var(--hueso);overflow:hidden}.pista>i{display:block;height:100%;border-radius:99px;background:var(--c,var(--tinta));width:var(--w);animation:crece .9s var(--ease-cayla) backwards}
+@keyframes crece{from{width:0}}
+
+/* ===== A · Panorama ===== */
+.a-hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.6fr);gap:20px}
+.a-tienes{padding:24px;display:flex;flex-direction:column;gap:10px;justify-content:center}
+.a-tienes .cifra-g{font-family:var(--serif);font-size:clamp(46px,6vw,68px);line-height:1;font-variant-numeric:tabular-nums}
+.a-tienes .cifra-g small{font-size:.4em;color:var(--taupe);margin-right:6px}
+.a-partido{display:flex;height:14px;border-radius:99px;overflow:hidden;gap:3px;margin-top:6px}.a-partido i{flex:var(--f);background:var(--c);border-radius:3px;animation:crece .9s var(--ease-cayla) backwards}
+.a-etapas{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.a-etapa{padding:16px 18px;display:flex;flex-direction:column;gap:6px;cursor:pointer;text-align:left;font:inherit;color:inherit;position:relative;overflow:hidden;transition:transform .25s var(--ease-cayla),border-color .2s}
+.a-etapa::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+.a-etapa .v{font-family:var(--serif);font-size:28px;font-variant-numeric:tabular-nums;line-height:1.1}
+.a-etapa .q{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.a-etapa[aria-pressed="true"]{border-color:var(--tinta);background:var(--hueso)}
+@media(hover:hover){.a-etapa:hover{transform:translateY(-2px)}}
+.a-cols{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:20px;align-items:start}
+.a-aten{list-style:none;margin:0;padding:0 8px 8px}
+.a-aten li{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px;border-radius:10px}
+.a-aten li+li{border-top:1px solid var(--sand)}
+.a-aten .ic{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 15%,transparent);color:var(--c);font-weight:700}
+.a-aten b{font-weight:600;font-size:14px;display:block}.a-aten span.d{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.a-aten button{border:0;background:none;color:var(--rojo-p);cursor:pointer;font-size:12.5px;text-decoration:underline;text-underline-offset:3px}
+.a-fila{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 20px;border-top:1px solid var(--sand)}
+.a-fila .nom{display:flex;flex-direction:column}.a-fila .nom b{font-weight:600;font-size:14px}.a-fila .nom small{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.a-fila .sd{font-family:var(--serif);font-size:20px;font-variant-numeric:tabular-nums;text-align:right;min-width:100px}
+.a-mov{padding:0 8px 8px;list-style:none;margin:0}.a-mov li{display:grid;grid-template-columns:44px 1fr auto;gap:12px;padding:10px 12px;align-items:center}.a-mov li+li{border-top:1px solid var(--sand)}
+.a-mov .f{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--taupe);font-weight:600}
+.a-mov .r{font-size:13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}.a-mov .r em{font-style:normal;opacity:.5}.a-mov small{display:block;color:color-mix(in srgb,var(--tinta) 66%,transparent);font-size:12px}
+.a-mov .m{font-variant-numeric:tabular-nums;font-weight:600}
+
+/* ===== B · El recorrido ===== */
+.b-mat{overflow-x:auto}
+.b-mat table{width:100%;border-collapse:separate;border-spacing:6px;min-width:760px}
+.b-mat th{font-weight:400;text-align:left;vertical-align:bottom;padding:4px 8px}
+.b-mat th .t{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--c)}.b-mat th .s{display:block;font-size:12px;color:color-mix(in srgb,var(--tinta) 62%,transparent);text-transform:none;letter-spacing:0;margin-top:2px}
+.b-mat th.fl::after{content:"→";float:right;opacity:.4;font-size:16px}
+.b-mat td.rot{padding:8px 10px;white-space:nowrap}.b-mat td.rot b{font-weight:600}.b-mat td.rot i{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--c);margin-right:8px}
+.b-cel{width:100%;border:1px solid transparent;border-radius:10px;padding:12px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;background:color-mix(in srgb,var(--c) calc(var(--k)*34%),var(--hueso) );font-variant-numeric:tabular-nums;font-size:16px;font-family:var(--serif);position:relative;transition:transform .2s var(--ease-cayla),border-color .2s;min-height:50px}
+.b-cel.cero{background:transparent;border:1px dashed var(--sand);color:color-mix(in srgb,var(--tinta) 40%,transparent);cursor:default}
+.b-cel[aria-pressed="true"]{border-color:var(--tinta);box-shadow:0 0 0 2px var(--papel),0 0 0 3px var(--tinta)}
+.b-cel .al{position:absolute;top:6px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--ambar)}
+@media(hover:hover){.b-cel:not(.cero):hover{transform:translateY(-2px)}}
+.b-tot{text-align:left;padding:10px;font-weight:600;font-variant-numeric:tabular-nums;font-family:var(--serif);font-size:16px}
+.b-tot.t{font-size:20px}
+.b-deb{color:var(--rojo-p)}
+.b-det{padding:0 8px 10px}
+.b-det .a-fila:first-child{border-top:0}
+.b-alc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:20px;padding:6px 20px 20px;align-items:center}
+.b-alc svg{width:100%;height:150px;display:block}
+
+/* ===== C · Libreta ===== */
+.c-lib{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:20px;align-items:start}
+.c-lista{padding:6px 8px 12px;position:sticky;top:76px}
+.c-grp{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe);padding:14px 12px 6px;display:flex;justify-content:space-between}
+.c-it{display:grid;grid-template-columns:auto 1fr auto;gap:12px;width:100%;border:0;background:transparent;text-align:left;font:inherit;color:inherit;align-items:center;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .2s}
+.c-it .pt{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--crema-fija);background:var(--c)}
+.c-it b{display:block;font-weight:600;font-size:14px}.c-it small{font-size:12px;color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+.c-it .v{font-variant-numeric:tabular-nums;font-weight:600}
+.c-it[aria-pressed="true"]{background:var(--hueso)}
+@media(hover:hover){.c-it:hover{background:color-mix(in srgb,var(--hueso) 60%,transparent)}}
+.c-det{padding:24px;display:flex;flex-direction:column;gap:18px}
+.c-det .saldo{font-family:var(--serif);font-size:clamp(44px,6vw,64px);line-height:1;font-variant-numeric:tabular-nums}
+.c-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.c-meta div{background:var(--hueso);border-radius:10px;padding:10px 14px}.c-meta .versalita{display:block;margin-bottom:2px}.c-meta b{font-weight:600;font-size:14px}
+.c-det svg{width:100%;height:110px}
+.c-mov{list-style:none;margin:0;padding:0}.c-mov li{display:grid;grid-template-columns:56px 1fr auto;gap:12px;padding:12px 0;border-top:1px solid var(--sand);align-items:center}
+.c-mov .ent{color:var(--verde)}.c-mov .sal{color:var(--rojo-p)}
+.c-total{padding:22px 24px;display:flex;flex-direction:column;gap:16px}
+
+.d-lib{grid-template-columns:minmax(300px,400px) minmax(0,1fr)}.d-der{min-width:0}.d-lib .c-lista{max-height:calc(100vh - 100px);overflow:auto}
+.d-pt{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ambar);margin-left:6px;vertical-align:middle}
+.d-atras{border:0;background:none;cursor:pointer;color:var(--rojo-p);font-size:13px;padding:0;align-self:flex-start;text-decoration:underline;text-underline-offset:3px}
+.d-av{display:flex;flex-direction:column;gap:6px;background:color-mix(in srgb,var(--ambar) 12%,transparent);border-left:3px solid var(--ambar);border-radius:8px;padding:10px 14px}.d-av b{display:block;font-size:13.5px}.d-av span{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+@media(max-width:980px){.d-lib{grid-template-columns:1fr}.d-lib .c-lista{max-height:none}}
+
+/* ===== Historial completo (ventana emergente) ===== */
+.h-velo{position:fixed;inset:0;z-index:100;background:color-mix(in srgb,var(--sombra) 45%,transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:flex-start;justify-content:center;padding:5vh 16px;animation:hv .25s var(--ease-cayla)}
+@keyframes hv{from{opacity:0}}
+.h-hoja{background:var(--papel);border:1px solid var(--sand);border-radius:18px;width:min(760px,100%);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;animation:hh .38s var(--ease-cayla)}
+@keyframes hh{from{opacity:0;transform:translateY(18px) scale(.985)}}
+.h-cab{padding:20px 24px 14px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.h-cab h2{font-size:26px}
+.h-x{width:36px;height:36px;border-radius:50%;border:1px solid var(--sand);background:var(--papel);cursor:pointer;font-size:18px;line-height:1}
+.h-barra{padding:0 24px 14px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;border-bottom:1px solid var(--sand)}
+.h-seg{display:inline-flex;padding:4px;border-radius:999px;background:var(--hueso);gap:2px}
+.h-seg button{border:0;background:transparent;padding:6px 14px;border-radius:999px;font-size:12.5px;font-weight:600;cursor:pointer;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.h-seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.h-per{display:inline-flex;align-items:center;gap:6px;margin-right:auto}.h-per b{font-weight:600;font-size:14px;min-width:150px;text-align:center}.h-per b::first-letter{text-transform:uppercase}
+.h-per button{width:30px;height:30px;border-radius:50%;border:1px solid var(--sand);background:var(--papel);cursor:pointer}.h-per button:disabled{opacity:.35;cursor:default}
+.h-cuerpo{overflow:auto;padding:0 24px 8px;flex:1}
+.h-dia{display:flex;align-items:center;gap:12px;margin:20px 0 4px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--taupe);position:sticky;top:0;background:var(--papel);padding:6px 0;z-index:1}
+.h-dia::before,.h-dia::after{content:"";height:1px;background:var(--sand);flex:1}.h-dia span.t{font-variant-numeric:tabular-nums;color:color-mix(in srgb,var(--tinta) 62%,transparent);letter-spacing:0;text-transform:none;font-weight:500}
+.h-fila{display:grid;grid-template-columns:1fr auto;gap:12px;padding:10px 0;align-items:center}.h-fila+.h-fila{border-top:1px solid color-mix(in srgb,var(--sand) 60%,transparent)}
+.h-fila b{font-weight:600;font-size:14px}.h-fila small{display:block;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}.h-fila .m{font-weight:600;font-variant-numeric:tabular-nums}
+.h-pie{padding:12px 24px;border-top:1px solid var(--sand);display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;font-size:12.5px}
+.h-pag{display:inline-flex;gap:4px;align-items:center}.h-pag button{min-width:32px;height:32px;border-radius:999px;border:0;background:transparent;cursor:pointer;font-size:13px;font-variant-numeric:tabular-nums}
+.h-pag button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}.h-pag button:disabled{opacity:.35;cursor:default}
+.h-ver{border:0;background:none;color:var(--rojo-p);cursor:pointer;font-size:12.5px;text-decoration:underline;text-underline-offset:3px;padding:0}
+.h-resumen{padding:10px 24px;display:flex;flex-wrap:wrap;gap:6px 22px;font-size:13px;background:var(--hueso)}.h-resumen b{font-variant-numeric:tabular-nums}.ent{color:var(--verde)}.sal{color:var(--rojo-p)}
+.h-velo.ya,.h-velo.ya .h-hoja{animation:none}
+.h-vacio{padding:40px 0;text-align:center}
+@media(max-width:560px){.h-velo{padding:0;align-items:flex-end}.h-hoja{max-height:94vh;border-radius:18px 18px 0 0}.h-cab,.h-barra,.h-cuerpo,.h-pie,.h-resumen{padding-inline:16px}.h-per b{min-width:0}}
+
+.a-etapa .chip{white-space:normal;margin-bottom:4px}
+.optp{padding:14px 18px;border-style:dashed}.optp header{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;margin-bottom:10px}.optp header b{font-family:var(--serif);font-size:18px;font-weight:500}.optp header small{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.opg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.sw2{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.sw2 button{border:1px solid var(--sand);background:var(--papel);border-radius:10px;padding:7px 12px;font-size:12.5px;text-align:left;cursor:pointer}.sw2 button[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.split{position:relative;display:inline-flex}.split .btn.pri:first-child{border-radius:999px 0 0 999px}.split .sp{border-radius:0 999px 999px 0;border-left:1px solid color-mix(in srgb,var(--crema) 30%,transparent);padding:0 14px}
+.menu{position:absolute;top:calc(100% + 8px);right:0;z-index:30;background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:6px;min-width:300px;display:flex;flex-direction:column;animation:ent .25s var(--ease-cayla)}
+.menu button{border:0;background:none;text-align:left;padding:9px 12px;border-radius:8px;font-size:13.5px;cursor:pointer}.menu button small{color:var(--taupe);margin-left:4px}.menu hr{border:0;border-top:1px solid var(--sand);margin:4px 0;width:100%}
+@media(hover:hover){.menu button:hover{background:var(--hueso)}}
+.d-recibe{font-size:13px;background:var(--hueso);border-radius:10px;padding:8px 12px;align-self:flex-start}.d-recibe .versalita{margin-right:6px}
+.nota-i{background:var(--hueso);border-radius:12px;padding:10px 14px;font-size:13px}
+.btnx{border:0;background:none;color:var(--rojo-p);cursor:pointer;font-size:13px;text-decoration:underline;text-underline-offset:3px;padding:0}
+details.cob>summary{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px;cursor:pointer;list-style:none}details.cob>summary::-webkit-details-marker{display:none}.cob .mas{font-size:12.5px;color:var(--rojo-p);text-decoration:underline}
+details.cob[open] .mas::after{content:" (cerrar)"}
+@media(max-width:980px){.opg{grid-template-columns:1fr 1fr}}@media(max-width:560px){.opg{grid-template-columns:1fr}}
+
+#toast{position:fixed;top:76px;right:20px;z-index:200;background:var(--tinta);color:var(--crema);padding:12px 18px;border-radius:12px;font-size:13.5px;max-width:360px;opacity:0;transform:translateY(-8px);pointer-events:none;transition:all .3s var(--ease-cayla)}#toast.on{opacity:1;transform:none}
+.mv-form{padding:4px 24px 20px;display:flex;flex-direction:column;gap:16px}.mv-c{display:flex;flex-direction:column;gap:6px}.mv-dos{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.mv-form select,.mv-form input{height:44px;border:1px solid var(--sand);background:var(--hueso);border-radius:10px;padding:0 12px;font:inherit;color:var(--tinta);transition:background .2s,border-color .2s}.mv-form select:focus,.mv-form input:focus{background:var(--papel);border-color:var(--tinta);outline:0}
+.mv-ops{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}.mv-op{text-align:left;border:1px solid var(--sand);background:var(--papel);border-radius:12px;padding:12px 14px;cursor:pointer;display:flex;flex-direction:column;gap:4px;font:inherit;color:var(--tinta)}.mv-op span{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}.mv-op[aria-pressed="true"]{border-color:var(--tinta);background:var(--hueso);box-shadow:inset 0 0 0 1px var(--tinta)}
+.mv-lotes{list-style:none;margin:0;padding:0;border:1px solid var(--sand);border-radius:12px}.mv-lotes li{display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center;padding:10px 14px;font-size:13.5px}.mv-lotes li+li{border-top:1px solid var(--sand)}
+.mv-ck{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--borde-control,var(--taupe));background:var(--papel);cursor:pointer;padding:0;position:relative}.mv-ck[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta)}.mv-ck[aria-pressed="true"]::after{content:"";position:absolute;left:6px;top:2px;width:5px;height:10px;border:solid var(--crema);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.mv-err{background:color-mix(in srgb,var(--rojo-p) 12%,transparent);color:var(--rojo-p);border-radius:10px;padding:10px 14px;font-size:13px}
+@media(max-width:560px){.mv-dos,.mv-ops{grid-template-columns:1fr}}
+
+.dd{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:8px 14px;font-size:13px;cursor:pointer;font-weight:500;transition:transform .25s var(--ease-cayla)}.dd i{width:8px;height:8px;border-radius:50%;background:currentColor}
+.dd.ok{color:var(--verde);border-color:color-mix(in srgb,var(--verde) 35%,var(--sand))}.dd.am{color:var(--ambar);border-color:color-mix(in srgb,var(--ambar) 45%,var(--sand));background:color-mix(in srgb,var(--ambar) 8%,var(--papel))}
+@media(hover:hover){.dd:hover{transform:translateY(-2px)}}
+.dd-linea{display:flex;align-items:center;gap:14px;border-radius:12px;padding:10px 14px;margin-top:6px;background:color-mix(in srgb,var(--verde) 9%,transparent)}.dd-linea.am{background:color-mix(in srgb,var(--ambar) 11%,transparent);align-items:stretch}
+.dd-linea .check{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--verde);color:var(--crema-fija);font-size:14px;flex:none}
+.dd-t{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}.dd-t b{font-size:15px;font-weight:600}.dd-linea.am .dd-t b{font-family:var(--serif);font-size:22px;font-weight:500;color:var(--ambar)}.dd-t small{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 68%,transparent)}.dd-t .pista{margin-top:6px}
+.dd-a{display:flex;flex-direction:column;gap:6px;align-items:flex-end;justify-content:center}
+.dd-prest{display:grid;grid-template-columns:1fr 140px auto;gap:14px;align-items:center;border:1px solid var(--sand);border-radius:12px;padding:12px 14px}.dd-prest small{display:block;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.sw3{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.sw3 button{border:1px solid var(--sand);background:var(--papel);border-radius:10px;padding:7px 12px;font-size:12.5px;cursor:pointer}.sw3 button[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+
+.dt{padding:0}.dt-cab{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding:20px 24px 12px;flex-wrap:wrap}.dt-cab h2{font-size:26px}.dt-cab p{font-size:14px;margin-top:4px;max-width:70ch}
+.dt-bot{display:flex;gap:10px}.dt-p{border-color:var(--tinta)}
+.dt-cuerpo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:0 28px;padding:0 24px 22px;align-items:start}
+.dt-izq{border-top:1px solid var(--sand);padding-top:14px;display:flex;flex-direction:column;gap:12px}
+.dt-debe .serif{font-size:42px;line-height:1.1;margin:2px 0 6px}.dt-debe .serif.am{color:var(--ambar)}
+.dt-lista{list-style:none;margin:0;padding:0;font-size:13.5px}.dt-lista li{display:grid;grid-template-columns:1fr auto;gap:6px 14px;padding:8px 0;border-top:1px solid var(--sand)}.dt-lista .pista{grid-column:1/-1}
+.dt-der{border-top:1px solid var(--sand);padding-top:14px}
+.dm-cab{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.dm-cab b{font-size:14.5px;font-weight:600}
+.dm-seg{display:inline-flex;padding:3px;border-radius:999px;background:var(--hueso)}.dm-seg button{border:0;background:transparent;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;color:color-mix(in srgb,var(--tinta) 66%,transparent)}.dm-seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.dm-ley{display:flex;gap:14px;font-size:12px;margin:8px 0 4px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}.dm-ley i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px}
+.dm-fila{display:grid;grid-template-columns:130px 1fr;gap:12px;align-items:center;padding:7px 0}.dm-fila+.dm-fila{border-top:1px dashed var(--sand)}.dm-k{font-size:13px;font-weight:500;overflow-wrap:anywhere}
+.dm-bs{display:flex;flex-direction:column;gap:4px}.dm-b{display:flex;align-items:center;gap:8px;height:18px}.dm-b i{display:block;height:100%;width:max(var(--w),3px);background:var(--c);border-radius:4px;animation:crece .8s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0)*70ms)}.dm-b b{font-size:12px;font-weight:600;color:var(--c);white-space:nowrap}
+.dm-pie{font-size:12.5px;margin-top:8px}
+@media(max-width:1100px){.dt-cuerpo{grid-template-columns:1fr}.dt-der{margin-top:14px}}
+@media(max-width:560px){.dm-fila{grid-template-columns:1fr}.dt-bot{width:100%}.dt-bot .btn{flex:1}}
+@media(max-width:980px){.a-hero,.a-cols,.b-alc,.c-lib{grid-template-columns:1fr}.a-etapas{grid-template-columns:repeat(2,1fr)}.c-lista{position:static}.c-meta{grid-template-columns:1fr}}
+@media(max-width:560px){.a-fila{grid-template-columns:1fr auto}.a-fila .pista{display:none}.a-fila .sd{font-size:18px}.cab .btn.pri{width:100%;justify-content:center}}
+</style></head><body>
+<header class="mq-barra"><a class="mq-volver" href="../" aria-label="Volver a las maquetas"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3L5 8l5 5"/></svg></a>
+<div class="mq-titulo"><span class="versalita">Finanzas · rediseño visual</span><b>Cuentas y dinero</b></div><span class="mq-espacio"></span>
+<div class="mq-selector" role="group" aria-label="Dirección"><span class="mq-pildora"></span><button data-ver="a">A · Panorama</button><button data-ver="b">B · El recorrido</button><button data-ver="c">C · Libreta</button><button data-ver="d">★ A+C · Fusión</button></div>
+<span class="mq-ejemplo">Cifras de ejemplo</span><button class="mq-tema" type="button">Oscuro</button></header>
+<p class="mq-nota tenue"><b>Tres formas de ordenar lo mismo.</b> Mismas funciones, mismos datos: cambia qué se ve primero. A responde «¿cuánto tengo y qué me pide atención?», B «¿por dónde va la plata de cada sede?», C «¿qué pasó con esta cuenta?». Toca sedes, tarjetas y filas. Nada se guarda.</p>
+<main class="pagina" id="app"></main><div id="zmodal"></div><div id="mvmodal"></div><div id="hist"></div>
+<script src="datos.js"></script><script src="campana.js"></script>
+<script>
+const D=window.DINERO,$=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const f=n=>(n<0?"−":"")+"S/ "+Math.abs(Math.round(n)).toLocaleString("en-US");
+const sedeDe=id=>D.SEDES.find(s=>s.id===id);
+const ETAPAS=[
+ {t:"banco",n:"Ya en el banco",q:"Disponible para pagar hoy",c:"var(--pizarra)"},
+ {t:"camino",n:"En camino",q:"Cobrado con tarjeta/QR, llega en 1–3 días",c:"var(--m-qr)"},
+ {t:"fuerte",n:"Por depositar",q:"En las cajas fuertes de las tiendas",c:"var(--m-efectivo)"},
+ {t:"cajon",n:"En los cajones",q:"Sencillo para dar vuelto",c:"var(--taupe)"}];
+const et=t=>ETAPAS.find(e=>e.t===t)||{n:"Tarjeta de crédito",c:"var(--rojo-p)"};
+const S={ver:(location.hash||"#a").slice(1).replace(/[^abcd]/g,"")||"a",sede:new URLSearchParams(location.search).get("sede")||"todas",pest:"donde",etapa:null,sel:"bcp",celda:null,opt:{alc:"b",av:"b",dueno:"a",cobro:"b"},menu:false,dd:{t:true,a:false,b:false,c:false,d:true},deuda:0,dmv:"quien"};
+const cuentas=()=>D.CUENTAS.filter(c=>S.sede==="todas"||c.sede===S.sede);
+const suma=l=>l.reduce((a,c)=>a+c.saldo,0);
+const tienes=l=>suma(l.filter(c=>c.tipo!=="tarjeta"));
+function serie(c){ // serie de ejemplo determinista que termina en el saldo
+ let h=0;for(const ch of c.id)h=(h*31+ch.charCodeAt(0))%997;const p=[];let v=c.saldo;
+ for(let i=0;i<14;i++){p.unshift(v);v=Math.max(0,v+(((h*(i+3))%11)-5)*Math.abs(c.saldo||200)*.03*(c.tipo==="banco"?3:1));}
+ return p;}
+function spark(p,col="var(--tinta)"){const mx=Math.max(...p),mn=Math.min(...p),W=400,H=90,r=mx-mn||1;
+ const pts=p.map((v,i)=>[i*W/(p.length-1),H-8-((v-mn)/r)*(H-20)]);
+ const d=pts.map((q,i)=>(i?"L":"M")+q[0].toFixed(1)+" "+q[1].toFixed(1)).join(" ");
+ return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><path d="${d} L${W} ${H} L0 ${H}Z" fill="${col}" opacity=".08"/><path d="${d}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><circle cx="${pts.at(-1)[0]-3}" cy="${pts.at(-1)[1]}" r="4" fill="${col}"/></svg>`;}
+function atencion(){ // todo lo que pide mirada, de lo más grave a lo menos, sacado de los mismos datos
+ const l=[];const sd=S.sede;const vale=x=>sd==="todas"||x===sd;
+ if(sd==="todas"||sd==="emp")l.push({c:"var(--ambar)",i:"!",t:"¿Me alcanza? Bajas del mínimo el "+D.ALCANZA.dia,d:`Sueldos y alquileres (${f(D.ALCANZA.salidas[0].monto)}) salen el ${D.ALCANZA.salidas[0].dia}. Quedarías en ${f(D.ALCANZA.baja)}, mínimo ${f(D.ALCANZA.minimo)}.`,a:"Ver el flujo",p:"alc"});
+ D.CUENTAS.filter(c=>c.aviso&&vale(c.sede)).forEach(c=>l.push({c:"var(--rojo-p)",i:"↑",t:c.nombre+": "+c.aviso,d:`Hay ${f(c.saldo)} guardados sin llevar al banco.`,a:"Registrar depósito",p:"mov"}));
+ if(sd==="todas"||sd==="emp")Object.values(D.BANCOS).forEach(b=>{const x=b.saldoBanco-b.saldoSistema;if(x)l.push({c:"var(--ambar)",i:"≠",t:`${b.nombre} no cuadra: ${x>0?"+":"−"}${f(Math.abs(x))}`,d:`El banco dice ${f(b.saldoBanco)} y el sistema ${f(b.saldoSistema)} (al ${b.al}).`,a:"Cuadrar",p:"cuadrar"});});
+ const ci=D.CIERRES.filter(x=>vale(x.sede));if(ci.length)l.push({c:"var(--ambar)",i:"S/",t:`${ci.length} cierres con diferencia · ${f(ci.reduce((a,x)=>a+x.dif,0))}`,d:ci.map(x=>`${sedeDe(x.sede).nombre} ${x.dia}: ${f(x.dif)} (${x.motivo})`).join(" · "),a:"Ver cierres",p:"x"});
+ const d=D.DEUDAS.filter(x=>x.dias<=7&&vale(x.sede));d.forEach(x=>l.push({c:"var(--pizarra)",i:"$",t:`Vence en ${x.dias} días: ${x.proveedor}`,d:`${f(x.total-x.pagado)} · ${x.que}`,a:"Ir a Qué debes",p:"debes"}));
+ return l;}
+
+/* ===== Lo que faltaba de la pantalla actual (datos de tus capturas; los montos que no se veían son de ejemplo) ===== */
+const EXTRA={
+ alc:{minimo:15000,baja:32306,cuando:"1 – 7 nov",dias:35,nota:"Sin los S/ 295 que son de Claudia (CLAURE): ya están restados de lo que tienes.",serie:[41.2,38.4,35.1,32.3,36.8,39.5]},
+ avisos:[
+  {q:"abono_tarjeta",c:"var(--ambar)",t:"Izipay no depositó 12 días (S/ 8,174.30)",d:"El más viejo lleva 4 días hábiles esperando y Izipay deposita en 0. Si ya llegó al banco, regístralo; si no, reclámalo a Izipay.",a:"Registrar el depósito"},
+  {q:"abono_tarjeta",c:"var(--ambar)",t:"Vendemás no depositó 2 días (S/ 562.40)",d:"El más viejo lleva 4 días hábiles esperando (sin tarifa cargada: se avisa a los 3). Si ya llegó al banco, regístralo; si no, reclámalo a Vendemás.",a:"Registrar el depósito"},
+  {c:"var(--ambar)",t:"Falta registrar de qué banco salió la planilla del 28/09 al 28/10",d:"BCP · 12 personas · S/ 17,181.92 · Interbank · 5 personas · S/ 7,299.36. Pagado en Dynamic el 29/10: es lo que recibe cada persona en su banco; la AFP, el EsSalud y la renta de 4ª se pagan aparte.",a:"Registrar las 2 salidas"},
+  {c:"var(--ambar)",t:"Falta registrar de qué banco salió el pago a los practicantes del 28/09 al 28/10",d:"BCP · 3 personas · S/ 4,605.56 · Interbank · 1 persona · S/ 1,200.00 (ejemplo).",a:"Registrar las 2 salidas"}],
+ medios:["Efectivo","Yape","Plin","Tarjeta","QR","Transferencia"],
+ cobros:[["Taller",[null,null,null,null,null,"!Sin cuenta"]],
+  ["Tienda AQP",["Caja Operativa · Tienda AQP","BCP Empresa","BCP Empresa","Por depositar Vendemás","Por depositar Izipay","BCP Empresa"]],
+  ["Tienda LIM",["Caja Operativa · Tienda LIM","BCP Empresa","BCP Empresa","Por depositar Izipay","Por depositar Izipay","BCP Empresa"]],
+  ["Tienda TRU",["Caja Operativa · Tienda TRU","BCP Empresa","BCP Empresa","Por depositar Vendemás","Por depositar Izipay","BCP Empresa"]]]};
+window.CAMPANA_OPC=EXTRA.avisos;
+const OPC=[["alc","¿Me alcanza?",[["a","Ficha junto a las etapas"],["b","Tarjeta en la columna derecha"]]],["av","Avisos de máquinas y planilla",[["a","Dentro de «Pide tu atención»"],["b","Pestaña «Por registrar» en la campana"]]],["dueno","Plata del dueño",[["a","Línea + menú de «Registrar movimiento»"],["b","Tarjeta en la columna derecha"]]],["cobro","A qué cuenta entra cada cobro",[["a","En el detalle de cada cuenta"],["b","Tarjeta al final con las primeras 6"]]]];
+const optPanel=()=>`<section class="tarj optp"><header><b>Probar ubicaciones</b><small>Lo que faltaba de tu pantalla actual. Elige dónde se ve mejor; la maqueta lo coloca en la pantalla de abajo.</small></header><div class="opg">${OPC.map(([k,t,o])=>`<div><span class="versalita">${t}</span><div class="sw2" role="group">${o.map(([v,tt])=>`<button aria-pressed="${S.opt[k]===v}" data-opt="${k}:${v}">${tt}</button>`).join("")}</div></div>`).join("")}</div></section>`;
+const alcBody=()=>{const E=EXTRA.alc,mx=45,H=120,p=E.serie.map((v,i)=>[i*400/5,H-6-v/mx*(H-16)]);const ymin=H-6-E.minimo/1000/mx*(H-16);
+ return `<p class="tenue" style="font-size:14px">En las próximas 6 semanas no bajas de tu mínimo de ${f(E.minimo)}. La más baja es la ${E.cuando}, con ${f(E.baja)}.</p>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0"><span class="chip vd">Dentro del mínimo</span><span class="chip">${E.dias} días de caja</span></div>
+ <svg viewBox="0 0 400 ${H}" preserveAspectRatio="none" style="width:100%;height:110px;display:block" aria-label="Proyección de 6 semanas"><line x1="0" x2="400" y1="${ymin}" y2="${ymin}" stroke="var(--ambar)" stroke-dasharray="5 4" stroke-width="1.5"/><path d="${p.map((q,i)=>(i?"L":"M")+q[0]+" "+q[1]).join(" ")}" fill="none" stroke="var(--tinta)" stroke-width="2.4" vector-effect="non-scaling-stroke"/>${p.map((q,i)=>`<circle cx="${q[0]}" cy="${q[1]}" r="${i===3?5:3}" fill="${i===3?"var(--rojo-p)":"var(--tinta)"}"/>`).join("")}</svg>
+ <p class="tenue" style="font-size:12px;margin:2px 0 10px">Línea punteada: tu mínimo · 6 semanas (curva de ejemplo)</p>
+ <p class="nota-i">${E.nota}</p><p style="margin-top:12px"><button class="btnx" data-a="flujo">Ver el flujo semana a semana</button></p>`};
+const alcCard=()=>`<section class="tarj" style="padding:18px 20px"><h2 style="font-size:21px;margin-bottom:6px">¿Me alcanza?</h2>${alcBody()}</section>`;
+const DUENO={prest:[{f:"12 oct",monto:10000,devuelto:1500,ref:"Capital de trabajo de octubre"}]};
+const deuda=()=>S.deuda>0?DUENO.prest.reduce((a,p)=>a+p.monto-p.devuelto,0):0;
+const ddChip=()=>{const d=deuda();return d>0?`<button class="dd am" data-z="dueno" title="Préstamo del dueño sin devolver"><i></i>CAYLA te debe ${f(d)}</button>`:`<button class="dd ok" data-z="dueno" title="CAYLA no le debe nada al dueño"><i></i>Al día con el dueño</button>`};
+const ddLinea=()=>{const d=deuda(),p=DUENO.prest[0];return d>0?`<div class="dd-linea am"><div class="dd-t"><span class="versalita">Plata del dueño</span><b class="num">CAYLA te debe ${f(d)}</b><small>Préstamo del ${p.f}: devuelto ${f(p.devuelto)} de ${f(p.monto)}</small><div class="pista" style="--c:var(--ambar);--w:${p.devuelto/p.monto*100}%"><i></i></div></div><div class="dd-a"><button class="btnx" data-a="mov" data-q="dueno_saca">Devolver</button><button class="btnx" data-z="dueno">Ver préstamos</button></div></div>`:`<div class="dd-linea ok"><span class="check" aria-hidden="true">✓</span><div class="dd-t"><span class="versalita">Plata del dueño</span><b>Al día: CAYLA no te debe nada</b></div><div class="dd-a"><button class="btnx" data-z="dueno">Ver</button></div></div>`};
+const ddFicha=()=>{const d=deuda();return `<button class="tarj a-etapa" style="--c:${d>0?"var(--ambar)":"var(--verde)"}" data-z="dueno"><span class="versalita">Con el dueño</span><span class="v">${d>0?f(d):"Al día"}</span><span class="q">${d>0?'<span class="chip am">CAYLA te debe</span><br>préstamo sin devolver':'<span class="chip vd">Sin deuda</span><br>CAYLA no te debe nada'}</span></button>`};
+
+/* ===== Plata del dueño: la tarjeta de hoy + quién y dónde puso o sacó plata (demo; en la app sale de `movimientos` de tipo aporte, préstamo, devolución y retiro) ===== */
+const TIPO_D={aporte:"Aporte",prestamo:"Préstamo",devolucion:"Devolución de préstamo",retiro:"Retiro de utilidades"};
+const DM={
+ 0:[["3 sep","aporte",5000,"Felipe Alvarez","BCP"],["2 oct","prestamo",3000,"Felipe Alvarez","BCP"],["28 sep","retiro",-2000,"Felipe Alvarez","BCP"],["9 oct","retiro",-600,"Rosa Paredes","Caja fuerte · Trujillo"],["10 oct","devolucion",-3000,"Felipe Alvarez","BCP"]],
+ 1:[["3 sep","aporte",5000,"Felipe Alvarez","BCP"],["28 sep","retiro",-2000,"Felipe Alvarez","BCP"],["9 oct","retiro",-600,"Rosa Paredes","Caja fuerte · Trujillo"],["12 oct","prestamo",10000,"Felipe Alvarez","BCP"],["14 oct","devolucion",-1500,"Felipe Alvarez","BCP"]]};
+function dmGrafico(){const L=DM[S.deuda>0?1:0];const idx={quien:3,cuenta:4,mes:0}[S.dmv];
+ const clave=m=>S.dmv==="mes"?m[0].split(" ")[1]:m[idx];const orden=S.dmv==="mes"?["sep","oct"]:null;
+ const g={};L.forEach(m=>{const k=clave(m);(g[k]=g[k]||{puso:0,saco:0,det:{}});if(m[2]>0)g[k].puso+=m[2];else g[k].saco+=-m[2];g[k].det[TIPO_D[m[1]]]=(g[k].det[TIPO_D[m[1]]]||0)+Math.abs(m[2])});
+ let keys=Object.keys(g);keys=orden?orden.filter(k=>g[k]):keys.sort((a,b)=>(g[b].puso+g[b].saco)-(g[a].puso+g[a].saco));
+ const mx=Math.max(...keys.flatMap(k=>[g[k].puso,g[k].saco]),1);const puso=L.filter(m=>m[2]>0).reduce((a,m)=>a+m[2],0),saco=-L.filter(m=>m[2]<0).reduce((a,m)=>a+m[2],0);
+ const nom=k=>S.dmv==="mes"?({sep:"Septiembre",oct:"Octubre"})[k]:k;
+ return `<div class="dm"><div class="dm-cab"><b>Quién puso y sacó plata</b><div class="dm-seg" role="group" aria-label="Agrupar">${[["quien","Por quién"],["cuenta","Por cuenta"],["mes","Por mes"]].map(([k,t])=>`<button aria-pressed="${S.dmv===k}" data-dmv="${k}">${t}</button>`).join("")}</div></div>
+ <div class="dm-ley"><span><i style="background:var(--verde)"></i>Puso</span><span><i style="background:var(--ambar)"></i>Sacó</span></div>
+ ${keys.map((k,i)=>`<div class="dm-fila" title="${Object.entries(g[k].det).map(([t,v])=>t+": "+f(v)).join(" · ")}"><span class="dm-k">${nom(k)}</span><div class="dm-bs"><div class="dm-b" style="--c:var(--verde);--w:${g[k].puso/mx*100}%;--i:${i}"><i></i><b class="num">${g[k].puso?"+"+f(g[k].puso):"—"}</b></div><div class="dm-b" style="--c:var(--ambar);--w:${g[k].saco/mx*100}%;--i:${i}"><i></i><b class="num">${g[k].saco?"−"+f(g[k].saco):"—"}</b></div></div></div>`).join("")}
+ <p class="dm-pie tenue">Puso <b class="num" style="color:var(--verde)">${f(puso)}</b> · Sacó <b class="num" style="color:var(--ambar)">${f(saco)}</b> · Neto <b class="num">${puso-saco>=0?"+":"−"}${f(Math.abs(puso-saco))}</b> para CAYLA. Pasa el mouse sobre una fila para ver aportes, préstamos, devoluciones y retiros.</p></div>`}
+function duenoTarjeta(){const d=deuda(),P=DUENO.prest[0];
+ return `<section class="tarj dt" data-guia="dueno"><header class="dt-cab"><div><h2>Plata del dueño</h2><p class="tenue">Cuando pones plata en un mal momento, eliges si es un <b style="color:var(--tinta)">aporte</b> (se queda en CAYLA) o un <b style="color:var(--tinta)">préstamo</b> (CAYLA te lo devuelve).</p></div><div class="dt-bot"><button class="btn dt-p" data-a="mov" data-q="dueno_pone">Poner plata</button><button class="btn" data-a="mov" data-q="dueno_saca">Sacar plata</button></div></header>
+ <div class="dt-cuerpo"><div class="dt-izq"><div class="dt-debe"><span class="versalita">CAYLA te debe</span><div class="serif num ${d>0?"am":""}">${f(d)}</div>${d>0?'<span class="chip am">Préstamo sin devolver</span>':'<span class="chip vd">Al día</span>'}</div>
+ <ul class="dt-lista">${d>0?`<li><span>${P.f} · préstamo · ${P.ref}</span><span class="num">${f(P.monto)} · devuelto ${f(P.devuelto)}</span><div class="pista" style="--c:var(--ambar);--w:${P.devuelto/P.monto*100}%"><i></i></div></li>`:'<li><span class="tenue">Sin préstamos del dueño.</span></li>'}</ul></div>
+ <div class="dt-der">${dmGrafico()}</div></div></section>`}
+const ddPanel=()=>`<section class="tarj optp"><header><b>Probar: deuda con el dueño</b><small>Mira cómo se ve al día y con deuda. Prende los lugares que quieras combinar.</small></header><div class="opg" style="grid-template-columns:2fr 1fr"><div><span class="versalita">Dónde se ve</span><div class="sw3">${[["t","Tarjeta «Plata del dueño» + gráfico (como hoy)"],["a","Chip junto a la campana"],["b","Línea bajo el total"],["c","Ficha junto a las etapas"],["d","Fila en «Pide tu atención» (solo con deuda)"]].map(([k,t])=>`<button aria-pressed="${S.dd[k]}" data-dd="${k}">${t}</button>`).join("")}</div></div><div><span class="versalita">Estado de ejemplo</span><div class="sw2">${[[0,"Al día: CAYLA no te debe"],[1,"CAYLA te debe S/ 8,500"]].map(([v,t])=>`<button aria-pressed="${(S.deuda>0?1:0)===v}" data-ddv="${v}">${t}</button>`).join("")}</div></div></div></section>`;
+const duenoBody=()=>{const d=deuda();return `<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;margin:4px 0 14px"><div><span class="versalita">CAYLA te debe</span><div class="serif num" style="font-size:44px;line-height:1.1;${d>0?"color:var(--ambar)":""}">${f(d)}</div></div>${d>0?'<span class="chip am">Préstamo sin devolver</span>':'<span class="chip vd">Al día</span>'}</div>
+ ${d>0?DUENO.prest.map(p=>`<div class="dd-prest"><div><b>${p.f} · préstamo</b><small>${p.ref}</small></div><div class="pista" style="--c:var(--ambar);--w:${p.devuelto/p.monto*100}%"><i></i></div><span class="num">${f(p.devuelto)} de ${f(p.monto)}</span></div>`).join(""):'<p class="tenue">Sin préstamos del dueño.</p>'}
+ <p class="tenue" style="font-size:13px;margin:14px 0 12px">Cuando pones plata en un mal momento, eliges si es un <b style="color:var(--tinta)">aporte</b> (se queda en CAYLA) o un <b style="color:var(--tinta)">préstamo</b> (CAYLA te lo devuelve). Para poner o sacar plata usa «Registrar movimiento».</p>
+ <button class="btn pri" data-a="mov" data-q="${d>0?"dueno_saca":"dueno_pone"}">${d>0?"Devolver al dueño":"+ Registrar movimiento"}</button>`};
+const duenoCard=()=>`<section class="tarj" style="padding:18px 20px"><h2 style="font-size:21px;margin-bottom:6px">Plata del dueño</h2>${duenoBody()}</section>`;
+const cobrosTabla=()=>`<div class="c-tab"><table style="min-width:720px"><thead><tr><th>Sede</th>${EXTRA.medios.map(m=>`<th>${m}</th>`).join("")}</tr></thead><tbody>${EXTRA.cobros.map(([sd,fl])=>`<tr><td><b style="font-weight:600">${sd}</b></td>${fl.map(c=>c===null?'<td class="tenue">—</td>':c[0]==="!"?`<td><span class="chip am">${c.slice(1)}</span></td>`:`<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+const COBRAN=EXTRA.cobros.flatMap(([sd,fl])=>fl.map((c,i)=>{const sin=c&&c[0]==="!";const tipo=c===null?"nc":sin?"sin":c.startsWith("Por depositar")?"maq":c.startsWith("Caja")?"caja":"banco";return{sede:sd,medio:EXTRA.medios[i],cuenta:c===null?null:sin?c.slice(1):c,tipo}})).filter(r=>r.tipo!=="nc");
+const COBRAN_ORD=[...COBRAN].sort((x,y)=>(x.tipo==="sin"?0:1)-(y.tipo==="sin"?0:1));
+const TIPO_C={sin:["am","Sin cuenta"],maq:["","Máquina · llega en 1–2 días"],banco:["","Banco"],caja:["","Caja de la tienda"]};
+const filaCobro=r=>`<tr><td><b style="font-weight:600">${r.sede}</b></td><td>${r.medio}</td><td>${r.cuenta&&r.tipo!=="sin"?r.cuenta:'<span class="tenue">Falta elegir la cuenta</span>'}</td><td><span class="chip ${TIPO_C[r.tipo][0]}">${TIPO_C[r.tipo][1]}</span></td></tr>`;
+const CB={s:"todas",m:"todos",e:"todos",size:30,page:1};
+const cobrosSeccion=()=>`<section class="tarj"><header><div><h2>A qué cuenta entra cada cobro</h2><small>Por eso Vender no cambia: el cobro guarda el medio y Finanzas sabe a qué cuenta llegó.</small></div><button class="btnx" data-a="cfg">Cambiar en Configuración</button></header><div class="c-tab"><table style="min-width:640px"><thead><tr><th>Sede</th><th>Medio</th><th>Va a la cuenta</th><th>Dónde llega</th></tr></thead><tbody>${COBRAN_ORD.slice(0,6).map(filaCobro).join("")}</tbody></table></div><p style="padding:12px 20px;font-size:12.5px" class="tenue">Primeras 6 de ${COBRAN.length}, con lo que falta elegir arriba. <button class="btnx" data-z="cobros">Ver todas con filtros</button></p></section>`;
+function cobrosModal(){const SD=["todas","Taller","Tienda AQP","Tienda LIM","Tienda TRU"],MD=["todos",...EXTRA.medios],ES=[["todos","Todos"],["sin","Sin cuenta"],["maq","Máquinas"],["banco","Bancos"],["caja","Cajas"]];
+ const l=COBRAN.filter(r=>(CB.s==="todas"||r.sede===CB.s)&&(CB.m==="todos"||r.medio===CB.m)&&(CB.e==="todos"||r.tipo===CB.e));
+ const pags=Math.max(1,Math.ceil(l.length/CB.size));CB.page=Math.min(CB.page,pags);const vis=l.slice((CB.page-1)*CB.size,CB.page*CB.size);
+ const nums=[];for(let p=1;p<=pags;p++)if(p===1||p===pags||Math.abs(p-CB.page)<=1)nums.push(p);else if(nums.at(-1)!=="…")nums.push("…");
+ const grupo=(t,k,items)=>`<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span class="versalita" style="min-width:56px">${t}</span>${items.map(([v,tx,n])=>`<button class="fl" aria-pressed="${CB[k]===v}" data-cb="${k}:${v}">${tx}<span class="n">${n}</span></button>`).join("")}</div>`;
+ const cnt=(fn)=>COBRAN.filter(fn).length;
+ return `<div class="m-velo" data-zv><div class="m-hoja" role="dialog" aria-modal="true" aria-label="A qué cuenta entra cada cobro"><div class="m-cab"><div><span class="versalita">Cuentas y dinero</span><h2>A qué cuenta entra cada cobro</h2><p class="tenue">Por eso Vender no cambia: el cobro guarda el medio y Finanzas sabe a qué cuenta llegó. El Taller no cobra a clientes.</p></div><button class="m-x" data-z="cerrar" aria-label="Cerrar">×</button></div>
+ <div class="m-barra" style="flex-direction:column;gap:10px">${grupo("Sede","s",SD.map(v=>[v,v==="todas"?"Todas":v,v==="todas"?COBRAN.length:cnt(r=>r.sede===v)]))}${grupo("Medio","m",MD.map(v=>[v,v==="todos"?"Todos":v,v==="todos"?COBRAN.length:cnt(r=>r.medio===v)]))}${grupo("Estado","e",ES.map(([v,tx])=>[v,tx,v==="todos"?COBRAN.length:cnt(r=>r.tipo===v)]))}</div>
+ <div class="m-cuerpo">${l.length?`<section class="c-tab"><table><thead><tr><th>Sede</th><th>Medio</th><th>Va a la cuenta</th><th>Dónde llega</th></tr></thead><tbody>${vis.map(filaCobro).join("")}</tbody></table></section>`:'<div class="m-vacio"><p class="serif" style="font-size:20px">Ningún cobro con esos filtros</p></div>'}</div>
+ <div class="m-pie"><span class="tenue num">${l.length?(CB.page-1)*CB.size+1:0}–${Math.min(CB.page*CB.size,l.length)} de ${l.length} · <span class="m-seg">${[30,40].map(n=>`<button aria-pressed="${CB.size===n}" data-cb="sz:${n}">${n}</button>`).join("")}</span> por página · <button class="btnx" data-a="cfg">Cambiar en Configuración</button></span>
+ <div class="m-pag"><button data-cb="pg:${CB.page-1}" ${CB.page<=1?"disabled":""} aria-label="Página anterior">‹</button>${nums.map(p=>p==="…"?"<span class='tenue'>…</span>":`<button aria-pressed="${p===CB.page}" data-cb="pg:${p}">${p}</button>`).join("")}<button data-cb="pg:${CB.page+1}" ${CB.page>=pags?"disabled":""} aria-label="Página siguiente">›</button></div></div></div></div>`}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-cb]");if(!t)return;const[k,v]=t.dataset.cb.split(":");if(k==="sz"){CB.size=+v;CB.page=1}else if(k==="pg")CB.page=+v;else{CB[k]=v;CB.page=1}e.stopPropagation();e.preventDefault();renderZ(k==="s"||k==="m"||k==="e"?false:false)},true);
+const recibeLinea=sel=>{if(S.ver!=="d"||S.opt.cobro!=="a")return"";const sd=sedeDe(sel.sede).nombre;
+ const t=sel.id==="bcp"?"Yape, Plin y transferencias de las 3 tiendas":sel.id==="ibk"?"los depósitos de Izipay y Vendemás":sel.tipo==="camino"?`el cobro de ${sel.nombre.startsWith("Izi")?"tarjeta y QR":"tarjeta"} de ${sd}`:sel.tipo==="cajon"||sel.tipo==="fuerte"?`el efectivo de ${sd}`:"";
+ return t?`<p class="d-recibe"><span class="versalita">A esta cuenta entra</span> ${t} · <button class="btnx" data-z="cobros">Ver todas las cuentas de cobro</button></p>`:""};
+const Z={open:null};
+function renderZ(){const el=document.getElementById("zmodal");if(!Z.open){el.innerHTML="";document.body.style.overflow="";return}
+ if(Z.open==="cobros"){const ya=!!el.firstChild;document.body.style.overflow="hidden";el.innerHTML=cobrosModal();if(ya)el.querySelector(".m-velo").classList.add("ya");return}
+ const T={alc:["¿Me alcanza?",alcBody()],dueno:["Plata del dueño",duenoBody()],cobros:["A qué cuenta entra cada cobro",`<p class="tenue" style="font-size:13.5px;margin-bottom:12px">Por eso Vender no cambia: el cobro guarda el medio y Finanzas sabe a qué cuenta llegó.</p>${cobrosTabla()}<p style="margin-top:12px"><button class="btnx" data-a="cfg">Cambiar en Configuración</button></p>`]}[Z.open];
+ document.body.style.overflow="hidden";el.innerHTML=`<div class="h-velo" data-zv><div class="h-hoja" role="dialog" aria-modal="true" aria-label="${T[0]}" style="width:min(${Z.open==="cobros"?"900":"620"}px,100%)"><div class="h-cab"><div><span class="versalita">Cuentas y dinero</span><h2>${T[0]}</h2></div><button class="h-x" data-z="cerrar" aria-label="Cerrar">×</button></div><div class="h-cuerpo" style="padding:0 24px 24px">${T[1]}</div></div></div>`}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-z],[data-zv]");if(!t)return;if(t.dataset.zv!==undefined){if(e.target!==t)return;Z.open=null}else Z.open=t.dataset.z==="cerrar"?null:t.dataset.z;e.stopPropagation();e.preventDefault();renderZ()},true);
+addEventListener("keydown",e=>{if(e.key==="Escape"&&Z.open){Z.open=null;renderZ()}});
+
+/* ===== «Registrar movimiento»: el MISMO modal del sistema (CuentasDinero.tsx, RegistrarMovimientoModal). Cada entrada lo abre con «Qué pasó» ya elegido. ===== */
+const OPQ=[["deposito","Depósito al banco",["cajon","fuerte"],["banco"]],["abono_tarjeta","Depósito de la máquina (tarjeta y QR)",["camino"],["banco"]],["pago_tarjeta","Pagar la tarjeta de crédito",["banco"],["tarjeta"]],["entre_cuentas","Entre cuentas",["banco"],["banco"]],["pago_planilla","Pagar la planilla",["banco"],null],["pago_sunat","Pagar a SUNAT (el IGV)",["banco"],null],["pago_claure","Pagar a CLAURE",["banco"],null],["dueno_pone","Poner plata del dueño",null,["banco","fuerte"]],["dueno_saca","Sacar plata del dueño",["banco","cajon","fuerte"],null]];
+const LOTES=[["mar 13 · Trujillo · tarjeta y QR","hace 2 días · comisión ≈ S/ 25","S/ 1,420"],["mié 14 · Arequipa · tarjeta y QR","ayer · comisión ≈ S/ 13","S/ 720"],["mié 14 · Trujillo · tarjeta","ayer","S/ 860"]];
+const RESP=["Felipe Alvarez","Rosa Paredes","Lucía Quispe"];
+const MV={open:false};
+const mvBase=q=>({que:q,clase:q==="dueno_pone"?"aporte":(deuda()>0?"devolucion_prestamo":"retiro"),origen:"",destino:"",monto:"",ref:"",fecha:"2026-10-15",resp:RESP[0],lotes:[0,1],error:""});
+const ctas=(tipos,rol,q)=>tipos?D.CUENTAS.filter(c=>tipos.includes(c.tipo)).map(c=>({id:c.id,t:`${c.nombre} · ${f(c.saldo)}`})):[];
+function abrirMov(q){MV.open=true;Object.assign(MV,mvBase(q));const o=OPQ.find(x=>x[0]===q);MV.origen=(ctas(o[2])[0]||{}).id||"";MV.destino=(ctas(o[3])[0]||{}).id||"";renderMV(false)}
+window.ABRIR_MOV=abrirMov;
+function renderMV(ya){const el=document.getElementById("mvmodal");if(!MV.open){el.innerHTML="";document.body.style.overflow="";return}
+ const o=OPQ.find(x=>x[0]===MV.que),org=ctas(o[2]),des=ctas(o[3]);document.body.style.overflow="hidden";
+ const sel=(id,val,items,extra="")=>`<select id="${id}" data-mvf="${id}" ${extra}>${items.map(i=>`<option value="${i.id}" ${i.id===val?"selected":""}>${i.t}</option>`).join("")}</select>`;
+ const card=(k,t,d)=>`<button type="button" class="mv-op" aria-pressed="${MV.clase===k}" data-mv="clase:${k}"><b>${t}</b><span>${d}</span></button>`;
+ el.innerHTML=`<div class="m-velo ${ya?"ya":""}" data-mvv><div class="m-hoja" style="width:min(600px,100%)" role="dialog" aria-modal="true" aria-label="Registrar movimiento"><div class="m-cab"><div><h2>Registrar movimiento</h2><p class="tenue">La plata cambia de lugar: no es venta ni gasto.</p></div><button class="m-x" data-mv="cerrar" aria-label="Cerrar">×</button></div>
+ <div class="m-cuerpo mv-form">
+ <label class="mv-c"><span class="versalita">Qué pasó</span>${sel("que",MV.que,OPQ.map(x=>({id:x[0],t:x[1]})))}</label>
+ ${MV.que==="dueno_pone"?`<div><span class="versalita">¿Cómo entra esta plata?</span><div class="mv-ops">${card("aporte","Aporte","Se queda en CAYLA para siempre. Sube lo que es tuyo en el Balance.")}${card("prestamo","Préstamo","CAYLA te lo devuelve después. Aparece como deuda de CAYLA contigo.")}</div></div>`:""}
+ ${MV.que==="dueno_saca"?`<div><span class="versalita">¿Qué es esta salida?</span><div class="mv-ops">${deuda()>0?card("devolucion_prestamo","Devolución de préstamo",`CAYLA te debe ${f(deuda())}. Baja esa deuda.`):""}${card("retiro","Retiro de utilidades","Te llevas ganancia del negocio. No es un gasto: no baja la utilidad.")}</div>${deuda()>0?"":'<p class="tenue" style="font-size:12px;margin-top:6px">«Devolución de préstamo» aparece cuando CAYLA te debe plata (hoy no te debe).</p>'}</div>`:""}
+ <div class="mv-dos">${org.length?`<label class="mv-c"><span class="versalita">De</span>${sel("origen",MV.origen,org)}</label>`:""}${des.length?`<label class="mv-c"><span class="versalita">A</span>${sel("destino",MV.destino,des)}</label>`:""}</div>
+ ${MV.que==="abono_tarjeta"?`<div><span class="versalita">Qué días cubre este depósito</span><p class="tenue" style="font-size:12px;margin:2px 0 6px">Lo cobrado con la máquina que ningún depósito cubre todavía. Vienen marcados los días hasta la fecha del depósito.</p><ul class="mv-lotes">${LOTES.map((l,i)=>`<li><button type="button" class="mv-ck" aria-pressed="${MV.lotes.includes(i)}" data-mv="lote:${i}" aria-label="Marcar ${l[0]}"></button><span>${l[0]}</span><span class="tenue">${l[1]}</span><b>${l[2]}</b></li>`).join("")}</ul></div>`:""}
+ <div class="mv-dos"><label class="mv-c"><span class="versalita">${MV.que==="abono_tarjeta"?"Monto que llegó al banco":"Monto"}</span><input id="monto" data-mvf="monto" inputmode="decimal" placeholder="1,500.00" value="${MV.monto}"></label><label class="mv-c"><span class="versalita">${MV.que==="abono_tarjeta"?"Número de operación o nota":"Voucher o nota"}</span><input id="ref" data-mvf="ref" placeholder="Voucher 120441" value="${MV.ref}"></label></div>
+ <label class="mv-c" style="max-width:260px"><span class="versalita">Fecha</span><input id="fecha" data-mvf="fecha" type="date" max="2026-10-15" value="${MV.fecha}"></label>
+ <label class="mv-c"><span class="versalita">Responsable</span>${sel("resp",MV.resp,RESP.map(r=>({id:r,t:r})))}</label>
+ ${MV.error?`<p class="mv-err" role="alert">${MV.error}</p>`:""}</div>
+ <div class="m-pie" style="justify-content:flex-end"><button class="btn" data-mv="cerrar">Cancelar</button><button class="btn pri" data-mv="guardar">Registrar</button></div></div></div>`}
+function toast(t){let e=document.getElementById("toast");if(!e){e=document.createElement("div");e.id="toast";document.body.appendChild(e)}e.textContent=t;e.className="on";clearTimeout(e._t);e._t=setTimeout(()=>e.className="",3200)}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-mv],[data-mvv]");if(!t)return;if(t.dataset.mvv!==undefined){if(e.target!==t)return;MV.open=false}else{const[k,v]=t.dataset.mv.split(":");
+ if(k==="cerrar")MV.open=false;else if(k==="clase")MV.clase=v;else if(k==="lote"){const i=+v;MV.lotes=MV.lotes.includes(i)?MV.lotes.filter(x=>x!==i):[...MV.lotes,i]}
+ else if(k==="guardar"){const m=parseFloat(String(MV.monto).replace(/,/g,""));if(!(m>0)){MV.error="Escribe el monto: tiene que ser mayor que 0.";renderMV(true);e.stopPropagation();return}MV.open=false;toast(`${OPQ.find(x=>x[0]===MV.que)[1]} registrado · ${f(m)} (demo: no se guardó)`)}}
+ e.stopPropagation();e.preventDefault();renderMV(true)},true);
+document.addEventListener("input",e=>{const k=e.target.dataset&&e.target.dataset.mvf;if(!k||!MV.open)return;if(k==="monto"||k==="ref"||k==="fecha")MV[k]=e.target.value});
+document.addEventListener("change",e=>{const k=e.target.dataset&&e.target.dataset.mvf;if(!k||!MV.open)return;if(k==="que"){const mon=MV.monto,ref=MV.ref,fe=MV.fecha,rs=MV.resp;abrirMov(e.target.value);Object.assign(MV,{monto:mon,ref,fecha:fe,resp:rs});renderMV(true)}else if(["origen","destino","resp"].includes(k))MV[k]=e.target.value});
+addEventListener("keydown",e=>{if(e.key==="Escape"&&MV.open){MV.open=false;renderMV(true)}});
+const registrar=()=>`<button class="btn pri" data-a="mov">+ Registrar movimiento</button>`;
+const cabecera=()=>`<div class="cab"><div><div class="linea versalita">${S.sede==="todas"?"Todas las sedes":sedeDe(S.sede).nombre} · jueves 15 oct</div><h1>Cuentas y dinero</h1><p class="frase tenue">Dónde está la plata, qué debes y si cuadra con el banco. Un saldo nunca se escribe a mano: se suma de los movimientos.</p></div><div style="display:flex;gap:12px;align-items:center">${S.ver==="d"&&S.dd.a?ddChip():""}${window.CAMPANA_HTML()}${registrar()}</div></div>
+<div class="pest" role="group" aria-label="Caras">${[["donde","Dónde está"],["debes","Qué debes"],["claure","CLAURE"],["cuadrar","Cuadrar con el banco"]].map(([k,t])=>`<button aria-pressed="${S.pest===k}" data-p="${k}">${t}${k==="cuadrar"?'<span class="g">2</span>':""}</button>`).join("")}</div>`;
+const tira=()=>`<div class="sedes" role="group" aria-label="Sede">${[{id:"todas",nombre:"Todas",color:"var(--tinta)"},...D.SEDES].map(s=>{const l=s.id==="todas"?D.CUENTAS:D.CUENTAS.filter(c=>c.sede===s.id);return `<button class="sede" style="--c:${s.color}" aria-pressed="${S.sede===s.id}" data-s="${s.id}"><i></i>${s.nombre}<span class="n">${f(tienes(l))}</span></button>`}).join("")}</div>`;
+const fila=(c,i)=>{const mx=Math.max(...cuentas().map(x=>Math.abs(x.saldo)),1);return `<div class="a-fila cuenta-in" style="--i:${i}"><div class="nom"><b>${c.nombre}</b><small>${c.que}</small></div><div><div class="pista" style="--c:${c.tipo==="tarjeta"?"var(--rojo-p)":et(c.tipo).c};--w:${Math.abs(c.saldo)/mx*100}%"><i></i></div>${c.aviso?`<span class="chip am" style="margin-top:6px">${c.aviso}</span>`:""}</div><div class="sd ${c.saldo<0?"neg":""}">${f(c.saldo)}</div></div>`};
+const movs=(l)=>`<ul class="a-mov">${l.map(m=>`<li><span class="f">${m.fecha}</span><div><div class="r"><b>${m.tipo}</b></div><div class="r tenue" style="font-size:12.5px">${m.de} <em>→</em> ${m.a}</div>${m.comision?`<small>comisión ${f(m.comision)} → gasto</small>`:""}</div><span class="m">${f(m.monto)}</span></li>`).join("")}</ul>`;
+const movsVis=()=>D.MOVIMIENTOS.filter(m=>S.sede==="todas"||m.sedes.includes(S.sede));
+
+function A(){const l=cuentas(),T=tienes(l),tj=l.find(c=>c.tipo==="tarjeta");
+ const por=ETAPAS.map(e=>({...e,v:suma(l.filter(c=>c.tipo===e.t))}));
+ const vis=l.filter(c=>!S.etapa||c.tipo===S.etapa);const at=atencion();
+ return `${cabecera()}${tira()}
+ <div class="a-hero"><div class="tarj a-tienes"><span class="versalita">${S.sede==="todas"?"Tienes en total":"Tiene "+sedeDe(S.sede).nombre}</span><div class="cifra-g"><small>S/</small>${Math.round(T).toLocaleString("en-US")}</div>
+ <div class="a-partido">${por.filter(e=>e.v>0).map((e,i)=>`<i style="--f:${e.v};--c:${e.c};animation-delay:${i*90}ms" title="${e.n}"></i>`).join("")}</div>
+ <p class="tenue" style="font-size:13px">${tj?`Además debes ${f(-tj.saldo)} en la tarjeta (${tj.que.split("·")[1]?.trim()||""}).`:"Sin deuda de tarjeta en esta vista."}</p></div>
+ <div class="a-etapas">${por.map((e,i)=>`<button class="tarj a-etapa cuenta-in" style="--c:${e.c};--i:${i}" aria-pressed="${S.etapa===e.t}" data-e="${e.t}"><span class="versalita">${e.n}</span><span class="v">${f(e.v)}</span><span class="q">${e.q}</span></button>`).join("")}</div></div>
+ <div class="a-cols"><div style="display:flex;flex-direction:column;gap:20px">
+ ${at.length?`<section class="tarj"><header><h2>Pide tu atención</h2><span class="chip am">${at.length} ${at.length===1?"cosa":"cosas"}</span></header><ul class="a-aten">${at.map(x=>`<li style="--c:${x.c}"><span class="ic">${x.i}</span><div><b>${x.t}</b><span class="d">${x.d}</span></div><button data-a="${x.p}">${x.a}</button></li>`).join("")}</ul></section>`:`<section class="tarj" style="padding:18px 20px"><span class="chip vd">Todo en orden</span> <span class="tenue">Nada pide tu atención en esta vista.</span></section>`}
+ <section class="tarj"><header><h2>Las cuentas${S.etapa?` · ${et(S.etapa).n}`:""}</h2><small>${vis.length} cuentas ${S.etapa?'· <a href="#" data-e="'+S.etapa+'">ver todas</a>':""}</small></header>${vis.map(fila).join("")||'<p class="tenue" style="padding:20px">Sin cuentas en esta sede.</p>'}</section></div>
+ <section class="tarj"><header><h2>Últimos movimientos</h2><button class="h-ver" data-h="abrir">Ver historial completo</button></header>${movs(movsVis().slice(0,6))}<p class="tenue" style="padding:4px 20px 16px;font-size:12.5px">Solo se agregan filas; un error se anula con motivo.</p></section></div>`;}
+
+function B(){const sedesF=D.SEDES.filter(s=>S.sede==="todas"||s.id===S.sede);
+ const cols=["cajon","fuerte","camino","banco"];const val=(s,t)=>suma(D.CUENTAS.filter(c=>c.sede===s&&c.tipo===t));
+ const mx=Math.max(...sedesF.flatMap(s=>cols.map(t=>val(s.id,t))),1);
+ const tot=t=>sedesF.reduce((a,s)=>a+val(s.id,t),0);
+ const heads={cajon:["Cajón","Se cobra en efectivo"],fuerte:["Caja fuerte","Se guarda al cerrar"],camino:["En camino","Máquinas por depositar"],banco:["Banco","Ya disponible"]};
+ const cel=S.celda;let det="";
+ if(cel){const [sd,t]=cel.split("|");const l=D.CUENTAS.filter(c=>c.sede===sd&&c.tipo===t);det=`<section class="tarj b-det"><header><h2>${sedeDe(sd).nombre} · ${heads[t][0]}</h2><small>${f(suma(l))} en ${l.length} ${l.length===1?"cuenta":"cuentas"}</small></header>${l.map(fila).join("")}</section>`;}
+ const tc=D.CUENTAS.find(c=>c.tipo==="tarjeta");const serieS=[26,22,19,24,15.4,11.2];
+ return `${cabecera()}${tira()}
+ <section class="tarj"><header><h2>El recorrido de la plata</h2><small>De izquierda a derecha: así llega al banco. Toca una celda para ver sus cuentas.</small></header>
+ <div class="b-mat"><table><thead><tr><th></th>${cols.map((t,i)=>`<th class="${i<3?"fl":""}" style="--c:${et(t).c}"><span class="t">${heads[t][0]}</span><span class="s">${heads[t][1]}</span></th>`).join("")}<th><span class="t versalita">Total</span></th></tr></thead><tbody>
+ ${sedesF.map((s,r)=>`<tr class="cuenta-in" style="--i:${r}"><td class="rot" style="--c:${s.color}"><i></i><b>${s.nombre}</b>${s.nota?`<br><small class="tenue">${s.nota}</small>`:""}</td>${cols.map(t=>{const v=val(s.id,t),al=D.CUENTAS.some(c=>c.sede===s.id&&c.tipo===t&&c.aviso);return `<td><button class="b-cel ${v?"":"cero"}" style="--c:${et(t).c};--k:${v/mx}" ${v?`aria-pressed="${S.celda===s.id+"|"+t}" data-c="${s.id}|${t}"`:"disabled"}>${v?f(v):"—"}${al?'<span class="al" title="Pide atención"></span>':""}</button></td>`}).join("")}<td class="b-tot">${f(tienes(D.CUENTAS.filter(c=>c.sede===s.id)))}</td></tr>`).join("")}
+ <tr><td class="rot versalita">Total</td>${cols.map(t=>`<td class="b-tot">${f(tot(t))}</td>`).join("")}<td class="b-tot t">${f(sedesF.reduce((a,s)=>a+tienes(D.CUENTAS.filter(c=>c.sede===s.id)),0))}</td></tr></tbody></table></div>
+ ${S.sede==="todas"||S.sede==="emp"?`<p class="b-deb" style="padding:0 20px 16px;font-size:13px">Aparte, debes <b>${f(-tc.saldo)}</b> en la tarjeta de crédito (se paga el dom 25).</p>`:""}</section>
+ ${det}
+ <section class="tarj"><header><h2>¿Me alcanza?</h2><span class="chip am">Baja del mínimo · ${D.ALCANZA.dia}</span></header><div class="b-alc"><div><p>Con lo que entra y sale, el <b>${D.ALCANZA.dia}</b> quedarías en <b class="neg">${f(D.ALCANZA.baja)}</b>, por debajo del mínimo de ${f(D.ALCANZA.minimo)}. Son <b>${D.ALCANZA.dias} días de caja</b>.</p><p class="tenue" style="margin-top:10px;font-size:13px">Depositar las cajas fuertes (${f(tot("fuerte"))}) te da aire. Es de CAYLA entera.</p></div>
+ <svg viewBox="0 0 400 150" preserveAspectRatio="none" aria-label="Proyección de 6 semanas"><line x1="0" x2="400" y1="${150-D.ALCANZA.minimo/26000*140-5}" y2="${150-D.ALCANZA.minimo/26000*140-5}" stroke="var(--ambar)" stroke-dasharray="5 4" stroke-width="1.5"/>${(()=>{const p=serieS.map((v,i)=>[i*400/5,150-v/26*140-5]);const d=p.map((q,i)=>(i?"L":"M")+q[0]+" "+q[1]).join(" ");return `<path d="${d}" fill="none" stroke="var(--tinta)" stroke-width="2.4" vector-effect="non-scaling-stroke"/>`+p.map((q,i)=>`<circle cx="${q[0]}" cy="${q[1]}" r="${i===5?5:3}" fill="${i===5?"var(--rojo-p)":"var(--tinta)"}"/>`).join("")})()}</svg><p class="tenue" style="grid-column:1/-1;font-size:12px">Línea punteada: tu mínimo de ${f(D.ALCANZA.minimo)} · 6 semanas (ejemplo)</p></div></section>`;}
+
+function C(){const l=cuentas();const sel=D.CUENTAS.find(c=>c.id===S.sel&&l.includes(c))||l[0];if(sel)S.sel=sel.id;
+ const orden=["banco","camino","fuerte","cajon","tarjeta"];
+ const lista=orden.map(t=>{const g=l.filter(c=>c.tipo===t);if(!g.length)return"";const col=t==="tarjeta"?"var(--rojo-p)":et(t).c;return `<div class="c-grp"><span>${D.TIPOS[t].texto}</span><span class="num">${f(suma(g))}</span></div>${g.map(c=>`<button class="c-it" style="--c:${col}" aria-pressed="${c.id===S.sel}" data-k="${c.id}"><span class="pt">${c.nombre.split(" ")[0].slice(0,3).toUpperCase()}</span><span><b>${c.nombre}</b><small>${sedeDe(c.sede).corto} · ${c.ultimo}</small></span><span class="v ${c.saldo<0?"neg":""}">${f(c.saldo)}</span></button>`).join("")}`}).join("");
+ const det=sel?detalle(sel):"";
+ return `${cabecera()}${tira()}<div class="c-lib"><section class="tarj c-lista" aria-label="Cuentas"><header style="padding:14px 12px 0"><h2>Mis cuentas</h2><small class="num">${f(tienes(l))}</small></header>${lista}</section>${det||'<section class="tarj c-total">Sin cuentas en esta sede.</section>'}</div>`;}
+function detalle(sel,atras){const m=movsDe(sel).slice(0,5);const ban=D.BANCOS[sel.id];
+  return `<section class="tarj c-det">${atras?'<button class="d-atras" data-k="">← Volver al panorama</button>':""}${aviso(sel)}<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start"><div><span class="versalita">${sel.tipo==="tarjeta"?"Tarjeta":et(sel.tipo).n} · ${sedeDe(sel.sede).nombre}</span><h2 style="font-size:28px;margin-top:2px">${sel.nombre}</h2><p class="tenue" style="font-size:13.5px;max-width:52ch">${sel.que}</p></div><button class="btn" data-a="mov">+ Movimiento</button></div>
+  <div class="saldo ${sel.saldo<0?"neg":""}">${f(sel.saldo)}</div>${recibeLinea(sel)}${sel.aviso?`<span class="chip am" style="align-self:flex-start">${sel.aviso}</span>`:""}
+  ${spark(serie(sel))}<span class="tenue" style="font-size:12px;margin-top:-10px">Últimos 14 días (ejemplo)</span>
+  <div class="c-meta"><div><span class="versalita">Última actividad</span><b>${sel.ultimo}</b></div><div><span class="versalita">Conciliada con el banco</span><b>${sel.conciliada||"No aplica"}</b></div><div><span class="versalita">${ban?"Diferencia con extracto":"Sede"}</span><b class="${ban&&ban.saldoBanco!==ban.saldoSistema?"neg":""}">${ban?(ban.saldoBanco===ban.saldoSistema?"Cuadra":f(ban.saldoBanco-ban.saldoSistema)):sedeDe(sel.sede).nombre}</b></div></div>
+  <div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px"><h3 style="font-size:19px">Movimientos de esta cuenta</h3><button class="h-ver" data-h="abrir" data-v="${sel.id}">Ver historial completo</button></div>${m.length?`<ul class="c-mov">${m.map(x=>{const entra=esEntrada(x,sel);return `<li><span class="versalita">${DIAS[x.f.getDay()].slice(0,3)} ${x.f.getDate()}</span><div><b style="font-weight:600;font-size:14px">${x.tipo}</b><div class="tenue" style="font-size:12.5px">${x.de} → ${x.a}</div></div><b class="num ${entra?"ent":"sal"}">${entra?"+":"−"}${f(x.monto)}</b></li>`}).join("")}</ul>`:'<p class="tenue" style="padding:10px 0">Sin movimientos todavía.</p>'}</div></section>`;}
+function aviso(sel){const x=atencion().filter(t=>t.t.includes(sel.nombre.split(" ·")[0])||(D.BANCOS[sel.id]&&t.t.startsWith(D.BANCOS[sel.id].nombre)));return x.length?`<div class="d-av">${x.map(t=>`<div><b>${t.t}</b><span>${t.d}</span></div>`).join("")}</div>`:""}
+
+function Dv(){const l=cuentas(),T=tienes(l),tj=l.find(c=>c.tipo==="tarjeta");
+ const por=ETAPAS.map(e=>({...e,v:suma(l.filter(c=>c.tipo===e.t))}));
+ const orden=["banco","camino","fuerte","cajon","tarjeta"];const sel=S.d?l.find(c=>c.id===S.d):null;const at=[...(S.opt.av==="a"?EXTRA.avisos.map(x=>({c:x.c,i:"!",t:x.t,d:x.d,a:x.a,p:"reg"})):[]),...(S.dd.d&&deuda()>0?[{c:"var(--ambar)",i:"$",t:`CAYLA te debe ${f(deuda())} (préstamo del dueño)`,d:`Préstamo del ${DUENO.prest[0].f}: devuelto ${f(DUENO.prest[0].devuelto)} de ${f(DUENO.prest[0].monto)}.`,a:"Devolver",p:"mov",q:"dueno_saca"}]:[]),...atencion().filter(x=>x.p!=="alc")];
+ const lista=orden.filter(t=>!S.etapa||t===S.etapa||(S.etapa==="x"&&0)).map(t=>{const g=l.filter(c=>c.tipo===t);if(!g.length)return"";const col=t==="tarjeta"?"var(--rojo-p)":et(t).c;return `<div class="c-grp"><span>${D.TIPOS[t].texto}</span><span class="num">${f(suma(g))}</span></div>${g.map(c=>`<button class="c-it" style="--c:${col}" aria-pressed="${sel&&c.id===sel.id}" data-d="${c.id}"><span class="pt">${c.nombre.split(" ")[0].slice(0,3).toUpperCase()}</span><span><b>${c.nombre}${c.aviso||(D.BANCOS[c.id]&&D.BANCOS[c.id].saldoBanco!==D.BANCOS[c.id].saldoSistema)?' <i class="d-pt" title="Pide atención"></i>':""}</b><small>${sedeDe(c.sede).corto} · ${c.ultimo}</small></span><span class="v ${c.saldo<0?"neg":""}">${f(c.saldo)}</span></button>`).join("")}`}).join("");
+ const ctx=at.length?`<section class="tarj"><header><h2>Pide tu atención</h2><span class="chip am">${at.length} ${at.length===1?"cosa":"cosas"}</span></header><ul class="a-aten">${at.map(x=>`<li style="--c:${x.c}"><span class="ic">${x.i}</span><div><b>${x.t}</b><span class="d">${x.d}</span></div><button data-a="${x.p}" ${x.q?`data-q="${x.q}"`:""}>${x.a}</button></li>`).join("")}</ul></section>`:`<section class="tarj" style="padding:18px 20px"><span class="chip vd">Todo en orden</span> <span class="tenue">Nada pide tu atención en esta vista.</span></section>`;
+ const panel=`<div style="display:flex;flex-direction:column;gap:20px">${sel?detalle(sel,true):""}${ctx}${S.opt.alc==="b"?alcCard():""}<section class="tarj"><header><h2>Últimos movimientos</h2><button class="h-ver" data-h="abrir">Ver historial completo</button></header>${movs(movsVis().slice(0,6))}<p class="tenue" style="padding:4px 20px 16px;font-size:12.5px">Solo se agregan filas; un error se anula con motivo.</p></section></div>`;
+ return `${ddPanel()}${/opciones/.test(location.search)?optPanel():""}${cabecera()}${tira()}
+ <div class="a-hero"><div class="tarj a-tienes"><span class="versalita">${S.sede==="todas"?"Tienes en total":"Tiene "+sedeDe(S.sede).nombre}</span><div class="cifra-g"><small>S/</small>${Math.round(T).toLocaleString("en-US")}</div>
+ <div class="a-partido">${por.filter(e=>e.v>0).map((e,i)=>`<i style="--f:${e.v};--c:${e.c};animation-delay:${i*90}ms" title="${e.n}"></i>`).join("")}</div>
+ <p class="tenue" style="font-size:13px">${tj?`Además debes ${f(-tj.saldo)} en la tarjeta (${tj.que.split("·")[1]?.trim()||""}).`:"Sin deuda de tarjeta en esta vista."}</p>${S.dd.b?ddLinea():""}</div>
+ <div class="a-etapas" style="grid-template-columns:repeat(${4+(S.opt.alc==="a"?1:0)+(S.dd.c?1:0)},minmax(0,1fr))">${por.map((e,i)=>`<button class="tarj a-etapa" style="--c:${e.c}" aria-pressed="${S.etapa===e.t}" data-e="${e.t}"><span class="versalita">${e.n}</span><span class="v">${f(e.v)}</span><span class="q">${e.q}</span></button>`).join("")}${S.opt.alc==="a"?`<button class="tarj a-etapa" style="--c:var(--verde)" data-z="alc"><span class="versalita">¿Me alcanza?</span><span class="v">${EXTRA.alc.dias} días</span><span class="q"><span class="chip vd">Dentro del mínimo</span><br>de caja · toca para ver</span></button>`:""}${S.dd.c?ddFicha():""}</div></div>
+ <div class="c-lib d-lib"><section class="tarj c-lista" aria-label="Cuentas"><header style="padding:14px 12px 0"><h2>Mis cuentas${S.etapa?` · ${et(S.etapa).n}`:""}</h2>${S.etapa?'<a href="#" data-e="'+S.etapa+'" style="font-size:12.5px">ver todas</a>':`<small class="num">${l.length} cuentas</small>`}</header>${lista}</section><div class="d-der">${panel}</div></div>${S.dd.t?duenoTarjeta():""}${S.opt.cobro==="b"?cobrosSeccion():""}`;}
+
+function render(){const sc=scrollY;$("#app").innerHTML={a:A,b:B,c:C,d:Dv}[S.ver]();$$("[data-ver]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.ver===S.ver));
+ const p=$(".mq-pildora"),b=$(`[data-ver="${S.ver}"]`);if(p&&b){p.style.left=b.offsetLeft+"px";p.style.width=b.offsetWidth+"px"}scrollTo(0,sc);}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-ver],[data-s],[data-e],[data-c],[data-k],[data-d],[data-p],[data-a],[data-opt],[data-dd],[data-ddv],[data-dmv],[data-menu],.mq-tema");if(!t)return;
+ if(t.matches(".mq-tema")){const d=document.documentElement;const o=d.dataset.theme!=="dark";d.dataset.theme=o?"dark":"light";t.textContent=o?"Claro":"Oscuro";return}
+ e.preventDefault();
+ if(t.dataset.opt){const[k,v]=t.dataset.opt.split(":");S.opt[k]=v;window.CAMPANA_OPC=S.opt.av==="b"?EXTRA.avisos:null;S.menu=false;render();return}
+ if(t.dataset.dd){S.dd[t.dataset.dd]=!S.dd[t.dataset.dd];render();return}
+ if(t.dataset.dmv){S.dmv=t.dataset.dmv;render();return}
+ if(t.dataset.ddv!==undefined){S.deuda=+t.dataset.ddv;render();return}
+ if(t.dataset.menu){S.menu=!S.menu;render();return}
+ if(S.menu){S.menu=false;render()}
+ if(t.dataset.ver){S.ver=t.dataset.ver;history.replaceState(null,"","#"+S.ver)}
+ else if(t.dataset.s){S.sede=t.dataset.s;S.celda=null;S.etapa=null}
+ else if(t.dataset.e)S.etapa=S.etapa===t.dataset.e&&!t.matches("a")?null:(t.matches("a")?null:t.dataset.e);
+ else if(t.dataset.c)S.celda=S.celda===t.dataset.c?null:t.dataset.c;
+ else if(t.dataset.k!==undefined){S.sel=t.dataset.k;if(t.dataset.k==="")S.d=null}
+ else if(t.dataset.d){S.d=S.d===t.dataset.d?null:t.dataset.d}
+ else if(t.dataset.p)S.pest=t.dataset.p;
+ else if(t.dataset.a==="mov"){if(Z.open){Z.open=null;renderZ()}abrirMov(t.dataset.q||"deposito");return}
+ else if(t.dataset.a==="x"){window.CAMPANA_ABRIR("cierres");return}
+ else if(t.dataset.a){alert("En la app esto abre la hoja ya existente ("+t.dataset.a+"). La maqueta no guarda.");return}
+ render();});
+
+/* ===== Historial: movimientos de ejemplo, de mediados de agosto a hoy (jueves 15 de octubre de 2026) ===== */
+const HOY=new Date(2026,9,15),DIAS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"],MESES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const MOV_ALL=(()=>{const L=[];const T=[["Depósito al banco","Caja fuerte · Trujillo","BCP",["tru"],4000],["Depósito al banco","Caja fuerte · Arequipa","BCP",["aqp"],2800],["Depósito de la máquina","Izipay","Interbank",["tru","aqp"],3200,1],["Depósito de la máquina","Vendemás","Interbank",["tru","aqp"],1900,1],["Pago de la tarjeta","BCP","Tarjeta de crédito CAYLA",["emp"],1800],["Entre cuentas","BCP","Interbank",["emp"],3000]];
+ const q=["Rosa Paredes","Lucía Quispe","Felipe Alvarez"];let h=7;
+ for(let d=new Date(2026,7,17);d<new Date(2026,9,5);d.setDate(d.getDate()+1)){if(d.getDay()===0)continue;h=(h*37+d.getDate()*11+3)%997;const n=h%4===0?0:h%4===1?1:h%4===2?2:3;
+  for(let i=0;i<n;i++){const t=T[(h+i*5)%T.length];L.push({f:new Date(d),tipo:t[0],de:t[1],a:t[2],monto:Math.round((t[4]*(0.5+((h+i*13)%10)/8))/10)*10,comision:t[5]?Math.round(t[4]*.018):0,sedes:t[3],quien:q[(h+i)%3]})}}
+ D.MOVIMIENTOS.forEach(m=>{const [,dd]=m.fecha.split(" ");L.push({f:new Date(2026,9,+dd),tipo:m.tipo,de:m.de,a:m.a,monto:m.monto,comision:m.comision||0,sedes:m.sedes,quien:m.quien})});
+ return L.sort((a,b)=>b.f-a.f)})();
+const delaCuenta=(m,c)=>m.de===c.nombre||m.a===c.nombre||((c.tipo==="camino")&&c.nombre.startsWith(m.de+" ·")&&m.sedes.includes(c.sede));
+const esEntrada=(m,c)=>m.a===c.nombre;
+const movsDe=c=>MOV_ALL.filter(m=>delaCuenta(m,c));
+const H={cuenta:null,open:false,per:"mes",ref:new Date(HOY),size:30,page:1};
+const dkey=d=>d.getFullYear()*10000+d.getMonth()*100+d.getDate();
+const lunes=d=>{const x=new Date(d);x.setDate(x.getDate()-((x.getDay()+6)%7));x.setHours(0,0,0,0);return x};
+const rango=()=>{const r=H.ref;if(H.per==="dia")return[new Date(r.getFullYear(),r.getMonth(),r.getDate()),new Date(r.getFullYear(),r.getMonth(),r.getDate())];
+ if(H.per==="semana"){const a=lunes(r);const b=new Date(a);b.setDate(b.getDate()+6);return[a,b]}
+ if(H.per==="mes")return[new Date(r.getFullYear(),r.getMonth(),1),new Date(r.getFullYear(),r.getMonth()+1,0)];return[new Date(2000,0,1),new Date(2100,0,1)]};
+const nomDia=d=>`${DIAS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}`;
+const etiqueta=()=>{const[a,b]=rango();if(H.per==="dia")return `${nomDia(a)} de ${a.getFullYear()}`;if(H.per==="semana")return `${a.getDate()} ${a.getMonth()!==b.getMonth()?MESES[a.getMonth()].slice(0,3)+" ":""}– ${b.getDate()} de ${MESES[b.getMonth()]}`;if(H.per==="mes")return `${MESES[a.getMonth()]} ${a.getFullYear()}`;return "Todo el historial"};
+function renderH(){const el=$("#hist");if(!H.open){el.innerHTML="";document.body.style.overflow="";return}
+ const ya=!!el.firstChild;
+ document.body.style.overflow="hidden";const[a,b]=rango();
+ const cta=H.cuenta?D.CUENTAS.find(c=>c.id===H.cuenta):null;
+ const todos=MOV_ALL.filter(m=>(cta?delaCuenta(m,cta):(S.sede==="todas"||m.sedes.includes(S.sede)))&&dkey(m.f)>=dkey(a)&&dkey(m.f)<=dkey(b));
+ const pags=Math.max(1,Math.ceil(todos.length/H.size));H.page=Math.min(H.page,pags);const vis=todos.slice((H.page-1)*H.size,H.page*H.size);
+ let html="",ult="";const por={};vis.forEach(m=>{(por[dkey(m.f)]=por[dkey(m.f)]||[]).push(m)});
+ Object.keys(por).sort((x,y)=>y-x).forEach(k=>{const g=por[k];const tot=todos.filter(m=>dkey(m.f)==k).reduce((s,m)=>s+(cta&&!esEntrada(m,cta)?-m.monto:m.monto),0);
+  html+=`<div class="h-dia"><span>${nomDia(g[0].f)}${dkey(g[0].f)===dkey(HOY)?" · hoy":""}</span><span class="t">${g.length} ${g.length===1?"movimiento":"movimientos"} · ${cta&&tot>0?"+":""}${f(tot)}</span></div>`+g.map(m=>`<div class="h-fila"><div><b>${m.tipo}</b><small>${m.de} → ${m.a} · ${m.quien}</small>${m.comision?`<small>comisión ${f(m.comision)} → gasto</small>`:""}</div><span class="m ${cta?(esEntrada(m,cta)?"ent":"sal"):""}">${cta?(esEntrada(m,cta)?"+":"−"):""}${f(m.monto)}</span></div>`).join("")});
+ const sig=new Date(b);sig.setDate(sig.getDate()+1);const sinSig=H.per==="todo"||dkey(b)>=dkey(HOY);
+ const desde=todos.length?(H.page-1)*H.size+1:0,hasta=Math.min(H.page*H.size,todos.length);
+ const nums=[];for(let p=1;p<=pags;p++)if(p===1||p===pags||Math.abs(p-H.page)<=1)nums.push(p);else if(nums.at(-1)!=="…")nums.push("…");
+ const ultimo=MOV_ALL.find(m=>dkey(m.f)<=dkey(a)-0&&0);
+ el.innerHTML=`<div class="h-velo" data-h="velo"><div class="h-hoja" role="dialog" aria-modal="true" aria-label="Historial de movimientos"><div class="h-cab"><div><span class="versalita">${cta?`${et(cta.tipo).n} · ${sedeDe(cta.sede).nombre}`:`Entre cuentas · ${S.sede==="todas"?"todas las sedes":sedeDe(S.sede).nombre}`}</span><h2>${cta?`Historial · ${cta.nombre}`:"Historial de movimientos"}</h2></div><button class="h-x" data-h="cerrar" aria-label="Cerrar">×</button></div>
+ <div class="h-barra"><div class="h-seg" role="group" aria-label="Período">${[["dia","Día"],["semana","Semana"],["mes","Mes"],["todo","Todo"]].map(([k,t])=>`<button aria-pressed="${H.per===k}" data-h="per" data-v="${k}">${t}</button>`).join("")}</div>
+ ${H.per!=="todo"?`<div class="h-per"><button data-h="ant" aria-label="Anterior">‹</button><b>${etiqueta()}</b><button data-h="sig" aria-label="Siguiente" ${sinSig?"disabled":""}>›</button></div>`:'<span class="h-per"><b>Todo el historial</b></span>'}</div>
+ ${cta?`<div class="h-resumen"><span>Saldo hoy <b>${f(cta.saldo)}</b></span><span class="ent">Entró <b>+${f(todos.filter(m=>esEntrada(m,cta)).reduce((a,m)=>a+m.monto,0))}</b></span><span class="sal">Salió <b>−${f(todos.filter(m=>!esEntrada(m,cta)).reduce((a,m)=>a+m.monto,0))}</b></span><span class="tenue">en ${etiqueta().toLowerCase()}</span></div>`:""}
+ <div class="h-cuerpo">${html||`<div class="h-vacio"><p class="serif" style="font-size:20px">Sin movimientos ${H.per==="dia"?"este día":H.per==="semana"?"esta semana":"este mes"}</p><p class="tenue" style="font-size:13px;margin:6px 0 12px">La plata no cambió de lugar en este período.</p><button class="h-ver" data-h="ultimo">Ir al último período con movimientos</button></div>`}</div>
+ <div class="h-pie"><span class="tenue num">${desde}–${hasta} de ${todos.length} movimientos · <span class="h-seg" style="padding:2px">${[30,40].map(n=>`<button style="padding:3px 10px;font-size:12px" aria-pressed="${H.size===n}" data-h="size" data-v="${n}">${n}</button>`).join("")}</span> por página</span>
+ <div class="h-pag"><button data-h="pag" data-v="${H.page-1}" ${H.page<=1?"disabled":""} aria-label="Página anterior">‹</button>${nums.map(p=>p==="…"?"<span class='tenue'>…</span>":`<button aria-pressed="${p===H.page}" data-h="pag" data-v="${p}">${p}</button>`).join("")}<button data-h="pag" data-v="${H.page+1}" ${H.page>=pags?"disabled":""} aria-label="Página siguiente">›</button></div></div></div></div>`;
+ if(ya)el.querySelector(".h-velo").classList.add("ya");const c=$(".h-cuerpo");if(c)c.scrollTop=0;}
+function mover(dir){const r=H.ref;if(H.per==="dia")r.setDate(r.getDate()+dir);else if(H.per==="semana")r.setDate(r.getDate()+7*dir);else r.setMonth(r.getMonth()+dir,1);if(dkey(r)>dkey(HOY))H.ref=new Date(HOY);H.page=1}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-h]");if(!t)return;const k=t.dataset.h,v=t.dataset.v;
+ if(k==="velo"&&e.target!==t)return;
+ if(k==="abrir"){H.cuenta=v||null;H.open=true;H.page=1;H.ref=new Date(HOY)}else if(k==="cerrar"||k==="velo")H.open=false;
+ else if(k==="per"){H.per=v;H.page=1;if(v==="dia"){const u=MOV_ALL.find(m=>dkey(m.f)<=dkey(H.ref));if(u)H.ref=new Date(u.f)}}
+ else if(k==="ant")mover(-1);else if(k==="sig")mover(1);else if(k==="size"){H.size=+v;H.page=1}else if(k==="pag")H.page=+v;
+ else if(k==="ultimo"){const[a]=rango();const u=MOV_ALL.find(m=>dkey(m.f)<dkey(a));if(u)H.ref=new Date(u.f);H.page=1}
+ e.stopPropagation();renderH()},true);
+addEventListener("keydown",e=>{if(e.key==="Escape"&&H.open){H.open=false;renderH()}});
+addEventListener("resize",render);render();
+</script></body></html>

@@ -59,7 +59,7 @@ describe("estadoPrendaDevolucion", () => {
     expect(estadoPrendaDevolucion(base, ahora)).toMatchObject({ clave: "dentro_del_plazo", devolvible: true, tono: "verde" });
   });
 
-  it("FUERA DE PLAZO NO BLOQUEA: se puede registrar (el líder decide), pero se ve en ROJO", () => {
+  it("FUERA DE PLAZO NO BLOQUEA: se puede registrar (se decide al revisarla), pero se ve en ROJO", () => {
     expect(estadoPrendaDevolucion({ ...base, creadoEn: lima(2026, 8, 1).toISOString() }, ahora)).toMatchObject({
       clave: "fuera_de_plazo",
       devolvible: true,

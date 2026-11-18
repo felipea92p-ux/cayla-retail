@@ -1,0 +1,111 @@
+/* Ronda 18 · vuelta 2: el «?» y su globo, más finos (Felipe eligió P2 + D2 y pidió «más sofisticado, elegante, que se transparente
+   con el fondo»). Tres caras: V1 vidrio esmerilado · V2 tinta translúcida · V3 papel con hilo. Solo tokens (ADR-0169, ADR-0336);
+   movimiento de una vez, sin rebote ni bucle (ADR-0136); todo se apaga con prefers-reduced-motion. */
+
+/* ---------- El «?» (común) ---------- */
+.prop-q.prop-fino {
+  width: 30px; height: 30px; margin-left: 16px; top: -8px;
+  border: 0; background: transparent; color: color-mix(in srgb, var(--color-tinta) 72%, transparent); /* contraste: texto grande sobre crema */
+  font: 500 19px/1 var(--font-eb-garamond), Georgia, serif;
+  transition: color .24s var(--ease-cayla), background-color .24s var(--ease-cayla), box-shadow .24s var(--ease-cayla), transform .16s var(--ease-cayla);
+}
+.prop-q.prop-fino .prop-q-signo { display: block; transform: translateY(1px); transition: transform .32s var(--ease-cayla); }
+@media (max-width: 639px) { .prop-q.prop-fino { width: 36px; height: 36px; top: -4px; } }
+
+/* V1 · vidrio: una lente de vidrio con su filo claro arriba. */
+.prop-q.v1 {
+  background: color-mix(in srgb, var(--color-vidrio) 55%, transparent);
+  box-shadow: inset 0 1px 0 var(--brillo-superior), 0 0 0 1px color-mix(in srgb, var(--color-tinta) 13%, transparent), 0 2px 6px -2px color-mix(in srgb, var(--color-sombra) 14%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2); backdrop-filter: blur(12px) saturate(1.2);
+}
+@media (hover: hover) {
+  .prop-q.v1:hover { color: var(--color-tinta); box-shadow: inset 0 1px 0 var(--brillo-superior), 0 0 0 1px color-mix(in srgb, var(--color-tinta) 28%, transparent), 0 6px 16px -6px color-mix(in srgb, var(--color-sombra) 28%, transparent); transform: translateY(-1px); }
+}
+.prop-q.v1[aria-expanded="true"] { color: var(--color-tinta); background: color-mix(in srgb, var(--color-vidrio) 80%, transparent); box-shadow: inset 0 1px 0 var(--brillo-superior), 0 0 0 1px color-mix(in srgb, var(--color-tinta) 34%, transparent), 0 0 0 5px color-mix(in srgb, var(--color-tinta) 6%, transparent); }
+
+/* V2 · tinta: el «?» se llena de tinta al abrir, como el globo. */
+.prop-q.v2 { box-shadow: 0 0 0 1px var(--color-borde-control); }
+@media (hover: hover) { .prop-q.v2:hover { color: var(--color-tinta); background: var(--color-hueso); } }
+.prop-q.v2[aria-expanded="true"] { background: var(--color-tinta); color: var(--color-crema); box-shadow: 0 0 0 1px var(--color-tinta); }
+
+/* V3 · papel con hilo: sin círculo en reposo; el anillo se DIBUJA al pasar el mouse y queda cerrado al abrir. */
+.prop-q.v3 { overflow: visible; }
+.prop-q.v3 .prop-anillo { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); pointer-events: none; }
+.prop-q.v3 .prop-anillo circle { fill: none; stroke: var(--color-borde-control); stroke-width: 1; stroke-dasharray: 100; stroke-dashoffset: 62; transition: stroke-dashoffset .5s var(--ease-cayla), stroke .24s var(--ease-cayla); }
+@media (hover: hover) { .prop-q.v3:hover { color: var(--color-tinta); } .prop-q.v3:hover .prop-anillo circle { stroke-dashoffset: 0; stroke: var(--color-tinta); } }
+.prop-q.v3[aria-expanded="true"] { color: var(--color-rojo-profundo); }
+.prop-q.v3[aria-expanded="true"] .prop-anillo circle { stroke-dashoffset: 0; stroke: var(--color-rojo-profundo); }
+
+.prop-q.prop-fino:active { transform: scale(.92); }
+.prop-q.prop-fino:focus-visible { outline: 2px solid var(--color-pizarra); outline-offset: 3px; }
+
+/* ---------- El globo (común) ---------- */
+.prop-globo.prop-fino {
+  --pico-x: 22px;
+  top: calc(100% + 12px); left: -8px; width: min(360px, calc(100vw - 32px));
+  padding: 16px 20px 18px; border-radius: 18px; border: 0;
+  font: 400 16px/1.6 var(--font-dm-sans), system-ui, sans-serif;
+  transform-origin: var(--pico-x) -8px;
+}
+.prop-globo.prop-fino .prop-globo-et {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+  font: 600 10.5px/1.4 var(--font-dm-sans), system-ui, sans-serif; letter-spacing: .18em; text-transform: uppercase;
+}
+.prop-globo.prop-fino .prop-globo-et i { display: block; height: 1px; width: 24px; transform-origin: left; }
+/* El pico que apunta al «?»: un rombo con la misma cara que el globo. */
+.prop-globo.prop-fino .prop-pico { position: absolute; top: -6px; left: calc(var(--pico-x) - 6px); width: 12px; height: 12px; transform: rotate(45deg); border-radius: 3px 0 0 0; }
+.prop-globo.prop-fino.prop-entra { animation: prop-globo-entra .34s var(--ease-cayla) both; }
+.prop-globo.prop-fino.prop-entra .prop-globo-et i { animation: prop-hilo .5s .12s var(--ease-cayla) both; }
+.prop-globo.prop-fino.prop-entra .prop-globo-txt { animation: prop-sube .34s .08s var(--ease-cayla) both; }
+@keyframes prop-globo-entra { from { opacity: 0; transform: translateY(-6px) scale(.96); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes prop-hilo { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (max-width: 639px) { .prop-globo.prop-fino { left: 0; width: 100%; } }
+
+/* V1 · vidrio esmerilado: deja ver el fondo, difuminado. */
+.prop-globo.v1 {
+  color: var(--color-tinta);
+  background: color-mix(in srgb, var(--color-vidrio) 52%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(1.35); backdrop-filter: blur(22px) saturate(1.35);
+  box-shadow: inset 0 1px 0 var(--brillo-superior), 0 0 0 1px color-mix(in srgb, var(--color-tinta) 10%, transparent), 0 24px 48px -20px color-mix(in srgb, var(--color-sombra) 30%, transparent);
+}
+.prop-globo.v1 .prop-pico { background: color-mix(in srgb, var(--color-vidrio) 52%, transparent); -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); box-shadow: inset 1px 1px 0 var(--brillo-superior), -1px -1px 0 color-mix(in srgb, var(--color-tinta) 10%, transparent); }
+.prop-globo.v1 .prop-globo-et { color: var(--color-taupe-profundo); }
+.prop-globo.v1 .prop-globo-et i { background: var(--color-taupe); }
+
+/* V2 · tinta translúcida: un vidrio ahumado (en oscuro se invierte solo: vidrio claro con letra oscura). */
+.prop-globo.v2 {
+  color: var(--color-crema);
+  background: color-mix(in srgb, var(--color-tinta) 84%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2); backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: 0 24px 48px -18px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+}
+.prop-globo.v2 .prop-pico { background: color-mix(in srgb, var(--color-tinta) 84%, transparent); }
+.prop-globo.v2 .prop-globo-et { color: color-mix(in srgb, var(--color-crema) 72%, transparent); } /* contraste: texto sobre tinta 84 % */
+.prop-globo.v2 .prop-globo-et i { background: color-mix(in srgb, var(--color-crema) 50%, transparent); }
+
+/* V3 · papel con hilo: papel casi opaco, una línea roja fina arriba que se dibuja, sin pico. */
+.prop-globo.v3 {
+  color: var(--color-tinta); border-radius: 14px; padding-top: 18px;
+  background: color-mix(in srgb, var(--color-papel) 90%, transparent);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  box-shadow: 0 0 0 1px var(--color-sand), 0 18px 40px -18px color-mix(in srgb, var(--color-sombra) 26%, transparent);
+  overflow: hidden;
+}
+.prop-globo.v3::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--color-rojo); transform-origin: var(--pico-x) 0; }
+.prop-globo.v3.prop-entra::before { animation: prop-hilo .55s .05s var(--ease-cayla) both; }
+.prop-globo.v3 .prop-pico { display: none; }
+.prop-globo.v3 .prop-globo-et { color: var(--color-rojo-profundo); }
+.prop-globo.v3 .prop-globo-et i { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .prop-globo.prop-fino.prop-entra, .prop-globo.prop-fino.prop-entra *, .prop-globo.v3.prop-entra::before { animation: none !important; }
+  .prop-q.prop-fino, .prop-q.v3 .prop-anillo circle { transition: none; }
+}
+
+/* La demo de la vuelta 2: un fondo con algo detrás, para que se vea cuánto deja pasar el vidrio. */
+.prop-demo.prop-demo-fondo { min-height: 300px; position: relative; overflow: visible; }
+.prop-demo-cifras { display: flex; gap: 12px; margin-top: 22px; }
+.prop-demo-cifras span { flex: 1; padding: 14px 16px; border-radius: 14px; background: var(--color-papel); border: 1px solid var(--color-sand); font: 400 30px/1 var(--font-eb-garamond), Georgia, serif; color: var(--color-tinta); }
+.prop-demo-cifras small { display: block; margin-top: 6px; font: 400 13px/1.3 var(--font-dm-sans), system-ui, sans-serif; color: var(--color-taupe-profundo); }
+.prop-demo-cifras span:first-child { background: var(--color-verde); color: var(--color-crema); border-color: transparent; }
+.prop-demo-cifras span:first-child small { color: var(--color-crema); }

@@ -1,0 +1,4 @@
+## 2026-11-07 (Los rótulos de anaquel ya no parten el nombre ni lo montan sobre la marca)
+Qué hice: el cálculo del tamaño del nombre (`medidaNombre`, `lib/rotulos-reglas.ts`) descarta todo ancho de línea en el que una palabra sola no entra, así que la palabra más larga manda y sale entera («VESTIDO / CAMPANITA» en vez de «CAMPANIT / A» encima de «Marca»); además el nombre se mide con la letra real de cada computadora (`useMedirNombre`), no solo con la tabla. ADR-0366, act. 2026-11-07.
+Por qué así: el error estaba en el cálculo, no en la impresora: con el ancho de «VESTIDO» elegía 11 mm y a ese tamaño CAMPANITA no cabía en los 57 mm del papel; medir con la letra real cubre además una letra que cambie o no cargue.
+Felipe se lleva: imprimir «Vestido Campanita» en la Brother de Trujillo y mirar que salga en dos líneas, entera, con la marca y las tallas libres.

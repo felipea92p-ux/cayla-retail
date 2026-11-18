@@ -56,7 +56,7 @@ function Nodo({ nodo }: { nodo: NodoLinea }) {
         <Icono aria-hidden className={`h-4 w-4 ${Icono === Check ? "check-trazo" : ""}`} style={{ "--d": "250ms" } as React.CSSProperties} />
       </div>
       <p className="label-cayla text-[11px] text-tinta/65">{nodo.titulo}</p>
-      <p className="-mt-1 text-xs text-tinta/55">{nodo.detalle}</p>
+      <p className="-mt-1 text-sm text-tinta/55">{nodo.detalle}</p>
     </div>
   );
 }

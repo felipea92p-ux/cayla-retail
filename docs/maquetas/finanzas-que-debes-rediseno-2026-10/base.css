@@ -1,0 +1,155 @@
+/* Maquetas de Finanzas v2 (2026-10-15) — base común de las 6 páginas.
+   Paleta oficial «CAYLA Dynamic» (ADR-0169) y su modo oscuro (ADR-0336): los mismos valores que globals.css y tema.css.
+   Movimiento de ADR-0136: --ease-cayla, sin rebote, una sola vez; los únicos bucles son señales («vence pronto»).
+   Todo se apaga con prefers-reduced-motion. */
+
+:root{
+  --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0;
+  --tinta:#1a1a18; --taupe:#805c4c; --rojo:#b8412d; --rojo-p:#8b2a1f;
+  --verde:#48603f; --ambar:#74501a; --pizarra:#4c5d6e;
+  --tinta-fija:#1a1a18; --crema-fija:#f5f0e8;
+  /* Medios de pago y lugares (dato, no decoración) */
+  --m-efectivo:#48603f; --m-yape:#6b3d7a; --m-tarjeta:#4c5d6e; --m-qr:#2f6b6b; --m-plin:#2c6f8f;
+  --sombra:#1a1a18;
+  --vidrio:color-mix(in srgb,var(--papel) 78%,transparent);
+  --ease-cayla:cubic-bezier(0.32,0.72,0.24,1);
+  --serif:"EB Garamond",ui-serif,Georgia,serif;
+  --sans:"DM Sans",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --radio:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --crema:#1a1a18; --papel:#242422; --hueso:#31302d; --sand:#3d3c38;
+    --tinta:#f5f0e8; --taupe:#c4a898; --rojo:#e8806a; --rojo-p:#f29a86;
+    --verde:#9ccb8d; --ambar:#e4b968; --pizarra:#a2b8cd;
+    --m-efectivo:#9ccb8d; --m-yape:#c9a0d6; --m-tarjeta:#a2b8cd; --m-qr:#8fcfcf; --m-plin:#8fc4dd;
+    --sombra:#000000; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --crema:#1a1a18; --papel:#242422; --hueso:#31302d; --sand:#3d3c38;
+  --tinta:#f5f0e8; --taupe:#c4a898; --rojo:#e8806a; --rojo-p:#f29a86;
+  --verde:#9ccb8d; --ambar:#e4b968; --pizarra:#a2b8cd;
+  --m-efectivo:#9ccb8d; --m-yape:#c9a0d6; --m-tarjeta:#a2b8cd; --m-qr:#8fcfcf; --m-plin:#8fc4dd;
+  --sombra:#000000; color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--crema);color:var(--tinta);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--serif);font-weight:500;margin:0;text-wrap:balance;letter-spacing:-.005em}
+p{margin:0}
+button{font:inherit;color:inherit}
+a{color:var(--rojo-p)}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px;border-radius:6px}
+.num{font-variant-numeric:tabular-nums}
+.tenue{color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.versalita{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.serif{font-family:var(--serif)}
+
+/* ---------- Barra de la maqueta (no es parte del diseño propuesto) ---------- */
+.mq-barra{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:10px 20px;background:color-mix(in srgb,var(--crema) 86%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--sand)}
+.mq-barra .mq-volver{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;border:1px solid var(--sand);text-decoration:none;color:var(--tinta)}
+.mq-barra .mq-titulo{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.mq-barra .mq-titulo b{font-family:var(--serif);font-size:20px;font-weight:500}
+.mq-barra .mq-espacio{flex:1}
+.mq-selector{display:inline-flex;padding:4px;border-radius:999px;background:var(--hueso);gap:2px;position:relative}
+.mq-selector button{border:0;background:transparent;padding:6px 12px;border-radius:999px;cursor:pointer;font-size:12.5px;font-weight:600;letter-spacing:.04em;position:relative;z-index:1;
+  color:color-mix(in srgb,var(--tinta) 70%,transparent);transition:color .2s var(--ease-cayla)}
+.mq-selector button[aria-pressed="true"]{color:var(--crema)}
+.mq-selector .mq-pildora{position:absolute;top:4px;bottom:4px;border-radius:999px;background:var(--tinta);transition:left .35s var(--ease-cayla),width .35s var(--ease-cayla);z-index:0}
+.mq-tema{border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:6px 12px;font-size:12.5px;cursor:pointer}
+.mq-ejemplo{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--ambar);border:1px solid color-mix(in srgb,var(--ambar) 45%,transparent);border-radius:999px;padding:3px 10px;white-space:nowrap}
+.mq-nota{max-width:1180px;margin:18px auto 0;padding-inline:20px;font-size:13.5px}
+.mq-nota b{font-weight:600}
+@media (max-width:640px){.mq-barra{padding:8px 16px}.mq-selector button{padding:6px 9px;font-size:11.5px}.mq-ejemplo{display:none}}
+
+/* ---------- Página y variantes ---------- */
+.pagina{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:28px 96px}
+@media (max-width:480px){.pagina{padding-inline:16px}}
+.variante{display:flex;flex-direction:column;gap:22px}
+.variante[hidden]{display:none!important}
+.variante-cab{display:flex;flex-direction:column;gap:6px;padding-bottom:6px}
+.variante-cab .idea{font-size:14px;max-width:70ch}
+
+/* Cabecera como EncabezadoPagina */
+.encabezado{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:flex-end}
+.encabezado .linea-sede{display:flex;align-items:center;gap:12px}
+.encabezado .linea-sede::after{content:"";width:72px;height:1px;background:var(--taupe);opacity:.55}
+.encabezado h1{font-size:clamp(34px,5vw,46px);line-height:1.02}
+.encabezado .frase{font-size:15.5px;max-width:58ch}
+
+/* ---------- Piezas del ERP (aproximadas) ---------- */
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);padding:20px;min-width:0}
+.tarjeta.hundida{background:var(--hueso);border-color:transparent}
+.rejilla{display:grid;gap:14px}
+.r2{grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))}
+.r3{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.r4{grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))}
+.cifra{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);padding:16px 18px;display:flex;flex-direction:column;gap:6px;min-width:0;
+  transition:transform .26s var(--ease-cayla),border-color .2s var(--ease-cayla)}
+.cifra:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--taupe) 45%,var(--sand))}
+.cifra .valor{font-family:var(--serif);font-size:32px;line-height:1;font-variant-numeric:tabular-nums}
+.cifra .pie{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 68%,transparent)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:3px 10px 3px 8px;border-radius:999px;white-space:nowrap;
+  background:color-mix(in srgb,var(--c,var(--pizarra)) 13%,transparent);color:var(--c,var(--pizarra))}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.late::before{animation:mq-late 1.6s ease-in-out infinite}
+.c-verde{--c:var(--verde)}.c-ambar{--c:var(--ambar)}.c-rojo{--c:var(--rojo-p)}.c-pizarra{--c:var(--pizarra)}.c-taupe{--c:var(--taupe)}
+.nota{background:var(--hueso);border-radius:12px;padding:14px 16px;font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--tinta);background:transparent;cursor:pointer;
+  font-size:13.5px;font-weight:500;position:relative;overflow:hidden;transition:transform .2s var(--ease-cayla),background .2s,color .2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:scale(.97)}
+.btn.primario{background:var(--tinta);color:var(--crema)}
+.btn.primario:hover{background:var(--rojo-p);border-color:var(--rojo-p)}
+.btn.sutil{border-color:var(--sand);background:var(--papel)}
+.btn.chico{height:32px;padding:0 12px;font-size:12.5px}
+.porque{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:0;cursor:pointer;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--rojo-p)}
+.porque::after{content:"›";transition:transform .25s var(--ease-cayla);font-size:15px;line-height:1}
+.porque[aria-expanded="true"]::after{transform:rotate(90deg)}
+.desplegable{display:grid;grid-template-rows:0fr;transition:grid-template-rows .4s var(--ease-cayla)}
+.desplegable>div{overflow:hidden}
+.desplegable.abierto{grid-template-rows:1fr}
+.pista{height:10px;border-radius:999px;background:var(--hueso);overflow:hidden;position:relative}
+.pista>i{display:block;height:100%;border-radius:999px;background:var(--c,var(--tinta));width:var(--w,0%)}
+.tabla{width:100%;border-collapse:collapse;font-size:13.5px}
+.tabla th{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid var(--sand)}
+.tabla td{padding:11px 12px;border-bottom:1px solid var(--sand);vertical-align:middle}
+.tabla tr{transition:background .2s}
+.tabla tbody tr:hover{background:color-mix(in srgb,var(--hueso) 60%,transparent)}
+.tabla .m{text-align:right;font-variant-numeric:tabular-nums}
+.desliza{overflow-x:auto;min-width:0}
+
+/* ---------- Movimiento (ADR-0136) ----------
+   [data-entra]  entra en cascada (usa --i para el desfase de 55 ms)
+   [data-crece]  barra que crece hasta su --w
+   [data-dibuja] trazo SVG que se dibuja (pathLength="1")
+   [data-cuenta] número que cuenta (base.js)
+   Todo vive visible en reposo: solo se anima cuando la variante tiene .animar. */
+.animar [data-entra]{animation:mq-entra .62s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0) * 55ms + 60ms)}
+.animar [data-sube]{animation:mq-sube .7s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0) * 70ms + 120ms)}
+.animar [data-crece]>i,.animar i[data-crece]{animation:mq-crece .9s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0) * 70ms + 200ms)}
+.animar [data-crece-alto]{animation:mq-crece-alto .9s var(--ease-cayla) backwards;transform-origin:bottom;animation-delay:calc(var(--i,0) * 60ms + 200ms)}
+.animar [data-dibuja]{stroke-dasharray:1;animation:mq-dibuja 1.3s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0) * 90ms + 200ms)}
+.animar [data-aparece]{animation:mq-aparece .5s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0) * 80ms + 400ms)}
+.animar [data-sello]{animation:mq-sello .55s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0) * 80ms + 700ms)}
+@keyframes mq-entra{from{opacity:0;transform:translateY(14px)}}
+@keyframes mq-sube{from{opacity:0;transform:translateY(18px) scale(.985)}}
+@keyframes mq-crece{from{width:0}}
+@keyframes mq-crece-alto{from{transform:scaleY(0)}}
+@keyframes mq-dibuja{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes mq-aparece{from{opacity:0}}
+@keyframes mq-sello{from{opacity:0;transform:scale(1.35) rotate(-8deg)}}
+@keyframes mq-late{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,currentColor 45%,transparent)}50%{box-shadow:0 0 0 5px transparent}}
+/* Onda donde se toca (como <OndaBotones>) */
+.onda{position:absolute;border-radius:50%;pointer-events:none;background:currentColor;opacity:.22;transform:scale(0);animation:mq-onda .6s var(--ease-cayla) forwards}
+@keyframes mq-onda{to{transform:scale(1);opacity:0}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}

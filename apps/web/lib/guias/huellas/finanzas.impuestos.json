@@ -2,24 +2,23 @@
   "guia": "finanzas.impuestos",
   "ruta": "/finanzas/impuestos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 14,
+  "total": 15,
   "controles": {
     "components/ImpuestosPanel.tsx": [
-      "BotonDescargar «Descargar paquete del contador»",
+      "BotonVer «Comparar con SUNAT»",
       "button «fin-impuestos.ir-a-declarar»",
-      "Link «Registrar el pago»"
+      "Link «Ver la cuenta con CLAURE»"
     ],
-    "components/finanzas/AntesDeDeclarar.tsx": [
-      "BotonVer «{p.verbo}»"
+    "components/finanzas/ImpuestosCuenta.tsx": [
+      "BotonEnlace «Anota el pago que hiciste desde un banco, en Cuentas y dinero»",
+      "button «− IGV de tus compras»"
     ],
-    "components/finanzas/BalanzaIgv.tsx": [
-      "Link «Configurarla»"
+    "components/finanzas/ImpuestosFila.tsx": [
+      "Link «{cuerpo}»"
     ],
-    "components/finanzas/ImpuestosPulso.tsx": [
-      "button «{porque ? \"Cerrar\" : \"¿Por qué?\"}»"
-    ],
-    "components/finanzas/SobresIgv.tsx": [
-      "button «{`${s.nombre}»"
+    "components/finanzas/ImpuestosRenta.tsx": [
+      "button «fin-impuestos.pedir-factura»",
+      "Link «Carga lo de tu contador»"
     ],
     "components/finanzas/telar/DockTelar.tsx": [
       "Link «{`${a.texto}»",

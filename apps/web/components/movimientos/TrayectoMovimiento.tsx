@@ -17,7 +17,7 @@ const ICONOS: Record<KindLugar, string> = {
 
 function Punto({ lugar, kind }: { lugar: string; kind: KindLugar }) {
   return (
-    <span className="mv-punto" data-fuera={kind === "cliente" || kind === "fuera" || kind === "sede" ? "" : undefined} title={lugar}>
+    <span className="mv-punto" aria-label={lugar} data-fuera={kind === "cliente" || kind === "fuera" || kind === "sede" ? "" : undefined} title={lugar}>
       <svg viewBox="0 0 24 24" aria-hidden>
         <path d={ICONOS[kind]} />
       </svg>
@@ -32,6 +32,7 @@ export function TrayectoMovimiento({
   tipo,
   motivo,
   solo,
+  soloIconos = false,
 }: {
   origen: string;
   destino: string | null;
@@ -40,11 +41,13 @@ export function TrayectoMovimiento({
   motivo: string | null;
   /** Sin destino: lo que pasó en ese lugar («se corrigió aquí», «se corrigió tras contar»). */
   solo?: string;
+  /** En el celular, la fila de la lista dibuja solo los íconos de cada lugar (más compacto); el detalle conserva el texto. */
+  soloIconos?: boolean;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   useAlVerse(ref);
   return (
-    <span ref={ref} className="mv-ruta">
+    <span ref={ref} className="mv-ruta" data-solo-iconos={soloIconos ? "" : undefined}>
       <Punto lugar={origen} kind={kindDeLugar(origen, "origen", motivo, tipo)} />
       {destino ? (
         <>

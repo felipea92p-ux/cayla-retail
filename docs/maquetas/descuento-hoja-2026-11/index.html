@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-pv="aire" data-tp="aire" data-dsc="hoja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Descuento en Vender</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · el descuento de Vender (/vender), 2026-11-02
+   Hoy (components/PuntoDeVentaTicket.tsx, rama `descontando`): al tocar «Descuento» el ticket de 400 px se reemplaza por un panel apretado:
+   «% Porcentaje», un interruptor «% | S/» solo con símbolos, los atajos 5/10/15, «Otro … %», el motivo en 2 columnas que se parten en 2 y 3
+   líneas, «Aplicar a» abajo del pliegue y «Aplicar descuento». El cobro, en cambio, abre como HOJA ANCHA sobre el catálogo con el ticket
+   quieto a la vista (PuntoDeVenta.tsx, `hoja-cobro`).
+   Caras: Como ahora · A · Hoja lateral (como el cobro) · B · Dentro del ticket, pero arreglado.
+   Mesa y tarjeta de prenda = lo ya elegido (docs/maquetas/vender-vidrio-2026-11). Datos inventados. Solo tokens. Sin rebote.
+   ==================================================================== */
+/* ---------- la mesa (la elegida: catálogo al aire, ticket en placa; prenda: foto al aire) ---------- */
+.pos-wrap{position:relative}
+.pos{display:grid;grid-template-columns:minmax(0,1fr) clamp(320px,34%,400px);gap:22px;align-items:start}
+.cat{min-width:0}
+.cat-fila{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.cat-fila .sede-t{margin-right:6px;font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--taupe)}
+.cat-fila .hoy-t{margin-left:auto;font-size:13px;color:var(--taupe)}.cat-fila .hoy-t b{color:var(--tinta);font-weight:600}
+.cat-fila .btn{height:34px;padding:0 14px;font-size:13px}
+.bus{position:relative;display:flex;align-items:center;gap:10px;height:50px;margin-top:14px;padding:0 10px 0 18px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.bus svg{width:19px;height:19px;flex:none;color:var(--t65);fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.bus input{flex:1;min-width:0;height:100%;border:0;outline:0;background:none;font-size:15px;color:var(--tinta)}
+.bus input::placeholder{color:var(--t65)}
+.bus kbd{padding:0 7px;border-radius:99px;border:1px solid var(--t25);font:600 10.5px/18px 'DM Sans';color:var(--t65)}
+.cats-p{display:flex;gap:8px;margin-top:12px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}.cats-p::-webkit-scrollbar{display:none}
+.fp{flex:none;display:inline-flex;align-items:center;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:color-mix(in srgb,var(--tinta) 82%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.grilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:14px;margin-top:14px}
+.tp{position:relative;display:flex;flex-direction:column;gap:9px;animation:sube .45s var(--ease) backwards;animation-delay:calc(var(--i,0) * 35ms + 120ms)}
+.tp .foto{position:relative;aspect-ratio:1;border-radius:18px;display:grid;place-items:center;color:var(--crema-fija);overflow:hidden;box-shadow:0 18px 30px -20px color-mix(in srgb,var(--sombra) 60%,transparent)}
+.tp .foto.claro{color:var(--tinta-fija)}.tp .foto svg{width:38px;height:38px;fill:none;stroke:currentColor;stroke-width:1.5;opacity:.85}
+.tp .nom{font-size:14px;font-weight:600;line-height:1.3}.tp .res{font-size:12px;color:var(--t65);margin-top:1px}
+.tp .tallas{display:flex;flex-wrap:wrap;gap:5px}
+.talla{min-width:34px;height:30px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--vidrio) 50%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .talla{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.talla:disabled{border-style:dashed;opacity:.6}
+.tp .pie-t{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin-top:auto}
+.tp .precio{font-size:15px;font-weight:700}.tp .stock{font-size:11.5px;color:var(--t65)}
+.gl-esq{position:absolute;top:8px;right:8px;z-index:2;min-width:22px;height:22px;padding:0 6px;border-radius:99px;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--crema);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 80%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent));box-shadow:0 0 0 2px color-mix(in srgb,var(--vidrio) 80%,transparent)}
+
+/* ---------- el ticket (la placa Serena) ---------- */
+.ticket{position:sticky;top:0;display:flex;flex-direction:column;gap:14px;padding:20px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);border-radius:24px;color:var(--tinta);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 52%,transparent));-webkit-backdrop-filter:blur(26px) saturate(1.6);backdrop-filter:blur(26px) saturate(1.6);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 30px 60px -34px color-mix(in srgb,var(--sombra) 50%,transparent);transition:opacity .3s}
+[data-tema="oscuro"] .ticket{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--vidrio) 78%,transparent)}
+.ticket[inert]{opacity:.72}
+.ticket h2{margin:0;font-family:'EB Garamond',serif;font-size:24px;font-weight:400;display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.ticket h2 a{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--tinta);text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:3px}
+.et-t{font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--t65);margin-bottom:6px}
+.resp{display:flex;align-items:center;gap:10px;height:48px;padding:0 14px 0 6px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);
+  box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);font-size:14.5px;width:100%;text-align:left}
+.resp .av-t{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:15px;background:color-mix(in srgb,var(--sand) 80%,transparent)}
+.resp span:nth-child(2){flex:1}.resp svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;opacity:.6}
+.lineas{display:grid;gap:2px}
+.lin{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0}
+.lin+.lin{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 9%,transparent)}
+.lin .mini{width:44px;height:52px;border-radius:9px}
+.lin b{display:block;font-size:14px;font-weight:600}.lin small{display:block;font-size:12px;color:var(--t65);margin-top:1px}
+.lin .der{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.lin .mon{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.lin .mon s{display:block;font-size:12px;font-weight:400;color:var(--t65)}
+.lin .mon.con{color:var(--rojo-p)}
+.paso{display:inline-flex;align-items:center;height:30px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.paso button{width:28px;height:28px;display:grid;place-items:center;border-radius:50%}
+.paso button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.paso span{min-width:18px;text-align:center;font-size:13px;font-weight:600}
+.quitar{width:28px;height:28px;display:grid;place-items:center;border-radius:50%;color:var(--t65)}
+.quitar svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.vacio-t{display:flex;flex-direction:column;align-items:center;text-align:center;padding:22px 10px;gap:8px}
+.vacio-t b{font-family:'EB Garamond',serif;font-size:19px;font-weight:400}.vacio-t span{font-size:13px;color:var(--taupe)}
+.extras-t{display:flex;flex-wrap:wrap;gap:8px}.extras-t .btn{height:32px;padding:0 12px;font-size:12.5px}
+.totales{display:grid;gap:6px;padding-top:12px;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 10%,transparent);font-size:13.5px}
+.totales div{display:flex;justify-content:space-between;align-items:center;color:var(--taupe)}.totales div b{color:var(--tinta);font-weight:600;font-variant-numeric:tabular-nums}
+.totales .desc b{color:var(--rojo-p)}
+.totales .desc .cambiar{margin-left:8px;font-size:12px;text-decoration:underline;text-underline-offset:3px;color:var(--tinta)}
+.totales .total{align-items:baseline;color:var(--tinta);margin-top:4px}
+.totales .total strong{font-family:'EB Garamond',serif;font-size:34px;font-weight:400;font-variant-numeric:tabular-nums}
+.cobrar{width:100%;height:52px;font-size:15px!important;justify-content:center}.cobrar:disabled{opacity:.45;cursor:not-allowed}
+.ayuda-t{font-size:12.5px;color:var(--taupe);text-align:center;margin-top:-6px}
+
+/* ============================================================
+   EL DESCUENTO — piezas comunes (la cara «Como ahora» las reescribe abajo, en .ah-*)
+   Idioma del vidrio: lo hundido espera tu dato (pozo) · lo que sobresale es lo que haces (gota) · lo que explica es plano (placa)
+   ============================================================ */
+.d-capa{position:absolute;z-index:8;pointer-events:none}.d-capa[hidden]{display:none}
+.d-capa>*{pointer-events:auto}
+.d-velo{position:absolute;inset:0;background:color-mix(in srgb,var(--sombra) 20%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);animation:funde .32s var(--ease) both}
+/* escritorio: el velo cubre solo el catálogo; la hoja se pega a la derecha del catálogo, junto al ticket (como `hoja-cobro`) */
+.pos-wrap>.d-capa{top:-92px;left:-36px;right:calc(clamp(320px,34%,400px) + 22px);height:calc(var(--hv,640px) + 92px + 24px)}
+.pos-wrap>.d-capa .d-velo{inset:0}
+.pos-wrap>.d-capa .d-hoja{position:absolute;top:92px;right:0;bottom:24px;width:min(46rem,calc(100% - 36px - 16px))}
+.d-hoja{display:flex;flex-direction:column;min-height:0;overflow:hidden;border-radius:32px;border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);
+  background:color-mix(in srgb,var(--vidrio) 70%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 50px 90px -40px color-mix(in srgb,var(--sombra) 55%,transparent);animation:d-entra .5s var(--ease) both}
+[data-tema="oscuro"] .d-hoja{border-color:color-mix(in srgb,var(--tinta) 12%,transparent);background:color-mix(in srgb,var(--vidrio) 82%,transparent)}
+@keyframes d-entra{from{opacity:0;transform:translate3d(0,18px,0) scale(.985)}}
+@keyframes d-sube-m{from{transform:translate3d(0,40px,0);opacity:0}}
+.d-root{display:flex;flex-direction:column;min-height:0;flex:1;height:100%}
+.d-cab{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 22px 6px}
+.d-volver{width:42px;height:42px;flex:none;display:grid;place-items:center;border-radius:50%;border:1px solid var(--borde);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--vidrio) 50%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .d-volver{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.d-volver svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d-cab-t{text-align:right;animation:sube .45s var(--ease) .08s backwards}
+.d-cab-t h2{margin:0;font-family:'EB Garamond',serif;font-size:27px;font-weight:400;line-height:1.1;display:flex;align-items:center;justify-content:flex-end;gap:10px}
+.d-cab-t h2 svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;opacity:.7}
+.d-cab-t p{margin-top:2px;font-size:13.5px;color:var(--taupe)}
+.d-cuerpo{flex:1;min-height:0;overflow:auto;padding:12px 22px 14px;scrollbar-width:thin}
+.d-sec{display:grid;gap:10px;align-content:start;animation:sube .45s var(--ease) backwards}
+.d-sec:nth-child(2){animation-delay:.07s}.d-sec:nth-child(3){animation-delay:.12s}
+.d-t{margin:0;display:flex;align-items:center;gap:10px;font-size:11.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--t65)}
+.d-n{width:22px;height:22px;flex:none;display:inline-grid;place-items:center;border-radius:50%;font-size:12px;letter-spacing:0;color:var(--tinta);background:var(--t12);transition:background .3s,color .3s}
+.d-n svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:24;animation:d-dib .4s var(--ease) both}
+@keyframes d-dib{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
+.d-sec.hecho .d-n{background:var(--verde);color:var(--tinta-fija)}
+[data-tema="oscuro"] .d-sec.hecho .d-n{color:var(--tinta-fija)}
+.d-sec:not(.hecho) .d-n{color:var(--tinta)}
+.d-ayuda{font-size:13px;color:var(--taupe);margin-top:-2px}
+/* el segmento con palabras */
+.d-seg{position:relative;display:grid;grid-template-columns:1fr 1fr;height:46px;padding:4px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.d-seg button{position:relative;z-index:1;border-radius:999px;font-size:14px;font-weight:600;color:var(--t65);transition:color .3s}
+.d-seg button[aria-pressed="true"]{color:var(--crema)}
+.d-seg i{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:999px;background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 35%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 60%,transparent);transition:transform .35s var(--ease)}
+.d-root[data-modo="monto"] .d-seg i{transform:translateX(100%)}
+/* fichas de valor: gotas grandes; «Otro» es un pozo que se escribe */
+.d-fichas{display:grid;grid-template-columns:repeat(var(--n,4),minmax(0,1fr));gap:8px}
+.d-ficha,.d-otro{height:54px;border-radius:16px}
+.d-ficha{font-size:17px;font-weight:600;border:1px solid var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--vidrio) 50%,transparent));box-shadow:inset 0 1px 0 var(--vidrio);transition:transform .25s var(--ease)}
+[data-tema="oscuro"] .d-ficha{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.d-ficha[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 35%,transparent),0 8px 18px -10px color-mix(in srgb,var(--sombra) 60%,transparent)}
+@media (hover:hover){.d-ficha:not([aria-pressed="true"]):hover{transform:translateY(-2px)}}
+.d-otro{display:flex;align-items:center;justify-content:center;gap:4px;padding:0 8px;border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);
+  box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);transition:background .25s,box-shadow .25s}
+.d-otro:focus-within,.d-otro.lleno{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 60%,transparent),color-mix(in srgb,var(--vidrio) 30%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 10px 22px -12px color-mix(in srgb,var(--sombra) 35%,transparent)}
+.d-otro input{width:100%;min-width:0;height:100%;border:0;outline:0;background:none;text-align:right;font-size:17px;font-weight:600;color:var(--tinta)}
+.d-otro input::placeholder{font-size:14px;font-weight:500;color:var(--t65);text-align:center}
+.d-otro span{font-size:15px;font-weight:600;color:var(--t65)}
+.d-otro.pre input{text-align:left}
+/* listas (motivo, prendas): una placa con filas, la elegida es una gota */
+.d-radios,.d-lista{display:grid;border-radius:18px;border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);overflow:hidden;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"] :is(.d-radios,.d-lista){border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:none;background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.d-radio,.d-pren,.d-todo{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:0 14px;text-align:left;font-size:14.5px;transition:background .25s}
+.d-radio+.d-radio,.d-pren+.d-pren{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 9%,transparent)}
+.d-radio[aria-pressed="true"],.d-pren[aria-pressed="true"]{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));font-weight:600;box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -10px color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-tema="oscuro"] :is(.d-radio,.d-pren)[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 14%,transparent);box-shadow:none}
+@media (hover:hover){:is(.d-radio,.d-pren):not([aria-pressed="true"]):hover{background:color-mix(in srgb,var(--vidrio) 40%,transparent)}}
+.d-dot,.d-chk{width:20px;height:20px;flex:none;display:grid;place-items:center;border:1.5px solid var(--t50);transition:background .2s,border-color .2s}
+.d-dot{border-radius:50%}.d-chk{border-radius:7px}
+.d-dot::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--crema);transform:scale(0);transition:transform .25s var(--ease)}
+.d-chk svg{width:12px;height:12px;fill:none;stroke:var(--crema);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:24;stroke-dashoffset:24;transition:stroke-dashoffset .3s var(--ease)}
+[aria-pressed="true"]>.d-dot,[aria-pressed="true"]>.d-chk{background:var(--tinta);border-color:var(--tinta)}
+[aria-pressed="true"]>.d-dot::after{transform:scale(1)}[aria-pressed="true"]>.d-chk svg{stroke-dashoffset:0}
+.d-todo{min-height:48px;border-radius:16px;border:1px solid var(--borde);font-weight:600;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--vidrio) 50%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .d-todo{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.d-todo[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.d-todo[aria-pressed="true"] .d-chk{background:var(--crema);border-color:var(--crema)}.d-todo[aria-pressed="true"] .d-chk svg{stroke:var(--tinta)}
+.d-mini{width:30px;height:36px;flex:none;border-radius:7px}
+.d-pn{flex:1;min-width:0}.d-pn b{display:block;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.d-pn small{display:block;font-size:12px;color:var(--t65)}
+.d-pp{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.d-pren{padding-block:6px}
+.d-texto,.d-area{width:100%;border-radius:16px;border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);outline:0;padding:0 16px;font-size:14.5px;color:var(--tinta);background:color-mix(in srgb,var(--tinta) 5%,transparent);
+  box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);transition:background .25s,box-shadow .25s}
+.d-texto{height:48px}.d-area{padding:12px 16px;resize:none;font-family:inherit}
+.d-texto:focus,.d-area:focus{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 60%,transparent),color-mix(in srgb,var(--vidrio) 30%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 10px 22px -12px color-mix(in srgb,var(--sombra) 35%,transparent)}
+.d-texto::placeholder,.d-area::placeholder{color:var(--t65)}
+.d-texto[hidden],.d-sec[hidden],.d-lista[hidden]{display:none}
+.d-texto:not([hidden]),.d-sec:not([hidden]).d-arg{animation:sube .35s var(--ease) both}
+/* el pie: lo que quedaría y el botón */
+.d-pie{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:14px 22px 18px;background:color-mix(in srgb,var(--vidrio) 62%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 10%,transparent)}
+.d-quedaria{display:grid;gap:0}
+.d-quedaria span{font-size:11.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--t65)}
+.d-quedaria strong{font-family:'EB Garamond',serif;font-size:38px;font-weight:400;line-height:1.05;font-variant-numeric:tabular-nums}
+.d-quedaria strong.sin{color:var(--t50)}
+.d-quedaria small{font-size:12.5px;color:var(--taupe);min-height:18px}
+.d-acc{display:grid;gap:6px;justify-items:stretch;min-width:min(100%,260px);flex:1;max-width:340px}
+.d-aplicar{height:54px;justify-content:space-between!important;padding:0 20px!important;font-size:14px!important}
+.d-aplicar b{font-family:'EB Garamond',serif;font-size:20px;font-weight:400;letter-spacing:0;text-transform:none}
+.d-aplicar:disabled{opacity:.45;cursor:not-allowed}
+.d-falta{font-size:12.5px;color:var(--taupe);text-align:center;min-height:18px}
+.d-quitar{height:34px;font-size:12px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--rojo-p)}
+/* ---------- A · la hoja lateral: dos columnas en escritorio ---------- */
+.d-root[data-lugar="hoja"] .d-cuerpo{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:26px;align-content:start}
+.d-root[data-lugar="hoja"] .d-der{display:grid;gap:20px;align-content:start}
+.d-der{display:grid;gap:20px}
+.d-cuerpo>.d-sec,.d-der{min-width:0}
+/* una hoja que queda angosta (catálogo estrecho a 1024–1100 px) apila sus dos columnas */
+.d-hoja{container:hoja/inline-size}
+@container hoja (max-width:620px){
+  .d-root[data-lugar="hoja"] .d-cuerpo{grid-template-columns:minmax(0,1fr);gap:20px}
+  .d-root[data-lugar="hoja"] :is(.d-cab,.d-cuerpo,.d-pie){padding-inline:16px}
+  .d-ficha,.d-otro{height:50px}
+}
+/* B · dentro del ticket, y el celular: una columna */
+.d-root:not([data-lugar="hoja"]) .d-cuerpo{display:grid;gap:20px;align-content:start}
+.d-root:not([data-lugar="hoja"]) .d-der{display:contents}
+.d-root[data-lugar="ticket"] :is(.d-cab,.d-cuerpo,.d-pie){padding-inline:0}
+.d-root[data-lugar="ticket"] .d-pie{flex-direction:column;align-items:stretch;background:none;-webkit-backdrop-filter:none;backdrop-filter:none;padding-bottom:0;gap:10px}
+.d-root[data-lugar="ticket"] .d-quedaria{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.d-root[data-lugar="ticket"] .d-quedaria small{display:none}
+.d-root[data-lugar="ticket"] .d-quedaria strong{font-size:30px}
+.d-root[data-lugar="ticket"] .d-acc{max-width:none}
+.d-root[data-lugar="ticket"] .d-cab{padding-top:0}
+.ticket.d-modo{height:calc(var(--hv,640px) - 4px);overflow:hidden;gap:0}
+.d-root[data-lugar="ticket"] .d-cuerpo{gap:16px}
+.d-root[data-lugar="ticket"] :is(.d-ficha,.d-otro){height:48px}
+.d-root[data-lugar="ticket"] .d-radio{min-height:40px}
+.d-root[data-lugar="ticket"] .d-seg{height:42px}
+.d-root[data-lugar="movil"] .d-pie{flex-direction:column;align-items:stretch}.d-root[data-lugar="movil"] .d-quedaria{display:flex;justify-content:space-between;align-items:baseline}
+.d-root[data-lugar="movil"] .d-quedaria small{display:none}.d-root[data-lugar="movil"] .d-acc{max-width:none}
+.d-root[data-lugar="movil"] :is(.d-cab,.d-cuerpo,.d-pie){padding-inline:16px}.d-root[data-lugar="movil"] .d-cab{padding-top:14px}
+
+/* ============================================================
+   COMO AHORA — réplica del panel de hoy (PuntoDeVentaTicket.tsx): arena, símbolos, motivos en 2 columnas
+   ============================================================ */
+.ah-f{border:0;display:grid;gap:8px;min-width:0}.ah-f[hidden]{display:none}
+.ah-f+.ah-f{border-top:1px solid var(--sand);padding-top:16px;margin-top:4px}
+.ah-f legend{padding:0;font-size:14px;color:var(--t50);display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.ah-f legend svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.ah-seg{position:relative;display:inline-grid;grid-template-columns:1fr 1fr;width:fit-content;height:34px;padding:3px;border-radius:999px;background:var(--hueso);border:1px solid var(--sand)}
+.ah-seg button{position:relative;z-index:1;min-width:48px;padding:0 12px;font-size:13px;font-weight:600;color:var(--t65)}
+.ah-seg button[aria-pressed="true"]{color:var(--tinta)}
+.ah-seg i{position:absolute;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);border-radius:999px;background:var(--papel);box-shadow:0 1px 3px color-mix(in srgb,var(--sombra) 20%,transparent);transition:transform .3s var(--ease)}
+.d-root[data-modo="monto"] .ah-seg i{transform:translateX(100%)}
+.ah-fichas{display:grid;grid-template-columns:repeat(var(--n,3),1fr);gap:4px;padding:4px;border-radius:14px;background:color-mix(in srgb,var(--sand) 50%,transparent)}
+.ah-fichas button{height:44px;border-radius:10px;font-size:14px;font-weight:600;color:var(--t65)}
+.ah-fichas button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.ah-otro{display:flex;align-items:center;gap:8px;height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--sand);background:var(--hueso);font-size:14px;color:var(--t50)}
+.ah-otro input{margin-left:auto;width:90px;min-width:0;border:0;outline:0;background:none;text-align:right;font-size:18px;font-weight:600;color:var(--tinta)}
+.ah-otro span:last-child{color:var(--t65)}
+.ah-motivos{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:14px;background:color-mix(in srgb,var(--sand) 50%,transparent)}
+.ah-motivos button{min-height:40px;padding:4px 8px;border-radius:10px;font-size:14px;font-weight:600;line-height:1.25;text-align:center;color:var(--t65)}
+.ah-motivos button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.ah-todo{display:flex;align-items:center;gap:8px;height:40px;width:100%;padding:0 12px;border-radius:10px;border:1px solid var(--sand);font-size:14px}
+.ah-todo[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.ah-lista{display:grid;border:1px solid var(--sand);border-radius:10px;background:var(--crema)}
+.ah-lista button{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;font-size:14px}.ah-lista button+button{border-top:1px solid var(--sand)}
+.ah-lista .pp{margin-left:auto;color:var(--t65)}
+.ah-cir{width:20px;height:20px;border-radius:50%;border:1px solid var(--t50);display:grid;place-items:center;flex:none}
+[aria-pressed="true"]>.ah-cir{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}.ah-cir svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:3;opacity:0}
+[aria-pressed="true"]>.ah-cir svg{opacity:1}.ah-todo[aria-pressed="true"] .ah-cir{background:transparent;border-color:color-mix(in srgb,var(--crema) 60%,transparent)}
+.ah-q{display:flex;align-items:baseline;justify-content:space-between;border-top:1px solid var(--sand);padding-top:16px;font-size:14px;color:var(--t65)}
+.ah-q strong{font-family:'EB Garamond',serif;font-size:26px;font-weight:400;color:var(--tinta)}
+.ah-nota{font-size:13px;color:var(--t50);margin-top:-6px}
+.d-root[data-var="ahora"] .d-cab{padding:0 0 14px}
+.d-root[data-var="ahora"] .d-quedaria{display:none}
+.d-root[data-var="ahora"] .d-pie{padding-inline:0;background:none;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;flex-direction:column;align-items:stretch;padding-bottom:0}
+.d-root[data-var="ahora"] .d-acc{max-width:none}
+.d-root[data-var="ahora"][data-lugar="movil"] :is(.d-cab,.d-pie){padding-inline:16px}
+
+/* ---------- el celular: la barra de abajo y la hoja que sube ---------- */
+.isla-t{display:none}
+.d-capa.m{inset:0;position:absolute;z-index:20}
+.d-capa.m .d-hoja{position:absolute;left:0;right:0;bottom:0;top:54px;border-radius:28px 28px 0 0;animation:d-sube-m .5s var(--ease) both}
+.d-capa.m .d-hoja::before{content:"";position:absolute;top:8px;left:50%;width:40px;height:5px;margin-left:-20px;border-radius:3px;background:var(--t25);z-index:2}
+.d-capa.m .d-cab{padding-top:22px}
+@container disp (max-width:900px){
+  .pos{grid-template-columns:minmax(0,1fr)}.ticket{display:none}
+  .grilla{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .cont{padding-bottom:110px!important}
+  .isla-t{display:flex;position:absolute;z-index:6;left:12px;right:12px;bottom:12px;align-items:center;gap:10px;padding:8px 8px 8px 18px;border-radius:18px;color:var(--crema);
+    border:1px solid color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent));
+    -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent),0 18px 36px -16px color-mix(in srgb,var(--sombra) 70%,transparent)}
+  .isla-t .cifra-i{flex:1;min-width:0}.isla-t .cifra-i b{display:block;font-family:'EB Garamond',serif;font-size:22px;font-weight:400;line-height:1.1}
+  .isla-t .cifra-i span{font-size:12px;color:color-mix(in srgb,var(--crema) 70%,transparent)}
+  .isla-t .btn{height:44px;padding:0 18px;color:var(--tinta);border-color:color-mix(in srgb,var(--vidrio) 70%,transparent);background:linear-gradient(180deg,var(--vidrio),color-mix(in srgb,var(--vidrio) 82%,var(--hueso)))}
+  .isla-t .isla-d{width:44px;height:44px;flex:none;display:grid;place-items:center;border-radius:50%;border:1px solid color-mix(in srgb,var(--crema) 30%,transparent);background:color-mix(in srgb,var(--crema) 10%,transparent);color:var(--crema)}
+  .isla-t .isla-d svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+}
+@container disp (max-width:420px){.grilla{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cat-fila .hoy-t{width:100%;margin-left:0}.d-aplicar{height:52px}}
+[data-tema="oscuro"] .isla-t .btn{color:var(--tinta)!important;border-color:color-mix(in srgb,var(--crema) 70%,transparent)!important;background:linear-gradient(180deg,color-mix(in srgb,var(--crema) 92%,transparent),var(--crema))!important}
+@media (prefers-reduced-motion:reduce){.tp,.d-hoja,.d-velo,.d-sec,.d-cab-t,.d-texto,.d-n svg{animation:none!important}.d-seg i,.ah-seg i,.d-ficha{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">El descuento de Vender</span>
+  <span class="tag">Descuento</span><div class="seg-m" data-ctl="dsc"><button data-v="ahora">Como ahora</button><button data-v="hoja">A · Hoja lateral, como el cobro</button><button data-v="ticket">B · Dentro del ticket, arreglado</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="escritorio">Tu ventana</button></div>
+  <button class="accion" data-acc="d-abrir">Abrir el descuento</button>
+  <button class="accion" data-acc="d-reiniciar">Volver a empezar</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="isla-t" id="isla-t" aria-label="Tu ticket"></div>
+  <div class="d-capa m" id="d-movil" hidden></div>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>El descuento se abre dentro de la columna del ticket</b> (400 px) y reemplaza a las prendas. El cobro, en cambio, abre como una hoja ancha sobre el catálogo y deja el ticket quieto a la vista: son dos gestos distintos para dos acciones hermanas.</li>
+      <li><b>El «%» aparece tres veces</b> (título «% Porcentaje», interruptor «% | S/», campo «Otro … %»). El interruptor solo trae símbolos y «%» ya viene marcado: tocarlo no hace nada. Al tocar «S/» el título cambia solo a «Monto».</li>
+      <li><b>Los motivos se parten</b> en 2 y 3 líneas con alturas desiguales («Cumpleaños cliente / top»), y <b>«Aplicar a» queda debajo del pliegue</b>: no se ve a qué prendas se descuenta.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td><b>A · Hoja lateral, como el cobro</b> <span class="ev">Recomendada</span></td><td>La misma forma que el cobro: se abre al mismo lado, se cierra igual (Volver, Esc o tocar el velo) y el ticket sigue a la vista. Todo cabe sin bajar: prendas, cuánto y por qué, en tres pasos numerados que se marcan al cumplirse. «Porcentaje» y «Monto en S/» van con palabras y el motivo es una lista de una línea, sin cortes.</td><td>Una hoja nueva (la lógica y el estado ya existen: es dibujar en otro lugar). En el celular sigue siendo la hoja que sube desde abajo.</td></tr>
+      <tr><td><b>B · Dentro del ticket, arreglado</b></td><td>No mueve nada de lugar: mismo gesto de hoy, con las palabras, los tres pasos y la lista de motivos de A.</td><td>La columna sigue siendo angosta: las prendas y el motivo suman alto y hay que bajar. Es lo más barato, pero el descuento sigue sintiéndose distinto al cobro.</td></tr>
+    </table>
+    <h3>Lo que no cambia</h3>
+    <p>Todo lo que hace: el motivo es obligatorio apenas hay descuento (una de las cinco razones que acepta la base), pasado el 15 % se pide el argumento escrito, el porcentaje deja cada prenda en un precio sin céntimos sueltos, el monto en S/ se reparte entre las prendas según su precio, se puede aplicar a todo el ticket o a prendas sueltas, y «Quitar descuento». Cambia solo cómo se dibuja y dónde.</p>
+    <h3>Pruébalo</h3>
+    <p>Toca <b>Descuento</b> en el ticket (o «Abrir el descuento» arriba), cambia entre <b>Porcentaje</b> y <b>Monto en S/</b>, elige un 5 %, escribe 20 en «Otro» para ver el argumento que pide, y desmarca una prenda. Cambia de cara arriba sin cerrar; en 375 px el descuento sube como hoja.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, fila, buscar, PRENDAS, sv, $, $$…); la maqueta no los repite. -->
+<script>
+const svP = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const ICP = { percha: 'M12 6a2 2 0 1 1 2-2M12 6v2l9 6v2H3v-2l9-6', lupa: 'M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-4.8-4.8', menos: 'M5 12h14', mas: 'M12 5v14M5 12h14', x: 'M18 6 6 18M6 6l12 12', abajo: 'm6 9 6 6 6-6', bolsa: 'M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4ZM3 6h18M16 10a4 4 0 0 1-8 0', check: 'M5 12l5 5 9-10', volver: 'M19 12H5M11 6l-6 6 6 6' };
+const PCT = '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>';
+const TAG = svP('M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8zM7 7h.01');
+const PRECIOS = [89, 159, 189, 49, 129, 99, 59, 169, 69, 119, 89, 79, 139, 199, 109, 89];
+const CAT_DE = ['Blusas', 'Casacas', 'Vestidos', 'Polos', 'Jeans', 'Faldas', 'Tops', 'Sacos', 'Shorts', 'Jeans', 'Blusas', 'Camisas', 'Chalecos', 'Vestidos', 'Jeans', 'Blusas'];
+const TALLAS_DE = (i) => [['S', i % 5 === 2 ? 'no' : 'ok'], ['M', 'ok'], ['L', i % 4 === 1 ? 'no' : 'ok'], ['XL', i % 3 === 0 ? 'no' : 'ok']];
+// Los cinco motivos que acepta la base (RAZONES_DESCUENTO, vender-reglas.ts): las palabras son las de hoy.
+const RAZONES = [['cumpleanos_clienta_top', 'Cumpleaños cliente top'], ['prenda_con_desperfecto', 'Prenda con desperfecto'], ['liquidacion_temporada', 'Liquidación de temporada'], ['cerrar_venta', 'Cerrar la venta'], ['otro', 'Otro']];
+const ATAJOS_PCT = [5, 10, 15], ATAJOS_MONTO = [5, 10, 20, 50];
+let uid = 0;
+const INICIAL = () => [{ i: 0, t: 'M', n: 1 }, { i: 2, t: 'S', n: 1 }, { i: 5, t: 'L', n: 1 }].map((l) => ({ ...l, id: ++uid }));
+let ticketPv = INICIAL(), catPv = 'Todas';
+const D0 = () => ({ abierto: false, modo: 'porcentaje', pct: '', monto: '', razon: null, razonOtro: '', argumento: '', todo: true, sel: new Set() });
+let D = D0(), APL = null; // D = lo que se está armando; APL = el descuento ya aplicado al ticket
+const solesP = (n) => 'S/ ' + n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const VAR = () => estado.dsc || 'hoja'; // `estado` es el del marco (con «ahora» el marco borra el data-dsc, por eso no se lee del <html>)
+const esMovil = () => $('#disp').clientWidth <= 900;
+const lugar = () => (esMovil() ? 'movil' : VAR() === 'hoja' ? 'hoja' : 'ticket');
+const enTicket = (i) => ticketPv.filter((l) => l.i === i).reduce((a, l) => a + l.n, 0);
+const alcanza = (id) => D.todo || D.sel.has(id);
+const bruto = () => ticketPv.reduce((a, l) => a + PRECIOS[l.i] * l.n, 0);
+
+// ---- la cuenta (la misma regla del ERP, en chico): % deja cada prenda sin céntimos sueltos (baja al S/ 0.10 de abajo); S/ se reparte según el precio ----
+function calc() {
+  const ls = ticketPv.filter((l) => alcanza(l.id)), base = ls.reduce((a, l) => a + PRECIOS[l.i] * l.n, 0);
+  const valor = D.modo === 'porcentaje' ? parseFloat(D.pct) : parseFloat(String(D.monto).replace(',', '.'));
+  const ok = ls.length > 0 && Number.isFinite(valor) && (D.modo === 'porcentaje' ? valor >= 1 && valor <= 100 : valor > 0);
+  const por = new Map(); let total = 0;
+  if (ok) {
+    if (D.modo === 'porcentaje') ls.forEach((l) => { const p = PRECIOS[l.i], ac = Math.floor(p * (1 - valor / 100) * 10 + 1e-9) / 10, d = Math.round((p - ac) * 100) / 100 * l.n; por.set(l.id, d); total += d; });
+    else { // el monto se reparte según el precio; la última prenda se lleva el resto para que la suma sea exacta
+      const v = Math.min(valor, base); let dado = 0;
+      ls.forEach((l, k) => { const d = k === ls.length - 1 ? Math.round((v - dado) * 100) / 100 : Math.round(v * (PRECIOS[l.i] * l.n) / base * 100) / 100; dado += d; por.set(l.id, d); total += d; }); }
+    total = Math.round(total * 100) / 100;
+  }
+  return { ls, base, valor, ok, por, total, eq: base ? total / base * 100 : 0 };
+}
+function falta(c) {
+  if (!c.ls.length) return 'Elige al menos una prenda';
+  if (!c.ok) return D.modo === 'porcentaje' ? 'Elige cuánto: de 1 a 100 %' : 'Escribe cuánto, en soles';
+  if (!D.razon) return 'Elige por qué se descuenta';
+  if (D.razon === 'otro' && !D.razonOtro.trim()) return 'Cuéntanos el motivo';
+  if (c.eq > 15 && D.argumento.trim().length < 10) return 'Pasa el 15 %: escribe por qué se autoriza';
+  return null;
+}
+
+// ---- el ticket de la derecha ----
+function tarjetaHTML([c, n, , st, cl], i, k) {
+  const tallas = TALLAS_DE(i).map(([t, e]) => e === 'ok' ? `<button class="talla" data-i="${i}" data-t="${t}" aria-label="Agregar ${n} talla ${t}">${t}</button>` : `<button class="talla" disabled>${t}</button>`).join('');
+  const en = enTicket(i);
+  return `<article class="tp" style="--i:${k}">${en ? `<span class="gl-esq">${en}</span>` : ''}<div class="foto${cl ? ' claro' : ''}" data-color-dato style="background:${c}">${svP(ICP.percha)}</div>
+    <div><div class="nom">${n}</div><div class="res">${CAT_DE[i]} · algodón</div></div><div class="tallas">${tallas}</div>
+    <div class="pie-t"><span class="precio">${solesP(PRECIOS[i]).replace('.00', '')}</span><span class="stock">${st} en piso</span></div></article>`;
+}
+function ticketHTML() {
+  const uds = ticketPv.reduce((a, l) => a + l.n, 0), desc = APL ? APL.total : 0, total = bruto() - desc;
+  const lineas = ticketPv.length ? `<div class="lineas">${ticketPv.map((l) => { const [c, n] = PRENDAS[l.i], d = APL && APL.por.get(l.id), p = PRECIOS[l.i] * l.n;
+    return `<div class="lin"><span class="mini" data-color-dato style="background:${c}"></span><span><b>${n}</b><small>Talla ${l.t}</small></span>
+      <span class="der"><span class="mon${d ? ' con' : ''}">${d ? `<s>${solesP(p)}</s>${solesP(p - d)}` : solesP(p)}</span><span style="display:flex;align-items:center;gap:4px"><span class="paso"><button data-menos="${l.id}" aria-label="Uno menos">${svP(ICP.menos)}</button><span>${l.n}</span><button data-mas="${l.id}" aria-label="Uno más">${svP(ICP.mas)}</button></span><button class="quitar" data-quitar="${l.id}" aria-label="Quitar ${n}">${svP(ICP.x)}</button></span></span></div>`; }).join('')}</div>`
+    : `<div class="vacio-t"><b>El ticket está vacío</b><span>Toca una talla o escanea una prenda para empezar.</span></div>`;
+  return `<h2>Ticket actual <a href="#">Dejar en espera</a></h2>
+    <div><div class="et-t">Atendió</div><button class="resp"><span class="av-t">LR</span><span>Lucía Ramos</span>${svP(ICP.abajo)}</button></div>
+    ${lineas}
+    <div class="extras-t">${boton(['sec', 'Cliente', 'mas'])}${boton(['sec', 'Bolsa', 'mas'])}<button class="btn sec" data-acc="d-abrir" ${ticketPv.length ? '' : 'disabled'}>${APL ? 'Cambiar descuento' : 'Descuento'}</button></div>
+    <div class="totales"><div><span>${uds} ${uds === 1 ? 'prenda' : 'prendas'}</span><b>${solesP(bruto())}</b></div>
+      <div class="desc"><span>Descuento</span><span><b>${desc ? '−' + solesP(desc) : solesP(0)}</b>${desc ? '<a class="cambiar" href="#" data-acc="d-abrir">Cambiar</a>' : ''}</span></div>
+      <div class="total"><span>Total</span><strong>${solesP(total)}</strong></div></div>
+    <button class="btn pri cobrar" ${uds ? '' : 'disabled'}>Cobrar ${uds ? solesP(total) : ''}</button>
+    <p class="ayuda-t">${uds ? 'Al cobrar eliges cómo paga: efectivo, tarjeta o Yape.' : 'Agrega al menos una prenda.'}</p>`;
+}
+
+// ---- el descuento: las dos formas de dibujarlo comparten estado y estas piezas ----
+const secHead = (n, texto) => `<h3 class="d-t"><span class="d-n" data-n="${n}">${n}</span>${texto}</h3>`;
+// En la hoja (A) la lista de prendas está siempre a la vista; dentro del ticket (B), que es angosto, solo aparece al desmarcar «Todo el ticket».
+function secPrendas(l) {
+  return `<section class="d-sec" data-paso="1">${secHead(1, '¿A qué prendas?')}
+    <button type="button" class="d-todo" data-d="todo" aria-pressed="${D.todo}"><span class="d-chk">${svP(ICP.check)}</span>Todo el ticket</button>
+    <div class="d-lista" ${l !== 'hoja' && D.todo ? 'hidden' : ''}>${ticketPv.map((l) => `<button type="button" class="d-pren" data-d-pren="${l.id}" aria-pressed="${alcanza(l.id)}"><span class="d-chk">${svP(ICP.check)}</span><span class="d-mini" data-color-dato style="background:${PRENDAS[l.i][0]}"></span>
+      <span class="d-pn"><b>${PRENDAS[l.i][1]}</b><small>Talla ${l.t}${l.n > 1 ? ' · ×' + l.n : ''}</small></span><span class="d-pp">${solesP(PRECIOS[l.i] * l.n)}</span></button>`).join('')}</div></section>`;
+}
+function cuantoHTML() {
+  const pct = D.modo === 'porcentaje', at = pct ? ATAJOS_PCT : ATAJOS_MONTO, v = pct ? D.pct : D.monto;
+  return `<div class="d-fichas" style="grid-template-columns:repeat(${at.length},minmax(0,1fr)) minmax(0,${pct ? 1 : 1.7}fr)">${at.map((a) => `<button type="button" class="d-ficha" data-d-ficha="${a}" aria-pressed="${String(a) === String(v)}">${pct ? a + '%' : 'S/' + a}</button>`).join('')}
+    <label class="d-otro${pct ? '' : ' pre'}${v && !at.map(String).includes(String(v)) ? ' lleno' : ''}">${pct ? '' : '<span>S/</span>'}<input data-d-in="${pct ? 'pct' : 'monto'}" inputmode="${pct ? 'numeric' : 'decimal'}" placeholder="Otro" aria-label="${pct ? 'Otro porcentaje' : 'Otro monto en soles'}" value="${at.map(String).includes(String(v)) ? '' : v}">${pct ? '<span>%</span>' : ''}</label></div>
+    <p class="d-ayuda">${pct ? 'Del precio de cada prenda.' : 'En soles; se reparte entre las prendas según su precio.'}</p>`;
+}
+function secCuanto() {
+  return `<section class="d-sec" data-paso="2">${secHead(2, '¿Cuánto?')}
+    <div class="d-seg" role="group" aria-label="Cómo escribir el descuento"><button type="button" data-d-modo="porcentaje" aria-pressed="${D.modo === 'porcentaje'}">Porcentaje</button><button type="button" data-d-modo="monto" aria-pressed="${D.modo === 'monto'}">Monto en S/</button><i></i></div>
+    <div id="d-cuanto" style="display:grid;gap:10px">${cuantoHTML()}</div></section>`;
+}
+function secPorque() {
+  return `<section class="d-sec" data-paso="3">${secHead(3, '¿Por qué?')}
+    <div class="d-radios" role="group" aria-label="Motivo del descuento">${RAZONES.map(([v, e]) => `<button type="button" class="d-radio" data-d-razon="${v}" aria-pressed="${D.razon === v}"><span class="d-dot"></span>${e}</button>`).join('')}</div>
+    <input class="d-texto" data-d-in="otro" aria-label="Detalle del motivo" placeholder="¿Por qué se descuenta?" value="${D.razonOtro}" ${D.razon === 'otro' ? '' : 'hidden'}></section>`;
+}
+const secArg = () => `<section class="d-sec d-arg" id="d-arg" hidden><h3 class="d-t">Argumento — pasa el 15 %</h3><textarea class="d-area" rows="2" data-d-in="arg" aria-label="Argumento del descuento" placeholder="Por qué se autoriza este descuento">${D.argumento}</textarea></section>`;
+function cuerpoNuevo(l) {
+  return l === 'hoja' ? `${secPrendas(l)}<div class="d-der">${secCuanto()}${secPorque()}${secArg()}</div>` : `${secPrendas(l)}${secCuanto()}${secPorque()}${secArg()}`;
+}
+// «Como ahora»: la réplica del panel de hoy
+function cuantoAhoraHTML() {
+  const pct = D.modo === 'porcentaje', at = pct ? ATAJOS_PCT : ATAJOS_MONTO;
+  return `<div class="ah-fichas" style="--n:${at.length}">${at.map((a) => `<button type="button" data-d-ficha="${a}" aria-pressed="${String(a) === String(pct ? D.pct : D.monto)}">${pct ? a + '%' : 'S/' + a}</button>`).join('')}</div>
+    <label class="ah-otro"><span>Otro</span>${pct ? '' : '<span style="margin-left:auto">S/</span>'}<input data-d-in="${pct ? 'pct' : 'monto'}" ${pct ? '' : 'style="margin-left:0"'} placeholder="${pct ? '0' : '0.00'}" value="${(pct ? D.pct : D.monto)}" aria-label="${pct ? 'Porcentaje de descuento' : 'Monto de descuento'}">${pct ? '<span>%</span>' : ''}</label>`;
+}
+function cuerpoAhora() {
+  const pct = D.modo === 'porcentaje';
+  return `<fieldset class="ah-f" data-paso="2"><legend>${pct ? PCT : svP('M3 7h18v10H3zM12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5')}<span id="ah-leg">${pct ? 'Porcentaje' : 'Monto'}</span></legend>
+      <div class="ah-seg"><button type="button" data-d-modo="porcentaje" aria-pressed="${pct}">%</button><button type="button" data-d-modo="monto" aria-pressed="${!pct}">S/</button><i></i></div>
+      <div id="d-cuanto" style="display:grid;gap:8px">${cuantoAhoraHTML()}</div></fieldset>
+    <fieldset class="ah-f" data-paso="3"><legend>${TAG}Motivo</legend><div class="ah-motivos">${RAZONES.map(([v, e], k) => `<button type="button" data-d-razon="${v}" aria-pressed="${D.razon === v}" ${k === 4 ? 'style="grid-column:1"' : ''}>${e}</button>`).join('')}</div>
+      <input class="d-texto" data-d-in="otro" aria-label="Detalle del motivo" placeholder="¿Por qué se descuenta?" value="${D.razonOtro}" ${D.razon === 'otro' ? '' : 'hidden'}></fieldset>
+    ${secArg().replace('d-sec d-arg', 'ah-f d-arg')}
+    <fieldset class="ah-f" data-paso="1"><legend>${svP(ICP.bolsa)}Aplicar a</legend>
+      <button type="button" class="ah-todo" data-d="todo" aria-pressed="${D.todo}"><span class="ah-cir">${svP(ICP.check)}</span>Todo el ticket</button>
+      <div class="ah-lista">${ticketPv.map((l) => `<button type="button" data-d-pren="${l.id}" aria-pressed="${alcanza(l.id)}"><span class="ah-cir">${svP(ICP.check)}</span><span>${PRENDAS[l.i][1]}</span><span class="pp">${solesP(PRECIOS[l.i] * l.n)}</span></button>`).join('')}</div></fieldset>
+    <div class="ah-q"><span>Quedaría en</span><strong id="d-q2">—</strong></div><p class="ah-nota" id="d-nota2"></p>`;
+}
+function panelHTML(l) {
+  const v = VAR();
+  const sub = '<p id="d-sub"></p>';
+  return `<div class="d-root" data-lugar="${l}" data-var="${v}" data-modo="${D.modo}">
+    <header class="d-cab"><button type="button" class="d-volver" data-acc="d-cerrar" aria-label="Volver al ticket">${svP(ICP.volver)}</button>
+      <div class="d-cab-t"><h2>${PCT}Descuento</h2>${sub}</div></header>
+    <div class="d-cuerpo">${v === 'ahora' ? cuerpoAhora() : cuerpoNuevo(l)}</div>
+    <footer class="d-pie"><div class="d-quedaria"><span>Quedaría en</span><strong id="d-q">—</strong><small id="d-nota"></small></div>
+      <div class="d-acc"><button type="button" class="btn pri d-aplicar" data-acc="d-aplicar" disabled><span>Aplicar descuento</span><b id="d-val">—</b></button><p class="d-falta" id="d-falta"></p>${APL ? '<button type="button" class="d-quitar" data-acc="d-quitar">Quitar descuento</button>' : ''}</div></footer></div>`;
+}
+function pintarDescuento() {
+  const capa = $('#d-capa'), mov = $('#d-movil'), tk = $('#ticket-pv'), cont = $('#cont');
+  if (capa) capa.innerHTML = ''; mov.innerHTML = ''; mov.hidden = true;
+  if (!D.abierto) { if (tk) { tk.classList.remove('d-modo'); tk.inert = false; tk.innerHTML = ticketHTML(); } cont.style.overflow = ''; pintarIsla(); return; }
+  cont.scrollTop = 0; cont.style.overflow = 'hidden'; cont.style.setProperty('--hv', Math.max(420, cont.clientHeight - 92 - 24) + 'px');
+  const l = lugar();
+  if (l === 'ticket') { tk.classList.add('d-modo'); tk.inert = false; tk.innerHTML = panelHTML('ticket'); }
+  else {
+    if (tk) { tk.classList.remove('d-modo'); tk.innerHTML = ticketHTML(); tk.inert = l === 'hoja'; }
+    const dest = l === 'hoja' ? capa : mov; dest.hidden = false;
+    dest.innerHTML = `<div class="d-velo" data-acc="d-cerrar"></div><section class="d-hoja" role="dialog" aria-label="Descuento">${panelHTML(l)}</section>`;
+  }
+  actualizarDescuento();
+}
+function actualizarDescuento() {
+  if (!D.abierto) return;
+  const c = calc(), f = falta(c), nuevo = VAR() !== 'ahora';
+  $$('.d-root').forEach((r) => (r.dataset.modo = D.modo));
+  $$('[data-d-modo]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.dModo === D.modo)));
+  const v = D.modo === 'porcentaje' ? D.pct : D.monto;
+  $$('[data-d-ficha]').forEach((b) => b.setAttribute('aria-pressed', String(String(b.dataset.dFicha) === String(v))));
+  $$('.d-otro').forEach((o) => o.classList.toggle('lleno', !!v && !$$('[data-d-ficha]').some((b) => String(b.dataset.dFicha) === String(v))));
+  $$('[data-d-razon]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.dRazon === D.razon)));
+  $$('[data-d-in="otro"]').forEach((i) => (i.hidden = D.razon !== 'otro'));
+  $$('[data-d="todo"]').forEach((b) => b.setAttribute('aria-pressed', String(D.todo)));
+  $$('[data-d-pren]').forEach((b) => b.setAttribute('aria-pressed', String(alcanza(+b.dataset.dPren))));
+  $$('#d-arg').forEach((a) => (a.hidden = !(c.ok && c.eq > 15)));
+  $$('.d-root[data-lugar]:not([data-lugar="hoja"]) .d-lista').forEach((x) => (x.hidden = D.todo));
+  const leg = $('#ah-leg'); if (leg) leg.textContent = D.modo === 'porcentaje' ? 'Porcentaje' : 'Monto';
+  const quedaria = bruto() - c.total;
+  const q = $('#d-q'); if (q) { q.textContent = c.ok ? solesP(quedaria) : '—'; q.classList.toggle('sin', !c.ok); }
+  const q2 = $('#d-q2'); if (q2) q2.textContent = c.ok ? solesP(quedaria) : '—';
+  const nota = c.ok ? (D.modo === 'porcentaje' ? 'Cada prenda baja a un precio sin céntimos sueltos.' : (c.ls.length > 1 ? `Los ${solesP(Math.min(c.valor, c.base))} se reparten entre las prendas según su precio.` : '')) : '';
+  [$('#d-nota'), $('#d-nota2')].forEach((n) => n && (n.textContent = nota));
+  const sub = $('#d-sub'); if (sub) sub.textContent = D.todo ? `Todo el ticket · ${ticketPv.length} ${ticketPv.length === 1 ? 'prenda' : 'prendas'}` : `${c.ls.length} de ${ticketPv.length} prendas`;
+  const val = $('#d-val'); if (val) val.textContent = c.ok ? (D.modo === 'porcentaje' ? `−${c.valor}%` : `−${solesP(c.total)}`) : '—';
+  const ap = $('.d-aplicar'); if (ap) ap.disabled = !!f;
+  const fl = $('#d-falta'); if (fl) fl.textContent = f || '';
+  // los tres pasos: el número se vuelve ✓ cuando se cumple (solo en la cara nueva)
+  if (nuevo) { const hecho = { 1: c.ls.length > 0, 2: c.ok, 3: !!D.razon && (D.razon !== 'otro' || !!D.razonOtro.trim()) };
+    $$('.d-sec[data-paso]').forEach((s) => { const k = +s.dataset.paso, ya = hecho[k], n = $('.d-n', s); if (!n) return; const estaba = s.classList.contains('hecho'); s.classList.toggle('hecho', ya);
+      if (ya && !estaba) n.innerHTML = svP(ICP.check); else if (!ya && estaba) n.textContent = k; }); }
+}
+function pintarPv() {
+  const prendas = PRENDAS.map((p, i) => [p, i]).filter(([, i]) => catPv === 'Todas' || CAT_DE[i] === catPv);
+  $('#cont').innerHTML = `<div class="pos-wrap"><div class="pos"><section class="cat" aria-label="Catálogo">
+      <div class="cat-fila"><span class="sede-t">Venta en tienda · Trujillo</span>${boton(['sec', 'Apartados'])}${boton(['sec', 'Más'])}<span class="hoy-t">Hoy <b>S/ 2,520</b> · 18 ventas</span></div>
+      <label class="bus">${svP(ICP.lupa)}<input type="search" placeholder="Busca o escanea una prenda"><kbd>/</kbd></label>
+      <div class="cats-p" role="group" aria-label="Categorías">${['Todas', 'Blusas', 'Vestidos', 'Casacas', 'Jeans', 'Polos', 'Faldas', 'Sacos'].map((c) => `<button class="fp" data-cat="${c}" aria-pressed="${c === catPv}">${c}</button>`).join('')}</div>
+      <div class="grilla">${prendas.map(([p, i], k) => tarjetaHTML(p, i, k)).join('')}</div></section>
+    <aside class="ticket" id="ticket-pv" aria-label="Ticket">${ticketHTML()}</aside></div><div class="d-capa" id="d-capa"></div></div>`;
+  pintarIsla(); pintarDescuento();
+}
+function pintarIsla() {
+  const total = bruto() - (APL ? APL.total : 0), uds = ticketPv.reduce((a, l) => a + l.n, 0);
+  $('#isla-t').innerHTML = uds ? `<span class="cifra-i"><b>${solesP(total)}</b><span>${uds} ${uds === 1 ? 'prenda' : 'prendas'}${APL ? ` · −${solesP(APL.total)}` : ''}</span></span><button class="isla-d" data-acc="d-abrir" aria-label="Aplicar descuento">${PCT}</button><button class="btn pri">Cobrar</button>`
+    : `<span class="cifra-i"><b>Ticket vacío</b><span>Toca una talla para empezar</span></span>`;
+}
+// (al cambiar las prendas del ticket el descuento aplicado se anula: se vuelve a decidir, como en el ERP)
+
+document.addEventListener('click', (ev) => {
+  const t = ev.target.closest('.talla[data-t]');
+  if (t) { const i = +t.dataset.i, ta = t.dataset.t, l = ticketPv.find((x) => x.i === i && x.t === ta); if (l) l.n++; else ticketPv.push({ i, t: ta, n: 1, id: ++uid }); APL = null; pintarPv(); return; }
+  const c = ev.target.closest('.fp[data-cat]'); if (c) { catPv = c.dataset.cat; pintarPv(); return; }
+  const m = ev.target.closest('[data-mas],[data-menos],[data-quitar]');
+  if (m) { const id = +(m.dataset.mas ?? m.dataset.menos ?? m.dataset.quitar), l = ticketPv.find((x) => x.id === id);
+    if (m.dataset.mas != null) l.n++; else if (m.dataset.menos != null && l.n > 1) l.n--; else ticketPv = ticketPv.filter((x) => x.id !== id); APL = null; pintarPv(); return; }
+  const dm = ev.target.closest('[data-d-modo]');
+  if (dm) { D.modo = dm.dataset.dModo; const w = $('#d-cuanto'); w.innerHTML = VAR() === 'ahora' ? cuantoAhoraHTML() : cuantoHTML(); actualizarDescuento(); return; }
+  const df = ev.target.closest('[data-d-ficha]');
+  if (df) { const k = D.modo === 'porcentaje' ? 'pct' : 'monto'; D[k] = String(D[k]) === df.dataset.dFicha ? '' : df.dataset.dFicha; $$('[data-d-in="pct"],[data-d-in="monto"]').forEach((i) => (i.value = '')); actualizarDescuento(); return; }
+  const dr = ev.target.closest('[data-d-razon]'); if (dr) { D.razon = dr.dataset.dRazon; actualizarDescuento(); if (D.razon === 'otro') $('[data-d-in="otro"]')?.focus(); return; }
+  const dt = ev.target.closest('[data-d="todo"]'); if (dt) { D.todo = !D.todo; D.sel = new Set(); actualizarDescuento(); return; }
+  const dp = ev.target.closest('[data-d-pren]');
+  if (dp) { const id = +dp.dataset.dPren; if (D.todo) { D.todo = false; D.sel = new Set(ticketPv.map((l) => l.id).filter((x) => x !== id)); } else { D.sel.has(id) ? D.sel.delete(id) : D.sel.add(id); if (D.sel.size === ticketPv.length) { D.todo = true; D.sel = new Set(); } } actualizarDescuento(); return; }
+  if (ev.target.closest('.cont a')) ev.preventDefault();
+});
+document.addEventListener('input', (ev) => {
+  const i = ev.target.closest('[data-d-in]'); if (!i) return; const k = i.dataset.dIn;
+  if (k === 'pct') { D.pct = i.value.replace(/[^\d]/g, '').slice(0, 3); i.value = D.pct; }
+  else if (k === 'monto') { D.monto = i.value.replace(/[^\d.,]/g, '').slice(0, 8); i.value = D.monto; }
+  else if (k === 'otro') D.razonOtro = i.value; else D.argumento = i.value;
+  actualizarDescuento();
+});
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && D.abierto && !ev.defaultPrevented) { D.abierto = false; pintarDescuento(); } });
+addEventListener('resize', () => { if (D.abierto) pintarDescuento(); });
+function accion(a) {
+  if (a === 'd-abrir') { if (!ticketPv.length) return; const d = APL ? { ...APL.d, sel: new Set(APL.d.sel) } : D0(); D = { ...d, abierto: true }; pintarDescuento(); return; }
+  if (a === 'd-cerrar') { D.abierto = false; pintarDescuento(); return; }
+  if (a === 'd-aplicar') { const c = calc(); if (falta(c)) return; APL = { d: { ...D, abierto: false, sel: new Set(D.sel) }, total: c.total, por: c.por }; D.abierto = false; pintarDescuento(); return; }
+  if (a === 'd-quitar') { APL = null; D = D0(); pintarDescuento(); return; }
+  if (a === 'd-reiniciar') { ticketPv = INICIAL(); APL = null; D = D0(); pintarPv(); }
+}
+// Estado desde la dirección, para compartir o capturar un momento exacto: ?dsc=ahora|hoja|ticket &tema=claro|oscuro &ancho=movil|w1440… &abrir=1 &modo=monto &pct=10 &monto=20 &razon=cerrar_venta &arg=texto &sin=0 (sin la prenda 0) &aplicar=1
+const Q = new URLSearchParams(location.search);
+if (Q.get('quieto')) document.head.insertAdjacentHTML('beforeend', '<style>*,*::before,*::after{animation:none!important;transition:none!important}</style>'); // para capturar sin animaciones
+Marco.iniciar({ estado: { pv: 'aire', tp: 'aire', dsc: Q.get('dsc') || 'hoja', tema: Q.get('tema') || 'claro', ancho: Q.get('ancho') || 'escritorio' }, alPintar: () => pintarPv(), alAccion: (a) => accion(a) });
+if (Q.get('abrir')) {
+  accion('d-abrir');
+  if (Q.get('modo')) D.modo = Q.get('modo');
+  if (Q.get('pct')) D.pct = Q.get('pct');
+  if (Q.get('monto')) D.monto = Q.get('monto');
+  if (Q.get('razon')) D.razon = Q.get('razon');
+  if (Q.get('arg')) D.argumento = Q.get('arg');
+  if (Q.get('sin') != null) { D.todo = false; D.sel = new Set(ticketPv.filter((_, k) => k !== +Q.get('sin')).map((l) => l.id)); }
+  pintarDescuento();
+  if (Q.get('aplicar')) accion('d-aplicar');
+}
+</script>
+</body>
+</html>

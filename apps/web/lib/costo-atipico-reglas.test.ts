@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fraseCostoAtipico, fraseCostosAtipicos, leerCostoAtipico, leerCostosAtipicos, MOTIVOS_COSTO_ATIPICO, type CostoAtipico } from "./costo-atipico-reglas";
+import { fraseCostoAtipico, fraseCostosAtipicos, leerCostoAtipico, leerCostosAtipicos, MOTIVO_COSTO_MAX, MOTIVO_COSTO_MIN, MOTIVOS_COSTO_ATIPICO, problemaDelMotivoDeCosto, type CostoAtipico } from "./costo-atipico-reglas";
 import { soles } from "./compras-reglas";
 
 const detalle = (o: Record<string, unknown>) => JSON.stringify(o);
@@ -163,5 +163,20 @@ describe("leerCostosAtipicos", () => {
     expect(leerCostosAtipicos({ message: "costo_atipico", details: null })).toBeNull();
     expect(leerCostosAtipicos({ message: "costo_atipico", details: "{roto" })).toBeNull();
     expect(leerCostosAtipicos(null)).toBeNull();
+  });
+});
+
+describe("problemaDelMotivoDeCosto (P19 del análisis del Taller: confirmar un costo atípico pide un motivo)", () => {
+  it("el motivo va de 5 a 300 letras sin contar los espacios de los bordes: lo mismo que fn_costo_atipico_motivo en la base", () => {
+    expect([MOTIVO_COSTO_MIN, MOTIVO_COSTO_MAX]).toEqual([5, 300]);
+    expect(problemaDelMotivoDeCosto("Es una muestra pagada")).toBeNull();
+    expect(problemaDelMotivoDeCosto("  cinco  ")).toBeNull();
+    expect(problemaDelMotivoDeCosto("x".repeat(300))).toBeNull();
+  });
+  it("vacío, en blanco o muy corto: pide escribirlo; muy largo: dice el tope", () => {
+    expect(problemaDelMotivoDeCosto("")).toMatch(/Escribe el motivo/);
+    expect(problemaDelMotivoDeCosto("     ")).toMatch(/Escribe el motivo/);
+    expect(problemaDelMotivoDeCosto("abcd")).toMatch(/al menos 5 letras/);
+    expect(problemaDelMotivoDeCosto("x".repeat(301))).toMatch(/hasta 300 letras/);
   });
 });

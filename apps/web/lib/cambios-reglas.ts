@@ -150,8 +150,8 @@ export function estadoPlazoVenta(creadoEn: string, ahora: Date): EstadoVisual {
 
 /** En este orden: una venta anulada no cuenta; una prenda ya cambiada o devuelta dice
  *  eso (más útil que "fuera de plazo"); después, el plazo — y ahí sí, a diferencia de
- *  Devoluciones, fuera de plazo bloquea: Cambios no tiene aprobación de un líder que
- *  decida después. */
+ *  Devoluciones, fuera de plazo bloquea: Cambios no tiene una aprobación posterior
+ *  que lo decida. */
 export function estadoPrendaVendida(
   linea: { cantidad: number; yaCambiado: number; yaDevuelto: number; anulada: boolean; creadoEn: string },
   ahora: Date
@@ -239,7 +239,7 @@ export type Validacion = {
   clave: string;
   /** `ok` ✓ · `alerta` frena (algo está mal) · `pendiente` frena (falta un dato) ·
    *  `aviso` NO frena: lo que conviene saber antes de seguir (ej. fuera de plazo en una
-   *  devolución, que igual decide un líder). */
+   *  devolución, que igual se decide al aprobarla). */
   estado: "ok" | "alerta" | "pendiente" | "aviso";
   /** `rojo` pinta el ícono en rojo aunque el estado no frene: el plazo vencido se ve rojo
    *  en las dos pantallas, sea una alerta (Cambios) o un aviso (Devoluciones). */
@@ -364,7 +364,7 @@ export function primerBloqueo(validaciones: readonly Validacion[]): Validacion |
 export type ImpactoOperacion = {
   inventario: { signo: "+" | "−"; cantidad: number; prenda: string; donde: string }[];
   caja: { titulo: string; detalle: string };
-  /** Un papel que se emite por el camino (Devoluciones: la nota de crédito). */
+  /** Un papel que se emite por el camino (Devoluciones: la nota de crédito; Cambios con diferencia: la nota y el comprobante nuevo, ADR-0671). */
   documento?: { titulo: string; detalle: string };
 };
 
@@ -379,6 +379,9 @@ export function impactoCambio(e: {
   diferencia: number;
   metodo: MetodoDiferencia;
   sede: string;
+  /** Los comprobantes que emite un cambio con diferencia (ADR-0671, `textoDelImpacto`). Sin él, el cambio no promete ningún papel: así
+   *  sigue mientras la base no los emite (la sonda `fn_cambio_emite_comprobantes`). */
+  documento?: { titulo: string; detalle: string } | null;
 }): ImpactoOperacion {
   // En medio de una frase: "con tarjeta", pero "con Yape" — las marcas no se achican.
   const etiqueta = METODOS_DIFERENCIA.find((m) => m.valor === e.metodo)?.etiqueta ?? e.metodo;
@@ -412,6 +415,7 @@ export function impactoCambio(e: {
       })),
     ],
     caja,
+    ...(e.documento ? { documento: e.documento } : {}),
   };
 }
 

@@ -8,6 +8,7 @@ import type { NoDeducible } from "@/lib/no-deducible-reglas";
 import { MarcaNoDeducible } from "@/components/MarcaNoDeducible";
 import { Banknote } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { AnularPagoModal } from "@/components/AnularPagoModal";
 
 // «Pagos registrados» del detalle (ADR-0136): filas a todo el ancho —ficha del medio, fecha, N.° de operación
 // (si se anotó) y monto a la derecha—, del más reciente al más antiguo, sin caja alrededor (como el prototipo). Cuando `router.refresh()` trae un pago que no estaba, esa fila ENTRA: se desliza
@@ -16,8 +17,11 @@ import { Vacio } from "@/components/ui/Vacio";
 // «nuevo» lo que aparece por primera vez DESPUÉS de haber pintado la lista.
 
 export type PagoFila = { id: string; fecha: string; metodo: string; referencia: string | null; monto: number; noDeducible?: NoDeducible | null };
+/** Un pago anulado (tarea 21): ya no suma, y queda a la vista con su motivo. */
+export type PagoAnulado = { id: string; fecha: string | null; detalle: string; monto: number | null; motivo: string; quien: string };
 
-export function ComprobantePagos({ pagos }: { pagos: PagoFila[] }) {
+export function ComprobantePagos({ pagos, puedeAnular = false, anulados = [] }: { pagos: PagoFila[]; /** Con Por pagar, cada pago se puede anular (tarea 21). */ puedeAnular?: boolean; anulados?: PagoAnulado[] }) {
+  const [anulando, setAnulando] = useState<PagoFila | null>(null);
   // Los ids que ya estaban cuando se abrió el detalle. Se fija una sola vez (estado inicial): un pago que
   // llega después no está en el conjunto y por eso se anima.
   const [iniciales] = useState<ReadonlySet<string>>(() => new Set(pagos.map((p) => p.id)));
@@ -36,22 +40,42 @@ export function ComprobantePagos({ pagos }: { pagos: PagoFila[] }) {
             return (
               <div
                 key={p.id}
-                className={`grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-0.5 border-t border-tinta/10 py-2 text-[13px] sm:grid-cols-[auto_5.5rem_1fr_auto] ${nuevo ? "cd-pago-nuevo" : ""}`}
+                className={`grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-0.5 border-t border-tinta/10 py-2 text-sm sm:grid-cols-[auto_5.5rem_1fr_auto] ${nuevo ? "cd-pago-nuevo" : ""}`}
                 style={nuevo ? ({ "--i": orden } as React.CSSProperties) : undefined}
               >
                 <Chip tono="neutro">{ETIQUETA_METODO_PAGO[p.metodo] ?? p.metodo}</Chip>
-                <span className="text-xs tabular-nums text-tinta/65">{fechaCorta(p.fecha)}</span>
+                <span className="text-sm tabular-nums text-tinta/65">{fechaCorta(p.fecha)}</span>
                 <span className="text-right font-semibold tabular-nums text-tinta sm:col-start-4 sm:row-start-1">{soles(p.monto)}</span>
-                <span className={`col-span-3 truncate text-xs tabular-nums text-tinta/65 sm:col-span-1 sm:col-start-3 sm:row-start-1 ${p.referencia ? "" : "hidden sm:block"}`}>
+                <span className={`col-span-3 truncate text-sm tabular-nums text-tinta/65 sm:col-span-1 sm:col-start-3 sm:row-start-1 ${p.referencia ? "" : "hidden sm:block"}`}>
                   {p.referencia ? (p.metodo === METODO_SALDO_A_FAVOR ? p.referencia : `Op. ${p.referencia}`) : "—"}
                 </span>
                 {/* ADR-0362, fase 6 · actividad 6: un pago en efectivo o desde un fondo de un comprobante de S/ 2 000 o más. */}
                 {p.noDeducible && <MarcaNoDeducible nd={p.noDeducible} montoDeLaFila={p.monto} className="col-span-full" />}
+                {/* El pago con saldo a favor no se anula desde aquí: la base lo rechaza. */}
+                {puedeAnular && p.metodo !== METODO_SALDO_A_FAVOR && (
+                  <span className="col-span-full flex justify-end">
+                    <button type="button" className="btn-cayla btn-peligro btn-chico" onClick={() => setAnulando(p)}>
+                      Anular…
+                    </button>
+                  </span>
+                )}
               </div>
             );
           })}
         </div>
       )}
+      {anulados.length > 0 && (
+        <div className="mt-3">
+          <p className="label-cayla mb-1 text-[11px] text-tinta/65">Anulados</p>
+          {anulados.map((a) => (
+            <p key={a.id} className="border-t border-tinta/10 py-2 text-sm text-taupe">
+              <span className="line-through">{[ETIQUETA_METODO_PAGO[a.detalle] ?? a.detalle, a.fecha ? fechaCorta(a.fecha) : null, a.monto !== null ? soles(a.monto) : null].filter(Boolean).join(" · ")}</span>
+              {` — ${a.motivo}${a.quien ? ` (${a.quien})` : ""}`}
+            </p>
+          ))}
+        </div>
+      )}
+      {anulando && <AnularPagoModal pago={anulando} onClose={() => setAnulando(null)} />}
     </section>
   );
 }

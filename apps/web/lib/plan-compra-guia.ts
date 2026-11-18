@@ -3,6 +3,9 @@
 // La prueba exige que la guía deje confirmar exactamente cuando la base aceptaría.
 
 import type { CampoDeGuia } from "./guia-campos";
+import type { DecisionDeCampana } from "./plan-compra-calendario";
+import { problemasDeLaHoja, type BorradorDeCampanaDelCalendario, type ContextoDeLaHoja } from "./plan-compra-calendario-hoja";
+import type { CampanaDelCalendario } from "./plan-compra-calendario-vista";
 import { problemaDelRecupero } from "./plan-compra-propuesta";
 import { problemaDeLosDias } from "./plan-compra-plazo";
 import { problemasDeLosMinimos } from "./plan-compra-reparto";
@@ -48,17 +51,49 @@ export function camposDelPlazo(texto: string, responsable: { listo: boolean; mot
   ];
 }
 
-/** La guía de «Nueva campaña» (ADR-0372): qué falta, en el orden en que se llena. «Hecho» es lo que `problemasDeLaCampana` ya acepta: la regla de la base. */
-export function camposDeLaCampana(b: BorradorCampana, etiquetas: readonly EtiquetaCampana[], nombresEnUso: readonly string[], responsable: { listo: boolean; motivo: string | null }): CampoDeGuia[] {
-  const p = problemasDeLaCampana(b, etiquetas, nombresEnUso);
+/** La guía de «Armar el plan» de una campaña del calendario (ADR-0372, ADR-0525): qué falta, en el orden en que se llena. «Hecho» es lo que `problemasDeLaCampana` ya acepta: la regla de la base. */
+export function camposDeLaCampana(
+  b: BorradorCampana,
+  etiquetas: readonly EtiquetaCampana[],
+  nombresEnUso: readonly string[],
+  responsable: { listo: boolean; motivo: string | null },
+  propias: readonly Pick<DecisionDeCampana, "id" | "planes">[] = [],
+): CampoDeGuia[] {
+  const p = problemasDeLaCampana(b, etiquetas, nombresEnUso, propias);
   const campo = (id: "etiqueta" | "nombre" | "desde" | "hasta", nombre: string): CampoDeGuia => ({ id, nombre, requerido: true, hecho: !p[id], pendiente: p[id] ?? "Falta este dato." });
-  // Una campaña del calendario ya viene elegida (act. 2026-10-12 f): solo cuenta si mientras tanto alguien le armó el plan de ese año.
+  // La campaña ya viene elegida (act. 2026-10-12 f): solo cuenta si mientras tanto alguien le armó el plan de ese año o la quitaron del calendario.
   return [
-    ...(b.etiquetaId !== null && p.etiqueta ? [campo("etiqueta", "Campaña")] : []),
-    campo("nombre", b.etiquetaId === null ? "Nombre de la campaña" : "Nombre del plan"),
+    ...(p.etiqueta ? [campo("etiqueta", "Campaña")] : []),
+    campo("nombre", "Nombre del plan"),
     campo("desde", "Desde"),
     campo("hasta", "Hasta"),
-    { id: "responsable", nombre: "Quién crea la campaña", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién crea la campaña." },
+    { id: "responsable", nombre: "Quién arma el plan", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién arma el plan." },
+  ];
+}
+
+/**
+ * La guía de la hoja «Configurar campaña» / «Campaña nueva» del Calendario (ADR-0525, ADR-0284): qué falta, en el orden en que se llena. «Hecho» es lo que `problemasDeLaHoja` ya
+ * acepta: la regla de la base. Las fechas solo son obligatorias donde la base las exige (una propia, o una de Insignias que entra a mi plan y la insignia no las trae); el regreso de una
+ * pausada es opcional (sin fecha, descansa hasta que la reactiven) y solo bloquea si está mal escrito.
+ */
+export function camposDeLaHojaDelCalendario(
+  b: BorradorDeCampanaDelCalendario,
+  c: CampanaDelCalendario | null,
+  ctx: ContextoDeLaHoja,
+  responsable: { listo: boolean; motivo: string | null },
+): CampoDeGuia[] {
+  const p = problemasDeLaHoja(b, c, ctx);
+  const propia = c === null || c.esPropia;
+  const lasPide = propia || (b.uso !== "no" && !c?.fechasDeLaInsignia);
+  const fecha = (id: "desde" | "hasta", nombre: string, falta: string): CampoDeGuia => ({ id, nombre, requerido: lasPide || !!p[id], hecho: !p[id] && b[id] !== "", pendiente: p[id] ?? falta });
+  return [
+    ...(propia ? [{ id: "nombre", nombre: "Nombre de la campaña", requerido: true, hecho: !p.nombre, pendiente: p.nombre ?? "Escribe el nombre de la campaña." } satisfies CampoDeGuia] : []),
+    fecha("desde", "Desde", "Escribe desde cuándo empieza."),
+    fecha("hasta", "Hasta", "Escribe hasta cuándo dura."),
+    ...(b.uso === "pausada"
+      ? [{ id: "pausaHasta", nombre: "Hasta cuándo descansa", requerido: !!p.pausaHasta, hecho: !p.pausaHasta && b.pausaHasta !== "", pendiente: p.pausaHasta ?? "Opcional: sin fecha, descansa hasta que la reactives." } satisfies CampoDeGuia]
+      : []),
+    { id: "responsable", nombre: "Quién configura la campaña", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién configura la campaña." },
   ];
 }
 

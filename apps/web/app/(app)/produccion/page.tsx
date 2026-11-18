@@ -12,13 +12,14 @@ import { getCatalogo } from "@/lib/catalogo-v2";
 import { opcional } from "@/lib/resultado";
 import { coloresDeModelos, presentacionesDeModelos } from "@/lib/produccion-presentacion";
 import { hojaDelModelo, materialesDelModelo, ordenesDelModelo, prendasPorFabricar } from "@/lib/produccion-hoja-modelo";
-import { getFichasDeColor, getFichasDeModelos } from "@/lib/produccion-ficha-modelo";
+import { getFichasDeModelos } from "@/lib/produccion-ficha-modelo";
 import { hoyLima } from "@/lib/fechas-lima";
 import { cifrasResumen, resumenDeDecisiones, demandaDelTaller, filasDeTela, filasPorModelo, type InsumoParaDecidir, type OrdenParaDecidir } from "@/lib/produccion-decisiones";
 import { getTelaDelTaller } from "@/lib/tela-del-taller";
 import { getListaDeOrdenes } from "@/lib/ordenes-lista";
 import { cifrasHoyEnElTaller, datoHoyEnElTaller } from "@/lib/ordenes-lista-reglas";
 import { ResumenProduccionPanel } from "@/components/ResumenProduccionPanel";
+import { notaDeHistoria } from "@/lib/produccion-cifras-textos";
 
 // `/produccion` es el módulo padre (ADR-0133) y, desde F6, su Resumen: «¿qué necesita mi decisión hoy?». Solo líder (ventas de la red y dinero) y, como el resto
 // de Producción, solo parado en el Taller. Quien trabaja en el Taller va directo a Órdenes. Todo se calcula acá, en el servidor, con reglas puras
@@ -26,8 +27,7 @@ import { ResumenProduccionPanel } from "@/components/ResumenProduccionPanel";
 export default async function ProduccionPage() {
   const persona = await requirePersonaActualV2();
   if (!puedeVerProduccion(persona)) {
-    if (!persona.puedeCambiarUbicacion) redirect("/");
-    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} />;
+    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} puedeCambiarUbicacion={persona.puedeCambiarUbicacion} />;
   }
   if (persona.rol !== "lider") return <ProduccionSoloLider titulo="Resumen" />;
 
@@ -50,11 +50,10 @@ export default async function ProduccionPage() {
     getListaDeOrdenes(taller.id, hoy),
   ]);
   const presentaciones = presentacionesDeModelos(catalogo ?? []);
-  // Las fichas (marca, proveedor, material, patrón y la de cada color) son datos SECUNDARIOS, como las fotos: si no se leen, la hoja «Ver el modelo» lo dice y lo demás sigue en pie.
-  const [decision, fichasDeModelos, fichasDeColor] = await Promise.all([
+  // Las fichas (marca, proveedor, material, patrón) son datos SECUNDARIOS, como las fotos: si no se leen, la hoja «Ver el modelo» lo dice y lo demás sigue en pie.
+  const [decision, fichasDeModelos] = await Promise.all([
     getDecisionProduccion({ modelos, ordenes, insumos: datosInsumos.insumos, consumosPorOrden: datosInsumos.consumosPorOrden, lineasPorRecibir: lineas, conSedes: true }),
     opcional(getFichasDeModelos(modelos.map((m) => m.productoId)), "la ficha de los modelos"),
-    opcional(getFichasDeColor(), "la ficha de los colores"),
   ]);
 
   const ordenesParaDecidir: (OrdenParaDecidir & { costoTela: number; costoAvios: number })[] = ordenes.map((o) => ({
@@ -103,14 +102,15 @@ export default async function ProduccionPage() {
     ]),
   );
 
-  const resumen = resumenDeDecisiones({ hoy, ordenes: ordenesParaDecidir, insumos, llegadas, demanda: demandaInsumos, comprobantes, modelos: filasModelo, tallerId: taller.id, enCamino: enCaminoPorInsumo });
+  // Los modelos por producir tienen su propia lista arriba («¿Qué fabrico primero?»): «Para decidir» queda para lo demás (entregas, tela, pagos, traslados, sobrestock).
+  const resumen = resumenDeDecisiones({ hoy, ordenes: ordenesParaDecidir, insumos, llegadas, demanda: demandaInsumos, comprobantes, modelos: filasModelo, tallerId: taller.id, enCamino: enCaminoPorInsumo, producirAparte: true });
   const cifras = cifrasResumen({ hoy, ordenes: ordenesParaDecidir, insumos, capitalInsumos: datosInsumos.capital, comprobantes });
   const telas = filasDeTela(insumos, demandaInsumos, llegadas, enCaminoPorInsumo);
   const hoyEnElTaller = dondeEstan.lista ? { cifras: cifrasHoyEnElTaller(dondeEstan.lista.filas), dato: datoHoyEnElTaller(dondeEstan.lista.filas) } : null;
 
   return (
     <div className="space-y-6">
-      <ResumenProduccionPanel sede={persona.ubicacionEtiqueta} presentaciones={presentaciones} decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} hojas={hojas} fichasDeColor={fichasDeColor ?? []} telas={telas} hoyEnElTaller={hoyEnElTaller} falloRed={decision.fallo} />
+      <ResumenProduccionPanel sede={persona.ubicacionEtiqueta} presentaciones={presentaciones} decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} hojas={hojas} telas={telas} hoyEnElTaller={hoyEnElTaller} falloRed={decision.fallo} notaDeHistoria={notaDeHistoria(hoy)} />
     </div>
   );
 }

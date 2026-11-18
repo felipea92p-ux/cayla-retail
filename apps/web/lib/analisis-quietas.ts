@@ -5,6 +5,7 @@
 
 import type { EdadInventario, PrendaAnalisis } from "./analisis-tipos";
 import { diasEntreFechas } from "./fechas-lima";
+import { VENTAS_PARA_JUZGAR_SOLA } from "./frescura-reglas";
 import { DIAS_EJE_QUIETAS, DIAS_TRES_MESES, GRUPOS_CARRIL_QUIETAS, grupoDe, ordenQuietas, plural, prendasDe, sedeQueMasVende, totalEnTienda, umbralLiquidar } from "./analisis-reglas";
 
 /** Las cifras grandes de arriba: cuántos modelos están quietos y cuánta plata hay en ellos. */
@@ -121,15 +122,50 @@ export function marcaLiquidarComun(prendas: readonly Pick<PrendaAnalisis, "umbra
 }
 
 /**
- * La nota del carril: con qué se mide cada tipo (ADR-0357, act. 2026-10-14). Con la vara de su tipo, «Liquidar desde» es solo el
- * respaldo de los tipos que todavía no tienen ventas para su ritmo; sin Frescura, se mide todo con «Liquidar desde».
+ * El nombre de la caja de días (Felipe 2026-11-09): solo manda en los tipos que todavía no tienen ritmo propio, y lo dice en su nombre.
+ * Con «Liquidar desde» a secas parecía que movía a todas las prendas, y al bajarla de 7 a 1 «no pasaba nada».
+ */
+export const ETIQUETA_LIQUIDAR_DESDE = "Sin historial: liquidar desde";
+
+/**
+ * La nota del carril: con qué se mide cada tipo (ADR-0357, act. 2026-10-14). Con la vara de su tipo, la caja de días es solo el
+ * respaldo de los tipos que todavía no tienen ventas para su ritmo; sin Frescura, se mide todo con la caja. Cuando todos los tipos
+ * tienen ritmo, la nota dice que la caja hoy no mueve a ninguno (Felipe 2026-11-09).
  */
 export function notaDeUmbrales(prendas: readonly Pick<PrendaAnalisis, "umbrales">[], frescura: "ok" | "sin_modulo" | "fallo" | "no_aplica"): string {
-  if (frescura !== "ok") return "Sin el ritmo de cada tipo (Frescura del piso), todo se mide con «Liquidar desde».";
+  if (frescura !== "ok") return "Sin el ritmo de cada tipo (Frescura del piso), todo se liquida desde los días de la caja.";
   const con = prendas.filter((p) => p.umbrales).length;
-  if (con === 0) return "Ningún tipo tiene todavía ventas para medir su ritmo: todo se mide con «Liquidar desde».";
-  if (con === prendas.length) return "Cada tipo se mide con lo que tardan en venderse los suyos en tu piso.";
-  return "Cada tipo se mide con lo que tardan en venderse los suyos en tu piso; «Liquidar desde» vale para los que todavía no tienen ritmo.";
+  if (con === 0) return `Ningún tipo tiene todavía ${VENTAS_PARA_JUZGAR_SOLA} ventas para medir su ritmo: todo se liquida desde los días de la caja.`;
+  if (con === prendas.length) return `Cada tipo se liquida según lo que tardan en venderse los suyos en tu piso: cada fila dice su plazo. La caja solo vale para tipos con menos de ${VENTAS_PARA_JUZGAR_SOLA} ventas, y hoy no hay ninguno.`;
+  return `Cada tipo se liquida según lo que tardan en venderse los suyos en tu piso: cada fila dice su plazo. La caja solo vale para tipos con menos de ${VENTAS_PARA_JUZGAR_SOLA} ventas.`;
+}
+
+/** El plazo de una fila, bajo su barra: desde cuántos días se liquida y por qué (el ritmo de su tipo o la caja). */
+export type PlazoDeLiquidar = { dias: number; propio: boolean; texto: string; detalle: string };
+
+/**
+ * Lo que dice cada fila de «No se vende» bajo su barra (Felipe 2026-11-09: «Plazo por tipo, a la vista»). Con ritmo propio, cuánto
+ * suele tardar su tipo (el p90 de la vara: 9 de cada 10 se vendieron en ese plazo o menos); sin él, los días de la caja.
+ * Ejemplo inventado: unas Blusas con vara de 27 días dicen «Blusas: suelen venderse en 27 d».
+ */
+export function plazoDeLiquidar(p: Pick<PrendaAnalisis, "umbrales" | "categoria">, liquidarDesde: number): PlazoDeLiquidar {
+  const dias = umbralLiquidar(p, liquidarDesde);
+  const tipo = p.categoria?.trim() || null;
+  if (p.umbrales) {
+    const nombre = tipo ? tipo.toLocaleLowerCase("es") : "las de su tipo";
+    return {
+      dias,
+      propio: true,
+      texto: tipo ? `${tipo}: suelen venderse en ${dias} d` : `Su tipo suele venderse en ${dias} d`,
+      detalle: `9 de cada 10 ${nombre} que se vendieron en tu piso tardaron ${dias} ${plural(dias, "día", "días")} o menos (contando ${p.umbrales.vendidas} ${plural(p.umbrales.vendidas, "venta", "ventas")}). Pasado eso, se liquida.`,
+    };
+  }
+  return {
+    dias,
+    propio: false,
+    texto: `Sin historial: liquidar desde ${dias} d`,
+    detalle: `${tipo ?? "Su tipo"} todavía no tiene ${VENTAS_PARA_JUZGAR_SOLA} ventas para medir su ritmo: se liquida desde los días de la caja.`,
+  };
 }
 
 /** Las prendas de cada grupo del carril, cada uno de lo que más espera a lo que menos. Una prenda cae en uno solo. */

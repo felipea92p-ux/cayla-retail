@@ -602,7 +602,7 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
         <CifrasCabecera control={control} />
       </EncabezadoPagina>
       <div data-guia="conteo.pasos">
-        <PasosConteo actual="contar" />
+        <PasosConteo forma="riel" actual="contar" />
       </div>
       {notaAcotada}
 
@@ -634,7 +634,7 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
 
         <BarraInfo control={control} responsable={responsable} creadoEn={conteo.creadoEn} />
 
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg bg-hueso/40 px-3 py-2 text-[13px] text-taupe">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg bg-hueso/40 px-3 py-2 text-sm text-taupe">
           <p className="flex min-w-0 items-center gap-2">
             <Info aria-hidden className="h-4 w-4 shrink-0" />
             {filtrando && hayVariantes && !vaciaPorAcotar && nCoincidencias > 0 ? (
@@ -775,7 +775,7 @@ function CifrasCabecera({ control }: { control: ControlConteo }) {
       {celdas.map((c) => (
         <div key={c.etiqueta} className="min-w-0 flex-1 px-4 py-4 lg:w-[8.75rem] lg:flex-none">
           <p className={`font-display text-2xl leading-none tabular-nums ${c.color}`}>{c.valor}</p>
-          <p className="mt-2 text-[13px] leading-tight text-tinta/70">{c.etiqueta}</p>
+          <p className="mt-2 text-sm leading-tight text-tinta/70">{c.etiqueta}</p>
         </div>
       ))}
     </section>
@@ -802,36 +802,40 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
   // Solo se pregunta si NO hay responsable vigente (nadie lo eligió en este navegador o ya no está de turno): sin él la base no deja guardar.
   const mostrarCombo = !responsable.listo || !nombre;
   const bloque = "flex min-w-0 items-center gap-3 px-5 py-3";
+  // Los tres bloques en fila los decide el ancho de la barra (`@container`), no el de la ventana: a 768 px, con el menú abierto, quedaban
+  // ~145 px por bloque y la fecha y el progreso se salían al vecino. Desde 640 px de barra caben (~213 por bloque); bajo eso, se apilan.
   return (
-    <div className="grid grid-cols-1 divide-y divide-sand rounded-xl border border-sand bg-papel sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-      <div className={bloque}>
-        <UserRound aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
-        <div className="min-w-0 flex-1">
-          <p className="text-xs text-tinta/70">Responsable</p>
-          {mostrarCombo ? (
-            <ComboResponsable control={responsable} className="mt-1 w-full" />
-          ) : (
-            <p className="truncate text-base font-medium text-tinta">{nombre}</p>
-          )}
+    <div className="@container">
+      <div className="grid grid-cols-1 divide-y divide-sand rounded-xl border border-sand bg-papel @min-[640px]:grid-cols-3 @min-[640px]:divide-x @min-[640px]:divide-y-0">
+        <div className={bloque}>
+          <UserRound aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-tinta/70">Responsable</p>
+            {mostrarCombo ? (
+              <ComboResponsable control={responsable} className="mt-1 w-full" />
+            ) : (
+              <p className="truncate text-base font-medium text-tinta">{nombre}</p>
+            )}
+          </div>
         </div>
-      </div>
-      <div className={bloque}>
-        <Anillo pct={porcentaje} tamano="chico" decorativa />
-        <div className="min-w-0">
-          <p className="text-xs text-tinta/70">Progreso</p>
-          <p className="flex items-baseline gap-3 text-base font-medium tabular-nums text-tinta">
-            <span>
-              {r.verificadas} de {r.variantes} {r.variantes === 1 ? "variante" : "variantes"}
-            </span>
-            <span className="text-tinta/70">{porcentaje}%</span>
-          </p>
+        <div className={bloque}>
+          <Anillo pct={porcentaje} tamano="chico" decorativa />
+          <div className="min-w-0">
+            <p className="text-sm text-tinta/70">Progreso</p>
+            <p className="flex flex-wrap items-baseline gap-x-3 text-base font-medium tabular-nums text-tinta">
+              <span>
+                {r.verificadas} de {r.variantes} {r.variantes === 1 ? "variante" : "variantes"}
+              </span>
+              <span className="text-tinta/70">{porcentaje}%</span>
+            </p>
+          </div>
         </div>
-      </div>
-      <div className={bloque}>
-        <Clock aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
-        <div className="min-w-0">
-          <p className="text-xs text-tinta/70">Inicio del conteo</p>
-          <p className="text-base font-medium tabular-nums text-tinta">{textoInicio(creadoEn)}</p>
+        <div className={bloque}>
+          <Clock aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
+          <div className="min-w-0">
+            <p className="text-sm text-tinta/70">Inicio del conteo</p>
+            <p className="text-base font-medium tabular-nums text-tinta">{textoInicio(creadoEn)}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -853,7 +857,7 @@ function SinCoincidencias({ texto, sugeridas, alSumar }: { texto: string; sugeri
               <li key={p.varianteId} className="flex items-center justify-between gap-3 py-2">
                 <span className="min-w-0">
                   <span className="block truncate">{p.referencia}</span>
-                  <span className="block truncate text-xs text-taupe">
+                  <span className="block truncate text-sm text-taupe">
                     {detalleDe(p) || "Sin talla ni color"} · <span className="font-mono text-[11px]">{p.sku || "sin código"}</span>
                   </span>
                 </span>
@@ -877,7 +881,7 @@ function UltimaLectura({ control, prenda }: { control: ControlConteo; prenda: Pr
   const linea = useSyncExternalStore(suscribir, leer, leer);
   return (
     // Alto reservado (ADR-0185): la línea no empuja la lista al aparecer.
-    <p role="status" aria-live="polite" className="min-h-4 truncate text-xs leading-4 text-taupe">
+    <p role="status" aria-live="polite" className="min-h-4 truncate text-sm leading-4 text-taupe">
       {linea && linea.contada !== null ? (
         <>
           Última lectura: <span className="text-tinta">{nombreDe(prenda)}</span> · <span className="tabular-nums text-tinta">{linea.contada}</span>
@@ -1001,7 +1005,7 @@ function ContenidoAviso({
       <X aria-hidden className="h-4 w-4" />
     </button>
   );
-  const fila = "flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs";
+  const fila = "flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm";
 
   switch (aviso.tipo) {
     case "fuera":

@@ -132,12 +132,12 @@ export function VinculosGoogleAvisos({
             <li key={v.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
               <AvatarPersona personaId={null} nombre={v.nombre} tamano={32} />
               <div className="min-w-0 flex-1 basis-56">
-                <p className="truncate text-[13.5px] text-tinta">{v.nombre}</p>
-                <p className="truncate text-[12px] text-taupe">
+                <p className="truncate text-[15px] text-tinta">{v.nombre}</p>
+                <p className="truncate text-sm text-taupe">
                   Entró como «{v.nombreGoogle}» · {correoAMedias(v.correo)} · {cuando.dia} {cuando.hora} · {celularAMedias(v.telefono)}
                 </p>
                 {estado === "sin_celular" && (
-                  <p className="text-[12px] text-ambar-profundo">No hay a quién escribirle: avísale en la tienda, o agrega su celular en su ficha.</p>
+                  <p className="text-sm text-ambar-profundo">Sin celular: avísale en la tienda o agrégalo en su ficha.</p>
                 )}
               </div>
               <Chip tono={chip.tono}>{chip.texto}</Chip>

@@ -67,9 +67,8 @@ export default async function DisenarCampanaPage({ params, searchParams }: { par
       {ficha && pestana === "datos" ? (
         datos && campanaDatos ? (
           <div className="space-y-3" data-guia="campana-web.datos">
-            <p className="max-w-prose text-[13px] text-taupe">
-              Su descuento, sus fechas, las categorías donde rige y sus prendas. Es lo mismo que en Catálogo ▸ Insignias: lo que cambies aquí
-              cambia allá, en la caja de las tiendas y en la tienda online.
+            <p className="max-w-prose text-sm text-taupe">
+              Su descuento, fechas, categorías y prendas. Es la misma de Catálogo ▸ Insignias: lo que cambies aquí cambia allá.
             </p>
             <TarjetaDeCampana
               campana={campanaDatos}

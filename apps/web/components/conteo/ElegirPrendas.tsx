@@ -107,11 +107,11 @@ export function ElegirPrendas({
   return (
     <div className="space-y-3 pt-3">
       {!hayLugar && (
-        <p className="text-[13px] text-taupe">Primero elige dónde vas a contar: así solo se buscan las prendas de ese lugar.</p>
+        <p className="text-sm text-taupe">Primero elige dónde vas a contar: así solo se buscan las prendas de ese lugar.</p>
       )}
 
       {hayLugar && estado === "cargando" && (
-        <p role="status" className="text-[13px] text-taupe">
+        <p role="status" className="text-sm text-taupe">
           Cargando las prendas de la sede…
         </p>
       )}
@@ -158,7 +158,7 @@ export function ElegirPrendas({
             className="@[30rem]:max-w-md"
           />
 
-          <p id={idAyuda} className="text-[13px] text-taupe">
+          <p id={idAyuda} className="text-sm text-taupe">
             {consultaDiferida.trim() === ""
               ? `Escribe el nombre, el color, la talla o el código, en el orden que quieras. Solo salen las prendas registradas en ${lugarTexto}.`
               : resultados.length === 0
@@ -170,7 +170,7 @@ export function ElegirPrendas({
             <div className="overflow-hidden rounded-xl border border-sand bg-papel">
               {sinElegir.length > 1 && (
                 <div className="flex items-center justify-between gap-3 border-b border-sand bg-hueso/60 px-3 py-2">
-                  <span className="text-xs text-taupe">¿Todas las tallas y colores de lo que buscaste?</span>
+                  <span className="text-sm text-taupe">¿Todas las tallas y colores de lo que buscaste?</span>
                   <button type="button" onClick={() => agregar(sinElegir)} className="btn-cayla btn-enlace text-[13px]">
                     Agregar las {sinElegir.length}
                   </button>
@@ -193,13 +193,13 @@ export function ElegirPrendas({
                           <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} {...categoriaDe(p)} />
                           <span className="min-w-0">
                             <span className="block truncate text-sm text-tinta">{p.referencia}</span>
-                            <span className="flex min-w-0 items-baseline gap-1.5 text-xs text-tinta/65">
+                            <span className="flex min-w-0 items-baseline gap-1.5 text-sm text-tinta/65">
                               <span className="shrink-0 font-medium text-tinta/80">{[p.color, p.talla].filter(Boolean).join(" · ") || "—"}</span>
                               <span className="min-w-0 truncate font-mono">{p.sku}</span>
                             </span>
                           </span>
                         </span>
-                        <span className={`inline-flex shrink-0 items-center gap-1 text-xs ${elegida ? "font-medium text-tinta" : "text-taupe"}`}>
+                        <span className={`inline-flex shrink-0 items-center gap-1 text-sm ${elegida ? "font-medium text-tinta" : "text-taupe"}`}>
                           {elegida ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Plus className="h-3.5 w-3.5" aria-hidden />}
                           {elegida ? "Elegida" : "Elegir"}
                         </span>
@@ -225,7 +225,7 @@ export function ElegirPrendas({
           )}
 
           {quitadasPorLugar > 0 && (
-            <p role="status" className="text-[13px] text-taupe">
+            <p role="status" className="text-sm text-taupe">
               Se quitaron {textoPrendas(quitadasPorLugar)} que no están registradas en {lugarTexto}: cada lugar tiene las suyas.
             </p>
           )}
@@ -235,7 +235,7 @@ export function ElegirPrendas({
       {elegidas.length > 0 && (
         <div className="space-y-1.5">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-medium text-tinta">Para contar · {textoPrendas(elegidas.length)}</p>
+            <p className="text-sm font-medium text-tinta">Para contar · {textoPrendas(elegidas.length)}</p>
             <button type="button" onClick={() => cambiar([], "Se quitaron todas las prendas")} className="btn-cayla btn-enlace text-xs">
               Quitar todas
             </button>
@@ -245,7 +245,7 @@ export function ElegirPrendas({
               const p = porId.get(id);
               const nombre = p ? nombreDePrenda(p) : "Prenda";
               return (
-                <li key={id} className="inline-flex max-w-full items-center gap-1 rounded-full border border-tinta bg-tinta py-1 pl-3 pr-1.5 text-[13px] text-crema">
+                <li key={id} className="inline-flex max-w-full items-center gap-1 rounded-full border border-tinta bg-tinta py-1 pl-3 pr-1.5 text-sm text-crema">
                   <span className="truncate">{nombre}</span>
                   <button
                     type="button"

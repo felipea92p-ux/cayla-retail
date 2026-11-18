@@ -17,8 +17,9 @@ import { MENSAJES } from "./cuentas-mensajes";
 // Quien decide de verdad es la base (`retail.tienda_registrar_cuenta_simple` y `retail.tienda_unirse_al_club`): esto solo evita mandar lo que la base rechazaría y dice
 // por qué, con las mismas palabras en la pantalla y en el servidor.
 
-/** La versión de la privacidad y los términos de la web que se acepta al crear la cuenta (`cuentas_web.textos_aceptados`). */
-export const TEXTOS_VERSION = "borrador-2026-10-14";
+/** La versión de la privacidad y los términos de la web que se acepta al crear la cuenta (`cuentas_web.textos_aceptados`). Subió el
+ *  2026-10-23 con la medición de visitas (ADR-0495, Felipe): las cuentas que ya existían conservan la que aceptaron. */
+export const TEXTOS_VERSION = "borrador-2026-10-23";
 export const CLAVE_MINIMA = 8;
 /** El servicio de inicio de sesión guarda hasta 72 caracteres de una contraseña. */
 export const CLAVE_MAXIMA = 72;

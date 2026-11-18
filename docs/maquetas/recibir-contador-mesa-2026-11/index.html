@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mesa del contador</title>
+<!-- Felipe 2026-11-12: «quiero poder mover esos componentes a mi antojo para decirte cómo quiero esa parte». Cada pieza del contador de
+     Recibir (la placa de un modelo) se arrastra, se agranda desde su esquina y se tira a «No va». Lo acomodado se guarda en este navegador
+     y Claude lo lee de aquí (window.__mesa). No es el ERP: es una mesa para decidir. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --crema: #f5f0e8; --papel: #fbf8f2; --tinta: #1a1a18; --rojo: #b8412d; --rojo-profundo: #8b2a1f; --sand: #e8e0d0;
+    --taupe: #805c4c; --hueso: #eae1d2; --verde: #48603f; --ambar: #74501a; --borde: #96786a;
+    --rejilla: 8px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--crema); color: var(--tinta); font-family: "DM Sans", system-ui, sans-serif; font-size: 14px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 16px 24px; border-bottom: 1px solid var(--sand); background: var(--papel); position: sticky; top: 0; z-index: 50; }
+  header h1 { font-family: "EB Garamond", serif; font-weight: 500; font-size: 28px; margin: 0; }
+  header p { margin: 0; color: var(--taupe); flex: 1 1 320px; }
+  .btn { font: inherit; font-weight: 500; border-radius: 999px; padding: 8px 16px; border: 1px solid var(--borde); background: var(--papel); color: var(--tinta); cursor: pointer; }
+  .btn.prim { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+  .btn:hover { border-color: var(--tinta); }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 20px; padding: 20px; align-items: start; }
+  /* La placa mide siempre 888 px por dentro; si la ventana es angosta se achica entera (`--escala`), y las medidas que se guardan siguen siendo las reales. */
+  #marco { width: calc(888px * var(--escala, 1)); height: calc(780px * var(--escala, 1)); }
+  #marco > #mesa { transform: scale(var(--escala, 1)); transform-origin: top left; }
+  .lado { position: sticky; top: 96px; }
+  .titulo-zona { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); font-weight: 600; margin: 0 0 8px; }
+  #mesa { position: relative; width: 888px; height: 780px; background: var(--papel); border: 1px solid var(--sand); border-radius: 24px; overflow: hidden;
+    background-image: radial-gradient(circle, color-mix(in srgb, var(--borde) 28%, transparent) 1px, transparent 1px); background-size: 16px 16px; }
+  #bandeja { min-height: 300px; border: 2px dashed var(--borde); border-radius: 20px; padding: 12px; display: flex; flex-wrap: wrap; gap: 10px; align-content: flex-start; background: color-mix(in srgb, var(--hueso) 40%, transparent); }
+  #bandeja.encima, #mesa.encima { outline: 3px solid var(--rojo); outline-offset: 2px; }
+  #bandeja .pieza { position: relative !important; left: auto !important; top: auto !important; max-width: 100%; }
+  textarea { width: 100%; min-height: 140px; margin-top: 16px; font: inherit; padding: 12px; border-radius: 14px; border: 1px solid var(--borde); background: var(--hueso); color: var(--tinta); resize: vertical; }
+  .ayuda { color: var(--taupe); font-size: 13px; line-height: 1.5; margin-top: 12px; }
+
+  /* Las piezas */
+  .pieza { position: absolute; cursor: grab; user-select: none; touch-action: none; border-radius: 12px; }
+  .pieza > * { pointer-events: none; }
+  .pieza:hover { outline: 1px dashed var(--borde); outline-offset: 3px; }
+  .pieza.elegida { outline: 2px solid var(--rojo); outline-offset: 3px; z-index: 40; }
+  .pieza.arrastrando { cursor: grabbing; opacity: .9; z-index: 45; }
+  .pieza .asa { pointer-events: auto; position: absolute; right: -7px; bottom: -7px; width: 14px; height: 14px; border-radius: 4px; background: var(--rojo); cursor: nwse-resize; display: none; }
+  .pieza.elegida .asa { display: block; }
+  .pieza .nombre-pieza { position: absolute; left: 0; top: -20px; font-size: 11px; color: var(--rojo); white-space: nowrap; display: none; }
+  .pieza.elegida .nombre-pieza { display: block; }
+  #bandeja .pieza .asa, #bandeja .pieza .nombre-pieza { display: none; }
+
+  .b { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 100%; border-radius: 12px; font-weight: 500; font-size: 14px; border: 1px solid var(--borde); background: var(--papel); }
+  .b.gota { background: color-mix(in srgb, var(--hueso) 80%, transparent); border-color: transparent; }
+  .b.negro { background: var(--tinta); color: var(--crema); border-color: var(--tinta); border-radius: 999px; }
+  .b.redondo { border-radius: 999px; }
+  .seg { display: flex; width: 100%; height: 100%; border: 1px solid var(--sand); border-radius: 12px; padding: 3px; gap: 3px; background: var(--hueso); }
+  .seg span { flex: 1; display: flex; align-items: center; justify-content: center; border-radius: 9px; background: var(--papel); font-weight: 600; }
+  .circ { width: 100%; height: 100%; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 26px; border: 1px solid var(--borde); background: var(--papel); }
+  .circ.negro { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+  .paso { display: flex; align-items: center; gap: 12px; width: 100%; height: 100%; font-weight: 600; font-size: 17px; }
+  .paso .num { width: 30px; height: 30px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; background: var(--tinta); color: var(--crema); flex: none; }
+  .paso .num.hecho { background: var(--hueso); color: var(--verde); border: 1px solid var(--borde); }
+  .paso .der { margin-left: auto; font-size: 12px; font-weight: 600; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 13px; background: var(--hueso); border: 1px solid var(--sand); width: 100%; height: 100%; justify-content: center; }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 9px; background: var(--ambar); }
+  .texto { color: var(--taupe); width: 100%; height: 100%; display: flex; align-items: center; }
+  .tarjeta { width: 100%; height: 100%; border: 1px solid color-mix(in srgb, var(--rojo) 35%, transparent); background: color-mix(in srgb, var(--rojo) 7%, var(--papel)); border-radius: 16px; padding: 14px 16px; display: grid; grid-template-columns: 40px 1fr; gap: 4px 14px; align-content: start; }
+  .tarjeta .ico { width: 40px; height: 40px; border-radius: 10px; background: var(--papel); display: flex; align-items: center; justify-content: center; grid-row: span 2; }
+  .tarjeta b { font-size: 15px; }
+  .tarjeta small { color: var(--taupe); font-size: 14px; line-height: 1.4; }
+  .tarjeta .acc { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; margin-top: 10px; }
+  .tarjeta .acc .b { width: auto; height: 40px; padding: 0 18px; }
+  .tarjeta .acc u { text-underline-offset: 4px; font-weight: 500; }
+  .cabeza { display: flex; gap: 16px; width: 100%; height: 100%; align-items: center; }
+  .foto { width: 72px; height: 72px; border-radius: 12px; background: var(--hueso); display: flex; align-items: center; justify-content: center; flex: none; }
+  .cabeza h2 { font-family: "EB Garamond", serif; font-weight: 500; font-size: 26px; margin: 0; }
+  .cabeza small { color: var(--taupe); }
+  .cifras { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; width: 100%; height: 100%; font-size: 13px; }
+  .cifras b { font-weight: 600; }
+  .cifras u { text-underline-offset: 3px; }
+  .pie-texto { display: flex; align-items: center; gap: 6px; width: 100%; height: 100%; color: var(--taupe); }
+  .pie-texto u { color: var(--tinta); text-underline-offset: 3px; }
+  svg { display: block; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Mesa del contador</h1>
+  <p>Arrastra cada pieza a donde la quieres. Selecciónala y tira de su esquina roja para agrandarla. Lo que sobra, suéltalo en «No va». Las flechas la mueven de a 8 px.</p>
+  <button class="btn" id="deshacer" type="button">Deshacer</button>
+  <button class="btn" id="reiniciar" type="button">Volver a como está hoy</button>
+  <button class="btn prim" id="copiar" type="button">Copiar cómo quedó</button>
+</header>
+<main>
+  <section id="zona">
+    <p class="titulo-zona">El contador de un modelo (888 px, como en tu pantalla)</p>
+    <div id="marco"><div id="mesa"></div></div>
+  </section>
+  <section class="lado">
+    <p class="titulo-zona">No va</p>
+    <div id="bandeja"></div>
+    <textarea id="notas" placeholder="Algo que quieras decirme de cómo quedó (opcional)"></textarea>
+    <p class="ayuda">Todo se guarda en este navegador mientras acomodas: puedes cerrar y volver. Cuando termines, avísame en el chat y lo leo desde aquí.</p>
+  </section>
+</main>
+
+<template id="t-dial">
+  <svg viewBox="0 0 170 170" width="100%" height="100%" aria-hidden="true">
+    <circle cx="85" cy="85" r="74" fill="none" stroke="#48603f" stroke-width="12"/>
+    <circle cx="85" cy="85" r="60" fill="#fbf8f2" stroke="#e8e0d0"/>
+    <circle cx="85" cy="11" r="8" fill="#fbf8f2" stroke="#48603f" stroke-width="3"/>
+    <text x="85" y="92" text-anchor="middle" font-family="EB Garamond, serif" font-size="46" fill="#1a1a18">10</text>
+    <text x="85" y="114" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="12" fill="#1a1a18">cuadra · 10</text>
+  </svg>
+</template>
+
+<script>
+// Cada pieza: id, nombre (lo que lee Claude), su dibujo y dónde está hoy (x, y, ancho, alto en px dentro de la placa de 888).
+const PIEZAS = [
+  { id: "cabecera", nombre: "Foto, nombre y marca", x: 24, y: 20, w: 420, h: 76,
+    html: '<div class="cabeza"><div class="foto">👚</div><div><h2>Blusa Valeria</h2><small>Camisas y Blusas · CAYLA SAC · CAYLA</small></div></div>' },
+  { id: "cifras-compras", nombre: "Costo, venta sugerida y «Ver lo que anotó Compras»", x: 24, y: 104, w: 560, h: 24,
+    html: '<div class="cifras"><span>Costo <b>S/ 22.00</b></span><span>Venta sugerida <b>S/ 59.00</b></span><u>Ver lo que anotó Compras</u></div>' },
+  { id: "paso1-titulo", nombre: "1 · ¿Cuántas llegaron?", x: 20, y: 152, w: 260, h: 36,
+    html: '<div class="paso"><span class="num hecho">✓</span>¿Cuántas llegaron?</div>' },
+  { id: "chip-estado", nombre: "Chip «Faltan tallas»", x: 736, y: 156, w: 128, h: 28, html: '<span class="chip">Faltan tallas</span>' },
+  { id: "dial", nombre: "Dial (el número)", x: 30, y: 280, w: 170, h: 170, tpl: "t-dial" },
+  { id: "menos", nombre: "Botón −", x: 20, y: 412, w: 48, h: 48, html: '<div class="circ">−</div>' },
+  { id: "mas", nombre: "Botón +", x: 163, y: 412, w: 48, h: 48, html: '<div class="circ negro">+</div>' },
+  { id: "llegaron", nombre: "«Llegaron las 10»", x: 235, y: 192, w: 168, h: 38, html: '<div class="b gota">✓ Llegaron las 10</div>' },
+  { id: "sumar", nombre: "+5 / +10", x: 405, y: 192, w: 118, h: 38, html: '<div class="seg"><span>+5</span><span>+10</span></div>' },
+  { id: "cero", nombre: "«Poner en cero»", x: 235, y: 240, w: 150, h: 40, html: '<div class="b">↺ Poner en cero</div>' },
+  { id: "no-llego", nombre: "«No llegó nada» (sale con el dial en 0)", x: 395, y: 240, w: 150, h: 40, html: '<div class="b">⊘ No llegó nada</div>' },
+  { id: "pista", nombre: "«Toca el número para escribirlo.»", x: 235, y: 290, w: 260, h: 22, html: '<div class="texto">Toca el número para escribirlo.</div>' },
+  { id: "paso2-titulo", nombre: "2 · Tallas y colores", x: 235, y: 350, w: 420, h: 36,
+    html: '<div class="paso"><span class="num">2</span>Tallas y colores<span class="der">Sigue</span></div>' },
+  { id: "repartir", nombre: "Tarjeta «Reparte las 10» (Repartir / Dejar para después)", x: 235, y: 398, w: 420, h: 140,
+    html: '<div class="tarjeta"><span class="ico">▦</span><b>Reparte las 10</b><small>Di cuántas llegaron de cada talla y color: con eso entran al stock.</small><div class="acc"><span class="b negro">Repartir tallas y colores →</span><u>Dejar para después</u></div></div>' },
+  { id: "danada", nombre: "«Llegó dañada»", x: 20, y: 580, w: 150, h: 40, html: '<div class="b">⚠ Llegó dañada</div>' },
+  { id: "otra", nombre: "«Es otra prenda»", x: 180, y: 580, w: 160, h: 40, html: '<div class="b">⇄ Es otra prenda</div>' },
+  { id: "anotar", nombre: "«Anotar algo»", x: 350, y: 580, w: 140, h: 40, html: '<div class="b">✎ Anotar algo</div>' },
+  { id: "falta-contar", nombre: "«Falta contar: Blusa Lino Coral»", x: 18, y: 716, w: 260, h: 30,
+    html: '<div class="pie-texto">Falta contar: <u>Blusa Lino Coral</u></div>' },
+  { id: "revisar", nombre: "«Revisar y cerrar»", x: 703, y: 708, w: 164, h: 44, html: '<div class="b redondo">Revisar y cerrar →</div>' },
+];
+const CLAVE = "cayla-mesa-contador-v1";
+const REJ = 8;
+const mesa = document.getElementById("mesa");
+const bandeja = document.getElementById("bandeja");
+const notas = document.getElementById("notas");
+const historial = [];
+const zona = document.getElementById("zona");
+let escala = 1;
+const medir = () => { escala = Math.min(1, zona.clientWidth / 888); document.documentElement.style.setProperty("--escala", String(escala)); };
+new ResizeObserver(medir).observe(zona);
+medir();
+
+const inicial = () => Object.fromEntries(PIEZAS.map((p) => [p.id, { x: p.x, y: p.y, w: p.w, h: p.h, fuera: false }]));
+let estado;
+try { estado = { ...inicial(), ...(JSON.parse(localStorage.getItem(CLAVE) || "null")?.piezas || {}) }; } catch { estado = inicial(); }
+try { notas.value = JSON.parse(localStorage.getItem(CLAVE) || "null")?.notas || ""; } catch {}
+
+const guardar = () => { try { localStorage.setItem(CLAVE, JSON.stringify({ piezas: estado, notas: notas.value })); } catch {} };
+const recordar = () => { historial.push(JSON.stringify(estado)); if (historial.length > 60) historial.shift(); };
+const ajustar = (n) => Math.round(n / REJ) * REJ;
+
+const nodos = {};
+for (const p of PIEZAS) {
+  const el = document.createElement("div");
+  el.className = "pieza";
+  el.dataset.id = p.id;
+  el.title = p.nombre;
+  if (p.tpl) el.appendChild(document.getElementById(p.tpl).content.cloneNode(true));
+  else el.innerHTML = p.html;
+  const nombre = document.createElement("span"); nombre.className = "nombre-pieza"; nombre.textContent = p.nombre; el.appendChild(nombre);
+  const asa = document.createElement("span"); asa.className = "asa"; el.appendChild(asa);
+  nodos[p.id] = el;
+}
+
+function pintar() {
+  for (const p of PIEZAS) {
+    const s = estado[p.id], el = nodos[p.id];
+    const destino = s.fuera ? bandeja : mesa;
+    if (el.parentElement !== destino) destino.appendChild(el);
+    Object.assign(el.style, { left: s.x + "px", top: s.y + "px", width: s.w + "px", height: s.h + "px" });
+  }
+  guardar();
+}
+
+let elegida = null;
+function elegir(id) {
+  if (elegida) nodos[elegida]?.classList.remove("elegida");
+  elegida = id;
+  if (id) nodos[id].classList.add("elegida");
+}
+
+// Arrastrar (pieza) o agrandar (asa). Soltar sobre «No va» la saca; soltar sobre la placa la devuelve.
+document.addEventListener("pointerdown", (e) => {
+  const el = e.target.closest(".pieza");
+  if (!el) { if (!e.target.closest("header, textarea")) elegir(null); return; }
+  e.preventDefault();
+  const id = el.dataset.id, s = estado[id];
+  recordar();
+  elegir(id);
+  const agrandar = e.target.classList.contains("asa");
+  const r0 = el.getBoundingClientRect();
+  const dx = e.clientX - r0.left, dy = e.clientY - r0.top;
+  const w0 = s.w, h0 = s.h, x0 = e.clientX, y0 = e.clientY;
+  el.classList.add("arrastrando");
+  if (!agrandar && s.fuera) { // sale de la bandeja: la ponemos en la placa bajo el mouse
+    s.fuera = false; pintar();
+  }
+  const mover = (ev) => {
+    if (agrandar) {
+      s.w = Math.max(24, ajustar(w0 + (ev.clientX - x0) / escala));
+      s.h = Math.max(16, ajustar(h0 + (ev.clientY - y0) / escala));
+    } else {
+      const m = mesa.getBoundingClientRect();
+      s.x = ajustar((ev.clientX - m.left - dx) / escala);
+      s.y = ajustar((ev.clientY - m.top - dy) / escala);
+      const b = bandeja.getBoundingClientRect();
+      const sobreBandeja = ev.clientX > b.left && ev.clientX < b.right && ev.clientY > b.top && ev.clientY < b.bottom;
+      bandeja.classList.toggle("encima", sobreBandeja);
+    }
+    pintar();
+  };
+  const soltar = (ev) => {
+    document.removeEventListener("pointermove", mover);
+    document.removeEventListener("pointerup", soltar);
+    el.classList.remove("arrastrando");
+    bandeja.classList.remove("encima");
+    if (!agrandar) {
+      const b = bandeja.getBoundingClientRect();
+      if (ev.clientX > b.left && ev.clientX < b.right && ev.clientY > b.top && ev.clientY < b.bottom) s.fuera = true;
+      else { s.x = Math.min(Math.max(0, s.x), 888 - 24); s.y = Math.min(Math.max(0, s.y), 780 - 16); }
+    }
+    pintar();
+  };
+  document.addEventListener("pointermove", mover);
+  document.addEventListener("pointerup", soltar);
+});
+
+document.addEventListener("keydown", (e) => {
+  if (!elegida || e.target === notas) return;
+  const s = estado[elegida];
+  const paso = e.shiftKey ? 1 : REJ;
+  const d = { ArrowLeft: [-paso, 0], ArrowRight: [paso, 0], ArrowUp: [0, -paso], ArrowDown: [0, paso] }[e.key];
+  if (d) { e.preventDefault(); recordar(); s.x += d[0]; s.y += d[1]; pintar(); }
+  if (e.key === "Delete" || e.key === "Backspace") { recordar(); s.fuera = true; pintar(); elegir(null); }
+  if ((e.metaKey || e.ctrlKey) && e.key === "z") { e.preventDefault(); deshacer(); }
+});
+
+function deshacer() { const prev = historial.pop(); if (prev) { estado = JSON.parse(prev); pintar(); } }
+document.getElementById("deshacer").onclick = deshacer;
+document.getElementById("reiniciar").onclick = () => { recordar(); estado = inicial(); pintar(); elegir(null); };
+notas.addEventListener("input", guardar);
+
+// Lo que Claude lee: cada pieza con su nombre, dónde quedó y si se fue a «No va», ordenadas de arriba abajo y de izquierda a derecha.
+function disposicion() {
+  const piezas = PIEZAS.map((p) => ({ id: p.id, nombre: p.nombre, ...estado[p.id] }))
+    .sort((a, b) => (a.fuera - b.fuera) || (a.y - b.y) || (a.x - b.x));
+  return { placa: { ancho: 888, alto: 780 }, piezas, notas: notas.value };
+}
+window.__mesa = { disposicion };
+document.getElementById("copiar").onclick = async (ev) => {
+  const texto = JSON.stringify(disposicion(), null, 2);
+  try { await navigator.clipboard.writeText(texto); ev.target.textContent = "✓ Copiado"; }
+  catch { ev.target.textContent = "No se pudo copiar: avísame y lo leo"; }
+  setTimeout(() => (ev.target.textContent = "Copiar cómo quedó"), 2200);
+};
+pintar();
+</script>
+</body>
+</html>

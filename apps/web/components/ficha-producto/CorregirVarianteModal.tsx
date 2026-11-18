@@ -18,6 +18,7 @@ import {
   type Destino,
   type FilaFicha,
 } from "@/lib/variantes-ficha-reglas";
+import type { ColorAlta } from "@/lib/alta-producto";
 import { ElegirUnColor, PieModal, SIN_COLOR, VistaPreviaCodigos, type ContextoFicha } from "./piezas";
 
 // «Esta prenda se registró mal» (D-136): corrige el color, la talla o los dos de una o varias variantes que ya existen.
@@ -42,6 +43,7 @@ export function CorregirVarianteModal({
   tallas,
   onConfirmar,
   onClose,
+  onColorCreado,
 }: {
   ctx: ContextoFicha;
   /** Todas las filas de la prenda (para ver choques y códigos ocupados). */
@@ -53,6 +55,8 @@ export function CorregirVarianteModal({
   tallas: ValorVocabulario[];
   onConfirmar: (destino: Destino) => void;
   onClose: () => void;
+  /** Una mezcla armada aquí («+ acompañante», ADR-0643): la ficha la suma a su vocabulario, como un color creado en «Agregar color». */
+  onColorCreado: (color: ColorAlta) => void;
 }) {
   const n = ctx.nombres;
   const afectadas = filas.filter((f) => claves.includes(f.clave));
@@ -142,13 +146,13 @@ export function CorregirVarianteModal({
               etiquetas de campaña. Si llegó mercadería nueva, usa {otroGesto}.
             </p>
           )}
-          <p className="text-[12.5px] text-taupe">
+          <p className="text-sm text-taupe">
             {nuevas ? "Se cambia" : "Se corrige"}: <span className="text-tinta">{alcance}</span>
           </p>
 
           {tocaColor && (
             <div>
-              <p className="mb-1 text-[12.5px] font-semibold text-tinta">Su color de verdad</p>
+              <p className="mb-1 text-sm font-semibold text-tinta">Su color de verdad</p>
               <ElegirUnColor
                 valor={color}
                 onValor={(v) => {
@@ -158,13 +162,22 @@ export function CorregirVarianteModal({
                 colores={coloresOfrecidos}
                 ofrecerSinColor={ofrecerSinColor}
                 etiqueta="Color correcto"
+                // «Hueso» que en verdad es «Hueso con azul»: la mezcla se arma con el color que ya tiene (o el elegido) como base.
+                mezcla={{
+                  todos: ctx.colores,
+                  baseSiNada: colorActual,
+                  onCreado: (c) => {
+                    onColorCreado(c);
+                    setTocado(true);
+                  },
+                }}
               />
             </div>
           )}
 
           {tocaTalla && (
             <div>
-              <p className="mb-1.5 text-[12.5px] font-semibold text-tinta">Su talla de verdad</p>
+              <p className="mb-1.5 text-sm font-semibold text-tinta">Su talla de verdad</p>
               {opcionesTalla.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
                   {opcionesTalla.map((t) => (
@@ -182,12 +195,12 @@ export function CorregirVarianteModal({
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-taupe">{ejes === "talla" ? "Esta categoría no tiene otras tallas habilitadas." : "Esta categoría no tiene tallas habilitadas."}</p>
+                <p className="text-sm text-taupe">{ejes === "talla" ? "Esta categoría no tiene otras tallas habilitadas." : "Esta categoría no tiene tallas habilitadas."}</p>
               )}
             </div>
           )}
 
-          {esElQueTiene && <p className="text-[12.5px] text-ambar-profundo">{queTiene}</p>}
+          {esElQueTiene && <p className="text-sm text-ambar-profundo">{queTiene}</p>}
           {bloqueo && (
             <Aviso tono="atencion">
               {bloqueo}

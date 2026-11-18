@@ -44,8 +44,9 @@ export function estadoBotonCierre({
       nivel,
       titulo: "Cuando termines tu turno, cierra la caja",
       // «p. m.» ya termina en punto: a la hora no se le suma otro.
-      // El tiempo que lleva abierta ya lo dice la cabecera («lleva 6 h»): aquí solo lo que falta por hacer.
-      bajada: h ? `La caja de hoy se cierra a las ${h}` : "Al terminar el turno, ciérrala para cuadrar el cajón.",
+      // El tiempo que lleva abierta ya lo dice la cabecera («lleva 6 h»): aquí solo lo que falta por hacer. Sin hora de cierre no
+      // hay nada que agregar: el título ya lo dice (ronda 19, una línea y no dos que repiten lo mismo).
+      bajada: h ? `La caja de hoy se cierra a las ${h}` : "",
     };
   }
   if (nivel === 1) {
@@ -54,6 +55,6 @@ export function estadoBotonCierre({
   return {
     nivel,
     titulo: `La caja sigue abierta · pasó la hora de cierre hace ${formatoDuracion(r.minutos)}`,
-    bajada: "Si pasa la noche abierta, las ventas de hoy y de mañana se mezclan y el cajón no cuadra día por día.",
+    bajada: "Si no la cierras, las ventas de hoy y de mañana se mezclan.",
   };
 }

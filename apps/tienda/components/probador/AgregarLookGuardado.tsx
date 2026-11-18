@@ -20,5 +20,5 @@ export function AgregarLookGuardado({
   origenFotos: string | undefined;
 }) {
   const indice = useMemo(() => indizar(prendas), [prendas]);
-  return <AgregarTuLook look={look} indice={indice} sedeId={sedeId} origenFotos={origenFotos} className="lg-agregar" texto="Agregar el look a mi bolsa" />;
+  return <AgregarTuLook look={look} indice={indice} sedeId={sedeId} origenFotos={origenFotos} className="lg-agregar" texto="Agregar el outfit a mi bolsa" />;
 }

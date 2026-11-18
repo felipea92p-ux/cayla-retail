@@ -69,6 +69,8 @@ const borrador = (o: Partial<BorradorModelo> = {}): BorradorModelo => ({
   ...o,
 });
 const celdas = (b: BorradorModelo) => celdasDelBorrador(b, COLORES);
+/** Un tipo al azar con UNA sola tirada (así el resto de la secuencia de la semilla no cambia): muestra, lote o todavía sin elegir. */
+const esMuestraAlAzar = (x: number): boolean | null => (x < 0.45 ? true : x < 0.9 ? false : null);
 const conCantidades = (b: BorradorModelo, n: string): BorradorModelo => ({ ...b, cantidades: Object.fromEntries(celdas(b).map((c) => [c.clave, n])) });
 
 describe("tallas", () => {
@@ -176,6 +178,16 @@ describe("problemasDelModelo — lo que falta, en el orden de la pantalla", () =
   it("los colores son opcionales: ninguno elegido no es una falta", () => {
     expect(campos(conCantidades(borrador({ colorCodigos: [] }), "5"))).toEqual([]);
   });
+  it("sin tipo elegido no se abre: es lo primero que falta, aunque todo lo demás esté listo (ADR-0396, act. 2026-10-30)", () => {
+    const b = conCantidades(borrador({ esMuestra: null }), "5");
+    expect(campos(b)).toEqual(["tipo"]);
+    expect(problemasDelModelo(b, celdas(b))[0].texto).toMatch(/lote de producción o una muestra/);
+    expect(campos({ ...BORRADOR_VACIO, esMuestra: null })).toEqual(["tipo", "nombre", "categoria", "precio", "cantidades"]);
+  });
+  it("sin tipo, el precio cuenta como el de un lote: lo que libra de él es elegir Muestra", () => {
+    expect(campos(conCantidades(borrador({ esMuestra: null, precio: "" }), "5"))).toEqual(["tipo", "precio"]);
+    expect(campos(conCantidades(borrador({ esMuestra: true, precio: "" }), "5"))).toEqual([]);
+  });
 });
 
 describe("dinero y nombre: lo que la base rechaza se dice antes (/chaos 2026-10-10)", () => {
@@ -280,6 +292,7 @@ describe("la pantalla no promete lo que la base rechaza (al azar, con semilla fi
         tallaIds: [...(categoria?.tallas ?? []), { id: "t-ajena" }].filter(() => r() < 0.5).map((t) => t.id),
         colorCodigos: COLORES.filter(() => r() < 0.5).map((c) => c.codigo),
         precio: elegir(r, casiSiempreBueno(["40", "39.9", "99999.99", "12.345"], ["", "0", "-1", "abc", "0.001", "12,50", "100000", "1e9"])),
+        // Aquí el tipo siempre está elegido: sin él, la orden no se manda (eso lo prueban «sin tipo elegido no se abre» y la coincidencia con la guía).
         esMuestra: r() < 0.5,
         cantidades: {},
       };
@@ -493,7 +506,7 @@ describe("camposDeGuiaOrden — la guía de foco dice lo mismo que la validació
         tallaIds: [...(categoria?.tallas ?? []), { id: "t-ajena" }].filter(() => r() < 0.5).map((t) => t.id),
         colorCodigos: COLORES.filter(() => r() < 0.5).map((c) => c.codigo),
         precio: elegir(["40", "40", "40", "39.9", "", "0", "-1", "abc", "0.001", "12,50", "100000"]),
-        esMuestra: r() < 0.5,
+        esMuestra: esMuestraAlAzar(r()),
         cantidades: {},
       };
       const c = celdas(b);
@@ -526,10 +539,23 @@ describe("«Modelo nuevo»: lo obligatorio primero, el color después y cerrado 
     expect(elegir).toMatch(/cartaAbierta = true/);
     expect(elegir).toMatch(/useState\(cartaAbierta\)/);
   });
-  it("el orden de la guía de foco es el de la pantalla (los colores no son un paso: son opcionales)", () => {
+  it("el orden de la guía de foco es el de la pantalla: el tipo arriba, antes que el nombre (los colores no son un paso: son opcionales)", () => {
     const b = conCantidades(borrador({ nombre: "", precio: "" }), "");
     const ids = camposDeGuiaOrden({ esNuevo: true, hayModelo: true, borrador: b, celdas: celdas(b), totalExistente: 0 }).map((c) => c.id);
-    expect(ids).toEqual(["nombre", "categoria", "tallas", "precio", "cantidades", "fases", "tela"]);
+    expect(ids).toEqual(["tipo", "nombre", "categoria", "tallas", "precio", "cantidades", "fases", "tela"]);
+  });
+  it("un modelo nuevo sin tipo: la guía se enciende en el tipo; elegido, pasa al nombre. Un modelo que existe no lo lista (nace en lote)", () => {
+    const sinTipo = camposDeGuiaOrden({ esNuevo: true, hayModelo: true, borrador: { ...BORRADOR_VACIO, esMuestra: null }, celdas: [], totalExistente: 0 });
+    expect(estadosDe(sinTipo)["tipo"]).toBe("ahora");
+    const conTipo = camposDeGuiaOrden({ esNuevo: true, hayModelo: true, borrador: { ...BORRADOR_VACIO, esMuestra: false }, celdas: [], totalExistente: 0 });
+    expect(estadosDe(conTipo)["tipo"]).toBe("hecho");
+    expect(estadosDe(conTipo)["nombre"]).toBe("ahora");
+    const existe = camposDeGuiaOrden({ esNuevo: false, hayModelo: true, borrador: { ...BORRADOR_VACIO, esMuestra: null }, celdas: [], totalExistente: 5 });
+    expect(existe.map((c) => c.id)).not.toContain("tipo");
+  });
+  it("sin tipo no se arman los parámetros de la base: mandar «lote» en su lugar sería volver al valor de fábrica", () => {
+    const b = conCantidades(borrador({ esMuestra: null }), "5");
+    expect(() => paramsRpcModeloNuevo({ ubicacionId: "u", borrador: b, celdas: celdas(b), costos: { tela: "", avios: "", maquila: "" }, fechaEntrega: "", nota: "", confirmoDistinto: false, token: "t" })).toThrow(/lote de producción o una muestra/);
   });
 });
 
@@ -570,14 +596,15 @@ describe("Nueva orden: los de gravedad 4 de /chaos (2026-10-10), #6, #7 y #8", (
   });
 });
 
-describe("el botón principal de Nueva orden cabe a 375 px", () => {
-  it("su etiqueta tiene a lo más 20 letras (a 375 px «Crear modelo y abrir orden» medía 180 px en un botón de 159 y se recortaba ~21 px)", () => {
+describe("el botón principal de Nueva orden cabe a 375 px y dice lo mismo siempre", () => {
+  it("dice «Abrir orden» con un modelo nuevo o uno que existe (con «Crear orden» la prueba ciega dudó si quedaba abierta), y cabe: a 375 px «Crear modelo y abrir orden» se recortaba ~21 px", () => {
     const fuente = readFileSync(join(__dirname, "..", "components", "NuevaOrdenProduccionForm.tsx"), "utf8");
     // Desde la ronda 12 de /unificar (ADR-0358) «Abriendo…» lo pone la pieza (`textoCargando`); la etiqueta es la del botón en reposo.
     expect(fuente).toContain('textoCargando="Abriendo…"');
-    const etiquetas = [...fuente.matchAll(/\{esNuevo \? "([^"]+)" : "([^"]+)"\}/g)];
-    expect(etiquetas.length).toBe(1);
-    for (const e of [etiquetas[0][1], etiquetas[0][2]]) expect(e.length, e).toBeLessThanOrEqual(20);
+    const boton = fuente.match(/textoCargando="Abriendo…"[\s\S]*?>([\s\S]*?)<\/Boton>/)?.[1] ?? "";
+    const etiqueta = boton.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").trim();
+    expect(etiqueta).toBe("Abrir orden");
+    expect(fuente).not.toMatch(/esNuevo \? "Crear orden"/);
   });
 });
 

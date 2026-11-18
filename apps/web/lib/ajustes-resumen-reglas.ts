@@ -12,7 +12,7 @@ export type AjustesResumen = {
   global: boolean;
   /** Las campañas que esta persona esconde (por id). */
   ocultas: string[];
-  /** Contar la compra en «Tu caja» (una proyección, no un pago). */
+  /** Contar la compra en «Próximos» (una proyección, no un pago). */
   enCaja: boolean;
   /** Contar el IGV en lo que sale de caja. */
   conIgv: boolean;

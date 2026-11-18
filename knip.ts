@@ -94,6 +94,11 @@ const config: KnipConfig = {
     },
     // La tienda online (ADR-0408), una app aparte. Sus rutas y pruebas las encuentra Knip solo, como en la web.
     "apps/tienda": {
+      // `next.config.ts` importa `lib/redirecciones-shopify.ts` (ADR-0595), pero en producción Knip no sigue la configuración de Next:
+      // el archivo sí llega a la tienda publicada (las redirecciones) y solo en este modo parece que lo usan las pruebas.
+      // `lib/union-auditoria-pixeles.ts` es el auditor de la unión del probador (ADR-0449, act. 2026-11-17): solo lo usan sus pruebas y `pnpm --filter tienda union:auditar`;
+      // existe PARA verificar en píxeles lo que la figura dibuja, no para dibujarlo.
+      ...(produccion ? { ignoreFiles: ["lib/redirecciones-shopify.ts", "lib/union-auditoria-pixeles.ts"] } : {}),
       project: [
         // Lo que llega a la tienda publicada.
         "{app,components,lib}/**/*.{ts,tsx,css}!",

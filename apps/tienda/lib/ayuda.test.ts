@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   avisosParaSeparar,
   interpretarAyuda,
+  pasosDelPedido,
+  preguntasFrecuentes,
   PLAZOS_SIN_DATOS,
   partirTituloLegal,
   pasosParaSeparar,
@@ -164,5 +166,41 @@ describe("las lecturas largas (Privacidad y Términos del Club)", () => {
     expect(seccionQueSeLee(BORDES, 280, true)).toBe("d");
     expect(seccionQueSeLee([], 280)).toBeNull();
     expect(seccionQueSeLee([], 280, true)).toBeNull();
+  });
+});
+
+describe("lo que sigue después de «Separar», en el resumen de la bolsa (rediseño Premium)", () => {
+  it("dice cada plazo de la configuración en orden y calla el que no tiene dato", () => {
+    expect(pasosDelPedido({ horasParaConfirmar: 24, horasParaPagar: 48, diasParaRecoger: 7, diasParaCambiar: 15 })).toEqual([
+      "Hoy separas, sin pagar",
+      "La tienda te confirma por WhatsApp en 24 horas",
+      "Desde que confirma, tienes 48 horas para pagar",
+      "Recoges hasta 7 días después de pagar",
+      "Cambias en cualquier tienda CAYLA, en 15 días",
+    ]);
+    expect(pasosDelPedido({ horasParaConfirmar: 1, horasParaPagar: null, diasParaRecoger: 1, diasParaCambiar: null })).toEqual([
+      "Hoy separas, sin pagar",
+      "La tienda te confirma por WhatsApp en 1 hora",
+      "Recoges hasta 1 día después de pagar",
+      "Cambias en cualquier tienda CAYLA",
+    ]);
+  });
+});
+
+describe("las preguntas frecuentes (rediseño Premium)", () => {
+  const PLAZOS = { horasParaConfirmar: 24, horasParaPagar: 48, diasParaRecoger: 7, diasParaCambiar: 15 };
+  it("responden con los plazos y las tiendas de la web", () => {
+    const p = preguntasFrecuentes(PLAZOS, ["Trujillo", "Lima"]);
+    expect(p.map((x) => x.pregunta)).toHaveLength(5);
+    expect(p[1].respuesta).toBe(
+      "La tienda te confirma por WhatsApp en 24 horas. Desde que confirma, tienes 48 horas para pagar. Recoges hasta 7 días después de pagar.",
+    );
+    expect(p[2].respuesta).toContain("En cada prenda ves cuánto hay en Trujillo y Lima.");
+    expect(p[3].respuesta).toBe("Sí, en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta. Tienes 15 días: para cambiar o devolver tu prenda, igual que en tienda.");
+  });
+  it("sin datos, nada de números ni de tiendas", () => {
+    const p = preguntasFrecuentes(PLAZOS_SIN_DATOS, []);
+    expect(p.every((x) => !/\d/.test(x.respuesta))).toBe(true);
+    expect(p[2].respuesta).not.toContain("En cada prenda");
   });
 });

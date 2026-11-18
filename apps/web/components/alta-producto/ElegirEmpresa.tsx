@@ -30,7 +30,7 @@ export function ElegirEmpresa({ empresas, empresaId, onElegir }: { empresas: Emp
 // sigue diciendo el pie del paso 1 (la tienda cuenta como campo del paso 1 en la guía).
 export function TarjetaEmpresa({ children }: { children: ReactNode }) {
   return (
-    <section aria-labelledby="pregunta-empresa" className="scroll-mt-32 rounded-xl border border-sand bg-papel sm:scroll-mt-[11.5rem]">
+    <section aria-labelledby="pregunta-empresa" className="scroll-mt-[4.25rem] rounded-xl border border-sand bg-papel sm:scroll-mt-[7.5rem]">
       <div className="px-4 pt-4 sm:px-5">
         <h2 id="pregunta-empresa" className="text-[14.5px] font-semibold text-tinta">{/* unificar-fijo: el título de una pregunta de Nuevo producto, que tiene su diseño aprobado (ADR-0260, ADR-0284) */}
           ¿De qué tienda es esta prenda?

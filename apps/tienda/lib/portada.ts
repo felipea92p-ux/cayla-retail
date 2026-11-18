@@ -47,13 +47,18 @@ export const fechaLarga = (hasta: string) => fecha(hasta, { day: "numeric", mont
 /** «21 oct.» */
 export const fechaCorta = (hasta: string) => fecha(hasta, { day: "numeric", month: "short" });
 
-/** Las frases de la franja de arriba, en el orden en que rotan. La de la campaña va primero si hay una. Con cuenta no se invita a
- *  crearla (quien ya entró leía «Crea tu cuenta…», revisión 2026-10-15): se le recuerda dónde están sus beneficios del Club. El «%» va
- *  pegado a su número con un espacio que no se parte (en un celular angosto la frase baja a dos líneas). */
-export function anuncios(campana: Campana | null, conCuenta = false): string[] {
-  const club = conCuenta ? "Tus beneficios del Club CAYLA están en Mi perfil" : "Crea tu cuenta y forma parte del Club CAYLA";
-  const frases = ["Separa online y recoge en tu tienda", "Mira cuánto hay en cada tienda", club];
+export type FraseAnuncio = { texto: string; icono: "ticket" | "flechas" | "chat" | "chispa"; href?: string };
+
+/** Los mensajes de la franja de arriba (Felipe 2026-11-05). Solo lo que la tienda hace hoy, y cada uno lleva a donde se explica. La campaña va primero si
+ *  hay una. El plazo de cambio sale de la base (`retail.tienda_ayuda()`); sin él, la frase no dice un número. El «%» va pegado a su número con un
+ *  espacio que no se parte (en un celular angosto la frase baja a dos líneas). */
+export function anuncios(campana: Campana | null, diasParaCambiar: number | null): FraseAnuncio[] {
+  const frases: FraseAnuncio[] = [
+    { texto: "Separa sin pagar", icono: "ticket", href: "/como-separar" },
+    { texto: diasParaCambiar ? `Cambios en ${diasParaCambiar} días` : "Cambios en cualquier tienda", icono: "flechas", href: "/cambios-y-devoluciones" },
+    { texto: "Atención por WhatsApp", icono: "chat", href: "/tiendas" },
+  ];
   if (!campana) return frases;
   const hasta = campana.hasta ? ` hasta el ${fechaCorta(campana.hasta)}` : "";
-  return [`${campana.nombre} · −${pctTexto(campana.pct)}\u00a0%${hasta}`, ...frases];
+  return [{ texto: `${campana.nombre} · −${pctTexto(campana.pct)}\u00a0%${hasta}`, icono: "chispa" }, ...frases];
 }

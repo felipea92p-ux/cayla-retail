@@ -10,6 +10,7 @@ import {
   elegirSede,
   escribirBolsa,
   interpretarBolsaEnBase,
+  interpretarGruposDeLaBolsa,
   leerBolsa,
   ofreceOtra,
   pasaElTopePorPrenda,
@@ -21,6 +22,7 @@ import {
   SEPARAR_SIN_RESPUESTA,
   sinPrendas,
   textoDeLaMarca,
+  titularDeGrupo,
   TOPE_POR_PRENDA,
   TOPE_PRENDAS,
   unidades,
@@ -108,7 +110,7 @@ describe("la cookie de la bolsa", () => {
     expect(agregarVarias(dos, [B, A], { marca: M2 })).toBeNull();
   });
 
-  it("un look entra entero o no entra: varias de una vez, la misma dos veces suma dos, y si no caben todas la bolsa no cambia", () => {
+  it("un outfit entra entero o no entra: varias de una vez, la misma dos veces suma dos, y si no caben todas la bolsa no cambia", () => {
     const b: Bolsa = { lineas: [{ varianteId: A, cantidad: 1 }], sedeId: TRU, marca: M1 };
     expect(agregarVarias(b, [A, B], { marca: M2 })).toEqual({
       lineas: [
@@ -198,6 +200,67 @@ const lineaBase = (id: string, cantidad: number, en: Record<string, [boolean, bo
 });
 const enBase = (sede: string | null, lineas: unknown[]): BolsaEnBase => interpretarBolsaEnBase({ sede, sedes: sedesBase, lineas })!;
 
+describe("llevar varias y pagar menos en la bolsa (ADR-0655, actividad 7)", () => {
+  const grupos = (porVariante: Record<string, unknown>, ahorro: number) => interpretarGruposDeLaBolsa({ ahorro, lineas: porVariante });
+  const tresPorDos = (ahorro: number, faltan = 0) => ({ ahorro, faltan, campana: "Verano", tipo: "nxm", lleva: 3, paga: 2, monto: null, porcentaje: null });
+
+  it("lee lo que ahorra cada prenda y dice la oferta como en la caja; una línea rara se ignora", () => {
+    const g = grupos({ [A]: tresPorDos(46.6), [B]: tresPorDos(23.3), [M2]: { tipo: "otra" } }, 69.9);
+    expect(g?.ahorro).toBe(69.9);
+    expect(g?.porVariante[A]).toEqual({ titular: "3 x 2", campana: "Verano", ahorro: 46.6, faltan: 0, dejaRebaja: 0 });
+    expect(g?.porVariante[M2]).toBeUndefined();
+    expect(interpretarGruposDeLaBolsa(null)).toBeNull();
+  });
+
+  it("un monto (actividad 8): dice el escalón alcanzado y cuánto le falta a la compra para el que sigue", () => {
+    const monto = (ahorro: number, base: number) => ({ ahorro, faltan: 0, campana: "Verano", tipo: "monto", lleva: null, paga: null, monto: null, porcentaje: null,
+      escalones: [{ desde: 300, ahorra: 30 }, { desde: 500, ahorra: 60 }], ahorro_en: "soles", cuenta: "compra", base });
+    const g = grupos({ [A]: monto(17.14, 350), [B]: monto(0, 250) }, 17.14);
+    expect(g?.porVariante[A]).toEqual({ titular: "S/ 30.00 menos desde S/ 300.00", campana: "Verano", ahorro: 17.14, faltan: 0, dejaRebaja: 0, monto: { falta: 150, siguiente: "S/ 60.00 menos" } });
+    expect(g?.porVariante[B]).toMatchObject({ titular: "S/ 30.00 menos desde S/ 300.00", ahorro: 0, monto: { falta: 50 } });
+    const ultimo = grupos({ [A]: { ...monto(60, 600), ahorro_en: "pct", escalones: [{ desde: 300, ahorra: 10 }] } }, 60);
+    expect(ultimo?.porVariante[A]).toMatchObject({ titular: "10 % menos desde S/ 300.00", monto: null });
+  });
+
+  it("las tres formas se dicen como en la caja", () => {
+    expect(titularDeGrupo({ tipo: "nxm", lleva: 3, paga: 2, monto: null, porcentaje: null })).toBe("3 x 2");
+    expect(titularDeGrupo({ tipo: "n_por_monto", lleva: 2, paga: null, monto: 59.9, porcentaje: null })).toBe("2 por S/ 59.90");
+    expect(titularDeGrupo({ tipo: "nesima_pct", lleva: 2, paga: null, monto: null, porcentaje: 50 })).toBe("La 2.ª al 50 %");
+  });
+
+  it("el total del pedido ya trae lo que ahorra llevando varias, cada prenda dice su oferta y «Separar» manda lo que mostró", () => {
+    const b = { ...enBase(TRU, [lineaBase(A, 2, { [TRU]: [true, true] }), lineaBase(B, 1, { [TRU]: [true, true] })]), grupos: grupos({ [A]: tresPorDos(46.6), [B]: tresPorDos(23.3) }, 69.9) };
+    const v = vistaBolsa(b);
+    expect([v.subtotal, v.ahorroGrupo, v.total]).toEqual([209.7, 69.9, 139.8]);
+    expect(v.lineas[0].grupo).toMatchObject({ titular: "3 x 2", ahorro: 46.6 });
+    expect(v.paraSeparar).toEqual([
+      { variante_id: A, cantidad: 2, precio: 69.9, ahorro_grupo: 46.6, deja_rebaja: 0 },
+      { variante_id: B, cantidad: 1, precio: 69.9, ahorro_grupo: 23.3, deja_rebaja: 0 },
+    ]);
+  });
+
+  // Decisión 2 de Felipe (2026-11-14, 20261114155000): con una rebaja (−20 %: S/ 69.90 → S/ 55.90) y el 3x2, gana el 3x2 y las prendas dejan
+  // su rebaja: la bolsa la devuelve al total y la saca de «Ahorras con las campañas». Nunca las dos.
+  it("una prenda que va con su grupo deja su rebaja: el total es el del 3x2 y la línea vuelve a su precio de lista", () => {
+    const rebajada = { precio: 55.9, campana: { nombre: "Navidad", pct: 20, hasta: null } };
+    const b = {
+      ...enBase(TRU, [lineaBase(A, 2, { [TRU]: [true, true] }, rebajada), lineaBase(B, 1, { [TRU]: [true, true] }, rebajada)]),
+      grupos: grupos({ [A]: { ...tresPorDos(46.6), deja_rebaja: 28 }, [B]: { ...tresPorDos(23.3), deja_rebaja: 14 } }, 69.9),
+    };
+    const v = vistaBolsa(b);
+    expect([v.subtotal, v.ahorro, v.ahorroGrupo, v.total]).toEqual([209.7, 0, 69.9, 139.8]);
+    expect([v.lineas[0].importe, v.lineas[0].antes]).toEqual([139.8, null]);
+    expect(v.paraSeparar[0]).toEqual({ variante_id: A, cantidad: 2, precio: 55.9, ahorro_grupo: 46.6, deja_rebaja: 28 });
+  });
+
+  it("si la base no dijo los grupos, la bolsa se ve como siempre y «Separar» no manda lo que no mostró (la base los cobra igual)", () => {
+    const v = vistaBolsa(enBase(TRU, [lineaBase(A, 2, { [TRU]: [true, true] })]));
+    expect([v.ahorroGrupo, v.total]).toEqual([0, 139.8]);
+    expect(v.paraSeparar[0]).not.toHaveProperty("ahorro_grupo");
+    expect(v.lineas[0].grupo).toBeNull();
+  });
+});
+
 describe("lo que dice la base", () => {
   it("la empresa de cada prenda (ADR-0465): la lee; sin ella —Trujillo, o una base que aún no la manda— o con una rara, la prenda se ve igual y sin empresa", () => {
     const empresas = (...e: unknown[]) =>
@@ -217,7 +280,7 @@ describe("lo que dice la base", () => {
     expect(interpretarBolsaEnBase({ nada: true })).toBeNull();
   });
 
-  it("al agregar (una prenda o un look): entra si alcanza; si no queda ninguna, agotada; si quedan pero no tantas, no alcanza; sin respuesta o fuera, no está", () => {
+  it("al agregar (una prenda o un outfit): entra si alcanza; si no queda ninguna, agotada; si quedan pero no tantas, no alcanza; sin respuesta o fuera, no está", () => {
     const b = enBase(null, [
       lineaBase(A, 1, { [TRU]: [true, true] }),
       // Lleva 2 y en Trujillo queda 1: las que quedan ya están en su bolsa. No es «ya no está en ninguna tienda».

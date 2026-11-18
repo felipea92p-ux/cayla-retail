@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alternarComparar, porqueDelRitmo, porSemanaTexto, semanasExactas, cambioDePuesto, claseDeRitmo, concentracion, paraHoy, semanaDeVentas, seriesDeVentas, contarPorRitmo, esAproximado, filasDelRanking, pasaFiltroRanking, semanasCortas, textoRitmo, totalesDelRanking, valorDe } from "./proveedores-ranking-reglas";
+import { alternarComparar, porqueDelRitmo, porSemanaTexto, semanasExactas, cambioDePuesto, claseDeRitmo, paraHoy, semanaDeVentas, seriesDeVentas, contarPorRitmo, esAproximado, filasDelRanking, pasaFiltroRanking, semanasCortas, textoRitmo, totalesDelRanking, valorDe } from "./proveedores-ranking-reglas";
 import { ritmoDeDatos } from "./proveedor-ritmo-reglas";
 import type { RendimientoProveedor } from "./proveedor-prendas-reglas";
 
@@ -108,13 +108,6 @@ describe("el ranking de la lista de Proveedores", () => {
     expect(h.atrasadas).toBe(3);
     expect(h.aFavor.map((x) => x.id)).toEqual(["c"]);
     expect(h.favor).toBe(180);
-  });
-
-  it("la concentración: qué parte de lo que compras es de tus primeros proveedores", () => {
-    const filas = [100, 50, 30, 20].map((u, i) => ({ unidadesCompradas: u, gasto: [1000, 4000, 300, 200][i] }));
-    expect(concentracion(filas, "prendas", 2)).toBe(75);
-    expect(Math.round(concentracion(filas, "soles", 1))).toBe(73);
-    expect(concentracion([], "prendas")).toBe(0);
   });
 
   it("las ventas por día: 28 valores del más viejo a hoy, con cero los días sin ventas", () => {

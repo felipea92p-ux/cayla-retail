@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { PieAcciones } from "@/components/ui/PieAcciones";
@@ -99,9 +99,9 @@ export function AnularPagoHoja({
     >
       {(cerrar) => (
         <div className="space-y-4">
-          <div className="rounded-xl border border-sand px-4 py-3">
+          <div className="card-cayla px-4 py-3">
             <span className="block font-medium tabular-nums text-tinta">{textoDelPago(pago)}</span>
-            <span className="block text-[12.5px] text-taupe">{detalleDelPago(pago, ahora, p.tienda)}</span>
+            <span className="block text-sm text-taupe">{detalleDelPago(pago, ahora, p.tienda)}</span>
           </div>
 
           {efectivo ? (
@@ -150,16 +150,17 @@ export function AnularPagoHoja({
             )}
             {/* Con un «no» de la base a la vista, «Todo listo» la contradiría. */}
             {!errorBase && <PieGuia guia={guia} />}
+            <AvisoNoSeDeshace />
             <PieAcciones>
               <Boton type="button" onClick={cerrar} disabled={guardando}>
                 Cancelar
               </Boton>
               <Boton
                 type="button"
-                peso="peligro"
+                peso="primario"
                 cargando={guardando}
                 textoCargando="Anulando…"
-                disabled={!guia.puedeConfirmar}
+                confirma={guia}
                 title={guia.frase ?? undefined}
                 onClick={() => anular(cerrar)}
               >

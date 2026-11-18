@@ -6,6 +6,7 @@ import { BarraApilada, type SegmentoBarra } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
 import { pctEs } from "@/lib/mix-piso-visual";
 import { notaDelColor, palabraDeMarca, textoDeAMirar, type ColorDeLaTienda as Datos, type FamiliaDeColor } from "@/lib/plan-piso-familias";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // «Color de la tienda» (Plan del piso ▸ Propuesta; Felipe, 2026-10-12; ADR-0352, actualización 2026-10-12; maqueta aprobada: docs/maquetas/color-de-la-tienda-2026-10/):
 // de qué familias de color (Neutro, Tierra, Rosado…) es lo que cuelga hoy y si se parece a lo que se vende, para que una tienda no quede cargada de un solo tono.
@@ -61,7 +62,7 @@ export function ColorDeLaTienda({ color, cuadrado, dias }: Props) {
   // Al abrir, el panel queda a la vista (sin saltos: solo si no cabía; el movimiento se apaga con «reducir movimiento»).
   useEffect(() => {
     if (!abierta) return;
-    const reducir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducir = prefiereQuieto();
     panel.current?.scrollIntoView({ block: "nearest", behavior: reducir ? "auto" : "smooth" });
   }, [abierta]);
   // Escape cierra el panel (y se lo queda: ningún otro control de la pantalla lo necesita mientras el foco está aquí) y devuelve el foco a la familia.

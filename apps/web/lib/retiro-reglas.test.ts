@@ -11,7 +11,6 @@ import {
   RPC_RETIRO,
   textoMarcaSinResolverDeRetiro,
   textoDelBloqueSubir,
-  TEXTOS_BLOQUE_SUBIR,
   tituloDeExitoRetiro,
 } from "./retiro-reglas";
 import { BOTON_CONFIRMAR_DE_NUEVO } from "./bajada-reglas";
@@ -139,7 +138,5 @@ describe("los textos", () => {
     expect(textoDelBloqueSubir(tallas, { mucho: 1 })).toBe(RETIRO_NO_ES_BAJA);
     expect(textoDelBloqueSubir(tallas, { extrema: 2 })).toBe(RETIRO_NO_ES_BAJA);
     expect(textoDelBloqueSubir(tallas, {})).toBe(RETIRO_NO_ES_BAJA);
-    // La ventana reserva el alto del más largo: los dos textos posibles están en la lista.
-    expect(TEXTOS_BLOQUE_SUBIR).toEqual([RETIRO_NO_ES_BAJA, AVISO_QUEDA_SIN_COLGAR]);
   });
 });

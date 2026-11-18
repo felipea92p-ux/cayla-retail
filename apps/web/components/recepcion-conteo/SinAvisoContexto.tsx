@@ -26,7 +26,7 @@ export function BotonSinAviso({ abierto, onCambiar }: { abierto?: boolean; onCam
     <Boton type="button" peso="fantasma" aria-expanded={estaAbierto} aria-controls="sin-aviso-formulario" onClick={onCambiar ?? (() => ctx?.cambiar((a) => !a))}>
       <span className="inline-flex items-center gap-2">
         <PackageOpen aria-hidden className="h-4 w-4" />
-        Sin Aviso
+        Sin aviso
       </span>
     </Boton>
   );
@@ -37,7 +37,7 @@ export function AccionSinAviso() {
   const ctx = useSinAviso();
   return (
     <div className="flex flex-col items-end gap-2">
-      {!ctx?.abierto && <p className="text-[13.5px] text-taupe">¿Llegó algo que no está en la lista? Ábrelo aquí.</p>}
+      {!ctx?.abierto && <p className="text-[15px] text-taupe">¿Llegó algo sin aviso? Ábrelo aquí.</p>}
       <BotonSinAviso />
     </div>
   );

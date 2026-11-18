@@ -35,6 +35,7 @@ export function ConfirmarCambios({
   avisos = [],
   notaAgregan,
   extra,
+  extraPrecio,
   tiendas,
   responsable,
 }: {
@@ -50,6 +51,8 @@ export function ConfirmarCambios({
   /** Un grupo que no sale de la comparación de la ficha: el stock tocado en la matriz («S · Blanco 4 → 6»), que se guarda con el
    *  mismo «Confirmar y guardar» (ADR-0313, act. 2026-10-02 noche). Va al final, con su nota (motivo y lugar). */
   extra?: { titulo: string; lineas: { texto: string; antes: string; despues: string }[]; nota?: string } | null;
+  /** El precio de la tienda escrito en la tabla por una terminal (Felipe 2026-10-27): se guarda con el mismo «Confirmar y guardar». */
+  extraPrecio?: { titulo: string; lineas: { texto: string; antes: string; despues: string }[]; nota?: string } | null;
   /** Precio por tienda (Felipe 2026-10-10, «preguntar al guardar»): si cambió el precio de la prenda y alguna tienda tiene precio
    *  propio, cómo queda cada tienda; las que se pueden igualar al precio nuevo llevan su casilla (sin marcar: se quedan con el suyo). */
   tiendas?: {
@@ -65,6 +68,9 @@ export function ConfirmarCambios({
   const grupos: (Omit<GrupoCambios, "clave"> & { clave: string })[] = [
     ...agruparCambios(resumen.cambios),
     ...(extra && extra.lineas.length > 0 ? [{ clave: "extra", titulo: extra.titulo, lineas: extra.lineas, cantidad: extra.lineas.length, nota: extra.nota }] : []),
+    ...(extraPrecio && extraPrecio.lineas.length > 0
+      ? [{ clave: "precio-aqui", titulo: extraPrecio.titulo, lineas: extraPrecio.lineas, cantidad: extraPrecio.lineas.length, nota: extraPrecio.nota }]
+      : []),
   ];
 
   return (
@@ -100,7 +106,7 @@ export function ConfirmarCambios({
                   ))}
                 </ul>
                 {(g.clave === "agregan" && notaAgregan ? notaAgregan : g.nota) && (
-                  <p className="mt-1.5 text-[12px] leading-snug text-taupe">{g.clave === "agregan" && notaAgregan ? notaAgregan : g.nota}</p>
+                  <p className="mt-1.5 text-sm leading-snug text-taupe">{g.clave === "agregan" && notaAgregan ? notaAgregan : g.nota}</p>
                 )}
               </section>
             ))}
@@ -111,7 +117,7 @@ export function ConfirmarCambios({
           {avisos.length > 0 && (
             <div className="space-y-1">
               {avisos.map((a, i) => (
-                <p key={i} className="text-[12.5px] leading-snug text-ambar-profundo">
+                <p key={i} className="text-sm leading-snug text-ambar-profundo">
                   {a}
                 </p>
               ))}
@@ -122,7 +128,7 @@ export function ConfirmarCambios({
             <div id="confirmar-cambios-responsable" data-campo="confirmar-cambios-responsable" className="space-y-1.5">
               <p className="label-cayla text-[11px] text-taupe">Quién hace estos cambios</p>
               <ComboResponsable control={responsable} deshabilitado={enCurso} />
-              {faltaResponsable && responsable.motivo && <p className="text-[12px] leading-snug text-taupe">{responsable.motivo}</p>}
+              {faltaResponsable && responsable.motivo && <p className="text-sm leading-snug text-taupe">{responsable.motivo}</p>}
             </div>
           )}
 
@@ -197,7 +203,7 @@ function PrecioEnCadaTienda({
                 </span>
               </p>
               {t.puedeIgualar && (
-                <label className="flex cursor-pointer items-center gap-2 text-[13px] text-tinta/80">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-tinta/80">
                   <Casilla
                     marcada={igualar.has(t.ubicacionId)}
                     onCambio={() => !deshabilitado && onIgualar(t.ubicacionId, !igualar.has(t.ubicacionId))}

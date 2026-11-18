@@ -117,3 +117,55 @@ export function resultadoDeImpresion(
   const motivo = typeof r.error === "string" && r.error ? r.error : `respuesta ${status}`;
   return { ok: false, texto: `${pieza === "rotulo" ? "Los rótulos" : "Las etiquetas"} no se imprimieron`, detalle: `El ayudante dijo: ${motivo}.` };
 }
+
+/* ------------------------------------------------------------------------------------------------------------------
+ * Boletas por el ayudante (ADR-0670, act. 2026-11-16): en la Mac del piso la ticketera imprime sin cuadro desde el Chrome de
+ * siempre. Chrome sin cuadro (`--kiosk-printing`) obliga a un ícono aparte; el ayudante ya está en la Mac por las etiquetas, así
+ * que la boleta va por él: `POST /imprimir?tipo=ticket&largo=<mm>` y el ayudante la manda a la ticketera con su papel exacto.
+ * ------------------------------------------------------------------------------------------------------------------ */
+
+/** Desde esta versión el ayudante imprime boletas (`servidor.sh`, `VERSION=3`). Una Mac con uno más viejo sigue con el cuadro. */
+export const VERSION_CON_BOLETAS = 3;
+
+/** ¿El ayudante de esta Mac imprime boletas? Necesita su versión 3, Chrome y la ticketera agregada a la Mac. */
+export function ayudanteImprimeBoletas(respuesta: unknown): boolean {
+  if (!respuesta || typeof respuesta !== "object") return false;
+  const r = respuesta as { ok?: unknown; version?: unknown; chrome?: unknown; ticketera?: unknown };
+  return r.ok === true && typeof r.version === "number" && r.version >= VERSION_CON_BOLETAS && r.chrome !== false && r.ticketera === true;
+}
+
+/** El ancho del papel de la boleta: el que imprime el cabezal de la ticketera (576 puntos a 203 ppp) y el de `#comprobante-print`. */
+export const ANCHO_BOLETA_MM = 72;
+
+/** Topes del largo que acepta el ayudante (los mismos de `servidor.sh`). */
+export const LARGO_MIN_MM = 30;
+export const LARGO_MAX_MM = 3000;
+/** Lo que se suma al largo medido: medir de menos parte la boleta en dos hojas (y la cuchilla corta al medio); medir de más deja
+ *  un blanco al final que el driver de la Epson recorta solo (`TmxPaperReduction`). */
+export const HOLGURA_MM = 3;
+
+/** El largo del papel, en mm enteros, para una boleta que mide `altoPx` píxeles CSS (96 por pulgada). */
+export function largoDeLaBoleta(altoPx: number): number {
+  if (!Number.isFinite(altoPx) || altoPx <= 0) return LARGO_MIN_MM;
+  const mm = Math.ceil((altoPx * 25.4) / 96) + HOLGURA_MM;
+  return Math.min(LARGO_MAX_MM, Math.max(LARGO_MIN_MM, mm));
+}
+
+/** El documento de una boleta: el de las etiquetas más su página exacta, sin márgenes: 72 mm de ancho (lo que imprime el cabezal y el
+ *  ancho del papel «80 mm» en el driver de la Epson, `RP80x200` = 204,3 pt) y el largo medido. Una hoja de 80 mm llegaba a la Epson
+ *  como líneas de 640 puntos para un cabezal de 576, y el papel salía más lento que con el cuadro (Trujillo, 2026-11-16). */
+export function documentoDeBoleta({ estilos, base, clases, boleta, largo }: { estilos: string[]; base: string; clases: string; boleta: string; largo: number }): string {
+  const pagina = `<style>@page{size:${ANCHO_BOLETA_MM}mm ${largo}mm;margin:0}</style>`;
+  return documentoParaAyudante({ estilos, base, clases, hoja: pagina + boleta });
+}
+
+/** El aviso cuando la boleta no salió por el ayudante. `null` = salió. */
+export function resultadoDeBoleta(status: number | null, cuerpo: unknown): { texto: string; detalle: string } | null {
+  const r = (cuerpo && typeof cuerpo === "object" ? cuerpo : {}) as { ok?: unknown; error?: unknown };
+  if (status === 200 && r.ok === true) return null;
+  if (status === null) {
+    return { texto: "La boleta no salió por el ayudante", detalle: "No se pudo hablar con el ayudante de esta Mac. Recarga la página; si sigue igual, vuelve a instalarlo." };
+  }
+  const motivo = typeof r.error === "string" && r.error ? r.error : `respuesta ${status}`;
+  return { texto: "La boleta no salió por el ayudante", detalle: `El ayudante dijo: ${motivo}.` };
+}

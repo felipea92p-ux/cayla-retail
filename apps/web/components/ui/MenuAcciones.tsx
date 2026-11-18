@@ -26,7 +26,10 @@ type Posicion = { top: number; left: number; maxHeight?: number };
  * con más lugar y con alto máximo (se desplaza por dentro). Nunca queda una opción fuera de la pantalla.
  */
 function colocar(r: DOMRect, alto: number): Posicion {
-  const left = Math.min(Math.max(MARGEN, r.right - ANCHO), window.innerWidth - ANCHO - MARGEN);
+  // Alineado al borde derecho del botón (su lugar de siempre, a la derecha de una fila); si el botón está en la mitad izquierda de la pantalla,
+  // al borde izquierdo: si no, la lista se corre hasta el margen y se monta sobre el menú lateral.
+  const alineado = r.left + r.width / 2 < window.innerWidth / 2 ? r.left : r.right - ANCHO;
+  const left = Math.min(Math.max(MARGEN, alineado), window.innerWidth - ANCHO - MARGEN);
   const abajo = window.innerHeight - r.bottom - 4 - MARGEN;
   const arriba = r.top - 4 - MARGEN;
   if (alto <= abajo) return { top: r.bottom + 4, left };
@@ -43,14 +46,23 @@ function colocar(r: DOMRect, alto: number): Posicion {
  * foco al botón. Flechas arriba y abajo recorren las opciones. La lista entra como la de un combo (`anim-revelar`, 240 ms): es
  * un menú, no un modal.
  *
+ * Con el vidrio (ADR-0596, «A · La lista del combo», Felipe 2026-11-01) la lista ES la de un combo: la misma `lista-flotante` y la misma
+ * gota (`opcion-activa`) en la opción donde estás, con el mouse o con las flechas (el mouse también le da el foco, así las flechas siguen
+ * desde ahí). Sobre lo peligroso («Anular»), la gota se tiñe de rojo; lo que no se puede no la recibe. Las piezas, en
+ * app/estilos/vidrio/notas-avisos-combos.css.
+ *
  * El menú «Más» es una sola pieza (ADR-0358, ronda 13, Felipe eligió P1 el 2026-10-15; registro: docs/unificar/accion.menu.md):
  * donde cabe la palabra —la cabecera, una tarjeta, una barra—, `texto="Más"`: el secundario «Más ▾» (Clientes, 2026-09-30). En una
  * fila de una lista (muchas iguales: los roles, los comprobantes), sin `texto`: el «⋯» solo de 32 px, sin borde, como el lápiz de
  * Editar, con `etiqueta` («Más acciones de Vendedora») al pasar el mouse y para el lector.
  */
-/** La cara del «⋯» de una fila: 32 px, sin borde, como el lápiz de Editar; se rellena de hueso al pasar el mouse y mientras está abierto. */
-const CLASE_PUNTOS =
-  "grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/60 transition-colors duration-200 ease-cayla hover:bg-hueso hover:text-tinta aria-expanded:bg-hueso aria-expanded:text-tinta disabled:cursor-not-allowed disabled:opacity-45";
+/** La cara del «⋯» de una fila: el ícono solo de 32 px, como el lápiz de Editar; su gota redonda con el filo de lo que se toca aparece
+ *  al pasar el mouse, con el foco y mientras su menú está abierto (`icono-fila`, «A · Gota al pasar», ADR-0596). */
+const CLASE_PUNTOS = "icono-fila grid h-8 w-8 shrink-0 place-items-center disabled:cursor-not-allowed disabled:opacity-45";
+
+/** El «⋯» con círculo (`redondo`): la misma medida y el mismo gesto que «Volver», con el borde de lo que se toca. */
+const CLASE_REDONDO =
+  "grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full border border-borde-control bg-papel text-tinta transition-colors hover:border-tinta/50 aria-expanded:border-tinta/50 disabled:cursor-not-allowed disabled:opacity-50";
 
 /** El mismo «⋯» cuando abre una hoja en vez de una lista (las opciones de un comprobante): `que` va en «Más acciones de <que>». */
 export function BotonPuntos({ que, onClick, className = "", guia }: { que: string; onClick: () => void; className?: string; guia?: string }) {
@@ -67,20 +79,33 @@ export function MenuAcciones({
   items,
   deshabilitado = false,
   texto,
+  guia,
+  redondo = false,
 }: {
   etiqueta: string;
   items: ItemMenu[];
   deshabilitado?: boolean;
   /** Si viene, el botón dice esto (con la forma de un botón secundario) en vez de «⋯». */
   texto?: string;
+  /** El `data-guia` del botón, si la guía interactiva de la pantalla lo enciende. */
+  guia?: string;
+  /** El «⋯» con su círculo a la vista, como la flecha de «Volver» (34 px, borde y papel): para el que está solo en una cabecera, donde
+   *  el de 32 px sin borde de las filas se pierde junto al resto (Recibir ▸ Contar, Felipe 2026-11-03). */
+  redondo?: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [pos, setPos] = useState<Posicion | null>(null);
+  // La opción donde está la gota: la que tiene el foco (el mouse también se lo da). -1: ninguna.
+  const [activo, setActivo] = useState(-1);
   const boton = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
+  // Abierto con el teclado (Enter o espacio): la gota arranca en la primera opción. Con el mouse no: una lista de una sola opción
+  // peligrosa nacía ya teñida de rojo, como si alguien la hubiera elegido.
+  const conTeclado = useRef(false);
 
   const cerrar = useCallback((devolverFoco: boolean) => {
     setAbierto(false);
+    setActivo(-1);
     if (devolverFoco) boton.current?.focus();
   }, []);
 
@@ -102,7 +127,9 @@ export function MenuAcciones({
   }, [montado]);
 
   useEffect(() => {
-    if (montado) menu.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    if (!montado) return;
+    if (conTeclado.current) menu.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    else menu.current?.focus({ preventScroll: true });
   }, [montado]);
 
   useEffect(() => {
@@ -139,7 +166,7 @@ export function MenuAcciones({
       e.preventDefault();
       const filas = Array.from(menu.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
       const i = filas.indexOf(document.activeElement as HTMLElement);
-      const sig = e.key === "ArrowDown" ? (i + 1) % filas.length : (i - 1 + filas.length) % filas.length;
+      const sig = e.key === "ArrowDown" ? (i + 1) % filas.length : i < 0 ? filas.length - 1 : (i - 1 + filas.length) % filas.length;
       filas[sig]?.focus();
     }
   }
@@ -153,9 +180,13 @@ export function MenuAcciones({
         aria-haspopup="menu"
         aria-expanded={abierto}
         disabled={deshabilitado}
+        data-guia={guia}
         title={texto ? undefined : etiqueta}
-        onClick={() => setAbierto((a) => !a)}
-        className={texto ? "btn-cayla btn-secundario inline-flex items-center gap-2" : CLASE_PUNTOS}
+        onClick={(e) => {
+          conTeclado.current = e.detail === 0;
+          setAbierto((a) => !a);
+        }}
+        className={texto ? "btn-cayla btn-secundario inline-flex items-center gap-2" : redondo ? CLASE_REDONDO : CLASE_PUNTOS}
       >
         {texto ? (
           <>
@@ -174,24 +205,32 @@ export function MenuAcciones({
           <div
             ref={menu}
             role="menu"
+            tabIndex={-1}
             aria-label={etiqueta}
             onKeyDown={alTeclear}
             style={{ top: pos.top, left: pos.left, width: ANCHO, maxHeight: pos.maxHeight }}
-            className={`card-cayla anim-revelar fixed z-[60] py-1.5 text-sm ${pos.maxHeight ? "overflow-y-auto overscroll-contain" : ""}`}
+            className={`lista-flotante lista-menu anim-revelar fixed z-[60] py-1.5 text-sm focus:outline-none ${pos.maxHeight ? "overflow-y-auto overscroll-contain" : ""}`}
           >
-            {items.map((it) => (
+            {items.map((it, i) => (
               <button
                 key={it.clave}
                 type="button"
                 role="menuitem"
                 aria-disabled={it.motivo ? true : undefined}
+                data-peligro={it.peligro || undefined}
+                onMouseEnter={(e) => e.currentTarget.focus({ preventScroll: true })}
+                onFocus={() => setActivo(i)}
                 onClick={() => {
                   if (it.motivo) return;
                   cerrar(false);
                   it.onSelect();
                 }}
-                className={`block w-full px-4 py-2.5 text-left transition-colors focus:outline-none ${
-                  it.motivo ? "cursor-not-allowed text-tinta/45 focus:bg-tinta/[0.03]" : `hover:bg-tinta/[0.05] focus:bg-tinta/[0.05] ${it.peligro ? "text-rojo-profundo" : "text-tinta"}`
+                // Como las filas de la lista de un combo (`Desplegable`): entran en cascada, 30 ms una de otra.
+                style={{ animationDelay: `${i * 30}ms` }}
+                className={`anim-revelar mx-1.5 block w-[calc(100%-0.75rem)] px-2.5 py-2 text-left focus:outline-none ${
+                  it.motivo
+                    ? "cursor-not-allowed text-tinta/45 focus-visible:bg-tinta/[0.03]"
+                    : `${i === activo ? "opcion-activa" : ""} ${it.peligro ? "text-rojo-profundo" : "text-tinta"}`
                 }`}
               >
                 {it.etiqueta}

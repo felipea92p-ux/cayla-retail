@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Configuración: cuatro vistas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+
+.pz-t{position:relative;display:inline-flex;gap:2px;margin-top:20px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);max-width:100%;overflow-x:auto;scrollbar-width:none}
+[data-tema="oscuro"] .pz-t{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pz-t button{flex:none;height:34px;padding:0 16px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.pz-t button[aria-selected="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pz-t button[aria-selected="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.pz-t{flex-wrap:wrap;margin-top:0}
+.pz-t button{height:34px;padding:0 14px}
+
+.pz-t{flex-wrap:wrap;margin-top:0}.pz-t button{height:36px;padding:0 15px}
+.tira{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin-top:20px}
+.firma-g{display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 16px 0 6px;border-radius:999px;font-size:15px;border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 10%,transparent)}
+.firma-g i{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font:500 14px 'EB Garamond',serif;font-style:normal;background:var(--sand)}
+#cont{overflow-x:hidden}
+.raiz{position:relative;display:grid;gap:18px;margin-top:18px}
+.quieto .raiz *,.quieto .raiz *::before,.quieto .raiz *::after{animation:none!important}
+
+/* ---------- el vidrio líquido: filo de luz, brillo que sigue al mouse y lo de atrás doblado ---------- */
+.liq{--mx:30%;--my:0%;position:relative;border-radius:28px;isolation:isolate;
+  background:linear-gradient(165deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 26%,transparent) 46%,color-mix(in srgb,var(--vidrio) 44%,transparent));
+  -webkit-backdrop-filter:blur(16px) saturate(1.7);backdrop-filter:blur(16px) saturate(1.2);
+  box-shadow:inset 0 1.5px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),inset 0 0 22px color-mix(in srgb,var(--vidrio) 26%,transparent),0 26px 44px -30px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"] .liq{background:linear-gradient(165deg,color-mix(in srgb,var(--vidrio) 74%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent) 50%,color-mix(in srgb,var(--vidrio) 58%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 26%,transparent),0 26px 44px -30px var(--sombra)}
+/* el filo: una línea de luz que recorre el borde y se enciende donde está el mouse */
+.liq::before{content:"";position:absolute;inset:0;z-index:2;border-radius:inherit;padding:1.5px;pointer-events:none;background:radial-gradient(240px circle at var(--mx) var(--my),var(--vidrio),transparent 70%),linear-gradient(150deg,color-mix(in srgb,var(--vidrio) 95%,transparent),color-mix(in srgb,var(--tinta) 8%,transparent) 42%,color-mix(in srgb,var(--vidrio) 30%,transparent) 62%,color-mix(in srgb,var(--tinta) 14%,transparent));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+[data-tema="oscuro"] .liq::before{background:radial-gradient(240px circle at var(--mx) var(--my),color-mix(in srgb,var(--tinta) 75%,transparent),transparent 70%),linear-gradient(150deg,color-mix(in srgb,var(--tinta) 34%,transparent),color-mix(in srgb,var(--tinta) 10%,transparent) 42%,color-mix(in srgb,var(--tinta) 6%,transparent) 62%,color-mix(in srgb,var(--tinta) 16%,transparent))}
+/* el brillo: la luz que cae sobre el vidrio y sigue al mouse */
+.liq::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:radial-gradient(320px circle at var(--mx) var(--my),color-mix(in srgb,var(--vidrio) 62%,transparent),transparent 72%),radial-gradient(120% 60% at 50% -14%,color-mix(in srgb,var(--vidrio) 60%,transparent),transparent 70%)}
+[data-tema="oscuro"] .liq::after{background:radial-gradient(320px circle at var(--mx) var(--my),color-mix(in srgb,var(--tinta) 11%,transparent),transparent 72%),radial-gradient(120% 60% at 50% -14%,color-mix(in srgb,var(--tinta) 9%,transparent),transparent 70%)}
+@keyframes enfoque{from{opacity:0;filter:blur(14px);transform:translateY(18px) scale(.985)}}
+
+/* ---------- el carnet: holograma de la empresa ---------- */
+.carnet{display:flex;flex-wrap:wrap;align-items:center;gap:14px 40px;padding:20px 26px;overflow:hidden;animation:enfoque .85s var(--ease) backwards}
+.carnet .puntos{position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit;background-image:radial-gradient(color-mix(in srgb,var(--tinta) 13%,transparent) 1px,transparent 1.2px);background-size:12px 12px;-webkit-mask:linear-gradient(100deg,transparent 45%,#000 95%);mask:linear-gradient(100deg,transparent 45%,#000 95%)}
+.carnet::marker{content:""}
+.barrido{position:absolute;inset:0;z-index:1;pointer-events:none;border-radius:inherit;overflow:hidden}
+.barrido i{position:absolute;top:-30%;bottom:-30%;left:0;width:34%;background:linear-gradient(100deg,transparent,color-mix(in srgb,var(--vidrio) 80%,transparent),transparent);transform:translateX(-120%) skewX(-14deg);animation:barre 1.8s var(--ease) .55s}
+@keyframes barre{to{transform:translateX(420%) skewX(-14deg)}}
+.marca-e b{display:block;font:500 40px/1 'EB Garamond',serif;letter-spacing:.005em}
+.marca-e span{display:block;font-size:15px;color:var(--taupe);margin-top:4px}
+.dat small{display:block;font-size:14px;color:var(--taupe)}
+.dat b{display:block;font-size:16px;font-weight:500;margin-top:1px}
+.digitos{display:flex;font:500 30px/1.2 'EB Garamond',serif;font-variant-numeric:lining-nums tabular-nums}
+.dig{display:block;height:1.2em;overflow:hidden}
+.dig span{display:block;transform:translateY(calc(var(--d) * -1.2em));animation:rueda 1.2s var(--ease) calc(.25s + var(--k) * 50ms) backwards}
+.dig i{display:block;height:1.2em;font-style:normal}
+@keyframes rueda{from{transform:translateY(0)}}
+.sello{position:relative;flex:none;width:72px;height:72px;margin-left:auto;border-radius:50%;cursor:pointer}
+.sello svg{display:block;width:100%;height:100%;overflow:visible}
+.sello .gui{fill:none;stroke:var(--taupe);stroke-width:.5;stroke-dasharray:1;animation:traza1 1.3s var(--ease) calc(.3s + var(--k) * 45ms) backwards}
+@keyframes traza1{from{stroke-dashoffset:1}}
+.sello .cand{fill:none;stroke:var(--tinta);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.sello .cierre{animation:baja .7s var(--ease) 1.3s backwards}
+@keyframes baja{from{transform:translateY(-3px)}}
+@media (hover:hover){.sello svg .giro{transition:transform 1s var(--ease);transform-origin:36px 36px}.sello:hover svg .giro{transform:rotate(30deg)}}
+.globo{position:absolute;z-index:30;right:0;top:calc(100% + 12px);width:290px;padding:14px 16px;border-radius:20px;font-size:15px;line-height:1.45;background:color-mix(in srgb,var(--vidrio) 88%,transparent);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 8%,transparent),0 20px 36px -16px color-mix(in srgb,var(--sombra) 60%,transparent);animation:enfoque .4s var(--ease)}
+
+/* ---------- las vitrinas ---------- */
+.lugar{display:contents}
+.vitrinas{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(252px,1fr));align-items:start}
+.vit{--rx:0deg;--ry:0deg;padding:20px 14px 14px;transform:perspective(1100px) rotateX(var(--rx)) rotateY(var(--ry));transition:transform .5s var(--ease);animation:sale-gota 1s var(--ease) calc(.08s + var(--e) * 110ms) backwards;transform-style:flat}
+@keyframes sale-gota{from{opacity:0;filter:blur(16px);clip-path:inset(62% 18% 8% 18% round 60px);transform:translateY(24px)}to{clip-path:inset(0 0 0 0 round 28px)}}
+.vit header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:0 6px 14px}
+.vit h2{font:500 33px/1.05 'EB Garamond',serif;overflow:hidden}
+.vit h2 span{display:block;animation:ranura .8s var(--ease) calc(.25s + var(--e) * 110ms) backwards}
+@keyframes ranura{from{transform:translateY(108%)}}
+.vit .dir{display:flex;align-items:center;gap:5px;font-size:14px;color:var(--taupe);margin-top:4px;animation:funde .8s var(--ease) calc(.5s + var(--e) * 110ms) backwards}
+.vit .dir svg{flex:none;width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round}
+.series{display:flex;gap:5px;margin-top:9px;animation:funde .8s var(--ease) calc(.65s + var(--e) * 110ms) backwards}
+.series span{position:relative;height:25px;padding:0 9px;display:inline-flex;align-items:center;border-radius:8px;font-size:14px;font-variant-numeric:tabular-nums;color:var(--t80);background:color-mix(in srgb,var(--vidrio) 34%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 80%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 8%,transparent)}
+.lista-v{display:grid;gap:8px}
+
+/* ---------- el aro de la sede: un segmento por dato ---------- */
+.aro{position:relative;flex:none;display:grid;place-items:center;width:66px;height:66px;border-radius:50%;background:radial-gradient(circle at 34% 26%,color-mix(in srgb,var(--vidrio) 90%,transparent),transparent 42%),color-mix(in srgb,var(--tinta) 2%,transparent);box-shadow:inset 0 1px 1px color-mix(in srgb,var(--vidrio) 95%,transparent),0 8px 16px -10px color-mix(in srgb,var(--sombra) 45%,transparent)}
+.aro svg.seg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.aro .s{fill:none;stroke-width:3.2;stroke-linecap:round}
+.aro .s.lleno{stroke:var(--c);animation:seg .7s var(--ease) calc(.5s + var(--k) * 130ms + var(--e) * 110ms) backwards}
+.aro .s.vacio{stroke:var(--ambar);stroke-dasharray:1.6 3.2!important;opacity:.8}
+@keyframes seg{from{stroke-dashoffset:var(--largo)}}
+.aro b{font:500 20px/1 'EB Garamond',serif;font-variant-numeric:lining-nums;animation:funde .5s var(--ease) calc(.9s + var(--e) * 110ms) backwards}
+.aro b svg{display:block;width:26px;height:26px;fill:none;stroke:var(--c);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:24;animation:traza .55s var(--ease) calc(1.05s + var(--e) * 110ms) backwards}
+@keyframes traza{from{stroke-dashoffset:24}}
+
+/* ---------- cada dato: una placa con su instrumento ---------- */
+.d{position:relative;display:flex;align-items:center;gap:13px;width:100%;min-height:78px;padding:10px 12px 10px 10px;border-radius:22px;text-align:left;cursor:pointer;overflow:hidden;background:color-mix(in srgb,var(--vidrio) 22%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 72%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 5%,transparent);transition:transform .35s var(--ease),box-shadow .35s var(--ease),background .35s;animation:asoma .65s var(--ease) calc(.28s + var(--i,0) * 75ms) backwards}
+@keyframes asoma{from{opacity:0;transform:translateY(12px)}}
+[data-tema="oscuro"] .d{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 5%,transparent)}
+@media (hover:hover){.d:not(.edita):hover{transform:translateY(-2px);background:color-mix(in srgb,var(--vidrio) 52%,transparent);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 10%,transparent),0 16px 26px -18px color-mix(in srgb,var(--sombra) 55%,transparent)}.d:not(.edita):hover .ins{transform:scale(1.06)}}
+.d:focus-visible,.sello:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+.tx{min-width:0;flex:1}
+.lb{display:block;font-size:14px;color:var(--taupe);line-height:1.2}
+.v{display:block;font:500 23px/1.2 'EB Garamond',serif;font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.d.falta{background:color-mix(in srgb,var(--ambar) 7%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 70%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--ambar) 38%,transparent)}
+.d.falta .v{color:var(--ambar)}
+.d.apagado .v{color:var(--t65)}
+.d.edita{cursor:text;background:color-mix(in srgb,var(--vidrio) 58%,transparent)}
+.in{width:100%;height:36px;margin-top:2px;padding:0 12px;border-radius:999px;font:500 16px 'DM Sans';border:1px solid var(--borde);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);outline:none;font-variant-numeric:tabular-nums}
+.pozo{position:relative;display:block;animation:asoma .25s var(--ease)}
+.pozo::after{content:"";position:absolute;left:14px;right:14px;bottom:0;height:2px;border-radius:2px;background:var(--rojo);animation:hilo .3s var(--ease)}
+@keyframes hilo{from{transform:scaleX(0)}}
+.visto{position:absolute;top:9px;right:9px;width:22px;height:22px;border-radius:50%;display:none;place-items:center;color:var(--crema);background:var(--verde);box-shadow:0 0 12px color-mix(in srgb,var(--verde) 70%,transparent)}
+.visto svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:20;animation:traza20 .35s var(--ease) .12s backwards}
+@keyframes traza20{from{stroke-dashoffset:20}}
+.d.recien .visto{display:grid;animation:sello-v 1.9s var(--ease) forwards}
+@keyframes sello-v{0%{opacity:0;transform:scale(.5)}14%,80%{opacity:1;transform:none}100%{opacity:0}}
+.onda{position:absolute;left:var(--ox);top:var(--oy);width:16px;height:16px;margin:-8px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,color-mix(in srgb,var(--verde) 42%,transparent),transparent 70%);animation:onda 1s var(--ease) forwards}
+@keyframes onda{to{transform:scale(34);opacity:0}}
+.conm{flex:none;display:inline-flex;align-items:center;width:40px;height:24px;padding:2px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 24%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent);transition:background .35s}
+.conm::after{content:"";width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 34% 28%,var(--vidrio),color-mix(in srgb,var(--vidrio) 72%,transparent));box-shadow:0 2px 5px color-mix(in srgb,var(--sombra) 40%,transparent),inset 0 -2px 3px color-mix(in srgb,var(--sombra) 10%,transparent);transition:transform .4s var(--ease)}
+.conm[aria-checked="true"]{background:color-mix(in srgb,var(--tinta) 82%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 24%,transparent)}
+.conm[aria-checked="true"]::after{transform:translateX(16px)}
+
+/* ---------- la gota que lleva cada instrumento ---------- */
+.ins{position:relative;flex:none;display:grid;place-items:center;width:58px;height:58px;border-radius:50%;transition:transform .4s var(--ease);background:radial-gradient(circle at 32% 24%,color-mix(in srgb,var(--vidrio) 92%,transparent),transparent 40%),color-mix(in srgb,var(--tinta) 3%,transparent);box-shadow:inset 0 1px 1px var(--vidrio),inset 0 -5px 9px color-mix(in srgb,var(--sombra) 7%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent),0 7px 14px -9px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tema="oscuro"] .ins{background:radial-gradient(circle at 32% 24%,color-mix(in srgb,var(--tinta) 24%,transparent),transparent 40%),color-mix(in srgb,var(--sombra) 28%,transparent);box-shadow:inset 0 1px 1px color-mix(in srgb,var(--tinta) 30%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 8%,transparent),0 7px 14px -7px var(--sombra)}
+.d.falta .ins{--c:var(--ambar)}
+.ins svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.ins .brillo{position:absolute;left:18%;top:9%;width:36%;height:20%;border-radius:50%;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),transparent);pointer-events:none;z-index:2}
+[data-tema="oscuro"] .ins .brillo{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 30%,transparent),transparent)}
+.t-luz{stroke:var(--c)}
+
+/* QR: un haz lo escanea y los módulos se encienden a su paso */
+.iq .esq{fill:none;stroke:var(--c);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;animation:traza1 .6s var(--ease) calc(.3s + var(--i,0) * 75ms) backwards}
+.iq .mod{fill:var(--tinta);opacity:.92;animation:mod .25s var(--ease) calc(.5s + var(--i,0) * 75ms + var(--f) * 75ms) backwards}
+@keyframes mod{from{opacity:0;fill:var(--c)}}
+.iq .haz{fill:var(--c);filter:drop-shadow(0 0 4px var(--c));opacity:0;animation:haz .75s linear calc(.46s + var(--i,0) * 75ms)}
+@keyframes haz{0%{opacity:0;transform:translateY(0)}12%,88%{opacity:1}100%{opacity:0;transform:translateY(32px)}}
+.iq.no .mod{opacity:.16;animation:none}.iq.no .haz{display:none}.iq.no .esq{stroke-dasharray:2.5 3;animation:none}
+/* el dial del día: de las 6 de la mañana a la medianoche */
+.id .tick{stroke:color-mix(in srgb,var(--tinta) 34%,transparent);stroke-width:1;stroke-linecap:round}
+.id .arc{fill:none;stroke-width:3;stroke-linecap:round;stroke-dasharray:var(--a) 100;animation:arc 1.2s var(--ease) calc(.35s + var(--i,0) * 75ms) backwards}
+@keyframes arc{from{stroke-dasharray:0 100}}
+.id .aguja{transform-origin:29px 29px;transform:rotate(var(--g));animation:aguja 1.2s var(--ease) calc(.35s + var(--i,0) * 75ms) backwards}
+@keyframes aguja{from{transform:rotate(-135deg)}}
+.id .pto{fill:var(--c);filter:drop-shadow(0 0 3px var(--c))}
+.id .eje{fill:var(--tinta)}
+.id .lin{stroke:var(--tinta);stroke-width:1.3;stroke-linecap:round}
+.id.no .tick{stroke:color-mix(in srgb,var(--ambar) 60%,transparent)}
+/* el fondo: líquido dentro de la esfera, que sube y se asienta */
+.il .liq-s{transform:translateY(var(--n));animation:sube-l 1.5s var(--ease) calc(.3s + var(--i,0) * 75ms) backwards}
+@keyframes sube-l{from{transform:translateY(58px)}}
+.il .ola{animation:ola 2.1s var(--ease) calc(.3s + var(--i,0) * 75ms) backwards}
+@keyframes ola{from{transform:translateX(-46px)}}
+.il .cuerpo{fill:color-mix(in srgb,var(--c) 48%,transparent)}
+[data-tema="oscuro"] .il .cuerpo{fill:color-mix(in srgb,var(--c) 58%,transparent)}
+.il .espuma{fill:color-mix(in srgb,var(--c) 18%,var(--vidrio))}
+.il .simb{font:500 19px 'EB Garamond',serif;fill:var(--tinta);text-anchor:middle;paint-order:stroke;stroke:color-mix(in srgb,var(--vidrio) 55%,transparent);stroke-width:2.5px}
+[data-tema="oscuro"] .il .simb{stroke:color-mix(in srgb,var(--sombra) 45%,transparent)}
+.il.no .marco{fill:none;stroke:var(--ambar);stroke-width:1.5;stroke-dasharray:3 4}
+/* Preguntar: una constelación alrededor de su estrella */
+.ic2 .orb{fill:none;stroke:color-mix(in srgb,var(--tinta) 42%,transparent);stroke-width:.9;stroke-dasharray:1;animation:traza1 .95s var(--ease) calc(.32s + var(--i,0) * 75ms) backwards}
+.ic2 .gira{transform-origin:29px 29px;animation:gira 1.5s var(--ease) calc(.3s + var(--i,0) * 75ms) backwards}
+@keyframes gira{from{transform:rotate(-70deg)}}
+.ic2 .est{fill:var(--c);filter:drop-shadow(0 0 2px color-mix(in srgb,var(--c) 45%,transparent));transform-origin:29px 29px;transition:fill .4s;animation:nace .75s var(--ease) calc(.7s + var(--i,0) * 75ms) backwards}
+@keyframes nace{from{transform:scale(0) rotate(-45deg)}}
+.ic2 .nodo{fill:color-mix(in srgb,var(--tinta) 62%,transparent);animation:funde .4s var(--ease) calc(1s + var(--i,0) * 75ms + var(--k) * 120ms) backwards}
+.ic2.no .est{fill:color-mix(in srgb,var(--tinta) 28%,transparent);filter:none}.ic2.no .nodo{fill:color-mix(in srgb,var(--tinta) 26%,transparent);filter:none}.ic2.no .orb{stroke:color-mix(in srgb,var(--tinta) 22%,transparent)}
+/* la carga: un sello hexagonal que se cierra */
+.ik .hex{fill:color-mix(in srgb,var(--col) 12%,transparent);stroke:var(--col);stroke-width:1.5;stroke-linejoin:round;stroke-dasharray:1;animation:traza1 .9s var(--ease) calc(.3s + var(--i,0) * 75ms) backwards}
+.ik .gl{fill:none;stroke:var(--col);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.ik.cerrado{--col:var(--verde)}.ik.abierto{--col:var(--c)}.ik.no{--col:var(--ambar)}
+.ik.cerrado .gl.cierre{animation:baja2 .7s var(--ease) calc(.85s + var(--i,0) * 75ms) backwards}
+@keyframes baja2{from{transform:translateY(-4px)}}
+.ik.abierto .gl.cierre,.ik.no .gl.cierre{transform:translateY(-3.5px)}
+.ik.no .hex{stroke-dasharray:3 3;animation:none}
+.ik .dias{fill:none;stroke:var(--c);stroke-width:2;stroke-linecap:round;stroke-dasharray:var(--a) 100;animation:arc 1.2s var(--ease) calc(.5s + var(--i,0) * 75ms) backwards}
+
+/* ---------- el tubo de Preguntar ---------- */
+.tubo-f{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:12px 22px;border-radius:999px;animation:enfoque .85s var(--ease) .55s backwards}
+.tubo-f .chis{flex:none;width:36px;height:36px}
+.tubo-f .chis svg{display:block;width:100%;height:100%}
+.tubo-f .chis path{fill:var(--taupe)}
+.tubo-f b{font:500 21px 'EB Garamond',serif}
+.tubo-f span{font-size:15px;color:var(--taupe)}
+.tubo{position:relative;flex:1;min-width:160px;height:18px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 22%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent)}
+.tubo i{position:absolute;left:0;top:0;bottom:0;width:var(--p);border-radius:inherit;background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 58%,transparent),color-mix(in srgb,var(--tinta) 88%,transparent));box-shadow:inset 0 1px 1px color-mix(in srgb,var(--vidrio) 45%,transparent);transform-origin:left;animation:llena 1.4s var(--ease) 1s backwards}
+@keyframes llena{from{transform:scaleX(0)}}
+.tubo::after{content:"";position:absolute;left:8px;right:8px;top:2px;height:5px;border-radius:99px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),transparent);pointer-events:none}
+
+/* ---------- la hoja y el aviso ---------- */
+.hoja-c .sub{font-size:15px}
+.hoja-c .caja{height:48px;margin-bottom:12px}
+.hoja-c input{width:100%;background:none;border:0;outline:none;font-size:16px}
+.hoja-c .cons{display:flex;gap:12px;align-items:center;padding:12px 14px;margin-bottom:14px;border-radius:20px;font-size:15px;background:color-mix(in srgb,var(--vidrio) 40%,transparent);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent)}
+.aviso-g{position:absolute;z-index:40;top:76px;right:20px;max-width:340px;padding:11px 16px;border-radius:18px;font-size:15px;background:linear-gradient(180deg,color-mix(in srgb,var(--verde) 10%,color-mix(in srgb,var(--vidrio) 86%,transparent)),color-mix(in srgb,var(--verde) 16%,color-mix(in srgb,var(--vidrio) 70%,transparent)));-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--verde) 30%,transparent),0 14px 28px -14px color-mix(in srgb,var(--sombra) 50%,transparent);animation:enfoque .45s var(--ease)}
+.aviso-g.mal{background:color-mix(in srgb,var(--ambar) 16%,color-mix(in srgb,var(--vidrio) 90%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ambar) 40%,transparent),0 14px 28px -14px color-mix(in srgb,var(--sombra) 50%,transparent)}
+@container disp (max-width:520px){.carnet{padding:18px;border-radius:24px}.marca-e b{font-size:34px}.digitos{font-size:26px}.sello{position:absolute;right:14px;top:14px;width:58px;height:58px}.aviso-g{left:12px;right:12px;top:70px}.firma-g{width:100%}.tubo-f{border-radius:24px}}
+@media (hover:none){.vit{transform:none}}
+@media (prefers-reduced-motion:reduce){.raiz *,.raiz *::before,.raiz *::after,.aviso-g,.hoja{animation:none!important;transition:none!important}.barrido{display:none}.vit{transform:none!important}}
+
+
+
+/* ====================================================================
+   MAQUETA · Configuración ▸ Metas, Dinero, Gastos e Impuestos (Felipe 2026-11-05: «sigamos con las demás vistas»), con el lenguaje de Las vitrinas: vidrio neutro,
+   cada dato se ve antes de leerse, poco texto y nada bajo 14 px salvo las versalitas de las pestañas. El color de la sede vive solo en lo que es de esa sede; el ámbar
+   dice lo que falta; el verde, lo que está listo. Movimiento una vez, sin rebote ni bucle (ADR-0136). Solo tokens; datos inventados.
+   ==================================================================== */
+.tira{position:relative;z-index:6}
+.bloque{padding:20px 22px;animation:enfoque .85s var(--ease) calc(var(--e,0) * 110ms) backwards}
+.bloque>header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 20px;margin-bottom:14px}
+.bloque h2{font:500 28px/1.1 'EB Garamond',serif}
+.bloque h2+p{margin-top:3px;font-size:15px;color:var(--taupe)}
+.der{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.pil{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 15px;border-radius:999px;font-size:15px;color:var(--tinta);border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);transition:background .25s}
+.pil i{width:9px;height:9px;border-radius:50%;background:var(--c,var(--taupe))}
+.pil[aria-pressed="true"]{color:var(--crema);border-color:transparent;background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent))}
+.nota-c{font-size:15px;color:var(--taupe)}
+.chip-n{flex:none;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:999px;font-size:14px;color:var(--t80);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 9%,transparent)}
+.chip-n.falta{color:var(--ambar);background:color-mix(in srgb,var(--ambar) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ambar) 34%,transparent)}
+.chip-n.listo{color:var(--verde);background:color-mix(in srgb,var(--verde) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--verde) 28%,transparent)}
+.lap{flex:none;display:grid;place-items:center;color:var(--taupe)}
+.lap svg,.btnc svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.poner{flex:none;height:30px;padding:0 12px;display:inline-grid;place-items:center;border-radius:999px;font-size:14px;font-weight:500;color:var(--ambar);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--ambar) 42%,transparent)}
+.btnc{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 15px;border-radius:999px;font-size:14.5px;color:var(--tinta);border:1px solid var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 60%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));box-shadow:inset 0 1px 0 var(--vidrio);transition:transform .25s var(--ease)}
+.btnc.pri{color:var(--crema);border-color:transparent;background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent))}
+@media (hover:hover){.btnc:hover{transform:translateY(-2px)}}
+.pozo-c{position:relative;display:inline-block}
+.pozo-c input{height:36px;padding:0 10px;border-radius:999px;font:500 15px 'DM Sans';font-variant-numeric:tabular-nums;text-align:right;color:var(--tinta);border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 12%,transparent);outline:none;width:100%}
+.pozo-c input::placeholder{color:var(--t50)}
+.pozo-c::after{content:"";position:absolute;left:12px;right:12px;bottom:0;height:2px;border-radius:2px;background:var(--rojo);transform:scaleX(0);transition:transform .3s var(--ease)}
+.pozo-c:focus-within::after{transform:scaleX(1)}
+.t-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))}
+.d.fijo-alto{min-height:84px}
+.d .sub{display:block;font-size:14px;color:var(--taupe);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d .v.chica{font-size:20px}
+.dos-c{display:grid;gap:18px;align-items:start}
+@container disp (min-width:1180px){.dos-c{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}.dos-c.par{grid-template-columns:1fr 1fr}}
+.grupo-c{margin:16px 0 8px;display:flex;align-items:center;gap:10px;font-size:15px;color:var(--taupe)}
+.grupo-c:first-of-type{margin-top:0}
+.grupo-c::after{content:"";flex:1;height:1px;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+.vm{display:flex;align-items:center;justify-content:center;gap:8px;width:calc(100% + 44px);margin:14px -22px -20px;padding:13px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);border-radius:0 0 28px 28px;font-size:14.5px;color:var(--taupe)}
+@media (hover:hover){.vm:hover{background:var(--t06);color:var(--tinta)}}
+.vm svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;transition:transform .4s var(--ease)}
+.vm[aria-expanded="true"] svg{transform:rotate(180deg)}
+
+/* ---------- METAS: los meses y los días son tubos que se llenan ---------- */
+.cifras-m{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.cifra-m{padding:16px 20px;animation:enfoque .8s var(--ease) calc(var(--e,0) * 90ms) backwards}
+.cifra-m small{display:block;font-size:14px;color:var(--taupe)}
+.cifra-m b{display:block;font:500 34px/1.15 'EB Garamond',serif;font-variant-numeric:lining-nums}
+.meses{display:grid;gap:8px;grid-template-columns:repeat(7,minmax(0,1fr));align-items:end}
+.mes-b{position:relative;display:grid;justify-items:center;gap:7px;padding:10px 4px 9px;border-radius:20px;color:var(--tinta);transition:background .3s,box-shadow .3s,transform .3s var(--ease)}
+.mes-b[aria-pressed="true"]{background:color-mix(in srgb,var(--vidrio) 62%,transparent);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 10%,transparent),0 12px 22px -16px color-mix(in srgb,var(--sombra) 60%,transparent)}
+@media (hover:hover){.mes-b:hover{transform:translateY(-2px)}}
+.tubo-v{position:relative;display:block;width:34px;height:96px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 20%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 7%,transparent)}
+.tubo-v i{position:absolute;left:0;right:0;bottom:0;height:calc(var(--n) * 100%);border-radius:0 0 999px 999px;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 42%,var(--vidrio)),color-mix(in srgb,var(--c) 68%,transparent));transition:height .7s var(--ease);animation:tubo-sube 1.2s var(--ease) calc(.25s + var(--k,0) * 70ms) backwards}
+.tubo-v.hereda i{background:color-mix(in srgb,var(--tinta) 14%,transparent)}
+.tubo-v::after{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:5px;border-radius:9px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),transparent 62%);pointer-events:none}
+@keyframes tubo-sube{from{height:0}}
+.mes-b .nom{font-size:15px;font-weight:500}
+.mes-b .tot{font:500 18px/1 'EB Garamond',serif;font-variant-numeric:lining-nums;white-space:nowrap}
+.mes-b .mar{font-size:14px;color:var(--taupe);white-space:nowrap}
+.sem-t{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 16px;margin:16px 0 10px;padding-top:16px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.sem-t b{font:500 22px 'EB Garamond',serif}
+.dias{display:grid;gap:8px;grid-template-columns:repeat(7,minmax(0,1fr))}
+.dia{display:grid;justify-items:center;gap:7px}
+.dia .tubo-v{width:30px;height:70px}
+.dia small{font-size:14px;color:var(--taupe)}
+.dia .pozo-c{width:100%;max-width:86px}
+.dia .pozo-c input{text-align:center;padding:0 6px}
+.boletos{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
+.boleto{position:relative;display:flex;align-items:center;gap:12px;padding:10px 14px 10px 10px;border-radius:20px;background:color-mix(in srgb,var(--vidrio) 22%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 72%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 5%,transparent)}
+.boleto .cal{flex:none;display:grid;place-items:center;width:58px;height:58px;border-radius:16px;background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1px 1px var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 7%,transparent)}
+.boleto .cal b{font:500 26px/1 'EB Garamond',serif;font-variant-numeric:lining-nums}
+.boleto .cal small{font-size:14px;line-height:1;color:var(--taupe)}
+.boleto .q{flex:1;min-width:0}
+.boleto .q b{display:block;font-weight:500;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.boleto .q span{font-size:14px;color:var(--taupe)}
+.boleto .pozo-c{flex:none;width:86px}
+.boleto.nuevo{justify-content:center;min-height:80px;color:var(--taupe);background:none;box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--tinta) 14%,transparent);border-style:none}
+
+/* ---------- DINERO: el recorrido del cobro ---------- */
+.flujo{position:relative;display:grid;gap:10px 70px;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
+.flujo svg.hilos{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.hilo-f{fill:none;stroke:color-mix(in srgb,var(--tinta) 30%,transparent);stroke-width:1.5;stroke-dasharray:1;animation:traza1 1s var(--ease) calc(.2s + var(--k) * 90ms) backwards;transition:stroke .25s,stroke-width .25s}
+.hilo-f.on{stroke:var(--c);stroke-width:2.5}
+.hilo-f.no{stroke:var(--ambar);stroke-dasharray:3 5;animation:none}
+.col-f{display:grid;gap:10px;align-content:start}
+.nodo-f{position:relative;z-index:1;display:flex;align-items:center;gap:12px;width:100%;min-height:68px;padding:7px 12px 7px 7px;border-radius:999px;text-align:left;color:var(--tinta);background:color-mix(in srgb,var(--vidrio) 40%,transparent);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent);transition:transform .3s var(--ease),box-shadow .3s}
+button.nodo-f[aria-expanded="true"]{box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1.5px var(--c)}
+@media (hover:hover){button.nodo-f:hover{transform:translateY(-2px)}}
+.nodo-f .ins{width:52px;height:52px}
+.nodo-f .tx b{display:block;font:500 21px/1.15 'EB Garamond',serif}
+.nodo-f .tx small{display:block;font-size:14px;color:var(--taupe)}
+.nodo-f.falta{background:color-mix(in srgb,var(--ambar) 8%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ambar) 40%,transparent)}
+.nodo-f.falta b{color:var(--ambar)}
+.lista-f{position:absolute;z-index:8;left:62px;right:6px;top:calc(100% + 6px);padding:6px;border-radius:18px;background:color-mix(in srgb,var(--vidrio) 92%,transparent);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 8%,transparent),0 20px 34px -16px color-mix(in srgb,var(--sombra) 60%,transparent);animation:enfoque .28s var(--ease)}
+.lista-f button{display:block;width:100%;padding:9px 12px;border-radius:12px;text-align:left;font-size:15px;color:var(--tinta)}
+@media (hover:hover){.lista-f button:hover{background:var(--t06)}}
+.ic-l{fill:none;stroke:var(--tinta);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.ic-c{fill:none;stroke:var(--c,var(--taupe));stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.ic-l .dib,.ic-c .dib{stroke-dasharray:1;animation:traza1 .9s var(--ease) calc(.25s + var(--i,0) * 70ms) backwards}
+.cta{display:flex;align-items:center;gap:12px;padding:8px 14px 8px 8px;border-radius:22px;background:color-mix(in srgb,var(--vidrio) 22%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 72%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 5%,transparent);animation:asoma .6s var(--ease) calc(.2s + var(--i,0) * 60ms) backwards;width:100%;text-align:left;color:var(--tinta)}
+.cta .tx{flex:1;min-width:0}
+.cta b{display:block;font-weight:500;font-size:15.5px;line-height:1.25}
+.cta small{display:block;font-size:14px;line-height:1.25;color:var(--taupe)}
+.cta .saldo{flex:none;font:500 21px 'EB Garamond',serif;font-variant-numeric:lining-nums;white-space:nowrap}
+.cta .saldo.neg{color:var(--rojo)}
+.vigia{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.vigia .d{cursor:default}
+.vigia .pozo-c{flex:none;width:92px}
+.vigia .unidad{flex:none;font-size:15px;color:var(--taupe)}
+.raiz{grid-template-columns:minmax(0,1fr)}.bloque,.cifra-m{min-width:0}
+
+/* ---------- GASTOS: el mes como una línea ---------- */
+.linea-mes{position:relative;height:112px;margin:0 16px 12px}
+.linea-mes .pista{position:absolute;left:0;right:0;top:76px;height:10px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 18%,transparent)}
+.linea-mes .pasado{position:absolute;left:0;top:76px;height:10px;width:var(--w);border-radius:999px;background:color-mix(in srgb,var(--tinta) 24%,transparent);transform-origin:left;animation:llena-x 1.1s var(--ease) .2s backwards}
+@keyframes llena-x{from{transform:scaleX(0)}}
+.pago{position:absolute;top:76px;left:var(--x);width:0;height:0}
+.pago span{position:absolute;left:-13px;bottom:calc(var(--a) * 8px + 2px);width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-variant-numeric:lining-nums;color:var(--tinta);background:radial-gradient(circle at 34% 26%,var(--vidrio),color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:inset 0 0 0 1.5px var(--c,var(--taupe)),0 4px 9px -4px color-mix(in srgb,var(--sombra) 60%,transparent);animation:asoma .5s var(--ease) calc(.3s + var(--k) * 40ms) backwards}
+.dias-mes{position:absolute;left:0;right:0;top:92px;display:flex;justify-content:space-between;font-size:14px;color:var(--taupe)}
+.fijo{display:flex;align-items:center;gap:12px;padding:9px 14px 9px 9px;border-radius:20px;width:100%;text-align:left;color:var(--tinta);background:color-mix(in srgb,var(--vidrio) 22%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 72%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 5%,transparent);animation:asoma .55s var(--ease) calc(.2s + var(--i,0) * 55ms) backwards}
+.fijo .cal{flex:none;display:grid;place-items:center;width:50px;height:50px;border-radius:50%;background:color-mix(in srgb,var(--tinta) 3%,transparent);box-shadow:inset 0 1px 1px var(--vidrio),inset 0 0 0 1.5px var(--c,var(--taupe))}
+.fijo .cal b{font:500 21px/1 'EB Garamond',serif;font-variant-numeric:lining-nums}
+.fijo .tx{flex:1;min-width:0}
+.fijo .tx b{display:block;font-weight:500;font-size:15.5px;line-height:1.25}
+.fijo .tx small{display:block;font-size:14px;line-height:1.25;color:var(--taupe)}
+.fijo .m{flex:none;font:500 21px 'EB Garamond',serif;font-variant-numeric:lining-nums;white-space:nowrap}
+.vacio-c{display:grid;justify-items:center;gap:7px;padding:18px 16px 8px;text-align:center}
+.vacio-c svg{width:56px;height:56px;overflow:visible}
+.vacio-c h3{font:500 24px 'EB Garamond',serif}
+.vacio-c p{max-width:52ch;font-size:15px;color:var(--taupe)}
+.vacio-c .der{margin-top:8px;justify-content:center}
+.tope{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 12px 9px 14px;border-radius:18px;background:color-mix(in srgb,var(--vidrio) 22%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 72%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 5%,transparent);font-size:15px}
+.tope .pozo-c{flex:none;width:96px}
+.reparto-c{display:grid;gap:10px 22px;grid-template-columns:repeat(auto-fill,minmax(310px,1fr))}
+.parte{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 12px;padding:10px 14px;border-radius:18px;background:color-mix(in srgb,var(--vidrio) 22%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 72%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 5%,transparent)}
+.parte b{font-weight:500;font-size:15.5px}
+.parte .pozo-c{width:70px;grid-row:span 2}
+.balanza{position:relative;height:12px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 8%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 18%,transparent)}
+.balanza i{position:absolute;left:0;top:0;bottom:0;width:var(--p);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 58%,transparent),color-mix(in srgb,var(--tinta) 86%,transparent));border-radius:999px;transition:width .6s var(--ease);animation:llena-x 1s var(--ease) calc(.25s + var(--i,0) * 60ms) backwards;transform-origin:left}
+.parte small{grid-column:1;font-size:14px;color:var(--taupe)}
+
+/* ---------- IMPUESTOS: lo pendiente y el tope del año ---------- */
+.por-conf{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(290px,1fr))}
+.conf{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:12px 12px 12px 16px;border-radius:20px;background:color-mix(in srgb,var(--ambar) 6%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 70%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--ambar) 30%,transparent);transition:background .4s,box-shadow .4s;animation:asoma .55s var(--ease) calc(.2s + var(--i,0) * 70ms) backwards}
+.conf small{display:block;font-size:14px;color:var(--taupe)}
+.conf b{display:block;font:500 23px/1.15 'EB Garamond',serif}
+.conf.hecho{background:color-mix(in srgb,var(--verde) 7%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 70%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--verde) 26%,transparent)}
+.visto-t{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:var(--crema);background:var(--verde)}
+.visto-t svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:24;animation:traza24 .4s var(--ease)}
+@keyframes traza24{from{stroke-dashoffset:24}}
+.limite{position:relative;margin:30px 4px 30px;height:20px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 20%,transparent)}
+.limite .ll{position:absolute;left:0;top:0;bottom:0;width:var(--p);border-radius:999px;background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 56%,transparent),color-mix(in srgb,var(--tinta) 88%,transparent));transform-origin:left;animation:llena-x 1.4s var(--ease) .3s backwards}
+.limite .mk{position:absolute;left:var(--x);top:-6px;bottom:-6px;width:2px;background:var(--col,var(--tinta))}
+.limite .mk span{position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:14px;color:var(--col,var(--tinta))}
+.limite .mk.ar span{bottom:calc(100% + 3px)}.limite .mk.ab span{top:calc(100% + 3px)}
+.tres-c{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.reg{display:flex;flex-wrap:wrap;align-items:center;gap:10px 28px;margin-bottom:6px}
+.reg b{font:500 26px 'EB Garamond',serif}
+.reg small{display:block;font-size:14px;color:var(--taupe)}
+.arr{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:18px;font-size:15px;background:color-mix(in srgb,var(--vidrio) 22%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 72%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 5%,transparent)}
+.arr .tx{flex:1;min-width:0}
+.arr small{display:block;font-size:14px;color:var(--taupe)}
+.arr .pozo-c{flex:none;width:104px}
+@container disp (max-width:760px){
+  .meses{grid-template-columns:repeat(7,minmax(74px,1fr));overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+  .dias{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .flujo{grid-template-columns:minmax(0,1fr);gap:10px}.flujo svg.hilos{display:none}.col-f.dest{display:none}
+  .nodo-f .destino{display:block!important}
+  .bloque{padding:16px;border-radius:24px}.vm{width:calc(100% + 32px);margin:14px -16px -16px}
+  .firma-g{width:100%}
+}
+.nodo-f .destino{display:none;font-size:14px;color:var(--taupe)}
+@media (prefers-reduced-motion:reduce){.raiz *,.raiz *::before,.raiz *::after{animation:none!important;transition:none!important}}
+
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Configuración · Metas, Dinero, Gastos e Impuestos</span>
+  <button class="accion" data-acc="repetir">Repetir la entrada</button>
+  <span class="tag">Topes de gasto</span><div class="seg-m" data-ctl="top"><button data-v="vacio">Aún sin topes</button><button data-v="con">Con topes</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="escritorio">1440</button><button data-v="w1920">1920</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Las cuatro vistas, con el lenguaje de Las vitrinas</h2>
+    <p>Una propuesta por vista, porque el lenguaje ya está elegido. Lo tocable: las sedes, los meses, cada cobro, «Ya lo confirmó» y lo plegado.</p>
+    <table>
+      <tr><th>Vista</th><th>La idea</th><th>Antes → ahora</th></tr>
+      <tr><td><b>Metas</b></td><td>Un tubo por mes que se llena según su meta. Tocas un mes y aparecen sus siete días.</td><td>De 42 casillas a la vista a 7. Un mes sin semana propia se ve en gris y usa lo normal.</td></tr>
+      <tr><td><b>Dinero</b></td><td>Hilos que unen cada cobro con su cuenta, por sede. Un cobro sin cuenta dice «Poner».</td><td>De una tabla de 20 combos a 5 por sede. Sale «Cuenta contable», «Tipo» y «activa»: la cuenta contable se ve al editar. Los cajones, plegados.</td></tr>
+      <tr><td><b>Gastos</b></td><td>El mes como una línea con cada pago en su día. Topes empieza vacío con un botón para sugerirlos. El reparto, una balanza por gasto.</td><td>De 48 casillas de topes a ninguna hasta que los pidas; después, 12 por sede.</td></tr>
+      <tr><td><b>Impuestos</b></td><td>Primero lo que falta confirmar. Después, cuánto has vendido contra el límite del año.</td><td>De 7 bloques iguales a un orden: lo pendiente, el límite, las tasas y lo de arranque plegado.</td></tr>
+    </table>
+    <h3>Lo que necesito que decidas mirando</h3>
+    <ul>
+      <li><b>Campañas:</b> la dejé plegada. Nadie la usa en producción; quitarla elimina la única forma de subir el fondo solo durante una campaña.</li>
+      <li><b>«Vendido este año» en Impuestos:</b> es nuevo en esta pantalla. El dato ya existe en Finanzas ▸ Impuestos, y sumarlo aquí es lo que hace entendible el límite.</li>
+      <li><b>Ocultar «Cuenta contable»:</b> pasa a verse solo al editar la cuenta. Si tu contador la mira seguido aquí, se queda.</li>
+    </ul>
+    <h3>Lo que no cambia</h3>
+    <p>Las funciones de la base, los permisos (Reparto CLAURE sigue siendo solo del líder), la firma del responsable y las hojas de editar. Datos inventados.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<script>
+// En su propio bloque: marco.js usa nombres globales que aquí no se pisan.
+{
+
+const OK = 'M5 12.5l4.5 4.5L19 7.5';
+const CH = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+const LAPIZ = '<span class="lap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>';
+const n = (v) => v.toLocaleString('es-PE');
+const S = (v) => `S/ ${n(Math.round(v))}`;
+const SEDES_T = [{ id: 'tru', n: 'Trujillo', c: 'var(--sede-tru)' }, { id: 'aqp', n: 'Arequipa', c: 'var(--sede-aqp)' }, { id: 'lim', n: 'Lima', c: 'var(--sede-lim)' }];
+const TALLER = { id: 'tal', n: 'Taller', c: 'var(--sede-tal)' };
+const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+const pozo = (v, et, ph = '—') => `<span class="pozo-c"><input value="${v ?? ''}" placeholder="${ph}" aria-label="${et}" data-pozo></span>`;
+const gota = (svg) => `<span class="ins" aria-hidden="true"><i class="brillo"></i>${svg}</span>`;
+const ico = (cuerpo, i = 0, clase = 'ic-l') => gota(`<svg class="${clase}" style="--i:${i}" viewBox="0 0 58 58">${cuerpo}</svg>`);
+const P = (d) => `<path class="dib" pathLength="1" d="${d}"/>`;
+const ICONOS = {
+  plin: P('M22 14h14a2.500 2.500 0 0 1 2.500 2.500v25A2.500 2.500 0 0 1 36 44H22a2.500 2.500 0 0 1-2.500-2.500v-25A2.500 2.500 0 0 1 22 14z') + P('M27 39.500h4') + P('M25 24a6 6 0 0 1 8 0M27 27.500a3 3 0 0 1 4 0'),
+  yape: P('M22 14h14a2.5 2.5 0 0 1 2.500 2.500v25A2.500 2.500 0 0 1 36 44H22a2.500 2.500 0 0 1-2.500-2.500v-25A2.500 2.500 0 0 1 22 14z') + P('M27 39.500h4'),
+  tarjeta: P('M13 19h32a3 3 0 0 1 3 3v15a3 3 0 0 1-3 3H13a3 3 0 0 1-3-3V22a3 3 0 0 1 3-3z') + P('M10 26h38') + P('M16 34h7'),
+  qr: P('M15 21v-6h6M37 15h6v6M43 37v6h-6M21 43h-6v-6') + P('M22 22h5v5h-5zM31 22h5v5h-5zM22 31h5v5h-5zM31 31h5v5h-5z'),
+  transf: P('M14 23h28l-7-7') + P('M44 35H16l7 7'),
+  efectivo: P('M12 20h34v18H12z') + P('M29 24a5 5 0 1 0 0 10 5 5 0 0 0 0-10z'),
+  banco: P('M12 24 29 13l17 11z') + P('M16 28v11M25 28v11M33 28v11M42 28v11') + P('M12 44h34'),
+  maquina: P('M19 12h20a2 2 0 0 1 2 2v30a2 2 0 0 1-2 2H19a2 2 0 0 1-2-2V14a2 2 0 0 1 2-2z') + P('M22 17h14v8H22z') + P('M23 31h2M28 31h2M33 31h2M23 37h2M28 37h2M33 37h2'),
+  cajon: P('M11 22h36v20H11z') + P('M11 22l5-8h26l5 8') + P('M25 31h8'),
+  fuerte: P('M13 13h32v32H13z') + P('M29 22a7 7 0 1 0 0 14 7 7 0 0 0 0-14z') + P('M29 26v10M24 31h10'),
+  rendir: P('M18 12h22v34l-5-3-6 3-6-3-5 3z') + P('M24 21h10M24 28h10'),
+};
+const ANGULOS = (p) => (p * 270 - 135);
+
+// ---------- datos inventados ----------
+const NORMAL = { tru: [3800, 3800, 3800, 3800, 4200, 5200, 4000], aqp: [3200, 3200, 3200, 3200, 3600, 4800, 3500], lim: [4000, 4000, 4000, 4000, 4500, 5600, 4200] };
+const MESES_M = ['Nov', 'Dic', 'Ene', 'Feb', 'Mar', 'Abr'];
+const MES_L = ['Noviembre', 'Diciembre', 'Enero', 'Febrero', 'Marzo', 'Abril'];
+const PROPIAS = { 'tru|1': [6200, 6200, 6200, 6200, 7400, 9800, 7200], 'aqp|1': [5400, 5400, 5400, 5400, 6200, 8400, 6000], 'lim|1': [6800, 6800, 6800, 6800, 7900, 10400, 7800], 'tru|2': [3400, 3400, 3400, 3400, 3800, 4800, 3600] };
+const FECHAS = [['24', 'dic', 'Nochebuena', 'lim', 12800], ['24', 'dic', 'Nochebuena', 'tru', 11600], ['31', 'dic', 'Fin de año', 'tru', 9000], ['25', 'dic', 'No abre', 'lim', 0], ['1', 'ene', 'No abre', 'tru', 0]];
+const CAMP = [['Black Friday', '9 – 30 nov'], ['Navidad', '11 – 25 dic']];
+const COBROS = {
+  tru: { yape: 'BCP', plin: 'BCP', tarjeta: 'Por depositar Vendemás', qr: 'Por depositar Izipay', transf: 'BCP' },
+  aqp: { yape: 'BCP', plin: 'BCP', tarjeta: 'Por depositar Vendemás', qr: 'Por depositar Izipay', transf: 'BCP' },
+  lim: { yape: 'Interbank', plin: '', tarjeta: 'Por depositar Izipay', qr: 'Por depositar Izipay', transf: 'Interbank' },
+};
+const MEDIOS = [['yape', 'Yape'], ['plin', 'Plin'], ['tarjeta', 'Tarjeta'], ['qr', 'QR'], ['transf', 'Transferencia']];
+const DEST = [['BCP', 'banco', '****4412', 18420], ['Interbank', 'banco', '****0935', 6210], ['Por depositar Izipay', 'maquina', 'Llega el mismo día', 1180], ['Por depositar Vendemás', 'maquina', 'Avisa pasados 3 días', 650]];
+const CAJONES = [['Cajón · Trujillo', 'cajon', 295], ['Cajón · Arequipa', 'cajon', 220], ['Cajón · Lima', 'cajon', 310], ['Caja fuerte · Trujillo', 'fuerte', 0], ['Caja fuerte · Arequipa', 'fuerte', 0], ['Caja fuerte · Lima', 'fuerte', 0], ['Fondo fijo · Taller', 'cajon', 150], ['Efectivo entregado al líder', 'rendir', 0]];
+const FIJOS = [['Alquiler de Trujillo', 'Alquileres', 'tru', 6500, 1, 'Inmobiliaria Sol'], ['Alquiler de Arequipa', 'Alquileres', 'aqp', 5200, 1, 'Galerías Misti'], ['Alquiler de Lima', 'Alquileres', 'lim', 7800, 1, 'Centro Lima'], ['Contador', 'Asesoría', '', 1200, 5, 'Estudio Ríos'], ['Software', 'Suscripciones', '', 410, 8, 'Varios'], ['Internet del Taller', 'Servicios', 'tal', 149, 12, 'Movistar'], ['Luz de Lima', 'Servicios · varía', 'lim', 420, 18, 'Luz del Sur'], ['Agua de Trujillo', 'Servicios · varía', 'tru', 90, 22, 'Sedalib'], ['Seguro', 'Seguros', '', 280, 26, 'Rímac']];
+const RUBROS = [['Alquileres', 12000], ['Luz, agua, internet', 1400], ['Software y comisiones', 900], ['Movilidad y viajes', 1500], ['Suministros', 350], ['Mantenimiento', 400], ['Publicidad', 2200], ['Asesoría', 1600], ['Tributos', 300], ['Seguros', 280], ['Personal', 500], ['Traer mercadería', 1800]];
+const REPARTO = [['Alquiler', 50], ['Servicios', 50], ['Personal de tienda', 40], ['Publicidad', 30], ['Útiles', 50], ['Mantenimiento', 50], ['Movilidad', 25], ['Comisiones', 50]];
+const CONF = [['UIT 2026', 'S/ 5,500'], ['Régimen 2026', 'MYPE Tributario'], ['Límite de ventas', '300 UIT'], ['Pago a cuenta', '1 %']];
+
+const est = { tab: 'Metas', sede: 'tru', mes: 1, medio: null, sedeC: 'tru', topeS: 'Trujillo', filtroF: 'Todas', hechos: new Set(), ab: {}, adestino: {} };
+const sc = () => SEDES_T.find((s) => s.id === est.sede);
+const semanaDe = (id, m) => PROPIAS[`${id}|${m}`] || null;
+const suma = (a) => a.reduce((x, y) => x + (+y || 0), 0) * 4.3;
+const mil = (v) => `${Math.round(v / 1000)} mil`;
+
+// ---------- METAS ----------
+function vMetas() {
+  const c = sc(), id = c.id, norm = NORMAL[id];
+  const totales = MESES_M.map((_, i) => suma(semanaDe(id, i) || norm));
+  const max = Math.max(...totales, suma(norm));
+  const sel = est.mes;
+  const sem = sel === -1 ? norm : semanaDe(id, sel);
+  const mostrar = sem || norm;
+  const maxDia = Math.max(...mostrar, 1) * 1.1;
+  const hereda = sel !== -1 && !sem;
+  const mesB = (nom, tot, i, herda, k) => `<button class="mes-b" data-mes="${i}" aria-pressed="${sel === i}" style="--c:${c.c}" aria-label="${nom}: ${S(tot)}"><span class="tubo-v ${herda ? 'hereda' : ''}"><i style="--n:${tot / max};--k:${k}"></i></span><span class="nom">${nom}</span><span class="tot">${mil(tot)}</span></button>`;
+  return `
+  <div class="cifras-m">
+    ${[['Hoy', S(norm[2]), 0], ['Este mes', S(Math.round(totales[0] / 100) * 100), 1], ['El mes más alto', `${MES_L[totales.indexOf(Math.max(...totales))]}`, 2]].map(([a, b, e]) => `<div class="liq cifra-m" style="--e:${e}"><small>${a}</small><b>${b}</b></div>`).join('')}
+  </div>
+  <section class="liq bloque" style="--e:3"><header><div><h2>Cuánto vender</h2></div><div class="der">${SEDES_T.map((s) => `<button class="pil" style="--c:${s.c}" data-sede="${s.id}" aria-pressed="${s.id === est.sede}"><i></i>${s.n}</button>`).join('')}</div></header>
+    <div class="meses">${mesB('Normal', suma(norm), -1, false, 0)}${MESES_M.map((m, i) => mesB(m, totales[i], i, !semanaDe(id, i), i + 1)).join('')}</div>
+    <div class="sem-t"><b>${sel === -1 ? 'Lo normal' : MES_L[sel]}</b><span class="nota-c">${hereda ? 'Usa lo normal. Escribe solo el día que cambia.' : sel === -1 ? 'Vale todo el año, salvo el mes que tenga su propia semana.' : 'Tiene su propia semana.'}</span></div>
+    <div class="dias">${DIAS.map((d, i) => `<div class="dia" style="--c:${c.c}"><span class="tubo-v ${hereda ? 'hereda' : ''}"><i style="--n:${mostrar[i] / maxDia};--k:${i}" data-dia="${i}"></i></span><small>${d}</small>${pozo(hereda ? '' : n(mostrar[i]), `Meta del ${d}`, hereda ? n(norm[i]) : '—')}</div>`).join('')}</div>
+  </section>
+  <section class="liq bloque" style="--e:4"><header><div><h2>Días especiales</h2></div><div class="der"><span class="nota-c">Con 0, la tienda no abre</span></div></header>
+    <div class="boletos">${FECHAS.filter(([, , , s]) => s === id).concat([]).map(([d, m, q, s, v]) => `<div class="boleto"><span class="cal"><span style="display:grid;justify-items:center;gap:2px"><b>${d}</b><small>${m}</small></span></span><span class="q"><b>${q}</b></span>${pozo(n(v), `Meta del ${d} ${m}`)}</div>`).join('')}<button class="boleto nuevo"><span class="btnc" style="border:0;background:none;box-shadow:none"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Agregar un día</span></button></div>
+  </section>
+  <section class="liq bloque" style="--e:5"><header><div><h2>Campañas</h2></div><div class="der"><span class="chip-n">Sin cambios en caja</span></div></header>
+    ${est.ab.camp ? `<div class="t-grid">${CAMP.map(([q, f]) => `<div class="boleto"><span class="q"><b>${q}</b><span>${f}</span></span><span class="pozo-c" style="width:70px"><input placeholder="+ %" aria-label="Cuánto sube la meta en ${q}"></span><span class="pozo-c" style="width:86px"><input placeholder="Fondo" aria-label="Fondo en ${q}"></span></div>`).join('')}</div>` : ''}
+    <button class="vm" data-ab="camp" aria-expanded="${!!est.ab.camp}">${est.ab.camp ? 'Ver menos' : 'Ver las 2 que vienen'}${CH}</button></section>`;
+}
+
+// ---------- DINERO ----------
+function vDinero() {
+  const sede = SEDES_T.find((s) => s.id === est.sedeC);
+  const map = COBROS[est.sedeC];
+  const nodo = ([k, nom], i) => { const d = map[k]; return `<div style="position:relative"><button class="nodo-f ${d ? '' : 'falta'}" data-medio="${k}" aria-expanded="${est.medio === k}" style="--c:${sede.c}" aria-label="${nom} entra en ${d || 'ninguna cuenta'}. Cambiar">${ico(ICONOS[k], i, 'ic-c')}<span class="tx" style="flex:1;min-width:0"><b>${nom}</b><span class="destino">→ ${d || 'Falta la cuenta'}</span></span>${d ? LAPIZ : '<span class="poner">Poner</span>'}</button>${est.medio === k ? `<div class="lista-f" role="listbox">${DEST.map(([q]) => `<button data-poner="${q}">${q}</button>`).join('')}</div>` : ''}</div>`; };
+  const destino = ([q, ic, sub, sal], i) => `<div class="nodo-f" data-dest="${q}">${ico(ICONOS[ic], i)}<span class="tx" style="flex:1;min-width:0"><b>${q}</b><small>${sub}</small></span></div>`;
+  return `
+  <section class="liq bloque" style="--e:0"><header><div><h2>A dónde entra cada cobro</h2></div><div class="der">${SEDES_T.map((s) => `<button class="pil" style="--c:${s.c}" data-sedec="${s.id}" aria-pressed="${s.id === est.sedeC}"><i></i>${s.n}</button>`).join('')}</div></header>
+    <div class="flujo" id="flujo"><svg class="hilos" aria-hidden="true"></svg><div class="col-f">${MEDIOS.map(nodo).join('')}</div><div class="col-f dest">${DEST.map(destino).join('')}</div></div>
+    <p class="nota-c" style="margin-top:12px">Si lo cambias, desde hoy Finanzas lo cuenta ahí. El efectivo siempre cae al cajón.</p></section>
+  <section class="liq bloque" style="--e:1"><header><div><h2>Las cuentas</h2></div><div class="der"><button class="btnc pri"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Agregar cuenta</button></div></header>
+      <div class="t-grid">${DEST.map(([q, ic, sub, sal], i) => `<button class="cta" style="--i:${i}" aria-label="Editar ${q}">${ico(ICONOS[ic], i)}<span class="tx"><b>${q}</b><small>${sub}</small></span><span class="saldo">${S(sal)}</span>${LAPIZ}</button>`).join('')}</div>
+      ${est.ab.caj ? `<div class="grupo-c" style="margin-top:14px">Cajones y cajas de las sedes</div><div class="t-grid">${CAJONES.map(([q, ic, sal], i) => `<div class="cta" style="--i:${i}">${ico(ICONOS[ic], i)}<span class="tx"><b>${q}</b></span><span class="saldo">${S(sal)}</span></div>`).join('')}</div>` : ''}
+      <button class="vm" data-ab="caj" aria-expanded="${!!est.ab.caj}">${est.ab.caj ? 'Ver menos' : `Ver los ${CAJONES.length} cajones y cajas`}${CH}</button></section>
+  <section class="liq bloque" style="--e:2"><header><div><h2>Máquinas y planilla</h2></div></header>
+      <div class="t-grid">
+        <button class="cta" aria-label="Editar Izipay">${ico(ICONOS.maquina)}<span class="tx"><b>Izipay</b><small>Tarjeta y QR · 2,38 % + IGV</small></span>${LAPIZ}</button>
+        <button class="cta" aria-label="Editar Vendemás">${ico(ICONOS.maquina, 1)}<span class="tx"><b>Vendemás</b><small>Tarjeta · sin tarifa</small></span><span class="poner">Poner</span></button>
+        <div class="tope"><span>Planilla de quienes cobran en BCP</span><span class="chip-n">BCP ▾</span></div>
+        <div class="tope"><span>Planilla de quienes cobran en Interbank</span><span class="chip-n">Interbank ▾</span></div>
+      </div></section>
+  <section class="liq bloque" style="--e:3"><header><div><h2>Cuándo te avisa</h2></div></header>
+    <div class="vigia">
+      <div class="d">${gota(`<svg class="ic-l" viewBox="0 0 58 58">${P('M12 42h34')}${P('M16 36l8-9 7 5 10-14')}<path d="M12 30h34" stroke-dasharray="3 3" style="stroke:var(--ambar)"/></svg>`)}<span class="tx"><span class="lb">Avisa si la caja baja de</span></span><span class="unidad">S/</span>${pozo('5,000', 'Mínimo de caja')}</div>
+      <div class="d">${gota(`<svg class="ic-l" viewBox="0 0 58 58">${P('M15 42V30M24 42V24M33 42V34M42 42V14')}</svg>`)}<span class="tx"><span class="lb">Avisa si un gasto sube más de</span></span>${pozo('30', 'Aviso de gasto')}<span class="unidad">%</span></div>
+      <div class="d">${gota(`<svg class="ic-l" viewBox="0 0 58 58">${P('M14 18h30v26H14z')}${P('M14 25h30M22 13v8M36 13v8')}</svg>`)}<span class="tx"><span class="lb">Avisa lo que vence antes de</span></span>${pozo('7', 'Días de aviso')}<span class="unidad">días</span></div>
+      <div class="d">${gota(`<svg class="ic-l" viewBox="0 0 58 58">${P('M29 13a16 16 0 1 0 16 16')}${P('M29 20v9h8')}</svg>`)}<span class="tx"><span class="lb">Finanzas cuenta desde</span><span class="v chica">Octubre 2026</span></span>${LAPIZ}</div>
+    </div></section>`;
+}
+function dibujarHilos() {
+  const f = $('#flujo'); if (!f) return; const svg = f.querySelector('svg.hilos'); const z = zoomDisp(); const R = f.getBoundingClientRect();
+  const map = COBROS[est.sedeC], sede = SEDES_T.find((s) => s.id === est.sedeC);
+  let d = '';
+  MEDIOS.forEach(([k], i) => { const a = f.querySelector(`[data-medio="${k}"]`)?.getBoundingClientRect(); if (!a || !map[k]) return; const b = f.querySelector(`[data-dest="${map[k]}"]`)?.getBoundingClientRect(); if (!b) return;
+    const x1 = (a.right - R.left) / z, y1 = (a.top + a.height / 2 - R.top) / z, x2 = (b.left - R.left) / z, y2 = (b.top + b.height / 2 - R.top) / z, m = (x1 + x2) / 2;
+    d += `<path class="hilo-f ${est.medio === k ? 'on' : ''}" style="--k:${i};--c:${sede.c}" pathLength="1" d="M${x1} ${y1}C${m} ${y1} ${m} ${y2} ${x2} ${y2}"/>`; });
+  svg.innerHTML = d;
+}
+
+// ---------- GASTOS ----------
+const colorDe = (s) => (s ? [...SEDES_T, TALLER].find((x) => x.id === s)?.c : 'var(--taupe)');
+const nombreDe = (s) => (s ? [...SEDES_T, TALLER].find((x) => x.id === s)?.n : 'Empresa');
+function vGastos(e) {
+  const lista = est.filtroF === 'Todas' ? FIJOS : FIJOS.filter((f) => nombreDe(f[2]) === est.filtroF);
+  const total = FIJOS.reduce((x, f) => x + f[3], 0);
+  const cuenta = {};
+  const puntos = FIJOS.map((f, k) => { const a = (cuenta[f[4]] = (cuenta[f[4]] ?? -1) + 1); return `<span class="pago" style="--x:${((f[4] - 1) / 30) * 100}%;--a:${a * 3.5};--c:${colorDe(f[2])};--k:${k}" title="${f[0]}: ${S(f[3])}"><span>${f[4]}</span></span>`; }).join('');
+  return `
+  <section class="liq bloque" style="--e:0"><header><div><h2>Lo que se paga cada mes</h2></div><div class="der"><span class="chip-n">${FIJOS.length} fijos · ${S(total)}</span><button class="btnc pri"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Agregar fijo</button></div></header>
+    <div class="linea-mes" aria-hidden="true"><i class="pista"></i><i class="pasado" style="--w:${(4 / 30) * 100}%"></i>${puntos}<div class="dias-mes"><span>Día 1</span><span>10</span><span>20</span><span>30</span></div></div>
+    <div class="der" style="margin-bottom:12px">${['Todas', 'Trujillo', 'Arequipa', 'Lima', 'Taller', 'Empresa'].map((t) => `<button class="pil" data-filtrof="${t}" aria-pressed="${est.filtroF === t}">${t}</button>`).join('')}</div>
+    <div class="t-grid">${lista.map((f, i) => `<button class="fijo" style="--i:${i};--c:${colorDe(f[2])}" aria-label="Editar ${f[0]}"><span class="cal"><b>${f[4]}</b></span><span class="tx"><b>${f[0]}</b><small>${f[5]}</small></span><span class="m">${S(f[3])}</span>${LAPIZ}</button>`).join('')}</div></section>
+  <section class="liq bloque" style="--e:1"><header><div><h2>Topes de gasto</h2></div><div class="der">${e.top === 'con' ? ['Trujillo', 'Arequipa', 'Lima', 'Taller', 'Empresa'].map((t) => `<button class="pil" data-topes="${t}" aria-pressed="${est.topeS === t}">${t}</button>`).join('') : ''}<span class="chip-n">Noviembre ▾</span></div></header>
+    ${e.top === 'con' ? `<div class="t-grid">${RUBROS.map(([r, v]) => `<div class="tope"><span>${r}</span>${pozo(n(v), `Tope de ${r}`)}</div>`).join('')}</div>` : `<div class="vacio-c"><svg class="ic-l" viewBox="0 0 58 58" aria-hidden="true">${P('M12 44h34')}${P('M17 44V31M29 44V20M41 44V28')}<path d="M10 16h38" stroke-dasharray="3 4" style="stroke:var(--ambar)"/></svg><h3>Noviembre todavía no tiene topes</h3><p>Lo más rápido es partir de lo que ya se gastó.</p><div class="der"><button class="btnc pri" data-toptop>Sugerir según los últimos 3 meses</button><button class="btnc" data-toptop>Escribirlos a mano</button></div></div>`}</section>
+  <section class="liq bloque" style="--e:2"><header><div><h2>Reparto con CLAURE</h2></div><div class="der"><span class="chip-n">Solo el líder</span></div></header>
+    <div class="reparto-c">${REPARTO.map(([c, p], i) => `<div class="parte"><b>${c}</b>${pozo(p, `Parte de CLAURE en ${c}`)}<div class="balanza"><i style="--p:${p}%;--i:${i}" data-balanza></i></div><small>${p} % de Claudia</small></div>`).join('')}</div></section>`;
+}
+
+// ---------- IMPUESTOS ----------
+function vImpuestos() {
+  const faltan = CONF.length - est.hechos.size;
+  return `
+  <section class="liq bloque" style="--e:0"><header><div><h2>${faltan ? `Falta confirmar ${faltan} con el contador` : 'El contador ya lo confirmó todo'}</h2></div><div class="der"><span class="chip-n ${faltan ? 'falta' : 'listo'}">${CONF.length - faltan} de ${CONF.length}</span></div></header>
+    <div class="por-conf">${CONF.map(([a, b], i) => { const h = est.hechos.has(i); return `<div class="conf ${h ? 'hecho' : ''}" style="--i:${i}"><span><small>${a}</small><b>${b}</b></span>${h ? `<span class="visto-t"><svg viewBox="0 0 24 24"><path d="${OK}"/></svg></span>` : `<button class="btnc" data-conf="${i}">Ya lo confirmó</button>`}</div>`; }).join('')}</div></section>
+  <section class="liq bloque" style="--e:1"><header><div><h2>El límite de ventas del año</h2></div><div class="der"><span class="chip-n">Año nuevo ▾</span></div></header>
+    <div class="reg"><span><small>Régimen 2026</small><b>MYPE Tributario</b></span><span><small>Vendido este año</small><b>S/ 742,000</b></span><span><small>Te quedan</small><b>S/ 908,000</b></span></div>
+    <div class="limite"><i class="ll" style="--p:45%"></i><i class="mk ab" style="--x:83.300%;--col:var(--ambar)"><span>Aviso · 250 UIT</span></i><i class="mk ar" style="--x:99.700%;--col:var(--tinta)"><span style="left:auto;right:0;transform:none">Límite · 300 UIT</span></i></div>
+    <div class="vigia" style="margin-top:10px"><div class="d"><span class="tx"><span class="lb">Límite</span></span>${pozo('300', 'Límite')}<span class="unidad">UIT</span></div><div class="d"><span class="tx"><span class="lb">Aviso</span></span>${pozo('250', 'Aviso')}<span class="unidad">UIT</span></div><div class="d"><span class="tx"><span class="lb">Pago a cuenta</span></span>${pozo('1', 'Pago a cuenta')}<span class="unidad">%</span></div></div></section>
+  <div class="tres-c">
+    <section class="liq bloque" style="--e:2"><header><div><h2>IGV</h2></div></header><div class="d" style="cursor:default">${gota(`<svg class="ic-l" viewBox="0 0 58 58"><text x="29" y="36" text-anchor="middle" style="font:500 21px 'EB Garamond',serif;fill:var(--tinta);stroke:none">%</text></svg>`)}<span class="tx"><span class="lb">Desde 2011</span><span class="v">18 %</span></span>${LAPIZ}</div></section>
+    <section class="liq bloque" style="--e:3"><header><div><h2>UIT</h2></div></header><div class="d" style="cursor:default">${gota(`<svg class="ic-l" viewBox="0 0 58 58"><text x="29" y="36" text-anchor="middle" style="font:500 19px 'EB Garamond',serif;fill:var(--tinta);stroke:none">S/</text></svg>`)}<span class="tx"><span class="lb">2026</span><span class="v">S/ 5,500</span></span>${LAPIZ}</div></section>
+    <section class="liq bloque" style="--e:4"><header><div><h2>Movilidad</h2></div></header><div class="d falta" style="cursor:default">${gota(`<svg class="ic-l" viewBox="0 0 58 58">${P('M12 34l4-10h26l4 10v8H12z')}${P('M12 34h34')}</svg>`)}<span class="tx"><span class="lb">Tope por día</span><span class="v">Falta</span></span><span class="poner">Poner</span></div></section>
+  </div>
+  <section class="liq bloque" style="--e:5"><header><div><h2>Para arrancar</h2><p>Se llena una vez, con la última declaración.</p></div><div class="der"><span class="chip-n falta">Falta el saldo a favor</span></div></header>
+    ${est.ab.arr ? `<div class="t-grid">${[['Saldo a favor de IGV', 'Sin él, el IGV puede salir de más', '', 1], ['Ajuste de ventas 2026', 'Opcional', '0'], ['Utilidad del contador', 'Antes de impuestos', '0'], ['Compras sin factura', 'Aproximado sirve', '0'], ['Renta pagada a cuenta', 'Suma de los PDT 621', '0']].map(([a, b, v]) => `<div class="arr"><span class="tx">${a}<small>${b}</small></span>${pozo(v, a)}</div>`).join('')}</div>` : ''}
+    <button class="vm" data-ab="arr" aria-expanded="${!!est.ab.arr}">${est.ab.arr ? 'Ver menos' : 'Ver lo de arranque'}${CH}</button></section>`;
+}
+
+// ---------- pintar ----------
+let vista1 = null;
+function pintarC(e, forzar) {
+  const cont = $('#cont'), arriba = cont.scrollTop, nueva = forzar || vista1 !== est.tab;
+  document.documentElement.classList.toggle('quieto', !nueva);
+  cont.innerHTML = `${encabezado({ sede: 'Toda CAYLA', fecha: 'jueves, 5 de noviembre · 10:42', titulo: 'Configuración' })}
+    <div class="tira"><div class="pz-t" role="tablist" aria-label="Secciones de Configuración">${['Empresa y tiendas', 'Metas', 'Dinero', 'Gastos', 'Impuestos'].map((t) => `<button role="tab" data-tab="${t}" aria-selected="${t === est.tab}">${t}</button>`).join('')}</div>
+      <span class="firma-g" title="Cada dato se guarda solo al salir de él, a nombre de quien firma."><i>LR</i>Lucía Ramos</span></div>
+    <div class="raiz">${est.tab === 'Empresa y tiendas' ? '<p class="nota-c">Esta ya está hecha: <a href="../empresa-tiendas-vitrinas-2026-11/index.html">Las vitrinas</a>.</p>' : { Metas: vMetas, Dinero: vDinero, Gastos: () => vGastos(e), Impuestos: vImpuestos }[est.tab]()}</div>`;
+  cont.scrollTop = nueva ? 0 : arriba;
+  vista1 = est.tab;
+  requestAnimationFrame(dibujarHilos);
+}
+const repinta = () => pintarC(estado);
+document.addEventListener('click', (ev) => {
+  const q = (s) => ev.target.closest(s);
+  let b;
+  if ((b = q('[data-tab]'))) { est.tab = b.dataset.tab; est.medio = null; repinta(); return; }
+  if ((b = q('[data-sede]'))) { est.sede = b.dataset.sede; repinta(); return; }
+  if ((b = q('[data-mes]'))) { est.mes = +b.dataset.mes; repinta(); return; }
+  if ((b = q('[data-ab]'))) { est.ab[b.dataset.ab] = !est.ab[b.dataset.ab]; repinta(); return; }
+  if ((b = q('[data-sedec]'))) { est.sedeC = b.dataset.sedec; est.medio = null; repinta(); return; }
+  if ((b = q('[data-poner]'))) { COBROS[est.sedeC][est.medio] = b.dataset.poner; est.medio = null; repinta(); return; }
+  if ((b = q('[data-medio]'))) { est.medio = est.medio === b.dataset.medio ? null : b.dataset.medio; repinta(); return; }
+  if ((b = q('[data-filtrof]'))) { est.filtroF = b.dataset.filtrof; repinta(); return; }
+  if ((b = q('[data-topes]'))) { est.topeS = b.dataset.topes; repinta(); return; }
+  if (q('[data-toptop]')) { estado.top = 'con'; pintar(); return; }
+  if ((b = q('[data-conf]'))) { est.hechos.add(+b.dataset.conf); repinta(); return; }
+  if (est.medio && !q('.lista-f')) { est.medio = null; repinta(); }
+});
+document.addEventListener('pointermove', (ev) => { if (ev.pointerType !== 'mouse' || matchMedia('(prefers-reduced-motion: reduce)').matches) return; document.querySelectorAll('#cont .liq').forEach((el) => { const r = el.getBoundingClientRect(), z = r.width / el.offsetWidth || 1; el.style.setProperty('--mx', `${(ev.clientX - r.left) / z}px`); el.style.setProperty('--my', `${(ev.clientY - r.top) / z}px`); }); }, { passive: true });
+addEventListener('resize', () => requestAnimationFrame(dibujarHilos));
+Marco.iniciar({ estado: { top: 'vacio' }, alPintar: (e) => { pintarC(e); }, alAccion: (a) => { if (a === 'repetir') pintarC(estado, true); } });
+
+}
+</script>
+</body>
+</html>

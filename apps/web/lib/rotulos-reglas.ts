@@ -26,7 +26,17 @@ export type Rotulo = {
   modelos: string[];
   marcas: string[];
   tallas: string[];
+  /** Rótulo de marca (Felipe 2026-11-13): solo el nombre, que se lleva TODO el papel (sin la línea de marca ni las tallas). */
+  soloNombre?: boolean;
 };
+
+/** Una marca del catálogo, para su rótulo. */
+export type MarcaRotulo = { id: string; nombre: string };
+
+/** El rótulo de una marca: su nombre solo, lo más grande que entra en el papel entero. La clave no choca con la de un modelo. */
+export function rotuloDeMarca(m: MarcaRotulo): Rotulo {
+  return { clave: `marca:${m.id}`, modelos: [m.nombre.trim()], marcas: [], tallas: [], soloNombre: true };
+}
 
 /** Hasta cuántos modelos entran juntos en un rótulo y se siguen leyendo de lejos. Más, y el nombre baja a letra de lista. */
 export const MAX_JUNTOS = 4;
@@ -73,6 +83,10 @@ export const ANCHO_NOMBRE_MM = 57;
 export const ALTO_NOMBRE_MM = 23.5;
 /** Ni una palabra corta («MIA») pasa de aquí: más grande ya no se lee mejor y se come el aire del rótulo. */
 export const MAX_NOMBRE_MM = 14;
+/** El alto del nombre cuando va solo (rótulo de marca): los 35,1 mm útiles del papel menos medio milímetro de aire. */
+export const ALTO_SOLO_NOMBRE_MM = 34.6;
+/** Tope de la letra cuando el nombre va solo: una marca corta («MIA») crece más que en el rótulo de prenda, pero no sin fin. */
+export const MAX_SOLO_NOMBRE_MM = 24;
 /** Interlineado del nombre (`line-height` en la hoja): las mayúsculas no tienen descendentes. */
 export const INTERLINEA_NOMBRE = 1.02;
 /** Hasta cuántas líneas puede ocupar el nombre. */
@@ -103,17 +117,30 @@ export function anchoEm(texto: string): number {
   return total;
 }
 
-/** Cuántas líneas salen si se corta como el navegador (palabra entera que no cabe, baja), con líneas de `ancho` em. */
-function lineasConAncho(palabras: readonly string[], ancho: number): number {
+/**
+ * Cuánto mide un texto en «em» con la letra del nombre (DM Sans 800, mayúsculas). La tabla (`anchoEm`) es la medida de fábrica
+ * —la del servidor y la de las pruebas—; en el navegador manda la letra que de verdad dibuja ESA computadora
+ * (`useMedirNombre`, `components/rotulos/useMedirNombre.ts`), para que el nombre quepa aunque la letra cambie o no llegue a cargar.
+ */
+export type MedirEm = (texto: string) => number;
+
+/**
+ * Cuántas líneas salen si se corta como el navegador (palabra entera que no cabe, baja), con líneas de `ancho` em. `Infinity` si
+ * una palabra sola no entra en la línea: el navegador la partiría a la mitad. Hasta el 2026-11-07 ese caso contaba como «una
+ * línea más» y «VESTIDO CAMPANITA» salía a 11 mm, ancho de «VESTIDO»: CAMPANITA no entraba, se partía en «CAMPANIT / A» y la
+ * tercera línea se montaba sobre la marca (foto de Felipe en la tienda).
+ */
+function lineasConAncho(palabras: readonly string[], ancho: number, medir: MedirEm): number {
   let lineas = 1;
-  let actual = 0;
+  let actual = "";
   for (const p of palabras) {
-    const w = anchoEm(p);
-    const conEspacio = actual === 0 ? w : actual + ANCHO_LETRA[" "] + w;
-    if (conEspacio <= ancho + 1e-9) actual = conEspacio;
+    if (medir(p) > ancho + 1e-9) return Infinity;
+    // Se mide la línea entera, no palabra por palabra: así cuentan el espacio y los pares de letras tal como se dibujan.
+    const junto = actual === "" ? p : `${actual} ${p}`;
+    if (medir(junto) <= ancho + 1e-9) actual = junto;
     else {
       lineas++;
-      actual = w;
+      actual = p;
     }
   }
   return lineas;
@@ -123,29 +150,34 @@ function lineasConAncho(palabras: readonly string[], ancho: number): number {
  * El tamaño del nombre en mm y en cuántas líneas cabe: el MÁS GRANDE posible (Felipe, 2026-10-09). Prueba 1, 2 y 3 líneas; para
  * cada una busca el corte más parejo (el ancho más chico de línea con el que el corte del navegador no pasa de esas líneas) y se
  * queda con el tamaño mayor que respeta el ancho y el alto. Lo usa la hoja como `font-size`, así que lo que se ve es lo que sale.
+ * Ninguna palabra se parte: el ancho de cada línea sale de medir palabras enteras, así que la más larga siempre entra completa.
  */
-export function medidaNombre(nombres: readonly string[]): { mm: number; lineas: number } {
+export function medidaNombre(
+  nombres: readonly string[],
+  medir: MedirEm = anchoEm,
+  { alto = ALTO_NOMBRE_MM, max = MAX_NOMBRE_MM }: { alto?: number; max?: number } = {},
+): { mm: number; lineas: number } {
   // Los nombres juntos van separados por «·», pegado al nombre anterior (si el siguiente baja, el punto no queda colgando).
   const palabras = nombres.flatMap((n, i) => {
     const p = n.trim().split(/\s+/).filter(Boolean);
     if (i < nombres.length - 1 && p.length > 0) p[p.length - 1] += " ·";
     return p;
   });
-  if (palabras.length === 0) return { mm: MAX_NOMBRE_MM, lineas: 1 };
+  if (palabras.length === 0) return { mm: max, lineas: 1 };
   // Anchos candidatos: cada tramo seguido de palabras (con pocas palabras son pocos). El corte óptimo para L líneas usa uno de ellos.
   const candidatos = new Set<number>();
   for (let i = 0; i < palabras.length; i++) {
-    for (let j = i; j < palabras.length; j++) candidatos.add(anchoEm(palabras.slice(i, j + 1).join(" ")));
+    for (let j = i; j < palabras.length; j++) candidatos.add(medir(palabras.slice(i, j + 1).join(" ")));
   }
   const anchos = [...candidatos].sort((a, b) => a - b);
   let mejor = { mm: 0, lineas: 1 };
   for (let lineas = 1; lineas <= MAX_LINEAS; lineas++) {
-    const ancho = anchos.find((w) => lineasConAncho(palabras, w) <= lineas);
+    const ancho = anchos.find((w) => lineasConAncho(palabras, w, medir) <= lineas);
     if (ancho === undefined) continue;
     const porAncho = (ANCHO_NOMBRE_MM * HOLGURA) / ancho;
-    const porAlto = (ALTO_NOMBRE_MM * HOLGURA) / (lineas * INTERLINEA_NOMBRE);
-    const mm = Math.floor(Math.min(porAncho, porAlto, MAX_NOMBRE_MM) * 10) / 10;
-    if (mm > mejor.mm) mejor = { mm, lineas: lineasConAncho(palabras, ANCHO_NOMBRE_MM / mm) };
+    const porAlto = (alto * HOLGURA) / (lineas * INTERLINEA_NOMBRE);
+    const mm = Math.floor(Math.min(porAncho, porAlto, max) * 10) / 10;
+    if (mm > mejor.mm) mejor = { mm, lineas: lineasConAncho(palabras, ANCHO_NOMBRE_MM / mm, medir) };
   }
   return mejor;
 }

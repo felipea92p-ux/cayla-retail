@@ -38,24 +38,26 @@ export function FrescuraTablero({
   // 530 px contra 497). Las dos de la derecha son `auto`: miden lo más ancho que haya en TODAS las filas y se achican a cero si
   // ninguna fila dice nada ahí (en la forma completa, sin nada por decidir, no queda una columna vacía de 112 px). En la forma
   // compacta las cifras de la barra van en su propia columna, por lo mismo: «● 2 ● 2» es más ancho que «● 1» y acortaba la barra.
+  // Las columnas se deciden por el ancho de la sección (`@container`), no de la ventana: a 768 con el lateral la tarjeta mide ≈394 px
+  // y la forma en columnas (que pide hasta ≈633 con «Comparada con las 3 tiendas») se cortaba. Bajo 40rem, la fila apilada.
   const plantilla = compacto
-    ? "md:grid-cols-[minmax(170px,1fr)_minmax(240px,2fr)_auto_auto_auto]"
-    : "md:grid-cols-[minmax(150px,1fr)_minmax(200px,2fr)_auto_auto]";
-  const tramo = compacto ? "md:col-span-5" : "md:col-span-4";
+    ? "@min-[40rem]:grid-cols-[minmax(150px,1fr)_minmax(120px,2fr)_auto_auto_auto]"
+    : "@min-[40rem]:grid-cols-[minmax(150px,1fr)_minmax(200px,2fr)_auto_auto]";
+  const tramo = compacto ? "@min-[40rem]:col-span-5" : "@min-[40rem]:col-span-4";
   return (
-    <section aria-label="El piso, por categoría" data-guia="frescura.tablero" className="border-b border-sand px-4 pb-3 pt-4 sm:px-5">
+    <section aria-label="El piso, por categoría" data-guia="frescura.tablero" className="@container border-b border-sand px-4 pb-3 pt-4 sm:px-5">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <TituloSeccion>Por categoría</TituloSeccion>
         {acciones}
       </div>
-      <div className={`mt-2 divide-y divide-sand md:grid md:gap-x-4 ${plantilla}`}>
+      <div className={`mt-2 divide-y divide-sand @min-[40rem]:grid @min-[40rem]:gap-x-4 ${plantilla}`}>
         {filas.map((f) => {
           const activa = elegida === f.categoriaId;
           const segmentos = segmentosDe(f);
           // Las cifras de la barra en texto (nunca solo al pasar el mouse: Formidable, ley 6); el lector de pantalla ya las oye en el
           // resumen de la barra, así que aquí van ocultas para él.
           const cifras = segmentos.length > 0 && (
-            <span aria-hidden className={`flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] leading-snug text-taupe tabular-nums ${compacto ? "shrink-0" : "mt-1"}`}>
+            <span aria-hidden className={`flex flex-wrap gap-x-3 gap-y-0.5 text-sm leading-snug text-taupe tabular-nums ${compacto ? "shrink-0" : "mt-1"}`}>
               {segmentos.map((s) => (
                 <span key={s.clave} className="flex items-center gap-1" title={s.nombre}>
                   <MuestraTramo clase={s.clase} />
@@ -70,14 +72,14 @@ export function FrescuraTablero({
               type="button"
               aria-pressed={activa}
               onClick={() => onElegir(activa ? null : f.categoriaId)}
-              className={`fila-cayla grid w-full grid-cols-1 items-center gap-x-4 text-left md:grid-cols-subgrid ${tramo} ${compacto ? "gap-y-1 py-1.5" : "gap-y-1.5 py-2.5"} ${activa ? "bg-sand/60" : ""}`}
+              className={`fila-cayla grid w-full grid-cols-1 items-center gap-x-4 text-left @min-[40rem]:grid-cols-subgrid ${tramo} ${compacto ? "gap-y-1 py-1.5" : "gap-y-1.5 py-2.5"} ${activa ? "bg-sand/60" : ""}`}
             >
               {compacto ? (
                 <span className="block truncate text-[15px] font-semibold leading-tight">{f.nombre}</span>
               ) : (
                 <span className="min-w-0">
                   <span className="block truncate text-[15px] font-semibold leading-tight">{f.nombre}</span>
-                  <span className="block text-[12.5px] leading-snug text-taupe">
+                  <span className="block text-sm leading-snug text-taupe">
                     {f.prendas} {f.prendas === 1 ? "prenda" : "prendas"} · {f.total} {f.total === 1 ? "unidad" : "unidades"}
                   </span>
                 </span>
@@ -94,11 +96,11 @@ export function FrescuraTablero({
                 </span>
               )}
               {/* «N por decidir» solo cuando hay (Formidable, ley 8: «Nada por decidir» en cada fila era ruido). */}
-              <span className="text-[13.5px] font-semibold tabular-nums text-ambar-profundo">{f.porDecidir > 0 ? `${f.porDecidir} por decidir` : ""}</span>
-              <span className="md:justify-self-start">
+              <span className="text-[15px] font-semibold tabular-nums text-ambar-profundo">{f.porDecidir > 0 ? `${f.porDecidir} por decidir` : ""}</span>
+              <span className="@min-[40rem]:justify-self-start">
                 {f.vara && (
                   // `tachado={false}`: el tono apagado tacha por defecto (es lo que pide «Anulado»); «Sin ventas aún» no es una anulación.
-                  <Chip tono={f.vara.tono} tachado={false} className="!px-2 !text-[12px] !leading-[18px]">
+                  <Chip tono={f.vara.tono} tachado={false} className="!px-2 !text-sm !leading-[18px]">
                     {f.vara.texto}
                   </Chip>
                 )}

@@ -40,6 +40,7 @@ import { CostoPrenda } from "@/components/historial-prenda/CostoPrenda";
 import { erroresDelCosto } from "@/lib/costo-prenda-reglas";
 import { horaLima, hoyLima } from "@/lib/fechas-lima";
 import type { LecturaHistorial } from "@/lib/historial-prenda-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /**
  * El historial de una prenda (ADR-0354): maqueta A «Hilo del tiempo», elegida por Felipe el 2026-10-06
@@ -98,6 +99,7 @@ export function HistorialPrenda({
   hrefMovimientos,
   onVolver,
   onReintentar,
+  abrirEnCosto = false,
 }: {
   /** La prenda: la hoja de corregir su costo la necesita para hablarle a la base. */
   productoId: string;
@@ -111,6 +113,8 @@ export function HistorialPrenda({
   /** En la vista rápida: vuelve a la ficha. En la página suelta no hay a dónde volver. */
   onVolver?: () => void;
   onReintentar?: () => void;
+  /** Llega desde «Ver la historia del costo» de la ficha (`?ver=costo`, ADR-0631): abre en la pestaña «Costo», si la hay. */
+  abrirEnCosto?: boolean;
 }) {
   const hoy = hoyLima();
   const router = useRouter();
@@ -118,7 +122,9 @@ export function HistorialPrenda({
   const alCorregirCosto = () => (onReintentar ? onReintentar() : router.refresh());
   const eventos = useMemo(() => (lectura.estado === "ok" ? lectura.eventos : []), [lectura]);
   // «costo» no es una familia de cambios: es la pestaña que cuenta las compras que movieron el costo (CostoPrenda).
-  const [familia, setFamilia] = useState<Familia | "todo" | "costo">("todo");
+  const [familia, setFamilia] = useState<Familia | "todo" | "costo">(() =>
+    abrirEnCosto && lectura.estado === "ok" && (lectura.costo?.compras.length ?? 0) > 0 ? "costo" : "todo",
+  );
   const [persona, setPersona] = useState<string | null>(null);
   const lista = useMemo(() => (familia === "costo" ? [] : filtrarEventos(eventos, familia, persona)), [eventos, familia, persona]);
   // La pestaña aparece si hay compras que movieron el costo o costos que alguien arregló a mano.
@@ -427,7 +433,7 @@ function Precio({ antes, despues }: { antes: number | null; despues: number | nu
     const el = ref.current;
     const tarjeta = el?.closest(".hp-ev");
     if (!el || !tarjeta || antes === null || despues === null) return;
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (prefiereQuieto()) return;
     let marco = 0;
     const arrancar = () => {
       const espera = Number.parseInt(getComputedStyle(tarjeta).getPropertyValue("--hp-d")) || 0;

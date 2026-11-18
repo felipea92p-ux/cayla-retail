@@ -1,8 +1,10 @@
-import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTaller } from "@/lib/produccion";
-import { getInsumosDelTaller } from "@/lib/insumos";
-import { getVocabularioDeTelas } from "@/lib/telas-vocabulario";
+import { getInsumosDelTaller, getTelasCortadasSinAnotar } from "@/lib/insumos";
+import { getProveedoresProduccion } from "@/lib/proveedores-produccion";
+import { opcional } from "@/lib/resultado";
+import { avisosDeTelaCortada } from "@/lib/telas-cortadas-sin-anotar-reglas";
+import { getClasesDeAvio, getColoresDeLaCarta, getVocabularioDeTelas } from "@/lib/telas-vocabulario";
 import { hoyLima } from "@/lib/fechas-lima";
 import { InsumosPanel } from "@/components/InsumosPanel";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
@@ -10,6 +12,7 @@ import { puedeVerProduccion } from "@/lib/produccion-menu";
 import { Factory } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { getOrdenesInsumoPorRecibir } from "@/lib/recepcion-orden-insumo";
 
 // Insumos del Taller (ADR-0133, F3): tela y avíos, con su saldo por lote. Mismo acceso que Órdenes (`puedeVerProduccion`):
 // solo parado en el Taller, líder incluido. El costo de cada lote lo ve quien ve Producción en el Taller (Felipe 2026-10-15,
@@ -18,8 +21,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 export default async function InsumosPage() {
   const persona = await requirePersonaActualV2();
   if (!puedeVerProduccion(persona)) {
-    if (!persona.puedeCambiarUbicacion) redirect("/");
-    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} />;
+    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} puedeCambiarUbicacion={persona.puedeCambiarUbicacion} />;
   }
 
   const taller = await getTaller();
@@ -29,7 +31,7 @@ export default async function InsumosPage() {
         <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Insumos" />
         <div className="card-cayla">
           <Vacio icono={<Factory />} titulo="No hay un Taller activo">
-            Insumos necesita una ubicación de tipo Taller para saber dónde están la tela y los avíos. Pídele al líder que active el Taller.
+            Falta el Taller. Pídele al líder que lo active.
           </Vacio>
         </div>
       </div>
@@ -37,10 +39,20 @@ export default async function InsumosPage() {
   }
 
   const esLider = persona.rol === "lider";
-  const [datosConCostos, vocabulario] = await Promise.all([
+  const [datosConCostos, vocabulario, carta, clases, telasCortadas, proveedores, porRecibir] = await Promise.all([
     getInsumosDelTaller(taller.id, { conCostos: true, hoy: hoyLima() }),
     // Dato de apoyo (la ficha de la tela): si no se lee, la lista sigue en pie y la ficha lo dice.
     getVocabularioDeTelas(),
+    // La carta de colores de «Nueva tela» y «Nuevo avío» (la misma de Catálogo): también de apoyo.
+    getColoresDeLaCarta(),
+    // Las clases de avío (ADR-0580): sin ellas, «Nuevo avío» lo dice en vez de preguntar a ciegas.
+    getClasesDeAvio(),
+    // Dato de apoyo: las órdenes que ya cortaron con una tela que hay en el estante y no la anotaron. Si la base no responde, la pantalla sigue sin el aviso.
+    getTelasCortadasSinAnotar(taller.id),
+    // A quién se le puede comprar (P03: «Ingresar insumo ▸ Compra» pide proveedor). Solo el líder los lee; si no responden, la hoja dice que no hay y no deja comprar sin proveedor.
+    esLider ? opcional(getProveedoresProduccion(), "los proveedores de la compra") : Promise.resolve(null),
+    // Los pedidos abiertos: «Llegó una compra» avisa si el proveedor tiene uno. Dato de apoyo.
+    esLider ? opcional(getOrdenesInsumoPorRecibir(taller.id), "los pedidos abiertos") : Promise.resolve(null),
   ]);
   // `veCostos` lo dice la base (si no entregó costo teniendo lotes, no se dibuja «S/ 0.00» como si fuera un dato). El capital total es solo del líder.
   const veCostos = datosConCostos.veCostos;
@@ -48,7 +60,22 @@ export default async function InsumosPage() {
 
   return (
     <div className="space-y-6">
-      <InsumosPanel sede={persona.ubicacionEtiqueta} datos={datos} tallerId={taller.id} esLider={esLider} veCostos={veCostos} vocabulario={vocabulario.vocabulario} leyoVocabulario={vocabulario.leyo} />
+      <InsumosPanel
+        sede={persona.ubicacionEtiqueta}
+        datos={datos}
+        tallerId={taller.id}
+        esLider={esLider}
+        veCostos={veCostos}
+        vocabulario={vocabulario.vocabulario}
+        leyoVocabulario={vocabulario.leyo}
+        colores={carta.colores}
+        leyoColores={carta.leyo}
+        clases={clases.clases}
+        leyoClases={clases.leyo}
+        avisosDeTela={avisosDeTelaCortada(telasCortadas)}
+        pedidos={porRecibir?.ordenes ?? []}
+        proveedores={(proveedores ?? []).filter((p) => p.activo).map((p) => ({ id: p.id, nombre: p.nombre, plazoCreditoDias: p.plazoCreditoDias }))}
+      />
     </div>
   );
 }

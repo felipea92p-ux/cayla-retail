@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cancelar recepción: la hoja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@500&display=swap" rel="stylesheet">
+<style>
+/* MAQUETA · la hoja «Cancelar la recepción» (ADR-0605), más compacta (Felipe 2026-11-03: «sin tanto texto, solo cosas necesarias, palabras precisas»).
+   Antes (lo que hay hoy) frente a dos propuestas. Hoja de vidrio «Serena», pozo para el campo, gota para lo que se elige. Solo tokens, claro y oscuro; datos inventados. */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--borde:#96786a;--vidrio:#ffffff;--lienzo:#ddd5c6;--ease:cubic-bezier(.32,.72,.24,1)}
+:root[data-tema="oscuro"]{--crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--borde:#8d7a6e;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--vidrio:#33302a;--lienzo:#0f0e0c}
+:root{--t80:color-mix(in srgb,var(--tinta) 80%,transparent);--t65:color-mix(in srgb,var(--tinta) 66%,transparent);--t12:color-mix(in srgb,var(--tinta) 12%,transparent);--t06:color-mix(in srgb,var(--tinta) 6%,transparent)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--lienzo);color:var(--tinta);font:14px/1.5 'DM Sans',system-ui,sans-serif;padding:20px 20px 60px;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:500}
+.barra{display:flex;gap:12px;align-items:center;justify-content:space-between;max-width:1380px;margin:0 auto 18px}
+.barra h1{font-size:15px}.barra p{color:var(--t65);font-size:13px}
+.tg{border:1px solid var(--borde);border-radius:999px;padding:6px 14px;font-size:12px;background:var(--papel)}
+.fila{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;max-width:1380px;margin:0 auto;align-items:start}
+@media (max-width:1100px){.fila{grid-template-columns:1fr;max-width:480px}}
+.col .rot{margin-bottom:10px;min-height:44px}
+.col .rot b{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--rojo-p)}
+.col .rot span{color:var(--t65);font-size:13px}
+.col .rot .rec{display:inline-block;background:var(--verde);color:var(--crema);font-size:11px;font-weight:700;letter-spacing:.08em;padding:1px 9px;border-radius:999px;margin-left:8px;vertical-align:1px}
+[data-tema="oscuro"] .col .rot .rec{color:#1c1a17}
+.px{background:linear-gradient(135deg,color-mix(in srgb,var(--rojo) 10%,var(--crema)),var(--crema));border-radius:22px;padding:22px;min-height:100px}
+/* la hoja Serena */
+.hoja{width:100%;max-width:448px;margin:0 auto;border-radius:32px;padding:26px 26px 22px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 82%,transparent),color-mix(in srgb,var(--vidrio) 64%,transparent)),var(--papel);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),inset 0 0 0 1px var(--t12),0 24px 60px color-mix(in srgb,var(--tinta) 20%,transparent)}
+[data-tema="oscuro"] .hoja{background:var(--papel)}
+.hoja h2{font-size:27px;line-height:1.15;letter-spacing:-.005em}
+.hoja .sub{color:var(--taupe);font-size:14px;margin-top:4px}
+.hoja .sub b{color:var(--tinta);font-weight:600}
+.cuerpo{display:grid;gap:14px;margin-top:16px}
+.aviso{display:flex;gap:12px;padding:14px 16px;border-radius:18px;background:var(--t06);box-shadow:inset 0 0 0 1px var(--t12);font-size:14px;line-height:1.45}
+.aviso .ico{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--ambar) 14%,transparent);color:var(--ambar);font-weight:700}
+.aviso b.t{display:block;margin-bottom:2px}
+.nota{display:flex;gap:10px;align-items:center;padding:10px 14px;border-radius:16px;background:var(--t06);box-shadow:inset 0 0 0 1px var(--t12);font-size:13.5px;color:var(--t80)}
+.lb{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--tinta);display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.lb .sigue{letter-spacing:.04em;text-transform:none;font-weight:600;font-size:12px;color:var(--rojo-p);background:color-mix(in srgb,var(--rojo) 14%,transparent);padding:2px 10px;border-radius:999px}
+.lb .ok{color:var(--verde)}
+.pozo{display:block;width:100%;height:44px;padding:0 14px;border-radius:14px;border:0;outline:0;background:color-mix(in srgb,var(--hueso) 70%,transparent);box-shadow:inset 0 2px 4px color-mix(in srgb,var(--tinta) 10%,transparent),inset 0 0 0 1px var(--t12);transition:box-shadow .2s var(--ease)}
+.pozo:focus{box-shadow:inset 0 0 0 1.5px var(--tinta),0 0 0 3px color-mix(in srgb,var(--rojo) 25%,transparent)}
+.pozo::placeholder{color:var(--t65)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{height:34px;padding:0 14px;border-radius:999px;font-size:13px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent));box-shadow:inset 0 0 0 1px var(--t12);transition:transform .2s var(--ease),box-shadow .2s var(--ease)}
+.chip:hover{transform:translateY(-1px)}
+.chip[aria-pressed="true"]{background:var(--tinta);color:var(--crema);box-shadow:none}
+.resp{display:flex;align-items:center;gap:10px;height:44px;padding:0 14px;border-radius:14px;background:color-mix(in srgb,var(--hueso) 70%,transparent);box-shadow:inset 0 0 0 1px var(--t12)}
+.av{width:26px;height:26px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font:500 13px 'EB Garamond',serif}
+.resp .fl{margin-left:auto;color:var(--t65)}
+.sigue-aqui{padding:12px;margin:-12px;border-radius:20px;background:linear-gradient(color-mix(in srgb,var(--rojo) 7%,transparent),color-mix(in srgb,var(--rojo) 7%,transparent));box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--rojo) 45%,transparent)}
+.falta{font-size:12.5px;color:var(--t65);display:flex;gap:8px;align-items:center}
+.falta i{font-style:normal;padding:1px 10px;border-radius:999px;box-shadow:inset 0 0 0 1px var(--t12)}
+.pie{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
+.btn{height:40px;padding:0 18px;border-radius:12px;font-size:13.5px;font-weight:500;box-shadow:inset 0 0 0 1px var(--borde)}
+.btn.pel{background:var(--rojo-p);color:var(--crema);box-shadow:none;font-weight:600}
+[data-tema="oscuro"] .btn.pel{color:#1c1a17}
+.btn[disabled]{opacity:.42;cursor:not-allowed}
+.cuenta{margin:10px auto 0;max-width:448px;font-size:12.5px;color:var(--t65);display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.cuenta b{color:var(--tinta)}
+.dif{max-width:448px;margin:12px auto 0;display:grid;gap:8px;font-size:13px}
+.dif div{background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:8px 12px}
+.dif b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.si b{color:var(--verde)}.no b{color:var(--rojo-p)}
+.ctl{display:flex;gap:6px;align-items:center}
+.ctl button{border:1px solid var(--borde);border-radius:999px;padding:5px 12px;font-size:12px;background:var(--papel)}
+.ctl button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="barra">
+  <div><h1>Recibir mercadería · la hoja «Cancelar la recepción»</h1><p>Hoy frente a dos propuestas, con el mismo envío. Prueba los dos casos y los chips.</p></div>
+  <div class="ctl">
+    <button id="c0" aria-pressed="true">Nada contado</button><button id="c1" aria-pressed="false">25 prendas contadas</button>
+    <button class="tg" id="tema" style="margin-left:10px">Modo oscuro</button>
+  </div>
+</div>
+
+<div class="fila">
+
+<!-- ============ HOY ============ -->
+<section class="col">
+  <div class="rot"><b>Hoy</b><span>5 bloques de texto, 3 chips y un campo.</span></div>
+  <div class="px"><div class="hoja">
+    <h2 class="serif">Cancelar la recepción de ENV-000004</h2>
+    <p class="sub">Llegó sin aviso y se abrió. Si ya no hay nada que recibir, se anula.</p>
+    <div class="cuerpo">
+      <div class="aviso"><span class="ico">!</span><div><b class="t">Qué pasa al cancelar</b>El envío queda <b>anulado</b> y sale de la lista. <span class="d0">No hay nada contado: no entra nada al stock.</span><span class="d1" hidden>Lo que contaste (25 prendas) se descarta y no entra al stock.</span> Si ya se recibió algo de él, no se cancela: se cuadra y se cierra.</div></div>
+      <div><div class="lb">¿Por qué lo cancelas? <span class="sigue">Sigue aquí</span></div><input class="pozo" placeholder="Ej. Se abrió por error"><div class="chips" style="margin-top:8px"><button class="chip">Se abrió por error</button><button class="chip">Llegó a otra sede</button><button class="chip">Lo mandaron mal</button></div></div>
+      <div><div class="lb"><span class="ok">✓</span> Quién lo cancela</div><div class="nota"><span class="av">i</span><span><b>Eres admin.</b> Guardas a tu nombre, sin autorización.</span></div></div>
+      <div class="falta">Falta: <i>Por qué</i></div>
+      <div class="pie"><button class="btn">Seguir recibiendo</button><button class="btn pel" disabled>Cancelar la recepción</button></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ A ============ -->
+<section class="col">
+  <div class="rot"><b>A · Una línea y el campo</b><span class="rec">RECOMENDADA</span><br><span>Misma hoja, solo lo que decide algo.</span></div>
+  <div class="px"><div class="hoja">
+    <h2 class="serif">Cancelar ENV-000004</h2>
+    <p class="sub"><span class="d0">Queda anulado. No entra nada al stock.</span><span class="d1" hidden>Queda anulado. Se descartan <b>25 prendas</b> contadas.</span></p>
+    <div class="cuerpo">
+      <div class="sigue-aqui" style="margin-top:6px"><div class="lb">Motivo <span class="sigue">Sigue aquí</span></div>
+        <input class="pozo" id="ma" placeholder="Ej. Se abrió por error">
+        <div class="chips" style="margin-top:8px" data-para="ma"><button class="chip" aria-pressed="false">Se abrió por error</button><button class="chip" aria-pressed="false">Llegó a otra sede</button><button class="chip" aria-pressed="false">Lo mandaron mal</button></div>
+      </div>
+      <div><div class="lb"><span class="ok">✓</span> A nombre de</div><div class="resp"><span class="av">F</span>Felipe Álvarez<span class="fl">▾</span></div></div>
+      <div class="pie"><button class="btn">Seguir recibiendo</button><button class="btn pel" id="ba" disabled>Cancelar recepción</button></div>
+    </div>
+  </div></div>
+  <div class="dif">
+    <div class="si"><b>Gana</b>Se quita el aviso de tres líneas y el «Falta»: el campo encendido y el botón apagado ya dicen lo que falta. La regla «si ya se recibió algo, no se cancela» sale: el botón «⋯» ya no existe en ese caso.</div>
+    <div class="no"><b>Ojo</b>«Eres admin. Guardas a tu nombre» vive en el combo compartido de responsable; aquí se muestra recortado, y cambiarlo aplicaría a todas las hojas.</div>
+  </div>
+</section>
+
+<!-- ============ B ============ -->
+<section class="col">
+  <div class="rot"><b>B · Solo opciones, sin escribir</b><span>Un toque y listo; «Otro» abre el campo.</span></div>
+  <div class="px"><div class="hoja">
+    <h2 class="serif">Cancelar ENV-000004</h2>
+    <p class="sub"><span class="d0">Queda anulado. No entra nada al stock.</span><span class="d1" hidden>Queda anulado. Se descartan <b>25 prendas</b> contadas.</span></p>
+    <div class="cuerpo">
+      <div class="sigue-aqui" style="margin-top:6px"><div class="lb">Motivo <span class="sigue">Sigue aquí</span></div>
+        <div class="chips" data-solo><button class="chip" aria-pressed="false">Se abrió por error</button><button class="chip" aria-pressed="false">Llegó a otra sede</button><button class="chip" aria-pressed="false">Lo mandaron mal</button><button class="chip" aria-pressed="false" data-otro>Otro…</button></div>
+        <input class="pozo" id="mb" placeholder="Escribe el motivo" style="margin-top:8px" hidden>
+      </div>
+      <div><div class="lb"><span class="ok">✓</span> A nombre de</div><div class="resp"><span class="av">F</span>Felipe Álvarez<span class="fl">▾</span></div></div>
+      <div class="pie"><button class="btn">Seguir recibiendo</button><button class="btn pel" id="bb" disabled>Cancelar recepción</button></div>
+    </div>
+  </div></div>
+  <div class="dif">
+    <div class="si"><b>Gana</b>Lo más corto: nadie escribe nada en el caso normal.</div>
+    <div class="no"><b>Pierde</b>Los motivos quedan limitados a tres más «Otro»; los reportes de anulados pierden matices si nadie escribe.</div>
+  </div>
+</section>
+
+</div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+$('#tema').onclick=()=>{const o=document.documentElement.dataset.tema==='oscuro';document.documentElement.dataset.tema=o?'claro':'oscuro';$('#tema').textContent=o?'Modo oscuro':'Modo claro'};
+function casos(n){$('#c0').setAttribute('aria-pressed',n===0);$('#c1').setAttribute('aria-pressed',n===1);$$('.d0').forEach(e=>e.hidden=n!==0);$$('.d1').forEach(e=>e.hidden=n!==1)}
+$('#c0').onclick=()=>casos(0);$('#c1').onclick=()=>casos(1);
+// A: los chips rellenan el campo; el botón se enciende con 3+ letras
+const ma=$('#ma'),ba=$('#ba');
+const actA=()=>{ba.disabled=ma.value.trim().length<3;$$('[data-para="ma"] .chip').forEach(c=>c.setAttribute('aria-pressed',c.textContent===ma.value))};
+ma.oninput=actA;$$('[data-para="ma"] .chip').forEach(c=>c.onclick=()=>{ma.value=c.textContent;actA()});
+// B: un chip es la respuesta; «Otro…» abre el campo
+const mb=$('#mb'),bb=$('#bb');
+function actB(){const o=$('[data-otro]').getAttribute('aria-pressed')==='true';mb.hidden=!o;bb.disabled=o?mb.value.trim().length<3:!$$('[data-solo] .chip').some(c=>c.getAttribute('aria-pressed')==='true')}
+$$('[data-solo] .chip').forEach(c=>c.onclick=()=>{$$('[data-solo] .chip').forEach(x=>x.setAttribute('aria-pressed',x===c));actB();if(!mb.hidden)mb.focus()});
+mb.oninput=actB;
+</script>
+</body>
+</html>

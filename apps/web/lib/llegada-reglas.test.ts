@@ -167,7 +167,8 @@ describe("pedidoRecibirLote", () => {
       p_token: "t1",
     });
     const conf = pedidoRecibirLote({ ubicacionId: "tru", proveedorId: "prov", lineas, numeroGuia: "T001-9", token: "t1", confirmadas: [2] });
-    expect(conf.p_items[1]).toMatchObject({ confirma_costo: true });
+    // ADR-0668 (A4): con el monto que la persona vio, que es el que la base vuelve a comparar.
+    expect(conf.p_items[1]).toMatchObject({ confirma_costo: true, confirma_montos: [40] });
     expect(conf.p_items[0]).not.toHaveProperty("confirma_costo");
     expect(conf.p_numero_guia).toBe("T001-9");
   });

@@ -177,9 +177,10 @@ do $$
 begin
   perform retail.registrar_movimiento_caja(
     current_setting('pruebas.caja_b')::uuid, 'ingreso', 15, 'Ajuste de caja (sobrante)', 'sobrante', true);
-  raise notice 'RESULTADO|%|%|%', 'B4 colaboradora (no lider) intenta un ajuste debe RECHAZAR', false, 'no debio permitir el ajuste';
+  -- ADR-0534 (2026-10-27): el ajuste de efectivo ya no es solo del líder; lo anota quien opera esa caja.
+  raise notice 'RESULTADO|%|%|%', 'B4 colaboradora (no lider) SI registra un ajuste en su caja (ADR-0534)', true, 'ok';
 exception when others then
-  raise notice 'RESULTADO|%|%|%', 'B4 colaboradora (no lider) intenta un ajuste debe RECHAZAR', sqlerrm ilike '%líder%', sqlerrm;
+  raise notice 'RESULTADO|%|%|%', 'B4 colaboradora (no lider) SI registra un ajuste en su caja (ADR-0534)', false, sqlerrm;
 end $$;
 
 select set_config('request.jwt.claim.sub', '22222222-2222-4222-8222-000000000001', true); -- Felipe otra vez
@@ -194,19 +195,19 @@ exception when others then
 end $$;
 
 do $$
-declare v_sistema numeric; v_esperado numeric := 100 + 30 - 40 + 15; -- 105
+declare v_sistema numeric; v_esperado numeric := 100 + 30 - 40 + 15 + 15; -- 120: el sobrante de la colaboradora (B4) y el del líder (B5)
 begin
   select monto_sistema into v_sistema from retail.cerrar_caja(current_setting('pruebas.caja_b')::uuid, v_esperado);
-  raise notice 'RESULTADO|%|%|%', 'B6 cerrar_caja calcula 100+30-40+15=105',
+  raise notice 'RESULTADO|%|%|%', 'B6 cerrar_caja calcula 100+30-40+15+15=120',
     v_sistema = v_esperado, 'sistema=' || v_sistema || ' esperado=' || v_esperado;
 exception when others then
-  raise notice 'RESULTADO|%|%|%', 'B6 cerrar_caja calcula 100+30-40+15=105', false, sqlerrm;
+  raise notice 'RESULTADO|%|%|%', 'B6 cerrar_caja calcula 100+30-40+15+15=120', false, sqlerrm;
 end $$;
 
 do $$
 declare v_x numeric;
 begin
-  select monto_sistema into v_x from retail.cerrar_caja(current_setting('pruebas.caja_b')::uuid, 105);
+  select monto_sistema into v_x from retail.cerrar_caja(current_setting('pruebas.caja_b')::uuid, 120);
   raise notice 'RESULTADO|%|%|%', 'B7 cerrar una caja ya cerrada debe RECHAZAR', false, 'no debio permitir: ' || v_x;
 exception when others then
   raise notice 'RESULTADO|%|%|%', 'B7 cerrar una caja ya cerrada debe RECHAZAR', sqlerrm ilike '%cerrada%', sqlerrm;

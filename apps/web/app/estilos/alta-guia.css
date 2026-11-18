@@ -1,10 +1,9 @@
 /* «EL HILO» DEL ALTA DE PRODUCTO (ADR-0284)
-   Cómo se ve la guía de «Nuevo producto»: una marca en el título de cada campo (hecha, sigue aquí, falta, opcional), un tinte
-   suave en el campo que sigue y una etiqueta «Sigue aquí». El movimiento es de RESPUESTA a lo que la persona hace (ADR-0136):
-   un solo pulso al llegar, un ✓ que se dibuja al completar, un destello cuando la llevan a un campo. Nunca en bucle —salvo
-   las rayas del círculo punteado de un campo opcional, que giran—, sin rebote, con `--ease-cayla`, y todo se apaga con
+   Cómo se ve la guía de «Nuevo producto»: una marca en el título de cada campo (hecha, sigue, falta), un hilo
+   al costado del campo que sigue y la palabra «Sigue». El movimiento es de RESPUESTA a lo que la persona hace (ADR-0136):
+   un solo pulso al llegar, un ✓ que se dibuja al completar, un destello cuando la llevan a un campo. Nunca en bucle, sin rebote, con `--ease-cayla`, y todo se apaga con
    `prefers-reduced-motion`. Los colores salen solo de los tokens de
-   globals.css (ADR-0169); el rojo no se usa: aquí nada es un error, es un camino. */
+   globals.css (ADR-0169). Desde el 2026-11-05 el campo que sigue lleva «El hilo» (ver «LA LUZ» más abajo): tinta, porque el rojo es solo del error. */
 
 /* ---- La marca de un campo: 18 px, a la izquierda de su título ---- */
 .hilo-marca {
@@ -15,6 +14,8 @@
   width: 18px;
   height: 18px;
   border-radius: 999px;
+  /* Sin esto, la línea del título medía distinto según la marca tuviera contenido o no: la caja de abajo se movía 4,5 px al llegarle la luz. */
+  vertical-align: top;
   transition: background-color 240ms var(--ease-cayla), border-color 240ms var(--ease-cayla);
 }
 .hilo-marca[data-estado="hecho"] {
@@ -44,12 +45,14 @@
 .hilo-marca[data-estado="falta"] {
   border: 1.5px solid color-mix(in srgb, var(--color-tinta) 30%, transparent);
 }
+/* Un campo opcional no lleva marca en su título: el texto ya dice «Opcional», y el círculo que giraba era movimiento de más (Felipe 2026-11-05). En un
+   «Sin elegir» del pie, lo que solo conviene se distingue con un círculo punteado, quieto. */
 .hilo-marca[data-estado="opcional"] {
+  display: none;
+}
+.hilo-chip .hilo-marca[data-estado="opcional"] {
+  display: inline-grid;
   border: 1.5px dashed color-mix(in srgb, var(--color-tinta) 26%, transparent);
-  /* Las rayas dan la vuelta, despacio y sin parar: un círculo punteado quieto pasaba por «decoración» y nadie lo leía como «esto es
-     opcional, puedes saltarlo». Es un borde, sin contenido: girar el propio círculo hace correr las rayas. Única marca en bucle de la guía
-     (Felipe, 2026-09-30; excepción a «nunca en bucle», ADR-0136 act. c); con movimiento reducido queda quieto. */
-  animation: hilo-gira 8s linear infinite;
 }
 /* El ✓ se dibuja una vez, al pasar a «hecho» (la marca se vuelve a montar con su estado). */
 .hilo-tilde {
@@ -57,9 +60,6 @@
   animation: hilo-trazo 320ms var(--ease-cayla) 60ms backwards;
 }
 
-@keyframes hilo-gira {
-  to { transform: rotate(360deg); }
-}
 @keyframes hilo-pulso {
   from { transform: scale(1); opacity: 0.6; }
   to { transform: scale(2.2); opacity: 0; }
@@ -69,13 +69,11 @@
 }
 
 /* ---- La fila de un campo ----
-   Sale 12 px a cada lado y se los devuelve de relleno: el contenido no se corre, pero el tinte del campo que sigue le
-   queda holgado. El divisor vive en la capa de adentro para que no se salga con el tinte. */
+   Sale 12 px a cada lado y se los devuelve de relleno: el contenido no se corre, y el hilo del campo que sigue va en ese margen.
+   El divisor vive en la capa de adentro. */
 .hilo-fila {
   margin-inline: -0.75rem;
   padding-inline: 0.75rem;
-  border-radius: 0.75rem;
-  transition: background-color 260ms var(--ease-cayla);
 }
 .hilo-fila > .hilo-fila-in {
   border-top: 1px solid var(--color-sand);
@@ -85,47 +83,66 @@
   border-top-width: 0;
   padding-top: 0.5rem;
 }
-.hilo-fila[data-estado="ahora"] {
-  background: color-mix(in srgb, var(--color-hueso) 55%, transparent);
-}
-.hilo-fila[data-estado="ahora"] > .hilo-fila-in {
-  border-top-color: transparent;
-}
-/* La fila que sigue a una con tinte no repite el divisor pegado al borde del tinte. */
-.hilo-fila[data-estado="ahora"] + .hilo-fila > .hilo-fila-in {
-  border-top-color: transparent;
-}
 
-/* «Sigue aquí»: la etiqueta del título del campo que sigue. */
+/* «Sigue»: la palabra que acompaña al hilo (Felipe 2026-11-05, cara A). Es la misma letra del título, sin pastilla ni fondo. Donde es un estado
+   de una lista o de una tarjeta va en su lugar; en el título de un campo guiado (`-flota`) va fuera de flujo, a la derecha del bloque: que aparezca
+   no parte la etiqueta ni mueve la caja (con la pastilla, «Código» bajaba 15,5 px al llegarle la luz). Si no le cabe, se calla (`EtiquetaAhora`). */
 .hilo-etiqueta {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 1px 8px;
-  font-size: 10.5px;
+  white-space: nowrap;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  line-height: 1.5;
-  text-transform: uppercase;
+  line-height: 18px;
+  /* El título del campo está en versalitas con letra abierta: la palabra no hereda ni lo uno ni lo otro. */
+  text-transform: none;
+  letter-spacing: 0;
   color: var(--color-tinta);
-  background: color-mix(in srgb, var(--color-tinta) 8%, transparent);
-  animation: cayla-revelar 240ms var(--ease-cayla) both;
+  animation: hilo-llega 200ms var(--ease-cayla) both;
+}
+.hilo-luz .hilo-etiqueta-flota,
+.hilo-fila-in .hilo-etiqueta-flota {
+  position: absolute;
+  right: 0;
+  top: 0;
+  pointer-events: none;
+}
+.hilo-fila-in { position: relative; }
+.hilo-fila-in .hilo-etiqueta-flota { top: 0.875rem; }
+.hilo-fila:first-child > .hilo-fila-in .hilo-etiqueta-flota { top: 0.5rem; }
+/* No le cabe (lo mide `EtiquetaAhora`), o el campo ya dice su error: la palabra no se ve, pero el lector de pantalla la sigue leyendo. */
+.hilo-etiqueta[data-sin-lugar],
+.hilo-luz[data-error] .hilo-etiqueta {
+  opacity: 0;
+}
+@keyframes hilo-llega {
+  from { opacity: 0; }
 }
 
-/* Un destello cuando la persona es llevada a un campo (un toque en «Falta: Tejido»): la fila se tiñe y vuelve. */
+/* Un destello cuando la persona es llevada a un campo (al tocar «Guardar» con algo vacío, o una cosa de «Falta»): una luz difuminada que nace del
+   centro del campo y se va sola, sin borde que se note. Antes el bloque entero se teñía y se veía como un rectángulo (Felipe 2026-11-05, maqueta
+   docs/maquetas/guia-que-acompana-2026-11/). Va en un `::after` porque el `::before` es el hilo. */
 [data-campo][data-llamado] {
-  animation: hilo-llamado 1100ms var(--ease-cayla) 1;
+  position: relative;
+  isolation: isolate;
 }
-.hilo-fila[data-llamado][data-estado="ahora"],
-.hilo-tarjeta[data-llamado][data-estado="ahora"] {
-  animation-name: hilo-llamado-ahora;
+[data-campo][data-llamado]::after {
+  content: "";
+  position: absolute;
+  inset: -1rem -1.125rem;
+  z-index: -1;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  filter: blur(10px);
+  background: radial-gradient(ellipse closest-side, color-mix(in srgb, var(--color-taupe) 20%, transparent) 40%, transparent);
+  animation: hilo-destello 1100ms var(--ease-cayla) 1;
 }
+@keyframes hilo-destello {
+  0%, 100% { opacity: 0; }
+  30% { opacity: 1; }
+}
+/* El de una tarjeta entera con sus esquinas (Nuevo producto ▸ las parecidas): la tarjeta se tiñe y vuelve. */
 @keyframes hilo-llamado {
   0%, 100% { background-color: transparent; }
-  30% { background-color: var(--color-hueso); }
-}
-@keyframes hilo-llamado-ahora {
-  0%, 100% { background-color: color-mix(in srgb, var(--color-hueso) 55%, transparent); }
   30% { background-color: var(--color-hueso); }
 }
 
@@ -138,7 +155,7 @@
   border: 1px solid var(--color-sand);
   background: var(--color-papel);
   padding: 0.25rem 0.625rem 0.25rem 0.4rem;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--color-tinta);
   transition: border-color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
@@ -179,15 +196,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   .hilo-marca,
-  .hilo-fila,
   .hilo-chip {
     transition: none;
   }
   .hilo-marca[data-estado="ahora"]::after,
-  .hilo-marca[data-estado="opcional"],
   .hilo-tilde,
   .hilo-etiqueta,
-  [data-campo][data-llamado],
+  [data-campo][data-llamado]::after,
   .hilo-seguir::after {
     animation: none;
   }
@@ -197,69 +212,82 @@
   }
 }
 
-/* ---- LA LUZ del control que sigue (ADR-0284, actualización f) ----
-   Dentro de un modal —y también en las filas del alta— el campo que sigue se ENCIENDE: un halo suave alrededor del bloque, y la caja
-   de texto, el combo o el botón desplegable de adentro con el fondo más claro (papel) y el borde firme, para que destaquen entre sus
-   vecinos en hueso. Sirve a CUALQUIER control (una caja, un combo, chips, un interruptor, un grupo de tres cajas): envuelve el
-   bloque, no conoce el control. Se pinta por detrás y por fuera (`::before`, `box-shadow`): no cambia el tamaño de nada ni empuja a
-   los vecinos. Llega con un solo respiro (700 ms) y se queda quieta; con movimiento reducido, sin nada de eso. Solo tokens; sin rojo. */
-.hilo-luz {
+/* ---- LA LUZ del control que sigue: «El hilo» (Felipe 2026-11-05, docs/maquetas/guia-que-acompana-2026-11/, cara A) ----
+   Dentro de un modal —y también en las filas del alta y en la tarjeta de fotos— lo que sigue lleva una línea fina de tinta al costado, que se
+   dibuja una vez, con las puntas que se desvanecen (`--hilo-guia`, vidrio/recetas.css, la única receta). Reemplaza al «filo de luz» rojo, que se
+   leía como un error y competía con él. Sirve a CUALQUIER control (una caja, un combo, chips, un interruptor, un grupo de tres cajas): envuelve el
+   bloque, no conoce el control, y el control de adentro no cambia. Se pinta por fuera: no cambia el tamaño de nada ni empuja a los vecinos. */
+.hilo-luz,
+.hilo-fila[data-estado],
+.hilo-tarjeta[data-estado] {
   position: relative;
   isolation: isolate;
 }
-.hilo-luz::before {
+:is(.hilo-luz, .hilo-fila[data-estado], .hilo-tarjeta[data-estado])::before {
   content: "";
   position: absolute;
-  inset: -0.5rem;
-  z-index: -1;
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--color-hueso) 55%, transparent);
-  box-shadow: var(--hilo-halo);
-  opacity: 0;
+  width: 2.5px;
+  border-radius: 2px;
+  background: var(--hilo-guia);
+  transform: scaleY(0);
   pointer-events: none;
-  transition: opacity 260ms var(--ease-cayla);
+  transition: transform 240ms var(--ease-cayla);
 }
-.hilo-luz[data-estado="ahora"]::before {
-  opacity: 1;
-  animation: hilo-luz-llega 700ms var(--ease-cayla) 1 both;
+/* Un bloque suelto no tiene relleno propio: el hilo va 10 px afuera. Al llevarte a un campo, queda a la vista, no cortado por el borde de la hoja. */
+/* En una fila de dos columnas el bloque no se estira con su vecino: el hilo mide lo que mide el campo. Quien alinea su fila a propósito lo conserva. */
+.hilo-luz {
+  scroll-margin-block: 1rem;
+  align-self: start;
 }
-:root {
-  --hilo-halo:
-    0 0 0 1.5px color-mix(in srgb, var(--color-tinta) 24%, transparent),
-    0 0 0 6px color-mix(in srgb, var(--color-tinta) 5%, transparent);
-  --hilo-halo-inicio:
-    0 0 0 1.5px color-mix(in srgb, var(--color-tinta) 24%, transparent),
-    0 0 0 0 color-mix(in srgb, var(--color-tinta) 12%, transparent);
+:where(.items-end, .items-center, .items-baseline) > .hilo-luz {
+  align-self: auto;
 }
-@keyframes hilo-luz-llega {
-  from { box-shadow: var(--hilo-halo-inicio); }
+.hilo-luz::before {
+  left: -0.625rem;
+  top: -2px;
+  bottom: -2px;
 }
-/* La fila del alta enciende igual (su tinte ya existía; se le suma el halo). */
-.hilo-fila[data-estado="ahora"] {
-  box-shadow: var(--hilo-halo);
-  animation: hilo-luz-llega 700ms var(--ease-cayla) 1 both;
+/* La fila y la tarjeta ya traen su holgura: el hilo va en su canto, a la altura de lo de adentro. */
+.hilo-fila[data-estado]::before {
+  left: 0;
+  top: 0.75rem;
+  bottom: 0.75rem;
 }
-/* El control encendido: más claro que sus vecinos y con el borde firme. Un campo «en caja» es un contenedor `.caja-cayla` (hueso, con
-   borde) con un <input> transparente adentro: se enciende LA CAJA, y el input solo si está suelto (subrayado, sin caja); si no, se vería
-   un rectángulo claro dentro del marco en hueso. */
-:is(.hilo-fila, .hilo-luz)[data-estado="ahora"] :is(
-    .caja-cayla,
-    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(.caja-cayla input):not([data-matriz-mover] input),
-    textarea:not(.caja-cayla textarea),
-    [role="combobox"]:not(.caja-cayla [role="combobox"]),
-    button[aria-haspopup]:not(.caja-cayla button)
-  ) {
-  background-color: var(--color-papel);
-  border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); /* P2 de la familia: el reposo ya es el borde de control (3:1); el control que sigue sube un escalón */
+.hilo-tarjeta[data-estado]::before {
+  left: 0;
+  top: 1rem;
+  bottom: 1rem;
+}
+:is(.hilo-luz, .hilo-fila, .hilo-tarjeta)[data-estado="ahora"]::before {
+  transform: scaleY(1);
+}
+/* Un campo que dice su error no lleva además la guía: ahí manda el rojo. */
+.hilo-luz[data-error]::before {
+  transform: scaleY(0);
+}
+/* La luz cede a quien escribe (Felipe 2026-11-05): con el cursor en una caja de texto ya se sabe dónde se está, y si la persona decidió escribir en
+   otro campo, el hilo no se queda señalando a otra parte. Vuelve al salir. Solo cuenta lo que se teclea: un combo o unas opciones esperan a que elijas,
+   y ahí el hilo sigue ayudando (el mismo criterio de `estaEscribiendo`). Vale también para el paso que sigue de Vender. */
+:root:has(:is(input:not([type="checkbox"], [type="radio"], [type="button"], [type="submit"], [type="file"], [type="range"], [type="color"], [role="combobox"]), textarea):focus) :is(:is(.hilo-luz, .hilo-fila, .hilo-tarjeta)[data-estado="ahora"], .hoja-cobro-paso.sigue-aqui)::before {
+  transform: scaleY(0);
+}
+:root:has(:is(input:not([type="checkbox"], [type="radio"], [type="button"], [type="submit"], [type="file"], [type="range"], [type="color"], [role="combobox"]), textarea):focus) .hilo-etiqueta-flota {
+  opacity: 0;
+}
+
+/* Un campo guiado que dice su error (ADR-0611, mejora 1): la caja de adentro toma el borde del error de `Campo`, y el error lo dicen el texto y
+   su «!». Vale para la caja de un campo o de un combo, sea cual sea el control. */
+.hilo-luz[data-error] .caja-campo {
+  border-color: color-mix(in srgb, var(--color-rojo) 55%, transparent);
+}
+/* Nunca dos mensajes peleando: si el campo de adentro ya dice por qué está mal, la guía se calla. */
+.hilo-luz[data-error]:has(.campo .pie-error) > .hilo-error {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hilo-luz::before {
+  :is(.hilo-luz, .hilo-fila, .hilo-tarjeta)::before {
     transition: none;
-    animation: none;
-  }
-  .hilo-fila[data-estado="ahora"] {
-    animation: none;
   }
 }
 
@@ -271,15 +299,26 @@
   padding: 0.5rem;
   border-radius: 0.75rem;
 }
-/* Una tarjeta entera (las fotos) que es lo que sigue: mismo tinte que un campo. */
-.hilo-tarjeta {
-  transition: background-color 260ms var(--ease-cayla);
+/* Una tarjeta entera (las fotos) que es lo que sigue: la misma luz que un campo (arriba, «La luz del control que sigue»). */
+
+/* ---- El sello del stock inicial (ADR-0494, actividad 3) ----
+   Al crear la prenda, sus unidades de partida quedan selladas: se estampa UNA vez, sin rebote ni bucle (ADR-0136). */
+.sello-stock-inicial {
+  transform: rotate(-8deg);
+  animation: sello-stock-inicial 780ms var(--ease-cayla) 250ms both;
 }
-.hilo-tarjeta[data-estado="ahora"] {
-  background: color-mix(in srgb, var(--color-hueso) 40%, var(--color-papel));
+@keyframes sello-stock-inicial {
+  from {
+    opacity: 0;
+    transform: scale(1.7) rotate(-22deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hilo-tarjeta {
-    transition: none;
+  .sello-stock-inicial {
+    animation: none;
   }
 }

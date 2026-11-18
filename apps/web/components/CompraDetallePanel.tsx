@@ -13,13 +13,14 @@ import { Confirmacion, DatosDelProveedor, MediosDePago, PILDORA, Tilde, type Dat
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { lineaPagoVacia, lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
-import { ETIQUETA_METODO, METODO_SALDO_A_FAVOR, soles, type CompraResumen } from "@/lib/compras-reglas";
+import { ETIQUETA_METODO, METODO_SALDO_A_FAVOR, ofreceAnularCompra, soles, type CompraResumen } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { etiquetaVence, tramoDe } from "@/lib/por-pagar-reglas";
 import type { AccionesDeCompra } from "@/lib/modulos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
 
 // Acciones sobre una factura ya registrada (ADR-0035): registrar un pago
 // contra el saldo, o anularla. La página (server) dibuja el detalle; este
@@ -62,7 +63,8 @@ export function CompraAcciones({
   const puedeRecibir = vigente && compra.estadoRecepcion !== "recibida" && hayQueRecibir;
   const puedePagar = vigente && compra.saldo > 0 && permite.pagar;
   // ADR-0195 F2: la factura de un gasto o de un activo se anula desde Finanzas ▸ Gastos (con lo que detalla); la base tampoco la deja sola.
-  const puedeAnular = vigente && compra.pagado === 0 && !tieneRecepciones && permite.facturas && (compra.naturaleza ?? "mercaderia") === "mercaderia";
+  // Tampoco con mercadería que entró ANTES del comprobante (una compra de «Mis compras»): `ofreceAnularCompra`.
+  const puedeAnular = ofreceAnularCompra(compra, { tieneRecepciones, permiteFacturas: permite.facturas });
 
   // Un comprobante anulado ya no tiene acciones. El modal de pago se sigue dibujando aunque el pago recién saldó el
   // comprobante: si no, el refresco lo desmontaría en plena confirmación y se cortaría su animación de cierre.
@@ -375,7 +377,7 @@ export function RegistrarPagoModal({
                   )}
                   {/* La cascada: cuánto del saldo cubre este pago. Se llena al abrir. Verde = queda en cero; rojo = se pasa del saldo. */}
                   <BarraAvance pct={armada && compra.saldo > 0 ? (suma / compra.saldo) * 100 : 0} alto="fina" tono={excede ? "rojo" : llena ? "verde" : "tinta"} decorativa className="mt-1.5 sm:col-span-3" />
-                  <span className={`mt-1 flex min-h-[18px] items-center gap-1.5 text-xs sm:col-start-4 sm:justify-end ${excede ? "text-rojo" : llena ? "text-verde-profundo" : "text-tinta/55"}`} aria-live="polite">
+                  <span className={`mt-1 flex min-h-5 items-center gap-1.5 text-sm sm:col-start-4 sm:justify-end ${excede ? "text-rojo" : llena ? "text-verde-profundo" : "text-tinta/55"}`} aria-live="polite">
                     {excede ? (
                       "Supera el saldo"
                     ) : llena ? (
@@ -421,7 +423,7 @@ export function RegistrarPagoModal({
               )}
             </section>
 
-            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} totalComprobante={compra.total} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} totalComprobante={compra.total} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo, falla: cuentas.falla, reintentar: cuentas.reintentar }} />
 
             <div className="border-t border-tinta/10 pt-4">
               <p className="text-sm text-tinta">
@@ -437,7 +439,7 @@ export function RegistrarPagoModal({
                   </>
                 )}
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-tinta/65">
+              <p className="mt-1 text-sm leading-relaxed text-tinta/65">
                 {!un ? (
                   <>
                     Se registra como <b className="font-semibold">un solo pago repartido en {lineas.length} medios</b>: en cada medio queda su línea (la del banco, la de caja…) y el comprobante conserva su propio historial de pagos.
@@ -463,7 +465,7 @@ export function RegistrarPagoModal({
                   cabe en media fila). */}
               <div className="-mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
                 <div className="pie-acciones">
-                  <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55 max-sm:basis-full">Todo o nada: si el comprobante ya no admite el monto, no se registra.</p>
+                  <p className="min-w-0 flex-1 basis-48 text-sm text-tinta/55 max-sm:basis-full">Todo o nada: si el comprobante ya no admite el monto, no se registra.</p>
                   <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
                     Cancelar
                   </button>
@@ -472,7 +474,7 @@ export function RegistrarPagoModal({
                     type="submit"
                     peso="primario"
                     cargando={loading}
-                    disabled={loading || excede || favorExcedido || suma <= 0}
+                    disabled={loading || excede || favorExcedido || suma <= 0 || cuentas.falla}
                     className="pie-acciones-ancho"
                   >
                     {`Registrar pago de ${soles(suma)}`}
@@ -524,6 +526,7 @@ function AnularCompraModal({ compra, onClose }: { compra: CompraResumen; onClose
           </p>
           <CampoTexto etiqueta="Motivo" id="anular-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Se registró por error, el proveedor la reemplazó…" autoFocus />
           <ComboResponsable control={responsable} deshabilitado={loading} />
+          <AvisoNoSeDeshace />
           <div className="pie-acciones pt-1">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={loading}>
               Volver

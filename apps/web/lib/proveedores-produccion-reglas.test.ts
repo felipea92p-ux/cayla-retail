@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { condicionDePago, etiquetaRubro, filtrarProveedores, resumenProveedores, sinDatosDePago, type ProveedorProduccion } from "./proveedores-produccion-reglas";
+import { avisoDelRuc, condicionDePago, etiquetaRubro, filtrarProveedores, resumenProveedores, sinDatosDePago, type ProveedorProduccion } from "./proveedores-produccion-reglas";
 
 const prov = (id: string, nombre: string, extra: Partial<ProveedorProduccion> = {}): ProveedorProduccion => ({
   id,
@@ -71,5 +71,18 @@ describe("texto", () => {
   it("sin CCI, cuenta ni billetera no hay cómo pagarle", () => {
     expect(sinDatosDePago(prov("x", "X"))).toBe(true);
     expect(sinDatosDePago(prov("x", "X", { cci: "00219300123456789012" }))).toBe(false);
+  });
+});
+
+describe("avisoDelRuc (P06 del análisis del Taller: entraron RUC que no existen)", () => {
+  it("un RUC de 11 dígitos que no existe avisa por qué, y no lo frena: es solo un aviso", () => {
+    expect(avisoDelRuc("12345678910")).toMatch(/Ningún RUC empieza en 12/);
+    expect(avisoDelRuc("20123456780")).toMatch(/último dígito no cuadra/);
+  });
+  it("un RUC real, o uno que todavía se está escribiendo, no avisa nada", () => {
+    expect(avisoDelRuc("20100070970")).toBeNull();
+    expect(avisoDelRuc("2010007")).toBeNull();
+    expect(avisoDelRuc("")).toBeNull();
+    expect(avisoDelRuc("20 100070970")).toBeNull();
   });
 });

@@ -22,6 +22,16 @@ test("la batería tiene forma: ids únicos, gravedad 1 o 2, SQL de solo lectura 
   }
 });
 
+// Lo encontró /chaos el 2026-10-30, sobre «Nuevo avío»: ADR-0580 hizo que el disparador compusiera el nombre de cada color
+// como «<ficha> <medida> · <color>» («Botón nácar 18 L · Negro»), pero INV-24 seguía exigiendo «<ficha> · <color>». Resultado:
+// gritaba en TODOS los avíos con medida —que son casi todos— y un descuadre de verdad quedaba indistinguible del ruido.
+test("la invariante del nombre compuesto cuenta la MEDIDA: si no, todo avío con medida es un falso positivo (ADR-0580)", () => {
+  const inv = INVARIANTES.find((i) => i.id === "INV-24");
+  assert.ok(inv, "INV-24 existe");
+  assert.match(inv.sql, /fn_medida_texto/, "INV-24 compara el nombre sin contar la medida: todo avío con medida saldría violado");
+  assert.match(inv.dice, /medida/i, "INV-24 no cuenta en su texto que la medida entra en el nombre");
+});
+
 test("una sospecha lo dice en su texto: no se la puede confundir con un estado imposible", () => {
   for (const i of INVARIANTES.filter((x) => x.nivel === "sospecha")) assert.match(i.dice, /^SOSPECHA/, i.id);
   for (const i of INVARIANTES.filter((x) => x.nivel === "cruzada")) assert.doesNotMatch(i.dice, /^SOSPECHA/, i.id);
@@ -137,4 +147,14 @@ test("autoprobar: lo que no se puede corromper se dice en voz alta, no se aprueb
   const r = autoprobar({ ...inv, corrompe: undefined, sinAutoprueba: "un libro inmutable a propósito, no se toca ni revertido" }, () => { throw new Error("no debe llamar a la base"); });
   assert.equal(r.estado, "sin-autoprueba");
   assert.match(r.mensaje, /libro inmutable/);
+});
+
+// Lo vio el vigía de producción el 2026-11-09 (ADR-0632) antes de su primera corrida: INV-03 marcaba 1.280 líneas de la «Prenda
+// sin registrar» (ADR-0179) que esperan en su cola o se cerraron sin prenda al cerrar la cola de arranque (ADR-0334). No mueven stock a
+// propósito. Sin esta exclusión, cada venta «sin registrar» del día pondría el vigía en rojo cada mañana.
+test("INV-03 no cuenta la «Prenda sin registrar» que espera en su cola o se cerró sin prenda (ADR-0179, ADR-0334)", () => {
+  const inv = INVARIANTES.find((i) => i.id === "INV-03");
+  assert.match(inv.sql, /prendas_por_regularizar/, "INV-03 no mira la cola de prendas por regularizar: cada venta «sin registrar» sería un falso positivo");
+  assert.match(inv.sql, /'pendiente',\s*'cerrada_sin_prenda'/, "INV-03 excluye solo lo que espera o se cerró sin prenda, nada más");
+  assert.match(inv.sql, /coalesce\(m\.t, 0\) = 0\s+and exists \(select 1 from retail\.prendas_por_regularizar/, "la exclusión es solo para la línea SIN salida");
 });

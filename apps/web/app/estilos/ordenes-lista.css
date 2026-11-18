@@ -48,7 +48,7 @@
   /* «Pide algo»: el texto en rojo profundo con su «¿Por qué?» al lado. Es lo único rojo de la fila. */
   .ol-causa {
     color: var(--color-rojo-profundo);
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.35;
   }
 
@@ -71,7 +71,7 @@
   .ol-explica p {
     margin: 0;
     padding: 8px 0 2px;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.55;
     color: var(--color-tinta);
   }

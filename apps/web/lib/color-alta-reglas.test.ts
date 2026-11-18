@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ColorAlta } from "./alta-producto";
-import { colorConEseNombre, colorDeRespuesta, faltaParaCrear, familiaSugerida, nombreDeColor } from "./color-alta-reglas";
+import { colorDeRespuesta, coloresQueYaExisten, faltaParaCrear, familiaSugerida, nombreDeColor } from "./color-alta-reglas";
 
 const colores: ColorAlta[] = [
   { codigo: "NEG", nombre: "Negro", hex: "#1A1A1A", familiaColor: "neutro" },
@@ -16,19 +16,6 @@ describe("nombreDeColor", () => {
     expect(nombreDeColor("  palo   de rosa ")).toBe("Palo de rosa");
     expect(nombreDeColor("ÁMBAR")).toBe("ÁMBAR");
     expect(nombreDeColor("   ")).toBe("");
-  });
-});
-
-describe("colorConEseNombre", () => {
-  it("reconoce el nombre sin tildes ni mayúsculas", () => {
-    expect(colorConEseNombre("azul MARINO ", colores)?.codigo).toBe("AZM");
-  });
-  it("reconoce un sinónimo", () => {
-    expect(colorConEseNombre("Piel", colores)?.codigo).toBe("NUD");
-  });
-  it("un nombre nuevo o vacío no coincide", () => {
-    expect(colorConEseNombre("Palo de rosa", colores)).toBeUndefined();
-    expect(colorConEseNombre("", colores)).toBeUndefined();
   });
 });
 
@@ -54,6 +41,13 @@ describe("faltaParaCrear", () => {
   it("con todo, se puede crear", () => {
     expect(faltaParaCrear(listo)).toBeNull();
   });
+  it("un nombre que es un código de 3 letras no pasa: el caso «NER» (ADR-0576, act. 2026-11-15)", () => {
+    expect(faltaParaCrear({ ...listo, nombre: "NER", codigo: "NER" })).toMatch(/en palabras/);
+    expect(faltaParaCrear({ ...listo, nombre: " NEG " })).toMatch(/en palabras/);
+    expect(faltaParaCrear({ ...listo, nombre: "Ner" })).toBeNull();
+    expect(faltaParaCrear({ ...listo, nombre: "Oro" })).toBeNull();
+    expect(faltaParaCrear({ ...listo, nombre: "AZUL" })).toBeNull();
+  });
   it("dice lo primero que falta, en orden", () => {
     expect(faltaParaCrear({ ...listo, nombre: " " })).toMatch(/nombre/);
     expect(faltaParaCrear({ ...listo, hex: null })).toMatch(/muestra/);
@@ -63,11 +57,14 @@ describe("faltaParaCrear", () => {
 });
 
 describe("colorDeRespuesta", () => {
-  it("lee el color y si nació pendiente", () => {
+  it("lee el color (desde ADR-0534 nace aprobado: el estado no se lee)", () => {
     const r = colorDeRespuesta({ color: { codigo: "PAR", nombre: "Palo de rosa", familia_color: "rojo", hex: "#C98B8B", estado: "pendiente", sinonimos: ["rosa viejo"] } });
-    // Sin ficha todavía (ADR-0316): descripción vacía y sin compañeros, nunca `undefined`.
-    expect(r).toEqual({ color: { codigo: "PAR", nombre: "Palo de rosa", hex: "#C98B8B", familiaColor: "rojo", sinonimos: ["rosa viejo"], pantoneTcx: null, descripcion: null, combinaCon: [] }, pendiente: true });
-    expect(colorDeRespuesta({ color: { codigo: "PAR", nombre: "Palo de rosa", familia_color: "rojo", hex: "#C98B8B", estado: "aprobado" } })?.pendiente).toBe(false);
+    // Sin descripción todavía (ADR-0316): `null`, nunca `undefined`.
+    expect(r).toEqual({ color: { codigo: "PAR", nombre: "Palo de rosa", hex: "#C98B8B", familiaColor: "rojo", sinonimos: ["rosa viejo"], pantoneTcx: null, descripcion: null, componentes: null } });
+  });
+  it("una mezcla trae sus componentes, la base primero (ADR-0643)", () => {
+    const r = colorDeRespuesta({ color: { codigo: "CZU", nombre: "Crudo con azur", familia_color: "neutro", hex: "#F3ECE0", componentes: ["CRU", "AZU"] } });
+    expect(r?.color.componentes).toEqual(["CRU", "AZU"]);
   });
   it("trae el Pantone cuando la API lo devuelve (la referencia real de la tela)", () => {
     const r = colorDeRespuesta({ color: { codigo: "FRA", nombre: "Frambuesa", familia_color: "rojo", hex: "#A52350", estado: "aprobado", pantone_tcx: "19-2039 TCX" } });
@@ -82,5 +79,49 @@ describe("colorDeRespuesta", () => {
   it("una respuesta sin color no se inventa", () => {
     expect(colorDeRespuesta(null)).toBeNull();
     expect(colorDeRespuesta({ error: "x" })).toBeNull();
+  });
+});
+
+describe("coloresQueYaExisten: nombre y tono en una sola lista (ADR-0576)", () => {
+  const vocabulario = [
+    ...colores,
+    { codigo: "VOL", nombre: "Verde oliva", hex: "#6A6F34", familiaColor: "verde" },
+    { codigo: "VJA", nombre: "Verde jade", hex: "#70A38D", familiaColor: "verde" },
+  ];
+  const lista = (nombre: string, hex: string | null, familia: string | null, excluir?: string) =>
+    coloresQueYaExisten(nombre, hex, familia, vocabulario, { excluir }).map((c) => `${c.item.codigo}:${c.por}`);
+
+  it("el caso «Verde Olivo»: con el tono de la captura (≈ #80885A) queda a ΔE 10,5 de «Verde oliva», fuera del umbral de 8: solo el nombre lo delata", () => {
+    expect(lista("Verde Olivo", "#80885A", "verde")).toEqual(["VOL:casi-igual"]);
+  });
+  it("el mismo nombre va primero; después lo que solo se parece en el tono", () => {
+    expect(lista("verde oliva", "#6B6B3A", "verde")).toEqual(["VOL:mismo-nombre"]);
+    expect(lista("Verde pacay", "#6F7437", "verde")).toEqual(["VOL:tono"]);
+  });
+  it("un color que se parece por nombre y por tono aparece una sola vez, con el motivo del nombre", () => {
+    expect(lista("Verde olivo", "#6A6F34", "verde")).toEqual(["VOL:casi-igual"]);
+  });
+  it("un sinónimo cargado se reconoce como otro nombre", () => {
+    expect(lista("Piel", null, null)).toEqual(["NUD:otro-nombre"]);
+  });
+  it("al editar un color no se acusa a sí mismo", () => {
+    expect(lista("Verde oliva", "#6A6F34", "verde", "VOL")).toEqual([]);
+  });
+  it("un color nuevo de verdad no avisa de nada", () => {
+    expect(lista("Verde pacay", "#B0C4DE", "azul")).toEqual([]);
+  });
+  it("el caso «NER» (2026-11-15): ni el nombre ni la familia lo delatan, el tono sí", () => {
+    const conNegroReal = [{ codigo: "NEG", nombre: "Negro", hex: "#2D2C2F", familiaColor: "neutro" }, ...vocabulario.filter((c) => c.codigo !== "NEG")];
+    const hallados = coloresQueYaExisten("NER", "#100f0f", "tierra", conNegroReal).map((c) => `${c.item.codigo}:${c.por}`);
+    expect(hallados).toEqual(["NEG:tono"]);
+  });
+});
+
+describe("coloresQueYaExisten con estampados (ADR-0634)", () => {
+  it("un estampado no se avisa por tono: lleva el de su color dominante", () => {
+    const conEstampado: ColorAlta[] = [...colores, { codigo: "FLA", nombre: "Floral rojo", hex: "#B3202A", familiaColor: "rojo", tipo: "estampado" }];
+    const hallados = coloresQueYaExisten("Carmesí", "#B3202A", "rojo", conEstampado).map((c) => c.item.codigo);
+    expect(hallados).toContain("ROJ");
+    expect(hallados).not.toContain("FLA");
   });
 });

@@ -11,9 +11,18 @@ const MS_DIA = 86_400_000;
 /** Lima va cinco horas detrás de UTC todo el año: Perú no tiene horario de verano. */
 const DESFASE_LIMA_MS = 5 * 3600 * 1000;
 
+/** El formateador del día de Lima, armado UNA vez (2026-11-14). `toLocaleDateString(…, { timeZone })` arma uno nuevo en cada llamada y
+ *  es ~35 veces más lento: 40.000 llamadas tardaban 1,2 s, y el ritmo reciente de Existencias la llama varias veces por talla y por
+ *  día (lo midió `existencias_tramos`: ~1 s de CPU por carga). Mismas opciones que `toLocaleDateString` pone solo: el texto es idéntico
+ *  (lo vigila `fechas-lima.test.ts` contra la forma de antes). Se arma al primer uso, no al importar el archivo. */
+let formatoDiaLima: Intl.DateTimeFormat | null = null;
+
 /** `aaaa-mm-dd` de hoy en Lima. `ahora` existe para poder probar el corte de las 19:00. */
 export function hoyLima(ahora: Date = new Date()): string {
-  return ahora.toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+  // Una fecha que no se lee responde como antes («Invalid Date»): el formateador lanzaría.
+  if (Number.isNaN(ahora.getTime())) return "Invalid Date";
+  formatoDiaLima ??= new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima", year: "numeric", month: "numeric", day: "numeric" });
+  return formatoDiaLima.format(ahora);
 }
 
 /** El año de hoy en Lima: el `anio` de un canje del club (uno por año calendario de Lima) y el año que Configuración ▸ Impuestos

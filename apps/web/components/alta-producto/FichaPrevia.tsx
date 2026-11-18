@@ -97,27 +97,27 @@ function Tarjeta({ d }: { d: DatosFicha }) {
   const masColores = d.colores.length - puntos.length;
   return (
     <div className="overflow-hidden rounded-xl border border-sand bg-papel">
-      <div className="relative grid h-32 place-items-center bg-hueso px-6 text-center text-xs text-taupe">
+      <div className="relative grid h-32 place-items-center bg-hueso px-6 text-center text-sm text-taupe">
         {d.foto ? (
           // eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:)
           <img src={d.foto} alt="" className="absolute inset-0 h-full w-full object-cover" />
         ) : (
-          <span>La foto aparece aquí cuando la agregues en la fila de su color</span>
+          <span>La foto aparece aquí cuando la subas</span>
         )}
         {puntos.length > 0 && (
           <div className="absolute bottom-2.5 left-3 flex items-center gap-1">
             {puntos.map((c) => (
               <span key={c.codigo} aria-hidden className="h-3.5 w-3.5 rounded-full border-[1.5px] border-papel" style={{ background: c.hex ?? "transparent" }} />
             ))}
-            {masColores > 0 && <span className="ml-0.5 rounded-full bg-papel/90 px-1.5 text-[11px] tabular-nums text-tinta">+{masColores}</span>}
+            {masColores > 0 && <span className="ml-0.5 rounded-full bg-papel/90 px-1.5 text-sm tabular-nums text-tinta">+{masColores}</span>}
           </div>
         )}
-        {d.fotos > 0 && <span className="absolute right-2.5 top-2.5 rounded-full bg-papel/90 px-2 py-0.5 text-[11px] tabular-nums text-tinta">{d.fotos} foto{d.fotos === 1 ? "" : "s"}</span>}
+        {d.fotos > 0 && <span className="absolute right-2.5 top-2.5 rounded-full bg-papel/90 px-2 py-0.5 text-sm tabular-nums text-tinta">{d.fotos} foto{d.fotos === 1 ? "" : "s"}</span>}
       </div>
       <div className="px-4 pb-4 pt-3.5">
         <p className="font-mono text-[12.5px] tabular-nums text-taupe">{d.codigo ?? <Vacio>— código —</Vacio>}</p>
         <p className="font-display mt-0.5 text-2xl leading-tight text-tinta">{d.nombre || <Vacio>Sin nombre</Vacio>}</p>
-        <p className="text-[13px] text-taupe">
+        <p className="text-sm text-taupe">
           {d.empresa && `${d.empresa} · `}
           {d.categoria ?? <Vacio>Sin categoría</Vacio>}
           {d.marca && ` · ${d.marca}`}
@@ -125,17 +125,17 @@ function Tarjeta({ d }: { d: DatosFicha }) {
         </p>
         <dl className="mt-2.5 grid grid-cols-2 overflow-hidden rounded-lg border border-sand">
           <div className="px-2.5 py-2">
-            <dt className="text-[11px] text-taupe">Variantes</dt>
+            <dt className="text-sm text-taupe">Variantes</dt>
             <dd className="text-[17px] font-medium tabular-nums text-tinta">{d.variantes ?? <Vacio />}</dd>
           </div>
           <div className="border-l border-sand px-2.5 py-2">
-            <dt className="text-[11px] text-taupe">Hoy en tienda</dt>
+            <dt className="text-sm text-taupe">Hoy en tienda</dt>
             <dd className="text-[17px] font-medium tabular-nums text-tinta">{d.hoy ?? <Vacio />}</dd>
           </div>
         </dl>
         <div className="mt-3 border-t border-sand pt-3">
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[13px] text-taupe">Precio{d.margen !== null && ` · margen ${Math.round(d.margen)} %`}</span>
+            <span className="text-sm text-taupe">Precio{d.margen !== null && ` · margen ${Math.round(d.margen)} %`}</span>
             <span className="flex items-baseline gap-2 whitespace-nowrap">
               {d.campana && d.precio !== null && <span className="text-sm tabular-nums text-taupe line-through">{soles(d.precio)}</span>}
               <span className="font-display text-[22px] tabular-nums text-tinta">
@@ -144,7 +144,7 @@ function Tarjeta({ d }: { d: DatosFicha }) {
             </span>
           </div>
           {d.campana && (
-            <p className="relative mt-1 flex flex-wrap items-center gap-x-1.5 text-[12px] text-taupe">
+            <p className="relative mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-taupe">
               <span className="rounded-full bg-hueso px-2 py-px text-tinta">−{d.campana.pct} %</span>
               <span>
                 {d.campana.nombre}
@@ -153,7 +153,7 @@ function Tarjeta({ d }: { d: DatosFicha }) {
               {d.campana.otras.length > 0 && (
                 <span className="group" tabIndex={0} aria-label={`Otras campañas vigentes: ${d.campana.otras.map((o) => `${o.nombre} ${o.pct} %`).join(", ")}`}>
                   <span className="cursor-default rounded-full border border-sand px-1.5 py-px">+{d.campana.otras.length}</span>
-                  <span role="tooltip" className="pointer-events-none absolute bottom-full left-0 z-10 mb-1 hidden w-max max-w-full rounded-lg border border-sand bg-papel px-2.5 py-2 text-[12px] leading-snug text-tinta group-hover:block group-focus:block">
+                  <span role="tooltip" className="pointer-events-none absolute bottom-full left-0 z-10 mb-1 hidden w-max max-w-full rounded-lg border border-sand bg-papel px-2.5 py-2 text-sm leading-snug text-tinta group-hover:block group-focus:block">
                     {d.campana.otras.map((o) => (
                       <span key={o.nombre} className="flex justify-between gap-4">
                         <span>{o.nombre}</span>
@@ -207,7 +207,7 @@ export function FichaPrevia({
 
   return (
     <>
-      {/* Escritorio: fija a la derecha */}
+      {/* Escritorio (desde 1280 px): fija a la derecha, bajo la cabecera fija de 64 px (`top-20`, no `top-6`: tapaba la tarjeta). */}
       {/* Con la alerta el resumen es más alto que una pantalla de 900 px. Lo informativo (ficha y alerta) corre por su cuenta con tope de
           alto y «Cancelar / Crear producto / Siguiente» quedan FIJOS abajo del mismo aside: el botón nunca se esconde justo cuando hay algo que
           revisar. `-mx-1.5 px-1.5` deja sitio al aro del pulso de la alerta, que por fuera lo cortaría el scroll (ver `app/estilos/alta-parecidas.css`).
@@ -215,9 +215,9 @@ export function FichaPrevia({
       <aside
         aria-label="La prenda que vas a crear"
         data-guia="nuevo.ficha"
-        className={`hidden lg:sticky lg:top-6 ${parecidas ? "lg:flex lg:max-h-[calc(100dvh-3rem)] lg:flex-col lg:gap-3" : "space-y-3 lg:block"}`}
+        className={`hidden xl:sticky xl:top-20 ${parecidas ? "xl:flex xl:max-h-[calc(100dvh-6rem)] xl:flex-col xl:gap-3" : "space-y-3 xl:block"}`}
       >
-        <div className={`space-y-3 ${parecidas ? "min-h-0 flex-1 overflow-y-auto lg:-mx-1.5 lg:px-1.5" : ""}`}>
+        <div className={`space-y-3 ${parecidas ? "min-h-0 flex-1 overflow-y-auto xl:-mx-1.5 xl:px-1.5" : ""}`}>
           <Tarjeta d={datos} />
           {parecidas && (
             <AlertaParecidas
@@ -238,7 +238,7 @@ export function FichaPrevia({
               {textoCrear}
             </button>
           </div>
-          <Siguiente d={datos} clase="text-center text-[12.5px]" />
+          <Siguiente d={datos} clase="text-center text-sm" />
         </div>
       </aside>
 
@@ -246,7 +246,7 @@ export function FichaPrevia({
       {/* Pegada al fondo: desde 2026-09-25 el celular no tiene barra de navegación abajo (el menú es un cajón lateral).
           El aire inferior respeta la zona segura del teléfono. */}
       {/* La barra de abajo del celular es la Isla (ADR-0479, actividad 12): pegada dentro del formulario. */}
-      <div ref={barra} data-barra-ficha data-guia="nuevo.barra" data-pegada className="barra-abajo z-20 block overflow-hidden px-4 pb-3 pt-2.5 lg:hidden">
+      <div ref={barra} data-barra-ficha data-guia="nuevo.barra" data-pegada className="barra-abajo z-20 block overflow-hidden px-4 pb-3 pt-2.5 xl:hidden">
         {/* La tira va PRIMERO en la barra (sus márgenes negativos la llevan de borde a borde): se ve sin abrir «Ver» y un toque abre la hoja. */}
         {parecidas && <TiraParecidas alerta={parecidas.alerta} avisoEnLinea={parecidas.avisoEnLinea} onVer={parecidas.onVer} onReintentar={parecidas.onReintentar} />}
         {verMovil && (
@@ -255,7 +255,7 @@ export function FichaPrevia({
           </div>
         )}
         <div className="flex items-center gap-2.5">
-          <div className="min-w-0 flex-1 text-[12.5px]">
+          <div className="min-w-0 flex-1 text-sm">
             <b className="block truncate text-sm text-tinta">{datos.nombre || "Nuevo producto"}</b>
             <span className="tabular-nums text-taupe">
               {datos.codigo ?? "—"} · {datos.variantes ?? 0} var. · {datos.precio !== null ? soles(datos.precio) : "S/\u00a0—"}
@@ -269,9 +269,9 @@ export function FichaPrevia({
             Crear
           </Boton>
         </div>
-        <Siguiente d={datos} clase="mt-1 text-xs" />
+        <Siguiente d={datos} clase="mt-1 text-sm" />
       </div>
-      {/* La hoja es un portal: va fuera del `aside` (oculto bajo 1024 px) y de la barra. */}
+      {/* La hoja es un portal: va fuera del `aside` (oculto bajo 1280 px) y de la barra. */}
       {parecidas?.hoja && <HojaParecidas {...parecidas.hoja} />}
     </>
   );

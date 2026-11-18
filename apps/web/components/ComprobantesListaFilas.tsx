@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { desplazamientos, indiceSiguiente } from "@/lib/comprobantes-lista-movimiento";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /* ====================================================================
    ComprobantesListaFilas · el envoltorio cliente de las filas de /compras
@@ -52,7 +53,7 @@ export function ComprobantesListaFilas({ clave, children, className = "" }: { cl
     for (const hija of Array.from(el.children)) {
       if (hija instanceof HTMLElement && hija.dataset.flip) ahora.set(hija.dataset.flip, hija.offsetTop);
     }
-    const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const reducido = prefiereQuieto();
     if (claveAnterior.current !== clave && !reducido) {
       for (const { id, dy } of desplazamientos(tops.current, ahora)) {
         const fila = Array.from(el.children).find((h): h is HTMLElement => h instanceof HTMLElement && h.dataset.flip === id);

@@ -29,6 +29,7 @@ describe("todo combo busca con la regla global (filtrarCombo)", () => {
         "components/ComboResponsable.tsx",
         "components/ui/ComboBuscable.tsx",
         "components/ui/FiltrosPildora.tsx",
+        "components/ui/TablaViva.tsx",
         "components/ui/campos.tsx",
       ].sort()
     );

@@ -100,7 +100,7 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   solo es una flecha»): ninguna de las dos caras que había ni la propuesta. La página de elegir suma botones vivos con el CSS del ERP.
 - **2026-10-07 · ronda 4, los botones, mirando y tocando.** Dos voces a propósito: la voz la pone el lugar (`data-voz="cabecera"` →
   versalitas; hojas y tarjetas → letra normal), con una pieza (`btn-cayla`, que `<Boton>` dibuja) y una onda que nace donde se toca
-  (`<OndaBotones>`, pedido de Felipe: «más animaciones al hacer clic»). Lo peligroso, `btn-peligro` desde el principio. Cerrar una hoja,
+  (`<OndaBotones>`, pedido de Felipe: «más animaciones al hacer clic»). Lo peligroso, `btn-peligro` desde el principio (cambió el 2026-11-05: la acción principal es negra con su aviso, y `btn-peligro` es la gota con letra roja; ADR-0596). Cerrar una hoja,
   la × de `<Modal conCerrar>`. Migrados 41 + 15 botones y 17 hojas; el mostrador queda como deuda de `boton`, con su pasada a 375 px.
 - **2026-10-07 · el movimiento entra al censo** (pedido de Felipe): la huella de lo que se toca o se mueve solo dice qué cambia al pasar el
   mouse, al presionar y con el foco, la transición, lo que late en bucle y lo que entra animado, y el censo lo mide pasándole el mouse. Dos
@@ -173,6 +173,27 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   sistema** (P1: los pendientes del turno en Caja). Migrado el mismo día: 31 pantallas en 33 archivos (la frase de la pieza pasó a ser opcional
   y lo que decía el sobretítulo va tras la fecha, en `detalle`), 5 íconos y 1 enlace; deuda 0. Registro nuevo: `titulo-pagina.md`.
 
+- **2026-10-30/31 · ronda 19, el texto del ERP más grande y más corto, mirando las fotos** (fuentes en `docs/unificar/rondas/19/`). Tras
+  la cabecera, todo lo demás que se lee: el censo midió 779 frases en 107 pantallas, el 62 % bajo 14 px, en 13 tamaños escritos a mano. Felipe
+  eligió **F1** (una línea a la vista; lo que explica, detrás del «?») y **A1** (el mismo «?» de vidrio de la cabecera en todo el ERP: `<Ayuda>`
+  pasa a ser ese «?» en 14 px y `<TituloSeccion ayuda>` lo pone en 16 px junto al título de un bloque; el «!» queda solo para «falta algo»). El
+  tamaño lo dejó para después de condensar «texto por texto»: con las frases acortadas (de ~7.000 palabras a la vista a ~2.500 en el
+  inventario), lo que se lee pasó a **14 px como piso** (la bajada de un bloque y el título de una fila, a 15), módulo por módulo, cada uno con
+  fotos antes y después y su commit. Quedan igual las versalitas, los gráficos, el papel impreso, las matrices de tallas, la planilla de
+  «Ajustar stock», la persiana de Caja, el marco y la vista previa de la tienda online. En Finanzas se aparta a propósito del tamaño del spike
+  (ADR-0195). Familia nueva: `texto` (firma: un párrafo de lectura bajo 14 px dibujado a mano; deuda de 63 archivos fuera de los trece
+  módulos). Registro: `texto.md`.
+
+- **2026-10-30 · ronda 18, la frase de la cabecera detrás de un «?», mirando las fotos y tocando las demos** (fuentes en
+  `docs/unificar/rondas/18/`). Las colaboradoras decían que el texto era chico y que nadie lo leía. Felipe eligió en dos vueltas: **el globo**
+  (P2, sobre la frase que baja en su lugar y el botón «Qué es esto»), **también la frase que dice un dato** (D2: el turno de Caja, la cuenta de
+  Categorías, el veredicto de Frescura) y, para el material, **vidrio esmerilado** (V1, sobre tinta translúcida y papel con hilo). La pieza es
+  `<AyudaCabecera>` dentro de `<EncabezadoPagina>`: un «?» de vidrio de 20 px en la serif del título, arriba a la derecha de su última palabra como un superíndice (Felipe, al verlo aplicado) y un globo de vidrio que
+  flota en la capa de arriba, con el nombre de la pantalla en versalitas y la frase en 16 px tinta (antes 15 px al 70 %). Lo que un «!» explicaba
+  aparte junto al título (Productos, Marcas, Categorías, Atributos, Familias, Buscar, Rendimiento y el Plan de campaña) pasó a la prop `ayuda`,
+  en el mismo globo: una pantalla ya no tiene dos botones de ayuda. Migración: todas las cabeceras de una vez (la pieza decide), 9 archivos con
+  el «!» y 8 textos de guías. Registro: `titulo-pagina.md`, «Ronda 18».
+
 - **2026-10-14 · ronda 12, guardar, editar y las hojas, tocándolos** (fuentes en `docs/unificar/rondas/12/`). Felipe eligió P1 en las cinco
   preguntas: **mientras guarda, «Guardando…» y el hilo sin cambiar de ancho** (lo hace la pieza con `cargando`, también `BotonCompacto` y los
   botones del flujo del mostrador; cada acción que no es guardar dice su verbo con `textoCargando`); **«Editar» es el secundario con el
@@ -226,6 +247,15 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   las dos preguntas (la barra con lo que toca hacer y lo que llevas elegido) entre las 6 formas de hoy y las propuestas «Isla» y «Vidrio»:
   flota a 12 px de los bordes, clara (papel) para lo que toca hacer y oscura (tinta) para lo elegido; con una acción, la isla es el botón.
   Pieza: `barra-abajo` / `<BarraDeAbajo>`. Deuda: 14 archivos. Registro: `docs/unificar/barra-movil.md` (ADR-0479, actividad 12).
+
+- **2026-11-16 · cinco piezas decididas que no llegaban a WCAG AA, mirando las capturas.** Lo dejó la limpieza de los graves heredados de
+  `/milimetro` (rama `claude/graves-heredados-milimetro`, página «Siete decisiones de accesibilidad»). Felipe eligió «todo lo recomendado»:
+  la **elegida del segmento y de las pestañas** lleva un filo de 1 px en `borde-control` sobre su gota (1,27–2,16:1 → el filo pasa 3:1; la
+  gota que viaja y la estática); el **buscador del mostrador** lleva su borde de `borde-control` como el de las listas (antes `border: 0`);
+  en **las barras por tiempo**, la barra que no escribe su cifra pasa de arena a gris con 36 % de tinta (1,56 → 3,26:1 en claro y 6,0:1 en oscuro, medido; el fin de semana,
+  `arena-fuerte`, a 56 % para seguir más oscuro), la destacada sigue en tinta; el **aro de los puntos de color** (Vender, la Grilla,
+  Existencias) sube de 16–20 % a 38–40 % de tinta (medido en los peores, Dorado, Plateado y Beige en claro y Negro y Azul marino en oscuro: 3,3 a 3,9:1); y en oscuro la **barra de la ventana de Tienda web** baja de tono para que «Abrir la
+  tienda» pase de 3,44 a 6,7:1. El movimiento de cada pieza no cambió. Registros: `pestanas.md`, `buscador.md`, `grafico.barras.md`.
 
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en

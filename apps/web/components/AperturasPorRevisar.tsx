@@ -55,8 +55,8 @@ export function AperturasPorRevisar({ aperturas }: { aperturas: AperturaPorRevis
   return (
     <section data-guia="caja-historial.aperturas" className="card-cayla space-y-3 p-5" aria-labelledby="aperturas-por-revisar">
       <div>
-        <TituloSeccion id="aperturas-por-revisar">Aperturas con diferencia por revisar</TituloSeccion>
-        <p className="text-sm text-tinta/65">Abrieron con un monto distinto del que dejó el cierre anterior de su sede.</p>
+        <TituloSeccion id="aperturas-por-revisar">Aperturas que no cuadran</TituloSeccion>
+        <p className="texto-bajada">Abrieron con otro monto que el del último cierre.</p>
       </div>
       <ComboResponsable control={responsable} deshabilitado={revisando !== null} className="max-w-sm" />
       <ul className="divide-y divide-tinta/[0.07]">
@@ -70,7 +70,7 @@ export function AperturasPorRevisar({ aperturas }: { aperturas: AperturaPorRevis
                   {a.abiertaPorNombre && ` · abrió ${a.abiertaPorNombre}`}
                 </p>
                 <p className="text-tinta/65">
-                  Debía haber {money(a.esperado)}, abrió con {money(a.montoApertura)}{" "}
+                  Debía haber {money(a.esperado)}; abrió con {money(a.montoApertura)}{" "}
                   <span className={dif < 0 ? "font-semibold text-rojo-profundo" : "font-semibold text-ambar-profundo"}>
                     ({dif < 0 ? "faltaron" : "sobraron"} {money(Math.abs(dif))})
                   </span>

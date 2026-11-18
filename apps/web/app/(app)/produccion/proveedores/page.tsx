@@ -1,10 +1,9 @@
-import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { puedeVerProduccion } from "@/lib/produccion-menu";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
 import { ProduccionSoloLider } from "@/components/ProduccionSoloLider";
 import { getProveedoresProduccion } from "@/lib/proveedores-produccion";
-import { getTarifasDeServicios } from "@/lib/tarifas-servicios";
+import { getProcesosDelTaller, getTarifasDeServicios } from "@/lib/tarifas-servicios";
 import { hoyLima } from "@/lib/fechas-lima";
 import { ProveedoresProduccionPanel } from "@/components/ProveedoresProduccionPanel";
 
@@ -17,15 +16,14 @@ export default async function ProveedoresProduccionPage({ searchParams }: { sear
   const persona = await requirePersonaActualV2();
   // Misma puerta que Órdenes e Insumos (`puedeVerProduccion`, 2026-09-20): solo parado en el Taller. Además, solo líder.
   if (!puedeVerProduccion(persona)) {
-    if (!persona.puedeCambiarUbicacion) redirect("/");
-    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} />;
+    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} puedeCambiarUbicacion={persona.puedeCambiarUbicacion} />;
   }
   if (persona.rol !== "lider") return <ProduccionSoloLider titulo="Proveedores" />;
 
-  const [proveedores, tarifas] = await Promise.all([getProveedoresProduccion(), getTarifasDeServicios()]);
+  const [proveedores, tarifas, procesos] = await Promise.all([getProveedoresProduccion(), getTarifasDeServicios(), getProcesosDelTaller()]);
   return (
     <div className="space-y-6">
-      <ProveedoresProduccionPanel sede={persona.ubicacionEtiqueta} proveedores={proveedores} tarifas={tarifas} hoy={hoyLima()} vistaInicial={sp.vista === "tarifas" ? "tarifas" : "proveedores"} />
+      <ProveedoresProduccionPanel sede={persona.ubicacionEtiqueta} proveedores={proveedores} tarifas={tarifas} hoy={hoyLima()} vistaInicial={sp.vista === "tarifas" ? "tarifas" : "proveedores"} procesos={procesos} />
     </div>
   );
 }

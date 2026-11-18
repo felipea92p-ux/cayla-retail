@@ -172,7 +172,7 @@ describe("filasDeProducto — la prenda por ejes, como en el alta", () => {
     expect(costosSinComprobar([{ costoOficial: true }, { costoOficial: false }])).toBe(false);
     expect(textosCostoFijo(true).nota).toBe("No se pudo comprobar qué costos ya vienen de compras, así que por ahora no se corrigen aquí.");
     expect(textosCostoFijo(true).celda).toMatch(/^No se pudo comprobar/);
-    expect(textosCostoFijo(false).nota).toMatch(/^El costo de una variante que ya entró por Compras/);
+    expect(textosCostoFijo(false).nota).toMatch(/^Las tallas grises ya entraron por Compras/);
   });
 
   it("todasNuevas: «Cambiar» solo si nada de lo que se toca existe todavía", () => {

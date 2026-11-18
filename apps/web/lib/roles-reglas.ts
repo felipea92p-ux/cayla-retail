@@ -4,6 +4,9 @@
 import { esGrupoMenu, menuPara, type FilaMenu, type TipoUbicacion } from "./menu";
 import { MODULOS, MODULOS_SOLO_PERSONAS, esDelegable, permisosDeModulos, type ClaveModulo, type Modulo } from "./modulos";
 
+/** Un canal de venta (ADR-0607): por dónde se vendió. `tienda` es el único físico. */
+export type CanalVenta = { clave: string; nombre: string; esFisico: boolean };
+
 /** Un rol como lo muestra la pantalla. */
 export type RolVista = {
   id: string;
@@ -19,6 +22,8 @@ export type RolVista = {
   limitadoComoHoy: boolean;
   archivado: boolean;
   modulos: ClaveModulo[];
+  /** ADR-0607: las claves de los canales de venta que opera este rol (`tienda`, `tiktok`…). El Líder opera todos. */
+  canales: string[];
   /** ADR-0193: versión del rol al leerlo (sube con cada cambio del rol o de sus módulos). Se manda al guardar: si otra
    *  persona lo cambió entre medio, la base rechaza en vez de pisar sus módulos. */
   version: number;
@@ -28,7 +33,7 @@ export type RolVista = {
 };
 
 /** Lo que esta pantalla guardó de un rol y la versión que devolvió la base (ADR-0193; `pantallaPrincipal` desde 20260925220000). */
-export type GuardadoLocal = { version: number; modulos: ClaveModulo[]; pantallaPrincipal: ClaveModulo | null };
+export type GuardadoLocal = { version: number; modulos: ClaveModulo[]; pantallaPrincipal: ClaveModulo | null; canales?: string[] };
 
 /**
  * Los roles del servidor con lo que esta pantalla acaba de guardar encima, mientras el `router.refresh()` no trae la
@@ -39,7 +44,7 @@ export type GuardadoLocal = { version: number; modulos: ClaveModulo[]; pantallaP
 export function conGuardadosLocales(roles: RolVista[], guardados: Readonly<Record<string, GuardadoLocal>>): RolVista[] {
   return roles.map((r) => {
     const g = guardados[r.id];
-    return g && g.version > r.version ? { ...r, version: g.version, modulos: g.modulos, pantallaPrincipal: g.pantallaPrincipal } : r;
+    return g && g.version > r.version ? { ...r, version: g.version, modulos: g.modulos, pantallaPrincipal: g.pantallaPrincipal, canales: g.canales ?? r.canales } : r;
   });
 }
 
@@ -137,13 +142,15 @@ export function hayCambios(guardados: readonly ClaveModulo[], borrador: readonly
 /**
  * «Así queda su menú»: lo que vería en el lateral una cuenta con este rol, parada en una tienda (o en el Taller, para ver
  * Producción). Sale de `menuPara`, el mismo que arma el menú real, así la vista previa no puede mentir.
+ * @internal La pantalla ya no dibuja el menú del rol (maqueta del 2026-10-27); lo cruzan las pruebas de `roles-reglas.test.ts`, que cuidan
+ * que cada rol ofrezca el menú que le toca (Facturación en Ventas, Producción solo en el Taller, el Líder sin Caja).
  */
 export function menuDelRol(rol: Pick<RolVista, "fijo" | "modulos" | "limitadoComoHoy">, ubicacionTipo: TipoUbicacion = "tienda"): FilaMenu[] {
   const permisos = permisosDeModulos(rol.fijo ? "lider" : "integrante", rol.modulos.map((clave) => ({ clave, completo: !rol.limitadoComoHoy })));
   return menuPara({ permisos, ubicacionTipo, modulos: rol.modulos }).riel;
 }
 
-/** El menú como texto corto: «Inicio · Ventas (Punto de Venta, Caja) · Inventario (…)». */
+/** El menú como texto corto: «Inicio · Ventas (Punto de Venta, Caja) · Inventario (…)». @internal Lo usan las pruebas de `menuDelRol`. */
 export function etiquetasDelMenu(riel: readonly FilaMenu[]): { etiqueta: string; hijas: string[] }[] {
   return riel.map((f) => ({ etiqueta: f.etiqueta, hijas: esGrupoMenu(f) ? f.hijos.map((h) => h.etiqueta) : [] }));
 }
@@ -280,15 +287,6 @@ export function pantallaPrincipalValida(elegida: ClaveModulo | null, borrador: r
  * Editor de roles rediseñado (spike `docs/maquetas/colaboradores-ux-spike-2026-09/`, aprobado por Felipe 2026-09-22).
  * ------------------------------------------------------------------------------------------------------------------ */
 
-/** Cómo se agrupa la lista de roles: los del sistema, los de las terminales y los que armó un líder. */
-export type FamiliaRol = "sistema" | "terminal" | "a_medida";
-
-export function familiaDeRol(rol: Pick<RolVista, "clave" | "fijo" | "esSistema">): FamiliaRol {
-  if (rol.clave === "terminal_ventas" || rol.clave === "terminal_administrativa") return "terminal";
-  if (rol.fijo || rol.esSistema) return "sistema";
-  return "a_medida";
-}
-
 /** El aviso de la lista de roles: «Sin módulos» si deja cuentas sin ver nada (ni Inicio, desde 20260925220000), «Sin
  *  uso» si nadie lo tiene. */
 export function avisoDelRol(rol: Pick<RolVista, "fijo" | "archivado" | "modulos">, cuentas: number): "sin_modulos" | "sin_uso" | null {
@@ -314,30 +312,46 @@ export function alternarGrupo(modulos: readonly ClaveModulo[], grupo: Modulo["gr
   return MODULOS.filter((m) => (delGrupo.has(m.clave) ? encender : modulos.includes(m.clave))).map((m) => m.clave);
 }
 
+/* ------------------------------------------------------------------
+   Canales de venta por rol (ADR-0607)
+   ------------------------------------------------------------------ */
 
-export type CambioMenu = "igual" | "suma" | "quita";
-export type FilaMenuConCambios = { etiqueta: string; cambio: CambioMenu; hijas: { etiqueta: string; cambio: CambioMenu }[] };
+/** Lo que el borrador de canales suma y quita respecto de lo guardado, en el orden del catálogo de canales. */
+export function cambiosDeCanales(
+  catalogo: readonly Pick<CanalVenta, "clave">[],
+  guardados: readonly string[],
+  borrador: readonly string[],
+): { suma: string[]; quita: string[] } {
+  return {
+    suma: catalogo.filter((c) => borrador.includes(c.clave) && !guardados.includes(c.clave)).map((c) => c.clave),
+    quita: catalogo.filter((c) => guardados.includes(c.clave) && !borrador.includes(c.clave)).map((c) => c.clave),
+  };
+}
+
+/** Enciende o apaga un canal, conservando el orden del catálogo. */
+export function alternarCanal(catalogo: readonly Pick<CanalVenta, "clave">[], canales: readonly string[], clave: string): string[] {
+  const encendidos = canales.includes(clave) ? canales.filter((c) => c !== clave) : [...canales, clave];
+  return catalogo.filter((c) => encendidos.includes(c.clave)).map((c) => c.clave);
+}
 
 /**
- * «Así queda su menú» con el borrador a la vista: lo que se suma y lo que se quita, sobre el mismo `menuDelRol` que arma el
- * menú real. Se calcula el menú de lo guardado, el del borrador y el de ambos juntos (para conservar el orden del lateral).
+ * «Solo das lo que tienes» (ADR-0178) aplicado a los canales: quien no es líder (`misCanales` ≠ null) no enciende un canal que él
+ * no opera. Apagar siempre se puede. Devuelve el motivo para avisar, o null. La base lo vuelve a exigir (`guardar_canales_rol`).
  */
-export function menuConCambios(
-  rol: Pick<RolVista, "fijo" | "modulos" | "limitadoComoHoy">,
-  borrador: readonly ClaveModulo[],
-  ubicacionTipo: TipoUbicacion = "tienda",
-): FilaMenuConCambios[] {
-  const antes = etiquetasDelMenu(menuDelRol(rol, ubicacionTipo));
-  const despues = etiquetasDelMenu(menuDelRol({ ...rol, modulos: [...borrador] }, ubicacionTipo));
-  const juntos = etiquetasDelMenu(menuDelRol({ ...rol, modulos: [...new Set([...rol.modulos, ...borrador])] }, ubicacionTipo));
-  const cambio = (enAntes: boolean, enDespues: boolean): CambioMenu => (enAntes && enDespues ? "igual" : enDespues ? "suma" : "quita");
-  return juntos.map((f) => {
-    const a = antes.find((x) => x.etiqueta === f.etiqueta);
-    const d = despues.find((x) => x.etiqueta === f.etiqueta);
-    return {
-      etiqueta: f.etiqueta,
-      cambio: cambio(!!a, !!d),
-      hijas: f.hijas.map((h) => ({ etiqueta: h, cambio: cambio(!!a?.hijas.includes(h), !!d?.hijas.includes(h)) })),
-    };
-  });
+export function motivoCanalPorLoMio(
+  catalogo: readonly Pick<CanalVenta, "clave" | "nombre">[],
+  guardados: readonly string[],
+  despues: readonly string[],
+  misCanales: readonly string[] | null,
+): string | null {
+  if (misCanales === null) return null;
+  const faltan = despues.filter((c) => !guardados.includes(c) && !misCanales.includes(c));
+  if (faltan.length === 0) return null;
+  const nombres = faltan.map((c) => catalogo.find((x) => x.clave === c)?.nombre ?? c).join(", ");
+  return `No puedes encender ${nombres}: tú no lo operas. Solo puedes dar los canales que tú tienes; pídeselo a un líder.`;
+}
+
+/** ¿Un rol sin ningún canal? No vería ningún apartado: la pantalla lo avisa antes de guardar. */
+export function sinCanales(canales: readonly string[]): boolean {
+  return canales.length === 0;
 }

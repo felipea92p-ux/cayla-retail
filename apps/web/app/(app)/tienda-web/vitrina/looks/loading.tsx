@@ -15,7 +15,7 @@ export default function LoadingVitrinaLooks() {
         <div className="h-10 w-52 rounded-full bg-sand/60" />
         <div className="grid gap-3 sm:grid-cols-2">
           {[0, 1].map((i) => (
-            <div key={i} className="h-24 rounded-[20px] bg-sand/50" />
+            <div key={i} className="h-24 rounded-tarjeta bg-sand/50" />
           ))}
         </div>
         <div className="card-cayla divide-y divide-sand">

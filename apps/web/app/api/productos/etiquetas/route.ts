@@ -34,6 +34,13 @@ export async function POST(request: Request) {
   if (iconoPedido !== undefined && iconoPedido !== null && icono === null) {
     return Response.json({ error: "Ese dibujo no existe. Elige uno de la lista." }, { status: 400 });
   }
+  // Las fechas con que nace una campaña (opcionales, Felipe 2026-10-28): vacías = rige siempre, como antes. Solo las lee una campaña.
+  const desde = parsearFecha(typeof cuerpo?.vigenteDesde === "string" ? cuerpo.vigenteDesde : "");
+  if (!desde.ok) return Response.json({ error: desde.error }, { status: 400 });
+  const hasta = parsearFecha(typeof cuerpo?.vigenteHasta === "string" ? cuerpo.vigenteHasta : "");
+  if (!hasta.ok) return Response.json({ error: hasta.error }, { status: 400 });
+  const objecion = objecionVigencia(desde.valor, hasta.valor);
+  if (objecion) return Response.json({ error: objecion }, { status: 400 });
   // Desde Catálogo ▸ Campañas nace con estilo `campana`; desde Insignias, sin estilo (la base pone «neutral»). ADR-0473.
   const estilo = cuerpo?.estilo === undefined ? undefined : estiloConocido(String(cuerpo.estilo));
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
@@ -41,18 +48,21 @@ export async function POST(request: Request) {
   // Campañas de la tienda web o Insignias); un alta directa en la tabla la dejaría «por aprobar» para quien no ve Insignias.
   if (estilo === "campana") {
     // Sin tipos generados todavía (ADR-0476 no está en el volcado): se nombra a mano.
-    const creada = (await supabase.rpc("crear_campana" as never, { p_nombre: nombre } as never)) as unknown as { data: string | null; error: { code?: string; message: string } | null };
+    // `crear_campana` ya recibe las fechas (20261022203000) y las guarda junto con el alta: todo o nada.
+    const argumentos = { p_nombre: nombre, ...(desde.valor ? { p_desde: desde.valor } : {}), ...(hasta.valor ? { p_hasta: hasta.valor } : {}) };
+    const creada = (await supabase.rpc("crear_campana" as never, argumentos as never)) as unknown as { data: string | null; error: { code?: string; message: string } | null };
     if (!creada.error) {
       const { data: fila, error: errorFila } = await supabase.from("etiquetas").select(COLUMNAS_FILA).eq("id", creada.data as string).single();
       if (errorFila) return Response.json({ error: traducirError(errorFila, "leer la campaña recién creada", { lectura: true }) }, { status: 400 });
       // Su dibujo se fija después, por la misma puerta que usa cambiarlo (`crear_campana` no cambia de firma). Si esa segunda escritura
       // falla, la campaña ya existe y se ve por su nombre: se crea igual y se dice.
+      const vigencia = { vigenteDesde: desde.valor, vigenteHasta: hasta.valor };
       if (icono) {
         const fijado = await supabase.rpc("fijar_icono_etiqueta", { p_etiqueta_id: creada.data as string, p_icono: icono });
-        if (fijado.error) return Response.json({ etiqueta: fila, avisoDibujo: traducirError(fijado.error, "guardar el dibujo de la campaña") });
-        return Response.json({ etiqueta: { ...fila, icono } });
+        if (fijado.error) return Response.json({ etiqueta: fila, ...vigencia, avisoDibujo: traducirError(fijado.error, "guardar el dibujo de la campaña") });
+        return Response.json({ etiqueta: { ...fila, icono }, ...vigencia });
       }
-      return Response.json({ etiqueta: fila });
+      return Response.json({ etiqueta: fila, ...vigencia });
     }
     if (!faltaLaFuncion(creada.error)) return Response.json({ error: traducirError(creada.error, "agregar la campaña") }, { status: 400 });
     // Una base sin ADR-0476 todavía: el camino de antes (el alta directa, con su estilo).
@@ -67,7 +77,9 @@ export async function POST(request: Request) {
     return Response.json({ error: traducirError(error, estilo === "campana" ? "agregar la campaña" : "agregar la insignia") }, { status: 400 });
   }
 
-  return Response.json({ etiqueta: data });
+  // Una base sin `crear_campana` (el camino de antes) no guarda fechas: se dice, la campaña queda y se ponen desde «Configurar».
+  const sinFechas = estilo === "campana" && (desde.valor || hasta.valor) ? { avisoFechas: "Las fechas no se guardaron. Ponlas desde «Configurar» en su pase." } : {};
+  return Response.json({ etiqueta: data, ...sinFechas });
 }
 
 export async function PATCH(request: Request) {
@@ -128,6 +140,18 @@ export async function PATCH(request: Request) {
         ? await supabase.rpc("actualizar_campana_etiqueta", argumentos)
         : await supabase.rpc("actualizar_campana_etiqueta_con_sedes", { ...argumentos, p_sede_ids: sedeIds as string[] });
     if (error) return Response.json({ error: traducirError(error, "guardar la campaña") }, { status: 400 });
+    return Response.json({ ok: true });
+  }
+
+  // «Anunciar en la portada» de una campaña (ADR-0655): por su función (`fijar_anuncio_campana`), que pide la llave de las campañas y
+  // rechaza una insignia. Solo ese cambio: nada más viaja en el mismo pedido.
+  if ("anunciarEnPortada" in cuerpoObj) {
+    if (typeof cuerpoObj.anunciarEnPortada !== "boolean") return Response.json({ error: "Di si la campaña se anuncia en la portada o no." }, { status: 400 });
+    const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
+    const r = (await supabase.rpc("fijar_anuncio_campana" as never, { p_etiqueta_id: id, p_anunciar: cuerpoObj.anunciarEnPortada } as never)) as unknown as {
+      error: { code?: string; message: string } | null;
+    };
+    if (r.error) return Response.json({ error: traducirError(r.error, "guardar si la campaña se anuncia") }, { status: 400 });
     return Response.json({ ok: true });
   }
 

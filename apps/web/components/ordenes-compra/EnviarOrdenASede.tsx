@@ -233,26 +233,26 @@ export function EnviarOrdenASede({ orden, sedes, sede }: Props) {
               <div>
                 <p className={TITULO_FIJO}>A qué sede va</p>
                 <p className="flex h-10 items-center text-sm font-medium text-tinta">{destino.nombre}</p>
-                <p className="mt-1.5 text-xs text-taupe">Esta orden llega directo a esa tienda: solo puede ir ahí.</p>
+                <p className="mt-1.5 text-sm text-taupe">Esta orden llega directo a esa tienda: solo puede ir ahí.</p>
               </div>
             ) : (
               <CampoGuiado id="sede" guia={guia}>
                 <p className={TITULO_FIJO}>{etiqueta("sede", "A qué sede va")}</p>
                 <CampoSelect id="envio-sede" caja etiqueta="A qué sede va" marcador="Elige la sede" valor={sedeId} onValor={setSedeId} opciones={opcionesSede} />
-                <p className="mt-1.5 text-xs text-taupe">Una guía va a una sola sede. Lo que sobre lo envías en otra.</p>
+                <p className="mt-1.5 text-sm text-taupe">Una guía va a una sola sede. Lo que sobre lo envías en otra.</p>
               </CampoGuiado>
             )}
             <CampoGuiado id="guia" guia={guia}>
               <p className={TITULO_FIJO}>
                 {etiqueta("guia", "Número de guía")}
-                <span className="text-[12px] font-normal text-taupe">opcional</span>
+                <span className="text-sm font-normal text-taupe">opcional</span>
               </p>
               <CampoTexto id="envio-guia" caja mono etiqueta="Número de guía" maxLength={TOPES_ENVIO.guia} value={guiaTexto} onChange={(e) => setGuiaTexto(e.target.value)} />
             </CampoGuiado>
             <CampoGuiado id="nota" guia={guia} className="@min-[28rem]:col-span-2">
               <p className={TITULO_FIJO}>
                 {etiqueta("nota", "Nota")}
-                <span className="text-[12px] font-normal text-taupe">opcional</span>
+                <span className="text-sm font-normal text-taupe">opcional</span>
               </p>
               <CampoTexto id="envio-nota" caja etiqueta="Nota" maxLength={TOPES_ENVIO.nota} value={nota} onChange={(e) => setNota(e.target.value)} />
             </CampoGuiado>
@@ -264,10 +264,10 @@ export function EnviarOrdenASede({ orden, sedes, sede }: Props) {
             accion={
               enviables.length > 1 ? (
                 <span className="flex flex-wrap items-center gap-2">
-                  <Boton type="button" peso="discreto" className="px-3 py-1.5 text-[11px]" onClick={() => setCantidades(precargarCantidades(orden))}>
+                  <Boton type="button" peso="discreto" className="px-3 py-1.5 text-sm" onClick={() => setCantidades(precargarCantidades(orden))}>
                     Todo lo que queda
                   </Boton>
-                  <Boton type="button" peso="discreto" className="px-3 py-1.5 text-[11px]" onClick={() => setCantidades(vaciarCantidades(orden))}>
+                  <Boton type="button" peso="discreto" className="px-3 py-1.5 text-sm" onClick={() => setCantidades(vaciarCantidades(orden))}>
                     Dejar todas en 0
                   </Boton>
                 </span>
@@ -278,10 +278,10 @@ export function EnviarOrdenASede({ orden, sedes, sede }: Props) {
           </TituloSeccion>
 
           {!destino && enviables.length > 1 && (
-            <p className="nota-cayla">Esta orden se reparte: deja en cada línea solo lo que va a esta sede. Lo que sobre lo envías después, en otra guía.</p>
+            <p className="nota-cayla">Deja en cada línea solo lo que va a esta sede; lo demás va en otra guía.</p>
           )}
 
-          <div aria-hidden className={`hidden items-end gap-x-2.5 px-3 text-[13px] font-semibold text-tinta @min-[40rem]:grid ${FILA_ANCHA}`}>
+          <div aria-hidden className={`hidden items-end gap-x-2.5 px-3 text-sm font-semibold text-tinta @min-[40rem]:grid ${FILA_ANCHA}`}>
             <span />
             <span>Prenda</span>
             <span>Quedan</span>
@@ -314,7 +314,7 @@ export function EnviarOrdenASede({ orden, sedes, sede }: Props) {
                 {unidades.toLocaleString("es-PE")} {unidades === 1 ? "unidad" : "unidades"}
               </span>
             </div>
-            {unidades === 0 && <p className="mt-1 text-xs text-taupe">Pon cantidad en al menos una prenda.</p>}
+            {unidades === 0 && <p className="mt-1 text-sm text-taupe">Pon cantidad en al menos una prenda.</p>}
           </CampoGuiado>
         </section>
 
@@ -372,8 +372,8 @@ function RenglonDelEnvio({
   const prenda = (
     <div className="min-w-0">
       <p className="text-tinta">{[l.categoria, l.marca].join(" · ")}</p>
-      {l.descripcion && <p className="text-xs text-taupe">{l.descripcion}</p>}
-      <p className="mt-0.5 text-xs tabular-nums text-taupe">
+      {l.descripcion && <p className="text-sm text-taupe">{l.descripcion}</p>}
+      <p className="mt-0.5 text-sm tabular-nums text-taupe">
         Pediste {l.cantidad.toLocaleString("es-PE")}
         {l.enviado ? ` · ya salieron ${l.enviado.toLocaleString("es-PE")}` : ""}
       </p>
@@ -384,8 +384,8 @@ function RenglonDelEnvio({
     return (
       <div className={`${CAJA_DE_LINEA} opacity-70`}>
         <div className={`grid grid-cols-2 items-start gap-x-2.5 gap-y-2 @min-[40rem]:items-center ${FILA_ANCHA}`}>
-          <p className="col-span-2 text-[13px] font-semibold text-tinta @min-[40rem]:hidden">Línea {l.posicion}</p>
-          <span className="hidden items-center gap-1 text-[12px] tabular-nums text-taupe @min-[40rem]:inline-flex" title={`Línea ${l.posicion}`}>
+          <p className="col-span-2 text-sm font-semibold text-tinta @min-[40rem]:hidden">Línea {l.posicion}</p>
+          <span className="hidden items-center gap-1 text-sm tabular-nums text-taupe @min-[40rem]:inline-flex" title={`Línea ${l.posicion}`}>
             <span aria-hidden className="inline-block h-[18px] w-[18px]" />
             {l.posicion}
           </span>
@@ -401,15 +401,15 @@ function RenglonDelEnvio({
   return (
     <CampoGuiado id={id} guia={guia} className={CAJA_DE_LINEA}>
       <div data-guia="envio.renglon" className={`grid grid-cols-2 items-start gap-x-2.5 gap-y-2 @min-[40rem]:items-center ${FILA_ANCHA}`}>
-        <p className="col-span-2 text-[13px] font-semibold text-tinta @min-[40rem]:hidden">{etiqueta(id, `Línea ${l.posicion}`)}</p>
-        <span className="hidden items-center gap-1 text-[12px] tabular-nums text-taupe @min-[40rem]:inline-flex" title={`Línea ${l.posicion}`}>
+        <p className="col-span-2 text-sm font-semibold text-tinta @min-[40rem]:hidden">{etiqueta(id, `Línea ${l.posicion}`)}</p>
+        <span className="hidden items-center gap-1 text-sm tabular-nums text-taupe @min-[40rem]:inline-flex" title={`Línea ${l.posicion}`}>
           {/* Sin marca (llegó completo), un hueco del mismo ancho: el número no se corre. */}
           {estado(id) ? <MarcaCampo estado={estado(id)!} /> : <span aria-hidden className="inline-block h-[18px] w-[18px]" />}
           {l.posicion}
         </span>
         <div className="col-span-2 @min-[40rem]:col-span-1">{prenda}</div>
         <p className="text-sm tabular-nums text-tinta/80">
-          <span className="text-xs text-taupe @min-[40rem]:hidden">Quedan </span>
+          <span className="text-sm text-taupe @min-[40rem]:hidden">Quedan </span>
           {(l.porEnviar ?? 0).toLocaleString("es-PE")}
         </p>
         <div>

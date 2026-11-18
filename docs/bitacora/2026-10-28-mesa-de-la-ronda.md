@@ -1,0 +1,4 @@
+## 2026-10-28 · «La mesa de la ronda»: Mis compras con la ronda abierta, en PC y celular (ADR-0559)
+- **Qué se hizo:** Mis compras con la ronda abierta se rearma en `MesaDeLaRonda`: la billetera dice cuánto de tu plata ya usaste, «En esta ronda» es tabla en PC con estados en chips y total al pie, «Para mandar» junta lo que falta mandar y los envíos en una tarjeta, «Cerrar mi ronda» es el último paso del camino y las rondas anteriores son tarjetas. El celular conserva su orden y sale mejor. Sin migraciones.
+- **Qué se descubrió:** la primera maqueta apretaba la tabla a 375 px (la vio Felipe); la propuesta se adapta sola al ancho (la tabla pasa a lista a 760 px o menos). `BarraAvance` ganó `sobreTinta` para la tarjeta oscura de la billetera.
+- **Cómo se verifica:** `pnpm typecheck`, `pnpm knip`, las pruebas de reglas y de guías, y `MesaDeLaRonda` en la pantalla real a 1920, 1440, 1100 y 375 px en claro y oscuro. Falta la prueba con la base local y una compradora.

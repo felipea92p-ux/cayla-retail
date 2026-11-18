@@ -132,16 +132,17 @@ describe("Reportar dañada pregunta a su validación de siempre (no inventa regl
     for (const [piso, almacen] of [[0, 0], [2, 0], [0, 3], [1, 1]])
       for (const lugar of [undefined, "piso", "almacen"] as const)
         for (const cantidad of [0, 1, 2, 3])
+          for (const tipoDano of [undefined, "mancha", "otro"] as const)
           for (const nota of ["", "ab", "Mancha", "x".repeat(201)]) {
             const c = { ...CTX, piso, almacen };
-            const d = { lugar, n: cantidad, nota };
-            const problemas = problemasReporte({ talla: { varianteId: "", talla: null, piso, almacen }, desde: lugar ?? null, cantidad, motivo: nota }).map((p) => p.campo);
+            const d = { lugar, n: cantidad, nota, tipoDano };
+            const problemas = problemasReporte({ talla: { varianteId: "", talla: null, piso, almacen }, desde: lugar ?? null, cantidad, tipo: tipoDano ?? null, motivo: nota }).map((p) => p.campo);
             expect(pasoCompleto("lugar", "danada", d, c)).toBe(!problemas.includes("desde"));
             expect(pasoCompleto("cantidad", "danada", d, c)).toBe(!problemas.includes("cantidad"));
-            expect(pasoCompleto("quetiene", "danada", d, c)).toBe(!problemas.includes("motivo"));
+            expect(pasoCompleto("quetiene", "danada", d, c)).toBe(!problemas.includes("tipo") && !problemas.includes("motivo"));
             n++;
           }
-    expect(n).toBe(4 * 3 * 4 * 4);
+    expect(n).toBe(4 * 3 * 4 * 3 * 4);
   });
 });
 

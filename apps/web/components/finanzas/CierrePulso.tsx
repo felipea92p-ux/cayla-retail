@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
 import type { PulsoCierre } from "@/lib/cierre-pulso-reglas";
+import { mesNombre } from "@/lib/resultados-reglas";
 
 // Cierre de mes en camino A (Felipe 2026-10-15): «¿Puedo cerrar octubre?» con lo que falta en una cifra, el anillo de lo que
 // ya está (los chequeos que frenan y ya pasaron) y las primeras cosas por resolver, cada una con el enlace a donde se
@@ -17,7 +18,7 @@ export function CierrePulso({ pulso }: { pulso: PulsoCierre }) {
     <>
       <section className="fin-pulso-hero" aria-labelledby="fin-cierre-pregunta" data-guia="fin-cierre.pulso">
         <p id="fin-cierre-pregunta" {...entra("fin-pulso-pregunta", 1)}>
-          ¿Puedo cerrar {nombreMesDe(pulso.mes)}?
+          ¿Puedo cerrar {mesNombre(pulso.mes)}?
         </p>
         <div {...entra("fin-cierre-anillo", 2)} role="img" aria-label={`${pulso.hechos} de ${pulso.total} chequeos ya pasaron`}>
           <svg viewBox="0 0 120 120" aria-hidden="true">
@@ -55,7 +56,7 @@ export function CierrePulso({ pulso }: { pulso: PulsoCierre }) {
                   </div>
                   {c.href ? (
                     <Link href={c.href} className="btn-cayla btn-sutil btn-chico">
-                      Resolver
+                      {c.enlace}
                     </Link>
                   ) : (
                     <span />
@@ -69,9 +70,4 @@ export function CierrePulso({ pulso }: { pulso: PulsoCierre }) {
       )}
     </>
   );
-}
-
-const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-function nombreMesDe(mes: string): string {
-  return MESES[Number(mes.slice(5, 7)) - 1] ?? mes;
 }

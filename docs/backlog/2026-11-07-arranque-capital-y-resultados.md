@@ -1,0 +1,5 @@
+## Arranque del Balance: capital y resultados (ADR-0618)
+
+- [ ] **Pagos del Taller sin asiento.** `comprobantes_produccion_pagos` sale del banco en `fn_dinero_libro`, pero `fn_asientos` no tiene regla para él: la Comprobación de la 104 queda 88.00 arriba (ploteos a Multiplaza del 6-nov). Coordinar con la sesión del cierre del Taller (ADR-0614), que tiene migraciones pendientes en Producción.
+- [ ] **La mercadería de las rondas entra dos veces si se completan sus papeles.** Hoy se carga como «carga inicial» (201 contra el capital, `fn_asientos_carga_inicial`), y completar los 18 papeles de las rondas (15,222) la volvería a entrar como compra pagada con el fondo. Hay que decidir uno de los dos caminos (no cargar como carga inicial lo que trae una ronda, o enlazarlos) antes de completar papeles. Felipe prefiere que se descuente del fondo.
+- [ ] **El Fondo de Felipe (17,108) sigue sin rendir**: la mercadería ya está en el stock, pero el fondo no baja hasta rendirlo o completar los papeles.

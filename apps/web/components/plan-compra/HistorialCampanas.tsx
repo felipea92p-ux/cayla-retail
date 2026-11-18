@@ -9,7 +9,6 @@ import { Desplegable } from "@/components/ui/campos";
 import { DetalleCampanaHistorial } from "@/components/plan-compra/DetalleCampanaHistorial";
 import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
-import { Ayuda } from "@/components/Ayuda";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BarraCifras } from "@/components/plan-compra/BarraCifras";
 import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
@@ -44,7 +43,8 @@ import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
 
 // La plantilla de la tabla (<Tabla>, ADR-0358): la campaña y una columna por tienda. Cuántas tiendas hay se sabe al dibujar, así que
 // las columnas viajan en una variable que pone la <Tabla> (`--columnas-historial`); en celular también (cada celda dice su tienda).
-const PLANTILLA_HISTORIAL = "grid-cols-[var(--columnas-historial)]";
+// Bajo 560 px de tabla la campaña va arriba, a lo ancho, y sus tiendas debajo, de a una por columna: el nombre de cada una lo lleva su celda.
+const PLANTILLA_HISTORIAL = "grid-cols-[repeat(var(--tiendas-historial),minmax(0,1fr))] @min-[560px]:grid-cols-[var(--columnas-historial)]";
 
 const solesSinCentimos = (n: number) => `S/\u00a0${Math.round(n).toLocaleString("es-PE")}`;
 
@@ -61,7 +61,7 @@ function Celda({ c, anio }: { c: CeldaHistorial; anio: number }) {
   return (
     <span className="block">
       <span className="block font-semibold text-tinta tabular-nums">{solesSinCentimos(m.soles)}</span>
-      <span className="block text-xs text-taupe">
+      <span className="block text-sm text-taupe">
         {m.enCurso ? `Hasta ayer${partes.length ? " · " : ""}` : ""}
         {partes.join(" · ") || (m.enCurso ? "" : "Sin base para comparar")}
       </span>
@@ -151,7 +151,7 @@ export function HistorialCampanas({
   const arranqueErp = historial?.tiendas.map((t) => t.erpDesde).filter((x): x is string => !!x).sort()[0];
   // El «!» con lo que la frase no alcanza a decir, como en Productos (Felipe 2026-10-12): antes era una nota larga al pie de la tabla.
   const ayuda = (
-    <Ayuda titulo="Historial">
+    <>
       <span className="block">
         «×1.8 un día normal» quiere decir que en esa campaña la tienda vendió, por día, 1.8 veces lo que vendía por día en los 60 días anteriores.
       </span>
@@ -163,24 +163,14 @@ export function HistorialCampanas({
         Finanzas: son soles por tienda, sin categorías ni unidades.
       </span>
       <span className="mt-2 block">«Sin dato» es una tienda que todavía no abría o un tramo que no está en Sinatra (como los meses de la pandemia en 2020).</span>
-    </Ayuda>
+    </>
   );
   const cabecera = (
     <EncabezadoPagina
       sede="Todas las tiendas"
-      titulo={
-        <>
-          Plan de campaña
-          {/* En el celular la frase se esconde y el «!» sube junto al título, como en Productos. */}
-          <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal sm:hidden">{ayuda}</span>
-        </>
-      }
-      subtitulo={
-        <>
-          <span className="max-sm:hidden">Lo que vendió cada tienda en cada campaña, un año a la vez: cuánto más que un día normal y cuánto creció. </span>
-          <span className="max-sm:hidden">{ayuda}</span>
-        </>
-      }
+      titulo="Plan de campaña"
+      subtitulo="Lo que vendió cada tienda en cada campaña, un año a la vez: cuánto más que un día normal y cuánto creció."
+      ayuda={ayuda}
     />
   );
   if (!historial || historial.tiendas.length === 0) {
@@ -253,15 +243,15 @@ export function HistorialCampanas({
 
       {/* Las columnas dependen de cuántas tiendas hay: la plantilla de <Tabla> (ADR-0358) las lee de esta variable, la misma para el
           encabezado y cada fila. */}
-      <Tabla guia="plan-historial.tabla" style={{ ["--columnas-historial" as string]: columnas }}>
+      <Tabla guia="plan-historial.tabla" style={{ ["--columnas-historial" as string]: columnas, ["--tiendas-historial" as string]: tiendas.length }}>
         {/* Buscar y ordenar (Felipe 2026-10-12): en la misma tarjeta que la tabla, como el Plan. De entrada, la de ahora y las que vienen. */}
         <div data-guia="plan-historial.buscar" className="flex flex-wrap items-center gap-3 px-5 py-3">
           <Buscador valor={q} onCambio={setQ} placeholder="Buscar una campaña" etiqueta="Buscar una campaña" atajo conteo={q ? `${visibles.length} de ${filas.length}` : undefined} className="min-w-0 flex-1 sm:max-w-sm" />
-          <div className="ml-auto">
+          <div className="ml-auto min-w-0 max-w-full">
             <DesplegablePildora icono={ArrowUpDown} etiqueta="Ordenar por" valor={orden} onValor={(v) => setOrden(v as OrdenHistorial)} opciones={ORDENES_HISTORIAL} valorPorDefecto="ahora" />
           </div>
         </div>
-        <Encabezado plantilla={PLANTILLA_HISTORIAL} columnas={[{ titulo: `Campaña · ${anio}` }, ...tiendas.map((t) => ({ titulo: t.nombre }))]} />
+        <Encabezado visible="hidden @min-[560px]:grid" plantilla={PLANTILLA_HISTORIAL} columnas={[{ titulo: `Campaña · ${anio}` }, ...tiendas.map((t) => ({ titulo: t.nombre }))]} />
         {visibles.length === 0 && (
           <Vacio tamano="chico" icono={<SearchX />} titulo={`Ninguna campaña de ${anio} se llama «${q.trim()}»`} acciones={<button type="button" className="btn-cayla btn-enlace" onClick={() => setQ("")}>Borrar la búsqueda</button>}>
             Prueba con otra palabra o borra la búsqueda.
@@ -278,21 +268,21 @@ export function HistorialCampanas({
             aria-label={`Ver el detalle de ${campana.nombre} ${anio}`}
             aria-current={abierta?.clave === campana.clave ? "true" : undefined}
           >
-            <span className={celda("izq", "col-span-full sm:col-span-1")}>
-              <span className="flex items-center gap-1.5 font-semibold text-tinta">
+            <span className={celda("izq", "col-span-full whitespace-normal @min-[560px]:col-span-1")}>
+              <span className="flex flex-wrap items-center gap-1.5 font-semibold text-tinta">
                 {campana.nombre}
                 <ChevronRight aria-hidden className="h-4 w-4 text-taupe" />
                 {/* Dónde estás parado en el calendario: la campaña que cae en estos días (en otro año, «en esta fecha»). */}
                 {faltaEnElCalendario(campana, historial.hoy) === 0 && <Chip tono="verde">{anioEnCurso ? "Ahora" : "En esta fecha"}</Chip>}
               </span>
-              <span className="block text-xs text-taupe">
+              <span className="block text-sm text-taupe">
                 {fechaCortaES(campana.desde)} – {fechaCortaES(campana.hasta)}
               </span>
             </span>
             {/* En el orden de las columnas (la tienda de la cabecera primero), no en el de la base. */}
             {tiendas.flatMap((t) => celdas.filter((c) => c.tienda.id === t.id)).map((c) => (
               <span key={c.tienda.id} className="min-w-0">
-                <span className="block text-[11px] text-taupe sm:hidden">{c.tienda.nombre}</span>
+                <span className="block text-sm text-taupe @min-[560px]:hidden">{c.tienda.nombre}</span>
                 <Celda c={c} anio={anio} />
               </span>
             ))}

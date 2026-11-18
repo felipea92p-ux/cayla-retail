@@ -28,7 +28,7 @@ export function useAtajoBusqueda(campoRef: RefObject<HTMLInputElement | null>, a
 }
 
 const CHIP_ACCION =
-  "inline-flex h-10 items-center gap-2 rounded-full bg-papel px-4 text-sm font-medium text-tinta ring-1 ring-tinta/[0.14] transition-[transform,box-shadow] duration-300 hover:-translate-y-px hover:ring-tinta/30";
+  "area-dedo inline-flex h-10 items-center gap-2 rounded-full bg-papel px-4 text-sm font-medium text-tinta ring-1 ring-tinta/[0.14] transition-[transform,box-shadow] duration-300 hover:-translate-y-px hover:ring-tinta/30";
 
 /**
  * El área de acción de Cambios y de Devoluciones (2026-09-18): responde "¿qué quiero
@@ -144,7 +144,7 @@ export function BuscadorVentas({
         icono={escaneando ? "barras" : "lupa"}
         onBlur={() => setEscaneando(false)}
         inputMode="search"
-        placeholder={escaneando ? "Escanea la etiqueta…" : "Boleta, DNI, cliente, prenda o código"}
+        placeholder={escaneando ? "Escanea la etiqueta…" : "Boleta, DNI o prenda"}
         maxLength={MAX_LARGO_BUSQUEDA}
         etiqueta="Buscar la venta: boleta, DNI o RUC, nombre del cliente, nombre o código de la prenda"
         className={escaneando ? "escaneando" : ""}
@@ -192,7 +192,7 @@ export function BuscadorVentas({
       </div>
 
       {escaneando && (
-        <p className="anim-revelar text-xs text-tinta/70" role="status">
+        <p className="anim-revelar text-sm text-tinta/70" role="status">
           Listo para escanear: apunta la pistola a la etiqueta. La búsqueda sale sola.
         </p>
       )}

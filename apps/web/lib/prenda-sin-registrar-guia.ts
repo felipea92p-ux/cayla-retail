@@ -7,6 +7,7 @@
 //   NO HACE: no decide qué campo se enciende (eso es `siguienteDe` de `lib/guia-campos.ts`, con su retención mientras se escribe).
 import type { CampoDeGuia } from "./guia-campos";
 import { FALTA_POR_PASO, pasoSiguiente, type DatosPrendaSinRegistrar, type PasoPrenda } from "./prenda-sin-registrar-reglas";
+import { FALTA_MOTIVO, faltaEnMotivo } from "./prenda-sin-registrar-motivo";
 
 const NOMBRE: Record<PasoPrenda, string> = {
   categoria: "Categoría",
@@ -31,6 +32,11 @@ const LLENO: DatosPrendaSinRegistrar = { categoriaId: "c", tallaId: "t", colorCo
 /** Un paso está hecho si `pasoSiguiente`, con todo lo demás lleno, ya no se detiene en él: la misma regla, sin copiarla. */
 const hechoEn = (paso: PasoPrenda, d: Partial<DatosPrendaSinRegistrar>) => pasoSiguiente({ ...LLENO, [DATO[paso]]: d[DATO[paso]] }) !== paso;
 
-export function camposGuiaPrenda(d: Partial<DatosPrendaSinRegistrar>): CampoDeGuia[] {
-  return PASOS_PRENDA.map((paso) => ({ id: paso, nombre: NOMBRE[paso], requerido: true, hecho: hechoEn(paso, d), pendiente: `${FALTA_POR_PASO[paso]}.` }));
+/** Con `motivo` (solo al anotar en Vender; al corregir lo anotado no se pregunta), el «¿por qué la anotas a mano?» va primero: es la misma
+ *  regla que apaga «Agregar al ticket» (`faltaEnMotivo`). */
+export function camposGuiaPrenda(d: Partial<DatosPrendaSinRegistrar>, motivo?: { valor: string; detalle: string }): CampoDeGuia[] {
+  const campos = PASOS_PRENDA.map((paso) => ({ id: paso, nombre: NOMBRE[paso], requerido: true, hecho: hechoEn(paso, d), pendiente: `${FALTA_POR_PASO[paso]}.` }));
+  if (!motivo) return campos;
+  const falta = faltaEnMotivo(motivo.valor, motivo.detalle);
+  return [{ id: "motivo", nombre: "Por qué a mano", requerido: true, hecho: falta === null, pendiente: `${falta ?? FALTA_MOTIVO}.` }, ...campos];
 }

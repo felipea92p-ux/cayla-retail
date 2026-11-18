@@ -51,9 +51,14 @@ describe("paridad con la base", () => {
     expect(MIGRACION).toContain(`coalesce(p_fijo_orden, 0) > ${TARIFA_MAXIMA}`);
   });
 
-  it("las doce fases son las que la base acepta, y todas las de la web están en la lista de la base", () => {
-    const enLaBase = /p_fase_clave not in \(([^)]*)\)/.exec(MIGRACION)?.[1].split(",").map((s) => s.trim().replace(/'/g, "")) ?? [];
-    expect([...enLaBase].sort()).toEqual(FASES.map((f) => f.clave as string).sort());
+  it("la fase de una tarifa es un proceso ACTIVO del catálogo (ADR-0570, actividad 5): la base lo pregunta a `procesos_produccion`, y la web dice lo mismo", () => {
+    const catalogo = readFileSync(join(__dirname, "../../../supabase/migrations/20261029210000_produccion_catalogo_de_procesos.sql"), "utf8");
+    expect(catalogo).toContain("not exists (select 1 from retail.procesos_produccion pp where pp.clave = p_fase_clave and pp.activo)");
+    const entrada = { proveedorId: "p1", fase: "pegar_cierre", tarifa: "2", minimo: "", fijo: "", nota: "" };
+    expect(problemasDeTarifa(entrada).map((p) => p.hint)).toEqual([]);
+    const apagado = FASES.map((f) => (f.clave === "pegar_cierre" ? { ...f, activo: false } : f));
+    expect(problemasDeTarifa(entrada, apagado).map((p) => p.hint)).toEqual(["tarifa_fase_invalida"]);
+    expect(problemasDeTarifa({ ...entrada, fase: "inventado" }).map((p) => p.hint)).toEqual(["tarifa_fase_invalida"]);
   });
 
   it("la lista sale en el orden de la ruta, el mismo de la base", () => {
@@ -104,7 +109,7 @@ describe("leerTarifasDeServicios", () => {
   it("descarta lo que no entiende en vez de dibujarlo a medias", () => {
     const sale = leerTarifasDeServicios([
       cruda(),
-      cruda({ fase_clave: "tejido" }),
+      cruda({ fase_clave: "Tejido 2" }), // sin forma de clave: la base solo manda procesos del catálogo (llave foránea)
       cruda({ tarifa_prenda: 0 }),
       cruda({ tarifa_prenda: "x" }),
       cruda({ proveedor_id: null }),

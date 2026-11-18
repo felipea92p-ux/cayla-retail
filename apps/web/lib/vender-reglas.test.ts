@@ -226,14 +226,11 @@ describe("descuentosPedidos — en S/ el monto es del total de lo elegido y se r
   });
 });
 
-describe("entraAlDescuento — lo elegido, menos las piezas de liquidación (ADR-0379)", () => {
+describe("entraAlDescuento — lo elegido", () => {
   it("todo el ticket (null o vacío) alcanza a todas; con claves, solo a esas", () => {
     expect(entraAlDescuento({ claveLinea: "a" }, null)).toBe(true);
     expect(entraAlDescuento({ claveLinea: "a" }, [])).toBe(true);
     expect(entraAlDescuento({ claveLinea: "a" }, ["b"])).toBe(false);
-  });
-  it("una pieza de liquidación nunca entra", () => {
-    expect(entraAlDescuento({ claveLinea: "a", liquidacion: { codigo: "LQ1" } }, null)).toBe(false);
   });
 });
 
@@ -282,10 +279,6 @@ describe("aplicarDescuentoMonto — un monto en S/ para todo lo alcanzado, repar
   });
   it("con claves, el monto entero va a las elegidas y las demás quedan como estaban", () => {
     expect(aplicarDescuentoMonto(carrito, 60, ["a"], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([60, 0]);
-  });
-  it("una pieza de liquidación no recibe parte: todo va a las demás", () => {
-    const conLiquidacion = [...carrito, { ...linea("c", 30), cantidad: 1, liquidacion: { codigo: "LQ1" } }];
-    expect(aplicarDescuentoMonto(conLiquidacion, 100, [], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([57.15, 42.85, 0]);
   });
   it("guarda el motivo igual que la versión por %", () => {
     expect(aplicarDescuentoMonto(carrito, 10, ["a"], cumpleanos)[0].razonDescuento).toBe("cumpleanos_clienta_top");
@@ -1232,5 +1225,33 @@ describe("la máquina que cobró la tarjeta o el QR (ADR-0429)", () => {
     expect(pagosParaRpc([{ metodo: "tarjeta", monto: 100 }])).toEqual([{ metodo: "tarjeta", monto: 100 }]);
     const [yape] = pagosParaRpc([{ metodo: "yape", monto: 100, cuentaId: "pdi", referencia: "123" }]);
     expect(yape).toEqual({ metodo: "yape", monto: 100, referencia: "123" });
+  });
+});
+
+// Casuística del 2026-11-16 (ADR-0655): un descuento a mano menor que la campaña ya no se pierde: queda detrás de ella y vuelve cuando la
+// campaña termina o la prenda se va con su oferta de grupo (ver lib/ofertas-de-grupo.test.ts).
+describe("el descuento a mano detrás de la campaña", () => {
+  const cumple: DetalleDescuento = { razon: "cumpleanos_clienta_top", razonOtro: "", argumento: "" };
+  const rige = new Map<string, CampanaLinea>([["a", blackFriday]]);
+  it("un 10 % manual bajo una campaña de 20 % deja la campaña y guarda el 10 % detrás, con su motivo", () => {
+    const [l] = aplicarDescuento([lineaCampana("a", 100, blackFriday)], 10, [], cumple);
+    expect(l).toMatchObject({ descuentoUnitario: 20, razonDescuento: "campana", manualTrasCampana: { monto: 10, razon: "cumpleanos_clienta_top" } });
+  });
+  it("«Quitar descuento» borra lo de detrás", () => {
+    const [l] = aplicarDescuento(aplicarDescuento([lineaCampana("a", 100, blackFriday)], 10, [], cumple), 0, [], SIN_DETALLE_DESCUENTO);
+    expect(l).toMatchObject({ manualTrasCampana: null });
+  });
+  it("si la campaña termina, vuelve el descuento a mano", () => {
+    const con = aplicarDescuento([lineaCampana("a", 100, blackFriday)], 10, [], cumple);
+    expect(conCampanas(con, new Map())[0]).toMatchObject({ descuentoUnitario: 10, razonDescuento: "cumpleanos_clienta_top", campana: null, manualTrasCampana: null });
+  });
+  it("un manual menor que la campaña que se pone al día queda detrás (antes se perdía)", () => {
+    const manual = { ...lineaCampana("a", 100), descuentoUnitario: 10, razonDescuento: "cerrar_venta" };
+    expect(conCampanas([manual], rige)[0]).toMatchObject({ descuentoUnitario: 20, razonDescuento: "campana", manualTrasCampana: { monto: 10, razon: "cerrar_venta" } });
+  });
+  it("si la campaña nueva da menos que lo de detrás, lo de detrás pasa adelante", () => {
+    const con = aplicarDescuento([lineaCampana("a", 100, blackFriday)], 15, [], cumple);
+    const menor = new Map<string, CampanaLinea>([["a", { ...blackFriday, pct: 10 }]]);
+    expect(conCampanas(con, menor)[0]).toMatchObject({ descuentoUnitario: 15, razonDescuento: "cumpleanos_clienta_top", manualTrasCampana: null });
   });
 });

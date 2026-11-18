@@ -52,7 +52,7 @@ export function CambiosVentas({
             linea={linea}
             estado={estado}
             detalle={linea.cambiosHechos.map((c, i) => (
-              <p key={i} className="mt-1 flex items-center gap-1.5 text-xs text-verde-profundo">
+              <p key={i} className="mt-1 flex items-center gap-1.5 text-sm text-verde-profundo">
                 <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 {linea.cantidad > 1 ? `${c.cantidad} cambiada${c.cantidad === 1 ? "" : "s"}` : "Cambiada"} por {descripcionEntregadaTodas(c, linea.productoId)} ·{" "}
                 {etiquetaDia(c.creadoEn, ahora).toLowerCase()} {formatearHora(c.creadoEn)}

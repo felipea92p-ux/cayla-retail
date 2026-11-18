@@ -1,4 +1,4 @@
-import { FASES, fasesIniciales, type FaseBorrador } from "./orden-fases-reglas";
+import { fasesIniciales, type FaseBorrador } from "./orden-fases-reglas";
 import type { TelaBorrador } from "./orden-tela-reglas";
 
 // El borrador de «Nueva orden» (ADR-0509): lo escrito sobrevive a salir de la pantalla. Un compositor sobre la lista se abandona con más facilidad que una hoja (basta tocar el menú) y
@@ -21,7 +21,8 @@ export type ModoDeModelo = "existe" | "nuevo";
 
 /** Todo lo que la persona escribió o eligió y que se perdería: lo mismo que el formulario cuenta como «trabajo» para preguntar «¿Salir sin guardar?». */
 export type FotoDelBorrador = {
-  tipo: TipoDeOrden;
+  /** `null`: un modelo nuevo al que todavía no se le eligió el tipo (no trae uno de fábrica, ADR-0396 act. 2026-10-30). */
+  tipo: TipoDeOrden | null;
   modoModelo: ModoDeModelo;
   productoId: string;
   nombreNuevo: string;
@@ -67,12 +68,13 @@ export function modeloDelBorrador(f: Pick<FotoDelBorrador, "modoModelo" | "produ
 const fasesComoSon = (fases: readonly FaseBorrador[]) => JSON.stringify(fases);
 
 /** ¿Hay trabajo que valga guardar? Elegir el modelo o el tipo no es trabajo: lo es una cantidad, un nombre, una categoría, tallas o colores del modelo nuevo, un precio, una nota, una fecha, una tela o una fase distinta de la de siempre. */
-export function tieneTrabajo(f: FotoDelBorrador): boolean {
+export function tieneTrabajo(f: FotoDelBorrador, fasesDeArranque: readonly FaseBorrador[] = fasesIniciales()): boolean {
   if (Object.values(f.cantidades).some((v) => v.trim() !== "" && v.trim() !== "0")) return true;
   if (f.nombreNuevo.trim() !== "" || f.precioNuevo.trim() !== "" || f.nota.trim() !== "" || f.fechaEntrega !== "") return true;
   if (f.categoriaNuevaId !== "" || f.tallasNuevas.length > 0 || f.coloresNuevos.length > 0) return true;
   if (f.telasManual !== null) return true;
-  return fasesComoSon(f.fases) !== fasesComoSon(fasesIniciales());
+  // «De fábrica» ya no es una sola cosa (ADR-0551): Ojales y botones nace prendido si el modelo lo lleva, y Ploteo y Corte nacen afuera si hay a quién mandarlos. El formulario pasa SU punto de partida.
+  return fasesComoSon(f.fases) !== fasesComoSon(fasesDeArranque);
 }
 
 // ---------- Leer lo guardado: nada se fía hasta validarlo ----------
@@ -81,24 +83,31 @@ const esObjeto = (x: unknown): x is Record<string, unknown> => typeof x === "obj
 const esTexto = (x: unknown): x is string => typeof x === "string";
 const esListaDeTextos = (x: unknown): x is string[] => Array.isArray(x) && x.every(esTexto);
 const esTextoONulo = (x: unknown): x is string | null => x === null || esTexto(x);
-const CLAVES_DE_FASE = new Set<string>(FASES.map((f) => f.clave));
+// Una clave con forma de proceso del catálogo (ADR-0570, actividad 5): un proceso propio del borrador que el líder apagó después lo rechaza la base al abrir, con su motivo.
+const esClaveDeFase = (c: string) => /^[a-z][a-z0-9_]{1,39}$/.test(c);
 
 function esFase(x: unknown): x is FaseBorrador {
   if (!esObjeto(x)) return false;
   return (
-    esTexto(x.clave) && CLAVES_DE_FASE.has(x.clave) && typeof x.encendida === "boolean" && (x.quien === "taller" || x.quien === "servicio") && esTextoONulo(x.proveedorId) &&
+    esTexto(x.clave) && esClaveDeFase(x.clave) && typeof x.encendida === "boolean" && (x.quien === "taller" || x.quien === "servicio") && esTextoONulo(x.proveedorId) &&
     esTexto(x.tarifa) && esTexto(x.fijo) && esTexto(x.minimo) && esTexto(x.fechaPrometida) && (x.posicion === null || x.posicion === "pieza" || x.posicion === "prenda")
   );
 }
 
 function esTela(x: unknown): x is TelaBorrador {
-  return esObjeto(x) && esTextoONulo(x.insumoId) && esTextoONulo(x.colorCodigo) && esTexto(x.consumoPorPrenda);
+  return (
+    esObjeto(x) &&
+    esTextoONulo(x.insumoId) &&
+    esTextoONulo(x.colorCodigo) &&
+    esTexto(x.consumoPorPrenda) &&
+    (x.porTalla === undefined || x.porTalla === null || (esObjeto(x.porTalla) && Object.values(x.porTalla).every(esTexto)))
+  );
 }
 
 function esFoto(x: unknown): x is FotoDelBorrador {
   if (!esObjeto(x)) return false;
   return (
-    (x.tipo === "produccion" || x.tipo === "muestra") && (x.modoModelo === "existe" || x.modoModelo === "nuevo") && esTexto(x.productoId) && esTexto(x.nombreNuevo) && esTexto(x.categoriaNuevaId) &&
+    (x.tipo === "produccion" || x.tipo === "muestra" || x.tipo === null) && (x.modoModelo === "existe" || x.modoModelo === "nuevo") && esTexto(x.productoId) && esTexto(x.nombreNuevo) && esTexto(x.categoriaNuevaId) &&
     esListaDeTextos(x.tallasNuevas) && esListaDeTextos(x.coloresNuevos) && esTexto(x.precioNuevo) && esObjeto(x.cantidades) && Object.values(x.cantidades).every(esTexto) &&
     Array.isArray(x.fases) && x.fases.every(esFase) && (x.telasManual === null || (Array.isArray(x.telasManual) && x.telasManual.every(esTela))) && esTexto(x.fechaEntrega) && esTexto(x.nota)
   );
@@ -139,9 +148,9 @@ function leerIndice(almacen: Almacen, tallerId: string): string[] {
 }
 
 /** Guarda el borrador y lo pone primero en el índice del Taller. `true` solo si de verdad quedó guardado. Sin modelo o sin trabajo, no guarda nada. */
-export function guardarBorrador(almacen: Almacen | null, tallerId: string, foto: FotoDelBorrador, ahora: Date = new Date()): boolean {
+export function guardarBorrador(almacen: Almacen | null, tallerId: string, foto: FotoDelBorrador, ahora: Date = new Date(), fasesDeArranque?: readonly FaseBorrador[]): boolean {
   const modelo = modeloDelBorrador(foto);
-  if (!almacen || !modelo || !tieneTrabajo(foto)) return false;
+  if (!almacen || !modelo || !tieneTrabajo(foto, fasesDeArranque)) return false;
   try {
     const borrador: BorradorDeOrden = { v: VERSION, guardadoEn: ahora.toISOString(), foto };
     almacen.setItem(claveDelBorrador(tallerId, modelo), JSON.stringify(borrador));

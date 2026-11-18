@@ -11,7 +11,9 @@ import {
   borradorInicial,
   buenasDeRecibidos,
   hayAlgoEnElBorrador,
+  TEXTO_COMPRASTE_Y_LO_RECIBES,
   TEXTO_LA_RECIBE_OTRA,
+  TEXTO_LO_RECIBIO_QUIEN_COMPRO,
   totalesDeRecepcion,
   type CatalogoParaRecibir,
   type DetalleEnvio,
@@ -120,8 +122,8 @@ export function RecibirEnvio({
             </Aviso>
           ) : (
             <Aviso tono="atencion" guia="recepcion.quien-compro" titulo={TEXTO_LA_RECIBE_OTRA}>
-              Quien hace una orden no la recibe, ni siquiera un líder: así nadie da por recibido lo que él mismo pidió. Pídele a otra persona de la
-              tienda que lo reciba.
+              Quien hace una orden no la recibe, ni siquiera un líder (solo un Admin recibe lo que él mismo compró): así nadie da por recibido lo que
+              él mismo pidió. Pídele a otra persona de la tienda que lo reciba.
             </Aviso>
           )}
           <section className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Lo que trae">
@@ -129,6 +131,18 @@ export function RecibirEnvio({
             <LoQueTrae detalle={detalle} />
           </section>
         </>
+      )}
+
+      {/* ADR-0517: un Admin sí recibe lo que él mismo compró. Antes de recibir se le avisa; ya cerrado, lo ve cualquiera que mire el envío. */}
+      {porRecibir && !otraSede && !noLoRecibe && detalle.comproQuienMira && (
+        <Aviso tono="info" titulo={TEXTO_COMPRASTE_Y_LO_RECIBES}>
+          Al recibirlo queda anotado que lo recibió quien hizo la compra, y quien revise las compras lo verá.
+        </Aviso>
+      )}
+      {estado === "cerrado" && detalle.recibioQuienCompro && (
+        <Aviso tono="atencion" titulo={TEXTO_LO_RECIBIO_QUIEN_COMPRO}>
+          La misma persona hizo la compra y recibió el envío (un Admin puede recibir lo que él mismo compró), así que nadie más contó esta mercadería.
+        </Aviso>
       )}
 
       {estado === "en_camino" && !otraSede && !noLoRecibe && (

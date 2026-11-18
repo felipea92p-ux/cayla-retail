@@ -20,6 +20,7 @@ formas y cerrar una hoja, 6.
 2. **Lo peligroso, rojo desde el principio (A):** borrar, anular, desactivar, quitar acceso o una foto van en `btn-peligro` (borde y letra
    rojos, se tiñe de rojo suave al pasar el mouse); en la barra de vidrio de Comprobantes, `BotonCompacto variante="fila-alerta"`. Cuenta
    dentro del máximo de 2 rojos por pantalla.
+   **Cambió el 2026-11-05 (Felipe, mirando la lámina «Vidrio en Dynamic»):** la acción principal de una hoja de confirmación es negra (`peso="primario"`), con `<AvisoNoSeDeshace />` sobre los botones si de verdad no se deshace. `btn-peligro` queda para lo que abre esa confirmación, va en una fila o convive con «Guardar»: la gota con letra en rojo profundo. El fondo rojo con letra crema se fue: daba de 2.87:1 a 4.26:1 en claro, y con el rojo diluido sobre el papel se veía café. Lo vigila `lib/vidrio-contraste.test.ts`.
 3. **Cerrar una hoja que no guarda nada: la × sola, arriba a la derecha (A).** `<Modal conCerrar>`; `ModalRuta` la usa por defecto.
    El botón «Cerrar» del pie desaparece (y el pie, si quedaba vacío). Escape y tocar fuera siguen cerrando.
 

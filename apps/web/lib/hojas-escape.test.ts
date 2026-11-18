@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 // Escape que era para cerrar la lista cerraba la hoja entera y se perdía lo escrito. Toda hoja de Radix decide ahora
 // con `useEscapeLibre` (components/ui/useEscapeLibre.ts): cierra solo con un Escape que ningún control de adentro usó.
 // `<Modal>` ya lo hace; lo que esta prueba cuida es que un cajón o una hoja que arme su propio `Dialog.Content` (hoy
-// las vistas rápidas, `OrdenPanel` y `ProveedorModal`) no se lo salte. Si se lo salta, el bug vuelve en esa pantalla.
+// las vistas rápidas y `ProveedorModal`) no se lo salte. Si se lo salta, el bug vuelve en esa pantalla.
 //
 // Contrato (3 líneas). PROMETE: que cada `<Dialog.Content>` de la web lleva `onEscapeKeyDown` y que su archivo usa
 // `useEscapeLibre`. ASUME: las hojas son `.tsx` bajo `components/` o `app/` y usan el `Dialog` de

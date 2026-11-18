@@ -5,7 +5,8 @@ import { traducirError } from "@/lib/error-escritura";
 import { leerCuerpoOferta, reglaDeFila, type FilaRegla } from "@/lib/campana-reglas";
 
 // POST  /api/productos/campana-reglas → guarda una oferta de una campaña (nueva o editada). «Tres preguntas», Felipe 2026-10-23.
-// PATCH /api/productos/campana-reglas → { id, accion: "activar" | "retirar" } sobre una oferta que ya existe.
+// PATCH /api/productos/campana-reglas → { id, accion: "activar" | "retirar" } sobre una oferta que ya existe, o { id, accion: "queda", cede }:
+//   el aviso de Campañas elige qué oferta queda en un par que comparte prendas (`elegir_oferta_que_queda`, ADR-0655).
 //
 // PROMETE: devolver SIEMPRE la lista fresca de ofertas (`campana_reglas()`), para que la hoja se repinte sin otra consulta.
 // ASUME: quien llega es de la web y ve Insignias, Campañas o Campañas de la tienda web; lo demás (quién puede activar, que la campaña
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
   const o = leido.valor;
 
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
-  const { data, error } = await llamar(supabase, "guardar_campana_regla", {
+  const comun = {
     p_regla_id: o.id,
     p_etiqueta_id: o.etiquetaId,
     p_nombre: o.nombre,
@@ -59,7 +60,53 @@ export async function POST(request: Request) {
     p_incluye_claure: o.incluyeClaure,
     p_sede_ids: o.sedeIds,
     p_activar: o.activar,
-  });
+  };
+  // Con modelos elegidos uno por uno (ADR-0655), `guardar_oferta` guarda la oferta y sus modelos en una transacción (20261113210000). Sin ellos
+  // —y para una oferta que los tenía y ya no— la función de siempre basta si la oferta nunca tuvo modelos; si los tuvo, `guardar_oferta` los quita.
+  // Con ofertas que le ceden («que la otra ceda», ADR-0655), `guardar_oferta_y_ceder` guarda la oferta y sus cesiones en una transacción
+  // (20261113223000): el candado de «una prenda, una oferta por tienda y por día» las mira juntas al cerrar.
+  const conModelos = o.productosSolo.length > 0 || o.teniaModelos;
+  const conCesiones = o.cedeA.length > 0 || o.teniaCesiones;
+  // Una oferta de grupo (3x2, N por S/, la N.ª al X %; ADR-0655, actividad 6) —o una que lo era y vuelve a «un % menos»— va por
+  // `guardar_oferta_completa` (20261114003000), que guarda la forma con lo demás en una transacción. También una con insignias elegidas
+  // (ADR-0655, por insignia; 20261114060000) o que las tenía: las insignias viajan en la forma, y solo esa función las guarda o las quita.
+  const conInsignias = o.insigniasSolo.length > 0 || o.teniaInsignias;
+  const conForma = o.forma.tipo !== "pct" || o.eraDeGrupo || conInsignias;
+  const { data, error } = conForma
+    ? await llamar(supabase, "guardar_oferta_completa", {
+        p_regla_id: o.id,
+        p_etiqueta_id: o.etiquetaId,
+        p_nombre: o.nombre,
+        // La forma con los nombres de la base; un monto (actividad 8) suma sus escalones, en qué ahorra, qué cuenta y si cede a las otras.
+        p_forma: {
+          tipo: o.forma.tipo,
+          lleva: o.forma.lleva,
+          paga: o.forma.paga,
+          monto: o.forma.monto,
+          agrupa: o.forma.agrupa,
+          porcentaje: o.forma.tipo === "pct" || o.forma.tipo === "nesima_pct" ? o.porcentaje : null,
+          ...(o.forma.tipo === "monto"
+            ? { escalones: o.forma.escalones ?? [], ahorro_en: o.forma.ahorroEn ?? "soles", cuenta: o.forma.cuenta ?? "compra", cede_a_otras: o.forma.cedeAOtras ?? false }
+            : {}),
+          // Sin la clave, la base no toca las insignias de la oferta: se manda solo cuando hay o había alguna.
+          ...(conInsignias ? { insignias: o.insigniasSolo } : {}),
+        },
+        p_desde: o.desde,
+        p_hasta: o.hasta,
+        p_dias_semana: o.dias,
+        p_categorias_solo: o.categoriasSolo,
+        p_categorias_fuera: o.categoriasFuera,
+        p_incluye_claure: o.incluyeClaure,
+        p_sede_ids: o.sedeIds,
+        p_producto_ids: o.productosSolo,
+        p_cede_regla_ids: o.cedeA,
+        p_activar: o.activar,
+      })
+    : conCesiones
+    ? await llamar(supabase, "guardar_oferta_y_ceder", { ...comun, p_producto_ids: o.productosSolo, p_cede_regla_ids: o.cedeA })
+    : conModelos
+      ? await llamar(supabase, "guardar_oferta", { ...comun, p_producto_ids: o.productosSolo })
+      : await llamar(supabase, "guardar_campana_regla", comun);
   if (error) return Response.json({ error: traducirError(error, "guardar la oferta") }, { status: 400 });
 
   const lista = await listaFresca(supabase);
@@ -70,9 +117,21 @@ export async function PATCH(request: Request) {
   const { respuesta } = await exigirPuerta();
   if (respuesta) return respuesta;
 
-  const cuerpo = (await request.json().catch(() => null)) as { id?: unknown; accion?: unknown } | null;
+  const cuerpo = (await request.json().catch(() => null)) as { id?: unknown; accion?: unknown; cede?: unknown } | null;
   const id = typeof cuerpo?.id === "string" ? cuerpo.id : "";
   if (!id) return Response.json({ error: "Falta la oferta." }, { status: 400 });
+
+  // El aviso de Campañas (ADR-0655, decisión 2 de Felipe): «que quede esta» en un par de ofertas que comparten prendas. Solo ese par.
+  if (cuerpo?.accion === "queda") {
+    const cede = typeof cuerpo.cede === "string" ? cuerpo.cede : "";
+    if (!cede) return Response.json({ error: "Falta la otra oferta." }, { status: 400 });
+    const supabaseQueda = await createClient({ firma: firmaDeEncabezados(request.headers) });
+    const { error: errorQueda } = await llamar(supabaseQueda, "elegir_oferta_que_queda", { p_gana_regla_id: id, p_cede_regla_id: cede });
+    if (errorQueda) return Response.json({ error: traducirError(errorQueda, "elegir la oferta que queda") }, { status: 400 });
+    const lista = await listaFresca(supabaseQueda);
+    return Response.json({ ok: true, reglas: lista.reglas, avisoLectura: lista.error });
+  }
+
   if (cuerpo?.accion !== "activar" && cuerpo?.accion !== "retirar") {
     return Response.json({ error: "Solo se puede activar o retirar una oferta." }, { status: 400 });
   }

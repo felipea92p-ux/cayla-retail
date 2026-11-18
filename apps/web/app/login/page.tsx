@@ -2,7 +2,7 @@
 
 import { avisar } from "@/components/ui/Avisos";
 import { useEsperando } from "@/components/ui/Espera";
-import { IsotipoCayla } from "@/components/ui/IsotipoCayla";
+import { INICIO_DE_LA_PALABRA, LogoCayla } from "@/components/ui/LogoCayla";
 import { PanelVuelo } from "@/components/login/PanelVuelo";
 import { saludoDelDia } from "@/lib/login-vuelo";
 import { entradaEnCurso, iniciarEntrada, ponerNombreDelSaludo } from "@/lib/entrada-estado";
@@ -14,6 +14,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { esFalloDeAuth } from "@/lib/base-caida-reglas";
 import { Boton } from "@/components/ui/campos";
+import { marcarCambioDeCuenta } from "@/app/actions/entrada";
 
 const MENSAJES_ERROR: Record<string, string> = {
   sin_persona:
@@ -60,6 +61,19 @@ async function pedirAterrizaje(): Promise<string> {
   }
 }
 
+/**
+ * Que el navegador olvide lo que aprendió antes de esta cuenta (a qué pantalla lleva cada dirección): sin esto, una nota de cuando no
+ * había sesión («"/" es el login») dejaba la entrada en «Entrando…» (2026-11-16; el porqué, en `COOKIE_CAMBIO_DE_CUENTA` de
+ * `lib/login-aterrizaje.ts`). True si se olvidó; false si la acción no respondió a tiempo.
+ */
+async function olvidarLoDeAntes(): Promise<boolean> {
+  try {
+    return (await conTope(marcarCambioDeCuenta().then(() => true), MS_TOPE_DEL_ATERRIZAJE)) ?? false;
+  } catch {
+    return false;
+  }
+}
+
 export default function LoginPage() {
   return (
     <Suspense fallback={null}>
@@ -97,6 +111,17 @@ function LoginForm() {
     const texto = errorInicial ? MENSAJES_ERROR[errorInicial] : null;
     if (texto) avisar.aviso(texto);
   }, [errorInicial]);
+  // Si la entrada en curso terminó aquí con un motivo (la cuenta no puede entrar), el login es la misma pantalla y no se desmonta: se
+  // suelta la espera para que el aviso salga ya y el botón vuelva a «Entrar», en vez de esperar el tope de la entrada (ajuste durante el
+  // render, no en un efecto).
+  const [motivoVisto, setMotivoVisto] = useState(errorInicial);
+  if (errorInicial !== motivoVisto) {
+    setMotivoVisto(errorInicial);
+    if (errorInicial && MENSAJES_ERROR[errorInicial]) {
+      setEntrando(false);
+      setLoading(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -132,7 +157,15 @@ function LoginForm() {
     // vuela pero no se muestra hasta que su velo tapa todo (`EsperaAlVelo`): solo se ve por la ventana. Sin `router.refresh()`: el destino
     // ya se pide con la sesión abierta, y el refresco era otro viaje a `/` que demoraba la entrada. `replace`: «atrás» no vuelve a un login
     // del que ya se salió.
-    router.replace(await pedirAterrizaje());
+    // Antes de navegar, el navegador olvida lo que aprendió sin esta cuenta (2026-11-16, `olvidarLoDeAntes`); va a la par de la pregunta, así
+    // la entrada no se alarga. Si no se pudo olvidar, una navegación suave podría volver a caer en el login: se entra con la página completa
+    // (sin el vuelo, que se corta), que pregunta todo de nuevo al servidor.
+    const [olvido, destino] = await Promise.all([olvidarLoDeAntes(), pedirAterrizaje()]);
+    if (!olvido) {
+      window.location.replace(destino);
+      return;
+    }
+    router.replace(destino);
   }
 
   // «El vuelo» (Felipe 2026-10-13): la marca a la izquierda y el formulario a la derecha; en el celular, solo el formulario.
@@ -143,21 +176,22 @@ function LoginForm() {
       <main className="login-lado">
         <form onSubmit={onSubmit} className="login-form">
           <div className="login-marca-chica">
-            <IsotipoCayla className="h-12 w-auto" />
-            <p className="font-display mt-4 text-3xl text-tinta" style={{ letterSpacing: "0.24em" }}>
-              CAYLA
-            </p>
-            {/* Dice de qué sistema es (Dynamic es otro) — nunca reemplaza a "CAYLA", solo se agrega debajo. */}
-            <p className="label-cayla text-[11px] text-taupe-profundo" style={{ letterSpacing: "0.2em" }}>
-              Retail
-            </p>
+            {/* El logo oficial (ADR-0446), el mismo del lateral: nunca «CAYLA» escrito con una letra del sistema. */}
+            <div className="flex flex-col items-start">
+              <LogoCayla className="h-12" />
+              <span className="sr-only">CAYLA</span>
+              {/* Dice de qué sistema es (Dynamic es otro) — nunca reemplaza a "CAYLA", solo se agrega debajo, alineado con la palabra. */}
+              <p className="label-cayla mt-0.5 text-[11px] text-taupe-profundo" style={{ letterSpacing: "0.2em", marginLeft: `${INICIO_DE_LA_PALABRA * 3}rem` }}>
+                Retail
+              </p>
+            </div>
           </div>
 
           <p className="login-saludo" data-listo={saludo ? "" : undefined}>
             {saludo ?? "\u00a0"}
           </p>
           <h1 className="login-titulo">Entrar</h1>
-          <p className="mt-2 text-[13.5px] leading-relaxed text-tinta/65">
+          <p className="mt-2 text-sm leading-relaxed text-tinta/65">
             Con el correo que te dio tu líder, o el de la terminal de tu tienda.
           </p>
 
@@ -194,7 +228,7 @@ function LoginForm() {
                   type="button"
                   onClick={() => setMostrarPassword((v) => !v)}
                   aria-label={mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                  className="-mr-1 shrink-0 text-tinta/65 transition-colors hover:text-rojo"
+                  className="area-dedo -mr-1 shrink-0 text-tinta/65 transition-colors hover:text-rojo"
                 >
                   {mostrarPassword ? (
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
@@ -220,7 +254,7 @@ function LoginForm() {
           </div>
         </form>
 
-        <p className="login-pie text-[12.5px] text-tinta/65">¿Olvidaste tu contraseña? Avísale a tu líder.</p>
+        <p className="login-pie text-sm text-tinta/65">¿Olvidaste tu contraseña? Avísale a tu líder.</p>
       </main>
     </div>
   );

@@ -23,6 +23,7 @@ import {
   inicialesMeses,
   limpiarRubros,
   marcasParaMostrar,
+  tituloDeMarcas,
   marcasPorProveedor,
   opcionesDeRubro,
   ordenarProveedores,
@@ -434,6 +435,23 @@ describe("textoBuscableProveedor", () => {
   });
   it("sin marcas, RUC ni contacto no deja separadores sueltos", () => {
     expect(textoBuscableProveedor({ nombre: "Taller Sin Marca", ruc: null, contacto: null })).toBe("Taller Sin Marca");
+  });
+});
+
+describe("tituloDeMarcas (ADR-0644, la marca primero)", () => {
+  it("sin marcas no hay título: queda la razón social", () => {
+    expect(tituloDeMarcas([], "")).toBeNull();
+  });
+  it("una, dos y tres marcas se dicen enteras", () => {
+    expect(tituloDeMarcas(["Kero"], "")).toBe("Kero");
+    expect(tituloDeMarcas(["Kero", "Lolita"], "")).toBe("Kero y Lolita");
+    expect(tituloDeMarcas(["Kero", "Lolita", "Mia Rose"], "")).toBe("Kero, Lolita y Mia Rose");
+  });
+  it("de cuatro en adelante, las tres primeras y cuántas más", () => {
+    expect(tituloDeMarcas(["Kero", "Lolita", "Mia Rose", "Nativa", "Ozono"], "")).toBe("Kero, Lolita, Mia Rose y 2 más");
+  });
+  it("la que coincide con lo buscado va primero", () => {
+    expect(tituloDeMarcas(["Kero", "Lolita", "Mia Rose", "Nativa", "Ozono"], "ozo")).toBe("Ozono, Kero, Lolita y 2 más");
   });
 });
 

@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estados financieros · tres caminos</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Maqueta para que Felipe elija mirando (2026-11-06). Solo tokens de apps/web/app/globals.css.
+   Ventas y resultado de noviembre son los de la captura; el reparto en partes es de ejemplo. */
+:root{
+  --crema:#f5f0e8;--papel:#fbf8f2;--tinta:#1a1a18;--rojo:#b8412d;--rojo-p:#8b2a1f;--sand:#e8e0d0;
+  --taupe:#805c4c;--hueso:#eae1d2;--pizarra:#4c5d6e;--verde:#48603f;--ambar:#74501a;--borde:#96786a;
+  --sombra:#1a1a18;
+}
+:root[data-tema="oscuro"]{--crema:#1c1a17;--papel:#25221e;--tinta:#f5f0e8;--sand:#3a352e;--hueso:#2e2a25;--taupe:#c4a594;--borde:#8a7468;--verde:#8fb07f;--rojo:#e0765f;--ambar:#d6a85a;--pizarra:#9fb2c4;--sombra:#000}
+*{box-sizing:border-box}
+body{margin:0;background:var(--crema);color:var(--tinta);font:15px/1.5 "DM Sans",system-ui,sans-serif}
+.barra{position:sticky;top:0;z-index:5;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 16px;background:color-mix(in srgb,var(--crema) 88%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--sand)}
+.barra b{font-family:"EB Garamond",serif;font-size:20px;font-weight:500;margin-right:12px}
+.barra button{font:inherit;font-size:13px;padding:8px 14px;border-radius:999px;border:1px solid var(--borde);background:transparent;color:var(--tinta);cursor:pointer}
+.barra button[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.barra .sep{flex:1}
+main{padding:24px 16px 64px;max-width:1440px;margin:0 auto}
+.nota-maqueta{font-size:14px;color:var(--taupe);margin:0 0 20px;max-width:75ch}
+.camino{display:none}.camino.activo{display:block}
+h1{font-family:"EB Garamond",serif;font-weight:500;font-size:46px;line-height:1;margin:0}
+.sede{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--taupe);display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.sede:before{content:"";width:28px;height:1px;background:var(--taupe)}
+.cab{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.periodo{display:flex;align-items:center;gap:4px;border:1px solid var(--borde);border-radius:999px;padding:4px;background:var(--papel)}
+.periodo button{border:0;background:transparent;width:32px;height:32px;border-radius:50%;color:var(--tinta);cursor:pointer;font-size:16px}
+.periodo span{padding:0 10px;font-weight:500}
+.periodo small{color:var(--taupe);font-weight:400;margin-left:6px}
+.pestanas{display:flex;gap:4px;padding:4px;background:var(--hueso);border-radius:999px;width:fit-content;margin-bottom:20px;flex-wrap:wrap}
+.pestanas a{font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:9px 16px;border-radius:999px;color:var(--tinta);text-decoration:none}
+.pestanas a.on{background:var(--tinta);color:var(--crema)}
+.placa{background:var(--papel);border:1px solid var(--sand);border-radius:20px;padding:24px}
+.num{font-variant-numeric:tabular-nums}
+.mal{color:var(--rojo)}.bien{color:var(--verde)}.tenue{color:var(--taupe)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--sand);white-space:nowrap}
+.chip:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.aviso{display:flex;gap:12px;padding:14px 16px;border-radius:14px;border-left:3px solid var(--ambar);background:color-mix(in srgb,var(--ambar) 8%,var(--papel));font-size:14px}
+.aviso.err{border-left-color:var(--rojo);background:color-mix(in srgb,var(--rojo) 7%,var(--papel))}
+.aviso b{display:block}
+.grid{display:grid;gap:16px}
+@media(min-width:1000px){.g2{grid-template-columns:1.25fr 1fr}.g4{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:640px) and (max-width:999px){.g4{grid-template-columns:repeat(2,1fr)}}
+
+/* A · El informe */
+.informe{width:100%;border-collapse:collapse}
+.informe th{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe);font-weight:500;text-align:right;padding:0 12px 10px;border-bottom:1px solid var(--sand)}
+.informe th:first-child{text-align:left;padding-left:0}
+.informe td{padding:12px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--sand);font-variant-numeric:tabular-nums}
+.informe td:first-child{text-align:left;padding-left:0}
+.informe tr.sub td{font-weight:600;background:color-mix(in srgb,var(--hueso) 55%,transparent)}
+.informe tr.sub td:first-child{padding-left:12px;border-radius:10px 0 0 10px}
+.informe tr.sub td:last-child{border-radius:0 10px 10px 0}
+.informe tr.total td{font-family:"EB Garamond",serif;font-size:26px;border-bottom:0;padding-top:18px}
+.informe .menos{color:var(--taupe);margin-right:6px}
+.informe .barrita{display:block;height:4px;border-radius:2px;background:var(--hueso);margin-top:6px}
+.informe .barrita i{display:block;height:100%;border-radius:2px;background:var(--tinta)}
+.resumen-a{display:flex;flex-direction:column;gap:18px}
+.cifra-a{font-family:"EB Garamond",serif;font-size:64px;line-height:1;font-weight:500}
+.frase{font-size:17px;max-width:42ch}
+.spark{width:100%;height:90px}
+.desglose{font-size:13px;color:var(--taupe)}
+
+/* B · Tablero */
+.tarjeta-b{background:var(--papel);border:1px solid var(--sand);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:transform .2s,border-color .2s}
+@media(hover:hover){.tarjeta-b:hover{transform:translateY(-2px);border-color:var(--borde)}}
+.tarjeta-b.on{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta)}
+.tarjeta-b h3{margin:0;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe);font-weight:500}
+.tarjeta-b .v{font-family:"EB Garamond",serif;font-size:38px;line-height:1}
+.tarjeta-b p{margin:0;font-size:14px}
+.tarjeta-b svg{height:40px;width:100%}
+.bloqueado{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--rojo)}
+
+/* C · Cascada */
+.cascada{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;align-items:end;height:300px;padding:0 4px;border-bottom:1px solid var(--sand);position:relative}
+.cascada .col{position:relative;height:100%}
+.cascada .col i{position:absolute;left:0;right:0;border-radius:8px}
+.cascada .col span{position:absolute;left:0;right:0;text-align:center;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.cascada .cero{position:absolute;left:0;right:0;border-top:1px dashed var(--borde)}
+.cascada .cero small{position:absolute;left:0;top:-18px;font-size:11px;color:var(--taupe)}
+.etqs{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-top:10px;font-size:13px;text-align:center}
+.etqs small{display:block;color:var(--taupe)}
+
+/* Balance bloqueado (comparte los tres) */
+.balance-cab{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.cuadra{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.cuadra span{font-size:13px;padding:6px 12px;border-radius:999px;background:var(--hueso)}
+.cuadra span.no{background:color-mix(in srgb,var(--rojo) 12%,var(--papel));color:var(--rojo)}
+details{margin-top:14px}
+summary{cursor:pointer;font-size:14px;font-weight:500}
+.dif{width:100%;margin-top:10px;border-collapse:collapse;font-size:14px}
+.dif td{padding:8px 0;border-bottom:1px solid var(--sand)}
+.dif td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.btn{font:inherit;font-size:13.5px;padding:10px 16px;border-radius:999px;border:1px solid var(--borde);background:var(--papel);color:var(--tinta);cursor:pointer}
+.btn.primario{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+h2{font-family:"EB Garamond",serif;font-weight:500;font-size:24px;margin:0}
+.seccion{margin-top:28px}
+</style>
+</head>
+<body>
+<div class="barra">
+  <b>Estados financieros · ¿cuál te gusta?</b>
+  <button data-c="a" aria-pressed="true">A · El informe</button>
+  <button data-c="b" aria-pressed="false">B · El tablero</button>
+  <button data-c="c" aria-pressed="false">C · La cascada</button>
+  <span class="sep"></span>
+  <button id="tema" aria-pressed="false">Oscuro</button>
+</div>
+<main>
+<p class="nota-maqueta">Tres caminos para la misma pantalla. En los tres: <b>sin hilos de fondo detrás de las cifras</b>, montos con dos decimales en todo lado, el Balance bloqueado dicho en una línea (no siete tarjetas) y la comparación con octubre hecha con los sueldos de los dos lados. Ventas y resultado son los de tu captura; el reparto en partes es de ejemplo.</p>
+
+<!-- ============ A ============ -->
+<section class="camino activo" id="a">
+  <div class="cab">
+    <div><div class="sede">Todas las sedes · viernes, 6 de noviembre</div><h1>Estados financieros</h1></div>
+    <div class="periodo"><button aria-label="Anterior">‹</button><span>1 – 6 nov 2026<small>hasta hoy</small></span><button aria-label="Siguiente" disabled style="opacity:.3">›</button></div>
+  </div>
+  <nav class="pestanas"><a class="on">Ganancias y pérdidas</a><a>Flujo de efectivo</a><a>Balance general</a><a>Patrimonio</a></nav>
+  <div class="grid g2">
+    <div class="placa">
+      <table class="informe">
+        <thead><tr><th>Ganancias y pérdidas</th><th>1–6 nov</th><th>1–6 oct</th><th>% de lo vendido</th></tr></thead>
+        <tbody>
+          <tr><td>Lo que vendiste</td><td>S/ 14,721.88</td><td class="tenue">S/ 21,310.40</td><td class="tenue">100 %</td></tr>
+          <tr><td><span class="menos">−</span>Mercadería<span class="barrita"><i style="width:46%"></i></span></td><td>S/ 6,772.06</td><td class="tenue">S/ 9,802.78</td><td class="tenue">46 %</td></tr>
+          <tr class="sub"><td>Te queda de las prendas</td><td>S/ 7,949.82</td><td class="tenue">S/ 11,507.62</td><td class="tenue">54 %</td></tr>
+          <tr><td><span class="menos">−</span>Sueldos<span class="barrita"><i style="width:72%"></i></span></td><td>S/ 10,580.00</td><td class="tenue">S/ 10,410.00</td><td class="tenue">72 %</td></tr>
+          <tr><td><span class="menos">−</span>Local y servicios<span class="barrita"><i style="width:28%"></i></span></td><td>S/ 4,180.00</td><td class="tenue">S/ 4,180.00</td><td class="tenue">28 %</td></tr>
+          <tr><td><span class="menos">−</span>Otros gastos<span class="barrita"><i style="width:18%"></i></span></td><td>S/ 2,611.82</td><td class="tenue">S/ 1,940.20</td><td class="tenue">18 %</td></tr>
+          <tr class="total"><td>Perdiste</td><td class="mal">−S/ 9,422.00</td><td class="tenue" style="font-size:18px">−S/ 5,022.58</td><td class="mal" style="font-size:18px">−64 %</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="resumen-a">
+      <div class="placa">
+        <div class="tenue" style="font-size:13px">Resultado del 1 al 6 de noviembre</div>
+        <div class="cifra-a mal num">−S/ 9,422.00</div>
+        <p class="frase">Los sueldos y el local ya corren por el mes entero y las ventas apenas van 6 días: es normal empezar el mes abajo.</p>
+        <span class="chip mal">S/ 4,399.42 peor que octubre a esta fecha</span>
+        <svg class="spark" viewBox="0 0 300 90" preserveAspectRatio="none" aria-label="Resultado de los últimos 6 meses">
+          <line x1="0" x2="300" y1="40" y2="40" stroke="var(--borde)" stroke-dasharray="3 4"/>
+          <polyline fill="none" stroke="var(--tinta)" stroke-width="2.5" points="10,30 70,22 130,48 190,26 250,58"/>
+          <circle cx="250" cy="58" r="4.5" fill="var(--rojo)"/>
+          <text x="296" y="36" text-anchor="end" font-size="10" fill="var(--taupe)">S/ 0.00</text>
+        </svg>
+        <div class="desglose">Jun · Jul · Ago · Sep · Oct (meses cerrados) · Nov va 6 días</div>
+      </div>
+      <div class="aviso"><div><b>3 prendas perdidas en AQP sin costo</b>Las mermas están subestimadas. <a href="#" style="color:inherit">Registrar el costo</a></div></div>
+    </div>
+  </div>
+
+  <div class="seccion placa">
+    <div class="balance-cab">
+      <div><h2>Balance general · al 6 de noviembre</h2><p class="tenue" style="margin:4px 0 0">Antes de mostrarlo, el sistema lo comprueba por dos caminos.</p></div>
+      <button class="btn">Saldos de arranque</button>
+    </div>
+    <div class="aviso err" style="margin-top:16px"><div><b>El Balance no se muestra: Bancos y billeteras no cuadra por S/ 113.00</b>El diario dice S/ 2,923.00 y Cuentas y dinero dice S/ 2,810.00. Abajo, de dónde sale la diferencia.</div></div>
+    <div class="cuadra"><span>✓ Saldos de arranque</span><span>✓ El diario cuadra</span><span>✓ Tiene = debe + tuyo</span><span>✓ Caja</span><span class="no">! Bancos y billeteras</span></div>
+    <details open><summary>De dónde salen los S/ 113.00</summary>
+      <table class="dif">
+        <tr><td>Pagos del Taller sin los insumos de Producción · <a href="#" style="color:inherit">Ir a Producción</a></td><td>S/ 88.00</td></tr>
+        <tr><td>Algo se registró o anuló con fecha anterior al 01/11 · <a href="#" style="color:inherit">Corregir los saldos de arranque</a></td><td>S/ 25.50</td></tr>
+        <tr><td class="tenue">Redondeo</td><td class="tenue">−S/ 0.50</td></tr>
+      </table>
+    </details>
+  </div>
+</section>
+
+<!-- ============ B ============ -->
+<section class="camino" id="b">
+  <div class="cab">
+    <div><div class="sede">Todas las sedes · viernes, 6 de noviembre</div><h1>Estados financieros</h1></div>
+    <div class="periodo"><button>‹</button><span>1 – 6 nov 2026<small>hasta hoy</small></span><button disabled style="opacity:.3">›</button></div>
+  </div>
+  <div class="grid g4">
+    <div class="tarjeta-b on"><h3>Ganancias y pérdidas</h3><div class="v mal num">−S/ 9,422.00</div><p>Perdiste. Las ventas van 6 días; los gastos fijos, el mes entero.</p>
+      <svg viewBox="0 0 200 40" preserveAspectRatio="none"><polyline fill="none" stroke="var(--tinta)" stroke-width="2" points="5,15 50,10 95,24 140,12 185,32"/></svg></div>
+    <div class="tarjeta-b"><h3>Flujo de efectivo</h3><div class="v num">+S/ 3,118.40</div><p>Entró más plata de la que salió.</p>
+      <svg viewBox="0 0 200 40" preserveAspectRatio="none"><polyline fill="none" stroke="var(--tinta)" stroke-width="2" points="5,25 50,20 95,22 140,14 185,12"/></svg></div>
+    <div class="tarjeta-b"><h3>Balance general</h3><div class="v tenue">—</div><p class="bloqueado">! Bancos no cuadra por S/ 113.00</p><p class="tenue">Arréglalo para verlo.</p></div>
+    <div class="tarjeta-b"><h3>Patrimonio</h3><div class="v num">S/ 138,045.50</div><p>Lo tuyo bajó S/ 9,422.00 desde el 1 de noviembre.</p></div>
+  </div>
+  <div class="seccion placa">
+    <div class="balance-cab"><h2>Ganancias y pérdidas · 1 al 6 de noviembre</h2><span class="chip mal">S/ 4,399.42 peor que octubre a esta fecha</span></div>
+    <table class="informe" style="margin-top:16px">
+      <thead><tr><th></th><th>Monto</th><th>% de lo vendido</th></tr></thead>
+      <tbody>
+        <tr><td>Lo que vendiste</td><td>S/ 14,721.88</td><td class="tenue">100 %</td></tr>
+        <tr><td><span class="menos">−</span>Mercadería</td><td>S/ 6,772.06</td><td class="tenue">46 %</td></tr>
+        <tr><td><span class="menos">−</span>Sueldos</td><td>S/ 10,580.00</td><td class="tenue">72 %</td></tr>
+        <tr><td><span class="menos">−</span>Local y servicios</td><td>S/ 4,180.00</td><td class="tenue">28 %</td></tr>
+        <tr><td><span class="menos">−</span>Otros gastos</td><td>S/ 2,611.82</td><td class="tenue">18 %</td></tr>
+        <tr class="total"><td>Perdiste</td><td class="mal">−S/ 9,422.00</td><td class="mal" style="font-size:18px">−64 %</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ C ============ -->
+<section class="camino" id="c">
+  <div class="cab">
+    <div><div class="sede">Todas las sedes · viernes, 6 de noviembre</div><h1>Estados financieros</h1></div>
+    <div class="periodo"><button>‹</button><span>1 – 6 nov 2026<small>hasta hoy</small></span><button disabled style="opacity:.3">›</button></div>
+  </div>
+  <nav class="pestanas"><a class="on">Ganancias y pérdidas</a><a>Flujo de efectivo</a><a>Balance general</a><a>Patrimonio</a></nav>
+  <div class="placa">
+    <div class="balance-cab">
+      <div><div class="tenue" style="font-size:13px">De lo que vendiste a lo que te quedó</div><div class="cifra-a mal num" style="font-size:52px">−S/ 9,422.00</div></div>
+      <span class="chip mal">S/ 4,399.42 peor que octubre a esta fecha</span>
+    </div>
+    <div style="margin-top:28px">
+      <div class="cascada" id="cas"></div>
+      <div class="etqs"><div>Vendiste<small>100 %</small></div><div>Mercadería<small>46 %</small></div><div>Sueldos<small>72 %</small></div><div>Local<small>28 %</small></div><div>Otros<small>18 %</small></div><div><b>Resultado</b><small>−64 %</small></div></div>
+    </div>
+    <p class="frase" style="margin-top:20px">Los sueldos solos ya se comen más de lo que vendiste en 6 días. Es la foto de un mes que recién empieza: mira el mes cerrado de octubre para saber cómo vas de verdad.</p>
+  </div>
+</section>
+</main>
+<script>
+document.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-c]').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  document.querySelectorAll('.camino').forEach(s=>s.classList.toggle('activo',s.id===b.dataset.c));
+});
+document.getElementById('tema').onclick=e=>{const o=document.documentElement.dataset.tema==='oscuro';document.documentElement.dataset.tema=o?'':'oscuro';e.target.setAttribute('aria-pressed',!o)};
+// La cascada: cada tramo baja desde donde quedó el anterior.
+const pasos=[["Vendiste",14721.88,1],["Mercadería",-6772.06],["Sueldos",-10580],["Local",-4180],["Otros",-2611.82],["Resultado",-9422,1]];
+const hi=16000,lo=-11000,alto=v=>(v-lo)/(hi-lo)*100;let acc=0;const cas=document.getElementById('cas');
+const cero=document.createElement('div');cero.className='cero';cero.style.bottom=alto(0)+'%';cero.innerHTML='<small>S/ 0.00</small>';cas.appendChild(cero);
+pasos.forEach(([n,v,tot])=>{const c=document.createElement('div');c.className='col';let a,b,col;
+ if(tot){a=Math.min(0,v);b=Math.max(0,v);acc=v;col=v<0?'var(--rojo)':'var(--tinta)'}else{a=Math.min(acc,acc+v);b=Math.max(acc,acc+v);acc+=v;col='var(--taupe)'}
+ const i=document.createElement('i');i.style.bottom=alto(a)+'%';i.style.height=(alto(b)-alto(a))+'%';i.style.background=col;if(!tot)i.style.opacity=.55;c.appendChild(i);
+ const s=document.createElement('span');s.style.bottom=(alto(b)+2)+'%';s.textContent=(v<0?'−':'')+'S/ '+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});if(tot&&v<0)s.style.color='var(--rojo)';c.appendChild(s);cas.appendChild(c)});
+</script>
+</body>
+</html>

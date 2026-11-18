@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { almacenReleido, apartadoReleido, conStockReleido } from "@/lib/vender-stock-local";
 import { sumarCantidades } from "@/lib/inventario-reglas";
+import { vueltasPorLectura } from "@/lib/cambios-en-vivo-reglas";
+import { useCambiosEnVivo } from "@/lib/useCambiosEnVivo";
 import { leerTodas } from "@/lib/resultado";
 import { claveDeConocidos, hayQueReleer, huellaParaRecordar, mismoStock, type StockReleido, type UltimaHuella } from "@/lib/stock-en-vivo-reglas";
 
@@ -16,9 +18,10 @@ export type { StockReleido } from "@/lib/stock-en-vivo-reglas";
  * tres pantallas cargaba su catálogo UNA vez al entrar y solo se corregía con lo que ELLA MISMA vendía/apartaba/
  * cambiaba (ADR-0192). Afecta igual al lector físico del mostrador, no es un problema de la cámara.
  *
- * Sondeo, no Supabase Realtime, por la misma razón que `useCajaEnVivo`/`useDeTurno` (ADR-0018): la publicación
- * de Realtime sigue en 0 tablas, y activarla es un `alter publication` en el proyecto Postgres COMPARTIDO con
- * Dynamic — para y confirma con Felipe antes de correrlo, no es ejecución directa.
+ * Sondeo + WebSocket (ADR-0603, Felipe 2026-11-02): `stock` está en la publicación de Realtime
+ * (`20261102212000`), así que un cambio en la sede dispara la lectura al instante (`useCambiosEnVivo`) y el sondeo de
+ * cada 10 s queda de respaldo, una vuelta de cada seis mientras el socket está conectado. Si el socket no conecta,
+ * todo sigue como antes (ADR-0018, notas del 2026-09-25).
  */
 
 /**
@@ -81,6 +84,11 @@ async function leerHuellaDeSede(ubicacionId: string): Promise<string | null> {
  * filas solo si cambió (o si cambió qué prendas conoce la pantalla): sin ventas ni reposiciones, una vuelta es un texto
  * de 32 letras en vez de todo el stock de la tienda (auditoría 2026-10-13, punto 20).
  *
+ * Devuelve `olvidarLoLeido`: la pantalla que cambia el stock POR SU CUENTA (Vender descuenta lo que acaba de vender) la llama
+ * para que el sondeo no dé por bueno lo que recordaba. Sin eso, la huella y el último stock avisado seguían diciendo «3» mientras
+ * la pantalla mostraba 0 por la venta; al volver el piso a 3 (la bajada del almacén), el sondeo veía «nada cambió» y la caja
+ * seguía diciendo «sin stock» hasta recargar (Felipe, 2026-10-28). Tras olvidar, la próxima vuelta relee y avisa sí o sí.
+ *
  * `conocidos` y `alLeer` se leen siempre en su versión más reciente por ref (mismo idioma que `onCodigoRef` en
  * `EscanerCamara`): así el intervalo no se resetea con cada render de quien los provee (una tecla del buscador,
  * por ejemplo) sin que haga falta memoizarlos del lado de quien llama.
@@ -103,6 +111,20 @@ export function useStockEnVivo(
   const ultimoRef = useRef<StockReleido | null>(null);
   // La huella de la sede en la última lectura completa (auditoría 2026-10-13, punto 20): si no cambió, no se baja nada.
   const huellaRef = useRef<UltimaHuella>(null);
+
+  // El WebSocket (ADR-0603) solo AVISA que `stock` cambió en esta sede; la lectura es la de siempre (`sondear`: la huella y,
+  // si cambió, las filas). Sin socket o sin permiso, `conectado` queda en falso y el sondeo corre cada `cadaMs`.
+  const sondearRef = useRef<(() => Promise<void>) | null>(null);
+  const conectado = useCambiosEnVivo({ tabla: "stock", ubicacionId, activo, alCambiar: () => void sondearRef.current?.() });
+  const conectadoRef = useRef(false);
+  useEffect(() => {
+    conectadoRef.current = conectado;
+  }, [conectado]);
+
+  const olvidarLoLeido = useCallback(() => {
+    ultimoRef.current = null;
+    huellaRef.current = null;
+  }, []);
 
   useEffect(() => {
     if (!activo) return;
@@ -128,8 +150,14 @@ export function useStockEnVivo(
       ultimoRef.current = releido;
       alLeerRef.current(releido.cobrable, releido.almacen, releido.apartado);
     };
+    sondearRef.current = sondear;
     void sondear();
-    const id = window.setInterval(sondear, cadaMs);
+    // Con el WebSocket conectado el sondeo es solo el respaldo (una vuelta de cada seis); sin él, como siempre.
+    let vuelta = 0;
+    const id = window.setInterval(() => {
+      vuelta++;
+      if (vuelta % vueltasPorLectura(conectadoRef.current) === 0) void sondear();
+    }, cadaMs);
     const alVolver = () => {
       if (document.visibilityState === "visible") void sondear();
     };
@@ -137,9 +165,11 @@ export function useStockEnVivo(
     window.addEventListener("online", sondear);
     return () => {
       cancelado = true;
+      sondearRef.current = null;
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", alVolver);
       window.removeEventListener("online", sondear);
     };
   }, [ubicacionId, activo, cadaMs]);
+  return olvidarLoLeido;
 }

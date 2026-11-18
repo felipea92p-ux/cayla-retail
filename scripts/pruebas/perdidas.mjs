@@ -134,6 +134,8 @@ const TABLA = [
   ["salida", "cambio", 1, null, null, "la prenda que se llevó en un cambio"],
   ["salida", "traslado_salida", 1, null, null, "se fue a otra sede (su diferencia se mide en el traslado)"],
   ["salida", "reversion_produccion", 1, null, null, "producción revertida"],
+  ["salida", "correccion_recepcion", 1, null, null, "se deshizo una tanda que salió antes de cerrar: nunca debió entrar"],
+  ["salida", "fusion_producto", 1, null, null, "dos fichas de la misma prenda se fusionaron: la prenda sigue en la tienda (ADR-0650)"],
   ["salida", "regalo", 1, "perdida", "a_mano", "una salida suelta que no es venta"],
   ["entrada", "carga_inicial", 5, null, null, "entrada"],
   ["entrada", "recepcion", 5, null, null, "entrada"],
@@ -160,10 +162,11 @@ ${TABLA.map(
 // La salida de cuarentena se arma con `'cuarentena_' || estado`: se arma con los estados que acepta `prendas_danadas`,
 // salvo los que la base resuelve SIN salida: 'en_cuarentena' (todavía no se resolvió) y 'se_arreglo' (ADR-0328 act. 10,
 // 20261005140000: la prenda vuelve al almacén con `mover_interno`, un traslado dentro de la sede; nunca escribe
-// 'cuarentena_se_arreglo'). Que siga siendo así lo vigila la verificación «T "Se arregló" no es una salida».
+// 'cuarentena_se_arreglo'). Que siga siendo así lo vigila la verificación «T "Se arregló" no es una salida». Lo mismo
+// 'no_estaba_danada' (ADR-0640, 20261110173000: `devolver_danada_sin_dano` la devuelve con `mover_interno`).
 // ============================================================================================================================
 const DECIDIDOS = {
-  salida: ["venta", "cambio", "traslado_salida", "reversion_produccion", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada", "cuarentena_devuelta_proveedor"],
+  salida: ["venta", "cambio", "traslado_salida", "reversion_produccion", "correccion_recepcion", "fusion_producto", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada", "cuarentena_devuelta_proveedor"],
   ajuste: ["conteo", "hallazgo_conteo", "conteo_arranque", "carga_inicial"],
 };
 // Ajustes que escribe una función con un motivo de Ajustar, cuya clase ya decide `CLASE_WEB` (lo prueba TW): «reposicion» la
@@ -184,7 +187,7 @@ insert into escritos
 select distinct 'salida', 'cuarentena_' || m[1]
   from pg_constraint c, regexp_matches(pg_get_constraintdef(c.oid), '''([a-z_]+)''', 'g') m
  where c.conrelid = 'retail.prendas_danadas'::regclass and pg_get_constraintdef(c.oid) like '%en_cuarentena%liquidada%'
-   and m[1] not in ('en_cuarentena', 'se_arreglo');
+   and m[1] not in ('en_cuarentena', 'se_arreglo', 'no_estaba_danada');
 select 'T «Se arregló» no es una salida: resolver_prenda_danada no la acepta y arreglar_prenda_danada mueve con mover_interno sin escribir en movimientos',
   (select count(*) >= 1 and bool_and(p.prosrc !~ 'se_arreglo') from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'resolver_prenda_danada')
   and (select count(*) = 1 and bool_and(p.prosrc ~ 'mover_interno\\s*\\(' and p.prosrc !~* 'insert\\s+into\\s+(retail\\.)?movimientos')
@@ -219,7 +222,7 @@ ${Object.entries(CLASE_WEB)
 // PU · La puerta suelta. `registrar_movimiento` (RPC de Ajustar) recibe el motivo como texto: sin candado, una salida «venta»
 // escrita a mano desaparecía de Pérdidas y de Finanzas. Se prueba con TODOS los motivos que la definición deja fuera (los de
 // DECIDIDOS más los nombres viejos del traslado) y con los que sí ve. Como líder, en el almacén de Trujillo, con 10 prendas.
-//   Fuera (11): venta, cambio, traslado_salida, reversion_produccion, cuarentena_liquidada, cuarentena_devuelta_proveedor,
+//   Fuera (13): venta, cambio, traslado_salida, reversion_produccion, correccion_recepcion, fusion_producto, cuarentena_liquidada, cuarentena_devuelta_proveedor,
 //     transferencia, traslado (salidas) · conteo_arranque −1 y +1, carga_inicial −1 (ajustes).
 //   Dentro (9, todas restan 1 → 9 prendas perdidas hoy): cuarentena_se_boto, cuarentena_donada, otro, regalo (salidas) ·
 //     conteo, hallazgo_conteo, merma, conteo_fisico, otro (ajustes). Sin «reposición»: su propia regla pide nota.
@@ -253,8 +256,8 @@ create temp table pu as
 select x.tipo, x.motivo, x.cant, retail.fn_perdida_razon(x.tipo, x.motivo, x.cant) as razon,
        pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, %L, %s, %L, null, %L)', :'v', :'tru', x.tipo, x.cant, x.motivo, :'alm')) as msg
   from (values ${PUERTA.map(([t, m, c]) => `(${lit(t)}, ${lit(m)}, ${c})`).join(", ")}) x (tipo, motivo, cant);
-select 'PU1 los 11 motivos que la definición deja fuera se rechazan en la puerta suelta (venta, cambio, traslado, liquidada, devuelta, producción, stock inicial, conteo de arranque)',
-  (select count(*) = 11 and bool_and(msg <> 'SIN_ERROR') from pu where razon is null);
+select 'PU1 los 13 motivos que la definición deja fuera se rechazan en la puerta suelta (venta, cambio, traslado, liquidada, devuelta, producción, corrección de una recepción, fusión de productos, stock inicial, conteo de arranque)',
+  (select count(*) = 13 and bool_and(msg <> 'SIN_ERROR') from pu where razon is null);
 select 'PU1 y dicen adónde ir (el stock inicial puede frenarlo antes su propia puerta, 20261004210100)',
   (select bool_and(msg like '%tiene su propia pantalla%') from pu where razon is null and motivo <> 'carga_inicial');
 select 'PU2 los 9 que la definición ve sí entran (salidas otro, regalo, botada, donada; ajustes merma, conteo, conteo físico, hallazgo, otro)',
@@ -626,6 +629,8 @@ const ER_6951 = `pg_get_functiondef('retail.fn_estado_resultados(date, date, uui
 const FOTO_6951 = (n) => `
 create temp table dia_${n} as select * from retail.fn_asientos('2031-03-01', '2031-03-31');
 create temp table er_${n} as select to_jsonb(e) as j from retail.fn_estado_resultados('2031-03-01', '2031-03-31') e;
+-- detalle_mermas va por monto, sin desempate: dos reglas con el mismo monto salen en cualquier orden. Se comparan cifras, no ese orden.
+update er_${n} set j = jsonb_set(j, '{detalle_mermas}', (select coalesce(jsonb_agg(e order by e ->> 'regla'), '[]'::jsonb) from jsonb_array_elements(j -> 'detalle_mermas') e));
 insert into huellas select '${n}', md5(${ASIENTOS_6951}), md5(${ER_6951});
 `;
 // Lo que la migración cambia en la sesión (`search_path`, `lock_timeout`): se devuelve para que lo que sigue corra como siempre.

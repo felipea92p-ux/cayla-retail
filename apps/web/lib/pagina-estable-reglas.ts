@@ -15,6 +15,10 @@
  * QUÉ NO ES. Un scroll pedido por el código (llevar a un campo con error, volver arriba al cambiar de página) no
  * deja la vista pegada al final, así que no cumple la condición y se respeta.
  *
+ * LA RED (2026-11-05). Un clic que cambia de VISTA sin cambiar de URL (un formulario largo por un aviso de éxito) también
+ * cumple las tres condiciones. Ahí no hay nada que mantener: lo que se veía ya no existe, y reservar deja a la persona
+ * mirando aire. `esCambioDeVista` lo detecta aunque la pantalla no haya llamado a `soltarPaginaEstable`.
+ *
  * TRES EVENTOS, NO UNO (2026-09-25). `click` y `change` abren vigilancia siempre. `input` (cada letra de un
  * buscador) es distinto: una ráfaga de tecleo dispara un evento por letra, y reabrir la vigilancia en cada uno
  * perdería la foto de «antes de escribir» — la única válida para medir cuánto se acortó — además de crear y
@@ -45,6 +49,21 @@ export function reservaNecesaria(alClic: Medida, ahora: Medida): number {
   const pegadaAlFinal = ahora.arriba + ahora.visible >= ahora.alto - 1;
   if (!seAcorto || !subio || !pegadaAlFinal) return 0;
   return Math.round(alClic.arriba - ahora.arriba);
+}
+
+/** Lo mínimo de contenido que tiene que quedar a la vista para que valga la pena volver adonde estaba. Es un cuarto y no menos porque, medido a
+ *  375 px, la cabecera fija y el margen del final ya se comen unos 100 px de los 203 que da: bajo esto, lo que se ve es prácticamente nada. */
+const FRACCION_MINIMA_A_LA_VISTA = 1 / 4;
+
+/**
+ * El clic cambió de vista, no acortó un bloque: si la vista volviera adonde estaba, quedaría casi sin contenido. El navegador ya la dejó en
+ * lo último que hay, que es lo que la persona tiene que ver. `yaReservado` es el aire de un clic anterior: está en `alto`, pero no es contenido.
+ * No reemplaza a `soltarPaginaEstable`: con contenido a la vista no salta, y el título de la vista nueva puede seguir fuera de la pantalla.
+ */
+export function esCambioDeVista(alClic: Medida, ahora: Medida, yaReservado = 0): boolean {
+  const seAcorto = ahora.alto < alClic.alto - 0.5;
+  const contenidoAlVolver = ahora.alto - yaReservado - alClic.arriba;
+  return seAcorto && contenidoAlVolver < ahora.visible * FRACCION_MINIMA_A_LA_VISTA;
 }
 
 /** La reserva ya no se ve (quedó entera por debajo de lo visible): se puede quitar sin que nada se mueva. */

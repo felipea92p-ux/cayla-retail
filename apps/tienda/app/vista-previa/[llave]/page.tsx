@@ -7,6 +7,7 @@ import { HeroeDelInicio } from "@/components/HeroeDelInicio";
 import { TarjetaPrenda } from "@/components/TarjetaPrenda";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import type { Prenda } from "@/lib/catalogo";
+import { leerAyuda } from "@/lib/ayuda-servidor";
 import { anuncios, fechaCorta } from "@/lib/portada";
 import { leerVistaPrevia } from "@/lib/vista-previa-campana-servidor";
 import "@/app/estilos/inicio.css";
@@ -68,7 +69,7 @@ async function ContenidoDeLaVistaPrevia({ params }: { params: Promise<{ llave: s
         <b>Vista previa privada</b> · «{campana.nombre}» · {vista.valeHasta ? `vale hasta el ${fechaCorta(vista.valeHasta)}` : "vale unos días"} · Solo la ve quien tiene este enlace. Las prendas son de la
         tienda; el descuento se muestra como se verá cuando la campaña esté en vivo.
       </div>
-      <Anuncio frases={anuncios({ nombre: campana.nombre, pct: campana.pct, hasta: campana.hasta }, false)} diseno={diseno} />
+      <Anuncio frases={anuncios({ nombre: campana.nombre, pct: campana.pct, hasta: campana.hasta }, (await leerAyuda()).diasParaCambiar)} diseno={diseno} />
       <ProveedorGuardados favoritos={[]}>
         <HeroeDelInicio
           hero={{ tipo: "campana", campana: { nombre: campana.nombre, pct: campana.pct, hasta: campana.hasta }, piezas: prendas.slice(0, 3), campanaId: null }}

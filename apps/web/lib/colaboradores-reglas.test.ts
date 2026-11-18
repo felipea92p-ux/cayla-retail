@@ -4,7 +4,6 @@ import {
   accionesDeFila,
   avisoTerminal,
   confirmacionTerminal,
-  fechaHoraLima,
   fechaLima,
   filtrarDisponibles,
   fraseEvento,
@@ -70,9 +69,6 @@ describe("terminales sin persona (ADR-0162)", () => {
 describe("fechas en hora de Lima", () => {
   it("una alta a las 03:00 UTC cae el día anterior en Lima", () => {
     expect(fechaLima("2026-09-17T03:00:00Z")).toBe("16/09/2026");
-  });
-  it("fecha y hora", () => {
-    expect(fechaHoraLima("2026-09-22T16:15:00Z")).toBe("22/09 11:15");
   });
 });
 

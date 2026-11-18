@@ -1,3 +1,4 @@
+import "@/app/estilos/inicio-almacen.css";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { Anillo } from "@/components/ui/Anillo";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
@@ -26,6 +27,7 @@ export function CabinaAlmacen({
   avance,
   hayColaSinLeer,
   hrefColgar,
+  hrefDanada,
 }: {
   nuevos: NuevoProducto[] | null;
   tituloLista: string;
@@ -40,6 +42,8 @@ export function CabinaAlmacen({
   hayColaSinLeer: boolean;
   /** «Colgar en tandas»: `null` si no se ofrece (`hrefColgarEnTandas`). */
   hrefColgar: string | null;
+  /** «Separé una dañada» (ADR-0564): `null` si no se ofrece (`hrefSepararDanada`). */
+  hrefDanada: string | null;
 }) {
   const lista = nuevos ? nuevos.slice(0, 3) : null;
   return (
@@ -63,6 +67,16 @@ export function CabinaAlmacen({
               <span>Colgar en tandas</span>
               <span className="ia-plus">
                 <Ico clave="camera" />
+              </span>
+            </Link>
+          )}
+          {/* «Separé una dañada» a la vista (Felipe, 2026-10-28): la prenda que se ve dañada en el piso se separa en el momento y esta cuenta
+              no usa el teléfono; el botón lleva al mismo «Reportar dañada» de Existencias, con el buscador de la prenda ya abierto. */}
+          {hrefDanada && (
+            <Link href={hrefDanada} className="ia-cta ia-cta2" data-guia="inicio.almacen-danada">
+              <span>Separé una dañada</span>
+              <span className="ia-plus">
+                <Ico clave="danada" />
               </span>
             </Link>
           )}

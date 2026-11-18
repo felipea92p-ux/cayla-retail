@@ -10,7 +10,7 @@ export type ChipRespuesta = { texto: string; tono: TonoChip };
  * y los chips de al lado (`soles-redondo`: nunca «S/ 3,850.00» junto a «S/ 3,850»). `valor={null}`: no se pudo
  * leer, y se dice, nunca un cero que parezca un dato (principio 9).
  */
-export function RespuestaTelar({ pregunta, valor, chips = [], motivo }: { pregunta: string; valor: number | null; chips?: ChipRespuesta[]; motivo?: string }) {
+export function RespuestaTelar({ pregunta, valor, unidad, chips = [], motivo }: { pregunta: string; valor: number | null; /** Lo que aclara la cifra, a su lado («con IGV»). */ unidad?: string; chips?: ChipRespuesta[]; motivo?: string }) {
   return (
     <div className="respuesta-telar anim-sube" style={{ ["--i" as string]: 1 }} data-guia="telar.respuesta">
       <p className="respuesta-telar-pregunta">{pregunta}</p>
@@ -20,6 +20,7 @@ export function RespuestaTelar({ pregunta, valor, chips = [], motivo }: { pregun
       ) : (
         <p className="respuesta-telar-cifra">
           <CifraAnimada valor={Math.round(valor)} formato="soles-redondo" />
+          {unidad && <span className="respuesta-telar-unidad">{unidad}</span>}
         </p>
       )}
       {chips.length > 0 && (

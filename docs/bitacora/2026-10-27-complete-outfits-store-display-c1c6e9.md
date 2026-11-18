@@ -1,0 +1,5 @@
+# 2026-10-27 · Looks: al armar uno solo se elige lo que hay (rama complete-outfits-store-display-c1c6e9)
+
+- **Qué:** en Vitrina ▸ Looks ▸ Nuevo/Editar look, una prenda sin stock en ninguna tienda, un color que ya no hay, o una prenda que no coincide en tienda con las ya elegidas, aparece apagada y no se puede elegir; dice por qué («Sin stock», «Solo en Lima»). ADR-0539, actualización (b).
+- **Cómo se verificó:** `lib/vitrina-looks-reglas.test.ts` (48), guías, unificar, tema y sugerir en verde, `tsc` y Knip limpios; en el navegador local, con Casaca Luciana (solo Trujillo) elegida, Casaca Ximena, Cartera Noa, Falda Renata y Pantalón Carla quedaron apagadas con «Solo en Lima» y el clic no hace nada.
+- **Pendiente / no verificado:** el desplegable de color con un color apagado (cubierto por prueba, sin un modelo local que lo muestre); mirarlo a 375 px y en oscuro. Sigue abierta la idea de que un look salga en una tienda aunque le falte una prenda (opción B de la conversación): decide Felipe, toca dinero y la función de producción `fn_tienda_looks_json`.

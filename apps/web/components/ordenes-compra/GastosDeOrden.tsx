@@ -38,9 +38,9 @@ export function GastosDeOrden({ gastos }: { gastos: readonly GastoDeOrden[] | nu
             <span className={celda("izq", `${EN_COLUMNAS} tabular-nums text-tinta/80`)}>{diaMes(g.fecha)}</span>
             <span className={celda("izq", "whitespace-normal text-tinta")}>
               {g.descripcion}
-              <span className="block text-xs text-taupe">{g.tipo === "mercaderia" ? "Para traer la mercadería" : "Del viaje"}</span>
+              <span className="block text-sm text-taupe">{g.tipo === "mercaderia" ? "Para traer la mercadería" : "Del viaje"}</span>
               {/* Sin columnas: lo demás en un renglón. */}
-              <span className="block text-xs tabular-nums text-taupe @min-[40rem]:hidden">
+              <span className="block text-sm tabular-nums text-taupe @min-[40rem]:hidden">
                 {[diaMes(g.fecha), TEXTO_PAPEL[g.papel], g.cuenta].filter(Boolean).join(" · ")}
               </span>
               {/* Lo no deducible se mira sobre el gasto entero (su papel), no sobre la parte de esta orden. */}
@@ -51,7 +51,7 @@ export function GastosDeOrden({ gastos }: { gastos: readonly GastoDeOrden[] | nu
             <span className={celda("der", "font-medium text-tinta")}>
               {soles(g.monto)}
               {g.ordenes > 1 && (
-                <span className="block whitespace-normal text-xs font-normal text-taupe">
+                <span className="block whitespace-normal text-sm font-normal text-taupe">
                   de {soles(g.montoTotal)}, entre {g.ordenes} órdenes
                 </span>
               )}

@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B · Contar con las manos</title>
+<link rel="stylesheet" href="comun.css">
+<style>
+  .pagina{max-width:1280px;margin:0 auto;padding:24px 24px 90px;min-height:calc(100dvh - 70px);display:flex;flex-direction:column}
+  /* ---- el camino de pasos: una raya que se llena ---- */
+  .camino{display:flex;gap:8px;margin:4px 0 26px}
+  .camino i{flex:1;height:8px;border-radius:99px;background:var(--hueso);position:relative;overflow:hidden}
+  .camino i::after{content:"";position:absolute;inset:0;background:var(--tinta);transform:scaleX(0);transform-origin:left;transition:transform .6s var(--ease)}
+  .camino i.hecho::after{transform:scaleX(1);background:var(--verde)}
+  .camino i.ahora::after{transform:scaleX(.5)}
+  .escena{flex:1;display:flex;flex-direction:column;animation:entra .55s var(--ease) both}
+  .escena.va{animation:va .25s var(--ease) forwards}
+  @keyframes entra{from{opacity:0;transform:translateX(36px)}}
+  @keyframes va{to{opacity:0;transform:translateX(-36px)}}
+  .preg{font-size:clamp(34px,5vw,60px);line-height:1.05;margin:0 0 6px}
+  .ayuda{font-size:20px;color:var(--tinta-60);margin:0 0 28px}
+
+  /* ---- elegir el envío ---- */
+  .elige{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .env{border:1.5px solid var(--borde-control);border-radius:24px;background:var(--papel);padding:24px;text-align:left;display:grid;gap:16px;transition:transform .3s var(--ease),border-color .3s,box-shadow .3s}
+  @media (hover:hover){.env:hover{transform:translateY(-4px);border-color:var(--tinta);box-shadow:0 22px 40px -24px color-mix(in srgb,var(--sombra) 55%,transparent)}}
+  .env .tope{display:flex;justify-content:space-between;align-items:start}
+  .env .n{font-size:26px;font-weight:700}
+  .env .gran{font-family:"EB Garamond",Georgia,serif;font-size:72px;line-height:.9}
+  .env .gran small{font-family:"DM Sans",sans-serif;font-size:20px;color:var(--tinta-60);margin-left:8px}
+  .env .mos{display:flex;gap:10px}.env .mos .prenda{width:60px;border-radius:14px}
+  .env .ruta{display:flex;align-items:center;gap:12px;font-size:17px;color:var(--tinta-60)}
+  .env .ruta .cam{flex:1;height:6px;border-radius:99px;background:var(--hueso);position:relative}
+  .env .ruta .cam::after{content:"";position:absolute;inset:0;width:var(--w);background:var(--pizarra);border-radius:99px;transform-origin:left;animation:crece 1.1s var(--ease) .3s both}
+  @keyframes crece{from{transform:scaleX(0)}}
+  .env .ir{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;color:var(--rojo-profundo)}
+  .env .ir svg{width:22px;height:22px;transition:transform .25s var(--ease)}
+  @media (hover:hover){.env:hover .ir svg{transform:translateX(5px)}}
+
+  /* ---- contar ---- */
+  .cuenta{display:grid;grid-template-columns:minmax(260px,380px) 1fr;gap:48px;align-items:center}
+  .grande{position:relative}
+  .grande .prenda{width:100%;border-radius:32px;cursor:pointer;transition:transform .2s var(--ease)}
+  .grande .prenda:active{transform:scale(.96)}
+  .grande .prenda svg{width:46%;height:46%}
+  .grande .quien{display:flex;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap}
+  .grande .quien h3{font-size:34px}
+  .toca{position:absolute;left:50%;bottom:-18px;transform:translateX(-50%);background:var(--tinta);color:var(--crema);padding:10px 20px;border-radius:99px;font-weight:700;font-size:17px;display:flex;gap:8px;align-items:center;white-space:nowrap;pointer-events:none;transition:opacity .3s}
+  .toca svg{width:20px;height:20px}
+  .cifra{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .cifra .num{font-size:clamp(110px,16vw,190px);line-height:.85;transition:color .4s}
+  .cifra .de{font-size:30px;color:var(--tinta-60)}
+  .cifra.lleno .num{color:var(--verde)}
+  .casillas{display:flex;flex-wrap:wrap;gap:var(--g,12px);margin:30px 0}
+  .casilla{width:var(--s,76px);aspect-ratio:1;border-radius:18px;border:2px dashed var(--borde-control);position:relative;display:grid;place-items:center}
+  .casilla .prenda{position:absolute;inset:-2px;width:auto;border-radius:18px;transform:scale(.4);opacity:0}
+  .casilla.on{border-color:transparent}
+  .casilla.on .prenda{transform:none;opacity:1;transition:transform .45s var(--ease),opacity .2s}
+  .casilla .letra{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.5);opacity:0;font-weight:800;font-size:calc(var(--s,76px)*.42);color:var(--tinta-fija);transition:all .35s var(--ease);z-index:2;text-shadow:0 0 12px color-mix(in srgb,var(--crema-fija) 70%,transparent)}
+  .casilla.tal .letra{opacity:1;transform:translate(-50%,-50%)}
+  .casilla.tal .prenda{opacity:.45}
+  .casilla.tal.negra .letra{color:var(--crema-fija);text-shadow:none}
+  .vuelo{position:fixed;z-index:60;pointer-events:none;border-radius:18px;display:grid;place-items:center;color:var(--tinta-fija)}
+  .vuelo svg{width:50%;height:50%;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .acciones{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .acciones .redondo{width:64px;height:64px}
+  .redondo{border-radius:99px;border:1.5px solid var(--borde-control);background:var(--papel);display:grid;place-items:center}
+  .redondo svg{width:26px;height:26px}
+  /* tallas */
+  .tallas{display:flex;gap:14px;flex-wrap:wrap}
+  .talla{min-width:110px;height:92px;border-radius:22px;border:2px solid var(--borde-control);background:var(--papel);font-weight:800;font-size:38px;position:relative;transition:transform .2s var(--ease),border-color .3s,background .3s}
+  @media (hover:hover){.talla:hover{border-color:var(--tinta);transform:translateY(-3px)}}
+  .talla:active{transform:scale(.95)}
+  .talla small{position:absolute;right:-8px;top:-12px;min-width:34px;height:34px;border-radius:99px;background:var(--tinta);color:var(--crema);font-size:18px;display:grid;place-items:center;transform:scale(0);transition:transform .3s var(--ease)}
+  .talla.tiene small{transform:scale(1)}
+  .talla.tiene{border-color:var(--tinta);background:var(--hueso)}
+  .pie{position:sticky;bottom:0;margin-top:auto;padding-top:26px;display:flex;justify-content:space-between;align-items:center;gap:14px}
+  .pie .btn.grande{min-width:240px}
+  /* resumen */
+  .talon{background:var(--papel);border:1px solid var(--sand);border-radius:26px;padding:34px;display:grid;grid-template-columns:1fr 1.1fr;gap:40px;align-items:center}
+  .talon .sello{width:120px;height:120px;border-width:4px}.talon .sello svg{width:64px;height:64px}
+  .talon h2{font-size:clamp(34px,4.5vw,52px);margin:14px 0 6px}
+  .lista{display:grid;gap:14px}
+  .item{display:grid;grid-template-columns:64px 1fr auto;gap:16px;align-items:center;opacity:0;transform:translateY(12px);animation:cae .5s var(--ease) forwards;animation-delay:calc(.5s + var(--i)*120ms)}
+  .item .prenda{width:64px;border-radius:14px}
+  .item b{font-size:22px;display:block}.item span{font-size:18px;color:var(--tinta-60)}
+  .item .mas{font-family:"EB Garamond",Georgia,serif;font-size:50px;color:var(--verde-profundo)}
+  .talon .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}
+
+  .pie{background:linear-gradient(transparent,var(--crema) 28%);padding-bottom:14px}
+  @media (max-width:900px){.elige{grid-template-columns:1fr}.talon{grid-template-columns:1fr;padding:22px}
+    .cuenta{grid-template-columns:140px 1fr;gap:14px 20px}.cuenta>div:last-child{display:contents}
+    .grande{grid-column:1;grid-row:1}.cifra{grid-column:2;grid-row:1;align-self:center}#cas,.acciones{grid-column:1/-1}
+    .grande .prenda{border-radius:24px}.toca{display:none}.casillas{margin:6px 0}.cifra .num{font-size:96px}}
+  @media (max-width:640px){
+    .pagina{padding:16px 16px 90px}.camino{margin-bottom:18px}
+    .cifra .num{font-size:120px}.cifra .de{font-size:24px}
+    .talla{min-width:92px;height:80px;font-size:32px}
+    .pie .btn.grande{min-width:0;flex:1}
+  }
+</style>
+</head>
+<body>
+<div class="barra-spike"><a href="index.html">← Los 3 diseños</a><strong>B · Contar con las manos</strong>
+  <div class="quien"><span>Micaela · Tienda Trujillo</span><button class="tema" aria-label="Modo oscuro"></button></div></div>
+<main class="pagina"><div class="camino" id="camino"></div><div class="escena" id="escena"></div></main>
+
+<script src="comun.js"></script>
+<script>
+(function(){
+  var env=null,paso=0,pasos=[];
+  var esc=document.getElementById('escena'),cam=document.getElementById('camino');
+  var reducido=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  var negra=function(m){return R.MODELOS[m].cat==='casaca'};
+  function sty(m){var d=R.MODELOS[m];return '--c:'+d.hex+(negra(m)?';color:var(--crema-fija)':'')}
+
+  function dibujaCamino(){
+    if(!env){cam.innerHTML='<i class="ahora"></i>';return}
+    cam.innerHTML=pasos.map(function(_,i){return '<i class="'+(i<paso||pasos[paso].k==='fin'?'hecho':i===paso?'ahora':'')+'"></i>'}).join('')}
+  function va(fn){
+    esc.classList.add('va');setTimeout(function(){esc.classList.remove('va');esc.style.animation='none';esc.offsetHeight;esc.style.animation='';fn();dibujaCamino();window.scrollTo(0,0)},reducido?0:230)}
+
+  /* ---- 1 · ¿cuál llegó? ---- */
+  function elige(){
+    paso=0;env=null;dibujaCamino();
+    esc.innerHTML='<h1 class="preg">¿Qué fardo abres?</h1><p class="ayuda">Toca el que tienes delante.</p><div class="elige">'+
+      R.ENVIOS.map(function(e,i){var n=e.lineas.reduce(function(a,l){return a+l.esp},0);
+        return '<button class="env cae" style="--i:'+i+'" data-id="'+e.id+'"><div class="tope"><span class="n">'+e.id.replace('ENV-','Envío ')+'</span>'+(i===0?'<span class="chip verde">Hoy</span>':'<span class="chip pizarra">'+e.cuando+'</span>')+'</div>'+
+        '<div class="gran">'+n+'<small>prendas</small></div><div class="mos">'+e.lineas.map(function(l){return R.tile(l.m)}).join('')+'</div>'+
+        '<div class="ruta">'+R.ico('camion')+'<span class="cam" style="--w:'+(i===0?'92%':'70%')+'"></span><span>'+e.prov.split(' ')[0]+'</span></div><span class="ir">Abrir '+R.ico('flecha')+'</span></button>'}).join('')+'</div>';
+    esc.querySelectorAll('.env').forEach(function(b){b.onclick=function(){
+      var e=R.ENVIOS.find(function(x){return x.id===b.dataset.id});
+      env={id:e.id,lineas:e.lineas.map(function(l){return{m:l.m,esp:l.esp,cont:0,t:[]}})};
+      pasos=[];env.lineas.forEach(function(_,i){pasos.push({k:'c',i:i});pasos.push({k:'t',i:i})});pasos.push({k:'fin'});
+      va(function(){paso=0;muestra()})}})}
+  function muestra(){var p=pasos[paso];dibujaCamino();p.k==='c'?contar(p.i):p.k==='t'?talla(p.i):fin()}
+  function sig(){if(paso<pasos.length-1){va(function(){paso++;muestra()})}}
+  function atras(){va(function(){if(paso===0)elige();else{paso--;muestra()}})}
+
+  function casillas(l,modo){
+    var s=l.esp>16?44:l.esp>8?58:76,g=l.esp>16?8:12;
+    return '<div class="casillas" style="--s:'+s+'px;--g:'+g+'px">'+Array.from({length:l.esp},function(_,k){
+      var on=k<l.cont,t=l.t[k];
+      return '<div class="casilla '+(on?'on ':'')+(t?'tal ':'')+(negra(l.m)?'negra':'')+'" data-k="'+k+'"><div class="prenda" data-color-dato style="'+sty(l.m)+'">'+R.ico(R.MODELOS[l.m].cat)+'</div><span class="letra">'+(t||'')+'</span></div>'}).join('')+'</div>'}
+
+  function pie(txt,ok){return '<div class="pie"><button class="btn grande" id="atras" aria-label="Volver">'+R.ico('atras')+'</button><button class="btn primario grande" id="sig"'+(ok?'':' disabled')+'>'+txt+' '+R.ico('flecha')+'</button></div>'}
+
+  /* ---- 2 · ¿cuántas? ---- */
+  function contar(i){
+    var l=env.lineas[i],m=R.MODELOS[l.m];
+    esc.innerHTML='<h1 class="preg">¿Cuántas '+(m.cat==='falda'?'faldas':m.cat==='blusa'?'blusas':m.cat==='casaca'?'casacas':'prendas')+' llegaron?</h1><p class="ayuda">'+m.n+' · '+m.color+'. Toca la prenda por cada una.</p>'+
+      '<div class="cuenta"><div class="grande"><div class="prenda" data-color-dato id="grande" style="'+sty(l.m)+'">'+R.ico(m.cat)+'</div><span class="toca" id="toca">'+R.ico('mano')+'Toca</span></div>'+
+      '<div><div class="cifra" id="cifra"><span class="num" id="num">'+l.cont+'</span><span class="de">de '+l.esp+'</span></div><div id="cas">'+casillas(l)+'</div>'+
+      '<div class="acciones"><button class="redondo" id="menos" aria-label="Una menos">'+R.ico('menos')+'</button><button class="btn" id="todas">Llegaron todas</button></div></div></div>'+pie('Siguiente',l.cont===l.esp);
+    var num=esc.querySelector('#num');
+    function estado(){num.textContent=l.cont;esc.querySelector('#cifra').classList.toggle('lleno',l.cont===l.esp);esc.querySelector('#sig').disabled=l.cont!==l.esp;esc.querySelector('#toca').style.opacity=l.cont?0:1}
+    function mas(demora){
+      if(l.cont>=l.esp)return;var k=l.cont;l.cont++;
+      var dest=esc.querySelector('.casilla[data-k="'+k+'"]'),g=esc.querySelector('#grande');
+      var pinta=function(){dest.classList.add('on')};
+      if(reducido){pinta();estado();return}
+      var a=g.getBoundingClientRect(),b=dest.getBoundingClientRect(),v=document.createElement('div');
+      v.className='vuelo';v.style.cssText='left:'+a.left+'px;top:'+a.top+'px;width:'+a.width+'px;height:'+a.height+'px;background:'+R.MODELOS[l.m].hex+';'+(negra(l.m)?'color:var(--crema-fija)':'');v.innerHTML=R.ico(R.MODELOS[l.m].cat);document.body.appendChild(v);
+      var dx=b.left-a.left,dy=b.top-a.top,sc=b.width/a.width;
+      v.animate([{transform:'translate(0,0) scale(1)',opacity:.95},{transform:'translate('+dx*.5+'px,'+(dy*.5-60)+'px) scale('+(sc+(1-sc)*.4)+')',opacity:1,offset:.5},{transform:'translate('+dx+'px,'+dy+'px) scale('+sc+')',opacity:1}],{duration:520,delay:demora||0,easing:'cubic-bezier(.32,.72,.24,1)',fill:'both'}).onfinish=function(){v.remove();pinta()};
+      g.animate([{transform:'scale(.94)'},{transform:'scale(1)'}],{duration:220,easing:'ease-out'});estado()}
+    esc.querySelector('#grande').onclick=function(){mas(0)};
+    esc.querySelector('#menos').onclick=function(){if(l.cont>0){l.cont--;l.t.length=Math.min(l.t.length,l.cont);esc.querySelector('.casilla[data-k="'+l.cont+'"]').classList.remove('on','tal');estado()}};
+    esc.querySelector('#todas').onclick=function(){var f=l.esp-l.cont;for(var q=0;q<f;q++)(function(q){setTimeout(function(){mas(0)},q*(f>10?55:110))})(q)};
+    esc.querySelector('#sig').onclick=sig;esc.querySelector('#atras').onclick=atras;estado();
+  }
+
+  /* ---- 3 · ¿de qué talla? ---- */
+  function talla(i){
+    var l=env.lineas[i],m=R.MODELOS[l.m];
+    for(var q=0;q<l.esp;q++)if(l.t[q]===undefined)l.t[q]=null;
+    esc.innerHTML='<h1 class="preg">¿De qué talla son?</h1><p class="ayuda">'+m.n+'. Toca la talla por cada prenda.</p>'+
+      '<div id="cas">'+casillas(Object.assign({},l,{cont:l.esp}))+'</div><div class="tallas" id="tallas">'+m.tallas.map(function(t){return '<button class="talla" data-t="'+t+'">'+t+'<small>0</small></button>'}).join('')+
+      '<button class="redondo" id="borra" style="width:92px;height:92px" aria-label="Borrar tallas">'+R.ico('x')+'</button></div>'+pie('Siguiente',false);
+    function pinta(){
+      esc.querySelectorAll('.casilla').forEach(function(c){var k=+c.dataset.k,t=l.t[k];c.classList.toggle('tal',!!t);c.querySelector('.letra').textContent=t||''});
+      esc.querySelectorAll('.talla').forEach(function(b){var n=l.t.filter(function(x){return x===b.dataset.t}).length;b.classList.toggle('tiene',n>0);b.querySelector('small').textContent=n});
+      esc.querySelector('#sig').disabled=l.t.some(function(x){return !x})}
+    esc.querySelectorAll('.talla').forEach(function(b){b.onclick=function(){var k=l.t.findIndex(function(x){return !x});if(k>-1){l.t[k]=b.dataset.t;pinta()}}});
+    esc.querySelectorAll('.casilla').forEach(function(c){c.style.cursor='pointer';c.onclick=function(){l.t[+c.dataset.k]=null;pinta()}});
+    esc.querySelector('#borra').onclick=function(){l.t=l.t.map(function(){return null});pinta()};
+    esc.querySelector('#sig').onclick=sig;esc.querySelector('#atras').onclick=atras;pinta();
+  }
+
+  /* ---- 4 · listo ---- */
+  function resumen(l){var c={};l.t.forEach(function(t){c[t]=(c[t]||0)+1});return Object.keys(c).sort().map(function(t){return t+' ×'+c[t]}).join('  ·  ')}
+  function fin(){
+    var total=env.lineas.reduce(function(a,l){return a+l.esp},0);
+    esc.innerHTML='<div class="talon"><div><span class="sello" id="s">'+R.ico('ok')+'</span><h2>Entró al almacén</h2><p class="ayuda" style="margin:0"><b class="num" id="t" style="font-size:44px;color:var(--tinta)">0</b> prendas de '+env.id.replace('ENV-','Envío ')+'</p>'+
+      '<div class="cta"><button class="btn primario grande">'+R.ico('etiqueta')+'Imprimir etiquetas</button><button class="btn grande">'+R.ico('piso')+'Bajar al piso</button></div><div class="cta"><button class="btn" id="otro">Abrir otro fardo</button></div></div>'+
+      '<div class="lista">'+env.lineas.map(function(l,i){return '<div class="item" style="--i:'+i+'">'+R.tile(l.m)+'<div><b>'+R.MODELOS[l.m].n+'</b><span>'+resumen(l)+'</span></div><span class="mas">+'+l.esp+'</span></div>'}).join('')+'</div></div>';
+    dibujaCamino();
+    setTimeout(function(){esc.querySelector('#s').classList.add('ya');R.cuenta(esc.querySelector('#t'),0,total,900)},250);
+    esc.querySelectorAll('.btn.grande').forEach(function(b){b.onclick=function(){R.toast('Esto lo hace el ERP real')}});
+    esc.querySelector('#otro').onclick=function(){va(elige)};
+  }
+  elige();
+})();
+</script>
+</body>
+</html>

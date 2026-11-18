@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/estilos/inicio-almacen.css";
 import { useRouter } from "next/navigation";
 import { Ico } from "./iconos";
 

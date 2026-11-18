@@ -46,11 +46,11 @@ export function HistoriaPermisos({ clientaId, clave }: { clientaId: string; clav
           <li key={e.id} className="relative pb-3 pl-5 text-sm last:pb-0">
             <span aria-hidden className={`absolute left-0 top-[7px] h-2 w-2 rounded-full ${PUNTO[e.punto]}`} />
             <b className="font-medium text-tinta">{e.titulo}</b>
-            <span className="block text-xs text-tinta/60">{e.detalle}</span>
+            <span className="block text-sm text-tinta/60">{e.detalle}</span>
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-xs text-tinta/55">No se edita: cada paso queda con el medio, la hora, la tienda y la versión del texto que vio el cliente.</p>
+      <p className="mt-3 text-sm text-tinta/55">No se edita: cada paso guarda el medio, la hora, la tienda y el texto que vio el cliente.</p>
     </details>
   );
 }

@@ -68,6 +68,7 @@ export function CambiosPanel({
   cajaAbierta,
   catalogo,
   aceptaQr,
+  emiteComprobantes = false,
   tallasQueNoCalzan,
   abrirItemId,
   sedes,
@@ -83,6 +84,8 @@ export function CambiosPanel({
   catalogo: VarianteCatalogo[];
   /** `fn_acepta_qr_en_cambios` (20261021184000): si la base ya acepta el QR como medio de la diferencia. */
   aceptaQr: boolean;
+  /** `fn_cambio_emite_comprobantes` (ADR-0671): la base ya emite la nota de crédito y el comprobante nuevo de un cambio con diferencia. */
+  emiteComprobantes?: boolean;
   tallasQueNoCalzan: TallaQueNoCalza[];
   abrirItemId?: string;
   /** Todas las sedes, para prellenar un traslado cuando la talla está en otra (`sedesDeOrigen`). */
@@ -136,7 +139,6 @@ export function CambiosPanel({
     if (!abrir) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- responde a los resultados que trajo la navegación, no a un render
     setFlujo(abrir);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [lineas, busqueda, ahora]);
 
   function navegar(parametros: URLSearchParams | null) {
@@ -161,7 +163,6 @@ export function CambiosPanel({
    *  fila puntual de la búsqueda sigue entrando con esa prenda ya marcada. */
   function iniciar(linea: LineaVentaReciente, preseleccionar: boolean) {
     setFlujo({ venta: lineas.filter((l) => l.ventaId === linea.ventaId), lineaId: preseleccionar ? linea.ventaItemId : null });
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   /** Con `?item=` en la URL la lista de fondo es solo esa compra: al salir se vuelve a la
@@ -194,6 +195,7 @@ export function CambiosPanel({
         sedes={sedes}
         catalogo={catalogo}
         aceptaQr={aceptaQr}
+        emiteComprobantes={emiteComprobantes}
         ahora={ahora}
         onCerrar={cerrarFlujo}
         onNuevo={() => {
@@ -237,7 +239,7 @@ export function CambiosPanel({
             // Antes de empezar, no en el paso 3: si la caja está cerrada, una diferencia en efectivo no se puede cobrar.
             <span data-guia="cambios.caja" className="flex items-center gap-2 text-sm text-tinta/70">
               <Chip tono={cajaAbierta ? "verde" : "ambar"}>{cajaAbierta ? "Caja abierta" : "Caja cerrada"}</Chip>
-              <span className="hidden lg:inline">{cajaAbierta ? "una diferencia en efectivo entra a la caja de hoy" : "solo cambios sin diferencia en efectivo"}</span>
+              <span className="hidden lg:inline">{cajaAbierta ? "la diferencia en efectivo va a la caja de hoy" : "solo cambios sin diferencia en efectivo"}</span>
             </span>
           }
         />
@@ -272,10 +274,10 @@ export function CambiosPanel({
         <section aria-labelledby="actividad-reciente" className="space-y-5">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 id="actividad-reciente" ref={tituloActividad} tabIndex={-1} className="font-display scroll-mt-28 text-[30px] leading-none text-tinta outline-none">
+              <h2 id="actividad-reciente" ref={tituloActividad} tabIndex={-1} className="font-display scroll-mt-12 text-[30px] leading-none text-tinta outline-none">
                 Actividad reciente
               </h2>
-              <p className="mt-0.5 text-sm text-tinta/70">Compras de los últimos 15 días en {sede}: las que todavía se pueden cambiar.</p>
+              <p className="mt-0.5 text-sm text-tinta/70">Compras de los últimos 15 días: aún se pueden cambiar.</p>
             </div>
             <FiltrosActividad
               valor={filtro}

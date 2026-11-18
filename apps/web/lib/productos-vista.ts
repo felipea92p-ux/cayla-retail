@@ -9,7 +9,9 @@ import { compararTallas } from "./tallas";
    por su lado, un día dirían precios o colores distintos de la misma prenda.
    ==================================================================== */
 
-export type ColorDisponible = { nombre: string; hex: string; fotoUrl: string | null };
+/** `tonos`: si el color es una mezcla («Hueso con azul», ADR-0643), su punto se parte (`fondoDelPunto`); `hex` sigue siendo el de la
+ *  base, que tiñe la foto que falta. */
+export type ColorDisponible = { nombre: string; hex: string; fotoUrl: string | null; tonos?: readonly string[] | null };
 
 /** Las variantes que el catálogo muestra y cuenta: las que se venden. Una desactivada (un color o una talla que se quitó de
  *  la ficha) no cuenta ni se lista; sus unidades, si las tiene, siguen en el inventario. Un modelo con TODAS desactivadas
@@ -26,7 +28,7 @@ export function coloresDe(variantes: readonly VarianteCatalogo[]): ColorDisponib
   for (const v of variantesQueSeVenden(variantes)) {
     if (!v.color) continue;
     const visto = vistos.get(v.color);
-    if (!visto) vistos.set(v.color, { nombre: v.color, hex: v.colorHex ?? "#8A8A8A", fotoUrl: v.fotoUrl });
+    if (!visto) vistos.set(v.color, { nombre: v.color, hex: v.colorHex ?? "#8A8A8A", fotoUrl: v.fotoUrl, ...(v.colorTonos ? { tonos: v.colorTonos } : {}) });
     else visto.fotoUrl ??= v.fotoUrl;
   }
   return [...vistos.values()];

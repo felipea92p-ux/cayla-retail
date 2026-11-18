@@ -2,7 +2,7 @@
   "guia": "compras.proveedores.id",
   "ruta": "/compras/proveedores/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 74,
+  "total": 76,
   "controles": {
     "app/(app)/compras/proveedores/[id]/page.tsx": [
       "Volver «/compras/proveedores»",
@@ -73,6 +73,7 @@
       "Boton «Registrar reembolso»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
+      "button «Volver a intentar»",
       "CampoSelect «{etiqueta}»"
     ],
     "components/nos-debe/HojaDeposito.tsx": [

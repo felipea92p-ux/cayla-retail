@@ -356,7 +356,7 @@ export function totalesComprobante(
 // Qué le falta (las reglas de `registrar_comprobante_orden`, dichas para quien llena)
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-const limpio = (texto: string) => texto.replace(/\s+/g, "").replace(/^s\//i, "");
+const limpio = (texto: string) => texto.replace(/\s+/g, "").replace(/^s\//i, ""); // blanco-fijo: solo arma la frase de la duda de miles, no decide ningún número
 
 /** Miles escritos con punto («1.500»): no se adivina, se dice cómo escribir lo que se quiso (igual que en la orden). */
 function dudaDeCantidad(texto: string): string {

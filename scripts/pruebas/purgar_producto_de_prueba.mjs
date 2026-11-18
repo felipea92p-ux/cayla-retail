@@ -117,7 +117,8 @@ create or replace function pg_temp.distintas(a text, b text) returns text langua
     select split_part(e, ':', 1) from unnest(string_to_array(btrim(a), ' ')) e where e = any (string_to_array(btrim(b), ' '))) d
 $f$;
 `;
-const QUEDAN_IGUAL = "array['actividad', 'historial_producto_cambios', 'catalogo_version']";
+// `diario_vencido_marcas` (ADR-0633): borrar una prenda anota que las fotos del diario vencen, como la versión del catálogo: solo avanza.
+const QUEDAN_IGUAL = "array['actividad', 'historial_producto_cambios', 'catalogo_version', 'diario_vencido_marcas']";
 
 /**
  * El escenario «Top Aurora». `nota`: la venta lleva nota interna (`true`) o boleta (`false`). Deja estas variables psql:
@@ -814,6 +815,7 @@ ${purgaDocsDefinitiva()}
 drop function pg_temp.libro_descuadra();
 select count(*) from respaldo_purgas.filas where purga = :'nombre_purga' and tabla = 'conteo_items';
 update respaldo_purgas.filas set fila = fila - 'aplicada_sin_contar' - 'completada_con_atajo' where purga = :'nombre_purga' and tabla = 'conteo_items';
+update respaldo_purgas.filas set fila = fila - 'orden' where purga = :'nombre_purga' and tabla = 'costo_historial';
 select count(*) from respaldo_purgas.filas where purga = :'nombre_purga' and tabla = 'conteo_items' and (fila ? 'aplicada_sin_contar' or fila ? 'completada_con_atajo');
 select count(*) >= 1 from information_schema.columns where table_schema = 'retail' and table_name = 'conteo_items'
    and column_name in ('aplicada_sin_contar', 'completada_con_atajo') and is_nullable = 'NO' and column_default is not null;
@@ -826,7 +828,8 @@ select ${LIBRO};`
     const [enRespaldo, conClaves, muerde, valores, distintas, libro] = ultimas(r);
     esperar("docs · respaldo viejo: el caso muerde — la línea de conteo está respaldada, ya sin las claves nuevas, y esas columnas son NOT NULL con valor de fábrica", r.ok && enRespaldo === "1" && conClaves === "0" && muerde === "t", r);
     esperar("docs · respaldo viejo: restaurar NO se aborta — la línea de conteo vuelve con el valor de fábrica (false) en las columnas que el respaldo no trae", r.ok && valores === "false|false", r);
-    esperar("docs · respaldo viejo: y la base entera vuelve a ser la de antes, tabla por tabla", r.ok && distintas === "[]", r);
+    // Un respaldo viejo no trae `costo_historial.orden` (ADR-0614): la fila vuelve con el siguiente número. Es la única diferencia aceptada.
+    esperar("docs · respaldo viejo: y la base entera vuelve a ser la de antes, tabla por tabla, salvo el número de orden de su costo", r.ok && distintas === "[costo_historial]", r);
     esperar("docs · respaldo viejo: el libro cuadra después de restaurar", r.ok && libro === "0", r);
   }
 

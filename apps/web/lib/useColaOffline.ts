@@ -6,6 +6,7 @@ import { guardar, leer } from "@/lib/almacen-local";
 import { clasificarFalloDeSubida, traducirError } from "@/lib/error-escritura";
 import { conCandadoDeSubida } from "@/lib/candado-subida";
 import { firmar } from "@/lib/responsable-reglas";
+import { conDueno } from "@/lib/dueno-reglas";
 import { claveCola, colaValida, conOperacion, porSubir, reconciliar, sinOperacion, trasFallo, type OperacionEncolada } from "@/lib/cola-offline";
 
 /**
@@ -107,7 +108,7 @@ export function useColaOffline(
       const subidas: { op: OperacionEncolada; data: unknown }[] = [];
       for (const op of aSubir) {
         // `x-espera: no` (ADR-0149): subir en segundo plano no tapa la pantalla con el loader mientras alguien trabaja.
-        const { data, error, status } = await firmar(supabase.rpc(op.rpc as never, op.params as never), op.firma).setHeader("x-espera", "no");
+        const { data, error, status } = await conDueno(firmar(supabase.rpc(op.rpc as never, op.params as never), op.firma), op.dueno).setHeader("x-espera", "no");
         if (!error) {
           resueltos.set(op.token, null);
           subidas.push({ op, data });

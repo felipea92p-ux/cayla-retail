@@ -29,6 +29,7 @@ export type TipoTareaHoy =
   | "por_colgar"
   | "piso_en_pausa"
   | "piso_sin_calcular"
+  | "piso_calculando"
   | "sin_registrar"
   | "danadas"
   | "apartados_vencidos"
@@ -54,14 +55,18 @@ export type EntradaParaHoy = {
   /** La sede separa piso y almacén (una tienda). En el Taller no hay «por colgar». */
   separa: boolean;
   porColgar: { tallas: number; unidades: number; prendas: readonly string[] };
-  /** El motor del piso: cuántas tallas esperan el cuadre del piso («En pausa») y si su lectura no respondió (`fallo`). */
-  piso: { enPausa: number; fallo: boolean };
+  /** El motor del piso: cuántas tallas esperan el cuadre del piso («En pausa»), si su lectura no respondió (`fallo`) y si todavía viene
+   *  en camino (`calculando`: Existencias dibuja la lista antes que el plan, 2026-11-13). */
+  piso: { enPausa: number; fallo: boolean; calculando?: boolean };
   /** Tallas «sin stock atrás» que tampoco vienen en camino (lo que viene en camino no se pide de nuevo). */
   sinStockAtras: { tallas: number };
   /** `null`: la sede no es una tienda (las ventas sin registrar nacen en Vender) y no se dibuja. `"fallo"`: la cola no respondió y se dice. */
   sinRegistrar: { pendientes: number; vencidas: number } | "fallo" | null;
   danadas: number;
-  /** Quien mira puede decidir qué se hace con las dañadas (un líder, en su sede). Si no, la fila solo informa. */
+  /** De esas, cuántas llevan 7 días o más sin que nadie las saque a arreglar ni decida su destino (ADR-0564). Ausente = 0. */
+  danadasViejas?: number;
+  /** Quien mira puede decidir qué se hace con las dañadas (quien ve Existencias, en su sede: ADR-0534). Si no —mirando otra sede—, la
+   *  fila solo informa. */
   resuelveDanadas: boolean;
   apartados: { vencidos: number };
   enCamino: { traslados: number; atrasados: number; proximaLlegada: string | null };
@@ -148,7 +153,10 @@ export function tareasParaHoy(e: EntradaParaHoy): TareaHoy[] {
   }
 
   // En el lugar de «por colgar», porque es lo que lo reemplaza: sin plan no se sabe qué colgar, y en pausa no se manda a colgar.
-  if (e.separa && e.piso.fallo) {
+  // Mientras el plan llega (Existencias en dos tiempos), se dice que viene: ni «no se pudo» ni un «Todo al día» que no se sabe.
+  if (e.separa && e.piso.calculando) {
+    tareas.push({ tipo: "piso_calculando", cifra: null, texto: "Calculando qué colgar hoy", detalle: "Llega en un momento.", tono: "pizarra" });
+  } else if (e.separa && e.piso.fallo) {
     tareas.push({
       tipo: "piso_sin_calcular",
       cifra: null,
@@ -191,14 +199,19 @@ export function tareasParaHoy(e: EntradaParaHoy): TareaHoy[] {
   }
 
   if (e.danadas > 0) {
+    const viejas = Math.min(e.danadasViejas ?? 0, e.danadas);
     tareas.push({
       tipo: "danadas",
       cifra: e.danadas,
       texto: plural(e.danadas, "prenda dañada", "prendas dañadas"),
-      detalle: e.resuelveDanadas
-        ? "Están fuera de la venta y esperan tu decisión: se arregló, liquidar, botar o donar."
-        : "Están fuera de la venta: un líder decide si se arreglan, se liquidan, se botan o se donan.",
-      tono: "ambar",
+      // Con alguna de 7 días o más (ADR-0564), la fila sube a rojo y lo dice: una prenda separada que nadie lleva a arreglar es plata parada.
+      detalle:
+        viejas > 0
+          ? `${viejas} ${plural(viejas, "lleva", "llevan")} 7 días o más separadas sin decidirse: ${e.resuelveDanadas ? "sácalas a arreglar o decide su destino" : "en su sede se decide qué hacer con ellas"}.`
+          : e.resuelveDanadas
+            ? "Están fuera de la venta y esperan tu decisión: se arregló, liquidar, botar o donar."
+            : "Están fuera de la venta: en su sede se decide si se arreglan, se liquidan, se botan o se donan.",
+      tono: viejas > 0 ? "rojo" : "ambar",
     });
   }
 

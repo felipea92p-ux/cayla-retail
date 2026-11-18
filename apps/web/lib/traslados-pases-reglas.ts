@@ -477,14 +477,20 @@ export function buscableDelPase(t: DatosPase, codigos: { origen: string; destino
   };
 }
 
-/** El pase que se abre solo al entrar a Traslados: lo primero que te toca (lo que llega, después lo que te piden enviar); si no
- *  hay nada que hacer, el primero de la billetera. `null` si no hay ninguno. */
-export function paseInicial<T extends { id: string; porHacer: boolean }>(pases: Record<PestanaPase, readonly T[]>): T | null {
+/** Lo primero que te toca: lo que llega y, después, lo que te piden enviar. `null` si no hay nada por hacer. Es a donde lleva el
+ *  anillo de «Lo de hoy» en el celular, y es el mismo orden en que el anillo cuenta (`anilloDelDia`: cajas por recibir + pedidos). */
+export function primeroPorHacer<T extends { id: string; porHacer: boolean }>(pases: Record<PestanaPase, readonly T[]>): T | null {
   for (const p of ["llegan", "envias"] as const) {
     const t = pases[p].find((x) => x.porHacer);
     if (t) return t;
   }
-  return pases.llegan[0] ?? pases.envias[0] ?? pases.terminadas[0] ?? null;
+  return null;
+}
+
+/** El pase que se abre solo al entrar a Traslados: lo primero que te toca; si no hay nada que hacer, el primero de la billetera.
+ *  `null` si no hay ninguno. */
+export function paseInicial<T extends { id: string; porHacer: boolean }>(pases: Record<PestanaPase, readonly T[]>): T | null {
+  return primeroPorHacer(pases) ?? pases.llegan[0] ?? pases.envias[0] ?? pases.terminadas[0] ?? null;
 }
 
 /** La caja anterior y la siguiente en su pestaña (las flechas del escenario y ← → del teclado). */

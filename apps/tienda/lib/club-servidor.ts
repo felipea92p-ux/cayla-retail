@@ -64,14 +64,19 @@ export const guardarFavoritoEnBase = (usuarioWebId: string, productoId: string, 
   );
 
 /** «Avísame cuando llegue» esa prenda en esa tienda (`null`: en cualquier tienda de la web). */
-export const pedirAvisoEnBase = (usuarioWebId: string, varianteId: string, sedeId: string | null): Promise<{ estado: EstadoAviso; esperaId: string | null }> =>
-  leerConRespaldo<{ estado: EstadoAviso; esperaId: string | null }>(
+export const pedirAvisoEnBase = (
+  usuarioWebId: string,
+  varianteId: string,
+  sedeId: string | null,
+  whatsapp: boolean,
+): Promise<{ estado: EstadoAviso; esperaId: string | null; whatsapp: boolean }> =>
+  leerConRespaldo<{ estado: EstadoAviso; esperaId: string | null; whatsapp: boolean }>(
     "tienda_avisame_fallo",
     async (db) => {
-      const [fila] = await db`select retail.tienda_avisame(${usuarioWebId}::uuid, ${varianteId}::uuid, ${sedeId}::uuid) as r`;
+      const [fila] = await db`select retail.tienda_avisame(${usuarioWebId}::uuid, ${varianteId}::uuid, ${sedeId}::uuid, ${whatsapp}::boolean) as r`;
       return leerRespuestaAviso(fila?.r);
     },
-    { estado: "sin_respuesta", esperaId: null },
+    { estado: "sin_respuesta", esperaId: null, whatsapp: false },
   );
 
 /** Quita una de sus esperas. */

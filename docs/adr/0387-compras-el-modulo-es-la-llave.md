@@ -104,6 +104,24 @@ no»**, y lo extendió a **todo Compras**.
   publicada los llama hasta el despliegue. Se retiran en una tarea aparte.
 - **Recibir no cambia:** «ver todas las tiendas» no es «recibir en todas». Recibir en una sede algo asignado a otra va con la fase 4.
 
+## Actualización 2026-11-03: quien solo tiene Recibir mira lo de su sede (Felipe)
+
+**El problema.** La decisión 2 de arriba nombra a Recibir mercadería entre los módulos que ven todas las tiendas, pero se pensó para Compras,
+que reparte y paga para todas. Quien solo recibe ya tenía una sede para abrir, contar y cerrar (`fn_recepcion_exigir`), y otra regla para
+mirar. ADR-0480 ya describía esa lectura como «módulo Recibir, sede del envío». Felipe lo decidió: **quien solo tiene Recibir mira lo que llega a
+su sede; Órdenes de compra, quien ve el dinero de Compras y el líder siguen viendo todas.**
+
+- **La regla vive en un lugar:** `fn_recepcion_puede_leer_sede` (`20261103172000_recibir_lee_su_sede.sql`). La preguntan el detalle, los conteos y las
+  observaciones de un envío, las tres listas de lo que llega a una sede y, por `fn_recepcion_puede_ver_foto_papel`, la foto del papel.
+- **Un envío de otra sede responde como uno que no existe** (`null`), y la pantalla dice lo que ya decía: «No encontramos ese envío. Los que llegan
+  a tu sede están en Recibir mercadería». La web no cambia: sus enlaces a un envío salen de la lista de la propia sede o de Órdenes de compra.
+- **Se quedan como están:** `deudas_del_proveedor` (la deuda es del proveedor, no de la tienda donde faltó), `fn_recepcion_pendientes` (solo cuenta prendas,
+  y la lee también Productos) y `fn_llegada_de_lotes` (solo una fecha).
+
+DESCARTÉ: responder 42501 con otra sede, porque la pantalla lo pintaría como una falla que se puede reintentar; y filtrar en la web, porque estas funciones
+se llaman desde el navegador con la sesión de quien mira.
+SE ROMPE SI: una lectura nueva de un envío pide solo el módulo; pregunta `fn_recepcion_puede_leer_sede`. Lo vigila `pnpm pruebas:recibir-lee-su-sede`.
+
 ## Lo que queda
 
 - **Orden de despliegue:** la base antes que la web (o juntas). La web nueva paga sin tienda, y la base de hoy se lo rechaza a quien no

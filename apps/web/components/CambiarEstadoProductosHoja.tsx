@@ -75,9 +75,9 @@ export function CambiarEstadoProductosHoja({
             {productos.map((p) => {
               const queda = reactivar ? p.estado === "activo" : p.estado !== "activo";
               return (
-                <li key={p.productoId} className="flex items-baseline justify-between gap-3 py-2.5 text-[13.5px]">
+                <li key={p.productoId} className="flex items-baseline justify-between gap-3 py-2.5 text-[15px]">
                   <span className={`min-w-0 truncate ${queda ? "text-tinta/50" : "text-tinta"}`}>{p.referencia}</span>
-                  <span className="shrink-0 text-[12px] text-tinta/55">
+                  <span className="shrink-0 text-sm text-tinta/55">
                     {queda ? textos.yaEsta : `${p.stockTotal.toLocaleString("es-PE")} en stock`}
                   </span>
                 </li>

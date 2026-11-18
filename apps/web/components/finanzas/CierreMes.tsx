@@ -6,18 +6,19 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { Aviso } from "@/components/ui/Aviso";
 import { Modal } from "@/components/ui/Modal";
+import { fallaLegible } from "@/lib/gastos-telar-reglas";
 import { Chip } from "@/components/ui/Chip";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { CierrePulso } from "@/components/finanzas/CierrePulso";
 import { pulsoCierre } from "@/lib/cierre-pulso-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { CabeceraBloque, CampoFin, InputFin, SelectFin, Superficie } from "@/components/finanzas/kit";
+import { CabeceraBloque, CampoFin, InputFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { fechaCorta } from "@/lib/gastos-reglas";
+import { fechaCorta, textoMes } from "@/lib/gastos-reglas";
 import { diaLima } from "@/lib/fechas-lima";
-import { mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
 import {
   avisosPendientes,
   bajadaUnidad,
@@ -32,11 +33,11 @@ import {
   nombreMes,
   primerNombre,
   puedeCerrar,
+  soloFaltaPlanilla,
+  promesaDeAvisos,
   resumenAvisos,
   textoBotonCerrar,
   textoChequeo,
-  textoOpcionMes,
-  tituloPantalla,
   tituloUnidad,
   unidadInicial,
   validarMotivo,
@@ -53,66 +54,62 @@ import { Boton } from "@/components/ui/campos";
 
 const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 
-type Accion = { tipo: "cerrar"; unidad: Unidad } | { tipo: "consolidado" } | { tipo: "reabrir"; unidad: Unidad } | null;
+type Accion = { tipo: "cerrar"; unidad: Unidad } | { tipo: "saltar"; unidad: Unidad } | { tipo: "consolidado" } | { tipo: "reabrir"; unidad: Unidad } | null;
 
 /**
- * `inicioFinanzas` (ADR-0332): desde cuándo cuenta Finanzas; los meses anteriores no se ofrecen para cerrar (cerrar un mes que no
- * se cuenta congelaría un diario vacío y bloquearía mover el corte). `avisoCorte`: el mes que se pidió es anterior al corte;
- * en vez de un panel vacío se dice por qué.
+ * El mes y la sede los elige la barra común de Finanzas (`MesaDeMando`): la pantalla no trae otro selector de mes. `avisoCorte`
+ * (ADR-0332): el mes elegido es anterior al día desde el que cuenta Finanzas; en vez de un panel vacío se dice por qué.
  */
 export function CierreMes({
   panel,
   falla,
   unidadPedida,
-  inicioFinanzas = null,
   avisoCorte = null,
+  esAdmin = false,
 }: {
   panel: PanelCierre | null;
   falla: string | null;
   unidadPedida: string | null;
-  inicioFinanzas?: string | null;
   avisoCorte?: string | null;
+  /** Solo un Admin puede cerrar sin la planilla pagada (tarea 18). */
+  esAdmin?: boolean;
 }) {
   if (!panel) {
     return (
       <div className="space-y-6">
-        <CabeceraPantalla sobretitulo="Finanzas · Cierre de mes" titulo="Cierre de mes" />
-        <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{avisoCorte ?? falla ?? "No se pudo leer el cierre de mes."}</p>
+        <EncabezadoPagina sede="CAYLA entera" titulo="Cierre de mes" />
+        {avisoCorte ? <Aviso tono="info">{avisoCorte}</Aviso> : <Aviso tono="error">{falla ? fallaLegible(falla) : "No se pudo leer el cierre de mes."}</Aviso>}
       </div>
     );
   }
-  return <Pantalla panel={panel} unidadPedida={unidadPedida} inicioFinanzas={inicioFinanzas} />;
+  return <Pantalla panel={panel} unidadPedida={unidadPedida} esAdmin={esAdmin} />;
 }
 
-function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre; unidadPedida: string | null; inicioFinanzas: string | null }) {
-  const router = useRouter();
+function Pantalla({ panel, unidadPedida, esAdmin }: { panel: PanelCierre; unidadPedida: string | null; esAdmin: boolean }) {
   const { mes, unidades, consolidado } = panel;
   const [elegida, setElegida] = useState<string | null>(() => unidadInicial(unidades, unidadPedida));
   const [accion, setAccion] = useState<Accion>(null);
   // Si se cambió de mes y la elegida no existe en él, se abre la que corresponde por defecto.
   const u = unidades.find((x) => x.clave === elegida) ?? unidades.find((x) => x.clave === unidadInicial(unidades)) ?? null;
   const cons = estadoConsolidado(panel);
-  const irMes = (m: string) => router.push(`/finanzas/cierre?mes=${m}`, { scroll: false });
+  // Tocar una tarjeta la marca también en la barra común (`?sede=`), sin volver a pedir el panel: la barra y la matriz dicen
+  // la misma unidad, y al cambiar de mes la barra la conserva.
+  const elegir = (clave: string) => {
+    setElegida(clave);
+    const url = new URL(window.location.href);
+    url.searchParams.set("sede", clave);
+    url.searchParams.delete("u");
+    // Con `null` (no el estado de Next): así Next 16 sincroniza `useSearchParams` y la barra marca la misma sede.
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+  };
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo="Finanzas · Cierre de mes"
-        titulo={tituloPantalla(mes)}
-        accionesAbajo
-        bajada="Cerrar un mes lo congela: nadie puede registrar ni cambiar nada con fecha de ese mes, y el diario queda guardado con su huella. Se cierra cada tienda, el Taller y lo de la empresa; CAYLA entera, cuando cerraron todas (ADR-0198)."
-        acciones={
-          <>
-            <Chip versalitas={false}>CAYLA entera</Chip>
-            <SelectFin
-              etiqueta="Mes que se cierra"
-              className="w-fit min-w-[150px]"
-              valor={mes}
-              onValor={irMes}
-              opciones={panel.meses.filter((m) => m.mes === mes || !mesAntesDelCorte(m.mes, inicioFinanzas)).map((m) => ({ valor: m.mes, texto: textoOpcionMes(m) }))}
-            />
-          </>
-        }
+      <EncabezadoPagina
+        sede="CAYLA entera"
+        titulo="Cierre de mes"
+        detalle={textoMes(mes)}
+        subtitulo="Cerrar un mes lo congela: nadie puede registrar ni cambiar nada con fecha de ese mes, y el diario queda guardado con su huella. Se cierra cada tienda, el Taller y lo de la empresa; CAYLA entera, cuando cerraron todas."
       />
 
       {/* Camino A (Felipe 2026-10-15): primero la respuesta; la matriz y los chequeos, después. */}
@@ -127,7 +124,7 @@ function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre;
               type="button"
               className="fin-unidad"
               aria-pressed={u?.clave === x.clave}
-              onClick={() => setElegida(x.clave)}
+              onClick={() => elegir(x.clave)}
               data-guia={i === 0 ? "fin-cierre.primera-unidad" : i === 1 ? "fin-cierre.otra-unidad" : undefined}
             >
               <span className="fin-unidad-n">{x.nombre}</span>
@@ -178,7 +175,7 @@ function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre;
       </div>
 
       <section className="fin-dos-col fin-cierre-cols">
-        {u ? <Chequeos panel={panel} u={u} onCerrar={() => setAccion({ tipo: "cerrar", unidad: u })} onReabrir={() => setAccion({ tipo: "reabrir", unidad: u })} /> : <div />}
+        {u ? <Chequeos panel={panel} u={u} puedeSaltar={esAdmin && soloFaltaPlanilla(u)} onSaltar={() => setAccion({ tipo: "saltar", unidad: u })} onCerrar={() => setAccion({ tipo: "cerrar", unidad: u })} onReabrir={() => setAccion({ tipo: "reabrir", unidad: u })} /> : <div />}
         <Superficie pad className="anim-sube" guia="fin-cierre.rutina">
           <p className="label-cayla text-[11px] text-taupe">La rutina de fin de mes</p>
           <div className="fin-pasos-cierre">
@@ -192,7 +189,7 @@ function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre;
             </div>
             <div>
               <h3>Día 3 · el sistema (5 min)</h3>
-              <p>Mirar el Estado de resultados contra el mes anterior y cerrar. Desde ahí, el mes ya no cambia.</p>
+              <p>Mirar Ganancias y pérdidas contra el mes anterior y cerrar. Desde ahí, el mes ya no cambia.</p>
             </div>
           </div>
           <p className="nota-cayla mt-3.5">
@@ -214,13 +211,14 @@ function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre;
           }}
         />
       )}
+      {accion?.tipo === "saltar" && <CerrarSinPlanillaModal mes={mes} unidad={accion.unidad} onCerrar={() => setAccion(null)} />}
       {accion?.tipo === "consolidado" && <CerrarConsolidadoModal mes={mes} onCerrar={() => setAccion(null)} />}
       {accion?.tipo === "reabrir" && <ReabrirModal mes={mes} unidad={accion.unidad} onCerrar={() => setAccion(null)} />}
     </div>
   );
 }
 
-function Chequeos({ panel, u, onCerrar, onReabrir }: { panel: PanelCierre; u: Unidad; onCerrar: () => void; onReabrir: () => void }) {
+function Chequeos({ panel, u, puedeSaltar, onSaltar, onCerrar, onReabrir }: { panel: PanelCierre; u: Unidad; puedeSaltar: boolean; onSaltar: () => void; onCerrar: () => void; onReabrir: () => void }) {
   const historia = historiaDe(panel, u);
   const cerrada = u.estado === "cerrado";
   return (
@@ -265,6 +263,11 @@ function Chequeos({ panel, u, onCerrar, onReabrir }: { panel: PanelCierre; u: Un
         ) : (
           <button type="button" className="btn-cayla btn-primario" onClick={onCerrar} disabled={!puedeCerrar(u)}>
             {textoBotonCerrar(panel.mes, u)}
+          </button>
+        )}
+        {!cerrada && puedeSaltar && (
+          <button type="button" className="btn-cayla btn-secundario" onClick={onSaltar}>
+            Cerrar sin la planilla…
           </button>
         )}
       </div>
@@ -325,7 +328,7 @@ function CerrarModal({ mes, unidad, onCerrar, alCerrar }: { mes: string; unidad:
     >
       {avisos.length > 0 && (
         <div className="nota-cayla mb-4">
-          <b>Cierras con {resumen.cuenta}:</b> {resumen.lista}. Quedan guardados en la historia del cierre.
+          <b>Cierras con {resumen.cuenta}:</b> {resumen.lista}. {promesaDeAvisos(avisos)}
         </div>
       )}
       <ComboResponsable control={responsable} deshabilitado={guardando} />
@@ -356,7 +359,7 @@ function CerrarConsolidadoModal({ mes, onCerrar }: { mes: string; onCerrar: () =
     <Modal
       variante="hoja"
       titulo={`Cerrar ${nombreMes(mes)} ${mes.slice(0, 4)} de CAYLA entera`}
-      subtitulo="Todas las unidades ya cerraron. El consolidado queda congelado con su huella y es el que se le entrega al contador."
+      subtitulo="Todas las unidades cerraron. El consolidado queda congelado: es el que se entrega al contador."
       onClose={onCerrar}
       tamano="mediana"
     >
@@ -367,6 +370,47 @@ function CerrarConsolidadoModal({ mes, onCerrar }: { mes: string; onCerrar: () =
         </button>
         <Boton peso="primario" cargando={guardando} textoCargando="Cerrando…" type="button" onClick={cerrar} disabled={guardando || !responsable.listo}>
           Cerrar consolidado
+        </Boton>
+      </div>
+    </Modal>
+  );
+}
+
+// Tarea 18 de «Las 36 de Finanzas»: Dynamic todavía no pagó la planilla del mes y aun así hay que cerrar. Solo un Admin; el motivo queda en los avisos del cierre.
+function CerrarSinPlanillaModal({ mes, unidad, onCerrar }: { mes: string; unidad: Unidad; onCerrar: () => void }) {
+  const { responsable, guardando, ejecutar } = useEjecutar();
+  const [motivo, setMotivo] = useState("");
+  const [tocado, setTocado] = useState(false);
+  const error = validarMotivo(motivo);
+  async function cerrar() {
+    setTocado(true);
+    if (error) return avisar.error(error);
+    const ok = await ejecutar(
+      "cerrar_periodo_saltando_planilla",
+      { p_mes: `${mes}-01`, p_alcance: unidad.alcance, p_ubicacion_id: unidad.ubicacionId, p_motivo: motivo.trim() },
+      `cerrar ${nombreMes(mes)} ${deUnidad(unidad)} sin la planilla`,
+      `${nombreMes(mes).replace(/^./, (l) => l.toUpperCase())} ${deUnidad(unidad)} quedó cerrado sin la planilla pagada. El motivo quedó en el cierre.`,
+    );
+    if (ok) onCerrar();
+  }
+  return (
+    <Modal
+      variante="hoja"
+      titulo={`Cerrar ${nombreMes(mes)} ${mes.slice(0, 4)} ${deUnidadLarga(unidad)} sin la planilla`}
+      subtitulo="Dynamic todavía no pagó la planilla de este mes. Si cierras ahora, el mes se congela sin esos sueldos y la ganancia sale de más. Queda escrito quién lo hizo y por qué."
+      onClose={onCerrar}
+      tamano="mediana"
+    >
+      <CampoFin etiqueta="Motivo (obligatorio)" htmlFor="saltar-motivo" ayuda={tocado && error ? error : undefined} tono={tocado && error ? "aviso" : undefined}>
+        <InputFin id="saltar-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder={`Ej. Dynamic paga la planilla de ${nombreMes(mes)} el lunes`} />
+      </CampoFin>
+      <ComboResponsable control={responsable} deshabilitado={guardando} />
+      <div className="fin-botones mt-4">
+        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
+          Cancelar
+        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Cerrando…" type="button" onClick={cerrar} disabled={guardando || !responsable.listo}>
+          Cerrar sin la planilla
         </Boton>
       </div>
     </Modal>

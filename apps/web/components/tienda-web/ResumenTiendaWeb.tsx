@@ -143,7 +143,7 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
                     ))}
                   </div>
                   {vitrina && (
-                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-sand px-5 py-3 text-[13px]">
+                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-sand px-5 py-3 text-sm">
                       <span className="text-tinta">
                         <b className="font-display text-[19px] font-normal tabular-nums">
                           <CifraQueCuenta valor={vitrina.cifras.seVen} alMontar />
@@ -172,12 +172,12 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
                     <span aria-hidden className="tw-sede-punto" data-tono={s.tono} />
                     <span className="min-w-0">
                       <span className="block font-medium text-tinta">{s.nombre}</span>
-                      <span className={`block text-[12.5px] ${s.tono === "ambar" ? "text-ambar-profundo" : "text-taupe"}`}>{s.texto}</span>
+                      <span className={`block text-sm ${s.tono === "ambar" ? "text-ambar-profundo" : "text-taupe"}`}>{s.texto}</span>
                     </span>
                   </li>
                 ))}
               </ul>
-              <p className="mt-3 text-[12.5px] text-taupe">El cliente elige una de las que se ven para recoger lo que separa.</p>
+              <p className="mt-3 text-sm text-taupe">El cliente elige una de las que se ven para recoger lo que separa.</p>
             </section>
           )}
         </div>

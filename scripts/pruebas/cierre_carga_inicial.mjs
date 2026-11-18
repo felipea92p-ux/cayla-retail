@@ -23,6 +23,9 @@
  *   6. La lectura `fn_carga_inicial_sedes` y los permisos; la frase exacta («15-oct»); y que las tres migraciones se pegan
  *      dos veces sin duplicar nada.
  *   7. Dos sesiones a la vez sobre la misma fecha (carrera de dos `psql`).
+ *   9. El plazo de la cola de arranque sigue a la fecha (20261014161000, ADR-0334 act. 2026-10-14): ponerla, adelantarla o
+ *      correrla la escribe en `cola_arranque_plazo` (y crea la fila si no había); quitarla deja el plazo como estaba. Al pegar
+ *      la migración, toda sede con fecha queda con ese plazo (caso 6c).
  *   8. La fecha de Felipe en LAS TRES TIENDAS (Felipe 2026-10-04 noche): la parte 1, pegada tal cual sobre producción en
  *      miniatura, siembra el 15-oct en TRU, AQP y LIM (LIM por el código `003`: en Dynamic `LIM` es el Taller) y deja al
  *      Taller sin fecha; no pisa una fecha ya puesta; aborta sin sembrar nada si una tienda no se reconoce sin ambigüedad.
@@ -58,6 +61,7 @@ const MIGRACIONES = [
   "20261004210000_carga_inicial_cierre_por_sede_parte1_columna.sql",
   "20261004210100_carga_inicial_cierre_por_sede_parte2_candado.sql",
   "20261004210200_encontre_prendas_con_nota.sql",
+  "20261014161000_cola_arranque_sigue_a_la_carga_inicial.sql",
 ];
 
 function psql(sql) {
@@ -473,6 +477,29 @@ ${K("actividad", "(select descripcion from retail.actividad where accion = 'conf
   },
 );
 
+// Desde 20261014161000 (ADR-0334, act. 2026-10-14) el plazo para cerrar la cola de arranque es la misma fecha.
+const plazoTru = "(select hasta from retail.cola_arranque_plazo where ubicacion_id = :'tru')";
+correr(
+  "4d. El plazo de la cola de arranque sigue a la fecha: se crea al ponerla, la acompaña y sobrevive a quitarla",
+  `${COMO_POSTGRES}delete from retail.cola_arranque_plazo where ubicacion_id = :'tru';
+${como(SANDRA)}${K("poner", fijar("tru", `${HOY} + 10`))}
+${COMO_POSTGRES}${K("plazo_poner", `${plazoTru} = ${HOY} + 10`)}
+${como(SANDRA)}${K("adelantar", fijar("tru", `${HOY} + 5`))}
+${COMO_POSTGRES}${K("plazo_adelantar", `${plazoTru} = ${HOY} + 5`)}
+${como(FELIPE)}${K("correr", fijar("tru", `${HOY} + 20`))}
+${COMO_POSTGRES}${K("plazo_correr", `${plazoTru} = ${HOY} + 20`)}
+${como(FELIPE)}${K("quitar", fijar("tru", "null"))}
+${COMO_POSTGRES}${K("plazo_quitar", `${plazoTru} = ${HOY} + 20`)}
+${K("filas", "(select count(*) from retail.cola_arranque_plazo where ubicacion_id = :'tru')")}`,
+  (d) => {
+    afirmar("sin fila de plazo, poner la fecha la crea con esa fecha", okDe(d.poner) && d.plazo_poner === "true", `${d.poner} plazo=${d.plazo_poner}`);
+    afirmar("adelantar la fecha adelanta el plazo", okDe(d.adelantar) && d.plazo_adelantar === "true", `${d.adelantar} plazo=${d.plazo_adelantar}`);
+    afirmar("el Admin la corre más adelante y el plazo la sigue", okDe(d.correr) && d.plazo_correr === "true", `${d.correr} plazo=${d.plazo_correr}`);
+    afirmar("quitar la fecha (solo Admin) deja el plazo como estaba", okDe(d.quitar) && d.plazo_quitar === "true", `${d.quitar} plazo=${d.plazo_quitar}`);
+    afirmar("una sola fila de plazo para la sede", d.filas === "1", d.filas);
+  },
+);
+
 // ---------------------------------------------------------------------------------------------------------------------
 // 5. El guardián
 // ---------------------------------------------------------------------------------------------------------------------
@@ -534,10 +561,12 @@ ${fechaTru("date '2026-09-05'")}${K("sep", "retail.fn_texto_carga_inicial_cerrad
 );
 
 correr(
-  "6c. Las tres migraciones se pegan dos veces sin duplicar nada (y no rompen el parche de ADR-0208)",
-  `${MIGRACIONES.map(migracion).join("\n")}
+  "6c. Las cuatro migraciones se pegan dos veces sin duplicar nada (y no rompen el parche de ADR-0208)",
+  `${fechaTru(`${HOY} + 7`)}${MIGRACIONES.map(migracion).join("\n")}
 ${MIGRACIONES.map(migracion).join("\n")}
 ${COMO_POSTGRES}${K("candado", veces(CSI, "fn_exigir_carga_inicial_abierta"))}
+${K("enlace", veces("retail.fijar_cierre_carga_inicial(uuid, date)", "ADR-0334 (act. 2026-10-14)"))}
+${K("plazo_alineado", `${plazoTru} = ${HOY} + 7`)}
 ${K("puerta", veces(RM, "carga_inicial_por_su_puerta"))}
 ${K("nota", veces(RM, "encontre_prendas_sin_nota"))}
 ${K("es_ajuste", veces(RM, "encontre_prendas_es_ajuste"))}
@@ -558,6 +587,8 @@ ${K("disparador", "(select count(*) from pg_trigger where tgname = 'ubicaciones_
     afirmar("la línea de Actividad de la fecha, una vez", d.actividad === "1", d.actividad);
     afirmar("«encontré prendas» en Actividad, una vez", d.motivo === "1", d.motivo);
     afirmar("un solo disparador guardián", d.disparador === "1", d.disparador);
+    afirmar("el enlace de la cola de arranque queda UNA vez en fijar_cierre_carga_inicial", d.enlace === "1", d.enlace);
+    afirmar("y al pegar, la sede con fecha queda con ese plazo", d.plazo_alineado === "true", d.plazo_alineado);
   },
 );
 

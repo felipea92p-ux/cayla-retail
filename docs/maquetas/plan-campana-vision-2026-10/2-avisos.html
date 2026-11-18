@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>② Avisos · Plan de campaña (spike)</title>
+<link rel="stylesheet" href="base.css?v=13">
+<style>
+.ctl{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-bottom:18px;border:1px dashed var(--taupe);border-radius:14px;padding:14px 18px;background:var(--papel)}
+.ctl h4{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--t60);margin-bottom:6px}
+.ctl label{display:flex;gap:8px;align-items:center;font-size:13px}
+.regla{display:grid;gap:8px;font-size:13px;color:var(--t60);margin-top:14px}
+.regla b{color:var(--tinta)}
+.ant{font-size:12px;color:var(--t60);margin:6px 0 0}
+</style>
+</head>
+<body>
+<div id="chrome"></div>
+
+<div class="ctl" aria-label="Controles de la maqueta">
+  <div><h4>Cómo está la campaña hoy</h4><div class="seg" id="esc"></div><p class="ant" id="escNota"></p></div>
+  <div><h4>Cómo se abre el centro de avisos</h4>
+    <div class="seg" id="av"></div>
+    <p class="ant" id="avNota"></p></div>
+  <div><h4>Lo urgente</h4>
+    <label><button class="sw" id="asoma" role="switch" aria-checked="true" aria-label="Lo urgente asoma aunque esté compacto"></button> Asoma una línea aunque el centro esté compacto</label>
+    <p class="ant">Si el plazo para pedir ya es justo o ya pasó, el centro no puede esconderlo.</p>
+    <label style="margin-top:10px"><button class="sw" id="rot" role="switch" aria-checked="false" aria-label="Con la palabra Avisos al lado del ícono"></button> Con la palabra «Avisos» junto al ícono</label>
+    <p class="ant">La guía de usabilidad (NN/g) pide que un ícono lleve su palabra; tú pediste solo el número. Míralo con las dos.</p></div>
+</div>
+
+<div class="cifras">
+  <div class="cifra"><div class="t">Categorías con plan</div><div class="v">7 de 45</div><div class="d">Las demás no suman a la compra</div></div>
+  <div class="cifra"><div class="t">Prendas a comprar</div><div class="v" id="cPrendas">—</div><div class="d">Lo que conviene tener menos lo que hay y lo que ya viene</div></div>
+  <div class="cifra"><div class="t">Inversión al costo</div><div class="v" id="cInv">—</div><div class="d mal" id="cInvD">—</div></div>
+  <div class="cifra"><div class="t">Las que más venden, sin plan</div><div class="v">4</div><div class="d">de 10 · llénalas una por una</div></div>
+</div>
+
+<div class="card scroll-x" id="tabla">
+  <div class="herr"><span class="pil on">Todas 45</span><span class="pil">Las que más venden 10</span><span class="pil">Se agotaron 4</span><span style="flex:1"></span><span class="seg"><button class="on">Tabla</button><button>Paso a paso</button></span></div>
+  <table><thead><tr><th>Categoría</th><th class="n">Hay hoy</th><th class="n">Comprar</th><th class="n">Inversión</th></tr></thead><tbody id="filas"></tbody></table>
+</div>
+
+<div class="regla card pad">
+  <h3 style="font:600 21px var(--serif);color:var(--tinta)">Reglas que propongo para el centro</h3>
+  <div><b>Solo cuenta lo que hay que hacer.</b> El número suma los avisos <span class="chip rojo sp">urgentes</span> y <span class="chip ambar sp">por atender</span>. Lo que solo informa («los datos todavía no son exactos») se lee al abrir, pero no hace ruido.</div>
+  <div><b>El plazo no se esconde.</b> «Pide antes del 17/11» es el dato que más pesa en la campaña: en verde o gris vive adentro; cuando ya es justo o ya pasó, el ícono se pone rojo y asoma una línea al lado.</div>
+  <div><b>«Ya lo vi» no es borrar.</b> Deja de contar ese aviso hasta que el dato cambie (otra tienda sin cuadrar, otro descuento). Lo urgente no se puede descartar.</div>
+  <div><b>Lo que no es un aviso se queda en su lugar:</b> «esta campaña está archivada» o «no encontramos esa campaña» cambian lo que estás mirando, no son pendientes.</div>
+</div>
+
+<script src="app.js?v=13"></script>
+<script>
+const { $, $$, nES, sES, plan, cfg, guardar, ESC } = PC;
+function pintarTabla(){
+  const p = plan(0);
+  const filas = [...p.filas].sort((a,b)=>b.inversion-a.inversion).slice(0,7);
+  $("#filas").innerHTML = filas.map(f=>`<tr><td class="cat"><b>${f.n}</b><small>Vendiste ${nES(f.v)} en ${PC.DIAS_ERP} días</small></td><td class="n">${nES(f.hay)}</td><td class="n">${f.comprar?nES(f.comprar):"—"}</td><td class="n">${f.inversion?sES(f.inversion):"—"}</td></tr>`).join("");
+  $("#cPrendas").textContent = nES(p.prendas);
+  $("#cInv").textContent = sES(p.total);
+  const pasa = p.total - PC.tope();
+  $("#cInvD").textContent = pasa > 0 ? `Te pasas ${sES(pasa)} del tope de ${sES(PC.tope())}` : `Te quedan ${sES(-pasa)} del tope de ${sES(PC.tope())}`;
+  $("#cInvD").className = "d " + (pasa > 0 ? "mal" : "bien");
+}
+function pintarControles(){
+  const c = cfg();
+  const botones = (id, op, actual, fn) => { $(id).innerHTML = op.map(([k,t])=>`<button type="button" class="${k===actual?"on":""}" data-k="${k}">${t}</button>`).join(""); $$(id+" button").forEach(b=>b.onclick=()=>fn(b.dataset.k)); };
+  botones("#esc", Object.entries(ESC), c.esc, k=>{ guardar("pc.esc",k); PC.est.abierta=false; render(); });
+  botones("#av", [["hoy","Como hoy"],["empujar","Empuja la tabla"],["flotar","Flota encima"]], c.av, k=>{ guardar("pc.av",k); render(); });
+  $("#escNota").textContent = { hoy:"Quedan 36 días para pedir: el plazo solo informa.", justo:"Faltan 5 días: el plazo ya es urgente.", tarde:"La campaña ya empezó y un pedido de hoy llega tarde.", orden:"Stock cuadrado, todas con plan y dentro del tope: el centro queda en 0." }[c.esc];
+  $("#avNota").textContent = { hoy:"Lo de hoy: las franjas siempre a la vista, empujando la tabla.", empujar:"Lo que pediste: ícono compacto; al abrir, los avisos bajan como hoy y empujan la tabla.", flotar:"Mi variante: se abre sobre la tabla, sin moverla (ADR-0185: la página no debe saltar bajo el mouse)." }[c.av];
+  $("#asoma").setAttribute("aria-checked", String(c.asoma)); $("#rot").setAttribute("aria-checked", String(c.rot));
+}
+function render(){
+  PC.chrome({ activa: "plan" });
+  pintarControles(); pintarTabla();
+  if (cfg().av === "hoy") { PC.est.abierta = true; PC.montarAvisos(); $("#btnAv").style.display = "none"; }
+  $("#asoma").onclick = () => { guardar("pc.asoma", !cfg().asoma); render(); };
+  $("#rot").onclick = () => { guardar("pc.rot", !cfg().rot); render(); };
+}
+PC.alAvisos = () => { if (cfg().av === "hoy") { $("#btnAv") && ($("#btnAv").style.display = "none"); } };
+render();
+</script>
+</body>
+</html>

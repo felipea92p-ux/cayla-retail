@@ -34,4 +34,15 @@ describe("reciboDeApartado (ADR-0399: la boleta de la entrega sale por el total 
   it("el redondeo del efectivo, si lo hubo, se conserva y no toca el total", () => {
     expect(reciboDeApartado(apartado, comp, "Tienda Lima", 0.08)).toMatchObject({ redondeo: 0.08, total: 79.9 });
   });
+  it("una prenda con descuento a mano sale por el precio acordado, con su P.U. y su descuento, sin el motivo ni el argumento (ADR-0584)", () => {
+    const conDescuento = {
+      ...apartado,
+      total: 71.9,
+      prendas: [{ ...apartado.prendas[0], descuentoUnitario: 8, motivoDescuento: "cerrar_venta", motivoDescuentoDetalle: null, argumentoDescuento: "Clienta fiel" }],
+    } as Apartado;
+    const r = reciboDeApartado(conDescuento, comp, "Tienda Lima");
+    expect(r.lineas[0]).toMatchObject({ precioUnitario: 79.9, descuentoUnitario: 8, importe: 71.9 });
+    expect(r.total).toBe(71.9);
+    expect(JSON.stringify(r)).not.toMatch(/cerrar|Clienta fiel/i);
+  });
 });

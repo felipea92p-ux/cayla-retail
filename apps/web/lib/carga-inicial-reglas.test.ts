@@ -6,7 +6,6 @@ import {
   avisoCargaInicial,
   cargaAbierta,
   cargaInicialDe,
-  chipCargaInicial,
   consecuenciaDelCierre,
   esRechazoPorCargaCerrada,
   estadoCargaInicial,
@@ -58,14 +57,6 @@ describe("las frases", () => {
     expect(avisoCargaInicial({ ...TRU, hoy: "2026-10-16" })).toBe("La carga inicial de Tienda TRU se cerró el 15-oct. Lo que encuentres entra por «Encontré prendas».");
     expect(avisoCargaInicial({ ...TRU, hasta: null })).toBeNull();
     expect(avisoCargaInicial(null)).toBeNull();
-  });
-  it("la insignia de Configuración", () => {
-    expect(chipCargaInicial({ tipo: "sin_fecha" }).texto).toBe("Abierta, sin fecha");
-    expect(chipCargaInicial(estadoCargaInicial("2026-10-15", HOY))).toEqual({ texto: "Abierta · faltan 11 días", tono: "verde" });
-    expect(chipCargaInicial(estadoCargaInicial("2026-10-15", "2026-10-10")).tono).toBe("ambar");
-    expect(chipCargaInicial(estadoCargaInicial("2026-10-15", "2026-10-15")).texto).toBe("Hoy es el último día");
-    expect(chipCargaInicial(estadoCargaInicial("2026-10-15", "2026-10-20"))).toEqual({ texto: "Cerrada desde el 16-oct", tono: "apagado" });
-    expect(chipCargaInicial(estadoCargaInicial("2026-12-31", "2027-01-05")).texto).toBe("Cerrada desde el 1-ene");
   });
   it("la consecuencia de guardar, antes de confirmar", () => {
     expect(consecuenciaDelCierre("Tienda TRU", "2026-10-15", HOY)).toBe(

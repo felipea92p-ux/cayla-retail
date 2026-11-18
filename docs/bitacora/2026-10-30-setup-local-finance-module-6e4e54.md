@@ -1,0 +1,14 @@
+## 2026-10-30 (Gastos: «En qué se va» deja los recuadros por los hilos, con su desglose por sede)
+Qué hice: cambié el gráfico de recuadros de Finanzas ▸ Gastos por un ranking de hilos. Cada categoría muestra su reparto por sede, la rayita del mes anterior, cuánto subió o bajó y su línea de meses. Al tocarla se abre lo que se gastó exactamente, con las sedes en columna; «Ver en la tabla» filtra la lista por categoría y sede. La cifra grande suma su chip contra el mes anterior.
+Por qué así: Felipe lo eligió mirando siete maquetas (la A2 con el desglose de la A3 y la columna 3). Los meses de antes salen del resumen que ya existía, sin migración, y un mes sin un solo gasto no se compara, para no decir «nuevo» a todo.
+Felipe se lleva: la comparación se verá en producción desde noviembre (septiembre no tuvo gastos registrados) y la línea, con tres meses seguidos. Lo siguiente es «Cuándo», el calendario.
+
+## 2026-10-30 (Gastos: «Cuándo» deja el calendario por el ritmo del mes, y ninguna línea tapa un texto)
+Qué hice: cambié el calendario de Finanzas ▸ Gastos por el ritmo del mes, a todo el ancho: lo gastado sumado día a día contra el mes anterior a la misma altura, hacia dónde va si sigue así (con los fijos que faltan) y los saltos grandes con su nombre. Tocar un día abre sus gastos exactos con «Ver en la tabla». Además, `<Linea>` ya no deja que una línea tape un texto: las notas van en una franja arriba, la cifra busca un hueco y todo texto lleva un borde del color del fondo.
+Por qué así: Felipe eligió la C2 de cuatro maquetas, pidiendo que el texto se lea a todos los anchos. La mejora de lectura vive en la pieza única de la línea, así que Caja, Rendimiento y las demás también la reciben, sin cambiar donde hoy no hay choque.
+Felipe se lleva: en producción la comparación con septiembre no sale (septiembre no tuvo gastos registrados); el «si sigue así» y los fijos que faltan sí, desde ya.
+
+## 2026-10-30 (Gastos: /formidable de los dos gráficos y sus 3 cambios)
+Qué hice: corrí `/formidable` sobre «En qué se va» y «Cuándo» (leyes 6,6, oficio 7, prueba ciega bien al primer intento) y, con el OK de Felipe, apliqué sus tres cambios: en el mes en curso todo compara con lo que el mes anterior llevaba al mismo día, el «si sigue así» dice de qué está hecho y «En qué se va» muestra las 6 categorías más grandes. De paso arreglé tres defectos que encontró: el mes vacío de «Cuándo», el globito que saltaba al tocar y las lecturas que esperaban en cadena.
+Por qué así: a mitad de mes la pantalla se contradecía (el chip decía «▼ 28 %» y «Cuándo», «S/ 157 menos a esta altura»); comparar al mismo día es la única forma de que todas digan lo mismo.
+Felipe se lleva: la comparación a la misma altura solo se nota antes de fin de mes; hoy, día 30, casi no cambia nada a la vista.

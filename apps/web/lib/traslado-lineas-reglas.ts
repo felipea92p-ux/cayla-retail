@@ -8,8 +8,24 @@
 //
 // Solo lógica pura, sin React ni red: el formulario la llama.
 
+import { textoCantidadRechazada } from "./alta-producto";
+import { enteroEscrito } from "./cantidad-escrita-reglas";
+
 /** Una línea del formulario. `cantidad` es texto porque se escribe a mano (ver `Linea` en el formulario). */
 export type LineaTraslado = { varianteId: string; cantidad: string };
+
+/** Lo que queda en la cantidad de una línea al salir de ella o al cambiar de prenda: un entero entre 1 y el tope, y vacía vuelve a 1. Lo que no es un entero se queda a la vista
+ *  (`problemaDeCantidadDeLinea` dice por qué y no se envía): volverlo 1 sería enviar otra cosa sin avisar. */
+export function cantidadAlSalirDeLaLinea(texto: string, tope: number): string {
+  if (problemaDeCantidadDeLinea(texto)) return texto;
+  return String(Math.max(1, Math.min(enteroEscrito(texto) || 1, tope || 1)));
+}
+
+/** Por qué lo escrito en una línea no es una cantidad, o `null`. Vacía no se dice aquí: al enviar se pide cuántas. */
+export function problemaDeCantidadDeLinea(texto: string): string | null {
+  const t = texto.trim();
+  return t === "" || enteroEscrito(t) !== null ? null : textoCantidadRechazada(t, false, "");
+}
 
 /**
  * Las prendas que la línea `i` NO puede elegir: las que ya están en otra línea. Las líneas sin prenda no cuentan, y la

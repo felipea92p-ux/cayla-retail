@@ -3,8 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { leerPanelCierre, type PanelCierre } from "@/lib/cierre-reglas";
 
 // Finanzas ▸ Cierre de mes (ADR-0195 F9, 20260925180000). Una sola lectura: `fn_cierre_panel` trae cada unidad del mes con
-// su estado, su último cierre y sus chequeos, el consolidado, la historia del mes y los 12 meses que se pueden cerrar. Pide
-// `fn_es_lider()`: el módulo no se delega. Si falla, la pantalla se dibuja igual y lo dice (principio 9).
+// su estado, su último cierre y sus chequeos, el consolidado, la historia del mes y los 12 meses que se pueden cerrar. Llega
+// quien ve el módulo «cierre_mes» (delegable desde ADR-0253). Si falla, la pantalla se dibuja igual y lo dice (principio 9).
 
 type Lectura<T> = { datos: T; falla: string | null };
 

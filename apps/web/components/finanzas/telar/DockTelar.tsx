@@ -13,7 +13,7 @@ export type AccionDock = {
 
 /**
  * El dock del telar: abajo y al centro, las cuatro cosas que más se hacen en ESTE submódulo de Finanzas, cada una con su tecla. Lo
- * arma cada submódulo con sus acciones; solo en escritorio (en el celular, lo de abajo es la Isla, `BarraDeAbajo`). Entra subiendo
+ * arma cada submódulo con sus acciones; solo en escritorio: en el celular Finanzas no tiene barra de abajo, y sus acciones están en la página (tarea 184). Entra subiendo
  * una vez (ADR-0136). Una tecla no hace nada mientras se escribe en un campo o hay una hoja abierta.
  */
 export function DockTelar({ acciones }: { acciones: AccionDock[] }) {

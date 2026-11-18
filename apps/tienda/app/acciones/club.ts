@@ -25,13 +25,18 @@ export async function guardarFavorito(productoId: unknown, guardar: unknown): Pr
 }
 
 /** «Avísame cuando llegue» esa prenda en esa tienda (`null`: en cualquier tienda de la web). La llama `BotonAvisame`, en la ficha. */
-export async function pedirAviso(varianteId: unknown, sedeId: unknown): Promise<{ estado: EstadoAviso; esperaId: string | null }> {
+export async function pedirAviso(
+  varianteId: unknown,
+  sedeId: unknown,
+  whatsapp: unknown = false,
+): Promise<{ estado: EstadoAviso; esperaId: string | null; whatsapp: boolean }> {
   const variante = esquemaId.safeParse(varianteId);
   const sede = sedeId === null ? { success: true as const, data: null } : esquemaId.safeParse(sedeId);
-  if (!variante.success || !sede.success) return { estado: "no_disponible", esperaId: null };
+  if (!variante.success || !sede.success) return { estado: "no_disponible", esperaId: null, whatsapp: false };
   const quien = await quienEs();
-  if (quien === "sin_sesion" || quien === "sin_respuesta") return { estado: quien, esperaId: null };
-  return pedirAvisoEnBase(quien, variante.data, sede.data);
+  if (quien === "sin_sesion" || quien === "sin_respuesta") return { estado: quien, esperaId: null, whatsapp: false };
+  // Solo un `true` de verdad cuenta como permiso: cualquier otra cosa es «no».
+  return pedirAvisoEnBase(quien, variante.data, sede.data, whatsapp === true);
 }
 
 /** Quita una de sus esperas («Te avisamos cuando llegue» ▸ Quitar). */

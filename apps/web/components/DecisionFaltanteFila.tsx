@@ -40,7 +40,7 @@ function Pildora({ elegida, onClick, children }: { elegida: boolean; onClick: ()
       type="button"
       aria-pressed={elegida}
       onClick={onClick}
-      className={`rounded-full border px-3 py-1 text-[12.5px] transition-colors ${elegida ? "border-tinta bg-tinta text-crema" : "border-tinta/15 bg-papel text-tinta/75 hover:border-rojo hover:text-rojo"}`}
+      className={`rounded-full border px-3 py-1 text-sm transition-colors ${elegida ? "border-tinta bg-tinta text-crema" : "border-tinta/15 bg-papel text-tinta/75 hover:border-rojo hover:text-rojo"}`}
     >
       {children}
     </button>
@@ -68,7 +68,7 @@ export function EditorDecision({
 }) {
   return (
     <div /* unificar-fijo: la pregunta con sus píldoras para elegir, no un aviso */ role="group" aria-label={`Qué pasó con lo que falta de ${nombre}`} className="anim-revelar mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-xl border border-ambar/40 bg-ambar/[0.06] px-4 py-2.5">
-      <span className="mr-1 text-[13px] text-tinta">
+      <span className="mr-1 text-sm text-tinta">
         ¿Qué pasó con {faltan === 1 ? "la" : `las ${faltan}`} que {faltan === 1 ? "falta" : "faltan"}?
       </span>
       <Pildora elegida={inicial === "espero"} onClick={() => onGuardar("espero")}>
@@ -92,7 +92,7 @@ export function EditorDecision({
 export function ResumenDecision({ decision, onEditar }: { decision: Decision; onEditar: () => void }) {
   return (
     <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-      <span className={`text-[11px] leading-tight ${decision === "espero" ? "text-tinta/65" : "font-semibold text-tinta"}`}>{etiquetaDecision(decision)}</span>
+      <span className={`text-sm leading-tight ${decision === "espero" ? "text-tinta/65" : "font-semibold text-tinta"}`}>{etiquetaDecision(decision)}</span>
       <button type="button" onClick={onEditar} className="btn-cayla btn-enlace text-[11px]">
         Editar
       </button>

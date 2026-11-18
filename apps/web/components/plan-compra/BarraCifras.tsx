@@ -32,9 +32,9 @@ export function BarraCifras({ celdas, primero, guia }: { celdas: readonly CeldaB
               <span className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">{x.etiqueta}</span>
               <span className="whitespace-nowrap">
                 <span className="font-display text-xl leading-tight tabular-nums text-tinta">{x.valor ?? "—"}</span>
-                {x.unidad && x.valor !== null && <span className="ml-1 text-xs text-taupe">{x.unidad}</span>}
+                {x.unidad && x.valor !== null && <span className="ml-1 text-sm text-taupe">{x.unidad}</span>}
               </span>
-              {x.bajo && <span className="truncate text-xs text-tinta/65">{x.bajo}</span>}
+              {x.bajo && <span className="truncate text-sm text-tinta/65">{x.bajo}</span>}
             </>
           );
           return (

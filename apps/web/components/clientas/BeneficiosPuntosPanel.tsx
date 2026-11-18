@@ -64,7 +64,9 @@ const miles = (n: number) => n.toLocaleString("es-PE");
 
 export function BeneficiosPuntosPanel({ sede, resumen, falla, hoy }: { sede: string; resumen: ResumenDeBeneficios | null; falla: string | null; hoy: string }) {
   return (
-    <div className="space-y-8">
+    // `@container`: el formulario y su ejemplo se ponen lado a lado por el ancho de la pantalla útil, no por el de la ventana (con el lateral fijo,
+    // a 1024 px de ventana quedan ~692 y el título de cada número se quedaba en 40 px).
+    <div className="@container space-y-8">
       <EncabezadoPagina sede={sede} titulo="Beneficios del club" subtitulo="Lo que el club le da a tus clientes y lo que te cuesta. Vale para las 3 tiendas." />
       {resumen ? (
         <Contenido resumen={resumen} hoy={hoy} />
@@ -117,7 +119,7 @@ function Contenido({ resumen, hoy }: { resumen: ResumenDeBeneficios; hoy: string
             {historial.map((h) => {
               const lineas = cambioDelHistorial(h);
               return (
-                <li key={h.cuando} className="px-4 py-3 text-[13px]">
+                <li key={h.cuando} className="px-4 py-3 text-sm">
                   <p className="font-semibold text-tinta">
                     {h.quien ?? "Alguien del equipo"} <span className="font-normal text-tinta/60">· {h.desde ? `rige desde el ${fechaCorta(h.desde)}` : "cambió los beneficios"}</span>
                   </p>
@@ -192,12 +194,12 @@ function Formulario({ base, hoy }: { base: ResumenDeBeneficios["vigente"]; hoy: 
   }
 
   return (
-    <form onSubmit={guardar} className="anim-sube grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] min-[1760px]:grid-cols-[minmax(0,1fr)_420px]" style={{ "--i": 3 } as CSSProperties}>
+    <form onSubmit={guardar} className="anim-sube grid items-start gap-5 @min-[52rem]:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] @min-[88rem]:grid-cols-[minmax(0,1fr)_420px]" style={{ "--i": 3 } as CSSProperties}>
       <div className="space-y-6 rounded-xl border border-sand bg-papel p-5" data-guia="beneficios.formulario">
         <section className="space-y-3">
           <TituloGrupo>Lo que gana</TituloGrupo>
           {/* En una pantalla muy ancha (Clientes va a ancho completo desde el 2026-10-20), los campos van de a dos. */}
-          <div className="grid gap-3 min-[1760px]:grid-cols-2">
+          <div className="grid gap-3 @min-[88rem]:grid-cols-2">
             <Fila campo="puntosPorSol" titulo={"Puntos por cada S/\u00a01 que paga"} fin="puntos" decimal {...fila}>
               Una compra de {soles(150)} le da <b className="font-medium text-tinta">{puntos(ejemploDelPrograma(actual, 150).puntosDeLaCompra)}</b>.
             </Fila>
@@ -215,7 +217,7 @@ function Formulario({ base, hoy }: { base: ResumenDeBeneficios["vigente"]; hoy: 
 
         <section className="space-y-3">
           <TituloGrupo>Cuánto valen y cuándo se canjean</TituloGrupo>
-          <div className="grid gap-3 min-[1760px]:grid-cols-2">
+          <div className="grid gap-3 @min-[88rem]:grid-cols-2">
             <Fila campo="solesPor100" titulo="100 puntos valen" inicio="S/" decimal aviso={conAviso("solesPor100")} {...fila}>
               Es el descuento que recibe al canjear. Si lo cambias, rige en {DIAS_DE_AVISO} días para avisarlo a los clientes.
             </Fila>
@@ -246,18 +248,18 @@ function Formulario({ base, hoy }: { base: ResumenDeBeneficios["vigente"]; hoy: 
                   marca={(actual.topeCostoPct / ESCALA_DEL_COSTO) * 100}
                   decorativa
                 />
-                <div className="mt-1 flex justify-between text-[11px] text-taupe">
+                <div className="mt-1 flex justify-between text-sm text-taupe">
                   <span>0 %</span>
                   <span>La rayita es tu tope</span>
                   <span>{ESCALA_DEL_COSTO} %</span>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <label htmlFor={ID.topeCostoPct} className="text-[13.5px] text-tinta">
+                <label htmlFor={ID.topeCostoPct} className="text-[15px] text-tinta">
                   <ConMarca estado={guia.estado("topeCostoPct")}>No quiero devolver más de</ConMarca>
                 </label>
                 <Caja campo="topeCostoPct" titulo="Tope de costo" fin="%" decimal {...fila} />
-                <span className={`text-[13px] font-medium ${retorno.superaElTope ? "text-rojo-profundo" : "text-verde"}`}>{retorno.veredicto}</span>
+                <span className={`text-sm font-medium ${retorno.superaElTope ? "text-rojo-profundo" : "text-verde"}`}>{retorno.veredicto}</span>
               </div>
             </div>
           </CampoGuiado>
@@ -271,13 +273,13 @@ function Formulario({ base, hoy }: { base: ResumenDeBeneficios["vigente"]; hoy: 
 
         {cambios.length > 0 && (
           <div className="rounded-lg border border-sand px-4 py-3">
-            <p className="text-[13px] font-semibold text-tinta">Cambias</p>
-            <ul className="mt-1 space-y-0.5 text-[13px] text-tinta/75">
+            <p className="text-sm font-semibold text-tinta">Cambias</p>
+            <ul className="mt-1 space-y-0.5 text-sm text-tinta/75">
               {cambios.map((c) => (
                 <li key={c}>{c}</li>
               ))}
             </ul>
-            {vigencia && <p className="mt-2 text-[13px] font-medium text-tinta">{vigencia.texto}</p>}
+            {vigencia && <p className="mt-2 text-sm font-medium text-tinta">{vigencia.texto}</p>}
           </div>
         )}
 
@@ -288,7 +290,7 @@ function Formulario({ base, hoy }: { base: ResumenDeBeneficios["vigente"]; hoy: 
             type="submit"
             peso="primario"
             cargando={guardando}
-            disabled={!guia.puedeConfirmar || sinCambios}
+            disabled={sinCambios} confirma={guia}
             title={responsable.motivo ?? guia.frase ?? (sinCambios ? "No cambiaste ningún beneficio." : undefined)}
             className={sinCambios ? "" : guia.claseConfirmar}
           >
@@ -320,12 +322,12 @@ function Ejemplo({
   onCompra: (n: number) => void;
 }) {
   return (
-    <aside className="rounded-xl border border-sand bg-papel p-5 lg:sticky lg:top-24" data-guia="beneficios.ejemplo">
+    <aside className="rounded-xl border border-sand bg-papel p-5 @min-[52rem]:sticky @min-[52rem]:top-24" data-guia="beneficios.ejemplo">
       <TituloGrupo>Así lo vive un cliente</TituloGrupo>
-      <p className="mt-1 text-[13px] text-taupe">Con los números de la izquierda. Mueve la compra para probar.</p>
+      <p className="mt-1 text-sm text-taupe">Con los números de la izquierda. Mueve la compra para probar.</p>
       <ol className="mt-3 divide-y divide-sand">
         <PasoEjemplo n={1}>
-          <label htmlFor="beneficios-compra-ejemplo" className="text-[13.5px] text-tinta">
+          <label htmlFor="beneficios-compra-ejemplo" className="text-[15px] text-tinta">
             Compra <b className="font-semibold tabular-nums">{soles(compra)}</b>
           </label>
           <input
@@ -341,7 +343,7 @@ function Ejemplo({
           <p className="font-display text-[20px] leading-tight text-tinta">Gana {puntos(ejemplo.puntosDeLaCompra)}</p>
         </PasoEjemplo>
         <PasoEjemplo n={2}>
-          <p className="text-[13.5px] text-tinta">
+          <p className="text-[15px] text-tinta">
             Junta <b className="font-semibold">{puntos(config.canjeMinimo)}</b> y canjea
           </p>
           <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-dashed border-taupe px-3 py-2.5">
@@ -349,25 +351,25 @@ function Ejemplo({
               <p className="label-cayla text-[10.5px] text-taupe">Cupón del club</p>
               <p className="font-display text-[26px] leading-none text-tinta">{soles(ejemplo.valorDelPrimerCupon)}</p>
             </div>
-            <p className="text-right text-[12.5px] text-tinta/75">
+            <p className="text-right text-sm text-tinta/75">
               en compras desde
               <br />
               <b className="font-semibold text-tinta">{soles(ejemplo.compraMinimaDelCupon)}</b>
             </p>
           </div>
-          <p className="mt-1.5 text-[12.5px] text-taupe">
+          <p className="mt-1.5 text-sm text-taupe">
             Lo usa dentro de <b className="font-medium text-tinta">{config.vigenciaDias === 1 ? "1 día" : `${config.vigenciaDias} días`}</b>. Si no, sus puntos vuelven.
           </p>
         </PasoEjemplo>
         <PasoEjemplo n={3}>
-          <p className="text-[13.5px] text-tinta">En su mes de cumpleaños</p>
+          <p className="text-[15px] text-tinta">En su mes de cumpleaños</p>
           {config.regaloCumple > 0 ? (
             <>
               <p className="font-display text-[20px] leading-tight text-tinta">+{puntos(config.regaloCumple)}</p>
-              <p className="text-[12.5px] text-taupe">con su primera compra del mes ({soles(ejemplo.valorDelRegalo)})</p>
+              <p className="text-sm text-taupe">con su primera compra del mes ({soles(ejemplo.valorDelRegalo)})</p>
             </>
           ) : (
-            <p className="text-[12.5px] text-taupe">{/* unificar-fijo: dice cómo quedó el regalo con 0 puntos, no es un vacío */}Sin regalo de cumpleaños.</p>
+            <p className="text-sm text-taupe">{/* unificar-fijo: dice cómo quedó el regalo con 0 puntos, no es un vacío */}Sin regalo de cumpleaños.</p>
           )}
         </PasoEjemplo>
       </ol>
@@ -404,12 +406,12 @@ function Fila({ aviso, children, ...props }: PropsDeFila & { aviso?: string | nu
   return (
     <CampoGuiado id={campo} guia={guia} className="rounded-xl border border-sand px-4 py-3">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5">
-        <label htmlFor={ID[campo]} className="flex flex-wrap items-center gap-2 text-[13.5px] font-semibold text-tinta" /* unificar-fijo: diseño A elegido por Felipe (2026-10-20): el título es una frase que se lee junto a su número, no la versalita de Campo */>
+        <label htmlFor={ID[campo]} className="flex flex-wrap items-center gap-2 text-[15px] font-semibold text-tinta" /* unificar-fijo: diseño A elegido por Felipe (2026-10-20): el título es una frase que se lee junto a su número, no la versalita de Campo */>
           <ConMarca estado={guia.estado(campo)}>{titulo}</ConMarca>
           {aviso && <Chip tono="ambar">{aviso}</Chip>}
         </label>
         <Caja {...props} />
-        <p className="col-span-2 text-[12.5px] text-taupe">{children}</p>
+        <p className="col-span-2 text-sm text-taupe">{children}</p>
       </div>
     </CampoGuiado>
   );
@@ -419,7 +421,7 @@ function Caja({ campo, titulo, borrador, poner, guardando, inicio, fin, decimal 
   return (
     <span className="caja-cayla caja-campo w-40 gap-1.5">
       {inicio && (
-        <span className="text-xs text-taupe" aria-hidden>
+        <span className="text-sm text-taupe" aria-hidden>
           {inicio}
         </span>
       )}
@@ -434,7 +436,7 @@ function Caja({ campo, titulo, borrador, poner, guardando, inicio, fin, decimal 
         className="min-w-0 flex-1 self-stretch py-0 text-sm tabular-nums"
       />
       {fin && (
-        <span className="shrink-0 text-xs text-taupe" aria-hidden>
+        <span className="shrink-0 text-sm text-taupe" aria-hidden>
           {fin}
         </span>
       )}

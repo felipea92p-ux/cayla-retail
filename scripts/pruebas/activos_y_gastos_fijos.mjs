@@ -4,7 +4,7 @@
  *
  * QUÉ CUBRE
  *   · activo con factura (costo SIN IGV, cabecera `compras` de naturaleza activo, en Por pagar si es a crédito), sin
- *     comprobante del cajón y clasificando un egreso; la depreciación en línea recta desde el mes siguiente, que se
+ *     comprobante del cajón y clasificando un egreso; la depreciación en línea recta desde el mes de uso, que se
  *     detiene en la vida útil y en la baja (`fn_activos_lista`, `fn_depreciacion_mes`);
  *   · un egreso de caja respalda UNA sola cosa: gasto, activo o «no es gasto»;
  *   · anular (sin pagos) y dar de baja; no se edita ni se borra; la factura de un activo no se anula desde Compras;
@@ -88,7 +88,7 @@ function esperar(nombre, ok, resultado) {
 }
 const lineas = (r) => (r.ok ? r.salida.split("\n") : []);
 
-// 1. Activo con factura al contado: costo sin IGV, cuenta y vida útil del tipo, depreciación desde el mes siguiente.
+// 1. Activo con factura al contado: costo sin IGV, cuenta y vida útil del tipo, depreciación desde el mes de uso.
 {
   const r = correr(`${ESCENA}
 select retail.registrar_activo(:'tru', 'muebles', 'Estante en L', '2026-06-15', 2360, jsonb_build_object('tipo','factura','proveedor_id',:'prov','serie','F001','numero','140','condicion','contado'), 'transferencia') as a \\gset
@@ -98,8 +98,8 @@ select depreciacion_mensual, meses_depreciados, depreciacion_acumulada, valor_ho
 select count(*) from retail.listar_compras(p_limite => 200) where id = (select compra_id from retail.activos_fijos where id = :'a');`);
   const [cab, junio, sept, lista] = lineas(r);
   esperar("factura de S/ 2,360: costo S/ 2,000 sin IGV, cuenta 335, 10 años (10 %), cabecera de activo pagada", r.ok && cab === "2000.00|335|120|0.1000|activo|360.00|2360.00|pagada", r);
-  esperar("el mes de la compra no se deprecia", r.ok && junio === "16.67|0|0.00|2000.00", r);
-  esperar("a septiembre van 3 meses: S/ 50.00 depreciados (desde la tasa exacta, sin arrastrar redondeos), vale S/ 1,950", r.ok && sept === "16.67|3|50.00|1950.00", r);
+  esperar("el mes de la compra ya lleva su cuota (ADR-0485 d.7)", r.ok && junio === "16.67|1|16.67|1983.33", r);
+  esperar("a septiembre van 4 meses: S/ 66.67 depreciados (desde la tasa exacta, sin arrastrar redondeos), vale S/ 1,933.33", r.ok && sept === "16.67|4|66.67|1933.33", r);
   esperar("no aparece en la lista de Facturas de proveedor (mercadería)", r.ok && Number(lista) === 0, r);
 }
 
@@ -141,7 +141,7 @@ select sum(coalesce((select monto from retail.fn_depreciacion_mes(m::date) where
   esperar("el activo a crédito está en Por pagar", r.ok && Number(porPagar) === 1, r);
   esperar("y en la deuda visible, entero", r.ok && deuda === "1180.00|1180.00", r);
   esperar("su parte por tienda es el total, en Trujillo", r.ok && parte === "1180.00", r);
-  esperar("depreciación del mes: 0 el mes de compra, S/ 100 del siguiente al 12.º, 0 al acabarse la vida útil", r.ok && [jun25, jul25, jun26, jul26].map(Number).join(",") === "0,100,100,0", r);
+  esperar("depreciación del mes: S/ 100 desde el mes de compra hasta el 12.º, 0 al acabarse la vida útil", r.ok && [jun25, jul25, jun26, jul26].map(Number).join(",") === "100,100,0,0", r);
   esperar("acabada su vida útil, vale cero", r.ok && acabado === "12|0.00", r);
   esperar("los 120 meses de un mostrador de S/ 2,000 suman exactamente S/ 2,000", r.ok && sumaVida === "2000.00", r);
 }
@@ -166,7 +166,7 @@ select pg_temp.intento(format('delete from retail.activos_fijos where id = %L', 
   esperar("anular un activo a crédito sin pagos anula su factura", r.ok && anulado === "anulado|anulada", r);
   esperar("con la factura pagada no se anula: se da de baja", r.ok && conPagos.includes("dalo de baja"), r);
   esperar("la baja no puede ser antes de la compra", r.ok && bajaAntes.includes("desde la compra"), r);
-  esperar("dado de baja en septiembre, deja de depreciarse ahí (1 mes, aunque el corte sea enero)", r.ok && baja === "baja|1", r);
+  esperar("dado de baja en septiembre, deja de depreciarse ahí (2 meses, aunque el corte sea enero)", r.ok && baja === "baja|2", r);
   esperar("un activo dado de baja no se modifica", r.ok && editar.includes("no se modifica"), r);
   esperar("un activo no se borra", r.ok && borrar.includes("no se borra"), r);
 }

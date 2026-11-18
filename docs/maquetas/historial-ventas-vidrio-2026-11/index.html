@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-lt="gotas" data-pp="lentes">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Historial de ventas con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la página de Ventas ▸ Historial con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   La pantalla real (app/(app)/vender/historial/page.tsx: cabecera con `ResumenSede`, `BuscadorHistorial`, `FiltrosHistorialVentas`,
+   `AvisosHistorial`, `HistorialVentasLista`, `PaginacionCursor` y, al costado, `HistorialVentasPulso`), armada SOLO con las piezas ya
+   elegidas: cabecera A con las cifras de la placa, buscador A · Pozo, filtros A · Gotas (la puesta ahumada), insignia A · Lente de color,
+   globito A · Gota, nota A · Placa, aviso B · Lente, paginación A · Gota en su pozo, gráficos B · Tinta sobre vidrio, «Ver» en gota y
+   íconos A.
+   Lo PROPIO de Historial, con sus caras:
+     1. La línea del tiempo: el hilo vertical a la izquierda, un punto por día, el día con su total y la tarjeta de papel con sus ventas.
+     2. La pila de prendas de cada venta: miniaturas de 40 px encimadas, el «×2» en TINTA SÓLIDA y el «+3» en una baldosa de ARENA.
+   Solo tokens (los colores de las prendas son dato y no cambian con el tema, ADR-0336). Movimiento: el de hoy (los días entran en cascada,
+   la pila crece un poco al pasar el mouse), sin rebote ni bucle; todo se apaga con prefers-reduced-motion. Datos inventados.
+   ==================================================================== */
+
+/* ---------- lo elegido que esta pantalla usa ---------- */
+.placa{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.pozo-b{display:flex;align-items:center;gap:10px;height:44px;padding:0 16px;border-radius:999px;font-size:14.5px;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pozo-b{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pozo-b svg{width:16px;height:16px;color:var(--t65)}
+.pozo-b .ph{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pozo-b kbd{margin-left:auto;font:inherit;font-size:11px;padding:1px 7px;border-radius:6px;border:1px solid var(--t25)}
+.filtros-h{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.fp{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px;border-radius:999px;font-size:13.5px;color:var(--t80);border:1px solid var(--borde);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"] .fp{background:color-mix(in srgb,var(--tinta) 6%,transparent);border-color:color-mix(in srgb,var(--tinta) 30%,transparent)}
+.fp svg{width:14px;height:14px}
+.fp.puesta{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent)}
+.fp .globito{min-width:20px;height:20px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;font-size:10.5px;font-weight:700;color:var(--ambar);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--ambar) 10%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--ambar) 20%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ambar) 28%,transparent)}
+.fp-sep{width:1px;height:22px;background:var(--t12);margin:0 4px}
+.fp-der{margin-left:auto}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{--c:var(--ambar)}.chip.rojo{--c:var(--rojo-p)}.chip.pizarra{--c:var(--pizarra)}
+.chip.apagado{color:var(--t65);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 50%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));box-shadow:inset 0 0 0 1px var(--t12)}
+.chip.apagado::before{display:none}
+[data-tema="oscuro"] .chip:not(.apagado){background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+[data-tema="oscuro"] .chip.rojo{--c:var(--rojo)}
+/* el aviso elegido de las hojas (B · Lente), en la lista de avisos de arriba */
+.aviso-h{display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;border-radius:16px;font-size:13.5px;border:1px solid color-mix(in srgb,var(--c) 28%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 6%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--c) 11%,color-mix(in srgb,var(--vidrio) 55%,transparent)));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"] .aviso-h{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 12%,transparent),color-mix(in srgb,var(--c) 7%,transparent))}
+.aviso-h .pt{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
+.aviso-h span.tx{flex:1;min-width:0}
+.enlace-ver{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--rojo);white-space:nowrap;
+  border:1px solid color-mix(in srgb,var(--rojo) 30%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .enlace-ver{background:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.enlace-ver svg{width:12px;height:12px}
+.nota-p{padding:14px 18px;border-radius:18px;font-size:12.5px;line-height:1.6;color:var(--t65);border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 55%,transparent),color-mix(in srgb,var(--vidrio) 30%,transparent))}
+[data-tema="oscuro"] .nota-p{background:color-mix(in srgb,var(--tinta) 5%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.nota-p b{color:var(--tinta);font-weight:600}
+.paginas{display:inline-flex;align-items:center;gap:2px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .paginas{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.paginas button{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;color:var(--t80)}
+.paginas button:disabled{color:var(--t50)}
+.paginas button.gota{color:var(--tinta);font-weight:600;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .paginas button.gota{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.paginas svg{width:14px;height:14px}
+
+/* ---------- la página ---------- */
+.cuerpo{display:grid;grid-template-columns:minmax(0,1fr);gap:28px;margin-top:26px}
+.col{min-width:0;display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-content:start}
+@container disp (min-width:1180px){.cuerpo{grid-template-columns:minmax(0,1fr) 19rem;align-items:start}.pulso{position:sticky;top:0}}
+.dias{display:grid;grid-template-columns:minmax(0,1fr);gap:30px}
+.dia{position:relative;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;animation:sube .5s var(--ease) backwards;animation-delay:calc(var(--i) * 70ms + 120ms)}
+.dia-tit{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 16px}
+.dia-tit .d{position:relative;font-size:11.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--taupe)}
+.dia-tit .t{font-size:12px;color:var(--t65)}.dia-tit .t b{font-family:'EB Garamond',serif;font-weight:500;font-size:18px;color:var(--tinta);font-variant-numeric:tabular-nums}
+.dia .lista{padding:6px}
+.venta{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:6px 18px;align-items:center;padding:14px 16px;border-radius:16px;transition:background-color .2s var(--ease)}
+.venta+.venta{border-top:1px dashed color-mix(in srgb,var(--tinta) 10%,transparent)}
+@media (hover:hover){.venta:hover{background:color-mix(in srgb,var(--tinta) 3%,transparent)}}
+.venta .pr{font-family:'EB Garamond',serif;font-size:19px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venta .cl{font-size:14px;color:var(--t80);margin-top:1px}
+.venta .mt{font-size:12px;color:var(--t65);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venta .chips{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.venta .tot{text-align:right}.venta .tot b{display:block;font-family:'EB Garamond',serif;font-weight:400;font-size:22px;line-height:1;font-variant-numeric:tabular-nums}
+.venta .tot small{display:block;margin-top:4px;font-size:12px;color:var(--t65)}
+.venta.anulada .pr,.venta.anulada .cl{color:var(--t50)}.venta.anulada .tot b{color:var(--t50);text-decoration:line-through}
+@container disp (max-width:900px){.venta{grid-template-columns:auto minmax(0,1fr) auto}.venta .chips{grid-column:2/4;flex-direction:row;flex-wrap:wrap;align-items:center}}
+@container disp (max-width:560px){.venta{grid-template-columns:minmax(0,1fr) auto;padding:12px}.venta .pila{grid-column:1/-1}.venta .chips{grid-column:1/-1}}
+
+/* ============ 1 · LA LÍNEA DEL TIEMPO ============ */
+@container disp (min-width:640px){
+  .dias{padding-left:44px}
+  .dias::before{content:"";position:absolute;left:11px;top:6px;bottom:0;width:1.5px;background:linear-gradient(var(--taupe),color-mix(in srgb,var(--taupe) 15%,transparent))}
+  .dia-tit .d::before{content:"";position:absolute;left:-40px;top:-1px;width:14px;height:14px;border-radius:50%;background:var(--crema);box-shadow:0 0 0 1.5px var(--taupe),inset 0 0 0 4px var(--crema),inset 0 0 0 7px var(--taupe)}
+}
+.dias{position:relative}
+.dia .lista{border-radius:20px;background:var(--papel);box-shadow:0 0 0 1px color-mix(in srgb,var(--tinta) 7%,transparent)}
+/* A · Hilo de vidrio: el hilo es una ranura tallada en el vidrio (sombra adentro y su luz al lado); cada día es una gota en la ranura y el
+   del día de hoy lleva el punto rojo. La tarjeta de cada día es la placa Serena; el día y su total, las gotas que flotan del separador
+   elegido (se quedan arriba al bajar). */
+:is([data-lt="hilo"],[data-lt="gotas"]) .dia .lista{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
+  border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"]:is([data-lt="hilo"],[data-lt="gotas"]) .dia .lista{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+:is([data-lt="hilo"],[data-lt="gotas"]) .dia-tit{position:sticky;top:-20px;z-index:2;justify-content:flex-start;gap:8px;pointer-events:none}
+:is([data-lt="hilo"],[data-lt="gotas"]) .dia-tit>span{pointer-events:auto;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 13px;border-radius:999px;border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"]:is([data-lt="hilo"],[data-lt="gotas"]) .dia-tit>span{border-color:color-mix(in srgb,var(--tinta) 14%,transparent);background:color-mix(in srgb,var(--vidrio) 90%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent)}
+:is([data-lt="hilo"],[data-lt="gotas"]) .dia-tit .t b{font-size:15px}
+.dia.hoy .dia-tit .d{color:var(--tinta)}
+:is([data-lt="hilo"],[data-lt="gotas"]) .dia.hoy .dia-tit .d::after{content:"";order:-1;width:6px;height:6px;border-radius:50%;background:var(--rojo)}
+@container disp (min-width:640px){
+  [data-lt="hilo"] .dias::before{width:6px;left:9px;border-radius:6px;background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent),1px 0 0 color-mix(in srgb,var(--vidrio) 80%,transparent)}
+  [data-tema="oscuro"][data-lt="hilo"] .dias::before{background:color-mix(in srgb,var(--sombra) 35%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 50%,transparent)}
+  [data-lt="hilo"] .dia-tit .d::before{left:-49px;top:3px;width:16px;height:16px;border:1px solid color-mix(in srgb,var(--borde) 60%,transparent);
+    background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 3px 8px -3px color-mix(in srgb,var(--sombra) 40%,transparent)}
+  [data-tema="oscuro"][data-lt="hilo"] .dia-tit .d::before{background:color-mix(in srgb,var(--tinta) 22%,transparent);border-color:color-mix(in srgb,var(--tinta) 20%,transparent)}
+  [data-lt="hilo"] .dia.hoy .dia-tit .d::before{background:radial-gradient(circle,var(--rojo) 0 3.5px,transparent 4px),linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent))}
+  /* B · Solo los días en gota: sin hilo a la izquierda; el día y su total son las gotas que flotan y la lista ocupa todo el ancho. */
+  [data-lt="gotas"] .dias{padding-left:0}
+  [data-lt="gotas"] .dias::before,[data-lt="gotas"] .dia-tit .d::before{display:none}
+}
+
+/* ============ 2 · LA PILA DE PRENDAS ============ */
+.pila{display:flex;align-items:center;flex:none;transition:transform .5s var(--ease)}
+@media (hover:hover){.venta:hover .pila{transform:scale(1.05)}}
+.mini{position:relative;width:40px;height:40px;border-radius:10px;background:var(--col);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta-fija) 12%,transparent),0 0 0 2px var(--papel)}
+.mini+.mini{margin-left:-14px}
+.mini .x{position:absolute;right:-6px;bottom:-6px;padding:0 6px;border-radius:999px;font-size:10px;font-weight:600;line-height:16px;background:var(--tinta);color:var(--crema);box-shadow:0 0 0 2px var(--papel)}
+.mini.resto{display:grid;place-items:center;margin-left:6px;background:var(--sand);font-size:12px;font-weight:600;color:var(--t80);box-shadow:0 0 0 2px var(--papel)}
+.anulada .pila{opacity:.45;filter:saturate(.5)}
+/* A · Lentes apiladas: cada prenda es una lente redonda de 40 px con su luz arriba y un aro de vidrio (no un aro de papel, que en el
+   vidrio se ve como un recorte); el «×2» es el globito elegido de la esquina (la gota ahumada) y el «+3», una gota clara. */
+[data-pp="lentes"] .mini{border-radius:50%;box-shadow:inset 0 1px 1px color-mix(in srgb,var(--crema-fija) 55%,transparent),inset 0 -6px 10px -6px color-mix(in srgb,var(--tinta-fija) 35%,transparent),0 0 0 2px color-mix(in srgb,var(--vidrio) 80%,transparent),0 4px 10px -4px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-pp="lentes"] .mini+.mini{margin-left:-12px}
+[data-tema="oscuro"][data-pp="lentes"] .mini{box-shadow:inset 0 1px 1px color-mix(in srgb,var(--crema-fija) 40%,transparent),inset 0 -6px 10px -6px color-mix(in srgb,var(--tinta-fija) 40%,transparent),0 0 0 2px color-mix(in srgb,var(--tinta) 18%,transparent)}
+:is([data-pp="lentes"],[data-pp="bandeja"]) .mini .x{border:1px solid color-mix(in srgb,var(--tinta) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 80%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 35%,transparent),0 0 0 2px color-mix(in srgb,var(--vidrio) 75%,transparent)}
+:is([data-pp="lentes"],[data-pp="bandeja"]) .mini.resto{color:var(--tinta);border:1px solid color-mix(in srgb,var(--borde) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-pp="lentes"] .mini.resto{border-radius:50%}
+[data-tema="oscuro"]:is([data-pp="lentes"],[data-pp="bandeja"]) .mini.resto{background:color-mix(in srgb,var(--tinta) 14%,transparent)}
+/* B · Bandeja: las prendas no se enciman; van de a una, cuadradas, en una bandeja hundida (un pozo) que dice «esto es lo que se llevó». */
+[data-pp="bandeja"] .pila{gap:4px;padding:4px;border-radius:14px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-pp="bandeja"] .pila{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-pp="bandeja"] .mini{width:34px;height:34px;border-radius:9px;box-shadow:inset 0 1px 1px color-mix(in srgb,var(--crema-fija) 50%,transparent)}
+[data-pp="bandeja"] .mini+.mini{margin-left:0}
+[data-pp="bandeja"] .mini.resto{margin-left:0;width:34px;height:34px}
+
+/* ---------- el pulso (al costado) ---------- */
+.pulso{padding:20px;display:grid;gap:16px;animation:sube .5s var(--ease) .2s backwards}
+.pulso h2{font-family:'EB Garamond',serif;font-weight:500;font-size:20px}
+.pulso .sub{font-size:12px;color:var(--t65)}
+.pulso .foco{font-family:'EB Garamond',serif;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums}
+.pulso .foco small{font-family:'DM Sans',sans-serif;font-size:12px;color:var(--t65);margin-left:8px}
+.barritas{display:grid;grid-template-columns:repeat(14,1fr);align-items:end;gap:4px;height:78px;border-bottom:1px solid color-mix(in srgb,var(--tinta) 12%,transparent)}
+.barritas i{display:block;height:var(--h);border-radius:3px 3px 0 0;background:color-mix(in srgb,var(--taupe) 38%,var(--sand));transform-origin:bottom;animation:crece .56s var(--ease) backwards;animation-delay:calc(200ms + var(--i) * 30ms)}
+.barritas i.hoy{background:var(--tinta)}
+@keyframes crece{from{transform:scaleY(0)}}
+.ejes-p{display:flex;justify-content:space-between;font-size:11px;color:var(--t50);margin-top:4px}
+.dl-p{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;padding-top:14px;border-top:1px dashed color-mix(in srgb,var(--tinta) 12%,transparent)}
+.dl-p dt{font-size:12px;color:var(--t65)}.dl-p dd{font-family:'EB Garamond',serif;font-size:20px;font-variant-numeric:tabular-nums}
+.apilada{display:flex;gap:2px;height:12px;border-radius:999px;padding:0;background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 18%,transparent);overflow:hidden}
+.apilada i{height:100%;background:var(--col)}
+.metodos-p{display:grid;gap:6px;font-size:12.5px;color:var(--t80)}
+.metodos-p li{list-style:none;display:flex;align-items:center;gap:8px}.metodos-p .pt{width:8px;height:8px;border-radius:50%;background:var(--col)}
+.metodos-p .n{flex:1}.metodos-p .p{color:var(--t65);font-variant-numeric:tabular-nums}.metodos-p .m{width:5.25rem;text-align:right;font-variant-numeric:tabular-nums;color:var(--tinta)}
+.enlaces-p{display:grid;gap:2px;padding-top:12px;border-top:1px dashed color-mix(in srgb,var(--tinta) 12%,transparent)}
+.enlaces-p a{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:14px;color:inherit;text-decoration:none;transition:background-color .2s var(--ease)}
+@media (hover:hover){.enlaces-p a:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}}
+.enlaces-p b{display:block;font-size:13px;font-weight:600}.enlaces-p small{font-size:12px;color:var(--t65)}
+.enlaces-p span{flex:1}.enlaces-p svg{width:14px;height:14px;color:var(--t50)}
+:root{--efectivo:#d19a12;--tarjeta:#525a64;--yape:#6d3fa3}
+:root[data-tema="oscuro"]{--tarjeta:#a2acb8;--yape:#b79be0}
+
+@container disp (max-width:640px){.fp-der{margin-left:0}.filtros-h .fp-sep{display:none}.buscar-fijo{position:sticky;top:-20px;z-index:3}.buscar-fijo .pozo-b{background:color-mix(in srgb,var(--crema) 84%,transparent);-webkit-backdrop-filter:blur(16px) saturate(1.4);backdrop-filter:blur(16px) saturate(1.4)}.pozo-b kbd{display:none}:is([data-lt="hilo"],[data-lt="gotas"]) .dia-tit{top:32px}}
+@media (prefers-reduced-motion:reduce){.dia,.pulso,.barritas i{animation:none}.pila,.venta{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Ventas ▸ Historial, con vidrio: la página entera con las piezas elegidas</span>
+  <span class="tag">Línea del tiempo</span><div class="seg-m" data-ctl="lt"><button data-v="ahora">Como ahora</button><button data-v="hilo">A · Hilo de vidrio</button><button data-v="gotas">B · Solo los días en gota ✓</button></div>
+  <span class="tag">Pila de prendas</span><div class="seg-m" data-ctl="pp"><button data-v="ahora">Como ahora</button><button data-v="lentes">A · Lentes apiladas ✓</button><button data-v="bandeja">B · Bandeja</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>La pantalla</b> (<code>app/(app)/vender/historial</code>): la cabecera con lo vendido y las ventas del período, el buscador (en el celular queda fijo al bajar), los filtros (período, estado, comprobante, pago, sede, vendedor, «Mías», «Por enviar» y «Descargar Excel»), los avisos de lo que espera a alguien, la lista por día, «más antiguas» y la nota de «registro transparente»; al costado, el pulso del período (ventas por día, las cifras, cómo se pagó y las pantallas de la mano). Todas las tarjetas son <b>papel macizo</b>.</li>
+      <li><b>La línea del tiempo</b>: un hilo taupe a la izquierda con un punto por día; el día y su total encima de cada tarjeta de papel con sus ventas.</li>
+      <li><b>La pila de prendas</b>: hasta tres miniaturas de 40 px encimadas, el «×2» en <b>tinta sólida</b> y el «+3» en una baldosa de <b>arena maciza</b>.</li>
+      <li>Lo demás se arma con lo que ya elegiste: cabecera A con las cifras de la placa, buscador A · Pozo, filtros A · Gotas (la puesta, ahumada), insignia A, globito A, aviso B · Lente, nota A, paginación A, gráficos B e íconos A.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>Línea del tiempo</b></td><td>A · Hilo de vidrio</td><td>Se conserva lo que hace única esta pantalla (los días como paradas de un recorrido), ahora como una ranura tallada con una gota por día, y la de hoy con su punto rojo. El día y su total son las gotas del separador elegido y se quedan arriba al bajar.</td><td>44 px de la izquierda siguen ocupados por el hilo (en el celular no se dibuja, como hoy).</td></tr>
+      <tr><td>B · Solo los días en gota <span class="ev">Elegida</span></td><td>Sin hilo: la lista gana el ancho y el día se lee igual por su gota, como el separador de Mensajes.</td><td>Se pierde la idea de recorrido; el Historial se parece a cualquier otra lista con días.</td></tr>
+      <tr><td rowspan="2"><b>Pila de prendas</b></td><td>A · Lentes apiladas <span class="ev">Elegida</span></td><td>Cada prenda es una lente redonda con su luz y un aro de vidrio (no un recorte de papel); el «×2» es el globito de la esquina ya elegido y el «+3», una gota clara.</td><td>Lo redondo recorta las esquinas de una foto de prenda: se ve un poco menos de la prenda.</td></tr>
+      <tr><td>B · Bandeja</td><td>Las prendas no se tapan entre sí: van de a una en una bandeja hundida.</td><td>Ocupa más ancho (en el celular baja a su propia línea) y «hundido» dice «espera tu dato» en el resto del ERP.</td></tr>
+    </table>
+    <h3>Lo que decidió Felipe (2026-11-02): B y A</h3>
+    <p><b>Línea del tiempo B · Solo los días en gota y pila de prendas A · Lentes apiladas.</b> Sin hilo: el día y su total son las gotas del separador elegido, que se quedan arriba al bajar, y la lista gana el ancho; cada prenda es una lente con su aro de vidrio y el «×2», el globito de la esquina.</p>
+    <h3>Lo que no cambia</h3>
+    <p>Qué dice cada venta (las prendas, el cliente, la hora, la sede, quién vendió, el comprobante y su estado, los pagos), la venta anulada tachada y apagada, los totales por día, el buscador que mira todas las fechas, los filtros y su orden, que los avisos no se cierran mientras el problema siga, el pulso al costado desde 1280 px (debajo en pantallas más chicas) y el buscador fijo en el celular.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa, PRENDAS…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const D = { lupa: 'M11 3a8 8 0 1 0 0 16a8 8 0 1 0 0-16z M21 21l-4.3-4.3', cal: 'M8 2v4M16 2v4 M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z M3 10h18',
+    abajo: 'M6 9l6 6 6-6', desc: 'M12 3v12M7 10l5 5 5-5M5 21h14', chev: 'M9 6l6 6-6 6', izq: 'M15 6l-6 6 6 6', ok: 'M20 6 9 17l-5-5' };
+  const s = (d) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  const soles = (n) => 'S/ ' + n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const P = (i) => PRENDAS[i];
+  // [prendas (índice, cantidad), cliente, hora, vendedor, chips, total, pagos, anulada]
+  const DIAS = [
+    ['Hoy · viernes 31 de octubre', 3, 1, [
+      [[[0, 1], [3, 2]], 'Mariela Quispe', '16:31', 'Lucía', [['verde', 'Aceptado'], ['pizarra', 'Boleta B001-12907']], 189.9, 'Yape'],
+      [[[2, 1]], 'Jorge Salinas · RUC 20604…', '15:20', 'Mateo', [['ambar', 'Pendiente de enviar']], 249, 'Tarjeta'],
+      [[[5, 1], [6, 1], [10, 1], [12, 1], [15, 1]], 'Sin cliente', '11:48', 'Lucía', [['verde', 'Aceptado'], ['pizarra', 'Desde apartado A-0142']], 512, 'Efectivo + Yape'],
+    ]],
+    ['Ayer · jueves 30 de octubre', 4, 0, [
+      [[[7, 1]], 'Rosa Chávez', '19:02', 'Mateo', [['rojo', 'Rechazado']], 329, 'Transferencia'],
+      [[[1, 1], [4, 1]], 'Ana Torres', '17:40', 'Lucía', [['verde', 'Aceptado'], ['pizarra', 'Cambio: Casaca Lía talla M']], 418, 'Tarjeta'],
+      [[[9, 1]], 'Sin cliente', '12:15', 'Lucía', [['rojo', 'Anulada'], ['apagado', 'Anulado']], 139, 'Efectivo', 1],
+      [[[13, 1], [11, 3]], 'Patricia León', '10:22', 'Mateo', [['verde', 'Aceptado']], 607.5, 'Efectivo'],
+    ]],
+    ['Miércoles 29 de octubre', 2, 0, [
+      [[[14, 1]], 'Carlos Ruiz', '18:10', 'Lucía', [['verde', 'Aceptado']], 159, 'Yape'],
+      [[[8, 2]], 'Sin cliente', '13:05', 'Mateo', [['ambar', 'Sin comprobante']], 118, 'Efectivo'],
+    ]],
+  ];
+  const total = (ventas) => ventas.filter((v) => !v[7]).reduce((a, v) => a + v[5], 0);
+  function pila(items) {
+    const vis = items.slice(0, 3), resto = items.length - 3;
+    return `<span class="pila" aria-hidden="true">${vis.map(([i, c]) => `<span class="mini" data-color-dato style="--col:${P(i)[0]}">${c > 1 ? `<span class="x">×${c}</span>` : ''}</span>`).join('')}${resto > 0 ? `<span class="mini resto">+${resto}</span>` : ''}</span>`;
+  }
+  function venta([items, cliente, hora, vend, chips, tot, pagos, anulada]) {
+    const nombres = items.map(([i, c]) => P(i)[1] + (c > 1 ? ` ×${c}` : '')).join(', ');
+    return `<div class="venta${anulada ? ' anulada' : ''}">${pila(items)}
+      <div style="min-width:0"><p class="pr" title="${nombres}">${nombres}</p><p class="cl">${cliente}</p><p class="mt">${hora} · Trujillo · vendió ${vend}</p></div>
+      <div class="chips">${chips.map(([t, x]) => `<span class="chip ${t}">${x}</span>`).join('')}</div>
+      <div class="tot"><b>${soles(tot)}</b><small>${pagos}</small></div></div>`;
+  }
+  function pantalla() {
+    const vendido = DIAS.reduce((a, d) => a + total(d[3]), 0);
+    const BARRAS = [42, 66, 35, 80, 58, 92, 100, 48, 61, 39, 74, 55, 83, 46];
+    $('#cont').innerHTML = `${encabezado({ sede: 'Trujillo', titulo: 'Historial', frase: 'Todas las ventas registradas, de cualquier fecha.', cifras: [[soles(vendido).replace('.00', ''), 'vendido', 'caja'], ['9', 'ventas', 'percha']] })}
+      <div class="cuerpo"><div class="col">
+        <div class="buscar-fijo"><div class="pozo-b">${s(D.lupa)}<span class="ph">Busca por número, DNI, RUC, cliente o prenda</span><kbd>/</kbd></div></div>
+        <div class="filtros-h">
+          <button class="fp">Hoy</button><button class="fp">7 días</button><button class="fp puesta">${s(D.ok)}30 días</button><button class="fp">${s(D.cal)}Elegir fechas</button>
+          <span class="fp-sep"></span>
+          <button class="fp">Estado ${s(D.abajo)}</button><button class="fp">Comprobante ${s(D.abajo)}</button><button class="fp">Pago ${s(D.abajo)}</button><button class="fp">Vendedor ${s(D.abajo)}</button>
+          <button class="fp">Mías</button><button class="fp">Por enviar <span class="globito">3</span></button>
+          <button class="btn sec fp-der">${s(D.desc)}Descargar Excel</button>
+        </div>
+        <div style="display:grid;gap:8px">
+          <a class="aviso-h" href="#" style="--c:var(--rojo);color:inherit;text-decoration:none"><span class="pt"></span><span class="tx">2 comprobantes esperan ir a SUNAT y 1 fue rechazado</span><span class="enlace-ver">Por enviar ${s(D.chev)}</span></a>
+          <a class="aviso-h" href="#" style="--c:var(--pizarra);color:inherit;text-decoration:none"><span class="pt"></span><span class="tx">1 apartado vence en los próximos 2 días</span><span class="enlace-ver">Apartados ${s(D.chev)}</span></a>
+        </div>
+        <div class="dias">${DIAS.map(([d, n, hoy, ventas], i) => `<section class="dia${hoy ? ' hoy' : ''}" style="--i:${i}" aria-label="${d}">
+          <h3 class="dia-tit"><span class="d">${d}</span><span class="t"><b>${soles(total(ventas))}</b> · ${n} ${n === 1 ? 'venta' : 'ventas'}</span></h3>
+          <div class="lista">${ventas.map(venta).join('')}</div></section>`).join('')}</div>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px"><div class="paginas"><button disabled>${s(D.izq)}Más recientes</button><button class="gota">Más antiguas ${s(D.chev)}</button></div><span style="font-size:13px;color:var(--t65)">Ves 9 ventas de 214</span></div>
+        <p class="nota-p"><b>Registro transparente:</b> una venta no se edita ni se borra. Si se anula, sigue en el historial —tachada— y deja de sumar a lo vendido; si el cliente cambia o devuelve una prenda, queda anotado en Cambios o Devoluciones y se ve aquí como una marca en la venta.</p>
+      </div>
+      <aside class="placa pulso" aria-label="Pulso del período"><div><h2>Ventas por día</h2><p class="sub">Últimos 30 días</p></div>
+        <p class="foco">${soles(1250.9)}<small>hoy · 3 ventas</small></p>
+        <div><div class="barritas">${BARRAS.map((h, i) => `<i style="--h:${h}%;--i:${i}" class="${i === 13 ? 'hoy' : ''}"></i>`).join('')}</div><div class="ejes-p"><span>18 oct</span><span>hoy</span></div></div>
+        <dl class="dl-p"><div><dt>Vendido</dt><dd>S/ 28,140</dd></div><div><dt>Ventas</dt><dd>214</dd></div><div><dt>Venta promedio</dt><dd>S/ 131</dd></div><div><dt>Prendas</dt><dd>389</dd></div></dl>
+        <div style="padding-top:14px;border-top:1px dashed color-mix(in srgb,var(--tinta) 12%,transparent);display:grid;gap:10px"><b style="font-size:12.5px">Cómo se pagó</b>
+          <div class="apilada"><i style="flex:42;--col:var(--efectivo)"></i><i style="flex:35;--col:var(--tarjeta)"></i><i style="flex:23;--col:var(--yape)"></i></div>
+          <ul class="metodos-p">${[['Efectivo', 'efectivo', 42, 'S/ 11,819'], ['Tarjeta', 'tarjeta', 35, 'S/ 9,849'], ['Yape', 'yape', 23, 'S/ 6,472']].map(([n, k, p, m]) => `<li><span class="pt" style="--col:var(--${k})"></span><span class="n">${n}</span><span class="p">${p} %</span><span class="m">${m}</span></li>`).join('')}</ul></div>
+        <nav class="enlaces-p" aria-label="Pantallas relacionadas">${[['Caja de hoy', 'Abierta'], ['Posventa', 'Cambios y devoluciones'], ['Comprobantes', '3 por resolver']].map(([t, d]) => `<a href="#"><span><b>${t}</b><small>${d}</small></span>${s(D.chev)}</a>`).join('')}</nav>
+      </aside></div>`;
+  }
+  document.addEventListener('click', (e) => { if (e.target.closest('#cont a')) e.preventDefault(); });
+  Marco.iniciar({ estado: { lt: 'gotas', pp: 'lentes' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
+})();
+</script>
+</body>
+</html>

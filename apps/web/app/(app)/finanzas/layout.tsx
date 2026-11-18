@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
-import { getSedesDelTelar } from "@/lib/finanzas-telar";
+import { getSedesDelTelar, marcaDelDibujo } from "@/lib/finanzas-telar";
 import { ARBOL, esGrupo, type Hoja } from "@/lib/menu";
 import { hoyLima } from "@/lib/fechas-lima";
 import { mesDelDia } from "@/lib/finanzas-telar-reglas";
@@ -22,13 +22,13 @@ export default async function FinanzasLayout({ children }: { children: React.Rea
       : [];
   if (!submodulos.length) return <>{children}</>;
 
-  const { sedes, veTodo, propia } = await getSedesDelTelar();
+  const { sedes, veTodo, propia, sedesEstados } = await getSedesDelTelar();
 
   return (
     <>
       {/* `useSearchParams` pide su Suspense; sin datos de la URL, la barra se dibuja con la sede y el mes por defecto. */}
       <Suspense fallback={null}>
-        <MesaDeMando submodulos={submodulos} sedes={sedes} veTodo={veTodo} sedePropia={propia} mesDeHoy={mesDelDia(hoyLima())} puedeRegistrarGasto={veModulo(persona, "gastos")} />
+        <MesaDeMando submodulos={submodulos} sedes={sedes} veTodo={veTodo} sedesEstados={sedesEstados} sedePropia={propia} mesDeHoy={mesDelDia(hoyLima())} puedeRegistrarGasto={veModulo(persona, "gastos")} leidaEn={marcaDelDibujo()} />
       </Suspense>
       {children}
     </>

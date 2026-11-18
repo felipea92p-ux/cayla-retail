@@ -1,13 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
   alertaDeStock,
-  textoDeStock,
   mensajeSinResultados,
   leerExistenciasProductos,
   lineasDeStock,
   hrefEnExistencias,
   SIN_EXISTENCIAS,
-  ROTULO_STOCK_TOTAL,
+  lugaresDeStock,
+  stockDeTarjeta,
   MENSAJE_SIN_RESULTADOS,
 } from "./productos-stock";
 
@@ -56,17 +56,6 @@ describe("alertaDeStock — solo las prendas activas piden atención", () => {
   it("stock negativo (la base lo impide con un CHECK): con mínimo se lee como «bajo», sin él no avisa", () => {
     expect(alertaDeStock(activo(-1, 5))).toBe("bajo");
     expect(alertaDeStock(activo(-1, null))).toBeNull();
-  });
-});
-
-describe("textoDeStock — el rótulo dice de qué stock se habla", () => {
-  it("con unidades: «Stock total N», no «Stock N» (no es el de la sede activa)", () => {
-    expect(textoDeStock(26)).toBe("Stock total 26");
-    expect(textoDeStock(26)).toContain(ROTULO_STOCK_TOTAL);
-  });
-
-  it("en cero: «Stock total 0» — la alerta «Sin stock» es del chip, no de este texto", () => {
-    expect(textoDeStock(0)).toBe("Stock total 0");
   });
 });
 
@@ -187,5 +176,92 @@ describe("mensajeSinResultados — «Hay en [sede]» sí trae descontinuadas", (
   it("con «Hay en …» el vacío es el de siempre, no culpa a la Disponibilidad", () => {
     expect(mensajeSinResultados({ estado: "descontinuado", stock: "en_sede" })).toBe(MENSAJE_SIN_RESULTADOS);
     expect(mensajeSinResultados({ estado: "descontinuado", stock: "sin_red" })).toContain("filtro de Disponibilidad");
+  });
+});
+
+describe("lugaresDeStock — en qué sede está, a la vista en la tarjeta (Felipe 2026-11-05)", () => {
+  const otra = (sede: string, disponible: number) => ({ ubicacionId: sede, sede, disponible });
+
+  it("nombra las tres tiendas, sin agruparlas: la elegida primero y después de más a menos", () => {
+    const e = { ...SIN_EXISTENCIAS, aqui: 2, otras: [otra("Tienda Lima", 1), otra("Tienda Arequipa", 5)] };
+    expect(lugaresDeStock(e, "Tienda Trujillo", 8)).toEqual([
+      { lugar: "Trujillo", n: 2 },
+      { lugar: "Arequipa", n: 5 },
+      { lugar: "Lima", n: 1 },
+    ]);
+  });
+  it("con los nombres de producción dice la ciudad, nunca la sigla: Trujillo, Arequipa y Lima", () => {
+    const e = { ...SIN_EXISTENCIAS, aqui: 1, otras: [otra("Tienda AQP", 3), otra("Tienda LIM", 2)] };
+    expect(lugaresDeStock(e, "Tienda TRU", 6)?.map((l) => l.lugar)).toEqual(["Trujillo", "Arequipa", "Lima"]);
+  });
+  it("una tienda de otra ciudad queda con su nombre", () => {
+    expect(lugaresDeStock({ ...SIN_EXISTENCIAS, aqui: 1 }, "Tienda Piura", 1)?.[0].lugar).toBe("Piura");
+  });
+  it("la sede elegida va aunque tenga 0: responde «¿la tengo aquí?»", () => {
+    const e = { ...SIN_EXISTENCIAS, otras: [otra("Tienda Lima", 1)] };
+    expect(lugaresDeStock(e, "Tienda Arequipa", 1)).toEqual([
+      { lugar: "Arequipa", n: 0 },
+      { lugar: "Lima", n: 1 },
+    ]);
+  });
+  it("el Taller va al final: el total de la tarjeta también lo cuenta", () => {
+    const e = { ...SIN_EXISTENCIAS, aqui: 1, enTaller: 40, otras: [otra("Tienda Lima", 3)] };
+    expect(lugaresDeStock(e, "Tienda Trujillo", 44)?.map((l) => l.lugar)).toEqual(["Trujillo", "Lima", "Taller"]);
+  });
+  it("con unidades que no se pueden vender (apartadas), dice el 0 de la sede: no esconde la línea", () => {
+    expect(lugaresDeStock({ ...SIN_EXISTENCIAS, apartadoAqui: 1 }, "Tienda Lima", 1)).toEqual([{ lugar: "Lima", n: 0 }]);
+  });
+  it("sin nada en ninguna parte no hay línea: ya lo dice «Sin stock»", () => {
+    expect(lugaresDeStock(SIN_EXISTENCIAS, "Tienda Trujillo", 0)).toBeNull();
+  });
+  it("si no se pudo leer, no inventa ceros", () => {
+    expect(lugaresDeStock(null, "Tienda Trujillo", 5)).toBeNull();
+  });
+});
+
+describe("stockDeTarjeta — la tarjeta «A · Catálogo de moda» (Felipe 2026-11-02)", () => {
+  const prenda = (stockTotal: number, stockMinimo: number | null = null, estado = "activo", marca: string | null = "CAYLA", proveedor: string | null = "Taller Lima") => ({
+    estado,
+    stockTotal,
+    stockMinimo,
+    marca,
+    proveedor,
+  });
+  const sinLeer = { existencias: null, enSede: null, sede: "Tienda Trujillo" } as const;
+
+  it("lo de siempre es tenue: «34 en stock»", () => {
+    expect(stockDeTarjeta(prenda(34, 10), sinLeer)).toMatchObject({ texto: "34 en stock", tono: "tenue" });
+  });
+  it("solo pesa si es poco: bajo su mínimo, «Quedan 8» en ámbar", () => {
+    expect(stockDeTarjeta(prenda(8, 10), sinLeer)).toMatchObject({ texto: "Quedan 8", tono: "poco" });
+  });
+  it("o si no hay: «Sin stock» en rojo", () => {
+    expect(stockDeTarjeta(prenda(0, 10), sinLeer)).toMatchObject({ texto: "Sin stock", tono: "cero" });
+  });
+  it("una descontinuada no alerta: su cero es un hecho, tenue", () => {
+    expect(stockDeTarjeta(prenda(0, 10, "descontinuado"), sinLeer)).toMatchObject({ texto: "0 en stock", tono: "tenue" });
+    expect(stockDeTarjeta(prenda(3, 10, "descontinuado"), sinLeer)).toMatchObject({ texto: "3 en stock", tono: "tenue" });
+  });
+  it("los miles con coma", () => {
+    expect(stockDeTarjeta(prenda(1250), sinLeer).texto).toBe("1,250 en stock");
+  });
+  it("el title: marca · proveedor primero y lo de la sede después, una cosa por renglón", () => {
+    const { titulo } = stockDeTarjeta(prenda(60), {
+      existencias: { ...SIN_EXISTENCIAS, aqui: 0, apartadoAqui: 1, enOtrasTiendas: 60, otras: [{ ubicacionId: "lim", sede: "Tienda LIM", disponible: 60 }] },
+      enSede: 3,
+      sede: "Tienda Trujillo",
+    });
+    expect(titulo.split("\n").slice(0, 3)).toEqual(["CAYLA · Taller Lima", "0 para vender en Trujillo", "+60 en LIM · 1 apartada"]);
+  });
+  it("lo que falta de marca o proveedor se dice con palabras (ADR-0283)", () => {
+    const primero = (marca: string | null, proveedor: string | null) => stockDeTarjeta(prenda(5, null, "activo", marca, proveedor), sinLeer).titulo.split("\n")[0];
+    expect(primero(null, "Taller Lima")).toBe("Sin marca · Taller Lima");
+    expect(primero("CAYLA", null)).toBe("CAYLA · Sin proveedor");
+    expect(primero(null, null)).toBe("Sin marca ni proveedor");
+  });
+  it("sin la cifra de la sede, el respaldo de useStockEnSede; si falló, lo dice; mientras lee, nada", () => {
+    expect(stockDeTarjeta(prenda(5), { existencias: null, enSede: 3, sede: "Tienda Trujillo" }).titulo).toContain("3 en Trujillo");
+    expect(stockDeTarjeta(prenda(5), { existencias: null, enSede: "error", sede: "" }).titulo).toContain("No se pudo leer lo de tu sede");
+    expect(stockDeTarjeta(prenda(5), sinLeer).titulo.split("\n")).toHaveLength(2);
   });
 });

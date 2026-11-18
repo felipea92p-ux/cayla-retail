@@ -21,11 +21,11 @@ describe("celdaRecepcion", () => {
   });
   it("parcial atrasada muestra el avance en unidades", () => {
     const c = { ...base, estadoRecepcion: "parcial" as const, recibidoCantidad: 72, facturadoCantidad: 120, fechaEstimadaLlegada: "2026-09-10" };
-    expect(celdaRecepcion(c, AHORA)).toEqual({ tono: "ambar", texto: "Atrasada 8 días", sub: "72 de 120 u. recibidas", pct: 0.6 });
+    expect(celdaRecepcion(c, AHORA)).toEqual({ tono: "ambar", texto: "Atrasada 8 días", sub: "72 de 120 u.", pct: 0.6 });
   });
   it("recibida en verde con unidades", () => {
     const c = { ...base, estadoRecepcion: "recibida" as const, recibidoCantidad: 180, recepcionAtrasada: false };
-    expect(celdaRecepcion(c, AHORA)).toEqual({ tono: "verde", texto: "Recibida", sub: "180 u. recibidas", pct: null });
+    expect(celdaRecepcion(c, AHORA)).toEqual({ tono: "verde", texto: "Recibida", sub: "180 u.", pct: null });
   });
   it("esperada hoy (Lima) no es atrasada aunque el servidor esté en mañana", () => {
     const c = { ...base, fechaEstimadaLlegada: "2026-09-18", recepcionAtrasada: false };

@@ -1,0 +1,4 @@
+## 2026-11-07 (El CI listo para la cola de fusión: un PR en verde ya no persigue a main)
+Qué hice: el CI (`ci.yml`) y «SQL pegado» escuchan el evento `merge_group`; «Qué toca el PR» mide la cola como un PR; el candado de reservas no juzga la rama de la cola, y Vercel no construye vista previa de ella. ADR-0627 dice cómo activar la cola en el ruleset, y CONTRIBUTING y ADR-0345 quedaron al día.
+Por qué así: el PR #1696 quedó en verde cuatro veces y nunca entró: `main` avanzaba más rápido que su CI y la regla exigía la rama al día. Sin `merge_group`, encender la cola habría dejado todos los PR esperando para siempre. DESCARTÉ el «bypass» (vuelve opcional la regla) y apagar `strict` sin cola (un PR entraría sin probarse con el `main` de verdad).
+Felipe se lleva: después de fusionar este PR, en Settings ▸ Rules ▸ main-protegida, «Require merge queue» (método Merge) y apagar «Require branches to be up to date». Desde ahí, un PR en verde se fusiona solo.

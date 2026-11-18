@@ -9,6 +9,7 @@ import {
   lineaEnMiTienda,
   MOTIVOS_REASIGNACION,
   motivoDeReasignacion,
+  destinosCortos,
   nombresDeDestinos,
   otrasTiendasDeJson,
   pendienteDeMiTienda,
@@ -16,7 +17,6 @@ import {
   textoDeLaParte,
   textoDeReasignacion,
   textoOtrasTiendas,
-  textoTeToca,
   tiendasConPendiente,
   tiendasDelReparto,
   valorPorRecibirDeMiTienda,
@@ -24,12 +24,7 @@ import {
 } from "./reparto-reglas";
 
 describe("lo que ve una tienda (Recibir)", () => {
-  it("«Te toca 12 · Recibidas aquí 4 · Faltan 8»", () => {
-    expect(textoTeToca({ asignado: 12, recibido: 4, cerrado: 0 })).toBe("Te toca 12 · Recibidas aquí 4 · Faltan 8");
-  });
-
-  it("si hubo faltante cerrado lo dice al final y no cuenta como pendiente", () => {
-    expect(textoTeToca({ asignado: 12, recibido: 4, cerrado: 2 })).toBe("Te toca 12 · Recibidas aquí 4 · Faltan 6 · Cerradas 2");
+  it("el faltante cerrado no cuenta como pendiente", () => {
     expect(pendienteDeMiTienda({ asignado: 12, recibido: 4, cerrado: 2 })).toBe(6);
   });
 
@@ -57,6 +52,10 @@ describe("lo que ve una tienda (Recibir)", () => {
 
   it("los destinos con nombre; un id sin nombre no aparece", () => {
     expect(nombresDeDestinos(["a", "b", "z"], { a: "Tienda Trujillo", b: "Taller" })).toBe("Tienda Trujillo · Taller");
+  });
+
+  it("en una fila de lista los destinos van sin «Tienda»; un id sin nombre no aparece", () => {
+    expect(destinosCortos(["a", "b", "z"], { a: "Tienda Trujillo", b: "Taller" })).toBe("Trujillo · Taller");
   });
 });
 

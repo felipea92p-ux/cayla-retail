@@ -26,6 +26,7 @@ import { pisoFrescuraParaElInicio, type LecturaParaElInicio, type PisoFrescuraIn
 import type { NombresDeTemporadas } from "@/lib/frescura-pantalla";
 import type { Tolerado } from "@/lib/resultado";
 import type { PersonaActualV2 } from "@/lib/persona-actual";
+import { unstable_rethrow } from "next/navigation";
 
 // La parte que LEE de Postgres para Frescura del piso (ADR-0208, pasos 3 y 4 del 3c): solo dice a quién preguntar. Qué se
 // pide, en qué orden, cómo falla cada bloque y qué significan los datos vive en `frescura-reglas.ts` (`armarFrescuraLider`,
@@ -393,6 +394,7 @@ export async function getPisoDeFrescuraParaElInicio(persona: Pick<PersonaActualV
     if (!lectura.datos.separaPiso) return { estado: "no_aplica" };
     return { estado: "ok", datos: pisoFrescuraParaElInicio(lectura.datos, puerta) };
   } catch (e) {
+    unstable_rethrow(e);
     console.error("Inicio: no se pudo leer el piso de Frescura", e);
     return { estado: "fallo" };
   }
@@ -413,6 +415,7 @@ export async function getLecturaFrescuraDeTienda(sede: { id: string; nombre: str
     const { respaldo } = await leerRespaldoCayla(rpc, new Date().toISOString());
     return (await armarFrescuraSede(sede, rpc, FRESCURA_DIAS_LECTURA, respaldo, undefined, cargarDudasCon(supabase))).lectura;
   } catch (e) {
+    unstable_rethrow(e);
     return { datos: null, fallo: e instanceof Error ? e.message : String(e) };
   }
 }

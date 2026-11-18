@@ -25,7 +25,7 @@ import { Recorte } from "./Recorte";
 /** Cuánto se ve el aviso de «Ver mi look»: lleva un botón, y hay que alcanzar a tocarlo (el del lienzo, 2,8 s, se iba antes). */
 const DURACION_DEL_AVISO = 6000;
 
-const TEXTO_DEL_BOTON = { probar: "Probar", "este-color": "Este color", "en-tu-look": "En tu look", agotada: "Agotada" } as const;
+const TEXTO_DEL_BOTON = { probar: "Probar", "este-color": "Este color", "en-tu-look": "En tu outfit", agotada: "Agotada" } as const;
 
 /**
  * Buscar una prenda para el look y ver todas las de una zona (ADR-0434, actividad 5; lienzo v3, `V3Buscar`): una hoja a pantalla
@@ -77,7 +77,7 @@ export function Buscador({
     const estado = estadoDeLaTarjeta(p, c, look);
     if (estado !== "en-tu-look") onProbar(p, codigo);
     window.clearTimeout(reloj.current);
-    setAviso({ titulo: `${p.nombre} · ${c.nombre}`, texto: estado === "en-tu-look" ? "Ya está en tu look." : AVISO_AL_PROBAR[p.zona] });
+    setAviso({ titulo: `${p.nombre} · ${c.nombre}`, texto: estado === "en-tu-look" ? "Ya está en tu outfit." : AVISO_AL_PROBAR[p.zona] });
     reloj.current = window.setTimeout(() => setAviso(null), DURACION_DEL_AVISO);
   }
 
@@ -104,7 +104,7 @@ export function Buscador({
               estado === "agotada"
                 ? `${p.nombre}, agotada`
                 : estado === "en-tu-look"
-                  ? `${p.nombre} en ${c.nombre} ya está en tu look`
+                  ? `${p.nombre} en ${c.nombre} ya está en tu outfit`
                   : `Probar ${p.nombre} en ${c.nombre}`
             }
             onClick={() => probar(p, c.codigo)}
@@ -151,7 +151,7 @@ export function Buscador({
     <dialog
       ref={hoja}
       className="pb-buscar"
-      aria-label="Buscar una prenda para tu look"
+      aria-label="Buscar una prenda para tu outfit"
       onCancel={(e) => {
         // Escape: cierra como la flecha (vuelve la dirección del probador), no solo la hoja.
         e.preventDefault();
@@ -194,7 +194,7 @@ export function Buscador({
           </div>
         </header>
 
-        <div className="pb-bus-zonas" role="group" aria-label="Qué parte del look">
+        <div className="pb-bus-zonas" role="group" aria-label="Qué parte del outfit">
           {FILTROS_DE_ZONA.map((f) => (
             <button key={f.clave} type="button" className="pb-bus-zona" aria-pressed={zona === f.clave} onClick={() => setZona(f.clave)}>
               {f.nombre}
@@ -255,7 +255,7 @@ export function Buscador({
             <span>{aviso.texto}</span>
           </span>
           <button type="button" className="pb-bus-aviso-ir" onClick={onCerrar}>
-            Ver mi look
+            Ver mi outfit
           </button>
         </div>
       )}

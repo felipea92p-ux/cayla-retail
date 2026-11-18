@@ -1,0 +1,26 @@
+{
+  "_": "ADR-0656. Bloques de 8 kB que lee cada función de entrada de módulo sobre el volumen de presupuesto-volumen.sql. No se edita a mano: pnpm rendimiento:aceptar.",
+  "origen": "CI, corrida 43517420718; fn_productos_facetas@lider de la corrida 43523159516 (ADR-0656 act. d)",
+  "bloques": {
+    "fn_es_admin@colaboradora": 10,
+    "fn_es_admin@lider": 11,
+    "fn_mi_pantalla_principal@colaboradora": 15,
+    "fn_mi_pantalla_principal@lider": 11,
+    "fn_mi_persona_id@colaboradora": 4,
+    "fn_mi_persona_id@lider": 4,
+    "fn_mi_sesion@colaboradora": 74,
+    "fn_mi_sesion@lider": 68,
+    "fn_mi_terminal@colaboradora": 3,
+    "fn_mi_terminal@lider": 3,
+    "fn_mis_modulos@colaboradora": 31,
+    "fn_mis_modulos@lider": 27,
+    "fn_persona_actual_resumen@colaboradora": 21,
+    "fn_persona_actual_resumen@lider": 23,
+    "fn_piso_plan_lectura@lider": 54798,
+    "fn_productos_facetas@lider": 53965,
+    "fn_productos_listado@lider": 3681,
+    "fn_resumen_finanzas@lider": 193076,
+    "fn_resumen_variantes_json@lider": 55570,
+    "fn_stock_por_sede_json@lider": 3137
+  }
+}

@@ -201,9 +201,11 @@ select c.cliente_tipo_doc || ':' || c.cliente_num_doc from retail.comprobantes c
   (s) => s === "dni:70124598");
 error("el precio de la caja distinto al del catálogo se rechaza",
   `${preparar()}${separar().replace("'precio_unitario', :'precio'::numeric", "'precio_unitario', 1.00")}`, "venta_precio_cambiado");
-error("un descuento manual se rechaza (solo vale la campaña del día)",
+// Desde ADR-0584 (2026-10-30) se puede descontar a mano al apartar, con las reglas de la venta: sin motivo, se rechaza. Los demás
+// casos del descuento a mano viven en `apartar_con_descuento.mjs`.
+error("un descuento manual sin motivo se rechaza (ADR-0584: lleva el motivo, como en la venta)",
   `${preparar()}${separar().replace("'precio_unitario', :'precio'::numeric", "'precio_unitario', :'precio'::numeric, 'descuento_unitario', 5")}`,
-  "separacion_descuento_no_coincide");
+  "venta_descuento_requiere_motivo");
 error("no se puede separar más de lo disponible (y no queda nada a medias)",
   `${preparar(MICAELA, { colchon: 1 })}
 select greatest(1, :cant0 - :apart0 + 1) as pedir \\gset
@@ -346,8 +348,22 @@ select retail.aplazar_separacion(:'sep', retail.fn_hoy_lima() + 31);`, "como muc
 error("una colaboradora sin Caja no puede aplazar (D5)", `${preparar()}${separar()}
 select retail.aplazar_separacion(:'sep', retail.fn_hoy_lima() + 10);`, "Solo una líder");
 
-error("una colaboradora no puede liberar (D5)", `${preparar()}${separar()}
-select retail.liberar_separacion(:'sep', 'clienta_desistio');`, "Solo una líder");
+error("una colaboradora que no ve Apartados ni Caja no puede liberar (D5, ADR-0599)", `${preparar()}${separar()}
+select retail.liberar_separacion(:'sep', 'clienta_desistio');`, "Solo quien ve Apartados");
+// ADR-0599: quien ve el módulo Apartados hace todo lo que hay en él, también liberar (el apartado hecho por error en la sede
+// equivocada no tiene por qué esperar a que venza ni a una líder). El rol de prueba suma «apartados» a su «vender».
+exito("liberar: quien ve Apartados (sin ser líder ni ver Caja) libera, y la prenda vuelve a estar disponible (ADR-0599)",
+  `${preparar()}${separar()}
+do $r$ begin
+  if to_regclass('retail.rol_modulos') is not null then
+    insert into retail.rol_modulos (rol_id, modulo) values ('44444444-4444-4444-8444-000000000003', 'apartados');
+  end if;
+end $r$;
+select retail.liberar_separacion(:'sep', 'error_de_carga') as _l \\gset
+select s.estado, s.liberada_motivo,
+       (select cantidad_apartada = :apart0 from retail.stock where variante_id = :'v' and ubicacion_id = :'ubic' and sububicacion_id = :'piso')
+  from retail.separaciones s where s.id = :'sep';`,
+  (s) => s === "liberada|error_de_carga|t");
 exito("liberar: la prenda vuelve a estar disponible y el adelanto queda por devolver",
   `${preparar()}${separar()}
 set local request.jwt.claim.sub = '${FELIPE}';

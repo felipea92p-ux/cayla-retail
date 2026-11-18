@@ -60,18 +60,13 @@ type Props = {
   elegidas: readonly string[];
   /** El `setState` del formulario: se usa siempre con función (`prev => …`) para no pisar lo que se marcó mientras una respuesta venía en camino. */
   onElegidas: Dispatch<SetStateAction<string[]>>;
-  /** Quien crea una etiqueta y la deja aprobada de una (`fn_puede_editar_etiquetas`: líder o un rol con el módulo Insignias). Solo cambia lo que dice el panel de crear. */
-  puedeAprobar: boolean;
   /** Sin internet no se puede crear una etiqueta nueva (sí elegir las que ya existen). */
   enLinea: boolean;
   /** Una etiqueta nueva quedó aprobada: el formulario la suma a su vocabulario. */
   onCreada: (e: EtiquetaAlta) => void;
-  /** Lo que alguien sin permiso de aprobar propuso en esta pantalla: espera a un líder, así que no se puede marcar ni proponer otra vez. Vive en el formulario para no perderse al plegar el paso. */
-  propuestas: readonly string[];
-  onPropuesta: (nombre: string) => void;
 };
 
-export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, puedeAprobar, enLinea, onCreada, propuestas, onPropuesta }: Props) {
+export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, enLinea, onCreada }: Props) {
   const [hoja, setHoja] = useState(false);
   const [nueva, setNueva] = useState(false);
   const hoy = useMemo(() => hoyLima(), []);
@@ -119,17 +114,12 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
         )}
 
         {ultimaEtiqueta && (
-          <p role="status" className="text-xs text-taupe [@media(hover:hover)]:hidden">
+          <p role="status" className="text-sm text-taupe [@media(hover:hover)]:hidden">
             <strong className="text-tinta">{ultimaEtiqueta.nombre}:</strong> {ayudaUltima?.queEs} {ayudaUltima?.datos.join(" ")}
           </p>
         )}
 
-        {propuestas.length > 0 && (
-          <p className="text-xs text-taupe">
-            Esperando a un líder: {propuestas.map((p) => `«${p}»`).join(", ")}. Cuando la apruebe podrás marcarla.
-          </p>
-        )}
-        <p className="text-xs text-taupe">
+        <p className="text-sm text-taupe">
           Se aplican a todas las variantes de la prenda.
         </p>
       </div>
@@ -154,25 +144,20 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
             idsCubiertas={idsCubiertas}
             marcadas={marcadas}
             hoy={hoy}
-            puedeAprobar={puedeAprobar}
             enLinea={enLinea}
-            propuestas={propuestas}
             onAlternar={alternar}
             onTocar={setUltimaId}
             onCreada={onCreada}
-            onPropuesta={onPropuesta}
           />
           {nueva && (
             <NuevaEtiquetaModal
-              contexto={{ todas: etiquetas, reparto, elegidas: [...marcadas], propuestas }}
-              puedeAprobar={puedeAprobar}
+              contexto={{ todas: etiquetas, reparto, elegidas: [...marcadas] }}
               enLinea={enLinea}
               onCerrar={() => setNueva(false)}
               onCreada={(e) => {
                 onCreada(e);
                 alternar(e.id);
               }}
-              onPropuesta={onPropuesta}
             />
           )}
         </Modal>
@@ -237,7 +222,7 @@ function TarjetaEtiqueta({
             {(marcada || cubierta) && <span aria-hidden>✓ </span>}
             <Resaltado texto={et.nombre} busqueda={busqueda} />
           </span>
-          {cubierta && enHoja && <span className="px-0.5 text-[10px] leading-snug text-taupe">se aplica sola</span>}
+          {cubierta && enHoja && <span className="px-0.5 text-sm leading-snug text-taupe">se aplica sola</span>}
         </TarjetaMuestraBase>
       </TooltipTrigger>
       <TooltipContent side="top" sideOffset={6} collisionPadding={8} className="max-w-[16rem] leading-snug">
@@ -264,26 +249,20 @@ function HojaEtiquetas({
   idsCubiertas,
   marcadas,
   hoy,
-  puedeAprobar,
   enLinea,
-  propuestas,
   onAlternar,
   onTocar,
   onCreada,
-  onPropuesta,
 }: {
   etiquetas: readonly EtiquetaAlta[];
   reparto: ReturnType<typeof repartirEtiquetas>;
   idsCubiertas: ReadonlySet<string>;
   marcadas: ReadonlySet<string>;
   hoy: string;
-  puedeAprobar: boolean;
   enLinea: boolean;
-  propuestas: readonly string[];
   onAlternar: (id: string) => void;
   onTocar: (id: string) => void;
   onCreada: (e: EtiquetaAlta) => void;
-  onPropuesta: (nombre: string) => void;
 }) {
   const entrada = useRef<HTMLInputElement>(null);
   const [texto, setTexto] = useState("");
@@ -293,7 +272,7 @@ function HojaEtiquetas({
   const visibles = useMemo(() => [...reparto.elegibles, ...reparto.cubiertas].filter((e) => coincideConTexto(e, texto)), [reparto, texto]);
   const grupos = useMemo(() => agruparEtiquetas(visibles), [visibles]);
 
-  const contexto = { todas: etiquetas, reparto, elegidas: [...marcadas], propuestas };
+  const contexto = { todas: etiquetas, reparto, elegidas: [...marcadas] };
   const significado = significadoDelTexto(texto, contexto);
   const hayCrear = significado.tipo === "nueva" && enLinea && creando === null;
   const notaTexto =
@@ -357,7 +336,7 @@ function HojaEtiquetas({
       </div>
       {/* Lo escrito y no marcado ni creado se ve (y se dice), no se pierde en silencio al cerrar la hoja. */}
       {(notaTexto || (texto.trim() && creando === null)) && (
-        <p role="status" className="mt-2 text-xs text-ambar-profundo">
+        <p role="status" className="mt-2 text-sm text-ambar-profundo">
           {notaTexto ??
             (hayCrear && significado.tipo === "nueva"
               ? `Escribiste «${significado.nombre}»: elige una de abajo o pulsa «+ Crear» para agregarla.`
@@ -369,17 +348,10 @@ function HojaEtiquetas({
         <div className="mt-2.5">
           <CrearEtiquetaAbierta
             nombre={creando}
-            puedeAprobar={puedeAprobar}
             onAprobada={(valor) => {
               onCreada({ id: valor.id, nombre: valor.texto, estilo: "neutral", icono: null, imagen: null, imagenSilueta: false, descuentoPct: null, categoriaIds: [], vigenteDesde: null, vigenteHasta: null });
               onAlternar(valor.id);
               avisar.exito(`Insignia «${valor.texto}» creada y agregada`);
-              setCreando(null);
-              entrada.current?.focus();
-            }}
-            onPendiente={(valor) => {
-              onPropuesta(valor.texto);
-              avisar.aviso(`Propuesta enviada: ${valor.texto}`, { detalle: "Un líder tiene que aprobarla en Catálogo → Atributos antes de poder usarla." });
               setCreando(null);
               entrada.current?.focus();
             }}
@@ -393,7 +365,7 @@ function HojaEtiquetas({
 
       <div className="scroll-cayla -mx-1 mt-3 max-h-[52vh] overflow-y-auto px-1 pb-1">
         {grupos.length === 0 ? (
-          <p className="py-4 text-[13px] text-taupe">{texto.trim() ? `Nada coincide con «${texto.trim()}».` : "No hay insignias ni campañas para elegir."}</p>
+          <p className="py-4 text-sm text-taupe">{texto.trim() ? `Nada coincide con «${texto.trim()}».` : "No hay insignias ni campañas para elegir."}</p>
         ) : (
           <div className="space-y-3">
             {grupos.map((g) => (
@@ -430,18 +402,14 @@ function HojaEtiquetas({
 /** «+ Nueva etiqueta» de la cabecera de la hoja: pide el nombre y, si de verdad es nueva, abre la misma confirmación de siempre. */
 function NuevaEtiquetaModal({
   contexto,
-  puedeAprobar,
   enLinea,
   onCerrar,
   onCreada,
-  onPropuesta,
 }: {
   contexto: Parameters<typeof significadoDelTexto>[1];
-  puedeAprobar: boolean;
   enLinea: boolean;
   onCerrar: () => void;
   onCreada: (e: EtiquetaAlta) => void;
-  onPropuesta: (nombre: string) => void;
 }) {
   const [texto, setTexto] = useState("");
   const significado = significadoDelTexto(texto, contexto);
@@ -468,7 +436,7 @@ function NuevaEtiquetaModal({
             }}
           />
           {nota && (
-            <p role="status" className="text-xs text-ambar-profundo">
+            <p role="status" className="text-sm text-ambar-profundo">
               {nota}
             </p>
           )}
@@ -476,15 +444,9 @@ function NuevaEtiquetaModal({
             <CrearEtiquetaAbierta
               key={significado.nombre}
               nombre={significado.nombre}
-              puedeAprobar={puedeAprobar}
               onAprobada={(valor) => {
                 onCreada({ id: valor.id, nombre: valor.texto, estilo: "neutral", icono: null, imagen: null, imagenSilueta: false, descuentoPct: null, categoriaIds: [], vigenteDesde: null, vigenteHasta: null });
                 avisar.exito(`Insignia «${valor.texto}» creada y agregada`);
-                cerrar();
-              }}
-              onPendiente={(valor) => {
-                onPropuesta(valor.texto);
-                avisar.aviso(`Propuesta enviada: ${valor.texto}`, { detalle: "Un líder tiene que aprobarla en Catálogo → Atributos antes de poder usarla." });
                 cerrar();
               }}
               onCerrar={cerrar}
@@ -499,18 +461,14 @@ function NuevaEtiquetaModal({
 // «Crear» es UNA escritura aparte del producto; la firma quien inició el alta (`useFirmaDeMitad`), sin combo propio desde 2026-09-29.
 // NO va dentro de la transacción del alta: si crear la etiqueta fallara a mitad, la persona perdería la prenda que llenaba.
 // Si la red cae, la respuesta es «No se pudo hablar con el servidor» y NO se crea nada: la prenda y lo llenado siguen ahí.
-// Lo que pasa después lo decide la RESPUESTA (¿quedó aprobada?), no lo que este panel anunció: `puedeAprobar` solo cambia el texto.
+// Desde ADR-0534 toda insignia nace aprobada, la cree quien la cree: se crea y se marca en esta prenda.
 function CrearEtiquetaAbierta({
   nombre,
-  puedeAprobar,
   onAprobada,
-  onPendiente,
   onCerrar,
 }: {
   nombre: string;
-  puedeAprobar: boolean;
   onAprobada: (valor: ValorCreado) => void;
-  onPendiente: (valor: ValorCreado) => void;
   onCerrar: () => void;
 }) {
   const [trabajando, setTrabajando] = useState(false);
@@ -528,8 +486,12 @@ function CrearEtiquetaAbierta({
       setError(errCrear ?? "No se pudo crear la insignia. Reintenta.");
       return;
     }
-    if (valor.aprobado) onAprobada(valor);
-    else onPendiente(valor);
+    // Solo si la base todavía no tiene ADR-0534 vuelve por aprobar: el alta la rechazaría, así que no se marca y se dice dónde quedó.
+    if (!valor.aprobado) {
+      setError(`«${valor.texto}» quedó por aprobar en Catálogo ▸ Insignias: todavía no se puede marcar en una prenda.`);
+      return;
+    }
+    onAprobada(valor);
   }
 
   return (
@@ -550,15 +512,11 @@ function CrearEtiquetaAbierta({
       <p className="text-sm text-tinta">
         Crear la insignia <strong>«{nombre}»</strong>
       </p>
-      <p className="text-xs text-taupe">
-        {puedeAprobar
-          ? "Queda en el catálogo para usarla en otras prendas, y se marca en esta."
-          : "Queda pendiente: un líder tiene que aprobarla en Catálogo ▸ Insignias antes de poder marcarla en una prenda."}
-      </p>
+      <p className="text-sm text-taupe">Queda en el catálogo para usarla en otras prendas, y se marca en esta.</p>
       <AvisoSinIdentidad firma={firma} enHoja />
       <div className="flex flex-wrap items-center gap-2">
         <Boton peso="primario" cargando={trabajando} textoCargando="Creando…" type="button" onClick={() => void crear()} disabled={trabajando || !firma.listo} title={firma.motivo ?? undefined}>
-          {puedeAprobar ? "Crear y agregar" : "Proponer insignia"}
+          Crear y agregar
         </Boton>
         <button type="button" onClick={onCerrar} disabled={trabajando} className="btn-cayla btn-secundario">
           Cancelar

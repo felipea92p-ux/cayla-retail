@@ -12,13 +12,19 @@
 .eqp-hoja {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  /* La lista nunca baja de lo que mide su contenido: si falta alto, el pie se corre hacia abajo y la hoja scrollea, nunca se le
+     encima (2026-10-26: con el teclado arriba, «Responsable» quedaba pintado sobre la lista). */
+  grid-template-rows: auto minmax(min-content, 1fr) auto;
   grid-template-areas: "etiqueta" "lista" "pie";
   gap: 12px;
   /* El alto que deja la hoja de `<Modal>` (90 % en el celular; en escritorio, la pantalla menos su margen) menos lo que queda encima
      y debajo de esta caja (título, frase y relleno): `--eqp-encima` lo mide la hoja al abrir. */
   height: calc(90vh - var(--eqp-encima, 8rem));
   min-height: 26rem;
+}
+/* Con el teclado del celular arriba, la hoja conserva el alto que tenía: el teclado pasa por encima del pie, nada se reacomoda. */
+@media (max-width: 639.98px) {
+  [data-teclado] .eqp-hoja { height: var(--eqp-alto, calc(90vh - var(--eqp-encima, 8rem))); }
 }
 @media (min-width: 640px) {
   .eqp-hoja { height: calc(100dvh - 8vh - 1.5rem - var(--eqp-encima, 8rem)); max-height: 56rem; }
@@ -51,7 +57,9 @@
 
 /* ---- La caja de la lista: su cabecera fija y las filas que corren por dentro ---- */
 .eqp-caja-lista { flex: 1; min-height: 7rem; display: flex; flex-direction: column; border: 1px solid var(--color-sand); border-radius: 12px; overflow: hidden; background: var(--color-papel); }
-.eqp-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+/* `contain: size`: las filas no cuentan para el mínimo de la lista (la fila de `.eqp-hoja` que no baja de su contenido); el mínimo
+   lo pone `.eqp-caja-lista` y lo demás corre por dentro. */
+.eqp-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; contain: size; }
 
 /* La fila que acaba de leer la pistola o la cámara: queda a la vista y respira una vez en verde (o en taupe si se le quitó). */
 .eqp-fila-leida { animation: eqp-fila-leida 1200ms var(--ease-cayla) 1; }

@@ -161,3 +161,33 @@ no". La asimetría es deliberada: equivocarse hacia "todavía no" cuesta un clic
 equivocarse hacia "ya está" deja un documento vivo ante SUNAT marcado como dado
 de baja. `ANULANDO` está verificado contra producción; `ANULADO` es la
 contraparte esperada y todavía no se vio con los ojos.
+
+## Actualización 2026-10-14: la baja anula la venta en el mismo acto (migración `20261014165000`)
+
+**Qué pasó.** La auditoría del ERP del 2026-10-13 encontró en producción 3 ventas completadas cuyo único comprobante está dado de baja
+(B005-202, -221 y -236, S/ 251,70): «Anular comprobante» pedía la baja ante SUNAT y la venta seguía viva, y como `anular_venta` rechaza toda
+venta con comprobante aceptado, no había cómo cerrarla. La solución de mostrador a «era factura, no boleta» fue cobrar la prenda otra vez:
+dos ventas completadas por una venta real, con el ingreso, el esperado de caja y el stock inflados. Es el principio 2 sin candado.
+
+**Decisión (Felipe, 2026-10-14, estricta).** Dar de baja una boleta o una factura que documenta una venta **anula la venta en el mismo
+acto** (`anular_venta`: las prendas vuelven «vendibles» al stock y la caja abierta lo descuenta). Si la venta no se puede anular —su caja
+ya cerró, es de otro día (PL-29), tiene un cambio o una devolución, o la cuenta no ve Devoluciones—, **la baja no se pide** y el camino es
+Devolución con nota de crédito. Nunca «avisa y deja la baja»: la baja no se deshace, así que o van juntas o no va ninguna.
+
+Cómo: `/api/lucode/anular` lee la venta y revisa **antes** de llamar a Lucode lo mismo que `anular_venta` exige (`motivoParaNoAnularLaVenta`,
+pura, con prueba, al lado de `motivoParaNoPedirBaja`); tras guardar la baja llama `anular_venta` con la misma firma y el motivo «Comprobante
+B005-000202 dado de baja: …». La única guarda que lo impedía era de la base: una boleta se da de baja por el resumen diario y sigue
+`aceptado` con `anulacion_solicitada_at` hasta que SUNAT confirma, y `anular_venta` la leía como «comprobante aceptado». Desde
+`20261014165000` (reemplazo anclado; md5 verificado) un comprobante aceptado **cuya baja ya se pidió no sostiene la venta**; uno aceptado sin
+baja pedida sigue frenando (Historial no anula una venta facturada). Una nota de crédito o débito y la nota de venta no anulan nada: no
+documentan una venta. El modal lo dice antes de confirmar y el aviso de éxito cambia («Baja enviada a SUNAT y venta anulada»).
+
+DESCARTÉ: una RPC compuesta `anular_comprobante_y_venta` en una sola transacción. Sería lo más limpio, pero la baja la pide Lucode entre las
+dos escrituras, así que la transacción de la base no puede abarcar el acto completo; lo que sí se puede es revisar todo antes y escribir todo
+después, que es lo que se hizo. Una venta anulada **con** comprobante vigente (si SUNAT rechaza la baja después, raro) queda como riesgo
+residual, al revés del de hoy: lo detectará la invariante «toda venta completada tiene un comprobante vivo y toda venta anulada ninguno»
+(Fase 1 de la auditoría), y la salida es una nota de crédito. Los 3 casos ya existentes se remedian con el contador, no con esta ruta.
+
+**Cómo se verifica.** `pnpm pruebas:anular-venta-comprobante` (casos J y K: aceptado sin baja frena; con la baja pedida la venta se anula,
+la prenda vuelve al stock, el comprobante sigue en trámite y al confirmarla queda anulado); `lib/anular-comprobante-reglas.test.ts`
+(las guardas de la venta, una por una). En el navegador: anular una boleta del día en local deja la venta anulada en Historial con su motivo.

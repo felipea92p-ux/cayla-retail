@@ -30,3 +30,7 @@ combos (240 ms) y su Escape no cierra la hoja de abajo.
 `guiaAnterior`) y los textos de las dos guías dicen lo nuevo. `SelectorMesFacturacion.tsx` se borró (y con él tres excepciones de
 `familias.mjs`). Lo único que cambia además del dibujo: el mes más antiguo al que se llega es el de hace tres años (el de fábrica de la
 pieza); antes no había tope, y el ERP no tiene comprobantes de antes de 2026.
+
+## Excepción (Felipe 2026-11-05)
+
+Estados financieros elige fechas con su calendario de vidrio (`SelectorPeriodo`, ADR-0611), no con `<SelectorMes>`: Felipe pidió fechas específicas. Las demás pantallas de Finanzas siguen con su mes.

@@ -1,6 +1,6 @@
 ---
 name: focus
-description: Recorre las pantallas Y los modales que estás construyendo o editando y verifica si tienen la guía de foco estandarizada (qué está hecho, qué sigue, qué falta; dentro de un modal se ENCIENDE el control que sigue: caja de texto, combo, chips, interruptor…; CLAUDE.md «Guía de foco», ADR-0284). Si a alguno le falta, primero se lo avisa a Felipe con la lista y después lo implementa con el estándar, cuidando que la guía ACOMPAÑE y no apure a quien escribe (la luz espera mientras se teclea o se eligen varias opciones; un combo con valor de fábrica también pasa por ella) y verificándolo en el navegador con el recorrido «una letra → Tab → combo». Con `todo` solo informa el tablero de todo el ERP; con una ruta (`/vender`) o un módulo (`compras`) trabaja solo eso. Úsala antes de dar por terminada cualquier pantalla o modal con campos o pasos, y cuando Felipe diga «focus» o que la guía «salta», «apura» o «me manda al siguiente».
+description: Recorre las pantallas Y los modales que estás construyendo o editando y verifica si tienen la guía de foco estandarizada (qué está hecho, qué sigue, qué falta; el control que sigue lleva EL HILO: una línea de tinta al costado y la palabra «Sigue», en una caja de texto, un combo, unos chips, un interruptor…; CLAUDE.md «Guía de foco», ADR-0284). Si a alguno le falta, primero se lo avisa a Felipe con la lista y después lo implementa con el estándar, cuidando que la guía ACOMPAÑE, no apure a quien escribe y NO INVADA (la luz espera mientras se teclea o se eligen varias opciones; un combo con valor de fábrica también pasa por ella; nada salta, la hoja no se mueve sola, nunca rojo) y verificándolo en el navegador con el recorrido «una letra → Tab → combo». Con `todo` solo informa el tablero de todo el ERP; con una ruta (`/vender`) o un módulo (`compras`) trabaja solo eso. Úsala antes de dar por terminada cualquier pantalla o modal con campos o pasos, y cuando Felipe diga «focus» o que la guía «salta», «apura», «me manda al siguiente», «parece error» o «invade».
 ---
 
 Verifica y completa la guía de foco de las pantallas y los modales en construcción: $ARGUMENTS
@@ -8,6 +8,8 @@ Verifica y completa la guía de foco de las pantallas y los modales en construcc
 **Regla madre:** una pantalla o un modal con campos o pasos que no guía a la persona no está terminado (CLAUDE.md «Guía de foco»). Esta skill **recorre → avisa → implementa → verifica**, en ese orden. No decide reglas de negocio: la guía solo hace visible lo que la validación real ya exige.
 
 **Segunda regla madre: la guía acompaña, no apura.** Una guía que se adelanta a quien todavía escribe es peor que no tener guía: con UNA letra en «Nombre» la luz saltaba al campo siguiente, y un combo con valor de fábrica («Familia» en «Neutro») se saltaba sin que nadie lo mirara (Felipe, 2026-09-30, ADR-0284 act. h). Por eso cada pantalla se construye Y se prueba contra la sección «La guía acompaña, no apura».
+
+**Tercera regla madre: la guía no invade (Felipe 2026-11-05, ADR-0284 act. j).** El rojo es solo del error: una guía en rojo se lee como que algo está mal. Y un aviso que salta, mueve la hoja o regaña antes de empezar estorba más de lo que ayuda. Se construye y se prueba contra la sección «La guía no invade».
 
 **Dos objetivos, cada uno con su registro:** las *pantallas* (`page.tsx`, `PANTALLAS`) y los *modales* (todo archivo que dibuja un `<Modal>`, `<ModalRuta>` o `Dialog.Content` con campos, `MODALES`), ambos en `lib/guia-de-foco-pantallas.ts`. Una pantalla no queda «con guía» porque uno de sus modales la tenga, ni al revés.
 
@@ -57,16 +59,16 @@ Lee antes: CLAUDE.md «Guía de foco», `docs/adr/0284-nuevo-producto-que-guia-a
 
 Para cada pantalla:
 1. **Lógica pura** en `lib/<pantalla>-guia.ts` con su prueba. `falta` = **solo** lo que la validación real ya exige (la misma regla que apaga el botón); lo recomendado que no bloquea es «sugerido», nunca candado. Incluye la prueba de coherencia: «requerido y sin hacer» ⇔ «hay un problema» (modelo: `lib/alta-producto-guia.test.ts`). Si la lógica decide «quién sigue», que reciba `enFoco` y reuse `siguienteDe` de `lib/guia-campos.ts` (una sola definición de «el que sigue»); prueba «una letra no mueve la luz».
-2. **Piezas** que ya existen: `MarcaCampo`, `EtiquetaAhora`, `ConMarca`, `FaltanDelPaso`, `TiraFicha`, `useGuiaAlta` / `irAlIdCampo`, `CampoGuiado`, `useRetenerLuz`; campos con `data-campo`, **nunca** por clases de estilo. Si falta una pieza genérica, extráela, no la copies. Clases `hilo-*` de `app/estilos/alta-guia.css`; solo tokens y **sin rojo**.
-3. **Tacto:** nunca se desplaza la página mientras hay foco en un campo de texto; solo se mueve lo que no se ve; sin animación con `prefers-reduced-motion`. Movimiento de respuesta a una acción (ADR-0136): **no agregues ningún bucle** —la única marca que gira es el círculo punteado de un campo opcional, ya hecho en `alta-guia.css` (ADR-0136 act. c)—.
+2. **Piezas** que ya existen: `MarcaCampo`, `EtiquetaAhora`, `ConMarca`, `FaltanDelPaso`, `TiraFicha`, `useGuiaAlta` / `irAlIdCampo`, `CampoGuiado`, `useRetenerLuz`; campos con `data-campo`, **nunca** por clases de estilo. Si falta una pieza genérica, extráela, no la copies. Clases `hilo-*` de `app/estilos/alta-guia.css`; solo tokens y **sin rojo: el rojo es solo del error**.
+3. **Tacto:** que la luz cambie de campo nunca desplaza la hoja ni la página: solo se mueve al tocar lo que falta o al intentar guardar; sin animación con `prefers-reduced-motion`. Movimiento de respuesta a una acción (ADR-0136): **no agregues ningún bucle**. La guía no tiene ninguno: el círculo que giraba salió el 2026-11-05.
 4. **Registro:** en `lib/guia-de-foco-pantallas.ts` pásala a `aplicada` (`evidencia` = los archivos que **usan** las piezas) o `no-aplica` (con motivo) y baja el contador que corresponda: `PENDIENTES_HOY` (pantallas) o `MODALES_PENDIENTES_HOY` (modales).
 5. **Verifica** con el Paso 4 (no se da por hecha una pantalla sin él). Vender, Cambios y Devoluciones llevan además la captura a 375 px que pide la plantilla del PR (PL-105).
 6. **Checks:** `pnpm typecheck`, eslint de lo tocado, `pnpm --filter web test`, `node --test scripts/focus/escanear.test.mjs` si tocaste el escáner, `node scripts/focus/escanear.mjs --ruta <ruta>` → ✅.
 7. **Docs:** actualiza el ADR-0284 (sección «Dónde está aplicada» o una «Actualización» nueva si hubo una decisión) o el backlog de la rama; una entrada de bitácora y de backlog (un archivo por entrada, ADR-0259).
 
-## Modales: enciende el camino
+## Modales: el hilo marca el camino
 
-Dentro de un modal el control que sigue se **ilumina**: un halo suave alrededor del bloque, el fondo más claro (papel) en la caja de texto, el combo o el botón desplegable de adentro, y la marca «Sigue aquí» en su título; al completarlo la luz pasa al siguiente. Sirve a **cualquier control**: caja de texto, combo (`ComboBuscable`, `Desplegable`, `ComboResponsable`), chips, interruptor, segmentado, o un grupo de varios. `<CampoGuiado>` envuelve el bloque y no conoce el control; la luz se pinta por detrás y por fuera (no cambia el tamaño de nada).
+Dentro de un modal el control que sigue lleva **el hilo**: una línea fina de tinta al costado del bloque, que se dibuja una vez, y la palabra «Sigue» a la derecha de su título, fuera de flujo; al completarlo el hilo pasa al siguiente. Sirve a **cualquier control**: caja de texto, combo (`ComboBuscable`, `Desplegable`, `ComboResponsable`), chips, interruptor, segmentado, o un grupo de varios. `<CampoGuiado>` envuelve el bloque y no conoce el control; el hilo se pinta por fuera (no cambia el tamaño de nada). La receta es `--hilo-guia` (`vidrio/recetas.css`): no se inventa otra.
 
 ```tsx
 const guia = useGuiaCampos([
@@ -80,7 +82,7 @@ const guia = useGuiaCampos([
 </CampoGuiado>
 <CampoGuiado id="familia" guia={guia}><CampoSelect etiqueta={guia.etiqueta("familia", "Familia")} onValor={(v) => { setFamilia(v); setFamiliaElegida(true); }} … /></CampoGuiado>
 <CampoGuiado id="permiso" guia={guia}><Interruptor etiqueta={guia.etiqueta("permiso", "Acepta WhatsApp")} … /></CampoGuiado>
-<PieGuia guia={guia} />                                            {/* «Falta: ● Un dato · ○ Quién registra», cada uno tocable */}
+<PieGuia guia={guia} />                                            {/* «Sigue: Un dato · queda 1 más»; al intentar guardar, «Falta: ● Un dato · ○ Quién registra», tocables */}
 <Boton disabled={…lo de siempre…} title={guia.frase ?? undefined} className={guia.claseConfirmar}>Registrar</Boton>
 ```
 
@@ -90,6 +92,8 @@ Reglas del modal:
 - Un `CampoTexto`/`Interruptor` con etiqueta propia recibe la marca por `etiqueta={guia.etiqueta(id, "Texto")}`; un bloque sin etiqueta propia, por `titulo=` en `<CampoGuiado>`.
 - El modal pone su propio foco al abrir (en celular ni siquiera enfoca el primer campo: hay que tocarlo): no lo pises. La luz se mueve al completar; **nunca se desplaza el modal mientras se teclea**.
 - El orden de `useGuiaCampos([...])` es el orden de pantalla: el primer campo por hacer es el que sigue. Un campo con valor de fábrica que importa va en su lugar de pantalla, no al final.
+- Un campo que la persona **no puede llenar** todavía (el nombre del padrón, que espera los 8 dígitos) lleva `noSeEscribe: true`: sigue impidiendo confirmar, pero no recibe la luz, ni sale en «Falta», ni da error. Si ya le toca actuar (el padrón no lo encontró), se le quita.
+- Una hoja que puede pasar de alto de la pantalla lleva su pie y su botón en `pie-hoja-fijo`: como la hoja ya no se mueve sola, ese es el camino.
 - Registro: la clave del modal es su archivo (`components/XModal.tsx`) en `MODALES`; al hacerlo pásalo a `aplicada` y baja `MODALES_PENDIENTES_HOY`.
 
 ## La guía acompaña, no apura (ADR-0284 act. h)
@@ -111,6 +115,19 @@ Reglas:
 - **La luz no mueve la vista mientras se escribe** y un opcional nunca roba la luz. Solo lo requerido o sugerido la retiene.
 - **Nunca cambies el estado de la guía dentro de un `blur` síncrono** (ver la trampa 1 del Paso 4): ese es el arreglo de `useRetenerLuz` y hay que conservarlo.
 
+## La guía no invade (ADR-0284 act. j)
+
+Cuatro cosas que se miden en el navegador, en cada pantalla o modal del alcance. Si una falla, la pantalla no está terminada:
+
+| Qué | Cómo se comprueba |
+|---|---|
+| **Nada salta** cuando la luz llega o se va | La distancia de la caja al inicio de su bloque (`control.top − bloque.top`) es la misma en los estados ✓, «sigue» y «falta» (solo varía 1 px por el foco). Sin eso, hay algo en flujo que no debería |
+| **La hoja no se mueve sola** | `scrollTop` de lo que se desplaza no cambia al elegir en un combo ni al salir de un campo; solo al tocar lo que falta o al intentar guardar. El botón de la hoja sigue a la vista |
+| **Guía y error no se confunden** | Toca el botón con algo vacío, en claro y en oscuro: el rojo solo está en el campo con error, y ahí el hilo y «Sigue» se quitan. Nada de esto usa rojo en la guía |
+| **La luz cede** | Escribe en otro campo, también en uno opcional: el hilo se apaga (`transform: matrix(1, 0, 0, 0, 0, 0)` en su `::before`) y vuelve al salir. En un combo sigue encendido |
+
+Y dos que se leen en el código: el pie no regaña al abrir (usa `PieGuia`, que dice «Sigue: …»), y lo que la persona no puede llenar lleva `noSeEscribe`.
+
 ## Paso 4 — Verifica como lo haría una persona (no solo con pruebas)
 
 Las pruebas unitarias prueban la lógica de «quién sigue»; **no ven** el foco, los eventos ni el DOM, y fue ahí donde estuvieron los dos defectos reales de esta guía. Reprodúcelo antes de dar por buena una pantalla.
@@ -121,9 +138,10 @@ Las pruebas unitarias prueban la lógica de «quién sigue»; **no ven** el foco
 3. **Tab, Tab, Tab…**: la luz y el foco llegan, en orden de pantalla, a cada campo guiado; el foco **nunca** cae en el contenedor del modal.
 4. Un combo con valor de fábrica: la luz pasa por él; elegir (incluso lo mismo) lo deja ✓ y la luz sigue. Con el **mouse**: clic directo en ese combo desde un campo de texto abre la lista y acepta la elección.
 5. Campos de varias opciones: marca 2 o 3 seguidas (la luz no sale); toca otra cosa (se suelta).
-6. Un opcional con el cursor no roba la luz; los círculos punteados de los opcionales giran (quietos con movimiento reducido).
+6. Un opcional con el cursor no roba la luz: el hilo se apaga mientras se escribe y vuelve al mismo campo al salir. Sin marcas en bucle.
 7. **Nada cambia qué se puede confirmar**: el botón principal se habilita y se apaga igual que antes.
-8. 375 px (`resize_window` `mobile`; vuelve a `desktop` al terminar).
+8. Los cuatro controles de «La guía no invade».
+9. 375 px (`resize_window` `mobile`; vuelve a `desktop` al terminar).
 
 Este recorrido inspecciona el estado con:
 `[...document.querySelectorAll('[data-campo]')].map(e => e.dataset.campo+':'+e.dataset.estado).join(' ')+' | foco='+(document.activeElement.closest?.('[data-campo]')?.dataset.campo ?? document.activeElement.tagName)`
@@ -148,7 +166,7 @@ Este recorrido inspecciona el estado con:
 - El estándar no cabe (una pantalla sin campos reales pero con un flujo que confunde).
 - Otra sesión está tocando esos archivos.
 - Decidir si un valor de fábrica «importa» cuando no es evidente (¿es casi siempre el correcto?). Propón y pregunta; el costo de equivocarte es una marca de más o un valor sin mirar.
-- Cualquier pedido de **otro bucle de movimiento** distinto del círculo punteado: va contra ADR-0136 y lo decide Felipe con su excepción escrita.
+- Cualquier pedido de **un bucle de movimiento** en la guía: va contra ADR-0136 y lo decide Felipe con su excepción escrita.
 
 ## Cierre
 
@@ -158,4 +176,4 @@ Este recorrido inspecciona el estado con:
 
 ## Lo que esta skill NO hace
 
-No agrega reglas de negocio ni candados, y **no cambia qué se puede confirmar** en un modal. No rediseña la pantalla. No toca pantallas ni modales fuera del alcance. No baja `PENDIENTES_HOY` ni `MODALES_PENDIENTES_HOY` sin haber hecho la guía, ni manda nada a `no-aplica` sin motivo escrito. No agrega animaciones en bucle. Con `todo` no implementa nada.
+No agrega reglas de negocio ni candados, y **no cambia qué se puede confirmar** en un modal. No pinta la guía de rojo. No rediseña la pantalla. No toca pantallas ni modales fuera del alcance. No baja `PENDIENTES_HOY` ni `MODALES_PENDIENTES_HOY` sin haber hecho la guía, ni manda nada a `no-aplica` sin motivo escrito. No agrega animaciones en bucle. Con `todo` no implementa nada.

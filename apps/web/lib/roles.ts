@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar, type Tolerado } from "@/lib/resultado";
 import { CLAVES_MODULO, esClaveModulo, type ClaveModulo } from "@/lib/modulos";
-import type { CuentaConRol, RolVista } from "@/lib/roles-reglas";
+import type { CanalVenta, CuentaConRol, RolVista } from "@/lib/roles-reglas";
 
 // Lectura de «Roles y accesos» (ADR-0161 B, migración 20260923030000_roles_por_modulo.sql). El líder o quien ve el módulo
 // Roles y accesos (20260923131000): las tablas `roles` y `rol_modulos` se leen por RLS (`fn_puede_administrar_roles()`)
@@ -11,7 +11,7 @@ const CLAVES_SISTEMA = ["lider", "integrante", "terminal_ventas", "terminal_admi
 
 export async function getRoles(): Promise<RolVista[]> {
   const supabase = await createClient();
-  const [roles, modulos, ocultosAlLider] = await Promise.all([
+  const [roles, modulos, ocultosAlLider, canalesDeRoles, catalogo] = await Promise.all([
     supabase
       .from("roles")
       .select("id, clave, nombre, descripcion, es_sistema, fijo, limitado_como_hoy, archivado_at, version, pantalla_principal")
@@ -20,7 +20,14 @@ export async function getRoles(): Promise<RolVista[]> {
     // ADR-0253: lo que se le QUITÓ al Líder (lo demás lo ve). Si la base aún no tiene la función (web publicada antes de
     // pegar 20260928220100), el Líder se muestra viéndolo todo, como era; la base es la que decide de todos modos.
     supabase.rpc("fn_lider_modulos_ocultos" as never),
+    // ADR-0607: los canales de venta que opera cada rol. Tolerado: sin la migración (o si falla) cada rol se muestra con «tienda»,
+    // como operaba hasta hoy; la base es la que decide de todos modos.
+    supabase.rpc("fn_canales_de_roles"),
+    supabase.rpc("fn_canales_venta"),
   ]);
+  const todosLosCanales = catalogo.error ? ["tienda"] : (catalogo.data ?? []).map((c) => c.clave);
+  const canalesPorRol = new Map<string, string[]>();
+  for (const f of canalesDeRoles.error ? [] : (canalesDeRoles.data ?? [])) canalesPorRol.set(f.rol_id, [...(canalesPorRol.get(f.rol_id) ?? []), f.canal]);
   const filas = exigir(roles, "los roles");
   const porRol = new Map<string, ClaveModulo[]>();
   for (const f of exigir(modulos, "los módulos de cada rol")) {
@@ -39,6 +46,8 @@ export async function getRoles(): Promise<RolVista[]> {
     limitadoComoHoy: r.limitado_como_hoy,
     archivado: r.archivado_at !== null,
     modulos: r.fijo ? [...delLider] : (porRol.get(r.id) ?? []),
+    // El Líder opera todos los canales; los demás roles, los suyos (sin la migración, solo la tienda).
+    canales: r.fijo ? [...todosLosCanales] : canalesDeRoles.error ? ["tienda"] : (canalesPorRol.get(r.id) ?? []),
     version: r.version,
     pantallaPrincipal: esClaveModulo(r.pantalla_principal ?? "") ? (r.pantalla_principal as ClaveModulo) : null,
   }));
@@ -85,4 +94,17 @@ export async function getRolesTolerado(): Promise<RolVista[] | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * ADR-0607: el catálogo de canales de venta y los que opera quien mira (`null` = es líder, opera todos). Para la pantalla de Roles y
+ * accesos y su «solo das lo que tienes». Tolerado: si la base aún no tiene los canales, solo existe la tienda.
+ */
+export async function getCanalesParaRoles(soyLider: boolean): Promise<{ canales: CanalVenta[]; mios: string[] | null }> {
+  const supabase = await createClient();
+  const [catalogo, mios] = await Promise.all([supabase.rpc("fn_canales_venta"), supabase.rpc("fn_canales_de_la_cuenta")]);
+  const canales: CanalVenta[] = catalogo.error
+    ? [{ clave: "tienda", nombre: "Tienda", esFisico: true }]
+    : (catalogo.data ?? []).map((c) => ({ clave: c.clave, nombre: c.nombre, esFisico: c.es_fisico }));
+  return { canales, mios: soyLider ? null : mios.error ? ["tienda"] : ((mios.data as string[] | null) ?? []) };
 }

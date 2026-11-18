@@ -1,0 +1,5 @@
+## 2026-11-13 · Finanzas ▸ Resumen por bloques (ADR-0661)
+
+- **Medido:** en producción, `resultados_mes` (~2,05 s) + `presupuesto` (~0,94 s, que vuelve a armar el mismo estado de resultados) + `resultados_anterior` (~0,40 s) son ~78 % de los 4,3 s de `fn_resumen_finanzas`; el ranking completo (producción y copia de un año, con bloques) en `docs/backlog/2026-11-13-resumen-por-bloques.md`, medidor en `scripts/rendimiento/medir-resumen-finanzas.mjs`.
+- **Hecho:** `fn_resumen_finanzas_partes` (migración `20261113235000`) y la página en tres lecturas a la vez, con una puerta y cada bloque en su `Suspense` con su lugar guardado; mismas cifras que `main` (md5 en la base, HTML en la página), lo primero a ~2,2 s en la copia (antes 6,8 s), CLS 0,003.
+- **Pegada** la migración en producción con el OK de Felipe (md5 verificados). **Sigue:** fusionar, leer `finanzas_resumen_bloque` a las 24 h y decidir las tres propuestas para bajar el total (el estado de resultados del mes armado una vez, la foto de los días cerrados, juntar lo que se pide de a uno).

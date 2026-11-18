@@ -9,8 +9,12 @@
  * cumplir —el cuerpo que aprueba lleva `notas`— y lo que pasa DESPUÉS de aprobar: una propuesta pendiente no se puede
  * poner en una prenda (ni en el alta de producto ni en «Prendas») hasta que un Líder, o un rol con Etiquetas, la aprueba.
  *
+ * DESDE ADR-0534 (20261027164000, 2026-10-27) lo que se crea nace APROBADO para cualquiera: ya no nacen propuestas pendientes.
+ * Las que ya estaban pendientes no se tocaron y se siguen aprobando con comentario; por eso, de la 2 en adelante, la pendiente
+ * se arma como las que quedaron de antes (insertada sin pasar por el disparador), no proponiéndola.
+ *
  * QUÉ PRUEBA
- *   1. Una colaboradora sin el módulo Etiquetas propone → nace `pendiente`.
+ *   1. Una colaboradora sin el módulo Etiquetas crea una etiqueta → nace `aprobado`, con ella como aprobadora (ADR-0534).
  *   2. Aprobar SIN comentario (el cuerpo que mandaba la pantalla) o con solo espacios → la base lo rechaza.
  *   3. Aprobar CON comentario → `aprobado`, activa, con aprobador y el comentario guardado.
  *   4. Reactivar una rechazada: sin motivo previo pide comentario; con motivo previo, el comentario NUEVO reemplaza al
@@ -78,8 +82,14 @@ const felipe = como(FELIPE_AUTH);
 const micaela = como(MICAELA_AUTH);
 const admin = "reset role;\n";
 
-/** Micaela (sin el módulo Etiquetas) propone `nombre`; deja su id en `:id`. */
+/** Micaela (sin el módulo Etiquetas) crea `nombre`; deja su id en `:id`. */
 const proponer = (nombre, alias = "id") => `${micaela}insert into retail.etiquetas (nombre) values ('${nombre}') returning id as ${alias} \\gset\n`;
+/** Una propuesta pendiente como las que quedaron de antes de ADR-0534 (hoy no nace ninguna): insertada sin el disparador,
+ *  propuesta por Micaela; deja su id en `:id`. */
+const pendienteDeAntes = (nombre, alias = "id") => `${admin}set local session_replication_role = replica;
+insert into retail.etiquetas (nombre, estado, propuesto_por)
+  values ('${nombre}', 'pendiente', (select id from public.personas where auth_user_id = '${MICAELA_AUTH}')) returning id as ${alias} \\gset
+set local session_replication_role = origin;\n`;
 
 /** Lo que devuelve la fila: estado | activa | tiene aprobador | comentario. */
 const fila = (id) => `select estado || '|' || activo || '|' || (aprobado_por is not null) || '|' || coalesce(notas, '∅') from retail.etiquetas where id = :'${id}';`;
@@ -104,9 +114,10 @@ const MENSAJE_COMENTARIO = "Aprobar una etiqueta exige un comentario breve";
 
 // ── 1 · quién propone ────────────────────────────────────────────────────────────────────────────────────────────────────
 caso(
-  "1 · una colaboradora sin el módulo Etiquetas propone → nace pendiente, sin aprobador",
-  proponer("Prueba pendiente") + admin + fila("id"),
-  "pendiente|true|false|∅"
+  "1 · una colaboradora sin el módulo Etiquetas crea una etiqueta → nace APROBADA, con ella como aprobadora (ADR-0534: ya no espera a un líder)",
+  proponer("Prueba nace aprobada") + admin + fila("id") + "\n" +
+    `select (aprobado_por = propuesto_por and propuesto_por = (select id from public.personas where auth_user_id = '${MICAELA_AUTH}'))::text from retail.etiquetas where id = :'id';`,
+  "aprobado|true|true|∅\ntrue"
 );
 
 // ── 2 · aprobar sin comentario ───────────────────────────────────────────────────────────────────────────────────────────
@@ -116,26 +127,26 @@ const aprobarConIntento = (id, notasSql) =>
 
 caso(
   "2a · aprobar SIN comentario (el cuerpo que mandaba la pantalla) → la base lo rechaza con el mensaje del comentario",
-  proponer("Prueba sin comentario") + felipe + aprobarConIntento("id", "") + "\n" + admin + fila("id"),
+  pendienteDeAntes("Prueba sin comentario") + felipe + aprobarConIntento("id", "") + "\n" + admin + fila("id"),
   (s) => s.startsWith(`P0001|${MENSAJE_COMENTARIO}`) && s.endsWith("pendiente|true|false|∅")
 );
 caso(
   "2b · un comentario de solo espacios cuenta como vacío (la pantalla lo recorta y no lo envía)",
-  proponer("Prueba espacios") + felipe + aprobarConIntento("id", ", notas = '   '"),
+  pendienteDeAntes("Prueba espacios") + felipe + aprobarConIntento("id", ", notas = '   '"),
   (s) => s.startsWith(`P0001|${MENSAJE_COMENTARIO}`)
 );
 
 // ── 3 · aprobar con comentario ───────────────────────────────────────────────────────────────────────────────────────────
 caso(
   "3 · aprobar CON comentario → aprobada, activa, con aprobador y el comentario guardado (lo que manda la pantalla ahora)",
-  proponer("Prueba con comentario") + felipe + `update retail.etiquetas set estado = 'aprobado', notas = '${COMENTARIO}' where id = :'id';\n` + admin + fila("id"),
+  pendienteDeAntes("Prueba con comentario") + felipe + `update retail.etiquetas set estado = 'aprobado', notas = '${COMENTARIO}' where id = :'id';\n` + admin + fila("id"),
   `aprobado|true|true|${COMENTARIO}`
 );
 
 // ── 4 · reactivar una rechazada ──────────────────────────────────────────────────────────────────────────────────────────
 caso(
   "4a · reactivar una rechazada SIN motivo previo con solo el estado → la base pide el comentario; con comentario, pasa",
-  proponer("Prueba rechazada sin motivo") +
+  pendienteDeAntes("Prueba rechazada sin motivo") +
     felipe +
     `update retail.etiquetas set estado = 'rechazado' where id = :'id';\n` +
     aprobarConIntento("id", "") +
@@ -147,7 +158,7 @@ caso(
 );
 caso(
   "4b · reactivar una rechazada CON motivo previo: el comentario nuevo REEMPLAZA al motivo del rechazo (no se hereda como descripción)",
-  proponer("Prueba rechazada con motivo") +
+  pendienteDeAntes("Prueba rechazada con motivo") +
     felipe +
     `update retail.etiquetas set estado = 'rechazado', notas = 'Ya existe Oferta' where id = :'id';\n` +
     `update retail.etiquetas set estado = 'aprobado', notas = '${COMENTARIO}' where id = :'id';\n` +
@@ -159,7 +170,7 @@ caso(
 // ── 5 · quién puede aprobar ──────────────────────────────────────────────────────────────────────────────────────────────
 caso(
   "5a · un rol con el módulo Etiquetas (no líder) también aprueba, con comentario",
-  proponer("Prueba aprueba rol") +
+  pendienteDeAntes("Prueba aprueba rol") +
     admin +
     `insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'etiquetas');\n` +
     micaela +
@@ -169,8 +180,8 @@ caso(
   `aprobado|true|true|${COMENTARIO}`
 );
 caso(
-  "5b · sin el módulo Etiquetas no se aprueba ni con comentario: la política no deja actualizar la fila",
-  proponer("Prueba se autoaprueba") +
+  "5b · sin el módulo Etiquetas no aprueba una pendiente de antes ni con comentario: la política no deja actualizar la fila",
+  pendienteDeAntes("Prueba se autoaprueba") +
     micaela +
     `with u as (update retail.etiquetas set estado = 'aprobado', notas = '${COMENTARIO}' where id = :'id' returning 1) select count(*) from u;\n` +
     admin +
@@ -196,9 +207,9 @@ const crearProducto = (ref, etiquetaId) =>
   }, %L::uuid, %L::uuid)$q$, '${ref}', :'cat', ${variantes}::text, ${etiquetaId ? `:'${etiquetaId}', ` : ""}:'marca', :'prov')`;
 
 caso(
-  "6a · una propuesta pendiente NO entra al alta de producto (`crear_producto_con_variantes`); aprobada, sí",
+  "6a · una propuesta pendiente (de antes de ADR-0534) NO entra al alta de producto (`crear_producto_con_variantes`); aprobada, sí",
   FIXTURA_ALTA +
-    proponer("Prueba alta") +
+    pendienteDeAntes("Prueba alta") +
     felipe +
     `select pg_temp.intento(${crearProducto("Producto Prueba Etiqueta Pendiente", "id")});\n` +
     `update retail.etiquetas set estado = 'aprobado', notas = '${COMENTARIO}' where id = :'id';\n` +
@@ -209,9 +220,9 @@ caso(
   (s) => s.split("\n")[0].includes("ya no está disponible en el catálogo") && s.split("\n")[1] === "SIN_ERROR" && s.split("\n")[2] === "1"
 );
 caso(
-  "6b · una propuesta pendiente NO se puede poner en una prenda desde «Prendas» (`etiquetar_variantes`); aprobada, sí",
+  "6b · una propuesta pendiente (de antes de ADR-0534) NO se puede poner en una prenda desde «Prendas» (`etiquetar_variantes`); aprobada, sí",
   FIXTURA_ALTA +
-    proponer("Prueba prendas") +
+    pendienteDeAntes("Prueba prendas") +
     felipe +
     `select retail.crear_producto_con_variantes('Producto Prueba Prendas', :'cat', ${variantes}, null, gen_random_uuid(), null, null, false, null, :'marca', :'prov') as prod \\gset\n` +
     `select id as var from retail.variantes where producto_id = :'prod' \\gset\n` +

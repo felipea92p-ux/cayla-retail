@@ -22,7 +22,7 @@ export function ChipAlerta({ children, titulo }: { children: ReactNode; titulo?:
 
 export function ChipMantener({ children = "Mantener", titulo }: { children?: ReactNode; titulo?: string }) {
   return (
-    <span title={titulo} className="inline-flex items-center gap-2 whitespace-nowrap rounded-lg border border-tinta/15 bg-papel px-3 py-1.5 text-xs leading-none text-tinta/75">
+    <span title={titulo} className="inline-flex items-center gap-2 whitespace-nowrap rounded-lg border border-tinta/15 bg-papel px-3 py-1.5 text-sm leading-none text-tinta/75">
       <ClipboardCheck aria-hidden className="h-3 w-3 shrink-0 text-tinta/60" />
       {children}
     </span>

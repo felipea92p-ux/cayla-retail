@@ -1,0 +1,220 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Proveedores · columna derecha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap">
+<link rel="stylesheet" href="../proveedores-v5-2026-10/base.css">
+<style>
+/* Proveedores ▸ la columna derecha (2026-10-26). Felipe: «hay demasiado texto en todas las tarjetas, tanto que no me dan ganas ni de leer;
+   no sé cómo mostrar eso de mejor manera o simplemente no mostrarlo». Tres respuestas con los MISMOS datos (los de su captura, producción
+   2026-10-26). Solo tokens de la paleta (base.css), movimiento de ADR-0136: una vez al llegar, sin rebote, apagado con reduced-motion. */
+.lienzo{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:22px;align-items:start}
+.lienzo.sin-lado{grid-template-columns:minmax(0,1fr)}
+@media (max-width:1100px){.lienzo{grid-template-columns:minmax(0,1fr)}}
+.lt-tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio)}
+
+/* La tabla de fondo: solo para dar escala, no es parte de la propuesta. */
+.tabla-falsa{padding:6px 0}
+.tf-cab{display:grid;grid-template-columns:28px 24px minmax(0,1.7fr) 110px 56px minmax(0,1.2fr) 120px;gap:14px;padding:10px 18px;font-size:11.5px;color:var(--taupe);text-align:center;border-bottom:1px solid var(--sand)}
+.tf-cab span:nth-child(3){text-align:left}
+.tf-fila{display:grid;grid-template-columns:28px 24px minmax(0,1.7fr) 110px 56px minmax(0,1.2fr) 120px;gap:14px;padding:13px 18px;align-items:center;border-bottom:1px solid color-mix(in srgb,var(--sand) 70%,transparent)}
+.tf-fila:last-child{border-bottom:0}
+.tf-fila b{font-weight:600}
+.caja{width:18px;height:18px;border:1.5px solid var(--sand);border-radius:5px}
+.pista{height:8px;border-radius:99px;background:var(--hueso);overflow:hidden}
+.pista i{display:block;height:100%;background:var(--tinta)}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:2px 10px;font-size:12px;background:var(--hueso)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.verde{color:var(--verde)} .chip.ambar{color:var(--ambar)} .chip.gris{color:var(--taupe)}
+.mini{font-size:12px} .der{text-align:right}
+
+/* ---------- A · Cuatro números ---------- */
+.a{padding:16px;display:grid;gap:10px}
+.a h2,.b h2{font-size:21px;margin-bottom:2px}
+.ficha{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:color-mix(in srgb,var(--hueso) 55%,transparent);
+  text-decoration:none;color:inherit;transition:background .25s var(--ease-cayla)}
+@media (hover:hover){.ficha:hover{background:var(--hueso)}}
+.ficha .ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--papel)}
+.ficha .ic svg{width:18px;height:18px}
+.ficha .fx-cifra{font-family:var(--serif);font-size:28px;line-height:1}
+.ficha .que{font-size:13px;color:color-mix(in srgb,var(--tinta) 72%,transparent);line-height:1.25}
+.ficha .ir{font-size:12px;font-weight:600;color:var(--taupe);white-space:nowrap}
+.ficha.alerta{background:color-mix(in srgb,var(--rojo) 9%,transparent)} .ficha.alerta .fx-cifra{color:var(--rojo-p)}
+.ficha.bien .fx-cifra{color:var(--verde)}
+.pie-a{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--taupe);padding:2px 4px}
+.fx-punto{width:7px;height:7px;border-radius:50%;background:var(--ambar);flex:none}
+
+/* ---------- B · Qué hacer ---------- */
+.b{padding:16px 6px 8px}
+.b h2{padding:0 10px}
+.b .sub{padding:0 10px 8px;font-size:12.5px;color:var(--taupe)}
+.tarea{display:grid;grid-template-columns:26px minmax(0,1fr) auto 14px;align-items:center;gap:10px;padding:11px 10px;border-radius:10px;color:inherit;text-decoration:none;
+  transition:background .25s var(--ease-cayla)}
+@media (hover:hover){.tarea:hover{background:color-mix(in srgb,var(--hueso) 70%,transparent)} .tarea:hover .flecha{transform:translateX(3px)}}
+.tarea + .tarea{border-top:1px solid color-mix(in srgb,var(--sand) 70%,transparent)}
+.tarea .ic{display:grid;place-items:center} .tarea .ic svg{width:18px;height:18px}
+.tarea .verbo{font-size:14.5px;line-height:1.3} .tarea .verbo b{font-weight:600}
+.tarea .n{font-variant-numeric:tabular-nums;font-weight:600;font-size:14px}
+.tarea .flecha{width:14px;height:14px;color:var(--taupe);transition:transform .25s var(--ease-cayla)}
+.tarea.urgente .ic,.tarea.urgente .n{color:var(--rojo-p)}
+.tarea.ok .ic{color:var(--verde)}
+.b .resumen{margin:8px 10px 6px;padding-top:10px;border-top:1px solid var(--sand);font-size:12px;color:var(--taupe);display:flex;gap:6px 14px;flex-wrap:wrap}
+
+/* ---------- C · Sin columna: una franja ---------- */
+.franja{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;padding:10px 14px;border-radius:12px;background:color-mix(in srgb,var(--hueso) 55%,transparent);font-size:13.5px}
+.franja .t{font-weight:600;margin-right:4px}
+.pil{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--sand);background:var(--papel);border-radius:99px;padding:5px 12px;font-size:13px;color:inherit;text-decoration:none;
+  transition:border-color .2s}
+@media (hover:hover){.pil:hover{border-color:var(--tinta)}}
+.pil b{font-weight:600}
+.pil.urgente{border-color:color-mix(in srgb,var(--rojo) 45%,transparent);color:var(--rojo-p)}
+.pil.ok{color:var(--verde)}
+.pil svg{width:14px;height:14px}
+.franja .resto{margin-left:auto;font-size:12px;color:var(--taupe)}
+
+/* Llegada: una vez, en cascada corta, sin rebote. */
+.entra{animation:entra .5s var(--ease-cayla) both;animation-delay:calc(var(--i,0) * 55ms)}
+@keyframes entra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.cuenta{display:inline-block}
+@media (prefers-reduced-motion:reduce){.entra{animation:none}}
+.mq-seg + .mq-seg{margin-left:6px}
+</style></head>
+<body>
+<div class="mq-barra">
+  <span class="mq-titulo">Proveedores · la columna derecha <small>tres formas, mismos datos</small></span>
+  <div class="mq-seg" role="group" aria-label="Forma">
+    <button data-forma="a">A · Cuatro números</button><button data-forma="b">B · Qué hacer</button><button data-forma="c">C · Sin columna</button>
+  </div>
+  <div class="mq-seg" role="group" aria-label="Estado">
+    <button data-estado="aldia">Todo al día</button><button data-estado="pend">Con pendientes</button>
+  </div>
+  <button class="mq-tema" id="mq-tema">Oscuro</button>
+</div>
+<p class="mq-nota" id="mq-nota"></p>
+<main class="pagina">
+  <div class="cab">
+    <div class="cab-izq">
+      <span class="linea-sede">TODAS LAS TIENDAS · LUNES, 26 DE OCTUBRE</span>
+      <h1>Proveedores</h1>
+    </div>
+  </div>
+  <div id="franja"></div>
+  <div class="lienzo" id="lienzo">
+    <section class="lt-tarjeta tabla-falsa" aria-label="La tabla (solo para dar escala)">
+      <div class="tf-cab"><span></span><span>#</span><span>Proveedor</span><span>Ventas</span><span>Vendido</span><span>Te llegó · prendas</span><span>Se vende en</span></div>
+      <div id="filas"></div>
+    </section>
+    <aside id="lado"></aside>
+  </div>
+</main>
+<script>
+(function () {
+  // Los datos de la captura de Felipe (producción, 2026-10-26). «Con pendientes» suma lo vencido y lo atrasado que se vio en local.
+  const D = {
+    prendas: 2885, proveedores: 51, vendidas: 874, top10: 58, carga: 99, sin90: 100,
+    ritmo: { repon: 9, medio: 6, frena: 5, nomide: 31 },
+    frenaMayor: { nombre: "Lasak Store EIRL", semanas: 79 },
+    pend: { vencido: "S/ 5,134", conVencido: 1, atrasadas: 2, aFavor: null },
+  };
+  const FILAS = [
+    ["Deyner Ignacio Livaque Huaman", "Polos", 51, 407, "3 sem", "Repón", "verde", 47],
+    ["Textil Anqori", "Blusas", 4, 138, "22 sem", "Frena compras", "ambar", 14],
+    ["Lasak Store EIRL", "Casacas", 1, 183, "79 sem", "Frena compras", "ambar", 3],
+    ["Corporaciones Wayi", "Jeans", 6, 120, "19 sem", "Frena compras", "ambar", 30],
+    ["Marisol Bellido", "Vestidos", 9, 96, "9 sem", "A su ritmo", "gris", 45],
+    ["Jacard", "Chompas", 5, 82, "15 sem", "A su ritmo", "gris", 28],
+  ];
+  const IC = {
+    alerta: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+    camion: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>',
+    ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>',
+    frena: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>',
+    repon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>',
+    polo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>',
+    reloj: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+    flecha: '<svg class="flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
+  };
+  const NOTAS = {
+    a: "<b>A · Cuatro números.</b> Cada tarjeta es una cifra grande y tres o cuatro palabras; el porqué largo se va al tocarla (filtra la tabla o abre la página). Se queda con: lo urgente de hoy, cuánto se vendió, a cuántos frenar y a cuántos reponer. Se van la concentración de los 10 primeros y los 100 sin compra en 90 días; el «costo por confirmar» baja a una línea chica.",
+    b: "<b>B · Qué hacer.</b> Una sola lista de tareas, cada una con un verbo, un número y una flecha; nada de párrafos. Lo urgente arriba y en rojo. Tocar una tarea filtra la tabla («Frenar») o lleva a su página («Pagar», «Recibir»). Lo que no pide hacer nada (concentración, % vendido) queda en una línea gris al pie.",
+    c: "<b>C · Sin columna.</b> La tabla ocupa todo el ancho. Lo urgente sube a una franja sobre la tabla, como píldoras que se tocan; si no hay nada urgente, la franja dice «Todo al día» en una línea. Frenar y reponer ya están en el filtro «Ritmo» y en la insignia de cada fila, así que no se repiten.",
+  };
+  let forma = "b", estado = "pend";
+  const pct = Math.round((D.vendidas / D.prendas) * 100);
+  const n = (x) => x.toLocaleString("es-PE");
+  const hayPend = () => estado === "pend";
+
+  function filas() {
+    document.getElementById("filas").innerHTML = FILAS.map((f, i) =>
+      `<div class="tf-fila"><span class="caja"></span><span class="tenue der mini">${i + 1}</span><span><b>${f[0]}</b><br><span class="tenue mini">${f[1]}</span></span>
+       <span class="tenue mini" style="text-align:center">${f[2]} esta semana</span><span class="mini" style="text-align:center">${f[7]}%</span>
+       <span style="display:flex;align-items:center;gap:10px"><span class="pista" style="flex:1"><i style="width:${(f[3] / 407) * f[7]}%"></i></span><b class="mini">${f[3]}</b></span>
+       <span style="text-align:center"><span class="tenue mini">${f[4]}</span><br><span class="chip ${f[6]}">${f[5]}</span></span></div>`).join("");
+  }
+
+  function ladoA() {
+    const fichas = [];
+    if (hayPend()) {
+      fichas.push(`<a class="ficha alerta" href="#"><span class="ic" style="color:var(--rojo-p)">${IC.alerta}</span><span><span class="fx-cifra">${D.pend.vencido}</span><br><span class="que">vencido · paga antes de pedir</span></span><span class="ir">Pagar ›</span></a>`);
+      fichas.push(`<a class="ficha alerta" href="#"><span class="ic" style="color:var(--rojo-p)">${IC.camion}</span><span><span class="fx-cifra">${D.pend.atrasadas}</span><br><span class="que">entregas atrasadas</span></span><span class="ir">Reclamar ›</span></a>`);
+    } else {
+      fichas.push(`<div class="ficha bien"><span class="ic" style="color:var(--verde)">${IC.ok}</span><span><span class="fx-cifra">Al día</span><br><span class="que">nada vencido ni atrasado</span></span><span></span></div>`);
+    }
+    fichas.push(`<a class="ficha" href="#"><span class="ic">${IC.polo}</span><span><span class="fx-cifra">${pct} %</span><br><span class="que">de lo que te llegó ya se vendió</span></span><span class="ir"></span></a>`);
+    fichas.push(`<a class="ficha" href="#"><span class="ic" style="color:var(--ambar)">${IC.frena}</span><span><span class="fx-cifra">${D.ritmo.frena}</span><br><span class="que">para frenar compras</span></span><span class="ir">Ver ›</span></a>`);
+    fichas.push(`<a class="ficha" href="#"><span class="ic" style="color:var(--verde)">${IC.repon}</span><span><span class="fx-cifra">${D.ritmo.repon}</span><br><span class="que">para reponer</span></span><span class="ir">Ver ›</span></a>`);
+    return `<div class="lt-tarjeta a"><h2>De un vistazo</h2>${fichas.map((f, i) => f.replace('class="ficha', `style="--i:${i}" class="entra ficha`)).join("")}
+      <p class="pie-a"><span class="fx-punto"></span>El ${D.carga} % llegó en la carga inicial: costos por confirmar.</p></div>`;
+  }
+
+  function ladoB() {
+    const t = [];
+    if (hayPend()) {
+      t.push(["urgente", IC.alerta, `<b>Paga</b> lo vencido`, D.pend.vencido]);
+      t.push(["urgente", IC.camion, `<b>Reclama</b> entregas atrasadas`, D.pend.atrasadas]);
+    } else {
+      t.push(["ok", IC.ok, `Nada vencido ni atrasado`, ""]);
+    }
+    t.push(["", IC.frena, `<b>Frena</b> compras a proveedores lentos`, D.ritmo.frena]);
+    t.push(["", IC.repon, `<b>Repón</b> a los que se agotan`, D.ritmo.repon]);
+    t.push(["", IC.reloj, `<b>Revisa</b> sin compras en 90 días`, D.sin90]);
+    return `<div class="lt-tarjeta b"><h2>Qué hacer</h2><p class="sub">Toca una para ir a ella</p>
+      ${t.map((x, i) => `<a href="#" class="tarea entra ${x[0]}" style="--i:${i}"><span class="ic">${x[1]}</span><span class="verbo">${x[2]}</span><span class="n">${x[3]}</span>${x[3] !== "" ? IC.flecha : "<span></span>"}</a>`).join("")}
+      <p class="resumen"><span>${pct} % vendido de ${n(D.prendas)} prendas</span><span>Costos por confirmar: ${D.carga} % carga inicial</span></p></div>`;
+  }
+
+  function franjaC() {
+    const p = [];
+    if (hayPend()) {
+      p.push(`<a href="#" class="pil urgente entra" style="--i:0">${IC.alerta}<b>${D.pend.vencido}</b> vencido · Pagar</a>`);
+      p.push(`<a href="#" class="pil urgente entra" style="--i:1">${IC.camion}<b>${D.pend.atrasadas}</b> entregas atrasadas · Reclamar</a>`);
+    } else {
+      p.push(`<span class="pil ok entra" style="--i:0">${IC.ok}Todo al día: nada vencido ni atrasado</span>`);
+    }
+    return `<div class="franja"><span class="t">Para hoy</span>${p.join("")}<span class="resto">${pct} % vendido · costos por confirmar (${D.carga} % carga inicial)</span></div>`;
+  }
+
+  function pintar() {
+    document.querySelectorAll("[data-forma]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.forma === forma)));
+    document.querySelectorAll("[data-estado]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.estado === estado)));
+    document.getElementById("mq-nota").innerHTML = NOTAS[forma];
+    const lienzo = document.getElementById("lienzo");
+    lienzo.classList.toggle("sin-lado", forma === "c");
+    document.getElementById("lado").innerHTML = forma === "a" ? ladoA() : forma === "b" ? ladoB() : "";
+    document.getElementById("franja").innerHTML = forma === "c" ? franjaC() : "";
+  }
+
+  document.querySelectorAll("[data-forma]").forEach((b) => b.addEventListener("click", () => { forma = b.dataset.forma; pintar(); }));
+  document.querySelectorAll("[data-estado]").forEach((b) => b.addEventListener("click", () => { estado = b.dataset.estado; pintar(); }));
+  document.querySelectorAll("a[href='#']").forEach((a) => a.addEventListener("click", (e) => e.preventDefault()));
+  document.addEventListener("click", (e) => { if (e.target.closest("a[href='#']")) e.preventDefault(); });
+  const tema = document.getElementById("mq-tema");
+  tema.addEventListener("click", () => {
+    const oscuro = document.documentElement.dataset.theme !== "dark";
+    document.documentElement.dataset.theme = oscuro ? "dark" : "light";
+    tema.textContent = oscuro ? "Claro" : "Oscuro";
+  });
+  filas();
+  pintar();
+})();
+</script>
+</body></html>

@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Existencias: tarjetas con profundidad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<!-- Maqueta 2026-10-31 (propuesta, sin implementar). Nombres y precios: la captura de Felipe (Tienda AQP, 31-oct). Las cantidades de
+     algunas tallas y los colores extra son EJEMPLO. Colores: los tokens de globals.css / estilos/tema.css (oscuro del 2026-10-26).
+     Las fotos se dibujan como la prenda sin foto (ADR-0333): el ícono sobre el color de la prenda. -->
+<style>
+:root{
+  --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;--borde-control:#9a8576;
+  --verde:#48603f;--ambar:#74501a;--ambar-p:#734f15;--pizarra:#4c5d6e;--rojo:#b8412d;--rojo-p:#8b2a1f;
+  --sombra:#1a1a18;--vidrio:#ffffff;--tinta-fija:#1a1a18;--crema-fija:#f5f0e8;
+  --ease:cubic-bezier(0.32,0.72,0.24,1);
+  /* Lo nuevo que se propone (A, B, C): dos sombras de REPOSO para lo que está pegado al fondo, el filo de luz y el pozo. */
+  --reposo: 0 1px 1px color-mix(in srgb,var(--sombra) 4%,transparent), 0 6px 16px -8px color-mix(in srgb,var(--sombra) 12%,transparent);
+  --alzada: 0 2px 4px color-mix(in srgb,var(--sombra) 5%,transparent), 0 22px 40px -18px color-mix(in srgb,var(--sombra) 26%,transparent);
+  --filo: inset 0 1px 0 color-mix(in srgb,#fff 85%,transparent);
+  --pozo: inset 0 1px 2px color-mix(in srgb,var(--sombra) 9%,transparent);
+}
+:root[data-tema="oscuro"]{
+  --crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--borde-control:#8d7a6e;
+  --verde:#9ccb8d;--ambar:#e4b968;--ambar-p:#ecc676;--pizarra:#a2b8cd;--rojo:#e8806a;--rojo-p:#f29a86;
+  --sombra:#000000;--vidrio:#33302a;
+  --reposo: 0 1px 1px color-mix(in srgb,var(--sombra) 30%,transparent), 0 8px 18px -10px color-mix(in srgb,var(--sombra) 55%,transparent);
+  --alzada: 0 2px 4px color-mix(in srgb,var(--sombra) 35%,transparent), 0 24px 44px -18px color-mix(in srgb,var(--sombra) 75%,transparent);
+  --filo: inset 0 1px 0 color-mix(in srgb,#fff 6%,transparent);
+  --pozo: inset 0 1px 2px color-mix(in srgb,var(--sombra) 45%,transparent);
+}
+*{box-sizing:border-box;margin:0}
+body{background:var(--crema);color:var(--tinta);font-family:"DM Sans",system-ui,sans-serif;font-size:14px;padding:28px 28px 96px;transition:background .3s}
+h1{font-family:"EB Garamond",serif;font-weight:500;font-size:40px;line-height:1.05}
+.bajada{color:var(--taupe);max-width:900px;line-height:1.55;margin-top:8px}
+.bajada b{color:var(--tinta);font-weight:600}
+.barra{position:sticky;top:0;z-index:5;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:18px -28px 18px;padding:12px 28px;background:color-mix(in srgb,var(--crema) 88%,transparent);backdrop-filter:blur(8px)}
+.btn{font:inherit;font-size:13px;border:1px solid var(--borde-control);background:var(--papel);color:var(--tinta);border-radius:999px;padding:7px 14px;cursor:pointer}
+.btn[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.sep{width:1px;height:22px;background:var(--sand);margin:0 4px}
+.nota{background:var(--hueso);border-radius:14px;padding:14px 16px;max-width:1100px;line-height:1.55;margin-bottom:18px}
+.nota b{font-weight:600}
+.nota ul{margin:6px 0 0 18px;padding:0}
+.nota li{margin:3px 0}
+.rejilla{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,19rem),1fr))}
+
+/* ====================== Piezas comunes ====================== */
+.foto{position:relative;display:grid;place-items:center;overflow:hidden;border-radius:9px;flex-shrink:0}
+.foto svg{width:46%;height:46%;opacity:.55}
+.punto{border-radius:999px;flex-shrink:0;outline:1px solid color-mix(in srgb,var(--tinta) 20%,transparent);width:14px;height:14px;cursor:pointer}
+.punto.si{width:20px;height:20px;outline:2px solid var(--tinta);outline-offset:2px}
+.mas-n{font-size:11px;color:var(--taupe);font-weight:600}
+.precio{font-family:"EB Garamond",serif;font-size:15px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.nombre{font-family:"EB Garamond",serif;font-size:16.5px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.color-n{font-size:12px;font-weight:600}
+.estado{font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.estado.rojo{color:var(--rojo-p)}
+.estado.verde{color:var(--verde)}
+.estado.ambar{color:var(--ambar-p)}
+.estado i{width:7px;height:7px;border-radius:999px;background:currentColor}
+.btn-colgar{font:inherit;font-size:12.5px;font-weight:600;border:1px solid var(--borde-control);background:var(--papel);color:var(--tinta);border-radius:10px;padding:6px 10px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.btn-mas{font:inherit;font-size:13px;border:1px solid var(--borde-control);background:transparent;color:var(--tinta);border-radius:10px;padding:6px 12px;cursor:pointer}
+.puntos3{width:32px;height:32px;border:0;border-radius:10px;background:transparent;color:var(--taupe);cursor:pointer;display:grid;place-items:center;font-size:18px;letter-spacing:1px}
+.puntos3:hover{background:color-mix(in srgb,var(--tinta) 7%,transparent);color:var(--tinta)}
+
+/* ====================== HOY (referencia) ====================== */
+.v-hoy .t{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;cursor:pointer}
+.v-hoy .t:hover{border-color:color-mix(in srgb,var(--tinta) 25%,transparent)}
+.v-hoy .cab{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:10px;align-items:center}
+.v-hoy .foto{width:40px;height:46px}
+.v-hoy .colores{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin-top:4px}
+.v-hoy .tallas{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px}
+.v-hoy .ta{border-radius:9px;border:1px solid transparent;text-align:center;padding:4px 2px 6px}
+.v-hoy .ta .tn{font-size:11px;font-weight:600;color:var(--taupe)}
+.v-hoy .ta .tc{font-size:22px;font-weight:600;line-height:1.1}
+.v-hoy .ta .tg{font-size:10.5px;color:var(--taupe)}
+.v-hoy .ta.agotada{background:color-mix(in srgb,var(--rojo) 10%,transparent);border-color:color-mix(in srgb,var(--rojo) 25%,transparent);color:var(--rojo-p)}
+.v-hoy .ta.agotada .tn,.v-hoy .ta.agotada .tg{color:var(--rojo-p);font-weight:600}
+.v-hoy .ta.falta{background:color-mix(in srgb,var(--ambar) 13%,transparent);border-color:color-mix(in srgb,var(--ambar) 30%,transparent);color:var(--ambar-p)}
+.v-hoy .pie{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:6px}
+
+/* ====================== A · RELIEVE ====================== */
+/* La misma tarjeta, con cuerpo: sombra de reposo, filo de luz arriba, las tallas en un pozo hundido y el pie separado. */
+.v-a .t{background:linear-gradient(180deg,var(--papel),color-mix(in srgb,var(--papel) 70%,var(--crema)));border:1px solid color-mix(in srgb,var(--sand) 80%,transparent);border-radius:18px;padding:14px;display:grid;grid-template-rows:auto 1fr auto;gap:12px;cursor:pointer;
+  box-shadow:var(--filo),var(--reposo);transition:transform .32s var(--ease),box-shadow .32s var(--ease),border-color .32s var(--ease)}
+.v-a .t:hover{transform:translateY(-3px);box-shadow:var(--filo),var(--alzada);border-color:color-mix(in srgb,var(--tinta) 14%,transparent)}
+.v-a .cab{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:12px;align-items:center}
+.v-a .foto{width:48px;height:56px;border-radius:11px;box-shadow:0 4px 10px -6px color-mix(in srgb,var(--sombra) 40%,transparent)}
+.v-a .colores{display:flex;gap:9px;align-items:center;margin-top:6px;min-width:0}
+.v-a .pozo{align-self:start;background:var(--hueso);box-shadow:var(--pozo);border-radius:13px;padding:5px;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px}
+.v-a .ta{border-radius:9px;text-align:center;padding:5px 2px 6px;transition:background .25s var(--ease),transform .25s var(--ease)}
+.v-a .ta:hover{background:var(--papel);transform:translateY(-1px)}
+.v-a .ta .tn{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--taupe)}
+.v-a .ta .tc{font-size:22px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.v-a .ta .tg{font-size:10.5px;color:var(--taupe)}
+.v-a .ta.agotada .tc{color:var(--rojo-p);font-weight:500}
+.v-a .ta.agotada .tn{color:var(--rojo-p)}
+.v-a .ta.agotada{background:color-mix(in srgb,var(--rojo) 9%,transparent)}
+.v-a .ta.falta{background:color-mix(in srgb,var(--ambar) 12%,transparent)}
+.v-a .ta.falta .tc,.v-a .ta.falta .tn{color:var(--ambar-p)}
+.v-a .pie{display:flex;justify-content:space-between;align-items:center;gap:6px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--sand) 90%,transparent);min-height:43px}
+
+/* ====================== B · VITRINA ====================== */
+/* La prenda manda: la foto grande a la izquierda, a todo el alto; a la derecha nombre, color y la tira de tallas.
+   Todas las tarjetas miden lo mismo: la rejilla se lee como una vitrina, no como un muro de cajas. */
+.v-b .rejilla{grid-template-columns:repeat(auto-fill,minmax(min(100%,21rem),1fr))}
+.v-b .t{position:relative;background:var(--papel);border-radius:20px;padding:10px;display:grid;grid-template-columns:104px minmax(0,1fr);gap:14px;height:172px;cursor:pointer;
+  border:1px solid color-mix(in srgb,var(--sand) 70%,transparent);box-shadow:var(--filo),var(--reposo);transition:transform .32s var(--ease),box-shadow .32s var(--ease)}
+.v-b .t:hover{transform:translateY(-3px);box-shadow:var(--filo),var(--alzada)}
+.v-b .t:hover .foto svg{transform:scale(1.06)}
+.v-b .foto{width:104px;height:150px;border-radius:14px}
+.v-b .foto svg{transition:transform .5s var(--ease)}
+.v-b .foto .chapa{position:absolute;left:4px;right:4px;bottom:5px;display:flex;gap:4px;align-items:center;justify-content:center;padding:5px;border-radius:999px;
+  background:color-mix(in srgb,var(--papel) 82%,transparent);backdrop-filter:blur(6px);box-shadow:0 2px 8px -4px color-mix(in srgb,var(--sombra) 35%,transparent)}
+.v-b .foto .chapa .punto{width:12px;height:12px}
+.v-b .foto .chapa .punto.si{width:14px;height:14px;outline-offset:1.5px;outline-width:1.5px}
+/* La columna de la derecha tiene que poder encogerse (minmax(0,1fr)): con «auto», una tira de 5 tallas la ensanchaba y el precio, la
+   tira y el pie se salían de la tarjeta a 375 px (medido). */
+.v-b .der{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto 1fr auto;min-width:0;padding:4px 2px 0 0}
+.v-b .fila1{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.v-b .nombre{font-size:17.5px}
+.v-b .color-n{color:var(--taupe);font-weight:500;margin-top:1px}
+.v-b .tira{align-self:center;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);background:var(--hueso);box-shadow:var(--pozo);border-radius:12px;padding:4px;gap:3px}
+.v-b .ta{border-radius:8px;text-align:center;padding:4px 1px 5px;min-width:0}
+.v-b .ta:hover{background:var(--papel)}
+.v-b .ta .tn{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--taupe)}
+.v-b .ta .tc{font-size:19px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.v-b .ta .tg{font-size:10px;color:var(--taupe);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v-b .tira{min-width:0}
+.v-b .ta.agotada{background:color-mix(in srgb,var(--rojo) 9%,transparent)}
+.v-b .ta.agotada .tc,.v-b .ta.agotada .tn{color:var(--rojo-p)}
+.v-b .ta.falta{background:color-mix(in srgb,var(--ambar) 12%,transparent)}
+.v-b .ta.falta .tc,.v-b .ta.falta .tn{color:var(--ambar-p)}
+.v-b .pie{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.v-b .btn-colgar{padding:5px 9px}
+/* El filo de estado: una línea de 3 px en el canto izquierdo de la foto dice, desde lejos, qué tarjetas piden algo. */
+.v-b .t[data-e="rojo"]::before,.v-b .t[data-e="ambar"]::before{content:"";position:absolute;left:-1px;top:22px;bottom:22px;width:3px;border-radius:0 3px 3px 0}
+.v-b .t[data-e="rojo"]::before{background:var(--rojo)}
+.v-b .t[data-e="ambar"]::before{background:var(--ambar)}
+
+/* ====================== C · VIDRIO ====================== */
+/* La vitrina de B hecha del vidrio que ya usan las cifras de arriba (TarjetaKpiVidrio): relleno de vidrio translúcido sobre un fondo
+   con dos manchas suaves, filo de luz y una luz que sigue al mouse. Es la más «futurista» y la más cara de mantener. */
+.v-c{position:relative}
+.v-c .ambiente{position:absolute;inset:-40px -28px;z-index:-1;pointer-events:none;
+  background:radial-gradient(40% 50% at 15% 20%,color-mix(in srgb,var(--sand) 90%,transparent),transparent 70%),
+             radial-gradient(35% 45% at 85% 70%,color-mix(in srgb,var(--hueso) 95%,transparent),transparent 70%)}
+:root[data-tema="oscuro"] .v-c .ambiente{opacity:.45}
+.v-c .rejilla{grid-template-columns:repeat(auto-fill,minmax(min(100%,21rem),1fr))}
+.v-c .t{--mx:50%;--my:0%;position:relative;overflow:hidden;border-radius:22px;padding:10px;display:grid;grid-template-columns:104px minmax(0,1fr);gap:14px;height:172px;cursor:pointer;
+  background:color-mix(in srgb,var(--vidrio) 55%,transparent);backdrop-filter:blur(14px) saturate(1.1);
+  border:1px solid color-mix(in srgb,var(--vidrio) 80%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 70%,transparent),var(--reposo);transition:transform .32s var(--ease),box-shadow .32s var(--ease)}
+:root[data-tema="oscuro"] .v-c .t{border-color:color-mix(in srgb,#fff 7%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent),var(--reposo)}
+.v-c .t::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .4s var(--ease);
+  background:radial-gradient(220px circle at var(--mx) var(--my),color-mix(in srgb,#fff 45%,transparent),transparent 60%)}
+:root[data-tema="oscuro"] .v-c .t::after{background:radial-gradient(220px circle at var(--mx) var(--my),color-mix(in srgb,#fff 6%,transparent),transparent 60%)}
+.v-c .t:hover{transform:translateY(-3px);box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 70%,transparent),var(--alzada)}
+.v-c .t:hover::after{opacity:1}
+.v-c .foto{width:104px;height:150px;border-radius:15px;box-shadow:0 10px 20px -12px color-mix(in srgb,var(--sombra) 55%,transparent)}
+.v-c .foto .chapa{position:absolute;left:4px;right:4px;bottom:5px;display:flex;gap:4px;align-items:center;justify-content:center;padding:5px;border-radius:999px;
+  background:color-mix(in srgb,var(--papel) 78%,transparent);backdrop-filter:blur(6px)}
+.v-c .foto .chapa .punto{width:12px;height:12px}
+.v-c .foto .chapa .punto.si{width:14px;height:14px;outline-offset:1.5px;outline-width:1.5px}
+.v-c .der{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto 1fr auto;min-width:0;padding:4px 2px 0 0}
+.v-c .fila1{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.v-c .nombre{font-size:17.5px}
+.v-c .color-n{color:var(--taupe);font-weight:500;margin-top:1px}
+.v-c .tira{align-self:center;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:5px}
+.v-c .ta{border-radius:10px;text-align:center;padding:4px 1px 5px;min-width:0;background:color-mix(in srgb,var(--papel) 70%,transparent);border:1px solid color-mix(in srgb,var(--sand) 70%,transparent)}
+.v-c .ta .tn{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--taupe)}
+.v-c .ta .tc{font-size:19px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.v-c .ta .tg{font-size:10px;color:var(--taupe);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v-c .tira{min-width:0}
+.v-c .ta.agotada{border-color:color-mix(in srgb,var(--rojo) 35%,transparent);background:color-mix(in srgb,var(--rojo) 8%,transparent)}
+.v-c .ta.agotada .tc,.v-c .ta.agotada .tn{color:var(--rojo-p)}
+.v-c .ta.falta{border-color:color-mix(in srgb,var(--ambar) 40%,transparent);background:color-mix(in srgb,var(--ambar) 10%,transparent)}
+.v-c .ta.falta .tc,.v-c .ta.falta .tn{color:var(--ambar-p)}
+.v-c .pie{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.v-c .btn-colgar{padding:5px 9px;background:color-mix(in srgb,var(--papel) 80%,transparent)}
+
+/* Muchos colores (B y C): la chapa muestra 3 y «+N» (hasta 5 colores, todos); el que se ve va siempre primero. La chapa NO se abre:
+   «+N» abre el modal de la prenda, que ya muestra todos los colores del modelo (Felipe 2026-10-31: «si tienen que ver más colores,
+   que entren al modal»). Así la tarjeta no cambia nunca de forma. */
+button.mas-n{flex-shrink:0;font:inherit;font-size:10.5px;font-weight:700;color:var(--tinta);border:0;background:color-mix(in srgb,var(--tinta) 9%,transparent);border-radius:999px;padding:1px 4px;cursor:pointer;line-height:14px}
+button.mas-n:hover{background:color-mix(in srgb,var(--tinta) 16%,transparent)}
+
+#modal{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:16px;background:color-mix(in srgb,var(--sombra) 25%,transparent);backdrop-filter:blur(4px)}
+:root[data-tema="oscuro"] #modal{background:color-mix(in srgb,var(--sombra) 55%,transparent)}
+#modal[hidden]{display:none}
+.m-hoja{position:relative;width:min(100%,448px);background:var(--papel);border-radius:20px;padding:22px 22px 18px}
+.m-hoja h2{font-family:"EB Garamond",serif;font-weight:500;font-size:24px;line-height:1.1;padding-right:36px}
+.m-frase{color:var(--taupe);margin-top:4px}
+.m-cerrar{position:absolute;top:14px;right:14px;width:32px;height:32px;border:0;border-radius:999px;background:transparent;color:var(--tinta);font-size:22px;cursor:pointer}
+.m-colores{display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:16px}
+.m-color{display:inline-flex;align-items:center;gap:7px;font-size:13px}
+.m-nota{margin-top:16px;font-size:12px;color:var(--taupe)}
+
+.vista{display:none}
+.vista.activa{display:block}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+<h1>Existencias: tarjetas con profundidad</h1>
+<p class="bajada">Las mismas prendas de tu captura (Tienda AQP), dibujadas de cuatro maneras. <b>Pasa el mouse</b> por las tarjetas, cambia a
+<b>oscuro</b> y achica la ventana: todo es tocable. «Hoy» es como está ahora, para comparar. Nada de esto está en el ERP todavía.</p>
+
+<div class="barra" role="toolbar">
+  <button class="btn" data-v="hoy">Hoy</button>
+  <button class="btn" data-v="a" aria-pressed="true">A · Relieve</button>
+  <button class="btn" data-v="b">B · Vitrina</button>
+  <button class="btn" data-v="c">C · Vidrio</button>
+  <span class="sep"></span>
+  <button class="btn" id="tema">Oscuro</button>
+</div>
+
+<section class="vista v-hoy" data-vista="hoy">
+  <div class="nota"><b>Hoy.</b> Papel (#fbf8f2) sobre crema (#f5f0e8): la diferencia de luz entre la tarjeta y el fondo es casi nula, así que lo único
+  que separa una tarjeta de otra es una línea de 1 px. La foto mide 40 px. El bloque rojo de «se acabó» pesa más que todo lo demás, y lo repite
+  el texto rojo del pie. Cada tarjeta mide distinto según cuántos colores tenga, y veinte botones «Más» con borde forman una segunda rejilla.</div>
+  <div class="rejilla" data-rejilla></div>
+</section>
+
+<section class="vista v-a activa" data-vista="a">
+  <div class="nota"><b>A · Relieve.</b> La misma tarjeta y el mismo orden, con cuerpo:
+  <ul>
+    <li>Una <b>sombra de reposo</b> corta y tibia (hoy prohibida para lo pegado al fondo: ADR-0012) y un <b>filo de luz</b> de 1 px arriba.</li>
+    <li>Las tallas viven en un <b>pozo hundido</b> de hueso: la cifra se lee como un instrumento, no como texto suelto.</li>
+    <li>«Se acabó» ya no es un bloque rosado: la celda se tiñe apenas y el pie lo dice una vez. «Más» pasa a «⋯» (la regla de una fila de una lista).</li>
+    <li>Al pasar el mouse la tarjeta <b>sube 3 px</b> y su sombra se alarga. Sin rebote.</li>
+  </ul>
+  Es el cambio más barato: es <b>una clase</b> (`card-cayla`) y lo hereda todo el ERP.</div>
+  <div class="rejilla" data-rejilla></div>
+</section>
+
+<section class="vista v-b" data-vista="b">
+  <div class="nota"><b>B · Vitrina.</b> Relieve de A + la prenda primero:
+  <ul>
+    <li>La <b>foto a todo el alto</b> (104 × 150 px en vez de 40 × 46): en una tienda de ropa la prenda se reconoce por la foto antes que por el nombre.</li>
+    <li>Los <b>colores en una chapa de vidrio sobre la foto</b>, en una sola línea: hasta 5 se ven todos; con más, 3 y «+N». <b>«+N» abre el modal de la prenda</b> con todos sus colores: la tarjeta nunca cambia de forma.</li>
+    <li><b>Todas las tarjetas miden lo mismo</b> → filas rectas, la rejilla deja de verse desordenada.</li>
+    <li>Un <b>filo de color</b> en el canto (rojo = se acabó, ámbar = falta colgar) dice desde lejos qué tarjetas piden algo.</li>
+  </ul></div>
+  <div class="rejilla" data-rejilla></div>
+</section>
+
+<section class="vista v-c" data-vista="c">
+  <div class="ambiente"></div>
+  <div class="nota"><b>C · Vidrio.</b> La vitrina de B hecha del <b>vidrio que ya usan las cifras de arriba</b> (la tarjeta «457 de 1440»):
+  relleno translúcido con desenfoque, filo de luz, cada talla en su propia baldosa y una <b>luz que sigue al mouse</b>. Es la más
+  «de hoy», pero también la más cara: el desenfoque cuesta en una lista de 247 tarjetas y el fondo necesita manchas de color para que el vidrio se note.</div>
+  <div class="rejilla" data-rejilla></div>
+</section>
+
+<div id="modal" hidden>
+  <div class="m-hoja" role="dialog" aria-modal="true" aria-labelledby="m-titulo">
+    <button class="m-cerrar" aria-label="Cerrar">×</button>
+    <h2 id="m-titulo"></h2><p class="m-frase"></p>
+    <div class="m-colores"></div>
+    <p class="m-nota">Maqueta: en el ERP es el modal de la prenda de siempre, abierto en el color que se ve.</p>
+  </div>
+</div>
+<script>
+const ICONO = {
+  ropa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3l-5 3 2 5 3-1v11h8V10l3 1 2-5-5-3a4 4 0 0 1-8 0z"/></svg>',
+  falda:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3h8l4 18H4L8 3z"/><path d="M8 7h8"/></svg>',
+  joya:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="14" r="6"/><path d="M9 5l3 3 3-3-1-2h-4z"/></svg>',
+  mascara:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 9c3-2 7-2 10 1 3-3 7-3 10-1-1 5-4 7-7 6l-3-2-3 2c-3 1-6-1-7-6z"/></svg>',
+  ala:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 12C9 4 3 4 3 9s5 6 9 3zm0 0c3-8 9-8 9-3s-5 6-9 3z"/><path d="M12 12v8"/></svg>',
+};
+// [nombre, precio, icono, colores [nombre, hex], tallas [talla, piso, almacen]]  (piso null = se acabó)
+const P = [
+  ["Alas de Hada",39.9,"ala",[["Crema","#efe6d2"]],[["Estándar",null,0]]],
+  ["Anillo para Bufanda",8.9,"joya",[["Dorado","#c9a24a"],["Plateado","#b9bcc0"]],[["Estándar",7,0]]],
+  ["Anillos",25.9,"joya",[["Dorado","#c9a24a"],["Plateado","#b9bcc0"]],[["6",4,0],["7",4,0],["8",4,0]]],
+  ["Antifaz Encaje",9.9,"mascara",[["Blanco","#fbfbf8"],["Negro","#1f1f1f"]],[["Estándar",3,0]]],
+  ["Aretes Calavera",19.9,"joya",[["Plateado","#b9bcc0"]],[["Estándar",null,0]]],
+  ["Basic Ori",39.9,"ropa",[["Blanco","#fbfbf8"]],[["Estándar",1,0]]],
+  ["Bella Skirt",59.9,"falda",[["Blanco","#fbfbf8"],["Negro","#1f1f1f"],["Vino","#6b1f2a"]],[["Estándar",1,0]]],
+  ["Blazer Liz",109.9,"ropa",[["Marrón","#5a3424"],["Negro","#1f1f1f"]],[["M",1,0]]],
+  ["Blusa Alba Co.entero",69.9,"ropa",[["Celeste","#9cc3dc"],["Azul","#a8bfdc"],["Blanco","#fbfbf8"],["Café","#7a4a2c"],["Rosa viejo","#a0786a"],["Negro","#1f1f1f"],["Gris","#777068"],["Vino","#6b1f2a"]],[["S",0,1]]],
+  ["Blusa Boho",69.9,"ropa",[["Negro","#1f1f1f"]],[["S",null,0]]],
+  ["Blusa Catalina",59.0,"ropa",[["Negro","#1f1f1f"],["Rosado","#e98aa8"]],[["S",2,0],["M",1,0],["L",0,2]]],
+  ["Blusa Cuadros Coreana",59.9,"ropa",[["Blanco","#fbfbf8"],["Camel","#a77b52"],["Celeste","#9cc3dc"],["Café","#5a3424"],["Durazno","#f0c9b2"],["Vino","#6b1f2a"]],[["S",2,0],["M",3,1],["L",1,0]]],
+  // El caso extremo: 14 colores (Felipe 2026-10-26, «un modelo de 14 colores pasaba el borde») y 5 tallas.
+  ["Polo Básico Pima Manga Larga",49.9,"ropa",[["Arena","#d8c7a8"],["Negro","#1f1f1f"],["Blanco","#fbfbf8"],["Vino","#6b1f2a"],["Celeste","#9cc3dc"],["Verde botella","#2f4a36"],["Mostaza","#c9962e"],["Rosa","#e9a7b8"],["Gris","#777068"],["Azul","#2a3f6b"],["Lila","#a493c4"],["Terracota","#a8533a"],["Camel","#a77b52"],["Menta","#a9d3c0"]],[["XS",1,0],["S",3,2],["M",0,4],["L",2,0],["XL",null,0]]],
+];
+const lum = h => { const n=parseInt(h.slice(1),16); return (0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255))/255; };
+const estadoDe = ts => {
+  const ag = ts.filter(t=>t[1]===null), fa = ts.filter(t=>t[1]===0 && t[2]>0);
+  if (ag.length) return {e:"rojo", txt:`Se acabó: ${ag.map(t=>t[0]).join(" · ")}`};
+  if (fa.length) return {e:"ambar", txt:"colgar"};
+  return {e:"verde", txt:"Todo en el piso"};
+};
+// Con 4 tallas o más la línea de abajo se acorta («+2», «—»), como `lineaGuardadas(c, tallas.length)` del ERP: si no, a lo angosto
+// «+2 en almacén» no se parte y empuja la tira (y el precio) fuera de la tarjeta.
+const celda = ([n,p,a], _i, todas = []) => {
+  const corta = todas.length >= 4;
+  const cls = p===null ? "agotada" : (p===0 && a>0) ? "falta" : "";
+  const abajo = p===null ? (corta ? "agotada" : "se acabó") : a>0 ? (corta ? `+${a} alm.` : `+${a} en almacén`) : (corta ? "&nbsp;" : "0 en almacén");
+  return `<div class="ta ${cls}"><div class="tn">${n}</div><div class="tc">${p===null?"—":p}</div><div class="tg">${abajo}</div></div>`;
+};
+const foto = (c, ico, extra="") => `<span class="foto" style="background:${c[1]};color:${lum(c[1])>.55?"#1a1a18":"#f5f0e8"}">${ICONO[ico]}${extra}</span>`;
+const pieDe = (st, conMas) => {
+  const izq = st.e==="ambar"
+    ? `<button class="btn-colgar">⌂ Colgar en el piso</button>`
+    : `<span class="estado ${st.e}"><i></i>${st.e==="verde"?"✓ ":""}${st.txt}</span>`;
+  return `<div class="pie">${izq}${conMas ? '<button class="btn-mas">Más ⌄</button>' : '<button class="puntos3" title="Más acciones">⋯</button>'}</div>`;
+};
+const puntos = (cs, max) => {
+  const v = cs.slice(0,max).map((c,i)=>`<span class="punto ${i===0?"si":""}" title="${c[0]}" style="background:${c[1]}"></span>`).join("");
+  return v + (cs.length>max ? `<span class="mas-n">+${cs.length-max}</span>` : "");
+};
+const precio = n => `S/ ${n.toFixed(2)}`;
+
+const PINTOR = {
+  hoy: ([n,pr,ico,cs,ts]) => `<article class="t"><div class="cab">${foto(cs[0],ico)}
+      <div style="min-width:0"><div class="nombre">${n}</div><div class="colores">${puntos(cs,99)}<span class="color-n">${cs[0][0]}</span></div></div>
+      <span class="precio" style="align-self:start">${precio(pr)}</span></div>
+      <div class="tallas">${ts.map(celda).join("")}</div>${pieDe(estadoDe(ts),true)}</article>`,
+  a: ([n,pr,ico,cs,ts]) => `<article class="t"><div class="cab">${foto(cs[0],ico)}
+      <div style="min-width:0"><div class="nombre">${n}</div><div class="colores">${puntos(cs,5)}<span class="color-n">${cs[0][0]}</span></div></div>
+      <span class="precio" style="align-self:start">${precio(pr)}</span></div>
+      <div class="pozo">${ts.map(celda).join("")}</div>${pieDe(estadoDe(ts),false)}</article>`,
+  b: v => vitrina(v),
+  c: v => vitrina(v),
+};
+function vitrina([n,pr,ico,cs,ts]){
+  const st = estadoDe(ts);
+  // Hasta 5 caben todos; con 6 o más, 3 y «+N»: medido, 4 puntos + «+10» se pasaban 8 px de la chapa (80 px por dentro).
+  const tope = cs.length <= 5 ? 5 : 3;
+  const chapa = cs.slice(0,tope).map((c,i)=>`<span class="punto ${i===0?"si":""}" title="${c[0]}" style="background:${c[1]}"></span>`).join("")
+    + (cs.length > tope ? `<button class="mas-n" data-prenda="${P.findIndex(x=>x[0]===n)}" title="Ver los ${cs.length} colores">+${cs.length-tope}</button>` : "");
+  return `<article class="t" data-e="${st.e}">${foto(cs[0],ico,`<span class="chapa">${chapa}</span>`)}
+    <div class="der"><div class="fila1"><span class="nombre">${n}</span><span class="precio">${precio(pr)}</span></div>
+    <div class="color-n">${cs[0][0]}${cs.length>1?` · ${cs.length} colores`:""}</div>
+    <div class="tira">${ts.map(celda).join("")}</div>${pieDe(st,false)}</div></article>`;
+}
+document.querySelectorAll("[data-vista]").forEach(s => {
+  s.querySelector("[data-rejilla]").innerHTML = P.map(PINTOR[s.dataset.vista]).join("");
+});
+// «+N» abre el modal de la prenda (aquí, solo su fila de colores: en el ERP es `PanelTalla`, que ya los muestra todos).
+const modal = document.getElementById("modal");
+document.addEventListener("click", e => {
+  const b = e.target.closest("button.mas-n");
+  if (b) {
+    const [n,,,cs] = P[+b.dataset.prenda];
+    modal.querySelector("h2").textContent = n;
+    modal.querySelector(".m-frase").textContent = `${cs.length} colores · toca uno para ver sus tallas`;
+    modal.querySelector(".m-colores").innerHTML = cs.map((c,i)=>`<span class="m-color"><span class="punto ${i===0?"si":""}" style="background:${c[1]}"></span>${c[0]}</span>`).join("");
+    modal.hidden = false; return;
+  }
+  if (e.target === modal || e.target.closest(".m-cerrar")) modal.hidden = true;
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") modal.hidden = true; });
+// La luz que sigue al mouse (solo C), como TarjetaKpiVidrio.
+document.querySelector(".v-c").addEventListener("pointermove", e => {
+  const t = e.target.closest(".t"); if (!t) return;
+  const r = t.getBoundingClientRect();
+  t.style.setProperty("--mx", `${e.clientX-r.left}px`); t.style.setProperty("--my", `${e.clientY-r.top}px`);
+});
+document.querySelectorAll("[data-v]").forEach(b => b.onclick = () => {
+  document.querySelectorAll("[data-v]").forEach(x => x.setAttribute("aria-pressed", x===b));
+  document.querySelectorAll(".vista").forEach(s => s.classList.toggle("activa", s.dataset.vista===b.dataset.v));
+});
+document.getElementById("tema").onclick = e => {
+  const r = document.documentElement, osc = r.dataset.tema !== "oscuro";
+  r.dataset.tema = osc ? "oscuro" : ""; e.target.textContent = osc ? "Claro" : "Oscuro";
+};
+</script>
+</body>
+</html>

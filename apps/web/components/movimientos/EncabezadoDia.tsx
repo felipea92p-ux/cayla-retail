@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import { etiquetaDia, type OperacionMovimiento } from "@/lib/movimientos-reglas";
 import { TIPOS_VISUALES, tipoDeOperacion } from "@/lib/movimientos-tipos";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // El encabezado de cada día de la lista (rediseño 2026-10-05, ADR-0353): su nombre y, al lado, una franja de color por cada
 // operación —de la más vieja a la más nueva—, que muestra de qué estuvo hecho el día antes de leer una fila: ámbar las
@@ -22,7 +23,7 @@ function irA(id: string) {
   if (hayQueAbrir) mazo.querySelector<HTMLElement>("[data-mazo-tapa]")?.click();
   window.setTimeout(
     () => {
-      fila.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+      fila.scrollIntoView({ behavior: prefiereQuieto() ? "auto" : "smooth", block: "center" });
       fila.setAttribute("data-flash", "");
       window.setTimeout(() => fila.removeAttribute("data-flash"), 1400);
     },

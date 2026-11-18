@@ -1,6 +1,7 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { anotarDesdeLaAccion } from "@/lib/visita-servidor";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -82,6 +83,8 @@ export async function agregarALaBolsa(varianteId: unknown, sedeId: unknown): Pro
   if (revisada.tipo === "no_alcanza") return { estado: "no", mensaje: AGREGAR_NO_ALCANZA };
 
   await guardarBolsa({ ...nueva, sedeId: bolsa.sedeId ?? sedeQueMiraba });
+  // Tráfico (ADR-0495): «la puso en la bolsa», después de responder.
+  await anotarDesdeLaAccion([{ paso: 3, variante: varianteId }]);
   return { estado: "agregada", mensaje: avisoAgregada(revisada.linea), cuantas: unidades(nueva) };
 }
 
@@ -125,6 +128,7 @@ export async function agregarLookALaBolsa(varianteIds: unknown, sedeId: unknown)
   const nueva = agregarVarias(bolsa, agregadas, { marca: randomUUID() });
   if (!nueva) return { estado: "no", mensaje: AGREGAR_LLENA_LOOK };
   await guardarBolsa({ ...nueva, sedeId: bolsa.sedeId ?? sedeQueMiraba });
+  await anotarDesdeLaAccion([...new Set(agregadas)].map((variante) => ({ paso: 3, variante })));
   return { estado: "listo", agregadas, agotadas, noEstan, cuantas: unidades(nueva) };
 }
 
@@ -160,7 +164,8 @@ export async function elegirTiendaDeRecojo(datos: FormData): Promise<void> {
 export type EstadoSeparar = { mensaje: string; marca: string | null; enlace?: { texto: string; href: string } | null } | null;
 
 const esquemaVistas = z
-  .array(z.object({ variante_id: z.string(), cantidad: z.number().int().min(1), precio: z.number().nonnegative() }))
+  // ADR-0655: `ahorro_grupo`, lo que la bolsa le mostró que ahorra esa línea llevando varias (la base lo vuelve a calcular y lo compara).
+  .array(z.object({ variante_id: z.string(), cantidad: z.number().int().min(1), precio: z.number().nonnegative(), deja_rebaja: z.number().nonnegative().optional(), ahorro_grupo: z.number().nonnegative().optional() }))
   .min(1)
   .max(TOPE_PRENDAS);
 
@@ -205,7 +210,9 @@ export async function separar(_previo: EstadoSeparar, datos: FormData): Promise<
   if (escrito) {
     if (!codigoCompleto(escrito)) return { mensaje: "Ese código de cupón está incompleto. Revísalo o bórralo para separar.", marca };
     cupon = normalizarCodigo(escrito);
-    const total = vistas.reduce((n, v) => n + v.precio * v.cantidad, 0);
+    // El total del pedido que nacerá: con lo que ahorra llevando varias (la compra mínima del cupón se mide contra eso).
+    // Decisión 2: la rebaja que deja la prenda que va con su grupo vuelve al total (nunca las dos).
+    const total = vistas.reduce((n, v) => n + v.precio * v.cantidad - (v.ahorro_grupo ?? 0) + (v.deja_rebaja ?? 0), 0);
     const v = await validarCuponEnBase(sesion.usuarioId, cupon, Math.round(total * 100) / 100);
     if (!v) return { mensaje: CUPON_SIN_RESPUESTA, marca };
     if (!v.ok) return { mensaje: mensajeDeCupon(v), marca };
@@ -216,6 +223,8 @@ export async function separar(_previo: EstadoSeparar, datos: FormData): Promise<
     return { ...respuestaDeSeparar(r.hint, r.detalle), marca };
   }
   await guardarBolsa(sinPrendas(bolsa));
+  // Tráfico (ADR-0495): «separó», por la marca del pedido (la base lo ubica y lo cuenta una sola vez).
+  await anotarDesdeLaAccion([{ paso: 4, marca }]);
   redirect(`/bolsa/separado/${r.codigo}`);
 }
 

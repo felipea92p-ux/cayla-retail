@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>⑤ Finanzas · Plan de campaña (spike)</title>
+<link rel="stylesheet" href="base.css?v=13">
+<style>
+.tanda{border:1px solid var(--sand);border-radius:14px;padding:14px 16px;background:var(--crema);display:grid;gap:10px}
+.tanda h4{font:600 17px var(--serif);display:flex;gap:10px;align-items:baseline;justify-content:space-between}
+.tanda h4 small{font:400 13px var(--sans);color:var(--t60)}
+.cats{display:flex;gap:6px;flex-wrap:wrap}
+.cats .chip{background:var(--hueso);color:var(--tinta)} .cats .chip:before{display:none}
+.donde{display:grid;gap:0}
+.donde>div{display:grid;grid-template-columns:26px 1fr;gap:10px;padding:9px 0;border-top:1px solid var(--sand);font-size:13.5px}
+.donde>div:first-child{border:0}
+.donde b{display:block} .donde span.d{color:var(--t60);font-size:12.5px}
+.si{color:var(--verde);font-weight:700} .no{color:var(--t60);font-weight:700}
+.svgbox{width:100%;overflow-x:auto}
+svg text{font:11px var(--sans);fill:var(--t60)}
+.leg2{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--t60);margin-top:6px} .leg2 i{display:inline-block;width:12px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.meses{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.meses div{border:1px solid var(--sand);border-radius:12px;padding:8px 12px;background:var(--crema)} .meses .t{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--t60)} .meses .v{font:600 20px var(--serif)}
+@media(max-width:700px){.meses{grid-template-columns:1fr 1fr}}
+.sel{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div id="chrome"></div>
+<div class="subnav"><span class="t">Presupuesto ▸</span><div class="seg"><a href="4-presupuesto.html" class="">Costos y tope</a><a href="5-finanzas.html" class="on">Cuándo se pide y se paga</a></div></div>
+
+<div class="cifras" id="cifras"></div>
+
+<div class="grid-2">
+<div>
+  <div class="titulo-sec" style="margin-top:0">Cuándo se pide y cuándo se paga <small>Plan ▸ Presupuesto ▸ Cuándo se paga</small></div>
+  <div class="card pad" style="display:grid;gap:14px">
+    <div class="sel"><span class="campo" style="margin:0">Tandas de compra</span><div class="seg" id="nt"></div></div>
+    <div id="tandas" style="display:grid;gap:12px"></div>
+    <div><div class="campo" style="margin-bottom:6px">Lo que sale de caja, mes a mes</div><div class="meses" id="meses"></div></div>
+  </div>
+  <div class="titulo-sec">Costo e IGV <small>algunos costos ya lo incluyen y otros no</small></div>
+  <div class="card pad" id="igvCard"></div>
+  <div class="titulo-sec">Dónde lo ves y lo cambias</div>
+  <div class="card pad"><div class="donde" id="donde2"></div></div>
+  <div class="titulo-sec">Qué pasa en Finanzas</div>
+  <div class="card pad"><div class="donde" id="donde"></div></div>
+</div>
+
+<div>
+  <div class="titulo-sec" style="margin-top:0">Así se ve en Finanzas <small>Reportes ▸ Flujo de caja · próximas 12 semanas</small></div>
+  <div class="card pad" style="display:grid;gap:12px">
+    <div class="sel"><span class="campo" style="margin:0">Mostrar esta campaña</span><div class="seg" id="ver"></div></div>
+    <p id="estadoNota" style="color:var(--t60);font-size:13px"></p>
+    <div class="svgbox"><svg id="svg" viewBox="0 0 720 300" width="100%" role="img" aria-label="Entradas, salidas y saldo proyectado por semana"></svg></div>
+    <div class="leg2"><span><i style="background:var(--verde)"></i>Lo que se espera cobrar</span><span><i style="background:var(--taupe);opacity:.6"></i>Lo que ya sale (fijos, planilla, facturas)</span><span><i style="background:repeating-linear-gradient(135deg,var(--ambar) 0 3px,transparent 3px 6px);border:1px solid var(--ambar)"></i>Compras de la campaña (planeadas)</span><span><i style="background:var(--tinta);height:3px"></i>Saldo</span><span><i style="border-top:2px dashed var(--rojo);height:0;background:none"></i>Tu mínimo de caja</span></div>
+    <div id="alerta"></div>
+  </div>
+</div>
+</div>
+
+<script src="app.js?v=13"></script>
+<script>
+const { $, $$, nES, sES, plan, guardar, leer } = PC;
+const SEM = ["26 oct", "2 nov", "9 nov", "16 nov", "23 nov", "30 nov", "7 dic", "14 dic", "21 dic", "28 dic", "4 ene", "11 ene"];
+const COBRO = [40, 40, 40, 40, 46, 42, 52, 62, 74, 52, 44, 40].map((x) => x * 1000);      // lo que se espera cobrar (ejemplo)
+const FIJO = [40, 40, 40, 40, 54, 40, 40, 40, 40, 54, 40, 40].map((x) => x * 1000);        // fijos, planilla y facturas de siempre (ejemplo)
+const SALDO0 = 30000, MINIMO = 15000, LIMITE = 3;                                         // la fecha límite para pedir cae en la semana del 16 nov
+const PAGOS = { contado: ["Contado", [[0, 1]]], d30: ["A 30 días", [[4, 1]]], d60: ["A 60 días", [[9, 1]]], a50: ["50 % de anticipo y el resto a 30 días", [[0, .5], [4, .5]]], a30: ["30 % de anticipo y el resto a 60 días", [[0, .3], [9, .7]]] };
+let nt = leer("pc.nt", 2), ver = leer("pc.ver", "flujo");
+let igv = leer("pc.igv2", { faldas: true, shorts: true });   // categorías cuyo costo YA incluye el IGV (el resto no lo incluye)
+let tandas = leer("pc.tandas", null) || [{ s: 2, pct: 60, pago: "a50" }, { s: 3, pct: 40, pago: "d30" }, { s: 5, pct: 0, pago: "d30" }];
+
+function ajustarPct() { const t = tandas.slice(0, nt); const sum = t.reduce((a, x) => a + x.pct, 0); if (sum !== 100) { const rest = 100 - t.slice(0, -1).reduce((a, x) => a + x.pct, 0); t[t.length - 1].pct = Math.max(0, rest); } }
+/** Por categoría: si el costo ya trae el IGV, lo que sale de caja es el costo; si no, el costo más 18 %. */
+function costos(p) {
+  let valor = 0, iva = 0, caja = 0;
+  const filas = p.filas.filter((f) => f.inversion > 0).map((f) => {
+    const inc = !!igv[f.id], base = inc ? f.inversion / 1.18 : f.inversion, i = base * 0.18, total = base + i;
+    valor += base; iva += i; caja += total; return { f, inc, base, i, total };
+  });
+  return { filas, valor, iva, caja };
+}
+function salidas() {
+  const p = PC.planActual(), c = costos(p), total = c.caja;
+  const sem = new Array(12).fill(0); let fuera = 0;
+  tandas.slice(0, nt).forEach((t) => PAGOS[t.pago][1].forEach(([dw, f]) => { const w = t.s + dw; const m = total * (t.pct / 100) * f; if (w < 12) sem[w] += m; else fuera += m; }));
+  return { sem, fuera, total, p, c };
+}
+function pintar() {
+  PC.chrome({ activa: "presupuesto", frase: "Navidad 2026: cuándo pides, cuándo pagas y cómo queda la caja." });
+  ajustarPct();
+  const o = salidas();
+  const mostrar = ver !== "no";
+  $("#cifras").innerHTML = `<div class="cifra"><div class="t">Compra planeada al costo</div><div class="v">${sES(o.p.total)}</div><div class="d">${nES(o.p.prendas)} prendas · del plan de hoy</div></div>
+    <div class="cifra"><div class="t">Sale de caja (con IGV)</div><div class="v">${sES(o.total)}</div><div class="d">${sES(o.c.valor)} a proveedores + ${sES(o.c.iva)} de IGV · ${nt === 1 ? "1 tanda" : nt + " tandas"}</div></div>
+    <div class="cifra"><div class="t">Hasta cuándo pedir</div><div class="v">17 nov</div><div class="d">1 dic menos 14 días para llegar</div></div>
+    <div class="cifra"><div class="t">Esto no es un gasto</div><div class="v" style="font-size:22px">Inversión en mercadería</div><div class="d">Es mercadería: el costo entra cuando se vende</div></div>`;
+  $("#nt").innerHTML = [1, 2, 3].map((k) => `<button type="button" class="${k === nt ? "on" : ""}" data-n="${k}">${k} tanda${k > 1 ? "s" : ""}</button>`).join("");
+  $$("#nt button").forEach((b) => (b.onclick = () => { nt = Number(b.dataset.n); guardar("pc.nt", nt); if (nt === 1) tandas[0].pct = 100; else if (nt === 2) { tandas[0].pct = 60; tandas[1].pct = 40; } else { tandas[0].pct = 50; tandas[1].pct = 30; tandas[2].pct = 20; } guardar("pc.tandas", tandas); pintar(); }));
+  pintarIgv(o);
+  // qué categorías cae en cada tanda: las que más cuestan primero, hasta cubrir su %
+  const orden = [...o.p.filas].filter((f) => f.inversion > 0).sort((a, b) => b.inversion - a.inversion); let acum = 0;
+  const cat = tandas.slice(0, nt).map((t) => { const meta = (o.p.total * (acum + t.pct)) / 100; const l = []; while (orden.length && acum < meta - 1) { const f = orden.shift(); l.push(f); acum += f.inversion * 100 / o.p.total; } return l; });
+  $("#tandas").innerHTML = tandas.slice(0, nt).map((t, i) => {
+    const tarde = t.s > LIMITE;
+    return `<div class="tanda"><h4>Tanda ${i + 1} <small>${t.pct} % de la compra · ${sES(o.total * t.pct / 100)}</small></h4>
+      <div class="dos"><label class="campo">Semana del pedido<select data-s="${i}">${SEM.slice(0, 9).map((s, k) => `<option value="${k}" ${k === t.s ? "selected" : ""}>${s}</option>`).join("")}</select></label>
+      <label class="campo">Cómo se paga<select data-p="${i}">${Object.entries(PAGOS).map(([k, v]) => `<option value="${k}" ${k === t.pago ? "selected" : ""}>${v[0]}</option>`).join("")}</select></label></div>
+      ${nt > 1 && i < nt - 1 ? `<label class="campo">% de la compra en esta tanda<input type="number" min="0" max="100" data-pct="${i}" value="${t.pct}"></label>` : ""}
+      ${tarde ? `<div class="aviso pendiente"><span class="ic">${PC.I.alerta}</span><div><b>Pedir el ${SEM[t.s]} llega tarde</b><span class="d">Con 14 días para llegar, esa tanda entra a las tiendas después del 1 de dic.</span></div></div>` : ""}
+      <div class="cats">${(cat[i] || []).map((f) => `<span class="chip">${f.n} · ${sES(f.inversion)}</span>`).join("") || '<span class="chip">Lo que quede</span>'}</div></div>`;
+  }).join("");
+  $$("[data-s]").forEach((e) => (e.onchange = () => { tandas[e.dataset.s].s = Number(e.value); guardar("pc.tandas", tandas); pintar(); }));
+  $$("[data-p]").forEach((e) => (e.onchange = () => { tandas[e.dataset.p].pago = e.value; guardar("pc.tandas", tandas); pintar(); }));
+  $$("[data-pct]").forEach((e) => (e.onchange = () => { tandas[e.dataset.pct].pct = Math.min(100, Math.max(0, Number(e.value) || 0)); guardar("pc.tandas", tandas); pintar(); }));
+  const porMes = { "Nov": 0, "Dic": 0, "Ene": 0, "Después": o.fuera };
+  o.sem.forEach((m, w) => { const s = SEM[w]; const k = s.includes("nov") ? "Nov" : s.includes("dic") ? "Dic" : s.includes("ene") ? "Ene" : "Nov"; porMes[k] += m; });
+  $("#meses").innerHTML = Object.entries(porMes).map(([k, v]) => `<div><div class="t">${k === "Nov" ? "Hasta nov" : k === "Después" ? "Más adelante" : k === "Dic" ? "Diciembre" : "Enero"}</div><div class="v">${v ? sES(v) : "—"}</div></div>`).join("");
+  $("#ver").innerHTML = [["flujo", "Se hará: todo Finanzas"], ["esc", "Solo en Escenarios"], ["no", "No mostrarla"]].map(([k, t]) => `<button type="button" class="${k === ver ? "on" : ""}" data-v="${k}">${t}</button>`).join("");
+  $$("#ver button").forEach((b) => (b.onclick = () => { ver = b.dataset.v; guardar("pc.ver", ver); pintar(); }));
+  $("#estadoNota").innerHTML = { flujo: "<b>Se hará.</b> La inversión sale en el Resumen, en el flujo de caja y en Escenarios, para que sepas qué movimientos vienen, guardes o te anticipes.", esc: "<b>Solo en Escenarios.</b> Es una idea: sirve para el «¿y si compro esto?», pero no aparece en el Resumen ni en el flujo de caja.", no: "<b>No mostrarla.</b> Finanzas no la ve en ningún sitio. Lo ya registrado de verdad (facturas, órdenes) sigue contando." }[ver];
+  grafico(o, ver === "flujo");
+  const enEsc = ver === "esc", no = ver === "no";
+  $("#donde2").innerHTML = [
+    ["Plan ▸ Presupuesto ▸ Cuándo se paga", "Aquí: eliges las tandas, la semana del pedido y cómo se paga cada una."],
+    ["Plan ▸ la franja de arriba", "Dice hasta qué día pedir («Pide antes del 17/11») y se pone urgente si una tanda llega tarde."],
+    ["Finanzas ▸ Resumen", "«Inversión en mercadería»: lo que vas a pagar por esta campaña. Solo si el estado es «Se hará»."],
+    ["Finanzas ▸ Reportes ▸ Flujo de caja", "Cuándo sale la plata, semana a semana, y si el saldo baja de tu mínimo. Solo si el estado es «Se hará»."],
+    ["Finanzas ▸ Reportes ▸ Escenarios", "Con «Se hará» o «Solo en Escenarios» puedes prender y apagar la campaña para ver «¿y si compro esto?», sin guardar nada."],
+    ["Compras ▸ Por pagar", "Cuando registras la factura del proveedor, el pago real aparece aquí y reemplaza al planeado."],
+  ].map(([t, d]) => `<div><span class="si">›</span><div><b>${t}</b><span class="d">${d}</span></div></div>`).join("");
+  $("#donde").innerHTML = [
+    [ver === "flujo", "Flujo de caja", "La salida se ve semana a semana, con tu mínimo de caja."],
+    [ver !== "no", "Escenarios", "«¿Y si compro esto?»: se prende y se apaga sin guardar nada."],
+    [false, "Gastos", "No es un gasto: es mercadería. No suma a lo que gastas."],
+    [false, "Estado de resultados", "El costo entra cuando se vende (costo de ventas), no cuando se compra."],
+    [ver === "flujo", "Resumen de Finanzas", "Aparece como «Inversión en mercadería» (plata comprometida), nunca dentro de «Te deja». Al registrar la factura u orden, la real reemplaza a la planeada: no se cuenta dos veces."],
+  ].map(([si, t, d]) => `<div><span class="${si ? "si" : "no"}">${si ? "✓" : "✗"}</span><div><b>${t}</b><span class="d">${d}</span></div></div>`).join("");
+}
+
+function pintarIgv(o) {
+  const filas = o.c.filas.map((x) => `<tr><td class="cat"><b>${x.f.n}</b></td><td class="n">${sES(x.f.inversion)}</td><td><span style="display:inline-flex;gap:8px;align-items:center"><button class="sw" role="switch" aria-checked="${x.inc}" data-igv="${x.f.id}" aria-label="${x.f.n}: el costo ya incluye el IGV"></button><span style="color:var(--t60);font-size:12.5px">${x.inc ? "Ya lo incluye" : "No lo incluye"}</span></span></td><td class="n">${sES(x.base)}</td><td class="n">${sES(x.i)}</td><td class="n"><b>${sES(x.total)}</b></td></tr>`).join("");
+  $("#igvCard").innerHTML = `<div class="sel" style="margin-bottom:10px"><div style="flex:1;min-width:220px;color:var(--t60);font-size:13px">Marca las categorías cuyo costo <b style="color:var(--tinta)">ya incluye el IGV</b>. A las demás el sistema les suma el 18 % para decirte cuánto pagas al proveedor y cuánto sale de tu caja.</div><button class="btn ch" id="igvTodo">Marcar todas</button><button class="btn ch" id="igvNada">Quitar todas</button></div>
+    <div class="card scroll-x"><table><thead><tr><th>Categoría</th><th class="n">Costo del plan</th><th>¿Ya incluye el IGV?</th><th class="n">Al proveedor (sin IGV)</th><th class="n">IGV</th><th class="n">Sale de caja</th></tr></thead><tbody>${filas}<tr><td><b>Total</b></td><td class="n"><b>${sES(o.p.total)}</b></td><td></td><td class="n"><b>${sES(o.c.valor)}</b></td><td class="n"><b>${sES(o.c.iva)}</b></td><td class="n"><b>${sES(o.c.caja)}</b></td></tr></tbody></table></div>
+    <p style="color:var(--t60);font-size:12.5px;margin-top:8px">El IGV de una compra sale de tu caja ahora y después baja lo que le pagas a SUNAT (crédito fiscal); confírmalo con tu contador. Esta marca es de esta campaña: no cambia el costo de la ficha.</p>`;
+  $$("[data-igv]").forEach((b) => (b.onclick = () => { igv[b.dataset.igv] = !igv[b.dataset.igv]; guardar("pc.igv2", igv); pintar(); }));
+  $("#igvTodo").onclick = () => { PC.CATS.forEach((c) => (igv[c.id] = true)); guardar("pc.igv2", igv); pintar(); };
+  $("#igvNada").onclick = () => { PC.CATS.forEach((c) => (igv[c.id] = false)); guardar("pc.igv2", igv); pintar(); };
+}
+function grafico(o, conPlan) {
+  const W = 720, H = 300, x0 = 46, x1 = 712, y0 = 20, y1 = 250, n = 12, ancho = (x1 - x0) / n;
+  const entra = COBRO, sale = FIJO, plano = o.sem.map((m) => (conPlan ? m : 0));
+  let s = SALDO0; const saldos = entra.map((e, i) => (s = s + e - sale[i] - plano[i]));
+  const max = Math.max(...entra, ...sale.map((v, i) => v + plano[i]), ...saldos, 1) * 1.08, min = Math.min(0, ...saldos) * 1.1;
+  const y = (v) => y1 - ((v - min) / (max - min)) * (y1 - y0);
+  const k = (v) => (v >= 1000 ? Math.round(v / 1000) + "k" : "0");
+  let g = "";
+  for (let t = 0; t <= 4; t++) { const v = min + ((max - min) * t) / 4; g += `<line x1="${x0}" x2="${x1}" y1="${y(v)}" y2="${y(v)}" stroke="var(--sand)"/><text x="${x0 - 6}" y="${y(v) + 4}" text-anchor="end">${k(v)}</text>`; }
+  entra.forEach((e, i) => {
+    const bx = x0 + i * ancho + 6, bw = (ancho - 12) / 2;
+    g += `<rect x="${bx}" y="${y(e)}" width="${bw}" height="${y1 - y(e)}" rx="3" fill="var(--verde)" opacity=".85"/>`;
+    g += `<rect x="${bx + bw + 2}" y="${y(sale[i])}" width="${bw}" height="${y1 - y(sale[i])}" rx="3" fill="var(--taupe)" opacity=".55"/>`;
+    if (plano[i] > 0) g += `<rect x="${bx + bw + 2}" y="${y(sale[i] + plano[i])}" width="${bw}" height="${y(sale[i]) - y(sale[i] + plano[i])}" rx="3" fill="url(#rayas)" stroke="var(--ambar)"/>`;
+    g += `<text x="${x0 + i * ancho + ancho / 2}" y="${y1 + 16}" text-anchor="middle">${SEM[i]}</text>`;
+  });
+  const pts = saldos.map((v, i) => `${x0 + i * ancho + ancho / 2},${y(v)}`).join(" ");
+  g += `<line x1="${x0}" x2="${x1}" y1="${y(MINIMO)}" y2="${y(MINIMO)}" stroke="var(--rojo)" stroke-dasharray="5 4"/><text x="${x1}" y="${y(MINIMO) - 5}" text-anchor="end" style="fill:var(--rojo)">mínimo ${k(MINIMO)}</text>`;
+  g += `<polyline points="${pts}" fill="none" stroke="var(--tinta)" stroke-width="2.4"/>` + saldos.map((v, i) => `<circle cx="${x0 + i * ancho + ancho / 2}" cy="${y(v)}" r="${v < MINIMO ? 5 : 3}" fill="${v < MINIMO ? "var(--rojo)" : "var(--tinta)"}"/>`).join("");
+  g += `<line x1="${x0 + LIMITE * ancho}" x2="${x0 + LIMITE * ancho}" y1="${y0}" y2="${y1}" stroke="var(--pizarra)" stroke-dasharray="2 3"/><text x="${x0 + LIMITE * ancho + 4}" y="${y0 + 8}" style="fill:var(--pizarra)">pedir antes del 17/11</text>`;
+  $("#svg").innerHTML = `<defs><pattern id="rayas" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="6" fill="var(--ambar)" opacity=".8"/></pattern></defs>${g}`;
+  const bajo = saldos.map((v, i) => [v, i]).filter(([v]) => v < MINIMO);
+  const base = (() => { let a = SALDO0; return entra.map((e, i) => (a = a + e - sale[i])); })();
+  const bajoBase = base.some((v) => v < MINIMO);
+  $("#alerta").innerHTML = !conPlan ? `<div class="aviso info"><span class="ic">${PC.I.info}</span><div><b>${ver === "esc" ? "La campaña solo se ve en Escenarios" : "La campaña no se muestra"}</b><span class="d">${ver === "esc" ? "El flujo de caja de Finanzas queda como hoy; en Escenarios puedes prenderla para ver qué pasaría." : "Finanzas no la ve: ni el flujo, ni los resúmenes."} Lo que ya registraste de verdad (facturas, órdenes) sigue contando.</span></div></div>`
+    : bajo.length ? `<div class="aviso urgente"><span class="ic">${PC.I.alerta}</span><div><b>La semana del ${SEM[bajo[0][1]]} el saldo baja a ${sES(bajo[0][0])}</b><span class="d">Es menos que tu mínimo de ${sES(MINIMO)}. Puedes mover una tanda a otra semana, pagar a más días o bajar el tope.</span></div></div>`
+    : `<div class="aviso ok"><span class="ic">${PC.I.ok}</span><div><b>La caja aguanta el plan</b><span class="d">El saldo no baja de tu mínimo (${sES(MINIMO)}) en las próximas 12 semanas.${bajoBase ? "" : ""}</span></div></div>`;
+}
+pintar();
+</script>
+</body>
+</html>

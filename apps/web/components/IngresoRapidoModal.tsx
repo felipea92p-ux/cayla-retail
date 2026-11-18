@@ -22,10 +22,10 @@ import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 import { soles } from "@/lib/compras-reglas";
 import {
+  CONCEPTOS_INGRESO,
   INGRESO_RAPIDO_VACIO,
   OPCIONES_DE_DONDE_LIDER,
   conceptoIngresoPorClave,
-  conceptosIngresoVisibles,
   limpiarMontoIngreso,
   validarIngreso,
   camposDeIngresoRapido,
@@ -33,6 +33,7 @@ import {
   type EstadoIngresoRapido,
   type SedeIngreso,
 } from "@/lib/ingreso-rapido-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Caja ▸ Registrar ingreso (Felipe 2026-10-10): la hermana del gasto rápido, con su misma hoja, su mosaico y su sello. Reemplaza a
 // «Depósito o retiro» en la cabecera de Caja: aquí solo ENTRA plata al cajón abierto, en efectivo y hoy. Cada concepto ya trae su
@@ -60,7 +61,6 @@ const MS_LISTO = 1250;
 export function IngresoRapidoModal({
   caja,
   ubicacionNombre,
-  esLider,
   sedes,
   accesos,
   onCerrar,
@@ -68,7 +68,6 @@ export function IngresoRapidoModal({
 }: {
   caja: { id: string; ubicacionId: string };
   ubicacionNombre: string;
-  esLider: boolean;
   /** Las otras sedes activas, para «Préstamo de otra sede» (sin la de esta caja). */
   sedes: SedeIngreso[];
   /** Adónde va lo que NO es un ingreso de caja: solo los módulos que la cuenta ve. */
@@ -89,7 +88,6 @@ export function IngresoRapidoModal({
   const montoRef = useRef<HTMLInputElement>(null);
   const poner = <K extends keyof EstadoIngresoRapido>(k: K, v: EstadoIngresoRapido[K]) => setE((x) => ({ ...x, [k]: v }));
 
-  const conceptos = conceptosIngresoVisibles(esLider);
   const elegido = conceptoIngresoPorClave(e.concepto);
   const detalle = elegido?.detalle ?? "ninguno";
   const deDondeElegido = OPCIONES_DE_DONDE_LIDER.find((o) => o.valor === e.deDonde) ?? null;
@@ -136,7 +134,7 @@ export function IngresoRapidoModal({
       if (responsable.motivo && primero?.id === "responsable") avisar.error(responsable.motivo);
       return;
     }
-    const v = validarIngreso(e, sedes, esLider);
+    const v = validarIngreso(e, sedes);
     if (!v.ok) return avisar.error(v.error);
     const params = {
       p_caja_id: caja.id,
@@ -179,7 +177,7 @@ export function IngresoRapidoModal({
   if (listo && pantallaLibre && !selloAlaVista) setSelloAlaVista(true);
   useEffect(() => {
     if (!listo || !selloAlaVista) return;
-    const corto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const corto = prefiereQuieto();
     const t = window.setTimeout(
       () => {
         avisar.exito("Ingreso registrado", {
@@ -221,7 +219,7 @@ export function IngresoRapidoModal({
           <fieldset disabled={intento.incierto} className="campos-congelables min-w-0 space-y-5">
           <CampoGuiado id="concepto" guia={guia} titulo="¿De dónde viene la plata?">
             <div role="radiogroup" aria-label="De dónde viene la plata" className="gr-mosaico" data-columnas="3">
-              {conceptos.map((c, i) => (
+              {CONCEPTOS_INGRESO.map((c, i) => (
                 <Baldosa
                   key={c.clave}
                   clave={c.clave}
@@ -392,7 +390,7 @@ export function IngresoRapidoModal({
 
           <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
             <PieGuia guia={guia} listo="Todo listo: entra al cajón." />
-            <div className="ml-auto pie-acciones">
+            <div data-guia="ingreso-rapido.pie" className="ml-auto pie-acciones">
               <Boton type="button" onClick={() => avisoSalida.pedirAccion(cerrar)} disabled={guardando || intento.incierto}>
                 Cancelar
               </Boton>
@@ -402,7 +400,7 @@ export function IngresoRapidoModal({
                 cargando={guardando}
                 disabled={revisando}
                 title={guia.frase ?? undefined}
-                aria-disabled={!guia.puedeConfirmar || undefined}
+                aria-disabled={undefined} confirma={guia}
                 className={`gr-registrar ${guia.claseConfirmar}`}
               >
                 <span key={textoBoton} className="gr-registrar-texto tabular-nums">

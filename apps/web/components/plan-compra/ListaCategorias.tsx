@@ -44,7 +44,6 @@ export function ListaCategorias({
   filas,
   estado,
   forma,
-  avisoStock,
   familias,
   filtro,
   onFiltro,
@@ -67,8 +66,6 @@ export function ListaCategorias({
   estado: EstadoCampana;
   /** Qué columnas tienen algo que decir (`formaDeLaTabla`). */
   forma: FormaTabla;
-  /** Una línea sobre la tabla cuando el «Hay hoy» no es confiable: el aviso que más condiciona la compra no puede vivir solo en un cajón. */
-  avisoStock?: ReactNode;
   familias: readonly FamiliaPlan[];
   filtro: FiltroPlan;
   onFiltro: (f: FiltroPlan) => void;
@@ -171,7 +168,6 @@ export function ListaCategorias({
               </span>
             </div>
             {forma.leyenda && <LeyendaRango conVendido={forma.real} conEnCamino={filas.some((f) => f.linea && f.enCamino > 0)} />}
-            {avisoStock}
           </>
         )}
       </div>

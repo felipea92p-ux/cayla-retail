@@ -49,6 +49,9 @@ function BotonElegir({ onArchivos, disabled = false, texto }: { onArchivos: (f: 
         multiple
         accept={ACEPTA}
         className="sr-only"
+        // El camino es el botón: sin esto, Tab se detenía en un input invisible y sin nombre.
+        tabIndex={-1}
+        aria-hidden
         disabled={disabled}
         onChange={(e) => {
           onArchivos(Array.from(e.target.files ?? []));
@@ -112,7 +115,7 @@ export function AdjuntosDeFactura({
     <section className="space-y-2" data-guia="factura.adjuntos">
       <div className="flex items-baseline justify-between">
         <p className="label-cayla text-[11px] text-tinta/65">Adjuntos</p>
-        {adjuntos.some((a) => a.url === null) && <span className="text-xs text-tinta/45">Sin acceso al almacén de archivos ahora</span>}
+        {adjuntos.some((a) => a.url === null) && <span className="text-sm text-tinta/45">Sin acceso al almacén de archivos ahora</span>}
       </div>
       <div className="card-cayla divide-y divide-tinta/10">
         {adjuntos.length === 0 && <Vacio tamano="chico" alinear="izquierda" className="px-5" icono={<Paperclip />}>Sin documentos adjuntos.</Vacio>}
@@ -127,7 +130,7 @@ export function AdjuntosDeFactura({
               ) : (
                 <span className="block truncate text-sm text-tinta/60">{a.nombre}</span>
               )}
-              <span className="block text-xs text-tinta/55">
+              <span className="block text-sm text-tinta/55">
                 {tamanoLegible(a.bytes)} · {fechaCorta(a.creadoEn)}
               </span>
             </span>

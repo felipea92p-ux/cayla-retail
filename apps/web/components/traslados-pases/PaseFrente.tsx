@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { TrasladoMiniaturas } from "@/components/TrasladoMiniaturas";
 import { LetrasQueGiran } from "@/components/traslados-pases/LetrasQueGiran";
 import { LineaViaje } from "@/components/traslados-pases/LineaViaje";
@@ -20,10 +20,28 @@ function subtituloDeSede(nombre: string, codigo: string, soy: boolean): string {
   return soy ? `${nombre} · tú` : nombre;
 }
 
+/** El vidrio del pase (ADR-0596, Felipe 2026-11-02) recorta los huecos de la perforación con una máscara: esta es su altura. Se mide de
+ *  nuevo cada vez que el pase cambia de alto (los datos, la letra que carga, el ancho), porque lo de arriba empuja la perforación. */
+function useAlturaDeLaPerforacion() {
+  const ref = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const pase = ref.current;
+    const perfo = pase?.querySelector<HTMLElement>(":scope > .tp-perfo");
+    if (!pase || !perfo) return;
+    const medir = () => pase.style.setProperty("--tp-perfo-y", `${perfo.offsetTop + perfo.offsetHeight / 2}px`);
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(pase);
+    return () => observador.disconnect();
+  }, []);
+  return ref;
+}
+
 export function PaseFrente({ vista, accion, sello }: { vista: VistaPase; accion: ReactNode; sello?: SelloPuesto | null }) {
   const estampa = sello === undefined ? vista.sello : sello;
+  const ref = useAlturaDeLaPerforacion();
   return (
-    <article data-guia="pase.frente" className="tp-pase" data-tp-tono={vista.tono} data-clase={vista.clase} aria-label={`${vista.rotulo}: ${vista.nombre}`}>
+    <article ref={ref} data-guia="pase.frente" className="tp-pase" data-tp-tono={vista.tono} data-clase={vista.clase} aria-label={`${vista.rotulo}: ${vista.nombre}`}>
       <header className="tp-banda">
         <SelloPase glifo={glifoDeTono(vista.tono)} tono={vista.tono} />
         <span className="tp-banda-nombre">{vista.nombre}</span>

@@ -12,6 +12,7 @@ import { filtrosRecibidasDesdeParams, hayFiltrosRecibidas, resultadoDesdeParam }
 import { getEnviosDeLotes } from "@/lib/envio";
 import { getTrasladosEnCurso, type TrasladoResumen } from "@/lib/traslados";
 import { comprobanteSinMontos, kpisDeLaLista, lineaSinCosto, trasladosHaciaAca } from "@/lib/envio-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 import { AvisoTrasladosEnCamino } from "@/components/AvisoTrasladosEnCamino";
 import { valorPorRecibirDeMiTienda } from "@/lib/reparto-reglas";
 import { RecepcionEnvio } from "@/components/RecepcionEnvio";
@@ -32,15 +33,17 @@ import { RecepcionesRecientes } from "@/components/RecepcionesRecientes";
 import { FunnelX, Receipt } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
-import { AccionSinAviso, SinAvisoProvider } from "@/components/recepcion-conteo/SinAvisoContexto";
+import { AccionSinAviso, BotonSinAviso, SinAvisoProvider } from "@/components/recepcion-conteo/SinAvisoContexto";
 import { EnviosParaRecibir } from "@/components/recepcion-envio/EnviosParaRecibir";
-import { getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
+import { EnviosDeLaSede } from "@/components/recepcion-envio/EnviosDeLaSede";
+import { getComprasPagadasHacia, getEnviosAMedias, getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
+import { diasAMedias, DIAS_PARA_RESALTAR, textoDeEnvioAMedias } from "@/lib/recepcion-salida-reglas";
 import { getConteosDelEnvio, recibirContandoDisponible } from "@/lib/recepcion-conteo";
-import { esEnvioSinAviso, guardadoDesde, proveedorDelSinAviso, textoGuardadoEstaSemana } from "@/lib/recepcion-conteo-reglas";
+import { esEnvioSinAviso, marcasDelSinAviso, proveedoresDelSinAviso } from "@/lib/recepcion-conteo-reglas";
 import { LlegoSinAviso } from "@/components/recepcion-conteo/LlegoSinAviso";
-import { PendientesDeRecibir } from "@/components/recepcion-conteo/PendientesDeRecibir";
+import { RecibidoEnLaSede } from "@/components/recepcion-conteo/RecibidoEnLaSede";
+import { TERMINADOS_MAXIMO } from "@/lib/por-terminar-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
-import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Recibir mercadería (ADR-0330, 2026-10-04): la LLEGADA manda y la factura se une después. `/recibir` abre en «Llegó
@@ -152,47 +155,53 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           <RecepcionesRecientes recepciones={sinFactura} costos={costosSinFactura} vacio={`Todavía no llegó nada sin factura a ${nombreMirada}.`} />
         </section>
 
-        <TituloSeccion className="-mb-3">Contra factura</TituloSeccion>
-        <div data-guia="recibidas.cifras" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <TarjetaCifra className="anim-entra" style={{ "--i": 0 } as CSSProperties} punto="neutro" etiqueta="Unidades recibidas" valor={<CifraQueCuenta valor={resumen.unidadesRecibidas} alMontar />}>
-            últimos 90 días · {resumen.recepciones.toLocaleString("es-PE")} {resumen.recepciones === 1 ? "recepción" : "recepciones"}
-          </TarjetaCifra>
-          {resumen.diasEntregaPromedio != null ? (
-            <TarjetaCifra className="anim-entra" style={{ "--i": 1 } as CSSProperties} punto="neutro" etiqueta="Tiempo de entrega" valor={<CifraQueCuenta valor={resumen.diasEntregaPromedio} formato="dias" alMontar />}>
-              emisión → llegada · promedio de {resumen.comprobantesRecibidos}
+        {/* `space-y-6` deja 24 px como margen INFERIOR del título (Tailwind 4): `mb-3` los baja a 12. Con `-mb-3` el título quedaba
+            12 px debajo de las tarjetas y se veía cortado por la mitad. */}
+        <TituloSeccion className="mb-3">Contra factura</TituloSeccion>
+        {/* Cuatro cifras en fila las decide el ancho de la pantalla (`@container`), no el de la ventana: a 768 px con el menú abierto
+            quedaban ~100 px por tarjeta, bajo el piso de `TarjetaCifra`. Desde 640 px (4 × 148 + huecos) caben; bajo eso, 2 × 2. */}
+        <div className="@container">
+          <div data-guia="recibidas.cifras" className="grid grid-cols-2 gap-3 @min-[640px]:grid-cols-4">
+            <TarjetaCifra className="anim-entra" style={{ "--i": 0 } as CSSProperties} punto="neutro" etiqueta="Unidades recibidas" valor={<CifraQueCuenta valor={resumen.unidadesRecibidas} alMontar />}>
+              últimos 90 días · {resumen.recepciones.toLocaleString("es-PE")} {resumen.recepciones === 1 ? "recepción" : "recepciones"}
             </TarjetaCifra>
-          ) : (
-            <TarjetaCifra className="anim-entra" style={{ "--i": 1 } as CSSProperties} etiqueta="Tiempo de entrega" valor={null}>
-              Aparece con la primera recepción
+            {resumen.diasEntregaPromedio != null ? (
+              <TarjetaCifra className="anim-entra" style={{ "--i": 1 } as CSSProperties} punto="neutro" etiqueta="Tiempo de entrega" valor={<CifraQueCuenta valor={resumen.diasEntregaPromedio} formato="dias" alMontar />}>
+                emisión → llegada · promedio de {resumen.comprobantesRecibidos}
+              </TarjetaCifra>
+            ) : (
+              <TarjetaCifra className="anim-entra" style={{ "--i": 1 } as CSSProperties} etiqueta="Tiempo de entrega" valor={null}>
+                Aparece con la primera recepción
+              </TarjetaCifra>
+            )}
+            {pctCompletas != null ? (
+              <TarjetaCifra className="anim-entra" style={{ "--i": 2 } as CSSProperties} punto="verde" detalleTono="text-verde-profundo" etiqueta="Entregas completas" valor={<CifraQueCuenta valor={pctCompletas} formato="porcentaje" alMontar />}>
+                {resumen.entregasCompletas} de {resumen.comprobantesRecibidos} {resumen.comprobantesRecibidos === 1 ? "comprobante llegó completo" : "comprobantes llegaron completos"}
+              </TarjetaCifra>
+            ) : (
+              <TarjetaCifra className="anim-entra" style={{ "--i": 2 } as CSSProperties} etiqueta="Entregas completas" valor={null}>
+                Aparece con la primera recepción
+              </TarjetaCifra>
+            )}
+            <TarjetaCifra
+              className="anim-entra"
+              style={{ "--i": 3 } as CSSProperties}
+              punto={resumen.faltanteUnidades > 0 ? "ambar" : "verde"}
+              vivo={resumen.faltanteUnidades > 0}
+              tono={resumen.faltanteUnidades > 0 ? "text-ambar-profundo" : undefined}
+              detalleTono={resumen.faltanteUnidades > 0 ? "text-ambar-profundo" : undefined}
+              etiqueta="Faltante abierto"
+              valor={<CifraQueCuenta valor={resumen.faltanteUnidades} alMontar />}
+              unidad={resumen.faltanteUnidades === 1 ? "unidad" : "unidades"}
+              // La lista de comprobantes con faltante es de Facturas de proveedor: a quien no tiene ese módulo no se le ofrece un enlace
+              // que lo devuelve al Inicio (ADR-0387; antes, solo al líder).
+              href={acciones.facturas && resumen.faltanteUnidades > 0 ? "/compras?recep=parcial" : undefined}
+            >
+              {resumen.faltanteUnidades > 0
+                ? `${resumen.faltanteComprobantes} ${resumen.faltanteComprobantes === 1 ? "comprobante" : "comprobantes"} · cerrar o reclamar`
+                : "Nada por reclamar"}
             </TarjetaCifra>
-          )}
-          {pctCompletas != null ? (
-            <TarjetaCifra className="anim-entra" style={{ "--i": 2 } as CSSProperties} punto="verde" detalleTono="text-verde-profundo" etiqueta="Entregas completas" valor={<CifraQueCuenta valor={pctCompletas} formato="porcentaje" alMontar />}>
-              {resumen.entregasCompletas} de {resumen.comprobantesRecibidos} {resumen.comprobantesRecibidos === 1 ? "comprobante llegó completo" : "comprobantes llegaron completos"}
-            </TarjetaCifra>
-          ) : (
-            <TarjetaCifra className="anim-entra" style={{ "--i": 2 } as CSSProperties} etiqueta="Entregas completas" valor={null}>
-              Aparece con la primera recepción
-            </TarjetaCifra>
-          )}
-          <TarjetaCifra
-            className="anim-entra"
-            style={{ "--i": 3 } as CSSProperties}
-            punto={resumen.faltanteUnidades > 0 ? "ambar" : "verde"}
-            vivo={resumen.faltanteUnidades > 0}
-            tono={resumen.faltanteUnidades > 0 ? "text-ambar-profundo" : undefined}
-            detalleTono={resumen.faltanteUnidades > 0 ? "text-ambar-profundo" : undefined}
-            etiqueta="Faltante abierto"
-            valor={<CifraQueCuenta valor={resumen.faltanteUnidades} alMontar />}
-            unidad={resumen.faltanteUnidades === 1 ? "unidad" : "unidades"}
-            // La lista de comprobantes con faltante es de Facturas de proveedor: a quien no tiene ese módulo no se le ofrece un enlace
-            // que lo devuelve al Inicio (ADR-0387; antes, solo al líder).
-            href={acciones.facturas && resumen.faltanteUnidades > 0 ? "/compras?recep=parcial" : undefined}
-          >
-            {resumen.faltanteUnidades > 0
-              ? `${resumen.faltanteComprobantes} ${resumen.faltanteComprobantes === 1 ? "comprobante" : "comprobantes"} · cerrar o reclamar`
-              : "Nada por reclamar"}
-          </TarjetaCifra>
+          </div>
         </div>
 
         {/* En la maqueta 06 los filtros van a 14 px de la tabla (más pegados que el ritmo de la página): son sus controles. */}
@@ -221,7 +230,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   if (vista === "llegada") {
     // «Llegó esta semana»: lo recibido en ESTA sede los últimos 7 días (hoy incluido, en días de Lima), con o sin factura.
     const haceUnaSemana = sumarDias(hoyLima(), -6);
-    const [catalogo, proveedores, marcas, rubrosEnUso, trasladosDeLaSede, porRecibir, recientes, costos, deOrdenes, contando] = await Promise.all([
+    const [catalogo, proveedores, marcas, rubrosEnUso, trasladosDeLaSede, porRecibir, recientes, costos, deOrdenes, contando, recibidos] = await Promise.all([
       // Lo que se puede recibir AQUÍ (ADR-0505): en Trujillo no se sugiere la blusa de CLAURE que se parece a la de CAYLA.
       getCatalogoDeLaSede(persona.ubicacionId),
       getProveedoresActivos(),
@@ -244,7 +253,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         console.error("Llegó esta semana en Recibir mercadería:", e);
         return [];
       }),
-      costosDeLotes(verMontos, persona.ubicacionId),
+      costosDeLotes(verMontos, persona.ubicacionId, TERMINADOS_MAXIMO),
       // Lo que viene de una orden de compra (ADR-0362, fase 4). Secundario: si falla, la tarjeta no sale y la puerta recibe igual.
       getPorRecibirEnLaSede(persona.ubicacionId).catch((e: unknown) => {
         console.error("Envíos de órdenes de compra en Recibir mercadería:", e);
@@ -252,6 +261,12 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       }),
       // ADR-0393: si la base ya cuenta primero (llega con sus migraciones), la puerta es «Llegó sin aviso» y avisa lo que quedó por terminar.
       recibirContandoDisponible(persona.ubicacionId),
+      // «Lo recibido» (Terminados): lo que ya entró a esta sede, lo más reciente primero y paginado de 10 en 10 sobre las últimas 50 (Felipe
+      // 2026-10-28); lo demás, en «Ver todo lo recibido». No es la lista de la semana de arriba: esa alimenta el aviso de «este proveedor ya entró hoy» y no se toca.
+      getRecepcionesRecientes({ ubicacionId: persona.ubicacionId, limite: TERMINADOS_MAXIMO }).catch((e: unknown) => {
+        console.error("Lo recibido en Recibir mercadería:", e);
+        return [];
+      }),
     ]);
     const facturasDeLaSede = porRecibir.filas.map((c) => ({
       id: c.id,
@@ -263,54 +278,93 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     }));
     // De quién es cada envío sin aviso que alguien dejó abierto (suelen ser uno o dos): la lista de Compras no lo trae. Si no se lee, la
     // fila dice lo de siempre.
+    const aMedias = contando.disponible ? await getEnviosAMedias(persona.ubicacionId) : [];
+    // ADR-0636: las compras ya pagadas que vienen a esta sede. La puerta «sin aviso» las nombra antes de abrir, para que no entren dos veces.
+    const comprasPagadas = contando.disponible ? await getComprasPagadasHacia(persona.ubicacionId) : [];
     const sinAvisoAbiertos = contando.disponible ? (deOrdenes?.envios ?? []).filter(esEnvioSinAviso) : [];
-    const proveedoresSinAviso = Object.fromEntries(
-      await Promise.all(sinAvisoAbiertos.map(async (e) => [e.id, proveedorDelSinAviso((await getConteosDelEnvio(e.id)).conteos)] as const)),
-    );
-    // Lo que llegó esta semana y quedó por terminar no tiene lote: sin esto, la lista diría «no llegó nada» (ADR-0393, lista aparte).
-    const guardadoSemana = textoGuardadoEstaSemana(guardadoDesde(contando.pendientes, haceUnaSemana), persona.ubicacionEtiqueta, recientes.length > 0);
-    // «Llegó esta semana» es la misma en las dos caras de la puerta (la de ADR-0393 y la de «Llegó mercadería»).
-    const llegoEstaSemana = (
-      <section data-guia="recibir.semana" className="space-y-2">
-        <TituloSeccion
-          accion={
-            <EnlaceVer href="/recibir?vista=recibidas" guia="recibir.ver-todo">
-              Ver todo lo recibido
-            </EnlaceVer>
-          }
-        >
-          Llegó esta semana · {persona.ubicacionEtiqueta}
-        </TituloSeccion>
-        <RecepcionesRecientes
-          recepciones={recientes}
-          costos={costos}
-          vacio={guardadoSemana ?? `Esta semana todavía no llegó nada a ${persona.ubicacionEtiqueta}.`}
-        />
-        {recientes.length > 0 && guardadoSemana && <p className="nota-cayla">{guardadoSemana}</p>}
-      </section>
+    const conteosSinAviso = new Map(await Promise.all(sinAvisoAbiertos.map(async (e) => [e.id, (await getConteosDelEnvio(e.id)).conteos] as const)));
+    const proveedoresSinAviso = Object.fromEntries([...conteosSinAviso].map(([id, c]) => [id, proveedoresDelSinAviso(c)] as const));
+    // La marca bajo el proveedor (Felipe 2026-11-07): la base la manda por las líneas del envío; uno sin aviso no tiene líneas, así que se
+    // toma de lo que ya se contó.
+    const porRecibirEnLaSede = deOrdenes && {
+      ...deOrdenes,
+      envios: deOrdenes.envios.map((e) => (conteosSinAviso.has(e.id) ? { ...e, marcas: marcasDelSinAviso(conteosSinAviso.get(e.id) ?? null) } : e)),
+    };
+    // Lo recibido en la sede es la misma tarjeta en las dos caras de la puerta (la de ADR-0393 y la de «Llegó mercadería»); «Por terminar» solo
+    // existe si la base ya cuenta lo que quedó por terminar (la cara de ADR-0393).
+    const loRecibido = (
+      <RecibidoEnLaSede
+        sede={persona.ubicacionEtiqueta}
+        pendientes={contando.disponible ? contando.pendientes : null}
+        recibidos={recibidos}
+        costos={costos}
+        vacio={`Todavía no llegó nada a ${persona.ubicacionEtiqueta}.`}
+        // Cada envío sale una sola vez (Felipe 2026-11-17): lo que se sigue recibiendo y lo que quedó por terminar no se repite en «Terminados».
+        enviosSinTerminar={[
+          ...(deOrdenes?.envios ?? []).filter((e) => e.estado === "abierto").map((e) => e.id),
+          ...(contando.disponible ? (contando.pendientes?.envios ?? []).map((e) => e.despachoId) : []),
+        ]}
+      />
     );
     if (contando.disponible) {
+      // Los envíos a medias que no tienen fila en la tarjeta de esta sede (ver el comentario del aviso, más abajo).
+      const aMediasSinFila = aMedias.filter((e) => !(porRecibirEnLaSede?.envios ?? []).some((x) => x.id === e.id));
       return (
         <div className="space-y-6">
-          {conEncabezado(`Abre el fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después. Entra al almacén de ${nombreMirada}.`)}
-          {contando.pendientes && <PendientesDeRecibir pendientes={contando.pendientes} guia="recibir.pendientes" />}
+          {conEncabezado(`Abre un fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después. Entra al almacén de ${nombreMirada}.`)}
+          {/* Los avisos pasan a la fila (Felipe 2026-11-17, ADR-0676): un envío a medias de ESTA sede ya lo dice en su fila de la tarjeta (cuánto
+              entró, y en ámbar si lleva días), y lo que quedó por terminar también es una fila. Aquí queda solo lo que no tiene fila: el envío
+              viejo de OTRA sede que `fn_envios_a_medias` le muestra al líder, o los de esta si la lista no se pudo leer. Van juntos (8 px entre
+              ellos) y el grupo es un contenedor: con menos de 640 px de ancho, «Seguir recibiendo» baja debajo del texto (recepcion-conteo.css). */}
+          {aMediasSinFila.length > 0 && (
+            <div className="@container/rc-avisos space-y-2">
+              {aMediasSinFila.map((e) => (
+                <Aviso
+                  key={e.id}
+                  tono={diasAMedias(e.desde) >= DIAS_PARA_RESALTAR ? "atencion" : "info"}
+                  chico
+                  // Con la columna angosta, «Seguir recibiendo» baja debajo del texto: a su derecha lo dejaba en cinco renglones.
+                  className="rc-aviso-a-medias"
+                  accion={
+                    <Link href={`/recibir/envio/${e.id}`} className="btn-cayla btn-enlace">
+                      Seguir recibiendo
+                    </Link>
+                  }
+                >
+                  {textoDeEnvioAMedias(e, undefined, persona.ubicacionEtiqueta)}
+                </Aviso>
+              ))}
+            </div>
+          )}
           <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
           <SinAvisoProvider>
-          {deOrdenes && (
-            <EnviosParaRecibir envios={deOrdenes.envios} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria proveedoresSinAviso={proveedoresSinAviso} accionTitulo={<AccionSinAviso />} />
-          )}
+          {/* Una sola tarjeta (Felipe 2026-11-17, propuesta «C · Índice»): lo que falta recibir, lo que quedó por terminar y lo terminado, cada
+              envío una vez. Si los envíos por recibir no se pudieron leer, la tarjeta lo dice y muestra lo demás. Con la tarjeta angosta,
+              «Sin aviso» deja el título y va en la fila de herramientas, sin su pregunta (`accionCelular`). */}
+          <EnviosDeLaSede
+            envios={porRecibirEnLaSede?.envios ?? []}
+            ordenes={deOrdenes?.ordenes ?? []}
+            sinLeerPorRecibir={!deOrdenes}
+            sede={persona.ubicacionEtiqueta}
+            proveedoresSinAviso={proveedoresSinAviso}
+            aMedias={Object.fromEntries(aMedias.map((e) => [e.id, { enStock: e.enStock, contadas: e.contadas }]))}
+            pendientes={contando.pendientes}
+            recibidos={recibidos}
+            costos={costos}
+            hoy={hoyLima()}
+            accionTitulo={<AccionSinAviso />}
+            accionCelular={<BotonSinAviso />}
+          />
           <LlegoSinAviso
             key={claveDeLaRecepcion(persona.ubicacionId)}
             ubicacionId={persona.ubicacionId}
             ubicacionEtiqueta={persona.ubicacionEtiqueta}
             proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, rubros: p.rubros, marcas: marcas?.[p.id] ?? [] }))}
-            rubrosEnUso={rubrosEnUso}
-            puedeAgregarProveedor={puedeAgregarProveedor}
             facturas={facturasDeLaSede}
+            comprasPagadas={comprasPagadas}
             hayListaArriba={(deOrdenes?.envios.length ?? 0) + (deOrdenes?.ordenes.length ?? 0) > 0}
           />
           </SinAvisoProvider>
-          {llegoEstaSemana}
         </div>
       );
     }
@@ -356,7 +410,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
                 categoriaFamilia: v.categoriaFamilia,
               }))}
           />
-          {llegoEstaSemana}
+          {loRecibido}
         </div>
       </TrabajoPorSede>
     );
@@ -482,10 +536,10 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
  * margen sin dato hasta que llegue su factura (ADR-0330, fase 2), y quien paga tiene que verlo. A los demás, ni la columna
  * (`undefined`). Secundario: si no se puede leer, la lista sale igual, sin costos.
  */
-async function costosDeLotes(verMontos: boolean, ubicacionId: string): Promise<Record<string, { costo: number | null; sinCosto: boolean }> | undefined> {
+async function costosDeLotes(verMontos: boolean, ubicacionId: string, limite = 30): Promise<Record<string, { costo: number | null; sinCosto: boolean }> | undefined> {
   if (!verMontos) return undefined;
   try {
-    const filas = await listarRecepcionesSinComprobante({ ubicacionId, limite: 30 });
+    const filas = await listarRecepcionesSinComprobante({ ubicacionId, limite });
     return Object.fromEntries(filas.map((r) => [r.loteId, { costo: r.costoUnitarioPromedio, sinCosto: r.sinCosto }]));
   } catch (e) {
     console.error("Costos de las llegadas sin factura:", e);

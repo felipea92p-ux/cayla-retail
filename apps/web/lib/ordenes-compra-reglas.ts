@@ -498,16 +498,19 @@ export function leerDetalleOrden(data: unknown): DetalleOrden | null {
       if (!l || typeof l !== "object") return null;
       const r = l as Record<string, unknown>;
       const posicion = cifra(r.posicion);
-      const categoriaId = texto(r.categoria_id);
-      const categoria = texto(r.categoria);
-      const marcaId = texto(r.marca_id);
-      const marca = texto(r.marca);
+      // Una prenda de Mis compras anotada «por definir» (ADR-0660) viene sin categoría: la línea se ve igual, como «Por definir».
+      const porDefinir = r.categoria_id == null && r.categoria == null;
+      const categoriaId = porDefinir ? "" : texto(r.categoria_id);
+      const categoria = porDefinir ? "Por definir" : texto(r.categoria);
+      // Una compra de «Algo nuevo» puede ir sin marca (Felipe 2026-11-11): la línea se ve igual, como «Sin marca».
+      const marcaId = texto(r.marca_id) ?? "";
+      const marca = texto(r.marca) ?? "Sin marca";
       const cantidad = cifra(r.cantidad);
       const precioUnitario = cifra(r.precio_unitario);
       const subtotal = cifra(r.subtotal);
       const pendiente = cifra(r.pendiente);
       const porEnviar = cifra(r.por_enviar);
-      if (posicion == null || !categoriaId || !categoria || !marcaId || !marca || cantidad == null || precioUnitario == null || subtotal == null) return null;
+      if (posicion == null || categoriaId == null || (!categoriaId && !porDefinir) || !categoria || cantidad == null || precioUnitario == null || subtotal == null) return null;
       return {
         id: texto(r.id),
         posicion,
@@ -611,6 +614,8 @@ export type EnvioDeOrden = {
   despachadoEn: string | null;
   /** Unidades que lleva (de esta orden). */
   unidades: number;
+  /** De esas, las que ya están en el stock, aunque el envío se siga contando. */
+  enStock?: number;
   /** La versión que vio la pantalla: la base rechaza anular si otra persona lo cambió antes. `null` = la base no la dice en la orden. */
   version: number | null;
 };
@@ -643,6 +648,7 @@ export function leerEnvios(data: unknown): EnvioDeOrden[] | null {
         estado,
         despachadoEn: texto(r.despachado_en),
         unidades: cifra(r.unidades) ?? 0,
+        ...(cifra(r.en_stock) ? { enStock: cifra(r.en_stock) ?? 0 } : {}),
         version: cifra(r.version),
       };
     })

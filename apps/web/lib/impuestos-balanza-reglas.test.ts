@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MesIgv } from "./impuestos-reglas";
-import { TOPE_INCLINACION, alturasPesas, balanzaIgv, type IgvDeLugar } from "./impuestos-balanza-reglas";
+import { TOPE_INCLINACION, balanzaIgv, type IgvDeLugar } from "./impuestos-balanza-reglas";
 
 // Septiembre de la historia de las maquetas: cobraste 16,020, descuentas 7,620, pagas 8,400 de IGV + 890 de renta.
 const mes = (p: Partial<MesIgv> = {}): MesIgv => ({
@@ -96,24 +96,5 @@ describe("balanzaIgv", () => {
     expect(b.sinReparto).toBe(true);
     expect(b.porLugar).toBe(false);
     expect(b.cuenta.pagas).toBe(9290);
-  });
-});
-
-describe("alturasPesas", () => {
-  it("el plato más pesado mide el alto entero; el otro, en proporción", () => {
-    const a = alturasPesas(balanzaIgv(mes(), 890), 120);
-    expect(a.cobrado).toEqual([120]);
-    expect(a.compras.reduce((x, y) => x + y, 0)).toBeCloseTo((7620 / 16020) * 120, -1);
-  });
-
-  it("con notas de crédito, la pila mide el total neto, no la suma bruta", () => {
-    const b = balanzaIgv(mes({ creditoNotas: 1620, credito: 6000, aPagar: 10020 }), null);
-    const a = alturasPesas(b, 120);
-    expect(a.compras.reduce((x, y) => x + y, 0)).toBeCloseTo((6000 / 16020) * 120, -1);
-  });
-
-  it("una pesa muy chica igual se ve", () => {
-    const b = balanzaIgv(mes({ creditoTaller: 1, credito: 6641, aPagar: 9379 }), null);
-    expect(Math.min(...alturasPesas(b, 120).compras)).toBeGreaterThanOrEqual(6);
   });
 });

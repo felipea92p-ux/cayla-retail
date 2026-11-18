@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { QRCodeSVG } from "qrcode.react";
 import { DIAS_PLAZO_CAMBIO } from "@/lib/cambios-reglas";
 import { textoCuponEnElRecibo } from "@/lib/club-puntos-reglas";
@@ -33,10 +33,13 @@ const s = (n: number) => `S/\u00a0${n.toFixed(2)}`;
  *    La jerarquía sale de tamaño, peso y reglas, no de color.
  *  · Lo que la clienta busca —el TOTAL— va enmarcado entre dos reglas gruesas y es lo más grande;
  *    lo que necesita SUNAT (serie-número, QR) va aparte y no compite con eso.
- *  · El logo es el isotipo del colibrí en negro (`filter: brightness(0)`), no el PNG terracota.
+ *  · El logo es el oficial (colibrí y palabra, ADR-0446) en vector y negro, nunca «CAYLA» escrito con una letra.
  *  · Ancho útil 72 mm (papel de 80 con los márgenes del cabezal).
  *  · Sin QR del club: el papel lleva solo el QR de SUNAT (Felipe 2026-10-01, ADR-0288 act. j). La clienta se une con el
  *    QR del cartel del mostrador.
+ *  · El comprobante nuevo de un cambio (ADR-0671, `recibo.cambio`, de `armarReciboDeCambio`): como la entrega de un apartado, lleva
+ *    el sello «CANCELADO» y, al pie, de qué compra sale y su nota de crédito; no promete «Cambios dentro de 15 días»: lo recibido en
+ *    un cambio todavía no se vuelve a cambiar.
  */
 export function ReciboTermico({ recibo, emisor = EMISOR, apartado }: {
   recibo: ReciboVenta;
@@ -54,10 +57,9 @@ export function ReciboTermico({ recibo, emisor = EMISOR, apartado }: {
   return (
     <div id="comprobante-print" data-testid="recibo-termico">
       <header className="rt-centro">
-        {/* `priority`: la imagen tiene que estar cargada ANTES de imprimir; el recibo está
-            `display:none` en pantalla y un `lazy` no la traería hasta tarde. */}
-        <Image src="/cayla-isotipo.png" alt="" width={221} height={150} priority unoptimized className="rt-logo" />
-        <p className="rt-marca">{emisor.nombreComercial}</p>
+        {/* El logo oficial en vector (ADR-0446), en negro: no espera a cargar una imagen antes de imprimir. */}
+        <LogoCayla tinta="negro" className="rt-logo" />
+        <p className="sr-only">{emisor.nombreComercial}</p>
         <p className="rt-negrita">
           {emisor.razonSocial} · RUC {emisor.ruc}
         </p>
@@ -139,7 +141,9 @@ export function ReciboTermico({ recibo, emisor = EMISOR, apartado }: {
       <p className="rt-son">SON: {montoEnLetras(recibo.total)}</p>
 
       <div className="rt-linea" />
-      {apartado ? (
+      {/* La entrega de un apartado y el comprobante nuevo de un cambio (ADR-0671, el papel que trajo #1910): «CANCELADO» en vez de la
+          forma de pago, que mostraría un pacto interno (el adelanto, o la prenda que volvió con su nota de crédito). */}
+      {apartado || recibo.cambio ? (
         <p className="rt-centro">
           <span className="rt-cancelado">CANCELADO</span>
         </p>
@@ -191,13 +195,19 @@ export function ReciboTermico({ recibo, emisor = EMISOR, apartado }: {
         ) : (
           <p>Documento sin valor tributario. No es un comprobante de pago.</p>
         )}
-        <p>
-          Cambios dentro de {DIAS_PLAZO_CAMBIO} días con este {fiscal ? "comprobante" : "documento"}.
-          {emisor.web && ` Más en ${emisor.web}`}
-        </p>
+        {/* Lo recibido en un cambio todavía no se vuelve a cambiar (ADR-0671, decisión 10): su papel no lo promete. */}
+        {recibo.cambio ? (
+          emisor.web && <p>Más en {emisor.web}</p>
+        ) : (
+          <p>
+            Cambios dentro de {DIAS_PLAZO_CAMBIO} días con este {fiscal ? "comprobante" : "documento"}.
+            {emisor.web && ` Más en ${emisor.web}`}
+          </p>
+        )}
         <p className="rt-lema">{emisor.lema}</p>
         <p className="rt-negrita">¡Gracias por tu compra!</p>
         {apartado && <p>Prendas apartadas · ref. {apartado.codigo}</p>}
+        {recibo.cambio && <p>{recibo.cambio.referencia}</p>}
       </footer>
 
     </div>

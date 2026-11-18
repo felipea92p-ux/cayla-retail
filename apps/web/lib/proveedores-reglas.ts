@@ -1,6 +1,7 @@
 // Reglas puras de Proveedores (maquetas 08 y 09, ADR-0111; vista rápida y mini-tendencias, ADR-0128).
 // Sin I/O: se prueban sin base.
 
+import { enteroEscrito } from "./cantidad-escrita-reglas";
 import { soles } from "./compras-reglas";
 import { nombresParecidos, type MotivoParecido } from "./nombres-parecidos";
 
@@ -128,7 +129,7 @@ export function rubrosSinGastos(rubros: readonly string[]): string[] {
 /** Lo escrito en el buscador de proveedor, como punto de partida del alta: 11 dígitos son un RUC (el combo busca «nombre, marca o RUC»); lo demás, el nombre. */
 export function borradorDeLoBuscado(texto: string): { nombre: string; ruc: string } {
   const limpio = texto.trim().replace(/\s+/g, " ");
-  const digitos = limpio.replace(/[\s.-]/g, "");
+  const digitos = limpio.replace(/[\s.-]/g, ""); // blanco-fijo: los dígitos de un RUC, no una cifra que se sume
   return /^\d{11}$/.test(digitos) ? { nombre: "", ruc: digitos } : { nombre: limpio, ruc: "" };
 }
 
@@ -209,6 +210,13 @@ export function chipEntregas(p: { facturas: number | null; facturas_atrasadas: n
 // ---------------------------------------------------------------------------
 // Contacto
 // ---------------------------------------------------------------------------
+
+/** El plazo de crédito escrito a mano: días enteros, 1 o mayor, lo mismo que exige la base (`proveedores_plazo_credito_positivo`). Vacío: sin definir. */
+export function problemaDePlazoCredito(texto: string): string | null {
+  if (texto.trim() === "") return null;
+  const n = enteroEscrito(texto);
+  return n !== null && n >= 1 ? null : "El plazo de crédito es un número entero de días, 1 o mayor.";
+}
 
 /**
  * Enlace de WhatsApp a partir del teléfono guardado. Un móvil peruano tiene 9 dígitos y empieza en
@@ -433,6 +441,19 @@ export function marcasParaMostrar(marcas: readonly string[], busqueda: string, m
   const coinciden = q ? marcas.filter((m) => base(m).includes(q)) : [];
   const orden = [...coinciden, ...marcas.filter((m) => !coinciden.includes(m))];
   return { visibles: orden.slice(0, max), ocultas: Math.max(0, orden.length - max) };
+}
+
+/**
+ * La marca primero (ADR-0644, Felipe 2026-11-11): «muchas veces no se conoce al proveedor sino la marca». El título de la fila de un proveedor
+ * son sus marcas —las que coinciden con lo buscado primero— y la razón social baja a la línea de abajo: «Kero, Lolita, Mia Rose y 2 más».
+ * `null` si no tiene ninguna (los de servicios y gastos): la fila sigue con su razón social, como antes.
+ */
+export function tituloDeMarcas(marcas: readonly string[], busqueda: string, max = 3): string | null {
+  if (marcas.length === 0) return null;
+  const { visibles, ocultas } = marcasParaMostrar(marcas, busqueda, max);
+  if (ocultas > 0) return `${visibles.join(", ")} y ${ocultas} más`;
+  if (visibles.length === 1) return visibles[0];
+  return `${visibles.slice(0, -1).join(", ")} y ${visibles[visibles.length - 1]}`;
 }
 
 // ---------------------------------------------------------------------------

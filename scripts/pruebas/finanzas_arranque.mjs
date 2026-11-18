@@ -28,6 +28,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PEGAR_DE_NUEVO_FLUJO } from "./_deshacer_20261114010000.mjs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
@@ -83,7 +84,8 @@ function verificar(titulo, r, esperados) {
 
 // La migración, aplicada DENTRO de la escena (su ROLLBACK la deshace): así la prueba corre aunque la base local aún no la tenga.
 // Va primero, antes de sembrar nada (un `alter table` después de sembrar una tabla con disparadores diferidos da 55006).
-const APLICAR = `\n${MIGRACION}\n`;
+// Con 20261114010000, `fn_flujo_caja_real` es un envoltorio: el pegado viejo va entre su «deshacer» y su «rehacer» (`_deshacer_20261114010000.mjs`).
+const APLICAR = `\n${PEGAR_DE_NUEVO_FLUJO(MIGRACION)}\n`;
 
 const AYUDANTES = `
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
@@ -277,7 +279,7 @@ select 'cerrado: con un mes cerrado el corte no se mueve', (pg_temp.intento($$se
   const r = correr(`begin;
 ${APLICAR}
 select (${huella}) as h1 \\gset
-${MIGRACION}
+${PEGAR_DE_NUEVO_FLUJO(MIGRACION)}
 select 'migracion: pegarla dos veces deja las funciones igual', ((${huella}) = :'h1')::text;
 select 'migracion: el corte está en las dos funciones del estado', ((select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
         and p.proname in ('fn_asientos', 'fn_estado_resultados') and pg_get_functiondef(p.oid) like '%fn_finanzas_desde()%') = 2)::text;

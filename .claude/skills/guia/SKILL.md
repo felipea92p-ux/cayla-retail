@@ -66,7 +66,9 @@ Antes de escribir, avísale a Felipe en una línea qué pantallas vas a tocar y 
    encendida: escribir un ejemplo). Patrón que funciona: el paso «Cada prenda» explica la tarjeta; el SIGUIENTE paso la abre en su
    `preparar` — así la persona lee primero y ve abrirse después. El ejemplo que se escribe sale de la pantalla
    (`texto: { palabraDe: "<ancla>" }`), nunca inventado (ADR-0290). Lo que la guía abre lo cierra (`preparar: [{ tipo: "escape" }]`
-   en el paso que sigue, y `alSalir` para vaciar lo escrito).
+   en el paso que sigue, y `alSalir` para vaciar lo escrito). Un pliegue que abre y cierra con el mismo toque (el «?» de la
+   cabecera, «Ver 3 más») no se cierra con Escape ni con un toque a ciegas: `{ tipo: "clic", ancla, para: "abrir" }` en su paso y
+   `para: "cerrar"` en el de antes, en el de después y en `alSalir`. Mira su `aria-expanded`, así que vale en las dos direcciones.
 4. **Registro.** En `registro.ts`: importa la guía, súmala a `GUIAS`, pasa su ruta a `{ estado: "aplicada", guia: X.id }` y baja
    `PENDIENTES_HOY`. Si la pantalla no tiene nada que enseñar, `no-aplica` con su motivo (30 letras o más).
 

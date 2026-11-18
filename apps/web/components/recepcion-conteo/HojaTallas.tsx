@@ -1,15 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
+import type { EmpresaElegible } from "@/lib/dueno-reglas";
 import { BloquePrenda } from "@/components/recepcion-envio/BloquePrenda";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { sumasDe, type CategoriaDeLinea, type Conteo, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
-import { conteoDeVariantes, variantesDeConteo, type VarianteSeparada } from "@/lib/recepcion-conteo-reglas";
+import { conteoDeVariantes, ejesQuitables, variantesDeConteo, type VarianteSeparada } from "@/lib/recepcion-conteo-reglas";
+import { PieAcciones } from "@/components/ui/PieAcciones";
 
 // «Tallas y colores» de una prenda separada (ADR-0393; decisión 1: solo lo que tiene talla y color entra al stock). Es la matriz de la
 // recepción de la fase 4 —el mismo bloque: cuántas de cada talla y color, si llegó algo dañado y si tiene arreglo—, en una hoja. Sirve al
@@ -31,6 +34,9 @@ export function HojaTallas({
   error = null,
   onListo,
   onAbrirHoja,
+  precioDe,
+  dueno = null,
+  quitar,
   onCerrar,
 }: {
   prenda: PrendaRecepcion;
@@ -50,11 +56,41 @@ export function HojaTallas({
   error?: string | null;
   onListo: (prenda: PrendaRecepcion, variantes: VarianteSeparada[]) => void;
   /** «Es nueva» o «+ talla o color»: la pantalla abre la hoja de la prenda y vuelve aquí con la que quedó. */
-  onAbrirHoja: (modo: "nueva" | "agregar", prenda: PrendaRecepcion | null) => void;
+  onAbrirHoja: (modo: "nueva" | "agregar", prenda: PrendaRecepcion | null, escritas: VarianteSeparada[]) => void;
+  /** El precio de venta de la prenda elegida (Felipe 2026-10-26: «Hacer ahora» lo ofrece una vez identificada); sigue a «Cambiar». */
+  precioDe?: (prenda: PrendaRecepcion) => ReactNode;
+  /** Una sede con dos empresas (ADR-0542): de quién es lo que entra. Sin `empresas`, no se pregunta. */
+  dueno?: { empresas: readonly EmpresaElegible[]; duenoId: string; onElegir: (id: string) => void } | null;
+  /** Las tallas y colores agregados por error en este envío (Felipe 2026-11-07): cuáles se pueden quitar y cómo. `onQuitar` devuelve el error o `null`. */
+  quitar?: { ids: ReadonlySet<string>; onQuitar: (ids: string[]) => Promise<string | null> };
   onCerrar: () => void;
 }) {
   const [prenda, setPrenda] = useState<PrendaRecepcion | null>(prendaInicial);
   const [conteo, setConteo] = useState<Conteo>(() => conteoDeVariantes(variantes));
+  // Quitar una talla o un color agregado por error: se pregunta antes, porque saca la combinación del catálogo de la prenda.
+  const [porQuitar, setPorQuitar] = useState<{ tipo: "talla" | "color"; ids: string[]; nombre: string } | null>(null);
+  const [quitando, setQuitando] = useState(false);
+  const [errorQuitar, setErrorQuitar] = useState<string | null>(null);
+  const ejes = prenda && quitar ? ejesQuitables(prenda, quitar.ids) : undefined;
+  async function confirmarQuitar() {
+    if (!porQuitar || !quitar || !prenda) return;
+    setQuitando(true);
+    setErrorQuitar(null);
+    const e = await quitar.onQuitar(porQuitar.ids);
+    setQuitando(false);
+    if (e) {
+      setErrorQuitar(e);
+      return;
+    }
+    const fuera = new Set(porQuitar.ids);
+    setPrenda({ ...prenda, variantes: prenda.variantes.filter((v) => !fuera.has(v.id)) });
+    setConteo((c) => ({
+      ...c,
+      cantidades: Object.fromEntries(Object.entries(c.cantidades).filter(([id]) => !fuera.has(id))),
+      danadas: Object.fromEntries(Object.entries(c.danadas).filter(([id]) => !fuera.has(id))),
+    }));
+    setPorQuitar(null);
+  }
   const s = sumasDe(conteo, prenda);
   const campos = useMemo(
     () => [
@@ -93,6 +129,7 @@ export function HojaTallas({
       onClose={onCerrar}
     >
       {(cerrar) => (
+        <>
         <form
           noValidate
           onSubmit={(e) => {
@@ -114,13 +151,20 @@ export function HojaTallas({
             marca={marca}
             colores={colores}
             enviado={sugeridas}
+            antesDelConteo={dueno && <DuenoDeLoQueEntra {...dueno} deshabilitado={guardando} />}
             onPrenda={(p) => {
               setPrenda(p);
               setConteo(conteoDeVariantes(null));
             }}
             onConteo={(cambios) => setConteo((c) => ({ ...c, ...cambios }))}
-            onAbrirHoja={(modo) => onAbrirHoja(modo, prenda)}
+            onAbrirHoja={(modo) => onAbrirHoja(modo, prenda, prenda ? variantesDeConteo(conteo, prenda) : [])}
+            quitables={ejes}
+            onQuitar={(tipo, ids, nombre) => {
+              setErrorQuitar(null);
+              setPorQuitar({ tipo, ids, nombre });
+            }}
           />
+          {prenda && precioDe?.(prenda)}
           {maximo == null && sugeridas != null && prenda && s.contado > 0 && s.contado !== sugeridas && (
             <p className="text-xs text-taupe">Contaste {sugeridas.toLocaleString("es-PE")} de esta prenda: al guardar, pasan a ser {s.contado.toLocaleString("es-PE")}.</p>
           )}
@@ -141,13 +185,40 @@ export function HojaTallas({
                 <Boton type="button" onClick={cerrar} disabled={guardando}>
                   Dejar para después
                 </Boton>
-                <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+                <Boton type="submit" peso="primario" cargando={guardando} disabled={!!dueno && !dueno.duenoId} confirma={guia} title={guia.frase ?? (dueno && !dueno.duenoId ? "Elige de quién es la mercadería" : undefined)} className={guia.claseConfirmar}>
                   {textoListo}
                 </Boton>
               </div>
             </div>
           </div>
         </form>
+      {porQuitar && prenda && (
+        <Modal
+          titulo={porQuitar.tipo === "talla" ? `¿Quitar la talla ${porQuitar.nombre}?` : `¿Quitar ${porQuitar.nombre}?`}
+          subtitulo={`${porQuitar.tipo === "talla" ? "La" : "Lo"} agregaste en este envío. Sale de ${prenda.nombre}: ya no se cuenta, no se vende ni se etiqueta. Si te equivocaste, se vuelve a agregar con «+ talla o color».`}
+          bloqueado={quitando}
+          onClose={() => setPorQuitar(null)}
+        >
+          {(cerrarla) => (
+            <div className="space-y-4">
+              {errorQuitar && (
+                <Aviso tono="error" titulo="No se pudo quitar">
+                  {errorQuitar}
+                </Aviso>
+              )}
+              <PieAcciones>
+                <Boton type="button" peso="fantasma" onClick={cerrarla} disabled={quitando}>
+                  Cancelar
+                </Boton>
+                <Boton type="button" peso="primario" cargando={quitando} textoCargando="Quitando…" onClick={() => void confirmarQuitar()}>
+                  {porQuitar.tipo === "talla" ? `Quitar la talla ${porQuitar.nombre}` : `Quitar ${porQuitar.nombre}`}
+                </Boton>
+              </PieAcciones>
+            </div>
+          )}
+        </Modal>
+      )}
+        </>
       )}
     </Modal>
   );

@@ -301,6 +301,73 @@ describe("la diferencia se mide contra lo que la clienta pagó, no contra el pre
   });
 });
 
+describe("otra talla o color del mismo modelo conserva su descuento (ADR-0655, Felipe 2026-11-14)", () => {
+  // Polo Lucía de S/ 49.90 que entró a un 3x2: pagó S/ 38.17 (su parte del grupo, S/ 11.73). La XL cuesta S/ 54.90.
+  const polo = (id: string, talla: string, extra: Partial<VarianteCatalogo> = {}) =>
+    variante(id, "polo", { referencia: "Polo Lucía", talla, color: "Negro", precio: 49.9, precioPrenda: 49.9, stockAqui: 3, ...extra });
+  const catalogoPolo = agruparCatalogo([
+    polo("polo-s", "S"),
+    polo("polo-m", "M"),
+    polo("polo-xl", "XL", { precio: 54.9, precioPrenda: 54.9 }),
+    variante("blusa-m", "blusa", { referencia: "Blusa Emma", talla: "M", color: "Rojo", precio: 79.9, precioPrenda: 79.9, stockAqui: 2 }),
+  ]);
+  const del3x2 = { productoId: "polo", varianteId: "polo-s", referencia: "Polo Lucía", precioUnitario: 49.9, descuentoUnitario: 11.73, cantidad: 2 } as LineaVentaReciente;
+  const aTalla = (talla: string, l: LineaVentaReciente = del3x2, cantidad = 1) =>
+    derivarReemplazo(l, catalogoPolo, sel({ productoId: "polo", talla, color: "Negro", cantidad }));
+
+  it("a otra talla del mismo precio no paga nada, y la nueva se muestra a lo que pagó", () => {
+    const r = aTalla("M");
+    expect(r.diferencia).toBe(0);
+    expect(r.precioNueva).toBe(38.17);
+    expect(r.detalleNueva).toBe("Misma prenda: conserva su descuento");
+  });
+
+  it("a una talla que cuesta más, solo paga lo que cuesta de más", () => {
+    expect(aTalla("XL").diferencia).toBe(5);
+  });
+
+  it("a una talla que cuesta menos no se le devuelve nada", () => {
+    const deXl = { ...del3x2, varianteId: "polo-xl", precioUnitario: 54.9, descuentoUnitario: 12.9 } as LineaVentaReciente;
+    expect(aTalla("M", deXl).diferencia).toBe(0);
+  });
+
+  it("con varias unidades, tampoco", () => {
+    expect(aTalla("M", del3x2, 2).diferencia).toBe(0);
+  });
+
+  it("por otro modelo sigue la regla de siempre: su precio contra lo que pagó (ADR-0380)", () => {
+    const r = derivarReemplazo(del3x2, catalogoPolo, sel({ productoId: "blusa", talla: "M", color: "Rojo" }));
+    expect(r.diferencia).toBe(41.73);
+    expect(r.detalleNueva).toBeNull();
+  });
+
+  it("sin descuento nada cambia y no se dice nada bajo la prenda", () => {
+    const r = aTalla("M", { ...del3x2, descuentoUnitario: 0 } as LineaVentaReciente);
+    expect(r.diferencia).toBe(0);
+    expect(r.detalleNueva).toBeNull();
+  });
+
+  it("si la talla que devuelve ya no está en el catálogo, se toma el mismo precio que la nueva", () => {
+    expect(aTalla("M", { ...del3x2, varianteId: "polo-vieja" } as LineaVentaReciente).diferencia).toBe(0);
+  });
+
+  it("con prendas extra, el mismo modelo conserva el descuento solo en las unidades que se devuelven", () => {
+    const s: Seleccion = { ...sel({ productoId: "polo", talla: "M", color: "Negro" }), extras: [{ id: "x1", productoId: "polo", talla: "S", color: "Negro", cantidad: 1 }] };
+    const r = derivarReemplazo(del3x2, catalogoPolo, s);
+    const totales = totalesDelCambio(del3x2, s, r, s.extras!.map((x) => derivarExtra(del3x2, catalogoPolo, s, x)));
+    expect(totales.valorNuevo).toBe(88.07);
+    expect(totales.diferencia).toBe(49.9);
+    expect(totales.salidas.map((x) => x.precio)).toEqual([38.17, 49.9]);
+  });
+
+  it("con prendas extra, si la primera es otro modelo, el polo extra es el que conserva el descuento", () => {
+    const s: Seleccion = { ...sel({ productoId: "blusa", talla: "M", color: "Rojo" }), extras: [{ id: "x1", productoId: "polo", talla: "M", color: "Negro", cantidad: 1 }] };
+    const r = derivarReemplazo(del3x2, catalogoPolo, s);
+    const totales = totalesDelCambio(del3x2, s, r, s.extras!.map((x) => derivarExtra(del3x2, catalogoPolo, s, x)));
+    expect(totales.diferencia).toBe(79.9);
+  });
+});
+
 // ============================================================================
 // Una prenda por VARIAS (ADR-0470): el body de S/ 45.90 por dos Top Rib de S/ 35.90 (boleta B005-000670, 2026-10-21).
 // ============================================================================

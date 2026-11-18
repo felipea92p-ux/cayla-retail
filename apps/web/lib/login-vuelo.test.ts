@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   ALETEO_MAXIMO,
@@ -20,11 +18,6 @@ import {
 const numeros = (d: string) => (d.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
 
 describe("el colibrí del login es el de la marca", () => {
-  it("sus trazos son los mismos de IsotipoCayla", () => {
-    const isotipo = readFileSync(join(__dirname, "../components/ui/IsotipoCayla.tsx"), "utf8");
-    for (const d of TRAZOS_DEL_AVE) expect(isotipo).toContain(`d="${d}"`);
-  });
-
   it("con el ala en reposo, el ala es exactamente la del logo", () => {
     const [a, b] = alaDelAve(0, 1);
     expect(numeros(a)).toEqual(numeros(TRAZOS_DEL_AVE[0]));

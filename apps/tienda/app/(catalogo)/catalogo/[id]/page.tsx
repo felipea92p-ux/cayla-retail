@@ -10,7 +10,8 @@ import { cuantasEnLaBolsa } from "@/lib/bolsa-servidor";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import { claveCategoria, fotoOptimizable, hrefDePrenda, hrefLista } from "@/lib/catalogo";
 import { leerGuardadosEnBase } from "@/lib/club-servidor";
-import { chipsDelCatalogo, combinaCon, esIdDePrenda, parecidasA} from "@/lib/ficha";
+import { chipsDelCatalogo, combinaCon, esIdDePrenda, parecidasA, promesasDeCompra } from "@/lib/ficha";
+import { leerAyuda } from "@/lib/ayuda-servidor";
 import { leerFicha, leerSeparadasPorOtros } from "@/lib/ficha-servidor";
 import { hrefLook } from "@/lib/looks";
 import { leerLooks } from "@/lib/looks-servidor";
@@ -60,7 +61,7 @@ export default async function FichaDePrenda(props: Props) {
   const elegida = ficha?.sede ? sedes.find((s) => s.id === ficha.sede) ?? null : null;
   // El plazo de cambio es el de la caja (el que imprime la boleta), el mismo de «Cambios y devoluciones». Lo guardado (las esperas)
   // es la misma lectura del marco del catálogo (una sola consulta por visita).
-  const [catalogo, guardados, enLaBolsa, looks, separadas, lecturaProbador] = await Promise.all([
+  const [catalogo, guardados, enLaBolsa, looks, separadas, lecturaProbador, plazos] = await Promise.all([
     leerCatalogo(pedida?.id ?? null),
     usuario ? leerGuardadosEnBase(usuario) : null,
     cuantasEnLaBolsa(),
@@ -68,6 +69,7 @@ export default async function FichaDePrenda(props: Props) {
     usuario && ficha && elegida ? leerSeparadasPorOtros(usuario, ficha.id, elegida.id) : new Set<string>(),
     // Si se puede probar: la misma lectura guardada del probador (ADR-0434, actividad 10).
     ficha ? leerProbador(pedida?.id ?? null) : null,
+    leerAyuda(),
   ]);
   const sede = elegida ? claveDeSede(elegida.nombre) : null;
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
@@ -125,6 +127,7 @@ export default async function FichaDePrenda(props: Props) {
             ficha={ficha}
             sedeElegida={elegida?.id ?? null}
             colorPedido={unValor(sp.color)}
+            tallaPedida={unValor(sp.talla)}
             origenFotos={origenFotos}
             chips={chips}
             esperas={guardados ? [...guardados.esperas.keys()] : []}
@@ -132,6 +135,7 @@ export default async function FichaDePrenda(props: Props) {
             enLaBolsa={enLaBolsa}
             separadas={[...separadas]}
             probador={enElProbador ? { codigo: enElProbador.codigo ?? enElProbador.id, sede } : null}
+            promesas={promesasDeCompra(plazos)}
           >
             {combina && (
               <section className="t-sec" aria-labelledby="combina">
@@ -143,7 +147,7 @@ export default async function FichaDePrenda(props: Props) {
                     </h2>
                   </div>
                   <Link className="t-ver" href={hrefLook(combina.look.id, sede)}>
-                    Ver el look <Icono nombre="flecha" />
+                    Ver el outfit <Icono nombre="flecha" />
                   </Link>
                 </div>
                 <CarrilConFlechas className="cp-carril">

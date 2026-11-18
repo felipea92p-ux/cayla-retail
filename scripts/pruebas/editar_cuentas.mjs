@@ -169,20 +169,39 @@ select nombre from retail.cuentas_dinero where id = :'antigua';`);
   esperar("el nombre sí cambia con el mes cerrado", r.ok && nombreMes === "Antigua E con nombre nuevo", r);
 }
 
-// 4. Las cuentas que nacen con cada sede: solo el nombre.
+// 3b. Lo que había en la caja fuerte al arrancar (tarea 4 de «Las 36»): se declara, suma en su saldo y ese saldo se puede depositar.
+{
+  const r = correr(`${ESCENA}
+select id as fuerte from retail.cuentas_dinero where tipo = 'caja_fuerte' and saldo_desde is null limit 1 \\gset
+select saldo as antes from retail.fn_bal_dinero(retail.fn_hoy_lima()) where cuenta_dinero_id = :'fuerte' \\gset
+select x->>'puede_cambiar_saldo' from retail.fn_cuenta_dinero_detalle(:'fuerte') x;
+select retail.editar_cuenta_dinero(:'fuerte', (select nombre from retail.cuentas_dinero where id = :'fuerte'), null, null, 300, retail.fn_hoy_lima()) as _e \\gset
+select saldo_inicial, saldo_desde = retail.fn_hoy_lima() from retail.cuentas_dinero where id = :'fuerte';
+select retail.crear_cuenta_dinero('Banco arranque prueba', 'banco', 0, retail.fn_hoy_lima()) as banco \\gset
+select pg_temp.intento(format('select retail.registrar_movimiento_dinero(''deposito'', 300, %L, %L)', :'fuerte', :'banco'));`);
+  const [puede, declarado, deposito] = lineas(r);
+  esperar("la caja fuerte puede declarar su saldo", r.ok && puede === "true", r);
+  esperar("queda declarado con su fecha", r.ok && declarado === "300.00|t", r);
+  esperar("declarando S/ 300 se pueden depositar S/ 300", r.ok && deposito === "SIN_ERROR", r);
+}
+
+// 4. Las cuentas que nacen con cada sede: el cajón, solo el nombre.
 {
   const r = correr(`${ESCENA}
 select x->>'automatica', x->>'puede_eliminar', x->>'puede_cambiar_tipo', x->>'puede_cambiar_saldo' from retail.fn_cuenta_dinero_detalle(:'cajon_tru') x;
 select pg_temp.intento(format('select retail.eliminar_cuenta_dinero(%L)', :'cajon_tru'));
 select pg_temp.intento(format('select retail.editar_cuenta_dinero(%L, ''Cajón TRU'', null, ''banco'')', :'cajon_tru'));
+select pg_temp.intento(format('select retail.editar_cuenta_dinero(%L, ''Cajón'', null, null, 50, retail.fn_hoy_lima())', :'cajon_tru'));
 select pg_temp.intento(format('select retail.editar_cuenta_dinero(%L, ''Por rendir'', null, null, 50, retail.fn_hoy_lima())', :'rendir'));
+select saldo_inicial from retail.cuentas_dinero where id = :'rendir';
 select retail.editar_cuenta_dinero(:'cajon_tru', 'Cajón de Trujillo', '123') as _e \\gset
 select nombre, numero is null, tipo from retail.cuentas_dinero where id = :'cajon_tru';`);
-  const [detalle, eliminar, tipo, saldo, tras] = lineas(r);
+  const [detalle, eliminar, tipo, saldo, rendir, saldoRendir, tras] = lineas(r);
   esperar("el cajón: automática, no se elimina ni cambia tipo ni saldo", r.ok && detalle === "true|false|false|false", r);
   esperar("eliminar el cajón: nace con la sede", r.ok && eliminar.includes("no se eliminan"), r);
   esperar("cambiarle el tipo: no", r.ok && tipo.includes("su tipo no cambia"), r);
-  esperar("el efectivo por rendir no lleva saldo inicial", r.ok && saldo.includes("no llevan saldo inicial"), r);
+  esperar("el cajón no lleva saldo inicial: su punto de partida es la caja que se cierra", r.ok && saldo.includes("no lleva saldo inicial"), r);
+  esperar("el efectivo por rendir sí declara su saldo inicial (tarea 4)", r.ok && rendir === "SIN_ERROR" && Number(saldoRendir) === 50, r);
   esperar("el nombre sí cambia (el número se ignora)", r.ok && tras === "Cajón de Trujillo|t|cajon", r);
 }
 

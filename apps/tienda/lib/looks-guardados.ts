@@ -116,13 +116,13 @@ export function avisoAlGuardar(estado: EstadoGuardarLook): string {
     case "guardado":
       return "Guardado en tus favoritos";
     case "tope":
-      return "Ya tienes 30 looks guardados. Quita alguno en tus favoritos para guardar otro.";
+      return "Ya tienes 30 outfits guardados. Quita alguno en tus favoritos para guardar otro.";
     case "no_disponible":
-      return "Una prenda de tu look ya no está en la tienda online.";
+      return "Una prenda de tu outfit ya no está en la tienda online.";
     case "cuenta_inactiva":
       return "Tu ficha del Club no está activa. Acércate a cualquier tienda CAYLA y la revisan contigo.";
     case "invalido":
-      return "Agrégale otra prenda para guardarlo: un look lleva al menos dos.";
+      return "Agrégale otra prenda para guardarlo: un outfit lleva al menos dos.";
     case "sin_sesion":
       return "Entra a tu cuenta para guardarlo.";
     default:
@@ -151,15 +151,15 @@ export function etiquetaDelLook(look: Look, indice: ReadonlyMap<string, PrendaDe
     const p = indice.get(look[z]!.id);
     return p ? [`${p.nombre} en ${colorDeLaPieza(p, look[z]!).nombre.toLocaleLowerCase("es")}`] : [];
   });
-  return `Tu look: ${partes.map((x, i) => `${i + 1}, ${x}`).join("; ")}`;
+  return `Tu outfit: ${partes.map((x, i) => `${i + 1}, ${x}`).join("; ")}`;
 }
 
 /** Las prendas guardadas que ya no están (dejaron de verse en la web o ya no se pueden probar): el look sigue con las demás. */
 export function textoDeLasQueFaltan(n: number): string | null {
   if (n <= 0) return null;
   return n === 1
-    ? "Una prenda que guardaste ya no está: el look sigue con las demás."
-    : `${n} prendas que guardaste ya no están: el look sigue con las demás.`;
+    ? "Una prenda que guardaste ya no está: el outfit sigue con las demás."
+    : `${n} prendas que guardaste ya no están: el outfit sigue con las demás.`;
 }
 
 /** La nota del final de la página: el precio y el stock no se guardan, se leen al día. */

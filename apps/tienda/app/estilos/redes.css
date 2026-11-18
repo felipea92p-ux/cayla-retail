@@ -1,0 +1,69 @@
+/* =====================================================================================================
+   TIENDA ONLINE CAYLA · Las redes de CAYLA (`components/Redes.tsx`, `lib/redes.ts`; Felipe 2026-11-13, propuesta A de
+   docs/maquetas/tienda-redes-2026-11 con el efecto de la B): el pie de todas las páginas y el final del menú del celular.
+   Quietos, los íconos van en la tinta de la tienda: el color de la página es el de las prendas y el rojo de CAYLA. Al pasar el puntero,
+   solo el ícono se pinta con el color de su red y crece un poco; la casilla no cambia. Con el dedo no hay puntero, así que en el
+   celular se quedan quietos.
+   Los selectores llevan `ul`, `li` y `a`: el pie pone sus enlaces en línea y sin borde (`.t-pie .t-pie-in li a`) y esto tiene que ganarle.
+   ===================================================================================================== */
+
+/* El color de cada red, sobre el fondo claro de la tienda. Son colores de otras marcas: viven aquí y no en los tokens de la tienda. */
+.redes {
+  --red-instagram: #e1306c; --red-tiktok: #000000; --red-facebook: #0866ff;
+  --red-pinterest: #bd081c; --red-youtube: #e00000; --red-spotify: #12823c;
+  display: grid; gap: var(--e-3, 12px);
+}
+/* En el oscuro, los mismos colores en un tono que se ve sobre el fondo negro cálido. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .redes {
+    --red-instagram: #ff5a95; --red-tiktok: #ffffff; --red-facebook: #4d8dff;
+    --red-pinterest: #ff4d63; --red-youtube: #ff4d4d; --red-spotify: #1ed760;
+  }
+}
+:root[data-theme="dark"] .redes {
+  --red-instagram: #ff5a95; --red-tiktok: #ffffff; --red-facebook: #4d8dff;
+  --red-pinterest: #ff4d63; --red-youtube: #ff4d4d; --red-spotify: #1ed760;
+}
+
+/* 6 px entre casillas: las seis de 44 px miden 294 y caben en una fila del menú del celular a 375 px (con 8 px, la sexta bajaba sola). */
+div.redes > ul.redes-fila { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.redes .redes-fila > li > a.red {
+  position: relative; display: grid; place-items: center; width: 44px; height: 44px; min-height: 0; padding: 0;
+  border: 1px solid var(--dn-borde-control, var(--sand)); border-radius: var(--dn-r-p, 999px); background: transparent; color: var(--tinta);
+  text-decoration: none;
+}
+.redes .red svg { width: 18px; height: 18px; fill: currentColor; transition: color .3s var(--ease), transform .3s var(--ease), filter .3s var(--ease); }
+.redes .red .red-degradado { opacity: 0; transition: opacity .3s var(--ease); }
+.red-instagram { --marca: var(--red-instagram); } .red-tiktok { --marca: var(--red-tiktok); } .red-facebook { --marca: var(--red-facebook); }
+.red-pinterest { --marca: var(--red-pinterest); } .red-youtube { --marca: var(--red-youtube); } .red-spotify { --marca: var(--red-spotify); }
+
+/* Al pasar el puntero, o al llegar con el teclado: solo el ícono toma el color de su red (el efecto de la banda B de la maqueta). */
+.redes .redes-fila > li > a.red:focus-visible { outline: 2px solid var(--tinta); outline-offset: 3px; }
+.redes .red:focus-visible svg { color: var(--marca); }
+@media (hover: hover) {
+  .redes .red:hover svg { color: var(--marca); transform: scale(1.08); }
+  .redes .red-instagram:hover .red-degradado { opacity: 1; }
+  /* TikTok es negro: su color se reconoce por el eco celeste y rojo de su nota. */
+  .redes .red-tiktok:hover svg { filter: drop-shadow(1.2px 1.2px 0 #fe2c55) drop-shadow(-1.2px -1.2px 0 #25f4ee); }
+}
+/* Con el mouse se apuntan sin esfuerzo: 36 px, y así las seis caben en una fila del pie desde una laptop chica. */
+@media (hover: hover) and (pointer: fine) {
+  div.redes > ul.redes-fila { gap: var(--e-1, 4px); }
+  .redes .redes-fila > li > a.red { width: 36px; height: 36px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .redes .red, .redes .red svg, .redes .red .red-degradado { transition: none; }
+  .redes .red:hover svg { transform: none; }
+}
+
+.redes .redes-cuenta { margin: 0; font-size: 13.5px; line-height: 1.4; color: var(--taupe); }
+.redes .redes-cuenta b { font-weight: 600; color: var(--tinta); }
+
+/* ---- En el pie: bajo el lema, con su título como las columnas ---- */
+.t-pie .t-pie-redes { display: grid; gap: var(--e-2, 8px); margin-top: var(--e-2, 8px); }
+.t-pie .t-pie-redes .t-pie-tit { margin: 0; }
+
+/* ---- Al final del menú del celular, separadas de «Tu cuenta y servicios» por un filo ---- */
+.t-menu-redes { display: grid; gap: var(--e-2, 8px); margin-top: var(--e-3, 12px); padding-top: var(--e-4, 16px); border-top: 1px solid var(--sand); }
+.t-menu-redes .dn-menu-tit { margin: 0; }
+

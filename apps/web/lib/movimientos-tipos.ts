@@ -125,11 +125,6 @@ export const GRUPOS_TIPO: readonly InfoGrupo[] = [
   { id: "ajuste", nombre: "Ajustes y conteos", tipos: ["ajuste", "conteo"], tipo: "ajuste", flujo: "Corrige el stock" },
 ];
 
-/** El grupo del filtro al que pertenece un tipo, o null si no tiene botón. */
-export function grupoDeTipo(tipo: TipoVisual): InfoGrupo | null {
-  return GRUPOS_TIPO.find((g) => g.tipos.includes(tipo)) ?? null;
-}
-
 export function grupoPorId(id: string | null | undefined): InfoGrupo | null {
   return GRUPOS_TIPO.find((g) => g.id === id) ?? null;
 }

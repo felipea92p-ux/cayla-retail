@@ -182,5 +182,41 @@ select 'misma_huella|' || (md5(pg_get_functiondef('retail.fn_finanzas_confianza(
   verificar("idempotente", r, { misma_huella: "true" });
 }
 
+// ---------- Escena 4: «Con cuánto empezaste» cuenta bancos con saldo, no filas del Balance (20261106015000, tarea 28) ----------
+{
+  const r = correr(`
+begin;
+${cambiaA(FELIPE)}
+${MIGRACIONES}
+${leer("20261106015000_medidor_cuenta_bancos_con_saldo.sql")}
+select (retail.fn_finanzas_confianza('${MES}', null) #>> '{saldos,registrados}')::int as reg_0 \\gset
+select (retail.fn_finanzas_confianza('${MES}', null) #>> '{saldos,bancos}')::int as ban_0 \\gset
+select (retail.fn_finanzas_confianza('${MES}', null) #>> '{saldos,arranque_balance}')::int as arr_0 \\gset
+
+-- Un banco SIN saldo fechado: suma a los bancos, no a los registrados.
+insert into retail.cuentas_dinero (nombre, tipo, cuenta_contable) values ('Banco sin saldo', 'banco', '104');
+select 'sin_saldo_bancos|' || ((retail.fn_finanzas_confianza('${MES}', null) #>> '{saldos,bancos}')::int - :ban_0);
+select 'sin_saldo_registrados|' || ((retail.fn_finanzas_confianza('${MES}', null) #>> '{saldos,registrados}')::int - :reg_0);
+
+-- Un banco CON saldo fechado: suma a los dos. Antes de esta migración, registrados no se movía con esto.
+insert into retail.cuentas_dinero (nombre, tipo, cuenta_contable, saldo_inicial, saldo_desde) values ('Banco con saldo', 'banco', '104', 500, '2019-07-01');
+select 'con_saldo_bancos|' || ((retail.fn_finanzas_confianza('${MES}', null) #>> '{saldos,bancos}')::int - :ban_0);
+select 'con_saldo_registrados|' || ((retail.fn_finanzas_confianza('${MES}', null) #>> '{saldos,registrados}')::int - :reg_0);
+
+-- El arranque del Balance es otra cosa y no se mueve con los bancos.
+select 'arranque_aparte|' || ((retail.fn_finanzas_confianza('${MES}', null) #>> '{saldos,arranque_balance}')::int = :arr_0);
+
+-- Pegarla dos veces no cambia la función.
+select md5(pg_get_functiondef('retail.fn_finanzas_confianza(date, uuid)'::regprocedure)) as huella_1 \\gset
+${leer("20261106015000_medidor_cuenta_bancos_con_saldo.sql")}
+select 'misma_huella|' || (md5(pg_get_functiondef('retail.fn_finanzas_confianza(date, uuid)'::regprocedure)) = :'huella_1');
+`);
+  verificar("saldos de bancos", r, {
+    sin_saldo_bancos: "1", sin_saldo_registrados: "0",
+    con_saldo_bancos: "2", con_saldo_registrados: "1",
+    arranque_aparte: "true", misma_huella: "true",
+  });
+}
+
 console.log(`\n${casos - fallos} de ${casos} · contenedor: ${CONTENEDOR}`);
 process.exit(fallos ? 1 : 0);

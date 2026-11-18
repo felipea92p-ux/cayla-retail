@@ -35,7 +35,7 @@
 | 14 | Faltante | **La causa la elige la sede.** Cada faltante es UNA deuda del proveedor («2 polos · S/ 50») en estado «por reponer», que se cierra con un toque: **«Llegó la reposición»** (se cuenta en la próxima recepción de ese proveedor) o **«Pasar a saldo a favor»** (se descuenta del próximo pago). Sin plazos automáticos. Se ve en la ficha del proveedor y al crear su próxima orden de compra |
 | 15 | Sobrante | El motivo (regalo, se cobra aparte, se descuenta o cobra en la próxima compra) lo marca **quien recibe en la sede** |
 | 16 | Quién paga | **La encargada de compras**, desde su fondo por rendir, o administración desde la cuenta de la empresa (brief). **Reemplaza ADR-0184** («cada tienda paga su parte»; en producción, sin uso: 0 compras). Toca Compras, Por pagar y Finanzas |
-| 17 | Separación de funciones | **Quien crea la orden de compra no puede recibirla, sin excepción** (ni el líder) |
+| 17 | Separación de funciones | **Quien crea la orden de compra no puede recibirla** (ni el líder). ***Excepción desde el 2026-10-26 (ADR-0517, Felipe): la cuenta de un Admin sí puede recibir lo que él mismo compró, y queda anotado***; el Taller conserva el bloqueo íntegro |
 | 18 | Costo | **Lo corrige quien recibe, en la recepción** (brief), y **todo el que recibe ve los precios**. Reemplaza, para la recepción, la regla de ADR-0126 (la sede no ve plata) |
 | 19 | Quién compra | Una **encargada de tienda** o la **encargada general**. Lo que compra la de tienda llega **directo a su sede** (sin pasar por Lima); lo que compra la general se compra y **después se envía** desde Lima a las sedes |
 | 20 | Gastos adicionales | Se registran como dice el brief (flete, fardos, carretilla, viáticos), pero **aparte: nunca se mezclan con el costo de la prenda**. El costo de traer una compra se ve junto a ella, no dentro de `variantes.costo`. Responde también el flete de Lima a cada sede |
@@ -59,7 +59,7 @@
 | 38 | Menú | «Órdenes de compra» entra como **7.ª entrada de Compras, temporal**, con la excepción de tope que ya prevé `menu.test.ts`; se quita cuando Recibir mercadería pase a Inventario (Felipe 2026-10-10) |
 | 39 | Responsable | Crear, editar y anular una orden: **con la cuenta de una persona, firma ella sola, sin combo ni marca de entrada** (la compradora está en Gamarra, lejos del kiosco); **desde una terminal, pide el combo «Responsable»**. Es el mismo trato que «apartar una prenda» y los avisos del club: las claves `orden_compra_*` entran a `acciones_sin_responsable` (Felipe 2026-10-10) |
 | 40 | El módulo es la llave en Compras | **Quien tiene el módulo hace todo lo que hay dentro, sea líder o no, en todo Compras** (Plan de campaña, Proveedores, Órdenes, Facturas, Recibir, Por pagar, Notas de crédito): se quitan los «solo el líder». ADR-0387 (Felipe 2026-10-12) |
-| 41 | Qué tiendas se ven | Quien tiene el módulo ve **todas las tiendas** y paga a nombre de la empresa; deshace en Compras ADR-0184 y ADR-0187 (13 personas no líder afectadas el 2026-10-12). ADR-0387 (Felipe 2026-10-12) |
+| 41 | Qué tiendas se ven | Quien tiene el módulo ve **todas las tiendas** y paga a nombre de la empresa; deshace en Compras ADR-0184 y ADR-0187 (13 personas no líder afectadas el 2026-10-12). ADR-0387 (Felipe 2026-10-12). **Desde el 2026-11-03, quien solo tiene Recibir mira lo que llega a su sede** (ADR-0387, actualización; Felipe) |
 | 42 | Comprobante y contado | Registrar el comprobante de una orden y pagarlo al contado (desde una cuenta de la empresa, hasta que existan los fondos de la fase 6) piden **solo el módulo Órdenes de compra** (Felipe 2026-10-12) |
 | 43 | Más de lo pedido | Si el papel del proveedor trae más unidades o una línea que no estaba en la orden, **se acepta y se avisa** (Felipe 2026-10-12) |
 | 44 | Proveedores ve sus montos | Quien tiene el módulo Proveedores ve, dentro de Proveedores, lo que la empresa le compra y le debe a cada uno y su saldo a favor («Sí, que los vea»); revierte ADR-0161 P3. No abre los tableros de Facturas ni Por pagar. ADR-0387 (Felipe 2026-10-12) |
@@ -677,3 +677,13 @@ Las tres migraciones de la entrega 1 están **sin pegar**; se pegan **en este or
 está disponible todavía. **Choque conocido:** la rama sin fusionar `claude/skills-todos-agents-94f745` (Análisis: «Comprar» abre una orden armada, líneas «Por revisar») toca los
 mismos archivos; al fusionarla, `lineaNoCalza` debe saltarse las líneas `prellenadas` y se regeneran las huellas de las guías de Nueva y Editar orden.
 
+
+## Actualización 2026-11-12 · La decisión 48 no vale para las compras de «Mis compras»
+
+Una orden con tienda de destino se recibe «Sin guía» (decisión 48) porque el proveedor la entrega directo. Las órdenes que arma «Compré ropa»
+(ADR-0480, `ordenes_compra.papel_id` no nulo) usan la misma columna para decir «estas prendas son para esa tienda», y viajan siempre en un
+envío de Compras. Desde `20261112153000`, `fn_ordenes_directas_por_recibir` las deja fuera y `recibir_orden_sin_envio` las rechaza
+(`orden_viaja_con_envio`); si la mercadería llega antes que su envío, se recibe «sin aviso» y se une con su compra (ADR-0636). Medido el
+2026-11-12: las 48 órdenes vivas eran de «Mis compras», cada una estuvo en Recibir 15,5 h en promedio antes de su envío y 3 veces una tienda
+pulsó «Llegó esta orden» en una de ellas. **Se rompe si** algún día una compra de «Mis compras» se entrega de verdad directo en la tienda: ese
+caso pasa por «sin aviso» + unir, no por «Sin guía».

@@ -1,0 +1,84 @@
+# Innovación — tablero
+
+La skill `/innovar` (ADR-0651, `.claude/skills/innovar/`) compara lo que existe en el ERP contra lo mejor y lo más nuevo del mundo y deja aquí
+**todas** sus propuestas, para que ninguna se pierda en un chat y ninguna descartada se vuelva a proponer. Cada fila enlaza al informe de la
+corrida que la encontró (`docs/innovacion/AAAA-MM-DD-<slug>.md`, historial: no se sobrescribe). Lo último del stack y de los referentes vive en
+el radar, `docs/radar/`.
+
+**Horizonte:** `Ahora` (se construye con el stack actual en días o semanas) · `Visión` (apuesta grande: meses, IA en el flujo, algo externo).
+**Impacto** 1–5 (5 = cambia el día de todas las sedes) · **Esfuerzo** S (menos de 1 día) · M (1–3 días) · L (1–2 semanas) · XL (más).
+**Estados:** `propuesta` → `aceptada` (Felipe dijo sí) → `hecha` (con su PR) · `descartada por Felipe` · `vencida` (lo que la frenaba cambió en
+el radar; se vuelve a evaluar).
+
+Las ideas que se descartaron en una corrida (ya existían, sin fuente, moda, no son para este volumen) no entran aquí: quedan en la sección
+«Descartadas» de su informe, con el motivo.
+
+| Id | Módulo | Propuesta | Horizonte | Impacto / esfuerzo | Estado | Informe | Fecha |
+|---|---|---|---|---|---|---|---|
+| apartados#1 | Ventas ▸ Apartados | La constancia lleva un QR con su código; Entregar lo lee con la pistola o la cámara | Ahora | 2 / S | propuesta | [informe](2026-11-13-vender-apartados.md) | 2026-11-13 |
+| apartados#2 | Ventas ▸ Apartados | «¿Va a volver?»: lo que cada cliente hizo con sus apartados anteriores, al recordar | Ahora | 3 / M | propuesta | [informe](2026-11-13-vender-apartados.md) | 2026-11-13 |
+| apartados#3 | Ventas ▸ Apartados | Página del apartado para el cliente (prendas, plazo, saldo, sede), sin cobrar | Ahora | 3 / M | propuesta | [informe](2026-11-13-vender-apartados.md) | 2026-11-13 |
+| apartados#4 | Ventas ▸ Apartados | Reservar online para probarse en la sede, 24 h sin pagar | Visión | 4 / L | propuesta | [informe](2026-11-13-vender-apartados.md) | 2026-11-13 |
+| apartados#5 | Ventas ▸ Apartados | QR de Yape o Plin con el monto exacto, conciliado solo | Visión | 4 / L | propuesta | [informe](2026-11-13-vender-apartados.md) | 2026-11-13 |
+| apartados#6 | Ventas ▸ Apartados | Cobrar el saldo por un enlace que vence | Visión | 3 / XL | propuesta | [informe](2026-11-13-vender-apartados.md) | 2026-11-13 |
+| cambiar-de-modulo#1 | Finanzas ▸ Resumen | Encender la foto del diario que ya está en producción | Ahora | 4 / S | hecha (encendida en producción 2026-11-13) | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#2 | Plataforma | El tamaño del cómputo, decidido con datos (Medium compra memoria, no CPU) | Ahora | 3 / S | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#3 | Vender / Existencias | La copia del catálogo no se tira con cada publicación | Ahora | 3 / S | aceptada | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#4 | Inventario ▸ Existencias | Stock delgado + catálogo ya guardado: sin la lectura de 716 ms | Ahora | 4 / M | aceptada | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#5 | Plataforma | Vigía de rendimiento: foto horaria de pg_stat_statements y antes/después de cada pegado | Ahora | 4 / M | aceptada · en PR #1821 | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#6 | Todo el ERP | El cronómetro del clic: cuánto tarda cada módulo en cada sede | Ahora | 5 / M | hecha (PR #1817) | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#7 | Marco (menú) | El menú precarga el módulo al posar el mouse | Ahora | 2 / S | en espera (staleTimes: ver backlog de la rama) | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#8 | Catálogo ▸ Productos | Una sola pieza «copia por versión» para vocabularios y Productos | Ahora | 4 / M | aceptada (hecha a medias: duplicados; faltan vocabularios) | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#9 | Base (reglas por fila) | Reglas por fila que Postgres pueda meter en la consulta, con vigía en el CI | Ahora | 4 / L | aceptada · empezada en PR #1823 | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#10 | Vender / Existencias | «¿Dónde más hay?» se pregunta al abrir la prenda | Ahora | 3 / M | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#11 | Tienda web | El catálogo web se rearma solo si algo cambió | Ahora | 3 / M | aceptada · en PR #1825 | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#12 | Inventario ▸ Existencias | En vivo parcha cantidades en vez de rehacer la pantalla | Ahora | 3 / M | en espera (desfasa «Hoy»: ver backlog de la rama) | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#13 | Motores (piso, compra) | Lo vendido por prenda, sede y día, guardado | Ahora | 4 / L | aceptada · por otro camino (CLAURE de una pasada, ADR-0658), PR #1822 | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#14 | CI | Presupuesto de rendimiento: bloques leídos por RPC | Ahora | 4 / L | aceptada · en PR #1821 | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#15 | Marco (identidad) | «Quién eres» una vez por sesión, no por clic | Ahora | 2 / M | aceptada · paso 1 en PR #1823 | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#16 | Finanzas ▸ Resumen | La foto del diario también por día del mes en curso | Ahora | 2 / M | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#17 | Precios en vivo | Avisos de la base en vez de sondeos cada 10 s | Visión | 2 / M | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#18 | Todo el ERP | Reabrir Cache Components con Partial Prefetching, ruta por ruta | Visión | 4 / XL | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#19 | Vender | Vender abre con el catálogo ya en el equipo (IndexedDB) | Visión | 4 / XL | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| cambiar-de-modulo#20 | Marco (identidad) | La identidad viaja en el token (Custom Access Token Hook) | Visión | 4 / XL | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| recibir-galeria#1 | Recibir | La tarjeta dice «Ya en tu lista» antes de tocarla | Ahora | 2 / S | hecha (aceptada 2026-11-14, PR #1862) | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
+| recibir-galeria#2 | Recibir | Elegir con el teclado: flechas entre las fotos, Enter elige | Ahora | 2 / S | propuesta | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
+| recibir-galeria#3 | Recibir | Primero lo que este proveedor ya te mandó, con su porqué (Felipe sumó: y lo de mismo costo y precio) | Ahora | 3 / M | hecha (aceptada 2026-11-14, PR #1862; migración 20261114165000 sin pegar en producción) | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
+| recibir-galeria#4 | Recibir | El código de la etiqueta del proveedor se aprende al recibir | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
+| recibir-galeria#5 | Recibir | Una foto de la prenda en la mano ordena la galería por parecido | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
+| recibir-galeria#6 | Recibir | La foto del papel de la compra propone los modelos y su prenda | Visión | 5 / XL | propuesta | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
+| recibir-margen#1 | Compras ▸ Recibir | Un solo margen en todo el ERP: Recibir y Nuevo producto con la cuenta de Compras (sin IGV) | Ahora | 4 / M | hecha ([PR #1867](https://github.com/felipea92p-ux/cayla-retail/pull/1867)) | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-margen#2 | Compras ▸ Recibir | «¿Y con la rebaja?»: lo que queda con 30 % de campaña, en el «?» de la línea | Ahora | 3 / S | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-margen#3 | Compras ▸ Recibir | El cierre dice cuánto deja el envío entero | Ahora | 3 / S | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-margen#4 | Compras ▸ Recibir | El costo llega solo desde el XML de la factura del proveedor | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-margen#5 | Compras ▸ Recibir | La IA propone subir el precio de lo que rota rápido al reponerlo | Visión | 3 / M | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-margen#6 | Compras ▸ Recibir | Margen prometido contra margen logrado, por envío | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-crear-prenda#1 | Inventario ▸ Recibir | «La anterior» sale de la base: sobrevive a recargar y llega a «Crear ahora» | Ahora | 3 / M | hecha (PR #1860: Contar y «Crear ahora» de Para después) | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#2 | Inventario ▸ Recibir | La etiqueta del proveedor reconoce la reposición | Ahora | 4 / M | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#3 | Inventario ▸ Recibir | Crear los nuevos del envío en una planilla | Ahora | 5 / L | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#4 | Inventario ▸ Recibir | La foto arma la ficha: tejido, patrón y tipo propuestos | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#5 | Inventario ▸ Recibir | Lo de siempre del proveedor, con su porqué | Visión | 3 / L | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#6 | Inventario ▸ Recibir | La factura del proveedor arma los modelos del envío sin aviso | Visión | 5 / XL | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| tanda#1 | Inventario ▸ Recibir | «Llevar al stock e imprimir»: un solo toque, sin la hoja de en medio | Ahora | 3 / S | aceptada (Felipe, 2026-11-14) · hecha en PR #1864 | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
+| tanda#2 | Inventario ▸ Recibir | Reimprimir una tanda desde «Ya en stock», en la lista del envío | Ahora | 2 / S | propuesta | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
+| tanda#3 | Inventario ▸ Recibir | El envío sabe qué falta etiquetar y lo imprime de una vez | Ahora | 3 / M | propuesta | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
+| tanda#4 | Inventario ▸ Recibir | La cola de impresión de la sede: imprimir desde el celular con que se cuenta | Visión | 3 / L | propuesta | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
+| tanda#5 | Inventario ▸ Recibir | La etiqueta sale al contar: una por prenda, con la prenda en la mano | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
+| tanda#6 | Etiquetas de precio | El navegador le habla directo a la Brother, sin ayudante que instalar | Visión | 2 / L | propuesta | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
+| campanas#1 | Catálogo ▸ Campañas y ofertas | La víspera, la sede se entera: «Mañana empieza el 3x2 en tu tienda» con su cartel y sus etiquetas | Ahora | 3 / S | propuesta | [informe](2026-11-16-campanas-ofertas.md) | 2026-11-16 |
+| campanas#2 | Catálogo ▸ Campañas y ofertas | El cartel de la oferta: «3 x 2 en Polos» listo para imprimir, con sus condiciones | Ahora | 3 / S | propuesta | [informe](2026-11-16-campanas-ofertas.md) | 2026-11-16 |
+| campanas#3 | Catálogo ▸ Campañas y ofertas | Prueba diferencial: los mismos tickets al azar por la regla de la base y por la de TypeScript | Ahora | 4 / M | propuesta | [informe](2026-11-16-campanas-ofertas.md) | 2026-11-16 |
+| campanas#4 | Catálogo ▸ Campañas y ofertas | El ticket dice la oferta y cuánto se ahorró: «3 x 2 Polos · ahorraste S/ 18.79» | Ahora | 2 / S | propuesta | [informe](2026-11-16-campanas-ofertas.md) | 2026-11-16 |
+| campanas#5 | Catálogo ▸ Campañas y ofertas | Ensayar la oferta con los tickets de las últimas semanas, antes de activarla | Ahora | 4 / M | propuesta | [informe](2026-11-16-campanas-ofertas.md) | 2026-11-16 |
+| campanas#6 | Catálogo ▸ Campañas y ofertas | «Lleva 1 más» se toca: la caja muestra qué prenda arma el grupo o completa el monto | Ahora | 4 / M | propuesta | [informe](2026-11-16-campanas-ofertas.md) | 2026-11-16 |
+| campanas#7 | Catálogo ▸ Campañas y ofertas | Frescura propone la rebaja como borrador de oferta, y después mide si sirvió | Ahora | 3 / M | propuesta | [informe](2026-11-16-campanas-ofertas.md) | 2026-11-16 |
+| campanas#8 | Catálogo ▸ Campañas y ofertas | Cada línea de venta sabe qué oferta la rebajó, no solo su campaña | Ahora | 3 / L | propuesta | [informe](2026-11-16-campanas-ofertas.md) | 2026-11-16 |
+| campanas#9 | Catálogo ▸ Campañas y ofertas | Freno de ofertas: pausar todas (o las de una tienda) con un toque, sin perder cómo estaban | Ahora | 3 / L | propuesta | [informe](2026-11-16-campanas-ofertas.md) | 2026-11-16 |
+| campanas#10 | Catálogo ▸ Campañas y ofertas | «¿Sirvió esta oferta?»: lo que hizo cada oferta, y después contra su grupo de control | Ahora | 4 / L | propuesta | [informe](2026-11-16-campanas-ofertas.md) | 2026-11-16 |
+| campanas#11 | Catálogo ▸ Campañas y ofertas | «Repetir en 2027» trae sus ofertas en borrador, con lo que dejaron el año pasado | Ahora | 2 / M | propuesta | [informe](2026-11-16-campanas-ofertas.md) | 2026-11-16 |
+| campanas#12 | Catálogo ▸ Campañas y ofertas | En la tienda web el 3x2 se ve antes de la bolsa, y la bolsa ofrece completarlo | Ahora | 2 / M | propuesta | [informe](2026-11-16-campanas-ofertas.md) | 2026-11-16 |
+| campanas#13 | Catálogo ▸ Campañas y ofertas | El aviso del Club que sabe del 3x2: «Polos 3 x 2 en Trujillo, hay tu talla M» | Ahora | 2 / M | propuesta | [informe](2026-11-16-campanas-ofertas.md) | 2026-11-16 |
+| campanas#14 | Catálogo ▸ Campañas y ofertas | Grupos de exclusión y rango en vez de cesiones de a pares (el modelo de commercetools) | Ahora | 2 / L | propuesta | [informe](2026-11-16-campanas-ofertas.md) | 2026-11-16 |
+| campanas#15 | Catálogo ▸ Campañas y ofertas | «Algo para miembros del Club»: la oferta que se enciende al reconocer al miembro en el cobro | Visión | 2 / XL | propuesta | [informe](2026-11-16-campanas-ofertas.md) | 2026-11-16 |
+| campanas#16 | Catálogo ▸ Campañas y ofertas | El sistema propone la rebaja o la oferta: forma, profundidad y cuándo, por categoría y sede | Visión | 3 / XL | propuesta | [informe](2026-11-16-campanas-ofertas.md) | 2026-11-16 |
+| campanas#17 | Catálogo ▸ Campañas y ofertas | Las funciones de precio viven en un archivo: esquema declarativo en vez de reemplazos anclados | Visión | 2 / XL | propuesta | [informe](2026-11-16-campanas-ofertas.md) | 2026-11-16 |

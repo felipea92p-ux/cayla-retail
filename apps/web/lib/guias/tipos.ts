@@ -9,14 +9,18 @@
 export type AccionGuia =
   /** Toca la pieza anclada (abrir un modal, una pestaña, una tarjeta). Se niega si la pieza guarda (`motivoParaNoTocar`). */
   /** `siEsta`: si la pieza no está a la vista, no espera ni avisa (para cerrar algo solo si quedó abierto). */
-  | { tipo: "clic"; ancla: string; siEsta?: boolean }
+  /** `para`: la pieza es un pliegue que abre Y cierra con el mismo toque (el «?» de la cabecera, «Ver 3 más»), y el toque se hace solo
+   *  si hace falta, según su `aria-expanded` (`toqueDelPliegue`): «abrir» no lo cierra si ya estaba abierto, y «cerrar» no lo abre si
+   *  ya estaba cerrado. Así un paso lo deja igual al avanzar y al volver con ←, sin `prepararSoloAlAvanzar`. Con «cerrar» y la pieza
+   *  fuera de la vista no hay nada que cerrar: no espera ni avisa. Una pieza sin `aria-expanded` no se toca y el paso lo avisa. */
+  | { tipo: "clic"; ancla: string; siEsta?: boolean; para?: "abrir" | "cerrar" }
   /** Escribe un ejemplo en el campo anclado, letra a letra, como lo haría una persona. El ejemplo sale de la pantalla
    *  (`{ palabraDe }`: la primera palabra del nombre de la primera pieza con esa ancla) para que siempre encuentre algo de
    *  verdad en ESTA tienda (ADR-0290: un ejemplo inventado que no existe enseña mal). */
   | { tipo: "escribir"; ancla: string; texto: string | { palabraDe: string } }
   /** Vacía el campo anclado (para dejar la pantalla como estaba). */
   | { tipo: "vaciar"; ancla: string }
-  /** Solo «Pregúntale a CAYLA» (ADR-0529, actividad 6), nunca una guía escrita a mano: escribe en el campo anclado el dato que la
+  /** Solo «Pregúntale a CAYLA» (ADR-0536, actividad 6), nunca una guía escrita a mano: escribe en el campo anclado el dato que la
    *  persona dijo en su pregunta. El piloto se niega si el campo no está marcado `data-asistente="rellenable"`, y lo deja marcado
    *  «Lo escribió CAYLA» hasta que la persona lo toca. No guarda nada: el botón que guarda lo aprieta ella. */
   | { tipo: "rellenar"; ancla: string; texto: string }
@@ -69,6 +73,10 @@ export type Guia = {
    *  botón que guarda) lo hace la persona ahí mismo. Solo lo pone `guiaDelTramo`. */
   dejarComoQuedo?: true;
 };
+
+/** Lo que hace falta para saber qué guía tiene una pantalla y ofrecerla, sin sus pasos (ADR-0674 act. h). Lo arma el servidor
+ *  (`indiceDeGuias`, `lib/guias/titulos.ts`) y viaja como dato: unos 6 KB comprimidos contra los 177 del texto de todas las guías. */
+export type GuiaEnIndice = Pick<Guia, "id" | "ruta" | "titulo" | "resumen">;
 
 /** Cómo se ve, para la regla de «no tocar», la pieza que el piloto está por tocar. Lo arma el motor desde el DOM. */
 export type PiezaATocar = {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { ErrorEscritura } from "@/lib/error-escritura";
@@ -18,6 +18,12 @@ import type { CampoDeGuia } from "@/lib/guia-campos";
 import {
   argumentosDeArreglo,
   argumentosDeDevolucion,
+  costoConPlata,
+  DESTINOS_ARREGLO,
+  leerCostoArreglo,
+  MEDIOS_ARREGLO,
+  type MedioArreglo,
+  type DestinoArreglo,
   camposGuiaArreglo,
   camposGuiaDevolucion,
   interpretarErrorDeDanada,
@@ -34,14 +40,56 @@ import {
   tituloExitoArreglo,
   tituloExitoDevolucion,
 } from "@/lib/danadas-reglas";
+import {
+  argumentosDeNoSePudo,
+  argumentosDeSalida,
+  camposGuiaNoSePudo,
+  camposGuiaSalida,
+  leerRespuestaNoSePudo,
+  leerRespuestaSalida,
+  QUE_PASA_AL_NO_PUDO,
+  RPC_NO_SE_PUDO,
+  TEXTO_NO_SE_PUDO_YA_ESTABA,
+  TEXTO_RED_NO_SE_PUDO,
+  TITULO_EXITO_NO_SE_PUDO,
+  MAX_NOTA_ARREGLO,
+  QUE_PASA_AL_SACAR,
+  RPC_SACAR_A_ARREGLAR,
+  RUTAS_ARREGLO,
+  TEXTO_RED_SALIDA,
+  TEXTO_SALIDA_YA_ESTABA,
+  textoEnArreglo,
+  tituloExitoSalida,
+  type RutaArreglo,
+} from "@/lib/danadas-arreglo";
+import { Chip } from "@/components/ui/Chip";
+import { textoVerFotos } from "@/lib/danadas-foto";
+import { argumentosDeLugar, camposGuiaLugar, MAX_LUGAR_DANADAS, RPC_DEFINIR_LUGAR_DANADAS } from "@/lib/danadas-lugar";
 import { Aviso } from "@/components/ui/Aviso";
 import { Check } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import {
+  argumentosDeCorreccion,
+  argumentosSinDano,
+  camposGuiaCorreccion,
+  nombreCorto,
+  opcionesDeCorreccion,
+  quePasaAlCorregir,
+  quePasaSinDano,
+  RPC_CORREGIR_DANADA,
+  RPC_SIN_DANO,
+  textoCorregidaDe,
+  tituloExitoCorreccion,
+  tituloExitoSinDano,
+  type Hermana,
+} from "@/lib/danadas-correccion";
+import type { DesdeDanada } from "@/lib/danadas-reglas";
 
 // "Dañado" (2026-09-17, ADR-0071, Opción A): cola de prendas en cuarentena
 // (`aprobar_devolucion`, condición danada_reparacion/danada_donar; un cambio con
 // defecto; y desde ADR-0328 act. 10, una prenda reportada en Existencias con
-// `reportar_danada`) esperando que un líder de sede decida su destino final.
+// `reportar_danada`) esperando que se decida su destino final. Desde ADR-0534 lo decide
+// quien ve Existencias en la sede de la prenda (la líder lo valida en persona).
 // Los estados son literalmente los que pidió Felipe — fijos en código, no en
 // una tabla editable: eso queda en 🔖 Pendientes Benja (BACKLOG.md) para un
 // futuro módulo de administrador.
@@ -80,25 +128,44 @@ const ETIQUETA_METODO: Record<MetodoPago, string> = {
 
 export function ResolverDanadosModal({
   pendientes,
-  esLider,
   otraSede = false,
+  ubicacionId,
+  lugar,
   sede = "",
+  hermanasDe,
+  arregloInicial = null,
   onClose,
 }: {
   pendientes: PrendaDanada[];
-  esLider: boolean;
   /** Mirando otra sede (`?ubicacion=`): resolver firmaría con el Responsable de la sede activa, así que no se ofrece. */
   otraSede?: boolean;
+  /** La tienda cuyas dañadas se ven, y dónde las deja (ADR-0564): null si aún no lo marcó. */
+  ubicacionId: string;
+  lugar: string | null;
   /** El nombre de la sede, para decir a qué almacén vuelve una prenda arreglada. */
   sede?: string;
+  /** ADR-0640: las otras tallas y colores del mismo modelo, con lo libre de hoy en el piso y el almacén de la sede: lo que se ofrece
+   *  en «Me equivoqué de prenda». Sin esto (o sin ninguna), el botón no se ofrece. */
+  hermanasDe?: (varianteId: string) => Hermana[];
+  /** ADR-0640: la dañada cuyo «Se arregló» se abre al llegar (desde «Volvió arreglada» de la talla): un toque menos para lo más común. */
+  arregloInicial?: string | null;
   onClose: () => void;
 }) {
-  // «Se arregló» lo hace quien ve Existencias, donde vive este panel (`arreglar_prenda_danada`, Felipe 2026-10-09);
-  // liquidar, botar, donar o devolver al proveedor sacan stock sin venta y siguen siendo del líder.
-  const puedeArreglar = !otraSede;
-  const puedeResolver = esLider && !otraSede;
+  // Todo lo de este panel —se arregló, devolver al proveedor, liquidar, botar, donar— lo hace quien ve Existencias, donde vive
+  // (`arreglar_prenda_danada`, Felipe 2026-10-09; resolver y liquidar desde ADR-0534, 2026-10-27), en su sede.
+  const puedeDecidir = !otraSede;
   const router = useRouter();
   const [notas, setNotas] = useState<Record<string, string>>({});
+  // «Dónde se dejan» (ADR-0564): el lugar físico de las dañadas de esta tienda, que cada sede marca y la pantalla repite.
+  // «Salió a arreglar» (ADR-0564): la prenda abierta, quién la arregla, con quién va y el error de la hoja.
+  const [sacando, setSacando] = useState<string | null>(null);
+  const [rutaSalida, setRutaSalida] = useState<RutaArreglo | "">("");
+  const [notaSalida, setNotaSalida] = useState("");
+  const [errorSalida, setErrorSalida] = useState<string | null>(null);
+  const [editandoLugar, setEditandoLugar] = useState(false);
+  const [textoLugar, setTextoLugar] = useState("");
+  const [guardandoLugar, setGuardandoLugar] = useState(false);
+  const [errorLugar, setErrorLugar] = useState<string | null>(null);
   const [resolviendo, setResolviendo] = useState<string | null>(null);
   const [liquidando, setLiquidando] = useState<string | null>(null);
   const [precios, setPrecios] = useState<Record<string, string>>({});
@@ -109,6 +176,16 @@ export function ResolverDanadosModal({
   const [notaArreglo, setNotaArreglo] = useState("");
   const [errorArreglo, setErrorArreglo] = useState<string | null>(null);
   const [arregloEnDuda, setArregloEnDuda] = useState(false);
+  // A dónde vuelve y cuánto costó (ADR-0564): el almacén es de fábrica y la guía pide confirmarlo; el costo es opcional.
+  const [destinoArreglo, setDestinoArreglo] = useState<DestinoArreglo>("almacen");
+  const [destinoConfirmado, setDestinoConfirmado] = useState(false);
+  const [costoArreglo, setCostoArreglo] = useState("");
+  // Con un costo, su gasto en Finanzas (2026-10-29): cómo se pagó (del cajón, Yape o Plin).
+  const [medioArreglo, setMedioArreglo] = useState<MedioArreglo | "">("");
+  // «No se pudo» (ADR-0564): la prenda que volvió de arreglarse sin arreglo, y por qué.
+  const [noPudo, setNoPudo] = useState<string | null>(null);
+  const [motivoNoPudo, setMotivoNoPudo] = useState("");
+  const [errorNoPudo, setErrorNoPudo] = useState<string | null>(null);
   const tokenArreglo = useRef<string>("");
   // «Devolver al proveedor»: la prenda abierta, la nota, su marca de reintento y si quedó en duda tras un corte de red.
   const [devolviendo, setDevolviendo] = useState<string | null>(null);
@@ -116,6 +193,18 @@ export function ResolverDanadosModal({
   const [errorDevolucion, setErrorDevolucion] = useState<string | null>(null);
   const [devolucionEnDuda, setDevolucionEnDuda] = useState(false);
   const tokenDevolucion = useRef<string>("");
+  // «Me equivoqué de prenda» (ADR-0640): la dañada abierta, la prenda correcta elegida («varianteId|desde»), su marca y si quedó en duda.
+  const [corrigiendo, setCorrigiendo] = useState<string | null>(null);
+  const [eleccion, setEleccion] = useState("");
+  const [errorCorreccion, setErrorCorreccion] = useState<string | null>(null);
+  const [correccionEnDuda, setCorreccionEnDuda] = useState(false);
+  const tokenCorreccion = useRef<string>("");
+  // «No estaba dañada» (ADR-0640): la dañada abierta, por qué (opcional), su marca y si quedó en duda.
+  const [sinDano, setSinDano] = useState<string | null>(null);
+  const [notaSinDano, setNotaSinDano] = useState("");
+  const [errorSinDano, setErrorSinDano] = useState<string | null>(null);
+  const [sinDanoEnDuda, setSinDanoEnDuda] = useState(false);
+  const tokenSinDano = useRef<string>("");
   // Resolver o liquidar una prenda dañada es operación de tienda (sale del stock en cuarentena; liquidar es una
   // venta con caja): pide Responsable, también al líder (ADR-0161, A8/A9). Uno solo para todo el modal.
   const responsable = useResponsable();
@@ -123,10 +212,20 @@ export function ResolverDanadosModal({
   // La guía de foco (ADR-0284) de lo que está abierto: «Se arregló» (qué se le hizo), «Liquidada» (precio y forma de pago) o, sin
   // ninguno abierto, solo quién lo hace. Sale de lo mismo que apaga cada botón: no agrega reglas.
   const precioLiquidando = liquidando ? Number(precios[liquidando]) : Number.NaN;
-  const camposAbiertos: CampoDeGuia[] = devolviendo
+  const camposAbiertos: CampoDeGuia[] = editandoLugar
+    ? camposGuiaLugar(textoLugar, responsable.listo)
+    : corrigiendo
+    ? camposGuiaCorreccion(eleccion !== "", responsable.listo)
+    : sinDano
+    ? [{ id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsable.listo, pendiente: "Elige quién lo hace." }]
+    : sacando
+    ? camposGuiaSalida(rutaSalida, notaSalida, responsable.listo)
+    : noPudo
+    ? camposGuiaNoSePudo(motivoNoPudo, responsable.listo)
+    : devolviendo
     ? camposGuiaDevolucion(notaDevolucion, responsable.listo)
     : arreglando
-    ? camposGuiaArreglo(notaArreglo, responsable.listo)
+    ? camposGuiaArreglo(notaArreglo, responsable.listo, destinoConfirmado, costoArreglo, medioArreglo)
     : liquidando
       ? [
           { id: "precio", nombre: "Precio", requerido: true, hecho: Number.isFinite(precioLiquidando) && precioLiquidando > 0, pendiente: "Escribe el precio de liquidación." },
@@ -134,10 +233,48 @@ export function ResolverDanadosModal({
           { id: "metodo", nombre: "Forma de pago", requerido: false, sugerido: true, hecho: Boolean(metodos[liquidando]), pendiente: "Confirma la forma de pago." },
           { id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsable.listo, pendiente: "Elige quién decide." },
         ]
-      : puedeArreglar && pendientes.length > 0
+      : puedeDecidir && pendientes.length > 0
         ? [{ id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsable.listo, pendiente: "Elige quién decide." }]
         : [];
   const guia = useGuiaCampos(camposAbiertos);
+
+  // «Volvió arreglada» desde la talla (ADR-0640): la ventana llega con su «Se arregló» abierto. Una sola vez, al montarse.
+  const arregloAbierto = useRef(false);
+  useEffect(() => {
+    if (arregloAbierto.current || !arregloInicial || !puedeDecidir) return;
+    arregloAbierto.current = true;
+    if (pendientes.some((p) => p.id === arregloInicial)) abrirArreglo(arregloInicial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al llegar: después manda lo que toque la persona
+  }, []);
+
+  function abrirLugar() {
+    setTextoLugar(lugar ?? "");
+    setErrorLugar(null);
+    setEditandoLugar(true);
+  }
+
+  async function guardarLugar() {
+    if (!guia.puedeConfirmar || guardandoLugar) return;
+    setGuardandoLugar(true);
+    setErrorLugar(null);
+    let error: ErrorEscritura = null;
+    try {
+      const r = await firmar(createClient().rpc(RPC_DEFINIR_LUGAR_DANADAS, argumentosDeLugar(ubicacionId, textoLugar)), responsable.firma());
+      error = r.error;
+    } catch (excepcion) {
+      error = { message: excepcion instanceof Error ? excepcion.message : String(excepcion) };
+    }
+    setGuardandoLugar(false);
+    responsable.despues(error);
+    if (error) {
+      // Marcar el lugar es repetible sin daño (deja lo mismo): tras un corte de red basta volver a guardar.
+      setErrorLugar(interpretarErrorDeDanada(error, "marcar dónde se dejan las prendas dañadas").mensaje);
+      return;
+    }
+    avisar.exito(textoLugar.trim() ? "Lugar marcado" : "Lugar quitado", { detalle: textoLugar.trim() || undefined });
+    setEditandoLugar(false);
+    router.refresh();
+  }
 
   async function resolver(id: string, estado: EstadoSimple) {
     if (!responsable.listo) return;
@@ -156,7 +293,7 @@ export function ResolverDanadosModal({
     if (error) {
       const fallo = textoErrorDeResolucion(error, "resolver esta prenda dañada");
       avisar.error(fallo.mensaje);
-      // Otro líder la resolvió antes (p. ej. «Se arregló»): la lista se relee para que no siga ofreciendo una que ya no está.
+      // Otra persona la resolvió antes (p. ej. «Se arregló»): la lista se relee para que no siga ofreciendo una que ya no está.
       if (fallo.yaResuelta) router.refresh();
       return;
     }
@@ -198,7 +335,188 @@ export function ResolverDanadosModal({
     router.refresh();
   }
 
+  /** Cierra los dos paneles de ADR-0640 (los demás se cierran en cada «abrir»). */
+  function cerrarCorreccion() {
+    setCorrigiendo(null);
+    setSinDano(null);
+  }
+
+  function cerrarOtros() {
+    setNoPudo(null);
+    setSacando(null);
+    setLiquidando(null);
+    setArreglando(null);
+    setDevolviendo(null);
+  }
+
+  function abrirCorreccion(id: string) {
+    cerrarOtros();
+    setSinDano(null);
+    setCorrigiendo(id);
+    setEleccion("");
+    setErrorCorreccion(null);
+    setCorreccionEnDuda(false);
+    tokenCorreccion.current = crypto.randomUUID();
+  }
+
+  function abrirSinDano(id: string) {
+    cerrarOtros();
+    setCorrigiendo(null);
+    setSinDano(id);
+    // Lo escrito en «Nota (opcional)» antes de tocar el botón no se pierde: suele ser por qué no lo estaba.
+    setNotaSinDano(notas[id] ?? "");
+    setErrorSinDano(null);
+    setSinDanoEnDuda(false);
+    tokenSinDano.current = crypto.randomUUID();
+  }
+
+  async function confirmarCorreccion(p: PrendaDanada) {
+    if (!guia.puedeConfirmar || resolviendo !== null || eleccion === "" || !p.desde) return;
+    const [varianteId, desde] = eleccion.split("|") as [string, DesdeDanada];
+    const correcta = hermanasDe?.(p.varianteId).find((h) => h.varianteId === varianteId);
+    setResolviendo(p.id);
+    setErrorCorreccion(null);
+    let error: ErrorEscritura = null;
+    try {
+      const r = await firmar(createClient().rpc(RPC_CORREGIR_DANADA as never, argumentosDeCorreccion(p.id, varianteId, desde, tokenCorreccion.current) as never), responsable.firma());
+      error = r.error;
+    } catch (excepcion) {
+      error = { message: excepcion instanceof Error ? excepcion.message : String(excepcion) };
+    }
+    setResolviendo(null);
+    responsable.despues(error);
+    if (error) {
+      const fallo = interpretarErrorDeDanada(error, "corregir la prenda dañada");
+      // Tras un corte de red no se sabe si se corrigió: la elección queda fija y se reenvía igual, con la misma marca.
+      if (fallo.tipo === "red") setCorreccionEnDuda(true);
+      setErrorCorreccion(fallo.mensaje);
+      if (error.hint === "correccion_ya_resuelta") router.refresh();
+      return;
+    }
+    avisar.exito(tituloExitoCorreccion(correcta ?? { talla: null, color: null }), {
+      detalle: `${p.referencia} · la ${nombreCorto(p.talla, p.color)} volvió ${p.desde === "piso" ? "al piso" : "al almacén"}`,
+    });
+    setCorrigiendo(null);
+    router.refresh();
+  }
+
+  async function confirmarSinDano(p: PrendaDanada) {
+    if (!guia.puedeConfirmar || resolviendo !== null || !p.desde) return;
+    const desde = p.desde;
+    setResolviendo(p.id);
+    setErrorSinDano(null);
+    let data: unknown = null;
+    let error: ErrorEscritura = null;
+    try {
+      const r = await firmar(createClient().rpc(RPC_SIN_DANO as never, argumentosSinDano(p.id, notaSinDano, tokenSinDano.current) as never), responsable.firma());
+      data = r.data;
+      error = r.error;
+    } catch (excepcion) {
+      error = { message: excepcion instanceof Error ? excepcion.message : String(excepcion) };
+    }
+    setResolviendo(null);
+    responsable.despues(error);
+    if (error) {
+      const fallo = interpretarErrorDeDanada(error, "devolver la prenda a la venta");
+      if (fallo.tipo === "red") setSinDanoEnDuda(true);
+      setErrorSinDano(fallo.mensaje);
+      if (error.hint === "sin_dano_ya_resuelta" || error.hint === "sin_dano_en_arreglo") router.refresh();
+      return;
+    }
+    const r = leerRespuestaDanada(data) ?? { ya_registrada: false, id: p.id, unidades: p.cantidad };
+    if (r.ya_registrada) avisar.aviso("Esta prenda ya había vuelto a la venta. No se repitió.", { detalle: p.referencia });
+    else avisar.exito(tituloExitoSinDano(r.unidades, desde), { detalle: `${p.referencia} · ${nombreCorto(p.talla, p.color)}` });
+    setSinDano(null);
+    router.refresh();
+  }
+
+  function abrirSalida(id: string) {
+    cerrarCorreccion();
+    setNoPudo(null);
+    setLiquidando(null);
+    setDevolviendo(null);
+    setArreglando(null);
+    setSacando(id);
+    // Lo escrito en «Nota (opcional)» antes de tocar «Salió a arreglar» no se pierde: suele ser con quién va.
+    setNotaSalida(notas[id] ?? "");
+    setRutaSalida("");
+    setErrorSalida(null);
+  }
+
+  async function confirmarSalida(p: PrendaDanada) {
+    if (!guia.puedeConfirmar || resolviendo !== null || rutaSalida === "") return;
+    setResolviendo(p.id);
+    setErrorSalida(null);
+    let data: unknown = null;
+    let error: ErrorEscritura = null;
+    try {
+      const r = await firmar(createClient().rpc(RPC_SACAR_A_ARREGLAR, argumentosDeSalida(p.id, rutaSalida, notaSalida)), responsable.firma());
+      data = r.data;
+      error = r.error;
+    } catch (excepcion) {
+      error = { message: excepcion instanceof Error ? excepcion.message : String(excepcion) };
+    }
+    setResolviendo(null);
+    responsable.despues(error);
+    if (error) {
+      const fallo = interpretarErrorDeDanada(error, "anotar que salió a arreglar");
+      // Marcar la salida es repetible sin daño (la misma ruta devuelve «ya estaba»): tras un corte basta volver a tocar.
+      setErrorSalida(fallo.tipo === "red" ? TEXTO_RED_SALIDA : fallo.mensaje);
+      // Otra persona la sacó o la resolvió antes: la lista se relee para que no siga ofreciendo lo que ya no es.
+      if (error.hint === "arreglo_ya_en_arreglo" || error.hint === "arreglo_ya_resuelta") router.refresh();
+      return;
+    }
+    const r = leerRespuestaSalida(data) ?? { ya_registrada: false, id: p.id, ruta: rutaSalida };
+    if (r.ya_registrada) avisar.aviso(TEXTO_SALIDA_YA_ESTABA, { detalle: p.referencia });
+    else avisar.exito(tituloExitoSalida(r.ruta), { detalle: p.referencia });
+    setSacando(null);
+    router.refresh();
+  }
+
+  function abrirNoPudo(id: string) {
+    cerrarCorreccion();
+    setLiquidando(null);
+    setDevolviendo(null);
+    setArreglando(null);
+    setSacando(null);
+    setNoPudo(id);
+    setMotivoNoPudo("");
+    setErrorNoPudo(null);
+  }
+
+  async function confirmarNoPudo(p: PrendaDanada) {
+    if (!guia.puedeConfirmar || resolviendo !== null) return;
+    setResolviendo(p.id);
+    setErrorNoPudo(null);
+    let data: unknown = null;
+    let error: ErrorEscritura = null;
+    try {
+      const r = await firmar(createClient().rpc(RPC_NO_SE_PUDO, argumentosDeNoSePudo(p.id, motivoNoPudo)), responsable.firma());
+      data = r.data;
+      error = r.error;
+    } catch (excepcion) {
+      error = { message: excepcion instanceof Error ? excepcion.message : String(excepcion) };
+    }
+    setResolviendo(null);
+    responsable.despues(error);
+    if (error) {
+      const fallo = interpretarErrorDeDanada(error, "anotar que no se pudo arreglar");
+      // Repetirlo es seguro (el mismo resultado devuelve «ya estaba»): tras un corte basta volver a tocar.
+      setErrorNoPudo(fallo.tipo === "red" ? TEXTO_RED_NO_SE_PUDO : fallo.mensaje);
+      if (error.hint === "arreglo_ya_volvio" || error.hint === "arreglo_ya_resuelta" || error.hint === "arreglo_no_esta_fuera") router.refresh();
+      return;
+    }
+    const r = leerRespuestaNoSePudo(data) ?? { ya_registrada: false, id: p.id };
+    if (r.ya_registrada) avisar.aviso(TEXTO_NO_SE_PUDO_YA_ESTABA, { detalle: p.referencia });
+    else avisar.exito(TITULO_EXITO_NO_SE_PUDO, { detalle: p.referencia });
+    setNoPudo(null);
+    router.refresh();
+  }
+
   function abrirArreglo(id: string) {
+    cerrarCorreccion();
+    setNoPudo(null);
+    setSacando(null);
     setLiquidando(null);
     setDevolviendo(null);
     setArreglando(id);
@@ -206,17 +524,23 @@ export function ResolverDanadosModal({
     setNotaArreglo(notas[id] ?? "");
     setErrorArreglo(null);
     setArregloEnDuda(false);
+    setDestinoArreglo("almacen");
+    setDestinoConfirmado(false);
+    setCostoArreglo("");
+    setMedioArreglo("");
     tokenArreglo.current = crypto.randomUUID();
   }
 
   async function confirmarArreglo(p: PrendaDanada) {
     if (!guia.puedeConfirmar || resolviendo !== null) return;
+    const costo = leerCostoArreglo(costoArreglo);
+    if (costo === "invalido") return;
     setResolviendo(p.id);
     setErrorArreglo(null);
     let data: unknown = null;
     let error: ErrorEscritura = null;
     try {
-      const r = await firmar(createClient().rpc(RPC_ARREGLAR_DANADA, argumentosDeArreglo(p.id, notaArreglo, tokenArreglo.current)), responsable.firma());
+      const r = await firmar(createClient().rpc(RPC_ARREGLAR_DANADA, argumentosDeArreglo(p.id, notaArreglo, tokenArreglo.current, destinoArreglo, costo, medioArreglo === "" ? null : medioArreglo)), responsable.firma());
       data = r.data;
       error = r.error;
     } catch (excepcion) {
@@ -233,12 +557,19 @@ export function ResolverDanadosModal({
     }
     const r = leerRespuestaDanada(data) ?? { ya_registrada: false, id: p.id, unidades: p.cantidad };
     if (r.ya_registrada) avisar.aviso(TEXTO_ARREGLO_YA_ESTABA, { detalle: p.referencia });
-    else avisar.exito(tituloExitoArreglo(r.unidades), { detalle: `${p.referencia} · cuélgala en el piso para venderla` });
+    else avisar.exito(tituloExitoArreglo(r.unidades, destinoArreglo), {
+        detalle:
+          (destinoArreglo === "piso" ? `${p.referencia} · ya está en el piso, lista para vender` : `${p.referencia} · cuélgala en el piso para venderla`) +
+          (costo !== null && costo > 0 ? " · el costo quedó anotado como gasto en Finanzas" : ""),
+      });
     setArreglando(null);
     router.refresh();
   }
 
   function abrirDevolucion(id: string) {
+    cerrarCorreccion();
+    setNoPudo(null);
+    setSacando(null);
     setLiquidando(null);
     setArreglando(null);
     setDevolviendo(id);
@@ -291,17 +622,55 @@ export function ResolverDanadosModal({
     >
       {(cerrar) => (
         <div className="space-y-4">
-          {!esLider && puedeArreglar && pendientes.length > 0 && (
-            <p className="nota-cayla">
-              Si una prenda ya se compuso, márcala «Se arregló» y vuelve al almacén. Si llegó dañada en una recepción, puedes devolverla al
-              proveedor. Liquidarla, botarla o donarla lo decide un líder.
-            </p>
-          )}
           {/* Los botones van por prenda: el combo queda arriba de la lista, antes de cualquiera de ellos. */}
-          {puedeArreglar && pendientes.length > 0 && (
+          {puedeDecidir && (pendientes.length > 0 || editandoLugar) && (
             <CampoGuiado id="responsable" guia={guia}>
               <ComboResponsable control={responsable} deshabilitado={resolviendo !== null} />
             </CampoGuiado>
+          )}
+          {/* Dónde deja esta tienda las dañadas: lo que la colaboradora lee con la prenda en la mano (ADR-0564). */}
+          {editandoLugar ? (
+            <div className="space-y-3 rounded-md bg-sand/30 p-3">
+              <CampoGuiado id="lugar" guia={guia}>
+                <CampoTexto
+                  etiqueta={guia.etiqueta("lugar", "¿Dónde dejan las prendas dañadas?")}
+                  // sugerir-fijo: es el primer dato de esta hoja; no depende de nada elegido antes
+                  placeholder="Ej. perchero detrás de caja"
+                  maxLength={MAX_LUGAR_DANADAS}
+                  value={textoLugar}
+                  onChange={(e) => {
+                    setTextoLugar(e.target.value);
+                    setErrorLugar(null);
+                  }}
+                  disabled={guardandoLugar}
+                />
+              </CampoGuiado>
+              {errorLugar && <Aviso tono="error">{errorLugar}</Aviso>}
+              <PieGuia guia={guia} listo="Todo listo: se guarda el lugar." />
+              <div className="pie-acciones">
+                <Boton type="button" onClick={() => setEditandoLugar(false)} disabled={guardandoLugar}>
+                  Cancelar
+                </Boton>
+                <Boton type="button" peso="primario" onClick={guardarLugar} cargando={guardandoLugar} disabled={guardandoLugar} confirma={guia} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
+                  Guardar el lugar
+                </Boton>
+              </div>
+            </div>
+          ) : (
+            <p className="flex flex-wrap items-baseline gap-x-2 text-sm text-tinta">
+              {lugar ? (
+                <>
+                  <span className="text-taupe">Se dejan en:</span> <span className="font-semibold">{lugar}</span>
+                </>
+              ) : (
+                <span className="text-taupe">Esta tienda aún no marcó dónde deja las prendas dañadas.</span>
+              )}
+              {puedeDecidir && (
+                <button type="button" onClick={abrirLugar} className="btn-cayla btn-enlace">
+                  {lugar ? "Cambiar" : "Marcar el lugar"}
+                </button>
+              )}
+            </p>
           )}
           {otraSede && pendientes.length > 0 && <p className="nota-cayla">Estás mirando otra sede: para operarla, cambia la sede activa en la cabecera. Así lo que guardes queda firmado por alguien de turno allá.</p>}
           {pendientes.length === 0 ? (
@@ -311,37 +680,109 @@ export function ResolverDanadosModal({
               {pendientes.map((p) => (
                 <div key={p.id} className="space-y-2 border-b border-tinta/10 pb-3 last:border-b-0">
                   <div>
-                    <p className="text-sm text-tinta">{p.referencia}</p>
+                    <p className="text-sm text-taupe">{p.referencia}</p>
+                    {/* ADR-0640: la talla y el color en grande. Es lo primero que se compara con la prenda en la mano: así una talla mal
+                        reportada se nota aquí, y no después en el stock. */}
+                    <p className="text-[17px] font-semibold leading-snug text-tinta">
+                      {nombreCorto(p.talla, p.color).replace(/^talla/, "Talla")}
+                      {p.cantidad > 1 && <span className="font-normal text-taupe"> · {p.cantidad} unidades</span>}
+                    </p>
                     <p className="font-mono text-[11px] text-tinta/55">
-                      {p.sku} {[p.talla, p.color].filter(Boolean).join("/")} · {p.cantidad}{" "}
-                      {p.cantidad === 1 ? "unidad" : "unidades"} · en cuarentena desde{" "}
+                      {p.sku} · dañada desde{" "}
                       {new Date(p.creadoEn).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" })}
                     </p>
-                    {/* De dónde llegó y, si la reportaron en la tienda, qué tiene: es lo que el líder necesita para decidir. */}
-                    <p className="mt-0.5 text-xs text-taupe">{textoOrigenDanada(p.origen, p.motivoReporte, p.devolucion)}</p>
+                    {/* De dónde llegó y, si la reportaron en la tienda, qué tiene: es lo que se necesita para decidir. */}
+                    <p className="mt-0.5 text-sm text-taupe">{textoOrigenDanada(p.origen, p.motivoReporte, p.devolucion, p.tipoDano)}</p>
+                    {p.fotos.length > 0 && (
+                      <p className="mt-1 flex flex-wrap items-center gap-x-3 text-sm">
+                        {p.fotos.length === 1 ? (
+                          <a href={p.fotos[0]} target="_blank" rel="noopener noreferrer" className="btn-cayla btn-enlace">
+                            {textoVerFotos(1)}
+                          </a>
+                        ) : (
+                          <>
+                            <span className="text-taupe">{textoVerFotos(p.fotos.length)}:</span>
+                            {p.fotos.map((u, i) => (
+                              <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="btn-cayla btn-enlace">
+                                Foto {i + 1}
+                              </a>
+                            ))}
+                          </>
+                        )}
+                      </p>
+                    )}
+                    {p.noSePudo && (
+                      <p className="mt-1">
+                        <Chip tono="ambar" versalitas={false} title="Volvió de arreglarse sin arreglo. Decide su destino: liquidar, botar, donar o volver a sacarla.">
+                          {p.noSePudo.motivo ? `No se pudo arreglar · ${p.noSePudo.motivo}` : "No se pudo arreglar"}
+                        </Chip>
+                      </p>
+                    )}
+                    {p.corregidaDe && (
+                      <p className="mt-1">
+                        <Chip tono="pizarra" versalitas={false} title="Se reportó con otra talla o color y se corrigió con «Me equivoqué de prenda».">
+                          {textoCorregidaDe(p.corregidaDe.talla, p.corregidaDe.color)}
+                        </Chip>
+                      </p>
+                    )}
+                    {p.enArreglo && (
+                      <p className="mt-1">
+                        <Chip tono="pizarra" versalitas={false} title="La prenda salió de la tienda a arreglarse. Cuando vuelva, marca «Se arregló».">
+                          {textoEnArreglo(p.enArreglo)}
+                        </Chip>
+                      </p>
+                    )}
                   </div>
-                  {puedeArreglar && liquidando !== p.id && arreglando !== p.id && devolviendo !== p.id && (
+                  {puedeDecidir && liquidando !== p.id && arreglando !== p.id && devolviendo !== p.id && sacando !== p.id && noPudo !== p.id && corrigiendo !== p.id && sinDano !== p.id && (
                     <>
-                      {puedeResolver && (
-                        <CampoTexto
-                          etiqueta="Nota (opcional)"
-                          value={notas[p.id] ?? ""}
-                          onChange={(e) => setNotas((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                          maxLength={200}
-                          placeholder="Detalle de la resolución"
-                        />
-                      )}
+                      <CampoTexto
+                        etiqueta="Nota (opcional)"
+                        value={notas[p.id] ?? ""}
+                        onChange={(e) => setNotas((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                        maxLength={200}
+                        placeholder="Detalle de la resolución"
+                      />
                       <div className="flex flex-wrap gap-2">
-                        {/* Un arreglo menor vuelve a la venta (ADR-0328): primero, porque es lo que no pierde la prenda. */}
+                        {/* «Se arregló» va primero y en negro (ADR-0640, Felipe 2026-11-10: «que sea más notable y accesible»): es la salida
+                            que no pierde la prenda, y la que más se hace. */}
                         <Boton
                           type="button"
+                          peso="primario"
                           onClick={() => abrirArreglo(p.id)}
                           disabled={resolviendo !== null || !responsable.listo}
-                          title={responsable.motivo ?? "Vuelve al almacén de la tienda"}
-                          className="flex-1"
+                          title={responsable.motivo ?? "Vuelve a la venta: al almacén o al piso"}
+                          className="flex-[2]"
                         >
                           Se arregló
                         </Boton>
+                        {/* Antes de arreglarla, sale de la tienda (ADR-0564): una costurera cercana o el Taller. Solo una vez. */}
+                        {!p.enArreglo && (
+                          <Boton
+                            type="button"
+                            onClick={() => abrirSalida(p.id)}
+                            disabled={resolviendo !== null || !responsable.listo}
+                            title={responsable.motivo ?? "Anota que la prenda sale de la tienda a arreglarse"}
+                            className="flex-1"
+                          >
+                            Salió a arreglar
+                          </Boton>
+                        )}
+                        {/* Volvió de arreglarse sin arreglo (ADR-0564): solo tiene sentido si salió. */}
+                        {p.enArreglo && (
+                          <Boton
+                            type="button"
+                            onClick={() => abrirNoPudo(p.id)}
+                            disabled={resolviendo !== null || !responsable.listo}
+                            title={responsable.motivo ?? "Volvió de arreglarse, pero no se pudo arreglar"}
+                            className="flex-1"
+                          >
+                            No se pudo
+                          </Boton>
+                        )}
+                      </div>
+                      {/* Lo que no tiene arreglo, aparte y en segundo plano: son salidas que pierden la prenda (o la cobran barata). */}
+                      <p className="text-sm text-taupe">Si no tiene arreglo:</p>
+                      <div className="flex flex-wrap gap-2">
                         {/* Lo que llegó dañado en una recepción vuelve a su proveedor y queda como deuda «por reponer» (actividad 6a). */}
                         {p.devolucion && (
                           <Boton
@@ -354,43 +795,238 @@ export function ResolverDanadosModal({
                             Devolver al proveedor
                           </Boton>
                         )}
-                        {puedeResolver && (
-                          <>
-                            <Boton
-                              type="button"
-                              onClick={() => {
-                                setArreglando(null);
-                                setDevolviendo(null);
-                                setLiquidando(p.id);
-                                setPrecios((prev) => ({ ...prev, [p.id]: prev[p.id] ?? (p.precioReferencia || "").toString() }));
-                              }}
-                              disabled={resolviendo !== null || !responsable.listo}
-                              title={responsable.motivo ?? undefined}
-                              className="flex-1"
-                            >
-                              Liquidada
-                            </Boton>
-                            {ESTADOS_SIMPLES.map((e) => (
-                              <Boton
-                                key={e.valor}
-                                type="button"
-                                onClick={() => resolver(p.id, e.valor)}
-                                cargando={resolviendo === p.id}
-                                disabled={resolviendo !== null || !responsable.listo}
-                                title={responsable.motivo ?? undefined}
-                                className="flex-1"
-                              >
-                                {e.texto}
-                              </Boton>
-                            ))}
-                          </>
-                        )}
+                        <Boton
+                          type="button"
+                          onClick={() => {
+                            setNoPudo(null);
+                            setSacando(null);
+                            setArreglando(null);
+                            setDevolviendo(null);
+                            setLiquidando(p.id);
+                            setPrecios((prev) => ({ ...prev, [p.id]: prev[p.id] ?? (p.precioReferencia || "").toString() }));
+                          }}
+                          disabled={resolviendo !== null || !responsable.listo}
+                          title={responsable.motivo ?? undefined}
+                          className="flex-1"
+                        >
+                          Liquidada
+                        </Boton>
+                        {ESTADOS_SIMPLES.map((e) => (
+                          <Boton
+                            key={e.valor}
+                            type="button"
+                            onClick={() => resolver(p.id, e.valor)}
+                            cargando={resolviendo === p.id}
+                            disabled={resolviendo !== null || !responsable.listo}
+                            title={responsable.motivo ?? undefined}
+                            className="flex-1"
+                          >
+                            {e.texto}
+                          </Boton>
+                        ))}
                       </div>
+                      {/* ADR-0640: lo reportado por error se corrige aquí, nunca con «Ajustar stock» (que no sabe de la dañada). Solo lo reportado en la tienda. */}
+                      {p.desde && (
+                        <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-taupe">
+                          <span>¿Te equivocaste al reportarla?</span>
+                          {hermanasDe && (
+                            <button type="button" onClick={() => abrirCorreccion(p.id)} disabled={resolviendo !== null} className="btn-cayla btn-enlace">
+                              Me equivoqué de prenda
+                            </button>
+                          )}
+                          {!p.enArreglo && !p.noSePudo && (
+                            <button type="button" onClick={() => abrirSinDano(p.id)} disabled={resolviendo !== null} className="btn-cayla btn-enlace">
+                              No estaba dañada
+                            </button>
+                          )}
+                        </p>
+                      )}
                     </>
                   )}
-                  {puedeArreglar && arreglando === p.id && (
+                  {puedeDecidir && corrigiendo === p.id && p.desde && (() => {
+                    const desdeVieja = p.desde;
+                    const opciones = opcionesDeCorreccion(p, hermanasDe?.(p.varianteId) ?? [], desdeVieja);
+                    const lugares = (o: (typeof opciones)[number]) =>
+                      (["almacen", "piso"] as const).filter((d) => (d === "piso" ? o.piso : o.almacen) >= p.cantidad);
+                    const elegida = eleccion ? opciones.find((o) => o.varianteId === eleccion.split("|")[0]) : undefined;
+                    const desdeNueva = eleccion ? (eleccion.split("|")[1] as DesdeDanada) : null;
+                    return (
+                      <div className="space-y-3 rounded-md bg-sand/30 p-3">
+                        <p className="text-sm text-tinta/65">
+                          Dice <span className="font-semibold text-tinta">{nombreCorto(p.talla, p.color)}</span>. Elige la que está dañada de verdad: las dos se
+                          ponen en su lugar en un solo paso, sin ajustar el stock.
+                        </p>
+                        <CampoGuiado id="correcta" guia={guia}>
+                          <CampoSelect
+                            etiqueta={guia.etiqueta("correcta", "¿Cuál está dañada?")}
+                            valor={eleccion}
+                            onValor={(v) => {
+                              setEleccion(v);
+                              setErrorCorreccion(null);
+                            }}
+                            opciones={opciones.flatMap((o) => {
+                              const donde = lugares(o);
+                              if (donde.length === 0)
+                                return [{ valor: `${o.varianteId}|-`, texto: `${nombreCorto(o.talla, o.color)} · no hay libre`, deshabilitada: true }];
+                              return donde.map((d) => ({
+                                valor: `${o.varianteId}|${d}`,
+                                texto: `${nombreCorto(o.talla, o.color)} · ${d === "piso" ? `en el piso (${o.piso})` : `en el almacén (${o.almacen})`}`,
+                              }));
+                            })}
+                            marcador="Elige la talla o el color"
+                            deshabilitado={resolviendo !== null || correccionEnDuda}
+                          />
+                        </CampoGuiado>
+                        {elegida && desdeNueva && <p className="nota-cayla">{quePasaAlCorregir(p, desdeVieja, elegida, desdeNueva, p.cantidad)}</p>}
+                        {errorCorreccion && <Aviso tono="error">{errorCorreccion}</Aviso>}
+                        <PieGuia guia={guia} listo="Todo listo: se corrige en un solo paso." />
+                        <div className="pie-acciones">
+                          <Boton type="button" onClick={() => setCorrigiendo(null)} disabled={resolviendo !== null}>
+                            Cancelar
+                          </Boton>
+                          <Boton
+                            type="button"
+                            peso="primario"
+                            onClick={() => confirmarCorreccion(p)}
+                            cargando={resolviendo === p.id}
+                            textoCargando="Corrigiendo…"
+                            disabled={resolviendo !== null}
+                            confirma={guia}
+                            title={responsable.motivo ?? guia.frase ?? undefined}
+                            className={`flex-1 ${guia.claseConfirmar}`}
+                          >
+                            {correccionEnDuda ? "Confirmar de nuevo" : "Corregir la prenda"}
+                          </Boton>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  {puedeDecidir && sinDano === p.id && p.desde && (
                     <div className="space-y-3 rounded-md bg-sand/30 p-3">
-                      <p className="text-xs text-tinta/65">{quePasaAlArreglar(sede)}</p>
+                      <p className="text-sm text-tinta/65">{quePasaSinDano(p.desde, p.cantidad)}</p>
+                      <CampoTexto
+                        etiqueta="¿Por qué no lo estaba? (opcional)"
+                        // sugerir-fijo: es un dato libre de lo que pasó; no depende de nada elegido antes
+                        placeholder="Ej. la mancha era del probador y salió"
+                        maxLength={MAX_TEXTO_DANADA}
+                        value={notaSinDano}
+                        onChange={(e) => {
+                          setNotaSinDano(e.target.value);
+                          setErrorSinDano(null);
+                        }}
+                        disabled={resolviendo !== null || sinDanoEnDuda}
+                      />
+                      {errorSinDano && <Aviso tono="error">{errorSinDano}</Aviso>}
+                      <PieGuia guia={guia} listo={`Todo listo: vuelve ${p.desde === "piso" ? "al piso" : "al almacén"}.`} />
+                      <div className="pie-acciones">
+                        <Boton type="button" onClick={() => setSinDano(null)} disabled={resolviendo !== null}>
+                          Cancelar
+                        </Boton>
+                        <Boton
+                          type="button"
+                          peso="primario"
+                          onClick={() => confirmarSinDano(p)}
+                          cargando={resolviendo === p.id}
+                          disabled={resolviendo !== null}
+                          confirma={guia}
+                          title={responsable.motivo ?? guia.frase ?? undefined}
+                          className={`flex-1 ${guia.claseConfirmar}`}
+                        >
+                          {sinDanoEnDuda ? "Confirmar de nuevo" : p.desde === "piso" ? "Volver al piso" : "Volver al almacén"}
+                        </Boton>
+                      </div>
+                    </div>
+                  )}
+                  {puedeDecidir && sacando === p.id && (
+                    <div className="space-y-3 rounded-md bg-sand/30 p-3">
+                      <p className="text-sm text-tinta/65">{QUE_PASA_AL_SACAR}</p>
+                      <CampoGuiado id="ruta" guia={guia}>
+                        <CampoSelect
+                          etiqueta={guia.etiqueta("ruta", "¿Quién la arregla?")}
+                          valor={rutaSalida}
+                          onValor={(v) => {
+                            setRutaSalida(v);
+                            setErrorSalida(null);
+                          }}
+                          opciones={RUTAS_ARREGLO.map((r) => ({ valor: r.valor, texto: r.etiqueta }))}
+                          marcador="Elige quién"
+                          deshabilitado={resolviendo !== null}
+                        />
+                      </CampoGuiado>
+                      <CampoGuiado id="nota" guia={guia}>
+                        <CampoTexto
+                          etiqueta={guia.etiqueta("nota", "¿Con quién va? (opcional)")}
+                          // sugerir-fijo: es un dato libre sobre quién la lleva; no depende de la ruta elegida
+                          placeholder="Ej. la lleva Rosa el jueves"
+                          maxLength={MAX_NOTA_ARREGLO}
+                          value={notaSalida}
+                          onChange={(e) => {
+                            setNotaSalida(e.target.value);
+                            setErrorSalida(null);
+                          }}
+                          disabled={resolviendo !== null}
+                        />
+                      </CampoGuiado>
+                      {errorSalida && <Aviso tono="error">{errorSalida}</Aviso>}
+                      <PieGuia guia={guia} listo="Todo listo: se anota la salida." />
+                      <div className="pie-acciones">
+                        <Boton type="button" onClick={() => setSacando(null)} disabled={resolviendo !== null}>
+                          Cancelar
+                        </Boton>
+                        <Boton
+                          type="button"
+                          peso="primario"
+                          onClick={() => confirmarSalida(p)}
+                          cargando={resolviendo === p.id}
+                          disabled={resolviendo !== null} confirma={guia}
+                          title={responsable.motivo ?? guia.frase ?? undefined}
+                          className={`flex-1 ${guia.claseConfirmar}`}
+                        >
+                          Anotar la salida
+                        </Boton>
+                      </div>
+                    </div>
+                  )}
+                  {puedeDecidir && noPudo === p.id && (
+                    <div className="space-y-3 rounded-md bg-sand/30 p-3">
+                      <p className="text-sm text-tinta/65">{QUE_PASA_AL_NO_PUDO}</p>
+                      <CampoGuiado id="motivo" guia={guia}>
+                        <CampoTexto
+                          etiqueta={guia.etiqueta("motivo", "¿Por qué no se pudo? (opcional)")}
+                          // sugerir-fijo: es un dato libre de lo que pasó con el arreglo; no depende de nada elegido antes
+                          placeholder="Ej. la mancha no sale"
+                          maxLength={MAX_NOTA_ARREGLO}
+                          value={motivoNoPudo}
+                          onChange={(e) => {
+                            setMotivoNoPudo(e.target.value);
+                            setErrorNoPudo(null);
+                          }}
+                          disabled={resolviendo !== null}
+                        />
+                      </CampoGuiado>
+                      {errorNoPudo && <Aviso tono="error">{errorNoPudo}</Aviso>}
+                      <PieGuia guia={guia} listo="Todo listo: se anota que no se pudo." />
+                      <div className="pie-acciones">
+                        <Boton type="button" onClick={() => setNoPudo(null)} disabled={resolviendo !== null}>
+                          Cancelar
+                        </Boton>
+                        <Boton
+                          type="button"
+                          peso="primario"
+                          onClick={() => confirmarNoPudo(p)}
+                          cargando={resolviendo === p.id}
+                          disabled={resolviendo !== null} confirma={guia}
+                          title={responsable.motivo ?? guia.frase ?? undefined}
+                          className={`flex-1 ${guia.claseConfirmar}`}
+                        >
+                          Anotar que no se pudo
+                        </Boton>
+                      </div>
+                    </div>
+                  )}
+                  {puedeDecidir && arreglando === p.id && (
+                    <div className="space-y-3 rounded-md bg-sand/30 p-3">
+                      <p className="text-sm text-tinta/65">{quePasaAlArreglar(sede, destinoArreglo)}</p>
                       <CampoGuiado id="arreglo" guia={guia}>
                         <CampoTexto
                           etiqueta={guia.etiqueta("arreglo", "¿Qué se arregló?")}
@@ -404,10 +1040,50 @@ export function ResolverDanadosModal({
                           disabled={resolviendo !== null || arregloEnDuda}
                         />
                       </CampoGuiado>
+                      <CampoGuiado id="destino" guia={guia}>
+                        <CampoSelect
+                          etiqueta={guia.etiqueta("destino", "¿A dónde vuelve?")}
+                          valor={destinoArreglo}
+                          onValor={(v) => {
+                            setDestinoArreglo(v);
+                            setDestinoConfirmado(true);
+                          }}
+                          opciones={DESTINOS_ARREGLO.map((d) => ({ valor: d.valor, texto: d.etiqueta }))}
+                          deshabilitado={resolviendo !== null || arregloEnDuda}
+                        />
+                      </CampoGuiado>
+                      <CampoGuiado id="costo" guia={guia}>
+                        <CampoMonto
+                          etiqueta={guia.etiqueta("costo", "¿Cuánto costó el arreglo? (opcional)")}
+                          inputMode="decimal"
+                          placeholder="0.00"
+                          value={costoArreglo}
+                          onChange={(e) => {
+                            setCostoArreglo(e.target.value);
+                            setErrorArreglo(null);
+                          }}
+                          disabled={resolviendo !== null || arregloEnDuda}
+                        />
+                      </CampoGuiado>
+                      {costoConPlata(costoArreglo) && (
+                        <CampoGuiado id="medio" guia={guia}>
+                          <CampoSelect
+                            etiqueta={guia.etiqueta("medio", "¿Cómo se pagó?")}
+                            valor={medioArreglo}
+                            onValor={(v) => {
+                              setMedioArreglo(v);
+                              setErrorArreglo(null);
+                            }}
+                            opciones={MEDIOS_ARREGLO.map((m) => ({ valor: m.valor, texto: m.etiqueta }))}
+                            marcador="Elige cómo se pagó"
+                            deshabilitado={resolviendo !== null || arregloEnDuda}
+                          />
+                        </CampoGuiado>
+                      )}
                       {errorArreglo && (
                         <Aviso tono="error">{errorArreglo}</Aviso>
                       )}
-                      <PieGuia guia={guia} listo="Todo listo: vuelve al almacén." />
+                      <PieGuia guia={guia} listo={`Todo listo: vuelve al ${destinoArreglo === "piso" ? "piso" : "almacén"}.`} />
                       <div className="pie-acciones">
                         <Boton type="button" onClick={() => setArreglando(null)} disabled={resolviendo !== null}>
                           Cancelar
@@ -417,18 +1093,18 @@ export function ResolverDanadosModal({
                           peso="primario"
                           onClick={() => confirmarArreglo(p)}
                           cargando={resolviendo === p.id}
-                          disabled={resolviendo !== null || !guia.puedeConfirmar}
+                          disabled={resolviendo !== null} confirma={guia}
                           title={responsable.motivo ?? guia.frase ?? undefined}
                           className={`flex-1 ${guia.claseConfirmar}`}
                         >
-                          {arregloEnDuda ? "Confirmar de nuevo" : "Volver al almacén"}
+                          {arregloEnDuda ? "Confirmar de nuevo" : destinoArreglo === "piso" ? "Volver al piso" : "Volver al almacén"}
                         </Boton>
                       </div>
                     </div>
                   )}
-                  {puedeArreglar && devolviendo === p.id && p.devolucion && (
+                  {puedeDecidir && devolviendo === p.id && p.devolucion && (
                     <div className="space-y-3 rounded-md bg-sand/30 p-3">
-                      <p className="text-xs text-tinta/65">{quePasaAlDevolver(p.devolucion.proveedor)}</p>
+                      <p className="text-sm text-tinta/65">{quePasaAlDevolver(p.devolucion.proveedor)}</p>
                       <CampoGuiado id="devolucion" guia={guia}>
                         <CampoTexto
                           etiqueta={guia.etiqueta("devolucion", "Nota")}
@@ -454,7 +1130,7 @@ export function ResolverDanadosModal({
                           onClick={() => confirmarDevolucion(p)}
                           cargando={resolviendo === p.id}
                           textoCargando="Devolviendo…"
-                          disabled={resolviendo !== null || !guia.puedeConfirmar}
+                          disabled={resolviendo !== null} confirma={guia}
                           title={responsable.motivo ?? guia.frase ?? undefined}
                           className={`flex-1 ${guia.claseConfirmar}`}
                         >
@@ -463,9 +1139,9 @@ export function ResolverDanadosModal({
                       </div>
                     </div>
                   )}
-                  {puedeResolver && liquidando === p.id && (
+                  {puedeDecidir && liquidando === p.id && (
                     <div className="space-y-3 rounded-md bg-sand/30 p-3">
-                      <p className="text-xs text-tinta/65">
+                      <p className="text-sm text-tinta/65">
                         Liquidar registra una venta real — {p.cantidad > 1 ? `${p.cantidad} unidades juntas, ` : ""}
                         exige caja abierta en esta ubicación.
                       </p>

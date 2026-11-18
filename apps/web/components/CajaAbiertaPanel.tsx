@@ -8,16 +8,15 @@ import { avisar } from "@/components/ui/Avisos";
 import { MovimientoCajaModal } from "@/components/MovimientoCajaModal";
 import { FilaMovimientoCaja, type EventoCaja } from "@/components/FilaMovimientoCaja";
 import { MovimientosCajaModal } from "@/components/MovimientosCajaModal";
-import { HistorialCierresModal } from "@/components/HistorialCierresModal";
-import { DetalleVentaModal } from "@/components/DetalleVentaModal";
+import { CerrarCajaBajoDemanda } from "@/components/caja/CerrarCajaBajoDemanda";
+import { DetalleVentaBajoDemanda, HistorialCierresBajoDemanda, RegistrarGastoBajoDemanda } from "@/components/caja/hojas-bajo-demanda";
+import { usePrecargarEnReposo } from "@/components/HojaBajoDemanda";
 import { DetalleMovimientoCajaModal } from "@/components/DetalleMovimientoCajaModal";
-import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { EVENTO_CERRAR_CAJA } from "@/lib/recordatorio-cierre-reglas";
 import { BarraCierreCaja, BotonCerrarCaja } from "@/components/BarraCierreCaja";
 import { estadoBotonCierre } from "@/lib/caja-cierre-boton-reglas";
 import { ComparativaCaja } from "@/components/CajaComparativa";
 import type { PagoDelDia } from "@/lib/caja-comparativa-reglas";
-import { RegistrarGastoModal } from "@/components/RegistrarGastoModal";
 import { GastoRapidoModal } from "@/components/GastoRapidoModal";
 import { IngresoRapidoModal } from "@/components/IngresoRapidoModal";
 import {
@@ -50,6 +49,8 @@ import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { RepartoEmpresas } from "@/components/RepartoEmpresas";
+import type { RepartoEmpresas as RepartoDeEmpresas } from "@/lib/vendido-por-empresa-reglas";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -110,6 +111,7 @@ export function CajaAbiertaPanel({
   sedesIngreso = [],
   abrirCierre = false,
   comparativa = null,
+  repartoEmpresas = null,
 }: {
   ubicacionNombre: string;
   personaNombre: string;
@@ -148,6 +150,8 @@ export function CajaAbiertaPanel({
   sedesIngreso?: { id: string; nombre: string }[];
   /** Los pagos de hoy y de ayer (ADR-0319). `null` = la base aún no tiene `fn_comparativa_caja`: Caja se ve como antes. */
   comparativa?: { hoy: PagoDelDia[]; ayer: PagoDelDia[] } | null;
+  /** De quién es lo vendido del turno (ADR-0532): CAYLA y CLAURE en Lima. `null` donde hay una sola empresa o si la base no respondió. */
+  repartoEmpresas?: RepartoDeEmpresas | null;
   /** Se llegó desde «Cerrar caja» del recordatorio de cierre (`/caja?cerrar=1`, ADR-0305): el cierre ya sale abierto. */
   abrirCierre?: boolean;
 }) {
@@ -167,6 +171,8 @@ export function CajaAbiertaPanel({
   const alCambiarModo = useCallback((m: ModoCierres) => setModoCierres(m), []);
   // La fila cuyo detalle está abierto (una venta o un movimiento del cajón). Aparte de `modal`: se apila sobre «Ver todo».
   const [ventaAbiertaId, setVentaAbiertaId] = useState<string | null>(null);
+  // «Cerrar caja» es LA acción de esta pantalla: su código baja apenas la pantalla queda libre, no al tocar el botón (ADR-0674).
+  usePrecargarEnReposo(CerrarCajaBajoDemanda);
   const [movimientoAbiertoId, setMovimientoAbiertoId] = useState<string | null>(null);
   // Una sola puerta para toda la lista: la venta abre su detalle, la entrada o la salida del cajón abre el suyo.
   const abrirFila = useCallback((e: EventoCaja) => (e.icono === "venta" ? setVentaAbiertaId(e.id) : setMovimientoAbiertoId(e.id)), []);
@@ -182,7 +188,7 @@ export function CajaAbiertaPanel({
 
   // En vivo: sondea la caja cada pocos segundos y, si entró algo, Next vuelve a leer la pantalla y llegan props
   // nuevas. Lo que sigue solo detecta QUÉ es nuevo para que cada pieza lo muestre; nada de esto pide datos.
-  useCajaEnVivo(caja.id);
+  useCajaEnVivo(caja.id, caja.ubicacionId);
   // El botón «Cerrar caja» cambia de nivel con la hora de cierre de la tienda (ADR-0318); se mira cada minuto.
   const ahoraCierre = useAhora(60_000);
   const estadoCierre = ahoraCierre ? estadoBotonCierre({ ahora: ahoraCierre, abiertaEn: caja.abiertaEn, horaCierre, puedeCerrar }) : null;
@@ -291,25 +297,40 @@ export function CajaAbiertaPanel({
           Registrar ingreso
         </Boton>
       )}
-      <Boton type="button" data-guia="caja.historial" onClick={() => setModal("cierres")}>
+      <Boton
+        type="button"
+        data-guia="caja.historial"
+        onClick={() => setModal("cierres")}
+        onPointerEnter={HistorialCierresBajoDemanda.precargar}
+        onFocus={HistorialCierresBajoDemanda.precargar}
+      >
         Historial de cierres
       </Boton>
       {/* D-13: solo quien puede gestionar la caja la cierra. El candado real está en `cerrar_caja`. */}
       {puedeCerrar ? (
         <BotonCerrarCaja onCerrar={() => setModal("cerrar")} />
       ) : (
-        <p className="text-xs text-tinta/60">La caja la cierra un líder de equipo.</p>
+        <p className="text-sm text-tinta/60">La caja la cierra un líder de equipo.</p>
       )}
     </div>
   );
+
+  // De quién es lo vendido (ADR-0532): solo en Lima, donde CAYLA y CLAURE comparten la caja. Va bajo el titular de «hoy contra ayer».
+  const tarjetaReparto = repartoEmpresas ? (
+    <RepartoEmpresas
+      reparto={repartoEmpresas}
+      guia="caja.reparto-empresas"
+      indice={1}
+      frase="Desde que abriste la caja, sin anuladas."
+    />
+  ) : null;
 
   // «Movimientos del turno»: va junto a «Dónde ganas y dónde pierdes» en el diseño nuevo y en su lugar de siempre en el anterior.
   const tarjetaMovimientos = (
           <div data-guia="caja.movimientos" className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 7 } as CSSProperties}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-bold text-tinta">Movimientos del turno</p>
-                <p className="text-xs text-tinta/50">Toca cualquier fila para ver el detalle</p>
+                <TituloSeccion nivel={3}>Movimientos del turno</TituloSeccion>
               </div>
               {/* Filtro de un valor (deja menos movimientos): la píldora del sistema, no la pista hueso del spike (ADR-0358). */}
               <div role="group" aria-label="Filtrar movimientos" data-guia="caja.movimientos-filtro" className="flex flex-wrap items-center gap-2">
@@ -334,7 +355,7 @@ export function CajaAbiertaPanel({
             </div>
             {metodosUsados.length > 0 && (
               <div role="group" aria-label="Filtrar ventas por medio de pago" className="mt-3 flex flex-wrap items-center gap-1.5">
-                <span className="mr-1 text-[11.5px] text-tinta/50">Medio de pago</span>
+                <span className="texto-detalle mr-1">Medio de pago</span>
                 {metodosUsados.map(({ clave, ventas }) => (
                   <button
                     key={clave}
@@ -350,7 +371,7 @@ export function CajaAbiertaPanel({
                 ))}
               </div>
             )}
-            {hayMixtas && <p className="mt-1.5 text-[11.5px] text-tinta/50">Las ventas pagadas con dos medios salen en cada uno.</p>}
+            {hayMixtas && <p className="texto-detalle mt-1.5">Una venta con dos medios sale en cada uno.</p>}
             {eventos.length === 0 ? (
               todosLosEventos.length === 0 ? (
                 <Vacio tamano="chico" icono={<Receipt />}>
@@ -421,6 +442,7 @@ export function CajaAbiertaPanel({
               horaCierreMin={minutosLima(horaCierre)}
               cajon={<TarjetaCajon esperado={esperadoCajon} piezas={piezasDelCajon(caja.montoApertura, resumen)} indice={3} />}
               movimientos={tarjetaMovimientos}
+              reparto={tarjetaReparto}
             />
           </>
         ) : (
@@ -430,24 +452,29 @@ export function CajaAbiertaPanel({
           <TarjetaCajon esperado={esperadoCajon} piezas={piezasDelCajon(caja.montoApertura, resumen)} indice={1} />
           <TarjetaCobrado porMetodo={series.porMetodo} redondeo={resumen.redondeo} indice={2} />
           <div className="card-cayla anim-sube hidden flex-col p-5 sm:flex @[900px]:col-span-2 @[1200px]:col-span-1" style={{ "--i": 3 } as CSSProperties}>
-            <p className="text-sm font-bold text-tinta">Ritmo del turno</p>
-            <p className="mb-3.5 text-xs text-tinta/50">Cada punto es una venta, desde que abrió la caja</p>
+            <TituloSeccion nivel={3}>Ritmo del turno</TituloSeccion>
+            <p className="texto-bajada mb-3.5">Cada punto, una venta del turno</p>
             <RitmoDelDia ventas={ventasHoy} abiertaEn={caja.abiertaEn} idsNuevos={idsNuevos} />
           </div>
         </div>
+
+        {tarjetaReparto}
 
         {/* ---------- Meta de hoy y lo que pedirá el cierre (ADR-0195 F1) ---------- */}
         {metaVentaDiaria !== null && metaPct !== null && (
           <div className={`grid grid-cols-1 gap-3 ${puedeCerrar && fondoCierre ? "@[900px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]" : ""}`}>
             <div data-guia="caja.meta" className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 4 } as CSSProperties}>
               <TituloSeccion dato={<b>{soles0(metaVentaDiaria)}</b>}>Meta de hoy</TituloSeccion>
-              <p className="mt-1 text-[13px] text-taupe">{explicacionMeta}</p>
+              <p className="mt-1 text-sm text-taupe">{explicacionMeta}</p>
               <BarraAvance pct={metaPct} alto="gruesa" etiqueta="Meta de hoy" className="mb-1 mt-4" />
-              <dl className="mt-auto grid grid-cols-3 gap-4 pt-4">
+              {/* Tres columnas solo si el tablero (`@container`) da ~104 px a cada una: a 375 «S/ 12,345» en 26 px mide 102 y no
+                  cabía en 90; ahí van dos y la tercera ocupa la fila de abajo entera, con su detalle a lo ancho. */}
+              <dl className="mt-auto grid grid-cols-2 gap-4 pt-4 @min-[24rem]:grid-cols-3">
                 <DatoMeta etiqueta="Llevas" valor={soles0(totalVentas)} />
                 <DatoMeta etiqueta="Te faltan" valor={faltaMeta > 0 ? soles0(faltaMeta) : "—"} detalle={faltaMeta > 0 ? undefined : <b className="font-semibold text-verde-profundo">Meta cumplida.</b>} />
                 {alCierre !== null ? (
                   <DatoMeta
+                    className="col-span-2 @min-[24rem]:col-span-1"
                     etiqueta="Al ritmo de hoy cierras en"
                     valor={soles0(alCierre)}
                     detalle={
@@ -457,15 +484,15 @@ export function CajaAbiertaPanel({
                     }
                   />
                 ) : (
-                  <DatoMeta etiqueta="Avance" valor={`${metaPct} %`} detalle="de la meta de hoy" />
+                  <DatoMeta className="col-span-2 @min-[24rem]:col-span-1" etiqueta="Avance" valor={`${metaPct} %`} detalle="de la meta de hoy" />
                 )}
               </dl>
             </div>
             {puedeCerrar && fondoCierre && (
               <div className="card-cayla anim-sube p-5" style={{ "--i": 5 } as CSSProperties}>
                 <TituloSeccion>Al cerrar</TituloSeccion>
-                <p className="mt-1 text-[13px] text-taupe">Lo que el cierre te va a pedir.</p>
-                <dl className="mt-3 text-[13px] text-tinta">
+                <p className="mt-1 text-sm text-taupe">Lo que el cierre te va a pedir.</p>
+                <dl className="mt-3 text-sm text-tinta">
                   <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
                     <dt>Debería haber en el cajón</dt>
                     <dd className="whitespace-nowrap font-semibold tabular-nums">{esperadoCajon === null ? "—" : soles0(esperadoCajon)}</dd>
@@ -476,11 +503,11 @@ export function CajaAbiertaPanel({
                   </div>
                   <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
                     <dt>Lo demás se traslada</dt>
-                    <dd className="text-right text-[12px] text-taupe">a la caja fuerte, al banco o al líder</dd>
+                    <dd className="text-right text-sm text-taupe">a la caja fuerte, al banco o al líder</dd>
                   </div>
                 </dl>
-                <p className="mt-1 text-[12.5px] text-taupe">
-                  {fondoCierre.motivo}. El fondo normal lo pone el líder en Configuración ▸ Tiendas y caja; cada campaña puede subirlo.
+                <p className="mt-1 text-sm text-taupe">
+                  {fondoCierre.motivo}. El fondo normal lo pone el líder en Configuración ▸ Empresa y tiendas; cada campaña puede subirlo.
                 </p>
               </div>
             )}
@@ -509,19 +536,20 @@ export function CajaAbiertaPanel({
 
       <BarraCajaMovil vender={accesos.vender} onGasto={abrirGasto} onIngreso={() => setModal("ingreso")} onCerrar={puedeCerrar ? () => setModal("cerrar") : null} />
 
-      {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} esLider={personaRol === "lider"} soloSalida onClose={() => setModal(null)} />}
+      {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} soloSalida onClose={() => setModal(null)} />}
       {modal === "ingreso" && (
         <IngresoRapidoModal
           caja={{ id: caja.id, ubicacionId: caja.ubicacionId }}
           ubicacionNombre={ubicacionNombre}
-          esLider={personaRol === "lider"}
           sedes={sedesIngreso}
           accesos={{ vender: accesos.vender, apartados: accesos.apartados }}
           onCerrar={() => setModal(null)}
           onRetiro={() => setModal("movimiento")}
         />
       )}
-      {modal === "cerrar" && <CerrarCajaModalV2 cajaId={caja.id} cola={cola} fondo={fondoCierre} ubicacionId={caja.ubicacionId} onClose={() => setModal(null)} />}
+      {modal === "cerrar" && (
+        <CerrarCajaBajoDemanda cajaId={caja.id} cola={cola} fondo={fondoCierre} ubicacionId={caja.ubicacionId} onClose={() => setModal(null)} alFallar={() => setModal(null)} />
+      )}
       {modal === "gasto" && gasto && (
         <GastoRapidoModal
           caja={{ id: caja.id, ubicacionId: caja.ubicacionId }}
@@ -536,7 +564,8 @@ export function CajaAbiertaPanel({
         />
       )}
       {modal === "gastoCompleto" && gasto?.completo && (
-        <RegistrarGastoModal
+        <RegistrarGastoBajoDemanda
+          alFallar={() => setModal(null)}
           categorias={gasto.categorias}
           ubicaciones={gasto.completo.ubicaciones}
           proveedores={gasto.proveedores}
@@ -547,7 +576,15 @@ export function CajaAbiertaPanel({
           onCerrar={() => setModal(null)}
         />
       )}
-      {modal === "cierres" && <HistorialCierresModal cierres={cierresUbicacion} ubicacionId={caja.ubicacionId} ubicacionNombre={ubicacionNombre} onClose={() => setModal(null)} />}
+      {modal === "cierres" && (
+        <HistorialCierresBajoDemanda
+          cierres={cierresUbicacion}
+          ubicacionId={caja.ubicacionId}
+          ubicacionNombre={ubicacionNombre}
+          onClose={() => setModal(null)}
+          alFallar={() => setModal(null)}
+        />
+      )}
       {modal === "todos" && (
         <MovimientosCajaModal
           eventos={filtrados}
@@ -558,7 +595,8 @@ export function CajaAbiertaPanel({
         />
       )}
       {ventaAbiertaId && (
-        <DetalleVentaModal
+        <DetalleVentaBajoDemanda
+          alFallar={() => setVentaAbiertaId(null)}
           ventaId={ventaAbiertaId}
           vendedor={ventasHoy.find((v) => v.ventaId === ventaAbiertaId)?.vendedor ?? null}
           ubicacionNombre={ubicacionNombre}
@@ -598,8 +636,8 @@ function AvisoTurnoLargo({ abiertaEn, esLider }: { abiertaEn: string; esLider: b
   if (!turnoLargo(minutos)) return null;
   return (
     <div role="status" className="card-cayla border-l-2 border-l-rojo px-5 py-3 text-sm text-tinta">
-      Esta caja lleva <b className="font-medium">{formatoDuracion(minutos)}</b> abierta.{" "}
-      {esLider ? "Ciérrala para que el arqueo quede día por día." : "Avisa a un líder de equipo para que la cierre."}
+      Caja abierta hace <b className="font-medium">{formatoDuracion(minutos)}</b>:{" "}
+      {esLider ? "ciérrala para cuadrar día por día." : "avisa a un líder de equipo para que la cierre."}
     </div>
   );
 }
@@ -609,7 +647,7 @@ function AvisoTurnoLargo({ abiertaEn, esLider }: { abiertaEn: string; esLider: b
 function TurnoCompacto({ abiertaEn }: { abiertaEn: string }) {
   const ahora = useAhora(30_000);
   return (
-    <p className="text-[13px] text-tinta/65">
+    <p className="text-sm text-tinta/65">
       Abrió <b className="font-medium text-tinta/85">{FORMATO_HORA_CORTA.format(new Date(abiertaEn))}</b>
       {ahora && (
         <>
@@ -805,12 +843,12 @@ function soles0(n: number): string {
   return `S/\u00a0${Math.round(n).toLocaleString("es-PE")}`;
 }
 
-function DatoMeta({ etiqueta, valor, detalle }: { etiqueta: string; valor: string; detalle?: ReactNode }) {
+function DatoMeta({ etiqueta, valor, detalle, className = "" }: { etiqueta: string; valor: string; detalle?: ReactNode; className?: string }) {
   return (
-    <div className="min-w-0">
+    <div className={`min-w-0 ${className}`}>
       <dt className="label-cayla text-[11px] text-taupe">{etiqueta}</dt>
       <dd className="font-display mt-1 text-[26px] leading-none tabular-nums text-tinta">{valor}</dd>
-      {detalle && <dd className="mt-1.5 text-[12px] text-taupe">{detalle}</dd>}
+      {detalle && <dd className="mt-1.5 text-sm text-taupe">{detalle}</dd>}
     </div>
   );
 }

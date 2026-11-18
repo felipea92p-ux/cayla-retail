@@ -1,0 +1,172 @@
+/* ====================================================================
+   Ingresos ▸ lo que se abre bajo un modelo (components/ingresos/DetalleIngreso.tsx, Felipe 2026-11-11)
+   La banda de la fila abierta (la misma de Rendimiento, .mesa-abierta): un tinte apenas con su hilo arriba y abajo, que se abre hacia
+   abajo, en vez de la caja beige maciza que rompía el vidrio. Adentro, la matriz sobre el vidrio claro (sin desenfoque: corre con el
+   scroll, ADR-0623) y el reparto por talla y por color. Solo recetas de vidrio/recetas.css; nada sólido.
+   ==================================================================== */
+
+.tv-detalle:has(> .ing-abierto) {
+  padding: 0;
+}
+.ing-abierto {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: ing-abre 420ms var(--ease-cayla) both;
+  background: color-mix(in srgb, var(--color-tinta) 3%, transparent);
+  box-shadow: inset 0 1px 0 var(--hilo-fila, transparent), inset 0 -1px 0 var(--hilo-fila, transparent);
+}
+.ing-abierto > div {
+  min-height: 0;
+  overflow: hidden;
+}
+@keyframes ing-abre {
+  from { grid-template-rows: 0fr; opacity: 0; }
+}
+
+.ing-abierto-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px 24px;
+  padding: 14px 22px 20px 86px; /* la matriz arranca bajo el nombre del modelo, no bajo su foto */
+  cursor: default;
+}
+.ing-abierto-cuerpo[data-con-reparto] {
+  grid-template-columns: minmax(0, auto) minmax(280px, 1fr);
+  align-items: start;
+}
+@container tv (max-width: 959.98px) {
+  .ing-abierto-cuerpo,
+  .ing-abierto-cuerpo[data-con-reparto] { grid-template-columns: minmax(0, 1fr); padding-left: 22px; }
+}
+@container tv (max-width: 659.98px) {
+  .ing-abierto-cuerpo,
+  .ing-abierto-cuerpo[data-con-reparto] { padding: 12px 16px 16px; }
+  .ing-placa { padding-inline: 12px; }
+  .ing-matriz :is(th, td) { padding-inline: 3px; }
+  .ing-matriz :is(th, td):first-child { padding-right: 10px; }
+  .ing-matriz :is(th, td):last-child { padding-left: 12px; }
+  .ing-reparto-fila { grid-template-columns: minmax(64px, 6.5rem) minmax(0, 1fr) auto; gap: 10px; }
+}
+
+.ing-titulo {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+
+/* ---------- La placa: la matriz sobre el vidrio claro ---------- */
+.ing-placa {
+  min-width: 0;
+  padding: 14px 18px 12px;
+  border: 1px solid var(--vidrio-claro-borde);
+  border-radius: var(--radius-tarjeta);
+  background: var(--vidrio-claro-fondo);
+  box-shadow: var(--vidrio-claro-sombra);
+}
+.ing-placa-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin-bottom: 8px;
+}
+.ing-placa-dato {
+  font-size: 14px;
+  color: var(--color-tinta);
+}
+
+.ing-matriz thead th {
+  padding-block: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+.ing-matriz tbody tr + tr > * {
+  border-top: 1px solid color-mix(in srgb, var(--color-tinta) 6%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+}
+.ing-matriz tbody :is(th, td) {
+  padding-block: 6px;
+}
+.ing-matriz tfoot tr {
+  border-top-color: color-mix(in srgb, var(--color-tinta) 14%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+}
+.ing-matriz tfoot :is(th, td) {
+  padding-top: 8px;
+}
+.ing-matriz tfoot th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+
+/* Cada celda con prendas es una gota chica que se tiñe según cuánto trae (--peso, de 0 a 1): la más cargada, al 12 % de tinta. El
+   número sigue en tinta plena encima, así que se lee igual en las dos puntas y en los dos temas. */
+.ing-celda {
+  display: inline-grid;
+  place-items: center;
+  min-width: 32px;
+  height: 28px;
+  padding-inline: 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-tinta) calc(6% + var(--peso, 0) * 8%), transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  background: color-mix(in srgb, var(--color-tinta) calc(3% + var(--peso, 0) * 9%), transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 70%, transparent);
+  font-weight: 500;
+}
+.ing-matriz .ing-vacia {
+  display: inline-grid;
+  place-items: center;
+  min-width: 32px;
+}
+
+/* ---------- El reparto: por talla y por color, a escala del mayor ---------- */
+.ing-reparto {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+  gap: 20px 32px;
+  padding-top: 14px;
+}
+.ing-reparto-bloque {
+  min-width: 0;
+}
+.ing-reparto-lista {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.ing-reparto-fila {
+  display: grid;
+  grid-template-columns: minmax(72px, 8rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+.ing-reparto-nombre {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--color-tinta);
+}
+.ing-reparto-cifra {
+  min-width: 4.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.ing-reparto-pct {
+  font-weight: 400;
+  color: var(--color-taupe);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ing-abierto { animation: none; }
+}

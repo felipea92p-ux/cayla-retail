@@ -31,7 +31,7 @@ export function SaldoFavorProveedor({
   return (
     // El ancla (#saldo-a-favor) y el nombre de la sección quedan en la <section>; la tarjeta es la pieza única de cifra
     // (TarjetaCifra, ADR-0358). Un saldo en cero es un dato: se ve normal, no apagado.
-    <section id="saldo-a-favor" aria-label="Saldo a favor" data-guia="proveedor-ficha.saldo-favor" className="scroll-mt-24">
+    <section id="saldo-a-favor" aria-label="Saldo a favor" data-guia="proveedor-ficha.saldo-favor" className="scroll-mt-8">
       <TarjetaCifra etiqueta="Saldo a favor" punto={hay ? "verde" : "neutro"} valor={soles(saldo)} tono={hay ? "text-verde-profundo" : undefined}>
         <p className="mt-1 max-w-xl text-sm leading-relaxed text-tinta/70">
           {hay
@@ -62,13 +62,13 @@ export function SaldoFavorProveedor({
                   <li key={m.id} className="flex items-baseline justify-between gap-4 py-2">
                     <span className="min-w-0">
                       <span className="text-sm text-tinta">{etiquetaMovimientoCredito(m)}</span>
-                      {detalle && <span className="block truncate text-xs text-tinta/60">{detalle}</span>}
+                      {detalle && <span className="block truncate text-sm text-tinta/60">{detalle}</span>}
                     </span>
                     <span className="shrink-0 text-right">
                       <span className={`block text-sm tabular-nums ${suma ? "font-semibold text-verde-profundo" : "text-tinta"}`}>
                         {suma ? "+" : "−"} {soles(m.monto)}
                       </span>
-                      <span className="block text-xs text-tinta/55">{fechaCorta(m.fecha)}</span>
+                      <span className="block text-sm text-tinta/55">{fechaCorta(m.fecha)}</span>
                     </span>
                   </li>
                 );

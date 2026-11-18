@@ -23,7 +23,12 @@ export function fotoOptimizable(fotoUrl: string, supabaseUrl: string | undefined
  * vacía); apenas carga, nada: desde el ADR-0442 la foto es un PNG con fondo transparente, y si el color se quedara, la prenda se
  * vería sobre el color de su primer color de catálogo («Blusa Burdeos de Rayas» sobre chocolate, 2026-10-18). Sobre un JPG no cambia
  * nada: lo tapa entero. `undefined` = sin fondo (el de la tarjeta).
+ *
+ * `yaSeVioUnaFoto` es de la CAJA, no de cada foto (2026-11-16): al pasar el mouse por los colores de una tarjeta, la foto del color
+ * nuevo tarda en llegar y el navegador deja la anterior a la vista mientras tanto. Si el color volviera en ese rato, la tarjeta se teñía
+ * del color nuevo detrás de la prenda anterior (el fondo azul marino o negro que Felipe vio en Productos). El color es para una caja que
+ * todavía no muestra nada, nunca para un cambio de foto.
  */
-export function fondoDeLaFoto(colorHex: string | null | undefined, cargada: boolean): string | undefined {
-  return !cargada && colorHex ? colorHex : undefined;
+export function fondoDeLaFoto(colorHex: string | null | undefined, yaSeVioUnaFoto: boolean): string | undefined {
+  return !yaSeVioUnaFoto && colorHex ? colorHex : undefined;
 }

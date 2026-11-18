@@ -17,6 +17,7 @@ import {
   filasDelPiso,
   HREF_COLGAR_EN_TANDAS,
   hrefColgarEnTandas,
+  hrefSepararDanada,
   filtrarNuevos,
   fuentesDeAlmacen,
   inicioDeAyerLima,
@@ -630,10 +631,18 @@ describe("las tres cifras de «por colgar» —«Hoy», «Para hoy» y el Inicio
     expect(panel).toMatch(/porColgarDeLaSede\(stock, listaDelDia\)/);
     expect(panel).toMatch(/porColgar: entradaPorColgar\(cuentaPorColgar\)/);
     expect(panel).toMatch(/enPausa: cuentaPorColgar\.enPausa/);
-    // La página pone en cada fila la decisión del motor y le pasa al panel la lista del día del MISMO plan.
+    // La página le pasa al panel el MISMO plan (en dos tiempos desde el 2026-11-13: la promesa, recortada a las tallas de la sede), y el
+    // panel pone en cada fila la decisión del motor y toma la lista del día de ese plan (`aplicarPlan`).
     const pagina = fuente("app/(app)/inventario/page.tsx");
-    expect(pagina).toMatch(/planPiso: planPiso\.get\(f\.varianteId\)/);
-    expect(pagina).toMatch(/listaDelDia=\{plan\?\.listaDelDia\}/);
+    expect(pagina).toMatch(/planDelPanel\(plan, filas\)/);
+    expect(pagina).toMatch(/plan=\{planParaPanel\}/);
+    // El plan va encima de las filas con su Ritmo reciente (que también llega aparte, 2026-11-13), que salen del stock de la página.
+    expect(panel).toMatch(/useRitmoReciente\(ritmo, stockSinPlan\)/);
+    expect(panel).toMatch(/usePlanDelPiso\(plan, ritmoReciente\.filas\)/);
+    expect(panel).toMatch(/const listaDelDia = planDelPiso\.listaDelDia/);
+    const reglaDelPlan = fuente("lib/existencias-plan-panel.ts");
+    expect(reglaDelPlan).toMatch(/planPiso: plan\.porTalla\[f\.varianteId\]/);
+    expect(reglaDelPlan).toMatch(/listaDelDia: plan\.listaDelDia/);
     // El filtro «Hoy» y la cuenta preguntan lo mismo a cada talla (`hoyDeTalla`: la decisión del motor dicha en palabras).
     expect(fuente("lib/existencias-filtros.ts")).toMatch(/hoyDeTalla\(f\) !== elegidos\.hoy/);
     expect(fuente("lib/existencias-para-hoy.ts")).toMatch(/stock\.filter\(\(f\) => hoyDeTalla\(f\) === "por_colgar"\)/);
@@ -650,6 +659,20 @@ describe("las tres cifras de «por colgar» —«Hoy», «Para hoy» y el Inicio
     const taller = existenciasDeAlmacen([talla("Blusa Emma", "Azul", "M", null, null)], []);
     expect(taller.enAlmacen).toBeNull();
     expect(fuentesDeAlmacen({ existencias: taller, fotos: null, porCompletar: null }).porColgar).toBeUndefined();
+  });
+});
+
+describe("hrefSepararDanada: «Separé una dañada» del Inicio de Almacén (ADR-0564)", () => {
+  const conPiso = { enAlmacen: 12, porColgar: { tallas: 0, unidades: 0, prendas: 0, enPausa: 0 }, primeras: [], hrefBajar: "/inventario/bajar" };
+
+  it("se ofrece donde se ofrece «Colgar en tandas»: la cuenta ve Existencias y la sede separa piso y almacén", () => {
+    expect(hrefSepararDanada(conPiso)).toBe("/inventario?danada=1");
+    expect(hrefSepararDanada(null)).toBe("/inventario?danada=1");
+  });
+
+  it("sin Existencias, o en una sede sin piso y almacén (sin cuarentena), no se ofrece", () => {
+    expect(hrefSepararDanada(undefined)).toBeNull();
+    expect(hrefSepararDanada({ ...conPiso, enAlmacen: null })).toBeNull();
   });
 });
 

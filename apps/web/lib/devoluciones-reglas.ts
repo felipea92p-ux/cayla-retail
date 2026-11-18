@@ -4,7 +4,8 @@
 // dos: el plazo (R-38), el estado visual de una prenda, las validaciones y el impacto.
 //
 // Una devolución tiene DOS tiempos, y de ahí sale casi todo lo distinto a Cambios: la
-// colaboradora la REGISTRA (`crear_devolucion`, queda pendiente) y un líder la APRUEBA
+// colaboradora la REGISTRA (`crear_devolucion`, queda pendiente) y al revisarla la APRUEBA
+// quien ve Devoluciones en la tienda (ADR-0534: la líder la valida en persona, no con su cuenta)
 // (`aprobar_devolucion`: recién ahí se mueve el stock, se emite la nota de crédito y sale
 // el reembolso). Por eso lo que se valida al registrar es la solicitud, y lo de la caja se
 // valida al aprobar.
@@ -51,7 +52,7 @@ export function textoMotivo(motivo: MotivoDevolucion | null, detalle: string): s
 // Estado en que vuelve la prenda (R-39). Los valores son los del `check` de
 // `devolucion_items.condicion`. Las tres no vendibles hacen LO MISMO al aprobar (entran a
 // cuarentena); lo que cambia es la intención que queda anotada, y el destino final lo
-// decide después un líder con `resolver_prenda_danada`.
+// decide después quien ve Existencias en la tienda, con `resolver_prenda_danada` (ADR-0534).
 // ============================================================================
 
 export type CondicionDevolucion = "vendible" | "danada_reparacion" | "danada_donar" | "devolver_proveedor";
@@ -90,8 +91,8 @@ export function condicionDeItem(item: ItemElegido): CondicionDevolucion | null {
 
 // ============================================================================
 // Estado de una prenda vendida frente a una devolución (2026-09-18). A diferencia de
-// Cambios, FUERA DE PLAZO NO BLOQUEA: toda devolución ya pasa por la aprobación de un
-// líder, y él es quien decide (R-38 dice que dentro de los 15 días lo aplica cualquiera en
+// Cambios, FUERA DE PLAZO NO BLOQUEA: toda devolución ya pasa por una aprobación, y
+// quien la revisa es quien decide (R-38 dice que dentro de los 15 días lo aplica cualquiera en
 // caja; después, no está escrito quién). El plazo se muestra —en la lista, en la solicitud
 // y a quien aprueba— pero no se inventa un bloqueo nuevo sobre algo que hoy la base permite.
 // ============================================================================
@@ -104,7 +105,7 @@ export type EstadoPrendaDevolucion = EstadoVisual & { devolvible: boolean };
  *  boleta, no de la línea (`docs/pantallas/devoluciones.md` tarea #8). */
 export function estadoPlazoDevolucion(creadoEn: string, ahora: Date): EstadoVisual {
   const { estado, diasRestantes } = estadoPlazoCambio(creadoEn, ahora);
-  // Rojo al vencer, y NO bloquea: solo dice que un líder tiene que decidir. Dentro del plazo el chip
+  // Rojo al vencer, y NO bloquea: solo dice que se decide al revisarla. Dentro del plazo el chip
   // dice cuántos días quedan (spike 2026-09-26, docs/maquetas/devoluciones-2026-09): es lo que la
   // colaboradora le contesta a la clienta, sin sacar la cuenta. Ámbar los últimos 3 días.
   if (estado === "fuera_de_plazo") return { clave: "fuera_de_plazo", texto: "Fuera del plazo", tono: "rojo", icono: "alerta" };
@@ -199,7 +200,7 @@ export function validarDevolucion(e: {
           estado: "aviso",
           tono: "rojo",
           titulo: "Fuera del plazo",
-          detalle: `La compra fue hace ${diasDesdeLaCompra} días; el plazo es de ${DIAS_PLAZO_CAMBIO}. Puedes registrarla: un líder decide si la acepta.`,
+          detalle: `La compra fue hace ${diasDesdeLaCompra} días; el plazo es de ${DIAS_PLAZO_CAMBIO}. Puedes registrarla: quien la revise decide si la acepta.`,
         }
       : {
           clave: "plazo",
@@ -255,7 +256,7 @@ export function validarDevolucion(e: {
 
 // ============================================================================
 // Impacto de la devolución, dicho ANTES de registrarla y sin prometer lo que todavía no
-// pasa: registrar no mueve nada; todo ocurre cuando un líder la aprueba
+// pasa: registrar no mueve nada; todo ocurre cuando se aprueba
 // (`aprobar_devolucion`): la prenda entra al piso o a cuarentena, se emite la nota de
 // crédito si la venta tiene un comprobante aceptado por SUNAT (ADR-0100), y el reembolso
 // —solo si lo decide quien aprueba— sale de la caja si es en efectivo.
@@ -289,7 +290,7 @@ export function impactoDevolucion(e: {
 }
 
 // ============================================================================
-// Aprobación (solo un líder). El reembolso es opcional y es la ÚLTIMA opción (R-37:
+// Aprobación (quien ve Devoluciones en la tienda, ADR-0534). El reembolso es opcional y es la ÚLTIMA opción (R-37:
 // primero un cambio, después nota de crédito o vale). `aprobar_devolucion` rechaza el
 // efectivo sin caja abierta (20260916180000): mejor decirlo antes de apretar el botón.
 // ============================================================================

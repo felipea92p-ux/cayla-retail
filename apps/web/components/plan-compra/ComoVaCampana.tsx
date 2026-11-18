@@ -44,7 +44,7 @@ function Curva({ c }: { c: ComoVa }) {
         alto={220}
         etiqueta="Lo vendido acumulado contra el plan"
       />
-      <p className="mt-1 flex flex-wrap gap-x-4 text-xs text-taupe">
+      <p className="mt-1 flex flex-wrap gap-x-4 text-sm text-taupe">
         <span>— Vendido</span>
         {c.plan && <span>– – Plan</span>}
         {sigue && <span>··· Si sigue así</span>}
@@ -107,14 +107,21 @@ export function CeldaComoVa({
       </span>
       <span className="flex flex-wrap items-baseline gap-x-2">
         <span className={`font-display text-xl leading-tight tabular-nums ${tono ?? "text-tinta"}`}>{valor}</span>
-        <span className="whitespace-nowrap text-xs text-tinta/65">{frase}</span>
+        <span className="whitespace-nowrap text-sm text-tinta/65">{frase}</span>
       </span>
-      <span className="flex flex-wrap items-baseline gap-x-2 text-xs text-tinta/65">
+      <span className="flex flex-wrap items-baseline gap-x-2 text-sm text-tinta/65">
         {/* Sin plan, «861 de —» no dice nada: la cifra grande ya es lo que termina vendiéndose. */}
         {c.medidos > 0 && c.esperado !== null && (
-          <span className="whitespace-nowrap">
-            {enteroES.format(c.vendido)} de {enteroES.format(c.esperado)} esperadas · termina en {enteroES.format(c.proyeccion)}
-            {c.planTotal !== null ? ` de ${enteroES.format(c.planTotal)}` : ""}
+          // Se parte en el «·», nunca dentro de un par: la frase entera no cabe en la celda angosta de la barra de cifras.
+          <span className="min-w-0">
+            <span className="whitespace-nowrap">
+              {enteroES.format(c.vendido)} de {enteroES.format(c.esperado)} esperadas
+            </span>{" "}
+            ·{" "}
+            <span className="whitespace-nowrap">
+              termina en {enteroES.format(c.proyeccion)}
+              {c.planTotal !== null ? ` de ${enteroES.format(c.planTotal)}` : ""}
+            </span>
           </span>
         )}
         {c.medidos > 0 && (
@@ -124,7 +131,7 @@ export function CeldaComoVa({
         )}
       </span>
       {piden > 0 && (
-        <button type="button" onClick={onPiden} className="mt-0.5 whitespace-nowrap text-left text-xs text-ambar-profundo underline-offset-2 hover:underline">
+        <button type="button" onClick={onPiden} className="mt-0.5 whitespace-nowrap text-left text-sm text-ambar-profundo underline-offset-2 hover:underline">
           {piden === 1 ? "1 pide atención ↓" : `${piden} piden atención ↓`}
         </button>
       )}

@@ -1,0 +1,93 @@
+/* ---------- El modo liviano (ADR-0674, Felipe 2026-11-17) ----------
+   Para el teléfono de gama baja: el mismo ERP con la cara maciza del vidrio, sin desenfoque y sin las nubes del fondo. Lo enciende
+   `data-liviano="si"` en <html>, que pone el script del <head> (solo en un equipo lento, o cuando alguien toca «Modo liviano» en la
+   cabecera): `lib/liviano-reglas.ts`.
+
+   La cara maciza NO se diseña aquí: es «el vidrio que aguanta» (ADR-0611, mejora 7), la de `vidrio/aguanta.css` y la de los bloques
+   `prefers-reduced-transparency` de `vidrio/recetas.css`. Esas viven en una media query y una media query no se puede sumar a un
+   atributo, así que sus variables se repiten aquí, tal cual: `lib/liviano.test.ts` falla si una receta maciza cambia o nace sin estar
+   aquí con el mismo valor. Una receta nueva se agrega allá y aquí.
+
+   Gana por especificidad, no por orden: `:root[data-liviano="si"]` pesa más que el `:root` de las recetas, y la versión oscura, más que
+   su `:root[data-tema="oscuro"]`. No vive en `vidrio/` a propósito: es una preferencia del aparato de CAYLA Retail, no una receta que
+   viaje a Dynamic (contrato de familia v4). */
+:root[data-liviano="si"],
+:root[data-liviano="si"][data-tema="oscuro"] {
+    --vidrio-hoja-fondo: var(--color-papel);
+    --vidrio-pie-fondo: var(--color-papel);
+    --vidrio-flota-fondo: var(--color-papel);
+    --globo-tabla-fondo: var(--color-papel);
+    --cajon-movil-fondo: var(--color-papel);
+    --cajon-movil-velo: color-mix(in srgb, var(--color-sombra) 40%, transparent);
+    --vidrio-velo: color-mix(in srgb, var(--color-sombra) 40%, transparent);
+    --placa-fondo: var(--color-papel);
+    --lamina-fondo: var(--color-papel);
+    --serena-fondo: var(--color-papel);
+    --serena-fondo-encima: var(--color-papel);
+    --lente-grande-fondo: var(--color-papel);
+    --lamina-mapa-fondo: var(--color-papel);
+    --globo-fondo: var(--color-tinta);
+    --lente-tono-base-arriba: var(--color-papel);
+    --lente-tono-base-abajo: var(--color-papel);
+    --lente-chica-base-arriba: var(--color-papel);
+    --lente-chica-base-abajo: var(--color-papel);
+    --lente-sello-base-arriba: var(--color-papel);
+    --lente-sello-base-abajo: var(--color-papel);
+    --lente-tono-grande-base-arriba: var(--color-papel);
+    --lente-tono-grande-base-abajo: var(--color-papel);
+    --espera-velo-fondo: color-mix(in srgb, var(--color-crema) 90%, transparent);
+    --espera-halo: var(--color-crema);
+    --version-agua-opacidad: 1;
+    --ticket-placa-fondo: var(--color-papel);
+    --placa-paso-fondo: var(--color-papel);
+    --vidrio-claro-fondo: var(--color-papel);
+    --placa-prenda-fondo: var(--color-papel);
+    --estante-fondo: var(--color-papel);
+    --lamina-vidrio-fondo: var(--color-papel);
+    --lente-paso-base: var(--color-papel);
+    --placa-paso-pico: var(--color-papel);
+    --lente-estado-base-arriba: var(--color-papel);
+    --lente-estado-base-abajo: var(--color-papel);
+    --gota-clara-fondo: var(--color-papel);
+    --gota-clara-encima: var(--color-papel);
+    --insumo-entra-base-arriba: var(--color-papel);
+    --insumo-entra-base-abajo: var(--color-papel);
+    --gota-fondo: var(--color-papel);
+    --gota-fondo-encima: var(--color-papel);
+    --gota-marca: var(--color-hueso);
+    --gota-chica-fondo: var(--color-papel);
+    --gota-crema-fondo: var(--color-crema);
+    --pozo-fondo: var(--color-hueso);
+    --pozo-encendido-fondo: var(--color-papel);
+    --hundido-fondo: var(--color-hueso);
+    --bandeja-fondo: var(--color-hueso);
+    --hueco-fondo: var(--color-hueso);
+    --tubo-fondo: var(--color-hueso);
+    --estante-tubo-fondo: var(--color-papel);
+    --lente-fondo: var(--color-papel);
+    --lente-avatar-fondo: var(--color-sand);
+    --marco-vidrio-fondo: var(--color-papel);
+    --ahumado-fondo: var(--color-tinta);
+    --ahumado-denso-fondo: var(--color-tinta);
+    --ahumado-hover: var(--color-rojo-profundo);
+    --gota-roja-fondo: var(--color-rojo);
+    --gota-roja-hover: var(--color-rojo-profundo);
+    --tubo-brillo: none;
+    --estados-fondo: var(--color-papel);
+    --estados-fondo-fuerte: var(--color-papel);
+    --estados-cal-fondo: var(--color-papel);
+}
+
+/* Nada desenfocado: el desenfoque es lo que traba la gráfica de un teléfono barato (ADR-0623 ya lo quitó de lo que se desplaza). */
+:root[data-liviano="si"] *,
+:root[data-liviano="si"] *::before,
+:root[data-liviano="si"] *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Las nubes del fondo (`.marco-aurora`, vidrio/marco.css): tres degradados de 600 px fijos detrás de todo. Sin vidrio, no hay nada que
+   se vea a través de ellas; solo cuestan. */
+:root[data-liviano="si"] .marco-aurora {
+  display: none;
+}

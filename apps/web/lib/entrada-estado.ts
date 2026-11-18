@@ -8,6 +8,7 @@
 
 import { MS_TOPE_DEL_VELO, type Caja } from "./login-entrada";
 import { saludoDe, type SaludoDeLaEntrada } from "./login-saludo";
+import { prefiereQuieto } from "./movimiento-cliente";
 
 export type EntradaEnCurso = {
   id: number;
@@ -58,7 +59,7 @@ export function entradaActiva(): boolean {
   return actual !== null;
 }
 
-const sinMovimiento = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const sinMovimiento = () => prefiereQuieto();
 
 /**
  * Mide dónde está el colibrí del login (el grande del panel o, en el celular, el de la marca chica del formulario), en su lugar final.

@@ -100,7 +100,7 @@ describe("estadoCombo y su motivo", () => {
     expect(motivoSinResponsable("listo", "Tienda TRU")).toBeNull();
     expect(motivoSinResponsable("falta", "Tienda TRU")).toBe("Elige quién hace esta operación.");
     expect(motivoSinResponsable("falta", "Tienda TRU", "atencion")).toBe("Elige quién está atendiendo.");
-    expect(motivoSinResponsable("nadie", "Tienda TRU")).toMatch(/Nadie de turno en Tienda TRU/);
+    expect(motivoSinResponsable("nadie", "Tienda TRU")).toMatch(/Nadie marcó entrada hoy en Tienda TRU/);
     expect(motivoSinResponsable("sin_lectura", "Tienda TRU")).toMatch(/Actualizar lista/);
     expect(motivoSinResponsable("cargando", "Tienda TRU")).not.toBeNull();
   });

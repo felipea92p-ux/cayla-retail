@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Roles y accesos · 3 acordeones</title>
+<style>
+:root{--crema:#f5f0e8;--papel:#fbf8f2;--tinta:#1a1a18;--rojo:#b8412d;--sand:#e8e0d0;--taupe:#805c4c;--hueso:#eae1d2;--verde:#48603f;--borde:#96786a;--t60:#5b544c;--ease:cubic-bezier(.2,.7,.2,1)}
+*{box-sizing:border-box}body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.45 "DM Sans",system-ui,sans-serif}
+h1,h3{font-family:"EB Garamond",Georgia,serif;font-weight:500;margin:0}button{font-family:inherit;color:inherit}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 20px 60px}
+.top{display:flex;flex-wrap:wrap;gap:16px;align-items:end;justify-content:space-between;margin-bottom:16px}
+.top h1{font-size:34px}.top p{margin:4px 0 0;color:var(--t60)}
+.tabs{display:flex;gap:4px;background:var(--hueso);padding:4px;border-radius:999px}
+.tabs button{border:0;background:none;padding:8px 16px;border-radius:999px;font:600 11.5px/1 inherit;letter-spacing:.08em;text-transform:uppercase;color:var(--t60);cursor:pointer}
+.tabs button[aria-pressed=true]{background:var(--tinta);color:var(--crema)}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px;overflow:hidden}
+.head{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--sand)}
+.head b{font-family:"EB Garamond",serif;font-size:22px;font-weight:500}.head small{color:var(--t60)}
+.meta{color:var(--t60);font-size:13px;display:flex;gap:14px;align-items:center}.meta strong{color:var(--tinta)}
+.enlace{border:0;background:none;text-decoration:underline;text-decoration-color:var(--sand);text-underline-offset:3px;cursor:pointer;font:600 12.5px inherit;padding:0}
+.enlace:hover{color:#8b2a1f;text-decoration-color:var(--rojo)}
+.btn{border:1px solid var(--borde);background:none;border-radius:999px;padding:5px 13px;font:600 12.5px inherit;cursor:pointer}.btn:hover{background:var(--hueso)}
+.bar{height:4px;border-radius:9px;background:var(--hueso);overflow:hidden}.bar i{display:block;height:100%;background:var(--tinta);transition:width .3s var(--ease)}.bar i.full{background:var(--verde)}
+.sw{width:36px;height:20px;border-radius:999px;background:var(--hueso);border:1px solid var(--borde);position:relative;flex:none;transition:background .2s var(--ease)}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--papel);border:1px solid var(--borde);transition:transform .2s var(--ease)}
+[aria-pressed=true]>.sw{background:var(--tinta);border-color:var(--tinta)}[aria-pressed=true]>.sw::after{transform:translateX(16px)}
+/* acordeón */
+.ac{border-top:1px solid var(--sand)}.ac:first-of-type{border-top:0}
+.ac>.cab{display:flex;align-items:center;gap:16px;width:100%;padding:16px 20px;background:none;border:0;cursor:pointer;text-align:left}
+.ac>.cab:hover{background:var(--hueso)}
+.chev{width:10px;height:10px;border-right:2px solid var(--t60);border-bottom:2px solid var(--t60);transform:rotate(-45deg);transition:transform .25s var(--ease);flex:none;margin:0 4px}
+.ac.open .chev{transform:rotate(45deg)}
+.ac .nom{font:500 21px "EB Garamond",serif;min-width:130px}
+.ac .prog{width:110px}.ac .num{font-size:13px;color:var(--t60);min-width:44px;text-align:right}
+.cuerpo{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s var(--ease)}
+.ac.open .cuerpo{grid-template-rows:1fr}.cuerpo>div{overflow:hidden}
+.in{padding:4px 20px 18px 56px}
+.tools{display:flex;justify-content:flex-end;padding-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
+.ch{font-size:12px;padding:3px 10px;border-radius:999px;background:var(--hueso);white-space:nowrap}
+.ch.vacio{background:none;color:var(--t60);padding-left:0}
+.ac.open .chips{display:none}
+/* D */
+.D .fila{display:flex;align-items:center;gap:12px;width:100%;padding:9px 10px;border:0;background:none;border-radius:10px;cursor:pointer;text-align:left}
+.D .fila:hover{background:var(--hueso)}.D .fila .t{flex:1}
+.D .lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:2px 20px}
+/* E */
+.E .lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.E .mod{display:flex;gap:14px;align-items:center;padding:12px 14px;border:1px solid var(--sand);border-radius:12px;background:var(--papel);cursor:pointer;text-align:left;width:100%;transition:.15s}
+.E .mod[aria-pressed=true]{border-color:var(--tinta);background:var(--crema)}
+.E .mod:hover{border-color:var(--borde)}.E .mod .t{flex:1}.E .mod b{display:block;font-weight:600}.E .mod small{color:var(--t60)}
+/* F */
+.F .lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:2px 16px}
+.F .chk{display:flex;gap:10px;align-items:center;width:100%;padding:8px;border:0;background:none;text-align:left;cursor:pointer;border-radius:8px}
+.F .chk:hover{background:var(--hueso)}.F .chk[aria-pressed=false]{color:var(--t60)}
+.F .box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--borde);display:grid;place-items:center;flex:none}
+.F .chk[aria-pressed=true] .box{background:var(--tinta);border-color:var(--tinta)}
+.F .chk[aria-pressed=true] .box::after{content:"";width:8px;height:4px;border-left:2px solid var(--crema);border-bottom:2px solid var(--crema);transform:rotate(-45deg) translate(1px,-1px)}
+.pie{margin-top:18px;padding:14px 16px;border:1px dashed var(--borde);border-radius:12px;color:var(--t60);font-size:13px}.pie b{color:var(--tinta)}
+@media(max-width:700px){.ac .prog{display:none}.in{padding-left:20px}.chips{display:none}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body><div class="wrap">
+<div class="top"><div><h1>Roles y accesos · ¿qué módulos ve este rol?</h1>
+<p>Toca un grupo (por ejemplo <b>Ventas</b>) para abrirlo. Todo es tocable. <b>Es una maqueta: no guarda nada.</b></p></div>
+<div class="tabs" id="tabs"><button data-v="D" aria-pressed="true">D · Lista simple</button><button data-v="E" aria-pressed="false">E · Con descripción</button><button data-v="F" aria-pressed="false">F · Resumen en chips</button></div></div>
+<div id="out"></div><div class="pie" id="pie"></div></div>
+<script>
+const G=[
+["General",[["Inicio","Tablero del día y accesos rápidos"]]],
+["Ventas",[["Punto de venta","Registrar ventas"],["Apartados","Apartar con adelanto"],["Caja","Abrir, cerrar y movimientos"],["Cambios","Cambiar una prenda"],["Devoluciones","Solicitar devoluciones"],["Historial de ventas","Consultar y reimprimir"],["Facturación","Boletas, facturas y notas"]]],
+["Tienda web",[["Resumen de la tienda web","Lo que pide la tienda online hoy"],["Tráfico de la tienda web","Cuánta gente entra y por dónde"],["Pedidos web","Confirmar, cobrar y entregar"],["Vitrina web","Qué modelos se ven en la web"],["Campañas de la tienda web","Cómo se ve cada campaña"],["Recomendaciones","Leer y responder"],["Datos y plazos de la tienda web","Horarios, WhatsApp y plazos"]]],
+["Clientes",[["Fichas de clientes","Registrar y ver compras"],["Avisos del club","Mensajes a miembros"],["Beneficios del club","Puntos, cupones y regalos"]]],
+["Inventario",[["Existencias","Qué hay en cada sede"],["Conteos","Contar y cuadrar stock"],["Traslados","Mover prendas entre sedes"],["Movimientos","Historial de stock"],["Recibir mercadería","Ingresar lo que llega"]]],
+["Catálogo",[["Productos","Fichas, fotos y precios"],["Categorías, marcas y atributos","Ordenar el catálogo"],["Insignias","Etiquetas y promociones"],["Campañas","Fechas y descuentos"],["Liquidación","Rebajar lo que no sale"]]],
+["Compras",[["Mis compras","Compras de mi tienda"],["Historial de compras","Todas las facturas"],["Por pagar","Deudas con proveedores"],["Revisar compras","Verificar lo recibido"],["Proveedores","Datos y ranking"],["Plan de campaña","Qué comprar para la campaña"]]],
+["Producción",[["Órdenes de producción","Lo que se cose en el taller"],["Órdenes de insumos","Telas y avíos"]]],
+["Gestión",[["Análisis","Qué se vende y qué no"],["Frescura del piso","Prendas viejas en tienda"],["Plan del piso","Qué debe estar en el piso"],["Colaboradores","Equipo y accesos"],["Roles y accesos","Quién ve qué"],["Configuración","Ajustes del sistema"],["Actividad","Quién hizo qué"],["CAYLA Global","Vista de todas las sedes"],["Rendimiento","Cómo va el sistema"],["Preguntas del equipo","Dudas de las sedes"]]],
+["Finanzas",[["Gastos","Registrar y revisar"],["Cuentas y dinero","Saldos y movimientos"],["Reportes financieros","Resultados del mes"],["Impuestos","IGV y renta"],["Cierre de mes","Cuadrar y cerrar"]]]];
+const on=new Set(["Inicio","Punto de venta","Apartados","Caja","Cambios","Existencias","Productos","Mis compras"]);
+let v="D";const abiertos=new Set(["Ventas"]);
+const tot=G.reduce((a,g)=>a+g[1].length,0),cnt=g=>g[1].filter(m=>on.has(m[0])).length,esc=s=>s.replace(/&/g,"&amp;");
+const head=()=>`<div class="head"><div><b>Vendedora de tienda</b><br><small>Rol · 3 cuentas</small></div><div class="meta"><span>Ve <strong>${on.size}</strong> de ${tot} módulos</span><button class="enlace" data-all="1">${abiertos.size?"Cerrar todos":"Abrir todos"}</button></div></div>`;
+function item(m){const p=on.has(m[0]),n=esc(m[0]);
+if(v=="D")return `<button class="fila" aria-pressed="${p}" data-m="${n}"><span class="t">${m[0]}</span><span class="sw"></span></button>`;
+if(v=="E")return `<button class="mod" aria-pressed="${p}" data-m="${n}"><span class="t"><b>${m[0]}</b><small>${m[1]}</small></span><span class="sw"></span></button>`;
+return `<button class="chk" aria-pressed="${p}" data-m="${n}"><span class="box"></span>${m[0]}</button>`}
+function draw(){const h=G.map(g=>{const c=cnt(g),all=c==g[1].length,o=abiertos.has(g[0]);
+const chips=v=="F"?`<span class="chips">${c?g[1].filter(m=>on.has(m[0])).map(m=>`<span class="ch">${m[0]}</span>`).join(""):'<span class="ch vacio">Ningún módulo</span>'}</span>`:'<span style="flex:1"></span>';
+return `<section class="ac ${o?"open":""}"><button class="cab" data-a="${g[0]}" aria-expanded="${o}"><i class="chev"></i><span class="nom">${g[0]}</span>${chips}<span class="prog bar"><i class="${all?"full":""}" style="width:${c/g[1].length*100}%"></i></span><span class="num">${c}/${g[1].length}</span></button><div class="cuerpo"><div><div class="in"><div class="tools"><button class="enlace" data-g="${g[0]}">${all?"Quitar todos":"Todos"}</button></div><div class="lista">${g[1].map(item).join("")}</div></div></div></div></section>`}).join("");
+document.getElementById("out").innerHTML=`<div class="${v}"><div class="card">${head()}${h}</div></div>`;
+document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v==v));
+document.getElementById("pie").innerHTML={D:"<b>D:</b> la más limpia. Cada grupo es una fila con su barra; al abrirlo aparecen los módulos con su interruptor.",E:"<b>E:</b> igual, pero cada módulo es una tarjeta con una línea que explica qué hace. Ideal para quien no conoce el sistema. (Las descripciones son de ejemplo.)",F:"<b>F:</b> con el grupo cerrado ya ves, en chips, qué módulos tiene prendidos, sin abrirlo. Ábrelo solo para cambiar."}[v]}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-v],[data-m],[data-g],[data-a],[data-all]");if(!t)return;const d=t.dataset;
+if(d.v)v=d.v;else if(d.all){abiertos.size?abiertos.clear():G.forEach(g=>abiertos.add(g[0]))}
+else if(d.a){abiertos.has(d.a)?abiertos.delete(d.a):abiertos.add(d.a)}
+else if(d.g){const g=G.find(x=>x[0]==d.g),all=cnt(g)==g[1].length;g[1].forEach(m=>all?on.delete(m[0]):on.add(m[0]))}
+else{on.has(d.m)?on.delete(d.m):on.add(d.m)}draw()});draw();
+</script></body></html>

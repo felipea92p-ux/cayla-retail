@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { crearClienteAdmin } from "@/lib/supabase-admin";
-import { transmitirComprobante, type Cliente } from "@/lib/transmitir-comprobante";
+import { transmitirComprobante, type Cliente, type ClienteServidor } from "@/lib/transmitir-comprobante";
 import { consultarComprobante } from "@/lib/consultar-comprobante";
 import { cronNoAutorizado } from "@/lib/transmision-reglas";
 import { capturarError } from "@/lib/errores";
@@ -18,9 +18,17 @@ export const maxDuration = 60;
 // que haría Vercel al llegar a `maxDuration`) podría dejar un envío hecho sin guardar.
 const PRESUPUESTO_MS = 30_000;
 
-async function barrer(supabase: Cliente, ubicacionId: string | null) {
+// `supabase` decide qué se puede tomar (la sesión de quien barre, o la llave del cron); `servidor` es siempre la llave de
+// servicio, la única que guarda lo que respondió SUNAT (ADR-0675).
+async function barrer(supabase: Cliente, servidor: ClienteServidor, ubicacionId: string | null) {
   const inicio = Date.now();
   const resultados = [];
+  // ADR-0671: primero las notas de crédito de cambios que esperaban a que SUNAT aceptara su original (las emite la base; esta
+  // pasada o la próxima las transmite). Si falla o la base todavía no la tiene, no frena el reintento.
+  const { error: errNotas } = await supabase.rpc("fn_emitir_notas_de_cambios_pendientes");
+  if (errNotas && errNotas.code !== "PGRST202" && errNotas.code !== "42883") {
+    capturarError("lucode/reintentar: no se pudieron emitir las notas de los cambios", errNotas);
+  }
   const { data: ids, error } = await supabase.rpc("fn_tomar_comprobantes_para_reintento", {
     p_ubicacion_id: ubicacionId ?? undefined,
     p_limite: 3,
@@ -28,18 +36,19 @@ async function barrer(supabase: Cliente, ubicacionId: string | null) {
   if (error) return { error: error.message };
   for (const id of ids ?? []) {
     if (Date.now() - inicio > PRESUPUESTO_MS) break;
-    const r = await transmitirComprobante(supabase, { comprobanteId: id });
+    const r = await transmitirComprobante(supabase, { comprobanteId: id }, servidor);
     resultados.push({ id, status: r.status, estado: r.body.estado ?? null, motivo: r.body.motivo ?? null });
   }
   // Sin tiempo, la consulta espera a la próxima pasada (no reserva nada que no vaya a preguntar).
-  const consultas = Date.now() - inicio > PRESUPUESTO_MS ? { consultados: 0, actualizados: 0 } : await consultarLoQueQuedoEnTramite(supabase, ubicacionId, inicio);
+  const consultas =
+    Date.now() - inicio > PRESUPUESTO_MS ? { consultados: 0, actualizados: 0 } : await consultarLoQueQuedoEnTramite(supabase, servidor, ubicacionId, inicio);
   return { tomados: resultados.length, resultados, ...consultas };
 }
 
 // Lo que quedó esperando a SUNAT —un envío que respondió PENDIENTE, una baja sin confirmar— se pregunta en la
 // misma pasada (`20261007200000`): sin esto, B001-113…192 pasaron una semana «enviado» estando RECHAZADAS.
 // Hasta 3 por pasada, como el reintento. Si la base todavía no tiene la función, no frena el reintento.
-async function consultarLoQueQuedoEnTramite(supabase: Cliente, ubicacionId: string | null, inicio: number) {
+async function consultarLoQueQuedoEnTramite(supabase: Cliente, servidor: ClienteServidor, ubicacionId: string | null, inicio: number) {
   const rpcLibre = supabase.rpc.bind(supabase) as unknown as (
     fn: string,
     args: Record<string, unknown>,
@@ -55,7 +64,7 @@ async function consultarLoQueQuedoEnTramite(supabase: Cliente, ubicacionId: stri
   let actualizados = 0;
   for (const id of ids ?? []) {
     if (Date.now() - inicio > PRESUPUESTO_MS) break;
-    const r = await consultarComprobante(supabase, id);
+    const r = await consultarComprobante(supabase, id, servidor);
     if (r.accion === "actualizar" || r.accion === "confirmar_baja") actualizados++;
   }
   return { consultados: (ids ?? []).length, actualizados };
@@ -79,7 +88,16 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "No autorizado" }, { status: 401 });
 
-  const r = await barrer(supabase, body.ubicacion_id ?? null);
+  // La llave se pide antes de tomar nada: sin ella no se transmite ni se reserva la cola (ADR-0675). El cron la necesita igual.
+  let servidor: ClienteServidor;
+  try {
+    servidor = crearClienteAdmin();
+  } catch (e) {
+    capturarError("lucode/reintentar: sin llave de servicio", e);
+    return Response.json({ error: "El servidor no puede guardar lo que responda SUNAT ahora." }, { status: 503 });
+  }
+
+  const r = await barrer(supabase, servidor, body.ubicacion_id ?? null);
   return Response.json(r, { status: "error" in r ? 403 : 200 });
 }
 
@@ -101,7 +119,7 @@ export async function GET(request: Request) {
     capturarError("lucode/reintentar (cron): sin llave de servicio", e);
     return Response.json({ error: (e as Error).message }, { status: 500 });
   }
-  const r = await barrer(supabase, null);
+  const r = await barrer(supabase, supabase, null);
   if ("error" in r) console.error("Cron de SUNAT: no se pudo tomar la cola:", r.error);
   return Response.json(r, { status: "error" in r ? 500 : 200 });
 }

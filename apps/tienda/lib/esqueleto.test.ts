@@ -36,7 +36,7 @@ describe("la forma del esqueleto según la página que viene", () => {
     expect(formaDeLaRuta("/looks/arma/")).toBe("probador");
   });
 
-  it("los looks con sus láminas; un look, con su lámina grande; un look guardado, como una ficha", () => {
+  it("los outfits con sus láminas; un outfit, con su lámina grande; un outfit guardado, como una ficha", () => {
     expect(formaDeLaRuta("/looks")).toBe("looks");
     expect(formaDeLaRuta(`/looks/${PRENDA}`)).toBe("look");
     expect(formaDeLaRuta("/looks/no-es-un-id")).toBe("grilla");
@@ -161,7 +161,7 @@ describe("el esqueleto propio, donde Next no muestra ninguno (otra lista de la m
     expect(ir("/catalogo", "/catalogo?lista=ofertas&sede=lima")).toBe("grilla");
   });
 
-  it("de una ficha a otra o de un look a otro, nada: ahí Next ya muestra el esqueleto de su carpeta", () => {
+  it("de una ficha a otra o de un outfit a otro, nada: ahí Next ya muestra el esqueleto de su carpeta", () => {
     expect(ir(`/catalogo/${PRENDA}`, `/catalogo/${OTRA}?sede=lima`)).toBeNull();
     expect(ir(`/looks/${PRENDA}`, `/looks/${OTRA}`)).toBeNull();
   });

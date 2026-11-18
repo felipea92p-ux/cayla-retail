@@ -46,7 +46,7 @@ export function AjustesResumen({ campanas, ajustes, onCambiar }: { campanas: rea
           aria-label="Qué se ve en el Resumen"
           title={distinto ? "Qué se ve en el Resumen (hay cosas escondidas)" : "Qué se ve en el Resumen"}
           data-guia="fin-resumen.ajustes"
-          className="relative grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/60 transition-colors duration-200 ease-cayla hover:bg-hueso hover:text-tinta"
+          className="area-dedo relative grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/60 transition-colors duration-200 ease-cayla hover:bg-hueso hover:text-tinta"
         >
           <SlidersHorizontal aria-hidden className="h-4 w-4" />
           {distinto && <span aria-hidden className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-ambar" />}
@@ -54,7 +54,7 @@ export function AjustesResumen({ campanas, ajustes, onCambiar }: { campanas: rea
         lugar,
       )}
       {abierta && (
-        <Modal titulo="Qué se ve en el Resumen" subtitulo="Solo para esta pantalla. Esconder no borra nada: la campaña sigue en el Plan de campaña y en Compras." onClose={() => setAbierta(false)} conCerrar tamano="angosta">
+        <Modal titulo="Qué se ve en el Resumen" subtitulo="Solo para esta pantalla: esconder no borra nada." onClose={() => setAbierta(false)} conCerrar tamano="angosta">
           <div className="space-y-4">
             <Interruptor
               activo={ajustes.global}
@@ -77,7 +77,7 @@ export function AjustesResumen({ campanas, ajustes, onCambiar }: { campanas: rea
             <Interruptor
               activo={ajustes.enCaja}
               onActivo={(v) => onCambiar({ ...ajustes, enCaja: v })}
-              etiqueta="Contar la compra en «Tu caja»"
+              etiqueta="Contar la compra en «Próximos»"
               pie="Muestra cómo cambia tu caja con lo que falta pedir. Es una proyección, no un pago."
             />
             <Interruptor activo={ajustes.conIgv} onActivo={(v) => onCambiar({ ...ajustes, conIgv: v })} etiqueta="Contar el IGV (18 %)" pie="De caja sale con IGV; ese IGV vuelve como crédito fiscal en la declaración siguiente." />

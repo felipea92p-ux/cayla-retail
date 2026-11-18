@@ -1,0 +1,188 @@
+/* =====================================================================
+   EL INICIO DE UNA LÍDER CON VIDRIO (ADR-0596; Felipe lo eligió mirando el 2026-11-01, docs/maquetas/inicio-lider-vidrio-2026-10/).
+   `app/(app)/page.tsx` para quien no es Admin (el Admin ve el Observatorio: observatorio.css). Todo va acotado a `[data-inicio]`, el
+   gancho del contenedor de esa pantalla: fuera del Inicio, nada de esto cambia. Lo elegido:
+     · Títulos de sección, «B · Con hilo»: versalitas con el hilo taupe que se desvanece hasta el borde, como `TituloGrupo` (no la serif
+       de `TituloSeccion`, que en el resto del ERP no cambia). La cuenta, en el globito de los títulos; «Ajustar», a la derecha del hilo.
+     · «Te toca», «A · Placa»: la placa Serena de las tablas, sin papel; el punto del nivel en su lente; la cantidad en su globito teñido
+       (ya no la píldora de color sólido); lo urgente con la marca roja de la gota del menú y su chip «Urgente».
+     · Accesos, «A · Gotas»: cada acceso es un botón, así que sobresale: una gota con su ícono en una lente.
+     · Equipo de hoy, «A · Placa»: la misma placa; el avatar en su lente con el punto de turno; lo último que hizo, una línea con su
+       ícono (sin la caja hueso: es lo que explica); el monto en la serif, que se lee de lejos.
+     · La barra de avance (el tubo) y el interruptor (pozo y gota) son las piezas de todo el ERP: barras.css y campos-y-botones.css.
+   Solo recetas de recetas.css. Movimiento de ADR-0136: el hilo se dibuja una vez; al pasar el mouse la gota se alza 2 px; sin rebote,
+   apagado con `prefers-reduced-motion`. Sin capa, como las demás piezas de vidrio: le gana a `components` y a las utilidades.
+   ===================================================================== */
+
+/* ---------- Los títulos de sección: versalitas con hilo ---------- */
+[data-inicio] .inicio-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 22px;
+}
+[data-inicio] .inicio-titulo > .label-cayla {
+  margin: 0;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+}
+[data-inicio] .inicio-titulo > .titulo-cuenta { margin-left: -2px; }
+[data-inicio] .inicio-titulo-hilo {
+  flex: 1;
+  min-width: 16px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--color-taupe), transparent);
+  opacity: 0.5;
+  transform-origin: left;
+  animation: cayla-raya-dibuja 1s var(--ease-cayla) 300ms backwards;
+}
+
+/* ---------- La placa: «Te toca» y el equipo de hoy, como las tablas ---------- */
+[data-inicio] .inicio-placa {
+  border-radius: var(--radius-tarjeta);
+  border-color: var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+/* El hilo entre filas: el `divide-y` de siempre, en apenas tinta. Entre dos avisos (o dos personas) no va de borde a borde: arranca
+   después del punto (o del avatar), como en la maqueta. */
+[data-inicio] .inicio-placa > * + * { border-color: var(--hilo-fila); }
+[data-inicio] .inicio-placa > :is(.inicio-aviso, .inicio-persona) { position: relative; }
+[data-inicio] .inicio-placa > .inicio-aviso + .inicio-aviso,
+[data-inicio] .inicio-placa > .inicio-persona + .inicio-persona { border-top-color: transparent; }
+[data-inicio] .inicio-placa > .inicio-aviso + .inicio-aviso::before,
+[data-inicio] .inicio-placa > .inicio-persona + .inicio-persona::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: 20px;
+  left: 37px;
+  height: 1px;
+  background: var(--hilo-fila);
+  pointer-events: none;
+}
+[data-inicio] .inicio-placa > .inicio-persona + .inicio-persona::before { left: 62px; right: 18px; }
+@media (min-width: 640px) {
+  [data-inicio] .inicio-placa > .inicio-aviso + .inicio-aviso::before { left: 41px; }
+}
+
+/* ---------- «Te toca»: cada aviso con su nivel ---------- */
+[data-inicio] .inicio-aviso { --c: var(--color-pizarra); --c-texto: var(--color-pizarra); }
+[data-inicio] .inicio-aviso[data-nivel="urgente"] { --c: var(--color-rojo); --c-texto: var(--color-rojo-profundo); }
+[data-inicio] .inicio-aviso[data-nivel="toca"] { --c: var(--color-ambar); --c-texto: var(--color-ambar-profundo); }
+[data-inicio] .inicio-aviso[data-nivel="aldia"] { --c: var(--color-verde); --c-texto: var(--color-verde-profundo); }
+[data-inicio] .inicio-aviso[data-nivel="sinleer"] {
+  --c: color-mix(in srgb, var(--color-tinta) 30%, transparent); /* contraste: no aplica — es el punto del nivel, no un texto */
+}
+/* El punto en su lente: el color del nivel con un halo suave del mismo tono. */
+[data-inicio] .inicio-aviso-punto {
+  background: var(--c);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 16%, transparent);
+}
+/* La cantidad: el globito teñido del nivel (como el de las pestañas), ya no la píldora sólida. El número va en el tono profundo, que se
+   lee sobre el vidrio (el tono pleno con letra chica no llega a 4,5:1). «Sin leer», en tinta sobre su globito gris. */
+[data-inicio] .inicio-aviso-cantidad {
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 8px;
+  color: var(--c-texto);
+  background: color-mix(in srgb, var(--c) 15%, transparent);
+}
+[data-inicio] .inicio-aviso[data-nivel="sinleer"] .inicio-aviso-cantidad {
+  color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+  background: var(--hilo-cabeza);
+}
+/* Lo urgente: la marca roja de la gota del menú (3 × 16, en el canto izquierdo) y su chip. */
+[data-inicio] .inicio-aviso[data-nivel="urgente"]::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 7px;
+  width: 3px;
+  height: 16px;
+  margin-top: -8px;
+  border-radius: 3px;
+  background: var(--color-rojo);
+  pointer-events: none;
+}
+[data-inicio] .inicio-aviso-urgente {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  color: var(--color-rojo-profundo);
+  background: color-mix(in srgb, var(--color-rojo) 12%, transparent);
+}
+[data-inicio] .inicio-aviso-flecha { transition: transform 250ms var(--ease-cayla), color 200ms var(--ease-cayla); }
+/* Al pasar el mouse la fila se enciende como gota y la flecha avanza; el título se queda en tinta (ya no pasa a rojo). */
+@media (hover: hover) {
+  [data-inicio] .inicio-aviso:hover { background: color-mix(in srgb, var(--color-vidrio) 50%, transparent); }
+  [data-inicio] .inicio-aviso:hover .inicio-aviso-flecha { transform: translateX(3px); color: var(--color-tinta); }
+}
+
+/* ---------- Los accesos: gotas con su ícono en una lente ---------- */
+[data-inicio] .inicio-acceso {
+  border-radius: var(--radius-tarjeta);
+  border: 1px solid color-mix(in srgb, var(--color-borde-control) 55%, transparent);
+  background: var(--gota-fondo-encima);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+  box-shadow: var(--gota-luz);
+  padding: 14px 6px 12px;
+  font-weight: 500;
+  transition: transform 250ms var(--ease-cayla), background 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
+}
+[data-inicio] .inicio-acceso-lente {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: var(--lente-fondo);
+  box-shadow: var(--lente-luz);
+}
+@media (hover: hover) {
+  [data-inicio] .inicio-acceso:hover {
+    transform: translateY(-2px);
+    background: var(--gota-marca);
+    border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
+  }
+}
+[data-inicio] .inicio-acceso:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+
+/* ---------- El equipo de hoy: el avatar en su lente, lo último en una línea, el monto en serif ---------- */
+[data-inicio] .inicio-avatar {
+  background: var(--lente-avatar-fondo);
+  box-shadow: var(--lente-avatar-luz), 0 4px 10px -6px color-mix(in srgb, var(--color-sombra) 40%, transparent);
+}
+[data-inicio] .inicio-avatar-turno { border-color: var(--color-vidrio); }
+[data-inicio] .inicio-persona-ultima {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+}
+[data-inicio] .inicio-persona-ultima-icono { display: block; color: var(--color-taupe); }
+[data-inicio] .inicio-persona-monto {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  line-height: 1.2;
+}
+
+@media screen and (hover: hover) {
+  :root[data-tema="oscuro"] [data-inicio] .inicio-aviso:hover { background: color-mix(in srgb, var(--color-tinta) 6%, transparent); } /* contraste: no aplica — es el fondo de la fila */
+}
+@media screen {
+  :root[data-tema="oscuro"] [data-inicio] .inicio-avatar-turno { border-color: var(--color-hueso); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-inicio] .inicio-titulo-hilo { animation: none; }
+  [data-inicio] :is(.inicio-acceso, .inicio-aviso-flecha) { transition: none; }
+}

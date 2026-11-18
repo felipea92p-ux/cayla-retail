@@ -12,7 +12,7 @@ import {
   type PerfilDelMenu,
   type TipoUbicacion,
 } from "./menu";
-import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, MODULOS_QUE_VEN_TODO_FINANZAS, NACEN_QUITADOS_AL_LIDER, accionesDeCompra, esDelegable, leerModulos, modulosDeHoy, permisosDeModulos, usaModulo, veFinanzasDeTodo, type ClaveModulo } from "./modulos";
+import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, MODULOS_QUE_FIJAN_PRECIO, MODULOS_QUE_VEN_TODO_FINANZAS, NACEN_QUITADOS_AL_LIDER, accionesDeCompra, esDelegable, leerModulos, modulosDeHoy, permisosDeModulos, usaModulo, veCostoDePrenda, veEstadosFinancierosDeTodo, veFinanzasDeTodo, type ClaveModulo } from "./modulos";
 
 // Roles por módulo (ADR-0161 B, migración 20260923030000_roles_por_modulo.sql). Lo que estas pruebas cuidan:
 //  1. El catálogo de la web y el de la base son el mismo (claves, orden, «solo líder», «solo líder por ahora»), y lo que
@@ -196,6 +196,8 @@ const fotoDeAntes = (p: PerfilDelMenu) => {
 // Avisos, porque sus perfiles no traen módulos.
 // (ADR-0430, 2026-10-16): «Resumen» de Tienda web, igual: nace sin rol; la fotografía de antes lo trae primero en «Tienda web»,
 // porque sus perfiles no traen módulos.
+// (ADR-0536, actividad 9, 2026-10-27): «Preguntas del equipo», igual: nace sin rol; la fotografía de antes la trae en Gestión, después
+// de Rendimiento, porque sus perfiles no traen módulos.
 // (ADR-0679, 2026-11-18): «Libro de Reclamaciones», igual: nace sin rol; la fotografía de antes lo trae en «Tienda web», después de
 // Pedidos, porque sus perfiles no traen módulos.
 const CON_MODULOS_NUEVOS = (c: Cuenta) =>
@@ -209,7 +211,6 @@ const CON_MODULOS_NUEVOS = (c: Cuenta) =>
         { clave: "rendimiento" as const, completo: false },
         { clave: "avisos_club" as const, completo: false },
         { clave: "beneficios_club" as const, completo: false },
-        { clave: "liquidacion" as const, completo: false },
         { clave: "plan_piso" as const, completo: false },
         { clave: "ordenes_compra" as const, completo: false },
         { clave: "plan_compra" as const, completo: false },
@@ -219,8 +220,11 @@ const CON_MODULOS_NUEVOS = (c: Cuenta) =>
         { clave: "pedidos_web" as const, completo: false },
         { clave: "campanas_web" as const, completo: false },
         { clave: "campanas" as const, completo: false },
+        // Desde ADR-0655 Campañas abre su propia fila y ya no la de Insignias: para ver las dos, como en la foto, hace falta también `etiquetas`.
+        { clave: "etiquetas" as const, completo: false },
         { clave: "recomendaciones" as const, completo: false },
         { clave: "tienda_web" as const, completo: false },
+        { clave: "preguntas_equipo" as const, completo: false },
         { clave: "libro_reclamaciones" as const, completo: false },
       ];
 const hrefs = (p: PerfilDelMenu) =>
@@ -236,11 +240,11 @@ describe("con los módulos de hoy, el menú de las personas es idéntico al de a
   }
 
   for (const u of TIPOS_UBICACION) {
-    it(`integrante en ${u}: sin «apartados» (ADR-0196), «inicio» (20260925220000), «frescura» (ADR-0208 paso 4), «rendimiento» (ADR-0219), «avisos_club» (ADR-0288 act. g), «beneficios_club» (puntos, act. 8), «plan_piso» (ADR-0329), «liquidacion» (ADR-0379), «ordenes_compra» (ADR-0362), «plan_compra» (ADR-0387), «ordenes_insumos» (ADR-0362 fase 7) «fondos» (ADR-0362 fase 6), «vitrina_web» (ADR-0408), «campanas_web» (2026-10-21), «campanas» (ADR-0473), «pedidos_web» (ADR-0408, act. 8), «recomendaciones» (ADR-0408, 2026-10-15), «tienda_web» (ADR-0430) ni «libro_reclamaciones» (ADR-0679) le faltan exactamente esas diecinueve`, () => {
+    it(`integrante en ${u}: sin «apartados» (ADR-0196), «inicio» (20260925220000), «frescura» (ADR-0208 paso 4), «rendimiento» (ADR-0219), «avisos_club» (ADR-0288 act. g), «beneficios_club» (puntos, act. 8), «plan_piso» (ADR-0329), «ordenes_compra» (ADR-0362), «plan_compra» (ADR-0387), «ordenes_insumos» (ADR-0362 fase 7) «fondos» (ADR-0362 fase 6), «vitrina_web» (ADR-0408), «campanas_web» (2026-10-21), «campanas» (ADR-0473), «etiquetas» (ADR-0655), «pedidos_web» (ADR-0408, act. 8), «recomendaciones» (ADR-0408, 2026-10-15) «tienda_web» (ADR-0430), «preguntas_equipo» (ADR-0536) ni «libro_reclamaciones» (ADR-0679) le faltan exactamente esas veintiuna`, () => {
       const c = CUENTAS_DE_HOY[1]!;
       const deAntes = hrefs(antes(c, u));
       const deAhora = hrefs(ahora(c, u));
-      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/clientas/beneficios", "/gestion/plan-del-piso", "/productos/liquidacion", "/productos/insignias", "/compras/mi-plata", "/compras/plan", "/ordenes-insumos", "/compras", "/tienda-web/vitrina", "/tienda-web/campanas", "/tienda-web/pedidos", "/tienda-web/recomendaciones", "/tienda-web", "/tienda-web/libro-de-reclamaciones"]
+      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/clientas/beneficios", "/gestion/plan-del-piso", "/productos/campanas", "/productos/insignias", "/compras/mi-plata", "/compras/plan", "/ordenes-insumos", "/compras", "/tienda-web/vitrina", "/tienda-web/campanas", "/tienda-web/pedidos", "/tienda-web/recomendaciones", "/tienda-web", "/gestion/preguntas", "/tienda-web/libro-de-reclamaciones"]
         .filter((h) => deAntes.includes(h))
         .sort();
       expect(deAntes.filter((h) => !deAhora.includes(h))).toEqual(esperado);
@@ -291,6 +295,26 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     expect(veFinanzasDeTodo("integrante", [{ clave: "cierre_mes", completo: false }])).toBe(false); // «limitado como hoy» no abre nada
   });
 
+  // ADR-0585 (Felipe 2026-10-30): «puede ver todo del módulo quien lo tenga». Solo MIRAR los Estados financieros de CAYLA entera:
+  // registrar gastos sigue en veFinanzasDeTodo. Una terminal con el módulo sigue viendo solo su tienda (ADR-0161 P6).
+  it("ADR-0585: veEstadosFinancierosDeTodo espeja fn_ve_estados_financieros_de_todo — el líder, o el módulo completo sin ser terminal", () => {
+    const con = (...cs: ClaveModulo[]) => cs.map((clave) => ({ clave, completo: true }));
+    expect(veEstadosFinancierosDeTodo("lider", [], false)).toBe(true);
+    expect(veEstadosFinancierosDeTodo("integrante", con("reportes_financieros"), false)).toBe(true);
+    expect(veEstadosFinancierosDeTodo("integrante", con("reportes_financieros"), true)).toBe(false); // la terminal, su tienda
+    expect(veEstadosFinancierosDeTodo("integrante", [{ clave: "reportes_financieros", completo: false }], false)).toBe(false);
+    expect(veEstadosFinancierosDeTodo("integrante", con("cierre_mes", "configuracion", "gastos"), false)).toBe(false); // otros módulos no lo abren
+    expect(veFinanzasDeTodo("integrante", con("reportes_financieros"))).toBe(false); // y mirar no abre escribir
+  });
+
+  it("ADR-0585: la base pregunta lo mismo que la web (el módulo y no ser terminal)", () => {
+    const definicion = TODAS.map((m) => /create or replace function retail\.fn_ve_estados_financieros_de_todo\(\)[\s\S]*?\$\$([\s\S]*?)\$\$/i.exec(m.sql)?.[1]).filter(Boolean).at(-1);
+    expect(definicion).toBeDefined();
+    expect(definicion).toMatch(/fn_es_lider\(\)/);
+    expect(definicion).toMatch(/fn_capacidad_por_modulos\(array\['reportes_financieros'\]\)/);
+    expect(definicion).toMatch(/not exists \(select 1 from retail\.fn_terminal_actual\(\)\)/);
+  });
+
   it("G16: los módulos que abren «todo» son exactamente los de la última migración que define fn_ve_finanzas_de_todo()", () => {
     const definiciones = TODAS.flatMap((m) => {
       const hallazgo = /create or replace function retail\.fn_ve_finanzas_de_todo\(\)[\s\S]*?fn_capacidad_por_modulos\(array\[([^\]]+)\]\)/i.exec(m.sql);
@@ -299,6 +323,27 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     expect(definiciones.length).toBeGreaterThan(0);
     const ultima = definiciones[definiciones.length - 1]!;
     expect([...ultima.claves].sort(), `última definición: ${ultima.archivo}`).toEqual([...MODULOS_QUE_VEN_TODO_FINANZAS].sort());
+  });
+
+  // ADR-0668 (A3, Felipe 2026-11-15): «quien fija precio ve el costo; el cliente nunca». Una sola respuesta en la base
+  // (`fn_ve_costo_de_prenda()`) y en la web (`veCostoDePrenda`).
+  it("A3: veCostoDePrenda — quien ve el dinero de Compras o una hoja donde se fija precio; el mostrador, no", () => {
+    const vistos = (...cs: ClaveModulo[]) => cs.map((clave) => ({ clave, completo: false }));
+    expect(veCostoDePrenda([], true)).toBe(true);
+    for (const clave of MODULOS_QUE_FIJAN_PRECIO) expect(veCostoDePrenda(vistos(clave), false), clave).toBe(true); // basta verlo, como fn_ve_modulo
+    expect(veCostoDePrenda(vistos("vender", "caja", "cambios", "devoluciones", "existencias", "historial", "facturacion"), false)).toBe(false);
+  });
+
+  it("A3: las hojas que ven el costo son exactamente las de la última migración que define fn_ve_costo_de_prenda()", () => {
+    const definiciones = TODAS.flatMap((m) => {
+      const hallazgo = /create or replace function retail\.fn_ve_costo_de_prenda\(\)[\s\S]*?\$\$([\s\S]*?)\$\$/i.exec(m.sql);
+      return hallazgo ? [{ archivo: m.archivo, cuerpo: hallazgo[1]! }] : [];
+    });
+    expect(definiciones.length).toBeGreaterThan(0);
+    const ultima = definiciones[definiciones.length - 1]!;
+    const claves = [...ultima.cuerpo.matchAll(/fn_ve_modulo\('([a-z_]+)'\)/g)].map((x) => x[1]!);
+    expect([...claves].sort(), `última definición: ${ultima.archivo}`).toEqual([...MODULOS_QUE_FIJAN_PRECIO].sort());
+    expect(ultima.cuerpo, "el dinero de Compras también la abre").toMatch(/fn_puede_ver_dinero_de_compras\(\)/);
   });
 
   it("limitado como hoy: ve Caja, Existencias y Productos pero no gana sus poderes de escritura", () => {
@@ -329,16 +374,19 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     expect(permisosDeModulos("integrante", [{ clave: "por_pagar", completo: false }])).toEqual([]);
   });
 
-  it("«Por pagar» solo: Compras sale con una sola fila, «Historial de compras» (ADR-0504: la pantalla lo deja en Por pagar); Insignias o Campañas solos: entran por la fila «Insignias»", () => {
+  it("«Por pagar» solo: Compras sale con una sola fila, «Historial de compras» (ADR-0504: la pantalla lo deja en Por pagar); Insignias solo: abre Catálogo con sus dos filas; Campañas solo: «Campañas y ofertas» (ADR-0655)", () => {
     const soloPagos = ahora({ nombre: "pagos", rol: "integrante" }, "tienda", [{ clave: "por_pagar", completo: true }]);
     const riel = menuPara(soloPagos).riel;
     expect(riel.map((f) => f.etiqueta)).toEqual(["Compras"]);
     expect(riel.find((f) => f.etiqueta === "Compras")).toMatchObject({ href: "/compras" });
     const soloEtiquetas = ahora({ nombre: "etiquetas", rol: "integrante" }, "tienda", [{ clave: "etiquetas", completo: true }]);
-    expect(menuPara(soloEtiquetas).riel.find((f) => f.etiqueta === "Catálogo")).toMatchObject({ href: "/productos/insignias" });
-    // Campañas no tiene fila propia desde el 2026-10-22: abre la de Insignias, su `modulosAlternos` (la pantalla le muestra solo esa vista).
+    // Insignias solo también abre «Campañas y ofertas» (su alterno, ADR-0655): Catálogo es un grupo con las dos filas.
+    expect(menuPara(soloEtiquetas).riel.find((f) => f.etiqueta === "Catálogo")).toMatchObject({
+      hijos: [expect.objectContaining({ href: "/productos/campanas" }), expect.objectContaining({ href: "/productos/insignias" })],
+    });
+    // Desde ADR-0655 Campañas tiene su fila, «Campañas y ofertas»: con ese módulo solo, Catálogo lleva ahí y ya no a Insignias.
     const soloCampanas = ahora({ nombre: "campanas", rol: "integrante" }, "tienda", [{ clave: "campanas", completo: true }]);
-    expect(menuPara(soloCampanas).riel.find((f) => f.etiqueta === "Catálogo")).toMatchObject({ href: "/productos/insignias" });
+    expect(menuPara(soloCampanas).riel.find((f) => f.etiqueta === "Catálogo")).toMatchObject({ href: "/productos/campanas" });
   });
 
   // ADR-0161 P1 (20260923140000): en Compras cada módulo escribe solo lo suyo, aunque los tres vean los montos. Espeja

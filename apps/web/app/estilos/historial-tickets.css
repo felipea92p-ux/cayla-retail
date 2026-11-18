@@ -43,6 +43,8 @@
   border-radius: 12px;
   background: var(--color-papel);
   padding: 9px 10px;
+  /* Con el monto en 14 px, «S/ 1,234.56» ya no entra junto al sello en la hoja mediana: baja a su línea en vez de salirse. */
+  flex-wrap: wrap;
 }
 .ht-cuenta .ht-sello { font-size: 10.5px; padding: 2px 7px; transform: rotate(-6deg); }
 @media (max-width: 480px) {
@@ -78,7 +80,7 @@
   .ht-ticket:hover::before { background: color-mix(in srgb, var(--color-sand) 55%, var(--color-papel)); }
 }
 
-.ht-linea { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; font-size: 12.5px; }
+.ht-linea { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; font-size: 14px; }
 .ht-corte { display: block; height: 0; border-top: 1.5px dashed var(--color-sand); margin: 8px 0 6px; }
 
 @media (prefers-reduced-motion: reduce) {

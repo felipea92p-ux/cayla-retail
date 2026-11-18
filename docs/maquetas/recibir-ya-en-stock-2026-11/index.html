@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ya en stock en su categoría · maquetas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@500&display=swap" rel="stylesheet" />
+<style>
+  /* Maqueta para Felipe (2026-11-07): «Ya en stock» de Recibir ▸ Lo que llegó, dentro de su categoría y sin texto corrido.
+     Tokens reales del ERP (apps/web/app/globals.css y estilos/tema.css); medidas de la lista real (estilos/vidrio/recibir-mesa.css).
+     Solo HTML: nada de esto es código del ERP hasta que Felipe elija. Los colores de cada prenda son dato (data-color-dato). */
+  :root {
+    --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0; --tinta: #1a1a18; --taupe: #805c4c;
+    --borde-control: #96786a; --verde: #48603f; --ambar: #74501a; --rojo: #b8412d; --pizarra: #4c5d6e; --vidrio: #ffffff;
+    --sombra: #1a1a18; --ease: cubic-bezier(.2,.7,.2,1);
+  }
+  :root[data-tema="oscuro"] {
+    --crema: #1c1a17; --papel: #26241f; --hueso: #33302a; --sand: #403b34; --tinta: #f5f0e8; --taupe: #c4a898;
+    --borde-control: #8d7a6e; --verde: #9ccb8d; --ambar: #e4b968; --rojo: #e8806a; --pizarra: #a2b8cd; --vidrio: #33302a; --sombra: #000000;
+  }
+  :root {
+    --cat-fondo: color-mix(in srgb, var(--pizarra) 12%, var(--vidrio));
+    --cat-encima: color-mix(in srgb, var(--pizarra) 19%, var(--vidrio));
+    --cat-filo: color-mix(in srgb, var(--pizarra) 42%, transparent);
+    --cat-suave: color-mix(in srgb, var(--tinta) 74%, var(--pizarra));
+    --pozo: color-mix(in srgb, var(--hueso) 60%, transparent);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--crema); color: var(--tinta); font: 15px/1.45 "DM Sans", system-ui, sans-serif; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  svg.i.s { width: 14px; height: 14px; }
+  svg.i.xs { width: 12px; height: 12px; }
+
+  /* ---------- La barra de la maqueta ---------- */
+  .barra { position: sticky; top: 0; z-index: 9; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 16px;
+    background: color-mix(in srgb, var(--crema) 85%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--sand); }
+  .barra h1 { font: 500 22px "EB Garamond", serif; margin: 0 12px 0 0; }
+  .grupo-pild { display: inline-flex; gap: 4px; padding: 3px; border-radius: 999px; background: var(--hueso); }
+  .pild { border-radius: 999px; padding: 5px 13px; font-size: 13.5px; }
+  .pild[aria-pressed="true"] { background: var(--tinta); color: var(--crema); }
+  .marco { max-width: 1320px; margin: 24px auto 64px; padding: 0 16px; }
+  .intro { display: grid; gap: 16px; margin-bottom: 24px; }
+  @media (min-width: 900px) { .intro { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+  .nota { background: color-mix(in srgb, var(--hueso) 70%, transparent); border-radius: 16px; padding: 14px 16px; font-size: 14px; }
+  .nota h2 { font: 500 19px "EB Garamond", serif; margin: 0 0 6px; }
+  .nota ol, .nota ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+  .nota code { font-size: 12.5px; background: var(--papel); padding: 1px 5px; border-radius: 6px; }
+  .lado { display: grid; gap: 24px; align-items: start; }
+  @media (min-width: 820px) { .marco:not([data-ancho="movil"]) .lado { grid-template-columns: minmax(0, 400px) minmax(0, 400px); } .que-cambia { grid-column: 1 / -1; position: static !important; } }
+  @media (min-width: 1180px) { .marco:not([data-ancho="movil"]) .lado { grid-template-columns: minmax(0, 400px) minmax(0, 400px) minmax(260px, 1fr); } .que-cambia { grid-column: auto; position: sticky !important; } }
+  .nota code { overflow-wrap: anywhere; }
+  .marco[data-ancho="movil"] .lado { max-width: 375px; margin: 0 auto; }
+  .marco[data-ancho="movil"] .que-cambia { display: none; }
+  .rotulo { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); font-weight: 600; margin: 0 0 8px 4px; display: flex; gap: 8px; align-items: center; }
+  .rotulo .tag { letter-spacing: 0; text-transform: none; font-weight: 500; font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--hueso); color: var(--tinta); }
+  .rotulo .tag.mal { background: color-mix(in srgb, var(--rojo) 16%, transparent); }
+
+  /* ---------- El panel de la lista (como .rc-panel .rc-lista) ---------- */
+  .panel { background: color-mix(in srgb, var(--papel) 88%, transparent); border: 1px solid var(--sand); border-radius: 26px; overflow: hidden; }
+  .panel-cabeza { padding: 16px 16px 12px; border-bottom: 1px solid var(--sand); display: grid; gap: 8px; }
+  .panel-cabeza h3 { font: 500 21px "EB Garamond", serif; margin: 0; display: flex; justify-content: space-between; align-items: baseline; }
+  .panel-cabeza h3 small { font: 400 13.5px "DM Sans"; color: var(--taupe); }
+  .filtros { display: flex; gap: 6px; }
+  .pildora { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--borde-control); font-size: 14px; }
+  .scroll { max-height: 760px; overflow: auto; padding: 6px 0 12px; }
+
+  /* La categoría */
+  .cat { padding: 0 8px; animation: entra 380ms var(--ease) backwards; animation-delay: calc(var(--i, 0) * 45ms); }
+  .cat-tira { position: relative; padding: 4px 0; }
+  .cat[data-abierta] > .cat-tira { position: sticky; top: 0; z-index: 2; background: color-mix(in srgb, var(--papel) 94%, transparent); }
+  .cat-cabeza { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 60px; padding: 8px 10px 8px 8px; border-radius: 14px; background: var(--cat-fondo);
+    box-shadow: inset 0 0 0 1px var(--cat-filo); text-align: left; transition: background-color 200ms var(--ease); }
+  .cat[data-abierta] .cat-cabeza { background: var(--cat-encima); }
+  @media (hover: hover) { .cat:not([data-abierta]) .cat-cabeza:hover { background: var(--cat-encima); } }
+  .baldosa { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--vidrio); color: var(--pizarra); }
+  .cat-textos { display: grid; flex: 1 1 0; gap: 2px; min-width: 0; }
+  .cat-textos b { font-size: 15px; font-weight: 700; line-height: 1.3; }
+  .cat-resumen { color: var(--cat-suave); font-size: 14px; line-height: 1.3; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .cat-resumen .candado { display: inline-flex; align-items: center; gap: 3px; }
+  .mas { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; background: var(--vidrio); }
+  .hecho { flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 999px; background: var(--verde); color: var(--crema); }
+  .hecho svg { stroke-width: 3; }
+  .flecha { flex: none; color: var(--cat-suave); transition: transform 300ms var(--ease); }
+  .cat[data-abierta] .flecha { transform: rotate(180deg); }
+  .cuerpo { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 400ms var(--ease); }
+  .cat[data-abierta] .cuerpo { grid-template-rows: 1fr; }
+  .dentro { overflow: hidden; min-height: 0; }
+  .sin-modelos { padding: 6px 12px 10px; color: var(--cat-suave); font-size: 14px; }
+
+  /* Los modelos cuelgan de su categoría con la raya de su color */
+  .modelos { list-style: none; display: grid; gap: 2px; margin: 0 0 8px 15px; padding: 2px 0 2px 8px; border-left: 2px solid var(--cat-filo); }
+  .modelo { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 58px; padding: 7px 10px 7px 7px; border-radius: 14px; text-align: left; transition: background-color 200ms var(--ease); }
+  @media (hover: hover) { .modelo:hover { background: var(--pozo); } }
+  .modelo:focus-visible, .cat-cabeza:focus-visible { outline: 2px solid var(--tinta); outline-offset: -2px; }
+  .modelo[data-activa] { background: var(--vidrio); box-shadow: 0 1px 0 color-mix(in srgb, var(--sombra) 8%, transparent), inset 0 0 0 1px var(--sand); }
+  .mini { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; color: color-mix(in srgb, #1a1a18 70%, transparent); /* tema-fijo: texto sobre el color de la prenda */ }
+  .textos { display: grid; flex: 1 1 0; gap: 1px; min-width: 0; }
+  .nombre { font-size: 14px; font-weight: 600; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cifras { color: var(--taupe); font-size: 14px; line-height: 1.35; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
+  .cifras b { color: var(--tinta); font-weight: 600; }
+  .puntos { display: inline-flex; }
+  .punto { width: 12px; height: 12px; border-radius: 999px; box-shadow: 0 0 0 2px var(--papel); }
+  .punto + .punto { margin-left: -3px; }
+
+  /* Chips (como <Chip>) */
+  .chip { flex: none; display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 2px 9px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; font-weight: 600;
+    background: color-mix(in srgb, var(--pizarra) 14%, transparent); color: var(--tinta); white-space: nowrap; }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--pizarra); }
+  .chip.verde { background: color-mix(in srgb, var(--verde) 16%, transparent); }
+  .chip.verde::before { background: var(--verde); }
+  .chip.neutro { background: var(--hueso); }
+  .chip.neutro::before { background: var(--taupe); }
+  .chip.con-icono::before { display: none; }
+  .chip.con-icono svg { color: var(--verde); }
+
+  /* Lo que ya entró: una fila más del modelo, con su candado, que se abre */
+  .modelo-stock { border-radius: 14px; transition: background-color 200ms var(--ease); }
+  .modelo-stock[data-abierto] { background: color-mix(in srgb, var(--verde) 6%, var(--vidrio)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--verde) 22%, transparent); }
+  .modelo-stock .ver { flex: none; color: var(--cat-suave); transition: transform 300ms var(--ease); }
+  .modelo-stock[data-abierto] .ver { transform: rotate(180deg); }
+  .det { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 360ms var(--ease); }
+  .modelo-stock[data-abierto] .det { grid-template-rows: 1fr; }
+  .det > div { overflow: hidden; min-height: 0; }
+  .det-in { padding: 0 10px 10px 61px; }
+  .marco[data-ancho="movil"] .det-in { padding-left: 10px; }
+  .divisor { display: flex; align-items: center; gap: 8px; margin: 6px 0 2px 6px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+  .divisor::after { content: ""; flex: 1; height: 1px; background: var(--sand); }
+  .globito { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--hueso); color: var(--tinta); font-size: 11.5px; letter-spacing: 0; }
+
+  /* A · La matriz talla × color */
+  .matriz { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; font-size: 14px; background: var(--papel); border-radius: 12px; box-shadow: inset 0 0 0 1px var(--sand); overflow: hidden; }
+  .matriz th, .matriz td { padding: 6px 8px; text-align: center; }
+  .matriz thead th { font-size: 11px; letter-spacing: .08em; color: var(--taupe); font-weight: 600; border-bottom: 1px solid var(--sand); }
+  .matriz tbody th { text-align: left; font-weight: 500; white-space: nowrap; }
+  .matriz tbody th span { display: inline-flex; align-items: center; gap: 6px; }
+  .matriz tbody tr + tr > * { border-top: 1px solid color-mix(in srgb, var(--sand) 70%, transparent); }
+  .matriz td.cero { color: color-mix(in srgb, var(--tinta) 30%, transparent); }
+  .matriz .tot { color: var(--taupe); font-weight: 600; }
+  .matriz tfoot td, .matriz tfoot th { border-top: 1px solid var(--sand); color: var(--taupe); font-weight: 600; }
+  .matriz tfoot th { text-align: left; font-size: 11px; letter-spacing: .08em; }
+  .celda { display: inline-grid; place-items: center; min-width: 28px; height: 26px; border-radius: 8px; background: var(--hueso); font-weight: 600; animation: ola 320ms var(--ease) backwards; animation-delay: calc(var(--j, 0) * 30ms); }
+  .modelo-stock:not([data-abierto]) .celda { animation: none; }
+
+  /* B · Por color, con sus tallas en fichas */
+  .colores { display: grid; gap: 6px; }
+  .color-fila { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 8px; align-items: center; padding: 6px 8px; border-radius: 12px; background: var(--papel); box-shadow: inset 0 0 0 1px var(--sand); }
+  .color-nombre { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 500; min-width: 0; }
+  .color-nombre span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fichas { display: flex; flex-wrap: wrap; gap: 4px; }
+  .ficha { display: inline-flex; align-items: stretch; border-radius: 8px; overflow: hidden; font-size: 13px; font-variant-numeric: tabular-nums; box-shadow: inset 0 0 0 1px var(--sand); animation: ola 320ms var(--ease) backwards; animation-delay: calc(var(--j, 0) * 30ms); }
+  .ficha span { padding: 2px 7px; }
+  .ficha span:first-child { color: var(--taupe); }
+  .ficha span:last-child { background: var(--hueso); font-weight: 600; }
+  .modelo-stock:not([data-abierto]) .ficha { animation: none; }
+
+  .cifras { overflow: hidden; }
+  /* Columna angosta (375 px, o la lista de la mesa de tres columnas): el chip queda en su candado y la matriz suelta la columna de totales. */
+  .marco[data-ancho="movil"] .modelo-stock .chip span, .marco[data-ancho="movil"] .modelo-stock .chip { font-size: 0; gap: 0; padding: 4px 6px; }
+  .marco[data-ancho="movil"] .matriz .tot, .marco[data-ancho="movil"] .matriz thead th:last-child, .marco[data-ancho="movil"] .matriz tfoot td:last-child { display: none; }
+  .marco[data-ancho="movil"] .matriz th, .marco[data-ancho="movil"] .matriz td { padding: 6px 4px; }
+  .marco[data-ancho="movil"] .color-fila { grid-template-columns: 1fr; }
+  @media (max-width: 480px) {
+    .modelo-stock .chip { font-size: 0; gap: 0; padding: 4px 6px; }
+    .matriz .tot, .matriz thead th:last-child, .matriz tfoot td:last-child { display: none; }
+    .matriz th, .matriz td { padding: 6px 4px; }
+    .color-fila { grid-template-columns: 1fr; }
+  }
+  .det-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; margin-top: 8px; font-size: 13px; color: var(--taupe); }
+  .enlace { font-size: 14px; color: var(--tinta); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--tinta) 35%, transparent); text-underline-offset: 4px; }
+  @media (hover: hover) { .enlace:hover { color: var(--rojo); text-decoration-color: currentColor; } }
+
+  /* ---------- Hoy (recreado tal cual sale) ---------- */
+  .hoy-stock { margin: 8px 8px 0; padding: 12px 8px 4px; border-top: 1px solid var(--sand); }
+  .hoy-stock h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px 8px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+  .hoy-stock h4::after { content: ""; flex: 1; height: 1px; background: var(--sand); }
+  .hoy-stock li { display: flex; align-items: center; gap: 10px; padding: 8px; }
+  .hoy-stock ul { list-style: none; margin: 0; padding: 0; }
+  .hoy-stock .t { flex: 1; min-width: 0; font-size: 14px; }
+  .hoy-stock .t b { display: block; font-weight: 500; }
+  .hoy-stock .t span { color: var(--taupe); }
+
+  .que-cambia { position: sticky; top: 80px; }
+  .que-cambia ol { margin: 0; padding-left: 20px; display: grid; gap: 10px; font-size: 14px; }
+  .que-cambia b { font-weight: 600; }
+  .que-cambia h2 { font: 500 21px "EB Garamond", serif; margin: 0 0 10px; }
+
+  @keyframes entra { from { opacity: 0; transform: translateY(6px); } }
+  @keyframes ola { from { opacity: 0; transform: translateY(3px); } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="barra">
+  <h1>Ya en stock, en su categoría</h1>
+  <div class="grupo-pild" role="group" aria-label="Cómo se ven las tallas">
+    <button class="pild" data-vista="matriz" aria-pressed="true">A · Matriz talla × color</button>
+    <button class="pild" data-vista="color" aria-pressed="false">B · Por color</button>
+  </div>
+  <div class="grupo-pild" role="group" aria-label="Tema">
+    <button class="pild" data-tema-b="claro" aria-pressed="true">Claro</button>
+    <button class="pild" data-tema-b="oscuro" aria-pressed="false">Oscuro</button>
+  </div>
+  <div class="grupo-pild" role="group" aria-label="Ancho">
+    <button class="pild" data-ancho-b="escritorio" aria-pressed="true">Escritorio</button>
+    <button class="pild" data-ancho-b="movil" aria-pressed="false">375 px</button>
+  </div>
+</div>
+
+<div class="marco" id="marco">
+  <div class="intro">
+    <div class="nota">
+      <h2>Por qué sale así hoy</h2>
+      <ol>
+        <li><b>Se agrupa solo por nombre de prenda.</b> <code>yaEnStockDelEnvio</code> (lib/recepcion-modelos-reglas.ts:313) junta lo que ya entró por <i>prenda</i> y tira la categoría, aunque cada recibido la trae (<code>RecibidoEnvio.categoria</code>).</li>
+        <li><b>Se dibuja aparte, al final.</b> CategoriasAcordeon.tsx:400 pinta «Ya en stock» después de todas las categorías, como una lista suelta.</li>
+        <li><b>Las tallas son una sola frase.</b> La misma regla las une en un texto («28 Azul denim: 2 · 28 Celeste: 2 · …») y la fila lo muestra entero.</li>
+        <li><b>La categoría se contradice.</b> Vestidos dice «2 contadas» y, al abrirla, «Aún sin modelos»: el cuerpo solo mira lo que falta contar, no lo que ya entró.</li>
+      </ol>
+    </div>
+    <div class="nota">
+      <h2>Qué propone</h2>
+      <ul>
+        <li>Lo que ya entró vive <b>dentro de su categoría</b>, como un modelo más, con candado y «En stock». La categoría ya no queda vacía.</li>
+        <li>Plegado, dice lo justo: <b>12 en stock · 3 tallas</b> y los colores como puntos.</li>
+        <li>Abierto, las tallas en <b>matriz talla × color</b> (A) o <b>por color con fichas</b> (B). Toca cualquier fila de la derecha.</li>
+        <li>«Corregir 12» baja al detalle, junto a cuándo entró. Nada de esto cambia qué se guarda.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="lado">
+    <div>
+      <p class="rotulo">Hoy <span class="tag mal">fuera de su categoría</span></p>
+      <section class="panel" aria-label="Hoy">
+        <div class="panel-cabeza">
+          <h3>Lo que llegó <small>4 modelos</small></h3>
+          <div class="filtros"><span class="pildora">Proveedor ▾</span><span class="pildora">Marca ▾</span></div>
+        </div>
+        <div class="scroll" id="hoy"></div>
+      </section>
+    </div>
+    <div>
+      <p class="rotulo">Propuesta <span class="tag" id="tag-vista">A · matriz</span></p>
+      <section class="panel" aria-label="Propuesta">
+        <div class="panel-cabeza">
+          <h3>Lo que llegó <small>4 modelos</small></h3>
+          <div class="filtros"><span class="pildora">Proveedor ▾</span><span class="pildora">Marca ▾</span></div>
+        </div>
+        <div class="scroll" id="propuesta"></div>
+      </section>
+    </div>
+    <aside class="nota que-cambia">
+      <h2>Qué cambia en el código</h2>
+      <ol>
+        <li><b>La regla.</b> <code>yaEnStockDelEnvio</code> devuelve también la <i>categoría</i> y las tallas como datos (<code>{ talla, color, colorHex, cantidad }[]</code>), no como frase. Con su prueba.</li>
+        <li><b>El acordeón.</b> Cada <code>Categoria</code> recibe lo suyo y lo dibuja al final de su lista, con un divisor «Ya en stock» solo si convive con modelos por contar. Se va la sección suelta del pie.</li>
+        <li><b>La cabecera.</b> El resumen suma «🔒 12 en stock»; «Aún sin modelos» sale solo si de verdad no hay nada, ni por contar ni en stock.</li>
+        <li><b>Lo que no encuentra su categoría</b> (un recibido viejo sin ella) cae a una categoría «Sin categoría» al final, nunca se pierde.</li>
+        <li><b>Sin migración ni RPC:</b> la base ya manda la categoría en cada recibido.</li>
+      </ol>
+    </aside>
+  </div>
+</div>
+
+<script>
+  // Datos inventados con la forma del envío de la captura.
+  const ICONO = {
+    falda: '<path d="M8 3h8l4 18H4L8 3z"/><path d="M8 3h8"/>',
+    overol: '<path d="M7 3v6l-3 3v9h7v-6h2v6h7v-9l-3-3V3"/><path d="M7 7h10"/>',
+    vestido: '<path d="M9 2h6l-1 5 5 14H5l5-14-1-5z"/>',
+    blusa: '<path d="M8 3 3 6l2 5 3-1v11h8V10l3 1 2-5-5-3a4 4 0 0 1-8 0z"/>',
+  };
+  const SVG = (d, c = "i") => `<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+  const CANDADO = '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>';
+  const FLECHA = '<path d="m6 9 6 6 6-6"/>';
+  const MAS = '<path d="M12 5v14M5 12h14"/>';
+  const VISTO = '<path d="m5 12 5 5L20 7"/>';
+
+  const categorias = [
+    { nombre: "Faldas", icono: "falda", contadas: 12, porContar: [], stock: [
+      { prenda: "Falda Jean", entro: "Entró el 5 nov · cierre parcial", corregir: 12, tallas: ["28", "30", "32"],
+        colores: [{ nombre: "Azul denim", hex: "#3f5f8a", n: [2, 2, 2] }, { nombre: "Celeste", hex: "#a8c6e0", n: [2, 2, 2] }] },
+    ] },
+    { nombre: "Overol", icono: "overol", contadas: 3, porContar: [], stock: [
+      { prenda: "Overol Zara", entro: "Entró el 5 nov · cierre parcial", corregir: 3, tallas: ["28", "30", "32"],
+        colores: [{ nombre: "Azul medio", hex: "#5b7fae", n: [1, 1, 0] }, { nombre: "Negro", hex: "#2b2b2b", n: [0, 0, 1] }] },
+    ] },
+    { nombre: "Vestidos", icono: "vestido", contadas: 2, porContar: [], stock: [
+      { prenda: "Vestido Lino", entro: "Entró el 6 nov · cierre parcial", corregir: null, tallas: ["S", "M"],
+        colores: [{ nombre: "Arena", hex: "#d9c6a5", n: [1, 1] }] },
+    ] },
+    { nombre: "Blusas", icono: "blusa", contadas: 5, porContar: [{ prenda: "Blusa 1", cifras: "0 contadas", hex: "#e9d3d0" }], stock: [
+      { prenda: "Blusa Emma", entro: "Entró el 6 nov · cierre parcial", corregir: 5, tallas: ["S", "M", "L"],
+        colores: [{ nombre: "Blanco hueso", hex: "#f1ebdf", n: [1, 2, 0] }, { nombre: "Rojo vino", hex: "#7a2632", n: [0, 1, 1] }] },
+    ] },
+  ];
+
+  const miles = (n) => n.toLocaleString("es-PE");
+  const total = (s) => s.colores.reduce((a, c) => a + c.n.reduce((x, y) => x + y, 0), 0);
+  const tallasCon = (s) => s.tallas.filter((_, i) => s.colores.some((c) => c.n[i] > 0)).length;
+
+  function cabeza(c, abierta, conStock, i) {
+    const enStock = c.stock.reduce((a, s) => a + total(s), 0);
+    const resumen = conStock && enStock > 0
+      ? `${miles(c.contadas)} contadas · <span class="candado">${SVG(CANDADO, "i xs")} ${miles(enStock)} en stock</span>`
+      : `${miles(c.contadas)} contadas`;
+    return `<div class="cat-tira"><button class="cat-cabeza" data-cat="${i}" aria-expanded="${abierta}">
+      <span class="baldosa">${SVG(ICONO[c.icono])}</span>
+      <span class="cat-textos"><b>${c.nombre}</b><span class="cat-resumen">${resumen}</span></span>
+      <span class="mas" aria-hidden="true">${SVG(MAS)}</span>
+      ${c.porContar.length ? "" : `<span class="hecho" aria-label="Hecho">${SVG(VISTO, "i xs")}</span>`}
+      ${SVG(FLECHA, "i flecha")}
+    </button></div>`;
+  }
+
+  // ---------- Hoy ----------
+  function dibujarHoy() {
+    const abiertas = new Set([2]);
+    let html = categorias.map((c, i) => `<div class="cat" ${abiertas.has(i) ? "data-abierta" : ""} style="--i:${i}">${cabeza(c, abiertas.has(i), false, i)}
+      <div class="cuerpo"><div class="dentro">${c.porContar.length
+        ? `<ul class="modelos">${c.porContar.map((p) => `<li><button class="modelo"><span class="mini" data-color-dato style="background:${p.hex}">${SVG(ICONO[c.icono])}</span><span class="textos"><span class="nombre">${p.prenda}</span><span class="cifras">${p.cifras}</span></span><span class="chip neutro">Por contar</span></button></li>`).join("")}</ul>`
+        : `<p class="sin-modelos">Aún sin modelos. Agrégalos con el «+».</p>`}</div></div></div>`).join("");
+    const todos = categorias.flatMap((c) => c.stock).sort((a, b) => a.prenda.localeCompare(b.prenda, "es"));
+    html += `<section class="hoy-stock"><h4>Ya en stock <span class="globito">${todos.length}</span></h4><ul>${todos.map((s) => {
+      const frase = s.colores.flatMap((c) => s.tallas.map((t, k) => (c.n[k] ? `${t} ${c.nombre}: ${c.n[k]}` : null))).filter(Boolean).join(" · ");
+      return `<li>${SVG(CANDADO, "i s")}<span class="t"><b>${s.prenda}</b><span>${miles(total(s))} ya en stock · ${frase}</span></span>${s.corregir ? `<span class="enlace">Corregir ${s.corregir}</span>` : `<span class="enlace">Ajustar stock</span>`}</li>`;
+    }).join("")}</ul></section>`;
+    document.getElementById("hoy").innerHTML = html;
+    enlazarCats("hoy");
+  }
+
+  // ---------- Propuesta ----------
+  const estado = { vista: "matriz", abiertas: new Set([0, 2, 3]), detalles: new Set(["Falda Jean"]) };
+
+  function detalleMatriz(s) {
+    let j = 0;
+    const filas = s.colores.map((c) => `<tr><th><span><i class="punto" data-color-dato style="background:${c.hex}"></i>${c.nombre}</span></th>${c.n.map((n) => n ? `<td><span class="celda" style="--j:${j++}">${n}</span></td>` : `<td class="cero">–</td>`).join("")}<td class="tot">${c.n.reduce((a, b) => a + b, 0)}</td></tr>`).join("");
+    const porTalla = s.tallas.map((_, k) => s.colores.reduce((a, c) => a + c.n[k], 0));
+    return `<table class="matriz"><thead><tr><th></th>${s.tallas.map((t) => `<th>${t}</th>`).join("")}<th>TOTAL</th></tr></thead><tbody>${filas}</tbody>
+      ${s.colores.length > 1 ? `<tfoot><tr><th>TOTAL</th>${porTalla.map((n) => `<td>${n}</td>`).join("")}<td>${total(s)}</td></tr></tfoot>` : ""}</table>`;
+  }
+  function detalleColor(s) {
+    let j = 0;
+    return `<div class="colores">${s.colores.map((c) => `<div class="color-fila"><span class="color-nombre"><i class="punto" data-color-dato style="background:${c.hex}"></i><span>${c.nombre}</span></span>
+      <span class="fichas">${s.tallas.map((t, k) => (c.n[k] ? `<span class="ficha" style="--j:${j++}"><span>${t}</span><span>${c.n[k]}</span></span>` : "")).join("")}</span></div>`).join("")}</div>`;
+  }
+
+  function filaStock(c, s) {
+    const abierto = estado.detalles.has(s.prenda);
+    const n = total(s);
+    const nt = tallasCon(s);
+    return `<li class="modelo-stock" ${abierto ? "data-abierto" : ""}>
+      <button class="modelo" data-detalle="${s.prenda}" aria-expanded="${abierto}">
+        <span class="mini" data-color-dato style="background:${s.colores[0].hex}">${SVG(ICONO[c.icono])}</span>
+        <span class="textos"><span class="nombre">${s.prenda}</span>
+          <span class="cifras"><b>${miles(n)}</b> en stock · ${nt} ${nt === 1 ? "talla" : "tallas"} <span class="puntos">${s.colores.map((k) => `<i class="punto" data-color-dato title="${k.nombre}" style="background:${k.hex}"></i>`).join("")}</span></span></span>
+        <span class="chip verde con-icono">${SVG(CANDADO, "i xs")}En stock</span>
+        ${SVG(FLECHA, "i ver")}
+      </button>
+      <div class="det"><div><div class="det-in">
+        ${estado.vista === "matriz" ? detalleMatriz(s) : detalleColor(s)}
+        <div class="det-pie"><span>${s.entro}</span>${s.corregir ? `<button class="enlace">Corregir ${miles(s.corregir)}</button>` : `<button class="enlace">Ajustar en Existencias</button>`}</div>
+      </div></div></div>
+    </li>`;
+  }
+
+  function dibujarPropuesta() {
+    document.getElementById("propuesta").innerHTML = categorias.map((c, i) => {
+      const abierta = estado.abiertas.has(i);
+      const porContar = c.porContar.map((p) => `<li><button class="modelo" data-activa><span class="mini" data-color-dato style="background:${p.hex}">${SVG(ICONO[c.icono])}</span><span class="textos"><span class="nombre">${p.prenda}</span><span class="cifras">${p.cifras}</span></span><span class="chip neutro">Por contar</span></button></li>`).join("");
+      const divisor = c.porContar.length && c.stock.length ? `<li class="divisor">Ya en stock <span class="globito">${c.stock.length}</span></li>` : "";
+      return `<div class="cat" ${abierta ? "data-abierta" : ""} style="--i:${i}">${cabeza(c, abierta, true, i)}
+        <div class="cuerpo"><div class="dentro"><ul class="modelos">${porContar}${divisor}${c.stock.map((s) => filaStock(c, s)).join("")}</ul></div></div></div>`;
+    }).join("");
+    enlazarCats("propuesta");
+    document.querySelectorAll("#propuesta [data-detalle]").forEach((b) => b.addEventListener("click", () => {
+      const k = b.dataset.detalle;
+      const li = b.closest(".modelo-stock");
+      if (estado.detalles.has(k)) { estado.detalles.delete(k); li.removeAttribute("data-abierto"); b.setAttribute("aria-expanded", "false"); }
+      else { estado.detalles.add(k); li.setAttribute("data-abierto", ""); b.setAttribute("aria-expanded", "true"); li.querySelectorAll(".celda,.ficha").forEach((e) => { e.style.animation = "none"; void e.offsetWidth; e.style.animation = ""; }); }
+    }));
+  }
+
+  function enlazarCats(id) {
+    document.querySelectorAll(`#${id} [data-cat]`).forEach((b) => b.addEventListener("click", () => {
+      const cat = b.closest(".cat");
+      const abierta = cat.toggleAttribute("data-abierta");
+      b.setAttribute("aria-expanded", String(abierta));
+      if (id === "propuesta") { const i = Number(b.dataset.cat); abierta ? estado.abiertas.add(i) : estado.abiertas.delete(i); }
+    }));
+  }
+
+  // ---------- La barra ----------
+  function marcar(sel, el) { document.querySelectorAll(sel).forEach((b) => b.setAttribute("aria-pressed", String(b === el))); }
+  document.querySelectorAll("[data-vista]").forEach((b) => b.addEventListener("click", () => {
+    estado.vista = b.dataset.vista; marcar("[data-vista]", b);
+    document.getElementById("tag-vista").textContent = estado.vista === "matriz" ? "A · matriz" : "B · por color";
+    dibujarPropuesta();
+  }));
+  document.querySelectorAll("[data-tema-b]").forEach((b) => b.addEventListener("click", () => {
+    marcar("[data-tema-b]", b);
+    if (b.dataset.temaB === "oscuro") document.documentElement.dataset.tema = "oscuro"; else delete document.documentElement.dataset.tema;
+  }));
+  document.querySelectorAll("[data-ancho-b]").forEach((b) => b.addEventListener("click", () => {
+    marcar("[data-ancho-b]", b);
+    document.getElementById("marco").dataset.ancho = b.dataset.anchoB;
+  }));
+
+  dibujarHoy();
+  dibujarPropuesta();
+</script>
+</body>
+</html>

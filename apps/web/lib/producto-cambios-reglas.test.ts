@@ -275,7 +275,7 @@ describe("agruparCambios — lo que lee la hoja «Revisa y guarda los cambios»"
     });
     const grupos = agruparCambios(r.cambios);
     expect(grupos.map((g) => g.clave)).toEqual(["desactivan", "activan", "agregan", "precios", "etiquetas", "fotos", "datos"]);
-    expect(grupos.map((g) => g.titulo)).toEqual(["Se desactivan", "Se activan", "Se agregan", "Precios", "Insignias y campañas", "Fotos", "Datos de la prenda"]);
+    expect(grupos.map((g) => g.titulo)).toEqual(["Se desactivan", "Se activan", "Se agregan", "Precios", "Insignias", "Fotos", "Datos de la prenda"]);
     expect(grupos.find((g) => g.clave === "agregan")?.lineas).toEqual([{ texto: "Rojo M", detalle: "S/\u00a080.50" }]);
     expect(grupos.find((g) => g.clave === "precios")?.lineas).toEqual([{ texto: "Gris XS", antes: "S/\u00a090", despues: "S/\u00a095" }]);
     expect(grupos.find((g) => g.clave === "etiquetas")?.lineas).toEqual([{ texto: "Beige S", detalle: "+ Etiqueta e1" }]);
@@ -405,6 +405,10 @@ describe("textoDeSalidaDeFicha — lo que dice «¿Salir sin guardar?»", () => 
   });
   it("dice «1 cambio» en singular", () => {
     expect(textoDeSalidaDeFicha(1, "Blusa")).toBe("Tienes 1 cambio sin guardar en «Blusa». Si sales ahora, se pierden.");
+  });
+  it("cuenta la foto de catálogo que se está preparando (se pierde al salir)", () => {
+    expect(textoDeSalidaDeFicha(0, "Blusa", true)).toBe("Se está preparando una foto de catálogo de «Blusa». Si sales ahora, se pierde.");
+    expect(textoDeSalidaDeFicha(2, "Blusa", true)).toBe("Tienes 2 cambios sin guardar y una foto que se está preparando en «Blusa». Si sales ahora, se pierden.");
   });
 });
 

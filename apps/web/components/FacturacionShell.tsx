@@ -46,7 +46,7 @@ export function FacturacionShell({
       {/* El mismo ritmo que Cambios, Devoluciones, Caja e Historial (`space-y-7`) y la misma entrada en
           cascada: la cabecera y su resumen (0 y 1), la fila de las pestañas con la búsqueda (2) y, debajo, la
           vista, que empieza en 2 y escalona sus tarjetas y paneles hacia abajo. */}
-      <div className="tema-vidrio space-y-7 max-lg:pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
+      <div className="space-y-7 max-lg:pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
         <FacturacionCabecera sede={sede} cifras={cifras} entorno={entorno} />
         {/* D-60: si algo pasa más de una hora sin llegar a SUNAT, el reintento solo no alcanzó — se dice
             arriba, en todas las vistas, con el camino a la cola. */}

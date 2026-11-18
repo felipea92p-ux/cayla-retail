@@ -201,7 +201,7 @@ export function DetalleMuestraModal({
       <div className="mt-2 space-y-5">
         <section data-guia="muestra.dibujo" className="space-y-2">
           <Muestra nombre={muestra.nombre} imagenUrl={imagenVisible} className="aspect-[2/1] w-full" />
-          <p className="text-xs text-tinta/60">
+          <p className="text-sm text-tinta/60">
             {pendiente
               ? pendiente.tipo === "subir"
                 ? "Así se verá. Todavía no se guardó."
@@ -230,20 +230,20 @@ export function DetalleMuestraModal({
 
           {puedeEditar && !pendiente && generador === null && (
             <div className="flex flex-wrap gap-2">
-              <Boton textoCargando="Subiendo…" peso="fantasma" className="px-3 py-2 text-[11px]" cargando={preparando} onClick={() => selector.current?.click()}>
+              <Boton textoCargando="Subiendo…" peso="fantasma" className="px-3 py-2 text-sm" cargando={preparando} onClick={() => selector.current?.click()}>
                 <span className="inline-flex items-center gap-1.5">
                   <ImagePlus className="h-3.5 w-3.5" aria-hidden />
                   Subir foto
                 </span>
               </Boton>
-              <Boton peso="fantasma" className="px-3 py-2 text-[11px]" onClick={() => setGenerador(muestra.descripcionDibujo ?? "")}>
+              <Boton peso="fantasma" className="px-3 py-2 text-sm" onClick={() => setGenerador(muestra.descripcionDibujo ?? "")}>
                 <span className="inline-flex items-center gap-1.5">
                   <Wand2 className="h-3.5 w-3.5" aria-hidden />
                   Generar dibujo
                 </span>
               </Boton>
               {muestra.imagenUrl && (
-                <Boton peso="discreto" className="px-3 py-2 text-[11px]" onClick={() => setPendiente({ tipo: "quitar" })}>
+                <Boton peso="discreto" className="px-3 py-2 text-sm" onClick={() => setPendiente({ tipo: "quitar" })}>
                   <span className="inline-flex items-center gap-1.5">
                     <RotateCcw className="h-3.5 w-3.5" aria-hidden />
                     Quitar imagen
@@ -320,7 +320,7 @@ export function DetalleMuestraModal({
           {carga.estado === "error" && (
             <div className="flex items-center justify-between gap-3 rounded-lg border border-sand p-3 text-sm text-tinta/80">
               <span>{carga.mensaje}</span>
-              <Boton peso="discreto" className="shrink-0 px-2.5 py-1.5 text-[11px]" onClick={() => setIntento((n) => n + 1)}>
+              <Boton peso="discreto" className="shrink-0 px-2.5 py-1.5 text-sm" onClick={() => setIntento((n) => n + 1)}>
                 Reintentar
               </Boton>
             </div>
@@ -341,7 +341,7 @@ export function DetalleMuestraModal({
                     ) : (
                       <p className="truncate text-sm text-tinta">{p.referencia}</p>
                     )}
-                    <p className="truncate text-xs text-tinta/60">{[p.codigo, p.categoria ?? "Sin categoría"].filter(Boolean).join(" · ")}</p>
+                    <p className="truncate text-sm text-tinta/60">{[p.codigo, p.categoria ?? "Sin categoría"].filter(Boolean).join(" · ")}</p>
                   </div>
                   {!p.activa && (
                     <Chip tono="apagado" tachado={false}>
@@ -362,7 +362,7 @@ export function DetalleMuestraModal({
  *  arriba de la tarjeta es el botón que abre este detalle (`TarjetaAtributo` con `abrir`, components/atributos/kit.tsx). */
 export function PieTarjetaMuestra({ prendas }: { prendas: number }) {
   return (
-    <span className="flex flex-wrap items-center justify-between gap-x-2 text-xs text-tinta/60">
+    <span className="flex flex-wrap items-center justify-between gap-x-2 text-sm text-tinta/60">
       <span className="whitespace-nowrap">{textoPrendas(prendas)}</span>
       <span className="inline-flex items-center gap-0.5 whitespace-nowrap transition-colors group-hover/muestra:text-rojo-profundo">
         Ver

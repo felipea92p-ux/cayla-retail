@@ -17,8 +17,8 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 
 /**
  * «Reabrir una venta cerrada sin prenda» (ADR-0334, Felipe 2026-10-04): la salida cuando quien compró devuelve o quiere cambiar una
- * prenda cuya venta se cerró sin identificarla. La fila vuelve a «Pendiente» y se regulariza como cualquier otra. Solo un líder, desde su
- * propia cuenta (la base lo exige con `fn_es_lider`: una terminal de caja no puede, ni con un líder identificado en ella).
+ * prenda cuya venta se cerró sin identificarla. La fila vuelve a «Pendiente» y se regulariza como cualquier otra. La reabre quien ve
+ * Existencias, también desde una terminal (ADR-0534; antes, solo un líder con su propia cuenta): la base exige el módulo.
  * Sin combo «Responsable»: firma la cuenta (`cola_arranque_reabrir`). Un solo control obligatorio: el motivo.
  */
 export function ReabrirPrendaModal({ fila, onClose }: { fila: FilaPorRegularizar; onClose: () => void }) {
@@ -28,7 +28,7 @@ export function ReabrirPrendaModal({ fila, onClose }: { fila: FilaPorRegularizar
 
   const campos: CampoDeGuia[] = [{ id: "motivo", nombre: "Motivo", requerido: true, hecho: motivo !== null, pendiente: "Elige por qué se reabre la venta." }];
   const guia = useGuiaCampos(campos);
-  // Si la venta se cerró porque «la prenda aún no estaba cargada», reabrirla para una devolución tiene una consecuencia que el líder tiene
+  // Si la venta se cerró porque «la prenda aún no estaba cargada», reabrirla para una devolución tiene una consecuencia que quien reabre tiene
   // que conocer antes de regularizar (crea historial de esa prenda y la carga inicial la rechaza después).
   const avisoDelCierre = avisoAlReabrir(fila.cierre?.motivo);
 
@@ -75,15 +75,15 @@ export function ReabrirPrendaModal({ fila, onClose }: { fila: FilaPorRegularizar
                     }`}
                   >
                     <span className="block text-sm text-tinta">{m.titulo}</span>
-                    <span className="mt-0.5 block text-xs text-taupe">{m.ayuda}</span>
+                    <span className="mt-0.5 block text-sm text-taupe">{m.ayuda}</span>
                   </button>
                 );
               })}
             </div>
           </CampoGuiado>
 
-          {avisoDelCierre && <p className="rounded-md bg-hueso px-3.5 py-2.5 text-[13px] text-tinta/80">{avisoDelCierre}</p>}
-          <p className="rounded-md bg-hueso px-3.5 py-2.5 text-[13px] text-tinta/80">
+          {avisoDelCierre && <p className="rounded-md bg-hueso px-3.5 py-2.5 text-sm text-tinta/80">{avisoDelCierre}</p>}
+          <p className="rounded-md bg-hueso px-3.5 py-2.5 text-sm text-tinta/80">
             <strong className="font-semibold text-tinta">Ojo con el stock.</strong> Si ya hiciste un conteo que corrigió el stock de esa prenda,
             regularizarla «como ya registrada» la descontaría otra vez. Confírmalo con almacén antes de regularizar.
           </p>
@@ -93,7 +93,7 @@ export function ReabrirPrendaModal({ fila, onClose }: { fila: FilaPorRegularizar
             <Boton type="button" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton textoCargando="Reabriendo…" type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton textoCargando="Reabriendo…" type="submit" peso="primario" cargando={guardando} confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               Reabrir
             </Boton>
           </div>

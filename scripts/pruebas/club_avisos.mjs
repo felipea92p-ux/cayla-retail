@@ -289,8 +289,8 @@ alter table retail.club_avisos_enviados enable trigger club_avisos_enviados_solo
 // =====================================================================================================================
 // Con los claims del líder puestos (como postgres): una etiqueta con descuento solo nace aprobada si la crea quien puede.
 const CAMPANA = `${como(FELIPE)}reset role;
-insert into retail.etiquetas (nombre, estado, activo, descuento_pct, vigente_desde, vigente_hasta)
-  values ('ZZ Avisos Rebaja (prueba)', 'aprobado', true, 20, retail.fn_hoy_lima() - 1, retail.fn_hoy_lima() + 5) returning id as etq, vigente_desde as etq_desde \\gset
+insert into retail.etiquetas (nombre, estilo, estado, activo, descuento_pct, vigente_desde, vigente_hasta)
+  values ('ZZ Avisos Rebaja (prueba)', 'campana', 'aprobado', true, 20, retail.fn_hoy_lima() - 1, retail.fn_hoy_lima() + 5) returning id as etq, vigente_desde as etq_desde \\gset
 insert into retail.variante_etiquetas (variante_id, etiqueta_id) values (:'vale_bla_m', :'etq');
 select pg_temp.entra(:'vale_bla_m', :'ubic', 10, false, 'ajuste_manual') as _st \\gset
 `;

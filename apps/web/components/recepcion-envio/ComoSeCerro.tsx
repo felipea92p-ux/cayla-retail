@@ -81,7 +81,7 @@ export function ComoSeCerro({
     faltan: diferencias.filter((d) => d.tipo === "faltante").reduce((a, d) => a + d.cantidad, 0),
     sobran: diferencias.filter((d) => d.tipo === "sobrante").reduce((a, d) => a + d.cantidad, 0),
   };
-  const acciones = despuesDeRecibirEnvio({ lotes, buenas, unidades: resumen.buenas + resumen.danadas, unidadesBuenas: resumen.buenas, veExistencias });
+  const acciones = despuesDeRecibirEnvio({ lotes, envioId: detalle.id, buenas, unidades: resumen.buenas + resumen.danadas, unidadesBuenas: resumen.buenas, veExistencias });
   const cuando = detalle.cerradoEn ? diaYHoraLima(detalle.cerradoEn) : null;
   const extras = recibidos.filter((r) => !r.despachoItemId);
   const difsExtras = diferencias.filter((d) => !d.despachoItemId);

@@ -42,7 +42,7 @@ export default async function MiParteDeCompraPage({ params }: { params: Promise<
           titulo={`${ETIQUETA_TIPO_DOCUMENTO[compra.tipo]} ${compra.documento}`}
           subtitulo={`${compra.proveedorNombre} · lo gestiona ${compra.gestoraNombre}, que tiene el papel. Aquí ves y pagas solo lo que le toca a tu tienda.`}
           pie={
-            <p className="flex flex-wrap items-center gap-2 text-xs text-taupe">
+            <p className="flex flex-wrap items-center gap-2 text-sm text-taupe">
               Emitido {fechaCorta(compra.fechaEmision)}
               {compra.fechaVencimiento ? ` · vence ${fechaCorta(compra.fechaVencimiento)}` : ""}
               {!compra.vigente && <Chip tono="apagado">Anulado</Chip>}

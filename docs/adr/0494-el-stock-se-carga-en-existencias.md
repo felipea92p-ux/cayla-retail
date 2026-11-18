@@ -184,3 +184,42 @@ lugar después se probó con «Descartar y pasar». (Lo probó después /chaos, 
   talla) y se fue el contador «Revisaste N de M» con su barra (se leía como tarea obligatoria); queda el ✓ de cada color ya mirado.
 - **Una acción principal (ley 2):** mientras el aviso de lugar pregunta, el «Guardar» del pie baja a secundario, y el aviso dice «Guárdalo y
   sigue con el piso, o descártalo.».
+
+## Actualización 2026-10-27 — la actividad 3: Editar producto ve el stock y lo ajusta en Existencias (Felipe: «Listo, implementa tal cual»)
+
+**Qué pidió Felipe.** Que el ajuste de stock solo se haga en Existencias; que Nuevo producto ponga las unidades de partida y después no se puedan
+cambiar desde Catálogo; y que Editar cambie solo precios, costos, insignias y la estructura (agregar o quitar tallas y colores), sin perjudicar a
+quien ya ajustaba desde Editar. Se hizo la maqueta `docs/maquetas/stock-solo-en-existencias-2026-10/` con cuatro direcciones; eligió **A · Candado y
+puerta**, con la pestaña llamada «Unidades», «Ajustar stock» como nombre de la puerta y los modales de agregar color y talla rehechos.
+
+**Qué cambió (solo web: sin migración ni RPC nueva).**
+1. **Existencias se abre por enlace en la planilla.** `/inventario?variante=<id>&ajustar=1&de=<producto>[&desde=…]` abre la planilla de esa talla y
+   ofrece «Volver a Editar producto» (`lib/existencias-ajustar-desde-editar.ts`, `uuid` validado: nadie manda a otro lado con la URL). Quien no puede
+   ajustar ve la talla, no la planilla.
+2. **Editar: «Unidades» de solo lectura.** Cada número guardado lleva su candado, en la pestaña y en «Stock por talla»; tocarlo abre la hoja
+   «Ajustar stock» (`PuertaAjustarStock`), que lleva a esa talla. Se fueron los − y + de las variantes guardadas, la línea «Registrar los ajustes de
+   stock como…» (motivo, lugar, nota) y todo el guardado de ajustes de la ficha. `useStockFicha` quedó en lo que Editar sigue necesitando: leer el
+   stock y cargar las unidades de partida de una variante que nace. Su responsable sigue firmando todo el guardado de la ficha (ADR-0161).
+3. **«Agregar color» y «Agregar talla» preguntan con cuántas unidades nace cada variante.** Dos pasos con la guía de foco (ADR-0284), la
+   cuadrícula de unidades, «+1 a todas / En 0» y «Así quedará en la tabla». Es la única vez que se escribe stock desde Editar: entra como stock
+   inicial al guardar (`cargarNuevas`) y el número queda con su candado. **Con la carga inicial de la sede cerrada** (Tienda TRU, 18-oct) entra como
+   «Encontré prendas», siempre en el almacén y con una nota fija («Stock inicial de una variante nueva, cargado al crearla desde Editar producto»): ya no
+   hay motivo que elegir en Editar.
+4. **Un color o una talla solo se archiva con 0 unidades** (`lib/quitar-variante-reglas.ts`). Con unidades, el tacho abre una hoja que dice cuántas
+   hay (también en otras sedes) y lleva a dejarlas en 0 en Existencias; con 0, pide confirmar el archivado (se deshace hasta «Revisar y guardar»). Sin la
+   lectura del stock (`fn_variantes_estado`) no se bloquea: se degrada con gracia y avisa.
+5. **Nuevo producto** dice que las unidades se escriben una sola vez, y al crear un sello («Stock inicial · N u. · sellado») lo marca.
+
+**Lo que NO es.** Es una regla de pantalla, no una cerradura: `ajustar_inventario` es la misma función para Existencias y para Editar, y la base no
+sabe desde dónde la llaman; archivar con unidades tampoco lo impide la base. Una cerradura real (un origen en `ajustar_inventario` y en `movimientos`, y
+un candado en `catalogo_actualizar_producto`) pide migración y es decisión de Felipe: no está hecha.
+**Tampoco se construyó la transición en olas** (aviso → puente con el cajón → candado) que la maqueta sugería: se entregó directo el final, la dirección A.
+
+**Cómo se verificó.** Pruebas: `existencias-ajustar-desde-editar`, `agregar-variantes-guia`, `quitar-variante-reglas` y las que ya miraban estos archivos
+(guías, huella de «productos.id.editar», guía de foco, unificar, tema). En el navegador, con la base local fotografiada y restaurada
+(`scripts/flujo-de-negocio/estado.mjs`): candado → hoja → planilla de Existencias → «Volver a Editar producto»; agregar un color con unidades y
+guardar (3 variantes, S 2 · M 1 · L 0, «Etiquetas de lo que entró»); **doble y triple clic en «Confirmar y guardar»: 3 variantes y 3 unidades, no
+6**; con la **carga cerrada**: dos ajustes «Encontré prendas» con su nota, y ninguna invariante nueva (`scripts/chaos/invariantes.mjs`); el tacho de un
+color con 79 unidades (42 en el Taller y 3 en Tienda Trujillo) bloquea y lleva a Existencias; a 375 px y en oscuro (`tema:auditar`, 4 escenarios
+nuevos, 0 hallazgos); y las guías `productos.id.editar` (24 pasos) e `inventario` (36) corren sin escribir.
+

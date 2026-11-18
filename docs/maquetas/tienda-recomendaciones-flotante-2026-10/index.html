@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recomendaciones flotante · maqueta de la tienda</title>
+<style>
+/* Maqueta (2026-10-31): ventana flotante de «Recomendaciones» en la tienda. Datos inventados; no toca la app.
+   Paleta: la de la tienda (apps/tienda/app/globals.css): blanco, negro, humo, rojo solo de señal. */
+:root{--crema:#fff;--papel:#fff;--hueso:#f1f1ef;--sand:#dededb;--tinta:#0b0b0b;--taupe:#666664;--rojo:#b3261e;--verde:#1f6b44;--sombra:rgba(11,11,11,.16);--velo:rgba(11,11,11,.32);
+--serif:"Bodoni Moda","Didot",ui-serif,Georgia,serif;--sans:"Public Sans",ui-sans-serif,system-ui,-apple-system,sans-serif;--ease:cubic-bezier(.2,.7,.2,1)}
+:root[data-t="oscuro"]{--crema:#0b0b0b;--papel:#141413;--hueso:#1b1b1a;--sand:#2e2e2c;--tinta:#f4f1ea;--taupe:#a6a39c;--rojo:#f0786f;--verde:#5fc08c;--sombra:rgba(0,0,0,.6);--velo:rgba(0,0,0,.62)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:#e9e9e6;color:var(--tinta);font:14px/1.45 var(--sans);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
+.barra{position:sticky;top:0;z-index:100;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:10px 20px;background:#fffc;backdrop-filter:blur(10px);border-bottom:1px solid #dededb;color:#0b0b0b}
+.barra b{margin-right:auto;font:600 15px var(--sans)}
+.seg{display:inline-flex;padding:3px;gap:2px;border-radius:999px;background:#f1f1ef;border:1px solid #dededb}
+.seg button{height:28px;padding:0 13px;border-radius:999px;font-size:12px;font-weight:600;color:#666664;white-space:nowrap}
+.seg button[aria-pressed=true]{background:#0b0b0b;color:#fff}
+.nota{max-width:1180px;margin:14px auto 0;padding:0 20px;color:#555;font-size:13px}
+.escena{max-width:1180px;margin:14px auto 60px;padding:0 20px;display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start}
+@media(max-width:900px){.escena{grid-template-columns:1fr}}
+
+/* ── la tienda de fondo (desktop) ── */
+.pantalla{position:relative;height:640px;overflow:hidden;border-radius:14px;border:1px solid #cfcfcb;background:var(--crema);color:var(--tinta);box-shadow:0 10px 30px #0001}
+.tcab{display:flex;align-items:center;gap:18px;height:54px;padding:0 24px;border-bottom:1px solid var(--sand);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.tcab .logo{font:500 22px var(--serif);letter-spacing:.02em;text-transform:none;margin-right:auto}
+.cat{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:22px 24px}
+.pr{aspect-ratio:3/4;border-radius:6px;background:var(--hueso);display:flex;align-items:flex-end;padding:10px;font-size:12px;font-weight:600}
+.pr span{display:block;color:var(--taupe);font-weight:500}
+
+/* ── el lanzador ── */
+.lanza{position:absolute;right:20px;bottom:20px;z-index:5;display:flex;align-items:center;gap:9px;height:46px;padding:0 18px 0 14px;border-radius:999px;background:var(--tinta);color:var(--crema);font-size:13px;font-weight:600;box-shadow:0 8px 24px var(--sombra);transition:transform .25s var(--ease),opacity .2s}
+.lanza:hover{transform:translateY(-2px)}
+.lanza svg{width:18px;height:18px}
+.lanza .punto{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;border-radius:9px;background:var(--rojo);color:#fff;font-size:10.5px;display:grid;place-items:center;border:2px solid var(--crema)}
+.lanza.solo{width:46px;padding:0;justify-content:center}
+.lanza.solo .txt{display:none}
+.abierto .lanza{opacity:0;pointer-events:none;transform:scale(.9)}
+
+/* ── la ventana ── */
+.vent{position:absolute;right:20px;bottom:20px;z-index:6;width:360px;max-height:calc(100% - 40px);display:flex;flex-direction:column;border-radius:16px;background:var(--papel);border:1px solid var(--sand);box-shadow:0 18px 50px var(--sombra);
+ opacity:0;transform:translateY(18px) scale(.97);transform-origin:bottom right;pointer-events:none;transition:opacity .22s var(--ease),transform .28s var(--ease)}
+.abierto .vent{opacity:1;transform:none;pointer-events:auto}
+.vh{display:flex;align-items:center;gap:10px;padding:14px 16px 10px}
+.vh h3{margin:0;font:500 21px/1.1 var(--serif)}
+.vh h3 em{font-style:italic}
+.vh .x{margin-left:auto;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:16px;color:var(--taupe)}
+.vh .x:hover{background:var(--hueso)}
+.vsub{margin:0;padding:0 16px 10px;color:var(--taupe);font-size:13px}
+.tabs{display:flex;gap:4px;margin:0 16px 10px;padding:3px;border-radius:999px;background:var(--hueso)}
+.tabs button{flex:1;height:30px;border-radius:999px;text-align:center;font-size:12px;font-weight:600;color:var(--taupe)}
+.tabs button[aria-pressed=true]{background:var(--tinta);color:var(--crema)}
+.cuerpo{overflow:auto;padding:0 16px 14px;display:grid;gap:12px}
+.leg{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);margin:0 0 6px}
+.pil{display:flex;flex-wrap:wrap;gap:6px}
+.pil button{height:30px;padding:0 13px;border-radius:999px;border:1px solid var(--sand);font-size:12.5px;font-weight:500;transition:background .15s}
+.pil button:hover{background:var(--hueso)}
+.pil button[aria-pressed=true]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+textarea{width:100%;min-height:104px;resize:none;padding:11px 13px;border-radius:12px;border:1px solid var(--sand);background:var(--hueso);color:var(--tinta);font:inherit;outline:0;transition:background .2s,border-color .2s}
+textarea:focus{background:var(--papel);border-color:var(--tinta)}
+.cont{display:flex;justify-content:space-between;font-size:11.5px;color:var(--taupe);margin-top:4px}
+.quien{font-size:12px;color:var(--taupe)}
+.quien b{color:var(--tinta)}
+.vp{padding:12px 16px 16px;border-top:1px solid var(--sand)}
+.env{width:100%;height:46px;border-radius:999px;background:var(--tinta);color:var(--crema);font-weight:600;text-align:center;transition:background .2s,opacity .2s}
+.env:hover{background:#8f1d17;color:#fff}
+.env:disabled{opacity:.35;pointer-events:none}
+.gr{display:grid;gap:10px;justify-items:start;padding:8px 0 4px}
+.gr .ok{width:40px;height:40px;border-radius:50%;background:var(--verde);color:#fff;display:grid;place-items:center}
+.gr h4{margin:0;font:500 24px/1.1 var(--serif)}
+.gr p{margin:0;color:var(--taupe);font-size:13px}
+.reco{padding:12px 13px;border:1px solid var(--sand);border-radius:12px;display:grid;gap:6px}
+.reco .t{font-size:13px}
+.reco .m{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--taupe)}
+.chip{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:var(--hueso)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--taupe)}
+.chip.v{background:color-mix(in srgb,var(--verde) 14%,transparent);color:var(--verde)}.chip.v::before{background:var(--verde)}
+.resp{margin-top:2px;padding:9px 11px;border-radius:10px;background:var(--hueso);font-size:12.5px;border-left:3px solid var(--tinta)}
+.resp small{display:block;color:var(--taupe);font-size:11px;margin-bottom:2px}
+.v-env,.v-gr,.v-mis{display:none}
+.vent[data-v=env] .v-env,.vent[data-v=gr] .v-gr,.vent[data-v=mis] .v-mis{display:grid}
+.vent[data-v=env] .vp.v-env,.vent[data-v=gr] .vp.v-gr{display:block}
+.vent[data-v=gr] .tabs{display:none}
+
+/* ── la variante «burbuja chica» (esquina) vs «lateral» ── */
+.pantalla[data-forma=lateral] .vent{top:0;right:0;bottom:0;max-height:none;width:360px;border-radius:0;border-width:0 0 0 1px;transform:translateX(24px)}
+.pantalla[data-forma=lateral].abierto .vent{transform:none}
+.pantalla[data-forma=lateral] .vp{margin-top:auto}
+.pantalla[data-forma=lateral] .cuerpo{flex:1}
+.pantalla[data-forma=lateral] .lanza{bottom:auto;top:50%;right:0;border-radius:12px 0 0 12px;height:auto;padding:16px 10px;flex-direction:column;writing-mode:vertical-rl;transform:translateY(-50%)}
+.pantalla[data-forma=lateral] .lanza:hover{transform:translateY(-50%) translateX(-2px)}
+.pantalla[data-forma=lateral] .lanza svg{writing-mode:horizontal-tb}
+
+/* ── teléfono ── */
+.tel{width:300px;height:620px;margin:0 auto;border-radius:34px;border:8px solid #0b0b0b;overflow:hidden;background:var(--crema);color:var(--tinta);position:relative;box-shadow:0 10px 30px #0002}
+.tel .tcab{height:48px;padding:0 16px}
+.tel .cat{grid-template-columns:1fr 1fr;padding:14px 16px;gap:10px}
+.tel .lanza{right:14px;bottom:14px;height:42px}
+.tel .vel{position:absolute;inset:0;background:var(--velo);opacity:0;pointer-events:none;transition:opacity .25s;z-index:5}
+.tel.abierto .vel{opacity:1;pointer-events:auto}
+.tel .vent{left:0;right:0;bottom:0;width:auto;max-height:86%;border-radius:20px 20px 0 0;border-width:1px 0 0;transform:translateY(100%) scale(1);transform-origin:bottom}
+.tel.abierto .vent{transform:none}
+.tel .asa{width:38px;height:4px;border-radius:2px;background:var(--sand);margin:8px auto 0}
+.asa{display:none}.tel .asa{display:block}
+.pie{margin:10px 0 0;font-size:12.5px;color:#555}
+.lado h2{margin:0 0 6px;font:600 15px var(--sans)}
+.lado ul{margin:0;padding-left:18px;color:#444;font-size:13px;display:grid;gap:6px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="barra">
+  <b>Recomendaciones flotante · maqueta de la tienda</b>
+  <span class="seg" role="group" aria-label="Forma">
+    <button data-forma="esquina" aria-pressed="true">A · Esquina</button>
+    <button data-forma="lateral" aria-pressed="false">B · Pestaña lateral</button>
+  </span>
+  <span class="seg" role="group" aria-label="Estado">
+    <button data-est="cerrado" aria-pressed="true">Cerrado</button>
+    <button data-est="env" aria-pressed="false">Escribir</button>
+    <button data-est="gr" aria-pressed="false">Enviada</button>
+    <button data-est="mis" aria-pressed="false">Mis respuestas</button>
+  </span>
+  <span class="seg" role="group" aria-label="Tema">
+    <button data-t="claro" aria-pressed="true">Claro</button>
+    <button data-t="oscuro" aria-pressed="false">Oscuro</button>
+  </span>
+</div>
+<p class="nota">Tócalo: el botón abre la ventana, la × la cierra, y puedes escribir y enviar de verdad (datos de ejemplo). Hoy «Recomendaciones» es una página aparte, con cuenta; esta ventana la deja a un toque desde cualquier pantalla de la tienda.</p>
+
+<div class="escena">
+  <div>
+    <div class="pantalla" id="pc" data-forma="esquina">
+      <div class="tcab"><span class="logo">CAYLA</span><span>Mujer</span><span>Nuevo</span><span>Sedes</span><span>Mi cuenta</span></div>
+      <div class="cat">
+        <div class="pr">Blusa Kalessi<span>S/ 119</span></div><div class="pr">Palazo Tiana<span>S/ 139</span></div>
+        <div class="pr">Corset Alba<span>S/ 99</span></div><div class="pr">Pantalón Strend<span>S/ 149</span></div>
+        <div class="pr">Casaca Nube<span>S/ 189</span></div><div class="pr">Falda Lía<span>S/ 109</span></div>
+      </div>
+      <button class="lanza" data-abrir aria-label="Abrir recomendaciones">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12z"/></svg>
+        <span class="txt">Recomendaciones</span><span class="punto">1</span>
+      </button>
+      <section class="vent" data-v="env" role="dialog" aria-label="Recomendaciones">
+        <div class="asa"></div>
+        <div class="vh"><h3>Cuéntanos cómo <em>mejorar.</em></h3><button class="x" data-cerrar aria-label="Cerrar">✕</button></div>
+        <div class="tabs v-env v-mis" style="display:flex"><button data-tab="env" aria-pressed="true">Escribir</button><button data-tab="mis" aria-pressed="false">Mis respuestas <span class="chip v" style="height:18px;margin-left:4px">1</span></button></div>
+        <p class="vsub v-env">Una idea, algo que te gustaría encontrar o algo que podamos hacer mejor. Lo lee el equipo de CAYLA.</p>
+        <div class="cuerpo v-env">
+          <div><p class="leg">¿Sobre qué es?</p><div class="pil" data-sobre><button aria-pressed="true">CAYLA en general</button><button aria-pressed="false">Arequipa</button><button aria-pressed="false">Trujillo</button><button aria-pressed="false">Lima</button></div></div>
+          <div><textarea class="txt-r" maxlength="600" placeholder="Escribe lo que quieras…"></textarea><div class="cont"><span>Mínimo 10 letras</span><span class="n">0 / 600</span></div></div>
+          <p class="quien">Va con tu nombre, <b>Lucía</b>, para que podamos responderte aquí. Te quedan <b>3</b> hoy.</p>
+        </div>
+        <div class="vp v-env"><button class="env" disabled>Enviar recomendación</button></div>
+
+        <div class="cuerpo v-gr">
+          <div class="gr"><span class="ok">✓</span><h4>¡Gracias, <em>Lucía!</em></h4><p>La leerá el equipo de CAYLA. Cuando te respondamos, verás el aviso aquí mismo, en el botón.</p></div>
+        </div>
+        <div class="vp v-gr"><button class="env" data-otra>Escribir otra</button></div>
+
+        <div class="cuerpo v-mis">
+          <div class="reco"><div class="m"><span class="chip v">Respondida</span><span>hace 2 h</span></div><div class="t">Podrían tener más tallas grandes en Arequipa.</div><div class="resp"><small>CAYLA · Arequipa</small>¡Gracias, Lucía! Desde noviembre sumamos XL y XXL en la tienda de Arequipa.</div></div>
+          <div class="reco"><div class="m"><span class="chip">Recibida</span><span>ayer</span></div><div class="t">Me gustaría ver los looks completos en la ficha.</div></div>
+        </div>
+      </section>
+    </div>
+    <p class="pie">Escritorio · la ventana flota sobre la tienda sin sacarte de lo que estabas mirando (ni perder tu lugar en el catálogo).</p>
+  </div>
+
+  <div>
+    <div class="tel" id="tel">
+      <div class="tcab"><span class="logo">CAYLA</span><span>☰</span></div>
+      <div class="cat"><div class="pr">Blusa Kalessi<span>S/ 119</span></div><div class="pr">Palazo Tiana<span>S/ 139</span></div><div class="pr">Corset Alba<span>S/ 99</span></div><div class="pr">Strend<span>S/ 149</span></div></div>
+      <button class="lanza solo" data-abrir aria-label="Abrir recomendaciones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12z"/></svg><span class="punto">1</span></button>
+      <div class="vel" data-cerrar></div>
+      <section class="vent" data-v="env" role="dialog" aria-label="Recomendaciones">
+        <div class="asa"></div>
+        <div class="vh"><h3>Cuéntanos cómo <em>mejorar.</em></h3><button class="x" data-cerrar aria-label="Cerrar">✕</button></div>
+        <div class="tabs v-env v-mis" style="display:flex"><button data-tab="env" aria-pressed="true">Escribir</button><button data-tab="mis" aria-pressed="false">Mis respuestas</button></div>
+        <div class="cuerpo v-env">
+          <div><p class="leg">¿Sobre qué es?</p><div class="pil" data-sobre><button aria-pressed="true">CAYLA</button><button aria-pressed="false">Arequipa</button><button aria-pressed="false">Trujillo</button><button aria-pressed="false">Lima</button></div></div>
+          <div><textarea class="txt-r" maxlength="600" placeholder="Escribe lo que quieras…"></textarea><div class="cont"><span>Mínimo 10 letras</span><span class="n">0 / 600</span></div></div>
+        </div>
+        <div class="vp v-env"><button class="env" disabled>Enviar recomendación</button></div>
+        <div class="cuerpo v-gr"><div class="gr"><span class="ok">✓</span><h4>¡Gracias, <em>Lucía!</em></h4><p>La leerá el equipo de CAYLA.</p></div></div>
+        <div class="vp v-gr"><button class="env" data-otra>Escribir otra</button></div>
+        <div class="cuerpo v-mis"><div class="reco"><div class="m"><span class="chip v">Respondida</span><span>hace 2 h</span></div><div class="t">Podrían tener más tallas grandes en Arequipa.</div><div class="resp"><small>CAYLA · Arequipa</small>Desde noviembre sumamos XL y XXL.</div></div></div>
+      </section>
+    </div>
+    <p class="pie" style="text-align:center">Celular (375 px) · el botón se achica al ícono y la ventana sube desde el borde, con velo.</p>
+    <div class="lado" style="margin-top:18px"><h2>Lo que decide esta maqueta</h2>
+      <ul>
+        <li><b>A · Esquina</b>: el botón redondo abajo a la derecha. Lo más conocido; compite con el WhatsApp si lo hubiera.</li>
+        <li><b>B · Pestaña lateral</b>: pegada al borde, más discreta; la ventana ocupa el alto.</li>
+        <li>Con respuesta nueva, el botón lleva un globito rojo (la única señal que gasta el rojo).</li>
+        <li>Sin cuenta, el botón llevaría a «Entrar» en vez de abrir el formulario.</li>
+      </ul></div>
+  </div>
+</div>
+
+<script>
+const $=(s,r=document)=>[...r.querySelectorAll(s)];
+const raiz=document.documentElement, pc=document.getElementById('pc'), tel=document.getElementById('tel');
+function estado(e){
+  const abre=e!=='cerrado';
+  [pc,tel].forEach(p=>{p.classList.toggle('abierto',abre); if(abre) $('.vent',p).forEach(v=>v.dataset.v=e);});
+  $('[data-est]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.est===e));
+  $('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tab===(e==='mis'?'mis':'env')));
+}
+$('[data-est]').forEach(b=>b.onclick=()=>estado(b.dataset.est));
+$('[data-abrir]').forEach(b=>b.onclick=()=>estado('env'));
+$('[data-cerrar]').forEach(b=>b.onclick=()=>estado('cerrado'));
+$('[data-tab]').forEach(b=>b.onclick=()=>estado(b.dataset.tab));
+$('[data-otra]').forEach(b=>b.onclick=()=>estado('env'));
+$('[data-forma]').forEach(b=>b.onclick=()=>{pc.dataset.forma=b.dataset.forma;$('[data-forma]',document.querySelector('.barra')).forEach(x=>x.setAttribute('aria-pressed',x===b));});
+$('[data-t]').forEach(b=>b.onclick=()=>{raiz.dataset.t=b.dataset.t;$('[data-t]').forEach(x=>x.setAttribute('aria-pressed',x===b));});
+$('[data-sobre]').forEach(g=>$('button',g).forEach(b=>b.onclick=()=>$('button',g).forEach(x=>x.setAttribute('aria-pressed',x===b))));
+$('.vent').forEach(v=>{
+  const t=$('textarea',v)[0], n=$('.n',v)[0], e=$('.env',v)[0];
+  t.oninput=()=>{n.textContent=t.value.length+' / 600'; e.disabled=t.value.trim().length<10;};
+  e.onclick=()=>{ if(e.dataset.otra!==undefined) return; t.value='';n.textContent='0 / 600';e.disabled=true;estado('gr');};
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')estado('cerrado')});
+</script>
+</body>
+</html>

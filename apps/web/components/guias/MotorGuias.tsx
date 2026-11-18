@@ -5,10 +5,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Boton } from "@/components/ui/campos";
 import { anclaDeArranque, direccionDelTramo, esDeEstaPantalla, guiaDelTramo } from "@/lib/asistente/recorrido";
 import { crearArranqueDemo } from "@/lib/guias/arranque-demo";
-import { GUIAS } from "@/lib/guias/registro";
+import { guiaCompleta, guiasCargadas, precargarGuias } from "@/lib/guias/diferidas";
 import { debeOfrecer, esEntradaDelMenu, guiaDeRuta } from "@/lib/guias/reglas";
-import type { Guia } from "@/lib/guias/tipos";
-import { GuiaInteractiva, type FinDeGuia } from "./GuiaInteractiva";
+import type { Guia, GuiaEnIndice } from "@/lib/guias/tipos";
+import { avisar } from "@/components/ui/Avisos";
+import { esperar } from "@/components/ui/Espera";
+import dynamic from "next/dynamic";
+import type { FinDeGuia } from "./GuiaInteractiva";
 import { esperarAncla } from "./piloto";
 import { guardarRelleno, marcaDeVez, olvidarRecorrido, tomarRelleno, tomarSiguiente } from "./recorrido";
 import { leerVistas, marcarVista } from "./vistas";
@@ -18,9 +21,14 @@ import { leerVistas, marcarVista } from "./vistas";
 //     una sola vez por persona y por pantalla (Felipe, 2026-10-07), diga que sí o que no.
 //   · `?demo=1` en la URL (lo pone «Demo» de Mi perfil al llevarte a otra pantalla) la arranca sola.
 //   · El evento `cayla:abrir-guia` (el mismo «Demo», si ya estás en esa pantalla) también.
-//   · «Pregúntale a CAYLA» (ADR-0529, actividad 3) arranca un TRAMO: la guía corta que empieza en el paso que responde
+//   · «Pregúntale a CAYLA» (ADR-0536, actividad 3) arranca un TRAMO: la guía corta que empieza en el paso que responde
 //     (`?demo=1&paso=…&vez=…`, o el mismo evento con el paso). Al terminarlo, si el recorrido sigue, lleva a la pantalla del
 //     siguiente (`components/guias/recorrido.ts`); si la persona sale, lo que faltaba se olvida.
+
+// La guía en sí (el velo, el piloto, la tarjeta) se descarga al arrancar una, no con cada pantalla (ADR-0623). Y el TEXTO de las guías
+// también (ADR-0674 act. h): para saber qué guía tiene la pantalla y ofrecerla basta el índice que manda el servidor (`guias`); los pasos
+// se piden al ir a correr una demo, con el loader si todavía no bajaron.
+const GuiaInteractiva = dynamic(() => import("./GuiaInteractiva").then((m) => m.GuiaInteractiva), { ssr: false });
 
 export const EVENTO_ABRIR_GUIA = "cayla:abrir-guia";
 
@@ -39,16 +47,26 @@ const ESPERA_TRAMO_MS = 8000;
 /** Cuánto espera la oferta tras llegar: que la pantalla termine de dibujarse y el loader se vaya. */
 const ESPERA_OFERTA_MS = 1400;
 
-export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas del menú de esta persona: solo ahí se ofrece sola. */ entradas: readonly string[] }) {
+export function MotorGuias({
+  quien,
+  entradas,
+  guias,
+}: {
+  quien: string;
+  /** Las rutas del menú de esta persona: solo ahí se ofrece sola. */
+  entradas: readonly string[];
+  /** El índice de las guías (sin sus pasos), armado en el servidor. */
+  guias: readonly GuiaEnIndice[];
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const params = useSearchParams();
-  const guia = guiaDeRuta(pathname, GUIAS);
+  const guia = guiaDeRuta(pathname, guias);
   const [vistas, setVistas] = useState<{ quien: string; ids: Set<string> } | null>(null);
   const [corriendo, setCorriendo] = useState<Guia | null>(null);
   // ¿Lo que corre es un tramo del asistente? Al terminar no cuenta como demo vista entera, y puede seguir en otra pantalla.
   const [enRecorrido, setEnRecorrido] = useState(false);
-  const [ofrecida, setOfrecida] = useState<Guia | null>(null);
+  const [ofrecida, setOfrecida] = useState<GuiaEnIndice | null>(null);
 
   // Qué se le ofreció ya (una sola lectura por persona; si la base no responde, lo del navegador).
   useEffect(() => {
@@ -66,11 +84,32 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
   const arrancarTramo = useCallback((tramo: Guia) => {
     const ancla = anclaDeArranque(tramo);
     void (ancla ? esperarAncla(ancla, ESPERA_TRAMO_MS) : Promise.resolve(null)).then(() => {
-      if (guiaDeRuta(window.location.pathname, GUIAS)?.id !== tramo.id) return;
+      if (guiaDeRuta(window.location.pathname, guias)?.id !== tramo.id) return;
       setEnRecorrido(true);
       setCorriendo(tramo);
     });
-  }, []);
+  }, [guias]);
+
+  /** Arma una guía del índice con sus pasos y se la pasa a `armar`. Si el texto todavía no bajó, lo pide con el loader; si en el camino la
+   *  persona se fue a otra pantalla, no arranca (explicaría piezas que no están). Sin internet, lo dice y la próxima vez lo intenta de nuevo. */
+  const correr = useCallback(
+    (pedida: GuiaEnIndice, armar: (completa: Guia) => void) => {
+      const yaEsta = guiasCargadas()?.find((g) => g.id === pedida.id);
+      if (yaEsta) return armar(yaEsta);
+      const fin = esperar();
+      guiaCompleta(pedida.id).then(
+        (completa) => {
+          fin();
+          if (completa && guiaDeRuta(window.location.pathname, guias)?.id === pedida.id) armar(completa);
+        },
+        () => {
+          fin();
+          avisar.error("No se pudo abrir la demo", { detalle: "Revisa la conexión y vuelve a intentarlo." });
+        },
+      );
+    },
+    [guias],
+  );
 
   const anotar = useCallback(
     (id: string, completa: boolean) => {
@@ -104,11 +143,14 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
     const esTramo = vez !== null;
     arranque.pedir(esTramo ? `${guia.id}#${vez}` : guia.id, corriendoRef.current, () => {
       setOfrecida(null);
-      if (esTramo) return arrancarTramo(guiaDelTramo(guia, pasoPedido, tomarRelleno(vez)));
-      setEnRecorrido(false);
-      setCorriendo(guia);
+      const relleno = esTramo ? tomarRelleno(vez) : null;
+      correr(guia, (completa) => {
+        if (esTramo) return arrancarTramo(guiaDelTramo(completa, pasoPedido, relleno));
+        setEnRecorrido(false);
+        setCorriendo(completa);
+      });
     });
-  }, [pideDemo, guia, params, pathname, arranque, vez, pasoPedido, arrancarTramo]);
+  }, [pideDemo, guia, params, pathname, arranque, vez, pasoPedido, arrancarTramo, correr]);
   useEffect(() => () => arranque.desmontar(), [arranque]);
 
   // «Demo» estando ya en la pantalla.
@@ -117,13 +159,15 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
       if (!guia) return;
       const tramo = e instanceof CustomEvent ? (e.detail as PedidoDeTramo | null) : null;
       setOfrecida(null);
-      if (tramo) return arrancarTramo(guiaDelTramo(guia, tramo.pasoId, tramo.rellenar ?? null));
-      setEnRecorrido(false);
-      setCorriendo(guia);
+      correr(guia, (completa) => {
+        if (tramo) return arrancarTramo(guiaDelTramo(completa, tramo.pasoId, tramo.rellenar ?? null));
+        setEnRecorrido(false);
+        setCorriendo(completa);
+      });
     };
     window.addEventListener(EVENTO_ABRIR_GUIA, abrir);
     return () => window.removeEventListener(EVENTO_ABRIR_GUIA, abrir);
-  }, [guia, arrancarTramo]);
+  }, [guia, arrancarTramo, correr]);
 
   // La oferta de la primera vez. Se anota como ofrecida en cuanto se muestra: si la persona se va sin responder, igual ya
   // se le ofreció (no se le insiste).
@@ -133,6 +177,8 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
     const t = setTimeout(() => {
       setOfrecida(guia);
       anotar(guia.id, false);
+      // Si dice que sí, la demo arranca sin esperar: el texto empieza a bajar cuando se ofrece, no antes (ADR-0674 act. h).
+      precargarGuias();
     }, ESPERA_OFERTA_MS);
     return () => clearTimeout(t);
   }, [ofrecer, guia, anotar]);
@@ -159,7 +205,7 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
       guardarRelleno(otraVez, siguiente.rellenar);
       return router.push(direccionDelTramo(siguiente, otraVez));
     }
-    if (guia) arrancarTramo(guiaDelTramo(guia, siguiente.pasoId, siguiente.rellenar ?? null));
+    if (guia) correr(guia, (completa) => arrancarTramo(guiaDelTramo(completa, siguiente.pasoId, siguiente.rellenar ?? null)));
   }
 
   return (
@@ -182,8 +228,8 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
               peso="primario"
               data-guia-ver
               onClick={() => {
-                setCorriendo(ofrecida);
                 setOfrecida(null);
+                correr(ofrecida, setCorriendo);
               }}
             >
               Ver la demo

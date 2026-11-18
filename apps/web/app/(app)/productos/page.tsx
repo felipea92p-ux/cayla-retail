@@ -1,29 +1,25 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { EsperaPantalla } from "@/components/ui/Espera";
 import { getPendientesDeLaSede } from "@/lib/recepcion-conteo";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ChevronDown, LayoutGrid, Rows3, SignpostBig } from "lucide-react";
-import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
+import { BadgePercent, ClipboardCheck, LayoutGrid, PackagePlus, Plus, Rows3, SignpostBig } from "lucide-react";
+import { exigirModulo, puede, veCostoDePrendaDe, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import type { ColorConFicha } from "@/lib/ficha-del-color";
 import {
   filtrosProductosDesdeParams,
   conSede,
   paginaProductosDesdeParams,
   listarProductos,
   getExistenciasProductos,
-  getSinTemporadaResumen,
   getFacetasProductos,
   getTemporadasCatalogo,
-  getCatalogo,
   type ParamsProductosListado,
 } from "@/lib/catalogo-v2";
 import { getEmpresasAqui } from "@/lib/empresas-de-sede";
-import { empresaDelListado, insigniaDeEmpresa, opcionesDeEmpresa, soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
-import { getDisponibleEnSede } from "@/lib/inventario-v2";
-import { cantidadCobrable } from "@/lib/vender-stock-local";
-import { tarjetasDesdeVariantes } from "@/lib/combinar-reglas";
+import { empresaDelListado, insigniaDeEmpresa, opcionesDeEmpresa } from "@/lib/empresas-de-sede-reglas";
 import { ProductosTabla } from "@/components/ProductosTabla";
 import { ProductosGrilla } from "@/components/ProductosGrilla";
 import { SelectorTamanoGrilla } from "@/components/SelectorTamanoGrilla";
@@ -31,7 +27,6 @@ import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
-import { Ayuda } from "@/components/Ayuda";
 import { EXPLICACION_STOCK_TOTAL, mensajeSinResultados } from "@/lib/productos-stock";
 import { COOKIE_TAMANO_GRILLA, leerTamanoGrilla } from "@/lib/tamano-grilla";
 import { limitesRedondeados } from "@/lib/productos-filtro-precio";
@@ -39,13 +34,16 @@ import { COOKIE_PANEL_FILTROS, leerPanelFiltros } from "@/lib/panel-filtros";
 import { compararTallas } from "@/lib/tallas";
 import { BotonEnlace } from "@/components/ui/campos";
 import { urlRotulos } from "@/lib/rotulos-reglas";
-import { Aviso } from "@/components/ui/Aviso";
+import { PendienteDeCabecera } from "@/components/PendienteDeCabecera";
 import { getPorRevisarResumen } from "@/lib/revisar-productos-datos";
+import { getPosiblesDuplicados } from "@/lib/posibles-duplicados";
+import { PosiblesDuplicados } from "@/components/fusionar-productos/PosiblesDuplicados";
 import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
 import { preciosDeTiendaPorProducto } from "@/lib/precio-sede-reglas";
 import { variantesQueSeVenden } from "@/lib/productos-vista";
 import { campanasQueCobra } from "@/lib/etiquetas-precio";
 import { hoyLima } from "@/lib/fechas-lima";
+import { tonosDeLasMezclas } from "@/lib/color-combinado";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -78,7 +76,23 @@ import { hoyLima } from "@/lib/fechas-lima";
 // MUESTRA. Editar un producto ya existente sigue en `ProductoForm`
 // (`/productos/[id]/editar`): la matriz es para crear varias variantes de
 // una sola vez, no tiene sentido para una que ya existe.
-export default async function ProductosPage({ searchParams }: { searchParams: Promise<ParamsProductosListado> }) {
+//
+// 2026-11-10 (ADR-0628, act.): la página se dibuja en dos tiempos. Felipe: «cuando le doy clic a Productos desde otro módulo no me deja
+// ingresar y después de unos segundos recién entra». La lista hace 16 lecturas (~2,6 s medidos en producción) y esta carpeta no tiene
+// `loading.tsx`: al llegar desde una pantalla de Catálogo (Marcas, Categorías…) o con «Volver» desde una ficha, Next no tenía nada que
+// mostrar y dejaba la pantalla anterior quieta hasta el final. Ahora la página responde al instante con el esqueleto y la lista entra
+// cuando están sus datos. El límite va AQUÍ y no en un `productos/loading.tsx`: ese envolvería también la ranura `@modal`, y abrir el
+// historial de una prenda dibujaría un esqueleto de pantalla entera debajo de la lista. Cambiar un filtro no lo muestra: React deja la
+// lista a la vista mientras llega la nueva (el buscador tiene su «Buscando…»).
+export default function ProductosPage({ searchParams }: { searchParams: Promise<ParamsProductosListado> }) {
+  return (
+    <Suspense fallback={<EsperaPantalla />}>
+      <ListaDeProductos searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function ListaDeProductos({ searchParams }: { searchParams: Promise<ParamsProductosListado> }) {
   const persona = await exigirModulo("productos"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   const params = await searchParams;
   // «Hay en …» y «Sin stock en …» miran la sede elegida arriba; en CAYLA Global no hay una (ADR-0275) y no se aplican.
@@ -111,22 +125,17 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   const editaCatalogo = puede(persona, "editarCatalogo");
   // «Eliminar» en la tarjeta y en la tabla (ADR-0252, act. 2026-10-03): quien edita el catálogo, igual que la base
   // (`fn_puede_editar_catalogo`). Antes, solo Líder: la cuenta de almacén creaba productos y no podía deshacer un error.
-  // ADR-0246 + ADR-0161: el aviso «N prendas sin temporada · Completar» lleva a Atributos ▸ Temporadas, que se abre con el
-  // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
-  // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
-  const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar, recibidoPorCrear] = await Promise.all([
+  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, resTallas, temporadas, porRevisar, recibidoPorCrear, posiblesDuplicados] = await Promise.all([
     listarProductos(filtros, pagina),
     // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
     getFacetasProductos(filtros),
     supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
-    // Con su ficha (descripción y «combina con», ADR-0316): la vista rápida la lee bajo la foto del color que se mira (Felipe 2026-10-10).
-    supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, descripcion, combina_con").eq("activo", true).order("nombre"),
+    // La carta entera, también la desactivada: un color apagado sigue siendo el acompañante de una mezcla y su punto se parte con él
+    // (ADR-0643). El filtro de colores ofrece solo los activos.
+    supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, componentes, activo").order("nombre"),
     // Marcas y proveedores activos, para los filtros (ADR-0109).
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
-    // ADR-0246: solo a quien puede completarlas en la pestaña. `null` si no se pudo saber (SQL sin pegar): no se muestra nada.
-    completaTemporadas ? getSinTemporadaResumen() : Promise.resolve(null),
     supabase.from("tallas").select("id, valor").eq("activo", true),
     // La lista cerrada de temporadas, para su filtro. `null` si no se pudo: la píldora no aparece, el resto sigue.
     getTemporadasCatalogo().catch(() => null),
@@ -135,6 +144,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     editaCatalogo ? getPorRevisarResumen() : Promise.resolve(null),
     // ADR-0393 (decisión 4): lo nuevo que llegó a la sede y todavía no existe en el catálogo («por crear»). `null` si la base no lo sabe.
     getPendientesDeLaSede(persona.ubicacionId),
+    // ADR-0650 (decisión 3): las fichas que parecen la misma prenda, para fusionarlas. Solo a quien edita el catálogo; `null` si no se pudo.
+    editaCatalogo ? getPosiblesDuplicados() : Promise.resolve(null),
   ]);
   // ADR-0467 + ADR-0505: la píldora «Tienda» solo donde conviven dos empresas (Lima, Global); en Trujillo no hay nada que elegir.
   const empresas = opcionesDeEmpresa(empresasAqui);
@@ -154,36 +165,27 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // filtros puestos). Sin conteos, no se avisa.
   const descontinuadas =
     resultado.totalProductos === 0 && filtros.estado === "activo" ? (facetas?.facetas.estado?.descontinuado ?? 0) : 0;
-  const [existencias, preciosTiendas, catalogoSede, pisoSede, campanas] = await Promise.all([
+  const [existencias, preciosTiendas, campanas] = await Promise.all([
     getExistenciasProductos(
       resultado.productos.map((p) => p.productoId),
       persona.ubicacionId
     ),
     // «2 precios» (Felipe 2026-10-09): qué tiendas venden cada prenda a otro precio. Si no se puede leer, no hay insignia.
     getPreciosDeLasTiendas(),
-    // «Combina bien con un jean o una cartera» en la vista rápida (Felipe 2026-10-10): el catálogo entero (la copia guardada que ya
-    // leen Vender y siete pantallas) y el piso cobrable de esta sede. Secundarios: si alguno falla, la hoja no dice la frase.
-    getCatalogo().catch(() => null),
-    getDisponibleEnSede(persona.ubicacionId).catch(() => null),
     // Lo que cobra la caja HOY con su campaña (ADR-0472, Felipe 2026-10-21): la misma lectura que la etiqueta de papel. Si no responde,
     // las tarjetas muestran el precio de lista, como antes de esto: la lista no se cae por una campaña.
     campanasQueCobra(supabase, hoyLima(), resultado.productos.flatMap((p) => p.variantes.map((v) => v.varianteId))).catch(() => null),
   ]);
   const campanasHoy = campanas ? Object.fromEntries(campanas) : undefined;
-  // «Combina bien con» tampoco sugiere una prenda de CLAURE fuera de Lima (ADR-0505).
-  const tarjetasLook = catalogoSede && pisoSede ? tarjetasDesdeVariantes(soloLasDeAqui(catalogoSede, empresasAqui), (id) => cantidadCobrable(pisoSede.get(id))) : [];
   // El precio de cada prenda en CADA tienda (para «2 precios»: cuenta precios distintos, no tiendas), y el de la tienda elegida arriba
   // para el precio grande de la tarjeta y la fila (Felipe 2026-10-10: en TRU, FAL-0008 decía S/ 79.90 y la caja cobraba 69.90). En
   // CAYLA Global no hay tienda: el de la prenda.
   const preciosTienda = preciosDeTiendaPorProducto(
-    resultado.productos.map((p) => {
-      const precios = variantesQueSeVenden(p.variantes).map((v) => v.precio).filter((n) => n > 0);
-      return {
-        productoId: p.productoId,
-        varianteIds: p.variantes.map((v) => v.varianteId),
-        preciosPrenda: precios.length > 0 ? { desde: Math.min(...precios), hasta: Math.max(...precios) } : null,
-      };
-    }),
+    // Cada talla que se vende y su precio de la prenda: el precio de una tienda se arma talla por talla (una excepción por combinación, 2026-10-28).
+    resultado.productos.map((p) => ({
+      productoId: p.productoId,
+      precios: Object.fromEntries(variantesQueSeVenden(p.variantes).filter((v) => v.precio > 0).map((v) => [v.varianteId, v.precio])),
+    })),
     preciosTiendas.porSede,
     preciosTiendas.nombres,
   );
@@ -194,30 +196,25 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // Cada producto lleva el prefijo y la familia de su categoría (de la misma lectura de arriba, sin otra consulta): de ahí sale el
   // ícono de su miniatura cuando no tiene foto (ADR-0333). Una categoría desactivada no está en la lectura: esa prenda dibuja la percha.
   const categoriaPorId = new Map(categoriasLeidas.map((c) => [c.id, c] as const));
+  const coloresLeidos = exigir(colores, "los colores");
+  const tonosPorNombre = tonosDeLasMezclas(coloresLeidos, "nombre");
   // Y la insignia de su empresa donde conviven dos (ADR-0505): «CLAURE» en Lima y en Global; nada en Trujillo ni para CAYLA.
   const productos = resultado.productos.map((p) => {
     const c = p.categoriaId ? categoriaPorId.get(p.categoriaId) : undefined;
     const empresa = insigniaDeEmpresa(p.empresaId, empresasAqui);
-    return { ...p, ...(c ? { categoriaPrefijo: c.prefijo, categoriaFamilia: c.familia } : {}), empresa };
+    // Una mezcla («Hueso con azul») lleva sus tonos: la grilla, la tabla y la vista rápida parten su punto (ADR-0643).
+    const variantes = p.variantes.map((v) => (v.color && tonosPorNombre[v.color] ? { ...v, colorTonos: tonosPorNombre[v.color] } : v));
+    return { ...p, variantes, ...(c ? { categoriaPrefijo: c.prefijo, categoriaFamilia: c.familia } : {}), empresa };
   });
-  const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex, familia: c.familia_color, tipo: c.tipo }));
-  const fichasDeColor: ColorConFicha[] = exigir(colores, "los colores").map((c) => ({
-    codigo: c.codigo,
-    nombre: c.nombre,
-    hex: c.hex,
-    familiaColor: c.familia_color ?? "",
-    tipo: c.tipo,
-    descripcion: c.descripcion ?? null,
-    combinaCon: c.combina_con ?? [],
-  }));
+  const coloresOpciones = coloresLeidos.filter((c) => c.activo).map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex, familia: c.familia_color, tipo: c.tipo, tonos: tonosPorNombre[c.nombre] ?? null }));
   // En su orden de curva (S · M · L, 28 · 30 · 32), no alfabético (L, M, S).
   const tallasOpciones = exigir(resTallas, "las tallas")
     .map((t) => ({ id: t.id, nombre: t.valor }))
     .sort((a, b) => compararTallas(a.nombre, b.nombre));
 
-  // El «!» con lo que la frase no alcanza a decir. En el celular va junto al título, porque ahí la frase se esconde (Felipe, 2026-10-09).
+  // Lo que la frase no alcanza a decir: en el globo del «?», un paso más abajo (ronda 18 de /unificar, 2026-10-30).
   const ayudaProductos = (
-    <Ayuda titulo="Productos">
+    <>
       <span className="block">
         Aquí está todo el catálogo. Desde aquí creas una prenda nueva, corriges sus datos, la descontinúas o imprimes sus etiquetas.
       </span>
@@ -229,7 +226,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         </Link>
         .
       </span>
-    </Ayuda>
+    </>
   );
 
   return (
@@ -237,22 +234,10 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       {/* La cabecera de Ventas e Inventario (ADR-0220), pedida por Felipe para Productos el 2026-09-28 (ADR-0254). */}
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
-        titulo={
-          <>
-            Productos
-            {/* Letra y altura de la frase dentro del título: el globo no hereda la serif de 36 px. */}
-            <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal sm:hidden">{ayudaProductos}</span>
-          </>
-        }
-        subtitulo={
-          // Una frase corta y el «!» con el resto (Felipe, 2026-09-29): el párrafo de cinco líneas de antes explicaba cada cifra
-          // de la pantalla y nadie lo leía completo. Lo mismo hacen Marcas, Categorías y Atributos.
-          <>
-            {/* En el celular la frase se esconde (Felipe, 2026-10-09: las prendas primero) y el «!» sube junto al título. */}
-            <span className="max-sm:hidden">Cada prenda del catálogo con sus colores, tallas, precios y cuántas hay en tu sede.</span>
-            <span className="max-sm:hidden">{ayudaProductos}</span>
-          </>
-        }
+        titulo="Productos"
+        subtitulo="Cada prenda del catálogo con sus colores, tallas, precios y cuántas hay en tu sede."
+        ayuda={ayudaProductos}
+        accionesLlenan
         acciones={
           <>
             {/* Grilla o Tabla muestran el mismo catálogo de otra forma: el segmento de modo del sistema, con su icono y su
@@ -270,15 +255,57 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             />
             {/* Rótulos de anaquel (ADR-0366) a la vista sin marcar nada (Felipe, 2026-10-09: «no encuentro el botón»): abre su buscador
                 y «Volver» regresa a esta misma vista. Con prendas marcadas, la barra de abajo los lleva ya elegidos. */}
-            {/* En el celular las tres acciones van en UNA fila (2026-10-09): Grilla/Tabla y Rótulos quedan en su ícono, con la
-                palabra para el lector de pantalla y al pasar el mouse; «Nuevo producto» conserva la suya. */}
-            <BotonEnlace href={urlRotulos([], { productos: hrefConVista(vista) }) ?? "/rotulos"} peso="fantasma" title="Rótulos" className="max-sm:!px-3" data-guia="productos.rotulos">
+            {/* En el celular todas las acciones van en UNA fila de íconos (2026-10-09; desde el 2026-11-17 también «Nuevo producto»,
+                Felipe): cada una conserva su palabra para el lector de pantalla, al pasar el mouse y desde 640 px. «Nuevo producto» parte
+                de 44 px, como los demás, y se estira hasta el margen con lo que sobre en cada teléfono (`max-sm:grow` + `accionesLlenan`):
+                4 px en uno de 350, 29 en uno de 375, 84 en uno de 430. Con un ancho fijo de 58 px se caía solo a otra fila a 350 px. */}
+            <BotonEnlace href={urlRotulos([], { productos: hrefConVista(vista) }) ?? "/rotulos"} peso="fantasma" title="Rótulos" className="max-sm:min-w-11 max-sm:!px-3" data-guia="productos.rotulos">
               <SignpostBig aria-hidden className="h-4 w-4" />
               <span className="max-sm:sr-only">Rótulos</span>
             </BotonEnlace>
+            {/* ADR-0641: las prendas cuyo precio conviene mirar, con su costo y sus parecidas; la IA propone, la persona aplica. */}
+            {editaCatalogo && veCostoDePrendaDe(persona) && (
+              <BotonEnlace href="/productos/revisar-precios" peso="fantasma" title="Revisar precios" className="max-sm:min-w-11 max-sm:!px-3" data-guia="productos.revisar-precios">
+                <BadgePercent aria-hidden className="h-4 w-4" />
+                <span className="max-sm:sr-only">Revisar precios</span>
+              </BotonEnlace>
+            )}
+            {/* Lo pendiente del catálogo (Felipe 2026-11-17): un botón con su número y su latido por cada cosa, no una tarjeta de
+                aviso bajo la cabecera. Cada uno desaparece solo cuando no queda nada. */}
+            {/* ADR-0371: una prenda que se creó en un conteo o desde el Taller espera que quien edita el catálogo la apruebe o la
+                rechace; mientras tanto se puede vender. Vive aquí y no en la ficha (Felipe 2026-10-02). */}
+            {porRevisar !== null && porRevisar > 0 && (
+              <PendienteDeCabecera
+                guia="productos.por-revisar"
+                icono={<ClipboardCheck aria-hidden className="h-4 w-4" />}
+                palabra="Por revisar"
+                titulo={porRevisar === 1 ? "1 prenda por revisar" : `${porRevisar.toLocaleString("es-PE")} prendas por revisar`}
+                n={porRevisar}
+                href="/productos/por-revisar"
+              />
+            )}
+            {/* Las fichas que parecen repetidas (ADR-0650). */}
+            {posiblesDuplicados && posiblesDuplicados.length > 0 && <PosiblesDuplicados pares={posiblesDuplicados} />}
+            {/* ADR-0393 (decisión 4): lo que llegó y se contó como «nuevo» espera su ficha. Se crea desde Recibir («Crear ahora»),
+                con las tallas y colores que llegaron: así la prenda nace con su stock contado. */}
+            {recibidoPorCrear && recibidoPorCrear.porCrear > 0 && (
+              <PendienteDeCabecera
+                guia="productos.por-crear"
+                icono={<PackagePlus aria-hidden className="h-4 w-4" />}
+                palabra="Por crear"
+                titulo={
+                  recibidoPorCrear.porCrear === 1
+                    ? "1 prenda recibida por crear: se crea desde Recibir"
+                    : `${recibidoPorCrear.porCrear.toLocaleString("es-PE")} prendas recibidas por crear: se crean desde Recibir`
+                }
+                n={recibidoPorCrear.porCrear}
+                href="/recibir"
+              />
+            )}
             {editaCatalogo && (
-              <BotonEnlace href="/productos/nuevo" peso="primario" data-guia="productos.nuevo">
-                + Nuevo producto
+              <BotonEnlace href="/productos/nuevo" peso="primario" title="Nuevo producto" className="max-sm:min-w-11 max-sm:grow max-sm:!px-3" data-guia="productos.nuevo">
+                <Plus aria-hidden className="h-3.5 w-3.5 max-sm:h-4 max-sm:w-4" />
+                <span className="max-sm:sr-only">Nuevo producto</span>
               </BotonEnlace>
             )}
           </>
@@ -286,65 +313,9 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       />
 
 
-      {porRevisar !== null && porRevisar > 0 && (
-        // ADR-0371: una prenda que se creó en un conteo o desde el Taller espera que quien edita el catálogo la apruebe o la rechace. Vive
-        // aquí y no en la ficha: Felipe quitó el aviso de Editar producto el 2026-10-02 («no me sirve»). No es una tarjeta de cifra porque
-        // esta pantalla no tiene fila de cifras; es un aviso que desaparece solo cuando no queda nada.
-        <Aviso
-          guia="productos.por-revisar"
-          tono="atencion"
-          titulo={porRevisar === 1 ? "1 prenda por revisar" : `${porRevisar.toLocaleString("es-PE")} prendas por revisar`}
-          accion={
-            <Link href="/productos/por-revisar" className="btn-cayla btn-enlace text-[13px]">
-              Revisar
-            </Link>
-          }
-        >
-          La propusieron en un conteo o desde el Taller. Mientras tanto se pueden vender.
-        </Aviso>
-      )}
-
-      {recibidoPorCrear && recibidoPorCrear.porCrear > 0 && (
-        // ADR-0393 (decisión 4): lo que llegó y se contó como «nuevo» espera su ficha. Se crea desde Recibir («Crear ahora»), con las
-        // tallas y colores que llegaron: así la prenda nace con su stock contado.
-        <Aviso
-          guia="productos.por-crear"
-          tono="info"
-          titulo={recibidoPorCrear.porCrear === 1 ? "1 prenda recibida por crear" : `${recibidoPorCrear.porCrear.toLocaleString("es-PE")} prendas recibidas por crear`}
-          accion={
-            <Link href="/recibir" className="btn-cayla btn-enlace text-[13px]">
-              Crear desde Recibir
-            </Link>
-          }
-        >
-          Llegaron a {persona.ubicacionEtiqueta} y se contaron como nuevas: están en el almacén, pero no se pueden vender hasta crearlas.
-        </Aviso>
-      )}
-
-      {sinTemporada && sinTemporada.prendas > 0 && (
-        // ADR-0246: discreto (nota en hueso, no borde rojo): es trabajo de carga, no algo del mostrador. El porqué va
-        // plegado; «Completar» queda fuera del <summary> para no anidar un enlace dentro de un botón.
-        <div data-guia="productos.sin-temporada" className="nota-cayla flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-          <details className="group min-w-0 flex-1">
-            <summary className="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
-              <strong>
-                {sinTemporada.prendas.toLocaleString("es-PE")} {sinTemporada.prendas === 1 ? "prenda sin temporada" : "prendas sin temporada"}
-              </strong>
-              <ChevronDown aria-hidden className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" />
-            </summary>
-            <p className="mt-1">
-              Sin temporada, Frescura no las compara con las de su misma estación ni avisa cuando pasan a temporada pasada. En Atributos ▸
-              Temporadas se completan de a varias; y si le pones temporada a su categoría, la heredan todas las que no tienen la suya.
-            </p>
-          </details>
-          {/* `desde=productos`: la vista de destino muestra «← Productos» (Atributos está en el menú y no la lleva siempre). */}
-          <Link href="/productos/atributos?tipo=temporadas&vista=completar&desde=productos" className="btn-cayla btn-enlace text-[13px]">
-            Completar
-          </Link>
-        </div>
-      )}
-
-
+      {/* Las prendas sin temporada ya no tienen aviso propio (Felipe 2026-11-13: ocupaba mucho para lo que decía): se filtran
+          con «Por completar ▸ Sin temporada», junto a lo demás que le falta a la ficha. Se completan de a varias en Atributos ▸
+          Temporadas ▸ Por completar. */}
       <FiltrosProductos
         categorias={categoriasOpciones}
         colores={coloresOpciones}
@@ -354,6 +325,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         totalProductos={resultado.totalProductos}
         limitesPrecio={limitesRedondeados(facetas?.precio ?? null)}
         facetas={facetas}
+        veCosto={puede(persona, "verDineroCompras")}
         panelInicial={panelFiltros}
         sede={enSede ? persona.ubicacionEtiqueta : null}
         temporadas={temporadas ? temporadas.lista.map((t) => ({ id: t.clave, nombre: t.nombre })) : null}
@@ -382,8 +354,6 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             preciosTienda={preciosTienda}
             preciosAqui={preciosAqui}
             campanasHoy={campanasHoy}
-            colores={fichasDeColor}
-            tarjetasLook={tarjetasLook}
           />
         ) : (
           <ProductosTabla

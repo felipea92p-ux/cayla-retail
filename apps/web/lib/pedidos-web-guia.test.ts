@@ -18,12 +18,12 @@ const DECISIONES: (DecisionLinea | null)[] = [
   null,
   { tipo: "reservar", ubicacionId: "tru", lugar: "almacen" },
   { tipo: "reservar", ubicacionId: "lim", lugar: null },
-  { tipo: "por_conseguir", fecha: "" },
-  { tipo: "por_conseguir", fecha: sumarDias(HOY, -1) },
-  { tipo: "por_conseguir", fecha: HOY },
-  { tipo: "por_conseguir", fecha: sumarDias(HOY, 7) },
-  { tipo: "por_conseguir", fecha: sumarDias(HOY, 60) },
-  { tipo: "por_conseguir", fecha: sumarDias(HOY, 61) },
+  { tipo: "por_conseguir", via: "compra", fecha: "" },
+  { tipo: "por_conseguir", via: "compra", fecha: sumarDias(HOY, -1) },
+  { tipo: "por_conseguir", via: "compra", fecha: HOY },
+  { tipo: "por_conseguir", via: "compra", fecha: sumarDias(HOY, 7) },
+  { tipo: "por_conseguir", via: "compra", fecha: sumarDias(HOY, 60) },
+  { tipo: "por_conseguir", via: "compra", fecha: sumarDias(HOY, 61) },
   { tipo: "quitar" },
 ];
 

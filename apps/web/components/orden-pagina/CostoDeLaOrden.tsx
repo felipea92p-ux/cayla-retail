@@ -50,6 +50,7 @@ export function CostoDeLaOrden({ datos }: { datos: OrdenPagina }) {
           </span>
         </div>
       </Tabla>
+      {costo.sinCosto && <p className="op-sub mt-2">Todavía sin tela ni avíos declarados: el costo no se conoce todavía, no es cero.</p>}
     </section>
   );
 }

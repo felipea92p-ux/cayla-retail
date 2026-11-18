@@ -9,6 +9,8 @@ import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Vacio } from "@/components/ui/Vacio";
+import { ProcesosDelTaller } from "@/components/proveedores-produccion/ProcesosDelTaller";
+import { FASES, type FaseDelCatalogo } from "@/lib/orden-fases-reglas";
 import { nombreDeFase, serviciosParaTarifar, tarifasPorServicio, textoFijo, textoMinimo, textoTarifa, textoVigencia, type TarifaDeServicio } from "@/lib/tarifas-servicios-reglas";
 import type { ProveedorProduccion } from "@/lib/proveedores-produccion-reglas";
 
@@ -40,6 +42,8 @@ export function ServiciosYTarifas({
   onNueva,
   onCambiar,
   onAgregarServicio,
+  procesos = FASES,
+  onProceso,
 }: {
   /** `null`: la base no la pudo leer (distinto de «no hay tarifas»). */
   tarifas: TarifaDeServicio[] | null;
@@ -49,6 +53,10 @@ export function ServiciosYTarifas({
   onNueva: (proveedorId?: string) => void;
   onCambiar: (t: TarifaDeServicio) => void;
   onAgregarServicio: () => void;
+  /** El catálogo de procesos (ADR-0570, actividad 5): sus nombres y la sección «Procesos del Taller». */
+  procesos?: ReadonlyArray<FaseDelCatalogo>;
+  /** Abre la hoja de un proceso (`null` = uno nuevo). Sin ella, la sección no se dibuja. */
+  onProceso?: (p: FaseDelCatalogo | null) => void;
 }) {
   if (tarifas === null) {
     return (
@@ -59,7 +67,7 @@ export function ServiciosYTarifas({
   }
 
   const servicios = serviciosParaTarifar(proveedores);
-  const filas = tarifasPorServicio(tarifas, servicios);
+  const filas = tarifasPorServicio(tarifas, servicios, procesos);
   const conTarifa = filas.filter((f) => f.tarifas.length > 0 && f.activo).length;
   const sinTarifa = filas.filter((f) => f.tarifas.length === 0).length;
 
@@ -95,7 +103,7 @@ export function ServiciosYTarifas({
               </Boton>
             }
           >
-            Para ponerle precio a quien corta, cose, borda o lava fuera del Taller, primero agrégalo en Proveedores como «Servicio de afuera».
+            Primero agrégalo en Proveedores como «Servicio de afuera».
           </Vacio>
         </div>
       ) : (
@@ -104,7 +112,7 @@ export function ServiciosYTarifas({
           {filas.flatMap((s) =>
             s.tarifas.length === 0
               ? [
-                  <div key={s.proveedorId} role="row" className={fila(PLANTILLA, "text-[13px]")}>
+                  <div key={s.proveedorId} role="row" className={fila(PLANTILLA, "text-sm")}>
                     <span className={celda("izq", "text-tinta")} title={s.nombre}>{s.nombre}</span>
                     <span className="col-span-full @min-[1056px]:col-span-5">
                       <Chip tono="ambar">Sin tarifa</Chip>
@@ -117,7 +125,7 @@ export function ServiciosYTarifas({
                   </div>,
                 ]
               : s.tarifas.map((t, i) => (
-                  <div key={`${t.proveedorId}-${t.fase}`} role="row" className={fila(PLANTILLA, "text-[13px]")}>
+                  <div key={`${t.proveedorId}-${t.fase}`} role="row" className={fila(PLANTILLA, "text-sm")}>
                     {/* Ancho: el nombre va solo en la primera fase del servicio (las demás lo traen para el lector). Apilada, cada fila lleva su nombre: ya no hay una columna que lo sostenga. */}
                     <span className={celda("izq", "text-tinta")} title={s.nombre}>
                       <span className={i === 0 ? undefined : "@min-[1056px]:sr-only"}>{s.nombre}</span>
@@ -125,7 +133,7 @@ export function ServiciosYTarifas({
                     </span>
                     {/* Ancho: `contents`, y cada dato es una columna de la fila. Apilada: una línea de datos bajo el nombre, que baja sola si no cabe. */}
                     <div className="col-span-full flex flex-wrap gap-x-5 gap-y-0.5 @min-[1056px]:contents">
-                      <span className={celda("izq", "text-tinta")}>{nombreDeFase(t.fase)}</span>
+                      <span className={celda("izq", "text-tinta")}>{nombreDeFase(t.fase, procesos)}</span>
                       <span className={celda("der", "text-tinta")}>{textoTarifa(t)}</span>
                       <span className={celda("izq", "text-tinta/75")}>{textoMinimo(t)}</span>
                       <span className={celda("izq", "text-tinta/75")}>{textoFijo(t) ?? <span className="text-tinta/70">Sin fijo</span>}</span>
@@ -144,6 +152,8 @@ export function ServiciosYTarifas({
           )}
         </Tabla>
       )}
+
+      {onProceso && <ProcesosDelTaller procesos={procesos} onNuevo={() => onProceso(null)} onCambiar={onProceso} />}
 
       <aside className="nota-cayla space-y-2">
         <p>

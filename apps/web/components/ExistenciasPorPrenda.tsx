@@ -4,6 +4,7 @@ import { AlertTriangle, ChevronRight } from "lucide-react";
 import { Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { Casilla } from "@/components/ui/Casilla";
+import { Calculando } from "@/components/Esqueleto";
 import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
@@ -66,7 +67,7 @@ export function CurvaTallas({
               estado === "sin_stock" ? CLASE_TALLA.sin_stock : CLASE_TALLA.normal
             }`}
           >
-            <span className="text-[11px] font-semibold opacity-75 sm:font-normal">{f.talla ?? "Única"}</span>
+            <span className="text-sm font-semibold opacity-75 sm:font-normal">{f.talla ?? "Única"}</span>
             <span className={estado === "sin_stock" ? "line-through" : ""}>{cifra}</span>
           </button>
         );
@@ -76,19 +77,21 @@ export function CurvaTallas({
 }
 
 /** Lo que la prenda pide hoy, en una línea y SIN botón: el diagnóstico (`queHacerPrenda`), o «Mantener». */
-function QueHacer({ prenda, separa }: { prenda: PrendaAgrupada<FilaExistencias>; separa: boolean }) {
-  const q = separa ? queHacerPrenda(prenda.tallas) : null;
+function QueHacer({ prenda, separa, calculando }: { prenda: PrendaAgrupada<FilaExistencias>; separa: boolean; calculando: boolean }) {
+  const q = separa && !calculando ? queHacerPrenda(prenda.tallas) : null;
   return (
     <span className="flex flex-wrap items-center gap-1.5">
+      {/* El plan del piso viene en camino (Existencias en dos tiempos): el lugar del chip, no un «Mantener» que no se sabe. */}
+      {separa && calculando && <Calculando />}
       {/* Las mismas palabras y el mismo tono del filtro «Hoy» y de la tarjeta (`lib/existencias-hoy.ts`). */}
       {q?.tipo === "por_colgar" && <ChipAlerta titulo={AYUDA_HOY.por_colgar}>{textoHoyDePrenda(q.tipo, q.n)}</ChipAlerta>}
       {q?.tipo === "sin_stock_atras" && (
-        <Chip tono={TONO_HOY[q.tipo]} className="text-xs">
+        <Chip tono={TONO_HOY[q.tipo]} className="text-sm">
           <span title={AYUDA_HOY[q.tipo]}>{textoHoyDePrenda(q.tipo, q.n)}</span>
         </Chip>
       )}
       {q?.tipo === "en_pausa" && (
-        <Chip tono="pizarra" className="text-xs">
+        <Chip tono="pizarra" className="text-sm">
           <span title={AYUDA_HOY.en_pausa}>{textoHoyDePrenda(q.tipo, q.n)}</span>
         </Chip>
       )}
@@ -98,6 +101,8 @@ function QueHacer({ prenda, separa }: { prenda: PrendaAgrupada<FilaExistencias>;
     </span>
   );
 }
+
+const SIN_CALCULAR: ReadonlySet<string> = new Set();
 
 export function ExistenciasPorPrenda({
   prendas,
@@ -109,6 +114,7 @@ export function ExistenciasPorPrenda({
   onAlternarTodas,
   abiertaClave,
   onAbrir,
+  calculando = SIN_CALCULAR,
 }: {
   prendas: PrendaAgrupada<FilaExistencias>[];
   separa: boolean;
@@ -123,11 +129,20 @@ export function ExistenciasPorPrenda({
   abiertaClave: string | null;
   /** Abre el cajón de la prenda; con `varianteId`, parado en esa talla. */
   onAbrir: (prenda: PrendaAgrupada<FilaExistencias>, varianteId?: string) => void;
+  /** Las tallas cuya decisión de «Hoy» viene en camino (`aplicarPlan`): su prenda dice «calculando» en «Qué hacer». */
+  calculando?: ReadonlySet<string>;
 }) {
   // Casilla | Prenda | Tallas | Piso | Almacén | Qué hacer | ›. Donde no se separa piso y almacén (Taller), Disponible.
+  // Las columnas las decide el ancho de la TABLA (`.tabla-cayla` es contenedor), no el de la ventana: con el menú abierto, a 1024 px la
+  // tabla mide ~690 y a 1280 entre ~930 (con la barra de desplazamiento a la vista: Windows, o un Mac con mouse) y ~946. La más ancha
+  // (con casillas) pide 934 con huecos de 16 px y 910 con huecos de 12; Taller, 790. Por eso, como en «Una fila por talla»
+  // (InventarioPanel), el hueco baja a 12 px en la franja justa (`@min-[912px]:gap-x-3`) y vuelve a 16 desde 944, donde cabe el diseño
+  // aprobado. Bajo 912, encabezado y filas pasan juntos a la tarjeta del celular, en vez de quedar filas en columnas sin sus títulos.
+  // En px y no en rem: Tailwind ordena los `@min-[…]` por unidad, y los dos del hueco tienen que salir en este orden.
+  const hueco = "@min-[912px]:gap-x-3 @min-[944px]:gap-x-4";
   const plantilla = separa
-    ? `${conSeleccion ? "sm:grid-cols-[1.125rem_minmax(11rem,25fr)_minmax(15rem,38fr)_4.25rem_4.25rem_minmax(13rem,24fr)_1.25rem]" : "sm:grid-cols-[minmax(11rem,25fr)_minmax(15rem,38fr)_4.25rem_4.25rem_minmax(13rem,24fr)_1.25rem]"}`
-    : `${conSeleccion ? "sm:grid-cols-[1.125rem_minmax(11rem,1fr)_minmax(15rem,1.5fr)_5.5rem_minmax(8rem,0.8fr)_1.25rem]" : "sm:grid-cols-[minmax(11rem,1fr)_minmax(15rem,1.5fr)_5.5rem_minmax(8rem,0.8fr)_1.25rem]"}`;
+    ? `${hueco} ${conSeleccion ? "@min-[912px]:grid-cols-[1.125rem_minmax(11rem,25fr)_minmax(15rem,38fr)_4.25rem_4.25rem_minmax(13rem,24fr)_1.25rem]" : "@min-[912px]:grid-cols-[minmax(11rem,25fr)_minmax(15rem,38fr)_4.25rem_4.25rem_minmax(13rem,24fr)_1.25rem]"}`
+    : `${hueco} ${conSeleccion ? "@min-[912px]:grid-cols-[1.125rem_minmax(11rem,1fr)_minmax(15rem,1.5fr)_5.5rem_minmax(8rem,0.8fr)_1.25rem]" : "@min-[912px]:grid-cols-[minmax(11rem,1fr)_minmax(15rem,1.5fr)_5.5rem_minmax(8rem,0.8fr)_1.25rem]"}`;
   const marcadasEnPagina = prendas.filter((p) => p.tallas.every((f) => seleccion.has(f.varianteId))).length;
   const algunaMarcada = prendas.some((p) => p.tallas.some((f) => seleccion.has(f.varianteId)));
   const columnas = [
@@ -148,12 +163,12 @@ export function ExistenciasPorPrenda({
     { titulo: "Prenda" },
     { titulo: separa ? "Disponibilidad por talla (piso · almacén)" : "Disponibilidad por talla" },
     ...(separa ? [{ titulo: "Piso", alinear: "centro" as const }, { titulo: "Almacén", alinear: "centro" as const }] : [{ titulo: "Disponible", alinear: "centro" as const }]),
-    { titulo: separa ? <span className="sm:pl-10">Qué hacer</span> : "" },
+    { titulo: separa ? <span className="@min-[912px]:pl-10">Qué hacer</span> : "" },
     { titulo: "" },
   ];
   return (
     <>
-      <Encabezado plantilla={plantilla} columnas={columnas} grande />
+      <Encabezado plantilla={plantilla} columnas={columnas} visible="hidden @min-[912px]:grid" grande />
       {prendas.map((p) => {
         const marcada = p.tallas.some((f) => seleccion.has(f.varianteId));
         const todasMarcadas = p.tallas.every((f) => seleccion.has(f.varianteId));
@@ -177,13 +192,13 @@ export function ExistenciasPorPrenda({
                 onAbrir(p);
               }
             }}
-            className={`grid fila-cayla cursor-pointer gap-x-4 gap-y-2.5 px-5 py-1.5 transition-colors sm:items-center ${plantilla} ${
+            className={`grid fila-cayla cursor-pointer gap-x-4 gap-y-2.5 px-5 py-1.5 transition-colors @min-[912px]:items-center ${plantilla} ${
               abierta ? "bg-hueso/80" : marcada ? "bg-sand/35" : "hover:bg-sand/25 focus-visible:bg-sand/25"
             }`}
           >
             {/* Celular: tarjeta (casilla + foto + nombre, con piso y almacén a la derecha; debajo la curva y el diagnóstico).
-                Escritorio: `sm:contents` devuelve cada pieza a su columna. */}
-            <div className="flex min-w-0 items-center gap-3 sm:contents">
+                Tabla ancha: `@min-[912px]:contents` devuelve cada pieza a su columna. */}
+            <div className="flex min-w-0 items-center gap-3 @min-[912px]:contents">
               {conSeleccion && (
                 <span className="flex items-center">
                   <Casilla
@@ -198,17 +213,17 @@ export function ExistenciasPorPrenda({
               <span className="flex min-w-0 flex-1 items-center gap-3.5">
                 <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} tamano="md" {...categoriaDe(p)} />
                 <span className="min-w-0">
-                  <span className="block truncate text-[13.5px] font-semibold leading-snug text-tinta">
+                  <span className="block truncate text-[15px] font-semibold leading-snug text-tinta">
                     {p.referencia}
                     {mostrarMarca && p.marca && <span className="font-normal text-taupe"> · {p.marca}</span>}
                   </span>
-                  <span className="mt-0.5 flex items-center gap-2 text-xs text-taupe">
-                    {p.color ? <MuestraColor nombre={p.color} hex={p.colorHex} compacta /> : <span>Sin color</span>}
-                    <span className="hidden whitespace-nowrap sm:inline">
+                  <span className="mt-0.5 flex items-center gap-2 text-sm text-taupe">
+                    {p.color ? <MuestraColor nombre={p.color} hex={p.colorHex} tonos={p.colorTonos} compacta /> : <span>Sin color</span>}
+                    <span className="hidden whitespace-nowrap @min-[912px]:inline">
                       {p.tallas.length} {p.tallas.length === 1 ? "talla" : "tallas"}
                     </span>
                     {p.danado > 0 && (
-                      <Chip tono="rojo" versalitas={false} className="text-xs">
+                      <Chip tono="rojo" versalitas={false} className="text-sm">
                         <AlertTriangle aria-hidden className="h-3 w-3" strokeWidth={2} />
                         {p.danado} {p.danado === 1 ? "dañada" : "dañadas"}
                       </Chip>
@@ -217,7 +232,7 @@ export function ExistenciasPorPrenda({
                 </span>
               </span>
               {/* Solo celular: las dos cifras de la prenda, a la derecha del nombre. */}
-              <span className="shrink-0 text-right text-xs leading-snug text-taupe sm:hidden">
+              <span className="shrink-0 text-right text-sm leading-snug text-taupe @min-[912px]:hidden">
                 {separa ? (
                   <>
                     Piso <b className="text-sm font-semibold tabular-nums text-tinta">{p.piso ?? 0}</b>
@@ -238,16 +253,16 @@ export function ExistenciasPorPrenda({
             </span>
             {separa ? (
               <>
-                <span className={celda("centro", "hidden text-sm tabular-nums sm:block")}>{p.piso ?? 0}</span>
-                <span className={celda("centro", "hidden text-sm tabular-nums sm:block")}>{p.almacen ?? 0}</span>
+                <span className={celda("centro", "hidden text-sm tabular-nums @min-[912px]:block")}>{p.piso ?? 0}</span>
+                <span className={celda("centro", "hidden text-sm tabular-nums @min-[912px]:block")}>{p.almacen ?? 0}</span>
               </>
             ) : (
-              <span className={celda("centro", "hidden text-sm font-semibold tabular-nums sm:block")}>{p.disponible}</span>
+              <span className={celda("centro", "hidden text-sm font-semibold tabular-nums @min-[912px]:block")}>{p.disponible}</span>
             )}
-            <span className="min-w-0 sm:pl-10">
-              <QueHacer prenda={p} separa={separa} />
+            <span className="min-w-0 @min-[912px]:pl-10">
+              <QueHacer prenda={p} separa={separa} calculando={p.tallas.some((f) => calculando.has(f.varianteId))} />
             </span>
-            <span aria-hidden className="hidden justify-center text-taupe/60 sm:flex">
+            <span aria-hidden className="hidden justify-center text-taupe/60 @min-[912px]:flex">
               <ChevronRight className="h-4 w-4" />
             </span>
           </div>

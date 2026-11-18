@@ -9,14 +9,15 @@ import { CAMPOS_CUENTA, estadoNombre, type EstadoCuenta } from "./cuentas";
 /** La promesa del panel del Club: la primera línea y la que va en cursiva. */
 export const PROMESA_CLUB = { ceja: "Club CAYLA", linea: "Separa hoy,", cursiva: "recoge en tu tienda." } as const;
 
-export type Beneficio = { icono: "tienda" | "bolsa" | "regalo"; titulo: string; texto: string };
+export type Beneficio = { icono: "corazon" | "bolsa" | "regalo"; titulo: string; texto: string };
 
 /**
- * Los tres beneficios del panel: lo que la tienda ya hace (la ficha dice cuánto hay de cada talla en cada tienda; se separa sin pagar
+ * Los tres beneficios del panel: lo que la cuenta da y la tienda ya hace (guardar favoritos y outfits; se separa sin pagar
  * en la web y se recoge en la tienda; el Club da puntos en cada compra, que se cambian por cupones, y un regalo de puntos en el cumpleaños).
  */
 export const BENEFICIOS_DE_ENTRADA: readonly Beneficio[] = [
-  { icono: "tienda", titulo: "Mira cuánto hay en cada tienda", texto: "Cada talla y cada color, tienda por tienda." },
+  // «Mira cuánto hay en cada tienda» salió (rediseño Premium, 2026-11-07): cualquiera lo ve sin cuenta; los favoritos y outfits, no.
+  { icono: "corazon", titulo: "Guarda tus favoritos y outfits", texto: "Lo que te gusta queda en tu cuenta, en cualquier aparato." },
   { icono: "bolsa", titulo: "Separa sin pagar aquí", texto: "Coordinas el pago por WhatsApp y lo recoges en tu tienda." },
   { icono: "regalo", titulo: "Puntos en cada compra", texto: "Los cambias por cupones; en tu cumpleaños, más puntos." },
 ];

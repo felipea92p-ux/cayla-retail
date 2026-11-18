@@ -1,0 +1,4 @@
+## P03 · «Ingresar insumo ▸ Compra» con deuda (2026-11-02)
+- **En producción desde el 2026-11-04,** con el OK de Felipe: `20261102235000` → `20261104150022` (pegada por MCP, por eso cambia la versión). La web la llamaba desde el 2026-11-02 sin que la función existiera. Comprobado: la función existe, `authenticated` la ejecuta y `anon` no. **Sin probar:** una compra real en producción.
+- **Pendiente:** ver la hoja con «Ya la pagué» (medios de pago), a 375 px y en oscuro; una pantalla para REEMPLAZAR una nota de venta provisional (S/P) cuando llegue el papel real (hoy: anular y registrar de nuevo); regularizar los 9 lotes de compra que ya existen sin proveedor (decisión de Felipe, sin borrar nada).
+- **Camino de fondo (ADR-0570, actividad 7, «Llegó una compra»)** sigue sin construir: esta hoja es el camino corto.

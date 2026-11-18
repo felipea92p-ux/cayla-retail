@@ -133,6 +133,26 @@ export function fondoSegun(progreso: number): { escala: number; bajada: number; 
 }
 
 /**
+ * Lo de atrás con el menú abierto en el celular («A · Hoja con profundidad», Felipe 2026-11-01, maqueta
+ * docs/maquetas/cajon-menu-vidrio-2026-11/): el menú entra de costado, así que la pantalla se corre 34 px hacia la derecha, se
+ * aleja a 0,94 y su contenido se redondea 22 px. @internal La prueba mide los extremos.
+ */
+export const FONDO_DE_LADO = { escala: 0.94, corrida: 34, radio: 22 } as const;
+
+/**
+ * Cómo dibujar lo de atrás según cuánto del menú se fue (0 abierto, 1 cerrado): vuelve a su lugar al mismo ritmo que el dedo
+ * lleva el menú hacia la izquierda, igual que el velo.
+ */
+export function fondoDeLadoSegun(progreso: number): { escala: number; corrida: number; radio: number } {
+  const p = Math.min(1, Math.max(0, progreso));
+  return {
+    escala: FONDO_DE_LADO.escala + (1 - FONDO_DE_LADO.escala) * p,
+    corrida: FONDO_DE_LADO.corrida * (1 - p),
+    radio: FONDO_DE_LADO.radio * (1 - p),
+  };
+}
+
+/**
  * Deslizar a los lados en el detalle de un registro (el cajón en el celular, actividad 5): ¿el gesto es para pasar de
  * registro? `null` si todavía no se sabe; «otro» si es vertical (de la hoja o del contenido).
  */

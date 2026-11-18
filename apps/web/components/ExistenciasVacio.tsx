@@ -67,7 +67,7 @@ export function ExistenciasVacio({
                     {hrefCatalogo && (
                       <>
                         {" · "}
-                        <Link href={hrefCatalogo(producto.referencia)} prefetch={false} className="btn-enlace text-xs" aria-label={`Ver «${producto.referencia}» en Productos`}>
+                        <Link href={hrefCatalogo(producto.referencia)} prefetch={false} className="btn-enlace text-sm" aria-label={`Ver «${producto.referencia}» en Productos`}>
                           Ver en Productos
                         </Link>
                       </>

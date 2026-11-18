@@ -560,12 +560,12 @@ select 'H6 un mes cerrado nunca cuenta como «lista para cerrar» ni pide cerrar
 const CASOS_VIEJOS = `
 select retail.cerrar_periodo('2025-06-01', 'ubicacion', :'ua') as r \\gset
 select 'I1 el orden de los chequeos de una sede cerrada: los de siempre, los cuatro nuevos antes del diario, y la huella al final',
-  (select string_agg(x ->> 'clave', ',' order by i) = 'cajas,egresos,envios_con_diferencia,conteos_abiertos,sobrantes_traslado,facturas_sin_recibir,diario,huella'
+  (select string_agg(x ->> 'clave', ',' order by i) = 'cajas,egresos,envios_con_diferencia,conteos_abiertos,sobrantes_traslado,comprobantes_sin_aceptar,envios_abiertos,facturas_sin_recibir,diario,huella'
      from retail.fn_cierre_mes_estado('2025-06-01') e, jsonb_array_elements(e.chequeos) with ordinality t(x, i) where e.ubicacion_id = :'ua');
 select 'I2 los de siempre conservan su marca: cajas, egresos y diario bloquean; la huella solo avisa',
   ${frena("2025-06-01", "ua", "cajas")} and ${frena("2025-06-01", "ua", "egresos")} and ${frena("2025-06-01", "ua", "diario")} and not ${frena("2025-06-01", "ua", "huella")};
-select 'I3 «de la empresa» conserva los suyos (conciliación y diario) y ninguno nuevo',
-  (select string_agg(x ->> 'clave', ',' order by i) = 'conciliacion,diario'
+select 'I3 «de la empresa» conserva los suyos (conciliación y diario) y suma los tres avisos sin sede de la tarea 7',
+  (select string_agg(x ->> 'clave', ',' order by i) = 'conciliacion,arranque,gastos_por_revisar,papeles_por_completar,diario'
      from retail.fn_cierre_mes_estado('2025-06-01') e, jsonb_array_elements(e.chequeos) with ordinality t(x, i) where e.alcance = 'empresa');
 select 'I4 el panel (lo que lee la pantalla) trae los cuatro en cada tienda, con su n',
   (select count(*) = 4 from jsonb_array_elements(retail.fn_cierre_panel('2025-06-01') -> 'unidades') u, jsonb_array_elements(u -> 'chequeos') x
@@ -705,6 +705,26 @@ select 'K6 al reabrir la unidad, los cuatro pendientes vuelven a frenar (4 bloqu
 `;
 
 // ---- Correr todo -------------------------------------------------------------------------------------------------------------
+// L. Lo que el Cierre no miraba (tarea 7 de «Las 36»): envíos abiertos y comprobantes sin aceptar frenan desde el corte; lo demás avisa, en la empresa.
+const empresa = (mes, clave) => `(select x from retail.fn_cierre_mes_estado('${mes}') e, jsonb_array_elements(e.chequeos) x where e.alcance = 'empresa' and x ->> 'clave' = '${clave}')`;
+const CASOS_LO_QUE_FALTA = `
+insert into retail.despachos (ubicacion_destino_id, despachado_por, estado, abierto_por, abierto_en)
+  values (:'ua', pg_temp.c('felipe'), 'abierto', pg_temp.c('felipe'), '2026-10-20 12:00-05');
+insert into retail.comprobantes (ubicacion_id, venta_id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc, cliente_nombre, subtotal, igv, total, estado, entorno_transmision, created_at)
+  values (:'ua', null, 'boleta', 'B971', 1, 'dni', '44556677', 'Prueba', 100, 18, 118, 'rechazado', 'produccion', '2026-10-20 12:00-05'),
+         (:'ua', null, 'boleta', 'B971', 2, 'dni', '44556677', 'Prueba', 100, 18, 118, 'aceptado', 'produccion', '2026-10-20 12:00-05'),
+         (:'ub', null, 'boleta', 'B972', 1, 'dni', '44556677', 'Prueba', 100, 18, 118, 'pendiente', 'sandbox', '2026-10-20 12:00-05');
+select 'L1 el envío abierto cuenta en la sede que lo recibe, y en octubre solo avisa', not ${pasa(OCT, "ua", "envios_abiertos")} and ${dato(OCT, "ua", "envios_abiertos", "n")}::int = 1 and not ${frena(OCT, "ua", "envios_abiertos")};
+select 'L2 la otra sede no tiene nada', ${pasa(OCT, "ub", "envios_abiertos")};
+select 'L3 desde noviembre frena', not ${pasa("2026-11-01", "ua", "envios_abiertos")} and ${frena("2026-11-01", "ua", "envios_abiertos")};
+select 'L4 un comprobante rechazado cuenta, uno aceptado no', ${dato(OCT, "ua", "comprobantes_sin_aceptar", "n")}::int = 1 and not ${frena(OCT, "ua", "comprobantes_sin_aceptar")};
+select 'L5 uno del entorno de prueba no cuenta', ${pasa(OCT, "ub", "comprobantes_sin_aceptar")};
+select 'L6 un comprobante de otro mes no frena este', ${pasa("2026-11-01", "ua", "comprobantes_sin_aceptar")};
+select 'L7 las compras y los gastos por revisar nunca frenan, y viven en la empresa',
+  (${empresa("2026-11-01", "papeles_por_completar")} ->> 'bloquea')::boolean = false and (${empresa("2026-11-01", "gastos_por_revisar")} ->> 'bloquea')::boolean = false;
+select 'L8 el arranque avisa en la empresa', (${empresa("2026-11-01", "arranque")} ->> 'bloquea')::boolean = false and ${empresa("2026-11-01", "arranque")} is not null;
+`;
+
 const BLOQUES = [
   ["A · envios_con_diferencia: faltantes del proveedor sin resolver", CASOS_ENVIOS],
   ["B · conteos_abiertos", CASOS_CONTEOS],
@@ -720,6 +740,7 @@ const BLOQUES = [
   ["J · quién ve la cifra: sin la plata de proveedores el monto llega nulo", CASOS_PLATA],
   ["J · el filtro de los avisos guardados", CASOS_FILTRO],
   ["K · una unidad cerrada no se frena", CASOS_CERRADO],
+  ["L · lo que el Cierre no miraba", CASOS_LO_QUE_FALTA],
 ];
 
 for (const [titulo, sql] of BLOQUES) {

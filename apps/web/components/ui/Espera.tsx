@@ -1,18 +1,21 @@
 "use client";
 
-import Image from "next/image";
+import { LogoCayla } from "@/components/ui/LogoCayla";
+import { EsqueletoPantalla } from "@/components/Esqueleto";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { DETALLE_TARDA, MENSAJE_ESPERA, clasificarPeticion, claveNavegacion, type MensajeEspera } from "@/lib/espera-reglas";
 import { marcarFichas, marcarLoaderALaVista } from "@/lib/espera-estado";
 import { entradaActiva, suscribirEntrada } from "@/lib/entrada-estado";
 import { anotarEscrituraSinRespuesta } from "@/lib/refresco-tras-corte";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
+import { useTituloDelDestino } from "@/components/useNavegacionAlInstante";
 
 /* ====================================================================
    El loader general (ADR-0149) — UNO solo, a pantalla completa.
 
-   Cuándo aparece: mientras una pantalla carga, mientras un botón guarda algo y mientras se cambia de
-   sede. Cuándo se va: en el instante en que llegan los datos. No es un reloj: dura lo que tarda la
+   Cuándo aparece: mientras un botón guarda algo y mientras se cambia de sede. Cambiar de pantalla ya no lo
+   muestra (ADR-0623): la pantalla que llega se dibuja como un esqueleto (`EsperaPantalla`) y el menú sigue vivo. Cuándo se va: en el instante en que llegan los datos. No es un reloj: dura lo que tarda la
    respuesta, ni un segundo más (salvo los 400 ms mínimos de abajo, que evitan el destello).
 
    Cómo se activa: nadie lo llama a mano. `EsperaGlobal` (una vez, en el layout raíz) envuelve
@@ -21,7 +24,9 @@ import { anotarEscrituraSinRespuesta } from "@/lib/refresco-tras-corte";
    pasa por fetch existen `useEsperando` y `esperar`; para la carga en frío, `<EsperaPantalla />`
    dentro de cada `loading.tsx`.
 
-   Cómo se ve: el aviso de cambio de sede, generalizado. Va en un portal a `body`, POR ENCIMA de
+   Cómo se ve: «B · Lente sola» del vidrio «Serena» (Felipe 2026-11-01, docs/maquetas/avisos-espera-vidrio-2026-10/): sin
+   tarjeta, toda la pantalla se esmerila y en el centro queda una lente con el colibrí y su arco; las palabras van sueltas
+   debajo, con un halo de crema detrás. El material vive en `estilos/vidrio/avisos-espera.css`. Va en un portal a `body`, POR ENCIMA de
    todo (lateral z-40, cabecera z-30, modales z-50), y mientras está a la vista el resto de la app
    queda `inert`: el velo frena el ratón pero solo `inert` frena el teclado, y una tecla podía actuar
    sobre datos que se están dejando. No es un diálogo (no se cierra con Escape): es un estado, `role="status"`.
@@ -106,11 +111,14 @@ export function useEsperando(activo: boolean, mensaje?: MensajeEspera) {
 
 /**
  * Va dentro de cada `loading.tsx`: mientras ese fallback está montado, la pantalla destino todavía no
- * está lista. Cubre lo que el interceptor de `fetch` no ve (la primera carga en frío, antes de hidratar).
+ * está lista. Dibuja el esqueleto de una pantalla (ADR-0623: cambiar de pantalla no tapa el menú ni la cabecera)
+ * y toma una ficha de carga, que no muestra el velo pero hace esperar a los avisos hasta que la pantalla llegó.
  */
 export function EsperaPantalla() {
   useEffect(() => tomarFicha(PRIORIDAD.carga, MENSAJE_ESPERA), []);
-  return null;
+  // ADR-0628: si se entró desde el menú, el mismo nombre que ya mostraba el marco desde el clic (no cambia a medio camino).
+  const titulo = useTituloDelDestino();
+  return <EsqueletoPantalla titulo={titulo} />;
 }
 
 // ---- Las navegaciones de un buscador por URL: no muestran el loader (tienen su «Buscando…» propio) ----
@@ -122,7 +130,8 @@ const sinEspera = new Map<string, number>();
  * Anuncia que la próxima navegación a `href` es la de un buscador que filtra por URL: el loader no la cubre.
  * La usa `useBusquedaEnUrl`; una pantalla no la llama suelta. Las otras excepciones: el refresco que sigue a bajar al piso o subir
  * al almacén desde el panel de Existencias (`PanelTalla`, Felipe 2026-10-08), que ya confirma con el aviso destacado y no debe tapar la
- * lista, y los dos refrescos que nadie pidió: el de un precio que cambió (`PreciosEnVivo`) y el que sigue a un guardado sin respuesta
+ * lista, y los tres refrescos que nadie pidió: el de un precio que cambió (`PreciosEnVivo`), el de Existencias cuando el stock de la sede
+ * cambia por el WebSocket (`useRefrescoEnVivo`, ADR-0603) y el que sigue a un guardado sin respuesta
  * (`RefrescoTrasCorte`, ADR-0411), que no deben dejar `inert` la pantalla bajo quien escribe.
  */
 export function navegacionSinEspera(href: string) {
@@ -207,6 +216,10 @@ instalarInterceptor();
 export function EsperaGlobal() {
   const activas = useSyncExternalStore(suscribir, () => instantanea, () => SIN_FICHAS);
   const hay = activas.length > 0;
+  // Cambiar de pantalla no tapa nada (ADR-0623, Felipe 2026-11-07): la carga la dibuja el esqueleto de su `loading.tsx` bajo el menú y la
+  // cabecera, que siguen vivos. El velo es solo de lo que guarda o de una espera pedida a mano (cambiar de sede); una vez a la vista, una
+  // carga encadenada (el refresco que sigue a guardar) lo sostiene hasta que la pantalla ya muestra lo guardado, como siempre.
+  const bloquea = activas.some((f) => f.prioridad >= PRIORIDAD.guardado);
   // Mientras vuela el colibrí de la entrada (components/login/EntradaColibri.tsx) el loader se aparta: el vuelo ocupa su lugar y
   // la capa del colibrí espera a que el loader no tenga nada en curso (`esperaOcupada`) para abrirse.
   const entrando = useSyncExternalStore(suscribirEntrada, entradaActiva, () => false);
@@ -239,10 +252,10 @@ export function EsperaGlobal() {
   // La línea de tiempo: 200 ms antes de aparecer, 400 ms mínimo, 150 ms de gracia, salida de 220 ms.
   useEffect(() => {
     const r = relojes.current;
-    if (hay) {
+    if (bloquea || (hay && visibleRef.current)) {
       window.clearTimeout(r.salir);
       window.clearTimeout(r.cerrar);
-      if (!visibleRef.current && r.mostrar === undefined) {
+      if (bloquea && !visibleRef.current && r.mostrar === undefined) {
         r.mostrar = window.setTimeout(() => {
           r.mostrar = undefined;
           desde.current = Date.now();
@@ -255,7 +268,7 @@ export function EsperaGlobal() {
     window.clearTimeout(r.mostrar);
     r.mostrar = undefined;
     if (!visibleRef.current) return;
-    const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const sinMovimiento = prefiereQuieto();
     const espera = Math.max(MS_GRACIA, MS_MINIMO - (Date.now() - desde.current));
     r.salir = window.setTimeout(() => {
       setSaliendo(true);
@@ -268,7 +281,7 @@ export function EsperaGlobal() {
         sinMovimiento ? 0 : MS_SALIDA,
       );
     }, espera);
-  }, [hay]);
+  }, [hay, bloquea]);
 
   useEffect(() => {
     const r = relojes.current;
@@ -321,25 +334,23 @@ export function EsperaGlobal() {
       role="status"
       data-espera
       aria-live="polite"
-      className={`fixed inset-0 z-[60] flex cursor-progress items-center justify-center bg-crema/60 px-4 backdrop-blur-[3px] ${
+      className={`espera-velo fixed inset-0 z-[60] flex cursor-progress items-center justify-center px-4 ${
         saliendo ? "anim-velo-salida" : "anim-velo"
       }`}
     >
-      <div
-        className={`relative w-full max-w-[380px] overflow-hidden rounded-[20px] bg-papel px-6 pb-6 pt-6 text-center shadow-[0_22px_44px_-22px_color-mix(in_srgb,var(--color-sombra)_50%,transparent)] ring-1 ring-tinta/[0.07] ${
-          saliendo ? "anim-modal-sale" : "anim-modal-entra"
-        }`}
-      >
-        <div className="relative mx-auto mb-3.5 grid h-16 w-16 place-items-center">
-          <Image src="/cayla-isotipo.png" alt="" width={34} height={34} priority className="h-[34px] w-auto" />
-          <svg aria-hidden viewBox="0 0 64 64" fill="none" strokeWidth={2} className="absolute inset-0 h-full w-full">
-            <circle cx="32" cy="32" r="29" className="stroke-sand" />
+      <div className={`espera-hoja ${saliendo ? "anim-modal-sale" : "anim-modal-entra"}`}>
+        <div className="espera-marca">
+          {/* El colibrí del logo oficial (ADR-0446), el mismo del lateral, mirado a través de la lente. */}
+          <LogoCayla soloColibri className="h-6" />
+          <svg aria-hidden viewBox="0 0 64 64" fill="none" strokeWidth={2} className="espera-anillo">
+            <circle cx="32" cy="32" r="29" className="espera-pista" />
             <circle
               cx="32"
               cy="32"
               r="29"
               strokeDasharray="46 137"
               strokeLinecap="round"
+              data-senal
               className="origin-center stroke-rojo animate-spin [animation-duration:1.1s] motion-reduce:animate-none"
             />
           </svg>
@@ -349,9 +360,9 @@ export function EsperaGlobal() {
           {titulo}
           {resalte ? <> <span className="text-rojo-profundo">{resalte}</span></> : null}
         </p>
-        {linea ? <p className="mt-2 text-[13px] text-tinta/65">{linea}</p> : null}
-        <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden">
-          <span className="block h-full w-1/3 bg-rojo [animation:cayla-hilo-barrido_1.1s_linear_infinite] motion-reduce:animate-none" />
+        {linea ? <p className="mt-2 text-[13px] text-tinta/80">{linea}</p> : null}
+        <span aria-hidden className="espera-hilo">
+          <span data-senal className="block h-full w-1/3 bg-rojo [animation:cayla-hilo-barrido_1.1s_linear_infinite] motion-reduce:animate-none" />
         </span>
       </div>
     </div>,

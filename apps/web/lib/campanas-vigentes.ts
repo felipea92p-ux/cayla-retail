@@ -13,6 +13,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@cayla-retail/database";
 import { leerTodas } from "./resultado";
+import type { FilaOfertaDeGrupo, FilaOfertaDeMonto } from "./ofertas-de-grupo";
 
 export async function leerCampanasVigentes(supabase: Pick<SupabaseClient<Database, "retail">, "rpc">, ubicacionId: string) {
   // `enParalelo: 1`: cada página recalcula la función entera (ADR-0192, ~20 ms con 2.500 prendas); en serie, la 2.ª y la 3.ª solo se
@@ -21,4 +22,31 @@ export async function leerCampanasVigentes(supabase: Pick<SupabaseClient<Databas
     (desde, hasta) => supabase.rpc("campanas_vigentes", { p_ubicacion_id: ubicacionId }).order("variante_id").range(desde, hasta),
     { enParalelo: 1 },
   );
+}
+
+// Las dos lecturas de «Campañas y ofertas» (ADR-0655) que la caja, Apartados y el sondeo de precios en vivo comparten: ninguna está en los
+// tipos generados, así que se leen con su forma escrita aquí.
+type PaginaDeFilas<T> = {
+  order: (columna: string) => { range: (desde: number, hasta: number) => PromiseLike<{ data: T[] | null; error: { message: string; code?: string } | null }> };
+};
+
+/** Las ofertas de grupo de HOY en una tienda, una fila por prenda (`ofertas_de_grupo_vigentes`), por páginas: un 3x2 sobre una categoría
+ *  grande pasa de las 1.000 filas, y PostgREST corta en 1.000 sin error, como le pasó al Aniversario con las campañas. Las prendas cortadas
+ *  salían sin grupo y la base rechazaba el cobro (`venta_grupo_omitido`). */
+export async function leerOfertasDeGrupoVigentes(supabase: Pick<SupabaseClient<Database, "retail">, "rpc">, ubicacionId: string) {
+  return leerTodas(
+    (desde, hasta) =>
+      (supabase.rpc("ofertas_de_grupo_vigentes" as never, { p_ubicacion_id: ubicacionId } as never) as unknown as PaginaDeFilas<FilaOfertaDeGrupo>)
+        .order("variante_id")
+        .range(desde, hasta),
+    { enParalelo: 1 },
+  );
+}
+
+/** Los montos de HOY en una tienda (`ofertas_de_monto_vigentes`): una fila por oferta, con sus prendas dentro; caben en una página. */
+export function leerOfertasDeMontoVigentes(supabase: Pick<SupabaseClient<Database, "retail">, "rpc">, ubicacionId: string) {
+  return supabase.rpc("ofertas_de_monto_vigentes" as never, { p_ubicacion_id: ubicacionId } as never) as unknown as PromiseLike<{
+    data: FilaOfertaDeMonto[] | null;
+    error: { message: string; code?: string } | null;
+  }>;
 }

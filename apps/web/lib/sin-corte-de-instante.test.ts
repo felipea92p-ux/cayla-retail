@@ -38,11 +38,25 @@ function campoCortado(expr: ts.Expression): string | null {
 
 const esNumero = (nodo: ts.Node | undefined, valor: string) => !!nodo && ts.isNumericLiteral(nodo) && nodo.text === valor;
 
+const CORTE_A_DIEZ = /\b(?:slice|substring|substr)\(\s*0\s*,\s*10\s*\)/g;
+const NOMBRE_DE_INSTANTE_EN_EL_TEXTO = /(?:[a-z0-9](?:En|At)|_(?:en|at))\b/;
+
+/** El atajo barato, antes de armar el árbol (lo caro: 2,6 mil archivos, 2 MB a parsear). Solo puede haber un corte de instante
+ *  si el texto tiene un corte a 10 Y, ANTES de él, un nombre de instante: el campo que se corta va escrito a la izquierda de
+ *  `.slice`, sea cual sea lo que lo envuelve. Es un filtro que nunca se salta un caso (el árbol decide), y deja pasar 29 de 80
+ *  archivos con corte a 10 (2026-11-13): el resto corta `toISOString()`, una fecha o un texto. */
+function puedeTenerCorteDeInstante(fuente: string): boolean {
+  let ultimoCorte = -1;
+  for (const m of fuente.matchAll(CORTE_A_DIEZ)) ultimoCorte = m.index;
+  return ultimoCorte > 0 && NOMBRE_DE_INSTANTE_EN_EL_TEXTO.test(fuente.slice(0, ultimoCorte));
+}
+
 /** Las líneas donde el archivo le corta a un instante sus 10 primeros caracteres. Un comentario o un texto no cuentan: se lee el
  *  árbol del código, no las letras. */
 function cortesDeInstante(ruta: string, fuente: string): number[] {
-  if (!/\b(?:slice|substring|substr)\(\s*0\s*,\s*10\s*\)/.test(fuente)) return []; // el atajo barato: la mayoría ni lo menciona
-  const archivo = ts.createSourceFile(ruta, fuente, ts.ScriptTarget.Latest, true, ruta.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  if (!puedeTenerCorteDeInstante(fuente)) return [];
+  // Sin padres (`false`): nadie sube por el árbol, y `getStart(archivo)` no los necesita. Arma el árbol en la mitad del tiempo.
+  const archivo = ts.createSourceFile(ruta, fuente, ts.ScriptTarget.Latest, false, ruta.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   const lineas = fuente.split("\n");
   const halladas: number[] = [];
   const visitar = (nodo: ts.Node) => {
@@ -102,6 +116,14 @@ describe("cómo se reconoce el corte de un instante", () => {
   it("un comentario o un texto que lo nombran no son un corte", () => {
     const fuente = `// o.creadoEn.slice(0, 10) daba el día de UTC\nconst t = "o.creadoEn.slice(0, 10)";\nexport const C = () => <p title="x.createdAt.slice(0, 10)">{"x.cerradoEn.slice(0, 10)"}</p>;`;
     expect(cortesDeInstante("c.tsx", fuente)).toEqual([]);
+  });
+
+  it("el atajo deja pasar el corte aunque lo que envuelve al instante sea largo, y descarta lo que no puede serlo", () => {
+    const largo = `const a = String(fila.created_at ?? ${"otraCosaMuyLarga + ".repeat(40)}"").slice(0, 10);`;
+    expect(puedeTenerCorteDeInstante(largo)).toBe(true);
+    expect(cortesDeInstante("e.ts", largo)).toEqual([1]);
+    expect(puedeTenerCorteDeInstante("const d = new Date().toISOString().slice(0, 10);")).toBe(false);
+    expect(puedeTenerCorteDeInstante("const d = hoy.slice(0, 10);\nconst c = o.creadoEn;")).toBe(false); // el instante viene después
   });
 
   it("se exime con «// fecha-sola:» y su porqué en la misma línea, nunca sin porqué", () => {

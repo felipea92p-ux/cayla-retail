@@ -2,7 +2,7 @@
   "guia": "inicio",
   "ruta": "/",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 59,
+  "total": 61,
   "controles": {
     "app/(app)/page.tsx": [
       "Link «inicio.vender»",
@@ -35,6 +35,7 @@
     "components/inicio-almacen/CabinaAlmacen.tsx": [
       "Link «Crear producto»",
       "Link «Colgar en tandas»",
+      "Link «inicio.almacen-danada»",
       "a «Ver los»",
       "Link «{p.fotoUrl ? <ImagenDePrenda src={p.fotoUrl}»",
       "Link «{a.titulo}»",
@@ -45,6 +46,7 @@
       "Link «Nuevo producto»",
       "Link «Recibir mercadería»",
       "Link «Colgar al piso en tandas»",
+      "Link «Separé una dañada»",
       "Link «Escanear o buscar»"
     ],
     "components/inicio-almacen/NuevoEnOtrasSedes.tsx": [

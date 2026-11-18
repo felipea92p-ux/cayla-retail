@@ -284,7 +284,7 @@ function HojaTallas({
       <div className="mt-3 space-y-2 border-t border-sand pt-3">
         {nuevas.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[12.5px] text-taupe">
+            <p className="text-sm text-taupe">
               <span className="text-tinta">{listaNuevas}</span> {nuevas.length === 1 ? "no es" : "no son"} de {categoriaNombre}: al tocar «Listo»,{" "}
               {categoriaNombre} {nuevas.length === 1 ? "la ofrece" : "las ofrece"} desde ahora (también para las prendas que vengan).
             </p>
@@ -294,7 +294,7 @@ function HojaTallas({
         {error && <Aviso tono="error">{error}</Aviso>}
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-[12.5px] tabular-nums text-taupe">
+          <p className="text-sm tabular-nums text-taupe">
             {marcadas.length} {marcadas.length === 1 ? "talla elegida" : "tallas elegidas"}
           </p>
           <div className="pie-acciones">

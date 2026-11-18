@@ -85,19 +85,19 @@ export function DevolucionesVentas({
               <>
                 {linea.devolucionesHechas.map((d, i) =>
                   d.estado === "pendiente" ? (
-                    <p key={`d${i}`} className="mt-1 flex items-center gap-1.5 text-xs text-ambar-profundo">
+                    <p key={`d${i}`} className="mt-1 flex items-center gap-1.5 text-sm text-ambar-profundo">
                       <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
                       {d.cantidad > 1 ? `${d.cantidad} unidades: ` : ""}devolución pendiente de aprobación · {etiquetaDia(d.creadoEn, ahora).toLowerCase()} {formatearHora(d.creadoEn)}
                     </p>
                   ) : (
-                    <p key={`d${i}`} className="mt-1 flex items-center gap-1.5 text-xs text-verde-profundo">
+                    <p key={`d${i}`} className="mt-1 flex items-center gap-1.5 text-sm text-verde-profundo">
                       <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
                       {linea.cantidad > 1 ? `${d.cantidad} devuelta${d.cantidad === 1 ? "" : "s"}` : "Devuelta"} · {etiquetaDia(d.creadoEn, ahora).toLowerCase()} {formatearHora(d.creadoEn)}
                     </p>
                   )
                 )}
                 {linea.cambiosHechos.map((c, i) => (
-                  <p key={`c${i}`} className="mt-1 flex items-center gap-1.5 text-xs text-verde-profundo">
+                  <p key={`c${i}`} className="mt-1 flex items-center gap-1.5 text-sm text-verde-profundo">
                     <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
                     {linea.cantidad > 1 ? `${c.cantidad} cambiada${c.cantidad === 1 ? "" : "s"}` : "Cambiada"} por {descripcionEntregadaTodas(c, linea.productoId)}
                   </p>

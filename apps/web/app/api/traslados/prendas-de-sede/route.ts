@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getEtiquetasDeVariantes } from "@/lib/traslados";
 import { leerRpcPorPaginas, ORDEN_FN_EXISTENCIAS } from "@/lib/rpc-por-paginas";
 import { filasEnviables, prendasPedibles, sedesParaPedir, type FilaExistenciasDeSede } from "@/lib/pedidos-entre-sedes-reglas";
+import { unstable_rethrow } from "next/navigation";
 
 // GET /api/traslados/prendas-de-sede?sede=<id> → lo que esa TIENDA puede ENVIAR ahora, prenda por prenda, para «Pedir a otra sede»
 // desde Traslados: `{ prendas: [{ varianteId, etiqueta, disponible }] }`, ordenadas por nombre.
@@ -40,6 +41,7 @@ export async function GET(request: Request) {
     const etiquetas = await getEtiquetasDeVariantes(filas.map((f) => f.variante_id));
     return Response.json({ prendas: prendasPedibles(filas, sede, etiquetas) }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
+    unstable_rethrow(e);
     console.error("No se pudo leer lo que ofrece la otra tienda", e);
     return Response.json({ error: "No pudimos leer lo que tiene esa tienda." }, { status: 500 });
   }

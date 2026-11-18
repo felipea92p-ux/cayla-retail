@@ -17,7 +17,7 @@ import { horaLima } from "./fechas-lima";
  *  mostraba nada (2026-10-02). */
 const ANOTAN: ReadonlySet<ClaveModulo> = new Set<ClaveModulo>([
   "vender", "historial", "apartados", "caja", "cambios", "clientas", "avisos_club",
-  "existencias", "conteos", "traslados", "productos", "liquidacion", "rendimiento", "recibir", "colaboradores", "roles", "configuracion",
+  "existencias", "conteos", "traslados", "productos", "rendimiento", "recibir", "colaboradores", "roles", "configuracion",
   // Órdenes de compra (ADR-0362, 20261010235000 y 20261010235500): crear, editar y anular anotan su línea, sin montos.
   "ordenes_compra",
   // Revisar compras (ADR-0480, actividad 2, 20261022235000): confirmar la plata que anotó una compradora anota su línea, sin montos.

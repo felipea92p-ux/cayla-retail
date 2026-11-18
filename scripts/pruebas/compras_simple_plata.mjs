@@ -19,6 +19,13 @@
  *     banco viaja con el token (`token_reusado` si cambia); «Revisar compras» lo ve ya elegido; confirmar sigue eligiendo la cuenta de la que
  *     sale la plata (la indicación no mueve nada) y no cambia lo que dijo la compradora; los bancos los ve quien tiene «Mis compras» o
  *     «Revisar compras».
+ *   · Candados de la auditoría (20261027231000, ADR-0543): la plata que Compras confirmó no se anula aparte desde «Entregas y devoluciones»
+ *     (H1); confirmar «ya tenía» —que no sale de ningún banco y fija el saldo inicial del fondo— es solo del líder, y un reintento de lo ya
+ *     confirmado no lo pide (H2); anotar plata toma el candado de la ronda de quien anota (H11).
+ *   · El día en que llegó la plata (Felipe 2026-11-09, `20261110025000`): `anotar_plata_compras` acepta `p_fecha` (de hoy hacia atrás, hasta 120
+ *     días): la anotación, el movimiento del fondo y el libro del banco nacen con ese día —una compra anterior cuya plata ya había salido no se
+ *     vuelve a restar hoy—; sin él, hoy como siempre; futuro, de hace más de 120 días o con «ya tenía», se rechaza (`fecha_invalida`); el día
+ *     viaja con el token; lo que se confirma a mano después toma el día de la anotación.
  *   · `anon` no ejecuta nada.
  *
  * CÓMO. Sesión simulada con `request.jwt.claim.sub`, la migración pegada dos veces (se puede pegar dos veces) y ROLLBACK siempre.
@@ -33,7 +40,11 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
+const REBOBINAR_COMPRA = readFileSync(join(RAIZ, "scripts", "pruebas", "rebobinar_registrar_compra.sql"), "utf8");
+// `anotar_plata_compras` vuelve a su firma de 5 parámetros antes de pegar lo viejo (20261110025000 le sumó `p_fecha`: ver `rebobinar_anotar_plata.sql`).
+const REBOBINAR_ANOTAR = readFileSync(join(RAIZ, "scripts", "pruebas", "rebobinar_anotar_plata.sql"), "utf8");
 const arg = (nombre, porDefecto) => {
   const i = process.argv.indexOf(nombre);
   return i > 0 ? process.argv[i + 1] : porDefecto;
@@ -51,8 +62,32 @@ const PARTES_DEL_BANCO = ["20261026165000_mis_compras_banco_de_la_plata_parte1_c
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8").replace(/^set lock_timeout.*$/gm, ""))
   .join("\n");
 
+// Los candados de la auditoría de «Mis compras» (20261027231000, ADR-0543): va DESPUÉS de todo lo anterior, como en la base.
+const AUDITORIA = readFileSync(join(RAIZ, "supabase", "migrations", "20261027231000_mis_compras_auditoria_candados.sql"), "utf8").replace(
+  /^set lock_timeout.*$/gm,
+  "",
+);
+
+// Esta función se rebobina antes de pegar las migraciones viejas (`rebobinar_terminar_dia.sql`): en una base que ya pasó por 20261029170000 solo existe la de
+// dos parámetros, y las migraciones de octubre que esta prueba pega crean o parchan la de UNO (el parche falla con «does not exist», o la recreada queda
+// al lado de la nueva y toda llamada con un argumento es ambigua). Rebobinada, la prueba corre en el mundo para el que se escribió.
+const REBOBINAR = readFileSync(join(RAIZ, "scripts", "pruebas", "rebobinar_terminar_dia.sql"), "utf8");
+
+// La plata que anota la compradora entra sola a su fondo cuando ya se sabe de qué cuenta sale (20261029192000, ADR-0574): va DESPUÉS de todo lo anterior.
+const ENTRA_SOLA = readFileSync(join(RAIZ, "supabase", "migrations", "20261029192000_mis_compras_la_plata_anotada_entra_sola.sql"), "utf8").replace(
+  /^set lock_timeout.*$/gm,
+  "",
+);
+
+// El día en que llegó la plata (20261110025000): cambia la firma de `anotar_plata_compras` (suma `p_fecha`) y va DESPUÉS de todo lo anterior.
+const DIA_DE_LLEGADA = readFileSync(join(RAIZ, "supabase", "migrations", "20261110025000_anotar_plata_con_el_dia_que_llego.sql"), "utf8").replace(
+  /^set lock_timeout.*$/gm,
+  "",
+);
+
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo
+const SANDRA = "22222222-2222-4222-8222-000000000005"; // líder
 
 function psql(sql) {
   return execFileSync(
@@ -69,10 +104,19 @@ const como = (auth, clave) =>
 
 const PRELUDIO = `
 begin;
+${REBOBINAR_COMPRA}
+${REBOBINAR_ANOTAR}
+${REBOBINAR}
 ${MIGRACION}
 ${MIGRACION}
 ${PARTES_DEL_BANCO}
 ${PARTES_DEL_BANCO}
+${AUDITORIA}
+${AUDITORIA}
+${ENTRA_SOLA}
+${ENTRA_SOLA}
+${DIA_DE_LLEGADA}
+${DIA_DE_LLEGADA}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
 declare v_estado text; v_hint text; v_msg text;
@@ -85,6 +129,11 @@ exception when others then
 end;
 $f$;
 grant execute on function pg_temp.intento(text) to authenticated;
+-- ¿Esta sesión tiene el candado de la ronda de esa persona (el de abrir y cerrar, «compra_ronda:persona»)?
+create function pg_temp.tiene_candado(p_persona uuid) returns boolean language sql as $f$
+  select exists (select 1 from pg_locks where locktype = 'advisory' and pid = pg_backend_pid() and granted
+                    and ((classid::bigint << 32) | objid::bigint) = hashtextextended('compra_ronda:' || p_persona::text, 0));
+$f$;
 select id as banco from retail.cuentas_dinero where tipo = 'banco' and archivada_en is null order by nombre limit 1 \\gset
 select id as cajon from retail.cuentas_dinero where tipo = 'cajon' order by nombre limit 1 \\gset
 select id as micaela from public.personas where auth_user_id = '${MICAELA}' \\gset
@@ -274,7 +323,7 @@ select split_part(pg_temp.intento(format('update retail.fondo_plata_anotada set 
 caso(
   "anon no ejecuta ninguna de las cinco; la tabla no se lee directo",
   `reset role;
-select has_function_privilege('anon', 'retail.anotar_plata_compras(text, numeric, text, uuid, uuid)', 'execute'),
+select has_function_privilege('anon', 'retail.anotar_plata_compras(text, numeric, text, uuid, uuid, date)', 'execute'),
        has_function_privilege('anon', 'retail.fn_bancos_para_plata_compras()', 'execute'),
        has_function_privilege('anon', 'retail.confirmar_plata_compras(uuid, numeric, uuid)', 'execute'),
        has_function_privilege('anon', 'retail.fn_mi_plata_compras()', 'execute'),
@@ -288,16 +337,56 @@ const anotaConBanco = (nombre, medio, monto, token, banco) =>
   `${como(MICAELA, "plata_anotar")}select retail.anotar_plata_compras('${medio}', ${monto}, null, '${token}', ${banco}) as ${nombre} \\gset\n`;
 
 caso(
-  "con una transferencia, el banco queda indicado y «Revisar compras» lo ve con su nombre; la plata sigue por confirmar y sin mover nada",
-  `${rolDeMicaela("ordenes_compra")}${anotaConBanco("a", "transferencia", 500, T1, ":'banco'")}
+  "con una transferencia y su banco indicado, la plata entra SOLA a su fondo: confirmada por ella misma, el banco baja lo mismo y el fondo sube (ADR-0574)",
+  `${rolDeMicaela("ordenes_compra")}reset role;
+select pg_temp.saldo(:'banco') as banco_antes \\gset
+${anotaConBanco("a", "transferencia", 500, T1, ":'banco'")}
 reset role;
-select nombre as nombre_banco from retail.cuentas_dinero where id = :'banco' \\gset
-select (select cuenta_indicada_id = :'banco' from retail.fondo_plata_anotada where id = :'a'),
-       (select estado || ':' || coalesce(cuenta_origen_id::text, 'sin') from retail.fondo_plata_anotada where id = :'a');
+select (select estado = 'confirmada' and monto_confirmado = 500 and cuenta_origen_id = :'banco' and movimiento_id is not null and confirmada_por = persona_id and cuenta_indicada_id = :'banco'
+          from retail.fondo_plata_anotada where id = :'a'),
+       pg_temp.saldo(:'banco') = :'banco_antes'::numeric - 500,
+       retail.fn_fondo_saldo(retail.fn_fondo_de(:'micaela', false)) = 500;
 ${como(FELIPE, "plata_confirmar")}
-select x ->> 'cuenta_indicada' = :'nombre_banco', x ->> 'cuenta_indicada_id' = :'banco'::text
-  from jsonb_array_elements(retail.fn_plata_por_confirmar()) x where x ->> 'id' = :'a'::text;`,
-  "t|por_confirmar:sin / t|t",
+select count(*) from jsonb_array_elements(retail.fn_plata_por_confirmar()) x where x ->> 'id' = :'a'::text;`,
+  "t|t|t / 0",
+);
+
+caso(
+  "lo que no dice de qué cuenta sale sigue por confirmar para Compras y no mueve nada: efectivo, Yape o Plin, y una transferencia sin banco (ADR-0574)",
+  `${rolDeMicaela("ordenes_compra")}reset role;
+select pg_temp.saldo(:'banco') as banco_antes \\gset
+${anota("a", "efectivo", 40, T1)}${anota("b", "yape_plin", 30, T2)}${anota("c", "transferencia", 20, T3)}
+reset role;
+select (select count(*) from retail.fondo_plata_anotada where id in (:'a', :'b', :'c') and estado = 'por_confirmar' and movimiento_id is null and confirmada_por is null),
+       pg_temp.saldo(:'banco') = :'banco_antes'::numeric;
+${como(FELIPE, "plata_confirmar")}
+select count(*) from jsonb_array_elements(retail.fn_plata_por_confirmar()) x where (x ->> 'id')::uuid in (:'a', :'b', :'c');`,
+  "3|t / 3",
+);
+
+caso(
+  "«ya tenía plata» entra sola como saldo inicial de su fondo: no toca ningún banco, y solo la primera vez (ADR-0574)",
+  `${rolDeMicaela("ordenes_compra")}reset role;
+select pg_temp.saldo(:'banco') as banco_antes \\gset
+${anota("a", "ya_tenia", 150, T1)}
+reset role;
+select (select estado = 'confirmada' and monto_confirmado = 150 and cuenta_origen_id is null and movimiento_id is null and confirmada_por = persona_id
+          from retail.fondo_plata_anotada where id = :'a'),
+       pg_temp.saldo(:'banco') = :'banco_antes'::numeric,
+       retail.fn_mi_plata_tiene(:'micaela') = 150,
+       split_part(pg_temp.intento(format($q$select retail.anotar_plata_compras('ya_tenia', 60, null, %L)$q$, '${T2}')), '|', 2);`,
+  "t|t|t|ya_tenia_solo_primera_vez",
+);
+
+caso(
+  "volver a pasar sola una plata que ya entró no la duplica: no mueve nada y dice que no hizo nada (ADR-0574)",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "plata_anotar")}
+select retail.anotar_plata_compras('transferencia', 200, null, '${T1}', :'banco') as a \\gset
+reset role;
+select retail.fn_plata_confirmar_sola(:'a') as otra_vez \\gset
+select :'otra_vez' = 'f', (select estado from retail.fondo_plata_anotada where id = :'a'),
+       (select count(*) from retail.movimientos_dinero where cuenta_destino_id = retail.fn_fondo_de(:'micaela', false) and tipo = 'entrega_fondo');`,
+  "t|confirmada|1",
 );
 
 caso(
@@ -332,7 +421,7 @@ select retail.anotar_plata_compras('transferencia', 70, null, '${T1}', :'banco')
 );
 
 caso(
-  "confirmar elige la cuenta de la que sale la plata (la indicación no manda) y lo que indicó la compradora queda tal cual",
+  "una transferencia con banco que ya entró sola no se vuelve a confirmar con otros datos, y lo que indicó la compradora queda tal cual",
   `${rolDeMicaela("ordenes_compra")}${anotaConBanco("a", "transferencia", 300, T1, ":'banco'")}
 ${como(FELIPE, "plata_confirmar")}
 select retail.confirmar_plata_compras(:'a', null, :'banco') \\g /dev/null
@@ -355,6 +444,142 @@ caso(
   `${rolDeMicaela("existencias")}${como(MICAELA, "plata_anotar")}
 select left(pg_temp.intento('select retail.fn_bancos_para_plata_compras()'), 5);`,
   "42501",
+);
+
+
+// ---------- Candados de la auditoría de «Mis compras» (20261027231000, ADR-0543) ----------
+caso(
+  "H1: la plata que Compras ya confirmó no se anula aparte (movimiento_de_plata_anotada); el movimiento sigue vigente",
+  `${rolDeMicaela("ordenes_compra")}${anota("a", "yape_plin", 300, T1)}
+${como(FELIPE, "plata_confirmar")}
+select retail.confirmar_plata_compras(:'a', null, :'banco') \\g /dev/null
+reset role;
+select movimiento_id as mov from retail.fondo_plata_anotada where id = :'a' \\gset
+${como(FELIPE, null)}
+select split_part(pg_temp.intento(format('select retail.anular_movimiento_fondo(%L, %L)', :'mov', 'me equivoque')), '|', 2);
+reset role;
+select (select estado from retail.movimientos_dinero where id = :'mov'), (select estado from retail.fondo_plata_anotada where id = :'a');`,
+  "movimiento_de_plata_anotada / vigente|confirmada",
+);
+
+caso(
+  "H2: confirmar «ya tenía» es solo del líder: quien tiene «Revisar compras» y no es líder recibe 42501 y no se crea ni se toca el fondo; el líder sí lo confirma",
+  `${rolDeMicaela("fondos")}
+reset role;
+select id as sandra from public.personas where auth_user_id = '${SANDRA}' \\gset
+select count(*) as fondos0 from retail.cuentas_dinero where tipo = 'fondo' and persona_id = :'sandra' \\gset
+insert into retail.fondo_plata_anotada (persona_id, medio, monto, fecha, anotada_por)
+  values (:'sandra', 'ya_tenia', 150, retail.fn_hoy_lima(), :'sandra') returning id as a \\gset
+${como(MICAELA, "plata_confirmar")}
+select split_part(pg_temp.intento(format('select retail.confirmar_plata_compras(%L, null, null)', :'a')), '|', 1),
+       split_part(pg_temp.intento(format('select retail.confirmar_plata_compras(%L, null, null)', :'a')), '|', 2);
+reset role;
+select (select estado from retail.fondo_plata_anotada where id = :'a'),
+       (select count(*) from retail.cuentas_dinero where tipo = 'fondo' and persona_id = :'sandra') - :fondos0;
+${como(FELIPE, "plata_confirmar")}
+select (retail.confirmar_plata_compras(:'a', null, null) ->> 'monto')::numeric;
+reset role;
+select (select estado from retail.fondo_plata_anotada where id = :'a'),
+       (select saldo_inicial from retail.cuentas_dinero where tipo = 'fondo' and persona_id = :'sandra');`,
+  "42501|plata_ya_tenia_solo_lider / por_confirmar|0 / 150.00 / confirmada|150.00",
+);
+
+caso(
+  "H2: un reintento de lo que el líder ya confirmó como «ya tenía» devuelve lo mismo, aunque lo repita quien no es líder",
+  `${rolDeMicaela("fondos")}
+reset role;
+select id as sandra from public.personas where auth_user_id = '${SANDRA}' \\gset
+insert into retail.fondo_plata_anotada (persona_id, medio, monto, fecha, anotada_por)
+  values (:'sandra', 'ya_tenia', 150, retail.fn_hoy_lima(), :'sandra') returning id as a \\gset
+${como(FELIPE, "plata_confirmar")}
+select retail.confirmar_plata_compras(:'a', null, null) \\g /dev/null
+${como(MICAELA, "plata_confirmar")}
+select (retail.confirmar_plata_compras(:'a', null, null) ->> 'monto')::numeric;`,
+  "150.00",
+);
+
+caso(
+  "H11: anotar plata toma el candado de la ronda de quien anota, el mismo que abrir y cerrar",
+  `${rolDeMicaela("ordenes_compra")}
+reset role;
+select pg_temp.tiene_candado(:'micaela') as antes \\gset
+${anota("a", "yape_plin", 30, T1)}
+reset role;
+select :'antes', pg_temp.tiene_candado(:'micaela');`,
+  "f|t",
+);
+
+caso(
+  "H11: la función del candado es interna (nadie la llama desde afuera) y sin persona no toma nada",
+  `reset role;
+select has_function_privilege('authenticated', 'retail.fn_ronda_compras_candado(uuid)', 'execute'),
+       has_function_privilege('anon', 'retail.fn_ronda_compras_candado(uuid)', 'execute');
+select retail.fn_ronda_compras_candado(null) \\g /dev/null
+select pg_temp.tiene_candado(:'micaela');`,
+  "f|f / f",
+);
+
+// ---------- El día en que llegó la plata (20261110025000) ----------
+const anotaConDia = (nombre, medio, monto, token, banco, dia) =>
+  `${como(MICAELA, "plata_anotar")}select retail.anotar_plata_compras('${medio}', ${monto}, null, '${token}', ${banco}, ${dia}) as ${nombre} \\gset\n`;
+
+caso(
+  "una transferencia con banco y un día de hace 10 días entra sola con ESE día: la anotación y el movimiento del fondo lo llevan, y el fondo sube lo mismo",
+  `${rolDeMicaela("ordenes_compra")}${anotaConDia("a", "transferencia", 500, T1, ":'banco'", "retail.fn_hoy_lima() - 10")}
+reset role;
+select (select a.fecha = retail.fn_hoy_lima() - 10 and a.estado = 'confirmada' from retail.fondo_plata_anotada a where a.id = :'a'),
+       (select m.fecha = retail.fn_hoy_lima() - 10 and m.tipo = 'entrega_fondo' and m.monto = 500
+          from retail.fondo_plata_anotada a join retail.movimientos_dinero m on m.id = a.movimiento_id where a.id = :'a'),
+       retail.fn_fondo_saldo(retail.fn_fondo_de(:'micaela', false)) = 500;`,
+  "t|t|t",
+);
+
+caso(
+  "sin día (como siempre) o con el de hoy, la plata nace con la fecha de hoy; con hoy no cambia nada respecto a no decirlo",
+  `${rolDeMicaela("ordenes_compra")}${anota("a", "yape_plin", 30, T1)}${anotaConDia("b", "efectivo", 40, T2, "null", "retail.fn_hoy_lima()")}
+reset role;
+select (select count(*) from retail.fondo_plata_anotada where id in (:'a', :'b') and fecha = retail.fn_hoy_lima());`,
+  "2",
+);
+
+caso(
+  "el día no puede ser futuro ni de hace más de 120 días, ni ir con «ya tenía»: fecha_invalida y no se anota nada",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "plata_anotar")}
+select split_part(pg_temp.intento($q$select retail.anotar_plata_compras('yape_plin', 10, null, null, null, retail.fn_hoy_lima() + 1)$q$), '|', 2),
+       split_part(pg_temp.intento($q$select retail.anotar_plata_compras('yape_plin', 10, null, null, null, retail.fn_hoy_lima() - 121)$q$), '|', 2),
+       split_part(pg_temp.intento($q$select retail.anotar_plata_compras('ya_tenia', 10, null, null, null, retail.fn_hoy_lima() - 1)$q$), '|', 2);
+reset role;
+select count(*) from retail.fondo_plata_anotada where persona_id = :'micaela';`,
+  "fecha_invalida|fecha_invalida|fecha_invalida / 0",
+);
+
+caso(
+  "el límite de 120 días entra; el día viaja con el token: el mismo token con otro día es token_reusado, con el mismo devuelve la misma fila",
+  `${rolDeMicaela("ordenes_compra")}${anotaConDia("a", "efectivo", 25, T1, "null", "retail.fn_hoy_lima() - 120")}
+select retail.anotar_plata_compras('efectivo', 25, null, '${T1}', null, retail.fn_hoy_lima() - 120) = :'a' as mismo \\gset
+select :'mismo', split_part(pg_temp.intento($q$select retail.anotar_plata_compras('efectivo', 25, null, '${T1}', null, retail.fn_hoy_lima() - 5)$q$), '|', 2),
+       split_part(pg_temp.intento($q$select retail.anotar_plata_compras('efectivo', 25, null, '${T1}')$q$), '|', 2);`,
+  "t|token_reusado|token_reusado",
+);
+
+caso(
+  "lo que se confirma a mano después (Yape) toma el día de la anotación: el movimiento del fondo nace con esa fecha",
+  `${rolDeMicaela("ordenes_compra")}${anotaConDia("a", "yape_plin", 60, T1, "null", "retail.fn_hoy_lima() - 7")}
+${como(FELIPE, "plata_confirmar")}
+select retail.confirmar_plata_compras(:'a', 60, :'banco') ->> 'monto';
+reset role;
+select (select m.fecha = retail.fn_hoy_lima() - 7 from retail.fondo_plata_anotada a join retail.movimientos_dinero m on m.id = a.movimiento_id where a.id = :'a');`,
+  "60.00 / t",
+);
+
+caso(
+  "queda una sola anotar_plata_compras (la de 6 parámetros): la de 5 ya no existe y anon no ejecuta nada",
+  `reset role;
+select (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'anotar_plata_compras'),
+       to_regprocedure('retail.anotar_plata_compras(text,numeric,text,uuid,uuid)') is null,
+       has_function_privilege('anon', 'retail.anotar_plata_compras(text,numeric,text,uuid,uuid,date)', 'execute'),
+       has_function_privilege('authenticated', 'retail.anotar_plata_compras(text,numeric,text,uuid,uuid,date)', 'execute');`,
+  "1|t|f|t",
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde`);

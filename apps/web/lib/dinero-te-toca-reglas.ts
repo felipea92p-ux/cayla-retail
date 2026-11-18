@@ -3,25 +3,32 @@
 // que su cara ya muestra (lo que vence, la caja fuerte sin depositar, las líneas sin revisar).
 
 import { soles } from "./flujo-caja-reglas";
+import { textoMes } from "./gastos-reglas";
 import { diasHasta, type FilaPorPagar } from "./por-pagar-consolidado-reglas";
-import { avisoCajaFuerte, ultimoDepositoDe } from "./dinero-telar-reglas";
-import { diasEntreFechas } from "./fechas-lima";
+import { avisoCajaFuerte, diasSinDepositar, type LeidoDesde } from "./dinero-telar-reglas";
 import type { CuentaDinero, MovimientoDinero } from "./cuentas-dinero-reglas";
 import type { PendienteTelar } from "./finanzas-te-toca-reglas";
 
 type Pendiente = PendienteTelar;
 
-/** Las cajas fuertes con plata que ya avisan en ámbar (más de 3 días sin depositar), de la sede que se mira o de todas. */
+/** Las cajas fuertes con plata que ya avisan en ámbar (más de 3 días sin depositar), de la sede que se mira, de todas o, con `soloEmpresa`, las que no son de ninguna sede. */
 export function cajasSinDepositar(
   cuentas: readonly CuentaDinero[],
-  movimientos: readonly Pick<MovimientoDinero, "tipo" | "origenId" | "estado" | "fecha">[],
+  lectura: { movimientos: readonly Pick<MovimientoDinero, "tipo" | "origenId" | "estado" | "fecha">[]; leidoDesde: LeidoDesde },
   hoy: string,
   ubicacionId: string | null,
-): { nombre: string; saldo: number; dias: number }[] {
+  soloEmpresa = false,
+): { nombre: string; saldo: number; dias: number; masDe?: boolean }[] {
+  const { movimientos, leidoDesde } = lectura;
   return cuentas
-    .filter((c) => c.tipo === "caja_fuerte" && !c.archivada && (!ubicacionId || c.ubicacionId === ubicacionId))
-    .filter((c) => avisoCajaFuerte(c, movimientos, hoy)?.tono === "ambar")
-    .map((c) => ({ nombre: c.nombre, saldo: c.saldo ?? 0, dias: diasEntreFechas(ultimoDepositoDe(c.id, movimientos)!, hoy) }));
+    .filter((c) => c.tipo === "caja_fuerte" && !c.archivada && (soloEmpresa ? c.ubicacionId === null : !ubicacionId || c.ubicacionId === ubicacionId))
+    .flatMap((c) => {
+      const aviso = avisoCajaFuerte(c, movimientos, hoy, leidoDesde);
+      if (aviso?.tono !== "ambar") return [];
+      // Si el último depósito quedó fuera de lo leído, los días son un mínimo: se dice «o más», igual que la fila de Dinero.
+      const masDe = aviso.texto.includes("o más");
+      return [{ nombre: c.nombre, saldo: c.saldo ?? 0, dias: diasSinDepositar(c.id, movimientos, hoy, leidoDesde) ?? 0, ...(masDe ? { masDe } : {}) }];
+    });
 }
 
 const facturas = (n: number) => `${n} ${n === 1 ? "factura" : "facturas"}`;
@@ -36,9 +43,13 @@ const facturas = (n: number) => `${n} ${n === 1 ? "factura" : "facturas"}`;
 export function pendientesDeDinero(
   datos: {
     porPagar: readonly Pick<FilaPorPagar, "vence" | "saldo">[];
-    cajasSinDepositar: readonly { nombre: string; saldo: number; dias: number }[];
+    cajasSinDepositar: readonly { nombre: string; saldo: number; dias: number; masDe?: boolean }[];
     lineasSinRevisar: number;
     esLider: boolean;
+    /** Lo que Dynamic marcó pagado y aquí no dice de qué banco salió. */
+    planilla?: { salidas: number; total: number } | null;
+    /** Lo que Dynamic liquidó y aquí no dice de qué banco salió (tarea 12). */
+    liquidaciones?: { mes: string; falta: number }[] | null;
   },
   hoy: string,
   consulta: string,
@@ -48,6 +59,30 @@ export function pendientesDeDinero(
     return q ? `${ruta}?${q}` : ruta;
   };
   const lista: Pendiente[] = [];
+
+  if (datos.planilla && datos.planilla.salidas > 0) {
+    lista.push({
+      submodulo: "finanzas.dinero",
+      id: "dinero.planilla",
+      estado: "avisa",
+      titulo: `${soles(datos.planilla.total)} de planilla ya salieron del banco`,
+      detalle: "Dynamic la marcó pagada y aquí falta decir de qué banco: hasta entonces sigue sumando en «¿Cuánto tienes?»",
+      verbo: "Registrar",
+      href: "/finanzas/dinero",
+    });
+  }
+
+  for (const l of datos.liquidaciones ?? []) {
+    lista.push({
+      submodulo: "finanzas.dinero",
+      id: `dinero.liquidacion.${l.mes}`,
+      estado: "avisa",
+      titulo: `${soles(l.falta)} de liquidaciones de ${textoMes(l.mes)} ya salieron del banco`,
+      detalle: "Dynamic las marcó pagadas y aquí falta decir de qué banco: hasta entonces siguen sumando en «¿Cuánto tienes?»",
+      verbo: "Registrar",
+      href: `/finanzas/dinero?registrar=liquidacion&mes=${l.mes}&monto=${l.falta}`,
+    });
+  }
 
   const vencidas = datos.porPagar.filter((f) => diasHasta(f.vence, hoy) < 0);
   const semana = datos.porPagar.filter((f) => {
@@ -82,7 +117,7 @@ export function pendientesDeDinero(
       submodulo: "finanzas.dinero",
       id: `dinero.deposito.${c.nombre}`,
       estado: "avisa",
-      titulo: `${c.nombre} lleva ${c.dias} días sin depositar`,
+      titulo: `${c.nombre} lleva ${c.dias} días${c.masDe ? " o más" : ""} sin depositar`,
       detalle: `${soles(c.saldo)} guardados que podrían estar en el banco`,
       verbo: "Ver",
       href: con("/finanzas/dinero"),

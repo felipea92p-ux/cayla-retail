@@ -26,6 +26,7 @@ export function PasoAPaso({
   familias,
   conVersion,
   versiones,
+  precioDeLaPlata = 0,
   onGuardado,
   onCambios,
   pedirSalida,
@@ -45,6 +46,8 @@ export function PasoAPaso({
   /** La base ya compara versiones al guardar (B4) y lo que devolvió cada guardado de esta visita, por categoría. */
   conVersion: boolean;
   versiones: Readonly<Record<string, number>>;
+  /** El precio de la plata del plan con tope que la campaña usa (0 = el plan de siempre). */
+  precioDeLaPlata?: number;
   /** Se guardó una categoría (con su versión nueva, si la base la devuelve): la pantalla la recuerda y enciende su fila. */
   onGuardado: (categoriaId: string, version: number | null) => void;
   /** ¿Hay algo escrito sin guardar en la categoría de ahora? */
@@ -83,7 +86,7 @@ export function PasoAPaso({
         <p className="mt-1 font-display text-2xl tabular-nums text-tinta">
           {avance.hechas} de {avance.total}
         </p>
-        <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Ir a una categoría">
+        <div className="mt-3 flex flex-wrap gap-1.5 pointer-coarse:gap-2" role="group" aria-label="Ir a una categoría">
           {cola.map((f, i) => {
             const hecha = !!f.linea || hechas.includes(f.c.id);
             const aqui = actual?.c.id === f.c.id;
@@ -95,7 +98,7 @@ export function PasoAPaso({
                 title={f.c.nombre}
                 aria-label={`${f.c.nombre}${hecha ? ", con plan" : ""}${aqui ? ", la que estás armando" : ""}`}
                 aria-current={aqui ? "step" : undefined}
-                className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[11.5px] font-semibold tabular-nums transition-colors duration-200 ease-cayla motion-reduce:transition-none ${
+                className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[11.5px] font-semibold tabular-nums transition-colors duration-200 ease-cayla motion-reduce:transition-none pointer-coarse:h-11 pointer-coarse:min-w-11 ${
                   hecha ? "bg-verde text-crema" : "border border-tinta/25 bg-papel text-tinta/80 hover:border-tinta"
                 } ${aqui ? "ring-2 ring-tinta ring-offset-2 ring-offset-papel" : ""}`}
               >
@@ -136,7 +139,7 @@ export function PasoAPaso({
         <div className="rounded-2xl border border-sand p-6">
           {cola.length === 0 ? (
             <Aviso tono="info" titulo="Todavía no hay cuáles venden más">
-              No hubo ventas en los últimos 90 días para decir cuáles son las que más venden. Pasa a «Todas con movimiento» o arma la que quieras desde la tabla.
+              Sin ventas en 90 días. Pasa a «Todas con movimiento» o arma la que quieras desde la tabla.
             </Aviso>
           ) : (
             <Aviso tono="exito" titulo={alcance === "top" ? `Ya tienes las ${cola.length === TOP_VENTAS ? TOP_VENTAS : cola.length} que más venden` : "Ya llenaste todas las que se mueven"}>
@@ -180,6 +183,7 @@ export function PasoAPaso({
             enPantalla
             conVersion={conVersion}
             versionConocida={versiones[actual.c.id]}
+            precioDeLaPlata={precioDeLaPlata}
             onCambios={onCambios}
             antesDeRefrescar={antesDeRefrescar}
             irAlMontar={hechas.length > 0 || elegida !== null || saltadas.length > 0}

@@ -36,7 +36,7 @@ describe("estadoBotonCierre", () => {
   it("sin hora de cierre en la tienda el botón no sube de nivel y pide cerrar al terminar el turno", () => {
     const e = estadoBotonCierre({ ...base, horaCierre: null, ahora: lima("23:00") });
     expect(e.nivel).toBe(0);
-    expect(e.bajada).toBe("Al terminar el turno, ciérrala para cuadrar el cajón.");
+    expect(e.bajada).toBe("");
   });
 
   it("a quien no puede cerrar le dice a quién avisar, no le ofrece nada que la base rechace", () => {

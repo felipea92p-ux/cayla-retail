@@ -9,7 +9,7 @@
 // CONTRATO
 //   PROMETE: que las celdas que la tabla muestra con caja son EXACTAMENTE las que pueden sumar a la orden (una combinación que el modelo no tiene sale rayada y no suma
 //            aunque alguien escriba un número en su clave); que `totalesCantidades` sobre esta tabla coincide con la suma de las líneas que se mandan, cuando lo escrito es lo
-//            que la caja deja escribir (solo dígitos, hasta 4); y que el orden de lo que se manda es el de siempre (el de las variantes del modelo; el del vocabulario para uno nuevo),
+//            que la caja deja pasar (solo dígitos, hasta 4: `useCantidadEscrita`); y que el orden de lo que se manda es el de siempre (el de las variantes del modelo; el del vocabulario para uno nuevo),
 //            no el de los clics.
 //   ASUME:   las claves de celda de un modelo que existe son sus `varianteId`; las de un modelo nuevo son `claveCelda(talla, color)`.
 //   NO HACE: no escribe en la base, no valida precios ni costos (eso es `problemasDelModelo`) y no decide cuándo se puede abrir la orden.

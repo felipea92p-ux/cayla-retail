@@ -1,0 +1,4 @@
+## 2026-11-12 (Vercel compila menos: la factura de compilación, ADR-0648)
+Qué hice: producción ya no se compila si la fusión no toca la web (`scripts/ci/vercel-ignorar.mjs`, `RUTAS_DEL_ERP`). El vigía de Vercel acepta ese salto y solo avisa si el commit sí cambiaba la web. `next build` ya no revisa tipos dentro de Vercel (`apps/web/next.config.ts`): lo hace el CI en la cola de fusión.
+Por qué así: la compilación era US$ 84 de los 102 de la factura. Producción se compilaba en las 148 fusiones de la semana, 40 de ellas sin un archivo de la web, y en cada compilación la revisión de tipos se llevaba 54 de 157 s, repitiendo lo que el CI ya revisó sobre el mismo commit.
+Felipe se lleva: pasar la máquina de compilación a «Basic» en los tres proyectos (el conector no tiene permiso de dueño): Vercel ▸ proyecto ▸ Settings ▸ Build and Deployment ▸ Build Machine ▸ Basic ▸ Save. Lo mismo en cayla-dynamic, que además necesita su propio filtro en su repo.

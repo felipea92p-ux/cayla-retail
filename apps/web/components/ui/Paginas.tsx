@@ -94,7 +94,8 @@ export function Paginas({
             …
           </span>
         ) : (
-          ir(n, n, { actual: n === pagina, etiqueta: undefined })
+          // «lejana»: no es la actual ni una vecina; en un teléfono angosto se esconde y queda «‹ 2 3 4 ›» (vidrio/pantalla.css).
+          ir(n, n, { actual: n === pagina, etiqueta: undefined, extra: Math.abs(n - pagina) > 1 ? "lejana" : "" })
         )
       )}
       {ir(pagina + 1, <ChevronRight aria-hidden />, { etiqueta: "Página siguiente", deshabilitada: pagina === totalPaginas, extra: "adelante" })}

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tienda · nueva paleta y estética — 6 direcciones</title>
+<style>
+/* Página para comparar (no es parte de ningún diseño): letra del sistema y grises neutros a propósito. */
+:root { --fondo: #f2f2f0; --texto: #1b1b1a; --tenue: #5d5d59; --linea: #d9d9d5; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fondo); color: var(--texto); font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+main { max-width: 1400px; margin: 0 auto; padding: 48px 24px 96px; }
+h1 { margin: 0; font-size: 34px; letter-spacing: -.02em; }
+.bajada { max-width: 80ch; color: var(--tenue); margin: 12px 0 0; }
+.fijo { margin: 28px 0 0; padding: 16px 20px; border: 1px solid var(--linea); border-radius: 10px; background: #fff; max-width: 90ch; }
+.fijo b { font-weight: 600; }
+.dir { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 32px; margin-top: 56px; padding-top: 32px; border-top: 1px solid var(--linea); }
+.dir h2 { margin: 0; font-size: 26px; letter-spacing: -.01em; }
+.dir h2 small { display: block; font-size: 13px; font-weight: 500; color: var(--tenue); margin-bottom: 4px; letter-spacing: 0; }
+.idea { margin: 10px 0 0; }
+.muestras { display: flex; gap: 8px; margin: 18px 0 4px; flex-wrap: wrap; }
+.muestras span { display: grid; gap: 4px; font-size: 11px; color: var(--tenue); }
+.muestras i { display: block; width: 56px; height: 40px; border-radius: 6px; box-shadow: inset 0 0 0 1px #0002; }
+dl { display: grid; grid-template-columns: 64px 1fr; gap: 8px 12px; margin: 16px 0 0; font-size: 14px; }
+dt { color: var(--tenue); }
+dd { margin: 0; }
+.abrir { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.abrir a { display: inline-flex; align-items: center; height: 38px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--texto); color: var(--texto); text-decoration: none; font-weight: 500; font-size: 14px; }
+.abrir a:first-child { background: var(--texto); color: #fff; }
+.abrir a:focus-visible { outline: 2px solid #3b6fd8; outline-offset: 2px; }
+.vistas { display: grid; grid-template-columns: 1fr 1fr 150px; gap: 14px; align-items: start; }
+.vistas figure { margin: 0; }
+.vistas figcaption { margin-top: 6px; font-size: 12px; color: var(--tenue); display: flex; justify-content: space-between; }
+.vista { position: relative; display: block; overflow: hidden; border: 1px solid var(--linea); border-radius: 8px; background: #ddd; }
+.vista.d { aspect-ratio: 1440 / 900; }
+.vista.m { aspect-ratio: 390 / 844; }
+.vista iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; pointer-events: none; background: #fff; }
+.vista.d iframe { width: 1440px; height: 900px; }
+.vista.m iframe { width: 390px; height: 844px; }
+.col-m { grid-row: 1 / span 2; grid-column: 3; }
+@media (max-width: 1100px) { .dir { grid-template-columns: 1fr; } .vistas { grid-template-columns: 1fr 1fr; } .col-m { display: none; } }
+@media (max-width: 640px) { .vistas { grid-template-columns: 1fr; } }
+.nota { margin-top: 64px; padding: 20px; border: 1px solid var(--linea); border-radius: 10px; background: #fff; max-width: 90ch; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Tienda online · nueva paleta y estética</h1>
+  <p class="bajada">Seis maneras de rehacer cómo se ve la tienda (<code>apps/tienda</code>), todas minimalistas. Cada una muestra sus cuatro pestañas más importantes: <b>portada, catálogo, prenda y bolsa</b>. Las miniaturas son páginas vivas: toca una para entrar y navegar, probar con el celular y agregar a la bolsa; «▶ Ver demo» la recorre sola (cursor y rótulos incluidos; Esc la detiene). <b>Una maqueta no cambia la tienda:</b> nada de esto existe todavía en <code>apps/tienda</code>.</p>
+  <div class="fijo"><b>No cambia en ninguna:</b> el logo oficial (el colibrí y CAYLA, solo cambia de color donde lo pide el fondo), que sin cuenta no se ven precios, el stock por tienda, separar sin pagar, confirmar por WhatsApp, pagar al recoger y el tope de 3 separaciones abiertas.<br><b>Qué es real y qué de ejemplo:</b> real, el nombre y la foto de 13 prendas de la tienda pública y las dos tiendas; de ejemplo, precios, tallas y stock. Ya probaste doce direcciones antes (A–L): estas seis no repiten ninguna de sus paletas (yeso frío, vino, perla rosada, celadón, adobe, camel, lino…).</div>
+
+  <div id="lista"></div>
+
+  <div class="nota"><b>Qué toca ahora:</b> elige <b>tres</b> (di los números). De esas tres hago un spike visual más profundo —todas las pestañas, el celular, el catálogo con datos reales y el movimiento— y entonces eliges una para construirla completa en la tienda local.</div>
+</main>
+<script>
+const DIR = [
+  { id: "blanco", n: "1", nombre: "Blanco", sub: "Papel blanco y un solo color",
+    idea: "Suizo y callado: blanco puro, tinta negra y el rojo del colibrí solo donde ya vive (el logo y marcas diminutas). Sin marcos ni esquinas: la prenda es lo único con color.",
+    paleta: [["Papel", "#ffffff"], ["Lienzo", "#f3f3f1"], ["Tinta", "#111111"], ["Rojo colibrí", "#d13730"]],
+    letras: "Inter Tight", forma: "Esquinas rectas, filos finos", firma: "Titular grande y una tira de cuatro prendas sin marco, como un índice.",
+    ganas: "La prenda manda: se ve «caro» sin esfuerzo y envejece mejor que cualquier tendencia.",
+    pagas: "Es la menos memorable: sin buenas fotos parece cualquier tienda.", rompe: "las fotos de producto son flojas o desiguales; sobre blanco se notan todas." },
+  { id: "indigo", n: "2", nombre: "Índigo", sub: "Azul tinta sobre hueso",
+    idea: "La elegancia de un cuaderno de sastre: azul tinta, hueso cálido y una serif fina con cursivas. Cada foto va en su marco de filo fino, como una lámina.",
+    paleta: [["Hueso", "#f3f0e8"], ["Lámina", "#e9e5d9"], ["Azul tinta", "#15213b"], ["Rojo logo", "#c8342c"]],
+    letras: "Instrument Serif + Instrument Sans", forma: "Esquinas casi rectas, marco fino en cada foto", firma: "Portada partida: el azul con el titular y la prenda grande en su marco.",
+    ganas: "El azul y el rojo del logo se llevan bien (son complementarios) y se siente sastrería, no moda rápida.",
+    pagas: "Una serif fina pide fotos limpias y textos cortos; el panel azul grande pesa en el celular.", rompe: "se quiere una tienda que se sienta joven o de promociones." },
+  { id: "musgo", n: "3", nombre: "Musgo", sub: "Verde apagado y arcos",
+    idea: "Un patio con jardín: verde musgo sobre un hueso verdoso, botones en píldora y cada prenda dentro de un arco (como los portales de Arequipa).",
+    paleta: [["Hueso", "#eceee3"], ["Salvia", "#dde2cf"], ["Musgo", "#294034"], ["Rojo logo", "#c8402f"]],
+    letras: "Fraunces + DM Sans", forma: "Arcos y píldoras", firma: "Tres arcos de alturas distintas parados sobre un suelo musgo.",
+    ganas: "Más calidez y personalidad sin dejar de ser sobria; las fotos con fondo blanco lucen sobre el verde pálido.",
+    pagas: "Verde con el rojo del logo roza lo navideño si el verde sube; el arco recorta prendas muy anchas.", rompe: "se carga mucho verde (banners, botones grandes) o llegan prendas verdes que se funden con el fondo." },
+  { id: "mantequilla", n: "4", nombre: "Mantequilla", sub: "Crema amarilla y negro cálido",
+    idea: "La más amable: todo es redondo, el titular lleva fotos adentro como pastillas entre las palabras y el precio es una etiqueta. Juguetona, con la misma calma.",
+    paleta: [["Crema", "#fbf6e2"], ["Mantequilla", "#f2e8b8"], ["Negro cálido", "#1f1b10"], ["Rojo logo", "#d13730"]],
+    letras: "Bricolage Grotesque + Figtree", forma: "Píldoras y tarjetas blandas", firma: "Titular con pastillas de foto y precio en etiqueta.",
+    ganas: "La más fresca y memorable; se siente de marca joven y cercana.",
+    pagas: "Menos «lujo», más «moda de hoy»; el fondo amarillento apaga las prendas claras (ya se nota con la camiseta amarilla).", rompe: "llegan muchas prendas crema, amarillas o beige: se funden con el fondo." },
+  { id: "arcilla", n: "5", nombre: "Arcilla", sub: "Rosa tierra, minúsculas y óvalos",
+    idea: "Tierra cocida: rosa arcilla claro, café profundo y un terracota para los botones. Todo en minúsculas y centrado; las prendas viven en óvalos escalonados, como cerámica en un estante.",
+    paleta: [["Arcilla", "#f3e8de"], ["Óvalo", "#e8d5c5"], ["Café", "#2b1c16"], ["Terracota", "#a8472a"]],
+    letras: "Outfit (todo en minúsculas)", forma: "Óvalos y píldoras", firma: "Tres óvalos altos y escalonados bajo un titular centrado.",
+    ganas: "Cálida, artesanal y distinta de lo que hay: nadie más se ve así en la zona.",
+    pagas: "Minúsculas y centrado cuestan lectura en listas largas; el óvalo achica las prendas.", rompe: "se vende ropa rosada o beige (se pierde en el óvalo) o se quiere un tono más serio." },
+  { id: "rojo", n: "6", nombre: "Rojo colibrí", sub: "El rojo del logo, de verdad",
+    idea: "Usar el activo de marca: un campo de rojo entero en la portada, letra grande en mayúsculas y todo lo demás en blanco y negro, sin curvas. La prenda cruza del rojo al blanco.",
+    paleta: [["Blanco cálido", "#fbfaf7"], ["Lienzo", "#efece6"], ["Tinta", "#17110f"], ["Rojo colibrí", "#d13730"]],
+    letras: "Syne + Work Sans", forma: "Rectas, bloques de color", firma: "Campo rojo de lado a lado con la prenda en una tarjeta que lo cruza.",
+    ganas: "Se reconoce a tres metros y convierte el rojo del logo en una declaración.",
+    pagas: "El rojo grande compite con las prendas rojas (el corsé Alba); cansa si se repite en toda pantalla.", rompe: "se usa el rojo en demasiadas partes: deja de ser marca y pasa a ser ruido." },
+];
+const lista = document.getElementById("lista");
+lista.innerHTML = DIR.map((d) => `
+  <section class="dir" id="${d.id}">
+    <div>
+      <h2><small>Dirección ${d.n}</small>${d.nombre}</h2>
+      <p class="idea"><b>${d.sub}.</b> ${d.idea}</p>
+      <div class="muestras">${d.paleta.map(([n, c]) => `<span><i style="background:${c}"></i>${n}<br>${c}</span>`).join("")}</div>
+      <dl>
+        <dt>Letras</dt><dd>${d.letras}</dd>
+        <dt>Forma</dt><dd>${d.forma}</dd>
+        <dt>Firma</dt><dd>${d.firma}</dd>
+        <dt>Ganas</dt><dd>${d.ganas}</dd>
+        <dt>Pagas</dt><dd>${d.pagas}</dd>
+        <dt>Se rompe si</dt><dd>${d.rompe}</dd>
+      </dl>
+      <div class="abrir"><a href="${d.id}.html?demo#portada">▶ Ver demo</a><a href="${d.id}.html#portada">Abrir ${d.nombre}</a><a href="${d.id}.html?vista=celular#portada">En celular</a></div>
+    </div>
+    <div class="vistas">
+      ${[["portada", "Portada"], ["catalogo", "Catálogo"], ["prenda/kalessi", "Prenda"], ["bolsa", "Bolsa"]].map(([h, t]) => `
+        <figure><a class="vista d" href="${d.id}.html#${h}" aria-label="${d.nombre}: ${t}"><iframe loading="lazy" tabindex="-1" title="${d.nombre}, ${t}" src="${d.id}.html?previa#${h}"></iframe></a><figcaption><b>${t}</b></figcaption></figure>`).join("")}
+      <figure class="col-m"><a class="vista m" href="${d.id}.html?vista=celular#portada" aria-label="${d.nombre}: celular"><iframe loading="lazy" tabindex="-1" title="${d.nombre}, celular" src="${d.id}.html?previa#portada"></iframe></a><figcaption><b>Celular</b></figcaption></figure>
+    </div>
+  </section>`).join("");
+// Cada miniatura es una página de verdad a su tamaño, encogida para caber.
+function ajustar() {
+  document.querySelectorAll(".vista").forEach((v) => {
+    const f = v.querySelector("iframe");
+    const w = v.classList.contains("m") ? 390 : 1440;
+    f.style.transform = `scale(${v.clientWidth / w})`;
+  });
+}
+new ResizeObserver(ajustar).observe(document.body);
+ajustar();
+</script>
+</body>
+</html>

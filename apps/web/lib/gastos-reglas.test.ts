@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  cuantoSaleAlArchivarFijo,
+  TEXTO_FIJO_ARCHIVADO,
   prefijoALaFecha,
   borradorDesdeFijo,
   estadoGasto,
@@ -575,5 +577,18 @@ describe("el monto de un gasto tiene tope", () => {
   });
   it("el 9 pegado de /chaos", () => {
     expect(validarGasto({ ...base, monto: "99999999" }, HOY).ok).toBe(false);
+  });
+});
+
+describe("archivar un gasto fijo (tarea 96)", () => {
+  const plano = (t: string) => t.replace(/\u00a0/g, " ");
+  it("la confirmación dice cuánto sale de lo que viene, con «unos» si el monto cambia cada mes", () => {
+    expect(plano(cuantoSaleAlArchivarFijo({ monto: 4200, montoVariable: false }))).toBe("Sale S/ 4,200.00 al mes de lo que viene por pagar.");
+    expect(plano(cuantoSaleAlArchivarFijo({ monto: 180.5, montoVariable: true }))).toBe("Sale unos S/ 180.50 al mes de lo que viene por pagar.");
+  });
+  it("el aviso no promete «desde este mes»: también deja de verse en los meses pasados", () => {
+    expect(TEXTO_FIJO_ARCHIVADO).not.toMatch(/desde este mes/i);
+    expect(TEXTO_FIJO_ARCHIVADO).toMatch(/meses pasados/);
+    expect(TEXTO_FIJO_ARCHIVADO).toMatch(/se quedan/);
   });
 });

@@ -13,8 +13,9 @@ import { describe, expect, it } from "vitest";
 
 const WEB = join(__dirname, "..");
 
-/** Un anillo de foco pintado en rojo o tinta CON transparencia: `focus-visible:outline-rojo/60`, `focus:ring-rojo/20`, `group-focus-visible:ring-tinta/30`. */
-export const ANILLO_TRANSPARENTE = /(?:group-)?focus(?:-visible|-within)?:(?:outline|ring)-(?:rojo|tinta)\/\d+/g;
+/** Un anillo de foco pintado en rojo o tinta CON transparencia: `focus-visible:outline-rojo/60`, `focus:ring-rojo/20`, `group-focus-visible:ring-tinta/30`,
+ *  y también tras otra variante (`focus-visible:after:outline-rojo/60`: el de Proveedores se escapaba así hasta el 2026-11-16). */
+export const ANILLO_TRANSPARENTE = /(?:group-)?focus(?:-visible|-within)?:(?:[a-z-]+:)*(?:outline|ring)-(?:rojo|tinta)\/\d+/g;
 
 export function anillosTransparentes(fuente: string): number {
   return fuente.match(ANILLO_TRANSPARENTE)?.length ?? 0;
@@ -31,6 +32,9 @@ function tsxBajo(dir: string): string[] {
 describe("cómo se reconoce un anillo de foco débil", () => {
   it("rojo con transparencia, en cualquier variante de foco", () => {
     expect(anillosTransparentes('class="focus-visible:outline-rojo/60 focus:ring-rojo/20 group-focus-visible:ring-rojo/50"')).toBe(3);
+  });
+  it("también tras otra variante (el anillo que vive en un ::after)", () => {
+    expect(anillosTransparentes('class="focus-visible:after:outline-rojo/60 focus-visible:before:ring-tinta/30"')).toBe(2);
   });
   it("el rojo pleno y el anillo común no cuentan", () => {
     expect(anillosTransparentes('class="focus-visible:outline-rojo focus-visible:outline-tinta hover:text-rojo/60"')).toBe(0);
@@ -95,7 +99,9 @@ describe("los anillos propios con transparencia (rojo o tinta) solo bajan", () =
   // anillo propio y pasó a <Aviso>.
   // 28 → 26 el 2026-10-17 (ADR-0358, ronda 17): la × de la orden de Producción pasó a <Cajon> y un paso de cantidad a mano, a
   // <PasoCantidad>, los dos con el anillo del sistema.
-  const PENDIENTES_HOY = 26;
+  // 25 → 24 el 2026-11-16 (auditoría /milimetro, «foco sin anillo»): la tarjeta que abre un detalle en Catálogo (`atributos/kit.tsx`)
+  // perdió su `outline-none` + rojo/60, que juntos no pintaban nada, y usa el anillo del sistema.
+  const PENDIENTES_HOY = 24;
   it("la cuenta de afuera de components/ui es exacta y solo baja", () => {
     const total = porArchivo.reduce((s, a) => s + a.n, 0);
     expect(total).toBe(PENDIENTES_HOY);

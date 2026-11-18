@@ -1,0 +1,1 @@
+**2026-11-05 · Tienda: «Arma tu outfit» con la foto de la mano (ADR-0615).** A la derecha del bloque, el brazo entra por el borde y las prendas caen sobre el beige; reemplaza a la foto de las dos modelos, a pedido de Felipe. No sobresale por arriba, porque el brazo quedaría cortado en el aire: por eso el bloque creció a 360 px en computadora.

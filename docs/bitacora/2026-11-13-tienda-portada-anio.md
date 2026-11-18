@@ -1,0 +1,4 @@
+## 2026-11-13 (La portada de la tienda ya no lee el reloj mientras se arma)
+Qué hice: en `apps/tienda/app/(catalogo)/inicio/page.tsx`, el año de la tarjeta del Club (cuando no hay cuenta) sale de `anioActual()` (`lib/hoy-servidor.ts`, la lectura guardada que ya usan el pie y `/entrar`) en vez de `anioLima()`. Con la tienda compilada, `/inicio` ya no registra «encountered the unstable value new Date() while prerendering» y la tarjeta sigue diciendo «Miembro del Club · 2026».
+Por qué así: con Cache Components (ADR-0432) la portada sin sesión se arma por adelantado, y Next no deja leer el reloj durante ese armado; lo registraba como error en cada armado. `/cuenta` hace lo mismo pero lee la sesión antes (se arma en cada pedido), así que ahí el reloj está permitido y no se tocó.
+Felipe se lleva: un error menos en los registros de la tienda en Vercel. Lo que ve el cliente no cambia (el año puede atrasarse hasta una hora el 1 de enero).

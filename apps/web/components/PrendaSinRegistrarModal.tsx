@@ -1,10 +1,13 @@
 "use client";
 
 import { useId, useMemo, useState, type ReactNode, type RefObject } from "react";
-import { Banknote, Palette, PenLine, Ruler, Tag } from "lucide-react";
+import { Banknote, CircleHelp, Palette, PenLine, Ruler, Tag } from "lucide-react";
+import { MAX_DETALLE_MOTIVO, MOTIVOS_SIN_REGISTRAR, faltaEnMotivo } from "@/lib/prenda-sin-registrar-motivo";
 import { Modal } from "@/components/ui/Modal";
-import { CampoTexto, Boton } from "@/components/ui/campos";
+import { Boton, CampoTexto } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
+import { ListaSugerencias } from "@/components/ui/ListaSugerencias";
+import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { IconoCategoria } from "@/components/IconoCategoria";
@@ -14,6 +17,9 @@ import { tonoDeCategoria } from "@/components/MuestraCategoria";
 import { camposGuiaPrenda } from "@/lib/prenda-sin-registrar-guia";
 import { arranqueDeCorreccion, cambioEnCorreccion, type AnotadoPorCaja } from "@/lib/corregir-prenda-sin-registrar-reglas";
 import { sinonimosDeCategoria, sugerenciaParaMostrar } from "@/lib/sugerir-categoria-sin-registrar";
+import { detalleDePosible, fraseDePosibles, type ElegidoEnLaHoja, type PrendaPosible } from "@/lib/prenda-sin-registrar-posibles";
+import { fraseDeReferencia, fraseFueraDeRango, precioNecesitaConfirmacion, veredictoDePrecio, type RangoDePrecios } from "@/lib/prenda-sin-registrar-precio";
+import { Aviso } from "@/components/ui/Aviso";
 import {
   faltaEnPrendaSinRegistrar,
   gruposDeTallas,
@@ -63,10 +69,17 @@ const tallasDe = (listas: ListasPrendaLibre, id: string): Talla[] =>
  * Con `corregir` (ADR-0369) es la misma hoja para cambiar lo anotado DESPUÉS de la venta, desde Ventas sin registrar: arranca con lo
  * que anotó caja, el precio queda fijo (es dinero: lo dice la venta y el comprobante), pide el «Responsable» y guarda con «Guardar
  * cambios», que solo se enciende si algo cambió. Una sola hoja para anotar y corregir: lo que se corrige es lo que la caja ofrece.
+ *
+ * «¿Es alguna de estas?» (A2, auditoría 2026-10-14): con categoría, talla y color elegidos, si en el piso de esta tienda hay prendas
+ * del catálogo que coinciden (`posibles`), la hoja las muestra ANTES de la descripción y «Es esta» (`onEsEsta`) la mete al ticket como
+ * venta normal. El 69 % de lo vendido entraba por aquí sin stock ni costo; muchas de esas prendas sí estaban en el sistema.
  */
 export function PrendaSinRegistrarModal({
   listas,
   onAgregar,
+  posibles,
+  onEsEsta,
+  rangoDePrecio,
   onClose,
   alCerrarEnfocar,
   corregir,
@@ -74,6 +87,13 @@ export function PrendaSinRegistrarModal({
   listas: ListasPrendaLibre;
   /** Vender: agrega la prenda al ticket. (En modo `corregir` no se usa.) */
   onAgregar?: (d: DatosPrendaSinRegistrar) => void;
+  /** Vender: las prendas del catálogo que coinciden con lo elegido y se pueden cobrar ahora (`prendasPosibles`). Sin esto, no se ofrece nada. */
+  posibles?: (elegido: ElegidoEnLaHoja) => PrendaPosible[];
+  /** Vender: la persona reconoció la prenda en la lista; entra al ticket como cualquier otra y la hoja se cierra. */
+  onEsEsta?: (varianteId: string) => void;
+  /** Vender: cuánto cuestan las prendas de una categoría en el catálogo (`rangoDePreciosDeCategoria`). Con esto, un precio fuera de
+   *  rango pide confirmarse antes de agregar (A3, auditoría 2026-10-14). Sin esto, el precio sigue libre. */
+  rangoDePrecio?: (categoriaId: string) => RangoDePrecios | null;
   onClose: () => void;
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
   corregir?: {
@@ -92,6 +112,10 @@ export function PrendaSinRegistrarModal({
   // colaboradora no la toque, sigue a la sugerencia; apenas escribe, es suya.
   const [descripcionEscrita, setDescripcionEscrita] = useState<string | null>(arranque ? arranque.descripcionEscrita : null);
   const [precio, setPrecio] = useState(corregir ? corregir.inicial.precio.toFixed(2) : "");
+  // Por qué se anota a mano (20261106233000): solo al anotar en Vender. Al corregir lo anotado, la venta ya existe y no se pregunta.
+  const [motivo, setMotivo] = useState("");
+  const [motivoDetalle, setMotivoDetalle] = useState("");
+  const idMotivoDetalle = useId();
   const idDescripcion = useId();
   const idPrecio = useId();
 
@@ -117,13 +141,25 @@ export function PrendaSinRegistrarModal({
 
   const datos: DatosPrendaSinRegistrar = { descripcion, categoriaId, tallaId, colorCodigo, precio: Number(precio) };
   const falta = faltaEnPrendaSinRegistrar(datos);
+  // Las prendas del catálogo que coinciden con lo elegido (solo al anotar en Vender; al corregir, la venta ya existe).
+  const idPosibles = useId();
+  const listaPosibles = useMemo(
+    () => (!corregir && posibles && onEsEsta && categoriaId && tallaId && colorCodigo ? posibles({ categoriaId, tallaId, colorCodigo }) : []),
+    [corregir, posibles, onEsEsta, categoriaId, tallaId, colorCodigo],
+  );
   const cambio = corregir ? cambioEnCorreccion(corregir.inicial, datos) : true;
   const guia = useGuiaCampos(
     corregir
       ? [...camposGuiaPrenda(datos), { id: "responsable", nombre: "Responsable", requerido: true, hecho: corregir.responsable.listo, pendiente: "Elige quién hace la corrección." }]
-      : camposGuiaPrenda(datos),
+      : camposGuiaPrenda(datos, { valor: motivo, detalle: motivoDetalle }),
   );
-  const puedeConfirmar = falta === null && cambio && (!corregir || (corregir.responsable.listo && !corregir.guardando));
+  const faltaMotivo = corregir ? null : faltaEnMotivo(motivo, motivoDetalle);
+  // El precio con referencia (solo al anotar): el rango de la categoría en el catálogo y, si lo tecleado se sale, la confirmación de ESE precio.
+  const [precioConfirmado, setPrecioConfirmado] = useState<number | null>(null);
+  const rango = useMemo(() => (!corregir && rangoDePrecio && categoriaId ? rangoDePrecio(categoriaId) : null), [corregir, rangoDePrecio, categoriaId]);
+  const veredicto = veredictoDePrecio(datos.precio, rango);
+  const faltaConfirmarPrecio = !corregir && precioNecesitaConfirmacion(veredicto, datos.precio, precioConfirmado);
+  const puedeConfirmar = falta === null && faltaMotivo === null && cambio && !faltaConfirmarPrecio && (!corregir || (corregir.responsable.listo && !corregir.guardando));
 
   const opcionesCategoria = useMemo(
     () =>
@@ -224,8 +260,19 @@ export function PrendaSinRegistrarModal({
     if (!puedeConfirmar) return;
     const d = { ...datos, descripcion: descripcion.trim() };
     if (corregir) corregir.onGuardar(d);
-    else onAgregar?.(d);
+    else onAgregar?.({ ...d, motivo, motivoDetalle: motivo === "otro" ? motivoDetalle.trim() : undefined });
   };
+
+  /** Elegido el motivo, el cursor va a lo que sigue: el texto si es «otro», si no la categoría (o lo primero que falte). */
+  function elegirMotivo(valor: string) {
+    setMotivo(valor);
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (valor === "otro") document.getElementById(idMotivoDetalle)?.focus();
+        else enfocarCampo(pasoSiguiente(datos));
+      }),
+    );
+  }
 
   const botonTalla = (t: Talla, menor = false, ancho = false) => (
     <button
@@ -272,6 +319,50 @@ export function PrendaSinRegistrarModal({
           corría de lado (el precio quedaba cortado a la derecha); ahora el título baja de línea y nada se sale. */}
       <div className="grid grid-cols-[minmax(0,1fr)] gap-x-10 gap-y-5 [grid-template-areas:'etiqueta'_'campos'_'pie'] max-md:[&_button]:scroll-mt-[8.5rem] max-md:[&_input]:scroll-mt-[8.5rem] md:grid-cols-[minmax(0,1fr)_17.5rem] md:grid-rows-[auto_1fr] md:[grid-template-areas:'campos_etiqueta'_'campos_pie']">
         <div className="space-y-6 [grid-area:campos]">
+          {/* Por qué se anota a mano (20261106233000, Felipe 2026-11-06): va primero porque es la pregunta que abre esta hoja. Con
+              «La pistola no la lee» o «El sistema dice que no hay», la lista «¿Es alguna de estas?» de abajo todavía puede encontrar la real. */}
+          {!corregir && (
+            <CampoGuiado
+              id="motivo"
+              guia={guia}
+              titulo={<Titulo icono={<CircleHelp />}>¿Por qué la anotas a mano?</Titulo>}
+              ayuda="Nos ayuda a saber qué arreglar para que no vuelva a pasar."
+            >
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2" role="group" aria-label="Por qué la anotas a mano">
+                {MOTIVOS_SIN_REGISTRAR.map((m, i) => (
+                  <button
+                    key={m.valor}
+                    type="button"
+                    data-motivo={m.valor}
+                    aria-pressed={motivo === m.valor}
+                    autoFocus={i === 0}
+                    onClick={() => elegirMotivo(m.valor)}
+                    className={`rounded-lg border px-3 py-2 text-left transition-colors duration-200 ease-cayla ${
+                      motivo === m.valor ? "border-tinta bg-tinta text-crema" : "border-taupe/40 bg-hueso text-tinta hover:border-tinta/60"
+                    }`}
+                  >
+                    <span className="block text-sm font-medium">{m.texto}</span>
+                    <span className={`block text-xs ${motivo === m.valor ? "text-crema/80" : "text-tinta/65"}`}>{m.detalle}</span>
+                  </button>
+                ))}
+              </div>
+              {motivo === "otro" && (
+                <div className="anim-revelar mt-2.5" data-sin-cascada>
+                  <CampoTexto
+                    id={idMotivoDetalle}
+                    caja
+                    etiqueta="Cuál fue el motivo"
+                    value={motivoDetalle}
+                    onChange={(e) => setMotivoDetalle(e.target.value)}
+                    // sugerir-fijo: la instrucción de cómo contestar «otro»; no depende de nada elegido antes en la hoja
+                    placeholder="Cuéntalo en pocas palabras"
+                    maxLength={MAX_DETALLE_MOTIVO}
+                  />
+                </div>
+              )}
+            </CampoGuiado>
+          )}
+
           <CampoGuiado id="categoria" guia={guia} titulo={<Titulo icono={<Tag />}>Categoría</Titulo>}>
             <ComboBuscable
               valor={categoriaId}
@@ -279,7 +370,6 @@ export function PrendaSinRegistrarModal({
               opciones={opcionesCategoria}
               marcador="Busca la categoría"
               etiquetaAccesible="Categoría"
-              autoFocus={!corregir}
               caja
             />
           </CampoGuiado>
@@ -329,6 +419,32 @@ export function PrendaSinRegistrarModal({
               caja
             />
           </CampoGuiado>
+
+          {/* «¿Es alguna de estas?»: la respuesta a haber elegido los tres datos (ADR-0136: entra con `anim-revelar`, una vez). La lista
+              es la pieza única de lo que se sugiere (`ListaSugerencias`, ADR-0358); sin fila activa ni tecla, porque no hay un buscador que
+              la controle: se toca con el mouse o con Tab. Si no es ninguna, se sigue anotando como siempre. */}
+          {listaPosibles.length > 0 && (
+            <div key={`${categoriaId}-${tallaId}-${colorCodigo}`} className="anim-revelar space-y-2" data-posibles data-sin-cascada>
+              <p className="text-[13px] font-semibold text-tinta">{fraseDePosibles(listaPosibles.length)}</p>
+              <ListaSugerencias
+                id={idPosibles}
+                etiqueta="Prendas del catálogo que coinciden con lo elegido"
+                sugerencias={listaPosibles.map((p) => ({
+                  clave: p.varianteId,
+                  miniatura: <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex ?? null} tamano="md" prefijo={p.categoriaPrefijo} familia={p.categoriaFamilia} categoria={p.categoria} />,
+                  titulo: p.referencia,
+                  detalle: detalleDePosible(p),
+                  derecha: `S/\u00a0${p.precio.toFixed(2)}`,
+                }))}
+                activa={null}
+                tecla={null}
+                retenerFoco={false}
+                enLinea
+                onElegir={(i) => onEsEsta?.(listaPosibles[i]!.varianteId)}
+              />
+              <p className="text-xs text-tinta/65">Tócala y entra al ticket como venta normal. Si no es ninguna, sigue anotando.</p>
+            </div>
+          )}
 
           <CampoGuiado id="descripcion" guia={guia} titulo={<Titulo icono={<PenLine />}>Descripción corta</Titulo>}>
             <CampoTexto
@@ -385,6 +501,35 @@ export function PrendaSinRegistrarModal({
                 />
               </span>
             </label>
+            {/* La referencia, antes de teclear: cuánto cuestan las prendas de esa categoría en el catálogo. */}
+            {rango && categoria && (veredicto === "dentro" || veredicto === "sin_precio") && (
+              <p className="mt-1.5 text-xs text-tinta/65" data-referencia-precio>
+                {fraseDeReferencia(categoria.nombre, rango)}
+              </p>
+            )}
+            {/* Fuera de rango: la misma forma que el costo atípico de Compras (corregir o confirmar), sin rojo: no es un error, es una decisión. */}
+            {rango && categoria && (veredicto === "bajo" || veredicto === "alto") && (
+              <Aviso
+                tono="atencion"
+                titulo={fraseFueraDeRango(datos.precio, categoria.nombre, rango, veredicto).titulo}
+                className="mt-3"
+                key={`${veredicto}-${datos.precio}`}
+              >
+                <p>{fraseFueraDeRango(datos.precio, categoria.nombre, rango, veredicto).detalle}</p>
+                {faltaConfirmarPrecio ? (
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <Boton type="button" peso="fantasma" className="sm:flex-1" onClick={() => document.getElementById(idPrecio)?.focus()}>
+                      Corregir el precio
+                    </Boton>
+                    <Boton type="button" peso="primario" className="sm:flex-1" onClick={() => setPrecioConfirmado(datos.precio)}>
+                      Sí, cobré S/&nbsp;{datos.precio.toFixed(2)}
+                    </Boton>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs">Confirmado: entra al ticket con ese precio.</p>
+                )}
+              </Aviso>
+            )}
           </CampoGuiado>
           )}
         </div>
@@ -407,9 +552,18 @@ export function PrendaSinRegistrarModal({
               <ComboResponsable control={corregir.responsable} deshabilitado={corregir.guardando} />
             </CampoGuiado>
           )}
+          <div className="pie-hoja-fijo pt-2">
           <PieGuia
             guia={guia}
-            listo={corregir ? (cambio ? "Listo para guardar." : "Todavía no cambiaste nada.") : "Lista para el ticket. Enter en el precio también la agrega."}
+            listo={
+              corregir
+                ? cambio
+                  ? "Listo para guardar."
+                  : "Todavía no cambiaste nada."
+                : faltaConfirmarPrecio
+                  ? "El precio se sale de lo usual: confírmalo o corrígelo antes de agregar."
+                  : "Lista para el ticket. Enter en el precio también la agrega."
+            }
           />
           <Boton
             type="button"
@@ -422,6 +576,7 @@ export function PrendaSinRegistrarModal({
           >
             {corregir ? "Guardar cambios" : "Agregar al ticket"}
           </Boton>
+          </div>
         </div>
       </div>
     </Modal>

@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-se="lente" data-ti="placa">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Movimientos con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la página de Inventario ▸ Movimientos con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   La pantalla real (app/(app)/inventario/movimientos → MovimientosLista, FilaMovimiento, components/movimientos/; ADR-0353, la opción
+   A · Ruta): a la derecha la columna de los tipos (cada botón es su filtro y su cifra, con su SELLO); a la izquierda la lista por día (el
+   día con su franja de colores) y cada fila con su sello, qué fue y de qué, su trayecto (de dónde → adónde) y la cantidad en el color del
+   tipo. Los sellos son DISEÑO PROPIO con su movimiento (la bolsa que sube, el perchero que se mece una vez, el camión que llega…): Felipe
+   pidió (2026-11-02) tocarla; como Traslados, el MOVIMIENTO NO CAMBIA (copiado de estilos/movimientos-sellos.css): solo el material.
+   Lo ya elegido: cabecera A, pestañas A · La gota de Mi perfil, buscador A · Pozo, filtros A · Gotas, placas Serena, botones gota.
+   Lo PROPIO, con sus caras:
+     1. El sello y su fila: hoy el sello es un cuadrado de PAPEL teñido del tipo (15 %) con su aro; los lugares del trayecto, píldoras de
+        HUESO; el riel, una raya ARENA.
+     2. Las tarjetas de los tipos (la columna de la derecha): hoy tarjetas de PAPEL con borde arena; la elegida se tiñe del tipo.
+   Solo tokens. Todo el movimiento corre una vez y se apaga con prefers-reduced-motion. Datos inventados.
+   ==================================================================== */
+:root{--oliva:color-mix(in srgb,var(--verde) 66%,var(--ambar))}
+[data-mv-tono="verde"]{--mv-c:var(--verde)}[data-mv-tono="oliva"]{--mv-c:var(--oliva)}[data-mv-tono="ambar"]{--mv-c:var(--ambar)}[data-mv-tono="pizarra"]{--mv-c:var(--pizarra)}
+[data-mv-tono="tinta"]{--mv-c:var(--tinta)}[data-mv-tono="rojo"]{--mv-c:var(--rojo)}[data-mv-tono="rojo-profundo"]{--mv-c:var(--rojo-p)}[data-mv-tono="taupe"]{--mv-c:var(--taupe)}
+
+/* ---------- lo ya elegido ---------- */
+.placa{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.pest{position:relative;display:inline-grid;grid-template-columns:repeat(3,auto);padding:4px;margin-top:22px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pest{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pest a{display:flex;align-items:center;height:38px;padding:0 18px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);text-decoration:none}
+.pest a[aria-current]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pest a[aria-current]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.pozo-b{flex:1;min-width:200px;display:flex;align-items:center;gap:10px;height:42px;padding:0 16px;border-radius:999px;font-size:14px;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pozo-b{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pozo-b svg{width:16px;height:16px}.pozo-b span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:var(--t80);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.fp svg{width:14px;height:14px}
+
+/* ---------- el movimiento de los sellos (copiado de estilos/movimientos-sellos.css: NO cambia) ---------- */
+.mv-sello svg {
+  width: 56%;
+  height: 56%;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mv-sello svg * { transform-box: view-box; }
+
+/* El movimiento de cada ícono: una vez, cuando el sello se ve (`data-go`, lo pone SelloTipo). */
+.mv-sello[data-go] .mv-bolsa { animation: mv-sube 0.7s var(--ease) both; }
+.mv-sello[data-go] .mv-asa { stroke-dasharray: 14; animation: mv-trazo 0.8s 0.08s var(--ease) both; }
+.mv-sello[data-go] .mv-perchero { transform-origin: 12px 3.6px; animation: mv-mece 1.15s var(--ease) both; }
+.mv-sello[data-go] .mv-tapa { animation: mv-tapa 0.9s var(--ease) both; }
+.mv-sello[data-go] .mv-flecha { animation: mv-flecha 0.9s var(--ease) both; }
+.mv-sello[data-go] .mv-paquete { animation: mv-cae 0.8s var(--ease) both; }
+.mv-sello[data-go] .mv-camion { animation: mv-llega 0.8s var(--ease) both; }
+.mv-sello[data-go] .mv-rayas { animation: mv-aparece 0.8s 0.15s var(--ease) both; }
+.mv-sello[data-go] .mv-giro { stroke-dasharray: 30; animation: mv-trazo30 0.9s var(--ease) both; }
+.mv-sello[data-go] .mv-a1 { animation: mv-der 0.7s var(--ease) both; }
+.mv-sello[data-go] .mv-a2 { animation: mv-izq 0.7s var(--ease) both; }
+.mv-sello[data-go] .mv-k1 { animation: mv-izq 0.8s var(--ease) both; }
+.mv-sello[data-go] .mv-k2 { animation: mv-der 0.8s var(--ease) both; }
+.mv-sello[data-go] .mv-visto { stroke-dasharray: 14; animation: mv-trazo 0.8s 0.1s var(--ease) both; }
+.mv-sello[data-go] .mv-marca { animation: mv-sube 0.7s var(--ease) both; }
+.mv-sello[data-go] .mv-alerta { animation: mv-aparece 0.7s var(--ease) both; }
+.mv-sello[data-go] .mv-flecha-a { animation: mv-baja 0.8s var(--ease) both; }
+.mv-sello[data-go] .mv-flecha-b { animation: mv-sube-flecha 0.8s var(--ease) both; }
+@keyframes mv-sube { from { transform: translateY(3px); opacity: 0.35; } to { transform: none; opacity: 1; } }
+@keyframes mv-baja { from { transform: translateY(-3px); opacity: 0.35; } to { transform: none; opacity: 1; } }
+@keyframes mv-sube-flecha { from { transform: translateY(3px); opacity: 0.35; } to { transform: none; opacity: 1; } }
+@keyframes mv-trazo { from { stroke-dashoffset: 14; } to { stroke-dashoffset: 0; } }
+@keyframes mv-trazo30 { from { stroke-dashoffset: 30; } to { stroke-dashoffset: 0; } }
+@keyframes mv-mece { 0% { transform: rotate(0); } 22% { transform: rotate(11deg); } 50% { transform: rotate(-6deg); } 76% { transform: rotate(2.5deg); } 100% { transform: rotate(0); } }
+@keyframes mv-tapa { 0% { transform: none; } 35% { transform: translateY(-3.4px); } 100% { transform: none; } }
+@keyframes mv-flecha { 0% { transform: translateY(5px); opacity: 0; } 45% { opacity: 1; } 100% { transform: none; opacity: 1; } }
+@keyframes mv-cae { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes mv-llega { from { transform: translateX(-7px); opacity: 0.2; } to { transform: none; opacity: 1; } }
+@keyframes mv-der { from { transform: translateX(-4px); } to { transform: none; } }
+@keyframes mv-izq { from { transform: translateX(4px); } to { transform: none; } }
+@keyframes mv-aparece { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- la página ---------- */
+.mesa-mv{display:grid;gap:16px;margin-top:18px;grid-template-columns:minmax(0,1fr)}
+@container disp (min-width:1024px){.mesa-mv{grid-template-columns:minmax(0,1fr) 17.5rem;align-items:start}.tipos{order:2;position:sticky;top:-16px}.lista-mv{order:1}}
+.lista-mv{overflow:hidden}
+.barra-f{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:16px 20px}
+.cuerpo-mv{padding:0 16px 10px}
+/* el día y su franja */
+.mv-dia{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin:14px 0 4px;border-radius:12px;background:color-mix(in srgb,var(--hueso) 55%,var(--papel));padding:12px 16px}
+.mv-dia-nombre{display:flex;align-items:baseline;gap:8px;white-space:nowrap;font-size:13px;color:var(--taupe)}
+.mv-dia-nombre b{font-family:'EB Garamond',serif;font-size:22px;font-weight:500;color:var(--tinta)}
+.mv-codigo{display:flex;min-width:0;flex:1 1 8rem;align-items:flex-end;gap:3px;height:12px}
+.mv-codigo i{height:100%;min-width:3px;max-width:22px;flex:1 1 0;border-radius:3px;background:var(--mv-c);opacity:.9;transform-origin:bottom;animation:mv-franja .5s var(--ease) both;animation-delay:calc(var(--k) * 30ms + 150ms)}
+@keyframes mv-franja{from{transform:scaleY(0)}}
+/* la fila */
+.mv-fila{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;column-gap:14px;padding:14px 8px 14px 12px;transition:background-color .2s var(--ease)}
+.mv-fila+.mv-fila{border-top:1px solid var(--sand)}
+.mv-fila::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:var(--mv-c);opacity:0;transform:scaleY(.3);transition:opacity .25s var(--ease),transform .35s var(--ease)}
+@media (hover:hover){.mv-fila:hover{background:color-mix(in srgb,var(--mv-c) 7%,var(--papel))}.mv-fila:hover::before{opacity:1;transform:none}}
+.mv-rotulo{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mv-c)}
+.mv-fila .pr{font-size:14.5px;font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-fila .qui{font-size:12px;color:var(--t65);margin-top:6px}
+.mv-cant{font-family:'EB Garamond',serif;font-size:30px;line-height:1;font-variant-numeric:tabular-nums;color:var(--mv-c);white-space:nowrap}
+.mv-sello{position:relative;display:grid;place-items:center;flex:none;overflow:hidden;width:var(--mv-sz,44px);height:var(--mv-sz,44px);border-radius:calc(var(--mv-sz,44px) * .3);
+  background:color-mix(in srgb,var(--mv-c) 15%,var(--papel));color:var(--mv-c);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--mv-c) 30%,var(--sand))}
+.mv-sello[data-punteado]{background:color-mix(in srgb,var(--mv-c) 7%,var(--papel));box-shadow:none;border:2px dashed var(--mv-c)}
+.mv-ruta{display:inline-flex;min-width:0;max-width:100%;align-items:center;gap:8px;overflow:hidden;margin-top:6px}
+.mv-ruta>*{flex-shrink:0}
+.mv-punto{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:var(--hueso);padding:2px 10px 2px 8px;font-size:11.5px;font-weight:600;line-height:1.5;color:var(--t80);white-space:nowrap}
+.mv-punto[data-fuera]{background:transparent;border:1px dashed color-mix(in srgb,var(--tinta) 35%,transparent);padding-block:1px}
+.mv-riel{position:relative;flex:1 1 40px;min-width:28px;max-width:150px;height:2px;border-radius:2px;background:var(--sand)}
+.mv-riel i{position:absolute}
+.mv-riel .mv-relleno{inset:0;border-radius:2px;background:var(--mv-c);transform-origin:left}
+.mv-riel .mv-viaje{top:50%;left:0;width:9px;height:9px;margin:-4.5px 0 0 -4px;border-radius:50%;background:var(--mv-c);opacity:0}
+.mv-riel::after{content:"";position:absolute;right:-1px;top:50%;width:7px;height:7px;border-top:2px solid var(--mv-c);border-right:2px solid var(--mv-c);transform:translateY(-50%) rotate(45deg)}
+.mv-ruta[data-go] .mv-relleno{animation:mv-llena .9s var(--ease) both}
+.mv-ruta[data-go] .mv-viaje{animation:mv-viaja 1.05s .08s var(--ease) both}
+@keyframes mv-llena{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes mv-viaja{0%{left:0;opacity:0}12%{opacity:1}86%{opacity:1}100%{left:100%;opacity:0}}
+/* los tipos */
+.tipos{display:grid;gap:10px}
+.tipos h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.tipos ul{display:grid;gap:8px;list-style:none}
+.mv-tipo{position:relative;display:grid;width:100%;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"s n c" "s u c" "b b b";align-items:center;column-gap:12px;row-gap:1px;overflow:hidden;
+  border:1.5px solid var(--sand);border-radius:16px;background:var(--papel);padding:11px 14px 10px 11px;text-align:left;color:var(--tinta);transition:background-color .25s var(--ease),border-color .25s var(--ease),transform .3s var(--ease),opacity .3s}
+@media (hover:hover){.mv-tipo:hover{transform:translateX(-3px);background:color-mix(in srgb,var(--mv-c) 7%,var(--papel));border-color:color-mix(in srgb,var(--mv-c) 30%,var(--sand))}}
+.mv-tipo[aria-current]{transform:translateX(-6px);background:color-mix(in srgb,var(--mv-c) 15%,var(--papel));border-color:var(--mv-c)}
+ul[data-hay] .mv-tipo:not([aria-current]){opacity:.6}
+.mv-tipo .mv-sello{grid-area:s}
+.mv-tipo .nom{grid-area:n;align-self:end;font-size:13px;font-weight:600;line-height:1.2}
+.mv-tipo .mv-uni{grid-area:u;align-self:start;font-size:11.5px;line-height:1.35;color:var(--taupe)}
+.mv-tipo .cif{grid-area:c;display:flex;flex-direction:column;align-items:flex-end;line-height:1}.mv-tipo .cif b{font-family:'EB Garamond',serif;font-size:32px;font-weight:400}.mv-tipo .cif small{margin-top:2px;font-size:10px;color:var(--taupe)}
+.mv-tipo .bar{grid-area:b;display:block;height:3px;margin-top:8px;overflow:hidden;border-radius:3px;background:var(--sand)}
+.mv-tipo .bar i{display:block;height:100%;width:var(--p);background:var(--mv-c);transform-origin:left;animation:mv-barra .9s .25s var(--ease) both}
+@keyframes mv-barra{from{transform:scaleX(0)}}
+@container disp (max-width:1023px){.tipos ul{display:flex;overflow-x:auto;scrollbar-width:none;padding:2px 2px 6px}.mv-tipo{min-width:14.5rem}.mv-tipo[aria-current],.mv-tipo:hover{transform:none!important}}
+
+/* ============ 1 · EL SELLO Y SU FILA ============ */
+/* A · Lente del tono: el sello es una lente de vidrio teñida del tipo (más clara arriba, con su luz y un filo del tono), como la insignia
+   elegida; los lugares del trayecto, gotas claras; el riel, una ranura; la fila al pasar el mouse, un velo del tono sobre el vidrio. */
+:is([data-se="lente"],[data-se="pozo"]) .mv-fila+.mv-fila{border-top-color:color-mix(in srgb,var(--tinta) 8%,transparent)}
+@media (hover:hover){:is([data-se="lente"],[data-se="pozo"]) .mv-fila:hover{background:color-mix(in srgb,var(--mv-c) 7%,transparent)}}
+:is([data-se="lente"],[data-se="pozo"]) .mv-punto{border:1px solid color-mix(in srgb,var(--borde) 45%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 58%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"]:is([data-se="lente"],[data-se="pozo"]) .mv-punto{background:color-mix(in srgb,var(--tinta) 9%,transparent);border-color:color-mix(in srgb,var(--tinta) 20%,transparent);box-shadow:none}
+:is([data-se="lente"],[data-se="pozo"]) .mv-punto[data-fuera]{background:transparent;border-style:dashed;box-shadow:none}
+:is([data-se="lente"],[data-se="pozo"]) .mv-riel{height:6px;background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+:is([data-se="lente"],[data-se="pozo"]) .mv-riel .mv-relleno{inset:2px 0}
+[data-se="lente"] .mv-sello{background:linear-gradient(180deg,color-mix(in srgb,var(--mv-c) 10%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--mv-c) 20%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--mv-c) 30%,transparent),0 6px 14px -8px color-mix(in srgb,var(--mv-c) 45%,transparent)}
+[data-tema="oscuro"][data-se="lente"] .mv-sello{background:linear-gradient(180deg,color-mix(in srgb,var(--mv-c) 24%,transparent),color-mix(in srgb,var(--mv-c) 12%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--mv-c) 36%,transparent)}
+[data-se="lente"] .mv-sello[data-punteado]{background:color-mix(in srgb,var(--mv-c) 6%,color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:none}
+/* B · Pozo del tono: el sello está tallado en el vidrio (un pozo teñido del tipo, con su sombra adentro): el dibujo se ve «grabado». */
+[data-se="pozo"] .mv-sello{background:color-mix(in srgb,var(--mv-c) 12%,transparent);box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 20%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--mv-c) 22%,transparent)}
+[data-tema="oscuro"][data-se="pozo"] .mv-sello{background:color-mix(in srgb,var(--mv-c) 16%,color-mix(in srgb,var(--sombra) 30%,transparent));box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-se="pozo"] .mv-sello[data-punteado]{box-shadow:none}
+
+/* ============ 2 · LAS TARJETAS DE LOS TIPOS ============ */
+/* A · Placas con su tono: cada tipo es una placa de vidrio clara; la elegida, la lente teñida de su tipo con el filo del tono. */
+[data-ti="placa"] .mv-tipo,[data-ti="lentes"] .mv-tipo{border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);border-radius:18px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 48%,transparent));-webkit-backdrop-filter:blur(20px) saturate(1.5);backdrop-filter:blur(20px) saturate(1.5);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"]:is([data-ti="placa"],[data-ti="lentes"]) .mv-tipo{background:color-mix(in srgb,var(--vidrio) 72%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:none}
+:is([data-ti="placa"],[data-ti="lentes"]) .mv-tipo[aria-current]{border-color:color-mix(in srgb,var(--mv-c) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--mv-c) 8%,color-mix(in srgb,var(--vidrio) 82%,transparent)),color-mix(in srgb,var(--mv-c) 16%,color-mix(in srgb,var(--vidrio) 56%,transparent)));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 10px 22px -14px color-mix(in srgb,var(--mv-c) 50%,transparent)}
+[data-tema="oscuro"]:is([data-ti="placa"],[data-ti="lentes"]) .mv-tipo[aria-current]{background:color-mix(in srgb,var(--mv-c) 18%,transparent)}
+@media (hover:hover){:is([data-ti="placa"],[data-ti="lentes"]) .mv-tipo:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--mv-c) 5%,color-mix(in srgb,var(--vidrio) 82%,transparent)),color-mix(in srgb,var(--mv-c) 9%,color-mix(in srgb,var(--vidrio) 56%,transparent)))}}
+:is([data-ti="placa"],[data-ti="lentes"]) .mv-tipo .bar{height:6px;padding:0;background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 14%,transparent);border-radius:6px}
+/* B · Lentes del tono: todas las tarjetas se tiñen apenas de su tipo, no solo la elegida: la columna se lee como un muestrario de colores. */
+[data-ti="lentes"] .mv-tipo{border-color:color-mix(in srgb,var(--mv-c) 25%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--mv-c) 5%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--mv-c) 10%,color-mix(in srgb,var(--vidrio) 55%,transparent)))}
+[data-tema="oscuro"][data-ti="lentes"] .mv-tipo{background:color-mix(in srgb,var(--mv-c) 10%,transparent)}
+/* el día, sobre el vidrio: la franja hueso pasa a una ranura fina (lo mismo en las dos caras) */
+:is([data-se="lente"],[data-se="pozo"]) .mv-dia{background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 10%,transparent)}
+[data-tema="oscuro"]:is([data-se="lente"],[data-se="pozo"]) .mv-dia{background:color-mix(in srgb,var(--sombra) 25%,transparent)}
+@container disp (max-width:640px){.pest{display:flex;max-width:100%;overflow-x:auto;scrollbar-width:none}.pest a{padding:0 14px;flex:none}.mv-fila{column-gap:10px;padding-inline:4px}.mv-cant{font-size:26px}.mv-riel{flex:0 0 24px;min-width:24px}.mv-punto{padding-right:8px}.mv-punto span{max-width:7.5rem;overflow:hidden;text-overflow:ellipsis}.barra-f{padding:14px}.cuerpo-mv{padding:0 10px 8px}.mv-codigo{flex-basis:100%;order:3}}
+@media (prefers-reduced-motion:reduce){.mv-sello *,.mv-ruta *,.mv-fila,.mv-fila::before,.mv-tipo,.mv-tipo .bar i,.mv-codigo i{animation:none!important;transition:none!important}.mv-riel .mv-viaje{display:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Inventario ▸ Movimientos, con vidrio: los sellos conservan su movimiento</span>
+  <span class="tag">El sello y su fila</span><div class="seg-m" data-ctl="se"><button data-v="ahora">Como ahora</button><button data-v="lente">A · Lente del tono ✓</button><button data-v="pozo">B · Pozo del tono</button></div>
+  <span class="tag">Los tipos</span><div class="seg-m" data-ctl="ti"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placas con su tono ✓</button><button data-v="lentes">B · Lentes del tono</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+  <span class="tag">Movimiento</span><button class="accion" data-acc="repetir">Repetir los sellos</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>La pantalla</b> (ADR-0353, la opción A · Ruta): las pestañas Movimientos · Ingresos · Pérdidas; a la derecha, la columna de los tipos (cada botón es su filtro y su cifra); a la izquierda, en una tarjeta, los filtros y la lista por día (el día con una franja de colores, una raya por operación) y cada fila con su sello, qué fue y de qué, su trayecto y la cantidad en el color de su tipo.</li>
+      <li><b>Los sellos</b> son diseño propio con su movimiento: la bolsa que sube, el perchero que se mece una vez, la tapa del almacén, el paquete que cae, el camión que llega, la devolución que gira, el cambio que se cruza; el trayecto se llena con un punto que viaja. Felipe pidió tocarla (2026-11-02): <b>el movimiento no cambia</b>, solo el material. Pasa el mouse por una fila (o «Repetir los sellos») para verlo.</li>
+      <li>Hoy el sello es un <b>cuadrado de papel</b> teñido del tipo; los lugares, <b>píldoras de hueso</b>; el riel, una <b>raya arena</b>; las tarjetas de los tipos, <b>papel con borde arena</b>.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>El sello y su fila</b></td><td>A · Lente del tono <span class="ev">Elegida</span></td><td>El sello es una lente teñida del tipo, con su luz (como la insignia elegida); los lugares, gotas claras; el riel, una ranura. El dibujo y su movimiento se leen igual.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Pozo del tono</td><td>El sello queda tallado en el vidrio: el dibujo se ve grabado, más quieto.</td><td>Un pozo dice «espera tu dato» en el resto del ERP; y el movimiento (que sale del sello) se ve más apagado adentro de un hueco.</td></tr>
+      <tr><td rowspan="2"><b>Los tipos</b></td><td>A · Placas con su tono <span class="ev">Elegida</span></td><td>Placas claras; la elegida se tiñe de su tipo con su filo: se ve qué filtro está puesto.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Lentes del tono</td><td>Toda la columna es un muestrario de colores: cada tipo se reconoce por su tinte.</td><td>Siete tintes juntos; la elegida se distingue menos de las demás.</td></tr>
+    </table>
+    <h3>Lo que decidió Felipe (2026-11-02): las recomendadas</h3>
+    <p><b>El sello A · Lente del tono y los tipos A · Placas con su tono</b>, con todo el movimiento de ADR-0353 igual.</p>
+    <h3>Lo que no cambia</h3>
+    <p>Todo el movimiento de ADR-0353 (cada sello, una vez al verse y al pasar el mouse; el trayecto que se llena; la franja del día que crece; la barra de cada tipo), los colores de cada tipo, el borde punteado de lo hecho a mano (ajuste, conteo), el orden de la pantalla, los filtros y la columna que acompaña al bajar.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa, PRENDAS…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const GL = {
+    venta: '<g class="mv-bolsa"><path d="M5.2 8.5h13.6l-1 11.5H6.2L5.2 8.5Z"/></g><path class="mv-asa" d="M9 8.5V7.4a3 3 0 0 1 6 0v1.1"/>',
+    colgada: '<path d="M3.5 3.6h17"/><g class="mv-perchero"><path d="M12 3.6v2.6a2.3 2.3 0 1 1-2.3 2.3"/><path d="M12 10.6 3.9 16.3a1.2 1.2 0 0 0 .7 2.2h14.8a1.2 1.2 0 0 0 .7-2.2L12 10.6Z"/></g>',
+    guardada: '<path d="M4.5 10.5V19a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1v-8.5"/><g class="mv-tapa"><path d="M3.5 7h17v3.5h-17z"/></g><path class="mv-flecha" d="M12 17.6v-5M9.8 14.6 12 12.4l2.2 2.2"/>',
+    llegada: '<g class="mv-paquete"><path d="M4 8.2 12 4l8 4.2v8.6L12 21l-8-4.2V8.2Z"/><path d="M4 8.2 12 12.5l8-4.3M12 12.5V21"/></g>',
+    traslado: '<g class="mv-camion"><path d="M2.8 6.6h10.7v9.7H2.8z"/><path d="M13.5 9.8h4l3.2 3.4v3.1h-7.2"/><circle cx="7" cy="17.7" r="1.8"/><circle cx="17" cy="17.7" r="1.8"/></g><path class="mv-rayas" d="M1.6 9.5h-.4M2.2 12.4h-1"/>',
+    devolucion: '<path class="mv-giro" d="M9.5 4.5 4.5 9l5 4.5"/><path class="mv-giro" d="M4.5 9H14a5.5 5.5 0 0 1 0 11h-3"/>',
+    cambio: '<path class="mv-a1" d="M4 8.5h14l-3.2-3.2"/><path class="mv-a2" d="M20 15.5H6l3.2 3.2"/>',
+    ajuste: '<path d="M4 7.5h9M17 7.5h3M4 16.5h3M11 16.5h9"/><circle class="mv-k1" cx="15" cy="7.5" r="2"/><circle class="mv-k2" cx="9" cy="16.5" r="2"/>',
+    conteo: '<rect x="5.5" y="4.5" width="13" height="16" rx="2"/><path d="M9.2 4.5V3.5h5.6v1"/><path class="mv-visto" d="M9 13l2.2 2.2 3.8-4.4"/>',
+    danada: '<g class="mv-alerta"><path d="M12 4 2.8 19.5h18.4L12 4Z"/><path d="M12 10v4.5M12 17.2v.1"/></g>',
+  };
+  const TIPOS = { venta: ['Venta', 'verde'], colgada: ['Colgada en piso', 'ambar'], guardada: ['Guardada en almacén', 'pizarra'], llegada: ['Llegada', 'oliva'], traslado: ['Traslado enviado', 'tinta'],
+    devolucion: ['Devolución', 'rojo'], cambio: ['Cambio', 'rojo'], ajuste: ['Ajuste a mano', 'taupe', 1], conteo: ['Conteo', 'taupe', 1], danada: ['Dañado', 'rojo-profundo'] };
+  const sello = (t, sz = 44) => `<span class="mv-sello" data-mv-tono="${TIPOS[t][1]}" ${TIPOS[t][2] ? 'data-punteado' : ''} style="--mv-sz:${sz}px" aria-hidden="true"><svg viewBox="0 0 24 24">${GL[t]}</svg></span>`;
+  const IC = { tienda: 'M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6', caja: 'M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10', persona: 'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2 M12 3a4 4 0 1 0 0 8a4 4 0 1 0 0-8z', camion: 'M3 6h11v10H3z M14 9h4l3 3v4h-7' };
+  const punto = (ic, t, fuera) => `<span class="mv-punto" ${fuera ? 'data-fuera' : ''}><svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="${IC[ic]}"/></svg><span>${t}</span></span>`;
+  const ruta = (a, b) => `<span class="mv-ruta">${punto(...a)}<span class="mv-riel"><i class="mv-relleno"></i><i class="mv-viaje"></i></span>${punto(...b)}</span>`;
+  // [tipo, prenda, quién · hora, desde, hacia, cantidad]
+  const DIAS = [['Hoy', 'viernes 31 de octubre', [
+      ['venta', 'Blusa Emma · Vino · S', 'Lucía · 16:31 · boleta B001-12907', ['tienda', 'Piso de venta'], ['persona', 'Mariela Quispe', 1], '−1'],
+      ['colgada', 'Polo Nube · Arena · M', 'Mateo · 15:05', ['caja', 'Almacén'], ['tienda', 'Piso de venta'], '3'],
+      ['llegada', 'Vestido Ara · Bosque', 'Lucía · 12:40 · traslado T-0418', ['camion', 'Lima', 1], ['caja', 'Almacén'], '+6'],
+      ['traslado', 'Casaca Lía · Camel · M L', 'Mateo · 11:15 · T-0419', ['caja', 'Almacén'], ['camion', 'Arequipa', 1], '−2'],
+      ['ajuste', 'Jean Río · Azul · L', 'Lucía · 10:02 · «se encontró rota»', ['tienda', 'Piso de venta'], null, '−1']]],
+    ['Ayer', 'jueves 30 de octubre', [
+      ['devolucion', 'Falda Inti · Terracota · S', 'Lucía · 18:20', ['persona', 'Rosa Chávez', 1], ['tienda', 'Piso de venta'], '+1'],
+      ['cambio', 'Blusa Coral S → M', 'Mateo · 17:10', ['persona', 'Ana Torres', 1], ['tienda', 'Piso de venta'], '±1'],
+      ['conteo', 'Blusa Coral · Coral · S', 'Lucía · 10:30 · conteo 13', ['tienda', 'Piso de venta'], null, '+1'],
+      ['guardada', 'Saco Malva · Malva · M', 'Mateo · 09:50', ['tienda', 'Piso de venta'], ['caja', 'Almacén'], '2']]]];
+  const RESUMEN = [['venta', 'Ventas', 34, '41 prendas', 100], ['colgada', 'Colgadas en piso', 18, '52 prendas', 60], ['llegada', 'Llegadas', 4, '86 prendas', 30], ['traslado', 'Traslados enviados', 3, '14 prendas', 22],
+    ['guardada', 'Guardadas en almacén', 6, '11 prendas', 18], ['devolucion', 'Devoluciones y cambios', 3, '3 prendas', 10], ['ajuste', 'Ajustes y conteos', 4, '6 prendas', 12]];
+  let filtro = null;
+  function pantalla() {
+    $('#cont').innerHTML = `${encabezado({ sede: 'Trujillo', titulo: 'Movimientos', frase: 'Cada prenda que entró, salió o se movió en la sede, y quién lo hizo.' })}
+      <nav class="pest" aria-label="Vistas de Movimientos"><a href="#" aria-current="page">Movimientos</a><a href="#">Ingresos</a><a href="#">Pérdidas</a></nav>
+      <div class="mesa-mv">
+        <aside class="tipos" aria-label="Tipos de movimiento"><h2>Últimos 7 días</h2><ul ${filtro ? 'data-hay' : ''}>${RESUMEN.map(([t, n, c, u, p]) => `<li><button class="mv-tipo" data-mv-tono="${TIPOS[t][1]}" data-tipo="${t}" ${filtro === t ? 'aria-current="true"' : ''}>${sello(t, 36)}<span class="nom">${n}</span><span class="mv-uni">${u}</span><span class="cif"><b>${c}</b><small>${c === 1 ? 'vez' : 'veces'}</small></span><span class="bar"><i style="--p:${p}%"></i></span></button></li>`).join('')}</ul></aside>
+        <section class="placa lista-mv" aria-label="Movimientos de la sede"><div class="barra-f"><div class="pozo-b"><svg class="ic" viewBox="0 0 24 24"><path d="M11 3a8 8 0 1 0 0 16a8 8 0 1 0 0-16z M21 21l-4.3-4.3"/></svg><span>Busca una prenda, un código o quién lo hizo</span></div>
+            <button class="fp" aria-pressed="true">7 días</button><button class="fp">Lugar</button><button class="fp">Más filtros</button></div>
+          <div class="cuerpo-mv">${DIAS.map(([d, f, filas]) => `<div class="mv-dia"><p class="mv-dia-nombre"><b>${d}</b>${f}</p><span class="mv-codigo" aria-hidden="true">${filas.map(([t], k) => `<i data-mv-tono="${TIPOS[t][1]}" style="--k:${k}"></i>`).join('')}</span></div>
+            <div>${filas.filter(([t]) => !filtro || t === filtro || (filtro === 'devolucion' && t === 'cambio') || (filtro === 'ajuste' && t === 'conteo')).map(([t, pr, qui, a, b, cant]) => `<div class="mv-fila" data-mv-tono="${TIPOS[t][1]}">${sello(t)}<div style="min-width:0"><p class="mv-rotulo">${TIPOS[t][0]}</p><p class="pr">${pr}</p>${b ? ruta(a, b) : `<span class="mv-ruta">${punto(...a)}</span>`}<p class="qui">${qui}</p></div><span class="mv-cant">${cant}</span></div>`).join('')}</div>`).join('')}</div></section>
+      </div>`;
+    arrancar(document);
+  }
+  // Cada sello y cada trayecto corren UNA vez al verse (como useAlVerse) y otra cada vez que se pasa el mouse por su fila.
+  function arrancar(raiz) { requestAnimationFrame(() => $$('.mv-sello, .mv-ruta', raiz).forEach((e) => { e.removeAttribute('data-go'); void e.offsetWidth; e.setAttribute('data-go', ''); })); }
+  document.addEventListener('mouseover', (e) => { const f = e.target.closest('.mv-fila, .mv-tipo'); if (!f || f.contains(e.relatedTarget)) return; arrancar(f); });
+  document.addEventListener('click', (e) => { const t = e.target.closest('[data-tipo]'); if (t) { filtro = filtro === t.dataset.tipo ? null : t.dataset.tipo; pantalla(); } if (e.target.closest('#cont a')) e.preventDefault(); });
+  Marco.iniciar({ estado: { se: 'lente', ti: 'placa' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); }, alAccion: (a) => { if (a === 'repetir') arrancar(document); } });
+})();
+</script>
+</body>
+</html>

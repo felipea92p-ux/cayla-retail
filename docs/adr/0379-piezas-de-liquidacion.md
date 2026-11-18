@@ -1,5 +1,8 @@
 # ADR-0379 — Las prendas sueltas que se liquidan no entran al catálogo: se etiquetan como «piezas de liquidación»
 
+> **Reemplazado por ADR-0653 (2026-11-13):** el módulo nunca se usó (0 piezas en producción) y se confundía con la insignia «Para
+> liquidar». La web se retiró; las tablas y funciones quedan quietas en la base, sin permiso para la web. Lo de abajo es historia.
+
 **Fecha:** 2026-10-10 · **Estado:** aceptado (Felipe, 10 preguntas + «ok»), construido y verificado en local. **En producción desde el
 2026-10-10** (OK de Felipe; por el MCP, versión registrada `20261010172258`): las 13 funciones nuevas tienen el mismo md5 que en
 local y `registrar_venta` quedó igual a la local salvo una línea de comentario que ya difería antes (la del redondeo, ADR-0311).

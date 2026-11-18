@@ -92,6 +92,29 @@ ${[...PARES_CUPON_WEB]
   .join("\n")}
 end $deshacer_cupon_web$;
 `;
+// «Llevar varias y pagar menos» en la venta web (20261114041000, ADR-0655 actividad 7) envuelve el `insert` del reparto del cupón de 224000 en
+// un if/else: se deshace ANTES de deshacer el cupón (si no, su rama nueva queda nombrando `v_cupon_idx` sin su declaración) y se vuelve a
+// poner al final, solo donde la base lo tiene (en el CI, que tiene todas las migraciones; en una base local sin 041000, no).
+const GRUPO_WEB = readFileSync("supabase/migrations/20261114041000_tienda_web_ofertas_de_grupo.sql", "utf8");
+const PAR_GRUPO_WEB = GRUPO_WEB.match(/proname = 'fn_pedido_web_vender'\),\s*\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$,\s*1\);/);
+if (!PAR_GRUPO_WEB) {
+  console.error("✗ No encontré el reemplazo de 20261114041000 en fn_pedido_web_vender.");
+  process.exit(2);
+}
+const FIRMA_VENDER = "retail.fn_pedido_web_vender(uuid, uuid)";
+const DESHACER_GRUPO_WEB = `do $deshacer_grupo_web$
+begin
+  execute replace(pg_get_functiondef('${FIRMA_VENDER}'::regprocedure), $q$${PAR_GRUPO_WEB[2]}$q$, $q$${PAR_GRUPO_WEB[1]}$q$);
+end $deshacer_grupo_web$;
+`;
+const REHACER_GRUPO_WEB = `do $rehacer_grupo_web$
+begin
+  if exists (select 1 from information_schema.columns where table_schema = 'retail' and table_name = 'pedido_web_lineas' and column_name = 'descuento_grupo')
+     and position($q$${PAR_GRUPO_WEB[2]}$q$ in pg_get_functiondef('${FIRMA_VENDER}'::regprocedure)) = 0 then
+    execute replace(pg_get_functiondef('${FIRMA_VENDER}'::regprocedure), $q$${PAR_GRUPO_WEB[1]}$q$, $q$${PAR_GRUPO_WEB[2]}$q$);
+  end if;
+end $rehacer_grupo_web$;
+`;
 const FELIPE ="22222222-2222-4222-8222-000000000001"; // líder: ve todos los módulos y opera todas las tiendas
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo, sin el módulo «Pedidos web»
 
@@ -1009,13 +1032,16 @@ async function main() {
   const textos = MIGRACIONES.map((f) => readFileSync(f, "utf8"));
   const actividad10 = DE_LA_ACTIVIDAD_10.map((f) => readFileSync(f, "utf8"));
   total++;
-  // 224000 se deshace antes y se vuelve a pegar al final (ver CUPON_WEB arriba); el anular de abajo corre ya con el cupón puesto.
+  // 224000 se deshace antes y se vuelve a pegar al final (ver CUPON_WEB arriba); el anular de abajo corre ya con el cupón puesto. La parte del
+  // grupo de 041000 va antes y vuelve después (ver GRUPO_WEB arriba).
   const dosVeces = correr(`${PREPARAR_BASE}
+${DESHACER_GRUPO_WEB}
 ${DESHACER_CUPON_WEB}
 ${textos.join("\n")}
 ${textos.join("\n")}
 ${actividad10.join("\n")}
 ${CUPON_WEB}
+${REHACER_GRUPO_WEB}
 set local request.jwt.claim.sub = '${FELIPE}';
 ${pagado("a")}
 select pg_temp.aceptada(:'a'), pg_temp.serie_nota(:'tru');

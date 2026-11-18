@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { medioNuevo, mediosParaRpc, montoSugerido, repartoDeMedios, type MedioForm } from "./medios-pago-reglas";
+import { medioNuevo, mediosParaRpc, montoSugerido, notaReferencia, repartoDeMedios, textoReferencia, type MedioForm } from "./medios-pago-reglas";
 
 const medio = (monto: string, metodo: MedioForm["metodo"] = "transferencia", referencia = ""): MedioForm => ({ metodo, monto, referencia });
 
@@ -38,5 +38,21 @@ describe("armado", () => {
     expect(montoSugerido([medio("2000")], 2478)).toBe("478.00");
     expect(montoSugerido([medio("2478")], 2478)).toBe("");
     expect(medioNuevo().metodo).toBe("transferencia");
+  });
+});
+
+describe("la referencia del medio (P12 del análisis del Taller: la transferencia se guardó sin número de operación)", () => {
+  it("con un medio que pasa por el banco o la app, la caja pide el número de operación", () => {
+    for (const m of ["transferencia", "deposito", "yape", "plin"] as const) expect(textoReferencia(m)).toBe("N.° de operación");
+  });
+  it("con efectivo u otro, la referencia es opcional: no hay número de operación que cuadrar", () => {
+    expect(textoReferencia("efectivo")).toBe("Referencia · opcional");
+    expect(textoReferencia("otro")).toBe("Referencia · opcional");
+  });
+  it("la nota «conviene» sale solo con banco o app y la referencia vacía; nunca bloquea (es un texto, no una validación)", () => {
+    expect(notaReferencia("transferencia", "")).toMatch(/Conviene anotar el N\.° de operación/);
+    expect(notaReferencia("yape", "   ")).not.toBeNull();
+    expect(notaReferencia("transferencia", "00123")).toBeNull();
+    expect(notaReferencia("efectivo", "")).toBeNull();
   });
 });

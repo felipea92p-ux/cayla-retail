@@ -46,18 +46,23 @@ describe("textos de la campaña", () => {
     expect(fechaCorta("2026-10-21")).toMatch(/^21 oct\.?$/);
   });
 
-  it("la franja de arriba: la campaña primero; sin campaña, solo las frases fijas", () => {
-    const con = anuncios(ANIVERSARIO);
+  it("la franja de arriba: la campaña primero; sin campaña, solo lo que la tienda hace hoy", () => {
+    const con = anuncios(ANIVERSARIO, 15);
     // El «%» va pegado a su número con un espacio que no se parte.
-    expect(con[0]).toMatch(/^Aniversario CAYLA · −12\u00a0% hasta el 21 oct\.?$/);
+    expect(con[0].texto).toMatch(/^Aniversario CAYLA · −12\u00a0% hasta el 21 oct\.?$/);
     expect(con).toHaveLength(4);
-    expect(anuncios({ ...ANIVERSARIO, hasta: null })[0]).toBe("Aniversario CAYLA · −12\u00a0%");
-    expect(anuncios(null)).toEqual(["Separa online y recoge en tu tienda", "Mira cuánto hay en cada tienda", "Crea tu cuenta y forma parte del Club CAYLA"]);
+    expect(anuncios({ ...ANIVERSARIO, hasta: null }, 15)[0].texto).toBe("Aniversario CAYLA · −12\u00a0%");
+    expect(anuncios(null, 15).map((f) => f.texto)).toEqual(["Separa sin pagar", "Cambios en 15 días", "Atención por WhatsApp"]);
   });
 
-  it("con cuenta, la franja no invita a crear la cuenta: recuerda dónde están los beneficios del Club", () => {
-    expect(anuncios(null, true)).toEqual(["Separa online y recoge en tu tienda", "Mira cuánto hay en cada tienda", "Tus beneficios del Club CAYLA están en Mi perfil"]);
-    expect(anuncios(ANIVERSARIO, true)).not.toContain("Crea tu cuenta y forma parte del Club CAYLA");
+  it("el plazo de cambio sale de la base: sin dato, la franja no dice un número", () => {
+    expect(anuncios(null, 30)[1].texto).toBe("Cambios en 30 días");
+    expect(anuncios(null, null)[1].texto).toBe("Cambios en cualquier tienda");
+  });
+
+  it("cada beneficio lleva a donde se explica; la campaña no lleva enlace", () => {
+    expect(anuncios(null, 15).every((f) => f.href)).toBe(true);
+    expect(anuncios(ANIVERSARIO, 15)[0].href).toBeUndefined();
   });
 });
 

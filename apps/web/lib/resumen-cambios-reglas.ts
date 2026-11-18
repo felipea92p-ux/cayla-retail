@@ -1,3 +1,4 @@
+import { empezoAContar, mesAntesDelCorte } from "./finanzas-arranque-reglas";
 import { soles } from "./flujo-caja-reglas";
 import { conceptosER, mesNombre, type FilaER } from "./resultados-reglas";
 import { filaDeVer, type ResumenFinanzas } from "./resumen-finanzas-reglas";
@@ -29,6 +30,8 @@ export type CambiosMes =
   | {
       tipo: "ok";
       contra: string;
+      /** Los dos meses se comparan sin sueldos, porque el mes pasado a esta fecha todavía no los llevaba. */
+      antesDeSueldos: boolean;
       resultadoAhora: number;
       resultadoAntes: number;
       /** Lo que te deja este mes menos lo que te dejaba el mes pasado a esta fecha. */
@@ -51,19 +54,30 @@ export function cambiosDelMes(o: {
   ahora: readonly FilaER[];
   antes: readonly FilaER[] | null;
   enCurso: boolean;
+  antesDeSueldos?: boolean;
+  /** Desde cuándo cuenta Finanzas (ADR-0332): un mes anterior está vacío porque no se mide. */
+  inicioFinanzas?: string | null;
 }): CambiosMes {
-  const { r, ahora, antes, enCurso } = o;
+  const { r, ahora, antes, enCurso, antesDeSueldos = false, inicioFinanzas = null } = o;
   if (!antes) return { tipo: "sin_comparacion", motivo: "No se pudo leer el mes pasado para compararlo. Vuelve a cargar la página en un rato." };
   const fa = filaDeVer(ahora, r.ver);
   const fb = filaDeVer(antes, r.ver);
-  if (!fa || !fb) return { tipo: "sin_comparacion", motivo: "El mes pasado no tuvo movimientos de lo que miras para compararlos." };
+  if (inicioFinanzas && mesAntesDelCorte(r.mes, inicioFinanzas)) return { tipo: "sin_comparacion", motivo: `${empezoAContar(inicioFinanzas)}: este mes no se mide.` };
+  // Dos casos que no son el mismo: si falta la fila de ESTE mes, el mes pasado no tiene la culpa.
+  if (!fa) return { tipo: "sin_comparacion", motivo: "Este mes todavía no tiene movimientos de lo que miras para compararlos." };
+  if (!fb)
+    return {
+      tipo: "sin_comparacion",
+      motivo: inicioFinanzas && mesAntesDelCorte(r.mesAnterior, inicioFinanzas) ? `${empezoAContar(inicioFinanzas)}: el mes pasado no se mide.` : "El mes pasado no tuvo movimientos de lo que miras para compararlos.",
+    };
 
-  const contra = enCurso ? `${mesNombre(r.mesAnterior)} a esta fecha` : mesNombre(r.mesAnterior);
+  const contra = `${enCurso ? `${mesNombre(r.mesAnterior)} a esta fecha` : mesNombre(r.mesAnterior)}${antesDeSueldos ? ", antes de sueldos" : ""}`;
   const conceptos = conceptosER([fa, fb]).filter((c) => c.tipo === "linea");
   const todos: CambioRubro[] = conceptos.map((c) => {
     const a = r2(c.valor(fa));
     const b = r2(c.valor(fb));
-    return { clave: c.clave, nombre: c.nombre, antes: Math.abs(b), ahora: Math.abs(a), efecto: r2(a - b), pct: pctDe(Math.abs(a) - Math.abs(b), b) };
+    // «Ventas» va sin IGV y lo dice: es la que suma con los demás rubros la diferencia de lo que te deja, y alrededor el Resumen habla con IGV.
+    return { clave: c.clave, nombre: c.clave === "ventas" ? "Ventas, sin IGV" : c.nombre, antes: Math.abs(b), ahora: Math.abs(a), efecto: r2(a - b), pct: pctDe(Math.abs(a) - Math.abs(b), b) };
   });
   const dif = r2(fa.resultado - fb.resultado);
   // Lo que los rubros no explican (redondeos, una cuenta que no se nombra) entra como una fila, para que la lista cuadre.
@@ -92,6 +106,7 @@ export function cambiosDelMes(o: {
   return {
     tipo: "ok",
     contra,
+    antesDeSueldos,
     resultadoAhora: r2(fa.resultado),
     resultadoAntes: r2(fb.resultado),
     dif,
@@ -112,7 +127,7 @@ function veredictoDeVentas(fa: FilaER, fb: FilaER, dif: number): string | null {
   const margenAhora = Math.round((fa.margen / fa.ventas) * 100);
   const margenAntes = Math.round((fb.margen / fb.ventas) * 100);
   if (Math.abs(margenAhora - margenAntes) >= 2)
-    return `Cada prenda te deja ${margenAhora > margenAntes ? "más" : "menos"}: de cada S/ 100 vendidos, ${num(margenAhora)} son margen (antes, ${num(margenAntes)}).`;
+    return `Cada prenda te deja ${margenAhora > margenAntes ? "más" : "menos"}: de cada S/ 100 vendidos sin IGV, ${num(margenAhora)} son margen (antes, ${num(margenAntes)}).`;
   if (Math.abs(ventasPct) < 5) return null;
   const sube = ventasPct > 0;
   if (dif > 0 && sube) return `Ganas más porque vendes más (+${num(ventasPct)} %), no porque ganes más por prenda: el margen sigue en ${num(margenAhora)} %.`;

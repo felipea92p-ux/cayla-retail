@@ -1,0 +1,5 @@
+## 2026-11-02 (Vender, Existencias y Caja se enteran al instante por WebSocket)
+Qué hice: activé Supabase Realtime en producción solo para `retail.stock` y `retail.ventas` (migración `20261102212000`, pegada y verificada) y agregué `useCambiosEnVivo`: Vender/Apartados/Cambios releen el stock al instante, Existencias se vuelve a leer sola (sin pisar una hoja abierta) y Caja adelanta su sondeo con cada venta. ADR-0603.
+Incidente: la primera versión publicó `stock` sin identidad de réplica y las ventas fallaron en producción hasta que saqué `stock` de la publicación a mano (con tu OK); lo cazó el CI, no mi ensayo local. La migración ahora pone `replica identity full` antes de publicar; ya está pegada y verificada en producción. Detalle en ADR-0603.
+Por qué así: el socket solo avisa; la lectura y los permisos son los de siempre, y los sondeos quedan de respaldo (principio 9), así que si el socket falla la pantalla sigue como antes.
+Felipe se lleva: probar en dos máquinas (vender en una, mirar Existencias/Vender en la otra). Alcance cerrado: solo Punto de venta, Existencias y Caja; la tienda web y otros módulos quedan fuera hasta que lo pidas.

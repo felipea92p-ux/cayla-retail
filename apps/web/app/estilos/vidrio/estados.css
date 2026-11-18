@@ -1,0 +1,2017 @@
+/* =====================================================================
+   ESTADOS FINANCIEROS EN VIDRIO (ADR-0611; Felipe eligió las pestañas fijas y la letra Inter mirando la maqueta; la tela «Hilos» salió el 2026-11-06 con el camino «A · El informe»,
+   docs/maquetas/finanzas-eeff-vidrio-2026-11/). Solo vale dentro de `.estados-vidrio`, que pone `app/(app)/finanzas/reportes/layout.tsx`: el resto del ERP no cambia.
+   Los números salen de `recetas.css`. El movimiento (una vez, sin rebote ni bucle) es una excepción de ADR-0136, con su lista y su prueba: `lib/estados-movimiento.test.ts`.
+   ===================================================================== */
+
+/* ---------- La placa: lo que explica, de vidrio con un filo de luz que da su vuelta una vez y un brillo que sigue al mouse ---------- */
+@property --giro-estados {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 30deg;
+}
+.placa-estados {
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  border-radius: 30px;
+  background: linear-gradient(135deg, var(--estados-luz-suave), transparent 34%), var(--estados-fondo);
+  -webkit-backdrop-filter: var(--estados-filtro);
+  backdrop-filter: var(--estados-filtro);
+  box-shadow: var(--estados-sombra);
+}
+.placa-estados::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 1.2px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: conic-gradient(from var(--giro-estados), var(--estados-luz) 0deg, var(--estados-luz-suave) 70deg, transparent 150deg, var(--estados-luz-suave) 210deg, var(--estados-luz) 300deg, var(--estados-luz) 360deg);
+  mask: linear-gradient(var(--color-tinta-fija) 0 0) content-box exclude, linear-gradient(var(--color-tinta-fija) 0 0);
+  -webkit-mask: linear-gradient(var(--color-tinta-fija) 0 0) content-box, linear-gradient(var(--color-tinta-fija) 0 0);
+  -webkit-mask-composite: xor;
+}
+.placa-estados::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: var(--brillo, 0);
+  transition: opacity var(--t-cambio) var(--ease-cayla);
+  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), var(--estados-luz-suave), transparent 70%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .placa-estados::before {
+    animation: estados-filo calc(var(--t-momento) * 1.6) var(--ease-cayla) both;
+  }
+}
+@keyframes estados-filo {
+  from {
+    --giro-estados: -140deg;
+  }
+  to {
+    --giro-estados: 30deg;
+  }
+}
+
+/* Una tarjeta suelta también va sobre vidrio: sin fondo, los hilos le pasarían por encima del texto. */
+.estados-vidrio .card-cayla {
+  background-color: var(--estados-fondo-fuerte);
+  -webkit-backdrop-filter: var(--estados-filtro);
+  backdrop-filter: var(--estados-filtro);
+}
+
+/* La cabecera de la pantalla va sobre su placa: el título y la fecha no pueden quedar con los hilos pasándoles por encima. */
+.estados-vidrio .estados-cabecera {
+  padding: 16px 24px;
+  border-radius: 26px;
+}
+
+/* Las pestañas del sistema, con su fondo más lleno: sus nombres no pueden quedar con los hilos pasándoles por encima. */
+.estados-vidrio .pestanas-cayla {
+  background: var(--estados-fondo-fuerte);
+  -webkit-backdrop-filter: var(--estados-filtro);
+  backdrop-filter: var(--estados-filtro);
+}
+
+/* ---------- Lo que se lee sobre el vidrio ---------- */
+.estados-vidrio .placa-estados .text-taupe {
+  color: var(--estados-secundario);
+}
+
+/* ---------- Las cifras, en Inter ---------- */
+.estados-vidrio :is(.tabular-nums, .num, .fin-num, .fin-casc-monto) {
+  font-family: var(--letra-estados), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* ---------- La fecha: el control de la cabecera ---------- */
+.estados-fecha {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
+}
+.estados-fecha-flecha {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: var(--color-tinta);
+  transition: background-color var(--t-resp) var(--ease-cayla);
+}
+.estados-fecha-flecha:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+.estados-fecha-boton {
+  display: flex;
+  min-width: 0;
+  min-height: 52px;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  text-align: left;
+  color: var(--color-tinta);
+  background: linear-gradient(180deg, var(--estados-luz-suave), transparent 72%), var(--estados-fondo-fuerte);
+  box-shadow: inset 0 1px 0 var(--estados-luz), 0 8px 18px -10px var(--color-sombra);
+  transition: translate var(--t-resp) var(--ease-cayla), scale var(--t-resp) var(--ease-cayla), box-shadow var(--t-resp) var(--ease-cayla);
+}
+.estados-fecha-boton:active {
+  scale: 0.98;
+}
+.estados-fecha-icono {
+  flex: none;
+}
+.estados-fecha-texto {
+  display: flex;
+  min-width: 172px;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.estados-fecha-texto b {
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.estados-fecha-texto small {
+  font-size: 14px;
+  color: var(--estados-secundario);
+  white-space: nowrap;
+}
+.estados-fecha-giro {
+  flex: none;
+  transition: rotate var(--t-hoja) var(--ease-cayla);
+}
+.estados-fecha-boton[aria-expanded="true"] .estados-fecha-giro {
+  rotate: 180deg;
+}
+@media (hover: hover) {
+  .estados-fecha-flecha:not(:disabled):hover {
+    background: var(--estados-luz-suave);
+  }
+  .estados-fecha-boton:hover {
+    translate: 0 -1px;
+    box-shadow: inset 0 1px 0 var(--estados-luz), inset 0 0 0 1px var(--estados-luz), 0 14px 26px -12px var(--color-sombra);
+  }
+}
+
+/* ---------- El calendario: una placa de vidrio más llena, porque flota sobre las cifras ---------- */
+.estados-cal {
+  position: fixed;
+  width: min(868px, calc(100vw - 16px));
+  overflow-y: auto;
+  padding: 22px 24px 20px;
+  background: var(--estados-cal-fondo);
+  -webkit-backdrop-filter: var(--estados-cal-filtro);
+  backdrop-filter: var(--estados-cal-filtro);
+  box-shadow: var(--estados-cal-sombra);
+  transform-origin: calc(100% - 180px) 0;
+}
+.estados-cal-marco {
+  container-type: inline-size;
+}
+.estados-cal-cuerpo {
+  display: grid;
+  grid-template-columns: 186px minmax(0, 1fr);
+  gap: 16px 20px;
+}
+.estados-cal-cabeza {
+  position: relative;
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 18px;
+  padding-right: 44px;
+}
+.estados-cal-paso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--estados-secundario);
+  transition: color var(--t-cambio) var(--ease-cayla);
+}
+.estados-cal-paso::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-borde-control);
+  transition: background-color var(--t-cambio) var(--ease-cayla);
+}
+.estados-cal-paso[data-tono] {
+  font-weight: 500;
+  color: var(--color-rojo-profundo);
+}
+.estados-cal-paso[data-tono]::before {
+  background: var(--color-rojo);
+}
+.estados-cal-titulo {
+  margin-top: 4px;
+  font-family: var(--letra-estados), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(24px, 2.6vw, 34px);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  color: var(--color-tinta);
+}
+.estados-cal-tipeo {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+.estados-cal-tipeo > * {
+  width: 132px;
+}
+.estados-cal-tipeo > button {
+  width: auto;
+}
+.estados-cal-cerrar {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--estados-secundario);
+  transition: background-color var(--t-resp) var(--ease-cayla), color var(--t-resp) var(--ease-cayla);
+}
+.estados-cal-atajos {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-right: 14px;
+  border-right: 1px solid var(--color-sand);
+}
+.estados-cal-atajo {
+  display: grid;
+  padding: 9px 12px;
+  border-radius: 15px;
+  text-align: left;
+  color: var(--color-tinta);
+  transition: background-color var(--t-resp) var(--ease-cayla), box-shadow var(--t-resp) var(--ease-cayla);
+}
+.estados-cal-atajo b {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+.estados-cal-atajo small {
+  font-size: 14px;
+  line-height: 1.25;
+  color: var(--estados-secundario);
+}
+.estados-cal-atajo[aria-pressed="true"] {
+  background: linear-gradient(180deg, var(--estados-luz-suave), transparent 80%), var(--estados-fondo-fuerte);
+  box-shadow: inset 0 1px 0 var(--estados-luz), inset 0 0 0 1px var(--estados-luz-suave), 0 8px 16px -10px var(--color-sombra);
+}
+.estados-cal-lado {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+}
+.estados-cal-hilo-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 12px;
+  font-size: 14px;
+  color: var(--color-tinta);
+}
+.estados-cal-hilo-titulo span {
+  font-weight: 500;
+}
+.estados-cal-hilo-titulo small {
+  font-size: 14px;
+  color: var(--estados-secundario);
+}
+.estados-cal-hilo {
+  display: grid;
+  grid-template-columns: repeat(var(--columnas), minmax(34px, 1fr));
+  gap: 3px;
+  overflow-x: auto;
+  padding: 4px;
+  border-radius: 18px;
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+.estados-cal-hilo-mes {
+  position: relative;
+  display: flex;
+  height: 72px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  padding: 5px 1px 4px;
+  border-radius: 13px;
+  font-size: 13px;
+  color: var(--estados-secundario);
+  user-select: none;
+  transition: background-color var(--t-resp) var(--ease-cayla), color var(--t-resp) var(--ease-cayla), box-shadow var(--t-resp) var(--ease-cayla);
+}
+.estados-cal-hilo-mes[data-anio]::before {
+  content: attr(data-anio);
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  font-size: 11px;
+  color: var(--estados-secundario);
+}
+.estados-cal-hilo-barra {
+  display: block;
+  width: 62%;
+  max-width: 20px;
+  height: var(--h);
+  min-height: 3px;
+  border-radius: 6px 6px 3px 3px;
+  background: var(--f);
+  opacity: 0.62;
+  transform-origin: bottom;
+  transition: opacity var(--t-resp) var(--ease-cayla);
+}
+.estados-cal-hilo-mes[data-cubre="entero"] {
+  font-weight: 600;
+  color: var(--color-tinta);
+  background: linear-gradient(180deg, var(--estados-luz-suave), transparent 90%), var(--estados-fondo-fuerte);
+  box-shadow: inset 0 1px 0 var(--estados-luz), inset 0 0 0 1px var(--estados-luz-suave);
+}
+.estados-cal-hilo-mes[data-cubre="entero"] .estados-cal-hilo-barra {
+  opacity: 1;
+}
+.estados-cal-hilo-mes[data-cubre="parte"] {
+  color: var(--color-tinta);
+  box-shadow: inset 0 0 0 1px var(--color-borde-control);
+}
+.estados-cal-paginado {
+  position: relative;
+}
+.estados-cal-paginas {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  gap: 2px;
+}
+.estados-cal-paginas .estados-fecha-flecha {
+  width: 36px;
+  height: 36px;
+}
+.estados-cal-meses {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+.estados-cal-meses[data-uno] {
+  grid-template-columns: minmax(0, 1fr);
+}
+.estados-cal-mes-nombre {
+  display: flex;
+  height: 36px;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-tinta);
+}
+.estados-cal-semana,
+.estados-cal-dias {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.estados-cal-semana span {
+  padding-bottom: 4px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--estados-secundario);
+}
+.estados-cal-dia {
+  position: relative;
+  isolation: isolate;
+  height: 36px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-tinta);
+}
+.estados-cal-dia::before {
+  content: "";
+  position: absolute;
+  inset: 3px 0;
+  z-index: -2;
+  background: transparent;
+  transition: background-color var(--t-resp) var(--ease-cayla);
+}
+.estados-cal-dia::after {
+  content: "";
+  position: absolute;
+  inset: 2px 3px;
+  z-index: -1;
+  border-radius: 13px;
+  transition: background-color var(--t-resp) var(--ease-cayla), box-shadow var(--t-resp) var(--ease-cayla);
+}
+.estados-cal-dia i {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--color-verde);
+  opacity: calc(var(--n) * 0.9);
+}
+.estados-cal-dia:disabled {
+  cursor: default;
+  color: var(--estados-secundario);
+  opacity: 0.34;
+}
+.estados-cal-dia:disabled i {
+  display: none;
+}
+.estados-cal-dia[data-tramo]::before {
+  background: color-mix(in srgb, var(--color-tinta) 9%, transparent);
+}
+.estados-cal-dia[data-punta="inicio"]::before {
+  left: 50%;
+  border-radius: 0;
+}
+.estados-cal-dia[data-punta="fin"]::before {
+  right: 50%;
+}
+.estados-cal-dia[data-izquierda]:not([data-punta="inicio"])::before {
+  border-top-left-radius: 13px;
+  border-bottom-left-radius: 13px;
+}
+.estados-cal-dia[data-derecha]:not([data-punta="fin"])::before {
+  border-top-right-radius: 13px;
+  border-bottom-right-radius: 13px;
+}
+.estados-cal-dia[data-punta] {
+  color: var(--color-crema);
+}
+.estados-cal-dia[data-punta]::after {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 86%, var(--color-taupe)), var(--color-tinta));
+  box-shadow: inset 0 1px 0 var(--estados-luz-suave), 0 8px 14px -8px var(--color-sombra);
+}
+.estados-cal-dia[data-punta] i {
+  background: var(--color-crema);
+}
+.estados-cal-dia[data-hoy]:not([data-punta])::after {
+  box-shadow: inset 0 0 0 1.5px var(--color-rojo);
+}
+.estados-cal-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  font-size: 14px;
+  color: var(--estados-secundario);
+}
+.estados-cal-leyenda-ventas,
+.estados-cal-leyenda-hoy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.estados-cal-leyenda-ventas i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-verde);
+  opacity: var(--n);
+}
+.estados-cal-leyenda-ventas i:last-of-type {
+  margin-right: 4px;
+}
+.estados-cal-leyenda-hoy i {
+  width: 12px;
+  height: 12px;
+  margin-right: 3px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1.5px var(--color-rojo);
+}
+@media (hover: hover) {
+  .estados-cal-cerrar:hover {
+    background: var(--estados-luz-suave);
+    color: var(--color-tinta);
+  }
+  .estados-cal-atajo:hover {
+    background: var(--estados-luz-suave);
+  }
+  .estados-cal-hilo-mes:hover {
+    background: var(--estados-luz-suave);
+    color: var(--color-tinta);
+  }
+  .estados-cal-hilo-mes:hover .estados-cal-hilo-barra {
+    opacity: 1;
+  }
+  .estados-cal-dia:not(:disabled, [data-punta]):hover::after {
+    background: var(--estados-luz-suave);
+    box-shadow: inset 0 0 0 1px var(--estados-luz);
+  }
+}
+/* Sin espacio para el costado, los atajos pasan a ser una fila que corre. */
+@container (max-width: 700px) {
+  .estados-cal-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .estados-cal-atajos {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-right: 0;
+    border-right: 0;
+    scrollbar-width: none;
+  }
+  .estados-cal-atajo {
+    flex: none;
+  }
+  .estados-cal-tipeo {
+    width: 100%;
+    margin-left: 0;
+  }
+  .estados-cal-tipeo > * {
+    flex: 1;
+    width: auto;
+  }
+  .estados-cal-tipeo > button {
+    flex: none;
+  }
+}
+/* En el celular el control ocupa la fila y se dice sin adornos: el texto es lo que importa. */
+@media (max-width: 639.98px) {
+  .estados-fecha {
+    display: flex;
+    width: 100%;
+  }
+  .estados-fecha-boton {
+    flex: 1;
+    justify-content: space-between;
+  }
+  .estados-fecha-icono {
+    display: none;
+  }
+  .estados-fecha-texto {
+    min-width: 0;
+    overflow: hidden;
+  }
+  /* La fecha no se corta: una fecha a medias es otra fecha. Si no cabe, baja de línea. */
+  .estados-fecha-texto b {
+    font-size: 15px;
+    white-space: normal;
+    text-wrap: balance;
+  }
+  .estados-fecha-tramo {
+    display: none;
+  }
+  .estados-cal-cabeza {
+    padding-right: 0;
+  }
+}
+/* Con el dedo, cada día y cada flecha se tocan en 44 px (ADR-0611, mejora 5). */
+@media (pointer: coarse) {
+  .estados-cal-dia {
+    height: 44px;
+  }
+  .estados-cal-dia::after {
+    inset: 3px;
+  }
+  .estados-cal-paginas .estados-fecha-flecha {
+    width: 44px;
+    height: 44px;
+  }
+  .estados-cal-hilo {
+    grid-template-columns: repeat(var(--columnas), minmax(44px, 1fr));
+  }
+  .estados-cal-cerrar {
+    width: 44px;
+    height: 44px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .estados-cal {
+    animation: estados-cal-entra var(--t-hoja) var(--ease-cayla) both;
+  }
+  .estados-cal-atajo {
+    animation: estados-cal-sube var(--t-hoja) var(--ease-cayla) both;
+    animation-delay: calc(var(--i) * 13ms + 28ms);
+  }
+  .estados-cal-hilo-barra {
+    animation: estados-cal-brota var(--t-momento) var(--ease-cayla) both;
+    animation-delay: calc(var(--i) * 10ms);
+  }
+  .estados-cal-dia {
+    animation: estados-cal-sube var(--t-hoja) var(--ease-cayla) both;
+    animation-delay: calc(var(--i) * 2.5ms);
+  }
+}
+@keyframes estados-cal-entra {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes estados-cal-sube {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes estados-cal-brota {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/* ---------- La cifra que rueda ---------- */
+.estados-vidrio .estados-cifra {
+  font-family: var(--letra-estados), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+  color: var(--color-tinta);
+}
+.estados-cifra-marco {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+}
+.estados-cifra-moneda {
+  margin-right: 0.28em;
+  font-size: 0.42em;
+  letter-spacing: -0.02em;
+  color: var(--estados-secundario);
+}
+.estados-cifra-signo {
+  margin-right: 0.12em;
+  font-size: 0.5em;
+  color: var(--estados-secundario);
+}
+.estados-cifra[data-mal],
+.estados-cifra[data-mal] :is(.estados-cifra-moneda, .estados-cifra-signo) {
+  color: var(--color-rojo);
+}
+.estados-cifra-digito {
+  display: inline-block;
+  height: 1.02em;
+  overflow: hidden;
+}
+.estados-cifra-digito > span {
+  display: block;
+  transform: translateY(var(--y));
+}
+.estados-cifra-digito i {
+  display: block;
+  height: 1.02em;
+  font-style: normal;
+}
+
+/* ---------- Lo primero: la cifra, la frase y un gráfico ---------- */
+.estados-heroe {
+  display: flex;
+  min-height: clamp(420px, 56vh, 560px);
+  flex-direction: column;
+  overflow: hidden;
+  padding: 28px 32px 0;
+  container-type: inline-size;
+}
+.estados-heroe-nombre {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--estados-secundario);
+}
+.estados-vidrio .estados-heroe-cifra {
+  margin-top: 10px;
+  font-size: clamp(48px, 13cqi, 148px);
+}
+.estados-frase {
+  max-width: 34ch;
+  margin-top: 10px;
+  font-size: clamp(18px, 1.7vw, 23px);
+  line-height: 1.3;
+  color: var(--color-tinta);
+  text-wrap: balance;
+}
+.estados-heroe-chip {
+  margin-top: 12px;
+}
+.estados-grafico {
+  position: relative;
+  flex: 1;
+  min-height: 210px;
+  margin: 16px -32px 0;
+}
+.estados-grafico[data-aire] {
+  margin: 16px 0 24px;
+}
+
+/* ---------- La línea de los meses ---------- */
+.estados-linea-marco {
+  position: absolute;
+  inset: 0;
+}
+.estados-linea {
+  position: absolute;
+  inset: 0 0 34px;
+}
+.estados-linea svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.estados-linea-meses {
+  position: absolute;
+  right: 0;
+  bottom: 6px;
+  left: 0;
+  height: 24px;
+}
+.estados-linea-meses span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 13px;
+  color: var(--estados-secundario);
+  transition: color var(--t-cambio) var(--ease-cayla);
+}
+.estados-linea-meses span[data-puesto] {
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.estados-linea-cero {
+  position: absolute;
+  right: 32px;
+  left: 32px;
+  height: 0;
+  border-top: 1px dashed color-mix(in srgb, var(--color-borde-control) 70%, transparent);
+}
+.estados-linea-cero small {
+  position: absolute;
+  top: -20px;
+  left: 0;
+  font-size: 13px;
+  color: var(--estados-secundario);
+}
+.estados-linea-franja {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: block;
+  border-radius: 14px;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--color-verde) 16%, transparent));
+  box-shadow: inset 1px 0 0 var(--estados-luz), inset -1px 0 0 var(--estados-luz);
+}
+.estados-linea-zona {
+  position: absolute;
+  inset: 0;
+  touch-action: pan-y;
+}
+.estados-linea-guia {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(transparent, var(--color-borde-control) 25%, var(--color-borde-control));
+  opacity: 0.6;
+  transition: left var(--t-hoja) var(--ease-cayla);
+}
+.estados-linea-punto {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: var(--color-verde);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-verde) 24%, transparent), 0 0 0 1.5px var(--color-papel) inset;
+  transition: left var(--t-hoja) var(--ease-cayla), top var(--t-hoja) var(--ease-cayla), background-color var(--t-cambio) var(--ease-cayla);
+}
+.estados-linea-punto[data-mal] {
+  background: var(--color-rojo);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-rojo) 24%, transparent), 0 0 0 1.5px var(--color-papel) inset;
+}
+.estados-linea-globo {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, calc(-100% - 16px));
+  padding: 7px 13px;
+  border-radius: 14px;
+  background: var(--estados-fondo-fuerte);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 0 var(--estados-luz), 0 10px 22px -10px var(--color-sombra);
+  font-size: 14px;
+  line-height: 1.25;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: left var(--t-hoja) var(--ease-cayla), top var(--t-hoja) var(--ease-cayla);
+}
+.estados-linea-globo b {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.estados-linea-globo span {
+  color: var(--estados-secundario);
+}
+.estados-linea-zona[data-sobre] :is(.estados-linea-guia, .estados-linea-punto, .estados-linea-globo) {
+  transition-duration: var(--t-resp);
+}
+.estados-linea-sin-datos {
+  position: absolute;
+  inset: auto 32px 24px;
+  font-size: 15px;
+  color: var(--estados-secundario);
+}
+.estados-linea-espera {
+  position: absolute;
+  inset: 40% 32px 34px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, transparent, var(--hundido-fondo));
+}
+
+/* ---------- La cascada de columnas: de cuánto se partió, qué la movió y con cuánto se terminó ---------- */
+.estados-cascada {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-auto-rows: 1fr;
+  gap: 4px;
+  padding: 0 8px;
+}
+/* Cada parte es una fila: el nombre y su cifra enteros, y debajo el tramo. Así ninguna cifra depende del ancho de una columna (ADR-0621). */
+.estados-cc {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: center;
+  gap: 2px 8px;
+  padding: 0;
+  border-radius: 8px;
+  transition: opacity var(--t-cambio) var(--ease-cayla), filter var(--t-cambio) var(--ease-cayla);
+}
+.estados-cc-plano {
+  position: relative;
+  display: block;
+  grid-column: 1 / -1;
+  height: 8px;
+}
+.estados-cc-col {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: block;
+  min-width: 4px;
+  border-radius: 4px;
+  background: var(--c);
+  transform-origin: left;
+  transition: box-shadow var(--t-cambio) var(--ease-cayla);
+}
+.estados-cc[data-encendida] .estados-cc-col {
+  box-shadow: 0 0 0 1.5px var(--estados-luz);
+}
+.estados-cc-val {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-tinta);
+}
+.estados-cc-val[data-signo="mas"] {
+  color: var(--color-verde);
+}
+.estados-cc-val[data-signo="menos"] {
+  color: var(--color-rojo);
+}
+.estados-cc-nombre {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--estados-secundario);
+}
+.estados-cc[data-encendida] .estados-cc-nombre {
+  font-weight: 500;
+  color: var(--color-tinta);
+}
+
+/* ---------- Los dos tubos del Balance ---------- */
+.estados-tubos {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+}
+.estados-tubo-rotulo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 12px;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--color-tinta);
+}
+.estados-tubo-rotulo b {
+  font-weight: 600;
+}
+
+/* ---------- Lo de abajo: a dónde se fue, parte por parte ---------- */
+.estados-debajo {
+  padding: 24px 32px 26px;
+  container-type: inline-size;
+}
+.estados-debajo-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin-bottom: 14px;
+}
+.estados-debajo-titulo h2 {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-tinta);
+}
+.estados-debajo-titulo small {
+  font-size: 14px;
+  color: var(--estados-secundario);
+}
+.estados-tubo {
+  display: flex;
+  height: 40px;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
+}
+.estados-seg {
+  position: relative;
+  display: block;
+  flex: 1 1 0;
+  min-width: 4px;
+  height: 100%;
+  padding: 0;
+  border-radius: 5px;
+  background: var(--c);
+  transition: flex-grow var(--t-momento) var(--ease-cayla), opacity var(--t-cambio) var(--ease-cayla), filter var(--t-cambio) var(--ease-cayla), transform var(--t-cambio) var(--ease-cayla), box-shadow var(--t-cambio) var(--ease-cayla);
+}
+.estados-seg:first-child {
+  border-radius: 999px 5px 5px 999px;
+}
+.estados-seg:last-child {
+  border-radius: 5px 999px 999px 5px;
+}
+.estados-seg:only-child {
+  border-radius: 999px;
+}
+.estados-seg::after {
+  content: "";
+  position: absolute;
+  inset: 2px 3px auto;
+  height: 40%;
+  border-radius: 999px;
+  background: linear-gradient(var(--estados-luz-suave), transparent);
+  pointer-events: none;
+}
+.estados-seg[data-hueco] {
+  background: repeating-linear-gradient(135deg, transparent 0 6px, var(--hundido-fondo) 6px 8px);
+  box-shadow: inset 0 0 0 1.5px var(--color-verde);
+}
+.estados-seg[data-hueco]::after {
+  display: none;
+}
+.estados-seg[data-encendida] {
+  z-index: 2;
+  transform: scaleY(1.2);
+  box-shadow: 0 0 0 1.5px var(--estados-luz), 0 8px 20px -6px color-mix(in srgb, var(--c) 70%, transparent);
+}
+.estados-seg[data-hueco][data-encendida] {
+  box-shadow: inset 0 0 0 1.5px var(--color-verde), 0 0 0 1.5px var(--estados-luz);
+}
+.estados-seg-globo {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  z-index: 3;
+  display: none;
+  /* Su parte de la barra crece 1,2 veces a lo alto: el globo se compensa para no estirarse. */
+  transform: translateX(-50%) scaleY(0.8333);
+  transform-origin: bottom center;
+  padding: 7px 13px;
+  border-radius: 14px;
+  background: var(--estados-fondo-fuerte);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: inset 0 1px 0 var(--estados-luz), 0 12px 24px -10px var(--color-sombra);
+  font-size: 14px;
+  line-height: 1.25;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.estados-seg-globo b {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.estados-seg-globo span {
+  color: var(--estados-secundario);
+}
+.estados-partes {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 12px;
+}
+.estados-parte {
+  position: relative;
+  display: grid;
+  width: 100%;
+  grid-template-columns: 12px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0 9px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  text-align: left;
+  color: var(--color-tinta);
+  transition: opacity var(--t-cambio) var(--ease-cayla), filter var(--t-cambio) var(--ease-cayla), background var(--t-cambio) var(--ease-cayla), box-shadow var(--t-cambio) var(--ease-cayla);
+}
+.estados-parte i {
+  align-self: center;
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--c);
+  box-shadow: inset 0 1px 0 var(--estados-luz-suave);
+}
+.estados-parte > span {
+  font-size: 14px;
+  color: var(--estados-secundario);
+}
+.estados-parte b {
+  grid-column: 2;
+  font-size: clamp(19px, 1.6vw, 24px);
+  font-weight: 600;
+  line-height: 1.2;
+}
+.estados-parte small {
+  grid-column: 2;
+  font-size: 14px;
+  color: var(--estados-secundario);
+}
+.estados-parte b[data-tono="bien"] {
+  color: var(--color-verde);
+}
+.estados-parte b[data-tono="mal"] {
+  color: var(--color-rojo);
+}
+/* Sobre el tinte de la parte encendida, el rojo de marca no llega a 4.5:1: el profundo sí, en los dos temas. */
+.estados-parte[data-encendida] b[data-tono="mal"] {
+  color: var(--color-rojo-profundo);
+}
+.estados-parte[data-encendida] {
+  background: linear-gradient(180deg, var(--estados-luz-suave), transparent 70%), color-mix(in srgb, var(--c) 10%, transparent);
+  box-shadow: inset 0 1px 0 var(--estados-luz), inset 0 0 0 1px var(--estados-luz-suave), 0 10px 20px -14px var(--color-sombra);
+}
+/* Al pasar el mouse el resto se apaga del todo; con una parte elegida, solo un poco, para que lo demás se siga leyendo. */
+[data-foco="mouse"] [data-apagada] {
+  opacity: 0.26;
+  filter: saturate(0.5);
+}
+[data-foco="elegido"] [data-apagada] {
+  opacity: 0.85;
+  filter: saturate(0.75);
+}
+/* Apagada, el color de marca baja de 4.5:1; el profundo se sigue leyendo. */
+[data-foco="elegido"] .estados-parte[data-apagada] b[data-tono="mal"],
+[data-foco="elegido"] .estados-cc[data-apagada] .estados-cc-val[data-signo="menos"] {
+  color: var(--color-rojo-profundo);
+}
+[data-foco="elegido"] .estados-parte[data-apagada] b[data-tono="bien"],
+[data-foco="elegido"] .estados-cc[data-apagada] .estados-cc-val[data-signo="mas"] {
+  color: var(--color-verde-profundo);
+}
+
+/* ---------- El detalle de una parte, justo debajo ---------- */
+.estados-det {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--t-hoja) var(--ease-cayla), margin var(--t-hoja) var(--ease-cayla);
+}
+.estados-det[data-abierto] {
+  grid-template-rows: 1fr;
+  margin-top: 14px;
+}
+.estados-det > div {
+  min-height: 0;
+  overflow: hidden;
+}
+.estados-det[data-abierto] > div {
+  margin-top: -10px;
+  padding-top: 10px;
+}
+.estados-det-vidrio {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(0, 1.7fr) minmax(170px, 0.7fr);
+  gap: 20px 36px;
+  padding: 24px 26px;
+  border-radius: 26px;
+  background: radial-gradient(90% 130% at 8% 0%, color-mix(in srgb, var(--c) 20%, transparent), transparent 62%), linear-gradient(180deg, var(--estados-luz-suave), transparent 34%);
+  box-shadow: inset 0 1px 0 var(--estados-luz), inset 0 0 0 1px var(--estados-luz-suave);
+}
+.estados-det-pico {
+  position: absolute;
+  top: -6px;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  transform: rotate(45deg);
+  border-radius: 3px 0 0;
+  background: color-mix(in srgb, var(--c) 22%, var(--estados-fondo-fuerte));
+  box-shadow: inset 1px 1px 0 var(--estados-luz);
+  transition: left var(--t-hoja) var(--ease-cayla);
+}
+.estados-det:not([data-abierto]) .estados-det-pico {
+  opacity: 0;
+}
+.estados-det-cerrar {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--color-tinta);
+  background: linear-gradient(180deg, var(--estados-luz-suave), transparent 70%);
+  box-shadow: inset 0 1px 0 var(--estados-luz), 0 6px 14px -8px var(--color-sombra);
+  transition: transform var(--t-resp) var(--ease-cayla);
+}
+.estados-det-nombre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--estados-secundario);
+}
+.estados-det-nombre i {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--c);
+}
+.estados-vidrio .estados-det-cifra {
+  margin-top: 8px;
+  font-size: clamp(40px, 7cqi, 64px);
+}
+.estados-det-que {
+  max-width: 34ch;
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--color-tinta);
+}
+.estados-det-filas {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 28px;
+}
+.estados-det-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 4px 12px;
+  font-size: 15px;
+  color: var(--color-tinta);
+  transition: opacity var(--t-resp) var(--ease-cayla);
+}
+.estados-det-fila b {
+  font-weight: 600;
+}
+.estados-det-fila b[data-tono="bien"] {
+  color: var(--color-verde);
+}
+.estados-det-fila b[data-tono="mal"] {
+  color: var(--color-rojo);
+}
+.estados-det-fila u {
+  display: block;
+  grid-column: 1 / -1;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
+  text-decoration: none;
+}
+.estados-det-fila u i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--f);
+}
+.estados-det-sin-filas {
+  font-size: 15px;
+  color: var(--estados-secundario);
+}
+.estados-det-aviso {
+  font-size: 14px;
+  color: var(--color-ambar);
+}
+.estados-det-columnas {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.estados-det-columnas > span {
+  font-size: 14px;
+  color: var(--estados-secundario);
+}
+.estados-det-columnas > div {
+  display: grid;
+  flex: 1;
+  min-height: 120px;
+  grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.estados-det-columnas > div > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+}
+.estados-det-columnas p {
+  width: 100%;
+  max-width: 48px;
+  height: var(--h);
+  min-height: 4px;
+  border-radius: 10px;
+  background: var(--f);
+  box-shadow: inset 0 1px 0 var(--estados-luz-suave);
+  opacity: 0.4;
+}
+.estados-det-columnas [data-actual] p {
+  opacity: 1;
+}
+.estados-det-columnas small {
+  font-size: 13px;
+  color: var(--estados-secundario);
+}
+.estados-det-columnas [data-actual] small {
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.estados-det-columnas em {
+  font-size: 13px;
+  font-weight: 600;
+  font-style: normal;
+  color: var(--color-tinta);
+  white-space: nowrap;
+}
+
+/* ---------- La razón de la cifra y el libro del contador ---------- */
+.estados-nota-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-sand);
+}
+.estados-nota {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 340px;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 17px;
+  line-height: 1.35;
+  color: var(--color-tinta);
+}
+.estados-nota svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--estados-secundario);
+}
+.estados-libro {
+  margin-top: 18px;
+  padding: 22px 24px 24px;
+  border-radius: 26px;
+  background: linear-gradient(180deg, var(--estados-luz-suave), transparent 30%);
+  box-shadow: inset 0 1px 0 var(--estados-luz), inset 0 0 0 1px var(--estados-luz-suave);
+}
+.estados-libro-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin-bottom: 14px;
+}
+.estados-libro-cabeza h3 {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--color-tinta);
+}
+.estados-libro-cabeza span {
+  font-size: 14px;
+  color: var(--estados-secundario);
+}
+.estados-libro-filas {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 20px;
+}
+.estados-libro-filas::before {
+  content: "";
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 4px;
+  width: 1.5px;
+  background: linear-gradient(var(--color-borde-control), var(--color-rojo));
+  transform-origin: top;
+}
+.estados-libro-fila {
+  position: relative;
+  display: grid;
+  min-height: 42px;
+  grid-template-columns: minmax(150px, 1fr) minmax(0, 2.1fr) minmax(92px, auto);
+  align-items: center;
+  gap: 16px;
+  padding: 6px 14px;
+  border-radius: 14px;
+  font-size: 15px;
+  color: var(--color-tinta);
+}
+.estados-libro-fila::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -19px;
+  width: 9px;
+  height: 9px;
+  margin-top: -4.5px;
+  border-radius: 50%;
+  background: var(--color-papel);
+  box-shadow: 0 0 0 1.5px var(--color-borde-control);
+}
+.estados-libro-fila > span {
+  min-width: 0;
+}
+.estados-libro-fila > b {
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+}
+.estados-libro-fila > u {
+  position: relative;
+  display: block;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
+  text-decoration: none;
+}
+.estados-libro-fila > u i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--a);
+  width: var(--w);
+  min-width: 3px;
+  border-radius: 999px;
+  background: var(--f);
+  box-shadow: inset 0 1px 0 var(--estados-luz-suave);
+}
+.estados-libro-fila[data-tipo="total"] {
+  min-height: 54px;
+  margin-block: 4px;
+  background: linear-gradient(180deg, var(--estados-luz-suave), transparent 80%), var(--estados-fondo);
+  box-shadow: inset 0 1px 0 var(--estados-luz), inset 0 0 0 1px var(--estados-luz-suave), 0 10px 20px -14px var(--color-sombra);
+  font-weight: 600;
+}
+.estados-libro-fila[data-tipo="total"] > b {
+  font-size: 21px;
+  font-weight: 600;
+}
+.estados-libro-fila[data-tipo="total"]::before {
+  left: -20px;
+  width: 11px;
+  height: 11px;
+  margin-top: -5.5px;
+  background: var(--color-rojo);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-rojo) 22%, transparent);
+}
+
+.estados-libro-dos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 32px;
+}
+.estados-libro-dos h4 {
+  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--estados-secundario);
+}
+.estados-libro-dos .estados-libro-fila {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+}
+.estados-libro-dos .estados-libro-fila > u {
+  grid-row: 2;
+  grid-column: 1 / -1;
+}
+.estados-ecuacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-verde) 10%, transparent);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-verde);
+}
+.estados-ecuacion small {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--estados-secundario);
+}
+
+/* ---------- Qué te recomiendo y lo que sigue a un toque ---------- */
+.estados-recos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 12px;
+}
+/* Una tarjeta mide de 280 a 400 px: con el botón a la derecha del texto, el texto quedaba en una columna de una palabra. Va debajo. */
+.estados-recos .aviso-linea {
+  align-items: start;
+}
+.estados-recos .aviso-linea-tit,
+.estados-recos .aviso-linea-det {
+  grid-column: 2 / -1;
+}
+.estados-recos .aviso-linea-acc {
+  grid-column: 2 / -1;
+  grid-row: auto;
+  justify-self: start;
+  margin-top: 8px;
+}
+.estados-mas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.estados-mas-boton {
+  display: flex;
+  justify-content: center;
+}
+.estados-mas-boton .ver-mas-enlace {
+  height: auto;
+  max-width: 100%;
+  text-align: center;
+  white-space: normal;
+}
+.estados-mas-contenido {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+@media (hover: hover) {
+  .estados-seg:hover .estados-seg-globo {
+    display: block;
+  }
+  .estados-det-cerrar:hover {
+    transform: rotate(90deg);
+  }
+  .estados-det-filas:hover .estados-det-fila:not(:hover) {
+    opacity: 0.42;
+  }
+}
+.estados-seg:focus-visible .estados-seg-globo {
+  display: block;
+}
+
+/* El detalle y el libro se apilan cuando la placa se queda angosta. */
+@container (max-width: 760px) {
+  .estados-partes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .estados-det-vidrio {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 20px 18px;
+  }
+  .estados-det-filas {
+    padding-right: 0;
+  }
+  .estados-libro {
+    padding: 18px 14px;
+  }
+  .estados-libro-fila {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 10px;
+    padding: 8px 10px;
+  }
+  .estados-libro-fila > u {
+    grid-row: 2;
+    grid-column: 1 / -1;
+  }
+  .estados-linea-meses span[data-alterno] {
+    display: none;
+  }
+  .estados-libro-dos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 639.98px) {
+  .estados-heroe {
+    min-height: 0;
+    padding: 22px 20px 0;
+  }
+  .estados-grafico {
+    min-height: 230px;
+    margin-inline: -20px;
+  }
+  .estados-grafico[data-aire] {
+    min-height: 300px;
+    margin-inline: 0;
+  }
+  /* Con el botón al lado, el texto de un aviso quedaba en una columna de una palabra: en el celular va debajo. */
+  .estados-vidrio .aviso-linea-tit,
+  .estados-vidrio .aviso-linea-det {
+    grid-column: 2 / -1;
+  }
+  .estados-vidrio .aviso-linea-acc {
+    grid-column: 2 / -1;
+    grid-row: auto;
+    justify-self: start;
+    margin-top: 8px;
+  }
+  /* Los dos tubos ya miden lo suyo: con el alto de la cascada quedaban sobre un hueco vacío. */
+  .estados-grafico[data-aire]:has(.estados-tubos) {
+    min-height: 0;
+  }
+  /* En dos renglones, el hilo de `btn-enlace` (una imagen a 0,7 em del centro de la caja) tachaba el segundo. */
+  .estados-mas-boton .ver-mas-enlace {
+    background-image: none;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--color-tinta) 32%, transparent);
+    text-underline-offset: 4px;
+  }
+  .estados-linea-cero {
+    right: 20px;
+    left: 20px;
+  }
+  .estados-debajo {
+    padding: 20px;
+  }
+}
+/* Con el dedo, lo que se toca de la barra y su × también llegan a 44 px. */
+@media (pointer: coarse) {
+  .estados-tubo {
+    height: 50px;
+  }
+  .estados-det-cerrar {
+    width: 44px;
+    height: 44px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .estados-cifra-digito > span {
+    animation: estados-cifra-rueda var(--t-momento) var(--ease-cayla) both;
+    animation-delay: var(--d, 0ms);
+  }
+  .estados-linea svg {
+    animation: estados-linea-dibuja var(--t-momento) var(--ease-cayla) both;
+  }
+  .estados-seg {
+    animation: estados-seg-llena var(--t-momento) var(--ease-cayla) backwards;
+  }
+  .estados-cc-col {
+    animation: estados-cc-crece var(--t-momento) var(--ease-cayla) both;
+    animation-delay: calc(var(--i, 0) * 32ms);
+  }
+  .estados-det-fila {
+    animation: estados-cal-sube var(--t-hoja) var(--ease-cayla) both;
+    animation-delay: calc(var(--i, 0) * 19ms);
+  }
+  .estados-det-fila u i,
+  .estados-libro-fila > u i {
+    animation: estados-seg-llena var(--t-momento) var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 19ms + 42ms);
+  }
+  .estados-libro-fila {
+    animation: estados-cal-sube var(--t-hoja) var(--ease-cayla) both;
+    animation-delay: calc(var(--i, 0) * 17ms);
+  }
+  .estados-libro-filas::before {
+    animation: estados-libro-hilo var(--t-momento) var(--ease-cayla) both;
+  }
+}
+@keyframes estados-cifra-rueda {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(var(--y));
+  }
+}
+@keyframes estados-linea-dibuja {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes estados-seg-llena {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(-8px -8px -8px -8px);
+  }
+}
+@keyframes estados-libro-hilo {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .estados-cc,
+  .estados-cc-col,
+  .estados-seg,
+  .estados-det,
+  .estados-det-pico,
+  .estados-det-fila,
+  .estados-parte,
+  .estados-linea-guia,
+  .estados-linea-punto,
+  .estados-linea-globo {
+    transition: none;
+  }
+}
+
+/* ---------- Quien pidió más contraste: el filo de luz se apaga y el vidrio ya es macizo (`recetas.css`) ---------- */
+@media (prefers-contrast: more) {
+  .placa-estados::before,
+  .placa-estados::after {
+    display: none;
+  }
+}
+
+/* =====================================================================
+   EL INFORME (camino «A · El informe», Felipe 2026-11-06; maqueta docs/maquetas/estados-financieros-2026-11-rediseno/).
+   Cada estado se lee como lo leería el contador: el informe a la izquierda, la respuesta a la derecha. Placa Serena (recetas.css), sin desenfoque propio de esta pantalla.
+   ===================================================================== */
+.estados-en-informe {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+@media (min-width: 1100px) {
+  .estados-en-informe {
+    grid-template-columns: minmax(0, 1.8fr) minmax(300px, 1fr);
+  }
+}
+.estados-informe-placa {
+  min-width: 0;
+  border: 1px solid var(--serena-borde);
+  border-radius: var(--radius-tarjeta);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+  padding: 24px;
+}
+.estados-respuesta-columna {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---------- El informe ---------- */
+.estados-informe {
+  container-type: inline-size;
+  overflow-x: auto;
+  /* Sin esto, las filas que entran subiendo 6 px abren una barra de desplazamiento vertical mientras dura la entrada. */
+  overflow-y: hidden;
+}
+.estados-informe-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.estados-informe-cabeza h2 {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.1;
+}
+.estados-informe-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.estados-informe-tabla thead th {
+  padding: 0 10px 10px;
+  border-bottom: 1px solid var(--hilo-fila);
+  text-align: right;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-taupe);
+}
+.estados-informe-tabla thead th[data-actual] {
+  color: var(--color-tinta);
+}
+.estados-informe-tabla thead th:first-child {
+  padding-left: 0;
+  text-align: left;
+}
+.estados-informe-fila > * {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--hilo-fila);
+  text-align: right;
+  white-space: nowrap;
+  color: var(--color-taupe);
+}
+.estados-informe-fila > [data-actual] {
+  font-weight: 500;
+  color: var(--color-tinta);
+}
+.estados-informe-fila > th {
+  width: 100%;
+  padding-left: 0;
+  text-align: left;
+  /* Un nombre largo baja de línea: si no, empuja las cifras fuera de la placa. */
+  white-space: normal;
+  font-weight: 400;
+  color: var(--color-tinta);
+}
+.estados-informe-fila[data-tipo="seccion"] > th {
+  padding: 22px 0 8px;
+  font-family: var(--font-serif);
+  font-size: 21px;
+  color: var(--color-tinta);
+}
+tbody:first-of-type > .estados-informe-fila[data-tipo="seccion"] > th {
+  padding-top: 6px;
+}
+.estados-informe-fila[data-tipo="subtotal"] > * {
+  background: var(--hundido-fondo);
+  font-weight: 600;
+}
+.estados-informe-fila[data-tipo="subtotal"] > th {
+  padding-left: 12px;
+  border-radius: 12px 0 0 12px;
+}
+.estados-informe-fila[data-tipo="subtotal"] > :last-child {
+  border-radius: 0 12px 12px 0;
+}
+.estados-informe-fila[data-tipo="total"] > * {
+  padding-top: 18px;
+  border-bottom: 0;
+  font-size: 17px;
+}
+.estados-informe-fila[data-tipo="total"] > [data-actual] {
+  font-family: var(--font-serif);
+  font-size: 26px;
+}
+.estados-informe-fila [data-tono="mal"],
+.estados-informe-fila > [data-tono="mal"] {
+  color: var(--color-rojo);
+}
+.estados-informe-fila > [data-tono="bien"] {
+  color: var(--color-verde);
+}
+.estados-informe-peso {
+  font-size: 13px;
+}
+/* En el celular solo cabe la cifra de ahora: las de antes y el peso se van, nunca ella. */
+@media (max-width: 639px) {
+  .estados-informe-tabla thead th:not(:first-child):not([data-actual]),
+  .estados-informe-fila > td:not([data-actual]) {
+    display: none;
+  }
+}
+/* Angosto: la columna más vieja se va primero; la de ahora y la de antes siempre quedan. */
+@container (max-width: 620px) {
+  .estados-informe [data-viejo] {
+    display: none;
+  }
+}
+.estados-informe-nombre {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.estados-informe-nombre button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  border-radius: 8px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.estados-informe-nombre button svg {
+  color: var(--color-taupe);
+}
+.estados-informe-nombre button svg[data-abierta] {
+  transform: rotate(90deg);
+}
+@media (hover: hover) {
+  .estados-informe-nombre button:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--color-borde-control);
+    text-underline-offset: 4px;
+  }
+}
+.estados-informe-menos {
+  margin-right: 6px;
+  color: var(--color-taupe);
+}
+.estados-informe-nombre u {
+  display: block;
+  width: min(220px, 100%);
+  height: 3px;
+  border-radius: 2px;
+  background: var(--hundido-fondo);
+  text-decoration: none;
+}
+.estados-informe-nombre u i {
+  display: block;
+  width: var(--w);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-tinta);
+  opacity: 0.55;
+  transform-origin: left;
+}
+.estados-informe-abierta > td {
+  padding: 4px 0 16px;
+  border-bottom: 1px solid var(--hilo-fila);
+}
+.estados-informe-detalle {
+  display: grid;
+  gap: 8px;
+  max-width: 60ch;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--hundido-fondo);
+  font-size: 14px;
+}
+.estados-informe-detalle p {
+  color: var(--color-taupe);
+}
+.estados-informe-aviso {
+  color: var(--color-ambar) !important;
+}
+.estados-informe-detalle ul {
+  display: grid;
+  gap: 6px;
+}
+.estados-informe-detalle li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* ---------- La respuesta ---------- */
+.estados-respuesta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.estados-respuesta-nombre {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-taupe);
+}
+.estados-vidrio .estados-respuesta-cifra {
+  font-size: clamp(40px, 4.2vw, 60px);
+}
+.estados-respuesta-frase {
+  max-width: 40ch;
+  font-size: 17px;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+.estados-respuesta-grafico {
+  position: relative;
+  height: 200px;
+  margin: 4px -8px 0;
+}
+.estados-respuesta-grafico .estados-linea-cero {
+  right: 0;
+  left: 0;
+}
+.estados-respuesta-nota {
+  font-size: 14px;
+  color: var(--color-taupe);
+}
+
+/* El movimiento, una vez y sin rebote (ADR-0136): las filas entran en cascada, la barrita crece, el detalle asoma. */
+@media (prefers-reduced-motion: no-preference) {
+  .estados-informe-fila > * {
+    animation: estados-informe-entra var(--t-hoja) var(--ease-cayla) both;
+    animation-delay: calc(var(--i, 0) * 18ms);
+  }
+  .estados-informe-nombre u i {
+    animation: estados-informe-barra var(--t-momento) var(--ease-cayla) both;
+  }
+  .estados-informe-detalle {
+    animation: estados-informe-entra var(--t-hoja) var(--ease-cayla) both;
+  }
+  .estados-informe-nombre button svg {
+    transition: transform var(--t-cambio) var(--ease-cayla);
+  }
+}
+@keyframes estados-informe-entra {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes estados-informe-barra {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* El tramo de la cascada crece desde su punto de partida, una vez. */
+@keyframes estados-cc-crece {
+  from {
+    transform: scaleX(0);
+  }
+}

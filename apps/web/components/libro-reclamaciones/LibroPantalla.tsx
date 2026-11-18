@@ -244,9 +244,7 @@ export function LibroPantalla({ libro, abiertaInicial }: { libro: ListaLibro; ab
 
       <div className="nota-cayla space-y-2 text-[13px]" data-guia="libro.nota">
         <p>
-          Cada hoja llega desde el Libro de Reclamaciones de la tienda online, con su número y los datos del cliente, y a él le llega una copia
-          por correo. La ley da 15 días hábiles para responder, contados desde el día siguiente (sin sábados, domingos ni feriados): el plazo
-          de cada hoja ya los cuenta. Una hoja no se borra ni se corrige.
+          15 días hábiles para responder, sin sábados, domingos ni feriados. Una hoja no se borra ni se corrige.
           {libro.hayMas ? " Aquí se ven las 1000 más nuevas." : ""}
         </p>
       </div>

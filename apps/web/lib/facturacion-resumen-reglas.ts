@@ -7,57 +7,6 @@ import type { EstadoComprobante } from "./comprobantes-reglas";
  *  solo informa. El mismo criterio que `TarjetaKpi` de Caja. */
 export type TonoKpi = "verde" | "ambar" | "rojo" | "taupe";
 
-/** «13:09» → 13.15: la hora de reloj de Lima con decimales, la unidad de los gráficos. */
-export function horaDeReloj(hhmm: string): number {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h + (m || 0) / 60;
-}
-
-/** Una fila por venta. `fn_ventas_del_dia` hacía `left join comprobantes` y `comprobantes.venta_id` no es
- *  único: una venta con dos comprobantes (uno liberado o dado de baja y su reemplazo) salía dos veces, con
- *  el mismo total. La migración `20260921103000` lo corrige en la base; esto queda como defensa para una base
- *  que aún no la tenga. Para sumar y contar ventas se toma la primera de cada una. */
-export function ventasUnicas<T extends { venta_id: string }>(filas: T[]): T[] {
-  return [...new Map(filas.map((f) => [f.venta_id, f])).values()];
-}
-
-/** «Vendido hoy»: verde si va por encima de la referencia (el mismo día de la semana pasada,
- *  hasta esta hora), ámbar si por debajo, taupe si no hay referencia — sin referencia no hay
- *  nada que juzgar. Igual a la referencia no está por debajo. */
-export function tonoVendidoHoy(hoy: number, referencia: number | null): TonoKpi {
-  if (referencia === null || referencia <= 0) return "taupe";
-  return hoy >= referencia ? "verde" : "ambar";
-}
-
-/** «Por enviar a SUNAT»: rojo si SUNAT rechazó alguno, ámbar si hay pendientes, verde si no
- *  queda nada. `rechazados` ya está contado dentro de `porEnviar`. */
-export function tonoPorEnviar(r: { porEnviar: number; rechazados: number }): TonoKpi {
-  if (r.rechazados > 0) return "rojo";
-  return r.porEnviar > 0 ? "ambar" : "verde";
-}
-
-type Comparativo = { texto: string; positivo: boolean };
-
-function conSigno(n: number, sufijo: string): Comparativo {
-  const positivo = n >= 0;
-  return { texto: `${positivo ? "+" : "−"}${Math.abs(n)}${sufijo}`, positivo };
-}
-
-/** «+12%» / «−8%» de hoy sobre la referencia; `null` si no hay referencia con la que comparar
- *  (nula o cero: sin ventas a esta hora la semana pasada no hay porcentaje). Una
- *  diferencia diminuta por debajo (`−0`) se escribe «+0%»: `-0 >= 0`. */
-export function comparativoEnPorcentaje(hoy: number, referencia: number | null): Comparativo | null {
-  if (referencia === null || referencia <= 0) return null;
-  return conSigno(Math.round(((hoy - referencia) / referencia) * 100), "%");
-}
-
-/** «+1» / «−2» ventas de diferencia. Contra una semana sin ventas (0) sí se puede comparar en
- *  cantidad; solo sin lectura de la referencia (`null`) no hay comparativo. */
-export function comparativoEnCantidad(hoy: number, referencia: number | null): Comparativo | null {
-  if (referencia === null) return null;
-  return conSigno(hoy - referencia, "");
-}
-
 /** Una duración en pocas palabras: «12 min», «6 h 42 min», «3 d». `null` si es menos de un minuto
  *  (cada quien decide cómo decir «instantes»). */
 export function duracionCorta(segundos: number): string | null {

@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>④ Presupuesto · Plan de campaña (spike)</title>
+<link rel="stylesheet" href="base.css?v=13">
+<style>
+.tope-card{display:grid;gap:14px;padding:18px 22px}
+.tope-top{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-end}
+.tope-top .gr{font:600 34px/1.1 var(--serif)} .tope-top small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t60);font-family:var(--sans);font-weight:400;margin-bottom:2px}
+input[type=range]{width:100%;accent-color:var(--tinta);height:28px;margin:0}
+.versus{display:grid;gap:0}
+.vrow{display:grid;grid-template-columns:minmax(100px,1.2fr) 64px 64px minmax(120px,1.2fr);gap:12px;align-items:center;padding:9px 6px;border-top:1px solid var(--sand);font-size:13.5px}
+.vrow.h{border-top:0;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--t60)}
+.vrow .n{text-align:right;font-variant-numeric:tabular-nums}
+.delta{display:flex;gap:8px;align-items:center;font-variant-numeric:tabular-nums}
+.delta .b{height:6px;border-radius:99px;flex:1;background:var(--sand);position:relative;overflow:hidden;max-width:80px} .delta .b i{position:absolute;top:0;bottom:0;right:0;background:var(--ambar)} .delta .b i.sube{background:var(--verde);left:0;right:auto}
+.neg{color:var(--ambar)} .pos{color:var(--verde)}
+.res3{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:6px}
+@media(max-width:800px){.res3{grid-template-columns:1fr}}
+.res3 div{background:var(--crema);border:1px solid var(--sand);border-radius:12px;padding:10px 14px}
+.res3 .t{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--t60)} .res3 .v{font:600 22px var(--serif)}
+.leg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--t60);margin-top:8px} .leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px}
+.ver{border-top:1px solid var(--sand);padding:12px 0}
+.ver:first-child{border-top:0}
+.ver .top{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.ver .top b{font:600 17px var(--serif)}
+.ver .qn{color:var(--t60);font-size:12.5px}
+.ver .nt{margin:2px 0 8px}
+.ver .acc{display:flex;gap:6px;flex-wrap:wrap}
+.dif{background:var(--hueso);border-radius:10px;padding:8px 12px;margin-top:8px;font-size:12.5px;display:grid;gap:3px}
+.actual{background:color-mix(in srgb,var(--verde) 8%,var(--papel));border-radius:10px;margin:0 -8px;padding:12px 8px;border:1px solid color-mix(in srgb,var(--verde) 35%,transparent)}
+.sup{display:grid;gap:8px;font-size:13px} .sup div{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--sand);padding-top:8px} .sup div:first-child{border:0;padding-top:0}
+.sup span{color:var(--t60)}
+</style>
+</head>
+<body>
+<div id="chrome"></div>
+<div class="subnav"><span class="t">Presupuesto ▸</span><div class="seg"><a href="4-presupuesto.html" class="on">Costos y tope</a><a href="5-finanzas.html" class="">Cuándo se pide y se paga</a></div></div>
+<div id="cifras" class="cifras"></div>
+
+<div class="grid-2">
+<div>
+  <div class="card pad"><div class="titulo-sec" style="margin-top:0">Dónde se va la plata <small>al costo, solo las categorías con plan</small></div><div id="barra"></div><div class="leg" id="leg"></div></div>
+
+  <div class="titulo-sec">Plan con tu tope <small>el sistema ajusta cuánta seguridad quiere en cada categoría</small></div>
+  <div class="card tope-card" id="panelTope"></div>
+
+  <div class="titulo-sec">Cuánto cuesta cada categoría</div>
+  <div class="card scroll-x"><table><thead><tr><th>Categoría</th><th class="n">Comprar</th><th class="n">Costo por prenda</th><th class="n">Inversión</th><th class="n">% del total</th><th class="n" title="Lo que se espera ganar con lo que compras, por cada sol que pagas, descontando lo que sobra">Gana por cada S/ 1</th><th>Datos</th></tr></thead><tbody id="filas"></tbody></table></div>
+</div>
+
+<div>
+  <div class="titulo-sec" style="margin-top:0">Versiones del plan <small id="vN"></small></div>
+  <div class="card pad" id="vers"></div>
+  <div class="titulo-sec">Supuestos <small>antes en el cajón «Resumen»</small></div>
+  <div class="card pad sup" id="sup"></div>
+</div>
+</div>
+<div class="velo" id="velo"><div class="hoja" id="hoja" role="dialog" aria-modal="true" style="width:min(520px,100%)"></div></div>
+
+<script src="app.js?v=13"></script>
+<script>
+const { $, $$, nES, sES, s2, plan, lambdaPara, leer, guardar, CATS } = PC;
+const hoyTxt = "26 oct 10:41";
+// versiones: cada una guarda lo necesario para reconstruir el plan (lambda = precio de la plata, ed = ajustes a mano, tope). Las comparte el Paso 2.
+let vers = PC.vers();
+let abiertaVer = null;
+const guardaVers = () => PC.guardaVers(vers);
+const actual = () => vers[vers.length - 1];
+const aplicarActual = () => { const a = actual(); guardar("pc.lambda", a.lambda); guardar("pc.tope", a.tope); };
+aplicarActual();
+let topeEdit = actual().tope;
+const cur = () => plan(actual().lambda, actual().ed);
+const tonos = ["var(--tinta)", "color-mix(in srgb,var(--tinta) 82%,transparent)", "color-mix(in srgb,var(--tinta) 66%,transparent)", "color-mix(in srgb,var(--tinta) 52%,transparent)", "color-mix(in srgb,var(--tinta) 40%,transparent)", "color-mix(in srgb,var(--tinta) 28%,transparent)"];
+
+function pintar() {
+  PC.chrome({ activa: "presupuesto", frase: "Navidad 2026: cuánto cuesta lo que vas a comprar y si cabe en tu tope." });
+  const p = cur(), t = actual().tope, pasa = p.total - t;
+  const gana = p.filas.reduce((a, f) => a + f.utilidad, 0), inv = p.total;
+  $("#cifras").innerHTML = `<div class="cifra"><div class="t">Inversión al costo</div><div class="v">${sES(p.total)}</div><div class="d">${nES(p.prendas)} prendas · solo categorías con plan</div></div>
+    <div class="cifra"><div class="t">Tu tope</div><div class="v">${sES(t)}</div><div class="d ${pasa > 0 ? "mal" : "bien"}">${pasa > 0 ? `Te pasas ${sES(pasa)} (${Math.round((pasa / t) * 100)} %)` : `Te quedan ${sES(-pasa)} para comprar`}</div></div>
+    <div class="cifra"><div class="t">Lo que se espera ganar</div><div class="v">${sES(gana)}</div><div class="d">Con lo que compras, después de lo que sobra</div></div>
+    <div class="cifra"><div class="t">Por cada S/ 1 que compras</div><div class="v">${inv ? "S/ " + (gana / inv).toFixed(2).replace(".", ",") : "—"}</div><div class="d">Ganancia esperada sobre lo invertido</div></div>`;
+  const orden = [...p.filas].filter((f) => f.inversion > 0).sort((a, b) => b.inversion - a.inversion);
+  $("#barra").innerHTML = `<div class="barra" style="height:14px" role="img" aria-label="Reparto de la inversión por categoría">${orden.map((f, i) => `<i style="width:${(f.inversion / Math.max(p.total, t)) * 100}%;background:${tonos[Math.min(i, 5)]}" title="${f.n}: ${sES(f.inversion)}"></i>`).join("")}${t > p.total ? `<i style="flex:1;background:transparent"></i>` : ""}</div>${t < p.total ? `<div style="position:relative;height:0"></div>` : ""}`;
+  $("#leg").innerHTML = orden.slice(0, 6).map((f, i) => `<span><i style="background:${tonos[i]}"></i>${f.n} ${sES(f.inversion)}</span>`).join("") + (t < p.total ? `<span class="neg"><b>Tope ${sES(t)}</b> · la barra lo pasa</span>` : "");
+  $("#filas").innerHTML = p.filas.map((f) => `<tr><td class="cat"><b>${f.n}</b></td><td class="n">${f.comprar ? nES(f.comprar) : "—"}</td><td class="n">${s2(f.costo)}</td><td class="n">${f.inversion ? sES(f.inversion) : "—"}</td><td class="n">${f.inversion ? Math.round((f.inversion / p.total) * 100) + " %" : "—"}</td><td class="n">${f.retorno === null ? "—" : "S/ " + f.retorno.toFixed(2).replace(".", ",")}</td><td><span class="chip ambar">Orientativo</span></td></tr>`).join("");
+  panelTope(); versiones(); supuestos();
+}
+
+function panelTope() {
+  const base = cur(), t = topeEdit, lam = lambdaPara(t), prop = plan(lam, {}), difInv = prop.total - base.total, difPrendas = prop.prendas - base.prendas;
+  const gBase = base.filas.reduce((a, f) => a + f.utilidad, 0), gProp = prop.filas.reduce((a, f) => a + f.utilidad, 0);
+  const igual = Math.abs(difInv) < 1;
+  const sobra = t - base.total;
+  const titulo = sobra < 0 ? `Tu plan cuesta ${sES(base.total)} y tu tope es ${sES(t)}: te pasas ${sES(-sobra)}.` : `Tu plan cuesta ${sES(base.total)} y tu tope es ${sES(t)}: te sobran ${sES(sobra)}.`;
+  const filas = base.filas.map((f, i) => ({ f, g: prop.filas[i], d: prop.filas[i].comprar - f.comprar, di: prop.filas[i].inversion - f.inversion })).filter((x) => x.d !== 0 || x.f.comprar > 0);
+  const maxd = Math.max(1, ...filas.map((x) => Math.abs(x.d)));
+  const techo = lam <= -0.59 && sobra > 0;
+  $("#panelTope").innerHTML = `<div class="tope-top"><div><small>Tu tope</small><div class="gr">${sES(t)}</div></div><div style="flex:1;min-width:240px"><label class="sr" for="rg">Tope</label><input id="rg" type="range" min="15000" max="45000" step="500" value="${t}"><div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--t60)"><span>${sES(15000)}</span><span>${sES(45000)}</span></div></div></div>
+    <div class="aviso ${sobra < 0 ? "pendiente" : "ok"}"><span class="ic">${sobra < 0 ? PC.I.alerta : PC.I.ok}</span><div><b>${titulo}</b><span class="d">${igual ? "Ya cabe: no hay nada que ajustar." : techo ? `Con ese tope ya cubres el escenario bueno en todas las categorías: el plan máximo cuesta ${sES(prop.total)}. Lo demás sería comprar de más.` : sobra < 0 ? `El sistema baja cuánta seguridad quiere tener de cada categoría, empezando por donde cada sol rinde menos.` : `El sistema subiría la cobertura donde cada sol rinde más.`}</span></div></div>
+    ${igual ? "" : `<div class="res3"><div><div class="t">Compras</div><div class="v">${nES(prop.prendas)} <span style="font-size:14px" class="${difPrendas < 0 ? "neg" : "pos"}">(${difPrendas > 0 ? "+" : "−"}${nES(Math.abs(difPrendas))})</span></div></div><div><div class="t">Cuesta</div><div class="v">${sES(prop.total)} <span style="font-size:14px" class="${difInv < 0 ? "pos" : "neg"}">(${difInv > 0 ? "+" : "−"}${sES(Math.abs(difInv))})</span></div></div><div><div class="t">Esperas ganar</div><div class="v">${sES(gProp)} <span style="font-size:14px" class="${gProp < gBase ? "neg" : "pos"}">(${gProp - gBase >= 0 ? "+" : "−"}${sES(Math.abs(gProp - gBase))})</span></div></div></div>
+    <p style="color:var(--t60);font-size:13px">${difInv < 0 ? `Recortas ${Math.round((-difInv / base.total) * 100)} % de lo que gastas y dejas de ganar ${gBase ? Math.round(((gBase - gProp) / gBase) * 100) : 0} % de lo que esperabas: recortar poco cuesta poco.` : `Gastas ${Math.round((difInv / base.total) * 100)} % más y esperas ganar ${gBase ? Math.round(((gProp - gBase) / gBase) * 100) : 0} % más.`}</p>
+    <div class="versus"><div class="vrow h"><span>Categoría</span><span class="n">Hoy</span><span class="n">Con tope</span><span>Cambio</span></div>${filas.map((x) => `<div class="vrow"><span><b>${x.f.n}</b></span><span class="n">${nES(x.f.comprar)}</span><span class="n"><b>${nES(x.g.comprar)}</b></span><span class="delta ${x.d < 0 ? "neg" : "pos"}">${x.d === 0 ? "igual" : (x.d > 0 ? "+" : "−") + nES(Math.abs(x.d)) + " · " + (x.di > 0 ? "+" : "−") + sES(Math.abs(x.di))}<span class="b"><i class="${x.d > 0 ? "sube" : ""}" style="width:${(Math.abs(x.d) / maxd) * 100}%"></i></span></span></div>`).join("")}</div>
+    <div class="pie" style="margin-top:6px"><button class="btn" id="dejar">Dejarlo como está</button><button class="btn pri" id="usar">Usar el plan con tope</button></div>
+    <p style="color:var(--t60);font-size:12.5px">«Usar» crea una versión nueva (la actual queda guardada para volver) y reemplaza tus ajustes a mano. Nada se compra: solo cambia el plan.</p>`}`;
+  $("#rg").oninput = (e) => { topeEdit = Number(e.target.value); panelTope(); };
+  if ($("#usar")) $("#usar").onclick = () => modalNota({ titulo: "Usar el plan con tope", sub: `${nES(prop.prendas)} prendas · ${sES(prop.total)}. Queda como la versión ${actual().v + 1}.`, def: `Plan con tope de ${sES(t)}`, alOk: (n) => nuevaVersion({ lambda: lam, ed: {}, tope: t, nota: n }) });
+  if ($("#dejar")) $("#dejar").onclick = () => { topeEdit = actual().tope; panelTope(); toast("Sigue el plan de siempre"); };
+}
+function nuevaVersion(x) {
+  vers.push({ v: vers.length + 1, quien: "Felipe", cuando: hoyTxt, ...x }); guardaVers(); aplicarActual(); topeEdit = actual().tope; abiertaVer = null; pintar(); toast("Versión " + actual().v + " guardada");
+}
+function versiones() {
+  $("#vN").textContent = vers.length + " guardadas";
+  const cu = cur();
+  $("#vers").innerHTML = [...vers].reverse().map((x, i) => {
+    const es = x.v === actual().v, pl = plan(x.lambda, x.ed);
+    let dif = "";
+    if (abiertaVer === x.v && !es) {
+      const ls = pl.filas.map((f, k) => ({ n: f.n, a: f.comprar, b: cu.filas[k].comprar })).filter((r) => r.a !== r.b);
+      dif = `<div class="dif">${ls.length ? ls.map((r) => `<span><b>${r.n}</b>: ${nES(r.a)} en la v${x.v} · ${nES(r.b)} hoy</span>`).join("") : "<span>Es igual al plan de hoy.</span>"}<span>Total: ${sES(pl.total)} en la v${x.v} · ${sES(cu.total)} hoy</span></div>`;
+    }
+    return `<div class="ver ${es ? "actual" : ""}"><div class="top"><b>Versión ${x.v}</b>${es ? '<span class="chip verde">La de hoy</span>' : ""}<span class="qn">${x.quien} · ${x.cuando}</span></div>
+      <div class="nt">${x.nota}</div><div class="qn">${nES(pl.prendas)} prendas · ${sES(pl.total)}${x.lambda ? " · con tope" : ""}</div>
+      ${es ? "" : `<div class="acc" style="margin-top:8px"><button class="btn ch" data-ver="${x.v}">${abiertaVer === x.v ? "Ocultar cambios" : "Ver qué cambió"}</button><button class="btn ch" data-vol="${x.v}">Volver a esta versión</button></div>`}${dif}</div>`;
+  }).join("") + `<div class="pie" style="margin-top:8px;justify-content:flex-start"><button class="btn ch" id="guardarV">Guardar una versión ahora</button></div>`;
+  $$("[data-ver]").forEach((b) => (b.onclick = () => { abiertaVer = abiertaVer === Number(b.dataset.ver) ? null : Number(b.dataset.ver); versiones(); }));
+  $$("[data-vol]").forEach((b) => (b.onclick = () => { const x = vers.find((k) => k.v === Number(b.dataset.vol)); modalNota({ titulo: "Volver a la versión " + x.v, sub: "No borra nada: crea la versión " + (actual().v + 1) + " con lo mismo que tenía la " + x.v + ". Las versiones de después siguen en la lista.", def: "Volví a la versión " + x.v, alOk: (n) => nuevaVersion({ lambda: x.lambda, ed: x.ed, tope: x.tope, nota: n }) }); }));
+  $("#guardarV").onclick = () => modalNota({ titulo: "Guardar una versión", sub: "Queda como un punto al que puedes volver.", def: "", alOk: (n) => nuevaVersion({ lambda: actual().lambda, ed: actual().ed, tope: actual().tope, nota: n || "Punto de control" }) });
+}
+function supuestos() {
+  $("#sup").innerHTML = `<div><b>Lo que sobra se vende al</b><span>45 % del precio</span></div><div><b>Descuento de la campaña</b><span>Sin descuento</span></div><div><b>Ya pedido en órdenes</b><span>${sES(0)} · 0 órdenes</span></div><div><b>Días para llegar</b><span>14 (un supuesto)</span></div><div><b>Reparto entre tiendas</b><span>Por lo que vende cada una</span></div><p style="color:var(--t60);font-size:12.5px">Son los supuestos de TODA la campaña: se cambian aquí o desde la hoja de cada categoría.</p>`;
+}
+function modalNota(o) {
+  $("#hoja").innerHTML = `<button class="x" id="cerrar" aria-label="Cerrar">×</button><h2>${o.titulo}</h2><p class="sub">${o.sub}</p><label class="campo">¿Qué cambiaste? <em>(opcional)</em><input id="nt" value="${o.def}" maxlength="120"></label><div class="pie"><button class="btn" id="no">Cancelar</button><button class="btn pri" id="si">Guardar versión</button></div>`;
+  $("#velo").classList.add("on"); $("#nt").focus();
+  $("#cerrar").onclick = $("#no").onclick = () => $("#velo").classList.remove("on");
+  $("#si").onclick = () => { $("#velo").classList.remove("on"); o.alOk($("#nt").value.trim()); };
+}
+function toast(t) { const e = document.createElement("div"); e.style.cssText = "position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--tinta);color:var(--crema);padding:10px 18px;border-radius:99px;font-size:13px;z-index:80"; e.textContent = t; document.body.appendChild(e); setTimeout(() => e.remove(), 2600); }
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("#velo").classList.remove("on"); });
+pintar();
+</script>
+</body>
+</html>

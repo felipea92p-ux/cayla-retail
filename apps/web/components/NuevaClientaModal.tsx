@@ -234,7 +234,7 @@ export function NuevaClientaModal({
                 type="submit"
                 peso="primario"
                 cargando={guardando}
-                disabled={!guia.puedeConfirmar}
+                confirma={guia}
                 title={responsable.motivo ?? guia.frase ?? undefined}
                 className={guia.claseConfirmar}
               >
