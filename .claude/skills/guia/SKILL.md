@@ -69,8 +69,11 @@ Antes de escribir, avísale a Felipe en una línea qué pantallas vas a tocar y 
    en el paso que sigue, y `alSalir` para vaciar lo escrito). Un pliegue que abre y cierra con el mismo toque (el «?» de la
    cabecera, «Ver 3 más») no se cierra con Escape ni con un toque a ciegas: `{ tipo: "clic", ancla, para: "abrir" }` en su paso y
    `para: "cerrar"` en el de antes, en el de después y en `alSalir`. Mira su `aria-expanded` (o el `open` de un `<details>`), así que
-   vale en las dos direcciones, y un paso que vive dentro del pliegue puede pedir «abrir» también. `prepararSoloAlAvanzar` queda para lo
-   que no es un pliegue: marcar una casilla, quitar un filtro.
+   vale en las dos direcciones, y un paso que vive dentro del pliegue puede pedir «abrir» también. Una casilla se toca con
+   `para: "marcar" | "desmarcar"`, y algo que solo existe a veces (la × de un filtro), con `siEsta`. **Todo `preparar` tiene que poder
+   repetirse:** al volver con ←, el motor lo corre otra vez y, si un paso necesita una hoja o una pestaña que ya se cerró, repite el del
+   paso que la abrió (ADR-0389, act. 2026-11-18 c). Lo que vive en una pestaña o una vista la elige en su `preparar` (elegir lo ya
+   elegido no cambia nada).
 4. **Registro.** En `registro.ts`: importa la guía, súmala a `GUIAS`, pasa su ruta a `{ estado: "aplicada", guia: X.id }` y baja
    `PENDIENTES_HOY`. Si la pantalla no tiene nada que enseñar, `no-aplica` con su motivo (30 letras o más).
 

@@ -518,6 +518,9 @@ export const GUIA_FIN_GASTOS: Guia = {
     {
       id: "filtros",
       ancla: "fin-gastos.filtros",
+      // Vive en la pestaña «Gastos»: elegirla aquí (ya elegida, no cambia nada) la devuelve al volver con ← desde «Fijos del mes», y los
+      // pasos que siguen la heredan (`prepararAlVolver`).
+      preparar: [{ tipo: "clic", ancla: "fin-gastos.tab-gastos" }],
       titulo: "Buscar y filtrar",
       texto: "Busca por lo que fue, el proveedor o el número del comprobante (sin preocuparte por las tildes). Deja una sola categoría, o solo lo que tiene o no tiene comprobante. El mes se elige arriba, en la barra.",
     },
@@ -559,7 +562,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       id: "detalle",
       ancla: "fin-gastos.detalle",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "fin-gastos.fila" }],
+      preparar: [{ tipo: "clic", ancla: "fin-gastos.tab-gastos" }, { tipo: "clic", ancla: "fin-gastos.fila" }],
       titulo: "El detalle de un gasto, al costado",
       texto: "Se abre al lado y la lista sigue a la vista: tocar otra fila, o ↑ ↓, pasa al siguiente. Arriba, el total y, si el gasto pide algo, qué y por qué; «Ver los de…» deja la lista con su categoría. Debajo, el IGV que se descuenta y el que se perdió, cómo se pagó, su estado y quién lo registró.",
     },

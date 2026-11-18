@@ -58,6 +58,9 @@ export const GUIA_EXISTENCIAS: Guia = {
       id: "buscador",
       ancla: "existencias.buscador",
       opcional: true,
+      // El ejemplo sale del nombre de una tarjeta: si al volver con ← la lista quedó en tabla o por talla (lo eligen pasos de más adelante),
+      // la × de «Vista: …» la devuelve a las tarjetas. Con las tarjetas a la vista, esa × no está y no se toca nada.
+      preparar: [{ tipo: "clic", ancla: "existencias.chip-vista", siEsta: true }],
       titulo: "Busca una prenda",
       texto: "Escribe parte del nombre, la talla o el código y la lista se achica mientras escribes. Con el lector, escanea la etiqueta y se abre esa talla directo.",
       demostrar: [{ tipo: "escribir", ancla: "existencias.buscador", texto: { palabraDe: "existencias.prenda-nombre" } }],
@@ -158,8 +161,8 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.filtros",
       opcional: true,
       solo: "celular",
-      prepararSoloAlAvanzar: true,
-      preparar: [{ tipo: "clic", ancla: "existencias.chip-vista" }],
+      // La × de «Vista: Tabla» solo está con la tabla puesta: al volver con ←, ya se usó y no hay nada que tocar.
+      preparar: [{ tipo: "clic", ancla: "existencias.chip-vista", siEsta: true }],
       titulo: "De vuelta a las tarjetas",
       texto: "Mientras ves la tabla, una etiqueta «Vista: Tabla» lo recuerda bajo el buscador: con su × vuelves a las tarjetas, como acabamos de hacer.",
     },

@@ -4,9 +4,9 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { createPortal } from "react-dom";
 import { Boton } from "@/components/ui/campos";
 import { Volver } from "@/components/ui/Volver";
-import { caminoDelVelo, cierresAlVolver, esperaPorAncla, pasoAplica, posicionTarjeta, recorteDe, totalEstimado, type Caja } from "@/lib/guias/reglas";
+import { caminoDelVelo, cierresAlVolver, esperaPorAncla, pasoAplica, fuenteAlVolver, posicionTarjeta, recorteDe, toqueQueAbre, totalEstimado, type Caja } from "@/lib/guias/reglas";
 import type { AccionGuia, Guia, PasoGuia } from "@/lib/guias/tipos";
-import { anclasPresentes, ejecutar, esEscapeDelPiloto, esperarAncla, pausa } from "./piloto";
+import { anclasPresentes, buscarAncla, ejecutar, esEscapeDelPiloto, esperarAncla, pausa } from "./piloto";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // El motor de una guía interactiva (ADR-0389): oscurece la pantalla, deja a la vista solo la pieza que se explica y la
@@ -140,6 +140,26 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
         }
       }
 
+      /**
+       * Al volver: deja a la vista lo que necesita el paso `k` repitiendo el `preparar` del paso que lo abrió (`fuenteAlVolver`). Si lo que
+       * ese `preparar` toca tampoco está (la ficha de Existencias se abre desde el menú «Más»), primero se reabre eso, hacia atrás, hasta 4
+       * niveles. Un toque cuya pieza no está y que nada acaba de abrir se salta sin esperar. Dice si tocó algo.
+       */
+      const reabrir = async (k: number, profundidad = 0): Promise<boolean> => {
+        const f = fuenteAlVolver(guia.pasos, k, window.innerWidth);
+        if (f === null || profundidad > 3) return false;
+        const acciones = guia.pasos[f]!.preparar!;
+        const abre = toqueQueAbre(acciones);
+        let toco = abre !== null && !buscarAncla(abre.ancla) ? await reabrir(f, profundidad + 1) : false;
+        for (const a of acciones) {
+          if (senal.aborted) return toco;
+          if (a.tipo === "clic" && !toco && !buscarAncla(a.ancla)) continue;
+          await ejecutar(a, senal, conMovimiento, apuntar);
+          toco ||= a.tipo === "clic";
+        }
+        return toco;
+      };
+
       let indice = i;
       while (indice >= 0 && indice < guia.pasos.length) {
         const paso = guia.pasos[indice]!;
@@ -148,10 +168,22 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
           indice += direccion;
           continue;
         }
+        // Al volver, lo que el paso necesita y el motor ya cerró (la hoja donde vive, la pestaña) se reabre con lo que lo abrió: si el paso no
+        // prepara nada y su pieza no está, o si prepara pero lo primero que toca no está (`reabrir`). Si aun así se salta, lo que se abrió para
+        // él se cierra: el paso de antes no lo espera.
+        const propio = !!paso.preparar?.length;
+        const modalesAntes = modalesAbiertos();
+        let heredado = false;
+        if (direccion === -1) {
+          const abre = propio ? toqueQueAbre(paso.preparar!) : null;
+          const falta = propio ? abre !== null && !buscarAncla(abre.ancla) : !!paso.ancla && !buscarAncla(paso.ancla);
+          if (falta) heredado = await reabrir(indice);
+          if (senal.aborted) return;
+        }
         // Antes de preguntar si aplica, se prepara (abrir el modal donde vive), en las dos direcciones.
         let nota: string | null = null;
-        if (paso.preparar && !(paso.prepararSoloAlAvanzar && direccion === -1)) {
-          for (const a of paso.preparar) {
+        if (propio) {
+          for (const a of paso.preparar ?? []) {
             const r = await ejecutar(a, senal, conMovimiento, apuntar);
             if (senal.aborted) return;
             // Solo un toque que no se pudo hacer merece aviso. Vaciar o cerrar algo que no está (en el celular no hay buscador)
@@ -159,16 +191,24 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
             if (!r.ok && a.tipo === "clic") nota = notaDe(a, r.motivo);
           }
         }
-        if (!pasoAplica(paso, anclasPresentes(), window.innerWidth)) {
+        const saltar = async () => {
+          for (let n = 0; heredado && n < 4 && modalesAbiertos() > modalesAntes; n++) await ejecutar({ tipo: "escape" }, senal, conMovimiento);
           indice += direccion;
+        };
+        if (!pasoAplica(paso, anclasPresentes(), window.innerWidth)) {
+          await saltar();
+          if (senal.aborted) return;
           continue;
         }
         let el: HTMLElement | null = null;
         if (paso.ancla) {
-          el = await esperarAncla(paso.ancla, esperaPorAncla(paso, indice > 0 ? guia.pasos[indice - 1]! : null), senal);
+          // Lo heredado acaba de abrir una hoja: se espera lo que dura su entrada, como cuando el propio paso la prepara.
+          const espera = heredado ? (paso.opcional ? 1400 : 2200) : esperaPorAncla(paso, indice > 0 ? guia.pasos[indice - 1]! : null);
+          el = await esperarAncla(paso.ancla, espera, senal);
           if (senal.aborted) return;
           if (!el && paso.opcional) {
-            indice += direccion;
+            await saltar();
+            if (senal.aborted) return;
             continue;
           }
           if (!el) nota = nota ?? "Esta parte no está a la vista ahora (depende de cómo esté la pantalla). Te contamos qué hace igual.";

@@ -44,7 +44,6 @@ export function guiaDelTramo(guia: Guia, pasoId: string | null, rellenar: string
   delete paso.opcional;
   delete paso.requiere;
   delete paso.excluye;
-  delete paso.prepararSoloAlAvanzar;
   // Con un dato de la persona, el ejemplo que la guía escribía se cambia por ese dato, en el mismo campo, y al terminar se deja como
   // quedó (sin vaciar ni cerrar): lo que sigue lo hace ella. Sin un ejemplo que reemplazar, el dato no se escribe en ningún lado.
   const ejemplo = paso.demostrar?.findIndex((a) => a.tipo === "escribir") ?? -1;
