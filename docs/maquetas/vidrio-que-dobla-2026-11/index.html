@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vidrio que dobla — maqueta</title>
+<style>
+/* Tokens reales de apps/web/app/globals.css y estilos/tema.css. Las recetas «hoy» son las de estilos/vidrio/recetas.css. */
+:root{
+  --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;--rojo:#b8412d;--rojo-profundo:#8b2a1f;
+  --borde-control:#96786a;--vidrio:#ffffff;--sombra:#1a1a18;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --marco-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 48%,transparent));
+  --flota-fondo:color-mix(in srgb,var(--vidrio) 74%,transparent);
+  --hoja-fondo:color-mix(in srgb,var(--vidrio) 70%,transparent);
+  --velo:color-mix(in srgb,var(--sombra) 20%,transparent);
+  --claro-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 86%,transparent),color-mix(in srgb,var(--vidrio) 66%,transparent));
+  --claro-borde:color-mix(in srgb,var(--vidrio) 70%,transparent);
+  --filo:color-mix(in srgb,var(--vidrio) 90%,transparent);
+  --lente-fondo:linear-gradient(160deg,color-mix(in srgb,var(--vidrio) 22%,transparent),color-mix(in srgb,var(--vidrio) 6%,transparent));
+  --lente-fondo-sin:color-mix(in srgb,var(--vidrio) 54%,transparent);
+  --brillo:#ffffff;--aurora:.12;
+}
+:root[data-tema="oscuro"]{
+  --crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-profundo:#f29a86;
+  --borde-control:#8d7a6e;--vidrio:#33302a;--sombra:#000000;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;
+  --marco-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  --flota-fondo:color-mix(in srgb,var(--vidrio) 88%,transparent);
+  --hoja-fondo:color-mix(in srgb,var(--vidrio) 82%,transparent);
+  --velo:color-mix(in srgb,var(--sombra) 42%,transparent);
+  --claro-fondo:color-mix(in srgb,var(--vidrio) 80%,transparent);
+  --claro-borde:color-mix(in srgb,var(--tinta) 10%,transparent);
+  --filo:color-mix(in srgb,var(--tinta) 14%,transparent);
+  --lente-fondo:linear-gradient(160deg,color-mix(in srgb,var(--tinta) 9%,transparent),color-mix(in srgb,var(--tinta) 2%,transparent));
+  --lente-fondo-sin:color-mix(in srgb,var(--vidrio) 76%,transparent);
+  --brillo:#f5f0e8;--aurora:.10;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:#d9d2c4;color:#1a1a18;font:14px/1.4 "DM Sans",ui-sans-serif,system-ui,sans-serif;display:flex;flex-direction:column}
+:root[data-tema="oscuro"] body{background:#0f0e0c;color:#f5f0e8}
+
+/* ---------- los controles de la maqueta (no son parte del ERP) ---------- */
+.mq{padding:10px 16px 8px;display:grid;gap:8px}
+.mq-fila{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mq h1{font:600 17px "EB Garamond",Georgia,serif;margin:0 8px 0 0}
+.mq small{opacity:.7}
+.mq button{font:inherit;font-size:13px;border:1px solid #96786a;background:#fbf8f2;color:#1a1a18;border-radius:99px;padding:6px 13px;cursor:pointer}
+.mq button[aria-pressed="true"]{background:#1a1a18;color:#f5f0e8;border-color:#1a1a18}
+:root[data-tema="oscuro"] .mq button{background:transparent;color:#f5f0e8;border-color:#8d7a6e}
+:root[data-tema="oscuro"] .mq button[aria-pressed="true"]{background:#f5f0e8;color:#1a1a18;border-color:#f5f0e8}
+:root[data-tema="oscuro"] .mq .seg{background:transparent;border-color:#8d7a6e}
+.mq .seg{display:inline-flex;border:1px solid #96786a;border-radius:99px;overflow:hidden;background:#fbf8f2}
+.mq .seg button{border:0;border-radius:0}
+.mq .rot{font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.65;margin-left:6px}
+.mq button{white-space:nowrap}
+.mq #fondos,.mq #presets{flex-wrap:wrap;border-radius:18px}
+.mq label{display:inline-flex;align-items:center;gap:6px;font-size:13px}
+.mq input[type=range]{width:110px;accent-color:#b8412d}
+.mq output{font-variant-numeric:tabular-nums;font-size:13px}
+.escena{flex:1;min-height:0;padding:0 16px 16px;display:flex;justify-content:center}
+
+/* ---------- la «pantalla» del ERP ---------- */
+.vent{position:relative;width:100%;height:100%;min-height:560px;overflow:hidden;border-radius:16px;background:var(--crema);color:var(--tinta);isolation:isolate}
+.vent.movil{width:375px}
+.aurora{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.aurora i{position:absolute;border-radius:50%;transform:scale(1.55);opacity:var(--o,var(--aurora));transition:opacity .6s var(--ease);
+  background:radial-gradient(closest-side,var(--c) 0%,color-mix(in srgb,var(--c) 70%,transparent) 30%,color-mix(in srgb,var(--c) 25%,transparent) 62%,transparent 100%)}
+.aurora i:nth-child(1){width:620px;height:520px;right:12%;top:-260px;--c:var(--rojo)}
+.aurora i:nth-child(2){width:700px;height:560px;right:-220px;top:120px;--c:var(--pizarra)}
+.aurora i:nth-child(3){width:560px;height:460px;left:30%;bottom:-260px;--c:var(--ambar);--o:calc(var(--aurora) * .85)}
+.aurora i:nth-child(4){width:520px;height:440px;left:-120px;top:22%;--c:var(--verde);--o:0}
+.aurora i:nth-child(5){width:460px;height:400px;left:42%;top:30%;--c:var(--rojo);--o:0}
+/* ---------- el fondo con forma: para que el vidrio SIEMPRE tenga algo que doblar (un degradado suave, doblado, se ve igual) ---------- */
+.fondo{position:absolute;inset:0;pointer-events:none;background-size:cover;background-position:center}
+.vent:not([data-fondo="aurora"]) .aurora,.vent[data-fondo="aurora"] .fondo{display:none}
+/* Sarga: los hilos en diagonal de una tela, finos y parejos, sobre los campos de color (que dibuja el lienzo). */
+.vent[data-fondo="trama"] .fondo::after{content:"";position:absolute;inset:0;background:
+  repeating-linear-gradient(60deg,color-mix(in srgb,var(--tinta) 9%,transparent) 0 1px,transparent 1px 7px),
+  repeating-linear-gradient(60deg,transparent 0 20px,color-mix(in srgb,var(--tinta) 7%,transparent) 20px 21px)}
+
+/* ---------- la pieza de vidrio: una lente (fondo + filtro), un canto (la luz) y el grano; el contenido va encima ---------- */
+.v{--fondo:var(--flota-fondo);--filtro:blur(24px) saturate(1.6);--mx:50%;--my:-40%;
+  box-shadow:0 26px 54px -24px color-mix(in srgb,var(--sombra) 55%,transparent)}
+.v>.lente,.v>.canto,.v>.gloss,.v>.grano{position:absolute;inset:0;border-radius:inherit;pointer-events:none}
+.v>.lente{background:var(--fondo);-webkit-backdrop-filter:var(--filtro);backdrop-filter:var(--filtro);box-shadow:inset 0 1px 0 var(--filo);overflow:hidden}
+.v>.cont{position:relative;z-index:1}
+.v>.canto,.v>.gloss,.v>.grano{opacity:0}
+/* relleno claro: se ve lo de atrás. Sin el filtro que dobla (Safari, iPhone) lleva más relleno para que se lea */
+.vent[data-claro="si"] .v{--fondo:var(--lente-fondo-sin);--filtro:blur(14px) saturate(1.8)}
+.vent[data-claro="si"][data-dobla="si"] .v{--fondo:var(--lente-fondo)}
+/* la luz: el dibujo fijo del canto + un filo y un brillo que siguen al mouse (no se mueven solos) */
+.vent[data-luz="si"] .v>.canto{opacity:min(1,var(--reflejo,1));background-size:100% 100%}
+/* el reflejo: el mismo canto de luz, esparcido, más un barrido en diagonal; «Reflejo» lo sube o lo baja */
+.vent[data-luz="si"] .v>.gloss{opacity:calc(var(--reflejo,1) * .8);background-size:100% 100%;filter:blur(2.5px)}
+.vent[data-luz="si"] .v>.canto::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;
+  background:radial-gradient(240px circle at var(--mx) var(--my),color-mix(in srgb,var(--brillo) 95%,transparent),transparent 72%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+.vent[data-luz="si"] .v>.canto::after{content:"";position:absolute;inset:0;border-radius:inherit;
+  background:radial-gradient(320px circle at var(--mx) var(--my),color-mix(in srgb,var(--brillo) 16%,transparent),transparent 70%)}
+:root[data-tema="oscuro"] .vent[data-luz="si"] .v>.canto{opacity:calc(min(1,var(--reflejo,1)) * .55)}
+:root[data-tema="oscuro"] .vent[data-luz="si"] .v>.gloss{opacity:calc(var(--reflejo,1) * .4)}
+/* la profundidad: sombra de contacto + sombra larga, y el grosor del vidrio por dentro */
+.vent[data-prof="si"] .v{box-shadow:0 1px 2px color-mix(in srgb,var(--sombra) 14%,transparent),0 10px 22px -10px color-mix(in srgb,var(--sombra) 34%,transparent),0 44px 80px -36px color-mix(in srgb,var(--sombra) 58%,transparent)}
+.vent[data-prof="si"] .v>.lente{box-shadow:inset 0 1px 0 var(--filo),inset 0 0 0 1px color-mix(in srgb,var(--brillo) 18%,transparent),inset 0 -14px 22px -16px color-mix(in srgb,var(--sombra) 26%,transparent),inset 0 14px 22px -18px color-mix(in srgb,var(--brillo) 40%,transparent)}
+/* el grano: quita las bandas del degradado y le da materia */
+/* sin mix-blend-mode: aislaría a la pieza y su lente se quedaría sin nada que doblar (visto al probar) */
+.vent[data-grano="si"] .v>.grano{opacity:.055;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ---------- el marco ---------- */
+.riel{position:absolute;inset:0 auto 0 0;width:76px;z-index:30;--fondo:var(--marco-fondo);display:grid;align-content:start;justify-items:center;padding-top:14px}
+.riel .cont{display:grid;gap:8px;justify-items:center}
+.riel b{font:700 13px "EB Garamond",Georgia,serif;letter-spacing:.16em;margin-bottom:10px}
+.riel .it{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:var(--taupe)}
+.riel .it.on{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:inset 0 1px 0 var(--filo),0 6px 14px -8px color-mix(in srgb,var(--sombra) 45%,transparent)}
+.riel svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.banda{position:absolute;inset:0 0 auto 76px;height:64px;z-index:29;--fondo:var(--marco-fondo)}
+.banda .cont{height:100%;display:flex;align-items:center;gap:12px;padding:0 22px}
+.pozo{flex:1;max-width:420px;height:40px;border-radius:99px;padding:0 16px;display:flex;align-items:center;color:var(--taupe);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent)}
+.gota{height:40px;border-radius:99px;padding:0 16px;display:inline-flex;align-items:center;gap:8px;border:0;font:inherit;font-weight:600;color:var(--tinta);cursor:pointer;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));box-shadow:inset 0 1px 0 var(--filo),0 4px 10px -6px color-mix(in srgb,var(--sombra) 45%,transparent)}
+.av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font:600 14px "EB Garamond",Georgia,serif;background:var(--sand);margin-left:auto}
+/* el borde que se disuelve: lo que pasa bajo la banda se va desenfocando de a poco */
+.disuelve{position:absolute;left:76px;right:0;top:64px;height:34px;z-index:28;pointer-events:none;opacity:0;-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);-webkit-mask:linear-gradient(#000,transparent);mask:linear-gradient(#000,transparent)}
+.vent[data-prof="si"] .disuelve{opacity:1}
+
+/* ---------- el contenido ---------- */
+.scroll{position:absolute;inset:0 0 0 76px;overflow-y:auto;padding:92px 28px 120px;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--tinta) 28%,transparent) transparent}
+.cab{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:20px}
+.linea{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);display:flex;align-items:center;gap:10px}
+.linea::before{content:"";width:28px;height:1px;background:var(--taupe)}
+.cab h2{font:400 46px/1.05 "EB Garamond",Georgia,serif;margin:6px 0 0}
+.cifras{display:flex;gap:12px;flex-wrap:wrap}
+.pieza{background:var(--claro-fondo);border:1px solid var(--claro-borde);box-shadow:inset 0 1px 0 var(--filo),0 12px 28px -18px color-mix(in srgb,var(--sombra) 35%,transparent);border-radius:16px}
+.vent[data-contenido="plano"] .pieza{background:var(--papel);border-color:var(--sand);box-shadow:none}
+.cifra{padding:12px 18px;min-width:132px}
+.cifra span{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--taupe)}
+.cifra b{font:400 28px "EB Garamond",Georgia,serif}
+.herr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.pest{position:relative;display:grid;grid-template-columns:repeat(3,110px);height:40px;border-radius:99px;background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.pest button{position:relative;z-index:2;border:0;background:none;font:inherit;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--taupe);cursor:pointer}
+.pest button[aria-selected="true"]{color:var(--tinta)}
+.pest-gota{position:absolute;z-index:1;inset:3px auto 3px 3px;width:104px;border-radius:99px;translate:calc(var(--i,0) * 110px) 0;transition:translate 380ms var(--ease),scale 190ms var(--ease);--fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));--filtro:none;box-shadow:0 6px 14px -8px color-mix(in srgb,var(--sombra) 45%,transparent)}
+.pil{border:1px solid var(--borde-control);border-radius:99px;padding:8px 15px;font-size:13.5px}
+.grilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px;margin-bottom:24px}
+.prenda{padding:8px;display:grid;gap:8px}
+.prenda i{display:block;aspect-ratio:4/5;border-radius:10px}
+.prenda b{font-weight:600;font-size:14px}
+.prenda span{font-size:12.5px;color:var(--taupe)}
+.tabla{overflow:hidden}
+.fila{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;padding:13px 18px;border-bottom:1px solid color-mix(in srgb,var(--tinta) 7%,transparent)}
+.fila:last-child{border:0}
+.fila span{color:var(--taupe)}
+
+/* ---------- lo que flota: el aviso, la isla del celular, la hoja ---------- */
+.aviso{position:absolute;right:22px;top:84px;z-index:35;border-radius:18px;width:316px}
+.aviso .cont{display:flex;gap:12px;align-items:center;padding:14px 16px}
+.aviso .ok{width:28px;height:28px;border-radius:50%;background:var(--verde);color:var(--crema);display:grid;place-items:center;font-weight:700;flex:none}
+.aviso small{display:block;color:var(--taupe)}
+.isla{position:absolute;left:calc(50% + 38px);translate:-50% 0;width:380px;bottom:20px;z-index:35;border-radius:22px}
+.isla .cont{display:flex;align-items:center;justify-content:space-between;padding:10px 10px 10px 16px}
+.primario{height:44px;border-radius:99px;padding:0 20px;border:0;font:inherit;font-weight:600;cursor:pointer;color:var(--crema);background:var(--tinta)}
+.velo{position:absolute;inset:0;z-index:40;background:var(--velo);-webkit-backdrop-filter:blur(12px) saturate(1.4);backdrop-filter:blur(12px) saturate(1.4);opacity:0;pointer-events:none;transition:opacity 260ms var(--ease)}
+/* cuando la hoja es una lente de verdad, el velo solo atenúa: si desenfocara, la hoja no tendría nada nítido que doblar */
+.vent[data-dobla="si"] .velo,.vent[data-claro="si"] .velo{-webkit-backdrop-filter:none;backdrop-filter:none}
+.hoja{position:absolute;z-index:41;left:50%;top:76px;width:min(576px,calc(100% - 24px));margin-left:max(-288px,calc(-50% + 12px));border-radius:32px;--fondo:var(--hoja-fondo);--filtro:none;visibility:hidden;
+  box-shadow:0 50px 90px -40px color-mix(in srgb,var(--sombra) 55%,transparent)}
+.vent[data-dobla="si"] .hoja,.vent[data-claro="si"] .hoja{--filtro:blur(22px) saturate(1.5)}
+.vent[data-claro="si"] .hoja{--filtro:blur(20px) saturate(1.7)}
+.vent.abierta .velo{opacity:1;pointer-events:auto}
+.vent.abierta .hoja{visibility:visible}
+.hoja .cont{padding:28px 28px 22px}
+.hoja h3{font:400 27px "EB Garamond",Georgia,serif;margin:0 0 4px}
+.hoja p{margin:0 0 18px;color:var(--taupe)}
+.campo{display:grid;gap:6px;margin-bottom:14px}
+.campo label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--taupe)}
+.campo div{height:44px;border-radius:12px;padding:0 14px;display:flex;align-items:center;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent)}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.pie{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
+
+/* ---------- el movimiento líquido: una vez, sin rebote, sin bucle ---------- */
+@media (prefers-reduced-motion:no-preference){
+  .vent[data-mov="si"].abierta .hoja{animation:hoja-entra 420ms var(--ease) both}
+  .vent[data-mov="si"].abierta .hoja>.lente::after{content:"";position:absolute;inset:-20% -60%;background:linear-gradient(105deg,transparent 42%,color-mix(in srgb,var(--brillo) 34%,transparent) 50%,transparent 58%);animation:luz-cruza 900ms 120ms var(--ease) both}
+  .vent[data-mov="si"].abierta .hoja>*{animation:aparece 240ms var(--ease) backwards}
+  .vent[data-mov="si"] .aviso{animation:aviso-entra 520ms 300ms var(--ease) both}
+  .vent[data-mov="si"] .aviso>*{animation:aparece 360ms 300ms var(--ease) backwards}
+  .vent[data-mov="si"] [data-toca]{transition:scale 160ms var(--ease)}
+  .vent[data-mov="si"] [data-toca].apretada{scale:.975}
+}
+/* La opacidad se anima en los hijos, nunca en la pieza: una pieza con opacidad animada aísla a su lente y la deja sin nada que doblar (visto al probar). */
+@keyframes hoja-entra{from{transform:translate(var(--dx,0),var(--dy,40px)) scale(.42);border-radius:60px}to{transform:none}}
+@keyframes aparece{from{opacity:0}}
+@keyframes luz-cruza{from{transform:translateX(-45%)}to{transform:translateX(45%);opacity:0}}
+@keyframes aviso-entra{from{translate:0 -14px}to{translate:0 0}}
+
+/* ---------- celular (375 px) ---------- */
+.vent.movil .riel{display:none}
+.vent.movil .banda,.vent.movil .disuelve{left:0}
+.vent.movil .scroll{left:0;padding:84px 14px 110px}
+.vent.movil .pozo,.vent.movil .aviso,.vent.movil .cifras .cifra:nth-child(3){display:none}
+.vent.movil .isla{left:12px;right:12px;width:auto;translate:none;bottom:12px;border-radius:18px}
+.vent.movil .cab h2{font-size:38px}
+.vent.movil .grilla{grid-template-columns:1fr 1fr}
+.vent.movil .pest{grid-template-columns:repeat(3,96px)}
+.vent.movil .pest-gota{width:90px;translate:calc(var(--i,0) * 96px) 0}
+.vent.movil .fila{grid-template-columns:2fr 1fr 1fr}
+.vent.movil .fila span:nth-child(2){display:none}
+.vent.movil .hoja{top:auto;bottom:8px;border-radius:28px}
+.vent.movil .dos{grid-template-columns:1fr}
+</style>
+</head>
+<body>
+<header class="mq">
+  <div class="mq-fila">
+    <h1>Vidrio que dobla</h1>
+    <span class="seg" id="presets">
+      <button data-preset="hoy">Hoy</button><button data-preset="a">A · Canto</button><button data-preset="b">B · Lente clara</button><button data-preset="max">C · Máximo</button><button data-preset="cristal">D · Cristal</button><button data-preset="elegido">E · Elegido</button>
+    </span>
+    <span class="rot">Técnicas</span>
+    <button data-t="dobla">Dobla</button><button data-t="croma">Arcoíris del canto</button><button data-t="luz">Luz al mouse</button><button data-t="claro">Relleno claro</button>
+    <button data-t="prof">Profundidad</button><button data-t="grano">Grano</button><button data-t="mov">Movimiento</button>
+  </div>
+  <div class="mq-fila">
+    <label>Nitidez <input type="range" id="r-nitidez" min="0" max="1" step="0.05"></label>
+    <label>Reflejo <input type="range" id="r-reflejo" min="0" max="1.6" step="0.05"></label>
+    <label>Curva <input type="range" id="r-curva" min="0.6" max="1.8" step="0.05"></label>
+    <span class="rot">Fondo</span>
+    <label>Difuminado <input type="range" id="r-difuminado" min="0" max="48" step="2"></label>
+    <span class="seg" id="fondos"><button data-fondo="aurora">Aurora (hoy)</button><button data-fondo="seda">Seda</button><button data-fondo="trama">Sarga</button><button data-fondo="pliegues">Pliegues</button><button data-fondo="hilos">Hilos</button><button data-fondo="capas">Capas</button><button data-fondo="cintas">Cintas</button><button data-fondo="luz">Luz de ventana</button><button data-fondo="marmol">Mármol</button><button data-fondo="facetas">Facetas</button><button data-fondo="dunas">Dunas</button><button data-fondo="tartan">Tartán</button><button data-fondo="arcos">Arcos</button><button data-fondo="hojas">Hojas</button><button data-fondo="moldes">Moldes</button><button data-fondo="andino">Andino</button></span>
+  </div>
+  <div class="mq-fila">
+    <button id="b-hoja">Abrir hoja</button>
+    <button data-o="contenido" data-si="plano" data-no="vidrio">Contenido plano</button>
+    <button data-o="tema">Oscuro</button>
+    <button data-o="movil">Celular 375</button>
+    <button data-o="safari">Como en Safari / iPhone</button>
+    <button id="b-medir">Medir fluidez</button><output id="salida"></output>
+    <small id="aviso-nav"></small>
+  </div>
+</header>
+
+<div class="escena">
+<div class="vent" id="vent">
+  <div class="aurora"><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="fondo" id="fondo"></div>
+
+  <nav class="riel v" data-lados="derecha" data-bisel="14" data-grosor="22"><div class="cont">
+    <b>CAYLA</b>
+    <span class="it"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg></span>
+    <span class="it"><svg viewBox="0 0 24 24"><path d="M6 6h15l-2 9H8zM6 6L5 3H2"/><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/></svg></span>
+    <span class="it on"><svg viewBox="0 0 24 24"><path d="M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8"/></svg></span>
+    <span class="it"><svg viewBox="0 0 24 24"><path d="M3 12l9-9h8v8l-9 9z"/><circle cx="16" cy="8" r="1.5"/></svg></span>
+    <span class="it"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>
+    <span class="it"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 4a4 4 0 010 8M22 21c0-3-1.500-5-4-5.600"/></svg></span>
+  </div></nav>
+
+  <div class="banda v" data-lados="abajo" data-bisel="14" data-grosor="22"><div class="cont">
+    <button class="gota">Trujillo ▾</button>
+    <div class="pozo">Buscar una prenda, un cliente…</div>
+    <span class="av">FA</span>
+  </div></div>
+  <div class="disuelve"></div>
+
+  <div class="scroll" id="scroll">
+    <div class="cab">
+      <div><div class="linea">Trujillo · mié 18 nov</div><h2>Existencias</h2></div>
+      <div class="cifras">
+        <div class="pieza cifra"><span>Prendas</span><b>1 284</b></div>
+        <div class="pieza cifra"><span>En piso</span><b>912</b></div>
+        <div class="pieza cifra"><span>Por reponer</span><b>37</b></div>
+      </div>
+    </div>
+    <div class="herr">
+      <div class="pest" id="pest"><div class="pest-gota v" data-variante="clara" data-bisel="8" data-grosor="12"></div>
+        <button aria-selected="true">Todo</button><button>En piso</button><button>Almacén</button></div>
+      <span class="pil">Categoría</span><span class="pil">Talla</span><span class="pil">Color</span>
+    </div>
+    <div class="grilla" id="grilla"></div>
+    <div class="pieza tabla" id="tabla"></div>
+  </div>
+
+  <div class="aviso v" data-toca data-bisel="16" data-grosor="30"><div class="cont"><span class="ok">✓</span><div><b>12 blusas bajaron al piso</b><small>Trujillo · hace un momento</small></div></div></div>
+  <div class="isla v" data-toca data-variante="clara" data-bisel="18" data-grosor="34"><div class="cont"><div><b>3 prendas</b> <span style="color:var(--taupe)">marcadas</span></div><button class="primario" id="b-hoja-2">Ajustar stock</button></div></div>
+
+  <div class="velo" id="velo"></div>
+  <div class="hoja v" id="hoja" data-peso="0.45" data-bisel="26" data-grosor="46"><div class="cont">
+    <h3>Ajustar stock</h3><p>Blusa Emma · Rojo teja</p>
+    <div class="dos"><div class="campo"><label>Talla</label><div>M</div></div><div class="campo"><label>Cantidad</label><div>12</div></div></div>
+    <div class="campo"><label>Motivo</label><div>Conteo de la mañana</div></div>
+    <div class="campo"><label>Responsable</label><div>Felipe Alvarez</div></div>
+    <div class="pie"><button class="gota" id="b-cancelar">Cancelar</button><button class="primario" id="b-guardar">Guardar</button></div>
+  </div></div>
+</div>
+</div>
+<svg id="filtros" width="0" height="0" style="position:absolute" aria-hidden="true"></svg>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const vent = $("#vent"), raiz = document.documentElement, filtros = $("#filtros");
+const SOPORTA = CSS.supports("backdrop-filter", "url(#x)");
+
+// ---------- contenido de relleno: lo que el vidrio tiene detrás ----------
+const tela = ["#b8412d","#4c5d6e","#48603f","#74501a","#2b2a28","#c9a27a","#7a2e3a","#3f5f73","#d8c3a5","#5b3b2e","#8a9a7b","#1f3044"];
+const nombres = ["Blusa Emma","Casaca Lía","Vestido Sol","Pantalón Río","Falda Nube","Polo Mar","Chompa Alba","Saco Luna"];
+$("#grilla").innerHTML = Array.from({ length: 24 }, (_, i) => `<div class="pieza prenda"><i style="background:linear-gradient(160deg,${tela[i % 12]},${tela[(i + 4) % 12]})"></i><b>${nombres[i % 8]}</b><span>S · M · L — ${8 + (i * 7) % 23} en piso</span></div>`).join("");
+$("#tabla").innerHTML = Array.from({ length: 18 }, (_, i) => `<div class="fila"><b>${nombres[(i + 3) % 8]}</b><span>Talla ${"SML"[i % 3]}</span><span>${4 + (i * 5) % 19} unidades</span><span>S/ ${129 + (i * 20) % 140}.00</span></div>`).join("");
+
+// ---------- cada pieza de vidrio recibe su lente, su canto y su grano ----------
+const piezas = $$(".v");
+piezas.forEach((p, i) => { p.insertAdjacentHTML("afterbegin", '<i class="lente"></i><i class="canto"></i><i class="gloss"></i><i class="grano"></i>'); p._id = "dobla-" + i; });
+
+// ---------- el perfil del vidrio: un canto convexo; la luz se dobla según Snell (aire 1 → vidrio 1.5) ----------
+function perfil(bisel, grosor) {
+  const d = new Float32Array(128); let max = 0;
+  for (let i = 0; i < 128; i++) {
+    const t = Math.max(0.02, i / 127), u = 1 - Math.pow(1 - t, 4), alto = Math.pow(u, 0.25), deriv = Math.pow(1 - t, 3) * Math.pow(u, -0.75);
+    const t1 = Math.atan(deriv * grosor / bisel), t2 = Math.asin(Math.sin(t1) / 1.5);
+    d[i] = Math.tan(t1 - t2) * (alto * grosor + grosor * 0.5); if (d[i] > max) max = d[i];
+  }
+  return { d, max };
+}
+const cache = new Map();
+function mapas(w, h, r, bisel, grosor, lados) {
+  const clave = [w, h, r, bisel, grosor, lados].join("|"); if (cache.has(clave)) return cache.get(clave);
+  const { d, max } = perfil(bisel, grosor), n = w * h * 4;
+  const mapa = new Uint8ClampedArray(n), masc = new Uint8ClampedArray(n), brillo = new Uint8ClampedArray(n);
+  const lx = -0.5, ly = -0.866; // la luz llega de arriba a la izquierda
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const k = (y * w + x) * 4; let prof, nx, ny;
+    if (lados === "abajo") { prof = h - 0.5 - y; nx = 0; ny = 1; }
+    else if (lados === "derecha") { prof = w - 0.5 - x; nx = 1; ny = 0; }
+    else {
+      const px = x + 0.5 - w / 2, py = y + 0.5 - h / 2, qx = Math.abs(px) - (w / 2 - r), qy = Math.abs(py) - (h / 2 - r);
+      prof = -(Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r);
+      if (qx > 0 && qy > 0) { const l = Math.hypot(qx, qy) || 1; nx = Math.sign(px) * qx / l; ny = Math.sign(py) * qy / l; }
+      else if (qx > qy) { nx = Math.sign(px); ny = 0; } else { nx = 0; ny = Math.sign(py); }
+    }
+    mapa[k] = mapa[k + 1] = mapa[k + 2] = 128; mapa[k + 3] = 255;
+    if (prof < 0 || prof >= bisel) continue;
+    const t = prof / bisel, m = d[Math.round(t * 127)] / max;
+    mapa[k] = 128 - nx * m * 127; mapa[k + 1] = 128 - ny * m * 127;        // la luz entra hacia el centro
+    masc[k] = masc[k + 1] = masc[k + 2] = 255; masc[k + 3] = 255 * Math.pow(1 - t, 1.4); // dónde se ve el canto doblado
+    const cara = nx * lx + ny * ly, filo = Math.max(0, 1 - prof / 1.6), halo = Math.pow(1 - t, 3);
+    brillo[k] = brillo[k + 1] = brillo[k + 2] = 255;
+    brillo[k + 3] = Math.min(255, 255 * (filo * (0.22 + 0.78 * cara * cara) + halo * 0.14 * Math.max(0, cara)));
+  }
+  const url = (px) => { const c = document.createElement("canvas"); c.width = w; c.height = h; c.getContext("2d").putImageData(new ImageData(px, w, h), 0, 0); return c.toDataURL(); };
+  const g = { mapa: url(mapa), masc: url(masc), brillo: url(brillo), max }; cache.set(clave, g); return g;
+}
+
+// ---------- el filtro de cada pieza ----------
+const est = { dobla: false, croma: false, luz: false, claro: false, prof: false, grano: false, mov: false, contenido: "vidrio", safari: false, nitidez: 0.6, reflejo: 1, curva: 1.2, preset: null, fondo: "seda", difuminado: 18 };
+
+// ---------- los fondos con forma: se dibujan UNA vez en un lienzo, con los colores del tema (sin bucle, sin WebGL, sin librería) ----------
+const azar = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
+const suave = (t) => t * t * (3 - 2 * t);
+function ruido(x, y) { const xi = Math.floor(x), yi = Math.floor(y), u = suave(x - xi), v = suave(y - yi), a = azar(xi, yi), b = azar(xi + 1, yi), c = azar(xi, yi + 1), d = azar(xi + 1, yi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; }
+const fbm = (x, y) => ruido(x, y) * 0.62 + ruido(x * 2.1 + 5.2, y * 2.1 + 1.3) * 0.38;
+const rgb = (nombre) => { const h = getComputedStyle(vent).getPropertyValue(nombre).trim().slice(1); return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)); };
+// ---------- más fondos, dibujados con trazos: todos tienen bordes definidos a media escala, que es lo que el vidrio necesita ----------
+const mezcla = (a, b, t) => a.map((x, i) => Math.round(x + (b[i] - x) * t));
+const tono = (c, alfa = 1) => `rgba(${c[0]},${c[1]},${c[2]},${alfa})`;
+const dado = (n) => azar(n * 12.9898, n * 78.233);
+const paleta = () => ({ base: rgb("--crema"), rojo: rgb("--rojo"), ambar: rgb("--ambar"), pizarra: rgb("--pizarra"), tinta: rgb("--tinta"), blanco: [255, 252, 246], negro: [0, 0, 0] });
+const DIBUJOS = {
+  // Seda: cuatro pliegues enormes que cruzan la pantalla, en UNA sola familia de color (de la crema al ámbar), con borde nítido y sombra de raso.
+  // Sale de la lámina de referencias (2026-11-18): una forma grande y no un patrón, un solo color, y la luz hace el resto.
+  seda(g, W, H, oscuro) { const p = paleta(), t = (a) => (a < 0 ? tono(mezcla(p.base, p.blanco, -a)) : tono(mezcla(p.base, p.ambar, a)));
+    const fondo = g.createLinearGradient(0, 0, W, H); fondo.addColorStop(0, t(oscuro ? 0.1 : 0.03)); fondo.addColorStop(1, t(oscuro ? 0.03 : 0.11)); g.fillStyle = fondo; g.fillRect(0, 0, W, H);
+    // cada pliegue es el arco de un círculo enorme: [centro x, centro y, punto por donde pasa x, y, cuánto más cálido]
+    [[-0.3, 1.5, 0.78, 0, 0], [1.35, -0.6, 0.22, 0, 0.04], [-0.15, 2, 0, 0.62, 0.08], [1.55, 1.35, 1, 0.5, 0.12]].forEach(([cx, cy, px, py, k]) => {
+      const x = cx * W, y = cy * H, R = Math.hypot(px * W - x, py * H - y), raso = g.createRadialGradient(x, y, R * 0.5, x, y, R);
+      (oscuro ? [[0, 0.03 + k * 0.3], [0.5, 0.1 + k], [0.88, 0.26 + k], [0.975, 0.42 + k], [1, 0.3 + k]] : [[0, 0.25 + k], [0.5, 0.14 + k], [0.86, 0.04], [0.97, -0.5], [1, 0.02]]).forEach(([en, a]) => raso.addColorStop(en, t(a)));
+      // sin filo trazado y con la sombra más baja (Felipe 2026-11-18: los cambios de color no deben verse como líneas; el fondo acompaña, no distrae)
+      g.beginPath(); g.arc(x, y, R, 0, 6.2832); g.shadowColor = tono(oscuro ? p.negro : p.tinta, oscuro ? 0.55 : 0.16); g.shadowBlur = 90; g.fillStyle = raso; g.fill(); g.shadowColor = "transparent"; }); },
+  // Capas: papeles recortados en ondas, uno sobre otro, cada uno con su sombra y su filo de luz
+  capas(g, W, H, oscuro) { const p = paleta(), capas = [[p.ambar, 0.1], [p.rojo, 0.15], [p.ambar, 0.24], [p.pizarra, 0.2], [p.rojo, 0.28], [p.pizarra, 0.32], [p.ambar, 0.38]];
+    g.fillStyle = tono(p.base); g.fillRect(0, 0, W, H); g.translate(W / 2, H / 2); g.rotate(-0.3); g.translate(-W / 2, -H / 2);
+    capas.forEach(([color, cuanto], i) => { const y0 = H * (-0.1 + i * 0.19);
+      g.beginPath(); g.moveTo(-W, 3 * H);
+      for (let x = -W; x <= 2 * W; x += 10) g.lineTo(x, y0 + Math.sin(x / W * 3.1 + i * 1.7) * H * 0.075 + Math.sin(x / W * 7.3 + i * 4.1) * H * 0.028);
+      g.lineTo(2 * W, 3 * H); g.closePath();
+      g.shadowColor = tono(oscuro ? p.negro : p.tinta, oscuro ? 0.6 : 0.2); g.shadowBlur = 36; g.shadowOffsetY = -8;
+      g.fillStyle = tono(mezcla(p.base, color, oscuro ? cuanto * 1.2 : cuanto)); g.fill();
+      g.shadowColor = "transparent"; g.lineWidth = 1.2; g.strokeStyle = tono(oscuro ? p.tinta : p.blanco, oscuro ? 0.12 : 0.6); g.stroke(); }); },
+  // Cintas: tres cintas de tela que cruzan la pantalla girando sobre sí mismas (una cara de un color, el dorso de otro)
+  cintas(g, W, H, oscuro) { const p = paleta(), ancho = Math.min(W, H) * 0.13, N = 280;
+    const fondo = g.createLinearGradient(0, 0, W, H); fondo.addColorStop(0, tono(p.base)); fondo.addColorStop(1, tono(mezcla(p.base, p.ambar, oscuro ? 0.2 : 0.12))); g.fillStyle = fondo; g.fillRect(0, 0, W, H);
+    [[p.rojo, p.ambar, 0.05], [p.pizarra, p.rojo, 0.4], [p.ambar, p.pizarra, 0.73]].forEach(([frente, dorso, s], n) => {
+      const pts = Array.from({ length: N + 1 }, (_, i) => { const t = i / N; return [(-0.1 + t * 1.2) * W, H * (0.22 + n * 0.28) + Math.sin(t * 5.2 + s * 9) * H * 0.17 + Math.sin(t * 2.1 + s * 4) * H * 0.1, Math.cos(t * Math.PI * 3.4 + s * 6)]; });
+      g.save(); g.filter = "blur(16px)"; g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y + 16) : g.moveTo(x, y + 16))); g.lineWidth = ancho * 0.7; g.lineCap = "round"; g.strokeStyle = tono(oscuro ? p.negro : p.tinta, oscuro ? 0.45 : 0.14); g.stroke(); g.restore();
+      const borde = [];
+      for (let i = 0; i < N; i++) { const [x0, y0, c0] = pts[i], [x1, y1, c1] = pts[i + 1], l = Math.hypot(x1 - x0, y1 - y0) || 1, nx = -(y1 - y0) / l, ny = (x1 - x0) / l, w0 = ancho / 2 * c0, w1 = ancho / 2 * c1, cara = (c0 + c1) / 2;
+        g.beginPath(); g.moveTo(x0 + nx * w0, y0 + ny * w0); g.lineTo(x1 + nx * w1, y1 + ny * w1); g.lineTo(x1 - nx * w1, y1 - ny * w1); g.lineTo(x0 - nx * w0, y0 - ny * w0); g.closePath();
+        g.fillStyle = g.strokeStyle = tono(mezcla(p.base, cara > 0 ? frente : dorso, (oscuro ? 0.5 : 0.38) + Math.abs(cara) * 0.3)); g.lineWidth = 1; g.fill(); g.stroke(); borde.push([x0 - nx * Math.abs(w0), y0 - ny * Math.abs(w0)]); }
+      g.beginPath(); borde.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.lineWidth = 1.2; g.strokeStyle = tono(oscuro ? p.tinta : p.blanco, oscuro ? 0.16 : 0.65); g.stroke(); }); },
+  // Luz de ventana: la pared de la tienda a media tarde, con el sol entrando por los vidrios
+  luz(g, W, H, oscuro) { const p = paleta(), pared = oscuro ? p.base : mezcla(p.base, p.tinta, 0.08), sol = oscuro ? mezcla(p.base, p.ambar, 0.55) : p.blanco, u = Math.min(W, H);
+    g.fillStyle = tono(pared); g.fillRect(0, 0, W, H);
+    const calor = g.createLinearGradient(W, 0, 0, H); calor.addColorStop(0, tono(p.ambar, oscuro ? 0.2 : 0.12)); calor.addColorStop(0.6, tono(p.rojo, 0.05)); calor.addColorStop(1, tono(p.pizarra, oscuro ? 0.16 : 0.1)); g.fillStyle = calor; g.fillRect(0, 0, W, H);
+    const ventana = (x, y, cw, ch, cols, filas, alfa) => { g.save(); g.filter = "blur(6px)"; g.transform(1, 0.36, -0.52, 1, x, y); g.fillStyle = tono(sol, alfa);
+      for (let c = 0; c < cols; c++) for (let f = 0; f < filas; f++) g.fillRect(c * (cw + 16), f * (ch + 16), cw, ch); g.restore(); };
+    ventana(W * 0.42, -H * 0.12, u * 0.2, u * 0.26, 3, 4, oscuro ? 0.5 : 0.85); ventana(W * 1.02, H * 0.05, u * 0.16, u * 0.22, 2, 4, oscuro ? 0.3 : 0.55);
+    const cae = g.createLinearGradient(W * 0.9, 0, W * 0.1, H); cae.addColorStop(0.45, tono(pared, 0)); cae.addColorStop(1, tono(pared, 0.75)); g.fillStyle = cae; g.fillRect(0, 0, W, H); },
+  // Facetas: un cristal tallado, en triángulos que toman la luz distinto
+  facetas(g, W, H, oscuro) { const p = paleta(), paso = Math.max(110, Math.min(W, H) / 4.5), cols = Math.ceil(W / paso) + 2, filas = Math.ceil(H / paso) + 2, tintes = [p.rojo, p.ambar, p.pizarra, p.rojo];
+    const P = (i, j) => [(i - 1) * paso + (dado(i * 31 + j * 17) - 0.5) * paso * 0.7, (j - 1) * paso + (dado(i * 13 + j * 41 + 7) - 0.5) * paso * 0.7];
+    g.fillStyle = tono(p.base); g.fillRect(0, 0, W, H); g.lineJoin = "round"; const aristas = new Path2D();
+    for (let i = 0; i < cols; i++) for (let j = 0; j < filas; j++) { const a = P(i, j), b = P(i + 1, j), c = P(i + 1, j + 1), d = P(i, j + 1), par = (i + j) % 2;
+      (par ? [[a, b, c], [a, c, d]] : [[a, b, d], [b, c, d]]).forEach((tri, n) => {
+        const cx = (tri[0][0] + tri[1][0] + tri[2][0]) / 3, cy = (tri[0][1] + tri[1][1] + tri[2][1]) / 3, k = Math.min(2.999, fbm(cx / H * 1.5 + 2, cy / H * 1.5) * 3), q = Math.floor(k), luz = dado(i * 7 + j * 29 + n * 3) - 0.5;
+        const color = mezcla(mezcla(p.base, mezcla(tintes[q], tintes[q + 1], k - q), oscuro ? 0.34 : 0.24), luz > 0 ? p.blanco : oscuro ? p.negro : p.tinta, Math.abs(luz) * (oscuro ? 0.3 : 0.16));
+        g.beginPath(); g.moveTo(...tri[0]); g.lineTo(...tri[1]); g.lineTo(...tri[2]); g.closePath(); g.fillStyle = g.strokeStyle = tono(color); g.lineWidth = 1; g.fill(); g.stroke(); });
+      aristas.moveTo(...a); aristas.lineTo(...b); aristas.moveTo(...a); aristas.lineTo(...d); aristas.moveTo(...(par ? a : b)); aristas.lineTo(...(par ? c : d)); }
+    g.lineWidth = 1; g.strokeStyle = tono(oscuro ? p.tinta : p.blanco, oscuro ? 0.09 : 0.55); g.stroke(aristas); },
+  // Dunas: lomas de arena, cada cresta clara contra la sombra de la anterior
+  dunas(g, W, H, oscuro) { const p = paleta(), arena = (a) => tono(mezcla(p.base, p.ambar, a));
+    g.fillStyle = arena(0.04); g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 7; i++) { const y0 = H * (0.06 + i * 0.15);
+      g.beginPath(); g.moveTo(-4, H + 4); for (let x = -4; x <= W + 8; x += 8) g.lineTo(x, y0 + Math.sin(x / W * 4.2 + i * 2.3) * H * 0.06 + Math.sin(x / W * 1.7 + i * 5.1) * H * 0.05); g.lineTo(W + 8, H + 4); g.closePath();
+      const d = g.createLinearGradient(0, y0 - H * 0.1, 0, y0 + H * 0.3);
+      (oscuro ? [[0, arena(0.34)], [0.35, arena(0.18)], [1, arena(0.03)]] : [[0, tono(mezcla(p.base, p.blanco, 0.7))], [0.35, arena(0.12)], [1, arena(0.36)]]).forEach(([en, color]) => d.addColorStop(en, color));
+      g.fillStyle = d; g.fill(); g.lineWidth = 1.2; g.strokeStyle = tono(oscuro ? p.tinta : p.blanco, oscuro ? 0.16 : 0.75); g.stroke(); } },
+  // Tartán: los cuadros de una tela, cortada al sesgo; donde dos franjas se cruzan, el color se suma
+  tartan(g, W, H, oscuro) { const p = paleta(), U = Math.min(W, H) * 0.62, D = Math.hypot(W, H), k = oscuro ? 1.5 : 1, veces = Math.ceil(D / U);
+    const franjas = [[0, 0.3, p.ambar, 0.15], [0.36, 0.05, p.rojo, 0.22], [0.47, 0.16, p.pizarra, 0.15], [0.69, 0.012, p.tinta, 0.18], [0.76, 0.05, p.rojo, 0.22], [0.87, 0.012, p.tinta, 0.18]];
+    g.fillStyle = tono(p.base); g.fillRect(0, 0, W, H); g.translate(W / 2, H / 2); g.rotate(-0.62);
+    for (const acostada of [false, true]) for (let n = -veces; n <= veces; n++) for (const [x, ancho, color, alfa] of franjas) { g.fillStyle = tono(color, Math.min(0.6, alfa * k));
+      if (acostada) g.fillRect(-D, (n + x) * U, 2 * D, ancho * U); else g.fillRect((n + x) * U, -D, ancho * U, 2 * D); } },
+  // Arcos: escamas de círculos concéntricos, una fila montada sobre la otra (como un abanico)
+  arcos(g, W, H, oscuro) { const p = paleta(), T = Math.min(W, H) * 0.44, k = oscuro ? 1.5 : 1, anillos = [[1, p.ambar, 0.2], [0.78, p.base, 0], [0.56, p.rojo, 0.2], [0.32, p.pizarra, 0.24], [0.12, p.base, 0]];
+    g.fillStyle = tono(p.base); g.fillRect(0, 0, W, H);
+    for (let j = -1; j * T * 0.5 < H + T; j++) for (let i = -1; i * T < W + T; i++) { const cx = i * T + (j % 2 ? T / 2 : 0), cy = j * T * 0.5;
+      anillos.forEach(([r, color, alfa], n) => { g.beginPath(); g.arc(cx, cy, r * T / 2, 0, 6.2832); g.fillStyle = tono(mezcla(p.base, color, Math.min(0.7, alfa * k))); g.fill();
+        if (!n) { g.lineWidth = 1.2; g.strokeStyle = tono(oscuro ? p.tinta : p.blanco, oscuro ? 0.14 : 0.75); g.stroke(); } }); } },
+  // Hojas: la sombra de unas hojas de palma sobre la pared, con el sol de la tarde
+  hojas(g, W, H, oscuro) { const p = paleta(), u = Math.min(W, H);
+    g.fillStyle = tono(oscuro ? p.base : mezcla(p.base, p.tinta, 0.05)); g.fillRect(0, 0, W, H);
+    const sol = g.createRadialGradient(W * 0.62, H * 0.3, 0, W * 0.62, H * 0.3, u * 0.95); sol.addColorStop(0, tono(oscuro ? mezcla(p.base, p.ambar, 0.5) : p.blanco, oscuro ? 0.5 : 0.85)); sol.addColorStop(0.55, tono(p.ambar, oscuro ? 0.14 : 0.1)); sol.addColorStop(1, tono(p.pizarra, oscuro ? 0.12 : 0.1)); g.fillStyle = sol; g.fillRect(0, 0, W, H);
+    // las hojas se dibujan nítidas en un lienzo aparte y se desenfocan de una sola pasada (desenfocar hoja por hoja tardaba medio segundo)
+    const capa = document.createElement("canvas"); capa.width = W; capa.height = H; const h = capa.getContext("2d"); h.fillStyle = tono(oscuro ? p.negro : p.tinta, oscuro ? 0.5 : 0.17);
+    const fronda = (x, y, largo, giro, curva) => { h.save(); h.translate(x, y); h.rotate(giro);
+      for (let i = 2; i < 30; i++) { const t = i / 30, hoja = largo * 0.34 * Math.sin(t * Math.PI) ** 0.7 + 6;
+        for (const lado of [-1, 1]) { h.save(); h.translate(t * largo, Math.sin(t * 2.2) * curva); h.rotate(lado * (1.05 - t * 0.45)); h.beginPath(); h.ellipse(hoja / 2, 0, hoja / 2, Math.max(2, hoja * 0.055), 0, 0, 6.2832); h.fill(); h.restore(); } }
+      h.restore(); };
+    fronda(W * 1.02, H * 0.02, u * 0.95, 2.5, u * 0.1); fronda(W * 0.98, H * 0.6, u * 0.8, 3.3, -u * 0.08); fronda(-u * 0.05, H * 0.2, u * 0.75, 0.45, u * 0.09); fronda(W * 0.45, -u * 0.08, u * 0.6, 1.25, u * 0.05);
+    g.filter = "blur(3px)"; g.drawImage(capa, 0, 0); g.filter = "none"; },
+  // Moldes: las piezas de un patrón de costura sobre la mesa del taller (delantero, manga, falda, cuello), con su línea de costura y el hilo de la tela
+  moldes(g, W, H, oscuro) { const p = paleta(), u = Math.min(W, H), linea = rgb("--taupe");
+    const piezas = {
+      delantero: (c) => { c.moveTo(0.3, 0); c.quadraticCurveTo(0.5, 0.28, 0.7, 0); c.lineTo(1, 0.12); c.bezierCurveTo(0.84, 0.2, 0.8, 0.5, 1, 0.55); c.lineTo(0.94, 1.3); c.quadraticCurveTo(0.5, 1.36, 0.06, 1.3); c.lineTo(0, 0.55); c.bezierCurveTo(0.2, 0.5, 0.16, 0.2, 0, 0.12); c.closePath(); },
+      manga: (c) => { c.moveTo(0, 0.42); c.bezierCurveTo(0.2, 0.4, 0.3, 0.04, 0.5, 0.04); c.bezierCurveTo(0.7, 0.04, 0.8, 0.4, 1, 0.42); c.lineTo(0.82, 1.2); c.quadraticCurveTo(0.5, 1.26, 0.18, 1.2); c.closePath(); },
+      falda: (c) => { c.moveTo(0.22, 0.05); c.quadraticCurveTo(0.5, 0.12, 0.78, 0.05); c.lineTo(1, 1.2); c.quadraticCurveTo(0.5, 1.32, 0, 1.2); c.closePath(); },
+      cuello: (c) => { c.moveTo(0, 0.55); c.quadraticCurveTo(0.5, -0.1, 1, 0.55); c.lineTo(0.9, 0.85); c.quadraticCurveTo(0.5, 0.35, 0.1, 0.85); c.closePath(); } };
+    g.fillStyle = tono(p.base); g.fillRect(0, 0, W, H);
+    [["delantero", 0.2, 0.45, 0.6, -0.18, p.ambar], ["manga", 0.52, 0.2, 0.46, 0.55, p.rojo], ["falda", 0.8, 0.62, 0.62, 0.12, p.pizarra], ["cuello", 0.48, 0.88, 0.5, -0.25, p.ambar], ["manga", 0.95, 0.1, 0.4, -0.7, p.pizarra], ["delantero", 0.04, 1, 0.5, 0.4, p.rojo]].forEach(([cual, x, y, tam, giro, color]) => {
+      const s = u * tam, forma = new Path2D(); piezas[cual](forma);
+      g.save(); g.translate(x * W, y * H); g.rotate(giro); g.scale(s, s); g.translate(-0.5, -0.65);
+      g.shadowColor = tono(oscuro ? p.negro : p.tinta, oscuro ? 0.5 : 0.16); g.shadowBlur = 26; g.shadowOffsetY = 8; g.fillStyle = tono(mezcla(p.base, color, oscuro ? 0.3 : 0.2)); g.fill(forma);
+      g.shadowColor = "transparent"; g.lineWidth = 1.3 / s; g.strokeStyle = tono(linea, 0.6); g.stroke(forma);
+      g.save(); g.translate(0.5, 0.65); g.scale(0.88, 0.9); g.translate(-0.5, -0.65); g.setLineDash([7 / s, 6 / s]); g.lineWidth = 1 / s; g.strokeStyle = tono(linea, 0.5); g.stroke(forma); g.restore();
+      if (cual !== "cuello") { g.beginPath(); g.moveTo(0.5, 0.42); g.lineTo(0.5, 0.95); g.moveTo(0.47, 0.46); g.lineTo(0.5, 0.42); g.lineTo(0.53, 0.46); g.moveTo(0.47, 0.91); g.lineTo(0.5, 0.95); g.lineTo(0.53, 0.91); g.lineWidth = 1 / s; g.stroke(); }
+      g.restore(); }); },
+  // Andino: rombos escalonados de un tejido peruano, en grande y apenas teñidos
+  andino(g, W, H, oscuro) { const p = paleta(), T = Math.min(W, H) * 0.4, c = T / 11, k = oscuro ? 1.5 : 1, nivel = [[p.pizarra, 0.26], [p.rojo, 0.3], [p.rojo, 0.3], null, [p.ambar, 0.24], [p.ambar, 0.24]]; // anillos de dos casillas: de una sola se ve un damero
+    g.fillStyle = tono(p.base); g.fillRect(0, 0, W, H);
+    for (let fj = -1; fj * T * 0.5 < H + T; fj++) for (let fi = -1; fi * T < W + T; fi++) { const ox = fi * T + (fj % 2 ? T / 2 : 0), oy = fj * T * 0.5;
+      for (let i = -5; i <= 5; i++) for (let j = -5; j <= 5; j++) { const n = nivel[Math.abs(i) + Math.abs(j)]; if (!n) continue;
+        g.fillStyle = tono(mezcla(p.base, n[0], Math.min(0.7, n[1] * k))); g.fillRect(ox + i * c - c / 2, oy + j * c - c / 2, c + 0.5, c + 0.5); } } },
+};
+const fondos = new Map();
+function dibujarFondo() {
+  const caja = $("#fondo"), tipo = est.fondo; if (tipo === "aurora") { caja.style.backgroundImage = ""; return; }
+  const oscuro = raiz.dataset.tema === "oscuro", esc = tipo === "hilos" || DIBUJOS[tipo] ? 1 : tipo === "trama" ? 0.25 : 0.5, W = Math.max(2, Math.round(vent.clientWidth * esc)), H = Math.max(2, Math.round(vent.clientHeight * esc));
+  const clave = [tipo, oscuro, W, H, est.difuminado].join("|"); if (fondos.has(clave)) { caja.style.backgroundImage = fondos.get(clave); return; }
+  // El difuminado se hornea en la imagen (una sola vez), no se deja como filtro vivo: así el fondo sigue costando lo que una imagen fija.
+  // La imagen se estira un poco para que el borde que el desenfoque deja transparente caiga fuera de la pantalla.
+  const suavizar = (lz) => { const d = est.difuminado * esc; if (d < 0.5) return lz; const m = Math.ceil(d * 3), s = document.createElement("canvas"); s.width = W; s.height = H;
+    const c = s.getContext("2d"); c.filter = `blur(${d}px)`; c.drawImage(lz, -m, -m, W + 2 * m, H + 2 * m); return s; };
+  if (DIBUJOS[tipo]) { const lz = document.createElement("canvas"); lz.width = W; lz.height = H; DIBUJOS[tipo](lz.getContext("2d"), W, H, oscuro);
+    const hecho = `url(${suavizar(lz).toDataURL("image/jpeg", 0.94)})`; fondos.set(clave, hecho); caja.style.backgroundImage = hecho; return; }
+  const base = rgb("--crema"), linea = rgb("--taupe"), tintes = [rgb("--rojo"), null, rgb("--ambar"), null, rgb("--pizarra")], px = new Uint8ClampedArray(W * H * 4);
+  // el color: campos anchos, cálidos al centro (ámbar), que pasan por la crema hacia el rojo de un lado y el pizarra del otro
+  const lavado = (u, v, cuanto) => { const k = Math.min(3.999, Math.max(0, fbm(u * 1.9 + 2, v * 1.9) * 6.2 - 1.1)), i = Math.floor(k), f = suave(k - i), a = tintes[i], b = tintes[i + 1];
+    const peso = (a ? 1 - f : 0) + (b ? f : 0), c = a && b ? a.map((x, j) => x + (b[j] - x) * f) : a || b || base; return base.map((x, j) => x + (c[j] - x) * peso * cuanto); };
+  const F = tipo === "hilos" ? new Float32Array(W * H) : null;
+  if (F) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) F[y * W + x] = fbm(x / H * 2, y / H * 2) * 20;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const u = x / H, v = y / H, k = (y * W + x) * 4; let c;
+    if (tipo === "pliegues") { // una tela que cae: crestas anchas de luz y valles angostos de sombra
+      const onda = 0.5 + 0.5 * Math.sin(((u * 1.25 + v * 0.6) * 5.5 + fbm(u * 2, v * 2) * 2.6) * 6.2832), luz = 1 + (Math.pow(onda, 0.7) - 0.6) * (oscuro ? 0.55 : 0.3);
+      c = lavado(u, v, oscuro ? 0.46 : 0.36).map((n) => n * luz);
+    } else if (tipo === "marmol") { // mármol: vetas finas que serpentean y vetas anchas, sobre campos de tono
+      const wx = u + (fbm(u * 1.3 + 4, v * 1.3) - 0.5) * 0.9, wy = v + (fbm(u * 1.3, v * 1.3 + 8) - 0.5) * 0.9;
+      const veta = Math.min(1, Math.pow(1 - Math.abs(2 * fbm(wx * 2.2, wy * 2.2) - 1), 16) * 0.75 + Math.pow(1 - Math.abs(2 * fbm(wx * 0.9 + 3, wy * 0.9) - 1), 5) * 0.22);
+      c = lavado(u, v, oscuro ? 0.3 : 0.2).map((n, j) => n + (linea[j] - n) * veta);
+    } else if (tipo === "trama") { c = lavado(u, v, oscuro ? 0.44 : 0.34); // solo el color: los hilos de la sarga los pone el CSS
+    } else { // curvas de nivel: hilos finos que siguen un relieve, uno de cada cinco más marcado, y terrazas apenas teñidas
+      const f = F[k / 4], gx = F[Math.min(k / 4 + 1, W * H - 1)] - f, gy = F[Math.min(k / 4 + W, W * H - 1)] - f, fr = f - Math.floor(f);
+      const dist = Math.min(fr, 1 - fr) / (Math.hypot(gx, gy) || 1e-6), hilo = Math.max(0, Math.min(1, 1.15 - dist)) * (Math.round(f) % 5 === 0 ? 0.7 : 0.36);
+      c = lavado(u, v, (oscuro ? 0.34 : 0.26) + (Math.floor(f) % 2 ? 0.07 : 0)).map((n, j) => n + (linea[j] - n) * hilo);
+    }
+    px[k] = c[0]; px[k + 1] = c[1]; px[k + 2] = c[2]; px[k + 3] = 255;
+  }
+  const lienzo = document.createElement("canvas"); lienzo.width = W; lienzo.height = H; lienzo.getContext("2d").putImageData(new ImageData(px, W, H), 0, 0);
+  const url = `url(${suavizar(lienzo).toDataURL("image/jpeg", 0.94)})`; fondos.set(clave, url); caja.style.backgroundImage = url;
+}
+const canal = (i) => `values="${[0, 1, 2].map((c) => (c === i ? "1 0 0 0 0" : "0 0 0 0 0")).join(" ")} 0 0 0 1 0"`;
+function vestir(p) {
+  const b = p.getBoundingClientRect(), w = Math.round(p.offsetWidth), h = Math.round(p.offsetHeight), lente = p.firstElementChild, canto = lente.nextElementSibling;
+  $("#" + p._id)?.remove(); lente.style.backdropFilter = ""; canto.style.backgroundImage = canto.nextElementSibling.style.backgroundImage = ""; p._nodos = null;
+  if (!w || !h || !b.width) return;
+  const lados = p.dataset.lados || "todos", r = lados === "todos" ? Math.min(parseFloat(getComputedStyle(p).borderTopLeftRadius) || 0, h / 2, w / 2) : 0;
+  const bisel = Math.min(+p.dataset.bisel, lados === "todos" ? Math.max(r, 6) : 99), grosor = +p.dataset.grosor * (est.claro ? 1.3 : 1);
+  if (!(est.dobla || est.luz)) return;
+  const g = mapas(w, h, r, bisel, grosor, lados);
+  if (est.luz) { canto.style.backgroundImage = `url(${g.brillo})`;
+    canto.nextElementSibling.style.backgroundImage = `url(${g.brillo}), linear-gradient(115deg, color-mix(in srgb, var(--brillo) 22%, transparent), transparent 32%, transparent 68%, color-mix(in srgb, var(--brillo) 12%, transparent))`; }
+  if (!est.dobla || est.safari || !SOPORTA) return;
+  const s = g.max * 2 * est.curva, img = (u, res) => `<feImage href="${u}" x="0" y="0" width="${w}" height="${h}" result="${res}"/>`;
+  const dob = (e, res) => `<feDisplacementMap class="d" data-e="${e.toFixed(2)}" in="f" in2="m" scale="${e.toFixed(2)}" xChannelSelector="R" yChannelSelector="G" result="${res}"/>`;
+  const doblado = est.croma // cada color se dobla un poco distinto, como en un prisma
+    ? dob(s * 1.14, "dr") + `<feColorMatrix in="dr" type="matrix" ${canal(0)} result="r"/>` + dob(s, "dg") + `<feColorMatrix in="dg" type="matrix" ${canal(1)} result="g"/>` + dob(s * 0.86, "db") + `<feColorMatrix in="db" type="matrix" ${canal(2)} result="b"/>` +
+      `<feComposite in="r" in2="g" operator="arithmetic" k2="1" k3="1" result="rg"/><feComposite in="rg" in2="b" operator="arithmetic" k2="1" k3="1" result="d"/>`
+    : dob(s, "d");
+  // Dos vidrios, como en Apple: el «regular» (hojas, barras: mucho texto) desenfoca más; el «claro» (controles chicos) deja ver lo de atrás.
+  const oscuro = raiz.dataset.tema === "oscuro", clara = p.dataset.variante === "clara";
+  // «Nitidez» lleva el vidrio de mate a cristal. Pesa entero en los controles chicos, menos en barras y avisos, y menos aún en la hoja (ahí hay un formulario que leer).
+  const t = est.claro ? est.nitidez * +(p.dataset.peso || (clara ? 1 : 0.9)) : 0, mez = (a, b) => a + (b - a) * t;
+  const stdC = !est.claro ? 22 : mez(clara ? 6 : 20, clara ? 1.2 : 3);
+  const [p0, c0] = oscuro ? (clara ? [0.42, 0.06] : [0.28, 0.06]) : (clara ? [0.5, 0.46] : [0.34, 0.64]); // la luminosidad se recoge para que la letra siempre se lea…
+  const pend = mez(p0, 1).toFixed(3), corte = mez(c0, 0).toFixed(3); // …y con la nitidez al máximo ya no se recoge nada
+  const lum = est.claro ? `<feComponentTransfer in="s">${["R", "G", "B"].map((c) => `<feFunc${c} type="linear" slope="${pend}" intercept="${corte}"/>`).join("")}</feComponentTransfer>` : "";
+  const cuerpo = `<feGaussianBlur in="SourceGraphic" stdDeviation="1.1" result="f"/>${doblado}${img(g.masc, "k")}<feComposite in="d" in2="k" operator="in" result="canto"/>` +
+    `<feGaussianBlur in="SourceGraphic" stdDeviation="${stdC}" result="c"/><feMerge result="todo"><feMergeNode in="c"/><feMergeNode in="canto"/></feMerge><feColorMatrix in="todo" type="saturate" values="1.6" result="s"/>${lum}`;
+  filtros.insertAdjacentHTML("beforeend", `<filter id="${p._id}" filterUnits="userSpaceOnUse" x="0" y="0" width="${w}" height="${h}" color-interpolation-filters="sRGB">${img(g.mapa, "m")}${cuerpo}</filter>`);
+  lente.style.backdropFilter = `url(#${p._id})`;
+  p._nodos = $$("#" + p._id + " .d");
+}
+// el vidrio «se asienta»: la fuerza con que dobla va de un valor a otro sin rehacer el mapa
+function asentar(p, desde, hasta, ms) {
+  if (!p._nodos || !est.mov || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const t0 = performance.now(); cancelAnimationFrame(p._cuadro);
+  const paso = (t) => { const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3), f = desde + (hasta - desde) * e;
+    p._nodos.forEach((n) => n.setAttribute("scale", (n.dataset.e * f).toFixed(2))); if (k < 1) p._cuadro = requestAnimationFrame(paso); };
+  p._cuadro = requestAnimationFrame(paso);
+}
+
+// ---------- los controles ----------
+const TODAS = ["dobla", "croma", "luz", "claro", "prof", "grano", "mov"];
+const PRESETS = { hoy: [], a: ["dobla", "luz"], b: ["dobla", "luz", "claro"], max: TODAS, cristal: TODAS, elegido: ["dobla", "croma", "claro", "prof", "grano", "mov"] };
+// nitidez, reflejo, curva. «Elegido» es lo que Felipe dejó puesto el 2026-11-18: sin luz al mouse y sin aurora.
+const AJUSTES = { hoy: [0.5, 1, 1], a: [0.5, 0.7, 1], b: [0.35, 0.7, 1], max: [0.6, 1, 1.2], cristal: [1, 1.3, 1.45], elegido: [0.45, 0.3, 0.9] };
+function poner(k) { for (const t of TODAS) est[t] = PRESETS[k].includes(t); [est.nitidez, est.reflejo, est.curva] = AJUSTES[k]; est.preset = k; pintar(); }
+function pintar() {
+  vent.dataset.fondo = est.fondo; $$("#fondos button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.fondo === est.fondo)); dibujarFondo();
+  for (const t of TODAS) { vent.dataset[t] = est[t] && !(t === "dobla" && (est.safari || !SOPORTA)) ? "si" : "no"; $(`[data-t="${t}"]`).setAttribute("aria-pressed", est[t]); }
+  vent.dataset.contenido = est.contenido;
+  $$("#presets button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.preset === est.preset));
+  for (const k of ["nitidez", "reflejo", "curva", "difuminado"]) $("#r-" + k).value = est[k];
+  vent.style.setProperty("--reflejo", est.reflejo);
+  piezas.forEach(vestir);
+}
+$$("#presets button").forEach((b) => b.onclick = () => poner(b.dataset.preset));
+$$("#fondos button").forEach((b) => b.onclick = () => { est.fondo = b.dataset.fondo; pintar(); });
+$("#r-difuminado").oninput = (e) => { est.difuminado = +e.target.value; pintar(); };
+for (const k of ["nitidez", "reflejo", "curva"]) $("#r-" + k).oninput = (e) => { est[k] = +e.target.value; est.preset = null; pintar(); };
+$$("[data-t]").forEach((b) => b.onclick = () => { est[b.dataset.t] = !est[b.dataset.t]; est.preset = null; pintar(); });
+$$("[data-o]").forEach((b) => b.onclick = () => {
+  const o = b.dataset.o, on = b.getAttribute("aria-pressed") !== "true"; b.setAttribute("aria-pressed", on);
+  if (o === "tema") raiz.dataset.tema = on ? "oscuro" : "claro";
+  if (o === "movil") vent.classList.toggle("movil", on);
+  if (o === "safari") est.safari = on;
+  if (o === "contenido") est.contenido = on ? "plano" : "vidrio";
+  requestAnimationFrame(pintar);
+});
+if (!SOPORTA) $("#aviso-nav").textContent = "Este navegador no dobla: ves el respaldo (como Safari).";
+
+// la hoja nace del botón que la abrió
+const hoja = $("#hoja");
+function abrir(e) {
+  const o = e.currentTarget.getBoundingClientRect(), h = hoja.getBoundingClientRect();
+  hoja.style.setProperty("--dx", (o.left + o.width / 2 - (h.left + h.width / 2)) + "px"); hoja.style.setProperty("--dy", (o.top + o.height / 2 - (h.top + h.height / 2)) + "px");
+  vent.classList.add("abierta"); asentar(hoja, 2.2, 1, 620);
+}
+const cerrar = () => vent.classList.remove("abierta");
+$("#b-hoja").onclick = abrir; $("#b-hoja-2").onclick = abrir; $("#velo").onclick = cerrar; $("#b-cancelar").onclick = cerrar; $("#b-guardar").onclick = cerrar;
+addEventListener("keydown", (e) => e.key === "Escape" && cerrar());
+
+// la gota de las pestañas viaja y se estira un instante
+const gota = $(".pest-gota");
+$$("#pest button").forEach((b, i) => b.onclick = () => {
+  $$("#pest button").forEach((x) => x.setAttribute("aria-selected", x === b)); gota.style.setProperty("--i", i);
+  if (est.mov) { gota.style.scale = "1.14 .9"; asentar(gota, 1.8, 1, 420); setTimeout(() => (gota.style.scale = ""), 190); }
+});
+// al apretar, el vidrio se hunde un poco y dobla más
+$$("[data-toca]").forEach((p) => {
+  p.addEventListener("pointerdown", () => { p.classList.add("apretada"); asentar(p, 1, 1.7, 140); });
+  for (const ev of ["pointerup", "pointerleave"]) p.addEventListener(ev, () => { if (p.classList.contains("apretada")) { p.classList.remove("apretada"); asentar(p, 1.7, 1, 320); } });
+});
+// la luz sigue al mouse (no se mueve sola)
+let pendiente = null;
+vent.addEventListener("pointermove", (e) => { pendiente = e; requestAnimationFrame(() => { if (!pendiente || !est.luz) return;
+  for (const p of piezas) { const b = p.getBoundingClientRect(); if (!b.width) continue; p.style.setProperty("--mx", (pendiente.clientX - b.left) + "px"); p.style.setProperty("--my", (pendiente.clientY - b.top) + "px"); }
+  pendiente = null; }); });
+// si una pieza cambia de tamaño, su mapa se rehace
+let espera; new ResizeObserver(() => { clearTimeout(espera); espera = setTimeout(pintar, 120); }).observe(vent);
+
+// ---------- medir: desplaza el contenido solo 3 s y cuenta los cuadros (para probarlo en el Mac mini) ----------
+window.medir = () => new Promise((ok) => {
+  const sc = $("#scroll"); sc.scrollTop = 0; const t = []; let antes = performance.now(), ini = antes, dir = 1;
+  const paso = (ahora) => { t.push(ahora - antes); antes = ahora; sc.scrollTop += 12 * dir; if (sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 2 || sc.scrollTop <= 0) dir = -dir;
+    if (ahora - ini < 3000) return requestAnimationFrame(paso);
+    if (t.length < 5) return ok(null); // la pestaña estaba detrás de otra: el navegador no dibujó cuadros
+    t.shift(); t.sort((a, b) => a - b); sc.scrollTop = 0;
+    ok({ fps: +(t.length / 3).toFixed(1), p95ms: +t[Math.floor(t.length * 0.95)].toFixed(1), tirones: t.filter((x) => x > 25).length }); };
+  requestAnimationFrame(paso);
+});
+$("#b-medir").onclick = async () => { $("#salida").textContent = "Midiendo…"; const r = await window.medir(); $("#salida").textContent = !r ? "Deja la pestaña a la vista y vuelve a medir." : `${r.fps} cuadros/s · el peor 5 % tarda ${r.p95ms} ms · ${r.tirones} tirones`; };
+
+poner("elegido"); // arranca en «E · Elegido», lo que Felipe dejó puesto, sobre un fondo con forma
+</script>
+</body>
+</html>
