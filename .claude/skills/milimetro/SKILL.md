@@ -159,7 +159,7 @@ Si un estado **no aplica**, la ficha lo dice con su motivo, por ejemplo «select
 | un placeholder, un «Ej. …» o un chip sugerido no calza con lo que se eligió | `/sugerir` | `/textos` escribe el texto; que siga lo elegido lo vigila `/sugerir` (ADR-0290) |
 | la pieza guarda: doble clic, red caída, dos cuentas a la vez | `/chaos` | Tu estado `loading` dice cómo se ve; `/chaos` prueba que de verdad no guarda dos veces |
 | la pieza cambia los controles de una pantalla (su «huella») | `/guia` | La guía interactiva se pone al día con `guias:recorrer` (ADR-0389) |
-| hay que revisar 1024–1920 px en todo un módulo | `/multi-view-responsive` | Mide siete anchos; tú mides tres |
+| hay que revisar 1024–1920 px en todo un módulo, o teléfono y tablet | `/multi-view-responsive` (con `celular`, 360–844 px) | Mide siete anchos de escritorio o seis de celular; tú mides tres |
 | una idea de sombra, ícono o radio «de afuera» | `/better-ui` (solo se consulta) | Si sirve, entra por `/unificar` |
 
 ## Tu sección de la ficha

@@ -20,7 +20,7 @@ Espacio de: $ARGUMENTS   (un componente, una ruta como `/inventario/frescura`, u
 4. **Se mide, no se opina.** Cada número dice cómo se verifica: `referencia/medir.js` en `javascript_tool`, un `grep`, o una prueba del repo.
 5. **No duplica.** Lo que ya mide `/formidable` (`.claude/skills/formidable/referencia/medir-oficio.js`: huecos renderizados entre hermanos,
    alturas desiguales en una fila, cuántos radios, cuántas sombras, bordes casi alineados) se corre con ese script; el 44 del dedo de verdad,
-   con `pnpm --filter web tacto:medir`; las piezas repetidas, con `/unificar`; el responsive de 1024 a 1920, con `/multi-view-responsive`;
+   con `pnpm --filter web tacto:medir`; las piezas repetidas, con `/unificar`; el responsive de 1024 a 1920 (y, con `celular`, de teléfono y tablet), con `/multi-view-responsive`;
    el pulido fino de sombras y alineación óptica, con `/better-ui` (se consulta, no manda). Esta skill da el fundamento y las medidas exactas.
 
 ## Las reglas al milímetro

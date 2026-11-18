@@ -115,7 +115,7 @@ Cada hallazgo que Felipe elija, **en este orden y en su propio commit**:
 
 ## Lo que esta skill no hace
 
-- No juzga si la pantalla se entiende (eso es `/formidable`), ni su guía de foco (`/focus`), ni su responsive de escritorio (`/multi-view-responsive`), ni un caso de negocio de punta a punta (`/flujo-de-negocio`).
+- No juzga si la pantalla se entiende (eso es `/formidable`), ni su guía de foco (`/focus`), ni su responsive de escritorio o de celular (`/multi-view-responsive`), ni un caso de negocio de punta a punta (`/flujo-de-negocio`).
 - No prueba carga ni rendimiento con volumen real: el seed local es chico.
 - No ataca producción, SUNAT real, ni la pasarela de nadie.
 - No es un escáner de seguridad: la familia `permisos` comprueba que los candados que CAYLA ya declaró (ADR-0126, 0161, 0178) aguantan, no busca vulnerabilidades nuevas ni hace pruebas de penetración.
