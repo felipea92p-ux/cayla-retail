@@ -159,13 +159,13 @@ export function RangoRendimiento({
         {pendiente === null ? "Toca el primer día." : `Ahora el último día, hasta ${RANGO_MAX_DIAS} días.`}
       </p>
       <div className="rango-cabeza">
-        <button type="button" className="rango-flecha area-dedo" disabled={visible <= mesPiso} aria-label="Mes anterior" onClick={() => setVisible((v) => sumarMeses(v, -1))}>
+        <button type="button" className="rango-flecha area-dedo" disabled={visible <= mesPiso} title={visible <= mesPiso ? motivoEnPalabras("antes", piso) : undefined} aria-label="Mes anterior" onClick={() => setVisible((v) => sumarMeses(v, -1))}>
           <ChevronLeft aria-hidden className="h-4 w-4" />
         </button>
         <div className="rango-mes-nombre" aria-live="polite">
           {nombreDelMes(visible)}
         </div>
-        <button type="button" className="rango-flecha area-dedo" disabled={visible >= mesHoy} aria-label="Mes siguiente" onClick={() => setVisible((v) => sumarMeses(v, 1))}>
+        <button type="button" className="rango-flecha area-dedo" disabled={visible >= mesHoy} title={visible >= mesHoy ? motivoEnPalabras("futuro", piso) : undefined} aria-label="Mes siguiente" onClick={() => setVisible((v) => sumarMeses(v, 1))}>
           <ChevronRight aria-hidden className="h-4 w-4" />
         </button>
       </div>
