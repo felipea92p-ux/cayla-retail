@@ -246,3 +246,20 @@ sin pasarse ni rebotar, ADR-0136), con el tiempo real de cada cuadro. Si la piez
 se desplazan, un modal termina de entrar), el agujero y la tarjeta van pegados a ella; el resorte queda solo para el viaje de
 una pieza a otra. La tarjeta cambia de texto cuando la pieza llegó y quedó quieta (`hastaQueQuieta`: 4 cuadros iguales, tope
 1,2 s), no a los 320 ms. El anillo y la tarjeta ya no tienen transición CSS de posición.
+
+## Actualización 2026-11-18 — un pliegue se abre o se cierra solo si hace falta
+
+Campañas y ofertas e Insignias abren el globo del «?» de la cabecera en «¿Insignia, campaña u oferta?»: el mapa vive adentro. El
+globo es un pliegue (`AyudaCabecera`, `aria-expanded`, `role="note"`): el mismo toque lo abre y lo cierra, y el Escape del piloto
+no lo ve porque solo sale si hay un diálogo abierto. Un toque a ciegas alternaba: al volver con ← el globo quedaba abierto sobre el
+paso anterior, y al avanzar de nuevo el paso que lo abría lo cerraba (y se saltaba, porque su pieza vive en el globo).
+
+- **El toque mira el estado:** `{ tipo: "clic", ancla, para: "abrir" | "cerrar" }`. La regla pura es `toqueDelPliegue`
+  (`lib/guias/reglas.ts`, con su prueba): «abrir» no toca un pliegue abierto y «cerrar» no toca uno cerrado, así que correrlo dos
+  veces deja lo mismo que una. Un control sin `aria-expanded` no se toca a ciegas: el paso lo avisa y el recorredor lo marca.
+- **«Cerrar» no espera:** si la pieza no está a la vista no hay nada que cerrar. Tampoco cuenta como algo que abre: no alarga la
+  espera del paso siguiente ni el total estimado.
+- **Descarté que el Escape del piloto cierre el globo:** el Escape llega a todo el documento, y fuera de un diálogo puede querer
+  decir otra cosa (borrar una búsqueda). Además no resolvía abrir sin cerrar.
+- **En las dos guías:** «Vale en todas partes» y el paso que sigue al mapa lo cierran, el mapa lo abre y `alSalir` lo cierra. Reemplaza
+  al segundo toque con `prepararSoloAlAvanzar` que el PR #1942 le ponía a «Cómo se ven en la tienda web».

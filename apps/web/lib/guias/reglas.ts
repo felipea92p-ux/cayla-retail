@@ -1,6 +1,6 @@
 // Guías interactivas (ADR-0389): las reglas puras que usa el motor. Sin React ni DOM: se prueban en `reglas.test.ts`.
 
-import type { Guia, PasoGuia, PiezaATocar } from "./tipos";
+import type { AccionGuia, Guia, PasoGuia, PiezaATocar } from "./tipos";
 
 /** Sin tildes ni mayúsculas, espacios colapsados: «CONFIRMAR  cobro» y «Confirmar cobro» son lo mismo. */
 export function normalizar(texto: string): string {
@@ -54,6 +54,18 @@ export function motivoParaNoTocar(p: PiezaATocar): string | null {
     if (new RegExp(`(^|[^a-z])${verbo}([^a-z]|$)`).test(texto)) return `es un botón que hace algo («${verbo}»)`;
   }
   return null;
+}
+
+/**
+ * Un toque «para abrir» o «para cerrar» un pliegue (`AccionGuia` con `para`): ¿se toca? `expandido` es el `aria-expanded` del control
+ * tal como lo trae el DOM («true», «false» o null). El mismo toque abre y cierra, así que tocar a ciegas alterna: al volver con ← un
+ * paso reabría lo que el siguiente había cerrado. Mirando el estado, correrlo dos veces deja lo mismo que correrlo una.
+ * «no-es-pliegue»: el control no dice si está abierto, y tocarlo sería volver a tocar a ciegas.
+ */
+export function toqueDelPliegue(para: "abrir" | "cerrar", expandido: string | null): "tocar" | "ya-esta" | "no-es-pliegue" {
+  if (expandido !== "true" && expandido !== "false") return "no-es-pliegue";
+  const abierto = expandido === "true";
+  return (para === "abrir") === abierto ? "ya-esta" : "tocar";
 }
 
 /** ¿Esta ruta del registro («/compras/proveedores/[id]») describe esta URL («/compras/proveedores/9f…»)? */
@@ -152,12 +164,16 @@ export function posicionTarjeta(recorte: Caja | null, ventana: Ventana, tarjeta:
   return { top: Math.max(borde, ventana.alto - tarjeta.alto - borde), left: centradoX(ventana.ancho / 2), lado: "centro" };
 }
 
+/** Cerrar un pliegue (`para: "cerrar"`) solo oculta: no hace aparecer ninguna pieza, ni hay que esperarla. */
+const soloCierra = (a: AccionGuia) => a.tipo === "clic" && a.para === "cerrar";
+const puedeAbrir = (acciones: readonly AccionGuia[] | undefined) => !!acciones?.some((a) => !soloCierra(a));
+
 /**
  * ¿Hay que esperar a que la pieza aparezca? Solo si algo la acaba de abrir: el propio paso la prepara, o el paso anterior
  * hizo algo con la pantalla (abrir un modal, escribir). Si no, la pieza está o no está, y esperar es tiempo muerto.
  */
 export function esperaPorAncla(paso: PasoGuia, anterior: PasoGuia | null): number {
-  const algoLaAbre = !!paso.preparar?.length || !!anterior?.demostrar?.length || !!anterior?.preparar?.length;
+  const algoLaAbre = puedeAbrir(paso.preparar) || puedeAbrir(anterior?.demostrar) || puedeAbrir(anterior?.preparar);
   if (algoLaAbre) return paso.opcional ? 1400 : 2200;
   return paso.opcional ? 120 : 900;
 }
@@ -171,7 +187,7 @@ export function totalEstimado(pasos: readonly PasoGuia[], presentes: ReadonlySet
   let n = 0;
   let cambiaDeVista = false;
   pasos.forEach((p, i) => {
-    if (p.preparar?.some((a) => a.tipo === "clic")) cambiaDeVista = true;
+    if (p.preparar?.some((a) => a.tipo === "clic" && !soloCierra(a))) cambiaDeVista = true;
     if (pasoAplica(p, presentes, anchoVentana)) {
       const anterior = i > 0 ? pasos[i - 1]! : null;
       if (!p.opcional || p.ancla === null || presentes.has(p.ancla) || cambiaDeVista || esperaPorAncla(p, anterior) > 1000) n++;
