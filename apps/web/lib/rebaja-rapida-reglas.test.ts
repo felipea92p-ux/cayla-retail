@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { sePuedeConfirmar, siguienteDe } from "./guia-campos";
 import {
   camposDeLaHojaDeDescuento,
   claveModeloColor,
@@ -200,7 +201,22 @@ describe("Nuevo descuento y cambiar el % (ADR-0677)", () => {
   });
 
   it("la guía pide el % y quién lo hace; abrir uno que ya existe no pide quién", () => {
-    expect(camposDeLaHojaDeDescuento({ pct: null, existeSinCambiar: false, responsableListo: false, responsableMotivo: null }).map((c) => `${c.id}:${c.hecho}`)).toEqual(["pct:false", "responsable:false"]);
-    expect(camposDeLaHojaDeDescuento({ pct: 10, existeSinCambiar: true, responsableListo: false, responsableMotivo: null }).map((c) => c.id)).toEqual(["pct"]);
+    const base = { pctElegido: false, existeSinCambiar: false, responsableListo: false, responsableMotivo: null };
+    expect(camposDeLaHojaDeDescuento({ ...base, pct: null }).map((c) => `${c.id}:${c.hecho}`)).toEqual(["pct:false", "responsable:false"]);
+    expect(camposDeLaHojaDeDescuento({ ...base, pct: 10, existeSinCambiar: true }).map((c) => c.id)).toEqual(["pct"]);
+  });
+
+  it("el % que llega puesto es sugerido hasta que la persona lo toca, y nunca bloquea; vacío sí bloquea (ADR-0284 act. h)", () => {
+    const base = { existeSinCambiar: false, responsableListo: true, responsableMotivo: null };
+    const deFabrica = camposDeLaHojaDeDescuento({ ...base, pct: 25, pctElegido: false });
+    expect(deFabrica[0]).toMatchObject({ requerido: false, sugerido: true, hecho: false, pendiente: "Elige el % (ahora dice −25 %)." });
+    expect(siguienteDe(deFabrica)?.id).toBe("pct");
+    expect(sePuedeConfirmar(deFabrica)).toBe(true);
+    const elegido = camposDeLaHojaDeDescuento({ ...base, pct: 25, pctElegido: true });
+    expect(elegido[0].hecho).toBe(true);
+    expect(siguienteDe(elegido)).toBeNull();
+    const vacio = camposDeLaHojaDeDescuento({ ...base, pct: null, pctElegido: true });
+    expect(vacio[0]).toMatchObject({ requerido: true, hecho: false });
+    expect(sePuedeConfirmar(vacio)).toBe(false);
   });
 });

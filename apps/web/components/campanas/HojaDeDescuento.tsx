@@ -54,12 +54,20 @@ export function HojaDeDescuento({
   const [texto, setTexto] = useState(cambiando ? String(cambiando.pct) : "25");
   const [todas, setTodas] = useState(cambiando?.todas ?? false);
   const [guardando, setGuardando] = useState(false);
+  // El % llega puesto: la guía lo da por elegido recién cuando la persona lo toca (ADR-0284 act. h).
+  const [pctElegido, setPctElegido] = useState(false);
   const pct = pctDeDescuento(texto.trim() === "" ? null : Number(texto.replace(",", ".")));
   const existente = descuentoConPct(descuentos, pct, todas, cambiando?.etiquetaId);
   const mismo = cambiando !== null && pct !== null && Math.round(pct * 100) === Math.round(cambiando.pct * 100);
-  const guia = useGuiaCampos(camposDeLaHojaDeDescuento({ pct, existeSinCambiar: !cambiando && existente !== null, responsableListo: responsable.listo, responsableMotivo: responsable.motivo }));
+  const guia = useGuiaCampos(
+    camposDeLaHojaDeDescuento({ pct, pctElegido, existeSinCambiar: !cambiando && existente !== null, responsableListo: responsable.listo, responsableMotivo: responsable.motivo }),
+  );
 
-  const sumar = (n: number) => setTexto(String(Math.min(70, Math.max(1, Math.round((pct ?? 0) + n)))));
+  const elegirPct = (valor: string) => {
+    setTexto(valor);
+    setPctElegido(true);
+  };
+  const sumar = (n: number) => elegirPct(String(Math.min(70, Math.max(1, Math.round((pct ?? 0) + n)))));
 
   /** «Deshacer» de un cambio de %: vuelve al % de antes (si se juntó, sus tallas vuelven a ese % de una sola llamada). */
   async function deshacerCambio(c: Cambio) {
@@ -134,11 +142,11 @@ export function HojaDeDescuento({
               sufijo="%"
               menos={{ onClick: () => sumar(-1), deshabilitado: (pct ?? 0) <= 1, etiqueta: "Un % menos" }}
               mas={{ onClick: () => sumar(1), deshabilitado: (pct ?? 0) >= 70, etiqueta: "Un % más" }}
-              campo={{ value: texto, onChange: (ev) => setTexto(ev.target.value), inputMode: "decimal", "aria-label": "Porcentaje de descuento" }}
+              campo={{ value: texto, onChange: (ev) => elegirPct(ev.target.value), inputMode: "decimal", "aria-label": "Porcentaje de descuento" }}
             />
             <div className="flex flex-wrap gap-1.5" role="group" aria-label="Porcentajes a un toque">
               {PCTS_SUGERIDOS.map((v) => (
-                <button key={v} type="button" className="pildora-cayla" aria-pressed={pct === v} onClick={() => setTexto(String(v))}>
+                <button key={v} type="button" className="pildora-cayla" aria-pressed={pct === v} onClick={() => elegirPct(String(v))}>
                   {textoPct(v)}
                 </button>
               ))}

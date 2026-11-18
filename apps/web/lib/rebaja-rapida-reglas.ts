@@ -359,10 +359,28 @@ export function textoDeLaHojaDeDescuento(c: { cambiando: boolean; existe: boolea
 /**
  * Los campos de la guía de foco de la hoja (ADR-0284): el % y quién lo hace. Abrir uno que ya existe no guarda nada, así que no pide quién. Sale
  * de lo mismo que exige la base (`fn_pct_de_descuento`, `fn_actor_persona_id`).
+ *
+ * El % llega puesto (25, o el que tiene al cambiarlo): es un valor de fábrica que importa (ADR-0284 act. h). Mientras nadie lo toque la luz
+ * pasa por él como «sugerido», sin bloquear; vacío o fuera de 1..70 es lo único que bloquea, como en la base.
  */
-export function camposDeLaHojaDeDescuento(c: { pct: number | null; existeSinCambiar: boolean; responsableListo: boolean; responsableMotivo: string | null }): CampoDeGuia[] {
+export function camposDeLaHojaDeDescuento(c: {
+  pct: number | null;
+  /** ¿La persona tocó el % (escribió, usó − / + o eligió un chip)? */
+  pctElegido: boolean;
+  existeSinCambiar: boolean;
+  responsableListo: boolean;
+  responsableMotivo: string | null;
+}): CampoDeGuia[] {
+  const valido = c.pct !== null;
   return [
-    { id: "pct", nombre: "Porcentaje", requerido: true, hecho: c.pct !== null, pendiente: "Elige un % de 1 a 70." },
+    {
+      id: "pct",
+      nombre: "Porcentaje",
+      requerido: !valido,
+      sugerido: valido,
+      hecho: valido && c.pctElegido,
+      pendiente: valido ? `Elige el % (ahora dice ${textoPct(c.pct as number)}).` : "Elige un % de 1 a 70.",
+    },
     ...(c.existeSinCambiar
       ? []
       : [{ id: "responsable", nombre: "Quién", requerido: true, hecho: c.responsableListo, pendiente: c.responsableMotivo ?? "Elige quién lo hace." }]),
