@@ -19,6 +19,7 @@ import {
   precioConPct,
   quedaBajoCosto,
   sugerenciasDeAgregar,
+  textoDeDondeSalio,
   textoDeLaHojaDeDescuento,
   textoPct,
   type LugarDeRebaja,
@@ -114,10 +115,23 @@ describe("Las prendas del panel de un descuento (ADR-0677)", () => {
     ]);
   });
 
-  it("nombra las tallas solo si no van todas las de ese color", () => {
+  it("dice «todas las tallas» con palabras, nombra las que van si no son todas y la única si es una (Formidable 2026-11-18)", () => {
     const tallasPorColor = new Map([[claveModeloColor("falda", "Negro"), 2], [claveModeloColor("falda", "Beige"), 3]]);
     const piezas = piezasDeDescuento([talla({ varianteId: "n-s", talla: "S" }), talla({ varianteId: "n-m" }), talla({ varianteId: "b-m", color: "Beige" })], 10, { ...sinNada, tallasPorColor });
-    expect(piezas.map(detalleDePieza)).toEqual(["Beige · M", "Negro"]);
+    expect(piezas.map(detalleDePieza)).toEqual(["Beige · M", "Negro · todas las tallas"]);
+    expect(detalleDePieza({ color: "Rojo", tallas: ["Única"], todasLasTallas: true })).toBe("Rojo · Única");
+    // Las tallas van de la más chica a la más grande, aunque la base las traiga por nombre.
+    const sueltas = piezasDeDescuento([talla({ varianteId: "l", talla: "L" }), talla({ varianteId: "m", talla: "M" }), talla({ varianteId: "s", talla: "S" })], 10, sinNada);
+    expect(sueltas[0].tallas).toEqual(["S", "M", "L"]);
+    expect(detalleDePieza({ color: null, tallas: [], todasLasTallas: false })).toBe("");
+  });
+
+  it("de dónde salió la prenda se dice con su %, no con el nombre interno del cajón (Formidable 2026-11-18)", () => {
+    expect(textoDeDondeSalio([])).toBeNull();
+    expect(textoDeDondeSalio(["Rebaja −20 % · Tienda Lima"])).toBe("Antes tenía −20 %");
+    expect(textoDeDondeSalio(["Rebaja −12.5 % · Todas las tiendas"])).toBe("Antes tenía −12.5 % de todas las tiendas");
+    expect(textoDeDondeSalio(["Para liquidar"])).toBe("Antes estaba en «Para liquidar»");
+    expect(textoDeDondeSalio(["Rebaja −20 % · Tienda Lima", "Para liquidar"])).toBe("Antes estaba en −20 % y «Para liquidar»");
   });
 
   it("la que se agregó recién va primero, aunque por nombre fuera después", () => {

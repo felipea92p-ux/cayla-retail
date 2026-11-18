@@ -1227,7 +1227,7 @@ export const GUIA_CAMPANAS: Guia = {
       ancla: "rebaja.tienda",
       opcional: true,
       titulo: "Los descuentos de tu tienda",
-      texto: "Van primero en la lista: cada fila es un descuento que rige aquí y cuántas prendas tiene. Tócala y se abre con sus prendas y su precio de hoy. La × quita una, y el aviso trae «Deshacer».",
+      texto: "Van primero en la lista: cada fila es un descuento que rige aquí y cuántas prendas tiene. Tócala y se abre con sus prendas y su precio de hoy. Si una dice «todas las tallas», tócala para ver cuáles. La × quita una, y el aviso trae «Deshacer».",
     },
     {
       id: "nuevo-descuento",

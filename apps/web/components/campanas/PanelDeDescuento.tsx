@@ -91,6 +91,8 @@ export function PanelDeDescuento({
   const [version, setVersion] = useState(0);
   const [quitando, setQuitando] = useState<string | null>(null);
   const [recientes, setRecientes] = useState<string[]>([]);
+  // La prenda («todas las tallas») que muestra cuáles son; una a la vez.
+  const [tallasAbiertas, setTallasAbiertas] = useState<string | null>(null);
   // Un descuento de todas las tiendas se cambia «en todas»: lo pide la base y solo puede un líder.
   const puedeTocar = !todas || esLider;
 
@@ -318,35 +320,51 @@ export function PanelDeDescuento({
         </div>
       ) : (
         <div className="lc-grilla" data-resultados>
-          {piezas.map((p, j) => (
-            <article key={p.clave} className="sl-prenda lc-pieza" data-sale={quitando === p.clave ? "" : undefined} style={{ "--j": j } as CSSProperties}>
-              <div className="sl-prenda-foto relative">
-                <FotoDePrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} prefijo={p.categoria?.prefijo} familia={p.categoria?.familia} categoria={p.categoria?.nombre} />
-                {puedeTocar && (
-                  <BotonQuitarFoto
-                    grande
-                    className="right-2 top-2 area-dedo"
-                    etiqueta={`Quitar ${[p.referencia, p.color].filter(Boolean).join(" ")} del ${textoPct(pct)}`}
-                    disabled={quitando !== null || !responsable.listo}
-                    onClick={() => void quitar(p)}
+          {piezas.map((p, j) => {
+            // «Todas las tallas» no dice cuáles: tocar la prenda las muestra (Formidable 2026-11-18, la prueba ciega la tocó para verlas).
+            const conToque = p.todasLasTallas && p.tallas.length > 1;
+            const abierta = conToque && tallasAbiertas === p.clave;
+            const nombre = [p.referencia, p.color].filter(Boolean).join(" ");
+            return (
+              <article key={p.clave} className="sl-prenda lc-pieza" data-sale={quitando === p.clave ? "" : undefined} style={{ "--j": j } as CSSProperties}>
+                {conToque && (
+                  <button
+                    type="button"
+                    className="lc-pieza-toque"
+                    aria-expanded={abierta}
+                    aria-label={`${abierta ? "Esconder" : "Ver"} las tallas de ${nombre}`}
+                    onClick={() => setTallasAbiertas(abierta ? null : p.clave)}
                   />
                 )}
-              </div>
-              <span className="sl-prenda-nombre" title={p.referencia}>
-                {p.referencia}
-              </span>
-              <span className="sl-prenda-dato">{detalleDePieza(p)}</span>
-              <span className="lc-pieza-precio">
-                <b>{soles(p.precioConPct)}</b>
-                <s>{soles(p.precio)}</s>
-              </span>
-              {p.bajoCosto && (
-                <Chip tono="ambar" title="Con este % se vende por debajo de lo que costó">
-                  Bajo costo
-                </Chip>
-              )}
-            </article>
-          ))}
+                <div className="sl-prenda-foto relative">
+                  <FotoDePrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} prefijo={p.categoria?.prefijo} familia={p.categoria?.familia} categoria={p.categoria?.nombre} />
+                  {puedeTocar && (
+                    <BotonQuitarFoto
+                      grande
+                      className="right-2 top-2 area-dedo"
+                      etiqueta={`Quitar ${nombre} del ${textoPct(pct)}`}
+                      disabled={quitando !== null || !responsable.listo}
+                      onClick={() => void quitar(p)}
+                    />
+                  )}
+                </div>
+                <span className="sl-prenda-nombre" title={p.referencia}>
+                  {p.referencia}
+                </span>
+                <span className="sl-prenda-dato">{detalleDePieza(p)}</span>
+                {abierta && <span className="sl-prenda-dato lc-pieza-tallas">{p.tallas.join(" · ")}</span>}
+                <span className="lc-pieza-precio">
+                  <b>{soles(p.precioConPct)}</b>
+                  <s>{soles(p.precio)}</s>
+                </span>
+                {p.bajoCosto && (
+                  <Chip tono="ambar" title="Con este % se vende por debajo de lo que costó">
+                    Bajo costo
+                  </Chip>
+                )}
+              </article>
+            );
+          })}
         </div>
       )}
     </section>

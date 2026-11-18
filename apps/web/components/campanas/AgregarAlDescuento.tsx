@@ -22,6 +22,7 @@ import {
   precioConPct,
   quedaBajoCosto,
   sugerenciasDeAgregar,
+  textoDeDondeSalio,
   textoPct,
   type AlcanceRebaja,
   type DescuentoDeLista,
@@ -177,7 +178,7 @@ export function AgregarAlDescuento({
       onAgregado({ variantes: [], claves, antes: null, texto: "" });
       return false;
     }
-    onAgregado({ variantes, claves, antes, texto, detalle: sacadas.size > 0 ? `Sale de ${[...sacadas].join(", ")}` : detalle });
+    onAgregado({ variantes, claves, antes, texto, detalle: textoDeDondeSalio([...sacadas]) ?? detalle });
     return true;
   }
 

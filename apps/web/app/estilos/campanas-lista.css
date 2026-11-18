@@ -198,6 +198,21 @@
   .lc-pieza-precio s { color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
   /* La que se quita sale corta mientras la base responde (ADR-0136: la salida, con `--ease-salida`). */
   .lc-pieza[data-sale] { animation: lc-sale var(--t-hoja) var(--ease-salida) forwards; pointer-events: none; }
+  /* «Todas las tallas»: toda la tarjeta se toca para ver cuáles (Formidable 2026-11-18). Una capa sin fondo bajo la tarjeta, con su anillo de
+     foco alrededor; el texto y la foto dejan pasar el toque hasta ella, salvo la ×. (Encima no sirve: la foto sube con un `transform` al pasar el
+     mouse, eso la vuelve una capa propia y la × quedaba tapada.) La línea de tallas entra con la respuesta corta de una acción (ADR-0136), sin rebote. */
+  .lc-pieza { position: relative; }
+  .lc-pieza-toque {
+    position: absolute;
+    inset: -6px;
+    z-index: 0;
+    border-radius: var(--radius-tarjeta);
+    background: transparent;
+    cursor: pointer;
+  }
+  .lc-pieza:has(> .lc-pieza-toque) > :not(.lc-pieza-toque) { pointer-events: none; }
+  .lc-pieza:has(> .lc-pieza-toque) .sl-prenda-foto button { pointer-events: auto; }
+  .lc-pieza-tallas { animation: cayla-cascada var(--t-cambio) var(--ease-cayla) both; }
 
   /* ── Agregar (actividad 3): el buscador bajo la cabecera y, al escanear, la prenda leída con su pregunta ──
      La prenda leída explica y ofrece dos botones: va en la placa (lo que explica es plano, ADR-0596). */
@@ -225,6 +240,7 @@
     .lc-fila { translate: none; scale: none; animation: none; }
     .lc-grilla > * { animation: none; }
     .lc-pieza[data-sale] { animation: none; opacity: 0.4; }
+    .lc-pieza-tallas { animation: none; }
   }
 }
 

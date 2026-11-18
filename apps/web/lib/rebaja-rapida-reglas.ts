@@ -4,6 +4,7 @@
  * puede poner, cuánto quedaría, de dónde sale y qué falta para confirmar. No agrega reglas: el tope (70 %) y «una prenda, un lugar» son de la base.
  */
 import type { CampoDeGuia } from "./guia-campos";
+import { compararTallas } from "./tallas";
 import { descuentoDeCampana, totalDeLineas } from "./vender-reglas";
 
 export type AlcanceRebaja = "prenda" | "modelo";
@@ -230,6 +231,8 @@ export function piezasDeDescuento(
   return [...porClave.values()]
     .map((pieza) => ({
       ...pieza,
+      // De la más chica a la más grande (S, M, L), como en toda la tienda; la base las trae por nombre.
+      tallas: [...pieza.tallas].sort(compararTallas),
       precioConPct: precioConPct(pieza.precio, pct),
       todasLasTallas: pieza.variantes.length >= (datos.tallasPorColor.get(pieza.clave) ?? Number.POSITIVE_INFINITY),
     }))
@@ -241,9 +244,33 @@ export function piezasDeDescuento(
     );
 }
 
-/** La línea bajo el nombre: el color y, si no van todas sus tallas, cuáles. */
+/**
+ * La línea bajo el nombre: el color y qué tallas van. «Todas las tallas» lo dice con palabras (la prueba ciega del 2026-11-18 no sabía si
+ * «Negro» solo era todas o una); si el modelo tiene una sola talla, la nombra.
+ */
 export function detalleDePieza(p: Pick<PiezaDeDescuento, "color" | "tallas" | "todasLasTallas">): string {
-  return [p.color, p.todasLasTallas || p.tallas.length === 0 ? null : p.tallas.join(", ")].filter(Boolean).join(" · ");
+  const tallas = p.tallas.length === 0 ? null : p.todasLasTallas && p.tallas.length > 1 ? "todas las tallas" : p.tallas.join(", ");
+  return [p.color, tallas].filter(Boolean).join(" · ");
+}
+
+/**
+ * De dónde salió la prenda al agregarla, en palabras de tienda: el % de un descuento («Antes tenía −20 %») o el nombre de una campaña
+ * («Antes estaba en «Para liquidar»»), nunca el nombre interno del cajón («Rebaja −20 % · Tienda Lima», que la prueba ciega no entendió).
+ * `null` si no venía de ninguno.
+ */
+export function textoDeDondeSalio(lugares: readonly string[]): string | null {
+  if (lugares.length === 0) return null;
+  let soloDescuentos = true;
+  const partes = lugares.map((nombre) => {
+    const cajon = /^Rebaja (−\S+ %) · (.+)$/.exec(nombre);
+    if (!cajon) {
+      soloDescuentos = false;
+      return `«${nombre}»`;
+    }
+    return cajon[2] === "Todas las tiendas" ? `${cajon[1]} de todas las tiendas` : cajon[1];
+  });
+  const lista = new Intl.ListFormat("es", { type: "conjunction" }).format(partes);
+  return soloDescuentos ? `Antes tenía ${lista}` : `Antes estaba en ${lista}`;
 }
 
 /** Una talla que devuelve `buscar_prenda_para_rebaja`: por su código exacto (lo que lee la pistola) o por el nombre del modelo. */
