@@ -171,7 +171,7 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
         // Al volver, lo que el paso necesita y el motor ya cerró (la hoja donde vive, la pestaña) se reabre con lo que lo abrió: si el paso no
         // prepara nada y su pieza no está, o si prepara pero lo primero que toca no está (`reabrir`). Si aun así se salta, lo que se abrió para
         // él se cierra: el paso de antes no lo espera.
-        const propio = !!paso.preparar?.length && !(paso.prepararSoloAlAvanzar && direccion === -1);
+        const propio = !!paso.preparar?.length;
         const modalesAntes = modalesAbiertos();
         let heredado = false;
         if (direccion === -1) {

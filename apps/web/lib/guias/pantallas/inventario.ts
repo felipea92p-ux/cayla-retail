@@ -161,8 +161,8 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.filtros",
       opcional: true,
       solo: "celular",
-      prepararSoloAlAvanzar: true,
-      preparar: [{ tipo: "clic", ancla: "existencias.chip-vista" }],
+      // La × de «Vista: Tabla» solo está con la tabla puesta: al volver con ←, ya se usó y no hay nada que tocar.
+      preparar: [{ tipo: "clic", ancla: "existencias.chip-vista", siEsta: true }],
       titulo: "De vuelta a las tarjetas",
       texto: "Mientras ves la tabla, una etiqueta «Vista: Tabla» lo recuerda bajo el buscador: con su × vuelves a las tarjetas, como acabamos de hacer.",
     },

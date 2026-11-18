@@ -299,17 +299,23 @@ ya cierra al volver), eligen una pestaña o marcan una casilla.
 Al volver, el motor cierra las hojas que la guía abrió después del paso de destino, y salta directo al último paso que se mostró. Un paso
 que vive dentro de una hoja (o en otra pestaña, o en una vista que eligió un paso de más adelante) y no la abre él mismo se saltaba, y la
 guía caía varios pasos más atrás: en Existencias, desde «Colgar varias de una vez» hasta antes de abrir la ficha; en Gastos, desde «Fijos
-del mes» hasta «Cuatro listas». Visto con una ida y vuelta (avanzar, volver al principio, avanzar otra vez) en 9 guías.
+del mes» hasta «Cuatro listas». Visto con una ida y vuelta (avanzar, volver al principio, avanzar otra vez) en 15 guías.
 
 - **El motor reabre en cadena:** al volver, si a un paso le falta su pieza (y no prepara nada), o si prepara pero lo primero que toca ya no
   está, repite el `preparar` del último paso de antes que tenía uno (`fuenteAlVolver`, con su prueba). Si lo que ese `preparar` toca
   tampoco está (la ficha de Existencias se abre desde el menú «Más»; «Clasificar un egreso», desde su pestaña), sigue hacia atrás desde
   ahí, hasta 4 niveles. Un toque cuya pieza no está y que nada acaba de abrir se salta sin esperar. Si aun así el paso se salta, lo que se
   abrió para él se cierra.
-- **Solo al volver y solo si falta algo:** al avanzar no cambia nada, y un paso con su pieza a la vista no toca nada. Lo que solo se
-  prepara al avanzar (`prepararSoloAlAvanzar`: una casilla, un filtro) no se repite.
+- **Solo al volver y solo si falta algo:** al avanzar no cambia nada, y un paso con su pieza a la vista no toca nada.
 - **Lo que vive en una pestaña o una vista la elige:** «Buscar y filtrar» y «El detalle de un gasto» de Gastos eligen la pestaña «Gastos»,
-  «Cambiar varias de una vez» de Editar producto elige «Precios», y «Busca una prenda» de Existencias vuelve a las tarjetas con la × de
-  «Vista: …» si está. Elegir lo que ya está elegido no cambia nada, así que al avanzar es igual que antes.
+  «En mi plan» del Calendario elige «Lista», «Cambiar varias de una vez» de Editar producto elige «Precios», y «Busca una prenda» de
+  Existencias vuelve a las tarjetas con la × de «Vista: …» si está. Elegir lo que ya está elegido no cambia nada, así que al avanzar es igual que antes.
+- **Se va `prepararSoloAlAvanzar`:** los 26 pasos que lo usaban dejaron de necesitarlo, y la bandera salió del motor y de los tipos.
+  Casi todos abrían una hoja o un cajón (Mi plata, Calendario, Looks, Probador, Tráfico, el modelo de Vitrina), elegían una pestaña o
+  cerraban con Escape: repetirlo al volver es justo lo que hace falta. La casilla de elegir un modelo en Vitrina, que sí alterna, se toca
+  con `para: "marcar"` (y `"desmarcar"`), que lee si está marcada como `para` lee `aria-expanded`. La × de «Vista: Tabla» de Existencias,
+  que solo existe con la tabla puesta, pasa a `siEsta`. Desde ahora **todo `preparar` tiene que poder repetirse**.
+- **Lo que depende de un `demostrar` lo pide el paso:** al volver, la hoja se reabre vacía. «¿Qué papel te dieron?» de Mi plata elige en
+  qué se gastó, y «Qué le pasa a cada uno» de Vitrina marca la casilla antes de abrir su hoja.
 - **Descarté** que el motor guarde una foto de la pantalla en cada paso y la restaure al volver: no hay forma de saber qué tocó la
   persona entre medio, y restaurar a ciegas podría desarmar algo suyo. Repetir el `preparar` es lo mismo que ya hace al avanzar.

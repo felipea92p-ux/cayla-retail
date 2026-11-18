@@ -103,7 +103,6 @@ describe("un pliegue se abre o se cierra solo si hace falta (el «?» de la cabe
     // Solo los cierres: ni lo que abre ni el Escape, ni los del paso de destino o del de partida (esos los maneja cada paso).
     expect(cierresAlVolver(pasos, 3, 1)).toEqual([]);
     expect(cierresAlVolver(pasos, 1, 0)).toEqual([]);
-    expect(cierresAlVolver([paso("a"), paso("b", { preparar: [cierra], prepararSoloAlAvanzar: true }), paso("c")], 2, 0)).toEqual([]);
   });
 
   it("al volver, lo que deja a la vista un paso sale del último paso de antes que preparaba algo (el que abrió su hoja)", () => {
@@ -126,9 +125,8 @@ describe("un pliegue se abre o se cierra solo si hace falta (el «?» de la cabe
     // Un paso de otro ancho no cuenta; en su ancho, sí.
     expect(fuenteAlVolver(pasos, 5, 1440)).toBe(1);
     expect(fuenteAlVolver(pasos, 5, 375)).toBe(4);
-    // Sin nadie antes que prepare, nada; y lo que solo se prepara al avanzar no se repite al volver.
+    // Sin nadie antes que prepare, nada.
     expect(fuenteAlVolver(pasos, 0, 1440)).toBeNull();
-    expect(fuenteAlVolver([paso("casilla", { preparar: [abreHoja], prepararSoloAlAvanzar: true }), paso("seleccion")], 1, 1440)).toBeNull();
   });
 
   it("el toque que abre de un `preparar` es el primero que no cierra ni es «si está»", () => {
@@ -138,6 +136,17 @@ describe("un pliegue se abre o se cierra solo si hace falta (el «?» de la cabe
     expect(toqueQueAbre([{ tipo: "escape" }, { tipo: "clic", ancla: "x", para: "cerrar" }, { tipo: "clic", ancla: "y", siEsta: true }, fila])).toEqual(fila);
     expect(toqueQueAbre([{ tipo: "clic", ancla: "x", para: "abrir" }])).toEqual({ tipo: "clic", ancla: "x", para: "abrir" });
     expect(toqueQueAbre([{ tipo: "escape" }, { tipo: "vaciar", ancla: "buscador" }])).toBeNull();
+  });
+
+  it("una casilla se marca o se desmarca solo si hace falta, igual que un pliegue", () => {
+    expect(toqueDelPliegue("marcar", "false")).toBe("tocar");
+    expect(toqueDelPliegue("marcar", "true")).toBe("ya-esta");
+    expect(toqueDelPliegue("desmarcar", "true")).toBe("tocar");
+    expect(toqueDelPliegue("desmarcar", "false")).toBe("ya-esta");
+    expect(toqueDelPliegue("marcar", null)).toBe("no-es-pliegue");
+    // Desmarcar solo esconde, como cerrar: no es lo que abre un paso.
+    expect(toqueQueAbre([{ tipo: "clic", ancla: "vitrina.casilla", para: "desmarcar" }])).toBeNull();
+    expect(toqueQueAbre([{ tipo: "clic", ancla: "vitrina.casilla", para: "marcar" }])).toEqual({ tipo: "clic", ancla: "vitrina.casilla", para: "marcar" });
   });
 
   it("un control que no dice si está abierto no se toca a ciegas", () => {
