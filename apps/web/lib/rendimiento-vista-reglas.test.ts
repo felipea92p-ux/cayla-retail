@@ -6,6 +6,14 @@ import {
   interpretarBusqueda,
   nombreCoincide,
   tramoDeUrl,
+  RANGO_MAX_DIAS,
+  diasDelTramo,
+  pisoDelRango,
+  tramoValido,
+  motivoDelDia,
+  diasDelEjeConTramo,
+  tramoCorto,
+  carasQueCaben,
   filasConOtraMeta,
   suDiaFuerte,
   diasParaGrafico,
@@ -490,6 +498,89 @@ describe("la URL", () => {
     expect(tramoDeUrl({ vista: "hoy" }, HOY)).toEqual(tramoDePreset("hoy", HOY));
     expect(tramoDeUrl({ vista: "semana" }, HOY)).toEqual(tramoDePreset("semana", HOY));
     expect(tramoDeUrl({}, HOY)).toEqual(tramoDePreset("mes", HOY));
+  });
+});
+
+describe("el rango a medida (máx. 30 días)", () => {
+  it("el tope cuenta el primer y el último día", () => {
+    expect(RANGO_MAX_DIAS).toBe(30);
+    expect(diasDelTramo({ desde: dia(5), hasta: dia(5) })).toBe(1);
+    expect(diasDelTramo({ desde: "2026-09-25", hasta: "2026-10-24" })).toBe(30);
+    expect(tramoValido({ desde: "2026-09-25", hasta: "2026-10-24" }, HOY)).toBe(true);
+    expect(tramoValido({ desde: "2026-09-24", hasta: "2026-10-24" }, HOY)).toBe(false);
+  });
+
+  it("el piso es el 1.º del mes pasado, y no se pasa de hoy ni se invierte", () => {
+    expect(pisoDelRango(HOY)).toBe("2026-09-01");
+    expect(tramoValido({ desde: "2026-09-01", hasta: "2026-09-30" }, HOY)).toBe(true);
+    expect(tramoValido({ desde: "2026-08-31", hasta: "2026-09-05" }, HOY)).toBe(false);
+    expect(tramoValido({ desde: dia(5), hasta: dia(25) }, HOY)).toBe(false);
+    expect(tramoValido({ desde: dia(12), hasta: dia(5) }, HOY)).toBe(false);
+  });
+
+  it("el 1 de marzo el piso solo deja volver 28 días (febrero es corto): lo dice el piso, no un error", () => {
+    expect(pisoDelRango("2027-03-01")).toBe("2027-02-01");
+    expect(tramoValido({ desde: "2027-01-31", hasta: "2027-03-01" }, "2027-03-01")).toBe(false);
+    expect(tramoValido({ desde: "2027-02-01", hasta: "2027-03-01" }, "2027-03-01")).toBe(true);
+  });
+
+  it("cada día del calendario dice por qué no se puede, o nada", () => {
+    expect(motivoDelDia(dia(25), HOY, null)).toBe("futuro");
+    expect(motivoDelDia("2026-08-31", HOY, null)).toBe("antes");
+    expect(motivoDelDia(dia(10), HOY, null)).toBeNull();
+    // con el primer día ya tocado: hasta 30 días, ni uno más; hacia atrás siempre se puede (el día pasa a ser el primero)
+    expect(motivoDelDia("2026-10-04", HOY, "2026-09-05")).toBeNull();
+    expect(motivoDelDia("2026-10-05", HOY, "2026-09-05")).toBe("largo");
+    expect(motivoDelDia("2026-09-01", HOY, "2026-09-05")).toBeNull();
+  });
+
+  it("la URL acepta un rango del mes pasado y rechaza uno de más de 30 días", () => {
+    expect(tramoDeUrl({ desde: "2026-09-20", hasta: dia(10) }, HOY)).toEqual({ desde: "2026-09-20", hasta: dia(10) });
+    expect(tramoDeUrl({ desde: "2026-09-10", hasta: dia(10) }, HOY)).toEqual(tramoDePreset("mes", HOY));
+  });
+
+  it("el eje se alarga hacia atrás hasta el primer día del rango, sin huecos", () => {
+    const base = diasDelEje(HOY);
+    expect(diasDelEjeConTramo(HOY, { desde: dia(5), hasta: dia(12) })).toEqual(base);
+    const largo = diasDelEjeConTramo(HOY, { desde: "2026-09-25", hasta: dia(3) });
+    expect(largo[0]).toBe("2026-09-25");
+    expect(largo.slice(-base.length)).toEqual(base);
+    expect(largo.length).toBe(base.length + 6);
+    expect(new Set(largo).size).toBe(largo.length);
+  });
+
+  it("el botón del período lo dice en pocas letras", () => {
+    expect(tramoCorto({ desde: dia(5), hasta: dia(12) })).toBe("5 – 12 oct");
+    expect(tramoCorto({ desde: "2026-09-28", hasta: dia(4) })).toBe("28 set – 4 oct");
+    expect(tramoCorto({ desde: dia(12), hasta: dia(12) })).toBe("12 oct");
+  });
+
+  it("el buscador no ofrece un «del 1 al 31» de 31 días", () => {
+    const hoy31 = "2026-10-31";
+    const r = interpretarBusqueda("del 1 al 31", { medidas: [], sedes: [], activaId: "x", hoy: hoy31 });
+    expect(r.some((i) => i.tipo === "tramo")).toBe(false);
+    const ok = interpretarBusqueda("del 2 al 31", { medidas: [], sedes: [], activaId: "x", hoy: hoy31 });
+    expect(ok.some((i) => i.tipo === "tramo")).toBe(true);
+  });
+});
+
+describe("la pila de «El equipo»", () => {
+  it("caben todas si hay lugar; si no, las que caben y el resto va al «+N»", () => {
+    expect(carasQueCaben(14, 0)).toBe(14); // sin medir todavía
+    expect(carasQueCaben(14, 400)).toBe(14); // 32 + 13 × 26 = 370
+    expect(carasQueCaben(14, 290)).toBe(8); // lo de la tarjeta de la captura: (290 − 32 − 52) / 26 → 8 caras + «+6»
+    expect(carasQueCaben(3, 90)).toBe(3); // 32 + 2 × 26 = 84: caben las tres, sin «+N»
+    expect(carasQueCaben(3, 80)).toBe(1); // no caben las tres: una cara y «+2» (el «+N» también ocupa lugar)
+  });
+
+  it("nunca deja la pila vacía ni queda un «+0»", () => {
+    expect(carasQueCaben(14, 40)).toBe(1);
+    expect(carasQueCaben(1, 10)).toBe(1);
+    for (const ancho of [60, 120, 200, 289, 400]) {
+      const n = carasQueCaben(14, ancho);
+      expect(n).toBeGreaterThanOrEqual(1);
+      expect(n).toBeLessThanOrEqual(14);
+    }
   });
 });
 
