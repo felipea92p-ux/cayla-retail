@@ -931,6 +931,8 @@ export const GUIA_DEVOLUCIONES: Guia = {
       id: "filtros",
       ancla: "devoluciones.filtros",
       opcional: true,
+      // Lo que sigue vive en la pestaña «Compras»; al volver desde «Por aprobar» o «Resueltas», se elige.
+      preparar: [{ tipo: "clic", ancla: "devoluciones.pestana-compras" }],
       titulo: "Filtrar las compras",
       texto: "Todas, las que ya tuvieron una devolución o las que no tienen comprobante.",
     },

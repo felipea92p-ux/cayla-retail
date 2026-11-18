@@ -1753,7 +1753,8 @@ export const GUIA_RECIBIR: Guia = {
       id: "ver-todo",
       ancla: "recibir.ver-todo",
       opcional: true,
-      preparar: [{ tipo: "escape" }],
+      // Al volver desde «Todo lo recibido», primero a la pantalla de recibir, que abre en «Por recibir»: el botón vive en «Terminados».
+      preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "recibir.volver", siEsta: true }, { tipo: "clic", ancla: "recibir.envios-terminados", siEsta: true }],
       titulo: "Todo lo recibido",
       texto: "Para ver todo lo recibido, más atrás de las últimas y con y sin factura, toca «Ver todo lo recibido» (te lo abrimos).",
     },
