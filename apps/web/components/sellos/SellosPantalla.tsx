@@ -1,9 +1,9 @@
 "use client";
 
-import { Fragment, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
-import { Award, BadgePercent, CalendarHeart, ChevronRight, HandHeart, Plus, RefreshCw, Shirt } from "lucide-react";
+import { Award, CalendarHeart, ChevronRight, HandHeart, Plus, RefreshCw, Shirt } from "lucide-react";
 import { NOMBRE_DEL_DIBUJO, dibujoElegido } from "@cayla-retail/shared/insignias-visual";
 import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { avisar } from "@/components/ui/Avisos";
@@ -43,7 +43,11 @@ import { notaSinRegistrar, type LecturaRotacion } from "@/lib/etiqueta-rotacion"
 import { hoyLima } from "@/lib/fechas-lima";
 import { bajadaDesactivarInsignia, reglasDeCampana, reglasVivas, vigenciaDeRegla, type InsigniaDeOferta, type ParQueChoca, type ReglaCampana } from "@/lib/campana-reglas";
 import { AvisoDosOfertas } from "@/components/sellos/AvisoDosOfertas";
-import { RebajasDeTienda } from "@/components/rebajas/RebajasDeTienda";
+import { DescuentosDeLaTienda } from "@/components/rebajas/RebajasDeTienda";
+import { HojaDeDescuento } from "@/components/campanas/HojaDeDescuento";
+import { PanelDeDescuento } from "@/components/campanas/PanelDeDescuento";
+import { Volver } from "@/components/ui/Volver";
+import { claveModeloColor, type DescuentoDeLista } from "@/lib/rebaja-rapida-reglas";
 import { tramoDeCampana, TEXTOS_MODO } from "@/lib/sellos-campanas";
 import {
   ESTILO_DE_VISTA,
@@ -113,9 +117,18 @@ export function SellosPantalla({
   insignias = [],
   nombresDeCampanas = {},
   choquesAbiertos = [],
+  descuentos = null,
+  esLider = false,
 }: {
+  /** Un líder cambia también los descuentos de todas las tiendas (la base lo vuelve a exigir). */
+  esLider?: boolean;
   /** Qué fila del menú dibuja (ADR-0655): «Campañas y ofertas» o «Insignias». */
   modo: "campanas" | "insignias";
+  /**
+   * Los descuentos de Campañas (ADR-0677): los cajones de «Poner un %», que van primero en la lista y no se repiten como campaña guardada.
+   * `null` si la base no los dio (o en Insignias): la lista se dibuja como antes.
+   */
+  descuentos?: readonly DescuentoDeLista[] | null;
   /** Los pares de ofertas que comparten prendas sin resolver (ADR-0655, decisión 2): el aviso de Campañas. Vacío, no hay aviso. */
   choquesAbiertos?: readonly ParQueChoca[];
   sede: string;
@@ -157,10 +170,38 @@ export function SellosPantalla({
   const [manuales, setManuales] = useState(variantesManuales);
   const [abiertoPorVista, setAbiertoPorVista] = useState<Partial<Record<VistaSellos, string>>>({});
   const [agregando, setAgregando] = useState(false);
-  // En el celular, las rebajas de la tienda se abren en una hoja desde su ícono de la cabecera (Felipe 2026-11-17); al cerrar, el foco
-  // vuelve al ícono (se guarda en el clic: `<Boton>` no expone su `ref`).
-  const [rebajasAbiertas, setRebajasAbiertas] = useState(false);
-  const botonRebajas = useRef<HTMLElement | null>(null);
+  // El descuento de la lista que está abierto (ADR-0677); con uno abierto, ninguna campaña lo está.
+  const [descuentoAbiertoId, setDescuentoAbiertoId] = useState<string | null>(null);
+  // La hoja «Nuevo descuento» o «Cambiar el %» (ADR-0677): `cambiando` es el descuento al que se le cambia el %.
+  const [hojaDeDescuento, setHojaDeDescuento] = useState<{ cambiando: DescuentoDeLista | null } | null>(null);
+  // Cuando un descuento se crea, cambia de % o se apaga, la lista se vuelve a leer, y su aviso sale DESPUÉS: si saliera antes, el refresco
+  // ocuparía la pantalla con el aviso ya visto y la pila lo retiraría con su «Deshacer» (lib/avisos-reglas.ts).
+  const [refrescando, iniciarRefresco] = useTransition();
+  const avisoTrasRefresco = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (refrescando || !avisoTrasRefresco.current) return;
+    const aviso = avisoTrasRefresco.current;
+    avisoTrasRefresco.current = null;
+    aviso();
+  }, [refrescando]);
+  const refrescarYAvisar = (aviso?: () => void) => {
+    avisoTrasRefresco.current = aviso ?? null;
+    iniciarRefresco(() => router.refresh());
+  };
+  /** Abrir un descuento que acaba de cambiar en la base (creado, cambiado, encendido): la lista se vuelve a leer y después sale su aviso. */
+  const abrirDescuentoNuevo = (id: string, aviso?: () => void) => {
+    setDescuentoAbiertoId(id);
+    refrescarYAvisar(aviso);
+  };
+  // Cuántas prendas tiene cada descuento según su panel, que las vuelve a leer después de cada cambio: pisa la cifra con que llegó la pantalla.
+  const [conteosDeDescuentos, setConteosDeDescuentos] = useState<Record<string, number>>({});
+  const anotarConteo = useCallback((id: string, n: number) => setConteosDeDescuentos((c) => (c[id] === n ? c : { ...c, [id]: n })), []);
+  // Con cifras nuevas del servidor (el escáner de arriba refresca la pantalla), mandan esas.
+  const [descuentosVistos, setDescuentosVistos] = useState(descuentos);
+  if (descuentosVistos !== descuentos) {
+    setDescuentosVistos(descuentos);
+    setConteosDeDescuentos({});
+  }
   const [nombre, setNombre] = useState("");
   // Cuándo rige la campaña que se está creando: opcional, vacías = rige siempre (Felipe 2026-10-28). Una insignia no las usa.
   const [fechasNuevas, setFechasNuevas] = useState({ desde: "", hasta: "" });
@@ -200,9 +241,64 @@ export function SellosPantalla({
     prendasVitrina ? prendasDelSello(prendasVitrina, new Set(e.categoriaIds), new Set(manuales[e.id] ?? []), porTalla) : { modelos: [], aMano: 0, unidades: null, vendidas: null };
   const categoriasDe = (e: Etiqueta) => e.categoriaIds.map((id) => nombreCategoria.get(id)).filter((n): n is string => Boolean(n));
 
-  const pilas = pilasDeLaVista(etiquetas, vista, hoy);
+  // Un descuento es una campaña sin fechas por dentro (un cajón de «Poner un %»): va en su sección, no también en «Guardadas» (ADR-0677).
+  // Se sacan todos, también los de otras tiendas, que en esta no se dibujan.
+  const idsDeDescuentos = useMemo(() => new Set((descuentos ?? []).map((d) => d.etiquetaId)), [descuentos]);
+  const pilas = pilasDeLaVista(idsDeDescuentos.size > 0 ? etiquetas.filter((e) => !idsDeDescuentos.has(e.id)) : etiquetas, vista, hoy);
+  const verDescuentos = esCampanas && puedeEditarCampanas && Boolean(sedeActualId) && descuentos !== null;
+  // El descuento abierto ocupa el lugar de la campaña abierta (ADR-0677): a la derecha o, con una sola columna, bajo su fila.
+  const descuentoAbierto = verDescuentos ? ((descuentos ?? []).find((d) => d.etiquetaId === descuentoAbiertoId && d.activo && d.rigeAqui) ?? null) : null;
+  // Lo que el panel sabe de cada talla sin volver a la base: foto y categoría (la vitrina de la pantalla), cuántas tallas tiene cada color y su costo.
+  const vitrinaPorTalla = useMemo(
+    () => (prendasVitrina ? new Map(prendasVitrina.map((t) => [t.id, { productoId: t.productoId, colorNombre: t.colorNombre, categoria: t.categoria, fotoUrl: t.fotoUrl }])) : null),
+    [prendasVitrina],
+  );
+  const tallasDeLaVitrina = useMemo(() => {
+    const porClave = new Map<string, string[]>();
+    const porModelo = new Map<string, string[]>();
+    for (const t of prendasVitrina ?? []) {
+      const clave = claveModeloColor(t.productoId, t.colorNombre);
+      porClave.set(clave, [...(porClave.get(clave) ?? []), t.id]);
+      porModelo.set(t.productoId, [...(porModelo.get(t.productoId) ?? []), t.id]);
+    }
+    return { porClave, porModelo, porColor: new Map([...porClave].map(([k, vs]) => [k, vs.length])) };
+  }, [prendasVitrina]);
+  const costos = useMemo(() => new Map(prendasConCosto.map((p) => [p.id, p.costo])), [prendasConCosto]);
+  const panelDescuento = descuentoAbierto ? (
+    <PanelDeDescuento
+      key={descuentoAbierto.etiquetaId}
+      descuento={descuentoAbierto}
+      ubicacionId={sedeActualId}
+      sede={sede}
+      esLider={esLider}
+      vitrina={vitrinaPorTalla}
+      tallasPorColor={tallasDeLaVitrina.porColor}
+      tallasPorClave={tallasDeLaVitrina.porClave}
+      tallasPorModelo={tallasDeLaVitrina.porModelo}
+      costos={costos}
+      volver={enLinea ? <Volver onClick={() => setDescuentoAbiertoId(null)} a="la lista" /> : undefined}
+      onConteo={(n) => anotarConteo(descuentoAbierto.etiquetaId, n)}
+      onCambiarPct={() => setHojaDeDescuento({ cambiando: descuentoAbierto })}
+      onDesactivado={(aviso) => {
+        setDescuentoAbiertoId(null);
+        refrescarYAvisar(aviso);
+      }}
+      onAbrir={abrirDescuentoNuevo}
+      onListaVieja={refrescarYAvisar}
+    />
+  ) : null;
+  const seccionDescuentos = verDescuentos ? (
+    <DescuentosDeLaTienda
+      descuentos={(descuentos ?? []).map((d) => (conteosDeDescuentos[d.etiquetaId] === undefined ? d : { ...d, prendas: conteosDeDescuentos[d.etiquetaId] }))}
+      abiertoId={descuentoAbierto?.etiquetaId ?? null}
+      onAbrir={(id) => setDescuentoAbiertoId(id)}
+      panelEnLinea={enLinea ? panelDescuento : undefined}
+      onNuevo={() => setHojaDeDescuento({ cambiando: null })}
+    />
+  ) : null;
   const abiertoId = abiertoPorVista[vista] ?? paseInicial(pilas)?.id ?? null;
-  const abierto = etiquetas.find((e) => e.id === abiertoId && vistaDeEstilo(e.estilo) === vista) ?? paseInicial(pilas);
+  // Con un descuento abierto, ninguna campaña lo está.
+  const abierto = descuentoAbierto ? null : (etiquetas.find((e) => e.id === abiertoId && vistaDeEstilo(e.estilo) === vista) ?? paseInicial(pilas));
 
   // La vista vive en la URL (se puede compartir) sin navegar: todo ya está leído, así que no hay loader ni ida a la base.
   function cambiarVista(v: string) {
@@ -218,7 +314,8 @@ export function SellosPantalla({
   // y quien tocaba quedaba a media altura del detalle, sin ver el pase (2026-11-02). Es un cambio de vista, no un bloque que se encogió:
   // se suelta <PaginaEstable> y el pase tocado sube hasta quedar bajo la cabecera (`scroll-margin-top` en `.sl-pase`).
   const abrir = (id: string, desde?: HTMLElement | null) => {
-    const yaAbierto = id === abiertoId;
+    const yaAbierto = id === abiertoId && !descuentoAbierto;
+    setDescuentoAbiertoId(null);
     setAbiertoPorVista((a) => ({ ...a, [vista]: id }));
     if (!enLinea || yaAbierto || !desde) return;
     soltarPaginaEstable();
@@ -544,7 +641,15 @@ export function SellosPantalla({
         data-guia={esAbierto ? "sellos.pase" : undefined}
         style={{ "--i": indice } as CSSProperties}
       >
-        <button type="button" className="sl-cab" aria-expanded={esAbierto} aria-controls={`pase-${e.id}`} onClick={(ev) => abrir(e.id, ev.currentTarget)}>
+        <button
+          type="button"
+          className="sl-cab"
+          aria-expanded={esAbierto}
+          aria-controls={`pase-${e.id}`}
+          // La guía vuelve a abrir el primer pase después de mostrar un descuento abierto (ADR-0677): lo que abre, lo cierra.
+          data-guia={indice === 0 && esCampanas ? "sellos.primero" : undefined}
+          onClick={(ev) => abrir(e.id, ev.currentTarget)}
+        >
           <SelloTinta nombre={e.nombre} icono={e.icono} imagen={e.imagen} imagenSilueta={e.imagenSilueta} estilo={e.estilo} anio={anio} tamano={44} giro={0} indice={indice} apagado={!e.activo} />
           <span className="min-w-0">
             <span className="sl-cab-nombre block truncate">{e.nombre}</span>
@@ -920,24 +1025,6 @@ export function SellosPantalla({
                   Cómo se ven en la web
                 </BotonEnlace>
               )}
-              {esCampanas && puedeEditarCampanas && sedeActualId && (
-                // Solo en el celular: las tarjetas «Rebajas de …» (cada % de la tienda) se abren en una hoja desde aquí; desde 640 px están
-                // a la vista bajo el escáner. Lleva el ancla de la guía de esas tarjetas: la guía enciende la primera que se ve.
-                <Boton
-                  peso="fantasma"
-                  title={`Rebajas de ${sede}`}
-                  aria-expanded={rebajasAbiertas}
-                  data-guia="rebaja.tienda"
-                  className="min-w-11 !px-3 sm:hidden"
-                  onClick={(e) => {
-                    botonRebajas.current = e.currentTarget;
-                    setRebajasAbiertas(true);
-                  }}
-                >
-                  <BadgePercent aria-hidden className="h-4 w-4" />
-                  <span className="sr-only">{`Rebajas de ${sede}`}</span>
-                </Boton>
-              )}
               {puedeCrear &&
                 (esCampanas && disenoWeb ? (
                   <Boton peso="primario" onClick={() => setAgregando(true)} data-guia="sellos.nuevo" title={T.nuevo} className="max-sm:min-w-11 max-sm:grow max-sm:!px-3">
@@ -955,15 +1042,6 @@ export function SellosPantalla({
           }
         />
       </div>
-
-      {/* «Poner un %» (ADR-0669, Felipe 2026-11-16): escanear una prenda y ponerle un % en un toque, en la tienda de la cabecera. */}
-      {esCampanas && puedeEditarCampanas && sedeActualId && (
-        <RebajasDeTienda
-          ubicacionId={sedeActualId}
-          sede={sede}
-          hoja={{ abierta: rebajasAbiertas, onCerrar: () => setRebajasAbiertas(false), alCerrarEnfocar: botonRebajas }}
-        />
-      )}
 
       {esCampanas && puedeEditarCampanas && <AvisoDosOfertas pares={choquesAbiertos} alElegir={() => router.refresh()} />}
 
@@ -988,6 +1066,8 @@ export function SellosPantalla({
       {nota && <p className="nota-cayla max-w-3xl text-sm">{nota}</p>}
 
       {pilas.length === 0 ? (
+        <>
+        {seccionDescuentos}
         <Vacio
           icono={<Award />}
           titulo={esCampanas ? "Todavía no hay campañas" : `Todavía no hay insignias de ${TEXTOS_VISTA[vista].nombre}`}
@@ -1001,9 +1081,13 @@ export function SellosPantalla({
         >
           {esCampanas ? "Crea la primera con su nombre y después ponle sus fechas, su descuento y sus prendas." : "Crea uno y márcalo en sus prendas."}
         </Vacio>
+        </>
       ) : (
         <div key={vista} className="sl-marco">
           <div ref={refBilletera} className="sl-billetera">
+            {/* La columna de la lista: los descuentos primero (ADR-0677) y después las pilas de campañas. */}
+            <div className="min-w-0">
+            {seccionDescuentos}
             <div data-guia="sellos.pila">
               {pilas.map((pila) => (
                 <section key={pila.clave} className="sl-pila" aria-label={pila.titulo}>
@@ -1024,13 +1108,34 @@ export function SellosPantalla({
                 </section>
               ))}
             </div>
-            {abierto && !enLinea && (
-              <aside key={abierto.id} className="sl-detalle" aria-live="polite" data-guia="sellos.detalle">
-                {detalle(abierto)}
+            </div>
+            {panelDescuento && !enLinea ? (
+              <aside key={descuentoAbierto?.etiquetaId} className="sl-detalle" aria-live="polite">
+                {panelDescuento}
               </aside>
+            ) : (
+              abierto &&
+              !enLinea && (
+                <aside key={abierto.id} className="sl-detalle" aria-live="polite" data-guia="sellos.detalle">
+                  {detalle(abierto)}
+                </aside>
+              )
             )}
           </div>
         </div>
+      )}
+
+      {hojaDeDescuento && verDescuentos && (
+        <HojaDeDescuento
+          ubicacionId={sedeActualId}
+          sede={sede}
+          esLider={esLider}
+          descuentos={descuentos ?? []}
+          cambiando={hojaDeDescuento.cambiando}
+          onClose={() => setHojaDeDescuento(null)}
+          onListo={abrirDescuentoNuevo}
+          onListaVieja={refrescarYAvisar}
+        />
       )}
 
       {agregando && (

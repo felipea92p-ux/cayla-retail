@@ -912,6 +912,13 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   («+ acompañante» de `ElegirColores`, prop `conMezclas`: Nuevo producto y `recepcion-envio/HojaPrenda`); la lógica pura vive en
   `lib/color-combinado.ts` (nombre, componentes, punto partido). La carta y Atributos agrupan las mezclas en «Combinados» con `familiaEnCarta`.
 - `/productos/campanas` (Catálogo ▸ Campañas y ofertas, ADR-0655; lo abren los módulos `campanas` o `etiquetas`) → la misma `SellosPantalla` con `modo="campanas"` y la misma lectura de abajo (`cargarEtiquetasPantalla({ modo: "campanas" })`); cada campaña dice sus tres preguntas (`preguntasDeCampana`) y el «?» abre `MapaCampanas`.
+  Desde ADR-0677 (2026-11-18), arriba de las campañas van los **descuentos** (los cajones de ADR-0669): la lectura suma `campanas_descuentos(sede)`
+  (`etiquetas-pantalla-datos.ts`, `descuentos`) y la lista es `DescuentosDeLaTienda` (`components/rebajas/RebajasDeTienda.tsx`, filas `campanas/FilaDeLista`).
+  Tocar uno abre `campanas/PanelDeDescuento` (sus prendas, quitar con Deshacer, «Más»: cambiar el %, imprimir, desactivar) con
+  `campanas/AgregarAlDescuento` (pistola, nombre o cámara → `buscar_prenda_para_rebaja`, `campanas_rebaja_de_prenda`, `poner_rebaja` /
+  `poner_rebaja_varias`; `campanas_rebaja_de_variantes` dice de dónde venía cada talla para deshacer). «Nuevo descuento» y «Cambiar el %» son
+  `campanas/HojaDeDescuento` (`crear_descuento`, `cambiar_pct_de_descuento`); desactivar, `desactivar_descuento`. Las reglas puras, en
+  `lib/rebaja-rapida-reglas.ts`.
 - `/productos/insignias` (Catálogo ▸ Insignias —se llamó «Sellos» hasta el 2026-10-23—, ADR-0481; desde ADR-0655 solo Rotación, Artesanal y General y solo con el módulo `etiquetas`; `?vista=campanas` y quien solo tiene `campanas` van a `/productos/campanas`; en el código sigue llamándose `sellos`) → `page.tsx` lee con
   `lib/etiquetas-pantalla-datos.ts` (`cargarEtiquetasPantalla({ modo: "todas", conVitrina: true })`: todas las filas de `etiquetas`, las
   prendas a la venta con su modelo, color, categoría y foto —`colores`, `categorias`, `producto_fotos`— y, para quien puede analizar, la

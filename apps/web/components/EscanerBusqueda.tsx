@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, Search, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { SegmentoDeslizante, type OpcionSegmento } from "@/components/ui/SegmentoDeslizante";
@@ -28,7 +28,15 @@ import { avisarLectura } from "@/lib/sonido-conteo";
 
 /** Lo que la pantalla dice de la última lectura, en el modo continuo. `clave` cambia con cada lectura (también si se repite el
  *  mismo texto), para que la tarjeta entre de nuevo. */
-export type RespuestaLectura = { clave: number; tono: TonoLectura; estado: string; titulo: string; detalle: string };
+export type RespuestaLectura = {
+  clave: number;
+  tono: TonoLectura;
+  estado: string;
+  titulo: string;
+  detalle: string;
+  /** Lo que se responde sin cerrar la cámara (en un descuento: «Solo esta» o «Todo el modelo», ADR-0677). Va bajo la tarjeta. */
+  acciones?: ReactNode;
+};
 
 type Estado = "abriendo" | "leyendo" | "sin-permiso" | "sin-camara";
 
@@ -49,7 +57,7 @@ export function EscanerBusqueda({
   /** El segmento de modo sobre el botón de abajo (solo con la cámara andando: sin cámara no hay qué elegir). */
   modos?: { opciones: OpcionSegmento[]; valor: string; onCambio: (clave: string) => void };
   /** Leer en ráfaga sin cerrar: la última respuesta y lo que va del total («12 con la etiqueta»). */
-  continuo?: { respuesta: RespuestaLectura | null; resumen: string };
+  continuo?: { respuesta: RespuestaLectura | null; resumen: string; vacio?: string };
   /** Lo que dice la barra de arriba. Cambios lee etiquetas y boletas; Existencias solo etiquetas (ADR-0237). */
   titulo?: string;
   /** La indicación bajo el cuadro. */
@@ -201,16 +209,17 @@ export function EscanerBusqueda({
                 {/* Alto fijo: la primera respuesta no empuja el botón (ADR-0185). */}
                 <div aria-live="polite" className="min-h-[4.25rem]">
                   {continuo.respuesta ? (
-                    <div key={continuo.respuesta.clave} data-tono={continuo.respuesta.tono} className="lectura-camara anim-revelar flex items-center gap-3 rounded-2xl bg-papel px-4 py-3 text-tinta">
+                    <div key={continuo.respuesta.clave} data-tono={continuo.respuesta.tono} className="lectura-camara anim-revelar flex flex-wrap items-center gap-3 rounded-2xl bg-papel px-4 py-3 text-tinta">
                       <span aria-hidden className="lectura-camara-punto size-2.5 shrink-0 rounded-full" />
                       <span className="min-w-0 flex-1">
                         <span className="lectura-camara-estado block text-[11px] font-semibold uppercase tracking-[0.12em]">{continuo.respuesta.estado}</span>
                         <span className="block truncate text-sm font-medium">{continuo.respuesta.titulo}</span>
                         <span className="block truncate text-xs text-tinta/65">{continuo.respuesta.detalle}</span>
                       </span>
+                      {continuo.respuesta.acciones && <span className="grid basis-full grid-cols-2 gap-2">{continuo.respuesta.acciones}</span>}
                     </div>
                   ) : (
-                    <p className="pt-5 text-center text-[13px] text-crema/80">Escanea una prenda tras otra: no hace falta tocar nada.</p>
+                    <p className="pt-5 text-center text-[13px] text-crema/80">{continuo.vacio ?? "Escanea una prenda tras otra: no hace falta tocar nada."}</p>
                   )}
                 </div>
                 <button type="button" onClick={cerrar} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-crema text-sm font-medium text-tinta">
