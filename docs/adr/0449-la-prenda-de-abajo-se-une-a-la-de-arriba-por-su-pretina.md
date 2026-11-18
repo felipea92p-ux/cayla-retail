@@ -276,3 +276,50 @@ y a 375 px, en claro y en oscuro: con el arreglo el bajo del Polo Hilo mide 91,3
 está puesta en el primer cuadro y sin pedir nada a la red; con «Sorpréndeme», la figura espera, avisa y las dos prendas entran juntas.
 **No verificado:** Safari y un teléfono de verdad; y la demora exacta del aviso (el panel de prueba estaba oculto y frena los relojes).
 
+
+## Actualización 2026-11-17 — el tamaño sale del CUERPO de la prenda, y la unión se verifica en píxeles contra el catálogo real
+
+**Qué pasó.** Felipe mandó una captura de «Arma tu outfit» (Top Glitters, strapless de bajo en V, sobre el Pantalón Camelia): «la blusa está grande; cuando una persona use esa combinación no se verá
+así», y preguntó si el problema eran las fotos. Era la novena queja en un mes sobre la figura (pretina 10-17, bajo curvo 10-19, ancho 10-22, ×1,05 11-09, medida tardía y servidor 11-10, fotos de IA
+11-16…): cada vez se ajustó una regla para el caso que llegó, y el siguiente caso trajo otra forma. Pidió una solución de fondo, no otro parche.
+
+**Causa raíz (medida con las fotos reales, no supuesta).** Las fotos no eran el problema. Eran dos defectos del método:
+
+1. **El tamaño de una blusa se sacaba de la zona de su bajo, y un bajo en punta es angosto.** `anchoBajo` medía el tramo más ancho de los últimos 12 % del torso. En el Top Glitters esa zona es la V:
+   69 % del ancho de la prenda, cuando su cuerpo ocupa 94 %. `factorDelTorso` concluía «esta prenda es angosta» y la AGRANDABA ×1,115: salía de 56 cm de ancho (53 de cuerpo) sobre un pantalón de cintura
+   39. Le pasa a toda prenda cuyo bajo termina en V, en punta, en diagonal o de pañuelo.
+2. **La unión estimaba dónde poner la prenda de abajo y nunca comprobaba el resultado.** Con un perfil grosero del bajo (24 franjas, medianas, una banda central) la línea de la pretina quedaba al aire
+   bajo un bajo que sube a los lados (un triángulo de fondo). Las pruebas comprobaban reglas, no lo que se ve.
+
+Se descargaron los 188 recortes del catálogo publicado de Arequipa (50 prendas de arriba × 9 de abajo, 357 fotos por color: 13 250 combinaciones reales) y se midió sobre ellos.
+
+**Decidí.**
+1. **`anchoBajo` es el ancho del CUERPO donde el bajo termina de abrirse** (`anchoDelCuerpo`, en `medirRecorte`): desde el techo de la zona del bajo se sube mientras la prenda se siga ensanchando de a poco
+   (≥ 1 % del ancho cada 2 % del alto); se deja de subir cuando el ancho se estabiliza (ya es el cuerpo), cuando salta de golpe (> 10 % del ancho de una fila a otra: una manga que se junta) o a 40 % del
+   alto. Con un bajo recto no sube nada. Medido en las 44 prendas de arriba que se unen: **40 no cambian ni un píxel**; el Top Glitters pasa de 56 a 44 cm de ancho (×0,78) y el Corset Flores Lentejuelas
+   de 48 a 40 cm; dos más cambian 1–2 %. Con eso el cuerpo de TODA blusa, polo o top queda entre 28 y 43 cm (antes el Top Glitters era el único disparado).
+2. **Contorno fino en la medida** (`MedidaDelRecorte.contorno`, 64 franjas, `contornoDe`): por franja, el bajo MÁS ALTO y el inicio MÁS BAJO de sus columnas (conservador). Pretina = las franjas que
+   empiezan a ≤ 3 % bajo el punto más alto de la prenda de abajo (`CIMA_DE_LA_PRETINA`): la línea plana de la cintura y su esquina redondeada.
+3. **La posición de la prenda de abajo se CALCULA** (`alturaQueCubreLaPretina`): la más baja que deja el bajo de arriba cubriendo la línea de la pretina en cada columna, con tope de subida
+   (`SUBIDA_MAXIMA_DE_LA_PRETINA`, 30 % del alto de la prenda de arriba sobre el bajo de su TORSO, no sobre el puño de una manga larga). Sin contorno (medidas recordadas de antes) manda la estimación.
+4. **El auditor** (`lib/union-auditoria-pixeles.ts`): mide en píxeles (a) el aire entre el bajo y la línea de la pretina (`huecoDeLaUnion`; cuenta si pasa de la tolerancia en 4 o más columnas seguidas) y
+   (b) el ancho del cuerpo con que se dibuja cada blusa (`cuerpoDibujadoCm`, creíble entre 27 y 46 cm). Con su propia definición de pretina y de torso, sobre los píxeles. Tres usos:
+   `union-prendas-reales.test.ts` (20 prendas reales, 99 combinaciones, en el CI; 40 KB de perfiles en `union-prendas-reales.json`), `union-prendas-formas.test.ts` (8 bajos × 4 pretinas × pantalón/falda
+   inventados, y la medida del cuerpo) y **`pnpm --filter tienda union:auditar`** (todo el catálogo publicado: baja la página y las fotos y corre las dos auditorías). Ese comando se corre antes de
+   publicar un cambio a la unión y cuando entre un lote de prendas.
+5. `VERSION_DE_LA_MEDIDA` sube a 2 y lo recordado en el navegador a `cayla-union-v5`: lo medido antes se vuelve a pedir una vez.
+
+**Resultado medido (13 250 pares reales, aire de más de 3 px sobre la línea de la pretina en 4+ columnas).** Con la estimación de antes: 1 491 pares (11,3 %), el peor de 23,8 px. Ahora: **0**. Tamaños: todas
+las fotos de blusas, polos y tops dentro de la franja. Mirado a 3× antes/después en ocho pares reales (el de Felipe incluido).
+
+**Probado y descartado, mirando.** Contar como pretina también la curva que baja a la cadera (franja de 6 %): tapa más esquinas en la métrica, pero sube el pantalón hasta asomar entre el cuerpo y la manga
+de una camisa corta. Bajo un bajo recto esa curva es solo la silueta del pantalón. Quedó en 3 %.
+
+**Descarté.** (a) Otra regla para el siguiente caso: es lo que se hizo nueve veces. (b) Reprocesar las fotos: no eran la causa. (c) Guardar los contornos en la base: la medida ya la saca el servidor de la
+tienda una vez por recorte. (d) Pedir el ancho real en cm de cada prenda en el ERP: sería el dato exacto, pero es una columna y trabajo de carga para todo el catálogo; la medida del cuerpo llega al
+mismo lugar sin que nadie anote nada. Si algún día se quiere exactitud por talla, es el camino.
+
+**Fotos (aparte).** El recorte del Pantalón Magnolia beige (PAN-0030.BEI) tiene una mancha blanca en la cintura: es del recorte, no de la figura. Se arregla subiendo la foto de nuevo.
+
+**No verificado.** La figura en el navegador con este código (sin banco de la tienda en este equipo: se verificó con la misma lógica y las fotos reales, renderizadas), Safari y un teléfono; Trujillo y
+Lima (se auditó Arequipa); las casacas y abrigos, que por regla no se encogen y no entran al auditor de tamaños.
