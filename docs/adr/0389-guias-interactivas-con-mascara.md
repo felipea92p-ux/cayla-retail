@@ -288,7 +288,8 @@ ya cierra al volver), eligen una pestaña o marcan una casilla.
 - **Un ancla en algo que se esconde montado existe solo mientras se ve:** la barra de cambios de Editar producto (`BarraFija`) baja fuera
   de la pantalla con `inert`, y el motor la daba por visible: «Revisar y guardar» encendía un hueco al pie. Su botón lleva el ancla solo
   con la barra a la vista. (El motor no mira `inert`: también lo usa el ticket de Vender en pausa, que sí se ve.)
-- **Existencias ya no cambia de ancla según el estado:** el botón «Filtros» llevaba `existencias.filtros-abrir` o `-cerrar` para que
-  cerrar no reabriera. Ahora la guía toca `existencias.filtros` con `para`. En el celular el botón de la cabecera dice siempre
+- **Existencias y Recibir ya no cambian de ancla según el estado:** su botón «Filtros» llevaba un ancla para abierto y otra para cerrado
+  (`existencias.filtros-abrir` / `-cerrar`, `recepcion.filtros` / `-cerrar`) para que cerrar no reabriera. En Recibir eso hacía saltar
+  «Los filtros, en un botón» al volver: su ancla no existía con el panel abierto. Ahora cada guía toca un ancla única con `para`. En el celular el botón de la cabecera dice siempre
   «cerrado»: la hoja lo tapa mientras está abierta, y al volver la guía la cierra primero. Por eso los pasos que viven en esa hoja no
   piden «abrir».

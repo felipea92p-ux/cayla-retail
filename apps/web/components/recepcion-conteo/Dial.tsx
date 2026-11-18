@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Minus, Plus } from "lucide-react";
 import { leerContadas } from "@/lib/recepcion-conteo-reglas";
-import { esPedidoNuevo, estadoDelDial } from "@/lib/recepcion-dial-reglas";
+import { cortesDelDial, esPedidoNuevo, estadoDelDial } from "@/lib/recepcion-dial-reglas";
 import { Odometro } from "./Odometro";
 
 // El Dial de una categoría (rediseño «B» de Recibir, Felipe 2026-10-29): el aro se llena con lo contado contra lo que dijeron, con un corte
@@ -112,20 +112,9 @@ export function Dial({
         <circle className="rc-dial-arco" cx={CX} cy={CX} r={R} pathLength={100} style={{ strokeDashoffset: 100 - e.lleno }} />
         {/* La luz quieta del tubo (vidrio, «B · Tubo», Felipe 2026-11-02): un brillo fino sobre el arco que lo sigue y no se mueve solo. */}
         <circle className="rc-dial-luz" cx={CX} cy={CX} r={R - 4} pathLength={100} style={{ strokeDashoffset: 100 - Math.max(0, e.lleno - 4) }} />
-        {Array.from({ length: e.cortes }, (_, i) => {
-          const t = (i / e.cortes) * Math.PI * 2;
-          return (
-            <line
-              key={i}
-              className="rc-dial-corte"
-              style={{ "--i": i } as React.CSSProperties}
-              x1={CX + Math.cos(t) * (R - 11)}
-              y1={CX + Math.sin(t) * (R - 11)}
-              x2={CX + Math.cos(t) * (R + 11)}
-              y2={CX + Math.sin(t) * (R + 11)}
-            />
-          );
-        })}
+        {cortesDelDial(e.cortes, CX, R, 11).map((c, i) => (
+          <line key={i} className="rc-dial-corte" style={{ "--i": i } as React.CSSProperties} x1={c.x1} y1={c.y1} x2={c.x2} y2={c.y2} />
+        ))}
         {previo.brillo > 0 && <circle key={`b${previo.brillo}`} className="rc-dial-brillo" cx={CX} cy={CX} r={R} pathLength={100} />}
         <circle className="rc-dial-exceso" cx={CX} cy={CX} r={R_EXCESO} pathLength={100} style={{ strokeDashoffset: 100 - e.exceso }} />
         <g className="rc-dial-perilla" style={{ transform: `rotate(${e.angulo}deg)` }}>
