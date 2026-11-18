@@ -2068,6 +2068,7 @@ export const GUIA_ROTULOS: Guia = {
       id: "marcas",
       ancla: "rotulos.marcas",
       opcional: true,
+      preparar: [{ tipo: "clic", ancla: "rotulos.de-marcas" }],
       titulo: "Las marcas",
       texto: "Busca la marca por su nombre y elígela: sale un rótulo por marca. La ✕ la saca de la tira.",
     },
