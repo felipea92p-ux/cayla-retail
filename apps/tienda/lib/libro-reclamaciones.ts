@@ -1,0 +1,313 @@
+import { z } from "zod";
+
+// El Libro de Reclamaciones de la tienda (ADR-0679, Felipe 2026-11-18): la lógica pura de la hoja. Las MISMAS reglas que la base
+// (`retail.tienda_registrar_hoja_reclamacion`, 20261118145000), para que el formulario diga «Revisa» en el campo antes de enviar; la
+// base las vuelve a revisar y es la que manda. Si una cambia aquí, cambia allá (lo vigila `libro-reclamaciones.test.ts` caso por caso).
+
+export type TipoHoja = "reclamo" | "queja";
+export type TipoBien = "producto" | "servicio";
+export type TipoDocumentoHoja = "dni" | "ce" | "pasaporte";
+
+/** Los largos de la base, letra por letra (después de limpiar). */
+export const LARGOS = {
+  nombre: [3, 120],
+  domicilio: [5, 200],
+  apoderado: [3, 120],
+  bienDescripcion: [3, 300],
+  detalle: [10, 3000],
+  pedido: [3, 1000],
+} as const;
+export const MONTO_MAXIMO = 1_000_000;
+
+/** Lo que la persona va escribiendo. */
+export type BorradorHoja = {
+  tipo: TipoHoja | null;
+  nombre: string;
+  tipoDocumento: TipoDocumentoHoja;
+  documento: string;
+  domicilio: string;
+  telefono: string;
+  correo: string;
+  menor: boolean;
+  apoderado: string;
+  bienTipo: TipoBien | null;
+  /** null: la tienda online. */
+  ubicacionId: string | null;
+  monto: string;
+  bienDescripcion: string;
+  detalle: string;
+  pedido: string;
+};
+
+export const BORRADOR_VACIO: BorradorHoja = {
+  tipo: null,
+  nombre: "",
+  tipoDocumento: "dni",
+  documento: "",
+  domicilio: "",
+  telefono: "",
+  correo: "",
+  menor: false,
+  apoderado: "",
+  bienTipo: null,
+  ubicacionId: null,
+  monto: "",
+  bienDescripcion: "",
+  detalle: "",
+  pedido: "",
+};
+
+/** Los campos, en el orden en que se llenan (la guía enciende el primero que falta). Son los `campo` que devuelve la base. */
+export const CAMPOS = [
+  "nombre",
+  "documento",
+  "domicilio",
+  "telefono",
+  "correo",
+  "apoderado",
+  "bien_tipo",
+  "monto",
+  "bien_descripcion",
+  "tipo",
+  "detalle",
+  "pedido",
+] as const;
+export type CampoHoja = (typeof CAMPOS)[number] | "ubicacion";
+
+export const ETIQUETA: Record<CampoHoja, string> = {
+  nombre: "Nombre completo",
+  documento: "Documento",
+  domicilio: "Domicilio",
+  telefono: "Teléfono",
+  correo: "Correo",
+  apoderado: "Nombre del padre, la madre o quien te representa",
+  bien_tipo: "¿Fue un producto o un servicio?",
+  ubicacion: "¿En qué tienda?",
+  monto: "Monto reclamado",
+  bien_descripcion: "¿Qué compraste o contrataste?",
+  tipo: "¿Es un reclamo o una queja?",
+  detalle: "¿Qué pasó?",
+  pedido: "¿Qué pides?",
+};
+
+export const NOMBRE_DOCUMENTO: Record<TipoDocumentoHoja, string> = { dni: "DNI", ce: "Carné de extranjería", pasaporte: "Pasaporte" };
+
+/** Lo que es cada uno, con las palabras del reglamento (DS 011-2011-PCM), dicho para el cliente. */
+export const QUE_ES: Record<TipoHoja, string> = {
+  reclamo: "No estás conforme con el producto o el servicio.",
+  queja: "No estás conforme con la atención, pero no es sobre el producto o el servicio.",
+};
+
+/** El texto como lo guarda la base: sin invisibles, espacios seguidos en uno, sin espacios en las puntas. */
+export function limpiar(texto: string, unaLinea = false): string {
+  const t = texto
+    .replace(/\r\n?/g, "\n")
+    .replace(/[\u0001-\u0008\u000B-\u001F\u007F-\u009F­​-‏‪-‮⁠-⁤⁦-⁩﻿]/g, "")
+    .replace(/[\t   - 　]+/g, " ")
+    .replace(/ ?\n ?/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return unaLinea ? t.replace(/\n/g, " ").replace(/ {2,}/g, " ") : t;
+}
+
+const largo = (t: string) => [...t].length;
+const entre = (t: string, [min, max]: readonly [number, number]) => largo(t) >= min && largo(t) <= max;
+
+export const documentoLimpio = (d: string) => d.replace(/[^0-9A-Za-z]/g, "").toUpperCase();
+export const telefonoLimpio = (t: string) => t.replace(/[^0-9+]/g, "");
+export const correoLimpio = (c: string) => c.trim().toLowerCase();
+
+export function documentoValido(tipo: TipoDocumentoHoja, documento: string): boolean {
+  const d = documentoLimpio(documento);
+  return tipo === "dni" ? /^[0-9]{8}$/.test(d) : /^[A-Z0-9]{6,12}$/.test(d);
+}
+export const telefonoValido = (t: string) => /^\+?[0-9]{6,15}$/.test(telefonoLimpio(t));
+export const correoValido = (c: string) => correoLimpio(c).length <= 254 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correoLimpio(c));
+/** Vacío vale (es opcional); si se escribe: hasta 7 cifras, punto y 2 decimales, sin pasar el tope. */
+export function montoValido(m: string): boolean {
+  const t = m.trim();
+  if (t === "") return true;
+  return /^[0-9]{1,7}([.][0-9]{1,2})?$/.test(t) && Number(t) <= MONTO_MAXIMO;
+}
+
+/** El estado de un campo: listo, mal escrito, vacío (falta) u opcional (se puede dejar). */
+export type EstadoCampoHoja = "ok" | "mal" | "vacio" | "opcional";
+
+export function estadoDeLaHoja(b: BorradorHoja): Record<CampoHoja, EstadoCampoHoja> {
+  const texto = (t: string, rango: readonly [number, number], unaLinea = false): EstadoCampoHoja => {
+    const l = limpiar(t, unaLinea);
+    if (l === "") return "vacio";
+    return entre(l, rango) ? "ok" : "mal";
+  };
+  return {
+    nombre: texto(b.nombre, LARGOS.nombre, true),
+    documento: b.documento.trim() === "" ? "vacio" : documentoValido(b.tipoDocumento, b.documento) ? "ok" : "mal",
+    domicilio: texto(b.domicilio, LARGOS.domicilio, true),
+    telefono: b.telefono.trim() === "" ? "vacio" : telefonoValido(b.telefono) ? "ok" : "mal",
+    correo: b.correo.trim() === "" ? "vacio" : correoValido(b.correo) ? "ok" : "mal",
+    apoderado: b.menor ? texto(b.apoderado, LARGOS.apoderado, true) : "opcional",
+    bien_tipo: b.bienTipo ? "ok" : "vacio",
+    ubicacion: "opcional",
+    monto: b.monto.trim() === "" ? "opcional" : montoValido(b.monto) ? "ok" : "mal",
+    bien_descripcion: texto(b.bienDescripcion, LARGOS.bienDescripcion),
+    tipo: b.tipo ? "ok" : "vacio",
+    detalle: texto(b.detalle, LARGOS.detalle),
+    pedido: texto(b.pedido, LARGOS.pedido),
+  };
+}
+
+/** Lo que todavía no deja enviar, en el orden del formulario. Lo opcional nunca está aquí. */
+export function faltanEnLaHoja(estado: Record<CampoHoja, EstadoCampoHoja>): CampoHoja[] {
+  return CAMPOS.filter((c) => estado[c] === "vacio" || estado[c] === "mal");
+}
+
+/** Lo que dice el campo debajo cuando está mal escrito (vacío no se regaña: la guía dice qué sigue). */
+export function problemaDelCampo(campo: CampoHoja, b: BorradorHoja): string | null {
+  const e = estadoDeLaHoja(b)[campo];
+  if (e !== "mal") return null;
+  switch (campo) {
+    case "nombre":
+    case "apoderado":
+      return "Escribe el nombre completo.";
+    case "documento":
+      return b.tipoDocumento === "dni" ? "El DNI tiene 8 números." : "Escribe el número tal cual está en tu documento (6 a 12 letras o números).";
+    case "domicilio":
+      return "Escribe la dirección completa.";
+    case "telefono":
+      return "Escribe un número de 6 a 15 cifras.";
+    case "correo":
+      return "Revisa el correo: algo como nombre@correo.com.";
+    case "monto":
+      return "Escribe solo el número, con punto para los céntimos (89.90).";
+    case "bien_descripcion":
+      return largo(limpiar(b.bienDescripcion)) > LARGOS.bienDescripcion[1] ? "Acórtalo un poco." : "Cuéntanos un poco más.";
+    case "detalle":
+      return largo(limpiar(b.detalle)) > LARGOS.detalle[1] ? "Acórtalo un poco para poder enviarlo." : `Escribe al menos ${LARGOS.detalle[0]} letras.`;
+    case "pedido":
+      return largo(limpiar(b.pedido)) > LARGOS.pedido[1] ? "Acórtalo un poco." : "Cuéntanos qué te gustaría que hagamos.";
+    default:
+      return null;
+  }
+}
+
+/** Lo que viaja a la base (`p_datos`), con los nombres de la base. */
+export function datosParaLaBase(b: BorradorHoja): Record<string, string | boolean> {
+  return {
+    tipo: b.tipo ?? "",
+    nombre: b.nombre,
+    tipo_documento: b.tipoDocumento,
+    documento: b.documento,
+    domicilio: b.domicilio,
+    telefono: b.telefono,
+    correo: b.correo,
+    menor_de_edad: b.menor,
+    apoderado: b.menor ? b.apoderado : "",
+    bien_tipo: b.bienTipo ?? "",
+    monto: b.monto.trim(),
+    bien_descripcion: b.bienDescripcion,
+    detalle: b.detalle,
+    pedido: b.pedido,
+    ubicacion_id: b.ubicacionId ?? "",
+  };
+}
+
+/** Lo mismo que hace que dos envíos sean la misma hoja: si cambia algo, es otro borrador (y otra marca). */
+export const claveDelBorrador = (b: BorradorHoja) => JSON.stringify(datosParaLaBase(b));
+
+// ---------- Lo que contesta la base ----------
+
+export type ResultadoHoja =
+  | { estado: "registrada"; id: string; codigo: string }
+  | { estado: "invalido"; campo: CampoHoja | null }
+  | { estado: "limite" }
+  | { estado: "sin_respuesta" };
+
+const esquemaRegistro = z.discriminatedUnion("estado", [
+  z.object({ estado: z.literal("registrada"), id: z.string().uuid(), codigo: z.string().regex(/^[0-9]{6}-[0-9]{4}$/) }),
+  z.object({ estado: z.literal("invalido"), campo: z.string().nullish() }),
+  z.object({ estado: z.literal("limite") }),
+]);
+
+/** La respuesta de `tienda_registrar_hoja_reclamacion`. Una forma que no se entiende es «sin respuesta» (nunca se finge que se guardó). */
+export function leerRegistro(dato: unknown): ResultadoHoja {
+  const r = esquemaRegistro.safeParse(dato);
+  if (!r.success) return { estado: "sin_respuesta" };
+  if (r.data.estado === "invalido") {
+    const campo = [...CAMPOS, "ubicacion"].includes(r.data.campo ?? "") ? (r.data.campo as CampoHoja) : null;
+    return { estado: "invalido", campo };
+  }
+  return r.data;
+}
+
+export const MENSAJE_SIN_RED = "No pudimos enviar tu hoja: revisa tu conexión y vuelve a intentarlo. Lo que escribiste sigue aquí.";
+
+export function mensajeDelEnvio(r: Exclude<ResultadoHoja, { estado: "registrada" }>): string {
+  switch (r.estado) {
+    case "invalido":
+      return r.campo
+        ? `Revisa «${ETIQUETA[r.campo]}»: algo no está bien escrito.`
+        : "Algo de la hoja no está bien escrito. Revísala y vuelve a intentarlo.";
+    case "limite":
+      return "Desde esta conexión ya se enviaron varias hojas en la última hora. Espera un rato y vuelve a intentarlo, o escríbenos al WhatsApp de una tienda.";
+    case "sin_respuesta":
+      return "No pudimos guardar tu hoja ahora. Vuelve a intentarlo en unos minutos: lo que escribiste sigue aquí.";
+  }
+}
+
+// ---------- La constancia ----------
+
+const esquemaHoja = z.object({
+  id: z.string().uuid(),
+  codigo: z.string(),
+  creada_en: z.string(),
+  proveedor: z.object({ razon_social: z.string(), ruc: z.string(), domicilio: z.string() }),
+  tienda: z.object({ nombre: z.string(), direccion: z.string().nullable() }).nullable(),
+  consumidor: z.object({
+    nombre: z.string(),
+    tipo_documento: z.enum(["dni", "ce", "pasaporte"]),
+    documento: z.string(),
+    domicilio: z.string(),
+    telefono: z.string(),
+    correo: z.string(),
+    menor_de_edad: z.boolean(),
+    apoderado: z.string().nullable(),
+  }),
+  bien: z.object({ tipo: z.enum(["producto", "servicio"]), monto: z.union([z.number(), z.string()]).nullable(), descripcion: z.string() }),
+  tipo: z.enum(["reclamo", "queja"]),
+  detalle: z.string(),
+  pedido: z.string(),
+});
+export type Hoja = z.infer<typeof esquemaHoja>;
+
+/** La hoja de `tienda_ver_hoja_reclamacion`, o null (no existe, la marca no coincide o la forma no se entiende). */
+export function leerHoja(dato: unknown): Hoja | null {
+  const r = esquemaHoja.safeParse(dato);
+  return r.success ? r.data : null;
+}
+
+/** «S/ 89.90», o null sin monto. */
+export function montoEnSoles(monto: number | string | null): string | null {
+  if (monto === null || monto === "") return null;
+  const n = Number(monto);
+  if (!Number.isFinite(n)) return null;
+  return `S/ ${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/** «18 de noviembre de 2026, 9:45 a. m.», en hora de Lima. */
+export function fechaDeLaHoja(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString("es-PE", { timeZone: "America/Lima", day: "numeric", month: "long", year: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+/** Los datos de CAYLA que se muestran antes de llenar; los de respaldo son los mismos de la base (`tienda_libro_reclamaciones_datos`). */
+export type DatosProveedor = { razonSocial: string; ruc: string; domicilio: string };
+export const PROVEEDOR_DE_RESPALDO: DatosProveedor = {
+  razonSocial: "CAYLA S.A.C.",
+  ruc: "20605964550",
+  domicilio: "Mz. Q Lt. 26, Urb. San Andrés V Etapa, Víctor Larco Herrera, Trujillo, La Libertad",
+};
+export function leerProveedor(dato: unknown): DatosProveedor {
+  const r = z.object({ razon_social: z.string().min(1), ruc: z.string().min(1), domicilio: z.string().min(1) }).safeParse(dato);
+  return r.success ? { razonSocial: r.data.razon_social, ruc: r.data.ruc, domicilio: r.data.domicilio } : PROVEEDOR_DE_RESPALDO;
+}

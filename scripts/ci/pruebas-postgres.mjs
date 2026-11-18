@@ -378,6 +378,10 @@ export const PRUEBAS = [
   // responde una vez y archiva, solo con el módulo y firmado; los candados de la fila; al anonimizar se quedan sin su nombre ni sus
   // datos; y los mutantes (puerta, tope, marca, módulo, anonimización) que la prueba nota. ROLLBACK.
   "pruebas:recomendaciones-web",
+  // Libro de Reclamaciones de la tienda (ADR-0679, Felipe 2026-11-18): la hoja se guarda sin cuenta, con número correlativo por año sin
+  // saltos y los datos de CAYLA copiados; cada campo malo se rechaza sin gastar número; la misma marca es la misma hoja; 5 por hora por
+  // huella de ip (sin huella se guarda igual); la constancia pide id y marca; nada de lo escrito cambia ni se borra. ROLLBACK.
+  "pruebas:libro-reclamaciones",
 
   // Cobrar dentro del pedido web (ADR-0408, act. 9): la hoja sabe si hay caja abierta y quién anuló cada pago; lo anulado con
   // plata por devolver no sale de la lista; un adelanto y el resto lo dejan pagado; el n.º de operación no se repite (también con

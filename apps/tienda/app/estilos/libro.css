@@ -1,0 +1,72 @@
+/* El Libro de Reclamaciones (ADR-0679): la hoja que se llena y la constancia que se imprime. Solo tokens de globals.css. Los campos son
+   los de la cuenta (cuenta.css: w-campo, w-caja, w-check) y las opciones, las de Recomendaciones (recomendaciones.css: r-sobre-op). */
+
+.lr-pag { display: flex; flex-direction: column; gap: 28px; padding-block: 28px 8px; container-type: inline-size; }
+.lr-cuerpo { display: grid; gap: 24px; align-items: start; }
+@media (min-width: 900px) {
+  /* A lo ancho: los datos de CAYLA y lo que dice la ley a la izquierda, fijos mientras se llena la hoja a la derecha. */
+  .lr-cuerpo { grid-template-columns: minmax(260px, 340px) minmax(0, 760px); gap: 40px; }
+  .lr-lado { position: sticky; top: 96px; }
+}
+
+/* ---- Al lado: de quién es la hoja y lo que debes saber ---- */
+.lr-lado { display: flex; flex-direction: column; gap: 16px; }
+.lr-lado-t { margin: 0 0 10px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); }
+.lr-proveedor, .lr-ley { padding: 16px 18px; border: 1px solid var(--sand); background: var(--papel); }
+.lr-proveedor dl { margin: 0; display: grid; gap: 10px; }
+.lr-proveedor dt { font-size: 12px; color: var(--tinta-60); }
+.lr-proveedor dd { margin: 2px 0 0; font-size: 14px; line-height: 1.45; }
+.lr-ley { background: var(--hueso); border-color: transparent; }
+.lr-ley ul { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 13px; line-height: 1.5; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---- La hoja que se llena: tres grupos numerados ---- */
+.lr-form { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.lr-grupo { display: flex; flex-direction: column; gap: 18px; margin: 0; padding: 20px 18px; border: 1px solid var(--sand); background: var(--papel); min-width: 0; }
+.lr-grupo-t { display: flex; align-items: center; gap: 10px; padding: 0; margin-bottom: 4px; font-size: 15px; font-weight: 700; }
+.lr-paso { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--tinta); color: var(--crema); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.lr-par { display: grid; gap: 18px; }
+@container (min-width: 560px) { .lr-par { grid-template-columns: 1fr 1fr; } }
+.lr-form .r-sobre-opciones { margin-bottom: 2px; }
+.lr-monto { display: flex; align-items: center; gap: 8px; max-width: 220px; }
+.lr-monto > span { font-size: 14px; color: var(--tinta-60); }
+/* 16 px: el celular no hace zoom al tocar la caja. */
+.w-caja.lr-caja { height: auto; min-height: 130px; padding: 12px 14px; line-height: 1.5; resize: vertical; font-size: 16px; }
+.w-caja.lr-caja-corta { min-height: 84px; }
+/* Qué es un reclamo y qué una queja, a la vista; el elegido se marca. */
+.lr-que-es { margin: 2px 0 0; display: grid; gap: 8px; }
+.lr-que-es > div { padding: 10px 12px; border-left: 2px solid var(--sand); font-size: 13px; line-height: 1.45; color: var(--tinta-60); transition: border-color .2s var(--ease), color .2s var(--ease); }
+.lr-que-es > div[data-elegido] { border-left-color: var(--tinta); color: var(--tinta); }
+.lr-que-es dt { display: inline; font-weight: 700; color: var(--tinta); }
+.lr-que-es dt::after { content: ": "; }
+.lr-que-es dd { display: inline; margin: 0; }
+
+/* ---- El pie: lo que falta (lleva a su campo) y el botón ---- */
+.lr-pie { display: flex; flex-direction: column; gap: 12px; }
+.lr-faltan { margin: 0; font-size: 13px; color: var(--tinta-60); }
+.lr-listo { color: var(--verde); font-weight: 600; }
+.lr-ir { padding: 0; border: 0; background: none; font: inherit; font-weight: 600; color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.lr-ir:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+@media (hover: hover) { .lr-ir:hover { color: var(--rojo-profundo); } }
+
+/* ---- La constancia ---- */
+.lr-recibida { display: flex; flex-direction: column; gap: 18px; }
+.lr-acciones { display: flex; flex-wrap: wrap; gap: 10px; }
+.lr-hoja { max-width: 820px; padding: clamp(18px, 4cqi, 36px); border: 1px solid var(--sand); background: var(--papel); display: flex; flex-direction: column; gap: 22px; }
+.lr-hoja-cab { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 8px 16px; padding-bottom: 16px; border-bottom: 2px solid var(--tinta); }
+.lr-hoja-t { margin: 0; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); }
+.lr-hoja-n { margin: 4px 0 0; font-size: 26px; font-weight: 700; }
+.lr-hoja-fecha { margin: 0; font-size: 13px; color: var(--tinta-60); }
+.lr-hoja-bloque h2 { margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.lr-hoja-bloque dl { margin: 0; display: grid; gap: 8px 24px; }
+@container (min-width: 620px) { .lr-hoja-bloque dl { grid-template-columns: 1fr 1fr; } .lr-hoja-bloque dl > [data-largo] { grid-column: 1 / -1; } }
+.lr-hoja-bloque dt { font-size: 12px; color: var(--tinta-60); }
+.lr-hoja-bloque dd { margin: 2px 0 0; font-size: 14px; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+.lr-hoja-pie { padding-top: 14px; border-top: 1px solid var(--sand); font-size: 12px; line-height: 1.5; color: var(--tinta-60); }
+
+/* Al imprimir sale solo la hoja, en blanco y negro: sin la cabecera, el pie de la tienda ni los botones. */
+@media print {
+  .t-cab, .t-nav, .t-menu-grandes, .t-pie, .lr-acciones { display: none !important; }
+  .lr-pag { padding: 0; }
+  .lr-hoja { border: 0; padding: 0; max-width: none; background: #fff; color: #000; } /* tema-fijo: el papel impreso es blanco y negro */
+}
