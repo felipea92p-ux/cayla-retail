@@ -13,6 +13,9 @@ export const RUTAS_DE_CRON = [
   // Avisos push en el celular (Felipe, 2026-10-20): cada minuto manda lo que la cola tiene pendiente (una talla que esperaba, un pedido
   // que cambió). Plan Pro del equipo: el cron de cada minuto está permitido.
   "/api/push-enviar",
+  // El Libro de Reclamaciones (ADR-0679, Felipe 2026-11-18): cada 5 minutos reintenta la copia al correo de las hojas cuya copia no salió
+  // al guardarlas (el proveedor de correo no respondió). Hasta 5 intentos por hoja, en la base.
+  "/api/libro-copias",
 ] as const;
 
 /** ¿La petición trae la clave del cron? Sin `CRON_SECRET` configurado no pasa nadie, tampoco «Bearer undefined» ni «Bearer ». */

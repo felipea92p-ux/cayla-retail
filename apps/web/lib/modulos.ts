@@ -13,7 +13,7 @@ import { PERMISOS, type Permiso } from "./menu";
 export const CLAVES_MODULO = [
   "inicio",
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "reportes_ventas", "facturacion",
-  "tienda_web", "trafico", "pedidos_web", "vitrina_web", "campanas_web", "recomendaciones", "ajustes_web",
+  "tienda_web", "trafico", "pedidos_web", "libro_reclamaciones", "vitrina_web", "campanas_web", "recomendaciones", "ajustes_web",
   "clientas", "avisos_club", "beneficios_club",
   "existencias", "conteos", "traslados", "movimientos", "recibir",
   "productos", "atributos", "etiquetas", "campanas",
@@ -78,6 +78,9 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "pedidos_web", grupo: "Tienda web", nombre: "Pedidos web", incluye: "Ver los pedidos que los clientes separan en la tienda online para su tienda, confirmarlos (de dónde sale cada prenda, conseguirla para una fecha o quitarla), no confirmarlos o anularlos con su motivo, cobrarlos, entregarlos con su código y, si ya pagó, anularlos devolviéndole su plata (el efectivo sale de la caja abierta de hoy) y anulando su boleta, y enviar a la tienda del pedido las prendas que se reservaron aquí" },
   // Vitrina web (ADR-0408, actividad 3; 20261014225000): qué modelos se ven en la tienda online y a qué precio web. Nace SIN rol
   // (solo el líder) y delegable: sus funciones piden este módulo. El costo y el margen siguen siendo del líder (la base no los manda).
+  // Libro de Reclamaciones de la tienda online (ADR-0679, Felipe 2026-11-18; 20261118151000): la ley pide responder cada hoja en 15 días
+  // hábiles. Junto a Pedidos web: es lo que la tienda atiende cada día. Nace sin rol (solo el líder).
+  { clave: "libro_reclamaciones", grupo: "Tienda web", nombre: "Libro de Reclamaciones", incluye: "Ver las hojas que los clientes dejan en el Libro de Reclamaciones de la tienda online, con sus datos, lo que reclaman y cuántos días hábiles quedan para responder, y responderles por correo dentro del plazo de la ley" },
   { clave: "vitrina_web", grupo: "Tienda web", nombre: "Vitrina web", incluye: "Elegir qué modelos se ven en la tienda online, mostrar u ocultar varios a la vez, fijarlos o quitarlos de Lo nuevo y armar los looks de «Arma tu look»" },
   // Campañas de la tienda web (Felipe 2026-10-21; 20261021161000): cómo se ve la tienda online durante cada campaña (ambiente del catálogo o
   // imagen propia, colores, movimiento, textos y dónde se muestra). El diseño cuelga de la campaña de Etiquetas; fechas, % y prendas no se

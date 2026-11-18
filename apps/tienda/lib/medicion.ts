@@ -49,6 +49,8 @@ export const RUTAS_MEDIDAS = [
   "/cuenta/pedidos/[numero]",
   "/entrar",
   "/inicio",
+  "/libro-de-reclamaciones",
+  "/libro-de-reclamaciones/hoja/[id]",
   "/looks",
   "/looks/[id]",
   "/looks/arma",

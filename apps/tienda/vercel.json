@@ -4,6 +4,7 @@
   "regions": ["gru1"],
   "crons": [
     { "path": "/api/cuentas-cerradas", "schedule": "30 8 * * *" },
-    { "path": "/api/push-enviar", "schedule": "* * * * *" }
+    { "path": "/api/push-enviar", "schedule": "* * * * *" },
+    { "path": "/api/libro-copias", "schedule": "*/5 * * * *" }
   ]
 }

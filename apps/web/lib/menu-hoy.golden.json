@@ -103,6 +103,11 @@
         "icono": "pedidosWeb"
        },
        {
+        "etiqueta": "Libro de Reclamaciones",
+        "href": "/tienda-web/libro-de-reclamaciones",
+        "icono": "libroReclamaciones"
+       },
+       {
         "etiqueta": "Vitrina",
         "href": "/tienda-web/vitrina",
         "icono": "vitrina"
@@ -351,6 +356,11 @@
         "etiqueta": "Pedidos",
         "href": "/tienda-web/pedidos",
         "icono": "pedidosWeb"
+       },
+       {
+        "etiqueta": "Libro de Reclamaciones",
+        "href": "/tienda-web/libro-de-reclamaciones",
+        "icono": "libroReclamaciones"
        },
        {
         "etiqueta": "Vitrina",
@@ -671,6 +681,11 @@
         "icono": "pedidosWeb"
        },
        {
+        "etiqueta": "Libro de Reclamaciones",
+        "href": "/tienda-web/libro-de-reclamaciones",
+        "icono": "libroReclamaciones"
+       },
+       {
         "etiqueta": "Vitrina",
         "href": "/tienda-web/vitrina",
         "icono": "vitrina"
@@ -971,6 +986,11 @@
         "etiqueta": "Pedidos",
         "href": "/tienda-web/pedidos",
         "icono": "pedidosWeb"
+       },
+       {
+        "etiqueta": "Libro de Reclamaciones",
+        "href": "/tienda-web/libro-de-reclamaciones",
+        "icono": "libroReclamaciones"
        },
        {
         "etiqueta": "Vitrina",
@@ -1357,6 +1377,11 @@
         "icono": "pedidosWeb"
        },
        {
+        "etiqueta": "Libro de Reclamaciones",
+        "href": "/tienda-web/libro-de-reclamaciones",
+        "icono": "libroReclamaciones"
+       },
+       {
         "etiqueta": "Vitrina",
         "href": "/tienda-web/vitrina",
         "icono": "vitrina"
@@ -1617,6 +1642,11 @@
         "etiqueta": "Pedidos",
         "href": "/tienda-web/pedidos",
         "icono": "pedidosWeb"
+       },
+       {
+        "etiqueta": "Libro de Reclamaciones",
+        "href": "/tienda-web/libro-de-reclamaciones",
+        "icono": "libroReclamaciones"
        },
        {
         "etiqueta": "Vitrina",
@@ -1969,6 +1999,11 @@
         "icono": "pedidosWeb"
        },
        {
+        "etiqueta": "Libro de Reclamaciones",
+        "href": "/tienda-web/libro-de-reclamaciones",
+        "icono": "libroReclamaciones"
+       },
+       {
         "etiqueta": "Vitrina",
         "href": "/tienda-web/vitrina",
         "icono": "vitrina"
@@ -2298,6 +2333,11 @@
         "icono": "pedidosWeb"
        },
        {
+        "etiqueta": "Libro de Reclamaciones",
+        "href": "/tienda-web/libro-de-reclamaciones",
+        "icono": "libroReclamaciones"
+       },
+       {
         "etiqueta": "Vitrina",
         "href": "/tienda-web/vitrina",
         "icono": "vitrina"
@@ -2621,6 +2661,11 @@
         "icono": "pedidosWeb"
        },
        {
+        "etiqueta": "Libro de Reclamaciones",
+        "href": "/tienda-web/libro-de-reclamaciones",
+        "icono": "libroReclamaciones"
+       },
+       {
         "etiqueta": "Vitrina",
         "href": "/tienda-web/vitrina",
         "icono": "vitrina"
@@ -2869,6 +2914,11 @@
         "etiqueta": "Pedidos",
         "href": "/tienda-web/pedidos",
         "icono": "pedidosWeb"
+       },
+       {
+        "etiqueta": "Libro de Reclamaciones",
+        "href": "/tienda-web/libro-de-reclamaciones",
+        "icono": "libroReclamaciones"
        },
        {
         "etiqueta": "Vitrina",
@@ -3189,6 +3239,11 @@
         "icono": "pedidosWeb"
        },
        {
+        "etiqueta": "Libro de Reclamaciones",
+        "href": "/tienda-web/libro-de-reclamaciones",
+        "icono": "libroReclamaciones"
+       },
+       {
         "etiqueta": "Vitrina",
         "href": "/tienda-web/vitrina",
         "icono": "vitrina"
@@ -3489,6 +3544,11 @@
         "etiqueta": "Pedidos",
         "href": "/tienda-web/pedidos",
         "icono": "pedidosWeb"
+       },
+       {
+        "etiqueta": "Libro de Reclamaciones",
+        "href": "/tienda-web/libro-de-reclamaciones",
+        "icono": "libroReclamaciones"
        },
        {
         "etiqueta": "Vitrina",

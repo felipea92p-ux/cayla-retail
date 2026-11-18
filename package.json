@@ -255,6 +255,7 @@
     "pruebas:pedidos-web-anular": "node scripts/pruebas/pedidos_web_anular.mjs",
     "pruebas:tienda-avisos": "node scripts/pruebas/tienda_avisos_al_entrar.mjs",
     "pruebas:recomendaciones-web": "node scripts/pruebas/recomendaciones_web.mjs",
+    "pruebas:libro-reclamaciones": "node scripts/pruebas/libro_reclamaciones.mjs",
     "pruebas:redondeo-efectivo": "node scripts/pruebas/redondeo_efectivo.mjs",
     "pruebas:prendas-por-regularizar": "node scripts/pruebas/prendas_por_regularizar.mjs",
     "pruebas:liquidacion-retirada": "node scripts/pruebas/liquidacion_retirada.mjs",

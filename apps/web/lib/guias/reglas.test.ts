@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cierresAlVolver, debeOfrecer, esEntradaDelMenu, esperaPorAncla, guiaDeRuta, motivoParaNoTocar, pasoAplica, posicionTarjeta, recorteDe, rutaCoincide, toqueDelPliegue, totalEstimado } from "./reglas";
+import { cierresAlVolver, debeOfrecer, fuenteAlVolver, toqueQueAbre, esEntradaDelMenu, esperaPorAncla, guiaDeRuta, motivoParaNoTocar, pasoAplica, posicionTarjeta, recorteDe, rutaCoincide, toqueDelPliegue, totalEstimado } from "./reglas";
 import type { Guia, PiezaATocar } from "./tipos";
 
 const pieza = (p: Partial<PiezaATocar>): PiezaATocar => ({ etiqueta: "button", texto: "", tipo: "button", enFormulario: false, href: null, rol: null, rutaActual: "/vender", ...p });
@@ -103,7 +103,50 @@ describe("un pliegue se abre o se cierra solo si hace falta (el «?» de la cabe
     // Solo los cierres: ni lo que abre ni el Escape, ni los del paso de destino o del de partida (esos los maneja cada paso).
     expect(cierresAlVolver(pasos, 3, 1)).toEqual([]);
     expect(cierresAlVolver(pasos, 1, 0)).toEqual([]);
-    expect(cierresAlVolver([paso("a"), paso("b", { preparar: [cierra], prepararSoloAlAvanzar: true }), paso("c")], 2, 0)).toEqual([]);
+  });
+
+  it("al volver, lo que deja a la vista un paso sale del último paso de antes que preparaba algo (el que abrió su hoja)", () => {
+    const abreHoja = { tipo: "clic", ancla: "editar.agregar-color" } as const;
+    const escape = { tipo: "escape" } as const;
+    const paso = (id: string, extra: Partial<Guia["pasos"][number]> = {}) => ({ id, ancla: id, titulo: id, texto: id, opcional: true, ...extra });
+    const pasos = [
+      paso("agregar", { preparar: [escape] }),
+      paso("agregar-color", { preparar: [abreHoja] }),
+      paso("unidades"),
+      paso("pie"),
+      paso("solo-celular", { solo: "celular", preparar: [{ tipo: "clic", ancla: "hoja-del-celular" }] }),
+      paso("despues"),
+    ];
+    // «pie» y «unidades» viven en la hoja que abrió «agregar-color».
+    expect(fuenteAlVolver(pasos, 3, 1440)).toBe(1);
+    expect(fuenteAlVolver(pasos, 2, 1440)).toBe(1);
+    // «agregar-color» vive afuera: lo de antes de él es el Escape de «agregar».
+    expect(fuenteAlVolver(pasos, 1, 1440)).toBe(0);
+    // Un paso de otro ancho no cuenta; en su ancho, sí.
+    expect(fuenteAlVolver(pasos, 5, 1440)).toBe(1);
+    expect(fuenteAlVolver(pasos, 5, 375)).toBe(4);
+    // Sin nadie antes que prepare, nada.
+    expect(fuenteAlVolver(pasos, 0, 1440)).toBeNull();
+  });
+
+  it("el toque que abre de un `preparar` es el primero que no cierra ni es «si está»", () => {
+    const pestana = { tipo: "clic", ancla: "fin-gastos.tab-gastos" } as const;
+    const fila = { tipo: "clic", ancla: "fin-gastos.fila" } as const;
+    expect(toqueQueAbre([pestana, fila])).toEqual(pestana);
+    expect(toqueQueAbre([{ tipo: "escape" }, { tipo: "clic", ancla: "x", para: "cerrar" }, { tipo: "clic", ancla: "y", siEsta: true }, fila])).toEqual(fila);
+    expect(toqueQueAbre([{ tipo: "clic", ancla: "x", para: "abrir" }])).toEqual({ tipo: "clic", ancla: "x", para: "abrir" });
+    expect(toqueQueAbre([{ tipo: "escape" }, { tipo: "vaciar", ancla: "buscador" }])).toBeNull();
+  });
+
+  it("una casilla se marca o se desmarca solo si hace falta, igual que un pliegue", () => {
+    expect(toqueDelPliegue("marcar", "false")).toBe("tocar");
+    expect(toqueDelPliegue("marcar", "true")).toBe("ya-esta");
+    expect(toqueDelPliegue("desmarcar", "true")).toBe("tocar");
+    expect(toqueDelPliegue("desmarcar", "false")).toBe("ya-esta");
+    expect(toqueDelPliegue("marcar", null)).toBe("no-es-pliegue");
+    // Desmarcar solo esconde, como cerrar: no es lo que abre un paso.
+    expect(toqueQueAbre([{ tipo: "clic", ancla: "vitrina.casilla", para: "desmarcar" }])).toBeNull();
+    expect(toqueQueAbre([{ tipo: "clic", ancla: "vitrina.casilla", para: "marcar" }])).toEqual({ tipo: "clic", ancla: "vitrina.casilla", para: "marcar" });
   });
 
   it("un control que no dice si está abierto no se toca a ciegas", () => {
