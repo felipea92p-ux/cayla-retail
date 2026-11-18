@@ -17,17 +17,17 @@ const entrada = (extra: Partial<EntradaAvioNuevo> = {}): EntradaAvioNuevo =>
 // ── Hallazgo 7 · un botón sin medida SÍ se puede registrar ──────────────────────────────────────────────────────
 // El diseño lo dice (`COMPORTAMIENTOS.pieza.requerida = false`) y la base acepta la medida nula, pero la pantalla no
 // dejaba: al elegir la clase se rellena la UNIDAD sola, y la validación tomaba «hay unidad» por «hay medida escrita».
-// Importa porque quien no sabe la línea del botón inventaba un número, y ese número entra en el nombre de la ficha
+// Importa porque quien no sabe la medida del botón inventaba un número, y ese número entra en el nombre de la ficha
 // y en su identidad para siempre.
 describe("la medida de un avío: se pide donde distingue, y no donde el diseño dice que es opcional", () => {
   it("un botón sin medida se puede registrar (la unidad que propone la clase no cuenta como medida escrita)", () => {
-    expect(problemasDeLaMedida(entrada({ medidaUnidad: "linea" }), clase())).toEqual([]);
+    expect(problemasDeLaMedida(entrada({ medidaUnidad: "centimetro" }), clase())).toEqual([]);
     expect(problemasDeLaMedida(entrada(), clase())).toEqual([]);
   });
   it("y con medida escrita sigue validándose igual", () => {
-    expect(problemasDeLaMedida(entrada({ medida: "18", medidaUnidad: "linea" }), clase())).toEqual([]);
-    expect(problemasDeLaMedida(entrada({ medida: "0", medidaUnidad: "linea" }), clase())).toHaveLength(1);
-    expect(problemasDeLaMedida(entrada({ medida: "abc", medidaUnidad: "linea" }), clase())).toHaveLength(1);
+    expect(problemasDeLaMedida(entrada({ medida: "1.5", medidaUnidad: "centimetro" }), clase())).toEqual([]);
+    expect(problemasDeLaMedida(entrada({ medida: "0", medidaUnidad: "centimetro" }), clase())).toHaveLength(1);
+    expect(problemasDeLaMedida(entrada({ medida: "abc", medidaUnidad: "centimetro" }), clase())).toHaveLength(1);
   });
   it("lo que SÍ se distingue por su medida la sigue pidiendo: un cierre, un elástico, un hilo", () => {
     for (const c of ["largo", "ancho", "titulo"] as const) {

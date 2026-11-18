@@ -22,7 +22,7 @@ import type { UnidadMedidaAvio } from "./insumos-reglas";
 // Los mismos casos viven en `scripts/pruebas/materiales.mjs`, grupo V (V15 y V16).
 
 const TODOS: ComportamientoClase[] = ["pieza", "largo", "ancho", "titulo", "etiqueta", "otro"];
-const UNIDADES: UnidadMedidaAvio[] = ["linea", "milimetro", "centimetro", "titulo"];
+const UNIDADES: UnidadMedidaAvio[] = ["milimetro", "centimetro", "titulo"];
 
 const clase = (extra: Partial<ClaseDeAvio> = {}): ClaseDeAvio => ({
   id: "k1",
@@ -72,27 +72,30 @@ describe("la tabla de comportamientos es total y no se contradice", () => {
 });
 
 describe("medidaCuadra: la MISMA tabla que `retail.fn_medida_cuadra` (caso V16 de pruebas:materiales)", () => {
-  it("un botón se mide SOLO en líneas (Felipe 2026-10-30): con dos unidades el mismo botón entraba dos veces", () => {
-    expect(medidaCuadra("pieza", "linea")).toBe(true);
+  it("un botón se mide SOLO en centímetros (Felipe 2026-11-17; antes, líneas): con dos unidades el mismo botón entraba dos veces", () => {
+    expect(medidaCuadra("pieza", "centimetro")).toBe(true);
     expect(medidaCuadra("pieza", "milimetro")).toBe(false);
-    expect(medidaCuadra("pieza", "centimetro")).toBe(false);
     expect(medidaCuadra("pieza", "titulo")).toBe(false);
   });
-  it("un cierre y un elástico, en centímetros; un hilo, en título; una etiqueta, en nada; «otro», en lo que sea", () => {
-    expect(UNIDADES.map((u) => medidaCuadra("largo", u))).toEqual([false, false, true, false]);
-    expect(UNIDADES.map((u) => medidaCuadra("ancho", u))).toEqual([false, false, true, false]);
-    expect(UNIDADES.map((u) => medidaCuadra("titulo", u))).toEqual([false, false, false, true]);
-    expect(UNIDADES.map((u) => medidaCuadra("etiqueta", u))).toEqual([false, false, false, false]);
-    expect(UNIDADES.map((u) => medidaCuadra("otro", u))).toEqual([true, true, true, true]);
+  it("ningún avío se mide en líneas: la unidad ya no existe en la web (Felipe 2026-11-17: «se maneja por cm»)", () => {
+    expect(Object.keys(UNIDADES_MEDIDA)).toEqual(["milimetro", "centimetro", "titulo"]);
+    for (const c of TODOS) expect(medidasDe(c) as readonly string[]).not.toContain("linea");
   });
-  it("`medidasDe` y `medidaCuadra` dicen lo mismo, para los seis comportamientos y las cuatro unidades", () => {
+  it("un cierre y un elástico, en centímetros; un hilo, en título; una etiqueta, en nada; «otro», en lo que sea", () => {
+    expect(UNIDADES.map((u) => medidaCuadra("largo", u))).toEqual([false, true, false]);
+    expect(UNIDADES.map((u) => medidaCuadra("ancho", u))).toEqual([false, true, false]);
+    expect(UNIDADES.map((u) => medidaCuadra("titulo", u))).toEqual([false, false, true]);
+    expect(UNIDADES.map((u) => medidaCuadra("etiqueta", u))).toEqual([false, false, false]);
+    expect(UNIDADES.map((u) => medidaCuadra("otro", u))).toEqual([true, true, true]);
+  });
+  it("`medidasDe` y `medidaCuadra` dicen lo mismo, para los seis comportamientos y las tres unidades", () => {
     for (const c of TODOS) for (const u of UNIDADES) expect(medidaCuadra(c, u)).toBe(medidasDe(c).includes(u));
   });
 });
 
 describe("textoDeMedida: lo mismo que `retail.fn_medida_texto` (caso V15)", () => {
   it("dice cada unidad como la dice la base", () => {
-    expect(textoDeMedida(18, "linea")).toBe("18 L");
+    expect(textoDeMedida(1.5, "centimetro")).toBe("1.5 cm");
     expect(textoDeMedida(11.4, "milimetro")).toBe("11.4 mm");
     expect(textoDeMedida(40, "centimetro")).toBe("40 cm");
     expect(textoDeMedida(40, "titulo")).toBe("título 40");
@@ -102,20 +105,20 @@ describe("textoDeMedida: lo mismo que `retail.fn_medida_texto` (caso V15)", () =
     expect(textoDeMedida(11.4, "milimetro")).not.toContain(",");
   });
   it("un decimal que no aporta no se escribe (`trim_scale` de la base)", () => {
-    expect(textoDeMedida(18.0, "linea")).toBe("18 L");
-    expect(textoDeMedida(18.5, "linea")).toBe("18.5 L");
-    expect(textoDeMedida(18.504, "linea")).toBe("18.5 L");
+    expect(textoDeMedida(2.0, "centimetro")).toBe("2 cm");
+    expect(textoDeMedida(1.5, "centimetro")).toBe("1.5 cm");
+    expect(textoDeMedida(0.574, "centimetro")).toBe("0.57 cm");
   });
   it("sin medida, sin texto (y un número imposible tampoco se dibuja)", () => {
-    expect(textoDeMedida(null, "linea")).toBeNull();
+    expect(textoDeMedida(null, "centimetro")).toBeNull();
     expect(textoDeMedida(18, null)).toBeNull();
-    expect(textoDeMedida(Number.NaN, "linea")).toBeNull();
+    expect(textoDeMedida(Number.NaN, "centimetro")).toBeNull();
   });
 });
 
 describe("nombreDeMaterial: el mismo nombre que arma la base para cada color", () => {
   it("un avío se lee con su medida; una tela, tal cual", () => {
-    expect(nombreDeMaterial({ nombre: "Botón nácar", medida: { valor: 18, unidad: "linea" } })).toBe("Botón nácar 18 L");
+    expect(nombreDeMaterial({ nombre: "Botón nácar", medida: { valor: 1.5, unidad: "centimetro" } })).toBe("Botón nácar 1.5 cm");
     expect(nombreDeMaterial({ nombre: "Milano Melange", medida: null })).toBe("Milano Melange");
   });
   it("es el mismo texto que el disparador pone antes del « · Color»", () => {

@@ -161,7 +161,7 @@ export function camposDeLaTela(e: DatosDeLaTela): CampoDeGuia[] {
   const mermaEscrita = e.merma.trim() !== "";
   return [
     { id: "nombre", nombre: "Nombre de la tela", requerido: true, hecho: e.nombre.trim() !== "", pendiente: MENSAJE_NOMBRE },
-    // Lo recomendado que no bloquea: el tejido alimenta la sugerencia de «Nueva orden»; la composición, la etiqueta de la prenda.
+    // Lo recomendado que no bloquea: el tejido alimenta la sugerencia de «Nueva orden».
     // Con una pregunta sin contestar («¿«Franelas» es otro tejido?») el tejido deja de ser solo sugerido: guardar ahora perdería lo que la persona pidió.
     {
       id: "tejido",
@@ -171,7 +171,9 @@ export function camposDeLaTela(e: DatosDeLaTela): CampoDeGuia[] {
       hecho: e.tejidoId !== "" && !e.tejidoPorContestar,
       pendiente: e.tejidoPorContestar ? mensajeDelTejidoPorContestar(e.tejidoPorContestar) : "Elige el tejido (o créalo aquí mismo): «Nueva orden» lo usa para proponer la tela.",
     },
-    { id: "composicion", nombre: "La composición", requerido: false, sugerido: true, hecho: e.composicion.trim() !== "", pendiente: "Escribe la composición: sale en la etiqueta de la prenda." },
+    // La composición es OPCIONAL de verdad, no «sugerida» (Felipe 2026-11-17): los proveedores casi nunca la dan completa, y marcarla como «falta» empujaba a
+    // inventarla. Se escribe lo que se sepa («Algodón»), sin el hilo de «Sigue» ni el «Falta» del pie.
+    { id: "composicion", nombre: "La composición", requerido: false, hecho: e.composicion.trim() !== "", pendiente: "" },
     { id: "compra", nombre: "Cómo la compras", requerido: true, hecho: compraCompleta(e), pendiente: e.compra === "kilo" ? mensajesDelKilo(e)[0] : MENSAJE_ROLLO },
     { id: "merma", nombre: "Merma al cortar", requerido: mermaEscrita, hecho: mermaEscrita && mermaBuena(e), pendiente: MENSAJE_MERMA },
   ];

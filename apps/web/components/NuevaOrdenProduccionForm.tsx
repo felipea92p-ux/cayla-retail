@@ -981,7 +981,7 @@ export function NuevaOrdenProduccionForm({
                   tituloDe={(clave) => [variantePorId.get(clave)?.sku, curva.porVariante.get(clave)?.motivo].filter(Boolean).join(" · ") || undefined}
                   alFinalDeTallas={botonTalla}
                   alFinalDeColores={botonColor}
-                  accionFila={esNuevo ? (color) => <QuitarColor nombre={color.nombre} onQuitar={(conTeclado) => quitarColor(color.codigo, conTeclado)} /> : undefined}
+                  accionFila={esNuevo ? (color) => <QuitarColor doble nombre={color.nombre} onQuitar={(conTeclado) => quitarColor(color.codigo, conTeclado)} /> : undefined}
                 />
               </>
             ) : (
