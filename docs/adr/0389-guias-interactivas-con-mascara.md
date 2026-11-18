@@ -293,3 +293,23 @@ ya cierra al volver), eligen una pestaña o marcan una casilla.
   «Los filtros, en un botón» al volver: su ancla no existía con el panel abierto. Ahora cada guía toca un ancla única con `para`. En el celular el botón de la cabecera dice siempre
   «cerrado»: la hoja lo tapa mientras está abierta, y al volver la guía la cierra primero. Por eso los pasos que viven en esa hoja no
   piden «abrir».
+
+## Actualización 2026-11-18 (c) — al volver con ←, la guía reabre lo que el paso necesita
+
+Al volver, el motor cierra las hojas que la guía abrió después del paso de destino, y salta directo al último paso que se mostró. Un paso
+que vive dentro de una hoja (o en otra pestaña, o en una vista que eligió un paso de más adelante) y no la abre él mismo se saltaba, y la
+guía caía varios pasos más atrás: en Existencias, desde «Colgar varias de una vez» hasta antes de abrir la ficha; en Gastos, desde «Fijos
+del mes» hasta «Cuatro listas». Visto con una ida y vuelta (avanzar, volver al principio, avanzar otra vez) en 9 guías.
+
+- **El motor reabre en cadena:** al volver, si a un paso le falta su pieza (y no prepara nada), o si prepara pero lo primero que toca ya no
+  está, repite el `preparar` del último paso de antes que tenía uno (`fuenteAlVolver`, con su prueba). Si lo que ese `preparar` toca
+  tampoco está (la ficha de Existencias se abre desde el menú «Más»; «Clasificar un egreso», desde su pestaña), sigue hacia atrás desde
+  ahí, hasta 4 niveles. Un toque cuya pieza no está y que nada acaba de abrir se salta sin esperar. Si aun así el paso se salta, lo que se
+  abrió para él se cierra.
+- **Solo al volver y solo si falta algo:** al avanzar no cambia nada, y un paso con su pieza a la vista no toca nada. Lo que solo se
+  prepara al avanzar (`prepararSoloAlAvanzar`: una casilla, un filtro) no se repite.
+- **Lo que vive en una pestaña o una vista la elige:** «Buscar y filtrar» y «El detalle de un gasto» de Gastos eligen la pestaña «Gastos»,
+  «Cambiar varias de una vez» de Editar producto elige «Precios», y «Busca una prenda» de Existencias vuelve a las tarjetas con la × de
+  «Vista: …» si está. Elegir lo que ya está elegido no cambia nada, así que al avanzar es igual que antes.
+- **Descarté** que el motor guarde una foto de la pantalla en cada paso y la restaure al volver: no hay forma de saber qué tocó la
+  persona entre medio, y restaurar a ciegas podría desarmar algo suyo. Repetir el `preparar` es lo mismo que ya hace al avanzar.

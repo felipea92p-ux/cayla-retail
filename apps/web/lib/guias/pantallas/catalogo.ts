@@ -512,6 +512,9 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       id: "bloque",
       ancla: "editar.bloque",
       opcional: true,
+      // Vive en la vista «Precios», que elige el paso de antes al demostrar. Elegirla aquí también (una opción ya elegida no cambia nada)
+      // la deja a la vista al volver con ←, cuando «Costos e insignias» ya volvió a «Unidades».
+      preparar: [{ tipo: "clic", ancla: "editar.vista-precio" }],
       titulo: "Cambiar varias de una vez",
       texto: "Elige a cuáles variantes (todas, un color o una talla), escribe el precio nuevo y «Aplicar» lo pone en la tabla. También puedes escribirlo celda por celda. Lo cambiado se pinta en ámbar y recién se guarda con «Revisar y guardar».",
     },

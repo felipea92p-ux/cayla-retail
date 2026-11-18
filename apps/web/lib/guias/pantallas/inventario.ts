@@ -58,6 +58,9 @@ export const GUIA_EXISTENCIAS: Guia = {
       id: "buscador",
       ancla: "existencias.buscador",
       opcional: true,
+      // El ejemplo sale del nombre de una tarjeta: si al volver con ← la lista quedó en tabla o por talla (lo eligen pasos de más adelante),
+      // la × de «Vista: …» la devuelve a las tarjetas. Con las tarjetas a la vista, esa × no está y no se toca nada.
+      preparar: [{ tipo: "clic", ancla: "existencias.chip-vista", siEsta: true }],
       titulo: "Busca una prenda",
       texto: "Escribe parte del nombre, la talla o el código y la lista se achica mientras escribes. Con el lector, escanea la etiqueta y se abre esa talla directo.",
       demostrar: [{ tipo: "escribir", ancla: "existencias.buscador", texto: { palabraDe: "existencias.prenda-nombre" } }],

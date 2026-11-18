@@ -175,6 +175,31 @@ const puedeAbrir = (acciones: readonly AccionGuia[] | undefined) => !!acciones?.
  * (Rendimiento sin meta: «¿Cuadran las metas?» se salta), «Cambios de meta» quedaba abierto sobre los pasos de atrás. Un cierre solo
  * esconde y es idempotente, así que correrlo de más no desarma nada; lo que el paso de destino necesita abierto lo pide su `preparar`.
  */
+/**
+ * Al volver con ←, de qué paso sale lo que deja a la vista al paso `indice`: el último de antes que tenía `preparar` (el que abrió la hoja
+ * donde vive, o eligió su pestaña). Al volver, el motor cierra las hojas que la guía abrió después, y un paso de adentro que no la abre él
+ * mismo se saltaba: la guía caía varios pasos más atrás (Editar producto: «Sumarlos a la ficha» → «Llegó un color o una talla nueva»). El
+ * motor repite ese `preparar` solo si al paso le falta su pieza, y si lo que ese `preparar` toca tampoco está (la ficha de Existencias se
+ * abre desde el menú «Más»), sigue hacia atrás desde ahí.
+ * `null` si no hay ninguno, o si ese paso prepara solo al avanzar (marca una casilla, quita un filtro: repetirlo desarmaría lo de antes).
+ * Un paso de otro ancho (`solo`) no cuenta: sus toques son de otra pantalla.
+ */
+export function fuenteAlVolver(pasos: readonly PasoGuia[], indice: number, anchoVentana: number): number | null {
+  for (let j = indice - 1; j >= 0; j--) {
+    const p = pasos[j]!;
+    if (p.solo && !pasoAplica({ ...p, requiere: undefined, excluye: undefined }, new Set(), anchoVentana)) continue;
+    if (!p.preparar?.length) continue;
+    return p.prepararSoloAlAvanzar ? null : j;
+  }
+  return null;
+}
+
+/** El toque de un `preparar` que abre algo (una hoja, una pestaña, un menú): el primero que no es un cierre ni un «si está». */
+export function toqueQueAbre(acciones: readonly AccionGuia[]): Extract<AccionGuia, { tipo: "clic" }> | null {
+  for (const a of acciones) if (a.tipo === "clic" && !a.siEsta && a.para !== "cerrar") return a;
+  return null;
+}
+
 export function cierresAlVolver(pasos: readonly PasoGuia[], desde: number, hasta: number): AccionGuia[] {
   return pasos
     .slice(hasta + 1, desde)
