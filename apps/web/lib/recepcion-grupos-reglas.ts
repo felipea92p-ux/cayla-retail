@@ -29,7 +29,9 @@ import {
   type ConteoDeLinea,
   type LineaParaContar,
   type PrendaAnotada,
+  type PrendaSeparada,
   type Separado,
+  type VarianteSeparada,
 } from "./recepcion-conteo-reglas";
 
 /** Las líneas que son de lo mismo, vistas como una sola categoría. */
@@ -224,10 +226,89 @@ export function lineaDeLaPrenda(g: GrupoDeLineas, prenda: PrendaDe): LineaParaCo
   return estaba ?? g.lineas.find((l) => esDeLaLinea(l, buscada)) ?? g.principal;
 }
 
+/** Toma `n` unidades de unas tallas, en su orden (con sus dañadas primero): lo que se lleva una línea y lo que queda para la siguiente. */
+function tomarDeTallas(vs: readonly VarianteSeparada[], n: number): { toma: VarianteSeparada[]; queda: VarianteSeparada[] } {
+  const toma: VarianteSeparada[] = [];
+  const queda: VarianteSeparada[] = [];
+  let falta = n;
+  for (const v of vs) {
+    const k = Math.min(falta, v.cantidad);
+    falta -= k;
+    const danadas = Math.min(v.danadas, k);
+    if (k > 0) toma.push({ ...v, cantidad: k, danadas, solucion: danadas > 0 ? v.solucion : null });
+    if (v.cantidad - k > 0) queda.push({ ...v, cantidad: v.cantidad - k, danadas: v.danadas - danadas, solucion: v.danadas - danadas > 0 ? v.solucion : null });
+  }
+  return { toma, queda };
+}
+
+/** Junta las tallas de una misma prenda que estaban en varias líneas (la misma talla, una vez). Si alguna parte no tenía tallas, no las tiene. */
+function juntarTallas(partes: readonly PrendaSeparada[]): VarianteSeparada[] | null {
+  if (partes.some((p) => p.cantidad > 0 && !p.variantes)) return null;
+  const porVariante = new Map<string, VarianteSeparada>();
+  for (const v of partes.flatMap((p) => p.variantes ?? [])) {
+    const ya = porVariante.get(v.varianteId);
+    porVariante.set(v.varianteId, ya ? { ...ya, cantidad: ya.cantidad + v.cantidad, danadas: ya.danadas + v.danadas, solucion: ya.solucion ?? v.solucion } : v);
+  }
+  return [...porVariante.values()];
+}
+
+/**
+ * La misma prenda comprada en varias líneas (Argollas: 12 a S/ 7.95, 12 a S/ 5.93 y 20 a S/ 6.48) es UN modelo para quien cuenta, pero cada línea
+ * tiene lo que dijo y su costo. Lo separado de esa prenda se parte entre las líneas que la anotaron, en el orden de la compra y hasta lo que dijo
+ * cada una (menos lo que ya entró al stock); lo que sobra va a la última. Sus tallas se parten igual, en su orden.
+ *
+ * Por qué aquí y no en un solo camino: hasta el 2026-11-18 solo lo hacía «contar el modelo» (`partirEntreSusLineas`). Lo demás que cambia lo
+ * separado (las tallas, «llegó otra», identificar) dejaba la prenda entera en una sola línea, y «Cerrar» —que pregunta línea por línea— pedía explicar
+ * «Sobran 32» y «Faltan 32» de algo que cuadraba (44 de 44), con el costo de la primera línea para todas (envío 24: S/ 349.80 en vez de S/ 296.16).
+ */
+function partirEntreLasQueLaAnotaron(lineas: readonly LineaParaContar[], porLinea: readonly Separado[]): Separado[] {
+  const r: Separado[] = porLinea.map((s) => ({ prendas: [...s.prendas], nuevas: [...s.nuevas] }));
+  const dueñasDe = (prenda: PrendaDe): number[] => lineas.flatMap((l, i) => (esDeLaLinea(l, prenda) ? [i] : []));
+  const lugar = (i: number): number => Math.max(0, (lineas[i].dijeron ?? 0) - (lineas[i].conteo?.enStock ?? 0));
+  const repartir = (dueñas: readonly number[], total: number, poner: (i: number, cantidad: number) => void) => {
+    let resto = total;
+    dueñas.forEach((i, j) => {
+      const leToca = j === dueñas.length - 1 ? resto : Math.min(resto, lugar(i));
+      resto -= leToca;
+      if (leToca > 0) poner(i, leToca);
+    });
+  };
+  const vistas = new Set<string>();
+
+  for (const p of porLinea.flatMap((s) => s.prendas)) {
+    if (vistas.has(p.productoId)) continue;
+    vistas.add(p.productoId);
+    const dueñas = dueñasDe({ productoId: p.productoId, nombre: p.nombre });
+    const partes = r.flatMap((x) => x.prendas.filter((q) => q.productoId === p.productoId));
+    const total = partes.reduce((a, q) => a + q.cantidad, 0);
+    if (dueñas.length < 2 || total === 0) continue;
+    let tallas = juntarTallas(partes);
+    for (const x of r) x.prendas = x.prendas.filter((q) => q.productoId !== p.productoId);
+    repartir(dueñas, total, (i, cantidad) => {
+      const { toma, queda } = tallas ? tomarDeTallas(tallas, cantidad) : { toma: null, queda: null };
+      tallas = queda;
+      r[i].prendas.push({ ...partes[0], cantidad, variantes: toma });
+    });
+  }
+
+  for (const n of porLinea.flatMap((s) => s.nuevas)) {
+    const k = claveDeDescripcion(n.descripcion);
+    if (!k || vistas.has(`nueva:${k}`)) continue;
+    vistas.add(`nueva:${k}`);
+    const esta = (x: Separado["nuevas"][number]) => claveDeDescripcion(x.descripcion) === k;
+    const dueñas = dueñasDe({ descripcion: n.descripcion });
+    const total = r.reduce((a, x) => a + x.nuevas.filter(esta).reduce((b, y) => b + y.cantidad, 0), 0);
+    if (dueñas.length < 2 || total === 0) continue;
+    for (const x of r) x.nuevas = x.nuevas.filter((y) => !esta(y));
+    repartir(dueñas, total, (i, cantidad) => r[i].nuevas.push({ ...n, cantidad }));
+  }
+  return r;
+}
+
 /**
  * La persona dejó lo separado de la categoría así (`separado`) y contó `total`: qué queda en cada línea. Cada prenda se guarda en la línea
- * donde ya estaba; si es nueva en la lista, en la línea que la anotó al comprar; si ninguna la anotó, en la primera. Después se reparten
- * los números para que ninguna línea quede por debajo de lo suyo.
+ * donde ya estaba; si es nueva en la lista, en la línea que la anotó al comprar; si ninguna la anotó, en la primera. La que anotaron varias
+ * líneas se parte entre ellas (`partirEntreLasQueLaAnotaron`). Después se reparten los números para que ninguna línea quede por debajo de lo suyo.
  */
 export function repartirSeparado(g: GrupoDeLineas, separado: Separado, total: number): Reparto {
   const lineas = g.lineas;
@@ -243,9 +324,10 @@ export function repartirSeparado(g: GrupoDeLineas, separado: Separado, total: nu
         : lineaDeLaPrenda(g, prenda),
     );
 
-  const nuevoPorLinea: Separado[] = lineas.map(() => ({ prendas: [], nuevas: [] }));
-  for (const p of separado.prendas) nuevoPorLinea[dueña({ productoId: p.productoId, nombre: p.nombre })].prendas.push(p);
-  for (const n of separado.nuevas) nuevoPorLinea[dueña({ descripcion: n.descripcion })].nuevas.push(n);
+  const porDueña: Separado[] = lineas.map(() => ({ prendas: [], nuevas: [] }));
+  for (const p of separado.prendas) porDueña[dueña({ productoId: p.productoId, nombre: p.nombre })].prendas.push(p);
+  for (const n of separado.nuevas) porDueña[dueña({ descripcion: n.descripcion })].nuevas.push(n);
+  const nuevoPorLinea = partirEntreLasQueLaAnotaron(lineas, porDueña);
 
   const minimos = lineas.map((l, i) => (l.conteo?.enStock ?? 0) + totalSeparado(nuevoPorLinea[i]));
   const { contadas, subio } = repartirContadas(lineas, minimos, Math.max(0, Math.trunc(total)));
