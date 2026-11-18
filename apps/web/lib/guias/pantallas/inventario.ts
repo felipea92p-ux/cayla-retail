@@ -90,6 +90,9 @@ export const GUIA_EXISTENCIAS: Guia = {
       id: "filtros",
       ancla: "existencias.filtros",
       opcional: true,
+      // «Filtros» abre y cierra su panel con el mismo toque y dice si está abierto: cada paso pide lo que necesita («abrir» o «cerrar»),
+      // así se ve igual al avanzar y al volver con ←. En el celular abre una hoja, que el motor cierra al volver.
+      preparar: [{ tipo: "clic", ancla: "existencias.filtros", para: "cerrar" }],
       titulo: "Filtros y vista",
       texto: "Aquí se abren los filtros y la forma de ver la lista. Cuando hay filtros puestos, el botón lo marca: con su número o, en el celular, con un punto (te lo abrimos).",
     },
@@ -97,8 +100,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       id: "panel-filtros",
       ancla: "existencias.panel-filtros",
       opcional: true,
-      prepararSoloAlAvanzar: true,
-      preparar: [{ tipo: "clic", ancla: "existencias.filtros-abrir" }],
+      preparar: [{ tipo: "clic", ancla: "existencias.filtros", para: "abrir" }],
       titulo: "Tres filas de filtros",
       texto: "«Prenda»: categoría, talla, color o marca (talla y color aceptan varios). «Gestión»: qué pide hoy cada talla y si está dañada o apartada. «Vista»: cómo ves la lista. Cada cambio se aplica al momento.",
     },
@@ -136,7 +138,8 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.tabla-talla",
       opcional: true,
       solo: "escritorio",
-      preparar: [{ tipo: "clic", ancla: "existencias.ver-talla" }],
+      // «Por talla» vive en el panel de filtros: al volver desde «Cerrar los filtros», se reabre.
+      preparar: [{ tipo: "clic", ancla: "existencias.filtros", para: "abrir" }, { tipo: "clic", ancla: "existencias.ver-talla" }],
       titulo: "Una fila por talla",
       texto: "Cada talla con su stock, cuánto le dura el piso, cuánto se vende, lo que viene en camino y qué pide hoy. Sirve para revisar una por una; tocar la fila abre la prenda.",
     },
@@ -145,8 +148,8 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.filtros",
       opcional: true,
       solo: "escritorio",
-      prepararSoloAlAvanzar: true,
-      preparar: [{ tipo: "clic", ancla: "existencias.ver-tarjetas" }, { tipo: "clic", ancla: "existencias.filtros-cerrar" }],
+      // «Tarjetas» vive en el panel: al volver, el panel ya está cerrado y la vista ya es la de tarjetas, así que no se toca.
+      preparar: [{ tipo: "clic", ancla: "existencias.ver-tarjetas", siEsta: true }, { tipo: "clic", ancla: "existencias.filtros", para: "cerrar" }],
       titulo: "Cerrar los filtros",
       texto: "Volvimos a las tarjetas y cerramos el panel con el mismo botón. Este equipo recuerda si lo dejas abierto o cerrado la próxima vez que entres.",
     },
@@ -350,7 +353,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "Ya sabes leer y mover las existencias de tu tienda. Para repasarlo: Mi perfil ▸ Demo ▸ Existencias.",
     },
   ],
-  alSalir: [{ tipo: "escape" }, { tipo: "vaciar", ancla: "existencias.buscador" }],
+  alSalir: [{ tipo: "escape" }, { tipo: "vaciar", ancla: "existencias.buscador" }, { tipo: "clic", ancla: "existencias.filtros", para: "cerrar" }],
 };
 
 export const GUIA_BAJAR_AL_PISO: Guia = {

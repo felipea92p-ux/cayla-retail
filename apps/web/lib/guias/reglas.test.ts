@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { debeOfrecer, esEntradaDelMenu, esperaPorAncla, guiaDeRuta, motivoParaNoTocar, pasoAplica, posicionTarjeta, recorteDe, rutaCoincide, toqueDelPliegue, totalEstimado } from "./reglas";
+import { cierresAlVolver, debeOfrecer, esEntradaDelMenu, esperaPorAncla, guiaDeRuta, motivoParaNoTocar, pasoAplica, posicionTarjeta, recorteDe, rutaCoincide, toqueDelPliegue, totalEstimado } from "./reglas";
 import type { Guia, PiezaATocar } from "./tipos";
 
 const pieza = (p: Partial<PiezaATocar>): PiezaATocar => ({ etiqueta: "button", texto: "", tipo: "button", enFormulario: false, href: null, rol: null, rutaActual: "/vender", ...p });
@@ -90,6 +90,20 @@ describe("un pliegue se abre o se cierra solo si hace falta (el «?» de la cabe
     // Un opcional que no está a la vista cuenta solo si antes algo cambió de vista: cerrar el globo no lo hace.
     expect(totalEstimado([paso("cerrar", { preparar: [cierra] }), paso("oculto")], new Set(["cerrar"]), 1440)).toBe(1);
     expect(totalEstimado([paso("abrir", { preparar: [abre] }), paso("oculto")], new Set(["abrir"]), 1440)).toBe(2);
+  });
+
+  it("al volver con ←, los cierres de los pasos que se saltaron entre medio también corren", () => {
+    const cierra = { tipo: "clic", ancla: "rendimiento.historial-abrir", para: "cerrar" } as const;
+    const abre = { tipo: "clic", ancla: "rendimiento.historial-abrir", para: "abrir" } as const;
+    const escape = { tipo: "escape" } as const;
+    const paso = (id: string, extra: Partial<Guia["pasos"][number]> = {}) => ({ id, ancla: id, titulo: id, texto: id, opcional: true, ...extra });
+    const pasos = [paso("prendas", { preparar: [escape] }), paso("reparto", { preparar: [cierra] }), paso("historial", { preparar: [abre] }), paso("rankings", { preparar: [cierra] })];
+    // De «Cambios de meta» (2) a «Prendas por venta» (0): «¿Cuadran las metas?» (1) se saltó al avanzar, y su cierre corre igual.
+    expect(cierresAlVolver(pasos, 2, 0)).toEqual([cierra]);
+    // Solo los cierres: ni lo que abre ni el Escape, ni los del paso de destino o del de partida (esos los maneja cada paso).
+    expect(cierresAlVolver(pasos, 3, 1)).toEqual([]);
+    expect(cierresAlVolver(pasos, 1, 0)).toEqual([]);
+    expect(cierresAlVolver([paso("a"), paso("b", { preparar: [cierra], prepararSoloAlAvanzar: true }), paso("c")], 2, 0)).toEqual([]);
   });
 
   it("un control que no dice si está abierto no se toca a ciegas", () => {

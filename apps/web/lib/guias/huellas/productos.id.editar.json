@@ -10,7 +10,7 @@
     "components/BarraDeCambios.tsx": [
       "Boton «Descartar»",
       "Boton «Recargar la prenda»",
-      "Boton «editar.barra-guardar»"
+      "Boton «{visible ? \"editar.barra-guardar\" : undefined}»"
     ],
     "components/ConfirmarCambios.tsx": [
       "ComboResponsable «{responsable}»",

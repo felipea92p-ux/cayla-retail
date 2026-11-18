@@ -213,7 +213,7 @@
       "button «Escanear etiqueta con la cámara»"
     ],
     "components/existencias/FiltrosEnCabecera.tsx": [
-      "BotonFiltros «existencias.filtros-abrir»"
+      "BotonFiltros «→pedirFiltros»"
     ],
     "components/existencias/FiltrosRapidos.tsx": [
       "button «{rotulo}»"

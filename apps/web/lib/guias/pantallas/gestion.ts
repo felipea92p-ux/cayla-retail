@@ -156,6 +156,8 @@ export const GUIA_FRESCURA: Guia = {
       id: "como-se-lee",
       ancla: "frescura.como-se-lee",
       opcional: true,
+      // «¿Cómo se lee esto?» es un pliegue: cada toque dice si abre o cierra, así el paso se ve igual al avanzar y al volver con ←.
+      preparar: [{ tipo: "clic", ancla: "frescura.como-se-lee", para: "cerrar" }],
       titulo: "¿Cómo se lee esto?",
       texto: "Explica qué quiere decir cada estado y cómo se cuentan los días (te lo abrimos).",
     },
@@ -163,8 +165,7 @@ export const GUIA_FRESCURA: Guia = {
       id: "lectura",
       ancla: "frescura.lectura",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "frescura.como-se-lee" }],
-      prepararSoloAlAvanzar: true,
+      preparar: [{ tipo: "clic", ancla: "frescura.como-se-lee", para: "abrir" }],
       titulo: "Cómo se cuenta",
       texto: "Fresca, vigente, envejeciendo o «aún no se sabe», en una frase cada una. Los días cuentan solo el tiempo con alguna talla libre colgada, y la prenda se compara con lo que se vende en esta tienda. Al final, las prendas sin temporada y lo que ya decidiste.",
     },
@@ -172,6 +173,8 @@ export const GUIA_FRESCURA: Guia = {
       id: "filtros",
       ancla: "frescura.filtros",
       opcional: true,
+      // Cierra «¿Cómo se lee esto?», que abrió el paso anterior.
+      preparar: [{ tipo: "clic", ancla: "frescura.como-se-lee", para: "cerrar" }],
       titulo: "Filtra por tipo y estado",
       texto: "Elige una categoría o un estado. «Por decidir» deja solo las que esperan tu decisión, con su número; «Decididas», las que ya la tienen. «Limpiar filtros» vuelve a mostrar todo.",
     },
@@ -251,7 +254,7 @@ export const GUIA_FRESCURA: Guia = {
       texto: "Ya sabes revisar qué lleva mucho colgado. Para repasarlo: Mi perfil ▸ Demo ▸ Frescura del piso.",
     },
   ],
-  alSalir: [{ tipo: "escape" }, { tipo: "vaciar", ancla: "frescura.buscador" }],
+  alSalir: [{ tipo: "escape" }, { tipo: "vaciar", ancla: "frescura.buscador" }, { tipo: "clic", ancla: "frescura.como-se-lee", para: "cerrar" }],
 };
 
 // Plan del piso (ADR-0329 + ADR-0328): solo lectura salvo «Grupos», donde quien ve el módulo prepara cambios que se guardan con «Revisar y guardar», y
@@ -598,6 +601,8 @@ export const GUIA_RENDIMIENTO: Guia = {
       id: "reparto",
       ancla: "rendimiento.reparto",
       opcional: true,
+      // «Cambios de meta» es un `<details>`: cada toque dice si abre o cierra, así el paso se ve igual al avanzar y al volver con ←.
+      preparar: [{ tipo: "clic", ancla: "rendimiento.historial-abrir", para: "cerrar" }],
       titulo: "¿Cuadran las metas?",
       texto: "Cuánto suman las metas de las personas contra la meta de la tienda. Si suman menos, falta repartir.",
     },
@@ -605,8 +610,7 @@ export const GUIA_RENDIMIENTO: Guia = {
       id: "historial",
       ancla: "rendimiento.historial",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "rendimiento.historial-abrir" }],
-      prepararSoloAlAvanzar: true,
+      preparar: [{ tipo: "clic", ancla: "rendimiento.historial-abrir", para: "abrir" }],
       titulo: "Cambios de meta",
       texto: "Te lo abrimos: cada ajuste de meta que se hizo este mes, con quién, cuándo y por qué. No se borran. Se cierra tocando el título otra vez.",
     },
@@ -614,8 +618,7 @@ export const GUIA_RENDIMIENTO: Guia = {
       id: "rankings",
       ancla: "rendimiento.rankings",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "rendimiento.historial-abrir" }],
-      prepararSoloAlAvanzar: true,
+      preparar: [{ tipo: "clic", ancla: "rendimiento.historial-abrir", para: "cerrar" }],
       titulo: "Los rankings del mes",
       texto: "Quién vende más por hora trabajada y quién cierra más ventas. «Muestra chica» quiere decir que todavía hay pocas ventas para sacar conclusiones.",
     },
@@ -633,7 +636,7 @@ export const GUIA_RENDIMIENTO: Guia = {
       texto: "Ya sabes leer el rendimiento de tu tienda. Para repasarlo: Mi perfil ▸ Demo ▸ Rendimiento.",
     },
   ],
-  alSalir: [{ tipo: "escape" }],
+  alSalir: [{ tipo: "escape" }, { tipo: "clic", ancla: "rendimiento.historial-abrir", para: "cerrar" }],
 };
 
 // Gestión ▸ Preguntas del equipo (ADR-0536, actividad 9): lo que el equipo le pregunta a «Pregúntale a CAYLA». Solo lee: la demo no
