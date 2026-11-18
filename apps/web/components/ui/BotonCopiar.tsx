@@ -24,6 +24,9 @@ async function alPortapapeles(valor: string): Promise<boolean> {
     await navigator.clipboard.writeText(valor);
     return true;
   } catch {
+    // El camino viejo selecciona un texto oculto (eso le quita el foco al botón) y después lo saca de la página: sin devolverlo, el foco
+    // quedaba en <body> y un segundo Enter ya no copiaba (medido en Existencias, 2026-11-18).
+    const tenia = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const ta = document.createElement("textarea");
     ta.value = valor;
     ta.setAttribute("readonly", "");
@@ -38,6 +41,7 @@ async function alPortapapeles(valor: string): Promise<boolean> {
       listo = false;
     }
     ta.remove();
+    tenia?.focus({ preventScroll: true });
     return listo;
   }
 }
