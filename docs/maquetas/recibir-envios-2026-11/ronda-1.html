@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-cara="A">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Envíos por recibir</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Recibir mercadería: los envíos (Felipe 2026-11-17). Pidió: los últimos envíos ARRIBA, tres propuestas más útiles y
+   amigables para ver todos los envíos, arreglar los que salen en «Terminados» y a la vez siguen abiertos, y usar la tabla con
+   superpoderes (TablaViva, ADR-0596). Montada sobre el marco ya elegido (../vidrio-base-2026-10/). Colores: SOLO tokens. Movimiento:
+   una vez, sin rebote ni bucle (ADR-0136). Datos inventados (el repo es público): ni marcas ni proveedores reales.
+   ==================================================================== */
+.cont{container:cont/inline-size}
+.nota-m{font-size:13.5px;color:var(--t65);margin:6px 0 0}
+
+/* ---------- la barra de arriba de la tabla: lo que eliges ver, el buscador y la letra ---------- */
+.tv-barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin-top:22px}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:500;color:var(--t80);
+  border:1px solid color-mix(in srgb,var(--borde) 60%,transparent);background:color-mix(in srgb,var(--vidrio) 30%,transparent);transition:background .2s,color .2s,border-color .2s}
+.pill .n{display:inline-grid;place-items:center;min-width:22px;height:20px;padding:0 6px;border-radius:999px;font-size:12px;font-weight:600;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+.pill[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.pill[aria-pressed="true"] .n{background:color-mix(in srgb,var(--crema) 22%,transparent)}
+@media (hover:hover){.pill:not([aria-pressed="true"]):hover{border-color:var(--borde);color:var(--tinta)}}
+.buscar-t{flex:1;min-width:220px;display:flex;align-items:center;gap:10px;height:42px;padding:0 16px;border-radius:999px;
+  background:color-mix(in srgb,var(--hueso) 70%,transparent);box-shadow:inset 0 1px 3px color-mix(in srgb,var(--sombra) 14%,transparent);border:1px solid color-mix(in srgb,var(--borde) 45%,transparent)}
+.buscar-t svg{width:16px;height:16px;color:var(--t65);flex:none}
+.buscar-t input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:14.5px;color:var(--tinta);outline:none}
+.buscar-t input::placeholder{color:var(--t65)}
+.letra{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;color:var(--t80);cursor:pointer}
+.sw{width:36px;height:22px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 16%,transparent);position:relative;transition:background .2s;border:1px solid var(--borde)}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--crema);box-shadow:0 1px 3px color-mix(in srgb,var(--sombra) 30%,transparent);transition:transform .25s var(--ease)}
+.letra[aria-checked="true"] .sw{background:var(--tinta)}.letra[aria-checked="true"] .sw::after{transform:translateX(14px)}
+
+/* ---------- la frase y lo puesto ---------- */
+.frase{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:14px 2px 0;font-size:14.5px;color:var(--t80)}
+.frase b{color:var(--tinta);font-weight:600}
+.puesto{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 6px 0 12px;border-radius:999px;background:var(--tinta);color:var(--crema);font-size:13px}
+.puesto button{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;color:inherit}
+.puesto button:hover{background:color-mix(in srgb,var(--crema) 20%,transparent)}
+.limpiar{height:30px;padding:0 12px;border-radius:999px;border:1px dashed var(--borde);font-size:13px;color:var(--t80)}
+
+/* ---------- la tabla con superpoderes (lo esencial de TablaViva: cabecera que filtra y ordena, todo al centro, letra legible,
+   frase, total al pie, cabecera que acompaña, tarjetas bajo 660 px de TABLA) ---------- */
+.tv{container:tv/inline-size;margin-top:12px}
+.tabla{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 62%,transparent),color-mix(in srgb,var(--vidrio) 42%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent);animation:sube .5s var(--ease) .1s backwards}
+[data-tema="oscuro"] .tabla{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 58%,transparent));border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent)}
+.t-cabeza,.t-fila{display:grid;grid-template-columns:var(--cols);gap:0 14px;align-items:center;padding:0 20px}
+.t-cabeza{position:sticky;top:-20px;z-index:4;min-height:48px;border-radius:22px 22px 0 0;background:color-mix(in srgb,var(--crema) 92%,transparent);
+  -webkit-backdrop-filter:blur(20px) saturate(1.5);backdrop-filter:blur(20px) saturate(1.5);box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--tinta) 12%,transparent)}
+.t-cabeza>span{position:relative;text-align:center;font-size:12.5px;min-width:0}
+.col-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;max-width:100%;height:32px;padding:0 10px;border-radius:999px;font-size:inherit;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t80)}
+.col-btn .nom{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.col-btn svg{width:14px;height:14px;flex:none;stroke-width:2;color:var(--t50);transition:transform .3s var(--ease)}
+.col-btn[data-ordenada] svg{color:var(--tinta)}.col-btn[data-ordenada="asc"] svg{transform:rotate(180deg)}
+.col-btn .pt{width:7px;height:7px;border-radius:50%;background:var(--rojo);display:none}.col-btn[data-filtrada] .pt{display:block}
+.col-btn[aria-expanded="true"]{background:color-mix(in srgb,var(--tinta) 8%,transparent);color:var(--tinta)}
+@media (hover:hover){.col-btn:hover{background:color-mix(in srgb,var(--tinta) 6%,transparent);color:var(--tinta)}}
+.col-quieta{font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t65)}
+/* el globo de la cabecera */
+.globo{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);z-index:20;width:268px;padding:12px;border-radius:20px;text-align:left;text-transform:none;letter-spacing:0;
+  background:color-mix(in srgb,var(--papel) 96%,transparent);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:1px solid color-mix(in srgb,var(--borde) 45%,transparent);
+  box-shadow:0 24px 50px -18px color-mix(in srgb,var(--sombra) 45%,transparent);animation:globo .24s var(--ease)}
+@keyframes globo{from{opacity:0;transform:translate(-50%,-6px) scale(.98)}}
+.globo .g-t{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);margin:2px 6px 6px}
+.g-ord{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.g-ord button{height:36px;border-radius:12px;font-size:13px;color:var(--t80);border:1px solid color-mix(in srgb,var(--borde) 40%,transparent)}
+.g-ord button[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.g-op{display:flex;align-items:center;gap:10px;min-height:38px;padding:0 8px;border-radius:12px;font-size:14px;color:var(--tinta);cursor:pointer}
+.g-op:hover{background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+.g-op input{width:18px;height:18px;accent-color:var(--tinta)}
+.g-op b{margin-left:auto;font-weight:500;color:var(--t65);font-variant-numeric:tabular-nums}
+/* las filas */
+.t-fila{position:relative;min-height:66px;padding-top:12px;padding-bottom:12px;font-size:15px;color:var(--tinta);cursor:pointer;
+  animation:sube-fila .42s var(--ease) backwards;animation-delay:calc(160ms + var(--k,0) * 26ms);transition:background-color .18s var(--ease)}
+@keyframes sube-fila{from{opacity:0;transform:translateY(8px)}}
+.t-fila+.t-fila::before,.t-dia+.t-fila::before{content:"";position:absolute;top:0;left:20px;right:20px;height:1px;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+@media (hover:hover){.t-fila:hover{background-color:color-mix(in srgb,var(--vidrio) 48%,transparent)}[data-tema="oscuro"] .t-fila:hover{background-color:color-mix(in srgb,var(--tinta) 6%,transparent)}}
+.t-fila>*{min-width:0;text-align:center}
+.t-fila[aria-current="true"]{background:color-mix(in srgb,var(--vidrio) 75%,transparent)}
+[data-tema="oscuro"] .t-fila[aria-current="true"]{background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+.t-fila[aria-current="true"]::after{content:"";position:absolute;left:8px;top:50%;width:3px;height:22px;margin-top:-11px;border-radius:3px;background:var(--rojo)}
+.t-fila.hecha{color:var(--t80)}
+.sec{display:block;font-size:13.5px;color:var(--t65);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sec.ambar{color:var(--ambar);font-weight:600}
+.num{font-variant-numeric:tabular-nums;font-weight:600}
+.env{font-weight:600;letter-spacing:.02em}
+.tabla[data-letra="grande"] .t-fila{font-size:17px;min-height:76px}.tabla[data-letra="grande"] .sec{font-size:15px}
+.tabla[data-letra="grande"] .t-cabeza>span{font-size:13.5px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent)}
+.chip i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.mini-btn{height:38px;padding:0 16px;font-size:14px}
+.marcas{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mas{color:var(--taupe);font-weight:500}
+/* el avance: lo que ya está en stock (verde), lo contado que falta pasar (tinta) y lo que falta contar (la pista) */
+.bar{display:flex;height:7px;width:100%;max-width:190px;margin:0 auto;border-radius:99px;overflow:hidden;background:color-mix(in srgb,var(--sand) 90%,transparent)}
+[data-tema="oscuro"] .bar{background:color-mix(in srgb,var(--tinta) 14%,transparent)}
+.bar i{display:block;height:100%;transform-origin:left;animation:crece .7s var(--ease) .3s backwards}
+.bar .b-st{background:var(--verde)}.bar .b-ct{background:color-mix(in srgb,var(--tinta) 62%,transparent)}
+@keyframes crece{from{transform:scaleX(0)}}
+.av-txt{display:block;font-size:13.5px;line-height:1.35;color:var(--t65);margin-top:7px;text-wrap:balance}
+.av-txt b{color:var(--verde);font-weight:600}
+/* el día (cara B): separador pegado arriba al bajar */
+.t-dia{position:sticky;top:28px;z-index:3;display:flex;align-items:baseline;gap:12px;padding:16px 20px 8px;background:linear-gradient(180deg,color-mix(in srgb,var(--crema) 94%,transparent) 70%,transparent)}
+.t-dia h3{font-family:"EB Garamond",serif;font-size:21px;font-weight:500;margin:0}
+.t-dia span{font-size:13.5px;color:var(--t65)}
+.t-dia::after{content:"";flex:1;height:1px;align-self:center;background:color-mix(in srgb,var(--tinta) 14%,transparent);transform-origin:left;animation:crece .6s var(--ease) backwards}
+/* el trayecto (cara B y la ficha de C): Llegó · Contado · En stock · Cerrado, con palabras, no con íconos */
+.tray{display:flex;align-items:flex-start;justify-content:center}
+.tray .p{display:grid;justify-items:center;gap:5px;width:58px;font-size:11.5px;color:var(--t65);position:relative}
+.tray .p::before{content:"";position:absolute;top:6px;right:50%;width:100%;height:2px;background:color-mix(in srgb,var(--tinta) 14%,transparent);z-index:0}
+.tray .p:first-child::before{display:none}
+.tray .p.h::before,.tray .p.a::before{background:var(--tinta)}
+.tray .p i{position:relative;z-index:1;width:14px;height:14px;border-radius:50%;border:2px solid color-mix(in srgb,var(--tinta) 30%,transparent);background:var(--crema)}
+.tray .p.h i{background:var(--tinta);border-color:var(--tinta)}
+.tray .p.a i{border-color:var(--tinta);box-shadow:0 0 0 4px color-mix(in srgb,var(--tinta) 14%,transparent)}
+.tray .p.a{color:var(--tinta);font-weight:600}
+.tray.listo .p i{background:var(--verde);border-color:var(--verde)}.tray.listo .p::before{background:var(--verde)}
+.tray.alerta .p.a i{border-color:var(--ambar);box-shadow:0 0 0 4px color-mix(in srgb,var(--ambar) 18%,transparent)}.tray.alerta .p.a{color:var(--ambar)}
+/* el detalle que se abre bajo la fila (A y B) */
+.t-det{display:grid;grid-template-columns:1.2fr 1fr 1.1fr;gap:18px 28px;padding:6px 28px 22px;animation:abre .36s var(--ease)}
+@keyframes abre{from{opacity:0;transform:translateY(-6px)}}
+.blq h4{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);margin:0 0 10px}
+.blq ul{list-style:none;margin:0;padding:0;display:grid;gap:7px;font-size:14.5px}
+.blq li{display:flex;align-items:center;gap:10px}
+.blq li .u{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--t65)}
+.cuad{width:10px;height:10px;border-radius:3px;flex:none;background:var(--m)}
+.apilada{display:flex;height:12px;border-radius:99px;overflow:hidden;gap:2px;margin-bottom:12px}
+.apilada i{display:block;background:var(--m);animation:crece .6s var(--ease) backwards;transform-origin:left}
+.hist li{align-items:flex-start;gap:10px}
+.hist li::before{content:"";flex:none;width:8px;height:8px;margin-top:6px;border-radius:50%;background:var(--t50)}
+.hist li.ok::before{background:var(--verde)}.hist li.ojo::before{background:var(--ambar)}
+.hist .tx span{color:var(--t65)}
+.det-acc{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+/* el pie */
+.t-pie{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 22px;border-radius:0 0 22px 22px;font-size:14px;color:var(--t80);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 10%,transparent)}
+.t-pie b{color:var(--tinta)}
+.vacio-t{padding:44px 20px;text-align:center}
+.vacio-t h3{font-family:"EB Garamond",serif;font-size:24px;font-weight:500;margin:0 0 6px}
+.vacio-t p{margin:0 0 14px;color:var(--t65);font-size:14.5px}
+
+/* ---------- columnas de cada cara ---------- */
+[data-cara="A"] .tabla{--cols:6.5rem 7.5rem minmax(0,1.6fr) 9rem minmax(10rem,1fr) 4.5rem 10rem}
+[data-cara="B"] .tabla{--cols:6.5rem 7.5rem minmax(0,1.4fr) minmax(16rem,1.1fr) 4.5rem 10rem}
+[data-cara="C"] .tabla{--cols:6.5rem minmax(0,1fr) 10.5rem}
+@container tv (max-width:1140px){
+  .tabla{--cols-r:1}
+  [data-cara="A"] .tabla{--cols:6rem 7rem minmax(0,1.5fr) 8.5rem minmax(9rem,1fr) 9.5rem}
+  [data-cara="B"] .tabla{--cols:6rem 7rem minmax(0,1.3fr) minmax(15rem,1.1fr) 9.5rem}
+  :is([data-cara="A"],[data-cara="B"]) [data-col="prendas"]{display:none}
+  .t-det{grid-template-columns:1fr 1fr}.t-det .blq:last-child{grid-column:1/-1}
+}
+/* bajo 660 px de TABLA: cada fila es una tarjeta y la cabecera, una fila de píldoras que filtran y ordenan */
+@container tv (max-width:560px){
+  .t-cabeza{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;top:-20px}
+  .t-cabeza>span{flex:none}.t-cabeza>span:empty,.t-cabeza .col-quieta{display:none}
+  .col-btn{border:1px solid color-mix(in srgb,var(--borde) 55%,transparent);letter-spacing:.04em;font-size:11.5px}
+  .globo{left:0;transform:none;position:fixed;left:12px;right:12px;bottom:12px;top:auto;width:auto;border-radius:24px 24px 18px 18px}
+  .t-fila{grid-template-columns:1fr auto;grid-template-areas:"envio fecha" "marcas marcas" "estado estado" "acc acc";gap:8px 10px;padding:16px 18px}
+  .t-fila>*{text-align:left}
+  .t-fila [data-col="fecha"]{grid-area:fecha;text-align:right}.t-fila [data-col="envio"]{grid-area:envio}
+  .t-fila [data-col="marcas"]{grid-area:marcas}.t-fila [data-col="estado"]{grid-area:estado;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .t-fila [data-col="avance"]{grid-area:estado;justify-self:end;width:46%}
+  .t-fila [data-col="acc"]{grid-area:acc}.t-fila [data-col="acc"] .btn{width:100%}
+  .t-fila [data-col="prendas"]{display:none}
+  .bar{margin:0}.tray{justify-content:flex-start}
+  .t-det{grid-template-columns:1fr;padding:4px 18px 20px}
+  [data-cara="C"] .t-fila{grid-template-areas:"envio fecha" "marcas marcas" "estado estado"}
+}
+
+/* ---------- cara C: la lista y la ficha ---------- */
+.lado{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(340px,.8fr);gap:22px;align-items:start;margin-top:12px}
+.lado .tv{margin-top:0}
+.ficha{position:sticky;top:-20px;border-radius:26px;padding:24px 24px 22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 74%,transparent),color-mix(in srgb,var(--vidrio) 50%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"] .ficha{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 66%,transparent));border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.ficha>*{animation:sube .4s var(--ease) backwards;animation-delay:calc(var(--i,0) * 40ms)}
+.f-cab{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.f-sobre{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe)}
+.f-tit{font-family:"EB Garamond",serif;font-size:30px;font-weight:500;margin:2px 0 2px;line-height:1.1}
+.f-sub{font-size:14px;color:var(--t65)}
+.f-cifras{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0}
+.f-cifras div{padding:12px 10px;border-radius:16px;text-align:center;background:color-mix(in srgb,var(--vidrio) 45%,transparent);border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent)}
+[data-tema="oscuro"] .f-cifras div{background:color-mix(in srgb,var(--tinta) 6%,transparent);border-color:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.f-cifras b{display:block;font-family:"EB Garamond",serif;font-size:30px;font-weight:500;line-height:1}
+.f-cifras span{font-size:12.5px;color:var(--t65)}
+.f-cifras .v b{color:var(--verde)}
+.ficha .tray{justify-content:space-between;margin:4px 0 20px}.ficha .tray .p{width:auto;flex:1}
+.ficha .blq{margin-top:18px}
+.ficha .det-acc .btn{flex:1}
+.f-cerrar{display:none}
+.velo-f{display:none}
+@container cont (max-width:900px){
+  .lado{grid-template-columns:1fr}
+  .ficha{display:none}
+  .lado[data-abierta] .ficha{display:block;position:fixed;left:0;right:0;bottom:0;top:auto;z-index:60;max-height:86%;overflow:auto;border-radius:28px 28px 0 0;animation:hoja .36s var(--ease)}
+  .lado[data-abierta] .velo-f{display:block;position:fixed;inset:0;z-index:59;background:color-mix(in srgb,var(--sombra) 28%,transparent);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+  .f-cerrar{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;border:1px solid var(--borde)}
+}
+@keyframes hoja{from{transform:translateY(40%);opacity:.4}}
+
+/* ---------- «Hoy»: la pantalla como está, con lo que se arregla numerado ---------- */
+.hoy-aviso{display:flex;align-items:center;gap:12px;min-height:46px;padding:0 16px;margin-top:10px;border-radius:999px;font-size:14px;border:1px solid color-mix(in srgb,var(--borde) 40%,transparent);background:color-mix(in srgb,var(--vidrio) 40%,transparent)}
+.hoy-aviso a{margin-left:auto;text-decoration:underline;color:var(--tinta)}
+.hoy-t{--cols:6rem 7.5rem 7.5rem minmax(0,1.6fr) 4rem 7rem 9.5rem}
+.hoy-t .t-fila{cursor:default}
+.paso-ic{display:inline-flex;align-items:center;gap:3px}.paso-ic i{width:10px;height:10px;border-radius:50%;background:var(--taupe)}.paso-ic i.b{width:22px;height:22px;background:var(--taupe)}.paso-ic i.v{background:transparent;border:1.5px solid var(--t50)}
+.sigue{--c:var(--ambar)}
+.n-rojo{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--rojo);color:var(--crema-fija);font-size:12px;font-weight:700;margin:0 4px;vertical-align:middle;flex:none}
+.sec-h2{display:flex;align-items:center;justify-content:space-between;margin-top:30px}
+.sec-h2 h2{font-family:"EB Garamond",serif;font-weight:500;font-size:22px;margin:0}
+
+/* el aviso de la maqueta */
+.toast{position:absolute;right:24px;bottom:24px;z-index:80;padding:12px 18px;border-radius:16px;background:var(--tinta);color:var(--crema);font-size:14px;animation:sube .3s var(--ease);box-shadow:0 18px 40px -18px var(--sombra)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Recibir mercadería · los envíos, de lo nuevo a lo viejo</span>
+  <span class="tag">Propuesta</span><div class="seg-m" data-ctl="cara"><button data-v="A">A · Una lista, cada envío una vez</button><button data-v="B">B · Por día</button><button data-v="C">C · Lista y ficha</button><button data-v="hoy">Hoy</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="escritorio">Tu ventana</button></div>
+  <button class="b-m" data-acc="plegar" style="color:inherit;border:1px solid #f5f0e855;border-radius:8px;padding:4px 10px">Plegar menú</button><!-- tema-fijo: barra de la maqueta -->
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis" id="analisis"></div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<script>
+/* ====================================================================
+   LOS DATOS (inventados). Hoy es martes 17 de noviembre de 2026, 15:24, en Tienda TRU. El 1 de noviembre de 2026 es domingo.
+   Cada envío vive en UN solo estado (la regla nueva): En camino · Por abrir · Contando · Falta cerrar · Terminado. Lo que ya entró al
+   stock de un envío que se sigue contando es AVANCE de ese envío, no un «terminado» aparte.
+   ==================================================================== */
+activa = 'inventario.recibir';
+const HOY = 17;
+const DIAS_AVISO = 3;
+const DIAS_SEM = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const dsem = (d) => DIAS_SEM[(d - 1 + 0) % 7];
+const ESTADOS = {
+  camino: { t: 'En camino', c: 'var(--pizarra)', paso: -1, accion: null },
+  abrir: { t: 'Por abrir', c: 'var(--taupe)', paso: 0, accion: 'Abrir y contar' },
+  contando: { t: 'Contando', c: 'var(--tinta)', paso: 1, accion: 'Seguir contando' },
+  cerrar: { t: 'Falta cerrar', c: 'var(--ambar)', paso: 3, accion: 'Cerrar el envío' },
+  terminado: { t: 'Terminado', c: 'var(--verde)', paso: 4, accion: 'Ver' },
+};
+const MARCA_COLOR = ['var(--tinta)', 'var(--taupe)', 'var(--pizarra)', 'var(--verde)', 'var(--ambar)', 'var(--rojo-p)', 'var(--borde)', 'var(--sand)'];
+const P = ['Textil Andina SAC', 'Moda Sol EIRL', 'Confecciones Rímac', 'Hilos del Norte SAC', 'Comercial Pacífico SAC', 'Industrias Huanchaco SAC', 'Tejidos Moche EIRL', 'Distribuidora Chan Chan'];
+const ENVIOS = [
+  { id: 'ENV-000028', d: 16, h: '10:30', est: 'camino', llega: 18, marcas: [['Brisa', 40]], provs: [P[3]], total: 40 },
+  { id: 'ENV-000027', d: 17, h: '14:25', est: 'cerrar', sinAviso: true, marcas: [['Nativa', 24], ['Lúcuma', 22], ['Arena', 14]], provs: [P[0], P[1], P[2]], total: 60, cont: 60, stock: 60, quien: 'Rosa', toque: 'hoy 15:02' },
+  { id: 'ENV-000026', d: 16, h: '10:02', est: 'abrir', marcas: [['Totora', 48], ['Quena', 36]], provs: [P[4]], total: 84, cont: 0, stock: 0 },
+  { id: 'ENV-000025', d: 15, h: '09:40', est: 'terminado', fin: 16, marcas: [['Nativa', 50], ['Arena', 42]], provs: [P[0]], total: 92, cont: 92, stock: 92, quien: 'Lucía' },
+  { id: 'ENV-000024', d: 14, h: '11:49', est: 'contando', marcas: [['Kantu', 177]], provs: [P[4], P[5]], total: 177, cont: 96, stock: 0, quien: 'Lucía', toque: 'ayer 18:40' },
+  { id: 'ENV-000023', d: 13, h: '17:05', est: 'terminado', fin: 13, marcas: [['Quena', 64]], provs: [P[6]], total: 64, cont: 64, stock: 64, quien: 'Rosa' },
+  { id: 'ENV-000022', d: 12, h: '11:20', est: 'terminado', fin: 14, marcas: [['Mistura', 70], ['Brisa', 50]], provs: [P[3], P[7]], total: 120, cont: 120, stock: 120, quien: 'Rosa' },
+  { id: 'ENV-000021', d: 10, h: '15:48', est: 'terminado', fin: 12, marcas: [['Lúcuma', 58]], provs: [P[1]], total: 58, cont: 58, stock: 58, quien: 'Lucía' },
+  { id: 'ENV-000017', d: 9, h: '16:37', est: 'contando', marcas: [['Mistura', 38], ['Arena', 24], ['Lúcuma', 20], ['Nativa', 16], ['Totora', 12], ['Quena', 10], ['Brisa', 8], ['Kantu', 7]], provs: P, total: 135, cont: 135, stock: 12, quien: 'Rosa', toque: 'hace 6 días' },
+  { id: 'ENV-000016', d: 9, h: '16:13', est: 'contando', marcas: [['Arena', 52], ['Mistura', 40], ['Nativa', 31], ['Kantu', 26], ['Lúcuma', 18], ['Totora', 14], ['Brisa', 9], ['Quena', 7]], provs: [P[0], P[2], P[4], P[6], P[7], P[5], P[1], P[3]], total: 197, cont: 40, stock: 0, quien: 'Lucía', toque: 'hace 5 días' },
+  { id: null, d: 6, h: '12:10', est: 'terminado', fin: 6, marcas: [['Kantu', 12]], provs: [P[6]], total: 12, cont: 12, stock: 12, quien: 'Rosa', sinEnvio: true },
+  { id: 'ENV-000020', d: 5, h: '10:00', est: 'terminado', fin: 7, marcas: [['Totora', 33]], provs: [P[4]], total: 33, cont: 33, stock: 33, quien: 'Lucía' },
+  { id: 'ENV-000019', d: 3, h: '16:30', est: 'terminado', fin: 3, marcas: [['Arena', 45], ['Quena', 30]], provs: [P[0], P[6]], total: 75, cont: 75, stock: 75, quien: 'Rosa' },
+].map((e, i) => ({ ...e, k: i, clave: e.id || `sin-${e.d}`, ts: (e.est === 'camino' ? e.llega : e.d) * 10000 + parseInt(e.h.replace(':', ''), 10) })); // lo que está en camino se ordena por cuándo llega: va arriba de todo
+const abierto = (e) => e.est !== 'terminado';
+const diasDesde = (e) => HOY - e.d;
+const viejo = (e) => abierto(e) && e.est !== 'camino' && diasDesde(e) >= DIAS_AVISO; // lleva 3 días (DIAS_PARA_RESALTAR) o más sin terminar
+const nombreDia = (d) => d === HOY ? 'Hoy' : d === HOY - 1 ? 'Ayer' : d === HOY + 1 ? 'Mañana' : `${dsem(d).slice(0, 3)} ${d}`;
+const relativo = (d) => { const n = HOY - d; return n === 0 ? 'hoy' : n === 1 ? 'ayer' : `hace ${n} días`; };
+const unid = (n, s = 'prenda', p = 'prendas') => `${n.toLocaleString('es-PE')} ${n === 1 ? s : p}`;
+const listaCorta = (xs, n) => xs.length <= n ? xs.join(' · ') : `${xs.slice(0, n).join(' · ')} <span class="mas">y ${xs.length - n} más</span>`;
+const marcaColor = (marcas, nom) => MARCA_COLOR[marcas.findIndex(([m]) => m === nom) % MARCA_COLOR.length];
+const ICON = { lupa: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35', flecha: 'M12 5v14M5 12l7 7 7-7', x: 'M18 6 6 18M6 6l12 12', abajo: 'M6 9l6 6 6-6' };
+const svg = (d, c = '') => `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+
+/* ---------- las piezas de una fila ---------- */
+const chip = (e) => `<span class="chip" style="--c:${ESTADOS[e.est].c}"><i></i>${ESTADOS[e.est].t}</span>`;
+function celdaFecha(e) {
+  if (e.est === 'camino') return `<span class="num">Llega ${nombreDia(e.llega).toLowerCase()}</span><span class="sec">salió ${relativo(e.d)}</span>`;
+  const sec = viejo(e) ? `<span class="sec ambar">${relativo(e.d)}</span>` : `<span class="sec">${relativo(e.d) === 'hoy' || relativo(e.d) === 'ayer' ? e.h : relativo(e.d)}</span>`;
+  return `<span class="num">${nombreDia(e.d)}${e.d >= HOY - 1 ? '' : ` nov`}</span>${sec}`;
+}
+const celdaEnvio = (e) => `<span class="env">${e.id || 'Sin envío'}</span><span class="sec">${e.sinAviso ? 'Llegó sin aviso' : e.sinEnvio ? 'Llegada suelta' : e.est === 'camino' ? 'De una orden' : `${e.marcas.length} ${e.marcas.length === 1 ? 'marca' : 'marcas'}`}</span>`;
+const celdaMarcas = (e) => `<span class="marcas">${listaCorta(e.marcas.map(([m]) => m), 3)}</span><span class="sec">${listaCorta(e.provs, 2)}</span>`;
+function barra(e) {
+  if (!e.total) return '';
+  const st = (e.stock || 0) / e.total * 100, ct = Math.max(0, (e.cont || 0) - (e.stock || 0)) / e.total * 100;
+  return `<span class="bar" role="img" aria-label="${e.stock || 0} en stock, ${e.cont || 0} contadas de ${e.total}"><i class="b-st" style="width:${st}%"></i><i class="b-ct" style="width:${ct}%"></i></span>`;
+}
+function textoAvance(e) {
+  if (e.est === 'camino') return `${unid(e.total)} en la guía`;
+  if (e.est === 'abrir') return `Nadie lo abrió · ${e.total} por contar`;
+  if (e.est === 'terminado') return `<b>${e.stock} en stock</b> · terminó ${e.fin === e.d ? 'el mismo día' : nombreDia(e.fin).toLowerCase()}`;
+  if (e.est === 'cerrar') return `<b>Las ${e.stock} en stock</b> · solo falta cerrar`;
+  return `${e.cont} de ${e.total} contadas${e.stock ? ` · <b>${e.stock} en stock</b>` : ''}`;
+}
+const celdaAvance = (e) => `${barra(e)}<span class="av-txt">${textoAvance(e)}</span>`;
+function trayecto(e, conTexto = true) {
+  const pasos = ['Llegó', 'Contado', 'En stock', 'Cerrado'];
+  const idx = { camino: -1, abrir: 0, contando: 1, cerrar: 3, terminado: 4 }[e.est];
+  const p = pasos.map((t, i) => { const c = i < idx || (e.est === 'abrir' && i === 0) ? 'h' : i === idx ? 'a' : ''; return `<span class="p ${c}"><i></i>${t}</span>`; }).join('');
+  return `<span class="tray${e.est === 'terminado' ? ' listo' : ''}${viejo(e) ? ' alerta' : ''}" role="img" aria-label="${ESTADOS[e.est].t}">${p}</span>${conTexto ? `<span class="av-txt" style="text-align:center">${textoAvance(e)}</span>` : ''}`;
+}
+const celdaAccion = (e) => ESTADOS[e.est].accion ? `<button class="btn ${e.est === 'terminado' ? 'sec' : 'sec'} mini-btn" data-hace="${ESTADOS[e.est].accion}">${ESTADOS[e.est].accion}</button>` : `<span class="sec">Aún no llega</span>`;
+
+/* ---------- lo que se abre: marcas, proveedores y cómo va ---------- */
+function bloqueMarcas(e) {
+  return `<div class="blq"><h4>De qué marcas llegó</h4><div class="apilada">${e.marcas.map(([m, u]) => `<i style="flex:${u};--m:${marcaColor(e.marcas, m)}"></i>`).join('')}</div>
+    <ul>${e.marcas.map(([m, u]) => `<li><span class="cuad" style="--m:${marcaColor(e.marcas, m)}"></span>${m}<span class="u">${unid(u)}</span></li>`).join('')}</ul></div>`;
+}
+const bloqueProvs = (e) => `<div class="blq"><h4>${e.provs.length === 1 ? 'Proveedor' : `Los ${e.provs.length} proveedores`}</h4><ul>${e.provs.map((p) => `<li>${p}</li>`).join('')}</ul></div>`;
+function bloqueHistoria(e) {
+  const l = [];
+  if (e.est === 'camino') l.push(['', `Salió ${relativo(e.d)} a las ${e.h}`], ['', `Llega ${nombreDia(e.llega).toLowerCase()}: cuando llegue, se abre aquí`]);
+  else {
+    l.push(['', `Llegó ${nombreDia(e.d).toLowerCase()}${e.d < HOY - 1 ? ' nov' : ''} a las ${e.h}${e.sinAviso ? ', sin aviso' : ''}`]);
+    if (e.est === 'abrir') l.push(['ojo', `Nadie lo abrió todavía · ${e.total} prendas por contar`]);
+    if (e.cont) l.push(['', `${e.quien} contó ${e.cont} de ${e.total}`]);
+    if (e.stock && e.est !== 'terminado') l.push(['ok', `${e.stock} ya están en stock: <span>se pueden vender</span>`]);
+    if (e.est === 'contando' && e.cont < e.total) l.push(['', `Faltan contar ${e.total - e.cont}`]);
+    if (e.est === 'contando' && e.cont === e.total) l.push(['', `Faltan ${e.total - e.stock} por pasar a stock: <span>poner tallas o crear la prenda</span>`]);
+    if (e.est === 'cerrar') l.push(['ojo', 'Todo está en stock: solo falta cerrarlo']);
+    if (e.est === 'terminado') l.push(['ok', `Cerrado ${e.fin === e.d ? 'el mismo día' : nombreDia(e.fin).toLowerCase()} · ${e.stock} prendas en stock`]);
+    if (viejo(e)) l.push(['ojo', `Último cambio ${e.toque}`]);
+  }
+  return `<div class="blq"><h4>Cómo va</h4><ul class="hist">${l.map(([c, t]) => `<li class="${c}"><span class="tx">${t}</span></li>`).join('')}</ul>
+    ${ESTADOS[e.est].accion ? `<div class="det-acc"><button class="btn ${e.est === 'terminado' ? 'sec' : 'pri'}" data-hace="${ESTADOS[e.est].accion}">${e.est === 'terminado' ? 'Ver lo que entró' : ESTADOS[e.est].accion}</button></div>` : ''}</div>`;
+}
+
+/* ====================================================================
+   LA TABLA CON SUPERPODERES (lo esencial de components/ui/TablaViva.tsx para la maqueta)
+   ==================================================================== */
+const COLS = {
+  fecha: { t: 'Llegó', orden: (e) => e.ts, tipo: 'fecha', filtro: (e) => e.est === 'camino' ? 'En camino' : diasDesde(e) <= 1 ? 'Hoy y ayer' : diasDesde(e) <= 7 ? 'Esta semana' : 'Antes', opciones: ['Hoy y ayer', 'Esta semana', 'Antes', 'En camino'], celda: celdaFecha },
+  envio: { t: 'Envío', orden: (e) => e.id || '', tipo: 'texto', celda: celdaEnvio },
+  marcas: { t: 'Marcas y proveedores', filtro: (e) => e.marcas.map(([m]) => m), celda: celdaMarcas, nombreFiltro: 'Marca' },
+  estado: { t: 'Estado', orden: (e) => ESTADOS[e.est].paso, tipo: 'paso', filtro: (e) => ESTADOS[e.est].t, opciones: Object.values(ESTADOS).map((x) => x.t), celda: chip },
+  avance: { t: 'Avance', orden: (e) => (e.stock || 0) / e.total, tipo: 'num', celda: celdaAvance },
+  tray: { t: 'Cómo va', orden: (e) => ESTADOS[e.est].paso, tipo: 'paso', filtro: (e) => ESTADOS[e.est].t, opciones: Object.values(ESTADOS).map((x) => x.t), celda: (e) => trayecto(e), nombreFiltro: 'Estado' },
+  prendas: { t: 'Prendas', orden: (e) => e.total, tipo: 'num', celda: (e) => `<span class="num">${e.total}</span>` },
+  acc: { t: '', celda: celdaAccion },
+  envioC: { t: 'Envío y marcas', orden: (e) => e.id || '', tipo: 'texto', filtro: (e) => e.marcas.map(([m]) => m), nombreFiltro: 'Marca',
+    celda: (e) => `<span class="env">${e.id || 'Sin envío'}</span><span class="marcas" style="font-weight:500;margin-top:2px">${listaCorta(e.marcas.map(([m]) => m), 2)}</span><span class="sec">${listaCorta(e.provs, 1)}</span>` },
+  estadoC: { t: 'Estado', orden: (e) => ESTADOS[e.est].paso, tipo: 'paso', filtro: (e) => ESTADOS[e.est].t, opciones: Object.values(ESTADOS).map((x) => x.t), celda: (e) => `${chip(e)}<span style="display:block;margin-top:8px">${barra(e)}</span>` },
+};
+const CARAS = { A: ['fecha', 'envio', 'marcas', 'estado', 'avance', 'prendas', 'acc'], B: ['fecha', 'envio', 'marcas', 'tray', 'prendas', 'acc'], C: ['fecha', 'envioC', 'estadoC'] };
+const TEXTO_ORDEN = { fecha: ['Más nuevo', 'Más viejo'], num: ['De más a menos', 'De menos a más'], texto: ['Z → A', 'A → Z'], paso: ['Más avanzado', 'Menos avanzado'] };
+
+// El estado de la tabla, por cara: el orden arranca SIEMPRE en «Más nuevo primero» (lo que pidió Felipe).
+const tv = {};
+const tvDe = (cara) => tv[cara] || (tv[cara] = { orden: { col: 'fecha', dir: 'desc' }, filtros: {}, q: '', vista: 'recibir', abierta: cara === 'C' ? 'ENV-000017' : null, globo: null, letra: false, conTerminados: true });
+
+function filasVisibles(cara) {
+  const s = tvDe(cara);
+  let filas = ENVIOS.slice();
+  if (cara !== 'B') filas = filas.filter((e) => s.vista === 'todos' || (s.vista === 'recibir' ? abierto(e) : !abierto(e)));
+  else if (!s.conTerminados) filas = filas.filter(abierto);
+  const q = s.q.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (q) filas = filas.filter((e) => [e.id || 'sin envio', ...e.marcas.map(([m]) => m), ...e.provs].join(' ').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(q));
+  for (const [col, set] of Object.entries(s.filtros)) {
+    if (!set.size) continue;
+    filas = filas.filter((e) => { const v = COLS[col].filtro(e); return Array.isArray(v) ? v.some((x) => set.has(x)) : set.has(v); });
+  }
+  const c = COLS[s.orden.col], f = s.orden.dir === 'desc' ? -1 : 1;
+  filas.sort((a, b) => { const x = c.orden(a), y = c.orden(b); return (x > y ? 1 : x < y ? -1 : 0) * f || b.ts - a.ts; });
+  return filas;
+}
+function opcionesDe(cara, col) {
+  const base = ENVIOS.filter((e) => cara === 'B' ? (tvDe(cara).conTerminados || abierto(e)) : (tvDe(cara).vista === 'todos' || (tvDe(cara).vista === 'recibir' ? abierto(e) : !abierto(e))));
+  const cuenta = new Map();
+  for (const e of base) { const v = COLS[col].filtro(e); for (const x of Array.isArray(v) ? v : [v]) cuenta.set(x, (cuenta.get(x) || 0) + 1); }
+  const orden = COLS[col].opciones || [...cuenta.keys()].sort((a, b) => cuenta.get(b) - cuenta.get(a));
+  return orden.filter((o) => cuenta.has(o)).map((o) => [o, cuenta.get(o)]);
+}
+
+function cabecera(cara) {
+  const s = tvDe(cara);
+  return `<div class="t-cabeza">${CARAS[cara].map((k) => {
+    const c = COLS[k];
+    if (!c.t) return `<span data-col="${k}"></span>`;
+    if (!c.orden && !c.filtro) return `<span data-col="${k}" class="col-quieta">${c.t}</span>`;
+    const ord = s.orden.col === k ? s.orden.dir : null, fil = s.filtros[k]?.size;
+    return `<span data-col="${k}"><button class="col-btn" data-tv-col="${k}" aria-expanded="${s.globo === k}" ${ord ? `data-ordenada="${ord}"` : ''} ${fil ? 'data-filtrada' : ''}>
+      <span class="nom">${c.t}</span><span class="pt"></span>${svg(ord ? ICON.flecha : ICON.abajo)}</button>${s.globo === k ? globo(cara, k) : ''}</span>`;
+  }).join('')}</div>`;
+}
+function globo(cara, k) {
+  const s = tvDe(cara), c = COLS[k];
+  const ord = c.orden ? `<p class="g-t">Ordenar</p><div class="g-ord">${['desc', 'asc'].map((d, i) => `<button data-tv-ord="${k}:${d}" aria-pressed="${s.orden.col === k && s.orden.dir === d}">${d === 'desc' ? '↓' : '↑'} ${TEXTO_ORDEN[c.tipo][i]}</button>`).join('')}</div>` : '';
+  const fil = c.filtro ? `<p class="g-t">Mostrar solo</p>${opcionesDe(cara, k).map(([o, n]) => `<label class="g-op"><input type="checkbox" data-tv-fil="${k}" value="${o}" ${s.filtros[k]?.has(o) ? 'checked' : ''}>${o}<b>${n}</b></label>`).join('')}` : '';
+  return `<div class="globo" role="dialog" aria-label="${c.t}">${ord}${fil}</div>`;
+}
+function filaTv(cara, e, i) {
+  const s = tvDe(cara);
+  const cur = s.abierta === e.clave;
+  return `<div class="t-fila${e.est === 'terminado' ? ' hecha' : ''}" role="row" tabindex="0" data-tv-fila="${e.clave}" aria-current="${cur}" style="--k:${i}">${CARAS[cara].map((k) => `<div data-col="${k}">${COLS[k].celda(e)}</div>`).join('')}</div>
+    ${cur && cara !== 'C' ? `<div class="t-det">${bloqueMarcas(e)}${bloqueProvs(e)}${bloqueHistoria(e)}</div>` : ''}`;
+}
+function cuerpo(cara, filas) {
+  const s = tvDe(cara);
+  if (!filas.length) {
+    const hay = s.q || Object.values(s.filtros).some((x) => x.size);
+    return `<div class="vacio-t"><h3>${hay ? 'Ningún envío con estos filtros' : s.vista === 'recibir' ? 'Todo lo que llegó ya está recibido' : 'Todavía no hay envíos terminados'}</h3><p>${hay ? 'Quita un filtro o borra la búsqueda.' : 'Cuando llegue algo, aparece aquí arriba.'}</p>${hay ? '<button class="btn sec" data-tv-limpiar>Quitar los filtros</button>' : ''}</div>`;
+  }
+  // Cara B: por día, de hoy hacia atrás (solo si se ordena por fecha).
+  if (cara === 'B' && s.orden.col === 'fecha') {
+    let out = '', dia = null, i = 0;
+    const grupos = new Map();
+    for (const e of filas) { const g = e.est === 'camino' ? 'camino' : e.d; if (!grupos.has(g)) grupos.set(g, []); grupos.get(g).push(e); }
+    for (const [g, es] of grupos) {
+      const n = es.reduce((a, e) => a + e.total, 0);
+      const tit = g === 'camino' ? 'En camino' : g === HOY ? `Hoy · ${dsem(g)} ${g}` : g === HOY - 1 ? `Ayer · ${dsem(g)} ${g}` : `${dsem(g)[0].toUpperCase()}${dsem(g).slice(1)} ${g} de noviembre`;
+      const abiertos = es.filter(abierto).length;
+      out += `<div class="t-dia"><h3>${tit}</h3><span>${es.length} ${es.length === 1 ? 'envío' : 'envíos'} · ${unid(n)}${g !== 'camino' && abiertos ? ` · ${abiertos} sin terminar` : ''}</span></div>`;
+      out += es.map((e) => filaTv(cara, e, i++)).join('');
+    }
+    return out;
+  }
+  return filas.map((e, i) => filaTv(cara, e, i)).join('');
+}
+function frase(cara, filas) {
+  const s = tvDe(cara);
+  const total = ENVIOS.filter((e) => cara === 'B' ? (s.conTerminados || abierto(e)) : (s.vista === 'todos' || (s.vista === 'recibir' ? abierto(e) : !abierto(e)))).length;
+  const que = cara === 'B' ? (s.conTerminados ? 'envíos' : 'envíos sin terminar') : s.vista === 'recibir' ? 'envíos por recibir' : s.vista === 'terminados' ? 'envíos terminados' : 'envíos';
+  const orden = s.orden.col === 'fecha' ? (s.orden.dir === 'desc' ? ', del más nuevo al más viejo' : ', del más viejo al más nuevo') : `, por ${COLS[s.orden.col].t.toLowerCase()}`;
+  const prendas = filas.reduce((a, e) => a + e.total, 0);
+  const puestos = Object.entries(s.filtros).flatMap(([k, set]) => [...set].map((v) => `<span class="puesto">${(COLS[k].nombreFiltro || COLS[k].t)}: ${v}<button data-tv-quitar="${k}:${v}" aria-label="Quitar ${v}">${svg(ICON.x)}</button></span>`));
+  if (s.q) puestos.unshift(`<span class="puesto">«${s.q}»<button data-tv-quitar="q:" aria-label="Borrar la búsqueda">${svg(ICON.x)}</button></span>`);
+  return `<p class="frase"><span>Ves <b>${filas.length === total ? filas.length : `${filas.length} de ${total}`}</b> ${filas.length === 1 ? que.replace('envíos', 'envío') : que}${orden}. Suman <b>${unid(prendas)}</b>.</span>${puestos.join('')}${puestos.length > 1 ? '<button class="limpiar" data-tv-limpiar>Limpiar todo</button>' : ''}</p>`;
+}
+function barraTv(cara) {
+  const s = tvDe(cara);
+  const n = (v) => ENVIOS.filter((e) => v === 'todos' || (v === 'recibir' ? abierto(e) : !abierto(e))).length;
+  const pills = cara === 'B'
+    ? `<button class="letra" role="switch" aria-checked="${s.conTerminados}" data-tv-terminados><span class="sw"></span>Con los terminados</button>`
+    : `<div class="pills" role="group" aria-label="Qué envíos ver">${[['recibir', 'Por recibir'], ['terminados', 'Terminados'], ['todos', 'Todos']].map(([v, t]) => `<button class="pill" data-tv-vista="${v}" aria-pressed="${s.vista === v}">${t}<span class="n">${n(v)}</span></button>`).join('')}</div>`;
+  return `<div class="tv-barra">${pills}<label class="buscar-t">${svg(ICON.lupa)}<input data-tv-q value="${s.q}" placeholder="Envío, marca o proveedor" aria-label="Buscar un envío"></label>
+    <button class="letra" role="switch" aria-checked="${s.letra}" data-tv-letra><span class="sw"></span>Letra grande</button></div>`;
+}
+function tabla(cara) {
+  const s = tvDe(cara), filas = filasVisibles(cara);
+  const abiertos = filas.filter(abierto).length;
+  return `${frase(cara, filas)}<div class="tv"><div class="tabla" data-letra="${s.letra ? 'grande' : ''}">${cabecera(cara)}<div role="rowgroup">${cuerpo(cara, filas)}</div>
+    ${filas.length ? `<div class="t-pie"><span>${filas.length} ${filas.length === 1 ? 'envío' : 'envíos'}${abiertos && abiertos < filas.length ? ` · ${abiertos} sin terminar` : ''}</span><span>Total: <b>${unid(filas.reduce((a, e) => a + e.total, 0))}</b> · <b style="color:var(--verde)">${unid(filas.reduce((a, e) => a + (e.stock || 0), 0))}</b> ya en stock</span></div>` : ''}</div></div>`;
+}
+
+/* ---------- la ficha (cara C) ---------- */
+function ficha() {
+  const s = tvDe('C'), e = ENVIOS.find((x) => x.clave === s.abierta) || filasVisibles('C')[0];
+  if (!e) return '<aside class="ficha"><p class="nota-m">Elige un envío de la lista.</p></aside>';
+  const i = (n) => `style="--i:${n}"`;
+  return `<aside class="ficha" aria-label="El envío elegido">
+    <div class="f-cab" ${i(0)}><div><p class="f-sobre">${e.est === 'camino' ? `Llega ${nombreDia(e.llega).toLowerCase()}` : `Llegó ${nombreDia(e.d).toLowerCase()}${e.d < HOY - 1 ? ' nov' : ''} · ${e.h}`}</p>
+      <h2 class="f-tit">${e.id || 'Llegada sin envío'}</h2><p class="f-sub">${listaCorta(e.marcas.map(([m]) => m), 3)}</p></div>
+      <div style="display:flex;gap:8px;align-items:center">${chip(e)}<button class="f-cerrar" data-f-cerrar aria-label="Cerrar">${svg(ICON.x)}</button></div></div>
+    <div class="f-cifras" ${i(1)}><div><b>${e.total}</b><span>prendas</span></div><div><b>${e.cont || 0}</b><span>contadas</span></div><div class="v"><b>${e.stock || 0}</b><span>en stock</span></div></div>
+    <div ${i(2)}>${trayecto(e, false)}</div>
+    <div ${i(3)}>${bloqueHistoria(e)}</div>
+    <div ${i(4)}>${bloqueMarcas(e)}</div>
+    <div ${i(5)}>${bloqueProvs(e)}</div>
+  </aside>`;
+}
+
+/* ---------- «Hoy»: como se ve hoy (de la captura de Felipe), con lo que se arregla ---------- */
+function hoy() {
+  const ord = ENVIOS.filter((e) => abierto(e) && e.est !== 'camino').sort((a, b) => a.ts - b.ts); // hoy: el más viejo arriba
+  const filaHoy = (e, i) => `<div class="t-fila" style="--k:${i}"><div><span class="num">${String(e.d).padStart(2, '0')}/11</span><span class="sec">${e.h}</span></div><div class="env">${e.id}</div>
+    <div><span class="paso-ic"><i></i><i></i><i class="b"></i><i class="v"></i><i class="v"></i></span><span class="sec" style="color:var(--tinta);font-weight:600">Contando</span></div>
+    <div style="text-align:left"><span class="marcas">${listaCorta(e.marcas.map(([m]) => m), 1)}</span><span class="sec">${e.provs.join(', ')}</span>${e.sinAviso ? '<span class="sec" style="color:var(--taupe)">Llegó sin aviso: se sigue contando</span>' : ''}</div>
+    <div>—</div><div><span class="num">${e.sinAviso ? '—' : `${e.total} prendas`}</span>${e.stock ? `<span class="sec">${e.stock} en stock</span>` : ''}</div><div><button class="btn sec mini-btn">Seguir recibiendo</button></div></div>`;
+  const term = [ENVIOS.find((e) => e.id === 'ENV-000027'), ENVIOS.find((e) => e.id === 'ENV-000025'), ENVIOS.find((e) => e.id === 'ENV-000017'), ENVIOS.find((e) => e.id === 'ENV-000023')];
+  return `${encabezado({ sede: 'Tienda TRU', fecha: 'martes, 17 de noviembre · 15:24', titulo: 'Recibir mercadería' })}
+    <div class="hoy-aviso">⚠ ENV-000017: 12 de 135 ya en stock · se sigue recibiendo, desde hace 6 días <span class="n-rojo">1</span><a href="#">Seguir recibiendo</a></div>
+    <div class="hoy-aviso">ⓘ ENV-000027: 60 de 60 ya en stock · se sigue recibiendo <span class="n-rojo">1</span><a href="#">Seguir recibiendo</a></div>
+    <div class="sec-h2"><h2>Envíos por recibir en esta sede <span class="n-rojo">2</span></h2><button class="btn sec mini-btn">Sin aviso</button></div>
+    <div class="tv" style="margin-top:12px"><div class="tabla hoy-t"><div class="t-cabeza">${['Enviado', 'Envío', 'Estado <span class="n-rojo">3</span>', 'Marca y proveedor <span class="n-rojo">4</span>', 'Guía', 'Prendas', ''].map((t) => `<span class="col-quieta" style="font-size:12px">${t}</span>`).join('')}</div>${ord.map(filaHoy).join('')}</div></div>
+    <div class="sec-h2"><h2>Lo recibido · Tienda TRU</h2></div>
+    <div class="pills" style="margin-top:10px"><button class="pill">Por terminar</button><button class="pill" aria-pressed="true">Terminados</button></div>
+    <div class="tv" style="margin-top:12px"><div class="tabla" style="--cols:7rem 8.5rem minmax(0,1fr) 10rem 8rem">${term.map((e, i) => `<div class="t-fila" style="--k:${i};cursor:default"><div class="num">${String(e.d).padStart(2, '0')}/11</div><div class="env">${e.id}</div><div style="text-align:left"><span class="marcas">${listaCorta(e.marcas.map(([m]) => m), 2)}</span></div>
+      <div>${e.est === 'terminado' ? `<span class="chip" style="--c:var(--verde)"><i></i>Terminado</span>` : `<span class="chip sigue"><i></i>Sigue abierto</span> <span class="n-rojo">1</span>`}</div><div class="num">${e.stock} u.</div></div>`).join('')}</div></div>`;
+}
+
+/* ---------- pintar ---------- */
+function cifras() {
+  const ab = ENVIOS.filter(abierto);
+  return [[ab.length, 'por recibir', 'caja'], [ab.reduce((a, e) => a + e.total - (e.stock || 0), 0), 'prendas sin stock', 'percha'], [ENVIOS.filter(viejo).length, 'llevan +3 días', 'alerta', true]];
+}
+function pantalla() {
+  const cara = document.documentElement.dataset.cara;
+  const cont = $('#cont');
+  if (cara === 'hoy') { cont.innerHTML = hoy(); return; }
+  const enc = encabezado({ sede: 'Tienda TRU', fecha: 'martes, 17 de noviembre · 15:24', titulo: 'Recibir mercadería', cifras: cifras(), acciones: [['sec', 'Llegó sin aviso', 'caja']] });
+  const s = tvDe(cara);
+  if (cara === 'C') cont.innerHTML = `${enc}${barraTv('C')}
+    <div class="lado"${s.fichaMovil ? ' data-abierta' : ''}><div>${tabla('C')}</div><div class="velo-f" data-f-cerrar></div>${ficha()}</div>`;
+  else cont.innerHTML = `${enc}${barraTv(cara)}${tabla(cara)}`;
+}
+// Repintar sin perder el cursor del buscador ni la animación de entrada en cada tecla.
+function repintar(foco) {
+  const y = $('#cont').scrollTop;
+  pantalla();
+  $('#cont').scrollTop = y;
+  $$('#cont .t-fila, #cont .tabla, #cont .bar i, #cont .apilada i').forEach((n) => n.style.animation = 'none');
+  if (foco) { const i = $('[data-tv-q]'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+}
+function aviso(t) { $('.toast')?.remove(); const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; $('#disp').appendChild(d); setTimeout(() => d.remove(), 2200); }
+
+document.addEventListener('click', (ev) => {
+  const t = ev.target; const cara = document.documentElement.dataset.cara; if (!cara || cara === 'hoy') return;
+  const s = tvDe(cara);
+  if (t.closest('.globo')) {
+    const o = t.closest('[data-tv-ord]'); if (o) { const [col, dir] = o.dataset.tvOrd.split(':'); s.orden = { col, dir }; repintar(); }
+    return;
+  }
+  const col = t.closest('[data-tv-col]'); if (col) { s.globo = s.globo === col.dataset.tvCol ? null : col.dataset.tvCol; repintar(); return; }
+  if (s.globo) { s.globo = null; repintar(); }
+  const v = t.closest('[data-tv-vista]'); if (v) { s.vista = v.dataset.tvVista; s.filtros = {}; repintar(); return; }
+  if (t.closest('[data-tv-letra]')) { s.letra = !s.letra; repintar(); return; }
+  if (t.closest('[data-tv-terminados]')) { s.conTerminados = !s.conTerminados; repintar(); return; }
+  const q = t.closest('[data-tv-quitar]'); if (q) { const [k, val] = q.dataset.tvQuitar.split(':'); if (k === 'q') s.q = ''; else s.filtros[k]?.delete(val); repintar(); return; }
+  if (t.closest('[data-tv-limpiar]')) { s.filtros = {}; s.q = ''; repintar(); return; }
+  if (t.closest('[data-f-cerrar]')) { s.fichaMovil = false; repintar(); return; }
+  const h = t.closest('[data-hace]'); if (h) { aviso(`«${h.dataset.hace}» abre el envío. La maqueta no guarda nada.`); return; }
+  const f = t.closest('[data-tv-fila]');
+  if (f) { const k = f.dataset.tvFila; if (cara === 'C') { s.abierta = k; s.fichaMovil = true; } else s.abierta = s.abierta === k ? null : k; repintar(); }
+});
+document.addEventListener('change', (ev) => {
+  const c = ev.target.closest('[data-tv-fil]'); if (!c) return;
+  const s = tvDe(document.documentElement.dataset.cara), k = c.dataset.tvFil;
+  (s.filtros[k] ||= new Set())[c.checked ? 'add' : 'delete'](c.value); repintar();
+});
+document.addEventListener('input', (ev) => { if (!ev.target.matches('[data-tv-q]')) return; tvDe(document.documentElement.dataset.cara).q = ev.target.value; repintar(true); });
+document.addEventListener('keydown', (ev) => {
+  const cara = document.documentElement.dataset.cara; if (!cara || cara === 'hoy') return; const s = tvDe(cara);
+  if (ev.key === 'Escape' && s.globo) { s.globo = null; repintar(); return; }
+  if (ev.target.matches('input')) return;
+  if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches('[data-tv-fila]')) { ev.preventDefault(); ev.target.click(); return; }
+  if (cara === 'C' && (ev.key === 'ArrowDown' || ev.key === 'ArrowUp')) {
+    const fs = filasVisibles('C'), i = fs.findIndex((e) => e.clave === s.abierta);
+    const n = fs[Math.max(0, Math.min(fs.length - 1, i + (ev.key === 'ArrowDown' ? 1 : -1)))]; if (n) { ev.preventDefault(); s.abierta = n.clave; repintar(); }
+  }
+});
+
+const caraUrl = new URLSearchParams(location.search).get('cara');
+Marco.iniciar({ estado: { cara: ['A', 'B', 'C', 'hoy'].includes(caraUrl) ? caraUrl : 'A', tema: new URLSearchParams(location.search).get('tema') === 'oscuro' ? 'oscuro' : 'claro' }, alPintar: () => { pantalla(); analisis(); } });
+
+/* ====================================================================
+   EL ANÁLISIS (debajo del aparato)
+   ==================================================================== */
+function analisis() {
+  $('#analisis').innerHTML = `
+  <section><h2>Qué se pidió y qué pasa hoy</h2><ul>
+    <li><b>Felipe (2026-11-17):</b> «los últimos envíos deben estar arriba que los antiguos»; tres maquetas más útiles y amigables para ver todos los envíos; arreglar «los terminados que salen en terminados y siguen abiertos»; y usar las tablas con superpoderes.</li>
+    <li><b>Hoy</b> (cara «Hoy», con los problemas numerados):
+      <span class="n-rojo">1</span> un envío a medias sale <b>tres veces</b>: en un aviso arriba, en «Envíos por recibir» y en «Terminados» con «Sigue abierto» (ENV-000017 y el de 60 de 60).
+      <span class="n-rojo">2</span> el más viejo va arriba: <code>ordenarFilasPorRecibir</code> (<code>lib/recepcion-envio-busqueda.ts:43</code>) ordena por la fecha de menor a mayor.
+      <span class="n-rojo">3</span> el estado es una fila de íconos sin palabras: no se sabe qué paso falta.
+      <span class="n-rojo">4</span> los proveedores se cortan con «…» y no hay cómo ver la lista entera; «Guía» casi siempre dice «—».</li>
+  </ul></section>
+  <section><h2>La regla nueva, en las tres propuestas</h2><ul>
+    <li><b>Lo más nuevo, arriba.</b> La tabla abre ordenada por «Llegó», del más nuevo al más viejo, y lo dice en la frase. Se puede invertir desde la cabecera.</li>
+    <li><b>Cada envío vive en un solo lugar.</b> Cinco estados con palabras: En camino · Por abrir · Contando · Falta cerrar · Terminado. Lo que ya entró al stock de un envío que se sigue contando es su <b>avance</b> (la parte verde de la barra, «12 en stock»), no una fila en Terminados. «Terminados» solo trae lo cerrado.</li>
+    <li><b>Los avisos de arriba se van.</b> Lo que decían vive en la fila: «hace 8 días» en ámbar si lleva 3 días o más (el mismo número que hoy, <code>DIAS_PARA_RESALTAR</code>), y «Falta cerrar» cuando ya está todo en stock. La cifra «llevan +3 días» de la cabecera los cuenta.</li>
+    <li><b>La tabla con superpoderes</b> (<code>components/ui/TablaViva.tsx</code>): letra de 15 px, todo al centro, filtrar y ordenar tocando la cabecera (Llegó, Marca, Estado), la frase de lo que ves, lo puesto en píldoras, el total al pie con lo que ya está en stock, «Letra grande», y bajo 660 px de tabla cada fila es una tarjeta.</li>
+  </ul></section>
+  <section><h2>Las tres propuestas</h2>
+  <table><tr><th></th><th>A · Una lista, cada envío una vez</th><th>B · Por día</th><th>C · Lista y ficha</th></tr>
+    <tr><td><b>Cómo se ve</b></td><td>Una sola tabla con «Por recibir · Terminados · Todos» arriba. Estado en chip y avance en barra. Tocar la fila abre debajo marcas, todos los proveedores y cómo va.</td><td>La misma tabla partida por día (Hoy · Ayer · Sábado 14…), con lo terminado en el mismo hilo, más tenue. El estado es un trayecto con palabras: Llegó · Contado · En stock · Cerrado.</td><td>La lista angosta a la izquierda y, a la derecha, la ficha del envío elegido: cifras, trayecto, qué falta, marcas con su barra y proveedores. ↑ ↓ pasan de envío.</td></tr>
+    <tr><td><b>Gana</b></td><td>La más simple: una pregunta («¿qué falta recibir?»), una respuesta. Fácil de construir sobre TablaViva.</td><td>Se lee como una agenda: «¿qué llegó hoy?» se ve sin buscar. Lo viejo sin terminar salta solo, porque queda abajo y en ámbar.</td><td>Todo el detalle sin abrir otra pantalla, y usa el ancho del escritorio (ADR-0462). Ideal para una encargada que revisa varios seguidos.</td></tr>
+    <tr><td><b>Paga</b></td><td>El detalle se abre dentro de la tabla y empuja las filas de abajo.</td><td>Muchos días con un solo envío alargan la lista; el separador de día es una pieza que TablaViva no tiene.</td><td>Es la que más cambia; en celular la ficha es una hoja, y a 1024 px la lista queda angosta.</td></tr>
+  </table></section>
+  <section><h2>Qué cambia en el código (cuando elijas)</h2><ul>
+    <li><code>ordenarFilasPorRecibir</code>: por fecha descendente. Hoy además manda al fondo lo que creaste tú (<code>creadoPorMi</code>); propongo quitar ese rango y que lo diga la fila.</li>
+    <li><code>RecibidoEnLaSede</code> / <code>RecibidoPorEnvio</code>: «Terminados» deja fuera los <code>enviosAbiertos</code> en vez de marcarlos «Sigue abierto».</li>
+    <li>Los <code>Aviso</code> de <code>getEnviosAMedias</code> (<code>app/(app)/recibir/page.tsx</code>) salen; su dato («desde hace N días», «60 de 60 en stock») pasa a la fila.</li>
+    <li>«Envíos por recibir» y «Lo recibido» pasan a ser una sola <code>TablaViva</code>. No cambia ninguna regla de stock ni de la base: es lectura y orden.</li>
+  </ul></section>
+  <section><h2>Para que decidas</h2><ul>
+    <li>¿Cuál de las tres? Se pueden mezclar: por ejemplo, la lista de A con la ficha de C en escritorio.</li>
+    <li>«Por abrir» y «En camino»: ¿quieres ver lo que todavía no llega en la misma lista, o solo lo que ya está en la tienda?</li>
+    <li>¿3 días sigue siendo el aviso correcto para «lleva mucho sin terminar»?</li>
+  </ul></section>`;
+}
+</script>
+</body>
+</html>

@@ -1114,9 +1114,14 @@ mal(
   `select retail.crear_material(:'taller', ${AVIO("Etiqueta de composición", "k_etiqueta", `, 'unidad_medida', 'unidad', 'medida_valor', 3, 'medida_unidad', 'centimetro'`)}, '[]'::jsonb, null);`
 );
 mal(
-  "V8 la medida de un botón no se escribe en centímetros (cada comportamiento admite la suya)",
+  "V8 la medida de un botón no se escribe en milímetros ni en líneas (cada comportamiento admite la suya; el botón, centímetros desde 2026-11-17)",
   "Esa no es la medida de «Botón»",
-  `select retail.crear_material(:'taller', ${AVIO("Botón en cm", "k_boton", `, 'unidad_medida', 'unidad', 'medida_valor', 18, 'medida_unidad', 'centimetro'`)}, '[]'::jsonb, null);`
+  `select retail.crear_material(:'taller', ${AVIO("Botón en mm", "k_boton", `, 'unidad_medida', 'unidad', 'medida_valor', 15, 'medida_unidad', 'milimetro'`)}, '[]'::jsonb, null);`
+);
+mal(
+  "V8b ningún avío entra en líneas: «se maneja por cm» (Felipe 2026-11-17)",
+  "Esa no es la medida de «Botón»",
+  `select retail.crear_material(:'taller', ${AVIO("Botón en líneas", "k_boton", `, 'unidad_medida', 'unidad', 'medida_valor', 18, 'medida_unidad', 'linea'`)}, '[]'::jsonb, null);`
 );
 mal(
   "V9 la medida va completa: un número sin su unidad no se guarda",
@@ -1125,16 +1130,16 @@ mal(
 );
 ok(
   "V10 DOS medidas del mismo botón son DOS fichas; la MISMA medida dos veces, no (el candado que antes dejaba entrar «18mm» y «18 mm»)",
-  `select retail.crear_material(:'taller', ${AVIO("Botón nácar", "k_boton", `, 'unidad_medida', 'unidad', 'medida_valor', 18, 'medida_unidad', 'linea'`)}, '[]'::jsonb, null) as r1 \\gset
-select retail.crear_material(:'taller', ${AVIO("Botón nácar", "k_boton", `, 'unidad_medida', 'unidad', 'medida_valor', 24, 'medida_unidad', 'linea'`)}, '[]'::jsonb, null) as r2 \\gset
+  `select retail.crear_material(:'taller', ${AVIO("Botón nácar", "k_boton", `, 'unidad_medida', 'unidad', 'medida_valor', 1.5, 'medida_unidad', 'centimetro'`)}, '[]'::jsonb, null) as r1 \\gset
+select retail.crear_material(:'taller', ${AVIO("Botón nácar", "k_boton", `, 'unidad_medida', 'unidad', 'medida_valor', 2, 'medida_unidad', 'centimetro'`)}, '[]'::jsonb, null) as r2 \\gset
 select (:'r1'::jsonb -> 'material' ->> 'nombre_largo'), (:'r2'::jsonb -> 'material' ->> 'nombre_largo'), (:'r1'::jsonb -> 'material' ->> 'codigo') <> (:'r2'::jsonb -> 'material' ->> 'codigo');`,
-  (c) => c[0] === "Botón nácar 18 L" && c[1] === "Botón nácar 24 L" && c[2] === "t"
+  (c) => c[0] === "Botón nácar 1.5 cm" && c[1] === "Botón nácar 2 cm" && c[2] === "t"
 );
 mal(
   "V10b …y el mismo botón con la MISMA medida avisa y apunta al que ya está",
-  "Ya existe «Botón nácar 18 L»",
-  `select retail.crear_material(:'taller', ${AVIO("Botón nácar", "k_boton", `, 'unidad_medida', 'unidad', 'medida_valor', 18, 'medida_unidad', 'linea'`)}, '[]'::jsonb, null) as r1 \\gset
-select retail.crear_material(:'taller', ${AVIO("botón  NÁCAR", "k_boton", `, 'unidad_medida', 'unidad', 'medida_valor', 18, 'medida_unidad', 'linea'`)}, '[]'::jsonb, null);`
+  "Ya existe «Botón nácar 1.5 cm»",
+  `select retail.crear_material(:'taller', ${AVIO("Botón nácar", "k_boton", `, 'unidad_medida', 'unidad', 'medida_valor', 1.5, 'medida_unidad', 'centimetro'`)}, '[]'::jsonb, null) as r1 \\gset
+select retail.crear_material(:'taller', ${AVIO("botón  NÁCAR", "k_boton", `, 'unidad_medida', 'unidad', 'medida_valor', 1.5, 'medida_unidad', 'centimetro'`)}, '[]'::jsonb, null);`
 );
 ok(
   "V11 un hilo se puede llevar en CONOS (la unidad la elige quien lo tiene en la mano, y después no cambia)",
@@ -1165,15 +1170,15 @@ select (select bool_and(i.nombre like 'Cierre metálico 45 cm · %') from retail
 );
 ok(
   "V15 `fn_medida_texto` dice lo mismo que la web (`lib/avio-clases-reglas.ts`): punto decimal y sin decimales de más",
-  `select concat_ws('~', retail.fn_medida_texto(18, 'linea'), retail.fn_medida_texto(11.40, 'milimetro'), retail.fn_medida_texto(40, 'centimetro'), retail.fn_medida_texto(40, 'titulo'), coalesce(retail.fn_medida_texto(null, 'linea'), '-'));`,
-  (c) => c[0] === "18 L~11.4 mm~40 cm~título 40~-"
+  `select concat_ws('~', retail.fn_medida_texto(1.50, 'centimetro'), retail.fn_medida_texto(11.40, 'milimetro'), retail.fn_medida_texto(40, 'centimetro'), retail.fn_medida_texto(40, 'titulo'), coalesce(retail.fn_medida_texto(null, 'centimetro'), '-'), coalesce(retail.fn_medida_texto(18, 'linea'), '-'));`,
+  (c) => c[0] === "1.5 cm~11.4 mm~40 cm~título 40~-~-"
 );
 ok(
   "V16 `fn_medida_cuadra` es la misma tabla que la web: cada comportamiento admite solo lo suyo",
   `select concat_ws(',', retail.fn_medida_cuadra('pieza','linea'), retail.fn_medida_cuadra('pieza','milimetro'), retail.fn_medida_cuadra('pieza','centimetro'), retail.fn_medida_cuadra('largo','centimetro'),
-    retail.fn_medida_cuadra('ancho','centimetro'), retail.fn_medida_cuadra('titulo','titulo'), retail.fn_medida_cuadra('etiqueta','linea'), retail.fn_medida_cuadra('otro','titulo'));`,
-  // El 2.º es el candado de Felipe (2026-10-30): un botón NO se mide en milímetros, o el mismo botón entra dos veces y el stock queda partido.
-  (c) => c[0] === "t,f,f,t,t,t,f,t"
+    retail.fn_medida_cuadra('ancho','centimetro'), retail.fn_medida_cuadra('titulo','titulo'), retail.fn_medida_cuadra('etiqueta','linea'), retail.fn_medida_cuadra('otro','titulo'), retail.fn_medida_cuadra('otro','linea'));`,
+  // Un botón se mide SOLO en centímetros (Felipe 2026-11-17; antes, en líneas): con dos unidades el mismo botón entra dos veces y el stock queda partido. Nadie en líneas.
+  (c) => c[0] === "f,f,t,t,t,t,f,t,f"
 );
 ok(
   "V17 las siete clases nacen con su comportamiento, su unidad propuesta y si llevan color",

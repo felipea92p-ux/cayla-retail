@@ -120,7 +120,7 @@ function problemasDeFila(e: EntradaAvioNuevo, f: FilaDeColor): string[] {
 export function problemasDeLaMedida(e: EntradaAvioNuevo, clase: ClaseDeAvio | null): string[] {
   if (!clase) return [];
   // Solo la CAJA cuenta como medida escrita. La unidad la rellena la clase al elegirla, así que mirarla aquí hacía
-  // que un botón sin medida —que el diseño y la base aceptan— no se pudiera registrar, y quien no sabía la línea
+  // que un botón sin medida —que el diseño y la base aceptan— no se pudiera registrar, y quien no sabía la medida
   // inventaba un número que se quedaba en el nombre de la ficha para siempre (/chaos 2026-10-31).
   const escrita = e.medida.trim() !== "";
   if (medidaProhibida(clase.comportamiento)) {

@@ -803,6 +803,13 @@ const clicGuia = (guia) => async (pagina) => {
   await pagina.locator(`[data-guia="${guia}"]`).first().click({ timeout: 8000 });
   await esperar(pagina, 1100);
 };
+/** Recibir ▸ «Sin aviso» con «Todo es de un solo proveedor» encendido: la hoja lista los proveedores. Solo despliega, no guarda. */
+const abrirSinAvisoDeUnProveedor = async (pagina) => {
+  await pagina.getByRole("button", { name: /^Sin aviso$/i }).first().click({ timeout: 8000 });
+  await esperar(pagina, 900);
+  await pagina.getByRole("dialog").getByRole("switch").first().click({ timeout: 8000 });
+  await esperar(pagina, 900);
+};
 /** Abre la hoja de un gasto de la lista y, dentro, el botón `nombre`; si ese gasto no lo ofrece, prueba el siguiente (hasta 12). */
 const abrirDesdeUnGasto = (nombre) => async (pagina) => {
   const filas = pagina.locator('[data-guia="fin-gastos.fila"]');
@@ -1341,8 +1348,14 @@ ESCENARIOS.push(
         )}`,
       )(pagina),
   },
-  // «¿De quién es?» es la lista de «Llegó mercadería» (fase 4) y la de «¿Llegó algo sin aviso?» (ADR-0393), según lo que tenga la base.
-  { id: "recibir.proveedor", ruta: "/recibir", cuentas: INVENTARIO, abre: "[role=listbox]", nombre: "Recibir · la lista de proveedores", preparar: clicRol("combobox", /Proveedor|De quién es/i) },
+  // De quién es lo que llegó sin aviso (ADR-0393): la hoja «¿Llegó algo que no está en la lista?» se abre con el botón «Sin aviso» y, con
+  // «Todo es de un solo proveedor» encendido, lista los proveedores. Nada de esto guarda. (Hasta ADR-0676 este escenario buscaba un combo
+  // «Proveedor | De quién es» y pasaba porque abría el filtro «Proveedor» de la tabla de envíos, que ya no existe; el combo de la hoja se
+  // había ido antes.)
+  { id: "recibir.proveedor", ruta: "/recibir", cuentas: INVENTARIO, abre: "[role=dialog] [role=radio]", nombre: "Recibir · «Sin aviso»: la lista de proveedores", preparar: abrirSinAvisoDeUnProveedor },
+  // La tarjeta única de envíos (ADR-0676): lo terminado, y el globo de la cabecera de la fecha («Desde»; en lo terminado, «Llegó»).
+  { id: "recibir.envios-terminados", ruta: "/recibir", cuentas: INVENTARIO, abre: '[data-guia="recibir.ver-todo"]', nombre: "Recibir · los envíos terminados de la sede", preparar: clicGuia("recibir.envios-terminados") },
+  { id: "recibir.envios-fecha", ruta: "/recibir", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Recibir · el globo de la fecha en la tabla de envíos", preparar: clicRol("button", /(Desde|Llegó): ordenar y filtrar/i) },
   {
     id: "recibir.prenda",
     ruta: "/recibir",
@@ -1356,9 +1369,8 @@ ESCENARIOS.push(
         return;
       }
       // Con ADR-0393 la puerta no busca prendas (se cuentan en el envío): lo que cambia de cara es el proveedor elegido (y su factura).
-      await pagina.getByRole("combobox", { name: /De quién es/i }).first().click({ timeout: 8000 });
-      await esperar(pagina, 600);
-      await pagina.getByRole("option").first().click({ timeout: 8000 });
+      await abrirSinAvisoDeUnProveedor(pagina);
+      await pagina.getByRole("dialog").getByRole("radio").first().click({ timeout: 8000 });
       await esperar(pagina, 900);
     },
   },

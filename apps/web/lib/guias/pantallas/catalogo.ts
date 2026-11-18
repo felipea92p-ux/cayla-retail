@@ -1207,6 +1207,11 @@ export const GUIA_CAMPANAS: Guia = {
       id: "diseno-web",
       ancla: "sellos.diseno-web",
       opcional: true,
+      // Cierra el globo del «?» que abrió `mapa` (lo que la guía abre, lo cierra). Un segundo toque y no un Escape: el globo es
+      // `role="note"`, no un diálogo, y el Escape del piloto solo sale si hay un diálogo abierto. Solo al avanzar: al volver desde
+      // «Una campaña nueva» el globo ya está cerrado, y el toque lo volvería a abrir.
+      preparar: [{ tipo: "clic", ancla: "sellos.ayuda" }],
+      prepararSoloAlAvanzar: true,
       titulo: "Cómo se ven en la tienda web",
       texto: "Lleva a Tienda web ▸ Campañas, donde se elige el diseño de la tienda online durante cada campaña. Las fechas y el descuento se siguen armando aquí.",
     },

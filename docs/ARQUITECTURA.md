@@ -272,8 +272,10 @@ flowchart TB
   → RPC `bajar_a_piso` (mueve de `stock_almacen` a `stock` de piso). (V1; hoy: esa ruta y `bajar_a_piso` no
   existen; se baja con `mover_interno` desde «Reponer» de Existencias o con `bajar_al_piso` desde
   `/inventario/bajar`, ver «Inventario V2».)
-- `/recibir` y `/recibir/envio/[id]` (Recibir mercadería, ADR-0393/0503): la puerta lista los envíos por recibir en una tabla con buscador
-  (`EnviosParaRecibir.tsx` + `lib/recepcion-envio-busqueda.ts`) y el botón «Sin Aviso» (`LlegoSinAviso.tsx`); el cierre
+- `/recibir` y `/recibir/envio/[id]` (Recibir mercadería, ADR-0393/0503): la puerta lista TODOS los envíos de la sede en una sola tarjeta
+  (ADR-0676, 2026-11-17: `recepcion-envio/EnviosDeLaSede.tsx` sobre `TablaViva`, reglas en `lib/envios-de-la-sede-reglas.ts`: «Por recibir ·
+  Terminados · Todos», cada envío una fila con un estado, del más nuevo al más antiguo; `EnviosParaRecibir.tsx` + `RecibidoEnLaSede.tsx`
+  quedan solo para la cara anterior, cuando la base no cuenta primero) y el botón «Sin Aviso» (`LlegoSinAviso.tsx`); el cierre
   (`recepcion-conteo/CerrarEnvio.tsx`) abre cada prenda a su matriz de color × talla (`PrendaConCombinaciones.tsx`, reglas en `lib/recepcion-combinaciones-reglas.ts`): el costo viaja en `costos_prendas` por combinación a `cerrar_conteo_envio` y el precio por `validar_precios_en_recepcion` / `cambiar_precios_en_recepcion` (ADR-0393 act. 2026-10-28 (c); la tarjeta «Costos y precios» por prenda y `cambiar_precio_en_recepcion` quedan para «Para después»).
   Con el envío cerrado, «Para después» (`EnvioCerrado.tsx` → `HacerAhora.tsx`) termina lo pendiente con `resolver_pendiente_envio`, y
   «Crear ahora» deja la prenda recién creada (o la que «ya existe») ligada a su pendiente con `ligar_prenda_a_pendiente` (el «crear» pasa a

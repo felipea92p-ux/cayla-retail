@@ -198,3 +198,13 @@ button.rc-parada:disabled { cursor: default; }
     color: var(--color-tinta-fija);
   }
 }
+
+/* ---- La puerta angosta: el aviso de un envío a medias (Felipe 2026-11-17) ----
+   «Seguir recibiendo» a la derecha le dejaba al texto unos 130 px: «ENV-000017: 12 de 29 ya en stock…» se leía en cinco renglones. Con menos
+   de 640 px de columna (un celular, o una tableta con el menú abierto) baja debajo del texto, alineado con él, y el aviso queda en tres.
+   Mira el ancho del grupo de avisos (`@container/rc-avisos`, en la página), no el de la ventana. Como el de Plan del piso y el de la hoja de
+   un gasto: la pieza `Aviso` no cambia. */
+@container rc-avisos (max-width: 639.98px) {
+  .rc-aviso-a-medias.aviso-linea { grid-template-columns: auto minmax(0, 1fr); }
+  .rc-aviso-a-medias .aviso-linea-acc { grid-column: 2; grid-row: auto; justify-self: start; align-self: start; margin: 2px 0 0 -10px; }
+}

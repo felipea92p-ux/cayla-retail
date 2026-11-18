@@ -168,15 +168,18 @@ export function mismoDia(a: string, b: string): boolean {
 }
 
 /**
- * Un envío que ya dejó prendas en el stock pero que todavía se está recibiendo (`despachos.estado = 'abierto'`): sale en «Terminados» con lo
- * que ya entró y, a la vez, en «Envíos por recibir». En «Terminados» no dice «terminó»: dice que sigue abierto (Felipe 2026-11-12).
+ * «Terminados» trae SOLO lo que terminó (Felipe 2026-11-17: «los terminados que salen en terminados y siguen abiertos, mejoremos eso»). Un
+ * envío que ya dejó prendas en el stock pero que se sigue recibiendo (`despachos.estado = 'abierto'`) o que quedó por terminar (ADR-0393)
+ * tiene su fila arriba, y ahí dice cuánto entró: aquí no se repite. Del 2026-11-12 al 2026-11-17 salía en las dos listas con el chip «Sigue
+ * abierto», y seguía pareciendo repetido. `sinTerminar`: los `despachoId` de esos envíos. Una llegada sin envío siempre está terminada,
+ * aunque su lote coincida con un id de la lista.
  */
-export function sigueAbierto(e: EnvioRecibido, abiertos: ReadonlySet<string>): boolean {
-  return e.numero !== null && abiertos.has(e.clave);
+export function soloTerminados(envios: readonly EnvioRecibido[], sinTerminar: ReadonlySet<string>): EnvioRecibido[] {
+  return envios.filter((e) => e.numero === null || !sinTerminar.has(e.clave));
 }
 
-/** «terminó 12/11» bajo la fecha de llegada: solo si el envío ya se cerró y no terminó el mismo día que llegó. */
-export function textoTermino(e: EnvioRecibido, abiertos: ReadonlySet<string>): string | null {
-  if (sigueAbierto(e, abiertos) || !e.llegoEn || mismoDia(e.llegoEn, e.fecha)) return null;
+/** «terminó 12/11» bajo la fecha de llegada: solo si no terminó el mismo día que llegó. */
+export function textoTermino(e: EnvioRecibido): string | null {
+  if (!e.llegoEn || mismoDia(e.llegoEn, e.fecha)) return null;
   return `terminó ${fechaCorta(e.fecha).slice(0, 5)}`;
 }

@@ -42,13 +42,13 @@ describe("buscador de envíos por recibir", () => {
     expect(coincideConBusqueda(textoBuscableDeEnvio(envio), "anqori")).toBe(true);
     expect(coincideConBusqueda(textoBuscableDeEnvio({ ...envio, marcas: [] }), "anqori")).toBe(false);
   });
-  it("ordena: seguir recibiendo, en camino, órdenes sin guía y al final lo que esta cuenta no puede recibir", () => {
+  it("una sola lista: no agrupa por estado ni manda al fondo lo que hizo esta cuenta; las órdenes sin guía (sin fecha), al final", () => {
     const e = (id: string, estado: "en_camino" | "abierto", creadoPorMi = false) => ({ ...envio, id, estado, creadoPorMi });
     const o = (ordenId: string, creadaPorMi = false) => ({ ...orden, ordenId, creadaPorMi });
     const filas = ordenarFilasPorRecibir([e("a", "en_camino"), e("b", "abierto", true), e("c", "abierto"), e("d", "en_camino"), e("f", "abierto")], [o("x", true), o("y")]);
-    expect(filas.map((f) => (f.tipo === "envio" ? f.envio.id : f.orden.ordenId))).toEqual(["c", "f", "a", "d", "y", "b", "x"]);
+    expect(filas.map((f) => (f.tipo === "envio" ? f.envio.id : f.orden.ordenId))).toEqual(["a", "b", "c", "d", "f", "x", "y"]);
   });
-  it("dentro de cada grupo, del envío más antiguo al más nuevo; sin fecha, al final del grupo; a igual fecha, el orden de la base", () => {
+  it("del envío más nuevo al más antiguo (Felipe 2026-11-17); sin fecha, al final; a igual fecha, el orden de la base", () => {
     const e = (id: string, despachadoEn: string | null, estado: "en_camino" | "abierto" = "en_camino", creadoPorMi = false) => ({ ...envio, id, despachadoEn, estado, creadoPorMi });
     const ids = (filas: ReturnType<typeof ordenarFilasPorRecibir>) => filas.map((f) => (f.tipo === "envio" ? f.envio.id : f.orden.ordenId));
     const filas = ordenarFilasPorRecibir(
@@ -65,12 +65,12 @@ describe("buscador de envíos por recibir", () => {
       ],
       [{ ...orden, ordenId: "oc-2" }, { ...orden, ordenId: "oc-1" }],
     );
-    expect(ids(filas)).toEqual(["abierto-viejo", "abierto-nuevo", "viejo", "mismo-1", "mismo-2", "nuevo", "sin-fecha", "oc-2", "oc-1", "ajeno-viejo", "ajeno-nuevo"]);
+    expect(ids(filas)).toEqual(["nuevo", "abierto-nuevo", "ajeno-nuevo", "mismo-1", "mismo-2", "abierto-viejo", "viejo", "ajeno-viejo", "sin-fecha", "oc-2", "oc-1"]);
   });
   it("una hora de Lima que cae en el día siguiente de UTC se ordena por el instante, no por el texto", () => {
     const e = (id: string, despachadoEn: string) => ({ ...envio, id, despachadoEn });
-    // 01:00Z del 14 son las 20:00 del 13 en Lima; el offset distinto no cambia quién salió primero.
+    // 01:00Z del 14 son las 20:00 del 13 en Lima; el offset distinto no cambia quién salió después (que ahora va arriba).
     const filas = ordenarFilasPorRecibir([e("b", "2026-10-14T01:00:00+00:00"), e("a", "2026-10-13T22:00:00-05:00")], []);
-    expect(filas.map((f) => (f.tipo === "envio" ? f.envio.id : ""))).toEqual(["b", "a"]);
+    expect(filas.map((f) => (f.tipo === "envio" ? f.envio.id : ""))).toEqual(["a", "b"]);
   });
 });

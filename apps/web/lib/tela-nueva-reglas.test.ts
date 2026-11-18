@@ -139,9 +139,9 @@ describe("la guía de «Nueva tela»", () => {
       });
     }
   }
-  it("el tejido y la composición se SUGIEREN (salen en «falta») pero nunca bloquean", () => {
+  it("el tejido se SUGIERE (sale en «falta») y la composición es opcional: ninguno bloquea (Felipe 2026-11-17)", () => {
     const campos = camposDeTelaNueva(base);
-    expect(faltanDe(campos).map((c) => c.id)).toEqual(["tejido", "composicion"]);
+    expect(faltanDe(campos).map((c) => c.id)).toEqual(["tejido"]);
     expect(sePuedeConfirmar(campos)).toBe(true);
   });
   it("un tejido escrito a mano que espera su «¿es otro?» frena el guardado y la guía lo dice: se perdería lo que la persona pidió", () => {

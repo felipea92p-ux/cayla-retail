@@ -21,7 +21,7 @@ import { useResponsable } from "@/lib/useResponsable";
 // 2026-10-30 («debería compartir la misma información de atributos… y sincronizar con los atributos»).
 //
 // Qué decide una clase, y por qué vive aquí y no en el código: de ella salen la UNIDAD que «Nuevo avío» propone (el hilo en conos), si lleva COLOR (una etiqueta de composición no) y qué
-// MEDIDA se le pide (18 L en un botón, 40 cm en un cierre). El líder la amplía y la corrige sin esperar un deploy. Lo que NO se amplía desde aquí es el COMPORTAMIENTO: es una lista cerrada
+// MEDIDA se le pide (1.5 cm en un botón, 40 cm en un cierre). El líder la amplía y la corrige sin esperar un deploy. Lo que NO se amplía desde aquí es el COMPORTAMIENTO: es una lista cerrada
 // de seis, porque de cada uno cuelgan reglas escritas en el código (`lib/avio-clases-reglas.ts`) y una regla editable que decide una unidad irreversible es un estado imposible esperando.
 
 const COMPORTAMIENTO_DICE: Record<ComportamientoClase, string> = {
@@ -203,7 +203,7 @@ function HojaDeClase({ clase, onGuardada, onClose }: { clase: ClaseDeAvio | null
           </>
         ) : (
           <Aviso tono="info" chico>
-            Nace sin definir: no propone unidad ni pide medida, y lleva color. Cuando sepas qué es (un botón se mide en líneas, un cierre por su largo), la corriges aquí mismo.
+            Nace sin definir: no propone unidad ni pide medida, y lleva color. Cuando sepas qué es (un botón se mide en centímetros, un cierre por su largo), la corriges aquí mismo.
           </Aviso>
         )}
 
