@@ -1234,18 +1234,26 @@ export const GUIA_CAMPANAS: Guia = {
       texto: "Abre una ventana para crearla con su nombre y, si quieres, su dibujo y sus fechas. Después respondes sus tres preguntas. Antes mira si ya existe: una campaña que ya pasó se repite, no se crea de nuevo. En la demo no lo tocamos.",
     },
     {
-      id: "poner-un-pct",
-      ancla: "rebaja.escaner",
-      opcional: true,
-      titulo: "Ponerle un % a una prenda",
-      texto: "Escanea la etiqueta o escribe su nombre: se abre una hoja que dice qué % tiene hoy. Eliges si va solo a esa prenda o a todo el modelo, y cuánto menos entre los % que ya hay en tu tienda. Rige hasta que alguien lo quite.",
-    },
-    {
       id: "rebajas-de-tienda",
       ancla: "rebaja.tienda",
       opcional: true,
-      titulo: "Los % de tu tienda",
-      texto: "Cada tarjeta es un % que rige aquí y cuántas prendas tiene. Tócala para ver sus prendas con su precio de hoy y quitar las que ya no van. En el celular están detrás de este ícono.",
+      titulo: "Los descuentos de tu tienda",
+      texto: "Van primero en la lista: cada fila es un descuento que rige aquí y cuántas prendas tiene. Tócala y se abre con sus prendas y su precio de hoy. Si una dice «todas las tallas», tócala para ver cuáles. La × quita una, y el aviso trae «Deshacer».",
+    },
+    {
+      id: "nuevo-descuento",
+      ancla: "rebaja.nuevo",
+      opcional: true,
+      titulo: "Un descuento nuevo",
+      texto: "Eliges el % y se crea vacío; después le agregas sus prendas. Si ya hay uno con ese %, lo abre. En la demo no lo tocamos.",
+    },
+    {
+      id: "poner-un-pct",
+      ancla: "rebaja.agregar",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "rebaja.fila" }],
+      titulo: "Agregar prendas a un descuento",
+      texto: "Con el descuento abierto, escanea la etiqueta o escribe su nombre. Al escanear solo pregunta «Solo esta» o «Todo el modelo», y Enter repite la última respuesta. En el celular, la cámara lee una tras otra.",
     },
     {
       id: "dos-ofertas",
@@ -1257,6 +1265,7 @@ export const GUIA_CAMPANAS: Guia = {
     {
       id: "pila",
       ancla: "sellos.pila",
+      preparar: [{ tipo: "clic", ancla: "sellos.primero", siEsta: true }],
       titulo: "Una pila de pases",
       texto: "Cada campaña es un pase. Arriba, las que rigen hoy, con los días que les quedan; después, lo que viene, con los días que faltan; al final, las guardadas: sin fechas o ya pasadas. Toca un pase y se abre.",
     },
