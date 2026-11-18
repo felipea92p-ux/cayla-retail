@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- El tema: «light dark» = sigue al aparato; «light» o «dark» = fijado a mano (guía dark-mode-toggle). -->
+<meta name="color-scheme" content="light dark">
+<script>
+  // Solo evita el destello del tema equivocado: nada más corre aquí.
+  try { document.querySelector('meta[name="color-scheme"]').content = localStorage.getItem("mwg-tema") ?? "light dark"; } catch (e) {}
+</script>
+<title>Plataforma moderna · Laboratorio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────────────────────────────────────
+   Maqueta de laboratorio (2026-11-18). A propósito NO sigue las reglas del ERP:
+   prueba lo que propone la skill modern-web-guidance con los colores de CAYLA,
+   para decidir mirando qué vale la pena llevar al sistema. Datos inventados.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* 1 · Tokens con light-dark(): un solo lugar por color, los dos temas juntos. */
+:root {
+  color-scheme: light dark;
+  &:has(> head > meta[name="color-scheme"][content="dark"]) { color-scheme: dark; }
+  &:has(> head > meta[name="color-scheme"][content="light"]) { color-scheme: light; }
+
+  --crema:   light-dark(#f5f0e8, #1c1a17);
+  --papel:   light-dark(#fbf8f2, #26241f);
+  --hueso:   light-dark(#eae1d2, #33302a);
+  --sand:    light-dark(#e8e0d0, #403b34);
+  --tinta:   light-dark(#1a1a18, #f5f0e8);
+  --taupe:   light-dark(#805c4c, #c4a898);
+  --borde-control: light-dark(#96786a, #8d7a6e);
+  --rojo:    light-dark(#b8412d, #e8806a);
+  --rojo-profundo: light-dark(#8b2a1f, #f29a86);
+  --verde:   light-dark(#48603f, #9ccb8d);
+  --ambar:   light-dark(#74501a, #e4b968);
+  --pizarra: light-dark(#4c5d6e, #a2b8cd);
+  --sombra:  light-dark(#1a1a18, #000000);
+
+  --ease: cubic-bezier(.22, 1, .36, 1);
+  --sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --serif: "EB Garamond", ui-serif, Georgia, serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--crema); }
+body {
+  margin: 0; background: var(--crema); color: var(--tinta);
+  font: 15px/1.5 var(--sans); -webkit-font-smoothing: antialiased;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+.envoltura { max-inline-size: 1440px; margin-inline: auto; padding: 24px 16px 96px; }
+@media (width >= 768px) { .envoltura { padding: 32px 40px 120px; } }
+
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important; clip-path: inset(50%) !important; overflow: hidden !important;
+  width: 1px !important; height: 1px !important; margin: -1px !important; padding: 0 !important;
+  border: 0 !important; white-space: nowrap !important;
+}
+
+/* ── Barra del laboratorio ─────────────────────────────────────────────── */
+.lab-barra {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 12px 16px; margin-block-end: 32px; border: 1px dashed var(--borde-control); border-radius: 16px;
+  background: color-mix(in srgb, var(--papel) 70%, transparent);
+}
+.lab-barra p { margin: 0; color: var(--taupe); font-size: 14px; }
+.lab-barra strong { color: var(--tinta); font-weight: 600; }
+
+/* El tema en tres estados (guía dark-mode-toggle: en ajustes, tres estados explícitos). */
+.tema { display: inline-flex; padding: 3px; gap: 2px; border: 1px solid var(--borde-control); border-radius: 999px; background: var(--hueso); margin: 0; }
+.tema legend { position: absolute; clip-path: inset(50%); }
+.tema label { position: relative; padding: 6px 14px; border-radius: 999px; font-size: 13px; cursor: pointer; }
+.tema input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.tema label:has(:checked) { background: var(--tinta); color: var(--crema); }
+.tema label:has(:focus-visible) { outline: 2px solid var(--tinta); outline-offset: 2px; }
+
+/* ── Cabecera de la vista ──────────────────────────────────────────────── */
+.cabecera { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; margin-block-end: 24px; }
+.cabecera .sede { margin: 0 0 6px; color: var(--taupe); font-size: 13px; letter-spacing: .02em; }
+.cabecera h1 { margin: 0; font: 600 46px/1.05 var(--serif); letter-spacing: -.01em; }
+.acciones { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ── Botones ───────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-block-size: 40px; padding: 0 16px; border-radius: 12px; border: 1px solid transparent;
+  font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;
+  transition: background-color .2s var(--ease), border-color .2s var(--ease), translate .2s var(--ease);
+}
+.btn:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.primario { background: var(--tinta); color: var(--crema); }
+.secundario { background: var(--papel); border-color: var(--borde-control); }
+.peligro { background: var(--papel); border-color: var(--borde-control); color: var(--rojo); }
+@media (hover: hover) {
+  .primario:hover { background: var(--rojo-profundo); }
+  .secundario:hover, .peligro:hover { border-color: var(--tinta); }
+  .btn:hover { translate: 0 -1px; }
+}
+.btn:active { translate: 0 1px; }
+.icono { inline-size: 40px; padding: 0; }
+.icono svg { inline-size: 18px; block-size: 18px; }
+
+/* ── Cifras: asoman al bajar (scroll-driven, guía scroll-entry-exit-effects) ── */
+.cifras { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-block-end: 24px; }
+.cifra { padding: 16px 18px; border: 1px solid var(--sand); border-radius: 18px; background: var(--papel); }
+.cifra p { margin: 0; color: var(--taupe); font-size: 13px; }
+.cifra strong { display: block; margin-block-start: 4px; font: 600 34px/1 var(--serif); font-variant-numeric: tabular-nums; }
+.cifra.alerta strong { color: var(--ambar); }
+@media (prefers-reduced-motion: no-preference) {
+  @supports ((animation-timeline: view()) and (animation-range: entry)) {
+    @keyframes asomar { from { opacity: 0; translate: 0 24px; scale: .97; } }
+    .cifra, .pieza {
+      animation: asomar auto linear backwards;
+      animation-timeline: view();
+      animation-range: entry 0% entry 90%;
+    }
+  }
+}
+
+/* ── La tarjeta de la tabla ────────────────────────────────────────────── */
+.tarjeta { border: 1px solid var(--sand); border-radius: 22px; background: var(--papel); }
+.herramientas { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; padding: 16px; border-block-end: 1px solid var(--sand); }
+.herramientas .crece { flex: 1 1 240px; }
+
+/* Pestañas con el subrayado que viaja (guía anchor-positioning-tab-underline). */
+.pestanas { position: relative; display: flex; gap: 4px; padding: 0 16px; border-block-end: 1px solid var(--sand); overflow-x: auto; scrollbar-width: none; }
+.pestanas button { flex: none; white-space: nowrap;
+  border: 0; background: none; padding: 14px 12px; font-size: 13px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--taupe); cursor: pointer;
+}
+.pestanas button[aria-selected="true"] { color: var(--tinta); anchor-name: --pestana-activa; }
+.pestanas button:focus-visible { outline: 2px solid var(--tinta); outline-offset: -4px; border-radius: 8px; }
+.pestanas .globito { display: inline-grid; place-items: center; min-inline-size: 20px; block-size: 20px; padding: 0 6px; margin-inline-start: 6px; border-radius: 999px; background: var(--hueso); color: var(--tinta); font-size: 11px; letter-spacing: 0; }
+@supports (position-anchor: --a) {
+  .pestanas::before {
+    content: ""; position: absolute; position-anchor: --pestana-activa;
+    inset-block-start: calc(anchor(bottom) - 3px);
+    inset-inline-start: anchor(left); inset-inline-end: anchor(right);
+    border-block-end: 3px solid var(--rojo); border-radius: 3px;
+  }
+  /* .lista llega después del primer cuadro: sin ella la raya viajaría desde la esquina al cargar. */
+  @media (prefers-reduced-motion: no-preference) { .pestanas.lista::before { transition: inset .3s var(--ease); } }
+}
+@supports not (position-anchor: --a) {
+  .pestanas button[aria-selected="true"] { box-shadow: inset 0 -3px 0 var(--rojo); }
+}
+
+/* Campos */
+.campo { display: grid; gap: 6px; }
+.campo > label, .campo .etiqueta { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--taupe); }
+.caja {
+  inline-size: 100%; min-block-size: 40px; padding: 0 12px; border: 1px solid var(--borde-control); border-radius: 12px;
+  background: var(--hueso); transition: background-color .2s var(--ease), border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.caja:focus-visible, .caja:focus { outline: none; background: var(--papel); border-color: var(--tinta); box-shadow: 0 0 0 4px color-mix(in srgb, var(--tinta) 12%, transparent); }
+.buscador { position: relative; }
+.buscador svg { position: absolute; inset-inline-start: 12px; inset-block-start: 50%; translate: 0 -50%; inline-size: 16px; color: var(--taupe); pointer-events: none; }
+.buscador .caja { padding-inline-start: 36px; }
+.buscador input::-webkit-search-cancel-button { cursor: pointer; }
+
+/* 2 · El combo de la plataforma con contenido rico (guías rich-media-picker y branded-select-styling). */
+.combo, .combo::picker(select) { appearance: base-select; }
+.combo {
+  display: flex; align-items: center; gap: 8px; inline-size: 100%; min-inline-size: 200px; min-block-size: 40px;
+  padding: 0 12px; border: 1px solid var(--borde-control); border-radius: 12px; background: var(--hueso); cursor: pointer;
+}
+.combo:focus-visible { outline: none; background: var(--papel); border-color: var(--tinta); box-shadow: 0 0 0 4px color-mix(in srgb, var(--tinta) 12%, transparent); }
+.combo::picker-icon { color: var(--taupe); transition: rotate .25s var(--ease); }
+.combo:open::picker-icon { rotate: 180deg; }
+.combo::picker(select) {
+  margin-block: 6px; padding: 6px; min-inline-size: anchor-size(width);
+  border: 1px solid var(--sand); border-radius: 16px; background: var(--papel);
+  box-shadow: 0 18px 48px -16px color-mix(in srgb, var(--sombra) 40%, transparent);
+  opacity: 0; translate: 0 -6px;
+  transition-property: opacity, translate, display, overlay; transition-duration: .22s; transition-timing-function: var(--ease);
+  transition-behavior: allow-discrete;
+}
+.combo:open::picker(select) { opacity: 1; translate: 0 0; @starting-style { opacity: 0; translate: 0 -6px; } }
+.combo option { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; cursor: pointer; }
+.combo option::checkmark { display: none; }
+@media (hover: hover) { .combo option:hover { background: var(--hueso); } }
+.combo option:checked { background: var(--tinta); color: var(--crema); font-weight: 600; }
+.combo option .cuenta { margin-inline-start: auto; font-size: 12px; color: var(--taupe); font-variant-numeric: tabular-nums; }
+.combo option:checked .cuenta, .combo option:checked .detalle { color: inherit; opacity: .8; }
+.combo option .textos { display: grid; }
+.combo option .detalle { font-size: 12px; color: var(--taupe); font-weight: 400; }
+.combo selectedcontent { display: flex; align-items: center; gap: 8px; }
+.combo selectedcontent .cuenta, .combo selectedcontent .detalle { display: none; }
+.muestra { flex: none; inline-size: 18px; block-size: 18px; border-radius: 999px; background: var(--c); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tinta) 25%, transparent); } /* el color de la prenda es dato */
+.combo option.sin-valor { color: var(--taupe); }
+
+/* 3 · La tabla que mira su propio ancho (guía responsive-table). */
+.redimensionable { resize: inline; overflow: hidden; min-inline-size: 300px; max-inline-size: 100%; }
+.tabla-zona { container-type: inline-size; overflow: auto; max-block-size: 560px; }
+table { inline-size: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; }
+caption { text-align: start; padding: 12px 16px 0; color: var(--taupe); font-size: 13px; }
+thead th {
+  position: sticky; inset-block-start: 0; z-index: 1; background: var(--papel);
+  text-align: start; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--taupe);
+  padding: 12px 16px; border-block-end: 1px solid var(--sand); white-space: nowrap;
+}
+thead th.num, td.num { text-align: end; }
+tbody th, tbody td { padding: 12px 16px; border-block-end: 1px solid var(--sand); text-align: start; vertical-align: middle; }
+tbody tr:last-child > * { border-block-end: 0; }
+@media (hover: hover) { tbody tr:hover > * { background: color-mix(in srgb, var(--hueso) 55%, transparent); } }
+tbody th { font-weight: 500; }
+.prenda { display: flex; align-items: center; gap: 12px; }
+.prenda .foto { flex: none; inline-size: 36px; block-size: 44px; border-radius: 10px; background: var(--c); box-shadow: inset 0 0 0 1px light-dark(color-mix(in srgb, #1a1a18 18%, transparent), color-mix(in srgb, #f5f0e8 35%, transparent)); } /* dato */
+.prenda button { border: 0; background: none; padding: 0; text-align: start; font-weight: 600; cursor: pointer; }
+.prenda button:focus-visible { outline: 2px solid var(--tinta); outline-offset: 3px; border-radius: 4px; }
+@media (hover: hover) { .prenda button:hover { text-decoration: underline; text-decoration-color: var(--rojo); text-underline-offset: 3px; } }
+.prenda small { display: block; color: var(--taupe); font-size: 13px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; border: 1px solid currentColor; white-space: nowrap; }
+.chip::before { content: ""; inline-size: 6px; block-size: 6px; border-radius: 999px; background: currentColor; }
+.chip.verde { color: var(--verde); } .chip.ambar { color: var(--ambar); } .chip.rojo { color: var(--rojo); } .chip.pizarra { color: var(--pizarra); }
+.vacio { padding: 40px 16px; text-align: center; color: var(--taupe); }
+.vacio strong { display: block; font: 600 21px/1.2 var(--serif); color: var(--tinta); margin-block-end: 4px; }
+.pie-tabla { display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; border-block-start: 1px solid var(--sand); color: var(--taupe); font-size: 13px; }
+
+@container (width < 640px) {
+  table, thead, tbody, tr, th, td { display: block; }
+  thead { display: none; }
+  caption { display: block; padding-block-end: 8px; }
+  tbody tr { margin: 12px; border: 1px solid var(--sand); border-radius: 16px; overflow: hidden; }
+  tbody th { position: sticky; inset-block-start: 0; z-index: 2; background: var(--hueso); display: flex; justify-content: space-between; align-items: center; }
+  tbody td { display: flex; justify-content: space-between; gap: 12px; padding: 8px 16px; border-block-end: 1px solid var(--sand); }
+  tbody td.num { text-align: end; }
+  tbody td[data-etiqueta]::before { content: attr(data-etiqueta); color: var(--taupe); font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+  tbody td.fila-menu { justify-content: flex-end; border-block-end: 0; }
+}
+
+/* 4 · El menú «⋯»: popover atado a su botón y que se da vuelta solo (anchor positioning). */
+.puntos { inline-size: 32px; min-block-size: 32px; border: 0; border-radius: 999px; background: none; cursor: pointer; font-size: 18px; line-height: 1; color: var(--taupe); }
+@media (hover: hover) { .puntos:hover { background: var(--hueso); color: var(--tinta); } }
+.puntos:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.menu {
+  padding: 6px; border: 1px solid var(--sand); border-radius: 14px; background: var(--papel); color: var(--tinta);
+  box-shadow: 0 18px 48px -16px color-mix(in srgb, var(--sombra) 40%, transparent); min-inline-size: 200px;
+}
+.menu button { display: flex; inline-size: 100%; align-items: center; gap: 10px; padding: 8px 10px; border: 0; border-radius: 10px; background: none; text-align: start; cursor: pointer; font-size: 14px; }
+@media (hover: hover) { .menu button:hover { background: var(--hueso); } }
+.menu button:focus-visible { outline: 2px solid var(--tinta); outline-offset: -2px; }
+.menu hr { border: 0; border-block-start: 1px solid var(--sand); margin: 4px 6px; }
+.menu .rojo { color: var(--rojo); }
+@supports (position-area: block-end) {
+  .menu { inset: auto; margin: 4px 0; position-area: block-end span-inline-start; position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline; }
+}
+
+/* Entrada y salida de todo lo que va en la capa de arriba (guía animate-to-from-top-layer). */
+:is(.menu, .globo, .aviso):popover-open { opacity: 1; @starting-style { opacity: 0; } }
+:is(.menu, .globo, .aviso) {
+  opacity: 0;
+  transition-property: opacity, translate, scale, display, overlay; transition-duration: .2s; transition-timing-function: var(--ease);
+  transition-behavior: allow-discrete;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .menu:popover-open { scale: 1; @starting-style { scale: .96; } }
+  .menu { scale: .96; transform-origin: top right; }
+}
+
+/* 5 · El globo «?» (guías interest-triggered-tooltips y position-aware-tooltips). */
+.con-ayuda { display: inline-flex; align-items: center; gap: 6px; }
+.boton-ayuda {
+  display: inline-grid; place-items: center; inline-size: 18px; block-size: 18px; padding: 0; border-radius: 999px;
+  border: 1px solid var(--borde-control); background: var(--papel); color: var(--taupe); font-size: 11px; font-weight: 600; cursor: help; letter-spacing: 0;
+}
+.boton-ayuda:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.globo { max-inline-size: 280px; padding: 0; border: 0; background: none; color: var(--crema); overflow: visible; }
+.globo .globo-cuerpo {
+  position: relative; padding: 10px 12px; border-radius: 12px; background: var(--tinta); color: var(--crema);
+  font-size: 13px; font-weight: 400; letter-spacing: 0; text-transform: none; line-height: 1.45;
+  box-shadow: 0 14px 36px -14px color-mix(in srgb, var(--sombra) 45%, transparent);
+}
+@supports (position-area: block-start) {
+  .globo { inset: auto; margin: 0; position-area: block-start; position-try-fallbacks: flip-block; }
+}
+@supports (container-type: anchored) {
+  .globo { container-type: anchored; }
+  .globo .globo-cuerpo { margin-block-end: 8px; }
+  .globo .globo-cuerpo::after {
+    content: ""; position: absolute; inset-inline-start: calc(50% - 6px); inset-block-end: -6px;
+    border: 6px solid transparent; border-block-end: 0; border-block-start-color: var(--tinta);
+  }
+  @container anchored(fallback: flip-block) {
+    .globo .globo-cuerpo { margin-block: 8px 0; }
+    .globo .globo-cuerpo::after { inset-block-end: auto; inset-block-start: -6px; border-block-start: 0; border-block-end: 6px solid var(--tinta); border-block-start-color: transparent; }
+  }
+}
+
+/* 6 · La hoja: <dialog> nativo (guías dialog, light-dismiss-a-dialog, animate-to-from-top-layer). */
+dialog.hoja {
+  inline-size: min(560px, 100% - 32px); max-block-size: min(92dvh, 820px); padding: 0;
+  border: 1px solid var(--sand); border-radius: 28px; background: var(--papel); color: var(--tinta);
+  box-shadow: 0 40px 100px -30px color-mix(in srgb, var(--sombra) 55%, transparent);
+  opacity: 0;
+  transition-property: opacity, translate, scale, display, overlay; transition-duration: .32s; transition-timing-function: var(--ease);
+  transition-behavior: allow-discrete;
+}
+dialog.hoja[open] { opacity: 1; @starting-style { opacity: 0; } }
+dialog.hoja:modal { overscroll-behavior: contain; }
+dialog.hoja::backdrop {
+  overflow: hidden; overscroll-behavior: contain;
+  background-color: transparent; backdrop-filter: blur(0);
+  transition-property: background-color, backdrop-filter, display, overlay; transition-duration: .32s; transition-timing-function: var(--ease);
+  transition-behavior: allow-discrete;
+}
+dialog.hoja[open]::backdrop {
+  background-color: color-mix(in srgb, var(--sombra) 30%, transparent); backdrop-filter: blur(6px);
+  @starting-style { background-color: transparent; backdrop-filter: blur(0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  dialog.hoja { translate: 0 18px; scale: .98; }
+  dialog.hoja[open] { translate: 0 0; scale: 1; @starting-style { translate: 0 18px; scale: .98; } }
+  /* El contenido en cascada, sin JavaScript */
+  dialog.hoja[open] .cascada > * {
+    transition: opacity .32s var(--ease), translate .32s var(--ease);
+    transition-delay: calc(80ms + var(--n, 0) * 22ms);
+    @starting-style { opacity: 0; translate: 0 8px; }
+  }
+}
+@media (prefers-reduced-motion: reduce) { dialog.hoja, dialog.hoja::backdrop { transition-duration: .1s; } }
+/* En el celular, la hoja sube desde el borde */
+@media (width < 640px) {
+  dialog.hoja { inline-size: 100%; max-inline-size: 100%; margin: auto 0 0; border-end-start-radius: 0; border-end-end-radius: 0; max-block-size: 92dvh; }
+  @media (prefers-reduced-motion: no-preference) {
+    dialog.hoja { translate: 0 100%; scale: 1; }
+    dialog.hoja[open] { translate: 0 0; @starting-style { translate: 0 100%; } }
+  }
+}
+.hoja-cuerpo { display: grid; gap: 20px; padding: 24px; }
+.hoja-cabeza { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: start; }
+.hoja-cabeza .foto { inline-size: 56px; block-size: 68px; border-radius: 14px; background: var(--c); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tinta) 18%, transparent); } /* dato */
+.hoja-cabeza .sobre { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--taupe); }
+.hoja-cabeza h2 { margin: 2px 0; font: 600 27px/1.1 var(--serif); }
+.hoja-cabeza .bajada { margin: 0; color: var(--taupe); }
+.cerrar { inline-size: 36px; block-size: 36px; border: 0; border-radius: 999px; background: var(--hueso); cursor: pointer; font-size: 20px; line-height: 1; }
+.cerrar:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.resumen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.resumen div { padding: 10px 12px; border-radius: 14px; background: var(--hueso); }
+.resumen span { display: block; font-size: 12px; color: var(--taupe); }
+.resumen strong { font: 600 22px/1.1 var(--serif); font-variant-numeric: tabular-nums; }
+.dos { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+@media (width < 480px) { .dos { grid-template-columns: 1fr; } }
+.paso { display: flex; align-items: stretch; border: 1px solid var(--borde-control); border-radius: 12px; background: var(--hueso); overflow: hidden; }
+.paso:focus-within { background: var(--papel); border-color: var(--tinta); }
+.paso button { inline-size: 44px; border: 0; background: none; font-size: 18px; cursor: pointer; color: var(--taupe); }
+.paso button:focus-visible { outline: 2px solid var(--tinta); outline-offset: -2px; }
+.paso input { flex: 1; min-inline-size: 0; min-block-size: 40px; border: 0; background: none; text-align: center; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; appearance: textfield; }
+.paso input:focus { outline: none; }
+.paso input::-webkit-inner-spin-button, .paso input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+textarea.caja { padding: 10px 12px; min-block-size: 72px; resize: vertical; field-sizing: content; }
+.pista { margin: 0; font-size: 13px; color: var(--taupe); }
+output.diferencia { font-size: 13px; color: var(--taupe); }
+output.diferencia b { color: var(--tinta); }
+
+/* 7 · El error recién al salir del campo (guía validate-input-after-interaction). */
+.error { display: none; align-items: center; gap: 6px; margin: 0; font-size: 13px; color: var(--rojo); }
+.campo:has(:user-invalid) .error { display: flex; }
+#form-ajuste .campo:has(:user-invalid) :is(.caja, .paso, .combo) { border-color: var(--rojo); background: color-mix(in srgb, var(--rojo) 7%, var(--papel)); }
+#form-ajuste .campo:has(:user-valid) :is(.paso, .combo) { border-color: var(--verde); }
+#form-ajuste .campo:has(:user-invalid) > label { color: var(--rojo); }
+
+/* Pie de la hoja: «Descartar» reserva su lugar y no mueve los otros botones (guía dialog). */
+.pie { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; position: sticky; inset-block-end: 0; padding: 16px 24px; margin: 0 -24px -24px; background: color-mix(in srgb, var(--papel) 88%, transparent); backdrop-filter: blur(8px); border-block-start: 1px solid var(--sand); }
+.pie #btn-descartar { margin-inline-end: auto; visibility: hidden; }
+.pie.preguntando #btn-descartar { visibility: visible; }
+.aviso-descartar { margin: 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--ambar) 12%, var(--papel)); color: var(--ambar); font-size: 14px; visibility: hidden; }
+.aviso-descartar.visible { visibility: visible; }
+@media (width < 640px) { .pie .btn { flex: 1 1 auto; } }
+
+/* 8 · Los avisos: popover="manual" que se apilan (guía persistent-toast-notifications). */
+.aviso {
+  position: fixed; inset: auto 16px auto auto; inset-block-start: calc(16px + var(--i, 0) * 76px); margin: 0;
+  display: none; align-items: center; gap: 12px; min-inline-size: min(360px, 100vw - 32px); max-inline-size: calc(100vw - 32px);
+  padding: 12px 12px 12px 16px; border: 1px solid var(--sand); border-inline-start: 3px solid var(--verde); border-radius: 14px;
+  background: var(--papel); color: var(--tinta); box-shadow: 0 18px 48px -16px color-mix(in srgb, var(--sombra) 40%, transparent);
+}
+.aviso:popover-open { display: flex; }
+.aviso p { margin: 0; flex: 1; font-size: 14px; }
+.aviso button { inline-size: 32px; block-size: 32px; border: 0; border-radius: 999px; background: none; cursor: pointer; font-size: 18px; color: var(--taupe); }
+.aviso button:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .aviso { translate: 16px 0; transition-property: opacity, translate, inset-block-start, display, overlay; }
+  .aviso:popover-open { translate: 0 0; @starting-style { translate: 16px 0; } }
+}
+
+/* ── Pieza por pieza ───────────────────────────────────────────────────── */
+.seccion-titulo { margin: 64px 0 8px; font: 600 32px/1.1 var(--serif); }
+.seccion-bajada { margin: 0 0 24px; color: var(--taupe); max-inline-size: 70ch; }
+.piezas { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); }
+.pieza { display: grid; gap: 12px; align-content: start; padding: 20px; border: 1px solid var(--sand); border-radius: 22px; background: var(--papel); }
+.pieza header { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+.pieza h3 { margin: 0; font: 600 21px/1.2 var(--serif); }
+.pieza code { font-size: 12.5px; padding: 1px 6px; border-radius: 6px; background: var(--hueso); }
+.pieza dl { display: grid; gap: 8px; margin: 0; }
+.pieza dt { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--taupe); }
+.pieza dd { margin: 0; font-size: 14px; }
+.veredicto { display: inline-flex; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.veredicto.tomar { background: color-mix(in srgb, var(--verde) 16%, transparent); color: var(--verde); }
+.veredicto.probar { background: color-mix(in srgb, var(--pizarra) 16%, transparent); color: var(--pizarra); }
+.veredicto.no { background: color-mix(in srgb, var(--rojo) 12%, transparent); color: var(--rojo); }
+.veredicto.ya { background: var(--hueso); color: var(--taupe); }
+.soporte { font-size: 13px; color: var(--taupe); }
+.soporte b { font-weight: 600; }
+.soporte .si { color: var(--verde); } .soporte .no { color: var(--rojo); }
+</style>
+</head>
+<body>
+<div class="envoltura">
+
+  <div class="lab-barra" role="note">
+    <p><strong>Laboratorio, no es el ERP.</strong> Esta pantalla ignora las reglas del repo y usa lo que recomienda <code>modern-web-guidance</code>. Datos inventados; nada se guarda.</p>
+    <fieldset class="tema">
+      <legend>Tema</legend>
+      <label><input type="radio" name="tema" value="light dark">Sistema</label>
+      <label><input type="radio" name="tema" value="light">Claro</label>
+      <label><input type="radio" name="tema" value="dark">Oscuro</label>
+    </fieldset>
+  </div>
+
+  <!-- ═════════════ La vista completa ═════════════ -->
+  <header class="cabecera">
+    <div>
+      <p class="sede">Trujillo · miércoles 18 de noviembre</p>
+      <h1>Existencias</h1>
+    </div>
+    <div class="acciones">
+      <button type="button" class="btn icono secundario" interestfor="tip-imprimir" aria-label="Imprimir etiquetas" data-accion="aviso" data-texto="Etiquetas enviadas a la impresora (demo).">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+      </button>
+      <div popover="hint" id="tip-imprimir" class="globo"><div class="globo-cuerpo">Imprimir etiquetas</div></div>
+      <button type="button" class="btn primario" data-accion="aviso" data-texto="Aquí abriría «Llegó mercadería» (demo).">+ Llegó mercadería</button>
+    </div>
+  </header>
+
+  <section class="cifras" aria-label="Resumen">
+    <div class="cifra"><p>Prendas en el piso</p><strong id="c-piso">0</strong></div>
+    <div class="cifra"><p>En almacén</p><strong id="c-almacen">0</strong></div>
+    <div class="cifra alerta"><p>Por reponer</p><strong id="c-reponer">0</strong></div>
+    <div class="cifra"><p>Agotadas</p><strong id="c-agotadas">0</strong></div>
+  </section>
+
+  <section class="tarjeta" aria-label="Prendas">
+    <div class="pestanas" role="tablist" aria-label="Qué mirar">
+      <button type="button" role="tab" id="t-todo" aria-selected="true" aria-controls="zona-tabla" data-vista="todo">Todo<span class="globito" data-cuenta="todo"></span></button>
+      <button type="button" role="tab" id="t-piso" aria-selected="false" aria-controls="zona-tabla" data-vista="piso" tabindex="-1">En el piso<span class="globito" data-cuenta="piso"></span></button>
+      <button type="button" role="tab" id="t-reponer" aria-selected="false" aria-controls="zona-tabla" data-vista="reponer" tabindex="-1">Por reponer<span class="globito" data-cuenta="reponer"></span></button>
+    </div>
+
+    <div class="herramientas">
+      <div class="campo crece">
+        <label for="buscar">Buscar</label>
+        <div class="buscador">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input id="buscar" class="caja" type="search" placeholder="Prenda o color" autocomplete="off" enterkeyhint="search">
+        </div>
+      </div>
+      <div class="campo">
+        <label for="f-categoria">Categoría</label>
+        <select id="f-categoria" class="combo" name="categoria">
+          <button type="button"><selectedcontent></selectedcontent></button>
+          <option value="">Todas<span class="cuenta" data-cat-cuenta=""></span></option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="f-color">Color</label>
+        <select id="f-color" class="combo" name="color">
+          <button type="button"><selectedcontent></selectedcontent></button>
+          <option value="">Todos los colores</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="redimensionable" id="zona-tabla" role="tabpanel" aria-labelledby="t-todo">
+      <div class="tabla-zona" tabindex="0" role="region" aria-labelledby="tabla-titulo">
+        <table>
+          <caption id="tabla-titulo">Prendas de Trujillo · arrastra la esquina de abajo a la derecha para angostar la tabla</caption>
+          <thead>
+            <tr>
+              <th scope="col">Prenda</th>
+              <th scope="col">Talla</th>
+              <th scope="col" class="num">
+                <span class="con-ayuda">Piso
+                  <button type="button" class="boton-ayuda" interestfor="ayuda-piso" popovertarget="ayuda-piso" popovertargetaction="show" aria-label="Más sobre Piso" aria-expanded="false">?</button>
+                </span>
+                <div id="ayuda-piso" popover="hint" class="globo" role="tooltip"><div class="globo-cuerpo">Lo que está colgado en la tienda y se puede vender ahora. Lo apartado no cuenta.</div></div>
+              </th>
+              <th scope="col" class="num">Almacén</th>
+              <th scope="col">Estado</th>
+              <th scope="col"><span class="visually-hidden">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody id="filas"></tbody>
+        </table>
+        <div class="vacio" id="vacio" hidden><strong>No encontramos esa prenda</strong>Prueba con otra palabra o quita un filtro.</div>
+      </div>
+    </div>
+    <div class="pie-tabla"><span id="conteo">0 prendas</span><span>Toca el nombre para ajustar su stock</span></div>
+  </section>
+
+  <!-- ═════════════ Pieza por pieza ═════════════ -->
+  <h2 class="seccion-titulo">Pieza por pieza</h2>
+  <p class="seccion-bajada">Qué usa la pantalla de arriba, qué hace hoy el ERP en su lugar, si tu navegador lo tiene y qué haría yo. La columna «soporte» se mide en vivo en este navegador.</p>
+  <div class="piezas" id="piezas"></div>
+
+</div>
+
+<!-- La hoja: un <dialog> nativo. Esc, tocar afuera, el foco y el «atrás» de Android los pone el navegador. -->
+<dialog id="hoja-ficha" class="hoja" closedby="any" aria-labelledby="ficha-titulo">
+  <form method="dialog" class="hoja-cuerpo cascada" id="form-ajuste">
+    <header class="hoja-cabeza" style="--n:0">
+      <div class="foto" id="ficha-foto"></div>
+      <div>
+        <p class="sobre">Ajustar stock</p>
+        <h2 id="ficha-titulo">Prenda</h2>
+        <p class="bajada" id="ficha-bajada"></p>
+      </div>
+      <button type="button" class="cerrar" command="request-close" commandfor="hoja-ficha" aria-label="Cerrar">×</button>
+    </header>
+
+    <div class="resumen" style="--n:1">
+      <div><span>En el piso</span><strong id="r-piso">0</strong></div>
+      <div><span>En almacén</span><strong id="r-almacen">0</strong></div>
+      <div><span>Total</span><strong id="r-total">0</strong></div>
+    </div>
+
+    <div class="dos" style="--n:2">
+      <div class="campo">
+        <label for="cantidad">Ahora hay en el piso</label>
+        <div class="paso">
+          <button type="button" data-paso="-1" aria-label="Uno menos">−</button>
+          <input id="cantidad" name="cantidad" type="number" inputmode="numeric" min="0" max="99" step="1" required autofocus data-error="error-cantidad">
+          <button type="button" data-paso="1" aria-label="Uno más">+</button>
+        </div>
+        <output class="diferencia" id="diferencia" for="cantidad" aria-live="polite"></output>
+        <p class="error" id="error-cantidad"><span role="img" aria-label="Error">!</span> Escribe un número entre 0 y 99.</p>
+      </div>
+
+      <div class="campo">
+        <label for="motivo">Por qué cambia</label>
+        <select id="motivo" name="motivo" class="combo" required data-error="error-motivo">
+          <button type="button"><selectedcontent></selectedcontent></button>
+          <option value="" class="sin-valor">Elige un motivo</option>
+          <option value="conteo"><span class="textos"><span>Conteo del día<span class="visually-hidden">.</span></span><span class="detalle">Contaste y no cuadraba</span></span></option>
+          <option value="danada"><span class="textos"><span>Prenda dañada<span class="visually-hidden">.</span></span><span class="detalle">Mancha, rotura o falla</span></span></option>
+          <option value="almacen"><span class="textos"><span>Se encontró en almacén<span class="visually-hidden">.</span></span><span class="detalle">Estaba guardada sin registrar</span></span></option>
+          <option value="otro"><span class="textos"><span>Otro motivo<span class="visually-hidden">.</span></span><span class="detalle">Cuéntalo en la nota</span></span></option>
+        </select>
+        <p class="error" id="error-motivo"><span role="img" aria-label="Error">!</span> Elige por qué cambia el stock.</p>
+      </div>
+    </div>
+
+    <div class="campo" style="--n:3">
+      <label for="nota">Nota <span style="text-transform:none;letter-spacing:0;font-weight:400">· opcional</span></label>
+      <textarea id="nota" name="nota" class="caja" rows="2" maxlength="200" placeholder="Lo que ayude a entender el cambio"></textarea>
+    </div>
+
+    <p class="aviso-descartar" id="aviso-descartar" style="--n:4">Tienes cambios sin guardar. ¿Los descartas?</p>
+
+    <footer class="pie" id="pie-ficha" style="--n:5">
+      <button type="button" class="btn peligro" id="btn-descartar" command="close" commandfor="hoja-ficha" value="descartar" aria-describedby="aviso-descartar">Descartar cambios</button>
+      <button type="button" class="btn secundario" command="request-close" commandfor="hoja-ficha">Cancelar</button>
+      <button type="submit" class="btn primario" value="guardar">Guardar ajuste</button>
+    </footer>
+  </form>
+</dialog>
+
+<div role="region" aria-label="Avisos" id="avisos"></div>
+<div aria-live="polite" class="visually-hidden" id="anunciador"></div>
+
+<script type="module">
+// ── 0 · Qué tiene este navegador (se mide ANTES de cargar los polyfills) ─────────
+const probarHint = () => { const d = document.createElement("div"); d.popover = "hint"; return d.popover === "hint"; };
+const soporte = {
+  closedby: "closedBy" in HTMLDialogElement.prototype,
+  command: "commandForElement" in HTMLButtonElement.prototype,
+  interestfor: "interestForElement" in HTMLButtonElement.prototype,
+  hint: probarHint(),
+  baseSelect: CSS.supports("appearance", "base-select"),
+  anchor: CSS.supports("anchor-name: --a"),
+  anchored: CSS.supports("container-type: anchored"),
+  startingStyle: "CSSStartingStyleRule" in window,
+  scrollDriven: CSS.supports("(animation-timeline: view()) and (animation-range: entry)"),
+  container: CSS.supports("container-type: inline-size"),
+  userInvalid: CSS.supports("selector(:user-invalid)"),
+  lightDark: CSS.supports("color", "light-dark(#000, #fff)"),
+  ariaNotify: "ariaNotify" in document,
+};
+
+// Polyfills, solo donde falta lo nativo (guías dialog e interest-triggered-tooltips).
+if (!soporte.command) await import("https://unpkg.com/invokers-polyfill").catch(() => {});
+if (!soporte.interestfor) await import("https://unpkg.com/interestfor").catch(() => {});
+// popover="hint" sin soporte cae a "manual": el globo que se abre con clic pasa a "auto" para cerrarse solo.
+if (!soporte.hint) {
+  document.addEventListener("beforetoggle", ({ target, newState }) => {
+    const esToggletip = target.getAttribute("popover") === "hint" && document.querySelector(`[popovertarget="${CSS.escape(target.id)}"]`);
+    if (newState === "open" && esToggletip) target.popover = "auto";
+  }, true);
+}
+
+// ── 1 · Tema en tres estados ─────────────────────────────────────────────────
+const meta = document.querySelector('meta[name="color-scheme"]');
+const radios = document.querySelectorAll('input[name="tema"]');
+const marcarTema = () => radios.forEach((r) => (r.checked = r.value === meta.content));
+marcarTema();
+radios.forEach((r) => r.addEventListener("change", () => {
+  meta.content = r.value;
+  try { r.value === "light dark" ? localStorage.removeItem("mwg-tema") : localStorage.setItem("mwg-tema", r.value); } catch (e) {}
+}));
+addEventListener("storage", (e) => { if (e.key === "mwg-tema") { meta.content = e.newValue ?? "light dark"; marcarTema(); } });
+
+// ── 2 · Datos inventados ─────────────────────────────────────────────────────
+const prendas = [
+  { nombre: "Blusa Aurora", cat: "Blusas", color: "Crema", hex: "#efe6d6", talla: "M", piso: 3, almacen: 6 },
+  { nombre: "Blusa Aurora", cat: "Blusas", color: "Negro", hex: "#232220", talla: "S", piso: 0, almacen: 4 },
+  { nombre: "Casaca Lima", cat: "Casacas", color: "Verde olivo", hex: "#6b6b3a", talla: "L", piso: 1, almacen: 0 },
+  { nombre: "Pantalón Recto", cat: "Pantalones", color: "Azul marino", hex: "#23304a", talla: "30", piso: 5, almacen: 2 },
+  { nombre: "Vestido Brisa", cat: "Vestidos", color: "Rojo teja", hex: "#a8442f", talla: "M", piso: 2, almacen: 3 },
+  { nombre: "Falda Plisada", cat: "Faldas", color: "Negro", hex: "#232220", talla: "S", piso: 0, almacen: 0 },
+  { nombre: "Chompa Andes", cat: "Chompas", color: "Camel", hex: "#b88a5a", talla: "M", piso: 4, almacen: 1 },
+  { nombre: "Polo Básico", cat: "Polos", color: "Hueso", hex: "#e9e2d4", talla: "L", piso: 7, almacen: 12 },
+  { nombre: "Casaca Lima", cat: "Casacas", color: "Negro", hex: "#232220", talla: "M", piso: 0, almacen: 3 },
+  { nombre: "Blusa Emma", cat: "Blusas", color: "Lila", hex: "#b7a3c8", talla: "S", piso: 1, almacen: 0 },
+  { nombre: "Pantalón Recto", cat: "Pantalones", color: "Camel", hex: "#b88a5a", talla: "32", piso: 2, almacen: 5 },
+  { nombre: "Vestido Brisa", cat: "Vestidos", color: "Crema", hex: "#efe6d6", talla: "L", piso: 0, almacen: 2 },
+];
+const estado = (p) =>
+  p.piso === 0 && p.almacen === 0 ? ["Agotada", "pizarra"]
+  : p.piso === 0 ? ["Reponer", "ambar"]
+  : p.piso + p.almacen === 1 ? ["Última", "rojo"]
+  : ["Bien", "verde"];
+const sinTildes = (t) => t.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+// Opciones de los combos con contenido rico (el combo nativo ya lo dibuja).
+const comboCat = document.getElementById("f-categoria");
+const comboColor = document.getElementById("f-color");
+const crearOpcion = (valor, html) => { const o = document.createElement("option"); o.value = valor; o.innerHTML = html; return o; };
+[...new Set(prendas.map((p) => p.cat))].forEach((c) => {
+  const n = prendas.filter((p) => p.cat === c).length;
+  comboCat.append(crearOpcion(c, `${c}<span class="visually-hidden">,</span><span class="cuenta">${n}</span>`));
+});
+comboCat.querySelector("[data-cat-cuenta]").textContent = prendas.length;
+[...new Map(prendas.map((p) => [p.color, p.hex])).entries()].forEach(([c, hex]) => {
+  comboColor.append(crearOpcion(c, `<span class="muestra" style="--c:${hex}" aria-hidden="true"></span>${c}`));
+});
+
+// ── 3 · Tabla, pestañas, búsqueda ────────────────────────────────────────────
+const cuerpo = document.getElementById("filas");
+const buscar = document.getElementById("buscar");
+let vista = "todo";
+const pasaVista = (p, v) => v === "todo" || (v === "piso" ? p.piso > 0 : p.piso === 0 && p.almacen > 0);
+
+function pintar() {
+  const q = sinTildes(buscar.value.trim());
+  const visibles = prendas.map((p, i) => ({ p, i })).filter(({ p }) =>
+    pasaVista(p, vista) &&
+    (!comboCat.value || p.cat === comboCat.value) &&
+    (!comboColor.value || p.color === comboColor.value) &&
+    (!q || sinTildes(`${p.nombre} ${p.color} ${p.cat}`).includes(q)));
+
+  cuerpo.innerHTML = visibles.map(({ p, i }) => {
+    const [texto, tono] = estado(p);
+    return `<tr>
+      <th scope="row"><div class="prenda"><span class="foto" style="--c:${p.hex}" aria-hidden="true"></span>
+        <div><button type="button" command="show-modal" commandfor="hoja-ficha" data-i="${i}">${p.nombre}</button><small>${p.color} · ${p.cat}</small></div></div></th>
+      <td data-etiqueta="Talla">${p.talla}</td>
+      <td class="num" data-etiqueta="Piso">${p.piso}</td>
+      <td class="num" data-etiqueta="Almacén">${p.almacen}</td>
+      <td data-etiqueta="Estado"><span class="chip ${tono}">${texto}</span></td>
+      <td class="fila-menu"><button type="button" class="puntos" popovertarget="menu-${i}" aria-label="Más acciones de ${p.nombre} ${p.color} ${p.talla}">⋯</button>
+        <div popover id="menu-${i}" class="menu" role="menu" aria-label="Acciones">
+          <button type="button" role="menuitem" command="show-modal" commandfor="hoja-ficha" data-i="${i}">Ajustar stock</button>
+          <button type="button" role="menuitem" data-accion="aviso" data-texto="Se bajó 1 ${p.nombre} al piso (demo).">Bajar al piso</button>
+          <button type="button" role="menuitem" data-accion="aviso" data-texto="Código copiado (demo).">Copiar código</button>
+          <hr><button type="button" role="menuitem" class="rojo" data-accion="aviso" data-texto="Aquí se pediría confirmar (demo).">Retirar de la venta</button>
+        </div></td>
+    </tr>`;
+  }).join("");
+
+  document.getElementById("vacio").hidden = visibles.length > 0;
+  document.getElementById("conteo").textContent = `${visibles.length} ${visibles.length === 1 ? "prenda" : "prendas"}`;
+  for (const v of ["todo", "piso", "reponer"]) document.querySelector(`[data-cuenta="${v}"]`).textContent = prendas.filter((p) => pasaVista(p, v)).length;
+  document.getElementById("c-piso").textContent = prendas.reduce((s, p) => s + p.piso, 0);
+  document.getElementById("c-almacen").textContent = prendas.reduce((s, p) => s + p.almacen, 0);
+  document.getElementById("c-reponer").textContent = prendas.filter((p) => p.piso === 0 && p.almacen > 0).length;
+  document.getElementById("c-agotadas").textContent = prendas.filter((p) => p.piso === 0 && p.almacen === 0).length;
+}
+buscar.addEventListener("input", pintar);
+comboCat.addEventListener("change", pintar);
+comboColor.addEventListener("change", pintar);
+
+const pestanas = [...document.querySelectorAll('[role="tab"]')];
+const elegirPestana = (t) => {
+  pestanas.forEach((x) => { const si = x === t; x.setAttribute("aria-selected", si); x.tabIndex = si ? 0 : -1; });
+  document.getElementById("zona-tabla").setAttribute("aria-labelledby", t.id);
+  vista = t.dataset.vista; pintar();
+};
+pestanas.forEach((t, i) => {
+  t.addEventListener("click", () => elegirPestana(t));
+  t.addEventListener("keydown", (e) => {
+    const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+    if (!d) return;
+    const sig = pestanas[(i + d + pestanas.length) % pestanas.length];
+    sig.focus(); elegirPestana(sig);
+  });
+});
+pintar();
+requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector(".pestanas").classList.add("lista")));
+
+// ── 4 · La hoja ──────────────────────────────────────────────────────────────
+const hoja = document.getElementById("hoja-ficha");
+const form = document.getElementById("form-ajuste");
+const cantidad = document.getElementById("cantidad");
+const diferencia = document.getElementById("diferencia");
+const pie = document.getElementById("pie-ficha");
+const avisoDescartar = document.getElementById("aviso-descartar");
+let actual = null, sucio = false;
+
+// Antes de abrirse, la hoja se llena con la prenda del botón que la abrió.
+hoja.addEventListener("command", (e) => {
+  if (e.command !== "show-modal") return;
+  e.source?.closest("[popover]")?.hidePopover?.();
+  const i = Number(e.source?.dataset.i);
+  if (Number.isNaN(i)) return;
+  actual = i; const p = prendas[i];
+  form.reset(); marcarSucio(false); preguntar(false);
+  document.getElementById("ficha-foto").style.setProperty("--c", p.hex);
+  document.getElementById("ficha-titulo").textContent = p.nombre;
+  document.getElementById("ficha-bajada").textContent = `${p.color} · Talla ${p.talla} · Trujillo`;
+  document.getElementById("r-piso").textContent = p.piso;
+  document.getElementById("r-almacen").textContent = p.almacen;
+  document.getElementById("r-total").textContent = p.piso + p.almacen;
+  cantidad.value = p.piso; mostrarDiferencia();
+  form.querySelectorAll("input, select, textarea").forEach((el) => sincronizarAria(el));
+});
+
+const mostrarDiferencia = () => {
+  const p = prendas[actual]; const n = cantidad.valueAsNumber;
+  if (!p || Number.isNaN(n)) { diferencia.textContent = ""; return; }
+  const d = n - p.piso;
+  diferencia.innerHTML = d === 0 ? "Queda igual" : `Pasa de ${p.piso} a <b>${n}</b> (${d > 0 ? "+" : ""}${d})`;
+};
+// Con cambios, la hoja deja de cerrarse sola (closedby="none"): Esc y tocar afuera ya no la cierran,
+// y el navegador no puede saltarse el «¿descartas?» aunque no haya habido un toque antes (guía dialog).
+const marcarSucio = (si) => { sucio = si; hoja.setAttribute("closedby", si ? "none" : "any"); };
+form.addEventListener("input", () => { marcarSucio(true); mostrarDiferencia(); });
+form.addEventListener("change", () => marcarSucio(true));
+hoja.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape" || !sucio || e.defaultPrevented) return;
+  preguntar(true); document.getElementById("btn-descartar").focus();
+});
+form.querySelectorAll("[data-paso]").forEach((b) => b.addEventListener("click", () => {
+  Number(b.dataset.paso) > 0 ? cantidad.stepUp() : cantidad.stepDown();
+  cantidad.dispatchEvent(new Event("input", { bubbles: true }));
+}));
+
+// Esc, tocar afuera, «×» y «Cancelar» piden cerrar: si hay cambios, la hoja pregunta (guía dialog).
+const preguntar = (si) => { pie.classList.toggle("preguntando", si); avisoDescartar.classList.toggle("visible", si); };
+hoja.addEventListener("cancel", (e) => {
+  if (!sucio) return;
+  e.preventDefault();
+  preguntar(true);
+  document.getElementById("btn-descartar").focus();
+});
+hoja.addEventListener("close", () => {
+  const valor = hoja.returnValue; hoja.returnValue = "";
+  preguntar(false); marcarSucio(false);
+  if (valor === "guardar" && actual !== null) {
+    const p = prendas[actual]; const antes = p.piso;
+    p.piso = cantidad.valueAsNumber; pintar();
+    avisar(`${p.nombre} ${p.color} ${p.talla}: el piso pasó de ${antes} a ${p.piso}. (Demo: solo en esta pestaña.)`);
+  }
+});
+
+// Error recién al salir del campo, y el lector de pantalla se entera (guía validate-input-after-interaction).
+const anunciador = document.getElementById("anunciador");
+function sincronizarAria(el) {
+  if (!el.matches?.("input, select, textarea")) return;
+  const malo = el.matches(":user-invalid");
+  el.setAttribute("aria-invalid", malo ? "true" : "false");
+  const id = el.dataset.error; if (!id) return;
+  const ids = (el.getAttribute("aria-describedby") || "").split(/\s+/).filter((x) => x && x !== id);
+  if (malo) ids.push(id);
+  ids.length ? el.setAttribute("aria-describedby", ids.join(" ")) : el.removeAttribute("aria-describedby");
+}
+form.addEventListener("blur", (e) => sincronizarAria(e.target), true);
+form.addEventListener("input", (e) => sincronizarAria(e.target));
+form.addEventListener("change", (e) => sincronizarAria(e.target), true);
+form.addEventListener("invalid", (e) => sincronizarAria(e.target), true);
+
+// ── 5 · Avisos ───────────────────────────────────────────────────────────────
+const zonaAvisos = document.getElementById("avisos");
+let n = 0;
+function reubicar() { [...zonaAvisos.querySelectorAll(".aviso:popover-open")].forEach((t, i) => t.style.setProperty("--i", i)); }
+function avisar(texto) {
+  const id = `aviso-${++n}`;
+  const t = document.createElement("div");
+  t.id = id; t.className = "aviso"; t.setAttribute("popover", "manual");
+  t.innerHTML = `<p></p><button type="button" popovertarget="${id}" popovertargetaction="hide" aria-label="Cerrar aviso">×</button>`;
+  t.querySelector("p").textContent = texto;
+  zonaAvisos.append(t); t.showPopover(); reubicar();
+  if (soporte.ariaNotify) document.ariaNotify(texto); else { anunciador.textContent = ""; setTimeout(() => (anunciador.textContent = texto), 50); }
+  // Se va solo a los 6 s, salvo que el mouse o el foco estén encima.
+  let reloj;
+  const programar = () => { clearTimeout(reloj); reloj = setTimeout(() => { if (!t.matches(":hover, :focus-within")) t.hidePopover(); else programar(); }, 6000); };
+  programar();
+  t.addEventListener("toggle", (e) => { if (e.newState === "closed") { clearTimeout(reloj); setTimeout(() => { t.remove(); reubicar(); }, 300); } });
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-accion='aviso']");
+  if (!b) return;
+  b.closest("[popover]")?.hidePopover?.();
+  avisar(b.dataset.texto);
+});
+
+// El «?» con clic: aria-expanded sigue al globo (toggle no burbujea: se escucha en captura).
+document.addEventListener("toggle", (e) => {
+  if (!e.target.matches?.("[popover='hint']")) return;
+  document.querySelectorAll(`[interestfor="${CSS.escape(e.target.id)}"][aria-expanded]`).forEach((b) => b.setAttribute("aria-expanded", e.newState === "open"));
+}, true);
+
+// ── 6 · Pieza por pieza ──────────────────────────────────────────────────────
+const piezas = [
+  { titulo: "La hoja", api: "<dialog> + showModal + closedby", rasgo: ["closedby", "command"], veredicto: ["probar", "Probar en una hoja"],
+    hoy: "<Modal> sobre Radix, más useEscapeLibre, useAtrasCierraLaHoja y la pila de hojas propia.",
+    plataforma: "El navegador pone el foco atrapado, la página inerte, Esc, tocar afuera y el «atrás» de Android. Cero JavaScript para abrir y cerrar (command=\"show-modal\").",
+    lectura: "Lo más valioso del laboratorio, pero Safari aún no tiene closedby y migrar toca cientos de hojas. Probaría una hoja nueva y mediría cuánto código propio sobra." },
+  { titulo: "Entrar y salir sin JavaScript", api: "@starting-style + transition-behavior: allow-discrete", rasgo: ["startingStyle"], veredicto: ["tomar", "Tomar"],
+    hoy: "Animaciones con keyframes y estados que arma JavaScript; la cascada de 18 ms con data-atributos.",
+    plataforma: "La hoja, el velo, el menú y el globo entran y salen solo con CSS; la cascada es un transition-delay por índice.",
+    lectura: "Se puede usar dentro de las piezas que ya existen sin cambiar cómo funcionan. Firefox y Safari cortan la salida (entra bien, sale de golpe)." },
+  { titulo: "Combo con color y foto", api: "appearance: base-select + <selectedcontent>", rasgo: ["baseSelect"], veredicto: ["no", "No por ahora"],
+    hoy: "Desplegable, ComboBuscable y DesplegablePildora propios, con buscador desde 9 opciones (ADR-0209). El <select> nativo está prohibido.",
+    plataforma: "Un <select> de verdad con muestras de color, cuentas y textos de dos líneas; teclado y formulario nativos.",
+    lectura: "No tiene buscador, que es la regla de los combos de CAYLA, y en Firefox cae al combo del sistema. Sirve para combos chicos el día que Firefox lo tenga." },
+  { titulo: "El globo «?»", api: "interestfor + popover=\"hint\" + anchor", rasgo: ["interestfor", "hint", "anchor"], veredicto: ["probar", "Probar"],
+    hoy: "<Ayuda> y <AyudaCabecera> propios.",
+    plataforma: "Se abre al pasar el mouse, con foco o al tocar; se pega a su botón y se da vuelta solo si no cabe arriba.",
+    lectura: "Solo Chrome reciente lo trae entero; el resto necesita dos polyfills. Bonito, pero lo de hoy ya funciona en todos." },
+  { titulo: "El menú «⋯»", api: "popover + position-area + position-try-fallbacks", rasgo: ["anchor"], veredicto: ["probar", "Probar"],
+    hoy: "<MenuAcciones> sobre Radix, que calcula la posición con JavaScript.",
+    plataforma: "popovertarget lo abre, se cierra al tocar afuera, y el CSS lo da vuelta cerca del borde de la pantalla.",
+    lectura: "Ahorra JavaScript, pero el menú de Radix también maneja las flechas del teclado; aquí habría que escribirlas." },
+  { titulo: "La raya de la pestaña que viaja", api: "anchor-name + anchor() en ::before", rasgo: ["anchor"], veredicto: ["tomar", "Tomar"],
+    hoy: "La píldora de <Pestanas> mide con JavaScript dónde está la pestaña elegida.",
+    plataforma: "Cuatro líneas de CSS. Sin soporte, la pestaña elegida lleva su raya fija, sin viaje.",
+    lectura: "Cambio chico y seguro dentro de <Pestanas>: sin medir, sin ResizeObserver." },
+  { titulo: "La tabla que mira su ancho", api: "@container + position: sticky", rasgo: ["container"], veredicto: ["ya", "Ya lo tenemos"],
+    hoy: "<Tabla> con corteDePlantilla y tabla-corte.css hace exactamente esto.",
+    plataforma: "Bajo 640 px de tabla, cada fila es una tarjeta con sus etiquetas, y la cabecera queda pegada.",
+    lectura: "Confirma que la decisión del repo era la buena. Arrastra la esquina de la tabla para verlo." },
+  { titulo: "El error al salir del campo", api: ":user-invalid / :user-valid", rasgo: ["userInvalid"], veredicto: ["tomar", "Tomar"],
+    hoy: "useValidarAlSalir lleva la cuenta en JavaScript de qué campo ya se tocó.",
+    plataforma: "El navegador sabe solo cuándo la persona terminó con el campo; el CSS pinta el error y JavaScript solo copia aria-invalid.",
+    lectura: "Disponible en todos los navegadores desde 2023. Reemplaza lógica propia por una regla de CSS sin cambiar qué se valida." },
+  { titulo: "Modo oscuro en una línea por color", api: "light-dark() + <meta name=\"color-scheme\">", rasgo: ["lightDark"], veredicto: ["probar", "Probar"],
+    hoy: "Cada token se escribe dos veces: en globals.css y otra vez en tema.css bajo data-tema.",
+    plataforma: "--tinta: light-dark(claro, oscuro). Los controles del navegador (barras, fechas) también se oscurecen solos.",
+    lectura: "Ahorraría la mitad de tema.css. Se puede conservar «arranca en claro» (ADR-0336) dejando la meta en light. Toca el contrato con Dynamic: decisión tuya." },
+  { titulo: "Cifras que asoman al bajar", api: "animation-timeline: view()", rasgo: ["scrollDriven"], veredicto: ["no", "No en el ERP"],
+    hoy: "Las animaciones arrancan apagadas (ADR-0625).",
+    plataforma: "La tarjeta entra mientras aparece en pantalla, sin JavaScript ni IntersectionObserver.",
+    lectura: "En un ERP de uso diario no aporta. Puede servir en la tienda web." },
+  { titulo: "Avisos que el lector de pantalla oye", api: "popover=\"manual\" + document.ariaNotify()", rasgo: ["ariaNotify"], veredicto: ["tomar", "Tomar solo ariaNotify"],
+    hoy: "avisar.* propio, coordinado con el loader (ADR-0149).",
+    plataforma: "El aviso vive en la capa de arriba y ariaNotify se lo lee a quien usa lector de pantalla.",
+    lectura: "La pila de hoy ya está afinada con el loader; lo que vale traer es ariaNotify (con región viva de respaldo)." },
+];
+const sopNombres = { closedby: "closedby", command: "command", interestfor: "interestfor", hint: "popover=hint", baseSelect: "base-select", anchor: "anchor", anchored: "anchored", startingStyle: "@starting-style", scrollDriven: "view()", container: "@container", userInvalid: ":user-invalid", lightDark: "light-dark()", ariaNotify: "ariaNotify" };
+const esc = (t) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+document.getElementById("piezas").innerHTML = piezas.map((p) => `
+  <article class="pieza">
+    <header><h3>${p.titulo}</h3><span class="veredicto ${p.veredicto[0]}">${p.veredicto[1]}</span></header>
+    <code>${esc(p.api)}</code>
+    <dl>
+      <div><dt>Hoy en el ERP</dt><dd>${esc(p.hoy)}</dd></div>
+      <div><dt>Con la plataforma</dt><dd>${esc(p.plataforma)}</dd></div>
+      <div><dt>Mi lectura</dt><dd>${esc(p.lectura)}</dd></div>
+    </dl>
+    <p class="soporte">Soporte aquí: ${p.rasgo.map((r) => `<b class="${soporte[r] ? "si" : "no"}">${sopNombres[r]} ${soporte[r] ? "sí" : "no"}</b>`).join(" · ")}</p>
+  </article>`).join("");
+</script>
+</body>
+</html>
