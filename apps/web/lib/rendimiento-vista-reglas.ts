@@ -76,6 +76,51 @@ export function diasDelEje(hoy: string): string[] {
   return Array.from({ length: diasEntreFechas(desde, fin) + 1 }, (_, i) => sumarDias(desde, i));
 }
 
+/** El rango a medida no pasa de 30 días, contando el primero y el último (Felipe, 2026-11-17). */
+export const RANGO_MAX_DIAS = 30;
+
+const CARA = 32;
+const PISADA = 6;
+/** Lo que ocupa el «+N» de la pila del equipo, con su separación. */
+const LO_DEL_MAS = 52;
+
+/** Cuántas caras de la pila del equipo caben en `ancho` px (32 px cada una, pisadas 6), dejando lugar al «+N» si no caben todas. Sin medir todavía, todas. */
+export function carasQueCaben(total: number, ancho: number): number {
+  if (ancho <= 0 || total <= 1) return total;
+  const paso = CARA - PISADA;
+  if (CARA + (total - 1) * paso <= ancho) return total;
+  return Math.min(total - 1, Math.max(1, Math.floor((ancho - CARA - LO_DEL_MAS) / paso) + 1));
+}
+
+/** Los días que cuenta un tramo, el primero y el último incluidos. */
+export const diasDelTramo = (t: Tramo): number => diasEntreFechas(t.desde, t.hasta) + 1;
+
+/** El primer día que se puede elegir: el 1.º del mes pasado, lo mismo que `rangoDeLecturaPersonas` ya le pide a la base (no se lee más). */
+export function pisoDelRango(hoy: string): string {
+  return rangoDeLecturaPersonas(hoy).desde;
+}
+
+/** ¿Es un rango a medida que la pantalla acepta? Del piso a hoy, al derecho y de hasta 30 días. */
+export function tramoValido(t: Tramo, hoy: string): boolean {
+  return t.desde <= t.hasta && t.hasta <= hoy && t.desde >= pisoDelRango(hoy) && diasDelTramo(t) <= RANGO_MAX_DIAS;
+}
+
+/** Por qué un día no se puede elegir en el calendario del rango; `null` si se puede. `primero` es el día ya tocado (el rango se está armando). */
+export type MotivoDiaDelRango = "futuro" | "antes" | "largo";
+export function motivoDelDia(fecha: string, hoy: string, primero: string | null): MotivoDiaDelRango | null {
+  if (fecha > hoy) return "futuro";
+  if (fecha < pisoDelRango(hoy)) return "antes";
+  if (primero && fecha > primero && diasEntreFechas(primero, fecha) + 1 > RANGO_MAX_DIAS) return "largo";
+  return null;
+}
+
+/** El eje del gráfico cuando se mira un rango que empieza antes de su primer día (mes pasado): se alarga hacia atrás, sin huecos. */
+export function diasDelEjeConTramo(hoy: string, tramo: Tramo): string[] {
+  const base = diasDelEje(hoy);
+  if (tramo.desde >= base[0] || tramo.desde < pisoDelRango(hoy)) return base;
+  return [...Array.from({ length: diasEntreFechas(tramo.desde, base[0]) }, (_, i) => sumarDias(tramo.desde, i)), ...base];
+}
+
 const dentro = (f: string, t: Tramo) => f >= t.desde && f <= t.hasta;
 
 export type MedidaPersona = {
@@ -374,6 +419,16 @@ export function tramoEnPalabras(t: Tramo, hoy: string): string {
   return `del ${diaDe(t.desde)} de ${mesDe(t.desde)} al ${diaDe(t.hasta)} de ${mesDe(t.hasta)}`;
 }
 
+const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
+
+/** El rango en pocas letras, para el botón del período: «5 – 12 nov», «28 oct – 4 nov», «12 oct». */
+export function tramoCorto(t: Tramo): string {
+  const mes = (iso: string) => MESES_CORTOS[Number(iso.slice(5, 7)) - 1];
+  if (t.desde === t.hasta) return `${diaDe(t.desde)} ${mes(t.desde)}`;
+  if (t.desde.slice(0, 7) === t.hasta.slice(0, 7)) return `${diaDe(t.desde)} – ${diaDe(t.hasta)} ${mes(t.hasta)}`;
+  return `${diaDe(t.desde)} ${mes(t.desde)} – ${diaDe(t.hasta)} ${mes(t.hasta)}`;
+}
+
 /** «hoy», «ayer», «hace 3 días». */
 export function hacePocoEnPalabras(fecha: string, hoy: string): string {
   const d = diasEntreFechas(fecha, hoy);
@@ -552,10 +607,10 @@ export function calendarioDelMes(filas: readonly FilaPersonaDia[], hoy: string):
 
 const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
-/** Los días que pide la URL: un tramo válido dentro del eje y sin pasar de hoy; `vista` es el enlace de antes; sin nada, este mes. */
+/** Los días que pide la URL: un tramo válido (del 1.º del mes pasado a hoy, de hasta 30 días); `vista` es el enlace de antes; sin nada, este mes. */
 export function tramoDeUrl(p: { desde?: string | null; hasta?: string | null; vista?: string | null }, hoy: string): Tramo {
   const { desde, hasta, vista } = p;
-  if (desde && hasta && FECHA_ISO.test(desde) && FECHA_ISO.test(hasta) && desde <= hasta && hasta <= hoy && diasDelEje(hoy).includes(desde)) return { desde, hasta };
+  if (desde && hasta && FECHA_ISO.test(desde) && FECHA_ISO.test(hasta) && tramoValido({ desde, hasta }, hoy)) return { desde, hasta };
   if (vista === "hoy" || vista === "semana") return tramoDePreset(vista, hoy);
   return tramoDePreset("mes", hoy);
 }
@@ -597,7 +652,7 @@ export function interpretarBusqueda(
     const [x, y] = [Number(rango[1]), Number(rango[2])];
     const a = delMes(Math.min(x, y));
     const b = delMes(Math.max(x, y));
-    if (a && b) {
+    if (a && b && diasDelTramo({ desde: a, hasta: b }) <= RANGO_MAX_DIAS) {
       const t = { desde: a, hasta: b };
       res.push({ tipo: "tramo", tramo: t, texto: tramoEnPalabras(t, c.hoy) });
     }

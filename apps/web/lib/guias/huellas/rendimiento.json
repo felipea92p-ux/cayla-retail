@@ -2,12 +2,11 @@
   "guia": "rendimiento",
   "ruta": "/rendimiento",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 23,
+  "total": 28,
   "controles": {
     "components/rendimiento/CifrasRendimiento.tsx": [
       "button «{vuelta ? \"Volver a la cifra\" : \"¿Cómo se cuenta?\"}»",
       "input «Lo que se vende por día»",
-      "button «{`Ver a ${m.nombre}»",
       "button «{n}»"
     ],
     "components/rendimiento/FilaAbierta.tsx": [
@@ -32,6 +31,16 @@
       "BotonDeshacer «Vuelve a como estaba antes de lo último que cambiaste»",
       "button «{`Abrir la fila de ${parte.nombre}»",
       "BotonDescargar «Descargar lo que ves»"
+    ],
+    "components/rendimiento/PilaDelEquipo.tsx": [
+      "button «{`Ver a ${m.nombre}»",
+      "button «{`Ver ${ocultas.length}»",
+      "button «{m.nombre}»"
+    ],
+    "components/rendimiento/RangoRendimiento.tsx": [
+      "button «Mes anterior»",
+      "button «Mes siguiente»",
+      "button «{`${fechaLarga(d.iso)}»"
     ],
     "components/rendimiento/SedesConAnillo.tsx": [
       "button «{activa ? \"rendimiento.tienda-activa\" : \"rendimiento.tienda-otra\"}»"
