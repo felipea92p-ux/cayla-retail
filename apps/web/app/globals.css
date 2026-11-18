@@ -1949,11 +1949,22 @@ html[data-buscando] [data-resultados] {
      hace que el contenido se vaya sin un corte seco. `bottom: -1.5rem` y no `0`: el navegador mide el pegado desde el borde
      de adentro del padding de la hoja, y con `0` el pie quedaba 24 px arriba del borde y dejaba asomar el campo de atrás
      (medido a 1024×768). Va como hija del <form> o de la hoja, nunca dentro de otra caja con overflow: sticky se pega al
-     scroll más cercano. */
+     scroll más cercano.
+     LA RESERVA (2026-11-18, ADR-0185 act.): cuando un clic acorta la hoja, `<PaginaEstable>` reserva lo recortado sumándolo al
+     relleno de abajo de la hoja, y el pegado se mide desde ese relleno: el pie quedaba esa cantidad más arriba, a media hoja
+     y encima del contenido. La reserva vigente llega en `--reserva-abajo` (0 sin reserva) y el pie baja lo mismo con
+     `translate`: sigue en el borde de abajo, y el aire queda entre el contenido y los botones. Restarla del `bottom` no
+     alcanza: el pie deja de tapar el contenido, pero se queda donde acaba el contenido, con el aire debajo (medido: 89 px
+     de hueco bajo los botones en «Registrar proveedor»).
+     `transition-property: none`: con las animaciones apagadas todo lleva una transición de 0,01 ms (movimiento.css), y la del
+     `translate` dejaba el pie un cuadro entero sin bajar, a media hoja (medido: `CSSTransition translate running t=0`). El
+     pie no tiene transiciones propias; el que las tiene (`.vr-iconos`) las declara aparte y le ganan a esta línea. */
   .pie-hoja-fijo {
     position: sticky;
     /* `--borde-abajo`: la barrita del iPhone bajo la hoja del celular (ADR-0479, actividad 9; 0 en todo lo demás). */
     bottom: calc(-1.5rem - var(--borde-abajo, 0px));
+    translate: 0 var(--reserva-abajo, 0px);
+    transition-property: none;
     z-index: 1;
     margin-inline: -1.5rem;
     margin-bottom: calc(-1.5rem - var(--borde-abajo, 0px));

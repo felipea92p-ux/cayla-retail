@@ -30,6 +30,23 @@
  *  lento, y —para un buscador— la pausa típica entre letras mientras la persona sigue escribiendo. */
 export const VENTANA_TRAS_CLIC_MS = 1200;
 
+/**
+ * La variable CSS donde `<PaginaEstable>` publica la reserva vigente de una ventana (una hoja de `<Modal>`), en px.
+ * La lee el pie pegado (`.pie-hoja-fijo`, globals.css) para quedarse al fondo visible de la hoja: su pegado se mide
+ * desde el relleno de la hoja, y la reserva es relleno. Sin reserva la variable no existe (vale 0 px para quien la lee).
+ */
+export const VARIABLE_RESERVA = "--reserva-abajo";
+
+/**
+ * Lo que se publica en `VARIABLE_RESERVA`, o `null` si no debe existir. Solo en una ventana y solo mientras hay reserva:
+ * una variable CSS se hereda, y puesta en el `body` (la reserva de la PÁGINA) le llegaría al pie de toda hoja abierta
+ * encima, que bajaría sin que su propia hoja haya reservado nada. El pie de una página no la necesita: su pegado se mide
+ * desde la pantalla, no desde un relleno.
+ */
+export function reservaPublicada(reservaPx: number, enVentana: boolean): string | null {
+  return enVentana && reservaPx > 0 ? `${Math.round(reservaPx)}px` : null;
+}
+
 export type Medida = {
   /** `scrollTop` del contenedor. */
   arriba: number;
