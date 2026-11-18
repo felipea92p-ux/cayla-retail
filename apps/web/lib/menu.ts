@@ -120,7 +120,7 @@ export type ClaveIcono =
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "gastos"
   | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso"
   | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos" | "fondos" | "revisarCompras" | "vitrina" | "pedidosWeb"
-  | "recomendaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb" | "puntos" | "paleta" | "calendarioCampana" | "insignias" | "preguntas" | "trafico" | "reportesVentas";
+  | "recomendaciones" | "libroReclamaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb" | "puntos" | "paleta" | "calendarioCampana" | "insignias" | "preguntas" | "trafico" | "reportesVentas";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender" | "pedidosWebPorConfirmar";
@@ -370,6 +370,9 @@ export const ARBOL: readonly Nodo[] = [
       { id: "tiendaWeb.resumen", modulo: "tienda_web", etiqueta: "Resumen", estado: "viva", ruta: "/tienda-web", icono: "resumenWeb", pajaro: "07 Colibrí" },
       // Lo que los clientes separan en la tienda online para ESTA tienda (ADR-0408, actividad 8). El único con insignia del grupo.
       { id: "tiendaWeb.pedidos", modulo: "pedidos_web", etiqueta: "Pedidos", estado: "viva", ruta: "/tienda-web/pedidos", icono: "pedidosWeb", contador: "pedidosWebPorConfirmar", pajaro: "07 Colibrí" },
+      // Las hojas que los clientes dejan en el Libro de Reclamaciones de la tienda online, con su plazo legal (ADR-0679, Felipe 2026-11-18).
+      // Justo después de Pedidos: las dos son lo que la tienda atiende cada día. Son de todas las tiendas (no de una sede).
+      { id: "tiendaWeb.libro", modulo: "libro_reclamaciones", etiqueta: "Libro de Reclamaciones", estado: "viva", ruta: "/tienda-web/libro-de-reclamaciones", icono: "libroReclamaciones", pajaro: "07 Colibrí" },
       // Qué modelos se ven en la web, sus looks y quién espera una talla (ADR-0408, actividades 3, 11 y 12). El dato es del Loro.
       { id: "tiendaWeb.vitrina", modulo: "vitrina_web", etiqueta: "Vitrina", estado: "viva", ruta: "/tienda-web/vitrina", icono: "vitrina", pajaro: "02 Loro" },
       // Cómo se ve la tienda online durante cada campaña (Felipe 2026-10-21): ambiente del catálogo o imagen propia, movimiento y textos. Las fechas,

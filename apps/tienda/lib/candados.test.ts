@@ -78,12 +78,13 @@ describe("candados de la tienda", () => {
     expect(variables.length).toBeGreaterThan(0);
     // Ni una variable del ERP (las de su Supabase, su sal del club, su padrón…): la tienda tiene las suyas. La excepción es
     // `CRON_SECRET`, que no es del ERP sino de Vercel: es el nombre con que Vercel firma sus trabajos programados en CADA proyecto (el
-    // de la tienda tiene la suya), y solo la leen las rutas de SUS trabajos programados (`lib/cron.ts`: cuentas cerradas y avisos push).
+    // de la tienda tiene la suya), y solo la leen las rutas de SUS trabajos programados (`lib/cron.ts`: cuentas cerradas, avisos push y la copia del Libro de Reclamaciones).
     expect(
       variables.filter((v) => !/^(TIENDA_|NEXT_PUBLIC_TIENDA_)/.test(v.nombre) && v.nombre !== "NODE_ENV" && v.nombre !== "CRON_SECRET").map((v) => `${v.ruta}: ${v.nombre}`),
     ).toEqual([]);
     expect(variables.filter((v) => v.nombre === "CRON_SECRET").map((v) => v.ruta).sort()).toEqual([
       "app/api/cuentas-cerradas/route.ts",
+      "app/api/libro-copias/route.ts",
       "app/api/push-enviar/route.ts",
     ]);
     const publicas = new Set(FUENTES.flatMap(({ texto }) => [...texto.matchAll(/\bNEXT_PUBLIC_[A-Z0-9_]+/g)].map((m) => m[0])));

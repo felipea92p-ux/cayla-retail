@@ -35,6 +35,8 @@ const ANOTAN: ReadonlySet<ClaveModulo> = new Set<ClaveModulo>([
   // Recomendaciones (ADR-0408, 20261015135000): marcar como leída, responder, archivar y sacar del archivo anotan su línea, sin el nombre
   // ni el texto del cliente.
   "recomendaciones",
+  // Libro de Reclamaciones (ADR-0679, 20261118152000): responder una hoja anota su línea con su número, sin los datos del cliente.
+  "libro_reclamaciones",
 ]);
 export const MODULOS_CON_ACTIVIDAD: readonly ClaveModulo[] = MODULOS.map((m) => m.clave).filter((c) => ANOTAN.has(c));
 

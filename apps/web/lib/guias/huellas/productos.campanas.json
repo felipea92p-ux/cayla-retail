@@ -2,7 +2,7 @@
   "guia": "productos.campanas",
   "ruta": "/productos/campanas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 186,
+  "total": 170,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -106,6 +106,12 @@
       "Boton «Cancelar»",
       "Boton «(sin nombre)»"
     ],
+    "components/campanas/PanelDeCampana.tsx": [
+      "button «{`Abrir ${c.id === \"descuento\" ? \"el descuento\" : \"la oferta\"}»",
+      "button «campana.nueva-oferta»",
+      "Boton «Elegir prendas»",
+      "button «→onElegirPrendas»"
+    ],
     "components/campanas/PanelDeDescuento.tsx": [
       "ComboResponsable «{responsable}»",
       "button «{`${abierta ? \"Esconder\" : \"Ver\"}»"
@@ -149,16 +155,11 @@
     ],
     "components/sellos/OfertasHoja.tsx": [
       "CampoMonto «{etiqueta}»",
-      "button «{g.icono}»",
-      "button «{g.activo ? undefined : \"Llega pronto\"}»",
-      "button «Un % menos»",
-      "button «Llega pronto»",
-      "button «Llega pronto» #2",
+      "button «{x.glifo}»",
       "button «{v}»",
-      "button «{f.texto}»",
       "CampoMonto «Precio del grupo»",
       "button «Soles menos»",
-      "button «Un % menos» #2",
+      "button «Un % menos»",
       "button «{`Quitar el escalón ${i + 1}»",
       "button «Otro escalón»",
       "button «{t.nombre}»",
@@ -184,28 +185,14 @@
       "button «{masQ3 ? \"Menos opciones\" : \"Más opciones\"}»",
       "CampoTexto «Nombre»",
       "button «Usar el nombre automático»",
-      "button «{hecho ? <Check aria-hidden strokeWidth={3}»",
-      "Boton «sellos.oferta-atajo»",
-      "Boton «Siguiente»",
-      "Boton «Siguiente» #2",
-      "Boton «Siguiente» #3",
       "Boton «Guardar cambios»",
       "Boton «{edita ? \"Guardar cambios\" : \"Guardar como borrador\"}»",
       "Boton «sellos.oferta-activar»",
-      "Volver «→() => ir((paso - 1) as Paso)»",
-      "Boton «Cancelar»",
-      "button «{viva ? \"Toca para editarla\" : undefined}»",
-      "Boton «Activar»",
-      "button «Retirar»",
       "Boton «Sí, retirar»",
-      "Boton «No»",
-      "button «Ya registradas»",
-      "button «Retirar» #2",
-      "Boton «Sí, retirar» #2",
-      "Boton «No» #2",
-      "BotonVerMas «{`Ver ${resto}»",
-      "button «Quitar el límite»",
-      "button «Registrar otra en vez de editar»"
+      "Boton «No, dejarla»",
+      "Boton «Retirar»",
+      "Boton «Cancelar»",
+      "button «Quitar el límite»"
     ],
     "components/sellos/SellosPantalla.tsx": [
       "Volver «→() => setDescuentoAbiertoId(null)»",
@@ -215,9 +202,9 @@
       "button «{conGuia ? \"sellos.configurar\" : undefined}»",
       "BotonImprimir «(sin nombre)»",
       "button «{cambiandoId === e.id ? \"Desactivando…\" : \"Desactivar\"}»",
-      "Boton «{conGuia ? \"sellos.preparar\" : undefined}»",
       "button «→() => setEtiquetando(e)»",
       "Boton «+ Elegir prendas»",
+      "BotonEditar «Cambiar nombre, ícono o fechas»",
       "button «sellos.mapa»",
       "BotonEnlace «sellos.diseno-web»",
       "Boton «sellos.nuevo»",
@@ -229,8 +216,7 @@
       "Boton «→() => aprobar(aprobandoEtiqueta)»",
       "CampoTexto «Motivo (opcional)»",
       "Boton «Cancelar» #2",
-      "Boton «Confirmar rechazo»",
-      "button «{x.clave === \"oferta\" ? \"sellos.pregunta-oferta\" : undefined}»"
+      "Boton «Confirmar rechazo»"
     ]
   }
 }
