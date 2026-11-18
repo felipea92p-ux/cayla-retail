@@ -458,36 +458,37 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
     {
       id: "producto",
       ancla: "editar.seccion-producto",
+      // Las secciones son pliegues: cada toque dice si abre o cierra, y así el paso se ve igual al avanzar y al volver con ←.
+      preparar: [{ tipo: "clic", ancla: "editar.seccion-producto", para: "cerrar" }],
       titulo: "1 · Producto",
       texto: "Nombre, categoría, marca, proveedor, cómo llama el proveedor a la prenda (para volver a pedirla) y descripción. Cada sección dice arriba lo que tiene y lleva ✓ cuando está completa. Tócala para abrirla (te la abrimos).",
     },
     {
       id: "producto-abierta",
       ancla: "editar.seccion-producto",
-      preparar: [{ tipo: "clic", ancla: "editar.seccion-producto" }],
+      preparar: [{ tipo: "clic", ancla: "editar.seccion-producto", para: "abrir" }],
       titulo: "Cada campo dice su estado",
       texto: "Como en Nuevo producto, cada campo te dice si está listo, si falta o si es opcional, y «Sigue» marca el que conviene llenar. Lo que cambias se pinta en ámbar hasta que guardas. La cerramos de nuevo.",
     },
     {
       id: "tejido",
       ancla: "editar.seccion-tejido",
-      preparar: [{ tipo: "clic", ancla: "editar.seccion-producto" }],
+      preparar: [{ tipo: "clic", ancla: "editar.seccion-producto", para: "cerrar" }],
       titulo: "2 · Tejido, patrón y estado",
       texto: "De qué tela es, si es lisa o estampada, su temporada y si está activa o descontinuada. Una descontinuada ya no se ofrece para comprar, pero se puede vender lo que queda.",
     },
     {
       id: "fotos",
       ancla: "editar.seccion-fotos",
+      preparar: [{ tipo: "clic", ancla: "editar.seccion-fotos", para: "cerrar" }],
       titulo: "3 · Fotos",
       texto: "Una foto por color. Aquí las ves todas, las ordenas o quitas; la que le falta a un color se sube sobre la foto grande, en el panel de la prenda.",
     },
     {
       id: "catalogo-ia",
       ancla: "editar.catalogo-ia-interruptor",
-      // Vive dentro de «Fotos», que la demo encuentra plegada: se abre aquí y la cierra el paso que sigue. Opcional: sin la llave de la IA en el
-      // servidor no se dibuja.
-      preparar: [{ tipo: "clic", ancla: "editar.seccion-fotos" }],
-      prepararSoloAlAvanzar: true,
+      // Vive dentro de «Fotos»: se abre aquí y la cierra el paso que sigue. Opcional: sin la llave de la IA en el servidor no se dibuja.
+      preparar: [{ tipo: "clic", ancla: "editar.seccion-fotos", para: "abrir" }],
       opcional: true,
       titulo: "Catálogo con IA",
       texto: "Encendido, cada foto que subas sale como foto de catálogo: la prenda en un maniquí invisible, de frente y sin fondo. El primer color hace de molde y los demás salen con su misma forma. Si no te convence, «Usar mi foto» vuelve a la tuya.",
@@ -496,8 +497,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       id: "variantes",
       ancla: "editar.seccion-variantes",
       // Cierra «Fotos», que abrió el paso anterior.
-      preparar: [{ tipo: "clic", ancla: "editar.seccion-fotos" }],
-      prepararSoloAlAvanzar: true,
+      preparar: [{ tipo: "clic", ancla: "editar.seccion-fotos", para: "cerrar" }],
       titulo: "4 · Variantes y precios",
       texto: "Una fila por color y una columna por talla. En «Unidades» ves cuántas hay, con su candado: tócalo para ajustar el stock en Existencias. Una raya es una talla que no existe. El lápiz corrige un color o una talla; el tacho deja de vender ese color. Abajo, «Agregar color» y «Agregar talla».",
     },
@@ -687,6 +687,12 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       titulo: "¡Listo!",
       texto: "Ya sabes recorrer la ficha de una prenda y dónde se guarda. Para repasarlo: Mi perfil ▸ Demo ▸ Editar producto.",
     },
+  ],
+  // Si se sale a mitad, las dos secciones que la demo abre quedan plegadas (los modales los cierra el motor).
+  alSalir: [
+    { tipo: "escape" },
+    { tipo: "clic", ancla: "editar.seccion-producto", para: "cerrar" },
+    { tipo: "clic", ancla: "editar.seccion-fotos", para: "cerrar" },
   ],
 };
 

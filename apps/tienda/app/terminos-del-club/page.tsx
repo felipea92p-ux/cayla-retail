@@ -127,7 +127,8 @@ export default async function TerminosDelClub() {
 
               <SeccionLegal {...avisos}>
                 <p>
-                  Tus puntos y tus cupones los ves en tu cuenta. Por WhatsApp te avisamos de tus puntos y tus cupones solo si lo autorizaste.
+                  Tus puntos y tus cupones los ves en tu cuenta. Por WhatsApp te avisamos de tus puntos, tus cupones y tu regalo de cumpleaños
+                  solo si marcaste la casilla «Avisos de mi Club por WhatsApp»; las novedades y promociones van aparte, con su propia casilla.
                   Si otra persona usa un cupón tuyo, te avisamos que se usó, sin decirte quién. Si no recibes el aviso, tus puntos igual están.
                 </p>
               </SeccionLegal>

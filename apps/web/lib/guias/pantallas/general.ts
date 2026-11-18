@@ -851,6 +851,8 @@ export const GUIA_COMERCIAL: Guia = {
     {
       id: "colaboradoras",
       ancla: "comercial.colaboradoras",
+      // «Cómo se calcula todo esto» es un `<details>`: cada toque dice si abre o cierra, así el paso se ve igual al avanzar y al volver con ←.
+      preparar: [{ tipo: "clic", ancla: "comercial.como-abrir", para: "cerrar" }],
       opcional: true,
       titulo: "Por colaboradora",
       texto: "Lo que vendió cada persona este mes, con el descuento que dio al lado: vender regalando precio no es vender mejor. Es una foto, no una evaluación.",
@@ -859,20 +861,19 @@ export const GUIA_COMERCIAL: Guia = {
       id: "como",
       ancla: "comercial.como-se-calcula",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "comercial.como-abrir" }],
-      prepararSoloAlAvanzar: true,
+      preparar: [{ tipo: "clic", ancla: "comercial.como-abrir", para: "abrir" }],
       titulo: "Cómo se calcula",
       texto: "Te lo abrimos: qué cuenta como venta (con IGV, sin anuladas), qué es devuelto, de qué fechas es cada período, cómo se mide el ritmo contra la meta y por qué el Taller no aparece. Se cierra tocando el título otra vez.",
     },
     {
       id: "fin",
       ancla: null,
-      preparar: [{ tipo: "clic", ancla: "comercial.como-abrir" }],
-      prepararSoloAlAvanzar: true,
+      preparar: [{ tipo: "clic", ancla: "comercial.como-abrir", para: "cerrar" }],
       titulo: "¡Listo!",
       texto: "Ya sabes leer el panel comercial. Para repasarlo: Mi perfil ▸ Demo ▸ Panel comercial.",
     },
   ],
+  alSalir: [{ tipo: "clic", ancla: "comercial.como-abrir", para: "cerrar" }],
 };
 
 export const GUIA_CALIDAD: Guia = {
@@ -943,6 +944,8 @@ export const GUIA_CALIDAD: Guia = {
     {
       id: "danadas",
       ancla: "calidad.danadas",
+      // «Cómo se calcula todo esto» es un `<details>`: cada toque dice si abre o cierra, así el paso se ve igual al avanzar y al volver con ←.
+      preparar: [{ tipo: "clic", ancla: "calidad.como-abrir", para: "cerrar" }],
       titulo: "Dañadas por tienda y mes",
       texto: "Las prendas que volvieron dañadas (a reparar o a donar) en cada tienda, mes a mes.",
     },
@@ -950,20 +953,19 @@ export const GUIA_CALIDAD: Guia = {
       id: "como",
       ancla: "calidad.como-se-calcula",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "calidad.como-abrir" }],
-      prepararSoloAlAvanzar: true,
+      preparar: [{ tipo: "clic", ancla: "calidad.como-abrir", para: "abrir" }],
       titulo: "Cómo se calcula",
       texto: "Te lo abrimos: qué ventas entran, qué es devuelta, dañada o cambio, y a qué proveedor (o al Taller) se le atribuye cada prenda. Se cierra tocando el título otra vez.",
     },
     {
       id: "fin",
       ancla: null,
-      preparar: [{ tipo: "clic", ancla: "calidad.como-abrir" }],
-      prepararSoloAlAvanzar: true,
+      preparar: [{ tipo: "clic", ancla: "calidad.como-abrir", para: "cerrar" }],
       titulo: "¡Listo!",
       texto: "Ya sabes encontrar lo que se devuelve. Para repasarlo: Mi perfil ▸ Demo ▸ Calidad.",
     },
   ],
+  alSalir: [{ tipo: "clic", ancla: "calidad.como-abrir", para: "cerrar" }],
 };
 
 // ── Configuración ───────────────────────────────────────────────────────────────────────────────────────────────────────────

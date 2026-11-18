@@ -113,9 +113,15 @@ ANCLADOS_AVISOS_SEDE.push({
 });
 // 20261029035000 (ADR-0560, 6c): una prenda de CLAURE no da puntos del club: otro reemplazo anclado, ahora en fn_club_monto_neto_venta.
 const ANCLADOS_CLAURE = anclados("20261029035000_claure_fuera_del_club_y_las_clientes.sql", ["retail.fn_club_monto_neto_venta(uuid)"]);
+// ADR-0680 (20261118160000): los dos permisos de WhatsApp. Reemplazos anclados en la BAJA (también apaga los avisos de quien solo tenía
+// esos) y en la lista de avisos (cada aviso con su permiso). Son los ÚLTIMOS que se aplicaron: se deshacen primero, al revés.
+const ANCLADOS_AVISOS_DEL_CLUB = anclados("20261118160000_club_avisos_del_club_parte3_funciones.sql", [
+  "retail.registrar_baja_whatsapp(text, uuid)",
+  "retail.fn_club_avisos_pendientes(uuid)",
+]).reverse();
 const DESHACER_PUNTOS = `do $deshacer_puntos$
 begin
-${[...ANCLADOS_PUNTOS, ...ANCLADOS_AVISOS_SEDE, ...ANCLADOS_CLAURE].map(({ firma, viejo, nuevo }) => `  execute replace(pg_get_functiondef('${firma}'::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`).join("\n")}
+${[...ANCLADOS_AVISOS_DEL_CLUB, ...ANCLADOS_PUNTOS, ...ANCLADOS_AVISOS_SEDE, ...ANCLADOS_CLAURE].map(({ firma, viejo, nuevo }) => `  execute replace(pg_get_functiondef('${firma}'::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`).join("\n")}
 end $deshacer_puntos$;
 `;
 const ENTERAS_PUNTOS = [
@@ -756,9 +762,10 @@ select a.detalle ? 'automatica' from retail.actividad a where a.accion = 'anonim
 // El «después» de las funciones que el programa de puntos reemplazó ENTERAS: se pega su archivo en una transacción que se deshace y se
 // mide lo que deja (la última fila: el archivo puede imprimir filas vacías de sus `select pg_temp.reemplazar(…)`).
 // 20261020144000 sumó el texto `aviso_cierre`, que la regla de tipos de 20261019222000 no conoce: para volver a pegar ese archivo en la
-// transacción que se deshace, esa fila se quita antes (sin el disparador de «solo agregar»: igual se deshace todo).
+// transacción que se deshace, esa fila se quita antes (sin el disparador de «solo agregar»: igual se deshace todo). Lo mismo con
+// `casilla_avisos_club` (20261118155000, ADR-0680).
 // Y antes, el anclado de 20261020151000 se deshace en la viva: 20261019222000 solo se vuelve a pegar sobre la suya o la nueva.
-const SIN_CIERRE = `set local session_replication_role = replica;\ndelete from retail.club_textos where tipo = 'aviso_cierre';\nset local session_replication_role = origin;\n${ANCLADOS_AVISOS_SEDE.map(({ firma, viejo, nuevo }) => `do $d$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$); end $d$;\n`).join("")}`;
+const SIN_CIERRE = `set local session_replication_role = replica;\ndelete from retail.club_textos where tipo in ('aviso_cierre', 'casilla_avisos_club');\nset local session_replication_role = origin;\n${ANCLADOS_AVISOS_SEDE.map(({ firma, viejo, nuevo }) => `do $d$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$); end $d$;\n`).join("")}`;
 for (const { firma, archivo } of ENTERAS_PUNTOS) {
   const r = correr(`begin;\n${archivo.startsWith("20261019222000") ? SIN_CIERRE : ""}${leer("supabase", "migrations", archivo)}\nselect coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${firma}')), 'NO_EXISTE');\nrollback;`);
   DESPUES_ENTERAS_PUNTOS.set(firma, r.ok ? r.salida.split("\n").filter(Boolean).at(-1) : `NO_SE_PUDO_MEDIR (${archivo}): ${r.mensaje.split("\n").find((l) => l.includes("ERROR")) ?? r.mensaje}`);

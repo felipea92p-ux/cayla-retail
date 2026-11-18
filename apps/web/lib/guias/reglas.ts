@@ -169,6 +169,20 @@ const soloCierra = (a: AccionGuia) => a.tipo === "clic" && a.para === "cerrar";
 const puedeAbrir = (acciones: readonly AccionGuia[] | undefined) => !!acciones?.some((a) => !soloCierra(a));
 
 /**
+ * Lo que se cierra al volver con ← del paso `desde` al paso `hasta` (el último que se mostró antes). «Atrás» salta directo a ese paso,
+ * y los de entre medio —los que al avanzar se saltaron porque su pieza no estaba (un opcional, otro ancho)— no corren su `preparar`.
+ * Pero sus cierres (`para: "cerrar"`) hacen falta: el paso de antes de un pliegue es el que lo cierra, y si ese paso no se mostró
+ * (Rendimiento sin meta: «¿Cuadran las metas?» se salta), «Cambios de meta» quedaba abierto sobre los pasos de atrás. Un cierre solo
+ * esconde y es idempotente, así que correrlo de más no desarma nada; lo que el paso de destino necesita abierto lo pide su `preparar`.
+ */
+export function cierresAlVolver(pasos: readonly PasoGuia[], desde: number, hasta: number): AccionGuia[] {
+  return pasos
+    .slice(hasta + 1, desde)
+    .filter((p) => !p.prepararSoloAlAvanzar)
+    .flatMap((p) => (p.preparar ?? []).filter(soloCierra));
+}
+
+/**
  * ¿Hay que esperar a que la pieza aparezca? Solo si algo la acaba de abrir: el propio paso la prepara, o el paso anterior
  * hizo algo con la pantalla (abrir un modal, escribir). Si no, la pieza está o no está, y esperar es tiempo muerto.
  */

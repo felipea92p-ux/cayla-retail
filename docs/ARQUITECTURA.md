@@ -2629,8 +2629,11 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   números: `tienda_intento_de_codigo` → verificar → la prueba firmada del aparato, una cookie httpOnly de 30 minutos,
   `lib/correo-confirmado.ts` y `-servidor.ts`). `crearCuenta` («Crear mi cuenta») vuelve a exigir esa prueba y el usuario confirmado →
   `tienda_revisar_registro` → nombre del padrón → contraseña → `tienda_registrar_cuenta`; si la base dice que no, la confirmación se queda
-  para corregir y reintentar (`lib/usuarios-servidor.ts` limpia lo abandonado). La casilla «Soy mayor de 18 años» la exige la base; la de
-  avisos del Club por WhatsApp (`tienda_casilla_whatsapp`, el texto vigente del cartel) queda en `club_permisos` con medio `tienda_web`.
+  para corregir y reintentar (`lib/usuarios-servidor.ts` limpia lo abandonado). La casilla «Soy mayor de 18 años» la exige la base; las dos
+  de WhatsApp al unirse al Club (ADR-0680) quedan cada una en `club_permisos` con medio `tienda_web`: «Novedades y promociones»
+  (`tienda_casilla_whatsapp`, finalidad `publicidad_whatsapp`) y «Avisos de mi Club» (`tienda_casilla_avisos_club`, finalidad
+  `avisos_club_whatsapp`), las dos por `tienda_unirse_al_club`. Con Google, `BotonGoogle casilla` manda `?acepto=` y `terminarConGoogle`
+  no crea una cuenta nueva sin la versión vigente aceptada (`lib/google.ts`, `aceptoLosTextos`).
   Un correo es de una sola persona (`20261015054000`/`055000`): con el correo de contacto de OTRA ficha, `tienda_revisar_registro` dice
   `correo_de_otra_persona` al crear la cuenta (se sabe recién con el DNI) y `FormularioRegistro` lo pone bajo el campo, sin decir de quién es.
 - Entrar cuenta para el Club y la cuenta que se cierra (`20261015055000`, **sin pegar en producción**): `app/acciones/entrada.ts`

@@ -11,7 +11,8 @@ import { pedirFiltros, useLoQueSabeElPanel } from "@/components/existencias/cabe
    botón del sistema (`BotonFiltros`, ADR-0358), con su punto si hay filtros puestos. No abre nada por su cuenta: pide, y la barra de
    filtros —dueña de la hoja y de lo elegido— la abre (`cabecera-existencias.ts`). Desde 640 px no se dibuja: el botón sigue en la barra.
 
-   Las anclas de la guía son las de siempre (`existencias.filtros`, `existencias.filtros-abrir`): la guía toma la que se ve.
+   El ancla de la guía es la de siempre (`existencias.filtros`, también en la barra): la guía toma la que se ve, y abre o cierra según su
+   `aria-expanded`. Aquí dice siempre «cerrado»: mientras la hoja está abierta la tapa entera, y al volver con ← la guía la cierra primero.
    ==================================================================== */
 export function FiltrosEnCabecera() {
   const panel = useLoQueSabeElPanel();
@@ -20,7 +21,7 @@ export function FiltrosEnCabecera() {
     // que «Resumen» y que «Avisos»). Solo la medida: la cara sigue siendo la de la pieza.
     <span data-guia="existencias.filtros" className="flex shrink-0 sm:hidden [&>.pildora-filtro]:h-11 [&>.pildora-filtro]:w-11">
       {/* `abierto` nunca: la hoja tapa la pantalla entera mientras está abierta, y al cerrarse el botón vuelve a su reposo. */}
-      <BotonFiltros soloIcono abierto={false} activos={panel?.filtrosPuestos ?? 0} onClick={pedirFiltros} data-guia="existencias.filtros-abrir" />
+      <BotonFiltros soloIcono abierto={false} activos={panel?.filtrosPuestos ?? 0} onClick={pedirFiltros} />
     </span>
   );
 }

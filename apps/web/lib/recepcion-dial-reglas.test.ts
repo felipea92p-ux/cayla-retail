@@ -1,5 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { abreAlElegir, atajosDelDial, conservaLaCifra, esPedidoNuevo, estadoDelDial, MAX_CORTES } from "./recepcion-dial-reglas";
+import { abreAlElegir, atajosDelDial, conservaLaCifra, cortesDelDial, esPedidoNuevo, estadoDelDial, MAX_CORTES } from "./recepcion-dial-reglas";
+
+describe("cortesDelDial", () => {
+  it("un corte por prenda, repartidos desde las 3 en punto, cruzando el aro", () => {
+    const cortes = cortesDelDial(4, 145, 105, 11);
+    expect(cortes).toHaveLength(4);
+    expect(cortes[0]).toEqual({ x1: 239, y1: 145, x2: 261, y2: 145 });
+    expect(cortes[1]).toEqual({ x1: 145, y1: 239, x2: 145, y2: 261 });
+    expect(cortes[2]).toEqual({ x1: 51, y1: 145, x2: 29, y2: 145 });
+    expect(cortes[3]).toEqual({ x1: 145, y1: 51, x2: 145, y2: 29 });
+    expect(cortesDelDial(0, 145, 105, 11)).toEqual([]);
+  });
+
+  it("a centésimas: el servidor y el navegador escriben el mismo número aunque el seno difiera en el último decimal", () => {
+    for (let n = 1; n <= MAX_CORTES; n++) {
+      for (const c of cortesDelDial(n, 145, 105, 11)) {
+        for (const v of [c.x1, c.y1, c.x2, c.y2]) expect(Number.isInteger(Math.round(v * 100)) && Math.abs(v * 100 - Math.round(v * 100)) < 1e-6).toBe(true);
+      }
+    }
+    // El caso que avisaba (6 prendas, el corte 4): 63.593612044262784 en un lado y 63.5936120442628 en el otro.
+    expect(cortesDelDial(6, 145, 105, 11)[4]!.y1).toBe(63.59);
+  });
+});
 
 describe("estadoDelDial", () => {
   it("sin contar todavía, dice lo que dijeron y el aro está vacío", () => {

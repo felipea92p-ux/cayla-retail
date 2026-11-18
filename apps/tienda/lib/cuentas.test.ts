@@ -85,6 +85,7 @@ const LISTO_CLUB: RegistroClub = {
   mayor: true,
   acepta: true,
   avisos: false,
+  avisosClub: false,
 };
 const USUARIO = "6f1d2c3b-4a59-4e6f-8a7b-9c0d1e2f3a4b";
 
@@ -471,6 +472,9 @@ describe("lo que el servidor vuelve a revisar", () => {
     expect(errorDeClub("cuenta_datos_invalidos", "mayor")).toEqual({ campo: "mayor", mensaje: MENSAJES.mayorFalta });
     expect(errorDeClub("cuenta_datos_invalidos", "acepta")).toEqual({ campo: "acepta", mensaje: MENSAJES.clubAceptaFalta });
     expect(errorDeClub("cuenta_texto_cambio", "avisos")).toEqual({ campo: "avisos", mensaje: MENSAJES.avisosCambio });
+    // ADR-0680: cada casilla de WhatsApp dice si cambió SU texto.
+    expect(errorDeClub("cuenta_texto_cambio", "avisos_club")).toEqual({ campo: "avisosClub", mensaje: MENSAJES.avisosClubCambio });
+    expect(errorDeClub("cuenta_sin_texto", "avisos_club")).toEqual({ campo: "avisosClub", mensaje: MENSAJES.avisosClubCambio });
     expect(errorDeClub("cuenta_sin_texto", "avisos").campo).toBe("avisos");
     expect(errorDeClub("cuenta_sin_cuenta", null)).toEqual({ campo: null, mensaje: MENSAJES.clubNoDisponible });
     expect(errorDeClub(undefined, undefined)).toEqual({ campo: null, mensaje: MENSAJES.clubNoDisponible });
@@ -579,6 +583,9 @@ describe("los avisos del Club por WhatsApp", () => {
     expect(avisoAlUnirse(true, true, "ya_estaban")).toBe("unida");
     expect(avisoAlUnirse(true, true, "celular_distinto")).toBe("avisos-sin-activar");
     expect(avisoAlUnirse(true, false, "celular_distinto")).toBe("avisos-sin-activar");
+    // La casilla de los avisos del Club que no se pudo activar también lleva a «Mi perfil» (ADR-0680).
+    expect(avisoAlUnirse(false, false, "no", "celular_distinto")).toBe("avisos-sin-activar");
+    expect(avisoAlUnirse(false, false, "activados", "activados")).toBe("bienvenida");
   });
 });
 

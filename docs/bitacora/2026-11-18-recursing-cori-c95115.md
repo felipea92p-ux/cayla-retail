@@ -1,0 +1,4 @@
+## 2026-11-18 (El «+N» de la chapa de Existencias se toca en 24 px con mouse y en 44 con el dedo)
+Qué hice: el «+N» que abre todos los colores de una prenda en la Vitrina de Existencias medía 22,4×16 px y fallaba WCAG 2.5.8 (heredado de main, lo anotó la auditoría de `/milimetro` del mismo día). Con mouse ganó un área invisible de 24×24 sin cambiar su dibujo; con el dedo se dibuja de 44, como los puntos de color de al lado. Medido a 1440 y 375 px (`docs/milimetro/auditorias/2026-11-18-vitrina-mas-colores.md`).
+Por qué así: la Vitrina es diseño propio (ADR-0589) y con mouse no tenía que verse distinta. Con el dedo, un área invisible de 44 pisaba al punto vecino y tocar su borde abría la ficha; Felipe eligió dibujarlo de 44 mirando las dos opciones.
+Felipe se lleva: nada pendiente de esta pieza.

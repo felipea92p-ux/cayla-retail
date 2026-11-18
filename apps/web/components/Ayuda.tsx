@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDestinoFlotante } from "@/components/ui/useAnclaje";
 import { AyudaCabecera } from "@/components/ui/AyudaCabecera";
+import { useCerrarSiSeVa } from "@/components/ui/useCerrarSiSeVa";
 
 // Botón de ayuda "(!)" — se toca y explica un concepto en lenguaje CAYLA, sin
 // tecnicismos (protocolo de docencia: dejar a Felipe más capaz de discutir, no de
@@ -49,6 +50,7 @@ function AvisoFalta({ titulo, children }: { titulo?: string; children: React.Rea
   // escribe directo en el estilo (no en estado) y en `useLayoutEffect`, así el primer cuadro ya sale bien puesto; y se
   // recalcula al hacer scroll (con captura, también el de la hoja) o redimensionar.
   const destino = useDestinoFlotante(ref, abierto);
+  useCerrarSiSeVa(ref, abierto, () => setAbierto(false)); // el «!» salió de la vista: el globo no queda flotando
   useLayoutEffect(() => {
     if (!abierto || !destino) return;
     const colocar = () => {
