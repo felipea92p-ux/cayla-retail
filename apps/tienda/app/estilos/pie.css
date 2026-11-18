@@ -63,7 +63,8 @@
   .t-pie-aire { flex-basis: 64px; }
   .t-pie.ay-pie { padding-block: 44px 28px; }
   .t-pie .ay-pie-ayuda { margin-bottom: 40px; padding-bottom: 14px; }
-  .t-pie .ay-pie-ayuda ul { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* Una columna por tema, sean cuantos sean (cuatro desde el Libro de Reclamaciones, ADR-0679). */
+  .t-pie .ay-pie-ayuda ul { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
   .t-pie .ay-pie-ayuda li + li { border-top: 0; border-left: 1px solid var(--sand); }
   .t-pie .ay-pie-tema { grid-template-columns: 44px minmax(0, 1fr) 16px; height: 100%; padding: 18px 28px; gap: 16px; }
   .t-pie .ay-pie-ayuda li:first-child .ay-pie-tema { padding-left: 0; }

@@ -6163,6 +6163,7 @@ export type Database = {
       // con su nombre. Las tres que escriben firman con el responsable del combo.
       fn_recomendaciones: { Args: never; Returns: Json }
       marcar_recomendacion_leida: { Args: { p_id: string }; Returns: Json }
+      responder_hoja_reclamacion: { Args: { p_id: string; p_respuesta: string }; Returns: Json }
       responder_recomendacion: { Args: { p_id: string; p_respuesta: string }; Returns: Json }
       archivar_recomendacion: { Args: { p_id: string; p_archivar: boolean }; Returns: Json }
       // Tienda web ▸ Tráfico (ADR-0495; 20261023231000): personas que entraron a la tienda online y hasta qué paso llegaron. Pide el módulo.
@@ -8140,6 +8141,7 @@ export type Database = {
           mes: string
         }[]
       }
+      fn_libro_reclamaciones: { Args: never; Returns: Json }
       fn_lineas_comprobantes_produccion: {
         Args: { p_comprobante_id?: string; p_ubicacion_id: string }
         Returns: {

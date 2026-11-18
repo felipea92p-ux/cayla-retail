@@ -1133,6 +1133,120 @@ export const GUIA_RECOMENDACIONES: Guia = {
   alSalir: [{ tipo: "escape" }],
 };
 
+// Tienda web ▸ Libro de Reclamaciones (ADR-0679, Felipe 2026-11-18): la demo enciende las cifras, el filtro y la lista, abre una hoja para
+// mostrar su plazo, lo que reclama y cómo se responde (escribe un ejemplo, pero no lo envía), y la cierra. No guarda nada.
+export const GUIA_LIBRO_RECLAMACIONES: Guia = {
+  id: "tienda-web.libro-de-reclamaciones",
+  ruta: "/tienda-web/libro-de-reclamaciones",
+  titulo: "Libro de Reclamaciones",
+  resumen: "Las hojas que los clientes dejan en el Libro de Reclamaciones de la tienda online, con cuántos días quedan para responder.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "El Libro de Reclamaciones",
+      texto: "Aquí llegan los reclamos y las quejas que los clientes dejan en el Libro de Reclamaciones de la tienda online. La ley da 15 días hábiles para responder cada uno. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "cifras",
+      ancla: "libro.cifras",
+      titulo: "Cuántas hay",
+      texto: "«Por responder» son las que esperan la respuesta de CAYLA. «Vencen pronto» les quedan 3 días hábiles o menos, y «Vencidas» ya pasaron el plazo de la ley: esas van primero. Toca una cifra para ver solo esas.",
+    },
+    {
+      id: "filtros",
+      ancla: "libro.filtros",
+      titulo: "Buscar y filtrar",
+      texto: "Busca por el número de la hoja, el nombre o el documento del cliente, o una palabra de lo que reclama. «Estado» cambia entre las por responder, las que vencen, las respondidas y todas.",
+    },
+    {
+      id: "lista",
+      ancla: "libro.lista",
+      titulo: "Las hojas",
+      texto: "Cada fila dice el número de la hoja, si es reclamo o queja, quién la dejó, qué reclama y cuántos días hábiles le quedan. Las que vencen antes van arriba.",
+    },
+    {
+      id: "vacio",
+      ancla: "libro.vacio",
+      opcional: true,
+      titulo: "Todavía no llegó ninguna",
+      texto: "Cuando un cliente deje un reclamo o una queja en la tienda online, aparece aquí con su plazo.",
+    },
+    {
+      id: "fila",
+      ancla: "libro.fila",
+      opcional: true,
+      titulo: "Una hoja",
+      texto: "Te la abrimos para verla entera.",
+      demostrar: [{ tipo: "clic", ancla: "libro.fila" }],
+    },
+    {
+      id: "cajon",
+      ancla: "libro.cajon",
+      opcional: true,
+      titulo: "La hoja completa",
+      texto: "Lo mismo que firmó el cliente: sus datos para responderle, lo que compró o contrató y lo que reclama. Una hoja no se corrige. Con ↑ ↓ pasas a la de al lado sin cerrar.",
+    },
+    {
+      id: "plazo",
+      ancla: "libro.plazo",
+      opcional: true,
+      titulo: "El plazo",
+      texto: "Cuántos días hábiles le quedan y qué día vence: 15 días hábiles desde el día siguiente al que llegó, sin sábados, domingos ni feriados.",
+    },
+    {
+      id: "detalle",
+      ancla: "libro.detalle",
+      opcional: true,
+      titulo: "Lo que reclama y lo que pide",
+      texto: "Con sus palabras: qué pasó y qué le gustaría que CAYLA haga. Es lo que tu respuesta tiene que atender.",
+    },
+    {
+      id: "respuesta-dada",
+      ancla: "libro.respuesta-dada",
+      opcional: true,
+      titulo: "La respuesta que ya le dieron",
+      texto: "Si alguien ya respondió esta hoja, aquí ves qué le dijo CAYLA y si el correo ya le llegó. Una respuesta no se corrige.",
+    },
+    {
+      id: "respuesta",
+      ancla: "libro.respuesta",
+      opcional: true,
+      titulo: "Tu respuesta",
+      texto: "Lo que CAYLA le contesta, con tus palabras: qué se hará con lo que pidió. Le llega a su correo y queda en la hoja con la fecha.",
+      demostrar: [{ tipo: "escribir", ancla: "libro.respuesta", texto: "Lamentamos lo ocurrido. Acércate a cualquier tienda CAYLA y te lo resolvemos." }],
+    },
+    {
+      id: "responsable",
+      ancla: "libro.responsable",
+      opcional: true,
+      titulo: "Quién responde",
+      texto: "La persona del equipo que firma la respuesta. Queda anotada con su nombre.",
+    },
+    {
+      id: "acciones",
+      ancla: "libro.acciones",
+      opcional: true,
+      titulo: "Enviar la respuesta",
+      texto: "«Enviar respuesta» te pide confirmar antes, porque le llega al cliente y después no se corrige. En la demo no lo tocamos.",
+    },
+    {
+      id: "nota",
+      ancla: "libro.nota",
+      preparar: [{ tipo: "escape" }],
+      titulo: "Lo que conviene saber",
+      texto: "Al cliente le llega una copia de su hoja por correo. Una hoja no se borra ni se corrige: es la constancia de lo que reclamó.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes leer y responder el Libro de Reclamaciones. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Libro de Reclamaciones.",
+    },
+  ],
+  alSalir: [{ tipo: "escape" }],
+};
+
 // Tienda web ▸ Conf. Tienda (ADR-0430; antes «Datos y plazos» y la pestaña «Tienda web» de Configuración, ADR-0408 act. 6). Cada tarjeta se
 // guarda con su botón «Guardar»; la demo no lo aprieta: solo enciende cada parte y la explica.
 export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
