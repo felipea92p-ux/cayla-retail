@@ -1063,6 +1063,8 @@ export const GUIA_SELLOS: Guia = {
     {
       id: "cabecera",
       ancla: "sellos.cabecera",
+      // Al volver con ← desde «¿Insignia, campaña u oferta?», cierra el globo del «?» que ese paso abrió.
+      preparar: [{ tipo: "clic", ancla: "sellos.ayuda", para: "cerrar" }],
       titulo: "Vale en todas partes",
       texto: "Una insignia se ve igual en las tres tiendas y en la tienda online.",
     },
@@ -1070,7 +1072,9 @@ export const GUIA_SELLOS: Guia = {
       id: "mapa",
       ancla: "sellos.mapa",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "sellos.ayuda" }],
+      // El globo del «?» es un pliegue: se abre solo si está cerrado (el mismo toque lo cerraría), y lo cierran el paso de antes y el
+      // de después, en las dos direcciones. Su pieza vive dentro del globo.
+      preparar: [{ tipo: "clic", ancla: "sellos.ayuda", para: "abrir" }],
       titulo: "¿Insignia, campaña u oferta?",
       texto: "Dentro del «?» del título está el mapa: una insignia dice qué es la prenda, una campaña es la fecha especial y una oferta es lo que el cliente paga de menos. Si dudas dónde se hace algo, ábrelo.",
     },
@@ -1078,6 +1082,7 @@ export const GUIA_SELLOS: Guia = {
       id: "nuevo",
       ancla: "sellos.nuevo",
       opcional: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.ayuda", para: "cerrar" }],
       titulo: "Una nueva",
       texto: "Abre una ventana para crearla con su nombre y, si quieres, su dibujo o tu propia imagen; nace en la pestaña donde estás. Antes mira si ya existe. En la demo no lo tocamos.",
     },
@@ -1172,7 +1177,7 @@ export const GUIA_SELLOS: Guia = {
       texto: "Ya sabes revisar una insignia y ver sus prendas. Para repasarlo: Mi perfil ▸ Demo ▸ Insignias.",
     },
   ],
-  alSalir: [{ tipo: "escape" }],
+  alSalir: [{ tipo: "escape" }, { tipo: "clic", ancla: "sellos.ayuda", para: "cerrar" }],
 };
 
 /** Catálogo ▸ Campañas y ofertas (ADR-0655, Felipe 2026-11-13): las fechas especiales y lo que el cliente paga de menos en ellas. Cada campaña
@@ -1192,6 +1197,8 @@ export const GUIA_CAMPANAS: Guia = {
     {
       id: "cabecera",
       ancla: "sellos.cabecera",
+      // Al volver con ← desde «¿Insignia, campaña u oferta?», cierra el globo del «?» que ese paso abrió.
+      preparar: [{ tipo: "clic", ancla: "sellos.ayuda", para: "cerrar" }],
       titulo: "Vale en todas partes",
       texto: "Una campaña rige en las tres tiendas y en la tienda online, salvo que la limites a algunas. Su oferta la cobra la caja sola en Vender, dentro de sus fechas.",
     },
@@ -1199,7 +1206,9 @@ export const GUIA_CAMPANAS: Guia = {
       id: "mapa",
       ancla: "sellos.mapa",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "sellos.ayuda" }],
+      // El globo del «?» es un pliegue: se abre solo si está cerrado (el mismo toque lo cerraría), y lo cierran el paso de antes y el
+      // de después, en las dos direcciones. Su pieza vive dentro del globo.
+      preparar: [{ tipo: "clic", ancla: "sellos.ayuda", para: "abrir" }],
       titulo: "¿Insignia, campaña u oferta?",
       texto: "Dentro del «?» del título está el mapa: una insignia dice qué es la prenda, una campaña es la fecha especial y una oferta es lo que el cliente paga de menos. Si dudas dónde se hace algo, ábrelo.",
     },
@@ -1207,11 +1216,7 @@ export const GUIA_CAMPANAS: Guia = {
       id: "diseno-web",
       ancla: "sellos.diseno-web",
       opcional: true,
-      // Cierra el globo del «?» que abrió `mapa` (lo que la guía abre, lo cierra). Un segundo toque y no un Escape: el globo es
-      // `role="note"`, no un diálogo, y el Escape del piloto solo sale si hay un diálogo abierto. Solo al avanzar: al volver desde
-      // «Una campaña nueva» el globo ya está cerrado, y el toque lo volvería a abrir.
-      preparar: [{ tipo: "clic", ancla: "sellos.ayuda" }],
-      prepararSoloAlAvanzar: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.ayuda", para: "cerrar" }],
       titulo: "Cómo se ven en la tienda web",
       texto: "Lleva a Tienda web ▸ Campañas, donde se elige el diseño de la tienda online durante cada campaña. Las fechas y el descuento se siguen armando aquí.",
     },
@@ -1473,7 +1478,7 @@ export const GUIA_CAMPANAS: Guia = {
       texto: "Ya sabes preparar una campaña: qué le das, en qué prendas y cuándo. Para repasarlo: Mi perfil ▸ Demo ▸ Campañas y ofertas.",
     },
   ],
-  alSalir: [{ tipo: "escape" }],
+  alSalir: [{ tipo: "escape" }, { tipo: "clic", ancla: "sellos.ayuda", para: "cerrar" }],
 };
 
 export const GUIA_CATEGORIAS: Guia = {
