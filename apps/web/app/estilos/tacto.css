@@ -128,6 +128,19 @@
   .vitrina-punto::after {
     inset: 0;
   }
+  /* El «+N» de la chapa también se DIBUJA de 44, como los puntos de al lado (Felipe 2026-11-18): un área invisible de 44 sobre un dibujo de 22
+     pisaría al punto vecino (4 px de hueco) y tocar su borde abriría el modal en vez de elegir el color. Su área de 24 es del mouse. */
+  .vitrina-mas-colores {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 8px;
+  }
+  .vitrina-mas-colores::after {
+    content: none;
+  }
   /* La chapa de Existencias va en UNA línea sobre una foto de 104 px: caben dos puntos de 44. Con más, la chapa se desliza de lado con el dedo
      (nunca se corta un color ni crece la tarjeta). `safe center`: centrada mientras quepa; si no, arranca a la izquierda y se desliza. */
   /* 2 px de relleno y 4 de hueco: dos puntos de 44 entran justos en los 96 px de la chapa (44 + 4 + 44 + 2 × 2). */
