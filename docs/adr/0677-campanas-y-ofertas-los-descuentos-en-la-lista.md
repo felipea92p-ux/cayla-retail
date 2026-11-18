@@ -113,3 +113,97 @@ desactivar una campaña con prendas marcadas; si el cartel dice también «Todas
 **Verificado:** guía de Campañas (34 pasos, escritorio claro y celular oscuro), `/milimetro auditar` (0 graves,
 `docs/milimetro/auditorias/2026-11-18-campanas-abrir-campana.md`), `/chaos` (0 estados imposibles), `/focus` al día. **Dynamic:** no cambia
 `vidrio/recetas.css` ni `components/ui/`: no le llega nada.
+
+## Actualización 2026-11-18 (b) — la hoja de una oferta vuelve a ir por fases, con todo en grande
+
+Felipe, al ver la hoja única de 7b en uso: «las cosas muy pequeñas no funcionan», lo más importante («Lleva … y paga …») tiene que verse mucho más
+grande, lo demás también, cada cosa tiene que decir para qué sirve, e «ir por fases para que no quede muy extenso el modal». Rama
+`claude/ofertas-modales-tama-o-135e3a`. Solo pantalla: lo que guarda no cambia (ni migración ni RPC).
+
+**Decidido (reemplaza el punto 3, «Una sola hoja (7b)»):**
+1. **Cuatro fases, una pregunta por vez:** qué le das · en qué prendas · cuándo y dónde · revisar. Arriba, la barra de fases (píldoras de 44 px: la
+   de ahora en el ahumado denso, la que quedó lista con su ✓); abajo, la flecha de «fase anterior», «Siguiente» y, en la última, «Guardar como
+   borrador» y «Activar». «Falta: …» dice solo lo de la fase en que se está o de las de antes.
+   Lo de 7c no cambia: la hoja es de UNA oferta, se abre desde su cartel y guardar, activar o retirar la cierran.
+2. **Al editar, «Guardar cambios» está en todas las fases** (y «Retirar», a la izquierda): corregir un número no obliga a recorrer las cuatro.
+3. **Los números de la oferta, en el paso «grande» del sistema** (`<PasoCantidad tamano="grande">`: 68 px de alto, el número en la serif a 36 px,
+   − y + de 44 px) y las palabras de la frase en la serif a 28 px; el monto de «N por S/», en una caja de 68 px con la cifra a 36 px. Debajo, **una
+   línea que dice qué hacen** («De cada 3 prendas, la más barata va gratis.», `loQueHace` en `lib/oferta-que-le-das.ts`, con su prueba).
+4. **Lo demás, también grande:** las cinco formas (104 px de alto, el ejemplo a 26 px), las opciones (píldoras de 44 px a 15 px), los días (56 × 44),
+   los botones del pie (44 px), la grilla de categorías y el segmento «Cómo las eliges» (44 px), y el nombre de cada control en letra normal de
+   16 px en vez de versalitas de 11 px. Son las piezas del sistema; solo crecen dentro de esta hoja (`.of-wz`), no en el resto del ERP.
+5. **«Nuevo descuento» y «Cambiar el %»** (`campanas/HojaDeDescuento.tsx`): su % pasa al mismo paso «grande» y sus porcentajes a un toque, a
+   píldoras de 44 px.
+
+6. **El contenido, al centro y con relieve** (Felipe, al probarla: «está muy plano y todo debería estar más centrado para no perder el foco de las
+   cosas importantes»). Una sola columna de 54 rem al centro de la hoja (que baja de 70 a 62 rem): la barra de fases con un hilo entre fase y
+   fase, la pregunta y las cinco formas centradas, y debajo **el escenario** (`.of-escena`): una placa del vidrio claro que sobresale, con los
+   grupos de la fase centrados y separados por una línea. En «Qué le das», los números, la línea que dice qué hacen y, al pie y tras una línea
+   punteada, **«En caja»** como el talón de un ticket. «En caja» deja la columna de la derecha y sale donde responde algo: bajo los números y bajo
+   la frase de «Revisar»; en las fases de prendas y de fechas no se dibuja.
+
+7. **La hoja no cambia de tamaño** (Felipe, al probarla: al volver de «Desde S/ 300» a una forma más baja, el pie quedaba flotando sobre los
+   números). La causa: cuando el contenido se acorta, `<PaginaEstable>` (ADR-0185) reserva ese alto como **relleno** al fondo de la hoja, y el pie
+   pegado (`pie-hoja-fijo`) se mide desde ese relleno. Aquí se resuelve en la hoja:
+   - **Desde 640 px, alto fijo** (`<Modal altoFijo>` y `height: min(54rem, lo que deje la pantalla)`): arriba el título y las fases, abajo el pie, y
+     en medio el contenido de la fase, que es lo ÚNICO que se desliza (`.of-cols`, con `data-sin-reserva`). La hoja mide lo mismo con cualquier
+     forma, en cualquier fase, con uno o tres escalones y aunque el pie pase a dos renglones.
+   - **En el celular** la hoja entera se desliza con su pie pegado, ocupa siempre su alto máximo y lleva `data-sin-reserva` (la marca que
+     `<PaginaEstable>` ya lee): sin relleno reservado, el pie no flota.
+   - **Las piezas miran su propio ancho, no el de la ventana** (`@container`): las fases nunca bajan a una segunda fila (con poco ancho, solo la
+     de ahora dice su nombre; con menos, las cuatro son su número) y las cinco formas van 5 · 3+2 · 2+2+1 según su caja.
+   - **Pantalla baja** (hasta 800 px de alto): lo que no es contenido se aprieta.
+
+8. **«¿En qué prendas?»: primero leer la prenda** (Felipe: «las chicas suelen agregar una prenda ahí escaneando con la pistola de barras o con el
+   teléfono, luego buscando por el nombre»; y «hay dos botones planos que parecen solo texto»). La fase se ordena por lo que más se usa:
+   - **Agrega una prenda:** el buscador grande del mostrador (ícono de código de barras) y, al lado, «Con la cámara» como botón principal. La
+     pistola escribe el código y Enter: la prenda entra sola y el cursor se queda para la siguiente; las lecturas hacen cola, así que ninguna se
+     pierde aunque lleguen seguidas. Escribiendo, sugiere modelos con su foto y Enter toma el primero. La cámara lee una etiqueta tras otra
+     (`EscanerBusqueda`, el visor de siempre). Lo que entra es el **modelo**, con todas sus tallas y colores: así elige prendas una oferta
+     (ADR-0655), y la regla de qué entra no cambia (`alternarProducto`).
+   - **Cómo reconoce el código:** primero entre las prendas que la hoja ya tiene (`productoDeCodigo`, `lib/oferta-prendas-buscar.ts`); si no, la
+     base (`buscar_prenda_para_rebaja`, de solo lectura: SKU, etiqueta o código de fábrica). Sin tienda elegida o si la base no responde, sigue
+     sirviendo lo que la hoja reconoce y el nombre.
+   - **Prendas de la oferta:** un **mosaico compacto** (tres fichas por fila en escritorio, una en el celular), la última agregada primero (con un
+     filo verde): foto, nombre, precio · colores y su ✕. Se ven seis; «Ver las N» abre un cuadro que se desliza por dentro, así que la fase mide lo
+     mismo con 6 prendas que con 60. **Quitar:** la ✕ de la ficha; «Deshacer» recién agregada; tocar varias fichas las marca y «Quitar N marcadas»
+     las saca juntas; «Quitar todas»; o buscarla arriba y tocar «Quitar» en su sugerencia (Enter nunca quita: toma la primera que aún no está).
+     Hubo dos versiones antes, las dos devueltas por Felipe al verlas: fichas color hueso, una por prenda y una por categoría («está horrible», «ese
+     beige desentona», «cuando hay muchas cosas se ve totalmente desordenado»), y una lista de una prenda por fila («si son varias se hará enorme»).
+   - **Una categoría o insignia entera:** dos tarjetas lado a lado que se tocan enteras, con el ícono sobre el ahumado denso, lo que llevan dicho
+     **en una línea** («Camisas y Blusas, Casacas, Faldas y 39 más», `resumirNombres`) y «Elegir» / «Cambiar» / «Listo»; la lista de la elegida se
+     abre debajo, a todo el ancho. Antes eran dos filas anchas: Felipe pidió que fueran «más notorias» y que usaran mejor el espacio. Las categorías van como píldoras de
+     44 px dentro de una tarjeta por familia, con su casilla y cuántas prendas trae; la marcada lleva borde de tinta. Al pie, el total que alcanza
+     la oferta. «Elegir todas», «Quitar todas» y «Otro escalón» pasan del botón sutil al secundario (con borde).
+   - **Sale «Ver todas las prendas»** (la lista completa con casillas): Felipe, «es completamente innecesario porque de todas maneras se va a
+     buscar por prenda arriba».
+   - «¿Se pueden mezclar?» y las prendas de Claurè quedan al final de la fase.
+
+**Descartado:**
+- **Preguntar «solo esta talla o todo el modelo» al leer** (como en un descuento): hoy una oferta elige modelos enteros
+  (`retail.campana_regla_productos`); preguntar algo que la base no puede guardar sería prometer de más. **Felipe lo pidió después** («poder aplicar a
+  una variante en concreto de una prenda»): necesita una tabla nueva, cambiar qué prendas alcanza una oferta en la base y en la caja, los choques
+  entre ofertas y la tienda web. Es una decisión de Felipe y un trabajo aparte (backlog): no se construyó aquí.
+- **Cambiar el botón sutil (`btn-sutil`) en todo el ERP:** es la pieza decidida para una acción chica dentro de una hoja (ADR-0358, ronda 9). Aquí
+  se usa el secundario solo dentro de esta hoja; si el sutil debe cambiar en todas, lo decide Felipe con `/unificar` (backlog).
+- **Cambiar `<PaginaEstable>` o `pie-hoja-fijo` para todo el ERP en este cambio:** el choque entre la reserva y el pie pegado puede pasar en
+  cualquier hoja con pie fijo cuyo contenido se acorta; arreglarlo ahí toca dos piezas del sistema (y a Dynamic). Queda propuesto aparte (backlog).
+- **Dejar «En caja» en una columna a la derecha:** con ella, el centro de lo que se mira no era el centro de la hoja y los números quedaban a un lado.
+- **Agrandar la hoja única sin fases:** con los números en 68 px y cada control en 44, la hoja única quedaba todavía más larga, justo lo que
+  Felipe pidió evitar.
+- **El atajo «Listo, guardar con lo demás de fábrica» en una oferta nueva** (lo tenía la hoja por pasos de ADR-0655): un botón más en cada fase; en
+  una nueva se recorren las cuatro, que son cortas. Al editar sí hay atajo (punto 2).
+- **Un tamaño «grande» nuevo para las píldoras, el segmento y las categorías en todo el ERP:** es una decisión de `/unificar`; aquí crecen solo
+  dentro de la hoja. Queda como pendiente de Felipe (backlog).
+
+**Verificado (el punto 8, en el navegador, en claro):** a 1280 y a 375 px, sobre una base local con prendas: por nombre sugiere con foto y Enter
+agrega; un código escrito como lo hace la pistola agrega su modelo; dos códigos seguidos entran los dos; un código que no existe lo dice en ámbar;
+las fichas se quitan; el panel de categorías abre con sus píldoras; nada se sale de la hoja a 375. **No verificado:** la cámara leyendo una etiqueta
+de verdad (la tienda local no tiene cámara) y una pistola física. **Verificado (el punto 7, midiendo el DOM):** a 375×812, 700×900, 824×990, 1024×768 y 1280×600, con las cinco formas, tres escalones, las cuatro
+fases y el caso de Felipe (monto con tres escalones, bajar y volver a «3 x 2»): la hoja mide lo mismo en todos los estados de cada tamaño, el pie
+queda siempre al fondo y nunca sobre el contenido, nada se sale de la hoja y las fases van en una fila. **Verificado (el punto 6, solo en claro):** las cuatro fases a 1440 y a 375 px, sin nada fuera de la hoja; en el celular las fases son cuatro
+números en una fila y el pie queda en dos filas. **Verificado (lo anterior):** en el navegador a 1440 px (claro y oscuro) y a 375 px (nada se sale de la hoja; cada palabra baja con su número), las cinco formas,
+las cuatro fases de una oferta nueva y el modo editar; tipos, lint, las 954 pruebas de la web y Knip en verde; guía de Campañas al día (un paso
+nuevo, «Las cuatro fases», y cada paso lleva a su fase) con sus dos huellas aceptadas. **No verificado:** `guias:recorrer` y guardar de punta a
+punta (la base local compartida no tiene `guardar_oferta_completa`: está atrás de `main`), y «Nuevo descuento» en el navegador (ninguna base local
+trae la lista de descuentos). **Dynamic:** no cambia `vidrio/recetas.css` ni `components/ui/`: no le llega nada.

@@ -3,10 +3,12 @@
      Catálogo ▸ Insignias ▸ Campañas · «Tres preguntas» (Felipe 2026-10-23, elegida entre cinco: docs/maquetas/ofertas-promociones-2026-10/
      formulario/opcion-3-tres-preguntas.html)
 
-     La hoja de UNA oferta de una campaña (ADR-0677, 7b y 7c: se abre desde su panel, con «Nueva oferta» o tocando su cartel): las
-     preguntas una debajo de la otra (¿Qué le das? · ¿En qué prendas? · ¿Cuándo y dónde? · Revisa) y a la derecha la etiqueta que se va
-     armando con cada respuesta. Solo tokens de globals.css (el oscuro sale solo, ADR-0336). Movimiento (ADR-0136): una pregunta que
-     aparece sube 6 px, UNA vez, con `--ease-cayla`; sin rebote ni bucle, y se apaga con `prefers-reduced-motion`. Clases `of-`.
+     La hoja de UNA oferta de una campaña (ADR-0677, 7c: se abre desde su panel, con «Nueva oferta» o tocando su cartel), POR FASES
+     (Felipe 2026-11-18: «ir por fases para que no quede muy extenso» y «las cosas muy pequeñas no funcionan»): una pregunta por vez
+     (¿Qué le das? · ¿En qué prendas? · ¿Cuándo y dónde? · Revisa) con sus controles EN GRANDE, y a la derecha «En caja», la compra de
+     ejemplo. Lo que se toca no baja de 44 px y lo que se lee, de 15 px; los números de la oferta van en la serif a 36 px (el paso
+     «grande» del sistema). Solo tokens de globals.css (el oscuro sale solo, ADR-0336). Movimiento (ADR-0136): la fase que llega sube
+     6 px, UNA vez, con `--ease-cayla`; sin rebote ni bucle, y se apaga con `prefers-reduced-motion`. Clases `of-`.
      ==================================================================== */
 
   .of-hoja { display: grid; grid-template-columns: minmax(0, 1fr); }
@@ -21,21 +23,99 @@
   /* ── Las preguntas: directo sobre la hoja (sin la lista al lado, su caja crema era un bloque sólido sobre el vidrio) ── */
   .of-wz { display: flex; flex-direction: column; min-width: 0; }
 
-  /* La etiqueta de la campaña (la de producción) ocupa la columna de la derecha: 17,5 rem en una hoja angosta y 19,5 desde 1280 px. */
-  .of-cols { display: grid; grid-template-columns: minmax(0, 1fr) 17.5rem; gap: 1.375rem; align-items: start; }
-  @media (min-width: 1280px) { .of-cols { grid-template-columns: minmax(0, 1fr) 19.5rem; } }
-  .of-q { min-width: 0; }
-  .of-q h2 { font-family: var(--font-serif); font-weight: 500; font-size: 1.75rem; line-height: 1.12; }
-  /* Una sola hoja (ADR-0677, 7b): las preguntas una debajo de la otra, cada una con su línea arriba y su título más chico que el de la hoja. */
-  .of-una .of-bloque + .of-bloque { margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid var(--color-sand); }
-  .of-una .of-bloque h2 { font-size: 1.375rem; }
-  .of-baj { margin-top: 0.125rem; font-size: 0.875rem; line-height: 1.4; color: var(--color-taupe); }
+  /* ── Las fases: dónde estás y adónde puedes saltar. Píldoras de 44 px; la de ahora, en el ahumado denso (lo elegido del ERP, como la
+     forma elegida de «Qué le das»); la que ya quedó lista lleva su ✓ en verde. ── */
+  .of-fases-caja { container: of-fases / inline-size; flex: none; }
+  .of-fases { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 0 0 1.25rem; padding: 0; list-style: none; }
+  /* Un hilo entre fase y fase: se lee como un camino, no como cuatro botones sueltos. */
+  .of-fases li { display: flex; align-items: center; gap: 0.5rem; }
+  .of-fases li + li::before { content: ""; width: 1.5rem; height: 1px; background: var(--color-borde-control); }
+  .of-fase {
+    display: inline-flex; align-items: center; gap: 0.625rem; min-height: 2.75rem; padding: 0 1.125rem 0 0.5rem;
+    border: 1px solid var(--color-borde-control); border-radius: 999px;
+    font-size: 0.9375rem; font-weight: 600; color: var(--color-tinta);
+    transition: background 200ms var(--ease-cayla), color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
+  }
+  .of-fase i {
+    display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 50%;
+    background: var(--color-hueso); font-style: normal; font-size: 0.875rem; font-weight: 600; font-variant-numeric: lining-nums;
+  }
+  .of-fase i svg { width: 0.875rem; height: 0.875rem; }
+  @media (hover: hover) { .of-fase:not([aria-disabled="true"]):not([aria-current="step"]):hover { background: var(--color-hueso); } }
+  .of-fase[aria-current="step"] { border-color: var(--ahumado-denso-borde); background: var(--ahumado-denso-fondo); box-shadow: var(--ahumado-denso-luz); color: var(--color-crema); }
+  .of-fase[aria-current="step"] i { background: var(--color-crema); color: var(--color-tinta); }
+  .of-fase[data-hecho] i { background: var(--color-verde); color: var(--color-crema); }
+  .of-fase[aria-disabled="true"] { cursor: default; opacity: 0.55; }
+  .of-fase { white-space: nowrap; }
+  /* Las fases nunca bajan a una segunda fila: miran el ancho de su caja. Si las cuatro no caben con su nombre (menos de 46 rem), solo la de
+     ahora lo dice; si ni así (menos de 26 rem, el celular), las cuatro son su número y dónde estás lo dice la pregunta de abajo. Para el
+     lector de pantalla el nombre sigue en cada botón. */
+  @container of-fases (max-width: 46rem) {
+    .of-fases li + li::before { width: 1rem; }
+    .of-fase:not([aria-current="step"]) { padding: 0 0.5rem; }
+    .of-fase:not([aria-current="step"]) > span:not(.sr-only) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  }
+  @container of-fases (max-width: 26rem) {
+    .of-fases { gap: 0.375rem; }
+    .of-fases li { gap: 0.375rem; }
+    .of-fases li + li::before { width: 0.75rem; }
+    .of-fase { padding: 0 0.5rem; }
+    .of-fase > span:not(.sr-only) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  }
+
+  /* ── La hoja no cambia de tamaño (Felipe 2026-11-18: al volver de «Desde S/ 300» a una forma más baja, el pie quedaba flotando sobre el
+     contenido). Desde 640 px la hoja es de alto fijo (`<Modal altoFijo>`): arriba el título y las fases, abajo el pie, y en medio el
+     contenido de la fase, que es lo ÚNICO que se desliza (`.of-cols`) y toma lo que sobra. La hoja mide lo mismo con cualquier forma, en
+     cualquier fase y aunque un grupo aparezca o se pliegue. ── */
+  @media (min-width: 40rem) {
+    /* El alto de la hoja lo fija la hoja, no su contenido: 54 rem, o lo que la pantalla deje. Si lo sumara de sus partes, crecería cada vez
+       que el pie pasa a dos renglones («Todo listo: …» en una hoja angosta, «¿Retirar la oferta …?»). */
+    [role="dialog"]:has(> .of-raiz) { height: min(54rem, 100dvh - 8vh - 1.5rem); }
+    .of-raiz { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+    .of-raiz > * { flex: none; }
+    .of-raiz > .of-hoja { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+    .of-wz { flex: 1 1 auto; min-height: 0; }
+    /* El que se desliza llega a los bordes de la hoja (su barra queda en el borde, no a media hoja) y reserva el lugar de la barra a los
+       dos lados: el contenido sigue al centro con o sin ella. El relleno de abajo deja ver la sombra del escenario. */
+    .of-cols {
+      flex: 1 1 0; min-height: 8rem; margin-inline: -1.75rem; padding: 0.25rem 1.25rem 1.25rem;
+      overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable both-edges;
+    }
+  }
+  /* En el celular la hoja entera se desliza, con su pie pegado abajo. Ocupa siempre su alto máximo (el contenido corto no la achica) y
+     el pie queda al fondo. */
+  @media (max-width: 39.9375rem) {
+    .of-raiz { display: flex; flex-direction: column; min-height: calc(90dvh - 11rem); }
+    .of-raiz > .of-hoja { flex: 1 0 auto; }
+  }
+  /* Una sola columna, AL CENTRO de la hoja (Felipe 2026-11-18: «todo debería estar más centrado para no perder el foco»): 54 rem dejan las
+     cinco formas en una fila. */
+  .of-q { width: 100%; max-width: 54rem; min-width: 0; margin-inline: auto; }
+  /* La pregunta de la fase: recibe el foco al llegar (sin anillo: no es un control, es dónde empieza a leer el lector de pantalla). */
+  .of-q h2 { font-family: var(--font-serif); font-weight: 500; font-size: 1.875rem; line-height: 1.12; text-align: center; text-wrap: balance; outline: none; }
+  .of-q[data-entra] > * { animation: of-sube 300ms var(--ease-cayla) both; }
+  @keyframes of-sube { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .of-baj { margin-top: 0.125rem; font-size: 0.9375rem; line-height: 1.4; color: var(--color-taupe); }
 
   /* Pregunta 1 · «Qué le das» (ADR-0677, 7a): las cinco formas en una fila y el ejemplo ES la opción. La elegida, en el ahumado denso (lo
      elegido del ERP); las demás, en el vidrio claro. El glifo en la serif; la línea a 14 px. Sin rebote: solo el borde y el fondo cambian. */
-  .of-tipos { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: 0.5rem; margin-top: 0.875rem; }
+  /* Las cinco formas miran el ancho de SU caja, no el de la ventana (la hoja puede ser angosta en una ventana ancha: una tablet, la tienda
+     al lado de otra ventana): cinco en fila desde 40 rem, con el ejemplo que se achica con la caja; tres y dos hasta 26 rem; de a dos debajo. */
+  .of-tipos-caja { container: of-tipos / inline-size; margin-top: 1.25rem; }
+  .of-tipos { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.625rem; }
+  .of-tipo { grid-column: span 2; }
+  .of-tipo:nth-child(n + 4) { grid-column: span 3; }
+  @container of-tipos (min-width: 40rem) {
+    .of-tipos { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .of-tipo, .of-tipo:nth-child(n + 4) { grid-column: auto; }
+  }
+  @container of-tipos (max-width: 26rem) {
+    .of-tipos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .of-tipo, .of-tipo:nth-child(n + 4) { grid-column: auto; }
+    .of-tipo:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  }
   .of-tipo {
-    display: flex; flex-direction: column; justify-content: center; gap: 0.25rem; min-height: 4.75rem; padding: 0.75rem 0.875rem; text-align: left;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.375rem; min-height: 6.5rem; padding: 1rem 0.75rem; text-align: center;
     border: 1px solid var(--vidrio-claro-borde); border-radius: 0.875rem; background: var(--vidrio-claro-fondo); box-shadow: var(--vidrio-claro-sombra);
     color: var(--color-tinta);
     transition: background 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla);
@@ -43,67 +123,139 @@
   @media (hover: hover) {
     .of-tipo:not([aria-pressed="true"]):hover { border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); /* contraste: no aplica — es un borde, no un texto */ }
   }
-  .of-tipo-glifo { font-family: var(--font-serif); font-size: 1.375rem; font-weight: 500; line-height: 1.1; text-wrap: balance; font-variant-numeric: lining-nums tabular-nums; }
-  .of-tipo-linea { font-size: 0.875rem; line-height: 1.3; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
+  .of-tipo-glifo { font-family: var(--font-serif); font-size: clamp(1.25rem, 3.6cqi, 1.625rem); font-weight: 500; line-height: 1.1; text-wrap: balance; font-variant-numeric: lining-nums tabular-nums; }
+  .of-tipo-linea { font-size: 0.9375rem; line-height: 1.3; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
   .of-tipo[aria-pressed="true"] { border-color: var(--ahumado-denso-borde); background: var(--ahumado-denso-fondo); box-shadow: var(--ahumado-denso-luz); color: var(--color-crema); }
   .of-tipo[aria-pressed="true"] .of-tipo-linea { color: color-mix(in srgb, var(--color-crema) 74%, transparent); }
-  .of-sub { margin-top: 0.625rem; }
-  /* «Llevar varias y pagar menos» (ADR-0655, actividad 6): la forma dicha como una frase con sus números («Lleva [3] y paga [2]»). */
+  /* ── El escenario: lo importante de la fase, en una placa de vidrio que sobresale al centro de la hoja (el mismo vidrio claro de las
+     cinco formas). Adentro, cada grupo va centrado y separado del de arriba por una línea; lo hundido (los números, las fechas) espera el
+     dato, y eso es lo que da el relieve: sobre una hoja lisa, todo se leía plano. ── */
+  .of-escena {
+    display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 1.5rem; margin-top: 1.25rem; padding: 2rem;
+    border: 1px solid var(--vidrio-claro-borde); border-radius: var(--radius-tarjeta); background: var(--vidrio-claro-fondo); box-shadow: var(--vidrio-claro-sombra);
+    text-align: center;
+  }
+  .of-escena > * { width: 100%; min-width: 0; }
+  .of-escena > * + * { padding-top: 1.5rem; border-top: 1px solid var(--color-sand); }
+  /* Un grupo que no tiene nada que decir (sin choques, sin avisos) no deja su línea. */
+  .of-escena > :empty { display: none; }
+  .of-grupo, .of-sub, .of-escena .of-donde { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 0.75rem; }
+  .of-escena .of-lbl { margin: 0; }
+  .of-escena .campo { display: grid; justify-items: center; }
+  /* «Llevar varias y pagar menos» (ADR-0655, actividad 6): la forma dicha como una frase con sus números («Lleva [3] y paga [2]»). Es lo más
+     importante de la hoja y va EN GRANDE (Felipe 2026-11-18): las palabras en la serif a 28 px y cada número en el paso «grande» del
+     sistema (68 px de alto, el número a 36 px y − y + de 44 px). */
   .of-frase-campos { display: flex; flex-wrap: wrap; align-items: center; gap: 0.625rem; font-size: 0.9375rem; }
-  .of-frase-campos .of-monto { width: 10rem; }
-  /* Un escalón del monto (actividad 8): «Desde [S/ 300] ahorra [S/ 30] ×» en una fila; con cajas de 10rem, la × caía a la línea de abajo. */
-  .of-frase-campos .of-monto-escalon { width: 6.5rem; }
-  .of-lbl { display: block; margin-bottom: 0.25rem; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
-  .of-opciones { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-  .of-ctl { display: grid; gap: 0.5rem; max-width: 22rem; }
+  .of-frase-grande { justify-content: center; gap: 0.875rem 1rem; font-family: var(--font-serif); font-size: 1.75rem; font-weight: 500; line-height: 1.1; }
+  .of-par { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: inherit; min-width: 0; max-width: 100%; }
+  /* Los escalones de un monto son varias filas: un punto menos, para que «Desde … ahorra … ×» siga en una. */
+  .of-frase-media { justify-content: center; gap: 0.625rem 0.75rem; font-family: var(--font-serif); font-size: 1.375rem; font-weight: 500; line-height: 1.1; }
+  /* El ancho de cada número: sin él, el paso «grande» (una grilla) tomaría todo el renglón. Con «%» o «.ª» al lado, un poco más. */
+  .of-numero { width: 10.5rem; }
+  .of-numero-pct { width: 12.5rem; }
+  /* Lo que hacen esos números, dicho como al cliente («De cada 3 prendas, la más barata va gratis.»). */
+  .of-dice { margin: 0.25rem 0 0; font-family: var(--font-serif); font-size: 1.375rem; line-height: 1.3; text-wrap: balance; color: var(--color-tinta); }
+  /* El nombre de cada control, en letra normal de 16 px: en versalitas de 11 px no se leía para qué servía cada cosa. */
+  .of-lbl { display: block; margin-bottom: 0.5rem; font-size: 1rem; font-weight: 600; line-height: 1.3; color: var(--color-tinta); }
+  .of-opciones { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.625rem; }
+  /* Las opciones de la hoja (mezclar, días, tiendas, descuentos de siempre): la píldora del sistema, de 44 px. */
+  .of-opciones .pildora-cayla, .of-semf .pildora-cayla { min-height: 2.75rem; padding: 0 1.125rem; font-size: 0.9375rem; }
+  .of-ctl { display: grid; justify-items: center; gap: 1rem; }
+
+  /* ── Fase 2 · «¿En qué prendas?» (Felipe 2026-11-18): en tienda una prenda se agrega leyendo su etiqueta —con la pistola o con el
+     teléfono— y después por su nombre; por eso el buscador es lo primero y lo más grande. Lo hundido espera el dato (el buscador); lo que
+     sobresale es lo que haces (la cámara, las otras formas de elegir, «Elegir todas»); lo que ya entró son fichas con su ✕. ── */
+  .of-agregar { width: 100%; }
+  .of-agregar-fila { display: flex; align-items: stretch; gap: 0.625rem; width: min(100%, 42rem); }
+  .of-agregar-fila > :first-child { flex: 1 1 auto; min-width: 0; }
+  .of-agregar-lista { width: min(100%, 42rem); text-align: left; }
+  /* Lo que pasó con la última prenda leída. Guarda su renglón aunque esté vacío: al aparecer no empuja lo de abajo (ADR-0185). */
+  .of-leida { display: flex; align-items: center; justify-content: center; gap: 0.375rem; min-height: 1.5rem; margin: 0; font-size: 0.9375rem; font-weight: 600; }
+  .of-leida[data-tono="verde"] { color: var(--color-verde); }
+  .of-leida[data-tono="ambar"] { color: var(--color-ambar-profundo); }
+  /* Las prendas de la oferta: un MOSAICO compacto (Felipe 2026-11-18: en una lista de una por fila, «si son varias se hará enorme»; antes, las
+     fichas color hueso «desentonaban»). Tres por fila en escritorio, sobre el vidrio claro con su borde de control; cada ficha lleva la
+     foto, el nombre y su precio, se toca para marcarla y tiene su ✕. Se ven dos filas; «Ver las N» abre un cuadro que se desliza por dentro,
+     así que la fase mide lo mismo con 6 prendas que con 60. */
+  .of-lista-cab { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; width: 100%; min-height: 2.75rem; }
+  .of-lista-cab .of-lbl { display: inline-flex; align-items: center; }
+  .of-lista-acciones { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.875rem; }
+  .of-mosaico { display: grid; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); gap: 0.5rem; width: 100%; margin: 0; padding: 0; list-style: none; text-align: left; }
+  .of-mosaico[data-todas] { max-height: 15.25rem; padding-right: 0.25rem; overflow-y: auto; overscroll-behavior: contain; }
+  .of-ficha { display: flex; align-items: center; min-width: 0; border: 1px solid var(--color-borde-control); border-radius: 0.875rem; background: var(--vidrio-claro-fondo); transition: border-color 200ms var(--ease-cayla); }
+  .of-ficha[data-recien] { box-shadow: inset 3px 0 0 var(--color-verde); }
+  .of-ficha[data-marcada] { border-color: var(--color-tinta); box-shadow: inset 0 0 0 1px var(--color-tinta); }
+  .of-ficha-cuerpo { display: flex; flex: 1 1 auto; align-items: center; gap: 0.625rem; min-width: 0; min-height: 3.5rem; padding: 0.375rem 0.25rem 0.375rem 0.5rem; border-radius: inherit; text-align: left; }
+  .of-ficha-foto { position: relative; flex: none; }
+  .of-ficha-marca { position: absolute; right: -0.375rem; bottom: -0.375rem; display: grid; place-items: center; width: 1.25rem; height: 1.25rem; border: 2px solid var(--color-papel); border-radius: 999px; background: var(--color-tinta); color: var(--color-crema); }
+  .of-ficha-marca svg { width: 0.75rem; height: 0.75rem; }
+  .of-ficha-quitar { display: grid; flex: none; place-items: center; width: 2.75rem; height: 2.75rem; margin-right: 0.125rem; border-radius: 999px; color: var(--color-tinta); transition: color 200ms var(--ease-cayla), background 200ms var(--ease-cayla); }
+  @media (hover: hover) {
+    .of-ficha:hover { border-color: var(--color-tinta); }
+    .of-ficha-quitar:hover { background: color-mix(in srgb, var(--color-rojo-profundo) 10%, transparent); color: var(--color-rojo-profundo); } /* contraste: no aplica — es el fondo del botón, el ícono es rojo profundo pleno */
+  }
+  .of-fila-texto { display: grid; flex: 1 1 auto; gap: 0.125rem; min-width: 0; }
+  .of-fila-nombre { overflow: hidden; font-size: 0.9375rem; font-weight: 600; line-height: 1.3; color: var(--color-tinta); text-overflow: ellipsis; white-space: nowrap; }
+  .of-fila-dato { overflow: hidden; font-size: 0.875rem; line-height: 1.3; color: var(--color-taupe); text-overflow: ellipsis; white-space: nowrap; }
+  /* Una categoría o una insignia entera: dos tarjetas lado a lado que se tocan enteras. Sobresalen (el vidrio claro con su sombra), con el
+     ícono sobre el ahumado denso para que se vean de lejos; la abierta lleva borde de tinta. Su lista se abre debajo, a todo el ancho. */
+  .of-grupos { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.625rem; width: 100%; }
+  .of-grupo {
+    display: flex; align-items: center; gap: 0.875rem; min-width: 0; min-height: 4.5rem; padding: 0.75rem 0.875rem; text-align: left;
+    border: 1px solid var(--color-borde-control); border-radius: 1rem; background: var(--vidrio-claro-fondo); box-shadow: var(--vidrio-claro-sombra);
+    transition: border-color 200ms var(--ease-cayla);
+  }
+  @media (hover: hover) { .of-grupo:hover { border-color: var(--color-tinta); } }
+  .of-grupo[aria-expanded="true"] { border-color: var(--color-tinta); box-shadow: inset 0 0 0 1px var(--color-tinta), var(--vidrio-claro-sombra); }
+  .of-grupo-icono { display: grid; flex: none; place-items: center; width: 2.75rem; height: 2.75rem; border: 1px solid var(--ahumado-denso-borde); border-radius: 0.75rem; background: var(--ahumado-denso-fondo); box-shadow: var(--ahumado-denso-luz); color: var(--color-crema); }
+  .of-grupo-nombre { font-size: 1.0625rem; font-weight: 600; line-height: 1.3; color: var(--color-tinta); }
+  .of-grupo-accion { flex: none; min-height: 2.5rem; padding: 0.5rem 1rem; border: 1px solid var(--color-borde-control); border-radius: 999px; font-size: 0.9375rem; font-weight: 600; line-height: 1.5rem; color: var(--color-tinta); }
+  /* Lo que alcanza la oferta en total, al pie de la fase. */
+  .of-alcance { margin: 0.25rem 0 0; font-size: 1rem; font-weight: 600; line-height: 1.4; color: var(--color-tinta); }
+  .of-panel-acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.625rem; margin-bottom: 1rem; }
 
   /* Pregunta 3 · prendas y tiendas */
   /* Una columna que no crece con su contenido: sin `minmax(0, 1fr)` tomaba el ancho de la grilla de categorías y se salía 23 px a 375. */
-  .of-panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; margin-top: 0.75rem; }
-  .of-panel .of-lbl { margin-bottom: 0.375rem; }
+  .of-panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; width: 100%; margin-top: 0.5rem; text-align: left; }
   /* Prenda por prenda (ADR-0655): la lista de modelos con su casilla. Se desplaza por dentro para que el pie de la hoja quede a la vista. */
-  .of-modelos { list-style: none; margin: 0.5rem 0 0; padding: 0; max-height: 18rem; overflow-y: auto; border-top: 1px solid var(--color-sand); }
-  .of-modelo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 1rem; padding: 0.5rem 0.25rem; border-bottom: 1px solid var(--color-sand); }
-  .of-modelo-nombre { display: inline-flex; align-items: center; gap: 0.625rem; font-size: 0.875rem; color: var(--color-tinta); }
-  .of-sublbl { margin: 0.625rem 0 0.375rem; font-size: 0.875rem; font-weight: 600; }
-  .of-sublbl span { font-weight: 400; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
+  .of-modelos { list-style: none; margin: 0.75rem 0 0; padding: 0; max-height: 22rem; overflow-y: auto; border-top: 1px solid var(--color-sand); }
+  .of-modelo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 1rem; min-height: 3rem; padding: 0.625rem 0.25rem; border-bottom: 1px solid var(--color-sand); }
+  .of-modelo-nombre { display: inline-flex; align-items: center; gap: 0.75rem; font-size: 1rem; color: var(--color-tinta); }
   /* «Dónde rige» va bajo los días, en la pregunta del cuándo. */
-  .of-donde { margin-top: 1.125rem; }
+  .of-donde { min-width: 0; }
 
   /* Pregunta 2 · cuándo: los días de la semana */
-  .of-sem { margin-top: 0.75rem; }
-  .of-semf { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem 0.5rem; }
-  .of-dias { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.5rem; }
+  .of-semf { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.75rem 0.625rem; }
+  .of-semf .of-lbl { flex-basis: 100%; margin: 0; }
+  .of-dias { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-top: 0.75rem; }
   .of-dia {
-    width: 2.875rem; height: 2.375rem; border: 1px solid var(--color-sand); border-radius: 0.75rem; background: var(--color-hueso);
-    font-size: 0.78rem; font-weight: 600;
+    width: 3.5rem; height: 2.75rem; border: 1px solid var(--color-borde-control); border-radius: 0.75rem; background: var(--color-hueso);
+    font-size: 0.9375rem; font-weight: 600;
     transition: background 200ms var(--ease-cayla), color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
   }
   @media (hover: hover) { .of-dia:hover { background: var(--color-sand); } }
   .of-dia[aria-pressed="true"] { background: var(--color-tinta); color: var(--color-crema); border-color: var(--color-tinta); }
   .of-dia[data-fuera]:not([aria-pressed="true"]) { opacity: 0.55; }
   .of-dia[data-fuera][aria-pressed="true"] { outline: 1.5px dashed var(--color-ambar); outline-offset: 2px; }
-  .of-fechas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.625rem; margin-top: 0.625rem; max-width: 28rem; }
-  .of-rev { margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--color-sand); }
-  .of-oracion { margin: 0.3125rem 0 0; font-family: var(--font-serif); font-weight: 500; font-size: 1.3rem; line-height: 1.28; }
-  .of-rige { margin: 0.125rem 0 0; font-size: 0.875rem; }
-  .of-pequeno { font-size: 0.875rem; line-height: 1.4; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
+  .of-fechas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.875rem; width: min(100%, 32rem); text-align: left; }
+  .of-oracion { margin: 0; font-family: var(--font-serif); font-weight: 500; font-size: 1.625rem; line-height: 1.28; text-wrap: balance; }
+  .of-rige { margin: 0.125rem 0 0; font-size: 0.9375rem; }
+  .of-pequeno { font-size: 0.9375rem; line-height: 1.4; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
   .of-pequeno.of-hist { display: flex; align-items: center; gap: 0.25rem; color: var(--color-taupe); }
-  .of-fin { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; margin-top: 0.5rem; }
-  .of-mas { display: grid; gap: 0.75rem; margin-top: 0.625rem; padding: 0.75rem 0.875rem; border: 1px dashed var(--color-taupe); border-radius: 0.75rem; }
-  .of-avisos { display: grid; gap: 0.375rem; margin-top: 0.5rem; }
+  .of-fin { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; width: 100%; text-align: left; }
+  .of-mas { display: grid; gap: 0.75rem; width: 100%; text-align: left; padding: 0.75rem 0.875rem; border: 1px dashed var(--color-taupe); border-radius: 0.75rem; }
+  .of-avisos { display: grid; gap: 0.5rem; text-align: left; }
 
-  /* «En caja» (ADR-0677, actividad 8): una compra de ejemplo cobrada con la cuenta de la caja, en vivo. Explica, no se toca: la placa Serena
-     (ADR-0596). En escritorio, la columna de la derecha, pegada arriba mientras la hoja corre; en el celular, después de las preguntas. */
-  .of-caja {
-    position: sticky; top: 0; min-width: 0; padding: 1rem 1.125rem 1rem;
-    border: 1px solid var(--placa-borde); border-radius: var(--radius-tarjeta); background: var(--placa-fondo); box-shadow: var(--placa-luz);
-  }
-  .of-caja .of-lbl { margin-bottom: 0.375rem; }
-  .of-caja-lineas { list-style: none; margin: 0; padding: 0; }
+  /* «En caja» (ADR-0677, actividad 8): una compra de ejemplo cobrada con la cuenta de la caja, en vivo. Es el pie del escenario, como el
+     talón de un ticket: una línea punteada lo separa de los números y su contenido va en una columna de 26 rem, al centro. */
+  .of-caja { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 0.5rem; min-width: 0; }
+  .of-escena > .of-caja { border-top: 1px dashed var(--color-borde-control); }
+  .of-caja > * { width: min(100%, 26rem); }
+  .of-caja > .of-lbl { text-align: center; }
+  .of-caja-lineas { list-style: none; margin: 0; padding: 0; text-align: left; }
   .of-caja-lineas li {
     display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.75rem; align-items: center;
-    padding: 0.5rem 0; border-bottom: 1px dashed var(--color-sand); font-size: 0.875rem;
+    padding: 0.625rem 0; border-bottom: 1px dashed var(--color-sand); font-size: 0.9375rem;
   }
   .of-caja-lineas li.of-caja-monto { grid-template-columns: minmax(0, 1fr) auto; }
   .of-caja-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -111,39 +263,48 @@
   .of-caja-precio s { display: block; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
   .of-caja-precio b, b.of-caja-precio { font-weight: 600; }
   .of-caja-total { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; margin: 0.875rem 0 0; }
-  .of-caja-total span { font-size: 0.875rem; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); }
-  .of-caja-total b { font-family: var(--font-serif); font-size: 2rem; font-weight: 600; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; }
-  .of-caja-ahorra { margin: 0.125rem 0 0; text-align: right; font-size: 0.875rem; font-weight: 600; color: var(--color-verde); }
+  .of-caja-total span { font-size: 1rem; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); }
+  .of-caja-total b { font-family: var(--font-serif); font-size: 2.25rem; font-weight: 600; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; }
+  .of-caja-ahorra { margin: 0.125rem 0 0; text-align: right; font-size: 1rem; font-weight: 600; color: var(--color-verde); }
 
   /* El pie: retirar (al editar una viva) · cancelar · lo que falta · guardar */
   .of-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.625rem; padding-top: 0.75rem; border-top: 1px solid var(--color-sand); }
-  .of-pie .of-falta { flex: 1; min-width: 0; margin: 0 auto 0 0.375rem; font-size: 0.875rem; line-height: 1.4; color: var(--color-taupe); }
+  /* La flecha de «fase anterior» no se dibuja en la primera, pero guarda su lugar: «Cancelar» no salta al avanzar (ADR-0358). */
+  .of-pie .of-vuelta-oculta { visibility: hidden; }
+  .of-pie .of-falta { flex: 1; min-width: 0; margin: 0 auto 0 0.375rem; font-size: 0.9375rem; line-height: 1.4; color: var(--color-taupe); }
   .of-pie .of-falta b { font-weight: 600; color: var(--color-ambar); }
   /* «Falta: …» (lo que pide algo): ocupa lo que sobra a la izquierda de los botones; en el celular, su propia fila arriba. */
   .of-pie .of-pie-pide { display: flex; flex: 1; min-width: 0; margin: 0 auto 0 0.375rem; }
   /* «¿Retirar la oferta …?» (Formidable 2026-11-18): el pie entero pregunta. Arriba, «No se puede deshacer» a todo lo ancho; abajo, la pregunta a la
      izquierda y «No, dejarla · Sí, retirar» a la derecha. */
   .of-pie-confirma .of-confirma-aviso { flex-basis: 100%; }
-  .of-pie-confirma .of-confirma { flex: 1; min-width: 0; margin: 0 auto 0 0.375rem; font-size: 0.875rem; line-height: 1.4; }
+  .of-pie-confirma .of-confirma { flex: 1; min-width: 0; margin: 0 auto 0 0.375rem; font-size: 0.9375rem; line-height: 1.4; }
   .of-pie-confirma .of-confirma b { font-weight: 600; }
   /* Lo que el pie fijo tapa no cuenta como «a la vista»: al tocar «Falta: …», la hoja sube el campo por encima del pie (scrollIntoView
      respeta el scroll-padding). Sin esto, a 375 px el campo de tiendas quedaba entero debajo del pie y la hoja no se movía. */
   [role="dialog"]:has(.of-pie) { scroll-padding-bottom: 6rem; }
 
   @media (prefers-reduced-motion: reduce) {
-    .of-tipo, .of-dia { transition: none; }
+    .of-q[data-entra] > * { animation: none; }
+    .of-tipo, .of-dia, .of-fase, .of-ficha, .of-ficha-quitar, .of-grupo { transition: none; }
   }
 
-  /* ── Celular: la etiqueta pasa a una franja arriba de la pregunta ── */
+  /* ── Celular ── */
   @media (max-width: 47.9375rem) {
-    /* En columna, cada parte a todo el ancho: con el `align-items: start` de la grilla, la pregunta se encogía a su contenido (204 px a 375). */
-    .of-cols { display: flex; flex-direction: column; align-items: stretch; gap: 0.75rem; }
-    .of-q { order: 2; }
-    .of-q h2, .of-una .of-bloque h2 { font-size: 1.25rem; }
-    /* «En caja» va después de las preguntas: arriba empujaba «¿Qué le das?» medio alto de pantalla. */
-    .of-caja { position: static; order: 3; }
+    .of-escena { gap: 1.25rem; padding: 1.25rem 1rem; }
+    .of-escena > * + * { padding-top: 1.25rem; }
+    .of-dice { font-size: 1.1875rem; }
+    .of-oracion { font-size: 1.375rem; }
+    .of-q h2 { font-size: 1.5rem; }
+    .of-fases { margin-bottom: 1rem; }
+    /* La frase de los números baja un punto y cada número ocupa su renglón: «Lleva [3]» arriba, «y paga [2]» abajo. */
+    .of-frase-grande { font-size: 1.5rem; }
+    .of-tipo { min-height: 5.5rem; }
     .of-fechas { grid-template-columns: 1fr; }
-    .of-dia { width: 2.375rem; height: 2.25rem; font-size: 0.75rem; }
+    .of-dia { width: 2.75rem; height: 2.75rem; font-size: 0.875rem; }
+  }
+  /* ── El pie en el celular (bajo 640 px, donde la hoja entera se desliza). En una tablet el pie cabe en una fila y se acomoda solo. ── */
+  @media (max-width: 39.9375rem) {
     /* Las frases que solo informan («Todo listo…») se van: en el celular el pie fijo se come media pantalla. El «Falta: …» que sí pide
        algo no lleva esta clase y se queda. */
     .of-pie .of-falta { display: none; }
@@ -152,9 +313,81 @@
     /* «Retirar» baja a su propia fila, al final: así «Cancelar» y «Guardar cambios» quedan juntos (con los tres en fila, Guardar caía solo
        a la tercera fila, medido a 375). */
     .of-pie .of-pie-retirar { order: 1; margin-right: auto; }
+    /* En la primera fase la flecha no guarda su lugar (le quitaría ancho a los botones), y «Siguiente» toma lo que sobra. */
+    .of-pie .of-vuelta-oculta { display: none; }
+    .of-pie .of-siguiente { flex: 1; }
+    /* Dos filas, no tres (medido a 375): lo que guarda sin activar va arriba, a todo lo ancho; abajo, la flecha, «Cancelar» y el botón
+       principal, que toma lo que sobra y queda en la esquina del pulgar. */
+    .of-pie .of-atajo, .of-pie .of-borrador { order: -1; flex-basis: 100%; }
+    .of-pie > .btn-primario { flex: 1; }
     /* La pregunta a todo lo ancho; «No, dejarla» y «Sí, retirar», mitad y mitad. */
     .of-pie-confirma .of-confirma { flex-basis: 100%; margin: 0; }
     .of-pie-confirma > .btn-cayla { flex: 1; }
     [role="dialog"]:has(.of-pie) { scroll-padding-bottom: 12.5rem; }
   }
+  /* ── Pantalla baja (un laptop de 768 px de alto o menos, una ventana partida): todo lo que no es contenido se aprieta, para que al
+     contenido de la fase le quede alto. La hoja sigue con su pie a la vista. ── */
+  @media (min-width: 40rem) and (max-height: 50rem) {
+    .of-fases { margin-bottom: 0.75rem; }
+    .of-fase { min-height: 2.5rem; }
+    .of-q h2 { font-size: 1.5rem; }
+    .of-tipos-caja { margin-top: 0.75rem; }
+    .of-tipo { min-height: 5rem; padding-block: 0.625rem; }
+    .of-escena { gap: 1rem; margin-top: 0.875rem; padding: 1.25rem 1.5rem; }
+    .of-escena > * + * { padding-top: 1rem; }
+  }
 }
+
+/* Sin capa: el monto de la oferta, EN GRANDE. El `<input>` de `CampoMonto` lleva su tamaño en una utilidad de Tailwind (`text-2xl`), que le
+   gana a toda regla de `@layer components`; por eso estas dos van fuera de la capa. Solo dentro de la frase de la hoja de ofertas. */
+.of-frase-grande .caja-campo-alta { min-height: 4.25rem; padding-inline: 1rem; border-radius: 14px; }
+.of-frase-grande .caja-campo-alta > span { font-size: 1.5rem; }
+.of-frase-grande input.of-monto { width: 9.5rem; font-size: 2.25rem; }
+.of-frase-media .caja-campo-alta { min-height: 3.5rem; }
+.of-frase-media input.of-monto-escalon { width: 7rem; font-size: 1.75rem; }
+
+/* Sin capa: las piezas del sistema que la hoja usa, EN GRANDE dentro de ella (Felipe 2026-11-18: «lo demás también tiene que verse
+   grande»). Son las mismas piezas —el botón, la grilla de categorías de la campaña, el campo—; aquí solo crecen, y solo dentro
+   de `.of-wz` y de su pie. Van sin capa porque sus medidas viven en hojas sin capa (`vidrio/`, `campana-hoja.css`). */
+/* Los botones del pie, de 44 px: «Siguiente» es lo que más se toca en la hoja. */
+.of-pie .btn-cayla { height: 2.75rem; padding-inline: 1.25rem; font-size: 0.9375rem; }
+/* «Elegir todas · Quitar todas» y «Otro escalón»: botones con su borde (en plano «parecen solo texto», Felipe 2026-11-18), de 44 px. */
+.of-wz .btn-cayla.btn-secundario { height: auto; min-height: 2.75rem; padding-inline: 1.125rem; font-size: 0.9375rem; }
+/* «Con la cámara»: tan alta como el buscador de al lado. */
+.of-wz .of-agregar-camara { height: auto; min-height: 3.25rem; padding-inline: 1.25rem; font-size: 0.9375rem; white-space: nowrap; }
+/* Las categorías, mejor presentadas (Felipe 2026-11-18): cada familia es una tarjeta con su nombre en letra normal, y cada categoría una
+   píldora de 44 px con su casilla, su nombre y cuántas prendas trae; la marcada se ve de lejos (borde de tinta y fondo hueso). Es la misma
+   grilla de la hoja de la campaña (`CategoriasDeCampana`); aquí solo cambia cómo se ve, y solo dentro de la hoja de una oferta. */
+.of-wz .cph-categorias { gap: 0.75rem; }
+.of-wz .cph-buscador { max-width: none; }
+.of-wz .cph-fam { padding: 0.5rem 0.75rem 0.875rem; border: 1px solid var(--placa-borde); border-radius: 1rem; background: var(--placa-fondo); box-shadow: var(--placa-luz); }
+.of-wz .cph-fam-cab { min-height: 2.75rem; padding-inline: 0.25rem; }
+.of-wz .cph-fam-t { font-size: 1rem; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--color-tinta); }
+.of-wz .cph-fam-t .titulo-grupo-texto::after { display: none; }
+.of-wz .cph-cats { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+.of-wz .cph-cat {
+  display: inline-flex; gap: 0.5rem; max-width: 100%; min-height: 2.75rem; padding: 0 0.875rem 0 0.625rem;
+  border: 1px solid var(--color-borde-control); border-radius: 999px; background: var(--vidrio-claro-fondo);
+  font-size: 0.9375rem; color: var(--color-tinta);
+}
+.of-wz .cph-cat[data-elegida] { border-color: var(--color-tinta); background: var(--vidrio-claro-fondo); box-shadow: inset 0 0 0 1px var(--color-tinta); font-weight: 600; }
+.of-wz .cph-cat-c { font-size: 0.875rem; color: var(--color-taupe); }
+.of-wz .cph-cat-b { display: none; }
+.of-wz .cph-chicas { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.75rem; }
+.of-wz .cph-sinp { padding-top: 0; border-top: 0; }
+.of-wz .cph-sinp > summary { display: list-item; min-height: 2.75rem; padding: 0.625rem 0.25rem; font-size: 0.9375rem; }
+/* En el celular el buscador va a todo lo ancho y la cámara, debajo, también: es lo que más se toca con el teléfono en la mano. */
+@media (max-width: 39.9375rem) {
+  .of-agregar-fila { flex-direction: column; }
+  .of-wz .of-agregar-camara { width: 100%; }
+  /* En el celular, una ficha por fila: de a dos el nombre quedaba en tres letras («Fal…», medido a 375). Más bajas, para que seis no llenen la hoja. */
+  .of-mosaico { grid-template-columns: minmax(0, 1fr); gap: 0.375rem; }
+  .of-ficha-cuerpo { min-height: 3rem; }
+  /* La tecla «Enter» de una sugerencia guarda su lugar aunque no se vea: en el celular, donde nadie da Enter, le quitaba ancho al nombre. */
+  .of-agregar-lista .sugerencia-tecla { display: none; }
+}
+/* Las fechas: la caja del campo, de 48 px con la fecha a 16 px. */
+.of-wz .of-fechas .caja-campo { min-height: 3rem; }
+.of-wz .of-fechas .caja-campo input { font-size: 1rem; }
+/* El nombre de un campo del sistema (Cuánto menos, Desde, Hasta, Nombre), como los demás nombres de la hoja (`.of-lbl`): 16 px, sin versalitas. */
+.of-wz .campo-etiqueta { font-size: 1rem; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--color-tinta); }

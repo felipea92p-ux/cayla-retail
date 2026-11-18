@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FORMA_DE_FABRICA } from "./campana-reglas";
-import { TIPOS_DE_OFERTA, opcionesDeQueLeDas } from "./oferta-que-le-das";
+import { TIPOS_DE_OFERTA, loQueHace, opcionesDeQueLeDas } from "./oferta-que-le-das";
 
 const de = (tipo: keyof typeof FORMA_DE_FABRICA, parche = {}) => ({ ...FORMA_DE_FABRICA[tipo], ...parche });
 
@@ -34,5 +34,34 @@ describe("«Qué le das»: las cinco formas, y el ejemplo es la opción (ADR-067
 
   it("el % nunca se separa de su número (espacio que no se corta)", () => {
     for (const x of opcionesDeQueLeDas(de("pct"), false)) expect(x.glifo).not.toMatch(/ %/);
+  });
+});
+
+/** La línea con espacios comunes: los montos llevan un espacio que no se corta («S/\u00a030»). */
+const dicho = (f: Parameters<typeof loQueHace>[0]) => loQueHace(f).replace(/\u00a0/g, " ");
+
+describe("«Qué le das»: la línea que dice qué hace la forma elegida (Felipe 2026-11-18)", () => {
+  it("cada forma dice lo que la caja cobra, con sus números de ahora", () => {
+    expect(dicho(de("pct", { porcentaje: 35 }))).toBe("Cada prenda baja 35 % en caja.");
+    expect(dicho(de("nxm"))).toBe("De cada 3 prendas, la más barata va gratis.");
+    expect(dicho(de("nxm", { lleva: 5, paga: 3 }))).toBe("De cada 5 prendas, las 2 más baratas van gratis.");
+    expect(dicho(de("n_por_monto"))).toBe("2 prendas juntas cuestan S/ 59.90.");
+    expect(dicho(de("nesima_pct", { lleva: 3, porcentaje: 30 }))).toBe("De cada 3 prendas, la más barata baja 30 %.");
+    expect(dicho(de("monto"))).toBe("Si compra S/ 300 o más, ahorra S/ 30.");
+    expect(dicho(de("monto", { ahorroEn: "pct", escalones: [{ desde: 200, ahorra: 10 }] }))).toBe("Si compra S/ 200 o más, ahorra 10 %.");
+  });
+
+  it("toda forma de fábrica tiene su línea, y una línea cabe en una (12 palabras o menos)", () => {
+    for (const tipo of TIPOS_DE_OFERTA) {
+      const linea = dicho(de(tipo));
+      expect(linea, tipo).not.toBe("");
+      expect(linea.split(" ").length, linea).toBeLessThanOrEqual(12);
+    }
+  });
+
+  it("calla mientras los números no arman una oferta: eso lo dice el error del campo", () => {
+    expect(dicho(de("n_por_monto", { monto: 0 }))).toBe("");
+    expect(dicho(de("nxm", { lleva: 2, paga: 2 }))).toBe("");
+    expect(dicho(de("monto", { escalones: [] }))).toBe("");
   });
 });
