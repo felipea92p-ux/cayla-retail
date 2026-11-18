@@ -6,7 +6,8 @@
   en producción (PR #1898, fusionado el 2026-11-16) y sigue funcionando mientras tanto; la base (cajones) sirve tal cual para la nueva.
   **Felipe eligió el 2026-11-17 (rama `claude/ofertas-pending-branch-11c351`):** cara A · En la lista; las campañas que hoy hacen de
   descuento quedan como campañas (no se migra nada); el mismo % de la tienda y de todas son dos filas; «Regalo» y «Club» salen de la hoja.
-  Lo que falta es construirla (README de la maqueta, «Para construir»).
+  Lo que falta es construirla (README de la maqueta, «Para construir»). **2026-11-18:** los descuentos (actividades 1 a 5) están construidos
+  en esa rama (ADR-0677); lo que queda vive en `docs/backlog/2026-11-18-ofertas-pending-branch-11c351.md`.
 - [x] Pegadas en producción el 2026-11-16, con el OK de Felipe (las 11 funciones idénticas a la copia local por su md5; la tabla con RLS y sin políticas): `20261116182000_rebaja_rapida_por_prenda` y después `20261116183000_buscar_prenda_para_rebaja`
   (va DESPUÉS de las cinco de `claude/ofertas-promociones-casos-689a3b`). Una tabla nueva con RLS sin políticas y funciones nuevas.
 - [ ] Probarlo con una colaboradora en una tienda (la regla «Formidable»: que lo entienda sin explicarle).
