@@ -618,7 +618,9 @@ export function ClientaFichaModal({
                           </Boton>
                         )}
                       </div>
-                      <p className="mt-2.5 text-sm text-tinta/55">
+                      {/* Medida de lectura ≤ 80 letras por línea (/milimetro, /tipografia): el «ch» es el ancho del 0 (~10 px a 15 px), una
+                          letra media ~6,5 px; 48ch ≈ 76 letras. */}
+                      <p className="mt-2.5 max-w-[48ch] text-sm text-tinta/55">
                         Solo el cliente los acepta, desde el cartel o su cuenta en la tienda online. Si te escribe BAJA, regístralo aquí: deja los dos.
                       </p>
                     </div>
