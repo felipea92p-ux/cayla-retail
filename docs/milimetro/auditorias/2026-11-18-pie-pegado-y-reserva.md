@@ -36,4 +36,4 @@ Color, con la raíz en el pie: 0 textos bajo 4.5:1 en claro y en oscuro.
 - Safari y un iPhone real.
 - Con el panel del navegador oculto las transiciones de 0,01 ms no avanzan: una primera pasada de color en oscuro dio contrastes falsos (texto a medio
   cambiar de tema). Se repitió terminando las transiciones pendientes antes de medir, y esas son las cifras de arriba.
-- Los otros 140 archivos que usan `pie-hoja-fijo`: comparten la regla, pero solo se abrieron «Registrar gasto» y «Registrar proveedor».
+- Los otros 139 componentes que usan `pie-hoja-fijo`: comparten la regla, pero solo se abrieron «Registrar gasto» y «Registrar proveedor».
