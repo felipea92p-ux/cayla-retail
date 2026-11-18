@@ -3,14 +3,16 @@
 - [x] Modo `celular` en `/multi-view-responsive`: seis tamaños de teléfono y tablet y un segundo medidor (toque de 44 px, zoom de campos, pegado que no pega, fijo atrapado, barras pegadas).
 - [x] Primera corrida, `vender celular` (parcial; el servidor local corría la rama `claude/campanas-simple`, 56 commits detrás de `main`). Medido: Vender (entrada, catálogo abierto, ticket con una prenda, hoja de cobro), Apartados e Historial (solo su entrada). Sin desbordes ni hojas cortadas en teléfono.
 
-### Lo que encontró esa corrida (ninguno arreglado)
+### Lo que encontró esa corrida
 
-- [ ] **Toque chico en el ticket de Vender** (celular obligatorio): el «%» de descuento de cada línea mide 94 × 27 px (`components/punto-de-venta/LineaDelTicket.tsx:123`). A 360, 375 y 430.
-- [ ] **Toque chico en Apartados** (celular obligatorio): «Opciones» mide 110 × 36 px (`components/apartados/ApartadosPanel.tsx:130`, `h-9`). A 360, 375 y 430.
+- [x] **Toque chico en el ticket de Vender** (celular obligatorio): el «%» de descuento de cada línea mide 94 × 27 px (`components/punto-de-venta/LineaDelTicket.tsx:123`). A 360, 375 y 430.
+- [x] **Toque chico en Apartados** (celular obligatorio): «Opciones» mide 110 × 36 px (`components/apartados/ApartadosPanel.tsx:130`, `h-9`). A 360, 375 y 430.
 - [ ] **Cobro con el teléfono acostado** (844 × 390): el resumen y «Confirmar cobro» quedan fijos y a los pasos les queda una franja de unos 80 px; los medios de pago se ven a medias. Visto en captura, medido como mouse.
-- [ ] **Toque chico en Historial:** el chip «Pendiente de enviar» de una venta mide 151 × 26 px (`components/HistorialVentasLista.tsx`). A 360, 375 y 430.
-- [ ] **Toque chico en la cabecera** (toda pantalla, desde 401 px de ancho): el colibrí que lleva al Inicio mide 39 × 26 px (`components/AppShell.tsx:1221`).
+- [x] **Toque chico en Historial:** el chip «Pendiente de enviar» de una venta mide 151 × 26 px (`components/HistorialVentasLista.tsx`). A 360, 375 y 430.
+- [x] **Toque chico en la cabecera** (toda pantalla, desde 401 px de ancho): el colibrí que lleva al Inicio mide 39 × 26 px (`components/AppShell.tsx:1221`).
 - [ ] Menores: «Volver al ticket» de la hoja de cobro mide 42 × 42; «Dejar en espera» a 360 px queda en un ícono de 38 px de ancho; en Historial la última píldora de período se corta en seco contra «Filtros» y sus áreas se pisan (360 y 430).
+
+- [ ] Los cuatro toques de arriba se arreglaron sumando `area-dedo` a cada control (el colibrí además se dibuja de 44 px). Falta **verlos con el código de esta rama corriendo**: el «después» se comprobó aplicando la misma clase en vivo sobre el servidor local, que corría otra rama.
 
 ### Pendiente del modo celular
 

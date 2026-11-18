@@ -1218,7 +1218,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
               ubicacionEtiqueta={persona.ubicacionEtiqueta}
               mostrarEquipo={persona.ubicacionTipo === "tienda" && !esAparato}
             />
-            <Link href="/" onClick={(e) => entrarAlInstante("/", e)} aria-label="CAYLA, ir al inicio" className="marco-colibri mr-1.5 flex items-center gap-2 sm:hidden">
+            <Link href="/" onClick={(e) => entrarAlInstante("/", e)} aria-label="CAYLA, ir al inicio" className="marco-colibri area-dedo mr-1.5 flex items-center justify-center gap-2 sm:hidden">
               <LogoCayla soloColibri className="h-[26px]" />
             </Link>
           </div>
