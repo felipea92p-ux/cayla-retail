@@ -27,7 +27,7 @@
  * Solo corre contra localhost (las cuentas y claves son del seed local).
  */
 import { chromium } from "playwright";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { porClave } from "../tema/cuentas.mjs";
@@ -61,6 +61,17 @@ const conCapturas = !args["sin-capturas"];
 const idaYVuelta = !!args["ida-y-vuelta"];
 if (conCapturas) mkdirSync(salida, { recursive: true });
 
+/**
+ * Los prefijos de las RPC de solo lectura, leídos de `lib/espera-reglas.ts` (la misma lista que usa el loader global): escritos aquí a
+ * mano se quedaron atrás y una lectura (`ofertas_de_grupo_vigentes`) salía como «ESCRIBIÓ EN LA BASE».
+ */
+const PREFIJOS_LECTURA = (() => {
+  const m = /PREFIJOS_RPC_DE_LECTURA = \[([^\]]+)\]/.exec(readFileSync(join(AQUI, "..", "lib", "espera-reglas.ts"), "utf8"));
+  const prefijos = m ? [...m[1].matchAll(/"([a-z_]+)"/g)].map((x) => x[1]) : [];
+  if (!prefijos.length) throw new Error("No encontré PREFIJOS_RPC_DE_LECTURA en lib/espera-reglas.ts: el recorredor no sabría qué RPC solo leen.");
+  return prefijos;
+})();
+
 /** ¿Esta petición escribe en la base? Lectura = GET/HEAD, o una RPC con prefijo de lectura (lib/espera-reglas.ts). */
 function escribe(req) {
   const url = new URL(req.url());
@@ -71,7 +82,7 @@ function escribe(req) {
   if (rpc) {
     const fn = rpc[1];
     if (fn === "marcar_guia_vista") return false; // la guía anotando que se vio: es lo único que la demo escribe
-    return !/^(fn_|previsualizar_|campanas_|resumen_|buscar_|get_)/.test(fn);
+    return !PREFIJOS_LECTURA.some((p) => fn.startsWith(p));
   }
   return true;
 }
