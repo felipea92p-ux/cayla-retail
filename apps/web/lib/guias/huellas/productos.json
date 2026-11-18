@@ -156,13 +156,13 @@
       "button «{`${celda.nombre}»"
     ],
     "components/vista-rapida/VistaRapidaProducto.tsx": [
+      "Link «{titulo(\"Editar\")}»",
+      "Link «{titulo(\"Rótulo\")}»",
+      "button «{soloIcono ? undefined : \"vista-rapida.historial\"}»",
+      "Link «{titulo(\"Ver en Existencias\")}»",
       "button «→onCambiarEstado»",
       "button «vista-rapida.fusionar»",
-      "button «Eliminar»",
-      "Link «Editar»",
-      "Link «Rótulo»",
-      "button «vista-rapida.historial»",
-      "BotonVer «Ver en Existencias»"
+      "button «Eliminar»"
     ]
   }
 }

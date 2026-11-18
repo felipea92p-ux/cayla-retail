@@ -11,6 +11,7 @@ import { veActividad } from "@/lib/actividad-reglas";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
 import { esGrupoMenu as esGrupo, hermanosDe, hojasDe, menuPara, modulosDeLasHojas, nombreCorto, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
 import type { ClaveModulo } from "@/lib/modulos";
+import type { GuiaEnIndice } from "@/lib/guias/tipos";
 import { TRAZOS_MENU } from "@/lib/menu-iconos";
 import { MotorGuias } from "@/components/guias/MotorGuias";
 import { BotonDemo } from "@/components/guias/BotonDemo";
@@ -139,6 +140,8 @@ type Persona = {
   modulos?: readonly ClaveModulo[];
 };
 
+const SIN_GUIAS: readonly GuiaEnIndice[] = [];
+
 type Props = {
   persona: Persona;
   /** Solo se usa si `persona.puedeCambiarUbicacion` — un integrante nunca ve
@@ -153,6 +156,8 @@ type Props = {
   asistenteEncendido?: boolean;
   /** Estado inicial del lateral, leído de la cookie en el servidor (sin parpadeo al cargar). */
   lateralPlegado?: boolean;
+  /** El índice de las guías interactivas, sin sus pasos (`indiceDeGuias`, ADR-0674 act. h): el texto de todas baja recién al correr una demo. */
+  guias?: readonly GuiaEnIndice[];
   children: React.ReactNode;
 };
 
@@ -672,7 +677,7 @@ function conTopeDeAncho(pathname: string): boolean {
   return pathname === "/" || CON_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 }
 
-export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWebPorConfirmar, asistenteEncendido = false, lateralPlegado = false, children }: Props) {
+export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWebPorConfirmar, asistenteEncendido = false, lateralPlegado = false, guias = SIN_GUIAS, children }: Props) {
   const pathname = usePathname();
   const [perfilAbierto, setPerfilAbierto] = useState(false);
   // «Demo» de Mi perfil (ADR-0389): el selector de guías interactivas.
@@ -1137,7 +1142,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
         />
       )}
       {aparienciaAbierta && <HojaApariencia onClose={() => setAparienciaAbierta(false)} alCerrarEnfocar={filaApariencia} />}
-      {demoAbierto && <ElegirDemoModal filas={menu.riel} onClose={() => setDemoAbierto(false)} />}
+      {demoAbierto && <ElegirDemoModal filas={menu.riel} guias={guias} onClose={() => setDemoAbierto(false)} />}
 
       {/* Etiqueta de una fila plegada. Fuera del <aside> a propósito: el aside recorta (`overflow-hidden`)
           y una etiqueta que se corta a mitad de palabra es peor que ninguna. */}
@@ -1287,8 +1292,8 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
           persona»: la persona, o la cuenta de la terminal (la base afina con la responsable de turno). */}
       <Suspense fallback={null}>
         {/* «Pregúntale a CAYLA» acompaña una tarea paso a paso con la barra de abajo (ADR-0536, act. 2026-10-27). */}
-        {asistenteEncendido ? <Acompanante /> : null}
-        <MotorGuias quien={persona.personaId ?? (esAparato ? `terminal:${persona.ubicacionId}` : "cuenta")} entradas={pantallasBuscables.map((h) => h.href)} />
+        {asistenteEncendido ? <Acompanante guias={guias} /> : null}
+        <MotorGuias quien={persona.personaId ?? (esAparato ? `terminal:${persona.ubicacionId}` : "cuenta")} entradas={pantallasBuscables.map((h) => h.href)} guias={guias} />
       </Suspense>
     </div>
   );

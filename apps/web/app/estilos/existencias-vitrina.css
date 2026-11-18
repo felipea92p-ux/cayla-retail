@@ -58,6 +58,12 @@
   outline: 2px solid var(--color-tinta);
   outline-offset: 2px;
 }
+/* Con su menú «Más» abierto, la tarjeta va sobre sus vecinas: cuando el menú abre hacia ABAJO (no cabía arriba, `PieTarjeta`) cae
+   encima de la tarjeta siguiente, y con el mouse encima esta tarjeta lleva `transform` (su propia capa), así que sin esto la de
+   abajo se pintaba sobre el menú. */
+.tarjeta-vitrina:has([role="menu"]) {
+  z-index: 2;
+}
 
 /* El filo de estado: 3 px en el canto izquierdo dicen desde lejos qué tarjetas piden algo (rojo = se acabó una talla, ámbar = falta
    colgar). Repite lo que ya dicen la tira y el pie: es para ver la rejilla de una mirada, no reemplaza a ninguno. */

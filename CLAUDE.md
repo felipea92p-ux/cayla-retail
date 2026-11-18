@@ -170,7 +170,7 @@ efecto del sistema: velo con desenfoque → hoja que sube 18 px y crece → cont
 `@media (hover: hover)` (en el teléfono se queda pegado tras un toque; el `hover:` de Tailwind ya lo hace solo): lo vigila `lib/hover-con-mouse.test.ts`. No definas otra animación de entrada de modal ni reimplementes el overlay
 (`fixed inset-0`): si una pieza no debe entrar en cascada, `data-sin-cascada`. Lo único que un modal agrega por su cuenta
 son respuestas a una acción dentro del contenido (barra que se llena, cifra que cuenta, «visto» que se dibuja) con
-`--ease-cayla`, 200–500 ms, **sin rebote, nunca decorativo, nunca en bucle** (únicas excepciones, todas señales y no adorno: el punto que late en el chip «Vencida» y, con ese mismo latido, el del número de cada pendiente en la cabecera de Productos (`PendienteDeCabecera`, ADR-0136 act. 2026-11-17: solo con las animaciones encendidas; quieto avisa el número), el hilo que barre el botón mientras la base responde (antes, su giro; ronda 12 de `/unificar`), ADR-0136 act. c (las rayas del círculo de lo opcional salieron el 2026-11-05); y, solo en la persiana de «Caja cerrada» de Vender, el
+`--ease-cayla`, 200–500 ms, **sin rebote, nunca decorativo, nunca en bucle** (únicas excepciones, todas señales y no adorno: el punto que late en el chip «Vencida» y, con ese mismo latido, el del número de cada pendiente en la cabecera de Productos y del aviso de Existencias en el celular (`PendienteDeCabecera`, ADR-0136 act. 2026-11-17 y (b): solo con las animaciones encendidas; quieto avisa el número), el hilo que barre el botón mientras la base responde (antes, su giro; ronda 12 de `/unificar`), ADR-0136 act. c (las rayas del círculo de lo opcional salieron el 2026-11-05); y, solo en la persiana de «Caja cerrada» de Vender, el
 cartel que se mece al colgarse y sus bucles suaves, ADR-0136 act. d / ADR-0301; y, en el Observatorio del Admin, el latido de una
 tienda con caja abierta, el cometa de un traslado en camino y el halo de un aviso urgente, ADR-0322; y la **vista rápida de producto** de
 Catálogo ▸ Productos, la única hoja con movimiento rico por decisión de Felipe —ola de celdas, cruz, foto que cruza—, y su página
@@ -669,6 +669,8 @@ un cambio visual o se cree una nueva pantalla o se quiera auditar las pantallas 
 - **El PR lo dice:** su casilla «pasó por `/milimetro`» (o «Al milímetro no aplica», con el motivo). El check **«Al milímetro»**
   (`.github/workflows/al-milimetro.yml`, `scripts/milimetro/casilla.mjs`) sale rojo si un PR cambia un `.tsx` de `apps/web/components/`
   o `apps/web/app/`, o un `.css` de `apps/web/app/`, sin marcar ninguna. La tienda (`apps/tienda`) queda fuera: tiene su identidad (ADR-0616).
+- **La auditoría queda solo en su informe** (`docs/milimetro/auditorias/AAAA-MM-DD-<tema>.md`, con su título y su línea `Resumen:`), sin fila
+  en `docs/milimetro/README.md`: el CI la rechaza (ADR-0259, act. 2026-11-17). El tablero se arma solo: `pnpm milimetro:auditorias`.
 - **Va antes que las demás de interfaz y no las reemplaza:** primero `/milimetro` (la medida y el porqué), después `/formidable` (se
   entiende en 5 s), `/focus`, `/sugerir`, `/guia` y `/chaos` según lo que toque. Lo que una skill de afuera sugiera pasa por aquí.
 

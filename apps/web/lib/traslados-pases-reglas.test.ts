@@ -15,6 +15,7 @@ import {
   nombreDelPase,
   pasesPorPestana,
   paseInicial,
+  primeroPorHacer,
   vecinosEnPestana,
   pestanaDelPase,
   progresoDelViaje,
@@ -245,6 +246,15 @@ describe("paseInicial y vecinos", () => {
     expect(paseInicial({ llegan: [p("a")], envias: [p("c", true)], terminadas: [] })?.id).toBe("c");
     expect(paseInicial({ llegan: [], envias: [], terminadas: [p("z")] })?.id).toBe("z");
     expect(paseInicial({ llegan: [], envias: [], terminadas: [] })).toBeNull();
+  });
+  it("lo primero que te toca: lo que llega, después lo que te piden; nunca una caja sin nada por hacer", () => {
+    expect(primeroPorHacer({ llegan: [p("a"), p("b", true)], envias: [p("c", true)], terminadas: [] })?.id).toBe("b");
+    expect(primeroPorHacer({ llegan: [p("a")], envias: [p("c"), p("d", true)], terminadas: [] })?.id).toBe("d");
+    // Sin nada por hacer no hay a dónde llevar: el anillo queda como dibujo. `paseInicial` sí abre la primera caja.
+    expect(primeroPorHacer({ llegan: [p("a")], envias: [p("c")], terminadas: [p("z")] })).toBeNull();
+    expect(paseInicial({ llegan: [p("a")], envias: [p("c")], terminadas: [p("z")] })?.id).toBe("a");
+    // Una terminada nunca «te toca», aunque viniera marcada.
+    expect(primeroPorHacer({ llegan: [], envias: [], terminadas: [p("z", true)] })).toBeNull();
   });
   it("anterior y siguiente dentro de la pestaña", () => {
     const l = [p("a"), p("b"), p("c")];

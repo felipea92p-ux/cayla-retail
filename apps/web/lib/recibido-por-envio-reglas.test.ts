@@ -12,7 +12,7 @@ import {
   nombreSinEnvio,
   prendasDelEnvio,
   prendasDistintas,
-  sigueAbierto,
+  soloTerminados,
   textoTermino,
 } from "./recibido-por-envio-reglas";
 
@@ -111,24 +111,23 @@ describe("lo que dice la fila", () => {
   });
 });
 
-describe("sigueAbierto y textoTermino", () => {
+describe("soloTerminados y textoTermino", () => {
   const llego = "2026-11-11T22:19:00Z";
   const [envio] = agruparPorEnvio([
     lote({ loteId: "a", despachoId: "d21", envioNumero: "ENV-000021", llegoEn: llego, fecha: "2026-11-11T23:01:00Z" }),
     lote({ loteId: "b", despachoId: "d21", envioNumero: "ENV-000021", llegoEn: llego, fecha: "2026-11-12T14:23:00Z" }),
   ]);
   const [sinEnvio] = agruparPorEnvio([lote({ loteId: "l9" })]);
-  it("un envío abierto no dice «terminó»", () => {
-    expect(sigueAbierto(envio, new Set(["d21"]))).toBe(true);
-    expect(textoTermino(envio, new Set(["d21"]))).toBeNull();
+  it("un envío que se sigue recibiendo (o quedó por terminar) no sale en «Terminados»: su fila está arriba", () => {
+    expect(soloTerminados([envio, sinEnvio], new Set(["d21"]))).toEqual([sinEnvio]);
   });
-  it("ya cerrado, dice el día en que terminó si no fue el de llegada", () => {
-    expect(sigueAbierto(envio, new Set())).toBe(false);
-    expect(textoTermino(envio, new Set())).toBe("terminó 12/11");
+  it("ya terminado, sale; y dice el día en que terminó si no fue el de llegada", () => {
+    expect(soloTerminados([envio, sinEnvio], new Set())).toEqual([envio, sinEnvio]);
+    expect(textoTermino(envio)).toBe("terminó 12/11");
     const [mismo] = agruparPorEnvio([lote({ loteId: "c", despachoId: "d2", envioNumero: "ENV-000002", llegoEn: llego, fecha: "2026-11-11T23:30:00Z" })]);
-    expect(textoTermino(mismo, new Set())).toBeNull();
+    expect(textoTermino(mismo)).toBeNull();
   });
-  it("una llegada sin envío nunca «sigue abierta», aunque su lote coincida", () => {
-    expect(sigueAbierto(sinEnvio, new Set(["l9"]))).toBe(false);
+  it("una llegada sin envío siempre está terminada, aunque su lote coincida con un envío sin terminar", () => {
+    expect(soloTerminados([sinEnvio], new Set(["l9"]))).toEqual([sinEnvio]);
   });
 });

@@ -28,25 +28,24 @@ export function coincideConBusqueda(textoBuscable: string, busqueda: string): bo
 
 export type FilaPorRecibir = { tipo: "envio"; envio: EnvioPorAbrir } | { tipo: "orden"; orden: OrdenDirecta };
 
-/** Cuándo salió un envío, en milisegundos; `Infinity` si no se sabe (la base no lo mandó o no se lee): sin fecha va AL FINAL de su grupo, nunca
- *  al principio como «el más antiguo». Una orden sin guía no tiene envío todavía. */
-function salioEn(f: FilaPorRecibir): number {
-  if (f.tipo !== "envio" || !f.envio.despachadoEn) return Infinity;
+/** Cuándo salió un envío, en milisegundos; `null` si no se sabe (la base no lo mandó o no se lee) o si todavía no salió (una orden sin guía
+ *  no tiene envío): sin fecha va AL FINAL de la lista, nunca arriba como «el más nuevo». */
+function salioEn(f: FilaPorRecibir): number | null {
+  if (f.tipo !== "envio" || !f.envio.despachadoEn) return null;
   const t = Date.parse(f.envio.despachadoEn);
-  return Number.isNaN(t) ? Infinity : t;
+  return Number.isNaN(t) ? null : t;
 }
 
-/** El orden de la lista de envíos por recibir, en una sola lista: primero lo que hay que SEGUIR recibiendo (abiertos por alguien y que esta
- *  cuenta puede continuar), después los envíos en camino, después las órdenes sin guía, y AL ÚLTIMO lo que esta cuenta no puede recibir
- *  (hizo la orden). Dentro de cada grupo, del más antiguo al más nuevo según la fecha en que salió el envío (lo que lleva más tiempo en
- *  camino se atiende primero); a igual fecha —o sin ella, como las órdenes sin guía— queda el orden en que llegó de la base (por número). */
+/** El orden de la lista de envíos por recibir (Felipe 2026-11-17: «los últimos envíos deben estar arriba que los antiguos»): UNA sola lista,
+ *  del envío que salió más recientemente al más antiguo, sin grupos. Hasta ese día iba por grupos (lo abierto, lo que va en camino, las
+ *  órdenes sin guía y, al fondo, lo que esta cuenta no puede recibir) y, dentro de cada uno, del más antiguo al más nuevo: un envío de hoy
+ *  quedaba debajo de uno abierto hace ocho días. Lo que no tiene fecha (una orden sin guía, o un envío cuya fecha la base no mandó) va AL
+ *  FINAL; a igual fecha —o sin ella— queda el orden en que llegó de la base (por número). Lo que esta cuenta no puede recibir (hizo la
+ *  orden) ya no se manda al fondo: su fila lo dice. */
 export function ordenarFilasPorRecibir(envios: readonly EnvioPorAbrir[], ordenes: readonly OrdenDirecta[]): FilaPorRecibir[] {
-  const filas: { fila: FilaPorRecibir; rango: number }[] = [
-    ...envios.map((envio) => ({ fila: { tipo: "envio" as const, envio }, rango: envio.creadoPorMi ? 3 : envio.estado === "abierto" ? 0 : 1 })),
-    ...ordenes.map((orden) => ({ fila: { tipo: "orden" as const, orden }, rango: orden.creadaPorMi ? 4 : 2 })),
-  ];
+  const filas: FilaPorRecibir[] = [...envios.map((envio) => ({ tipo: "envio" as const, envio })), ...ordenes.map((orden) => ({ tipo: "orden" as const, orden }))];
   return filas
-    .map((f, i) => ({ ...f, i, t: salioEn(f.fila) }))
-    .sort((a, b) => a.rango - b.rango || (a.t === b.t ? 0 : a.t < b.t ? -1 : 1) || a.i - b.i)
+    .map((fila, i) => ({ fila, i, t: salioEn(fila) }))
+    .sort((a, b) => (a.t === b.t ? 0 : a.t === null ? 1 : b.t === null ? -1 : b.t - a.t) || a.i - b.i)
     .map((f) => f.fila);
 }

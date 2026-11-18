@@ -156,6 +156,14 @@
   background: var(--hundido-fondo);
   box-shadow: var(--hundido-sombra);
 }
+/* Lo mismo para la cifra que FILTRA y está puesta (`<TarjetaCifra activa>`, `data-puesta`): en una pantalla se hunde
+   (`vidrio/pantalla.css`), pero la lámina de arriba tiene su misma fuerza y, cargada después, la dejaba igual que las demás. Solo lo decía el
+   lector de pantalla (auditoría /milimetro del «Resumen» de Marcas, 2026-11-17; WCAG 1.4.1). */
+:is(.hoja-serena, .cajon-serena) .tarjeta-cifra[data-puesta] {
+  border-color: var(--hundido-borde);
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
+}
 /* Lo que era hueso, papel o crema SÓLIDO dentro de una hoja o un cajón (una nota, un resumen, una caja con borde, la pista de una barra): la
    placa de vidrio, en UN solo lugar y no pantalla por pantalla (Felipe 2026-11-02: «muchos módulos tienen el mismo problema»; son ~150
    archivos con hoja). Mismo modelo que `.pantalla-en-vidrio .bg-hueso`. Se quedan opacos a propósito: lo que flota o se pega (`sticky`, `fixed`,

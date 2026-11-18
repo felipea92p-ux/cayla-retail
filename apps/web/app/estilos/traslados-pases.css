@@ -91,6 +91,9 @@
 .tp-anillo .tp-anillo-fondo { stroke: var(--color-hueso); }
 .tp-anillo .tp-anillo-valor { stroke: var(--color-verde); stroke-linecap: round; stroke-dasharray: 125.7; stroke-dashoffset: 125.7; transition: stroke-dashoffset 1.1s 0.3s var(--ease-cayla); }
 .tp-anillo[data-go] .tp-anillo-valor { stroke-dashoffset: calc(125.7 * (1 - var(--tp-fraccion, 0))); }
+/* Lo de hoy y el buscador van juntos. Desde 640 px, uno sobre otro con el mismo aire de la billetera, y el anillo chico no se dibuja. */
+.tp-dia-busca { display: grid; gap: 14px; }
+.tp-dia > .tp-dia-chico { display: none; }
 
 .tp-pestanas { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--color-hueso); border-radius: 13px; padding: 4px; }
 .tp-pestanas-ind { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 10px; background: var(--color-papel); box-shadow: 0 4px 12px -8px color-mix(in srgb, var(--color-sombra) 45%, transparent); transform: translateX(calc(var(--tp-k, 0) * 100%)); transition: transform 0.45s var(--ease-cayla); }
@@ -462,6 +465,27 @@
 }
 .tp-anillo .tp-anillo-fondo,
 .tp-aro .tp-aro-fondo { stroke: var(--tubo-anillo); }
+
+/* ── Lo de hoy en el celular (Felipe 2026-11-17): la tarjeta se pliega al anillo chico, a la derecha del buscador, como el «N de M hoy» de
+   Existencias (`AnilloMision`). La placa de arriba se apaga y la píldora la dibuja la pieza de adentro (`.tp-dia-chico`, con las mismas
+   utilidades que allá: 40 px, crema, línea arena): corre con la página y no se desenfoca (ADR-0623). Si algo te toca es un enlace a esa
+   caja; al día, un dibujo. Bajo 640 px, el mismo corte de los botones de la cabecera (`max-sm`). ── */
+@media (max-width: 639.98px) {
+  .tp-dia-busca { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+  .tp-dia {
+    order: 1;
+    padding: 0;
+    gap: 0;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+  .tp-dia > .tp-anillo { display: none; }
+  .tp-dia > .tp-dia-chico { display: inline-flex; }
+}
 
 /* ── El reverso: el mismo material. Lo que explica es placa; lo que espera tu dato, pozo; la opción elegida, gota ── */
 .tp-reverso-pie {

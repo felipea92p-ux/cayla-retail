@@ -47,6 +47,14 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "En el celular, los números de la tienda están aquí: cuántas prendas hay colgadas, guardadas y en camino, y el valor a costo. Toca «Colgadas» o «Guardadas» y la lista deja solo esas prendas.",
     },
     {
+      // Solo en el celular (bajo 640 px): en la computadora el aviso es la franja sobre las tarjetas (el paso «aviso-cuadre»).
+      id: "avisos",
+      ancla: "existencias.avisos",
+      opcional: true,
+      titulo: "Avisos de la tienda",
+      texto: "En el celular, este ícono aparece cuando hay algo que saber antes de fiarte de los números: hoy, que el piso nunca se cuadró. Tócalo y se abre el aviso con su explicación y «Cuadrar el piso». Sin avisos, el ícono no está.",
+    },
+    {
       id: "buscador",
       ancla: "existencias.buscador",
       opcional: true,
@@ -83,7 +91,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.filtros",
       opcional: true,
       titulo: "Filtros y vista",
-      texto: "Aquí se abren los filtros y la forma de ver la lista. El número en la esquina dice cuántos filtros tienes puestos (te lo abrimos).",
+      texto: "Aquí se abren los filtros y la forma de ver la lista. Cuando hay filtros puestos, el botón lo marca: con su número o, en el celular, con un punto (te lo abrimos).",
     },
     {
       id: "panel-filtros",
@@ -1287,7 +1295,7 @@ export const GUIA_TRASLADOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Lo de hoy",
-      texto: "El anillo se llena a medida que atiendes las cajas del día. Si dice «Nada pendiente hoy», no hay ninguna caja esperándote.",
+      texto: "El anillo se llena a medida que atiendes las cajas del día. Con «Nada pendiente hoy» o, en el celular, un visto (✓), no hay ninguna caja esperándote. En el celular, un número dice cuántas te tocan: tócalo y te lleva a la primera.",
     },
     {
       id: "buscador",
@@ -1555,7 +1563,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.envios-oc",
       opcional: true,
       titulo: "Lo que viene de una orden de compra",
-      texto: "Lo que Compras mandó a tu sede, con el día en que salió cada envío. Primero lo que ya empezaste y luego lo que va en camino; dentro de cada grupo, lo más antiguo arriba. «Recibir» abre lo que trae; ahí empiezas a recibir. Cada orden sin guía va con «Llegó esta orden». Si hiciste la orden, la recibe otra persona.",
+      texto: "Lo que Compras mandó a tu sede, con el día en que salió cada envío: lo más nuevo, arriba. «Recibir» abre lo que trae; ahí empiezas a recibir. Cada orden sin guía va con «Llegó esta orden», al final. Si hiciste la orden, la recibe otra persona.",
     },
     {
       // Los filtros viven en el navegador y no cambian nada de la base: el piloto no necesita abrirlos, solo se explican.
@@ -1563,15 +1571,54 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.envios-filtros",
       opcional: true,
       titulo: "Hallar un envío entre muchos",
-      texto: "Escribe un número, una guía o un proveedor, o usa las píldoras: «Estado» (abierto, por abrir —en camino o sin guía— o los que no puedes abrir tú), «Proveedor» y «Fechas», el día en que salió el envío («Hace más de una semana» muestra lo que tarda en llegar). «Limpiar todo» los quita.",
+      // En el celular (y con la columna angosta) las tres píldoras son solo su ícono mientras no tienen nada puesto: el texto lo dice.
+      texto: "Escribe un número, una guía o un proveedor, o usa las píldoras (en el celular, tres íconos): «Estado» (abierto, por abrir —en camino o sin guía— o los que no puedes abrir tú), «Proveedor» y «Fechas», el día en que salió el envío («Hace más de una semana» muestra lo que tarda en llegar). «Limpiar todo» los quita.",
     },
     {
-      // ADR-0393 (decisión 4): sale solo si lo recibido en la sede tiene algo por terminar.
-      id: "pendientes",
-      ancla: "recibir.pendientes",
+      // La tarjeta única (Felipe 2026-11-17, propuesta «C · Índice»): lo que falta recibir, lo que quedó por terminar y lo terminado, cada envío
+      // una sola vez. Los pasos de «envios-oc» y «Lo recibido» de más abajo son de la cara anterior, que sale si la base no cuenta primero.
+      id: "envios",
+      ancla: "recibir.envios",
       opcional: true,
-      titulo: "Lo recibido por terminar",
-      texto: "El resumen: prendas que ya se contaron y están en el almacén, pero no en el sistema (falta separarlas, ponerles tallas o crearlas). Si lo más antiguo pasa de una semana, el aviso cambia de color. Cada envío está más abajo, en «Lo recibido».",
+      titulo: "Los envíos de tu sede",
+      texto: "Todo lo que viene a tu sede y lo que ya llegó, lo más nuevo arriba. Cada envío sale una sola vez, con su estado.",
+    },
+    {
+      id: "envios-vista",
+      ancla: "recibir.envios-vista",
+      opcional: true,
+      titulo: "Por recibir, terminados o todos",
+      texto: "Elige qué ver: lo que falta recibir, lo que ya terminó o todo junto. El número dice cuántos hay en cada uno.",
+    },
+    {
+      // Busca en el navegador, sin tocar la base: el piloto no escribe, solo se explica.
+      id: "envios-buscar",
+      ancla: "recibir.envios-buscar",
+      opcional: true,
+      titulo: "Hallar un envío entre muchos",
+      texto: "Escribe su número, la guía, el proveedor, la marca o la orden de compra, y la lista se queda con lo que coincide.",
+    },
+    {
+      id: "envios-estado",
+      ancla: "recibir.envios-estado",
+      opcional: true,
+      titulo: "En qué va cada uno",
+      texto: "«En camino»: nadie lo abrió. «Contando»: se está recibiendo. «Por terminar»: ya se contó y falta separar por color, poner tallas o crear la prenda. Toca «Estado» o «Desde» para ordenar o ver solo algunos.",
+    },
+    {
+      id: "envios-recibido",
+      ancla: "recibir.envios-recibido",
+      opcional: true,
+      titulo: "Cuánto se recibió",
+      texto: "En verde, lo que ya está en el stock; en gris, lo contado que todavía no entra. La fecha en ámbar avisa que lleva días sin terminar.",
+    },
+    {
+      // «Recibir», «Seguir recibiendo» y «Terminar» abren una hoja que guarda o llevan a otra pantalla: se explican sin tocarlos.
+      id: "envios-fila",
+      ancla: "recibir.envios-fila",
+      opcional: true,
+      titulo: "Cada envío",
+      texto: "Arriba, sus marcas; debajo, su código y su proveedor («Proveedores varios» si llegó de más de uno). Su botón dice lo que toca: «Recibir», «Seguir recibiendo» o «Terminar». Si hiciste la orden, la recibe otra persona.",
     },
     {
       // ADR-0393: con la base al día, la puerta es «Llegó sin aviso» (reemplaza a «Llegó mercadería»).
@@ -1658,7 +1705,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.reciente",
       opcional: true,
       titulo: "Cada llegada",
-      texto: "Cada fila es un envío: arriba sus marcas (las que más trajeron) y debajo de quién llegó. La barrita reparte las unidades por marca, y «Sin marca» en ámbar falta completarla en Catálogo. «Sigue abierto»: ya entró una parte y lo demás se recibe arriba. Tócala para ver qué trajo.",
+      texto: "Cada fila es un envío que ya terminó: arriba sus marcas (las que más trajeron) y debajo de quién llegó. La barrita reparte las unidades por marca, y «Sin marca» en ámbar falta completarla en Catálogo. Lo que se sigue recibiendo está arriba, en su envío. Tócala para ver qué trajo.",
     },
     {
       id: "detalle",
@@ -1669,10 +1716,30 @@ export const GUIA_RECIBIR: Guia = {
       texto: "Arriba, de qué marcas llegó (toca una para ir a sus prendas). Debajo, cada prenda agrupada por su marca con cuántas llegaron, y la nota si la hubo.",
     },
     {
+      id: "envios-terminados",
+      ancla: "recibir.envios-terminados",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "recibir.envios-terminados" }],
+      titulo: "Lo terminado",
+      texto: "Lo que ya terminó de recibirse, lo más nuevo arriba. Un envío que se sigue recibiendo no sale aquí: está en «Por recibir».",
+    },
+    {
+      id: "envios-detalle",
+      ancla: "recibir.detalle",
+      opcional: true,
+      preparar: [
+        { tipo: "clic", ancla: "recibir.envios-terminados", siEsta: true },
+        { tipo: "clic", ancla: "recibir.envios-fila" },
+      ],
+      titulo: "Lo que trajo un envío",
+      texto: "Toca un envío terminado para ver de qué marcas llegó y cada prenda, con cuántas entraron.",
+    },
+    {
       id: "desplegar",
       ancla: "recibir.desplegar",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "recibir.reciente" }],
+      // En la tarjeta única la hoja ya quedó abierta en el paso de arriba; en la cara anterior, la abre la fila de «Terminados».
+      preparar: [{ tipo: "clic", ancla: "recibir.reciente", siEsta: true }],
       titulo: "Ver por color y talla",
       texto: "Toca una prenda del envío para ver cuántas contaste de cada color y talla, y el costo con el que entró. Vuelve a tocarla para cerrarla.",
     },
