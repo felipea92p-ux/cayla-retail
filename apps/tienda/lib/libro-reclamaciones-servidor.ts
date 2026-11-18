@@ -3,7 +3,20 @@ import { cacheLife } from "next/cache";
 import { cache } from "react";
 import { leerConRespaldo } from "./base";
 import { db, lecturaCompartida } from "./compartido-servidor";
-import { leerHoja, leerProveedor, leerRegistro, PROVEEDOR_DE_RESPALDO, type DatosProveedor, type Hoja, type ResultadoHoja } from "./libro-reclamaciones";
+import { enviarCorreo } from "./correo-servidor";
+import {
+  correoDeLaHoja,
+  enlaceDeLaHoja,
+  leerCopias,
+  leerHoja,
+  leerProveedor,
+  leerRegistro,
+  PROVEEDOR_DE_RESPALDO,
+  type CopiaPorMandar,
+  type DatosProveedor,
+  type Hoja,
+  type ResultadoHoja,
+} from "./libro-reclamaciones";
 
 // El Libro de Reclamaciones en la base (ADR-0679), solo por sus tres `retail.tienda_*` (20261118145000). Si la base no responde, cada
 // lectura lo dice y la página se degrada (principio 9): el formulario se muestra igual y lo escrito no se pierde. En los registros del
@@ -69,3 +82,53 @@ export const leerHojaEnBase = (id: string, marca: string): Promise<LecturaHoja> 
     },
     { estado: "sin_respuesta" },
   );
+
+// ---------- La copia al correo (PARTE 2, 20261118150000) ----------
+
+/** Toma hasta `limite` copias pendientes (o solo la de `id`). null si la base no responde. */
+const reclamarCopias = (limite: number, id: string | null): Promise<CopiaPorMandar[] | null> =>
+  leerConRespaldo<CopiaPorMandar[] | null>(
+    "tienda_libro_copias_reclamar_fallo",
+    async (db) => {
+      const [fila] = await db`select retail.tienda_libro_copias_reclamar(${limite}::integer, ${id}::uuid) as r`;
+      return leerCopias(fila?.r);
+    },
+    null,
+  );
+
+const marcarCopiaEnviada = (id: string): Promise<boolean> =>
+  leerConRespaldo<boolean>(
+    "tienda_libro_copia_enviada_fallo",
+    async (db) => {
+      await db`select retail.tienda_libro_copia_enviada(${id}::uuid)`;
+      return true;
+    },
+    false,
+  );
+
+export type VueltaDeCopias = { tomadas: number; enviadas: number; fallidas: number; sinConfigurar: boolean } | null;
+
+/**
+ * Manda las copias pendientes: toma de la base, manda cada una y marca las que salieron. Lo que falla queda pendiente para la vuelta
+ * siguiente (la base cuenta los intentos, hasta 5). `origen`: la dirección de la tienda, para el enlace a la constancia. `id`: solo esa
+ * hoja (la acción que la acaba de guardar). null si la base no responde.
+ */
+export async function mandarCopias(origen: string, { limite = 20, id = null }: { limite?: number; id?: string | null } = {}): Promise<VueltaDeCopias> {
+  const copias = await reclamarCopias(limite, id);
+  if (copias === null) return null;
+  let enviadas = 0;
+  let fallidas = 0;
+  let sinConfigurar = false;
+  for (const c of copias) {
+    const correo = correoDeLaHoja(c.hoja, enlaceDeLaHoja(origen, c.hoja.id, c.marca));
+    const r = await enviarCorreo({ para: c.hoja.consumidor.correo, ...correo });
+    if (r === "enviado" && (await marcarCopiaEnviada(c.hoja.id))) enviadas++;
+    else {
+      fallidas++;
+      if (r === "sin_configurar") sinConfigurar = true;
+      // Con su quinto intento ya no vuelve a salir: queda para revisarla a mano (solo su número, nunca sus datos).
+      if (c.intentos >= 5) console.error(JSON.stringify({ evento: "tienda_libro_copia_sin_enviar", codigo: c.hoja.codigo }));
+    }
+  }
+  return { tomadas: copias.length, enviadas, fallidas, sinConfigurar };
+}

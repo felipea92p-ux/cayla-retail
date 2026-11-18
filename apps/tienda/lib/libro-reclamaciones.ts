@@ -98,6 +98,10 @@ export const QUE_ES: Record<TipoHoja, string> = {
   queja: "No estás conforme con la atención, pero no es sobre el producto o el servicio.",
 };
 
+/** «Reclamo (no estás conforme con el producto o el servicio)»: el tipo con lo que significa, en la constancia y en el correo. */
+export const tipoConSuSentido = (tipo: TipoHoja) =>
+  `${tipo === "reclamo" ? "Reclamo" : "Queja"} (${QUE_ES[tipo].replace(/\.$/, "").replace(/^./, (l) => l.toLowerCase())})`;
+
 /** El texto como lo guarda la base: sin invisibles, espacios seguidos en uno, sin espacios en las puntas. */
 export function limpiar(texto: string, unaLinea = false): string {
   const t = texto
@@ -276,6 +280,8 @@ const esquemaHoja = z.object({
   tipo: z.enum(["reclamo", "queja"]),
   detalle: z.string(),
   pedido: z.string(),
+  /** Si la copia ya salió al correo (PARTE 2, 20261118150000). Sin el dato, como si no. */
+  copia_enviada: z.boolean().optional().default(false),
 });
 export type Hoja = z.infer<typeof esquemaHoja>;
 
@@ -310,4 +316,108 @@ export const PROVEEDOR_DE_RESPALDO: DatosProveedor = {
 export function leerProveedor(dato: unknown): DatosProveedor {
   const r = z.object({ razon_social: z.string().min(1), ruc: z.string().min(1), domicilio: z.string().min(1) }).safeParse(dato);
   return r.success ? { razonSocial: r.data.razon_social, ruc: r.data.ruc, domicilio: r.data.domicilio } : PROVEEDOR_DE_RESPALDO;
+}
+
+// ---------- La copia al correo (PARTE 2) ----------
+
+/** Una copia por mandar, como la entrega `tienda_libro_copias_reclamar`: la hoja y la marca (para el enlace a su constancia). */
+export type CopiaPorMandar = { hoja: Hoja; marca: string; intentos: number };
+
+/** Las copias de `tienda_libro_copias_reclamar`, o null si la forma no se entiende. Una copia rara se salta (no tumba a las demás). */
+export function leerCopias(dato: unknown): CopiaPorMandar[] | null {
+  const r = z.object({ copias: z.array(z.unknown()) }).safeParse(dato);
+  if (!r.success) return null;
+  return r.data.copias.flatMap((c) => {
+    const x = z.object({ marca: z.string().uuid(), intentos: z.number(), hoja: z.unknown() }).safeParse(c);
+    const hoja = x.success ? leerHoja(x.data.hoja) : null;
+    return x.success && hoja ? [{ hoja, marca: x.data.marca, intentos: x.data.intentos }] : [];
+  });
+}
+
+/** El enlace a la constancia: la dirección de la tienda, el id y la marca. */
+export const enlaceDeLaHoja = (origen: string, id: string, marca: string) =>
+  `${origen.replace(/\/+$/, "")}/libro-de-reclamaciones/hoja/${id}?m=${marca}`;
+
+const escapar = (t: string) =>
+  t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+/** Las filas de la hoja, en el orden de la constancia: [título, valor]. Una sola definición para el texto y el HTML del correo. */
+function filasDeLaHoja(h: Hoja): [string, [string, string][]][] {
+  return [
+    [
+      "Proveedor",
+      [
+        ["Razón social", h.proveedor.razon_social],
+        ["RUC", h.proveedor.ruc],
+        ["Domicilio", h.proveedor.domicilio],
+        ["Tienda", h.tienda ? `${h.tienda.nombre}${h.tienda.direccion ? ` · ${h.tienda.direccion}` : ""}` : "Tienda online"],
+      ],
+    ],
+    [
+      "1. Identificación del consumidor",
+      [
+        ["Nombre", h.consumidor.nombre],
+        [NOMBRE_DOCUMENTO[h.consumidor.tipo_documento], h.consumidor.documento],
+        ["Domicilio", h.consumidor.domicilio],
+        ["Teléfono", h.consumidor.telefono],
+        ["Correo", h.consumidor.correo],
+        ...(h.consumidor.menor_de_edad ? [["Padre, madre o apoderado", h.consumidor.apoderado ?? ""] as [string, string]] : []),
+      ],
+    ],
+    [
+      "2. Identificación del bien contratado",
+      [
+        ["Tipo", h.bien.tipo === "producto" ? "Producto" : "Servicio"],
+        ["Monto reclamado", montoEnSoles(h.bien.monto) ?? "—"],
+        ["Descripción", h.bien.descripcion],
+      ],
+    ],
+    [
+      "3. Detalle de la reclamación",
+      [
+        ["Tipo", tipoConSuSentido(h.tipo)],
+        ["Detalle", h.detalle],
+        ["Pedido", h.pedido],
+      ],
+    ],
+  ];
+}
+
+export const NOTA_LEGAL =
+  "La formulación del reclamo no impide acudir a otras vías de solución de controversias ni es requisito previo para interponer una denuncia ante el Indecopi. El proveedor debe dar respuesta en un plazo no mayor a quince (15) días hábiles.";
+
+/** El correo con la copia de la hoja: asunto, texto plano y HTML (todo lo que escribió la persona va escapado en el HTML). */
+export function correoDeLaHoja(h: Hoja, enlace: string): { asunto: string; texto: string; html: string } {
+  const asunto = `Tu hoja de reclamación N.° ${h.codigo} · CAYLA`;
+  const intro = `El ${fechaDeLaHoja(h.creada_en)} recibimos tu ${h.tipo}. Esta es la copia de tu hoja del Libro de Reclamaciones. CAYLA te responde a este correo en un plazo máximo de 15 días hábiles.`;
+  const filas = filasDeLaHoja(h);
+  const texto = [
+    `Hoja de reclamación N.° ${h.codigo}`,
+    "",
+    intro,
+    "",
+    ...filas.flatMap(([titulo, datos]) => [titulo.toUpperCase(), ...datos.map(([t, v]) => `${t}: ${v}`), ""]),
+    `Ver o imprimir tu hoja: ${enlace}`,
+    "",
+    NOTA_LEGAL,
+  ].join("\n");
+  const html = [
+    `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#1c1a17;max-width:640px">`, // tema-fijo: un correo no lee los tokens de la tienda
+    `<p style="margin:0;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#7a6e63">Hoja de reclamación</p>`, // tema-fijo: un correo no lee los tokens de la tienda
+    `<h1 style="margin:4px 0 12px;font-size:24px">N.° ${escapar(h.codigo)}</h1>`,
+    `<p>${escapar(intro)}</p>`,
+    ...filas.map(
+      ([titulo, datos]) =>
+        `<h2 style="margin:20px 0 6px;font-size:12px;letter-spacing:.08em;text-transform:uppercase">${escapar(titulo)}</h2><table style="border-collapse:collapse;width:100%">${datos
+          .map(
+            ([t, v]) =>
+              `<tr><td style="padding:3px 12px 3px 0;color:#7a6e63;vertical-align:top;white-space:nowrap">${escapar(t)}</td><td style="padding:3px 0;white-space:pre-line">${escapar(v)}</td></tr>`, // tema-fijo: un correo no lee los tokens de la tienda
+          )
+          .join("")}</table>`,
+    ),
+    `<p style="margin-top:20px"><a href="${escapar(enlace)}">Ver o imprimir tu hoja</a></p>`,
+    `<p style="margin-top:20px;font-size:12px;color:#7a6e63">${escapar(NOTA_LEGAL)}</p>`, // tema-fijo: un correo no lee los tokens de la tienda
+    `</div>`,
+  ].join("");
+  return { asunto, texto, html };
 }

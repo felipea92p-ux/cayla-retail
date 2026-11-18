@@ -3,6 +3,9 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   BORRADOR_VACIO,
+  correoDeLaHoja,
+  enlaceDeLaHoja,
+  leerCopias,
   CAMPOS,
   claveDelBorrador,
   datosParaLaBase,
@@ -180,5 +183,55 @@ describe("lo que contesta la base", () => {
     expect(leerProveedor(null)).toEqual(PROVEEDOR_DE_RESPALDO);
     expect(MIGRACION).toContain(PROVEEDOR_DE_RESPALDO.domicilio);
     expect(MIGRACION).toContain(`'${PROVEEDOR_DE_RESPALDO.ruc}'`);
+  });
+});
+
+describe("la copia al correo", () => {
+  const HOJA = {
+    id: "6f1d2c1e-0000-4000-8000-000000000001",
+    codigo: "000007-2026",
+    creada_en: "2026-11-18T14:45:00Z",
+    proveedor: { razon_social: "CAYLA S.A.C.", ruc: "20605964550", domicilio: "Trujillo" },
+    tienda: null,
+    consumidor: {
+      nombre: "Lucía <b>Prueba</b>",
+      tipo_documento: "dni",
+      documento: "09959901",
+      domicilio: "Calle 1",
+      telefono: "999000101",
+      correo: "a@b.co",
+      menor_de_edad: true,
+      apoderado: "María Prueba",
+    },
+    bien: { tipo: "producto", monto: 89.9, descripcion: "Blusa" },
+    tipo: "reclamo",
+    detalle: "Llegó rota. <script>alert(1)</script>",
+    pedido: "Cambio",
+    copia_enviada: false,
+  };
+  const MARCA = "6f1d2c1e-0000-4000-8000-000000000002";
+
+  it("lee las copias de la base; una rara se salta y una forma rara es null", () => {
+    expect(leerCopias({ copias: [{ marca: MARCA, intentos: 1, hoja: HOJA }, { marca: "x", intentos: 1, hoja: HOJA }] })).toHaveLength(1);
+    expect(leerCopias({ estado: "ok" })).toBeNull();
+  });
+
+  it("el enlace a la constancia lleva id y marca, sin doble barra", () => {
+    expect(enlaceDeLaHoja("https://tienda.cayla.pe/", HOJA.id, MARCA)).toBe(`https://tienda.cayla.pe/libro-de-reclamaciones/hoja/${HOJA.id}?m=${MARCA}`);
+  });
+
+  it("el correo trae el número, los datos, el apoderado, el enlace y la nota legal; lo escrito va escapado en el HTML", () => {
+    const enlace = enlaceDeLaHoja("https://t.pe", HOJA.id, MARCA);
+    const c = correoDeLaHoja(leerHoja(HOJA)!, enlace);
+    expect(c.asunto).toBe("Tu hoja de reclamación N.° 000007-2026 · CAYLA");
+    expect(c.texto).toContain("Padre, madre o apoderado: María Prueba");
+    expect(c.texto).toContain("Monto reclamado: S/\u00a089.90");
+    expect(c.texto).toContain(enlace);
+    expect(c.texto).toContain("Indecopi");
+    expect(c.texto).toContain("Tipo: Reclamo (no estás conforme con el producto o el servicio)");
+    expect(c.texto).not.toMatch(/\.\./);
+    expect(c.html).not.toContain("<script>");
+    expect(c.html).toContain("&lt;script&gt;");
+    expect(c.html).toContain("Lucía &lt;b&gt;Prueba&lt;/b&gt;");
   });
 });

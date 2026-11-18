@@ -1,10 +1,11 @@
 "use server";
 
+import { headers } from "next/headers";
 import { z } from "zod";
 import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
 import { huellas } from "@/lib/intentos-servidor";
 import type { ResultadoHoja } from "@/lib/libro-reclamaciones";
-import { registrarHojaEnBase } from "@/lib/libro-reclamaciones-servidor";
+import { mandarCopias, registrarHojaEnBase } from "@/lib/libro-reclamaciones-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
 
 // «Enviar hoja de reclamación» (ADR-0679, Felipe 2026-11-18). La llama CUALQUIERA desde /libro-de-reclamaciones: la ley no deja pedir
@@ -42,7 +43,19 @@ export async function enviarHojaDeReclamacion(datos: unknown, marca: unknown): P
   const sesion = await leerSesion().catch(() => ({ estado: "sin_respuesta" as const }));
   const usuario = sesion.estado === "con_sesion" ? sesion.usuarioId : null;
   const h = await huellas();
-  return registrarHojaEnBase(forma.data, usuario, h?.ip ?? null, laMarca.data);
+  const r = await registrarHojaEnBase(forma.data, usuario, h?.ip ?? null, laMarca.data);
+  // La copia sale enseguida. Si el correo falla (o tarda), la hoja ya está guardada: la tarea programada la reintenta
+  // (`/api/libro-copias`) y la constancia dice «te la enviamos en unos minutos».
+  if (r.estado === "registrada") await mandarCopias(await origenDeLaPeticion(), { limite: 1, id: r.id }).catch(() => null);
+  return r;
+}
+
+/** La dirección de la tienda desde la que llegó la petición (para el enlace a la constancia en el correo). */
+async function origenDeLaPeticion(): Promise<string> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3100";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
+  return `${proto}://${host}`;
 }
 
 /** Con sesión, su nombre y su correo para empezar la hoja (los puede cambiar). Sin sesión o sin respuesta, nada: se llena a mano. */

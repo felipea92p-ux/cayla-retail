@@ -2,7 +2,8 @@
 /**
  * Libro de Reclamaciones de la tienda online (ADR-0679, Felipe 2026-11-18) contra el Postgres local — CAYLA V2.
  *
- * QUÉ PRUEBA. `20261118145000_libro_reclamaciones_tienda.sql` (PARTE 1, la hoja):
+ * QUÉ PRUEBA. `20261118145000_libro_reclamaciones_tienda.sql` (PARTE 1, la hoja) y `20261118150000_libro_reclamaciones_copia_al_correo.sql`
+ * (PARTE 2, la copia):
  *   E. Estructura y puerta: `hojas_reclamacion` y sus intentos con RLS, sin políticas y sin permisos para nadie (ni `tienda_web`); las
  *      tres `tienda_*` son security definer y solo de `tienda_web` (nunca de anon ni de authenticated).
  *   T. La tienda escribe SIN cuenta: la hoja completa se guarda con su número «000001-<año>», los datos de CAYLA copiados y el texto
@@ -13,8 +14,11 @@
  *   I. El tope: 5 por hora por huella de ip (la sexta, `limite`, sin guardar); otra huella sigue; sin huella se guarda igual.
  *   L. La constancia: con id y marca se lee completa; con el id y otra marca, nada.
  *   C. El candado: nada de lo escrito cambia y ninguna hoja se borra (ni como postgres).
+ *   K. La copia al correo: reclamar toma solo las pendientes (la más vieja primero), suma un intento, no vuelve a tomar una tomada hace
+ *      menos de 2 minutos, deja la de 5 intentos; con id, solo esa; enviada no se vuelve a tomar ni se desmarca; los intentos no bajan;
+ *      la constancia dice si salió.
  *   M. Mutantes: el tope, la marca y el candado, rotos a propósito dentro de la transacción: la prueba lo nota.
- *   P. La migración se puede pegar dos veces.
+ *   P. Las dos partes se pueden pegar dos veces.
  *
  * CÓMO. Cada escenario en su transacción con ROLLBACK: muestra Trujillo en la web («ZZ …») y crea una cuenta web de prueba. Para
  * actuar como `tienda_web`, quien corre la prueba se da ese rol dentro de la transacción (`grant tienda_web to postgres`, con el
@@ -34,8 +38,11 @@ import { readFileSync } from "node:fs";
 
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
-const MIGRACION = "supabase/migrations/20261118145000_libro_reclamaciones_tienda.sql";
-const APLICAR_ANTES = process.env.APLICAR_ANTES === "1" ? readFileSync(MIGRACION, "utf8") : "";
+const MIGRACIONES = [
+  "supabase/migrations/20261118145000_libro_reclamaciones_tienda.sql",
+  "supabase/migrations/20261118150000_libro_reclamaciones_copia_al_correo.sql",
+];
+const APLICAR_ANTES = process.env.APLICAR_ANTES === "1" ? MIGRACIONES.map((m) => readFileSync(m, "utf8")).join("\n") : "";
 
 function psql(sql) {
   return execFileSync(
@@ -89,7 +96,12 @@ insert into retail.cuentas_web (usuario_web_id, clienta_id, correo, textos_acept
 update retail.cuentas_web set cerrada_en = now(), usuario_cerrado_id = usuario_web_id, usuario_web_id = null, correo = null
  where usuario_web_id = '${USUARIO_CERRADO}';
 select id as lucia_w from retail.cuentas_web where usuario_web_id = '${USUARIO}' \\gset
--- El contador del año arranca en cero para la prueba (se revierte con todo lo demás).
+-- La prueba parte del libro vacío aunque la base ya tenga hojas (una probada a mano en el navegador): se apartan dentro de la
+-- transacción, con el candado apagado solo para eso, y el ROLLBACK las devuelve. El contador del año también arranca en cero.
+alter table retail.hojas_reclamacion disable trigger hojas_reclamacion_reglas;
+delete from retail.hojas_reclamacion;
+alter table retail.hojas_reclamacion enable trigger hojas_reclamacion_reglas;
+delete from retail.hojas_reclamacion_intentos;
 delete from retail.codigos_correlativos where prefijo = 'LR-' || extract(year from (now() at time zone 'America/Lima'))::int;
 `;
 const COMO_TIENDA = `reset role;\ngrant tienda_web to postgres with set true;\nset local role tienda_web;\n`;
@@ -137,15 +149,16 @@ select string_agg(format('%s:%s:%s:%s:%s', p.proname, p.prosecdef,
          has_function_privilege('tienda_web', p.oid, 'execute'), has_function_privilege('authenticated', p.oid, 'execute'),
          has_function_privilege('anon', p.oid, 'execute')), ',' order by p.proname)
   from pg_proc p where p.pronamespace = 'retail'::regnamespace
-   and p.proname in ('tienda_registrar_hoja_reclamacion', 'tienda_ver_hoja_reclamacion', 'tienda_libro_reclamaciones_datos');
+   and p.proname in ('tienda_registrar_hoja_reclamacion', 'tienda_ver_hoja_reclamacion', 'tienda_libro_reclamaciones_datos',
+                     'tienda_libro_copias_reclamar', 'tienda_libro_copia_enviada');
 rollback;`);
   const [rls, permisos, funciones] = r.ok ? r.salida.split("\n") : [];
   esperar("E1 · las dos tablas con RLS y sin políticas", rls === "hojas_reclamacion:t:0,hojas_reclamacion_intentos:t:0", r.mensaje ?? rls);
   esperar("E2 · nadie de la API lee ni escribe la tabla (tampoco tienda_web)", permisos === "f", permisos);
   esperar(
-    "E3 · las tres tienda_* son security definer y solo de tienda_web",
+    "E3 · las cinco tienda_* son security definer y solo de tienda_web",
     funciones ===
-      "tienda_libro_reclamaciones_datos:t:t:f:f,tienda_registrar_hoja_reclamacion:t:t:f:f,tienda_ver_hoja_reclamacion:t:t:f:f",
+      "tienda_libro_copia_enviada:t:t:f:f,tienda_libro_copias_reclamar:t:t:f:f,tienda_libro_reclamaciones_datos:t:t:f:f,tienda_registrar_hoja_reclamacion:t:t:f:f,tienda_ver_hoja_reclamacion:t:t:f:f",
     funciones,
   );
 }
@@ -277,6 +290,53 @@ ${sql};`);
   esperar(`${nombre} (ni como postgres)`, !r.ok && /42501|no cambia|no se borra/.test(r.mensaje), r.ok ? "pasó sin error" : r.mensaje);
 }
 
+// ---------- K. La copia al correo ----------
+{
+  const [m1, m2, m3] = [randomUUID(), randomUUID(), randomUUID()];
+  const r = escenario(`${COMO_TIENDA}
+select (${registrar(datos(), { marca: m1 }).replace(/^select /, "")}) ->> 'id' as h1 \\gset
+select (${registrar(datos(), { marca: m2, ip: "'huella-b'" }).replace(/^select /, "")}) ->> 'id' as h2 \\gset
+select (${registrar(datos(), { marca: m3, ip: "'huella-c'" }).replace(/^select /, "")}) ->> 'id' as h3 \\gset
+-- Solo la 2 (con id).
+select jsonb_array_length(retail.tienda_libro_copias_reclamar(10, :'h2') -> 'copias');
+-- Las pendientes no tomadas: la 1 y la 3, cada una con su marca (en una transacción las tres tienen la misma hora: se compara el
+-- conjunto, no el orden).
+select string_agg(c ->> 'marca', ',' order by c ->> 'marca') from jsonb_array_elements(retail.tienda_libro_copias_reclamar(10) -> 'copias') c;
+-- Recién tomadas: nadie más las toma.
+select jsonb_array_length(retail.tienda_libro_copias_reclamar(10) -> 'copias');
+select retail.tienda_libro_copia_enviada(:'h1') ->> 'estado';
+select retail.tienda_ver_hoja_reclamacion(:'h1', '${m1}') ->> 'copia_enviada', retail.tienda_ver_hoja_reclamacion(:'h3', '${m3}') ->> 'copia_enviada';
+${COMO_POSTGRES}
+-- Pasados los 2 minutos: vuelven la 2 y la 3 (la 1 ya salió).
+update retail.hojas_reclamacion set copia_tomada_en = now() - interval '3 minutes';
+${COMO_TIENDA}
+select string_agg(c #>> '{hoja,id}', ',' order by c #>> '{hoja,id}') = (select string_agg(x, ',' order by x) from unnest(array[:'h2', :'h3']) x)
+  from jsonb_array_elements(retail.tienda_libro_copias_reclamar(10) -> 'copias') c;
+${COMO_POSTGRES}
+-- Con 5 intentos se deja.
+update retail.hojas_reclamacion set copia_intentos = 5, copia_tomada_en = null where id = :'h2';
+update retail.hojas_reclamacion set copia_tomada_en = null where id = :'h3';
+${COMO_TIENDA}
+select string_agg(c #>> '{hoja,id}', ',') = :'h3' from jsonb_array_elements(retail.tienda_libro_copias_reclamar(10) -> 'copias') c;`);
+  esperar(
+    "K1 · reclamar: con id solo esa; las pendientes; las tomadas no; enviada no vuelve; a los 2 min sí; con 5 intentos no",
+    r.ok && r.salida === `1\n${[m1, m3].sort().join(",")}\n0\nok\ntrue|false\nt\nt`,
+    r.mensaje ?? r.salida,
+  );
+}
+for (const [nombre, sql] of [
+  ["K2 · la copia enviada no se desmarca", "update retail.hojas_reclamacion set copia_enviada_en = null"],
+  ["K3 · los intentos no bajan", "update retail.hojas_reclamacion set copia_intentos = 0"],
+]) {
+  const r = escenario(`${COMO_TIENDA}
+select (${registrar(datos()).replace(/^select /, "")}) ->> 'id' as h \\gset
+select retail.tienda_libro_copias_reclamar(1, :'h') is not null;
+select retail.tienda_libro_copia_enviada(:'h') is not null;
+${COMO_POSTGRES}
+${sql};`);
+  esperar(`${nombre} (ni como postgres)`, !r.ok && /42501|no se desmarca|no bajan/.test(r.mensaje), r.ok ? "pasó sin error" : r.mensaje);
+}
+
 // ---------- M. Mutantes ----------
 {
   // Sin el candado, el update pasa: si la prueba C no lo notara, no estaría mirando nada.
@@ -302,11 +362,11 @@ select count(*) from retail.hojas_reclamacion where marca = '${m}';`);
   esperar("M2 · sin la marca única entran dos con la misma marca (la prueba N mira de verdad)", r.ok && r.salida.endsWith("2"), r.mensaje ?? r.salida);
 }
 
-// ---------- P. Se pega dos veces ----------
+// ---------- P. Se pegan dos veces ----------
 {
-  const sql = readFileSync(MIGRACION, "utf8");
+  const sql = MIGRACIONES.map((m) => readFileSync(m, "utf8")).join("\n");
   const r = correr(`begin;\n${sql}\n${sql}\nrollback;\n`);
-  esperar("P1 · la migración se puede pegar dos veces", r.ok, r.mensaje);
+  esperar("P1 · las dos partes se pueden pegar dos veces", r.ok, r.mensaje);
 }
 
 console.log(`\n${total - fallos}/${total} ${fallos ? "con fallos" : "bien"}`);

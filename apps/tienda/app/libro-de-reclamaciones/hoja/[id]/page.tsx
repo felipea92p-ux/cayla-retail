@@ -4,7 +4,7 @@ import { z } from "zod";
 import { EncabezadoAyuda } from "@/components/ayuda/EncabezadoAyuda";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import { BotonImprimirHoja } from "@/components/libro/BotonImprimirHoja";
-import { fechaDeLaHoja, montoEnSoles, NOMBRE_DOCUMENTO, QUE_ES, type Hoja } from "@/lib/libro-reclamaciones";
+import { fechaDeLaHoja, montoEnSoles, NOMBRE_DOCUMENTO, NOTA_LEGAL, tipoConSuSentido, type Hoja } from "@/lib/libro-reclamaciones";
 import { leerHojaEnBase } from "@/lib/libro-reclamaciones-servidor";
 import { nombreTienda } from "@/lib/pedidos";
 import "../../../estilos/ayuda.css";
@@ -59,7 +59,9 @@ export default async function ConstanciaDeHoja({ params, searchParams }: { param
                   Recibimos tu <em>{h.tipo}</em>
                 </>
               }
-              bajada={`Tu hoja es la N.° ${h.codigo}. CAYLA te responde a ${h.consumidor.correo} en un plazo máximo de 15 días hábiles. Guárdala: imprímela o guárdala en PDF.`}
+              bajada={`Tu hoja es la N.° ${h.codigo}. ${
+                h.copia_enviada ? `Te enviamos una copia a ${h.consumidor.correo}.` : `Te enviaremos una copia a ${h.consumidor.correo} en unos minutos.`
+              } CAYLA te responde a ese correo en un plazo máximo de 15 días hábiles.`}
             />
             <div className="lr-acciones">
               <BotonImprimirHoja />
@@ -106,14 +108,11 @@ function HojaImpresa({ h }: { h: Hoja }) {
         <Dato t="Descripción" v={h.bien.descripcion} />
       </Bloque>
       <Bloque titulo="3. Detalle de la reclamación">
-        <Dato t="Tipo" v={`${h.tipo === "reclamo" ? "Reclamo" : "Queja"}: ${QUE_ES[h.tipo].toLowerCase()}`} />
+        <Dato t="Tipo" v={tipoConSuSentido(h.tipo)} />
         <Dato t="Detalle" v={h.detalle} largo />
         <Dato t="Pedido" v={h.pedido} largo />
       </Bloque>
-      <footer className="lr-hoja-pie">
-        La formulación del reclamo no impide acudir a otras vías de solución de controversias ni es requisito previo para interponer una
-        denuncia ante el Indecopi. El proveedor debe dar respuesta en un plazo no mayor a quince (15) días hábiles.
-      </footer>
+      <footer className="lr-hoja-pie">{NOTA_LEGAL}</footer>
     </article>
   );
 }
