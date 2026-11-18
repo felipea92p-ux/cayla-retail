@@ -130,7 +130,7 @@ export const tipoConSuSentido = (tipo: TipoHoja) =>
 export function limpiar(texto: string, unaLinea = false): string {
   const t = texto
     .replace(/\r\n?/g, "\n")
-    .replace(/[\u0001-\u0008\u000B-\u001F\u007F-\u009F­​-‏‪-‮⁠-⁤⁦-⁩﻿]/g, "")
+    .replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F­​-‏‪-‮⁠-⁤⁦-⁩﻿]/g, "")
     .replace(/[\t   - 　]+/g, " ")
     .replace(/ ?\n ?/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
@@ -237,8 +237,18 @@ export function problemaDelCampo(campo: CampoHoja, b: BorradorHoja): string | nu
   }
 }
 
-/** Lo que viaja a la base (`p_datos`), con los nombres de la base. */
+/** Lo que viaja a la base (`p_datos`), con los nombres de la base. Sin el carácter nulo (U+0000, sale al pegar de algunos PDF):
+ *  la base no lo acepta en un texto y la hoja no se podría enviar nunca (/chaos 2026-11-18). */
 export function datosParaLaBase(b: BorradorHoja): Record<string, string | boolean> {
+  const d = datosCrudos(b);
+  for (const k of Object.keys(d)) {
+    const v = d[k];
+    if (typeof v === "string") d[k] = v.replace(/\u0000/g, "");
+  }
+  return d;
+}
+
+function datosCrudos(b: BorradorHoja): Record<string, string | boolean> {
   return {
     tipo: b.tipo ?? "",
     nombre: b.nombre,

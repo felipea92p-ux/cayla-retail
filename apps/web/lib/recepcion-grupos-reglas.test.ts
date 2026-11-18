@@ -277,6 +277,60 @@ describe("repartir lo separado: cada prenda va a su línea y los números se aco
   });
 });
 
+describe("la misma prenda comprada en varias líneas se parte entre ellas, venga por donde venga (envío 24, 2026-11-18)", () => {
+  // El caso real: Argollas comprada en tres órdenes a tres costos, y unos Aretes en la misma categoría y marca.
+  const argollas = (id: string, n: number, costo: number) => linea(id, n, { descripcion: "Argollas", costoUnitario: costo });
+  const lineasDelEnvio = () => [argollas("a1", 12, 7.95), linea("e1", 7, { descripcion: "Aretes", costoUnitario: 3.8 }), argollas("a2", 12, 5.93), argollas("a3", 20, 6.48)];
+  const nuevas = (n: number): Separado => ({ prendas: [], nuevas: [{ cantidad: n, descripcion: "Argollas" }] });
+  const deArgollas = (r: ReturnType<typeof repartirSeparado>, id: string) =>
+    r.cambios.find((c) => c.linea.linea?.id === id)?.separado.nuevas.find((x) => x.descripcion === "Argollas")?.cantidad ?? 0;
+  /** Deja guardado lo repartido, como lo vería «Cerrar». */
+  const guardado = (r: ReturnType<typeof repartirSeparado>, ls: LineaParaContar[]): LineaParaContar[] =>
+    ls.map((l) => {
+      const c = r.cambios.find((x) => x.clave === l.clave);
+      return c ? deLaGuia(l.linea as LineaEnvio, { contadas: c.contadas, separado: c.separado }) : l;
+    });
+
+  it("44 Argollas separadas de un golpe quedan 12 · 12 · 20, y «Cerrar» no pregunta nada", () => {
+    const ls = lineasDelEnvio().map((l) => deLaGuia(l));
+    const r = repartirSeparado(agruparLineas(ls)[0], nuevas(44), 44);
+    expect([deArgollas(r, "a1"), deArgollas(r, "a2"), deArgollas(r, "a3")]).toEqual([12, 12, 20]);
+    const cierre = agruparLineasDelCierre(guardado(r, ls)).find((g) => nombreDelGrupoDelCierre(g).startsWith("Argollas"))!;
+    expect(causasDelGrupo(cierre, 0, false)).toEqual([]);
+    // Cada línea entra a su costo: S/ 296.16, no 44 × S/ 7.95 = S/ 349.80.
+    const costo = cierre.lineas.reduce((a, l) => a + (l.conteo?.contadas ?? 0) * (l.linea?.costoUnitario ?? 0), 0);
+    expect(costo.toFixed(2)).toBe("296.16");
+  });
+
+  it("lo que ya quedó guardado entero en la primera línea se reparte al volver a guardarse", () => {
+    const ls = [deLaGuia(argollas("a1", 12, 7.95), { contadas: 44, separado: nuevas(44) }), deLaGuia(argollas("a2", 12, 5.93), { contadas: 0 }), deLaGuia(argollas("a3", 20, 6.48), { contadas: 0 })];
+    const g = agruparLineas(ls)[0];
+    const r = repartirSeparado(g, g.separado, g.contadas);
+    expect([contadasDe(r, "a1"), contadasDe(r, "a2"), contadasDe(r, "a3")]).toEqual([12, 12, 20]);
+  });
+
+  it("de menos, falta en la última; de más, sobra en la última", () => {
+    const g = agruparLineas(lineasDelEnvio().map((l) => deLaGuia(l)))[0];
+    const menos = repartirSeparado(g, nuevas(30), 30);
+    expect([deArgollas(menos, "a1"), deArgollas(menos, "a2"), deArgollas(menos, "a3")]).toEqual([12, 12, 6]);
+    const mas = repartirSeparado(g, nuevas(50), 50);
+    expect([deArgollas(mas, "a1"), deArgollas(mas, "a2"), deArgollas(mas, "a3")]).toEqual([12, 12, 26]);
+  });
+
+  it("una prenda del catálogo con tallas se parte con sus tallas, sin perder ninguna ni sus dañadas", () => {
+    const elegida = { productoId: "p-arg", nombre: "Argollas", codigo: "ARE-1" };
+    const ls = [linea("a1", 3, { prendaElegida: elegida }), linea("a2", 4, { prendaElegida: elegida })].map((l) => deLaGuia(l));
+    const talla = (varianteId: string, cantidad: number, danadas = 0) => ({ varianteId, cantidad, danadas, solucion: danadas > 0 ? ("pendiente" as const) : null, talla: null, color: null, codigo: null });
+    const conTallas: Separado = { prendas: [{ ...elegida, cantidad: 7, variantes: [talla("v-s", 2, 1), talla("v-m", 5)] }], nuevas: [] };
+    const r = repartirSeparado(agruparLineas(ls)[0], conTallas, 7);
+    const en = (id: string) => r.cambios.find((c) => c.linea.linea?.id === id)?.separado.prendas[0];
+    expect(en("a1")?.cantidad).toBe(3);
+    expect(en("a2")?.cantidad).toBe(4);
+    expect(en("a1")?.variantes?.map((v) => [v.varianteId, v.cantidad, v.danadas])).toEqual([["v-s", 2, 1], ["v-m", 1, 0]]);
+    expect(en("a2")?.variantes?.map((v) => [v.varianteId, v.cantidad, v.danadas])).toEqual([["v-m", 4, 0]]);
+  });
+});
+
 describe("lo que muestra la pantalla de una categoría", () => {
   const dosVestidos = (a: Cuerpo | null = null, b: Cuerpo | null = null) => agruparLineas([deLaGuia(sofia(), a), deLaGuia(lima(), b)])[0];
 

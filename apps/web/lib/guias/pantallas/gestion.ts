@@ -290,6 +290,7 @@ export const GUIA_PLAN_DEL_PISO: Guia = {
       id: "estado",
       ancla: "plan-piso.estado",
       opcional: true,
+      preparar: [{ tipo: "clic", ancla: "plan-piso.pestana-propuesta" }],
       titulo: "Cómo está el riel hoy",
       texto: "Cuántas prendas cuelgan frente a las que caben en el riel. «Por cuadrar» quiere decir que la tienda todavía no contó su piso: la cifra es lo que el sistema cree, no lo que se ve.",
     },
