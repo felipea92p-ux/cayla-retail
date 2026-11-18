@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { leerLibro } from "./libro-reclamaciones-lectura";
-import { cifrasDe, estadoDe, fechaDelDia, filtrar, montoEnSoles, plazoEnPalabras, type HojaLibro } from "./libro-reclamaciones-reglas";
+import {
+  cifrasDe,
+  estadoDe,
+  fechaDelDia,
+  filtrar,
+  montoEnSoles,
+  plazoEnPalabras,
+  problemaDeLaRespuesta,
+  textoLimpio,
+  type HojaLibro,
+} from "./libro-reclamaciones-reglas";
 
 const BASE = {
   codigo: "000001-2026",
@@ -81,5 +91,14 @@ describe("Libro de Reclamaciones en el ERP", () => {
     expect(montoEnSoles(89.9)).toBe("S/ 89.90");
     expect(montoEnSoles(null)).toBeNull();
     expect(fechaDelDia("2026-12-10")).toBe("10 de diciembre de 2026");
+  });
+
+  it("la respuesta sin el carácter nulo (U+0000): la base no lo acepta y mostraba un error crudo (/chaos 2026-11-18)", () => {
+    expect(textoLimpio("Hola Rosa,\u0000 te cambiamos el vestido.")).toBe("Hola Rosa, te cambiamos el vestido.");
+  });
+
+  it("«te pasaste» concuerda con el número: 1 letra, 2 letras", () => {
+    expect(problemaDeLaRespuesta("x".repeat(3001))).toBe("Te pasaste por 1 letra: acórtala un poco.");
+    expect(problemaDeLaRespuesta("x".repeat(3002))).toBe("Te pasaste por 2 letras: acórtala un poco.");
   });
 });

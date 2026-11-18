@@ -24,6 +24,8 @@ import {
   letras,
   montoEnSoles,
   plazoEnPalabras,
+  problemaDeLaRespuesta,
+  textoLimpio,
   type HojaLibro,
 } from "@/lib/libro-reclamaciones-reglas";
 import { firmar } from "@/lib/responsable-reglas";
@@ -77,7 +79,7 @@ export function HojaCajon({
     if (enVuelo.current || !guia.puedeConfirmar) return;
     enVuelo.current = true;
     setGuardando(true);
-    const { error } = await firmar(createClient().rpc("responder_hoja_reclamacion", { p_id: h.id, p_respuesta: respuesta }), responsable.firma());
+    const { error } = await firmar(createClient().rpc("responder_hoja_reclamacion", { p_id: h.id, p_respuesta: textoLimpio(respuesta) }), responsable.firma());
     enVuelo.current = false;
     setGuardando(false);
     responsable.despues(error);
@@ -88,7 +90,7 @@ export function HojaCajon({
       if (error.hint === "libro_ya_respondida") onCambio();
       return;
     }
-    setEnviadas((x) => ({ ...x, [h.id]: respuesta }));
+    setEnviadas((x) => ({ ...x, [h.id]: textoLimpio(respuesta) }));
     setBorradores((b) => ({ ...b, [h.id]: "" }));
     setConfirmando(null);
     avisar.exito(`Respuesta enviada a ${h.consumidor.correo}`);
@@ -238,7 +240,7 @@ export function HojaCajon({
                 tono={n > MAX_RESPUESTA ? "error" : "neutro"}
                 pie={
                   n > MAX_RESPUESTA
-                    ? `Te pasaste por ${n - MAX_RESPUESTA} letras: acórtala un poco.`
+                    ? problemaDeLaRespuesta(respuesta)
                     : n > 0
                       ? `${n} de ${MAX_RESPUESTA} letras. Le llega a ${h.consumidor.correo}.`
                       : `Le llega a ${h.consumidor.correo}. Responde a lo que pide: «${h.pedido.length > 60 ? `${h.pedido.slice(0, 60)}…` : h.pedido}».`

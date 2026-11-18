@@ -132,6 +132,14 @@ describe("la hoja del Libro de Reclamaciones", () => {
     expect(MIGRACION).toContain("^\\+?[0-9]{6,15}$");
   });
 
+  it("un carácter nulo pegado (U+0000) no llega a la base: la base no lo acepta y la hoja no se podría enviar nunca (/chaos 2026-11-18)", () => {
+    const sucio = { ...LISTA, nombre: "Rosa\u0000 Prueba", detalle: "El cierre\u0000 se rompió al primer uso.", pedido: "Un\u0000 cambio." };
+    const d = datosParaLaBase(sucio);
+    expect(JSON.stringify(d)).not.toContain("\\u0000");
+    expect(d.detalle).toBe("El cierre se rompió al primer uso.");
+    expect(limpiar("a\u0000b")).toBe("ab");
+  });
+
   it("lo que viaja a la base lleva sus nombres; el apoderado solo si es menor", () => {
     const d = datosParaLaBase({ ...LISTA, apoderado: "Alguien" });
     expect(Object.keys(d).sort()).toEqual(

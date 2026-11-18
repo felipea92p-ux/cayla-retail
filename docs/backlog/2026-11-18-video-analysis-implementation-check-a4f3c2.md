@@ -14,5 +14,6 @@
 - [ ] **Felipe:** confirmar con las ventas del año anterior que CAYLA no llega a 3 000 UIT (si llega, reporta al SIREC de Indecopi; no está construido).
 - [ ] El abogado: copiar literalmente las leyendas del Anexo I y el aviso del Anexo II, y confirmar los 2 años de conservación.
 - [x] `/chaos` de la hoja de la tienda y de responder en el ERP (2026-11-18, semilla 679): 0 estados imposibles; tablero en `docs/chaos/README.md`.
-- [ ] Lo abierto de `/chaos`, a la espera de Felipe: un carácter nulo pegado impide enviar la hoja (tienda) y la respuesta (ERP) (g3, arreglo de pantalla); «Te pasaste por 1 letras» (g4); sin huella de conexión un envío doble muestra un error (g4, RPC); la base recorta en silencio letras del documento o el teléfono (g2, RPC).
+- [x] De `/chaos`, cerrados con su prueba: el carácter nulo pegado que impedía enviar la hoja (tienda) y la respuesta (ERP), y «Te pasaste por 1 letras».
+- [ ] De `/chaos`, abiertos en la base (RPC, decide Felipe): sin huella de conexión un envío doble muestra un error (g4); `tienda_registrar_hoja_reclamacion` recorta en silencio letras del documento o el teléfono en vez de rechazarlas (g2).
 - [ ] `/formidable` de la pantalla del ERP y del formulario de la tienda, y una prueba con una colaboradora real.
