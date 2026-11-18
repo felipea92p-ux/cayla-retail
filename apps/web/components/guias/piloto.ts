@@ -60,6 +60,18 @@ function controlDelPliegue(el: HTMLElement): HTMLElement {
   return el.querySelector<HTMLElement>(pliegue) ?? (el.matches(TOCABLE) ? el : (el.querySelector<HTMLElement>(TOCABLE) ?? el));
 }
 
+/** El control de una casilla (`para: "marcar" | "desmarcar"`): la casilla misma, o la de adentro del ancla (su `<label>`). */
+function controlDeCasilla(el: HTMLElement): HTMLElement {
+  const casilla = "input[type=checkbox], [role=checkbox]";
+  return el.matches(casilla) ? el : (el.querySelector<HTMLElement>(casilla) ?? el);
+}
+
+/** Si la casilla está marcada, como lo dice el DOM: `checked` de un `<input>` o `aria-checked`. `null` si no es una casilla. */
+function marcadaDe(control: HTMLElement): string | null {
+  if (control instanceof HTMLInputElement && control.type === "checkbox") return String(control.checked);
+  return control.getAttribute("aria-checked");
+}
+
 /**
  * Si el pliegue está abierto, como lo dice el DOM: el `aria-expanded` del control o, si es el `<summary>` de un `<details>`, el `open`
  * del `<details>` (el navegador sabe solo si está abierto y no le pone `aria-expanded`; ponérselo a mano se desfasaría).
@@ -170,19 +182,22 @@ export async function ejecutar(
   }
 
   // Cerrar un pliegue que no está a la vista es no tener nada que cerrar, como `siEsta`.
-  const sinEsperar = accion.tipo === "clic" && (accion.siEsta || accion.para === "cerrar");
+  const sinEsperar = accion.tipo === "clic" && (accion.siEsta || accion.para === "cerrar" || accion.para === "desmarcar");
   const el = sinEsperar ? buscarAncla(accion.ancla) : await esperarAncla(accion.ancla, 2200, senal);
   if (!el && sinEsperar) return { ok: true };
   if (!el) return { ok: false, motivo: `no está a la vista (${accion.ancla})` };
 
   if (accion.tipo === "clic") {
-    // Para un pliegue se juzga y se toca su control (el que dice si está abierto), no el primer botón del ancla.
-    const control = accion.para ? controlDelPliegue(el) : el.matches(TOCABLE) ? el : (el.querySelector<HTMLElement>(TOCABLE) ?? el);
+    // Para un pliegue o una casilla se juzga y se toca su control (el que dice si está abierto o marcada), no el primer botón del ancla.
+    const esCasilla = accion.para === "marcar" || accion.para === "desmarcar";
+    const control = !accion.para
+      ? el.matches(TOCABLE) ? el : (el.querySelector<HTMLElement>(TOCABLE) ?? el)
+      : esCasilla ? controlDeCasilla(el) : controlDelPliegue(el);
     const motivo = motivoParaNoTocar(describirPieza(accion.para ? control : el));
     if (motivo) return { ok: false, motivo };
     if (accion.para) {
-      const toque = toqueDelPliegue(accion.para, expandidoDe(control));
-      if (toque === "no-es-pliegue") return { ok: false, motivo: `no dice si está abierto (${accion.ancla})` };
+      const toque = toqueDelPliegue(accion.para, esCasilla ? marcadaDe(control) : expandidoDe(control));
+      if (toque === "no-es-pliegue") return { ok: false, motivo: `no dice si está ${esCasilla ? "marcada" : "abierto"} (${accion.ancla})` };
       if (toque === "ya-esta") return { ok: true };
     }
     el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: conMovimiento ? "smooth" : "auto" });

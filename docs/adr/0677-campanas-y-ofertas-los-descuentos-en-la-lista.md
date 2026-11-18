@@ -74,3 +74,42 @@ Felipe, 2026-11-17:
   «todas las tallas» con palabras, el aviso al agregar dice «Antes tenía −20 %» (nunca el nombre interno del cajón) y tocar una prenda con todas sus
   tallas muestra cuáles (S · M · L).
 - **Dynamic:** no cambia `vidrio/recetas.css` ni `components/ui/`: no le llega nada.
+
+## Actualización 2026-11-18 (b) — abrir una campaña, la hoja de una oferta y «En caja» (actividades 6 a 8)
+
+Rama `claude/campanas-abrir-campana`. Solo pantalla: ninguna migración, ninguna RPC nueva ni cambiada. Felipe partió la actividad 7 en tres
+(7a, 7b, 7c) al verla demasiado grande para un solo paso.
+
+1. **Abrir una campaña (6).** La campaña es la misma fila que un descuento (`FilaDeLista` con su insignia) y se abre al costado en
+   `PanelDeCampana`: el nombre, tres chips (estado, fechas, tiendas, `chipsDeCampana`), «Editar» y «Más» (repetir, imprimir, web, desactivar),
+   **sus ofertas como carteles** («3 x 2 · Toda la campaña», `cartelesDeCampana`) y sus prendas. Salen las «tres preguntas» del pase y la barra de
+   días. Si sus ofertas eligen las prendas, ya no dice «Sin prendas» (`prendasLasEligenSusOfertas`).
+2. **«Qué le das» (7a).** Cinco opciones (−20 %, 3 x 2 · 2 x 1, 2 por S/ 59.90, 2.ª −50 %, −S/ 30) y el ejemplo **es** la opción: la elegida dice sus
+   números de ahora (`lib/oferta-que-le-das.ts`). Salen las ayudas y «Regalo» y «Club».
+3. **Una sola hoja (7b).** Las cuatro preguntas una debajo de la otra; las tres de abajo aparecen al elegir qué le das. Sin pasos, sin
+   «Siguiente», sin atajo: el pie siempre dice lo que falta, «Guardar como borrador» y «Activar».
+4. **La oferta se abre desde su cartel (7c).** La hoja es de UNA oferta: «Nueva oferta» la abre vacía y un cartel la abre editando. Sale «Ya
+   registradas» (la lista estaba dos veces: en el panel y en la hoja) y la franja de la campaña. **Guardar, activar o retirar cierran la hoja**: lo
+   que quedó se ve en su cartel. «Retirar» va a la izquierda del pie, con su «Sí, retirar · No, dejarla»; el historial («1 cambio · antes: …») pasa a
+   «Revisa». La hoja baja de 78 a 70 rem.
+5. **«En caja» (8).** La columna de la derecha deja la etiqueta de la campaña y cobra **una compra de ejemplo** con prendas que la oferta alcanza,
+   con la misma cuenta de Vender (`lib/compra-de-ejemplo.ts`: `descuentoDeCampana` para un %, `ejemploDeGrupo` / `ejemploDeMonto` para grupos y
+   montos), con su foto, lo que paga cada una, el total y el ahorro. Sale el ejemplo suelto de «En qué prendas».
+
+**Descartado:**
+- **«Gratis» en la prenda que regala un 3 x 2** (como la maqueta): la caja reparte el ahorro del grupo entre sus prendas (`ofertasDeGrupo`); el ejemplo
+  mostraría otro ticket que el que imprime la caja.
+- **Volver a «Nueva oferta» después de guardar** (lo que hacía 7b): sin la lista adentro, la persona no veía lo que acababa de guardar.
+- **«En caja» arriba en el celular**: empujaba «¿Qué le das?» medio alto de pantalla; va después de las preguntas.
+
+**Después de Formidable y del caos (con el OK de Felipe, «Sí, los cuatro»):** el cartel dice sus tiendas, fechas y días cuando no son los de su
+campaña (las fechas, comparadas desde hoy); con un choque, el pie dice «Puedes guardarla como borrador. Para activarla: …»; «Retirar» cambia el pie
+entero a «¿Retirar la oferta «3 x 2»?» con «No se puede deshacer» (la base no reactiva una oferta retirada) y el foco va a «No, dejarla» sin mover la
+hoja; guardar y retirar pasan por `unSoloEnvio`.
+
+**Pendiente de Felipe** (backlog `2026-11-18-campanas-abrir-campana.md`): imprimir y «Ver en la web» de una campaña sin descuento de siempre;
+desactivar una campaña con prendas marcadas; si el cartel dice también «Todas las tiendas».
+
+**Verificado:** guía de Campañas (34 pasos, escritorio claro y celular oscuro), `/milimetro auditar` (0 graves,
+`docs/milimetro/auditorias/2026-11-18-campanas-abrir-campana.md`), `/chaos` (0 estados imposibles), `/focus` al día. **Dynamic:** no cambia
+`vidrio/recetas.css` ni `components/ui/`: no le llega nada.

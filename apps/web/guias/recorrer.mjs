@@ -15,18 +15,26 @@
  * contenido, sin el lateral ni la cabecera del ERP) quedaron DENTRO de algún recorte encendido, y lista los que ninguna pieza
  * encendió: es dónde profundizar la guía. Escribe `cobertura.json` en la carpeta de salida.
  *
+ * Con --ida-y-vuelta, cada guía se recorre tres veces con el teclado, como la persona que vuelve a mirar algo: → hasta el último
+ * paso, ← hasta el primero y → otra vez hasta el último, donde termina. En cada paso anota el título, la nota de la tarjeta («no está
+ * a la vista», «no pudo hacer este paso») y cuántas hojas hay abiertas, y la guía falla si un paso de la ida se salta al volver o en
+ * la segunda ida, si dice una nota que en la ida no decía o si cambia la cantidad de hojas (`guias/ida-y-vuelta.mjs`). Las capturas
+ * de esas pasadas van como `<guía>-vuelta-NN.png` y `<guía>-ida2-NN.png` (NN, el número del paso en la tarjeta).
+ *
  * Opciones: --base-url (por defecto $TEMA_BASE_URL o http://localhost:3010), --cuenta (claves de tema/cuentas.mjs), --guia,
- * --ancho, --alto, --tema claro|oscuro, --salida <dir>, --sin-capturas. Sale con 1 si una guía falla, con 2 si el script se cayó.
+ * --ancho, --alto, --tema claro|oscuro, --salida <dir>, --sin-capturas, --cobertura, --ida-y-vuelta. Sale con 1 si una guía falla,
+ * con 2 si el script se cayó.
  * Solo corre contra localhost (las cuentas y claves son del seed local).
  */
 import { chromium } from "playwright";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { porClave } from "../tema/cuentas.mjs";
 import { abrirContexto, consultarLocal, exigirLocal } from "../tema/motor/sesion.mjs";
 import { guiasDeLosArchivos } from "./escaner.mjs";
 import { EJEMPLOS } from "./ejemplos.mjs";
+import { compararIdaYVuelta, frasesDeDiferencias, mismoLugar } from "./ida-y-vuelta.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const args = {};
@@ -50,7 +58,19 @@ const elegidas = typeof args.guia === "string" ? args.guia.split(",") : null;
 const guias = guiasDeLosArchivos().filter((g) => !elegidas || elegidas.includes(g.id));
 const salida = args.salida || join(AQUI, ".salida", new Date().toISOString().replace(/[-:T]/g, "").slice(0, 12));
 const conCapturas = !args["sin-capturas"];
+const idaYVuelta = !!args["ida-y-vuelta"];
 if (conCapturas) mkdirSync(salida, { recursive: true });
+
+/**
+ * Los prefijos de las RPC de solo lectura, leídos de `lib/espera-reglas.ts` (la misma lista que usa el loader global): escritos aquí a
+ * mano se quedaron atrás y una lectura (`ofertas_de_grupo_vigentes`) salía como «ESCRIBIÓ EN LA BASE».
+ */
+const PREFIJOS_LECTURA = (() => {
+  const m = /PREFIJOS_RPC_DE_LECTURA = \[([^\]]+)\]/.exec(readFileSync(join(AQUI, "..", "lib", "espera-reglas.ts"), "utf8"));
+  const prefijos = m ? [...m[1].matchAll(/"([a-z_]+)"/g)].map((x) => x[1]) : [];
+  if (!prefijos.length) throw new Error("No encontré PREFIJOS_RPC_DE_LECTURA en lib/espera-reglas.ts: el recorredor no sabría qué RPC solo leen.");
+  return prefijos;
+})();
 
 /** ¿Esta petición escribe en la base? Lectura = GET/HEAD, o una RPC con prefijo de lectura (lib/espera-reglas.ts). */
 function escribe(req) {
@@ -62,7 +82,7 @@ function escribe(req) {
   if (rpc) {
     const fn = rpc[1];
     if (fn === "marcar_guia_vista") return false; // la guía anotando que se vio: es lo único que la demo escribe
-    return !/^(fn_|previsualizar_|campanas_|resumen_|buscar_|get_)/.test(fn);
+    return !PREFIJOS_LECTURA.some((p) => fn.startsWith(p));
   }
   return true;
 }
@@ -95,6 +115,90 @@ function controlesALaVista() {
   }
   return salida;
 }
+/**
+ * Que el piloto termine lo que está haciendo (preparar, cursor, escribir) antes de mirar el paso: la tarjeta deja de estar «ocupada»
+ * y el cursor fantasma se esconde. Tope de 12 s por paso; después, un respiro para la animación.
+ */
+async function esperarAlPiloto(page, primero) {
+  await page.waitForTimeout(primero ? 900 : 700);
+  await page
+    .waitForFunction(
+      () => !document.querySelector(".guia-tarjeta[data-ocupada]") && !document.querySelector(".guia-tarjeta[data-piloto]") && !document.querySelector(".guia-cursor[data-visible]"),
+      null,
+      { timeout: 12_000 },
+    )
+    .catch(() => {});
+  await page.waitForTimeout(primero ? 0 : 1200);
+}
+
+/** Corre en la página: lo que muestra la tarjeta de la guía ahora, o `null` si la guía ya se cerró. */
+function pasoALaVista() {
+  const t = document.querySelector(".guia-tarjeta");
+  if (!t) return null;
+  const r = document.querySelector(".guia-recorte");
+  return {
+    titulo: t.querySelector("h2")?.textContent ?? "",
+    nota: t.querySelector(".nota-cayla")?.textContent ?? null,
+    sinPieza: r?.hasAttribute("data-sin-pieza") ?? true,
+    alto: r ? parseFloat(r.style.height || "0") : 0,
+    // «3 de 12»: cuántos pasos lleva vistos la persona (al volver, baja).
+    numero: Number(/^(\d+)/.exec(t.querySelector("p[aria-live]")?.textContent?.trim() ?? "")?.[1] ?? 0),
+    ultimo: t.querySelector("[data-guia-siguiente]")?.textContent?.trim() === "Terminar",
+    ocupada: t.hasAttribute("data-ocupada") || t.hasAttribute("data-piloto"),
+    hojas: [...document.querySelectorAll("[role=dialog]")].filter((d) => !d.closest("[data-guia-motor]")).length,
+  };
+}
+
+/**
+ * Aprieta `tecla` (→ o ←) y espera a que la tarjeta cambie de paso. Mientras el motor busca el paso que sigue (prueba y descarta los
+ * opcionales, abre una hoja) la tarjeta queda «ocupada» en el paso de antes, a veces casi un minuto: se espera sin volver a apretar,
+ * porque una tecla de más cuando ya se liberó saltaría un paso. Si la tarjeta se liberó sin moverse, la tecla no llegó y se aprieta
+ * otra vez (hasta 3). Devuelve el paso nuevo, el mismo si no se movió, o `null` si la guía se cerró.
+ */
+async function moverse(page, tecla, previo) {
+  let estado = previo;
+  for (let intento = 0; intento < 3 && mismoLugar(estado, previo); intento++) {
+    await page.keyboard.press(tecla);
+    // Hasta 8 esperas (unos 2 minutos) mientras siga ocupada en el mismo paso.
+    for (let espera = 0; espera < 8; espera++) {
+      await esperarAlPiloto(page, false);
+      estado = await page.evaluate(pasoALaVista);
+      if (!mismoLugar(estado, previo) || !estado.ocupada) break;
+    }
+  }
+  return estado;
+}
+
+/**
+ * Una pasada de `--ida-y-vuelta`: aprieta `tecla` desde el paso `desde` hasta que `llego` (el primero o el último). Devuelve los
+ * pasos vistos y, si no llegó, por qué.
+ */
+async function pasada(page, { tecla, desde, llego, nombre }) {
+  const vistos = [];
+  let previo = desde;
+  for (let n = 0; n < 60; n++) {
+    const estado = await moverse(page, tecla, previo);
+    if (!estado) return { vistos, corte: `la guía se cerró después de «${previo.titulo}»` };
+    if (mismoLugar(estado, previo)) return { vistos, corte: `no pasó del paso ${estado.numero} «${estado.titulo}»` };
+    vistos.push(estado);
+    if (conCapturas) await page.screenshot({ path: join(salida, `${nombre}-${String(estado.numero).padStart(2, "0")}.png`) });
+    if (llego(estado)) return { vistos, corte: null };
+    previo = estado;
+  }
+  return { vistos, corte: "no llegó en 60 pasos" };
+}
+
+/** La vuelta y la segunda ida, desde el último paso de la ida. Lo que no coincide va a `problemas` (falla) o a `avisos`. */
+async function vueltaYSegundaIda(page, id, ida, problemas, avisos) {
+  const vuelta = await pasada(page, { tecla: "ArrowLeft", desde: ida.at(-1), llego: (e) => e.numero === 1, nombre: `${id}-vuelta` });
+  if (vuelta.corte) return void problemas.push(`al volver ${vuelta.corte}: no llegó al primer paso`);
+  const ida2 = await pasada(page, { tecla: "ArrowRight", desde: vuelta.vistos.at(-1), llego: (e) => e.ultimo, nombre: `${id}-ida2` });
+  if (ida2.corte) problemas.push(`en la segunda ida ${ida2.corte}: no llegó al último paso`);
+  const frases = frasesDeDiferencias(compararIdaYVuelta({ ida, vuelta: vuelta.vistos, ida2: ida2.corte ? null : ida2.vistos }));
+  problemas.push(...frases.fallas);
+  avisos.push(...frases.avisos);
+}
+
 let sinDatos = 0;
 try {
   // Un contexto por cuenta (Producción se ve parado en el Taller, Global con su vista): se abren a medida que hacen falta.
@@ -147,29 +251,23 @@ try {
       await page.close();
       continue;
     }
+    const avisos = [];
+    let volvio = false;
+    let trabada = false;
+    let estado = null;
     for (let n = 0; n < 60; n++) {
-      // Que el piloto termine lo que está haciendo (preparar, cursor, escribir) antes de pasar: la tarjeta deja de estar
-      // «ocupada» y el cursor fantasma se esconde. Tope de 12 s por paso; después, un respiro para la animación.
-      await page.waitForTimeout(n === 0 ? 900 : 700);
-      await page
-        .waitForFunction(
-          () => !document.querySelector(".guia-tarjeta[data-ocupada]") && !document.querySelector(".guia-tarjeta[data-piloto]") && !document.querySelector(".guia-cursor[data-visible]"),
-          null,
-          { timeout: 12_000 },
-        )
-        .catch(() => {});
-      await page.waitForTimeout(n === 0 ? 0 : 1200);
-      const estado = await page.evaluate(() => {
-        const t = document.querySelector(".guia-tarjeta");
-        if (!t) return null;
-        const r = document.querySelector(".guia-recorte");
-        return {
-          titulo: t.querySelector("h2")?.textContent ?? "",
-          nota: t.querySelector(".nota-cayla")?.textContent ?? null,
-          sinPieza: r?.hasAttribute("data-sin-pieza") ?? true,
-          alto: r ? parseFloat(r.style.height || "0") : 0,
-        };
-      });
+      if (n === 0) {
+        await esperarAlPiloto(page, true);
+        estado = await page.evaluate(pasoALaVista);
+      } else {
+        const previo = estado;
+        estado = await moverse(page, "ArrowRight", previo);
+        if (mismoLugar(estado, previo)) {
+          problemas.push(`no pasó del paso ${estado.numero} «${estado.titulo}»: la tarjeta no se movió con →`);
+          trabada = true;
+          break;
+        }
+      }
       if (!estado) break;
       pasos.push(estado);
       if (args.cobertura) {
@@ -185,7 +283,22 @@ try {
       else if (estado.nota?.includes("hace algo de verdad")) problemas.push(`«${estado.titulo}»: la guía intenta tocar un botón que guarda (el motor se negó)`);
       if (!estado.sinPieza && estado.alto < 4) problemas.push(`«${estado.titulo}»: el recorte quedó sin alto (la pieza está fuera de la vista)`);
       if (conCapturas) await page.screenshot({ path: join(salida, `${g.id}-${String(n + 1).padStart(2, "0")}.png`) });
-      await page.keyboard.press("ArrowRight");
+      // Con --ida-y-vuelta, la vuelta arranca desde el último paso: no se termina todavía.
+      if (idaYVuelta && estado.ultimo && pasos.length > 1) {
+        await vueltaYSegundaIda(page, g.id, pasos, problemas, avisos);
+        volvio = true;
+        break;
+      }
+    }
+    // La guía sigue abierta si la ida y vuelta terminó (o se cortó) o si la ida se trabó: se cierra con «Terminar» desde el último
+    // paso, si no con Esc, para que lo de abajo mire la pantalla como la deja la guía.
+    const abierta = await page.evaluate(pasoALaVista);
+    if (abierta && (volvio || trabada)) {
+      const cerrada = abierta.ultimo && !(await moverse(page, "ArrowRight", abierta));
+      if (!cerrada) {
+        await page.keyboard.press("Escape");
+        await esperarAlPiloto(page, false);
+      }
     }
     await page.waitForTimeout(1200);
     const quedo = await page.evaluate(() => ({
@@ -194,7 +307,9 @@ try {
       ruta: location.pathname,
       guia: !!document.querySelector(".guia-tarjeta"),
     }));
-    if (quedo.guia) problemas.push("la guía no terminó tras 60 pasos");
+    if (quedo.guia && !trabada) problemas.push("la guía no terminó tras 60 pasos");
+    // Sin un último paso a la vista («Terminar»), la vuelta no corrió: se dice, para que no pase en verde sin haber vuelto.
+    if (idaYVuelta && !volvio && pasos.length > 1) problemas.push("la ida y vuelta no corrió: la ida nunca mostró «Terminar»");
     if (pasos.length < 2) problemas.push(`la guía se cortó al empezar (${pasos.length} paso${pasos.length === 1 ? "" : "s"}): ¿la página se recargó?`);
     if (quedo.modales > 0) problemas.push(`quedaron ${quedo.modales} modal(es) abiertos al terminar (${quedo.titulos.join(" · ")})`);
     if (quedo.ruta !== destino.split("?")[0]) problemas.push(`terminó en otra ruta (${quedo.ruta})`);
@@ -207,7 +322,8 @@ try {
       cobertura.push({ guia: g.id, ruta: g.ruta, total, encendidos: si, porcentaje: total ? Math.round((100 * si) / total) : 100, sinEncender: faltan });
       console.log(`    cobertura: ${si}/${total} controles a la vista encendidos (${total ? Math.round((100 * si) / total) : 100} %)`);
     }
-    console.log(`${problemas.length ? "✗" : "✓"} ${g.id} (${g.ruta}): ${pasos.length} pasos${problemas.length ? `\n    · ${problemas.join("\n    · ")}` : ""}`);
+    const lineas = [...problemas, ...avisos.map((a) => `⚠ ${a}`)];
+    console.log(`${problemas.length ? "✗" : "✓"} ${g.id} (${g.ruta}): ${pasos.length} pasos${idaYVuelta ? ", ida y vuelta" : ""}${lineas.length ? `\n    · ${lineas.join("\n    · ")}` : ""}`);
     await page.close();
   }
   for (const c of contextos.values()) await c.close();

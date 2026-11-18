@@ -62,10 +62,11 @@ export function motivoParaNoTocar(p: PiezaATocar): string | null {
  * paso reabría lo que el siguiente había cerrado. Mirando el estado, correrlo dos veces deja lo mismo que correrlo una.
  * «no-es-pliegue»: el control no dice si está abierto, y tocarlo sería volver a tocar a ciegas.
  */
-export function toqueDelPliegue(para: "abrir" | "cerrar", expandido: string | null): "tocar" | "ya-esta" | "no-es-pliegue" {
+export function toqueDelPliegue(para: "abrir" | "cerrar" | "marcar" | "desmarcar", expandido: string | null): "tocar" | "ya-esta" | "no-es-pliegue" {
   if (expandido !== "true" && expandido !== "false") return "no-es-pliegue";
-  const abierto = expandido === "true";
-  return (para === "abrir") === abierto ? "ya-esta" : "tocar";
+  // Una casilla es lo mismo con otras palabras: «marcar» la quiere marcada («true»), «desmarcar», sin marcar.
+  const quiere = para === "abrir" || para === "marcar";
+  return quiere === (expandido === "true") ? "ya-esta" : "tocar";
 }
 
 /** ¿Esta ruta del registro («/compras/proveedores/[id]») describe esta URL («/compras/proveedores/9f…»)? */
@@ -164,9 +165,35 @@ export function posicionTarjeta(recorte: Caja | null, ventana: Ventana, tarjeta:
   return { top: Math.max(borde, ventana.alto - tarjeta.alto - borde), left: centradoX(ventana.ancho / 2), lado: "centro" };
 }
 
-/** Cerrar un pliegue (`para: "cerrar"`) solo oculta: no hace aparecer ninguna pieza, ni hay que esperarla. */
-const soloCierra = (a: AccionGuia) => a.tipo === "clic" && a.para === "cerrar";
+/** Cerrar un pliegue o desmarcar una casilla solo oculta: no hace aparecer ninguna pieza, ni hay que esperarla. */
+const soloCierra = (a: AccionGuia) => a.tipo === "clic" && (a.para === "cerrar" || a.para === "desmarcar");
 const puedeAbrir = (acciones: readonly AccionGuia[] | undefined) => !!acciones?.some((a) => !soloCierra(a));
+
+/**
+ * Al volver con ←, de qué paso sale lo que deja a la vista al paso `indice`: el último de antes que tenía `preparar` (el que abrió la hoja
+ * donde vive, o eligió su pestaña). Al volver, el motor cierra las hojas que la guía abrió después, y un paso de adentro que no la abre él
+ * mismo se saltaba: la guía caía varios pasos más atrás (Editar producto: «Sumarlos a la ficha» → «Llegó un color o una talla nueva»). El
+ * motor repite ese `preparar` solo si al paso le falta su pieza, y si lo que ese `preparar` toca tampoco está (la ficha de Existencias se
+ * abre desde el menú «Más»), sigue hacia atrás desde ahí.
+ * `null` si no hay ninguno. Un paso de otro ancho (`solo`) no cuenta: sus toques son de otra pantalla. Repetir un `preparar` no desarma
+ * nada porque todos se pueden repetir: abren una hoja que el motor ya cerró, eligen una pestaña, o tocan un pliegue o una casilla con
+ * `para`, que mira su estado.
+ */
+export function fuenteAlVolver(pasos: readonly PasoGuia[], indice: number, anchoVentana: number): number | null {
+  for (let j = indice - 1; j >= 0; j--) {
+    const p = pasos[j]!;
+    if (p.solo && !pasoAplica({ ...p, requiere: undefined, excluye: undefined }, new Set(), anchoVentana)) continue;
+    if (!p.preparar?.length) continue;
+    return j;
+  }
+  return null;
+}
+
+/** El toque de un `preparar` que abre algo (una hoja, una pestaña, un menú): el primero que no es un cierre ni un «si está». */
+export function toqueQueAbre(acciones: readonly AccionGuia[]): Extract<AccionGuia, { tipo: "clic" }> | null {
+  for (const a of acciones) if (a.tipo === "clic" && !a.siEsta && !soloCierra(a)) return a;
+  return null;
+}
 
 /**
  * Lo que se cierra al volver con ← del paso `desde` al paso `hasta` (el último que se mostró antes). «Atrás» salta directo a ese paso,
@@ -176,10 +203,7 @@ const puedeAbrir = (acciones: readonly AccionGuia[] | undefined) => !!acciones?.
  * esconde y es idempotente, así que correrlo de más no desarma nada; lo que el paso de destino necesita abierto lo pide su `preparar`.
  */
 export function cierresAlVolver(pasos: readonly PasoGuia[], desde: number, hasta: number): AccionGuia[] {
-  return pasos
-    .slice(hasta + 1, desde)
-    .filter((p) => !p.prepararSoloAlAvanzar)
-    .flatMap((p) => (p.preparar ?? []).filter(soloCierra));
+  return pasos.slice(hasta + 1, desde).flatMap((p) => (p.preparar ?? []).filter(soloCierra));
 }
 
 /**

@@ -69,8 +69,11 @@ Antes de escribir, avísale a Felipe en una línea qué pantallas vas a tocar y 
    en el paso que sigue, y `alSalir` para vaciar lo escrito). Un pliegue que abre y cierra con el mismo toque (el «?» de la
    cabecera, «Ver 3 más») no se cierra con Escape ni con un toque a ciegas: `{ tipo: "clic", ancla, para: "abrir" }` en su paso y
    `para: "cerrar"` en el de antes, en el de después y en `alSalir`. Mira su `aria-expanded` (o el `open` de un `<details>`), así que
-   vale en las dos direcciones, y un paso que vive dentro del pliegue puede pedir «abrir» también. `prepararSoloAlAvanzar` queda para lo
-   que no es un pliegue: marcar una casilla, quitar un filtro.
+   vale en las dos direcciones, y un paso que vive dentro del pliegue puede pedir «abrir» también. Una casilla se toca con
+   `para: "marcar" | "desmarcar"`, y algo que solo existe a veces (la × de un filtro), con `siEsta`. **Todo `preparar` tiene que poder
+   repetirse:** al volver con ←, el motor lo corre otra vez y, si un paso necesita una hoja o una pestaña que ya se cerró, repite el del
+   paso que la abrió (ADR-0389, act. 2026-11-18 c). Lo que vive en una pestaña o una vista la elige en su `preparar` (elegir lo ya
+   elegido no cambia nada).
 4. **Registro.** En `registro.ts`: importa la guía, súmala a `GUIAS`, pasa su ruta a `{ estado: "aplicada", guia: X.id }` y baja
    `PENDIENTES_HOY`. Si la pantalla no tiene nada que enseñar, `no-aplica` con su motivo (30 letras o más).
 
@@ -83,9 +86,14 @@ Antes de escribir, avísale a Felipe en una línea qué pantallas vas a tocar y 
    `pnpm --filter web guias:recorrer -- --base-url http://localhost:<puerto> --guia <id>` en escritorio, y otra vez con
    `--ancho 375 --alto 812 --tema oscuro`. Tiene que decir ✓: cada paso encontró su pieza, **la demo no escribió en la base**, no
    quedó ningún modal abierto. Si la cuenta `admin` no ve la pantalla, prueba la que sí (`--cuenta`, claves de `tema/cuentas.mjs`).
-3. **Mira las capturas** (`apps/web/guias/.salida/…`): que la tarjeta no tape lo que explica, que el recorte encierre la pieza
+3. **Ida y vuelta**, en los dos anchos: lo mismo con `--ida-y-vuelta`. Recorre la guía con → hasta el último paso, con ← hasta el
+   primero y con → otra vez, y falla si un paso se salta al volver o en la segunda ida, si la tarjeta dice una nota que en la ida no
+   decía, o si cambia cuántas hojas hay abiertas. La salida dice qué paso y en qué pasada. Casi siempre se arregla en la guía: una
+   pestaña, vista o búsqueda que un paso de más adelante dejó puesta y nadie vuelve a elegir, lo que abrió un `demostrar` (al volver no
+   se repite: pídelo en el `preparar` del paso que lo necesita) o un pliegue que se alterna sin `para`.
+4. **Mira las capturas** (`apps/web/guias/.salida/…`): que la tarjeta no tape lo que explica, que el recorte encierre la pieza
    justa, que el texto diga la verdad sobre lo que se ve. El recorredor no ve eso.
-4. Si la pantalla está en la regla de celular (Vender, Cambios, Devoluciones), la captura a 375 px va al PR.
+5. Si la pantalla está en la regla de celular (Vender, Cambios, Devoluciones), la captura a 375 px va al PR.
 
 ## Paso 5 — Acepta la huella y cierra
 

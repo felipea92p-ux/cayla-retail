@@ -2,35 +2,33 @@
 
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Award, Check, ChevronDown, ChevronRight, Gift, Info, Layers, Plus, Star, Tag, Undo2, Wallet, X } from "lucide-react";
+import { Award, Check, Plus, Shirt, Tag, Undo2, X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { Boton, Campo, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
-import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { Casilla } from "@/components/ui/Casilla";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CampoFecha } from "@/components/ui/CampoFecha";
-import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
-import { BotonVerMas } from "@/components/ui/VerMas";
-import { Volver } from "@/components/ui/Volver";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
 import { irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
-import { EtiquetaDeCampana } from "@/components/campana-hoja/EtiquetaDeCampana";
 import { CategoriasDeCampana } from "@/components/campana-hoja/CategoriasDeCampana";
 import { ChoquesDeOferta, useChoquesDeOferta } from "@/components/sellos/ChoquesDeOferta";
 import type { CategoriaOpcion, Etiqueta } from "@/components/EtiquetasLista";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import type { CampoDeGuia } from "@/lib/guia-campos";
 import type { InsigniaDeOferta } from "@/lib/campana-reglas";
-import { alcanceCampana, avisoReimprimir, chipDeTarjeta, destinoReimprimir, nombreBajoCosto, prendasBajoCosto, prendasQueCambianDePrecioHoy, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
-import { ejemplosDeCaja, piezasDelMosaico } from "@/lib/campana-hoja";
+import { alcanceCampana, avisoReimprimir, destinoReimprimir, nombreBajoCosto, prendasBajoCosto, prendasQueCambianDePrecioHoy, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
+import { nombreSinSku, unSoloEnvio } from "@/lib/campana-hoja";
 import { sumarDias } from "@/lib/fechas-lima";
-import { ejemploDeGrupo, ejemploDeMonto, type OfertaDeGrupo } from "@/lib/ofertas-de-grupo";
-import { fechaCorta, repetirTemporada, textoRango, vigenciaDe } from "@/lib/etiqueta-vigencia";
+import { compraDeEjemplo } from "@/lib/compra-de-ejemplo";
+import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { opcionesDeQueLeDas } from "@/lib/oferta-que-le-das";
+import { fechaCorta, repetirTemporada } from "@/lib/etiqueta-vigencia";
 import {
   DIAS_SEMANA,
   FORMA_DE_FABRICA,
@@ -42,7 +40,6 @@ import {
   PORCENTAJE_MAX,
   PORCENTAJE_MIN,
   PORCENTAJE_PASO,
-  alcanceDicho,
   atajosDeFechas,
   contarPorCategoria,
   contarPrendas,
@@ -58,27 +55,21 @@ import {
   nombreAutomatico,
   nombreDeOferta,
   nombreDia,
-  nombresOrdenados,
   ofertaDesdeRegla,
   ofertaNueva,
-  ordenarReglas,
   prendasQueAlcanza,
   problemasDeOferta,
+  resumenAntes,
   choquesDeFilas,
   choquesSinResolver,
   cesionesQueQuedan,
   tituloDeChoque,
-  resumenAntes,
-  textoDias,
-  textoDiasCorto,
-  textoFechas,
   vigenciaDeRegla,
   type CuerpoGuardarOferta,
   type EscalonDeMonto,
   type OfertaEnEdicion,
   type TipoOferta,
   type ReglaCampana,
-  type VigenciaRegla,
   avisoDePorMonto,
   pctEquivalente,
 } from "@/lib/campana-reglas";
@@ -86,44 +77,19 @@ import {
 /* ====================================================================
    «Tres preguntas» · las OFERTAS de una campaña (Felipe 2026-10-23, elegida entre cinco: docs/maquetas/ofertas-promociones-2026-10/formulario/)
 
-   PROMETE: una hoja con tres cosas — las ofertas ya registradas de la campaña (a la izquierda), un asistente de UNA pregunta por
-   pantalla (¿Qué le das al cliente? · ¿En qué prendas? · ¿Cuándo y dónde? · Revisa y activa; en ese orden desde ADR-0655, porque qué
-   prendas preguntar depende de la oferta) y, a la derecha, la etiqueta de la campaña que se arma con
-   cada respuesta (la misma de la hoja de la campaña, ADR-0488, con el resumen de la oferta). El cuándo y las prendas ya vienen contestados
-   con lo más común; las tiendas no (se marcan una por una); quien ya sabe usa el atajo de la pregunta 1.
-   ASUME: hoy existen «Un % menos», «Llevar varias y pagar menos» y «Gastar un monto y ahorrar» (ADR-0655); los demás tipos de la maqueta se
-   ven apagados con «Pronto». Las tiendas y las prendas de una oferta son un subconjunto de las de su campaña. Quien abre esta hoja tiene la llave de
-   campañas y activa, cambia y retira sin esperar a un líder (ADR-0534; la base vuelve a exigir la llave). Guardar y activar van por
+   PROMETE: la hoja de UNA oferta de la campaña (ADR-0677, 7b y 7c): «¿Qué le das?» arriba y, en cuanto se elige, en qué prendas, cuándo y
+   dónde, y lo que revisar, uno debajo del otro; a la derecha, la etiqueta de la campaña que se arma con cada respuesta (ADR-0488). Se abre
+   desde el panel de la campaña: «Nueva oferta», o tocando el cartel de una oferta para editarla (`ofertaInicial`). Guardar, activar o
+   retirar la cierran: lo que quedó se ve en el panel, en su cartel.
+   ASUME: las tiendas y las prendas de una oferta son un subconjunto de las de su campaña. Quien abre esta hoja tiene la llave de campañas y
+   activa, cambia y retira sin esperar a un líder (ADR-0534; la base vuelve a exigir la llave). Guardar, activar y retirar van por
    /api/productos/campana-reglas; la base valida todo otra vez.
-   NO HACE: no cambia precios por su cuenta ni toca el descuento «de siempre» de la campaña (solo se retira desde «Ya registradas»).
+   NO HACE: no cambia precios por su cuenta ni toca el descuento de la campaña (tiene su cartel y su hoja, `HojaDeDescuento`).
    ==================================================================== */
 
-type Paso = 1 | 2 | 3 | 4;
 type Guardando = "borrador" | "activar" | "cambios" | null;
 type VistaPrendas = "cat" | "una" | "ins";
 
-const GRUPOS: { k: string; titulo: string; corto: string; texto: string; icono: ReactNode; activo: boolean }[] = [
-  { k: "rebaja", titulo: "Una rebaja", corto: "Una rebaja", texto: "Un porcentaje menos en las prendas", icono: <Tag aria-hidden />, activo: true },
-  { k: "varias", titulo: "Llevar varias y pagar menos", corto: "Llevar varias", texto: "3x2, 2 polos por S/\u00a059.90, la 2.ª al 50 %…", icono: <Layers aria-hidden />, activo: true },
-  { k: "monto", titulo: "Gastar un monto y ahorrar", corto: "Gastar un monto", texto: "S/\u00a030 menos desde S/\u00a0300", icono: <Wallet aria-hidden />, activo: true },
-  { k: "regalo", titulo: "Un regalo", corto: "Un regalo", texto: "Un arreglo de basta gratis desde S/\u00a0200", icono: <Gift aria-hidden />, activo: false },
-  { k: "club", titulo: "Algo para miembros del Club", corto: "Para el Club", texto: "10 % menos, puntos dobles, compra privada…", icono: <Star aria-hidden />, activo: false },
-];
-
-/** Las formas de «Llevar varias y pagar menos» (ADR-0655, actividad 6), como las dibujó la maqueta. */
-const FORMAS_DE_GRUPO: { k: TipoOferta; titulo: string; texto: string }[] = [
-  { k: "nxm", titulo: "3 x 2", texto: "Lleva 3, paga 2. La más barata, gratis." },
-  { k: "n_por_monto", titulo: "2 por S/\u00a059.90", texto: "Un precio fijo por el grupo." },
-  { k: "nesima_pct", titulo: "2.ª al 50 %", texto: "La segunda prenda, con descuento." },
-];
-
-const CHIP_ESTADO: Record<VigenciaRegla, { texto: string; tono: TonoChip }> = {
-  vigente: { texto: "Vigente", tono: "verde" },
-  programada: { texto: "Programada", tono: "pizarra" },
-  borrador: { texto: "Borrador", tono: "ambar" },
-  terminada: { texto: "Terminada", tono: "neutro" },
-  retirada: { texto: "Retirada", tono: "apagado" },
-};
 
 /** «26 oct» (sin el punto con que `fechaCorta` cierra la abreviatura: la frase pone el suyo). */
 const sinPunto = (t: string) => t.replace(/\.$/, "");
@@ -141,8 +107,6 @@ function NombreCorto({ largo, corto }: { largo: string; corto: string }) {
     </>
   );
 }
-/** Lo que pide cada tarjeta de «¿Qué le das?» al elegirla: la rebaja, el 3x2 o el monto (ADR-0655, actividad 8). */
-const tipoDeTarjeta = (k: string): TipoOferta => (k === "varias" ? "nxm" : k === "monto" ? "monto" : "pct");
 
 /** Un monto en soles de un escalón: se escribe como texto (la coma o el punto a medio escribir no se pierden) y avisa el número. */
 function MontoDeEscalon({
@@ -196,10 +160,11 @@ export function OfertasHoja({
   variantesManuales,
   insignias = [],
   hoy,
-  puedeDarDescuento,
   alGuardarCampana,
   alReglas,
   onClose,
+  ofertaInicial = null,
+  fotos = null,
 }: {
   /** La campaña a la que se le registran las ofertas. */
   etiqueta: Etiqueta;
@@ -214,13 +179,15 @@ export function OfertasHoja({
   /** Las insignias que la oferta puede elegir (ADR-0655, por insignia); vacío = no se ofrece «Por insignia». */
   insignias?: InsigniaDeOferta[];
   hoy: string;
-  /** Quien configura la campaña puede ponerle su descuento de siempre (si no, el formulario no lo ofrece). */
-  puedeDarDescuento: boolean;
   /** La campaña se guardó desde adentro (fechas, categorías, tiendas, descuento): la pantalla actualiza su fila. */
   alGuardarCampana: (cambios: Pick<Etiqueta, "descuentoPct" | "vigenteDesde" | "vigenteHasta" | "categoriaIds" | "sedeIds">) => void;
   /** La lista fresca de TODAS las ofertas, tal como la devolvió la base tras guardar, activar o retirar. */
   alReglas: (todas: ReglaCampana[]) => void;
   onClose: () => void;
+  /** La oferta que se tocó en su cartel (ADR-0677, 7c): la hoja empieza editándola. Sin ella, es una nueva. */
+  ofertaInicial?: string | null;
+  /** La foto, el color y la categoría de cada prenda (por su id), para dibujarla en «En caja»; sin ellos, la percha (ADR-0333). */
+  fotos?: ReadonlyMap<string, { fotoUrl: string | null; colorHex: string | null; categoria: { nombre: string | null; prefijo: string | null; familia: string | null } | null }> | null;
 }) {
   const campDesde = etiqueta.vigenteDesde;
   const campHasta = etiqueta.vigenteHasta;
@@ -248,47 +215,39 @@ export function OfertasHoja({
     const cats = new Set(etiqueta.categoriaIds);
     return prendasConCosto.filter((p) => (p.categoriaId !== null && cats.has(p.categoriaId)) || manuales.has(p.id));
   }, [prendasConCosto, etiqueta.categoriaIds, manuales]);
-  const [o, setO] = useState<OfertaEnEdicion>(nuevaOferta);
+  // La oferta abierta desde su cartel (ADR-0677, 7c): la hoja empieza editándola, como si se hubiera tocado en la lista de antes.
+  const reglaInicial = ofertaInicial ? (reglas.find((r) => r.id === ofertaInicial) ?? null) : null;
+  const desdeRegla = (r: ReglaCampana): OfertaEnEdicion => ({ ...ofertaDesdeRegla(r, esNombreAutomatico(r, nombreCategoria, nombreSede)), sedeIds: r.sedeIds.length > 0 ? r.sedeIds : idsDeTiendas });
+  const [o, setO] = useState<OfertaEnEdicion>(() => (reglaInicial ? desdeRegla(reglaInicial) : nuevaOferta()));
   // Cada categoría dice cuántas prendas a la venta trae, como en la hoja de la campaña: son las de TODO el catálogo porque una oferta puede
   // elegir categorías que la campaña no tiene. Una prenda es un modelo en su color (sus tallas cuentan una vez, ADR-0488) y las de Claurè
   // no cuentan salvo que la oferta las incluya a propósito, porque la base no se las baja.
   const cuentaCats = useMemo(() => contarPorCategoria(prendasConCosto, o.incluyeClaure), [prendasConCosto, o.incluyeClaure]);
   const catsCampana = useMemo(() => new Set(etiqueta.categoriaIds), [etiqueta.categoriaIds]);
 
-  // ---- El asistente ---------------------------------------------------------------------------------------------------------------
-  const [paso, setPaso] = useState<Paso>(1);
-  const [elegido, setElegido] = useState(false);
-  const [visitado, setVisitado] = useState<Record<Paso, boolean>>({ 1: false, 2: false, 3: false, 4: false });
-  const [navego, setNavego] = useState(false);
-  // Cambiar de paso es otra vista, no un bloque que se encogió (ADR-0185): se suelta la reserva de <PaginaEstable> antes de pintar. Su aire
-  // al fondo subía el pie fijo a media hoja en el celular (385 px medidos en «Revisar» a 375). Si la pregunta nueva empieza arriba de lo
-  // que se ve, la hoja sube hasta ella.
-  const asistente = useRef<HTMLElement>(null);
-  const pasoPintado = useRef(paso);
-  useLayoutEffect(() => {
-    if (pasoPintado.current === paso) return;
-    pasoPintado.current = paso;
-    soltarPaginaEstable();
-    const hoja = asistente.current?.closest<HTMLElement>('[role="dialog"]');
-    if (!asistente.current || !hoja) return;
-    const arriba = asistente.current.getBoundingClientRect().top - hoja.getBoundingClientRect().top;
-    // 28 px de aire: en el celular el asa de la hoja tapa los primeros 24.
-    if (arriba < 0) hoja.scrollTop += arriba - 28;
-  }, [paso]);
-  // La categoría recién marcada: su casilla vuela a su pieza en la etiqueta (`EtiquetaDeCampana`).
-  const vuelo = useRef<string | null>(null);
+  // ---- La hoja ---------------------------------------------------------------------------------------------------------------------
+  // Desde ADR-0677 (actividad 7b) es UNA hoja: qué le das arriba y, en cuanto se elige, en qué prendas, cuándo y dónde, y lo que revisar,
+  // uno debajo del otro. Ya no hay pasos que recorrer ni «Siguiente»: el pie siempre guarda o activa.
+  const [elegido, setElegido] = useState(reglaInicial !== null);
   // La persona tocó la grilla de categorías (aunque la dejó vacía: vacío es «ninguna», no «las de la campaña»).
-  const [tocoCats, setTocoCats] = useState(false);
+  const [tocoCats, setTocoCats] = useState(
+    () => reglaInicial !== null && reglaInicial.categoriasSolo.length === 0 && (reglaInicial.productosSolo.length > 0 || reglaInicial.insigniasSolo.length > 0),
+  );
   // Cómo se eligen las prendas en el paso 2: por categoría, prenda por prenda o por insignia (ADR-0655).
-  const [vistaPrendas, setVistaPrendas] = useState<VistaPrendas>("cat");
+  const [vistaPrendas, setVistaPrendas] = useState<VistaPrendas>(() =>
+    !reglaInicial ? "cat" : reglaInicial.productosSolo.length > 0 ? "una" : reglaInicial.insigniasSolo.length > 0 ? "ins" : "cat",
+  );
   const [masQ3, setMasQ3] = useState(false);
-  const [soloAlgunosDias, setSoloAlgunosDias] = useState(false);
+  const [soloAlgunosDias, setSoloAlgunosDias] = useState(reglaInicial !== null && reglaInicial.dias.length < 7);
   const [escribeEscalon, setEscribeEscalon] = useState(false);
   const [guardando, setGuardando] = useState<Guardando>(null);
-  const [recien, setRecien] = useState<string | null>(null);
-  const [verTodas, setVerTodas] = useState(false);
-  const [regsAb, setRegsAb] = useState(false);
   const [retirando, setRetirando] = useState<string | null>(null);
+  // Al preguntar «¿Retirar…?», el foco pasa a «No, dejarla» sin mover la hoja: con `autoFocus`, el navegador la desplazaba hasta abajo para
+  // mostrar el botón del pie fijo (ADR-0185: la vista no se mueve sola).
+  const pieConfirma = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (retirando) pieConfirma.current?.querySelector<HTMLButtonElement>("[data-foco-inicial]")?.focus({ preventScroll: true });
+  }, [retirando]);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   // Lo poco que la campaña misma tiene aquí (su descuento de siempre y el límite de tiendas de antes) se toca con las mismas puertas de
   // siempre (`PATCH /api/productos/etiquetas`). Sus FECHAS ya no se cambian aquí sino en «Editar» de su pase (Felipe 2026-10-28). Todo lo
@@ -296,7 +255,6 @@ export function OfertasHoja({
   const router = useRouter();
   const repeticion = useMemo(() => repetirTemporada(campDesde, campHasta, hoy), [campDesde, campHasta, hoy]);
   const [guardandoCampana, setGuardandoCampana] = useState(false);
-  const [retirandoDescuento, setRetirandoDescuento] = useState(false);
   async function guardarCampana(parche: Partial<Pick<Etiqueta, "descuentoPct" | "vigenteDesde" | "vigenteHasta" | "sedeIds">>, titulo: string) {
     setGuardandoCampana(true);
     const nueva = {
@@ -325,7 +283,6 @@ export function OfertasHoja({
       const reimprimir = avisoReimprimir(cambian, destino !== null);
       avisar.exito(titulo, reimprimir ? { detalle: reimprimir.detalle, accion: destino && reimprimir.boton ? { texto: reimprimir.boton, onClick: () => router.push(destino) } : undefined } : undefined);
       alGuardarCampana(nueva);
-      setRetirandoDescuento(false);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
@@ -344,35 +301,6 @@ export function OfertasHoja({
     setO((a) => (a.tipo === tipo ? a : { ...a, ...FORMA_DE_FABRICA[tipo] }));
   };
   const cambiar = (parche: Partial<OfertaEnEdicion>) => setO((a) => ({ ...a, ...parche }));
-
-  function ir(p: Paso) {
-    setNavego(true);
-    setVisitado((v) => ({ ...v, [paso]: true }));
-    setPaso(p);
-  }
-  function reiniciar() {
-    setO(nuevaOferta());
-    setElegido(false);
-    setPaso(1);
-    setVisitado({ 1: false, 2: false, 3: false, 4: false });
-    setTocoCats(false);
-    setVistaPrendas("cat");
-    setMasQ3(false);
-    setSoloAlgunosDias(false);
-  }
-  function editar(r: ReglaCampana) {
-    setO({ ...ofertaDesdeRegla(r, esNombreAutomatico(r, nombreCategoria, nombreSede)), sedeIds: r.sedeIds.length > 0 ? r.sedeIds : idsDeTiendas });
-    setElegido(true);
-    setPaso(1);
-    setNavego(true);
-    setVisitado({ 1: false, 2: false, 3: false, 4: false });
-    // Una oferta de solo modelos o insignias, sin categorías, no rige en las de la campaña: la grilla no las muestra marcadas.
-    setTocoCats(r.categoriasSolo.length === 0 && (r.productosSolo.length > 0 || r.insigniasSolo.length > 0));
-    setVistaPrendas(r.productosSolo.length > 0 ? "una" : r.insigniasSolo.length > 0 ? "ins" : "cat");
-    setMasQ3(false);
-    setSoloAlgunosDias(r.dias.length < 7);
-    setRegsAb(false);
-  }
 
   // ---- Lo que la oferta alcanzaría y lo que avisa ---------------------------------------------------------------------------------
   const alcanzadas = useMemo(() => prendasQueAlcanza(prendasCampana, prendasConCosto, o), [prendasCampana, prendasConCosto, o]);
@@ -453,18 +381,10 @@ export function OfertasHoja({
   // destellan y, si es una lista de opciones, le dan el foco) en vez de quedarse apagados sin decir por qué (ADR-0284; `Boton confirma`, ADR-0611).
   function llevarA(c: CampoDeGuia | undefined) {
     if (!c) return;
-    const destino: Paso = c.id === "que" ? 1 : c.id === "categorias" ? 2 : 3; // los choques se resuelven junto a las tiendas
-    const mover = () => {
-      irAlIdCampo(`oferta-${c.id}`, { enModal: true });
-      if (c.id === "que") document.querySelector<HTMLElement>('[data-campo="oferta-que"] button:not([aria-disabled="true"])')?.focus({ preventScroll: true });
-    };
-    if (destino !== paso) {
-      ir(destino);
-      window.setTimeout(mover, 150); // el paso nuevo se dibuja en el siguiente cuadro
-    } else mover();
+    // Todo está a la vista en la misma hoja: se lleva al campo (lo deja a la vista, lo destella y, si es la fila de opciones, le da el foco).
+    irAlIdCampo(`oferta-${c.id}`, { enModal: true });
+    if (c.id === "que") document.querySelector<HTMLElement>('[data-campo="oferta-que"] button:not([aria-disabled="true"])')?.focus({ preventScroll: true });
   }
-  /** Lo que todavía no existe («Pronto») avisa en vez de callar: un botón apagado no dice por qué ni deja preguntar. */
-  const avisarPronto = (que: string) => avisar.aviso(`${que}: llega pronto`, { detalle: "Cambia el dinero en la caja y lo estamos probando. Por ahora puedes registrar una rebaja, un «llevar varias» o un monto." });
   const confirmaPaso = (puede: boolean) => ({ puedeConfirmar: puede, revisar: () => { llevarA(faltan[0]); return false; } });
   // Activar (o guardar una que ya rige) además pide que no quede un choque sin resolver.
   const confirmaRegir = (puede: boolean) => ({ puedeConfirmar: puede && !faltaChoque, revisar: () => { llevarA(faltan[0] ?? faltaChoque ?? undefined); return false; } });
@@ -492,8 +412,15 @@ export function OfertasHoja({
     }
   }
 
-  async function guardar(activar: boolean) {
+  // Guardar, activar o retirar cierran la hoja (ADR-0677, 7c): lo que quedó se ve en su cartel, en el panel de la campaña. Cada uno pasa por
+  // un candado de un solo envío: tres clics en el mismo instante mandaban tres ofertas iguales, porque `guardando` aún no había apagado el
+  // botón (chaos 2026-11-18; el mismo candado de la hoja de la campaña, `unSoloEnvio`).
+  const [unaVez] = useState(unSoloEnvio);
+  async function guardar(activar: boolean, cerrar: () => void) {
     if (!puedeGuardar || guardando) return;
+    await unaVez(() => enviarOferta(activar, cerrar));
+  }
+  async function enviarOferta(activar: boolean, cerrar: () => void) {
     const cuerpo: CuerpoGuardarOferta = {
       id: o.id,
       etiquetaId: etiqueta.id,
@@ -529,32 +456,24 @@ export function OfertasHoja({
     const r = await llamar("POST", cuerpo);
     setGuardando(null);
     if (!r.ok) return;
-    setRecien(r.id);
     const cuando = o.desde > hoy ? `desde el ${sinPunto(fechaCorta(o.desde))}` : "desde ahora";
     if (activar) avisar.exito("Oferta activada", { detalle: `«${nombre}» rige ${cuando} en caja y en la tienda web.` });
     else if (o.id) avisar.exito("Cambios guardados", { detalle: "Valen desde ahora; lo que ya se vendió se queda como estaba." });
     else avisar.exito("Oferta guardada como borrador", { detalle: "Actívala cuando quieras que empiece a bajar el precio." });
-    reiniciar();
+    cerrar();
   }
 
-  async function activarRegla(r: ReglaCampana) {
-    setTrabajando(r.id);
-    const res = await llamar("PATCH", { id: r.id, accion: "activar" });
-    setTrabajando(null);
-    if (res.ok) {
-      setRecien(r.id);
-      avisar.exito("Oferta activada", { detalle: `«${r.nombre}» rige ${r.desde > hoy ? `desde el ${sinPunto(fechaCorta(r.desde))}` : "desde ahora"} en caja y en la tienda web.` });
-    }
-  }
-  async function retirarRegla(r: ReglaCampana) {
-    setTrabajando(r.id);
-    const res = await llamar("PATCH", { id: r.id, accion: "retirar" });
-    setTrabajando(null);
-    setRetirando(null);
-    if (res.ok) {
-      if (o.id === r.id) reiniciar();
-      avisar.exito("Oferta retirada", { detalle: `«${r.nombre}» deja de bajar el precio. Queda en el historial.` });
-    }
+  async function retirarRegla(r: ReglaCampana, cerrar: () => void) {
+    await unaVez(async () => {
+      setTrabajando(r.id);
+      const res = await llamar("PATCH", { id: r.id, accion: "retirar" });
+      setTrabajando(null);
+      setRetirando(null);
+      if (res.ok) {
+        cerrar();
+        avisar.exito("Oferta retirada", { detalle: `«${r.nombre}» deja de bajar el precio. Queda en el historial.` });
+      }
+    });
   }
 
   // ---- Piezas pequeñas --------------------------------------------------------------------------------------------------------------
@@ -566,14 +485,10 @@ export function OfertasHoja({
     cambiar({ categoriasSolo: comoLaCampana ? [] : [...siguiente], categoriasFuera: [] });
     setTocoCats(!comoLaCampana);
   }
-  // La casilla recién marcada vuela a su pieza en la etiqueta.
   const alternarCategoria = (id: string) => {
     const siguiente = new Set(elegidasSolo);
     if (siguiente.has(id)) siguiente.delete(id);
-    else {
-      siguiente.add(id);
-      vuelo.current = id;
-    }
+    else siguiente.add(id);
     fijarCategorias(siguiente);
   };
   // Prenda por prenda (ADR-0655): elegir el primer modelo deja la oferta en lo que se marca —las categorías que se veían y ese modelo—, ya no en
@@ -607,108 +522,66 @@ export function OfertasHoja({
     fijarCategorias(siguiente);
   };
 
-  // ---- Pregunta 1 -----------------------------------------------------------------------------------------------------------------
+  // ---- Pregunta 1: «Qué le das» (ADR-0677, 7a) -------------------------------------------------------------------------------------
+  // Las cinco formas en una fila, y el ejemplo ES la opción (`opcionesDeQueLeDas`); debajo, los números de la elegida, ahí mismo. «Regalo» y
+  // «Club» salieron hasta que funcionen (Felipe 2026-11-17), y con ellos los «· pronto» y los párrafos de ayuda.
   function pregunta1() {
     return (
       <>
         <h2>¿Qué le das al cliente?</h2>
-        <p className="of-baj">{elegido ? "Ajusta el número. Lo demás ya viene contestado." : "Elige lo que más se parezca. Los detalles vienen después."}</p>
-        {!elegido ? (
-          <div className="of-fams" role="group" aria-label="Qué le das al cliente" data-campo="oferta-que">
-            {GRUPOS.map((g) => (
-              <button
-                key={g.k}
-                type="button"
-                className="of-fam"
-                aria-disabled={!g.activo || undefined}
-                title={g.activo ? undefined : "Llega pronto: cambia el dinero en la caja y lo estamos probando."}
-                onClick={() => (g.activo ? elegirForma(tipoDeTarjeta(g.k)) : avisarPronto(g.titulo))}
-                data-guia={g.k === "rebaja" ? "sellos.oferta-rebaja" : g.k === "varias" ? "sellos.oferta-varias" : g.k === "monto" ? "sellos.oferta-monto" : undefined}
-              >
-                <span className="of-ico">{g.icono}</span>
-                <b>{g.titulo}</b>
-                <small>{g.texto}</small>
-                <span className="of-go">{g.activo ? <ChevronRight aria-hidden /> : <Chip tono="neutro" versalitas={false}>Pronto</Chip>}</span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <>
-            <div className="of-gp" role="group" aria-label="Qué le das al cliente">
-              {GRUPOS.map((g) => (
-                <button
-                  key={g.k}
-                  type="button"
-                  className="pildora-cayla"
-                  aria-pressed={g.activo && (g.k === "varias" ? grupo : g.k === "monto" ? o.tipo === "monto" : o.tipo === "pct")}
-                  aria-disabled={!g.activo || undefined}
-                  title={g.activo ? undefined : "Llega pronto"}
-                  onClick={() => (g.activo ? elegirForma(g.k === "varias" && grupo ? o.tipo : tipoDeTarjeta(g.k)) : avisarPronto(g.titulo))}
-                >
-                  {g.corto}
-                  {!g.activo && <span className="font-normal"> · pronto</span>}
+        <div className="of-tipos" role="group" aria-label="Qué le das al cliente" data-campo="oferta-que">
+          {opcionesDeQueLeDas(o, elegido).map((x) => (
+            <button
+              key={x.tipo}
+              type="button"
+              className="of-tipo"
+              aria-pressed={x.elegida}
+              onClick={() => elegirForma(x.tipo)}
+              data-guia={x.tipo === "pct" ? "sellos.oferta-rebaja" : x.tipo === "nxm" ? "sellos.oferta-varias" : x.tipo === "monto" ? "sellos.oferta-monto" : undefined}
+            >
+              <span className="of-tipo-glifo">{x.glifo}</span>
+              <span className="of-tipo-linea">{x.linea}</span>
+            </button>
+          ))}
+        </div>
+        {elegido && (o.tipo === "monto" ? formaDeMonto() : grupo ? formaDeGrupo() : formaDePct())}
+      </>
+    );
+  }
+
+  // ---- «Un % menos»: cuánto ----------------------------------------------------------------------------------------------------------
+  function formaDePct() {
+    return (
+      <div className="mt-4">
+        <Campo
+          etiqueta="Cuánto menos"
+          tono={bajoPorModelo.length > 0 ? "error" : "neutro"}
+          sinPie={bajoPorModelo.length === 0}
+          pie={
+            bajoPorModelo.length > 0
+              ? `Por debajo del costo: ${plural(bajoPorModelo.length, "prenda", "prendas")} (${bajoPorModelo.slice(0, 2).map(nombreBajoCosto).join(", ")}${bajoPorModelo.length > 2 ? "…" : ""}). Se puede guardar igual.`
+              : undefined
+          }
+        >
+          <div className="of-ctl">
+            <PasoCantidad
+              tono={bajoPorModelo.length > 0 ? "error" : undefined}
+              menos={{ onClick: () => cambiar({ porcentaje: Math.max(PORCENTAJE_MIN, o.porcentaje - PORCENTAJE_PASO) }), deshabilitado: o.porcentaje <= PORCENTAJE_MIN, etiqueta: "Bajar el descuento" }}
+              mas={{ onClick: () => cambiar({ porcentaje: Math.min(PORCENTAJE_MAX, o.porcentaje + PORCENTAJE_PASO) }), deshabilitado: o.porcentaje >= PORCENTAJE_MAX, etiqueta: "Subir el descuento" }}
+              data-guia="sellos.oferta-pct"
+            >
+              <span className="whitespace-nowrap">−{pct(o.porcentaje)} %</span>
+            </PasoCantidad>
+            <div role="group" aria-label="Descuentos de siempre" className="flex flex-wrap gap-1.5">
+              {PORCENTAJES_RAPIDOS.map((v) => (
+                <button key={v} type="button" className="pildora-cayla tabular-nums" aria-pressed={o.porcentaje === v} onClick={() => cambiar({ porcentaje: v })}>
+                  {v} %
                 </button>
               ))}
             </div>
-            {grupo ? (
-              formaDeGrupo()
-            ) : o.tipo === "monto" ? (
-              formaDeMonto()
-            ) : (
-            <>
-            <div className="of-sub">
-              <span className="of-lbl">De qué forma</span>
-              <div className="of-opciones">
-                <button type="button" className="pildora-cayla" aria-pressed>
-                  Un % menos
-                </button>
-                <button type="button" className="pildora-cayla" aria-disabled title="Llega pronto" onClick={() => avisarPronto("Soles menos en cada prenda")}>
-                  Soles menos en cada prenda · pronto
-                </button>
-                <button type="button" className="pildora-cayla" aria-disabled title="Llega pronto" onClick={() => avisarPronto("Un precio único")}>
-                  Un precio único · pronto
-                </button>
-              </div>
-            </div>
-            <div className="mt-3">
-            <Campo
-              etiqueta="Cuánto menos"
-              tono={bajoPorModelo.length > 0 ? "error" : "neutro"}
-              sinPie={bajoPorModelo.length === 0}
-              pie={
-                bajoPorModelo.length > 0
-                  ? `Por debajo del costo: ${plural(bajoPorModelo.length, "prenda", "prendas")} (${bajoPorModelo.slice(0, 2).map(nombreBajoCosto).join(", ")}${bajoPorModelo.length > 2 ? "…" : ""}). Se puede guardar igual.`
-                  : undefined
-              }
-            >
-            <div className="of-ctl">
-              <PasoCantidad
-                tono={bajoPorModelo.length > 0 ? "error" : undefined}
-                menos={{ onClick: () => cambiar({ porcentaje: Math.max(PORCENTAJE_MIN, o.porcentaje - PORCENTAJE_PASO) }), deshabilitado: o.porcentaje <= PORCENTAJE_MIN, etiqueta: "Bajar el descuento" }}
-                mas={{ onClick: () => cambiar({ porcentaje: Math.min(PORCENTAJE_MAX, o.porcentaje + PORCENTAJE_PASO) }), deshabilitado: o.porcentaje >= PORCENTAJE_MAX, etiqueta: "Subir el descuento" }}
-                data-guia="sellos.oferta-pct"
-              >
-                <span className="whitespace-nowrap">−{pct(o.porcentaje)} %</span>
-              </PasoCantidad>
-              <div role="group" aria-label="Descuentos de siempre" className="flex flex-wrap gap-1.5">
-                {PORCENTAJES_RAPIDOS.map((v) => (
-                  <button key={v} type="button" className="pildora-cayla tabular-nums" aria-pressed={o.porcentaje === v} onClick={() => cambiar({ porcentaje: v })}>
-                    {v} %
-                  </button>
-                ))}
-              </div>
-            </div>
-            </Campo>
-            </div>
-            <p className="of-ayuda">
-              <Info aria-hidden />
-              <span>El precio baja ese porcentaje. El cliente no tiene que hacer nada: la caja y la tienda web lo aplican solas.</span>
-            </p>
-            </>
-            )}
-          </>
-        )}
-      </>
+          </div>
+        </Campo>
+      </div>
     );
   }
 
@@ -727,17 +600,7 @@ export function OfertasHoja({
     );
     return (
       <>
-        <div className="of-sub">
-          <span className="of-lbl">De qué forma</span>
-          <div className="of-opciones" role="group" aria-label="De qué forma" data-guia="sellos.oferta-forma">
-            {FORMAS_DE_GRUPO.map((f) => (
-              <button key={f.k} type="button" className="pildora-cayla" aria-pressed={o.tipo === f.k} title={f.texto} onClick={() => elegirForma(f.k)}>
-                {f.titulo}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="of-frase-campos mt-3" data-campo="oferta-que">
+        <div className="of-frase-campos mt-4" data-campo="oferta-que" data-guia="sellos.oferta-forma">
           {o.tipo === "nxm" ? (
             <>
               <span>Lleva</span>
@@ -778,13 +641,6 @@ export function OfertasHoja({
             </>
           )}
         </div>
-        <p className="of-ayuda">
-          <Info aria-hidden />
-          <span>
-            {o.tipo === "n_por_monto" ? "El precio del grupo se reparte entre sus prendas." : "Siempre baja la más barata del grupo; si cuestan lo mismo, da igual cuál."} Después eliges con qué prendas se
-            arma el grupo.
-          </span>
-        </p>
       </>
     );
   }
@@ -803,7 +659,7 @@ export function OfertasHoja({
     };
     return (
       <>
-        <div className="of-sub">
+        <div className="of-sub mt-4">
           <span className="of-lbl">Cuánto ahorra</span>
           <div className="of-opciones" role="group" aria-label="Cuánto ahorra">
             <button type="button" className="pildora-cayla" aria-pressed={en === "soles"} onClick={() => cambiar({ ahorroEn: "soles" })}>
@@ -851,17 +707,12 @@ export function OfertasHoja({
             </span>
           )}
         </div>
-        <p className="of-ayuda">
-          <Info aria-hidden />
-          <span>El ahorro se reparte entre las prendas que cuentan. Después eliges qué cuenta.</span>
-        </p>
       </>
     );
   }
 
   // ---- Dónde rige (se contesta en «¿Cuándo y dónde?») ------------------------------------------------------------------------------
   const dondeRige = textoSedesDeCampana(etiqueta.sedeIds, tiendas) ?? "En todas las tiendas";
-  const dondeDeLaOferta = sinTiendas ? dondeRige : tiendasPendientes ? "Elige al menos una tienda" : seleccionCompleta ? "En todas las tiendas" : (textoSedesDeCampana(o.sedeIds, tiendas) ?? dondeRige);
   // «Dónde rige», como en la hoja de la campaña: una pastilla por tienda. Aquí no hay «Todas las sedes» (Felipe 2026-10-23): quien la quiere
   // en todas las marca todas, y la oferta queda sin límite de tiendas.
   const chipsDeTiendas =
@@ -959,9 +810,6 @@ export function OfertasHoja({
     return (
       <>
         <h2>¿Cuándo y dónde?</h2>
-        <p className="of-baj">
-          {tiendasPendientes ? "Las fechas ya vienen contestadas. Falta marcar en qué tiendas rige." : campHasta ? `Rige toda la campaña (hasta el ${sinPunto(fechaCorta(campHasta))}) salvo que lo cambies.` : "Elige desde cuándo y hasta cuándo."}
-        </p>
         {atajos.length > 0 && (
           <div className="of-opciones mt-3" role="group" aria-label="Fechas de siempre">
             {atajos.map((a) => (
@@ -991,12 +839,6 @@ export function OfertasHoja({
   }
 
   // ---- Pregunta 3 · ¿En qué prendas? ----------------------------------------------------------------------------------------------------
-  // Lo que se dice de las prendas, en una línea (la etiqueta de la derecha y el nombre usan la misma).
-  const prendasTexto = (() => {
-    const base = deTodaLaCompra ? "Toda la compra" : (alcanceDicho(o, nombreCategoria) ?? "Todas las de la campaña");
-    const extras = [o.categoriasFuera.length > 0 ? `menos ${lista(nombresOrdenados(o.categoriasFuera, nombreCategoria).map((n) => n.toLowerCase()))}` : "", o.incluyeClaure ? "con Claurè" : ""].filter(Boolean);
-    return extras.length > 0 ? `${base} · ${extras.join(" · ")}` : base;
-  })();
   // La frase de producción bajo «Categorías»: «Alcanza a 47 prendas a la venta: 3 de 1 categoría y 44 marcadas a mano.»
   const alcanceTexto = (() => {
     if (categoriasPendientes) return "Marca al menos una categoría.";
@@ -1016,7 +858,6 @@ export function OfertasHoja({
     const partes = [a.porCategoria > 0 ? `${a.porCategoria} de ${plural(elegidasSolo.size, "categoría", "categorías")}` : "", a.aMano > 0 ? `${plural(a.aMano, "marcada", "marcadas")} a mano` : ""].filter(Boolean);
     return `Alcanza a ${plural(nAlcanza, "prenda", "prendas")} a la venta${partes.length > 0 ? `: ${partes.join(" y ")}` : ""}.${claure}`;
   })();
-  const distintaDeLaCampana = o.categoriasSolo.length > 0 || o.productosSolo.length > 0 || o.insigniasSolo.length > 0 || tocoCats;
   // Las insignias para elegir: las activas y aprobadas, más las ya elegidas que se desactivaron (para poder quitarlas). Cada una con cuántas
   // prendas a la venta lleva (un modelo en su color, sin Claurè salvo que la oferta lo incluya).
   const insigniasParaElegir = useMemo(
@@ -1050,17 +891,6 @@ export function OfertasHoja({
     return (
       <>
         <h2>{esMonto ? "¿Qué cuenta para llegar al monto?" : grupo ? `¿Con qué prendas se arma el ${titularDeOferta(o).replace(/^La /, "grupo de la ")}?` : "¿En qué prendas?"}</h2>
-        <p className="of-baj">
-          {esMonto
-            ? deTodaLaCompra
-              ? "Todo lo que lleve el cliente, salvo lo que ya tiene otra oferta."
-              : "Solo suman las prendas que elijas. Las demás se cobran a su precio."
-            : grupo
-            ? "Solo las prendas que elijas cuentan para el grupo. Las demás se cobran a su precio."
-            : distintaDeLaCampana
-              ? "Marca las categorías, prendas o insignias donde rige."
-              : "Ya viene lo de la campaña. Cámbialo por categoría, prenda o insignia."}
-        </p>
         {grupo && (
           <div className="of-sub" data-guia="sellos.oferta-mezclar">
             <span className="of-lbl">¿Se pueden mezclar?</span>
@@ -1184,7 +1014,7 @@ export function OfertasHoja({
             </div>
           ) : (
           <div data-campo="oferta-categorias">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
               <span className="of-lbl" style={{ margin: 0 }}>
                 Categorías
               </span>
@@ -1222,50 +1052,7 @@ export function OfertasHoja({
         </div>
         </>
         )}
-        {(grupo || esMonto) && ejemploCaja()}
       </>
-    );
-  }
-
-  // ---- «Así funciona en la caja»: un grupo de prendas de verdad, cobrado con la misma regla de la caja (lib/ofertas-de-grupo.ts) -------
-  function ejemploCaja() {
-    const forma: OfertaDeGrupo = {
-      reglaId: "ejemplo", tipo: o.tipo as OfertaDeGrupo["tipo"], lleva: o.lleva, paga: o.paga, monto: o.monto, porcentaje: o.porcentaje, agrupa: o.agrupa,
-      escalones: o.escalones, ahorroEn: o.ahorroEn,
-    };
-    const prendas = alcanzadas.map((p) => ({ nombre: p.referencia ?? p.nombre, precio: p.precio, productoId: p.productoId }));
-    const e = problemasDeForma(o).length === 0 ? (esMonto ? ejemploDeMonto(prendas, forma) : ejemploDeGrupo(prendas, forma)) : null;
-    if (!e) return null;
-    const primero = (o.escalones ?? [])[0];
-    const S = (n: number) => `S/\u00a0${n.toFixed(2)}`;
-    return (
-      <div className="of-panel mt-3" data-guia="sellos.oferta-ejemplo">
-        <span className="of-lbl">Así funciona en la caja</span>
-        <ul className="of-ejemplo">
-          {e.lineas.map((l, i) => (
-            <li key={i}>
-              <span>{l.nombre}</span>
-              <span className="tabular-nums">
-                {l.paga < l.precio && <s className="text-tinta/55">{S(l.precio)}</s>} {S(l.paga)}
-              </span>
-            </li>
-          ))}
-        </ul>
-        <p className="of-pequeno mt-1.5">
-          {esMonto ? (
-            e.ahorro > 0 ? (
-              <>Suma {S(e.total)} → paga {S(e.paga)} (ahorra {S(e.ahorro)}). Con menos de {S(primero?.desde ?? 0)}, pagan su precio.</>
-            ) : (
-              <>Suma {S(e.total)}: todavía no llega a {S(primero?.desde ?? 0)}, así que paga su precio.</>
-            )
-          ) : (
-            <>
-              Lleva {o.lleva} → paga {S(e.paga)} en vez de {S(e.total)} (ahorra {S(e.ahorro)}). Con {o.lleva - 1}, no hay grupo: pagan su precio.
-              {o.agrupa === "modelo" ? " Tienen que ser del mismo modelo, en tallas o colores distintos." : ""}
-            </>
-          )}
-        </p>
-      </div>
     );
   }
 
@@ -1274,10 +1061,17 @@ export function OfertasHoja({
     const oracion = fraseDeOferta(oDicha, nombreCategoria, nombreSede);
     return (
       <>
-        <h2>Revisa y activa</h2>
-        <p className="of-baj">Así la cobrará la caja. La etiqueta muestra el precio de prendas de verdad.</p>
+        <h2>Revisa</h2>
         <div className="of-rev" data-guia="sellos.oferta-revision">
           <p className="of-oracion">{oracion}</p>
+          {/* El historial de la oferta abierta (lo decía la lista de «Ya registradas», que se fue con ADR-0677, 7c). */}
+          {editada && editada.cambios > 0 && (
+            <p className="of-pequeno of-hist">
+              <Undo2 aria-hidden className="h-3.5 w-3.5" />
+              {plural(editada.cambios, "cambio", "cambios")}
+              {resumenAntes(editada.ultimoCambio, editada) ? ` · antes: ${resumenAntes(editada.ultimoCambio, editada)}` : ""}
+            </p>
+          )}
           {rige && diasSueltos && rige.rige > 0 && (
             <p className="of-pequeno">
               Rige {rige.rige} de {rige.total} días de esas fechas.
@@ -1356,92 +1150,67 @@ export function OfertasHoja({
     );
   }
 
-  // ---- La etiqueta de la campaña (la de producción), con lo que esta oferta pone encima ---------------------------------------------
-  // Es la misma `EtiquetaDeCampana` de la hoja de la campaña (ADR-0488): su descuento, sus fechas, a cuántas prendas llega, sus categorías
-  // y lo que cobra la caja. Aquí se le suma un resumen de la oferta: qué prendas, en qué tiendas y cuándo.
-  const cuandoTexto = `${sinPunto(textoFechas(o.desde, o.hasta)).replace(/^el /, "")}${diasSueltos ? ` · ${textoDias(o.dias)}` : ""}`;
-  // El mosaico y los ejemplos de la caja salen de lo que la oferta alcanza de verdad (también las marcadas a mano de una campaña sin categorías).
-  const cuentaAlcanza = useMemo(() => contarPorCategoria(alcanzadas, true), [alcanzadas]);
-  const catsAlcanza = useMemo(() => new Set(cuentaAlcanza.keys()), [cuentaAlcanza]);
-  const mosaico = piezasDelMosaico(categorias, catsAlcanza, cuentaAlcanza);
-  // Mientras no elige qué le da al cliente, la caja cobra el precio de siempre: no se enseña un descuento que nadie puso.
-  const ejemplos = o.tipo !== "pct" ? [] : ejemplosDeCaja(alcanzadas, catsAlcanza, manuales, cuentaAlcanza, elegido ? o.porcentaje : null);
-
-  function etiquetaViva() {
-    const fechasBien = o.desde !== "" && o.hasta !== "" && o.desde <= o.hasta;
-    const linea = (n: string, v: string) => (
-      <div className="of-ef">
-        <span className="of-n">{n}</span>
-        <span className="of-v">{v || <i className="of-pend">por elegir</i>}</span>
-      </div>
-    );
-    const resumen = (
-      <>
-        <div className="eqp-solo-ancho">
-          <hr className="eqp-perfora" />
-          {linea("Prendas", prendasTexto)}
-          {linea("Tiendas", tiendasPendientes ? "" : dondeDeLaOferta)}
-          {linea("Cuándo", cuandoTexto)}
-        </div>
-        <p className="of-res-corto">{[tiendasPendientes ? "tiendas por elegir" : dondeDeLaOferta, cuandoTexto].join(" · ")}</p>
-      </>
-    );
+  // ---- «En caja»: una compra de ejemplo, cobrada con la cuenta de la caja (ADR-0677, actividad 8; lib/compra-de-ejemplo.ts) -----------
+  // Reemplaza a la etiqueta de la campaña: responde «¿cuánto paga el cliente?» con prendas de verdad, en vivo. Lo que decía la etiqueta ya
+  // está en otro lado: cuántas prendas alcanza (en «En qué prendas») y cuándo y dónde (la frase de «Revisa»).
+  const compra = useMemo(
+    () => compraDeEjemplo(o, elegido, alcanzadas.map((p) => ({ id: p.id, nombre: p.referencia ?? nombreSinSku(p.nombre), precio: p.precio, productoId: p.productoId }))),
+    [o, elegido, alcanzadas],
+  );
+  function enCaja() {
+    const S = (n: number) => `S/\u00a0${n.toFixed(2)}`;
     return (
-      <aside className="of-lado cph-hoja" aria-label={`La etiqueta «${etiqueta.nombre}»`} data-guia="sellos.oferta-etiqueta">
-        <EtiquetaDeCampana
-          nombre={etiqueta.nombre}
-          descuento={elegido && o.tipo === "pct" ? o.porcentaje : null}
-          titular={elegido && o.tipo !== "pct" ? titularDeOferta(o) : undefined}
-          textoSinDescuento="Elige qué le das al cliente"
-          rango={fechasBien ? (textoRango(o.desde, o.hasta) ?? "") : "Revisa las fechas"}
-          chip={fechasBien ? chipDeTarjeta(vigenciaDe(o.desde, o.hasta, hoy), nAlcanza, hoy) : null}
-          total={nAlcanza}
-          piezas={mosaico.piezas}
-          mas={mosaico.mas}
-          ejemplos={ejemplos}
-          categoriaDe={(id) => {
-            const c = id ? categorias.find((x) => x.id === id) : undefined;
-            return c && { id: c.id, nombre: c.nombre, prefijo: c.prefijo, familiaCodigo: c.familiaCodigo, prendas: cuentaAlcanza.get(c.id) ?? 0 };
-          }}
-          vueloRef={vuelo}
-          sello={null}
-          resumen={resumen}
-        />
+      <aside className="of-caja" aria-label="Así se cobra en caja" data-guia="sellos.oferta-ejemplo">
+        <span className="of-lbl">En caja</span>
+        {compra.estado === "elige" ? (
+          <Vacio tamano="chico" icono={<Tag />}>
+            Elige qué le das
+          </Vacio>
+        ) : compra.estado === "sin-prendas" ? (
+          <Vacio tamano="chico" icono={<Shirt />}>
+            Todavía no alcanza ninguna prenda
+          </Vacio>
+        ) : (
+          <>
+            <ul className="of-caja-lineas">
+              {compra.lineas.map((l, i) => {
+                const f = l.id ? fotos?.get(l.id) : undefined;
+                return (
+                  <li key={`${l.id ?? l.nombre}-${i}`}>
+                    <MiniaturaPrenda
+                      fotoUrl={f?.fotoUrl ?? null}
+                      colorHex={f?.colorHex ?? null}
+                      prefijo={f?.categoria?.prefijo}
+                      familia={f?.categoria?.familia}
+                      categoria={f?.categoria?.nombre}
+                    />
+                    <span className="of-caja-nombre">{l.nombre}</span>
+                    <span className="of-caja-precio">
+                      {l.paga < l.precio && <s>{S(l.precio)}</s>}
+                      <b>{S(l.paga)}</b>
+                    </span>
+                  </li>
+                );
+              })}
+              {compra.monto && (
+                <li className="of-caja-monto">
+                  <span>{compra.monto.llega ? `Desde ${S(compra.monto.desde)}` : `Falta ${S(compra.monto.falta)} para ${S(compra.monto.desde)}`}</span>
+                  {compra.monto.llega && <b className="of-caja-precio">−{S(compra.monto.ahorro)}</b>}
+                </li>
+              )}
+            </ul>
+            <p className="of-caja-total" aria-live="polite" aria-atomic="true">
+              <span>Paga</span>
+              <b>{S(compra.paga)}</b>
+            </p>
+            {compra.ahorro > 0 && <p className="of-caja-ahorra">Ahorra {S(compra.ahorro)}</p>}
+          </>
+        )}
       </aside>
     );
   }
 
-  // ---- Los pasos y el pie ----------------------------------------------------------------------------------------------------------
-  function pasos() {
-    const d = (n: Paso, texto: string) => {
-      const apagado = !elegido && n > 1;
-      const hecho = n < 4 && visitado[n] && elegido && (n !== 2 || !categoriasPendientes) && (n !== 3 || (!tiendasPendientes && problemas.length === 0));
-      return (
-        <button
-          key={n}
-          type="button"
-          className="of-paso"
-          aria-current={paso === n ? "step" : undefined}
-          aria-disabled={apagado || undefined}
-          data-hecho={hecho ? "" : undefined}
-          data-guia={n === 2 ? "sellos.oferta-paso-2" : n === 3 ? "sellos.oferta-paso-3" : n === 4 ? "sellos.oferta-paso-4" : undefined}
-          onClick={() => !apagado && ir(n)}
-        >
-          <i>{hecho ? <Check aria-hidden strokeWidth={3} /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3 */ /> : n}</i>
-          <span>{texto}</span>
-        </button>
-      );
-    };
-    return (
-      <nav className="of-pasos" aria-label="Pasos" data-guia="sellos.oferta-pasos">
-        {d(1, "Qué le das")}
-        {d(2, "En qué prendas")}
-        {d(3, "Cuándo y dónde")}
-        {d(4, "Revisar")}
-      </nav>
-    );
-  }
-
+  // ---- El pie: siempre guarda o activa ----------------------------------------------------------------------------------------------
   function pie(cerrar: () => void) {
     const edita = o.id !== null;
     const estadoEdita = editada?.estado ?? null;
@@ -1457,49 +1226,14 @@ export function OfertasHoja({
         </div>
       );
     }
-    if (paso === 1) {
-      if (faltan.length === 0) {
-        falta = (
-          <span className="of-falta">
-            {edita ? "Cambia lo que quieras: vale desde ahora y lo que ya se vendió no cambia." : "Prendas y fechas ya vienen contestadas. El atajo la guarda como borrador."}
-          </span>
-        );
-      }
-      derecha = (
-        <>
-          {elegido && (
-            <Boton peso="fantasma" className="of-atajo" confirma={editada?.estado === "activa" ? confirmaRegir(puedeGuardar) : confirmaPaso(puedeGuardar)} disabled={guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} textoCargando="Guardando…" onClick={() => guardar(false)} data-guia="sellos.oferta-atajo">
-              {edita ? "Listo, guardar los cambios" : "Listo, guardar con lo demás de fábrica"}
-            </Boton>
-          )}
-          <Boton peso="primario" className="of-siguiente" confirma={confirmaPaso(elegido)} onClick={() => ir(2)}>
-            Siguiente
-            <ChevronRight aria-hidden className="ml-1 inline h-4 w-4" />
-          </Boton>
-        </>
-      );
-    } else if (paso === 2) {
-      if (faltan.length === 0) falta = <span className="of-falta">Ya viene lo de la campaña: si te sirve, sigue.</span>;
-      derecha = (
-        <Boton peso="primario" className="of-siguiente" confirma={confirmaPaso(!categoriasPendientes)} onClick={() => ir(3)}>
-          Siguiente
-          <ChevronRight aria-hidden className="ml-1 inline h-4 w-4" />
-        </Boton>
-      );
-    } else if (paso === 3) {
-      if (faltan.length === 0) falta = <span className="of-falta">Lo de fábrica sirve casi siempre: rige toda la campaña, todos los días.</span>;
-      derecha = (
-        <Boton peso="primario" className="of-siguiente" confirma={confirmaPaso(problemas.length === 0 && !tiendasPendientes)} onClick={() => ir(4)}>
-          Siguiente
-          <ChevronRight aria-hidden className="ml-1 inline h-4 w-4" />
-        </Boton>
-      );
-    } else {
+    {
       const ok = puedeGuardar;
+      // Un choque no frena el borrador, solo activarla: el pie lo dice antes de pedir nada («Para activarla» solo se leía como un candado,
+      // prueba ciega de Formidable 2026-11-18). Una oferta activa que se edita sí debe resolverlo para guardar.
       if (ok && faltaChoque) {
         falta = (
           <div className="of-pie-pide">
-            <FaltanDelPaso faltan={[faltaChoque]} ahora={faltaChoque.id} onIr={llevarA} rotulo={estadoEdita === "activa" ? "Para guardar" : "Para activarla"} />
+            <FaltanDelPaso faltan={[faltaChoque]} ahora={faltaChoque.id} onIr={llevarA} rotulo={estadoEdita === "activa" ? "Para guardar" : "Puedes guardarla como borrador. Para activarla"} />
           </div>
         );
       } else if (ok) {
@@ -1513,15 +1247,15 @@ export function OfertasHoja({
       }
       const activa = edita && estadoEdita === "activa";
       derecha = activa ? (
-        <Boton peso="primario" confirma={confirmaRegir(ok)} disabled={guardandoAlgo} cargando={guardando === "cambios"} onClick={() => guardar(false)}>
+        <Boton peso="primario" confirma={confirmaRegir(ok)} disabled={guardandoAlgo} cargando={guardando === "cambios"} onClick={() => guardar(false, cerrar)}>
           Guardar cambios
         </Boton>
       ) : (
         <>
-          <Boton peso="fantasma" confirma={confirmaPaso(ok)} disabled={guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} onClick={() => guardar(false)}>
+          <Boton peso="fantasma" confirma={confirmaPaso(ok)} disabled={guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} onClick={() => guardar(false, cerrar)}>
             {edita ? "Guardar cambios" : "Guardar como borrador"}
           </Boton>
-          <Boton peso="primario" confirma={confirmaRegir(ok)} disabled={guardandoAlgo} cargando={guardando === "activar"} textoCargando="Activando…" onClick={() => guardar(true)} data-guia="sellos.oferta-activar">
+          <Boton peso="primario" confirma={confirmaRegir(ok)} disabled={guardandoAlgo} cargando={guardando === "activar"} textoCargando="Activando…" onClick={() => guardar(true, cerrar)} data-guia="sellos.oferta-activar">
             <Check aria-hidden className="mr-1 inline h-4 w-4" />
             Activar
           </Boton>
@@ -1529,11 +1263,35 @@ export function OfertasHoja({
       );
     }
 
+    // Retirar va en la hoja de la oferta abierta (ADR-0677, 7c: la lista de «Ya registradas» se fue), a la izquierda del pie. Al tocarlo, el pie
+    // entero pasa a preguntar, con la oferta nombrada y su «No se puede deshacer»: un «Sí, retirar» que aparecía en el lugar del botón no se veía
+    // (prueba ciega de Formidable 2026-11-18: «no pareció hacer nada»). Retirar no se deshace: la base no reactiva una oferta retirada.
+    const viva = editada && editada.estado !== "desactivada" && vigenciaDeRegla(editada, hoy) !== "terminada" ? editada : null;
+    if (viva && retirando === viva.id) {
+      const ocupado = trabajando === viva.id;
+      return (
+        <div ref={pieConfirma} className="of-pie of-pie-confirma pie-hoja-fijo" role="group" aria-label={`Retirar la oferta «${titularDeOferta(viva)}»`}>
+          <AvisoNoSeDeshace className="of-confirma-aviso" />
+          <p className="of-confirma">
+            <b>¿Retirar la oferta «{titularDeOferta(viva).replace(/ %/g, "\u00a0%")}»?</b> {viva.estado === "borrador" ? "Se descarta el borrador." : "Deja de bajar el precio ya."}
+          </p>
+          <Boton peso="fantasma" data-foco-inicial disabled={ocupado} onClick={() => setRetirando(null)}>
+            No, dejarla
+          </Boton>
+          <Boton peso="primario" cargando={ocupado} textoCargando="Retirando…" onClick={() => retirarRegla(viva, cerrar)}>
+            Sí, retirar
+          </Boton>
+        </div>
+      );
+    }
+    const retirar = viva ? (
+      <Boton peso="peligro" className="of-pie-retirar" disabled={guardandoAlgo} onClick={() => setRetirando(viva.id)}>
+        Retirar
+      </Boton>
+    ) : null;
     return (
       <div className="of-pie pie-hoja-fijo">
-        <span className={paso === 1 ? "of-vuelta-oculta" : undefined}>
-          <Volver onClick={() => ir((paso - 1) as Paso)} a="el paso anterior" deshabilitado={paso === 1} />
-        </span>
+        {retirar}
         <Boton peso="fantasma" onClick={cerrar} disabled={guardandoAlgo}>
           Cancelar
         </Boton>
@@ -1543,158 +1301,26 @@ export function OfertasHoja({
     );
   }
 
-  // ---- Las ya registradas ---------------------------------------------------------------------------------------------------------
-  function railFila(r: ReglaCampana) {
-    const v = vigenciaDeRegla(r, hoy);
-    const chip = CHIP_ESTADO[v];
-    const viva = r.estado !== "desactivada" && v !== "terminada";
-    const antes = r.cambios > 0 ? resumenAntes(r.ultimoCambio, r) : "";
-    const datos = [titularDeOferta(r), `${sinPunto(fechaCorta(r.desde))} – ${sinPunto(fechaCorta(r.hasta))}`, textoDiasCorto(r.dias)].filter(Boolean).join(" · ");
-    const confirmando = retirando === r.id;
-    return (
-      <div key={r.id} className="of-rw">
-        <button
-          type="button"
-          className="of-reg"
-          aria-current={o.id === r.id ? "true" : undefined}
-          data-recien={recien === r.id ? "" : undefined}
-          disabled={!viva}
-          title={viva ? "Toca para editarla" : undefined}
-          onClick={() => editar(r)}
-        >
-          <b>{r.nombre}</b>
-          <span className="of-reg-m">
-            <Chip tono="neutro" versalitas={false}>
-              Oferta
-            </Chip>
-            <Chip tono={chip.tono}>{chip.texto}</Chip>
-          </span>
-          <small>{datos}</small>
-          {r.sedeIds.length > 0 && <small>{textoSedesDeCampana(r.sedeIds, tiendas)}</small>}
-          {r.incluyeClaure && <small>Con las prendas de Claurè</small>}
-          {r.cambios > 0 && (
-            <small className="of-hist">
-              <Undo2 aria-hidden />
-              {plural(r.cambios, "cambio", "cambios")}
-              {antes ? ` · antes: ${antes}` : ""}
-            </small>
-          )}
-        </button>
-        {viva && !confirmando && (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            {r.estado === "borrador" && (
-              <Boton peso="fantasma" className="btn-chico" cargando={trabajando === r.id} textoCargando="Activando…" onClick={() => activarRegla(r)}>
-                Activar
-              </Boton>
-            )}
-            <button type="button" className="btn-cayla btn-enlace text-xs" disabled={trabajando === r.id} onClick={() => setRetirando(r.id)}>
-              Retirar
-            </button>
-          </div>
-        )}
-        {viva && confirmando && (
-          <div className="flex flex-wrap items-center gap-2" role="group" aria-label={`Retirar «${r.nombre}»`}>
-            <Boton peso="peligro" className="btn-chico" cargando={trabajando === r.id} textoCargando="Retirando…" onClick={() => retirarRegla(r)}>
-              Sí, retirar
-            </Boton>
-            <Boton peso="fantasma" className="btn-chico" disabled={trabajando === r.id} onClick={() => setRetirando(null)}>
-              No
-            </Boton>
-            <span className="of-pequeno">{r.estado === "activa" ? "Deja de bajar el precio ya." : "Se descarta el borrador."}</span>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  const ordenadas = ordenarReglas(reglas, hoy);
-  const visibles = verTodas ? ordenadas : ordenadas.slice(0, 3);
-  const resto = ordenadas.length - 3;
-  const totalRail = ordenadas.length + (etiqueta.descuentoPct !== null ? 1 : 0);
-
-  function rail() {
-    return (
-      <aside className="of-rail" data-guia="sellos.ofertas-registradas">
-        <button type="button" className="of-tog" aria-expanded={regsAb} onClick={() => setRegsAb((v) => !v)}>
-          <Tag aria-hidden className="h-4 w-4" /> Ya registradas <span className="tabular-nums font-normal">{totalRail}</span>
-          <ChevronDown aria-hidden className="ml-auto h-4 w-4" />
-        </button>
-        <div className="of-rl" data-abierta={regsAb ? "" : undefined}>
-          <div className="of-gt">
-            <b>Ya registradas</b>
-            <span className="of-pequeno tabular-nums">{totalRail}</span>
-          </div>
-          {etiqueta.descuentoPct !== null && (
-            <div className="of-rw">
-              <div className="of-reg" style={{ cursor: "default" }}>
-                <b>El descuento de la campaña</b>
-                <span className="of-reg-m">
-                  <Chip tono="neutro" versalitas={false}>
-                    De siempre
-                  </Chip>
-                </span>
-                <small>−{pct(etiqueta.descuentoPct)} % en toda la campaña, todos los días. Para cambiarlo, retíralo y registra una oferta.</small>
-              </div>
-              {puedeDarDescuento && !retirandoDescuento && (
-                <div>
-                  <button type="button" className="btn-cayla btn-enlace text-xs" onClick={() => setRetirandoDescuento(true)}>
-                    Retirar
-                  </button>
-                </div>
-              )}
-              {retirandoDescuento && (
-                <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Retirar el descuento de siempre">
-                  <Boton peso="peligro" className="btn-chico" cargando={guardandoCampana} textoCargando="Retirando…" onClick={() => guardarCampana({ descuentoPct: null }, "Descuento de siempre retirado")}>
-                    Sí, retirar
-                  </Boton>
-                  <Boton peso="fantasma" className="btn-chico" disabled={guardandoCampana} onClick={() => setRetirandoDescuento(false)}>
-                    No
-                  </Boton>
-                  <span className="of-pequeno">Deja de bajar el precio ya.</span>
-                </div>
-              )}
-            </div>
-          )}
-          {visibles.map(railFila)}
-          {resto > 0 && (
-            <BotonVerMas abierto={verTodas} onCambiar={setVerTodas} texto={`Ver ${resto} más`} forma="enlace" />
-          )}
-          {totalRail === 0 && <p className="of-hint">Todavía no hay ofertas. Las que registres aparecen aquí.</p>}
-          <p className="of-hint">Toca una para editarla: vale desde ese momento, lo ya vendido no cambia y queda su historial.</p>
-        </div>
-      </aside>
-    );
-  }
-
   // ---- La hoja --------------------------------------------------------------------------------------------------------------------
   return (
     <Modal
-      titulo={`Configuración «${etiqueta.nombre}»`}
-      subtitulo="Las ofertas de la campaña: cuánto baja, en qué prendas y cuándo."
-      ancho="max-w-[78rem]" /* unificar-fijo: el asistente de ofertas (lista, preguntas y etiqueta) es de diseño propio, a todo lo ancho (maqueta «Tres preguntas» elegida por Felipe 2026-10-23) */
+      titulo={o.id ? "Editar la oferta" : "Nueva oferta"}
+      subtitulo={etiqueta.nombre}
+      ancho="max-w-[70rem]" /* unificar-fijo: la hoja de una oferta (las preguntas y la etiqueta al lado) es de diseño propio (maqueta «Una sola hoja», ADR-0677); 70 rem dejan las cinco formas de «Qué le das» en una fila */
       onClose={onClose}
     >
       {(cerrar) => (
         <div className="mt-4 space-y-4" data-guia="sellos.ofertas">
-          <div className="of-camp" data-guia="sellos.ofertas-campana">
-            <Chip tono="neutro" versalitas={false}>
-              La campaña
-            </Chip>
-            <span>
-              {terminada && campHasta ? `Terminó el ${sinPunto(fechaCorta(campHasta))}` : campDesde && campHasta ? `Rige del ${sinPunto(fechaCorta(campDesde))} al ${sinPunto(fechaCorta(campHasta))}` : "Sin fechas todavía (ponlas desde «Editar» en su pase)"} ·{" "}
-              {plural(contarPrendas(prendasCampana), "prenda", "prendas")} a la venta
-            </span>
-            {etiqueta.sedeIds.length > 0 && (
-              <>
-                <Chip tono="pizarra" versalitas={false} title="La campaña de antes solo regía en esas tiendas: una oferta no puede salirse de ellas.">
-                  {textoSedesDeCampana(etiqueta.sedeIds, tiendas)}
-                </Chip>
-                <button type="button" className="btn-cayla btn-enlace text-xs" disabled={guardandoCampana} onClick={() => guardarCampana({ sedeIds: [] }, "La campaña rige en todas las tiendas")}>
-                  Quitar el límite
-                </button>
-              </>
-            )}
-          </div>
+          {etiqueta.sedeIds.length > 0 && (
+            <div className="of-camp">
+              <Chip tono="pizarra" versalitas={false} title="La campaña de antes solo regía en esas tiendas: una oferta no puede salirse de ellas.">
+                {textoSedesDeCampana(etiqueta.sedeIds, tiendas)}
+              </Chip>
+              <button type="button" className="btn-cayla btn-enlace text-xs" disabled={guardandoCampana} onClick={() => guardarCampana({ sedeIds: [] }, "La campaña rige en todas las tiendas")}>
+                Quitar el límite
+              </button>
+            </div>
+          )}
 
           {terminada && (
             <Aviso tono="atencion" titulo="Esta campaña ya terminó">
@@ -1703,23 +1329,20 @@ export function OfertasHoja({
           )}
 
           <div className="of-hoja">
-            {rail()}
             {!terminada && (
-              <section ref={asistente} className="of-wz" aria-label={o.id ? "Editar oferta" : "Nueva oferta"}>
-                <div className="of-top">
-                  <b>{o.id ? "Editar oferta" : "Nueva oferta"}</b>
-                  {pasos()}
-                </div>
-                {editada && (
-                  <Aviso tono="atencion" chico titulo={`Editando «${editada.nombre}»`} accion={<button type="button" className="btn-cayla btn-enlace text-xs" onClick={reiniciar}>Registrar otra en vez de editar</button>}>
-                    Los cambios valen desde ahora; lo que ya se vendió se queda como estaba.
-                  </Aviso>
-                )}
-                <div className="of-cols mt-2">
-                  <div className="of-q" key={paso} data-entra={navego ? "" : undefined} id="oferta-pregunta">
-                    {paso === 1 ? pregunta1() : paso === 2 ? preguntaPrendas() : paso === 3 ? preguntaCuando() : preguntaRevisar()}
+              <section className="of-wz" aria-label={o.id ? "Editar la oferta" : "Nueva oferta"}>
+                <div className="of-cols">
+                  <div className="of-q of-una" id="oferta-pregunta">
+                    <div className="of-bloque">{pregunta1()}</div>
+                    {elegido && (
+                      <>
+                        <div className="of-bloque">{preguntaPrendas()}</div>
+                        <div className="of-bloque">{preguntaCuando()}</div>
+                        <div className="of-bloque">{preguntaRevisar()}</div>
+                      </>
+                    )}
                   </div>
-                  {etiquetaViva()}
+                  {enCaja()}
                 </div>
               </section>
             )}

@@ -50,14 +50,13 @@ describe("la evaluación fija", () => {
     }
   });
 
-  it("la búsqueda local deja la guía esperada entre las que ve la IA (líder)", () => {
-    const perdidas = CASOS.filter((c) => c.cuenta.startsWith("admin") && c.acepta.some((a) => a.startsWith("guia:")))
-      .filter((c) => {
-        const menu = menuDelLider(c.cuenta === "admin-taller" ? "taller" : "tienda");
-        const vistas = preseleccionar({ pregunta: c.pregunta, guias: GUIAS, rutasDelMenu: menu, rutaActual: c.ruta, cuantas: GUIAS_PARA_LA_IA }).map((s) => s.guia.id);
-        return !c.acepta.some((a) => a.startsWith("guia:") && vistas.includes(a.slice(5)));
-      })
-      .map((c) => c.pregunta);
-    expect(perdidas).toEqual([]);
+  // Un caso por pregunta (~4 ms cada una; la primera, ~50, saca las raíces de las guías): juntas en un solo caso sumaban ~0,5 s, y con la suite
+  // entera en paralelo pasaban los 5 s de límite (2026-11-18). Así además el fallo nombra la pregunta perdida.
+  const deGuia = CASOS.filter((c) => c.cuenta.startsWith("admin") && c.acepta.some((a) => a.startsWith("guia:")));
+  it("hay preguntas del líder que esperan una guía (si no, los casos de abajo no mirarían nada)", () => expect(deGuia.length).toBeGreaterThan(0));
+  it.each(deGuia.map((c) => [c.pregunta, c] as const))("la búsqueda local deja la guía esperada entre las que ve la IA (líder): «%s»", (_pregunta, c) => {
+    const menu = menuDelLider(c.cuenta === "admin-taller" ? "taller" : "tienda");
+    const vistas = preseleccionar({ pregunta: c.pregunta, guias: GUIAS, rutasDelMenu: menu, rutaActual: c.ruta, cuantas: GUIAS_PARA_LA_IA }).map((s) => s.guia.id);
+    expect(c.acepta.some((a) => a.startsWith("guia:") && vistas.includes(a.slice(5))), `«${c.pregunta}» acepta ${c.acepta.join(", ")}; la IA ve ${vistas.join(", ")}`).toBe(true);
   });
 });

@@ -8,9 +8,11 @@ import type { CSSProperties, ReactNode } from "react";
  */
 export function FilaDeLista({
   icono,
+  marca,
   sobre,
   titulo,
   bajada,
+  deNombre = false,
   cifra,
   cifraTexto,
   abierta,
@@ -20,14 +22,18 @@ export function FilaDeLista({
   guia,
 }: {
   /** El ícono de lucide de la lente (20 px; lo pone la clase). */
-  icono: ReactNode;
+  icono?: ReactNode;
+  /** En vez de la lente, la marca propia de lo que es (la insignia de una campaña, `SelloTinta` de 44 px). */
+  marca?: ReactNode;
   /** La versalita de arriba («Descuento»). */
   sobre?: string;
-  /** Lo que es («−10 %»), en la serif grande. */
+  /** Lo que es («−10 %»), en la serif grande; un nombre («Black Friday») va más chico, en una línea. */
   titulo: string;
+  /** El título es un nombre, no un %. */
+  deNombre?: boolean;
   /** Una línea debajo («Todas las tiendas»). */
   bajada?: string | null;
-  /** La cifra de la derecha (cuántas prendas) y su palabra. */
+  /** La cifra de la derecha (cuántas prendas, cuántos días) y su palabra; la palabra sola si no hay cifra («sin fechas»). */
   cifra?: number | null;
   cifraTexto?: string;
   abierta: boolean;
@@ -49,17 +55,23 @@ export function FilaDeLista({
       data-guia={guia}
       style={{ "--i": indice } as CSSProperties}
     >
-      <span className="lc-fila-lente" aria-hidden>
-        {icono}
-      </span>
+      {marca ? (
+        <span className="lc-fila-marca" aria-hidden>
+          {marca}
+        </span>
+      ) : (
+        <span className="lc-fila-lente" aria-hidden>
+          {icono}
+        </span>
+      )}
       <span className="min-w-0">
         {sobre && <span className="lc-fila-sobre">{sobre}</span>}
-        <span className="lc-fila-pct">{titulo}</span>
+        <span className={deNombre ? "lc-fila-nombre" : "lc-fila-pct"}>{titulo}</span>
         {bajada && <span className="lc-fila-bajada">{bajada}</span>}
       </span>
-      {cifra !== null && cifra !== undefined && (
+      {((cifra !== null && cifra !== undefined) || cifraTexto) && (
         <span className="lc-fila-der">
-          <b>{cifra}</b>
+          {cifra !== null && cifra !== undefined && <b>{cifra}</b>}
           {cifraTexto && <span>{cifraTexto}</span>}
         </span>
       )}
