@@ -1360,6 +1360,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `lib/club-avisos.ts:getTextosDeAvisos`) y guarda con `guardar_mensajes_avisos(tienda, …)` (`lib/club-avisos-acciones.ts`) en
   `club_avisos_textos_sede`. Armar, separar y validar un mensaje: `lib/club-avisos-mensajes.ts`
   (la misma regla que `fn_club_aviso_problema` y `fn_club_aviso_componer`).
+- `/tienda-web/libro-de-reclamaciones` (ADR-0679, Felipe 2026-11-18; módulo **`libro_reclamaciones`**, nace solo para el líder; migraciones
+  `20261118145000` a `20261118152000`, **sin pegar en producción**): las hojas del Libro de Reclamaciones virtual de la tienda online, con su
+  plazo de 15 días hábiles. Segunda hija de Tienda web (tras Pedidos); `layout.tsx` pide el módulo. `page.tsx` → RPC `fn_libro_reclamaciones`
+  (las 1000 más nuevas, cada una completa con `vence_el` y `dias_restantes`) → `lib/libro-reclamaciones-reglas.ts` (puro: lectura, estado según
+  el plazo, cifras, filtro) → `components/libro-reclamaciones/LibroPantalla.tsx` (cifras que filtran, buscador, píldora de estado, `?h=<id>`
+  abre la hoja) + `HojaCajon.tsx`: «Enviar respuesta» confirmado (`responder_hoja_reclamacion`, de 10 a 3000 letras, una sola vez, firmada con
+  el responsable y anotada en la Actividad). La tienda (`apps/tienda`): `/libro-de-reclamaciones` (pública) → `tienda_registrar_hoja_reclamacion`;
+  la constancia `/libro-de-reclamaciones/hoja/[id]?m=` → `tienda_ver_hoja_reclamacion`; `/api/libro-copias` (cron, 5 min) →
+  `tienda_libro_copias_reclamar` / `tienda_libro_copia_enviada` y `tienda_libro_respuestas_reclamar` / `tienda_libro_respuesta_enviada`.
 - `/tienda-web/recomendaciones` (ADR-0408, Felipe 2026-10-15; módulo **`recomendaciones`**, nace solo para el líder; migraciones
   `20261015134000` y `20261015135000`, **sin pegar en producción**): lo que los clientes le recomiendan a CAYLA desde la tienda online,
   siempre con su nombre. Tercera hija del grupo Clientes (después de Avisos); `app/(app)/clientas/layout.tsx` también la deja pasar y
