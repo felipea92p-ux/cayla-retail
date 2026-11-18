@@ -12,3 +12,8 @@ Felipe se lleva: 5 migraciones esperan su OK (en orden), la llave de Resend de l
 Qué hice: con el OK de Felipe, pegué en producción las 5 migraciones del Libro (CLI enlazado a `vovjyyiafkxteijimpuy`, cada una en una transacción con su registro en `schema_migrations`) y verifiqué cada parte con una consulta de solo lectura.
 Por qué así: el CLI corre el archivo tal cual (sin transcribir SQL a mano) y la transacción deja todo o nada; al final, las 18 funciones del Libro tienen la misma huella en producción y en la base local probada.
 Felipe se lleva: la base ya está; falta publicar la web (PR), la llave de Resend de la tienda y darle el módulo a un rol.
+
+## 2026-11-18 (Libro de Reclamaciones: /chaos)
+Qué hice: ataqué la hoja de la tienda y la respuesta del ERP con `/chaos` (semilla 679) en la base local aislada: 21 ataques del plan, 56 casos hostiles a la función que guarda, concurrencia de hasta 12 sesiones y permisos; 0 estados imposibles y la base restaurada idéntica.
+Por qué así: el Libro no toca dinero ni stock, así que lo grave era una hoja perdida, repetida, con número saltado o editable; sumé 10 invariantes propias (numeración, respuesta entera, firma) porque las 30 generales no miran el Libro.
+Felipe se lleva: cuatro hallazgos abiertos (el peor, un carácter nulo pegado que impide enviar la hoja), dos de pantalla y dos de la base, que esperan su OK.

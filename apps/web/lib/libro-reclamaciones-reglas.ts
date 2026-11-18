@@ -151,11 +151,12 @@ export function filtrar(hojas: readonly HojaLibro[], f: { estado: FiltroEstado; 
 export const MIN_RESPUESTA = 10;
 export const MAX_RESPUESTA = 3000;
 
-/** El texto como lo guarda la base (`fn_recomendacion_texto`): sin invisibles, espacios seguidos en uno, a lo más una línea en blanco. */
+/** El texto como lo guarda la base (`fn_recomendacion_texto`): sin invisibles, espacios seguidos en uno, a lo más una línea en blanco.
+ *  Sin el carácter nulo (U+0000): la base no lo acepta y la respuesta no se podía enviar (/chaos 2026-11-18). Es lo que viaja. */
 export function textoLimpio(texto: string): string {
   return texto
     .replace(/\r\n?/g, "\n")
-    .replace(/[\u0001-\u0008\u000B-\u001F\u007F-\u009F\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/g, "")
+    .replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/g, "")
     .replace(/[\t \u00A0\u2000-\u200A\u3000]+/g, " ")
     .replace(/ ?\n ?/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
@@ -168,7 +169,7 @@ export function problemaDeLaRespuesta(texto: string): string | null {
   const n = letras(texto);
   if (n === 0) return "Escribe la respuesta.";
   if (n < MIN_RESPUESTA) return `Escribe al menos ${MIN_RESPUESTA} letras.`;
-  if (n > MAX_RESPUESTA) return `Te pasaste por ${n - MAX_RESPUESTA} letras: acórtala un poco.`;
+  if (n > MAX_RESPUESTA) return `Te pasaste por ${n - MAX_RESPUESTA} ${n - MAX_RESPUESTA === 1 ? "letra" : "letras"}: acórtala un poco.`;
   return null;
 }
 
