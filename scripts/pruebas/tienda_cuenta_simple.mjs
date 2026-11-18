@@ -158,7 +158,7 @@ function main() {
     console.error(`No hay Postgres local en el contenedor ${CONTENEDOR_LOCAL}. Levántalo con: npx supabase start`);
     process.exit(2);
   }
-  if (!APLICAR_ANTES && correr("select to_regprocedure('retail.tienda_unirse_al_club(uuid,text,text,boolean,text,integer,integer,integer,boolean,boolean,boolean,integer,text,text)') is not null;").salida !== "t") {
+  if (!APLICAR_ANTES && correr("select to_regprocedure('retail.tienda_unirse_al_club(uuid,text,text,boolean,text,integer,integer,integer,boolean,boolean,boolean,integer,text,text,boolean,integer)') is not null;").salida !== "t") {
     console.error(`Falta la migración: aplica ${MIGRACION} o corre con APLICAR_ANTES=1`);
     process.exit(2);
   }
@@ -169,11 +169,13 @@ function main() {
   }
 
   console.log("— Estructura —");
+  // `tienda_unirse_al_club` ganó dos parámetros al final en 20261118160000 (ADR-0680: la casilla de avisos del Club, aparte de la de
+  // publicidad); la llamada de esta prueba, con 14, sigue valiendo por sus valores de fábrica.
   const FUNCIONES = [
     "tienda_revisar_registro_simple(text,text)",
     "tienda_registrar_cuenta_simple(uuid,text,text,boolean,text,text)",
     "tienda_revisar_club(uuid,text,text,text,text,text)",
-    "tienda_unirse_al_club(uuid,text,text,boolean,text,integer,integer,integer,boolean,boolean,boolean,integer,text,text)",
+    "tienda_unirse_al_club(uuid,text,text,boolean,text,integer,integer,integer,boolean,boolean,boolean,integer,text,text,boolean,integer)",
   ];
   esperarValor(
     "las cuatro funciones: security definer, con su search_path, solo para tienda_web",

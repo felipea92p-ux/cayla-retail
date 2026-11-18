@@ -587,8 +587,19 @@ export function ClientaFichaModal({
                     <PuntosDeLaFicha estado={puntos} />
 
                     <div className="card-cayla p-4" data-guia="clientas.ficha-club">
-                      <TituloSeccion nivel={3}>Novedades por WhatsApp</TituloSeccion>
+                      <TituloSeccion nivel={3}>Mensajes por WhatsApp</TituloSeccion>
+                      {/* Dos permisos (ADR-0680): las novedades y promociones, y aparte los avisos de su Club (puntos, cupones, cumpleaños). */}
                       <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
+                        {c.avisosClubDesde ? (
+                          <>
+                            <Chip tono="verde">Recibe avisos del Club</Chip>
+                            <span className="text-sm text-tinta/60">desde {fecha(c.avisosClubDesde)}</span>
+                          </>
+                        ) : (
+                          <Chip tono="neutro">Sin avisos del Club</Chip>
+                        )}
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
                         {c.publicidadDesde ? (
                           <>
                             <Chip tono="verde">Recibe novedades</Chip>
@@ -600,14 +611,16 @@ export function ClientaFichaModal({
                             <span className="text-sm text-tinta/60">no las pidió: es miembro sin mensajes</span>
                           </>
                         )}
-                        {/* «Registrar su BAJA»: solo si tiene publicidad (y su celular, que es lo que se da de baja). */}
-                        {activa && c.publicidadDesde && c.telefonoWhatsapp && (
+                        {/* «Registrar su BAJA»: si recibe algo (publicidad o avisos del Club) y tiene su celular; la BAJA deja los dos. */}
+                        {activa && (c.publicidadDesde || c.avisosClubDesde) && c.telefonoWhatsapp && (
                           <Boton type="button" className="!py-1.5 sm:ml-auto" onClick={() => setModo("baja")}>
                             Registrar su BAJA
                           </Boton>
                         )}
                       </div>
-                      <p className="mt-2.5 text-sm text-tinta/55">Solo el cliente las acepta, desde el cartel. Si te escribe BAJA, regístralo aquí.</p>
+                      <p className="mt-2.5 text-sm text-tinta/55">
+                        Solo el cliente los acepta, desde el cartel o su cuenta en la tienda online. Si te escribe BAJA, regístralo aquí: deja los dos.
+                      </p>
                     </div>
 
                     <PreferenciasClienta

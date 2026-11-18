@@ -4,7 +4,7 @@ import type { TipoDocumentoClienta } from "@cayla-retail/shared";
 import { redirect } from "next/navigation";
 import { avisoAlUnirse, celularNormalizado, documentoRepetido, errorDeClub, esquemaUnirseAlClub, hoyLima, mensajeSinNombre, nombreEscrito, problemaClub, TEXTOS_VERSION, type CampoProblema, type CasillaWhatsapp } from "@/lib/cuentas";
 import { MENSAJES } from "@/lib/cuentas-mensajes";
-import { leerCasillaDeAvisos, unirseAlClubEnBase, revisarClubEnBase, type DatosClub } from "@/lib/cuentas-servidor";
+import { leerCasillaAvisosClub, leerCasillaDeAvisos, unirseAlClubEnBase, revisarClubEnBase, type DatosClub } from "@/lib/cuentas-servidor";
 import { conAviso, hrefConVolver, rutaParaVolver } from "@/lib/entrada";
 import { huellas } from "@/lib/intentos-servidor";
 import { anotarLecturaDelPadron, buscarNombre } from "@/lib/padron-servidor";
@@ -17,7 +17,7 @@ import { leerSesion } from "@/lib/sesion-servidor";
 // respuesta trae datos de otra persona. En los registros del servidor nunca va un DNI, un celular ni un nombre.
 
 /** Lo que dice «Unirme al Club» si no lo logra (si lo logra, vuelve a donde estaba): el problema, en su campo. */
-export type RespuestaUnirse = { campo: CampoProblema | null; mensaje: string; casilla?: CasillaWhatsapp | null };
+export type RespuestaUnirse = { campo: CampoProblema | null; mensaje: string; casilla?: CasillaWhatsapp | null; casillaClub?: CasillaWhatsapp | null };
 
 const sinUnir = (campo: CampoProblema | null, mensaje: string): RespuestaUnirse => ({ campo, mensaje });
 
@@ -49,6 +49,7 @@ export async function unirseAlClub(entrada: unknown): Promise<RespuestaUnirse> {
   const leido = esquemaUnirseAlClub.safeParse(entrada);
   if (!leido.success) return sinUnir(null, MENSAJES.clubNoDisponible);
   const { registro: r, casilla } = leido.data;
+  const casillaClub = leido.data.casillaClub ?? null;
   const volver = rutaParaVolver(leido.data.volver);
   const problema = problemaClub(r, hoyLima());
   if (problema) return problema;
@@ -81,6 +82,10 @@ export async function unirseAlClub(entrada: unknown): Promise<RespuestaUnirse> {
     const vigente = await leerCasillaDeAvisos();
     if (!vigente || vigente.version !== casilla) return { campo: "avisos", mensaje: MENSAJES.avisosCambio, casilla: vigente };
   }
+  if (r.avisosClub) {
+    const vigente = await leerCasillaAvisosClub();
+    if (!vigente || vigente.version !== casillaClub) return { campo: "avisosClub", mensaje: MENSAJES.avisosClubCambio, casillaClub: vigente };
+  }
 
   // 5. El nombre. Con DNI, el del padrón, anotado en la base; con carné o pasaporte, el escrito tal cual, con los nombres primero.
   const nombre = await nombreParaLaFicha(r.documentoTipo, r.documento, nombreEscrito(r));
@@ -101,18 +106,21 @@ export async function unirseAlClub(entrada: unknown): Promise<RespuestaUnirse> {
     mayorDeEdad: r.mayor,
     avisosWhatsapp: r.avisos,
     casillaVersion: r.avisos ? casilla : null,
+    avisosClub: r.avisosClub,
+    casillaClubVersion: r.avisosClub ? casillaClub : null,
     textos: TEXTOS_VERSION,
   };
   const union = await unirseAlClubEnBase(datos);
   if (!union.ok) {
     const e = errorDeClub(union.hint, union.detalle, r.documentoTipo);
     if (e.campo === "avisos") return { ...e, casilla: await leerCasillaDeAvisos() };
+    if (e.campo === "avisosClub") return { ...e, casillaClub: await leerCasillaAvisosClub() };
     return e;
   }
   // Un doble envío (la primera ya la unió): se vuelve a donde estaba, sin otro aviso de bienvenida.
   if (union.yaEra) redirect(volver ?? "/cuenta");
 
   // 7. A donde estaba, con la bienvenida al Club abajo. Salvo los avisos que no se activaron: esa nota vive en «Mi perfil».
-  const aviso = avisoAlUnirse(union.seUnioASuFicha, union.eraDelClub, union.avisos);
+  const aviso = avisoAlUnirse(union.seUnioASuFicha, union.eraDelClub, union.avisos, union.avisosClub);
   redirect(volver && aviso !== "avisos-sin-activar" ? conAviso(volver, aviso) : `/cuenta?aviso=${aviso}`);
 }

@@ -80,3 +80,21 @@ describe("historia del permiso (CL-26)", () => {
     expect(ev({ medio: "bot" }).detalle).toContain("bot");
   });
 });
+
+describe("los avisos del Club por WhatsApp (ADR-0680)", () => {
+  it("tienen su propio título, al darse y al quitarse, y el punto verde o ámbar como la publicidad", () => {
+    expect(ev({ finalidad: "avisos_club_whatsapp", medio: "tienda_web", sede: null, registrado_por: "ella misma", texto_tipo: "casilla_avisos_club", texto_version: 1 })).toMatchObject({
+      titulo: "Pidió los avisos del Club por WhatsApp",
+      punto: "verde",
+    });
+    expect(ev({ finalidad: "avisos_club_whatsapp", accion: "revoca", medio: "baja_whatsapp", texto_tipo: null, texto_version: null })).toMatchObject({
+      titulo: "Pidió BAJA de los avisos del Club",
+      punto: "ambar",
+    });
+    expect(ev({ finalidad: "avisos_club_whatsapp", accion: "revoca", medio: "cambio_celular", texto_tipo: null, texto_version: null }).titulo).toBe(
+      "Dejó los avisos del Club al cambiar de celular",
+    );
+    expect(ev({ finalidad: "avisos_club_whatsapp", accion: "revoca", medio: "anonimizar", texto_tipo: null, texto_version: null }).titulo).toBe("Dejó los avisos del Club");
+  });
+});
+

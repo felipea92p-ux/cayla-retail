@@ -151,6 +151,18 @@ export const leerCasillaDeAvisos = (): Promise<CasillaWhatsapp | null> =>
     null,
   );
 
+/** El texto vigente de la casilla de los avisos de su Club (ADR-0680, aparte de la de publicidad). null si no hay o la base no contesta:
+ *  esa casilla no se ofrece. */
+export const leerCasillaAvisosClub = (): Promise<CasillaWhatsapp | null> =>
+  leerConRespaldo(
+    "tienda_casilla_avisos_club_fallo",
+    async (db) => {
+      const [fila] = await db`select retail.tienda_casilla_avisos_club() as r`;
+      return leerCasillaWhatsapp(fila?.r);
+    },
+    null,
+  );
+
 /* ------------------------------------------------------------------ Crear la cuenta y unirse al Club */
 
 export type DatosCuentaSimple = {
@@ -230,14 +242,18 @@ export type DatosClub = {
   cumpleMes: number | null;
   cumpleAnio: number | null;
   mayorDeEdad: boolean;
+  /** La casilla de novedades y promociones (la publicidad). */
   avisosWhatsapp: boolean;
-  /** La versión de la casilla de los avisos que leyó (null si no los marcó). */
+  /** La versión de la casilla de publicidad que leyó (null si no la marcó). */
   casillaVersion: number | null;
+  /** La casilla de los avisos de su Club (ADR-0680) y la versión de su texto que leyó (null si no la marcó). */
+  avisosClub: boolean;
+  casillaClubVersion: number | null;
   textos: string;
 };
 
 export type ResultadoClub =
-  | { ok: true; yaEra: boolean; seUnioASuFicha: boolean; eraDelClub: boolean; avisos: AvisosAlUnirse }
+  | { ok: true; yaEra: boolean; seUnioASuFicha: boolean; eraDelClub: boolean; avisos: AvisosAlUnirse; avisosClub: AvisosAlUnirse }
   | { ok: false; hint: string | null; detalle: string | null };
 
 const AVISOS: readonly AvisosAlUnirse[] = ["no", "activados", "ya_estaban", "celular_distinto"];
@@ -249,11 +265,13 @@ export async function unirseAlClubEnBase(d: DatosClub): Promise<ResultadoClub> {
       select retail.tienda_unirse_al_club(
         ${d.usuarioWebId}::uuid, ${d.documento}::text, ${d.nombre}::text, ${d.nombreDelPadron}::boolean, ${d.celular}::text,
         ${d.cumpleDia}::integer, ${d.cumpleMes}::integer, ${d.cumpleAnio}::integer, ${d.mayorDeEdad}::boolean, true,
-        ${d.avisosWhatsapp}::boolean, ${d.casillaVersion}::integer, ${d.textos}::text, ${d.documentoTipo}::text
+        ${d.avisosWhatsapp}::boolean, ${d.casillaVersion}::integer, ${d.textos}::text, ${d.documentoTipo}::text,
+        ${d.avisosClub}::boolean, ${d.casillaClubVersion}::integer
       ) as r`;
-    const r = (fila?.r ?? {}) as { estado?: unknown; se_unio_a_su_ficha?: unknown; era_del_club?: unknown; avisos_whatsapp?: unknown };
+    const r = (fila?.r ?? {}) as { estado?: unknown; se_unio_a_su_ficha?: unknown; era_del_club?: unknown; avisos_whatsapp?: unknown; avisos_club?: unknown };
     const avisos = AVISOS.find((a) => a === r.avisos_whatsapp) ?? "no";
-    return { ok: true, yaEra: r.estado === "ya_era", seUnioASuFicha: r.se_unio_a_su_ficha === true, eraDelClub: r.era_del_club === true, avisos };
+    const avisosClub = AVISOS.find((a) => a === r.avisos_club) ?? "no";
+    return { ok: true, yaEra: r.estado === "ya_era", seUnioASuFicha: r.se_unio_a_su_ficha === true, eraDelClub: r.era_del_club === true, avisos, avisosClub };
   } catch (error) {
     const e = error as { hint?: unknown; detail?: unknown; code?: unknown };
     const hint = typeof e.hint === "string" ? e.hint : null;

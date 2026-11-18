@@ -9,6 +9,19 @@ efecto legal: privacidad, Términos del Club, cambios y devoluciones, las casill
 bolsa y el separado, y las campañas con su cuenta regresiva. También el borrador `docs/club/texto-legal-puntos-v1-borrador.md` y los
 textos del Club que guarda el ERP (`retail.club_textos`).
 
+## Actualización del mismo día (2026-11-18, tarde)
+
+- **Base de la revisión.** El informe se escribió sobre el código del 2026-10-27; los `archivo:línea` son de esa fecha. Al ponerlo sobre el
+  `main` del 2026-11-18 cambiaron dos cosas que afectan a dos hallazgos:
+  - **H14:** el sello «Borrador: lo revisa el abogado» se quitó de la política y de los Términos (Felipe, 2026-11-07). La versión aceptada
+    sigue llamándose `borrador-…`, y los textos siguen sin la firma de un abogado: el riesgo de fondo es el mismo.
+  - **H17:** la tienda ahora mide visitas con una cookie propia de 90 días con un número al azar, el origen de la visita, el departamento
+    aproximado y las prendas que se miran (ADR-0495; la política ya lo dice y respeta «no me rastrees»). Ese número es un «identificador en
+    línea», o sea un dato personal (DS 016-2024-JUS, definiciones, num. 4), tratado para una finalidad que no es necesaria para el contrato:
+    pasa de *Cumple* a **Riesgo**. Que el abogado diga si basta informarlo o hace falta pedir permiso antes de poner la cookie.
+- **H2 y H3 están corregidos en el código** (ADR-0680, misma rama): dos casillas y dos permisos de WhatsApp, cada uno con su texto, y
+  ninguna cuenta nueva con Google sin marcar la casilla de aceptar. Faltan pegar sus tres migraciones en producción, antes de publicar.
+
 ## Cómo leer este informe
 
 - **Veredicto:** *Cumple* · *Incumple* (la norma lo exige y hoy no está) · *Riesgo* (se puede discutir, pero Indecopi o la ANPD

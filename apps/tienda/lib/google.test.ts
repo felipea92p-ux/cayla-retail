@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COOKIE_GOOGLE_CORREO, correoOcultoDeLaCookie, correoOcultoValido, siguienteTrasVincular, usuarioDeGoogle, type UsuarioDelProyecto } from "./google";
+import { aceptoLosTextos, COOKIE_GOOGLE_CORREO, correoOcultoDeLaCookie, correoOcultoValido, siguienteTrasVincular, usuarioDeGoogle, type UsuarioDelProyecto } from "./google";
 import { googleYaTienesCuentaCon } from "./cuentas-mensajes";
 
 const base: UsuarioDelProyecto = {
@@ -94,5 +94,16 @@ describe("el correo de la cuenta, a medias, que «Entrar» le dice a quien ya ti
     const texto = googleYaTienesCuentaCon("su••••@gmail.com");
     expect(texto).toContain("su••••@gmail.com");
     expect(texto).toContain("Mi cuenta");
+  });
+});
+
+describe("aceptoLosTextos (la casilla de «Crear mi cuenta con Google»)", () => {
+  it("solo con la versión vigente exacta: sin marca, otra versión o vacío, no aceptó", () => {
+    expect(aceptoLosTextos("borrador-2026-10-14", "borrador-2026-10-14")).toBe(true);
+    expect(aceptoLosTextos(null, "borrador-2026-10-14")).toBe(false);
+    expect(aceptoLosTextos(undefined, "borrador-2026-10-14")).toBe(false);
+    expect(aceptoLosTextos("", "borrador-2026-10-14")).toBe(false);
+    expect(aceptoLosTextos("borrador-2026-09-01", "borrador-2026-10-14")).toBe(false);
+    expect(aceptoLosTextos("1", "borrador-2026-10-14")).toBe(false);
   });
 });

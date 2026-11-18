@@ -59,6 +59,21 @@ export function siguienteTrasVincular(estado: "vinculada" | "ya_tiene_cuenta" | 
   }
 }
 
+/**
+ * La versión de los textos que la persona aceptó al tocar «Crear mi cuenta con Google» (revisión legal 2026-11-18, H3): el botón la
+ * manda en la dirección de vuelta (`/auth/google?acepto=…`) solo si marcó la casilla. Antes, una cuenta nueva por Google quedaba
+ * anotada como «aceptó los textos» sin haber visto ni marcado nada, y la prueba del consentimiento es de CAYLA (DS 016-2024-JUS, art. 9).
+ */
+export const PARAMETRO_ACEPTO = "acepto";
+
+/**
+ * ¿Aceptó los textos vigentes? Solo si la dirección de vuelta trae EXACTAMENTE la versión de hoy: sin la marca, con otra versión (una
+ * pestaña vieja) o con cualquier otra cosa, no. Sin aceptar, una cuenta nueva no se crea (quien ya tiene cuenta entra igual).
+ */
+export function aceptoLosTextos(valor: string | null | undefined, versionVigente: string): boolean {
+  return typeof valor === "string" && valor !== "" && valor === versionVigente;
+}
+
 /** La cookie corta con que la ruta de Google le deja a «Entrar» el correo de la cuenta, a medias: un correo no viaja en la dirección. */
 export const COOKIE_GOOGLE_CORREO = "cayla-google-correo";
 /** Cuánto vive: lo justo para volver a «Entrar» y leerla. */
