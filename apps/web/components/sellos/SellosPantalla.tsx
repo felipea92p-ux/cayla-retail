@@ -284,6 +284,7 @@ export function SellosPantalla({
         refrescarYAvisar(aviso);
       }}
       onAbrir={abrirDescuentoNuevo}
+      onListaVieja={refrescarYAvisar}
     />
   ) : null;
   const seccionDescuentos = verDescuentos ? (
@@ -1133,6 +1134,7 @@ export function SellosPantalla({
           cambiando={hojaDeDescuento.cambiando}
           onClose={() => setHojaDeDescuento(null)}
           onListo={abrirDescuentoNuevo}
+          onListaVieja={refrescarYAvisar}
         />
       )}
 

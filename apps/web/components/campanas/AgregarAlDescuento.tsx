@@ -12,6 +12,7 @@ import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { traducirError } from "@/lib/error-escritura";
 import { rpcRebaja, type ErrorDeRebaja } from "@/lib/rebaja-rapida";
 import {
+  avisoDeListaVieja,
   claveModeloColor,
   leerPrendasBuscadas,
   leerRebajaDePrenda,
@@ -51,6 +52,7 @@ export function AgregarAlDescuento({
   tallasPorClave,
   tallasPorModelo,
   onAgregado,
+  onListaVieja,
 }: {
   descuento: DescuentoDeLista;
   ubicacionId: string;
@@ -61,6 +63,8 @@ export function AgregarAlDescuento({
   tallasPorClave: ReadonlyMap<string, string[]>;
   tallasPorModelo: ReadonlyMap<string, string[]>;
   onAgregado: (a: Agregado) => void;
+  /** La base dijo que el descuento ya no está: la pantalla vuelve a leer la lista y después da el aviso (chaos #2). */
+  onListaVieja: (aviso: () => void) => void;
 }) {
   const { etiquetaId, pct, todas } = descuento;
   const idLista = useId();
@@ -167,7 +171,9 @@ export function AgregarAlDescuento({
     setBuscadas([]);
     const claves = [...new Set(variantes.map((v) => tallasClave.get(v)).filter((c): c is string => Boolean(c)))];
     if (error) {
-      avisar.error(traducirError(error, "poner el %"));
+      const vieja = avisoDeListaVieja(error);
+      if (vieja) onListaVieja(() => avisar.aviso(vieja));
+      else avisar.error(traducirError(error, "poner el %"));
       onAgregado({ variantes: [], claves, antes: null, texto: "" });
       return false;
     }

@@ -17,6 +17,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { rpcRebaja } from "@/lib/rebaja-rapida";
 import {
+  avisoDeListaVieja,
   comoDeshacerAgregar,
   detalleDePieza,
   piezasDeDescuento,
@@ -55,6 +56,7 @@ export function PanelDeDescuento({
   onCambiarPct,
   onDesactivado,
   onAbrir,
+  onListaVieja,
 }: {
   descuento: DescuentoDeLista;
   ubicacionId: string;
@@ -79,6 +81,8 @@ export function PanelDeDescuento({
   onDesactivado: (aviso: () => void) => void;
   /** «Deshacer» lo volvió a encender: la pantalla lo abre otra vez y después da el aviso. */
   onAbrir: (etiquetaId: string, aviso?: () => void) => void;
+  /** La base dijo que el descuento ya no está: la pantalla vuelve a leer la lista y después da el aviso (chaos #2). */
+  onListaVieja: (aviso: () => void) => void;
 }) {
   const router = useRouter();
   const responsable = useResponsableDeRebaja(ubicacionId, sede);
@@ -125,6 +129,13 @@ export function PanelDeDescuento({
     if (cuantas !== null) onConteo(cuantas);
   }, [cuantas, onConteo]);
 
+  /** El error de una acción: si lo que se ve ya está viejo, la lista se vuelve a leer antes de avisar; si no, el aviso de siempre. */
+  function fallo(error: Parameters<typeof traducirError>[0], que: string) {
+    const vieja = avisoDeListaVieja(error);
+    if (vieja) onListaVieja(() => avisar.aviso(vieja));
+    else avisar.error(traducirError(error, que));
+  }
+
   /** Quita o devuelve cada talla de la prenda, una por una (cada llamada es la misma de la hoja, con su candado). Para en el primer error. */
   async function cadaTalla(pieza: PiezaDeDescuento, accion: "quitar" | "devolver") {
     for (const varianteId of pieza.variantes) {
@@ -152,7 +163,7 @@ export function PanelDeDescuento({
     setQuitando(null);
     setVersion((v) => v + 1);
     if (error) {
-      avisar.error(traducirError(error, "quitar el %"));
+      fallo(error, "quitar el %");
       return;
     }
     avisar.exito(`${pieza.referencia} sin ${textoPct(pct)}`, {
@@ -165,7 +176,7 @@ export function PanelDeDescuento({
     const error = await cadaTalla(pieza, "devolver");
     setRecientes((r) => [pieza.clave, ...r.filter((c) => c !== pieza.clave)]);
     setVersion((v) => v + 1);
-    if (error) avisar.error(traducirError(error, "devolver el %"));
+    if (error) fallo(error, "devolver el %");
     else avisar.exito(`${pieza.referencia} otra vez con ${textoPct(pct)}`, { detalle: detalleDePieza(pieza) });
   }
 
@@ -198,7 +209,7 @@ export function PanelDeDescuento({
       if ((error = r.error)) break;
     }
     setVersion((n) => n + 1);
-    if (error) avisar.error(traducirError(error, "deshacer"));
+    if (error) fallo(error, "deshacer");
     else avisar.exito(`Deshecho: ${texto}`);
   }
 
@@ -210,7 +221,7 @@ export function PanelDeDescuento({
     );
     responsable.despues(error);
     if (error) {
-      avisar.error(traducirError(error, "desactivar el descuento"));
+      fallo(error, "desactivar el descuento");
       return;
     }
     const quitadas = data?.quitadas ?? [];
@@ -231,7 +242,7 @@ export function PanelDeDescuento({
     const { data, error } = await firmar(llamada, responsable.firma());
     responsable.despues(error);
     if (error) {
-      avisar.error(traducirError(error, "volver a encender el descuento"));
+      fallo(error, "volver a encender el descuento");
       return;
     }
     onAbrir(data?.etiqueta_id ?? etiquetaId, () => avisar.exito(`${textoPct(pct)} otra vez encendido`));
@@ -281,6 +292,7 @@ export function PanelDeDescuento({
           tallasPorClave={tallasPorClave}
           tallasPorModelo={tallasPorModelo}
           onAgregado={alAgregar}
+          onListaVieja={onListaVieja}
         />
       )}
 

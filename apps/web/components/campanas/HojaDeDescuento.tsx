@@ -15,6 +15,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { rpcRebaja } from "@/lib/rebaja-rapida";
 import {
   PCTS_SUGERIDOS,
+  avisoDeListaVieja,
   camposDeLaHojaDeDescuento,
   descuentoConPct,
   pctDeDescuento,
@@ -39,6 +40,7 @@ export function HojaDeDescuento({
   cambiando,
   onClose,
   onListo,
+  onListaVieja,
 }: {
   ubicacionId: string;
   sede: string;
@@ -49,6 +51,8 @@ export function HojaDeDescuento({
   onClose: () => void;
   /** El descuento que hay que abrir después (el creado, el que quedó o el que ya existía), y su aviso: sale cuando la lista se vuelve a leer. */
   onListo: (etiquetaId: string, aviso?: () => void) => void;
+  /** La base dijo que el descuento ya no está: la hoja se cierra, la pantalla vuelve a leer la lista y después avisa (chaos #2). */
+  onListaVieja: (aviso: () => void) => void;
 }) {
   const responsable = useResponsableDeRebaja(ubicacionId, sede);
   const [texto, setTexto] = useState(cambiando ? String(cambiando.pct) : "25");
@@ -78,7 +82,9 @@ export function HojaDeDescuento({
     const { data, error } = await firmar(llamada, responsable.firma());
     responsable.despues(error);
     if (error) {
-      avisar.error(traducirError(error, "deshacer el cambio"));
+      const vieja = avisoDeListaVieja(error);
+      if (vieja) onListaVieja(() => avisar.aviso(vieja));
+      else avisar.error(traducirError(error, "deshacer el cambio"));
       return;
     }
     onListo(data?.etiqueta_id ?? c.etiqueta_id, () => avisar.exito(`Otra vez ${textoPct(antes)}`));
@@ -120,6 +126,12 @@ export function HojaDeDescuento({
     responsable.despues(error);
     setGuardando(false);
     if (error || !data) {
+      const vieja = avisoDeListaVieja(error);
+      if (vieja) {
+        onClose();
+        onListaVieja(() => avisar.aviso(vieja));
+        return;
+      }
       avisar.error(traducirError(error ?? { message: "" }, "cambiar el %"));
       return;
     }

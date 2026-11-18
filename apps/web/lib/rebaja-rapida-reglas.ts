@@ -333,6 +333,17 @@ export function comoDeshacerAgregar(
   return { devolver, quitar };
 }
 
+/**
+ * La base dice que el descuento (o el % adonde iba la prenda) ya no está en esta tienda: otra persona lo apagó, o se guardó sin que la
+ * respuesta llegara. Lo que se ve está viejo: la pantalla vuelve a leer la lista y avisa esto, en vez de pedir «vuelve a abrir la lista»
+ * (chaos 2026-11-18, semilla 1118, #2). `null` si el error es otro.
+ */
+export function avisoDeListaVieja(error: { hint?: string | null } | null | undefined): string | null {
+  if (error?.hint === "rebaja_descuento_no_esta") return "Ese descuento ya no estaba: la lista ya está al día.";
+  if (error?.hint === "rebaja_lugar_no_rige") return "Ese % ya no rige aquí: la lista ya está al día.";
+  return null;
+}
+
 /** Los % a un toque de «Nuevo descuento» (la maqueta elegida); cualquier otro de 1 a 70 se escribe. */
 export const PCTS_SUGERIDOS = [5, 10, 15, 20, 25, 30, 40, 50, 70] as const;
 

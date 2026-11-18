@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sePuedeConfirmar, siguienteDe } from "./guia-campos";
 import {
+  avisoDeListaVieja,
   camposDeLaHojaDeDescuento,
   claveModeloColor,
   comoDeshacerAgregar,
@@ -207,6 +208,12 @@ describe("Nuevo descuento y cambiar el % (ADR-0677)", () => {
     const base = { pctElegido: false, existeSinCambiar: false, responsableListo: false, responsableMotivo: null };
     expect(camposDeLaHojaDeDescuento({ ...base, pct: null }).map((c) => `${c.id}:${c.hecho}`)).toEqual(["pct:false", "responsable:false"]);
     expect(camposDeLaHojaDeDescuento({ ...base, pct: 10, existeSinCambiar: true }).map((c) => c.id)).toEqual(["pct"]);
+  });
+
+  it("si la base dice que el descuento o el % ya no están, la lista se vuelve a leer (chaos #2)", () => {
+    expect(avisoDeListaVieja({ hint: "rebaja_descuento_no_esta" })).toBe("Ese descuento ya no estaba: la lista ya está al día.");
+    expect(avisoDeListaVieja({ hint: "rebaja_lugar_no_rige" })).toBe("Ese % ya no rige aquí: la lista ya está al día.");
+    expect([avisoDeListaVieja({ hint: "rebaja_pct" }), avisoDeListaVieja({ hint: null }), avisoDeListaVieja(null), avisoDeListaVieja(undefined)]).toEqual([null, null, null, null]);
   });
 
   it("el % que llega puesto es sugerido hasta que la persona lo toca, y nunca bloquea; vacío sí bloquea (ADR-0284 act. h)", () => {
