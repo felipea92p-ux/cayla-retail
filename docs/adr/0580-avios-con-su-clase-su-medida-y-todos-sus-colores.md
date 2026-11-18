@@ -79,3 +79,35 @@ Y una tercera, al corregirlas: `problemasDeAvioNuevo` no miraba al **responsable
 2. **Que «Nueva orden» proponga el avío del color de la prenda.** Ahora es posible por primera vez —`producto_avios` ya guarda el color de la PRENDA y el avío ya tiene color propio—, que es justo lo que ADR-0513 había descartado por no existir la familia de avíos.
 3. **Un candado para que no nazca otro avío suelto**: endurecer `insumos_insert_lider` a `with check (fn_es_lider() and material_id is not null)`. No entró aquí porque hay 40 inserts de avío suelto en 13 suites de `scripts/pruebas/` que corren como `postgres` y habría que revisarlos uno por uno.
 4. **Los dos avíos sueltos de la base local de prueba** (y, el día que existan, los de producción) no se convierten en ficha: el conversor sigue siendo solo de telas, a propósito.
+
+## Actualización 2026-11-17 — el botón se mide en centímetros, y ya nada en líneas
+
+**Pidió:** Felipe, 2026-11-17: «quitar lo de línea porque se maneja por cm», y «esto solo es en Insumos, que no dé tecnicismo que ellos no usan».
+En el Taller nadie pide un botón en líneas: se miden con regla, en centímetros. Una unidad que nadie usa solo invita a inventar el número.
+
+- **DECIDÍ:** el comportamiento `pieza` (botón, broche, remache) admite **solo centímetros**, y ninguna clase admite líneas (`otro` queda con mm, cm y
+  título). La pantalla no menciona la línea en ninguna parte, ni como conversión.
+- **DESCARTÉ:** aceptar centímetros y milímetros a la vez para el botón: la unidad entra en la llave del índice único, así que «Botón nácar 1.5 cm» y
+  «Botón nácar 15 mm» serían dos fichas del mismo botón con el stock partido (la misma razón por la que el 2026-10-30 se dejó UNA sola unidad).
+  **DESCARTÉ** dejar «línea» como opción escondida o explicada en la ayuda («18 L ≈ 1.14 cm»): es el tecnicismo que Felipe pidió quitar.
+- **SE ROMPE SI:** un proveedor factura el botón por línea y nadie sabe pasarlo; se mide el botón con regla.
+
+**Lo que hace la migración `20261117234000_avios_boton_en_centimetros.sql`** (una parte, re-ejecutable, sin políticas):
+1. Las fichas que ya estaban en líneas pasan a centímetros con su línea en Actividad: las de clase `pieza`, con la conversión exacta (1 L = 0,635 mm,
+   a dos decimales; en producción «Botones 9 L» → «Botones 0.57 cm»); las de otra clase (en producción, «Aguja Clase B 1 L», clase «Otro») quedan sin
+   medida. El nombre de sus colores lo reescribe el disparador de siempre. **La medida convertida es la exacta, no la real**: quien tiene el botón en la
+   mano la corrige en «Editar avío».
+2. `fn_medida_cuadra`: `pieza` → solo `centimetro`; `otro` → `milimetro`, `centimetro` o `titulo`.
+3. `fn_medida_texto` ya no sabe decir «L».
+4. El candado `materiales_medida_conocida` deja de aceptar `linea`.
+5. La nota de la clase «Botón» pasa a «Se mide en centímetros: por ejemplo, 1.5 cm.», solo si nadie la editó.
+
+**Web:** `UnidadMedidaAvio` pierde `linea` (`lib/insumos-reglas.ts`); `lib/avio-clases-reglas.ts` (la tabla que espeja a la base) y sus pruebas;
+el texto de Catálogo ▸ Atributos ▸ Avíos. **Pruebas de Postgres:** `scripts/pruebas/materiales.mjs` V8, V8b (nada en líneas), V10, V10b, V15 y V16.
+
+**Verificado:** vitest de avíos, telas y guía (347 casos) y `tsc`; la migración ensayada dos veces en la base local dentro de una transacción que se
+deshizo (el botón de prueba «33 L» pasó a «2.1 cm» en sus 5 colores, se anotó en Actividad, el candado rechazó una línea escrita directo, la segunda
+corrida no cambió nada) y la base local quedó como estaba; «Nuevo avío» en el navegador dice «Un botón de 1.5 cm y uno de 2 cm son dos avíos
+distintos» con «Centímetros». **No verificado:** `pnpm pruebas:materiales` completo (necesita la migración aplicada; la base local es la que Felipe usa
+a mano y el espejo de `/flujo-de-negocio`), que corre en el CI sobre una base nueva. **En producción desde el 2026-11-17** (verificado: 0 fichas en
+líneas; «Botones 0.57 cm · Neutro»; «Aguja Clase B» sin medida; 2 líneas en Actividad; el candado ya no acepta `linea`).

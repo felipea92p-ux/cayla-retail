@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 118,
+  "total": 119,
   "controles": {
     "components/ModeloNuevoCampos.tsx": [
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del modelo\")}»",
@@ -80,6 +80,7 @@
       "button «{curva.total > 0 ? `Usar la del motor · ${curva.total}»"
     ],
     "components/orden-produccion/AgregarColor.tsx": [
+      "button «{`Confirmar: quitar ${nombre}»",
       "button «{`Quitar ${nombre}»",
       "Boton «{abierto ? \"Listo con los colores\" : \"+ Agregar color\"}»"
     ],

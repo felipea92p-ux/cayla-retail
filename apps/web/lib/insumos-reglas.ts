@@ -88,9 +88,9 @@ export function leerCantidad(texto: string): number | null {
 /** Cómo se COMPRA una tela (ADR-0554). El libro va siempre en metros: el kilo y el rollo se convierten al recibir. */
 export type CompraDeTela = "metro" | "kilo" | "rollo";
 
-/** En qué se mide un AVÍO (ADR-0580): no es la unidad en que se cuenta su stock, sino la medida que lo distingue de otro de su misma clase (18 líneas, 40 centímetros, título 40).
+/** En qué se mide un AVÍO (ADR-0580): no es la unidad en que se cuenta su stock, sino la medida que lo distingue de otro de su misma clase (1.5 cm de un botón, 40 cm de un cierre, título 40). Sin líneas desde el 2026-11-17.
  *  Vive aquí, y no en `avio-clases-reglas.ts`, para que `MaterialVista` no tenga que importar de un archivo que ya importa de este. */
-export type UnidadMedidaAvio = "linea" | "milimetro" | "centimetro" | "titulo";
+export type UnidadMedidaAvio = "milimetro" | "centimetro" | "titulo";
 
 /** La medida de un avío, tal como la guarda la base (`materiales.medida_valor` + `medida_unidad`): las dos, o ninguna. */
 export type MedidaDeAvio = { valor: number; unidad: UnidadMedidaAvio };
