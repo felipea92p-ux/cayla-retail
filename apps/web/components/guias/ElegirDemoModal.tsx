@@ -3,8 +3,10 @@
 import { ChevronRight, PlayCircle } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
-import { GUIAS } from "@/lib/guias/registro";
+import { useEffect } from "react";
+import { precargarGuias } from "@/lib/guias/diferidas";
 import { guiaDeRuta, rutaCoincide } from "@/lib/guias/reglas";
+import type { GuiaEnIndice } from "@/lib/guias/tipos";
 import { esGrupoMenu, hojasDe, type FilaMenu } from "@/lib/menu";
 import { abrirGuiaAqui } from "./MotorGuias";
 
@@ -14,10 +16,10 @@ import { abrirGuiaAqui } from "./MotorGuias";
 
 type Grupo = { id: string; titulo: string; hojas: { id: string; etiqueta: string; href: string; tieneGuia: boolean }[] };
 
-function agrupar(filas: readonly FilaMenu[]): Grupo[] {
+function agrupar(filas: readonly FilaMenu[], guias: readonly GuiaEnIndice[]): Grupo[] {
   const sueltas: Grupo = { id: "general", titulo: "General", hojas: [] };
   const grupos: Grupo[] = [];
-  const hoja = (h: { id: string; etiqueta: string; href: string }) => ({ ...h, tieneGuia: !!guiaDeRuta(h.href, GUIAS) });
+  const hoja = (h: { id: string; etiqueta: string; href: string }) => ({ ...h, tieneGuia: !!guiaDeRuta(h.href, guias) });
   for (const f of filas) {
     if (esGrupoMenu(f)) grupos.push({ id: f.id, titulo: f.etiqueta, hojas: hojasDe(f).map(hoja) });
     else sueltas.hojas.push(hoja(f));
@@ -25,14 +27,16 @@ function agrupar(filas: readonly FilaMenu[]): Grupo[] {
   return [...(sueltas.hojas.length ? [sueltas] : []), ...grupos].filter((g) => g.hojas.length > 0);
 }
 
-export function ElegirDemoModal({ filas, onClose }: { filas: readonly FilaMenu[]; onClose: () => void }) {
+export function ElegirDemoModal({ filas, guias, onClose }: { filas: readonly FilaMenu[]; /** El índice que manda el servidor (sin los pasos). */ guias: readonly GuiaEnIndice[]; onClose: () => void }) {
   const router = useRouter();
   const pathname = usePathname();
-  const grupos = agrupar(filas);
+  // Quien abre «Demo» va a ver una: el texto de las guías empieza a bajar ya, así arranca al instante (ADR-0674 act. h).
+  useEffect(precargarGuias, []);
+  const grupos = agrupar(filas, guias);
   const conGuia = grupos.reduce((n, g) => n + g.hojas.filter((h) => h.tieneGuia).length, 0);
   // La pantalla donde estás, si tiene guía: es la puerta de las pantallas internas (una factura, editar un producto), que ya no
   // ofrecen su demo solas (Felipe, 2026-10-09: solo las entradas del menú).
-  const aqui = guiaDeRuta(pathname, GUIAS);
+  const aqui = guiaDeRuta(pathname, guias);
 
   return (
     <Modal

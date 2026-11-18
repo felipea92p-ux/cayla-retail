@@ -38,6 +38,9 @@ import { InventarioPanel } from "@/components/InventarioPanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BotonAjustarStock } from "@/components/existencias/BotonAjustarStock";
 import { CifrasExistencias } from "@/components/existencias/CifrasExistencias";
+import { ResumenExistencias } from "@/components/existencias/ResumenExistencias";
+import { FiltrosEnCabecera } from "@/components/existencias/FiltrosEnCabecera";
+import { AvisosExistencias } from "@/components/existencias/AvisosExistencias";
 import { ValorInventarioExistencias } from "@/components/existencias/ValorInventarioExistencias";
 import { pideAjustar, vueltaAEditar } from "@/lib/existencias-ajustar-desde-editar";
 import { pideSepararDanada } from "@/lib/danadas-lugar";
@@ -337,6 +340,20 @@ export default async function InventarioPage({
     sedesParaPedir: sedesParaPedir(ubicaciones, ubicacionActivaId),
   } satisfies Omit<ComponentProps<typeof InventarioPanel>, "plan" | "ritmo">;
 
+  // Las cifras de la sede y el valor a costo: las mismas props a la derecha de la cabecera (desde 640 px) y en la hoja «Resumen» del
+  // celular (`ResumenExistencias`, Felipe 2026-11-17).
+  const propsCifras = {
+    sede: ubicacionActiva?.nombre ?? "esta sede",
+    separa,
+    colgadas,
+    guardadas: separa ? guardadas : null,
+    disponibles: separa ? null : { valor: resumen.disponible, nota: notaSemana },
+    enCamino: resumen.enTransito > 0 ? { valor: resumen.enTransito, href: veTraslados ? "/inventario/traslados" : undefined } : null,
+  } satisfies ComponentProps<typeof CifrasExistencias>;
+  const propsValor = vistaValor
+    ? ({ vista: vistaValor, puedeEditarCatalogo: puede(persona, "editarCatalogo"), veComprobacion: veModulo(persona, "reportes_financieros") } satisfies ComponentProps<typeof ValorInventarioExistencias>)
+    : null;
+
   // La lista ya puede dibujarse: lo que falta (el plan y el ritmo) llega por su promesa. La línea del registro la escribe el `after` de arriba.
   marcar("lista");
   paraLaLinea = { sedeId: ubicacionActivaId, propsPanel, plan: planParaPanel, ritmo: ritmoParaPanel };
@@ -359,20 +376,36 @@ export default async function InventarioPage({
         // se hace en cada tarjeta, «Cuadrar el piso» y lo demás pendiente están en «Pendientes», y Recibir, Contar, Trasladar y
         // Apartados siguen en el menú lateral. `/inventario/bajar` conserva su ruta, sin botón en esta pantalla. La única excepción es
         // «Ajustar stock» (ADR-0494, Felipe 2026-10-23): el stock se carga aquí y no en Catálogo, y lo que no se ve no se usa.
-        acciones={<BotonAjustarStock ubicacionId={ubicacionActivaId} puedeAjustar={puede(persona, "ajustarStock")} />}
+        // En el celular va junto a «Resumen», los dos en ícono: las cifras y el valor a costo se abren desde ahí (Felipe 2026-11-17).
+        // Y, también solo en el celular, «Filtros» (sale de la barra del buscador) y «Avisos» (el piso sin cuadrar ya no es una franja
+        // sobre las prendas: es un ícono que late y abre su hoja). Los dos hablan con la lista por `cabecera-existencias.ts`.
+        acciones={
+          <>
+            <BotonAjustarStock ubicacionId={ubicacionActivaId} puedeAjustar={puede(persona, "ajustarStock")} />
+            <ResumenExistencias key={`resumen-${ubicacionActivaId}`} cifras={propsCifras} valor={propsValor} />
+            {/* Sin prendas no hay barra de filtros que abra la hoja: el botón no se dibuja. */}
+            {stock.length > 0 && <FiltrosEnCabecera />}
+            <AvisosExistencias
+              key={`avisos-${ubicacionActivaId}`}
+              pisoSinCuadrarAntes={pisoSinCuadrarAntes}
+              puedeCuadrar={puedeBajarAlPiso}
+            />
+          </>
+        }
       >
-        <CifrasExistencias
-          sede={ubicacionActiva?.nombre ?? "esta sede"}
-          separa={separa}
-          colgadas={colgadas}
-          guardadas={separa ? guardadas : null}
-          disponibles={separa ? null : { valor: resumen.disponible, nota: notaSemana }}
-          enCamino={resumen.enTransito > 0 ? { valor: resumen.enTransito, href: veTraslados ? "/inventario/traslados" : undefined } : null}
-        />
+        {/* `w-full lg:w-auto`, el mismo ancho que `ResumenSede` pide para sí, ahora en su caja: bajo 640 px la caja se esconde. */}
+        <div className="w-full max-sm:hidden lg:w-auto">
+          <CifrasExistencias {...propsCifras} />
+        </div>
       </EncabezadoPagina>
 
-      {/* La llave lleva un prefijo: `InventarioPanel`, su hermano, ya usa el id de la sede, y dos hermanos no pueden repetirla. */}
-      {vistaValor && <ValorInventarioExistencias key={`valor-${ubicacionActivaId}`} vista={vistaValor} puedeEditarCatalogo={puede(persona, "editarCatalogo")} veComprobacion={veModulo(persona, "reportes_financieros")} />}
+      {/* La llave lleva un prefijo: `InventarioPanel`, su hermano, ya usa el id de la sede, y dos hermanos no pueden repetirla. En el
+          celular, el valor a costo vive en la hoja «Resumen». */}
+      {propsValor && (
+        <div className="max-sm:hidden">
+          <ValorInventarioExistencias key={`valor-${ubicacionActivaId}`} {...propsValor} />
+        </div>
+      )}
 
       {/* `key` por sede: cambiar de sede (selector de arriba o `?ubicacion=`) es un `router.refresh`, no una
           pantalla nueva, y sin la llave el panel conservaba sus filtros. Un filtro de TRU («Por colgar»,

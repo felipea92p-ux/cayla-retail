@@ -32,9 +32,11 @@ export function usePedidoDeAjuste(): number {
 export function BotonAjustarStock({ ubicacionId, puedeAjustar }: { ubicacionId: string; puedeAjustar: boolean }) {
   const activa = useSedeActiva();
   if (!puedeAjustar || activa?.ubicacionId !== ubicacionId) return null;
+  // En el celular, solo el lápiz (44 px, como los íconos de la cabecera de Productos), junto al «Resumen»; la palabra queda para el lector
+  // de pantalla y al pasar el mouse, y vuelve a la vista desde 640 px (Felipe 2026-11-17).
   return (
-    <BotonEditar onClick={pedirAjusteDeStock} guia="existencias.ajustar-stock">
-      Ajustar stock
+    <BotonEditar onClick={pedirAjusteDeStock} guia="existencias.ajustar-stock" title="Ajustar stock" className="max-sm:min-w-11 max-sm:!px-3">
+      <span className="max-sm:sr-only">Ajustar stock</span>
     </BotonEditar>
   );
 }

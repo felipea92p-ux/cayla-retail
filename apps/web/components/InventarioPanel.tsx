@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Globito } from "@/components/ui/Globito";
-import { useCallback, useMemo, useRef, useState } from "react";
-import { Aviso } from "@/components/ui/Aviso";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, Eye, ListChecks, Moon, Package, PackageX, ScanLine, ShoppingBag, SignpostBig, Tag, TriangleAlert, X } from "lucide-react";
 import { urlRotulos } from "@/lib/rotulos-reglas";
 import { useRefrescoEnVivo } from "@/lib/useRefrescoEnVivo";
@@ -18,18 +17,25 @@ import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
 import { Modal } from "@/components/ui/Modal";
-import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { avisar } from "@/components/ui/Avisos";
-import { BuscarPrendaParaAjustar } from "@/components/existencias/BuscarPrendaParaAjustar";
+import {
+  AjustarInventarioBajoDemanda,
+  BuscarPrendaBajoDemanda,
+  EscanerBusquedaBajoDemanda,
+  PanelTallaBajoDemanda,
+  ResolverDanadosBajoDemanda,
+  ResumenStockBajoDemanda,
+} from "@/components/existencias/hojas-bajo-demanda";
+import { usePrecargarEnReposo } from "@/components/HojaBajoDemanda";
 import { usePedidoDeAjuste } from "@/components/existencias/BotonAjustarStock";
+import { AvisoPisoSinCuadrar } from "@/components/existencias/AvisosExistencias";
+import { publicarEnCabecera } from "@/components/existencias/cabecera-existencias";
 // «Pedir para una clienta» (PedirOtraSedeModal) no vuelve: el rediseño del cajón (2026-09-28) no tiene esa entrada — el
 // mismo criterio ya documentado para «Apartar»/«Retirar del piso»/«Dónde más hay». «Eliminar el producto» (ADR-0252) salió del
 // detalle de la prenda el 2026-10-12 (ADR-0391, decisión de Felipe): es de Catálogo, y ahí sigue (la vista rápida de Productos).
 import { alternarMarcasDePrenda, permisosDelDetalle } from "@/lib/existencias-permisos";
-import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
 import type { Hermana } from "@/lib/danadas-correccion";
 import { ApartadosModal } from "@/components/ApartadosModal";
-import { ResumenStockOverlay } from "@/components/ResumenStockOverlay";
 import { RitmoRecientePopover } from "@/components/RitmoRecientePopover";
 import { resumirApartados, type Apartado } from "@/lib/apartados-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -40,12 +46,11 @@ import { entradaPorColgar, porColgarDeLaSede, tareasParaHoy, type TipoTareaHoy }
 import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
 import { ALTO_TARJETA, ExistenciasTarjetas, REJILLA_TARJETAS } from "@/components/ExistenciasTarjetas";
 import { conteoDeLista, opcionesOrden, ordenarModelos, tarjetasDeExistencias, type OrdenPrendas } from "@/lib/existencias-tarjetas";
-import { PanelTalla, type FlujoPedido, type MarcaDelFiltro } from "@/components/existencias/PanelTalla";
+import type { FlujoPedido, MarcaDelFiltro } from "@/components/existencias/PanelTalla";
 import { AnilloMision } from "@/components/existencias/AnilloMision";
 import { mejorOrigen } from "@/lib/existencias-flujos";
 import { usePistola } from "@/components/ui/usePistola";
 import { tallasQueFaltan } from "@/lib/reponer-prenda-reglas";
-import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import { HREF_COLGAR_EN_TANDAS } from "@/lib/inicio-almacen-reglas";
 import { agruparPorPrenda, deLaPrenda, tallasPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorListaDelDia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, type ClaveFiltro, type FiltroActivo, type ProductoSinStock } from "@/lib/existencias-vacio";
@@ -116,26 +121,25 @@ function ChipHoy({ f, calculando }: { f: FilaExistencias; calculando: boolean })
     </>
   );
 }
-/** El piso nunca cuadrado, sobre las tarjetas (ADR-0391). Lo usan la lista y el lugar que la guarda mientras llega el plan: así no aparece
- *  de golpe sobre las prendas cuando el plan llega (Existencias en dos tiempos). */
-function AvisoPisoSinCuadrar() {
+/** El piso nunca cuadrado (ADR-0391), sobre las tarjetas: desde 640 px. En el celular es el ícono «Avisos» de la cabecera, que abre su
+ *  hoja (`AvisosExistencias`, Felipe 2026-11-17): la franja ocupaba ~120 px sobre la primera prenda. Lo usan la lista y el lugar que la
+ *  guarda mientras llega el plan: así no aparece de golpe sobre las prendas cuando el plan llega (Existencias en dos tiempos). La caja
+ *  de afuera es la que se esconde: el aviso es vidrio sin capa y una utilidad no le gana a su `display`. */
+function FranjaPisoSinCuadrar({ puedeCuadrar }: { puedeCuadrar: boolean }) {
   return (
-    <Aviso
-      tono="atencion"
-      guia="existencias.aviso-cuadre"
-      className="mb-3"
-      titulo="El piso de esta tienda nunca se ha cuadrado"
-      accion={
-        <Link href="/inventario/cuadrar" className="btn-cayla btn-secundario btn-chico whitespace-nowrap">
-          Cuadrar el piso
-        </Link>
-      }
-    >
-      {/* En el teléfono el título basta: la explicación empujaba la primera prenda bajo el pliegue (verificado a 375 px, 2026-11-02). */}
-      <span className="max-sm:hidden">
-        Lo que dice «en almacén» puede estar colgado: los números del almacén no están verificados hasta el primer cuadre.
-      </span>
-    </Aviso>
+    <div className="mb-3 max-sm:hidden">
+      <AvisoPisoSinCuadrar
+        guia="existencias.aviso-cuadre"
+        // «Cuadrar el piso» cuadra siempre la sede activa: mirando otra sede, la franja informa y no lleva botón (como «Pendientes»).
+        accion={
+          puedeCuadrar ? (
+            <Link href="/inventario/cuadrar" className="btn-cayla btn-secundario btn-chico whitespace-nowrap">
+              Cuadrar el piso
+            </Link>
+          ) : undefined
+        }
+      />
+    </div>
   );
 }
 
@@ -377,6 +381,10 @@ export function InventarioPanel({
   // «Ajustar stock» de la cabecera (ADR-0494): cada toque abre «¿Qué prenda vas a ajustar?» (patrón «previo + comparación»).
   const pedidoDeAjuste = usePedidoDeAjuste();
   const [pedidoVisto, setPedidoVisto] = useState(pedidoDeAjuste);
+  // El panel de la prenda es lo que más se abre en Existencias: su código baja apenas la pantalla queda libre, no al primer toque (ADR-0674).
+  usePrecargarEnReposo(PanelTallaBajoDemanda);
+  // La cámara es por donde se entra a una prenda en el celular: también baja en reposo.
+  usePrecargarEnReposo(EscanerBusquedaBajoDemanda);
   const [buscandoAjuste, setBuscandoAjuste] = useState(false);
   // «Separé una dañada» (ADR-0564): el mismo buscador, que lleva directo a «Reportar dañada» de la talla elegida.
   const [buscandoDanada, setBuscandoDanada] = useState(abrirSepararDanada);
@@ -568,6 +576,10 @@ export function InventarioPanel({
   // «Colgar primero», las tres prendas que más convenía colgar sobre las tarjetas, se quitó el 2026-10-06 (Felipe: «quita esto»): la
   // lista ya va en el orden de la lista del día y el atajo «Por colgar» dice cuáles faltan (ADR-0344, «Quinta vuelta»).
   const filtrosPuestos = contarFiltrosActivos(elegidos);
+  // La fila de íconos de la cabecera (celular) la dibuja el servidor: el panel le dice cuántos filtros hay puestos y si el piso sigue sin
+  // cuadrar (`cabecera-existencias.ts`). Al desmontarse (otra sede, otra pantalla) lo retira: un dato viejo no se queda arriba.
+  useEffect(() => publicarEnCabecera({ filtrosPuestos, pisoSinCuadrar }), [filtrosPuestos, pisoSinCuadrar]);
+  useEffect(() => () => publicarEnCabecera(null), []);
   // Solo «Hoy» y/o «Condición» (sin texto, talla, color, marca ni categoría): la tarjeta enseña TODAS las tallas del color y atenúa las
   // que no cumplen, como la maqueta. Con otro filtro, las tallas que se ven son las que deja ese filtro (y la tarjeta lo dice).
   const soloHoyOCondicion = sinTexto && (elegidos.hoy !== null || elegidos.condicion !== null) && filtrosPuestos === (elegidos.hoy ? 1 : 0) + (elegidos.condicion ? 1 : 0);
@@ -1085,7 +1097,7 @@ export function InventarioPanel({
             <EsqueletoTabla filas={4} className="border-t border-sand" />
           ) : (
             <>
-              {pisoSinCuadrar && <AvisoPisoSinCuadrar />}
+              {pisoSinCuadrar && <FranjaPisoSinCuadrar puedeCuadrar={puedeBajarAlPiso} />}
               {/* La sombra de una fila de tarjetas, con su rejilla y su alto: las reales caen en su lugar. */}
               <div aria-hidden className={REJILLA_TARJETAS}>
                 {[0, 1, 2].map((i) => (
@@ -1147,7 +1159,7 @@ export function InventarioPanel({
           {/* El piso nunca cuadrado (ADR-0391, medido el 2026-10-12: 0 cuadres en las tres tiendas; TRU con 881 «guardadas» contra 403
               «colgadas»): el motor del piso ya está en pausa por eso (ADR-0328 d.5) y la cifra de arriba dice «por cuadrar», pero la tarjeta
               decía «+3 guardadas» como si fuera verdad. Hasta el primer cuadre de la sede, se dice aquí, con el camino. */}
-          {pisoSinCuadrar && <AvisoPisoSinCuadrar />}
+          {pisoSinCuadrar && <FranjaPisoSinCuadrar puedeCuadrar={puedeBajarAlPiso} />}
           <ExistenciasTarjetas
             modelos={paginaTarjetas.filas}
             separa={separa}
@@ -1499,7 +1511,8 @@ export function InventarioPanel({
       </div>
 
       {ajustando && (
-        <AjustarInventarioModal
+        <AjustarInventarioBajoDemanda
+          alFallar={() => setAjustando(null)}
           productoId={ajustando.productoId}
           // Cada fila de Existencias es una prenda (modelo + color): el ajuste muestra solo sus tallas.
           prenda={{ color: ajustando.color, colorHex: ajustando.colorHex, fotoUrl: ajustando.fotoUrl, categoriaPrefijo: ajustando.categoriaPrefijo, categoriaFamilia: ajustando.categoriaFamilia, categoria: ajustando.categoria }}
@@ -1513,7 +1526,12 @@ export function InventarioPanel({
 
 
       {viendoDanados && (
-        <ResolverDanadosModal
+        <ResolverDanadosBajoDemanda
+          alFallar={() => {
+            setArregloInicial(null);
+            setViendoDanados(false);
+            setSoloPrenda(null);
+          }}
           pendientes={soloPrenda ? deLaPrenda(danadosPendientes, soloPrenda) : danadosPendientes}
           ubicacionId={ubicacionId}
           lugar={lugarDanadas}
@@ -1540,7 +1558,7 @@ export function InventarioPanel({
         />
       )}
 
-      {viendoDisponible && <ResumenStockOverlay stock={stock} separa={separa} ubicacionId={ubicacionId} sedeNombre={sedeNombre} onClose={() => setViendoDisponible(false)} />}
+      {viendoDisponible && <ResumenStockBajoDemanda alFallar={() => setViendoDisponible(false)} stock={stock} separa={separa} ubicacionId={ubicacionId} sedeNombre={sedeNombre} onClose={() => setViendoDisponible(false)} />}
 
       {/* «Ver análisis de cobertura» (AnalisisCoberturaOverlay) y «Ver recomendaciones» (RecomendacionesOverlay) no vuelven:
           el rediseño del 2026-09-28 los reemplaza por «Prioridades de hoy» y el diagnóstico de cada fila; la cobertura
@@ -1551,7 +1569,8 @@ export function InventarioPanel({
           modal encima del cajón: lo cierran y abren el suyo (Reponer, Ajustar, Eliminar), que al guardar refresca la pantalla. Sin
           `key`: al tocar otra fila el cajón se queda y solo cambia su contenido. */}
       {buscandoDanada && permisos.reportarDanada && (
-        <BuscarPrendaParaAjustar
+        <BuscarPrendaBajoDemanda
+          alFallar={() => setBuscandoDanada(false)}
           modo="danada"
           indice={indiceBusqueda}
           sedeNombre={sedeNombre}
@@ -1567,7 +1586,8 @@ export function InventarioPanel({
       )}
 
       {buscandoAjuste && puedeAjustarAqui && (
-        <BuscarPrendaParaAjustar
+        <BuscarPrendaBajoDemanda
+          alFallar={() => setBuscandoAjuste(false)}
           indice={indiceBusqueda}
           sedeNombre={sedeNombre}
           ubicacionId={ubicacionId}
@@ -1585,7 +1605,8 @@ export function InventarioPanel({
       )}
 
       {prendaAbierta && (
-        <PanelTalla
+        <PanelTallaBajoDemanda
+          alFallar={() => setAbierta(null)}
           colores={coloresDelModelo(stockDelModal, prendaAbierta.productoId)}
           claveInicial={prendaAbierta.clave}
           varianteInicial={abierta?.varianteId}
@@ -1677,7 +1698,8 @@ export function InventarioPanel({
       )}
 
       {camara && (
-        <EscanerBusqueda
+        <EscanerBusquedaBajoDemanda
+          alFallar={() => setCamara(false)}
           titulo="Escanear prenda"
           pista="Centra la etiqueta de la prenda en el cuadro"
           onCodigo={(codigo) => {

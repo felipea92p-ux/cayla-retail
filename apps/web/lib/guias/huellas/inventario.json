@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 212,
+  "total": 217,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
@@ -72,10 +72,10 @@
       "button «Ver»"
     ],
     "components/InventarioPanel.tsx": [
+      "Link «Cuadrar el piso»",
       "button «existencias.pendientes»",
       "button «Ver todas»",
       "Link «{p.referencia}»",
-      "Link «Cuadrar el piso»",
       "Link «Cuadrar el piso» #2",
       "BotonDescargar «Descargar CSV»",
       "BotonDescargar «Descargar CSV» #2",
@@ -90,6 +90,10 @@
       "Link «Rótulo»",
       "button «Quitar las marcas»",
       "button «existencias.escanear-celular»"
+    ],
+    "components/PendienteDeCabecera.tsx": [
+      "BotonEnlace «{titulo}»",
+      "Boton «{titulo}»"
     ],
     "components/ResolverDanadosModal.tsx": [
       "ComboResponsable «{responsable}»",
@@ -199,11 +203,17 @@
     "components/existencias/AnilloMision.tsx": [
       "button «existencias.pendientes»"
     ],
+    "components/existencias/AvisosExistencias.tsx": [
+      "BotonVer «Cuadrar el piso»"
+    ],
     "components/existencias/BotonAjustarStock.tsx": [
       "BotonEditar «Ajustar stock»"
     ],
     "components/existencias/BuscarPrendaParaAjustar.tsx": [
       "button «Escanear etiqueta con la cámara»"
+    ],
+    "components/existencias/FiltrosEnCabecera.tsx": [
+      "BotonFiltros «existencias.filtros-abrir»"
     ],
     "components/existencias/FiltrosRapidos.tsx": [
       "button «{rotulo}»"
@@ -262,6 +272,9 @@
       "button «existencias.colgar»",
       "button «existencias.mas»",
       "button «{o.clave === \"ficha\" ? \"existencias.ver-ficha\" : undefined}»"
+    ],
+    "components/existencias/ResumenExistencias.tsx": [
+      "Boton «existencias.resumen»"
     ],
     "components/existencias/ValorInventarioExistencias.tsx": [
       "button «Ver el valor a costo»",

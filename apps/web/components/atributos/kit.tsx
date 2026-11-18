@@ -1,11 +1,15 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Chip } from "@/components/ui/Chip";
-import { FunnelX, Shapes } from "lucide-react";
+import { FunnelX, Plus, Shapes } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { Boton } from "@/components/ui/campos";
 import { Buscador as BuscadorUnico } from "@/components/ui/Buscador";
+import { BotonFiltros } from "@/components/ui/FiltrosPildora";
+import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
+import { paginar } from "@/lib/paginacion";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 import { Vacio } from "@/components/ui/Vacio";
 
 /**
@@ -40,10 +44,16 @@ type Busqueda = {
 /**
  * La barra de arriba de cada pestaña. `busqueda` y `agregar` son opcionales: Temporadas (nueve fijas, no se proponen) no
  * lleva ninguno de los dos, y la barra sigue en el mismo lugar con sus píldoras.
+ *
+ * En el celular (Felipe 2026-11-17) la barra es UNA fila: el buscador con todo el ancho que queda, el ícono de filtros y el «+».
+ * Las píldoras de grupo no ocupan lugar hasta que se piden: con ocho familias eran cinco renglones antes de la primera tarjeta, y
+ * «+ Agregar categoría» dejaba el buscador en «Categoría o p». Tocar el ícono las muestra bajo la fila y elegir una las vuelve a
+ * guardar; el punto del ícono dice que hay un filtro puesto. Desde `sm` todo sigue como siempre: píldoras a la vista y el botón con su texto.
  */
 export function BarraAtributos({
   etiqueta,
   filtros,
+  filtrosPuestos = 0,
   busqueda,
   agregar,
   guia,
@@ -52,26 +62,55 @@ export function BarraAtributos({
   etiqueta: string;
   /** Las píldoras (`BotonFiltro`), empezando por «Todas». */
   filtros: ReactNode;
+  /** Cuántos filtros hay puestos (0 = «Todas»): en el celular, con las píldoras guardadas, lo dice el punto del ícono. */
+  filtrosPuestos?: number;
   busqueda?: Busqueda;
   agregar?: { texto: string; onClick: () => void };
   /** Ancla de la guía interactiva para la barra entera (`data-guia`, ADR-0389). Una por pestaña: al cambiar de pestaña, la
    *  guía tiene que encontrar la barra NUEVA, no la de la pestaña que se está yendo. */
   guia?: string;
 }) {
+  // Solo cuenta en el celular: desde `sm` las píldoras están siempre a la vista.
+  const [abiertos, setAbiertos] = useState(false);
+  // Sin buscador ni «+» (Temporadas) no hay a quién hacerle lugar: las píldoras se quedan a la vista también en el celular.
+  const seGuardan = Boolean(busqueda || agregar);
+  // «+ Agregar categoría»: en el celular queda el «+» solo; el nombre entero sigue para el lector de pantalla y al pasar el mouse.
+  const nombreAgregar = agregar?.texto.replace(/^\s*\+\s*/, "");
   return (
     <div data-guia={guia} className="flex flex-wrap items-center gap-x-6 gap-y-3">
-      <div role="group" aria-label={etiqueta} data-guia="vocabulario.filtros" className="flex flex-wrap items-center gap-1.5">
+      <div
+        id="filtros-panel"
+        role="group"
+        aria-label={etiqueta}
+        data-guia="vocabulario.filtros"
+        // Elegir una píldora las vuelve a guardar (en el celular): lo elegido se ve en la lista y en el punto del ícono.
+        onClick={(e) => {
+          if ((e.target as Element).closest("button")) setAbiertos(false);
+        }}
+        className={`flex flex-wrap items-center gap-1.5 ${seGuardan ? `max-sm:order-2 max-sm:w-full ${abiertos ? "anim-revelar" : "max-sm:hidden"}` : ""}`}
+      >
         {filtros}
       </div>
-      {(busqueda || agregar) && (
-        <div className="ml-auto flex w-full max-w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
-          {busqueda && <Buscador {...busqueda} />}
-          {agregar && (
-            <Boton type="button" peso="primario" onClick={agregar.onClick} className="shrink-0" data-guia="vocabulario.agregar">
+      {seGuardan && (
+      <div className="ml-auto flex w-full max-w-full items-center justify-end gap-2 sm:w-auto sm:gap-3">
+        {busqueda && <Buscador {...busqueda} />}
+        <span className="shrink-0 sm:hidden">
+          {/* La misma ancla que las píldoras: la guía señala la primera pieza que se VE (`buscarAncla`), y en el celular es este ícono. */}
+          <BotonFiltros soloIcono abierto={abiertos} activos={filtrosPuestos} onClick={() => setAbiertos((a) => !a)} data-guia="vocabulario.filtros" />
+        </span>
+        {agregar && (
+          <>
+            <Boton type="button" peso="primario" onClick={agregar.onClick} className="shrink-0 max-sm:hidden" data-guia="vocabulario.agregar">
               {agregar.texto}
             </Boton>
-          )}
-        </div>
+            {/* El mismo botón, solo con su «+», con la misma ancla de la guía (señala el que se ve).
+                `p-0!`: el relleno de `btn-cayla` vive fuera de capa (vidrio) y le gana a una utilidad sin «!». */}
+            <Boton type="button" peso="primario" onClick={agregar.onClick} aria-label={nombreAgregar} title={nombreAgregar} data-guia="vocabulario.agregar" className="h-10 w-10 shrink-0 p-0! pointer-coarse:h-11 pointer-coarse:w-11 sm:hidden">
+              <Plus aria-hidden className="h-4 w-4" />
+            </Boton>
+          </>
+        )}
+      </div>
       )}
     </div>
   );
@@ -101,6 +140,59 @@ export function TituloGrupo({ punto, cuenta, children }: { punto?: string; cuent
       {/* Cuántos hay: el globito de los títulos y las pestañas (ADR-0358, ronda 9). */}
       <span className="titulo-cuenta ml-0.5">{cuenta.toLocaleString("es-PE")}</span>
     </p>
+  );
+}
+
+/** Lo desactivado va de 8 en 8 (Felipe 2026-11-17): es lo que menos se mira y, entero, alargaba la pantalla sin fin. */
+const DESACTIVADOS_POR_PAGINA = 8;
+
+/**
+ * El grupo de lo desactivado, al pie de cada pestaña: su título con cuántos hay y, si pasan de ocho, sus páginas. La lista ya está
+ * entera en memoria (`PaginacionLocal`): cambiar de página no va a la base. Si la búsqueda la achica, cae sola en la última página
+ * que exista. Sin nada que mostrar, no se dibuja.
+ */
+export function GrupoDesactivado<T>({
+  titulo,
+  lista,
+  guia,
+  children,
+}: {
+  titulo: ReactNode;
+  lista: T[];
+  /** Ancla de la guía interactiva (`data-guia`, ADR-0389). */
+  guia?: string;
+  /** Dibuja SOLO los de la página a la vista. */
+  children: (visibles: T[]) => ReactNode;
+}) {
+  const [pagina, setPagina] = useState(1);
+  const seccion = useRef<HTMLElement>(null);
+  const salto = useRef(false);
+  // Cambiar de página lleva la vista al título del grupo si quedó arriba (ADR-0185): una paginación al pie no se queda abajo.
+  useEffect(() => {
+    if (!salto.current) return;
+    salto.current = false;
+    const el = seccion.current;
+    if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ behavior: prefiereQuieto() ? "auto" : "smooth", block: "start" });
+  }, [pagina]);
+  if (lista.length === 0) return null;
+  const p = paginar(lista, pagina, DESACTIVADOS_POR_PAGINA);
+  return (
+    <section ref={seccion} data-guia={guia} className="scroll-mt-24 space-y-3">
+      <TituloGrupo cuenta={lista.length}>{titulo}</TituloGrupo>
+      {children(p.filas)}
+      {p.totalPaginas > 1 && (
+        <div className="flex justify-end">
+          <PaginacionLocal
+            pagina={p.pagina}
+            totalPaginas={p.totalPaginas}
+            onPagina={(n) => {
+              salto.current = true;
+              setPagina(n);
+            }}
+          />
+        </div>
+      )}
+    </section>
   );
 }
 

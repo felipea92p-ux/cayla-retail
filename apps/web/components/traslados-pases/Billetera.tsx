@@ -1,14 +1,16 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Package, SearchX } from "lucide-react";
 import { useAlVerse } from "@/components/movimientos/useAlVerse";
 import { MiniPase } from "@/components/traslados-pases/MiniPase";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { coincideBusqueda } from "@/lib/traslados-reglas";
-import { PESTANAS, paseInicial, textoDelAnillo, vecinosEnPestana, type PestanaPase } from "@/lib/traslados-pases-reglas";
+import { PESTANAS, paseInicial, primeroPorHacer, textoDelAnillo, vecinosEnPestana, type PestanaPase } from "@/lib/traslados-pases-reglas";
 import type { Billetera as DatosBilletera, PaseDeBilletera } from "@/lib/traslados-billetera";
+import { Anillo } from "@/components/ui/Anillo";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 
@@ -39,7 +41,7 @@ export function useVecinos(id: string) {
 }
 
 /** El anillo del día, solo como dibujo: lo que dice va en palabras al lado (Formidable, 2026-10-06: «3/4» no se entendió). */
-function Anillo({ fraccion }: { fraccion: number }) {
+function AnilloDelDia({ fraccion }: { fraccion: number }) {
   const ref = useRef<HTMLSpanElement>(null);
   useAlVerse(ref);
   return (
@@ -98,26 +100,61 @@ export function Billetera({ billetera, puedeVerVacios, children }: { billetera: 
 
   const { anillo } = billetera;
   const dia = textoDelAnillo(anillo);
+  // A dónde lleva el anillo en el celular: a lo primero que te toca. Solo si el anillo dice que hay algo (su cuenta y los pases salen de
+  // dos lecturas de la base): sin pendientes, o si no se encuentra el pase, queda como dibujo y no promete un toque que no lleva a nada.
+  const teToca = anillo.pendientes > 0 ? primeroPorHacer(billetera.pases) : null;
+  const anilloChico = (
+    <Anillo pct={anillo.fraccion * 100} tamano="chico" tono={anillo.pendientes === 0 ? "verde" : "ambar"} decorativa>
+      <span className="text-tinta">{anillo.pendientes > 0 ? anillo.pendientes : "✓"}</span>
+    </Anillo>
+  );
+  // La misma píldora del «N de M hoy» de Existencias (`AnilloMision`): 40 px, crema con su línea arena.
+  const clasePildora = "tp-dia-chico h-10 shrink-0 items-center rounded-full border border-sand bg-crema";
   return (
     <CtxBilletera.Provider value={{ billetera, seleccion, idEnRuta }}>
       {/* `.tp-marco`: el contenedor que decide si billetera y pase van lado a lado (`traslados-pases.css`), por su ancho y no el de la ventana. */}
       <div className="tp-marco">
         <div className="tp-cols" data-con-pase={idEnRuta ? "" : undefined}>
           <aside data-guia="traslados.billetera" className="tp-billetera" aria-label="Tus cajas">
-            <div data-guia="traslados.dia" className="tp-dia">
-              <Anillo fraccion={anillo.fraccion} />
-              <div className="min-w-0">
-                <p className="text-[15px] font-semibold text-tinta">{dia.titulo}</p>
-                <p className="texto-detalle">{dia.detalle}</p>
+            {/* Lo de hoy y el buscador. Desde 640 px, la tarjeta arriba y el buscador debajo, como siempre. En el celular (Felipe 2026-11-17:
+                «lo de nada pendiente como en existencias») la tarjeta se pliega al anillo chico del sistema, a la derecha del buscador, como
+                el «N de M hoy» de Existencias (`AnilloMision`): adentro, cuántas te tocan o un ✓ si no queda nada; ámbar mientras falte y
+                verde al día. Las palabras siguen ahí para el lector de pantalla. Es UNA sola pieza que se pliega (`traslados-pases.css`,
+                «Lo de hoy en el celular»): la guía la encuentra en los dos anchos.
+                Si algo te toca, el anillo es un enlace a esa caja (allá abre «Pendientes»; aquí lo pendiente ES una caja). Al día, no se toca. */}
+            <div className="tp-dia-busca">
+              <div data-guia="traslados.dia" className="tp-dia">
+                <AnilloDelDia fraccion={anillo.fraccion} />
+                {teToca ? (
+                  <Link
+                    href={rutaDelPase(teToca.id)}
+                    scroll={false}
+                    aria-label="Ir a lo primero que te toca"
+                    title={`${dia.titulo}. Toca para ir a lo primero.`}
+                    className={`area-dedo ${clasePildora} transition-colors hover:border-taupe`}
+                  >
+                    {anilloChico}
+                  </Link>
+                ) : (
+                  <span title={`${dia.titulo}. ${dia.detalle}`} className={clasePildora}>
+                    {anilloChico}
+                  </span>
+                )}
+                <div className="min-w-0 max-sm:sr-only">
+                  <p className="text-[15px] font-semibold text-tinta">{dia.titulo}</p>
+                  <p className="texto-detalle">{dia.detalle}</p>
+                </div>
               </div>
-            </div>
 
-            <Buscador guia="traslados.buscador"
-              valor={consulta}
-              onCambio={setConsulta}
-              placeholder="Busca una caja por número, sede o prenda" // sugerir-fijo: el buscador no depende de nada elegido antes
-              etiqueta="Buscar una caja"
-            />
+              <Buscador guia="traslados.buscador"
+                valor={consulta}
+                onCambio={setConsulta}
+                // Corto, como el de Existencias («Prenda, marca o código…»): con el anillo al lado, a 375 px el de antes («Busca una caja
+                // por número, sede o prenda») se cortaba a media palabra. Qué se busca lo dice `etiqueta`.
+                placeholder="Número, sede o prenda…" // sugerir-fijo: el buscador no depende de nada elegido antes
+                etiqueta="Buscar una caja"
+              />
+            </div>
 
             {/* Llegan / Envías / Terminados cambian qué cajas se ven: la pestaña de vista del sistema (ADR-0358). El número de cada una
                 es cuántas hay; «por hacer» va en ámbar y con su texto para lector. */}

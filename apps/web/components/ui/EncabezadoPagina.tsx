@@ -28,6 +28,7 @@ export function EncabezadoPagina({
   detalle,
   volver,
   acciones,
+  accionesLlenan = false,
   pie,
   children,
 }: {
@@ -54,6 +55,11 @@ export function EncabezadoPagina({
    *  Van a la derecha, en el espacio libre; si la derecha ya es de las cifras o del reloj (`children`), bajan
    *  bajo la frase, como en Caja. Lo decide esta cabecera, no cada pantalla (ADR-0220, actualización). */
   acciones?: ReactNode;
+  /** En el celular (bajo 640 px), la fila de acciones ocupa todo el ancho de la cabecera, para que la acción que lleva
+   *  `max-sm:grow` se estire hasta el margen y llene lo que sobra en cada teléfono (el «+» de Productos, Felipe 2026-11-17).
+   *  Es opcional porque hay pantallas que ponen piezas de `w-full` en sus acciones y cambiarían de lugar. Solo vale para las
+   *  acciones de la derecha, no para las que bajan bajo la frase (`children`). */
+  accionesLlenan?: boolean;
   /** Bajo la frase, a la izquierda: un estado que no es una acción (el resultado de un conteo, «En curso»). La vuelta ya no va
    *  aquí: va en `volver`. */
   pie?: ReactNode;
@@ -92,7 +98,10 @@ export function EncabezadoPagina({
             // las acciones quedan bajo la frase, a la izquierda, donde estaban antes.
             // `min-w-0 max-w-full`: en el celular la fila no pasa del ancho de la cabecera (una acción que se estira, como la campaña
             // del Plan, se corta con «…» en vez de empujar la página hacia la derecha).
-            <div className="anim-sube flex min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-2.5" style={{ "--i": 1 } as CSSProperties}>
+            <div
+              className={`anim-sube flex min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-2.5${accionesLlenan ? " max-sm:grow" : ""}`}
+              style={{ "--i": 1 } as CSSProperties}
+            >
               {acciones}
             </div>
           )}

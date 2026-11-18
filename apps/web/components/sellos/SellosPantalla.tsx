@@ -1,13 +1,13 @@
 "use client";
 
-import { Fragment, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { Fragment, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
-import { Award, CalendarHeart, ChevronRight, HandHeart, RefreshCw, Shirt } from "lucide-react";
+import { Award, BadgePercent, CalendarHeart, ChevronRight, HandHeart, Plus, RefreshCw, Shirt } from "lucide-react";
 import { NOMBRE_DEL_DIBUJO, dibujoElegido } from "@cayla-retail/shared/insignias-visual";
 import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton, BotonEnlace, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { Globito } from "@/components/ui/Globito";
@@ -15,7 +15,6 @@ import { Pestanas } from "@/components/ui/Pestanas";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
-import { BotonVer } from "@/components/ui/BotonDescargar";
 import { BotonEditar } from "@/components/ui/BotonEditar";
 import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -158,6 +157,10 @@ export function SellosPantalla({
   const [manuales, setManuales] = useState(variantesManuales);
   const [abiertoPorVista, setAbiertoPorVista] = useState<Partial<Record<VistaSellos, string>>>({});
   const [agregando, setAgregando] = useState(false);
+  // En el celular, las rebajas de la tienda se abren en una hoja desde su ícono de la cabecera (Felipe 2026-11-17); al cerrar, el foco
+  // vuelve al ícono (se guarda en el clic: `<Boton>` no expone su `ref`).
+  const [rebajasAbiertas, setRebajasAbiertas] = useState(false);
+  const botonRebajas = useRef<HTMLElement | null>(null);
   const [nombre, setNombre] = useState("");
   // Cuándo rige la campaña que se está creando: opcional, vacías = rige siempre (Felipe 2026-10-28). Una insignia no las usa.
   const [fechasNuevas, setFechasNuevas] = useState({ desde: "", hasta: "" });
@@ -903,25 +906,64 @@ export function SellosPantalla({
               ¿Insignia, campaña u oferta? Ver el mapa
             </button>
           }
+          // En el celular, con «Cómo se ven en la web» al lado, «+ Nueva campaña» va en su «+» y se estira hasta el margen, como el de
+          // Productos (Felipe 2026-11-17): los dos en UNA fila en vez de dos. Sin vecino (Insignias) conserva su palabra: un «+» solo,
+          // estirado a todo el ancho, sería una barra negra muda.
+          accionesLlenan={esCampanas && disenoWeb}
           acciones={
             <>
               {esCampanas && disenoWeb && (
-                <BotonVer href="/tienda-web/campanas" guia="sellos.diseno-web">
+                // Sin la flecha de `<BotonVer>` (Felipe 2026-11-17: «quítale la flecha y ajusta el tamaño de todo para que entre»): en el
+                // celular comparte la fila con el ícono de las rebajas y el «+», y con la flecha no cabían los tres.
+                // unificar-fijo: «Cómo se ven en la web» sin la flecha de accion.ver, por pedido de Felipe (2026-11-17), para que quepa en la fila
+                <BotonEnlace href="/tienda-web/campanas" peso="fantasma" data-guia="sellos.diseno-web" className="max-sm:!px-4">
                   Cómo se ven en la web
-                </BotonVer>
+                </BotonEnlace>
               )}
-              {puedeCrear && (
-                <Boton peso="primario" onClick={() => setAgregando(true)} data-guia="sellos.nuevo">
-                  {`+ ${T.nuevo}`}
+              {esCampanas && puedeEditarCampanas && sedeActualId && (
+                // Solo en el celular: las tarjetas «Rebajas de …» (cada % de la tienda) se abren en una hoja desde aquí; desde 640 px están
+                // a la vista bajo el escáner. Lleva el ancla de la guía de esas tarjetas: la guía enciende la primera que se ve.
+                <Boton
+                  peso="fantasma"
+                  title={`Rebajas de ${sede}`}
+                  aria-expanded={rebajasAbiertas}
+                  data-guia="rebaja.tienda"
+                  className="min-w-11 !px-3 sm:hidden"
+                  onClick={(e) => {
+                    botonRebajas.current = e.currentTarget;
+                    setRebajasAbiertas(true);
+                  }}
+                >
+                  <BadgePercent aria-hidden className="h-4 w-4" />
+                  <span className="sr-only">{`Rebajas de ${sede}`}</span>
                 </Boton>
               )}
+              {puedeCrear &&
+                (esCampanas && disenoWeb ? (
+                  <Boton peso="primario" onClick={() => setAgregando(true)} data-guia="sellos.nuevo" title={T.nuevo} className="max-sm:min-w-11 max-sm:grow max-sm:!px-3">
+                    <span className="flex items-center gap-2">
+                      <Plus aria-hidden className="h-4 w-4 shrink-0" />
+                      <span className="max-sm:sr-only">{T.nuevo}</span>
+                    </span>
+                  </Boton>
+                ) : (
+                  <Boton peso="primario" onClick={() => setAgregando(true)} data-guia="sellos.nuevo">
+                    {`+ ${T.nuevo}`}
+                  </Boton>
+                ))}
             </>
           }
         />
       </div>
 
       {/* «Poner un %» (ADR-0669, Felipe 2026-11-16): escanear una prenda y ponerle un % en un toque, en la tienda de la cabecera. */}
-      {esCampanas && puedeEditarCampanas && sedeActualId && <RebajasDeTienda ubicacionId={sedeActualId} sede={sede} />}
+      {esCampanas && puedeEditarCampanas && sedeActualId && (
+        <RebajasDeTienda
+          ubicacionId={sedeActualId}
+          sede={sede}
+          hoja={{ abierta: rebajasAbiertas, onCerrar: () => setRebajasAbiertas(false), alCerrarEnfocar: botonRebajas }}
+        />
+      )}
 
       {esCampanas && puedeEditarCampanas && <AvisoDosOfertas pares={choquesAbiertos} alElegir={() => router.refresh()} />}
 
@@ -1134,9 +1176,12 @@ function TresPreguntas({
   const sigue = preguntas.find((x) => !x.hecho)?.clave;
   return (
     <div className="sl-listo mt-6" data-guia="sellos.preguntas" style={{ "--i": 3 } as CSSProperties}>
-      <p className="label-cayla pb-1.5 pt-3.5 text-[11px] text-tinta/65">
+      <p className="label-cayla pb-2.5 pt-3.5 text-[11px] text-tinta/65">
         {sigue ? "Para que la caja haga algo" : "Lista: la caja y la tienda web la cobran solas"}
       </p>
+      {/* Las tres en UNA tarjeta con el borde de lo que se toca (Felipe 2026-11-17: «mejora la visualización»): sueltas, separadas solo por
+          líneas `sand`, no se leían como algo que se toca y se fundían con el fondo. */}
+      <div className="sl-preguntas">
       {preguntas.map((x, i) => {
         const contenido = (
           <>
@@ -1176,6 +1221,7 @@ function TresPreguntas({
           </div>
         );
       })}
+      </div>
       {sigue === "oferta" && <p className="mt-3 text-sm text-tinta/65">Una campaña sin oferta solo pone su insignia en las prendas y en la web: no cambia ningún precio.</p>}
     </div>
   );

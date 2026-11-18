@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { LogoCayla } from "@/components/ui/LogoCayla";
 import { EMISOR } from "@/lib/emisor";
 import { LEY_REDONDEO_TICKET, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
-import { money } from "@/components/PuntoDeVenta";
+import { money } from "@/lib/money";
 import { descuentoDePrenda, esConstancia, tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado, type PrendaApartada } from "@/lib/separaciones-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";

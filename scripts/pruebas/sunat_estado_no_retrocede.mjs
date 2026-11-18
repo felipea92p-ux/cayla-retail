@@ -19,7 +19,8 @@
  *
  * CÓMO. Igual que `sunat_reintento_por_cron.mjs`: `docker exec ... psql`, una transacción por escenario que termina
  * SIEMPRE en ROLLBACK (corre seguro contra el Postgres local compartido). Las boletas son manuales
- * (`emitir_comprobante`), de Tienda Lima, emitidas por Felipe (líder del seed).
+ * (`emitir_comprobante`), de Tienda Lima, emitidas por Felipe (líder del seed); lo que responde Lucode lo guarda la llave de
+ * servicio, como en producción (ADR-0675).
  *
  * PROBAR ANTES DE APLICAR. `APLICAR_ANTES=<archivo.sql>` mete ese SQL dentro de cada transacción.
  *
@@ -54,18 +55,23 @@ function correr(sql) {
 const COMO_FELIPE = `reset role;
 set local request.jwt.claim.sub = '${FELIPE}';
 set local request.jwt.claim.role = 'authenticated';`;
+// El servidor, como lo arma PostgREST con la llave de servicio: el único que guarda lo que respondió SUNAT (ADR-0675).
+const COMO_SERVIDOR = `set local role service_role;
+set local request.jwt.claim.sub = '';
+set local request.jwt.claim.role = 'service_role';`;
 // El dueño de la base: un `update` a mano, como el de un script o el SQL Editor. El disparador también lo frena.
 const A_MANO = `reset role;
 set local request.jwt.claim.sub = '';
 set local request.jwt.claim.role = '';`;
 
-// Una boleta manual pendiente de Tienda Lima, en :'b'.
+// Una boleta manual pendiente de Tienda Lima, en :'b'. La emite Felipe y lo que sigue lo escribe el servidor.
 const FIXTURE = `
 begin;
 ${APLICAR_ANTES}
 ${COMO_FELIPE}
 select id as ubic from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select retail.emitir_comprobante(:'ubic', 'boleta', 84.75, 15.25, 100.00) as b \\gset
+${COMO_SERVIDOR}
 `;
 
 const ACEPTADA = `select retail.actualizar_transmision_comprobante(:'b', 'aceptado', 'sandbox', '{"estado": "ACEPTADO", "prueba": "primera"}'::jsonb) as _a \\gset`;
@@ -125,7 +131,7 @@ ${FOTO("tras_tramite")}`,
     `${ACEPTADA}
 ${A_MANO}
 update retail.comprobantes set estado = 'anulado', motivo_anulacion = 'prueba de ADR-0386' where id = :'b';
-${COMO_FELIPE}
+${COMO_SERVIDOR}
 select retail.actualizar_transmision_comprobante(:'b', 'aceptado', 'sandbox', '{"estado": "ACEPTADO", "prueba": "vieja"}'::jsonb) as _a2 \\gset
 ${FOTO("tras_vieja")}`,
     (d) => d("tras_vieja") === "anulado|-|primera"
@@ -198,7 +204,7 @@ update retail.comprobantes set estado = 'aceptado' where id = :'b';`,
     "si SUNAT acepta algo que el ERP ya liberó, la RPC NO lo ignora: falla, para que se vea",
     `${A_MANO}
 update retail.comprobantes set estado = 'no_emitido', motivo_no_emitido = 'prueba de ADR-0386' where id = :'b';
-${COMO_FELIPE}
+${COMO_SERVIDOR}
 select retail.actualizar_transmision_comprobante(:'b', 'aceptado', 'sandbox', '{"estado": "ACEPTADO"}'::jsonb);`,
     "está «no_emitido» y no puede pasar a «aceptado»"
   );

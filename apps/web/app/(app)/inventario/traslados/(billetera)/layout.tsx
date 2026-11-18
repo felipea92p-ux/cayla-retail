@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getBilleteraDeLaSede } from "@/lib/traslados-billetera";
 import { RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
@@ -29,7 +30,12 @@ export default async function TrasladosBilleteraLayout({ children }: { children:
           <div className="flex flex-wrap items-center gap-3">
             <BotonPedirAOtraSede {...pedir} />
             {/* Secundario: en esta pantalla el botón negro es el del pase, lo que te toca (Formidable, 2026-10-06). */}
-            <BotonEnlace href={RUTA_NUEVO_TRASLADO} data-guia="traslados.nuevo">+ Nuevo traslado</BotonEnlace>
+            {/* En el celular, solo el «+» (44 px, como «Nuevo producto» y «Ajustar stock»; Felipe 2026-11-17): los dos botones dejan de
+                apilarse y caben en una fila. La palabra queda para el lector de pantalla y al pasar el mouse, y vuelve desde 640 px. */}
+            <BotonEnlace href={RUTA_NUEVO_TRASLADO} title="Nuevo traslado" className="max-sm:min-w-11 max-sm:!px-3" data-guia="traslados.nuevo">
+              <Plus aria-hidden className="h-3.5 w-3.5 max-sm:h-4 max-sm:w-4" />
+              <span className="max-sm:sr-only">Nuevo traslado</span>
+            </BotonEnlace>
           </div>
         }
       />

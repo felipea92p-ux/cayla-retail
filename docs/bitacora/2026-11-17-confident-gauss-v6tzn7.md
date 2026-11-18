@@ -3,3 +3,58 @@ Qué hice: el cronómetro del clic anota la clase del equipo; modo liviano autom
 aviso «Actualiza el navegador» sin `color-mix()`; 19 CSS de otros módulos llegan solo a su pantalla; el marco baja de 936 a 626 KB. ADR-0674.
 Por qué así: Catálogo, Compras, Inventario y Ventas también se usan desde teléfonos baratos y el ERP solo se había medido en el Mac mini.
 Felipe se lleva: reservar el ADR-0674 (el remoto no aceptó la etiqueta desde la nube); la ganancia del modo liviano se ve en un teléfono real.
+
+## 2026-11-17 (Fase 1 en producción; Fase 2 empezada y traspasada)
+Qué hice: la Fase 1 pasó por `/milimetro` (0 graves; la letra del aviso, corregida) y se publicó (PR #1916, `fe7bc7c8`). Fase 2: el ticket de Vender
+sobrevive a que Android cierre la pestaña (foto en `sessionStorage`, vuelve a «En espera»; borrada al salir el cobro), en la rama, sin PR.
+Por qué así: lo único que hoy hace perder una venta en un teléfono barato; reusa `retomar()` en vez de restaurar a ciegas.
+Felipe se lleva: el traspaso para otra cuenta está en `docs/backlog/2026-11-17-confident-gauss-v6tzn7.md` (Mis compras diseñado, 7–9 pendientes).
+
+
+## 2026-11-17 (Fase 2: Mis compras tampoco pierde lo anotado; 6a verificado con dos pestañas)
+Qué hice: la compra que se anota en «Compré ropa» sobrevive a que Android cierre la pestaña (vuelve donde iba, con su mismo identificador);
+si ya se había guardado, no se recupera y lo dice. Vender (6a) probado con dos pestañas. Rama `claude/confident-gauss-continue-f86c75`.
+Por qué así: conservar el identificador es lo que impide que la compra se guarde dos veces; la base ya no repite uno que existe.
+Felipe se lleva: abrir el PR (publica), decidir si un «cobro en duda» que no se registró devuelve el ticket a la espera, y el teléfono real.
+
+## 2026-11-17 (Fase 2, actividad 7: Caja, Apartados y Mis compras ya no cargan la pantalla de Vender)
+Qué hice: `money` y el ícono de cada medio salieron de la pantalla de Vender, y con ellos el arrastre: Compré ropa −33 % de JavaScript,
+Caja −26 %, Apartados −21 %. En Vender, GSAP, «Cerrar caja» y «Prenda sin registrar» bajan recién cuando hacen falta (−10 %).
+Por qué así: se midió antes de tocar y la causa era un import de una línea, no los modales; lo de cobrar sin conexión se queda fijo.
+Felipe se lleva: los cortes que faltan (Caja: historial de cierres y registrar gasto; Existencias; Nuevo producto; Recibir) y el teléfono real.
+
+## 2026-11-17 (Actividad 7, segundo corte: Caja; PR #1923 abierto)
+Qué hice: abrí el PR #1923 (auditoría `/milimetro` incluida) y diferí las cuatro hojas de Caja: cerrar caja, historial de cierres, detalle
+de venta y registrar gasto. Caja baja de 1 650 a 1 454 KB de JavaScript (2 241 antes de la actividad 7).
+Por qué así: las cuatro piden internet de todos modos; «Cerrar caja» se precarga en reposo para que abra al instante.
+Felipe se lleva: el corte de Caja está en la rama local, sin subir al PR; siguen Existencias, Recibir, Nuevo producto y el marco.
+
+## 2026-11-17 (Actividad 7, tercer corte: Existencias)
+Qué hice: el corte de Caja subió al PR #1923. En Existencias, el panel de la prenda y cinco hojas más bajan cuando hacen falta: la pantalla
+pasa de 1 899 a 1 546 KB de JavaScript. El panel y la cámara se precargan en reposo, así que abren al instante.
+Por qué así: aquí no había un arrastre de otra pantalla; lo pesado era el panel, que bajaba aunque nadie tocara una prenda.
+Felipe se lleva: el corte de Existencias está en la rama local, sin subir; siguen Recibir, Nuevo producto, Productos y el marco.
+
+## 2026-11-17 (Actividad 7: el marco se midió y no se recorta; Existencias subió al PR #1923)
+Qué hice: medí el marco común (1 069 KB) archivo por archivo con un medidor nuevo: 46 % es React y Next, 20 % Supabase y el resto, código
+nuestro repartido en 153 archivos sin ningún bulto. No lo recorté. Quedan dos medidores (`por-modulo.mjs`, `si-corto.mjs`).
+Por qué así: los cortes posibles suman 49 KB (menos del 5 %) y cada uno agrega un punto de falla a algo que hoy siempre está; no lo vale.
+Felipe se lleva: el peso está en las pantallas, no en el marco. La más pesada del ERP es contar un envío de Recibir (1 034 KB propios).
+
+## 2026-11-17 (Actividad 7, cuarto corte: zod fuera de 50 pantallas y contar un envío de Recibir)
+Qué hice: al medir contar un envío salió que 52 de las 139 pantallas bajaban una librería de 52 KB (zod) sin usarla; ya no. En contar un
+envío, además, la hoja que crea una prenda y el paso «Cerrar» bajan cuando hacen falta: pasó de 1 031 a 765 KB. Las 138 pantallas, −10 %.
+Por qué así: zod y dos arrastres se quitan sin agregar ningún punto de falla; lo diferido guarda en la base, así que sin red no servía igual.
+Felipe se lleva: 4 commits locales sin subir. Decide si se borran los esquemas de zod (nadie los usa) y la recepción de la fase 4.
+
+## 2026-11-17 (Actividad 7, quinto corte: Preguntas del equipo y zod fuera del navegador)
+Qué hice: Preguntas del equipo bajaba el texto de las 122 guías para decir el nombre de una pantalla; ahora ese nombre lo manda el servidor
+y la pantalla pasa de 786 a 69 KB. Configuración bajaba zod por leer una constante: ya no. Ninguna pantalla baja zod.
+Por qué así: eran tres arrastres; se quitan moviendo código, sin diferir nada, así que no hay nada nuevo que pueda fallar.
+Felipe se lleva: va en un PR aparte, encima del #1925. Con preguntas de verdad no se probó: la base local no tiene ninguna.
+
+## 2026-11-17 (Actividad 7, sexto corte: el texto de las guías ya no baja en cada sesión)
+Qué hice: el motor de las guías bajaba el texto de las 122 guías (665 KB) en el primer momento libre de cada sesión, en toda pantalla. Ahora
+el servidor manda un índice liviano (6 KB comprimidos) y el texto baja solo cuando alguien va a ver una demo. «Demo» y el acompañante, igual.
+Por qué así: recortar solo «Elegir demo» no ahorraba nada (comparte ese archivo con el motor); el gasto de verdad era el motor.
+Felipe se lleva: va en un PR aparte, encima del #1926. La primera demo de una sesión puede esperar la descarga con el loader.

@@ -51,7 +51,7 @@ export const GUIA_PRODUCTOS: Guia = {
       ancla: "productos.por-revisar",
       opcional: true,
       titulo: "Prendas por revisar",
-      texto: "Las que alguien propuso en un conteo o desde el Taller esperan que quien edita el catálogo las apruebe o las rechace. Mientras tanto se pueden vender, si tienen precio. «Revisar» te lleva a la lista.",
+      texto: "Las que alguien propuso en un conteo o desde el Taller esperan que quien edita el catálogo las apruebe o las rechace. Mientras tanto se pueden vender, si tienen precio. Este botón, con su número, te lleva a la lista.",
     },
     {
       // ADR-0650 (decisión 3): sale solo si hay fichas activas con el nombre igual o casi igual.
@@ -59,7 +59,7 @@ export const GUIA_PRODUCTOS: Guia = {
       ancla: "productos.posibles-duplicados",
       opcional: true,
       titulo: "Fichas que parecen repetidas",
-      texto: "Si dos fichas tienen el nombre igual o casi igual, el sistema te las muestra aquí. «Revisar» abre la lista: si son la misma prenda, las fusionas en una y no se pierden ventas, fotos ni stock. Si no, las dejas como están.",
+      texto: "Si dos fichas tienen el nombre igual o casi igual, este botón aparece con su número. Al tocarlo se abre la lista: si son la misma prenda, las fusionas en una y no se pierden ventas, fotos ni stock. Si no, las dejas como están.",
     },
     {
       // ADR-0393 (decisión 4): sale solo si lo recibido en la sede tiene prendas nuevas por crear.
@@ -67,7 +67,7 @@ export const GUIA_PRODUCTOS: Guia = {
       ancla: "productos.por-crear",
       opcional: true,
       titulo: "Prendas recibidas por crear",
-      texto: "Llegaron a tu sede, se contaron como nuevas y están en el almacén, pero no se pueden vender hasta crearlas. Se crean desde Recibir, con «Crear ahora»: así la prenda nace con lo que ya se contó.",
+      texto: "Llegaron a tu sede, se contaron como nuevas y están en el almacén, pero no se pueden vender hasta crearlas. Este botón te lleva a Recibir, donde se crean con «Crear ahora»: así la prenda nace con lo que ya se contó.",
     },
     {
       id: "buscador",
@@ -854,7 +854,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       ancla: "vocabulario.filtros",
       opcional: true,
       titulo: "Filtra por grupo",
-      texto: "Cada píldora deja solo un grupo, con cuántos tiene: en Colores, una familia (Neutro, Tierra, Azul…). Tócala otra vez para ver todos.",
+      texto: "Cada píldora deja solo un grupo, con cuántos tiene: en Colores, una familia (Neutro, Tierra, Azul…). Tócala otra vez para ver todos. En el celular, las píldoras se abren con el ícono de filtros.",
     },
     {
       id: "buscador",
@@ -1229,7 +1229,7 @@ export const GUIA_CAMPANAS: Guia = {
       ancla: "rebaja.tienda",
       opcional: true,
       titulo: "Los % de tu tienda",
-      texto: "Cada tarjeta es un % que rige aquí y cuántas prendas tiene. Tócala para ver sus prendas con su precio de hoy y quitar las que ya no van.",
+      texto: "Cada tarjeta es un % que rige aquí y cuántas prendas tiene. Tócala para ver sus prendas con su precio de hoy y quitar las que ya no van. En el celular están detrás de este ícono.",
     },
     {
       id: "dos-ofertas",
@@ -1493,7 +1493,7 @@ export const GUIA_CATEGORIAS: Guia = {
       id: "filtros",
       ancla: "vocabulario.filtros",
       titulo: "Por familia",
-      texto: "Las categorías se agrupan en familias: Indumentaria, Calzado, Accesorios… Toca una para ver solo las suyas.",
+      texto: "Las categorías se agrupan en familias: Indumentaria, Calzado, Accesorios… Toca una para ver solo las suyas. En el celular, las familias se abren con el ícono de filtros.",
     },
     {
       id: "buscador",
@@ -1694,7 +1694,7 @@ export const GUIA_MARCAS: Guia = {
       id: "buscador",
       ancla: "marcas.buscador",
       titulo: "Busca una marca",
-      texto: "Escribe el nombre de una marca o de un proveedor y la lista se achica mientras escribes. Si aparece en gris lo que falta, Tab lo completa y Enter te lleva a esa marca. Al lado, cuántas hay. Mira:",
+      texto: "Escribe el nombre de una marca o de un proveedor y la lista se achica mientras escribes. Si aparece en gris lo que falta, Tab lo completa y Enter te lleva a esa marca. También dice cuántas hay. Mira:",
       demostrar: [{ tipo: "escribir", ancla: "marcas.buscador", texto: { palabraDe: "marcas.tarjeta" } }],
     },
     {
@@ -1703,14 +1703,14 @@ export const GUIA_MARCAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "marcas.buscador" }],
       titulo: "Filtrar por estado",
-      texto: "«Ya las usamos» deja las que tienen productos; «Sin productos», las que nadie usó todavía; «Sin proveedor», las que no se pueden elegir porque falta decir quién las trae (el punto ámbar avisa). «Todas» vuelve a la lista completa.",
+      texto: "«Ya las usamos» deja las que tienen productos; «Sin productos», las que nadie usó todavía; «Sin proveedor», las que no se pueden elegir porque falta decir quién las trae (el punto ámbar avisa); «Desactivadas», las que ya no se usan. «Todas» vuelve a la lista completa. En el celular están detrás de este ícono.",
     },
     {
       id: "resumen",
       ancla: "marcas.resumen",
       opcional: true,
       titulo: "El resumen",
-      texto: "Abre los mismos cuatro números en tarjetas grandes, arriba. Tocar una tarjeta filtra la lista igual que las píldoras.",
+      texto: "Abre los mismos números en tarjetas grandes, en una hoja. Tocar una tarjeta filtra la lista igual que las píldoras y cierra la hoja.",
     },
     {
       id: "desactivadas",

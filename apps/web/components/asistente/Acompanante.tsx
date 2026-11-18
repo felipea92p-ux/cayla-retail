@@ -10,7 +10,7 @@ import { Boton } from "@/components/ui/campos";
 import { buscarAncla, ejecutar } from "@/components/guias/piloto";
 import { mismaPantalla, rutaDe, seAbreDesdeOtra, type PasoTarea } from "@/lib/asistente/tarea";
 import { caminoDelVelo, recorteDe, type Caja } from "@/lib/guias/reglas";
-import { GUIAS } from "@/lib/guias/registro";
+import type { GuiaEnIndice } from "@/lib/guias/tipos";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
@@ -127,9 +127,10 @@ function hayListaAfuera(pieza: HTMLElement): boolean {
   );
 }
 
-const nombreDePantalla = (href: string) => GUIAS.find((g) => rutaDe(g.ruta) === rutaDe(href))?.titulo ?? "otra pantalla";
+/** El nombre de la pantalla de un paso, del índice de las guías que manda el servidor (ADR-0674 act. h: antes importaba el texto de todas). */
+const nombreDePantalla = (guias: readonly GuiaEnIndice[], href: string) => guias.find((g) => rutaDe(g.ruta) === rutaDe(href))?.titulo ?? "otra pantalla";
 
-export function Acompanante() {
+export function Acompanante({ guias }: { guias: readonly GuiaEnIndice[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const celular = useConsultaMedia("(max-width: 639.98px)");
@@ -452,7 +453,7 @@ export function Acompanante() {
               </p>
               <p className="mt-1 text-[19px] font-medium leading-snug text-tinta">{orden}</p>
               {enOtraPantalla ? (
-                <p className="mt-1 text-sm text-taupe">{sinLlevar ? `Se abre en ${nombreDePantalla(paso.href)}, con el paso anterior.` : `Está en ${nombreDePantalla(paso.href)}.`}</p>
+                <p className="mt-1 text-sm text-taupe">{sinLlevar ? `Se abre en ${nombreDePantalla(guias, paso.href)}, con el paso anterior.` : `Está en ${nombreDePantalla(guias, paso.href)}.`}</p>
               ) : null}
               {aviso ? <p className="mt-1 text-sm text-taupe">{aviso}</p> : null}
               {porQue ? <p className="mt-1.5 max-w-prose text-sm text-tinta/75">{paso.porQue}</p> : null}

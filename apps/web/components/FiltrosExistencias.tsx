@@ -7,6 +7,7 @@ import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } 
 import { Modal } from "@/components/ui/Modal";
 import { BotonSonidoConfirmar } from "@/components/BotonSonidoConfirmar";
 import { FiltrosRapidos } from "@/components/existencias/FiltrosRapidos";
+import { usePedidoDeFiltros } from "@/components/existencias/cabecera-existencias";
 import { avisar } from "@/components/ui/Avisos";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, guardarPanelFiltros, type EstadoPanelFiltros } from "@/lib/panel-filtros";
@@ -145,6 +146,14 @@ export function FiltrosExistencias({
   const [panelAbierto, setPanelAbierto] = useState(panelInicial === "abierto");
   const [hojaAbierta, setHojaAbierta] = useState(false);
   const esEscritorio = useConsultaMedia(MEDIA_ESCRITORIO);
+  // «Filtros» de la cabecera (solo en el celular, `FiltrosEnCabecera`): cada toque abre la hoja (patrón «previo + comparación», como
+  // «Ajustar stock»). El número vive fuera del componente: al montarse arranca en el de ahora y un toque viejo no abre nada.
+  const pedidoDeCabecera = usePedidoDeFiltros();
+  const [pedidoVisto, setPedidoVisto] = useState(pedidoDeCabecera);
+  if (pedidoDeCabecera !== pedidoVisto) {
+    setPedidoVisto(pedidoDeCabecera);
+    setHojaAbierta(true);
+  }
 
   function alTocarFiltros() {
     if (window.matchMedia(MEDIA_ESCRITORIO).matches) {
@@ -390,8 +399,9 @@ export function FiltrosExistencias({
               <ScanLine aria-hidden className="h-4 w-4" />
             </button>
           )}
-          {/* «Filtros»: solo el icono, con cuántos hay puestos en la esquina (2026-10-06). */}
-          <span data-guia="existencias.filtros" className="flex shrink-0">
+          {/* «Filtros»: solo el icono, con cuántos hay puestos en la esquina (2026-10-06). Bajo 640 px vive en la fila de íconos de la
+              cabecera, junto a «Resumen» (`FiltrosEnCabecera`, Felipe 2026-11-17): aquí se esconde y el buscador toma su lugar. */}
+          <span data-guia="existencias.filtros" className="flex shrink-0 max-sm:hidden">
             <BotonFiltros
               soloIcono
               abierto={hojaAbierta || (esEscritorio && panelAbierto)}

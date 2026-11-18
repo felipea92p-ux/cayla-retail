@@ -11,7 +11,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
+import { iconoMetodo } from "@/components/punto-de-venta/iconoMetodo";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";

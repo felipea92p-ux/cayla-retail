@@ -657,6 +657,10 @@ export const PRUEBAS = [
   // SUNAT con su botón «Transmitir» de una venta que ya se devolvió. Cada caso termina en ROLLBACK.
   "pruebas:anular-venta-comprobante",
 
+  // Quién pide y quién confirma la baja de un comprobante (ADR-0673): pedirla es de la sede del comprobante, y «anulado» lo
+  // escribe solo la llave de servicio (`fn_confirmar_baja_sunat`). Cada caso termina en ROLLBACK.
+  "pruebas:anular-comprobante-permisos",
+
   // Un comprobante no nace sobre una venta anulada (20260921161500): ni por `emitir_comprobante`, ni por
   // un insert directo, ni convirtiendo una proforma. Cada caso termina en ROLLBACK.
   "pruebas:comprobante-venta-anulada",
@@ -1039,6 +1043,10 @@ export const PRUEBAS = [
   // ignora sin error), el disparador de la tabla frena cualquier paso de estado que no existe, venga de donde venga, y lo
   // que ya intentó salir a SUNAT no se libera. La carrera de dos conexiones (commitea) va aparte, en EXCLUIDAS. ROLLBACK.
   "pruebas:sunat-estado-no-retrocede",
+
+  // Lo que respondió SUNAT lo escribe solo el servidor (ADR-0675): `actualizar_transmision_comprobante` es de `service_role`;
+  // ni la integrante de la sede ni el líder lo escriben con su sesión. ROLLBACK.
+  "pruebas:actualizar-transmision-permisos",
 
   // Devolver insumos (ADR-0133, F3b): lo devuelto vuelve al último lote del que salió la orden, el costo de
   // tela/avíos de la orden queda neto, anular devuelve todo al estante y quien no opera el Taller no puede.

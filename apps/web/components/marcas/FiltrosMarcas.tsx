@@ -2,23 +2,41 @@
 
 import type { FiltroMarcas, ResumenMarcas } from "@/lib/marcas";
 
-const PILDORAS: { filtro: FiltroMarcas; texto: string }[] = [
-  { filtro: "activas", texto: "Todas" },
-  { filtro: "con", texto: "Ya las usamos" },
-  { filtro: "sin", texto: "Sin productos" },
-  { filtro: "sin-proveedor", texto: "Sin proveedor" },
-];
+/** El nombre de cada filtro: el de su píldora y el que dice la cuenta de la lista («67 de 121 · Ya las usamos»). */
+export const NOMBRE_FILTRO_MARCAS: Record<FiltroMarcas, string> = {
+  activas: "Todas",
+  con: "Ya las usamos",
+  sin: "Sin productos",
+  "sin-proveedor": "Sin proveedor",
+};
+
+const PILDORAS = (Object.keys(NOMBRE_FILTRO_MARCAS) as FiltroMarcas[]).map((filtro) => ({ filtro, texto: NOMBRE_FILTRO_MARCAS[filtro] }));
 
 /**
- * Los mismos cuatro números del resumen, como píldoras de filtro (`pildora-cayla`, la pieza que filtra) con su conteo, dentro de
- * la tarjeta de la lista. Mientras el resumen está abierto se esconden: no se repite la misma cifra dos veces. «Sin proveedor»
- * lleva su punto ámbar cuando hay alguna: es la única que pide una acción.
+ * El filtro de Marcas, en UN grupo (Felipe 2026-11-17: «hagamos todo en un filtro»): los cuatro números del resumen como píldoras
+ * (`pildora-cayla`, la pieza que filtra) con su conteo y, al final, «Desactivadas», que antes iba suelta junto a «Resumen». Se elige
+ * una a la vez: «Desactivadas» muestra las que ya no se usan y otra píldora vuelve a las activas. «Sin proveedor» lleva su punto
+ * ámbar cuando hay alguna: es la única que pide una acción. En el celular el grupo se guarda tras el ícono de filtros (`MarcasLista`).
  */
-export function FiltrosMarcas({ resumen, filtro, onFiltro }: { resumen: ResumenMarcas; filtro: FiltroMarcas | null; onFiltro: (f: FiltroMarcas) => void }) {
+export function FiltrosMarcas({
+  resumen,
+  filtro,
+  onFiltro,
+  desactivadas,
+  verDesactivadas,
+  onDesactivadas,
+}: {
+  resumen: ResumenMarcas;
+  /** `null` mientras se ven las desactivadas: ninguna de las cuatro está puesta. */
+  filtro: FiltroMarcas | null;
+  onFiltro: (f: FiltroMarcas) => void;
+  /** Cuántas desactivadas hay: con 0 la píldora no se dibuja. */
+  desactivadas: number;
+  verDesactivadas: boolean;
+  onDesactivadas: () => void;
+}) {
   return (
-    // Angosta (celular, o ventana chica con el menú abierto): una sola fila que se desliza de lado, sin barra, en vez de tres renglones
-    // que empujan las marcas hacia abajo. Ancha: se acomodan en filas, como siempre.
-    <div data-guia="marcas.filtros" className="-mx-1 flex gap-2 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] @2xl:flex-wrap @2xl:overflow-visible [&::-webkit-scrollbar]:hidden" role="group" aria-label="Filtrar las marcas por estado">
+    <div data-guia="marcas.filtros" className="flex flex-wrap gap-2" role="group" aria-label="Filtrar las marcas">
       {PILDORAS.map(({ filtro: f, texto }) => {
         const puesta = filtro === f;
         const avisa = f === "sin-proveedor" && resumen[f] > 0;
@@ -30,6 +48,12 @@ export function FiltrosMarcas({ resumen, filtro, onFiltro }: { resumen: ResumenM
           </button>
         );
       })}
+      {desactivadas > 0 && (
+        <button type="button" data-guia="marcas.desactivadas" className="pildora-cayla shrink-0" aria-pressed={verDesactivadas} onClick={onDesactivadas}>
+          Desactivadas
+          <span className="ml-1 font-medium tracking-normal tabular-nums">{desactivadas}</span>
+        </button>
+      )}
     </div>
   );
 }

@@ -48,7 +48,8 @@ export function DetalleEnvioPorRecibir({ envio, sede }: { envio: EnvioPorAbrir; 
   );
 }
 
-function HojaDetalle({ envio, sede, onCerrar }: { envio: EnvioPorAbrir; sede: string; onCerrar: () => void }) {
+/** La hoja sola, para quien la abre desde otro lugar (la fila de la tarjeta «Envíos» de Recibir). */
+export function HojaDetalle({ envio, sede, onCerrar }: { envio: EnvioPorAbrir; sede: string; onCerrar: () => void }) {
   const router = useRouter();
   const responsable = useResponsable();
   const [detalle, setDetalle] = useState<DetalleEnvio | null>(null);

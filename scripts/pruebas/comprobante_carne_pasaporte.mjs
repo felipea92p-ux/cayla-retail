@@ -81,6 +81,13 @@ end $deshacer$;
 
 // Seed local: Felipe (líder y Admin).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
+
+// Lo que respondió SUNAT lo escribe solo el servidor (ADR-0675): `actualizar_transmision_comprobante` va con la llave de servicio
+// (`request.jwt.claim.role = 'service_role'`) y después se vuelve a la sesión de antes.
+const A_SERVIDOR = `select set_config('t.rol_sesion', coalesce(current_setting('request.jwt.claim.role', true), ''), true) as _rol_sesion \\gset
+select set_config('request.jwt.claim.role', 'service_role', true) as _rol_servidor \\gset`;
+const A_SESION = `select set_config('request.jwt.claim.role', current_setting('t.rol_sesion'), true) as _rol_de_vuelta \\gset`;
+
 // Tokens fijos: para contar, después de un rechazo, que no quedó ninguna venta con ese token.
 const TOKEN_A = "88888888-8888-4888-8888-0000000001e1";
 const TOKEN_B = "88888888-8888-4888-8888-0000000001e2";
@@ -391,7 +398,9 @@ select retail.registrar_serie_comprobante(:'ubic', 'nota_credito', 'BC97') as _b
  where not exists (select 1 from retail.series_comprobantes where ubicacion_id = :'ubic' and tipo = 'nota_credito'
                      and archivada_at is null and serie like 'B%') \\gset
 -- SUNAT solo admite notas sobre lo que ya aceptó (fn_valida_nota_referencia_aceptada).
+${A_SERVIDOR}
 select retail.actualizar_transmision_comprobante(:'bol', 'aceptado', 'sandbox', '{"prueba": true}'::jsonb) as _ab \\gset
+${A_SESION}
 -- La nota acredita lo que cobró la boleta (su propio subtotal, IGV y total): desde 20261012120100 una nota que pasara de eso se rechaza.
 select retail.emitir_nota(c.id, 'nota_credito', '06', c.subtotal, c.igv, c.total) as nota from retail.comprobantes c where c.id = :'bol' \\gset
 select cliente_tipo_doc || '|' || cliente_num_doc || '|' || left(serie, 1) from retail.comprobantes where id = :'nota';

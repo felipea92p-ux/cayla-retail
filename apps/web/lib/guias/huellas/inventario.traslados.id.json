@@ -2,7 +2,7 @@
   "guia": "inventario.traslados.id",
   "ruta": "/inventario/traslados/(billetera)/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 89,
+  "total": 90,
   "controles": {
     "app/(app)/inventario/traslados/(billetera)/layout.tsx": [
       "BotonEnlace «traslados.nuevo»"
@@ -51,6 +51,7 @@
       "Link «{`Imprimir la guía de la caja Nº ${numero}»"
     ],
     "components/traslados-pases/Billetera.tsx": [
+      "Link «Ir a lo primero que te toca»",
       "Pestanas «→(c) => setPestana(c as PestanaPase)»"
     ],
     "components/traslados-pases/MiniPase.tsx": [

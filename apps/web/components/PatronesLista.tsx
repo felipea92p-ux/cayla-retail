@@ -16,6 +16,7 @@ import { ExisteTambien, faltaPorExistente, useExisteTambien } from "@/components
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import {
   BarraAtributos,
+  GrupoDesactivado,
   BotonesPendiente,
   BotonReactivar,
   DesactivarTarjeta,
@@ -256,6 +257,7 @@ export function PatronesLista({
   return (
     <div className="space-y-6">
       <BarraAtributos
+        filtrosPuestos={uso !== "todos" ? 1 : 0}
         guia="atributos.barra-patrones"
         etiqueta="Filtrar patrones"
         filtros={
@@ -377,11 +379,10 @@ export function PatronesLista({
         </Modal>
       )}
 
-      {desactivadosVisibles.length > 0 && (
-        <section className="space-y-3">
-          <TituloGrupo cuenta={desactivadosVisibles.length}>Desactivados — ya no se pueden elegir en un producto nuevo</TituloGrupo>
+      <GrupoDesactivado titulo="Desactivados — ya no se pueden elegir en un producto nuevo" lista={desactivadosVisibles}>
+        {(visibles) => (
           <div className={GRILLA_ATRIBUTOS}>
-            {desactivadosVisibles.map((p) => (
+            {visibles.map((p) => (
               <TarjetaAtributo
                 key={p.id}
                 muestra={<MuestraPatron nombre={p.nombre} imagenUrl={p.imagenUrl} />}
@@ -400,8 +401,8 @@ export function PatronesLista({
               </TarjetaAtributo>
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </GrupoDesactivado>
 
       {detalle && (
         <DetalleMuestraModal

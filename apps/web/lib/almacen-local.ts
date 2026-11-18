@@ -19,19 +19,24 @@ export function claveLocal(ubicacionId: string, nombre: string): string {
   return `${NAMESPACE}:${ubicacionId}:${nombre}`;
 }
 
-function storage(): Storage | null {
+/** Dónde se guarda: en el APARATO (`localStorage`, lo comparten todas las pestañas y sobrevive a cerrar el navegador) o en
+ *  ESTA PESTAÑA (`sessionStorage`: sobrevive a una recarga y a que Android la descarte por falta de memoria, y no la ven las
+ *  otras pestañas; el ticket que se está armando, ADR-0674). */
+export type DondeSeGuarda = "aparato" | "pestana";
+
+function storage(donde: DondeSeGuarda = "aparato"): Storage | null {
   if (typeof window === "undefined") return null;
   try {
-    return window.localStorage ?? null;
+    return (donde === "pestana" ? window.sessionStorage : window.localStorage) ?? null;
   } catch {
-    // Algunos navegadores lanzan al solo TOCAR localStorage (cookies bloqueadas).
+    // Algunos navegadores lanzan al solo TOCAR el almacenamiento (cookies bloqueadas).
     return null;
   }
 }
 
 /** Lo guardado bajo `clave`, o `porDefecto` si no hay nada, no se puede leer o está roto. */
-export function leer<T>(clave: string, porDefecto: T): T {
-  const s = storage();
+export function leer<T>(clave: string, porDefecto: T, donde: DondeSeGuarda = "aparato"): T {
+  const s = storage(donde);
   if (!s) return porDefecto;
   try {
     const crudo = s.getItem(clave);
@@ -42,8 +47,8 @@ export function leer<T>(clave: string, porDefecto: T): T {
 }
 
 /** Guarda `valor` como JSON. `false` si no se pudo (servidor, cuota llena, bloqueado). */
-export function guardar(clave: string, valor: unknown): boolean {
-  const s = storage();
+export function guardar(clave: string, valor: unknown, donde: DondeSeGuarda = "aparato"): boolean {
+  const s = storage(donde);
   if (!s) return false;
   try {
     s.setItem(clave, JSON.stringify(valor));
@@ -53,8 +58,8 @@ export function guardar(clave: string, valor: unknown): boolean {
   }
 }
 
-export function borrar(clave: string): void {
-  const s = storage();
+export function borrar(clave: string, donde: DondeSeGuarda = "aparato"): void {
+  const s = storage(donde);
   if (!s) return;
   try {
     s.removeItem(clave);

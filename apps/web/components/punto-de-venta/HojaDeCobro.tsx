@@ -8,8 +8,8 @@ import { lecturaDelRecibido, type MaquinaDeCobro, maquinasPara, montosSugeridos,
 import type { NumeroQueDar } from "@/lib/cobro-por-dueno-reglas";
 import { LEY_REDONDEO, NOMBRE_CORTO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { CLASE_MONTO_ILEGIBLE, EntradaMonto, atributosMontoTexto } from "@/components/ui/CampoMonto";
-import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
-import { money } from "@/components/PuntoDeVenta";
+import { iconoMetodo } from "@/components/punto-de-venta/iconoMetodo";
+import { money } from "@/lib/money";
 import { CerrarHoja } from "@/components/punto-de-venta/CerrarHoja";
 import { CabezaPaso } from "@/components/punto-de-venta/CabezaPaso";
 import { montoIlegible, numeroDeMonto } from "@/lib/monto-plata-reglas";

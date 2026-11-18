@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-cara="A">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Envíos por recibir</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Recibir mercadería: los envíos, RONDA 2 (Felipe 2026-11-17). La ronda 1 (ronda-1.html) eran tres tablas con mucho texto:
+   «no me gusta ningún enfoque, cambia por completo esos diseños para que no sean tan planos y puedan ser más fáciles de entender sin
+   que haya tanto texto». Aquí cada envío se DIBUJA: dos anillos (contadas y en stock), la hoja del día, la ruta de cinco lentes con
+   íconos y las marcas como discos de color. Lo que explica (proveedores, cifras exactas) va detrás de un toque, en la hoja del envío.
+   Sobre el marco ya elegido (../vidrio-base-2026-10/). Colores: SOLO tokens. Movimiento: una vez, sin rebote ni bucle (ADR-0136); la
+   luz y la inclinación (menos de 1,5°) siguen al mouse sin moverse solas. Datos inventados (el repo es público).
+   ==================================================================== */
+.cont{container:cont/inline-size}
+
+/* ---------- las tres recetas: la placa (flota), la gota (sobresale) y el pozo (hundido) ---------- */
+.placa{border:1px solid color-mix(in srgb,var(--vidrio) 62%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 76%,transparent),color-mix(in srgb,var(--vidrio) 46%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 96%,transparent),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 6%,transparent),
+    0 2px 4px -2px color-mix(in srgb,var(--sombra) 22%,transparent),0 26px 44px -30px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-tema="oscuro"] .placa{border-color:color-mix(in srgb,var(--tinta) 11%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 66%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 16%,transparent),0 26px 44px -26px var(--sombra)}
+.gota{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 98%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -2px 3px color-mix(in srgb,var(--sombra) 10%,transparent),0 8px 16px -9px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tema="oscuro"] .gota{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 20%,transparent),color-mix(in srgb,var(--tinta) 9%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 24%,transparent),0 8px 16px -9px var(--sombra)}
+.pozo{background:color-mix(in srgb,var(--hueso) 52%,transparent);
+  box-shadow:inset 0 2px 7px color-mix(in srgb,var(--sombra) 14%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--borde) 20%,transparent)}
+[data-tema="oscuro"] .pozo{background:color-mix(in srgb,var(--sombra) 34%,transparent);box-shadow:inset 0 2px 8px color-mix(in srgb,var(--sombra) 70%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 8%,transparent)}
+.entra{animation:sube .5s var(--ease) backwards;animation-delay:calc(120ms + var(--k,0) * 55ms)}
+svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- los dos anillos: afuera lo contado (tinta), adentro lo que ya está en stock (verde) ---------- */
+.an{position:relative;display:grid;place-items:center;width:var(--tam,128px);height:var(--tam,128px);flex:none}
+.an svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.an circle{fill:none;stroke-width:9;stroke-linecap:round}
+.an .pista{stroke:color-mix(in srgb,var(--tinta) 9%,transparent)}
+.an .a-ct{stroke:color-mix(in srgb,var(--tinta) 80%,transparent);filter:drop-shadow(0 1px 2px color-mix(in srgb,var(--sombra) 30%,transparent))}
+.an .a-st{stroke:var(--verde);filter:drop-shadow(0 1px 2px color-mix(in srgb,var(--verde) 45%,transparent))}
+.an .arco{animation:arco 1s var(--ease) .3s backwards}
+@keyframes arco{from{stroke-dashoffset:100}}
+.an[data-est="camino"] .pista{stroke-width:3;stroke-dasharray:2.2 3.4;stroke:color-mix(in srgb,var(--pizarra) 60%,transparent)} /* aún no llega: la pista punteada */
+.an[data-est="terminado"] .a-ct{stroke:var(--verde)}
+/* el centro es una gota: el número se lee sobre vidrio, no sobre el aire */
+.an::before{content:"";position:absolute;inset:27%;border-radius:50%;background:radial-gradient(circle at 35% 25%,var(--vidrio),color-mix(in srgb,var(--vidrio) 40%,transparent));
+  box-shadow:inset 0 -2px 4px color-mix(in srgb,var(--sombra) 8%,transparent),0 6px 12px -8px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tema="oscuro"] .an::before{background:radial-gradient(circle at 35% 25%,color-mix(in srgb,var(--tinta) 16%,transparent),color-mix(in srgb,var(--tinta) 4%,transparent))}
+.an-num{position:relative;font-family:"EB Garamond",serif;font-size:calc(var(--tam,128px) * .27);font-weight:500;line-height:1;font-variant-numeric:lining-nums}
+.an-sello{position:absolute;right:2%;bottom:2%;display:grid;place-items:center;width:30%;height:30%;min-width:22px;min-height:22px;border-radius:50%;background:var(--verde);color:var(--crema);
+  box-shadow:0 0 0 3px var(--papel),0 6px 12px -6px color-mix(in srgb,var(--sombra) 60%,transparent);animation:sello .4s var(--ease) 1s backwards}
+.an-sello svg{width:56%;height:56%;stroke-width:3}
+@keyframes sello{from{opacity:0;transform:scale(1.5)}}
+
+/* ---------- la hoja del día: se ve cuándo llegó sin leer una fecha ---------- */
+.dia{display:inline-grid;justify-items:stretch;min-width:54px;border-radius:15px;overflow:hidden;text-align:center;flex:none}
+.dia small{display:block;padding:4px 7px 3px;font-size:10.5px;font-weight:700;letter-spacing:.1em;background:color-mix(in srgb,var(--tinta) 52%,transparent);color:var(--crema)}
+.dia b{display:block;padding:1px 0 4px;font-family:"EB Garamond",serif;font-size:25px;font-weight:500;line-height:1.15;font-variant-numeric:lining-nums}
+.dia.hoy small{background:var(--tinta)}.dia.viejo small{background:var(--ambar)}.dia.camino small{background:var(--pizarra)}
+.dia.viejo b{color:var(--ambar)}
+.edad{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px 0 7px;border-radius:999px;font-size:13px;font-weight:700;color:var(--ambar);background:color-mix(in srgb,var(--ambar) 15%,transparent)}
+.edad svg{width:14px;height:14px}
+
+/* ---------- las marcas: discos de color con su inicial ---------- */
+.pila{display:inline-flex;align-items:center;min-width:0}
+.mk{display:grid;place-items:center;width:28px;height:28px;margin-left:-8px;border-radius:50%;flex:none;font-size:12px;font-weight:700;font-style:normal;color:var(--crema);background:var(--m);
+  box-shadow:0 0 0 2px var(--papel),inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent)}
+.mk:first-child{margin-left:0}
+.mk.clara,.mk.mas{color:var(--tinta);box-shadow:0 0 0 2px var(--papel),inset 0 0 0 1px color-mix(in srgb,var(--borde) 60%,transparent)}
+.mk.mas{background:var(--papel);font-size:11.5px}
+.pila-n{margin-left:9px;font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---------- la ruta: cinco lentes con ícono. Lo hecho se llena, el paso de hoy es la gota oscura, lo que falta es un aro punteado ---------- */
+.ruta{display:flex;justify-content:center;width:100%}
+.ruta .p{position:relative;flex:1;max-width:58px;display:grid;justify-items:center;gap:6px}
+.ruta .lz{display:grid;place-items:center;height:40px}
+.ruta .p+.p::before{content:"";position:absolute;top:19px;right:50%;width:100%;height:2px;background:color-mix(in srgb,var(--tinta) 16%,transparent)}
+.ruta .p.h+.p::before,.ruta .p.h+.p.a::before{background:var(--tinta)}
+.ruta i{position:relative;z-index:1;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;color:var(--t50);background:var(--papel);
+  box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--tinta) 22%,transparent)}
+.ruta i svg{width:15px;height:15px}
+.ruta .p.h i{color:var(--tinta);box-shadow:none;background:linear-gradient(color-mix(in srgb,var(--tinta) 13%,transparent),color-mix(in srgb,var(--tinta) 13%,transparent)),var(--papel)}
+.ruta .p.a i{width:40px;height:40px;color:var(--crema);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 82%,var(--vidrio)),var(--tinta));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 35%,transparent),0 8px 14px -7px color-mix(in srgb,var(--sombra) 70%,transparent)}
+.ruta .p.a i svg{width:19px;height:19px}
+.ruta.viejo .p.a i{background:linear-gradient(180deg,color-mix(in srgb,var(--ambar) 80%,var(--vidrio)),var(--ambar))}
+.ruta.camino .p.a i{background:linear-gradient(180deg,color-mix(in srgb,var(--pizarra) 80%,var(--vidrio)),var(--pizarra))}
+.ruta.listo .p i{color:var(--verde);background:linear-gradient(color-mix(in srgb,var(--verde) 16%,transparent),color-mix(in srgb,var(--verde) 16%,transparent)),var(--papel)}
+.ruta.listo .p+.p::before{background:var(--verde)}
+.ruta.listo .p:last-child i{color:var(--crema);background:var(--verde)}
+.ruta em{display:none;font-style:normal;font-size:12.5px;color:var(--t65);text-align:center;line-height:1.2}
+.ruta.nombres .p{max-width:none}.ruta.nombres em{display:block}.ruta.nombres .p.a em{color:var(--tinta);font-weight:600}
+.ruta-n{display:block;margin-top:6px;text-align:center;font-size:14px;font-weight:600}
+.ruta-n.viejo{color:var(--ambar)}.ruta-n.listo{color:var(--verde)}.ruta-n.camino{color:var(--pizarra)}
+
+/* ---------- la fila de herramientas: buscar, qué significan los anillos, el orden ---------- */
+.herr{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-top:18px}
+.buscar-t{flex:1;min-width:200px;max-width:420px;display:flex;align-items:center;gap:10px;height:44px;padding:0 16px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 45%,transparent)}
+.buscar-t svg{color:var(--t65)}
+.buscar-t input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:15px;color:var(--tinta);outline:none}
+.buscar-t input::placeholder{color:var(--t65)}
+.ley{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--t80)}
+.ly{display:inline-block;width:16px;height:16px;border-radius:50%;border:4px solid color-mix(in srgb,var(--tinta) 80%,transparent)}
+.ly.st{border-color:var(--verde);margin-left:10px}.ly.fa{border-color:color-mix(in srgb,var(--tinta) 14%,transparent)}
+.orden{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;margin-left:auto;border-radius:999px;font-size:14.5px;font-weight:500;color:var(--tinta)}
+.orden svg{transition:transform .3s var(--ease)}.orden[data-dir="asc"] svg{transform:rotate(180deg)}
+
+/* ====================================================================
+   A · FARDOS · la barra de etapas arriba (cuenta y filtra) y cada envío como un fardo de vidrio
+   ==================================================================== */
+.etapas{display:flex;align-items:stretch;gap:4px;margin-top:20px;padding:10px;border-radius:32px}
+.et{position:relative;flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:24px;text-align:left;color:var(--tinta);transition:background .25s var(--ease),color .25s}
+.et .lente{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;flex:none;transition:transform .3s var(--ease)}
+.et .lente svg{width:23px;height:23px}
+.et b{display:block;font-family:"EB Garamond",serif;font-size:33px;font-weight:500;line-height:.95;font-variant-numeric:lining-nums}
+.et-t{min-width:0}
+.et-t>span{display:block;font-size:13.5px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.et+.et::before{content:"";position:absolute;left:-7px;top:50%;width:9px;height:9px;margin-top:-5px;border:solid color-mix(in srgb,var(--tinta) 28%,transparent);border-width:2px 2px 0 0;transform:rotate(45deg)}
+.et[data-e="terminado"] .lente{background:var(--verde);color:var(--crema);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 35%,transparent),0 8px 16px -9px color-mix(in srgb,var(--verde) 80%,transparent)}
+.et[data-e="camino"] .lente{color:var(--pizarra)}
+.et[data-n="0"]{opacity:.5}
+.et[aria-pressed="true"]{background:var(--tinta);color:var(--crema);box-shadow:0 12px 22px -14px color-mix(in srgb,var(--sombra) 80%,transparent)}
+.et[aria-pressed="true"] .et-t>span{color:color-mix(in srgb,var(--crema) 78%,transparent)}
+.et[aria-pressed="true"]::before,.et[aria-pressed="true"]+.et::before{opacity:0}
+@media (hover:hover){.et:not([aria-pressed="true"]):hover{background:color-mix(in srgb,var(--vidrio) 55%,transparent)}.et:hover .lente{transform:scale(1.06)}
+  [data-tema="oscuro"] .et:not([aria-pressed="true"]):hover{background:color-mix(in srgb,var(--tinta) 7%,transparent)}}
+.et-viejo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:86px;padding:8px 12px;border-radius:24px;color:var(--ambar);background:color-mix(in srgb,var(--ambar) 12%,transparent)}
+.et-viejo b{display:flex;align-items:center;gap:6px;font-family:"EB Garamond",serif;font-size:28px;font-weight:500;line-height:1}
+.et-viejo span{font-size:12.5px;font-weight:600;white-space:nowrap}
+.et-viejo[aria-pressed="true"]{background:var(--ambar);color:var(--crema)}
+
+.fardos{display:grid;grid-template-columns:repeat(auto-fill,minmax(244px,1fr));gap:18px;margin-top:18px}
+.fardo{position:relative;display:grid;justify-items:center;align-content:start;gap:13px;padding:16px 16px 14px;border-radius:30px;cursor:pointer;overflow:hidden;
+  transform:perspective(900px) translateY(var(--ty,0px)) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .28s var(--ease),box-shadow .28s var(--ease)}
+/* la luz que sigue al mouse (no se mueve sola) */
+.fardo::after,.fb::after,.rel .t-fila::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;opacity:0;transition:opacity .3s;
+  background:radial-gradient(260px circle at var(--lx,50%) var(--ly,0%),color-mix(in srgb,var(--vidrio) 60%,transparent),transparent 65%)}
+[data-tema="oscuro"] :is(.fardo,.fb,.rel .t-fila)::after{background:radial-gradient(260px circle at var(--lx,50%) var(--ly,0%),color-mix(in srgb,var(--tinta) 10%,transparent),transparent 65%)}
+@media (hover:hover){:is(.fardo,.fb):hover{--ty:-5px;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 96%,transparent),0 4px 8px -4px color-mix(in srgb,var(--sombra) 25%,transparent),0 40px 54px -30px color-mix(in srgb,var(--sombra) 70%,transparent)}
+  :is(.fardo,.fb,.rel .t-fila):hover::after{opacity:1}}
+.fardo.viejo{border-color:color-mix(in srgb,var(--ambar) 45%,transparent)}
+.fardo-cab{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;width:100%}
+.fardo-id{display:grid;justify-items:end;gap:6px;min-width:0}
+.env{font-size:14.5px;font-weight:700;letter-spacing:.03em;white-space:nowrap}
+.fardo-mk{display:flex;justify-content:center;width:100%;min-width:0}
+.acc{width:100%;height:42px;font-size:15px}
+.acc svg.i{transition:transform .3s var(--ease)}
+@media (hover:hover){.acc:hover svg.i{transform:translateX(4px)}}
+.llega{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;height:42px;border-radius:999px;font-size:15px;font-weight:600;color:var(--pizarra);border:1.5px dashed color-mix(in srgb,var(--pizarra) 50%,transparent)}
+
+/* el estante: los terminados, sellados y chicos, sobre una repisa */
+.sec-t{display:flex;align-items:center;gap:10px;margin:34px 2px 0}
+.sec-t h2{margin:0;font-family:"EB Garamond",serif;font-size:23px;font-weight:500}
+.glob{display:inline-grid;place-items:center;min-width:24px;height:22px;padding:0 7px;border-radius:999px;font-size:12.5px;font-weight:700;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+.ver{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--rojo)}
+.estante-caja{position:relative;margin-top:10px}
+.estante-caja::after{content:"";position:absolute;left:-6px;right:-6px;bottom:6px;height:14px;border-radius:9px;z-index:0;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--hueso) 90%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 16px 22px -12px color-mix(in srgb,var(--sombra) 60%,transparent)}
+[data-tema="oscuro"] .estante-caja::after{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 22%,transparent),color-mix(in srgb,var(--tinta) 10%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 26%,transparent),0 16px 22px -12px var(--sombra)}
+.estante{position:relative;z-index:1;display:flex;gap:14px;overflow-x:auto;padding:8px 4px 22px;scrollbar-width:none}
+.sellado{flex:none;width:136px;display:grid;justify-items:center;gap:8px;padding:14px 10px 12px;border-radius:24px 24px 14px 14px;cursor:pointer;transition:transform .25s var(--ease)}
+@media (hover:hover){.sellado:hover{transform:translateY(-5px)}}
+.sellado .env{font-size:13px}
+.dia-l{display:inline-flex;align-items:baseline;gap:5px;font-size:13.5px;color:var(--t65)}
+.dia-l small{font-size:11px;font-weight:700;letter-spacing:.08em}.dia-l b{font-family:"EB Garamond",serif;font-size:18px;font-weight:500;color:var(--tinta);line-height:1}
+.dia-l.viejo,.dia-l.viejo b{color:var(--ambar)}
+
+/* ====================================================================
+   B · EL ANDÉN · cinco carriles hundidos: dónde está cada envío se ve por su lugar, no por una palabra
+   ==================================================================== */
+.anden{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;align-items:start;margin-top:18px}
+.carril{position:relative;border-radius:30px;padding:10px;min-height:340px}
+.carril-cab{position:relative;display:flex;align-items:center;gap:10px;padding:6px 6px 4px}
+.carril-cab .lente{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;flex:none}
+.carril-cab .lente svg{width:21px;height:21px}
+.carril-cab b{display:block;font-family:"EB Garamond",serif;font-size:28px;font-weight:500;line-height:.95;font-variant-numeric:lining-nums}
+.carril-cab span{display:block;font-size:13.5px;color:var(--t65);white-space:nowrap}
+.carril[data-e="terminado"] .carril-cab .lente{background:var(--verde);color:var(--crema)}
+.carril[data-e="camino"] .carril-cab .lente{color:var(--pizarra)}
+/* la flecha entre carriles: el envío avanza de izquierda a derecha */
+.carril+.carril::before{content:"";position:absolute;left:-12px;top:30px;width:12px;height:2px;background:color-mix(in srgb,var(--tinta) 30%,transparent)}
+.carril+.carril::after{content:"";position:absolute;left:-7px;top:26px;width:8px;height:8px;border:solid color-mix(in srgb,var(--tinta) 40%,transparent);border-width:2px 2px 0 0;transform:rotate(45deg)}
+.fb{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px 11px;margin-top:10px;padding:12px;border-radius:22px;cursor:pointer;overflow:hidden;
+  transform:translateY(var(--ty,0px));transition:transform .28s var(--ease),box-shadow .28s var(--ease)}
+.fb.viejo{border-color:color-mix(in srgb,var(--ambar) 45%,transparent)}
+.fb>.env{grid-column:1/-1}
+.fb-t{display:grid;gap:8px;min-width:0}
+.fb .mk{width:24px;height:24px;font-size:11px}.fb .pila-n{font-size:14px;margin-left:7px}
+.fb-pie{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ir{margin-left:auto;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;color:var(--tinta);flex:none}
+.ir svg{width:16px;height:16px}
+.hueco{display:grid;place-items:center;margin-top:10px;height:92px;border-radius:22px;border:1.5px dashed color-mix(in srgb,var(--tinta) 18%,transparent);color:var(--t50)}
+.hueco svg{width:26px;height:26px;stroke-width:1.5}
+.mas-b{width:100%;margin-top:10px;height:40px;border-radius:999px;font-size:14px;font-weight:600;color:var(--tinta)}
+/* los terminados, apilados: se ve que son muchos sin listarlos */
+.fb.pila-f{margin-bottom:12px}
+.fb.pila-f::before{content:"";position:absolute;z-index:-1}
+.monton{position:relative;margin-top:10px}
+.monton::before,.monton::after{content:"";position:absolute;left:8px;right:8px;bottom:-6px;height:20px;border-radius:0 0 20px 20px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);border-top:0;background:color-mix(in srgb,var(--vidrio) 40%,transparent)}
+.monton::after{left:16px;right:16px;bottom:-12px;opacity:.6}
+[data-tema="oscuro"] .monton::before,[data-tema="oscuro"] .monton::after{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--vidrio) 60%,transparent)}
+.monton .fb{margin-top:0}
+@container cont (max-width:860px){
+  .anden{grid-template-columns:1fr}.carril{min-height:0}.carril+.carril::before,.carril+.carril::after{display:none}
+  .carril-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:0 10px}
+}
+
+/* ====================================================================
+   C · TABLA EN RELIEVE · la tabla con superpoderes (filtra y ordena desde la cabecera), con cada fila como una placa y cada dato dibujado
+   ==================================================================== */
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 18px;border-radius:999px;font-size:15px;font-weight:500;color:var(--t80);
+  border:1px solid color-mix(in srgb,var(--borde) 60%,transparent);background:color-mix(in srgb,var(--vidrio) 30%,transparent);transition:background .2s,color .2s}
+.pill[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.pill[aria-pressed="true"] .glob{background:color-mix(in srgb,var(--crema) 22%,transparent)}
+.tv{container:tv/inline-size;margin-top:14px}
+.rel{--cols:5.5rem minmax(0,1.2fr) minmax(15.5rem,1.2fr) minmax(9rem,1fr) 6.25rem 9rem}
+.rel .t-cabeza,.rel .t-fila{display:grid;grid-template-columns:var(--cols);gap:0 16px;align-items:center;padding:0 18px}
+.rel .t-cabeza{position:sticky;top:-20px;z-index:4;min-height:46px;border-radius:18px;background:color-mix(in srgb,var(--crema) 90%,transparent);
+  -webkit-backdrop-filter:blur(20px) saturate(1.5);backdrop-filter:blur(20px) saturate(1.5);box-shadow:0 12px 20px -18px color-mix(in srgb,var(--sombra) 60%,transparent)}
+.rel .t-cabeza>span{position:relative;text-align:center;font-size:12.5px;min-width:0}
+.col-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;max-width:100%;height:32px;padding:0 10px;border-radius:999px;font-size:inherit;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t80)}
+.col-btn .nom{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.col-btn svg{width:14px;height:14px;color:var(--t50);transition:transform .3s var(--ease)}
+.col-btn[data-ordenada] svg{color:var(--tinta)}.col-btn[data-ordenada="asc"] svg{transform:rotate(180deg)}
+.col-btn .pt{width:7px;height:7px;border-radius:50%;background:var(--rojo);display:none}.col-btn[data-filtrada] .pt{display:block}
+.col-btn[aria-expanded="true"]{background:color-mix(in srgb,var(--tinta) 8%,transparent);color:var(--tinta)}
+@media (hover:hover){.col-btn:hover{background:color-mix(in srgb,var(--tinta) 6%,transparent);color:var(--tinta)}}
+.globo{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);z-index:20;width:268px;padding:12px;border-radius:22px;text-align:left;text-transform:none;letter-spacing:0;
+  background:color-mix(in srgb,var(--papel) 96%,transparent);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:1px solid color-mix(in srgb,var(--borde) 45%,transparent);
+  box-shadow:0 24px 50px -18px color-mix(in srgb,var(--sombra) 45%,transparent);animation:globo .24s var(--ease)}
+@keyframes globo{from{opacity:0;transform:translate(-50%,-6px) scale(.98)}}
+.globo .g-t{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);margin:2px 6px 6px}
+.g-ord{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.g-ord button{height:38px;border-radius:12px;font-size:13.5px;color:var(--t80);border:1px solid color-mix(in srgb,var(--borde) 40%,transparent)}
+.g-ord button[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.g-op{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 8px;border-radius:12px;font-size:14.5px;color:var(--tinta);cursor:pointer}
+.g-op:hover{background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+.g-op input{width:18px;height:18px;accent-color:var(--tinta)}
+.g-op b{margin-left:auto;font-weight:500;color:var(--t65)}
+.rel .t-fila{position:relative;min-height:84px;margin-top:10px;padding-top:12px;padding-bottom:12px;border-radius:26px;cursor:pointer;overflow:hidden;
+  transform:translateY(var(--ty,0px));transition:transform .28s var(--ease),box-shadow .28s var(--ease)}
+@media (hover:hover){.rel .t-fila:hover{--ty:-3px}}
+.rel .t-fila>*{min-width:0;display:flex;justify-content:center;align-items:center}
+.rel .t-fila.viejo{border-color:color-mix(in srgb,var(--ambar) 45%,transparent)}
+.c-env{flex-direction:column;gap:8px}
+.c-ruta{flex-direction:column}
+.c-num{font-family:"EB Garamond",serif;font-size:30px;font-weight:500;font-variant-numeric:lining-nums}
+/* el tubo: lo contado (tinta) y, encima, lo que ya está en stock (verde) */
+.c-tubo{flex-direction:column;gap:7px;align-items:stretch!important}
+.tubo{position:relative;height:16px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 8%,transparent);box-shadow:inset 0 2px 4px color-mix(in srgb,var(--sombra) 20%,transparent)}
+.tubo i{position:absolute;inset:0 auto 0 0;border-radius:999px;transform-origin:left;animation:crece .9s var(--ease) .3s backwards}
+.tubo .ct{background:color-mix(in srgb,var(--tinta) 62%,transparent)}
+.tubo .st{background:linear-gradient(180deg,color-mix(in srgb,var(--verde) 78%,var(--vidrio)),var(--verde))}
+.tubo::after{content:"";position:absolute;inset:2px 6px auto 6px;height:4px;border-radius:9px;background:color-mix(in srgb,var(--vidrio) 40%,transparent)}
+@keyframes crece{from{transform:scaleX(0)}}
+.tb-n{font-size:14px;color:var(--t65);text-align:center}.tb-n b{font-size:15px;color:var(--verde);font-weight:700}
+.rel .acc{height:44px}
+.vacio-t{padding:44px 20px;text-align:center;border-radius:26px;margin-top:14px}
+.vacio-t svg{width:44px;height:44px;stroke-width:1.5;color:var(--t50)}
+.vacio-t h3{font-family:"EB Garamond",serif;font-size:24px;font-weight:500;margin:8px 0 12px}
+@container tv (max-width:900px){.rel{--cols:5.5rem minmax(0,1.2fr) minmax(15rem,1.2fr) 6.25rem 8.5rem}.rel [data-col="tubo"]{display:none}}
+@container tv (max-width:640px){
+  .rel .t-cabeza{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px}
+  .rel .t-cabeza>span:empty{display:none}
+  .col-btn{border:1px solid color-mix(in srgb,var(--borde) 55%,transparent);font-size:11.5px}
+  .globo{position:fixed;left:12px;right:12px;bottom:12px;top:auto;width:auto;transform:none}
+  .rel .t-fila{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"dia env num" "ruta ruta ruta" "acc acc acc";gap:12px;padding:14px}
+  .rel [data-col="dia"]{grid-area:dia}.rel [data-col="env"]{grid-area:env;align-items:flex-start}.rel [data-col="num"]{grid-area:num}
+  .rel [data-col="ruta"]{grid-area:ruta}.rel [data-col="acc"]{grid-area:acc}.rel [data-col="tubo"]{display:none}
+}
+
+/* ====================================================================
+   LA HOJA DEL ENVÍO · aquí vive lo que explica: cifras exactas, marcas con nombre y proveedores
+   ==================================================================== */
+.hj-velo{position:absolute;inset:0;z-index:70;background:color-mix(in srgb,var(--sombra) 30%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);animation:funde .25s}
+.hj{position:absolute;z-index:71;left:50%;top:50%;transform:translate(-50%,-50%);width:min(620px,calc(100% - 32px));max-height:calc(100% - 40px);overflow:auto;scrollbar-width:none;padding:26px 28px 24px;border-radius:34px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--papel) 94%,transparent),color-mix(in srgb,var(--papel) 82%,transparent));border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 50px 90px -40px var(--sombra);animation:hj-entra .36s var(--ease)}
+[data-tema="oscuro"] .hj{border-color:color-mix(in srgb,var(--tinta) 12%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 16%,transparent),0 50px 90px -40px var(--sombra)}
+@keyframes hj-entra{from{opacity:0;transform:translate(-50%,calc(-50% + 18px)) scale(.97)}}
+.hj>*{animation:sube .4s var(--ease) backwards;animation-delay:calc(80ms + var(--k,0) * 45ms)}
+.hj-asa{display:none}
+.hj-cab{display:flex;align-items:center;gap:14px}
+.hj-cab h2{margin:0;font-family:"EB Garamond",serif;font-size:30px;font-weight:500;line-height:1.05}
+.hj-sobre{margin:0 0 2px;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe)}
+.hj-x{margin-left:auto;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;color:var(--tinta);flex:none}
+.hj-medida{display:flex;align-items:center;justify-content:center;gap:34px;margin:22px 0 24px;flex-wrap:wrap}
+.hj-ley{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.hj-ley li{display:grid;grid-template-columns:auto 3.2rem auto;align-items:center;gap:10px;font-size:15px;color:var(--t80)}
+.hj-ley b{font-family:"EB Garamond",serif;font-size:30px;font-weight:500;line-height:1;text-align:right;color:var(--tinta);font-variant-numeric:lining-nums}
+.hj-ley .ly{width:18px;height:18px;margin:0}
+.hj h3{margin:24px 0 10px;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe)}
+.apilada{display:flex;height:14px;border-radius:999px;overflow:hidden;gap:2px;margin-bottom:12px;box-shadow:inset 0 2px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.apilada i{display:block;background:var(--m);transform-origin:left;animation:crece .7s var(--ease) .3s backwards}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip-m{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 13px 0 5px;border-radius:999px;font-size:14.5px;background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+.chip-m .mk{margin:0;width:26px;height:26px;box-shadow:none}
+.chip-m b{font-weight:600}.chip-m span{color:var(--t65)}
+.chip-p{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:999px;font-size:14.5px;background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+.hj-pie{margin-top:26px;display:flex;gap:10px}
+.hj-pie .btn{flex:1;height:48px;font-size:16px}
+.disp:is([data-ancho="movil"],[data-ancho="m320"],[data-ancho="m430"]) .hj{left:0;right:0;top:auto;bottom:0;transform:none;width:100%;max-height:90%;border-radius:30px 30px 0 0;padding:14px 20px 22px;animation-name:hj-sube}
+.disp:is([data-ancho="movil"],[data-ancho="m320"],[data-ancho="m430"]) .hj-asa{display:block;width:44px;height:5px;margin:0 auto 12px;border-radius:9px;background:color-mix(in srgb,var(--tinta) 22%,transparent)}
+@keyframes hj-sube{from{transform:translateY(40%);opacity:.5}}
+
+/* ---------- celular ---------- */
+@container cont (max-width:700px){
+  .etapas{padding:8px;gap:2px;border-radius:26px}
+  .et{flex-direction:column;gap:4px;padding:8px 2px;text-align:center}.et .lente{width:42px;height:42px}.et .lente svg{width:19px;height:19px}
+  .et b{font-size:24px}.et-t>span{display:none}.et+.et::before{display:none}
+  .et-viejo{min-width:54px;padding:6px}.et-viejo b{font-size:22px}.et-viejo b svg{display:none}.et-viejo span{font-size:11px}
+  .ley{display:none}.orden{margin-left:0}
+  .fardos{grid-template-columns:1fr}
+  /* en el teléfono el fardo se acuesta: el anillo a la izquierda y lo demás a su lado */
+  .fardo{grid-template-columns:auto minmax(0,1fr);justify-items:stretch;gap:12px 14px;padding:14px}
+  .fardo-cab{grid-column:1/-1}.fardo .an{--tam:104px!important;grid-row:span 2}.fardo-mk{justify-content:flex-start;align-self:end}
+  .fardo .ruta-caja{align-self:start}.fardo .ruta .lz{height:34px}.fardo .ruta i{width:24px;height:24px}.fardo .ruta .p.a i{width:32px;height:32px}.fardo .ruta .p+.p::before{top:16px}
+  .fardo .ruta-n{text-align:left;margin-left:4px}.fardo .ruta{justify-content:flex-start}
+  .fardo .acc,.fardo .llega{grid-column:1/-1}
+}
+.toast{position:absolute;right:24px;bottom:24px;z-index:90;padding:12px 18px;border-radius:16px;background:var(--tinta);color:var(--crema);font-size:14.5px;animation:sube .3s var(--ease);box-shadow:0 18px 40px -18px var(--sombra)}
+.spk a.r1{color:inherit;opacity:.75;font-size:12.5px;text-decoration:underline}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Recibir mercadería · los envíos · ronda 2: dibujados, con poco texto</span>
+  <span class="tag">Propuesta</span><div class="seg-m" data-ctl="cara"><button data-v="A">A · Fardos</button><button data-v="B">B · El andén</button><button data-v="C">C · Tabla en relieve</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="escritorio">Tu ventana</button></div>
+  <button data-acc="plegar" style="color:inherit;border:1px solid color-mix(in srgb,currentColor 35%,transparent);border-radius:8px;padding:4px 10px">Plegar menú</button>
+  <a class="r1" href="ronda-1.html">Ver la ronda 1</a>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis" id="analisis"></div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<script>
+/* ====================================================================
+   LOS DATOS (inventados). Hoy es martes 17 de noviembre de 2026, 15:24, en Tienda TRU. El 1 de noviembre de 2026 es domingo.
+   Cada envío vive en UN solo estado: En camino · Por abrir · Contando · Por cerrar · Terminado. Lo que ya entró al stock de un envío que
+   se sigue contando es su AVANCE (el anillo verde), no un «terminado» aparte.
+   ==================================================================== */
+activa = 'inventario.recibir';
+const HOY = 17, DIAS_AVISO = 3; // DIAS_PARA_RESALTAR de lib/recepcion-salida-reglas.ts
+const DIAS_SEM = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const dsem = (d) => DIAS_SEM[(d - 1) % 7];
+const IC = {
+  camion: 'M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2M15 18H9M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14M5 18a2 2 0 1 0 4 0a2 2 0 1 0-4 0M15 18a2 2 0 1 0 4 0a2 2 0 1 0-4 0',
+  caja: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8',
+  lista: 'M3 17l2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8',
+  percha: 'M12 6a2 2 0 1 1 2-2M12 6v2l9 6v2H3v-2l9-6',
+  sello: 'M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76ZM9 12l2 2 4-4',
+  check: 'M20 6 9 17l-5-5', reloj: 'M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', flecha: 'M5 12h14M13 6l6 6-6 6', abajo: 'M12 5v14M5 12l7 7 7-7', chev: 'M6 9l6 6 6-6',
+  lupa: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35', x: 'M18 6 6 18M6 6l12 12', lupaX: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35M8.5 8.5l5 5M13.5 8.5l-5 5',
+};
+const ico = (d) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const ESTADOS = {
+  camino: { t: 'En camino', ic: IC.camion },
+  abrir: { t: 'Por abrir', ic: IC.caja },
+  contando: { t: 'Contando', ic: IC.lista },
+  cerrar: { t: 'Por cerrar', ic: IC.sello },
+  terminado: { t: 'Terminados', ic: IC.check },
+};
+const ORDEN_EST = Object.keys(ESTADOS);
+// Las marcas, cada una con su color (siempre el mismo, en toda la pantalla).
+const MARCAS = { Nativa: 'var(--tinta)', Lúcuma: 'var(--ambar)', Arena: 'var(--taupe)', Brisa: 'var(--pizarra)', Totora: 'var(--verde)', Quena: 'var(--rojo-p)', Kantu: 'var(--borde)', Mistura: 'var(--hueso)' };
+const P = ['Textil Andina SAC', 'Moda Sol EIRL', 'Confecciones Rímac', 'Hilos del Norte SAC', 'Comercial Pacífico SAC', 'Industrias Huanchaco SAC', 'Tejidos Moche EIRL', 'Distribuidora Chan Chan'];
+const ENVIOS = [
+  { id: 'ENV-000028', d: 16, h: '10:30', est: 'camino', llega: 18, marcas: [['Brisa', 40]], provs: [P[3]], total: 40 },
+  { id: 'ENV-000027', d: 17, h: '14:25', est: 'cerrar', sinAviso: true, marcas: [['Nativa', 24], ['Lúcuma', 22], ['Arena', 14]], provs: [P[0], P[1], P[2]], total: 60, cont: 60, stock: 60 },
+  { id: 'ENV-000026', d: 16, h: '10:02', est: 'abrir', marcas: [['Totora', 48], ['Quena', 36]], provs: [P[4]], total: 84, cont: 0, stock: 0 },
+  { id: 'ENV-000025', d: 15, h: '09:40', est: 'terminado', fin: 16, marcas: [['Nativa', 50], ['Arena', 42]], provs: [P[0]], total: 92, cont: 92, stock: 92 },
+  { id: 'ENV-000024', d: 14, h: '11:49', est: 'contando', marcas: [['Kantu', 177]], provs: [P[4], P[5]], total: 177, cont: 96, stock: 0 },
+  { id: 'ENV-000023', d: 13, h: '17:05', est: 'terminado', fin: 13, marcas: [['Quena', 64]], provs: [P[6]], total: 64, cont: 64, stock: 64 },
+  { id: 'ENV-000022', d: 12, h: '11:20', est: 'terminado', fin: 14, marcas: [['Mistura', 70], ['Brisa', 50]], provs: [P[3], P[7]], total: 120, cont: 120, stock: 120 },
+  { id: 'ENV-000021', d: 10, h: '15:48', est: 'terminado', fin: 12, marcas: [['Lúcuma', 58]], provs: [P[1]], total: 58, cont: 58, stock: 58 },
+  { id: 'ENV-000017', d: 9, h: '16:37', est: 'contando', marcas: [['Mistura', 38], ['Arena', 24], ['Lúcuma', 20], ['Nativa', 16], ['Totora', 12], ['Quena', 10], ['Brisa', 8], ['Kantu', 7]], provs: P, total: 135, cont: 135, stock: 12 },
+  { id: 'ENV-000016', d: 9, h: '16:13', est: 'contando', marcas: [['Arena', 52], ['Mistura', 40], ['Nativa', 31], ['Kantu', 26], ['Lúcuma', 18], ['Totora', 14], ['Brisa', 9], ['Quena', 7]], provs: [P[0], P[2], P[4], P[6], P[7], P[5], P[1], P[3]], total: 197, cont: 40, stock: 0 },
+  { id: null, d: 6, h: '12:10', est: 'terminado', fin: 6, marcas: [['Kantu', 12]], provs: [P[6]], total: 12, cont: 12, stock: 12 },
+  { id: 'ENV-000020', d: 5, h: '10:00', est: 'terminado', fin: 7, marcas: [['Totora', 33]], provs: [P[4]], total: 33, cont: 33, stock: 33 },
+  { id: 'ENV-000019', d: 3, h: '16:30', est: 'terminado', fin: 3, marcas: [['Arena', 45], ['Quena', 30]], provs: [P[0], P[6]], total: 75, cont: 75, stock: 75 },
+].map((e) => ({ ...e, clave: e.id || `sin-${e.d}`, nombre: e.id || 'Sin envío',
+  // lo que está en camino se ordena por cuándo llega: va arriba de todo
+  ts: (e.est === 'camino' ? e.llega : e.d) * 10000 + parseInt(e.h.replace(':', ''), 10) }));
+const abierto = (e) => e.est !== 'terminado';
+const diasDesde = (e) => HOY - e.d;
+const viejo = (e) => abierto(e) && e.est !== 'camino' && diasDesde(e) >= DIAS_AVISO;
+// El paso de la ruta en que está: 0 en camino · 1 llegó (por abrir) · 2 contando · 3 pasando a stock · 4 por cerrar · 5 terminado
+const paso = (e) => ({ camino: 0, abrir: 1, cerrar: 4, terminado: 5 })[e.est] ?? (e.cont < e.total ? 2 : 3);
+const NOMBRE_PASO = ['En camino', 'Por abrir', 'Contando', 'Pasando a stock', 'Por cerrar', 'Terminado'];
+const VERBO = [null, 'Abrir', 'Seguir', 'Seguir', 'Cerrar', 'Ver'];
+const RUTA = [[IC.camion, 'En camino'], [IC.caja, 'Llegó'], [IC.lista, 'Contado'], [IC.percha, 'En stock'], [IC.sello, 'Cerrado']];
+
+/* ---------- las piezas con que se dibuja un envío ---------- */
+function anillos(e, tam) {
+  const pc = Math.round((e.cont || 0) / e.total * 100), ps = Math.round((e.stock || 0) / e.total * 100);
+  const arco = (r, pct, c) => pct ? `<circle class="arco ${c}" cx="50" cy="50" r="${r}" pathLength="100" stroke-dasharray="100" stroke-dashoffset="${100 - pct}"/>` : '';
+  return `<span class="an" style="--tam:${tam}px" data-est="${e.est}" role="img" aria-label="${e.total} prendas: ${e.cont || 0} contadas, ${e.stock || 0} en stock" title="${e.cont || 0} contadas · ${e.stock || 0} en stock · de ${e.total}">
+    <svg viewBox="0 0 100 100"><circle class="pista" cx="50" cy="50" r="44" pathLength="100"/>${arco(44, pc, 'a-ct')}<circle class="pista" cx="50" cy="50" r="32" pathLength="100"/>${arco(32, ps, 'a-st')}</svg>
+    <span class="an-num">${e.total}</span>${e.est === 'terminado' ? `<span class="an-sello">${ico(IC.check)}</span>` : ''}</span>`;
+}
+function dia(e) {
+  const d = e.est === 'camino' ? e.llega : e.d;
+  const arriba = d === HOY ? 'HOY' : d === HOY - 1 ? 'AYER' : d === HOY + 1 ? 'MAÑANA' : dsem(d).slice(0, 3).toUpperCase();
+  const c = e.est === 'camino' ? 'camino' : viejo(e) ? 'viejo' : d === HOY ? 'hoy' : '';
+  return `<span class="dia gota ${c}" title="${e.est === 'camino' ? 'Llega' : 'Llegó'} el ${dsem(d)} ${d} de noviembre${e.est === 'camino' ? '' : ` a las ${e.h}`}"><small>${arriba}</small><b>${d}</b></span>`;
+}
+function diaLinea(e) {
+  const d = e.est === 'camino' ? e.llega : e.d;
+  const arriba = d === HOY ? 'HOY' : d === HOY - 1 ? 'AYER' : d === HOY + 1 ? 'MAÑANA' : dsem(d).slice(0, 3).toUpperCase();
+  return `<span class="dia-l${viejo(e) ? ' viejo' : ''}"><small>${arriba}</small>${d === HOY || d === HOY - 1 || d === HOY + 1 ? '' : `<b>${d}</b>`}</span>`;
+}
+const edad = (e) => `<span class="edad" title="Lleva ${diasDesde(e)} días sin terminar">${ico(IC.reloj)}${diasDesde(e)} d</span>`;
+const disco = (m, u) => `<i class="mk${m === 'Mistura' ? ' clara' : ''}" style="--m:${MARCAS[m]}" title="${m}${u ? ` · ${u} prendas` : ''}">${m[0]}</i>`;
+function pila(e, n = 3) {
+  const ms = e.marcas, ver = ms.length > n ? n - 1 : ms.length;
+  return `<span class="pila" title="${ms.map(([m]) => m).join(' · ')}">${ms.slice(0, ver).map(([m, u]) => disco(m, u)).join('')}${ms.length > ver ? `<i class="mk mas">+${ms.length - ver}</i>` : ''}<span class="pila-n">${ms[0][0]}</span></span>`;
+}
+function ruta(e, nombres) {
+  const p = paso(e), c = p === 5 ? ' listo' : viejo(e) ? ' viejo' : p === 0 ? ' camino' : '';
+  const pasos = RUTA.map(([ic, t], i) => `<span class="p ${i < p ? 'h' : i === p ? 'a' : ''}"><span class="lz"><i>${ico(ic)}</i></span><em>${t}</em></span>`).join('');
+  return `<span class="ruta-caja" style="width:100%"><span class="ruta${c}${nombres ? ' nombres' : ''}" role="img" aria-label="${NOMBRE_PASO[p]}">${pasos}</span>${nombres ? '' : `<span class="ruta-n${c}">${NOMBRE_PASO[p]}</span>`}</span>`;
+}
+const accion = (e) => VERBO[paso(e)]
+  ? `<button class="btn sec acc" data-hace="${VERBO[paso(e)]}" aria-label="${VERBO[paso(e)]} ${e.nombre}">${VERBO[paso(e)]}${ico(IC.flecha)}</button>`
+  : `<span class="llega">${ico(IC.camion)}Llega ${e.llega === HOY + 1 ? 'mañana' : `el ${e.llega}`}</span>`;
+
+/* ---------- el estado de cada cara ---------- */
+const est = {};
+const de = (cara) => est[cara] || (est[cara] = { q: '', etapas: new Set(), viejos: false, asc: false, todos: false, vista: 'recibir', orden: { col: 'dia', dir: 'desc' }, filtros: {}, globo: null });
+const coincide = (e, q) => !q || sinTilde([e.nombre, ...e.marcas.map(([m]) => m), ...e.provs].join(' ')).includes(sinTilde(q.trim()));
+const porFecha = (asc) => (a, b) => (asc ? a.ts - b.ts : b.ts - a.ts);
+const buscador = (s) => `<label class="buscar-t pozo">${ico(IC.lupa)}<input data-q value="${s.q}" placeholder="Envío, marca o proveedor" aria-label="Buscar un envío"></label>`;
+const leyenda = `<span class="ley" aria-label="Qué significan los anillos"><i class="ly"></i>Contadas<i class="ly st"></i>En stock</span>`;
+const vacio = (q) => `<div class="vacio-t placa">${ico(IC.lupaX)}<h3>${q ? `Nada con «${q}»` : 'Nada por aquí'}</h3><button class="btn sec" data-limpiar>Ver todo</button></div>`;
+
+/* ====================================================================
+   A · FARDOS
+   ==================================================================== */
+function fardo(e, i) {
+  return `<article class="fardo placa entra${viejo(e) ? ' viejo' : ''}" tabindex="0" role="button" data-abre="${e.clave}" style="--k:${i}" aria-label="${e.nombre}, ${NOMBRE_PASO[paso(e)]}">
+    <header class="fardo-cab">${dia(e)}<div class="fardo-id"><span class="env">${e.nombre}</span>${viejo(e) ? edad(e) : ''}</div></header>
+    ${anillos(e, 128)}<div class="fardo-mk">${pila(e)}</div>${ruta(e)}${accion(e)}</article>`;
+}
+const sellado = (e, i) => `<article class="sellado placa entra" tabindex="0" role="button" data-abre="${e.clave}" style="--k:${i}" aria-label="${e.nombre}, terminado">${anillos(e, 76)}<span class="env">${e.nombre}</span>${diaLinea(e)}</article>`;
+function caraA() {
+  const s = de('A'), base = ENVIOS.filter((e) => coincide(e, s.q));
+  const n = (k) => base.filter((e) => e.est === k).length;
+  const viejos = base.filter(viejo).length;
+  const etapas = `<nav class="etapas placa entra" aria-label="Etapas: toca una para ver solo esas">${ORDEN_EST.map((k) => `<button class="et" data-etapa="${k}" data-e="${k}" data-n="${n(k)}" aria-pressed="${s.etapas.has(k)}">
+      <span class="lente ${k === 'terminado' ? '' : 'gota'}">${ico(ESTADOS[k].ic)}</span><span class="et-t"><b>${n(k)}</b><span>${ESTADOS[k].t}</span></span></button>`).join('')}
+    ${viejos ? `<button class="et-viejo" data-viejos aria-pressed="${s.viejos}" title="Llevan ${DIAS_AVISO} días o más sin terminar"><b>${ico(IC.reloj)}${viejos}</b><span>+${DIAS_AVISO} días</span></button>` : ''}</nav>`;
+  let lista = s.etapas.size ? base.filter((e) => s.etapas.has(e.est)) : base.filter(abierto);
+  if (s.viejos) lista = lista.filter(viejo);
+  lista.sort(porFecha(s.asc));
+  const term = !s.etapas.size && !s.viejos ? base.filter((e) => !abierto(e)).sort(porFecha(false)) : [];
+  return `${encabezado({ sede: 'Tienda TRU', fecha: 'martes, 17 de noviembre · 15:24', titulo: 'Recibir mercadería', acciones: [['sec', 'Llegó sin aviso', 'caja']] })}
+    ${etapas}
+    <div class="herr">${buscador(s)}${leyenda}<button class="orden gota" data-orden data-dir="${s.asc ? 'asc' : 'desc'}">${ico(IC.abajo)}${s.asc ? 'Más viejo arriba' : 'Más nuevo arriba'}</button></div>
+    ${lista.length ? `<div class="fardos">${lista.map(fardo).join('')}</div>` : vacio(s.q)}
+    ${term.length ? `<div class="sec-t"><h2>Terminados</h2><span class="glob">${term.length}</span><a class="ver" href="#" data-etapa="terminado">Ver todos ${ico(IC.flecha)}</a></div>
+      <div class="estante-caja"><div class="estante">${term.map(sellado).join('')}</div></div>` : ''}`;
+}
+
+/* ====================================================================
+   B · EL ANDÉN
+   ==================================================================== */
+function fichaB(e, i) {
+  return `<article class="fb placa entra${viejo(e) ? ' viejo' : ''}" tabindex="0" role="button" data-abre="${e.clave}" style="--k:${i}" aria-label="${e.nombre}, ${NOMBRE_PASO[paso(e)]}">
+    <span class="env">${e.nombre}</span>${anillos(e, 62)}<div class="fb-t">${pila(e, 2)}<span class="fb-pie">${diaLinea(e)}${viejo(e) ? edad(e) : ''}</span></div></article>`;
+}
+function caraB() {
+  const s = de('B'), base = ENVIOS.filter((e) => coincide(e, s.q)).sort(porFecha(false));
+  let k = 0;
+  const carril = (clave) => {
+    const es = base.filter((e) => e.est === clave), corta = clave === 'terminado' && !s.todos && es.length > 3;
+    const ver = corta ? es.slice(0, 3) : es;
+    const fichas = ver.map((e, j) => corta && j === ver.length - 1 ? `<div class="monton">${fichaB(e, k++)}</div>` : fichaB(e, k++)).join('');
+    return `<section class="carril pozo entra" data-e="${clave}" style="--k:${ORDEN_EST.indexOf(clave)}" aria-label="${ESTADOS[clave].t}">
+      <header class="carril-cab"><span class="lente ${clave === 'terminado' ? '' : 'gota'}">${ico(ESTADOS[clave].ic)}</span><span><b>${es.length}</b><span>${ESTADOS[clave].t}</span></span></header>
+      <div class="carril-lista">${fichas || `<div class="hueco">${ico(ESTADOS[clave].ic)}</div>`}</div>
+      ${corta ? `<button class="mas-b gota" data-todos style="margin-top:22px">Ver los ${es.length}</button>` : clave === 'terminado' && s.todos && es.length > 3 ? '<button class="mas-b gota" data-todos>Ver menos</button>' : ''}</section>`;
+  };
+  return `${encabezado({ sede: 'Tienda TRU', fecha: 'martes, 17 de noviembre · 15:24', titulo: 'Recibir mercadería', acciones: [['sec', 'Llegó sin aviso', 'caja']] })}
+    <div class="herr">${buscador(s)}${leyenda}</div>
+    ${base.length ? `<div class="anden">${ORDEN_EST.map(carril).join('')}</div>` : vacio(s.q)}`;
+}
+
+/* ====================================================================
+   C · TABLA EN RELIEVE (lo esencial de components/ui/TablaViva.tsx: filtrar y ordenar desde la cabecera)
+   ==================================================================== */
+const COLS = {
+  dia: { t: 'Llegó', orden: (e) => e.ts, tipo: 'fecha', filtro: (e) => e.est === 'camino' ? 'En camino' : diasDesde(e) <= 1 ? 'Hoy y ayer' : diasDesde(e) <= 7 ? 'Esta semana' : 'Antes', opciones: ['Hoy y ayer', 'Esta semana', 'Antes', 'En camino'], celda: (e) => dia(e) },
+  env: { t: 'Envío', orden: (e) => e.id || '', tipo: 'texto', filtro: (e) => e.marcas.map(([m]) => m), nombreFiltro: 'Marca', clase: 'c-env', celda: (e) => `<span class="env">${e.nombre}</span>${pila(e)}` },
+  ruta: { t: 'Etapa', orden: (e) => paso(e), tipo: 'paso', filtro: (e) => ESTADOS[e.est].t, opciones: Object.values(ESTADOS).map((x) => x.t), clase: 'c-ruta', celda: (e) => ruta(e) },
+  tubo: { t: 'En stock', orden: (e) => (e.stock || 0) / e.total, tipo: 'num', clase: 'c-tubo',
+    celda: (e) => `<span class="tubo" role="img" aria-label="${e.cont || 0} contadas, ${e.stock || 0} en stock de ${e.total}"><i class="ct" style="width:${(e.cont || 0) / e.total * 100}%"></i><i class="st" style="width:${(e.stock || 0) / e.total * 100}%"></i></span><span class="tb-n"><b>${e.stock || 0}</b> de ${e.total}</span>` },
+  num: { t: 'Prendas', orden: (e) => e.total, tipo: 'num', clase: 'c-num', celda: (e) => e.total },
+  acc: { t: '', celda: (e) => accion(e) },
+};
+const ORDEN_COLS = ['dia', 'env', 'ruta', 'tubo', 'num', 'acc'];
+const TEXTO_ORDEN = { fecha: ['Más nuevo', 'Más viejo'], num: ['De más a menos', 'De menos a más'], texto: ['Z → A', 'A → Z'], paso: ['Más avanzado', 'Menos avanzado'] };
+const enVista = (s) => (e) => s.vista === 'todos' || (s.vista === 'recibir' ? abierto(e) : !abierto(e));
+function filasC() {
+  const s = de('C');
+  let filas = ENVIOS.filter(enVista(s)).filter((e) => coincide(e, s.q));
+  for (const [col, set] of Object.entries(s.filtros)) if (set.size) filas = filas.filter((e) => { const v = COLS[col].filtro(e); return Array.isArray(v) ? v.some((x) => set.has(x)) : set.has(v); });
+  const c = COLS[s.orden.col], f = s.orden.dir === 'desc' ? -1 : 1;
+  return filas.sort((a, b) => { const x = c.orden(a), y = c.orden(b); return (x > y ? 1 : x < y ? -1 : 0) * f || b.ts - a.ts; });
+}
+function globo(k) {
+  const s = de('C'), c = COLS[k], cuenta = new Map();
+  if (c.filtro) for (const e of ENVIOS.filter(enVista(s))) { const v = c.filtro(e); for (const x of Array.isArray(v) ? v : [v]) cuenta.set(x, (cuenta.get(x) || 0) + 1); }
+  const ops = (c.opciones || [...cuenta.keys()].sort((a, b) => cuenta.get(b) - cuenta.get(a))).filter((o) => cuenta.has(o));
+  return `<div class="globo" role="dialog" aria-label="${c.t}">
+    ${c.orden ? `<p class="g-t">Ordenar</p><div class="g-ord">${['desc', 'asc'].map((d, i) => `<button data-ord="${k}:${d}" aria-pressed="${s.orden.col === k && s.orden.dir === d}">${d === 'desc' ? '↓' : '↑'} ${TEXTO_ORDEN[c.tipo][i]}</button>`).join('')}</div>` : ''}
+    ${ops.length ? `<p class="g-t">Mostrar solo</p>${ops.map((o) => `<label class="g-op"><input type="checkbox" data-fil="${k}" value="${o}" ${s.filtros[k]?.has(o) ? 'checked' : ''}>${c.nombreFiltro === 'Marca' ? disco(o) : ''}${o}<b>${cuenta.get(o)}</b></label>`).join('')}` : ''}</div>`;
+}
+function caraC() {
+  const s = de('C'), filas = filasC();
+  const n = (v) => ENVIOS.filter(enVista({ vista: v })).length;
+  const ab = ENVIOS.filter(abierto);
+  const cab = `<div class="t-cabeza">${ORDEN_COLS.map((k) => {
+    const c = COLS[k]; if (!c.t) return `<span data-col="${k}"></span>`;
+    const ord = s.orden.col === k ? s.orden.dir : null;
+    return `<span data-col="${k}"><button class="col-btn" data-col-btn="${k}" aria-expanded="${s.globo === k}" ${ord ? `data-ordenada="${ord}"` : ''} ${s.filtros[k]?.size ? 'data-filtrada' : ''}><span class="nom">${c.t}</span><span class="pt"></span>${ico(ord ? IC.abajo : IC.chev)}</button>${s.globo === k ? globo(k) : ''}</span>`;
+  }).join('')}</div>`;
+  const fila = (e, i) => `<div class="t-fila placa entra${viejo(e) ? ' viejo' : ''}" role="row" tabindex="0" data-abre="${e.clave}" style="--k:${i}">${ORDEN_COLS.map((k) => `<div data-col="${k}" class="${COLS[k].clase || ''}">${COLS[k].celda(e)}</div>`).join('')}</div>`;
+  return `${encabezado({ sede: 'Tienda TRU', fecha: 'martes, 17 de noviembre · 15:24', titulo: 'Recibir mercadería',
+      cifras: [[ab.length, 'por recibir', 'caja'], [ab.reduce((a, e) => a + e.total - (e.stock || 0), 0), 'prendas sin stock', 'percha'], [ENVIOS.filter(viejo).length, `llevan +${DIAS_AVISO} días`, 'alerta', true]], acciones: [['sec', 'Llegó sin aviso', 'caja']] })}
+    <div class="herr"><div class="pills" role="group" aria-label="Qué envíos ver">${[['recibir', 'Por recibir'], ['terminados', 'Terminados'], ['todos', 'Todos']].map(([v, t]) => `<button class="pill" data-vista="${v}" aria-pressed="${s.vista === v}">${t}<span class="glob">${n(v)}</span></button>`).join('')}</div>${buscador(s)}${leyenda}</div>
+    <div class="tv"><div class="rel">${cab}${filas.length ? filas.map(fila).join('') : vacio(s.q)}</div></div>`;
+}
+
+/* ====================================================================
+   LA HOJA DEL ENVÍO (común a las tres): lo que explica vive aquí
+   ==================================================================== */
+function hojaDe(e) {
+  const p = paso(e), k = (n) => `style="--k:${n}"`;
+  const falta = e.total - (e.stock || 0);
+  return `<div class="hj-velo" data-cierra></div><section class="hj" role="dialog" aria-modal="true" aria-label="${e.nombre}">
+    <i class="hj-asa"></i>
+    <header class="hj-cab" ${k(0)}>${dia(e)}<div><p class="hj-sobre">${NOMBRE_PASO[p]}${e.sinAviso ? ' · llegó sin aviso' : ''}</p><h2>${e.id || 'Llegada sin envío'}</h2></div><button class="hj-x gota" data-cierra aria-label="Cerrar">${ico(IC.x)}</button></header>
+    <div class="hj-medida" ${k(1)}>${anillos(e, 156)}<ul class="hj-ley">
+      <li><i class="ly"></i><b>${e.cont || 0}</b><span>contadas</span></li><li><i class="ly st"></i><b>${e.stock || 0}</b><span>en stock</span></li>${p < 5 ? `<li><i class="ly fa"></i><b>${falta}</b><span>${p === 0 ? 'por llegar' : 'faltan'}</span></li>` : ''}</ul></div>
+    <div ${k(2)}>${ruta(e, true)}</div>
+    <h3 ${k(3)}>${e.marcas.length === 1 ? 'Marca' : `${e.marcas.length} marcas`}</h3>
+    <div ${k(3)}><div class="apilada">${e.marcas.map(([m, u]) => `<i style="flex:${u};--m:${MARCAS[m]}"></i>`).join('')}</div><div class="chips">${e.marcas.map(([m, u]) => `<span class="chip-m">${disco(m, u)}<b>${m}</b><span>${u}</span></span>`).join('')}</div></div>
+    <h3 ${k(4)}>${e.provs.length === 1 ? 'Proveedor' : `${e.provs.length} proveedores`}</h3>
+    <div class="chips" ${k(4)}>${e.provs.map((x) => `<span class="chip-p">${x}</span>`).join('')}</div>
+    ${VERBO[p] ? `<footer class="hj-pie" ${k(5)}><button class="btn ${p === 5 ? 'sec' : 'pri'}" data-hace="${VERBO[p]}">${['', 'Abrir y contar', 'Seguir contando', 'Seguir: pasar a stock', 'Cerrar el envío', 'Ver lo que entró'][p]}${ico(IC.flecha)}</button></footer>` : ''}
+  </section>`;
+}
+function abrirHoja(clave) { cerrarHoja(); const e = ENVIOS.find((x) => x.clave === clave); if (!e) return; $('#disp').insertAdjacentHTML('beforeend', hojaDe(e)); $('.hj-x')?.focus(); }
+function cerrarHoja() { $$('.hj, .hj-velo').forEach((n) => n.remove()); }
+
+/* ---------- pintar ---------- */
+const CARAS = { A: caraA, B: caraB, C: caraC };
+const caraDe = () => document.documentElement.dataset.cara;
+function pantalla() { cerrarHoja(); $('#cont').innerHTML = (CARAS[caraDe()] || caraA)(); }
+function repintar(foco) { // sin repetir la entrada en cada toque ni perder el cursor del buscador
+  const y = $('#cont').scrollTop; pantalla(); $('#cont').scrollTop = y;
+  $$('#cont .entra, #cont .arco, #cont .an-sello, #cont .tubo i, #cont .ep').forEach((n) => { n.style.animation = 'none'; });
+  if (foco) { const i = $('[data-q]'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+}
+function aviso(t) { $('.toast')?.remove(); const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; $('#disp').appendChild(d); setTimeout(() => d.remove(), 2400); }
+
+document.addEventListener('click', (ev) => {
+  const t = ev.target, s = de(caraDe());
+  if (t.closest('[data-cierra]')) { cerrarHoja(); return; }
+  const h = t.closest('[data-hace]'); if (h) { cerrarHoja(); aviso(`«${h.dataset.hace}» lleva al envío. La maqueta no guarda nada.`); return; }
+  if (t.closest('.hj')) return;
+  if (t.closest('.globo')) { const o = t.closest('[data-ord]'); if (o) { const [col, dir] = o.dataset.ord.split(':'); s.orden = { col, dir }; repintar(); } return; }
+  const cb = t.closest('[data-col-btn]'); if (cb) { s.globo = s.globo === cb.dataset.colBtn ? null : cb.dataset.colBtn; repintar(); return; }
+  if (s.globo) { s.globo = null; repintar(); }
+  const et = t.closest('[data-etapa]'); if (et) { ev.preventDefault(); const k = et.dataset.etapa; if (s.etapas.has(k)) s.etapas.delete(k); else { s.etapas.clear(); s.etapas.add(k); } s.viejos = false; repintar(); return; }
+  if (t.closest('[data-viejos]')) { s.viejos = !s.viejos; s.etapas.clear(); repintar(); return; }
+  if (t.closest('[data-orden]')) { s.asc = !s.asc; repintar(); return; }
+  if (t.closest('[data-todos]')) { s.todos = !s.todos; repintar(); return; }
+  const v = t.closest('[data-vista]'); if (v) { s.vista = v.dataset.vista; s.filtros = {}; repintar(); return; }
+  if (t.closest('[data-limpiar]')) { s.q = ''; s.etapas.clear(); s.viejos = false; s.filtros = {}; repintar(); return; }
+  const a = t.closest('[data-abre]'); if (a) abrirHoja(a.dataset.abre);
+});
+document.addEventListener('change', (ev) => { const c = ev.target.closest('[data-fil]'); if (!c) return; const s = de('C'); (s.filtros[c.dataset.fil] ||= new Set())[c.checked ? 'add' : 'delete'](c.value); repintar(); });
+document.addEventListener('input', (ev) => { if (!ev.target.matches('[data-q]')) return; de(caraDe()).q = ev.target.value; repintar(true); });
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape') { if ($('.hj')) { cerrarHoja(); return; } const s = de(caraDe()); if (s.globo) { s.globo = null; repintar(); } return; }
+  if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches('[data-abre]')) { ev.preventDefault(); abrirHoja(ev.target.dataset.abre); }
+});
+// La luz y la inclinación siguen al mouse (menos de 1,5°); sin mouse, nada se mueve.
+let bajoMouse = null;
+if (matchMedia('(hover:hover)').matches && !quieto()) document.addEventListener('pointermove', (ev) => {
+  const f = ev.target.closest?.('.fardo, .fb, .rel .t-fila');
+  if (bajoMouse && bajoMouse !== f) { bajoMouse.style.removeProperty('--rx'); bajoMouse.style.removeProperty('--ry'); }
+  bajoMouse = f; if (!f) return;
+  const r = f.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width, y = (ev.clientY - r.top) / r.height;
+  f.style.setProperty('--lx', `${x * 100}%`); f.style.setProperty('--ly', `${y * 100}%`);
+  if (f.classList.contains('fardo')) { f.style.setProperty('--ry', `${(x - .5) * 2.8}deg`); f.style.setProperty('--rx', `${(.5 - y) * 2.8}deg`); }
+}, { passive: true });
+
+const url = new URLSearchParams(location.search);
+Marco.iniciar({ estado: { cara: ['A', 'B', 'C'].includes(url.get('cara')) ? url.get('cara') : 'A', tema: url.get('tema') === 'oscuro' ? 'oscuro' : 'claro' }, alPintar: () => { pantalla(); analisis(); } });
+if (url.get('hoja')) abrirHoja(url.get('hoja'));
+
+/* ====================================================================
+   EL ANÁLISIS (debajo del aparato)
+   ==================================================================== */
+function analisis() {
+  $('#analisis').innerHTML = `
+  <section><h2>Qué cambió de la ronda 1 a esta</h2><ul>
+    <li><b>Felipe (2026-11-17):</b> «no me gusta ningún enfoque, cambia por completo esos diseños para que no sean tan planos y puedan ser más fáciles de entender sin que haya tanto texto».</li>
+    <li><b>Cada envío se dibuja.</b> Dos anillos: afuera lo contado, adentro (verde) lo que ya está en stock, y el total en el centro. La hoja del día dice cuándo llegó. Cinco lentes con ícono dicen en qué paso va. Las marcas son discos de color.</li>
+    <li><b>A la vista quedan cinco datos cortos:</b> el número del envío, el total, la marca, el paso y un verbo. Proveedores, cifras exactas y nombres de todas las marcas van en la hoja que se abre al tocar.</li>
+    <li><b>Relieve:</b> placas que flotan, carriles hundidos, gotas que sobresalen, la repisa de los terminados. La luz y una inclinación mínima siguen al mouse.</li>
+  </ul></section>
+  <section><h2>Lo que se mantiene de lo que pediste</h2><ul>
+    <li><b>Lo más nuevo, arriba</b> (lo que está en camino, primero; se puede invertir).</li>
+    <li><b>Cada envío vive en un solo lugar.</b> Un envío a medias ya no sale en «Terminados»: lo que entró al stock es su anillo verde. Los terminados llevan sello y van aparte.</li>
+    <li><b>Los avisos de arriba se van:</b> lo que lleva ${DIAS_AVISO} días o más se pinta en ámbar y lleva su reloj.</li>
+  </ul></section>
+  <section><h2>Las tres propuestas</h2>
+  <table><tr><th></th><th>A · Fardos</th><th>B · El andén</th><th>C · Tabla en relieve</th></tr>
+    <tr><td><b>Cómo se ve</b></td><td>Arriba, la barra de etapas: cuenta cuántos hay en cada paso y, al tocarla, filtra. Abajo, cada envío es un fardo grande. Los terminados, sellados sobre una repisa.</td><td>Cinco carriles, de «En camino» a «Terminados». El lugar del envío dice su estado; avanza de izquierda a derecha.</td><td>La tabla con superpoderes (filtrar y ordenar desde la cabecera), con cada fila como una placa y cada dato dibujado.</td></tr>
+    <tr><td><b>Gana</b></td><td>La más clara para elegir «cuál sigo»: todo grande, un fardo, un botón.</td><td>De un vistazo se ve dónde se está juntando el trabajo. Casi sin palabras.</td><td>Aguanta muchos envíos y conserva los filtros de cabecera.</td></tr>
+    <tr><td><b>Paga</b></td><td>Con más de 12 abiertos hay que bajar.</td><td>En celular los carriles se apilan y se pierde el «de izquierda a derecha».</td><td>Es la menos distinta a una tabla.</td></tr>
+  </table></section>
+  <section><h2>Para el código (cuando elijas)</h2><ul>
+    <li>Los anillos son <code>&lt;Anillo&gt;</code> (dos, uno dentro del otro); la ruta, las lentes de la «Ruta viva» de Órdenes; las placas y las gotas, las recetas de <code>vidrio/recetas.css</code>. La tabla de C es <code>TablaViva</code>.</li>
+    <li><code>ordenarFilasPorRecibir</code> pasa a fecha descendente; «Terminados» deja fuera los <code>enviosAbiertos</code>; los <code>Aviso</code> de <code>getEnviosAMedias</code> salen. Solo lectura y orden: ninguna regla de stock cambia.</li>
+  </ul></section>`;
+}
+</script>
+</body>
+</html>

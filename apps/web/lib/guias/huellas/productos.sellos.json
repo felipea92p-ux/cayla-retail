@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 176,
+  "total": 180,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -66,7 +66,9 @@
       "BotonDeshacer «Deshacer esta lectura»"
     ],
     "components/atributos/kit.tsx": [
+      "BotonFiltros «vocabulario.filtros»",
       "Boton «vocabulario.agregar»",
+      "Boton «vocabulario.agregar» #2",
       "Boton «Limpiar filtros»",
       "button «{abrir.titulo}»",
       "Boton «Aprobar»",
@@ -202,8 +204,10 @@
       "button «→() => setEtiquetando(e)»",
       "Boton «+ Elegir prendas»",
       "button «sellos.mapa»",
-      "BotonVer «Cómo se ven en la web»",
+      "BotonEnlace «sellos.diseno-web»",
+      "Boton «rebaja.tienda»",
       "Boton «sellos.nuevo»",
+      "Boton «sellos.nuevo» #2",
       "Pestanas «→cambiarVista»",
       "Boton «{`+ ${T.nuevo}»",
       "CampoTexto «Comentario (obligatorio)»",

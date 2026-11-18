@@ -15,7 +15,7 @@ import { MarcoCasilla, useGuardarCasilla, useVistoGuardado, type Guardar } from 
 import { CierreCargaInicialModal } from "@/components/ConfiguracionCargaInicial";
 import { AroSede, Instrumento, SelloEmpresa } from "@/components/vitrinas-sedes/Instrumentos";
 import { useLuzDelMouse } from "@/components/vitrinas-sedes/useLuzDelMouse";
-import { TOPE_MENSUAL_USD } from "@/lib/asistente/respuesta";
+import { TOPE_MENSUAL_USD } from "@/lib/asistente/limites";
 import { gastoDelMes } from "@/lib/asistente/sedes";
 import { cambioLaCasilla, VISTO_MS } from "@/lib/configuracion-casilla";
 import { validarTienda } from "@/lib/configuracion-reglas";

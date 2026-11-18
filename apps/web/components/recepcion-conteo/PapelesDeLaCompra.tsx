@@ -6,7 +6,7 @@ import { Boton } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { objecionArchivo } from "@/lib/adjuntos-compra";
 import { diaMes } from "@/lib/fechas-lima";
-import { TIPOS_PAPEL, type TipoPapel } from "@/lib/compra-rapida-reglas";
+import { TIPOS_PAPEL, type TipoPapel } from "@/lib/papel-de-compra";
 import type { PapelDelEnvio } from "@/lib/recepcion-envio-reglas";
 
 // Compras simple (ADR-0480, actividad 6): los papeles de lo comprado desde el celular. Desde el 2026-11-02 (Felipe, ADR-0604) son un solo botón que abre una

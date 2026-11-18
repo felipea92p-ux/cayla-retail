@@ -170,7 +170,7 @@ efecto del sistema: velo con desenfoque → hoja que sube 18 px y crece → cont
 `@media (hover: hover)` (en el teléfono se queda pegado tras un toque; el `hover:` de Tailwind ya lo hace solo): lo vigila `lib/hover-con-mouse.test.ts`. No definas otra animación de entrada de modal ni reimplementes el overlay
 (`fixed inset-0`): si una pieza no debe entrar en cascada, `data-sin-cascada`. Lo único que un modal agrega por su cuenta
 son respuestas a una acción dentro del contenido (barra que se llena, cifra que cuenta, «visto» que se dibuja) con
-`--ease-cayla`, 200–500 ms, **sin rebote, nunca decorativo, nunca en bucle** (únicas excepciones, todas señales y no adorno: el punto que late en el chip «Vencida», el hilo que barre el botón mientras la base responde (antes, su giro; ronda 12 de `/unificar`), ADR-0136 act. c (las rayas del círculo de lo opcional salieron el 2026-11-05); y, solo en la persiana de «Caja cerrada» de Vender, el
+`--ease-cayla`, 200–500 ms, **sin rebote, nunca decorativo, nunca en bucle** (únicas excepciones, todas señales y no adorno: el punto que late en el chip «Vencida» y, con ese mismo latido, el del número de cada pendiente en la cabecera de Productos y del aviso de Existencias en el celular (`PendienteDeCabecera`, ADR-0136 act. 2026-11-17 y (b): solo con las animaciones encendidas; quieto avisa el número), el hilo que barre el botón mientras la base responde (antes, su giro; ronda 12 de `/unificar`), ADR-0136 act. c (las rayas del círculo de lo opcional salieron el 2026-11-05); y, solo en la persiana de «Caja cerrada» de Vender, el
 cartel que se mece al colgarse y sus bucles suaves, ADR-0136 act. d / ADR-0301; y, en el Observatorio del Admin, el latido de una
 tienda con caja abierta, el cometa de un traslado en camino y el halo de un aviso urgente, ADR-0322; y la **vista rápida de producto** de
 Catálogo ▸ Productos, la única hoja con movimiento rico por decisión de Felipe —ola de celdas, cruz, foto que cruza—, y su página
@@ -178,12 +178,12 @@ Catálogo ▸ Productos, la única hoja con movimiento rico por decisión de Fel
 `prefers-reduced-motion`. Los números exactos y el porqué: `docs/adr/0136-regla-de-movimiento-de-modales.md` y la sección
 «REGLA DE MODALES» de `apps/web/app/globals.css`. Referencia visual: `docs/maquetas/comprobantes-animaciones-2026-09/`.
 
-**Las animaciones arrancan apagadas (ADR-0625, Felipe 2026-11-07):** todo lo de arriba se ve solo si este aparato las encendió con el
-botón «Animaciones» de la cabecera, junto al modo oscuro (`localStorage["cayla-movimiento"]`; el script del `<head>` pone `data-movimiento`
+**Las animaciones arrancan apagadas (ADR-0625, Felipe 2026-11-07):** todo lo de arriba se ve solo si este aparato las encendió en
+**«Apariencia»** (la fila al pie del menú, junto al modo oscuro y el modo liviano, ADR-0674 act. 2026-11-17) (`localStorage["cayla-movimiento"]`; el script del `<head>` pone `data-movimiento`
 en `<html>`). Quieto, `app/estilos/movimiento.css` deja cada animación y transición en 0,01 ms. Las únicas que siguen moviéndose son las
 **señales de espera**: el hilo de «Guardando…», el loader y su anillo, el campo que consulta y el buscador que busca. Una señal nueva hecha en JSX lleva
 `data-senal`; una hecha en CSS se suma a la lista de `movimiento.css`. **Lo que anima desde JavaScript pregunta `prefiereQuieto()`
-(`lib/movimiento-cliente.ts`) o `useQuieto()`, nunca `matchMedia("(prefers-reduced-motion: reduce)")`**: no vería el botón. Lo vigila
+(`lib/movimiento-cliente.ts`) o `useQuieto()`, nunca `matchMedia("(prefers-reduced-motion: reduce)")`**: no vería el interruptor. Lo vigila
 `lib/movimiento-reglas.test.ts`. Si el aparato pide menos movimiento, eso gana siempre. Una pantalla nueva se diseña y se revisa también quieta.
 
 **Escape dentro de una hoja (ADR-0136, «Actualización 2026-09-26»):** la hoja se cierra solo con un Escape que ningún
@@ -301,8 +301,9 @@ es deuda, solo baja, y `lib/ancho-completo.test.ts` falla si una ruta nueva entr
 ## Modo oscuro (regla — ADR-0336, Felipe 2026-10-05)
 
 **El ERP tiene modo oscuro, y una pantalla que usa solo tokens lo alcanza sin hacer nada.** Es una preferencia del APARATO
-(`localStorage["cayla-tema"]`, arranca en claro, un script en el `<head>` pone `data-tema` antes de pintar), con su botón entre
-«Actividad» y la sede; lo ve toda cuenta y **no es un módulo** (ADR-0306). Los MISMOS tokens se redefinen bajo
+(`localStorage["cayla-tema"]`, arranca en claro, un script en el `<head>` pone `data-tema` antes de pintar), y se cambia en
+**«Apariencia»**, la fila al pie del menú que junta los ajustes del aparato (modo oscuro, animaciones y modo liviano; Felipe 2026-11-17,
+ADR-0674 act.); lo ve toda cuenta, también una terminal, y **no es un módulo** (ADR-0306). Los MISMOS tokens se redefinen bajo
 `:root[data-tema="oscuro"]` en `apps/web/app/estilos/tema.css`, con `tinta` y `crema` intercambiados (texto `#f5f0e8` y un fondo de negro cálido, `#1c1a17`, el oscuro de la familia CAYLA que comparte con Dynamic: ADR-0336, act. 2026-10-26):
 `bg-papel`, `text-tinta` y `border-sand` se invierten solos. Imprimir sale SIEMPRE en claro (el oscuro vive en `@media screen`).
 
@@ -668,6 +669,8 @@ un cambio visual o se cree una nueva pantalla o se quiera auditar las pantallas 
 - **El PR lo dice:** su casilla «pasó por `/milimetro`» (o «Al milímetro no aplica», con el motivo). El check **«Al milímetro»**
   (`.github/workflows/al-milimetro.yml`, `scripts/milimetro/casilla.mjs`) sale rojo si un PR cambia un `.tsx` de `apps/web/components/`
   o `apps/web/app/`, o un `.css` de `apps/web/app/`, sin marcar ninguna. La tienda (`apps/tienda`) queda fuera: tiene su identidad (ADR-0616).
+- **La auditoría queda solo en su informe** (`docs/milimetro/auditorias/AAAA-MM-DD-<tema>.md`, con su título y su línea `Resumen:`), sin fila
+  en `docs/milimetro/README.md`: el CI la rechaza (ADR-0259, act. 2026-11-17). El tablero se arma solo: `pnpm milimetro:auditorias`.
 - **Va antes que las demás de interfaz y no las reemplaza:** primero `/milimetro` (la medida y el porqué), después `/formidable` (se
   entiende en 5 s), `/focus`, `/sugerir`, `/guia` y `/chaos` según lo que toque. Lo que una skill de afuera sugiera pasa por aquí.
 

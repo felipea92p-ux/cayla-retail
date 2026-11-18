@@ -199,6 +199,24 @@ export const ESCENARIOS = [
     },
   },
   {
+    // «Apariencia» (Felipe 2026-11-17): modo oscuro, animaciones y modo liviano, en una hoja que se abre al pie del menú. La ve toda
+    // cuenta, también una terminal. En el celular, la fila vive dentro del cajón: primero se abre el menú.
+    id: "estructura.apariencia",
+    abre: "[role=dialog]",
+    ruta: "/",
+    nombre: "Apariencia abierta",
+    async preparar(pagina) {
+      const menu = pagina.getByRole("button", { name: "Abrir menú" });
+      if (await menu.isVisible()) {
+        await menu.click();
+        await esperar(pagina, 700);
+      }
+      // Por su nombre accesible: la fila lleva también su nombre corto (el del menú plegado), que el lector no repite.
+      await pagina.locator("aside").getByRole("button", { name: "Apariencia", exact: true }).evaluate((el) => el.click());
+      await esperar(pagina, 1100);
+    },
+  },
+  {
     // El Marcador (el aviso de cierre en el centro de la cabecera, ADR-0357; antes la «Isla») sale cuando la sede tiene `hora_cierre` y
     // faltan 15 min o menos, con la caja abierta. En la base local Tienda Lima no tiene hora de cierre, y aunque la tuviera dependería de
     // la hora a la que se corre. El escenario NO escribe en la base (es compartida con otras sesiones): contesta él la consulta que el
@@ -785,6 +803,13 @@ const clicGuia = (guia) => async (pagina) => {
   await pagina.locator(`[data-guia="${guia}"]`).first().click({ timeout: 8000 });
   await esperar(pagina, 1100);
 };
+/** Recibir ▸ «Sin aviso» con «Todo es de un solo proveedor» encendido: la hoja lista los proveedores. Solo despliega, no guarda. */
+const abrirSinAvisoDeUnProveedor = async (pagina) => {
+  await pagina.getByRole("button", { name: /^Sin aviso$/i }).first().click({ timeout: 8000 });
+  await esperar(pagina, 900);
+  await pagina.getByRole("dialog").getByRole("switch").first().click({ timeout: 8000 });
+  await esperar(pagina, 900);
+};
 /** Abre la hoja de un gasto de la lista y, dentro, el botón `nombre`; si ese gasto no lo ofrece, prueba el siguiente (hasta 12). */
 const abrirDesdeUnGasto = (nombre) => async (pagina) => {
   const filas = pagina.locator('[data-guia="fin-gastos.fila"]');
@@ -1206,6 +1231,9 @@ ESCENARIOS.push(
   { id: "existencias.todas.capa", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] button[aria-pressed=true]:has-text('En piso')", nombre: "Existencias · «Todas» con el filtro «En piso» puesto", preparar: secuencia(async (pagina) => { await pagina.locator("article.card-cayla").first().click({ position: { x: 12, y: 12 }, timeout: 8000 }); await esperar(pagina, 1100); }, clicRol("tab", /^Todas$/), clicRol("button", /^\d+\s*En piso$/i)) },
   { id: "existencias.pendientes", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog]:has-text('Pendientes de hoy')", nombre: "Existencias · la ventana «Pendientes de hoy»", preparar: abrirPendientes },
   { id: "existencias.resumen", ruta: "/inventario", cuentas: ["admin"], abre: "[role=dialog]:has-text('Resumen del stock')", nombre: "Existencias · «Resumen por categoría»", preparar: secuencia(abrirPendientes, clicRol("button", /^Resumen por categoría/i)) },
+  // Solo en el celular (bajo 640 px): el aviso del piso sin cuadrar es un ícono de la cabecera que abre su hoja (2026-11-17). Necesita una
+  // tienda que nunca cuadró su piso (en la base local, todas).
+  { id: "existencias.avisos", ruta: "/inventario", cuentas: INVENTARIO, ancho: "celular", abre: "[role=dialog]:has-text('Avisos')", nombre: "Existencias · la hoja «Avisos» del celular (el piso sin cuadrar)", preparar: clicRol("button", /^Avisos/i) },
   // Necesita una prenda dañada sin resolver en la sede (en la base local, una en Tienda Lima): sin ella, «Pendientes» no trae «Decidir».
   { id: "existencias.decidir", ruta: "/inventario", cuentas: ["admin"], ancho: "escritorio", abre: "[role=dialog]:has-text('Prendas dañadas')", nombre: "Existencias · «Decidir» sobre una prenda dañada", preparar: secuencia(abrirPendientes, clicRol("button", /^Decidir/i)) },
   // ADR-0564 (prendas dañadas en tienda): lo nuevo de la ventana «Prendas dañadas» (se llega como «Decidir») y los paneles de cada paso, y el
@@ -1320,8 +1348,14 @@ ESCENARIOS.push(
         )}`,
       )(pagina),
   },
-  // «¿De quién es?» es la lista de «Llegó mercadería» (fase 4) y la de «¿Llegó algo sin aviso?» (ADR-0393), según lo que tenga la base.
-  { id: "recibir.proveedor", ruta: "/recibir", cuentas: INVENTARIO, abre: "[role=listbox]", nombre: "Recibir · la lista de proveedores", preparar: clicRol("combobox", /Proveedor|De quién es/i) },
+  // De quién es lo que llegó sin aviso (ADR-0393): la hoja «¿Llegó algo que no está en la lista?» se abre con el botón «Sin aviso» y, con
+  // «Todo es de un solo proveedor» encendido, lista los proveedores. Nada de esto guarda. (Hasta ADR-0676 este escenario buscaba un combo
+  // «Proveedor | De quién es» y pasaba porque abría el filtro «Proveedor» de la tabla de envíos, que ya no existe; el combo de la hoja se
+  // había ido antes.)
+  { id: "recibir.proveedor", ruta: "/recibir", cuentas: INVENTARIO, abre: "[role=dialog] [role=radio]", nombre: "Recibir · «Sin aviso»: la lista de proveedores", preparar: abrirSinAvisoDeUnProveedor },
+  // La tarjeta única de envíos (ADR-0676): lo terminado, y el globo de la cabecera de la fecha («Desde»; en lo terminado, «Llegó»).
+  { id: "recibir.envios-terminados", ruta: "/recibir", cuentas: INVENTARIO, abre: '[data-guia="recibir.ver-todo"]', nombre: "Recibir · los envíos terminados de la sede", preparar: clicGuia("recibir.envios-terminados") },
+  { id: "recibir.envios-fecha", ruta: "/recibir", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Recibir · el globo de la fecha en la tabla de envíos", preparar: clicRol("button", /(Desde|Llegó): ordenar y filtrar/i) },
   {
     id: "recibir.prenda",
     ruta: "/recibir",
@@ -1335,9 +1369,8 @@ ESCENARIOS.push(
         return;
       }
       // Con ADR-0393 la puerta no busca prendas (se cuentan en el envío): lo que cambia de cara es el proveedor elegido (y su factura).
-      await pagina.getByRole("combobox", { name: /De quién es/i }).first().click({ timeout: 8000 });
-      await esperar(pagina, 600);
-      await pagina.getByRole("option").first().click({ timeout: 8000 });
+      await abrirSinAvisoDeUnProveedor(pagina);
+      await pagina.getByRole("dialog").getByRole("radio").first().click({ timeout: 8000 });
       await esperar(pagina, 900);
     },
   },

@@ -708,3 +708,28 @@ apagado con «Animaciones» apagado y con `prefers-reduced-motion`. Estilos: `ap
 - **Dónde vive y cómo se vigila:** `app/login/page.tsx` (`olvidarLoDeAntes`), `app/actions/entrada.ts`, `lib/login-aterrizaje.ts`
   (`COOKIE_CAMBIO_DE_CUENTA`, `saleDelLogin`) y `proxy.ts`. `lib/login-aterrizaje.test.ts` falla si el login vuelve a navegar sin esperar la acción, si
   la acción deja de cambiar la cookie o si el proxy vuelve a redirigir un POST del login.
+
+## Actualización 2026-11-17 — el latido de lo pendiente en la cabecera de Productos
+
+Felipe pidió que los avisos de Catálogo ▸ Productos («prendas por revisar», «posibles fichas repetidas», «recibidas por crear») dejen de
+ser tarjetas bajo la cabecera y sean un ícono que titila: en el celular las tres tarjetas dejaban la primera prenda dos pantallas abajo.
+
+- **Qué late:** el punto ámbar detrás del número de cada pendiente (`PendienteDeCabecera`, `components/PendienteDeCabecera.tsx`). No es
+  una animación nueva: es `.punto-vivo` (`cayla-pulso`, 2,2 s), el mismo latido del chip «Vencida» (act. c). Es señal y no adorno: dice
+  «aquí hay algo que te espera» y se va cuando no queda nada.
+- **No es una señal de espera (ADR-0625):** no lleva `data-senal`. Con las animaciones apagadas —como arranca todo aparato— no late, y
+  lo que avisa es el número en ámbar, que se ve quieto. Se descartó hacerlo latir también en quieto: el 2026-11-12 un anillo que se
+  repintaba solo dentro del vidrio dejó lavada la pantalla de Vender en las Mac de las tiendas (`app/estilos/movimiento.css`).
+- **Solo mueve `transform` y `opacity`**, y se apaga con `prefers-reduced-motion`.
+- Que otra pantalla lleve sus avisos a la cabecera con esta pieza lo decide Felipe.
+
+## Actualización 2026-11-17 (b) — el mismo latido en el aviso de Existencias, solo en el celular
+
+Felipe, mirando Existencias a 375 px: «que solo titile, así no tener un espacio ocupado del aviso, sino que se abra como se abren los
+filtros». La franja «El piso de esta tienda nunca se ha cuadrado» ocupaba unos 120 px sobre la primera prenda, con el título partido en cuatro líneas y sin su explicación.
+
+- **Qué late:** el mismo punto ámbar de `PendienteDeCabecera`, detrás del número del ícono «Avisos» de la cabecera de Existencias
+  (`components/existencias/AvisosExistencias.tsx`). Ni pieza ni animación nueva: es la decisión de arriba, llevada a otra pantalla
+  por pedido de Felipe. Tocarlo abre una hoja con el aviso entero y «Cuadrar el piso».
+- **Solo bajo 640 px.** Desde 640 px la franja sigue sobre las tarjetas y nada late.
+- **Quieto, avisa el número** (ADR-0625), igual que en Productos.
