@@ -2,8 +2,8 @@
 /**
  * Libro de Reclamaciones de la tienda online (ADR-0679, Felipe 2026-11-18) contra el Postgres local — CAYLA V2.
  *
- * QUÉ PRUEBA. `20261118145000_libro_reclamaciones_tienda.sql` (PARTE 1, la hoja) y `20261118150000_libro_reclamaciones_copia_al_correo.sql`
- * (PARTE 2, la copia):
+ * QUÉ PRUEBA. `20261118145000_libro_reclamaciones_tienda.sql` (PARTE 1, la hoja), `20261118150000_libro_reclamaciones_copia_al_correo.sql`
+ * (PARTE 2, la copia) y `20261118151000_libro_reclamaciones_erp.sql` (PARTE 3, el ERP):
  *   E. Estructura y puerta: `hojas_reclamacion` y sus intentos con RLS, sin políticas y sin permisos para nadie (ni `tienda_web`); las
  *      tres `tienda_*` son security definer y solo de `tienda_web` (nunca de anon ni de authenticated).
  *   T. La tienda escribe SIN cuenta: la hoja completa se guarda con su número «000001-<año>», los datos de CAYLA copiados y el texto
@@ -17,6 +17,9 @@
  *   K. La copia al correo: reclamar toma solo las pendientes (la más vieja primero), suma un intento, no vuelve a tomar una tomada hace
  *      menos de 2 minutos, deja la de 5 intentos; con id, solo esa; enviada no se vuelve a tomar ni se desmarca; los intentos no bajan;
  *      la constancia dice si salió.
+ *   R. El ERP: el plazo (15 días hábiles desde el día siguiente, sin sábados, domingos ni feriados; cuántos quedan, 0 el último día y
+ *      negativo si venció); el módulo nace en Tienda web, delegable y SIN rol; sin el módulo (Micaela, integrante) la lista dice 42501 y
+ *      el líder la lee con cada hoja completa y su plazo; ni anon ni la tienda la ejecutan.
  *   M. Mutantes: el tope, la marca y el candado, rotos a propósito dentro de la transacción: la prueba lo nota.
  *   P. Las dos partes se pueden pegar dos veces.
  *
@@ -41,7 +44,10 @@ const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] :
 const MIGRACIONES = [
   "supabase/migrations/20261118145000_libro_reclamaciones_tienda.sql",
   "supabase/migrations/20261118150000_libro_reclamaciones_copia_al_correo.sql",
+  "supabase/migrations/20261118151000_libro_reclamaciones_erp.sql",
 ];
+const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin)
+const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo
 const APLICAR_ANTES = process.env.APLICAR_ANTES === "1" ? MIGRACIONES.map((m) => readFileSync(m, "utf8")).join("\n") : "";
 
 function psql(sql) {
@@ -106,6 +112,14 @@ delete from retail.codigos_correlativos where prefijo = 'LR-' || extract(year fr
 `;
 const COMO_TIENDA = `reset role;\ngrant tienda_web to postgres with set true;\nset local role tienda_web;\n`;
 const COMO_POSTGRES = `reset role;\n`;
+/** Como una cuenta del ERP (claims reales y el rol authenticated, para que fn_exigir_modulo pregunte de verdad). */
+const COMO = (auth) => `reset role;
+set local request.jwt.claim.sub = '${auth}';
+set local request.jwt.claim.role = 'authenticated';
+set local request.jwt.claims = '{"sub":"${auth}","role":"authenticated"}';
+select set_config('request.headers', '{}', true) as _h \\gset
+set local role authenticated;
+`;
 const ANIO = new Date(Date.now() - 5 * 3600 * 1000).getUTCFullYear();
 
 /** Una hoja buena, con lo que se le cambie. */
@@ -337,6 +351,50 @@ ${sql};`);
   esperar(`${nombre} (ni como postgres)`, !r.ok && /42501|no se desmarca|no bajan/.test(r.mensaje), r.ok ? "pasó sin error" : r.mensaje);
 }
 
+// ---------- R. El ERP ----------
+{
+  const r = escenario(`${COMO_POSTGRES}
+select retail.fn_libro_vence_el('2026-11-18');
+select retail.fn_libro_vence_el('2026-12-04');
+select retail.fn_libro_dias_habiles_restantes('2026-11-18', '2026-12-10'), retail.fn_libro_dias_habiles_restantes('2026-12-10', '2026-12-10'),
+       retail.fn_libro_dias_habiles_restantes('2026-12-14', '2026-12-10');
+select format('%s|%s|%s|%s', grupo, orden, delegable, (select count(*) from retail.rol_modulos where modulo = 'libro_reclamaciones'))
+  from retail.modulos where clave = 'libro_reclamaciones';
+select has_function_privilege('anon', 'retail.fn_libro_reclamaciones()', 'execute'),
+       has_function_privilege('tienda_web', 'retail.fn_libro_reclamaciones()', 'execute'),
+       has_function_privilege('authenticated', 'retail.fn_libro_vence_el(date)', 'execute');`);
+  esperar(
+    "R1 · el plazo (8 de diciembre feriado; un viernes cruza el fin de semana), el módulo nace sin rol, solo authenticated lee",
+    // 18-nov → 10-dic (salta el 8); 4-dic (viernes) → 29-dic (salta el 8 y el 25).
+    r.ok && r.salida === "2026-12-10\n2026-12-29\n15|0|-2\nTienda web|65|t|0\nf|f|f",
+    r.mensaje ?? r.salida,
+  );
+}
+{
+  const r = escenario(`${COMO_TIENDA}
+${registrar(datos())};
+${COMO_POSTGRES}
+-- Sin el módulo (el rol integrante no lo tiene: nace sin rol).
+delete from retail.rol_modulos where modulo = 'libro_reclamaciones';
+${COMO(MICAELA)}
+do $$ begin
+  perform retail.fn_libro_reclamaciones();
+  perform set_config('prueba.libro', 'pasó', true);
+exception when insufficient_privilege then
+  perform set_config('prueba.libro', '42501', true);
+end $$;
+select current_setting('prueba.libro');
+${COMO(FELIPE)}
+select format('%s|%s|%s|%s', jsonb_array_length(x -> 'hojas'), x #>> '{hojas,0,consumidor,documento}', x #>> '{hojas,0,vence_el}' is not null,
+              (x #>> '{hojas,0,dias_restantes}')::int between 10 and 15)
+  from retail.fn_libro_reclamaciones() x;`);
+  esperar(
+    "R2 · sin el módulo, 42501; el líder lee la hoja completa con su plazo",
+    r.ok && r.salida.endsWith("42501\n1|09959901|t|t"),
+    r.mensaje ?? r.salida,
+  );
+}
+
 // ---------- M. Mutantes ----------
 {
   // Sin el candado, el update pasa: si la prueba C no lo notara, no estaría mirando nada.
@@ -366,7 +424,7 @@ select count(*) from retail.hojas_reclamacion where marca = '${m}';`);
 {
   const sql = MIGRACIONES.map((m) => readFileSync(m, "utf8")).join("\n");
   const r = correr(`begin;\n${sql}\n${sql}\nrollback;\n`);
-  esperar("P1 · las dos partes se pueden pegar dos veces", r.ok, r.mensaje);
+  esperar("P1 · las tres partes se pueden pegar dos veces", r.ok, r.mensaje);
 }
 
 console.log(`\n${total - fallos}/${total} ${fallos ? "con fallos" : "bien"}`);

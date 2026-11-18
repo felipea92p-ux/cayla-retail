@@ -154,6 +154,9 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   // Foco encendido: Tienda web ▸ Recomendaciones (ADR-0408), la idea que un cliente le deja a CAYLA desde la tienda online. No el globo de
   // «Avisos» (lo que la tienda le manda a él) ni el corazón de las fichas: lo que ÉL propone.
   recomendaciones: "M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5 M9 18h6 M10 22h4", // lucide «lightbulb»
+  // Libro abierto: Tienda web ▸ Libro de Reclamaciones (ADR-0679), las hojas que los clientes dejan con su plazo legal. El mismo libro que la
+  // tienda online muestra en su pie.
+  libroReclamaciones: "M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z", // lucide «book-open»
   // Globo: la cabecera del grupo «Tienda web» (ADR-0430), la tienda que está en internet. No repite a ninguna de sus hijas (el
   // tablero del Resumen, el celular de Pedidos, el monitor de la Vitrina, el foco de Recomendaciones, los controles de Ajustes) ni a la
   // brújula de Gestión, que también es un círculo: este lleva sus meridianos.

@@ -7918,6 +7918,7 @@ export type Database = {
           mes: string
         }[]
       }
+      fn_libro_reclamaciones: { Args: never; Returns: Json }
       fn_lineas_comprobantes_produccion: {
         Args: { p_comprobante_id?: string; p_ubicacion_id: string }
         Returns: {
