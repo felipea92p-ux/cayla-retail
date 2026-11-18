@@ -1,15 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useId, useRef, useState } from "react";
 import { clienteNavegador } from "@/lib/auth-navegador";
+import { TEXTOS_VERSION } from "@/lib/cuentas";
 import { MENSAJES } from "@/lib/cuentas-mensajes";
 import { PARAMETRO_VOLVER } from "@/lib/entrada";
+import { PARAMETRO_ACEPTO } from "@/lib/google";
 import { googleDisponible } from "@/lib/sesion";
 
 // «Continuar con Google» (ADR-0438, Felipe 2026-10-17). Sirve para entrar y para crear la cuenta: si es la primera vez, la cuenta se crea
 // sola con el nombre y el correo de Google (sin código: Google ya confirmó el correo), y no se pide nada más hasta que separe. Desde el
 // navegador, contra el proyecto de clientes (que pone sus topes a la ip de cada persona); Google vuelve a `/auth/google`
 // (`app/auth/google/route.ts`), que canjea el código y sigue a `volver`. No sale hasta que el proveedor esté encendido (`googleDisponible`).
+// Con `casilla` («Crear cuenta», revisión legal 2026-11-18, H3): lleva su propia casilla de aceptación, igual a la del correo, y el botón
+// manda la versión aceptada en la vuelta (`?acepto=`). Sin marcarla no se va a Google. Sin ella («Entrar»), quien ya tiene cuenta entra;
+// quien no, vuelve a «Crear cuenta» con `?google=acepta` y este mismo bloque le dice qué falta: ninguna cuenta nace sin aceptar.
 
 /** La «G» de Google, en sus cuatro colores (la marca de Google no se tiñe con los tokens). */
 function LogoGoogle() {
@@ -23,14 +29,43 @@ function LogoGoogle() {
   );
 }
 
-/** `abajo`: va después del formulario (en «Entrar»: primero el correo y «Entrar», y Google como otra manera, tras una raya «o»). */
-export function BotonGoogle({ volver, texto = "Continuar con Google", abajo = false }: { volver: string | null; texto?: string; abajo?: boolean }) {
+/** `abajo`: va después del formulario (en «Entrar»: primero el correo y «Entrar», y Google como otra manera, tras una raya «o»).
+ *  `casilla`: crea la cuenta, así que pide aceptar la política y los términos antes de ir a Google. */
+export function BotonGoogle({
+  volver,
+  texto = "Continuar con Google",
+  abajo = false,
+  casilla = false,
+}: {
+  volver: string | null;
+  texto?: string;
+  abajo?: boolean;
+  casilla?: boolean;
+}) {
   const [yendo, setYendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [acepta, setAcepta] = useState(false);
+  const idCasilla = useId();
+  const refCasilla = useRef<HTMLInputElement>(null);
+  // Volvió de Google sin haber aceptado (`?google=acepta`, la ruta de Google): se dice aquí, junto a la casilla, y se limpia la dirección.
+  useEffect(() => {
+    if (!casilla) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("google") !== "acepta") return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- el aviso vive en la dirección, que solo existe en el navegador
+    setError(MENSAJES.googleFaltaAceptar);
+    url.searchParams.delete("google");
+    window.history.replaceState(null, "", url);
+  }, [casilla]);
   if (!googleDisponible()) return null;
 
   async function ir() {
     if (yendo) return;
+    if (casilla && !acepta) {
+      setError(MENSAJES.googleFaltaAceptar);
+      refCasilla.current?.focus();
+      return;
+    }
     const cliente = clienteNavegador();
     if (!cliente) {
       setError(MENSAJES.googleNoDisponible);
@@ -40,6 +75,7 @@ export function BotonGoogle({ volver, texto = "Continuar con Google", abajo = fa
     setYendo(true);
     const destino = new URL("/auth/google", window.location.origin);
     if (volver) destino.searchParams.set(PARAMETRO_VOLVER, volver);
+    if (casilla && acepta) destino.searchParams.set(PARAMETRO_ACEPTO, TEXTOS_VERSION);
     // Si todo sale bien, el navegador se va a Google y esta página termina aquí.
     const { error: fallo } = await cliente.auth.signInWithOAuth({ provider: "google", options: { redirectTo: destino.toString() } });
     if (fallo) {
@@ -54,6 +90,32 @@ export function BotonGoogle({ volver, texto = "Continuar con Google", abajo = fa
         <p className="en-o" aria-hidden="true">
           <span>o</span>
         </p>
+      )}
+      {casilla && (
+        <label className="w-check en-google-acepta" htmlFor={idCasilla}>
+          <input
+            id={idCasilla}
+            ref={refCasilla}
+            type="checkbox"
+            checked={acepta}
+            aria-invalid={error === MENSAJES.googleFaltaAceptar || undefined}
+            onChange={(e) => {
+              setAcepta(e.target.checked);
+              if (e.target.checked && error === MENSAJES.googleFaltaAceptar) setError(null);
+            }}
+          />
+          <span>
+            Acepto crear mi cuenta con Google y que CAYLA use mis datos para mis pedidos, como dicen la{" "}
+            <Link href="/privacidad" target="_blank">
+              política de privacidad
+            </Link>{" "}
+            y los{" "}
+            <Link href="/terminos-del-club" target="_blank">
+              términos
+            </Link>
+            .
+          </span>
+        </label>
       )}
       <button type="button" className="t-btn t-btn-sec t-btn-ancho en-google-btn" onClick={ir} disabled={yendo} aria-busy={yendo || undefined}>
         <LogoGoogle />

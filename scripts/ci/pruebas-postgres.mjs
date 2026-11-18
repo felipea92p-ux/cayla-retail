@@ -1528,6 +1528,10 @@ export const PRUEBAS = [
   // su talla deducida; el grupo testigo y el tope de 2 promocionales al mes; registrar y deshacer (10 minutos); el módulo
   // avisos_club (nace sin rol) y la BAJA desde Avisos; anonimizar borra teléfono y texto. Cada caso termina en ROLLBACK.
   "pruebas:club-avisos",
+  // Los dos permisos de WhatsApp del Club (ADR-0680): la casilla de la tienda online da cada uno por separado; el cartel, el QR y su mensaje
+  // dan los dos con una sola fila; la BAJA, el cambio de celular y anonimizar quitan los dos; el cumpleaños y los puntos van a quien tiene
+  // los avisos y las novedades a quien tiene la publicidad; el legado sin filas nuevas; las tres partes se pegan dos veces. ROLLBACK.
+  "pruebas:club-avisos-del-club",
 
   // Club de clientas, tanda 1e (ADR-0288 D-3): el comprobante acepta carné de extranjería y pasaporte. Boleta y nota de
   // venta guardan el tipo y el número limpio; fuera de formato (o sin número) → `documento_invalido` sin venta, sin stock

@@ -690,6 +690,7 @@ export type Database = {
           codigo_club: string | null
           cumple_anio: number | null
           publicidad_desde: string | null
+          avisos_club_desde: string | null
           fusionada_en_id: string | null
           id: string
           motivo_archivo: string | null
@@ -717,6 +718,7 @@ export type Database = {
           codigo_club?: string | null
           cumple_anio?: number | null
           publicidad_desde?: string | null
+          avisos_club_desde?: string | null
           fusionada_en_id?: string | null
           id?: string
           motivo_archivo?: string | null
@@ -744,6 +746,7 @@ export type Database = {
           codigo_club?: string | null
           cumple_anio?: number | null
           publicidad_desde?: string | null
+          avisos_club_desde?: string | null
           fusionada_en_id?: string | null
           id?: string
           motivo_archivo?: string | null

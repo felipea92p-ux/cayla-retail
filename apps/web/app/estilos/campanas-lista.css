@@ -1,0 +1,249 @@
+@layer components {
+  /* ====================================================================
+     Catálogo ▸ Campañas y ofertas · la lista (ADR-0677, Felipe 2026-11-17: cara A de docs/maquetas/campanas-simple-2026-11/)
+
+     El descuento y (desde la actividad 6) la campaña son la MISMA fila: una lente con su ícono, qué es y cuánto abarca. En reposo, el
+     vidrio claro y sin desenfoque (la lista se desplaza, ADR-0623); la abierta, el ahumado denso con la letra crema (no depende solo del
+     color: cambian el fondo, la letra y la lente). Solo tokens y recetas de vidrio/recetas.css: el oscuro sale solo (ADR-0336).
+     Cada medida y su porqué: docs/milimetro/fila-de-lista-campanas.md.
+
+     Movimiento (ADR-0136): las filas entran una vez en cascada (40 ms entre una y otra, con tope en la 8), suben 1 px con el mouse y se
+     encogen al presionar. Sin rebote ni bucle. Quieto (ADR-0625) o con menos movimiento pedido: nada sube ni se encoge; queda el cambio
+     de borde y de fondo.
+     ==================================================================== */
+
+  /* El mismo aire que entre dos pilas de la billetera (sellos.css, `.sl-pila + .sl-pila`). */
+  .lc-descuentos { margin-bottom: 26px; }
+
+  .lc-fila {
+    position: relative;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    min-height: 80px;
+    padding: 16px 20px 16px 16px;
+    border: 1px solid var(--vidrio-claro-borde);
+    border-radius: var(--radius-tarjeta);
+    background: var(--vidrio-claro-fondo);
+    box-shadow: var(--vidrio-claro-sombra);
+    color: var(--color-tinta);
+    text-align: left;
+    transition:
+      translate var(--t-cambio) var(--ease-cayla),
+      scale var(--t-resp) var(--ease-cayla),
+      border-color var(--t-cambio) var(--ease-cayla),
+      background var(--t-cambio) var(--ease-cayla),
+      color var(--t-cambio) var(--ease-cayla);
+    animation: cayla-cascada var(--t-momento) var(--ease-cayla) backwards;
+    animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+  }
+  .lc-fila + .lc-fila { margin-top: 8px; }
+  @media (hover: hover) {
+    .lc-fila:not([aria-current="true"]):hover {
+      translate: 0 -1px;
+      border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); /* contraste: no aplica — es un borde, no un texto */
+    }
+  }
+  .lc-fila:active { scale: 0.985; }
+
+  .lc-fila-lente {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    background: var(--lente-fondo);
+    box-shadow: var(--lente-luz);
+    color: color-mix(in srgb, var(--color-tinta) 80%, transparent); /* contraste: gráfico sobre la lente de vidrio claro */
+  }
+  .lc-fila-lente svg { width: 20px; height: 20px; }
+
+  .lc-fila-sobre {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+  }
+  .lc-fila-pct {
+    display: block;
+    font-family: var(--font-serif);
+    font-size: 32px;
+    font-weight: 500;
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+    font-variant-numeric: lining-nums tabular-nums;
+    white-space: nowrap;
+  }
+  .lc-fila-bajada {
+    display: block;
+    margin-top: 2px;
+    font-size: 14px;
+    color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+  }
+  .lc-fila-der { text-align: right; white-space: nowrap; }
+  .lc-fila-der b {
+    display: block;
+    font-family: var(--font-serif);
+    font-size: 26px;
+    font-weight: 500;
+    line-height: 1;
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+  .lc-fila-der span {
+    display: block;
+    margin-top: 4px;
+    font-size: 14px;
+    color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+  }
+
+  /* «Nuevo descuento»: la misma fila, punteada y sin relleno (la maqueta, `.it.nuevo`). */
+  .lc-fila-nuevo {
+    grid-template-columns: 44px minmax(0, 1fr);
+    min-height: 60px;
+    border-style: dashed;
+    border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); /* contraste: no aplica — es un borde, no un texto */
+    background: transparent;
+    box-shadow: none;
+    color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .lc-fila-nuevo .lc-fila-lente { background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 25%, transparent); }
+
+  /* La abierta: el ahumado denso, como lo elegido en el resto del ERP. */
+  .lc-fila[aria-current="true"] {
+    border-color: var(--ahumado-denso-borde);
+    background: var(--ahumado-denso-fondo);
+    box-shadow: var(--ahumado-denso-luz);
+    color: var(--color-crema);
+  }
+  .lc-fila[aria-current="true"] :is(.lc-fila-sobre, .lc-fila-bajada, .lc-fila-der span) {
+    color: color-mix(in srgb, var(--color-crema) 74%, transparent);
+  }
+  .lc-fila[aria-current="true"] .lc-fila-lente {
+    background: color-mix(in srgb, var(--color-crema) 14%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-crema) 22%, transparent);
+    color: var(--color-crema);
+  }
+
+  /* Las filas de descuento van cada una en su caja (debajo puede ir su panel, con una sola columna). */
+  .lc-descuentos > div + div { margin-top: 8px; }
+
+  /* ── El panel de un descuento (actividad 2): la cabecera de la maqueta (`.pan-cab`) y sus prendas en grilla ──
+     La tarjeta de cada prenda es la de la campaña (`.sl-prenda`, sellos.css) con su precio debajo; la × es `BotonQuitarFoto`. */
+  .lc-panel-cab {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px 24px;
+  }
+  .lc-panel-pre {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+  .lc-panel-tit {
+    margin-top: 8px;
+    font-family: var(--font-serif);
+    font-size: clamp(48px, 5vw, 72px);
+    font-weight: 500;
+    line-height: 0.95;
+    letter-spacing: -0.015em;
+    font-variant-numeric: lining-nums tabular-nums;
+    white-space: nowrap;
+  }
+  .lc-panel-acc { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .lc-panel-cnt {
+    font-size: 15px;
+    color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+  }
+  .lc-panel-cnt b {
+    margin-right: 4px;
+    font-family: var(--font-serif);
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--color-tinta);
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+
+  .lc-grilla {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    gap: 24px 16px;
+    margin-top: 32px;
+  }
+  .lc-grilla > * {
+    animation: cayla-cascada var(--t-momento) var(--ease-cayla) backwards;
+    animation-delay: calc(min(var(--j, 0), 12) * 26ms);
+  }
+  .lc-pieza-precio {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .lc-pieza-precio b { font-size: 15px; font-weight: 600; }
+  .lc-pieza-precio s { color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
+  /* La que se quita sale corta mientras la base responde (ADR-0136: la salida, con `--ease-salida`). */
+  .lc-pieza[data-sale] { animation: lc-sale var(--t-hoja) var(--ease-salida) forwards; pointer-events: none; }
+  /* «Todas las tallas»: toda la tarjeta se toca para ver cuáles (Formidable 2026-11-18). Una capa sin fondo bajo la tarjeta, con su anillo de
+     foco alrededor; el texto y la foto dejan pasar el toque hasta ella, salvo la ×. (Encima no sirve: la foto sube con un `transform` al pasar el
+     mouse, eso la vuelve una capa propia y la × quedaba tapada.) La línea de tallas entra con la respuesta corta de una acción (ADR-0136), sin rebote. */
+  .lc-pieza { position: relative; }
+  .lc-pieza-toque {
+    position: absolute;
+    inset: -6px;
+    z-index: 0;
+    border-radius: var(--radius-tarjeta);
+    background: transparent;
+    cursor: pointer;
+  }
+  .lc-pieza:has(> .lc-pieza-toque) > :not(.lc-pieza-toque) { pointer-events: none; }
+  .lc-pieza:has(> .lc-pieza-toque) .sl-prenda-foto button { pointer-events: auto; }
+  .lc-pieza-tallas { animation: cayla-cascada var(--t-cambio) var(--ease-cayla) both; }
+
+  /* ── Agregar (actividad 3): el buscador bajo la cabecera y, al escanear, la prenda leída con su pregunta ──
+     La prenda leída explica y ofrece dos botones: va en la placa (lo que explica es plano, ADR-0596). */
+  .lc-agregar { position: relative; display: grid; gap: 12px; margin-top: 24px; }
+  .lc-leida {
+    padding: 16px;
+    border: 1px solid var(--placa-borde);
+    border-radius: var(--radius-tarjeta);
+    background: var(--placa-fondo);
+    box-shadow: var(--placa-luz);
+    container-type: inline-size;
+  }
+  /* «Solo esta» y «Todo el modelo · N colores»: uno sobre otro si la tarjeta es angosta (en el celular), lado a lado si caben. */
+  .lc-leida-botones { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  @container (min-width: 26rem) {
+    .lc-leida-botones { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  /* Con una sola columna, el panel va bajo su fila con el aire del pase abierto. */
+  .lc-panel-en-linea { margin: 16px 2px 24px; }
+
+  /* Quieto o con menos movimiento: nada sube ni se encoge (el cambio de borde y de fondo sigue diciendo que responde). */
+  :root[data-movimiento="quieto"] .lc-fila { translate: none; scale: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .lc-fila { translate: none; scale: none; animation: none; }
+    .lc-grilla > * { animation: none; }
+    .lc-pieza[data-sale] { animation: none; opacity: 0.4; }
+    .lc-pieza-tallas { animation: none; }
+  }
+}
+
+@keyframes lc-sale {
+  to { opacity: 0; scale: 0.96; }
+}

@@ -24,6 +24,9 @@ async function alPortapapeles(valor: string): Promise<boolean> {
     await navigator.clipboard.writeText(valor);
     return true;
   } catch {
+    // El camino viejo selecciona un texto oculto (eso le quita el foco al botón) y después lo saca de la página: sin devolverlo, el foco
+    // quedaba en <body> y un segundo Enter ya no copiaba (medido en Existencias, 2026-11-18).
+    const tenia = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const ta = document.createElement("textarea");
     ta.value = valor;
     ta.setAttribute("readonly", "");
@@ -38,6 +41,7 @@ async function alPortapapeles(valor: string): Promise<boolean> {
       listo = false;
     }
     ta.remove();
+    tenia?.focus({ preventScroll: true });
     return listo;
   }
 }
@@ -66,9 +70,28 @@ type Props = {
   guia?: string;
 };
 
+/** Lo que oye el lector al copiar (2026-11-18, guía `copy-button` de modern-web-guidance). Va FUERA del botón: lo de adentro de un botón
+ *  es su nombre, no un aviso, y un `aria-live` ahí no se anuncia de forma confiable. Si se copia dos veces seguidas, el mismo «Copiado»
+ *  lleva un espacio que no se oye al final: VoiceOver calla un aviso idéntico al anterior. A la vista no cambia nada. */
+function useAvisoCopiado() {
+  const [dicho, setDicho] = useState("");
+  const ultimo = useRef("");
+  const cuadro = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.cancelAnimationFrame(cuadro.current ?? 0), []);
+  const anunciar = (mensaje: string) => {
+    const texto = mensaje === ultimo.current ? `${mensaje} ` : mensaje;
+    ultimo.current = texto;
+    setDicho("");
+    window.cancelAnimationFrame(cuadro.current ?? 0);
+    cuadro.current = window.requestAnimationFrame(() => setDicho(texto));
+  };
+  return { dicho, anunciar, callar: () => setDicho("") };
+}
+
 export function BotonCopiar({ texto, que, forma = "boton", icono = "copiar", children, chico = false, soloIconoEnCelular = false, alCopiar, alFallar, disabled, className = "", guia }: Props) {
   const [copiado, setCopiado] = useState(false);
   const reloj = useRef<number | undefined>(undefined);
+  const aviso = useAvisoCopiado();
   useEffect(() => () => window.clearTimeout(reloj.current), []);
 
   async function copiar() {
@@ -79,16 +102,26 @@ export function BotonCopiar({ texto, que, forma = "boton", icono = "copiar", chi
       return;
     }
     setCopiado(true);
+    aviso.anunciar("Copiado");
     alCopiar?.();
     window.clearTimeout(reloj.current);
-    reloj.current = window.setTimeout(() => setCopiado(false), DURA);
+    reloj.current = window.setTimeout(() => {
+      setCopiado(false);
+      aviso.callar();
+    }, DURA);
   }
 
   const Dibujo = icono === "enlace" ? Link2 : Copy;
   const nombre = `Copiar ${que}`;
+  const avisoParaElLector = (
+    <span className="sr-only" role="status">
+      {aviso.dicho}
+    </span>
+  );
 
   if (forma === "icono") {
     return (
+      <>
       <button
         type="button"
         onClick={copiar}
@@ -105,14 +138,18 @@ export function BotonCopiar({ texto, que, forma = "boton", icono = "copiar", chi
         <span className="copiar-b">
           <Check aria-hidden className="copiar-tilde h-4 w-4" />
         </span>
-        <span className="copiar-dicho" aria-live="polite">
+        {/* El globito «Copiado» es solo para la vista; al lector se lo dice `avisoParaElLector`, fuera del botón. */}
+        <span className="copiar-dicho" aria-hidden>
           {copiado ? "Copiado" : ""}
         </span>
       </button>
+      {avisoParaElLector}
+      </>
     );
   }
 
   return (
+    <>
     <button
       type="button"
       onClick={copiar}
@@ -134,9 +171,8 @@ export function BotonCopiar({ texto, que, forma = "boton", icono = "copiar", chi
           <span className={soloIconoEnCelular ? "max-sm:hidden" : undefined}>Copiado</span>
         </span>
       </span>
-      <span className="sr-only" aria-live="polite">
-        {copiado ? "Copiado" : ""}
-      </span>
     </button>
+    {avisoParaElLector}
+    </>
   );
 }

@@ -444,7 +444,9 @@ export const GUIA_FIN_GASTOS: Guia = {
     {
       id: "hilos",
       ancla: "fin-gastos.hilos",
-      preparar: [{ tipo: "escape" }],
+      // La fila de un gasto y el día del ritmo son pliegues: cada toque dice si abre o cierra, así cada paso se ve igual al avanzar y
+      // al volver con ←.
+      preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "fin-gastos.hilo-primera", para: "cerrar" }],
       opcional: true,
       titulo: "¿En qué se va la plata?",
       texto: "Cada fila es una categoría, de la que más se gastó a la que menos (las demás, en «Ver más»). Su barra dice qué sede lo gastó y la rayita, dónde iba el mes anterior (en el mes en curso, al mismo día); al lado, cuánto subió o bajó. Tocas una fila, o un color de su barra, y se abre lo que se gastó.",
@@ -452,8 +454,7 @@ export const GUIA_FIN_GASTOS: Guia = {
     {
       id: "desglose",
       ancla: "fin-gastos.desglose",
-      preparar: [{ tipo: "clic", ancla: "fin-gastos.hilo-primera" }],
-      prepararSoloAlAvanzar: true,
+      preparar: [{ tipo: "clic", ancla: "fin-gastos.hilo-primera", para: "abrir" }],
       opcional: true,
       titulo: "Lo que se gastó exactamente",
       texto: "A la izquierda, las sedes que gastaron en esta categoría: tocas una y quedan solo sus gastos. A la derecha, cada gasto con su día, en qué y a quién, del más grande al más chico. Tocas uno y se abre su hoja; «Ver en la tabla» deja la lista de abajo solo con eso.",
@@ -461,9 +462,11 @@ export const GUIA_FIN_GASTOS: Guia = {
     {
       id: "ritmo",
       ancla: "fin-gastos.ritmo",
-      // Cierra el desglose que abrió el paso anterior (tocar la fila abierta la cierra).
-      preparar: [{ tipo: "clic", ancla: "fin-gastos.hilo-primera", siEsta: true }],
-      prepararSoloAlAvanzar: true,
+      // Cierra el desglose que abrió el paso anterior y, al volver desde «Lo que se gastó ese día», el día.
+      preparar: [
+        { tipo: "clic", ancla: "fin-gastos.hilo-primera", para: "cerrar" },
+        { tipo: "clic", ancla: "fin-gastos.ritmo-nota", para: "cerrar" },
+      ],
       titulo: "¿Cuándo se gastó, y a qué ritmo?",
       texto: "La línea suma lo gastado día a día; la punteada es el mes anterior a la misma altura, y desde hoy, tenue, hacia dónde va si sigue así, con los fijos por confirmar. Debajo dice de qué está hecho. Tocas un día, o una nota, y se abre lo que se gastó ese día.",
     },
@@ -471,8 +474,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       id: "ritmo-dia",
       ancla: "fin-gastos.ritmo-dia",
       // Abre el día del primer salto con nombre (si el mes no tiene ninguno, el paso no se muestra).
-      preparar: [{ tipo: "clic", ancla: "fin-gastos.ritmo-nota" }],
-      prepararSoloAlAvanzar: true,
+      preparar: [{ tipo: "clic", ancla: "fin-gastos.ritmo-nota", para: "abrir" }],
       opcional: true,
       titulo: "Lo que se gastó ese día",
       texto: "Gasto por gasto, del más grande al más chico, con su sede; en un día que todavía no llega, el fijo por confirmar. Tocas un gasto y se abre su hoja; «Ver en la tabla» deja la lista de abajo solo con ese día. Tocas el día otra vez y se cierra.",
@@ -480,9 +482,8 @@ export const GUIA_FIN_GASTOS: Guia = {
     {
       id: "bandeja",
       ancla: "fin-gastos.bandeja",
-      // Cierra el día que abrió el paso anterior (tocar la misma nota lo cierra).
-      preparar: [{ tipo: "clic", ancla: "fin-gastos.ritmo-nota", siEsta: true }],
-      prepararSoloAlAvanzar: true,
+      // Cierra el día que abrió el paso anterior.
+      preparar: [{ tipo: "clic", ancla: "fin-gastos.ritmo-nota", para: "cerrar" }],
       opcional: true,
       titulo: "Lo que falta revisar, de a uno",
       texto: "Una salida de caja que nadie dijo qué fue, o un gasto fijo del mes vencido sin registrar, en una pila: se resuelve la de arriba. En una salida el sistema ya propone qué fue; eliges la categoría y quién lo hace. Si era un activo o llegó con boleta o factura, su enlace abre el registro completo.",
@@ -642,7 +643,11 @@ export const GUIA_FIN_GASTOS: Guia = {
       texto: "Ya sabes dónde va cada gasto. Para repasarlo: Mi perfil ▸ Demo ▸ Gastos.",
     },
   ],
-  alSalir: [{ tipo: "escape" }],
+  alSalir: [
+    { tipo: "escape" },
+    { tipo: "clic", ancla: "fin-gastos.hilo-primera", para: "cerrar" },
+    { tipo: "clic", ancla: "fin-gastos.ritmo-nota", para: "cerrar" },
+  ],
 };
 
 export const GUIA_FIN_CUENTAS: Guia = {

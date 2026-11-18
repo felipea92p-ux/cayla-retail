@@ -132,8 +132,8 @@ export const GUIA_CLIENTES: Guia = {
       id: "ficha-club",
       ancla: "clientas.ficha-club",
       opcional: true,
-      titulo: "Sus novedades por WhatsApp",
-      texto: "Si pidió novedades y desde cuándo. Si responde BAJA, se registra aquí y deja de recibir mensajes en las 3 tiendas.",
+      titulo: "Sus mensajes por WhatsApp",
+      texto: "Si pidió los avisos de su Club (puntos, cupones, cumpleaños) y, aparte, las novedades y promociones, y desde cuándo. Si responde BAJA, se registra aquí: deja los dos, en las 3 tiendas.",
     },
     {
       id: "ficha-puntos",

@@ -1,5 +1,11 @@
 {
   "enabledPlugins": {
     "agent-skills@addy-agent-skills": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npx -y modern-web-guidance@latest *)",
+      "Bash(pnpx modern-web-guidance@latest *)"
+    ]
   }
 }

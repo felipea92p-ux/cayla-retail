@@ -95,8 +95,8 @@ export function FiltrosDelEnvio({
           placeholder="Buscar un modelo…" // sugerir-fijo: dice dónde busca, no depende de nada elegido antes
           guia="recepcion.buscar"
         />
-        {/* Un ancla por estado (como Historial de ventas): la guía abre con una y cierra con la otra, y cerrar nunca vuelve a abrir. */}
-        <span data-guia={abierto ? "recepcion.filtros-cerrar" : "recepcion.filtros"} className="inline-flex shrink-0">
+        {/* La guía abre y cierra el panel con `para` (ADR-0389): lee el `aria-expanded` del botón, así que el ancla es una sola. */}
+        <span data-guia="recepcion.filtros" className="inline-flex shrink-0">
           <BotonFiltros abierto={abierto} activos={puestos} onClick={() => setAbierto((a) => !a)} />
         </span>
       </div>

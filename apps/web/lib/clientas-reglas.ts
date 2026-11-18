@@ -28,6 +28,9 @@ export type Clienta = {
   /** ADR-0288 tanda 1b: socia desde (su «sí» al club), con publicidad desde, y su código («C-0142»). */
   clubDesde: string | null;
   publicidadDesde: string | null;
+  /** ADR-0680: desde cuándo recibe los avisos de su Club por WhatsApp (puntos, cupones, cumpleaños), aparte de la publicidad. Opcional en
+   *  la fila: una lectura que no lo pide (o una base sin la migración) llega sin él y se lee como «sin avisos». */
+  avisosClubDesde: string | null;
   codigoClub: string | null;
   cumpleAnio: number | null;
   cumpleDia: number | null;
@@ -61,6 +64,7 @@ export type FilaClienta = {
   whatsapp_consentimiento_en: string | null;
   club_desde: string | null;
   publicidad_desde: string | null;
+  avisos_club_desde?: string | null;
   codigo_club: string | null;
   cumple_anio: number | null;
   cumple_dia: number | null;
@@ -80,7 +84,7 @@ export type FilaClienta = {
  *  del navegador (`clientas-acciones.ts`). Antes cada una escribía la suya, y la tanda 1b (ADR-0288) habría tenido que
  *  acordarse de sumar las del club en tres lugares. */
 export const COLUMNAS_CLIENTA =
-  "id, documento_tipo, documento_numero, nombre, telefono_whatsapp, correo, whatsapp_consentimiento_en, club_desde, publicidad_desde, codigo_club, cumple_anio, cumple_dia, cumple_mes, tallas, created_at, version, archivada_en, motivo_archivo, anonimizada, fusionada_en_id, preferencias";
+  "id, documento_tipo, documento_numero, nombre, telefono_whatsapp, correo, whatsapp_consentimiento_en, club_desde, publicidad_desde, avisos_club_desde, codigo_club, cumple_anio, cumple_dia, cumple_mes, tallas, created_at, version, archivada_en, motivo_archivo, anonimizada, fusionada_en_id, preferencias";
 
 function comoTallas(valor: unknown): Record<string, string> | null {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) return null;
@@ -98,6 +102,7 @@ export function aClienta(fila: FilaClienta): Clienta {
     tienePermisoWhatsapp: fila.publicidad_desde !== null,
     clubDesde: fila.club_desde,
     publicidadDesde: fila.publicidad_desde,
+    avisosClubDesde: fila.avisos_club_desde ?? null,
     codigoClub: fila.codigo_club,
     cumpleAnio: fila.cumple_anio,
     cumpleDia: fila.cumple_dia,

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { CuentaNoDisponible } from "@/components/cuenta/CuentaNoDisponible";
 import { FormularioUnirseAlClub } from "@/components/cuenta/FormularioUnirseAlClub";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
-import { leerCasillaDeAvisos, leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
+import { leerCasillaAvisosClub, leerCasillaDeAvisos, leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
 import { PARAMETRO_VOLVER, rutaParaVolver } from "@/lib/entrada";
 import { hoyDeLima } from "@/lib/hoy-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
@@ -27,12 +27,12 @@ export default async function UnirseAlClub({ searchParams }: Props) {
   const lectura = sesion.estado === "con_sesion" ? await leerMiCuentaEnBase(sesion.usuarioId) : null;
   if (lectura?.estado === "sin_cuenta") redirect("/cuenta");
   if (lectura?.estado === "cuenta" && lectura.cuenta.esDelClub) redirect(volver ?? "/cuenta");
-  const [casilla, hoy] = await Promise.all([leerCasillaDeAvisos(), hoyDeLima()]);
+  const [casilla, casillaClub, hoy] = await Promise.all([leerCasillaDeAvisos(), leerCasillaAvisosClub(), hoyDeLima()]);
   return (
     <MarcoCuenta conCuenta enPagina="cuenta">
       <div className="t-ancho t-angosto w-pagina-form en-form en-sola">
         {lectura?.estado === "cuenta" ? (
-          <FormularioUnirseAlClub hoy={hoy} casilla={casilla} nombre={lectura.cuenta.nombreCorto} />
+          <FormularioUnirseAlClub hoy={hoy} casilla={casilla} casillaClub={casillaClub} nombre={lectura.cuenta.nombreCorto} />
         ) : (
           <CuentaNoDisponible texto="No pudimos cargar tu cuenta ahora. Vuelve a intentarlo en unos minutos." volverA="/cuenta/club" />
         )}

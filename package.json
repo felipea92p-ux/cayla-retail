@@ -470,6 +470,7 @@
     "pruebas:club-puntos-conservacion": "node scripts/pruebas/club_puntos_conservacion.mjs",
     "pruebas:club-puntos-pedido-web": "node scripts/pruebas/club_puntos_pedido_web.mjs",
     "pruebas:club-avisos": "node scripts/pruebas/club_avisos.mjs",
+    "pruebas:club-avisos-del-club": "node scripts/pruebas/club_avisos_del_club.mjs",
     "pruebas:comprobante-carne-pasaporte": "node scripts/pruebas/comprobante_carne_pasaporte.mjs",
     "pruebas:candado-ventas": "node scripts/pruebas/candado_ventas_clientas_conteos_lotes.mjs",
     "pruebas:anular-venta-mismo-dia": "node scripts/pruebas/anular_venta_mismo_dia.mjs",

@@ -201,7 +201,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/productos/categorias": PENDIENTE,
   "/productos/familias": { estado: "no-aplica", motivo: "Muestra las familias como tarjetas de solo lectura; lo que se llena vive en la ventana «Nueva familia», que lleva su propia guía (registro de modales)." },
   "/productos/insignias": { estado: "no-aplica", motivo: "Billetera de pases de las insignias (Rotación, Artesanal, General): se elige uno y se mira; todo lo que se llena (nueva insignia, configurar, prendas, aprobar con su comentario, rechazar) vive en ventanas propias, cada una en el registro de modales." },
-  "/productos/campanas": { estado: "no-aplica", motivo: "Billetera de pases de las campañas (ADR-0655): se elige una y se mira; sus tres preguntas solo abren las ventanas que las responden (ofertas, prendas, fechas), cada una en el registro de modales. La pantalla no tiene campos." },
+  "/productos/campanas": { estado: "no-aplica", motivo: "Billetera de pases de las campañas (ADR-0655): se elige una y se mira; sus tres preguntas solo abren las ventanas que las responden (ofertas, prendas, fechas), cada una en el registro de modales. El panel de un descuento (ADR-0677) solo trae un buscador que agrega cada prenda al tocarla y quién firma: no hay nada que completar ni pasos que seguir; crear o cambiar el % vive en su hoja, con su guía." },
   "/productos/marcas": { estado: "aplicada", evidencia: ["components/alta-producto/NuevaMarcaForm.tsx"] },
   "/productos/nuevo": { estado: "aplicada", evidencia: ["components/NuevoProductoForm.tsx", "components/alta-producto/piezas.tsx"] },
   "/productos/por-revisar": { estado: "no-aplica", motivo: "Cola de solo lectura de las prendas que alguien propuso (ADR-0371): cada fila trae sus datos y dos botones, Aprobar y Rechazar; no hay campos que llenar ni pasos que seguir. Lo único que se elige —quién firma— vive en la hoja de cada decisión (components/RevisarProductoHoja.tsx)." },
@@ -333,9 +333,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   // el «Falta: …» tocable al pie (`FaltanDelPaso`) que lleva a la pregunta que lo arregla. Sale de lo mismo que apaga «Guardar»
   // (`problemasDeOferta` y haber elegido qué se da), sin reglas nuevas.
   "components/sellos/OfertasHoja.tsx": { estado: "aplicada", evidencia: ["components/sellos/OfertasHoja.tsx"] },
-  // «Poner un %» (ADR-0669): a qué, cuánto y quién, con la luz de «Sigue»; lo que falta lo dice el pie y el botón que confirma.
-  "components/rebajas/HojaRebaja.tsx": { estado: "aplicada", evidencia: ["components/rebajas/HojaRebaja.tsx"] },
-  "components/rebajas/RebajasDeTienda.tsx": { estado: "no-aplica", motivo: "El cajón de un % es una lista de prendas con «Quitar» en cada una: no hay nada que llenar salvo quién lo hace (un solo combo, que se elige una vez por tienda)." },
+  // «Nuevo descuento» / «Cambiar el %» (ADR-0677): el % y quién lo hace, con la luz de «Sigue». El % llega puesto, así que es «sugerido»
+  // hasta que la persona lo toca (ADR-0284 act. h); lo que bloquea es lo mismo que exige la base (1 a 70 y quién firma).
+  "components/campanas/HojaDeDescuento.tsx": { estado: "aplicada", evidencia: ["components/campanas/HojaDeDescuento.tsx"] },
   "components/sellos/SellosPantalla.tsx": { estado: "no-aplica", motivo: "Sus dos ventanas propias tienen UN solo campo cada una (el comentario al aprobar, el motivo al rechazar) y el botón dice por qué espera; las que se llenan de verdad (nueva insignia o campaña, configurar) son de EtiquetasLista.tsx, con su guía." },
   "components/FamiliasLista.tsx": { estado: "aplicada", evidencia: ["components/FamiliasLista.tsx"] },
   "components/FiltrosExistencias.tsx": { estado: "no-aplica", motivo: "Hoja de filtros de Existencias en el celular (misma estructura que Productos, 2026-10-03): cada control filtra la lista al tocarlo y el botón dice cuántos productos quedan; no hay nada que completar ni pasos que seguir." },

@@ -102,11 +102,14 @@ export default function Privacidad() {
                   </li>
                   <li>
                     <b>Tu membresía del Club CAYLA</b>: reconocerte en caja, ligar a tu ficha las compras que hagas desde que te registras,
-                    sumar tus puntos, crear tus cupones y darte tu regalo de cumpleaños. Por WhatsApp, avisos de tus puntos y tus cupones, si
-                    los autorizaste.
+                    sumar tus puntos, crear tus cupones y darte tu regalo de cumpleaños. Por WhatsApp, los avisos de tu Club (tus puntos,
+                    tus cupones, tu regalo de cumpleaños y antes de que se venzan tus puntos), solo si marcaste su casilla.
                   </li>
                   <li>
                     <b>Cumplir obligaciones legales</b>: emitir y conservar comprobantes de pago ante SUNAT.
+                  </li>
+                  <li>
+                    <b>Novedades y promociones por WhatsApp</b>: prendas nuevas y ofertas de CAYLA, solo si marcaste su casilla.
                   </li>
                   <li>
                     <b>Saber cómo se usa la tienda</b>: contar cuánta gente entra, por dónde llega, qué prendas mira y en qué paso se va, para
@@ -114,8 +117,10 @@ export default function Privacidad() {
                   </li>
                 </ol>
                 <p>
-                  Sin publicidad por WhatsApp: las novedades las ves en tu cuenta. La tienda te escribe por WhatsApp solo por tus pedidos.
-                  Los mensajes de promociones solo con tu autorización expresa, que puedes retirar cuando quieras.
+                  Por WhatsApp, la tienda te escribe por tus pedidos. Los avisos de tu Club y las novedades y promociones son dos permisos
+                  distintos, cada uno con su casilla, sin marcar: puedes dar uno, los dos o ninguno, y separar igual. Los retiras cuando quieras
+                  respondiendo BAJA a cualquier mensaje (deja los dos) o en cualquier tienda CAYLA; dejamos de escribirte en un máximo de 10
+                  días.
                   Si al pedir un «Avísame cuando llegue» marcas «Escríbeme por WhatsApp», la tienda ve tu celular y te escribe solo para
                   avisarte de esa prenda; si quitas el aviso, dejamos de escribirte.
                 </p>
@@ -136,7 +141,8 @@ export default function Privacidad() {
                     (transferencia internacional de datos), con medidas de seguridad.
                   </li>
                   <li>
-                    <b>Meta Platforms (WhatsApp)</b>, por donde la tienda te escribe por tus pedidos.
+                    <b>Meta Platforms (WhatsApp)</b>, por donde la tienda te escribe por tus pedidos y, si los autorizaste, los avisos de tu
+                    Club y las novedades y promociones.
                   </li>
                   <li>
                     <b>La consulta del padrón</b> (servicio de consulta de DNI, Perú), solo para obtener tu nombre a partir de tu DNI.

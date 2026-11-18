@@ -58,6 +58,9 @@ export type NotaLinea = {
   corto?: string;
   etiqueta: string;
   onElegir?: () => void;
+  /** Si la nota abre y cierra un detalle (el día del ritmo de Gastos): si está abierto ahora. Sale como `aria-expanded`, que dice el
+   *  lector de pantalla y lee la guía interactiva para no cerrarlo al querer abrirlo. Sin esto, la nota no dice nada. */
+  abierta?: boolean;
   /** Su ancla para la guía interactiva (`data-guia`). */
   guia?: string;
 };
@@ -572,6 +575,7 @@ export function Linea({
                 role="button"
                 tabIndex={0}
                 aria-label={n.etiqueta}
+                aria-expanded={n.abierta}
                 data-guia={n.guia}
                 className="linea-nota-g"
                 style={{ "--i": i } as CSSProperties}
