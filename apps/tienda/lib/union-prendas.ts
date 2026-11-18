@@ -44,9 +44,34 @@ export type MedidaDelRecorte = {
    *  Como `borde`, pero mirando toda la zona del bajo y no solo su última fila (una blusa cruzada termina en una punta angosta); las mangas separadas
    *  del cuerpo no cuentan, porque la medida es por fila y no por franja. */
   anchoBajo: number | null;
+  /** El contorno fino, para cubrir la pretina sin dejar aire. Ausente en lo medido antes del 2026-11-17: sin él, la unión usa el perfil de `bajo`. */
+  contorno?: ContornoDelRecorte | null;
 };
 
 export const SIN_MEDIDA: MedidaDelRecorte = { filaDelBorde: null, borde: null, pretina: null, bajo: null, anchoBajo: null };
+
+/* ======================== El contorno fino: lo que permite VERIFICAR la unión, no estimarla (ADR-0449, act. 2026-11-17) ======================== */
+
+/** En cuántas franjas verticales se parte una prenda para su contorno fino: cada una cubre ~2 px de la figura, así un bajo en V, en diagonal o una esquina redondeada se ven. */
+export const FRANJAS_DEL_CONTORNO = 64;
+/** Una franja de la prenda de arriba es del torso (tiene bajo) si su bajo no queda más de esto (fracción del alto) sobre el más bajo de la prenda: lo demás son tirantes,
+ *  mangas o el hueco de un escote, que no cubren la pretina. */
+export const SALTO_DEL_CONTORNO = 0.3;
+/** Una franja de la prenda de abajo es de su pretina si la prenda empieza ahí a no más de esto (fracción del alto) bajo su punto más alto: la línea plana de la cintura
+ *  y su esquina redondeada. La curva que baja hacia la cadera no cuenta: con 6 % el pantalón subía hasta asomar entre el cuerpo y la manga de una camisa corta
+ *  (probado y descartado mirando, 2026-11-17). */
+export const CIMA_DE_LA_PRETINA = 0.03;
+
+/**
+ * El contorno de una prenda por franjas, de izquierda a derecha (fracciones del alto; `null`: sin prenda o no cuenta). Es CONSERVADOR a propósito: `fondo` es la fila
+ * más ALTA a la que termina la prenda en esa franja y `cima` la más BAJA a la que empieza, así que si la unión cubre con estos números, cubre en todos los píxeles.
+ */
+export type ContornoDelRecorte = {
+  /** Dónde termina la prenda en cada franja (su bajo). */
+  fondo: (number | null)[];
+  /** Dónde empieza la prenda en cada franja, solo en las franjas de su pretina (las demás, `null`). */
+  cima: (number | null)[];
+};
 
 /** Dónde termina la prenda en cada franja (0–1 del alto): la mediana del último píxel de prenda de sus columnas, para que un hilo suelto no cuente. */
 function perfilDelBajo(rgba: ArrayLike<number>, ancho: number, alto: number): (number | null)[] {
@@ -99,6 +124,47 @@ export function filaAltaDelBorde(m: MedidaDelRecorte, ancho: number): number | n
   return alta === null ? null : Math.min(alta, fondo);
 }
 
+/** El contorno fino de un recorte (ver `ContornoDelRecorte`): por franja, el bajo más alto y el inicio más bajo de sus columnas, redondeados hacia el lado que cubre más. */
+export function contornoDe(rgba: ArrayLike<number>, ancho: number, alto: number): ContornoDelRecorte | null {
+  if (ancho < FRANJAS_DEL_CONTORNO || alto <= 0) return null;
+  const primero = new Array<number>(ancho).fill(-1);
+  const ultimo = new Array<number>(ancho).fill(-1);
+  for (let x = 0; x < ancho; x++) {
+    for (let y = 0; y < alto; y++) {
+      if (rgba[(y * ancho + x) * 4 + 3] > UMBRAL_ALFA) {
+        if (primero[x] < 0) primero[x] = y;
+        ultimo[x] = y;
+      }
+    }
+  }
+  const fondo: (number | null)[] = [];
+  const inicio: (number | null)[] = [];
+  for (let i = 0; i < FRANJAS_DEL_CONTORNO; i++) {
+    const desde = Math.floor((i * ancho) / FRANJAS_DEL_CONTORNO);
+    const hasta = Math.floor(((i + 1) * ancho) / FRANJAS_DEL_CONTORNO);
+    let con = 0;
+    let masAlto = Infinity;
+    let masBajo = -1;
+    for (let x = desde; x < hasta; x++) {
+      if (ultimo[x] < 0) continue;
+      con++;
+      masAlto = Math.min(masAlto, ultimo[x] + 1);
+      masBajo = Math.max(masBajo, primero[x]);
+    }
+    // Una franja con menos de la mitad de sus columnas con prenda es un borde o un hueco, no parte del contorno.
+    if (con === 0 || con * 2 < hasta - desde) {
+      fondo.push(null);
+      inicio.push(null);
+    } else {
+      fondo.push(Math.floor((masAlto / alto) * 1000) / 1000);
+      inicio.push(Math.ceil((masBajo / alto) * 1000) / 1000);
+    }
+  }
+  if (fondo.every((v) => v === null)) return null;
+  const masAlta = Math.min(1, ...inicio.map((v) => v ?? 1));
+  return { fondo, cima: inicio.map((v) => (v !== null && v <= masAlta + CIMA_DE_LA_PRETINA ? v : null)) };
+}
+
 /** El tramo contiguo de prenda más ancho de una fila de la imagen (en píxeles). */
 function tramoMasAncho(rgba: ArrayLike<number>, ancho: number, y: number): number {
   let mejor = 0;
@@ -113,6 +179,44 @@ function tramoMasAncho(rgba: ArrayLike<number>, ancho: number, y: number): numbe
     }
   }
   return mejor;
+}
+
+/** Hasta dónde se sube (fracción del alto de la prenda, desde su fila más baja) buscando dónde el bajo termina de abrirse: un bajo en V o en diagonal no ocupa más que eso. */
+export const ALTO_MAXIMO_DEL_BAJO = 0.4;
+/** El paso con que se sube (fracción del alto) y lo mínimo que tiene que ensancharse la prenda en cada paso (fracción del ancho) para seguir siendo «el bajo que se abre»:
+ *  menos que eso ya es el cuerpo, que casi no cambia de ancho. */
+const PASO_DEL_BAJO = 0.02;
+const CRECE_MINIMO_DEL_BAJO = 0.01;
+/** Un ensanche de golpe de una fila a la siguiente (fracción del ancho) no es el bajo que se abre: es una manga que se junta con el cuerpo. Ahí se deja de subir. */
+const SALTO_DE_MANGA = 0.1;
+
+/**
+ * El ancho del CUERPO de la prenda a la altura donde su bajo termina de abrirse (px). Un bajo en V, en diagonal, en curva o de pañuelo es angosto en sus últimas filas y se
+ * va ensanchando hacia arriba hasta llegar al cuerpo: si la prenda se midiera solo en esa zona angosta (los últimos 12 % de alto), parecería más chica de lo que es y la figura
+ * la agrandaría (Felipe, 2026-11-17: el Top Glitters, de bajo en V, salía de 56 cm de ancho sobre un pantalón de cintura 39). Se sube desde el techo de esa zona mientras la
+ * prenda se siga ensanchando de a poco; se deja de subir cuando el ancho se estabiliza (ya es el cuerpo), cuando salta de golpe (una manga que se junta) o al llegar al
+ * tope (`ALTO_MAXIMO_DEL_BAJO`). Con un bajo recto no sube nada: devuelve el ancho de siempre.
+ */
+function anchoDelCuerpo(tramos: readonly number[], ancho: number, alto: number, fila: number, techo: number, enLaZona: number): number {
+  const limite = Math.max(0, fila - Math.round(ALTO_MAXIMO_DEL_BAJO * alto));
+  const paso = Math.max(1, Math.round(PASO_DEL_BAJO * alto));
+  let z = enLaZona;
+  let y = techo;
+  while (y - paso >= limite) {
+    let m = 0;
+    let salto = false;
+    for (let k = 1; k <= paso; k++) {
+      if (tramos[y - k] - tramos[y - k + 1] > SALTO_DE_MANGA * ancho) {
+        salto = true;
+        break;
+      }
+      m = Math.max(m, tramos[y - k]);
+    }
+    if (salto || m < z + CRECE_MINIMO_DEL_BAJO * ancho) break;
+    z = m;
+    y -= paso;
+  }
+  return z;
 }
 
 /**
@@ -141,9 +245,10 @@ export function medirRecorte(rgba: ArrayLike<number>, ancho: number, alto: numbe
     for (let y = Math.max(0, fila - Math.round(0.04 * alto)); y <= fila; y++) m = Math.max(m, tramos[y]);
     borde = m / ancho;
     filaDelBorde = (fila + 1) / alto;
+    const techo = Math.max(0, fila - Math.round(ZONA_DEL_BAJO * alto));
     let z = 0;
-    for (let y = Math.max(0, fila - Math.round(ZONA_DEL_BAJO * alto)); y <= fila; y++) z = Math.max(z, tramos[y]);
-    anchoBajo = z / ancho;
+    for (let y = techo; y <= fila; y++) z = Math.max(z, tramos[y]);
+    anchoBajo = anchoDelCuerpo(tramos, ancho, alto, fila, techo, z) / ancho;
   }
 
   let p = 0;
@@ -151,7 +256,8 @@ export function medirRecorte(rgba: ArrayLike<number>, ancho: number, alto: numbe
   for (let y = desde; y < Math.max(desde + 1, Math.ceil(0.05 * alto)); y++) p = Math.max(p, tramos[y]);
   const pretina = p / ancho >= PRETINA_MINIMA ? p / ancho : null;
 
-  return { filaDelBorde, borde, pretina, bajo: filaDelBorde === null ? null : perfilDelBajo(rgba, ancho, alto), anchoBajo };
+  const contorno = contornoDe(rgba, ancho, alto);
+  return { filaDelBorde, borde, pretina, bajo: filaDelBorde === null ? null : perfilDelBajo(rgba, ancho, alto), anchoBajo, ...(contorno ? { contorno } : {}) };
 }
 
 /** La cintura estándar de una pretina, plana (cm): la mitad de una cintura de 72 cm. Lo que se le deja de ancho a la pretina cuando la prenda de
@@ -262,12 +368,51 @@ export function cajaDeAbajoUnida(
   const filaDelBorde = filaAltaDelBorde(a, franja) ?? a.filaDelBorde;
   const h = Math.min(Math.max(pretinaPx / b.pretina / abajo.proporcion, LARGO_MINIMO_DE_ABAJO * PX_POR_CM), LARGO_MAXIMO_DE_ABAJO * PX_POR_CM);
   const w = h * abajo.proporcion;
-  return {
-    x: Math.round(ESCENA.ancho / 2 - w / 2),
-    y: Math.round(arriba.caja.y + arriba.caja.h * filaDelBorde - SOLAPE_DE_LA_UNION),
-    w: Math.round(w),
-    h: Math.round(h),
-  };
+  const x = Math.round(ESCENA.ancho / 2 - w / 2);
+  const yEstimada = arriba.caja.y + arriba.caja.h * filaDelBorde - SOLAPE_DE_LA_UNION;
+  // Con el contorno fino de las dos prendas la posición no se estima: se CALCULA la que deja el bajo de arriba cubriendo la pretina en cada columna.
+  const yCubierta = alturaQueCubreLaPretina(arriba.caja, a.contorno, a.filaDelBorde, { x, w, h }, b.contorno);
+  return { x, y: Math.round(yCubierta ?? yEstimada), w: Math.round(w), h: Math.round(h) };
+}
+
+/** Lo más que puede subir la pretina (fracción del alto de la prenda de arriba) sobre donde la pondría la estimación, para taparse bajo el bajo de arriba. Más que eso es una foto
+ *  rara (un bajo con un hueco enorme), y es mejor un poco de aire que un pantalón subido hasta el pecho. */
+export const SUBIDA_MAXIMA_DE_LA_PRETINA = 0.3;
+
+/**
+ * La altura (px de la escena) a la que hay que poner la prenda de abajo para que el bajo de la de arriba cubra su pretina en TODAS sus columnas: sin un triángulo de fondo entre el
+ * bajo en V de un top y la esquina del pantalón. Es la más baja de las que cubren (lo de abajo no sube más de lo necesario). `null` si falta algún contorno o no hay columna que
+ * cubrir: entonces manda la estimación.
+ */
+export function alturaQueCubreLaPretina(
+  arriba: Caja,
+  contornoArriba: ContornoDelRecorte | null | undefined,
+  /** Dónde termina el TORSO de la prenda de arriba (`filaDelBorde`): la referencia del bajo, y no su punto más bajo, que puede ser el puño de una manga larga. */
+  bajoDelTorso: number | null,
+  abajo: { x: number; w: number; h: number },
+  contornoAbajo: ContornoDelRecorte | null | undefined,
+): number | null {
+  if (!contornoArriba || !contornoAbajo || bajoDelTorso === null || !(arriba.w > 0) || !(abajo.w > 0)) return null;
+  const n = FRANJAS_DEL_CONTORNO;
+  const masBajo = bajoDelTorso;
+  let tope = Infinity;
+  for (let i = 0; i < n; i++) {
+    const cima = contornoAbajo.cima[i];
+    if (cima === null || cima === undefined) continue;
+    // La franja de la pretina, vista desde la prenda de arriba: sus dos bordes, para no dejar sin mirar un pedazo de bajo.
+    const izquierda = abajo.x + (i / n) * abajo.w;
+    const derecha = abajo.x + ((i + 1) / n) * abajo.w;
+    const desde = Math.max(0, Math.floor(((izquierda - arriba.x) / arriba.w) * n));
+    const hasta = Math.min(n - 1, Math.floor(((derecha - arriba.x) / arriba.w) * n));
+    for (let j = desde; j <= hasta; j++) {
+      const fondo = contornoArriba.fondo[j];
+      if (fondo === null || fondo === undefined || fondo < masBajo - SALTO_DEL_CONTORNO) continue;
+      tope = Math.min(tope, arriba.y + fondo * arriba.h - SOLAPE_DE_LA_UNION - cima * abajo.h);
+    }
+  }
+  if (!Number.isFinite(tope)) return null;
+  // Nunca por encima del límite: la prenda de abajo no sube más de lo razonable, aunque el contorno de arriba diga lo contrario.
+  return Math.max(tope, arriba.y + masBajo * arriba.h - SUBIDA_MAXIMA_DE_LA_PRETINA * arriba.h - SOLAPE_DE_LA_UNION - 0);
 }
 
 /* ======================== El hilo de la espera (B1, Felipe 2026-10-22) ======================== */
@@ -339,7 +484,7 @@ const CARPETA_DE_RECORTES = "/storage/v1/object/public/retail-productos-fotos/re
  */
 const NOMBRE_DE_RECORTE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:\.[a-z0-9]{2,5}\.ia)?(?:-[0-9a-f]{1,32})?\.(?:png|webp)$/i;
 /** La medida se guarda un año por su dirección: si cambia cómo se mide (`medirRecorte`), se sube este número para que se vuelva a calcular. */
-export const VERSION_DE_LA_MEDIDA = 1;
+export const VERSION_DE_LA_MEDIDA = 2;
 
 /** ¿Es el nombre de un recorte del almacén? Nada de carpetas ni de otras direcciones. */
 export const esNombreDeRecorte = (archivo: string): boolean => NOMBRE_DE_RECORTE.test(archivo);
@@ -357,13 +502,22 @@ export function direccionDeLaMedida(url: string): string | null {
 
 const esFraccion = (v: unknown): v is number | null => v === null || (typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1);
 
+function contornoDesdeDato(c: unknown): ContornoDelRecorte | null {
+  if (!c || typeof c !== "object" || Array.isArray(c)) return null;
+  const { fondo, cima } = c as Record<string, unknown>;
+  const bien = (v: unknown): v is (number | null)[] => Array.isArray(v) && v.length === FRANJAS_DEL_CONTORNO && v.every(esFraccion);
+  return bien(fondo) && bien(cima) ? { fondo, cima } : null;
+}
+
 /** Una medida bien formada (la que responde la ruta o la que se recordó), o `null` si no lo es: un dato roto o de otra versión no rompe nada. */
 export function medidaDesdeDato(m: unknown): MedidaDelRecorte | null {
   if (!m || typeof m !== "object" || Array.isArray(m)) return null;
-  const { filaDelBorde, borde, pretina, bajo, anchoBajo } = m as Record<string, unknown>;
+  const { filaDelBorde, borde, pretina, bajo, anchoBajo, contorno } = m as Record<string, unknown>;
   const perfil = Array.isArray(bajo) && bajo.length === FRANJAS_DEL_BAJO && bajo.every(esFraccion) ? (bajo as (number | null)[]) : null;
   if (esFraccion(filaDelBorde) && esFraccion(borde) && esFraccion(pretina) && (bajo == null || perfil) && (anchoBajo == null || esFraccion(anchoBajo))) {
-    return { filaDelBorde, borde, pretina, bajo: perfil, anchoBajo: anchoBajo ?? null };
+    // Un contorno mal formado no tira la medida: sin él, la unión usa el perfil de siempre.
+    const fino = contornoDesdeDato(contorno);
+    return { filaDelBorde, borde, pretina, bajo: perfil, anchoBajo: anchoBajo ?? null, ...(fino ? { contorno: fino } : {}) };
   }
   return null;
 }
