@@ -2,7 +2,7 @@
 // sus tres chips (estado, fechas, tiendas) y sus ofertas como carteles. Lógica pura, sin red: la pantalla solo la dibuja.
 // La ficha con cada medida: `docs/milimetro/panel-de-campana.md`.
 
-import { alcanceDicho, ordenarReglas, reglasVivas, titularDeOferta, vigenciaDeRegla, type ReglaCampana } from "./campana-reglas";
+import { alcanceDicho, ordenarReglas, reglasVivas, textoDiasCorto, titularDeOferta, vigenciaDeRegla, type ReglaCampana } from "./campana-reglas";
 import { chipDeTarjeta, textoSedesDeCampana, type TiendaOpcion } from "./etiqueta-campana";
 import { vigenciaDe } from "./etiqueta-vigencia";
 import { tramoDeCampana } from "./sellos-campanas";
@@ -63,35 +63,65 @@ export type CartelDeOferta = {
   glifo: string;
   /** A qué: «Polos», «Toda la campaña», «Toda la compra». */
   en: string;
+  /** Dónde y cuándo, solo lo que no es lo de su campaña: «Solo Tienda Lima · 25 nov – 30 nov · mar y jue». `null` si rige como la campaña.
+   *  Lo pidió la prueba ciega de Formidable (2026-11-18): un «3 x 2 solo en Lima» y dos «−20 %» se veían iguales. */
+  detalle: string | null;
   chip: { texto: string; tono: TonoChipCampana } | null;
 };
 
 const conMayuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
+/** Lo de la campaña contra lo que se compara cada oferta: sus fechas y sus tiendas (vacío = todas), con los nombres de las tiendas. */
+export type DondeDeLaCampana = { vigenteDesde: string | null; vigenteHasta: string | null; sedeIds: readonly string[]; tiendas: readonly TiendaOpcion[] };
+
 /**
  * Las ofertas vivas de una campaña como carteles (las que no terminaron ni se retiraron), en el orden de la hoja (`ordenarReglas`). Sin ofertas
  * y con el descuento de siempre (`descuentoPct`, el de las campañas de antes de las ofertas), ese descuento es su único cartel. `nombre` nombra
- * categorías e insignias (sus ids no se repiten).
+ * categorías e insignias (sus ids no se repiten). Con `donde`, cada cartel dice en qué tiendas, qué fechas y qué días rige si no son los de su
+ * campaña (`detalle`); una programada con fechas propias dice «Programada» (las fechas ya van en el detalle).
  */
 export function cartelesDeCampana(
   reglas: readonly ReglaCampana[],
   hoy: string,
   nombre: (id: string) => string,
   descuentoPct: number | null,
+  donde?: DondeDeLaCampana,
 ): CartelDeOferta[] {
   const vivas = ordenarReglas(reglasVivas(reglas, hoy), hoy);
   if (vivas.length === 0) {
     return descuentoPct !== null
-      ? [{ id: "descuento", glifo: titularDeOferta({ tipo: "pct", porcentaje: descuentoPct, lleva: 0, paga: 0, monto: 0 }), en: "Toda la campaña", chip: null }]
+      ? [{ id: "descuento", glifo: titularDeOferta({ tipo: "pct", porcentaje: descuentoPct, lleva: 0, paga: 0, monto: 0 }), en: "Toda la campaña", detalle: null, chip: null }]
       : [];
   }
   return vivas.map((r) => {
     const alcance = alcanceDicho(r, nombre);
     const en = r.tipo === "monto" && r.cuenta !== "campana" ? "Toda la compra" : alcance ? conMayuscula(alcance) : "Toda la campaña";
+    const propio = donde ? dondeYCuandoPropios(r, donde, hoy) : { texto: null, fechas: false };
     const v = vigenciaDeRegla(r, hoy);
-    const chip = v === "borrador" ? { texto: "Borrador", tono: "neutro" as const } : v === "programada" ? { texto: `Desde el ${fechaCorta(r.desde)}`, tono: "ambar" as const } : null;
-    return { id: r.id, glifo: titularDeOferta(r), en, chip };
+    const chip =
+      v === "borrador"
+        ? { texto: "Borrador", tono: "neutro" as const }
+        : v === "programada"
+          ? { texto: propio.fechas ? "Programada" : `Desde el ${fechaCorta(r.desde)}`, tono: "ambar" as const }
+          : null;
+    return { id: r.id, glifo: titularDeOferta(r), en, detalle: propio.texto, chip };
   });
+}
+
+/** Las tiendas, las fechas y los días de una oferta que no son los de su campaña, en una línea («Solo Tienda Lima · 25 nov – 30 nov · mar y jue»). */
+function dondeYCuandoPropios(r: ReglaCampana, d: DondeDeLaCampana, hoy: string): { texto: string | null; fechas: boolean } {
+  // Una oferta sin tiendas rige en todas las de su campaña; una que las nombra todas, también.
+  const deLaCampana = d.sedeIds.length > 0 ? d.sedeIds : d.tiendas.map((t) => t.id);
+  const tiendasPropias = r.sedeIds.length > 0 && !deLaCampana.every((id) => r.sedeIds.includes(id));
+  // Las fechas se comparan desde hoy: una oferta que ya rige empezó «con la campaña» aunque naciera días después (la hoja la abre desde hoy).
+  const desdeHoy = (f: string | null) => (f && f > hoy ? f : hoy);
+  const fechas = desdeHoy(r.desde) !== desdeHoy(d.vigenteDesde) || r.hasta !== d.vigenteHasta;
+  const partes = [
+    tiendasPropias ? textoSedesDeCampana(r.sedeIds, d.tiendas) : null,
+    fechas ? rangoCorto(r.desde, r.hasta, hoy) : null,
+    textoDiasCorto(r.dias) || null,
+  ].filter((x): x is string => Boolean(x));
+  return { texto: partes.length > 0 ? partes.join(" · ") : null, fechas };
 }
 
 /**

@@ -289,6 +289,8 @@
     text-wrap: balance;
   }
   .lc-cartel-en { font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
+  /* Dónde y cuándo, solo si no es lo de su campaña (Formidable 2026-11-18): pegado a «a qué», en la misma voz. */
+  .lc-cartel-detalle { margin-top: -4px; }
   .lc-cartel-chip { margin-top: auto; padding-top: 4px; }
   /* «Nueva oferta»: el mismo cartel, punteado y sin relleno (como «Nuevo descuento»). */
   .lc-cartel-nuevo {

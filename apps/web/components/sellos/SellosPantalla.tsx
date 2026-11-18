@@ -989,7 +989,7 @@ export function SellosPantalla({
         nombre={e.nombre}
         chips={chips}
         acciones={accionesDelPanel(e, editable)}
-        carteles={cartelesDeCampana(ofertas, hoy, nombreDeId, e.descuentoPct)}
+        carteles={cartelesDeCampana(ofertas, hoy, nombreDeId, e.descuentoPct, { vigenteDesde: e.vigenteDesde, vigenteHasta: e.vigenteHasta, sedeIds: e.sedeIds, tiendas })}
         onCartel={editable ? (id) => (id === "descuento" ? setConfigurando(e) : abrirOferta(id)) : undefined}
         onNuevaOferta={editable ? () => abrirOferta(null) : undefined}
         prendas={p.modelos}

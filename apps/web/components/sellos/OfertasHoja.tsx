@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Award, Check, Plus, Shirt, Tag, Undo2, X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { Boton, Campo, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
@@ -23,7 +23,7 @@ import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import type { CampoDeGuia } from "@/lib/guia-campos";
 import type { InsigniaDeOferta } from "@/lib/campana-reglas";
 import { alcanceCampana, avisoReimprimir, destinoReimprimir, nombreBajoCosto, prendasBajoCosto, prendasQueCambianDePrecioHoy, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
-import { nombreSinSku } from "@/lib/campana-hoja";
+import { nombreSinSku, unSoloEnvio } from "@/lib/campana-hoja";
 import { sumarDias } from "@/lib/fechas-lima";
 import { compraDeEjemplo } from "@/lib/compra-de-ejemplo";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
@@ -242,6 +242,12 @@ export function OfertasHoja({
   const [escribeEscalon, setEscribeEscalon] = useState(false);
   const [guardando, setGuardando] = useState<Guardando>(null);
   const [retirando, setRetirando] = useState<string | null>(null);
+  // Al preguntar «¿Retirar…?», el foco pasa a «No, dejarla» sin mover la hoja: con `autoFocus`, el navegador la desplazaba hasta abajo para
+  // mostrar el botón del pie fijo (ADR-0185: la vista no se mueve sola).
+  const pieConfirma = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (retirando) pieConfirma.current?.querySelector<HTMLButtonElement>("[data-foco-inicial]")?.focus({ preventScroll: true });
+  }, [retirando]);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   // Lo poco que la campaña misma tiene aquí (su descuento de siempre y el límite de tiendas de antes) se toca con las mismas puertas de
   // siempre (`PATCH /api/productos/etiquetas`). Sus FECHAS ya no se cambian aquí sino en «Editar» de su pase (Felipe 2026-10-28). Todo lo
@@ -406,9 +412,15 @@ export function OfertasHoja({
     }
   }
 
-  // Guardar, activar o retirar cierran la hoja (ADR-0677, 7c): lo que quedó se ve en su cartel, en el panel de la campaña.
+  // Guardar, activar o retirar cierran la hoja (ADR-0677, 7c): lo que quedó se ve en su cartel, en el panel de la campaña. Cada uno pasa por
+  // un candado de un solo envío: tres clics en el mismo instante mandaban tres ofertas iguales, porque `guardando` aún no había apagado el
+  // botón (chaos 2026-11-18; el mismo candado de la hoja de la campaña, `unSoloEnvio`).
+  const [unaVez] = useState(unSoloEnvio);
   async function guardar(activar: boolean, cerrar: () => void) {
     if (!puedeGuardar || guardando) return;
+    await unaVez(() => enviarOferta(activar, cerrar));
+  }
+  async function enviarOferta(activar: boolean, cerrar: () => void) {
     const cuerpo: CuerpoGuardarOferta = {
       id: o.id,
       etiquetaId: etiqueta.id,
@@ -452,14 +464,16 @@ export function OfertasHoja({
   }
 
   async function retirarRegla(r: ReglaCampana, cerrar: () => void) {
-    setTrabajando(r.id);
-    const res = await llamar("PATCH", { id: r.id, accion: "retirar" });
-    setTrabajando(null);
-    setRetirando(null);
-    if (res.ok) {
-      cerrar();
-      avisar.exito("Oferta retirada", { detalle: `«${r.nombre}» deja de bajar el precio. Queda en el historial.` });
-    }
+    await unaVez(async () => {
+      setTrabajando(r.id);
+      const res = await llamar("PATCH", { id: r.id, accion: "retirar" });
+      setTrabajando(null);
+      setRetirando(null);
+      if (res.ok) {
+        cerrar();
+        avisar.exito("Oferta retirada", { detalle: `«${r.nombre}» deja de bajar el precio. Queda en el historial.` });
+      }
+    });
   }
 
   // ---- Piezas pequeñas --------------------------------------------------------------------------------------------------------------
@@ -1214,10 +1228,12 @@ export function OfertasHoja({
     }
     {
       const ok = puedeGuardar;
+      // Un choque no frena el borrador, solo activarla: el pie lo dice antes de pedir nada («Para activarla» solo se leía como un candado,
+      // prueba ciega de Formidable 2026-11-18). Una oferta activa que se edita sí debe resolverlo para guardar.
       if (ok && faltaChoque) {
         falta = (
           <div className="of-pie-pide">
-            <FaltanDelPaso faltan={[faltaChoque]} ahora={faltaChoque.id} onIr={llevarA} rotulo={estadoEdita === "activa" ? "Para guardar" : "Para activarla"} />
+            <FaltanDelPaso faltan={[faltaChoque]} ahora={faltaChoque.id} onIr={llevarA} rotulo={estadoEdita === "activa" ? "Para guardar" : "Puedes guardarla como borrador. Para activarla"} />
           </div>
         );
       } else if (ok) {
@@ -1247,23 +1263,31 @@ export function OfertasHoja({
       );
     }
 
-    // Retirar va en la hoja de la oferta abierta (ADR-0677, 7c: la lista de «Ya registradas» se fue), a la izquierda del pie, con su «Sí, retirar».
+    // Retirar va en la hoja de la oferta abierta (ADR-0677, 7c: la lista de «Ya registradas» se fue), a la izquierda del pie. Al tocarlo, el pie
+    // entero pasa a preguntar, con la oferta nombrada y su «No se puede deshacer»: un «Sí, retirar» que aparecía en el lugar del botón no se veía
+    // (prueba ciega de Formidable 2026-11-18: «no pareció hacer nada»). Retirar no se deshace: la base no reactiva una oferta retirada.
     const viva = editada && editada.estado !== "desactivada" && vigenciaDeRegla(editada, hoy) !== "terminada" ? editada : null;
-    const retirar = viva ? (
-      retirando === viva.id ? (
-        <div className="of-pie-retirar" role="group" aria-label={`Retirar «${viva.nombre}»`}>
-          <Boton peso="peligro" className="btn-chico" cargando={trabajando === viva.id} textoCargando="Retirando…" onClick={() => retirarRegla(viva, cerrar)}>
-            Sí, retirar
-          </Boton>
-          <Boton peso="fantasma" className="btn-chico" disabled={trabajando === viva.id} onClick={() => setRetirando(null)}>
+    if (viva && retirando === viva.id) {
+      const ocupado = trabajando === viva.id;
+      return (
+        <div ref={pieConfirma} className="of-pie of-pie-confirma pie-hoja-fijo" role="group" aria-label={`Retirar la oferta «${titularDeOferta(viva)}»`}>
+          <AvisoNoSeDeshace className="of-confirma-aviso" />
+          <p className="of-confirma">
+            <b>¿Retirar la oferta «{titularDeOferta(viva).replace(/ %/g, "\u00a0%")}»?</b> {viva.estado === "borrador" ? "Se descarta el borrador." : "Deja de bajar el precio ya."}
+          </p>
+          <Boton peso="fantasma" data-foco-inicial disabled={ocupado} onClick={() => setRetirando(null)}>
             No, dejarla
           </Boton>
+          <Boton peso="primario" cargando={ocupado} textoCargando="Retirando…" onClick={() => retirarRegla(viva, cerrar)}>
+            Sí, retirar
+          </Boton>
         </div>
-      ) : (
-        <Boton peso="peligro" className="of-pie-retirar" disabled={guardandoAlgo} onClick={() => setRetirando(viva.id)}>
-          Retirar
-        </Boton>
-      )
+      );
+    }
+    const retirar = viva ? (
+      <Boton peso="peligro" className="of-pie-retirar" disabled={guardandoAlgo} onClick={() => setRetirando(viva.id)}>
+        Retirar
+      </Boton>
     ) : null;
     return (
       <div className="of-pie pie-hoja-fijo">

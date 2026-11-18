@@ -102,8 +102,52 @@ describe("las ofertas como carteles", () => {
     expect(carteles.map((c) => c.id)).not.toContain("ret");
   });
 
+  // La prueba ciega de Formidable (2026-11-18): un «3 x 2 solo en Lima» y dos «−20 %» se veían iguales en el panel.
+  it("el cartel dice dónde y cuándo rige, solo si no es lo de su campaña", () => {
+    const donde = { vigenteDesde: "2026-11-16", vigenteHasta: "2026-11-30", sedeIds: [] as string[], tiendas: [LIMA, TRU] };
+    const [comoLaCampana, enLima, enTodas, conDias] = cartelesDeCampana(
+      [
+        regla({ id: "a" }),
+        regla({ id: "b", sedeIds: [LIMA.id] }),
+        regla({ id: "c", sedeIds: [LIMA.id, TRU.id] }),
+        regla({ id: "d", dias: [2, 4] }),
+      ],
+      HOY,
+      nombre,
+      null,
+      donde,
+    ).sort((x, y) => x.id.localeCompare(y.id));
+    expect(comoLaCampana.detalle).toBeNull();
+    expect(enLima.detalle).toBe("Solo Tienda Lima");
+    expect(enTodas.detalle).toBeNull();
+    expect(conDias.detalle).toBe("mar y jue");
+  });
+
+  it("con fechas propias, las dice; si además empieza después, el chip dice «Programada» sin repetir la fecha", () => {
+    const donde = { vigenteDesde: "2026-11-16", vigenteHasta: "2026-11-30", sedeIds: [] as string[], tiendas: [LIMA, TRU] };
+    const [prog] = cartelesDeCampana([regla({ id: "p", desde: "2026-11-25", hasta: "2026-11-30", sedeIds: [TRU.id] })], HOY, nombre, null, donde);
+    expect(prog.detalle).toBe("Solo Tienda Trujillo · 25 nov – 30 nov");
+    expect(prog.chip).toEqual({ texto: "Programada", tono: "ambar" });
+    // Sin fechas propias, el chip sigue diciendo desde cuándo (es lo único que lo dice).
+    const [igual] = cartelesDeCampana([regla({ desde: "2026-12-01", hasta: "2026-12-24" })], HOY, nombre, null, { ...donde, vigenteDesde: "2026-12-01", vigenteHasta: "2026-12-24" });
+    expect(igual.detalle).toBeNull();
+    expect(igual.chip?.texto).toBe("Desde el 1 dic");
+  });
+
+  it("una oferta que ya rige cuenta con las fechas de la campaña aunque haya nacido después", () => {
+    // La campaña empezó el 9; la oferta nació hoy (18) y termina con ella: rige igual desde hoy.
+    const donde = { vigenteDesde: "2026-11-09", vigenteHasta: "2026-11-30", sedeIds: [] as string[], tiendas: [LIMA, TRU] };
+    expect(cartelesDeCampana([regla({ desde: HOY, hasta: "2026-11-30" })], HOY, nombre, null, donde)[0].detalle).toBeNull();
+    expect(cartelesDeCampana([regla({ desde: HOY, hasta: "2026-11-25" })], HOY, nombre, null, donde)[0].detalle).toBe("18 nov – 25 nov");
+  });
+
+  it("una campaña limitada a una tienda: la oferta en esa tienda no lo repite", () => {
+    const [o] = cartelesDeCampana([regla({ sedeIds: [LIMA.id] })], HOY, nombre, null, { vigenteDesde: "2026-11-16", vigenteHasta: "2026-11-30", sedeIds: [LIMA.id], tiendas: [LIMA, TRU] });
+    expect(o.detalle).toBeNull();
+  });
+
   it("sin ofertas, el descuento de siempre es su único cartel; sin nada, ninguno", () => {
-    expect(cartelesDeCampana([], HOY, nombre, 15)).toEqual([{ id: "descuento", glifo: "−15 %", en: "Toda la campaña", chip: null }]);
+    expect(cartelesDeCampana([], HOY, nombre, 15)).toEqual([{ id: "descuento", glifo: "−15 %", en: "Toda la campaña", detalle: null, chip: null }]);
     expect(cartelesDeCampana([], HOY, nombre, null)).toEqual([]);
   });
 });

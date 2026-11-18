@@ -88,7 +88,7 @@ export function PanelDeCampana({
               type="button"
               className="lc-cartel"
               style={{ "--i": i } as CSSProperties}
-              aria-label={`Abrir ${c.id === "descuento" ? "el descuento" : "la oferta"} ${c.glifo}, ${c.en}`}
+              aria-label={`Abrir ${c.id === "descuento" ? "el descuento" : "la oferta"} ${c.glifo}, ${[c.en, c.detalle].filter(Boolean).join(", ")}`}
               onClick={() => onCartel(c.id)}
             >
               <Cartel c={c} />
@@ -177,6 +177,7 @@ function Cartel({ c }: { c: CartelDeOferta }) {
       {/* El «%» nunca queda solo en una línea («La 2.ª al 50 %» a 375 px). */}
       <span className="lc-cartel-glifo">{c.glifo.replace(/ %/g, " %")}</span>
       <span className="lc-cartel-en">{c.en}</span>
+      {c.detalle && <span className="lc-cartel-en lc-cartel-detalle">{c.detalle}</span>}
       {c.chip && (
         <span className="lc-cartel-chip">
           <Chip tono={c.chip.tono}>{c.chip.texto}</Chip>

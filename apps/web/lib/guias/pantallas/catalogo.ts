@@ -1296,7 +1296,7 @@ export const GUIA_CAMPANAS: Guia = {
       ancla: "campana.ofertas",
       opcional: true,
       titulo: "Sus ofertas, como carteles",
-      texto: "Cada cartel dice lo que da en grande («3 x 2», «−20 %») y a qué prendas. Si dice «Borrador», todavía no baja el precio. Toca uno para cambiarlo o retirarlo.",
+      texto: "Cada cartel dice lo que da en grande («3 x 2», «−20 %») y a qué prendas; si no rige en todas las tiendas o en otras fechas, también lo dice. Si dice «Borrador», todavía no baja el precio. Toca uno para cambiarlo o retirarlo.",
     },
     {
       id: "nueva-oferta",
