@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 231,
+  "total": 232,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -264,6 +264,7 @@
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-produccion/AgregarColor.tsx": [
+      "button «{`Confirmar: quitar ${nombre}»",
       "button «{`Quitar ${nombre}»",
       "Boton «{abierto ? \"Listo con los colores\" : \"+ Agregar color\"}»"
     ],

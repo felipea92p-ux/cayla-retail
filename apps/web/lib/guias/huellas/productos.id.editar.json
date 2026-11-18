@@ -2,7 +2,7 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 169,
+  "total": 170,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{volverA}»"
@@ -220,6 +220,7 @@
       "button «{fuera ? `${etiqueta}»"
     ],
     "components/orden-produccion/AgregarColor.tsx": [
+      "button «{`Confirmar: quitar ${nombre}»",
       "button «{`Quitar ${nombre}»",
       "Boton «{abierto ? \"Listo con los colores\" : \"+ Agregar color\"}»"
     ],

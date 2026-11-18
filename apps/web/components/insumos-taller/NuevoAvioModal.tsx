@@ -51,7 +51,7 @@ import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 //
 // Lo que esta hoja hace y la vieja no:
 //   · Pregunta PRIMERO de qué clase es (botón, cierre, hilo, etiqueta, elástico, pretina). De la clase salen tres cosas: la unidad que se propone, si lleva color y qué medida pide.
-//   · La MEDIDA es un campo, no una letra del nombre: «Botón nácar» + 18 L. El nombre completo lo arma la base igual que aquí, así que la ficha y sus colores se leen igual en todo el ERP.
+//   · La MEDIDA es un campo, no una letra del nombre: «Botón nácar» + 1.5 cm. El nombre completo lo arma la base igual que aquí, así que la ficha y sus colores se leen igual en todo el ERP.
 //   · El código lo arma la base con el prefijo de la clase (`BOT-01`): nadie lo teclea y nadie lo repite.
 //   · Los 103 colores de la carta de Catálogo, con buscador y «+ Nuevo color», y una fila por color con su saldo inicial y su mínimo.
 //   · Avisa de la unidad: es la ÚNICA decisión irreversible de la hoja (`fn_insumos_unidad_firme` la congela al primer lote).

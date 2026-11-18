@@ -40,8 +40,8 @@ const base: EntradaAvioNuevo = {
   claseId: "k-bot",
   nombre: "Botón nácar",
   unidad: "unidad",
-  medida: "18",
-  medidaUnidad: "linea",
+  medida: "1.5",
+  medidaUnidad: "centimetro",
   merma: "",
   filas: [{ color: "NEG", ya: "", costo: "", minimo: "" }],
   puedeSaldo: true,
@@ -57,7 +57,7 @@ const avio = (extra: Partial<MaterialVista> = {}): MaterialVista => ({
   tejidoId: null,
   composicion: null,
   claseId: "k-bot",
-  medida: { valor: 18, unidad: "linea" },
+  medida: { valor: 1.5, unidad: "centimetro" },
   unidad: "unidad",
   merma: 0,
   compra: "unidad",
@@ -97,8 +97,9 @@ describe("la medida: lo que cada comportamiento pide, igual que `fn_material_lee
   it("un botón SIN medida sí se guarda: en un botón la medida es recomendada, no obligatoria", () => {
     expect(problemasDeAvioNuevo(e({ medida: "", medidaUnidad: "" }), CLASES)).toEqual([]);
   });
-  it("la medida de un botón no se escribe en centímetros", () => {
-    const p = problemasDeLaMedida(e({ medidaUnidad: "centimetro" }), CLASES[0]);
+  it("la medida de un botón va en centímetros y no en milímetros (Felipe 2026-11-17: «se maneja por cm»)", () => {
+    expect(problemasDeLaMedida(e({ medidaUnidad: "centimetro" }), CLASES[0])).toEqual([]);
+    const p = problemasDeLaMedida(e({ medidaUnidad: "milimetro" }), CLASES[0]);
     expect(p.some((x) => x.includes("Elige en qué se mide"))).toBe(true);
   });
   it("una medida que no se entiende, o imposible, se rechaza en vez de leerse como cero", () => {
@@ -114,7 +115,7 @@ describe("la medida: lo que cada comportamiento pide, igual que `fn_material_lee
       const sin = problemasDeLaMedida(e({ claseId: clase.id, medida: "", medidaUnidad: "" }), clase);
       expect(sin.length > 0).toBe(COMPORTAMIENTOS[c].requerida);
       const unidad = COMPORTAMIENTOS[c].medidas[0];
-      const con = problemasDeLaMedida(e({ claseId: clase.id, medida: "10", medidaUnidad: unidad ?? "linea" }), clase);
+      const con = problemasDeLaMedida(e({ claseId: clase.id, medida: "10", medidaUnidad: unidad ?? "centimetro" }), clase);
       expect(con.length > 0).toBe(COMPORTAMIENTOS[c].medidas.length === 0);
     }
   });
@@ -192,7 +193,7 @@ describe("la guía de foco no puede contradecir a la validación (ADR-0284)", ()
 
 describe("el nombre que se va a leer", () => {
   it("se compone con la medida, igual que lo hace la base", () => {
-    expect(nombreCompuesto(e())).toBe("Botón nácar 18 L");
+    expect(nombreCompuesto(e())).toBe("Botón nácar 1.5 cm");
     expect(nombreCompuesto(e({ claseId: "k-cie", nombre: "Cierre invisible", medida: "40", medidaUnidad: "centimetro" }))).toBe("Cierre invisible 40 cm");
   });
   it("sin medida es el nombre tal cual", () => {
@@ -208,8 +209,8 @@ describe("lo que viaja a `crear_material`", () => {
       clase_id: "k-bot",
       unidad_medida: "unidad",
       merma_pct: 0,
-      medida_valor: 18,
-      medida_unidad: "linea",
+      medida_valor: 1.5,
+      medida_unidad: "centimetro",
     });
     expect(materialDelAvioParaLaBase(e({ claseId: "k-ela", unidad: "metro", medida: "3", medidaUnidad: "centimetro", merma: "3" }), CLASES).merma_pct).toBeCloseTo(0.03);
   });
@@ -243,15 +244,15 @@ describe("el código y la ficha parecida", () => {
     expect(codigoDeVistaPreviaAvio(null, [])).toBe("AVI-01");
   });
   it("el mismo nombre con la MISMA medida es el mismo avío: hay que sumarle colores, no repetirlo", () => {
-    const r = avioParecido({ nombre: "Botón nácar", medida: "18", medidaUnidad: "linea" }, [avio()]);
+    const r = avioParecido({ nombre: "Botón nácar", medida: "1.5", medidaUnidad: "centimetro" }, [avio()]);
     expect([r?.igual, r?.avio.codigo]).toEqual([true, "BOT-01"]);
   });
   it("el mismo nombre con OTRA medida son dos avíos distintos: se avisa, pero no se dice que sea el mismo", () => {
-    const r = avioParecido({ nombre: "Botón nácar", medida: "24", medidaUnidad: "linea" }, [avio()]);
+    const r = avioParecido({ nombre: "Botón nácar", medida: "2", medidaUnidad: "centimetro" }, [avio()]);
     expect(r?.igual).toBe(false);
   });
   it("una tela con el mismo nombre no cuenta (son catálogos distintos)", () => {
-    expect(avioParecido({ nombre: "Botón nácar", medida: "18", medidaUnidad: "linea" }, [avio({ tipo: "tela" })])).toBeNull();
+    expect(avioParecido({ nombre: "Botón nácar", medida: "1.5", medidaUnidad: "centimetro" }, [avio({ tipo: "tela" })])).toBeNull();
   });
 });
 
@@ -269,7 +270,7 @@ describe("tituloDeLaMedida: lo que la hoja dibuja", () => {
   it("cada clase que se mide trae su título, su ejemplo y sus unidades", () => {
     expect(tituloDeLaMedida(CLASES[1])?.titulo).toBe("Largo");
     expect(tituloDeLaMedida(CLASES[1])?.unidades).toEqual(["centimetro"]);
-    expect(tituloDeLaMedida(CLASES[0])?.unidades).toEqual(["linea"]);
+    expect(tituloDeLaMedida(CLASES[0])?.unidades).toEqual(["centimetro"]);
   });
   it("una etiqueta y «sin clase» no dibujan medida", () => {
     expect(tituloDeLaMedida(CLASES[3])).toBeNull();
