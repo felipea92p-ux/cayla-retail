@@ -34,7 +34,7 @@ import { porClave } from "../tema/cuentas.mjs";
 import { abrirContexto, consultarLocal, exigirLocal } from "../tema/motor/sesion.mjs";
 import { guiasDeLosArchivos } from "./escaner.mjs";
 import { EJEMPLOS } from "./ejemplos.mjs";
-import { compararIdaYVuelta, fraseDeDiferencia, mismoLugar } from "./ida-y-vuelta.mjs";
+import { compararIdaYVuelta, frasesDeDiferencias, mismoLugar } from "./ida-y-vuelta.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const args = {};
@@ -183,7 +183,9 @@ async function vueltaYSegundaIda(page, id, ida, problemas, avisos) {
   if (vuelta.corte) return void problemas.push(`al volver ${vuelta.corte}: no llegó al primer paso`);
   const ida2 = await pasada(page, { tecla: "ArrowRight", desde: vuelta.vistos.at(-1), llego: (e) => e.ultimo, nombre: `${id}-ida2` });
   if (ida2.corte) problemas.push(`en la segunda ida ${ida2.corte}: no llegó al último paso`);
-  for (const d of compararIdaYVuelta({ ida, vuelta: vuelta.vistos, ida2: ida2.corte ? null : ida2.vistos })) (d.falla ? problemas : avisos).push(fraseDeDiferencia(d));
+  const frases = frasesDeDiferencias(compararIdaYVuelta({ ida, vuelta: vuelta.vistos, ida2: ida2.corte ? null : ida2.vistos }));
+  problemas.push(...frases.fallas);
+  avisos.push(...frases.avisos);
 }
 
 let sinDatos = 0;

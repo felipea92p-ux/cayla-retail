@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 // La lógica pura de `guias:recorrer -- --ida-y-vuelta` (ADR-0389): el recorredor anota las tres pasadas en un navegador y esto
 // dice qué no coincide. Aquí se prueba sin navegador.
-import { clavesDePasada, compararIdaYVuelta, fraseDeDiferencia, mismoLugar } from "../guias/ida-y-vuelta.mjs";
+import { clavesDePasada, compararIdaYVuelta, fraseDeDiferencia, frasesDeDiferencias, mismoLugar } from "../guias/ida-y-vuelta.mjs";
 
 type Paso = { titulo: string; nota: string | null; hojas: number; numero: number; ultimo: boolean };
 
@@ -112,5 +112,27 @@ describe("fraseDeDiferencia", () => {
       "al volver, el paso 3 «Cada prenda» dice «No pudo hacer este paso.» (en la ida no)",
     );
     expect(fraseDeDiferencia({ pasada: "vuelta", titulo: "Solo para el líder", paso: null, motivo: "de-mas", falla: false })).toBe("al volver aparece «Solo para el líder», que la ida no mostró");
+  });
+});
+
+describe("frasesDeDiferencias", () => {
+  it("los pasos seguidos que se saltan en la misma pasada van en una sola frase", () => {
+    const { ida, ida2 } = igual(["Inicio", "Vista", "Cada prenda", "Precio", "Colores", "Buscar", "Listo"]);
+    // Al volver, desde «Buscar» se cae en «Vista»: un tramo de tres. En la segunda ida falta solo «Colores».
+    const vuelta = [ida[5]!, ida[1]!, ida[0]!];
+    const sinColores = ida2.filter((p) => p.titulo !== "Colores");
+    expect(frasesDeDiferencias(compararIdaYVuelta({ ida, vuelta, ida2: sinColores }))).toEqual({
+      fallas: ["al volver se salta del paso 3 «Cada prenda» al 5 «Colores» (3 pasos)", "en la segunda ida se salta el paso 5 «Colores»"],
+      avisos: [],
+    });
+  });
+
+  it("un tramo se corta en un paso que no se saltó, y lo que avisa va aparte", () => {
+    const { ida, ida2 } = igual(["Inicio", "A", "B", "C", "D", "Listo"]);
+    const vuelta = [ida[3]!, { titulo: "Solo para el líder", nota: null, hojas: 0, numero: 3, ultimo: false }, ida[0]!];
+    expect(frasesDeDiferencias(compararIdaYVuelta({ ida, vuelta, ida2 }))).toEqual({
+      fallas: ["al volver se salta del paso 2 «A» al 3 «B» (2 pasos)", "al volver se salta el paso 5 «D»"],
+      avisos: ["al volver aparece «Solo para el líder», que la ida no mostró"],
+    });
   });
 });

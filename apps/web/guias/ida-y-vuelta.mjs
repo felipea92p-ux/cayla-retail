@@ -88,14 +88,16 @@ const corto = (texto, n = 70) => (texto.length > n ? `${texto.slice(0, n - 1)}�
 const hojasEn = (n) => (n === 1 ? "1 hoja abierta" : `${n} hojas abiertas`);
 
 /**
- * La frase de una diferencia para la salida del recorredor: qué paso, en qué pasada y qué cambió.
- * @param {ReturnType<typeof compararIdaYVuelta>[number]} d
+ * La frase de una diferencia para la salida del recorredor: qué paso, en qué pasada y qué cambió. Un tramo de pasos seguidos que se
+ * saltan llega con `hasta` (el último del tramo).
+ * @param {ReturnType<typeof compararIdaYVuelta>[number] & { hasta?: { paso: number, titulo: string } }} d
  */
 export function fraseDeDiferencia(d) {
   const cuando = PASADAS[d.pasada];
   const paso = `el paso ${d.paso} «${d.titulo}»`;
   switch (d.motivo) {
     case "se-salta":
+      if (d.hasta) return `${cuando} se salta del paso ${d.paso} «${d.titulo}» al ${d.hasta.paso} «${d.hasta.titulo}» (${d.hasta.paso - (d.paso ?? 0) + 1} pasos)`;
       return `${cuando} se salta ${paso}`;
     case "nota":
       return `${cuando}, ${paso} dice «${corto(d.nota ?? "")}» (${d.notaIda ? `en la ida decía «${corto(d.notaIda)}»` : "en la ida no"})`;
@@ -104,4 +106,24 @@ export function fraseDeDiferencia(d) {
     default:
       return `${cuando} aparece «${d.titulo}», que la ida no mostró`;
   }
+}
+
+/**
+ * Las frases de todas las diferencias, para la salida: las que fallan y las que solo avisan. Los pasos seguidos que se saltan en la
+ * misma pasada van en una sola frase («se salta del paso 11 … al 36 …»): un pliegue que no se reabre se lleva todo lo de adentro.
+ * @param {ReturnType<typeof compararIdaYVuelta>} diferencias
+ */
+export function frasesDeDiferencias(diferencias) {
+  const juntas = [];
+  for (const d of diferencias) {
+    const previa = juntas.at(-1);
+    const fin = previa?.hasta ?? previa;
+    if (d.motivo === "se-salta" && previa?.motivo === "se-salta" && previa.pasada === d.pasada && fin.paso + 1 === d.paso) {
+      previa.hasta = { paso: d.paso, titulo: d.titulo };
+    } else juntas.push({ ...d });
+  }
+  return {
+    fallas: juntas.filter((d) => d.falla).map(fraseDeDiferencia),
+    avisos: juntas.filter((d) => !d.falla).map(fraseDeDiferencia),
+  };
 }
