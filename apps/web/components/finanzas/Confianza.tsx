@@ -38,7 +38,7 @@ export function ConfianzaDetalle({ confianza: c }: { confianza: ConfianzaDatos }
           texto={faltan > 0 ? `${faltan === 1 ? "1 cosa por revisar" : `${faltan} cosas por revisar`}` : "Ver el detalle"}
         />
       </div>
-      <FilasDeMas abierto={abierto}>
+      <FilasDeMas abierto={abierto} alEncontrar={() => setAbierto(true)}>
         <ul id="fin-confianza-piezas" className="fin-confianza-piezas mt-3" aria-label="Lo que hace confiable el número">
           {c.piezas.map((p) => (
             <li key={p.clave} data-estado={p.estado}>

@@ -114,7 +114,7 @@ export function Proximos({
           </ol>
           {resto.length > 0 && (
             <>
-              <FilasDeMas abierto={mas}>
+              <FilasDeMas abierto={mas} alEncontrar={() => setMas(true)}>
                 <ol className="proximos-lista">
                   {resto.map((p) => (
                     <Fila key={p.clave} p={p} hoy={hoy} />

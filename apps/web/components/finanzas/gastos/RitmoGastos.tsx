@@ -199,7 +199,7 @@ export function RitmoGastos({
               <div className="ritmo-gastos-dia">
                 {elDia.gastos.slice(0, A_LA_VISTA).map(filaDeGasto)}
                 {elDia.gastos.length > A_LA_VISTA && (
-                  <FilasDeMas abierto={mas}>
+                  <FilasDeMas abierto={mas} alEncontrar={() => setMas(true)}>
                     <div className="ritmo-gastos-dia">{elDia.gastos.slice(A_LA_VISTA).map(filaDeGasto)}</div>
                   </FilasDeMas>
                 )}
