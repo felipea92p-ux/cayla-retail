@@ -18,8 +18,9 @@ import { MENSAJES } from "./cuentas-mensajes";
 // por qué, con las mismas palabras en la pantalla y en el servidor.
 
 /** La versión de la privacidad y los términos de la web que se acepta al crear la cuenta (`cuentas_web.textos_aceptados`). Subió el
- *  2026-10-23 con la medición de visitas (ADR-0495, Felipe): las cuentas que ya existían conservan la que aceptaron. */
-export const TEXTOS_VERSION = "borrador-2026-10-23";
+ *  2026-10-23 con la medición de visitas (ADR-0495, Felipe): las cuentas que ya existían conservan la que aceptaron. Y otra vez el
+ *  2026-11-18: la política y los Términos del Club nombran las dos casillas de WhatsApp por separado (ADR-0680). */
+export const TEXTOS_VERSION = "borrador-2026-11-18";
 export const CLAVE_MINIMA = 8;
 /** El servicio de inicio de sesión guarda hasta 72 caracteres de una contraseña. */
 export const CLAVE_MAXIMA = 72;
@@ -118,8 +119,10 @@ export type RegistroClub = {
   /** «Soy mayor de 18 años»: obligatoria (la base también la exige). */
   mayor: boolean;
   acepta: boolean;
-  /** «Avisos del Club por WhatsApp»: opcional; nace sin marcar (el permiso es el toque de ella). */
+  /** «Novedades y promociones por WhatsApp» (la publicidad): opcional; nace sin marcar (el permiso es el toque de ella). */
   avisos: boolean;
+  /** «Avisos de mi Club por WhatsApp» (puntos, cupones, regalo de cumpleaños; ADR-0680): opcional, aparte; nace sin marcar. */
+  avisosClub: boolean;
 };
 
 export const REGISTRO_CLUB_VACIO: RegistroClub = {
@@ -132,6 +135,7 @@ export const REGISTRO_CLUB_VACIO: RegistroClub = {
   mayor: false,
   acepta: false,
   avisos: false,
+  avisosClub: false,
 };
 
 /**
@@ -165,7 +169,8 @@ export type CampoCuenta = "correo" | "codigo" | "nombre" | "clave" | "acepta";
 /** Lo que tiene que completar al unirse al Club: los avisos y el cumpleaños son opcionales, nunca «faltan». */
 export type CampoClub = "documento" | "nombres" | "apellidos" | "cel" | "mayor" | "acepta";
 /** A dónde lleva un problema: un campo o una casilla opcional. */
-export type CampoProblema = CampoCuenta | CampoClub | "cumple" | "avisos";
+/** `avisos`: la casilla de novedades y promociones; `avisosClub`: la de los avisos de su Club (ADR-0680, cada permiso con la suya). */
+export type CampoProblema = CampoCuenta | CampoClub | "cumple" | "avisos" | "avisosClub";
 export type EstadoCampo = "falta" | "mal" | "repetido" | "buscando" | "ok";
 
 /** El orden de la página de crear la cuenta y cómo se nombra cada campo en «Falta: …». */
@@ -473,12 +478,15 @@ export const esquemaClub = z.object({
   mayor: z.boolean(),
   acepta: z.boolean(),
   avisos: z.boolean(),
+  avisosClub: z.boolean(),
 });
 
 /** «Unirme al Club»: los datos y la versión de la casilla de los avisos que la persona leyó (null si no se le mostró). */
 export const esquemaUnirseAlClub = z.object({
   registro: esquemaClub,
   casilla: z.number().int().positive().nullable(),
+  /** La versión de la casilla de los avisos del Club que leyó (ADR-0680; null si no se le mostró). */
+  casillaClub: z.number().int().positive().nullable().optional(),
   volver: z.string().max(300).nullable().optional(),
 });
 
@@ -563,7 +571,8 @@ export function errorDeClub(hint: string | null | undefined, detalle: string | n
       return { campo: "cumple", mensaje: MENSAJES.cumpleMenor };
     case "cuenta_texto_cambio":
     case "cuenta_sin_texto":
-      return { campo: "avisos", mensaje: MENSAJES.avisosCambio };
+      // Cada casilla de WhatsApp dice si cambió SU texto (ADR-0680): la base lo nombra en el detalle.
+      return detalle === "avisos_club" ? { campo: "avisosClub", mensaje: MENSAJES.avisosClubCambio } : { campo: "avisos", mensaje: MENSAJES.avisosCambio };
     // La base no encontró la lectura del padrón del nombre (20261015133000): no se pudo anotar, o venció. Se vuelve a intentar.
     case "nombre_sin_padron":
       return { campo: "documento", mensaje: MENSAJES.dniSinPadron };
@@ -663,8 +672,9 @@ export type AvisosAlUnirse = "no" | "activados" | "ya_estaban" | "celular_distin
  * Club recién ahora y recibe la misma bienvenida que una persona nueva (Felipe 2026-10-16: nadie tiene por qué saber que tenía una
  * ficha).
  */
-export function avisoAlUnirse(seUnioASuFicha: boolean, eraDelClub: boolean, avisos: AvisosAlUnirse): string {
-  if (avisos === "celular_distinto") return "avisos-sin-activar";
+export function avisoAlUnirse(seUnioASuFicha: boolean, eraDelClub: boolean, avisos: AvisosAlUnirse, avisosClub: AvisosAlUnirse = "no"): string {
+  // Cualquiera de las dos casillas que no se pudo activar (la ficha tiene otro celular) lleva a «Mi perfil», donde se explica.
+  if (avisos === "celular_distinto" || avisosClub === "celular_distinto") return "avisos-sin-activar";
   return seUnioASuFicha && eraDelClub ? "unida" : "bienvenida";
 }
 
