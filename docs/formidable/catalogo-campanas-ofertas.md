@@ -45,7 +45,7 @@ Colaboradora real: **sin probar**.
 | **Total leyes** | **7,6** | |
 | Oficio visual | 9 | medidores de `/milimetro` y `medir-oficio.js` |
 
-## Los 3 cambios de mayor impacto (esperan el OK de Felipe)
+## Los 3 cambios de mayor impacto (hechos el 2026-11-18 con el OK de Felipe: «Sí, los cuatro»)
 
 1. **El cartel dice dónde y cuándo rige si no es lo de la campaña** (ley 3). Antes: «3 x 2 · Toda la campaña · Borrador». Después: «3 x 2 · Toda la
    campaña · Tienda Lima · Borrador», y las fechas o los días si no son los de la campaña («del 25 nov», «mar y jue»), para que dos «−20 %» se
@@ -60,3 +60,18 @@ Colaboradora real: **sin probar**.
 **Lo que sobra (ley 8):** el aviso «2 prendas tienen dos ofertas» y «37 categorías sin prendas a la venta» son piezas de antes (ADR-0655): quedan
 como propuesta aparte. **Lo que Felipe no pidió y importa más:** tres clics en el mismo instante crean tres borradores iguales (chaos g2
 sintético; una persona no llega). Se arregla con `unSoloEnvio`, ya hecho para esto.
+
+## Después de los cambios (2026-11-18, commit `af25c2438`)
+
+Hechos los tres y el guardado único del caos. Prueba ciega repetida (Sonnet, sin contexto, otras tres tareas):
+
+| Medida | Antes | Después |
+|---|---|---|
+| ¿Sabe desde la lista dónde rige una oferta? | no («nada indica que sea solo en Lima») | sí: «la tarjeta dice "2 x 1 · Toda la campaña · Solo Tienda Trujillo"» |
+| ¿Retira al primer intento? | no («no pareció hacer nada») | sí, en 3 toques: «aparece la pregunta "¿Retirar la oferta «2 x 1»?"» |
+| ¿Cree que el choque no deja guardar el borrador? | sí | no lo nombró; dudó un momento por «Falta: Elegir en qué tiendas rige», que sí es obligatorio |
+
+Lo que dejó, para después (backlog): un cartel que rige en **todas** las tiendas no lo dice (solo «Solo …» cuando es una), y «Toda la campaña» se
+lee como fechas o como prendas; «Retirar» le suena a pausar (borra la oferta de verdad); el «No se puede deshacer» rojo lo notó recién al
+confirmar. Notas sin cambiar hasta un escéptico: leyes 3 y 7 suben a 8 (provisional), **total 7,8**.
+

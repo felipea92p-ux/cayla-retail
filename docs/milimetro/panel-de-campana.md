@@ -51,3 +51,11 @@ con su nombre entero; la fila dice «Campaña Black Friday, rige hasta el 30 de 
 «vendidas en 30 días» y «en las tiendas» (salían siempre «—»), la barra de días y su cifra grande (lo dice el chip de fechas), «Preparar la campaña» y sus
 tres preguntas (las responden las secciones Ofertas y Prendas y el chip de fechas con «Editar»), y «Lo que ya tiene». Una campaña cuyas ofertas eligen
 sus prendas ya no dice «sin prendas».
+
+## Después de Formidable (2026-11-18): el cartel dice dónde y cuándo
+
+- Una línea más bajo «a qué», en la misma voz (`.lc-cartel-en`, 14 px, tinta 65 %), pegada 4 px más arriba: «Solo Tienda Lima · 25 nov – 30 nov ·
+  mar y jue». **Solo lo que no es lo de su campaña** (`cartelesDeCampana`, con `donde`): las tiendas si no son todas las de la campaña, las fechas
+  si no son las suyas **comparadas desde hoy** (una oferta que nació hoy en una campaña que ya rige no repite «18 nov – 30 nov») y los días si no
+  son los siete. Una programada con fechas propias dice «Programada» en su chip: la fecha ya va en la línea.
+

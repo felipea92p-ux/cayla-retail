@@ -102,8 +102,13 @@ Rama `claude/campanas-abrir-campana`. Solo pantalla: ninguna migración, ninguna
 - **Volver a «Nueva oferta» después de guardar** (lo que hacía 7b): sin la lista adentro, la persona no veía lo que acababa de guardar.
 - **«En caja» arriba en el celular**: empujaba «¿Qué le das?» medio alto de pantalla; va después de las preguntas.
 
+**Después de Formidable y del caos (con el OK de Felipe, «Sí, los cuatro»):** el cartel dice sus tiendas, fechas y días cuando no son los de su
+campaña (las fechas, comparadas desde hoy); con un choque, el pie dice «Puedes guardarla como borrador. Para activarla: …»; «Retirar» cambia el pie
+entero a «¿Retirar la oferta «3 x 2»?» con «No se puede deshacer» (la base no reactiva una oferta retirada) y el foco va a «No, dejarla» sin mover la
+hoja; guardar y retirar pasan por `unSoloEnvio`.
+
 **Pendiente de Felipe** (backlog `2026-11-18-campanas-abrir-campana.md`): imprimir y «Ver en la web» de una campaña sin descuento de siempre;
-desactivar una campaña con prendas marcadas; el guardado único ante tres clics simultáneos.
+desactivar una campaña con prendas marcadas; si el cartel dice también «Todas las tiendas».
 
 **Verificado:** guía de Campañas (34 pasos, escritorio claro y celular oscuro), `/milimetro auditar` (0 graves,
 `docs/milimetro/auditorias/2026-11-18-campanas-abrir-campana.md`), `/chaos` (0 estados imposibles), `/focus` al día. **Dynamic:** no cambia

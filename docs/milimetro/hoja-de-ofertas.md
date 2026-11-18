@@ -71,3 +71,13 @@ Se arma por partes, como se construye (`/construir`, 2026-11-18): cada actividad
   celular, después de las preguntas: arriba empujaba «¿Qué le das?» medio alto de pantalla.
 - **Movimiento:** ninguno propio. El total se lee en vivo (`aria-live="polite"` solo en el total, para que el lector no repita la lista).
 - **Estados:** no tiene; no es un control.
+
+## Después de Formidable (2026-11-18)
+
+- **El pie con un choque:** «Puedes guardarla como borrador. Para activarla:» (6 palabras) antes de lo que pide, en la misma pieza (`FaltanDelPaso`,
+  su `rotulo`). Una oferta activa que se edita sigue diciendo «Para guardar»: ahí sí bloquea.
+- **«¿Retirar…?»:** el pie entero cambia (`.of-pie-confirma`): arriba `<AvisoNoSeDeshace>` a todo lo ancho (regla de lo peligroso, ADR-0358), la
+  pregunta a 14 px con la oferta en seminegrita y «No, dejarla» (fantasma) · «Sí, retirar» (negro) a la derecha; a 375 px, la pregunta a todo lo
+  ancho y los botones mitad y mitad. El foco pasa a «No, dejarla» con `preventScroll`: con `autoFocus` la hoja saltaba hasta abajo para mostrar
+  el pie fijo (ADR-0185).
+
