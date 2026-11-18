@@ -4,9 +4,8 @@ Rama `claude/pricing-formula-costs-81abca`. Bitácora: `docs/bitacora/2026-11-17
 
 ## Esperan a Felipe
 
-- [ ] **Aplicar `20261117234000_avios_boton_en_centimetros.sql` en producción** (una sola parte, con `set lock_timeout`). Convierte las 2 fichas que
-  hoy están en líneas: «Botones 9 L» → «Botones 0.57 cm» (conversión exacta, no la medida real) y «Aguja Clase B 1 L» → sin medida. **No está en
-  producción**; después, refrescar el diccionario (`pnpm datos:generar:produccion`).
+- [x] ~~Aplicar `20261117234000_avios_boton_en_centimetros.sql` en producción~~ — **aplicada el 2026-11-17 con el OK de Felipe** y verificada
+  («Botones 0.57 cm · Neutro», «Aguja Clase B» sin medida, 0 fichas en líneas). Falta refrescar el diccionario (`pnpm datos:generar:produccion`).
 - [ ] **Medir con regla el botón de 0.57 cm** y corregirlo en «Editar avío» si no es su medida real.
 - [ ] **Precios:** cómo se reparten sueldos y local del taller entre las prendas (mes normal, este mes o tarifa), el multiplicador y la línea de
   precio de cada tienda, el papel de la tienda de Lima, el local del taller (Finanzas no tiene su alquiler ni luz) y si el ámbar pasa a «Bajo el

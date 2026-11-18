@@ -109,4 +109,5 @@ el texto de Catálogo ▸ Atributos ▸ Avíos. **Pruebas de Postgres:** `script
 deshizo (el botón de prueba «33 L» pasó a «2.1 cm» en sus 5 colores, se anotó en Actividad, el candado rechazó una línea escrita directo, la segunda
 corrida no cambió nada) y la base local quedó como estaba; «Nuevo avío» en el navegador dice «Un botón de 1.5 cm y uno de 2 cm son dos avíos
 distintos» con «Centímetros». **No verificado:** `pnpm pruebas:materiales` completo (necesita la migración aplicada; la base local es la que Felipe usa
-a mano y el espejo de `/flujo-de-negocio`), que correrá en el CI sobre una base nueva. **No está en producción.**
+a mano y el espejo de `/flujo-de-negocio`), que corre en el CI sobre una base nueva. **En producción desde el 2026-11-17** (verificado: 0 fichas en
+líneas; «Botones 0.57 cm · Neutro»; «Aguja Clase B» sin medida; 2 líneas en Actividad; el candado ya no acepta `linea`).
