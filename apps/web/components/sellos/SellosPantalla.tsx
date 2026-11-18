@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { Award, CalendarHeart, ChevronRight, HandHeart, Plus, RefreshCw, Shirt } from "lucide-react";
@@ -44,6 +44,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { bajadaDesactivarInsignia, reglasDeCampana, reglasVivas, vigenciaDeRegla, type InsigniaDeOferta, type ParQueChoca, type ReglaCampana } from "@/lib/campana-reglas";
 import { AvisoDosOfertas } from "@/components/sellos/AvisoDosOfertas";
 import { DescuentosDeLaTienda } from "@/components/rebajas/RebajasDeTienda";
+import { HojaDeDescuento } from "@/components/campanas/HojaDeDescuento";
 import { PanelDeDescuento } from "@/components/campanas/PanelDeDescuento";
 import { Volver } from "@/components/ui/Volver";
 import { claveModeloColor, type DescuentoDeLista } from "@/lib/rebaja-rapida-reglas";
@@ -171,6 +172,27 @@ export function SellosPantalla({
   const [agregando, setAgregando] = useState(false);
   // El descuento de la lista que está abierto (ADR-0677); con uno abierto, ninguna campaña lo está.
   const [descuentoAbiertoId, setDescuentoAbiertoId] = useState<string | null>(null);
+  // La hoja «Nuevo descuento» o «Cambiar el %» (ADR-0677): `cambiando` es el descuento al que se le cambia el %.
+  const [hojaDeDescuento, setHojaDeDescuento] = useState<{ cambiando: DescuentoDeLista | null } | null>(null);
+  // Cuando un descuento se crea, cambia de % o se apaga, la lista se vuelve a leer, y su aviso sale DESPUÉS: si saliera antes, el refresco
+  // ocuparía la pantalla con el aviso ya visto y la pila lo retiraría con su «Deshacer» (lib/avisos-reglas.ts).
+  const [refrescando, iniciarRefresco] = useTransition();
+  const avisoTrasRefresco = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (refrescando || !avisoTrasRefresco.current) return;
+    const aviso = avisoTrasRefresco.current;
+    avisoTrasRefresco.current = null;
+    aviso();
+  }, [refrescando]);
+  const refrescarYAvisar = (aviso?: () => void) => {
+    avisoTrasRefresco.current = aviso ?? null;
+    iniciarRefresco(() => router.refresh());
+  };
+  /** Abrir un descuento que acaba de cambiar en la base (creado, cambiado, encendido): la lista se vuelve a leer y después sale su aviso. */
+  const abrirDescuentoNuevo = (id: string, aviso?: () => void) => {
+    setDescuentoAbiertoId(id);
+    refrescarYAvisar(aviso);
+  };
   // Cuántas prendas tiene cada descuento según su panel, que las vuelve a leer después de cada cambio: pisa la cifra con que llegó la pantalla.
   const [conteosDeDescuentos, setConteosDeDescuentos] = useState<Record<string, number>>({});
   const anotarConteo = useCallback((id: string, n: number) => setConteosDeDescuentos((c) => (c[id] === n ? c : { ...c, [id]: n })), []);
@@ -256,6 +278,12 @@ export function SellosPantalla({
       costos={costos}
       volver={enLinea ? <Volver onClick={() => setDescuentoAbiertoId(null)} a="la lista" /> : undefined}
       onConteo={(n) => anotarConteo(descuentoAbierto.etiquetaId, n)}
+      onCambiarPct={() => setHojaDeDescuento({ cambiando: descuentoAbierto })}
+      onDesactivado={(aviso) => {
+        setDescuentoAbiertoId(null);
+        refrescarYAvisar(aviso);
+      }}
+      onAbrir={abrirDescuentoNuevo}
     />
   ) : null;
   const seccionDescuentos = verDescuentos ? (
@@ -264,6 +292,7 @@ export function SellosPantalla({
       abiertoId={descuentoAbierto?.etiquetaId ?? null}
       onAbrir={(id) => setDescuentoAbiertoId(id)}
       panelEnLinea={enLinea ? panelDescuento : undefined}
+      onNuevo={() => setHojaDeDescuento({ cambiando: null })}
     />
   ) : null;
   const abiertoId = abiertoPorVista[vista] ?? paseInicial(pilas)?.id ?? null;
@@ -1093,6 +1122,18 @@ export function SellosPantalla({
             )}
           </div>
         </div>
+      )}
+
+      {hojaDeDescuento && verDescuentos && (
+        <HojaDeDescuento
+          ubicacionId={sedeActualId}
+          sede={sede}
+          esLider={esLider}
+          descuentos={descuentos ?? []}
+          cambiando={hojaDeDescuento.cambiando}
+          onClose={() => setHojaDeDescuento(null)}
+          onListo={abrirDescuentoNuevo}
+        />
       )}
 
       {agregando && (

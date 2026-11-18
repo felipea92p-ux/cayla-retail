@@ -1,19 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
+  camposDeLaHojaDeDescuento,
   claveModeloColor,
   comoDeshacerAgregar,
+  descuentoConPct,
   descuentosDeLaTienda,
   detalleDePieza,
   leerDescuentos,
   leerPrendasBuscadas,
   leerRebajaDePrenda,
   nombreDeDescuento,
+  pctDeDescuento,
   nombreDeLugar,
   pctQueCobra,
   piezasDeDescuento,
   precioConPct,
   quedaBajoCosto,
   sugerenciasDeAgregar,
+  textoDeLaHojaDeDescuento,
   textoPct,
   type LugarDeRebaja,
   type PrendaDeLugar,
@@ -168,5 +172,35 @@ describe("Agregar prendas a un descuento (ADR-0677)", () => {
 
   it("CONTROL: sin saber dónde estaba, deshacer la dejaría sin % (y la del −10 % lo perdería)", () => {
     expect(comoDeshacerAgregar(["s"], new Map(), "aqui")).toEqual({ devolver: [], quitar: ["s"] });
+  });
+});
+
+describe("Nuevo descuento y cambiar el % (ADR-0677)", () => {
+  const d = (o: Partial<{ etiquetaId: string; pct: number; todas: boolean; rigeAqui: boolean; activo: boolean; prendas: number }>) => ({ etiquetaId: "c10", pct: 10, todas: false, rigeAqui: true, activo: true, prendas: 5, ...o });
+
+  it("un % vale de 1 a 70, a dos decimales (lo mismo que la base)", () => {
+    expect([pctDeDescuento(25), pctDeDescuento(12.345), pctDeDescuento(70), pctDeDescuento(71), pctDeDescuento(0), pctDeDescuento(null), pctDeDescuento(NaN)]).toEqual([25, 12.35, 70, null, null, null, null]);
+  });
+
+  it("«ya existe» es el encendido con ese % donde se mira: de la tienda o de todas, nunca uno apagado ni el mismo que se cambia", () => {
+    const lista = [d({}), d({ etiquetaId: "t10", todas: true }), d({ etiquetaId: "off", pct: 20, activo: false }), d({ etiquetaId: "aqp", pct: 30, rigeAqui: false })];
+    expect(descuentoConPct(lista, 10, false)?.etiquetaId).toBe("c10");
+    expect(descuentoConPct(lista, 10, true)?.etiquetaId).toBe("t10");
+    expect(descuentoConPct(lista, 20, false)).toBeNull();
+    expect(descuentoConPct(lista, 30, false)).toBeNull();
+    expect(descuentoConPct(lista, 10, false, "c10")).toBeNull();
+  });
+
+  it("el botón dice lo que va a pasar", () => {
+    expect(textoDeLaHojaDeDescuento({ cambiando: false, existe: false, pct: 25 })).toBe("Crear −25 %");
+    expect(textoDeLaHojaDeDescuento({ cambiando: false, existe: true, pct: 10 })).toBe("Abrir −10 %");
+    expect(textoDeLaHojaDeDescuento({ cambiando: true, existe: false, pct: 25 })).toBe("Cambiar a −25 %");
+    expect(textoDeLaHojaDeDescuento({ cambiando: true, existe: true, pct: 15 })).toBe("Juntar en −15 %");
+    expect(textoDeLaHojaDeDescuento({ cambiando: false, existe: false, pct: null })).toBe("Crear");
+  });
+
+  it("la guía pide el % y quién lo hace; abrir uno que ya existe no pide quién", () => {
+    expect(camposDeLaHojaDeDescuento({ pct: null, existeSinCambiar: false, responsableListo: false, responsableMotivo: null }).map((c) => `${c.id}:${c.hecho}`)).toEqual(["pct:false", "responsable:false"]);
+    expect(camposDeLaHojaDeDescuento({ pct: 10, existeSinCambiar: true, responsableListo: false, responsableMotivo: null }).map((c) => c.id)).toEqual(["pct"]);
   });
 });

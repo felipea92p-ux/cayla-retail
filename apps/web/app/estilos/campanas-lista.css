@@ -100,6 +100,20 @@
     color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
   }
 
+  /* «Nuevo descuento»: la misma fila, punteada y sin relleno (la maqueta, `.it.nuevo`). */
+  .lc-fila-nuevo {
+    grid-template-columns: 44px minmax(0, 1fr);
+    min-height: 60px;
+    border-style: dashed;
+    border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); /* contraste: no aplica — es un borde, no un texto */
+    background: transparent;
+    box-shadow: none;
+    color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .lc-fila-nuevo .lc-fila-lente { background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 25%, transparent); }
+
   /* La abierta: el ahumado denso, como lo elegido en el resto del ERP. */
   .lc-fila[aria-current="true"] {
     border-color: var(--ahumado-denso-borde);

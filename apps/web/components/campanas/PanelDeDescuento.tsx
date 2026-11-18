@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { Tag } from "lucide-react";
 import { BotonQuitarFoto } from "@/components/alta-producto/FotosAlta";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -10,8 +11,10 @@ import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
 import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
+import { MenuAcciones } from "@/components/ui/MenuAcciones";
 import { Vacio } from "@/components/ui/Vacio";
 import { traducirError } from "@/lib/error-escritura";
+import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { rpcRebaja } from "@/lib/rebaja-rapida";
 import {
   comoDeshacerAgregar,
@@ -49,6 +52,9 @@ export function PanelDeDescuento({
   costos,
   volver,
   onConteo,
+  onCambiarPct,
+  onDesactivado,
+  onAbrir,
 }: {
   descuento: DescuentoDeLista;
   ubicacionId: string;
@@ -67,7 +73,14 @@ export function PanelDeDescuento({
   volver?: ReactNode;
   /** Cuántas prendas tiene ahora, cada vez que las vuelve a leer: la fila de la lista lo muestra. */
   onConteo: (n: number) => void;
+  /** «Cambiar el %»: la pantalla abre la hoja. */
+  onCambiarPct: () => void;
+  /** Se apagó: la pantalla cierra el panel, vuelve a leer la lista y después da el aviso. */
+  onDesactivado: (aviso: () => void) => void;
+  /** «Deshacer» lo volvió a encender: la pantalla lo abre otra vez y después da el aviso. */
+  onAbrir: (etiquetaId: string, aviso?: () => void) => void;
 }) {
+  const router = useRouter();
   const responsable = useResponsableDeRebaja(ubicacionId, sede);
   const { etiquetaId, pct, todas } = descuento;
   const [lectura, setLectura] = useState<{ estado: "cargando" } | { estado: "error"; mensaje: string } | { estado: "listo"; filas: PrendaDeLugar[] }>({ estado: "cargando" });
@@ -189,6 +202,41 @@ export function PanelDeDescuento({
     else avisar.exito(`Deshecho: ${texto}`);
   }
 
+  /** «Desactivar −X %»: sus prendas vuelven a su precio y el descuento se apaga (Felipe 2026-11-17). «Deshacer» devuelve todas de una vez. */
+  async function desactivar() {
+    const { data, error } = await firmar(
+      rpcRebaja<{ quitadas: string[] }>("desactivar_descuento", { p_etiqueta_id: etiquetaId, p_ubicacion_id: ubicacionId, p_todas: todas }),
+      responsable.firma(),
+    );
+    responsable.despues(error);
+    if (error) {
+      avisar.error(traducirError(error, "desactivar el descuento"));
+      return;
+    }
+    const quitadas = data?.quitadas ?? [];
+    onDesactivado(() =>
+      avisar.exito(`${textoPct(pct)} desactivado`, {
+        detalle: quitadas.length > 0 ? "Sus prendas vuelven a su precio" : undefined,
+        accion: { texto: "Deshacer", onClick: () => void reactivar(quitadas) },
+      }),
+    );
+  }
+
+  async function reactivar(quitadas: string[]) {
+    // Con prendas, vuelven todas a este % (lo enciende); vacío, se vuelve a crear (también lo enciende).
+    const llamada =
+      quitadas.length > 0
+        ? rpcRebaja<{ etiqueta_id: string }>("poner_rebaja_varias", { p_variantes: quitadas, p_pct: pct, p_etiqueta_id: null, p_ubicacion_id: ubicacionId, p_todas: todas })
+        : rpcRebaja<{ etiqueta_id: string }>("crear_descuento", { p_pct: pct, p_ubicacion_id: ubicacionId, p_todas: todas });
+    const { data, error } = await firmar(llamada, responsable.firma());
+    responsable.despues(error);
+    if (error) {
+      avisar.error(traducirError(error, "volver a encender el descuento"));
+      return;
+    }
+    onAbrir(data?.etiqueta_id ?? etiquetaId, () => avisar.exito(`${textoPct(pct)} otra vez encendido`));
+  }
+
   const enElDescuento = new Set(piezas.map((p) => p.clave));
 
   return (
@@ -210,6 +258,17 @@ export function PanelDeDescuento({
             </span>
           )}
           {puedeTocar && <ComboResponsable control={responsable} deshabilitado={quitando !== null} enLinea />}
+          {puedeTocar && (
+            <MenuAcciones
+              texto="Más"
+              etiqueta={`Más acciones del ${textoPct(pct)}`}
+              items={[
+                { clave: "cambiar", etiqueta: "Cambiar el %", onSelect: onCambiarPct },
+                { clave: "imprimir", etiqueta: "Imprimir etiquetas", onSelect: () => router.push(urlEtiquetasDePrecio({ campana: etiquetaId })) },
+                { clave: "desactivar", etiqueta: `Desactivar ${textoPct(pct)}`, peligro: true, onSelect: () => void desactivar() },
+              ]}
+            />
+          )}
         </div>
       </div>
 

@@ -329,6 +329,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // «Tres preguntas» (Felipe 2026-10-23): una pregunta por pantalla, los pasos con su ✓, la etiqueta que dice «de fábrica» / «por elegir» y
   // el «Falta: …» tocable al pie (`FaltanDelPaso`) que lleva a la pregunta que lo arregla. Sale de lo mismo que apaga «Guardar»
   // (`problemasDeOferta` y haber elegido qué se da), sin reglas nuevas.
+  "components/campanas/HojaDeDescuento.tsx": { estado: "aplicada", evidencia: ["components/campanas/HojaDeDescuento.tsx"] },
   "components/sellos/OfertasHoja.tsx": { estado: "aplicada", evidencia: ["components/sellos/OfertasHoja.tsx"] },
   // «Poner un %» (ADR-0669): a qué, cuánto y quién, con la luz de «Sigue»; lo que falta lo dice el pie y el botón que confirma.
   "components/sellos/SellosPantalla.tsx": { estado: "no-aplica", motivo: "Sus dos ventanas propias tienen UN solo campo cada una (el comentario al aprobar, el motivo al rechazar) y el botón dice por qué espera; las que se llenan de verdad (nueva insignia o campaña, configurar) son de EtiquetasLista.tsx, con su guía." },

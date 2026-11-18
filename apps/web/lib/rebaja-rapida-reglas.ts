@@ -3,6 +3,7 @@
  * (`poner_rebaja`, `quitar_rebaja`, 20261116182000); esto solo dice lo que la hoja muestra: qué % tiene la prenda, en qué lugares de % se
  * puede poner, cuánto quedaría, de dónde sale y qué falta para confirmar. No agrega reglas: el tope (70 %) y «una prenda, un lugar» son de la base.
  */
+import type { CampoDeGuia } from "./guia-campos";
 import { descuentoDeCampana, totalDeLineas } from "./vender-reglas";
 
 export type AlcanceRebaja = "prenda" | "modelo";
@@ -330,6 +331,42 @@ export function comoDeshacerAgregar(
     else quitar.push(v);
   }
   return { devolver, quitar };
+}
+
+/** Los % a un toque de «Nuevo descuento» (la maqueta elegida); cualquier otro de 1 a 70 se escribe. */
+export const PCTS_SUGERIDOS = [5, 10, 15, 20, 25, 30, 40, 50, 70] as const;
+
+/** Un % que la base acepta para un descuento: de 1 a 70, a dos decimales (`fn_pct_de_descuento`). */
+export function pctDeDescuento(n: number | null): number | null {
+  if (n === null || !Number.isFinite(n)) return null;
+  const pct = Math.round(n * 100) / 100;
+  return pct > 0 && pct <= 70 ? pct : null;
+}
+
+/** El descuento encendido que ya tiene ese % donde se mira (de la tienda, o de todas): «Ya existe». */
+export function descuentoConPct(lista: readonly DescuentoDeLista[], pct: number | null, todas: boolean, salvo?: string): DescuentoDeLista | null {
+  if (pct === null) return null;
+  return lista.find((d) => d.activo && d.rigeAqui && d.todas === todas && Math.round(d.pct * 100) === Math.round(pct * 100) && d.etiquetaId !== salvo) ?? null;
+}
+
+/** Lo que dice el botón de la hoja: crear, abrir el que ya existe, cambiar el %, o juntar en el que ya tiene ese % (Felipe 2026-11-17). */
+export function textoDeLaHojaDeDescuento(c: { cambiando: boolean; existe: boolean; pct: number | null }): string {
+  const pct = c.pct === null ? "" : ` ${textoPct(c.pct)}`;
+  if (c.cambiando) return c.existe ? `Juntar en${pct}` : c.pct === null ? "Cambiar el %" : `Cambiar a${pct}`;
+  return c.existe ? `Abrir${pct}` : c.pct === null ? "Crear" : `Crear${pct}`;
+}
+
+/**
+ * Los campos de la guía de foco de la hoja (ADR-0284): el % y quién lo hace. Abrir uno que ya existe no guarda nada, así que no pide quién. Sale
+ * de lo mismo que exige la base (`fn_pct_de_descuento`, `fn_actor_persona_id`).
+ */
+export function camposDeLaHojaDeDescuento(c: { pct: number | null; existeSinCambiar: boolean; responsableListo: boolean; responsableMotivo: string | null }): CampoDeGuia[] {
+  return [
+    { id: "pct", nombre: "Porcentaje", requerido: true, hecho: c.pct !== null, pendiente: "Elige un % de 1 a 70." },
+    ...(c.existeSinCambiar
+      ? []
+      : [{ id: "responsable", nombre: "Quién", requerido: true, hecho: c.responsableListo, pendiente: c.responsableMotivo ?? "Elige quién lo hace." }]),
+  ];
 }
 
 /** «Descuento −10 %, 15 prendas, todas las tiendas»: lo que oye el lector de pantalla en la fila. */

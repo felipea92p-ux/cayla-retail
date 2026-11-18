@@ -74,3 +74,17 @@ Ninguna.
 - **Estados:** loading → «Agregando…» en el botón elegido (`<Boton cargando>`), el buscador sigue escribiendo y el Enter espera; tras agregar, el foco vuelve
   al buscador (escanear seguido). error → `avisar.error` con lo que dijo la base. Escape borra lo escrito o cierra la pregunta (y no sube).
 - **Deshacer:** antes de agregar se lee dónde estaba cada talla (`campanas_rebaja_de_variantes`); «Deshacer» la devuelve a ese lugar o la deja sin %.
+
+## 2026-11-17 · actividad 4: nuevo, cambiar el % y desactivar
+
+| Parte | Pieza | Rama del árbol |
+|---|---|---|
+| «Nuevo descuento» | la fila de la lista punteada (`.lc-fila-nuevo`, maqueta `.it.nuevo`): borde de tinta al 25 %, sin relleno, 60 px | la fila de esta ficha |
+| La hoja | `<Modal>` (Serena; en el celular, la hoja de abajo con asa) con `<PasoCantidad sufijo="%">`, `pildora-cayla[aria-pressed]` para los % a un toque, `<Interruptor>` «En todas las tiendas» (solo líder), `<Aviso tono="info" chico>` «Ya existe», `<ComboResponsable>`, `<PieGuia>` y `<Boton confirma={guia}>` en `pie-hoja-fijo` + `pie-acciones` | decididas |
+| El menú | `<MenuAcciones texto="Más">` en la cabecera del panel: «Cambiar el %», «Imprimir etiquetas», «Desactivar −X %» (`peligro`) | decidida (2026-10-15) |
+
+- **Texto del botón** según lo que pasará (`textoDeLaHojaDeDescuento`): «Crear −25 %», «Abrir −10 %», «Cambiar a −12 %», «Juntar en −20 %».
+- **Enter:** la hoja lleva `enterNoGuarda` (un Enter en la caja del % no crea ni cambia nada).
+- **Avisos y refresco:** lo que cambia la lista (crear, cambiar, desactivar y sus «Deshacer») refresca dentro de una transición y el aviso sale al terminar; si
+  saliera antes, el refresco lo retiraría por visto con su «Deshacer» (medido el 2026-11-17).
+- **Medido** (375 × 812): la hoja cabe sin desplazamiento lateral; a 1440, centrada en 448 px.

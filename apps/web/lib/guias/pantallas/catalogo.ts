@@ -1225,6 +1225,13 @@ export const GUIA_CAMPANAS: Guia = {
       texto: "Van primero en la lista: cada fila es un descuento que rige aquí y cuántas prendas tiene. Tócala y se abre con sus prendas y su precio de hoy. La × quita una, y el aviso trae «Deshacer».",
     },
     {
+      id: "nuevo-descuento",
+      ancla: "rebaja.nuevo",
+      opcional: true,
+      titulo: "Un descuento nuevo",
+      texto: "Eliges el % y se crea vacío; después le agregas sus prendas. Si ya hay uno con ese %, lo abre. En la demo no lo tocamos.",
+    },
+    {
       id: "poner-un-pct",
       ancla: "rebaja.agregar",
       opcional: true,

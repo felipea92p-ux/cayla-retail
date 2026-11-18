@@ -2,7 +2,7 @@
   "guia": "productos.campanas",
   "ruta": "/productos/campanas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 177,
+  "total": 182,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -97,6 +97,12 @@
     "components/campanas/FilaDeLista.tsx": [
       "button «{guia}»"
     ],
+    "components/campanas/HojaDeDescuento.tsx": [
+      "button «{textoPct(v)}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «(sin nombre)»"
+    ],
     "components/campanas/PanelDeDescuento.tsx": [
       "ComboResponsable «{responsable}»"
     ],
@@ -106,6 +112,9 @@
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
+    ],
+    "components/rebajas/RebajasDeTienda.tsx": [
+      "button «rebaja.nuevo»"
     ],
     "components/sellos/AvisoDosOfertas.tsx": [
       "Boton «Elegir cuál queda»",

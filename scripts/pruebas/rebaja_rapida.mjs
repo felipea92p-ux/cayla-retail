@@ -68,12 +68,16 @@ const FALTA_DESCUENTOS = correr("select to_regprocedure('retail.campanas_descuen
 // Dónde está cada talla antes de agregarla (20261118010000, ADR-0677): lo que usa «Deshacer».
 const MIG_VARIANTES = readFileSync("supabase/migrations/20261118010000_campanas_rebaja_de_variantes.sql", "utf8");
 const FALTA_VARIANTES = correr("select to_regprocedure('retail.campanas_rebaja_de_variantes(uuid[], uuid, boolean)') is null;").salida === "t" ? MIG_VARIANTES : "";
+// Nuevo descuento, cambiar el % y desactivar (20261118030000, ADR-0677).
+const MIG_MENU = readFileSync("supabase/migrations/20261118030000_descuentos_crear_cambiar_desactivar.sql", "utf8");
+const FALTA_MENU = correr("select to_regprocedure('retail.desactivar_descuento(uuid, uuid, boolean)') is null;").salida === "t" ? MIG_MENU : "";
 
 const HOY = "retail.fn_hoy_lima()";
 const PARTIDA = (quien = FELIPE) => `begin;
 ${FALTA}
 ${FALTA_DESCUENTOS}
 ${FALTA_VARIANTES}
+${FALTA_MENU}
 -- Nada más rige: sin otras campañas con descuento ni ofertas.
 update retail.etiquetas set descuento_pct = null where descuento_pct is not null;
 -- Ni cajones de antes: el escenario parte de una tienda sin «Poner un %» (una base de trabajo puede tenerlos). Va dentro de la
@@ -263,6 +267,7 @@ esperarValor(
   caso(`${EN_TODAS(25)}insert into retail.variante_etiquetas (variante_id, etiqueta_id) values (:'a1', :'todas');\n${DONDE("array[:'a1']::uuid[]", "u", "true")}`),
   "ZZ Top todas",
 );
+const N_MODELO = () => TALLAS_DEL_MODELO;
 const TALLAS_DEL_MODELO = Number(correr("select count(*) from retail.variantes v where v.producto_id = (select producto_id from retail.variantes where sku = 'BLU-EMMA-NEG-M') and v.activo;").salida);
 esperarValor(
   "cada talla del modelo dice el suyo: todo el modelo a −20 %, una talla a −30 % (es lo que necesita «Deshacer»)",
@@ -274,9 +279,71 @@ esperarValor(
 );
 esperarError("sin ver Campañas y ofertas, no", caso(DONDE(), MICAELA), "rebaja_sin_modulo");
 
+console.log("\n— Nuevo, cambiar el % y desactivar (ADR-0677) —");
+const CREAR = (pct, todas = "false", sede = "u") => `select retail.crear_descuento(${pct}, :'${sede}', ${todas}) as r \\gset\n`;
+const ID_DE = (pct, sede = ":'u'") => `(select c.etiqueta_id from retail.rebaja_cajones c where c.pct = ${pct} and c.ubicacion_id is not distinct from ${sede})`;
+esperarValor(
+  "«Nuevo descuento» crea su cajón vacío y encendido; la segunda vez devuelve el mismo",
+  caso(`${CREAR(25)}select (:'r'::jsonb ->> 'ya_existia') || ':' || (select count(*) from retail.rebaja_cajones where pct = 25) || ':' || (select count(*) from retail.variante_etiquetas where etiqueta_id = ${ID_DE(25)}) || ':' || (select retail.crear_descuento(25, :'u', false) ->> 'ya_existia');\n`),
+  "false:1:0:true",
+);
+esperarValor(
+  "un descuento apagado se enciende al crearlo otra vez, sin las prendas que tenía",
+  caso(`${PONER(20)}select retail.desactivar_descuento(${ID_DE(20)}, :'u', false);\n${CREAR(20)}select (:'r'::jsonb ->> 'ya_existia') || ':' || (select e.activo from retail.etiquetas e where e.id = ${ID_DE(20)}) || ':' || (${CAJA().trim().replace(/;$/, "")});\n`),
+  "false:true:nada",
+);
+esperarValor(
+  "cambiar el % sin otro igual: el mismo descuento pasa a −25 %, cambia su nombre y la caja cobra 25",
+  caso(`${PONER(20)}select retail.cambiar_pct_de_descuento(${ID_DE(20)}, 25, :'u', false) as r \\gset
+select (:'r'::jsonb ->> 'juntado') || ':' || (position('25 %' in (select e.nombre from retail.etiquetas e where e.id = (:'r'::jsonb ->> 'etiqueta_id')::uuid)) > 0)::text || ':' || (${CAJA().trim().replace(/;$/, "")});\n`),
+  "false:true:25.00",
+);
+esperarValor(
+  "cambiar a un % que ya existe JUNTA las prendas ahí (Felipe 2026-11-17): el de antes se apaga vacío y la caja cobra el nuevo",
+  caso(`${PONER(20)}${CREAR(30)}select retail.cambiar_pct_de_descuento(${ID_DE(20)}, 30, :'u', false) as r \\gset
+select (:'r'::jsonb ->> 'juntado') || ':' || jsonb_array_length(:'r'::jsonb -> 'movidas') || ':' || (select count(*) from retail.variante_etiquetas where etiqueta_id = ${ID_DE(30)}) || ':' || (select e.activo from retail.etiquetas e where e.id = ${ID_DE(20)}) || ':' || (${CAJA().trim().replace(/;$/, "")});\n`),
+  `true:${N_MODELO()}:${N_MODELO()}:false:30.00`,
+);
+esperarValor(
+  "…y «Deshacer» las devuelve al −20 % (lo enciende otra vez) de una sola llamada",
+  caso(`${PONER(20)}${CREAR(30)}select retail.cambiar_pct_de_descuento(${ID_DE(20)}, 30, :'u', false) as r \\gset
+select retail.poner_rebaja_varias(array(select jsonb_array_elements_text(:'r'::jsonb -> 'movidas')::uuid), 20, null, :'u', false);
+select (select count(*) from retail.variante_etiquetas where etiqueta_id = ${ID_DE(20)}) || ':' || (select count(*) from retail.variante_etiquetas where etiqueta_id = ${ID_DE(30)}) || ':' || (${CAJA().trim().replace(/;$/, "")});\n`),
+  `${N_MODELO()}:0:20.00`,
+);
+esperarValor(
+  "desactivar: sus prendas vuelven a su precio y el descuento se apaga (Felipe 2026-11-17)",
+  caso(`${PONER(20)}select retail.desactivar_descuento(${ID_DE(20)}, :'u', false) as r \\gset
+select jsonb_array_length(:'r'::jsonb -> 'quitadas') || ':' || (select e.activo from retail.etiquetas e where e.id = ${ID_DE(20)}) || ':' || (${CAJA().trim().replace(/;$/, "")});\n`),
+  `${N_MODELO()}:false:nada`,
+);
+esperarValor(
+  "…y «Deshacer» devuelve todas sus tallas al −20 %",
+  caso(`${PONER(20)}select retail.desactivar_descuento(${ID_DE(20)}, :'u', false) as r \\gset
+select retail.poner_rebaja_varias(array(select jsonb_array_elements_text(:'r'::jsonb -> 'quitadas')::uuid), 20, null, :'u', false);
+select (select count(*) from retail.variante_etiquetas where etiqueta_id = ${ID_DE(20)}) || ':' || (select e.activo from retail.etiquetas e where e.id = ${ID_DE(20)}) || ':' || (${CAJA().trim().replace(/;$/, "")});\n`),
+  `${N_MODELO()}:true:20.00`,
+);
+esperarValor(
+  "CONTROL: apagar sin sacar sus prendas las volvería a rebajar todas al encender otra vez ese %",
+  caso(`${PONER(20)}update retail.etiquetas set activo = false where id = ${ID_DE(20)};\n${CREAR(20)}${CAJA()}`),
+  "20.00",
+);
+esperarError("un % de 71 no", caso(CREAR(71)), "va de 1 a 70");
+esperarError("cambiar a 0 % no", caso(`${PONER(20)}select retail.cambiar_pct_de_descuento(${ID_DE(20)}, 0, :'u', false);\n`), "va de 1 a 70");
+esperarError(
+  "desactivar desde Lima el descuento de Trujillo no",
+  caso(`${PONER(30, "modelo", "null", "false", "t")}select retail.desactivar_descuento(${ID_DE(30, ":'t'")}, :'u', false);\n`),
+  "ya no está en esta tienda",
+);
+esperarError("un descuento ya apagado no se desactiva otra vez", caso(`${PONER(20)}select retail.desactivar_descuento(${ID_DE(20)}, :'u', false);\nselect retail.desactivar_descuento(${ID_DE(20)}, :'u', false);\n`), "ya no está en esta tienda");
+esperarError("sin ver Campañas y ofertas, no se crea", caso(CREAR(25), MICAELA), "rebaja_sin_modulo");
+esperarError("poner varias con una que no existe falla entera", caso(`select retail.poner_rebaja_varias(array[:'a1', gen_random_uuid()], 20, null, :'u', false);\n`), "Esa prenda no existe");
+
 console.log("\n— La migración —");
 esperarValor("se puede pegar dos veces", correr(`begin;\n${MIG}\n${MIG}\nselect 'ok';\nrollback;`), "ok");
 esperarValor("la de los descuentos se puede pegar dos veces", correr(`begin;\n${MIG_DESCUENTOS}\n${MIG_DESCUENTOS}\nselect 'ok';\nrollback;`), "ok");
+esperarValor("la del menú del descuento se puede pegar dos veces", correr(`begin;\n${MIG_MENU}\n${MIG_MENU}\nselect 'ok';\nrollback;`), "ok");
 esperarValor("la de dónde está cada talla se puede pegar dos veces", correr(`begin;\n${MIG_VARIANTES}\n${MIG_VARIANTES}\nselect 'ok';\nrollback;`), "ok");
 
 console.log(`\n${total - fallos} de ${total} en verde.`);
