@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Award, Check, ChevronDown, ChevronRight, Gift, Info, Layers, Plus, Star, Tag, Undo2, Wallet, X } from "lucide-react";
+import { Award, Check, ChevronDown, ChevronRight, Plus, Tag, Undo2, X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, Campo, CampoMonto, CampoTexto } from "@/components/ui/campos";
@@ -30,6 +30,7 @@ import { alcanceCampana, avisoReimprimir, chipDeTarjeta, destinoReimprimir, nomb
 import { ejemplosDeCaja, piezasDelMosaico } from "@/lib/campana-hoja";
 import { sumarDias } from "@/lib/fechas-lima";
 import { ejemploDeGrupo, ejemploDeMonto, type OfertaDeGrupo } from "@/lib/ofertas-de-grupo";
+import { opcionesDeQueLeDas } from "@/lib/oferta-que-le-das";
 import { fechaCorta, repetirTemporada, textoRango, vigenciaDe } from "@/lib/etiqueta-vigencia";
 import {
   DIAS_SEMANA,
@@ -102,21 +103,6 @@ type Paso = 1 | 2 | 3 | 4;
 type Guardando = "borrador" | "activar" | "cambios" | null;
 type VistaPrendas = "cat" | "una" | "ins";
 
-const GRUPOS: { k: string; titulo: string; corto: string; texto: string; icono: ReactNode; activo: boolean }[] = [
-  { k: "rebaja", titulo: "Una rebaja", corto: "Una rebaja", texto: "Un porcentaje menos en las prendas", icono: <Tag aria-hidden />, activo: true },
-  { k: "varias", titulo: "Llevar varias y pagar menos", corto: "Llevar varias", texto: "3x2, 2 polos por S/\u00a059.90, la 2.ª al 50 %…", icono: <Layers aria-hidden />, activo: true },
-  { k: "monto", titulo: "Gastar un monto y ahorrar", corto: "Gastar un monto", texto: "S/\u00a030 menos desde S/\u00a0300", icono: <Wallet aria-hidden />, activo: true },
-  { k: "regalo", titulo: "Un regalo", corto: "Un regalo", texto: "Un arreglo de basta gratis desde S/\u00a0200", icono: <Gift aria-hidden />, activo: false },
-  { k: "club", titulo: "Algo para miembros del Club", corto: "Para el Club", texto: "10 % menos, puntos dobles, compra privada…", icono: <Star aria-hidden />, activo: false },
-];
-
-/** Las formas de «Llevar varias y pagar menos» (ADR-0655, actividad 6), como las dibujó la maqueta. */
-const FORMAS_DE_GRUPO: { k: TipoOferta; titulo: string; texto: string }[] = [
-  { k: "nxm", titulo: "3 x 2", texto: "Lleva 3, paga 2. La más barata, gratis." },
-  { k: "n_por_monto", titulo: "2 por S/\u00a059.90", texto: "Un precio fijo por el grupo." },
-  { k: "nesima_pct", titulo: "2.ª al 50 %", texto: "La segunda prenda, con descuento." },
-];
-
 const CHIP_ESTADO: Record<VigenciaRegla, { texto: string; tono: TonoChip }> = {
   vigente: { texto: "Vigente", tono: "verde" },
   programada: { texto: "Programada", tono: "pizarra" },
@@ -141,8 +127,6 @@ function NombreCorto({ largo, corto }: { largo: string; corto: string }) {
     </>
   );
 }
-/** Lo que pide cada tarjeta de «¿Qué le das?» al elegirla: la rebaja, el 3x2 o el monto (ADR-0655, actividad 8). */
-const tipoDeTarjeta = (k: string): TipoOferta => (k === "varias" ? "nxm" : k === "monto" ? "monto" : "pct");
 
 /** Un monto en soles de un escalón: se escribe como texto (la coma o el punto a medio escribir no se pierden) y avisa el número. */
 function MontoDeEscalon({
@@ -463,8 +447,6 @@ export function OfertasHoja({
       window.setTimeout(mover, 150); // el paso nuevo se dibuja en el siguiente cuadro
     } else mover();
   }
-  /** Lo que todavía no existe («Pronto») avisa en vez de callar: un botón apagado no dice por qué ni deja preguntar. */
-  const avisarPronto = (que: string) => avisar.aviso(`${que}: llega pronto`, { detalle: "Cambia el dinero en la caja y lo estamos probando. Por ahora puedes registrar una rebaja, un «llevar varias» o un monto." });
   const confirmaPaso = (puede: boolean) => ({ puedeConfirmar: puede, revisar: () => { llevarA(faltan[0]); return false; } });
   // Activar (o guardar una que ya rige) además pide que no quede un choque sin resolver.
   const confirmaRegir = (puede: boolean) => ({ puedeConfirmar: puede && !faltaChoque, revisar: () => { llevarA(faltan[0] ?? faltaChoque ?? undefined); return false; } });
@@ -607,108 +589,66 @@ export function OfertasHoja({
     fijarCategorias(siguiente);
   };
 
-  // ---- Pregunta 1 -----------------------------------------------------------------------------------------------------------------
+  // ---- Pregunta 1: «Qué le das» (ADR-0677, 7a) -------------------------------------------------------------------------------------
+  // Las cinco formas en una fila, y el ejemplo ES la opción (`opcionesDeQueLeDas`); debajo, los números de la elegida, ahí mismo. «Regalo» y
+  // «Club» salieron hasta que funcionen (Felipe 2026-11-17), y con ellos los «· pronto» y los párrafos de ayuda.
   function pregunta1() {
     return (
       <>
         <h2>¿Qué le das al cliente?</h2>
-        <p className="of-baj">{elegido ? "Ajusta el número. Lo demás ya viene contestado." : "Elige lo que más se parezca. Los detalles vienen después."}</p>
-        {!elegido ? (
-          <div className="of-fams" role="group" aria-label="Qué le das al cliente" data-campo="oferta-que">
-            {GRUPOS.map((g) => (
-              <button
-                key={g.k}
-                type="button"
-                className="of-fam"
-                aria-disabled={!g.activo || undefined}
-                title={g.activo ? undefined : "Llega pronto: cambia el dinero en la caja y lo estamos probando."}
-                onClick={() => (g.activo ? elegirForma(tipoDeTarjeta(g.k)) : avisarPronto(g.titulo))}
-                data-guia={g.k === "rebaja" ? "sellos.oferta-rebaja" : g.k === "varias" ? "sellos.oferta-varias" : g.k === "monto" ? "sellos.oferta-monto" : undefined}
-              >
-                <span className="of-ico">{g.icono}</span>
-                <b>{g.titulo}</b>
-                <small>{g.texto}</small>
-                <span className="of-go">{g.activo ? <ChevronRight aria-hidden /> : <Chip tono="neutro" versalitas={false}>Pronto</Chip>}</span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <>
-            <div className="of-gp" role="group" aria-label="Qué le das al cliente">
-              {GRUPOS.map((g) => (
-                <button
-                  key={g.k}
-                  type="button"
-                  className="pildora-cayla"
-                  aria-pressed={g.activo && (g.k === "varias" ? grupo : g.k === "monto" ? o.tipo === "monto" : o.tipo === "pct")}
-                  aria-disabled={!g.activo || undefined}
-                  title={g.activo ? undefined : "Llega pronto"}
-                  onClick={() => (g.activo ? elegirForma(g.k === "varias" && grupo ? o.tipo : tipoDeTarjeta(g.k)) : avisarPronto(g.titulo))}
-                >
-                  {g.corto}
-                  {!g.activo && <span className="font-normal"> · pronto</span>}
+        <div className="of-tipos" role="group" aria-label="Qué le das al cliente" data-campo="oferta-que">
+          {opcionesDeQueLeDas(o, elegido).map((x) => (
+            <button
+              key={x.tipo}
+              type="button"
+              className="of-tipo"
+              aria-pressed={x.elegida}
+              onClick={() => elegirForma(x.tipo)}
+              data-guia={x.tipo === "pct" ? "sellos.oferta-rebaja" : x.tipo === "nxm" ? "sellos.oferta-varias" : x.tipo === "monto" ? "sellos.oferta-monto" : undefined}
+            >
+              <span className="of-tipo-glifo">{x.glifo}</span>
+              <span className="of-tipo-linea">{x.linea}</span>
+            </button>
+          ))}
+        </div>
+        {elegido && (o.tipo === "monto" ? formaDeMonto() : grupo ? formaDeGrupo() : formaDePct())}
+      </>
+    );
+  }
+
+  // ---- «Un % menos»: cuánto ----------------------------------------------------------------------------------------------------------
+  function formaDePct() {
+    return (
+      <div className="mt-4">
+        <Campo
+          etiqueta="Cuánto menos"
+          tono={bajoPorModelo.length > 0 ? "error" : "neutro"}
+          sinPie={bajoPorModelo.length === 0}
+          pie={
+            bajoPorModelo.length > 0
+              ? `Por debajo del costo: ${plural(bajoPorModelo.length, "prenda", "prendas")} (${bajoPorModelo.slice(0, 2).map(nombreBajoCosto).join(", ")}${bajoPorModelo.length > 2 ? "…" : ""}). Se puede guardar igual.`
+              : undefined
+          }
+        >
+          <div className="of-ctl">
+            <PasoCantidad
+              tono={bajoPorModelo.length > 0 ? "error" : undefined}
+              menos={{ onClick: () => cambiar({ porcentaje: Math.max(PORCENTAJE_MIN, o.porcentaje - PORCENTAJE_PASO) }), deshabilitado: o.porcentaje <= PORCENTAJE_MIN, etiqueta: "Bajar el descuento" }}
+              mas={{ onClick: () => cambiar({ porcentaje: Math.min(PORCENTAJE_MAX, o.porcentaje + PORCENTAJE_PASO) }), deshabilitado: o.porcentaje >= PORCENTAJE_MAX, etiqueta: "Subir el descuento" }}
+              data-guia="sellos.oferta-pct"
+            >
+              <span className="whitespace-nowrap">−{pct(o.porcentaje)} %</span>
+            </PasoCantidad>
+            <div role="group" aria-label="Descuentos de siempre" className="flex flex-wrap gap-1.5">
+              {PORCENTAJES_RAPIDOS.map((v) => (
+                <button key={v} type="button" className="pildora-cayla tabular-nums" aria-pressed={o.porcentaje === v} onClick={() => cambiar({ porcentaje: v })}>
+                  {v} %
                 </button>
               ))}
             </div>
-            {grupo ? (
-              formaDeGrupo()
-            ) : o.tipo === "monto" ? (
-              formaDeMonto()
-            ) : (
-            <>
-            <div className="of-sub">
-              <span className="of-lbl">De qué forma</span>
-              <div className="of-opciones">
-                <button type="button" className="pildora-cayla" aria-pressed>
-                  Un % menos
-                </button>
-                <button type="button" className="pildora-cayla" aria-disabled title="Llega pronto" onClick={() => avisarPronto("Soles menos en cada prenda")}>
-                  Soles menos en cada prenda · pronto
-                </button>
-                <button type="button" className="pildora-cayla" aria-disabled title="Llega pronto" onClick={() => avisarPronto("Un precio único")}>
-                  Un precio único · pronto
-                </button>
-              </div>
-            </div>
-            <div className="mt-3">
-            <Campo
-              etiqueta="Cuánto menos"
-              tono={bajoPorModelo.length > 0 ? "error" : "neutro"}
-              sinPie={bajoPorModelo.length === 0}
-              pie={
-                bajoPorModelo.length > 0
-                  ? `Por debajo del costo: ${plural(bajoPorModelo.length, "prenda", "prendas")} (${bajoPorModelo.slice(0, 2).map(nombreBajoCosto).join(", ")}${bajoPorModelo.length > 2 ? "…" : ""}). Se puede guardar igual.`
-                  : undefined
-              }
-            >
-            <div className="of-ctl">
-              <PasoCantidad
-                tono={bajoPorModelo.length > 0 ? "error" : undefined}
-                menos={{ onClick: () => cambiar({ porcentaje: Math.max(PORCENTAJE_MIN, o.porcentaje - PORCENTAJE_PASO) }), deshabilitado: o.porcentaje <= PORCENTAJE_MIN, etiqueta: "Bajar el descuento" }}
-                mas={{ onClick: () => cambiar({ porcentaje: Math.min(PORCENTAJE_MAX, o.porcentaje + PORCENTAJE_PASO) }), deshabilitado: o.porcentaje >= PORCENTAJE_MAX, etiqueta: "Subir el descuento" }}
-                data-guia="sellos.oferta-pct"
-              >
-                <span className="whitespace-nowrap">−{pct(o.porcentaje)} %</span>
-              </PasoCantidad>
-              <div role="group" aria-label="Descuentos de siempre" className="flex flex-wrap gap-1.5">
-                {PORCENTAJES_RAPIDOS.map((v) => (
-                  <button key={v} type="button" className="pildora-cayla tabular-nums" aria-pressed={o.porcentaje === v} onClick={() => cambiar({ porcentaje: v })}>
-                    {v} %
-                  </button>
-                ))}
-              </div>
-            </div>
-            </Campo>
-            </div>
-            <p className="of-ayuda">
-              <Info aria-hidden />
-              <span>El precio baja ese porcentaje. El cliente no tiene que hacer nada: la caja y la tienda web lo aplican solas.</span>
-            </p>
-            </>
-            )}
-          </>
-        )}
-      </>
+          </div>
+        </Campo>
+      </div>
     );
   }
 
@@ -727,17 +667,7 @@ export function OfertasHoja({
     );
     return (
       <>
-        <div className="of-sub">
-          <span className="of-lbl">De qué forma</span>
-          <div className="of-opciones" role="group" aria-label="De qué forma" data-guia="sellos.oferta-forma">
-            {FORMAS_DE_GRUPO.map((f) => (
-              <button key={f.k} type="button" className="pildora-cayla" aria-pressed={o.tipo === f.k} title={f.texto} onClick={() => elegirForma(f.k)}>
-                {f.titulo}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="of-frase-campos mt-3" data-campo="oferta-que">
+        <div className="of-frase-campos mt-4" data-campo="oferta-que" data-guia="sellos.oferta-forma">
           {o.tipo === "nxm" ? (
             <>
               <span>Lleva</span>
@@ -778,13 +708,6 @@ export function OfertasHoja({
             </>
           )}
         </div>
-        <p className="of-ayuda">
-          <Info aria-hidden />
-          <span>
-            {o.tipo === "n_por_monto" ? "El precio del grupo se reparte entre sus prendas." : "Siempre baja la más barata del grupo; si cuestan lo mismo, da igual cuál."} Después eliges con qué prendas se
-            arma el grupo.
-          </span>
-        </p>
       </>
     );
   }
@@ -803,7 +726,7 @@ export function OfertasHoja({
     };
     return (
       <>
-        <div className="of-sub">
+        <div className="of-sub mt-4">
           <span className="of-lbl">Cuánto ahorra</span>
           <div className="of-opciones" role="group" aria-label="Cuánto ahorra">
             <button type="button" className="pildora-cayla" aria-pressed={en === "soles"} onClick={() => cambiar({ ahorroEn: "soles" })}>
@@ -851,10 +774,6 @@ export function OfertasHoja({
             </span>
           )}
         </div>
-        <p className="of-ayuda">
-          <Info aria-hidden />
-          <span>El ahorro se reparte entre las prendas que cuentan. Después eliges qué cuenta.</span>
-        </p>
       </>
     );
   }

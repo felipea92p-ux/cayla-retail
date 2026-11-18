@@ -1346,7 +1346,7 @@ export const GUIA_CAMPANAS: Guia = {
       ancla: "sellos.oferta-rebaja",
       opcional: true,
       titulo: "Qué le das al cliente",
-      texto: "Un porcentaje menos, o «Llevar varias y pagar menos» (3x2, un precio por el grupo, la 2.ª con descuento). Gastar un monto, un regalo y lo del Club llegan pronto y se ven apagadas.",
+      texto: "Cinco formas, y cada una muestra su ejemplo: −20 %, 3 x 2, 2 por S/\u00a059.90, la 2.ª con descuento o S/\u00a030 menos desde S/\u00a0300. Toca la que se parezca y debajo cambias sus números.",
     },
     {
       id: "oferta-pct",
@@ -1354,7 +1354,7 @@ export const GUIA_CAMPANAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "sellos.oferta-rebaja" }],
       titulo: "Cuánto menos",
-      texto: "Sube o baja de 5 en 5, o toca uno de los de siempre. No pasa de 70 %. Si alguna prenda quedaría por debajo de su costo, sale un aviso en rojo debajo: no bloquea, pero te dice cuántas son. La etiqueta de la derecha cambia al instante.",
+      texto: "Sube o baja de 5 en 5, o toca uno de los de siempre. No pasa de 70 %. Si alguna prenda quedaría por debajo de su costo, lo dice debajo: no bloquea, pero te dice cuántas son. La opción de arriba cambia su ejemplo al instante.",
     },
     {
       id: "oferta-varias",
@@ -1383,8 +1383,8 @@ export const GUIA_CAMPANAS: Guia = {
       ancla: "sellos.oferta-forma",
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "sellos.oferta-varias" }],
-      titulo: "De qué forma",
-      texto: "Elige 3 x 2, un precio por el grupo o la N.ª con descuento, y pon sus números con − y +. Siempre baja la más barata del grupo; si cuestan lo mismo, da igual cuál.",
+      titulo: "Sus números",
+      texto: "Cuántas lleva y cuántas paga, el precio del grupo o el % de la N.ª, con − y +. Siempre baja la más barata del grupo; si cuestan lo mismo, da igual cuál.",
     },
     {
       id: "oferta-etiqueta",
