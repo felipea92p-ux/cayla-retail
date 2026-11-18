@@ -7,6 +7,7 @@ import type { HojaLibro, ListaLibro } from "./libro-reclamaciones-reglas";
 const esquemaHoja = z.object({
   id: z.string().uuid(),
   codigo: z.string(),
+  libro_codigo: z.string().optional().default("LR-WEB-01"),
   creada_en: z.string(),
   tipo: z.enum(["reclamo", "queja"]),
   tienda: z.string().nullable(),
@@ -19,6 +20,17 @@ const esquemaHoja = z.object({
     correo: z.string(),
     menor_de_edad: z.boolean(),
     apoderado: z.string().nullable(),
+    apoderado_datos: z
+      .object({
+        tipo_documento: z.enum(["dni", "ce", "pasaporte"]).nullable(),
+        documento: z.string().nullable(),
+        domicilio: z.string().nullable(),
+        telefono: z.string().nullable(),
+        correo: z.string().nullable(),
+      })
+      .nullable()
+      .optional()
+      .default(null),
   }),
   bien: z.object({ tipo: z.enum(["producto", "servicio"]), monto: z.union([z.number(), z.string()]).nullable(), descripcion: z.string() }),
   detalle: z.string(),

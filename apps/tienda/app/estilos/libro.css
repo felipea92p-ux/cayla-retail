@@ -43,6 +43,7 @@
 
 /* ---- El pie: lo que falta (lleva a su campo) y el botón ---- */
 .lr-pie { display: flex; flex-direction: column; gap: 12px; }
+.lr-privacidad { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--tinta-60); }
 .lr-faltan { margin: 0; font-size: 13px; color: var(--tinta-60); }
 .lr-listo { color: var(--verde); font-weight: 600; }
 .lr-ir { padding: 0; border: 0; background: none; font: inherit; font-weight: 600; color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }

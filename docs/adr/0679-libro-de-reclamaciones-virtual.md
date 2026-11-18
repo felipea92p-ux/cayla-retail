@@ -1,7 +1,8 @@
 # ADR-0679 — Libro de Reclamaciones virtual: la hoja en la tienda, su plazo y su respuesta en el ERP
 
-- **Fecha:** 2026-11-18 · **Estado:** construido en la rama `claude/video-analysis-implementation-check-a4f3c2` (6 actividades, `/construir`).
-  **Nada en producción:** las cuatro migraciones esperan el OK de Felipe, y la copia por correo espera una llave de Resend propia de la tienda.
+- **Fecha:** 2026-11-18 · **Estado:** construido en la rama `claude/video-analysis-implementation-check-a4f3c2` (6 actividades, `/construir`, y los
+  ajustes de la revisión legal). **Nada en producción:** las cinco migraciones esperan el OK de Felipe, y la copia por correo espera una llave de
+  Resend propia de la tienda.
 - **Relacionados:** ADR-0408 (tienda online: la puerta angosta `tienda_web`, Resend con `tienda@cayla.pe`), ADR-0161 y ADR-0178 (módulos y
   roles), ADR-0162 (el combo «Responsable»), ADR-0284 (guía de foco), ADR-0389 (guías interactivas), ADR-0358 (una función, una pieza:
   `<Cajon>`), principio 9 (todo puede fallar).
@@ -28,9 +29,24 @@ CAYLA no se entera a tiempo y la multa de Indecopi la paga CAYLA. La ley da adem
 | **Un módulo nuevo, «Libro de Reclamaciones»** (Tienda web, junto a Pedidos), nace sin rol. Responder pide el módulo y firma con el responsable. | ADR-0161: el líder decide a quién se lo da. |
 | **Responder se confirma** («Le llega a… y después no se corrige»). | Formidable ley 7: se confirma solo lo irreversible, y esto lo es. |
 
+## Actualización 2026-11-18 (b): lo que pidió la revisión legal
+
+La revisión legal (`docs/legal/2026-11-18-revision-legal-tienda.md`, PR #1950) comparó la hoja con el Anexo I del DS 011-2011-PCM y la guía del
+Indecopi. Se sumó, en `20261118170000`:
+
+- **El código del libro, «LR-WEB-01»** (Felipe aceptó la propuesta): va en cada hoja, en la constancia, en el ERP y en el correo.
+- **Si reclama un menor, todos los datos de quien lo representa**: nombre, documento, domicilio, teléfono y correo (antes solo el nombre).
+- **La casilla «Declaro que lo que escribí en esta hoja es correcto»**: reemplaza la firma del libro virtual; la base no guarda una hoja sin ella.
+- **La línea de privacidad** junto al botón: «Usamos tus datos solo para atender tu reclamo y los guardamos 2 años, como pide la ley.»
+- La respuesta aparece en la constancia como **«4. Observaciones y acciones adoptadas por el proveedor»**, con su fecha.
+
+Lo que la revisión confirmó sin cambios: el enlace sin sesión en el pie, el número correlativo, la copia al correo y para imprimir, los 15 días
+hábiles improrrogables, y que CAYLA no reporta al SIREC (eso es desde 3 000 UIT de ingresos al año). Quedan para el abogado: copiar
+literalmente las leyendas del Anexo I y el aviso del Anexo II, y confirmar los 2 años de conservación.
+
 ## Cómo está hecho
 
-- **Base** (cuatro partes, en orden): `20261118145000` la hoja y sus tres `tienda_*`; `20261118150000` la copia al correo (cola en la misma fila,
+- **Base** (cinco partes, en orden; la quinta, `20261118170000`, es la de la revisión legal): `20261118145000` la hoja y sus tres `tienda_*`; `20261118150000` la copia al correo (cola en la misma fila,
   `skip locked`, 2 minutos, 5 intentos); `20261118151000` los feriados, el plazo, el módulo y `fn_libro_reclamaciones`; `20261118152000` la
   respuesta (`responder_hoja_reclamacion`, la Actividad y la cola de la respuesta). RLS encendido sin políticas: solo sus funciones.
   Prueba: `pnpm pruebas:libro-reclamaciones` (46 casos, con mutantes).
@@ -42,10 +58,11 @@ CAYLA no se entera a tiempo y la multa de Indecopi la paga CAYLA. La ley da adem
 
 ## Lo que queda (de Felipe o de afuera)
 
-1. **El OK para producción** de las cuatro migraciones, en orden.
+1. **El OK para producción** de las cinco migraciones, en orden.
 2. **Una llave de Resend propia de la tienda** en Vercel (`TIENDA_RESEND_KEY`). Sin ella, la hoja se guarda y la copia queda en cola.
 3. **La revisión legal**: una sesión aparte revisa los textos de la tienda contra las leyes peruanas
    (`docs/legal/2026-11-18-revision-legal-tienda.md`), incluida la lista exacta de lo que exige la hoja. Lo que diga puede cambiar campos o
    textos de esta obra, y un abogado colegiado tiene que firmar antes de publicar.
-4. Si CAYLA debe reportar al SIREC de Indecopi (depende de su tamaño): no está construido.
+4. El SIREC de Indecopi: la revisión legal dice que solo reporta quien factura 3 000 UIT o más al año; CAYLA casi seguro no. Felipe lo confirma
+   con las ventas del año anterior.
 5. Las tiendas físicas siguen con su libro de papel: esta obra es el libro de la tienda online.

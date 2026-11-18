@@ -38,12 +38,13 @@ const LISTA: BorradorHoja = {
   bienDescripcion: "Blusa de prueba talla M",
   detalle: "La blusa llegó con una costura abierta en la manga.",
   pedido: "Cambio por otra igual.",
+  conforme: true,
 };
 
-const MIGRACION = readFileSync(
-  resolve(__dirname, "../../../supabase/migrations/20261118145000_libro_reclamaciones_tienda.sql"),
-  "utf8",
-);
+// Las partes de la base que validan la hoja: la PARTE 1 y la PARTE 5 (lo que pidió la revisión legal).
+const MIGRACION = ["20261118145000_libro_reclamaciones_tienda.sql", "20261118170000_libro_reclamaciones_ajustes_legales.sql"]
+  .map((m) => readFileSync(resolve(__dirname, "../../../supabase/migrations", m), "utf8"))
+  .join("\n");
 
 describe("la hoja del Libro de Reclamaciones", () => {
   it("una hoja completa no tiene nada pendiente", () => {
@@ -62,6 +63,7 @@ describe("la hoja del Libro de Reclamaciones", () => {
       "tipo",
       "detalle",
       "pedido",
+      "conforme",
     ]);
     const e = estadoDeLaHoja(BORRADOR_VACIO);
     expect([e.monto, e.apoderado, e.ubicacion]).toEqual(["opcional", "opcional", "opcional"]);
@@ -88,9 +90,29 @@ describe("la hoja del Libro de Reclamaciones", () => {
     expect(problemaDelCampo(campo, b)).toBeTruthy();
   });
 
-  it("menor de edad sin quien lo represente: falta; con su nombre, listo", () => {
-    expect(faltanEnLaHoja(estadoDeLaHoja({ ...LISTA, menor: true }))).toEqual(["apoderado"]);
-    expect(faltanEnLaHoja(estadoDeLaHoja({ ...LISTA, menor: true, apoderado: "María Prueba" }))).toEqual([]);
+  it("menor de edad: faltan el nombre y los datos de quien lo representa; con todo, listo", () => {
+    expect(faltanEnLaHoja(estadoDeLaHoja({ ...LISTA, menor: true }))).toEqual([
+      "apoderado",
+      "apoderado_documento",
+      "apoderado_domicilio",
+      "apoderado_telefono",
+      "apoderado_correo",
+    ]);
+    const completo = {
+      ...LISTA,
+      menor: true,
+      apoderado: "María Prueba",
+      apoderadoDocumento: "09959911",
+      apoderadoDomicilio: "Calle 456, Trujillo",
+      apoderadoTelefono: "999000111",
+      apoderadoCorreo: "maria@example.com",
+    };
+    expect(faltanEnLaHoja(estadoDeLaHoja(completo))).toEqual([]);
+    expect(datosParaLaBase(completo).apoderado_documento).toBe("09959911");
+  });
+
+  it("sin la casilla de conformidad, falta", () => {
+    expect(faltanEnLaHoja(estadoDeLaHoja({ ...LISTA, conforme: false }))).toEqual(["conforme"]);
   });
 
   it("el carné y el pasaporte aceptan letras; el DNI solo 8 números", () => {
@@ -113,7 +135,29 @@ describe("la hoja del Libro de Reclamaciones", () => {
   it("lo que viaja a la base lleva sus nombres; el apoderado solo si es menor", () => {
     const d = datosParaLaBase({ ...LISTA, apoderado: "Alguien" });
     expect(Object.keys(d).sort()).toEqual(
-      ["apoderado", "bien_descripcion", "bien_tipo", "correo", "detalle", "documento", "domicilio", "menor_de_edad", "monto", "nombre", "pedido", "telefono", "tipo", "tipo_documento", "ubicacion_id"].sort(),
+      [
+        "apoderado",
+        "apoderado_correo",
+        "apoderado_documento",
+        "apoderado_domicilio",
+        "apoderado_telefono",
+        "apoderado_tipo_documento",
+        "bien_descripcion",
+        "bien_tipo",
+        "conforme",
+        "correo",
+        "detalle",
+        "documento",
+        "domicilio",
+        "menor_de_edad",
+        "monto",
+        "nombre",
+        "pedido",
+        "telefono",
+        "tipo",
+        "tipo_documento",
+        "ubicacion_id",
+      ].sort(),
     );
     expect(d.apoderado).toBe("");
     // Cada campo que la base puede devolver tiene su lugar en el formulario.

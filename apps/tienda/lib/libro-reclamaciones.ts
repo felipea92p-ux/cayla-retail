@@ -30,6 +30,12 @@ export type BorradorHoja = {
   correo: string;
   menor: boolean;
   apoderado: string;
+  /** Si reclama un menor: los datos de su padre, madre o representante (Anexo I; informe legal 2026-11-18). */
+  apoderadoTipoDocumento: TipoDocumentoHoja;
+  apoderadoDocumento: string;
+  apoderadoDomicilio: string;
+  apoderadoTelefono: string;
+  apoderadoCorreo: string;
   bienTipo: TipoBien | null;
   /** null: la tienda online. */
   ubicacionId: string | null;
@@ -37,6 +43,8 @@ export type BorradorHoja = {
   bienDescripcion: string;
   detalle: string;
   pedido: string;
+  /** «Declaro que lo que escribí es correcto»: la firma del libro virtual. */
+  conforme: boolean;
 };
 
 export const BORRADOR_VACIO: BorradorHoja = {
@@ -49,12 +57,18 @@ export const BORRADOR_VACIO: BorradorHoja = {
   correo: "",
   menor: false,
   apoderado: "",
+  apoderadoTipoDocumento: "dni",
+  apoderadoDocumento: "",
+  apoderadoDomicilio: "",
+  apoderadoTelefono: "",
+  apoderadoCorreo: "",
   bienTipo: null,
   ubicacionId: null,
   monto: "",
   bienDescripcion: "",
   detalle: "",
   pedido: "",
+  conforme: false,
 };
 
 /** Los campos, en el orden en que se llenan (la guía enciende el primero que falta). Son los `campo` que devuelve la base. */
@@ -65,12 +79,17 @@ export const CAMPOS = [
   "telefono",
   "correo",
   "apoderado",
+  "apoderado_documento",
+  "apoderado_domicilio",
+  "apoderado_telefono",
+  "apoderado_correo",
   "bien_tipo",
   "monto",
   "bien_descripcion",
   "tipo",
   "detalle",
   "pedido",
+  "conforme",
 ] as const;
 export type CampoHoja = (typeof CAMPOS)[number] | "ubicacion";
 
@@ -81,6 +100,10 @@ export const ETIQUETA: Record<CampoHoja, string> = {
   telefono: "Teléfono",
   correo: "Correo",
   apoderado: "Nombre del padre, la madre o quien te representa",
+  apoderado_documento: "Su documento",
+  apoderado_domicilio: "Su domicilio",
+  apoderado_telefono: "Su teléfono",
+  apoderado_correo: "Su correo",
   bien_tipo: "¿Fue un producto o un servicio?",
   ubicacion: "¿En qué tienda?",
   monto: "Monto reclamado",
@@ -88,6 +111,7 @@ export const ETIQUETA: Record<CampoHoja, string> = {
   tipo: "¿Es un reclamo o una queja?",
   detalle: "¿Qué pasó?",
   pedido: "¿Qué pides?",
+  conforme: "Lo que escribí es correcto",
 };
 
 export const NOMBRE_DOCUMENTO: Record<TipoDocumentoHoja, string> = { dni: "DNI", ce: "Carné de extranjería", pasaporte: "Pasaporte" };
@@ -150,6 +174,16 @@ export function estadoDeLaHoja(b: BorradorHoja): Record<CampoHoja, EstadoCampoHo
     telefono: b.telefono.trim() === "" ? "vacio" : telefonoValido(b.telefono) ? "ok" : "mal",
     correo: b.correo.trim() === "" ? "vacio" : correoValido(b.correo) ? "ok" : "mal",
     apoderado: b.menor ? texto(b.apoderado, LARGOS.apoderado, true) : "opcional",
+    apoderado_documento: !b.menor
+      ? "opcional"
+      : b.apoderadoDocumento.trim() === ""
+        ? "vacio"
+        : documentoValido(b.apoderadoTipoDocumento, b.apoderadoDocumento)
+          ? "ok"
+          : "mal",
+    apoderado_domicilio: b.menor ? texto(b.apoderadoDomicilio, LARGOS.domicilio, true) : "opcional",
+    apoderado_telefono: !b.menor ? "opcional" : b.apoderadoTelefono.trim() === "" ? "vacio" : telefonoValido(b.apoderadoTelefono) ? "ok" : "mal",
+    apoderado_correo: !b.menor ? "opcional" : b.apoderadoCorreo.trim() === "" ? "vacio" : correoValido(b.apoderadoCorreo) ? "ok" : "mal",
     bien_tipo: b.bienTipo ? "ok" : "vacio",
     ubicacion: "opcional",
     monto: b.monto.trim() === "" ? "opcional" : montoValido(b.monto) ? "ok" : "mal",
@@ -157,6 +191,7 @@ export function estadoDeLaHoja(b: BorradorHoja): Record<CampoHoja, EstadoCampoHo
     tipo: b.tipo ? "ok" : "vacio",
     detalle: texto(b.detalle, LARGOS.detalle),
     pedido: texto(b.pedido, LARGOS.pedido),
+    conforme: b.conforme ? "ok" : "vacio",
   };
 }
 
@@ -175,6 +210,14 @@ export function problemaDelCampo(campo: CampoHoja, b: BorradorHoja): string | nu
       return "Escribe el nombre completo.";
     case "documento":
       return b.tipoDocumento === "dni" ? "El DNI tiene 8 números." : "Escribe el número tal cual está en tu documento (6 a 12 letras o números).";
+    case "apoderado_documento":
+      return b.apoderadoTipoDocumento === "dni" ? "El DNI tiene 8 números." : "Tal cual está en su documento (6 a 12 letras o números).";
+    case "apoderado_domicilio":
+      return "Escribe la dirección completa.";
+    case "apoderado_telefono":
+      return "Escribe un número de 6 a 15 cifras.";
+    case "apoderado_correo":
+      return "Revisa el correo: algo como nombre@correo.com.";
     case "domicilio":
       return "Escribe la dirección completa.";
     case "telefono":
@@ -206,12 +249,18 @@ export function datosParaLaBase(b: BorradorHoja): Record<string, string | boolea
     correo: b.correo,
     menor_de_edad: b.menor,
     apoderado: b.menor ? b.apoderado : "",
+    apoderado_tipo_documento: b.menor ? b.apoderadoTipoDocumento : "",
+    apoderado_documento: b.menor ? b.apoderadoDocumento : "",
+    apoderado_domicilio: b.menor ? b.apoderadoDomicilio : "",
+    apoderado_telefono: b.menor ? b.apoderadoTelefono : "",
+    apoderado_correo: b.menor ? b.apoderadoCorreo : "",
     bien_tipo: b.bienTipo ?? "",
     monto: b.monto.trim(),
     bien_descripcion: b.bienDescripcion,
     detalle: b.detalle,
     pedido: b.pedido,
     ubicacion_id: b.ubicacionId ?? "",
+    conforme: b.conforme,
   };
 }
 
@@ -263,6 +312,8 @@ export function mensajeDelEnvio(r: Exclude<ResultadoHoja, { estado: "registrada"
 const esquemaHoja = z.object({
   id: z.string().uuid(),
   codigo: z.string(),
+  /** El código del libro (PARTE 5, 20261118170000). Sin el dato, el de la tienda online. */
+  libro_codigo: z.string().optional().default("LR-WEB-01"),
   creada_en: z.string(),
   proveedor: z.object({ razon_social: z.string(), ruc: z.string(), domicilio: z.string() }),
   tienda: z.object({ nombre: z.string(), direccion: z.string().nullable() }).nullable(),
@@ -275,6 +326,17 @@ const esquemaHoja = z.object({
     correo: z.string(),
     menor_de_edad: z.boolean(),
     apoderado: z.string().nullable(),
+    apoderado_datos: z
+      .object({
+        tipo_documento: z.enum(["dni", "ce", "pasaporte"]).nullable(),
+        documento: z.string().nullable(),
+        domicilio: z.string().nullable(),
+        telefono: z.string().nullable(),
+        correo: z.string().nullable(),
+      })
+      .nullable()
+      .optional()
+      .default(null),
   }),
   bien: z.object({ tipo: z.enum(["producto", "servicio"]), monto: z.union([z.number(), z.string()]).nullable(), descripcion: z.string() }),
   tipo: z.enum(["reclamo", "queja"]),
@@ -345,6 +407,19 @@ export const enlaceDeLaHoja = (origen: string, id: string, marca: string) =>
 const escapar = (t: string) =>
   t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
+/** Si reclama un menor: quién lo representa, con sus datos. */
+export function filasDelApoderado(h: Hoja): [string, string][] {
+  if (!h.consumidor.menor_de_edad) return [];
+  const a = h.consumidor.apoderado_datos;
+  return [
+    ["Padre, madre o apoderado", h.consumidor.apoderado ?? ""],
+    ...(a?.documento ? [[`Su ${NOMBRE_DOCUMENTO[a.tipo_documento ?? "dni"]}`, a.documento] as [string, string]] : []),
+    ...(a?.domicilio ? [["Su domicilio", a.domicilio] as [string, string]] : []),
+    ...(a?.telefono ? [["Su teléfono", a.telefono] as [string, string]] : []),
+    ...(a?.correo ? [["Su correo", a.correo] as [string, string]] : []),
+  ];
+}
+
 /** Las filas de la hoja, en el orden de la constancia: [título, valor]. Una sola definición para el texto y el HTML del correo. */
 function filasDeLaHoja(h: Hoja): [string, [string, string][]][] {
   return [
@@ -365,7 +440,7 @@ function filasDeLaHoja(h: Hoja): [string, [string, string][]][] {
         ["Domicilio", h.consumidor.domicilio],
         ["Teléfono", h.consumidor.telefono],
         ["Correo", h.consumidor.correo],
-        ...(h.consumidor.menor_de_edad ? [["Padre, madre o apoderado", h.consumidor.apoderado ?? ""] as [string, string]] : []),
+        ...filasDelApoderado(h),
       ],
     ],
     [
@@ -393,10 +468,11 @@ export const NOTA_LEGAL =
 /** El correo con la copia de la hoja: asunto, texto plano y HTML (todo lo que escribió la persona va escapado en el HTML). */
 export function correoDeLaHoja(h: Hoja, enlace: string): { asunto: string; texto: string; html: string } {
   const asunto = `Tu hoja de reclamación N.° ${h.codigo} · CAYLA`;
+  const libro = `Libro de Reclamaciones ${h.libro_codigo}`;
   const intro = `El ${fechaDeLaHoja(h.creada_en)} recibimos tu ${h.tipo}. Esta es la copia de tu hoja del Libro de Reclamaciones. CAYLA te responde a este correo en un plazo máximo de 15 días hábiles.`;
   const filas = filasDeLaHoja(h);
   const texto = [
-    `Hoja de reclamación N.° ${h.codigo}`,
+    `Hoja de reclamación N.° ${h.codigo} · ${libro}`,
     "",
     intro,
     "",
@@ -409,6 +485,7 @@ export function correoDeLaHoja(h: Hoja, enlace: string): { asunto: string; texto
     `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#1c1a17;max-width:640px">`, // tema-fijo: un correo no lee los tokens de la tienda
     `<p style="margin:0;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#7a6e63">Hoja de reclamación</p>`, // tema-fijo: un correo no lee los tokens de la tienda
     `<h1 style="margin:4px 0 12px;font-size:24px">N.° ${escapar(h.codigo)}</h1>`,
+    `<p style="margin:0 0 12px;font-size:12px">${escapar(libro)}</p>`,
     `<p>${escapar(intro)}</p>`,
     ...filas.map(
       ([titulo, datos]) =>
@@ -458,3 +535,6 @@ export function correoDeLaRespuesta(h: Hoja, enlace: string): { asunto: string; 
   ].join("");
   return { asunto, texto, html };
 }
+
+/** La línea de privacidad de la hoja (informe legal 2026-11-18: el libro trata datos por obligación legal y hay que decirlo). */
+export const LINEA_PRIVACIDAD = "Usamos tus datos solo para atender tu reclamo y los guardamos 2 años, como pide la ley.";

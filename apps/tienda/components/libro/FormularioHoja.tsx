@@ -10,6 +10,7 @@ import {
   datosParaLaBase,
   ETIQUETA,
   estadoDeLaHoja,
+  LINEA_PRIVACIDAD,
   faltanEnLaHoja,
   MENSAJE_SIN_RED,
   mensajeDelEnvio,
@@ -33,6 +34,10 @@ const ID: Record<CampoHoja, string> = {
   telefono: "hoja-telefono",
   correo: "hoja-correo",
   apoderado: "hoja-apoderado",
+  apoderado_documento: "hoja-apoderado-documento",
+  apoderado_domicilio: "hoja-apoderado-domicilio",
+  apoderado_telefono: "hoja-apoderado-telefono",
+  apoderado_correo: "hoja-apoderado-correo",
   bien_tipo: "hoja-bien-tipo",
   ubicacion: "hoja-ubicacion",
   monto: "hoja-monto",
@@ -40,6 +45,7 @@ const ID: Record<CampoHoja, string> = {
   tipo: "hoja-tipo",
   detalle: "hoja-detalle",
   pedido: "hoja-pedido",
+  conforme: "hoja-conforme",
 };
 
 /**
@@ -236,6 +242,86 @@ export function FormularioHoja({ sedes }: { sedes: readonly Sede[] }) {
             <Resultado id={ID.apoderado}>{problema("apoderado") && <span className="w-res-error">{problema("apoderado")}</span>}</Resultado>
           </Campo>
         )}
+        {/* Con un menor, los mismos datos de quien lo representa (Anexo I del DS 011-2011-PCM; informe legal 2026-11-18). */}
+        {b.menor && (
+          <>
+            <Campo
+              campo="apoderado_documento"
+              idCaja={ID.apoderado_documento}
+              etiqueta={ETIQUETA.apoderado_documento}
+              marca={marcaDelCampo("apoderado_documento")}
+              {...foco("apoderado_documento")}
+            >
+              <Opciones
+                nombre="Tipo de documento de quien te representa"
+                opciones={(["dni", "ce", "pasaporte"] as const).map((t) => ({ valor: t, texto: NOMBRE_DOCUMENTO[t] }))}
+                valor={b.apoderadoTipoDocumento}
+                alElegir={(t) => cambiar({ apoderadoTipoDocumento: t })}
+                apagado={enviando}
+              />
+              {caja("apoderado_documento", {
+                value: b.apoderadoDocumento,
+                inputMode: b.apoderadoTipoDocumento === "dni" ? "numeric" : "text",
+                autoCapitalize: "characters",
+                maxLength: 20,
+                onChange: (e) => cambiar({ apoderadoDocumento: e.target.value }),
+              })}
+              <Resultado id={ID.apoderado_documento}>
+                {problema("apoderado_documento") && <span className="w-res-error">{problema("apoderado_documento")}</span>}
+              </Resultado>
+            </Campo>
+            <Campo
+              campo="apoderado_domicilio"
+              idCaja={ID.apoderado_domicilio}
+              etiqueta={ETIQUETA.apoderado_domicilio}
+              marca={marcaDelCampo("apoderado_domicilio")}
+              {...foco("apoderado_domicilio")}
+            >
+              {caja("apoderado_domicilio", { value: b.apoderadoDomicilio, maxLength: 240, onChange: (e) => cambiar({ apoderadoDomicilio: e.target.value }) })}
+              <Resultado id={ID.apoderado_domicilio}>
+                {problema("apoderado_domicilio") && <span className="w-res-error">{problema("apoderado_domicilio")}</span>}
+              </Resultado>
+            </Campo>
+            <div className="lr-par">
+              <Campo
+                campo="apoderado_telefono"
+                idCaja={ID.apoderado_telefono}
+                etiqueta={ETIQUETA.apoderado_telefono}
+                marca={marcaDelCampo("apoderado_telefono")}
+                {...foco("apoderado_telefono")}
+              >
+                {caja("apoderado_telefono", {
+                  value: b.apoderadoTelefono,
+                  type: "tel",
+                  inputMode: "tel",
+                  maxLength: 20,
+                  onChange: (e) => cambiar({ apoderadoTelefono: e.target.value }),
+                })}
+                <Resultado id={ID.apoderado_telefono}>
+                  {problema("apoderado_telefono") && <span className="w-res-error">{problema("apoderado_telefono")}</span>}
+                </Resultado>
+              </Campo>
+              <Campo
+                campo="apoderado_correo"
+                idCaja={ID.apoderado_correo}
+                etiqueta={ETIQUETA.apoderado_correo}
+                marca={marcaDelCampo("apoderado_correo")}
+                {...foco("apoderado_correo")}
+              >
+                {caja("apoderado_correo", {
+                  value: b.apoderadoCorreo,
+                  type: "email",
+                  inputMode: "email",
+                  maxLength: 254,
+                  onChange: (e) => cambiar({ apoderadoCorreo: e.target.value }),
+                })}
+                <Resultado id={ID.apoderado_correo}>
+                  {problema("apoderado_correo") && <span className="w-res-error">{problema("apoderado_correo")}</span>}
+                </Resultado>
+              </Campo>
+            </div>
+          </>
+        )}
       </fieldset>
 
       <fieldset className="lr-grupo">
@@ -368,6 +454,22 @@ export function FormularioHoja({ sedes }: { sedes: readonly Sede[] }) {
       </fieldset>
 
       <div className="lr-pie">
+        {/* La firma del libro virtual (guía del Indecopi): declara que lo escrito es correcto. */}
+        <div className="w-campo" data-campo="conforme" data-estado={marcaDelCampo("conforme")}>
+          <label className="w-check" htmlFor={ID.conforme}>
+            <input
+              id={ID.conforme}
+              type="checkbox"
+              checked={b.conforme}
+              disabled={enviando}
+              onChange={(e) => cambiar({ conforme: e.target.checked })}
+              onFocus={() => setEnFoco("conforme")}
+              onBlur={() => setEnFoco(null)}
+            />
+            <span>Declaro que lo que escribí en esta hoja es correcto.</span>
+          </label>
+        </div>
+        <p className="lr-privacidad">{LINEA_PRIVACIDAD}</p>
         {faltan.length > 0 ? (
           <p className="lr-faltan">
             Falta:{" "}

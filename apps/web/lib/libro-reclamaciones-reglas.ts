@@ -13,6 +13,8 @@ export const DIAS_VENCE_PRONTO = 3;
 export type HojaLibro = {
   id: string;
   codigo: string;
+  /** El código del libro (PARTE 5, 20261118170000), «LR-WEB-01». */
+  libro_codigo: string;
   creada_en: string;
   tipo: "reclamo" | "queja";
   tienda: string | null;
@@ -25,6 +27,14 @@ export type HojaLibro = {
     correo: string;
     menor_de_edad: boolean;
     apoderado: string | null;
+    /** Si es menor: los datos de quien lo representa. */
+    apoderado_datos: {
+      tipo_documento: "dni" | "ce" | "pasaporte" | null;
+      documento: string | null;
+      domicilio: string | null;
+      telefono: string | null;
+      correo: string | null;
+    } | null;
   };
   bien: { tipo: "producto" | "servicio"; monto: number | string | null; descripcion: string };
   detalle: string;

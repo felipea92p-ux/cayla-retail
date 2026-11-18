@@ -4,7 +4,7 @@ import { z } from "zod";
 import { EncabezadoAyuda } from "@/components/ayuda/EncabezadoAyuda";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import { BotonImprimirHoja } from "@/components/libro/BotonImprimirHoja";
-import { fechaDeLaHoja, montoEnSoles, NOMBRE_DOCUMENTO, NOTA_LEGAL, tipoConSuSentido, type Hoja } from "@/lib/libro-reclamaciones";
+import { fechaDeLaHoja, filasDelApoderado, montoEnSoles, NOMBRE_DOCUMENTO, NOTA_LEGAL, tipoConSuSentido, type Hoja } from "@/lib/libro-reclamaciones";
 import { leerHojaEnBase } from "@/lib/libro-reclamaciones-servidor";
 import { nombreTienda } from "@/lib/pedidos";
 import "../../../estilos/ayuda.css";
@@ -90,7 +90,7 @@ function HojaImpresa({ h }: { h: Hoja }) {
     <article className="lr-hoja" aria-label={`Hoja de reclamación N.° ${h.codigo}`}>
       <header className="lr-hoja-cab">
         <div>
-          <p className="lr-hoja-t">Hoja de reclamación</p>
+          <p className="lr-hoja-t">Hoja de reclamación · Libro {h.libro_codigo}</p>
           <p className="lr-hoja-n num">N.° {h.codigo}</p>
         </div>
         <p className="lr-hoja-fecha">{fechaDeLaHoja(h.creada_en)}</p>
@@ -107,7 +107,9 @@ function HojaImpresa({ h }: { h: Hoja }) {
         <Dato t="Domicilio" v={h.consumidor.domicilio} />
         <Dato t="Teléfono" v={h.consumidor.telefono} />
         <Dato t="Correo" v={h.consumidor.correo} />
-        {h.consumidor.menor_de_edad && <Dato t="Padre, madre o apoderado" v={h.consumidor.apoderado ?? ""} />}
+        {filasDelApoderado(h).map(([t, v]) => (
+          <Dato key={t} t={t} v={v} />
+        ))}
       </Bloque>
       <Bloque titulo="2. Identificación del bien contratado">
         <Dato t="Tipo" v={h.bien.tipo === "producto" ? "Producto" : "Servicio"} />
@@ -119,7 +121,15 @@ function HojaImpresa({ h }: { h: Hoja }) {
         <Dato t="Detalle" v={h.detalle} largo />
         <Dato t="Pedido" v={h.pedido} largo />
       </Bloque>
-      <footer className="lr-hoja-pie">{NOTA_LEGAL}</footer>
+      {h.respuesta && (
+        <Bloque titulo="4. Observaciones y acciones adoptadas por el proveedor">
+          <Dato t="Fecha" v={h.respondida_en ? fechaDeLaHoja(h.respondida_en) : "—"} />
+          <Dato t="Respuesta" v={h.respuesta} largo />
+        </Bloque>
+      )}
+      <footer className="lr-hoja-pie">
+        El consumidor declaró que lo escrito en esta hoja es correcto. {NOTA_LEGAL}
+      </footer>
     </article>
   );
 }

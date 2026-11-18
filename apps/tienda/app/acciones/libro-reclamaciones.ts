@@ -27,12 +27,18 @@ const esquema = z.object({
   correo: texto,
   menor_de_edad: z.boolean(),
   apoderado: texto,
+  apoderado_tipo_documento: texto,
+  apoderado_documento: texto,
+  apoderado_domicilio: texto,
+  apoderado_telefono: texto,
+  apoderado_correo: texto,
   bien_tipo: texto,
   monto: texto,
   bien_descripcion: texto,
   detalle: texto,
   pedido: texto,
   ubicacion_id: texto,
+  conforme: z.boolean(),
 });
 
 export async function enviarHojaDeReclamacion(datos: unknown, marca: unknown): Promise<ResultadoHoja> {

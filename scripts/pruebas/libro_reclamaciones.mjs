@@ -4,7 +4,7 @@
  *
  * QUÉ PRUEBA. `20261118145000_libro_reclamaciones_tienda.sql` (PARTE 1, la hoja), `20261118150000_libro_reclamaciones_copia_al_correo.sql`
  * (PARTE 2, la copia), `20261118151000_libro_reclamaciones_erp.sql` (PARTE 3, el ERP) y `20261118152000_libro_reclamaciones_respuesta.sql`
- * (PARTE 4, la respuesta):
+ * (PARTE 4, la respuesta) y `20261118170000_libro_reclamaciones_ajustes_legales.sql` (PARTE 5, lo que pidió la revisión legal):
  *   E. Estructura y puerta: `hojas_reclamacion` y sus intentos con RLS, sin políticas y sin permisos para nadie (ni `tienda_web`); las
  *      tres `tienda_*` son security definer y solo de `tienda_web` (nunca de anon ni de authenticated).
  *   T. La tienda escribe SIN cuenta: la hoja completa se guarda con su número «000001-<año>», los datos de CAYLA copiados y el texto
@@ -24,6 +24,8 @@
  *   S. Responder: sin el módulo, 42501; corta o larga, su hint y nada cambia; el líder responde (firmada, con su fecha, en la Actividad);
  *      el mismo texto otra vez es «ya_estaba» y otro texto, `libro_ya_respondida`; la respuesta no se corrige (ni como postgres); la
  *      lista y la constancia la traen; la cola del correo la toma una vez y la marca enviada; la tienda no puede responder.
+ *   G. Lo legal: sin la casilla de conformidad no se guarda; con un menor, cada dato de quien lo representa (documento por tipo, domicilio,
+ *      teléfono, correo) se exige y se guarda; la hoja lleva el código del libro («LR-WEB-01») y no cambia.
  *   M. Mutantes: el tope, la marca y el candado, rotos a propósito dentro de la transacción: la prueba lo nota.
  *   P. Las dos partes se pueden pegar dos veces.
  *
@@ -50,6 +52,7 @@ const MIGRACIONES = [
   "supabase/migrations/20261118150000_libro_reclamaciones_copia_al_correo.sql",
   "supabase/migrations/20261118151000_libro_reclamaciones_erp.sql",
   "supabase/migrations/20261118152000_libro_reclamaciones_respuesta.sql",
+  "supabase/migrations/20261118170000_libro_reclamaciones_ajustes_legales.sql",
 ];
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo
@@ -147,6 +150,7 @@ function datos(cambios = {}) {
     detalle: "La blusa llegó con una costura abierta en la manga.",
     pedido: "Cambio por otra igual.",
     ubicacion_id: "",
+    conforme: true,
     ...cambios,
   }).replaceAll("'", "''");
 }
@@ -211,6 +215,8 @@ select format('%s|%s|%s|%s|%s|%s|%s|%s|%s', codigo, consumidor_nombre, consumido
     ["telefono", { telefono: "12" }],
     ["correo", { correo: "lucia@" }],
     ["apoderado", { menor_de_edad: true, apoderado: "" }],
+    ["apoderado_documento", { menor_de_edad: true, apoderado: "María Prueba", apoderado_tipo_documento: "dni", apoderado_documento: "123" }],
+    ["conforme", { conforme: false }],
     ["bien_tipo", { bien_tipo: "otro" }],
     ["monto", { monto: "-5" }],
     ["monto", { monto: "1,50" }],
@@ -472,6 +478,44 @@ select has_function_privilege('tienda_web', 'retail.responder_hoja_reclamacion(u
   esperar("S4 · ni la tienda ni anon responden; el ERP no toma la cola de la tienda", r.ok && r.salida === "f|f|f", r.mensaje ?? r.salida);
 }
 
+// ---------- G. Lo legal (PARTE 5) ----------
+{
+  const MENOR = {
+    menor_de_edad: true,
+    apoderado: "María Prueba Madre",
+    apoderado_tipo_documento: "dni",
+    apoderado_documento: "09959911",
+    apoderado_domicilio: "Calle de prueba 456, Trujillo",
+    apoderado_telefono: "999 000 111",
+    apoderado_correo: "Maria.Madre@Example.com",
+  };
+  const m = randomUUID();
+  const r = escenario(`${COMO_TIENDA}
+${registrar(datos({ ...MENOR, apoderado_correo: "malo" }))} ->> 'campo';
+${registrar(datos({ ...MENOR, apoderado_domicilio: "" }))} ->> 'campo';
+${registrar(datos({ ...MENOR, apoderado_telefono: "1" }))} ->> 'campo';
+select (${registrar(datos(MENOR), { marca: m }).replace(/^select /, "")}) ->> 'id' as h \\gset
+select format('%s|%s|%s', x ->> 'libro_codigo', x #>> '{consumidor,apoderado_datos,documento}', x #>> '{consumidor,apoderado_datos,correo}')
+  from retail.tienda_ver_hoja_reclamacion(:'h', '${m}') x;
+${COMO_POSTGRES}
+select format('%s|%s', conforme, apoderado_telefono) from retail.hojas_reclamacion where id = :'h';`);
+  esperar(
+    "G1 · con un menor, cada dato de quien lo representa se exige y se guarda; la hoja lleva su código y la conformidad",
+    r.ok && r.salida === "apoderado_correo\napoderado_domicilio\napoderado_telefono\nLR-WEB-01|09959911|maria.madre@example.com\nt|999000111",
+    r.mensaje ?? r.salida,
+  );
+}
+for (const [nombre, sql] of [
+  ["G2 · el código del libro no cambia", "update retail.hojas_reclamacion set libro_codigo = 'OTRO'"],
+  ["G3 · la conformidad no cambia", "update retail.hojas_reclamacion set conforme = false"],
+]) {
+  const r = escenario(`${COMO_TIENDA}
+${registrar(datos())};
+${COMO_POSTGRES}
+${sql};`);
+  esperar(`${nombre} (ni como postgres)`, !r.ok && /42501|no cambia/.test(r.mensaje), r.ok ? "pasó sin error" : r.mensaje);
+}
+
 // ---------- M. Mutantes ----------
 {
   // Sin el candado, el update pasa: si la prueba C no lo notara, no estaría mirando nada.
@@ -501,7 +545,7 @@ select count(*) from retail.hojas_reclamacion where marca = '${m}';`);
 {
   const sql = MIGRACIONES.map((m) => readFileSync(m, "utf8")).join("\n");
   const r = correr(`begin;\n${sql}\n${sql}\nrollback;\n`);
-  esperar("P1 · las cuatro partes se pueden pegar dos veces", r.ok, r.mensaje);
+  esperar("P1 · las cinco partes se pueden pegar dos veces", r.ok, r.mensaje);
 }
 
 console.log(`\n${total - fallos}/${total} ${fallos ? "con fallos" : "bien"}`);

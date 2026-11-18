@@ -102,7 +102,7 @@ export function HojaCajon({
       guia="libro.cajon"
       sobre={h.tipo === "reclamo" ? "Reclamo" : "Queja"}
       titulo={`Hoja N.° ${h.codigo}`}
-      frase={`Llegó el ${fechaCorta(h.creada_en)} · ${h.tienda ?? "Tienda online"}`}
+      frase={`Llegó el ${fechaCorta(h.creada_en)} · ${h.tienda ?? "Tienda online"} · Libro ${h.libro_codigo}`}
       marca={<AvatarPersona personaId={null} nombre={h.consumidor.nombre} tamano={40} />}
       debajo={
         <span className="flex flex-wrap items-center gap-2">
@@ -197,7 +197,17 @@ export function HojaCajon({
               ["Correo", h.consumidor.correo],
               ["Teléfono", h.consumidor.telefono],
               ["Domicilio", h.consumidor.domicilio],
-              ...(h.consumidor.menor_de_edad ? [["Menor de edad, lo representa", h.consumidor.apoderado ?? ""] as [string, string]] : []),
+              ...(h.consumidor.menor_de_edad
+                ? ([
+                    ["Menor de edad, lo representa", h.consumidor.apoderado ?? ""],
+                    ...(h.consumidor.apoderado_datos?.documento
+                      ? [[`Su ${NOMBRE_DOCUMENTO[h.consumidor.apoderado_datos.tipo_documento ?? "dni"]}`, h.consumidor.apoderado_datos.documento]]
+                      : []),
+                    ...(h.consumidor.apoderado_datos?.domicilio ? [["Su domicilio", h.consumidor.apoderado_datos.domicilio]] : []),
+                    ...(h.consumidor.apoderado_datos?.telefono ? [["Su teléfono", h.consumidor.apoderado_datos.telefono]] : []),
+                    ...(h.consumidor.apoderado_datos?.correo ? [["Su correo", h.consumidor.apoderado_datos.correo]] : []),
+                  ] as [string, string][])
+                : []),
             ]}
           />
         </section>

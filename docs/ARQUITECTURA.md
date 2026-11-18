@@ -1453,7 +1453,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `retail.tienda_anotar_pasos` → `retail.trafico_web` (solo se agrega). Pruebas en la base: `pnpm pruebas:tienda-trafico` y
   `pnpm pruebas:tienda-trafico-resumen`.
 - `/tienda-web/libro-de-reclamaciones` (ADR-0679, Felipe 2026-11-18; módulo **`libro_reclamaciones`**, nace solo para el líder; migraciones
-  `20261118145000` a `20261118152000`, **sin pegar en producción**): las hojas del Libro de Reclamaciones virtual de la tienda online, con su
+  `20261118145000` a `20261118170000`, **sin pegar en producción**): las hojas del Libro de Reclamaciones virtual de la tienda online, con su
   plazo de 15 días hábiles. Hija de Tienda web, justo después de Pedidos; `layout.tsx` pide el módulo. `page.tsx` → RPC `fn_libro_reclamaciones`
   (las 1000 más nuevas, cada una completa con `vence_el` y `dias_restantes`) → `lib/libro-reclamaciones-reglas.ts` (puro: lectura, estado según
   el plazo, cifras, filtro) → `components/libro-reclamaciones/LibroPantalla.tsx` (cifras que filtran, buscador, píldora de estado, `?h=<id>`
