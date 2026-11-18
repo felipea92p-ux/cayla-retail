@@ -1373,18 +1373,11 @@ export const GUIA_CAMPANAS: Guia = {
       texto: "Cuántas lleva y cuántas paga, el precio del grupo o el % de la N.ª, con − y +. Siempre baja la más barata del grupo; si cuestan lo mismo, da igual cuál.",
     },
     {
-      id: "oferta-etiqueta",
-      ancla: "sellos.oferta-etiqueta",
-      opcional: true,
-      titulo: "La etiqueta de la campaña",
-      texto: "Es la misma de la hoja de la campaña: el descuento, las fechas, a cuántas prendas llega, sus categorías y lo que cobra la caja por una prenda real. Debajo se le suma lo de esta oferta: qué prendas, en qué tiendas y cuándo.",
-    },
-    {
       id: "oferta-prendas",
       ancla: "sellos.oferta-prendas",
       opcional: true,
       titulo: "En qué prendas",
-      texto: "Viene lo de la campaña. Marca categorías para que rija solo en ellas, aunque la campaña no las tenga: la grilla va por familia, con cuántas prendas trae cada una y un buscador. Toca el nombre de una familia para abrirla o plegarla; la casilla marca toda la familia. Lo que marques se ve al instante en la etiqueta.",
+      texto: "Viene lo de la campaña. Marca categorías para que rija solo en ellas, aunque la campaña no las tenga: la grilla va por familia, con cuántas prendas trae cada una y un buscador. Toca el nombre de una familia para abrirla o plegarla; la casilla marca toda la familia. Lo que marques cambia al instante «En caja».",
     },
     {
       id: "oferta-cuenta",
@@ -1404,8 +1397,8 @@ export const GUIA_CAMPANAS: Guia = {
       id: "oferta-ejemplo",
       ancla: "sellos.oferta-ejemplo",
       opcional: true,
-      titulo: "Así funciona en la caja",
-      texto: "Un grupo con prendas de verdad, cobrado con la misma cuenta de la caja: lo que paga cada una y cuánto ahorra el cliente. El ahorro se reparte entre las prendas según su precio.",
+      titulo: "En caja",
+      texto: "Una compra con prendas de verdad, cobrada con la misma cuenta de la caja: lo que paga cada una, el total y cuánto ahorra el cliente. Cambia con cada toque. En un grupo, el ahorro se reparte entre sus prendas según su precio.",
     },
     {
       id: "oferta-una-por-una",

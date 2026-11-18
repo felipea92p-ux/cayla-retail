@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Award, Check, Plus, Undo2, X } from "lucide-react";
+import { Award, Check, Plus, Shirt, Tag, Undo2, X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, Campo, CampoMonto, CampoTexto } from "@/components/ui/campos";
@@ -16,19 +16,19 @@ import { Modal } from "@/components/ui/Modal";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
 import { irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
-import { EtiquetaDeCampana } from "@/components/campana-hoja/EtiquetaDeCampana";
 import { CategoriasDeCampana } from "@/components/campana-hoja/CategoriasDeCampana";
 import { ChoquesDeOferta, useChoquesDeOferta } from "@/components/sellos/ChoquesDeOferta";
 import type { CategoriaOpcion, Etiqueta } from "@/components/EtiquetasLista";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import type { CampoDeGuia } from "@/lib/guia-campos";
 import type { InsigniaDeOferta } from "@/lib/campana-reglas";
-import { alcanceCampana, avisoReimprimir, chipDeTarjeta, destinoReimprimir, nombreBajoCosto, prendasBajoCosto, prendasQueCambianDePrecioHoy, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
-import { ejemplosDeCaja, piezasDelMosaico } from "@/lib/campana-hoja";
+import { alcanceCampana, avisoReimprimir, destinoReimprimir, nombreBajoCosto, prendasBajoCosto, prendasQueCambianDePrecioHoy, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
+import { nombreSinSku } from "@/lib/campana-hoja";
 import { sumarDias } from "@/lib/fechas-lima";
-import { ejemploDeGrupo, ejemploDeMonto, type OfertaDeGrupo } from "@/lib/ofertas-de-grupo";
+import { compraDeEjemplo } from "@/lib/compra-de-ejemplo";
+import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { opcionesDeQueLeDas } from "@/lib/oferta-que-le-das";
-import { fechaCorta, repetirTemporada, textoRango, vigenciaDe } from "@/lib/etiqueta-vigencia";
+import { fechaCorta, repetirTemporada } from "@/lib/etiqueta-vigencia";
 import {
   DIAS_SEMANA,
   FORMA_DE_FABRICA,
@@ -40,7 +40,6 @@ import {
   PORCENTAJE_MAX,
   PORCENTAJE_MIN,
   PORCENTAJE_PASO,
-  alcanceDicho,
   atajosDeFechas,
   contarPorCategoria,
   contarPrendas,
@@ -56,7 +55,6 @@ import {
   nombreAutomatico,
   nombreDeOferta,
   nombreDia,
-  nombresOrdenados,
   ofertaDesdeRegla,
   ofertaNueva,
   prendasQueAlcanza,
@@ -66,8 +64,6 @@ import {
   choquesSinResolver,
   cesionesQueQuedan,
   tituloDeChoque,
-  textoDias,
-  textoFechas,
   vigenciaDeRegla,
   type CuerpoGuardarOferta,
   type EscalonDeMonto,
@@ -168,6 +164,7 @@ export function OfertasHoja({
   alReglas,
   onClose,
   ofertaInicial = null,
+  fotos = null,
 }: {
   /** La campaña a la que se le registran las ofertas. */
   etiqueta: Etiqueta;
@@ -189,6 +186,8 @@ export function OfertasHoja({
   onClose: () => void;
   /** La oferta que se tocó en su cartel (ADR-0677, 7c): la hoja empieza editándola. Sin ella, es una nueva. */
   ofertaInicial?: string | null;
+  /** La foto, el color y la categoría de cada prenda (por su id), para dibujarla en «En caja»; sin ellos, la percha (ADR-0333). */
+  fotos?: ReadonlyMap<string, { fotoUrl: string | null; colorHex: string | null; categoria: { nombre: string | null; prefijo: string | null; familia: string | null } | null }> | null;
 }) {
   const campDesde = etiqueta.vigenteDesde;
   const campHasta = etiqueta.vigenteHasta;
@@ -230,8 +229,6 @@ export function OfertasHoja({
   // Desde ADR-0677 (actividad 7b) es UNA hoja: qué le das arriba y, en cuanto se elige, en qué prendas, cuándo y dónde, y lo que revisar,
   // uno debajo del otro. Ya no hay pasos que recorrer ni «Siguiente»: el pie siempre guarda o activa.
   const [elegido, setElegido] = useState(reglaInicial !== null);
-  // La categoría recién marcada: su casilla vuela a su pieza en la etiqueta (`EtiquetaDeCampana`).
-  const vuelo = useRef<string | null>(null);
   // La persona tocó la grilla de categorías (aunque la dejó vacía: vacío es «ninguna», no «las de la campaña»).
   const [tocoCats, setTocoCats] = useState(
     () => reglaInicial !== null && reglaInicial.categoriasSolo.length === 0 && (reglaInicial.productosSolo.length > 0 || reglaInicial.insigniasSolo.length > 0),
@@ -474,14 +471,10 @@ export function OfertasHoja({
     cambiar({ categoriasSolo: comoLaCampana ? [] : [...siguiente], categoriasFuera: [] });
     setTocoCats(!comoLaCampana);
   }
-  // La casilla recién marcada vuela a su pieza en la etiqueta.
   const alternarCategoria = (id: string) => {
     const siguiente = new Set(elegidasSolo);
     if (siguiente.has(id)) siguiente.delete(id);
-    else {
-      siguiente.add(id);
-      vuelo.current = id;
-    }
+    else siguiente.add(id);
     fijarCategorias(siguiente);
   };
   // Prenda por prenda (ADR-0655): elegir el primer modelo deja la oferta en lo que se marca —las categorías que se veían y ese modelo—, ya no en
@@ -706,7 +699,6 @@ export function OfertasHoja({
 
   // ---- Dónde rige (se contesta en «¿Cuándo y dónde?») ------------------------------------------------------------------------------
   const dondeRige = textoSedesDeCampana(etiqueta.sedeIds, tiendas) ?? "En todas las tiendas";
-  const dondeDeLaOferta = sinTiendas ? dondeRige : tiendasPendientes ? "Elige al menos una tienda" : seleccionCompleta ? "En todas las tiendas" : (textoSedesDeCampana(o.sedeIds, tiendas) ?? dondeRige);
   // «Dónde rige», como en la hoja de la campaña: una pastilla por tienda. Aquí no hay «Todas las sedes» (Felipe 2026-10-23): quien la quiere
   // en todas las marca todas, y la oferta queda sin límite de tiendas.
   const chipsDeTiendas =
@@ -833,12 +825,6 @@ export function OfertasHoja({
   }
 
   // ---- Pregunta 3 · ¿En qué prendas? ----------------------------------------------------------------------------------------------------
-  // Lo que se dice de las prendas, en una línea (la etiqueta de la derecha y el nombre usan la misma).
-  const prendasTexto = (() => {
-    const base = deTodaLaCompra ? "Toda la compra" : (alcanceDicho(o, nombreCategoria) ?? "Todas las de la campaña");
-    const extras = [o.categoriasFuera.length > 0 ? `menos ${lista(nombresOrdenados(o.categoriasFuera, nombreCategoria).map((n) => n.toLowerCase()))}` : "", o.incluyeClaure ? "con Claurè" : ""].filter(Boolean);
-    return extras.length > 0 ? `${base} · ${extras.join(" · ")}` : base;
-  })();
   // La frase de producción bajo «Categorías»: «Alcanza a 47 prendas a la venta: 3 de 1 categoría y 44 marcadas a mano.»
   const alcanceTexto = (() => {
     if (categoriasPendientes) return "Marca al menos una categoría.";
@@ -1052,50 +1038,7 @@ export function OfertasHoja({
         </div>
         </>
         )}
-        {(grupo || esMonto) && ejemploCaja()}
       </>
-    );
-  }
-
-  // ---- «Así funciona en la caja»: un grupo de prendas de verdad, cobrado con la misma regla de la caja (lib/ofertas-de-grupo.ts) -------
-  function ejemploCaja() {
-    const forma: OfertaDeGrupo = {
-      reglaId: "ejemplo", tipo: o.tipo as OfertaDeGrupo["tipo"], lleva: o.lleva, paga: o.paga, monto: o.monto, porcentaje: o.porcentaje, agrupa: o.agrupa,
-      escalones: o.escalones, ahorroEn: o.ahorroEn,
-    };
-    const prendas = alcanzadas.map((p) => ({ nombre: p.referencia ?? p.nombre, precio: p.precio, productoId: p.productoId }));
-    const e = problemasDeForma(o).length === 0 ? (esMonto ? ejemploDeMonto(prendas, forma) : ejemploDeGrupo(prendas, forma)) : null;
-    if (!e) return null;
-    const primero = (o.escalones ?? [])[0];
-    const S = (n: number) => `S/\u00a0${n.toFixed(2)}`;
-    return (
-      <div className="of-panel mt-3" data-guia="sellos.oferta-ejemplo">
-        <span className="of-lbl">Así funciona en la caja</span>
-        <ul className="of-ejemplo">
-          {e.lineas.map((l, i) => (
-            <li key={i}>
-              <span>{l.nombre}</span>
-              <span className="tabular-nums">
-                {l.paga < l.precio && <s className="text-tinta/55">{S(l.precio)}</s>} {S(l.paga)}
-              </span>
-            </li>
-          ))}
-        </ul>
-        <p className="of-pequeno mt-1.5">
-          {esMonto ? (
-            e.ahorro > 0 ? (
-              <>Suma {S(e.total)} → paga {S(e.paga)} (ahorra {S(e.ahorro)}). Con menos de {S(primero?.desde ?? 0)}, pagan su precio.</>
-            ) : (
-              <>Suma {S(e.total)}: todavía no llega a {S(primero?.desde ?? 0)}, así que paga su precio.</>
-            )
-          ) : (
-            <>
-              Lleva {o.lleva} → paga {S(e.paga)} en vez de {S(e.total)} (ahorra {S(e.ahorro)}). Con {o.lleva - 1}, no hay grupo: pagan su precio.
-              {o.agrupa === "modelo" ? " Tienen que ser del mismo modelo, en tallas o colores distintos." : ""}
-            </>
-          )}
-        </p>
-      </div>
     );
   }
 
@@ -1193,57 +1136,62 @@ export function OfertasHoja({
     );
   }
 
-  // ---- La etiqueta de la campaña (la de producción), con lo que esta oferta pone encima ---------------------------------------------
-  // Es la misma `EtiquetaDeCampana` de la hoja de la campaña (ADR-0488): su descuento, sus fechas, a cuántas prendas llega, sus categorías
-  // y lo que cobra la caja. Aquí se le suma un resumen de la oferta: qué prendas, en qué tiendas y cuándo.
-  const cuandoTexto = `${sinPunto(textoFechas(o.desde, o.hasta)).replace(/^el /, "")}${diasSueltos ? ` · ${textoDias(o.dias)}` : ""}`;
-  // El mosaico y los ejemplos de la caja salen de lo que la oferta alcanza de verdad (también las marcadas a mano de una campaña sin categorías).
-  const cuentaAlcanza = useMemo(() => contarPorCategoria(alcanzadas, true), [alcanzadas]);
-  const catsAlcanza = useMemo(() => new Set(cuentaAlcanza.keys()), [cuentaAlcanza]);
-  const mosaico = piezasDelMosaico(categorias, catsAlcanza, cuentaAlcanza);
-  // Mientras no elige qué le da al cliente, la caja cobra el precio de siempre: no se enseña un descuento que nadie puso.
-  const ejemplos = o.tipo !== "pct" ? [] : ejemplosDeCaja(alcanzadas, catsAlcanza, manuales, cuentaAlcanza, elegido ? o.porcentaje : null);
-
-  function etiquetaViva() {
-    const fechasBien = o.desde !== "" && o.hasta !== "" && o.desde <= o.hasta;
-    const linea = (n: string, v: string) => (
-      <div className="of-ef">
-        <span className="of-n">{n}</span>
-        <span className="of-v">{v || <i className="of-pend">por elegir</i>}</span>
-      </div>
-    );
-    const resumen = (
-      <>
-        <div className="eqp-solo-ancho">
-          <hr className="eqp-perfora" />
-          {linea("Prendas", prendasTexto)}
-          {linea("Tiendas", tiendasPendientes ? "" : dondeDeLaOferta)}
-          {linea("Cuándo", cuandoTexto)}
-        </div>
-        <p className="of-res-corto">{[tiendasPendientes ? "tiendas por elegir" : dondeDeLaOferta, cuandoTexto].join(" · ")}</p>
-      </>
-    );
+  // ---- «En caja»: una compra de ejemplo, cobrada con la cuenta de la caja (ADR-0677, actividad 8; lib/compra-de-ejemplo.ts) -----------
+  // Reemplaza a la etiqueta de la campaña: responde «¿cuánto paga el cliente?» con prendas de verdad, en vivo. Lo que decía la etiqueta ya
+  // está en otro lado: cuántas prendas alcanza (en «En qué prendas») y cuándo y dónde (la frase de «Revisa»).
+  const compra = useMemo(
+    () => compraDeEjemplo(o, elegido, alcanzadas.map((p) => ({ id: p.id, nombre: p.referencia ?? nombreSinSku(p.nombre), precio: p.precio, productoId: p.productoId }))),
+    [o, elegido, alcanzadas],
+  );
+  function enCaja() {
+    const S = (n: number) => `S/\u00a0${n.toFixed(2)}`;
     return (
-      <aside className="of-lado cph-hoja" aria-label={`La etiqueta «${etiqueta.nombre}»`} data-guia="sellos.oferta-etiqueta">
-        <EtiquetaDeCampana
-          nombre={etiqueta.nombre}
-          descuento={elegido && o.tipo === "pct" ? o.porcentaje : null}
-          titular={elegido && o.tipo !== "pct" ? titularDeOferta(o) : undefined}
-          textoSinDescuento="Elige qué le das al cliente"
-          rango={fechasBien ? (textoRango(o.desde, o.hasta) ?? "") : "Revisa las fechas"}
-          chip={fechasBien ? chipDeTarjeta(vigenciaDe(o.desde, o.hasta, hoy), nAlcanza, hoy) : null}
-          total={nAlcanza}
-          piezas={mosaico.piezas}
-          mas={mosaico.mas}
-          ejemplos={ejemplos}
-          categoriaDe={(id) => {
-            const c = id ? categorias.find((x) => x.id === id) : undefined;
-            return c && { id: c.id, nombre: c.nombre, prefijo: c.prefijo, familiaCodigo: c.familiaCodigo, prendas: cuentaAlcanza.get(c.id) ?? 0 };
-          }}
-          vueloRef={vuelo}
-          sello={null}
-          resumen={resumen}
-        />
+      <aside className="of-caja" aria-label="Así se cobra en caja" data-guia="sellos.oferta-ejemplo">
+        <span className="of-lbl">En caja</span>
+        {compra.estado === "elige" ? (
+          <Vacio tamano="chico" icono={<Tag />}>
+            Elige qué le das
+          </Vacio>
+        ) : compra.estado === "sin-prendas" ? (
+          <Vacio tamano="chico" icono={<Shirt />}>
+            Todavía no alcanza ninguna prenda
+          </Vacio>
+        ) : (
+          <>
+            <ul className="of-caja-lineas">
+              {compra.lineas.map((l, i) => {
+                const f = l.id ? fotos?.get(l.id) : undefined;
+                return (
+                  <li key={`${l.id ?? l.nombre}-${i}`}>
+                    <MiniaturaPrenda
+                      fotoUrl={f?.fotoUrl ?? null}
+                      colorHex={f?.colorHex ?? null}
+                      prefijo={f?.categoria?.prefijo}
+                      familia={f?.categoria?.familia}
+                      categoria={f?.categoria?.nombre}
+                    />
+                    <span className="of-caja-nombre">{l.nombre}</span>
+                    <span className="of-caja-precio">
+                      {l.paga < l.precio && <s>{S(l.precio)}</s>}
+                      <b>{S(l.paga)}</b>
+                    </span>
+                  </li>
+                );
+              })}
+              {compra.monto && (
+                <li className="of-caja-monto">
+                  <span>{compra.monto.llega ? `Desde ${S(compra.monto.desde)}` : `Falta ${S(compra.monto.falta)} para ${S(compra.monto.desde)}`}</span>
+                  {compra.monto.llega && <b className="of-caja-precio">−{S(compra.monto.ahorro)}</b>}
+                </li>
+              )}
+            </ul>
+            <p className="of-caja-total" aria-live="polite" aria-atomic="true">
+              <span>Paga</span>
+              <b>{S(compra.paga)}</b>
+            </p>
+            {compra.ahorro > 0 && <p className="of-caja-ahorra">Ahorra {S(compra.ahorro)}</p>}
+          </>
+        )}
       </aside>
     );
   }
@@ -1370,7 +1318,7 @@ export function OfertasHoja({
                       </>
                     )}
                   </div>
-                  {etiquetaViva()}
+                  {enCaja()}
                 </div>
               </section>
             )}

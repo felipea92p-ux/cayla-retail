@@ -250,9 +250,10 @@ export function SellosPantalla({
   const verDescuentos = esCampanas && puedeEditarCampanas && Boolean(sedeActualId) && descuentos !== null;
   // El descuento abierto ocupa el lugar de la campaña abierta (ADR-0677): a la derecha o, con una sola columna, bajo su fila.
   const descuentoAbierto = verDescuentos ? ((descuentos ?? []).find((d) => d.etiquetaId === descuentoAbiertoId && d.activo && d.rigeAqui) ?? null) : null;
-  // Lo que el panel sabe de cada talla sin volver a la base: foto y categoría (la vitrina de la pantalla), cuántas tallas tiene cada color y su costo.
+  // Lo que el panel sabe de cada talla sin volver a la base: foto, color y categoría (la vitrina de la pantalla), cuántas tallas tiene cada color
+  // y su costo. «En caja» de la hoja de ofertas dibuja con lo mismo cada prenda de su compra de ejemplo.
   const vitrinaPorTalla = useMemo(
-    () => (prendasVitrina ? new Map(prendasVitrina.map((t) => [t.id, { productoId: t.productoId, colorNombre: t.colorNombre, categoria: t.categoria, fotoUrl: t.fotoUrl }])) : null),
+    () => (prendasVitrina ? new Map(prendasVitrina.map((t) => [t.id, { productoId: t.productoId, colorNombre: t.colorNombre, colorHex: t.colorHex, categoria: t.categoria, fotoUrl: t.fotoUrl }])) : null),
     [prendasVitrina],
   );
   const tallasDeLaVitrina = useMemo(() => {
@@ -1225,6 +1226,7 @@ export function SellosPantalla({
           key={`${ofertando.id}:${ofertaAbierta ?? "nueva"}`}
           etiqueta={ofertando}
           ofertaInicial={ofertaAbierta}
+          fotos={vitrinaPorTalla}
           reglas={reglasDeCampana(reglas, ofertando.id)}
           categorias={categorias}
           tiendas={tiendas}

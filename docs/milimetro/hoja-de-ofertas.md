@@ -48,3 +48,26 @@ Se arma por partes, como se construye (`/construir`, 2026-11-18): cada actividad
 - **Medidas:** la hoja baja de 78 a 70 rem (sin la columna de 15,5 rem de la lista); a 1440 la pregunta mide 716 px y las cinco formas de «Qué le
   das» caben en una fila (con 64 rem quedaban 4 + 1). Las preguntas van directo sobre la hoja: la caja crema que las rodeaba era un bloque
   sólido sobre el vidrio y, sin la lista al lado, no separaba nada.
+
+## 8 · «En caja»: una compra de ejemplo, en vivo
+
+- **Lo que es:** la columna de la derecha deja de ser la etiqueta de la campaña y pasa a ser **la caja**: una compra con prendas de verdad (las
+  que la oferta alcanza), cobrada con la misma cuenta de Vender, que cambia con cada toque. Responde la única pregunta que la etiqueta no
+  respondía: «¿cuánto paga el cliente?». Lo que decía la etiqueta ya está en otro lado: cuántas prendas alcanza (en «En qué prendas») y
+  cuándo y dónde (la frase de «Revisa»).
+- **La compra:** con un %, las 3 prendas más caras de modelos distintos, cada una con `descuentoDeCampana` (céntimos exactos, como la caja);
+  con «llevar varias», las que pide el grupo (un 2 x 1 son 2, un 3 x 2 son 3) por `ejemploDeGrupo`, y cada una con lo que la caja le cobra: el
+  ahorro del grupo se reparte entre sus prendas, así que ninguna dice «Gratis» como en la maqueta (sería otro ticket que el de la caja); con un
+  monto, las que hacen falta para llegar al primer escalón por `ejemploDeMonto`, a su precio, y una línea «Desde S/ 300 · −S/ 30» (o
+  «Falta S/ 40 para S/ 300»). La lógica es pura, en `lib/compra-de-ejemplo.ts`, con su prueba; el componente solo la dibuja.
+- **Pieza:** **nueva**, sobre la placa Serena (`--placa-fondo`, `--placa-borde`, `--placa-luz`, radio `--radius-tarjeta`): explica, no se
+  toca (ADR-0596: «lo que explica es plano»). Título en versalitas de 11 px (`.of-lbl`). Cada línea: `<MiniaturaPrenda>` de 36 px (la foto, o
+  el ícono de su categoría sobre su color, ADR-0333), el nombre a 14 px cortado con «…», y a la derecha el precio tachado (14 px, tinta 68 %)
+  sobre lo que paga (14 px, seminegrita). Línea punteada `sand` entre filas (decorativa). Abajo, «Paga» y el total en la
+  serif a 32 px con cifras tabulares, y «Ahorra S/ X» en verde a 14 px.
+- **Vacíos:** sin elegir qué le das, «Elige qué le das»; sin prendas alcanzadas, «Todavía no alcanza ninguna prenda». Los dos con
+  `<Vacio tamano="chico">` (ADR-0358, `vacio`).
+- **Lugar:** en escritorio, la columna de la derecha (19,5 rem desde 1280 px), pegada arriba mientras la hoja corre (`position: sticky`). En el
+  celular, después de las preguntas: arriba empujaba «¿Qué le das?» medio alto de pantalla.
+- **Movimiento:** ninguno propio. El total se lee en vivo (`aria-live="polite"` solo en el total, para que el lector no repita la lista).
+- **Estados:** no tiene; no es un control.

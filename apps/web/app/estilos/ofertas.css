@@ -48,14 +48,11 @@
   .of-tipo[aria-pressed="true"] { border-color: var(--ahumado-denso-borde); background: var(--ahumado-denso-fondo); box-shadow: var(--ahumado-denso-luz); color: var(--color-crema); }
   .of-tipo[aria-pressed="true"] .of-tipo-linea { color: color-mix(in srgb, var(--color-crema) 74%, transparent); }
   .of-sub { margin-top: 0.625rem; }
-  /* «Llevar varias y pagar menos» (ADR-0655, actividad 6): la forma dicha como una frase con sus números («Lleva [3] y paga [2]»), y el
-     ejemplo de la caja con prendas de verdad. */
+  /* «Llevar varias y pagar menos» (ADR-0655, actividad 6): la forma dicha como una frase con sus números («Lleva [3] y paga [2]»). */
   .of-frase-campos { display: flex; flex-wrap: wrap; align-items: center; gap: 0.625rem; font-size: 0.9375rem; }
   .of-frase-campos .of-monto { width: 10rem; }
   /* Un escalón del monto (actividad 8): «Desde [S/ 300] ahorra [S/ 30] ×» en una fila; con cajas de 10rem, la × caía a la línea de abajo. */
   .of-frase-campos .of-monto-escalon { width: 6.5rem; }
-  .of-ejemplo { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.375rem; }
-  .of-ejemplo li { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.875rem; }
   .of-lbl { display: block; margin-bottom: 0.25rem; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
   .of-opciones { display: flex; flex-wrap: wrap; gap: 0.5rem; }
   .of-ctl { display: grid; gap: 0.5rem; max-width: 22rem; }
@@ -96,20 +93,27 @@
   .of-mas { display: grid; gap: 0.75rem; margin-top: 0.625rem; padding: 0.75rem 0.875rem; border: 1px dashed var(--color-taupe); border-radius: 0.75rem; }
   .of-avisos { display: grid; gap: 0.375rem; margin-top: 0.5rem; }
 
-  /* La etiqueta de la campaña (`EtiquetaDeCampana`, la de producción) con el resumen de la oferta. En escritorio cuelga sobre su panel hundido,
-     como en la hoja de la campaña; en el celular es la franja baja de siempre (`.eqp-tarjeta`, etiqueta-prendas.css) y el resumen se vuelve
-     una línea. `cph-hoja` solo le da su movimiento (el hilo, la caída): no trae más reglas. */
-  .of-lado { position: sticky; top: 0; min-width: 0; }
-  @media (min-width: 768px) {
-    .of-lado { display: flex; flex-direction: column; padding: 0 1.125rem 0.875rem; border-radius: 1rem; background: var(--color-hueso); }
+  /* «En caja» (ADR-0677, actividad 8): una compra de ejemplo cobrada con la cuenta de la caja, en vivo. Explica, no se toca: la placa Serena
+     (ADR-0596). En escritorio, la columna de la derecha, pegada arriba mientras la hoja corre; en el celular, después de las preguntas. */
+  .of-caja {
+    position: sticky; top: 0; min-width: 0; padding: 1rem 1.125rem 1rem;
+    border: 1px solid var(--placa-borde); border-radius: var(--radius-tarjeta); background: var(--placa-fondo); box-shadow: var(--placa-luz);
   }
-  /* Toda la letra de lectura de esta hoja va a 14 px (0,875 rem, con 1,4 de interlineado si puede partirse) y sus versalitas a 11 (CLAUDE.md
-     «La letra de lectura», /milimetro 2026-11-13). La columna del nombre se ensancha a 4,375 rem: «PRENDAS» mide 60 px a 11 px. */
-  .of-ef { display: grid; grid-template-columns: 4.375rem 1fr; gap: 0.5rem; align-items: baseline; padding: 0.1875rem 0; font-size: 0.875rem; }
-  .of-ef .of-n { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
-  .of-ef .of-v { font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
-  .of-ef .of-v i.of-pend { margin: 0; font-style: normal; font-weight: 400; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
-  .of-res-corto { display: none; }
+  .of-caja .of-lbl { margin-bottom: 0.375rem; }
+  .of-caja-lineas { list-style: none; margin: 0; padding: 0; }
+  .of-caja-lineas li {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.75rem; align-items: center;
+    padding: 0.5rem 0; border-bottom: 1px dashed var(--color-sand); font-size: 0.875rem;
+  }
+  .of-caja-lineas li.of-caja-monto { grid-template-columns: minmax(0, 1fr) auto; }
+  .of-caja-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .of-caja-precio { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .of-caja-precio s { display: block; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
+  .of-caja-precio b, b.of-caja-precio { font-weight: 600; }
+  .of-caja-total { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; margin: 0.875rem 0 0; }
+  .of-caja-total span { font-size: 0.875rem; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); }
+  .of-caja-total b { font-family: var(--font-serif); font-size: 2rem; font-weight: 600; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; }
+  .of-caja-ahorra { margin: 0.125rem 0 0; text-align: right; font-size: 0.875rem; font-weight: 600; color: var(--color-verde); }
 
   /* El pie: retirar (al editar una viva) · cancelar · lo que falta · guardar */
   .of-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.625rem; padding-top: 0.75rem; border-top: 1px solid var(--color-sand); }
@@ -132,8 +136,8 @@
     .of-cols { display: flex; flex-direction: column; align-items: stretch; gap: 0.75rem; }
     .of-q { order: 2; }
     .of-q h2, .of-una .of-bloque h2 { font-size: 1.25rem; }
-    .of-lado { position: relative; order: 1; }
-    .of-res-corto { display: block; grid-column: 1 / -1; font-size: 0.875rem; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
+    /* «En caja» va después de las preguntas: arriba empujaba «¿Qué le das?» medio alto de pantalla. */
+    .of-caja { position: static; order: 3; }
     .of-fechas { grid-template-columns: 1fr; }
     .of-dia { width: 2.375rem; height: 2.25rem; font-size: 0.75rem; }
     /* Las frases que solo informan («Todo listo…») se van: en el celular el pie fijo se come media pantalla. El «Falta: …» que sí pide
