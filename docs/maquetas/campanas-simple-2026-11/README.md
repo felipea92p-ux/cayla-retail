@@ -1,6 +1,7 @@
 # Maqueta · Campañas y ofertas, más simple (2026-11-16)
 
-> **Estado: propuesta para Felipe. Solo maqueta:** no toca el código del ERP, ni la base, ni producción. Datos inventados (el repo es público).
+> **Estado: elegida (Felipe 2026-11-17): cara A · En la lista, con las tres decisiones de abajo.** Solo maqueta: no toca el código del ERP,
+> ni la base, ni producción. Datos inventados (el repo es público).
 
 `index.html` se abre con la config `maqueta-referentes` (puerto 3031) o con doble clic. Va sobre la base de vidrio
 (`../vidrio-base-2026-10/`). La barra negra elige la cara de los descuentos, abre cada hoja y cambia tema, ancho y movimiento.
@@ -70,12 +71,16 @@ el responsable que firma, el aviso «bajo costo», las cinco formas de oferta (�
 en qué prendas (toda la campaña, categorías, prendas, insignias), fechas y tiendas, los choques entre ofertas, el borrador,
 repetir el año siguiente, imprimir etiquetas, cómo se ve en la web y desactivar.
 
-## Lo que decides tú antes de construir
+## Lo que decidió Felipe (2026-11-17)
 
-1. **Las campañas que hoy hacen de descuento** («Prendas de 10%», «Para liquidar», «Top ventas»): ¿pasan a ser Descuentos con sus mismas
-   prendas? Tienen fecha de fin y un Descuento no la tiene.
-2. **Dos descuentos con el mismo %** (uno solo de la tienda y otro de todas): ¿se ven como uno solo?
-3. **«Regalo» y «Club»** desaparecen de la hoja hasta que funcionen.
+0. **La cara de los descuentos: A · En la lista.** La B (etiquetas colgadas) queda descartada.
+1. **Las campañas que hoy hacen de descuento** («Prendas de 10%», «Para liquidar», «Top ventas») **quedan como campañas**, con su fecha
+   de fin. No se migra nada ni cambia ningún precio en producción. Un Descuento es solo un cajón de `rebaja_cajones`. Las dos cosas ya
+   conviven: `fn_rebajas_de_sede` lista las dos como «lugares de un %», y poner una prenda en un Descuento la saca de la campaña movible
+   que tenía. Juntarlas queda para más adelante, si estorban.
+2. **Dos descuentos con el mismo %** (uno de la tienda y otro de todas) **son dos filas**: es lo que hay en la base (un cajón por % y
+   tienda, `rebaja_cajones_uno_por_pct_y_tienda`), y al quitar una prenda se sabe de cuál. La de todas dice «Todas las tiendas».
+3. **«Regalo» y «Club» salen de la hoja de ofertas** hasta que funcionen.
 
 ## Para construir (después de elegir)
 
