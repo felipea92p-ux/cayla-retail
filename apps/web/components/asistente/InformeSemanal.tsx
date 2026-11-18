@@ -52,7 +52,7 @@ function Mejora({ m, n }: { m: MejoraLeida; n: number }) {
           <p className="font-medium text-tinta">{m.titulo}</p>
           {m.detalle ? <p className="max-w-prose text-sm text-tinta/80">{m.detalle}</p> : null}
           <BotonVerMas abierto={abierta} onCambiar={setAbierta} texto={cuantas === 1 ? "Ver la pregunta" : `Ver las ${cuantas} preguntas`} forma="enlace" />
-          <FilasDeMas abierto={abierta}>
+          <FilasDeMas abierto={abierta} alEncontrar={() => setAbierta(true)}>
             <ul className="mt-1 space-y-2 border-l-2 border-sand pl-3">
               {m.preguntas.map((p) => (
                 <li key={p.id} className="text-sm">

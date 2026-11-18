@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<script>
+  try { document.querySelector('meta[name="color-scheme"]').content = localStorage.getItem("mwg-tema") ?? "light dark"; } catch (e) {}
+</script>
+<title>Mejoras de componentes · Hoy y propuesta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────────────────────────────────────
+   Maqueta (2026-11-18): ocho mejoras a piezas que el ERP YA tiene, cada una con
+   «Hoy» (recreado a mano, con el mismo comportamiento) y «Propuesta» (lo que
+   recomienda modern-web-guidance) lado a lado. Datos inventados; nada se guarda.
+   Los colores son los tokens de CAYLA, escritos una vez con light-dark().
+   ───────────────────────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light dark;
+  &:has(> head > meta[name="color-scheme"][content="dark"]) { color-scheme: dark; }
+  &:has(> head > meta[name="color-scheme"][content="light"]) { color-scheme: light; }
+  --crema: light-dark(#f5f0e8, #1c1a17); --papel: light-dark(#fbf8f2, #26241f); --hueso: light-dark(#eae1d2, #33302a);
+  --sand: light-dark(#e8e0d0, #403b34); --tinta: light-dark(#1a1a18, #f5f0e8); --taupe: light-dark(#805c4c, #c4a898);
+  --borde-control: light-dark(#96786a, #8d7a6e); --rojo: light-dark(#b8412d, #e8806a); --rojo-profundo: light-dark(#8b2a1f, #f29a86);
+  --verde: light-dark(#48603f, #9ccb8d); --ambar: light-dark(#74501a, #e4b968); --pizarra: light-dark(#4c5d6e, #a2b8cd);
+  --sombra: light-dark(#1a1a18, #000000);
+  --vidrio: light-dark(color-mix(in srgb, #fbf8f2 78%, transparent), color-mix(in srgb, #26241f 78%, transparent));
+  --ease: cubic-bezier(.22, 1, .36, 1);
+  --sans: "DM Sans", ui-sans-serif, system-ui, sans-serif; --serif: "EB Garamond", ui-serif, Georgia, serif;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { background: var(--crema); }
+body { margin: 0; color: var(--tinta); font: 15px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+button, input, textarea { font: inherit; color: inherit; }
+h1, h2, h3 { text-wrap: balance; }
+.envoltura { max-inline-size: 1440px; margin-inline: auto; padding: 24px 16px 120px; }
+@media (width >= 768px) { .envoltura { padding: 32px 40px 140px; } }
+.visually-hidden:where(:not(:focus-within, :active)) { position: absolute !important; clip-path: inset(50%) !important; overflow: hidden !important; width: 1px !important; height: 1px !important; margin: -1px !important; padding: 0 !important; border: 0 !important; white-space: nowrap !important; }
+code { font-size: 12.5px; padding: 1px 6px; border-radius: 6px; background: var(--hueso); }
+
+/* Cabecera */
+.cabecera { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; justify-content: space-between; margin-block-end: 24px; }
+.cabecera .sede { margin: 0 0 6px; color: var(--taupe); font-size: 13px; }
+.cabecera h1 { margin: 0; font: 600 46px/1.05 var(--serif); }
+.cabecera p.bajada { margin: 8px 0 0; color: var(--taupe); max-inline-size: 70ch; text-wrap: pretty; }
+.tema { display: inline-flex; padding: 3px; gap: 2px; border: 1px solid var(--borde-control); border-radius: 999px; background: var(--hueso); margin: 0; }
+.tema legend { position: absolute; clip-path: inset(50%); }
+.tema label { position: relative; padding: 6px 14px; border-radius: 999px; font-size: 13px; cursor: pointer; }
+.tema input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.tema label:has(:checked) { background: var(--tinta); color: var(--crema); }
+.tema label:has(:focus-visible) { outline: 2px solid var(--tinta); outline-offset: 2px; }
+
+/* Resumen */
+.resumen-tabla { inline-size: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--sand); border-radius: 18px; background: var(--papel); overflow: hidden; margin-block-end: 48px; }
+.resumen-tabla th, .resumen-tabla td { padding: 10px 14px; text-align: start; border-block-end: 1px solid var(--sand); font-size: 14px; vertical-align: top; }
+.resumen-tabla thead th { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+.resumen-tabla tr:last-child td { border-block-end: 0; }
+.resumen-tabla a { color: inherit; text-decoration-color: var(--rojo); text-underline-offset: 3px; }
+@container (width < 760px) { .ocultar-angosto { display: none; } }
+.resumen-zona { container-type: inline-size; }
+
+/* Lámina */
+.lamina { margin-block: 56px; scroll-margin-block-start: 24px; }
+.lamina > header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; margin-block-end: 6px; }
+.lamina h2 { margin: 0; font: 600 30px/1.1 var(--serif); }
+.lamina .que { margin: 0 0 16px; color: var(--taupe); max-inline-size: 75ch; text-wrap: pretty; }
+.lamina .prueba { display: inline-flex; gap: 8px; align-items: center; margin: 0 0 16px; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, var(--pizarra) 12%, var(--papel)); color: var(--tinta); font-size: 14px; }
+.lamina .prueba b { color: var(--pizarra); font-weight: 600; }
+kbd { font: 600 12px/1 var(--sans); padding: 3px 6px; border-radius: 6px; border: 1px solid var(--borde-control); background: var(--papel); }
+.lado-a-lado { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); }
+.panel { display: grid; gap: 12px; align-content: start; padding: 18px; border: 1px solid var(--sand); border-radius: 22px; background: var(--papel); min-inline-size: 0; }
+.panel > .rotulo { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--taupe); }
+.panel.propuesta { border-color: color-mix(in srgb, var(--verde) 45%, var(--sand)); }
+.panel.propuesta > .rotulo { color: var(--verde); }
+.panel .nota-pie { margin: 0; font-size: 13px; color: var(--taupe); text-wrap: pretty; }
+.ficha { display: grid; gap: 6px 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); margin: 16px 0 0; padding: 14px 16px; border-radius: 16px; background: var(--hueso); }
+.ficha div { min-inline-size: 0; }
+.ficha dt { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--taupe); }
+.ficha dd { margin: 2px 0 0; font-size: 14px; text-wrap: pretty; }
+.veredicto { display: inline-flex; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.veredicto.tomar { background: color-mix(in srgb, var(--verde) 16%, transparent); color: var(--verde); }
+.veredicto.probar { background: color-mix(in srgb, var(--pizarra) 16%, transparent); color: var(--pizarra); }
+.veredicto.igual { background: var(--hueso); color: var(--taupe); }
+.sop { font-size: 12px; color: var(--taupe); }
+.sop b { font-weight: 600; } .sop .si { color: var(--verde); } .sop .no { color: var(--rojo); }
+
+/* Botones */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-block-size: 40px; padding: 0 16px; border-radius: 12px; border: 1px solid transparent; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+.btn:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.primario { background: var(--tinta); color: var(--crema); }
+.secundario { background: var(--papel); border-color: var(--borde-control); }
+@media (hover: hover) { .primario:hover { background: var(--rojo-profundo); } .secundario:hover { border-color: var(--tinta); } }
+
+/* ═════ 1 · Pestañas ═════ */
+.pest { display: grid; gap: 0; border: 1px solid var(--sand); border-radius: 18px; overflow: hidden; background: var(--papel); }
+.pest-fila { position: relative; display: flex; gap: 2px; padding: 6px; background: var(--hueso); overflow-x: auto; scrollbar-width: none; isolation: isolate; }
+.pest-fila button { position: relative; z-index: 1; flex: none; border: 0; background: none; padding: 8px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--taupe); cursor: pointer; white-space: nowrap; }
+.pest-fila button[aria-selected="true"] { color: var(--tinta); }
+.pest-fila button:focus-visible { outline: 2px solid var(--tinta); outline-offset: -2px; }
+.pest-paneles { display: grid; }
+.pest-paneles > [role="tabpanel"] { grid-area: 1 / 1; }
+.pest-paneles .panel-in { padding: 14px 16px; min-block-size: 112px; }
+.pest-paneles ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 14px; }
+.pest-paneles li { display: flex; justify-content: space-between; gap: 12px; }
+.pest-paneles li span:last-child { color: var(--taupe); font-variant-numeric: tabular-nums; }
+.angosto { max-inline-size: 380px; }
+.gota { position: absolute; z-index: 0; border-radius: 999px; background: var(--papel); box-shadow: 0 1px 0 color-mix(in srgb, var(--sombra) 12%, transparent), inset 0 0 0 1px var(--sand); }
+@media (forced-colors: active) { .gota, .pest-prop::after { forced-color-adjust: none; background: Highlight; } }
+
+/* Hoy: la gota se mide con JavaScript; los bordes se marcan con data-mas-* y un degradado encima (FilasQueSeDeslizan). */
+.pest-hoy .gota { inset-block: 6px; transition: left .32s var(--ease), width .32s var(--ease); }
+.pest-hoy-zona { position: relative; min-inline-size: 0; }
+.pest-hoy-zona::before, .pest-hoy-zona::after { content: ""; position: absolute; z-index: 2; inset-block: 0; inline-size: 40px; pointer-events: none; opacity: 0; transition: opacity .2s; }
+.pest-hoy-zona::before { inset-inline-start: 0; background: linear-gradient(to right, var(--hueso), transparent); }
+.pest-hoy-zona::after { inset-inline-end: 0; background: linear-gradient(to left, var(--hueso), transparent); }
+.pest-hoy-zona[data-mas-izq]::before, .pest-hoy-zona[data-mas-der]::after { opacity: 1; }
+
+/* Propuesta: la gota es un ::after atado a la pestaña elegida (anchor positioning) y fluye solo con CSS. */
+.pest-prop button[aria-selected="true"] { anchor-name: --pest-prop; }
+@supports (anchor-name: --a) {
+  .pest-prop::after {
+    content: ""; position: absolute; z-index: 0; position-anchor: --pest-prop;
+    top: anchor(top); bottom: anchor(bottom); left: anchor(left); right: anchor(right);
+    border-radius: 999px; background: var(--papel); box-shadow: 0 1px 0 color-mix(in srgb, var(--sombra) 12%, transparent), inset 0 0 0 1px var(--sand);
+  }
+  /* El borde de adelante corre primero y el de atrás llega después: la gota se estira y se recoge. */
+  @media (prefers-reduced-motion: no-preference) {
+    .pest-prop.lista::after { transition: left .3s var(--ease), right .3s var(--ease); }
+    .pest-prop.lista[data-dir="der"]::after { transition: right .22s var(--ease), left .34s var(--ease) .08s; }
+    .pest-prop.lista[data-dir="izq"]::after { transition: left .22s var(--ease), right .34s var(--ease) .08s; }
+  }
+}
+@supports not (anchor-name: --a) { .pest-prop button[aria-selected="true"] { background: var(--papel); box-shadow: inset 0 0 0 1px var(--sand); } }
+/* Los bordes se desvanecen siguiendo el scroll, sin medir (guía tabs, «Fading the edges»). */
+@property --fade-ini { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-fin { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@keyframes mostrar-fade-ini { to { --fade-ini: var(--fade-size); } }
+@keyframes ocultar-fade-fin { from { --fade-fin: var(--fade-size); } }
+.pest-prop {
+  --fade-size: 2.5rem; scroll-padding-inline: var(--fade-size);
+  mask:
+    linear-gradient(black, black) no-clip subtract,
+    linear-gradient(to right, black, transparent) 0 0 / var(--fade-ini) 100% no-repeat no-clip,
+    linear-gradient(to right, transparent, black) 100% 0 / var(--fade-fin) 100% no-repeat no-clip;
+  animation: mostrar-fade-ini linear both, ocultar-fade-fin linear both;
+  animation-timeline: scroll(self inline);
+  animation-range: 0 var(--fade-size), calc(100% - var(--fade-size)) 100%;
+}
+
+/* ═════ 2 · Ver más ═════ */
+.lista-prendas { margin: 0; padding: 0; list-style: none; border: 1px solid var(--sand); border-radius: 18px; background: var(--papel); overflow: hidden; }
+.lista-prendas li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; border-block-end: 1px solid var(--sand); font-size: 14px; }
+.lista-prendas li span:last-child { color: var(--taupe); font-variant-numeric: tabular-nums; }
+.lista-prendas ul { margin: 0; padding: 0; list-style: none; }
+.ver-mas-pie { display: flex; inline-size: 100%; align-items: center; justify-content: center; gap: 6px; padding: 10px; border: 0; background: none; color: var(--taupe); font-size: 14px; cursor: pointer; }
+.ver-mas-pie svg { inline-size: 16px; transition: rotate .3s var(--ease); }
+.ver-mas-pie[aria-expanded="true"] svg { rotate: 180deg; }
+.ver-mas-pie:focus-visible { outline: 2px solid var(--tinta); outline-offset: -4px; border-radius: 12px; }
+/* Hoy: 0fr → 1fr e inert (FilasDeMas). */
+.filas-de-mas { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .4s var(--ease); }
+.filas-de-mas > div { overflow: hidden; }
+.filas-de-mas[data-abierto] { grid-template-rows: 1fr; }
+/* Propuesta: hidden="until-found" (lo encuentra Ctrl+F) y las filas entran con @starting-style. */
+@media (prefers-reduced-motion: no-preference) {
+  .mas-prop:not([hidden]) li { transition: opacity .3s var(--ease), translate .3s var(--ease); transition-delay: calc(var(--n, 0) * 30ms);
+    @starting-style { opacity: 0; translate: 0 -6px; } }
+}
+
+/* ═════ 3 · El globo «?» ═════ */
+.caja-scroll { block-size: 240px; overflow: auto; border: 1px solid var(--sand); border-radius: 18px; background: var(--papel); overscroll-behavior: contain; }
+.caja-scroll .fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-block-end: 1px solid var(--sand); font-size: 14px; }
+.ayuda-btn { display: inline-grid; place-items: center; inline-size: 20px; block-size: 20px; margin-inline-start: 6px; padding: 0; border-radius: 999px; border: 1px solid var(--borde-control); background: color-mix(in srgb, var(--papel) 60%, transparent); color: var(--taupe); font-size: 12px; font-weight: 600; cursor: help; vertical-align: 1px; }
+.ayuda-btn:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.globo-cuerpo { padding: 10px 12px; border-radius: 12px; background: var(--tinta); color: var(--crema); font-size: 14px; line-height: 1.45; box-shadow: 0 14px 36px -14px color-mix(in srgb, var(--sombra) 45%, transparent); max-inline-size: 260px; }
+.globo-hoy { position: fixed; z-index: 30; }
+.globo-prop { padding: 0; border: 0; background: none; overflow: visible; color: var(--crema); }
+@supports (position-area: block-start) {
+  .globo-prop { inset: auto; margin: 0; position-area: block-start; position-try-fallbacks: flip-block; }
+}
+@supports (container-type: anchored) {
+  .globo-prop { container-type: anchored; }
+  .globo-prop .globo-cuerpo { position: relative; margin-block-end: 8px; }
+  .globo-prop .globo-cuerpo::after { content: ""; position: absolute; inset-inline-start: calc(50% - 6px); inset-block-end: -6px; border: 6px solid transparent; border-block-end: 0; border-block-start-color: var(--tinta); }
+  @container anchored(fallback: flip-block) {
+    .globo-prop .globo-cuerpo { margin-block: 8px 0; }
+    .globo-prop .globo-cuerpo::after { inset-block-end: auto; inset-block-start: -6px; border-block-start: 0; border-block-end: 6px solid var(--tinta); }
+  }
+}
+.globo-prop { opacity: 0; transition-property: opacity, display, overlay; transition-duration: .18s; transition-behavior: allow-discrete; }
+.globo-prop:popover-open { opacity: 1; @starting-style { opacity: 0; } }
+
+/* ═════ 4 · La barra pegada ═════ */
+.caja-scroll.alta { block-size: 300px; }
+.intro-lista { padding: 14px 14px 8px; color: var(--taupe); font-size: 14px; }
+.intro-lista strong { display: block; color: var(--tinta); font: 600 21px/1.2 var(--serif); }
+.barra { display: flex; gap: 8px; align-items: center; padding: 10px 14px; }
+.barra .buscar { flex: 1; min-inline-size: 0; min-block-size: 36px; padding: 0 12px; border: 1px solid var(--borde-control); border-radius: 999px; background: var(--hueso); }
+.pildora { padding: 6px 12px; border: 1px solid var(--borde-control); border-radius: 999px; background: var(--papel); font-size: 13px; white-space: nowrap; }
+/* Hoy: siempre con vidrio (regla «lo que flota lleva fondo»). */
+.barra-hoy { position: sticky; top: 0; z-index: 2; background: var(--vidrio); backdrop-filter: blur(12px); border-block-end: 1px solid var(--sand); }
+/* Propuesta: el vidrio aparece solo cuando la barra se pegó. Sin soporte, queda como hoy. */
+.barra-prop-sobre { position: sticky; top: 0; z-index: 2; container-type: scroll-state; container-name: barra-filtros; }
+.barra-prop { background: var(--vidrio); backdrop-filter: blur(12px); border-block-end: 1px solid var(--sand); transition: background-color .25s var(--ease), border-color .25s var(--ease), box-shadow .25s var(--ease); }
+@supports (container-type: scroll-state) {
+  .barra-prop { background: transparent; backdrop-filter: none; border-block-end-color: transparent; }
+  @container barra-filtros scroll-state(stuck: top) {
+    .barra-prop { background: var(--vidrio); backdrop-filter: blur(12px); border-block-end-color: var(--sand); box-shadow: 0 8px 18px -14px color-mix(in srgb, var(--sombra) 40%, transparent); }
+  }
+}
+.caja-scroll.con-barra { overflow-anchor: none; }
+
+/* ═════ 5 · Campos ═════ */
+.form-demo { display: grid; gap: 14px; }
+.campo { display: grid; gap: 6px; }
+.campo > label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--taupe); }
+.campo > label .ast { color: var(--rojo); margin-inline-start: 2px; }
+.caja { inline-size: 100%; min-block-size: 40px; padding: 0 12px; border: 1px solid var(--borde-control); border-radius: 12px; background: var(--hueso); }
+textarea.caja { padding: 10px 12px; resize: vertical; line-height: 1.45; }
+.caja:focus { outline: none; background: var(--papel); border-color: var(--tinta); box-shadow: 0 0 0 4px color-mix(in srgb, var(--tinta) 12%, transparent); }
+.error { display: none; gap: 6px; margin: 0; font-size: 13px; color: var(--rojo); }
+/* Hoy: JavaScript pone data-error al salir del campo. */
+.form-hoy .campo[data-error] .error { display: flex; }
+.form-hoy .campo[data-error] .caja { border-color: var(--rojo); background: color-mix(in srgb, var(--rojo) 7%, var(--papel)); }
+.form-hoy textarea.caja { block-size: calc(2lh + 22px); }
+/* Propuesta: el navegador sabe cuándo la persona terminó con el campo. */
+/* «No a la primera letra» (ADR-0611): con el cursor adentro, el error espera a que salgas, salvo que ya se haya dicho. */
+.form-prop .campo:has(:user-invalid:not(:focus), :user-invalid[data-dicho]) .error { display: flex; }
+.form-prop .campo:has(:user-invalid:not(:focus), :user-invalid[data-dicho]) .caja { border-color: var(--rojo); background: color-mix(in srgb, var(--rojo) 7%, var(--papel)); }
+.form-prop .campo:has(:user-valid) .caja:not(:focus) { border-color: var(--verde); }
+.form-prop textarea.caja { field-sizing: content; min-block-size: calc(2lh + 22px); max-block-size: calc(8lh + 22px); resize: none; }
+.listo { margin: 0; font-size: 13px; color: var(--verde); min-block-size: 1lh; }
+
+/* ═════ 6 · Avance y anillo ═════ */
+.avance-demo { display: grid; gap: 14px; }
+.avance-demo .fila-av { display: flex; align-items: center; gap: 16px; }
+.avance-demo .cifra { font: 600 22px/1 var(--serif); font-variant-numeric: tabular-nums; min-inline-size: 70px; }
+input[type="range"] { inline-size: 100%; accent-color: var(--tinta); }
+/* Hoy: span con role="progressbar" y su relleno. */
+.barra-hoy-av { position: relative; display: block; flex: 1; block-size: 6px; border-radius: 999px; background: var(--sand); overflow: hidden; }
+.barra-hoy-av > span { position: absolute; inset-block: 0; inset-inline-start: 0; inline-size: var(--p); border-radius: inherit; background: var(--tinta); transition: inline-size .4s var(--ease), background-color .3s; }
+.barra-hoy-av[data-lleno] > span { background: var(--verde); }
+.anillo-hoy { inline-size: 72px; block-size: 72px; rotate: -90deg; }
+.anillo-hoy circle { fill: none; stroke-width: 7; }
+.anillo-hoy .pista { stroke: var(--hueso); }
+.anillo-hoy .arco { stroke: var(--tinta); stroke-linecap: round; transition: stroke-dashoffset .4s var(--ease), stroke .3s; }
+.anillo-hoy[data-lleno] .arco { stroke: var(--verde); }
+/* Propuesta: <progress> nativo (guías progress y progress-ring). */
+progress.barra-prop-av { flex: 1; appearance: none; border: 0 solid; overflow: clip; block-size: 6px; border-radius: 999px; background: var(--sand); }
+progress.barra-prop-av::-webkit-progress-bar { background: transparent; }
+progress.barra-prop-av::-webkit-progress-value { background: var(--relleno, var(--tinta)); border-radius: 999px; transition: inline-size .4s var(--ease); }
+progress.barra-prop-av::-moz-progress-bar { background: var(--relleno, var(--tinta)); border-radius: 999px; }
+progress[data-lleno] { --relleno: var(--verde); }
+@property --valor { syntax: "<number>"; inherits: true; initial-value: 0; }
+.anillo-prop-zona { position: relative; display: grid; place-items: center; inline-size: 72px; block-size: 72px; }
+progress.anillo-prop {
+  --grosor: 7px; --relleno: var(--tinta);
+  inline-size: 72px; block-size: 72px; border-radius: 50%; appearance: none;
+  background: conic-gradient(var(--relleno) calc(var(--valor) * 1%), var(--hueso) 0);
+  mask-image: radial-gradient(transparent calc(50% - var(--grosor)), black calc(50% - var(--grosor) + .5px)); border: 0;
+  transition: --valor 0s;
+  @media (prefers-reduced-motion: no-preference) { transition-duration: .4s; }
+  @media (forced-colors: active) { forced-color-adjust: none; --relleno: CanvasText; }
+}
+progress.anillo-prop::-webkit-progress-bar, progress.anillo-prop::-webkit-progress-value { display: none; background: none; }
+progress.anillo-prop::-moz-progress-bar { display: none; background: none; }
+progress.anillo-prop[data-lleno] { --relleno: var(--verde); }
+.anillo-cifra { position: absolute; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ═════ 7 · Copiar ═════ */
+.copiar-demo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.codigo { font: 600 18px/1 ui-monospace, Menlo, monospace; letter-spacing: .04em; padding: 10px 12px; border-radius: 12px; background: var(--hueso); }
+.copiar-zona { position: relative; display: inline-flex; }
+.btn-icono { inline-size: 36px; min-block-size: 36px; padding: 0; border-radius: 10px; border: 1px solid var(--borde-control); background: var(--papel); cursor: pointer; display: inline-grid; place-items: center; }
+.btn-icono:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.btn-icono svg { inline-size: 16px; block-size: 16px; }
+.btn-icono .ok { display: none; color: var(--verde); }
+.btn-icono[data-copiado] .copiar-svg { display: none; } .btn-icono[data-copiado] .ok { display: block; }
+.btn-icono[data-fallo] { border-color: var(--rojo); }
+.burbuja { position: absolute; inset-block-end: calc(100% + 8px); inset-inline-start: 50%; translate: -50% 4px; padding: 4px 10px; border-radius: 8px; background: var(--tinta); color: var(--crema); font-size: 12px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .18s var(--ease), translate .18s var(--ease); }
+.burbuja:not(:empty) { opacity: 1; translate: -50% 0; }
+@media (prefers-reduced-motion: reduce) { .burbuja, .burbuja:not(:empty) { translate: -50% 0; } }
+
+/* ═════ 8 · Títulos ═════ */
+.titulos-demo { display: grid; gap: 10px; }
+.marco-texto { inline-size: var(--ancho, 480px); max-inline-size: 100%; padding: 16px; border: 1px dashed var(--borde-control); border-radius: 16px; }
+.marco-texto h3 { margin: 0 0 6px; font: 600 27px/1.12 var(--serif); }
+.marco-texto p { margin: 0; color: var(--taupe); font-size: 15px; }
+.titulo-hoy h3 { text-wrap: wrap; } .titulo-hoy p { text-wrap: wrap; }
+.titulo-prop h3 { text-wrap: balance; } .titulo-prop p { text-wrap: pretty; }
+.ancho-control { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--taupe); }
+.ancho-control input { max-inline-size: 260px; }
+
+.dejado { margin-block-start: 64px; padding: 20px; border: 1px solid var(--sand); border-radius: 22px; background: var(--papel); }
+.dejado h2 { margin: 0 0 12px; font: 600 26px/1.1 var(--serif); }
+.dejado ul { margin: 0; padding-inline-start: 20px; display: grid; gap: 8px; }
+.dejado li { text-wrap: pretty; }
+
+/* ═════ Elegir y copiar la selección ═════ */
+.quiero { display: inline-flex; align-items: center; gap: 8px; min-block-size: 44px; padding: 0 14px; border: 1px solid var(--borde-control); border-radius: 999px; background: var(--papel); font-size: 14px; font-weight: 500; cursor: pointer; user-select: none; }
+.quiero input { inline-size: 18px; block-size: 18px; margin: 0; accent-color: var(--tinta); cursor: pointer; }
+.quiero:has(:checked) { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+.quiero:has(:checked) input { accent-color: var(--crema); }
+.quiero:has(:focus-visible) { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.lamina > header .lado-derecho { display: inline-flex; align-items: center; gap: 10px; }
+.resumen-tabla td.celda-quiero { inline-size: 1%; white-space: nowrap; vertical-align: middle; }
+.resumen-tabla tr:has(:checked) > * { background: color-mix(in srgb, var(--verde) 8%, var(--papel)); }
+.quiero-mini { display: inline-grid; place-items: center; inline-size: 44px; min-block-size: 44px; margin: -12px -8px; cursor: pointer; }
+.quiero-mini input { inline-size: 18px; block-size: 18px; margin: 0; accent-color: var(--tinta); cursor: pointer; }
+.seleccion {
+  position: fixed; inset: auto 12px 12px; z-index: 40; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+  max-inline-size: 1100px; margin-inline: auto; padding: 10px 12px 10px 18px; border: 1px solid var(--sand); border-radius: 18px;
+  background: var(--vidrio); backdrop-filter: blur(14px); box-shadow: 0 18px 48px -18px color-mix(in srgb, var(--sombra) 45%, transparent);
+}
+.seleccion .resumen-sel { flex: 1 1 260px; margin: 0; min-inline-size: 0; font-size: 14px; }
+.seleccion .resumen-sel strong { margin-inline-end: 8px; }
+.seleccion .resumen-sel span { color: var(--taupe); }
+.seleccion .sel-nota { flex: 1 1 220px; min-block-size: 40px; }
+.seleccion .copiar-zona .burbuja { inset-block-end: calc(100% + 10px); }
+.seleccion textarea { flex: 1 0 100%; min-block-size: 96px; padding: 10px 12px; font: 13px/1.45 ui-monospace, Menlo, monospace; }
+</style>
+</head>
+<body>
+<div class="envoltura">
+
+  <header class="cabecera">
+    <div>
+      <p class="sede">Maqueta · 18 de noviembre · datos inventados</p>
+      <h1>Mejoras para nuestras piezas</h1>
+      <p class="bajada">Ocho piezas que el ERP ya tiene. A la izquierda, cómo funcionan hoy (recreadas a mano); a la derecha, la propuesta. Cada lámina dice qué probar, qué se va del código y qué regla toca.</p>
+    </div>
+    <fieldset class="tema">
+      <legend>Tema</legend>
+      <label><input type="radio" name="tema" value="light dark">Sistema</label>
+      <label><input type="radio" name="tema" value="light">Claro</label>
+      <label><input type="radio" name="tema" value="dark">Oscuro</label>
+    </fieldset>
+  </header>
+
+  <div class="resumen-zona">
+    <table class="resumen-tabla">
+      <caption class="visually-hidden">Resumen de las ocho mejoras</caption>
+      <thead><tr><th scope="col"><span class="visually-hidden">La quiero</span></th><th scope="col">Pieza</th><th scope="col">Qué mejora</th><th scope="col" class="ocultar-angosto">Se nota</th><th scope="col">Mi lectura</th></tr></thead>
+      <tbody id="resumen"></tbody>
+    </table>
+  </div>
+
+  <!-- ═════════ 1 · Pestañas ═════════ -->
+  <section class="lamina" id="l-pestanas" aria-labelledby="h-pestanas">
+    <header><h2 id="h-pestanas">Pestañas</h2><span class="veredicto tomar">Tomar</span></header>
+    <p class="que">Tres cosas en una: <b>Ctrl+F encuentra lo que está en otra pestaña</b> y la abre sola; los bordes que avisan «hay más» se desvanecen siguiendo el dedo, sin medir; y la gota que fluye entre pestañas pasa a ser CSS.</p>
+    <p class="prueba"><b>Prueba:</b> presiona <kbd>⌘</kbd> <kbd>F</kbd> y busca «Paracas». Después desliza la fila de pestañas de lado.</p>
+    <div class="lado-a-lado">
+      <div class="panel">
+        <p class="rotulo">Hoy</p>
+        <div class="pest angosto">
+          <div class="pest-hoy-zona" id="hoy-zona">
+            <div class="pest-fila pest-hoy" role="tablist" aria-label="Movimientos, hoy" id="hoy-tabs"></div>
+          </div>
+          <div class="pest-paneles" id="hoy-paneles"></div>
+        </div>
+        <p class="nota-pie">Las vistas ocultas usan <code>hidden</code>: el buscador del navegador no las ve. La gota y los bordes se miden con JavaScript.</p>
+      </div>
+      <div class="panel propuesta">
+        <p class="rotulo">Propuesta</p>
+        <div class="pest angosto">
+          <div class="pest-fila pest-prop" role="tablist" aria-label="Movimientos, propuesta" id="prop-tabs" data-dir="der"></div>
+          <div class="pest-paneles" id="prop-paneles"></div>
+        </div>
+        <p class="nota-pie">Las vistas ocultas usan <code>hidden="until-found"</code>; al encontrar algo, <code>beforematch</code> elige su pestaña.</p>
+      </div>
+    </div>
+    <dl class="ficha">
+      <div><dt>Se va del código</dt><dd><code>IndicadorDeslizante</code> (la medición y su memoria) y <code>FilasQueSeDeslizan</code> (marcar bordes al hacer scroll).</dd></div>
+      <div><dt>Regla que toca</dt><dd>Ninguna de aspecto: la gota se ve igual (ADR-0596). Es <code>Pestanas.tsx</code> y su CSS.</dd></div>
+      <div><dt>Soporte</dt><dd class="sop" data-sop="untilFound anchor scrollDriven"></dd></div>
+    </dl>
+  </section>
+
+  <!-- ═════════ 2 · Ver más ═════════ -->
+  <section class="lamina" id="l-vermas" aria-labelledby="h-vermas">
+    <header><h2 id="h-vermas">Ver más</h2><span class="veredicto tomar">Tomar</span></header>
+    <p class="que">Las filas guardadas hoy son <code>inert</code>: ni Ctrl+F ni un enlace las encuentran. Con <code>hidden="until-found"</code> se ven igual cerradas, pero el buscador del navegador las abre.</p>
+    <p class="prueba"><b>Prueba:</b> sin abrir nada, busca «Nevado» con <kbd>⌘</kbd> <kbd>F</kbd>.</p>
+    <div class="lado-a-lado">
+      <div class="panel">
+        <p class="rotulo">Hoy</p>
+        <div class="lista-prendas">
+          <ul class="primeras" data-lista="hoy"></ul>
+          <div class="filas-de-mas" id="mas-hoy" inert><div><ul data-mas="hoy"></ul></div></div>
+          <button type="button" class="ver-mas-pie" aria-expanded="false" aria-controls="mas-hoy" data-ver="hoy"><span>Ver 5 más</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+        </div>
+      </div>
+      <div class="panel propuesta">
+        <p class="rotulo">Propuesta</p>
+        <div class="lista-prendas">
+          <ul class="primeras" data-lista="prop"></ul>
+          <div class="mas-zona mas-prop" id="mas-prop" hidden="until-found"><ul data-mas="prop"></ul></div>
+          <button type="button" class="ver-mas-pie" aria-expanded="false" aria-controls="mas-prop" data-ver="prop"><span>Ver 5 más</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <dl class="ficha">
+      <div><dt>Se va del código</dt><dd>Nada grande: <code>FilasDeMas</code> cambia <code>inert</code> por <code>hidden="until-found"</code> y escucha <code>beforematch</code>.</dd></div>
+      <div><dt>Regla que toca</dt><dd>El movimiento: hoy baja en su lugar (0fr → 1fr); aquí las filas entran en cascada. Se puede conservar el de hoy.</dd></div>
+      <div><dt>Soporte</dt><dd class="sop" data-sop="untilFound"></dd></div>
+    </dl>
+  </section>
+
+  <!-- ═════════ 3 · El globo «?» ═════════ -->
+  <section class="lamina" id="l-globo" aria-labelledby="h-globo">
+    <header><h2 id="h-globo">El globo «?»</h2><span class="veredicto probar">Probar</span></header>
+    <p class="que">Hoy <code>Ayuda</code> recalcula la posición del globo en cada scroll y lo pone fijo en la pantalla. La propuesta lo ata a su botón: lo sigue, se da vuelta si no cabe y se esconde si el botón sale de la vista.</p>
+    <p class="prueba"><b>Prueba:</b> abre el «?» de «Disponible» y baja la lista hasta que el botón se vaya.</p>
+    <div class="lado-a-lado">
+      <div class="panel">
+        <p class="rotulo">Hoy</p>
+        <div class="caja-scroll" id="scroll-hoy"></div>
+      </div>
+      <div class="panel propuesta">
+        <p class="rotulo">Propuesta</p>
+        <div class="caja-scroll" id="scroll-prop"></div>
+      </div>
+    </div>
+    <dl class="ficha">
+      <div><dt>Se va del código</dt><dd>La colocación a mano de <code>Ayuda</code> y <code>AyudaCabecera</code> (medir, escuchar scroll y resize, decidir arriba o abajo).</dd></div>
+      <div><dt>Regla que toca</dt><dd>Ninguna de aspecto. En Firefox no hay anchor positioning: necesitaría el polyfill o quedarse con lo de hoy.</dd></div>
+      <div><dt>Soporte</dt><dd class="sop" data-sop="anchor anchored"></dd></div>
+    </dl>
+  </section>
+
+  <!-- ═════════ 4 · Barra pegada ═════════ -->
+  <section class="lamina" id="l-barra" aria-labelledby="h-barra">
+    <header><h2 id="h-barra">La barra que se pega</h2><span class="veredicto probar">Probar</span></header>
+    <p class="que">La regla de hoy pone vidrio a todo lo que flota, aunque esté quieto arriba y no pase nada por debajo. Con <code>scroll-state(stuck)</code> la barra se viste de vidrio recién cuando se pega y el contenido le pasa por detrás.</p>
+    <p class="prueba"><b>Prueba:</b> baja la lista despacio y mira la barra de filtros.</p>
+    <div class="lado-a-lado">
+      <div class="panel">
+        <p class="rotulo">Hoy</p>
+        <div class="caja-scroll alta con-barra" id="barra-hoy-zona"></div>
+      </div>
+      <div class="panel propuesta">
+        <p class="rotulo">Propuesta</p>
+        <div class="caja-scroll alta con-barra" id="barra-prop-zona"></div>
+      </div>
+    </div>
+    <dl class="ficha">
+      <div><dt>Se va del código</dt><dd>Nada: es solo CSS. Sirve para la cabecera de la pantalla, la barra de filtros y la cabecera de una tabla.</dd></div>
+      <div><dt>Regla que toca</dt><dd>«Lo que flota lleva fondo de vidrio» (Felipe, 2026-11-04): se cumple igual, solo que el vidrio llega al pegarse. Sin soporte queda como hoy.</dd></div>
+      <div><dt>Soporte</dt><dd class="sop" data-sop="scrollState"></dd></div>
+    </dl>
+  </section>
+
+  <!-- ═════════ 5 · Campos ═════════ -->
+  <section class="lamina" id="l-campos" aria-labelledby="h-campos">
+    <header><h2 id="h-campos">Campos</h2><span class="veredicto tomar">Tomar</span></header>
+    <p class="que">El error se dice al salir del campo, igual que hoy, pero lo decide el navegador con <code>:user-invalid</code>. Y la nota crece mientras se escribe, sin barra de desplazamiento.</p>
+    <p class="prueba"><b>Prueba:</b> escribe «4589» en el DNI y sal con <kbd>Tab</kbd>. Escribe tres líneas en la nota.</p>
+    <div class="lado-a-lado">
+      <div class="panel">
+        <p class="rotulo">Hoy</p>
+        <form class="form-demo form-hoy" novalidate data-form="hoy"></form>
+      </div>
+      <div class="panel propuesta">
+        <p class="rotulo">Propuesta</p>
+        <form class="form-demo form-prop" data-form="prop"></form>
+      </div>
+    </div>
+    <dl class="ficha">
+      <div><dt>Se va del código</dt><dd>La cuenta de «ya salió del campo» (<code>useValidarAlSalir</code>, <code>lib/validar-al-salir.ts</code>). Queda un puente chico que copia <code>aria-invalid</code>.</dd></div>
+      <div><dt>Regla que toca</dt><dd>Ninguna, con un cuidado: <code>:user-invalid</code> solo avisa mientras escribes si vuelves a un campo que ya estaba bien. Para cumplir «no a la primera letra» (ADR-0611) queda una marca chica, <code>data-dicho</code>, y la regla <code>:not(:focus)</code>.</dd></div>
+      <div><dt>Soporte</dt><dd class="sop" data-sop="userInvalid fieldSizing"></dd></div>
+    </dl>
+  </section>
+
+  <!-- ═════════ 6 · Avance y anillo ═════════ -->
+  <section class="lamina" id="l-avance" aria-labelledby="h-avance">
+    <header><h2 id="h-avance">Barra de avance y anillo</h2><span class="veredicto igual">Se ve igual</span></header>
+    <p class="que">Se ven idénticos. La diferencia es que la propuesta usa el <code>&lt;progress&gt;</code> del navegador: el lector de pantalla lo entiende solo y, en alto contraste de Windows, el anillo no desaparece.</p>
+    <p class="prueba"><b>Prueba:</b> mueve el control de prendas contadas hasta 24.</p>
+    <div class="lado-a-lado">
+      <div class="panel">
+        <p class="rotulo">Hoy</p>
+        <div class="avance-demo">
+          <div class="fila-av"><span class="cifra" data-cifra="hoy">12/24</span><span class="barra-hoy-av" role="progressbar" aria-label="Contadas" aria-valuemin="0" aria-valuemax="100" id="av-hoy"><span></span></span></div>
+          <svg class="anillo-hoy" viewBox="0 0 80 80" aria-hidden="true" id="anillo-hoy"><circle class="pista" cx="40" cy="40" r="34"/><circle class="arco" cx="40" cy="40" r="34" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/></svg>
+        </div>
+      </div>
+      <div class="panel propuesta">
+        <p class="rotulo">Propuesta</p>
+        <div class="avance-demo">
+          <div class="fila-av"><span class="cifra" data-cifra="prop">12/24</span><progress class="barra-prop-av" max="24" value="12" aria-label="Contadas" id="av-prop"></progress></div>
+          <div class="anillo-prop-zona"><progress class="anillo-prop" max="100" value="50" aria-label="Contadas" id="anillo-prop"></progress><span class="anillo-cifra" aria-hidden="true" id="anillo-prop-cifra">50%</span></div>
+        </div>
+      </div>
+    </div>
+    <label class="ancho-control" style="margin-block-start:12px">Contadas <input type="range" min="0" max="24" value="12" id="contadas"></label>
+    <dl class="ficha">
+      <div><dt>Se va del código</dt><dd>El <code>role="progressbar"</code> y sus <code>aria-value*</code> a mano; el <code>&lt;svg&gt;</code> con <code>strokeDasharray</code> del anillo.</dd></div>
+      <div><dt>Regla que toca</dt><dd>Ninguna: <code>BarraAvance</code> y <code>Anillo</code> se ven igual (ronda 13 de /unificar).</dd></div>
+      <div><dt>Soporte</dt><dd class="sop" data-sop="atProperty"></dd></div>
+    </dl>
+  </section>
+
+  <!-- ═════════ 7 · Copiar ═════════ -->
+  <section class="lamina" id="l-copiar" aria-labelledby="h-copiar">
+    <header><h2 id="h-copiar">Copiar</h2><span class="veredicto probar">Probar</span></header>
+    <p class="que">Hoy el botón cambia su palabra a «✓ Copiado». La propuesta deja el botón quieto, cambia el ícono y muestra un globito «Copiado» que también oye quien usa lector de pantalla. Si el navegador no deja copiar, lo dice.</p>
+    <p class="prueba"><b>Prueba:</b> copia el código de la prenda dos veces seguidas.</p>
+    <div class="lado-a-lado">
+      <div class="panel">
+        <p class="rotulo">Hoy</p>
+        <div class="copiar-demo"><span class="codigo" id="cod-hoy">BLU-AUR-CR-M</span><button type="button" class="btn secundario" id="copiar-hoy">Copiar código</button></div>
+      </div>
+      <div class="panel propuesta">
+        <p class="rotulo">Propuesta</p>
+        <div class="copiar-demo"><span class="codigo" id="cod-prop">BLU-AUR-CR-M</span>
+          <span class="copiar-zona">
+            <button type="button" class="btn-icono" command="--copiar" commandfor="cod-prop" aria-label="Copiar el código de la prenda">
+              <svg class="copiar-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            </button>
+            <span class="burbuja" role="status"></span>
+          </span>
+        </div>
+      </div>
+    </div>
+    <dl class="ficha">
+      <div><dt>Se va del código</dt><dd>El cableado por botón: <code>command="--copiar"</code> + <code>commandfor</code> y un solo oyente para todo el ERP.</dd></div>
+      <div><dt>Regla que toca</dt><dd>La cara de <code>BotonCopiar</code> (ronda 15 de /unificar): cambiarla es decisión de Felipe mirando.</dd></div>
+      <div><dt>Soporte</dt><dd class="sop" data-sop="command"></dd></div>
+    </dl>
+  </section>
+
+  <!-- ═════════ 8 · Títulos ═════════ -->
+  <section class="lamina" id="l-titulos" aria-labelledby="h-titulos">
+    <header><h2 id="h-titulos">Títulos y bajadas</h2><span class="veredicto tomar">Tomar</span></header>
+    <p class="que">Un título que se parte deja una palabra sola abajo. <code>text-wrap: balance</code> reparte las líneas parejas y <code>pretty</code> evita la palabra huérfana en un párrafo. Hoy solo cinco piezas lo usan.</p>
+    <p class="prueba"><b>Prueba:</b> mueve el ancho y compara la última línea.</p>
+    <label class="ancho-control">Ancho <input type="range" min="240" max="560" value="480" id="ancho"><output id="ancho-valor">480 px</output></label>
+    <div class="lado-a-lado" style="margin-block-start:12px">
+      <div class="panel">
+        <p class="rotulo">Hoy</p>
+        <div class="marco-texto titulo-hoy"><h3>Prendas que llevan más de treinta días en el piso</h3><p>Muévelas a la entrada o ponlas en una oferta antes de que termine la temporada de invierno.</p></div>
+      </div>
+      <div class="panel propuesta">
+        <p class="rotulo">Propuesta</p>
+        <div class="marco-texto titulo-prop"><h3>Prendas que llevan más de treinta días en el piso</h3><p>Muévelas a la entrada o ponlas en una oferta antes de que termine la temporada de invierno.</p></div>
+      </div>
+    </div>
+    <dl class="ficha">
+      <div><dt>Se va del código</dt><dd>Nada: dos líneas en <code>EncabezadoPagina</code>, <code>TituloSeccion</code>, el título de <code>Modal</code> y <code>.texto-bajada</code>.</dd></div>
+      <div><dt>Regla que toca</dt><dd>Ninguna: es tipografía (va a <code>/tipografia</code> como propuesta).</dd></div>
+      <div><dt>Soporte</dt><dd class="sop" data-sop="balance pretty"></dd></div>
+    </dl>
+  </section>
+
+  <section class="dejado" aria-labelledby="h-dejado">
+    <h2 id="h-dejado">Lo que miré y dejé fuera</h2>
+    <ul>
+      <li><b>Casilla:</b> ya es un <code>&lt;input type="checkbox"&gt;</code> de verdad; pasarla a <code>appearance: none</code> solo ahorra dos íconos. No vale el cambio.</li>
+      <li><b>Interruptor con <code>switch</code> nativo:</b> solo Safari lo tiene. Hoy es <code>role="switch"</code>, que está bien.</li>
+      <li><b>Combos con <code>base-select</code>:</b> sin buscador y sin Firefox (ver el laboratorio anterior).</li>
+      <li><b>La hoja con <code>&lt;dialog&gt;</code>:</b> la más potente, pero es una migración grande; está probada en el laboratorio anterior.</li>
+      <li><b>Avisos:</b> lo único que traería es <code>ariaNotify()</code>; no se ve, se oye.</li>
+    </ul>
+  </section>
+</div>
+
+<div class="seleccion" role="region" aria-label="Tu selección">
+  <p class="resumen-sel"><strong id="sel-cuenta">Ninguna elegida</strong><span id="sel-lista">Marca «La quiero» en las mejoras que quieras.</span></p>
+  <label class="visually-hidden" for="sel-nota">Comentario para Claude</label>
+  <input id="sel-nota" class="caja sel-nota" type="text" placeholder="Comentario (opcional)" autocomplete="off">
+  <span class="copiar-zona">
+    <button type="button" class="btn primario" id="sel-copiar">Copiar mi selección</button>
+    <span class="burbuja" role="status"></span>
+  </span>
+  <label class="visually-hidden" for="sel-texto">Tu selección para copiar</label>
+  <textarea id="sel-texto" class="caja" readonly hidden></textarea>
+</div>
+
+<script type="module">
+const soporte = {
+  untilFound: "onbeforematch" in HTMLElement.prototype,
+  anchor: CSS.supports("anchor-name: --a"),
+  anchored: CSS.supports("container-type: anchored"),
+  scrollDriven: CSS.supports("(animation-timeline: scroll()) and (animation-range: entry)"),
+  scrollState: CSS.supports("container-type: scroll-state"),
+  userInvalid: CSS.supports("selector(:user-invalid)"),
+  fieldSizing: CSS.supports("field-sizing: content"),
+  atProperty: "CSSPropertyRule" in window,
+  command: "commandForElement" in HTMLButtonElement.prototype,
+  balance: CSS.supports("text-wrap: balance"),
+  pretty: CSS.supports("text-wrap: pretty"),
+};
+const nombres = { untilFound: 'hidden="until-found"', anchor: "anchor positioning", anchored: "flecha que se da vuelta", scrollDriven: "scroll()", scrollState: "scroll-state", userInvalid: ":user-invalid", fieldSizing: "field-sizing", atProperty: "@property", command: "command", balance: "balance", pretty: "pretty" };
+if (!soporte.command) await import("https://unpkg.com/invokers-polyfill").catch(() => {});
+document.querySelectorAll("[data-sop]").forEach((dd) => {
+  dd.innerHTML = "En este navegador: " + dd.dataset.sop.split(" ").map((k) => `<b class="${soporte[k] ? "si" : "no"}">${nombres[k]} ${soporte[k] ? "sí" : "no"}</b>`).join(" · ");
+});
+
+// Tema
+const meta = document.querySelector('meta[name="color-scheme"]');
+const radios = document.querySelectorAll('input[name="tema"]');
+radios.forEach((r) => { r.checked = r.value === meta.content; r.addEventListener("change", () => {
+  meta.content = r.value; try { r.value === "light dark" ? localStorage.removeItem("mwg-tema") : localStorage.setItem("mwg-tema", r.value); } catch (e) {}
+}); });
+
+// Resumen
+const resumen = [
+  ["Pestañas", "l-pestanas", "Ctrl+F abre la pestaña; bordes y gota sin medir", "Sí: buscar y deslizar", "tomar", "Tomar"],
+  ["Ver más", "l-vermas", "Ctrl+F abre las filas guardadas", "Sí: al buscar", "tomar", "Tomar"],
+  ["El globo «?»", "l-globo", "Pegado a su botón, se da vuelta y se esconde solo", "Sí: al bajar la lista", "probar", "Probar"],
+  ["La barra que se pega", "l-barra", "El vidrio llega recién al pegarse", "Sí: al bajar", "probar", "Probar"],
+  ["Campos", "l-campos", "Error al salir sin código propio; la nota crece", "La nota, sí", "tomar", "Tomar"],
+  ["Avance y anillo", "l-avance", "<progress> nativo", "No: se ve igual", "igual", "Se ve igual"],
+  ["Copiar", "l-copiar", "Globito «Copiado» que también se oye", "Sí: cambia la cara", "probar", "Probar"],
+  ["Títulos y bajadas", "l-titulos", "Sin palabra sola en la última línea", "Sí: en todo el ERP", "tomar", "Tomar"],
+];
+document.getElementById("resumen").innerHTML = resumen.map(([p, id, q, n, c, v]) =>
+  `<tr><td class="celda-quiero"><label class="quiero-mini"><input type="checkbox" data-quiero="${id}" aria-label="Quiero ${p}"></label></td><th scope="row"><a href="#${id}">${p}</a></th><td>${q.replace("<progress>", "&lt;progress&gt;")}</td><td class="ocultar-angosto">${n}</td><td><span class="veredicto ${c}">${v}</span></td></tr>`).join("");
+
+// ═════ Elegir y copiar la selección ═════
+// Cada lámina lleva su «La quiero», que va en pareja con la casilla de la tabla.
+for (const [p, id] of resumen) {
+  const cabeza = document.querySelector(`#${id} > header`);
+  const veredicto = cabeza.querySelector(".veredicto");
+  const lado = document.createElement("span"); lado.className = "lado-derecho";
+  lado.innerHTML = `<label class="quiero"><input type="checkbox" data-quiero="${id}" aria-label="Quiero ${p}">La quiero</label>`;
+  veredicto.replaceWith(lado); lado.prepend(veredicto);
+}
+const CLAVE = "mejoras-componentes-elegidas";
+let elegidas = new Set();
+try { elegidas = new Set(JSON.parse(localStorage.getItem(CLAVE) ?? "[]")); } catch (e) {}
+const nota = document.getElementById("sel-nota");
+try { nota.value = localStorage.getItem(`${CLAVE}:nota`) ?? ""; } catch (e) {}
+const pintarSeleccion = () => {
+  document.querySelectorAll("[data-quiero]").forEach((c) => (c.checked = elegidas.has(c.dataset.quiero)));
+  const nombres = resumen.filter(([, id]) => elegidas.has(id)).map(([p]) => p);
+  document.getElementById("sel-cuenta").textContent = nombres.length === 0 ? "Ninguna elegida" : nombres.length === 1 ? "1 elegida" : `${nombres.length} elegidas`;
+  document.getElementById("sel-lista").textContent = nombres.length ? nombres.join(" · ") : "Marca «La quiero» en las mejoras que quieras.";
+  document.getElementById("sel-texto").hidden = true;
+};
+document.addEventListener("change", (e) => {
+  const c = e.target.closest?.("[data-quiero]"); if (!c) return;
+  c.checked ? elegidas.add(c.dataset.quiero) : elegidas.delete(c.dataset.quiero);
+  try { localStorage.setItem(CLAVE, JSON.stringify([...elegidas])); } catch (er) {}
+  pintarSeleccion();
+});
+nota.addEventListener("input", () => { try { localStorage.setItem(`${CLAVE}:nota`, nota.value); } catch (e) {} });
+pintarSeleccion();
+
+const textoSeleccion = () => {
+  const lista = resumen.filter(([, id]) => elegidas.has(id));
+  const lineas = [`Mejoras que quiero (maqueta docs/maquetas/mejoras-componentes-2026-11):`,
+    ...lista.map(([p, , q, , , v], i) => `${i + 1}. ${p} — ${q} (lectura de Claude: ${v})`)];
+  const no = resumen.filter(([, id]) => !elegidas.has(id)).map(([p]) => p);
+  if (no.length) lineas.push(`No por ahora: ${no.join(", ")}.`);
+  if (nota.value.trim()) lineas.push(`Comentario: ${nota.value.trim()}`);
+  return lineas.join("\n");
+};
+// Último recurso si el navegador no deja escribir en el portapapeles (guía copy-button).
+const copiarViejo = (texto) => {
+  const campo = Object.assign(document.createElement("textarea"), { value: texto });
+  campo.setAttribute("readonly", ""); campo.style.cssText = "position:fixed;inset-block-start:0;opacity:0";
+  document.body.append(campo); campo.select();
+  try { return document.execCommand("copy"); } finally { campo.remove(); }
+};
+const botonSel = document.getElementById("sel-copiar");
+let relojSel, ultimoSel = "";
+botonSel.addEventListener("click", async () => {
+  const burbuja = botonSel.nextElementSibling; const caja = document.getElementById("sel-texto");
+  let mensaje;
+  if (!elegidas.size) mensaje = "Marca al menos una";
+  else {
+    const texto = textoSeleccion(); let ok = true;
+    try { await navigator.clipboard.writeText(texto); } catch { ok = copiarViejo(texto); }
+    if (ok) { mensaje = "Copiado: pégalo en el chat"; caja.hidden = true; }
+    else { mensaje = "Cópialo de la caja con ⌘C"; caja.value = texto; caja.hidden = false; caja.focus(); caja.select(); }
+  }
+  if (mensaje === ultimoSel) mensaje += " "; ultimoSel = mensaje;
+  clearTimeout(relojSel); burbuja.textContent = "";
+  requestAnimationFrame(() => (burbuja.textContent = mensaje));
+  relojSel = setTimeout(() => (burbuja.textContent = ""), 2600);
+});
+
+// ═════ 1 · Pestañas ═════
+const vistas = [
+  ["Ventas", [["Blusa Aurora · M", "S/ 89"], ["Polo Básico · L", "S/ 39"], ["Vestido Brisa · M", "S/ 129"]]],
+  ["Traslados", [["Trujillo → Arequipa", "12 prendas"], ["Lima → Trujillo", "4 prendas"]]],
+  ["Ajustes", [["Casaca Lima · L", "−1"], ["Falda Plisada · S", "+2"]]],
+  ["Devoluciones", [["Chal Paracas · Único", "S/ 119"], ["Pantalón Recto · 30", "S/ 99"]]],
+  ["Cambios", [["Blusa Emma · S → M", "sin diferencia"]]],
+  ["Bajadas al piso", [["Vestido Brisa · L", "3 prendas"]]],
+  ["Pérdidas", [["Polo Básico · S", "1 prenda"]]],
+];
+function armarPestanas(cual) {
+  const fila = document.getElementById(`${cual}-tabs`);
+  const paneles = document.getElementById(`${cual}-paneles`);
+  fila.innerHTML = vistas.map(([n], i) => `<button type="button" role="tab" id="${cual}-t${i}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">${n}</button>`).join("") + (cual === "hoy" ? '<span class="gota" aria-hidden="true"></span>' : "");
+  paneles.innerHTML = vistas.map(([n, filas], i) => `<div role="tabpanel" aria-labelledby="${cual}-t${i}" ${i === 0 ? "" : cual === "hoy" ? "hidden" : 'hidden="until-found"'}><div class="panel-in"><ul>${filas.map(([a, b]) => `<li><span>${a}</span><span>${b}</span></li>`).join("")}</ul></div></div>`).join("");
+  const tabs = [...fila.querySelectorAll('[role="tab"]')];
+  const elegir = (t, enfocar = false) => {
+    const antes = tabs.findIndex((x) => x.getAttribute("aria-selected") === "true");
+    const ahora = tabs.indexOf(t);
+    fila.dataset.dir = ahora >= antes ? "der" : "izq";
+    tabs.forEach((x) => { const si = x === t; x.setAttribute("aria-selected", si); x.tabIndex = si ? 0 : -1; });
+    [...paneles.children].forEach((p, i) => {
+      if (i === ahora) p.removeAttribute("hidden");
+      else if (cual === "hoy") p.hidden = true; else p.setAttribute("hidden", "until-found");
+    });
+    if (enfocar) t.focus();
+    if (cual === "hoy") { moverGota(); centrarHoy(t); }
+    else t.scrollIntoView({ block: "nearest", inline: "nearest", container: "nearest" });
+  };
+  tabs.forEach((t, i) => {
+    t.addEventListener("click", () => elegir(t));
+    t.addEventListener("keydown", (e) => {
+      const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0; if (!d) return;
+      e.preventDefault(); elegir(tabs[(i + d + tabs.length) % tabs.length], true);
+    });
+  });
+  if (cual === "prop") {
+    // Ctrl+F encontró algo en una vista oculta: se elige su pestaña antes de mostrarla.
+    paneles.addEventListener("beforematch", (e) => elegir(document.getElementById(e.target.getAttribute("aria-labelledby"))));
+    requestAnimationFrame(() => requestAnimationFrame(() => fila.classList.add("lista")));
+  }
+  // Hoy: la gota y los bordes se miden con JavaScript.
+  function moverGota() {
+    const g = fila.querySelector(".gota"); const t = fila.querySelector('[aria-selected="true"]');
+    g.style.left = `${t.offsetLeft}px`; g.style.width = `${t.offsetWidth}px`;
+  }
+  function centrarHoy(t) { fila.scrollLeft = t.offsetLeft - (fila.clientWidth - t.offsetWidth) / 2; }
+  if (cual === "hoy") {
+    const zona = document.getElementById("hoy-zona");
+    const marcar = () => {
+      zona.toggleAttribute("data-mas-izq", fila.scrollLeft > 2);
+      zona.toggleAttribute("data-mas-der", fila.scrollLeft + fila.clientWidth < fila.scrollWidth - 2);
+    };
+    fila.addEventListener("scroll", marcar); addEventListener("resize", () => { marcar(); moverGota(); });
+    moverGota(); marcar();
+    document.fonts?.ready.then(() => { moverGota(); marcar(); });
+  }
+}
+armarPestanas("hoy"); armarPestanas("prop");
+
+// ═════ 2 · Ver más ═════
+const prendas = [["Blusa Aurora · Crema · M", "3"], ["Casaca Lima · Negro · M", "0"], ["Vestido Brisa · Rojo teja · M", "2"]];
+const mas = [["Chompa Andes · Camel · M", "4"], ["Abrigo Nevado · Hueso · L", "7"], ["Falda Plisada · Negro · S", "0"], ["Pantalón Recto · Camel · 32", "2"], ["Blusa Emma · Lila · S", "1"]];
+const fila = ([a, b], i) => `<li style="--n:${i}"><span>${a}</span><span>${b} en piso</span></li>`;
+for (const c of ["hoy", "prop"]) {
+  document.querySelector(`[data-lista="${c}"]`).innerHTML = prendas.map(fila).join("");
+  document.querySelector(`[data-mas="${c}"]`).innerHTML = mas.map(fila).join("");
+}
+const fijarVerMas = (c, abierto) => {
+  const b = document.querySelector(`[data-ver="${c}"]`); const z = document.getElementById(`mas-${c}`);
+  b.setAttribute("aria-expanded", abierto); b.querySelector("span").textContent = abierto ? "Ver menos" : "Ver 5 más";
+  if (c === "hoy") { z.toggleAttribute("data-abierto", abierto); z.inert = !abierto; }
+  else if (abierto) z.removeAttribute("hidden"); else z.setAttribute("hidden", "until-found");
+};
+document.querySelectorAll("[data-ver]").forEach((b) => b.addEventListener("click", () => fijarVerMas(b.dataset.ver, b.getAttribute("aria-expanded") !== "true")));
+document.getElementById("mas-prop").addEventListener("beforematch", () => fijarVerMas("prop", true));
+
+// ═════ 3 · El globo ═════
+const filasGlobo = (c) => Array.from({ length: 12 }, (_, i) => i === 3
+  ? `<div class="fila"><span>Disponible<button type="button" class="ayuda-btn" ${c === "prop" ? 'popovertarget="globo-prop" aria-expanded="false"' : 'id="ayuda-hoy" aria-expanded="false"'} aria-label="Qué es Disponible">?</button></span><span>14</span></div>`
+  : `<div class="fila"><span>${["Vendidas hoy", "Apartadas", "En camino", "", "En almacén", "Dañadas", "Por reponer", "Agotadas", "En oferta", "Nuevas", "Sin foto", "Sin precio"][i]}</span><span>${(i * 7) % 23}</span></div>`).join("");
+document.getElementById("scroll-hoy").innerHTML = filasGlobo("hoy");
+document.getElementById("scroll-prop").innerHTML = filasGlobo("prop") +
+  `<div popover id="globo-prop" class="globo-prop" role="tooltip"><div class="globo-cuerpo">Lo que hay en el piso más el almacén, sin contar lo apartado.</div></div>`;
+document.addEventListener("toggle", (e) => {
+  if (e.target.id === "globo-prop") document.querySelector('[popovertarget="globo-prop"]').setAttribute("aria-expanded", e.newState === "open");
+}, true);
+// Hoy: la misma colocación a mano de Ayuda (fixed, se recalcula en cada scroll, arriba si no cabe abajo).
+const btnHoy = document.getElementById("ayuda-hoy");
+let globoHoy = null;
+const colocarHoy = () => {
+  if (!globoHoy) return;
+  const r = btnHoy.getBoundingClientRect(); const ancho = 260; const m = 8;
+  globoHoy.style.left = `${Math.min(Math.max(m, r.left - ancho / 2 + r.width / 2), document.documentElement.clientWidth - m - ancho)}px`;
+  const alto = globoHoy.offsetHeight; const cabeAbajo = r.bottom + 8 + alto + m <= innerHeight;
+  globoHoy.style.top = cabeAbajo ? `${r.bottom + 8}px` : `${r.top - 8 - alto}px`;
+};
+btnHoy.addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (globoHoy) { globoHoy.remove(); globoHoy = null; btnHoy.setAttribute("aria-expanded", "false"); return; }
+  globoHoy = document.createElement("div"); globoHoy.className = "globo-hoy"; globoHoy.setAttribute("role", "tooltip");
+  globoHoy.innerHTML = '<div class="globo-cuerpo">Lo que hay en el piso más el almacén, sin contar lo apartado.</div>';
+  document.body.append(globoHoy); btnHoy.setAttribute("aria-expanded", "true"); colocarHoy();
+});
+addEventListener("scroll", colocarHoy, true); addEventListener("resize", colocarHoy);
+document.addEventListener("click", (e) => { if (globoHoy && !globoHoy.contains(e.target)) { globoHoy.remove(); globoHoy = null; btnHoy.setAttribute("aria-expanded", "false"); } });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && globoHoy) { globoHoy.remove(); globoHoy = null; btnHoy.setAttribute("aria-expanded", "false"); } });
+
+// ═════ 4 · Barra pegada ═════
+const lista15 = Array.from({ length: 16 }, (_, i) => `<div class="fila"><span>${["Blusa Aurora", "Casaca Lima", "Vestido Brisa", "Chompa Andes", "Polo Básico", "Falda Plisada", "Pantalón Recto", "Blusa Emma"][i % 8]} · ${["S", "M", "L"][i % 3]}</span><span>${(i * 5) % 9} en piso</span></div>`).join("");
+const barraHtml = (clase) => `<div class="barra ${clase}"><input class="buscar" type="search" placeholder="Prenda o color" aria-label="Buscar"><span class="pildora">Talla</span><span class="pildora">Color</span></div>`;
+document.getElementById("barra-hoy-zona").innerHTML = `<div class="intro-lista"><strong>Existencias de Trujillo</strong>Lo que hay en el piso, prenda por prenda.</div>${barraHtml("barra-hoy")}${lista15}`;
+document.getElementById("barra-prop-zona").innerHTML = `<div class="intro-lista"><strong>Existencias de Trujillo</strong>Lo que hay en el piso, prenda por prenda.</div><div class="barra-prop-sobre">${barraHtml("barra-prop")}</div>${lista15}`;
+
+// ═════ 5 · Campos ═════
+const campos = (c) => `
+  <div class="campo"><label for="${c}-nombre">Nombre<span class="ast" aria-hidden="true">*</span></label>
+    <input class="caja" id="${c}-nombre" name="nombre" required autocomplete="name" data-error="${c}-e-nombre">
+    <p class="error" id="${c}-e-nombre"><span role="img" aria-label="Error">!</span> Escribe el nombre del cliente.</p></div>
+  <div class="campo"><label for="${c}-dni">DNI<span class="ast" aria-hidden="true">*</span></label>
+    <input class="caja" id="${c}-dni" name="dni" required inputmode="numeric" pattern="\\d{8}" maxlength="8" autocomplete="off" data-error="${c}-e-dni">
+    <p class="error" id="${c}-e-dni"><span role="img" aria-label="Error">!</span> El DNI tiene 8 números.</p></div>
+  <div class="campo"><label for="${c}-nota">Nota</label>
+    <textarea class="caja" id="${c}-nota" name="nota" rows="2" placeholder="Lo que conviene recordar de este cliente"></textarea></div>
+  <div style="display:flex;gap:12px;align-items:center"><button class="btn primario">Guardar cliente</button><p class="listo" aria-live="polite"></p></div>`;
+document.querySelectorAll("[data-form]").forEach((f) => { f.innerHTML = campos(f.dataset.form); });
+// Hoy: JavaScript lleva la cuenta de «ya salió» y pinta data-error (como useValidarAlSalir).
+const formHoy = document.querySelector('[data-form="hoy"]');
+const salio = new WeakSet();
+const pintarHoy = (el) => { const c = el.closest(".campo"); const malo = salio.has(el) && !el.validity.valid; c.toggleAttribute("data-error", malo); el.setAttribute("aria-invalid", malo); };
+formHoy.addEventListener("focusout", (e) => { if (e.target.matches("input") && e.target.value !== "") salio.add(e.target); if (e.target.matches("input")) pintarHoy(e.target); });
+formHoy.addEventListener("input", (e) => { if (e.target.matches("input")) pintarHoy(e.target); });
+formHoy.addEventListener("submit", (e) => {
+  e.preventDefault(); const malos = [...formHoy.querySelectorAll("input")].filter((i) => !i.validity.valid);
+  malos.forEach((i) => { salio.add(i); pintarHoy(i); });
+  if (malos.length) malos[0].focus(); else formHoy.querySelector(".listo").textContent = "Listo (demo, no se guardó).";
+});
+// Propuesta: el navegador decide; JavaScript solo copia aria-invalid y enlaza el error (guía validate-input-after-interaction).
+const formProp = document.querySelector('[data-form="prop"]');
+const sincronizar = (el, salio = false) => {
+  if (!el.matches?.("input, textarea")) return;
+  const invalido = el.matches(":user-invalid");
+  if (salio && invalido) el.dataset.dicho = ""; // ya se le dijo: sigue a la vista mientras lo corrige
+  if (!invalido) delete el.dataset.dicho;
+  const malo = invalido && (salio || "dicho" in el.dataset || el !== document.activeElement);
+  el.setAttribute("aria-invalid", malo);
+  const id = el.dataset.error; if (!id) return;
+  const ids = (el.getAttribute("aria-describedby") || "").split(/\s+/).filter((x) => x && x !== id);
+  if (malo) ids.push(id); ids.length ? el.setAttribute("aria-describedby", ids.join(" ")) : el.removeAttribute("aria-describedby");
+};
+formProp.querySelectorAll("input").forEach(sincronizar);
+formProp.addEventListener("blur", (e) => sincronizar(e.target, true), true);
+formProp.addEventListener("invalid", (e) => sincronizar(e.target, true), true);
+["input", "change"].forEach((t) => formProp.addEventListener(t, (e) => sincronizar(e.target), true));
+formProp.addEventListener("submit", (e) => { e.preventDefault(); formProp.querySelector(".listo").textContent = "Listo (demo, no se guardó)."; });
+
+// ═════ 6 · Avance y anillo ═════
+const rango = document.getElementById("contadas");
+const pintarAvance = () => {
+  const n = Number(rango.value); const pct = Math.round((n / 24) * 100); const lleno = n === 24;
+  document.querySelectorAll("[data-cifra]").forEach((s) => (s.textContent = `${n}/24`));
+  const hoy = document.getElementById("av-hoy"); hoy.style.setProperty("--p", `${pct}%`); hoy.setAttribute("aria-valuenow", pct); hoy.toggleAttribute("data-lleno", lleno);
+  const ah = document.getElementById("anillo-hoy"); ah.querySelector(".arco").setAttribute("stroke-dashoffset", 100 - pct); ah.toggleAttribute("data-lleno", lleno);
+  const prop = document.getElementById("av-prop"); prop.value = n; prop.setAttribute("aria-valuetext", `${n} de 24`); prop.toggleAttribute("data-lleno", lleno);
+  const ap = document.getElementById("anillo-prop"); ap.value = pct; ap.style.setProperty("--valor", pct); ap.setAttribute("aria-valuetext", `${n} de 24`); ap.toggleAttribute("data-lleno", lleno);
+  document.getElementById("anillo-prop-cifra").textContent = `${pct}%`;
+};
+rango.addEventListener("input", pintarAvance); pintarAvance();
+
+// ═════ 7 · Copiar ═════
+const copiarHoy = document.getElementById("copiar-hoy");
+copiarHoy.addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(document.getElementById("cod-hoy").textContent); copiarHoy.textContent = "✓ Copiado"; }
+  catch { copiarHoy.textContent = "No se pudo"; }
+  setTimeout(() => (copiarHoy.textContent = "Copiar código"), 2000);
+});
+// Propuesta: un solo oyente para todos los botones con command="--copiar" (guía copy-button).
+const relojes = new WeakMap(); let ultimo = "";
+async function copiar(boton, destino) {
+  const burbuja = boton.nextElementSibling; let ok = true;
+  try { await navigator.clipboard.writeText(destino.innerText.trim()); } catch { ok = false; }
+  clearTimeout(relojes.get(boton)); boton.removeAttribute("data-copiado"); boton.removeAttribute("data-fallo");
+  let mensaje = ok ? "Copiado" : "No se pudo copiar";
+  if (mensaje === ultimo) mensaje += " "; ultimo = mensaje;
+  burbuja.textContent = ""; void boton.offsetWidth;
+  boton.setAttribute(ok ? "data-copiado" : "data-fallo", "");
+  requestAnimationFrame(() => (burbuja.textContent = mensaje));
+  relojes.set(boton, setTimeout(() => { boton.removeAttribute("data-copiado"); boton.removeAttribute("data-fallo"); burbuja.textContent = ""; }, 2000));
+}
+document.addEventListener("command", (e) => { if (e.command === "--copiar") copiar(e.source, e.target); }, true);
+
+// ═════ 8 · Títulos ═════
+const ancho = document.getElementById("ancho");
+const pintarAncho = () => { document.querySelectorAll(".marco-texto").forEach((m) => m.style.setProperty("--ancho", `${ancho.value}px`)); document.getElementById("ancho-valor").textContent = `${ancho.value} px`; };
+ancho.addEventListener("input", pintarAncho); pintarAncho();
+</script>
+</body>
+</html>
