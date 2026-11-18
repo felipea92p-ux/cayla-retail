@@ -11,3 +11,5 @@
   nuevo / cambiar / desactivar. Tres migraciones de solo funciones, sin aplicar en producción.
 - Cierre: guías recorridas (29 pasos), `/focus` (el % que llega puesto pasó a «sugerido»), `/chaos` semilla 1118 sin estados imposibles y con dos
   hallazgos abiertos, `/milimetro` sin graves, `/formidable` 8,1 provisional con la ciega en 5 toques. Las actividades 6 a 8 van en el PR siguiente.
+- Con el OK de Felipe se cerraron los cinco: el % empieza en 1, la lista se pone al día sola si el descuento ya no está, «todas las tallas»
+  con palabras, el aviso «Antes tenía −20 %» y tocar la prenda para ver sus tallas. Cada uno con su prueba y repetido en el navegador.

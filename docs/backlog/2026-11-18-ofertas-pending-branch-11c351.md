@@ -9,11 +9,9 @@
   descuento (el pase con nombre, tres chips, las ofertas como carteles y sus prendas; «Más» con imprimir, ver en la web y desactivar; arreglar
   «sin prendas»; quitar «vendidas en 30 días» y «en las tiendas»), la hoja de ofertas en una sola hoja sin «Regalo» ni «Club», y la compra de
   ejemplo en vivo con la regla de Vender.
-- [ ] **Chaos #1 (g2, de Felipe):** un −0,5 % se crea aunque el mensaje dice «El % va de 1 a 70»: `fn_pct_de_descuento` y `pctDeDescuento` aceptan más
-  de 0. Propuesta: piso en 1 en los dos lados.
-- [ ] **Chaos #2 (g4):** tras una respuesta perdida, la lista sigue mostrando un descuento que la base ya apagó; al reintentar, la base lo dice claro
-  pero la pantalla no se rehace. Propuesta: ante `rebaja_descuento_no_esta`, `router.refresh()`.
-- [ ] **Formidable, 3 cambios que esperan OK** (`docs/formidable/catalogo-campanas-descuentos.md`): «Negro · todas las tallas», el aviso «Antes tenía
-  −20 %» en vez del nombre interno del cajón, y tocar una prenda del panel muestra sus tallas.
+- [x] **Chaos #1 y #2 y los 3 cambios de Formidable**, hechos el 2026-11-18 con el OK de Felipe («Sí, los cinco»), cada uno con su prueba.
+- [ ] `poner_rebaja` (ADR-0669, en producción) acepta un % mayor que 0 aunque su mensaje dice «de 1 a 70». Desde la pantalla nueva solo recibe el %
+  de un descuento que ya existe, así que no se alcanza; cerrarlo del todo es un reemplazo anclado en producción: decisión de Felipe.
+- [ ] Repetir la prueba ciega de Formidable después de los tres cambios.
 - [ ] Probarlo con una colaboradora real (la ciega pasó en 5 toques) y la cámara en un teléfono de verdad.
 - [ ] Una integrante CON el módulo mirando un descuento de todas las tiendas (no puede quitar ni agregar ahí): el seed local no la tiene.

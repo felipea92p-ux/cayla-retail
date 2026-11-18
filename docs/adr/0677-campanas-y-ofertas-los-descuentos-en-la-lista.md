@@ -65,6 +65,11 @@ Felipe, 2026-11-17:
 - **Pruebas:** `pnpm pruebas:rebaja-rapida` (55 escenarios, sale de una tienda sin cajones dentro de su transacción), `lib/rebaja-rapida-reglas.test.ts`.
 - **Guía:** la de Campañas suma «Un descuento nuevo» y «Agregar prendas a un descuento» (29 pasos recorridos en escritorio y a 375 px). La guía de foco
   de la hoja trata el % que llega puesto como «sugerido» hasta que la persona lo toca (ADR-0284 act. h).
-- **Chaos (2026-11-18, semilla 1118):** 0 estados imposibles. Abiertos: un −0,5 % pasa aunque el mensaje dice «de 1 a 70» (la función y la web
-  aceptan más de 0; es de Felipe) y, tras una respuesta perdida, la lista se queda vieja hasta recargar.
+- **Chaos (2026-11-18, semilla 1118):** 0 estados imposibles. Los dos hallazgos se cerraron con el OK de Felipe: el % de un descuento empieza en 1
+  (`fn_pct_de_descuento` y `pctDeDescuento`; antes un −0,5 % pasaba) y, si la base dice que el descuento o el % ya no están, la pantalla vuelve a
+  leer la lista y avisa «la lista ya está al día» (`avisoDeListaVieja`). `poner_rebaja` (ADR-0669, en producción) sigue aceptando más de 0, pero
+  desde esta pantalla solo recibe el % de un descuento que ya existe.
+- **Formidable (2026-11-18):** la prueba ciega terminó en 5 toques y dejó tres dudas que se arreglaron con el OK de Felipe: la prenda dice
+  «todas las tallas» con palabras, el aviso al agregar dice «Antes tenía −20 %» (nunca el nombre interno del cajón) y tocar una prenda con todas sus
+  tallas muestra cuáles (S · M · L).
 - **Dynamic:** no cambia `vidrio/recetas.css` ni `components/ui/`: no le llega nada.

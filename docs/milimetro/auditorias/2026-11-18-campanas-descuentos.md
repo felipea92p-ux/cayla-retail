@@ -7,7 +7,7 @@ Alcance: lo que nace con ADR-0677 (actividades 1 a 5 de la maqueta `docs/maqueta
 descuento» en la lista, el panel del descuento (cabecera, «Agregar», la grilla de prendas con su ×) y la hoja «Nuevo descuento / Cambiar el %».
 Las fichas de cada pieza: `docs/milimetro/fila-de-lista-campanas.md` y `docs/milimetro/panel-de-descuento.md`.
 
-Resumen: **0 graves · 0 medias · 1 leve decidida a propósito** (el aire de 26 px bajo «Descuentos», el mismo que entre dos pilas) · falsos positivos y heredados anotados.
+Resumen: **0 graves · 0 medias · 1 leve decidida a propósito** (el aire de 26 px bajo «Descuentos», el mismo que entre dos pilas) · falsos positivos y heredados anotados · medido otra vez tras los cambios de Formidable (el toque de la prenda): 0 nuevos.
 
 ## Lo que se midió
 
@@ -26,6 +26,16 @@ Resumen: **0 graves · 0 medias · 1 leve decidida a propósito** (el aire de 26
 | Aire bajo «Descuentos» | `margin-bottom: 26px` fuera de la escala de 4 (`app/estilos/campanas-lista.css:16`), copiado de `.sl-pila + .sl-pila` para que la lista y la billetera respiren igual | `/espacio` `[Práctica]` | leve, decidido a propósito |
 | Movimiento | quieto: 0 animaciones y 0 bucles; las del panel usan `--t-*` y `--ease-*` (ficha del panel) | ADR-0136, ADR-0625 | pasa |
 | Textos | sin fallas medibles | `/textos` | pasa |
+
+## Después de los cambios de Formidable (el mismo día)
+
+| Pieza | Medida | Regla | Resultado |
+|---|---|---|---|
+| El toque de la prenda («todas las tallas») | una capa sin fondo bajo la tarjeta (`.lc-pieza-toque`, `inset: -6px`); la foto y el texto dejan pasar el toque; la × queda encima (comprobado con `elementFromPoint` también con la foto levantada por el hover) | — | pasa |
+| Su foco con teclado | anillo de tinta de 2 px a 2 px de la tarjeta; orden con Tab: cámara → la prenda → la × | WCAG 2.4.7 `[Norma]` | pasa |
+| Su estado | `aria-expanded` y el nombre «Ver / Esconder las tallas de Blusa Emma Negro» | WCAG 4.1.2 `[Norma]` | pasa |
+| La línea de tallas | 14 px (`.sl-prenda-dato`), «S · M · L» de la más chica a la más grande (`compararTallas`); entra con `cayla-cascada` en `--t-cambio`, sin rebote; nada con menos movimiento | `/tipografia`, ADR-0136 | pasa |
+| Contraste y estados del panel | 0 textos ni controles nuevos que fallen; las 2 fallas que lista el medidor son de la cabecera del marco medida con la página desplazada | WCAG 1.4.3 `[Norma]` | pasa (heredado) |
 
 ## Lo que no se midió
 

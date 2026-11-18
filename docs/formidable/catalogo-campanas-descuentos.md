@@ -43,7 +43,7 @@ Colaboradora real: **sin probar**.
 | **Total leyes** | **8,1** | |
 | Oficio visual | 9 | medidores de `/milimetro` y `medir-oficio.js` |
 
-## Los 3 cambios de mayor impacto (esperan el OK de Felipe)
+## Los 3 cambios de mayor impacto (hechos el 2026-11-18 con el OK de Felipe: «Sí, los cinco»)
 
 1. **La prenda dice si van todas sus tallas** (ley 3). Antes: «Negro». Después: «Negro · todas las tallas» (y «Beige · L» cuando es una sola).
    Dónde: `detalleDePieza` (`apps/web/lib/rebaja-rapida-reglas.ts`), con su prueba. Se verifica repitiendo la ciega: la duda desaparece.
@@ -56,6 +56,16 @@ Colaboradora real: **sin probar**.
 **Lo que sobra (ley 8):** la frase del responsable («Eres admin. Guardas a tu nombre, sin autorización») a la vista en cada panel; es la pieza de
 siempre (`ComboResponsable`), así que va como propuesta transversal, no aquí.
 **Lo que Felipe no pidió y importa más:** que un −0,5 % pasa aunque el mensaje dice «de 1 a 70» (chaos #1, toca la función de la base).
+
+## Después de los cambios (2026-11-18)
+
+| Antes | Después | Cómo se comprobó |
+|---|---|---|
+| «Negro» | «Negro · todas las tallas» (y «Beige · L» cuando es una) | `lib/rebaja-rapida-reglas.test.ts` y el panel a 1440 px |
+| «Blusa Emma con −15 % · Sale de Rebaja −20 % · Tienda Lima» | «Blusa Emma con −15 % · Antes tenía −20 %» | `textoDeDondeSalio`, con su prueba, y el aviso real al agregar la blusa |
+| Tocar la prenda no hacía nada | Tocar la tarjeta (foto, nombre o precio) muestra «S · M · L»; la × sigue encima; con Tab: cámara → la prenda → la × | navegador: `elementFromPoint` sobre la foto y la ×, anillo de foco de 2 px alrededor de la tarjeta |
+
+Notas, sin repetir la ciega: ley 3 de 7 a 8 y ley 4 de 7 a 8 (provisionales hasta repetirla); oficio 9 (`/milimetro`: 0 fallas nuevas en el panel).
 
 ## Antes de decir «listo»
 

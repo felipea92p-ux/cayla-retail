@@ -100,3 +100,14 @@ Ninguna.
 - **Verificado** (375 × 812, 2026-11-17) con la cámara y el lector simulados en el navegador (`getUserMedia` con un lienzo y un `BarcodeDetector` falso): la
   lectura, la pregunta, «Solo esta», «Agregada», «Listo · 1 agregada», el aviso con «Deshacer» sobre la cámara y la prenda primera en el panel al volver.
   **Sin probar:** una cámara de verdad en un teléfono.
+
+## 2026-11-18 · tras /formidable: la prenda dice sus tallas
+
+- **«Todas las tallas» con palabras** (`detalleDePieza`): «Negro · todas las tallas»; si van algunas, cuáles («Beige · L»); si el modelo tiene una sola, esa.
+  Las tallas van de la más chica a la más grande (`compararTallas`).
+- **Tocar la prenda muestra cuáles**, solo cuando dice «todas las tallas» (el único caso en que no se ven): una capa sin fondo bajo la tarjeta
+  (`.lc-pieza-toque`, `inset: -6px`, `aria-expanded`, «Ver / Esconder las tallas de …»); la foto y el texto dejan pasar el toque y la × queda encima.
+  Encima de la tarjeta no sirve: el hover levanta la foto con un `transform`, eso la vuelve una capa propia y tapaba la ×. La línea «S · M · L» va en
+  `.sl-prenda-dato` (14 px) y entra con `cayla-cascada` en `--t-cambio`; quieta con menos movimiento.
+- **El aviso al agregar** dice de dónde salió en %: «Antes tenía −20 %» (`textoDeDondeSalio`), una campaña entre comillas, nunca el nombre interno del cajón.
+- **Medido:** foco de tinta 2 px alrededor de la tarjeta, orden con Tab cámara → prenda → ×, 0 fallas nuevas (auditoría `2026-11-18-campanas-descuentos`).
