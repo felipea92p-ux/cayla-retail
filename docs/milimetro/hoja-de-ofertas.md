@@ -20,3 +20,15 @@ Se arma por partes, como se construye (`/construir`, 2026-11-18): cada actividad
   depende solo del color, cambian fondo, borde y letra), quieto (sin transición). No hay apagadas: lo que no funciona no se muestra.
 - **Pendiente para 7b:** a 375 px la pregunta vive en una columna de 204 px (la hoja de hoy pone la etiqueta al costado) y las opciones van de a una; la hoja de una sola
   columna lo resuelve.
+
+## 7b · Una sola hoja
+
+- **Lo que cambia:** las cuatro preguntas («¿Qué le das?», «¿En qué prendas?», «¿Cuándo y dónde?», «Revisa») van una debajo de la otra en `.of-una`; las tres de abajo
+  aparecen en cuanto se elige qué le das. Sale la barra de pasos, «Siguiente», la flecha «paso anterior», el atajo «Listo, guardar con lo demás de fábrica» y las bajadas
+  de cada pregunta. El pie es siempre el del final: «Falta: …» (lleva al campo, que ya está a la vista), «Cancelar», «Guardar como borrador» y «Activar».
+- **Medidas:** cada bloque, separado del de arriba por 28 px, una línea `sand` y 24 px; su título en la serif a 22 px (20 en el celular), más chico que el de la hoja.
+- **Al volver a empezar** (guardó, o se abre otra oferta) la hoja suelta la reserva de `<PaginaEstable>` y sube hasta «Nueva oferta» (ADR-0185): sin eso el pie fijo
+  quedaba a media hoja con aire debajo (medido a 1440: pie a 264 px del borde de arriba en una hoja de 802).
+- **375 px (arreglado aquí):** la pregunta se encogía a su contenido (204 px: `.of-cols` en columna heredaba `align-items: start`) y la grilla de categorías se salía
+  23 px (`.of-panel` sin `minmax(0, 1fr)`, y la fila «Elegir todas · Quitar todas» sin `flex-wrap`). Medido después: 283 px de ancho útil, las opciones de a dos y 0
+  elementos fuera de la hoja con cualquiera de las cinco formas.
