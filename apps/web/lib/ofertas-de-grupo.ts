@@ -191,11 +191,11 @@ function repartir(ahorro: number, cent: readonly number[]): number[] {
 
 // ---- «Así funciona en la caja»: un ejemplo con prendas de verdad (la hoja de la oferta, ADR-0655) -------------------------------------
 
-/** Una prenda que la oferta alcanza, para armar el ejemplo: su nombre (el del modelo), su precio y su modelo. */
-export type PrendaParaEjemplo = { nombre: string; precio: number; productoId?: string | null };
+/** Una prenda que la oferta alcanza, para armar el ejemplo: su nombre (el del modelo), su precio y su modelo; `id`, la prenda (para su foto). */
+export type PrendaParaEjemplo = { id?: string; nombre: string; precio: number; productoId?: string | null };
 
 /** Un grupo de ejemplo cobrado con la regla de la caja: cada prenda con lo que paga, y el total. */
-export type EjemploDeGrupo = { lineas: { nombre: string; precio: number; paga: number }[]; total: number; paga: number; ahorro: number };
+export type EjemploDeGrupo = { lineas: { id?: string; nombre: string; precio: number; paga: number }[]; total: number; paga: number; ahorro: number };
 
 /** Arma un grupo de ejemplo con las prendas que la oferta alcanza y lo cobra con `ofertasDeGrupo`. Con «cualquier prenda», las N más caras de
  *  modelos distintos (si no hay N modelos, repite); con «del mismo modelo», N del modelo más caro. `null` si la oferta no alcanza ninguna. */
@@ -207,7 +207,7 @@ export function ejemploDeGrupo(prendas: readonly PrendaParaEjemplo[], oferta: Of
 }
 
 /** Un modelo una vez, con su precio más alto, de la más cara a la más barata (empate: por nombre, para que el ejemplo no cambie solo). */
-function modelosParaEjemplo(prendas: readonly PrendaParaEjemplo[]): PrendaParaEjemplo[] {
+export function modelosParaEjemplo(prendas: readonly PrendaParaEjemplo[]): PrendaParaEjemplo[] {
   const porModelo = new Map<string, PrendaParaEjemplo>();
   for (const p of prendas.filter((x) => Number.isFinite(x.precio) && x.precio > 0)) {
     const clave = p.productoId ?? p.nombre;
@@ -220,7 +220,7 @@ function modelosParaEjemplo(prendas: readonly PrendaParaEjemplo[]): PrendaParaEj
 /** Las prendas elegidas cobradas con `ofertasDeGrupo`: lo que paga cada una y el total. */
 function cobrarEjemplo(elegidas: readonly PrendaParaEjemplo[], oferta: OfertaDeGrupo): EjemploDeGrupo {
   const grupos = ofertasDeGrupo(elegidas.map((p) => ({ precio: p.precio, cantidad: 1, oferta, modeloId: p.productoId ?? p.nombre })));
-  const lineas = elegidas.map((p, i) => ({ nombre: p.nombre, precio: p.precio, paga: (Math.round(p.precio * 100) - Math.round((grupos[i]?.descuento ?? 0) * 100)) / 100 }));
+  const lineas = elegidas.map((p, i) => ({ id: p.id, nombre: p.nombre, precio: p.precio, paga: (Math.round(p.precio * 100) - Math.round((grupos[i]?.descuento ?? 0) * 100)) / 100 }));
   const totalC = elegidas.reduce((a, p) => a + Math.round(p.precio * 100), 0);
   const pagaC = lineas.reduce((a, l) => a + Math.round(l.paga * 100), 0);
   return { lineas, total: totalC / 100, paga: pagaC / 100, ahorro: (totalC - pagaC) / 100 };
