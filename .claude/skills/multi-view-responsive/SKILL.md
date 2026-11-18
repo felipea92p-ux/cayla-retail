@@ -84,7 +84,7 @@ La base local es compartida entre sesiones y algunas acciones llaman afuera (Luc
 
 Para cada vista: **prepara el estado una vez** (abre el modal, la pestaña), y luego recorre los siete anchos sin recargar; cierra al terminar. Con `celular`: primero los tres tamaños de dedo, después recarga, prepara el estado otra vez y recorre los tres de mouse.
 
-1. **Espera a que la página se asiente antes de medir o capturar.** Muchas pantallas entran con fundidos y cuentan cifras subiendo durante varios segundos (Por pagar, Proveedores); una captura a medias engaña. Una espera fija no alcanza y `getAnimations()` no ve las cifras que suben por JavaScript. Usa: repetir cada 250 ms hasta que `document.body.innerText` no cambie durante 5 lecturas seguidas (tope 15 s). Con un modal recién abierto, además `wait` de 2 s.
+1. **Espera a que la página se asiente antes de medir o capturar.** Muchas pantallas entran con fundidos y cuentan cifras subiendo durante varios segundos (Por pagar, Proveedores); una captura a medias engaña. Una espera fija no alcanza y `getAnimations()` no ve las cifras que suben por JavaScript. Usa: repetir cada 250 ms hasta que `document.body.innerText` no cambie durante 5 lecturas seguidas (tope 15 s). Con un modal recién abierto, además `wait` de 2 s. **Y comprueba que la pantalla llegó:** el texto quieto no basta, porque una pantalla que todavía no cargó también está quieta (el 2026-11-18 Apartados salió «limpia» en tres tamaños midiendo una página vacía). Antes de medir, `main` tiene texto y alto, y el loader (`[data-espera]`) no está a la vista; si a los 10 s no, esa medición no vale: anótala «sin cargar» y repítela. **Con el panel del navegador oculto** (`tabs_context` lo dice; pasa cuando la persona no tiene la sesión a la vista) la página no termina de pintarse sola: toma una captura **antes** de cada medición —la captura obliga a pintar— y otra después para mirarla. Tras cada cambio de tamaño la emulación parpadea un instante (el dedo se apaga y vuelve, y la pantalla cambia de versión): asienta de nuevo antes de medir.
 2. Por cada ancho: `resize_window` con `width` y `height`; comprueba que `innerWidth` e `innerHeight` coincidan (si el panel no alcanza, dilo y sigue con lo que dé); **mide** con el script; **captura** con `computer` `screenshot`. La imagen sale a unos 800 px de ancho (el panel escala el viewport) y `zoom` sobre una región **no está disponible** en este panel: para mirar de cerca, apóyate en las medidas del script y en `read_page`.
 3. Mira cada imagen: la medición encuentra lo medible y tu ojo lo demás (jerarquía rota, saltos entre anchos cercanos, contenido pegado a un lado, un botón que casi toca la cifra vecina).
 
@@ -99,12 +99,13 @@ const f = () => {
   const hojas = [...document.querySelectorAll('[role="dialog"]')].filter(vis);
   const todos = [...document.body.querySelectorAll("*")].filter(vis).filter(e => !e.classList.contains("sr-only"));
   const r = { ancho: W, alto: H, paginaDesborda: document.documentElement.scrollWidth - W };
-  r.fueraDeVista = cap(todos.filter(e => !e.children.length || /^(BUTTON|A|INPUT|SELECT|LABEL)$/.test(e.tagName)).filter(e => e.getBoundingClientRect().right > W + 1 && !scrollerX(e)).map(e => nombre(e) + " termina en " + Math.round(e.getBoundingClientRect().right)));
+  r.fueraDeVista = cap(todos.filter(e => !e.children.length || /^(BUTTON|A|INPUT|SELECT|LABEL)$/.test(e.tagName)).filter(e => e.getBoundingClientRect().right > W + 1 && !scrollerX(e) && !e.closest("[aria-hidden='true']")).map(e => nombre(e) + " termina en " + Math.round(e.getBoundingClientRect().right)));
   r.textoCortado = cap(todos.filter(e => e.clientWidth > 0 && e.scrollWidth > e.clientWidth + 1 && (e.textContent || "").trim()).filter(e => { const s = getComputedStyle(e); return s.overflowX !== "visible" && s.overflowX !== "auto" && s.overflowX !== "scroll" && s.textOverflow !== "ellipsis"; }).map(e => nombre(e) + " " + e.clientWidth + "/" + e.scrollWidth));
   r.casiInvisible = cap(todos.filter(e => { const s = getComputedStyle(e); return s.textOverflow === "ellipsis" && e.scrollWidth > 2 * e.clientWidth && e.clientWidth < 70; }).map(e => nombre(e) + " " + e.clientWidth + "/" + e.scrollWidth));
   r.scrollbarFantasma = cap(todos.filter(e => { const s = getComputedStyle(e); const ay = (s.overflowY === "auto" || s.overflowY === "scroll") && e.offsetWidth - e.clientWidth >= 8 && e.scrollHeight - e.clientHeight <= 3; const ax = (s.overflowX === "auto" || s.overflowX === "scroll") && e.offsetHeight - e.clientHeight >= 8 && e.scrollWidth - e.clientWidth <= 3; return ay || ax; }).map(e => nombre(e) + " sobra " + (e.scrollHeight - e.clientHeight) + "px"));
+  const clipped = e => { const b = e.getBoundingClientRect(); for (let p = e.parentElement; p && p !== document.body; p = p.parentElement) { const st = getComputedStyle(p); if (st.overflowX !== "visible" || st.overflowY !== "visible") { const q = p.getBoundingClientRect(); if (q.height < 2 || b.bottom <= q.top + 1 || b.top >= q.bottom - 1 || b.right <= q.left + 1 || b.left >= q.right - 1) return true; } } return false; };
   const hit = e => { const b = e.getBoundingClientRect(), x = b.left + b.width / 2, y = b.top + b.height / 2; if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) return false; const t = document.elementFromPoint(x, y); return !!t && (t === e || e.contains(t) || t.contains(e)); };
-  const inter = todos.filter(hit).filter(e => e.matches('button,a[href],input,select,textarea,[role="button"],[role="tab"]'));
+  const inter = todos.filter(hit).filter(e => !clipped(e)).filter(e => e.matches('button,a[href],input,select,textarea,[role="button"],[role="tab"]'));
   r.solapes = [];
   for (let i = 0; i < inter.length && r.solapes.length < 8; i++) for (let j = i + 1; j < inter.length; j++) {
     const a = inter[i], b = inter[j]; if (a.contains(b) || b.contains(a) || getComputedStyle(a).position === "absolute" || getComputedStyle(b).position === "absolute") continue;
@@ -116,7 +117,6 @@ const f = () => {
   r.tablas = cap([...raiz.querySelectorAll("table")].filter(vis).map(t => { const c = scrollerX(t), b = t.getBoundingClientRect(); return { desbordaSinContenedor: !c && b.right > W + 1, columnasApretadas: [...t.querySelectorAll("th")].filter(th => th.clientWidth < 40 && (th.textContent || "").trim().length > 3).map(th => th.textContent.trim().slice(0, 14)) }; }).filter(t => t.desbordaSinContenedor || t.columnasApretadas.length));
   const c = raiz.firstElementChild ? raiz.firstElementChild.getBoundingClientRect() : null;
   r.usoDelAncho = c ? { main: Math.round(raiz.getBoundingClientRect().width), contenido: Math.round(c.width) } : null;
-  const clipped = e => { const b = e.getBoundingClientRect(); for (let p = e.parentElement; p && p !== document.body; p = p.parentElement) { const st = getComputedStyle(p); if (st.overflowX !== "visible" || st.overflowY !== "visible") { const q = p.getBoundingClientRect(); if (q.height < 2 || b.bottom <= q.top + 1 || b.top >= q.bottom - 1 || b.right <= q.left + 1 || b.left >= q.right - 1) return true; } } return false; };
   const textos = todos.filter(e => !clipped(e) && !e.children.length && (e.textContent || "").trim().length > 1 && !e.closest("[aria-hidden='true']"));
   r.textoSolapado = [];
   for (let i = 0; i < textos.length && r.textoSolapado.length < 8; i++) { const A = textos[i].getBoundingClientRect(); for (let j = i + 1; j < textos.length; j++) { const B = textos[j].getBoundingClientRect(); const w = Math.min(A.right, B.right) - Math.max(A.left, B.left), h = Math.min(A.bottom, B.bottom) - Math.max(A.top, B.top); if (w > 2 && h > 4) { r.textoSolapado.push(nombre(textos[i]) + " ✕ " + nombre(textos[j])); break; } } }
@@ -137,6 +137,7 @@ El script devuelve solo lo que encontró (una clave que no aparece es una medici
 - Una tabla con scroll horizontal propio **no** es error por sí sola; sí lo es sin contenedor, o con columnas apretadas.
 - `usoDelAncho`: si a 1920 el contenido ocupa menos de ~55 % del ancho útil, es «Sugerencia», no rotura.
 - Lo que sea intencional (puntos suspensivos con espacio suficiente, un carrusel con scroll) no se reporta.
+- Falsos avisos conocidos (2026-11-18), que se miran en la captura antes de reportar: un `textoCortado` de 4 a 20 px en un `btn-cayla` es la luz del botón, no su texto; con el lateral plegado, `textoCortado` en «Retail» y en filas del menú es la etiqueta que el riel esconde; un `textoSolapado` contra la barra de abajo es lo que pasa por detrás de una barra fija.
 
 ### Con `celular`: un segundo medidor
 
@@ -187,7 +188,7 @@ localStorage.setItem("__c", "(" + g.toString() + ")");
 JSON.stringify(g())
 ```
 
-Cómo leerlo (probado el 2026-11-18 plantando cada falla a propósito: las cinco se detectan, y Vender y Gastos salen limpias a 375):
+Cómo leerlo (probado el 2026-11-18 plantando cada falla a propósito: las cinco se detectan):
 - `tactil`: si el navegador se presenta como teléfono. Con `false`, `campoConZoom` y `toqueChico` **no se midieron** en ese tamaño: no es «limpio».
 - `campoConZoom`: un campo con letra de menos de 16 px. El iPhone agranda toda la pantalla al tocarlo y no la devuelve. El ERP ya los sube a 16 (`app/estilos/campos-y-casillas.css`); uno que aparezca aquí se escapó de esa regla. Rompe.
 - `toqueChico`: algo que se toca en menos de 44 × 44 px, contando el área invisible que lo agranda (`area-dedo`) y la caja o etiqueta que lo envuelve. Es la misma cuenta de `apps/web/tacto/medir.mjs`: para el total de una ruta, `pnpm --filter web tacto:medir -- /ruta`. El arreglo va en `app/estilos/tacto.css`, nunca agrandando el dibujo a mano. Rompe; si es el botón principal, Bloquea.
