@@ -1,8 +1,8 @@
 # ADR-0679 — Libro de Reclamaciones virtual: la hoja en la tienda, su plazo y su respuesta en el ERP
 
 - **Fecha:** 2026-11-18 · **Estado:** construido en la rama `claude/video-analysis-implementation-check-a4f3c2` (6 actividades, `/construir`, y los
-  ajustes de la revisión legal). **Nada en producción:** las cinco migraciones esperan el OK de Felipe, y la copia por correo espera una llave de
-  Resend propia de la tienda.
+  ajustes de la revisión legal). **Base en producción desde el 2026-11-18** (las cinco migraciones, con el OK de Felipe); **la web todavía no** (falta el PR), y la
+  copia por correo espera una llave de Resend propia de la tienda.
 - **Relacionados:** ADR-0408 (tienda online: la puerta angosta `tienda_web`, Resend con `tienda@cayla.pe`), ADR-0161 y ADR-0178 (módulos y
   roles), ADR-0162 (el combo «Responsable»), ADR-0284 (guía de foco), ADR-0389 (guías interactivas), ADR-0358 (una función, una pieza:
   `<Cajon>`), principio 9 (todo puede fallar).
@@ -58,7 +58,9 @@ literalmente las leyendas del Anexo I y el aviso del Anexo II, y confirmar los 2
 
 ## Lo que queda (de Felipe o de afuera)
 
-1. **El OK para producción** de las cinco migraciones, en orden.
+1. ~~El OK para producción de las cinco migraciones~~: aplicadas el 2026-11-18 por el CLI (`supabase db query --linked`), cada una en una
+   transacción y registrada con la versión de su archivo; las 18 funciones del Libro son idénticas a la base local probada. Hasta que la web se
+   publique, la base tiene el Libro pero nadie lo ve (el módulo nace sin rol y la tienda todavía no tiene la página).
 2. **Una llave de Resend propia de la tienda** en Vercel (`TIENDA_RESEND_KEY`). Sin ella, la hoja se guarda y la copia queda en cola.
 3. **La revisión legal**: una sesión aparte revisa los textos de la tienda contra las leyes peruanas
    (`docs/legal/2026-11-18-revision-legal-tienda.md`), incluida la lista exacta de lo que exige la hoja. Lo que diga puede cambiar campos o

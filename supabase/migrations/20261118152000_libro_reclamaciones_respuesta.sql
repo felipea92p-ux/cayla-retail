@@ -29,7 +29,8 @@
 --
 -- SE ROMPE SI: alguien llama `tienda_libro_respuesta_enviada` sin que el proveedor de correo haya recibido el correo.
 --
--- PRODUCCIÓN. NO está aplicada: va DESPUÉS de las PARTES 1, 2 y 3, y espera el OK de Felipe. Una sola parte, idempotente. Agrega
+-- PRODUCCIÓN. APLICADA el 2026-11-18 con el OK de Felipe (CLI `supabase db query --linked`, en una transacción, registrada con
+-- esta misma versión en schema_migrations; las 18 funciones del Libro, idénticas a la base local probada). Antes: NO estaba aplicada: va DESPUÉS de las PARTES 1, 2 y 3, y espera el OK de Felipe. Una sola parte, idempotente. Agrega
 -- columnas a `hojas_reclamacion` (tabla nueva, aún sin uso en producción), funciones nuevas o reemplazadas. Sin políticas, sin `drop
 -- trigger`, sin `select … into` dentro de un texto entre comillas.
 --

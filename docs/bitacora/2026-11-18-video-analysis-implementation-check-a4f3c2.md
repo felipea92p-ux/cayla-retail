@@ -7,3 +7,8 @@ Felipe se lleva: nada en producción. Faltan su OK para las 4 migraciones (en or
 Qué hice: traje `main` (3 845 commits) y puse el Libro en el vidrio Serena (el cajón con el velo que difumina) y en el diseño nuevo de la tienda; después sumé lo que pidió la revisión legal: el código del libro «LR-WEB-01», los datos completos de quien representa a un menor, la casilla de conformidad que reemplaza la firma y la línea de privacidad.
 Por qué así: la hoja virtual tiene que tener lo mismo que el formato oficial (Anexo I); la base no guarda una hoja sin la conformidad ni a un menor sin los datos de quien lo representa.
 Felipe se lleva: 5 migraciones esperan su OK (en orden), la llave de Resend de la tienda, y el abogado copia las leyendas literales de los Anexos I y II. Probado en local: base 51/51, tienda 1234, ERP en verde, una hoja de menor de punta a punta en el navegador.
+
+## 2026-11-18 (Libro de Reclamaciones: la base en producción)
+Qué hice: con el OK de Felipe, pegué en producción las 5 migraciones del Libro (CLI enlazado a `vovjyyiafkxteijimpuy`, cada una en una transacción con su registro en `schema_migrations`) y verifiqué cada parte con una consulta de solo lectura.
+Por qué así: el CLI corre el archivo tal cual (sin transcribir SQL a mano) y la transacción deja todo o nada; al final, las 18 funciones del Libro tienen la misma huella en producción y en la base local probada.
+Felipe se lleva: la base ya está; falta publicar la web (PR), la llave de Resend de la tienda y darle el módulo a un rol.

@@ -48,7 +48,8 @@
 --   restricción única: el guardado fallaría, no duplicaría); o cambia el domicilio fiscal en la boleta y no en
 --   `fn_libro_reclamaciones_domicilio()`.
 --
--- PRODUCCIÓN. NO está aplicada: espera el OK de Felipe. Una sola parte, idempotente (se puede pegar dos veces). Crea dos tablas nuevas
+-- PRODUCCIÓN. APLICADA el 2026-11-18 con el OK de Felipe (CLI `supabase db query --linked`, en una transacción, registrada con
+-- esta misma versión en schema_migrations; las 18 funciones del Libro, idénticas a la base local probada). Antes: NO estaba aplicada: espera el OK de Felipe. Una sola parte, idempotente (se puede pegar dos veces). Crea dos tablas nuevas
 -- (sus llaves foráneas toman `ubicaciones` y `cuentas_web` en modo compartido, sin frenar lecturas), sin políticas, sin `drop trigger`
 -- y sin `select … into` dentro de un texto entre comillas. `lock_timeout` de 3 s: si algo está tomado, falla sin tocar nada y se pega
 -- otra vez.

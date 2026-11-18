@@ -24,7 +24,8 @@
 --   apoderado; las restricciones nuevas valen para todas porque ninguna de esas era de un menor.
 -- DESCARTÉ: un código por tienda en la hoja virtual (la tienda elegida ya va en la hoja; el código es del libro, no de la tienda).
 --
--- PRODUCCIÓN. NO está aplicada: va DESPUÉS de las PARTES 1 a 4 y espera el OK de Felipe. Idempotente. Agrega columnas a una tabla que en
+-- PRODUCCIÓN. APLICADA el 2026-11-18 con el OK de Felipe (CLI `supabase db query --linked`, en una transacción, registrada con
+-- esta misma versión en schema_migrations; las 18 funciones del Libro, idénticas a la base local probada). Antes: NO estaba aplicada: va DESPUÉS de las PARTES 1 a 4 y espera el OK de Felipe. Idempotente. Agrega columnas a una tabla que en
 -- producción todavía no existe; sin políticas, sin `drop trigger`, sin `select … into` dentro de un texto entre comillas.
 --
 -- VERIFICACIÓN (solo lectura, después de pegar):

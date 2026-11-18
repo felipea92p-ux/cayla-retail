@@ -29,7 +29,8 @@
 -- SE ROMPE SI: pasa 2027 sin sumar los feriados de 2028 (los Jueves y Viernes Santo cambian de fecha cada año): el plazo de una hoja
 --   de 2028 contaría esos días como hábiles y terminaría antes (inofensivo, pero hay que sumarlos).
 --
--- PRODUCCIÓN. NO está aplicada: va DESPUÉS de las PARTES 1 y 2, y espera el OK de Felipe. Una sola parte, idempotente. Una tabla nueva,
+-- PRODUCCIÓN. APLICADA el 2026-11-18 con el OK de Felipe (CLI `supabase db query --linked`, en una transacción, registrada con
+-- esta misma versión en schema_migrations; las 18 funciones del Libro, idénticas a la base local probada). Antes: NO estaba aplicada: va DESPUÉS de las PARTES 1 y 2, y espera el OK de Felipe. Una sola parte, idempotente. Una tabla nueva,
 -- una fila nueva en `modulos` (sin `rol_modulos`), funciones nuevas. Sin políticas, sin `drop trigger`, sin `select … into` entre comillas.
 --
 -- VERIFICACIÓN (solo lectura, después de pegar):
