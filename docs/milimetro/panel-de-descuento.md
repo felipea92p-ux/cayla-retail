@@ -88,3 +88,15 @@ Ninguna.
 - **Avisos y refresco:** lo que cambia la lista (crear, cambiar, desactivar y sus «Deshacer») refresca dentro de una transición y el aviso sale al terminar; si
   saliera antes, el refresco lo retiraría por visto con su «Deshacer» (medido el 2026-11-17).
 - **Medido** (375 × 812): la hoja cabe sin desplazamiento lateral; a 1440, centrada en 448 px.
+
+## 2026-11-17 · actividad 5: escanear con la cámara del celular
+
+- **Pieza:** `<EscanerBusqueda continuo>` (la cámara de Prendas de una etiqueta, Cambios y Existencias), con dos agregados opcionales que no cambian a nadie
+  más: `respuesta.acciones` (los botones bajo la tarjeta de la última lectura) y `continuo.vacio` (lo que dice antes de la primera). El botón que la abre es el
+  de Existencias (`Camera` de 20 px en un botón de 40 px dentro del `<Buscador>`).
+- **Flujo (maqueta):** cada lectura muestra la prenda con su precio y «Solo esta» / «Todo el modelo» (la última respuesta en primario); al elegir, la tarjeta pasa a
+  «Agregada» (tono verde) y «Listo · N agregadas» cuenta. «Deshacer» va en el aviso, que queda por encima de la cámara. Un código que no es de ninguna prenda:
+  tarjeta ámbar «No es de ninguna prenda» y el bip grave.
+- **Verificado** (375 × 812, 2026-11-17) con la cámara y el lector simulados en el navegador (`getUserMedia` con un lienzo y un `BarcodeDetector` falso): la
+  lectura, la pregunta, «Solo esta», «Agregada», «Listo · 1 agregada», el aviso con «Deshacer» sobre la cámara y la prenda primera en el panel al volver.
+  **Sin probar:** una cámara de verdad en un teléfono.

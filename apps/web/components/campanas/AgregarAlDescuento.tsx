@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { Camera } from "lucide-react";
+import { EscanerBusqueda, type RespuestaLectura } from "@/components/EscanerBusqueda";
 import { avisar } from "@/components/ui/Avisos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Boton } from "@/components/ui/campos";
@@ -70,6 +72,11 @@ export function AgregarAlDescuento({
   const [ultimoAlcance, setUltimoAlcance] = useState<AlcanceRebaja>("prenda");
   const [agregando, setAgregando] = useState(false);
   const pedido = useRef(0);
+  // La cámara del celular (actividad 5): lee una etiqueta tras otra sin cerrarse; cada lectura pregunta «Solo esta» o «Todo el modelo».
+  const [camara, setCamara] = useState(false);
+  const [respuestaCam, setRespuestaCam] = useState<RespuestaLectura | null>(null);
+  const [agregadasCam, setAgregadasCam] = useState(0);
+  const lecturas = useRef(0);
   // Tras agregar, el foco vuelve al buscador para leer la siguiente con la pistola (cuando ya se puede escribir).
   const enfocarAlTerminar = useRef(false);
   useEffect(() => {
@@ -118,10 +125,10 @@ export function AgregarAlDescuento({
   const sugerencias = sugerenciasDeAgregar(buscadas, enElDescuento);
 
   /** Pone el % a las tallas: con una llamada si es una talla o todo el modelo, talla por talla si es un color. Para en el primer error. */
-  async function agregar(variantes: string[], llamadas: { varianteId: string; alcance: AlcanceRebaja }[], texto: string, detalle?: string) {
+  async function agregar(variantes: string[], llamadas: { varianteId: string; alcance: AlcanceRebaja }[], texto: string, detalle?: string): Promise<boolean> {
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
-      return;
+      return false;
     }
     setAgregando(true);
     // Dónde estaba cada talla, para «Deshacer». Sin la lectura (una base vieja), se agrega igual y el aviso sale sin «Deshacer».
@@ -152,7 +159,8 @@ export function AgregarAlDescuento({
       }
       for (const s of r.data?.sacadas_de ?? []) sacadas.add(s);
     }
-    enfocarAlTerminar.current = true;
+    // Con la cámara abierta el foco se queda en ella: la siguiente etiqueta se lee ahí.
+    enfocarAlTerminar.current = !camara;
     setAgregando(false);
     setLeida(null);
     setQ("");
@@ -161,22 +169,58 @@ export function AgregarAlDescuento({
     if (error) {
       avisar.error(traducirError(error, "poner el %"));
       onAgregado({ variantes: [], claves, antes: null, texto: "" });
-      return;
+      return false;
     }
     onAgregado({ variantes, claves, antes, texto, detalle: sacadas.size > 0 ? `Sale de ${[...sacadas].join(", ")}` : detalle });
+    return true;
   }
 
   // De qué modelo en su color es cada talla (para saber qué tarjetas entraron).
   const tallasClave = new Map<string, string>();
   for (const [clave, vs] of tallasPorClave) for (const v of vs) tallasClave.set(v, clave);
 
-  function elegirAlcance(alcance: AlcanceRebaja) {
-    if (!leida) return;
-    const p = leida.prenda;
+  function elegirAlcance(alcance: AlcanceRebaja, l: RebajaDePrenda | null = leida): Promise<boolean> {
+    if (!l) return Promise.resolve(false);
+    const p = l.prenda;
     setUltimoAlcance(alcance);
     tallasClave.set(p.varianteId, claveModeloColor(p.productoId, p.color));
     const variantes = alcance === "modelo" ? (tallasPorModelo.get(p.productoId) ?? [p.varianteId]) : [p.varianteId];
-    void agregar(variantes, [{ varianteId: p.varianteId, alcance }], alcance === "modelo" ? `${p.referencia} (todo el modelo) con ${textoPct(pct)}` : `${p.referencia} con ${textoPct(pct)}`, nombreDePrenda(p));
+    return agregar(variantes, [{ varianteId: p.varianteId, alcance }], alcance === "modelo" ? `${p.referencia} (todo el modelo) con ${textoPct(pct)}` : `${p.referencia} con ${textoPct(pct)}`, nombreDePrenda(p));
+  }
+
+  /** Lo que lee la cámara: la prenda de ese código y la pregunta, en la tarjeta de la cámara (lo agregado deja su «Deshacer» en el aviso). */
+  async function leerConCamara(codigo: string) {
+    const clave = ++lecturas.current;
+    const fuera = (estado: string) => setRespuestaCam({ clave, tono: "ambar", estado, titulo: codigo, detalle: "Prueba con otra etiqueta." });
+    const { data, error } = await rpcRebaja("buscar_prenda_para_rebaja", { p_texto: codigo, p_ubicacion_id: ubicacionId });
+    const exacta = error ? null : (leerPrendasBuscadas(data).find((f) => f.exacta) ?? null);
+    if (!exacta) return fuera("No es de ninguna prenda");
+    const { data: json } = await rpcRebaja("campanas_rebaja_de_prenda", { p_variante_id: exacta.varianteId, p_ubicacion_id: ubicacionId });
+    const l = leerRebajaDePrenda(json);
+    if (!l || clave !== lecturas.current) return l ? undefined : fuera("No se pudo leer la prenda");
+    const elegir = async (alcance: AlcanceRebaja) => {
+      const entro = await elegirAlcance(alcance, l);
+      if (!entro) return;
+      setAgregadasCam((n) => n + 1);
+      setRespuestaCam({ clave: ++lecturas.current, tono: "verde", estado: "Agregada", titulo: nombreDePrenda(l.prenda), detalle: `${soles(precioConPct(l.prenda.precio, pct))} con ${textoPct(pct)}` });
+    };
+    setRespuestaCam({
+      clave,
+      tono: "taupe",
+      estado: "¿Solo esta o todo el modelo?",
+      titulo: nombreDePrenda(l.prenda),
+      detalle: `${soles(precioConPct(l.prenda.precio, pct))} con ${textoPct(pct)}`,
+      acciones: (
+        <>
+          <Boton peso={ultimoAlcance === "prenda" ? "primario" : "fantasma"} onClick={() => void elegir("prenda")}>
+            Solo esta
+          </Boton>
+          <Boton peso={ultimoAlcance === "modelo" ? "primario" : "fantasma"} onClick={() => void elegir("modelo")}>
+            Todo el modelo
+          </Boton>
+        </>
+      ),
+    });
   }
 
   function agregarSugerencia(i: number) {
@@ -227,6 +271,21 @@ export function AgregarAlDescuento({
         placeholder="Agrega una prenda: nombre o código"
         guia="rebaja.agregar"
         onKeyDown={teclas}
+        accion={
+          <button
+            type="button"
+            onClick={() => {
+              setRespuestaCam(null);
+              setAgregadasCam(0);
+              setCamara(true);
+            }}
+            aria-label="Escanear prendas con la cámara"
+            title="Escanear prendas"
+            className="mr-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-tinta/70 transition-colors hover:text-tinta"
+          >
+            <Camera aria-hidden className="h-5 w-5" />
+          </button>
+        }
         {...ariaDelBuscador(idLista, abierta, abierta ? 0 : null)}
       />
       {abierta && (
@@ -284,6 +343,23 @@ export function AgregarAlDescuento({
             </Boton>
           </div>
         </div>
+      )}
+      {camara && (
+        <EscanerBusqueda
+          titulo={`Escanear para el ${textoPct(pct)}`}
+          pista="Centra la etiqueta de la prenda"
+          continuo={{
+            respuesta: respuestaCam,
+            resumen: `${agregadasCam} ${agregadasCam === 1 ? "agregada" : "agregadas"}`,
+            vacio: "Escanea una prenda y elige si va sola o con todo su modelo.",
+          }}
+          onCodigo={(codigo) => void leerConCamara(codigo)}
+          onEscribir={() => {
+            setCamara(false);
+            buscador.current?.focus();
+          }}
+          onClose={() => setCamara(false)}
+        />
       )}
     </div>
   );

@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 182,
+  "total": 185,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -92,6 +92,9 @@
     ],
     "components/campanas/AgregarAlDescuento.tsx": [
       "Boton «Solo esta»",
+      "Boton «Todo el modelo»",
+      "button «Escanear prendas con la cámara»",
+      "Boton «Solo esta» #2",
       "Boton «{p.modeloColores > 1 ? `Todo el modelo · ${p.modeloColores}»"
     ],
     "components/campanas/FilaDeLista.tsx": [

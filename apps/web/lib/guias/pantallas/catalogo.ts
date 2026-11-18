@@ -1237,7 +1237,7 @@ export const GUIA_CAMPANAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "rebaja.fila" }],
       titulo: "Agregar prendas a un descuento",
-      texto: "Con el descuento abierto, escanea la etiqueta o escribe su nombre. Al escanear solo pregunta «Solo esta» o «Todo el modelo», y Enter repite la última respuesta para seguir escaneando.",
+      texto: "Con el descuento abierto, escanea la etiqueta o escribe su nombre. Al escanear solo pregunta «Solo esta» o «Todo el modelo», y Enter repite la última respuesta. En el celular, la cámara lee una tras otra.",
     },
     {
       id: "dos-ofertas",
