@@ -32,3 +32,19 @@ Se arma por partes, como se construye (`/construir`, 2026-11-18): cada actividad
 - **375 px (arreglado aquí):** la pregunta se encogía a su contenido (204 px: `.of-cols` en columna heredaba `align-items: start`) y la grilla de categorías se salía
   23 px (`.of-panel` sin `minmax(0, 1fr)`, y la fila «Elegir todas · Quitar todas» sin `flex-wrap`). Medido después: 283 px de ancho útil, las opciones de a dos y 0
   elementos fuera de la hoja con cualquiera de las cinco formas.
+
+## 7c · Una oferta se abre desde su cartel
+
+- **Lo que cambia:** la hoja es de UNA oferta. «Nueva oferta» la abre vacía; tocar un cartel del panel de la campaña la abre editando esa oferta
+  (`ofertaInicial`, con `key` por oferta: abrir otra empieza de cero). Sale la lista «Ya registradas» (con su desplegable bajo 1200 px), el
+  aviso «Editando…» con «Registrar otra en vez de editar» y la franja de la campaña; queda solo el límite de tiendas de una campaña de antes,
+  con «Quitar el límite». El título dice lo que hace («Nueva oferta» / «Editar la oferta») y la bajada, la campaña.
+- **Guardar, activar o retirar cierran la hoja:** lo que quedó se ve en su cartel, detrás. Sin la lista adentro, volver a «Nueva oferta» tras
+  guardar dejaba a la persona sin ver lo que acababa de guardar; por eso sale también el «volver a empezar» de 7b (y su `soltarPaginaEstable`).
+- **Retirar** (oferta viva que se edita): `<Boton peso="peligro">` a la izquierda del pie, como todo lo que borra (`accion.eliminar`), con su
+  «Sí, retirar · No, dejarla» en el mismo lugar. A 375 px baja a su propia fila, al final y a la izquierda: con los tres en fila, «Guardar
+  cambios» caía solo a la tercera fila y quedaba lejos de «Cancelar».
+- **El historial** que decía la lista («2 cambios · antes: …») pasa a «Revisa», bajo la frase, en taupe con su flecha (14 px).
+- **Medidas:** la hoja baja de 78 a 70 rem (sin la columna de 15,5 rem de la lista); a 1440 la pregunta mide 716 px y las cinco formas de «Qué le
+  das» caben en una fila (con 64 rem quedaban 4 + 1). Las preguntas van directo sobre la hoja: la caja crema que las rodeaba era un bloque
+  sólido sobre el vidrio y, sin la lista al lado, no separaba nada.

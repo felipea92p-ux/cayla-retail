@@ -222,6 +222,8 @@ export function SellosPantalla({
   // Las ofertas de las campañas viven aquí: la hoja las guarda y devuelve la lista entera tal como quedó en la base.
   const [reglas, setReglas] = useState(reglasIniciales);
   const [ofertandoId, setOfertandoId] = useState<string | null>(null);
+  // La oferta que se tocó en su cartel: la hoja se abre editándola (ADR-0677, 7c). `null` = «Nueva oferta».
+  const [ofertaAbierta, setOfertaAbierta] = useState<string | null>(null);
   const [etiquetando, setEtiquetando] = useState<Etiqueta | null>(null);
   const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
   const [viendoMapa, setViendoMapa] = useState(false);
@@ -975,7 +977,11 @@ export function SellosPantalla({
     }
     // Una oferta nombra categorías o insignias: las dos se buscan por su id.
     const nombreDeId = (id: string) => nombreCategoria.get(id) ?? etiquetas.find((x) => x.id === id)?.nombre ?? "";
-    const abrirOfertas = () => (reglasDisponibles ? setOfertandoId(e.id) : setConfigurando(e));
+    const abrirOferta = (id: string | null) => {
+      if (!reglasDisponibles) return setConfigurando(e);
+      setOfertaAbierta(id);
+      setOfertandoId(e.id);
+    };
     const rigeHoy = tramoDeCampana(e.vigenteDesde, e.vigenteHasta, hoy) === "ahora";
     return (
       <PanelDeCampana
@@ -983,8 +989,8 @@ export function SellosPantalla({
         chips={chips}
         acciones={accionesDelPanel(e, editable)}
         carteles={cartelesDeCampana(ofertas, hoy, nombreDeId, e.descuentoPct)}
-        onCartel={editable ? (id) => (id === "descuento" ? setConfigurando(e) : abrirOfertas()) : undefined}
-        onNuevaOferta={editable ? abrirOfertas : undefined}
+        onCartel={editable ? (id) => (id === "descuento" ? setConfigurando(e) : abrirOferta(id)) : undefined}
+        onNuevaOferta={editable ? () => abrirOferta(null) : undefined}
         prendas={p.modelos}
         categorias={categoriasDe(e)}
         eligenSusOfertas={eligen}
@@ -1216,7 +1222,9 @@ export function SellosPantalla({
 
       {ofertando && (
         <OfertasHoja
+          key={`${ofertando.id}:${ofertaAbierta ?? "nueva"}`}
           etiqueta={ofertando}
+          ofertaInicial={ofertaAbierta}
           reglas={reglasDeCampana(reglas, ofertando.id)}
           categorias={categorias}
           tiendas={tiendas}
@@ -1225,7 +1233,6 @@ export function SellosPantalla({
           variantesManuales={manuales[ofertando.id] ?? []}
           insignias={insignias}
           hoy={hoy}
-          puedeDarDescuento={puedeEditar(ofertando)}
           alGuardarCampana={(cambios) => setEtiquetas((actual) => ordenarEtiquetas(actual.map((x) => (x.id === ofertando.id ? { ...x, ...cambios } : x))))}
           alReglas={setReglas}
           onClose={() => setOfertandoId(null)}

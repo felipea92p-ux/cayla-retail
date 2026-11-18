@@ -2,7 +2,7 @@
   "guia": "productos.campanas",
   "ruta": "/productos/campanas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 178,
+  "total": 170,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -107,7 +107,7 @@
       "Boton «(sin nombre)»"
     ],
     "components/campanas/PanelDeCampana.tsx": [
-      "button «{`Ver la oferta ${c.glifo}»",
+      "button «{`Abrir ${c.id === \"descuento\" ? \"el descuento\" : \"la oferta\"}»",
       "button «campana.nueva-oferta»",
       "Boton «Elegir prendas»",
       "button «→onElegirPrendas»"
@@ -188,19 +188,11 @@
       "Boton «Guardar cambios»",
       "Boton «{edita ? \"Guardar cambios\" : \"Guardar como borrador\"}»",
       "Boton «sellos.oferta-activar»",
-      "Boton «Cancelar»",
-      "button «{viva ? \"Toca para editarla\" : undefined}»",
-      "Boton «Activar»",
-      "button «Retirar»",
       "Boton «Sí, retirar»",
-      "Boton «No»",
-      "button «Ya registradas»",
-      "button «Retirar» #2",
-      "Boton «Sí, retirar» #2",
-      "Boton «No» #2",
-      "BotonVerMas «{`Ver ${resto}»",
-      "button «Quitar el límite»",
-      "button «Registrar otra en vez de editar»"
+      "Boton «No, dejarla»",
+      "Boton «Retirar»",
+      "Boton «Cancelar»",
+      "button «Quitar el límite»"
     ],
     "components/sellos/SellosPantalla.tsx": [
       "Volver «→() => setDescuentoAbiertoId(null)»",

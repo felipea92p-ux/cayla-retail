@@ -88,7 +88,7 @@ export function PanelDeCampana({
               type="button"
               className="lc-cartel"
               style={{ "--i": i } as CSSProperties}
-              aria-label={`Ver la oferta ${c.glifo}, ${c.en}`}
+              aria-label={`Abrir ${c.id === "descuento" ? "el descuento" : "la oferta"} ${c.glifo}, ${c.en}`}
               onClick={() => onCartel(c.id)}
             >
               <Cartel c={c} />

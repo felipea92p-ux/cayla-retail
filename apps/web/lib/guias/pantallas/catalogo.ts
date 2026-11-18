@@ -1296,7 +1296,7 @@ export const GUIA_CAMPANAS: Guia = {
       ancla: "campana.ofertas",
       opcional: true,
       titulo: "Sus ofertas, como carteles",
-      texto: "Cada cartel dice lo que da en grande («3 x 2», «−20 %») y a qué prendas. Si dice «Borrador», todavía no baja el precio. Toca uno para verlo.",
+      texto: "Cada cartel dice lo que da en grande («3 x 2», «−20 %») y a qué prendas. Si dice «Borrador», todavía no baja el precio. Toca uno para cambiarlo o retirarlo.",
     },
     {
       id: "nueva-oferta",
@@ -1325,14 +1325,7 @@ export const GUIA_CAMPANAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "campana.nueva-oferta" }],
       titulo: "Las ofertas de la campaña",
-      texto: "Aquí se registran las ofertas y promociones: qué le das, en qué prendas, cuándo y dónde, todo en la misma hoja. Lo de abajo aparece en cuanto eliges qué le das.",
-    },
-    {
-      id: "ofertas-registradas",
-      ancla: "sellos.ofertas-registradas",
-      opcional: true,
-      titulo: "Las que ya están",
-      texto: "Cada oferta dice su estado: Borrador todavía no se activó, Programada empieza después, Vigente ya baja el precio. Toca una para editarla: vale desde ese momento, lo que ya se vendió no cambia y queda su historial. El «descuento de siempre» de una campaña antigua sale aquí con «Retirar».",
+      texto: "Una oferta en una sola hoja: qué le das, en qué prendas, cuándo y dónde. Lo de abajo aparece en cuanto eliges qué le das. La misma hoja se abre al tocar un cartel, para cambiarla o retirarla.",
     },
     {
       id: "oferta-rebaja",
@@ -1454,14 +1447,7 @@ export const GUIA_CAMPANAS: Guia = {
       ancla: "sellos.oferta-activar",
       opcional: true,
       titulo: "Guardar o activar",
-      texto: "Puedes dejarla como borrador o activarla: desde que la activas, la caja y la tienda web bajan el precio. En la demo no lo tocamos.",
-    },
-    {
-      id: "ofertas-campana",
-      ancla: "sellos.ofertas-campana",
-      opcional: true,
-      titulo: "Las fechas de la campaña",
-      texto: "La franja de arriba dice cuándo rige la campaña y cuántas prendas tiene. Las fechas se cambian desde «Más ▸ Cambiar nombre, ícono o fechas», en su pase, y las ofertas tienen que caber dentro. Una campaña que ya pasó se repite desde «Más ▸ Repetir el próximo año».",
+      texto: "Puedes dejarla como borrador o activarla: desde que la activas, la caja y la tienda web bajan el precio. Al guardar, la hoja se cierra y la oferta queda como un cartel en su campaña. En la demo no lo tocamos.",
     },
     {
       id: "fin",

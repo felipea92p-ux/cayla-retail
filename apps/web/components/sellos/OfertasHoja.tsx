@@ -1,21 +1,19 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Award, Check, ChevronDown, Plus, Tag, Undo2, X } from "lucide-react";
+import { Award, Check, Plus, Undo2, X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, Campo, CampoMonto, CampoTexto } from "@/components/ui/campos";
-import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { Casilla } from "@/components/ui/Casilla";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CampoFecha } from "@/components/ui/CampoFecha";
-import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
-import { BotonVerMas } from "@/components/ui/VerMas";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
 import { irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
 import { EtiquetaDeCampana } from "@/components/campana-hoja/EtiquetaDeCampana";
@@ -61,16 +59,14 @@ import {
   nombresOrdenados,
   ofertaDesdeRegla,
   ofertaNueva,
-  ordenarReglas,
   prendasQueAlcanza,
   problemasDeOferta,
+  resumenAntes,
   choquesDeFilas,
   choquesSinResolver,
   cesionesQueQuedan,
   tituloDeChoque,
-  resumenAntes,
   textoDias,
-  textoDiasCorto,
   textoFechas,
   vigenciaDeRegla,
   type CuerpoGuardarOferta,
@@ -78,7 +74,6 @@ import {
   type OfertaEnEdicion,
   type TipoOferta,
   type ReglaCampana,
-  type VigenciaRegla,
   avisoDePorMonto,
   pctEquivalente,
 } from "@/lib/campana-reglas";
@@ -86,28 +81,19 @@ import {
 /* ====================================================================
    «Tres preguntas» · las OFERTAS de una campaña (Felipe 2026-10-23, elegida entre cinco: docs/maquetas/ofertas-promociones-2026-10/formulario/)
 
-   PROMETE: una hoja con tres cosas — las ofertas ya registradas de la campaña (a la izquierda), un asistente de UNA pregunta por
-   pantalla (¿Qué le das al cliente? · ¿En qué prendas? · ¿Cuándo y dónde? · Revisa y activa; en ese orden desde ADR-0655, porque qué
-   prendas preguntar depende de la oferta) y, a la derecha, la etiqueta de la campaña que se arma con
-   cada respuesta (la misma de la hoja de la campaña, ADR-0488, con el resumen de la oferta). El cuándo y las prendas ya vienen contestados
-   con lo más común; las tiendas no (se marcan una por una); quien ya sabe usa el atajo de la pregunta 1.
-   ASUME: hoy existen «Un % menos», «Llevar varias y pagar menos» y «Gastar un monto y ahorrar» (ADR-0655); los demás tipos de la maqueta se
-   ven apagados con «Pronto». Las tiendas y las prendas de una oferta son un subconjunto de las de su campaña. Quien abre esta hoja tiene la llave de
-   campañas y activa, cambia y retira sin esperar a un líder (ADR-0534; la base vuelve a exigir la llave). Guardar y activar van por
+   PROMETE: la hoja de UNA oferta de la campaña (ADR-0677, 7b y 7c): «¿Qué le das?» arriba y, en cuanto se elige, en qué prendas, cuándo y
+   dónde, y lo que revisar, uno debajo del otro; a la derecha, la etiqueta de la campaña que se arma con cada respuesta (ADR-0488). Se abre
+   desde el panel de la campaña: «Nueva oferta», o tocando el cartel de una oferta para editarla (`ofertaInicial`). Guardar, activar o
+   retirar la cierran: lo que quedó se ve en el panel, en su cartel.
+   ASUME: las tiendas y las prendas de una oferta son un subconjunto de las de su campaña. Quien abre esta hoja tiene la llave de campañas y
+   activa, cambia y retira sin esperar a un líder (ADR-0534; la base vuelve a exigir la llave). Guardar, activar y retirar van por
    /api/productos/campana-reglas; la base valida todo otra vez.
-   NO HACE: no cambia precios por su cuenta ni toca el descuento «de siempre» de la campaña (solo se retira desde «Ya registradas»).
+   NO HACE: no cambia precios por su cuenta ni toca el descuento de la campaña (tiene su cartel y su hoja, `HojaDeDescuento`).
    ==================================================================== */
 
 type Guardando = "borrador" | "activar" | "cambios" | null;
 type VistaPrendas = "cat" | "una" | "ins";
 
-const CHIP_ESTADO: Record<VigenciaRegla, { texto: string; tono: TonoChip }> = {
-  vigente: { texto: "Vigente", tono: "verde" },
-  programada: { texto: "Programada", tono: "pizarra" },
-  borrador: { texto: "Borrador", tono: "ambar" },
-  terminada: { texto: "Terminada", tono: "neutro" },
-  retirada: { texto: "Retirada", tono: "apagado" },
-};
 
 /** «26 oct» (sin el punto con que `fechaCorta` cierra la abreviatura: la frase pone el suyo). */
 const sinPunto = (t: string) => t.replace(/\.$/, "");
@@ -178,10 +164,10 @@ export function OfertasHoja({
   variantesManuales,
   insignias = [],
   hoy,
-  puedeDarDescuento,
   alGuardarCampana,
   alReglas,
   onClose,
+  ofertaInicial = null,
 }: {
   /** La campaña a la que se le registran las ofertas. */
   etiqueta: Etiqueta;
@@ -196,13 +182,13 @@ export function OfertasHoja({
   /** Las insignias que la oferta puede elegir (ADR-0655, por insignia); vacío = no se ofrece «Por insignia». */
   insignias?: InsigniaDeOferta[];
   hoy: string;
-  /** Quien configura la campaña puede ponerle su descuento de siempre (si no, el formulario no lo ofrece). */
-  puedeDarDescuento: boolean;
   /** La campaña se guardó desde adentro (fechas, categorías, tiendas, descuento): la pantalla actualiza su fila. */
   alGuardarCampana: (cambios: Pick<Etiqueta, "descuentoPct" | "vigenteDesde" | "vigenteHasta" | "categoriaIds" | "sedeIds">) => void;
   /** La lista fresca de TODAS las ofertas, tal como la devolvió la base tras guardar, activar o retirar. */
   alReglas: (todas: ReglaCampana[]) => void;
   onClose: () => void;
+  /** La oferta que se tocó en su cartel (ADR-0677, 7c): la hoja empieza editándola. Sin ella, es una nueva. */
+  ofertaInicial?: string | null;
 }) {
   const campDesde = etiqueta.vigenteDesde;
   const campHasta = etiqueta.vigenteHasta;
@@ -230,7 +216,10 @@ export function OfertasHoja({
     const cats = new Set(etiqueta.categoriaIds);
     return prendasConCosto.filter((p) => (p.categoriaId !== null && cats.has(p.categoriaId)) || manuales.has(p.id));
   }, [prendasConCosto, etiqueta.categoriaIds, manuales]);
-  const [o, setO] = useState<OfertaEnEdicion>(nuevaOferta);
+  // La oferta abierta desde su cartel (ADR-0677, 7c): la hoja empieza editándola, como si se hubiera tocado en la lista de antes.
+  const reglaInicial = ofertaInicial ? (reglas.find((r) => r.id === ofertaInicial) ?? null) : null;
+  const desdeRegla = (r: ReglaCampana): OfertaEnEdicion => ({ ...ofertaDesdeRegla(r, esNombreAutomatico(r, nombreCategoria, nombreSede)), sedeIds: r.sedeIds.length > 0 ? r.sedeIds : idsDeTiendas });
+  const [o, setO] = useState<OfertaEnEdicion>(() => (reglaInicial ? desdeRegla(reglaInicial) : nuevaOferta()));
   // Cada categoría dice cuántas prendas a la venta trae, como en la hoja de la campaña: son las de TODO el catálogo porque una oferta puede
   // elegir categorías que la campaña no tiene. Una prenda es un modelo en su color (sus tallas cuentan una vez, ADR-0488) y las de Claurè
   // no cuentan salvo que la oferta las incluya a propósito, porque la base no se las baja.
@@ -240,33 +229,21 @@ export function OfertasHoja({
   // ---- La hoja ---------------------------------------------------------------------------------------------------------------------
   // Desde ADR-0677 (actividad 7b) es UNA hoja: qué le das arriba y, en cuanto se elige, en qué prendas, cuándo y dónde, y lo que revisar,
   // uno debajo del otro. Ya no hay pasos que recorrer ni «Siguiente»: el pie siempre guarda o activa.
-  const [elegido, setElegido] = useState(false);
-  // Cada vez que la hoja vuelve a empezar (guardó, o se abre otra oferta para editar) es otra vista, no un bloque que se encogió (ADR-0185): se
-  // suelta la reserva de <PaginaEstable> —si no, el pie fijo quedaba a media hoja con aire debajo— y la hoja sube hasta «Nueva oferta».
-  const [empieza, setEmpieza] = useState(0);
-  const asistente = useRef<HTMLElement>(null);
-  useLayoutEffect(() => {
-    if (empieza === 0) return;
-    soltarPaginaEstable();
-    const hoja = asistente.current?.closest<HTMLElement>('[role="dialog"]');
-    if (!asistente.current || !hoja) return;
-    const arriba = asistente.current.getBoundingClientRect().top - hoja.getBoundingClientRect().top;
-    // 28 px de aire: en el celular el asa de la hoja tapa los primeros 24.
-    if (arriba < 0) hoja.scrollTop += arriba - 28;
-  }, [empieza]);
+  const [elegido, setElegido] = useState(reglaInicial !== null);
   // La categoría recién marcada: su casilla vuela a su pieza en la etiqueta (`EtiquetaDeCampana`).
   const vuelo = useRef<string | null>(null);
   // La persona tocó la grilla de categorías (aunque la dejó vacía: vacío es «ninguna», no «las de la campaña»).
-  const [tocoCats, setTocoCats] = useState(false);
+  const [tocoCats, setTocoCats] = useState(
+    () => reglaInicial !== null && reglaInicial.categoriasSolo.length === 0 && (reglaInicial.productosSolo.length > 0 || reglaInicial.insigniasSolo.length > 0),
+  );
   // Cómo se eligen las prendas en el paso 2: por categoría, prenda por prenda o por insignia (ADR-0655).
-  const [vistaPrendas, setVistaPrendas] = useState<VistaPrendas>("cat");
+  const [vistaPrendas, setVistaPrendas] = useState<VistaPrendas>(() =>
+    !reglaInicial ? "cat" : reglaInicial.productosSolo.length > 0 ? "una" : reglaInicial.insigniasSolo.length > 0 ? "ins" : "cat",
+  );
   const [masQ3, setMasQ3] = useState(false);
-  const [soloAlgunosDias, setSoloAlgunosDias] = useState(false);
+  const [soloAlgunosDias, setSoloAlgunosDias] = useState(reglaInicial !== null && reglaInicial.dias.length < 7);
   const [escribeEscalon, setEscribeEscalon] = useState(false);
   const [guardando, setGuardando] = useState<Guardando>(null);
-  const [recien, setRecien] = useState<string | null>(null);
-  const [verTodas, setVerTodas] = useState(false);
-  const [regsAb, setRegsAb] = useState(false);
   const [retirando, setRetirando] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   // Lo poco que la campaña misma tiene aquí (su descuento de siempre y el límite de tiendas de antes) se toca con las mismas puertas de
@@ -275,7 +252,6 @@ export function OfertasHoja({
   const router = useRouter();
   const repeticion = useMemo(() => repetirTemporada(campDesde, campHasta, hoy), [campDesde, campHasta, hoy]);
   const [guardandoCampana, setGuardandoCampana] = useState(false);
-  const [retirandoDescuento, setRetirandoDescuento] = useState(false);
   async function guardarCampana(parche: Partial<Pick<Etiqueta, "descuentoPct" | "vigenteDesde" | "vigenteHasta" | "sedeIds">>, titulo: string) {
     setGuardandoCampana(true);
     const nueva = {
@@ -304,7 +280,6 @@ export function OfertasHoja({
       const reimprimir = avisoReimprimir(cambian, destino !== null);
       avisar.exito(titulo, reimprimir ? { detalle: reimprimir.detalle, accion: destino && reimprimir.boton ? { texto: reimprimir.boton, onClick: () => router.push(destino) } : undefined } : undefined);
       alGuardarCampana(nueva);
-      setRetirandoDescuento(false);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
@@ -323,27 +298,6 @@ export function OfertasHoja({
     setO((a) => (a.tipo === tipo ? a : { ...a, ...FORMA_DE_FABRICA[tipo] }));
   };
   const cambiar = (parche: Partial<OfertaEnEdicion>) => setO((a) => ({ ...a, ...parche }));
-
-  function reiniciar() {
-    setO(nuevaOferta());
-    setElegido(false);
-    setEmpieza((n) => n + 1);
-    setTocoCats(false);
-    setVistaPrendas("cat");
-    setMasQ3(false);
-    setSoloAlgunosDias(false);
-  }
-  function editar(r: ReglaCampana) {
-    setO({ ...ofertaDesdeRegla(r, esNombreAutomatico(r, nombreCategoria, nombreSede)), sedeIds: r.sedeIds.length > 0 ? r.sedeIds : idsDeTiendas });
-    setElegido(true);
-    setEmpieza((n) => n + 1);
-    // Una oferta de solo modelos o insignias, sin categorías, no rige en las de la campaña: la grilla no las muestra marcadas.
-    setTocoCats(r.categoriasSolo.length === 0 && (r.productosSolo.length > 0 || r.insigniasSolo.length > 0));
-    setVistaPrendas(r.productosSolo.length > 0 ? "una" : r.insigniasSolo.length > 0 ? "ins" : "cat");
-    setMasQ3(false);
-    setSoloAlgunosDias(r.dias.length < 7);
-    setRegsAb(false);
-  }
 
   // ---- Lo que la oferta alcanzaría y lo que avisa ---------------------------------------------------------------------------------
   const alcanzadas = useMemo(() => prendasQueAlcanza(prendasCampana, prendasConCosto, o), [prendasCampana, prendasConCosto, o]);
@@ -455,7 +409,8 @@ export function OfertasHoja({
     }
   }
 
-  async function guardar(activar: boolean) {
+  // Guardar, activar o retirar cierran la hoja (ADR-0677, 7c): lo que quedó se ve en su cartel, en el panel de la campaña.
+  async function guardar(activar: boolean, cerrar: () => void) {
     if (!puedeGuardar || guardando) return;
     const cuerpo: CuerpoGuardarOferta = {
       id: o.id,
@@ -492,30 +447,20 @@ export function OfertasHoja({
     const r = await llamar("POST", cuerpo);
     setGuardando(null);
     if (!r.ok) return;
-    setRecien(r.id);
     const cuando = o.desde > hoy ? `desde el ${sinPunto(fechaCorta(o.desde))}` : "desde ahora";
     if (activar) avisar.exito("Oferta activada", { detalle: `«${nombre}» rige ${cuando} en caja y en la tienda web.` });
     else if (o.id) avisar.exito("Cambios guardados", { detalle: "Valen desde ahora; lo que ya se vendió se queda como estaba." });
     else avisar.exito("Oferta guardada como borrador", { detalle: "Actívala cuando quieras que empiece a bajar el precio." });
-    reiniciar();
+    cerrar();
   }
 
-  async function activarRegla(r: ReglaCampana) {
-    setTrabajando(r.id);
-    const res = await llamar("PATCH", { id: r.id, accion: "activar" });
-    setTrabajando(null);
-    if (res.ok) {
-      setRecien(r.id);
-      avisar.exito("Oferta activada", { detalle: `«${r.nombre}» rige ${r.desde > hoy ? `desde el ${sinPunto(fechaCorta(r.desde))}` : "desde ahora"} en caja y en la tienda web.` });
-    }
-  }
-  async function retirarRegla(r: ReglaCampana) {
+  async function retirarRegla(r: ReglaCampana, cerrar: () => void) {
     setTrabajando(r.id);
     const res = await llamar("PATCH", { id: r.id, accion: "retirar" });
     setTrabajando(null);
     setRetirando(null);
     if (res.ok) {
-      if (o.id === r.id) reiniciar();
+      cerrar();
       avisar.exito("Oferta retirada", { detalle: `«${r.nombre}» deja de bajar el precio. Queda en el historial.` });
     }
   }
@@ -1162,6 +1107,14 @@ export function OfertasHoja({
         <h2>Revisa</h2>
         <div className="of-rev" data-guia="sellos.oferta-revision">
           <p className="of-oracion">{oracion}</p>
+          {/* El historial de la oferta abierta (lo decía la lista de «Ya registradas», que se fue con ADR-0677, 7c). */}
+          {editada && editada.cambios > 0 && (
+            <p className="of-pequeno of-hist">
+              <Undo2 aria-hidden className="h-3.5 w-3.5" />
+              {plural(editada.cambios, "cambio", "cambios")}
+              {resumenAntes(editada.ultimoCambio, editada) ? ` · antes: ${resumenAntes(editada.ultimoCambio, editada)}` : ""}
+            </p>
+          )}
           {rige && diasSueltos && rige.rige > 0 && (
             <p className="of-pequeno">
               Rige {rige.rige} de {rige.total} días de esas fechas.
@@ -1330,15 +1283,15 @@ export function OfertasHoja({
       }
       const activa = edita && estadoEdita === "activa";
       derecha = activa ? (
-        <Boton peso="primario" confirma={confirmaRegir(ok)} disabled={guardandoAlgo} cargando={guardando === "cambios"} onClick={() => guardar(false)}>
+        <Boton peso="primario" confirma={confirmaRegir(ok)} disabled={guardandoAlgo} cargando={guardando === "cambios"} onClick={() => guardar(false, cerrar)}>
           Guardar cambios
         </Boton>
       ) : (
         <>
-          <Boton peso="fantasma" confirma={confirmaPaso(ok)} disabled={guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} onClick={() => guardar(false)}>
+          <Boton peso="fantasma" confirma={confirmaPaso(ok)} disabled={guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} onClick={() => guardar(false, cerrar)}>
             {edita ? "Guardar cambios" : "Guardar como borrador"}
           </Boton>
-          <Boton peso="primario" confirma={confirmaRegir(ok)} disabled={guardandoAlgo} cargando={guardando === "activar"} textoCargando="Activando…" onClick={() => guardar(true)} data-guia="sellos.oferta-activar">
+          <Boton peso="primario" confirma={confirmaRegir(ok)} disabled={guardandoAlgo} cargando={guardando === "activar"} textoCargando="Activando…" onClick={() => guardar(true, cerrar)} data-guia="sellos.oferta-activar">
             <Check aria-hidden className="mr-1 inline h-4 w-4" />
             Activar
           </Boton>
@@ -1346,8 +1299,27 @@ export function OfertasHoja({
       );
     }
 
+    // Retirar va en la hoja de la oferta abierta (ADR-0677, 7c: la lista de «Ya registradas» se fue), a la izquierda del pie, con su «Sí, retirar».
+    const viva = editada && editada.estado !== "desactivada" && vigenciaDeRegla(editada, hoy) !== "terminada" ? editada : null;
+    const retirar = viva ? (
+      retirando === viva.id ? (
+        <div className="of-pie-retirar" role="group" aria-label={`Retirar «${viva.nombre}»`}>
+          <Boton peso="peligro" className="btn-chico" cargando={trabajando === viva.id} textoCargando="Retirando…" onClick={() => retirarRegla(viva, cerrar)}>
+            Sí, retirar
+          </Boton>
+          <Boton peso="fantasma" className="btn-chico" disabled={trabajando === viva.id} onClick={() => setRetirando(null)}>
+            No, dejarla
+          </Boton>
+        </div>
+      ) : (
+        <Boton peso="peligro" className="of-pie-retirar" disabled={guardandoAlgo} onClick={() => setRetirando(viva.id)}>
+          Retirar
+        </Boton>
+      )
+    ) : null;
     return (
       <div className="of-pie pie-hoja-fijo">
+        {retirar}
         <Boton peso="fantasma" onClick={cerrar} disabled={guardandoAlgo}>
           Cancelar
         </Boton>
@@ -1357,158 +1329,26 @@ export function OfertasHoja({
     );
   }
 
-  // ---- Las ya registradas ---------------------------------------------------------------------------------------------------------
-  function railFila(r: ReglaCampana) {
-    const v = vigenciaDeRegla(r, hoy);
-    const chip = CHIP_ESTADO[v];
-    const viva = r.estado !== "desactivada" && v !== "terminada";
-    const antes = r.cambios > 0 ? resumenAntes(r.ultimoCambio, r) : "";
-    const datos = [titularDeOferta(r), `${sinPunto(fechaCorta(r.desde))} – ${sinPunto(fechaCorta(r.hasta))}`, textoDiasCorto(r.dias)].filter(Boolean).join(" · ");
-    const confirmando = retirando === r.id;
-    return (
-      <div key={r.id} className="of-rw">
-        <button
-          type="button"
-          className="of-reg"
-          aria-current={o.id === r.id ? "true" : undefined}
-          data-recien={recien === r.id ? "" : undefined}
-          disabled={!viva}
-          title={viva ? "Toca para editarla" : undefined}
-          onClick={() => editar(r)}
-        >
-          <b>{r.nombre}</b>
-          <span className="of-reg-m">
-            <Chip tono="neutro" versalitas={false}>
-              Oferta
-            </Chip>
-            <Chip tono={chip.tono}>{chip.texto}</Chip>
-          </span>
-          <small>{datos}</small>
-          {r.sedeIds.length > 0 && <small>{textoSedesDeCampana(r.sedeIds, tiendas)}</small>}
-          {r.incluyeClaure && <small>Con las prendas de Claurè</small>}
-          {r.cambios > 0 && (
-            <small className="of-hist">
-              <Undo2 aria-hidden />
-              {plural(r.cambios, "cambio", "cambios")}
-              {antes ? ` · antes: ${antes}` : ""}
-            </small>
-          )}
-        </button>
-        {viva && !confirmando && (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            {r.estado === "borrador" && (
-              <Boton peso="fantasma" className="btn-chico" cargando={trabajando === r.id} textoCargando="Activando…" onClick={() => activarRegla(r)}>
-                Activar
-              </Boton>
-            )}
-            <button type="button" className="btn-cayla btn-enlace text-xs" disabled={trabajando === r.id} onClick={() => setRetirando(r.id)}>
-              Retirar
-            </button>
-          </div>
-        )}
-        {viva && confirmando && (
-          <div className="flex flex-wrap items-center gap-2" role="group" aria-label={`Retirar «${r.nombre}»`}>
-            <Boton peso="peligro" className="btn-chico" cargando={trabajando === r.id} textoCargando="Retirando…" onClick={() => retirarRegla(r)}>
-              Sí, retirar
-            </Boton>
-            <Boton peso="fantasma" className="btn-chico" disabled={trabajando === r.id} onClick={() => setRetirando(null)}>
-              No
-            </Boton>
-            <span className="of-pequeno">{r.estado === "activa" ? "Deja de bajar el precio ya." : "Se descarta el borrador."}</span>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  const ordenadas = ordenarReglas(reglas, hoy);
-  const visibles = verTodas ? ordenadas : ordenadas.slice(0, 3);
-  const resto = ordenadas.length - 3;
-  const totalRail = ordenadas.length + (etiqueta.descuentoPct !== null ? 1 : 0);
-
-  function rail() {
-    return (
-      <aside className="of-rail" data-guia="sellos.ofertas-registradas">
-        <button type="button" className="of-tog" aria-expanded={regsAb} onClick={() => setRegsAb((v) => !v)}>
-          <Tag aria-hidden className="h-4 w-4" /> Ya registradas <span className="tabular-nums font-normal">{totalRail}</span>
-          <ChevronDown aria-hidden className="ml-auto h-4 w-4" />
-        </button>
-        <div className="of-rl" data-abierta={regsAb ? "" : undefined}>
-          <div className="of-gt">
-            <b>Ya registradas</b>
-            <span className="of-pequeno tabular-nums">{totalRail}</span>
-          </div>
-          {etiqueta.descuentoPct !== null && (
-            <div className="of-rw">
-              <div className="of-reg" style={{ cursor: "default" }}>
-                <b>El descuento de la campaña</b>
-                <span className="of-reg-m">
-                  <Chip tono="neutro" versalitas={false}>
-                    De siempre
-                  </Chip>
-                </span>
-                <small>−{pct(etiqueta.descuentoPct)} % en toda la campaña, todos los días. Para cambiarlo, retíralo y registra una oferta.</small>
-              </div>
-              {puedeDarDescuento && !retirandoDescuento && (
-                <div>
-                  <button type="button" className="btn-cayla btn-enlace text-xs" onClick={() => setRetirandoDescuento(true)}>
-                    Retirar
-                  </button>
-                </div>
-              )}
-              {retirandoDescuento && (
-                <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Retirar el descuento de siempre">
-                  <Boton peso="peligro" className="btn-chico" cargando={guardandoCampana} textoCargando="Retirando…" onClick={() => guardarCampana({ descuentoPct: null }, "Descuento de siempre retirado")}>
-                    Sí, retirar
-                  </Boton>
-                  <Boton peso="fantasma" className="btn-chico" disabled={guardandoCampana} onClick={() => setRetirandoDescuento(false)}>
-                    No
-                  </Boton>
-                  <span className="of-pequeno">Deja de bajar el precio ya.</span>
-                </div>
-              )}
-            </div>
-          )}
-          {visibles.map(railFila)}
-          {resto > 0 && (
-            <BotonVerMas abierto={verTodas} onCambiar={setVerTodas} texto={`Ver ${resto} más`} forma="enlace" />
-          )}
-          {totalRail === 0 && <p className="of-hint">Todavía no hay ofertas. Las que registres aparecen aquí.</p>}
-          <p className="of-hint">Toca una para editarla: vale desde ese momento, lo ya vendido no cambia y queda su historial.</p>
-        </div>
-      </aside>
-    );
-  }
-
   // ---- La hoja --------------------------------------------------------------------------------------------------------------------
   return (
     <Modal
-      titulo={`Configuración «${etiqueta.nombre}»`}
-      subtitulo="Las ofertas de la campaña: cuánto baja, en qué prendas y cuándo."
-      ancho="max-w-[78rem]" /* unificar-fijo: el asistente de ofertas (lista, preguntas y etiqueta) es de diseño propio, a todo lo ancho (maqueta «Tres preguntas» elegida por Felipe 2026-10-23) */
+      titulo={o.id ? "Editar la oferta" : "Nueva oferta"}
+      subtitulo={etiqueta.nombre}
+      ancho="max-w-[70rem]" /* unificar-fijo: la hoja de una oferta (las preguntas y la etiqueta al lado) es de diseño propio (maqueta «Una sola hoja», ADR-0677); 70 rem dejan las cinco formas de «Qué le das» en una fila */
       onClose={onClose}
     >
       {(cerrar) => (
         <div className="mt-4 space-y-4" data-guia="sellos.ofertas">
-          <div className="of-camp" data-guia="sellos.ofertas-campana">
-            <Chip tono="neutro" versalitas={false}>
-              La campaña
-            </Chip>
-            <span>
-              {terminada && campHasta ? `Terminó el ${sinPunto(fechaCorta(campHasta))}` : campDesde && campHasta ? `Rige del ${sinPunto(fechaCorta(campDesde))} al ${sinPunto(fechaCorta(campHasta))}` : "Sin fechas todavía (ponlas desde «Editar» en su pase)"} ·{" "}
-              {plural(contarPrendas(prendasCampana), "prenda", "prendas")} a la venta
-            </span>
-            {etiqueta.sedeIds.length > 0 && (
-              <>
-                <Chip tono="pizarra" versalitas={false} title="La campaña de antes solo regía en esas tiendas: una oferta no puede salirse de ellas.">
-                  {textoSedesDeCampana(etiqueta.sedeIds, tiendas)}
-                </Chip>
-                <button type="button" className="btn-cayla btn-enlace text-xs" disabled={guardandoCampana} onClick={() => guardarCampana({ sedeIds: [] }, "La campaña rige en todas las tiendas")}>
-                  Quitar el límite
-                </button>
-              </>
-            )}
-          </div>
+          {etiqueta.sedeIds.length > 0 && (
+            <div className="of-camp">
+              <Chip tono="pizarra" versalitas={false} title="La campaña de antes solo regía en esas tiendas: una oferta no puede salirse de ellas.">
+                {textoSedesDeCampana(etiqueta.sedeIds, tiendas)}
+              </Chip>
+              <button type="button" className="btn-cayla btn-enlace text-xs" disabled={guardandoCampana} onClick={() => guardarCampana({ sedeIds: [] }, "La campaña rige en todas las tiendas")}>
+                Quitar el límite
+              </button>
+            </div>
+          )}
 
           {terminada && (
             <Aviso tono="atencion" titulo="Esta campaña ya terminó">
@@ -1517,18 +1357,9 @@ export function OfertasHoja({
           )}
 
           <div className="of-hoja">
-            {rail()}
             {!terminada && (
-              <section ref={asistente} className="of-wz" aria-label={o.id ? "Editar oferta" : "Nueva oferta"}>
-                <div className="of-top">
-                  <b>{o.id ? "Editar oferta" : "Nueva oferta"}</b>
-                </div>
-                {editada && (
-                  <Aviso tono="atencion" chico titulo={`Editando «${editada.nombre}»`} accion={<button type="button" className="btn-cayla btn-enlace text-xs" onClick={reiniciar}>Registrar otra en vez de editar</button>}>
-                    Los cambios valen desde ahora; lo que ya se vendió se queda como estaba.
-                  </Aviso>
-                )}
-                <div className="of-cols mt-2">
+              <section className="of-wz" aria-label={o.id ? "Editar la oferta" : "Nueva oferta"}>
+                <div className="of-cols">
                   <div className="of-q of-una" id="oferta-pregunta">
                     <div className="of-bloque">{pregunta1()}</div>
                     {elegido && (
