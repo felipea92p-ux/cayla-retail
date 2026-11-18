@@ -162,6 +162,7 @@ export function RitmoGastos({
           detalle: solesRedondo(s.monto),
           etiqueta: `${s.largo}: ${solesRedondo(s.monto)}. Ver lo que se gastó ese día`,
           onElegir: () => elegir(s.dia),
+          abierta: dia === Math.round(s.dia),
         }))}
         vienen={ritmo.vienen.map((v) => ({
           x: v.dia,

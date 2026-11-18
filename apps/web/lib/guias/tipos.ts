@@ -12,7 +12,9 @@ export type AccionGuia =
   /** `para`: la pieza es un pliegue que abre Y cierra con el mismo toque (el «?» de la cabecera, «Ver 3 más»), y el toque se hace solo
    *  si hace falta, según su `aria-expanded` (`toqueDelPliegue`): «abrir» no lo cierra si ya estaba abierto, y «cerrar» no lo abre si
    *  ya estaba cerrado. Así un paso lo deja igual al avanzar y al volver con ←, sin `prepararSoloAlAvanzar`. Con «cerrar» y la pieza
-   *  fuera de la vista no hay nada que cerrar: no espera ni avisa. Una pieza sin `aria-expanded` no se toca y el paso lo avisa. */
+   *  fuera de la vista no hay nada que cerrar: no espera ni avisa. Se toca el control del ancla que lo dice (el de `aria-expanded`, o
+   *  el `<summary>` de un `<details>`, que se lee por su `open`); una pieza sin ninguno no se toca y el paso lo avisa. Como el toque es
+   *  idempotente, cada paso que vive dentro del pliegue puede pedir «abrir» sin miedo a cerrarlo: así se ve también al volver. */
   | { tipo: "clic"; ancla: string; siEsta?: boolean; para?: "abrir" | "cerrar" }
   /** Escribe un ejemplo en el campo anclado, letra a letra, como lo haría una persona. El ejemplo sale de la pantalla
    *  (`{ palabraDe }`: la primera palabra del nombre de la primera pieza con esa ancla) para que siempre encuentre algo de
@@ -37,8 +39,9 @@ export type PasoGuia = {
   texto: string;
   /** Lo que el piloto hace ANTES de encender la pieza (abrir el modal donde vive). */
   preparar?: readonly AccionGuia[];
-  /** El `preparar` corre solo al AVANZAR (no al volver con ←). Para un botón que abre Y cierra lo mismo (un panel de filtros): si
-   *  corriera también al volver, desarmaría lo que el paso anterior dejó abierto. */
+  /** El `preparar` corre solo al AVANZAR (no al volver con ←). Para lo que no se puede deshacer de vuelta sin desarmar lo del paso
+   *  anterior: marcar una casilla, quitar un filtro. Un pliegue (un botón que abre Y cierra lo mismo) no lo usa: lleva `para` en su
+   *  toque, que queda bien en las dos direcciones. */
   prepararSoloAlAvanzar?: boolean;
   /** Lo que el piloto hace CON la pieza ya encendida, para que se vea funcionar (escribir un ejemplo). */
   demostrar?: readonly AccionGuia[];
