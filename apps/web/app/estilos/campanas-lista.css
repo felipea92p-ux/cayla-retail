@@ -234,10 +234,81 @@
   /* Con una sola columna, el panel va bajo su fila con el aire del pase abierto. */
   .lc-panel-en-linea { margin: 16px 2px 24px; }
 
+  /* ── La campaña (actividad 6): la misma fila con su insignia y su nombre, y su panel con chips, ofertas como carteles y prendas ──
+     Ficha: docs/milimetro/panel-de-campana.md. */
+  .lc-fila-marca { display: grid; place-items: center; width: 44px; height: 44px; }
+  .lc-fila-nombre {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-serif);
+    font-size: 21px;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  /* Un nombre, no un %: más chico y puede partirse en dos líneas. */
+  .lc-panel-tit[data-nombre] { font-size: clamp(32px, 3.6vw, 48px); line-height: 1.05; white-space: normal; overflow-wrap: anywhere; }
+  .lc-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+
+  /* De a dos en el celular (339 px de ancho útil a 375), de a tres o cuatro al costado. */
+  .lc-ofertas { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 16px; }
+  .lc-cartel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 112px;
+    padding: 16px;
+    border: 1px solid var(--vidrio-claro-borde);
+    border-radius: var(--radius-tarjeta);
+    background: var(--vidrio-claro-fondo);
+    box-shadow: var(--vidrio-claro-sombra);
+    color: var(--color-tinta);
+    text-align: left;
+    transition:
+      translate var(--t-cambio) var(--ease-cayla),
+      scale var(--t-resp) var(--ease-cayla),
+      border-color var(--t-cambio) var(--ease-cayla);
+    animation: cayla-cascada var(--t-momento) var(--ease-cayla) backwards;
+    animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+  }
+  @media (hover: hover) {
+    button.lc-cartel:hover {
+      translate: 0 -1px;
+      border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); /* contraste: no aplica — es un borde, no un texto */
+    }
+  }
+  button.lc-cartel:active { scale: 0.985; }
+  .lc-cartel-glifo {
+    font-family: var(--font-serif);
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 1.05;
+    font-variant-numeric: lining-nums tabular-nums;
+    text-wrap: balance;
+  }
+  .lc-cartel-en { font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
+  .lc-cartel-chip { margin-top: auto; padding-top: 4px; }
+  /* «Nueva oferta»: el mismo cartel, punteado y sin relleno (como «Nuevo descuento»). */
+  .lc-cartel-nuevo {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-style: dashed;
+    border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); /* contraste: no aplica — es un borde, no un texto */
+    background: transparent;
+    box-shadow: none;
+    color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+    font-size: 15px;
+    font-weight: 600;
+  }
+
   /* Quieto o con menos movimiento: nada sube ni se encoge (el cambio de borde y de fondo sigue diciendo que responde). */
-  :root[data-movimiento="quieto"] .lc-fila { translate: none; scale: none; }
+  :root[data-movimiento="quieto"] :is(.lc-fila, .lc-cartel) { translate: none; scale: none; }
   @media (prefers-reduced-motion: reduce) {
-    .lc-fila { translate: none; scale: none; animation: none; }
+    :is(.lc-fila, .lc-cartel) { translate: none; scale: none; animation: none; }
     .lc-grilla > * { animation: none; }
     .lc-pieza[data-sale] { animation: none; opacity: 0.4; }
     .lc-pieza-tallas { animation: none; }

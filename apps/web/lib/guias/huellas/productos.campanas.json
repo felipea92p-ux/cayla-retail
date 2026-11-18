@@ -2,7 +2,7 @@
   "guia": "productos.campanas",
   "ruta": "/productos/campanas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 186,
+  "total": 189,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -105,6 +105,12 @@
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «(sin nombre)»"
+    ],
+    "components/campanas/PanelDeCampana.tsx": [
+      "button «{`Ver la oferta ${c.glifo}»",
+      "button «campana.nueva-oferta»",
+      "Boton «Elegir prendas»",
+      "button «→onElegirPrendas»"
     ],
     "components/campanas/PanelDeDescuento.tsx": [
       "ComboResponsable «{responsable}»",
@@ -215,9 +221,9 @@
       "button «{conGuia ? \"sellos.configurar\" : undefined}»",
       "BotonImprimir «(sin nombre)»",
       "button «{cambiandoId === e.id ? \"Desactivando…\" : \"Desactivar\"}»",
-      "Boton «{conGuia ? \"sellos.preparar\" : undefined}»",
       "button «→() => setEtiquetando(e)»",
       "Boton «+ Elegir prendas»",
+      "BotonEditar «Cambiar nombre, ícono o fechas»",
       "button «sellos.mapa»",
       "BotonEnlace «sellos.diseno-web»",
       "Boton «sellos.nuevo»",
@@ -229,8 +235,7 @@
       "Boton «→() => aprobar(aprobandoEtiqueta)»",
       "CampoTexto «Motivo (opcional)»",
       "Boton «Cancelar» #2",
-      "Boton «Confirmar rechazo»",
-      "button «{x.clave === \"oferta\" ? \"sellos.pregunta-oferta\" : undefined}»"
+      "Boton «Confirmar rechazo»"
     ]
   }
 }

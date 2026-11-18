@@ -7,8 +7,6 @@ import {
   columnasQueCaben,
   diasEntre,
   fechaLarga,
-  loQueTiene,
-  preguntasDeCampana,
   lookbookVisible,
   marcaDelPase,
   paseInicial,
@@ -163,27 +161,6 @@ describe("las prendas de una insignia, por modelo y color", () => {
   });
 });
 
-describe("lo que dice el pase abierto", () => {
-  it("lo que tiene una campaña: fechas y prendas la hacen funcionar; las ofertas y promociones son opcionales", () => {
-    expect(loQueTiene(FILAS[0]!, 0, [], HOY).map((x) => [x.clave, x.hecho, x.opcional])).toEqual([
-      ["fechas", true, false],
-      ["prendas", false, false],
-    ]);
-    // Ya no hay fila «Descuento»: el descuento se arma con ofertas (ADR-0496).
-    expect(loQueTiene(FILAS[0]!, 0, [], HOY, 0, { total: 0, borradores: 0 }).map((x) => x.clave)).not.toContain("descuento");
-    expect(loQueTiene(FILAS[1]!, 47, ["Maquillaje"], HOY)[1]!.detalle).toBe("47 prendas de Maquillaje");
-    expect(loQueTiene(FILAS[1]!, 47, ["Maquillaje"], HOY, 7)[1]!.detalle).toBe("47 prendas: 40 de Maquillaje y 7 marcadas a mano");
-    expect(loQueTiene(FILAS[1]!, 0, ["Poleras"], HOY)[1]!.detalle).toBe("Poleras, todavía sin prendas a la venta");
-    expect(loQueTiene(FILAS[5]!, 0, [], HOY)[0]).toMatchObject({ hecho: false, detalle: "sin fechas" });
-    // Sin ofertas conocidas la lista es la de siempre; con ellas suma dos filas opcionales: Ofertas y, debajo, Promociones.
-    expect(loQueTiene(FILAS[0]!, 0, [], HOY)).toHaveLength(2);
-    expect(loQueTiene(FILAS[0]!, 0, [], HOY, 0, { total: 0, borradores: 0 }).map((x) => x.clave)).toEqual(["fechas", "prendas", "ofertas", "promociones"]);
-    expect(loQueTiene(FILAS[0]!, 0, [], HOY, 0, { total: 2, borradores: 0 })[3]).toMatchObject({ clave: "promociones", hecho: false, opcional: true, detalle: "ninguna todavía" });
-    expect(loQueTiene(FILAS[0]!, 0, [], HOY, 0, { total: 0, borradores: 0 })[2]).toMatchObject({ clave: "ofertas", hecho: false, opcional: true, detalle: "ninguna todavía" });
-    expect(loQueTiene(FILAS[0]!, 0, [], HOY, 0, { total: 3, borradores: 1 })[2]).toMatchObject({ hecho: true, detalle: "3 ofertas · 1 en borrador" });
-  });
-});
-
 describe("el lookbook: dos filas y el «+N» abajo a la derecha", () => {
   it("si todas caben se ven todas, sin «+N»", () => {
     expect(lookbookVisible(0, 5)).toEqual({ visibles: 0, resto: 0 });
@@ -221,31 +198,3 @@ describe("cuántas columnas caben (la cuenta de `auto-fill`)", () => {
   });
 });
 
-describe("las tres preguntas de una campaña (ADR-0655)", () => {
-  const sin = { activas: 0, borradores: 0 };
-  it("una campaña sin nada: falta qué le das y en qué prendas; cuándo y dónde siempre está respondida", () => {
-    expect(preguntasDeCampana(FILAS[3]!, 0, [], HOY, 0, sin, null).map((x) => [x.clave, x.hecho])).toEqual([
-      ["oferta", false],
-      ["prendas", false],
-      ["cuando", true],
-    ]);
-    expect(preguntasDeCampana(FILAS[3]!, 0, [], HOY, 0, sin, null)[0]!.detalle).toBe("Ninguna: sin oferta, la campaña solo pone su insignia");
-    expect(preguntasDeCampana(FILAS[3]!, 0, [], HOY, 0, sin, null)[2]!.detalle).toBe("9 nov – 30 nov · en todas las tiendas");
-  });
-  it("una oferta que elige sus propias prendas (por insignia, modelos o toda la compra) responde «En qué prendas»", () => {
-    expect(preguntasDeCampana(FILAS[3]!, 0, [], HOY, 0, { activas: 1, borradores: 0 }, null, true)[1]).toMatchObject({ hecho: true, detalle: "Las eligen sus ofertas" });
-    expect(preguntasDeCampana(FILAS[3]!, 0, [], HOY, 0, { activas: 1, borradores: 0 }, null, false)[1]).toMatchObject({ hecho: false, detalle: "Ninguna todavía" });
-  });
-  it("una oferta en borrador no cuenta: todavía no baja nada en la caja", () => {
-    const p = preguntasDeCampana(FILAS[3]!, 0, [], HOY, 0, { activas: 0, borradores: 2 }, null)[0]!;
-    expect(p).toMatchObject({ hecho: false, detalle: "2 ofertas sin activar: todavía no baja nada" });
-  });
-  it("con ofertas activas o con el descuento de siempre, qué le das está respondida", () => {
-    expect(preguntasDeCampana(FILAS[3]!, 0, [], HOY, 0, { activas: 1, borradores: 1 }, null)[0]).toMatchObject({ hecho: true, detalle: "1 oferta activa · 1 por activar" });
-    expect(preguntasDeCampana(FILAS[0]!, 0, [], HOY, 0, sin, null)[0]).toMatchObject({ hecho: true, detalle: "10 % en todas sus prendas" });
-  });
-  it("las prendas se dicen como en el pase; sin fechas rige siempre; las tiendas, como la campaña", () => {
-    expect(preguntasDeCampana(FILAS[1]!, 47, ["Maquillaje"], HOY, 7, sin, null)[1]).toMatchObject({ hecho: true, detalle: "47 prendas: 40 de Maquillaje y 7 marcadas a mano" });
-    expect(preguntasDeCampana(FILAS[5]!, 0, [], HOY, 0, sin, "Solo Trujillo")[2]!.detalle).toBe("Sin fechas: rige siempre · Solo Trujillo");
-  });
-});

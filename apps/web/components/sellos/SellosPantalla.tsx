@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
-import { Award, CalendarHeart, ChevronRight, HandHeart, Plus, RefreshCw, Shirt } from "lucide-react";
+import { Award, CalendarHeart, HandHeart, Plus, RefreshCw, Shirt } from "lucide-react";
 import { NOMBRE_DEL_DIBUJO, dibujoElegido } from "@cayla-retail/shared/insignias-visual";
 import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { avisar } from "@/components/ui/Avisos";
@@ -46,6 +46,9 @@ import { AvisoDosOfertas } from "@/components/sellos/AvisoDosOfertas";
 import { DescuentosDeLaTienda } from "@/components/rebajas/RebajasDeTienda";
 import { HojaDeDescuento } from "@/components/campanas/HojaDeDescuento";
 import { PanelDeDescuento } from "@/components/campanas/PanelDeDescuento";
+import { FilaDeLista } from "@/components/campanas/FilaDeLista";
+import { PanelDeCampana } from "@/components/campanas/PanelDeCampana";
+import { cartelesDeCampana, chipsDeCampana, prendasLasEligenSusOfertas } from "@/lib/campana-panel-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { claveModeloColor, type DescuentoDeLista } from "@/lib/rebaja-rapida-reglas";
 import { tramoDeCampana, TEXTOS_MODO } from "@/lib/sellos-campanas";
@@ -57,15 +60,12 @@ import {
   diasEntre,
   fechaCorta,
   fechaLarga,
-  loQueTiene,
   lookbookVisible,
   marcaDelPase,
   paseInicial,
-  preguntasDeCampana,
   pilasDeLaVista,
   prendasDelSello,
   vistaDeEstilo,
-  type PreguntaCampana,
   type PrendasDelSello,
   type TallaVitrina,
   type TonoPase,
@@ -746,6 +746,29 @@ export function SellosPantalla({
     );
   }
 
+  /** Una campaña en la lista (ADR-0677, actividad 6): la fila del descuento, con su insignia, su nombre y cuántos días le quedan o faltan. */
+  function filaCampana(e: Etiqueta, indice: number) {
+    const marca = marcaDelPase(e, hoy, null);
+    const bajada = e.estado === "pendiente" ? "por aprobar" : e.estado === "rechazado" ? "rechazada" : bajadaDelPase(e, hoy);
+    const anio = e.vigenteDesde ? e.vigenteDesde.slice(0, 4) : null;
+    return (
+      <FilaDeLista
+        marca={<SelloTinta nombre={e.nombre} icono={e.icono} imagen={e.imagen} imagenSilueta={e.imagenSilueta} estilo={e.estilo} anio={anio} tamano={44} giro={0} indice={indice} apagado={!e.activo} />}
+        titulo={e.nombre}
+        deNombre
+        bajada={bajada}
+        cifra={marca.cifra}
+        cifraTexto={marca.texto}
+        abierta={abierto?.id === e.id}
+        onAbrir={() => abrir(e.id)}
+        indice={indice}
+        etiqueta={[`Campaña ${e.nombre}`, bajada, marca.cifra !== null ? `${marca.cifra} ${marca.texto}` : marca.texto].filter(Boolean).join(", ")}
+        // La guía vuelve a abrir la primera campaña después de mostrar un descuento abierto (ADR-0677): lo que abre, lo cierra.
+        guia={indice === 0 ? "sellos.primero" : undefined}
+      />
+    );
+  }
+
   // `conGuia`: solo el pase abierto lleva las anclas de la guía (los cerrados tienen los mismos botones, escondidos e inertes).
   function accionesDelPase(e: Etiqueta, conGuia: boolean) {
     if (!puedeEditar(e)) return <p className="text-sm text-tinta/65">Solo lo cambia quien tiene el módulo {e.estilo === "campana" ? "Campañas o Insignias" : "Insignias"}.</p>;
@@ -772,7 +795,8 @@ export function SellosPantalla({
     }
     const vigencia = vigenciaDe(e.vigenteDesde, e.vigenteHasta, hoy);
     const imprimir = e.descuentoPct !== null && vigencia?.estado !== "proxima";
-    if (e.estilo === "campana") return accionesDeCampana(e, conGuia, imprimir);
+    // Una campaña abierta tiene su panel con «Editar» y «Más» (`accionesDelPanel`, ADR-0677): aquí solo llega por sus estados de arriba.
+    if (e.estilo === "campana") return null;
     // Una insignia se configura con la hoja de siempre (`CampanaModal`); las campañas, con sus tres preguntas (arriba, ADR-0655).
     const boton = botonCampana(e, hoy);
     return (
@@ -816,62 +840,12 @@ export function SellosPantalla({
     );
   }
 
-  // ---- Las tres preguntas de una campaña (ADR-0655) ------------------------------------------------------------------------
-  // Cada pregunta abre la hoja que ya la responde: las ofertas (o la hoja de siempre si la base aún no las tiene), las prendas y las fechas.
-
-  function preguntasDe(e: Etiqueta) {
-    const p = prendasDe(e);
-    const vivas = reglasDisponibles ? reglasVivas(reglasDeCampana(reglas, e.id), hoy) : [];
-    const borradores = vivas.filter((r) => vigenciaDeRegla(r, hoy) === "borrador").length;
-    // Una oferta que elige sus propias prendas (categorías, modelos, insignias o toda la compra) responde «En qué prendas» (ADR-0655).
-    // Una insignia desactivada o sin aprobar no le da prendas (20261114130000): si todas las de la oferta lo están, no responde (casuística
-    // 2026-11-16: el pase decía «Las eligen sus ofertas» ✓ con ofertas que ya no rebajaban nada).
-    const insigniaViva = (id: string) => etiquetas.some((x) => x.id === id && x.activo && x.estado === "aprobado");
-    const eligen = vivas.some(
-      (r) => r.categoriasSolo.length > 0 || r.productosSolo.length > 0 || r.insigniasSolo.some(insigniaViva) || (r.tipo === "monto" && r.cuenta !== "campana"),
-    );
-    return preguntasDeCampana(e, p.modelos.length, categoriasDe(e), hoy, p.aMano, { activas: vivas.length - borradores, borradores }, textoSedesDeCampana(e.sedeIds, tiendas), eligen);
-  }
-  function responder(e: Etiqueta, clave: "oferta" | "prendas" | "cuando") {
-    if (clave === "oferta") return reglasDisponibles ? setOfertandoId(e.id) : setConfigurando(e);
-    if (clave === "prendas") return setEtiquetando(e);
-    setEditandoId(e.id);
-  }
-
-  function accionesDeCampana(e: Etiqueta, conGuia: boolean, imprimir: boolean) {
-    const sigue = preguntasDe(e).find((x) => !x.hecho);
-    const yaPaso = tramoDeCampana(e.vigenteDesde, e.vigenteHasta, hoy) === "pasaron";
-    const items: ItemMenu[] = [
-      { clave: "editar", etiqueta: yaPaso ? "Repetir el próximo año" : "Cambiar nombre, ícono o fechas", onSelect: () => setEditandoId(e.id) },
-      { clave: "prendas", etiqueta: "Marcar prendas sueltas", onSelect: () => setEtiquetando(e) },
-      ...(imprimir ? [{ clave: "imprimir", etiqueta: vigenciaDe(e.vigenteDesde, e.vigenteHasta, hoy)?.estado === "terminada" ? "Imprimir el precio normal" : "Imprimir etiquetas de precio", onSelect: () => router.push(urlEtiquetasDePrecio({ campana: e.id })) }] : []),
-      ...(disenoWeb && e.descuentoPct !== null ? [{ clave: "web", etiqueta: "Ver su diseño en la tienda web", onSelect: () => router.push(`/tienda-web/campanas/${e.id}`) }] : []),
-      { clave: "desactivar", etiqueta: cambiandoId === e.id ? "Desactivando…" : "Desactivar", peligro: true, onSelect: () => setConfirmando(confirmacionCatalogo("desactivar", e.nombre, () => cambiarActivo(e, false))) },
-    ];
-    return (
-      <>
-        <Boton peso={sigue ? "primario" : "fantasma"} className="btn-chico" onClick={() => responder(e, sigue?.clave ?? "oferta")} data-guia={conGuia ? "sellos.preparar" : undefined}>
-          {sigue ? "Preparar la campaña" : "Ver sus ofertas"}
-        </Boton>
-        <span className="ml-auto">
-          <MenuAcciones texto="Más" etiqueta={`Más acciones de ${e.nombre}`} items={items} guia={conGuia ? "sellos.mas" : undefined} />
-        </span>
-      </>
-    );
-  }
-
   function abrirAprobacion(e: Etiqueta) {
     setAprobandoAbierto(e.id);
     setComentarioAprobar("");
   }
 
   // ---- El pase abierto, en grande --------------------------------------------------------------------------------------------
-
-  /** Cuántas ofertas vivas tiene una campaña y cuántas siguen en borrador (para «Lo que ya tiene»). */
-  function ofertasDe(e: Etiqueta) {
-    const vivas = reglasVivas(reglasDeCampana(reglas, e.id), hoy);
-    return { total: vivas.length, borradores: vivas.filter((r) => vigenciaDeRegla(r, hoy) === "borrador").length };
-  }
 
   function detalle(e: Etiqueta) {
     const p = prendasDe(e);
@@ -961,29 +935,62 @@ export function SellosPantalla({
               </Vacio>
             </div>
           ) : null)}
-        {e.estilo === "campana" && e.activo && e.estado === "aprobado" && tramo !== "pasaron" && (
-          <TresPreguntas preguntas={preguntasDe(e)} editable={editable} onResponder={(clave) => responder(e, clave)} />
-        )}
-        {e.estilo === "campana" && !(e.activo && e.estado === "aprobado") && tramo !== "pasaron" && (
-          <div className="sl-listo mt-6" data-guia="sellos.listo" style={{ "--i": 3 } as CSSProperties}>
-            <p className="label-cayla pb-1.5 pt-3.5 text-[10px] text-tinta/65">Lo que ya tiene</p>
-            {loQueTiene(e, p.modelos.length, cats, hoy, p.aMano, e.estilo === "campana" && reglasDisponibles ? ofertasDe(e) : undefined).map((x, i) => (
-              <div key={x.clave} className="sl-listo-fila" data-estado={x.hecho ? "hecho" : x.opcional ? "opcional" : "falta"} style={{ "--i": i } as CSSProperties}>
-                <span className="sl-listo-marca" aria-hidden>
-                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-                    <path d={x.hecho ? "M6 12.5l4 4L18 8.5" : x.opcional ? "M8 12h8" : "M12 7v6M12 16.5v.1"} strokeWidth="2.2" />
-                  </svg>
-                </span>
-                <span>
-                  {x.nombre}
-                  <span className="sr-only">{x.hecho ? ": listo" : x.opcional ? ": opcional" : ": falta"}</span>
-                </span>
-                <span className="sl-listo-detalle">{x.detalle}</span>
-              </div>
-            ))}
-          </div>
-        )}
       </>
+    );
+  }
+
+  // ---- La campaña abierta (ADR-0677, actividad 6): su panel, como el de un descuento -----------------------------------------------
+  // Nombre, tres chips, sus ofertas como carteles y sus prendas (`PanelDeCampana`). Cada botón abre la misma hoja de siempre.
+
+  function accionesDelPanel(e: Etiqueta, editable: boolean) {
+    if (!editable) return accionesDelPase(e, true);
+    const vigencia = vigenciaDe(e.vigenteDesde, e.vigenteHasta, hoy);
+    const yaPaso = tramoDeCampana(e.vigenteDesde, e.vigenteHasta, hoy) === "pasaron";
+    const items: ItemMenu[] = [
+      ...(yaPaso ? [{ clave: "repetir", etiqueta: "Repetir el próximo año", onSelect: () => setEditandoId(e.id) }] : []),
+      ...(e.descuentoPct !== null && vigencia?.estado !== "proxima"
+        ? [{ clave: "imprimir", etiqueta: vigencia?.estado === "terminada" ? "Imprimir el precio normal" : "Imprimir etiquetas de precio", onSelect: () => router.push(urlEtiquetasDePrecio({ campana: e.id })) }]
+        : []),
+      ...(disenoWeb && e.descuentoPct !== null ? [{ clave: "web", etiqueta: "Ver su diseño en la tienda web", onSelect: () => router.push(`/tienda-web/campanas/${e.id}`) }] : []),
+      { clave: "desactivar", etiqueta: cambiandoId === e.id ? "Desactivando…" : "Desactivar", peligro: true, onSelect: () => setConfirmando(confirmacionCatalogo("desactivar", e.nombre, () => cambiarActivo(e, false))) },
+    ];
+    return (
+      <>
+        <BotonEditar chico onClick={() => setEditandoId(e.id)} title="Cambiar nombre, ícono o fechas" guia="campana.editar" />
+        <MenuAcciones texto="Más" etiqueta={`Más acciones de ${e.nombre}`} items={items} guia="sellos.mas" />
+      </>
+    );
+  }
+
+  function panelCampana(e: Etiqueta) {
+    const p = prendasDe(e);
+    const editable = puedeEditar(e) && e.activo && e.estado === "aprobado";
+    const ofertas = reglasDisponibles ? reglasDeCampana(reglas, e.id) : [];
+    const insigniaViva = (id: string) => etiquetas.some((x) => x.id === id && x.activo && x.estado === "aprobado");
+    const eligen = reglasDisponibles && prendasLasEligenSusOfertas(ofertas, hoy, insigniaViva);
+    // Si sus ofertas eligen las prendas, no se juzga si está lista: antes decía «Sin prendas» de una campaña que sí rebajaba (ADR-0677).
+    const chips = chipsDeCampana(e, hoy, tiendas, eligen || !prendasVitrina ? null : p.modelos.length + e.categoriaIds.length);
+    if (e.anunciarEnPortada === false) {
+      chips.push({ clave: "portada", texto: "No sale en la portada", tono: "pizarra", punto: false, title: "La portada de la tienda online no la anuncia. Se cambia en «Editar»." });
+    }
+    // Una oferta nombra categorías o insignias: las dos se buscan por su id.
+    const nombreDeId = (id: string) => nombreCategoria.get(id) ?? etiquetas.find((x) => x.id === id)?.nombre ?? "";
+    const abrirOfertas = () => (reglasDisponibles ? setOfertandoId(e.id) : setConfigurando(e));
+    const rigeHoy = tramoDeCampana(e.vigenteDesde, e.vigenteHasta, hoy) === "ahora";
+    return (
+      <PanelDeCampana
+        nombre={e.nombre}
+        chips={chips}
+        acciones={accionesDelPanel(e, editable)}
+        carteles={cartelesDeCampana(ofertas, hoy, nombreDeId, e.descuentoPct)}
+        onCartel={editable ? (id) => (id === "descuento" ? setConfigurando(e) : abrirOfertas()) : undefined}
+        onNuevaOferta={editable ? abrirOfertas : undefined}
+        prendas={p.modelos}
+        categorias={categoriasDe(e)}
+        eligenSusOfertas={eligen}
+        onElegirPrendas={editable ? () => setEtiquetando(e) : undefined}
+        vacioPrendas={rigeHoy && e.descuentoPct !== null ? `Rige con ${e.descuentoPct.toLocaleString("es-PE")} %, pero sin prendas no rebaja nada.` : undefined}
+      />
     );
   }
 
@@ -1097,10 +1104,10 @@ export function SellosPantalla({
                   </h3>
                   {pila.pases.map((e) => (
                     <Fragment key={e.id}>
-                      {pase(e, pila.tono, indice++)}
+                      {esCampanas ? filaCampana(e, indice++) : pase(e, pila.tono, indice++)}
                       {enLinea && abierto?.id === e.id && (
-                        <div className="sl-detalle sl-detalle-en-linea" aria-live="polite" data-guia="sellos.detalle">
-                          {detalle(e)}
+                        <div className={`sl-detalle sl-detalle-en-linea${esCampanas ? " lc-panel-en-linea" : ""}`} aria-live="polite" data-guia="sellos.detalle">
+                          {esCampanas ? panelCampana(e) : detalle(e)}
                         </div>
                       )}
                     </Fragment>
@@ -1117,7 +1124,7 @@ export function SellosPantalla({
               abierto &&
               !enLinea && (
                 <aside key={abierto.id} className="sl-detalle" aria-live="polite" data-guia="sellos.detalle">
-                  {detalle(abierto)}
+                  {esCampanas ? panelCampana(abierto) : detalle(abierto)}
                 </aside>
               )
             )}
@@ -1263,71 +1270,6 @@ export function SellosPantalla({
 
       {confirmando && <ConfirmarConResponsable confirmacion={confirmando} onClose={() => setConfirmando(null)} />}
       {viendoMapa && <MapaCampanas aqui={modo} onClose={() => setViendoMapa(false)} />}
-    </div>
-  );
-}
-
-/** Las tres preguntas de una campaña (ADR-0655): la fila de «Lo que ya tiene», pero tocable, con el hilo de la guía de foco en la que sigue
- *  (`hilo-fila`, ADR-0284) y sin rojo. Cada fila abre la hoja que la responde; quien no puede editar solo la lee. */
-function TresPreguntas({
-  preguntas,
-  editable,
-  onResponder,
-}: {
-  preguntas: PreguntaCampana[];
-  editable: boolean;
-  onResponder: (clave: "oferta" | "prendas" | "cuando") => void;
-}) {
-  const sigue = preguntas.find((x) => !x.hecho)?.clave;
-  return (
-    <div className="sl-listo mt-6" data-guia="sellos.preguntas" style={{ "--i": 3 } as CSSProperties}>
-      <p className="label-cayla pb-2.5 pt-3.5 text-[11px] text-tinta/65">
-        {sigue ? "Para que la caja haga algo" : "Lista: la caja y la tienda web la cobran solas"}
-      </p>
-      {/* Las tres en UNA tarjeta con el borde de lo que se toca (Felipe 2026-11-17: «mejora la visualización»): sueltas, separadas solo por
-          líneas `sand`, no se leían como algo que se toca y se fundían con el fondo. */}
-      <div className="sl-preguntas">
-      {preguntas.map((x, i) => {
-        const contenido = (
-          <>
-            <span className="sl-listo-marca" aria-hidden>
-              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-                <path d={x.hecho ? "M6 12.5l4 4L18 8.5" : "M12 7v6M12 16.5v.1"} strokeWidth="2.2" />
-              </svg>
-            </span>
-            <span className="font-medium">
-              {x.nombre}
-              <span className="sr-only">{x.hecho ? ": respondida" : ": falta"}</span>
-            </span>
-            <span className="sl-listo-detalle">{x.detalle}</span>
-            {editable && (
-              <span className="sl-pregunta-ir" aria-hidden>
-                {x.clave === sigue ? <span className="hilo-etiqueta">Sigue</span> : null}
-                <ChevronRight className="h-4 w-4" />
-              </span>
-            )}
-          </>
-        );
-        return editable ? (
-          <button
-            key={x.clave}
-            type="button"
-            data-guia={x.clave === "oferta" ? "sellos.pregunta-oferta" : undefined}
-            className={`sl-listo-fila sl-pregunta ${x.clave === sigue ? "sl-pregunta-sigue" : ""}`}
-            data-estado={x.hecho ? "hecho" : "falta"}
-            style={{ "--i": i } as CSSProperties}
-            onClick={() => onResponder(x.clave)}
-          >
-            {contenido}
-          </button>
-        ) : (
-          <div key={x.clave} className="sl-listo-fila" data-estado={x.hecho ? "hecho" : "falta"} style={{ "--i": i } as CSSProperties}>
-            {contenido}
-          </div>
-        );
-      })}
-      </div>
-      {sigue === "oferta" && <p className="mt-3 text-sm text-tinta/65">Una campaña sin oferta solo pone su insignia en las prendas y en la web: no cambia ningún precio.</p>}
     </div>
   );
 }
