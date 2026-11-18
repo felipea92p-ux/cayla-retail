@@ -32,8 +32,8 @@ import {
 const ESPERA_ANTES_DE_AVISAR_MS = 180;
 /** Una imagen que no responde en tanto se da por no medible: se queda la caja de siempre y el aviso se va. */
 const LIMITE_POR_RECORTE_MS = 4000;
-// v4: las medidas vienen de la tienda. Lo recordado antes lo midió el navegador, y en Safari 26 puede estar arruinado por el ruido: se vuelve a pedir.
-const CLAVE_GUARDADA = "cayla-union-v4";
+// v5: las medidas traen el contorno fino (2026-11-17). Lo recordado antes (v4 y anteriores) no lo trae, y sin él la unión no puede verificar que cubra la pretina: se vuelve a pedir.
+const CLAVE_GUARDADA = "cayla-union-v5";
 
 /** Lo que se midió de cada recorte (por su dirección); `null`: no se pudo. Dura lo que dura la pestaña, más lo recordado de otras visitas. */
 const medidas = new Map<string, MedidaDelRecorte | null>();
