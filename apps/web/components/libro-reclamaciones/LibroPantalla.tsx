@@ -210,7 +210,7 @@ export function LibroPantalla({ libro, abiertaInicial }: { libro: ListaLibro; ab
                 >
                   <span className="min-w-0">
                     <span className={`block tabular-nums text-tinta ${e !== "respondida" ? "font-semibold" : ""}`}>N.° {h.codigo}</span>
-                    <span className="block text-[12px] text-taupe">
+                    <span className="texto-detalle block text-taupe">
                       {h.tipo === "reclamo" ? "Reclamo" : "Queja"} · {fechaCorta(h.creada_en)}
                     </span>
                   </span>
@@ -219,19 +219,19 @@ export function LibroPantalla({ libro, abiertaInicial }: { libro: ListaLibro; ab
                   </span>
                   <span className="col-span-2 min-w-0 sm:col-span-1">
                     <span className="block truncate text-tinta">{h.consumidor.nombre}</span>
-                    <span className="block truncate text-[13px] text-taupe">
+                    <span className="texto-detalle block truncate text-taupe">
                       {h.bien.descripcion} — {h.detalle}
                     </span>
                   </span>
                   <span className="hidden flex-col items-start gap-1 sm:flex">
                     <Chip tono={INSIGNIA[e].tono}>{INSIGNIA[e].texto}</Chip>
-                    <span className="text-[12px] text-taupe">{plazoEnPalabras(h)}</span>
+                    <span className="texto-detalle text-taupe">{plazoEnPalabras(h)}</span>
                   </span>
                 </div>
               );
             })}
             {paginas > 1 && (
-              <div className="flex items-center justify-between gap-3 px-5 py-2.5 text-xs text-taupe">
+              <div className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm text-taupe">
                 <span>
                   {visibles.length} {visibles.length === 1 ? "hoja" : "hojas"}
                 </span>
@@ -242,7 +242,7 @@ export function LibroPantalla({ libro, abiertaInicial }: { libro: ListaLibro; ab
         )}
       </Tabla>
 
-      <div className="nota-cayla space-y-2 text-[13px]" data-guia="libro.nota">
+      <div className="nota-cayla space-y-2" data-guia="libro.nota">
         <p>
           15 días hábiles para responder, sin sábados, domingos ni feriados. Una hoja no se borra ni se corrige.
           {libro.hayMas ? " Aquí se ven las 1000 más nuevas." : ""}

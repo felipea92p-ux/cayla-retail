@@ -153,7 +153,6 @@ export function HojaCajon({
               <Boton
                 type="button"
                 peso="primario"
-                cargando={false}
                 confirma={guia}
                 title={guia.frase ?? undefined}
                 className={guia.claseConfirmar}
@@ -167,7 +166,7 @@ export function HojaCajon({
       }
     >
       <div className="space-y-6">
-        <section data-guia="libro.plazo" className="nota-cayla sin-i text-[13.5px]">
+        <section data-guia="libro.plazo" className="nota-cayla sin-i text-sm">
           <p className="font-semibold text-tinta">{plazoEnPalabras(h)}</p>
           {!h.respuesta && (
             <p className="text-taupe">
@@ -268,7 +267,7 @@ export function HojaCajon({
 
 function Datos({ filas }: { filas: [string, string][] }) {
   return (
-    <dl className="grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-[13.5px]">
+    <dl className="grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-sm">
       {filas.map(([t, v]) => (
         <div key={t} className="contents">
           <dt className="text-taupe">{t}</dt>
