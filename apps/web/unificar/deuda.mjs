@@ -31,6 +31,14 @@ function recorrer(dir, salida = []) {
   return salida;
 }
 
+// Los archivos de `CARPETAS`, leídos una sola vez por proceso: `lib/unificar.test.ts` pide la deuda de cada decisión (más de 40) y releer
+// el árbol entero en cada una era casi todo su tiempo (medido el 2026-11-18).
+let leidos = null;
+function archivosLeidos() {
+  leidos ??= CARPETAS.flatMap((c) => recorrer(join(WEB, c))).map((ruta) => ({ rel: relative(WEB, ruta), lineas: readFileSync(ruta, "utf8").split("\n") }));
+  return leidos;
+}
+
 /** Los archivos (relativos a apps/web) que tienen la firma de la familia, con las líneas donde aparece. */
 export function deudaDe(id) {
   const d = DECISIONES[id];
@@ -39,10 +47,8 @@ export function deudaDe(id) {
   // La pieza elegida, las que la acompañan y lo que un ADR deja como está no son deuda.
   const fuera = new Set([d.pieza, ...(d.tambien ?? []), ...(d.excepciones ?? []).map((e) => e.archivo)]);
   const sal = [];
-  for (const ruta of CARPETAS.flatMap((c) => recorrer(join(WEB, c)))) {
-    const rel = relative(WEB, ruta);
+  for (const { rel, lineas } of archivosLeidos()) {
     if (fuera.has(rel)) continue;
-    const lineas = readFileSync(ruta, "utf8").split("\n");
     // Un comentario que nombra la forma vieja («antes era «← Volver a …»») no la dibuja: no es deuda.
     const esComentario = (l) => /^\s*(\/\/|\/\*|\*|\{\s*\/\*)/.test(l);
     // Con `ventana`, la firma mira esa línea y las siguientes (un botón cuyo texto «+ Nuevo…» va en otra línea que su clase), pero

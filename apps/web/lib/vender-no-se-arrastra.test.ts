@@ -43,23 +43,37 @@ function modulosConValor(ruta: string, fuente: string): string[] {
   return modulos;
 }
 
+// Cada `@/lib/money` se escribe en cientos de archivos: la ruta ya resuelta no vuelve a preguntarle al disco.
+const resueltos = new Map<string, string | null>();
 function resolver(desde: string, modulo: string): string | null {
   const base = modulo.startsWith("@/") ? join(WEB, modulo.slice(2)) : modulo.startsWith(".") ? resolve(dirname(join(WEB, desde)), modulo) : null;
   if (!base) return null;
-  if (existsSync(base) && statSync(base).isFile()) return relative(WEB, base);
-  for (const e of EXTENSIONES) if (existsSync(base + e)) return relative(WEB, base + e);
-  return null;
+  let ruta = resueltos.get(base);
+  if (ruta === undefined) {
+    ruta = existsSync(base) && statSync(base).isFile() ? relative(WEB, base) : null;
+    for (const e of EXTENSIONES) if (!ruta && existsSync(base + e)) ruta = relative(WEB, base + e);
+    resueltos.set(base, ruta);
+  }
+  return ruta;
 }
 
-const importsDe = new Map<string, string[]>();
-function importsFijos(archivo: string): string[] {
-  let lista = importsDe.get(archivo);
-  if (!lista) {
-    lista = modulosConValor(archivo, readFileSync(join(WEB, archivo), "utf8")).flatMap((m) => resolver(archivo, m) ?? []);
-    importsDe.set(archivo, lista);
+/**
+ * Lo que importa cada archivo con un import fijo: los módulos tal como están escritos (para reconocer `zod`, que no es un archivo del
+ * ERP) y los archivos del ERP a los que llegan. Se arma UNA vez por archivo: analizarlo con TypeScript es lo caro (~700 ms los ~2 700
+ * archivos, medido el 2026-11-18), y hasta ese día el caso de zod lo repetía entero y vencía los 5 s con la suite en paralelo.
+ */
+const nodos = new Map<string, { modulos: string[]; fijos: string[] }>();
+function nodo(archivo: string) {
+  let n = nodos.get(archivo);
+  if (!n) {
+    const modulos = modulosConValor(archivo, readFileSync(join(WEB, archivo), "utf8"));
+    n = { modulos, fijos: modulos.flatMap((m) => resolver(archivo, m) ?? []) };
+    nodos.set(archivo, n);
   }
-  return lista;
+  return n;
 }
+const importsFijos = (archivo: string) => nodo(archivo).fijos;
+const usaZod = (archivo: string) => nodo(archivo).modulos.some((m) => m === "zod" || m.startsWith("zod/"));
 
 /** El camino de imports fijos de `desde` a `hasta`, o `null` si no hay. */
 function camino(desde: string, hasta: string): string[] | null {
@@ -81,10 +95,33 @@ function camino(desde: string, hasta: string): string[] | null {
   return null;
 }
 
+/** Los archivos de `archivos` desde los que hay camino de imports fijos hasta alguno de `destinos` (ellos incluidos). Sube al revés, de
+ *  cada destino a quien lo importa, así que recorre el grafo una sola vez para todos los componentes a la vez. */
+function quienesLlegan(archivos: string[], destinos: string[], importsDe: (a: string) => string[]): Set<string> {
+  const quienImporta = new Map<string, string[]>();
+  for (const a of archivos)
+    for (const h of importsDe(a)) {
+      const padres = quienImporta.get(h);
+      if (padres) padres.push(a);
+      else quienImporta.set(h, [a]);
+    }
+  const alcanzan = new Set(destinos);
+  const cola = [...destinos];
+  while (cola.length > 0) {
+    for (const padre of quienImporta.get(cola.pop()!) ?? []) {
+      if (alcanzan.has(padre)) continue;
+      alcanzan.add(padre);
+      cola.push(padre);
+    }
+  }
+  return alcanzan;
+}
+
 // Leer y analizar todos los archivos del ERP una sola vez, antes de las pruebas y con margen: con la suite completa en paralelo, la primera
 // prueba que lo pagaba pasaba de los 5 s de límite (2026-11-17). Después, cada camino sale de la memoria.
+const TODOS = ["components", "app", "lib"].flatMap(archivosDe);
 beforeAll(() => {
-  for (const a of ["components", "app", "lib"].flatMap(archivosDe)) importsFijos(a);
+  for (const a of TODOS) nodo(a);
 }, 60_000);
 
 const VENDER = "components/PuntoDeVenta.tsx";
@@ -103,15 +140,13 @@ describe("cómo se reconoce un import que arrastra", () => {
 });
 
 describe("la pantalla de Vender no viaja a otras pantallas (ADR-0674)", () => {
-  const todos = ["components", "app", "lib"].flatMap(archivosDe);
-
   it("solo la ruta /vender importa un valor de la pantalla de Vender; para un tipo, `import type`", () => {
-    const culpables = todos.filter((a) => a !== "app/(app)/vender/page.tsx" && importsFijos(a).includes(VENDER));
+    const culpables = TODOS.filter((a) => a !== "app/(app)/vender/page.tsx" && importsFijos(a).includes(VENDER));
     expect(culpables, `Importan un valor de ${VENDER} y se llevan la pantalla de Vender entera. Lo que sirve a más de una pantalla vive en lib/ o en su propio archivo (como lib/money.ts):`).toEqual([]);
   });
 
   it("solo la pantalla de Vender importa un valor de su ticket", () => {
-    const culpables = todos.filter((a) => a !== VENDER && importsFijos(a).includes(TICKET));
+    const culpables = TODOS.filter((a) => a !== VENDER && importsFijos(a).includes(TICKET));
     expect(culpables, `Importan un valor de ${TICKET} (que trae a Vender detrás). El ícono de un medio vive en components/punto-de-venta/iconoMetodo.tsx:`).toEqual([]);
   });
 
@@ -162,26 +197,26 @@ describe("Preguntas del equipo no baja el texto de las guías ni zod (ADR-0674)"
 // importe cualquier cosa, aunque sea una constante: así la bajaban Configuración (por `TOPE_MENSUAL_USD`) y Preguntas del equipo. Lo que el
 // navegador necesita de esos archivos vive aparte (`lib/asistente/limites.ts`); el esquema, en un archivo que solo importa el servidor.
 describe("ningún componente llega a zod por un import fijo (ADR-0674)", () => {
-  const todos = ["components", "app", "lib"].flatMap(archivosDe);
-  const usaZod = (a: string) => modulosConValor(a, readFileSync(join(WEB, a), "utf8")).some((m) => m === "zod" || m.startsWith("zod/"));
+  const componentesConZod = (importsDe: (a: string) => string[], archivos = TODOS) =>
+    [...quienesLlegan(archivos, TODOS.filter(usaZod), importsDe)].filter((a) => a.startsWith("components/")).sort();
 
   it("desde components/ no hay camino de imports fijos hasta un archivo que importa zod", () => {
-    const conZod = todos.filter(usaZod);
+    const conZod = TODOS.filter(usaZod);
     expect(conZod.length, "el detector no está ciego: hay archivos que importan zod").toBeGreaterThan(0);
-    // Quién importa a quién, al revés: desde los archivos con zod se sube hasta todo el que los alcanza.
-    const quienImporta = new Map<string, string[]>();
-    for (const a of todos) for (const h of importsFijos(a)) quienImporta.set(h, [...(quienImporta.get(h) ?? []), a]);
-    const alcanzan = new Set(conZod);
-    const cola = [...conZod];
-    while (cola.length > 0) {
-      for (const padre of quienImporta.get(cola.pop()!) ?? []) {
-        if (alcanzan.has(padre)) continue;
-        alcanzan.add(padre);
-        cola.push(padre);
-      }
-    }
-    const culpables = [...alcanzan].filter((a) => a.startsWith("components/")).sort();
-    expect(culpables, `Estos componentes llegan a zod por un import fijo y lo bajan entero. Lo que necesiten de ese archivo va en uno aparte, sin zod (como lib/asistente/limites.ts). Archivos con zod: ${conZod.join(", ")}`).toEqual([]);
+    expect(componentesConZod(importsFijos), `Estos componentes llegan a zod por un import fijo y lo bajan entero. Lo que necesiten de ese archivo va en uno aparte, sin zod (como lib/asistente/limites.ts). Archivos con zod: ${conZod.join(", ")}`).toEqual([]);
+  });
+
+  // El mutante: el grafo real más dos componentes inventados, uno que importa un archivo con zod y otro que llega por un archivo intermedio.
+  // Si el detector dejara de verlos (o el grafo se armara vacío), esto falla.
+  it("un componente que importa algo con zod, directo o por un archivo de en medio, sí lo detecta", () => {
+    const conZod = TODOS.filter(usaZod)[0];
+    const falsos: Record<string, string[]> = {
+      "components/MutanteDirecto.tsx": [conZod],
+      "components/MutanteIndirecto.tsx": ["lib/mutante-puente.ts"],
+      "lib/mutante-puente.ts": [conZod],
+    };
+    const importsDe = (a: string) => falsos[a] ?? importsFijos(a);
+    expect(componentesConZod(importsDe, [...TODOS, ...Object.keys(falsos)])).toEqual(expect.arrayContaining(["components/MutanteDirecto.tsx", "components/MutanteIndirecto.tsx"]));
   });
 });
 

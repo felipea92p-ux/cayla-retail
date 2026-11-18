@@ -56,7 +56,9 @@ function archivos(dir: string, ext: RegExp): string[] {
 }
 
 const globals = leer("app/globals.css");
-const fuentes = ["components", "app", "lib"].flatMap((d) => archivos(d, /\.(tsx?|mjs)$/));
+// Cada fuente se lee una vez: la prueba de abajo las recorre una vez por cada CSS de la lista (hoy 12), y leerlas en cada vuelta era casi todo
+// su tiempo (medido el 2026-11-18).
+const fuentes = ["components", "app", "lib"].flatMap((d) => archivos(d, /\.(tsx?|mjs)$/)).map((ruta) => ({ ruta, texto: leer(ruta) }));
 const cssGlobales = [...globals.matchAll(/@import "\.\/(estilos\/[^"]+)"/g)].map((m) => m[1]);
 
 describe("CSS por pantalla (ADR-0674)", () => {
@@ -81,24 +83,22 @@ describe("CSS por pantalla (ADR-0674)", () => {
       // Una sola expresión con todas las clases: la clase dentro de un texto (comillas, comilla invertida o espacio a cada lado).
       const re = new RegExp(`["'\`\\s](?:${clases.map((c) => c.replace(/-/g, "\\-")).join("|")})(?=["'\`\\s])`);
       const importa = `import "@/app/estilos/${entrada}";`;
-      for (const f of fuentes) {
-        const texto = leer(f);
-        if (re.test(texto) && !texto.includes(importa)) faltan.push(`${f} → ${importa}`);
-      }
+      for (const { ruta, texto } of fuentes) if (re.test(texto) && !texto.includes(importa)) faltan.push(`${ruta} → ${importa}`);
     }
     expect(faltan, "Este archivo usa clases de un CSS que ya no es global: impórtalo").toEqual([]);
   });
 
   it("ningún CSS global menciona sus clases (al cargarse aparte, el orden se invertiría)", () => {
     const choques: string[] = [];
-    const globalesConCuerpo = [...cssGlobales.map((g) => ({ nombre: g, css: leer(path.join("app", g)) })), { nombre: "globals.css", css: globals }];
+    // Sin comentarios desde ya: la vuelta de abajo los mira una vez por cada clase.
+    const globalesConCuerpo = [...cssGlobales.map((g) => ({ nombre: g, css: leer(path.join("app", g)) })), { nombre: "globals.css", css: globals }].map((g) => ({ ...g, css: sinComentarios(g.css) }));
     for (const [entrada, miembros] of Object.entries(POR_PANTALLA)) {
       const permitidos = IBAN_ANTES[entrada] ?? [];
       for (const miembro of miembros) {
         for (const clase of clasesDe(leer(path.join(ESTILOS, miembro)))) {
           const re = new RegExp(`\\.${clase.replace(/-/g, "\\-")}(?![a-z0-9_-])`);
           for (const g of globalesConCuerpo) {
-            if (!permitidos.includes(g.nombre) && re.test(sinComentarios(g.css))) choques.push(`${g.nombre} menciona .${clase} (de ${miembro})`);
+            if (!permitidos.includes(g.nombre) && re.test(g.css)) choques.push(`${g.nombre} menciona .${clase} (de ${miembro})`);
           }
         }
       }
