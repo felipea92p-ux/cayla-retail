@@ -150,7 +150,7 @@
     margin-top: 14px;
     overflow: hidden;
     border-radius: 2px;
-    background: var(--color-sand);
+    background: var(--color-sand); /* beige-fijo: línea del conector, no una superficie */
   }
 
   /* ---------- Un pago nuevo en el historial ---------- */

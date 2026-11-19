@@ -206,7 +206,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--color-hueso);
+  background: var(--color-hueso); /* beige-fijo: agujero de la etiqueta, objeto físico */
   box-shadow: inset 0 1px 2px color-mix(in srgb, var(--color-sombra) 25%, transparent);
 }
 .caja-cerrada-cara::before { left: 52px; }

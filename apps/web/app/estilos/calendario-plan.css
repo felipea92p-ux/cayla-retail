@@ -30,7 +30,7 @@
   top: 13px;
   height: 4px;
   border-radius: 99px;
-  background: var(--color-sand);
+  background: var(--color-sand); /* beige-fijo: pista del rango */
 }
 /* La marca de «un día normal» (×1). */
 .cal-rng-uno {
@@ -174,7 +174,7 @@
 }
 @media (hover: hover) {
   .cal-linea-fila:hover {
-    background: var(--color-hueso);
+    background: var(--gota-fondo);
   }
 }
 .cal-linea-nombre {
@@ -190,7 +190,7 @@
 .cal-linea-pista {
   position: relative;
   height: 36px;
-  background: repeating-linear-gradient(90deg, transparent 0 calc(100% / 12 - 1px), var(--color-sand) calc(100% / 12 - 1px) calc(100% / 12));
+  background: repeating-linear-gradient(90deg, transparent 0 calc(100% / 12 - 1px), var(--color-sand) calc(100% / 12 - 1px) calc(100% / 12)); /* beige-fijo: rejilla de meses, no una superficie */
 }
 .cal-barra {
   position: absolute;
