@@ -12,7 +12,8 @@
 - [x] **Toque chico en la cabecera** (toda pantalla, desde 401 px de ancho): el colibrí que lleva al Inicio mide 39 × 26 px (`components/AppShell.tsx:1221`).
 - [ ] Menores: «Volver al ticket» de la hoja de cobro mide 42 × 42; «Dejar en espera» a 360 px queda en un ícono de 38 px de ancho; en Historial la última píldora de período se corta en seco contra «Filtros» y sus áreas se pisan (360 y 430).
 
-- [ ] Los cuatro toques de arriba se arreglaron sumando `area-dedo` a cada control (el colibrí además se dibuja de 44 px). Falta **verlos con el código de esta rama corriendo**: el «después» se comprobó aplicando la misma clase en vivo sobre el servidor local, que corría otra rama.
+- [x] Los cuatro toques de arriba se arreglaron sumando `area-dedo` a cada control (el colibrí además se dibuja de 44 px) y se comprobaron con el código de esta rama corriendo: informe `docs/milimetro/auditorias/2026-11-18-toques-de-44-en-celular.md`, 0 hallazgos de la rama.
+- [ ] Heredado que anotó esa auditoría: la versalita de «Opciones» de Apartados mide 10,5 px (la regla pide 11), y el medidor de color no pudo medir los textos con el panel del navegador oculto.
 
 ### Pendiente del modo celular
 
