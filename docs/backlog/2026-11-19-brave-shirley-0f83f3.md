@@ -1,5 +1,5 @@
 
-## 📌 «Prendas parecidas» a pantalla completa: la reserva y el buscador pegado (2026-11-19, ADR-0185 act.) — solo web, sin migración; rama `claude/brave-shirley-0f83f3` (sobre `claude/elegant-bose-26f256`, PR #1960, con `main` traído)
+## 📌 «Prendas parecidas» a pantalla completa: la reserva y el buscador pegado (2026-11-19, ADR-0185 act.) — solo web, sin migración; rama `claude/brave-shirley-0f83f3` (sobre `main` con el PR #1960 ya fusionado)
 
 - [x] `<PaginaEstable>` ya no se salta la hoja de un `<Modal>` aunque sea `position: fixed`: `flotaSobreOtraSuperficie` en `lib/pagina-estable-reglas.ts`, y `contenedorDe` (`components/ui/PaginaEstable.tsx`) le pregunta con la capa de las listas flotantes (`:scope > [data-capa-flotante]`). Medido al plegar la última tarjeta: a 1024 × 768 la vista pasa de 5980 → 5772 a quedarse en 5980 (208 px reservados, pie 686..767 con el borde en 768, 0 px encima); a 375 × 812, de 8799 → 8570 a quedarse en 8799 (229 px, pie 699..811, 0 px encima). Claro y oscuro; al subir se suelta.
 - [x] El combo dentro de una hoja sigue igual: en «Registrar gasto», a 1024 × 768 y 375 × 812, la lista abre en la capa, elegir la cierra y nada queda con relleno ni variable.
