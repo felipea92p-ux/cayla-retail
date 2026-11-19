@@ -44,3 +44,18 @@
 - [ ] **Cuatro suites de la base no aceptan otro contenedor** (`eliminar_producto`, `eliminar_producto_con_historia`, `una_sola_firma`,
   `deriva_produccion` lo llevan escrito a mano): con `--contenedor` corren igual contra la base local compartida. Hacen ROLLBACK y no
   dejan nada, pero el resultado no es el de la base que se pidió.
+
+## El beige plano fuera del ERP (2026-11-19) · pendientes
+
+- [ ] **Avisar en Dynamic (tarea a mano allá):** cambiaron piezas que Dynamic mira y no viajan solas: `components/ui/` (`Chip` neutro,
+  `FiltrosPildora`, `ResumenSede`, `FotoDePrenda`, `FotoPrenda`, `CampoFecha`, `AvisoDestacado`) y `app/estilos/vidrio/` (`rellenos.css`
+  nueva; `campos-y-botones`, `fusionar`, `notas-avisos-combos`, `pantalla-en-vidrio`, `avisos-espera`, `hoja`, `recibir-mesa`). `recetas.css`
+  no cambió: nada viaja solo.
+- [ ] **Mirar a ojo módulo por módulo** (claro, oscuro, 375 px): se revisaron en el navegador Existencias, Productos, Nuevo producto,
+  Finanzas ▸ Resumen y la hoja de ofertas. Lo dudoso que dejaron los lotes: la fila marcada contra la abierta en Inventario y Existencias por
+  prenda (marcada = `vd-hundido`, abierta = `vd-marca`), el foco de `.club-input` (ganó un `box-shadow`), el punto de la galería de Recibir
+  sobre una foto, y el degradado del panel de Tráfico, que quedó plano.
+- [ ] **¿El ámbar de «falta colgar» de Existencias se queda?** No es beige (es la lente que pide, 2026-11-02), pero a la vista se parece.
+- [ ] **Los esqueletos de carga (`loading.tsx`) siguen en arena:** son momentáneos y no los cuenta el candado. Si Felipe los quiere en
+  vidrio, es una pieza (`EsqueletoPantalla`).
+

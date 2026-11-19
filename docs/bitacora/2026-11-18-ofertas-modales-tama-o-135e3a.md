@@ -29,3 +29,10 @@
   fusión de productos; leer una etiqueta agrega su color con todas sus tallas; el nombre, la frase y el cartel lo dicen. Seis migraciones,
   **ninguna en producción**. En una base limpia: 44 de 44 en su suite y las otras 17 de campañas, fusionar y eliminar en verde. De paso se
   arregló el pie cortado al editar en el celular.
+- **2026-11-19 · Fuera el beige plano de todo el ERP (Felipe: «ese color plano le quita la estética al sistema, quítalo de donde sea
+  que aparezca»).** 798 rellenos `hueso`/`sand` en 307 archivos pasaron a vidrio con las clases nuevas `vd-*`
+  (`app/estilos/vidrio/rellenos.css`) o a su receta; ~170 que no son superficie (pistas y escalas de gráficos, líneas, esqueletos,
+  papel impreso, muestras de prenda sin color) llevan `beige-fijo: <motivo>`. Candado: `lib/beige-plano.test.ts`, deuda 0. Verificado:
+  todas las pruebas de la web, Knip, lint y el navegador en Existencias, Productos (claro y oscuro), Nuevo producto, Finanzas y la hoja
+  de ofertas. Sin mirar una por una las ~300 pantallas.
+
