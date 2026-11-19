@@ -145,3 +145,20 @@ SE ROMPE SI: la base no responde: el paso se pierde y queda una línea `trafico_
 La pantalla se rehízo sobre la misma medición: períodos que se comparan como se piensa, cifras que eligen el gráfico, 100 puntos, mapa de calor,
 el Perú pintado por departamento, la tabla de prendas (la vitrina de baldosas se fue), tallas que faltan, «Necesita tu atención» y el calendario.
 `resumen_trafico_web` pasó a 7 parámetros. Las decisiones, lo que se apartó a propósito y el orden de pegado, en ADR-0568.
+
+## Actualización 2026-11-18 — «Hoy» no depende de que la base haya medido el día
+
+El 18 de noviembre, desde las 6:53 p. m., «Hoy» mostró «No se pudo leer el tráfico de la tienda web»: Postgres había medido `retail.trafico_web`
+la noche anterior, calculaba 1 fila para el día (eran 372) y `fn_trafico_web_personas` cruzaba la lista de pasos consigo misma con bucles
+anidados (3,1 s por llamada contra 7 ms del día anterior; el resumen la llama 4 veces y Supabase corta a los 8 s). Dos decisiones, en
+`20261119002000_trafico_web_un_dia_sin_medir.sql`:
+
+- **Una función de Tráfico no cruza la lista de pasos consigo misma.** `fn_trafico_web_personas` cuenta en una pasada (funciones de ventana):
+  sin cruce no hay plan que elegir, y tarda lo mismo calcule Postgres 1 fila o 10.000. Devuelve lo mismo que antes (comparado en producción:
+  33.712 filas, ninguna diferencia).
+- **`retail.trafico_web` se mide sola cada 50 pasos nuevos**, no cada 10 % de la tabla (`autovacuum_analyze_scale_factor = 0`,
+  `autovacuum_analyze_threshold = 50`). Con el 10 %, el umbral crecía con la tabla y un día entero podía quedar sin medir. Protege a lo que
+  sí cruza esta tabla con otras (`fn_trafico_web_prendas`, las tallas).
+
+Lo vigila el caso 19 de `pruebas:tienda-trafico-resumen`. Es la segunda vez que Tráfico se corta a los 8 s por lo mismo visto desde otro lado
+(`20261101004000`: la función no se abría dentro de la consulta): un cruce cuyo costo depende de que la base adivine cuántas filas hay.
