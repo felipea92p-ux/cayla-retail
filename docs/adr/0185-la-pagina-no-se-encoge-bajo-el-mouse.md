@@ -173,8 +173,10 @@ salir de la vista y se queda hasta cerrar la hoja o hasta que el contenido vuelv
 gasto» a 1440 × 900). Si molesta, la salida es la de siempre: el bloque que cambia de alto reserva su lugar, o la hoja lleva `data-sin-reserva`.
 
 **Lo que no cubre.**
-- **Un pie pegado hecho a mano.** `ModalesApartado` (`sticky -bottom-6`), `.parecidas-hoja-pie` (`alta-parecidas.css`) y el de `FichaOrden` no usan la
-  clase: siguen quedando arriba con la reserva puesta. Se arreglan pasándolos a `pie-hoja-fijo`.
+- **Un pie pegado hecho a mano.** ~~`ModalesApartado` (`sticky -bottom-6`), `.parecidas-hoja-pie` (`alta-parecidas.css`) y el de `FichaOrden` no usan
+  la clase: siguen quedando arriba con la reserva puesta.~~ **Resuelto el mismo día** (ver «Los tres pies hechos a mano», abajo): los dos que viven en
+  una hoja ya son `pie-hoja-fijo`; el de `FichaOrden` vive en la página y la reserva no lo mueve. Un pie nuevo no se dibuja con un `sticky` propio:
+  lleva la clase (`lib/pagina-estable-pie.test.ts` vigila que estos dos no vuelvan atrás).
 - **Si lo que hay antes del pie, dentro de su caja, mide menos que la reserva** (un `<form>` muy corto bajo un encabezado alto), al subir casi toda la
   reserva el pie puede bajar del borde por la diferencia, hasta que la reserva se suelta. Sale de la cuenta de `sticky`; no se logró reproducir en una hoja real.
 - **La barra de íconos de la vista rápida** (`.vr-iconos`, celular) declara su propia transición de `translate`: con las animaciones encendidas bajaría en
@@ -188,3 +190,45 @@ gasto» a 1440 × 900). Si molesta, la salida es la de siempre: el bloque que ca
 transición y la variable); (2) en sus reglas puras, `VARIABLE_RESERVA` y `reservaPublicada`; (3) en su `.pie-hoja-fijo`, las dos líneas (`translate` y
 `transition-property: none`); (4) la prueba `pagina-estable-pie.test.ts`. El punto 1 importa aunque Dynamic no tenga pie pegado: sin él, con las
 animaciones apagadas la vista se sube sola.
+
+### Los tres pies hechos a mano (2026-11-18, mismo día; rama `claude/elegant-bose-26f256`)
+
+Se midió cada uno antes de tocarlo. «Pie» y «borde» son píxeles desde arriba de la pantalla; «encima» es cuánto tapa el pie al contenido al subir la vista
+con la reserva puesta (40 px en Apartados, 60 en parecidas).
+
+| Pie | Dónde vive | Antes | Después |
+|---|---|---|---|
+| «Apartado registrado» (`ModalesApartado`), 1024 × 768, 78 px reservados | hoja de `<Modal>` | relleno 106; pie 504,7..661 (borde 743): 82 de hueco, 24,4 encima | pie 582,7..743: 0 de hueco, 0 encima |
+| lo mismo, 375 × 812 | hoja | pie 568,8..733 (borde 811): 78 de hueco, 24,2 encima | pie 646,8..811: 0 y 0 |
+| «Apartado entregado», 375 × 812, 48 px reservados | hoja | pie 598,8..763 (borde 811) | pie 646,8..811 |
+| «Prendas parecidas» (`.parecidas-hoja-pie`), 1280 × 720, «No, es otro diseño» en la última tarjeta (208 px menos) | hoja de `<Modal>` | relleno 236; pie 413,8..482,8 (borde 695): 212 de hueco, 59,8 encima | pie 613,8..694,8: 0 y 0 |
+| lo mismo, 1024 × 768 y 375 × 812 | pantalla completa, `position: fixed` | sin reserva (ver abajo); pie 694..763 de 767 y 707..811 de 811 | pie 686..767 y 699..811 |
+| la ficha de «Nueva orden» (`FichaOrden`), 1024 × 768 | **la página** | 339 px reservados en el `body`, sin variable; ficha 514..768 de 768 | no se tocó |
+
+- **Apartados y parecidas pasan a `pie-hoja-fijo`.** Conservan lo suyo (la línea de arriba, el aire entre sus filas, `margin-top: auto` en la pantalla
+  completa de parecidas y, entre 640 y 1279 px, el área segura de abajo sumada por dentro); el pegado, los márgenes, el fondo y lo que baja con la
+  reserva son los del sistema. Tres cosas cambian a la vista, además de la reserva: el fondo es el vidrio del pie (antes crema y papel sólidos), el pie
+  llega al borde de la hoja de vidrio (hacía sus cuentas con 24 px de relleno y la hoja tiene 28 desde 640: quedaba 4 px corto abajo y a los lados, y
+  lo de atrás asomaba), y el de parecidas crece 8 a 12 px (su relleno de abajo era de 16).
+- **En Apartados el defecto no se podía provocar con los controles de la hoja:** marcar sus tres casillas no cambia su alto (medido: 0, 0 y 0 px). Las
+  cifras de arriba salen de un clic que quita a propósito la tarjeta del vuelto. Se migró igual: vive en una hoja que se desliza y reserva, y lo de los
+  4 px sí se veía. En parecidas el defecto era real: «No, es otro diseño» pliega la tarjeta.
+- **`FichaOrden` no es un pie de hoja.** Bajo 880 px de su tarjeta es una barra pegada al fondo de la **página** (lo que se desliza es la página: ADR-0509);
+  la reserva va al `body`, no publica variable y el pegado se mide desde la pantalla. Además no pueden darse a la vez: si la barra está pegada, la tarjeta
+  sigue por debajo de la pantalla y la página no se recorta. Desde 880 px es una columna pegada arriba. Llevar `pie-hoja-fijo` sería un error (bajaría
+  con la reserva de una hoja abierta encima).
+- **Las dos hojas de Apartados se abrieron con datos inventados** desde una página temporal que no se subió (solo salen después de guardar): nada se
+  escribió en la base. Oscuro: las mismas cifras en las cuatro filas de hoja. Capturas: `docs/capturas/2026-11-18-pies-pegados-a-mano/`. Auditoría:
+  `docs/milimetro/auditorias/2026-11-18-pies-pegados-a-mano.md` (0 graves, 0 medias).
+
+**Lo que apareció midiendo y sigue abierto.**
+- **Bajo 1280 px la hoja de «Prendas parecidas» es `position: fixed` y `<PaginaEstable>` la salta** (`contenedorDe` ignora lo `fixed`, pensado para la
+  lista de un combo): no reserva y la vista se sube sola al plegar una tarjeta (medido: 208 px a 1024 × 768 y 287 px a 375 × 812, antes y después de
+  este cambio). Es justo lo que este ADR quiere evitar, en la pantalla completa de esa hoja.
+- **El buscador pegado arriba de esa hoja** (`.parecidas-busqueda`) sigue hecho a mano con las cuentas de 24 px y fondo papel sólido: 4 px corto en la
+  hoja de vidrio. No lo afecta la reserva (se pega arriba).
+- **Pasar por el corte de 640 px con una reserva puesta** (girar un teléfono) deja el pie 4 px arriba del borde hasta que la reserva se suelta: el
+  relleno reservado se escribió con el relleno de 28 px y bajo 640 es de 24. Vale para todo `pie-hoja-fijo`.
+
+**CAYLA Dynamic.** Nada viaja y nada queda como tarea allá por este cambio: no toca `vidrio/recetas.css`, el contrato, el resto de `estilos/vidrio/` ni
+`components/ui/`. Solo si Dynamic tuviera un pie pegado propio dibujado con `sticky` a mano, la lección es la misma: que use su `.pie-hoja-fijo`.
