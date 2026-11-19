@@ -52,6 +52,20 @@ Rama `claude/system-aesthetics-analysis-96733d`. ADR-0681. Primero la maqueta; d
 - [x] **«El fondo tiene que abarcar el menú lateral»**. El riel de escritorio quedó sin fondo propio (`estilos/vidrio/marco.css`); en modo
       liviano vuelve al liso. El medidor de color dio 0 fallas de texto en el menú, en claro y en oscuro.
 
+## Lámina de ocho mejoras de estética (2026-11-19)
+
+`docs/maquetas/ocho-mejoras-2026-11/`. Solo propuesta: nada del ERP cambió. Mi orden después de verlas:
+
+- [ ] **1 · Fotos recortadas.** 11 de 18 fotos a la vista en Productos y 7 de 12 en Existencias traen fondo claro. Recortarlas con
+      IA cuesta por foto: decide Felipe.
+- [ ] **3 · Animaciones encendidas de fábrica**, con un modo ligero. Reabre ADR-0625: decide Felipe.
+- [ ] **5 · La foto que viaja a la hoja** (View Transitions; `<ViewTransition>` pide React 19.3). Cambia ADR-0136: decide Felipe.
+- [ ] **2 · Cifras alineadas.** DM Sans no trae cifras de ancho fijo; los dígitos saldrían de Inter por `unicode-range`.
+- [ ] **6 · La cabecera que se pliega al bajar** (animación guiada por el scroll, en CSS).
+- [ ] **8 · El rojo en gama amplia.** Los colores de marca viajan a Dynamic por contrato.
+- [ ] **7 · Escala cerrada de letra y de esquinas.** Se nota poco en una pantalla; va por `/unificar`.
+- [ ] **4 · Superficies sólidas.** Casi no cambia a la vista: la dejaría.
+
 ## Pendiente
 
 - [ ] **Sin medir:** el Mac mini de la tienda y un teléfono de verdad. Si va lento, la salida es el modo liviano de «Apariencia».
