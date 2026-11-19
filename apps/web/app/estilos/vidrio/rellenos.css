@@ -1,0 +1,62 @@
+/* ---------- Los rellenos de vidrio para el JSX (Felipe 2026-11-19: «ese color plano le quita la estética al sistema, quítalo de donde
+   sea que aparezca») ----------
+   El beige plano (`bg-hueso`, `bg-sand`, `background: var(--color-hueso)`) era el relleno de todo lo que no tenía pieza: una caja dentro de
+   una hoja, el círculo de un ícono, una fila al pasar el mouse, lo elegido. Estas clases son esas mismas superficies hechas con las RECETAS
+   (`recetas.css`), que ya traen su oscuro y su versión maciza (`aguanta.css`): una pantalla las usa y no inventa su vidrio. Qué va dónde:
+
+     vd-placa       un bloque que explica o agrupa dentro de una hoja o tarjeta (lo que explica es plano: la placa)
+     vd-hundido     un área que guarda datos o campos, metida en la superficie (lo hundido espera tu dato)
+     vd-gota        un control o una píldora en reposo (lo que sobresale es lo que haces)
+     vd-gota-chica  una insignia, un código, un monograma, el círculo de un número
+     vd-lente       el cuadrito o círculo que lleva un ícono
+     vd-marca       lo elegido o lo destacado, claro (una fila marcada, la opción tomada sin ahumar)
+     vd-pasa        una fila o un bloque al pasar el mouse o con el foco del teclado (y `vd-pasa-gota` para un botón)
+
+   Van en la capa `components`: una utilidad de Tailwind puesta junto a ellas (`bg-tinta` cuando está elegida) les gana, así el estado de
+   siempre no se pierde. El borde va como sombra interior para no mover nada de lugar. Lo vigila `lib/beige-plano.test.ts`. */
+@layer components {
+  .vd-placa {
+    background: var(--placa-fondo);
+    box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde);
+  }
+  .vd-hundido {
+    background: var(--hundido-fondo);
+    box-shadow: var(--hundido-sombra);
+  }
+  .vd-gota {
+    background: var(--gota-fondo-encima);
+    box-shadow: var(--gota-luz), inset 0 0 0 1px var(--gota-chica-borde);
+  }
+  .vd-gota-chica {
+    background: var(--gota-chica-fondo);
+    box-shadow: var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde);
+  }
+  .vd-lente {
+    background: var(--lente-fondo);
+    box-shadow: var(--lente-luz);
+  }
+  .vd-marca {
+    background: var(--gota-marca);
+    box-shadow: var(--gota-luz), inset 0 0 0 1px var(--color-borde-control);
+  }
+  /* Si el elemento ya trae su borde (`border`, `border-2`), ese es su filo: la clase no le dibuja otro por dentro. */
+  :is(.vd-placa, .vd-gota, .vd-gota-chica, .vd-marca):is([class~="border"], [class~="border-2"]) {
+    box-shadow: var(--gota-luz);
+  }
+  .vd-placa:is([class~="border"], [class~="border-2"]) { box-shadow: var(--placa-luz); }
+  .vd-gota-chica:is([class~="border"], [class~="border-2"]) { box-shadow: var(--gota-chica-luz); }
+  .vd-pasa,
+  .vd-pasa-gota {
+    transition: background var(--t-cambio, 200ms) var(--ease-cayla), box-shadow var(--t-cambio, 200ms) var(--ease-cayla);
+  }
+  .vd-pasa:focus-visible { background: var(--gota-fondo); }
+  .vd-pasa-gota:focus-visible { background: var(--gota-marca); box-shadow: var(--gota-luz); }
+  @media (hover: hover) {
+    .vd-pasa:hover { background: var(--gota-fondo); }
+    .vd-pasa-gota:hover { background: var(--gota-marca); box-shadow: var(--gota-luz); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .vd-pasa,
+    .vd-pasa-gota { transition: none; }
+  }
+}
