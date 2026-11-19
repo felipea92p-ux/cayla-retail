@@ -35,6 +35,7 @@ const MIGRACION = "supabase/migrations/20261118232000_oferta_por_variante.sql";
 const LECTURAS = "supabase/migrations/20261118233000_ofertas_de_grupo_y_monto_por_variante.sql";
 const CHOQUES = "supabase/migrations/20261118234000_choques_de_oferta_por_variante.sql";
 const HUELLA = "supabase/migrations/20261118235000_huella_tienda_con_ofertas_por_variante.sql";
+const FUSION = "supabase/migrations/20261119010000_fusionar_productos_con_ofertas_por_variante.sql";
 const TOPE = "supabase/migrations/20261116173000_ofertas_tope_bolsas_y_monto_pagado.sql";
 const FIRMA_15 = "uuid, uuid, date, date, smallint[], uuid[], uuid[], uuid[], uuid[], uuid[], boolean, uuid[], text, text, boolean";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
@@ -379,6 +380,13 @@ esperar(
 esperar(
   "la de la huella de la tienda web (20261118235000) se pega dos veces",
   correr(`begin;\n${ANTES}\n${readFileSync(HUELLA, "utf8")}\n${readFileSync(HUELLA, "utf8")}\nrollback;`).ok,
+);
+esperarValor(
+  "la de la fusión (20261119010000) se pega dos veces y no repite su paso (lo que hace lo prueba pruebas:fusionar-productos, caso 45)",
+  correr(`begin;\n${ANTES}\n${readFileSync(FUSION, "utf8")}\n${readFileSync(FUSION, "utf8")}
+select (length(d) - length(replace(d, 'insert into retail.campana_regla_variantes', ''))) / length('insert into retail.campana_regla_variantes')
+  from (select pg_get_functiondef('retail.fusionar_productos(uuid, uuid[], jsonb, jsonb)'::regprocedure) as d) x;\nrollback;`),
+  "1",
 );
 esperarValor(
   "pegada dos veces, la caja no repite la rama de las variantes",
