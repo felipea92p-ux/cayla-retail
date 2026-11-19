@@ -22,6 +22,8 @@ export type PreguntaChoques = {
   productos: string[];
   /** Las insignias elegidas (ADR-0655, por insignia). Con alguna, se pregunta con la forma: la de siempre no las conoce. */
   insignias: string[];
+  /** Las tallas y colores sueltos (ADR-0682). `null` si la base todavía no los conoce: se pregunta a las funciones de antes. */
+  variantes: string[] | null;
   claure: boolean;
   /** Vacío = todas las tiendas de la campaña. */
   sedes: string[];
@@ -34,7 +36,7 @@ export type PreguntaChoques = {
 
 /** Con qué choca la oferta de la hoja. `null` mientras no se sabe (o si la base no respondió: la base frena igual al guardar). */
 export function useChoquesDeOferta(p: PreguntaChoques): FilaChoque[] | null {
-  const clave = JSON.stringify([p.activo, p.reglaId, p.etiquetaId, p.desde, p.hasta, p.dias, p.solo, p.fuera, p.productos, p.insignias, p.claure, p.sedes, p.monto?.cuenta ?? null]);
+  const clave = JSON.stringify([p.activo, p.reglaId, p.etiquetaId, p.desde, p.hasta, p.dias, p.solo, p.fuera, p.productos, p.insignias, p.variantes, p.claure, p.sedes, p.monto?.cuenta ?? null]);
   // La respuesta vale solo para la pregunta que la pidió: si la oferta cambió mientras tanto, se descarta sola.
   const [respuesta, setRespuesta] = useState<{ clave: string; version: unknown; filas: FilaChoque[] | null } | null>(null);
   useEffect(() => {
@@ -43,9 +45,12 @@ export function useChoquesDeOferta(p: PreguntaChoques): FilaChoque[] | null {
     // La misma pausa que un buscador (350 ms): mientras se tocan días o tiendas no se pregunta en cada toque.
     const t = window.setTimeout(async () => {
       // Un monto o una oferta con insignias pregunta con su forma (`fn_choques_de_oferta_con_forma`, con las insignias desde 20261114060000);
-      // lo demás, a la de siempre.
-      const conForma = p.monto != null || p.insignias.length > 0;
-      const { data, error } = (await createClient().rpc((conForma ? "fn_choques_de_oferta_con_forma" : "fn_choques_de_oferta") as never, {
+      // lo demás, a la de siempre. Donde la base ya conoce las variantes sueltas (ADR-0682), toda oferta pregunta a la que las recibe: la de
+      // la forma solo sabe de las variantes ya guardadas, no de las que se están marcando en la hoja.
+      const porVariante = p.variantes != null;
+      const conForma = porVariante || p.monto != null || p.insignias.length > 0;
+      const funcion = porVariante ? "fn_choques_de_oferta_por_variante" : conForma ? "fn_choques_de_oferta_con_forma" : "fn_choques_de_oferta";
+      const { data, error } = (await createClient().rpc(funcion as never, {
         p_regla_id: p.reglaId,
         p_etiqueta_id: p.etiquetaId,
         p_desde: p.desde,
@@ -60,6 +65,7 @@ export function useChoquesDeOferta(p: PreguntaChoques): FilaChoque[] | null {
         ...(conForma
           ? { p_insignias: p.insignias, p_tipo: p.monto ? "monto" : null, p_cuenta: p.monto ? p.monto.cuenta : null, p_cede_a_otras: false }
           : {}),
+        ...(porVariante ? { p_variantes: p.variantes } : {}),
       } as never)) as unknown as { data: FilaChoque[] | null; error: { message: string } | null };
       if (vigente) setRespuesta({ clave, version: p.version, filas: error ? null : (data ?? []) });
     }, 350);

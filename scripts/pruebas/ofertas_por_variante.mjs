@@ -11,6 +11,9 @@
  *     guardan; un monto de toda la compra no las lleva; una variante que no existe se rechaza; `campana_reglas()` las devuelve;
  *   · un 3x2 y un monto con variantes sueltas (`20261118233000`): el grupo se arma solo con ellas, y lo que la caja lee para el ticket
  *     (`ofertas_de_grupo_vigentes`, `ofertas_de_monto_vigentes`) dice lo mismo que lo que la base cobra;
+ *   · los choques (`20261118234000`): dos ofertas en la misma talla chocan y en tallas distintas del mismo modelo no; una oferta por variante
+ *     ya no se revisa como si alcanzara a toda su campaña; la hoja (antes de guardar) y el candado (al activar) dicen lo mismo; la puerta
+ *     de 14 datos responde igual que la regla nueva con las variantes guardadas; y 20261116173000 se sigue pudiendo volver a pegar;
  *   · las migraciones se pegan dos veces y cada función queda con una sola firma.
  *
  * CÓMO. Cada escenario en su transacción con ROLLBACK. Si la base local todavía no tiene la migración, la aplica dentro de cada escenario.
@@ -30,6 +33,9 @@ const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const MIGRACION = "supabase/migrations/20261118232000_oferta_por_variante.sql";
 const LECTURAS = "supabase/migrations/20261118233000_ofertas_de_grupo_y_monto_por_variante.sql";
+const CHOQUES = "supabase/migrations/20261118234000_choques_de_oferta_por_variante.sql";
+const TOPE = "supabase/migrations/20261116173000_ofertas_tope_bolsas_y_monto_pagado.sql";
+const FIRMA_15 = "uuid, uuid, date, date, smallint[], uuid[], uuid[], uuid[], uuid[], uuid[], boolean, uuid[], text, text, boolean";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 
 function psql(sql) {
@@ -77,6 +83,7 @@ if (falta("select to_regprocedure('retail.fn_variantes_de_regla(uuid)') is null 
 const ANTES = [
   falta("select to_regclass('retail.campana_regla_variantes') is null;") ? readFileSync(MIGRACION, "utf8") : "",
   falta("select position('fn_variantes_de_regla(g.id)' in pg_get_functiondef('retail.ofertas_de_grupo_vigentes(uuid)'::regprocedure)) = 0;") ? readFileSync(LECTURAS, "utf8") : "",
+  falta(`select to_regprocedure('retail.fn_choques_de_oferta_por_variante_sin_llave(${FIRMA_15})') is null;`) ? readFileSync(CHOQUES, "utf8") : "",
 ].filter(Boolean).join("\n");
 
 const HOY = "retail.fn_hoy_lima()";
@@ -116,8 +123,10 @@ const CAJA = (vs = ["a1", "a2", "fuera"]) =>
   `select string_agg(x.k || ':' || coalesce((select max(c.descuento_pct)::integer from retail.fn_campanas_en_sede(${HOY}, 0, array[x.v]::uuid[], :'u') c where c.etiqueta_id = :'camp'), 0), '|' order by x.n)
    from (values ${vs.map((k, i) => `(${i}, '${k}', :'${k}'::uuid)`).join(", ")}) x(n, k, v);\n`;
 /** Las variantes guardadas de la oferta :r, en palabras: «a1,a2». */
-const GUARDADAS = `select coalesce(string_agg(case rv.variante_id when :'a1' then 'a1' when :'a2' then 'a2' when :'a3' then 'a3' when :'fuera' then 'fuera' else '?' end, ',' order by 1), '')
-  from retail.campana_regla_variantes rv where rv.regla_id = :'r';\n`;
+// El orden va por el nombre que se muestra: dentro de un agregado, `order by 1` es la constante 1 (no la primera columna) y no ordena nada.
+const GUARDADAS = `select coalesce(string_agg(x.cual, ',' order by x.cual), '')
+  from (select case rv.variante_id when :'a1' then 'a1' when :'a2' then 'a2' when :'a3' then 'a3' when :'fuera' then 'fuera' else '?' end as cual
+        from retail.campana_regla_variantes rv where rv.regla_id = :'r') x;\n`;
 const caso = (cuerpo) => correr(`${PARTIDA}${cuerpo}rollback;`);
 
 console.log("\n— El alcance de una oferta por variante —");
@@ -263,6 +272,50 @@ esperarValor(
   "t",
 );
 
+console.log("\n— Los choques con variantes sueltas —");
+/** Lo que la hoja pregunta antes de guardar: con cuántas ofertas choca lo que se está armando (variantes, categorías «solo»). Una fila por oferta y tienda: se cuentan las ofertas. */
+const HOJA = ({ variantes = "'{}'::uuid[]", solo = "'{}'::uuid[]" } = {}) =>
+  `(select count(distinct otra_id) from retail.fn_choques_de_oferta_por_variante(null, :'camp', ${HOY}, ${HOY} + 3, array[1,2,3,4,5,6,7]::smallint[], ${solo}, '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], ${variantes}, false, '{}'::uuid[], null, null, false))`;
+esperarValor(
+  "la hoja: la misma talla choca; otra talla del mismo modelo, no; una categoría que la contiene, sí",
+  caso(`${OFERTA()}select concat_ws('|', ${HOJA({ variantes: "array[:'a1']::uuid[]" })}, ${HOJA({ variantes: "array[:'a2']::uuid[]" })}, ${HOJA({ solo: "array[:'cat']::uuid[]" })});\n`),
+  "1|0|1",
+);
+esperarValor(
+  "la hoja: una oferta por variante ya no se revisa como si alcanzara a toda su campaña (control: sin variantes sí choca con la de a2)",
+  caso(`${OFERTA({ variantes: "jsonb_build_array(:'a2')" })}select concat_ws('|', ${HOJA({ variantes: "array[:'a1']::uuid[]" })}, ${HOJA()});\n`),
+  "0|1",
+);
+esperarError(
+  "el candado: activar una segunda oferta en la misma talla se frena",
+  caso(`${OFERTA()}${OFERTA({ nombre: "ZZ otra", v: "r2" })}`),
+  "oferta_choca",
+);
+esperarValor(
+  "el candado: una segunda oferta en otra talla del mismo modelo se activa, y la caja cobra cada una en la suya",
+  caso(`${OFERTA()}${OFERTA({ nombre: "ZZ otra", v: "r2", forma: { tipo: "pct", porcentaje: 30 }, variantes: "jsonb_build_array(:'a2')" })}${CAJA(["a1", "a2", "a3"])}`),
+  "a1:20|a2:30|a3:0",
+);
+esperarError(
+  "el candado: una oferta en la categoría entera choca con la que ya rige en una de sus tallas",
+  caso(`${OFERTA()}${OFERTA({ nombre: "ZZ otra", v: "r2", variantes: null, solo: "array[:'cat']::uuid[]" })}`),
+  "oferta_choca",
+);
+esperarValor(
+  "la puerta de 14 datos responde lo mismo que la regla nueva con las variantes guardadas de la oferta",
+  caso(`${OFERTA()}${OFERTA({ nombre: "ZZ borrador", v: "r2", activar: "false" })}select concat_ws('|',
+  (select count(distinct otra_id) from retail.fn_choques_de_oferta_con_forma_sin_llave(:'r2', :'camp', ${HOY}, ${HOY} + 3, array[1,2,3,4,5,6,7]::smallint[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], 'pct', null, false)),
+  (select count(distinct otra_id) from retail.fn_choques_de_oferta_por_variante_sin_llave(:'r2', :'camp', ${HOY}, ${HOY} + 3, array[1,2,3,4,5,6,7]::smallint[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], array[:'a1']::uuid[], false, '{}'::uuid[], 'pct', null, false)),
+  (select max(prendas) from retail.fn_choques_de_oferta_con_forma_sin_llave(:'r2', :'camp', ${HOY}, ${HOY} + 3, array[1,2,3,4,5,6,7]::smallint[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], 'pct', null, false)));\n`),
+  "1|1|1",
+);
+esperarValor(
+  "el aviso de dos ofertas nombra la prenda que comparten cuando una de las dos la tiene por variante",
+  caso(`${OFERTA({ activar: "false" })}${OFERTA({ nombre: "ZZ otra", v: "r2", variantes: null, solo: "array[:'cat']::uuid[]" })}update retail.campana_reglas set estado = 'activa', activada_por = creada_por, activada_en = now() where id = :'r';
+select coalesce((select jsonb_array_length(c.modelos) from retail.campanas_ofertas_que_chocan() c where (c.oferta_id = :'r' and c.otra_id = :'r2') or (c.oferta_id = :'r2' and c.otra_id = :'r') limit 1), -1);\n`),
+  "1",
+);
+
 console.log("\n— Pegar —");
 esperarValor(
   "la migración se pega dos veces y cada función queda con una sola firma",
@@ -273,6 +326,19 @@ select string_agg(proname || ':' || n, ',' order by proname) from (
                      'fn_regla_solo_variantes', 'fn_variantes_sueltas_de_regla', 'fn_regla_con_variantes')
   group by p.proname) x;\nrollback;`),
   "campana_reglas:1,fn_campanas_en_sede:1,fn_regla_alcanza_variante:1,fn_regla_con_variantes:1,fn_regla_solo_variantes:1,fn_variantes_de_regla:1,fn_variantes_sueltas_de_regla:1,guardar_oferta_completa:1",
+);
+esperarValor(
+  "la de los choques (20261118234000) se pega dos veces y sus funciones quedan con una sola firma",
+  correr(`begin;\n${ANTES}\n${readFileSync(CHOQUES, "utf8")}\n${readFileSync(CHOQUES, "utf8")}
+select string_agg(proname || ':' || n, ',' order by proname) from (
+  select p.proname, count(*) as n from pg_proc p where p.pronamespace = 'retail'::regnamespace
+   and p.proname in ('fn_choques_de_oferta_con_forma', 'fn_choques_de_oferta_con_forma_sin_llave', 'fn_choques_de_oferta_por_variante', 'fn_choques_de_oferta_por_variante_sin_llave', 'campanas_ofertas_que_chocan')
+  group by p.proname) x;\nrollback;`),
+  "campanas_ofertas_que_chocan:1,fn_choques_de_oferta_con_forma:1,fn_choques_de_oferta_con_forma_sin_llave:1,fn_choques_de_oferta_por_variante:1,fn_choques_de_oferta_por_variante_sin_llave:1",
+);
+esperar(
+  "con la puerta nueva, 20261116173000 (las bolsas no cuentan para un monto) se sigue pudiendo volver a pegar",
+  correr(`begin;\n${ANTES}\n${readFileSync(TOPE, "utf8")}\n${readFileSync(TOPE, "utf8")}\n${readFileSync(CHOQUES, "utf8")}\nrollback;`).ok,
 );
 esperar(
   "la de las lecturas de la caja (20261118233000) se pega dos veces",

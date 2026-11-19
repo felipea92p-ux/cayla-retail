@@ -416,6 +416,7 @@ export function OfertasHoja({
     fuera: o.categoriasFuera,
     productos: o.productosSolo,
     insignias: deTodaLaCompra ? [] : o.insigniasSolo,
+    variantes: porVariante ? (deTodaLaCompra ? [] : o.variantesSolo) : null,
     claure: o.incluyeClaure,
     sedes: sedesQueSeDicen,
     monto: esMonto ? { cuenta: o.cuenta ?? "compra" } : null,
