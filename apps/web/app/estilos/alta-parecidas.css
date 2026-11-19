@@ -363,7 +363,7 @@
   backdrop-filter: blur(14px) saturate(1.3);
 }
 /* En el celular los primeros 24 px de la hoja son la franja del asa, que desenfoca lo que le pasa por debajo: pegado al borde, el buscador quedaba con
-   su canto de arriba metido 5 px en esa franja, borroso. Aquí se pega 18 px más abajo (su propio relleno de arriba): el buscador empieza donde empieza
+   su canto de arriba metido 6 px en esa franja, borroso. Aquí se pega 18 px más abajo (su propio relleno de arriba): el buscador empieza donde empieza
    el contenido de la hoja, justo bajo la franja. */
 @media (max-width: 639.98px) {
   .parecidas-busqueda {
