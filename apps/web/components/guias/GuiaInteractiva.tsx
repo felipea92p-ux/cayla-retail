@@ -4,9 +4,9 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { createPortal } from "react-dom";
 import { Boton } from "@/components/ui/campos";
 import { Volver } from "@/components/ui/Volver";
-import { caminoDelVelo, cierresAlVolver, esperaPorAncla, pasoAplica, fuenteAlVolver, posicionTarjeta, recorteDe, toqueQueAbre, totalEstimado, type Caja } from "@/lib/guias/reglas";
+import { accionesDelPaso, caminoDelVelo, cierresAlVolver, esperaPorAncla, limpiezasEntre, pasoAplica, fuenteAlVolver, piezasParaRepetir, posicionTarjeta, recorteDe, toqueQueAbre, totalEstimado, type Caja } from "@/lib/guias/reglas";
 import type { AccionGuia, Guia, PasoGuia } from "@/lib/guias/tipos";
-import { anclasPresentes, buscarAncla, ejecutar, esEscapeDelPiloto, esperarAncla, pausa } from "./piloto";
+import { anclasPresentes, buscarAncla, ejecutar, esEscapeDelPiloto, esperarAncla, pausa, type ResultadoAccion } from "./piloto";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // El motor de una guía interactiva (ADR-0389): oscurece la pantalla, deja a la vista solo la pieza que se explica y la
@@ -47,6 +47,12 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
   });
   const ocultarCursor = useRef<ReturnType<typeof setTimeout> | null>(null);
   const historial = useRef<number[]>([]);
+  /**
+   * Lo que se vio al AVANZAR por cada paso (`MemoriaDeIda`, lib/guias/reglas.ts): cuántas hojas había abiertas al empezar y si su
+   * `preparar` o su `demostrar` hizo algo. Al volver, `fuenteAlVolver` lo usa para no reabrir lo que un Escape ya había cerrado.
+   */
+  const hojasAlEmpezar = useRef<(number | undefined)[]>([]);
+  const hizo = useRef<(boolean | undefined)[]>([]);
   const control = useRef<AbortController | null>(null);
   const capa = useRef<HTMLDivElement>(null);
   const refTarjeta = useRef<HTMLDivElement>(null);
@@ -141,21 +147,34 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
       }
 
       /**
-       * Al volver: deja a la vista lo que necesita el paso `k` repitiendo el `preparar` del paso que lo abrió (`fuenteAlVolver`). Si lo que
-       * ese `preparar` toca tampoco está (la ficha de Existencias se abre desde el menú «Más»), primero se reabre eso, hacia atrás, hasta 4
-       * niveles. Un toque cuya pieza no está y que nada acaba de abrir se salta sin esperar. Dice si tocó algo.
+       * Al volver: deja a la vista lo que necesita el paso `k` repitiendo lo que hizo el paso que lo abrió (`fuenteAlVolver`: su `preparar`
+       * y su `demostrar`). Si algo de lo que ese paso toca tampoco está (la ficha de Existencias se abre desde el menú «Más»), primero se
+       * reabre lo de antes, hacia atrás. Una pieza que no está y que nada acaba de abrir se salta sin esperar, y un toque no cierra ni
+       * desmarca lo que ya está abierto (`sinAlternar`). Dice si tocó algo.
        */
+      const memoria = { hojas: hojasAlEmpezar.current, hizo: hizo.current };
+      // Un toque «si está» no espera su pieza: al avanzar, el paso de antes ya dejó la pantalla quieta. Al rehacer, en cambio, lo de recién
+      // abierto todavía entra (la página «Historial» que da vuelta): ahí sí se le da un momento a la pieza antes de decidir que no está.
+      const esperarSiRecienAbrio = async (a: AccionGuia, abrio: boolean) => {
+        if (abrio && a.tipo === "clic" && a.siEsta) await esperarAncla(a.ancla, 1400, senal);
+      };
       const reabrir = async (k: number, profundidad = 0): Promise<boolean> => {
-        const f = fuenteAlVolver(guia.pasos, k, window.innerWidth);
-        if (f === null || profundidad > 3) return false;
-        const acciones = guia.pasos[f]!.preparar!;
-        const abre = toqueQueAbre(acciones);
-        let toco = abre !== null && !buscarAncla(abre.ancla) ? await reabrir(f, profundidad + 1) : false;
-        for (const a of acciones) {
+        const f = fuenteAlVolver(guia.pasos, k, window.innerWidth, memoria);
+        // `f` siempre es de antes que `k`, así que la cadena termina; el tope es por el tiempo de una cadena larga.
+        if (f === null || profundidad > 7) return false;
+        const fuente = guia.pasos[f]!;
+        let toco = piezasParaRepetir(fuente).some((p) => !buscarAncla(p)) ? await reabrir(f, profundidad + 1) : false;
+        for (const a of accionesDelPaso(fuente)) {
           if (senal.aborted) return toco;
-          if (a.tipo === "clic" && !toco && !buscarAncla(a.ancla)) continue;
-          await ejecutar(a, senal, conMovimiento, apuntar);
-          toco ||= a.tipo === "clic";
+          if (a.tipo !== "escape" && !toco && !buscarAncla(a.ancla)) continue;
+          await esperarSiRecienAbrio(a, toco);
+          const r = await ejecutar(a, senal, conMovimiento, apuntar, { sinAlternar: true });
+          toco ||= r.ok && !("nada" in r) && (a.tipo === "clic" || a.tipo === "escribir");
+        }
+        // Y lo que quitaron los pasos de entre medio (el buscador que se vació): lo que no está a la vista no se espera.
+        for (const a of limpiezasEntre(guia.pasos, f, k, window.innerWidth)) {
+          if (senal.aborted) return toco;
+          if (a.tipo !== "escape" && buscarAncla(a.ancla)) await ejecutar(a, senal, conMovimiento, apuntar);
         }
         return toco;
       };
@@ -175,17 +194,36 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
         const modalesAntes = modalesAbiertos();
         let heredado = false;
         if (direccion === -1) {
+          // Le falta algo si su pieza no está y lo que la abre tampoco: lo primero que abre su `preparar` o, si no abre nada (solo cierra,
+          // vacía o toca «si está»), nada. Con su pieza a la vista no hay nada que rehacer, aunque lo que la abría ya no esté («Ver todo lo
+          // recibido» no existe dentro de «Todo lo recibido»): rehacer la cadena la sacaba de ahí.
           const abre = propio ? toqueQueAbre(paso.preparar!) : null;
-          const falta = propio ? abre !== null && !buscarAncla(abre.ancla) : !!paso.ancla && !buscarAncla(paso.ancla);
+          const piezaFalta = paso.ancla === null || !buscarAncla(paso.ancla);
+          const falta = abre !== null ? piezaFalta && !buscarAncla(abre.ancla) : !!paso.ancla && piezaFalta;
           if (falta) heredado = await reabrir(indice);
           if (senal.aborted) return;
+        } else {
+          hojasAlEmpezar.current[indice] = hojasAbiertas();
+          hizo.current[indice] = false;
         }
-        // Antes de preguntar si aplica, se prepara (abrir el modal donde vive), en las dos direcciones.
+        // Para la memoria de la ida: si lo que deja algo salió bien (aunque no tocara nada: el «si está» sin su pieza, lo ya abierto).
+        const anotar = (a: AccionGuia, r: ResultadoAccion) => {
+          if (direccion === 1 && r.ok && (a.tipo === "escribir" || (a.tipo === "clic" && a.para !== "cerrar" && a.para !== "desmarcar"))) hizo.current[indice] = true;
+        };
+        // Antes de preguntar si aplica, se prepara (abrir el modal donde vive), en las dos direcciones. Al volver, si la pieza del paso ya está
+        // a la vista, un toque cuya pieza no está ya no hace falta: «Ver todo lo recibido» no existe dentro de «Todo lo recibido», y esperarlo
+        // solo dejaba la nota de que la demo no pudo.
         let nota: string | null = null;
+        let navego = false;
+        const yaALaVista = direccion === -1 && !!paso.ancla && !!buscarAncla(paso.ancla);
         if (propio) {
           for (const a of paso.preparar ?? []) {
+            if (yaALaVista && a.tipo === "clic" && !buscarAncla(a.ancla)) continue;
+            await esperarSiRecienAbrio(a, heredado || navego);
             const r = await ejecutar(a, senal, conMovimiento, apuntar);
             if (senal.aborted) return;
+            anotar(a, r);
+            navego ||= r.ok && "navego" in r;
             // Solo un toque que no se pudo hacer merece aviso. Vaciar o cerrar algo que no está (en el celular no hay buscador)
             // es una limpieza que no tenía nada que limpiar.
             if (!r.ok && a.tipo === "clic") nota = notaDe(a, r.motivo);
@@ -203,7 +241,8 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
         let el: HTMLElement | null = null;
         if (paso.ancla) {
           // Lo heredado acaba de abrir una hoja: se espera lo que dura su entrada, como cuando el propio paso la prepara.
-          const espera = heredado ? (paso.opcional ? 1400 : 2200) : esperaPorAncla(paso, indice > 0 ? guia.pasos[indice - 1]! : null);
+          // Si su `preparar` navegó, la pantalla nueva todavía carga lo suyo («Todo lo recibido» → «Recibir»): se le da más.
+          const espera = Math.max(heredado ? (paso.opcional ? 1400 : 2200) : esperaPorAncla(paso, indice > 0 ? guia.pasos[indice - 1]! : null), navego ? 4000 : 0);
           el = await esperarAncla(paso.ancla, espera, senal);
           if (senal.aborted) return;
           if (!el && paso.opcional) {
@@ -244,13 +283,15 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
         setMostrando({ indice, paso, recorte: r ? recorteDe({ top: r.top, left: r.left, width: r.width, height: r.height }, v) : null, nota });
         setOcupada(false);
 
-        // Con la pieza ya encendida, el piloto la hace funcionar (escribir un ejemplo), a la vista.
-        if (direccion === 1 && paso.demostrar) {
+        // Con la pieza ya encendida, el piloto la hace funcionar (escribir un ejemplo), a la vista. También al volver: el paso queda como la
+        // persona lo dejó al avanzar («Una tasa nueva», con su hoja abierta), sin cerrar ni desmarcar lo que ya está (`sinAlternar`).
+        if (paso.demostrar) {
           setPilotoActuando(true);
           await pausa(conMovimiento ? 520 : 0);
           for (const a of paso.demostrar) {
-            const res = await ejecutar(a, senal, conMovimiento, apuntar);
+            const res = await ejecutar(a, senal, conMovimiento, apuntar, { sinAlternar: direccion === -1 });
             if (senal.aborted) return;
+            anotar(a, res);
             if (!res.ok && a.tipo !== "vaciar" && a.tipo !== "escape") setMostrando((m) => (m && m.indice === indice ? { ...m, nota: notaDe(a, res.motivo) } : m));
           }
           setPilotoActuando(false);
@@ -267,6 +308,8 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
   useEffect(() => {
     dialogosAlEmpezar.current = modalesAbiertos();
     historial.current = [];
+    hojasAlEmpezar.current = [];
+    hizo.current = [];
     terminada.current = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- la guía se sincroniza con el DOM de la pantalla (espera piezas, abre modales): no hay otra forma que arrancarla al montar
     void irA(0, 1);
@@ -562,6 +605,11 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
 /** Cuántos modales de la pantalla hay abiertos (la tarjeta de la guía no cuenta). */
 function modalesAbiertos(): number {
   return [...document.querySelectorAll("[role=dialog]")].filter((d) => !d.closest("[data-guia-motor]")).length;
+}
+
+/** Las hojas abiertas que se quedan: sin la que se está yendo (Radix la deja en la página con `data-state="closed"` mientras sale). */
+function hojasAbiertas(): number {
+  return [...document.querySelectorAll("[role=dialog]")].filter((d) => !d.closest("[data-guia-motor]") && d.getAttribute("data-state") !== "closed").length;
 }
 
 /**
