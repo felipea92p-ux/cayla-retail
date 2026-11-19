@@ -36,6 +36,7 @@ const LECTURAS = "supabase/migrations/20261118233000_ofertas_de_grupo_y_monto_po
 const CHOQUES = "supabase/migrations/20261118234000_choques_de_oferta_por_variante.sql";
 const HUELLA = "supabase/migrations/20261118235000_huella_tienda_con_ofertas_por_variante.sql";
 const FUSION = "supabase/migrations/20261119010000_fusionar_productos_con_ofertas_por_variante.sql";
+const PORTADA = "supabase/migrations/20261119011000_portada_con_ofertas_por_variante.sql";
 const TOPE = "supabase/migrations/20261116173000_ofertas_tope_bolsas_y_monto_pagado.sql";
 const FIRMA_15 = "uuid, uuid, date, date, smallint[], uuid[], uuid[], uuid[], uuid[], uuid[], boolean, uuid[], text, text, boolean";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
@@ -87,6 +88,7 @@ const ANTES = [
   falta("select position('fn_variantes_de_regla(g.id)' in pg_get_functiondef('retail.ofertas_de_grupo_vigentes(uuid)'::regprocedure)) = 0;") ? readFileSync(LECTURAS, "utf8") : "",
   falta(`select to_regprocedure('retail.fn_choques_de_oferta_por_variante_sin_llave(${FIRMA_15})') is null;`) ? readFileSync(CHOQUES, "utf8") : "",
   falta("select position('fn_variantes_sueltas_de_regla' in pg_get_functiondef('retail.tienda_catalogo_version()'::regprocedure)) = 0;") ? readFileSync(HUELLA, "utf8") : "",
+  falta("select position('campana_regla_variantes' in pg_get_functiondef('retail.fn_campana_portada()'::regprocedure)) = 0;") ? readFileSync(PORTADA, "utf8") : "",
 ].filter(Boolean).join("\n");
 
 const HOY = "retail.fn_hoy_lima()";
@@ -349,6 +351,26 @@ select retail.tienda_catalogo_version() <> :'h0';\n`),
   "t",
 );
 
+console.log("\n— La portada —");
+// Una campaña sin prendas propias (sin categorías ni marcadas) con «−20 % en una talla» y las demás campañas apagadas en la transacción.
+const SOLO_UNA_TALLA = `insert into retail.etiquetas (nombre, estilo) values ('ZZ Solo una talla (prueba)', 'campana') returning id as camp2 \\gset
+select retail.actualizar_campana_etiqueta(:'camp2', null, ${HOY} - 1, ${HOY} + 10, '{}'::uuid[]);
+update retail.etiquetas set activo = false where estilo = 'campana' and id <> :'camp2';
+select retail.guardar_oferta_completa(null, :'camp2', 'ZZ portada', '{"tipo":"pct","porcentaje":20}'::jsonb || jsonb_build_object('variantes', jsonb_build_array(:'a1')),
+  ${HOY}, ${HOY} + 2, null, '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], true) as r2 \\gset
+`;
+esperarValor(
+  "una campaña sin prendas propias con «−20 % en una talla» sale en la portada de la tienda web",
+  caso(`${SOLO_UNA_TALLA}select concat_ws('|', (select id from retail.fn_campana_portada()) = :'camp2', (select pct::integer from retail.fn_campana_portada()));\n`),
+  "t|20",
+);
+esperarValor(
+  "control: sin la oferta, la misma campaña no tiene prendas y no sale",
+  caso(`${SOLO_UNA_TALLA}update retail.campana_reglas set estado = 'desactivada' where id = :'r2';
+select count(*) from retail.fn_campana_portada() where id = :'camp2';\n`),
+  "0",
+);
+
 console.log("\n— Pegar —");
 esperarValor(
   "la migración se pega dos veces y cada función queda con una sola firma",
@@ -380,6 +402,13 @@ esperar(
 esperar(
   "la de la huella de la tienda web (20261118235000) se pega dos veces",
   correr(`begin;\n${ANTES}\n${readFileSync(HUELLA, "utf8")}\n${readFileSync(HUELLA, "utf8")}\nrollback;`).ok,
+);
+esperarValor(
+  "la de la portada (20261119011000) se pega dos veces y no repite su alternativa",
+  correr(`begin;\n${ANTES}\n${readFileSync(PORTADA, "utf8")}\n${readFileSync(PORTADA, "utf8")}
+select (length(d) - length(replace(d, 'campana_regla_variantes', ''))) / length('campana_regla_variantes')
+  from (select pg_get_functiondef('retail.fn_campana_portada()'::regprocedure) as d) x;\nrollback;`),
+  "1",
 );
 esperarValor(
   "la de la fusión (20261119010000) se pega dos veces y no repite su paso (lo que hace lo prueba pruebas:fusionar-productos, caso 45)",
