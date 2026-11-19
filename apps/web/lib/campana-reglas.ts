@@ -64,6 +64,9 @@ export type ReglaCampana = FormaDeOferta & {
   /** Las insignias elegidas (ADR-0655, por insignia): alcanza las prendas que llevan una, marcadas a mano o por una categoría de la insignia.
    *  Se suman a las categorías y a los modelos. Vacío = ninguna. */
   insigniasSolo: string[];
+  /** Las variantes sueltas elegidas (ADR-0682): una talla y color en concreto. Se suman a las categorías, los modelos y las insignias; con
+   *  variantes y nada más, la oferta rige solo en ellas. Vacío = ninguna. */
+  variantesSolo: string[];
   /** Las tiendas donde rige, dentro de las de su campaña. Vacío = en todas las de la campaña. */
   sedeIds: string[];
   creadaEn: string;
@@ -92,6 +95,8 @@ export type FilaRegla = {
   sedes?: string[] | null;
   /** Desde 20261113210000; sin esa migración la base no lo manda. */
   productos_solo?: string[] | null;
+  /** Desde 20261118232000 (ADR-0682, las variantes sueltas); sin esa migración la base no lo manda. */
+  variantes?: string[] | null;
   /** Desde 20261113223000; sin esa migración la base no lo manda. */
   ceden?: string[] | null;
   /** Desde 20261114003000 (la forma de una oferta de grupo); sin esa migración la base no los manda. */
@@ -154,6 +159,7 @@ export function reglaDeFila(f: FilaRegla): ReglaCampana {
     categoriasFuera: f.categorias_fuera ?? [],
     productosSolo: f.productos_solo ?? [],
     insigniasSolo: f.insignias ?? [],
+    variantesSolo: f.variantes ?? [],
     sedeIds: f.sedes ?? [],
     creadaEn: f.creada_en,
     activadaEn: f.activada_en,
@@ -302,6 +308,8 @@ export type OfertaEnEdicion = FormaDeOferta & {
   productosSolo: string[];
   /** Insignias elegidas (ADR-0655, por insignia); se suman a las categorías y a los modelos, igual que ellos. */
   insigniasSolo: string[];
+  /** Tallas y colores sueltos elegidos (ADR-0682); se suman a lo demás. De un modelo va entero (`productosSolo`) o por sus variantes, nunca los dos. */
+  variantesSolo: string[];
   /** Tiendas donde rige, dentro de las de su campaña; vacío = todas las de la campaña. */
   sedeIds: string[];
   incluyeClaure: boolean;
@@ -332,6 +340,7 @@ export const ofertaNueva = (desde: string, hasta: string): OfertaEnEdicion => ({
   categoriasFuera: [],
   productosSolo: [],
   insigniasSolo: [],
+  variantesSolo: [],
   sedeIds: [],
   incluyeClaure: false,
   nombre: "",
@@ -354,6 +363,7 @@ export const ofertaDesdeRegla = (r: ReglaCampana, nombreAutomatico: boolean): Of
   categoriasFuera: [...r.categoriasFuera],
   productosSolo: [...r.productosSolo],
   insigniasSolo: [...r.insigniasSolo],
+  variantesSolo: [...r.variantesSolo],
   sedeIds: [...r.sedeIds],
   incluyeClaure: r.incluyeClaure,
   nombre: nombreAutomatico ? "" : r.nombre,
@@ -622,6 +632,9 @@ export type CuerpoGuardarOferta = {
   /** Insignias elegidas (ADR-0655, por insignia). Con alguna —o si las tenía— la ruta llama a `guardar_oferta_completa`, que las guarda. */
   insigniasSolo: string[];
   teniaInsignias: boolean;
+  /** Variantes sueltas elegidas (ADR-0682). Con alguna —o si las tenía— la ruta llama a `guardar_oferta_completa`, que las guarda en la forma. */
+  variantesSolo: string[];
+  teniaVariantes: boolean;
   /** Las ofertas que le ceden («que la otra ceda», ADR-0655). Con alguna —o si le cedían antes— la ruta llama a `guardar_oferta_y_ceder`. */
   cedeA: string[];
   teniaCesiones: boolean;
@@ -635,6 +648,8 @@ export type CuerpoGuardarOferta = {
 export const MAX_PRODUCTOS_SOLO = 500;
 /** El tope de insignias de una oferta: el mismo que exige `guardar_oferta_completa` (20261114060000). */
 export const MAX_INSIGNIAS_SOLO = 20;
+/** El tope de variantes sueltas de una oferta: el mismo que exige `guardar_oferta_completa` (20261118232000). */
+export const MAX_VARIANTES_SOLO = 2000;
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -663,6 +678,9 @@ export function leerCuerpoOferta(cuerpo: unknown): Resultado<CuerpoGuardarOferta
   const insignias = lista(c.insigniasSolo);
   if (!insignias.every(esTextoUuid)) return { ok: false, error: "Una de las insignias elegidas no es válida." };
   if (new Set(insignias).size > MAX_INSIGNIAS_SOLO) return { ok: false, error: `Una oferta puede elegir hasta ${MAX_INSIGNIAS_SOLO} insignias.` };
+  const variantes = lista(c.variantesSolo);
+  if (!variantes.every(esTextoUuid)) return { ok: false, error: "Una de las tallas elegidas no es válida." };
+  if (new Set(variantes).size > MAX_VARIANTES_SOLO) return { ok: false, error: `Una oferta puede elegir hasta ${MAX_VARIANTES_SOLO} tallas sueltas. Para más, elige el modelo entero o su categoría.` };
   const cede = lista(c.cedeA);
   if (!cede.every(esTextoUuid)) return { ok: false, error: "Una de las ofertas que cede no es válida." };
   if (c.id != null && cede.includes(c.id)) return { ok: false, error: "Una oferta no puede cederse a sí misma." };
@@ -704,6 +722,8 @@ export function leerCuerpoOferta(cuerpo: unknown): Resultado<CuerpoGuardarOferta
       teniaModelos: c.teniaModelos === true,
       insigniasSolo: [...new Set(insignias as string[])],
       teniaInsignias: c.teniaInsignias === true,
+      variantesSolo: [...new Set(variantes as string[])],
+      teniaVariantes: c.teniaVariantes === true,
       cedeA: [...new Set(cede as string[])],
       teniaCesiones: c.teniaCesiones === true,
       sedeIds: sedes as string[],
@@ -897,9 +917,11 @@ export function contarPrendas(prendas: readonly Pick<PrendaDeCampana, "id" | "mo
 export function prendasQueAlcanza<P extends PrendaDeCampana>(
   prendasDeLaCampana: readonly P[],
   prendasDelCatalogo: readonly P[],
-  o: Pick<OfertaEnEdicion, "categoriasSolo" | "categoriasFuera" | "incluyeClaure"> & { productosSolo?: readonly string[]; insigniasSolo?: readonly string[] } & Partial<
-      Pick<FormaDeOferta, "tipo" | "cuenta">
-    >,
+  o: Pick<OfertaEnEdicion, "categoriasSolo" | "categoriasFuera" | "incluyeClaure"> & {
+    productosSolo?: readonly string[];
+    insigniasSolo?: readonly string[];
+    variantesSolo?: readonly string[];
+  } & Partial<Pick<FormaDeOferta, "tipo" | "cuenta">>,
 ): P[] {
   // Un monto de toda la compra (actividad 8) cuenta todo el catálogo, salvo Claurè si no la incluye y lo que deja fuera.
   if (o.tipo === "monto" && o.cuenta !== "campana") return prendasDelCatalogo.filter((p) => (o.incluyeClaure || !p.deClaure) && !(p.categoriaId && o.categoriasFuera.includes(p.categoriaId)));
@@ -907,12 +929,14 @@ export function prendasQueAlcanza<P extends PrendaDeCampana>(
   // insignias, estén o no en la campaña (`fn_oferta_alcanza_variante_con_insignias`).
   const productos = o.productosSolo ?? [];
   const insignias = o.insigniasSolo ?? [];
-  const elegida = o.categoriasSolo.length > 0 || productos.length > 0 || insignias.length > 0;
+  // ADR-0682: las variantes sueltas se suman; con variantes y nada más, la oferta rige solo en ellas (`fn_regla_con_variantes`).
+  const variantes = o.variantesSolo ?? [];
+  const elegida = o.categoriasSolo.length > 0 || productos.length > 0 || insignias.length > 0 || variantes.length > 0;
   return (elegida ? prendasDelCatalogo : prendasDeLaCampana).filter((p) => {
     if (!o.incluyeClaure && p.deClaure) return false;
     const c = p.categoriaId;
     const porInsignia = insignias.length > 0 && (p.insignias ?? []).some((i) => insignias.includes(i));
-    if (elegida && !((c && o.categoriasSolo.includes(c)) || (p.productoId && productos.includes(p.productoId)) || porInsignia)) return false;
+    if (elegida && !((c && o.categoriasSolo.includes(c)) || (p.productoId && productos.includes(p.productoId)) || porInsignia || variantes.includes(p.id))) return false;
     return !(c && o.categoriasFuera.includes(c));
   });
 }

@@ -1432,6 +1432,14 @@ export const GUIA_CAMPANAS: Guia = {
       texto: "Bajo los números, una compra con prendas de verdad, cobrada con la misma cuenta de la caja: lo que paga cada una, el total y cuánto ahorra el cliente. Cambia con cada toque. En un grupo, el ahorro se reparte entre sus prendas según su precio.",
     },
     {
+      id: "oferta-tallas",
+      ancla: "sellos.oferta-tallas",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.oferta-paso-2" }],
+      titulo: "Sus colores y tallas",
+      texto: "La flecha de una ficha abre la prenda: «Todo el modelo», cada color (entra o sale entero) y cada talla suelta. La oferta rige solo en lo que quede marcado; si no queda ninguna talla, la prenda sale de la oferta.",
+    },
+    {
       id: "oferta-una-por-una",
       ancla: "sellos.oferta-una-por-una",
       opcional: true,

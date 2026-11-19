@@ -114,6 +114,7 @@ export function SellosPantalla({
   disenoWeb,
   reglas: reglasIniciales,
   reglasDisponibles,
+  ofertasPorVariante = false,
   insignias = [],
   nombresDeCampanas = {},
   choquesAbiertos = [],
@@ -157,6 +158,8 @@ export function SellosPantalla({
   reglas: ReglaCampana[];
   /** La base responde por las ofertas: si no, «Configurar» abre la hoja de siempre. */
   reglasDisponibles: boolean;
+  /** La base ya guarda una oferta por talla y color (ADR-0682): la hoja de una oferta deja abrir cada prenda y elegir sus variantes. */
+  ofertasPorVariante?: boolean;
   /** Las insignias que una oferta puede elegir (ADR-0655, por insignia); vacío en Catálogo ▸ Insignias, que no edita ofertas. */
   insignias?: InsigniaDeOferta[];
   /** El nombre de cada campaña: al desactivar una insignia, la confirmación nombra las ofertas que la usan con su campaña (ADR-0655). */
@@ -1227,6 +1230,7 @@ export function SellosPantalla({
           etiqueta={ofertando}
           ofertaInicial={ofertaAbierta}
           fotos={vitrinaPorTalla}
+          porVariante={ofertasPorVariante}
           reglas={reglasDeCampana(reglas, ofertando.id)}
           categorias={categorias}
           tiendas={tiendas}

@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 181,
+  "total": 185,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -171,6 +171,9 @@
       "button «{a.texto}»",
       "CampoFecha «Desde»",
       "CampoFecha «Hasta»",
+      "button «Todo el modelo»",
+      "button «{delColor === g.variantes.length ? `Quitar ${g.color ?? \"todas\"}»",
+      "button «{`${g.color ?? \"\"}»",
       "button «Toda la compra»",
       "button «Solo prendas de la campaña»",
       "Boton «Con la cámara»",
@@ -179,6 +182,7 @@
       "button «Desmarcar»",
       "button «Quitar todas»",
       "button «{marcada ? `Desmarcar ${nombreM}»",
+      "button «{`Elegir colores y tallas de ${nombreM}»",
       "button «{`Quitar ${nombreM}»",
       "BotonVerMas «{`Ver las ${enOrden.length}»",
       "button «Categorías»",

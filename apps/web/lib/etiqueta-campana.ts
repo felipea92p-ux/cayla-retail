@@ -65,6 +65,8 @@ export type PrendaConCosto = {
   /** El producto (el modelo con todas sus tallas y colores) y su nombre: lo que se elige «prenda por prenda» en una oferta (ADR-0655). */
   productoId?: string;
   referencia?: string;
+  /** Su talla («M»): la hoja de una oferta deja elegir tallas sueltas de un modelo (ADR-0682). */
+  talla?: string | null;
   /** Las insignias que lleva (marcada a mano o por una categoría de la insignia): lo que alcanza una oferta «por insignia» (ADR-0655). */
   insignias?: string[];
 };

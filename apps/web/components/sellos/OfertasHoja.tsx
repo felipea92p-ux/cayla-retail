@@ -2,7 +2,7 @@
 
 import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Award, Camera, Check, CheckCheck, LayoutGrid, Plus, Shirt, Tag, Undo2, X } from "lucide-react";
+import { ArrowRight, Award, Camera, Check, CheckCheck, ChevronDown, LayoutGrid, Plus, Shirt, Tag, Undo2, X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { Boton, Campo, CampoMonto, CampoTexto } from "@/components/ui/campos";
@@ -35,6 +35,7 @@ import { compraDeEjemplo } from "@/lib/compra-de-ejemplo";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { loQueHace, opcionesDeQueLeDas } from "@/lib/oferta-que-le-das";
 import { productoDeCodigo, resumirNombres, sugerirModelos } from "@/lib/oferta-prendas-buscar";
+import { alternarColor, alternarVariante, elegidasDelModelo, fijarVariantesDelModelo, modelosDeLaSeleccion, porColor, resumenDeVariantes, type VarianteDeModelo } from "@/lib/oferta-variantes";
 import { rpcRebaja } from "@/lib/rebaja-rapida";
 import { leerPrendasBuscadas } from "@/lib/rebaja-rapida-reglas";
 import { fechaCorta, repetirTemporada } from "@/lib/etiqueta-vigencia";
@@ -169,6 +170,7 @@ export function OfertasHoja({
   onClose,
   ofertaInicial = null,
   fotos = null,
+  porVariante = false,
 }: {
   /** La campaña a la que se le registran las ofertas. */
   etiqueta: Etiqueta;
@@ -191,7 +193,10 @@ export function OfertasHoja({
   /** La oferta que se tocó en su cartel (ADR-0677, 7c): la hoja empieza editándola. Sin ella, es una nueva. */
   ofertaInicial?: string | null;
   /** La foto, el color y la categoría de cada prenda (por su id), para dibujarla en «En caja»; sin ellos, la percha (ADR-0333). */
-  fotos?: ReadonlyMap<string, { fotoUrl: string | null; colorHex: string | null; categoria: { nombre: string | null; prefijo: string | null; familia: string | null } | null }> | null;
+  fotos?: ReadonlyMap<string, { fotoUrl: string | null; colorHex: string | null; colorNombre?: string | null; categoria: { nombre: string | null; prefijo: string | null; familia: string | null } | null }> | null;
+  /** La base ya guarda una oferta por talla y color (ADR-0682, 20261118232000): cada prenda de la oferta se abre para elegir sus colores y
+   *  tallas. Sin ella la hoja no lo ofrece: la base ignoraría el dato y la oferta regiría en más prendas de las que dice. */
+  porVariante?: boolean;
 }) {
   const campDesde = etiqueta.vigenteDesde;
   const campHasta = etiqueta.vigenteHasta;
@@ -223,6 +228,10 @@ export function OfertasHoja({
   const reglaInicial = ofertaInicial ? (reglas.find((r) => r.id === ofertaInicial) ?? null) : null;
   const desdeRegla = (r: ReglaCampana): OfertaEnEdicion => ({ ...ofertaDesdeRegla(r, esNombreAutomatico(r, nombreCategoria, nombreSede)), sedeIds: r.sedeIds.length > 0 ? r.sedeIds : idsDeTiendas });
   const [o, setO] = useState<OfertaEnEdicion>(() => (reglaInicial ? desdeRegla(reglaInicial) : nuevaOferta()));
+  // De qué modelo es cada talla, y los modelos que la oferta tiene prenda por prenda: enteros (`productosSolo`) o por sus tallas y colores
+  // sueltos (`variantesSolo`, ADR-0682), en el orden en que entraron.
+  const productoDeVariante = useMemo(() => new Map(prendasConCosto.filter((p) => p.productoId).map((p) => [p.id, p.productoId as string])), [prendasConCosto]);
+  const idsDeFichas = useMemo(() => modelosDeLaSeleccion(o, (id) => productoDeVariante.get(id)), [o, productoDeVariante]);
   // Cada categoría dice cuántas prendas a la venta trae, como en la hoja de la campaña: son las de TODO el catálogo porque una oferta puede
   // elegir categorías que la campaña no tiene. Una prenda es un modelo en su color (sus tallas cuentan una vez, ADR-0488) y las de Claurè
   // no cuentan salvo que la oferta las incluya a propósito, porque la base no se las baja.
@@ -275,7 +284,7 @@ export function OfertasHoja({
   }
   // La persona tocó la grilla de categorías (aunque la dejó vacía: vacío es «ninguna», no «las de la campaña»).
   const [tocoCats, setTocoCats] = useState(
-    () => reglaInicial !== null && reglaInicial.categoriasSolo.length === 0 && (reglaInicial.productosSolo.length > 0 || reglaInicial.insigniasSolo.length > 0),
+    () => reglaInicial !== null && reglaInicial.categoriasSolo.length === 0 && (reglaInicial.productosSolo.length > 0 || reglaInicial.insigniasSolo.length > 0 || reglaInicial.variantesSolo.length > 0),
   );
   // La otra forma de elegir que está abierta en la fase 2 (ADR-0655). En una oferta nueva, ninguna: lo primero es leer o escribir la prenda.
   // Al editar, llega abierta la que la oferta ya usa.
@@ -361,7 +370,7 @@ export function OfertasHoja({
   // Por debajo del costo se cuenta como se cuentan las prendas (un modelo en su color) y se nombran dos, no dos tallas del mismo.
   const bajoPorModelo = useMemo(() => [...new Map(bajoCosto.map((p) => [p.modelo ?? p.id, p])).values()], [bajoCosto]);
   // La grilla de categorías: las marcadas son las de la oferta; sin ninguna elegida, las de la campaña (menos lo que una oferta vieja deja fuera).
-  const categoriasPendientes = !deTodaLaCompra && tocoCats && o.categoriasSolo.length === 0 && o.productosSolo.length === 0 && o.insigniasSolo.length === 0;
+  const categoriasPendientes = !deTodaLaCompra && tocoCats && o.categoriasSolo.length === 0 && o.productosSolo.length === 0 && o.insigniasSolo.length === 0 && o.variantesSolo.length === 0;
   const elegidasSolo = useMemo(
     () => (o.categoriasSolo.length > 0 ? new Set(o.categoriasSolo) : tocoCats ? new Set<string>() : new Set([...catsCampana].filter((id) => !o.categoriasFuera.includes(id)))),
     [o.categoriasSolo, o.categoriasFuera, tocoCats, catsCampana],
@@ -499,6 +508,9 @@ export function OfertasHoja({
       // Un monto de toda la compra no elige prendas: la base le quita las insignias igual.
       insigniasSolo: deTodaLaCompra ? [] : o.insigniasSolo,
       teniaInsignias: (editada?.insigniasSolo.length ?? 0) > 0,
+      // Las tallas y colores sueltos (ADR-0682): solo si la base ya los guarda; un monto de toda la compra no elige prendas.
+      variantesSolo: porVariante && !deTodaLaCompra ? o.variantesSolo : [],
+      teniaVariantes: (editada?.variantesSolo.length ?? 0) > 0,
       cedeA: cesionesQueQuedan(choques, o.cedeA),
       teniaCesiones: (editada?.ceden.length ?? 0) > 0,
       sedeIds: o.sedeIds,
@@ -534,7 +546,7 @@ export function OfertasHoja({
   // La selección de categorías de la hoja (la de producción). Si queda igual a las de la campaña es «las de la campaña» (sin lista: las que se
   // sumen después entran solas y las marcadas a mano también); si no, es una lista de la oferta. Sin ninguna es «ninguna», y no deja guardar.
   function fijarCategorias(siguiente: ReadonlySet<string>) {
-    const comoLaCampana = o.productosSolo.length === 0 && o.insigniasSolo.length === 0 && siguiente.size === catsCampana.size && [...siguiente].every((id) => catsCampana.has(id));
+    const comoLaCampana = o.productosSolo.length === 0 && o.insigniasSolo.length === 0 && o.variantesSolo.length === 0 && siguiente.size === catsCampana.size && [...siguiente].every((id) => catsCampana.has(id));
     cambiar({ categoriasSolo: comoLaCampana ? [] : [...siguiente], categoriasFuera: [] });
     setTocoCats(!comoLaCampana);
   }
@@ -549,7 +561,7 @@ export function OfertasHoja({
   const alternarInsignia = (id: string) => {
     const tiene = o.insigniasSolo.includes(id);
     const insigniasSolo = tiene ? o.insigniasSolo.filter((x) => x !== id) : [...o.insigniasSolo, id];
-    if (!tiene && o.insigniasSolo.length === 0 && o.productosSolo.length === 0 && o.categoriasSolo.length === 0 && !tocoCats) {
+    if (!tiene && o.insigniasSolo.length === 0 && o.productosSolo.length === 0 && o.variantesSolo.length === 0 && o.categoriasSolo.length === 0 && !tocoCats) {
       cambiar({ insigniasSolo, categoriasSolo: [], categoriasFuera: [] });
       setTocoCats(true);
     } else cambiar({ insigniasSolo });
@@ -932,12 +944,12 @@ export function OfertasHoja({
   const alcanceTexto = (() => {
     if (categoriasPendientes) return "Agrega una prenda o marca una categoría.";
     const claure = claureFuera > 0 ? ` ${plural(claureFuera, "prenda", "prendas")} de Claurè ${claureFuera === 1 ? "queda" : "quedan"} fuera.` : "";
-    const comoLaCampana = o.categoriasSolo.length === 0 && o.productosSolo.length === 0 && o.insigniasSolo.length === 0;
+    const comoLaCampana = o.categoriasSolo.length === 0 && idsDeFichas.length === 0 && o.insigniasSolo.length === 0;
     if (comoLaCampana && prendasCampana.length === 0) return "La campaña todavía no tiene prendas: marca las categorías o las prendas de esta oferta.";
-    if (o.productosSolo.length > 0 || o.insigniasSolo.length > 0) {
+    if (idsDeFichas.length > 0 || o.insigniasSolo.length > 0) {
       const partes = [
         o.categoriasSolo.length > 0 ? plural(o.categoriasSolo.length, "categoría", "categorías") : "",
-        o.productosSolo.length > 0 ? plural(o.productosSolo.length, "modelo elegido", "modelos elegidos") : "",
+        idsDeFichas.length > 0 ? plural(idsDeFichas.length, "modelo elegido", "modelos elegidos") : "",
         o.insigniasSolo.length > 0 ? plural(o.insigniasSolo.length, "insignia", "insignias") : "",
       ].filter(Boolean);
       return `Alcanza a ${plural(nAlcanza, "prenda", "prendas")} a la venta: las de ${lista(partes)}.${claure}`;
@@ -972,6 +984,21 @@ export function OfertasHoja({
     return [...m.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   }, [prendasConCosto]);
   const modeloDe = useMemo(() => new Map(modelos.map((m) => [m.id, m])), [modelos]);
+  // Las tallas y colores a la venta de cada modelo (ADR-0682): lo que se elige al abrir su ficha. El color sale de la vitrina (`fotos`); la
+  // llave del color, de la clave «modelo·color» de la prenda.
+  const variantesDeModelo = useMemo(() => {
+    const porModelo = new Map<string, VarianteDeModelo[]>();
+    for (const p of prendasConCosto) {
+      if (!p.productoId) continue;
+      const f = fotos?.get(p.id);
+      const colorClave = (p.modelo ?? "").slice(p.productoId.length + 1);
+      porModelo.set(p.productoId, [...(porModelo.get(p.productoId) ?? []), { id: p.id, colorClave, color: f?.colorNombre ?? (colorClave || null), colorHex: f?.colorHex ?? null, talla: p.talla ?? null }]);
+    }
+    return porModelo;
+  }, [prendasConCosto, fotos]);
+  const variantesDe = (id: string) => variantesDeModelo.get(id) ?? [];
+  // La prenda abierta para elegir sus colores y tallas (una a la vez, bajo el mosaico).
+  const [abierta, setAbierta] = useState<string | null>(null);
   const miniaturaDe = (prendaId: string | undefined, tamano: "sm" | "md" = "md") => {
     const f = prendaId ? fotos?.get(prendaId) : undefined;
     return <MiniaturaPrenda fotoUrl={f?.fotoUrl ?? null} colorHex={f?.colorHex ?? null} tamano={tamano} prefijo={f?.categoria?.prefijo} familia={f?.categoria?.familia} categoria={f?.categoria?.nombre} />;
@@ -991,7 +1018,7 @@ export function OfertasHoja({
   const [verTodasLasElegidas, setVerTodasLasElegidas] = useState(false);
   // Las prendas marcadas para quitarlas juntas (se toca su ficha). Solo cuentan las que siguen en la oferta.
   const [marcadas, setMarcadas] = useState<ReadonlySet<string>>(new Set());
-  const marcadasAhora = o.productosSolo.filter((id) => marcadas.has(id));
+  const marcadasAhora = idsDeFichas.filter((id) => marcadas.has(id));
   const alternarMarcada = (id: string) =>
     setMarcadas((a) => {
       const b = new Set(a);
@@ -1007,7 +1034,7 @@ export function OfertasHoja({
   // La sugerencia que toma el Enter: la primera que todavía NO está en la oferta. Sobre una que ya está, «Enter» junto a «Quitar» se leía
   // como que Enter la quitaba; quitar es solo con el mouse o el dedo.
   const sugeridaActiva = (() => {
-    const i = sugeridas.findIndex((m) => !o.productosSolo.includes(m.id) && !entraPorCategoria(m));
+    const i = sugeridas.findIndex((m) => !idsDeFichas.includes(m.id) && !entraPorCategoria(m));
     return i < 0 ? null : i;
   })();
 
@@ -1028,8 +1055,8 @@ export function OfertasHoja({
     if (!m) return { tono: "ambar", estado: "No está a la venta", titulo: "Esa prenda no está a la venta" };
     const marcadas = a.categoriasSolo.length > 0 ? a.categoriasSolo : toco ? [] : [...catsCampana].filter((c) => !a.categoriasFuera.includes(c));
     if (m.categoriaId !== null && marcadas.includes(m.categoriaId)) return { tono: "verde", estado: "Ya entra por su categoría", titulo: m.nombre };
-    if (a.productosSolo.includes(id)) return { tono: "verde", estado: "Ya estaba", titulo: m.nombre };
-    const primera = a.productosSolo.length === 0 && a.categoriasSolo.length === 0 && !toco;
+    if (a.productosSolo.includes(id) || a.variantesSolo.some((v) => productoDeVariante.get(v) === id)) return { tono: "verde", estado: "Ya estaba", titulo: m.nombre };
+    const primera = a.productosSolo.length === 0 && a.variantesSolo.length === 0 && a.categoriasSolo.length === 0 && !toco;
     const parche = primera ? { productosSolo: [id], categoriasSolo: marcadas, categoriasFuera: [] } : { productosSolo: [...a.productosSolo, id] };
     vivo.current = { o: { ...a, ...parche }, tocoCats: toco || primera };
     cambiar(parche);
@@ -1042,11 +1069,22 @@ export function OfertasHoja({
     const fuera = new Set(ids);
     const a = vivo.current.o;
     const productosSolo = a.productosSolo.filter((x) => !fuera.has(x));
-    vivo.current = { ...vivo.current, o: { ...a, productosSolo } };
-    cambiar({ productosSolo });
+    // Con el modelo se van también sus tallas y colores sueltos.
+    const variantesSolo = a.variantesSolo.filter((v) => !fuera.has(productoDeVariante.get(v) ?? ""));
+    vivo.current = { ...vivo.current, o: { ...a, productosSolo, variantesSolo } };
+    cambiar({ productosSolo, variantesSolo });
+    if (abierta && fuera.has(abierta)) setAbierta(null);
     setUltimaLeida(null);
     setMarcadas((m) => new Set([...m].filter((x) => !fuera.has(x))));
     if (recien && fuera.has(recien)) setRecien(null);
+  }
+  /** Al tocar un color o una talla de la prenda abierta: queda entera, por sus variantes o fuera de la oferta (`lib/oferta-variantes.ts`). */
+  function fijarSeleccion(productoId: string, s: { productosSolo: string[]; variantesSolo: string[] }) {
+    vivo.current = { ...vivo.current, o: { ...vivo.current.o, ...s } };
+    cambiar(s);
+    setUltimaLeida(null);
+    // Sin ninguna talla, la prenda salió de la oferta: su panel se cierra con ella.
+    if (!s.productosSolo.includes(productoId) && !s.variantesSolo.some((v) => productoDeVariante.get(v) === productoId)) setAbierta(null);
   }
   /** Lo leído por la pistola o la cámara: primero entre las prendas que la hoja ya tiene; si no, la base (el código de fábrica, la etiqueta). */
   async function leerCodigo(texto: string): Promise<{ tono: "verde" | "ambar"; estado: string; titulo: string; agregada?: string }> {
@@ -1072,7 +1110,7 @@ export function OfertasHoja({
   function elegirSugerida(i: number) {
     const m = sugeridas[i];
     if (!m) return;
-    if (!o.productosSolo.includes(m.id)) return agregarSugerida(i);
+    if (!idsDeFichas.includes(m.id)) return agregarSugerida(i);
     quitarProductos([m.id]);
     setUltimaLeida({ tono: "verde", texto: `${m.nombre} · quitada` });
     setQPrenda("");
@@ -1115,13 +1153,56 @@ export function OfertasHoja({
   // Los grupos enteros (categorías, insignias): se abre uno a la vez, bajo su fila. Al editar, el que la oferta ya usa llega abierto.
   const alternarPanel = (v: VistaPrendas) => setVistaPrendas((a) => (a === v ? null : v));
   // Las prendas agregadas, la última arriba: quien escanea ve la que acaba de entrar sin bajar.
-  const enOrden = [...o.productosSolo].reverse();
+  const enOrden = [...idsDeFichas].reverse();
   // Las categorías en una línea: las elegidas (primero las que tienen prendas), las de la campaña si nadie eligió, o ninguna.
   const resumenDeCategorias = (() => {
     if (o.categoriasSolo.length === 0) return !tocoCats && catsCampana.size > 0 ? `Las ${catsCampana.size} de la campaña` : "Ninguna";
     const nombres = [...o.categoriasSolo].sort((a, b) => (cuentaCats.get(b) ?? 0) - (cuentaCats.get(a) ?? 0)).map(nombreCategoria).filter(Boolean);
     return resumirNombres(nombres);
   })();
+
+  /** Los colores y tallas de la prenda abierta (ADR-0682): «Todo el modelo», cada color (entra o sale entero) y cada talla suelta. */
+  function tallasDe(id: string) {
+    const m = modeloDe.get(id);
+    const variantes = variantesDe(id);
+    const elegidas = elegidasDelModelo(o, id, variantes);
+    const entero = variantes.length > 0 && elegidas.size === variantes.length;
+    const sel = () => vivo.current.o;
+    return (
+      <div className="of-tallas" role="group" aria-label={`Colores y tallas de ${m?.nombre ?? "la prenda"}`} data-guia="sellos.oferta-tallas">
+        <div className="of-tallas-cab">
+          <span className="of-lbl">{m?.nombre ?? "Prenda"}</span>
+          <button type="button" className="pildora-cayla" aria-pressed={entero} onClick={() => fijarSeleccion(id, fijarVariantesDelModelo(sel(), id, variantes, new Set(variantes.map((v) => v.id))))}>
+            Todo el modelo
+          </button>
+        </div>
+        {porColor(variantes).map((g) => {
+          const delColor = g.variantes.filter((v) => elegidas.has(v.id)).length;
+          return (
+            <div key={g.clave} className="of-tallas-color">
+              <button
+                type="button"
+                className="pildora-cayla of-tallas-nombre"
+                aria-pressed={delColor === g.variantes.length ? true : delColor > 0 ? "mixed" : false}
+                onClick={() => fijarSeleccion(id, alternarColor(sel(), id, variantes, g.clave))}
+                title={delColor === g.variantes.length ? `Quitar ${g.color ?? "todas"}` : `Todas las tallas de ${g.color ?? "la prenda"}`}
+              >
+                {g.colorHex && <span aria-hidden data-color-dato className="of-tallas-muestra" style={{ background: g.colorHex }} />}
+                {g.color ?? "Tallas"}
+              </button>
+              <span className="of-tallas-lista">
+                {g.variantes.map((v) => (
+                  <button key={v.id} type="button" className="of-talla" aria-pressed={elegidas.has(v.id)} aria-label={`${g.color ?? ""} ${v.talla ?? "talla única"}`.trim()} onClick={() => fijarSeleccion(id, alternarVariante(sel(), id, variantes, v.id))}>
+                    {v.talla ?? "Única"}
+                  </button>
+                ))}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   function preguntaPrendas() {
     return (
@@ -1202,12 +1283,12 @@ export function OfertasHoja({
                       miniatura: miniaturaDe(m.prendaId),
                       titulo: m.nombre,
                       // Una que ya está lo dice en su línea y ofrece quitarla (corto: a 375 px un texto largo a la derecha dejaba el nombre en una letra).
-                      detalle: o.productosSolo.includes(m.id)
+                      detalle: idsDeFichas.includes(m.id)
                         ? "Ya está en la oferta"
                         : entraPorCategoria(m)
                           ? "Ya entra por su categoría"
                           : [nombreCategoria(m.categoriaId ?? ""), m.colores.size > 1 ? `${m.colores.size} colores` : ""].filter(Boolean).join(" · ") || undefined,
-                      derecha: o.productosSolo.includes(m.id) ? "Quitar" : entraPorCategoria(m) ? undefined : `S/ ${m.precio.toFixed(2)}`,
+                      derecha: idsDeFichas.includes(m.id) ? "Quitar" : entraPorCategoria(m) ? undefined : `S/ ${m.precio.toFixed(2)}`,
                     }))}
                     onElegir={elegirSugerida}
                   />
@@ -1229,7 +1310,7 @@ export function OfertasHoja({
                 <div className="of-lista-cab">
                   <span className="of-lbl">
                     Prendas de la oferta
-                    {o.productosSolo.length > 0 && <Globito n={o.productosSolo.length} etiqueta={plural(o.productosSolo.length, "prenda agregada", "prendas agregadas")} className="ml-2" />}
+                    {idsDeFichas.length > 0 && <Globito n={idsDeFichas.length} etiqueta={plural(idsDeFichas.length, "prenda agregada", "prendas agregadas")} className="ml-2" />}
                   </span>
                   {marcadasAhora.length > 0 ? (
                     <span className="of-lista-acciones">
@@ -1242,15 +1323,15 @@ export function OfertasHoja({
                       </button>
                     </span>
                   ) : (
-                    o.productosSolo.length > 1 && (
-                      <button type="button" className="btn-cayla btn-secundario" onClick={() => quitarProductos(o.productosSolo)}>
+                    idsDeFichas.length > 1 && (
+                      <button type="button" className="btn-cayla btn-secundario" onClick={() => quitarProductos(idsDeFichas)}>
                         <X aria-hidden className="mr-1.5 inline h-4 w-4" />
                         Quitar todas
                       </button>
                     )
                   )}
                 </div>
-                {o.productosSolo.length === 0 ? (
+                {idsDeFichas.length === 0 ? (
                   <p className="of-pequeno">Ninguna todavía.</p>
                 ) : (
                   <>
@@ -1272,9 +1353,27 @@ export function OfertasHoja({
                               </span>
                               <span className="of-fila-texto">
                                 <span className="of-fila-nombre">{nombreM}</span>
-                                {m && <span className="of-fila-dato">{[`S/ ${m.precio.toFixed(2)}`, m.colores.size > 1 ? `${m.colores.size} colores` : "", m.deClaure ? "Claurè" : ""].filter(Boolean).join(" · ")}</span>}
+                                {m && (
+                                  <span className="of-fila-dato">
+                                    {[porVariante ? resumenDeVariantes(variantesDe(id), elegidasDelModelo(o, id, variantesDe(id))) : "", `S/ ${m.precio.toFixed(2)}`, !porVariante && m.colores.size > 1 ? `${m.colores.size} colores` : "", m.deClaure ? "Claurè" : ""]
+                                      .filter(Boolean)
+                                      .join(" · ")}
+                                  </span>
+                                )}
                               </span>
                             </button>
+                            {porVariante && variantesDe(id).length > 1 && (
+                              <button
+                                type="button"
+                                className="of-ficha-abrir"
+                                aria-expanded={abierta === id}
+                                onClick={() => setAbierta((a) => (a === id ? null : id))}
+                                aria-label={`Elegir colores y tallas de ${nombreM}`}
+                                title="Colores y tallas"
+                              >
+                                <ChevronDown aria-hidden className="h-4 w-4" />
+                              </button>
+                            )}
                             <button type="button" className="of-ficha-quitar" onClick={() => quitarProductos([id])} aria-label={`Quitar ${nombreM}`} title={`Quitar ${nombreM}`}>
                               <X aria-hidden className="h-4 w-4" />
                             </button>
@@ -1285,6 +1384,7 @@ export function OfertasHoja({
                     {enOrden.length > PRENDAS_A_LA_VISTA && (
                       <BotonVerMas abierto={verTodasLasElegidas} onCambiar={setVerTodasLasElegidas} texto={`Ver las ${enOrden.length}`} forma="enlace" />
                     )}
+                    {porVariante && abierta && idsDeFichas.includes(abierta) && tallasDe(abierta)}
                   </>
                 )}
               </div>
