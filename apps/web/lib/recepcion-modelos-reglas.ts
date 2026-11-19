@@ -27,7 +27,6 @@ import {
   marcaDeLinea,
   prendasAnotadasDe,
   quitarPrenda,
-  SEPARADO_VACIO,
   separarAnotada,
   SIN_MARCA,
   sumarPrenda,
@@ -857,47 +856,9 @@ function repartirCambio(g: GrupoDeLineas, nuevo: Separado, lineasDeEsto: Readonl
   };
 }
 
-/**
- * La misma prenda comprada en dos líneas es un solo modelo para quien cuenta, pero cada línea tiene lo que dijo. Lo contado se reparte en el orden
- * de la compra hasta lo que dijo cada una, y lo que sobra va a la última. Sin esto una quedaba con todo y la otra en 0, y «Cerrar» pedía explicar un
- * faltante y un sobrante que no existen, aunque el modelo cuadrara.
- */
-function partirEntreSusLineas(g: GrupoDeLineas, m: ModeloDelConteo, r: Reparto): Reparto {
-  const lineas = lineasDelModelo(g, m);
-  if (lineas.length < 2) return r;
-  const clave = normaliza(m.nombre);
-  const esDelModelo = {
-    prenda: (p: Separado["prendas"][number]) => p.productoId === m.productoId,
-    nueva: (x: Separado["nuevas"][number]) => !m.productoId && !!x.descripcion && normaliza(x.descripcion) === clave,
-  };
-  const cuantasEn = (s: Separado) => s.prendas.filter(esDelModelo.prenda).reduce((a, p) => a + p.cantidad, 0) + s.nuevas.filter(esDelModelo.nueva).reduce((a, x) => a + x.cantidad, 0);
-  const despues = new Map(g.lineas.map((l) => [l.clave, { linea: l, contadas: l.conteo?.contadas ?? 0, separado: l.conteo?.separado ?? SEPARADO_VACIO }]));
-  for (const c of r.cambios) despues.set(c.clave, { linea: c.linea, contadas: c.contadas, separado: c.separado });
-  let resto = [...despues.values()].reduce((a, d) => a + cuantasEn(d.separado), 0);
-  lineas.forEach((l, i) => {
-    const d = despues.get(l.clave);
-    if (!d) return;
-    const leToca = i === lineas.length - 1 ? resto : Math.min(resto, Math.max(0, (l.dijeron ?? 0) - (l.conteo?.enStock ?? 0)));
-    resto -= leToca;
-    const sin = { prendas: d.separado.prendas.filter((p) => !esDelModelo.prenda(p)), nuevas: d.separado.nuevas.filter((x) => !esDelModelo.nueva(x)) };
-    const con: Separado =
-      leToca === 0
-        ? sin
-        : m.productoId
-          ? sumarPrenda(sin, { productoId: m.productoId, nombre: m.nombre, codigo: m.codigo }, leToca)
-          : { ...sin, nuevas: [...sin.nuevas, { cantidad: leToca, descripcion: m.nombre }] };
-    d.contadas += leToca - cuantasEn(d.separado);
-    d.separado = con;
-  });
-  const deEste = new Set(lineas.map((l) => l.clave));
-  const cambios = [...despues.values()]
-    .filter(({ linea, contadas, separado }) => deEste.has(linea.clave) || r.cambios.some((c) => c.clave === linea.clave) || contadas !== (linea.conteo?.contadas ?? 0) || JSON.stringify(separado) !== JSON.stringify(linea.conteo?.separado ?? SEPARADO_VACIO))
-    .map(({ linea, contadas, separado }) => ({ linea, clave: linea.clave, contadas, separado }));
-  return { ...r, cambios };
-}
-
 /** Lo separado cambió por lo que se contó de este modelo: `nuevo` ya trae su cantidad (y, si cuadran, sus tallas). */
-export const repartirModeloCon = (g: GrupoDeLineas, m: ModeloDelConteo, nuevo: Separado): Reparto => partirEntreSusLineas(g, m, repartirCambio(g, nuevo, new Set(lineasDelModelo(g, m).map((l) => l.clave))));
+// La misma prenda comprada en varias líneas se parte entre ellas en `repartirSeparado` (2026-11-18): vale para este camino y para todos los demás.
+export const repartirModeloCon = (g: GrupoDeLineas, m: ModeloDelConteo, nuevo: Separado): Reparto => repartirCambio(g, nuevo, new Set(lineasDelModelo(g, m).map((l) => l.clave)));
 
 /** @internal La persona dejó este modelo en `n`: la forma corta con la que las pruebas encadenan toques. La pantalla pasa por `repartirModeloCon`, porque a veces lleva sus tallas. */
 export const repartirModelo = (g: GrupoDeLineas, m: ModeloDelConteo, n: number): Reparto => repartirModeloCon(g, m, cantidadDeModelo(g.separado, m, n));

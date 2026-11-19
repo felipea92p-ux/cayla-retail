@@ -3,12 +3,14 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import {
+  VARIABLE_RESERVA,
   VENTANA_TRAS_CLIC_MS,
   esCambioDeVista,
   esChangeInmediatoAlClic,
   esContinuacionDeTecleo,
   puedeSoltar,
   reservaNecesaria,
+  reservaPublicada,
   type Medida,
 } from "@/lib/pagina-estable-reglas";
 
@@ -32,6 +34,9 @@ import {
 
    Lo que esto no reemplaza: un bloque que cambia de alto con cada opción (los datos de cada medio de pago) sigue
    reservando su propio lugar (`LineasPago`, `PagoPiezas`), para que ni siquiera aparezca aire.
+
+   Dos cuidados al escribir la reserva (2026-11-18, ver `pintarReserva`): se escribe SIN transición, y en una ventana
+   se publica además en `--reserva-abajo`, para que el pie pegado de la hoja (`.pie-hoja-fijo`) se quede al fondo.
    ==================================================================== */
 
 type Reserva = { contenedor: Element; destino: HTMLElement; px: number; paddingInline: string };
@@ -44,6 +49,30 @@ const EVENTO_SOLTAR = "pagina-estable:soltar";
  *  (`useLayoutEffect`), o el aire alcanza a verse un cuadro. */
 export function soltarPaginaEstable() {
   window.dispatchEvent(new Event(EVENTO_SOLTAR));
+}
+
+/**
+ * Escribe el relleno del fondo y, en una ventana, publica cuánto de él es reserva (`--reserva-abajo`).
+ *
+ * SIN TRANSICIÓN. Con las animaciones apagadas (el estado de fábrica, ADR-0625) todo elemento lleva una transición de
+ * 0,01 ms: el relleno recién escrito no existía todavía para el navegador en este mismo tick, `llevarA` no podía
+ * devolver la vista (seguía recortada), la reserva quedaba a la vista sin haber servido y se ponía y quitaba cuadro
+ * por cuadro hasta el fin de la vigilancia (medido el 2026-11-18 en «Registrar proveedor»). Por eso se apaga la
+ * transición de este elemento solo durante la escritura, y se le pide una medida para que el navegador la dé por hecha.
+ *
+ * LA VARIABLE. El pie pegado de una hoja mide su pegado desde el relleno de la hoja: con la reserva sumada quedaba esa
+ * cantidad más arriba, encima del contenido. `.pie-hoja-fijo` (globals.css) la lee y baja lo mismo. Solo en una ventana
+ * (`reservaPublicada`): una variable CSS se hereda, y puesta en el `body` le llegaría al pie de toda hoja abierta encima.
+ */
+function pintarReserva(destino: HTMLElement, relleno: string, reservaPx: number, enVentana: boolean) {
+  const transicion = destino.style.transition;
+  destino.style.transition = "none";
+  destino.style.paddingBottom = relleno;
+  const publicada = reservaPublicada(reservaPx, enVentana);
+  if (publicada) destino.style.setProperty(VARIABLE_RESERVA, publicada);
+  else destino.style.removeProperty(VARIABLE_RESERVA);
+  void destino.offsetHeight;
+  destino.style.transition = transicion;
 }
 
 /** Un campo donde se escribe: tocarlo solo pone el cursor. */
@@ -90,7 +119,7 @@ export function PaginaEstable() {
 
     function soltar() {
       if (!reserva) return;
-      reserva.destino.style.paddingBottom = reserva.paddingInline;
+      pintarReserva(reserva.destino, reserva.paddingInline, 0, false);
       reserva.contenedor.removeEventListener("scroll", alDesplazar);
       if (esPagina(reserva.contenedor)) window.removeEventListener("scroll", alDesplazar);
       reserva = null;
@@ -121,7 +150,7 @@ export function PaginaEstable() {
       }
       reserva.px += falta;
       const base = parseFloat(getComputedStyle(reserva.destino).paddingBottom) || 0;
-      reserva.destino.style.paddingBottom = `${base + falta}px`;
+      pintarReserva(reserva.destino, `${base + falta}px`, reserva.px, !esPagina(contenedor));
       llevarA(contenedor, alClic.arriba);
     }
 
