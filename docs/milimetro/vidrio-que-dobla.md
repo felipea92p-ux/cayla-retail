@@ -79,8 +79,28 @@ La mejora no agrega estados a la pieza. Lo que sí cambia según el aparato:
 | El aviso de la esquina (`.aviso-tarjeta`) | todo el contorno | propio | siempre |
 | El cajón de un módulo con el menú plegado (`.marco-cajon-grupo`) | todo el contorno | propio | siempre |
 | La isla (`<BarraDeAbajo>`, clara) | todo el contorno | propio | solo en el celular; en escritorio va a ras |
+| El cajón lateral (`<Cajon>`) | todo el contorno | propio | solo en escritorio; en el celular es una hoja pegada abajo |
+| La hoja (`<Modal>`, la cara «Serena») | todo el contorno | propio | solo en escritorio y con la hoja quieta |
 
-Fuera: la isla oscura (es ahumada, no de vidrio) y las barras que usan la clase `barra-abajo` a mano, sin el componente.
+Fuera: la isla oscura (es ahumada, no de vidrio), las barras que usan la clase `barra-abajo` a mano, la cámara, el ticket y «Mi perfil»
+(que es el vidrio «Completo»).
+
+### La hoja: su lente es una hermana
+
+La hoja no puede llevar `backdrop-filter`: se volvería el bloque contenedor de todo lo `fixed` de adentro, y la lista de un combo quedaría
+recortada (`estilos/vidrio/hoja.css`, ADR-0596). Por eso `Modal` pone un `<span class="hoja-lente">` justo antes de la hoja, detrás, que
+copia su caja con posicionamiento por ancla (`anchor-name` en la hoja). Tres consecuencias:
+
+- Con la lente puesta, **el velo deja de desenfocar** y solo oscurece. Si lo de atrás llegara borroso, el canto no tendría nada nítido que
+  doblar. Lo de fuera de la hoja se ve nítido y atenuado; el centro de la hoja se desenfoca igual que antes (22 px).
+- **Solo con la hoja quieta y en escritorio.** Una caja anclada no sigue una transformación: llega al terminar la entrada (300 ms) y se
+  va al empezar la salida. Mientras tanto la hoja se ve como siempre. En el celular la hoja se arrastra con el dedo, así que no lleva lente.
+- Donde el navegador no sabe de anclas, el `<span>` mide cero y nunca se activa.
+
+Medido en «Ajustar stock» de Existencias: la lente mide lo mismo que la hoja al píxel (992 × 606), también cuando la hoja crece; la hoja
+no tiene filtro propio; la lista de «Qué pasó» (6 opciones) cuelga de la capa de la hoja y todas se pueden tocar.
+
+El cajón lateral, cuando abre con velo, casi no muestra el canto doblado: su velo sí desenfoca lo de atrás. Se nota cuando abre sin velo.
 
 ## Movimiento
 

@@ -138,6 +138,43 @@ describe("el filtro", () => {
   });
 });
 
+// La hoja (<Modal>) es la que hace scroll y la que guarda las listas de sus combos. Si llevara `backdrop-filter`, se volvería el bloque
+// contenedor de todo lo `fixed` de adentro y la lista del «Responsable» quedaría recortada (estilos/vidrio/hoja.css, ADR-0596). Por eso
+// su lente es una hermana. Esto cuida que nadie «simplifique» poniéndole el filtro a la hoja.
+describe("la hoja dobla sin llevar filtro propio: su lente es una hermana", () => {
+  const leer = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8");
+  const dobla = leer("app/estilos/vidrio/dobla.css").replace(/\/\*[\s\S]*?\*\//g, "");
+  const modal = leer("components/ui/Modal.tsx");
+  /** Los bloques de reglas cuyo selector nombra la clase pedida. */
+  const reglasDe = (clase: string) => [...dobla.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter((m) => m[1].includes(clase)).map((m) => ({ selector: m[1].trim(), cuerpo: m[2] }));
+
+  it("ninguna regla le pone `backdrop-filter` a `.hoja-serena`", () => {
+    const conFiltro = reglasDe(".hoja-serena").filter((r) => /backdrop-filter/.test(r.cuerpo) && !/\.hoja-lente\[data-dobla-activa\]\s*$/.test(r.selector) && !r.selector.includes(":has("));
+    expect(conFiltro.map((r) => r.selector)).toEqual([]);
+  });
+
+  it("la lente lleva el filtro y el relleno; con ella puesta, la hoja queda transparente", () => {
+    const lente = reglasDe(".hoja-lente[data-dobla-activa]");
+    expect(lente.some((r) => r.selector === ".hoja-lente[data-dobla-activa]" && /backdrop-filter: var\(--dobla\)/.test(r.cuerpo) && /var\(--vidrio-hoja-fondo\)/.test(r.cuerpo))).toBe(true);
+    expect(lente.some((r) => r.selector === ".hoja-lente[data-dobla-activa] + .hoja-serena" && /background: transparent/.test(r.cuerpo))).toBe(true);
+  });
+
+  it("la lente comparte bloque contenedor con la hoja (`absolute`): con `fixed` el navegador descarta el ancla", () => {
+    const base = reglasDe(".hoja-lente").find((r) => r.selector === ".hoja-lente");
+    expect(base?.cuerpo).toMatch(/position: absolute;/);
+    expect(base?.cuerpo).toMatch(/top: anchor\(top\);[\s\S]*left: anchor\(left\);[\s\S]*right: anchor\(right\);[\s\S]*bottom: anchor\(bottom\);/);
+  });
+
+  it("con la lente puesta, el velo deja de desenfocar (si no, el canto no tendría nada nítido que doblar)", () => {
+    expect(dobla).toMatch(/:where\(\[data-state="open"\]\):has\(\+ div > \.hoja-lente\[data-dobla-activa\]\) \{[^}]*backdrop-filter: blur\(0\) saturate\(1\);/);
+  });
+
+  it("`Modal` pone la lente justo antes de la hoja, y solo dobla en escritorio y con la hoja quieta", () => {
+    expect(modal).toMatch(/<span ref=\{lente\} aria-hidden className="hoja-lente"[^>]*\/>\}\s*<Dialog\.Content/);
+    expect(modal).toMatch(/useVidrioQueDoblaEn\(lente, \{[^}]*solo: ESCRITORIO[^}]*activo: conLente && quieta && !cerrando \}\)/);
+  });
+});
+
 // La letra sobre el vidrio de relleno claro. Se compone como lo hace el navegador: lo de atrás pasa por el filtro (pendiente y corte) y
 // encima va el relleno de la receta. Se prueba con lo MÁS oscuro y lo MÁS claro que puede haber detrás (una foto negra, una foto blanca),
 // en el punto más flaco del relleno. La tinta tiene que leerse (4.5:1, WCAG 1.4.3) en los cuatro casos de cada tema.

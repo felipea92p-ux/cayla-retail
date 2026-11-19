@@ -61,6 +61,54 @@
   backdrop-filter: var(--dobla);
   box-shadow: var(--vidrio-flota-sombra), var(--vidrio-dobla-hondura);
 }
+/* ---------- El cajón lateral (<Cajon>): flota a 12 px de los bordes en escritorio ----------
+   Ya llevaba su propio desenfoque (casi siempre abre sin velo), así que la lente va en él mismo. Su scroll es de un bloque de adentro. */
+.cajon-serena[data-dobla-activa] {
+  background: var(--vidrio-dobla-grano), var(--vidrio-hoja-fondo);
+  -webkit-backdrop-filter: var(--dobla);
+  backdrop-filter: var(--dobla);
+  box-shadow: var(--vidrio-hoja-sombra), var(--vidrio-dobla-hondura);
+}
+
+/* ---------- La hoja (<Modal>): la lente es su HERMANA, no ella ----------
+   La hoja NO puede llevar `backdrop-filter`: la volvería el bloque contenedor de todo lo `fixed` de adentro, y la lista de un combo
+   quedaría recortada y se iría con su scroll (estilos/vidrio/hoja.css, ADR-0596). Por eso la lente es un <span> que `Modal` pone justo
+   antes de la hoja: detrás, y con la misma caja gracias al posicionamiento por ancla (la hoja declara `anchor-name`).
+   · Donde el navegador no sabe de anclas, estas cuatro líneas se descartan, el <span> mide cero y nunca se activa.
+   · Con la lente puesta, el relleno pasa de la hoja a la lente (si no, la lente doblaría también el blanco de la hoja y casi no se
+     vería) y el velo deja de desenfocar: si lo de atrás ya llega borroso, el canto no tiene nada nítido que doblar. El velo sigue
+     oscureciendo, y la lente desenfoca el centro de la hoja como siempre.
+   · Solo con la hoja quieta y en escritorio: una caja anclada no sigue una transformación (la entrada, la salida, el dedo). */
+.hoja-lente {
+  /* `absolute` y no `fixed`: para que el ancla valga, la hoja y su lente tienen que compartir el bloque contenedor (el `div` fijo que
+     ubica la hoja, que cubre toda la pantalla). Con `fixed`, el de la lente sería la ventana y el navegador descarta el ancla. */
+  position: absolute;
+  top: anchor(top);
+  left: anchor(left);
+  right: anchor(right);
+  bottom: anchor(bottom);
+  visibility: hidden;
+  pointer-events: none;
+  border-radius: var(--vidrio-hoja-radio);
+}
+.hoja-lente[data-dobla-activa] {
+  visibility: visible;
+  background: var(--vidrio-dobla-grano), var(--vidrio-hoja-fondo);
+  -webkit-backdrop-filter: var(--dobla);
+  backdrop-filter: var(--dobla);
+  box-shadow: var(--vidrio-dobla-hondura);
+}
+.hoja-lente[data-dobla-activa] + .hoja-serena {
+  background: transparent;
+}
+:where([data-state]):has(+ div > .hoja-lente) {
+  transition: -webkit-backdrop-filter var(--t-hoja) var(--ease-cayla), backdrop-filter var(--t-hoja) var(--ease-cayla);
+}
+:where([data-state="open"]):has(+ div > .hoja-lente[data-dobla-activa]) {
+  -webkit-backdrop-filter: blur(0) saturate(1);
+  backdrop-filter: blur(0) saturate(1);
+}
+
 /* La isla vive en la capa `components` a propósito (estilos/barra-abajo.css): una pantalla que en escritorio la quiere a ras le gana
    con sus utilidades. Esta regla va en la misma capa para no romper eso. Solo en el celular, que es donde flota. */
 @layer components {

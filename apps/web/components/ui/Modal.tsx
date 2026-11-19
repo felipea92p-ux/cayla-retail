@@ -2,18 +2,21 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { alejarFondo, devolverFondo, moverFondo } from "@/components/ui/fondoDeLaHoja";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useHojaAlCentro } from "@/components/ui/HojasAlCentro";
 import { useHojaArrastre } from "@/components/ui/useHojaArrastre";
 import { useHojaSobreElTeclado } from "@/components/ui/useHojaSobreElTeclado";
 import { useAtrasCierraLaHoja } from "@/components/ui/useAtrasCierraLaHoja";
-import { CELULAR } from "@/components/ui/useEnCelular";
+import { CELULAR, ESCRITORIO } from "@/components/ui/useEnCelular";
+import { useVidrioQueDoblaEn } from "@/components/ui/useVidrioQueDobla";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** Debe coincidir con `.anim-salida` en globals.css. */
 const MS_SALIDA = 220;
+/** Lo que tarda en asentarse la hoja al entrar en escritorio (`--t-hoja`, 260 ms, y un respiro): después llega su lente (ADR-0681). */
+const MS_ENTRADA = 300;
 /** En el celular la hoja baja entera hasta el borde (ADR-0479): debe coincidir con `cayla-hoja-movil-sale` en globals.css. */
 const MS_SALIDA_CELULAR = 300;
 /** Y llega desde el borde en lo mismo que `cayla-hoja-movil-entra`: lo de atrás se aleja a su ritmo. */
@@ -211,6 +214,19 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
       fondo.current = null;
     };
   }, [conAsa, arrastre]);
+  // La hoja dobla lo de atrás (ADR-0681) SIN llevar ella un `backdrop-filter`: la volvería el contenedor de las listas de sus combos y
+  // las recortaría (estilos/vidrio/hoja.css). La lente es una HERMANA: un <span> fijo, detrás, que copia la caja de la hoja con
+  // posicionamiento por ancla. No sigue una transformación, así que solo vale en escritorio y con la hoja ya quieta: llega cuando
+  // termina la entrada y se va apenas empieza la salida. Donde el navegador no sabe de anclas, el <span> mide cero y no pasa nada.
+  const ancla = `--hoja-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const lente = useRef<HTMLSpanElement>(null);
+  const [quieta, setQuieta] = useState(false);
+  useEffect(() => {
+    const temporizador = setTimeout(() => setQuieta(true), prefiereQuieto() ? 60 : MS_ENTRADA);
+    return () => clearTimeout(temporizador);
+  }, []);
+  const conLente = deCara && !vidrio;
+  useVidrioQueDoblaEn(lente, { desenfoque: 22, solo: ESCRITORIO, asienta: true, activo: conLente && quieta && !cerrando });
   // La hoja como estado (además de la ref): el portal de Radix la monta un instante después, y quien la mide al centro la necesita al llegar.
   const [hojaMontada, setHojaMontada] = useState<HTMLDivElement | null>(null);
   const ponerHoja = useCallback(
@@ -261,9 +277,11 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
             variante === "camara" ? "" : variante === "ticket" ? "items-end justify-center" : "items-end justify-center sm:items-start sm:p-6 sm:px-[max(1.5rem,env(safe-area-inset-left),env(safe-area-inset-right))] sm:pt-[8vh]"
           }`}
         >
+          {conLente && <span ref={lente} aria-hidden className="hoja-lente" style={{ positionAnchor: ancla } as CSSProperties} />}
           <Dialog.Content
             ref={ponerHoja}
             data-variante={variante ?? "normal"}
+            style={conLente ? ({ anchorName: ancla } as CSSProperties) : undefined}
             className={`pointer-events-auto relative w-full outline-none ${
               variante === "camara"
                 ? "flex h-dvh flex-col overflow-hidden bg-tinta-fija" // la cámara es negra en los dos temas: lo que va encima (`papel-fijo`) conserva sus tokens claros
