@@ -191,6 +191,11 @@ describe("el relleno claro: la letra en tinta se lee con cualquier cosa detrás"
     });
   }
 
+  it("en la cabecera, el texto secundario pasa a tinta plena: el piso solo alcanza para la tinta entera", () => {
+    const dobla = leer("app/estilos/vidrio/dobla.css");
+    expect(dobla).toMatch(/\.marco-cabecera-fila\[data-dobla-activa="claro"\] :where\(\.marco-buscador-texto, \.label-cayla\) \{\s*color: var\(--color-tinta\);/);
+  });
+
   it("aun con el piso, deja pasar más de lo de atrás que el vidrio de siempre (26 % en claro, 12 % en oscuro)", () => {
     expect(LUMINOSIDAD.claro.pendiente).toBeGreaterThan(0.26);
     expect(LUMINOSIDAD.oscuro.pendiente).toBeGreaterThan(0.12);

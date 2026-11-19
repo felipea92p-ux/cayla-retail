@@ -51,6 +51,9 @@ No aplica: no toca la letra.
 - **El piso de luminosidad** del relleno claro → `[Norma]` WCAG 1.4.3 (4.5:1). El filtro recoge lo de atrás: `salida = entrada × pendiente +
   corte`. En claro 0,48 y 0,50; en oscuro 0,31 y 0,05. Con eso la letra en tinta pasa 4.5:1 con una foto negra o una blanca detrás.
   Medido por `lib/vidrio-dobla.test.ts`: el peor caso da **4,86:1** en claro y **4,83:1** en oscuro.
+- **El piso solo alcanza para la tinta entera.** Sobre el vidrio claro, el texto secundario pasa a tinta plena («Buscar…» y «Actividad»
+  iban al 70 y al 65 %, y en el peor caso bajaban de 4,1:1 a 2,9:1). Una pieza que lleva texto en taupe directo sobre su vidrio (la isla,
+  un aviso) no usa el relleno claro: usa el `propio`.
 - Por qué no los valores de la maqueta: allá el piso era más bajo y sobre prendas de colores se veía bien. En el ERP por detrás de la
   cabecera pasan fotos de producto de fondo blanco: en oscuro dejaban la letra en 2,4:1.
 - Aun con el piso, pasa cerca del doble de lo de atrás que con el vidrio de siempre (48 % contra 26 % en claro; 31 % contra 12 % en oscuro).

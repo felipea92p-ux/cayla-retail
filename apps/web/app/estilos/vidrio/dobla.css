@@ -23,6 +23,12 @@
   backdrop-filter: var(--dobla);
   box-shadow: var(--vidrio-flota-sombra), var(--vidrio-dobla-hondura);
 }
+/* Sobre el vidrio claro, la letra va en tinta PLENA. El piso de luminosidad garantiza 4.5:1 para la tinta entera; «Buscar…» y
+   «Actividad» iban en tinta al 70 y al 65 %, y con una foto oscura detrás bajaban de 4,1:1 a 2,9:1. Es lo mismo que hace «más
+   contraste» en `aguanta.css`. Una pieza nueva de relleno claro hace lo mismo con su texto secundario, o le da un fondo propio. */
+.marco-cabecera-fila[data-dobla-activa="claro"] :where(.marco-buscador-texto, .label-cayla) {
+  color: var(--color-tinta);
+}
 /* El borde que se disuelve: lo que pasa justo bajo la barra se va desenfocando de a poco. La máscara solo usa la opacidad del color. */
 .marco-cabecera-fila[data-dobla-activa]::after {
   content: "";
