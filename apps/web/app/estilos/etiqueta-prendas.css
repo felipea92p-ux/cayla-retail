@@ -166,7 +166,7 @@
 /* En el celular la etiqueta es una franja: nombre, total y lo que cambia a la izquierda; el descuento a la derecha. */
 @media (max-width: 767.98px) {
   .eqp-clavo, .eqp-mosaico, .eqp-perfora, .eqp-solo-ancho { display: none; }
-  .eqp-tarjeta { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; padding: 10px 14px 10px 32px; border-radius: 14px; background: var(--color-hueso); border-color: transparent; }
+  .eqp-tarjeta { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; padding: 10px 14px 10px 32px; border-radius: 14px; background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); border-color: transparent; }
   .eqp-ojal { left: 11px; top: 50%; margin: -6.5px 0 0; background: var(--color-papel); }
   .eqp-nombre { font-size: 20px; text-align: left; grid-column: 1; }
   .eqp-pct { font-size: 30px; margin: 0; grid-column: 2; grid-row: 1 / span 2; }

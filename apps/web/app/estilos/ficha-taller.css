@@ -118,10 +118,10 @@
 @keyframes taller-destello {
   0%,
   100% {
-    background: var(--color-hueso);
+    background: var(--hundido-fondo);
   }
   30% {
-    background: color-mix(in srgb, var(--color-ambar) 16%, var(--color-hueso));
+    background: color-mix(in srgb, var(--color-ambar) 16%, var(--hundido-fondo));
   }
 }
 
@@ -154,7 +154,7 @@
   padding: 8px 14px;
   border: 1.5px dashed color-mix(in oklab, var(--color-taupe) 65%, transparent);
   border-radius: 12px;
-  background: color-mix(in oklab, var(--color-hueso) 45%, var(--color-papel));
+  background: var(--gota-fondo-encima); box-shadow: var(--gota-luz);
   color: var(--color-tinta);
   text-align: left;
   transition:
@@ -165,7 +165,7 @@
   .taller-agregar-color:hover:not(:disabled) {
     border-style: solid;
     border-color: var(--color-tinta);
-    background: var(--color-hueso);
+    background: var(--gota-marca); box-shadow: var(--gota-luz);
   }
 }
 .taller-agregar-color:focus-visible {
@@ -250,7 +250,7 @@
 .taller-foto-grande {
   height: 210px;
   position: relative;
-  background: var(--color-hueso);
+  background: var(--hundido-fondo); box-shadow: var(--hundido-sombra);
 }
 .taller-foto-img {
   animation: taller-fundido 340ms var(--ease-cayla) both;
@@ -286,7 +286,7 @@
   color: var(--color-ambar-profundo);
   text-align: center;
   padding: 0 28px;
-  background: color-mix(in srgb, var(--color-ambar) 6%, var(--color-hueso));
+  background: color-mix(in srgb, var(--color-ambar) 6%, var(--hundido-fondo));
 }
 .taller-tagcolor {
   position: absolute;

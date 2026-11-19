@@ -95,7 +95,7 @@
 .tp-dia-busca { display: grid; gap: 14px; }
 .tp-dia > .tp-dia-chico { display: none; }
 
-.tp-pestanas { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--color-hueso); border-radius: 13px; padding: 4px; }
+.tp-pestanas { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--hundido-fondo); box-shadow: var(--hundido-sombra); border-radius: 13px; padding: 4px; }
 .tp-pestanas-ind { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 10px; background: var(--color-papel); box-shadow: 0 4px 12px -8px color-mix(in srgb, var(--color-sombra) 45%, transparent); transform: translateX(calc(var(--tp-k, 0) * 100%)); transition: transform 0.45s var(--ease-cayla); }
 .tp-pestanas button { position: relative; z-index: 1; display: flex; gap: 6px; align-items: center; justify-content: center; padding: 8px 6px; font-size: 14px; font-weight: 600; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); transition: color 0.25s; }
 .tp-pestanas button[aria-selected="true"] { color: var(--color-tinta); }
@@ -145,8 +145,8 @@
 .tp-mini-ruta .tp-linea-fin { display: none; }
 
 /* ── El escenario (el pase grande) ── */
-.tp-escenario { position: relative; min-height: 640px; border-radius: 26px; background: var(--color-hueso); display: grid; place-items: center; padding: 34px 24px 80px; overflow: hidden; }
-@container tp (max-width: 799.98px) { .tp-escenario { min-height: 0; padding: 14px 0 24px; background: transparent; border-radius: 0; } }
+.tp-escenario { position: relative; min-height: 640px; border-radius: 26px; background: var(--hundido-fondo); box-shadow: var(--hundido-sombra); display: grid; place-items: center; padding: 34px 24px 80px; overflow: hidden; }
+@container tp (max-width: 799.98px) { .tp-escenario { min-height: 0; padding: 14px 0 24px; background: transparent; box-shadow: none; border-radius: 0; } }
 .tp-giro { position: relative; width: min(460px, 100%); perspective: 1800px; }
 .tp-pase3d { position: relative; transform-style: preserve-3d; transition: transform 0.8s var(--ease-cayla), min-height 0.5s var(--ease-cayla); }
 .tp-pase3d[data-vuelta] { transform: rotateY(180deg); }
@@ -173,14 +173,14 @@
 .tp-campos [data-tarde] b, .tp-campos [data-tarde] em { color: var(--color-ambar); }
 .tp-perfo { position: relative; height: 30px; margin: 6px 0; }
 .tp-perfo::before { content: ""; position: absolute; left: 24px; right: 24px; top: 50%; border-top: 2px dashed var(--color-sand); }
-.tp-perfo i { position: absolute; top: 50%; width: 26px; height: 26px; margin-top: -13px; border-radius: 50%; background: var(--color-hueso); }
+.tp-perfo i { position: absolute; top: 50%; width: 26px; height: 26px; margin-top: -13px; border-radius: 50%; background: var(--color-hueso); } /* beige-fijo: agujero de la perforación del pase, hoy oculto */
 .tp-perfo i:first-child { left: -13px; }
 .tp-perfo i:last-child { right: -13px; }
 @container tp (max-width: 799.98px) { .tp-perfo i { background: var(--color-crema); } }
 .tp-pie { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 0 24px 14px; }
 .tp-envia { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
-.tp-envia i { width: 22px; height: 22px; border-radius: 50%; background: var(--color-hueso); color: var(--color-taupe); display: inline-grid; place-items: center; font-size: 10.5px; font-weight: 700; font-style: normal; }
-.tp-nota { margin: 0 24px 12px; padding: 9px 12px; border-radius: 12px; background: var(--color-hueso); font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); }
+.tp-envia i { width: 22px; height: 22px; border-radius: 50%; background: var(--gota-chica-fondo); box-shadow: var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde); color: var(--color-taupe); display: inline-grid; place-items: center; font-size: 10.5px; font-weight: 700; font-style: normal; }
+.tp-nota { margin: 0 24px 12px; padding: 9px 12px; border-radius: 12px; background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); }
 .tp-boton { display: flex; width: calc(100% - 48px); margin: 4px 24px 24px; justify-content: center; align-items: center; gap: 8px; padding: 14px 18px; border-radius: 14px; font-size: 15px; }
 /* El frente de un pedido o de «Para enviar» lleva dos botones en la misma fila (maqueta D: «No la tengo» · «Enviar a LIM»). */
 .tp-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 24px 24px; }
@@ -208,7 +208,7 @@
 .tp-paginas { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 99px; padding: 4px; }
 .tp-paginas a, .tp-paginas span[aria-disabled] { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--color-tinta); }
 @media (hover: hover) {
-  .tp-paginas a:hover { background: var(--color-hueso); }
+  .tp-paginas a:hover { background: var(--gota-marca); box-shadow: var(--gota-luz); }
 }
 .tp-paginas span[aria-disabled] { opacity: 0.3; }
 .tp-paginas p { min-width: 56px; text-align: center; font-size: 14px; font-weight: 600; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); font-variant-numeric: tabular-nums; }
@@ -229,7 +229,7 @@
 .tp-banda-atras { flex: none; }
 .tp-banda-atras .tp-banda-nombre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tp-reverso-cuerpo > * { min-width: 0; }
-.tp-firma { display: grid; gap: 10px; padding: 12px 14px; border-radius: 14px; background: var(--color-hueso); }
+.tp-firma { display: grid; gap: 10px; padding: 12px 14px; border-radius: 14px; background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); }
 .tp-escaneo { display: grid; gap: 8px; }
 .tp-prendas { display: grid; }
 .tp-prendas[data-espera] { opacity: 0.6; transition: opacity 0.2s; }
@@ -241,7 +241,7 @@
 .tp-prenda-nombre b em { font-style: normal; font-weight: 500; font-size: 14px; color: var(--color-ambar); }
 .tp-prenda-nombre > span { display: block; font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tp-derecha { display: inline-flex; flex-direction: column; align-items: flex-end; }
-.tp-contador { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 10px; background: var(--color-hueso); }
+.tp-contador { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 10px; background: var(--hundido-fondo); box-shadow: var(--hundido-sombra); }
 .tp-contador button { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); transition: background 0.2s; }
 @media (hover: hover) {
   .tp-contador button:hover:not(:disabled) { background: var(--color-papel); }
@@ -252,11 +252,11 @@
 .tp-contador input:focus { box-shadow: 0 0 0 2px var(--color-pizarra); border-radius: 6px; }
 @media (pointer: coarse) { .tp-contador button { width: 44px; height: 44px; } } /* con el dedo, 44 px (ADR-0611, mejora 5) */
 .tp-guardado { display: flex; align-items: center; justify-content: flex-end; gap: 4px; height: 16px; margin-top: 3px; font-size: 11px; line-height: 16px; }
-.tp-cita { margin: 0; padding: 10px 14px; border-radius: 12px; background: var(--color-hueso); font-size: 14px; color: var(--color-tinta); }
+.tp-cita { margin: 0; padding: 10px 14px; border-radius: 12px; background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); font-size: 14px; color: var(--color-tinta); }
 .tp-cita cite { display: block; margin-top: 2px; font-style: normal; font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 .tp-cita[data-error] { background: color-mix(in srgb, var(--color-rojo) 10%, var(--color-papel)); color: var(--color-rojo-profundo); }
 .tp-dato { font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 72%, transparent); }
-.tp-campo-nota { width: 100%; min-height: 76px; padding: 10px 12px; border-radius: 12px; background: var(--color-hueso); color: var(--color-tinta); font-size: 14px; resize: vertical; outline: none; }
+.tp-campo-nota { width: 100%; min-height: 76px; padding: 10px 12px; border-radius: 12px; background: var(--hundido-fondo); box-shadow: var(--hundido-sombra); color: var(--color-tinta); font-size: 14px; resize: vertical; outline: none; }
 .tp-campo-nota::placeholder { color: var(--color-taupe); }
 .tp-campo-nota:focus { box-shadow: 0 0 0 2px var(--color-pizarra); }
 .tp-fila { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -265,7 +265,7 @@
 .tp-faltan { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 14px; }
 .tp-faltan-titulo { color: color-mix(in srgb, var(--color-tinta) 72%, transparent); font-weight: 600; }
 /* El resumen corto antes de confirmar: lo que entra y lo que queda para revisar. */
-.tp-resumen { display: grid; gap: 2px; padding: 10px 14px; border-radius: 12px; background: var(--color-hueso); font-size: 14px; color: var(--color-tinta); }
+.tp-resumen { display: grid; gap: 2px; padding: 10px 14px; border-radius: 12px; background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); font-size: 14px; color: var(--color-tinta); }
 .tp-resumen span { color: color-mix(in srgb, var(--color-tinta) 72%, transparent); }
 /* Una casilla sin contar es un hueco por llenar, no un cero: borde punteado y nada adentro. */
 .tp-contador input[data-vacia] { border-radius: 6px; outline: 1.5px dashed color-mix(in srgb, var(--color-tinta) 40%, transparent); outline-offset: -4px; }
@@ -285,7 +285,7 @@
 @keyframes tp-revela { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
 .tp-lugar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .tp-lugar button { display: flex; justify-content: center; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--color-sand); font-size: 14px; font-weight: 600; transition: border-color 0.2s, background 0.2s; }
-.tp-lugar button[aria-pressed="true"] { border-color: var(--color-tinta); background: var(--color-hueso); }
+.tp-lugar button[aria-pressed="true"] { border-color: var(--color-tinta); background: var(--gota-marca); box-shadow: var(--gota-luz); }
 
 @media (max-width: 640px) {
   /* Una prenda que se corrige al revisar lleva «venían», la marca y el contador: en celular bajan a su propia línea. */
@@ -325,7 +325,7 @@
 @media (hover: hover) {
   .tp-decision button:hover:not(:disabled) { border-color: var(--color-taupe); }
 }
-.tp-decision button[aria-pressed="true"] { border-color: var(--color-tinta); background: var(--color-hueso); }
+.tp-decision button[aria-pressed="true"] { border-color: var(--color-tinta); background: var(--gota-marca); box-shadow: var(--gota-luz); }
 .tp-decision button:disabled { cursor: not-allowed; opacity: 0.6; }
 
 /* ====================================================================

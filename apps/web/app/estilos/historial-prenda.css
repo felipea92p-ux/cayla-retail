@@ -52,7 +52,7 @@
     transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla);
   }
   @media (hover: hover) {
-    .hp-volver:hover { background: var(--color-hueso); color: var(--color-tinta); }
+    .hp-volver:hover { background: var(--gota-marca); box-shadow: var(--gota-luz); color: var(--color-tinta); }
   }
   .hp-volver svg { width: 16px; height: 16px; }
   .hp-resumen { margin-top: 6px; font-size: 13.5px; color: var(--hp-t60); }
@@ -214,7 +214,7 @@
     transition: border-color 220ms var(--ease-cayla), background-color 220ms var(--ease-cayla);
   }
   @media (hover: hover) {
-    .hp-card:hover { border-color: var(--hp-t25); background: color-mix(in srgb, var(--color-hueso) 30%, var(--color-papel)); }
+    .hp-card:hover { border-color: var(--hp-t25); background: var(--gota-fondo); }
   }
   .hp-quien { display: flex; align-items: center; gap: 10px; }
   .hp-quien-txt { min-width: 0; flex: 1; font-size: 14.5px; line-height: 1.35; color: var(--color-tinta); }
@@ -306,7 +306,7 @@
     height: 58px;
     border-radius: 9px;
     overflow: hidden;
-    background: var(--color-hueso);
+    background: var(--hundido-fondo); box-shadow: var(--hundido-sombra);
     display: grid;
     place-items: center;
     color: var(--hp-t35);
@@ -353,7 +353,7 @@
     gap: 8px;
     padding: 10px 12px;
     border-radius: 8px;
-    background: var(--color-hueso);
+    background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde);
     color: var(--hp-t75);
     font-size: 12.5px;
     line-height: 1.45;
@@ -367,7 +367,7 @@
     margin: 18px 0 0 64px;
     padding: 12px 14px;
     border-radius: 12px;
-    background: var(--color-hueso);
+    background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde);
     font-size: 13px;
     color: var(--hp-t75);
   }

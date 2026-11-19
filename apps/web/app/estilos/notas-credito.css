@@ -39,7 +39,7 @@
     border: 1px solid var(--color-sand);
     border-radius: 0.75rem;
     padding: 0.75rem 0.875rem;
-    background: color-mix(in srgb, var(--color-sand) 30%, transparent);
+    background: var(--placa-fondo); box-shadow: var(--placa-luz);
   }
   /* Las dos fichas de destino del dinero. Deshabilitadas cuando no sobra nada: se ven, con su porqué. */
   .nc-opc {

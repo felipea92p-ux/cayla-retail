@@ -74,7 +74,7 @@
 .parecidas-alerta[data-tono="neutra"] {
   --tono: var(--color-tinta);
   border-color: var(--color-sand);
-  background: color-mix(in oklab, var(--color-hueso) 85%, transparent);
+  background: var(--placa-fondo); box-shadow: var(--placa-luz);
 }
 /* El aro de UN solo pulso: se abre y se apaga, una vez; vuelve a montarse (y a pulsar) solo cuando cambia la `clave` de la alerta.
    Es un anillo de `box-shadow` y no el `transform: scale` de `hilo-aro`: un `scale` suma alcance de desplazamiento (medido: 23 px) y, si el resumen lleva
@@ -167,7 +167,7 @@
   }
 }
 .parecidas-fila[data-destacada] {
-  background: var(--color-hueso);
+  background: var(--gota-marca); box-shadow: var(--gota-luz);
 }
 /* Un nombre largo pasa a dos renglones: lo que distingue a una prenda de otra suele estar al final («… Verano Tiro Alto»). */
 .parecidas-fila b {
@@ -471,7 +471,7 @@
 .parecidas-cod {
   padding: 0 6px;
   border-radius: 5px;
-  background: var(--color-hueso);
+  background: var(--gota-chica-fondo); box-shadow: var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde);
   color: var(--color-tinta);
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 14px;

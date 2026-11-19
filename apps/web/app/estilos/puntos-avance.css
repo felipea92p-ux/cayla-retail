@@ -46,7 +46,7 @@
 }
 .puntos-pista {
   right: calc(var(--marca) / 2);
-  background: var(--color-sand);
+  background: var(--color-sand); /* beige-fijo: pista del gráfico: la línea de los puntos */
 }
 .puntos-relleno {
   width: calc((100% - var(--marca)) * var(--lleno, 0));

@@ -91,7 +91,7 @@
   align-items: center;
   gap: 0.375rem;
   border-radius: 9999px;
-  background: var(--color-hueso);
+  background: var(--gota-chica-fondo); box-shadow: var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde);
   padding: 0.125rem 0.625rem 0.125rem 0.5rem;
   font-size: 13px; /* ronda 19: el texto del ERP sube; el chip del trayecto, de 11,5 a 13 */
   font-weight: 600;
@@ -103,7 +103,7 @@
 .mv-punto svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .mv-punto span { max-width: 13rem; overflow: hidden; text-overflow: ellipsis; }
 .mv-solo { font-size: 14px; color: var(--color-taupe); }
-.mv-riel { position: relative; flex: 1 1 40px; min-width: 28px; max-width: 150px; height: 2px; border-radius: 2px; background: var(--color-sand); }
+.mv-riel { position: relative; flex: 1 1 40px; min-width: 28px; max-width: 150px; height: 2px; border-radius: 2px; background: var(--color-sand); } /* beige-fijo: riel de 2 px: es una línea del trayecto */
 .mv-riel i { position: absolute; }
 .mv-riel .mv-relleno { inset: 0; border-radius: 2px; background: var(--mv-c); transform-origin: left; transform: scaleX(1); }
 .mv-riel .mv-viaje { top: 50%; left: 0; width: 9px; height: 9px; margin: -4.5px 0 0 -4px; border-radius: 50%; background: var(--mv-c); opacity: 0; }
@@ -222,7 +222,7 @@ ul[data-hay] .mv-tipo:not([aria-current]) { opacity: 0.6; }
 .mv-tipo-cifra { grid-area: c; display: flex; flex-direction: column; align-items: flex-end; line-height: 1; }
 .mv-tipo-cifra b { font-family: var(--font-serif); font-size: 2rem; font-weight: 400; color: var(--color-tinta); }
 .mv-tipo-cifra small { margin-top: 2px; font-size: 12px; color: var(--color-taupe); }
-.mv-tipo-barra { grid-area: b; display: block; height: 3px; margin-top: 0.5rem; overflow: hidden; border-radius: 3px; background: var(--color-sand); }
+.mv-tipo-barra { grid-area: b; display: block; height: 3px; margin-top: 0.5rem; overflow: hidden; border-radius: 3px; background: var(--color-sand); } /* beige-fijo: pista del gráfico: la barra de cada tipo */
 .mv-tipo-barra i { display: block; height: 100%; background: var(--mv-c); transform-origin: left; animation: mv-barra 0.9s 0.25s var(--ease-cayla) both; }
 @keyframes mv-barra { from { transform: scaleX(0); } to { transform: none; } }
 
@@ -248,7 +248,7 @@ ul[data-hay] .mv-tipo:not([aria-current]) { opacity: 0.6; }
 .mv-mazo-hijos > ul > li:nth-child(n + 6) { --k: 5; }
 
 /* ── El encabezado del día: su nombre y una franja de color por cada operación ── */
-.mv-dia { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem 1.125rem; margin: 1rem 0 0.25rem; border-radius: 12px; background: color-mix(in srgb, var(--color-hueso) 55%, var(--color-papel)); padding: 0.75rem 1rem; }
+.mv-dia { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem 1.125rem; margin: 1rem 0 0.25rem; border-radius: 12px; background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); padding: 0.75rem 1rem; }
 .mv-dia-nombre { display: flex; align-items: baseline; gap: 0.5rem; white-space: nowrap; font-size: 13px; color: var(--color-taupe); }
 .mv-dia-nombre b { font-family: var(--font-serif); font-size: 1.375rem; font-weight: 500; letter-spacing: 0.02em; color: var(--color-tinta); }
 .mv-codigo { display: flex; min-width: 0; flex: 1 1 8rem; align-items: flex-end; gap: 3px; height: 12px; }
@@ -268,7 +268,7 @@ ul[data-hay] .mv-tipo:not([aria-current]) { opacity: 0.6; }
 .mv-pasos { position: relative; display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
 .mv-pasos li { position: relative; display: grid; grid-template-columns: 1.375rem minmax(0, 1fr); gap: 0.625rem; padding-bottom: 0.875rem; }
 .mv-pasos li:last-child { padding-bottom: 0; }
-.mv-pasos li:not(:last-child)::before { content: ""; position: absolute; left: 0.6875rem; top: 1.5rem; bottom: -0.125rem; width: 2px; background: var(--color-sand); transform-origin: top; animation: mv-hilo 0.5s var(--ease-cayla) both; animation-delay: calc(var(--k, 0) * 55ms + 260ms); }
+.mv-pasos li:not(:last-child)::before { content: ""; position: absolute; left: 0.6875rem; top: 1.5rem; bottom: -0.125rem; width: 2px; background: var(--color-sand); transform-origin: top; animation: mv-hilo 0.5s var(--ease-cayla) both; animation-delay: calc(var(--k, 0) * 55ms + 260ms); } /* beige-fijo: hilo de 2 px entre pasos: es una línea */
 .mv-paso-marca { z-index: 1; display: grid; place-items: center; width: 1.375rem; height: 1.375rem; border-radius: 9999px; background: var(--color-papel); color: var(--mv-c); font-size: 11px; font-weight: 700; box-shadow: inset 0 0 0 1.5px var(--mv-c); }
 .mv-pasos li:not([data-hecho]) .mv-paso-marca { color: var(--color-taupe); box-shadow: inset 0 0 0 1.5px var(--color-sand); }
 @keyframes mv-hilo { from { transform: scaleY(0); } to { transform: scaleY(1); } }

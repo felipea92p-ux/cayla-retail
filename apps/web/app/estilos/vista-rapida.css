@@ -96,7 +96,7 @@
     aspect-ratio: 4 / 5;
     overflow: hidden;
     border-radius: var(--radius-lg);
-    background: var(--color-hueso);
+    background: var(--hundido-fondo); box-shadow: var(--hundido-sombra);
     isolation: isolate;
   }
   .vr-capa {
@@ -546,7 +546,7 @@
     height: 3px;
     overflow: hidden;
     border-radius: 2px;
-    background: var(--color-sand);
+    background: var(--color-sand); /* beige-fijo: pista del gráfico: la barra de la celda */
   }
   .vr-cel .vr-barra i {
     display: block;
@@ -599,7 +599,7 @@
     min-height: 40px;
     border: 1px dashed var(--color-sand);
     border-radius: 10px;
-    background: repeating-linear-gradient(135deg, var(--color-sand) 0 2px, transparent 2px 6px);
+    background: repeating-linear-gradient(135deg, var(--color-sand) 0 2px, transparent 2px 6px); /* beige-fijo: rayado de la prenda que no existe: escala del dato */
     animation: vr-celda-entra 520ms var(--ease-cayla) backwards;
     animation-delay: calc(var(--vr-i, 0) * 34ms + 320ms);
   }
