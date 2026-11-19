@@ -66,6 +66,29 @@ Rama `claude/system-aesthetics-analysis-96733d`. ADR-0681. Primero la maqueta; d
 - [ ] **7 · Escala cerrada de letra y de esquinas.** Se nota poco en una pantalla; va por `/unificar`.
 - [ ] **4 · Superficies sólidas.** Casi no cambia a la vista: la dejaría.
 
+## Las ocho mejoras: lista de actividades propuesta (2026-11-19, espera el OK de Felipe)
+
+Felipe: «Quiero las 8 pero en particular la 7 quiero especial énfasis»: letra más grande y muy poco texto, conciso y sin
+tecnicismos. Lámina para elegir el tamaño y el tono: `docs/maquetas/escala-de-letra-2026-11/`. Recomiendo la escala B.
+Con `/construir`: una actividad, un commit; cada una en su PR chico, porque `main` avanza rápido.
+
+- [ ] **0 · Antes de empezar:** abrir el PR de lo ya hecho en esta rama y partir de `main` al día (la rama está 61 commits atrás).
+- [ ] **1 · La escala de letra en un solo lugar, con su candado.** Sube el menú, la cabecera, las etiquetas y los chips en todo el ERP.
+- [ ] **2 · Las cifras alineadas** (mejora 2). Toca la misma definición de letra.
+- [ ] **3 · Letra y texto de las piezas comunes** (hojas, tablas, tarjetas de cifra, avisos, vacíos, el «?»).
+- [ ] **4 · Letra y texto de Ventas** (Vender, Caja, Cambios, Devoluciones, Apartados, Historial), con captura a 375 px.
+- [ ] **5 · Letra y texto de Inventario y Catálogo.**
+- [ ] **6 · Letra y texto de Compras, Gestión y Rendimiento.**
+- [ ] **7 · Letra y texto de Finanzas, Clientes, Tienda web y Configuración.** La deuda de la prueba llega a cero.
+- [ ] **8 · Esquinas:** cuatro radios, y concéntricas.
+- [ ] **9 · Animaciones encendidas de fábrica** (mejora 3). Reabre ADR-0625.
+- [ ] **10 · La cabecera que se pliega al bajar** (mejora 6).
+- [ ] **11 · La foto que viaja a la hoja** (mejora 5), con la subida de React a 19.3. Cambia ADR-0136.
+- [ ] **12 · El rojo en gama amplia** (mejora 8). Los colores de marca viajan a Dynamic por contrato.
+- [ ] **13 · Superficies sólidas** (mejora 4). `recetas.css` llega solo a Dynamic.
+- [ ] **14 · Fotos recortadas** (mejora 1): contar todo el catálogo y un filtro «Con fondo» en Productos. El recorte lo decide Felipe:
+      con IA cuesta por foto y escribe en producción.
+
 ## Pendiente
 
 - [ ] **Sin medir:** el Mac mini de la tienda y un teléfono de verdad. Si va lento, la salida es el modo liviano de «Apariencia».
