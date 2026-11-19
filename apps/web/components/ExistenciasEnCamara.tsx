@@ -52,7 +52,7 @@ function MatrizDeTallas({ color, separaPiso }: { color: ColorConsultado; separaP
             key={t.varianteId}
             aria-label={frasePorTalla(t)}
             aria-current={t.leida ? "true" : undefined}
-            className={`flex min-w-10 flex-1 flex-col items-center rounded-xl ${t.leida ? "bg-hueso" : ""}`}
+            className={`flex min-w-10 flex-1 flex-col items-center rounded-xl ${t.leida ? "vd-marca" : ""}`}
           >
             <span aria-hidden className="flex h-7 items-center">
               <span className={t.leida ? "rounded-full bg-tinta px-2 py-0.5 text-sm font-medium text-crema" : "text-sm text-taupe"}>{t.talla}</span>

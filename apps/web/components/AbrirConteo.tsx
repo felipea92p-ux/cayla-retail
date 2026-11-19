@@ -368,7 +368,7 @@ export function AbrirConteo({
                     key={posicion}
                     aria-hidden={visible ? undefined : true}
                     className={`col-start-1 row-start-1 flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm ${
-                      a.tipo === "arranque" ? "border-sand bg-hueso text-tinta" : "border-ambar/35 bg-ambar/[0.07] text-tinta"
+                      a.tipo === "arranque" ? "border-sand vd-gota-chica text-tinta" : "border-ambar/35 bg-ambar/[0.07] text-tinta"
                     } ${visible ? "" : "invisible"}`}
                   >
                     <Flag aria-hidden className={`mt-0.5 h-4 w-4 shrink-0 ${a.tipo === "arranque" ? "text-taupe" : "text-ambar-profundo"}`} />
@@ -398,7 +398,7 @@ export function AbrirConteo({
           aria-label="Resumen del conteo"
           // En una tarjeta angosta, la Isla pegada abajo (ADR-0479, actividad 12); en una ancha, la columna de la derecha de siempre.
           data-pegada
-          className="barra-abajo z-10 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-3 @[46rem]:static @[46rem]:flex @[46rem]:flex-col @[46rem]:items-stretch @[46rem]:gap-5 @[46rem]:rounded-none @[46rem]:rounded-r-[inherit] @[46rem]:border-0 @[46rem]:border-l @[46rem]:border-sand @[46rem]:bg-hueso/50 @[46rem]:p-7 @[46rem]:shadow-none @[46rem]:animate-none"
+          className="barra-abajo z-10 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-3 @[46rem]:static @[46rem]:flex @[46rem]:flex-col @[46rem]:items-stretch @[46rem]:gap-5 @[46rem]:rounded-none @[46rem]:rounded-r-[inherit] @[46rem]:border-0 @[46rem]:border-l @[46rem]:border-sand @[46rem]:[background:var(--hundido-fondo)] @[46rem]:p-7 @[46rem]:shadow-none @[46rem]:animate-none"
         >
           <p className="eyebrow-cayla hidden !text-taupe @[46rem]:block">Tu conteo</p>
 
@@ -533,7 +533,7 @@ function TarjetasOpcion<T extends string>({
             onClick={() => onValor(o.valor)}
             onKeyDown={(e) => alTeclado(e, i)}
             className={`relative flex min-h-28 flex-col items-start rounded-lg border px-3.5 py-3.5 text-left transition-[border-color,background-color,box-shadow] duration-200 ease-cayla focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta/60 disabled:cursor-default @[30rem]:px-4 ${
-              activa ? "border-tinta bg-sand/40 shadow-[inset_0_0_0_1px_var(--color-tinta)]" : "border-sand bg-papel hover:border-taupe/45"
+              activa ? "border-tinta vd-marca shadow-[inset_0_0_0_1px_var(--color-tinta)]" : "border-sand bg-papel hover:border-taupe/45"
             }`}
           >
             <span className={`mb-2 transition-colors duration-200 ${activa ? "text-tinta" : "text-taupe"}`}>{o.icono}</span>

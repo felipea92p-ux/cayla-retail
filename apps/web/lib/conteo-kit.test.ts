@@ -26,7 +26,7 @@ describe("EstadoLinea", () => {
   it("una pendiente dice «Pendiente» y es neutra: nunca roja ni verde", () => {
     const html = estado({ estado: "pendiente" });
     expect(LIMPIO(html)).toBe("Pendiente");
-    expect(html).toContain("bg-sand");
+    expect(html).toContain("vd-gota-chica"); // neutro, en vidrio (el beige plano salió, Felipe 2026-11-19)
     expect(html).not.toContain("bg-rojo");
     expect(html).not.toContain("bg-verde");
   });

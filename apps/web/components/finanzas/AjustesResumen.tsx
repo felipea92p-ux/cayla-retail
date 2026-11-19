@@ -46,7 +46,7 @@ export function AjustesResumen({ campanas, ajustes, onCambiar }: { campanas: rea
           aria-label="Qué se ve en el Resumen"
           title={distinto ? "Qué se ve en el Resumen (hay cosas escondidas)" : "Qué se ve en el Resumen"}
           data-guia="fin-resumen.ajustes"
-          className="area-dedo relative grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/60 transition-colors duration-200 ease-cayla hover:bg-hueso hover:text-tinta"
+          className="area-dedo relative grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/60 transition-colors duration-200 ease-cayla vd-pasa-gota hover:text-tinta"
         >
           <SlidersHorizontal aria-hidden className="h-4 w-4" />
           {distinto && <span aria-hidden className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-ambar" />}

@@ -1136,7 +1136,7 @@ export function RecepcionEnvio({
               {/* el envío: quién, con qué guía, a dónde entra y cuánto llevas */}
               <section className="card-cayla anim-entra grid overflow-hidden @xl:grid-cols-2 @[44rem]:grid-cols-[1.25fr_1fr_1fr]" style={{ "--i": 0 } as CSSProperties}>
                 <div className="flex items-center gap-4 p-5">
-                  <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-sand bg-sand/50 text-tinta/65">
+                  <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-sand vd-lente text-tinta/65">
                     <Truck className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
@@ -1360,7 +1360,7 @@ export function RecepcionEnvio({
                       const ordenadas = [...propias.filter((l) => l.varianteId), ...propias.filter((l) => !l.varianteId)];
                       return (
                         <div key={c.id} className="border-t border-tinta/10 first:border-t-0">
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-sand/30 px-5 py-3">
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 vd-hundido px-5 py-3">
                             <button type="button" onClick={() => setAbiertos((a) => ({ ...a, [c.id]: !abierto }))} aria-expanded={abierto} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                               <ChevronRight aria-hidden className={`h-4 w-4 shrink-0 text-tinta/55 transition-transform duration-300 ease-cayla ${abierto ? "rotate-90" : ""}`} />
                               <Ini nombre={c.proveedorNombre} />
@@ -1600,7 +1600,7 @@ export function RecepcionEnvio({
             className="anim-barra"
             medidor={
               // contado (verde) · faltante (ámbar) · lo que falta contar (arena): cuánto falta, de un vistazo
-              <div aria-hidden /* unificar-fijo: franja de 3 px pegada al borde de la barra fija, un medidor sin extremos; otro diseño a propósito (docs/unificar/grafico.barra.md) */ className="flex h-[3px] bg-sand">
+              <div aria-hidden /* unificar-fijo: franja de 3 px pegada al borde de la barra fija, un medidor sin extremos; otro diseño a propósito (docs/unificar/grafico.barra.md) */ className="flex h-[3px] bg-sand" /* beige-fijo: pista del medidor */>
                 <span className="bg-verde transition-[flex-basis] duration-500 ease-cayla" style={{ flexBasis: `${Math.min(100, (totales.contadas / Math.max(1, totales.esperadas)) * 100)}%` }} />
                 <span className="bg-ambar transition-[flex-basis] duration-500 ease-cayla" style={{ flexBasis: `${Math.min(100 - Math.min(100, (totales.contadas / Math.max(1, totales.esperadas)) * 100), (totales.faltantes / Math.max(1, totales.esperadas)) * 100)}%` }} />
               </div>
@@ -1761,7 +1761,7 @@ function Miniatura({ variante }: { variante: Variante | undefined }) {
 function Ini({ nombre, chico = false, apilada = false }: { nombre: string; chico?: boolean; apilada?: boolean }) {
   // `apilada`: los círculos se montan un poco unos sobre otros, con un borde del color de la tarjeta (varios proveedores en un envío).
   return (
-    <span aria-hidden className={`grid shrink-0 place-items-center rounded-full bg-sand font-bold tracking-wide text-tinta/75 ${chico ? "h-[22px] w-[22px] text-[9px]" : "h-[30px] w-[30px] text-[10.5px]"} ${apilada ? "anim-asentar -ml-1.5 border-2 border-papel first:ml-0" : ""}`}>
+    <span aria-hidden className={`grid shrink-0 place-items-center rounded-full vd-gota-chica font-bold tracking-wide text-tinta/75 ${chico ? "h-[22px] w-[22px] text-[9px]" : "h-[30px] w-[30px] text-[10.5px]"} ${apilada ? "anim-asentar -ml-1.5 border-2 border-papel first:ml-0" : ""}`}>
       {inicialesProveedor(nombre)}
     </span>
   );

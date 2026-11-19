@@ -353,7 +353,9 @@ select pg_temp.huella(:'va');`);
     "variantes_nacidas_al_recibir",
     // ADR-0655: que una oferta haya elegido el modelo prenda por prenda es configuración de la oferta, como sus categorías: se va con él
     // por su `on delete cascade` (20261113210000). Lo que ya se vendió con esa oferta es venta y frena el borrado.
-    "campana_regla_productos"];
+    "campana_regla_productos",
+    // ADR-0682: lo mismo con las tallas y colores sueltos que eligió una oferta (`on delete cascade`, 20261118232000).
+    "campana_regla_variantes"];
   const HISTORIA = [
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",
     "conteo_items", "cambios", "prendas_danadas", "prendas_por_regularizar", "bajada_piso_items", "costo_historial",

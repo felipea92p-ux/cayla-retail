@@ -335,7 +335,7 @@ export function FiltrosProductos({
           Copiar enlace
         </BotonCopiar>
         {/* En el celular «Ordenar» vive junto al buscador, como ícono (2026-10-09): aquí su fila le cedía el ancho a «Tamaño». */}
-        <div className="hidden min-w-0 rounded-lg bg-sand/50 p-0.5 sm:block">{ordenar(false)}</div>
+        <div className="hidden min-w-0 rounded-lg vd-hundido p-0.5 sm:block">{ordenar(false)}</div>
         {junto}
       </div>
     </div>
@@ -404,7 +404,7 @@ export function FiltrosProductos({
                     icono: (
                       <span
                         aria-hidden
-                        className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-tinta/15 bg-hueso align-middle"
+                        className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-tinta/15 align-middle"
                         style={{ background: o.color.tonos ? fondoDelPunto(o.color.hex, o.color.tonos) : fondoDeColor(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
                       />
                     ),

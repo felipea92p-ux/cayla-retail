@@ -107,7 +107,7 @@ export function ResumenSede({ sede, cifras }: { sede: string; cifras: readonly C
                   onClick={alTocar}
                   aria-pressed={!!presionada}
                   title={titulo}
-                  className="m-1 flex flex-1 flex-col items-center rounded-2xl px-1 py-3 text-center transition-colors duration-200 hover:bg-hueso/70 focus-visible:bg-hueso/70 aria-pressed:bg-hueso/70 lg:px-4"
+                  className="m-1 flex flex-1 flex-col items-center rounded-2xl px-1 py-3 text-center transition-colors duration-200 vd-pasa aria-pressed:[background:var(--gota-marca)] lg:px-4"
                 >
                   {contenido}
                 </button>
@@ -115,7 +115,7 @@ export function ResumenSede({ sede, cifras }: { sede: string; cifras: readonly C
                 <a
                   href={href}
                   title={titulo}
-                  className="m-1 flex flex-1 flex-col items-center rounded-2xl px-1 py-3 text-center transition-colors duration-200 hover:bg-hueso/70 focus-visible:bg-hueso/70 lg:px-4"
+                  className="m-1 flex flex-1 flex-col items-center rounded-2xl px-1 py-3 text-center transition-colors duration-200 vd-pasa lg:px-4"
                 >
                   {contenido}
                 </a>

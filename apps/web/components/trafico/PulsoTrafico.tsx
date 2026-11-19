@@ -198,7 +198,7 @@ function Lectura({ r, periodo, cierre }: { r: ResumenTrafico; periodo: { clave: 
   const estrella = r.prendas
     .filter((p) => p.recorrido[0] >= 10)
     .sort((a, b) => b.recorrido[3] / b.recorrido[0] - a.recorrido[3] / a.recorrido[0])[0];
-  const tonoMedalla = v.tono === "verde" ? "bg-verde/15 text-verde" : v.tono === "ambar" ? "bg-ambar/15 text-ambar" : "bg-hueso text-tinta/70";
+  const tonoMedalla = v.tono === "verde" ? "bg-verde/15 text-verde" : v.tono === "ambar" ? "bg-ambar/15 text-ambar" : "vd-gota-chica text-tinta/70";
   const datos: [string, string][] = [
     ["Hora más fuerte", pico ? tramoTexto(pico.desde, pico.hasta) : "Muy poca gente"],
     ["Camino que más trae", camino ? `${CAMINOS[camino]} · ${de100(r.caminos[camino], r.pasos[0])} de 100` : "—"],

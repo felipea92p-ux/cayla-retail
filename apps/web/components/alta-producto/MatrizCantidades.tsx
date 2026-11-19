@@ -222,7 +222,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
               // Ya se aplica sola en cada tecla: Enter solo evita que envíe el formulario del alta.
               if (e.key === "Enter") e.preventDefault();
             }}
-            className={`h-10 w-[72px] rounded-[9px] border ${rellenoInvalido ? "border-rojo" : "border-borde-control"} bg-hueso px-1.5 text-center text-base font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 ${
+            className={`h-10 w-[72px] rounded-[9px] border ${rellenoInvalido ? "border-rojo" : "border-borde-control"} vd-hundido px-1.5 text-center text-base font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 ${
               rellenoInvalido ? "focus:border-rojo" : "focus:border-taupe"
             }`}
           />
@@ -249,21 +249,21 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
         <table className="w-full border-separate border-spacing-0 text-[13px]">
           <thead>
             <tr>
-              <th scope="col" className="sticky left-0 top-0 z-[3] whitespace-nowrap border-r border-sand bg-hueso py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta sm:pl-3.5">
+              <th scope="col" className="sticky left-0 top-0 z-[3] whitespace-nowrap border-r border-sand vd-pegado py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta sm:pl-3.5">
                 Color
               </th>
               {columnas.map((t) => (
-                <th key={t ?? "sin-talla"} scope="col" className="sticky top-0 z-[2] whitespace-nowrap bg-hueso px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta sm:px-1.5">
+                <th key={t ?? "sin-talla"} scope="col" className="sticky top-0 z-[2] whitespace-nowrap vd-pegado px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta sm:px-1.5">
                   {textoTalla(t)}
                 </th>
               ))}
               {alFinalDeTallas && (
-                <th scope="col" className="sticky top-0 z-[2] whitespace-nowrap border-l border-sand bg-hueso px-1.5 py-1 text-center">
+                <th scope="col" className="sticky top-0 z-[2] whitespace-nowrap border-l border-sand vd-pegado px-1.5 py-1 text-center">
                   {alFinalDeTallas}
                 </th>
               )}
               {conColumnaTotal && (
-                <th scope="col" className="sticky top-0 z-[2] whitespace-nowrap border-l border-sand bg-hueso px-2 py-2 text-center text-xs font-semibold text-taupe sm:px-3">
+                <th scope="col" className="sticky top-0 z-[2] whitespace-nowrap border-l border-sand vd-pegado px-2 py-2 text-center text-xs font-semibold text-taupe sm:px-3">
                   Total
                 </th>
               )}
@@ -280,9 +280,9 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
               // en blanco, hueso o crema: sin él, esos colores desaparecen contra el papel.
               const conZebra = i % 2 === 1;
               const franja = c ? fondoDeColor(c.hex, c.familiaColor, c.tipo) : "var(--color-sand)";
-              const fondoFila = conZebra ? "bg-hueso/40" : "bg-papel";
+              const fondoFila = conZebra ? "vd-pegado-cebra" : "bg-papel";
               // En la orden la columna del color queda pegada mientras la tabla se desliza de lado: su fondo tiene que ser opaco (el 40 % de hueso deja ver las celdas que pasan por detrás).
-              const fondoNombre = conZebra ? (solo ? "bg-[color-mix(in_srgb,var(--color-hueso)_40%,var(--color-papel))]" : "bg-hueso/40") : "bg-papel";
+              const fondoNombre = conZebra ? (solo ? "vd-pegado-cebra" : "vd-pegado-cebra") : "bg-papel";
               return (
                 <tr key={color ?? "sin-color"}>
                   <th
@@ -395,7 +395,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                               className={
                                 invalida
                                   ? "inline-flex items-center gap-0.5 rounded-[7px] border border-rojo bg-papel pl-0.5 pr-0.5"
-                                  : "inline-flex items-center gap-0.5 rounded-[7px] border border-borde-control bg-hueso pl-0.5 pr-0.5 focus-within:border-taupe focus-within:bg-papel"
+                                  : "inline-flex items-center gap-0.5 rounded-[7px] border border-borde-control vd-hundido pl-0.5 pr-0.5 focus-within:border-taupe focus-within:bg-papel"
                               }
                             >
                               <input
@@ -418,7 +418,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                               onKeyDown={numero.onKeyDown}
                               onChange={(e) => (enCostos ? onCosto : onPrecio)?.(cel.clave, limpiarPrecio(e.target.value))}
                               onFocus={(e) => e.currentTarget.select()}
-                              className={`w-[58px] rounded-[7px] border border-borde-control bg-hueso px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel sm:w-[66px]${margenScroll} ${
+                              className={`w-[58px] rounded-[7px] border border-borde-control vd-hundido px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel sm:w-[66px]${margenScroll} ${
                                 distinto ? "font-semibold text-ambar" : "text-tinta"
                               }`}
                             />
@@ -446,17 +446,17 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
           {conFilaTotal && (
             <tfoot>
               <tr>
-                <th scope="row" className="sticky bottom-0 left-0 z-[2] border-r border-t border-sand bg-hueso py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta sm:pl-3.5">
+                <th scope="row" className="sticky bottom-0 left-0 z-[2] border-r border-t border-sand vd-pegado py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta sm:pl-3.5">
                   Total
                 </th>
                 {columnas.map((talla) => (
-                  <td key={talla ?? "sin-talla"} className="sticky bottom-0 z-[1] border-t border-sand bg-hueso px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta">
+                  <td key={talla ?? "sin-talla"} className="sticky bottom-0 z-[1] border-t border-sand vd-pegado px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta">
                     {totales.porColumna[claveEje(talla)] || ""}
                   </td>
                 ))}
-                {alFinalDeTallas && <td className="sticky bottom-0 z-[1] border-l border-t border-sand bg-hueso" />}
+                {alFinalDeTallas && <td className="sticky bottom-0 z-[1] border-l border-t border-sand vd-pegado" />}
                 {conColumnaTotal && (
-                  <td className="sticky bottom-0 z-[1] border-l border-t border-sand bg-hueso px-2 py-2 text-center font-semibold tabular-nums text-tinta sm:px-3">{totales.total}</td>
+                  <td className="sticky bottom-0 z-[1] border-l border-t border-sand vd-pegado px-2 py-2 text-center font-semibold tabular-nums text-tinta sm:px-3">{totales.total}</td>
                 )}
               </tr>
             </tfoot>

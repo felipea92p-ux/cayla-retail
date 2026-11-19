@@ -235,7 +235,7 @@ export function ProveedoresProduccionPanel({
                     <button
                       type="button"
                       onClick={() => setEditando(p)}
-                      className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left outline-none transition-colors hover:bg-sand/40 focus-visible:bg-sand/40 @min-[42rem]:grid-cols-[minmax(0,1.6fr)_7rem_5rem_6.5rem_9rem]"
+                      className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left outline-none transition-colors vd-pasa @min-[42rem]:grid-cols-[minmax(0,1.6fr)_7rem_5rem_6.5rem_9rem]"
                     >
                       <span className="min-w-0">
                         <span data-guia="prod-proveedores.nombre" className={`block truncate text-[14px] ${p.activo ? "text-tinta" : "text-tinta/55 line-through"}`}>{p.nombre}</span>

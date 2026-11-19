@@ -134,11 +134,11 @@ export function TarjetaCobrado({ porMetodo, redondeo = 0, indice }: { porMetodo:
         </>
       )}
       {c.anticipo > 0 && (
-        <p className="mt-3 rounded-lg bg-hueso px-2.5 py-1.5 text-[11.5px] text-tinta/70">
+        <p className="mt-3 rounded-lg vd-placa px-2.5 py-1.5 text-[11.5px] text-tinta/70">
           + {soles(c.anticipo)} de adelantos aplicados: se cobraron el día que se separó, no suman hoy.
         </p>
       )}
-      {notaRedondeo && <p className="mt-3 rounded-lg bg-hueso px-2.5 py-1.5 text-[11.5px] text-tinta/70">{notaRedondeo}</p>}
+      {notaRedondeo && <p className="mt-3 rounded-lg vd-placa px-2.5 py-1.5 text-[11.5px] text-tinta/70">{notaRedondeo}</p>}
     </div>
   );
 }
@@ -157,7 +157,7 @@ function tarjetaAcceso(a: Acceso) {
   }`;
   const contenido = (
     <>
-      <span className={`grid h-[34px] w-[34px] shrink-0 place-items-center rounded-lg ${a.principal ? "bg-crema/15" : "bg-hueso"}`}>{a.icono}</span>
+      <span className={`grid h-[34px] w-[34px] shrink-0 place-items-center rounded-lg ${a.principal ? "bg-crema/15" : "vd-lente"}`}>{a.icono}</span>
       <span className="min-w-0">
         <span className="block text-[13.5px] font-semibold leading-tight">{a.titulo}</span>
         <span className={`mt-0.5 block text-[11.5px] leading-snug ${a.principal ? "text-crema/70" : "text-tinta/60"}`}>{a.detalle}</span>

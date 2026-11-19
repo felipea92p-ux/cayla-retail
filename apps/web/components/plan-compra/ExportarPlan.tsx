@@ -82,7 +82,7 @@ export function ExportarPlan({ planNombre, filas, confianza, onClose }: { planNo
               <TablaDeCompra lista={lista} comprar={comprar} inversion={inversion} />
             </div>
           ) : (
-            <p className="rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
+            <p className="rounded-xl vd-placa px-4 py-3 text-sm text-tinta/80">
               Con tus escenarios no hay nada que comprar: lo que ya hay en la red y lo que viene en órdenes alcanzan para lo que conviene tener. Corrige los escenarios o espera a que baje el stock.
             </p>
           )}

@@ -71,7 +71,14 @@ export async function POST(request: Request) {
   // `guardar_oferta_completa` (20261114003000), que guarda la forma con lo demás en una transacción. También una con insignias elegidas
   // (ADR-0655, por insignia; 20261114060000) o que las tenía: las insignias viajan en la forma, y solo esa función las guarda o las quita.
   const conInsignias = o.insigniasSolo.length > 0 || o.teniaInsignias;
-  const conForma = o.forma.tipo !== "pct" || o.eraDeGrupo || conInsignias;
+  // Lo mismo con variantes sueltas (ADR-0682; 20261118232000): viajan en la forma. Si la base todavía no las entiende, ignoraría la clave y
+  // la oferta quedaría rigiendo en toda su campaña: antes de guardar se le pregunta, y si no las entiende no se guarda nada.
+  const conVariantes = o.variantesSolo.length > 0 || o.teniaVariantes;
+  if (conVariantes) {
+    const prueba = await (supabase.rpc("campana_reglas" as never) as unknown as { select: (c: string) => { limit: (n: number) => PromiseLike<{ error: unknown }> } }).select("variantes").limit(1);
+    if (prueba.error) return Response.json({ error: "Esta base todavía no guarda una oferta por talla y color. Quita las tallas sueltas o avisa a Felipe." }, { status: 400 });
+  }
+  const conForma = o.forma.tipo !== "pct" || o.eraDeGrupo || conInsignias || conVariantes;
   const { data, error } = conForma
     ? await llamar(supabase, "guardar_oferta_completa", {
         p_regla_id: o.id,
@@ -90,6 +97,8 @@ export async function POST(request: Request) {
             : {}),
           // Sin la clave, la base no toca las insignias de la oferta: se manda solo cuando hay o había alguna.
           ...(conInsignias ? { insignias: o.insigniasSolo } : {}),
+          // Lo mismo con las variantes sueltas (ADR-0682).
+          ...(conVariantes ? { variantes: o.variantesSolo } : {}),
         },
         p_desde: o.desde,
         p_hasta: o.hasta,

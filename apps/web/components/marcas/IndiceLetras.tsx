@@ -24,8 +24,8 @@ export function IndiceLetras({ presentes, enEstaPagina, onLetra }: { presentes: 
               aria-label={letra === "#" ? "Ir a las marcas que empiezan con un número" : `Ir a la ${letra}`}
               onClick={() => onLetra(letra)}
               className={`h-[30px] min-w-[30px] shrink-0 rounded-lg text-[12.5px] font-semibold transition-colors motion-reduce:transition-none ${
-                enEstaPagina.has(letra) ? "bg-sand" : ""
-              } ${hay ? "text-tinta/80 hover:bg-hueso" : "cursor-default text-tinta/30"}`}
+                enEstaPagina.has(letra) ? "vd-marca" : ""
+              } ${hay ? "text-tinta/80 vd-pasa-gota" : "cursor-default text-tinta/30"}`}
             >
               {letra}
             </button>

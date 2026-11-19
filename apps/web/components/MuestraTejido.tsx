@@ -793,7 +793,7 @@ export function MuestraTejido({
 }) {
   if (imagenUrl) {
     return (
-      <div className={`${className} relative overflow-hidden rounded-lg border border-tinta/10 bg-sand/40`}>
+      <div /* beige-fijo: fondo de la muestra de color, es el dato */ className={`${className} relative overflow-hidden rounded-lg border border-tinta/10 bg-sand/40`}>
         <Image src={imagenUrl} alt={`Muestra del tejido ${nombre}`} fill unoptimized sizes="(max-width: 640px) 100vw, 480px" className="object-cover" />
       </div>
     );

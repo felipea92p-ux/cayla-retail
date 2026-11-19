@@ -98,9 +98,9 @@ export function AgregarBolsaModal({ bolsas, carrito, ubicacionEtiqueta, onAgrega
                   type="button"
                   onClick={() => onAgregar(b)}
                   aria-label={`Agregar ${nombreDeBolsa(b)}, ${precioDeBolsa(b.precio)}${lleva > 0 ? `, ya lleva ${lleva}` : ""}${cobrable ? "" : ", sin stock aquí"}`}
-                  className={`flex min-h-14 w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-sand/40 ${cobrable ? "" : "opacity-60"}`}
+                  className={`flex min-h-14 w-full items-center gap-3 px-3 py-2 text-left transition-colors vd-pasa ${cobrable ? "" : "opacity-60"}`}
                 >
-                  <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sand text-tinta">
+                  <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-full vd-gota-chica text-tinta">
                     <ShoppingBag className="h-5 w-5" />
                   </span>
                   <span className="min-w-0 flex-1">

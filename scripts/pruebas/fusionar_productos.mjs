@@ -342,6 +342,35 @@ select 'x', (:'r'::jsonb) ->> 'juntadas', (:'r'::jsonb) ->> 'unidades_juntadas',
   )
 );
 
+// Una oferta en borrador (no rige: no hay choques que resolver) con sus tallas sueltas y, si se pide, modelos enteros.
+const OFERTA_SUELTA = (v, nombre, variantes, productos = "'{}'::uuid[]") =>
+  `select retail.guardar_oferta_completa(null, :'camp', '${nombre}', '{"tipo":"pct","porcentaje":20}'::jsonb || jsonb_build_object('variantes', jsonb_build_array(${variantes})),
+     retail.fn_hoy_lima(), retail.fn_hoy_lima() + 3, null, '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], ${productos}, '{}'::uuid[], false) as ${v} \\gset\n`;
+const SUELTAS_DE = (v) => `(select count(*) from retail.campana_regla_variantes where regla_id = :'${v}')`;
+const TIENE = (v, cual) => `exists (select 1 from retail.campana_regla_variantes where regla_id = :'${v}' and variante_id = :'${cual}')`;
+
+caso("45 · una oferta por tallas sueltas sigue a la talla que queda: la juntada pasa a la que la absorbe, la que se muda sigue igual y, si la oferta tiene entero el modelo que queda, sus tallas sueltas sobran (ADR-0682)", () => {
+  if (correr("select to_regclass('retail.campana_regla_variantes') is null or position('campana_regla_variantes' in pg_get_functiondef('retail.fusionar_productos(uuid, uuid[], jsonb, jsonb)'::regprocedure)) = 0;").salida.trim().endsWith("t")) {
+    return "la base local no tiene las ofertas por variante (20261118232000) o su paso en la fusión (20261119010000)";
+  }
+  return espera(
+    correr(`${COMO_POSTGRES}
+select pg_temp.duplicado('ZZ Emma bis', '[{"color":"NEG","talla":"M","stock":1},{"color":"NEG","talla":"XL","stock":1}]') as d \\gset
+select pg_temp.duplicado('ZZ Emma tris', '[{"color":"NEG","talla":"M","stock":1}]') as d2 \\gset
+select pg_temp.variante(:'d', 'NEG', 'M') as j, pg_temp.variante(:'d', 'NEG', 'XL') as x, pg_temp.variante(:'d2', 'NEG', 'M') as j2, pg_temp.variante('${EMMA}', 'NEG', 'M') as w \\gset
+${sesion(FELIPE)}
+insert into retail.etiquetas (nombre, estilo) values ('ZZ Campaña fusión (prueba)', 'campana') returning id as camp \\gset
+select retail.actualizar_campana_etiqueta(:'camp', null, retail.fn_hoy_lima() - 1, retail.fn_hoy_lima() + 10, '{}'::uuid[]);
+${OFERTA_SUELTA("r1", "ZZ dos juntadas y una que se muda", ":'j', :'j2', :'x'")}${OFERTA_SUELTA("r2", "ZZ el modelo entero y una suelta", ":'j'", `array['${EMMA}']::uuid[]`)}${OFERTA_SUELTA("r3", "ZZ la juntada y la que queda", ":'j', :'w'")}select retail.fusionar_productos('${EMMA}', array[:'d', :'d2']::uuid[]) as r \\gset
+${COMO_POSTGRES}
+select 'x', (:'r'::jsonb) ->> 'juntadas',
+  ${SUELTAS_DE("r1")}, ${TIENE("r1", "w")}, ${TIENE("r1", "x")}, ${TIENE("r1", "j")} or ${TIENE("r1", "j2")},
+  ${SUELTAS_DE("r2")}, exists (select 1 from retail.campana_regla_productos where regla_id = :'r2' and producto_id = '${EMMA}'),
+  ${SUELTAS_DE("r3")}, ${TIENE("r3", "w")};`),
+    "2|2|t|t|f|0|t|1|t"
+  );
+});
+
 caso("13 · en una sede de dos empresas cada unidad conserva su dueño al juntarse (CLAURE con CLAURE, CAYLA con CAYLA)", () =>
   espera(
     correr(`${COMO_POSTGRES}
@@ -569,6 +598,7 @@ const A_VARIANTES = {
   "codigos_barras.variante_id": "pasa a la que queda (las etiquetas siguen sonando)",
   "variante_etiquetas.variante_id": "la que queda suma las de la juntada",
   "esperas_web.variante_id": "pasa a la que queda si no esperaba ya esa",
+  "campana_regla_variantes.variante_id": "la oferta gana la que queda y suelta la juntada (ADR-0682)",
   "variantes.fusionada_en_id": "la marca de la juntada",
   // Lo que frena si toca a una que se junta (apartado, en camino, pedido web, producción, conteo, cuarentena).
   "stock.variante_id": "sus unidades pasan con movimientos",

@@ -281,7 +281,7 @@ export function ResumenProduccionPanel({
                     <FilaQueAbreLaHoja
                       hoja={hojas[m.productoId]}
                       presentacion={presentaciones[m.productoId]}
-                      className="grid w-full cursor-pointer text-left grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 px-4 py-3 transition-colors hover:bg-sand/40 focus-visible:-outline-offset-2 lg:grid-cols-[minmax(0,1.6fr)_3rem_6rem_minmax(6.5rem,1.2fr)_9rem] xl:grid-cols-[minmax(0,1.5fr)_3.5rem_6rem_minmax(7rem,1.2fr)_4rem_9rem]"
+                      className="grid w-full cursor-pointer text-left grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 px-4 py-3 transition-colors vd-pasa focus-visible:-outline-offset-2 lg:grid-cols-[minmax(0,1.6fr)_3rem_6rem_minmax(6.5rem,1.2fr)_9rem] xl:grid-cols-[minmax(0,1.5fr)_3.5rem_6rem_minmax(7rem,1.2fr)_4rem_9rem]"
                     >
                       <span className="flex min-w-0 items-center gap-3">
                         <FotoModelo productoId={m.productoId} presentaciones={presentaciones} ancho={32} className="w-8" />

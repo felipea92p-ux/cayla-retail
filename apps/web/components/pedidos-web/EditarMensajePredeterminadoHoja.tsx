@@ -170,7 +170,7 @@ export function EditarMensajePredeterminadoHoja({
                 </span>
                 <span className="truncate text-[14px] font-medium">{PEDIDO_DE_MUESTRA.cliente.nombre}</span>
               </div>
-              <div className="bg-hueso/50 px-4 py-4">
+              <div className="vd-hundido px-4 py-4">
                 <div className="ml-auto max-w-[85%] rounded-2xl rounded-tr-sm bg-verde/15 px-3 py-2">
                   <p className="whitespace-pre-wrap break-words text-[14px] text-tinta">{vista}</p>
                   <p className="mt-1 flex items-center justify-end gap-1 text-sm text-taupe">

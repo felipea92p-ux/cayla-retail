@@ -37,7 +37,7 @@ function Mejora({ m, n }: { m: MejoraLeida; n: number }) {
   return (
     <li className="py-4 first:pt-0 last:pb-0">
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sand text-xs tabular-nums text-tinta" aria-hidden>
+        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full vd-gota-chica text-xs tabular-nums text-tinta" aria-hidden>
           {n}
         </span>
         <div className="min-w-0 flex-1 space-y-1.5">

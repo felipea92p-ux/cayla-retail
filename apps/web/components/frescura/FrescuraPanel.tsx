@@ -394,7 +394,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               />
             )}
             {sede.decisiones.estado === "sin_lectura" && sede.decisiones.aviso && (
-              <p role="status" className="mx-4 mb-3.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-sm leading-normal sm:mx-5">
+              <p role="status" className="mx-4 mb-3.5 flex items-start gap-2 rounded-xl vd-placa px-3 py-2.5 text-sm leading-normal sm:mx-5">
                 <Info aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{sede.decisiones.aviso}</span>
               </p>

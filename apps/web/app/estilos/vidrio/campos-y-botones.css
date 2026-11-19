@@ -206,7 +206,7 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-borde-control) 70%, transparent), inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 16%, transparent);
 }
 .interruptor-perilla {
-  background: linear-gradient(180deg, var(--color-vidrio), color-mix(in srgb, var(--color-vidrio) 80%, var(--color-hueso)));
+  background: linear-gradient(180deg, var(--color-vidrio), color-mix(in srgb, var(--color-vidrio) 80%, var(--color-hueso))); /* beige-fijo: perilla: objeto físico del interruptor */
   box-shadow: inset 0 -1px 2px color-mix(in srgb, var(--color-sombra) 10%, transparent), 0 2px 6px -1px color-mix(in srgb, var(--color-sombra) 40%, transparent);
 }
 .interruptor[aria-checked="true"] {
@@ -218,7 +218,7 @@
 @media screen {
   :root[data-tema="oscuro"] .casilla-input { background: color-mix(in srgb, var(--color-sombra) 35%, transparent); }
   :root[data-tema="oscuro"] .interruptor:not([aria-checked="true"]) { background: color-mix(in srgb, var(--color-sombra) 30%, transparent); }
-  :root[data-tema="oscuro"] .interruptor-perilla { background: linear-gradient(180deg, var(--color-tinta), color-mix(in srgb, var(--color-tinta) 80%, var(--color-sand))); }
+  :root[data-tema="oscuro"] .interruptor-perilla { background: linear-gradient(180deg, var(--color-tinta), color-mix(in srgb, var(--color-tinta) 80%, var(--color-sand))); } /* beige-fijo: perilla: objeto físico del interruptor */
   :root[data-tema="oscuro"] .interruptor[aria-checked="true"] .interruptor-perilla { background: var(--color-crema); }
 }
 

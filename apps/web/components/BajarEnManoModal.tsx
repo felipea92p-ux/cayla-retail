@@ -183,7 +183,7 @@ export function BajarEnManoModal({
             </div>
           </div>
 
-          <ol className="space-y-1.5 rounded-xl bg-hueso px-4 py-3 text-sm leading-snug text-tinta">
+          <ol className="space-y-1.5 rounded-xl vd-placa px-4 py-3 text-sm leading-snug text-tinta">
             {pasos.map((paso, i) => (
               <li key={paso} className="flex gap-2">
                 <span aria-hidden className="tabular-nums text-taupe">

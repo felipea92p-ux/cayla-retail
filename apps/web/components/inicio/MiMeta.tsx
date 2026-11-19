@@ -60,7 +60,7 @@ export function SeccionMiMeta({ miMeta, cajaAbierta, titulo }: { miMeta: MiMeta;
   );
 }
 
-const ICONO = "grid size-10 shrink-0 place-items-center rounded-full bg-sand font-display text-lg text-tinta";
+const ICONO = "grid size-10 shrink-0 place-items-center rounded-full vd-lente font-display text-lg text-tinta";
 
 /** «Lo que va bien»: reconoce sin inventar. Si nada tiene base honesta, no se dibuja la sección. */
 export function SeccionLoQueVaBien({ miMeta }: { miMeta: MiMeta }) {

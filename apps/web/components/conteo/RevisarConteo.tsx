@@ -249,7 +249,7 @@ export function RevisarConteo({
                         <span
                           key={t.varianteId}
                           className={`inline-flex min-h-8 min-w-8 items-center justify-center rounded-lg border px-1.5 text-xs tabular-nums ${
-                            t.estado === "en_reconteo" ? "border-ambar/35 bg-ambar/[0.07] text-ambar-profundo" : "border-taupe/25 bg-hueso text-tinta"
+                            t.estado === "en_reconteo" ? "border-ambar/35 bg-ambar/[0.07] text-ambar-profundo" : "border-taupe/25 vd-placa text-tinta"
                           }`}
                         >
                           {t.talla ?? "Única"}
@@ -369,7 +369,7 @@ export function RevisarConteo({
           )}
         </section>
       ) : !conPendientes ? (
-        <p className="rounded-xl bg-hueso px-3.5 py-3 text-sm text-tinta">
+        <p className="rounded-xl vd-placa px-3.5 py-3 text-sm text-tinta">
           {resumen.variantes === 0
             ? "Este conteo todavía no tiene ninguna variante. Vuelve a contar y escanea las prendas, o cancélalo desde Conteo si no se va a contar."
             : "Todo lo contado coincide con lo que CAYLA esperaba."}

@@ -107,7 +107,7 @@ export function CerrarColaArranqueModal({ sedes, inicial, onClose }: { sedes: Se
           )}
 
           {sede && (
-            <div className="rounded-md bg-hueso px-4 py-3 text-sm text-tinta">
+            <div className="rounded-md vd-placa px-4 py-3 text-sm text-tinta">
               <p>
                 Se cerrarán <strong>{sede.pendientes} {sede.pendientes === 1 ? "prenda vendida" : "prendas vendidas"} sin registrar</strong> de {sede.sede} ({soles(sede.soles)}), vendidas {cuandoSeVendio(sede.desde, sede.corte)}.
               </p>
@@ -137,7 +137,7 @@ export function CerrarColaArranqueModal({ sedes, inicial, onClose }: { sedes: Se
                     aria-checked={elegido}
                     onClick={() => setMotivo(m.clave)}
                     className={`rounded-md border px-3.5 py-2.5 text-left transition-colors ease-cayla ${
-                      elegido ? "border-tinta bg-hueso" : "border-tinta/15 bg-papel hover:border-tinta/40"
+                      elegido ? "border-tinta vd-marca" : "border-tinta/15 bg-papel hover:border-tinta/40"
                     }`}
                   >
                     <span className="block text-sm text-tinta">{m.titulo}</span>

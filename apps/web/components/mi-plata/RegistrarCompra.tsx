@@ -850,9 +850,9 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
               <ul aria-hidden className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
                 {[0, 1, 2, 3].map((i) => (
                   <li key={i} className="card-cayla flex flex-col gap-2 rounded-[18px] p-2.5">
-                    <span className="block aspect-[4/3] w-full rounded-xl bg-hueso" />
-                    <span className="block h-3 w-3/4 rounded bg-hueso" />
-                    <span className="block h-2.5 w-1/2 rounded bg-hueso" />
+                    <span /* beige-fijo: esqueleto de carga, no es superficie */ className="block aspect-[4/3] w-full rounded-xl bg-hueso" />
+                    <span /* beige-fijo: esqueleto de carga, no es superficie */ className="block h-3 w-3/4 rounded bg-hueso" />
+                    <span /* beige-fijo: esqueleto de carga, no es superficie */ className="block h-2.5 w-1/2 rounded bg-hueso" />
                   </li>
                 ))}
               </ul>
@@ -1080,7 +1080,7 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
                     setRechazo(null);
                     setTipo(k);
                   }}
-                  className={`card-cayla mov-boton flex flex-col items-start gap-0.5 p-3 text-left ${tipo === k ? "border-tinta bg-sand/40" : ""}`}
+                  className={`card-cayla mov-boton flex flex-col items-start gap-0.5 p-3 text-left ${tipo === k ? "border-tinta vd-marca" : ""}`}
                 >
                   <span className="flex w-full items-center justify-between font-medium text-tinta">
                     {TIPOS_PAPEL[k].nombre}
@@ -1201,7 +1201,7 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
                     setRechazo(null);
                     setPago((p) => ({ ...p, forma: o.forma }));
                   }}
-                  className={`card-cayla mov-boton flex flex-col items-start gap-0.5 p-3 text-left ${pago.forma === o.forma ? "border-tinta bg-sand/40" : ""}`}
+                  className={`card-cayla mov-boton flex flex-col items-start gap-0.5 p-3 text-left ${pago.forma === o.forma ? "border-tinta vd-marca" : ""}`}
                 >
                   <span className="flex w-full items-center justify-between font-medium text-tinta">
                     {o.nombre}
@@ -1846,7 +1846,7 @@ function ListaHabituales({
     const piezas = piezasDeFila(h, suyas);
     const atajo = h && !enCompra ? cantidadDeAtajo(h) : null;
     return (
-      <li key={clave} className="flex items-center gap-3 border-t border-sand px-3.5 py-2.5 first:border-t-0 hover:bg-hueso/50">
+      <li key={clave} className="flex items-center gap-3 border-t border-sand px-3.5 py-2.5 first:border-t-0 vd-pasa">
         <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-center gap-3 text-left" aria-label={`${nombre}${enCompra ? `, ${prendasDeLineas(suyas)} en la compra` : ""}`}>
           <span data-vuelo-miniatura={clave} className="shrink-0">
             <MiniaturaPrenda fotoUrl={(productoId && fotos.get(productoId)) || null} prefijo={c?.prefijo} familia={c?.familia} categoria={categoria} tamano="lg" />

@@ -140,7 +140,7 @@ export function TejidoYComposicion({
               crear={{ etiqueta: (t) => `+ Crear el tejido «${t.trim()}»`, onCrear: onCrearTejido, pista: "¿Es nuevo? Escribe su nombre arriba" }}
             />
           ) : (
-            <p className="rounded-md bg-sand/60 px-3 py-2 text-sm text-tinta/75">No se pudieron cargar los tejidos. Cierra esta ventana y vuelve a abrirla; lo demás se puede guardar igual.</p>
+            <p className="rounded-md vd-placa px-3 py-2 text-sm text-tinta/75">No se pudieron cargar los tejidos. Cierra esta ventana y vuelve a abrirla; lo demás se puede guardar igual.</p>
           )}
         </Campo>
       </CampoGuiado>
@@ -224,7 +224,7 @@ export function CompraDeLaTela({
             />
             <div>
               <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-tinta/65">Rinde</p>
-              <p className="flex h-12 items-center rounded-lg bg-hueso px-3 text-[14px] text-tinta">
+              <p className="flex h-12 items-center rounded-lg vd-hundido px-3 text-[14px] text-tinta">
                 {rinde === null ? "Falta el ancho y el gramaje" : `≈ ${rinde.toLocaleString("es-PE", { maximumFractionDigits: 2 })} m por kilo`}
               </p>
             </div>

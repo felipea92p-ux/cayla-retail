@@ -70,7 +70,7 @@ export function BotonFiltros({
 export function PanelPildoras({ children, filas = false, guia }: { children: ReactNode; /** Hijos `FilaPildoras` apilados. */ filas?: boolean; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
   if (filas) {
     return (
-      <div id="filtros-panel" data-guia={guia} className="anim-revelar flex flex-col divide-y divide-tinta/10 rounded-xl bg-sand/50 p-1.5 shadow-sm">
+      <div id="filtros-panel" data-guia={guia} className="anim-revelar flex flex-col divide-y divide-tinta/10 rounded-xl vd-hundido p-1.5">
         {children}
       </div>
     );
@@ -79,7 +79,7 @@ export function PanelPildoras({ children, filas = false, guia }: { children: Rea
     <div
       id="filtros-panel"
       data-guia={guia}
-      className="anim-revelar scroll-cayla flex flex-nowrap items-center gap-2 overflow-x-auto rounded-xl bg-sand/50 p-2 shadow-sm sm:flex-wrap"
+      className="anim-revelar scroll-cayla flex flex-nowrap items-center gap-2 overflow-x-auto rounded-xl vd-hundido p-2 sm:flex-wrap"
     >
       {children}
     </div>

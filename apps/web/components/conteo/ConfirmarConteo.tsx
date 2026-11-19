@@ -255,7 +255,7 @@ export function ConfirmarConteo({
                     </Aviso>
                   )}
                   {nota && (
-                    <p className="mt-2 flex items-start gap-2 rounded-lg bg-hueso px-3 py-2 text-sm text-tinta/80">
+                    <p className="mt-2 flex items-start gap-2 rounded-lg vd-placa px-3 py-2 text-sm text-tinta/80">
                       <Info aria-hidden className="mt-px h-3.5 w-3.5 shrink-0 text-taupe" />
                       {nota}
                     </p>

@@ -115,17 +115,17 @@ export function DetalleCampanaHistorial({
         ) : (
           <>
             <dl data-guia="plan-historial.resumen" className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl bg-hueso px-4 py-3">
+              <div className="rounded-xl vd-placa px-4 py-3">
                 <dt className="text-sm text-taupe">Vendió</dt>
                 <dd className="font-serif text-xl text-tinta">{solesSinCentimos(medida.soles)}</dd>
                 <dd className="text-sm text-tinta/70">{medida.multiplicador !== null ? `${textoMultiplicador(medida.multiplicador)} un día normal` : "Sin base para comparar"}</dd>
               </div>
-              <div className="rounded-xl bg-hueso px-4 py-3">
+              <div className="rounded-xl vd-placa px-4 py-3">
                 <dt className="text-sm text-taupe">El mejor día</dt>
                 <dd className="font-serif text-xl text-tinta">{detalle.mejor ? solesSinCentimos(detalle.mejor.soles) : "—"}</dd>
                 <dd className="text-sm text-tinta/70">{detalle.mejor ? `${diaDeSemana(detalle.mejor.fecha)} ${fechaCortaES(detalle.mejor.fecha)}` : ""}</dd>
               </div>
-              <div className="rounded-xl bg-hueso px-4 py-3">
+              <div className="rounded-xl vd-placa px-4 py-3">
                 <dt className="text-sm text-taupe">El día más flojo</dt>
                 <dd className="font-serif text-xl text-tinta">{detalle.flojo ? solesSinCentimos(detalle.flojo.soles) : "—"}</dd>
                 <dd className="text-sm text-tinta/70">{detalle.flojo ? `${diaDeSemana(detalle.flojo.fecha)} ${fechaCortaES(detalle.flojo.fecha)}` : ""}</dd>

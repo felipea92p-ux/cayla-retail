@@ -446,7 +446,7 @@ export function Acompanante({ guias }: { guias: readonly GuiaEnIndice[] }) {
               <p className="flex items-center gap-2 whitespace-nowrap text-xs text-taupe">
                 <span aria-hidden className="flex gap-1">
                   {tarea!.pasos.map((_, k) => (
-                    <span key={k} className={`h-1.5 w-1.5 rounded-full ${k <= i ? "bg-tinta" : "bg-sand"}`} />
+                    <span key={k} className={`h-1.5 w-1.5 rounded-full ${k <= i ? "bg-tinta" : "bg-sand"}`} /* beige-fijo: escala del dato (pasos) */ />
                   ))}
                 </span>
                 {i + 1} de {total}
@@ -478,7 +478,7 @@ export function Acompanante({ guias }: { guias: readonly GuiaEnIndice[] }) {
               aria-label="Salir del acompañamiento"
               title="Salir"
               onClick={() => terminar(false)}
-              className="grid h-8 w-8 place-items-center rounded-full text-tinta/65 transition-colors hover:bg-sand/60 hover:text-tinta"
+              className="grid h-8 w-8 place-items-center rounded-full text-tinta/65 transition-colors vd-pasa-gota hover:text-tinta"
             >
               <X className="h-4 w-4" aria-hidden />
             </button>

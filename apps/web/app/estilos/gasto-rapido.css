@@ -245,7 +245,7 @@
     translate: -50% -50%;
   }
   .gr-factura-mas::after { rotate: 90deg; }
-  .gr-factura[data-abierto] .gr-factura-mas { rotate: 45deg; background: var(--color-hueso); border-color: var(--color-taupe); }
+  .gr-factura[data-abierto] .gr-factura-mas { rotate: 45deg; background: var(--gota-marca); box-shadow: var(--gota-luz); border-color: var(--color-taupe); }
 
   /* ---- El botón: la cifra sube cada vez que cambia ---- */
   .gr-registrar[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }

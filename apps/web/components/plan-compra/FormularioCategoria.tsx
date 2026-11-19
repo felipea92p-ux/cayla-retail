@@ -258,7 +258,7 @@ export function FormularioCategoria({
     // Todos los títulos de la guía con el mismo alto: el que dice «Sigue aquí» medía 21 px y los demás 24,5, y la caja de abajo subía 3 px cada
     // vez que la luz pasaba al siguiente campo (ADR-0185: nada se mueve bajo el mouse).
     <form onSubmit={guardar} className="space-y-6 [&_[data-campo]>p:first-child]:min-h-6.5">
-      <div data-guia="plan-modal.historia" className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
+      <div data-guia="plan-modal.historia" className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl vd-placa px-4 py-3 text-sm text-tinta/80">
         <span>
           Vendiste <b className="font-semibold text-tinta">{enteroES.format(ventas)}</b> en {periodoDeVentas(fila.diasDeVentas)}
           {ventas30 !== null && hayUltimos30(fila.diasDeVentas) && (
@@ -315,7 +315,7 @@ export function FormularioCategoria({
                 ).map(([clave, nombre, valor, explica]) => {
                   const puesto = valor !== null && b[clave] === String(valor);
                   return (
-                    <div key={clave} className={`rounded-lg px-3 py-2 transition-colors duration-300 ease-cayla ${puesto ? "bg-verde/10" : "bg-hueso"}`}>
+                    <div key={clave} className={`rounded-lg px-3 py-2 transition-colors duration-300 ease-cayla ${puesto ? "bg-verde/10" : "vd-hundido"}`}>
                       <p className="flex items-center gap-1.5 text-sm text-taupe">
                         {nombre}
                         <Ayuda titulo={`${nombre}: de dónde sale`}>{explica}</Ayuda>
@@ -513,7 +513,7 @@ export function FormularioCategoria({
       </CampoGuiado>
       </div>
 
-      <div data-guia="plan-modal.porque" className="rounded-xl bg-hueso px-4 py-3">
+      <div data-guia="plan-modal.porque" className="rounded-xl vd-placa px-4 py-3">
         {calculo ? (
           <>
             <p className="text-sm text-tinta/80">

@@ -163,7 +163,7 @@ function CeldaSubir({ celda, n, etiqueta, fondo, onValor, caja }: { celda: Retur
     return <td className="border-t border-sand bg-rojo/[0.09] px-1 py-2 text-center text-sm font-semibold text-rojo-profundo">Se acabó</td>;
   if (celda.tipo === "sinPiso")
     return (
-      <td title={`${etiqueta}: nada colgado`} className="border-t border-sand bg-[repeating-linear-gradient(135deg,transparent_0_6px,color-mix(in_srgb,var(--color-sand)_70%,transparent)_6px_7px)] px-1 py-2 text-center text-taupe">
+      <td title={`${etiqueta}: nada colgado`} /* beige-fijo: rayado que dice «nada colgado», un dibujo de líneas */ className="border-t border-sand bg-[repeating-linear-gradient(135deg,transparent_0_6px,color-mix(in_srgb,var(--color-sand)_70%,transparent)_6px_7px)] px-1 py-2 text-center text-taupe">
         <b className="block font-normal">—</b>
         <small className="block text-sm">{celda.almacen} en almacén</small>
       </td>
@@ -686,7 +686,7 @@ export function FlujoTalla({
               </div>
             )}
             {/* Subir: si la talla se queda sin ninguna colgada y el piso la pide, se avisa antes (ADR-0208); si no, que subir no es dar de baja. */}
-            {tipo === "subir" && (d.n ?? 0) > 0 && <p className="mt-3 rounded-xl bg-hueso px-3 py-2 text-sm text-tinta">{textoDelBloqueSubir(tallasParaReponer([fila]), { [fila.varianteId]: d.n ?? 0 })}</p>}
+            {tipo === "subir" && (d.n ?? 0) > 0 && <p className="mt-3 rounded-xl vd-placa px-3 py-2 text-sm text-tinta">{textoDelBloqueSubir(tallasParaReponer([fila]), { [fila.varianteId]: d.n ?? 0 })}</p>}
             {tipo === "subir" && destinos.length === 0 && <NotaSubida valor={d.nota ?? ""} onValor={(nota) => poner({ nota })} />}
             {tipo === "subir" && (
               <p className="mt-4">
@@ -764,7 +764,7 @@ export function FlujoTalla({
                   escrita.rechazar(relleno, REGLA_RELLENO);
                   setRelleno("");
                 }}
-                className={`h-9 w-14 rounded-[9px] border bg-hueso text-center text-[15px] font-semibold tabular-nums outline-none placeholder:text-tinta/30 focus:bg-papel ${rellenoInvalido ? "border-rojo text-rojo-profundo focus:border-rojo" : "border-borde-control text-tinta focus:border-taupe"}`}
+                className={`h-9 w-14 rounded-[9px] border vd-hundido text-center text-[15px] font-semibold tabular-nums outline-none placeholder:text-tinta/30 focus:bg-papel ${rellenoInvalido ? "border-rojo text-rojo-profundo focus:border-rojo" : "border-borde-control text-tinta focus:border-taupe"}`}
               />
               {subiendo ? (
                 <button type="button" disabled={nColgado === 0} onClick={() => conAtajo({ ...todoLoColgado })} title="Todo lo que está colgado de cada talla" className="btn-cayla btn-secundario btn-chico">
@@ -783,22 +783,22 @@ export function FlujoTalla({
               <table className="w-full border-separate border-spacing-0 text-sm">
                 <thead>
                   <tr>
-                    <th scope="col" className="sticky left-0 top-0 z-[3] border-r border-sand bg-hueso py-2 pl-3.5 pr-2 text-left text-sm font-semibold text-tinta">Color</th>
+                    <th scope="col" className="sticky left-0 top-0 z-[3] border-r border-sand vd-pegado py-2 pl-3.5 pr-2 text-left text-sm font-semibold text-tinta">Color</th>
                     {tallasDeTodos.map((t) => (
-                      <th key={t} scope="col" className="sticky top-0 z-[2] bg-hueso px-1 py-2 text-center text-sm font-semibold tabular-nums text-tinta">{t}</th>
+                      <th key={t} scope="col" className="sticky top-0 z-[2] vd-pegado px-1 py-2 text-center text-sm font-semibold tabular-nums text-tinta">{t}</th>
                     ))}
-                    {muchas && <th scope="col" className="sticky top-0 z-[2] border-l border-sand bg-hueso px-2 py-2 text-center text-sm font-semibold text-taupe">Total</th>}
+                    {muchas && <th scope="col" className="sticky top-0 z-[2] border-l border-sand vd-pegado px-2 py-2 text-center text-sm font-semibold text-taupe">Total</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {colores.map((c, i) => {
-                    const fondo = i % 2 === 1 ? "bg-hueso/40" : "bg-papel";
+                    const fondo = i % 2 === 1 ? "vd-pegado-cebra" : "bg-papel";
                     return (
                       <tr key={c.clave}>
                         <th scope="row" className={`sticky left-0 z-[1] whitespace-nowrap border-r border-t border-sand py-2 pl-3.5 pr-2.5 text-left text-sm font-semibold text-tinta ${fondo}`}>
-                          <span aria-hidden data-color-dato className="absolute inset-y-0 left-0 w-[5px]" style={{ background: fondoDelPunto(c.colorHex, c.colorTonos) ?? "var(--color-sand)" }} />
+                          <span /* beige-fijo: muestra de la prenda sin color: el beige es el dato */ aria-hidden data-color-dato className="absolute inset-y-0 left-0 w-[5px]" style={{ background: fondoDelPunto(c.colorHex, c.colorTonos) ?? "var(--color-sand)" }} />
                           <span className="flex items-center gap-1.5">
-                            <i aria-hidden data-color-dato className="h-2.5 w-2.5 shrink-0 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: fondoDelPunto(c.colorHex, c.colorTonos) ?? "var(--color-hueso)" }} />
+                            <i /* beige-fijo: muestra de la prenda sin color: el beige es el dato */ aria-hidden data-color-dato className="h-2.5 w-2.5 shrink-0 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: fondoDelPunto(c.colorHex, c.colorTonos) ?? "var(--color-hueso)" }} />
                             {c.color ?? "Sin color"}
                           </span>
                         </th>
@@ -826,7 +826,7 @@ export function FlujoTalla({
                             );
                           if (celda.tipo === "sinAlmacen")
                             return (
-                              <td key={nombre} title={`${c.color ?? ""} ${nombre}: no hay en almacén`} className={`border-t border-sand bg-[repeating-linear-gradient(135deg,transparent_0_6px,color-mix(in_srgb,var(--color-sand)_70%,transparent)_6px_7px)] px-1 py-2 text-center text-taupe`}>
+                              <td key={nombre} title={`${c.color ?? ""} ${nombre}: no hay en almacén`} /* beige-fijo: rayado que dice «no hay en almacén», un dibujo de líneas */ className={`border-t border-sand bg-[repeating-linear-gradient(135deg,transparent_0_6px,color-mix(in_srgb,var(--color-sand)_70%,transparent)_6px_7px)] px-1 py-2 text-center text-taupe`}>
                                 <b className="block font-normal">—</b>
                                 <small className="block text-sm">{celda.piso} colgada{celda.piso === 1 ? "" : "s"}</small>
                               </td>
@@ -867,11 +867,11 @@ export function FlujoTalla({
                 {colores.length > 1 && (
                   <tfoot>
                     <tr>
-                      <th scope="row" className="sticky left-0 z-[1] border-r border-t-[1.5px] border-sand bg-hueso py-2 pl-3.5 text-left text-sm font-semibold">Total</th>
+                      <th scope="row" className="sticky left-0 z-[1] border-r border-t-[1.5px] border-sand vd-pegado py-2 pl-3.5 text-left text-sm font-semibold">Total</th>
                       {tallasDeTodos.map((t) => (
-                        <td key={t} className="border-t-[1.5px] border-sand bg-hueso py-2 text-center font-bold tabular-nums">{tot.porTalla[t] ?? 0}</td>
+                        <td key={t} className="border-t-[1.5px] border-sand vd-hundido py-2 text-center font-bold tabular-nums">{tot.porTalla[t] ?? 0}</td>
                       ))}
-                      {muchas && <td className="border-l border-t-[1.5px] border-sand bg-hueso py-2 text-center font-bold tabular-nums text-taupe">{tot.total}</td>}
+                      {muchas && <td className="border-l border-t-[1.5px] border-sand vd-hundido py-2 text-center font-bold tabular-nums text-taupe">{tot.total}</td>}
                     </tr>
                   </tfoot>
                 )}
@@ -884,10 +884,10 @@ export function FlujoTalla({
             )}
             <p className="mt-2 flex flex-wrap gap-x-3.5 gap-y-1 text-sm text-taupe">
               {!subiendo && <span className="inline-flex items-center gap-1.5"><i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-ambar/40 bg-ambar/[0.14]" />falta en el piso</span>}
-              <span className="inline-flex items-center gap-1.5"><i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-sand bg-[repeating-linear-gradient(135deg,transparent_0_2px,var(--color-sand)_2px_3px)]" />{subiendo ? "nada colgado" : "no hay en almacén"}</span>
+              <span /* beige-fijo: muestra del rayado en la leyenda, un dibujo de líneas */ className="inline-flex items-center gap-1.5"><i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-sand bg-[repeating-linear-gradient(135deg,transparent_0_2px,var(--color-sand)_2px_3px)]" />{subiendo ? "nada colgado" : "no hay en almacén"}</span>
             </p>
             {/* Subir: si alguna talla se queda sin ninguna colgada y el piso la pide, se avisa antes (ADR-0208); si no, que subir no es dar de baja. */}
-            {subiendo && tot.total > 0 && <p className="mt-3 rounded-xl bg-hueso px-3 py-2 text-sm text-tinta">{textoDelBloqueSubir(tallasParaReponer(todas), cant)}</p>}
+            {subiendo && tot.total > 0 && <p className="mt-3 rounded-xl vd-placa px-3 py-2 text-sm text-tinta">{textoDelBloqueSubir(tallasParaReponer(todas), cant)}</p>}
             {subiendo && destinos.length === 0 && <NotaSubida valor={d.nota ?? ""} onValor={(nota) => poner({ nota })} />}
           </>
         );
@@ -1052,7 +1052,7 @@ export function FlujoTalla({
               {objecionFoto && <p className="mt-1.5 text-sm text-ambar-profundo">{objecionFoto}</p>}
             </div>
             {/* Lo que pasa al reportar, ANTES de confirmar: el acto físico primero (si sigue colgada, se puede vender). */}
-            <p className="mt-3 rounded-xl bg-hueso px-3 py-2.5 text-sm text-tinta">{quePasaAlReportar(d.lugar ?? null)}{fraseDejarEn(lugarDanadas) ? ` ${fraseDejarEn(lugarDanadas)}` : ""}</p>
+            <p className="mt-3 rounded-xl vd-placa px-3 py-2.5 text-sm text-tinta">{quePasaAlReportar(d.lugar ?? null)}{fraseDejarEn(lugarDanadas) ? ` ${fraseDejarEn(lugarDanadas)}` : ""}</p>
           </>
         );
       case "quien": {

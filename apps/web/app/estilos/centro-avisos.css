@@ -41,7 +41,8 @@
 @media (hover: hover) {
   .ca-boton:hover {
     transform: translateY(-2px);
-    background: var(--color-hueso);
+    background: var(--gota-marca);
+    box-shadow: var(--gota-luz);
   }
 }
 .ca-boton svg {
@@ -250,7 +251,8 @@
 @media (hover: hover) {
   .ca-btn:hover {
     transform: translateY(-2px);
-    background: var(--color-hueso);
+    background: var(--gota-marca);
+    box-shadow: var(--gota-luz);
   }
 }
 .ca-btn-texto {

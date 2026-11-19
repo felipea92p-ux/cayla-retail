@@ -44,13 +44,13 @@ export function BarraCifras({ celdas, primero, guia }: { celdas: readonly CeldaB
                   type="button"
                   aria-pressed={x.activa ?? false}
                   onClick={x.onClick}
-                  className={`flex h-full w-full min-w-0 cursor-pointer flex-col justify-center rounded-xl px-3 py-1.5 text-left transition-colors hover:bg-hueso/70 ${x.activa ? "bg-hueso" : ""}`}
+                  className={`flex h-full w-full min-w-0 cursor-pointer flex-col justify-center rounded-xl px-3 py-1.5 text-left transition-colors vd-pasa ${x.activa ? "vd-marca" : ""}`}
                 >
                   {cuerpo}
                 </button>
               ) : (
                 // Sin clic, `activa` marca la tienda en la que estás (Historial, Felipe 2026-10-12): la misma arena que la elegida en Resultados.
-                <div className={`flex h-full min-w-0 flex-col justify-center px-3 py-1.5 ${x.activa ? "rounded-xl bg-hueso" : ""}`}>{cuerpo}</div>
+                <div className={`flex h-full min-w-0 flex-col justify-center px-3 py-1.5 ${x.activa ? "rounded-xl vd-marca" : ""}`}>{cuerpo}</div>
               )}
             </div>
           );

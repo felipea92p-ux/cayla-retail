@@ -155,7 +155,7 @@ export function PapelesDeLaCompra({
           {grande?.fotoUrl && (
             <Modal titulo={nombreDelPapel(grande)} subtitulo={grande.compradora ? `Lo compró ${grande.compradora}` : undefined} onClose={() => setGrande(null)} tamano="ancha" conCerrar>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={grande.fotoUrl} alt={`Foto: ${nombreDelPapel(grande)}`} className="max-h-[75vh] w-full rounded-xl bg-hueso object-contain" />
+              <img src={grande.fotoUrl} alt={`Foto: ${nombreDelPapel(grande)}`} className="max-h-[75vh] w-full rounded-xl vd-hundido object-contain" />
             </Modal>
           )}
         </Modal>

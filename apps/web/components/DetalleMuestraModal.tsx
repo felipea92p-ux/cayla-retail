@@ -268,7 +268,7 @@ export function DetalleMuestraModal({
           )}
 
           {pendiente && (
-            <div className="space-y-3 rounded-lg border border-sand bg-hueso/60 p-3">
+            <div className="space-y-3 rounded-lg border border-sand vd-hundido p-3">
               <div className="pie-acciones">
                 <Boton peso="fantasma" onClick={() => setPendiente(null)} disabled={guardando}>
                   Cancelar
@@ -291,7 +291,7 @@ export function DetalleMuestraModal({
         {ayuda && (
           <section data-guia="muestra.sobre" className="space-y-2">
             <p className="label-cayla text-[11px] text-tinta/65">Sobre este tejido</p>
-            <div className="rounded-lg border border-sand bg-hueso/60 p-3 text-sm text-tinta/85">
+            <div className="rounded-lg border border-sand vd-placa p-3 text-sm text-tinta/85">
               <p>{ayuda.queEs}</p>
               <dl className="mt-2 space-y-1.5">
                 {ayuda.datos.map((d) => (
@@ -311,8 +311,8 @@ export function DetalleMuestraModal({
             <ul className="space-y-2" aria-label="Buscando prendas">
               {[0, 1, 2].map((i) => (
                 <li key={i} className="flex items-center gap-3">
-                  <span className="h-9 w-9 shrink-0 animate-pulse rounded-md bg-sand/70" />
-                  <span className="h-3 w-40 animate-pulse rounded bg-sand/70" />
+                  <span /* beige-fijo: esqueleto de carga que espera datos */ className="h-9 w-9 shrink-0 animate-pulse rounded-md bg-sand/70" />
+                  <span /* beige-fijo: esqueleto de carga que espera datos */ className="h-3 w-40 animate-pulse rounded bg-sand/70" />
                 </li>
               ))}
             </ul>

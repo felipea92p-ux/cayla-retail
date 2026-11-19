@@ -13,7 +13,7 @@ function Racha({ dias }: { dias: number }) {
   return (
     <div className="mt-2 flex gap-1" role="img" aria-label={`Lleva ${llenas} de ${DIAS_SOSTENIDOS} días seguidos`}>
       {Array.from({ length: DIAS_SOSTENIDOS }, (_, i) => (
-        <span key={i} className={`h-1.5 flex-1 rounded-full ${i < llenas ? "bg-verde" : "bg-sand"}`} />
+        <span key={i} className={`h-1.5 flex-1 rounded-full ${i < llenas ? "bg-verde" : "bg-sand"}`} /* beige-fijo: escala del dato (avance) */ />
       ))}
     </div>
   );

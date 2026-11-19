@@ -304,7 +304,7 @@ function PasoModelosListo({
             </p>
             <div className="flex flex-wrap gap-2">
               {reparto.guia.colores.map((c) => (
-                <span key={c.codigo} className="inline-flex items-center gap-1.5 rounded-full bg-hueso px-2.5 py-0.5 text-sm text-tinta">
+                <span key={c.codigo} className="inline-flex items-center gap-1.5 rounded-full vd-gota-chica px-2.5 py-0.5 text-sm text-tinta">
                   <span data-color-dato aria-hidden className="p2-punto" style={c.hex ? { backgroundColor: c.hex } : undefined} />
                   {c.nombre} · {enteroES.format(c.unidades)}
                 </span>
@@ -313,7 +313,7 @@ function PasoModelosListo({
             {reparto.guia.tallas.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {reparto.guia.tallas.map((t) => (
-                  <span key={t.id} className="rounded-lg bg-hueso px-2 py-0.5 text-sm font-semibold tabular-nums text-tinta">
+                  <span key={t.id} className="rounded-lg vd-gota-chica px-2 py-0.5 text-sm font-semibold tabular-nums text-tinta">
                     {t.valor} {enteroES.format(t.unidades)}
                   </span>
                 ))}

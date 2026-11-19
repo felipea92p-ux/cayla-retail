@@ -144,7 +144,7 @@
   box-shadow: var(--version-gota-clara-luz);
 }
 @media (hover: hover) {
-  .version-nueva .btn-cayla.btn-secundario:hover:not(:disabled) { background: var(--color-hueso); color: var(--color-tinta); }
+  .version-nueva .btn-cayla.btn-secundario:hover:not(:disabled) { background: var(--gota-marca); box-shadow: var(--gota-luz); color: var(--color-tinta); }
 }
 @media (prefers-reduced-motion: reduce) {
   /* Sin gota, la píldora llega ya hecha: el ahumado, su luz y su filo, quietos. */

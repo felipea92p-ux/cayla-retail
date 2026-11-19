@@ -480,6 +480,10 @@ export const PRUEBAS = [
   // Ofertas por insignia (ADR-0655): una oferta que alcanza las prendas de unas insignias (a mano o por categoría), sumadas a sus categorías y
   // modelos; la caja, los grupos y el monto con ellas; los choques con la forma; guardarlas, su tope y su historia. ROLLBACK.
   "pruebas:ofertas-por-insignia",
+  // Ofertas por variante (ADR-0682): una oferta que alcanza una talla y color en concreto, sumada a sus categorías y modelos; con variantes y
+  // nada más no cae en las prendas de su campaña; la caja, la regla de una oferta guardada y la de todas de una vez dicen lo mismo; guardarlas,
+  // su historia y lo que no se guarda (un modelo entero, un monto de toda la compra). ROLLBACK.
+  "pruebas:ofertas-por-variante",
   // Cambiar la talla o el color de una prenda comprada con descuento no cobra el descuento otra vez (ADR-0655, Felipe 2026-11-14): el mismo
   // modelo, una talla más cara o más barata, otro modelo, una por varias y su mutante. ROLLBACK.
   "pruebas:cambio-mismo-modelo",

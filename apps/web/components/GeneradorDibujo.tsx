@@ -62,7 +62,7 @@ export function GeneradorDibujo({
   }
 
   return (
-    <div className="space-y-3 rounded-lg border border-sand bg-hueso/60 p-3">
+    <div className="space-y-3 rounded-lg border border-sand vd-hundido p-3">
       <CampoTexto
         etiqueta="Describe cómo se ve (opcional)"
         value={descripcion}

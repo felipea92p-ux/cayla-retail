@@ -145,7 +145,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
         data-guia="vender.prenda-abrir"
         className="pv-prenda-abrir absolute inset-0 cursor-pointer disabled:cursor-default"
       />
-      <div className={`pv-prenda-foto pointer-events-none relative aspect-square overflow-hidden bg-sand/40 ${soloEnAlmacen ? "opacity-55" : ""}`}>
+      <div className={`pv-prenda-foto pointer-events-none relative aspect-square overflow-hidden vd-hundido ${soloEnAlmacen ? "opacity-55" : ""}`}>
         {saliente && buscar(saliente) && capa(buscar(saliente)!, false)}
         {capa(mostrado, true)}
       </div>
@@ -191,7 +191,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
                   </i>
                 ) : (
                   // Una mezcla («Hueso con azul», ADR-0643) parte su punto: la base a la izquierda.
-                  <i style={{ background: fondoDelPunto(estiloMosaicoColor(variante?.colorHex)?.fondo, variante?.colorTonos) ?? "var(--color-hueso)" }} />
+                  <i style={{ background: fondoDelPunto(estiloMosaicoColor(variante?.colorHex)?.fondo, variante?.colorTonos) ?? "var(--color-hueso)" /* beige-fijo: muestra de prenda sin color, el beige es el dato */ }} />
                 )}
               </button>
             );

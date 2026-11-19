@@ -269,7 +269,7 @@ export function CostoPrenda({
                   key={e.id}
                   data-error={e.id}
                   aria-current={destello === e.id ? "true" : undefined}
-                  className={`grid grid-cols-[24px_52px_minmax(0,1fr)] items-center gap-x-2.5 gap-y-0.5 rounded-lg border-t border-dashed border-sand px-1 py-2 text-sm transition-colors duration-300 first:border-t-0 sm:grid-cols-[24px_52px_auto_minmax(0,1fr)] ${destello === e.id ? "bg-hueso" : ""}`}
+                  className={`grid grid-cols-[24px_52px_minmax(0,1fr)] items-center gap-x-2.5 gap-y-0.5 rounded-lg border-t border-dashed border-sand px-1 py-2 text-sm transition-colors duration-300 first:border-t-0 sm:grid-cols-[24px_52px_auto_minmax(0,1fr)] ${destello === e.id ? "vd-marca" : ""}`}
                 >
                   <span className="grid h-6 w-6 place-items-center rounded-full border border-dashed border-pizarra text-pizarra">
                     <Pencil aria-hidden className="h-3 w-3" /> {/* unificar-fijo: marca de un costo arreglado, no la acción de editar */}
@@ -405,7 +405,7 @@ function HoyPorCompra({
                   type="button"
                   onClick={() => onElegir(l.compra!)}
                   aria-pressed={activa === l.compra}
-                  className={`inline-flex min-h-6 items-center gap-1.5 rounded-md px-1 transition-colors ${activa === l.compra ? "bg-hueso" : ""}`}
+                  className={`inline-flex min-h-6 items-center gap-1.5 rounded-md px-1 transition-colors ${activa === l.compra ? "vd-marca" : ""}`}
                 >
                   {cuerpo}
                 </button>

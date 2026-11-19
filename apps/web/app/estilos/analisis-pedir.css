@@ -81,16 +81,16 @@
     .al-cab .nav-et{position:absolute;left:calc(var(--nav) * 100%);transform:translateX(-50%);font-weight:600;color:var(--color-tinta);white-space:nowrap}
     .al-f{width:100%;border:0;background:transparent;text-align:left;padding:6px 8px;border-radius:9px;cursor:pointer;font:inherit;color:inherit;
       min-height:24px;transition:background-color 160ms var(--ease-cayla)}
-    .al-f[aria-pressed="true"] {background:var(--color-hueso)}
+    .al-f[aria-pressed="true"] {background:var(--gota-marca);box-shadow:var(--gota-luz)}
     @media (hover: hover) {
-      .al-f:hover {background:var(--color-hueso)}
+      .al-f:hover {background:var(--gota-fondo)}
     }
     .al-f:focus-visible{outline:2px solid var(--color-tinta);outline-offset:-2px}
     .al-f .ico{display:grid;place-items:center;color:var(--color-taupe)}
     .al-f .n{min-width:0;line-height:1.2}
     .al-f .n b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .al-f .n small{font-size:14px;color:var(--color-tinta-60)}
-    .al-f .p{position:relative;height:10px;border-radius:5px;background:var(--color-hueso)}
+    .al-f .p{position:relative;height:10px;border-radius:5px;background:var(--color-hueso)} /* beige-fijo: pista del gráfico */
     .al-f[aria-pressed="true"] .p {background:var(--color-papel)}
     @media (hover: hover) {
       .al-f:hover .p {background:var(--color-papel)}

@@ -47,7 +47,7 @@ export function FotoDelComprobante({ compraId, puedeAgregar }: { compraId: strin
   // Sin permiso para verlos (o sin respuesta) y sin poder sumar: nada que decir.
   if (adjuntos === null || (adjuntos.length === 0 && !puedeAgregar)) return null;
   return (
-    <div className="mb-4 rounded-[12px] bg-hueso px-3 py-2.5">
+    <div className="mb-4 rounded-[12px] vd-placa px-3 py-2.5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <span className="campo-etiqueta">Foto del comprobante</span>
         {adjuntos.length > 0 && (

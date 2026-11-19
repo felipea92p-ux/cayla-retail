@@ -143,27 +143,31 @@
 /* El de una tarjeta entera con sus esquinas (Nuevo producto ▸ las parecidas): la tarjeta se tiñe y vuelve. */
 @keyframes hilo-llamado {
   0%, 100% { background-color: transparent; }
-  30% { background-color: var(--color-hueso); }
+  30% { background-color: var(--hundido-fondo); } /* la tarjeta se hunde un instante: nunca un beige plano (Felipe 2026-11-19) */
 }
 
-/* ---- «Falta:» al pie del paso: cada cosa es un toque que lleva a su campo ---- */
+/* ---- «Falta:» al pie del paso: cada cosa es un toque que lleva a su campo ----
+   Una gota con el borde de lo que se toca, como toda píldora (Felipe 2026-11-19: el blanco plano con borde beige «le quita la
+   estética al sistema»). Las recetas ya traen su oscuro. */
 .hilo-chip {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
   border-radius: 999px;
-  border: 1px solid var(--color-sand);
-  background: var(--color-papel);
+  border: 1px solid var(--color-borde-control);
+  background: var(--gota-fondo-encima);
+  box-shadow: var(--gota-luz);
   padding: 0.25rem 0.625rem 0.25rem 0.4rem;
   font-size: 14px;
   font-weight: 500;
   color: var(--color-tinta);
-  transition: border-color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
+  transition: border-color 200ms var(--ease-cayla), background 200ms var(--ease-cayla), transform 200ms var(--ease-cayla);
 }
 @media (hover: hover) {
   .hilo-chip:hover {
+    transform: translateY(-1px);
     border-color: color-mix(in srgb, var(--color-tinta) 40%, transparent);
-    background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+    background: var(--gota-marca);
   }
 }
 .hilo-chip .hilo-marca {

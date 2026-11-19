@@ -227,7 +227,7 @@
   font-size: 20px;
   line-height: 1.2;
 }
-.vidrio-nota { background: color-mix(in srgb, var(--color-hueso) 72%, transparent); }
+.vidrio-nota { background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); }
 .vidrio-escudo {
   display: grid;
   flex: none;
@@ -303,7 +303,6 @@
   @media (hover: hover) {
     [data-tema="oscuro"] .vidrio-fila-viva:hover { background: color-mix(in srgb, var(--color-tinta) 10%, transparent); }
   }
-  [data-tema="oscuro"] .vidrio-nota { background: color-mix(in srgb, var(--color-hueso) 80%, transparent); }
 }
 
 /* La entrada: el filo da su vuelta, la lente aparece, el nombre sube por su ranura y cada pestaña se enfoca al llegar. Una vez. */

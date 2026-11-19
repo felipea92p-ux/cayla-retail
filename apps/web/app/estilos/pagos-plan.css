@@ -60,7 +60,7 @@
 }
 @media (hover: hover) {
   .pp-opcion:not(:disabled):hover {
-    background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+    background: var(--gota-fondo);
   }
 }
 .pp-opcion[aria-pressed="true"] {

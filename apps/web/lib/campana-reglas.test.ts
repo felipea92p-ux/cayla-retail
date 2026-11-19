@@ -197,6 +197,24 @@ describe("el nombre y la frase", () => {
     expect(nombreAutomatico({ porcentaje: 20, dias: [1, 2, 3, 4, 5, 6, 7], categoriasSolo: ids }, nom)).toBe("4 categorías · −20 %");
     expect(fraseDeOferta({ ...ofertaNueva("2026-10-26", "2026-10-31"), categoriasSolo: ids }, nom)).toContain("solo en 4 categorías");
   });
+  it("las tallas y colores sueltos cuentan por modelo; un solo modelo se nombra con lo que lleva (ADR-0682)", () => {
+    const una = { modelos: 1, unico: "Blusa Emma (Negro S y M)" };
+    // Antes decía «Toda la campaña»: una oferta solo con tallas sueltas no rige en las prendas de su campaña.
+    expect(alcanceDicho({ categoriasSolo: [], variantesSolo: ["v1", "v2"] }, nombreCat, una)).toBe("Blusa Emma (Negro S y M)");
+    expect(nombreAutomatico({ porcentaje: 20, dias: [1, 2, 3, 4, 5, 6, 7], categoriasSolo: [], variantesSolo: ["v1", "v2"] }, nombreCat, () => "", una)).toBe("Blusa Emma (Negro S y M) · −20 %");
+    const o = { ...ofertaNueva("2026-10-26", "2026-10-31"), variantesSolo: ["v1", "v2"] };
+    expect(fraseDeOferta(o, nombreCat, () => "", una)).toContain("20 % menos solo en Blusa Emma (Negro S y M)");
+    expect(fraseDeOferta({ ...o, tipo: "nxm", lleva: 3, paga: 2 }, nombreCat, () => "", una)).toContain("Quien lleva 3 prendas de Blusa Emma (Negro S y M)");
+    // Con un modelo entero además, o con varios modelos por talla, se cuentan juntos como prendas elegidas.
+    expect(alcanceDicho({ categoriasSolo: [], productosSolo: ["m1"], variantesSolo: ["v1"] }, nombreCat, una)).toBe("2 prendas elegidas");
+    expect(alcanceDicho({ categoriasSolo: [BLUSAS], variantesSolo: ["v1", "x1"] }, nombreCat, { modelos: 2, unico: null })).toBe("Blusas y 2 prendas elegidas");
+    expect(alcanceDicho({ categoriasSolo: [], variantesSolo: ["v1"] }, nombreCat, { modelos: 1, unico: null })).toBe("1 prenda elegida");
+    // Quien no conoce las prendas dice cuántas tallas son: nunca «toda la campaña».
+    expect(alcanceDicho({ categoriasSolo: [], variantesSolo: ["v1", "v2"] }, nombreCat)).toBe("2 tallas elegidas");
+    expect(alcanceDicho({ categoriasSolo: [], productosSolo: ["m1"], variantesSolo: ["v1"] }, nombreCat)).toBe("1 prenda elegida y 1 talla elegida");
+    // Sin tallas sueltas, lo que se pase de más no cambia nada.
+    expect(alcanceDicho({ categoriasSolo: [], productosSolo: ["m1"], variantesSolo: [] }, nombreCat, una)).toBe("1 prenda elegida");
+  });
   it("nunca pasa de 80 letras (lo que pide la base)", () => {
     const largo = Array.from({ length: 30 }, () => BLUSAS);
     expect(nombreAutomatico({ porcentaje: 20, dias: [2], categoriasSolo: largo }, nombreCat).length).toBeLessThanOrEqual(80);

@@ -81,11 +81,12 @@
   color: var(--color-tinta);
 }
 .fin-donut-ley button[data-en] {
-  background: var(--color-hueso);
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
 }
 @media (hover: hover) {
   .fin-donut-ley button:hover {
-    background: var(--color-hueso);
+    background: var(--gota-fondo);
   }
 }
 .fin-donut-ley i {

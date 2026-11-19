@@ -104,7 +104,7 @@
     padding: 0 0.75rem;
     border: 1px solid var(--color-borde-control);
     border-radius: var(--radius-md);
-    background-color: var(--color-hueso);
+    background-color: var(--hundido-fondo); box-shadow: var(--hundido-sombra);
     background-image: linear-gradient(var(--color-tinta), var(--color-tinta));
     background-repeat: no-repeat;
     background-position: 50% 100%;
@@ -152,7 +152,7 @@
   .paso-cantidad-b svg { width: 14px; height: 14px; }
   .paso-cantidad[data-tam="celda"] .paso-cantidad-b svg { width: 12px; height: 12px; }
   @media (hover: hover) {
-    .paso-cantidad-b:hover { background: color-mix(in srgb, var(--color-sand) 60%, transparent); color: var(--color-tinta); }
+    .paso-cantidad-b:hover { background: var(--gota-marca); box-shadow: var(--gota-luz); color: var(--color-tinta); }
   }
   .paso-cantidad-b:active { transform: scale(0.9); }
   .paso-cantidad-b:disabled { opacity: 0.3; pointer-events: none; }
@@ -176,9 +176,9 @@
   .caja-campo.paso-cantidad:has(.paso-cantidad-n:disabled) { opacity: 0.55; }
   .paso-cantidad[data-tam="celda"] .paso-cantidad-n { width: 1.75rem; font-size: 13px; }
   /* El dato habla por el borde y el número (lo que llegó en Recibir): se pasó, está completo, falta. */
-  .caja-campo.paso-cantidad[data-tono="error"] { border-color: var(--color-rojo); background: color-mix(in srgb, var(--color-rojo) 8%, var(--color-hueso)); }
-  .caja-campo.paso-cantidad[data-tono="exito"] { border-color: var(--color-verde); background: color-mix(in srgb, var(--color-verde) 9%, var(--color-hueso)); }
-  .caja-campo.paso-cantidad[data-tono="atencion"] { border-color: var(--color-ambar); background: color-mix(in srgb, var(--color-ambar) 10%, var(--color-hueso)); }
+  .caja-campo.paso-cantidad[data-tono="error"] { border-color: var(--color-rojo); background: color-mix(in srgb, var(--color-rojo) 8%, var(--hundido-fondo)); }
+  .caja-campo.paso-cantidad[data-tono="exito"] { border-color: var(--color-verde); background: color-mix(in srgb, var(--color-verde) 9%, var(--hundido-fondo)); }
+  .caja-campo.paso-cantidad[data-tono="atencion"] { border-color: var(--color-ambar); background: color-mix(in srgb, var(--color-ambar) 10%, var(--hundido-fondo)); }
   .paso-cantidad[data-tono="error"] .paso-cantidad-n { color: var(--color-rojo-profundo); }
   .paso-cantidad[data-tono="exito"] .paso-cantidad-n { color: var(--color-verde-profundo); }
   .paso-cantidad[data-tono="atencion"] .paso-cantidad-n { color: var(--color-ambar-profundo); }

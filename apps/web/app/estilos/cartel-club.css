@@ -103,7 +103,7 @@
   display: block;
   width: calc(90 * var(--u));
   height: calc(1 * var(--u));
-  background: var(--color-sand);
+  background: var(--color-sand); /* beige-fijo: filete del cartel: es una línea */
 }
 .cartel-club-ornamento > .cartel-club-rombo {
   width: calc(9 * var(--u));
