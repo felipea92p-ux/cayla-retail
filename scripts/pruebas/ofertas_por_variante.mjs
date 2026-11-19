@@ -9,7 +9,9 @@
  *   · lo de siempre no cambia: una oferta sin variantes rige como antes;
  *   · guardar: las variantes quedan con la oferta y en su historia; sin la clave no se tocan; las tallas de un modelo elegido entero no se
  *     guardan; un monto de toda la compra no las lleva; una variante que no existe se rechaza; `campana_reglas()` las devuelve;
- *   · la migración se pega dos veces y cada función queda con una sola firma.
+ *   · un 3x2 y un monto con variantes sueltas (`20261118233000`): el grupo se arma solo con ellas, y lo que la caja lee para el ticket
+ *     (`ofertas_de_grupo_vigentes`, `ofertas_de_monto_vigentes`) dice lo mismo que lo que la base cobra;
+ *   · las migraciones se pegan dos veces y cada función queda con una sola firma.
  *
  * CÓMO. Cada escenario en su transacción con ROLLBACK. Si la base local todavía no tiene la migración, la aplica dentro de cada escenario.
  *
@@ -27,6 +29,7 @@ import { readFileSync } from "node:fs";
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const MIGRACION = "supabase/migrations/20261118232000_oferta_por_variante.sql";
+const LECTURAS = "supabase/migrations/20261118233000_ofertas_de_grupo_y_monto_por_variante.sql";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 
 function psql(sql) {
@@ -71,7 +74,10 @@ if (falta("select to_regprocedure('retail.fn_variantes_de_regla(uuid)') is null 
 }
 
 // Lo que la base local todavía no tenga, dentro de cada escenario.
-const ANTES = falta("select to_regclass('retail.campana_regla_variantes') is null;") ? readFileSync(MIGRACION, "utf8") : "";
+const ANTES = [
+  falta("select to_regclass('retail.campana_regla_variantes') is null;") ? readFileSync(MIGRACION, "utf8") : "",
+  falta("select position('fn_variantes_de_regla(g.id)' in pg_get_functiondef('retail.ofertas_de_grupo_vigentes(uuid)'::regprocedure)) = 0;") ? readFileSync(LECTURAS, "utf8") : "",
+].filter(Boolean).join("\n");
 
 const HOY = "retail.fn_hoy_lima()";
 // Una campaña «ZZ» con la categoría de la Blusa Emma (a1, a2, a3 de su modelo; `fuera`, de otra categoría). Sin variantes, una oferta suya
@@ -86,6 +92,8 @@ select v.id as a3 from retail.variantes v where v.producto_id = :'modelo' and v.
 select v.id as fuera, p.id as modelo_fuera, p.categoria_id as cat_fuera from retail.variantes v join retail.productos p on p.id = v.producto_id
  where p.categoria_id <> :'cat' and v.activo
    and p.empresa_id is distinct from (select em.id from retail.empresas em where em.clave = 'claure') order by v.id limit 1 \\gset
+-- Las ofertas que la base local ya tenga activas se apagan dentro de la transacción: un monto de toda la compra chocaría con las de la prueba.
+update retail.campana_reglas set estado = 'desactivada' where estado = 'activa';
 insert into retail.etiquetas (nombre, estilo) values ('ZZ Campaña variantes (prueba)', 'campana') returning id as camp \\gset
 select retail.actualizar_campana_etiqueta(:'camp', null, ${HOY} - 1, ${HOY} + 10, array[:'cat']::uuid[]);
 `;
@@ -214,6 +222,47 @@ select count(*) from retail.campana_regla_variantes where regla_id = :'r';\n`),
   "0",
 );
 
+console.log("\n— Un 3x2 y un monto con variantes sueltas —");
+const TRES = "jsonb_build_array(:'a1', :'a2', :'fuera')";
+/** Cuánto descuenta la base en una compra de tres prendas a S/ 50. */
+const COBRO = (vs) =>
+  `(select coalesce(sum(descuento), 0) from retail.fn_ofertas_de_grupo(${HOY}, :'u', jsonb_build_array(${vs
+    .map((k) => `jsonb_build_object('variante_id', :'${k}', 'precio_unitario', 50, 'cantidad', 1)`)
+    .join(", ")})))`;
+esperarValor(
+  "un 3x2 en tres variantes sueltas: la base regala una, y la caja lee esas tres prendas para el ticket",
+  caso(`${OFERTA({ forma: { tipo: "nxm", lleva: 3, paga: 2 }, variantes: TRES })}select concat_ws('|', ${COBRO(["a1", "a2", "fuera"])},
+  (select count(*) from retail.ofertas_de_grupo_vigentes(:'u') o where o.regla_id = :'r'),
+  (select count(*) from retail.ofertas_de_grupo_vigentes(:'u') o where o.regla_id = :'r' and o.variante_id in (:'a1', :'a2', :'fuera')));\n`),
+  "50.00|3|3",
+);
+esperarValor(
+  "la tercera talla del mismo modelo, que no se eligió, no arma grupo: sin ella no hay 3x2",
+  caso(`${OFERTA({ forma: { tipo: "nxm", lleva: 3, paga: 2 }, variantes: TRES })}select concat_ws('|', ${COBRO(["a1", "a2", "a3"])},
+  (select count(*) from retail.ofertas_de_grupo_vigentes(:'u') o where o.regla_id = :'r' and o.variante_id = :'a3'));\n`),
+  "0.00|0",
+);
+esperarValor(
+  "control: el mismo 3x2 sin variantes arma grupo con las tres tallas del modelo de la campaña",
+  caso(`${OFERTA({ forma: { tipo: "nxm", lleva: 3, paga: 2 }, variantes: null })}select ${COBRO(["a1", "a2", "a3"])};\n`),
+  "50.00",
+);
+esperarValor(
+  "un monto que cuenta las prendas de la campaña, con variantes sueltas: la caja lee solo esas dos",
+  caso(`${OFERTA({ forma: { tipo: "monto", escalones: [{ desde: 80, ahorra: 10 }], ahorro_en: "soles", cuenta: "campana" }, variantes: "jsonb_build_array(:'a1', :'fuera')" })}select concat_ws('|',
+  (select cardinality(m.variantes) from retail.ofertas_de_monto_vigentes(:'u') m where m.regla_id = :'r'),
+  (select m.variantes @> array[:'a1', :'fuera']::uuid[] from retail.ofertas_de_monto_vigentes(:'u') m where m.regla_id = :'r'),
+  (select :'a2'::uuid = any (m.variantes) from retail.ofertas_de_monto_vigentes(:'u') m where m.regla_id = :'r'));\n`),
+  "2|t|f",
+);
+esperarValor(
+  "lo que la caja lee y lo que la base cobra coinciden, prenda por prenda, en una oferta de grupo con variantes y una categoría",
+  caso(`${OFERTA({ forma: { tipo: "nxm", lleva: 3, paga: 2 }, variantes: "jsonb_build_array(:'a1')", solo: "array[:'cat_fuera']::uuid[]" })}select
+  (select count(*) from retail.ofertas_de_grupo_vigentes(:'u') o where o.regla_id = :'r')
+   = (select count(*) from retail.variantes v where v.activo and retail.fn_regla_alcanza_variante(:'r', v.id));\n`),
+  "t",
+);
+
 console.log("\n— Pegar —");
 esperarValor(
   "la migración se pega dos veces y cada función queda con una sola firma",
@@ -224,6 +273,10 @@ select string_agg(proname || ':' || n, ',' order by proname) from (
                      'fn_regla_solo_variantes', 'fn_variantes_sueltas_de_regla', 'fn_regla_con_variantes')
   group by p.proname) x;\nrollback;`),
   "campana_reglas:1,fn_campanas_en_sede:1,fn_regla_alcanza_variante:1,fn_regla_con_variantes:1,fn_regla_solo_variantes:1,fn_variantes_de_regla:1,fn_variantes_sueltas_de_regla:1,guardar_oferta_completa:1",
+);
+esperar(
+  "la de las lecturas de la caja (20261118233000) se pega dos veces",
+  correr(`begin;\n${ANTES}\n${readFileSync(LECTURAS, "utf8")}\n${readFileSync(LECTURAS, "utf8")}\nrollback;`).ok,
 );
 esperarValor(
   "pegada dos veces, la caja no repite la rama de las variantes",
