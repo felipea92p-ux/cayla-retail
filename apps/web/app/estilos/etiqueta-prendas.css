@@ -45,9 +45,11 @@
 .eqp-lado { grid-area: etiqueta; min-height: 0; min-width: 0; }
 .eqp-pie { grid-area: pie; min-width: 0; }
 
-/* El panel de la derecha (etiqueta + pie) es una sola superficie hundida, como el piso donde cuelga la etiqueta. */
+/* El panel de la derecha (etiqueta + pie) es una sola superficie hundida, como el piso donde cuelga la etiqueta: el hundido del vidrio,
+   no un relleno plano (Felipe 2026-11-19). */
 @media (min-width: 768px) {
-  .eqp-lado, .eqp-pie { background: var(--color-hueso); }
+  .eqp-lado, .eqp-pie { background: var(--hundido-fondo); }
+  .eqp-lado { box-shadow: var(--hundido-sombra); }
   .eqp-lado { border-radius: 16px 16px 0 0; padding: 0 18px 14px; display: flex; flex-direction: column; overflow: hidden; }
   .eqp-pie { border-radius: 0 0 16px 16px; padding: 14px 18px 18px; border-top: 1px solid var(--color-sand); }
 }
@@ -108,12 +110,12 @@
 .eqp-tarjeta.eqp-se-asienta { animation: eqp-asienta 420ms var(--ease-cayla) 1; }
 @keyframes eqp-asienta { from { transform: rotate(1.4deg); } to { transform: none; } }
 
-.eqp-ojal { position: absolute; left: 50%; top: 11px; width: 13px; height: 13px; margin-left: -6.5px; border-radius: 50%; background: var(--color-hueso); box-shadow: inset 0 0 0 1.5px var(--color-sand); }
+.eqp-ojal { position: absolute; left: 50%; top: 11px; width: 13px; height: 13px; margin-left: -6.5px; border-radius: 50%; background: var(--hueco-fondo); box-shadow: var(--hueco-sombra), inset 0 0 0 1.5px var(--hueco-borde); }
 .eqp-nombre { font-family: var(--font-serif); font-weight: 600; font-size: 28px; line-height: 1.05; text-align: center; overflow-wrap: anywhere; }
 .eqp-pct { font-family: var(--font-serif); font-weight: 600; font-size: 54px; line-height: 0.95; text-align: center; color: var(--color-rojo); letter-spacing: -0.02em; margin-top: 6px; font-variant-numeric: tabular-nums; }
 .eqp-pct-info { font-size: 13px; font-weight: 600; color: var(--color-pizarra); text-align: center; margin-top: 8px; }
 .eqp-perfora { border: 0; height: 0; border-top: 1.5px dashed color-mix(in srgb, var(--color-taupe) 55%, transparent); margin: 12px -18px; position: relative; flex: none; }
-.eqp-perfora::before, .eqp-perfora::after { content: ""; position: absolute; top: -7px; width: 13px; height: 13px; border-radius: 50%; background: var(--color-hueso); box-shadow: inset 0 0 0 1px var(--color-sand); }
+.eqp-perfora::before, .eqp-perfora::after { content: ""; position: absolute; top: -7px; width: 13px; height: 13px; border-radius: 50%; background: var(--hueco-fondo); box-shadow: var(--hueco-sombra), inset 0 0 0 1px var(--hueco-borde); }
 .eqp-perfora::before { left: -7px; }
 .eqp-perfora::after { right: -7px; }
 /* El monto de la caja crece con la columna: a 280 px «S/ 14,318.30» todavía cabe. */

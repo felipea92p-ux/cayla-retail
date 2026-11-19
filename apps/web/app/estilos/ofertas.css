@@ -16,7 +16,7 @@
   /* ── La campaña (franja de arriba) ── */
   .of-camp {
     display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.875rem;
-    padding: 0.5rem 0.75rem; border-radius: 0.625rem; background: var(--color-hueso);
+    padding: 0.5rem 0.75rem; border: 1px solid var(--placa-borde); border-radius: 0.625rem; background: var(--placa-fondo); box-shadow: var(--placa-luz);
     font-size: 0.875rem; color: var(--color-tinta);
   }
 
@@ -34,17 +34,19 @@
     display: inline-flex; align-items: center; gap: 0.625rem; min-height: 2.75rem; padding: 0 1.125rem 0 0.5rem;
     border: 1px solid var(--color-borde-control); border-radius: 999px;
     font-size: 0.9375rem; font-weight: 600; color: var(--color-tinta);
-    transition: background 200ms var(--ease-cayla), color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
+    /* Una gota, como toda píldora del sistema: nunca un relleno plano (Felipe 2026-11-19: el beige «le quita la estética»). */
+    background: var(--gota-fondo-encima); box-shadow: var(--gota-luz);
+    transition: background 200ms var(--ease-cayla), color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), transform 200ms var(--ease-cayla);
   }
   .of-fase i {
     display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 50%;
-    background: var(--color-hueso); font-style: normal; font-size: 0.875rem; font-weight: 600; font-variant-numeric: lining-nums;
+    border: 1px solid var(--gota-chica-borde); background: var(--gota-chica-fondo); box-shadow: var(--gota-chica-luz); font-style: normal; font-size: 0.875rem; font-weight: 600; font-variant-numeric: lining-nums;
   }
   .of-fase i svg { width: 0.875rem; height: 0.875rem; }
-  @media (hover: hover) { .of-fase:not([aria-disabled="true"]):not([aria-current="step"]):hover { background: var(--color-hueso); } }
+  @media (hover: hover) { .of-fase:not([aria-disabled="true"]):not([aria-current="step"]):hover { transform: translateY(-1px); background: var(--gota-marca); } }
   .of-fase[aria-current="step"] { border-color: var(--ahumado-denso-borde); background: var(--ahumado-denso-fondo); box-shadow: var(--ahumado-denso-luz); color: var(--color-crema); }
-  .of-fase[aria-current="step"] i { background: var(--color-crema); color: var(--color-tinta); }
-  .of-fase[data-hecho] i { background: var(--color-verde); color: var(--color-crema); }
+  .of-fase[aria-current="step"] i { border-color: transparent; background: var(--color-crema); box-shadow: none; color: var(--color-tinta); }
+  .of-fase[data-hecho] i { border-color: transparent; background: var(--color-verde); box-shadow: none; color: var(--color-crema); }
   .of-fase[aria-disabled="true"] { cursor: default; opacity: 0.55; }
   .of-fase { white-space: nowrap; }
   /* Las fases nunca bajan a una segunda fila: miran el ancho de su caja. Si las cuatro no caben con su nombre (menos de 46 rem), solo la de
@@ -256,12 +258,12 @@
   .of-semf .of-lbl { flex-basis: 100%; margin: 0; }
   .of-dias { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-top: 0.75rem; }
   .of-dia {
-    width: 3.5rem; height: 2.75rem; border: 1px solid var(--color-borde-control); border-radius: 0.75rem; background: var(--color-hueso);
+    width: 3.5rem; height: 2.75rem; border: 1px solid var(--color-borde-control); border-radius: 0.75rem; background: var(--gota-fondo-encima); box-shadow: var(--gota-luz);
     font-size: 0.9375rem; font-weight: 600;
-    transition: background 200ms var(--ease-cayla), color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
+    transition: background 200ms var(--ease-cayla), color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), transform 200ms var(--ease-cayla);
   }
-  @media (hover: hover) { .of-dia:hover { background: var(--color-sand); } }
-  .of-dia[aria-pressed="true"] { background: var(--color-tinta); color: var(--color-crema); border-color: var(--color-tinta); }
+  @media (hover: hover) { .of-dia:not([aria-pressed="true"]):hover { transform: translateY(-1px); background: var(--gota-marca); } }
+  .of-dia[aria-pressed="true"] { background: var(--ahumado-denso-fondo); box-shadow: var(--ahumado-denso-luz); color: var(--color-crema); border-color: var(--ahumado-denso-borde); }
   .of-dia[data-fuera]:not([aria-pressed="true"]) { opacity: 0.55; }
   .of-dia[data-fuera][aria-pressed="true"] { outline: 1.5px dashed var(--color-ambar); outline-offset: 2px; }
   .of-fechas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.875rem; width: min(100%, 32rem); text-align: left; }
