@@ -370,20 +370,29 @@
   font-size: 14px;
   color: var(--color-taupe);
 }
-/* El pie se queda abajo: «Ninguna es mi prenda» siempre a mano. Se estira sobre el relleno de la hoja (24 px) para tapar lo que pasa por debajo. */
+/* El pie se queda abajo: «Ninguna es mi prenda» siempre a mano. Es el pie pegado del sistema (`pie-hoja-fijo`, globals.css; el componente lleva las
+   dos clases): de él salen el pegado, los márgenes que lo estiran sobre el relleno de la hoja, el fondo de vidrio y lo que baja cuando la hoja reserva
+   (ADR-0185, act. 2026-11-18). Antes era un `sticky` propio con las cuentas de un relleno de 24 px: en la hoja de vidrio (28 px desde 640) quedaba
+   4 px corto, y con la reserva puesta, a media hoja y encima de las tarjetas (medido a 1280 × 720: 212 px arriba del borde). Aquí queda solo lo suyo:
+   la fila con su nota, la línea de arriba y `margin-top: auto` (en la pantalla completa, con pocas prendas, el pie baja al fondo). */
 .parecidas-hoja-pie {
-  position: sticky;
-  bottom: -1.5rem;
+  /* Sobre las tarjetas, que traen capas propias (el globito de un color, `z-index: 2`). */
   z-index: 5;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 10px 16px;
-  margin: auto -1.5rem -1.5rem;
-  padding: 12px 1.5rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  margin-top: auto;
+  padding-top: 12px;
   border-top: 1px solid var(--color-sand);
-  background: var(--color-papel);
+}
+/* Entre 640 y 1279 px la hoja es la pantalla completa de una tablet: el pie suma por dentro el área segura de abajo. Bajo 640 ya lo hace el pie del
+   sistema (`--borde-abajo`, que pone `<Modal>`); desde 1280 la hoja no toca el borde de la pantalla. */
+@media (min-width: 640px) and (max-width: 1279px) {
+  .parecidas-hoja .parecidas-hoja-pie {
+    padding-bottom: calc(1.75rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 .parecidas-hoja-pie p {
   max-width: 340px;
