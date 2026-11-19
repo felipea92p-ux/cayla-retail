@@ -110,7 +110,7 @@ function PreguntaDiferencia({
   // La reposición lleva su ancla para la guía interactiva (ADR-0389).
   const conAncla = opciones.map((o) => (o.valor === VALOR_REPOSICION ? { ...o, guia: "recepcion.reposicion" } : o));
   return (
-    <CampoGuiado id={id} guia={guia} retiene="fila" className="anim-revelar rounded-xl border border-sand bg-hueso/50 p-3">
+    <CampoGuiado id={id} guia={guia} retiene="fila" className="anim-revelar rounded-xl border border-sand vd-hundido p-3">
       <div data-guia="recepcion.diferencia">
         <p className={TITULO}>{etiqueta(id, pregunta)}</p>
         <ElegirOpcion etiqueta={pregunta} opciones={conAncla} valor={elegida?.valor ?? null} onValor={onValor} />

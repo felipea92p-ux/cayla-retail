@@ -191,7 +191,7 @@ export function ClientaDelTicket({
                 aria-expanded={abiertaLaCaja}
                 aria-label={abiertaLaCaja ? "Ocultar lo del club" : "Ver lo del club"}
                 title={abiertaLaCaja ? "Ocultar lo del club" : "Ver lo del club"}
-                className="area-dedo grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/55 transition-colors hover:bg-sand/50 hover:text-tinta"
+                className="area-dedo grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/55 transition-colors vd-pasa-gota hover:text-tinta"
               >
                 {abiertaLaCaja ? <ChevronUp className="h-4 w-4" aria-hidden /> : <ChevronDown className="h-4 w-4" aria-hidden />}
               </button>
@@ -202,7 +202,7 @@ export function ClientaDelTicket({
               disabled={bloqueado}
               aria-label="Quitar al cliente de esta venta"
               // Con el dedo, 6 px de aire con la flecha de al lado: así el área de 44 px de cada uno no entra en el dibujo del otro.
-              className="area-dedo grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/55 transition-colors hover:bg-sand/50 hover:text-tinta pointer-coarse:ml-1.5"
+              className="area-dedo grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/55 transition-colors vd-pasa-gota hover:text-tinta pointer-coarse:ml-1.5"
             >
               <X className="h-4 w-4" aria-hidden />
             </button>
@@ -311,7 +311,7 @@ function FilaDelClub({
   children: React.ReactNode;
 }) {
   return (
-    <div title={titulo} className={`flex items-center gap-2.5 border-t border-sand px-3 py-1.5 text-sm ${fondo ? "bg-hueso" : ""}`}>
+    <div title={titulo} className={`flex items-center gap-2.5 border-t border-sand px-3 py-1.5 text-sm ${fondo ? "vd-marca" : ""}`}>
       <span className="text-taupe" aria-hidden>
         {icono}
       </span>
@@ -540,7 +540,7 @@ function BuscarClientaModal({
                     const l = lineaDeClienta(c);
                     return (
                       <li key={c.id}>
-                        <button type="button" onClick={() => onElegir(c)} className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-sand/40">
+                        <button type="button" onClick={() => onElegir(c)} className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors vd-pasa">
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-semibold text-tinta">{l.titulo}</span>
                             <span className="block truncate text-sm text-tinta/60">{[l.detalle, estadoEnLaLibreta(clubDesde)].filter(Boolean).join(" · ")}</span>

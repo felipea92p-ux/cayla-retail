@@ -86,11 +86,11 @@ export function MatrizRecepcion({
       >
         <thead>
           <tr>
-            <th scope="col" className="sticky left-0 top-0 z-[3] whitespace-nowrap border-r border-sand bg-hueso py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta sm:pl-3.5">
+            <th scope="col" className="sticky left-0 top-0 z-[3] whitespace-nowrap border-r border-sand vd-pegado py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta sm:pl-3.5">
               Color
             </th>
             {matriz.tallas.map((t) => (
-              <th key={t.id ?? "unica"} scope="col" className="sticky top-0 z-[2] whitespace-nowrap bg-hueso px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta sm:px-1.5">
+              <th key={t.id ?? "unica"} scope="col" className="sticky top-0 z-[2] whitespace-nowrap vd-pegado px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta sm:px-1.5">
                 <span className="inline-flex items-center gap-0.5">
                   {t.texto}
                   {quitar("talla", quitables?.tallas.get(t.id ?? ""), t.texto)}
@@ -98,7 +98,7 @@ export function MatrizRecepcion({
               </th>
             ))}
             {conColumnaTotal && (
-              <th scope="col" className="sticky top-0 z-[2] whitespace-nowrap border-l border-sand bg-hueso px-2 py-2 text-center text-xs font-semibold text-taupe sm:px-3">
+              <th scope="col" className="sticky top-0 z-[2] whitespace-nowrap border-l border-sand vd-pegado px-2 py-2 text-center text-xs font-semibold text-taupe sm:px-3">
                 Total
               </th>
             )}
@@ -108,10 +108,10 @@ export function MatrizRecepcion({
           {matriz.colores.map((c, i) => {
             const color = c.codigo ? porCodigo.get(c.codigo) : undefined;
             const conZebra = i % 2 === 1;
-            const fondoFila = conZebra ? "bg-hueso/40" : "bg-papel";
+            const fondoFila = conZebra ? "vd-hundido" : "bg-papel";
             // La columna del color queda fija al deslizar la tabla de lado (celular): su fondo tiene que ser OPACO, o las celdas que pasan por
             // detrás se ven a través de la franja de hueso al 40 %. La mezcla es de tokens (el mismo tono que la fila).
-            const fondoFijo = conZebra ? "bg-[color-mix(in_srgb,var(--color-hueso)_40%,var(--color-papel))]" : "bg-papel";
+            const fondoFijo = conZebra ? "vd-pegado-cebra" : "bg-papel";
             // La franja del color de la fila (como Nuevo producto): el color de la prenda es un dato, no cambia con el tema.
             const franja = color ? (fondoDeMuestra(color.hex, color.familiaColor, color.tipo) ?? "var(--color-sand)") : "var(--color-sand)";
             return (
@@ -183,15 +183,15 @@ export function MatrizRecepcion({
         {conFilaTotal && (
           <tfoot>
             <tr>
-              <th scope="row" className="sticky bottom-0 left-0 z-[2] border-r border-t border-sand bg-hueso py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta sm:pl-3.5">
+              <th scope="row" className="sticky bottom-0 left-0 z-[2] border-r border-t border-sand vd-pegado py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta sm:pl-3.5">
                 Total
               </th>
               {matriz.tallas.map((t) => (
-                <td key={t.id ?? "unica"} className="sticky bottom-0 z-[1] border-t border-sand bg-hueso px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta">
+                <td key={t.id ?? "unica"} className="sticky bottom-0 z-[1] border-t border-sand vd-pegado px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta">
                   {totalColumna(t.id) || ""}
                 </td>
               ))}
-              {conColumnaTotal && <td className="sticky bottom-0 z-[1] border-l border-t border-sand bg-hueso px-2 py-2 text-center font-semibold tabular-nums text-tinta sm:px-3">{total}</td>}
+              {conColumnaTotal && <td className="sticky bottom-0 z-[1] border-l border-t border-sand vd-pegado px-2 py-2 text-center font-semibold tabular-nums text-tinta sm:px-3">{total}</td>}
             </tr>
           </tfoot>
         )}

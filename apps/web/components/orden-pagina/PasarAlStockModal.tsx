@@ -263,7 +263,7 @@ export function PasarAlStockModal({
           </CampoGuiado>
         </div>
 
-        <div data-guia="prod-orden-stock.resumen" className="space-y-2 rounded-xl bg-hueso px-4 py-3 text-sm">
+        <div data-guia="prod-orden-stock.resumen" className="space-y-2 rounded-xl vd-placa px-4 py-3 text-sm">
           <p className="flex items-baseline justify-between gap-3">
             <span className="text-tinta/75">
               {textoQuePasaConElStock(total, orden.esMuestra, yaEstabaEfectivo)}
@@ -359,7 +359,7 @@ export function PasarAlStockModal({
                 {bloqueoTela.texto}
               </Aviso>
               {esLider ? (
-                <div className="space-y-2 rounded-xl bg-hueso px-4 py-3">
+                <div className="space-y-2 rounded-xl vd-placa px-4 py-3">
                   <span className={campoEtiqueta}>{guia.etiqueta("tela", "¿La dejas pasar sin tela?")}</span>
                   <div className="flex flex-wrap gap-2">
                     {MOTIVOS_SIN_TELA.map((m) => (

@@ -264,7 +264,7 @@ export function HistorialCampanas({
             type="button"
             onClick={() => setAbierta(campana)}
             data-guia="plan-historial.fila"
-            className={fila(PLANTILLA_HISTORIAL, "w-full cursor-pointer text-left transition-colors hover:bg-hueso")}
+            className={fila(PLANTILLA_HISTORIAL, "w-full cursor-pointer text-left transition-colors vd-pasa")}
             aria-label={`Ver el detalle de ${campana.nombre} ${anio}`}
             aria-current={abierta?.clave === campana.clave ? "true" : undefined}
           >

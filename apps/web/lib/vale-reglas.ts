@@ -37,8 +37,8 @@ export function gruposDelBalance(lineas: readonly LineaBalance[]): GrupoBalance[
     if (suyas.length) out.push({ clave: g.clave, nombre: g.nombre, lado: g.lado, clase: g.clase, monto: suma(suyas), lineas: suyas.map(linea) });
   }
   for (const [l, nombre, clase] of [
-    ["tiene", "Otros", "bg-sand"],
-    ["debe", "Otras deudas", "bg-sand"],
+    ["tiene", "Otros", "bg-sand"], // beige-fijo: escala del dato en la barra de partes
+    ["debe", "Otras deudas", "bg-sand"], // beige-fijo: escala del dato en la barra de partes
   ] as const) {
     const resto = lineas.filter((x) => lado(x) === l && !usadas.has(x) && Math.round(x.monto) !== 0);
     if (resto.length) out.push({ clave: `otros-${l}`, nombre, lado: l, clase, monto: suma(resto), lineas: resto.map(linea) });

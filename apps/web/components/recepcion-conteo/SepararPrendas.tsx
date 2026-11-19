@@ -40,7 +40,7 @@ import { DescribirNuevas } from "./DescribirNuevas";
 // pasa a «Cerrar»; las tallas y los colores sí pueden esperar. La misma pieza sirve en «Hacer ahora», con lo que quedó de una línea ya cerrada.
 
 const BOTON_PASO =
-  "grid h-8 w-8 shrink-0 place-items-center rounded-lg text-taupe transition-colors hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-30";
+  "grid h-8 w-8 shrink-0 place-items-center rounded-lg text-taupe transition-colors vd-pasa-gota hover:text-tinta disabled:pointer-events-none disabled:opacity-30";
 
 /**
  * − 3 + : cuántas de una fila (el paso de cantidad del sistema, `<PasoCantidad>`). El número también se escribe: se guarda al salir de la
@@ -352,7 +352,7 @@ export function BuscarPrendaEnLinea({
             <li key={p.productoId}>
               <button
                 type="button"
-                className="flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-hueso focus-visible:bg-hueso"
+                className="flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors vd-pasa"
                 onClick={() => {
                   onElegir(p);
                   limpiar();
@@ -370,7 +370,7 @@ export function BuscarPrendaEnLinea({
           <li>
             <button
               type="button"
-              className="flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left text-sm text-tinta transition-colors hover:bg-hueso focus-visible:bg-hueso"
+              className="flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left text-sm text-tinta transition-colors vd-pasa"
               onClick={() => {
                 onEsNueva(texto);
                 limpiar();

@@ -118,7 +118,7 @@ export function CalorTrafico({ calor, ampliado, ahora }: { calor: Calor; ampliad
         <span>Menos gente</span>
         <i aria-hidden className="trafico-calor-escala" />
         <span>Más gente</span>
-        <span aria-hidden className="hidden h-3.5 w-px bg-sand sm:inline-block" />
+        <span aria-hidden /* beige-fijo: línea separadora de 1 px, no una superficie */ className="hidden h-3.5 w-px bg-sand sm:inline-block" />
         <span className="inline-flex items-center gap-1.5">
           <i aria-hidden className="trafico-calor-muestra" />
           Las 6 horas más fuertes

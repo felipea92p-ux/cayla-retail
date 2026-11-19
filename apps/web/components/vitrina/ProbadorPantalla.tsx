@@ -393,7 +393,7 @@ function MiniaturaDelProbador({ prenda: p }: { prenda: PrendaDelProbador }) {
   const sinFoto = <SinFoto tamano="h-12 w-10" colorHex={p.colores.find((c) => c.hex)?.hex ?? null} prefijo={p.categoria?.prefijo} categoria={p.categoria?.nombre} />;
   if (!p.miniatura) return sinFoto;
   return (
-    <span className="papel-fijo relative block h-12 w-10 shrink-0 overflow-hidden rounded-md border border-sand bg-hueso">
+    <span /* beige-fijo: foto dentro de papel-fijo, no se oscurece */ className="papel-fijo relative block h-12 w-10 shrink-0 overflow-hidden rounded-md border border-sand bg-hueso">
       <ImagenDePrenda src={p.miniatura} alt="" fill sizes="40px" fallback={sinFoto} className={`object-contain ${p.miniaturaEsRecorte ? "p-0.5" : ""}`} />
     </span>
   );
@@ -458,7 +458,7 @@ function CeldaRecorte({ foto: f, i, onAbrir }: { foto: FotoDelProbador; i: numbe
         className="tw-recorte mov-boton group flex w-full flex-col gap-1.5 rounded-xl p-2 text-left disabled:cursor-default"
         aria-label={`${f.nombre} · ${color}${r ? ` · ${r.estado === "listo" ? "recortada" : r.estado === "por_revisar" ? "por revisar" : "descartada"}` : " · sin recorte"}`}
       >
-        <div className="papel-fijo relative aspect-[4/5] w-full overflow-hidden rounded-xl border border-sand bg-hueso">
+        <div /* beige-fijo: foto dentro de papel-fijo, no se oscurece */ className="papel-fijo relative aspect-[4/5] w-full overflow-hidden rounded-xl border border-sand bg-hueso">
           <ImagenDePrenda
             src={r ? r.url : f.url}
             alt=""

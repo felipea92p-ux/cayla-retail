@@ -482,7 +482,7 @@ export function CampoFecha({
                     {enRango && (
                       <span
                         aria-hidden
-                        className={`absolute inset-y-0 -z-10 bg-hueso ${iso === rango?.desde ? "-right-1 left-1/2" : iso === rango?.hasta ? "-left-1 right-1/2" : "-left-1 -right-1"}`}
+                        className={`absolute inset-y-0 -z-10 vd-hundido ${iso === rango?.desde ? "-right-1 left-1/2" : iso === rango?.hasta ? "-left-1 right-1/2" : "-left-1 -right-1"}`}
                       />
                     )}
                     {dia.d}
