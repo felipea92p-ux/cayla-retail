@@ -250,10 +250,18 @@ Nada sólido sobre el vidrio. Dos cosas que no se tocan sin leer el ADR: **la ho
 contenedor de las listas `fixed` de sus combos y las recortaría; el desenfoque lo pone el velo), y **una pieza nueva no inventa su vidrio**:
 usa una receta o agrega una a `recetas.css`. Lo que ya se eligió vive en el tablero `docs/vidrio/README.md`.
 
-**Lo que se desplaza no se desenfoca (ADR-0623, Felipe 2026-11-07):** la Aurora está fija detrás de todo, así que un `backdrop-filter` en algo que corre con el
+**Lo que se desplaza no se desenfoca (ADR-0623, Felipe 2026-11-07):** el fondo (Seda, antes la Aurora) está fijo detrás de todo, así que un `backdrop-filter` en algo que corre con el
 scroll (una tabla, una cifra, una tarjeta, un botón de fila) obliga a desenfocar de nuevo en cada cuadro: en un equipo sin buena tarjeta gráfica era 32 cuadros/s
 y 18 tirones contra 53 y 0 sin él. Eso va en el **vidrio claro** (`--vidrio-claro-*`), sin desenfoque; el desenfoque es solo de lo que flota quieto (cabecera, menú,
 una cabecera pegada, las hojas y sus velos). Ya lo hacen `.tabla-cayla`, `.tarjeta-cifra`, `.resumen-sede`, `TablaViva` y los bloques de `.pantalla-en-vidrio`.
+
+**El vidrio que dobla y el fondo Seda (ADR-0681, Felipe 2026-11-18):** lo que flota quieto (la cabecera, un aviso, el cajón de un módulo, la isla del
+celular, un cajón lateral, una hoja) **dobla** lo de atrás en su canto donde el navegador sabe (Chrome y Edge); en los demás, en modo liviano y con
+«menos transparencia» o «más contraste», queda el vidrio de siempre. Una pieza nueva que flota lo pide con `useVidrioQueDobla` (`components/ui/`) y
+pone su regla en `app/estilos/vidrio/dobla.css`; nunca algo que se desplaza. Tres cosas que no se tocan sin leer el ADR: el relleno `claro` es solo
+para una pieza cuyo texto va en tinta plena (su piso de luminosidad lo mide `lib/vidrio-dobla.test.ts`; con texto en taupe, relleno `propio`);
+**la hoja sigue sin `backdrop-filter`**: su lente es una hermana (`.hoja-lente`, anclada a su caja) y con ella el velo solo oscurece; y el fondo
+**Seda** (`.marco-seda`, solo CSS, sin `filter`) no sale del rango de tonos en que todo texto se lee (`lib/tema-tokens.test.ts`).
 
 **El vidrio aguanta (ADR-0611, mejora 7):** quien en su aparato pidió menos transparencia o más contraste ve las mismas piezas macizas y sin desenfoque. Una receta nueva con fondo translúcido
 agrega su versión maciza a `vidrio/aguanta.css`: `lib/vidrio-que-aguanta.test.ts` falla si no.

@@ -19,7 +19,7 @@ Estados: **Por auditar** · **En maqueta** (esperando que Felipe elija) · **Ele
 
 | Pieza | Dónde vive | Estado | Cara | Maqueta |
 |---|---|---|---|---|
-| El fondo (lienzo) | `AppShell.tsx` (`bg-crema`), `globals.css` | En código | B · Aurora | `marco-vidrio-2026-10/` |
+| El fondo (lienzo) | `AppShell.tsx` (`.marco-seda`), `vidrio/marco.css` | En código | Seda desde el 2026-11-18 (ADR-0681): cuatro pliegues enormes en una sola familia de color, solo CSS. Antes «B · Aurora» | `vidrio-que-dobla-2026-11/` |
 | Menú lateral (abierto, plegado, cajón de grupo) | `AppShell.tsx` (`GrupoLateral`, `CajonGrupo`) | En código | Desde el 2026-11-02, en escritorio, una columna LISA que sigue el tema (papel con una línea de límite en claro; negro cálido bajo la página en oscuro: `--riel-fondo` y `--riel-borde`), sin vidrio, sin degradado ni sombra larga en la unión con el contenido (Felipe: «el degradado se ve raro»; maqueta «E»); el cajón del celular conserva su vidrio. Con la gota en la fila activa; todos los íconos, también en submódulos; despliegue en cascada; submódulos en una placa apenas hundida y la fila activa una ficha teñida de rojo con su filo, ambas planas (`--bandeja-*` y `--menu-activa-*`); plegar con un botón que flota en el borde, a la altura del logo; plegado con nombre corto bajo cada ícono (A, 84 px) | `marco-vidrio-2026-10/`, `lateral-glass-2026-11/` |
 | Cabecera (sede, buscador, Actividad, tema, Demo) | `AppShell.tsx` (`data-cabecera-app`) | En código | C · Dos islas; el buscador se encoge con la cabecera hasta quedar en una lupa | `marco-vidrio-2026-10/` |
 | El combo: la sede y todos los demás | `ui/campos.tsx` (`Desplegable`, 7 formas), `UbicacionSwitcher.tsx` | En código | A · Gota viajera | `marco-vidrio-2026-10/` |
@@ -113,7 +113,8 @@ piezas, en `app/estilos/vidrio/*.css`.
 
 | Para… | La pieza (componente o clase) | La receta |
 |---|---|---|
-| El fondo, el menú y la cabecera | `AppShell` (Aurora, riel de vidrio, dos islas) | `--marco-*` |
+| El fondo, el menú y la cabecera | `AppShell` (Seda, riel de vidrio, dos islas) | `--marco-*` |
+| Lo que flota y dobla lo de atrás (ADR-0681) | `useVidrioQueDobla` + `vidrio/dobla.css` | `--vidrio-dobla-*` |
 | Una hoja o un cajón | `<Modal>` (vidrio Serena; «Mi perfil», `variante="vidrio"`), `<Cajon>` | `--vidrio-hoja-*`, `--cajon-movil-*` |
 | Lo que espera un dato (campo, combo, buscador, paso de cantidad, casilla) | `CampoTexto`, `CampoMonto`, `Desplegable`, `ComboBuscable`, `<Buscador>`, `<PasoCantidad>`, `<Casilla>` | el pozo `--pozo-*` |
 | Lo que haces (botón secundario, opción elegida, fila activa, «Ver») | `btn-cayla btn-secundario`, `<Boton peso="fantasma">`, `opcion-activa`, `<EnlaceVer>` | la gota `--gota-*`, `--gota-chica-*`, `--gota-clara-*` |
