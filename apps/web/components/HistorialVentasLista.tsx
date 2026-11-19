@@ -200,7 +200,7 @@ function FilaVenta({
                     href="/vender/comprobantes/por-reintentar"
                     data-guia="historial.venta-sunat"
                     title="Resolverlo en Comprobantes ▸ Por enviar"
-                    className="relative z-10 rounded-full transition-shadow hover:ring-1 hover:ring-current focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo"
+                    className="area-dedo relative z-10 rounded-full transition-shadow hover:ring-1 hover:ring-current focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo"
                   >
                     <Chip tono={TONO_COMPROBANTE[v.comprobante.estado]}>{ESTADO_ETIQUETA[v.comprobante.estado]}</Chip>
                   </Link>

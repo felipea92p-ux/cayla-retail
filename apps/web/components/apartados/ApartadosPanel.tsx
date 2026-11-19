@@ -127,7 +127,7 @@ export function ApartadosPanel(props: Props) {
             data-guia="apartados.opciones"
             title="Qué funciones usa Apartados en esta tienda"
             aria-label="Opciones"
-            className="ap-opciones label-cayla flex h-9 items-center gap-1.5 px-3 text-[10.5px] text-tinta/80"
+            className="ap-opciones area-dedo label-cayla flex h-9 items-center gap-1.5 px-3 text-[10.5px] text-tinta/80"
           >
             <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
             <span className={vista === "todos" ? "" : "lg:max-xl:hidden"}>Opciones</span>
