@@ -97,3 +97,63 @@ describe("<PaginaEstable> escribe la reserva de una vez", () => {
     expect(fuente).toMatch(/pintarReserva\(reserva\.destino, reserva\.paddingInline, 0, false\)/);
   });
 });
+
+// Los pies pegados que estaban hechos a mano (un `sticky` propio con las cuentas de un relleno de 24 px) no heredaban nada de lo de arriba: con la
+// reserva puesta quedaban a media hoja (medido el 2026-11-18: 82 px arriba del borde en «Apartado registrado» a 1024 × 768 y 212 px en «Prendas
+// parecidas» a 1280 × 720) y, en la hoja de vidrio, 4 px cortos. Ahora son el pie del sistema; esto vigila que no vuelvan a dibujarse aparte.
+// La barra de «Nueva orden» (FichaOrden) NO entra: vive en la página, su pegado se mide desde la pantalla y la reserva no la mueve (medido: 514..768
+// de 768 con 339 px reservados en el `body`).
+describe("los pies que eran a mano son el pie del sistema", () => {
+  it("Apartados: «Apartado registrado» y «Apartado entregado»", () => {
+    const botones = leer("components/apartados/ModalesApartado.tsx").match(/function Botones\([\s\S]*?\n\}/)?.[0] ?? "";
+    expect(botones, "falta `Botones` en ModalesApartado").not.toBe("");
+    expect(botones).toContain('className="pie-hoja-fijo ');
+    expect(botones, "el pie de Apartados volvió a traer su propio pegado").not.toMatch(/\bsticky\b|-bottom-6|-mb-6/);
+  });
+
+  it("Prendas parecidas: lleva la clase del sistema y la suya ya no pega, no pinta fondo ni se desplaza", () => {
+    expect(leer("components/alta-producto/HojaParecidas.tsx")).toContain('className="pie-hoja-fijo parecidas-hoja-pie"');
+    const propias = reglas(leer("app/estilos/alta-parecidas.css")).filter((r) => r.selector.split(",").some((s) => s.trim().endsWith(".parecidas-hoja-pie")));
+    expect(propias.length).toBeGreaterThan(0);
+    for (const r of propias) expect(r.cuerpo, r.selector).not.toMatch(/(^|[;\s])(position|bottom|background(-color)?|translate)\s*:/);
+  });
+});
+
+// El buscador pegado ARRIBA de «Prendas parecidas» era el otro pegado hecho a mano de esa hoja: cuentas con 24 px fijos (4 px corto en la hoja de vidrio,
+// que tiene 28 desde 640) y papel sólido sobre el vidrio. La reserva no lo mueve (se pega arriba); lo que se vigila es que siga haciendo sus cuentas con
+// el relleno de la hoja de vidrio y pintando el fondo del pie, sin volver a un número suelto ni a un color propio.
+describe("el buscador pegado de «Prendas parecidas» usa las cuentas y el vidrio de la hoja", () => {
+  const css = leer("app/estilos/alta-parecidas.css");
+  const propias = reglas(css).filter((r) => r.selector === ".parecidas-busqueda");
+  const base = propias[0]?.cuerpo.replace(/\s+/g, " ") ?? "";
+
+  it("se pega y se estira con el relleno de la hoja, no con 24 px fijos", () => {
+    expect(propias.length).toBeGreaterThan(0);
+    expect(base).toMatch(/position:\s*sticky/);
+    expect(base).toContain("top: calc(-1 * var(--parecidas-relleno))");
+    expect(base).toContain("margin: -1.125rem calc(-1 * var(--parecidas-relleno)) 0");
+    expect(base).toContain("padding: 1.125rem var(--parecidas-relleno) 0.5rem");
+  });
+
+  it("el relleno que usa es el de la hoja de vidrio: 1,5 rem, y 1,75 desde 640 px", () => {
+    const limpio = css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s+/g, " ");
+    expect(limpio).toMatch(/\.parecidas-hoja \{[^}]*--parecidas-relleno: 1\.5rem;/);
+    expect(limpio).toMatch(/@media \(min-width: 640px\) \{ \.parecidas-hoja \{ --parecidas-relleno: 1\.75rem; \} \}/);
+    // Si la hoja de vidrio cambia su relleno, esta prueba avisa que el buscador quedó con el viejo.
+    const hoja = leer("app/estilos/vidrio/hoja.css").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s+/g, " ");
+    expect(hoja).toMatch(/@media \(min-width: 640px\) \{ \.hoja-serena \{[^}]*padding: 1\.75rem;/);
+    expect(leer("components/ui/Modal.tsx"), "la hoja de <Modal> ya no lleva `p-6` (24 px) bajo 640").toMatch(/"hoja-serena"\} p-6 /);
+  });
+
+  it("pinta el fondo del pie pegado con su mismo desenfoque, no un bloque de papel", () => {
+    expect(base).toContain("background: var(--fondo-hoja, var(--color-papel))");
+    expect(base).toContain("backdrop-filter: blur(14px) saturate(1.3)");
+    const pie = reglas(leer("app/estilos/vidrio/hoja.css")).find((r) => r.selector === ".hoja-serena .pie-hoja-fijo");
+    expect(pie?.cuerpo.replace(/\s+/g, " "), "el pie pegado cambió su desenfoque: el buscador tiene que seguirlo").toContain("backdrop-filter: blur(14px) saturate(1.3)");
+  });
+
+  it("en el celular no se mete bajo la franja del asa (24 px): se pega dejando su propio relleno de arriba por encima", () => {
+    const limpio = css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s+/g, " ");
+    expect(limpio).toMatch(/@media \(max-width: 639\.98px\) \{ \.parecidas-busqueda \{ top: -1\.125rem; \} \}/);
+  });
+});

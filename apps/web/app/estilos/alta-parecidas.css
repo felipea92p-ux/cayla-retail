@@ -309,6 +309,13 @@
    El contenedor de consulta es la propia hoja: la tarjeta se aprieta por el ancho de la HOJA, no por el de la pantalla. */
 .parecidas-hoja {
   container: parecidas-hoja / inline-size;
+  /* El relleno de la hoja de vidrio: 24 px, y 28 desde 640 (`.hoja-serena`, vidrio/hoja.css). De él salen las cuentas del buscador pegado. */
+  --parecidas-relleno: 1.5rem;
+}
+@media (min-width: 640px) {
+  .parecidas-hoja {
+    --parecidas-relleno: 1.75rem;
+  }
 }
 /* Con menos de 1280 px no hay panel a la derecha (la tira de abajo la llama): la hoja abre a pantalla completa. Mismo corte que el
    resumen de `FichaPrevia` (`xl:`): con el lateral fijo, a 1024 no cabían formulario y resumen. */
@@ -336,17 +343,32 @@
     font-size: 22px;
   }
 }
-/* El buscador y el contador se quedan arriba mientras se baja por la lista. */
-/* `top: -1.5rem`: un `sticky` se mide desde el borde del CONTENIDO de la hoja (que tiene 24 px de relleno), no desde su borde: con `top: 0` se pegaba 24 px
-   más abajo y dejaba ver las tarjetas pasar por encima. Con el relleno devuelto por dentro, queda pegado al borde de la hoja. */
+/* El buscador y el contador se quedan arriba mientras se baja por la lista. Es un pegado como los del sistema, del otro lado: las cuentas del asa
+   (`.asa-hoja-fija`, globals.css) y el vidrio del pie (`.hoja-serena .pie-hoja-fijo`, vidrio/hoja.css); no es otra variante.
+   LAS CUENTAS. Un `sticky` se mide desde el borde de ADENTRO del relleno de la hoja, no desde su borde: con `top: 0` se pegaba un relleno más abajo y
+   dejaba ver las tarjetas pasar por encima. `top` negativo por el relleno lo lleva al borde, y los márgenes de los lados lo estiran sobre el relleno.
+   Antes todo eso se hacía con 24 px fijos y la hoja de vidrio tiene 28 desde 640: quedaba 4 px corto arriba y a los lados, y por ahí asomaban las
+   tarjetas (medido a 1024 × 768: de 5 a 1019 px en una hoja de 0 a 1024, con su borde de 1 px).
+   EL VIDRIO. El fondo es el del pie pegado (`--fondo-hoja`, que en la hoja de vidrio es `--vidrio-pie-fondo`) con su mismo desenfoque: antes era papel
+   sólido, un bloque macizo sobre el vidrio. Sin transparencias o en modo liviano ese fondo ya es papel y el desenfoque se apaga solo (aguanta.css). */
 .parecidas-busqueda {
   position: sticky;
-  top: -1.5rem;
+  top: calc(-1 * var(--parecidas-relleno));
   z-index: 5;
   /* El margen de arriba cancela el de la bajada (18 px) y el relleno lo devuelve: en reposo la caja queda donde estaba; pegada, a 18 px del borde. */
-  margin: -1.125rem -1.5rem 0;
-  padding: 1.125rem 1.5rem 0.5rem;
-  background: var(--color-papel);
+  margin: -1.125rem calc(-1 * var(--parecidas-relleno)) 0;
+  padding: 1.125rem var(--parecidas-relleno) 0.5rem;
+  background: var(--fondo-hoja, var(--color-papel));
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: blur(14px) saturate(1.3);
+}
+/* En el celular los primeros 24 px de la hoja son la franja del asa, que desenfoca lo que le pasa por debajo: pegado al borde, el buscador quedaba con
+   su canto de arriba metido 6 px en esa franja, borroso. Aquí se pega 18 px más abajo (su propio relleno de arriba): el buscador empieza donde empieza
+   el contenido de la hoja, justo bajo la franja. */
+@media (max-width: 639.98px) {
+  .parecidas-busqueda {
+    top: -1.125rem;
+  }
 }
 .parecidas-cuenta {
   margin-top: 8px;
@@ -370,20 +392,29 @@
   font-size: 14px;
   color: var(--color-taupe);
 }
-/* El pie se queda abajo: «Ninguna es mi prenda» siempre a mano. Se estira sobre el relleno de la hoja (24 px) para tapar lo que pasa por debajo. */
+/* El pie se queda abajo: «Ninguna es mi prenda» siempre a mano. Es el pie pegado del sistema (`pie-hoja-fijo`, globals.css; el componente lleva las
+   dos clases): de él salen el pegado, los márgenes que lo estiran sobre el relleno de la hoja, el fondo de vidrio y lo que baja cuando la hoja reserva
+   (ADR-0185, act. 2026-11-18). Antes era un `sticky` propio con las cuentas de un relleno de 24 px: en la hoja de vidrio (28 px desde 640) quedaba
+   4 px corto, y con la reserva puesta, a media hoja y encima de las tarjetas (medido a 1280 × 720: 212 px arriba del borde). Aquí queda solo lo suyo:
+   la fila con su nota, la línea de arriba y `margin-top: auto` (en la pantalla completa, con pocas prendas, el pie baja al fondo). */
 .parecidas-hoja-pie {
-  position: sticky;
-  bottom: -1.5rem;
+  /* Sobre las tarjetas, que traen capas propias (el globito de un color, `z-index: 2`). */
   z-index: 5;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 10px 16px;
-  margin: auto -1.5rem -1.5rem;
-  padding: 12px 1.5rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  margin-top: auto;
+  padding-top: 12px;
   border-top: 1px solid var(--color-sand);
-  background: var(--color-papel);
+}
+/* Entre 640 y 1279 px la hoja es la pantalla completa de una tablet: el pie suma por dentro el área segura de abajo. Bajo 640 ya lo hace el pie del
+   sistema (`--borde-abajo`, que pone `<Modal>`); desde 1280 la hoja no toca el borde de la pantalla. */
+@media (min-width: 640px) and (max-width: 1279px) {
+  .parecidas-hoja .parecidas-hoja-pie {
+    padding-bottom: calc(1.75rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 .parecidas-hoja-pie p {
   max-width: 340px;

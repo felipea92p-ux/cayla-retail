@@ -93,10 +93,13 @@ function imprimirYSeguir(cerrar: () => void) {
 }
 
 /** Los botones van en un pie pegado al fondo de la hoja: con la pantalla baja (captura de Felipe, 2026-09-26) quedaban
- *  debajo del borde y «Solo imprimir / Sin imprimir» se cortaban. `-bottom-6`/`-mx-6` compensan el `p-6` de `<Modal>`. */
+ *  debajo del borde y «Solo imprimir / Sin imprimir» se cortaban. Es el pie del sistema (`pie-hoja-fijo`, globals.css): él
+ *  compensa el relleno de `<Modal>`, pinta el vidrio y baja lo que la hoja reserve (ADR-0185, act. 2026-11-18). Antes era
+ *  un `sticky -bottom-6` propio: en la hoja de vidrio quedaba 4 px corto y, con una reserva, a media hoja. Lo suyo es la
+ *  línea de arriba y el aire entre sus filas. */
 function Botones({ cerrar, principal }: { cerrar: () => void; principal: string }) {
   return (
-    <div className="sticky -bottom-6 z-10 -mx-6 -mb-6 space-y-2 border-t border-sand bg-crema px-6 pt-3 pb-6">
+    <div className="pie-hoja-fijo space-y-2 border-t border-sand pt-3">
       <BotonImprimir peso="primario" autoFocus onClick={() => imprimirYSeguir(cerrar)} className="w-full">
         {principal}
       </BotonImprimir>

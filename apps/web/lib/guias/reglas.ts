@@ -169,24 +169,111 @@ export function posicionTarjeta(recorte: Caja | null, ventana: Ventana, tarjeta:
 const soloCierra = (a: AccionGuia) => a.tipo === "clic" && (a.para === "cerrar" || a.para === "desmarcar");
 const puedeAbrir = (acciones: readonly AccionGuia[] | undefined) => !!acciones?.some((a) => !soloCierra(a));
 
+/** Lo que un paso le hace a la pantalla, en orden: su `preparar` y, ya encendida la pieza, su `demostrar`. */
+export function accionesDelPaso(p: PasoGuia): readonly AccionGuia[] {
+  return [...(p.preparar ?? []), ...(p.demostrar ?? [])];
+}
+
+/** ¿Esta acción deja algo a la vista para los pasos que siguen? Un toque que no es un cierre (también uno «si está») o un ejemplo escrito. */
+const dejaAlgo = (a: AccionGuia): a is Extract<AccionGuia, { tipo: "clic" | "escribir" }> => (a.tipo === "clic" && !soloCierra(a)) || a.tipo === "escribir";
+
 /**
- * Al volver con ←, de qué paso sale lo que deja a la vista al paso `indice`: el último de antes que tenía `preparar` (el que abrió la hoja
- * donde vive, o eligió su pestaña). Al volver, el motor cierra las hojas que la guía abrió después, y un paso de adentro que no la abre él
- * mismo se saltaba: la guía caía varios pasos más atrás (Editar producto: «Sumarlos a la ficha» → «Llegó un color o una talla nueva»). El
- * motor repite ese `preparar` solo si al paso le falta su pieza, y si lo que ese `preparar` toca tampoco está (la ficha de Existencias se
- * abre desde el menú «Más»), sigue hacia atrás desde ahí.
- * `null` si no hay ninguno. Un paso de otro ancho (`solo`) no cuenta: sus toques son de otra pantalla. Repetir un `preparar` no desarma
- * nada porque todos se pueden repetir: abren una hoja que el motor ya cerró, eligen una pestaña, o tocan un pliegue o una casilla con
- * `para`, que mira su estado.
+ * Lo que el motor vio al AVANZAR por cada paso (por su índice), para saber al volver qué sigue abierto de lo que hizo cada uno. Sin esto
+ * (una prueba, un paso que nunca se recorrió hacia adelante) la regla supone que todo lo hecho sigue abierto.
+ *  · `hojas`: cuántas hojas había abiertas al empezar el paso, antes de su `preparar`.
+ *  · `hizo`: si lo que deja algo de su `preparar` o su `demostrar` salió bien. Es falso solo si el toque o el ejemplo no se pudo hacer (la
+ *    pieza no apareció, o el piloto se negó): un «si está» sin su pieza, o un pliegue que ya estaba abierto, salen bien sin tocar nada.
  */
-export function fuenteAlVolver(pasos: readonly PasoGuia[], indice: number, anchoVentana: number): number | null {
+export type MemoriaDeIda = { hojas?: readonly (number | undefined)[]; hizo?: readonly (boolean | undefined)[] };
+
+/**
+ * Al volver con ←, de qué paso sale lo que deja a la vista al paso `indice`: el último de antes que dejó algo que sigue abierto (abrió la
+ * hoja donde vive, eligió su pestaña, escribió la búsqueda que muestra). Al volver, el motor cierra las hojas que la guía abrió después, y
+ * un paso de adentro que no la abre él mismo se saltaba: la guía caía varios pasos más atrás (Editar producto: «Sumarlos a la ficha» →
+ * «Llegó un color o una talla nueva»). El motor repite lo de ese paso solo si al paso le falta su pieza, y si lo que ese paso toca tampoco
+ * está (la ficha de Existencias se abre desde el menú «Más»), sigue hacia atrás desde ahí. `null` si no hay ninguno.
+ *
+ * Qué cuenta como «dejó algo» (ADR-0389, act. 2026-11-18 d):
+ *  · Su `preparar` Y su `demostrar`: la guía cuenta una historia —«mira, la abrimos» y el paso siguiente explica lo de adentro—, y lo que
+ *    abrió un `demostrar` es tan parte de la pantalla como lo que abrió un `preparar` (Configuración: «Una tasa nueva» abre la hoja de
+ *    «Desde cuándo y cuánto»; Vender: «Escanea o busca» escribe lo que «Lo que encontró» muestra).
+ *  · No un paso que solo cierra (Escape, `para: "cerrar"`) o vacía un buscador: no deja nada, y la cadena se cortaba en él (Productos,
+ *    Configuración, Devoluciones). Tampoco lo que un paso de después deshizo: un ejemplo que se vació, un pliegue que se cerró.
+ *  · No lo que se cerró antes de `indice` (`memoria.hojas`): si entre ese paso y `indice` hubo menos hojas abiertas que las que dejó, lo que
+ *    abrió ya no está (un Escape lo cerró). Contar escapes en el texto de la guía no alcanza: un Escape sin hoja abierta no cierra nada
+ *    (Devoluciones pide dos seguidos con una sola hoja), y una pestaña no se cierra con Escape.
+ *  · No un paso cuyo toque no se pudo hacer al avanzar (`memoria.hizo`): repetirlo solo esperaría una pieza que no aparece.
+ * Un paso de otro ancho (`solo`) no cuenta: sus toques son de otra pantalla. Repetir lo de un paso no desarma nada porque todo se puede
+ * repetir: abre una hoja que el motor ya cerró, elige una pestaña, escribe lo mismo, o toca un pliegue o una casilla mirando su estado.
+ */
+export function fuenteAlVolver(pasos: readonly PasoGuia[], indice: number, anchoVentana: number, memoria: MemoriaDeIda = {}): number | null {
+  const hojas = memoria.hojas ?? [];
+  const vaciados = new Set<string>();
+  const cerrados = new Set<string>();
+  // Hojas al empezar el paso que corrió después del que se mira (las que ese dejó), y las menos que hubo desde ahí hasta `indice`.
+  let despues = hojas[indice];
+  let minimo = despues ?? Number.POSITIVE_INFINITY;
   for (let j = indice - 1; j >= 0; j--) {
     const p = pasos[j]!;
     if (p.solo && !pasoAplica({ ...p, requiere: undefined, excluye: undefined }, new Set(), anchoVentana)) continue;
-    if (!p.preparar?.length) continue;
-    return j;
+    // De atrás hacia adelante: lo que un paso posterior deshizo (vaciar, cerrar) anula lo que este dejó en esa misma pieza.
+    let dejo = false;
+    for (const a of [...accionesDelPaso(p)].reverse()) {
+      if (a.tipo === "vaciar") vaciados.add(a.ancla);
+      else if (a.tipo === "clic" && soloCierra(a)) cerrados.add(a.ancla);
+      else if (a.tipo === "escribir") dejo ||= !vaciados.has(a.ancla);
+      else if (a.tipo === "clic") dejo ||= !(a.para && cerrados.has(a.ancla));
+    }
+    const sigueAbierto = despues === undefined || minimo >= despues;
+    if (dejo && sigueAbierto && memoria.hizo?.[j] !== false) return j;
+    const h = hojas[j];
+    if (h !== undefined) {
+      despues = h;
+      minimo = Math.min(minimo, h);
+    }
   }
   return null;
+}
+
+/**
+ * Las piezas que tienen que estar a la vista para repetir lo que hizo un paso: las de cada acción que deja algo (un toque, también uno
+ * «si está», o el campo donde escribe). Si falta una, lo que la contiene se cerró y el motor reabre primero lo de antes, hacia atrás. Todas,
+ * no solo la primera: «Ritmo, productos, equipo, stock» de Inicio toca el período (que siempre está) y después la pestaña de la tienda que
+ * se acercó en un paso anterior.
+ */
+export function piezasParaRepetir(p: PasoGuia): string[] {
+  return accionesDelPaso(p).filter(dejaAlgo).map((a) => a.ancla);
+}
+
+/**
+ * Lo que deshicieron los pasos que hay entre la fuente y el paso que se rehace (`desde` < j < `hasta`): vaciar un buscador, cerrar un
+ * pliegue, desmarcar una casilla. Al rehacer, el motor repite lo de la fuente entero, y sin esto quedaba puesto lo que un paso de entre medio
+ * ya había quitado: Colaboradores repetía la búsqueda de «Buscar a alguien», que «El equipo, por sede» había vaciado, y «La ficha de una
+ * persona» no encontraba su fila. Un paso de otro ancho no cuenta. Los Escape no van: lo que cerraron ya lo descartó `fuenteAlVolver`.
+ */
+export function limpiezasEntre(pasos: readonly PasoGuia[], desde: number, hasta: number, anchoVentana: number): AccionGuia[] {
+  return pasos
+    .slice(desde + 1, hasta)
+    .filter((p) => !p.solo || pasoAplica({ ...p, requiere: undefined, excluye: undefined }, new Set(), anchoVentana))
+    .flatMap((p) => accionesDelPaso(p).filter((a) => a.tipo === "vaciar" || soloCierra(a)));
+}
+
+/**
+ * ¿Tocar este enlace cambia la URL dentro del ERP? El destino («/productos/atributos?tab=tejidos»), o `null` si no navega (otro origen,
+ * la misma URL, sin `href`). Una pestaña con `href` rehace la pantalla al terminar de navegar: el toque que venía detrás tocaba la pantalla
+ * vieja y la hoja que abría se cerraba sola (Atributos: «Su foto o su dibujo»). El piloto espera a que la URL sea esta antes de seguir.
+ */
+export function destinoDeNavegacion(href: string | null, actual: { origin: string; pathname: string; search: string }): string | null {
+  if (!href || href.startsWith("#")) return null;
+  let url: URL;
+  try {
+    url = new URL(href, `${actual.origin}${actual.pathname}${actual.search}`);
+  } catch {
+    return null;
+  }
+  if (url.origin !== actual.origin) return null;
+  const destino = `${url.pathname}${url.search}`;
+  return destino === `${actual.pathname}${actual.search}` ? null : destino;
 }
 
 /** El toque de un `preparar` que abre algo (una hoja, una pestaña, un menú): el primero que no es un cierre ni un «si está». */

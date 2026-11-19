@@ -21,6 +21,8 @@ export const GUIA_PRODUCTOS: Guia = {
     {
       id: "vista",
       ancla: "productos.vista",
+      // Los pasos de la tarjeta viven en la Grilla, y los del final dejan la Tabla: al volver o en otra vuelta, se vuelve a la Grilla.
+      preparar: [{ tipo: "clic", ancla: "productos.vista-grilla" }],
       titulo: "Grilla o Tabla",
       texto: "El mismo catálogo de dos formas. «Grilla» muestra tarjetas con foto, para reconocer la prenda a la vista. «Tabla» pone una fila por prenda con su costo y margen, para revisar muchas de una vez. Al final de la demo te mostramos la tabla.",
     },
@@ -415,7 +417,7 @@ export const GUIA_PRODUCTOS: Guia = {
       id: "tabla-ficha",
       ancla: "productos.tabla-ficha",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "productos.tabla-abrir" }],
+      preparar: [{ tipo: "clic", ancla: "productos.tabla-abrir", para: "abrir" }],
       titulo: "Todas sus variantes",
       texto: "Cada variante con su código y stock aquí, y su botón para imprimir solo esa etiqueta. Abajo, los mismos atajos de la vista rápida: Editar, Existencias, Historial y Eliminar.",
     },
@@ -952,7 +954,8 @@ export const GUIA_ATRIBUTOS: Guia = {
       id: "muestra-dibujo",
       ancla: "muestra.dibujo",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "vocabulario.tarjeta" }],
+      // La pestaña primero: al volver desde Patrones, la primera tarjeta era un patrón. La pestaña navega y el piloto espera a que se rehaga.
+      preparar: [{ tipo: "clic", ancla: "atributos.pestana-tejidos" }, { tipo: "clic", ancla: "vocabulario.tarjeta" }],
       titulo: "Su foto o su dibujo",
       texto: "Sirve para reconocer la tela al recibir mercadería. Si no tiene foto, se dibuja sola según el nombre. Quien edita el catálogo puede subir una foto o generar un dibujo a su medida; nada cambia hasta que lo guarda.",
     },
@@ -997,6 +1000,8 @@ export const GUIA_ATRIBUTOS: Guia = {
     {
       id: "temporadas",
       ancla: "temporadas.nueve",
+      // Al volver desde «Por categoría» o «Calendario», primero a las nueve.
+      preparar: [{ tipo: "clic", ancla: "temporadas.volver", siEsta: true }],
       opcional: true,
       titulo: "Las nueve temporadas",
       texto: "Una lista fija de nueve (verano, invierno, todo el año…). Cada tarjeta dice cuántas prendas la tienen y cuándo termina. Con ella, Frescura avisa cuándo una prenda pasa de temporada.",
@@ -1004,6 +1009,7 @@ export const GUIA_ATRIBUTOS: Guia = {
     {
       id: "temporadas-franja",
       ancla: "temporadas.franja",
+      preparar: [{ tipo: "clic", ancla: "temporadas.volver", siEsta: true }],
       opcional: true,
       titulo: "El trabajo de temporadas",
       texto: "Tres atajos con lo que falta: cuántas prendas no tienen temporada, cuántas categorías tampoco y qué estación está en curso. El punto rojo o ámbar dice que hay trabajo. Te los abrimos uno por uno.",
@@ -1012,7 +1018,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       id: "temp-completar",
       ancla: "temporadas.completar",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "temporadas.atajo-completar" }],
+      preparar: [{ tipo: "clic", ancla: "temporadas.volver", siEsta: true }, { tipo: "clic", ancla: "temporadas.atajo-completar" }],
       titulo: "Prendas por completar",
       texto: "Las prendas sin temporada, agrupadas por categoría. Lo más rápido es ponérsela a la categoría y se completan todas; marca una prenda solo si es la excepción. Abajo eliges la temporada y la confirmas: en la demo no.",
     },

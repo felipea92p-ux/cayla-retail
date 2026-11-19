@@ -173,8 +173,10 @@ salir de la vista y se queda hasta cerrar la hoja o hasta que el contenido vuelv
 gasto» a 1440 × 900). Si molesta, la salida es la de siempre: el bloque que cambia de alto reserva su lugar, o la hoja lleva `data-sin-reserva`.
 
 **Lo que no cubre.**
-- **Un pie pegado hecho a mano.** `ModalesApartado` (`sticky -bottom-6`), `.parecidas-hoja-pie` (`alta-parecidas.css`) y el de `FichaOrden` no usan la
-  clase: siguen quedando arriba con la reserva puesta. Se arreglan pasándolos a `pie-hoja-fijo`.
+- **Un pie pegado hecho a mano.** ~~`ModalesApartado` (`sticky -bottom-6`), `.parecidas-hoja-pie` (`alta-parecidas.css`) y el de `FichaOrden` no usan
+  la clase: siguen quedando arriba con la reserva puesta.~~ **Resuelto el mismo día** (ver «Los tres pies hechos a mano», abajo): los dos que viven en
+  una hoja ya son `pie-hoja-fijo`; el de `FichaOrden` vive en la página y la reserva no lo mueve. Un pie nuevo no se dibuja con un `sticky` propio:
+  lleva la clase (`lib/pagina-estable-pie.test.ts` vigila que estos dos no vuelvan atrás).
 - **Si lo que hay antes del pie, dentro de su caja, mide menos que la reserva** (un `<form>` muy corto bajo un encabezado alto), al subir casi toda la
   reserva el pie puede bajar del borde por la diferencia, hasta que la reserva se suelta. Sale de la cuenta de `sticky`; no se logró reproducir en una hoja real.
 - **La barra de íconos de la vista rápida** (`.vr-iconos`, celular) declara su propia transición de `translate`: con las animaciones encendidas bajaría en
@@ -188,3 +190,119 @@ gasto» a 1440 × 900). Si molesta, la salida es la de siempre: el bloque que ca
 transición y la variable); (2) en sus reglas puras, `VARIABLE_RESERVA` y `reservaPublicada`; (3) en su `.pie-hoja-fijo`, las dos líneas (`translate` y
 `transition-property: none`); (4) la prueba `pagina-estable-pie.test.ts`. El punto 1 importa aunque Dynamic no tenga pie pegado: sin él, con las
 animaciones apagadas la vista se sube sola.
+
+### Los tres pies hechos a mano (2026-11-18, mismo día; rama `claude/elegant-bose-26f256`)
+
+Se midió cada uno antes de tocarlo. «Pie» y «borde» son píxeles desde arriba de la pantalla; «encima» es cuánto tapa el pie al contenido al subir la vista
+con la reserva puesta (40 px en Apartados, 60 en parecidas).
+
+| Pie | Dónde vive | Antes | Después |
+|---|---|---|---|
+| «Apartado registrado» (`ModalesApartado`), 1024 × 768, 78 px reservados | hoja de `<Modal>` | relleno 106; pie 504,7..661 (borde 743): 82 de hueco, 24,4 encima | pie 582,7..743: 0 de hueco, 0 encima |
+| lo mismo, 375 × 812 | hoja | pie 568,8..733 (borde 811): 78 de hueco, 24,2 encima | pie 646,8..811: 0 y 0 |
+| «Apartado entregado», 375 × 812, 48 px reservados | hoja | pie 598,8..763 (borde 811) | pie 646,8..811 |
+| «Prendas parecidas» (`.parecidas-hoja-pie`), 1280 × 720, «No, es otro diseño» en la última tarjeta (208 px menos) | hoja de `<Modal>` | relleno 236; pie 413,8..482,8 (borde 695): 212 de hueco, 59,8 encima | pie 613,8..694,8: 0 y 0 |
+| lo mismo, 1024 × 768 y 375 × 812 | pantalla completa, `position: fixed` | sin reserva (ver abajo); pie 694..763 de 767 y 707..811 de 811 | pie 686..767 y 699..811 |
+| la ficha de «Nueva orden» (`FichaOrden`), 1024 × 768 | **la página** | 339 px reservados en el `body`, sin variable; ficha 514..768 de 768 | no se tocó |
+
+- **Apartados y parecidas pasan a `pie-hoja-fijo`.** Conservan lo suyo (la línea de arriba, el aire entre sus filas, `margin-top: auto` en la pantalla
+  completa de parecidas y, entre 640 y 1279 px, el área segura de abajo sumada por dentro); el pegado, los márgenes, el fondo y lo que baja con la
+  reserva son los del sistema. Tres cosas cambian a la vista, además de la reserva: el fondo es el vidrio del pie (antes crema y papel sólidos), el pie
+  llega al borde de la hoja de vidrio (hacía sus cuentas con 24 px de relleno y la hoja tiene 28 desde 640: quedaba 4 px corto abajo y a los lados, y
+  lo de atrás asomaba), y el de parecidas crece 8 a 12 px (su relleno de abajo era de 16).
+- **En Apartados el defecto no se podía provocar con los controles de la hoja:** marcar sus tres casillas no cambia su alto (medido: 0, 0 y 0 px). Las
+  cifras de arriba salen de un clic que quita a propósito la tarjeta del vuelto. Se migró igual: vive en una hoja que se desliza y reserva, y lo de los
+  4 px sí se veía. En parecidas el defecto era real: «No, es otro diseño» pliega la tarjeta.
+- **`FichaOrden` no es un pie de hoja.** Bajo 880 px de su tarjeta es una barra pegada al fondo de la **página** (lo que se desliza es la página: ADR-0509);
+  la reserva va al `body`, no publica variable y el pegado se mide desde la pantalla. Además no pueden darse a la vez: si la barra está pegada, la tarjeta
+  sigue por debajo de la pantalla y la página no se recorta. Desde 880 px es una columna pegada arriba. Llevar `pie-hoja-fijo` sería un error (bajaría
+  con la reserva de una hoja abierta encima).
+- **Las dos hojas de Apartados se abrieron con datos inventados** desde una página temporal que no se subió (solo salen después de guardar): nada se
+  escribió en la base. Oscuro: las mismas cifras en las cuatro filas de hoja. Capturas: `docs/capturas/2026-11-18-pies-pegados-a-mano/`. Auditoría:
+  `docs/milimetro/auditorias/2026-11-18-pies-pegados-a-mano.md` (0 graves, 0 medias).
+
+**Lo que apareció midiendo y sigue abierto.**
+- ~~**Bajo 1280 px la hoja de «Prendas parecidas» es `position: fixed` y `<PaginaEstable>` la salta** (`contenedorDe` ignora lo `fixed`, pensado para la
+  lista de un combo): no reserva y la vista se sube sola al plegar una tarjeta (medido: 208 px a 1024 × 768 y 287 px a 375 × 812, antes y después de
+  este cambio). Es justo lo que este ADR quiere evitar, en la pantalla completa de esa hoja.~~ **Resuelto el 2026-11-19** (ver la actualización de
+  ese día, abajo): la hoja de un `<Modal>` ya no se salta aunque sea `fixed`.
+- ~~**El buscador pegado arriba de esa hoja** (`.parecidas-busqueda`) sigue hecho a mano con las cuentas de 24 px y fondo papel sólido: 4 px corto en la
+  hoja de vidrio. No lo afecta la reserva (se pega arriba).~~ **Resuelto el 2026-11-19:** hace sus cuentas con el relleno de la hoja y pinta el
+  vidrio del pie pegado.
+- **Pasar por el corte de 640 px con una reserva puesta** (girar un teléfono) deja el pie 4 px arriba del borde hasta que la reserva se suelta: el
+  relleno reservado se escribió con el relleno de 28 px y bajo 640 es de 24. Vale para todo `pie-hoja-fijo`.
+
+**CAYLA Dynamic.** Nada viaja y nada queda como tarea allá por este cambio: no toca `vidrio/recetas.css`, el contrato, el resto de `estilos/vidrio/` ni
+`components/ui/`. Solo si Dynamic tuviera un pie pegado propio dibujado con `sticky` a mano, la lección es la misma: que use su `.pie-hoja-fijo`.
+
+## Actualización 2026-11-19: lo `fixed` no siempre flota (la hoja a pantalla completa), y el buscador pegado de «Prendas parecidas»
+
+**El problema.** Para encontrar el contenedor que se desliza bajo el clic, `contenedorDe` (`components/ui/PaginaEstable.tsx`) se saltaba todo lo
+`position: fixed`. La excepción se pensó para la lista de un combo: tiene scroll propio, pero elegir en ella acorta lo de detrás. La hoja de «Prendas
+parecidas» de Nuevo producto pasa a pantalla completa bajo 1280 px con `position: fixed; inset: 0`, y ella es lo que se desliza: saltarla dejaba
+vigilando la página de atrás, que no se mueve. Al marcar «No, es otro diseño» la tarjeta se pliega y la vista subía sola, sin reserva. Desde 1280 px
+la misma hoja no es `fixed` y sí reservaba.
+
+**La decisión.** La diferencia entre una lista y una hoja no se lee del estilo (las dos son `fixed` y se deslizan) sino de su papel: **la hoja de un
+`<Modal>` es quien hospeda la capa de las listas flotantes** (`[data-capa-flotante]`, hija directa de la hoja, donde `useDestinoFlotante` cuelga la
+lista de todo combo). Quien hospeda lo que flota no flota.
+- `flotaSobreOtraSuperficie(fija, hospedaLoQueFlota)` (`lib/pagina-estable-reglas.ts`, pura): se salta lo `fixed` que no hospeda esa capa.
+- `contenedorDe` le pregunta con `:scope > [data-capa-flotante]`, la misma seña que usa `useAnclaje.ts`, y solo en los ancestros `fixed` (casi ninguno).
+- Nada más cambia: la hoja `fixed` reserva como cualquier ventana (relleno al fondo, `--reserva-abajo` para su pie pegado, se suelta al subir).
+
+**Lo que se descartó.**
+- **`role="dialog"` como seña.** El calendario de `CampoFecha`, el selector de mes, el rango de Rendimiento y otros globos flotantes también lo llevan y
+  son `fixed`: pasarían a ser el contenedor, y al cerrarse con la elección se perdería la vigilancia de lo de detrás.
+- **La geometría** (lo `fixed` que cubre toda la pantalla). Alcanzaría a cosas que no son hojas y que no se midieron, y lee medidas en cada clic.
+- **Dejar de saltar todo lo `fixed`.** La lista de un combo que se desliza por sí misma se volvería el contenedor, y lo de detrás quedaría sin vigilar.
+- **Quitarle el `position: fixed` a la hoja de parecidas.** Arregla esa hoja y no la regla: la siguiente hoja a pantalla completa repetiría el defecto.
+
+**Verificación.** Clic real sobre «No, es otro diseño» en la última tarjeta, con la hoja al fondo, 24 prendas. «Vista» es el `scrollTop` de la hoja;
+«pie» y «borde», píxeles desde arriba de la pantalla (1 px de diferencia es el borde de la hoja de vidrio).
+
+| Caso | Antes | Después |
+|---|---|---|
+| 1024 × 768, claro (la tarjeta plegada deja 208 px menos) | vista 5980 → 5772; relleno 28 px, sin reserva | vista 5980 → 5980; relleno 236 px, `--reserva-abajo: 208px`; pie 686..767 (borde 768); 0 px encima del contenido |
+| lo mismo, subiendo 60 px con la reserva puesta | — | pie 686..767; 0 px encima |
+| 375 × 812, claro (229 px menos) | vista 8799 → 8570; relleno 24 px, sin reserva | vista 8799 → 8799; relleno 253 px, reserva 229 px; pie 699..811 (borde 812); 0 px encima, también subiendo 60 |
+| 1280 × 720 (la hoja no es `fixed`: control) | vista 6110 → 6110; reserva 208 px | igual: vista 6110; pie 613,8..694,8 (borde 696) |
+
+Las filas de 1024 y de 375 se repitieron en oscuro con las mismas cifras, y la de 1024 con las animaciones encendidas. En todas, al subir hasta arriba
+la reserva se suelta (relleno de vuelta a 28 o 24 px, sin variable). Muestreada después de pintar cada cuadro, la vista estuvo siempre donde estaba
+antes del clic (30 de 30 a 1024, 32 de 32 a 375). **El combo dentro de una hoja sigue igual:** en «Registrar gasto», a 1024 × 768 y a 375 × 812, la
+lista de 23 opciones abre `fixed` en la capa de la hoja, elegir la cierra, y ni la lista ni la hoja ni el `body` quedan con relleno o variable. La
+diferencia con los 287 px que se midieron el 2026-11-18 a 375 es la tarjeta: cada una pliega lo que mide. Pruebas: `lib/pagina-estable-reglas.test.ts`
+(4 nuevas: la regla, y que `<PaginaEstable>`, `useAnclaje` y `<Modal>` sigan usando la misma capa). Nada se guardó en la base.
+
+**El buscador pegado de esa hoja** (`.parecidas-busqueda`, `app/estilos/alta-parecidas.css`). Era el otro pegado a mano: cuentas con 24 px fijos y
+papel sólido. Ahora sale de `--parecidas-relleno` (24 px; 28 desde 640, el relleno de `.hoja-serena`) y pinta `--fondo-hoja` con el desenfoque del pie
+pegado. No es otra variante: son las cuentas de `.asa-hoja-fija` y el vidrio de `.hoja-serena .pie-hoja-fijo`.
+
+| Caso | Antes | Después |
+|---|---|---|
+| 1024 × 768 (hoja de 0 a 1024, borde de 1 px) | de 5 a 1019; pegado, arriba en 5: una franja de 4 px por donde asomaban las tarjetas; papel sólido | de 1 a 1023; arriba en 1; vidrio |
+| 1280 × 720 (hoja de 256 a 1024, arriba en 57,6) | de 261 a 1019; arriba en 62,6 | de 257 a 1023; arriba en 58,6 |
+| 640 × 900 | — | de 1 a 639; arriba en 1 |
+| 375 × 812 (hoja de 0 a 375; franja del asa de 1 a 25) | de 1 a 374; arriba en 1; la caja del buscador desde 19: 6 px dentro de la franja del asa, borrosa | de 1 a 374; arriba en 7; la caja desde 25, bajo la franja |
+
+En el celular se pega 6 px más abajo a propósito (`top: -1.125rem`): los primeros 24 px de la hoja son la franja del asa, que desenfoca lo que le pasa
+por debajo. En oscuro, las mismas medidas. `lib/pagina-estable-pie.test.ts` (4 nuevas) vigila que no vuelva a un número suelto ni a un color propio, y
+avisa si la hoja de vidrio cambia su relleno o el pie su desenfoque. Capturas: `docs/capturas/2026-11-19-parecidas-pantalla-completa/`. Auditoría:
+`docs/milimetro/auditorias/2026-11-19-parecidas-pantalla-completa.md` (0 graves, 0 medias).
+
+**Lo que se paga.** Como en toda hoja que reserva: al plegar la última tarjeta queda aire entre la lista y «Ninguna es mi prenda» hasta que la
+persona sube. Y el buscador en reposo se ve como una banda apenas más clara que la hoja, igual que el pie (antes, una banda de papel macizo).
+
+**Lo que no cubre.**
+- **Un `Dialog.Content` armado a mano que sea `fixed` y se deslice él mismo.** No tiene la capa, así que se sigue saltando. Hoy no hay ninguno:
+  `<Cajon>` es `fixed`, pero lo que se desliza es su cuerpo de adentro, que no lo es y ya se vigilaba.
+- **Otro pegado a mano, en otra hoja:** la etiqueta de «Prenda sin registrar» (`PrendaSinRegistrarModal.tsx`, `sticky -top-6 … bg-papel`, solo bajo
+  768 px) hace las mismas cuentas de 24 px con papel sólido. No se tocó.
+- **Sigue abierto de ayer:** pasar por el corte de 640 px con una reserva puesta deja el pie 4 px arriba del borde hasta que se suelta.
+- **No se probó en Safari ni en un iPhone real**, ni en una tablet de 640 a 1279 px en la mano.
+
+**CAYLA Dynamic.** `components/ui/PaginaEstable.tsx` es de las piezas que Dynamic mira: el vigilante abrirá una tarea allá. Nada llega solo
+(`vidrio/recetas.css` y el contrato no cambiaron; `alta-parecidas.css` ni viaja ni se mira). A mano, si Dynamic tiene estas piezas: (1) en sus reglas
+puras, `flotaSobreOtraSuperficie`; (2) en su `PaginaEstable`, que `contenedorDe` le pregunte con la capa de las listas de su `<Modal>`; (3) las pruebas.
+Cambia **cómo funciona** la pieza, no cómo se ve: solo se nota donde una hoja de `<Modal>` sea `position: fixed` y se deslice ella misma. Si el
+`<Modal>` de Dynamic no monta `[data-capa-flotante]` como hija directa de su hoja, la seña tiene que ser otra.

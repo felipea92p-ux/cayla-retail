@@ -1474,7 +1474,7 @@ export const GUIA_FIN_FLUJO: Guia = {
       ancla: "fin-plata.y-si",
       titulo: "¿Y si…?",
       texto: "Prueba un cambio antes de decidir: vender más o menos, el alquiler de una tienda, cerrarla, pasar un pago a otra semana o un gasto nuevo. Mira qué pasa con la utilidad y con tu caja. No se guarda nada. Lo abrimos.",
-      demostrar: [{ tipo: "clic", ancla: "fin-plata.y-si" }],
+      demostrar: [{ tipo: "clic", ancla: "fin-plata.y-si", para: "abrir" }],
     },
     {
       id: "valores",
@@ -1515,7 +1515,7 @@ export const GUIA_FIN_FLUJO: Guia = {
       opcional: true,
       titulo: "Pasar un pago",
       texto: "Prueba pagar una factura una o más semanas después: así ves si la caja respira. Hay que hablarlo con el proveedor (te lo marcamos).",
-      demostrar: [{ tipo: "clic", ancla: "fin-escenarios.mover-pago-marca" }],
+      demostrar: [{ tipo: "clic", ancla: "fin-escenarios.mover-pago-marca", para: "marcar" }],
     },
     {
       id: "mover-pago-campos",
@@ -1537,7 +1537,7 @@ export const GUIA_FIN_FLUJO: Guia = {
       titulo: "Un gasto nuevo",
       texto: "Contratar a alguien, una máquina, comprar mercadería, un local más: cuánto, si es cada mes o una sola vez, y desde qué semana (te escribimos un ejemplo).",
       demostrar: [
-        { tipo: "clic", ancla: "fin-escenarios.gasto-nuevo-marca" },
+        { tipo: "clic", ancla: "fin-escenarios.gasto-nuevo-marca", para: "marcar" },
         { tipo: "escribir", ancla: "fin-escenarios.gasto-monto", texto: "1500" },
       ],
     },

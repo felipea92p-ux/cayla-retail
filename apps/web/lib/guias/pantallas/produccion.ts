@@ -1327,6 +1327,8 @@ export const GUIA_PROD_PROVEEDORES: Guia = {
     {
       id: "nuevo",
       ancla: "prod-proveedores.nuevo",
+      // El directorio es la pestaña «Proveedores»; al volver desde «Tarifas», se elige.
+      preparar: [{ tipo: "clic", ancla: "prod-proveedores.pestana-proveedores" }],
       titulo: "Un proveedor nuevo",
       texto: "Para empezar a comprarle a alguien, primero lo agregas aquí. Se abre una ventana con sus datos (te la abrimos al final).",
     },
