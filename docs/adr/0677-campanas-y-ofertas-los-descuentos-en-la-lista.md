@@ -183,7 +183,8 @@ grande, lo demás también, cada cosa tiene que decir para qué sirve, e «ir po
 - **Preguntar «solo esta talla o todo el modelo» al leer** (como en un descuento): hoy una oferta elige modelos enteros
   (`retail.campana_regla_productos`); preguntar algo que la base no puede guardar sería prometer de más. **Felipe lo pidió después** («poder aplicar a
   una variante en concreto de una prenda»): necesita una tabla nueva, cambiar qué prendas alcanza una oferta en la base y en la caja, los choques
-  entre ofertas y la tienda web. Es una decisión de Felipe y un trabajo aparte (backlog): no se construyó aquí.
+  entre ofertas y la tienda web. Es una decisión de Felipe y un trabajo aparte (backlog): no se construyó aquí. **Hecho después, en ADR-0682** (leer una
+  etiqueta agrega su color con todas sus tallas).
 - **Cambiar el botón sutil (`btn-sutil`) en todo el ERP:** es la pieza decidida para una acción chica dentro de una hoja (ADR-0358, ronda 9). Aquí
   se usa el secundario solo dentro de esta hoja; si el sutil debe cambiar en todas, lo decide Felipe con `/unificar` (backlog).
 - **Cambiar `<PaginaEstable>` o `pie-hoja-fijo` para todo el ERP en este cambio:** el choque entre la reserva y el pie pegado puede pasar en

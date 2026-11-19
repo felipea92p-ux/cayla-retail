@@ -22,9 +22,25 @@
   chica dentro de una hoja (ADR-0358, ronda 9) en el resto del ERP.
 - [ ] La grilla de categorías de la hoja «Configuración» de una campaña (`EtiquetasLista.tsx`) sigue con su aspecto de antes; las píldoras por
   familia solo están en la hoja de una oferta.
-- [ ] **Oferta para una variante en concreto de una prenda (pedido de Felipe, 2026-11-18; decisión suya y trabajo de base).** Hoy una oferta
-  elige el modelo entero (`retail.campana_regla_productos (regla_id, producto_id)`). Para elegir un color o una talla hace falta: decidir el nivel
-  (un color con todas sus tallas, o talla por talla); una tabla nueva (`campana_regla_variantes`); que `fn_regla_alcanza_variante`,
-  `fn_variantes_de_regla`, `guardar_oferta_completa`, los choques entre ofertas, la portada y la huella de la tienda web lo lean; lo mismo en la web
-  (`lib/campana-reglas.ts`: `prendasQueAlcanza`, la frase, el nombre) y sus pruebas de Postgres. Toca precios en caja y en la tienda web: va con
-  `/construir`, su ADR y su migración reservada.
+- [x] ~~Oferta para una variante en concreto de una prenda~~ — hecho en ADR-0682 (2026-11-18).
+
+## Ofertas por talla y color (ADR-0682) · pendientes
+
+- [ ] **Pegar en producción (decisión de Felipe).** Seis migraciones, en este orden y cada una en su pegado: `20261118232000`,
+  `20261118233000`, `20261118234000`, `20261118235000`, `20261119010000`, `20261119011000`. Antes, leer en producción la definición viva de
+  las funciones ancladas (`fn_campanas_en_sede`, `fn_variantes_de_regla`, `fn_regla_alcanza_variante`, `guardar_oferta_completa`,
+  `ofertas_de_grupo_vigentes`, `ofertas_de_monto_vigentes`, `campanas_ofertas_que_chocan`, `fusionar_productos`, `fn_campana_portada`).
+  Mientras no se peguen, la hoja no ofrece elegir tallas (`ofertasPorVariante`) y todo sigue como antes. Después: refrescar el volcado y el
+  diccionario (`docs/datos/generado/COMO-REFRESCAR.md`).
+- [ ] **Probar en tienda:** leer etiquetas con la pistola y con la cámara del teléfono. Si el código impreso es el de fábrica y lo comparten
+  varias tallas del modelo, entra el modelo entero (no hay un color que deducir): confirmar que eso es lo que se quiere.
+- [ ] **Sin mirar:** el modo oscuro de la fase de prendas con el panel de tallas abierto; `pnpm --filter web guias:recorrer` de Campañas.
+- [ ] **`/formidable` y `/chaos` de la hoja** (doble clic en «Activar» con tallas sueltas; dos pestañas editando la misma oferta; fusionar
+  un producto mientras su oferta está abierta en otra pestaña).
+- [ ] **Una talla nueva de un color que la oferta tiene «entero» no entra sola** (la oferta guarda las tallas de ese momento; el modelo
+  entero sí la incluye). Si en tienda molesta, se decide entonces si «todo el color» se guarda como regla.
+- [ ] **`pruebas:roles-cobertura` da 30 de 32 en `main`** (cuatro funciones de descuentos y rebajas en `SOLO_LIDER` que ya no exigen solo
+  líder por un ayudante): no es de este cambio; lo vio esta rama al correr en una base limpia.
+- [ ] **Cuatro suites de la base no aceptan otro contenedor** (`eliminar_producto`, `eliminar_producto_con_historia`, `una_sola_firma`,
+  `deriva_produccion` lo llevan escrito a mano): con `--contenedor` corren igual contra la base local compartida. Hacen ROLLBACK y no
+  dejan nada, pero el resultado no es el de la base que se pidió.

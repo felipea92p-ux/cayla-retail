@@ -160,3 +160,22 @@ Medido en 375×812, 700×900, 824×990, 1024×768 y 1280×600: mismo alto de hoj
 
 - **Orden:** agregar → lo que lleva → más formas (panel debajo, uno a la vez) → «¿Se pueden mezclar?» → Claurè.
 - **Texto:** el buscador dice «Escanea o escribe el nombre» (cabe a 375 px). Sale la nota larga de «Prenda por prenda».
+
+## Las tallas y colores de una prenda (ADR-0682, 2026-11-18)
+
+| Pieza | Rama | Por qué |
+|---|---|---|
+| La flecha de la ficha (`.of-ficha-abrir`) | **nueva**, dentro de la ficha del mosaico | abre la prenda sin sacarla de la lista; una sola abierta a la vez |
+| El panel (`.of-tallas`) | **nueva**, armada con `pildora-cayla` | «Todo el modelo», cada color y cada talla son la misma píldora que filtra en el resto del ERP |
+
+- **Medidas:** el panel bajo el mosaico, 16 px de relleno, radio 16 px y borde de tinta (es lo que está abierto); cada píldora de 44 px de
+  alto y 15 px de letra (`.of-tallas .pildora-cayla`); el nombre del color con su muestra de 16 px y un ancho mínimo de 120 px, para que las
+  tallas de todos los colores empiecen en la misma columna; 6 px entre tallas, 12 px entre colores.
+- **Estados:** elegida (`aria-pressed="true"`, rellena de tinta), no elegida, y el color **a medias** (`aria-pressed="mixed"`: borde y letra
+  de tinta, sin relleno) cuando solo algunas de sus tallas están. No depende solo del color: cambian relleno, borde y letra.
+- **Qué hace cada toque** (`lib/oferta-variantes.ts`): una talla entra o sale; un color entra entero o, si ya estaba entero, sale; con todas,
+  la prenda vuelve a «Todo el modelo»; sin ninguna, sale de la oferta y el panel se cierra.
+- **Leer una etiqueta** agrega su color con todas sus tallas y la ficha dice «Negro»; «Deshacer» la devuelve a las tallas que tenía.
+- **Texto:** la ficha dice lo que lleva en una línea («Todo el modelo», «Negro», «Negro S y M · Blanco»); el nombre de la oferta y el cartel,
+  «Vestido Sofía (Negro)» si es un solo modelo y «N prendas elegidas» si son varios.
+- **En el celular (375 px):** al editar, «Retirar» sube a la fila de «Guardar cambios» y el pie queda en dos filas; «Siguiente» ya no se corta.

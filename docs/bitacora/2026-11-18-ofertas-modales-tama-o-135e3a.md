@@ -24,3 +24,8 @@
 - **Después (Felipe: la lista de una por fila «se hará enorme»; los grupos, más notorios y con mejor uso del espacio):** las prendas van en un
   mosaico de tres por fila que no crece (seis a la vista, el resto se desliza por dentro), se marcan para quitar varias y también se quitan
   buscándolas; Categorías e Insignias son dos tarjetas lado a lado. Mirado a 1280 y 375 px en claro.
+- **Después (Felipe: «Sí, color y talla»; ADR-0682, siete actividades de `/construir`):** una oferta elige tallas y colores sueltos de una
+  prenda. Tabla `campana_regla_variantes`; la regla la leen la caja, el 3x2, el monto, los choques, la tienda web (huella y portada) y la
+  fusión de productos; leer una etiqueta agrega su color con todas sus tallas; el nombre, la frase y el cartel lo dicen. Seis migraciones,
+  **ninguna en producción**. En una base limpia: 44 de 44 en su suite y las otras 17 de campañas, fusionar y eliminar en verde. De paso se
+  arregló el pie cortado al editar en el celular.
