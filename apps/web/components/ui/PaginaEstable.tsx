@@ -8,6 +8,7 @@ import {
   esCambioDeVista,
   esChangeInmediatoAlClic,
   esContinuacionDeTecleo,
+  flotaSobreOtraSuperficie,
   puedeSoltar,
   reservaNecesaria,
   reservaPublicada,
@@ -86,12 +87,17 @@ function esPagina(el: Element) {
   return el === document.scrollingElement || el === document.documentElement || el === document.body;
 }
 
+/** La capa donde `<Modal>` cuelga las listas flotantes de su hoja: la misma seña con que `useDestinoFlotante` (useAnclaje.ts) reconoce la hoja. */
+const CAPA_DE_LO_QUE_FLOTA = ":scope > [data-capa-flotante]";
+
 /** El contenedor que se desplaza y contiene al elemento tocado: una ventana con scroll propio, o la página. */
 function contenedorDe(el: Element | null): Element {
   for (let n = el; n && n !== document.body; n = n.parentElement) {
     const estilo = getComputedStyle(n);
-    // Una lista flotante (`fixed`: la de un combo) tiene scroll propio, pero lo que se acorta es lo de detrás.
-    if (estilo.position === "fixed") continue;
+    // Una lista flotante (`fixed`: la de un combo) tiene scroll propio, pero lo que se acorta es lo de detrás. Una hoja llevada a pantalla
+    // completa también es `fixed` y no flota: es la superficie (ver `flotaSobreOtraSuperficie`).
+    const fija = estilo.position === "fixed";
+    if (flotaSobreOtraSuperficie(fija, fija && n.querySelector(CAPA_DE_LO_QUE_FLOTA) !== null)) continue;
     const oy = estilo.overflowY;
     if ((oy === "auto" || oy === "scroll" || oy === "overlay") && n.scrollHeight > n.clientHeight + 1) return n;
   }
