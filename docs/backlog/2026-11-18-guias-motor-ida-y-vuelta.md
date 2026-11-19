@@ -15,7 +15,7 @@
   Producción ▸ Proveedores, Flujo de caja, Vender; Configuración e Inicio pasan solo con el motor).
 - [x] Pruebas de las reglas en `lib/guias/reglas.test.ts` (`fuenteAlVolver` con y sin memoria, `piezasParaRepetir`, `limpiezasEntre`,
   `destinoDeNavegacion`). La skill `/guia` dice que todo `demostrar` tiene que poder repetirse, como todo `preparar`.
-- [x] **Verificado** con `guias:recorrer -- --ida-y-vuelta` (el del PR #1955, corrido desde una copia fuera de git) contra una base local
+- [x] **Verificado** con `pnpm --filter web guias:recorrer -- --ida-y-vuelta` (el del PR #1955; la última vuelta, ya con #1955 en main) contra una base local
   propia (`cayla-motor-guias`, puertos 5652x, ya apagada) y `next build` + `next start` de esta rama: las 12 guías dan ✓ a 1440×900 y a
   375×812. Corrida completa de las 123 guías en los dos anchos: ✓ 184 · ✗ 36 · ⚠ 26 de 246 (el #1955 midió ✓ 154 · ✗ 64 · ⚠ 26 en 122),
   y ninguna de las 18 que fallan por ancho es nueva: todas están en la lista del #1955.
@@ -25,10 +25,11 @@
 - [ ] De la guía, una pestaña o una búsqueda que queda puesta: `inventario.movimientos`, `compras.mi-plata.envios`,
   `productos.id.historial`, `cambios`, `finanzas.cierre`, `inventario.traslados`, `vender.historial` (2.ª ida), `productos.nuevo`
   (alterna sin `para` en una ficha con `aria-pressed`).
-- [ ] `inventario.plan-del-piso`: lo arregla el PR #1955 en su rama (todavía no está en main).
-- [ ] `produccion.insumos`: el recorredor cuenta 2 hojas en la ida y 1 al volver; la hoja de «Nuevo avío» queda montada cerrada
-  (`data-state="closed"`) y el motor ya no la cuenta. Ver si el recorredor debería contar solo las abiertas.
+- [x] `inventario.plan-del-piso`: lo arregló el PR #1955 («Cómo está el riel hoy» elige «Propuesta»), fusionado mientras corría esta
+  verificación; no entraba en la corrida completa.
+- [ ] `produccion.insumos`: en los pasos de «Nueva tela» el recorredor cuenta 2 hojas en la ida y 1 al volver (igual que en el #1955).
+  Ver si la hoja de «Nuevo avío» queda montada debajo, o si el recorredor debería contar solo las hojas que se ven.
 - [ ] Ya fallan en la ida: `finanzas.dinero`, `finanzas.dinero.por-pagar`, `tienda-web.campanas.editor`, `tienda-web.pedidos`,
   `vender.reportes.empresas`, `produccion.ordenes`, `inventario.por-regularizar`, `tienda-web.vitrina.esperan`.
-- [ ] Cuando se fusione el #1955: su paso 4 de `/guia` dice que lo de un `demostrar` «al volver no se repite: pídelo en el `preparar`».
-  Con este PR sí se repite; esa frase se cambia por «un toque que alterna lleva `para`, también en un `demostrar`».
+- [x] El #1955 se fusionó: su paso 4 de `/guia` ya no dice que lo de un `demostrar` «al volver no se repite»; dice que un toque que
+  alterna lleva `para`, también en un `demostrar`.

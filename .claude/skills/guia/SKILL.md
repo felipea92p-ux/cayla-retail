@@ -91,8 +91,8 @@ Antes de escribir, avísale a Felipe en una línea qué pantallas vas a tocar y 
 3. **Ida y vuelta**, en los dos anchos: lo mismo con `--ida-y-vuelta`. Recorre la guía con → hasta el último paso, con ← hasta el
    primero y con → otra vez, y falla si un paso se salta al volver o en la segunda ida, si la tarjeta dice una nota que en la ida no
    decía, o si cambia cuántas hojas hay abiertas. La salida dice qué paso y en qué pasada. Casi siempre se arregla en la guía: una
-   pestaña, vista o búsqueda que un paso de más adelante dejó puesta y nadie vuelve a elegir, lo que abrió un `demostrar` (al volver no
-   se repite: pídelo en el `preparar` del paso que lo necesita) o un pliegue que se alterna sin `para`.
+   pestaña, vista o búsqueda que un paso de más adelante dejó puesta y nadie vuelve a elegir (elígela en el primer paso que la
+   necesita), o un pliegue o una casilla que se alterna sin `para`, también en un `demostrar` (el motor lo repite al volver).
 4. **Mira las capturas** (`apps/web/guias/.salida/…`): que la tarjeta no tape lo que explica, que el recorte encierre la pieza
    justa, que el texto diga la verdad sobre lo que se ve. El recorredor no ve eso.
 5. Si la pantalla está en la regla de celular (Vender, Cambios, Devoluciones), la captura a 375 px va al PR.
