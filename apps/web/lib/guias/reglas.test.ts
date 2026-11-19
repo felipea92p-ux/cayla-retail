@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cierresAlVolver, debeOfrecer, fuenteAlVolver, toqueQueAbre, esEntradaDelMenu, esperaPorAncla, guiaDeRuta, motivoParaNoTocar, pasoAplica, posicionTarjeta, recorteDe, rutaCoincide, toqueDelPliegue, totalEstimado } from "./reglas";
+import { accionesDelPaso, cierresAlVolver, debeOfrecer, destinoDeNavegacion, fuenteAlVolver, limpiezasEntre, piezasParaRepetir, toqueQueAbre, esEntradaDelMenu, esperaPorAncla, guiaDeRuta, motivoParaNoTocar, pasoAplica, posicionTarjeta, recorteDe, rutaCoincide, toqueDelPliegue, totalEstimado } from "./reglas";
 import type { Guia, PiezaATocar } from "./tipos";
 
 const pieza = (p: Partial<PiezaATocar>): PiezaATocar => ({ etiqueta: "button", texto: "", tipo: "button", enFormulario: false, href: null, rol: null, rutaActual: "/vender", ...p });
@@ -120,13 +120,133 @@ describe("un pliegue se abre o se cierra solo si hace falta (el «?» de la cabe
     // «pie» y «unidades» viven en la hoja que abrió «agregar-color».
     expect(fuenteAlVolver(pasos, 3, 1440)).toBe(1);
     expect(fuenteAlVolver(pasos, 2, 1440)).toBe(1);
-    // «agregar-color» vive afuera: lo de antes de él es el Escape de «agregar».
-    expect(fuenteAlVolver(pasos, 1, 1440)).toBe(0);
+    // «agregar-color» vive afuera: lo de antes de él es el Escape de «agregar», que no deja nada abierto.
+    expect(fuenteAlVolver(pasos, 1, 1440)).toBeNull();
     // Un paso de otro ancho no cuenta; en su ancho, sí.
     expect(fuenteAlVolver(pasos, 5, 1440)).toBe(1);
     expect(fuenteAlVolver(pasos, 5, 375)).toBe(4);
     // Sin nadie antes que prepare, nada.
     expect(fuenteAlVolver(pasos, 0, 1440)).toBeNull();
+  });
+
+  it("un paso que solo cierra o vacía no es la fuente: la cadena sigue hacia atrás hasta el que abrió", () => {
+    const paso = (id: string, extra: Partial<Guia["pasos"][number]> = {}) => ({ id, ancla: id, titulo: id, texto: id, opcional: true, ...extra });
+    // Productos (de «De vuelta en la ficha» hacia atrás): antes de él, un Escape («Sin guardar») y un vaciar; el que abrió es «Su historial».
+    const pasos = [
+      paso("tarjeta", { preparar: [{ tipo: "clic", ancla: "productos.tarjeta" }] }),
+      paso("historial", { preparar: [{ tipo: "clic", ancla: "vista-rapida.historial" }] }),
+      paso("buscar", { preparar: [{ tipo: "vaciar", ancla: "productos.buscador" }] }),
+      paso("sin-guardar", { preparar: [{ tipo: "escape" }] }),
+      paso("cierra-globo", { preparar: [{ tipo: "clic", ancla: "x.ayuda", para: "cerrar" }] }),
+      paso("volver"),
+    ];
+    expect(fuenteAlVolver(pasos, 5, 1440)).toBe(1);
+    expect(fuenteAlVolver(pasos, 1, 1440)).toBe(0);
+  });
+
+  it("lo que abrió un `demostrar` también es lo que deja un paso (y se repite al volver)", () => {
+    const paso = (id: string, extra: Partial<Guia["pasos"][number]> = {}) => ({ id, ancla: id, titulo: id, texto: id, opcional: true, ...extra });
+    const pasos = [
+      // Vender: «Escanea o busca la prenda» escribe el ejemplo; «Lo que encontró» lo muestra.
+      paso("buscador", { demostrar: [{ tipo: "escribir", ancla: "vender.buscador", texto: { palabraDe: "vender.nombre" } }] }),
+      paso("resultados"),
+      paso("camara", { preparar: [{ tipo: "vaciar", ancla: "vender.buscador" }] }),
+      // Configuración: «Una tasa nueva» abre la hoja en su `demostrar`; «Desde cuándo y cuánto» vive adentro.
+      paso("nueva-tasa", { demostrar: [{ tipo: "clic", ancla: "config.nueva-tasa" }] }),
+      paso("campos"),
+      paso("y-si", { demostrar: [{ tipo: "clic", ancla: "fin-plata.y-si", para: "abrir" }] }),
+      paso("cierra-y-si", { preparar: [{ tipo: "clic", ancla: "fin-plata.y-si", para: "cerrar" }] }),
+      paso("despues"),
+    ];
+    expect(fuenteAlVolver(pasos, 1, 1440)).toBe(0);
+    expect(fuenteAlVolver(pasos, 4, 1440)).toBe(3);
+    expect(fuenteAlVolver(pasos, 6, 1440)).toBe(5);
+    // Lo que un paso de después deshizo no se repite: el ejemplo se vació, el pliegue se cerró. Queda lo de «Una tasa nueva».
+    expect(fuenteAlVolver(pasos, 7, 1440)).toBe(3);
+    expect(fuenteAlVolver(pasos.slice(0, 4), 3, 1440)).toBeNull();
+  });
+
+  it("con lo que se vio al avanzar, lo que un Escape ya cerró no se reabre (aunque haya dos Escape y una sola hoja)", () => {
+    const paso = (id: string, extra: Partial<Guia["pasos"][number]> = {}) => ({ id, ancla: id, titulo: id, texto: id, opcional: true, ...extra });
+    // Devoluciones: la pestaña «Compras», la hoja de la venta, dos pasos con Escape (el segundo no cierra nada) y «Anular».
+    const pasos = [
+      paso("compras", { preparar: [{ tipo: "clic", ancla: "devoluciones.pestana-compras" }] }),
+      paso("ver-venta"),
+      paso("detalle", { preparar: [{ tipo: "clic", ancla: "devoluciones.ver-venta" }] }),
+      paso("cambiar", { preparar: [{ tipo: "escape" }] }),
+      paso("devolver", { preparar: [{ tipo: "escape" }] }),
+      paso("anular"),
+    ];
+    // Las hojas abiertas al empezar cada paso: la de la venta, solo en «¿Mejor un cambio?» (antes de su Escape).
+    const hojas = [0, 0, 0, 1, 0, 0];
+    // Sin memoria, la regla supone que la hoja sigue abierta y la reabriría sobre «Anular».
+    expect(fuenteAlVolver(pasos, 5, 1440)).toBe(2);
+    expect(fuenteAlVolver(pasos, 5, 1440, { hojas })).toBe(0);
+    // Dentro de la hoja, en cambio, la fuente es la que la abrió.
+    expect(fuenteAlVolver(pasos, 3, 1440, { hojas })).toBe(2);
+    // Contar escapes en el texto se habría equivocado: dos Escape «cierran» la hoja y la pestaña, y no quedaría nada.
+    const pestanaEnHoja = [
+      paso("abre", { preparar: [{ tipo: "clic", ancla: "hoja.abrir" }] }),
+      paso("pestana", { preparar: [{ tipo: "clic", ancla: "hoja.pestana-b" }] }),
+      paso("cierra", { preparar: [{ tipo: "escape" }] }),
+      paso("afuera"),
+    ];
+    // Una pestaña dentro de la hoja se fue con la hoja: ni ella ni la hoja son la fuente de lo de afuera.
+    expect(fuenteAlVolver(pestanaEnHoja, 3, 1440, { hojas: [0, 1, 1, 0] })).toBeNull();
+  });
+
+  it("un paso cuyo toque no se pudo hacer al avanzar no es la fuente", () => {
+    const paso = (id: string, extra: Partial<Guia["pasos"][number]> = {}) => ({ id, ancla: id, titulo: id, texto: id, opcional: true, ...extra });
+    // Productos: «El costo correcto y por qué» toca el «⋯» de la última compra, que sin costos cargados no aparece.
+    const pasos = [
+      paso("historial", { preparar: [{ tipo: "clic", ancla: "vista-rapida.historial" }] }),
+      paso("corregir", { preparar: [{ tipo: "clic", ancla: "historial-prenda.costo-corregir" }] }),
+      paso("volver"),
+    ];
+    expect(fuenteAlVolver(pasos, 2, 1440)).toBe(1);
+    expect(fuenteAlVolver(pasos, 2, 1440, { hizo: [true, true] })).toBe(1);
+    expect(fuenteAlVolver(pasos, 2, 1440, { hizo: [true, false] })).toBe(0);
+  });
+
+  it("lo que tiene que estar para repetir un paso son las piezas de todo lo que deja algo, del `preparar` y del `demostrar`", () => {
+    const paso = (extra: Partial<Guia["pasos"][number]>) => ({ id: "p", ancla: "p", titulo: "p", texto: "p", ...extra });
+    expect(piezasParaRepetir(paso({ preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "config.tab-impuestos" }] }))).toEqual(["config.tab-impuestos"]);
+    // Un toque «si está» también abre (la píldora «Costo»), y un ejemplo necesita su buscador.
+    expect(piezasParaRepetir(paso({ preparar: [{ tipo: "clic", ancla: "historial-prenda.costo", siEsta: true }] }))).toEqual(["historial-prenda.costo"]);
+    expect(piezasParaRepetir(paso({ preparar: [{ tipo: "vaciar", ancla: "b" }], demostrar: [{ tipo: "escribir", ancla: "vender.buscador", texto: "Blusa" }] }))).toEqual(["vender.buscador"]);
+    // Inicio: el período está siempre; la pestaña «Productos», solo con una tienda de cerca. Si falta, se reabre lo de antes.
+    expect(piezasParaRepetir(paso({ demostrar: [{ tipo: "clic", ancla: "inicio.obs-periodo-30" }, { tipo: "clic", ancla: "inicio.obs-tab-productos" }] }))).toEqual(["inicio.obs-periodo-30", "inicio.obs-tab-productos"]);
+    expect(piezasParaRepetir(paso({ preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "x", para: "cerrar" }] }))).toEqual([]);
+    expect(accionesDelPaso(paso({ preparar: [{ tipo: "escape" }], demostrar: [{ tipo: "clic", ancla: "d" }] }))).toEqual([{ tipo: "escape" }, { tipo: "clic", ancla: "d" }]);
+  });
+
+  it("al rehacer desde la fuente, también se deshace lo que quitaron los pasos de entre medio (vaciar, cerrar)", () => {
+    const paso = (id: string, extra: Partial<Guia["pasos"][number]> = {}) => ({ id, ancla: id, titulo: id, texto: id, opcional: true, ...extra });
+    const vaciar = { tipo: "vaciar", ancla: "colaboradores.buscador" } as const;
+    const cierra = { tipo: "clic", ancla: "x.ayuda", para: "cerrar" } as const;
+    // Colaboradores: «Buscar a alguien» escribe; «El equipo, por sede» vacía; «La ficha de una persona» abre una fila de la lista entera.
+    const pasos = [
+      paso("buscador", { preparar: [{ tipo: "clic", ancla: "colaboradores.atajo-todas" }], demostrar: [{ tipo: "escribir", ancla: "colaboradores.buscador", texto: "Ana" }] }),
+      paso("lista", { preparar: [vaciar] }),
+      paso("celular", { solo: "celular", preparar: [cierra] }),
+      paso("escape", { preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "otra" }] }),
+      paso("ficha", { preparar: [{ tipo: "clic", ancla: "colaboradores.fila-otra" }] }),
+    ];
+    expect(limpiezasEntre(pasos, 0, 4, 1440)).toEqual([vaciar]);
+    expect(limpiezasEntre(pasos, 0, 4, 375)).toEqual([vaciar, cierra]);
+    // Ni los de la fuente ni los del destino: esos los corre cada uno.
+    expect(limpiezasEntre(pasos, 1, 4, 1440)).toEqual([]);
+  });
+
+  it("una pestaña con `href` navega a su URL; el piloto espera esa URL antes del toque siguiente", () => {
+    const aqui = { origin: "http://localhost:3010", pathname: "/productos/atributos", search: "?tab=patrones" };
+    expect(destinoDeNavegacion("/productos/atributos?tab=tejidos", aqui)).toBe("/productos/atributos?tab=tejidos");
+    expect(destinoDeNavegacion("?tab=tejidos", aqui)).toBe("/productos/atributos?tab=tejidos");
+    // La pestaña ya elegida, un ancla de la misma página, otro sitio o un botón sin `href`: no navega.
+    expect(destinoDeNavegacion("/productos/atributos?tab=patrones", aqui)).toBeNull();
+    expect(destinoDeNavegacion("#tallas", aqui)).toBeNull();
+    expect(destinoDeNavegacion("https://wa.me/51999", aqui)).toBeNull();
+    expect(destinoDeNavegacion(null, aqui)).toBeNull();
   });
 
   it("el toque que abre de un `preparar` es el primero que no cierra ni es «si está»", () => {

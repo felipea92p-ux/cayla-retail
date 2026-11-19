@@ -645,7 +645,8 @@ export const GUIA_COLABORADORES: Guia = {
       id: "atajos",
       ancla: "colaboradores.atajos",
       opcional: true,
-      preparar: [{ tipo: "escape" }],
+      // Los grupos son de «Equipo»; al volver desde «Roles», se elige.
+      preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "colaboradores.sec-equipo" }],
       titulo: "Ver por grupos",
       texto: "Todo el equipo, una sede, quienes están de turno, las terminales o los suspendidos; el número dice cuántos hay en cada uno. Te mostramos las terminales.",
       demostrar: [{ tipo: "clic", ancla: "colaboradores.atajo-terminales" }],

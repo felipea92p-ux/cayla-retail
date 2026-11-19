@@ -87,14 +87,14 @@ export const GUIA_FACTURAS: Guia = {
     {
       id: "filtros-panel",
       ancla: "filtros-compras.panel",
-      preparar: [{ tipo: "clic", ancla: "filtros-compras.boton" }],
+      preparar: [{ tipo: "clic", ancla: "filtros-compras.boton", para: "abrir" }],
       titulo: "Los filtros",
       texto: "Cada píldora abre su lista: elige un proveedor, un estado de pago o de recepción, una tienda o un rango de fechas. Puedes combinar varios.",
     },
     {
       id: "orden",
       ancla: "compras.orden",
-      preparar: [{ tipo: "clic", ancla: "filtros-compras.boton" }],
+      preparar: [{ tipo: "clic", ancla: "filtros-compras.boton", para: "cerrar" }],
       titulo: "Ordenar la lista",
       texto: "«Emisión» pone primero lo más reciente; «Vencimiento», lo que hay que pagar antes.",
     },

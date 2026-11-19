@@ -58,7 +58,8 @@ export const GUIA_ANALISIS: Guia = {
       id: "preguntas",
       ancla: "analisis.preguntas",
       opcional: true,
-      preparar: [{ tipo: "escape" }],
+      // «Hoy» es la pestaña con que abre la pantalla; al volver desde las otras, se elige.
+      preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "analisis.pestana-hoy" }],
       titulo: "Las respuestas de hoy",
       texto: "Una tarjeta por pregunta, con su estado (urgente, atención o va bien) y las prendas que lo explican. Si los datos están incompletos, nunca dice «va bien»: dice «con lo registrado». Toca una tarjeta para ir a su pestaña.",
     },
