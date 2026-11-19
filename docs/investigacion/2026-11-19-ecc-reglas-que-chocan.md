@@ -3,7 +3,8 @@
 **Pregunta de Felipe.** Al revisar el repo de skills [`affaan-m/ecc`](https://github.com/affaan-m/ecc) se descartaron varias
 piezas porque «chocan con las reglas». ¿Y si la regla es la equivocada? Este documento toma cada choque y lo juzga contra lo
 que hacen los mejores equipos, sin dar por buena ninguna de las dos partes. Lo que sí sirve de ecc tal cual está en
-`docs/backlog/2026-11-19-ecc-skills-agents-analysis-3dd8fe.md`.
+`docs/backlog/2026-11-19-ecc-skills-agents-analysis-3dd8fe.md`. La segunda vuelta, con el diseño, el color y el flujo enteros,
+está en `2026-11-19-diseno-color-y-flujo-sin-miedo-a-las-reglas.md`.
 
 **Cómo se midió.** Todo contra `origin/main` del 2026-11-19 (`ac88e0dbb`). Las cifras salen de comandos sobre el repo; la
 documentación de Claude Code y la de Supabase se consultaron el mismo día. Lo que no se pudo verificar dice «por verificar».
@@ -227,8 +228,8 @@ Las pruebas de navegador son frágiles. Por eso empiezan como check **informativ
 semanas en las que se cuentan los rojos falsos. Solo pasan a obligatorias si casi no hay.
 
 - **Ganas:** un botón de cobrar roto no llega a la tienda.
-- **Pagas:** minutos de CI, que hoy ya traban los PR (de ahí el alcance), y el trabajo de mantener 4 a 6 pruebas cuando cambie
-  la pantalla.
+- **Pagas:** minutos de CI (de ahí el alcance) y el trabajo de mantener 4 a 6 pruebas cuando cambie la pantalla. Corrección de la
+  segunda vuelta: desde la cola de fusión (2026-11-07) el CI ya no traba; un PR tarda de mediana 20 minutos en fusionarse.
 - **Quién decide:** Felipe (tiempo de CI).
 
 ---

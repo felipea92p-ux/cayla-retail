@@ -84,6 +84,34 @@ son ideas sueltas, ordenadas por valor. El análisis de las reglas que chocan co
 - [ ] **E.** De 4 a 6 pruebas de punta a punta de los caminos del dinero en el CI, informativas durante dos semanas.
 - [ ] **D.** El marco vivo al navegar (los guardados siguen tapando todo), solo si la medición dice que las navegaciones tardan.
 
+**Segunda vuelta: diseño, color y flujo** (`docs/investigacion/2026-11-19-diseno-color-y-flujo-sin-miedo-a-las-reglas.md`; lo
+que toca la estética lo elige Felipe mirando una lámina, no esta lista)
+
+- [ ] **Escalones con nombre para texto, línea y relleno** (4 + 3 + 2, en OKLCH por tema) en vez de 13 opacidades de tinta (2.324
+  usos) y el taupe compitiendo por ser el secundario (1.683). Migrar al tocar cada pantalla, con su deuda vigilada.
+- [ ] **Rampa tipográfica cerrada:** los 37 tamaños sueltos a una rampa con nombre; nada nuevo bajo 11 px (197 usos hoy, deuda
+  que solo baja); el eje `opsz` de DM Sans en `layout.tsx`; cifras tabulares en toda columna de montos. Se quedan el título de 46 px
+  y las versalitas de la cabecera.
+- [ ] **Comparar mirando «vidrio en todo» contra «vidrio solo en lo que flota»** en Existencias, Compras y la hoja de Cobro. Si
+  gana la segunda, cambia la regla S5 del contrato con Dynamic.
+- [ ] **Cerrar las recetas de vidrio** en tres niveles de material (hoy 16 radios de desenfoque, 12 saturaciones y 217 variables),
+  sin cambiar el aspecto y con el aviso a Dynamic.
+- [ ] **Separar los colores de dato que chocan en una misma pantalla** (`#2f6aa3` es sede Trujillo, persona 1, transferencia y
+  TikTok).
+- [ ] **Detalles de oficio:** contorno interior de 1 px en las fotos de prendas, `text-wrap: balance` en títulos y `pretty` en párrafos.
+- [ ] **Decisión de Felipe:** si las animaciones ricas que se siguen construyendo deben verse (ofrecer el botón la primera vez, o
+  encenderlas en los equipos que las aguantan), dado que ADR-0625 las deja apagadas por defecto.
+- [ ] **F1.** Tablero de sesiones que se arma solo (`pnpm sesiones` al abrir sesión), en lugar de las 143 filas a mano de
+  `docs/SESIONES-ACTIVAS.md`.
+- [ ] **F2.** Partir los archivos donde escriben todos: una guía por pantalla, un archivo por entrada en los tableros de
+  `/formidable` y `/chaos`, y `ARQUITECTURA.md` generado.
+- [ ] **F3.** Skills obligatorias en tres niveles, con un recibo atado al commit en vez de una casilla.
+- [ ] **F4.** Modo «señalar un elemento» en `apps/web/unificar/elegir.mjs`.
+- [x] **F5.** La memoria guarda decisiones, no estado: se corrigieron las tres notas con PR fusionados (#1617, #1779, #1766).
+- [ ] **F6 (decide Felipe).** Un PR por actividad en las obras grandes.
+- [ ] **F7–F9.** Modelo según la tarea en los subagentes; auditar una vez las compuertas con `loop-design-check`; limpiar 39
+  worktrees y 213 ramas remotas.
+
 **Descartado, con el motivo** (para no volver a evaluarlo)
 
 - `postgres-patterns`: resumen de `supabase-postgres-best-practices`, que ya está entera. Su plantilla trae

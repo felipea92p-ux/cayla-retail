@@ -14,3 +14,9 @@ pegadas no dejan fila en su historial (ADR-0251).
 Felipe se lleva: el orden recomendado (primero partir `CLAUDE.md` en `.claude/rules/` dejando las reglas transversales en la
 raíz; después la lista de movimiento a un registro; un solo canal a producción) y, para cada propuesta, qué gana, qué paga y que
 la decisión es suya. No se tocó configuración, código ni producción.
+Segunda vuelta, a pedido de Felipe (diseño, color y flujo, aunque haya que romper reglas): el problema de la estética no es una
+pieza sino que faltan escalas debajo (13 opacidades de tinta, 37 tamaños sueltos, 16 radios de desenfoque, el mismo azul con
+cuatro significados). Un escéptico frenó con evidencia sacar la Aurora, reabrir las versalitas y el título de 46 px, y cambiar el
+movimiento apagado por defecto: Felipe ya los eligió mirando, con alternativas delante. En el flujo: el tablero de sesiones tiene
+143 filas «activas» a mano, los choques vienen de los archivos donde escriben todos y no de los componentes grandes, y las skills
+obligatorias sin CI casi no se marcan. Se corrigieron en la memoria tres PR que figuraban abiertos y ya estaban fusionados.
