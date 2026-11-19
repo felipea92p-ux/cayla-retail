@@ -76,6 +76,7 @@
     --estados-fondo: var(--color-papel);
     --estados-fondo-fuerte: var(--color-papel);
     --estados-cal-fondo: var(--color-papel);
+    --vidrio-dobla-fondo: var(--color-papel);
 }
 
 /* Nada desenfocado: el desenfoque es lo que traba la gráfica de un teléfono barato (ADR-0623 ya lo quitó de lo que se desplaza). */

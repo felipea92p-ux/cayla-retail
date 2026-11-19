@@ -1,0 +1,40 @@
+/* =====================================================================
+   EL VIDRIO QUE DOBLA (ADR-0681, Felipe 2026-11-18; maqueta docs/maquetas/vidrio-que-dobla-2026-11/, preset «E · Elegido»).
+
+   Las piezas que FLOTAN quietas (la cabecera, y las que se sumen) doblan lo que tienen detrás en su canto, como el borde de una gota,
+   en vez de solo desenfocarlo. El filtro lo arma `components/ui/useVidrioQueDobla.ts` (un filtro SVG por pieza, con su mapa calculado
+   en `lib/vidrio-dobla.ts`) y lo deja en la variable `--dobla` de la pieza, junto con el atributo `data-dobla-activa`.
+
+   Es una MEJORA: estas reglas solo valen con ese atributo, que solo se pone donde el navegador acepta un filtro SVG dentro de
+   `backdrop-filter` (hoy Chrome y Edge). En Safari, en Firefox, en modo liviano, con «menos transparencia» y con «más contraste», la
+   pieza no lleva el atributo y se ve con su vidrio de siempre. Por eso aquí no hay `@supports` ni respaldo: el respaldo es no entrar.
+
+   Fuera de capa, como el resto de `vidrio/`: le gana a la pieza por especificidad (suma un atributo), no por orden.
+
+   Solo en lo que flota quieto. Lo que se desplaza no lleva `backdrop-filter` (ADR-0623), y esto es uno más caro que un desenfoque.
+   ===================================================================== */
+
+/* ---------- La cabecera: una barra a ras, dobla por su borde de abajo ----------
+   Relleno claro: deja ver el color de lo que pasa por detrás. La letra se sigue leyendo porque el filtro recoge la luminosidad
+   (`LUMINOSIDAD`, lib/vidrio-dobla.ts; medido por lib/vidrio-dobla.test.ts). Conserva la sombra de lo que flota y suma su hondura. */
+.marco-cabecera-fila[data-dobla-activa]::before {
+  background: var(--vidrio-dobla-grano), var(--vidrio-dobla-fondo);
+  -webkit-backdrop-filter: var(--dobla);
+  backdrop-filter: var(--dobla);
+  box-shadow: var(--vidrio-flota-sombra), var(--vidrio-dobla-hondura);
+}
+/* El borde que se disuelve: lo que pasa justo bajo la barra se va desenfocando de a poco. La máscara solo usa la opacidad del color. */
+.marco-cabecera-fila[data-dobla-activa]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  /* 24 px y no los 34 de la maqueta: bajo la cabecera pasan filas con cifras, y cada px de esta franja es una fila que se lee peor. */
+  height: 24px;
+  pointer-events: none;
+  -webkit-backdrop-filter: var(--vidrio-dobla-disuelve);
+  backdrop-filter: var(--vidrio-dobla-disuelve);
+  -webkit-mask: linear-gradient(var(--color-sombra), transparent);
+  mask: linear-gradient(var(--color-sombra), transparent);
+}

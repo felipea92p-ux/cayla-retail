@@ -19,6 +19,7 @@ import { BotonAsistente } from "@/components/asistente/Asistente";
 import { pantallasDelAsistente } from "@/lib/asistente/pantallas";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
+import { useVidrioQueDobla } from "@/components/ui/useVidrioQueDobla";
 import { BuscadorGlobal, abrirBuscadorGlobal } from "@/components/BuscadorGlobal";
 import dynamic from "next/dynamic";
 import { INICIO_DE_LA_PALABRA, LogoCayla } from "@/components/ui/LogoCayla";
@@ -705,6 +706,8 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
   }, []);
   const asideRef = useRef<HTMLElement | null>(null);
   const veloRef = useRef<HTMLDivElement | null>(null);
+  // La cabecera dobla lo que pasa por debajo (ADR-0681): una barra a ras, por su borde de abajo, con el relleno claro de una pieza de control.
+  const doblaCabecera = useVidrioQueDobla<HTMLDivElement>({ lados: "abajo", relleno: "claro" });
   // En el celular el cajón se cierra también deslizándolo hacia la izquierda (ADR-0479, actividad 11).
   useLateralConElDedo(asideRef, veloRef, movilAbierto, cerrarMovil);
   // Etiqueta flotante de una fila plegada y cajón de un grupo: uno a la vez, ambos siempre pegados
@@ -1191,7 +1194,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
       {/* `data-fondo-hoja`: con una hoja abierta en el celular, la cabecera y el contenido se alejan juntos (ADR-0479,
           components/ui/fondoDeLaHoja.ts). */}
       <header data-cabecera-app data-fondo-hoja="borde" className="marco-cabecera">
-        <div className="marco-cabecera-fila">
+        <div ref={doblaCabecera} className="marco-cabecera-fila">
           <div className="marco-isla marco-isla-izq">
             {/* Celular: abre el cajón con el menú completo (v4), a la izquierda del colibrí. */}
             <button

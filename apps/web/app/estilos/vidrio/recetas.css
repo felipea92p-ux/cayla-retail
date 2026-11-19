@@ -694,5 +694,34 @@
   }
 }
 
+/* ---------- El vidrio que dobla (ADR-0681; docs/maquetas/vidrio-que-dobla-2026-11/; piezas en vidrio/dobla.css) ----------
+   Bloque propio, con su oscuro y su respaldo. Lo eligió Felipe el 2026-11-18 («E · Elegido»). Estas recetas solo se usan mientras una
+   pieza lleva su filtro puesto (`data-dobla-activa`, que pone `components/ui/useVidrioQueDobla.ts` donde el navegador sabe doblar):
+   · El relleno claro de una pieza de control (la cabecera, la isla): vidrio al 22 → 6 % en diagonal, casi nada. Lo que la separa del
+     fondo ya no es el blanco: es lo que dobla. El filtro recoge la luminosidad de lo de atrás (`LUMINOSIDAD`, `lib/vidrio-dobla.ts`),
+     y con ese piso la letra en tinta se lee con cualquier cosa detrás: lo mide `lib/vidrio-dobla.test.ts` con estos dos porcentajes.
+   · La hondura: el grosor del vidrio visto por dentro. Un aro fino, sombra abajo y luz arriba.
+   · El grano: ruido fino al 5,5 %, que quita las bandas del degradado y le da materia.
+   · El borde que se disuelve: lo que pasa justo bajo una barra se va desenfocando de a poco, en vez de cortarse contra una línea. */
+:root {
+  --vidrio-dobla-fondo: linear-gradient(160deg, color-mix(in srgb, var(--color-vidrio) 22%, transparent), color-mix(in srgb, var(--color-vidrio) 6%, transparent));
+  --vidrio-dobla-hondura: inset 0 0 0 1px color-mix(in srgb, var(--color-vidrio) 18%, transparent), inset 0 -14px 22px -16px color-mix(in srgb, var(--color-sombra) 26%, transparent), inset 0 14px 22px -18px color-mix(in srgb, var(--color-vidrio) 40%, transparent);
+  --vidrio-dobla-grano: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0 .055'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  --vidrio-dobla-disuelve: blur(7px);
+}
+@media screen {
+  /* En oscuro el vidrio es oscuro: el relleno y el aro toman la crema a muy poca opacidad, y la sombra de abajo pesa más. */
+  :root[data-tema="oscuro"] {
+    --vidrio-dobla-fondo: linear-gradient(160deg, color-mix(in srgb, var(--color-tinta) 9%, transparent), color-mix(in srgb, var(--color-tinta) 2%, transparent)); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --vidrio-dobla-hondura: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 8%, transparent), inset 0 -14px 22px -16px color-mix(in srgb, var(--color-sombra) 50%, transparent), inset 0 14px 22px -18px color-mix(in srgb, var(--color-tinta) 8%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root,
+  :root[data-tema="oscuro"] {
+    --vidrio-dobla-fondo: var(--color-papel);
+  }
+}
+
 /* ---------- El vidrio que aguanta: su versión maciza vive en `vidrio/aguanta.css` ----------
    Lleva reglas de clase y redefine `--color-*`: aquí solo van variables en tres formas, para que Dynamic las pueda traer (`lib/familia.test.ts`). */
