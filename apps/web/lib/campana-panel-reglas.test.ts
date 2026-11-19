@@ -85,6 +85,12 @@ describe("las ofertas como carteles", () => {
     expect(ins.en).toBe("La insignia Rotación");
   });
 
+  it("una oferta por tallas sueltas nombra su modelo, y sin datos de las prendas dice cuántas tallas son (ADR-0682)", () => {
+    const r = regla({ variantesSolo: ["v1", "v2"] });
+    expect(cartelesDeCampana([r], HOY, nombre, null, undefined, () => ({ modelos: 1, unico: "Blusa Emma (Negro S y M)" }))[0].en).toBe("Blusa Emma (Negro S y M)");
+    expect(cartelesDeCampana([r], HOY, nombre, null)[0].en).toBe("2 tallas elegidas");
+  });
+
   it("en borrador o programada lleva su chip; terminada o retirada no sale", () => {
     const carteles = cartelesDeCampana(
       [
@@ -157,6 +163,7 @@ describe("¿las prendas las eligen sus ofertas? (arregla «sin prendas»)", () =
   it("sí, si una oferta viva nombra categorías, modelos, una insignia viva o cuenta toda la compra", () => {
     expect(prendasLasEligenSusOfertas([regla({ categoriasSolo: [POLOS] })], HOY, viva)).toBe(true);
     expect(prendasLasEligenSusOfertas([regla({ productosSolo: ["m1"] })], HOY, viva)).toBe(true);
+    expect(prendasLasEligenSusOfertas([regla({ variantesSolo: ["v1"] })], HOY, viva)).toBe(true);
     expect(prendasLasEligenSusOfertas([regla({ insigniasSolo: [ROTACION] })], HOY, viva)).toBe(true);
     expect(prendasLasEligenSusOfertas([regla({ tipo: "monto", cuenta: "compra", escalones: [{ desde: 300, ahorra: 30 }] })], HOY, viva)).toBe(true);
   });

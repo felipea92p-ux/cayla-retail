@@ -2,6 +2,7 @@
 // sus tres chips (estado, fechas, tiendas) y sus ofertas como carteles. Lógica pura, sin red: la pantalla solo la dibuja.
 // La ficha con cada medida: `docs/milimetro/panel-de-campana.md`.
 
+import type { VariantesDichas } from "./oferta-variantes";
 import { alcanceDicho, ordenarReglas, reglasVivas, textoDiasCorto, titularDeOferta, vigenciaDeRegla, type ReglaCampana } from "./campana-reglas";
 import { chipDeTarjeta, textoSedesDeCampana, type TiendaOpcion } from "./etiqueta-campana";
 import { vigenciaDe } from "./etiqueta-vigencia";
@@ -78,7 +79,8 @@ export type DondeDeLaCampana = { vigenteDesde: string | null; vigenteHasta: stri
  * Las ofertas vivas de una campaña como carteles (las que no terminaron ni se retiraron), en el orden de la hoja (`ordenarReglas`). Sin ofertas
  * y con el descuento de siempre (`descuentoPct`, el de las campañas de antes de las ofertas), ese descuento es su único cartel. `nombre` nombra
  * categorías e insignias (sus ids no se repiten). Con `donde`, cada cartel dice en qué tiendas, qué fechas y qué días rige si no son los de su
- * campaña (`detalle`); una programada con fechas propias dice «Programada» (las fechas ya van en el detalle).
+ * campaña (`detalle`); una programada con fechas propias dice «Programada» (las fechas ya van en el detalle). `sueltasDe` dice las tallas y
+ * colores sueltos de una oferta (ADR-0682): con un solo modelo, el cartel lo nombra («Blusa Emma (Negro S y M)»).
  */
 export function cartelesDeCampana(
   reglas: readonly ReglaCampana[],
@@ -86,6 +88,7 @@ export function cartelesDeCampana(
   nombre: (id: string) => string,
   descuentoPct: number | null,
   donde?: DondeDeLaCampana,
+  sueltasDe?: (r: ReglaCampana) => VariantesDichas | null,
 ): CartelDeOferta[] {
   const vivas = ordenarReglas(reglasVivas(reglas, hoy), hoy);
   if (vivas.length === 0) {
@@ -94,7 +97,7 @@ export function cartelesDeCampana(
       : [];
   }
   return vivas.map((r) => {
-    const alcance = alcanceDicho(r, nombre);
+    const alcance = alcanceDicho(r, nombre, sueltasDe?.(r));
     const en = r.tipo === "monto" && r.cuenta !== "campana" ? "Toda la compra" : alcance ? conMayuscula(alcance) : "Toda la campaña";
     const propio = donde ? dondeYCuandoPropios(r, donde, hoy) : { texto: null, fechas: false };
     const v = vigenciaDeRegla(r, hoy);
@@ -125,12 +128,12 @@ function dondeYCuandoPropios(r: ReglaCampana, d: DondeDeLaCampana, hoy: string):
 }
 
 /**
- * ¿Las prendas de la campaña las eligen sus ofertas? Una oferta viva que nombra categorías, modelos o insignias vivas, o un monto que cuenta toda
+ * ¿Las prendas de la campaña las eligen sus ofertas? Una oferta viva que nombra categorías, modelos, tallas sueltas o insignias vivas, o un monto que cuenta toda
  * la compra, alcanza prendas por su cuenta: la campaña no está «sin prendas» aunque no tenga ninguna marcada ni categoría (antes lo decía).
  * La misma regla que «En qué prendas» de las tres preguntas (ADR-0655).
  */
 export function prendasLasEligenSusOfertas(reglas: readonly ReglaCampana[], hoy: string, insigniaViva: (id: string) => boolean): boolean {
   return reglasVivas(reglas, hoy).some(
-    (r) => r.categoriasSolo.length > 0 || r.productosSolo.length > 0 || r.insigniasSolo.some(insigniaViva) || (r.tipo === "monto" && r.cuenta !== "campana"),
+    (r) => r.categoriasSolo.length > 0 || r.productosSolo.length > 0 || r.variantesSolo.length > 0 || r.insigniasSolo.some(insigniaViva) || (r.tipo === "monto" && r.cuenta !== "campana"),
   );
 }

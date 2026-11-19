@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { alternarColor, alternarVariante, elegidasDelModelo, fijarVariantesDelModelo, modelosDeLaSeleccion, ordenarTallas, porColor, resumenDeVariantes, type VarianteDeModelo } from "./oferta-variantes";
+import {
+  agregarColorDeVariante,
+  alternarColor,
+  alternarVariante,
+  elegidasDelModelo,
+  fijarVariantesDelModelo,
+  modelosDeLaSeleccion,
+  ordenarTallas,
+  porColor,
+  resumenDeVariantes,
+  variantesDichas,
+  variantesPorModelo,
+  type VarianteDeModelo,
+} from "./oferta-variantes";
 
 const v = (id: string, colorClave: string, color: string | null, talla: string | null): VarianteDeModelo => ({ id, colorClave, color, talla });
 // Blusa Emma: negro en S, M, L y blanco en S, M.
@@ -84,5 +97,71 @@ describe("el orden de la percha", () => {
   it("junta por color en el orden en que llegan, con sus tallas ordenadas", () => {
     const g = porColor([v("1", "NEG", "Negro", "L"), v("2", "BLA", "Blanco", "M"), v("3", "NEG", "Negro", "S")]);
     expect(g.map((x) => `${x.color}:${x.variantes.map((y) => y.talla).join("")}`)).toEqual(["Negro:SL", "Blanco:M"]);
+  });
+});
+
+describe("leer una etiqueta agrega ese color con todas sus tallas (ADR-0682)", () => {
+  it("la primera lectura de un modelo de dos colores deja el color leído, con sus tres tallas", () => {
+    const r = agregarColorDeVariante(vacia, "emma", EMMA, "nM");
+    expect(r).toEqual({ productosSolo: [], variantesSolo: ["nS", "nM", "nL"], cambio: true, color: "Negro" });
+  });
+
+  it("leer otra talla del mismo color no cambia nada; leer el otro color completa el modelo, que queda entero", () => {
+    const negro = agregarColorDeVariante(vacia, "emma", EMMA, "nM");
+    expect(agregarColorDeVariante(negro, "emma", EMMA, "nL").cambio).toBe(false);
+    const todo = agregarColorDeVariante(negro, "emma", EMMA, "bS");
+    expect(todo).toEqual({ productosSolo: ["emma"], variantesSolo: [], cambio: true, color: null });
+  });
+
+  it("se suma a las tallas sueltas que el modelo ya tenía, sin tocar las de otros modelos", () => {
+    const r = agregarColorDeVariante({ productosSolo: ["otro"], variantesSolo: ["bS", "x1"] }, "emma", EMMA, "nS");
+    expect(r.productosSolo).toEqual(["otro"]);
+    expect(r.variantesSolo).toEqual(["x1", "nS", "nM", "nL", "bS"]);
+    expect(r.color).toBe("Negro");
+  });
+
+  it("un modelo de un solo color entra entero; uno que ya estaba entero no cambia", () => {
+    const uno = [v("a", "NEG", "Negro", "S"), v("b", "NEG", "Negro", "M")];
+    expect(agregarColorDeVariante(vacia, "falda", uno, "a")).toEqual({ productosSolo: ["falda"], variantesSolo: [], cambio: true, color: null });
+    expect(agregarColorDeVariante(entera, "emma", EMMA, "nM").cambio).toBe(false);
+  });
+
+  it("una etiqueta que la pantalla no conoce como talla de ese modelo agrega el modelo entero, y se lleva sus tallas sueltas", () => {
+    expect(agregarColorDeVariante({ productosSolo: [], variantesSolo: ["nS"] }, "emma", EMMA, null)).toEqual({ productosSolo: ["emma"], variantesSolo: [], cambio: true, color: null });
+    expect(agregarColorDeVariante(vacia, "sin-datos", [], "zz")).toEqual({ productosSolo: ["sin-datos"], variantesSolo: [], cambio: true, color: null });
+  });
+});
+
+describe("decir las tallas sueltas de una oferta", () => {
+  const d = {
+    modeloDe: (id: string) => (EMMA.some((x) => x.id === id) ? "emma" : id.startsWith("f") ? "falda" : undefined),
+    nombreDe: (id: string) => ({ emma: "Blusa Emma", falda: "Falda Renata" })[id],
+    variantesDe: (id: string) => (id === "emma" ? EMMA : []),
+  };
+  it("un solo modelo se nombra con lo que lleva; varios se cuentan", () => {
+    expect(variantesDichas(["nS", "nM"], d)).toEqual({ modelos: 1, unico: "Blusa Emma (Negro S y M)" });
+    expect(variantesDichas(["nS", "f1"], d)).toEqual({ modelos: 2, unico: null });
+    expect(variantesDichas([], d)).toEqual({ modelos: 0, unico: null });
+  });
+
+  it("las que la pantalla ya no conoce cuentan juntas como un modelo, sin nombre", () => {
+    expect(variantesDichas(["zz", "yy"], d)).toEqual({ modelos: 1, unico: null });
+    expect(variantesDichas(["zz", "nM"], d)).toEqual({ modelos: 2, unico: null });
+  });
+});
+
+describe("las variantes de cada modelo, con las prendas de la pantalla", () => {
+  it("la llave del color sale de «modelo·color»; el nombre, de la vitrina, y si no hay, la llave", () => {
+    const prendas = [
+      { id: "1", productoId: "emma", modelo: "emma·NEG", talla: "S" },
+      { id: "2", productoId: "emma", modelo: "emma·BEI", talla: "M" },
+      { id: "3", nombre: "sin modelo" },
+    ];
+    const m = variantesPorModelo(prendas, (id) => (id === "1" ? { colorNombre: "Negro", colorHex: "#000" } : undefined));
+    expect([...m.keys()]).toEqual(["emma"]);
+    expect(m.get("emma")).toEqual([
+      { id: "1", colorClave: "NEG", color: "Negro", colorHex: "#000", talla: "S" },
+      { id: "2", colorClave: "BEI", color: "BEI", colorHex: null, talla: "M" },
+    ]);
   });
 });

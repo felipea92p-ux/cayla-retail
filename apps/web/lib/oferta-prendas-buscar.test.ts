@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { codigoDelNombre, productoDeCodigo, resumirNombres, sugerirModelos, type ModeloDeOferta } from "./oferta-prendas-buscar";
+import { codigoDelNombre, prendaDeCodigo, resumirNombres, sugerirModelos, type ModeloDeOferta } from "./oferta-prendas-buscar";
 
 const m = (id: string, nombre: string, categoriaId: string | null = "cat-blusas"): ModeloDeOferta => ({ id, nombre, categoriaId, precio: 100, deClaure: false });
 const categoria = (id: string) => ({ "cat-blusas": "Camisas y Blusas", "cat-pantalones": "Pantalones" })[id] ?? "";
 
 describe("la prenda leída con la pistola o la cámara (hoja de una oferta, fase «¿En qué prendas?»)", () => {
   const prendas = [
-    { nombre: "Falda Emma (FAL-0008-NEG-M)", productoId: "p-falda" },
-    { nombre: "Falda Emma (FAL-0008-NEG-S)", productoId: "p-falda" },
-    { nombre: "Blusa Aurora (BLU-0001-BLA-S)", productoId: "p-blusa" },
-    { nombre: "Bolsa sin modelo (BOL-1)" },
+    { id: "v-falda-m", nombre: "Falda Emma (FAL-0008-NEG-M)", productoId: "p-falda" },
+    { id: "v-falda-s", nombre: "Falda Emma (FAL-0008-NEG-S)", productoId: "p-falda" },
+    { id: "v-blusa-s", nombre: "Blusa Aurora (BLU-0001-BLA-S)", productoId: "p-blusa" },
+    { id: "v-bolsa", nombre: "Bolsa sin modelo (BOL-1)" },
   ];
 
   it("saca el código del final del nombre", () => {
@@ -18,17 +18,17 @@ describe("la prenda leída con la pistola o la cámara (hoja de una oferta, fase
     expect(codigoDelNombre("Falda Emma")).toBeNull();
   });
 
-  it("reconoce el código exacto, sin importar mayúsculas ni espacios, y da su modelo", () => {
-    expect(productoDeCodigo(prendas, "FAL-0008-NEG-M")).toBe("p-falda");
-    expect(productoDeCodigo(prendas, "  fal-0008-neg-s ")).toBe("p-falda");
-    expect(productoDeCodigo(prendas, "BLU-0001-BLA-S")).toBe("p-blusa");
+  it("reconoce el código exacto, sin importar mayúsculas ni espacios, y da su modelo y la talla de esa etiqueta", () => {
+    expect(prendaDeCodigo(prendas, "FAL-0008-NEG-M")?.productoId).toBe("p-falda");
+    expect(prendaDeCodigo(prendas, "  fal-0008-neg-s ")).toEqual({ productoId: "p-falda", varianteId: "v-falda-s" });
+    expect(prendaDeCodigo(prendas, "BLU-0001-BLA-S")).toEqual({ productoId: "p-blusa", varianteId: "v-blusa-s" });
   });
 
   it("no adivina: un pedazo del código, un código de otra cosa o una prenda sin modelo no dan nada", () => {
-    expect(productoDeCodigo(prendas, "FAL-0008")).toBeNull();
-    expect(productoDeCodigo(prendas, "7750001234567")).toBeNull();
-    expect(productoDeCodigo(prendas, "BOL-1")).toBeNull();
-    expect(productoDeCodigo(prendas, "")).toBeNull();
+    expect(prendaDeCodigo(prendas, "FAL-0008")).toBeNull();
+    expect(prendaDeCodigo(prendas, "7750001234567")).toBeNull();
+    expect(prendaDeCodigo(prendas, "BOL-1")).toBeNull();
+    expect(prendaDeCodigo(prendas, "")).toBeNull();
   });
 });
 

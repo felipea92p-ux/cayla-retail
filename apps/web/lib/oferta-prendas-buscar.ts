@@ -27,16 +27,17 @@ export function codigoDelNombre(nombre: string): string | null {
 }
 
 /**
- * El modelo de la prenda cuyo código es exactamente lo leído, entre las prendas a la venta que la hoja ya tiene. Responde al instante, sin
- * ir a la base; lo que no se reconoce aquí (el código de fábrica, una etiqueta vieja) lo busca la base. `null` si ninguna lo lleva.
+ * La prenda cuyo código es exactamente lo leído, entre las prendas a la venta que la hoja ya tiene: su modelo y la talla y color de esa
+ * etiqueta (con ella, la oferta agrega ese color: ADR-0682). Responde al instante, sin ir a la base; lo que no se reconoce aquí (el código
+ * de fábrica, una etiqueta vieja) lo busca la base. `null` si ninguna lo lleva.
  */
-export function productoDeCodigo(prendas: readonly { nombre: string; productoId?: string }[], leido: string): string | null {
+export function prendaDeCodigo(prendas: readonly { id: string; nombre: string; productoId?: string }[], leido: string): { productoId: string; varianteId: string } | null {
   const buscado = clave(leido);
   if (buscado.length < 2) return null;
   for (const p of prendas) {
     if (!p.productoId) continue;
     const codigo = codigoDelNombre(p.nombre);
-    if (codigo && clave(codigo) === buscado) return p.productoId;
+    if (codigo && clave(codigo) === buscado) return { productoId: p.productoId, varianteId: p.id };
   }
   return null;
 }

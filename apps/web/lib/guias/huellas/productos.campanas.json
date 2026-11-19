@@ -177,7 +177,7 @@
       "button «Toda la compra»",
       "button «Solo prendas de la campaña»",
       "Boton «Con la cámara»",
-      "BotonDeshacer «→() => quitarProductos([ultimaLeida.deshacer as string])»",
+      "BotonDeshacer «(sin nombre)»",
       "button «{`Quitar ${marcadasAhora.length}»",
       "button «Desmarcar»",
       "button «Quitar todas»",

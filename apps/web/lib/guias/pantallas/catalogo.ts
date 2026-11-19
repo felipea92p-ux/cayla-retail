@@ -1397,7 +1397,7 @@ export const GUIA_CAMPANAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "sellos.oferta-paso-2" }],
       titulo: "Agrega una prenda",
-      texto: "Lo más rápido: lee su etiqueta con la pistola, o con la cámara del teléfono, y la prenda entra sola con todas sus tallas y colores. También puedes escribir su nombre y elegirla de la lista. En la demo no agregamos ninguna.",
+      texto: "Lo más rápido: lee su etiqueta con la pistola, o con la cámara del teléfono, y entra el color de esa prenda con todas sus tallas. Si escribes su nombre y la eliges de la lista, entra el modelo entero. «Deshacer» la devuelve a como estaba. En la demo no agregamos ninguna.",
     },
     {
       id: "oferta-prendas",

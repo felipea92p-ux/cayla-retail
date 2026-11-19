@@ -113,3 +113,82 @@ export function resumenDeVariantes(variantes: readonly VarianteDeModelo[], elegi
   }
   return partes.join(" · ");
 }
+
+/**
+ * Las tallas y colores a la venta de cada modelo, armadas con las prendas que la pantalla ya tiene. La llave del color sale de la clave
+ * «modelo·color» de la prenda; su nombre y su tono, de la vitrina (`colorDe`), y si no hay vitrina, la llave misma.
+ */
+export function variantesPorModelo(
+  prendas: readonly { id: string; productoId?: string; modelo?: string; talla?: string | null }[],
+  colorDe: (prendaId: string) => { colorNombre?: string | null; colorHex?: string | null } | undefined = () => undefined,
+): Map<string, VarianteDeModelo[]> {
+  const porModelo = new Map<string, VarianteDeModelo[]>();
+  for (const p of prendas) {
+    if (!p.productoId) continue;
+    const c = colorDe(p.id);
+    const colorClave = (p.modelo ?? "").slice(p.productoId.length + 1);
+    const lista = porModelo.get(p.productoId) ?? [];
+    lista.push({ id: p.id, colorClave, color: c?.colorNombre ?? (colorClave || null), colorHex: c?.colorHex ?? null, talla: p.talla ?? null });
+    porModelo.set(p.productoId, lista);
+  }
+  return porModelo;
+}
+
+/**
+ * Leer la etiqueta de una prenda (Felipe 2026-11-18, ADR-0682): entra SU COLOR con todas sus tallas, no el modelo entero ni solo esa talla
+ * (quien arma la oferta tiene en la mano una prenda de un color; la talla de esa etiqueta es la que tocó). Se suma a lo que el modelo ya
+ * tenía; un modelo de un solo color queda entero. `cambio` dice si entró algo nuevo y `color`, cuál fue (`null` si entró el modelo entero).
+ * Una etiqueta que la pantalla no conoce como variante de ese modelo agrega el modelo entero, como antes.
+ */
+export function agregarColorDeVariante(
+  s: Seleccion,
+  productoId: string,
+  variantes: readonly VarianteDeModelo[],
+  varianteId: string | null,
+): { productosSolo: string[]; variantesSolo: string[]; cambio: boolean; color: string | null } {
+  const leida = varianteId ? variantes.find((v) => v.id === varianteId) : undefined;
+  if (!leida) {
+    const cambio = !s.productosSolo.includes(productoId);
+    const sinSusSueltas = variantes.length > 0 ? fijarVariantesDelModelo(s, productoId, variantes, new Set(variantes.map((v) => v.id))) : null;
+    return {
+      productosSolo: sinSusSueltas ? sinSusSueltas.productosSolo : cambio ? [...s.productosSolo, productoId] : [...s.productosSolo],
+      variantesSolo: sinSusSueltas ? sinSusSueltas.variantesSolo : [...s.variantesSolo],
+      cambio,
+      color: null,
+    };
+  }
+  const elegidas = elegidasDelModelo(s, productoId, variantes);
+  const antes = elegidas.size;
+  for (const v of variantes) if (v.colorClave === leida.colorClave) elegidas.add(v.id);
+  const queda = fijarVariantesDelModelo(s, productoId, variantes, elegidas);
+  const entero = queda.productosSolo.includes(productoId);
+  return { ...queda, cambio: elegidas.size > antes, color: entero ? null : leida.color };
+}
+
+/** Las tallas y colores sueltos de una oferta, para decirla: en cuántos modelos están y, si es uno solo, cuál y qué lleva de él. */
+export type VariantesDichas = {
+  modelos: number;
+  /** «Blusa Emma (Negro S y M)»; `null` si son varios modelos o no se sabe de cuál es. */
+  unico: string | null;
+};
+
+/**
+ * Lo que una oferta eligió por tallas y colores sueltos, listo para su nombre, su frase y su cartel. Las variantes que la pantalla ya no
+ * conoce (una prenda que dejó de venderse) cuentan juntas como un modelo más: la oferta las sigue teniendo.
+ */
+export function variantesDichas(
+  variantesSolo: readonly string[],
+  d: { modeloDe: (varianteId: string) => string | undefined; nombreDe: (productoId: string) => string | undefined; variantesDe: (productoId: string) => readonly VarianteDeModelo[] },
+): VariantesDichas {
+  const porModelo = new Map<string, string[]>();
+  for (const id of variantesSolo) {
+    const modelo = d.modeloDe(id) ?? "";
+    porModelo.set(modelo, [...(porModelo.get(modelo) ?? []), id]);
+  }
+  if (porModelo.size !== 1) return { modelos: porModelo.size, unico: null };
+  const [[modelo, ids]] = [...porModelo.entries()];
+  const nombre = modelo ? d.nombreDe(modelo) : undefined;
+  if (!nombre) return { modelos: 1, unico: null };
+  const lleva = resumenDeVariantes(d.variantesDe(modelo), new Set(ids));
+  return { modelos: 1, unico: lleva ? `${nombre} (${lleva})` : nombre };
+}

@@ -342,11 +342,16 @@
     .of-pie .of-pie-retirar { order: 1; margin-right: auto; }
     /* En la primera fase la flecha no guarda su lugar (le quitaría ancho a los botones), y «Siguiente» toma lo que sobra. */
     .of-pie .of-vuelta-oculta { display: none; }
-    .of-pie .of-siguiente { flex: 1; }
+    /* Crece, pero no se encoge por debajo de su palabra: con `flex: 1` cabía «en cero» junto a «Retirar» y salía cortado («guiente», medido a 375). */
+    .of-pie .of-siguiente { flex: 1 0 auto; }
     /* Dos filas, no tres (medido a 375): lo que guarda sin activar va arriba, a todo lo ancho; abajo, la flecha, «Cancelar» y el botón
        principal, que toma lo que sobra y queda en la esquina del pulgar. */
     .of-pie .of-atajo, .of-pie .of-borrador { order: -1; flex-basis: 100%; }
-    .of-pie > .btn-primario { flex: 1; }
+    .of-pie > .btn-primario { flex: 1 0 auto; }
+    /* Al editar, «Retirar» sube a la fila de «Guardar cambios», a su izquierda: en su propia fila eran tres (el pie se comía la pantalla).
+       El atajo deja libre justo el ancho de «Retirar», así la flecha y «Cancelar» bajan a la fila de los botones. */
+    .of-pie:has(.of-atajo) .of-pie-retirar { order: -2; margin-right: 0; }
+    .of-pie:has(.of-pie-retirar) .of-atajo { flex: 1 1 calc(100% - 7rem); }
     /* La pregunta a todo lo ancho; «No, dejarla» y «Sí, retirar», mitad y mitad. */
     .of-pie-confirma .of-confirma { flex-basis: 100%; margin: 0; }
     .of-pie-confirma > .btn-cayla { flex: 1; }

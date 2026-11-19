@@ -11,6 +11,7 @@
 
 import { fechaCorta } from "./etiqueta-vigencia";
 import { sumarDias } from "./fechas-lima";
+import type { VariantesDichas } from "./oferta-variantes";
 
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
@@ -391,18 +392,31 @@ export function insigniasDichas(ids: readonly string[], nombreInsignia: (id: str
   return `${nombres.length === 1 ? "la insignia" : "las insignias"} ${lista(nombres)}`;
 }
 
-/** Dónde rige una oferta, en pocas palabras: «Blusas y Faldas», «3 prendas elegidas», «Polos y 2 prendas elegidas», «la insignia Rotación» o
- *  `null` (toda la campaña). `nombreCategoria` nombra también las insignias de `insigniasSolo` (sus ids no se repiten con los de una categoría). */
+/** Dónde rige una oferta, en pocas palabras: «Blusas y Faldas», «3 prendas elegidas», «Polos y 2 prendas elegidas», «la insignia Rotación»,
+ *  «Blusa Emma (Negro S y M)» o `null` (toda la campaña). `nombreCategoria` nombra también las insignias de `insigniasSolo` (sus ids no se
+ *  repiten con los de una categoría). Las tallas y colores sueltos (ADR-0682) cuentan por modelo: `sueltas` dice cuántos son y, si es uno
+ *  solo y la oferta no eligió ningún modelo entero, cuál; sin `sueltas` (quien llama no conoce las prendas) se cuentan las tallas. */
 export function alcanceDicho(
-  o: Pick<OfertaEnEdicion, "categoriasSolo"> & { productosSolo?: readonly string[]; insigniasSolo?: readonly string[] },
+  o: Pick<OfertaEnEdicion, "categoriasSolo"> & { productosSolo?: readonly string[]; insigniasSolo?: readonly string[]; variantesSolo?: readonly string[] },
   nombreCategoria: (id: string) => string,
+  sueltas?: VariantesDichas | null,
 ): string | null {
-  const n = o.productosSolo?.length ?? 0;
+  const enteras = o.productosSolo?.length ?? 0;
+  const tallas = o.variantesSolo?.length ?? 0;
+  const porTalla = tallas === 0 ? 0 : (sueltas?.modelos ?? 0);
+  const unico = enteras === 0 && porTalla === 1 ? (sueltas?.unico ?? null) : null;
+  const n = unico ? 0 : enteras + porTalla;
   const nombres = nombresOrdenados(o.categoriasSolo, nombreCategoria);
   // Una sola lista: «Blusas, Polos y 1 prenda elegida» (no «Blusas y Polos y 1 prenda elegida»).
   const cats = nombres.length > MAX_CATEGORIAS_NOMBRADAS ? [`${nombres.length} categorías`] : nombres;
   const insignias = insigniasDichas(o.insigniasSolo ?? [], nombreCategoria);
-  const partes = [...cats, ...(n ? [`${n} ${n === 1 ? "prenda elegida" : "prendas elegidas"}`] : []), ...(insignias ? [insignias] : [])];
+  const partes = [
+    ...cats,
+    ...(unico ? [unico] : []),
+    ...(n ? [`${n} ${n === 1 ? "prenda elegida" : "prendas elegidas"}`] : []),
+    ...(tallas > 0 && !sueltas ? [`${tallas} ${tallas === 1 ? "talla elegida" : "tallas elegidas"}`] : []),
+    ...(insignias ? [insignias] : []),
+  ];
   return partes.length ? lista(partes) : null;
 }
 
@@ -438,11 +452,13 @@ export function nombreAutomatico(
       sedeIds?: readonly string[];
       productosSolo?: readonly string[];
       insigniasSolo?: readonly string[];
+      variantesSolo?: readonly string[];
     },
   nombreCategoria: (id: string) => string,
   nombreSede: (id: string) => string = () => "",
+  sueltas?: VariantesDichas | null,
 ): string {
-  const alcance = alcanceDicho(o, nombreCategoria);
+  const alcance = alcanceDicho(o, nombreCategoria, sueltas);
   // «La insignia Rotación · −20 %»: el nombre empieza en mayúscula aunque el alcance empiece por «la insignia».
   const donde = o.tipo === "monto" && o.cuenta !== "campana" ? "Toda la compra" : alcance ? alcance.charAt(0).toUpperCase() + alcance.slice(1) : "Toda la campaña";
   const dias = textoDiasCorto(o.dias);
@@ -452,16 +468,26 @@ export function nombreAutomatico(
   return t.length > MAX_NOMBRE ? `${t.slice(0, MAX_NOMBRE - 1)}…` : t;
 }
 
-export const nombreDeOferta = (o: OfertaEnEdicion, nombreCategoria: (id: string) => string, nombreSede: (id: string) => string = () => ""): string =>
-  o.nombre.trim() || nombreAutomatico(o, nombreCategoria, nombreSede);
+export const nombreDeOferta = (
+  o: OfertaEnEdicion,
+  nombreCategoria: (id: string) => string,
+  nombreSede: (id: string) => string = () => "",
+  sueltas?: VariantesDichas | null,
+): string => o.nombre.trim() || nombreAutomatico(o, nombreCategoria, nombreSede, sueltas);
 
 /** Si el nombre guardado es el que habría salido solo (para no tratar de «a mano» uno automático). */
-export const esNombreAutomatico = (r: ReglaCampana, nombreCategoria: (id: string) => string, nombreSede: (id: string) => string = () => ""): boolean =>
+export const esNombreAutomatico = (
+  r: ReglaCampana,
+  nombreCategoria: (id: string) => string,
+  nombreSede: (id: string) => string = () => "",
+  sueltas?: VariantesDichas | null,
+): boolean =>
   r.nombre ===
   nombreAutomatico(
-    { tipo: r.tipo, porcentaje: r.porcentaje, lleva: r.lleva, paga: r.paga, monto: r.monto, escalones: r.escalones, ahorroEn: r.ahorroEn, cuenta: r.cuenta, dias: r.dias, categoriasSolo: r.categoriasSolo, productosSolo: r.productosSolo, insigniasSolo: r.insigniasSolo, sedeIds: r.sedeIds },
+    { tipo: r.tipo, porcentaje: r.porcentaje, lleva: r.lleva, paga: r.paga, monto: r.monto, escalones: r.escalones, ahorroEn: r.ahorroEn, cuenta: r.cuenta, dias: r.dias, categoriasSolo: r.categoriasSolo, productosSolo: r.productosSolo, insigniasSolo: r.insigniasSolo, variantesSolo: r.variantesSolo, sedeIds: r.sedeIds },
     nombreCategoria,
     nombreSede,
+    sueltas,
   );
 
 /** «del 26 oct al 31 oct» · «el 26 oct». */
@@ -471,8 +497,13 @@ export const textoFechas = (desde: string, hasta: string): string => {
 };
 
 /** «20 % menos en todas las prendas de la campaña, los martes y jueves, del 26 oct al 31 oct.» */
-export function fraseDeOferta(o: OfertaEnEdicion, nombreCategoria: (id: string) => string, nombreSede: (id: string) => string = () => ""): string {
-  const alcance = alcanceDicho(o, nombreCategoria);
+export function fraseDeOferta(
+  o: OfertaEnEdicion,
+  nombreCategoria: (id: string) => string,
+  nombreSede: (id: string) => string = () => "",
+  sueltas?: VariantesDichas | null,
+): string {
+  const alcance = alcanceDicho(o, nombreCategoria, sueltas);
   const donde = alcance ? `solo en ${alcance}` : "en todas las prendas de la campaña";
   const fuera = o.categoriasFuera.length ? ` (menos ${lista(nombresOrdenados(o.categoriasFuera, nombreCategoria).map((n) => n.toLowerCase()))})` : "";
   const dias = textoDias(o.dias);
