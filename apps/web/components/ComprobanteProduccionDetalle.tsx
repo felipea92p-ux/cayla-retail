@@ -92,7 +92,7 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, tallerId, on
           </span>
         </div>
 
-        {c.estado === "anulada" && c.motivoAnulacion && <p className="rounded-lg bg-sand/60 px-3 py-2.5 text-sm text-tinta/80">Anulada: {c.motivoAnulacion}</p>}
+        {c.estado === "anulada" && c.motivoAnulacion && <p className="rounded-lg vd-placa px-3 py-2.5 text-sm text-tinta/80">Anulada: {c.motivoAnulacion}</p>}
 
         <section aria-label="Líneas">
           <TituloGrupo className="mb-2">Qué se compró</TituloGrupo>

@@ -83,12 +83,12 @@ export function EficienciaTallerPanel({
       />
 
       {estadoPlanilla === "sin_vista" && (
-        <p data-guia="prod-eficiencia.aviso-planilla" className="rounded-md bg-sand/60 px-3 py-2.5 text-sm text-tinta/80">
+        <p data-guia="prod-eficiencia.aviso-planilla" className="rounded-md vd-placa px-3 py-2.5 text-sm text-tinta/80">
           Todavía no se puede leer la planilla del Taller. Mientras tanto se muestran los materiales por prenda; el costo completo aparecerá solo cuando se pueda leer.
         </p>
       )}
       {estadoPlanilla === "vacia" && (
-        <p data-guia="prod-eficiencia.aviso-planilla" className="rounded-md bg-sand/60 px-3 py-2.5 text-sm text-tinta/80">
+        <p data-guia="prod-eficiencia.aviso-planilla" className="rounded-md vd-placa px-3 py-2.5 text-sm text-tinta/80">
           No hay planilla del Taller para mostrar: o todavía no hay períodos pagados, o tu cuenta no la puede ver (la ve quien administra al personal). Se muestran los últimos meses con los materiales por prenda; sin la planilla no se calcula lo de mano de obra y gastos ni el costo total.
         </p>
       )}
@@ -209,7 +209,7 @@ export function EficienciaTallerPanel({
               <Tabla>
                 <Encabezado siempre columnas={COLUMNAS_PERIODOS} plantilla={PLANTILLA_PERIODOS} />
                 {periodos.map((p) => (
-                  <div key={p.ventana.clave} role="row" className={fila(PLANTILLA_PERIODOS, `text-sm ${p.ventana.clave === actual.ventana.clave ? "bg-sand/40" : ""}`)}>
+                  <div key={p.ventana.clave} role="row" className={fila(PLANTILLA_PERIODOS, `text-sm ${p.ventana.clave === actual.ventana.clave ? "vd-marca" : ""}`)}>
                     <span className={celda("izq", "text-tinta")}>{p.ventana.etiqueta}</span>
                     <span className={celda("der")}>{p.prendasBuenas || <span className="text-tinta/45">—</span>}</span>
                     <span className={celda("der")}>{p.materialesPorPrenda !== null ? soles(p.materialesPorPrenda) : <span className="text-tinta/45">—</span>}</span>

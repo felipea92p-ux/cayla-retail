@@ -26,7 +26,7 @@ import type { FilaExistencias } from "@/lib/inventario-v2";
  *  los estados (por colgar, sin nada atrás) los dice el diagnóstico de la fila y las cifras, no un color por chip. */
 const CLASE_TALLA = {
   sin_stock: "border-dashed border-taupe/50 bg-transparent font-semibold text-taupe",
-  normal: "border-taupe/25 bg-hueso text-tinta",
+  normal: "border-taupe/25 vd-gota-chica text-tinta",
 } as const;
 
 const AYUDA_TALLA = {
@@ -193,7 +193,7 @@ export function ExistenciasPorPrenda({
               }
             }}
             className={`grid fila-cayla cursor-pointer gap-x-4 gap-y-2.5 px-5 py-1.5 transition-colors @min-[912px]:items-center ${plantilla} ${
-              abierta ? "bg-hueso/80" : marcada ? "bg-sand/35" : "hover:bg-sand/25 focus-visible:bg-sand/25"
+              abierta ? "vd-marca" : marcada ? "vd-hundido" : "vd-pasa"
             }`}
           >
             {/* Celular: tarjeta (casilla + foto + nombre, con piso y almacén a la derecha; debajo la curva y el diagnóstico).

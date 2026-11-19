@@ -294,7 +294,7 @@ export function DetalleCierreContenido({ cierre, detalle, cargando, error }: { c
           ) : (
             <div className="scroll-cayla max-h-[46vh] overflow-y-auto pr-2">
               {/* La línea del día: un hilo con un punto por cada hecho, del color de lo que hizo. */}
-              <div className="relative pl-6 before:absolute before:bottom-3 before:left-2 before:top-3 before:w-0.5 before:bg-sand">
+              <div /* beige-fijo: hilo vertical de la línea de tiempo */ className="relative pl-6 before:absolute before:bottom-3 before:left-2 before:top-3 before:w-0.5 before:bg-sand">
                 {visibles.map((e) => (
                   <FilaEvento key={`${e.tipo}-${e.id}`} evento={e} />
                 ))}

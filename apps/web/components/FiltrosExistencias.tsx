@@ -231,7 +231,7 @@ export function FiltrosExistencias({
                     icono: (
                       <span
                         aria-hidden
-                        className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-tinta/15 bg-hueso align-middle"
+                        className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-tinta/15 align-middle"
                         style={{ background: o.color.tonos ? fondoDelPunto(o.color.hex, o.color.tonos) : fondoDeColor(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
                       />
                     ),

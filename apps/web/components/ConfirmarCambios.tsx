@@ -173,7 +173,7 @@ function PrecioEnCadaTienda({
   // «pasa a S/ 89.90» o «pasa al precio nuevo de cada talla».
   const aNuevo = datos.despues !== null ? `a ${soles(datos.despues)}` : "al precio nuevo de cada talla";
   return (
-    <section aria-label="Precio en cada tienda" className="rounded-sm border border-sand bg-hueso/40 px-3 py-2.5">
+    <section aria-label="Precio en cada tienda" className="rounded-sm border border-sand vd-hundido px-3 py-2.5">
       <TituloGrupo className="mb-1.5">Precio en cada tienda</TituloGrupo>
       <ul className="space-y-2 text-sm text-tinta">
         {datos.siguen.length > 0 && (

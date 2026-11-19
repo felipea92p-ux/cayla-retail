@@ -87,7 +87,7 @@ export function Ventana({ titulo, mac = false, children, pie }: { titulo: ReactN
   return (
     <figure className="space-y-1.5">
       <div className="overflow-hidden rounded-xl border border-sand bg-papel text-[13px] text-tinta">
-        <div className="flex items-center gap-2 border-b border-sand bg-hueso/70 px-3 py-2">
+        <div className="flex items-center gap-2 border-b border-sand vd-placa px-3 py-2">
           {mac && (
             <span aria-hidden className="flex gap-1.5">
               <i className="h-2.5 w-2.5 rounded-full bg-rojo/70" />
@@ -139,7 +139,7 @@ export function ConNumero({ n, children, activa, onActiva }: { n: number; childr
 /** Un control dibujado: combo (con flecha), campo o botón. `valor` es lo que tiene que quedar escrito o elegido. */
 export function Control({ children, tipo = "combo", resaltado = false }: { children: ReactNode; tipo?: "combo" | "campo" | "boton"; resaltado?: boolean }) {
   const base = "inline-flex min-h-7 items-center gap-2 rounded-md border px-2.5 py-1 text-[13px]";
-  const borde = resaltado ? "border-rojo/60 bg-papel font-semibold text-tinta" : "border-sand bg-hueso/60 text-tinta";
+  const borde = resaltado ? "border-rojo/60 bg-papel font-semibold text-tinta" : "border-sand vd-placa text-tinta";
   if (tipo === "boton") return <span className={`${base} ${resaltado ? "border-tinta bg-tinta font-semibold text-crema" : "border-sand bg-papel"}`}>{children}</span>;
   return (
     <span className={`${base} ${borde} ${tipo === "combo" ? "min-w-[9rem] justify-between" : "min-w-[4.5rem]"}`}>

@@ -53,7 +53,7 @@ const plural = (n: number) => `${n} ${n === 1 ? "conteo" : "conteos"}`;
 function FichaDeLugar({ tipo }: { tipo: string | null }) {
   const clase = "h-[18px] w-[18px]";
   return (
-    <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-tinta/10 bg-sand/50 text-taupe">
+    <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-tinta/10 vd-lente text-taupe">
       {tipo === "piso_venta" ? <IconoPercha className={clase} /> : tipo === "almacen_tienda" ? <Package className={clase} /> : <ClipboardCheck className={clase} />}
     </span>
   );

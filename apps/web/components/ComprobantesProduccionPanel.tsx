@@ -213,7 +213,7 @@ export function ComprobantesProduccionPanel({
                       <button
                         type="button"
                         onClick={() => setAbierto(c.id)}
-                        className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left outline-none transition-colors hover:bg-sand/40 focus-visible:bg-sand/40 @min-[42rem]:grid-cols-[4rem_minmax(0,1.6fr)_7rem_7rem_11rem]"
+                        className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left outline-none transition-colors vd-pasa @min-[42rem]:grid-cols-[4rem_minmax(0,1.6fr)_7rem_7rem_11rem]"
                       >
                         <span className="hidden text-sm tabular-nums text-tinta/75 @min-[42rem]:block">{diaMes(c.fechaEmision)}</span>
                         <span className="min-w-0">

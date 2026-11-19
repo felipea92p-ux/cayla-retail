@@ -651,7 +651,7 @@ export function CategoriasLista({
                       }
                       className="flex items-center gap-1.5 rounded-lg border border-tinta/10 bg-papel py-1 pl-1.5 pr-2.5 text-sm text-tinta hover:border-rojo/40 hover:text-rojo"
                     >
-                      <span className="rounded bg-sand px-1.5 py-0.5 font-mono text-[10px] font-semibold text-tinta/65">{h.prefijo ?? "—"}</span>
+                      <span className="rounded vd-gota-chica px-1.5 py-0.5 font-mono text-[10px] font-semibold text-tinta/65">{h.prefijo ?? "—"}</span>
                       {h.nombre}
                     </button>
                   ))}
@@ -842,7 +842,7 @@ export function CategoriasLista({
                 key={c.id}
                 className="flex w-full items-center gap-2 rounded-lg border border-tinta/10 bg-papel py-1.5 pl-2 pr-3 text-sm text-tinta/70 sm:w-auto"
               >
-                <span className="shrink-0 rounded bg-sand px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
+                <span className="shrink-0 rounded vd-gota-chica px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
                 <span className="min-w-0 flex-1 truncate" title={c.nombre}>
                   {c.nombre}
                 </span>
@@ -964,7 +964,7 @@ function VistaRapidaCategoria({
           >
             <IconoCategoria prefijo={categoria.prefijo} familia={familia} className="h-8 w-8" />
           </div>
-          <span className="rounded-md bg-sand px-2 py-1 font-mono text-xs font-semibold text-tinta/70">{categoria.prefijo ?? "—"}</span>
+          <span className="rounded-md vd-gota-chica px-2 py-1 font-mono text-xs font-semibold text-tinta/70">{categoria.prefijo ?? "—"}</span>
         </div>
 
         <div className="space-y-4">
@@ -996,7 +996,7 @@ function VistaRapidaCategoria({
                     onClick={() => onVerHija(h.id)}
                     className="flex items-center gap-1.5 rounded-lg border border-tinta/10 bg-papel py-1 pl-1.5 pr-2.5 text-sm text-tinta hover:border-rojo/40 hover:text-rojo"
                   >
-                    <span className="rounded bg-sand px-1.5 py-0.5 font-mono text-[10px] font-semibold text-tinta/65">{h.prefijo ?? "—"}</span>
+                    <span className="rounded vd-gota-chica px-1.5 py-0.5 font-mono text-[10px] font-semibold text-tinta/65">{h.prefijo ?? "—"}</span>
                     {h.nombre}
                   </button>
                 ))}
