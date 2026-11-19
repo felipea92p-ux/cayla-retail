@@ -119,7 +119,7 @@ export function ArmarMezcla({
             )}
           </p>
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex min-h-8 items-center gap-[7px] rounded-full border border-sand bg-hueso py-1 pl-3 pr-3 text-sm text-tinta">
+            <span className="inline-flex min-h-8 items-center gap-[7px] rounded-full border border-sand vd-gota-chica py-1 pl-3 pr-3 text-sm text-tinta">
               <Punto hex={base.hex} familia={base.familiaColor} tipo={base.tipo} />
               {base.nombre}
               <span className="text-taupe">· base</span>

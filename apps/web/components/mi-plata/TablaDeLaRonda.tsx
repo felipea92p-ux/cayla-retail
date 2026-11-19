@@ -25,7 +25,7 @@ function FilaDeTabla({ m }: { m: MovimientoCompradora }) {
       <button ref={origen} type="button" aria-haspopup="dialog" onClick={() => setAbierta(true)} className={`${fila(PLANTILLA, "w-full items-center text-left")} text-sm text-tinta`}>
         <span className={celda("izq", "tabular-nums text-taupe")}>{horaDeMovimiento(m) ?? "—"}</span>
         <span className={celda("izq", "flex items-center gap-3 overflow-visible")}>
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-hueso text-tinta">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full vd-lente text-tinta">
             <Icono className="h-4 w-4" aria-hidden />
           </span>
           <span className="min-w-0">

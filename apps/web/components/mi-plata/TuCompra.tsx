@@ -115,7 +115,7 @@ export function TuCompra({
           )}
         </>
       )}
-      <p className="flex items-center gap-2 rounded-[10px] bg-hueso px-2.5 py-2 text-sm text-tinta">
+      <p className="flex items-center gap-2 rounded-[10px] vd-placa px-2.5 py-2 text-sm text-tinta">
         <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
         {siguiente}
       </p>

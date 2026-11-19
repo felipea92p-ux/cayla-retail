@@ -276,7 +276,7 @@ export function PlanillaDelAjuste({
   );
   const columnaColor = (color: string | null, hex: string | null, extra?: ReactNode) => (
     <th scope="row" className="ajuste-col-color">
-      <span aria-hidden data-color-dato className="ajuste-franja" style={{ background: fondoDelPunto(hex, control.modelo?.colores.find((c) => c.color === color)?.tonos) ?? "var(--color-sand)" }} />
+      <span /* beige-fijo: muestra de la prenda sin color: el beige es el dato */ aria-hidden data-color-dato className="ajuste-franja" style={{ background: fondoDelPunto(hex, control.modelo?.colores.find((c) => c.color === color)?.tonos) ?? "var(--color-sand)" }} />
       <span className="ajuste-color">
         {fotoDelEstampado?.(color) && <CuadroEstampado fotoUrl={fotoDelEstampado(color)!} hex={hex} className="h-7 w-7" />}
         <b>{color ?? "Sin color"}</b>
@@ -738,7 +738,7 @@ export function TalonDelAjuste({ control, guardadas, sellado = false }: { contro
               const hex = fondoDelPunto(delColor?.hex, delColor?.tonos) ?? null;
               return (
                 <li key={l.variante.varianteId} className="ajuste-ticket">
-                  <span aria-hidden data-color-dato className="ajuste-ticket-muestra" style={{ background: hex ?? "var(--color-hueso)" }} />
+                  <span /* beige-fijo: muestra de la prenda sin color: el beige es el dato */ aria-hidden data-color-dato className="ajuste-ticket-muestra" style={{ background: hex ?? "var(--color-hueso)" }} />
                   <span className="min-w-0 truncate">
                     <b className="font-semibold text-tinta">{l.nombre}</b> <span className="tabular-nums text-taupe">{`${l.actual} → ${l.resultado}`}</span>
                   </span>

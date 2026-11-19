@@ -544,7 +544,7 @@ export function ApartarVista({
           onMouseEnter={() => puede && setActivo(i)}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => agregar(v.varianteId)}
-          className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors duration-200 @[19rem]:px-4 ${puede && i === activo ? "bg-sand/60" : ""} ${puede ? "" : "cursor-not-allowed opacity-55"}`}
+          className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors duration-200 @[19rem]:px-4 ${puede && i === activo ? "vd-marca" : ""} ${puede ? "" : "cursor-not-allowed opacity-55"}`}
         >
           <FotoPrenda fotoUrl={v.fotoUrl} referencia={v.referencia} colorHex={v.colorHex} categoria={v.categoria} categoriaPrefijo={v.categoriaPrefijo} categoriaFamilia={v.categoriaFamilia} ancho={44} className="w-11" />
           <span className="min-w-0 flex-1">
@@ -823,7 +823,7 @@ export function ApartarVista({
                   <>
                     {disponibles.map((v, i) => filaResultado(v, i))}
                     {agotadas.length > 0 && (
-                      <li role="presentation" className="label-cayla bg-sand/25 px-4 py-2 text-[10.5px] text-tinta/50">
+                      <li role="presentation" className="label-cayla vd-hundido px-4 py-2 text-[10.5px] text-tinta/50">
                         Sin disponible en {ubicacionEtiqueta}
                       </li>
                     )}
@@ -1155,7 +1155,7 @@ export function ApartarVista({
                             Comprobante
                             <Ayuda titulo="el comprobante del apartado">Se emite al entregar, por el total. Hoy el cliente se lleva una constancia, no un comprobante.</Ayuda>
                           </span>
-                          <div role="group" aria-label="Comprobante al entregar" className="ml-auto grid w-44 shrink-0 grid-cols-2 gap-1 rounded-xl bg-sand/50 p-1">
+                          <div role="group" aria-label="Comprobante al entregar" className="ml-auto grid w-44 shrink-0 grid-cols-2 gap-1 rounded-xl vd-hundido p-1">
                             {(["boleta", "factura"] as const).map((k) => (
                               <button key={k} type="button" aria-pressed={f.comprobante === k} onClick={() => cambiar("comprobante", k)} className={`${OPCION} label-cayla h-8 text-[11px] ${f.comprobante === k ? OPCION_ACTIVA : OPCION_INACTIVA}`}>
                                 {k}
@@ -1285,7 +1285,7 @@ export function ApartarVista({
                     estado={devolucionOk ? { ok: true, texto: `Por ${NOMBRE_MEDIO[f.devolucionMedio]}` } : null}
                   />
                   <div className="flex flex-wrap items-start gap-2">
-                    <div role="group" aria-label="Le devolvemos por" className="grid shrink-0 grid-cols-3 gap-1 rounded-xl bg-sand/50 p-1">
+                    <div role="group" aria-label="Le devolvemos por" className="grid shrink-0 grid-cols-3 gap-1 rounded-xl vd-hundido p-1">
                       {(["yape", "plin", "transferencia"] as const).map((k) => (
                         <button key={k} type="button" aria-pressed={f.devolucionMedio === k} onClick={() => cambiar("devolucionMedio", k)} className={`${OPCION} label-cayla h-8 px-2 text-[11px] ${f.devolucionMedio === k ? OPCION_ACTIVA : OPCION_INACTIVA}`}>
                           {NOMBRE_MEDIO_CORTO[k]}

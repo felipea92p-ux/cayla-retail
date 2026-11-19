@@ -62,7 +62,7 @@ export function HojaEnvio({ e, hoy, onClose, volverA }: { e: EnvioMio; hoy?: str
             {a.texto}
           </Aviso>
         ))}
-        <dl className="rounded-[14px] bg-hueso px-3.5 py-1.5 text-sm tabular-nums">
+        <dl className="rounded-[14px] vd-hundido px-3.5 py-1.5 text-sm tabular-nums">
           {filas.map(([k, v]) => (
             <div key={k} className="flex justify-between gap-4 border-t border-sand py-2 first:border-t-0">
               <dt className="text-taupe">{k}</dt>

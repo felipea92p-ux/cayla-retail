@@ -406,7 +406,7 @@ export function FotosYColores({
       onDrop={soltar}
     >
       {nada ? (
-        <div className={`flex flex-col items-center gap-2 rounded-2xl border border-dashed px-5 py-8 text-center transition-colors ${encima ? "border-tinta bg-hueso" : "border-borde-control bg-hueso/50"}`}>
+        <div className={`flex flex-col items-center gap-2 rounded-2xl border border-dashed px-5 py-8 text-center transition-colors ${encima ? "border-tinta vd-marca" : "border-borde-control vd-hundido"}`}>
           <span className="grid h-12 w-12 place-items-center rounded-full border border-sand bg-papel">
             <ImagePlus aria-hidden className="h-5 w-5" />
           </span>
@@ -431,7 +431,7 @@ export function FotosYColores({
               const partes = L && L.tipo !== "sin-prenda" ? L.partes.slice(0, 4) : [];
               return (
                 <li key={p.clave} className="relative flex flex-col overflow-hidden rounded-2xl border border-[color:var(--vidrio-claro-borde)] [background:var(--vidrio-claro-fondo)]">
-                  <div className="relative aspect-[4/5] bg-hueso/60">
+                  <div className="relative aspect-[4/5] vd-hundido">
                     {(p.ia?.usar ? p.ia.vistaIA : p.vista) && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={p.ia?.usar ? p.ia.vistaIA : p.vista} alt="Foto de la prenda" className="h-full w-full object-contain" />
@@ -580,7 +580,7 @@ export function FotosYColores({
                   className={`relative flex flex-col overflow-hidden rounded-2xl border border-[color:var(--vidrio-claro-borde)] [background:var(--vidrio-claro-fondo)] ${yaTiene?.has(codigo) && !suyas.length ? "self-start" : ""}`}
                 >
                   {suyas.length ? (
-                    <div className="relative aspect-[4/5] bg-hueso/60">
+                    <div className="relative aspect-[4/5] vd-hundido">
                       {/* La foto que se sube tal cual (blob: local); next/image no aplica a una vista previa. */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={suyas[0].vista} alt={`Foto de ${nombre}`} className="h-full w-full object-contain" />
@@ -614,7 +614,7 @@ export function FotosYColores({
                       {suyas.slice(1).map((f, i) => (
                         <span key={f.clave} className="relative h-12 w-10">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={f.vista} alt={`Foto ${i + 2} de ${nombre}`} className="h-full w-full overflow-hidden rounded-lg border border-sand bg-hueso/60 object-contain" />
+                          <img src={f.vista} alt={`Foto ${i + 2} de ${nombre}`} className="h-full w-full overflow-hidden rounded-lg border border-sand vd-hundido object-contain" />
                           <BotonQuitarFoto
                             etiqueta={`Quitar la foto ${i + 2} de ${nombre}`}
                             disabled={disabled || Boolean(catalogo?.preparandoFoto(f.clave))}
@@ -670,7 +670,7 @@ export function FotosYColores({
                 onArchivos={agregar}
                 disabled={disabled}
                 etiqueta="Otra foto"
-                className={`flex h-full min-h-56 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed text-[15px] font-medium transition-colors hover:border-tinta disabled:opacity-40 ${encima ? "border-tinta bg-hueso" : "border-borde-control bg-hueso/40"}`}
+                className={`flex h-full min-h-56 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed text-[15px] font-medium transition-colors hover:border-tinta disabled:opacity-40 ${encima ? "border-tinta vd-marca" : "border-borde-control vd-hundido"}`}
               >
                 <span className="grid h-11 w-11 place-items-center rounded-full border border-sand bg-papel">
                   <ImagePlus aria-hidden className="h-5 w-5" />

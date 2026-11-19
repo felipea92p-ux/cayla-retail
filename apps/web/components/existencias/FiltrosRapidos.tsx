@@ -112,7 +112,7 @@ export function FiltrosRapidos({
                 </b>
               ) : (
                 cuenta !== null && (
-                  <b aria-hidden className={`ml-0.5 rounded-full px-[5px] text-sm font-semibold leading-[18px] tabular-nums ${puesto ? "bg-tinta/10" : "bg-sand/70 text-tinta/75"}`}>
+                  <b aria-hidden className={`ml-0.5 rounded-full px-[5px] text-sm font-semibold leading-[18px] tabular-nums ${puesto ? "bg-tinta/10" : "vd-gota-chica text-tinta/75"}`}>
                     {cuenta.toLocaleString("es-PE")}
                   </b>
                 )

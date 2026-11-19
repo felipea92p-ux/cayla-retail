@@ -171,7 +171,7 @@ export function PieTarjeta({
                   onOpcion(o.clave);
                 }}
                 // Con el dedo, cada opción mide 44 px (medían 39 y van una pegada a la otra: auditoría /milimetro, 2026-11-17).
-                className={`flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm outline-none transition-colors focus-visible:bg-hueso pointer-coarse:py-3 ${apagada ? "cursor-not-allowed text-tinta/45" : "text-tinta hover:bg-hueso"}`}
+                className={`flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm outline-none transition-colors pointer-coarse:py-3 ${apagada ? "cursor-not-allowed text-tinta/45" : "text-tinta vd-pasa"}`}
               >
                 <Ico aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
                 <span className="min-w-0">

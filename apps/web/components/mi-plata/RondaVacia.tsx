@@ -33,7 +33,7 @@ export function RondaVacia({ texto }: { texto: string }) {
           <ol className="mt-1 grid w-full max-w-3xl grid-cols-1 gap-4 xl:grid-cols-3 text-left">
             {PASOS.map((p) => (
               <li key={p.n} className="flex flex-col gap-1.5">
-                <span aria-hidden className="grid h-7 w-7 place-items-center rounded-full bg-hueso text-xs font-semibold text-taupe">
+                <span aria-hidden className="grid h-7 w-7 place-items-center rounded-full vd-gota-chica text-xs font-semibold text-taupe">
                   {p.n}
                 </span>
                 <b className="text-sm font-medium text-tinta">{p.titulo}</b>

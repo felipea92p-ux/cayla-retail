@@ -42,7 +42,7 @@ export function TarjetaFoto({
         archivo ? "border-solid border-verde" : "border-dashed border-borde-control"
       } ${deshabilitada ? "pointer-events-none opacity-60" : ""}`}
     >
-      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-hueso text-tinta">
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl vd-lente text-tinta">
         {archivo ? <Check className="h-5 w-5 text-verde" aria-hidden /> : <Camera className="h-5 w-5" aria-hidden />}
       </span>
       <span className="min-w-0">

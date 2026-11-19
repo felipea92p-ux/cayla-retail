@@ -157,7 +157,7 @@ export function BandejaRevisar(d: Datos) {
                         aria-current={marcado || undefined}
                         onClick={() => abrir(fila.id)}
                         className={`relative grid w-full items-center gap-3.5 px-5 py-3.5 text-left transition-colors ${mini ? "grid-cols-[auto_minmax(0,1fr)_auto]" : "grid-cols-[minmax(0,1fr)_auto]"} ${
-                          marcado ? "bg-crema" : "hover:bg-hueso/60"
+                          marcado ? "bg-crema" : "vd-pasa"
                         }`}
                       >
                         {/* El hilo rojo de canto marca el que está abierto, como la fila que se abre en una tabla. */}

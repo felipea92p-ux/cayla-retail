@@ -67,13 +67,13 @@ type Rechazo = { titulo: string; texto: string; tono: "error" | "atencion" };
 export function MiniFotoPapel({ papel }: { papel: PapelConFoto }) {
   if (!papel.fotoUrl || papel.fotoRuta?.toLowerCase().endsWith(".pdf")) {
     return (
-      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-hueso text-taupe" title={papel.fotoUrl ? "Un PDF" : "Sin foto"}>
+      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl vd-lente text-taupe" title={papel.fotoUrl ? "Un PDF" : "Sin foto"}>
         {papel.fotoUrl ? <FileText className="h-5 w-5" aria-hidden /> : <ImageOff className="h-5 w-5" aria-hidden />}
       </span>
     );
   }
   return (
-    <span className="block h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-hueso">
+    <span className="block h-12 w-12 shrink-0 overflow-hidden rounded-xl vd-hundido">
       {/* La foto es un enlace firmado de 10 minutos del depósito privado: no pasa por la optimización de imágenes. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={papel.fotoUrl} alt="" className="h-full w-full object-cover" />
@@ -86,7 +86,7 @@ function FotoPapel({ papel }: { papel: PapelConFoto }) {
   const nombre = `${TIPOS_PAPEL[papel.tipo].nombre} de ${papel.proveedor}`;
   if (!papel.fotoUrl) {
     return (
-      <div className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-2xl bg-hueso p-5 text-center">
+      <div className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-2xl vd-hundido p-5 text-center">
         <ImageOff className="h-5 w-5 text-taupe" aria-hidden />
         <span className="text-sm font-medium text-tinta">{papel.fotoRuta ? "La foto no se pudo abrir" : "Sin foto"}</span>
         <span className="text-sm text-taupe">
@@ -101,7 +101,7 @@ function FotoPapel({ papel }: { papel: PapelConFoto }) {
       href={papel.fotoUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="relative flex min-h-48 items-center justify-center overflow-hidden rounded-2xl bg-hueso p-4"
+      className="relative flex min-h-48 items-center justify-center overflow-hidden rounded-2xl vd-hundido p-4"
       title="Ver la foto en grande"
     >
       {esPdf ? (
@@ -138,7 +138,7 @@ function Bloque({
   guia?: string;
   children?: ReactNode;
 }) {
-  const circulo = tono === "verde" ? "bg-verde/10 text-verde" : tono === "ambar" ? "bg-ambar/10 text-ambar-profundo" : "bg-hueso text-tinta";
+  const circulo = tono === "verde" ? "bg-verde/10 text-verde" : tono === "ambar" ? "bg-ambar/10 text-ambar-profundo" : "vd-lente text-tinta";
   return (
     <div className="rounded-2xl border border-sand px-4 py-3.5" data-guia={guia}>
       <div className="flex items-center gap-3.5">

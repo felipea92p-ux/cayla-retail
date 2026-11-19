@@ -23,7 +23,7 @@ export function FotoAmpliada({
 }) {
   return (
     <Modal titulo={referencia} subtitulo={color ?? undefined} variante="hoja" tamano="ancha" conCerrar focoEnLaHoja onClose={onCerrar} alCerrarEnfocar={alCerrarEnfocar}>
-      <div className="grid place-items-center overflow-hidden rounded-xl bg-hueso">
+      <div className="grid place-items-center overflow-hidden rounded-xl vd-hundido">
         <Image
           src={fotoUrl}
           alt={`${referencia}${color ? ` — ${color}` : ""}`}

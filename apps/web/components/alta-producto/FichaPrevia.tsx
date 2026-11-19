@@ -97,7 +97,7 @@ function Tarjeta({ d }: { d: DatosFicha }) {
   const masColores = d.colores.length - puntos.length;
   return (
     <div className="overflow-hidden rounded-xl border border-sand bg-papel">
-      <div className="relative grid h-32 place-items-center bg-hueso px-6 text-center text-sm text-taupe">
+      <div className="relative grid h-32 place-items-center vd-hundido px-6 text-center text-sm text-taupe">
         {d.foto ? (
           // eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:)
           <img src={d.foto} alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -145,7 +145,7 @@ function Tarjeta({ d }: { d: DatosFicha }) {
           </div>
           {d.campana && (
             <p className="relative mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-taupe">
-              <span className="rounded-full bg-hueso px-2 py-px text-tinta">−{d.campana.pct} %</span>
+              <span className="rounded-full vd-gota-chica px-2 py-px text-tinta">−{d.campana.pct} %</span>
               <span>
                 {d.campana.nombre}
                 {d.campana.hasta && ` · hasta ${fechaCorta(d.campana.hasta)}`}

@@ -38,7 +38,7 @@ export function QuitarVarianteHoja({
       <Modal titulo={titulo} subtitulo="No se puede archivar con unidades" onClose={onCerrar} tamano="angosta">
         <div className="space-y-4">
           <div className="flex gap-3 text-sm text-tinta/80">
-            <span aria-hidden className="grid h-10 w-10 flex-none place-items-center rounded-full bg-hueso text-tinta">
+            <span aria-hidden className="grid h-10 w-10 flex-none place-items-center rounded-full vd-lente text-tinta">
               <Lock className="h-4 w-4" />
             </span>
             <div className="space-y-2">

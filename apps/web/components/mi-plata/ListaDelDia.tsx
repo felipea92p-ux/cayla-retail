@@ -54,7 +54,7 @@ function Cara({
 }) {
   return (
     <>
-      <span className="grid h-9 w-9 place-items-center rounded-full bg-hueso text-tinta">
+      <span className="grid h-9 w-9 place-items-center rounded-full vd-lente text-tinta">
         <Icono className="h-4 w-4" aria-hidden />
       </span>
       <span className="min-w-0">

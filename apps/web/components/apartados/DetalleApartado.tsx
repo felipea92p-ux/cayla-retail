@@ -212,7 +212,7 @@ function VistaDetalle({
         </dl>
         <BarraAvance pct={(Math.min(a.adelanto, a.total) / a.total) * 100} decorativa />
         {conEstante && a.estante && abierto && (
-          <p className="inline-flex items-center gap-1 rounded-md bg-hueso px-2 py-0.5 font-mono text-[11px] text-tinta/80">
+          <p className="inline-flex items-center gap-1 rounded-md vd-gota-chica px-2 py-0.5 font-mono text-[11px] text-tinta/80">
             <Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}
           </p>
         )}
@@ -381,7 +381,7 @@ function FilaEvento({ e, ultimo }: { e: EventoApartado; ultimo: boolean }) {
   }
   return (
     <li className="relative grid grid-cols-[28px_minmax(0,1fr)_auto] gap-x-3 pb-3">
-      {!ultimo && <span aria-hidden className="absolute top-7 bottom-0 left-[13px] w-px bg-sand" />}
+      {!ultimo && <span /* beige-fijo: línea de la cronología, no es superficie */ aria-hidden className="absolute top-7 bottom-0 left-[13px] w-px bg-sand" />}
       <span className="relative grid h-7 w-7 place-items-center rounded-full border border-sand bg-papel text-tinta/75 [&_svg]:h-3.5 [&_svg]:w-3.5">{icono}</span>
       <div className="min-w-0 pt-0.5">
         <p className="text-sm font-semibold text-tinta">{titulo}</p>
@@ -520,7 +520,7 @@ function AplazarFormulario({
       </CampoGuiado>
 
       {fecha && !motivo && (
-        <p className="anim-revelar rounded-xl bg-hueso px-3.5 py-2.5 text-sm text-tinta/80">
+        <p className="anim-revelar rounded-xl vd-placa px-3.5 py-2.5 text-sm text-tinta/80">
           Recoge hasta el <b className="font-semibold text-tinta">{fechaCorta(fecha)}</b> ({textoDiasMas(o.desde, fecha)}).{" "}
           {o.restantes - 1 === 0 ? "Es el último aplazamiento que le queda." : `Después le queda ${o.restantes - 1} aplazamiento más.`}
         </p>
