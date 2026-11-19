@@ -19,8 +19,9 @@
 -- DECIDÍ que todo cambio a una función que ya existe solo AGREGUE texto, sin tocar una línea de las que hay: las pruebas de las migraciones
 --   anteriores las vuelven a pegar y buscan sus propias anclas (20261114060000, 20261114130000, 20261116173000, 20261116175000). Por eso:
 --   · `fn_regla_alcanza_variante` envuelve su respuesta de siempre en `fn_regla_con_variantes(regla, prenda, respuesta)`;
---   · `fn_variantes_de_regla` y `fn_campanas_en_sede` ganan una rama más al final (`union`) y una condición que apaga la caída a «las
---     prendas de la campaña» cuando la oferta solo tiene variantes.
+--   · `fn_variantes_de_regla` y `fn_campanas_en_sede` ganan una rama más (`union`) y una condición que apaga la caída a «las prendas de
+--     la campaña» cuando la oferta solo tiene variantes. En la caja, las dos van ANTES del final de su bloque de ofertas: ese final es el
+--     ancla de 20261113223000 (medido el 2026-11-18 en una base limpia: con el texto después, `pruebas:campana-reglas` daba 106 de 107).
 -- DESCARTÉ un dato más en `fn_oferta_alcanza_variante_con_insignias` / `fn_variantes_de_oferta_con_insignias` (las de listas): cambiarles la
 --   firma dejaría dos vivas mientras las pruebas vuelvan a crear la de antes (`pruebas:una-sola-firma`), y sus líneas son anclas de
 --   20261114130000. Las de listas las necesita la hoja ANTES de guardar (los choques): van en 20261118234000, con funciones nuevas.
@@ -33,7 +34,7 @@
 --   primaria); una oferta borrada o una variante eliminada que deja filas sueltas (cascada); un monto de toda la compra con variantes; una
 --   variante suelta de un modelo que la oferta ya eligió entero.
 --
--- SE ROMPE SI: alguien cambia el final de `fn_campanas_en_sede`, de `fn_variantes_de_regla` o de `fn_regla_alcanza_variante` antes de pegar
+-- SE ROMPE SI: alguien cambia el bloque de ofertas de `fn_campanas_en_sede`, o el final de `fn_variantes_de_regla` o de `fn_regla_alcanza_variante`, antes de pegar
 --   esto: el ancla no aparece y se detiene sin aplicar nada. Y si la regla cambia en una de las tres caras y no en las otras: la prueba las
 --   compara.
 -- CÓMO SE PEGA. Una sola parte, idempotente, `lock_timeout` 3 s: una tabla NUEVA (RLS encendido sin políticas: solo la leen funciones
@@ -217,24 +218,15 @@ $v$,
 $n$
 );
 
--- (c) La caja (un «% menos»): la misma condición en el bloque de siempre, y una rama más con las variantes sueltas.
-select pg_temp.reemplazar_por_variante(
+-- (c) La caja (un «% menos»): una rama más con las variantes sueltas y la misma condición en el bloque de siempre. Los dos textos van
+--     ANTES del final del bloque 2 y no después: ese final (la línea de Claurè, las cesiones y `) x`) es el ancla de 20261113223000, y
+--     `pruebas:campana-reglas` la vuelve a pegar. Con una línea más ahí, esa migración ya no se reconocería como aplicada.
+select pg_temp.reemplazar_par_por_variante(
   'retail.fn_campanas_en_sede(date, integer, uuid[], uuid)',
-  $v$
-      and not exists (select 1 from calladas k where k.cede_regla_id = r.id and k.variante_id = v.id)
-  ) x
-$v$,
-  $n$
-      and not exists (select 1 from calladas k where k.cede_regla_id = r.id and k.variante_id = v.id)
-      -- ADR-0682: una oferta con variantes sueltas y nada más (ni categorías, ni modelos, ni insignias) no cae en las prendas de su campaña.
-      and not (
-        exists (select 1 from retail.campana_regla_variantes rv where rv.regla_id = r.id)
-        and not exists (select 1 from retail.campana_regla_categorias rc where rc.regla_id = r.id and rc.modo = 'solo')
-        and not exists (select 1 from retail.campana_regla_productos rp where rp.regla_id = r.id)
-        and not exists (select 1 from retail.campana_regla_insignias ri where ri.regla_id = r.id)
-      )
-    union all
-    -- 3. ADR-0682: las variantes sueltas de las ofertas activas (una talla y color en concreto), con las mismas condiciones de arriba.
+  $v$    union all
+    -- 2. Las ofertas activas de campañas aprobadas, activas, vigentes y que rigen en la sede.$v$,
+  $n$    union all
+    -- ADR-0682: las variantes sueltas de las ofertas activas (una talla y color en concreto), con las mismas condiciones del bloque 2.
     select v.id, e.id, e.nombre, r.porcentaje
     from retail.campana_reglas r
     join retail.etiquetas e
@@ -254,8 +246,17 @@ $v$,
       )
       and (r.incluye_claure or p.empresa_id is distinct from (select em.id from retail.empresas em where em.clave = 'claure'))
       and not exists (select 1 from calladas k where k.cede_regla_id = r.id and k.variante_id = v.id)
-  ) x
-$n$
+    union all
+    -- 2. Las ofertas activas de campañas aprobadas, activas, vigentes y que rigen en la sede.$n$,
+  $v$      -- Las prendas de Claurè no entran, salvo que la oferta las incluya a propósito.$v$,
+  $n$      -- ADR-0682: una oferta con variantes sueltas y nada más (ni categorías, ni modelos, ni insignias) no cae en las prendas de su campaña.
+      and not (
+        exists (select 1 from retail.campana_regla_variantes rv where rv.regla_id = r.id)
+        and not exists (select 1 from retail.campana_regla_categorias rc where rc.regla_id = r.id and rc.modo = 'solo')
+        and not exists (select 1 from retail.campana_regla_productos rp where rp.regla_id = r.id)
+        and not exists (select 1 from retail.campana_regla_insignias ri where ri.regla_id = r.id)
+      )
+      -- Las prendas de Claurè no entran, salvo que la oferta las incluya a propósito.$n$
 );
 
 -- (d) Guardar: las variantes van en la forma (`p_forma.variantes`), después de la forma y antes de las cesiones (que revisan los choques con
