@@ -808,7 +808,7 @@ function PasoDelEditor({
   return (
     <section className={`card-cayla ${abierto ? "" : "opacity-95"}`} data-guia={guia}>
       <button type="button" className="flex w-full items-center gap-3 px-4 py-3 text-left" onClick={onAbrir} aria-expanded={abierto} disabled={bloqueado}>
-        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${hecho && !falta ? "bg-verde text-crema" : "bg-sand text-tinta"}`} aria-hidden>
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${hecho && !falta ? "bg-verde text-crema" : "vd-gota-chica text-tinta"}`} aria-hidden>
           {hecho && !falta ? <Check className="h-3.5 w-3.5" /> : numero}
         </span>
         <span className="min-w-0 flex-1">
@@ -936,7 +936,7 @@ function SubidaDeImagen({
           </div>
         </div>
       ) : (
-        <label htmlFor={id} className={`flex flex-col items-center gap-1 rounded-xl border border-dashed border-taupe bg-hueso px-4 py-5 text-center text-sm ${deshabilitado ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>
+        <label htmlFor={id} className={`flex flex-col items-center gap-1 rounded-xl border border-dashed border-taupe vd-hundido px-4 py-5 text-center text-sm ${deshabilitado ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>
           <IconoImagen className="h-4 w-4" aria-hidden />
           <b>{subiendo ? "Subiendo…" : "Sube tu imagen"}</b>
           <small className="max-w-[40ch] text-sm text-tinta/65">JPG, PNG o WebP · ideal {medida} · se reduce a 300 KB o menos al subirla.</small>

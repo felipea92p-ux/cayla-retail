@@ -307,7 +307,7 @@ function HistoriaDeLaCampana({ h }: { h: HistoriaCampana }) {
   );
 }
 
-const COLOR_CATEGORIA = ["bg-tinta", "bg-taupe", "bg-pizarra", "bg-ambar", "bg-verde", "bg-sand", "bg-tinta/40"] as const;
+const COLOR_CATEGORIA = ["bg-tinta", "bg-taupe", "bg-pizarra", "bg-ambar", "bg-verde", "bg-sand", "bg-tinta/40"] as const; // beige-fijo: escala del dato (categorías)
 
 /** Cuánto costará la campaña, por qué no es un gasto y cuánto deja. */
 function CostoDeLaCampana({ c, costos, conIgv }: { c: CampanaInversion; costos: CostosCampana; conIgv: boolean }) {
@@ -342,7 +342,7 @@ function CostoDeLaCampana({ c, costos, conIgv }: { c: CampanaInversion; costos: 
             ["2 · Vendes", "Cada prenda vendida pasa a ser costo de lo vendido. Ahí recién baja «Te deja»."],
             ["3 · Sobra", "Lo que no se vende sigue siendo inventario: no se pierde ni se cuenta como gasto."],
           ].map(([t, d]) => (
-            <div key={t} className="rounded-xl bg-hueso p-3 text-sm">
+            <div key={t} className="rounded-xl vd-placa p-3 text-sm">
               <b className="font-serif text-base">{t}</b>
               <p className="mt-1 text-sm">{d}</p>
             </div>

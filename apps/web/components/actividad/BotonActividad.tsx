@@ -31,7 +31,7 @@ export function BotonActividad({ ubicacionId, ubicacionEtiqueta, esLider }: { ub
         onFocus={() => void cargarPanel()}
         aria-label={`Actividad${modulo ? ` de ${nombreDeModulo(modulo)}` : ""}`}
         title="Quién hizo qué en este módulo"
-        className="area-dedo flex h-9 items-center gap-1.5 rounded-lg px-2 text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:px-2.5"
+        className="area-dedo flex h-9 items-center gap-1.5 rounded-lg px-2 text-tinta/65 transition-colors vd-pasa-gota hover:text-rojo sm:px-2.5"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden className="h-[18px] w-[18px]">
           <path d={RUTA_HISTORIAL} />

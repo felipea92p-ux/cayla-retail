@@ -60,7 +60,7 @@ export type DatosDelPerfil = {
 /** La columna izquierda: su cara, su nombre, su estado y su contacto. `children` va debajo (Editar, Archivar…). */
 export function PerfilDelCliente({ d, children }: { d: DatosDelPerfil; children?: ReactNode }) {
   return (
-    <aside className="flex flex-col gap-3.5 bg-hueso p-5 sm:p-6 lg:min-h-full" data-guia="clientas.ficha-datos">
+    <aside className="flex flex-col gap-3.5 vd-placa p-5 sm:p-6 lg:min-h-full" data-guia="clientas.ficha-datos">
       {/* Sobre el fondo hueso del perfil, la cara y la insignia gris van en papel: en arena se perdían. */}
       <AvatarPersona personaId={null} nombre={d.nombre} tamano={80} className="mt-1 !bg-papel" />
       <div>
@@ -188,8 +188,8 @@ function MovimientoDelHistorial({ m, ultimo }: { m: Movimiento; ultimo: boolean 
   return (
     <li className="relative grid grid-cols-[46px_minmax(0,1fr)] gap-3.5 py-1.5">
       {/* El hilo que une un movimiento con el siguiente: se corta en el último de su mes. */}
-      {!ultimo && <span aria-hidden className="absolute bottom-[-6px] left-[22px] top-[52px] w-0.5 bg-sand" />}
-      <div className="relative z-[1] grid h-[46px] w-[46px] place-content-center rounded-full bg-hueso text-center">
+      {!ultimo && <span aria-hidden className="absolute bottom-[-6px] left-[22px] top-[52px] w-0.5 bg-sand" />}{/* beige-fijo: línea de la cronología */}
+      <div className="relative z-[1] grid h-[46px] w-[46px] place-content-center rounded-full vd-gota-chica text-center">
         <b className="font-display text-[19px] font-medium leading-none tabular-nums">{dia}</b>
         <span className="text-[9.5px] uppercase leading-tight tracking-[0.08em] text-tinta/65">{mes}</span>
       </div>

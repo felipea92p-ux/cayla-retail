@@ -127,7 +127,7 @@ export function HojaLiquidarDesde({ dias, onCerrar, onGuardado }: { dias: number
           )}
 
           {error && (
-            <div role="alert" className="mt-4 rounded-lg bg-hueso px-3.5 py-3 text-sm leading-snug">
+            <div role="alert" className="mt-4 rounded-lg vd-placa px-3.5 py-3 text-sm leading-snug">
               <p className="font-semibold text-tinta">{error.que}</p>
               <p className="mt-0.5 text-tinta/80">{error.queda}</p>
               <p className="mt-0.5 text-tinta/80">{error.sigue}</p>

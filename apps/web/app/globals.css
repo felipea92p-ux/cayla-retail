@@ -595,7 +595,8 @@ body {
   @media (hover: hover) {
     .btn-secundario:hover:not(:disabled) {
       border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel));
-      background: color-mix(in oklab, var(--color-sand) 50%, transparent);
+      background: var(--gota-marca);
+      box-shadow: var(--gota-luz);
     }
   }
   .btn-peligro {
@@ -616,7 +617,8 @@ body {
   @media (hover: hover) {
     .btn-sutil:hover:not(:disabled) {
       color: var(--color-tinta);
-      background: color-mix(in oklab, var(--color-sand) 30%, transparent);
+      background: var(--gota-marca);
+      box-shadow: var(--gota-luz);
     }
   }
   /* El enlace dentro de una frase (ADR-0358, ronda 8: Felipe lo eligió tocándolo el 2026-10-13): en reposo, la palabra en tinta con
@@ -679,7 +681,8 @@ body {
   @media (hover: hover) {
     .pildora-cayla:hover {
       color: var(--color-tinta);
-      background: color-mix(in oklab, var(--color-sand) 40%, transparent);
+      background: var(--gota-marca);
+      box-shadow: var(--gota-luz);
     }
   }
   .pildora-cayla[aria-pressed="true"],
@@ -692,7 +695,8 @@ body {
 
   /* Caja de control hundida (input, select, buscador): hueso, borde de control (P2 de la familia: 3:1, no el sand decorativo), radio de control. */
   .caja-cayla {
-    background: var(--color-hueso);
+    background: var(--hundido-fondo);
+    box-shadow: var(--hundido-sombra);
     border: 1px solid var(--color-borde-control);
     border-radius: var(--radius-md);
     transition: border-color 150ms;
@@ -709,7 +713,8 @@ body {
   /* La nota al pie de una pantalla («Registro transparente: …»): explica una regla del negocio,
      no un error. Superficie hundida, sin borde. */
   .nota-cayla {
-    background: color-mix(in oklab, var(--color-hueso) 85%, transparent);
+    background: var(--placa-fondo);
+    box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde);
     border-radius: var(--radius-xl);
     padding: 0.875rem 1.125rem;
     font-size: 14px; /* ronda 19: a 13 nadie la leía */
@@ -725,13 +730,14 @@ body {
   /* Tabla oficial: la cabecera en sand y la zebra en hueso. La zebra cuenta SOLO las filas de datos
      (`:nth-child(… of .fila-cayla)`): el encabezado y el pie no desplazan el rayado. */
   .encabezado-tabla-cayla {
-    background: color-mix(in oklab, var(--color-sand) 70%, transparent);
+    background: var(--placa-fondo);
+    box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde);
   }
   .fila-cayla {
     transition: background-color 150ms;
   }
   .fila-cayla:nth-child(even of .fila-cayla) {
-    background: color-mix(in oklab, var(--color-hueso) 50%, transparent);
+    background-color: var(--hundido-fondo);
   }
   @media (hover: hover) {
     .fila-cayla:hover {
@@ -786,7 +792,7 @@ body {
     }
   }
   .fila-cayla:is(a, button, [role="button"], [role="link"], .cursor-pointer):not(.cmp-fila, .inline-block):is([aria-current="true"], [aria-current="page"]) {
-    background-color: color-mix(in oklab, var(--color-hueso) 75%, transparent);
+    background-color: var(--hundido-fondo);
   }
   .fila-cayla:is(a, button, [role="button"], [role="link"], .cursor-pointer):not(.cmp-fila, .inline-block):not(:has(.lucide-chevron-right))::after {
     content: "";
@@ -2314,7 +2320,7 @@ html[data-buscando] [data-resultados] {
     /* el piso de cada tramo, para que un día sin ventas se lea como «cero» y no como hueco */
     content: "";
     height: 2px;
-    background: var(--color-sand);
+    background: var(--color-sand); /* beige-fijo: piso de la escala del gráfico */
     flex: none;
   }
   .kpi-tramos i {
@@ -2344,7 +2350,7 @@ html[data-buscando] [data-resultados] {
   }
   /* Solo el punto apagado va en sand: con `.kpi-puntos i { background }` el color `g-*` del encendido perdía. */
   .kpi-puntos i:not([class]) {
-    background: var(--color-sand);
+    background: var(--color-sand); /* beige-fijo: punto apagado de la escala del dato */
   }
   .g-tinta { background: var(--color-tinta); }
   .g-taupe { background: var(--color-taupe); }
@@ -3183,7 +3189,7 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
   }
   .hoja-cobro-comprobante.es-elegido { border-style: solid; border-color: var(--color-tinta); background: var(--color-tinta); color: var(--color-crema); }
   .hoja-cobro-comprobante-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-  .hoja-cobro-comprobante-icono { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; flex: none; border-radius: 0.5rem; background: var(--color-hueso); }
+  .hoja-cobro-comprobante-icono { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; flex: none; border-radius: 0.5rem; background: var(--lente-fondo); box-shadow: var(--lente-luz); }
   .hoja-cobro-comprobante.es-elegido > .hoja-cobro-comprobante-icono { background: color-mix(in srgb, var(--color-crema) 14%, transparent); }
 
   /* El documento de la clienta en UNA fila (tipo de documento | número con su consulta), como en la maqueta: apilado

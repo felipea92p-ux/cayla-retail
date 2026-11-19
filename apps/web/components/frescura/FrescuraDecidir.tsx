@@ -116,7 +116,7 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
               {o.clave === "traslade" && !o.deshabilitada && opcion === "traslade" && traslados.length > 1 && (
                 <div role="radiogroup" aria-label="Cuál traslado" className="mt-2 grid gap-1.5">
                   {traslados.map((t) => (
-                    <label key={t.id} className="flex cursor-pointer items-start gap-2 rounded-lg bg-hueso px-3 py-2 text-sm">
+                    <label key={t.id} className="flex cursor-pointer items-start gap-2 rounded-lg vd-placa px-3 py-2 text-sm">
                       <input type="radio" name="traslado" checked={trasladoElegido?.id === t.id} onChange={() => setTrasladoId(t.id)} className="mt-0.5" />
                       <span>{textoTrasladoElegible(t, ahora)}</span>
                     </label>
@@ -124,7 +124,7 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
                 </div>
               )}
               {o.clave === "traslade" && !o.deshabilitada && opcion === "traslade" && traslados.length === 1 && (
-                <p className="mt-2 rounded-lg bg-hueso px-3 py-2 text-sm">{textoTrasladoElegible(traslados[0], ahora)}</p>
+                <p className="mt-2 rounded-lg vd-placa px-3 py-2 text-sm">{textoTrasladoElegible(traslados[0], ahora)}</p>
               )}
               {o.clave === "traslade" && o.deshabilitada && o.motivo === "Armar el traslado" && hrefArmarTraslado(prenda) && acceso.traslados && (
                 <Link href={hrefArmarTraslado(prenda)!} className="btn-cayla btn-secundario btn-chico mt-2 inline-flex">
@@ -168,7 +168,7 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
       )}
 
       {error && (
-        <div role="alert" className="rounded-xl bg-hueso px-3.5 py-3 text-[15px] leading-relaxed">
+        <div role="alert" className="rounded-xl vd-placa px-3.5 py-3 text-[15px] leading-relaxed">
           <p>{error.texto}</p>
           {error.conVer && (
             <button type="button" className="btn-cayla btn-enlace mt-1 text-sm" onClick={() => (anotador.limpiarError(), router.refresh())}>
@@ -208,7 +208,7 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
 /** Una opción como tarjeta: el título, lo que pasa si la eliges, y lo que necesite debajo. Un botón de radio de verdad por dentro. */
 function TarjetaOpcion({ o, marcada, onElegir, children }: { o: OpcionDeDecision; marcada: boolean; onElegir: () => void; children?: React.ReactNode }) {
   return (
-    <div className={`rounded-xl border px-3.5 py-3 ${marcada ? "border-tinta bg-hueso" : "border-sand bg-papel"} ${o.deshabilitada ? "opacity-70" : ""}`}>
+    <div className={`rounded-xl border px-3.5 py-3 ${marcada ? "border-tinta vd-marca" : "border-sand bg-papel"} ${o.deshabilitada ? "opacity-70" : ""}`}>
       <label className={`flex min-h-[44px] items-start gap-2.5 ${o.deshabilitada ? "cursor-not-allowed" : "cursor-pointer"}`}>
         <input type="radio" name="accion" value={o.clave} checked={marcada} disabled={o.deshabilitada} onChange={onElegir} className="mt-1" />
         <span>
@@ -276,7 +276,7 @@ export function FrescuraQuitar({ decisionId, sede, onNo, onListo }: { decisionId
         <ComboResponsable control={responsable} deshabilitado={enviando} />
       </CampoGuiado>
       {error && (
-        <p role="alert" className="rounded-lg bg-hueso px-3 py-2 text-sm">
+        <p role="alert" className="rounded-lg vd-placa px-3 py-2 text-sm">
           {error}
         </p>
       )}

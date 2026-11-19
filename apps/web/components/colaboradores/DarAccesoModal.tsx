@@ -134,7 +134,7 @@ export function DarAccesoModal({
                         aria-pressed={marcada}
                         onClick={() => alternar(d.persona_id)}
                         className={`grid w-full grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors duration-200 ease-cayla ${
-                          marcada ? "border-tinta bg-hueso" : "border-sand hover:border-taupe"
+                          marcada ? "border-tinta vd-marca" : "border-sand hover:border-taupe"
                         }`}
                       >
                         <AvatarPersona personaId={d.persona_id} nombre={d.nombre} />

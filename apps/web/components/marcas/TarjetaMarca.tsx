@@ -10,7 +10,7 @@ import { LapizEditar } from "@/components/ui/BotonEditar";
  *  usar (sin proveedor), punteado = desactivada. Solo tokens: es estado, no color de una prenda. */
 const CLASE_MONOGRAMA: Record<EstadoMarca, string> = {
   con: "bg-verde/15 text-verde-profundo",
-  sin: "bg-hueso text-taupe",
+  sin: "vd-gota-chica text-taupe",
   "sin-proveedor": "bg-ambar/15 text-ambar-profundo",
   desactivada: "border border-dashed border-tinta/30 text-taupe",
 };
