@@ -11,6 +11,7 @@
      vd-lente       el cuadrito o círculo que lleva un ícono
      vd-marca       lo elegido o lo destacado, claro (una fila marcada, la opción tomada sin ahumar)
      vd-pasa        una fila o un bloque al pasar el mouse o con el foco del teclado (y `vd-pasa-gota` para un botón)
+     vd-pegado      el encabezado o la columna fija de una tabla que se desplaza: opaco y neutro (y `vd-pegado-cebra`, su fila alterna)
 
    Van en la capa `components`: una utilidad de Tailwind puesta junto a ellas (`bg-tinta` cuando está elegida) les gana, así el estado de
    siempre no se pierde. El borde va como sombra interior para no mover nada de lugar. Lo vigila `lib/beige-plano.test.ts`. */
@@ -39,6 +40,11 @@
     background: var(--gota-marca);
     box-shadow: var(--gota-luz), inset 0 0 0 1px var(--color-borde-control);
   }
+  /* Lo que va PEGADO (el encabezado o la columna fija de una matriz o tabla que se desplaza) tiene que ser opaco: el vidrio dejaría ver
+     las filas que pasan por detrás. Papel con un poco de tinta: neutro, no beige, y se invierte solo en oscuro. `vd-pegado-cebra` es
+     la franja de una fila alterna que comparte su fondo con su celda pegada. */
+  .vd-pegado { background: color-mix(in oklab, var(--color-tinta) 6%, var(--color-papel)); }
+  .vd-pegado-cebra { background: color-mix(in oklab, var(--color-tinta) 3%, var(--color-papel)); }
   /* Si el elemento ya trae su borde (`border`, `border-2`), ese es su filo: la clase no le dibuja otro por dentro. */
   :is(.vd-placa, .vd-gota, .vd-gota-chica, .vd-marca):is([class~="border"], [class~="border-2"]) {
     box-shadow: var(--gota-luz);

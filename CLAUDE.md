@@ -250,6 +250,14 @@ Nada sólido sobre el vidrio. Dos cosas que no se tocan sin leer el ADR: **la ho
 contenedor de las listas `fixed` de sus combos y las recortaría; el desenfoque lo pone el velo), y **una pieza nueva no inventa su vidrio**:
 usa una receta o agrega una a `recetas.css`. Lo que ya se eligió vive en el tablero `docs/vidrio/README.md`.
 
+**Nada de beige plano (Felipe 2026-11-19: «ese color plano le quita la estética al sistema, quítalo de donde sea que aparezca»):** una superficie,
+un botón o un estado nunca se rellena con `hueso` o `sand` (`bg-hueso`, `bg-sand/40`, `hover:bg-sand`, `background: var(--color-hueso)`). En el JSX van
+las clases de `app/estilos/vidrio/rellenos.css` —`vd-placa` (un bloque que explica), `vd-hundido` (un área de datos), `vd-gota` (un control),
+`vd-gota-chica` (una insignia, un monograma), `vd-lente` (un ícono), `vd-marca` (lo elegido), `vd-pasa`/`vd-pasa-gota` (al pasar el mouse) y
+`vd-pegado` (lo que va pegado y debe ser opaco)—; en un CSS, la receta en la misma regla. Lo que no es superficie (la pista o escala de un
+gráfico, una línea, un esqueleto, el papel que se imprime, la muestra de una prenda sin color) lleva `beige-fijo: <motivo>` en su línea.
+Un borde `border-sand` no es relleno y sigue. Lo vigila `lib/beige-plano.test.ts` (definición única: `tema/beige-plano.mjs`; `pnpm --filter web tema:beige`).
+
 **Lo que se desplaza no se desenfoca (ADR-0623, Felipe 2026-11-07):** la Aurora está fija detrás de todo, así que un `backdrop-filter` en algo que corre con el
 scroll (una tabla, una cifra, una tarjeta, un botón de fila) obliga a desenfocar de nuevo en cada cuadro: en un equipo sin buena tarjeta gráfica era 32 cuadros/s
 y 18 tirones contra 53 y 0 sin él. Eso va en el **vidrio claro** (`--vidrio-claro-*`), sin desenfoque; el desenfoque es solo de lo que flota quieto (cabecera, menú,

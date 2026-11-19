@@ -34,6 +34,8 @@ const EXCLUIDOS = new Set([
 const PATRONES = [
   // Una utilidad de Tailwind con cualquier variante delante (`hover:`, `group-hover:`, `@min-[880px]:`…) y su opacidad.
   /(?<![\w-])(?:[\w@\[\]().-]+:)*bg-(?:hueso|sand)(?:\/\d+)?(?![\w-])/g,
+  // Un relleno arbitrario de Tailwind que mezcla hueso o sand (`bg-[color-mix(in_srgb,var(--color-hueso)_40%,…)]`).
+  /(?<![\w-])(?:[\w@\[\]().-]+:)*bg-\[[^\]\s]*--color-(?:hueso|sand)[^\]\s]*\]/g,
   // Un relleno escrito en CSS o en un `style`: `background`, `background-color` o `background-image` con hueso o sand en su valor.
   /\bbackground(?:-color|-image)?\s*:\s*[^;}\n]*var\(--color-(?:hueso|sand)\)/g,
   /\bbackground(?:Color|Image)\s*:\s*["'`][^"'`\n]*var\(--color-(?:hueso|sand)\)/g, // `backgroundColor` de un style (el `background` ya lo cuenta el de arriba)

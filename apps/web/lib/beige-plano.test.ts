@@ -79,6 +79,6 @@ describe("la interfaz va en vidrio: cada beige está declarado y la deuda solo b
 
   it("la deuda del beige plano: solo baja (cuenta exacta)", () => {
     // Al migrar un módulo baja este número. Si SUBE, alguien declaró deuda nueva: una pantalla nueva no puede nacer con beige plano.
-    expect(DEUDA_BEIGE_HOY).toBe(798);
+    expect(DEUDA_BEIGE_HOY).toBe(0);
   });
 });
