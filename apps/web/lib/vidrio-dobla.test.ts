@@ -169,6 +169,36 @@ describe("la hoja dobla sin llevar filtro propio: su lente es una hermana", () =
     expect(dobla).toMatch(/:where\(\[data-state="open"\]\):has\(\+ div > \.hoja-lente\[data-dobla-activa\]\) \{[^}]*backdrop-filter: blur\(0\) saturate\(1\);/);
   });
 
+  // Felipe 2026-11-19: «¿por qué ya no se difumina lo de atrás?». El velo suelta el desenfoque para que la lente tenga algo nítido que
+  // doblar, pero AFUERA de la hoja se tiene que seguir viendo desenfocado. Lo hace un marco con un hueco del tamaño de la hoja.
+  it("lo de afuera de la hoja se sigue desenfocando: un marco anclado a la hoja lleva el desenfoque que soltó el velo", () => {
+    const hoja = leer("app/estilos/vidrio/hoja.css").replace(/\/\*[\s\S]*?\*\//g, "");
+    const delVelo = hoja.match(/:has\(\+ div > :is\(\.hoja-serena, \.cajon-serena\)\) \{[^}]*?\n\s*backdrop-filter: ([^;]+);/)?.[1];
+    expect(delVelo, "el desenfoque del velo de hoja.css").toBeTruthy();
+
+    const base = reglasDe(".hoja-afuera").find((r) => r.selector === ".hoja-afuera");
+    expect(base?.cuerpo).toMatch(/position: absolute;/);
+    expect(base?.cuerpo).toMatch(/top: anchor\(top\);[\s\S]*left: anchor\(left\);[\s\S]*right: anchor\(right\);[\s\S]*bottom: anchor\(bottom\);/);
+    // El hueco sale con las esquinas de la hoja: el radio de afuera es el borde más el radio de la hoja.
+    expect(base?.cuerpo).toMatch(/border-radius: calc\(var\(--afuera\) \+ var\(--vidrio-hoja-radio\)\);/);
+    // El clic afuera tiene que seguir llegando al velo, que es el que cierra.
+    expect(base?.cuerpo).toMatch(/pointer-events: none;/);
+
+    const puesta = reglasDe(".hoja-afuera").find((r) => r.selector === ".hoja-afuera:has(+ .hoja-lente[data-dobla-activa])");
+    // El MISMO desenfoque que el velo: si difieren, el relevo se nota en toda la pantalla.
+    expect(puesta?.cuerpo).toContain(`backdrop-filter: ${delVelo};`);
+    expect(puesta?.cuerpo).toMatch(/mask:[\s\S]*padding-box exclude/);
+  });
+
+  it("el relevo entre el velo y el marco de afuera es de un cuadro: ninguno lleva transición de desenfoque", () => {
+    const conTransicion = reglasDe("hoja-").filter((r) => /transition:[^;]*backdrop-filter/.test(r.cuerpo));
+    expect(conTransicion.map((r) => r.selector)).toEqual([]);
+  });
+
+  it("`Modal` pone el marco de afuera justo antes de la lente", () => {
+    expect(modal).toMatch(/<span aria-hidden className="hoja-afuera"[^>]*\/>\}\s*\{conLente && <span ref=\{lente\}/);
+  });
+
   it("`Modal` pone la lente justo antes de la hoja, y solo dobla en escritorio y con la hoja quieta", () => {
     expect(modal).toMatch(/<span ref=\{lente\} aria-hidden className="hoja-lente"[^>]*\/>\}\s*<Dialog\.Content/);
     expect(modal).toMatch(/useVidrioQueDoblaEn\(lente, \{[^}]*solo: ESCRITORIO[^}]*activo: conLente && quieta && !cerrando \}\)/);

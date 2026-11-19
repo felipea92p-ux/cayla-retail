@@ -38,9 +38,19 @@ Rama `claude/system-aesthetics-analysis-96733d`. ADR-0681. Primero la maqueta; d
 
 ## Lo que cambia a la vista, para que nadie se sorprenda
 
-- Con una hoja abierta en Chrome o Edge de escritorio, lo de afuera se ve **nítido y atenuado**, ya no desenfocado.
+- Con una hoja abierta, lo de afuera se sigue viendo desenfocado, como siempre (corregido el 2026-11-19: la primera versión lo dejaba
+  nítido y atenuado).
+- El menú lateral de escritorio ya no tiene fondo propio: Seda sigue por detrás, de borde a borde.
 - En Safari, Firefox, modo liviano y con «menos transparencia» o «más contraste»: Seda de fondo y el vidrio de siempre.
 - En el celular doblan la cabecera, el aviso y la isla. La hoja y el cajón no: se arrastran con el dedo.
+
+## Ajustes del 2026-11-19, con Felipe mirando el ERP local
+
+- [x] **«¿Por qué ya no se difumina lo de atrás?»** Con la lente, el velo dejaba de desenfocar para que el canto tuviera algo nítido
+      que doblar. Ahora lo de afuera lo desenfoca un marco hermano con el hueco de la hoja (`.hoja-afuera`, `estilos/vidrio/dobla.css`).
+      Medido: fuera de la hoja, la pantalla con el marco y con el velo de antes difieren en 3 de 255 como máximo.
+- [x] **«El fondo tiene que abarcar el menú lateral»**. El riel de escritorio quedó sin fondo propio (`estilos/vidrio/marco.css`); en modo
+      liviano vuelve al liso. El medidor de color dio 0 fallas de texto en el menú, en claro y en oscuro.
 
 ## Pendiente
 
@@ -48,12 +58,12 @@ Rama `claude/system-aesthetics-analysis-96733d`. ADR-0681. Primero la maqueta; d
 - [ ] **Sin saber:** qué navegador usa el Mac mini. Si es Safari, no verá la refracción.
 - [ ] **Sin abrir:** Safari y Firefox reales. El respaldo se comprobó por la pregunta al navegador.
 - [ ] **Sin decidir (Felipe):** si las tarjetas y las tablas vuelven a ser casi sólidas, como hacen los referentes.
-- [ ] **Fuera a propósito:** el riel del menú en escritorio (liso desde el 2026-11-02), «la hoja nace del botón» (cambiaría ADR-0136), la
+- [ ] **Fuera a propósito:** el vidrio en el riel del menú de escritorio (deja ver Seda, pero no desenfoca ni dobla), «la hoja nace del botón» (cambiaría ADR-0136), la
       luz que sigue al mouse (Felipe la apagó), las listas de los combos y el vidrio propio de Rendimiento, Observatorio y Vender.
 - [ ] Las barras que usan la clase `barra-abajo` a mano, sin `<BarraDeAbajo>`, no doblan.
 - [ ] El cajón lateral con velo casi no muestra el canto doblado: su velo sí desenfoca lo de atrás.
-- [ ] **Dynamic:** el bloque nuevo de `recetas.css` le llega solo (sin efecto hasta que tenga la pieza). El motor, `dobla.css`, la lente de
-      `Modal` y Seda quedan como tarea allá.
+- [ ] **Dynamic:** el bloque nuevo de `recetas.css` le llega solo (sin efecto hasta que tenga la pieza). El motor, `dobla.css`, las dos hermanas de
+      `Modal` (la lente y el marco de afuera), Seda y el menú sin fondo propio quedan como tarea allá.
 - [ ] **Cruce posible** con `claude/graves-heredados-milimetro`, que toca los mismos estilos. Revisarlo al abrir el PR.
 
 ## Aprendido al armar la maqueta (vale para el ERP)

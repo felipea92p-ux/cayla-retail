@@ -92,3 +92,10 @@
 :root[data-liviano="si"] .marco-seda {
   display: none;
 }
+/* Sin los pliegues, el menú lateral de escritorio vuelve a su fondo liso: desde el 2026-11-19 no tiene fondo propio, deja ver Seda
+   (vidrio/marco.css). Bajo 640 px es el cajón, que ya tiene su cara maciza. */
+@media (min-width: 640px) {
+  :root[data-liviano="si"] .marco-riel {
+    background: var(--riel-fondo);
+  }
+}

@@ -277,6 +277,9 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
             variante === "camara" ? "" : variante === "ticket" ? "items-end justify-center" : "items-end justify-center sm:items-start sm:p-6 sm:px-[max(1.5rem,env(safe-area-inset-left),env(safe-area-inset-right))] sm:pt-[8vh]"
           }`}
         >
+          {/* Lo de afuera de la hoja sigue desenfocado mientras la lente dobla lo de abajo (estilos/vidrio/dobla.css). Va ANTES de la
+              lente: su regla la busca como hermana siguiente. */}
+          {conLente && <span aria-hidden className="hoja-afuera" style={{ positionAnchor: ancla } as CSSProperties} />}
           {conLente && <span ref={lente} aria-hidden className="hoja-lente" style={{ positionAnchor: ancla } as CSSProperties} />}
           <Dialog.Content
             ref={ponerHoja}

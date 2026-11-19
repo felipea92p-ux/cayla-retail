@@ -78,6 +78,9 @@
    · Con la lente puesta, el relleno pasa de la hoja a la lente (si no, la lente doblaría también el blanco de la hoja y casi no se
      vería) y el velo deja de desenfocar: si lo de atrás ya llega borroso, el canto no tiene nada nítido que doblar. El velo sigue
      oscureciendo, y la lente desenfoca el centro de la hoja como siempre.
+   · Lo de AFUERA de la hoja se sigue viendo desenfocado (Felipe 2026-11-19: «¿por qué ya no se difumina lo de atrás?»). Lo hace
+     `.hoja-afuera`, otra hermana: un marco anclado a la misma caja, con un hueco del tamaño de la hoja. Así el desenfoque queda
+     en todo menos bajo la hoja, que es lo único que la lente necesita nítido.
    · Solo con la hoja quieta y en escritorio: una caja anclada no sigue una transformación (la entrada, la salida, el dedo). */
 .hoja-lente {
   /* `absolute` y no `fixed`: para que el ancla valga, la hoja y su lente tienen que compartir el bloque contenedor (el `div` fijo que
@@ -101,12 +104,38 @@
 .hoja-lente[data-dobla-activa] + .hoja-serena {
   background: transparent;
 }
-:where([data-state]):has(+ div > .hoja-lente) {
-  transition: -webkit-backdrop-filter var(--t-hoja) var(--ease-cayla), backdrop-filter var(--t-hoja) var(--ease-cayla);
-}
+/* El velo suelta su desenfoque y lo toma el marco de afuera, en el mismo cuadro y SIN transición: fuera de la hoja las dos cuentas
+   dan lo mismo (oscurecer y desenfocar conmutan), así que no se nota el relevo. Con una transición, los dos desenfoques a medias se
+   sumarían a menos que uno entero y toda la pantalla «respiraría». */
 :where([data-state="open"]):has(+ div > .hoja-lente[data-dobla-activa]) {
   -webkit-backdrop-filter: blur(0) saturate(1);
   backdrop-filter: blur(0) saturate(1);
+}
+/* El marco de afuera: su caja de relleno ES la caja de la hoja (los cuatro lados anclados) y su borde, transparente, llega más allá
+   de la pantalla. La máscara deja solo el borde: ahí va el mismo desenfoque que llevaba el velo (estilos/vidrio/hoja.css). El radio
+   de afuera es el borde más el radio de la hoja, así el hueco sale con las esquinas de la hoja. No recibe clics: el clic afuera
+   sigue llegando al velo, que es el que cierra. */
+.hoja-afuera {
+  --afuera: 100vmax;
+  position: absolute;
+  top: anchor(top);
+  left: anchor(left);
+  right: anchor(right);
+  bottom: anchor(bottom);
+  margin: calc(-1 * var(--afuera));
+  border: var(--afuera) solid transparent;
+  border-radius: calc(var(--afuera) + var(--vidrio-hoja-radio));
+  visibility: hidden;
+  pointer-events: none;
+}
+.hoja-afuera:has(+ .hoja-lente[data-dobla-activa]) {
+  visibility: visible;
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
+  /* La máscara solo usa la opacidad del color: la capa del relleno se le RESTA a la del borde. */
+  mask:
+    linear-gradient(var(--color-sombra), var(--color-sombra)) padding-box exclude,
+    linear-gradient(var(--color-sombra), var(--color-sombra));
 }
 
 /* La isla vive en la capa `components` a propósito (estilos/barra-abajo.css): una pantalla que en escritorio la quiere a ras le gana

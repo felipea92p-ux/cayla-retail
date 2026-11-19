@@ -40,3 +40,28 @@ tarjetas de la lista, no del marco. Los está corrigiendo la rama `claude/graves
 - Los medidores de espacio, tipografía, movimiento y textos: el cambio no toca medidas, letra ni palabras. El movimiento nuevo (el vidrio
   que se asienta) se midió aparte: con las animaciones encendidas la fuerza del filtro va de 96 a 59 en 480 ms; apagadas, 59 desde el
   primer cuadro.
+
+## Actualización 2026-11-19: lo de afuera de la hoja y el menú sobre Seda
+
+Medido: 1440×900, claro y oscuro, Chrome de prueba, `localhost:3010`, Existencias sin desplazar. Dos cambios pedidos por Felipe al verlo.
+
+| Estado | Textos medidos | Texto que falla | Sin poder medir | Controles que fallan |
+|---|---|---|---|---|
+| Claro · el menú sobre Seda | 109 | 0 | 0 | 6 |
+| Oscuro · el menú sobre Seda | 109 | 0 | 0 | 9 |
+
+Ninguna de las fallas de control es del menú: son los puntos de color de las prendas de Existencias, heredados.
+
+El relevo entre el velo y el marco de afuera, con la hoja de una talla abierta: se comparó la pantalla con la lente contra la del vidrio de
+siempre, píxel por píxel, fuera de la hoja.
+
+| Zona | Claro (media · máxima) | Oscuro (media · máxima) |
+|---|---|---|
+| Lejos de la hoja | 0,76 · 3 | 0,81 · 2 |
+| Los 26 px del borde de la pantalla | 0,79 · 2 | 0,77 · 2 |
+| Los 14 px pegados a la hoja | 0,71 · 2 | 0,70 · 2 |
+
+Diferencias sobre 255. No se distinguen a la vista. La caja de relleno del marco coincide con la de la hoja al píxel, la hoja sigue sin
+filtro propio y el clic afuera sigue cerrando.
+
+Sin medir: 375 px (ahí la hoja no lleva lente y el menú es el cajón: nada de esto cambia) y la fluidez con la hoja abierta.

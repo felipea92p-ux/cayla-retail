@@ -260,8 +260,8 @@ celular, un cajón lateral, una hoja) **dobla** lo de atrás en su canto donde e
 «menos transparencia» o «más contraste», queda el vidrio de siempre. Una pieza nueva que flota lo pide con `useVidrioQueDobla` (`components/ui/`) y
 pone su regla en `app/estilos/vidrio/dobla.css`; nunca algo que se desplaza. Tres cosas que no se tocan sin leer el ADR: el relleno `claro` es solo
 para una pieza cuyo texto va en tinta plena (su piso de luminosidad lo mide `lib/vidrio-dobla.test.ts`; con texto en taupe, relleno `propio`);
-**la hoja sigue sin `backdrop-filter`**: su lente es una hermana (`.hoja-lente`, anclada a su caja) y con ella el velo solo oscurece; y el fondo
-**Seda** (`.marco-seda`, solo CSS, sin `filter`) no sale del rango de tonos en que todo texto se lee (`lib/tema-tokens.test.ts`).
+**la hoja sigue sin `backdrop-filter`**: su lente es una hermana (`.hoja-lente`, anclada a su caja); con ella el velo solo oscurece y lo de AFUERA lo desenfoca otra hermana, un marco con el hueco de la hoja (`.hoja-afuera`); y el fondo
+**Seda** (`.marco-seda`, solo CSS, sin `filter`) no sale del rango de tonos en que todo texto se lee (`lib/tema-tokens.test.ts`). Seda va de borde a borde: el menú lateral de escritorio no tiene fondo propio (Felipe 2026-11-19).
 
 **El vidrio aguanta (ADR-0611, mejora 7):** quien en su aparato pidió menos transparencia o más contraste ve las mismas piezas macizas y sin desenfoque. Una receta nueva con fondo translúcido
 agrega su versión maciza a `vidrio/aguanta.css`: `lib/vidrio-que-aguanta.test.ts` falla si no.

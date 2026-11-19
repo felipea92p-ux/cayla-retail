@@ -69,7 +69,25 @@ caja de afuera y un bloque que hace scroll adentro (toca todas las hojas del ERP
 SE ROMPE SI: la lente pasa a `position: fixed`. El navegador exige que la hoja y su lente compartan el bloque contenedor; con `fixed`
 descarta el ancla y la lente mide cero.
 
-Cambio que se ve: con una hoja abierta en Chrome o Edge de escritorio, lo de afuera se ve **nítido y atenuado**, no desenfocado.
+**Actualización 2026-11-19 (Felipe, al verlo: «¿por qué ya no se difumina lo de atrás?»).** La primera versión dejaba lo de afuera
+nítido y atenuado. Felipe lo notó apenas lo vio, y tiene razón: una hoja abierta siempre desenfocó lo de atrás, y perderlo era un
+precio que nadie había pedido pagar.
+
+DECIDÍ: una segunda hermana, `.hoja-afuera`, anclada a la misma caja. Su caja de relleno es la caja de la hoja y su borde, transparente,
+llega más allá de la pantalla; una máscara deja solo el borde, y ahí va el mismo desenfoque que llevaba el velo. Queda desenfocado todo
+menos lo de abajo de la hoja, que es lo único que la lente necesita nítido. El relevo entre el velo y el marco es de un solo cuadro y
+sin transición.
+
+DESCARTÉ: devolverle el desenfoque al velo y quitarle la lente a la hoja (se pierde el canto que dobla en la pieza que más se ve); dejar
+el velo desenfocando con la lente encima (dobla algo borroso: no se ve y cuesta igual); cuatro franjas alrededor de la hoja (cada una
+desenfoca por su cuenta y se notan las uniones).
+
+SE ROMPE SI: el desenfoque del marco deja de ser el mismo del velo (`estilos/vidrio/hoja.css`): el relevo se notaría en toda la pantalla.
+Lo cuida `lib/vidrio-dobla.test.ts`, que lee el valor del velo y exige el mismo. O si alguien les pone una transición: los dos
+desenfoques a medias suman menos que uno entero y la pantalla «respira».
+
+Medido: fuera de la hoja, la pantalla con el marco y con el velo de antes difieren en 3 de 255 como máximo (media 0,8), en claro y en
+oscuro, también en el borde de la pantalla y pegado a la hoja.
 
 ### 4. El fondo es Seda, en CSS puro y dentro del rango en que todo se lee
 
@@ -89,6 +107,12 @@ repite. Las capturas de referencia (Apple, Microsoft, Linear, Stripe) muestran l
 
 SE ROMPE SI: alguien le sube el tono para que «se note más».
 
+**Actualización 2026-11-19 (Felipe: «el fondo tiene que abarcar el menú lateral de la izquierda también»).** El menú lateral de
+escritorio era una columna lisa con fondo propio (`--riel-fondo`, 2026-11-02), y Seda se cortaba en su borde. Ahora no tiene fondo:
+Seda sigue por detrás, de borde a borde, y solo queda la línea de límite (`--riel-borde`). Sigue sin vidrio: por detrás del menú no
+pasa nada que se desplace, así que no hay nada que desenfocar ni que doblar. Sus letras van directo sobre Seda, como las del
+contenido: el medidor de color dio 0 fallas de texto en claro y en oscuro. En modo liviano, que esconde Seda, vuelve a su fondo liso.
+
 ## Lo que dobla hoy
 
 | Pieza | Por dónde | Relleno | Cuándo |
@@ -105,7 +129,7 @@ animaciones apagadas (ADR-0625) aparece ya asentado.
 
 ## Fuera, a propósito
 
-- **El riel del menú en escritorio.** Felipe lo dejó liso el 2026-11-02.
+- **El riel del menú en escritorio no lleva vidrio.** Felipe lo dejó liso el 2026-11-02; desde el 2026-11-19 deja ver Seda, pero sigue sin desenfoque y sin doblar.
 - **«La hoja nace del botón»**, que la maqueta mostraba. Cambiaría la entrada de todos los modales, que es regla (ADR-0136).
 - **La luz que sigue al mouse.** Felipe la apagó en la maqueta.
 - **Tarjetas y tablas.** No se decidió si vuelven a ser casi sólidas, como hacen los referentes.
@@ -132,5 +156,6 @@ animaciones apagadas (ADR-0625) aparece ya asentado.
 
 - **Llega solo:** el bloque «El vidrio que dobla» de `apps/web/app/estilos/vidrio/recetas.css` (cuatro variables nuevas, sin efecto allá
   hasta que tenga la pieza).
-- **Queda como tarea allá:** `components/ui/useVidrioQueDobla.ts`, `lib/vidrio-dobla.ts`, `estilos/vidrio/dobla.css`, la lente hermana de
-  `Modal`, y el fondo Seda de `estilos/vidrio/marco.css`. `BarraDeAbajo` pasó a ser un componente de cliente.
+- **Queda como tarea allá:** `components/ui/useVidrioQueDobla.ts`, `lib/vidrio-dobla.ts`, `estilos/vidrio/dobla.css`, las dos hermanas de
+  `Modal` (la lente y el marco de afuera), el fondo Seda de `estilos/vidrio/marco.css` y el menú lateral sin fondo propio. `BarraDeAbajo`
+  pasó a ser un componente de cliente.

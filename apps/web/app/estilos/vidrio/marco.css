@@ -84,13 +84,17 @@
    <aside> (su `overflow: hidden` recortaría la del `::before`); el filo de luz de la derecha, en el `::before`. */
 /* En escritorio el riel es una columna LISA (Felipe 2026-11-02: «el degradado en la unión del menú y el contenido se ve raro»; maqueta
    «E», elegida entre cuatro): el fondo y su línea de límite siguen el tema (`--riel-fondo`, `--riel-borde`, vidrio/recetas.css), sin
-   vidrio, sin aro de luz y sin la sombra larga que se escurría hacia el contenido. Bajo 640 px sigue siendo el cajón de vidrio de abajo. */
+   vidrio, sin aro de luz y sin la sombra larga que se escurría hacia el contenido. Bajo 640 px sigue siendo el cajón de vidrio de abajo.
+   Desde el 2026-11-19 la columna no tiene fondo propio (Felipe: «el fondo tiene que abarcar el menú lateral de la izquierda también»):
+   Seda sigue por detrás, de borde a borde, y solo queda su línea de límite. Sigue sin vidrio: por detrás del riel no pasa nada que se
+   desplace, así que no hay nada que desenfocar ni que doblar. Sus letras van directo sobre Seda, igual que las del contenido
+   (`lib/tema-tokens.test.ts` mide los tonos). Sin Seda (modo liviano) vuelve a su fondo liso: estilos/liviano.css. */
 .marco-riel {
   box-shadow: var(--marco-riel-sombra);
 }
 @media (min-width: 640px) {
   .marco-riel {
-    background: var(--riel-fondo);
+    background: transparent;
     border-right: 1px solid var(--riel-borde);
     box-shadow: none;
   }

@@ -196,6 +196,13 @@ describe("el CSS liviano es la cara maciza del vidrio, sin diseño propio", () =
     expect(css).toMatch(/:root\[data-liviano="si"\] \.marco-seda \{\s*display: none;/);
   });
 
+  // Desde el 2026-11-19 el menú lateral de escritorio no tiene fondo propio: deja ver Seda (vidrio/marco.css). Sin Seda, vuelve al liso.
+  it("sin los pliegues, el menú lateral de escritorio vuelve a su fondo liso", () => {
+    const marco = readFileSync("app/estilos/vidrio/marco.css", "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(marco).toMatch(/@media \(min-width: 640px\) \{\s*\.marco-riel \{\s*background: transparent;/);
+    expect(css).toMatch(/@media \(min-width: 640px\) \{\s*:root\[data-liviano="si"\] \.marco-riel \{\s*background: var\(--riel-fondo\);/);
+  });
+
   it("se importa después de la cara maciza que copia", () => {
     expect(globals.indexOf('@import "./estilos/liviano.css"')).toBeGreaterThan(globals.indexOf('@import "./estilos/vidrio/aguanta.css"'));
   });
