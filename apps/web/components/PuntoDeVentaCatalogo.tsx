@@ -268,7 +268,7 @@ export function PuntoDeVentaCatalogo({
                         onMouseEnter={() => onActivo(i)}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => onAgregar(v)}
-                        className={`flex w-full items-center gap-3.5 py-2.5 pr-3.5 pl-3 text-left text-sm transition-colors duration-200 ${i === activo ? "bg-sand/60" : ""}`}
+                        className={`flex w-full items-center gap-3.5 py-2.5 pr-3.5 pl-3 text-left text-sm transition-colors duration-200 ${i === activo ? "vd-marca" : ""}`}
                       >
                         {/* La barra roja de la fila activa: un solo rojo a la vez en la pantalla. */}
                         {i === activo && <span aria-hidden className="absolute top-2 bottom-2 left-0 w-[3px] rounded-r-sm bg-rojo" />}
@@ -327,7 +327,7 @@ export function PuntoDeVentaCatalogo({
               data-guia={modoCamara ? "vender.buscar-por-nombre" : "vender.camara"}
               disabled={bloqueado}
               aria-label={modoCamara ? "Buscar la prenda por nombre" : "Escanear QR con la cámara"}
-              className="grid w-14 shrink-0 place-items-center rounded-xl border border-sand bg-papel text-tinta/75 transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-sand/40 hover:text-tinta active:translate-y-px"
+              className="grid w-14 shrink-0 place-items-center rounded-xl border border-sand vd-gota vd-pasa-gota text-tinta/75 transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:text-tinta active:translate-y-px"
             >
               {modoCamara ? (
                 <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" className="h-5 w-5">

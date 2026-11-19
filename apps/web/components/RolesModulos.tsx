@@ -75,12 +75,12 @@ export function RolesModulos({
                 type="button"
                 aria-expanded={abierto}
                 onClick={() => alternarArea(grupo)}
-                className="flex w-full items-center gap-3.5 px-4 py-3 text-left transition-colors duration-150 ease-cayla hover:bg-hueso/50"
+                className="flex w-full items-center gap-3.5 px-4 py-3 text-left transition-colors duration-150 ease-cayla vd-pasa"
               >
                 <span
                   aria-hidden
                   className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-colors duration-200 ease-cayla ${
-                    estado === "todo" ? "bg-verde text-papel" : estado === "algo" ? "bg-tinta text-papel" : "bg-hueso text-tinta"
+                    estado === "todo" ? "bg-verde text-papel" : estado === "algo" ? "bg-tinta text-papel" : "vd-gota-chica text-tinta"
                   }`}
                 >
                   <Icono aria-hidden className="h-5 w-5" />
@@ -91,7 +91,7 @@ export function RolesModulos({
                 </span>
                 <span
                   className={`shrink-0 rounded-full px-2.5 py-1 text-sm font-bold tabular-nums ${
-                    estado === "todo" ? "bg-verde text-papel" : estado === "algo" ? "bg-tinta text-papel" : "bg-hueso text-tinta/70"
+                    estado === "todo" ? "bg-verde text-papel" : estado === "algo" ? "bg-tinta text-papel" : "vd-gota-chica text-tinta/70"
                   }`}
                 >
                   {encendidos} de {modulos.length}
@@ -110,7 +110,7 @@ export function RolesModulos({
                         <li key={m.clave} className="border-t border-sand">
                           <label
                             title={`${m.incluye}${control.tipo === "candado" ? ` · ${control.texto}` : ""}`}
-                            className={`flex items-center gap-3.5 py-2.5 pl-[4.5rem] pr-4 ${tocable ? "cursor-pointer hover:bg-hueso" : ""} ${marca === "suma" ? "bg-verde/10" : marca === "quita" ? "bg-rojo/5" : ""}`}
+                            className={`flex items-center gap-3.5 py-2.5 pl-[4.5rem] pr-4 ${tocable ? "cursor-pointer vd-pasa" : ""} ${marca === "suma" ? "bg-verde/10" : marca === "quita" ? "bg-rojo/5" : ""}`}
                           >
                             <Casilla
                               marcada={on}

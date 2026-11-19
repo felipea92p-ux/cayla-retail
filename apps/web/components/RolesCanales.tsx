@@ -62,7 +62,7 @@ export function RolesCanales({
           return (
             <li
               key={c.clave}
-              className={`flex items-start gap-3 rounded-xl border px-3.5 py-3 ${marcado ? "border-borde-control bg-hueso/60" : "border-sand"}`}
+              className={`flex items-start gap-3 rounded-xl border px-3.5 py-3 ${marcado ? "border-borde-control vd-marca" : "border-sand"}`}
             >
               <Casilla marcada={marcado} onCambio={() => alternar(c.clave)} etiqueta={`${c.nombre}: ${marcado ? "lo opera" : "no lo opera"}`} disabled={bloqueado} className="mt-0.5" />
               <span className="min-w-0 flex-1">

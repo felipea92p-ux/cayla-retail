@@ -221,7 +221,7 @@ function TarjetaProducto({
         type="button"
         onClick={() => setVistaRapida(true)}
         aria-label={`Vista rápida de ${producto.referencia}${descontinuado ? " (descontinuado)" : ""}`}
-        className="prod-foto relative aspect-[4/5] w-full overflow-hidden bg-sand/40 text-left outline-none focus-visible:ring-2 focus-visible:ring-rojo/40 focus-visible:ring-inset"
+        className="prod-foto relative aspect-[4/5] w-full overflow-hidden vd-hundido text-left outline-none focus-visible:ring-2 focus-visible:ring-rojo/40 focus-visible:ring-inset"
       >
         {/* Detrás de una foto recortada (fondo transparente) se ve la arena suave de la foto de Vender, no el fondo de la pantalla. */}
         {activo?.fotoUrl ? <ImagenDePrenda src={activo.fotoUrl} alt={`${producto.referencia} — ${activo.nombre}`} fill sizes={SIZES_FOTO} className="object-cover" fondo={activo.hex} fallback={sinFoto} /> : sinFoto}

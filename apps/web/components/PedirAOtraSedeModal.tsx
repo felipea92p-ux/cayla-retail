@@ -256,7 +256,7 @@ function PedirAOtraSedeHoja(props: PedirAOtraSedeModalProps) {
             {elegir ? (
               <div className="space-y-2.5">
                 {catalogo.estado === "error" && (
-                  <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-sand bg-hueso px-3.5 py-3 text-sm text-tinta">
+                  <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-sand vd-placa px-3.5 py-3 text-sm text-tinta">
                     <span>No pudimos leer lo que tiene {nombreOrigen}.</span>
                     <button type="button" onClick={catalogo.reintentar} className="btn-cayla btn-secundario">
                       Reintentar
@@ -264,7 +264,7 @@ function PedirAOtraSedeHoja(props: PedirAOtraSedeModalProps) {
                   </div>
                 )}
                 {catalogo.estado === "listo" && catalogo.prendas.length === 0 && (
-                  <p role="status" className="rounded-xl border border-sand bg-hueso px-3.5 py-3 text-sm text-tinta">
+                  <p role="status" className="rounded-xl border border-sand vd-placa px-3.5 py-3 text-sm text-tinta">
                     {nombreOrigen} no tiene prendas para enviarte ahora.
                   </p>
                 )}

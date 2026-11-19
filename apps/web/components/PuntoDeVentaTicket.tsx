@@ -356,7 +356,7 @@ export function PuntoDeVentaTicket({
                 type="button"
                 onClick={onCerrarHoja}
                 aria-label="Volver al catálogo"
-                className="area-dedo order-last ml-2 grid h-9 w-9 shrink-0 place-items-center rounded-md text-tinta/60 transition-colors hover:bg-sand/40 hover:text-tinta"
+                className="area-dedo order-last ml-2 grid h-9 w-9 shrink-0 place-items-center rounded-md text-tinta/60 transition-colors vd-pasa-gota hover:text-tinta"
               >
                 <X className="h-5 w-5" aria-hidden />
               </button>
@@ -605,7 +605,7 @@ export function PuntoDeVentaTicket({
                       type="button"
                       onClick={() => onAbrirDescuento(null)}
                       disabled={bloqueado}
-                      className="area-dedo label-cayla h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta"
+                      className="area-dedo label-cayla h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors vd-pasa-gota hover:text-tinta"
                     >
                       Cambiar
                     </button>
@@ -619,7 +619,7 @@ export function PuntoDeVentaTicket({
                   // Apagado con el ticket vacío: el porqué va en su `title` (no se arregla llenando un campo).
                   title={carrito.length === 0 ? "Agrega una prenda para descontar" : undefined}
                   aria-label="Aplicar descuento"
-                  className="area-dedo label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
+                  className="area-dedo label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors vd-pasa-gota hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
                 >
                   <span className="flex items-center gap-1.5">
                     <Percent className={ICONO_CHICO} aria-hidden />
@@ -639,7 +639,7 @@ export function PuntoDeVentaTicket({
                   title={carrito.length === 0 ? "Agrega una prenda para usar un cupón" : vale != null ? "Ya hay un cupón en el ticket" : undefined}
                   data-guia="vender.codigo-cupon-boton"
                   aria-label="Código de cupón"
-                  className="area-dedo label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
+                  className="area-dedo label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors vd-pasa-gota hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
                 >
                   <span className="flex items-center gap-1.5">
                     <Ticket className={ICONO_CHICO} aria-hidden />
@@ -735,7 +735,7 @@ export function PuntoDeVentaTicket({
                   type="button"
                   onClick={onQuitarDescuento}
                   disabled={bloqueado}
-                  className="label-cayla mt-2 h-9 w-full rounded-md text-[11px] text-rojo-profundo transition-colors hover:bg-sand/40"
+                  className="label-cayla mt-2 h-9 w-full rounded-md text-[11px] text-rojo-profundo transition-colors vd-pasa-gota"
                 >
                   Quitar descuento
                 </button>

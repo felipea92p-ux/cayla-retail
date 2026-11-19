@@ -463,8 +463,8 @@ function FilaAncha({
     <tbody className="group/fila border-b border-sand last:border-b-0">
       <tr
         onClick={onClic}
-        className={`cursor-pointer transition-colors duration-200 hover:bg-hueso/45 ${marcada ? "bg-hueso/70 shadow-[inset_3px_0_0_var(--color-tinta)]" : ""} ${
-          abierta ? "bg-hueso/45" : ""
+        className={`cursor-pointer transition-colors duration-200 vd-pasa ${marcada ? "vd-marca shadow-[inset_3px_0_0_var(--color-tinta)]" : ""} ${
+          abierta ? "vd-marca" : ""
         }`}
       >
         <td className="py-3 pl-5 align-middle">
@@ -478,7 +478,7 @@ function FilaAncha({
               data-guia="productos.tabla-abrir"
               aria-expanded={abierta}
               aria-label={`${abierta ? "Cerrar" : "Ver"} las variantes de ${p.referencia}`}
-              className="-ml-1 grid h-7 w-7 shrink-0 place-items-center rounded-md text-tinta/45 transition-colors hover:bg-hueso hover:text-tinta"
+              className="-ml-1 grid h-7 w-7 shrink-0 place-items-center rounded-md text-tinta/45 transition-colors vd-pasa-gota hover:text-tinta"
             >
               <ChevronRight aria-hidden className={`h-4 w-4 transition-transform duration-300 ease-cayla ${abierta ? "rotate-90" : ""}`} />
             </button>
@@ -536,7 +536,7 @@ function FilaAncha({
       </tr>
       {abierta && (
         <tr>
-          <td colSpan={columnas} className="bg-hueso/40 p-0">
+          <td colSpan={columnas} className="vd-hundido p-0">
             {ficha}
           </td>
         </tr>
@@ -551,7 +551,7 @@ function Tallas({ tallas }: { tallas: string[] }) {
   return (
     <span className="flex items-center gap-1">
       {visibles.map((t) => (
-        <span key={t} className="grid h-5 min-w-[22px] place-items-center rounded bg-hueso px-1 font-mono text-[10.5px] text-tinta/75">
+        <span key={t} className="grid h-5 min-w-[22px] place-items-center rounded vd-gota-chica px-1 font-mono text-[10.5px] text-tinta/75">
           {t}
         </span>
       ))}
@@ -563,7 +563,7 @@ function Tallas({ tallas }: { tallas: string[] }) {
 /** Editar, Ajustar, Etiquetas e Historial al pasar el mouse (o al llegar con Tab), flotando sobre el estado: no se
  *  comen una columna. En una pantalla táctil no hay hover: las mismas acciones están en la ficha de la prenda. */
 function AccionesFlotantes({ acciones, referencia }: { acciones: AccionesFila; referencia: string }) {
-  const boton = "grid h-8 w-8 place-items-center rounded-md text-tinta/60 transition-colors hover:bg-hueso hover:text-tinta";
+  const boton = "grid h-8 w-8 place-items-center rounded-md text-tinta/60 transition-colors vd-pasa-gota hover:text-tinta";
   const botonNegado = "grid h-8 w-8 place-items-center rounded-md bg-rojo text-crema transition-colors hover:bg-rojo-profundo";
   return (
     <div
@@ -609,7 +609,7 @@ function AccionesDeVariante({ href, unidades, descripcion, sede }: { href: strin
         sede={sede}
         className={(negado) =>
           `grid h-8 w-8 place-items-center rounded-md transition-colors duration-200 ease-cayla ${
-            negado ? "bg-rojo text-crema hover:bg-rojo-profundo" : "text-tinta/60 hover:bg-hueso hover:text-tinta"
+            negado ? "bg-rojo text-crema hover:bg-rojo-profundo" : "text-tinta/60 vd-pasa-gota hover:text-tinta"
           }`
         }
         aria-label={`Etiqueta de precio de ${descripcion}`}
@@ -643,7 +643,7 @@ function TarjetaFila({
   const { p, colores, tallas } = fila;
   const activo = useColorActivo(colores);
   return (
-    <li className={marcada ? "bg-hueso/70 shadow-[inset_3px_0_0_var(--color-tinta)]" : abierta ? "bg-hueso/40" : ""}>
+    <li className={marcada ? "vd-marca shadow-[inset_3px_0_0_var(--color-tinta)]" : abierta ? "vd-marca" : ""}>
       <div onClick={onClic} className="flex cursor-pointer gap-3 px-4 py-3.5">
         <div className="pt-1">
           <CasillaMarca marcada={marcada} onCambiar={onMarcar} etiqueta={`Marcar ${p.referencia}`} />
@@ -742,7 +742,7 @@ function FichaVariantes({
               key={v.varianteId}
               className={`group/variante relative grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-0.5 rounded-xl border border-sand bg-papel py-2.5 pl-3 pr-2 ${v.activo ? "" : "opacity-50"}`}
             >
-              <span aria-hidden className="row-span-2 h-6 w-6 rounded-md ring-1 ring-inset ring-tinta/10" style={{ background: fondoDelPunto(v.colorHex, v.colorTonos) ?? "var(--color-sand)" }} />
+              <span aria-hidden className="row-span-2 h-6 w-6 rounded-md ring-1 ring-inset ring-tinta/10" style={{ background: fondoDelPunto(v.colorHex, v.colorTonos) ?? "var(--color-sand)" /* beige-fijo: color de prenda sin color, es el dato */ }} />
               <span className="min-w-0 truncate text-sm text-tinta">
                 <span className="mr-1.5 font-mono font-medium">{v.talla ?? "—"}</span>
                 {v.color ?? "Sin color"}

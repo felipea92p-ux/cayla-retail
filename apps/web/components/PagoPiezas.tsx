@@ -71,7 +71,7 @@ export function Tilde() {
 export function DatosDelProveedor({ datos }: { datos?: DatosPagoProveedor }) {
   if (!datos || (!datos.formaPagoPreferida && datos.plazoCreditoDias == null)) return null;
   return (
-    <div data-guia="pago-modal.datos" className="flex flex-wrap items-baseline gap-x-8 gap-y-1 rounded-xl border border-sand bg-sand/40 px-4 py-3">
+    <div data-guia="pago-modal.datos" className="flex flex-wrap items-baseline gap-x-8 gap-y-1 rounded-xl border border-sand vd-hundido px-4 py-3">
       <div>
         <p className="label-cayla text-[10px] text-tinta/55">Paga por</p>
         <p className="mt-0.5 text-sm text-tinta">
@@ -168,7 +168,7 @@ export function DatosDelMedio({ medio, datos, saldoFavor = 0 }: { medio: string;
   }
   if (!cuerpo) return null;
   return (
-    <div className="anim-revelar rounded-xl border border-sand bg-sand/40 px-4 py-3">
+    <div className="anim-revelar rounded-xl border border-sand vd-hundido px-4 py-3">
       <p className="label-cayla mb-2 text-[10px] text-tinta/55">{titulo}</p>
       {cuerpo}
     </div>

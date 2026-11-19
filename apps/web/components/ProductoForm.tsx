@@ -1835,7 +1835,7 @@ export function ProductoForm({
                               <span className="inline-flex items-center gap-1.5">
                                 <span
                                   aria-hidden
-                                  className={`inline-block h-2.5 w-5 rounded-full border border-tinta/20 ${color?.hex ? "" : "bg-sand"}`}
+                                  className={`inline-block h-2.5 w-5 rounded-full border border-tinta/20 ${color?.hex ? "" : "bg-sand"}` /* beige-fijo: muestra de color sin color, es el dato */}
                                   style={color?.hex ? { background: color.hex } : undefined}
                                 />
                                 {nombres.color(codigo)}

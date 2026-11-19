@@ -713,7 +713,7 @@ type PropsFila = {
   abreFicha?: boolean;
 };
 
-const MONOGRAMA = "font-display grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full bg-sand text-base text-tinta transition-colors duration-300 group-hover:bg-tinta group-hover:text-crema";
+const MONOGRAMA = "font-display grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full vd-gota-chica text-base text-tinta transition-colors duration-300 group-hover:bg-tinta group-hover:text-crema";
 // El de una marca (ADR-0644): la inicial de su primera marca, en tinta, como en Mis compras.
 const MONOGRAMA_MARCA = "font-display grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] bg-tinta text-base text-crema";
 

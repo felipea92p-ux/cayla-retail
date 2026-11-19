@@ -286,7 +286,7 @@ export function PrendaSinRegistrarModal({
           ? "border-tinta bg-tinta text-crema"
           : menor
             ? "border-taupe/30 bg-transparent text-tinta/65 hover:border-tinta/60 hover:text-tinta"
-            : "border-taupe/40 bg-hueso font-medium text-tinta hover:border-tinta/60"
+            : "border-taupe/40 vd-gota font-medium text-tinta hover:border-tinta/60"
       }`}
     >
       {t.valor}
@@ -338,7 +338,7 @@ export function PrendaSinRegistrarModal({
                     autoFocus={i === 0}
                     onClick={() => elegirMotivo(m.valor)}
                     className={`rounded-lg border px-3 py-2 text-left transition-colors duration-200 ease-cayla ${
-                      motivo === m.valor ? "border-tinta bg-tinta text-crema" : "border-taupe/40 bg-hueso text-tinta hover:border-tinta/60"
+                      motivo === m.valor ? "border-tinta bg-tinta text-crema" : "border-taupe/40 vd-gota text-tinta hover:border-tinta/60"
                     }`}
                   >
                     <span className="block text-sm font-medium">{m.texto}</span>
@@ -381,9 +381,9 @@ export function PrendaSinRegistrarModal({
             ayuda={categoria && !grupos.unica ? `Las de ${categoria.nombre.toLowerCase()}` : undefined}
           >
             {!categoria ? (
-              <p className="rounded-lg bg-hueso px-3 py-2.5 text-[13px] text-tinta/60">Primero la categoría: las tallas salen de ella.</p>
+              <p className="rounded-lg vd-placa px-3 py-2.5 text-[13px] text-tinta/60">Primero la categoría: las tallas salen de ella.</p>
             ) : grupos.unica ? (
-              <p key={categoriaId} className="anim-revelar rounded-lg bg-hueso px-3 py-2.5 text-[13px] text-tinta">
+              <p key={categoriaId} className="anim-revelar rounded-lg vd-placa px-3 py-2.5 text-[13px] text-tinta">
                 <span className="font-semibold">Talla {grupos.unica.valor.toLowerCase()}</span>
                 <span className="text-tinta/70"> · {categoria.nombre} tiene una sola talla: ya quedó puesta.</span>
               </p>
@@ -589,7 +589,7 @@ function Muestra({ color, className = "h-3 w-3" }: { color: Pick<OpcionColor, "h
   return (
     <span
       aria-hidden
-      className={`inline-block shrink-0 rounded-full border border-tinta/20 ${className} ${color.hex ? "" : "bg-[conic-gradient(var(--color-hueso)_0_25%,var(--color-sand)_0_50%,var(--color-hueso)_0_75%,var(--color-sand)_0)]"}`}
+      className={`inline-block shrink-0 rounded-full border border-tinta/20 ${className} ${color.hex ? "" : "bg-[conic-gradient(var(--color-hueso)_0_25%,var(--color-sand)_0_50%,var(--color-hueso)_0_75%,var(--color-sand)_0)]"}`} /* beige-fijo: damero de la prenda sin color: es el dato */
       style={color.hex ? { backgroundColor: color.hex } : undefined}
     />
   );

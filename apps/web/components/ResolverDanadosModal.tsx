@@ -630,7 +630,7 @@ export function ResolverDanadosModal({
           )}
           {/* Dónde deja esta tienda las dañadas: lo que la colaboradora lee con la prenda en la mano (ADR-0564). */}
           {editandoLugar ? (
-            <div className="space-y-3 rounded-md bg-sand/30 p-3">
+            <div className="space-y-3 rounded-md vd-hundido p-3">
               <CampoGuiado id="lugar" guia={guia}>
                 <CampoTexto
                   etiqueta={guia.etiqueta("lugar", "¿Dónde dejan las prendas dañadas?")}
@@ -851,7 +851,7 @@ export function ResolverDanadosModal({
                     const elegida = eleccion ? opciones.find((o) => o.varianteId === eleccion.split("|")[0]) : undefined;
                     const desdeNueva = eleccion ? (eleccion.split("|")[1] as DesdeDanada) : null;
                     return (
-                      <div className="space-y-3 rounded-md bg-sand/30 p-3">
+                      <div className="space-y-3 rounded-md vd-hundido p-3">
                         <p className="text-sm text-tinta/65">
                           Dice <span className="font-semibold text-tinta">{nombreCorto(p.talla, p.color)}</span>. Elige la que está dañada de verdad: las dos se
                           ponen en su lugar en un solo paso, sin ajustar el stock.
@@ -902,7 +902,7 @@ export function ResolverDanadosModal({
                     );
                   })()}
                   {puedeDecidir && sinDano === p.id && p.desde && (
-                    <div className="space-y-3 rounded-md bg-sand/30 p-3">
+                    <div className="space-y-3 rounded-md vd-hundido p-3">
                       <p className="text-sm text-tinta/65">{quePasaSinDano(p.desde, p.cantidad)}</p>
                       <CampoTexto
                         etiqueta="¿Por qué no lo estaba? (opcional)"
@@ -938,7 +938,7 @@ export function ResolverDanadosModal({
                     </div>
                   )}
                   {puedeDecidir && sacando === p.id && (
-                    <div className="space-y-3 rounded-md bg-sand/30 p-3">
+                    <div className="space-y-3 rounded-md vd-hundido p-3">
                       <p className="text-sm text-tinta/65">{QUE_PASA_AL_SACAR}</p>
                       <CampoGuiado id="ruta" guia={guia}>
                         <CampoSelect
@@ -988,7 +988,7 @@ export function ResolverDanadosModal({
                     </div>
                   )}
                   {puedeDecidir && noPudo === p.id && (
-                    <div className="space-y-3 rounded-md bg-sand/30 p-3">
+                    <div className="space-y-3 rounded-md vd-hundido p-3">
                       <p className="text-sm text-tinta/65">{QUE_PASA_AL_NO_PUDO}</p>
                       <CampoGuiado id="motivo" guia={guia}>
                         <CampoTexto
@@ -1025,7 +1025,7 @@ export function ResolverDanadosModal({
                     </div>
                   )}
                   {puedeDecidir && arreglando === p.id && (
-                    <div className="space-y-3 rounded-md bg-sand/30 p-3">
+                    <div className="space-y-3 rounded-md vd-hundido p-3">
                       <p className="text-sm text-tinta/65">{quePasaAlArreglar(sede, destinoArreglo)}</p>
                       <CampoGuiado id="arreglo" guia={guia}>
                         <CampoTexto
@@ -1103,7 +1103,7 @@ export function ResolverDanadosModal({
                     </div>
                   )}
                   {puedeDecidir && devolviendo === p.id && p.devolucion && (
-                    <div className="space-y-3 rounded-md bg-sand/30 p-3">
+                    <div className="space-y-3 rounded-md vd-hundido p-3">
                       <p className="text-sm text-tinta/65">{quePasaAlDevolver(p.devolucion.proveedor)}</p>
                       <CampoGuiado id="devolucion" guia={guia}>
                         <CampoTexto
@@ -1140,7 +1140,7 @@ export function ResolverDanadosModal({
                     </div>
                   )}
                   {puedeDecidir && liquidando === p.id && (
-                    <div className="space-y-3 rounded-md bg-sand/30 p-3">
+                    <div className="space-y-3 rounded-md vd-hundido p-3">
                       <p className="text-sm text-tinta/65">
                         Liquidar registra una venta real — {p.cantidad > 1 ? `${p.cantidad} unidades juntas, ` : ""}
                         exige caja abierta en esta ubicación.
