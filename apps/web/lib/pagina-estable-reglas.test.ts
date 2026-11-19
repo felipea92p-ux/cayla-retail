@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { esCambioDeVista, esChangeInmediatoAlClic, esContinuacionDeTecleo, puedeSoltar, reservaNecesaria } from "./pagina-estable-reglas";
+import { esCambioDeVista, esChangeInmediatoAlClic, esContinuacionDeTecleo, flotaSobreOtraSuperficie, puedeSoltar, reservaNecesaria } from "./pagina-estable-reglas";
 
 // Página de 2000 px, se ven 800: abajo del todo el scroll vale 1200.
 const alFondo = { arriba: 1200, alto: 2000, visible: 800 };
@@ -133,5 +135,34 @@ describe("esContinuacionDeTecleo", () => {
   it("no aplica a click ni a change, aunque haya vigilancia sobre el mismo contenedor", () => {
     expect(esContinuacionDeTecleo("click", true, true)).toBe(false);
     expect(esContinuacionDeTecleo("change", true, true)).toBe(false);
+  });
+});
+
+// Lo `fixed` no siempre flota (ADR-0185, act. 2026-11-19). La hoja de «Prendas parecidas» es pantalla completa bajo 1280 px con `position: fixed`:
+// saltarla como a la lista de un combo dejaba vigilando la página de atrás, y al plegar una tarjeta la vista subía sola (208 px a 1024 × 768).
+describe("flotaSobreOtraSuperficie", () => {
+  it("la lista de un combo (`fixed`, no hospeda nada) se salta: lo que se acorta es lo de detrás", () => {
+    expect(flotaSobreOtraSuperficie(true, false)).toBe(true);
+  });
+
+  it("la hoja de un <Modal> llevada a pantalla completa (`fixed`, hospeda la capa de las listas) es la superficie: no se salta", () => {
+    expect(flotaSobreOtraSuperficie(true, true)).toBe(false);
+  });
+
+  it("lo que no es `fixed` nunca se salta, hospede o no (la hoja de siempre, una caja con scroll de la página)", () => {
+    expect(flotaSobreOtraSuperficie(false, true)).toBe(false);
+    expect(flotaSobreOtraSuperficie(false, false)).toBe(false);
+  });
+
+  // Las dos mitades viven en archivos distintos y se rompen en silencio si una se va: <PaginaEstable> reconoce la hoja por la capa que <Modal>
+  // monta, la misma seña con que `useDestinoFlotante` cuelga ahí la lista de todo combo.
+  it("<PaginaEstable> pregunta la regla con la capa de las listas, y <Modal> la sigue montando como hija directa de la hoja", () => {
+    const leer = (f: string) => readFileSync(join(__dirname, "..", f), "utf8");
+    const estable = leer("components/ui/PaginaEstable.tsx");
+    expect(estable).toContain('const CAPA_DE_LO_QUE_FLOTA = ":scope > [data-capa-flotante]"');
+    expect(estable).toContain("flotaSobreOtraSuperficie(fija, fija && n.querySelector(CAPA_DE_LO_QUE_FLOTA) !== null)");
+    expect(estable, "`contenedorDe` volvió a saltar todo lo `fixed` sin preguntar").not.toMatch(/position === "fixed"\) continue/);
+    expect(leer("components/ui/useAnclaje.ts")).toContain('":scope > [data-capa-flotante]"');
+    expect(leer("components/ui/Modal.tsx")).toMatch(/<div data-capa-flotante data-sin-cascada\s*\/>\s*<\/Dialog\.Content>/);
   });
 });
