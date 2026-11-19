@@ -26,12 +26,12 @@
 
 ## Ofertas por talla y color (ADR-0682) · pendientes
 
-- [ ] **Pegar en producción (decisión de Felipe).** Seis migraciones, en este orden y cada una en su pegado: `20261118232000`,
-  `20261118233000`, `20261118234000`, `20261118235000`, `20261119010000`, `20261119011000`. Antes, leer en producción la definición viva de
-  las funciones ancladas (`fn_campanas_en_sede`, `fn_variantes_de_regla`, `fn_regla_alcanza_variante`, `guardar_oferta_completa`,
-  `ofertas_de_grupo_vigentes`, `ofertas_de_monto_vigentes`, `campanas_ofertas_que_chocan`, `fusionar_productos`, `fn_campana_portada`).
-  Mientras no se peguen, la hoja no ofrece elegir tallas (`ofertasPorVariante`) y todo sigue como antes. Después: refrescar el volcado y el
-  diccionario (`docs/datos/generado/COMO-REFRESCAR.md`).
+- [x] ~~Pegar en producción~~ — **pegadas el 2026-11-19** con el OK de Felipe («Pega las 6 migraciones en PROD»), por el conector de
+  Supabase, una por una y en orden: `20261118232000`, `20261118233000`, `20261118234000`, `20261118235000`, `20261119010000` y
+  `20261119011000`. Antes, en producción había 0 ofertas guardadas y las columnas de `campana_reglas()` eran las esperadas. Después, las
+  huellas (md5 de `pg_get_functiondef`) de las 17 funciones que tocan son idénticas a las de la base local armada con los archivos. Cada una
+  quedó con una sola firma; `authenticated` llama a `fn_choques_de_oferta_por_variante` y `anon` no llega a la regla sin llave.
+- [ ] **Refrescar el volcado y el diccionario** (`docs/datos/generado/COMO-REFRESCAR.md`): la tabla `campana_regla_variantes` todavía no está en `docs/datos/generado/`.
 - [ ] **Probar en tienda:** leer etiquetas con la pistola y con la cámara del teléfono. Si el código impreso es el de fábrica y lo comparten
   varias tallas del modelo, entra el modelo entero (no hay un color que deducir): confirmar que eso es lo que se quiere.
 - [ ] **Sin mirar:** el modo oscuro de la fase de prendas con el panel de tallas abierto; `pnpm --filter web guias:recorrer` de Campañas.
