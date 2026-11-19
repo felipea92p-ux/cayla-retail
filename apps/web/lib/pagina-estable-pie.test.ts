@@ -97,3 +97,24 @@ describe("<PaginaEstable> escribe la reserva de una vez", () => {
     expect(fuente).toMatch(/pintarReserva\(reserva\.destino, reserva\.paddingInline, 0, false\)/);
   });
 });
+
+// Los pies pegados que estaban hechos a mano (un `sticky` propio con las cuentas de un relleno de 24 px) no heredaban nada de lo de arriba: con la
+// reserva puesta quedaban a media hoja (medido el 2026-11-18: 82 px arriba del borde en «Apartado registrado» a 1024 × 768 y 212 px en «Prendas
+// parecidas» a 1280 × 720) y, en la hoja de vidrio, 4 px cortos. Ahora son el pie del sistema; esto vigila que no vuelvan a dibujarse aparte.
+// La barra de «Nueva orden» (FichaOrden) NO entra: vive en la página, su pegado se mide desde la pantalla y la reserva no la mueve (medido: 514..768
+// de 768 con 339 px reservados en el `body`).
+describe("los pies que eran a mano son el pie del sistema", () => {
+  it("Apartados: «Apartado registrado» y «Apartado entregado»", () => {
+    const botones = leer("components/apartados/ModalesApartado.tsx").match(/function Botones\([\s\S]*?\n\}/)?.[0] ?? "";
+    expect(botones, "falta `Botones` en ModalesApartado").not.toBe("");
+    expect(botones).toContain('className="pie-hoja-fijo ');
+    expect(botones, "el pie de Apartados volvió a traer su propio pegado").not.toMatch(/\bsticky\b|-bottom-6|-mb-6/);
+  });
+
+  it("Prendas parecidas: lleva la clase del sistema y la suya ya no pega, no pinta fondo ni se desplaza", () => {
+    expect(leer("components/alta-producto/HojaParecidas.tsx")).toContain('className="pie-hoja-fijo parecidas-hoja-pie"');
+    const propias = reglas(leer("app/estilos/alta-parecidas.css")).filter((r) => r.selector.split(",").some((s) => s.trim().endsWith(".parecidas-hoja-pie")));
+    expect(propias.length).toBeGreaterThan(0);
+    for (const r of propias) expect(r.cuerpo, r.selector).not.toMatch(/(^|[;\s])(position|bottom|background(-color)?|translate)\s*:/);
+  });
+});

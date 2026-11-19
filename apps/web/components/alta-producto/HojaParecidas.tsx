@@ -211,7 +211,8 @@ function CuerpoHoja({ tactil, resultado, marca, categoria, alcance, revisadas, f
         ) : null}
       </div>
 
-      <div className="parecidas-hoja-pie">
+      {/* El pie pegado del sistema: con la hoja acortada por un clic («No, es otro diseño») se queda en el borde de abajo (ADR-0185, act. 2026-11-18). */}
+      <div className="pie-hoja-fijo parecidas-hoja-pie">
         <p>{vista.pie.nota}</p>
         <button
           type="button"
