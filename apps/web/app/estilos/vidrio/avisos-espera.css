@@ -20,11 +20,13 @@
 .aviso-tarjeta {
   border-radius: 20px;
   border-color: color-mix(in srgb, var(--c) var(--lente-tono-filo), transparent);
-  background: linear-gradient(
+  /* La lente va en una variable para que `vidrio/dobla.css` le pueda sumar el grano sin repetir el degradado (ADR-0681). */
+  --aviso-lente: linear-gradient(
     180deg,
     color-mix(in srgb, var(--c) var(--lente-tono-tinte-arriba), var(--lente-tono-base-arriba)),
     color-mix(in srgb, var(--c) var(--lente-tono-tinte-abajo), var(--lente-tono-base-abajo))
   );
+  background: var(--aviso-lente);
   -webkit-backdrop-filter: var(--vidrio-hoja-filtro);
   backdrop-filter: var(--vidrio-hoja-filtro);
   box-shadow: var(--lente-tono-sombra);

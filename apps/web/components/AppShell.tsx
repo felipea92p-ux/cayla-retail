@@ -539,6 +539,8 @@ function CajonGrupo({
   onSalir: () => void;
 }) {
   const filas = useRef<(HTMLAnchorElement | null)[]>([]);
+  // El cajón flota sobre la pantalla: dobla lo de atrás en su canto y conserva su relleno (lleva nombres que se leen). ADR-0681.
+  const dobla = useVidrioQueDobla<HTMLDivElement>({ desenfoque: 24, asienta: true });
   // Solo las PANTALLAS, a cualquier profundidad (D-84: un subgrupo como Abastecimiento se aplana acá en vez de abrir
   // un segundo cajón en cascada — el cajón ya es la vista rápida y plegada, no vale la pena otro nivel de flotante
   // para un menú de cuatro filas). El teclado (flechas, Inicio/Fin) navega entre PANTALLAS, nunca entre etiquetas.
@@ -619,6 +621,7 @@ function CajonGrupo({
 
   return (
     <div
+      ref={dobla}
       role="menu"
       aria-label={grupo.etiqueta}
       onKeyDown={alTeclado}

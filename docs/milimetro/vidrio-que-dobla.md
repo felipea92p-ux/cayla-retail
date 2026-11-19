@@ -71,10 +71,23 @@ La mejora no agrega estados a la pieza. Lo que sí cambia según el aparato:
 | Cambio de tema | se rehace con la luminosidad del tema | medido en claro y oscuro |
 | quieto (animaciones apagadas) | dobla igual; lo que se mueve (el vidrio que se asienta al abrir una hoja) no corre | `prefiereQuieto()` |
 
+## Qué piezas doblan
+
+| Pieza | Por dónde | Relleno | Cuándo |
+|---|---|---|---|
+| La cabecera (`.marco-cabecera-fila`) | abajo | claro | siempre |
+| El aviso de la esquina (`.aviso-tarjeta`) | todo el contorno | propio | siempre |
+| El cajón de un módulo con el menú plegado (`.marco-cajon-grupo`) | todo el contorno | propio | siempre |
+| La isla (`<BarraDeAbajo>`, clara) | todo el contorno | propio | solo en el celular; en escritorio va a ras |
+
+Fuera: la isla oscura (es ahumada, no de vidrio) y las barras que usan la clase `barra-abajo` a mano, sin el componente.
+
 ## Movimiento
 
-La cabecera no se mueve. El vidrio que se asienta al abrirse una hoja o al apretar una pieza llega con esas piezas, una vez, sin rebote,
-y pregunta `prefiereQuieto()` (ADR-0625).
+La cabecera no se mueve. Lo que entra y sale (el aviso, el cajón, la isla) **se asienta** al aparecer: dobla 2,2 veces de más y vuelve a
+su medida en 480 ms, frenando, sin rebote y una sola vez (ADR-0136). Solo cambia la fuerza del filtro; el mapa no se rehace. Con las
+animaciones apagadas, que es como arranca el ERP (ADR-0625), aparece ya asentado: pregunta `prefiereQuieto()`. Medido: con las
+animaciones encendidas la fuerza va de 96 a 59; apagadas, 59 desde el primer cuadro.
 
 ## Accesibilidad y costo
 

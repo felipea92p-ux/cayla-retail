@@ -44,3 +44,32 @@
   -webkit-mask: linear-gradient(var(--color-sombra), transparent);
   mask: linear-gradient(var(--color-sombra), transparent);
 }
+
+/* ---------- Lo que flota suelto y se LEE: el aviso de la esquina, el cajón de un módulo y la isla del celular ----------
+   Relleno propio: cada una conserva su relleno y su desenfoque de siempre (el filtro lo repite en el centro) y solo dobla en el canto.
+   No usan el relleno claro porque llevan texto en taupe directo sobre su vidrio, y el piso de luminosidad solo alcanza para la tinta.
+   Suman el grano y la hondura. Al aparecer, el vidrio se asienta: lo hace el filtro (`useVidrioQueDobla`), no el CSS. */
+.aviso-tarjeta[data-dobla-activa] {
+  background: var(--vidrio-dobla-grano), var(--aviso-lente);
+  -webkit-backdrop-filter: var(--dobla);
+  backdrop-filter: var(--dobla);
+  box-shadow: var(--lente-tono-sombra), var(--vidrio-dobla-hondura);
+}
+.marco-cajon-grupo[data-dobla-activa] {
+  background: var(--vidrio-dobla-grano), var(--vidrio-flota-fondo);
+  -webkit-backdrop-filter: var(--dobla);
+  backdrop-filter: var(--dobla);
+  box-shadow: var(--vidrio-flota-sombra), var(--vidrio-dobla-hondura);
+}
+/* La isla vive en la capa `components` a propósito (estilos/barra-abajo.css): una pantalla que en escritorio la quiere a ras le gana
+   con sus utilidades. Esta regla va en la misma capa para no romper eso. Solo en el celular, que es donde flota. */
+@layer components {
+  @media (max-width: 639.98px) {
+    .barra-abajo[data-dobla-activa] {
+      background: var(--vidrio-dobla-grano), var(--vidrio-flota-fondo);
+      -webkit-backdrop-filter: var(--dobla);
+      backdrop-filter: var(--dobla);
+      box-shadow: var(--vidrio-flota-sombra), var(--vidrio-dobla-hondura);
+    }
+  }
+}
