@@ -19,6 +19,8 @@
  *  12. La serie del gráfico (20261029040000, actividad 2): por hora en un día, por día en varios, para estos días y los de antes.
  *  11. Los días con los que se compara (20261029015000, «Observatorio» actividad 1): a mano (el día anterior pedido, no el de atrás del
  *      mismo largo), con corte de hora («ayer a esta hora»), y lo que no vale se rechaza (22023); sin pedirlos, todo sigue igual.
+ *  19. Un día que la base todavía no midió (20261119002000): «Hoy» con 600 personas responde dentro de los 8 s de quien tiene sesión
+ *      aunque Postgres calcule 1 fila para ese día, y la tabla se vuelve a medir sola cada 50 pasos nuevos.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK y escribe sus pasos en enero de 2025, lejos de lo que haya en la base local.
  *
@@ -43,6 +45,7 @@ const MIGRACION_TALLAS = readFileSync("supabase/migrations/20261029120000_trafic
 const MIGRACION_ATENCION = readFileSync("supabase/migrations/20261029123000_trafico_web_atencion.sql", "utf8");
 const MIGRACION_CALENDARIO = readFileSync("supabase/migrations/20261029132000_trafico_web_calendario.sql", "utf8");
 const MIGRACION_SIN_AJUSTES = readFileSync("supabase/migrations/20261101004000_trafico_web_funciones_sin_ajustes.sql", "utf8");
+const MIGRACION_SIN_MEDIR = readFileSync("supabase/migrations/20261119002000_trafico_web_un_dia_sin_medir.sql", "utf8");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo, sin «trafico»
 
@@ -432,6 +435,51 @@ esperarValor(
   "true",
 );
 esperar("la migración de funciones sin ajustes se puede pegar dos veces", correr(`begin;\n${MIGRACION_SIN_AJUSTES}\n${MIGRACION_SIN_AJUSTES}\nrollback;`).ok, "falló al pegar dos veces");
+
+// ---- 19. Un día que la base todavía no midió (20261119002000) ----
+// El 2026-11-18, «Hoy» se cortó en producción a los 8 s (57014) con 340 personas. Postgres había medido la tabla la noche anterior: para el día
+// de hoy calculaba 1 fila (eran 372) y unía la lista de pasos consigo misma con bucles anidados, que crecen al cubo (3,1 s por llamada, y
+// el resumen la llama 4 veces para el día; con la tabla medida, 7 ms). La escena es esa: nueve días medidos y, DESPUÉS de la medición, un día
+// con 600 personas. En marzo de 2031, más allá de cualquier fila de la base local, para que la medición no lo alcance.
+const DIA_SIN_MEDIR = "2031-03-10";
+const visitante = (n) => `('0d0d0d0d-0000-4000-8000-' || lpad((${n})::text, 12, '0'))::uuid`;
+const SIN_MEDIR = `
+insert into retail.trafico_web (visitante, ocurrio_en, paso, camino, region)
+select ${visitante("d * 1000 + n")}, ('2031-03-01'::date + d + interval '9 hours' + n * interval '1 minute') at time zone 'America/Lima', 0, 'instagram', 'PE-LAL'
+from generate_series(0, 8) d, generate_series(1, 40) n;
+analyze retail.trafico_web;
+insert into retail.trafico_web (visitante, ocurrio_en, paso, camino, region)
+select ${visitante("90000 + n")}, ('${DIA_SIN_MEDIR} 08:00'::timestamp + n * interval '30 seconds') at time zone 'America/Lima', 0, 'instagram', 'PE-LAL'
+from generate_series(1, 600) n;
+insert into retail.trafico_web (visitante, ocurrio_en, paso, producto_id)
+select ${visitante("90000 + n")}, ('${DIA_SIN_MEDIR} 14:00'::timestamp + n * interval '30 seconds') at time zone 'America/Lima', 1, :'prenda'
+from generate_series(1, 600, 10) n;
+`;
+// Que la escena sea la del incidente y la prueba no pase por otra razón: la base calcula a lo más 5 filas para un día que tiene 660.
+esperarValor(
+  "la escena: para ese día la base calcula a lo más 5 filas, y tiene 660",
+  escenario(`${SIN_MEDIR}
+create function pg_temp.filas_calculadas(p_consulta text) returns numeric language plpgsql as $f$
+declare v_plan json; begin execute 'explain (format json) ' || p_consulta into v_plan; return (v_plan -> 0 -> 'Plan' ->> 'Plan Rows')::numeric; end $f$;
+select (pg_temp.filas_calculadas($q$select 1 from retail.trafico_web t where t.ocurrio_en >= ('${DIA_SIN_MEDIR}'::date::timestamp at time zone 'America/Lima')
+    and t.ocurrio_en < (('${DIA_SIN_MEDIR}'::date + 1)::timestamp at time zone 'America/Lima')$q$) <= 5)::text
+  || ' ' || (select count(*) from retail.trafico_web t where t.ocurrio_en >= ('${DIA_SIN_MEDIR}'::date::timestamp at time zone 'America/Lima'));`),
+  "true 660",
+);
+esperarValor(
+  "«Hoy» con 600 personas que la base todavía no midió responde dentro de los 8 s de quien tiene sesión: 600 entraron, 60 vieron una prenda, 40 ayer a esta hora",
+  escenario(`${SIN_MEDIR}${COMO(FELIPE)}set local statement_timeout = '8s';
+select retail.resumen_trafico_web('${DIA_SIN_MEDIR}', '${DIA_SIN_MEDIR}', null, null, '2031-03-09', '2031-03-09', ('2031-03-09 20:00'::timestamp at time zone 'America/Lima')) as r \\gset
+${COMO_POSTGRES}select jsonb_build_array((:'r'::jsonb) -> 'pasos' -> 0, (:'r'::jsonb) -> 'pasos' -> 1, (:'r'::jsonb) -> 'anterior');`),
+  "[600, 60, 40]",
+);
+// Con el 10 % de fábrica, un día entero de visitas podía no alcanzar el umbral y quedarse sin medir (el 18 hacían falta 456 filas e iban 387).
+esperarValor(
+  "la tabla se vuelve a medir sola cada 50 pasos nuevos, no cada 10 % de la tabla",
+  escenario(`select count(*) from pg_class c, unnest(c.reloptions) o where c.oid = 'retail.trafico_web'::regclass and o in ('autovacuum_analyze_scale_factor=0', 'autovacuum_analyze_threshold=50');`),
+  "2",
+);
+esperar("la migración del día sin medir se puede pegar dos veces", correr(`begin;\n${MIGRACION_SIN_MEDIR}\n${MIGRACION_SIN_MEDIR}\nrollback;`).ok, "falló al pegar dos veces");
 
 console.log(`\n${total - fallos} de ${total} bien.`);
 if (fallos) process.exit(1);
