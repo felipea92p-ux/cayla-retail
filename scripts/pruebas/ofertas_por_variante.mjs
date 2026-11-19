@@ -34,6 +34,7 @@ const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] :
 const MIGRACION = "supabase/migrations/20261118232000_oferta_por_variante.sql";
 const LECTURAS = "supabase/migrations/20261118233000_ofertas_de_grupo_y_monto_por_variante.sql";
 const CHOQUES = "supabase/migrations/20261118234000_choques_de_oferta_por_variante.sql";
+const HUELLA = "supabase/migrations/20261118235000_huella_tienda_con_ofertas_por_variante.sql";
 const TOPE = "supabase/migrations/20261116173000_ofertas_tope_bolsas_y_monto_pagado.sql";
 const FIRMA_15 = "uuid, uuid, date, date, smallint[], uuid[], uuid[], uuid[], uuid[], uuid[], boolean, uuid[], text, text, boolean";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
@@ -84,6 +85,7 @@ const ANTES = [
   falta("select to_regclass('retail.campana_regla_variantes') is null;") ? readFileSync(MIGRACION, "utf8") : "",
   falta("select position('fn_variantes_de_regla(g.id)' in pg_get_functiondef('retail.ofertas_de_grupo_vigentes(uuid)'::regprocedure)) = 0;") ? readFileSync(LECTURAS, "utf8") : "",
   falta(`select to_regprocedure('retail.fn_choques_de_oferta_por_variante_sin_llave(${FIRMA_15})') is null;`) ? readFileSync(CHOQUES, "utf8") : "",
+  falta("select position('fn_variantes_sueltas_de_regla' in pg_get_functiondef('retail.tienda_catalogo_version()'::regprocedure)) = 0;") ? readFileSync(HUELLA, "utf8") : "",
 ].filter(Boolean).join("\n");
 
 const HOY = "retail.fn_hoy_lima()";
@@ -316,6 +318,36 @@ select coalesce((select jsonb_array_length(c.modelos) from retail.campanas_ofert
   "1",
 );
 
+console.log("\n— La tienda web —");
+/** Lo que la web le rebaja hoy a cada prenda en Lima: «a1:20|a2:0». */
+const WEB = (vs = ["a1", "a2"]) =>
+  `select string_agg(x.k || ':' || coalesce((select max(pr.pct)::integer from retail.fn_tienda_precio_talla(array[x.v]::uuid[], :'u') pr), 0), '|' order by x.n)
+   from (values ${vs.map((k, i) => `(${i}, '${k}', :'${k}'::uuid)`).join(", ")}) x(n, k, v);\n`;
+esperarValor(
+  "la web rebaja la misma talla que la caja, y la otra talla del modelo no",
+  caso(`${OFERTA()}${WEB()}`),
+  "a1:20|a2:0",
+);
+esperarValor(
+  "control: sin variantes, la web rebaja las dos tallas (las prendas de la campaña)",
+  caso(`${OFERTA({ variantes: null })}${WEB()}`),
+  "a1:20|a2:20",
+);
+esperarValor(
+  "un 3x2 en tres variantes sueltas: la bolsa de la web ahorra una prenda; con la talla que no se eligió, nada",
+  caso(`${OFERTA({ forma: { tipo: "nxm", lleva: 3, paga: 2 }, variantes: TRES })}select concat_ws('|',
+  (retail.tienda_bolsa_grupos(jsonb_build_array(jsonb_build_object('variante_id', :'a1', 'cantidad', 1), jsonb_build_object('variante_id', :'a2', 'cantidad', 1), jsonb_build_object('variante_id', :'fuera', 'cantidad', 1)), :'u') ->> 'ahorro')::numeric > 0,
+  (retail.tienda_bolsa_grupos(jsonb_build_array(jsonb_build_object('variante_id', :'a1', 'cantidad', 1), jsonb_build_object('variante_id', :'a2', 'cantidad', 1), jsonb_build_object('variante_id', :'a3', 'cantidad', 1)), :'u') ->> 'ahorro')::numeric = 0);\n`),
+  "t|t",
+);
+esperarValor(
+  "la huella del catálogo cambia cuando se quita una talla de una oferta",
+  caso(`${OFERTA({ variantes: "jsonb_build_array(:'a1', :'a2')" })}select retail.tienda_catalogo_version() as h0 \\gset
+delete from retail.campana_regla_variantes where regla_id = :'r' and variante_id = :'a2';
+select retail.tienda_catalogo_version() <> :'h0';\n`),
+  "t",
+);
+
 console.log("\n— Pegar —");
 esperarValor(
   "la migración se pega dos veces y cada función queda con una sola firma",
@@ -343,6 +375,10 @@ esperar(
 esperar(
   "la de las lecturas de la caja (20261118233000) se pega dos veces",
   correr(`begin;\n${ANTES}\n${readFileSync(LECTURAS, "utf8")}\n${readFileSync(LECTURAS, "utf8")}\nrollback;`).ok,
+);
+esperar(
+  "la de la huella de la tienda web (20261118235000) se pega dos veces",
+  correr(`begin;\n${ANTES}\n${readFileSync(HUELLA, "utf8")}\n${readFileSync(HUELLA, "utf8")}\nrollback;`).ok,
 );
 esperarValor(
   "pegada dos veces, la caja no repite la rama de las variantes",
