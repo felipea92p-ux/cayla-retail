@@ -18,6 +18,7 @@ import { montoParaCaja, pasoDePrecio, posicionEnControl, rangoDesdeControl, sole
 import { ORDENES_MENU, ORDEN_POR_DEFECTO, ROTULO_ORDEN_PRODUCTOS, ordenDeUrl } from "@/lib/productos-orden";
 import {
   alternarColor,
+  busquedaDeLaPistola,
   estadoDeColor,
   listaDeUrl,
   listaParaUrl,
@@ -52,6 +53,7 @@ import {
 } from "@/lib/productos-filtros";
 import { SIN_EN_URL } from "@/lib/marcas";
 import { Buscador } from "@/components/ui/Buscador";
+import { usePistola } from "@/components/ui/usePistola";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 import { fondoDelPunto } from "@/lib/color-combinado";
 
@@ -214,6 +216,23 @@ export function FiltrosProductos({
     window.addEventListener("popstate", olvidar);
     return () => window.removeEventListener("popstate", olvidar);
   }, []);
+
+  // La pistola, la misma pieza de Existencias y Vender (`usePistola`, 2026-11-20). Antes Productos mandaba a la base lo que
+  // quedaba en la caja: con un teclado en español la pistola escribe el guion como apóstrofo («ABR'0003'NEG'S») y un segundo
+  // escaneo se pegaba detrás del primero; las dos cosas daban «sin resultados» (medido en producción). Ahora lo leído reemplaza
+  // lo que hubiera escrito, con el guion en su sitio (`busquedaDeLaPistola`), y se busca al momento, sin la pausa del tipeo.
+  // `leer` y no `atraer`: con el cursor fuera del buscador (en una tarjeta, en la vista rápida) la lectura también busca, pero una
+  // tecla tecleada a mano no se roba el foco.
+  const buscadorRef = useRef<HTMLInputElement>(null);
+  usePistola(buscadorRef, {
+    fuera: "leer",
+    alLeer: ({ codigo }) => {
+      const q = busquedaDeLaPistola(codigo);
+      if (!q) return;
+      setTipeado((t) => ({ ...t, q }));
+      aplicar({ q }, { teclado: true });
+    },
+  });
 
   // Búsqueda y precio se mandan solos al dejar de tipear o arrastrar (350 ms). El slider de precio solo anota lo tipeado en
   // cada paso; este mismo efecto hace de espera para los dos. También se vuelve a armar cuando llega una URL: si otra
@@ -533,6 +552,7 @@ export function FiltrosProductos({
           onFocus={() => alEntrarCaja("q")}
           onBlur={alSalirCaja}
           id={ID_BUSCADOR}
+          ref={buscadorRef}
           etiqueta="Buscar"
           // sugerir-fijo: dice qué se puede buscar en el catálogo (nombre, código, código de barras); no depende de nada elegido antes
           placeholder="Prenda, código o código de barras…"
