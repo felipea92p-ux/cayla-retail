@@ -3,11 +3,9 @@ import {
   detalleMarca,
   filtrarMarcas,
   marcasConProveedores,
-  marcasDelProveedorElegido,
   marcasParaComprar,
   marcasRecientes,
   nombreSinSociedad,
-  pildorasDeMarca,
   proveedoresDeLaMarca,
   proveedoresSinMarca,
   type ProveedorParaComprar,
@@ -103,25 +101,5 @@ describe("lo que se lee bajo la marca", () => {
     expect(nombreSinSociedad("Textil Ejemplo SAC")).toBe("Textil Ejemplo");
     expect(nombreSinSociedad("Confecciones Andinas E.I.R.L.")).toBe("Confecciones Andinas");
     expect(nombreSinSociedad("Kero")).toBe("Kero");
-  });
-});
-
-describe("el paso 2: las otras marcas del proveedor", () => {
-  const lista = marcasParaComprar(marcas, proveedores);
-  it("las marcas del proveedor elegido", () => {
-    expect(marcasDelProveedorElegido(lista, "p1")).toEqual([
-      { id: "m1", nombre: "Kero" },
-      { id: "m2", nombre: "Lolita" },
-    ]);
-  });
-  it("con una sola marca no hay píldoras", () => {
-    expect(pildorasDeMarca([{ id: "m3", nombre: "Nativa" }], [], null)).toEqual([]);
-  });
-  it("cuenta sus prendas y pone primero la marca por la que se entró", () => {
-    const hab = [{ marcaId: "m1" }, { marcaId: "m1" }, { marcaId: "m2" }, { marcaId: null }];
-    expect(pildorasDeMarca(marcasDelProveedorElegido(lista, "p1"), hab, "m2")).toEqual([
-      { id: "m2", nombre: "Lolita", cuantos: 1 },
-      { id: "m1", nombre: "Kero", cuantos: 2 },
-    ]);
   });
 });

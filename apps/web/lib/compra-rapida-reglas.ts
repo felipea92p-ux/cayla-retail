@@ -18,9 +18,6 @@ export const RPC_REGISTRAR_COMPRA_RAPIDA = "registrar_compra_rapida";
 export const RPC_REGISTRAR_MARCA_DE_COMPRA = "registrar_marca_de_compra";
 
 
-/** Cuántos habituales se ven antes de «Ver todos los suyos» (la maqueta aprobada). */
-export const HABITUALES_A_LA_VISTA = 6;
-
 /** Lo que se dice de una prenda que todavía no sabe qué es, y de una que espera su precio de venta (ADR-0660, Felipe 2026-11-13). */
 export const TEXTO_POR_DEFINIR = "Por definir";
 export const TEXTO_PRECIO_EN_ESPERA = "A la espera de precio sugerido";
@@ -189,25 +186,6 @@ export function proveedoresDeLaMarca(m: MarcaParaComprar): ProveedorParaComprar[
     .map(({ p }) => p);
 }
 
-/** Las marcas que trae un proveedor (para «también te trae» del paso 2), en el orden de la lista. */
-export function marcasDelProveedorElegido(lista: readonly MarcaParaComprar[], proveedorId: string): { id: string; nombre: string }[] {
-  return lista.filter((m) => m.proveedores.some((p) => p.id === proveedorId)).map((m) => ({ id: m.id, nombre: m.nombre }));
-}
-
-/**
- * Las píldoras de marca del paso 2: cada marca del proveedor con cuántas prendas suyas hay. Solo si trae dos o más (con una sola no hay nada que
- * elegir). La marca por la que se entró va primero.
- */
-export function pildorasDeMarca(
-  marcasDelProveedor: readonly { id: string; nombre: string }[],
-  habituales: readonly Pick<Habitual, "marcaId">[],
-  primera: string | null,
-): { id: string; nombre: string; cuantos: number }[] {
-  if (marcasDelProveedor.length < 2) return [];
-  const con = marcasDelProveedor.map((m) => ({ ...m, cuantos: habituales.filter((h) => h.marcaId === m.id).length }));
-  return primera ? [...con.filter((m) => m.id === primera), ...con.filter((m) => m.id !== primera)] : con;
-}
-
 /**
  * «Les compraste hace poco» (maqueta compras-formidable-2026-10): los proveedores a los que ya se les compró, el más reciente primero.
  * Los demás se encuentran buscando o por lo que venden.
@@ -271,19 +249,6 @@ export type Habitual = {
   venta: number | null;
 };
 
-/**
- * La frase sobre la lista de «¿Qué le compraste?». «Viene con lo de la vez pasada» solo si de verdad hubo una vez pasada (alguna con `veces`
- * > 0); si la lista es solo su catálogo, viene con el precio del catálogo. Antes decía «la vez pasada» también con una marca que dice «Todavía
- * no le compras» (auditoría 2026-11-12).
- */
-export function ayudaDeHabituales(habituales: readonly Pick<Habitual, "veces">[] | null): string {
-  // Mientras se lee (o si no se pudo leer): un texto que no promete nada sobre la vez pasada.
-  if (habituales === null) return "Toca una prenda de la lista. Si es otra, usa «Algo nuevo».";
-  if (habituales.length === 0) return "Todavía no le compraste nada: descríbelo con «Algo nuevo».";
-  if (habituales.some((h) => h.veces > 0)) return "Toca una prenda de las suyas: viene con lo de la vez pasada. Si es otra, usa «Algo nuevo».";
-  return "Toca una prenda de su catálogo: viene con su costo y su precio. Si es otra, usa «Algo nuevo».";
-}
-
 /** Lo que manda `fn_habituales_proveedor`: lo más comprado primero, como viene. */
 export function leerHabituales(data: unknown): Habitual[] {
   if (!Array.isArray(data)) return [];
@@ -313,18 +278,6 @@ export function leerHabituales(data: unknown): Habitual[] {
     .filter((x): x is Habitual => x !== null);
 }
 
-/** Las píldoras de «¿Qué le compras hoy?»: cada categoría de sus habituales con cuántos hay, si son más de una. */
-export function categoriasDeHabituales(lista: readonly Habitual[]): { id: string; nombre: string; cuantos: number }[] {
-  const porId = new Map<string, { id: string; nombre: string; cuantos: number }>();
-  for (const h of lista) {
-    if (h.categoriaId === null) continue;
-    const c = porId.get(h.categoriaId) ?? { id: h.categoriaId, nombre: h.categoria, cuantos: 0 };
-    c.cuantos += 1;
-    porId.set(h.categoriaId, c);
-  }
-  return porId.size > 1 ? [...porId.values()] : [];
-}
-
 /**
  * Lo que dice cada fila de «¿Qué le compraste?» (Felipe 2026-10-28): «Te costó S/ 20.00 · vendes S/ 35.90 · antes: 5». Cada pieza es una
  * etiqueta y su valor, para dibujar el valor en negrita. Una prenda que ya va en la compra dice lo que se anotó (sin «antes»); una que
@@ -351,16 +304,6 @@ export function piezasDeFila(h: Habitual | null, suyas: readonly LineaCompra[]):
 }
 
 /**
- * Agrega una prenda a la compra, y nunca dos veces: si su clave ya va, la compra queda como estaba. Se usa dentro de `setLineas((ls) => …)`,
- * que ve la compra de ese momento: cinco toques en el mismo instante en «+ 9» dejaban 45 unidades porque cada uno veía la compra de antes del
- * primero (/chaos 2026-10-28). Corregir una prenda que ya va es otra cosa (la hoja reemplaza sus líneas).
- */
-export function conPrendaAgregada(lineas: readonly LineaCompra[], nuevas: readonly LineaCompra[]): LineaCompra[] {
-  if (nuevas.length === 0 || lineas.some((l) => l.clave === nuevas[0].clave)) return [...lineas];
-  return [...lineas, ...nuevas];
-}
-
-/**
  * El candado de un envío (/chaos 2026-10-29): cinco clics en «Guardar» en el mismo instante mandaban cinco pedidos iguales, porque la guardia
  * `if (guardando)` leía el estado de antes del primero. Este candado vive fuera del estado de React: `tomar()` es verdadero solo la primera vez
  * y hasta que `soltar()` (al terminar el envío, bien o mal) vuelve a dejar pasar un clic. La base ya devolvía lo mismo por el identificador de la
@@ -383,23 +326,6 @@ export function candadoDeEnvio() {
 /** Cuántas se le compraron la vez pasada: lo que ofrece el botón «+ 9 como la vez pasada». Sin compras de antes, no hay atajo. */
 export function cantidadDeAtajo(h: Pick<Habitual, "veces" | "ultimaCantidad">): number | null {
   return h.veces > 0 && h.ultimaCantidad != null && h.ultimaCantidad > 0 ? h.ultimaCantidad : null;
-}
-
-/**
- * El borrador del botón «+ 9 como la vez pasada»: la cantidad de la vez pasada con su costo y su venta, a la tienda de la prenda anterior.
- * `null` si no hay vez pasada. Puede quedar incompleto (sin costo, venta o tienda): quien lo usa lo prueba con `lineasDeBorrador` y, si
- * no alcanza para agregarla, abre la hoja con esto ya escrito en vez de adivinar.
- */
-export function borradorDeAtajo(h: Habitual, destinoId: string | null): BorradorPrenda | null {
-  const cantidad = cantidadDeAtajo(h);
-  if (cantidad == null) return null;
-  return {
-    cantidad: String(cantidad),
-    costo: h.costo != null ? h.costo.toFixed(2) : "",
-    venta: h.venta != null ? h.venta.toFixed(2) : "",
-    destinos: destinoId ? [destinoId] : [],
-    reparto: {},
-  };
 }
 
 export type LineaCompra = {
