@@ -13,6 +13,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { SQL_DESHACER_ALIADAS } from "./_deshacer_aliadas.mjs";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,6 +28,8 @@ const leer = (f) => readFileSync(join(RAIZ, "supabase/migrations", f), "utf8");
 const ARCHIVO = "20261029144000_claure_efectivo_se_queda_con_claudia.sql";
 // La cadena que deja las funciones de CLAURE como estaban antes de esta actividad (con el IGV de la actividad 10)...
 const PREVIAS = [
+  // ADR-0683: lo que las migraciones de las aliadas cambiaron en funciones vivas vuelve a su texto de antes, o estas no se pueden volver a pegar.
+  SQL_DESHACER_ALIADAS,
   leer("20261029004000_cuenta_con_claure.sql"),
   leer("20261029011000_pagar_a_claure.sql"),
   leer("20261029013000_cierre_de_caja_con_claudia.sql"),

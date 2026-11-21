@@ -940,6 +940,7 @@ export const PRUEBAS = [
   "pruebas:claure-cuenta",
   "pruebas:empresas-aliadas",
   "pruebas:aliadas-balance",
+  "pruebas:aliadas-cuenta",
 
   // El Yape de Claudia sale de los números de CAYLA (ADR-0638, actividad 2 de Lima): la cuenta nace una y de CLAURE; vacía, nada cambia (16 huellas, con y sin los parches);
   // un Yape puesto ahí sale de BCP, de los saldos, del Flujo y del Balance y el Diario cuadra; nadie paga nada con ella, no aparece para elegir y un cobro Yape o Plin en su sede sí se puede.
