@@ -177,6 +177,41 @@ rot as (
     left join lugar_hoy l on l.sede = k.sede and l.madre_id = k.madre_id
     left join piso_prom p on p.sede = k.sede and p.madre_id = k.madre_id
    where k.sede <> 'Taller'
+),
+/* Por modelo: lo cobrado con su prenda (lo «sin registrar» no sabe de qué modelo es) y lo que hay, por tienda. */
+mod_v as (
+  select va.producto_id, coalesce(va.color_codigo, '') as col, l.sede, sum(l.cantidad)::numeric as u
+    from cobradas l
+    join retail.variantes va on va.id = l.variante_id
+    join retail.productos pr on pr.id = va.producto_id
+    join cat c on c.id = pr.categoria_id
+   where l.en28 and l.variante_id <> '22222222-2222-4222-8222-222222222222'::uuid and not pr.es_prueba
+   group by 1, 2, 3
+),
+mod_s as (
+  select va.producto_id, coalesce(va.color_codigo, '') as col, u.sede,
+         sum(greatest(case when sb.tipo is distinct from 'cuarentena' then (s.cantidad - s.cantidad_apartada) - coalesce(dz.c, 0) else 0 end, 0))::numeric as disp
+    from retail.stock s
+    join retail.variantes va on va.id = s.variante_id
+    join retail.productos pr on pr.id = va.producto_id
+    join cat c on c.id = pr.categoria_id
+    join ubi u on u.id = s.ubicacion_id
+    left join retail.sububicaciones sb on sb.id = s.sububicacion_id
+    left join lateral (select sum(d.cantidad - d.cantidad_apartada) as c from retail.stock_dueno d
+                        where d.variante_id = s.variante_id and d.ubicacion_id = s.ubicacion_id
+                          and d.sububicacion_id is not distinct from s.sububicacion_id) dz on true
+   where s.cantidad > 0 and s.variante_id <> '22222222-2222-4222-8222-222222222222'::uuid and not pr.es_prueba
+   group by 1, 2, 3
+),
+mod_k as (select producto_id from mod_v union select producto_id from mod_s),
+mod_col as (
+  select q.producto_id, jsonb_agg(jsonb_build_object('c', coalesce(co.nombre, 'Sin color'), 'x', co.hex) order by q.peso desc, q.col) as cols
+    from (select producto_id, col, sum(peso) as peso, row_number() over (partition by producto_id order by sum(peso) desc, col) as n
+            from (select producto_id, col, u as peso from mod_v union all select producto_id, col, disp from mod_s) z
+           group by 1, 2) q
+    left join retail.colores co on co.codigo = q.col
+   where q.n <= 6 and q.peso > 0
+   group by 1
 )
 select jsonb_build_object(
   'hoy', (select hoy from w),
@@ -245,6 +280,23 @@ select jsonb_build_object(
       join retail.categorias m on m.id = v.madre_id
       left join km_fin kf on kf.madre_id = v.madre_id
       left join vara_meta vm on vm.madre_id = v.madre_id), '[]'::jsonb),
+  'modelos', coalesce((select jsonb_agg(jsonb_build_object('t', m.nombre, 'cod', pr.codigo, 'n', pr.referencia, 'marca', ma.nombre,
+                                   'nuevo', pr.created_at >= (select desde_ts from w),
+                                   'v', jsonb_build_array(coalesce((select sum(u) from mod_v x where x.producto_id = k.producto_id and x.sede = 'TRU'), 0),
+                                                          coalesce((select sum(u) from mod_v x where x.producto_id = k.producto_id and x.sede = 'AQP'), 0),
+                                                          coalesce((select sum(u) from mod_v x where x.producto_id = k.producto_id and x.sede = 'LIM'), 0)),
+                                   'h', jsonb_build_array(coalesce((select sum(disp) from mod_s x where x.producto_id = k.producto_id and x.sede = 'TRU'), 0),
+                                                          coalesce((select sum(disp) from mod_s x where x.producto_id = k.producto_id and x.sede = 'AQP'), 0),
+                                                          coalesce((select sum(disp) from mod_s x where x.producto_id = k.producto_id and x.sede = 'LIM'), 0),
+                                                          coalesce((select sum(disp) from mod_s x where x.producto_id = k.producto_id and x.sede = 'Taller'), 0)),
+                                   'col', coalesce(mc.cols, '[]'::jsonb))
+                                 order by m.nombre, pr.referencia)
+      from mod_k k
+      join retail.productos pr on pr.id = k.producto_id
+      join cat c on c.id = pr.categoria_id
+      join retail.categorias m on m.id = c.madre_id
+      left join retail.marcas ma on ma.id = pr.marca_id
+      left join mod_col mc on mc.producto_id = k.producto_id), '[]'::jsonb),
   'control', jsonb_build_object(
       'ventas_28', (select coalesce(sum(u), 0) from todas where en28),
       'stock', (select coalesce(sum(disp), 0) from st),
