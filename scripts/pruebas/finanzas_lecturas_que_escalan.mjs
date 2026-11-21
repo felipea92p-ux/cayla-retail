@@ -235,9 +235,11 @@ select 'B3 la línea de la prenda de CLAURE vendida hoy en Lima es de CLAURE; la
 select 'B4 una venta de antes del arranque no es de CLAURE',
   not retail.fn_item_es_de_claure(${ID(7)}, :'lim', now() - interval '12 days');
 update retail.empresas set activo = false where clave = 'claure';
-select 'B5 con CLAURE inactiva: lo mismo que antes, y ninguna línea es suya',
-  (select count(*) from combinaciones where retail.fn_item_es_de_claure(item, sede, cuando) is distinct from pg_temp.claure_antes(item, sede, cuando)) = 0
-  and not exists (select 1 from combinaciones where retail.fn_item_es_de_claure(item, sede, cuando));
+-- ADR-0683 (20261121173000): una aliada dada de baja conserva su pasado. Antes, al apagarla, todas sus líneas volvían a ser de CAYLA y las cifras
+-- de los meses cerrados cambiaban solas; ahora responde lo mismo que activa, y sigue habiendo líneas suyas.
+select 'B5 con CLAURE dada de baja: cada línea responde lo mismo que con CLAURE activa (su pasado sigue siendo suyo)',
+  (select count(*) from comparacion where retail.fn_item_es_de_claure(item, sede, cuando) is distinct from nueva) = 0
+  and exists (select 1 from comparacion where retail.fn_item_es_de_claure(item, sede, cuando));
 update retail.empresas set activo = true, cuenta_corriente_desde = null where clave = 'claure';
 select 'B6 sin fecha de arranque: lo mismo que antes, y ninguna línea es suya',
   (select count(*) from combinaciones where retail.fn_item_es_de_claure(item, sede, cuando) is distinct from pg_temp.claure_antes(item, sede, cuando)) = 0

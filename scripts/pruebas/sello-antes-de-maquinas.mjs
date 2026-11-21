@@ -13,6 +13,7 @@
 // viejas (`pruebas:redondeo-efectivo`, casos 12, 19 y 36): si no, fallan con «cambió desde que se escribió esta migración».
 import { readFileSync } from "node:fs";
 import { anclados } from "./_deshacer_claure.mjs";
+import { SQL_DESHACER_ALIADAS } from "./_deshacer_aliadas.mjs";
 
 const MAQUINAS = readFileSync("supabase/migrations/20261016173000_pos_maquinas_interbank_y_por_depositar.sql", "utf8");
 /** Cada `select pg_temp.reemplazar('<firma>', $v$ viejo $v$, $n$ nuevo $n$, 1);` del archivo, en el orden en que se aplican. */
@@ -29,7 +30,10 @@ if (REEMPLAZOS.length !== 8) {
 const POSTERIORES = anclados("20261110001000_cuenta_de_otra_empresa_candados_y_filtro.sql", ["retail.fn_cuenta_sellada(text, text, uuid, date, uuid)"]);
 
 /** Las ocho funciones como estaban antes de las máquinas de cobro: del último reemplazo al primero (lo posterior a ellas, antes). */
+// ADR-0683: lo de las empresas aliadas (20261121164000 dejó que una cuenta de aliada reciba transferencias en `fn_cuenta_sellada`) se
+// deshace primero: es posterior a las máquinas, y sin esto la huella de `fn_cuenta_sellada` no vuelve a la de antes.
 export const DESHACER_MAQUINAS_SELLO =
+  SQL_DESHACER_ALIADAS +
   [...REEMPLAZOS, ...POSTERIORES]
     .reverse()
     .map((r) => `do $deshacer$ begin execute replace(pg_get_functiondef('${r.firma}'::regprocedure), $q$${r.nuevo}$q$, $q$${r.viejo}$q$); end $deshacer$;`)
