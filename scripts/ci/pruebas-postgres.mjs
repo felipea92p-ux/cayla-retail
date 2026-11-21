@@ -948,6 +948,8 @@ export const PRUEBAS = [
   // ADR-0683, actividad 6: una línea de cualquier aliada (activa o dada de baja, desde su arranque) sale de las cifras de CAYLA: la regla de una línea,
   // la de lote, lo que el Inicio deja fuera de «Hoy» y lo vendido en un período. ROLLBACK.
   "pruebas:aliadas-cifras",
+  // ADR-0683, actividad 7: las unidades de cada dueña por lugar (Existencias) y de qué empresas es cada venta (Historial), solo donde conviven dos. ROLLBACK.
+  "pruebas:aliadas-filtros",
 
   // El Yape de Claudia sale de los números de CAYLA (ADR-0638, actividad 2 de Lima): la cuenta nace una y de CLAURE; vacía, nada cambia (16 huellas, con y sin los parches);
   // un Yape puesto ahí sale de BCP, de los saldos, del Flujo y del Balance y el Diario cuadra; nadie paga nada con ella, no aparece para elegir y un cobro Yape o Plin en su sede sí se puede.
