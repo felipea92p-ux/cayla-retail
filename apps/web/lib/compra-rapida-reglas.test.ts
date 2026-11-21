@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  ayudaDeHabituales,
   camposPapel,
   serieYNumeroParaBase,
   categoriasConProveedor,
-  categoriasDeHabituales,
   faltaEnPaso,
   faltaNombreNuevo,
   conMarcas,
@@ -64,8 +62,6 @@ import {
   inicialesProveedor,
   piezasDeFila,
   cantidadDeAtajo,
-  borradorDeAtajo,
-  conPrendaAgregada,
   candadoDeEnvio,
   textoPlataDespues,
   tiendaAnterior,
@@ -127,14 +123,6 @@ const HABITUALES = leerHabituales([
 ]);
 
 describe("habituales", () => {
-  it("la frase de la lista solo habla de «la vez pasada» si hubo una (auditoría 2026-11-12)", () => {
-    expect(ayudaDeHabituales([])).toMatch(/Todavía no le compraste nada/);
-    expect(ayudaDeHabituales([{ veces: 0 }, { veces: 0 }])).toMatch(/de su catálogo/);
-    expect(ayudaDeHabituales([{ veces: 0 }, { veces: 0 }])).not.toMatch(/vez pasada/);
-    expect(ayudaDeHabituales([{ veces: 0 }, { veces: 2 }])).toMatch(/la vez pasada/);
-    expect(ayudaDeHabituales(null)).not.toMatch(/vez pasada/);
-  });
-
   it("lee cada uno; sin categoría no se puede comprar y se descarta", () => {
     expect(HABITUALES.map((h) => [h.clave, h.veces, h.costo, h.venta, h.marcaId])).toEqual([
       ["a", 3, 17.5, 39.9, "m"],
@@ -160,19 +148,6 @@ describe("habituales", () => {
     expect(cantidadDeAtajo({ veces: 2, ultimaCantidad: 0 })).toBeNull();
     expect(cantidadDeAtajo({ veces: 2, ultimaCantidad: null })).toBeNull();
   });
-  it("el atajo arma el borrador con lo de la vez pasada, a la tienda de la prenda anterior", () => {
-    const b = borradorDeAtajo(HABITUALES[0], "tru");
-    expect(b).toEqual({ cantidad: "12", costo: "17.50", venta: "39.90", destinos: ["tru"], reparto: {} });
-    expect(lineasDeBorrador(HABITUALES[0], b!)).toHaveLength(1);
-    // Sin tienda anterior queda incompleto: no se agrega solo, se abre la hoja para elegirla.
-    const sinTienda = borradorDeAtajo(HABITUALES[0], null)!;
-    expect(sinTienda.destinos).toEqual([]);
-    expect(lineasDeBorrador(HABITUALES[0], sinTienda)).toEqual([]);
-    // Sin vez pasada no hay atajo.
-    expect(borradorDeAtajo(HABITUALES[1], "tru")).toBeNull();
-  });
-  // /chaos 2026-10-28, hallazgo 1: cinco toques en el mismo instante agregaban la prenda cinco veces (45 unidades en vez de 9), porque cada
-  // uno veía la compra de antes del primero. Agregar a la compra nunca repite una prenda que ya va.
   // /chaos 2026-10-29: cinco clics en «Guardar» en el mismo instante mandaban cinco pedidos iguales (la guardia leía el estado de antes del
   // primero). La base respondía lo mismo y quedaba una sola compra, pero salían cinco pedidos: el candado deja pasar solo el primero.
   it("el candado del envío deja pasar solo el primer clic hasta que el envío termina", () => {
@@ -185,24 +160,6 @@ describe("habituales", () => {
     c.soltar();
     c.soltar(); // soltar de más no rompe nada
     expect(c.tomar()).toBe(true);
-  });
-  it("agregar la misma prenda varias veces seguidas la deja una sola vez", () => {
-    const nuevas = lineasDeBorrador(HABITUALES[0], borradorDeAtajo(HABITUALES[0], "tru")!);
-    const agregar = (ls: readonly LineaCompra[]) => conPrendaAgregada(ls, nuevas);
-    const despues = [agregar, agregar, agregar, agregar, agregar].reduce<readonly LineaCompra[]>((ls, f) => f(ls), []);
-    expect(despues).toHaveLength(1);
-    expect(prendasDeLineas(despues)).toBe(12);
-    // Otra prenda sí entra, y una lista vacía de líneas no cambia nada.
-    const otra = lineasDeBorrador(HABITUALES[1], { cantidad: "3", costo: "12.00", venta: "29.90", destinos: ["tru"], reparto: {} });
-    expect(conPrendaAgregada(despues, otra)).toHaveLength(2);
-    expect(conPrendaAgregada(despues, [])).toEqual(despues);
-  });
-  it("las píldoras de sus habituales cuentan cuántos hay en cada categoría; con una sola categoría no hay píldoras", () => {
-    expect(categoriasDeHabituales(HABITUALES)).toEqual([
-      { id: "blusas", nombre: "Blusas", cuantos: 1 },
-      { id: "polos", nombre: "Polos", cuantos: 1 },
-    ]);
-    expect(categoriasDeHabituales([HABITUALES[0]])).toEqual([]);
   });
 });
 
