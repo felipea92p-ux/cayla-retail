@@ -39,8 +39,8 @@
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/CuentasConClaudia.tsx": [
-      "BotonCopiar «el resumen para Claudia»",
-      "BotonEnlace «Pagar a CLAURE»"
+      "BotonCopiar «{t(\"el resumen para Claudia\")}»",
+      "BotonEnlace «{t(\"Pagar a CLAURE\")}»"
     ],
     "components/EscanerCamara.tsx": [
       "button «Cerrar la cámara»",

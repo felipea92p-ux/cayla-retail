@@ -281,3 +281,52 @@ export function campoDelError(hint: string | null | undefined): "nombre" | "ruc"
     ? hint
     : null;
 }
+
+// ---- La cuenta con cada dueña (ADR-0683, actividad 3) ----------------------------------------------------------------------------------------------
+
+/** A qué aliada va un pago o el efectivo que se queda la dueña al cerrar: viaja en un encabezado, como el responsable y el dueño de una prenda.
+ *  Lo lee el disparador de `movimientos_dinero` y de `caja_traslados` (`fn_aliada_de_la_llamada`); sin él, la base usa la única aliada con cuenta. */
+export const ENCABEZADO_ALIADA = "x-aliada";
+
+/** Pone la aliada en una consulta de supabase-js (`.rpc(...)`). Sin aliada, la consulta sale como antes. */
+export function conAliada<C extends { setHeader(nombre: string, valor: string): C }>(consulta: C, aliadaId: string | null | undefined): C {
+  return aliadaId ? consulta.setHeader(ENCABEZADO_ALIADA, aliadaId) : consulta;
+}
+
+/** Cómo se nombra a una aliada en pantalla: la empresa y quien recibe su plata. CLAURE conserva «Claudia» (su dueña); otra, su propio nombre. */
+export type Quien = { nombre: string; duena: string };
+export const QUIEN_CLAURE: Quien = { nombre: "CLAURE", duena: "Claudia" };
+export function quienDe(a: { clave: string; nombre: string }): Quien {
+  return a.clave === "claure" ? { nombre: a.nombre || QUIEN_CLAURE.nombre, duena: QUIEN_CLAURE.duena } : { nombre: a.nombre, duena: a.nombre };
+}
+
+/**
+ * Los textos de la cuenta nacieron para CLAURE («le debes a CLAURE», «lo tiene Claudia»). Se dicen para la aliada que se mira cambiando esas dos palabras
+ * en un solo lugar, a la salida: las reglas que los arman (y sus pruebas) no cambian. Con CLAURE no cambia nada.
+ */
+export function deAliada(texto: string, q: Quien): string {
+  if (q.nombre === QUIEN_CLAURE.nombre && q.duena === QUIEN_CLAURE.duena) return texto;
+  return texto.replaceAll("CLAURE", q.nombre).replaceAll("Claudia", q.duena);
+}
+
+/** Las aliadas con cuenta (las pestañas de Cuentas y dinero), de `fn_aliadas_con_cuenta`. */
+export type AliadaConCuenta = { id: string; clave: string; nombre: string; desde: string | null };
+export function leerAliadasConCuenta(crudo: unknown): AliadaConCuenta[] {
+  return (Array.isArray(crudo) ? crudo : [])
+    .filter((a): a is Record<string, unknown> => !!a && typeof a === "object" && typeof (a as { id?: unknown }).id === "string")
+    .map((a) => ({ id: a.id as string, clave: texto(a.clave) ?? "", nombre: texto(a.nombre) ?? "Sin nombre", desde: texto(a.desde) }));
+}
+
+/** La aliada que pide la dirección (`?empresa=<clave>`), o la primera. `null` si no hay ninguna con cuenta. */
+export function aliadaDeLaUrl(aliadas: readonly AliadaConCuenta[], clave: string | null | undefined): AliadaConCuenta | null {
+  return aliadas.find((a) => a.clave === clave) ?? aliadas[0] ?? null;
+}
+
+/** `deAliada` en todo texto de un objeto o lista (los avisos, el libro, los términos de la cuenta). Lo que no es texto queda igual. */
+export function deAliadaEnTodo<T>(x: T, q: Quien): T {
+  if (q.nombre === QUIEN_CLAURE.nombre && q.duena === QUIEN_CLAURE.duena) return x;
+  if (typeof x === "string") return deAliada(x, q) as T;
+  if (Array.isArray(x)) return x.map((v) => deAliadaEnTodo(v, q)) as T;
+  if (x && typeof x === "object") return Object.fromEntries(Object.entries(x).map(([k, v]) => [k, deAliadaEnTodo(v, q)])) as T;
+  return x;
+}

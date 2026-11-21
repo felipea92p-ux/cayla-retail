@@ -1,6 +1,6 @@
 # ADR-0683 — Empresas aliadas: se crean, se editan y se dan de baja desde Configuración
 
-- **Fecha:** 2026-11-21 · **Decidió:** Felipe · **Estado:** actividades 1 y 2 de 8 construidas y probadas en local; las migraciones `20261121152000` y `20261121160000` **no están en producción** (se pega con las de las actividades 2 a 7: sola, una aliada nueva rompería el Balance con su primera venta).
+- **Fecha:** 2026-11-21 · **Decidió:** Felipe · **Estado:** actividades 1 a 3 de 8 construidas y probadas en local; las migraciones `20261121152000`, `20261121160000` y `20261121162000` **no están en producción** (se pega con las de las actividades 2 a 7: sola, una aliada nueva rompería el Balance con su primera venta).
 - **Relacionados:** ADR-0463 (empresas CAYLA y CLAURE), ADR-0505 (CLAURE solo en Lima), ADR-0542 (stock por dueño), ADR-0558 / ADR-0560 / ADR-0638 (la cuenta con Claudia y su Yape), ADR-0008 (padrón).
 - **Investigación y maqueta:** `docs/investigacion/2026-11-21-empresas-aliadas-y-boleta-por-ruc.md`, `docs/maquetas/empresas-aliadas-2026-11/`.
 
@@ -75,6 +75,36 @@ Verificación: en una copia desechable de la base local puesta al día con `main
 11/11, `pruebas:balance-claure` 16/16, las 18 `pruebas:claure-*`, `fuera-de-cayla` 52/52 e `igv-ventas` 26/26. `finanzas-alcance` y `redondeo-efectivo`
 fallan igual con y sin esta migración en esa copia (le faltan migraciones de producción), así que no son de aquí; el CI las corre contra la base completa.
 `claure_igv_lo_pone_cayla.mjs` suma el deshacer de este cambio antes de volver a pegar la suya.
+
+## Actividad 3 (2026-11-21): la cuenta con cada dueña
+
+Lo que CAYLA le debe a una aliada se calculaba solo para CLAURE, y los pagos (`movimientos_dinero` 'pago_claure') y el efectivo que se queda la dueña al cerrar
+(`caja_traslados` 'claudia') no decían a quién: con dos aliadas, pagarle a una bajaba la deuda de la otra.
+
+- `movimientos_dinero.empresa_id` y `caja_traslados.empresa_id` (los de antes, de CLAURE) con un candado: un pago o un efectivo de la dueña sin su aliada no se
+  guarda. Los llena un disparador **«siempre»** (también con los disparadores apagados, como en una carga o una prueba) con la aliada que manda la pantalla
+  (`x-aliada`, `conAliada` en la web) o, si no manda ninguna, la única con cuenta (en esa tienda, para el efectivo). Con dos y sin elegir: «Elige a qué empresa
+  aliada». `cerrar_caja` y `registrar_movimiento_dinero` no cambian de firma.
+- `fn_aliada_filas / _cuenta / _cuenta_desde / _pagos / _gastos / _gastos_base / _saldo_a / _cierre (p_empresa, …)`: la lógica vigente de las de CLAURE,
+  copiada, con pagos y efectivo filtrados por su aliada; `fn_aliadas_saldo_a` (la proyección de caja descuenta lo de todas), `fn_aliadas_cierre` y
+  `fn_aliadas_con_cuenta`. **Las de CLAURE no se tocan:** la pantalla publicada hoy y sus 18 pruebas siguen igual; cuando la web nueva esté publicada quedan
+  sin uso y se borran aparte.
+- No se da de baja una aliada con su cuenta fuera de cero (ni al pedirla ni al aplicarla).
+- **Web:** Cuentas y dinero tiene una pestaña por aliada con cuenta (`/finanzas/dinero/claure?empresa=<clave>`) con su cuenta, «Pagar a <nombre>» (el pago
+  viaja con su `x-aliada`) y sus textos con su nombre (`deAliada`: con CLAURE no cambia nada). El cierre de caja muestra un bloque por aliada de la tienda y
+  ofrece «Se queda con <dueña>» por cada una. Si la base todavía no tiene las funciones por aliada, todo se lee de CLAURE como antes.
+- **Cambia una cosa a la vista:** «Pagar a CLAURE» ya no está en el «Registrar movimiento» general de Dónde está (no sabría a qué aliada): se paga desde la
+  pestaña de cada una (y desde el cierre de caja, que lleva a ella).
+
+DECIDÍ un encabezado y un disparador «siempre» para decir de qué aliada es un pago. DESCARTÉ un parámetro más en `cerrar_caja` y `registrar_movimiento_dinero`
+(dos firmas a la vez son ambiguas para PostgREST, y son de las más usadas) y DESCARTÉ leer un pago sin aliada como de CLAURE (volvería a escribir «claure» en
+lógica general). SE ROMPE SI alguien inserta un pago con un rol que se salta los disparadores «siempre» (no existe en la app): el candado lo rechaza.
+
+Verificación: en la copia de la base al día con `main`, `pnpm pruebas:aliadas-cuenta` 12/12 (dos aliadas a la vez), las 18 `pruebas:claure-*`,
+`balance-claure`, `aliadas-balance` y `fuera-de-cayla`; `_deshacer_aliadas.mjs` deja que las de CLAURE vuelvan a pegar sus migraciones encima. Toda la suite de
+`apps/web` y Knip en verde. En el navegador, con la base local compartida (que no tiene las funciones por aliada), la pestaña de CLAURE se ve como siempre.
+**No verificado en el navegador:** la pestaña de una segunda aliada y el cierre con dos aliadas (la base compartida no tiene la migración del 2026-11-15 sobre
+la que se apoyan estas; la prueba de la base sí los cubre).
 
 ## Verificación
 

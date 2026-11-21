@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { leerCuentaOtraEmpresa, leerFilaClaure, leerGastoClaure, leerPagoClaure, leerVentasClaure, type CuentaOtraEmpresa, type FilaClaure, type GastoClaure, type PagoClaure, type VentasClaure } from "@/lib/cuenta-claure-reglas";
 import type { Lectura } from "@/lib/cuentas-dinero";
+import { leerAliadasConCuenta, type AliadaConCuenta } from "@/lib/empresas-aliadas-reglas";
 
 // Finanzas ▸ Cuentas y dinero ▸ CLAURE (ADR-0560, 20261029004000 y 20261029011000). Todo sale de `fn_claure_cuenta` (lo cobrado) y
 // `fn_claure_pagos` (lo ya pagado), que miran solo lo que la cuenta ve (el líder, todo; con el módulo Cuentas y dinero, su sede). El saldo lo
@@ -49,6 +50,41 @@ export async function getCuentaClaure(): Promise<Lectura<CuentaClaure> & { sinAc
       pagos: ((pagos.data ?? []) as Record<string, unknown>[]).map(leerPagoClaure),
       gastos: ((gastos.data ?? []) as Record<string, unknown>[]).map(leerGastoClaure),
       // La fecha solo adorna la frase de arriba: si no se pudo leer, la frase se dice sin ella.
+      desde: typeof desde.data === "string" ? desde.data : null,
+    },
+    falla: null,
+    sinAcceso: false,
+  };
+}
+
+/**
+ * Las empresas aliadas con cuenta (ADR-0683, `fn_aliadas_con_cuenta`): una pestaña por cada una en Cuentas y dinero. Información de apoyo (principio 9):
+ * sin el módulo o si la base todavía no tiene la función, devuelve `null` y las pestañas son las de siempre (una sola, CLAURE).
+ */
+export async function getAliadasConCuenta(): Promise<AliadaConCuenta[] | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_aliadas_con_cuenta" as never);
+  return error ? null : leerAliadasConCuenta(data);
+}
+
+/** La cuenta con UNA aliada (ADR-0683, `fn_aliada_*`): lo mismo que `getCuentaClaure`, para la que se pida. */
+export async function getCuentaAliada(empresaId: string): Promise<Lectura<CuentaClaure> & { sinAcceso: boolean }> {
+  const supabase = await createClient();
+  type Respuesta = { data: unknown; error: { message: string; code?: string } | null };
+  const p = { p_empresa: empresaId } as never;
+  const [cuenta, pagos, desde, gastos] = (await Promise.all([
+    supabase.rpc("fn_aliada_cuenta" as never, p),
+    supabase.rpc("fn_aliada_pagos" as never, p),
+    supabase.rpc("fn_aliada_cuenta_desde" as never, p),
+    supabase.rpc("fn_aliada_gastos" as never, p),
+  ])) as unknown as [Respuesta, Respuesta, Respuesta, Respuesta];
+  const error = cuenta.error ?? pagos.error ?? gastos.error;
+  if (error) return { datos: { filas: [], pagos: [], gastos: [], desde: null }, falla: `No se pudo leer la cuenta con la empresa aliada: ${error.message}`, sinAcceso: error.code === "42501" };
+  return {
+    datos: {
+      filas: ((cuenta.data ?? []) as Record<string, unknown>[]).map(leerFilaClaure),
+      pagos: ((pagos.data ?? []) as Record<string, unknown>[]).map(leerPagoClaure),
+      gastos: ((gastos.data ?? []) as Record<string, unknown>[]).map(leerGastoClaure),
       desde: typeof desde.data === "string" ? desde.data : null,
     },
     falla: null,

@@ -22,13 +22,23 @@ export const DESTINOS_TRASLADO: {
   { valor: "claudia", etiqueta: "Se queda con Claudia", referencia: null, exigeReferencia: false },
 ];
 
-/** Los destinos que ofrece el cierre: «Se queda con Claudia» solo en una tienda donde opera CLAURE (la base lo exige igual). */
-export function destinosDelCierre(hayClaure: boolean): typeof DESTINOS_TRASLADO {
-  return DESTINOS_TRASLADO.filter((d) => d.valor !== "claudia" || hayClaure);
+/**
+ * Los destinos que ofrece el cierre: «Se queda con …» una vez por cada empresa aliada de la tienda (ADR-0683; la base lo exige igual). Su valor es
+ * `claudia:<id de la aliada>` (o `claudia` a secas si la base no dijo cuál): `destinoParaLaBase` lo parte en el destino y la aliada.
+ */
+export function destinosDelCierre(aliadas: readonly { id: string | null; duena: string }[]): { valor: string; etiqueta: string; referencia: string | null; exigeReferencia: boolean }[] {
+  const base = DESTINOS_TRASLADO.filter((d) => d.valor !== "claudia");
+  const claudia = DESTINOS_TRASLADO.find((d) => d.valor === "claudia")!;
+  return [...base, ...aliadas.map((a) => ({ ...claudia, valor: a.id ? `claudia:${a.id}` : "claudia", etiqueta: `Se queda con ${a.duena}` }))];
+}
+
+/** Del valor elegido al destino de `cerrar_caja` y la aliada (`x-aliada`). */
+export function destinoParaLaBase(valor: string): { destino: string; aliadaId: string | null } {
+  return valor.startsWith("claudia:") ? { destino: "claudia", aliadaId: valor.slice("claudia:".length) } : { destino: valor, aliadaId: null };
 }
 
 export function etiquetaDestino(destino: string): string {
-  return DESTINOS_TRASLADO.find((d) => d.valor === destino)?.etiqueta ?? destino;
+  return DESTINOS_TRASLADO.find((d) => d.valor === destinoParaLaBase(destino).destino)?.etiqueta ?? destino;
 }
 
 /** Un monto escrito por la persona («1,950.50», «1299,50», «1950», «»). Vacío o ilegible → null. Desde ADR-0419 (Felipe 2026-10-15) lee

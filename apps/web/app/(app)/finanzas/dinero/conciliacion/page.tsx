@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getAliadasConCuenta } from "@/lib/cuenta-claure";
 import { exigirModulo } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { cuentaParaConciliar } from "@/lib/cuentas-dinero-reglas";
@@ -34,11 +35,12 @@ export default async function ConciliacionPage({ searchParams }: { searchParams:
     const recibeMaquinas = !!elegida && (pos ?? []).some((m) => m.bancoId === elegida.id);
     return { pos, recibeMaquinas, cuadreBanco: recibeMaquinas && elegida ? await getCuadreBanco(elegida.id) : null };
   });
-  const [actual, telar, maquinas, { pos, recibeMaquinas, cuadreBanco }] = await Promise.all([
+  const [actual, telar, maquinas, { pos, recibeMaquinas, cuadreBanco }, aliadas] = await Promise.all([
     elegida ? getConciliacion(elegida.id, hasta) : Promise.resolve({ datos: null, falla: null }),
     getSedesDelTelar(),
     getDeudaDeMaquinas(),
     maquinasYBanco,
+    getAliadasConCuenta(),
   ]);
   // Si esa lectura falla, lo dice el propio bloque «El banco dice» (una sola vez: no se repite en los avisos de arriba).
   // `cuadreBanco` nulo = la base todavía no sabe guardar extractos (falta la migración 20261109232000): el botón queda donde estaba y la hoja no guarda.
@@ -56,6 +58,7 @@ export default async function ConciliacionPage({ searchParams }: { searchParams:
   return (
     <PantallaDinero
       pestana="conciliacion"
+      aliadas={aliadas}
       esLider
       conteos={{ conciliacion: pendientesDeConciliar(ctx.conciliacion.datos) }}
       sede="CAYLA entera"

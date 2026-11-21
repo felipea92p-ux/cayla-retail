@@ -18,7 +18,7 @@ import { CobrosDinero } from "@/components/finanzas/dinero/CobrosDinero";
 import { filasDeCobros, movimientosDelDueno } from "@/lib/dinero-dueno-cobros-reglas";
 import { CampanaDinero } from "@/components/finanzas/dinero/CampanaDinero";
 import { contadorDeCampana, filasDeCierres, filasDeEstado, itemsDeAtencion, porRegistrar } from "@/lib/dinero-estados-reglas";
-import { getCuentaClaure, getCuentasDeOtrasEmpresas } from "@/lib/cuenta-claure";
+import { getAliadasConCuenta, getCuentaClaure, getCuentasDeOtrasEmpresas } from "@/lib/cuenta-claure";
 import { chipsDisponible, notaCuentaOtraEmpresa, resumenClaure } from "@/lib/cuenta-claure-reglas";
 import Link from "next/link";
 
@@ -40,7 +40,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
   // El efectivo de hoy (la misma cuenta del cierre) y los cierres con diferencia viven aquí desde que se retiró la pestaña Efectivo;
   // son del cajón de una tienda, así que la empresa no los lee.
   const sinEfectivo: { datos: EfectivoFila[]; falla: string | null } = { datos: [], falla: null };
-  const [movimientos, medios, sinCuenta, proyeccion, alertas, efectivo, cierres, telar, claure, planilla, cuentasPlanilla, cuentasAjenas] = await Promise.all([
+  const [movimientos, medios, sinCuenta, proyeccion, alertas, efectivo, cierres, telar, claure, planilla, cuentasPlanilla, cuentasAjenas, aliadas] = await Promise.all([
     getMovimientos(ctx.ver.ubicacionId),
     ctx.esLider ? getMediosDeCobro() : Promise.resolve({ datos: [], falla: null }),
     ctx.esLider && !ctx.ver.ubicacionId ? getSinCuenta() : Promise.resolve({ datos: [], falla: null }),
@@ -59,6 +59,8 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
     ctx.esLider ? getPlanillaCuentas() : Promise.resolve(null),
     // La plata que llega a la cuenta de otra empresa (el Yape de Claudia, ADR-0638) no está en «tienes»: se dice aparte, para que nadie la busque en los bancos.
     ctx.esLider && !ctx.ver.ubicacionId ? getCuentasDeOtrasEmpresas() : Promise.resolve([]),
+    // ADR-0683: una pestaña por empresa aliada con cuenta.
+    getAliadasConCuenta(),
   ]);
   // Con una sede elegida, «tienes» es SOLO lo suyo (su cajón y su caja fuerte): los bancos son de la empresa y no se le suman. Con la
   // empresa, solo lo suyo: lo que ponen las cajas de las tiendas no entra.
@@ -93,6 +95,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
   return (
     <PantallaDinero
       pestana="cuentas"
+      aliadas={aliadas}
       esLider={ctx.esLider}
       conteos={{ conciliacion: pendientesDeConciliar(ctx.conciliacion.datos) }}
       sede={sede}

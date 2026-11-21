@@ -4,7 +4,13 @@ import {
   argsGuardarAliada,
   BORRADOR_ALIADA_VACIO,
   borradorDeAliada,
+  aliadaDeLaUrl,
   campoDelError,
+  conAliada,
+  deAliada,
+  leerAliadasConCuenta,
+  QUIEN_CLAURE,
+  quienDe,
   camposDeAliada,
   confirmaLaBaja,
   diaDeLaBaja,
@@ -153,5 +159,27 @@ describe("la baja", () => {
   it("se aplica 7 días después, también al cruzar de mes", () => {
     expect(diaDeLaBaja("2026-11-21")).toBe("2026-11-28");
     expect(diaDeLaBaja("2026-11-28")).toBe("2026-12-05");
+  });
+});
+
+describe("la cuenta con cada dueña", () => {
+  it("deAliada no toca los textos de CLAURE y nombra a otra aliada por su nombre", () => {
+    expect(deAliada("Le debes a CLAURE: lo tiene Claudia", QUIEN_CLAURE)).toBe("Le debes a CLAURE: lo tiene Claudia");
+    expect(deAliada("Le debes a CLAURE: lo tiene Claudia", quienDe({ clave: "kids", nombre: "CAYLA KIDS" }))).toBe("Le debes a CAYLA KIDS: lo tiene CAYLA KIDS");
+    expect(quienDe({ clave: "claure", nombre: "Claurè" })).toEqual({ nombre: "Claurè", duena: "Claudia" });
+  });
+  it("conAliada pone el encabezado solo si hay aliada", () => {
+    const vistos: [string, string][] = [];
+    const c = { setHeader(n: string, v: string) { vistos.push([n, v]); return c; } };
+    conAliada(c, null);
+    conAliada(c, "e1");
+    expect(vistos).toEqual([["x-aliada", "e1"]]);
+  });
+  it("aliadaDeLaUrl elige la pedida o la primera", () => {
+    const l = leerAliadasConCuenta([{ id: "a", clave: "claure", nombre: "CLAURE" }, { id: "b", clave: "kids", nombre: "KIDS" }, { nombre: "x" }]);
+    expect(l).toHaveLength(2);
+    expect(aliadaDeLaUrl(l, "kids")?.id).toBe("b");
+    expect(aliadaDeLaUrl(l, "otra")?.id).toBe("a");
+    expect(aliadaDeLaUrl([], null)).toBeNull();
   });
 });

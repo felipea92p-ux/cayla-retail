@@ -17,6 +17,7 @@ import { cuentaEfectiva } from "@/lib/cuenta-sellada-reglas";
 import {
   DESTINOS_TRASLADO,
   cuadra,
+  destinoParaLaBase,
   destinosDelCierre,
   etiquetaDestino,
   fondoTrasCierre,
@@ -29,7 +30,8 @@ import { dejaMenosDelFondo, trasladoParaDejarFondo } from "@/lib/configuracion-r
 import { useEnLinea } from "@/lib/useEnLinea";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
-import { CuentasConClaudia, EfectivoDeClaure, useCierreClaure } from "@/components/CuentasConClaudia";
+import { CuentasConClaudia, EfectivoDeClaure, useCierresAliadas } from "@/components/CuentasConClaudia";
+import { conAliada, deAliada } from "@/lib/empresas-aliadas-reglas";
 import { vistaPreviaSeQueda } from "@/lib/cierre-claure-reglas";
 
 function money(n: number) {
@@ -81,7 +83,9 @@ export function CerrarCajaModalV2({
   const router = useRouter();
   const [paso, setPaso] = useState<"contar" | "trasladar">("contar");
   // CLAURE (ADR-0560, actividad 3): en Lima, lo del efectivo de cada empresa y lo que se le debe a Claudia. Solo informa: nunca cambia ni bloquea el cierre.
-  const cierreClaure = useCierreClaure(cajaId);
+  // ADR-0683: una por cada empresa aliada de la tienda (hoy, Lima con CLAURE). La del efectivo que se queda es la del destino elegido.
+  const cierresAliadas = useCierresAliadas(cajaId);
+  const cierreDelDestino = cierresAliadas?.find((c) => destinoParaLaBase(destino).aliadaId === c.aliadaId || (c.aliadaId === null && destino === "claudia")) ?? null;
   const [esperado, setEsperado] = useState<Esperado | null>(null);
   const [falloEsperado, setFalloEsperado] = useState(false);
   const [contadoTexto, setContadoTexto] = useState("");
@@ -89,7 +93,9 @@ export function CerrarCajaModalV2({
   // Lo que se teclea en cada billete: a `billetes` solo le llega una cantidad, porque la suma lee con `parseInt` («2,5» sería 2, y «-5», -5).
   const escrita = useCantidadEscrita(REGLA_BILLETES);
   const [trasladoTexto, setTrasladoTexto] = useState("");
-  const [destino, setDestino] = useState<DestinoTraslado>("caja_fuerte");
+  // El valor elegido puede llevar a qué aliada va el efectivo (`claudia:<id>`, ADR-0683); `destinoBase` es el de `cerrar_caja`.
+  const [destino, setDestino] = useState<string>("caja_fuerte");
+  const destinoBase = destinoParaLaBase(destino).destino as DestinoTraslado;
   const [referencia, setReferencia] = useState("");
   // «¿A qué banco?» (ADR-0195 F3b, situación 19): antes solo decía «banco». Se propone el de las transferencias de la tienda.
   const bancos = useCuentasParaElegir("pago", ubicacionId);
@@ -155,8 +161,8 @@ export function CerrarCajaModalV2({
   const trasladado = leerMonto(trasladoTexto) ?? 0;
   const fondo = contado === null ? 0 : fondoTrasCierre(contado, trasladado);
   const diferencia = contado !== null && esperado ? Math.round((contado - esperado.esperado) * 100) / 100 : null;
-  const destinoElegido = DESTINOS_TRASLADO.find((d) => d.valor === destino)!;
-  const invalido = contado === null ? null : motivoTrasladoInvalido({ contado, trasladado, destino, referencia });
+  const destinoElegido = DESTINOS_TRASLADO.find((d) => d.valor === destinoBase)!;
+  const invalido = contado === null ? null : motivoTrasladoInvalido({ contado, trasladado, destino: destinoBase, referencia });
 
   function cambiarBillete(den: number, cantidad: string) {
     const siguiente = { ...billetes, [den]: cantidad };
@@ -184,18 +190,18 @@ export function CerrarCajaModalV2({
     setLoading(true);
     const supabase = createClient();
     const { data, error } = await firmar(
-      supabase
+      conAliada(supabase
         .rpc("cerrar_caja", {
           p_caja_id: cajaId,
           p_monto_real: contado,
           p_traslado_monto: trasladado,
           // Sin traslado no se mandan destino ni referencia (`undefined` no viaja en el JSON): los parámetros van escritos
           // uno por uno para que `pnpm datos:comparar` pueda cotejarlos con producción.
-          p_traslado_destino: trasladado > 0 ? destino : undefined,
+          p_traslado_destino: trasladado > 0 ? destinoParaLaBase(destino).destino : undefined,
           p_traslado_referencia: trasladado > 0 ? referencia.trim() : undefined,
           p_traslado_cuenta_id: trasladado > 0 && destino === "banco" && bancoId ? bancoId : undefined, // F3b: a qué banco (sin bancos, la base propone)
         } as never)
-        .single(),
+        .single(), trasladado > 0 ? destinoParaLaBase(destino).aliadaId : null),
       responsable.firma(),
     );
     setLoading(false);
@@ -217,7 +223,7 @@ export function CerrarCajaModalV2({
       trasladado: Number(data.monto_trasladado),
       fondo: Number(data.monto_fondo),
       fondoPedido: fondoPedido?.monto ?? null,
-      destino,
+      destino: destinoBase,
       referencia: referencia.trim(),
       banco: destino === "banco" ? bancoNombre : null,
       efectivoEncoladoAlCerrar: efectivoEncolado,
@@ -325,7 +331,7 @@ export function CerrarCajaModalV2({
                 el sistema todavía no las sumó. No es un error tuyo: suben solas apenas vuelva el internet.
               </p>
             )}
-            {cierreClaure && <CuentasConClaudia cierre={cierreClaure} />}
+            {cierresAliadas?.map((c) => <CuentasConClaudia key={c.aliadaId ?? "claure"} cierre={c.cierre} quien={c.quien} empresaClave={c.clave} />)}
             <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
               Listo
             </button>
@@ -388,7 +394,7 @@ export function CerrarCajaModalV2({
                         <dd className="tabular-nums">{money(esperado.esperado)}</dd>
                       </div>
                     </dl>
-                    {cierreClaure && <EfectivoDeClaure cierre={cierreClaure} />}
+                    {cierresAliadas?.map((c) => <EfectivoDeClaure key={c.aliadaId ?? "claure"} cierre={c.cierre} quien={c.quien} />)}
                   </>
                 ) : falloEsperado ? (
                   <p className="mt-2 text-sm text-tinta/65">
@@ -526,8 +532,13 @@ export function CerrarCajaModalV2({
                   setDestino(v);
                   setReferencia("");
                 }}
-                opciones={destinosDelCierre(cierreClaure !== null).map((d) => ({ valor: d.valor, texto: d.etiqueta }))}
-                pie={destino === "claudia" ? (cierreClaure && vistaPreviaSeQueda(cierreClaure, trasladado)?.frase) || "Es efectivo de CAYLA que ella guarda: sale del cajón y baja lo que se le debe." : undefined}
+                opciones={destinosDelCierre((cierresAliadas ?? []).map((c) => ({ id: c.aliadaId, duena: c.quien.duena }))).map((d) => ({ valor: d.valor, texto: d.etiqueta }))}
+                pie={
+                  destinoParaLaBase(destino).destino === "claudia"
+                    ? (cierreDelDestino && deAliada(vistaPreviaSeQueda(cierreDelDestino.cierre, trasladado)?.frase ?? "", cierreDelDestino.quien)) ||
+                      "Es efectivo de CAYLA que ella guarda: sale del cajón y baja lo que se le debe."
+                    : undefined
+                }
               />
               {destino === "banco" && bancos.cuentas.some((c) => c.tipo === "banco") && (
                 <CampoSelect
