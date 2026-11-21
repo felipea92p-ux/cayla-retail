@@ -78,11 +78,18 @@ export const GUIA_ANALISIS: Guia = {
     },
     {
       id: "acaba",
-      ancla: "analisis.vista",
+      ancla: "analisis.acaba-respuesta",
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-acaba" }],
-      titulo: "Se está acabando",
-      texto: "Las prendas que, al ritmo que se venden desde que se colgaron, se acaban pronto, con los días que les quedan. Desde aquí puedes pedirlas a otra sede antes de quedarte sin nada.",
+      titulo: "Se acaba",
+      texto: "Arriba, la respuesta: cuántos modelos se acaban pronto al ritmo que se venden. Con «Comprar todas» los compras de una vez.",
+    },
+    {
+      id: "acaba-tarjetas",
+      ancla: "analisis.acaba-tarjetas",
+      opcional: true,
+      titulo: "Un modelo por tarjeta",
+      texto: "Cada tarjeta dice cuántos días le quedan, qué talla falta y qué viene en camino. Tócala para ver su ficha, o pídela a otra sede antes de quedarte sin nada.",
     },
     {
       id: "nose",

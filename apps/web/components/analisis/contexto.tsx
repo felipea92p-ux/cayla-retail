@@ -2,14 +2,10 @@
 
 import { createContext, useContext } from "react";
 import type { AccesoAnalisis, DatosAnalisis, PrendaAnalisis, SedeAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
-import type { FiltroAcaba } from "@/lib/analisis-acaba";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 
 // Análisis v4 (ADR-0357): lo que la pantalla le da a cada pestaña y a la ficha. Una pestaña no lee nada por su cuenta: todo
 // llega leído del servidor (`DatosAnalisis`) y filtrado por el buscador de la cabecera.
-
-/** «Se está acabando»: Todos · Comprar (lo que no viene en camino) · Por llegar. Se define con su regla (`analisis-acaba.ts`). */
-export type { FiltroAcaba };
 
 export type ContextoAnalisis = {
   datos: DatosAnalisis;
@@ -24,8 +20,8 @@ export type ContextoAnalisis = {
   /** «Liquidar desde» EN VIVO: mientras se mueve el control, las prendas cambian de grupo sin guardar. */
   liquidarDesde: number;
   setLiquidarDesde: (dias: number) => void;
-  filtroAcaba: FiltroAcaba;
-  setFiltroAcaba: (f: FiltroAcaba) => void;
+  /** El orden elegido en cada pestaña (`analisis-orden.ts`): la píldora «Ordenar por» de la barra. */
+  orden: Record<VistaAnalisis, string>;
   /** El tipo de prenda elegido en la mariposa de «Qué pedir» (filtra tallas y ranking); null = todos. */
   categoria: string | null;
   setCategoria: (c: string | null) => void;

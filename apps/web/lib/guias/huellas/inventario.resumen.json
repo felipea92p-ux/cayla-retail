@@ -33,6 +33,7 @@
       "BotonLimpiar «Limpiar todo»",
       "BotonFiltros «→() => setHoja(true)»",
       "FiltroPuesto «{`Quitar filtro ${p.texto}»",
+      "DesplegablePildora «Ordenar por»",
       "button «Limpiar»",
       "button «Ver»",
       "BotonLimpiar «Limpiar todo» #2"
@@ -48,9 +49,8 @@
     ],
     "components/analisis/PestanaAcaba.tsx": [
       "Link «Comprar todas»",
-      "button «{f.texto}»",
-      "Link «{`Comprar: ${nombreLargo(p)}»",
-      "button «{`${textoPedirA(sede)}»"
+      "button «{`${textoPedirA(sede)}»",
+      "Link «{`Comprar: ${nombreLargo(m)}»"
     ],
     "components/analisis/PestanaHoy.tsx": [
       "Pastilla «(sin nombre)»",

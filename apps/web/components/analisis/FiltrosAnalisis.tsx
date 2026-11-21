@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Clock, Package, Palette, Ruler, SearchX, Shirt, Tag, type LucideIcon } from "lucide-react";
+import { ArrowUpDown, Clock, Package, Palette, Ruler, SearchX, Shirt, Tag, type LucideIcon } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras } from "@/components/ui/FiltrosPildora";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 import { Modal } from "@/components/ui/Modal";
 import { Vacio } from "@/components/ui/Vacio";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
+import type { OpcionOrden } from "@/lib/analisis-orden";
 import {
   cuantosPuestos,
   opcionesDe,
@@ -38,6 +39,7 @@ export function BarraFiltros({
   filtros,
   onFiltros,
   visibles,
+  orden,
 }: {
   /** Todos los modelos de la tienda: de aquí salen las opciones de cada filtro. */
   modelos: readonly ModeloAnalisis[];
@@ -45,6 +47,8 @@ export function BarraFiltros({
   onFiltros: (f: Filtros) => void;
   /** Cuántos modelos pasan los filtros. */
   visibles: number;
+  /** Cómo se ordena la pestaña que se ve (la primera opción es la de siempre); sin esto, la pestaña no ofrece ordenar. */
+  orden?: { valor: string; opciones: readonly OpcionOrden[]; onValor: (v: string) => void };
 }) {
   const [hoja, setHoja] = useState(false);
   const n = cuantosPuestos(filtros);
@@ -113,7 +117,8 @@ export function BarraFiltros({
         </div>
       )}
 
-      <p className="mt-3 text-sm text-tinta/70" aria-live="polite">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <p className="m-0 text-sm text-tinta/70" aria-live="polite">
         {n > 0 ? (
           <>
             Ves <strong className="font-semibold text-tinta">{visibles}</strong> de {modelos.length} {plural(modelos.length)}
@@ -124,6 +129,21 @@ export function BarraFiltros({
           </>
         )}
       </p>
+      {/* Un solo «Ordenar por», fuera del panel, como Productos: ordenar no quita modelos, solo los acomoda. */}
+      {orden && (
+        <div className="min-w-0 rounded-lg vd-hundido p-0.5">
+          <DesplegablePildora
+            encoger
+            icono={ArrowUpDown}
+            etiqueta="Ordenar por"
+            valor={orden.valor}
+            valorPorDefecto={orden.opciones[0]?.valor}
+            onValor={orden.onValor}
+            opciones={orden.opciones.map((o) => ({ valor: o.valor, texto: o.texto }))}
+          />
+        </div>
+      )}
+      </div>
 
       {hoja && (
         <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHoja(false)} tamano="mediana">

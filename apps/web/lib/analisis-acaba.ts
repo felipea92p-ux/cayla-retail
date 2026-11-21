@@ -1,107 +1,25 @@
-// Análisis v4 (ADR-0357): la pestaña «Se está acabando», sin React. Qué prendas muestra cada filtro (Todos · Comprar · Por
-// llegar) y cuántas tiene cada uno, cómo se dibuja la pista de días (largo, color y texto) y qué dicen sus píldoras y el
-// tooltip «Por llegar». Quién se acaba, cuántos días le quedan y qué viene en camino lo deciden las reglas de
-// `analisis-reglas.ts`: aquí no nace ninguna regla de negocio, solo cómo se dice y se dibuja (la maqueta aprobada por Felipe,
-// 2026-10-06).
+// Análisis (ADR-0357): la pestaña «Se acaba», sin React. Desde la cara B (act. 2026-11-21) cada modelo es una tarjeta: cuántos días le
+// quedan (o «Ya no hay»), lo que falta, lo que viene en camino y quién más la tiene, en una línea. Quién se acaba, cuántos días le quedan
+// y qué viene en camino lo deciden las reglas de `analisis-reglas.ts`: aquí no nace ninguna regla de negocio, solo cómo se dice.
 
-import type { LlegadaPrenda, OrigenLlegada, OrigenPrenda, PrendaAnalisis, SedeAnalisis } from "./analisis-tipos";
+import type { OrigenPrenda, PrendaAnalisis, SedeAnalisis } from "./analisis-tipos";
 import type { ModeloAnalisis } from "./analisis-modelo";
-import { DIAS_SE_ACABA, esTallaUnica, GRUPOS_ACABA, ordenSeAcaba, plural, porLlegar, prendasDe, totalEnTienda } from "./analisis-reglas";
+import { DIAS_SE_ACABA, diasQueQuedan, esTallaUnica, GRUPOS_ACABA, ordenSeAcaba, otraSedeQueLaTiene, plural, porLlegar, prendasDe, totalEnTienda } from "./analisis-reglas";
 import { compararTallas } from "./tallas";
 import { fechaCorta } from "./motor-demanda-reglas";
 
 /** Una semana: hasta aquí los días van en rojo, y es la línea punteada del carril. */
 export const UNA_SEMANA = 7;
 
-/** Los filtros de la pestaña: todo lo que se acaba, lo que hay que comprar (nada viene en camino) y lo que ya viene. */
-export type FiltroAcaba = "todos" | "comprar" | "llega";
-
-export const FILTROS_ACABA: readonly { clave: FiltroAcaba; texto: string }[] = [
-  { clave: "todos", texto: "Todos" },
-  { clave: "comprar", texto: "Comprar" },
-  { clave: "llega", texto: "Por llegar" },
-];
-
-/** Si una prenda que se acaba pasa el filtro: «Comprar» = no viene nada en camino; «Por llegar» = algo ya viene. */
-export function pasaFiltroAcaba(p: Pick<PrendaAnalisis, "llega">, filtro: FiltroAcaba): boolean {
-  if (filtro === "todos") return true;
-  const viene = porLlegar(p) > 0;
-  return filtro === "llega" ? viene : !viene;
-}
-
 /** Lo que se acaba (grupo «Cómpralas»), de lo más urgente a lo menos: primero lo agotado, a igual plazo lo que más se vende. */
 export function prendasQueSeAcaban<T extends PrendaAnalisis>(prendas: readonly T[], liquidarDesde: number): T[] {
   return [...prendasDe(prendas, GRUPOS_ACABA, liquidarDesde)].sort(ordenSeAcaba);
-}
-
-/** Cuántas caen en cada filtro (las tres píldoras): «Comprar» y «Por llegar» se reparten «Todos» sin repetir ninguna. */
-export function cuentasFiltroAcaba(seAcaban: readonly Pick<PrendaAnalisis, "llega">[]): Record<FiltroAcaba, number> {
-  const llega = seAcaban.filter((p) => porLlegar(p) > 0).length;
-  return { todos: seAcaban.length, comprar: seAcaban.length - llega, llega };
 }
 
 const semanas = (dias: number): string => {
   const n = Math.round(dias / UNA_SEMANA);
   return `${n} ${plural(n, "semana", "semanas")}`;
 };
-
-/** Las marcas del eje sobre las pistas: 0 · 1 semana · 2 semanas (el tope es `DIAS_SE_ACABA`). */
-export const EJE_ACABA: readonly { texto: string; left: string }[] = [
-  { texto: "0", left: "0%" },
-  { texto: semanas(UNA_SEMANA), left: `${(UNA_SEMANA / DIAS_SE_ACABA) * 100}%` },
-  { texto: semanas(DIAS_SE_ACABA), left: "100%" },
-];
-
-/** Dónde va la línea punteada de una semana en cada pista. */
-export const LINEA_SEMANA = `${(UNA_SEMANA / DIAS_SE_ACABA) * 100}%`;
-
-/** El color de los días que quedan: rojo una semana o menos, ámbar hasta dos, taupe más allá (como en la maqueta). */
-export function colorDias(dias: number): string {
-  if (dias <= UNA_SEMANA) return "var(--color-rojo-profundo)";
-  if (dias <= DIAS_SE_ACABA) return "var(--color-ambar)";
-  return "var(--color-taupe)";
-}
-
-/** Cómo se dibuja la pista de una prenda: agotada (rayada y «Se agotó») o una barra de 0 a 2 semanas con sus días. */
-export type PistaAcaba =
-  | { agotada: true; texto: string }
-  | {
-      agotada: false;
-      /** El largo de la barra, de 0 a 1 (`--n`). */
-      n: number;
-      /** El color de la barra (`--c`). */
-      color: string;
-      texto: string;
-      /** Si la barra casi llena la pista, los días se escriben dentro de ella. */
-      dentro: boolean;
-    };
-
-/** La pista con los días que quedan (`diasQueQuedan`); null si la prenda no tiene ritmo (no se vende: no se acaba). */
-export function pistaAcaba(dias: number | null): PistaAcaba | null {
-  if (dias === null) return null;
-  if (dias <= 0) return { agotada: true, texto: "Se agotó" };
-  const n = Math.min(dias / DIAS_SE_ACABA, 1);
-  return { agotada: false, n, color: colorDias(dias), texto: `${dias} ${plural(dias, "día", "días")}`, dentro: n > 0.8 };
-}
-
-/** De dónde llega cada parte, como se dice en tienda. */
-const NOMBRE_LLEGADA: Record<OrigenLlegada, string> = { compra: "Compra", almacen: "Almacén", taller: "Taller", tienda: "Otra tienda" };
-
-/** Una línea del tooltip «Por llegar»: «Compra: 10 · llega el 15 oct.»; «llega hoy»; «debía llegar el …» si la fecha ya pasó. */
-export function textoLlegada(x: LlegadaPrenda, hoy: string): string {
-  const cuando =
-    x.fecha === null ? "sin fecha" : x.fecha === hoy ? "llega hoy" : x.fecha < hoy ? `debía llegar el ${fechaCorta(x.fecha)}` : `llega el ${fechaCorta(x.fecha)}`;
-  return `${NOMBRE_LLEGADA[x.de]}: ${x.cantidad} · ${cuando}`;
-}
-
-/** Las líneas del tooltip «Por llegar», de lo que llega antes a lo que llega después (lo que no tiene fecha, al final). */
-export function lineasPorLlegar(p: Pick<PrendaAnalisis, "llega">, hoy: string): string[] {
-  const orden = (f: string | null) => f ?? "9999-12-31";
-  return [...p.llega].sort((a, b) => orden(a.fecha).localeCompare(orden(b.fecha))).map((x) => textoLlegada(x, hoy));
-}
-
-/** El título del tooltip: «Por llegar: 13». */
-export const tituloPorLlegar = (p: Pick<PrendaAnalisis, "llega">): string => `Por llegar: ${porLlegar(p)}`;
 
 /** Si ninguna otra tienda la tiene: a quién se compra («Proveedor taller» / «Proveedor terceros»); null si no se sabe. */
 export function textoProveedor(origen: OrigenPrenda | null): string | null {
@@ -110,12 +28,11 @@ export function textoProveedor(origen: OrigenPrenda | null): string | null {
   return null;
 }
 
-/** El tooltip de «AQP tiene 3»: el dato y qué hacer con él (decide la persona, decisión 7). */
-export const tipOtraTienda = (sede: Pick<SedeAnalisis, "ciudad">, stock: number): string =>
-  `${sede.ciudad} tiene ${stock}. Toca la prenda para ver cuánto vende cada tienda y decide si pedirla.`;
-
 /** El botón de texto bajo «Comprar»: «o pedir a Arequipa». */
 export const textoPedirA = (sede: Pick<SedeAnalisis, "ciudad">): string => `o pedir a ${sede.ciudad}`;
+
+/** La frase de la respuesta: «se acaban en 2 semanas o menos» (el tope de `DIAS_SE_ACABA`). */
+export const fraseAcaba = (n: number): string => `${n === 1 ? "se acaba" : "se acaban"} en ${semanas(DIAS_SE_ACABA)} o menos`;
 
 /** Lo que se dice cuando la pestaña no tiene carril: nada se acaba, o no se pudieron leer las prendas. */
 export type VacioAcaba = "nada" | "sin-datos";
@@ -153,4 +70,41 @@ export function faltanDelModelo(m: Pick<ModeloAnalisis, "variantes" | "colores">
   const verbo = todas.length === 1 ? "Falta" : "Faltan";
   const texto = todas.length <= FALTAN_NOMBRADAS ? `${verbo} ${todas.join(" y ")}` : `${verbo} ${todas.length}`;
   return { texto, todas };
+}
+
+/**
+ * El número grande de la tarjeta: los días que le quedan al modelo y su unidad («3» «días te quedan»), o «Ya no hay» si se agotó.
+ * `urgente`: una semana o menos (rojo profundo); hasta dos semanas, ámbar. null si no tiene ritmo (no se vende: no se acaba).
+ */
+export function numeroAcaba(m: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasDeVentas">): { numero: string; unidad: string; urgente: boolean } | null {
+  const dias = diasQueQuedan(m);
+  if (dias === null) return null;
+  if (dias <= 0) return { numero: "Ya no hay", unidad: "", urgente: true };
+  return { numero: String(dias), unidad: plural(dias, "día te queda", "días te quedan"), urgente: dias <= UNA_SEMANA };
+}
+
+/** Lo que viene en camino, en pocas palabras: «Llegan 12 el 6 dic.», «Llega 1 hoy», «Llegan 4: debían llegar el 1 oct.». null si nada viene. */
+export function textoViene(p: Pick<PrendaAnalisis, "llega">, hoy: string): string | null {
+  const n = porLlegar(p);
+  if (n <= 0) return null;
+  const verbo = n === 1 ? "Llega 1" : `Llegan ${n}`;
+  const primera = [...p.llega].filter((x) => x.cantidad > 0 && x.fecha !== null).sort((a, b) => (a.fecha ?? "").localeCompare(b.fecha ?? ""))[0];
+  if (!primera?.fecha) return verbo;
+  if (primera.fecha === hoy) return `${verbo} hoy`;
+  if (primera.fecha < hoy) return `${verbo}: ${n === 1 ? "debía" : "debían"} llegar el ${fechaCorta(primera.fecha)}`;
+  return `${verbo} el ${fechaCorta(primera.fecha)}`;
+}
+
+/**
+ * La línea de detalle de la tarjeta, de lo más útil a lo menos: qué talla falta, qué viene en camino y, si nada viene, quién más la
+ * tiene («Arequipa tiene 12») o a quién se compra. `ciudadDe` nombra la otra tienda por su ciudad.
+ */
+export function detalleAcaba(m: ModeloAnalisis, hoy: string, ciudadDe: (sedeId: string) => string | undefined): string {
+  const partes: (string | null | undefined)[] = [faltanDelModelo(m)?.texto, textoViene(m, hoy)];
+  if (!textoViene(m, hoy)) {
+    const otra = otraSedeQueLaTiene(m.otras);
+    const ciudad = otra ? ciudadDe(otra.sedeId) : undefined;
+    partes.push(otra && ciudad ? `${ciudad} tiene ${otra.stock}` : textoProveedor(m.origen));
+  }
+  return partes.filter(Boolean).join(" · ");
 }

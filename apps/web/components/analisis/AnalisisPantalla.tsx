@@ -7,7 +7,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Pestanas, type Pestana } from "@/components/ui/Pestanas";
 import { PedirAOtraSedeModal } from "@/components/PedirAOtraSedeModal";
 import { avisar } from "@/components/ui/Avisos";
-import { Contexto, type ContextoAnalisis, type FiltroAcaba } from "@/components/analisis/contexto";
+import { Contexto, type ContextoAnalisis } from "@/components/analisis/contexto";
 import { ChipEstado } from "@/components/analisis/piezas";
 import { HoyTodaviaNo, VistaTodaviaNo } from "@/components/analisis/TodaviaNo";
 import { HojaConfianza } from "@/components/analisis/HojaConfianza";
@@ -20,6 +20,7 @@ import { PestanaPiso } from "@/components/analisis/PestanaPiso";
 import type { AccesoAnalisis, DatosAnalisis, PrendaAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
 import { GRUPOS_ACABA, GRUPOS_QUIETAS, prendasDe } from "@/lib/analisis-reglas";
 import { filtrarModelos, hayFiltros, SIN_FILTROS, type FiltrosAnalisis } from "@/lib/analisis-filtros";
+import { ORDENES, ordenDe } from "@/lib/analisis-orden";
 import { BarraFiltros, VacioFiltros } from "@/components/analisis/FiltrosAnalisis";
 import { nuncaSalio } from "@/lib/analisis-piso";
 import { lineasParaPedir } from "@/lib/analisis-acciones";
@@ -69,7 +70,8 @@ export function AnalisisPantalla({
   const [filtros, setFiltros] = useState<FiltrosAnalisis>({ ...SIN_FILTROS, q: busquedaInicial });
   const q = filtros.q;
   const [liquidarDesde, setLiquidarDesde] = useState(datos.liquidarDesde);
-  const [filtroAcaba, setFiltroAcaba] = useState<FiltroAcaba>("todos");
+  // El orden que eligió la persona en cada pestaña; la que no eligió, va como siempre (`analisis-orden.ts`).
+  const [ordenes, setOrdenes] = useState<Partial<Record<VistaAnalisis, string>>>({});
   const [categoria, setCategoria] = useState<string | null>(null);
   const [fichaId, setFichaId] = useState<string | null>(null);
   const [confianza, setConfianza] = useState(false);
@@ -166,8 +168,7 @@ export function AnalisisPantalla({
       q,
       liquidarDesde,
       setLiquidarDesde,
-      filtroAcaba,
-      setFiltroAcaba,
+      orden: Object.fromEntries(PESTANAS.map((p) => [p.clave, ordenDe(p.clave, ordenes)])) as Record<VistaAnalisis, string>,
       categoria,
       setCategoria,
       sedeDe: (id: string) => datos.sedes.find((s) => s.id === id),
@@ -177,7 +178,7 @@ export function AnalisisPantalla({
       conDatosDeHoy: forzado,
       verConDatosDeHoy,
     }),
-    [datos, acceso, prendas, ventana, q, liquidarDesde, filtroAcaba, categoria, abrirFicha, irA, pedir, forzado, verConDatosDeHoy],
+    [datos, acceso, prendas, ventana, q, liquidarDesde, ordenes, categoria, abrirFicha, irA, pedir, forzado, verConDatosDeHoy],
   );
 
   // La animación de entrada dura lo que dura; después, lo que cambie (un filtro, el umbral) aparece sin volver a animarse.
@@ -282,7 +283,17 @@ export function AnalisisPantalla({
 
         {recomienda && (
           <div className="mt-4">
-            <BarraFiltros modelos={datos.prendas} filtros={filtros} onFiltros={setFiltros} visibles={prendas.length} />
+            <BarraFiltros
+              modelos={datos.prendas}
+              filtros={filtros}
+              onFiltros={setFiltros}
+              visibles={prendas.length}
+              orden={
+                ORDENES[vista]
+                  ? { valor: ordenDe(vista, ordenes), opciones: ORDENES[vista], onValor: (v) => setOrdenes((o) => ({ ...o, [vista]: v })) }
+                  : undefined
+              }
+            />
           </div>
         )}
 

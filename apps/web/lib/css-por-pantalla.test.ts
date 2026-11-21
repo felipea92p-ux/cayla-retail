@@ -20,7 +20,7 @@ import { describe, expect, it } from "vitest";
 /** El CSS que se importa por pantalla, con los archivos que lo forman. */
 const POR_PANTALLA: Record<string, string[]> = {
   "por-pantalla/observatorio.css": ["observatorio.css", "vidrio/observatorio.css"],
-  "por-pantalla/analisis-pestanas.css": ["analisis-hoy.css", "analisis-acaba.css", "analisis-quieta.css", "analisis-piso.css", "analisis-pedir.css", "analisis-ficha.css"],
+  "por-pantalla/analisis-pestanas.css": ["analisis-hoy.css", "analisis-quieta.css", "analisis-piso.css", "analisis-pedir.css", "analisis-ficha.css", "analisis-b.css"],
   "por-pantalla/rotulos.css": ["rotulo.css", "rotulos-brother.css"],
   "finanzas-recorrido.css": ["finanzas-recorrido.css"],
   "campana-efectos.css": ["campana-efectos.css"],
