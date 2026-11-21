@@ -9,7 +9,7 @@ import { Ayuda, COLOR_ESTADO, Cuenta, type Estado } from "@/components/analisis/
 // no admite controles; la tarjeta Vitrina es de Existencias). Si otra pantalla las pide, van a `/unificar`. Estilos: `analisis-b.css`.
 
 /**
- * La respuesta de la pestaña: la cifra grande («5 modelos»), su frase («se acaban en 2 semanas o menos») y sus acciones. Con `cuenta`,
+ * La respuesta de la pestaña: la cifra grande («5 modelos»), su frase («cómpralos ya: se acaban en 2 semanas o menos») y sus acciones. Con `cuenta`,
  * el número cuenta de 0 a su valor al entrar (una vez; con las animaciones apagadas sale quieto). `est` pone el color de la cifra.
  */
 export function Respuesta({

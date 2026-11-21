@@ -1,7 +1,6 @@
 "use client";
 
 import "@/app/estilos/por-pantalla/analisis-pestanas.css";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState, type ReactNode } from "react";
 import { Check, Hourglass } from "lucide-react";
@@ -76,8 +75,10 @@ export function PestanaQuieta() {
           ayuda={sinCosto > 0 ? `${sinCosto} ${plural(sinCosto, "modelo no tiene", "modelos no tienen")} costo: no suman a la plata parada.` : undefined}
           acciones={
             acceso.frescura ? (
-              <BotonVer href="/gestion/frescura" chico>
-                Frescura del piso
+              // En palabras de tienda: «Frescura del piso» es el nombre del módulo y la prueba ciega no lo entendió (/formidable, 2026-11-21).
+              // El nombre del módulo queda en el globito, para quien lo busca en el menú.
+              <BotonVer href="/gestion/frescura" chico title="Abre Gestión ▸ Frescura del piso">
+                Ver todo el piso
               </BotonVer>
             ) : undefined
           }
@@ -163,9 +164,9 @@ function RegistrarVentas() {
   const { acceso } = useAnalisis();
   const href = hrefRegistrarVentas(acceso);
   return href ? (
-    <Link href={href} className="btn-cayla btn-secundario btn-chico">
+    <BotonVer href={href} chico>
       Registrar ventas
-    </Link>
+    </BotonVer>
   ) : null;
 }
 
@@ -242,9 +243,9 @@ function SeccionMandar({ lista }: { lista: ModeloAnalisis[] }) {
       ayuda="Aquí no se venden, y en otra tienda se vendieron este mes."
       accion={
         todas ? (
-          <Link href={todas} className="btn-cayla btn-secundario btn-chico" aria-label={`Mandar todas a ${ciudad}`}>
+          <BotonVer href={todas} chico etiqueta={`Mandar todas a ${ciudad}`}>
             Mandar todas
-          </Link>
+          </BotonVer>
         ) : undefined
       }
       tono={() => "ate"}
@@ -257,9 +258,9 @@ function SeccionMandar({ lista }: { lista: ModeloAnalisis[] }) {
         const v = vende(m);
         const href = v ? hrefEnviar([m], { id: v.sedeId }, acceso) : null;
         return href && v ? (
-          <Link href={href} className="btn-cayla btn-secundario btn-chico" aria-label={`Mandar a ${v.ciudad}: ${nombreLargo(m)}`}>
+          <BotonVer href={href} chico etiqueta={`Mandar a ${v.ciudad}: ${nombreLargo(m)}`}>
             Mandar a {v.ciudad}
-          </Link>
+          </BotonVer>
         ) : null;
       }}
     />

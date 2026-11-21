@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 import { useMemo } from "react";
 import { Check } from "lucide-react";
 import { useAnalisis } from "@/components/analisis/contexto";
@@ -16,7 +16,7 @@ import { detalleAcaba, fraseAcaba, numeroAcaba, prendasQueSeAcaban, TEXTO_VACIO_
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 
-// Análisis, cara B (ADR-0357, act. 2026-11-21): «Se acaba». Abre con la respuesta («5 modelos se acaban en 2 semanas o menos», con
+// Análisis, cara B (ADR-0357, act. 2026-11-21): «Se acaba». Abre con la respuesta («5 modelos · cómpralos ya: se acaban en 2 semanas o menos», con
 // «Comprar todas») y sigue con una tarjeta por modelo: cuántos días le quedan o «Ya no hay», lo que falta, lo que viene en camino o quién
 // más la tiene, y sus botones. Todo lo que se acaba se compra por defecto (decisión 7); si otra tienda la tiene, se ofrece pedírsela y la
 // persona decide. Las reglas viven en `lib/analisis-acaba.ts`; los destinos de los botones, en `lib/analisis-acciones.ts` (un destino que
@@ -49,9 +49,9 @@ export function PestanaAcaba() {
         ayuda={`${AYUDA_COMPRAR} ${textoRitmo(diasDeVentas)}.`}
         acciones={
           comprarTodas && n > 0 ? (
-            <Link href={comprarTodas} className="btn-cayla btn-secundario btn-chico">
+            <BotonVer href={comprarTodas} chico>
               Comprar todas
-            </Link>
+            </BotonVer>
           ) : undefined
         }
       />
@@ -98,15 +98,17 @@ function Acciones({ m }: { m: ModeloAnalisis }) {
   if (!comprar && !sede) return null;
   return (
     <>
+      {comprar && (
+        // Con la flecha de «ver en otra pantalla»: «Comprar» no compra aquí, lleva a Compras o a Producción (prueba ciega de /formidable).
+        // Va primero: se lee «Comprar, o pedir a Arequipa».
+        <BotonVer href={comprar} chico etiqueta={`Comprar: ${nombreLargo(m)}`}>
+          Comprar
+        </BotonVer>
+      )}
       {sede && (
         <button type="button" className="btn-cayla btn-enlace" aria-label={`${textoPedirA(sede)}: ${nombreLargo(m)}`} onClick={() => pedir([m], sede.id)}>
           {textoPedirA(sede)}
         </button>
-      )}
-      {comprar && (
-        <Link href={comprar} className="btn-cayla btn-secundario btn-chico" aria-label={`Comprar: ${nombreLargo(m)}`}>
-          Comprar
-        </Link>
       )}
     </>
   );

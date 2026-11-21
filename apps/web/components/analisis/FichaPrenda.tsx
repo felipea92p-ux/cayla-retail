@@ -2,7 +2,7 @@
 
 import "@/app/estilos/por-pantalla/analisis-pestanas.css";
 import Link from "next/link";
-import { Receipt } from "lucide-react";
+import { ArrowRight, Receipt } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { useAnalisis } from "@/components/analisis/contexto";
@@ -27,6 +27,7 @@ import {
 } from "@/lib/analisis-ficha";
 import { diasEnAlmacen, nuncaSalio } from "@/lib/analisis-piso";
 import { BotonVer } from "@/components/ui/BotonDescargar";
+import { BotonEnlace } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 
 // Análisis (ADR-0357): la ficha de una prenda. Desde la cara B (act. 2026-11-21), en tres bloques: qué pasa en una frase con su color
@@ -202,9 +203,12 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
               )}
               {existencias && <BotonVer href={existencias}>Ver en Existencias</BotonVer>}
               {principal && (
-                <Link href={principal.href} className="btn-cayla btn-primario">
+                // La acción de la hoja sigue negra y lleva la flecha a la derecha, como «Seguir» de Nuevo producto: no guarda aquí, lleva
+                // a la pantalla donde se hace (prueba ciega de /formidable, 2026-11-21).
+                <BotonEnlace href={principal.href} peso="primario">
                   {principal.texto}
-                </Link>
+                  <ArrowRight aria-hidden className="-my-1 h-4 w-4 shrink-0" />
+                </BotonEnlace>
               )}
             </div>
           )}

@@ -484,8 +484,8 @@ describe("Qué pedir con los filtros de la barra (cara B)", () => {
     expect(conTalla.find((x) => x.categoria === "Polos")?.sinPrenda).toBe(0);
   });
   it("la frase y el orden", () => {
-    expect(fraseAlcance(1, 34)).toBe("no te alcanza hasta Navidad, en 34 días");
-    expect(fraseAlcance(5, 1)).toBe("no te alcanzan hasta Navidad, en 1 día");
+    expect(fraseAlcance(1, 34)).toBe("para la campaña: no te alcanza hasta Navidad, en 34 días");
+    expect(fraseAlcance(5, 1)).toBe("para la campaña: no te alcanzan hasta Navidad, en 1 día");
     const t = (categoria: string, vendidas: number, dias: number | null) => ({ categoria, prefijo: null, familia: null, vendidas, sinPrenda: 0, tiene: 5, nunca: 0, dias, pide: false });
     const ts = [t("Capas", 10, 1), t("Polos", 86, 35), t("Abrigos", 0, null)];
     expect(ordenarTipos(ts, "vende").map((x) => x.categoria)).toEqual(["Polos", "Capas", "Abrigos"]);

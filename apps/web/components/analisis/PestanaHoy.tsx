@@ -48,7 +48,7 @@ export function PestanaHoy() {
         cifra={acaba.length ? `${acaba.length} ${plural(acaba.length, "modelo", "modelos")}` : "Nada"}
         frase={acaba.length ? fraseAcaba(acaba.length) : conLoRegistrado("Nada se está acabando.", confiable)}
         pila={<PilaPrendas lista={acaba} />}
-        boton="Ver y comprar"
+        boton="Comprar ya"
       />
       <Pregunta
         i={4}
@@ -92,7 +92,7 @@ export function PestanaHoy() {
         cifra={piden.length ? `${piden.length} ${plural(piden.length, "tipo", "tipos")}` : "Ninguno"}
         frase={piden.length ? fraseAlcance(piden.length, hastaNavidad) : `se acaba antes de Navidad, en ${hastaNavidad} ${plural(hastaNavidad, "día", "días")}`}
         pila={<PilaTipos lista={piden} />}
-        boton="Ver qué pedir"
+        boton="Preparar el pedido"
       />
     </div>
   );

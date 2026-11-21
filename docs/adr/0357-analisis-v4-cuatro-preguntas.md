@@ -453,5 +453,8 @@ registrar). Las reglas del 2026-10-14 siguen enteras (la vara de su tipo, el rit
 recorrida con `guias:recorrer` en un banco Supabase propio con el seed (escritorio, 375 oscuro, ida y vuelta: sin escrituras); `/milimetro auditar`
 (`docs/milimetro/auditorias/2026-11-21-analisis-b.md`: 3 graves corregidos, 0 abiertos).
 
-**Queda abierto.** Probar con una encargada real; `/formidable` con sus 3 cambios propuestos a Felipe; «Qué pedir» contra Navidad fija o contra el
+**`/formidable` (2026-11-21):** 7,6 y, con sus 3 cambios hechos con el OK de Felipe, 7,8. Los cambios: los plazos en «Se acaba» («cómpralos ya») y «Qué pedir»
+(«para la campaña»), la flecha de `<BotonVer>` en todo lo que lleva a otra pantalla y «Ver todo el piso» en vez de «Frescura del piso».
+
+**Queda abierto.** Probar con una encargada real; que «Comprar» diga a dónde lleva si la flecha no alcanza; los montos por grupo de «No se vende» junto al total; «Qué pedir» contra Navidad fija o contra el
 Plan de campaña (sigue de antes); la curva de tallas de la hoja de un tipo todavía no suma la talla de lo vendido sin registrar (sigue de antes).

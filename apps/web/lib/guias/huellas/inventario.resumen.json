@@ -23,7 +23,7 @@
       "Link «Movimientos»",
       "button «Pedir a»",
       "BotonVer «Ver en Existencias»",
-      "Link «{principal.texto}»"
+      "BotonEnlace «{principal.texto}»"
     ],
     "components/analisis/FiltrosAnalisis.tsx": [
       "DesplegablePildora «{etiqueta}»",
@@ -45,9 +45,9 @@
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/analisis/PestanaAcaba.tsx": [
-      "Link «Comprar todas»",
-      "button «{`${textoPedirA(sede)}»",
-      "Link «{`Comprar: ${nombreLargo(m)}»"
+      "BotonVer «Comprar todas»",
+      "BotonVer «{`Comprar: ${nombreLargo(m)}»",
+      "button «{`${textoPedirA(sede)}»"
     ],
     "components/analisis/PestanaHoy.tsx": [
       "BotonVer «{boton}»"
@@ -60,14 +60,14 @@
       "BotonVer «Abrir el plan de campaña»"
     ],
     "components/analisis/PestanaPiso.tsx": [
-      "Link «Bajar todos»",
-      "Link «{`Bajar al piso: ${nombreLargo(m)}»"
+      "BotonVer «Bajar todos»",
+      "BotonVer «{`Bajar al piso: ${nombreLargo(m)}»"
     ],
     "components/analisis/PestanaQuieta.tsx": [
-      "BotonVer «Frescura del piso»",
-      "Link «Registrar ventas»",
-      "Link «{`Mandar todas a ${ciudad}»",
-      "Link «{`Mandar a ${v.ciudad}»",
+      "BotonVer «Abre Gestión ▸ Frescura del piso»",
+      "BotonVer «Registrar ventas»",
+      "BotonVer «{`Mandar todas a ${ciudad}»",
+      "BotonVer «{`Mandar a ${v.ciudad}»",
       "button «{`${LIQUIDAR_PASO}»",
       "input «{id}»",
       "button «{`${LIQUIDAR_PASO}» #2",

@@ -1,7 +1,7 @@
 "use client";
 
 import "@/app/estilos/por-pantalla/analisis-pestanas.css";
-import Link from "next/link";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 import { Check, Hourglass } from "lucide-react";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { nombreLargo, TilePrenda } from "@/components/analisis/piezas";
@@ -52,9 +52,9 @@ export function PestanaPiso() {
         ayuda={`${AYUDA_TIPO_PISO} Empieza por el tipo que más se vende.`}
         acciones={
           todos && n > 0 ? (
-            <Link href={todos} className="btn-cayla btn-secundario btn-chico">
+            <BotonVer href={todos} chico>
               Bajar todos
-            </Link>
+            </BotonVer>
           ) : undefined
         }
       />
@@ -93,9 +93,9 @@ function Tarjeta({ m, i, abrirFicha }: { m: ModeloAnalisis; i: number; abrirFich
       detalle={detalle}
       acciones={
         bajar ? (
-          <Link href={bajar} className="btn-cayla btn-secundario btn-chico" aria-label={`Bajar al piso: ${nombreLargo(m)}`}>
+          <BotonVer href={bajar} chico etiqueta={`Bajar al piso: ${nombreLargo(m)}`}>
             Bajar
-          </Link>
+          </BotonVer>
         ) : undefined
       }
       etiqueta={`${nombreLargo(m)}: ${dias ?? "sin fecha"} días en la tienda. ${detalle}. Enter abre su ficha.`}

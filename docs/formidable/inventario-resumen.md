@@ -9,7 +9,8 @@
 | Fecha | Corrida | Leyes | Oficio | Qué cambió |
 |---|---|---|---|---|
 | 2026-10-10 | rápido (solo medir) | sin calificar | sin calificar | Análisis pasa de tallas sueltas a modelos (ADR-0357 decisión 12) |
-| 2026-11-21 | completa: medir + ciega (1 agente, Sonnet, sobre capturas) | 7,6 | 7 | La cara B (ADR-0357 act. 2026-11-21): una respuesta por pregunta, filtros, «No se vende» sin «Liquidar», ficha en tres bloques. 3 cambios propuestos, esperan el OK de Felipe |
+| 2026-11-21 | completa: medir + ciega (1 agente, Sonnet, sobre capturas) | 7,6 | 7 | La cara B (ADR-0357 act. 2026-11-21): una respuesta por pregunta, filtros, «No se vende» sin «Liquidar», ficha en tres bloques. 3 cambios propuestos |
+| 2026-11-21 (b) | los 3 cambios con el OK de Felipe + ciega repetida (1 agente, Sonnet) | 7,8 | 7 | Plazos en «Se acaba» y «Qué pedir»; flecha en todo lo que lleva a otra pantalla; «Ver todo el piso» |
 
 ## Medido (pestaña «Nunca salió al piso», datos de la base local, Tienda Lima)
 - **1440 × 900:** sin desborde ni huecos fuera de escala. Dentro de Análisis: el «?» de ayuda de cada grupo del carril mide 18 × 18 (< 24 con
@@ -90,3 +91,37 @@ otra tienda o esperar) sin empujar ninguno. Decide Felipe.
 
 **Lista aparte (sin ejecutar):** «Movimientos» de la ficha y el chip «Datos confiables» a 24 px; el «− 60 +» no dice qué cambia en la lista; menos rojo
 en las tarjetas de «Se acaba» (el número podría ir en tinta y solo la respuesta en rojo: va contra la maqueta elegida, decide Felipe).
+
+### Los 3 cambios, hechos con el OK de Felipe («Sí, hazlos», 2026-11-21)
+1. **Plazos:** «Se acaba» dice «cómpralos ya: se acaban en 2 semanas o menos» y «Qué pedir», «para la campaña: no te alcanzan hasta Navidad, en 34 días»;
+   en «Hoy», los botones son «Comprar ya» y «Preparar el pedido». Las pestañas no cambiaron de nombre.
+2. **La flecha:** «Comprar» y, por la misma regla (una función, una pieza), todo lo que lleva a otra pantalla («Comprar todas», «Bajar», «Bajar todos»,
+   «Mandar a …», «Mandar todas», «Registrar ventas») pasó a `<BotonVer>`; el principal de la ficha sigue negro con la flecha a la derecha, como «Seguir»
+   de Nuevo producto. En la tarjeta, «Comprar» va primero y «o pedir a …» después.
+3. **«Ver todo el piso»** en vez de «Frescura del piso», con el nombre del módulo en su globito.
+
+Medido otra vez (1440 claro y oscuro, 375): 0 desbordes, 0 blancos bajo 24 px nuevos, 0 fallas de contraste. El «!» de la tabla de la ficha sale con 1,02:1 a
+375 px en el medidor de /color, pero en la captura se lee bien (círculo ámbar profundo con el signo en crema, ~7:1 a 1440): falso positivo del medidor.
+La guía recorrida otra vez (escritorio y 375 oscuro, en verde); la huella cambia de pieza en 9 botones, no de función.
+
+### Ciega repetida (Observado) — misma tarea, capturas nuevas
+| Medida | Antes | Después |
+|---|---|---|
+| Lectura de 5 s | sí | sí |
+| Primer intento / pasos | sí, 4 | sí, 4 |
+| «Se acaba» frente a «Qué pedir» | no supo en qué se diferencian | **las distingue**: «lo que tengo y se termina pronto» frente a «lo que hay que pedir para la campaña» |
+| «Comprar» | no supo si compra o lleva a otra pantalla | **sigue sin saberlo** («creo que se abre algo para hacer el pedido; no sé si compra directamente») |
+| «Frescura del piso» / «Ver todo el piso» | no entendió la palabra | entiende que lleva a «la lista completa de lo que hay en la tienda», sin estar segura de a dónde |
+| Dudas | 5 | 6 |
+
+**Hallazgo nuevo:** en «No se vende» ve dos montos («S/ 1,692» en la respuesta y «S/ 1,332 parados» en el título de un grupo) y no entiende por qué son distintos
+(el del grupo es solo «No se venden»; la respuesta suma también lo que se vende en otra tienda, lo dudoso y lo lento). También creyó, sin abrirla, que «Sin salir» es
+lo mismo que «No se vende».
+
+### Notas después
+Ley 2: 8 (las dos preguntas ya se distinguen) · ley 4: 8 («Ver todo el piso» se entiende) · ley 3: 7 (los dos montos de «No se vende») · el resto igual.
+**Total 7,8 · oficio 7.** Real: sin probar.
+
+**Lo que sigue (sin ejecutar, decide Felipe):** que «Comprar» diga dónde lleva (p. ej. «Comprar en Compras» o «Ir a comprar») si la flecha no alcanza con
+una persona real; el monto de cada grupo de «No se vende» como parte del total («de esto, S/ 1,332») o sin monto; «Ya no hay» en vez de días puede leerse como
+otra cosa; y la línea con los caminos en la ficha de lo que no se vende.

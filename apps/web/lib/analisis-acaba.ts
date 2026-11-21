@@ -31,8 +31,12 @@ export function textoProveedor(origen: OrigenPrenda | null): string | null {
 /** El botón de texto bajo «Comprar»: «o pedir a Arequipa». */
 export const textoPedirA = (sede: Pick<SedeAnalisis, "ciudad">): string => `o pedir a ${sede.ciudad}`;
 
-/** La frase de la respuesta: «se acaban en 2 semanas o menos» (el tope de `DIAS_SE_ACABA`). */
-export const fraseAcaba = (n: number): string => `${n === 1 ? "se acaba" : "se acaban"} en ${semanas(DIAS_SE_ACABA)} o menos`;
+/**
+ * La frase de la respuesta: «cómpralos ya: se acaban en 2 semanas o menos» (el tope de `DIAS_SE_ACABA`). Empieza por cuándo toca: la
+ * prueba ciega de /formidable (2026-11-21) confundió «Se acaba» con «Qué pedir»; esta es la compra de ahora, aquella la de la campaña.
+ */
+export const fraseAcaba = (n: number): string =>
+  n === 1 ? `cómpralo ya: se acaba en ${semanas(DIAS_SE_ACABA)} o menos` : `cómpralos ya: se acaban en ${semanas(DIAS_SE_ACABA)} o menos`;
 
 /** Lo que se dice cuando la pestaña no tiene carril: nada se acaba, o no se pudieron leer las prendas. */
 export type VacioAcaba = "nada" | "sin-datos";

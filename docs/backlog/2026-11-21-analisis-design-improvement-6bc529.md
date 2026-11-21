@@ -9,10 +9,9 @@
 - [x] Guía interactiva al día (23 pasos, cuatro de la ficha) y recorrida en escritorio, 375 oscuro e ida y vuelta
 - [x] `/milimetro auditar`: 3 graves corregidos («o pedir a» a 24 px, borde del paso de días, «te queda» a 4,5:1)
 - [x] `/formidable`: 7,6 · oficio 7; ciega a la primera (`docs/formidable/inventario-resumen.md`)
-- [ ] **Los 3 cambios de `/formidable`, esperan el OK de Felipe:**
-  - «Se acaba» y «Qué pedir» dicen su plazo («cómpralos ya» frente a «para la campaña»);
-  - «Comprar» lleva la flecha de «ver en otra pantalla»;
-  - «Frescura del piso» pasa a «Ver todo el piso».
+- [x] **Los 3 cambios de `/formidable`, con el OK de Felipe:** plazos en «Se acaba» y «Qué pedir»; la flecha en todo lo que lleva a otra pantalla; «Ver todo el piso». Ciega repetida: 7,8
+- [ ] «Comprar» todavía no dice que lleva a otra pantalla (la ciega repetida tampoco lo supo): ¿«Comprar en Compras» o «Ir a comprar»? Decide Felipe, mejor después de verlo con una encargada
+- [ ] En «No se vende», el monto de cada grupo («S/ 1,332 parados») confunde junto al total de la respuesta («S/ 1,692»): decirlo como parte del total o quitarlo
 - [ ] **Decide Felipe:** ¿la ficha de algo que no se vende nombra sus caminos (rebajarla, mandarla a otra tienda, esperar) sin empujar ninguno? La ciega no supo qué hacer con ella.
 - [ ] Lista aparte de `/formidable`:
   - «Movimientos» y el chip «Datos confiables» a 24 px;

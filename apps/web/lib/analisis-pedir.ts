@@ -420,9 +420,12 @@ export function baseConFiltros(
 const soloTipo = (f: Pick<FiltrosAnalisis, "q" | "talla" | "color" | "precio" | "origen" | "quieta">): boolean =>
   !f.q.trim() && f.talla.length === 0 && f.color.length === 0 && f.precio.length === 0 && f.origen.length === 0 && f.quieta.length === 0;
 
-/** La respuesta: «5 tipos no te alcanzan hasta Navidad, en 34 días» (con 1, en singular). */
+/**
+ * La respuesta: «5 tipos · para la campaña: no te alcanzan hasta Navidad, en 34 días» (con 1, en singular). Empieza por la campaña para
+ * que no se lea como «Se acaba», que es la compra de ahora (prueba ciega de /formidable, 2026-11-21).
+ */
 export const fraseAlcance = (n: number, hastaNavidad: number): string =>
-  `${n === 1 ? "no te alcanza" : "no te alcanzan"} hasta Navidad, en ${hastaNavidad} ${plural(hastaNavidad, "día", "días")}`;
+  `para la campaña: ${n === 1 ? "no te alcanza" : "no te alcanzan"} hasta Navidad, en ${hastaNavidad} ${plural(hastaNavidad, "día", "días")}`;
 
 /**
  * La talla que se acaba primero de un tipo, en una línea: «Ya no hay talla M», «Ya no hay talla S ni M» o «La M se acaba primero» (la que

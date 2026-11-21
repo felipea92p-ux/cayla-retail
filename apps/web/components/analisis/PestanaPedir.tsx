@@ -40,7 +40,7 @@ import {
 import { plural } from "@/lib/analisis-reglas";
 import { estadoSinNada } from "@/lib/analisis-hoy";
 
-// Análisis, cara B (ADR-0357, act. 2026-11-21): «Qué pedir». Abre con la respuesta («5 tipos no te alcanzan hasta Navidad, en 34 días»,
+// Análisis, cara B (ADR-0357, act. 2026-11-21): «Qué pedir». Abre con la respuesta («5 tipos · para la campaña: no te alcanzan hasta Navidad, en 34 días»,
 // con el atajo al Plan de campaña) y sigue con una tarjeta por tipo que no llega: los días que le alcanzan (o «Ya no hay») y la talla que
 // se acaba primero. Los que alcanzan y los que no se vendieron van en una línea; «Lo que más rinde», plegado. Tocar un tipo abre su hoja:
 // sus cifras, las tallas que se llevan y lo que más se vende. La pestaña no decide cuánto pedir (ADR-0231): muestra dónde falta; la

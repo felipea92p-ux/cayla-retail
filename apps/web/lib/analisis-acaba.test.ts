@@ -154,9 +154,9 @@ describe("la tarjeta de un modelo que se acaba (cara B)", () => {
     expect(numeroAcaba(DOCE_DIAS)?.urgente).toBe(false);
     expect(numeroAcaba(QUIETA)).toBeNull();
   });
-  it("la frase de la respuesta dice el tope de días, en singular o plural", () => {
-    expect(fraseAcaba(1)).toBe(`se acaba en ${DIAS_SE_ACABA / 7} semanas o menos`);
-    expect(fraseAcaba(5)).toBe(`se acaban en ${DIAS_SE_ACABA / 7} semanas o menos`);
+  it("la frase de la respuesta empieza por cuándo toca comprar y dice el tope de días, en singular o plural", () => {
+    expect(fraseAcaba(1)).toBe(`cómpralo ya: se acaba en ${DIAS_SE_ACABA / 7} semanas o menos`);
+    expect(fraseAcaba(5)).toBe(`cómpralos ya: se acaban en ${DIAS_SE_ACABA / 7} semanas o menos`);
   });
   it("lo que viene: la primera fecha, hoy o atrasada; sin fecha, solo cuántas", () => {
     expect(textoViene(prenda({ llega: [llegada({ cantidad: 10, fecha: "2026-10-15" }), llegada({ cantidad: 2, fecha: "2026-10-08" })] }), HOY)).toBe("Llegan 12 el 8 oct.");
