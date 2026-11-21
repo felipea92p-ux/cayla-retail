@@ -3,6 +3,7 @@
 import { createContext, useContext } from "react";
 import type { AccesoAnalisis, DatosAnalisis, PrendaAnalisis, SedeAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
+import type { FiltrosAnalisis } from "@/lib/analisis-filtros";
 
 // Análisis v4 (ADR-0357): lo que la pantalla le da a cada pestaña y a la ficha. Una pestaña no lee nada por su cuenta: todo
 // llega leído del servidor (`DatosAnalisis`) y filtrado por el buscador de la cabecera.
@@ -22,9 +23,8 @@ export type ContextoAnalisis = {
   setLiquidarDesde: (dias: number) => void;
   /** El orden elegido en cada pestaña (`analisis-orden.ts`): la píldora «Ordenar por» de la barra. */
   orden: Record<VistaAnalisis, string>;
-  /** El tipo de prenda elegido en la mariposa de «Qué pedir» (filtra tallas y ranking); null = todos. */
-  categoria: string | null;
-  setCategoria: (c: string | null) => void;
+  /** Los filtros de la barra (`analisis-filtros.ts`): «Qué pedir» cuenta talla por talla si hay talla o color puestos. */
+  filtros: FiltrosAnalisis;
   /** Una tienda por id (para «AQP tiene 3» y «o pedir a Arequipa»). */
   sedeDe: (id: string) => SedeAnalisis | undefined;
   /** Abre el detalle de un modelo (su `varianteId`, que es el id del modelo). */

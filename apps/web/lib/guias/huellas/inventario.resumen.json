@@ -2,7 +2,7 @@
   "guia": "inventario.resumen",
   "ruta": "/gestion/analisis",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 59,
+  "total": 58,
   "controles": {
     "components/PedirAOtraSedeModal.tsx": [
       "Desplegable «pedir-sede»",
@@ -56,12 +56,11 @@
       "Link «{contenido}»"
     ],
     "components/analisis/PestanaPedir.tsx": [
-      "Link «Plan de campaña»",
-      "button «{o.texto}»",
-      "button «{`Quitar el filtro: ${categoria}»",
-      "button «Top»",
-      "button «[0][\"familia\"]»",
-      "button «↓»"
+      "button «{t.categoria}»",
+      "BotonVer «Plan de campaña»",
+      "BotonVerMas «Ver lo que más rinde»",
+      "button «{`${nombreLargo(p)}»",
+      "BotonVer «Abrir el plan de campaña»"
     ],
     "components/analisis/PestanaPiso.tsx": [
       "Link «Bajar todos»",

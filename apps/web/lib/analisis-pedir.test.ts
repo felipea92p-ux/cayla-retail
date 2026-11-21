@@ -1,17 +1,20 @@
 import { describe, expect, it } from "vitest";
 import type { PrendaAnalisis } from "./analisis-tipos";
 import {
+  alcanceConFiltros,
   alcancePorTipo,
+  baseConFiltros,
+  fraseAlcance,
+  ordenarTipos,
+  tallaQueSeAcaba,
   categoriaDe,
   DIAS_ALCANZA_MAX,
   diasANavidad,
-  finEjeAlcance,
   textoAlcance,
   textoRitmo,
   tipoCorto,
   tiposSinRegistrar,
   notaTiposSinRegistrar,
-  cuentaNavidad,
   curvaDeTallas,
   escalaRinde,
   estadoQuedan,
@@ -20,19 +23,12 @@ import {
   masVendidas,
   notaRindeVacio,
   TOP_DEFECTO,
-  topsPosibles,
-  cuantasVendidas,
-  fraseDelTipo,
   ordenarAlcance,
-  ORDEN_ALCANCE_DEFECTO,
-  ORDENES_ALCANCE,
   proximaNavidad,
-  rielNavidad,
   rindePorCategoria,
   SIN_CATEGORIA,
   solesRinde,
   tipRinde,
-  ventaMaxima,
   type FilaRinde,
 } from "./analisis-pedir";
 import { armarModelos } from "./analisis-modelo";
@@ -86,57 +82,6 @@ describe("cuenta para Navidad", () => {
     expect(proximaNavidad("2026-12-26")).toBe("2027-12-25");
   });
 
-  it("semanas enteras mientras falte una o más (el 6 de octubre: 80 días = 11 semanas, como la maqueta)", () => {
-    expect(cuentaNavidad("2026-10-06")).toEqual({ valor: 11, texto: "semanas para Navidad" });
-    expect(cuentaNavidad("2026-12-18")).toEqual({ valor: 1, texto: "semana para Navidad" });
-    expect(cuentaNavidad("2026-12-26")).toEqual({ valor: 52, texto: "semanas para Navidad" });
-  });
-
-  it("en la última semana, días; el mismo día, sin número", () => {
-    expect(cuentaNavidad("2026-12-20")).toEqual({ valor: 5, texto: "días para Navidad" });
-    expect(cuentaNavidad("2026-12-24")).toEqual({ valor: 1, texto: "día para Navidad" });
-    expect(cuentaNavidad("2026-12-25")).toEqual({ valor: null, texto: "es Navidad" });
-  });
-});
-
-describe("rielNavidad", () => {
-  it("del 1 del mes de hoy al 31 de diciembre: hoy, cada mes en su mitad y Navidad, en % del tramo", () => {
-    const r = rielNavidad("2026-10-06");
-    // 1 oct → 31 dic son 91 días: hoy es el día 5 y Navidad el 85 (las posiciones de la maqueta).
-    expect(r.hoyPct).toBe(5.5);
-    expect(r.navidadPct).toBe(93.4);
-    expect(r.meses.map((m) => m.texto)).toEqual(["octubre", "noviembre", "diciembre"]);
-    expect(r.meses.map((m) => m.pct)).toEqual([16.5, 50, 83.5]);
-    expect(r.juntos).toBe(false);
-    expect(r.etiqueta).toBe("Hoy 6 de octubre, Navidad 25 de diciembre");
-  });
-
-  it("todo queda dentro del riel y en orden: hoy antes que Navidad, los meses de izquierda a derecha", () => {
-    for (const hoy of ["2026-01-01", "2026-06-30", "2026-09-01", "2026-12-01", "2026-12-25", "2026-12-31"]) {
-      const r = rielNavidad(hoy);
-      expect(r.hoyPct).toBeGreaterThanOrEqual(0);
-      expect(r.navidadPct).toBeLessThanOrEqual(100);
-      expect(r.hoyPct).toBeLessThanOrEqual(r.navidadPct);
-      const pcts = r.meses.map((m) => m.pct);
-      expect([...pcts].sort((a, b) => a - b)).toEqual(pcts);
-      expect(new Set(r.meses.map((m) => m.clave)).size).toBe(r.meses.length);
-    }
-  });
-
-  it("cerca de Navidad los rótulos se pisarían: «Hoy» queda solo como punto", () => {
-    expect(rielNavidad("2026-12-10").juntos).toBe(false);
-    expect(rielNavidad("2026-12-23").juntos).toBe(true);
-    expect(rielNavidad("2026-12-25").juntos).toBe(true);
-  });
-
-  it("con 5 a 7 meses, abreviados; con más, abreviados y uno sí, uno no, siempre con diciembre", () => {
-    expect(rielNavidad("2026-08-15").meses.map((m) => m.texto)).toEqual(["ago", "set", "oct", "nov", "dic"]);
-    expect(rielNavidad("2027-03-10").meses.map((m) => m.texto)).toEqual(["abr", "jun", "ago", "oct", "dic"]);
-    // Pasada la Navidad, el riel llega a la del año siguiente: 13 meses.
-    const r = rielNavidad("2026-12-26");
-    expect(r.meses.map((m) => m.texto)).toEqual(["dic", "feb", "abr", "jun", "ago", "oct", "dic"]);
-    expect(r.etiqueta).toBe("Hoy 26 de diciembre, Navidad 25 de diciembre");
-  });
 });
 
 describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
@@ -261,14 +206,12 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
     expect(textoRitmo(1)).toBe("Al ritmo de los últimos 1 día");
   });
 
-  it("los días a Navidad, el nombre corto de un tipo y el fin del eje (6 meses, o más si Navidad queda lejos)", () => {
+  it("los días a Navidad y el nombre corto de un tipo", () => {
     expect(diasANavidad("2026-10-07")).toBe(79);
     expect(diasANavidad("2026-12-25")).toBe(0);
     expect(diasANavidad("2026-12-26")).toBe(364);
     expect(tipoCorto("Gorros y Sombreros")).toBe("Gorros");
     expect(tipoCorto("Polos")).toBe("Polos");
-    expect(finEjeAlcance(79)).toBe(DIAS_ALCANZA_MAX);
-    expect(finEjeAlcance(300)).toBe(345);
   });
 });
 
@@ -374,11 +317,6 @@ describe("lo que más se vende", () => {
     const prendas = [prenda({ categoria: "Polos", vendidas30: 5 }), prenda({ categoria: "Bodys", vendidas30: 9 }), prenda({ categoria: null, vendidas30: 2 })];
     expect(masVendidas(prendas, "Polos").map((p) => p.categoria)).toEqual(["Polos"]);
     expect(masVendidas(prendas, SIN_CATEGORIA).map((p) => p.vendidas30)).toEqual([2]);
-  });
-
-  it("la venta más alta de la tienda (para medir las barras), al menos 1", () => {
-    expect(ventaMaxima([prenda({ vendidas30: 3 }), prenda({ vendidas30: 8 })])).toBe(8);
-    expect(ventaMaxima([])).toBe(1);
   });
 
   it("lo que queda: agotada en rojo, 1 o 2 en ámbar, más en verde", () => {
@@ -518,30 +456,6 @@ describe("Qué pedir por modelo (ADR-0357, decisión 12)", () => {
   });
 });
 
-describe("Qué pedir, opción A: el panel del tipo y el «Top» que se elige (Felipe 2026-10-10)", () => {
-  it("ofrece Top 5 siempre y los demás solo si hay más modelos vendidos que el anterior", () => {
-    expect(topsPosibles(0)).toEqual([5]);
-    expect(topsPosibles(5)).toEqual([5]);
-    expect(topsPosibles(6)).toEqual([5, 10]);
-    expect(topsPosibles(16)).toEqual([5, 10, 15, 20]);
-  });
-
-  it("cuenta los modelos vendidos del tipo elegido o de toda la tienda", () => {
-    const ps = [prenda({ categoria: "Polos", vendidas30: 2 }), prenda({ categoria: "Polos", vendidas30: 0 }), prenda({ categoria: "Tops", vendidas30: 1 })];
-    expect(cuantasVendidas(ps, null)).toBe(2);
-    expect(cuantasVendidas(ps, "Polos")).toBe(1);
-  });
-
-  it("la frase del tipo: para cuánto alcanza contra Navidad y lo que tienes; sin tipo, lo de toda la tienda", () => {
-    const tops = { categoria: "Tops", prefijo: null, familia: null, vendidas: 21, sinPrenda: 0, tiene: 92, nunca: 39, dias: 49, pide: true };
-    const polos = { categoria: "Polos", prefijo: null, familia: null, vendidas: 0, sinPrenda: 0, tiene: 10, nunca: 0, dias: null, pide: false };
-    expect(fraseDelTipo(tops, [], 11)).toBe("Te alcanza para 7 semanas: no llega a Navidad. Tienes 92 · 39 nunca salieron al piso.");
-    expect(fraseDelTipo(polos, [], 11)).toBe("No se vendió en 11 días. Tienes 10.");
-    expect(fraseDelTipo({ ...tops, dias: 0, tiene: 0, nunca: 0 }, [], 11)).toBe("Ya no te queda: no llega a Navidad. Tienes 0.");
-    expect(fraseDelTipo(null, [tops, polos], 11)).toBe("Vendiste 21 en 11 días y tienes 102. 1 tipo no llega a Navidad.");
-  });
-});
-
 describe("el orden de «¿Para cuánto te alcanza?» (Felipe 2026-10-12)", () => {
   const t = (categoria: string, vendidas: number, dias: number | null) => ({ categoria, prefijo: null, familia: null, vendidas, sinPrenda: 0, tiene: 5, nunca: 0, dias, pide: false });
   // Ya ordenados por «se acaba antes», como los entrega alcancePorTipo.
@@ -555,13 +469,46 @@ describe("el orden de «¿Para cuánto te alcanza?» (Felipe 2026-10-12)", () =>
     expect(ordenarAlcance(tipos, "vende").map((x) => x.categoria)).toEqual(["Polos", "Tops", "Bodys", "Capas", "Shorts"]);
   });
 
-  it("por defecto, «Más vendido», y es la primera opción", () => {
-    expect(ORDEN_ALCANCE_DEFECTO).toBe("vende");
-    expect(ORDENES_ALCANCE[0].clave).toBe("vende");
-  });
-
   it("no cambia la lista que recibe", () => {
     ordenarAlcance(tipos, "vende");
     expect(tipos[0].categoria).toBe("Capas");
+  });
+});
+
+describe("Qué pedir con los filtros de la barra (cara B)", () => {
+  const sin = { q: "", tipo: [], talla: [], color: [], precio: [], origen: [], quieta: [] };
+  const tallas = [
+    prenda({ productoId: "p1", categoria: "Polos", talla: "S", vendidas30: 6, piso: 6 }),
+    prenda({ productoId: "p1", categoria: "Polos", talla: "M", vendidas30: 6, piso: 0 }),
+    prenda({ productoId: "p2", categoria: "Faldas", talla: "S", vendidas30: 3, piso: 9 }),
+  ];
+  const modelos = armarModelos(tallas, "2026-11-21");
+  it("sin talla ni color cuenta los modelos; con talla, solo esa talla", () => {
+    expect(baseConFiltros(modelos, tallas, sin)).toHaveLength(2);
+    const conM = baseConFiltros(modelos, tallas, { ...sin, talla: ["M"] });
+    expect(conM.map((p) => p.talla)).toEqual(["M"]);
+    const polosM = alcanceConFiltros(modelos, tallas, { ...sin, talla: ["M"] }, 30, 34, true, {});
+    expect(polosM.find((x) => x.categoria === "Polos")?.dias).toBe(0);
+  });
+  it("lo vendido sin registrar solo se suma sin otros filtros que el tipo", () => {
+    const conTodo = alcanceConFiltros(modelos, tallas, sin, 30, 34, true, { Polos: 12 });
+    const conTalla = alcanceConFiltros(modelos, tallas, { ...sin, talla: ["S"] }, 30, 34, true, { Polos: 12 });
+    expect(conTodo.find((x) => x.categoria === "Polos")?.sinPrenda).toBe(12);
+    expect(conTalla.find((x) => x.categoria === "Polos")?.sinPrenda).toBe(0);
+  });
+  it("la frase y el orden", () => {
+    expect(fraseAlcance(1, 34)).toBe("no te alcanza hasta Navidad, en 34 días");
+    expect(fraseAlcance(5, 1)).toBe("no te alcanzan hasta Navidad, en 1 día");
+    const t = (categoria: string, vendidas: number, dias: number | null) => ({ categoria, prefijo: null, familia: null, vendidas, sinPrenda: 0, tiene: 5, nunca: 0, dias, pide: false });
+    const ts = [t("Capas", 10, 1), t("Polos", 86, 35), t("Abrigos", 0, null)];
+    expect(ordenarTipos(ts, "vende").map((x) => x.categoria)).toEqual(["Polos", "Capas", "Abrigos"]);
+    expect(ordenarTipos(ts, "acaba").map((x) => x.categoria)).toEqual(["Capas", "Polos", "Abrigos"]);
+    expect(ordenarTipos(ts, "nombre").map((x) => x.categoria)).toEqual(["Abrigos", "Capas", "Polos"]);
+  });
+  it("la talla que se acaba primero", () => {
+    expect(tallaQueSeAcaba(curvaDeTallas(tallas, "Polos"))).toBe("Ya no hay talla M");
+    const ambas = [prenda({ categoria: "Tops", talla: "S", vendidas30: 4, piso: 8 }), prenda({ categoria: "Tops", talla: "M", vendidas30: 4, piso: 2 })];
+    expect(tallaQueSeAcaba(curvaDeTallas(ambas, "Tops"))).toBe("La M se acaba primero");
+    expect(tallaQueSeAcaba({ tipo: "unica" })).toBeNull();
   });
 });

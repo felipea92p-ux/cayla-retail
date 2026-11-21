@@ -72,7 +72,6 @@ export function AnalisisPantalla({
   const [liquidarDesde, setLiquidarDesde] = useState(datos.liquidarDesde);
   // El orden que eligió la persona en cada pestaña; la que no eligió, va como siempre (`analisis-orden.ts`).
   const [ordenes, setOrdenes] = useState<Partial<Record<VistaAnalisis, string>>>({});
-  const [categoria, setCategoria] = useState<string | null>(null);
   const [fichaId, setFichaId] = useState<string | null>(null);
   const [confianza, setConfianza] = useState(false);
   const [pedido, setPedido] = useState<{ origen: { id: string; nombre: string }; lineas: ReturnType<typeof lineasParaPedir> } | null>(null);
@@ -118,7 +117,6 @@ export function AnalisisPantalla({
     apagarResaltado();
     setFichaId(null);
     setVista(v);
-    setCategoria(null);
     setVuelta((n) => n + 1);
     setAnimar(true);
     setFoco(opciones?.foco ?? null);
@@ -169,8 +167,7 @@ export function AnalisisPantalla({
       liquidarDesde,
       setLiquidarDesde,
       orden: Object.fromEntries(PESTANAS.map((p) => [p.clave, ordenDe(p.clave, ordenes)])) as Record<VistaAnalisis, string>,
-      categoria,
-      setCategoria,
+      filtros,
       sedeDe: (id: string) => datos.sedes.find((s) => s.id === id),
       abrirFicha,
       irA,
@@ -178,7 +175,7 @@ export function AnalisisPantalla({
       conDatosDeHoy: forzado,
       verConDatosDeHoy,
     }),
-    [datos, acceso, prendas, ventana, q, liquidarDesde, ordenes, categoria, abrirFicha, irA, pedir, forzado, verConDatosDeHoy],
+    [datos, acceso, prendas, ventana, q, liquidarDesde, ordenes, filtros, abrirFicha, irA, pedir, forzado, verConDatosDeHoy],
   );
 
   // La animación de entrada dura lo que dura; después, lo que cambie (un filtro, el umbral) aparece sin volver a animarse.
@@ -297,7 +294,7 @@ export function AnalisisPantalla({
           </div>
         )}
 
-        <div key={`${vista}-${vuelta}`} className={`vista ${animar ? "anim" : ""}`} data-guia="analisis.vista" role="tabpanel" aria-label={PESTANAS.find((p) => p.clave === vista)?.texto}>
+        <div key={`${vista}-${vuelta}`} className={`vista ${animar ? "anim" : ""}`} role="tabpanel" aria-label={PESTANAS.find((p) => p.clave === vista)?.texto}>
           {contenido}
         </div>
       </div>

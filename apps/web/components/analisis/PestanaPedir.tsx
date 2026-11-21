@@ -1,312 +1,222 @@
 "use client";
 
 import "@/app/estilos/por-pantalla/analisis-pestanas.css";
-import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
+import { Check } from "lucide-react";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { TRAZO_PERCHA } from "@/components/analisis/iconos";
-import { ChipEstado, Cuenta, nombreLargo, TilePrenda } from "@/components/analisis/piezas";
+import { ChipEstado, COLOR_ESTADO, nombreLargo, TilePrenda, type Estado } from "@/components/analisis/piezas";
+import { Respuesta, TarjetaPrenda, Tarjetas } from "@/components/analisis/Tarjetas";
+import { IconoCategoria } from "@/components/IconoCategoria";
+import { Modal } from "@/components/ui/Modal";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { BotonVer } from "@/components/ui/BotonDescargar";
+import { BotonVerMas } from "@/components/ui/VerMas";
+import { Vacio } from "@/components/ui/Vacio";
 import { queTiene } from "@/lib/analisis-modelo";
 import {
-  alcancePorTipo,
-  cuentaNavidad,
+  alcanceConFiltros,
+  baseConFiltros,
   curvaDeTallas,
   DIAS_RINDE,
   diasANavidad,
   escalaRinde,
   estadoQuedan,
-  finEjeAlcance,
-  LARGO_RANKING,
+  fraseAlcance,
   masVendidas,
-  cuantasVendidas,
-  fraseDelTipo,
-  ordenarAlcance,
-  ORDENES_ALCANCE,
-  ORDEN_ALCANCE_DEFECTO,
-  type OrdenAlcance,
-  topsPosibles,
-  TOP_DEFECTO,
-  type Top,
   notaRindeVacio,
-  RINDE_POCO,
-  rielNavidad,
-  solesRinde,
-  tipRinde,
-  textoAlcance,
-  textoRitmo,
-  tiposSinRegistrar,
   notaTiposSinRegistrar,
-  ventaMaxima,
+  ordenarTipos,
+  RINDE_POCO,
+  solesRinde,
+  tallaQueSeAcaba,
+  textoRitmo,
+  tipRinde,
+  tiposSinRegistrar,
   type AlcanceTipo,
   type CurvaTallas,
-  type RielNavidad,
 } from "@/lib/analisis-pedir";
 import { plural } from "@/lib/analisis-reglas";
-import { IconoCategoria } from "@/components/IconoCategoria";
-import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
-// Análisis v4 (ADR-0357): «Qué pedir», como la maqueta aprobada (2026-10-06) y su cambio del 2026-10-07 (B2): cuánto falta para
-// Navidad → para cuánto te alcanza cada tipo al ritmo de los días de ventas, contra Navidad (la tabla, que filtra; antes, la
-// mariposa «de cada 100») → las tallas que se llevan y lo que más se vende → lo que más rinde. La pestaña no decide cuánto pedir (ADR-0231): muestra dónde falta y dónde sobra; la cantidad la elige
-// quien pide, en Compras o en el Plan de campaña. Las cuentas viven en `lib/analisis-pedir.ts`.
-//
-// La tabla y las tallas miran TODA la tienda (el buscador no las mueve, como en la maqueta); el ranking sigue al buscador y al
-// tipo elegido. Tocar un tipo de la tabla filtra tallas y ranking; tocarlo otra vez, o «✕», lo quita.
+// Análisis, cara B (ADR-0357, act. 2026-11-21): «Qué pedir». Abre con la respuesta («5 tipos no te alcanzan hasta Navidad, en 34 días»,
+// con el atajo al Plan de campaña) y sigue con una tarjeta por tipo que no llega: los días que le alcanzan (o «Ya no hay») y la talla que
+// se acaba primero. Los que alcanzan y los que no se vendieron van en una línea; «Lo que más rinde», plegado. Tocar un tipo abre su hoja:
+// sus cifras, las tallas que se llevan y lo que más se vende. La pestaña no decide cuánto pedir (ADR-0231): muestra dónde falta; la
+// cantidad la elige quien pide, en Compras o en el Plan de campaña. Sigue a los filtros de la barra: con una talla puesta, dice si te
+// alcanza ESA talla (`alcanceConFiltros`). Las cuentas viven en `lib/analisis-pedir.ts`.
+
+/** Los días que alcanza, enteros: lo que se acaba en menos de un día dice 1; «Ya no hay» es solo el 0. null si no tiene ritmo. */
+const diasEnteros = (dias: number | null): number | null => (dias === null ? null : dias <= 0 ? 0 : Math.max(1, Math.round(dias)));
+
+/** El tono de un tipo: no le alcanza en una semana o menos → urgente; no llega a Navidad → atención; llega → bien; sin ventas → todavía no. */
+const tonoTipo = (t: AlcanceTipo): Estado => (t.dias === null ? "nd" : !t.pide ? "bien" : (diasEnteros(t.dias) ?? 0) <= 7 ? "urg" : "ate");
+
+/** La miniatura de un tipo: su ícono sobre una lente teñida del color de cómo va (no es una prenda: no lleva color de dato). */
+function LenteTipo({ t }: { t: AlcanceTipo }) {
+  return (
+    <span className="an-lente" style={{ ["--c" as string]: COLOR_ESTADO[tonoTipo(t)] }} aria-hidden>
+      <IconoCategoria prefijo={t.prefijo} familia={(t.familia ?? null) as Parameters<typeof IconoCategoria>[0]["familia"]} className="h-9 w-9" />
+    </span>
+  );
+}
 
 export function PestanaPedir() {
-  const { datos, acceso, prendas, q, categoria, setCategoria, abrirFicha, diasDeVentas } = useAnalisis();
-  const cuenta = cuentaNavidad(datos.hoy);
-  const riel = useMemo(() => rielNavidad(datos.hoy), [datos.hoy]);
+  const { datos, acceso, prendas, filtros, orden, diasDeVentas } = useAnalisis();
+  const [abierto, setAbierto] = useState<string | null>(null);
+  const [rinde, setRinde] = useState(false);
   const hastaNavidad = diasANavidad(datos.hoy);
   const tipos = useMemo(
-    () => alcancePorTipo(datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo),
-    [datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo],
+    () => ordenarTipos(alcanceConFiltros(prendas, datos.tallas, filtros, diasDeVentas, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo), orden.pedir),
+    [prendas, datos.tallas, filtros, diasDeVentas, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo, orden.pedir],
   );
-  // Lo vendido sin registrar de tipos que la tienda no tiene en el sistema: no se sabe para cuánto alcanzan, pero no se calla.
+  // Las tallas que se comparan: las de lo que dejan ver los filtros.
+  const tallasDeLaTienda = datos.tallas;
+  const base = useMemo(() => baseConFiltros(prendas, tallasDeLaTienda, filtros).flatMap((p) => ("variantes" in p ? (p.variantes as typeof tallasDeLaTienda) : [p])), [prendas, tallasDeLaTienda, filtros]);
   const sinRegistro = useMemo(() => tiposSinRegistrar(datos.prendas, datos.sinPrendaPorTipo), [datos.prendas, datos.sinPrendaPorTipo]);
-  // Las tallas se comparan talla por talla (las filas de la base), no por modelo.
-  const curva = useMemo(() => curvaDeTallas(datos.tallas, categoria), [datos.tallas, categoria]);
-  // «Lo que más se vende»: los 5 primeros por defecto; la persona elige ver 10, 15 o 20 (Felipe 2026-10-10). Solo se ofrecen los
-  // «Top» que tienen más modelos vendidos que el anterior; si el elegido ya no cabe (otro tipo), se marca el más grande que sí.
-  const [top, setTop] = useState<Top>(TOP_DEFECTO);
-  const [orden, setOrden] = useState<OrdenAlcance>(ORDEN_ALCANCE_DEFECTO);
-  const tiposOrdenados = useMemo(() => ordenarAlcance(tipos, orden), [tipos, orden]);
-  const vendidos = cuantasVendidas(prendas, categoria);
-  const opcionesTop = topsPosibles(vendidos);
-  const topMarcado = opcionesTop.includes(top) ? top : opcionesTop[opcionesTop.length - 1];
-  const tops = masVendidas(prendas, categoria, top);
-  const maxVenta = ventaMaxima(datos.prendas);
-  const elegido = categoria ? (tipos.find((t) => t.categoria === categoria) ?? null) : null;
-  const panel = useRef<HTMLElement>(null);
-  const quitar = () => setCategoria(null);
-  // Opción A (Felipe 2026-10-10): tocar un tipo cambia el panel de al lado en el acto. Si el panel quedó debajo (pantalla angosta,
-  // una sola columna) y no se ve, se lleva a la vista: el efecto del toque nunca pasa fuera de la pantalla.
-  const elegir = (c: string) => {
-    const nueva = c === categoria ? null : c;
-    setCategoria(nueva);
-    const el = panel.current;
-    if (!nueva || !el) return;
-    window.requestAnimationFrame(() => {
-      const r = el.getBoundingClientRect();
-      if (r.top > window.innerHeight - 120 || r.bottom < 80) {
-        el.scrollIntoView({ block: "start", behavior: prefiereQuieto() ? "auto" : "smooth" });
-      }
-    });
-  };
+
+  const piden = tipos.filter((t) => t.pide);
+  const alcanzan = tipos.filter((t) => !t.pide && t.dias !== null);
+  const sinVentas = tipos.filter((t) => t.dias === null);
+  const n = piden.length;
+  const ayuda = [`${textoRitmo(diasDeVentas)}.`, sinRegistro.length > 0 ? notaTiposSinRegistrar(sinRegistro) : null].filter(Boolean).join(" ");
+  const elegido = abierto ? (tipos.find((t) => t.categoria === abierto) ?? null) : null;
+  const enlaces = (ts: AlcanceTipo[]) =>
+    ts.map((t, k) => (
+      <span key={t.categoria}>
+        {k > 0 && (k === ts.length - 1 ? " y " : ", ")}
+        <button type="button" className="btn-cayla btn-enlace" onClick={() => setAbierto(t.categoria)}>
+          {t.categoria}
+        </button>
+      </span>
+    ));
+
+  if (tipos.length === 0)
+    return (
+      <section className="tarjeta entra" style={{ ["--i" as string]: 3 }}>
+        <Vacio tamano="chico" icono={<Check />}>
+          Con estos filtros no hay ninguno aquí.
+        </Vacio>
+      </section>
+    );
 
   return (
     <>
-      <section className={`tarjeta campana entra ${acceso.planCompra ? "" : "sin-boton"}`} style={{ ["--i" as string]: 0 }}>
-        <div className="cuenta-reg">
-          <div>
-            <b>{cuenta.valor === null ? "Hoy" : <Cuenta valor={cuenta.valor} />}</b>
-            <span>{cuenta.texto}</span>
-          </div>
-        </div>
-        <div style={{ minWidth: 0 }}>
-          <Riel r={riel} />
-        </div>
-        {acceso.planCompra && (
-          <Link href="/compras/plan" className="btn-cayla btn-secundario btn-s">
-            Plan de campaña
-          </Link>
-        )}
-      </section>
+      <Respuesta
+        guia="analisis.pedir-respuesta"
+        est={n > 0 ? "ate" : "bien"}
+        {...(n > 0 ? { cuenta: n, cifra: plural(n, "tipo", "tipos") } : { cifra: "Ninguno" })}
+        frase={n > 0 ? fraseAlcance(n, hastaNavidad) : `se acaba antes de Navidad, en ${hastaNavidad} ${plural(hastaNavidad, "día", "días")}`}
+        ayuda={ayuda}
+        acciones={
+          acceso.planCompra ? (
+            <BotonVer href="/compras/plan" chico>
+              Plan de campaña
+            </BotonVer>
+          ) : undefined
+        }
+      />
 
-      <div className="pedir-ad">
-        <section className="tarjeta bloque entra" style={{ ["--i" as string]: 1 }}>
-          <div className="b-cab">
-            <h3 className="b-tit">¿Para cuánto te alcanza?</h3>
-            {/* Ordenar (Felipe 2026-10-12): lo que más se vende primero (por defecto), o lo que se acaba antes. */}
-            <span className="filtro-a" role="group" aria-label="Ordenar los tipos" data-guia="analisis.pedir-orden">
-              {ORDENES_ALCANCE.map((o) => (
-                <button key={o.clave} type="button" className="pildora" aria-pressed={orden === o.clave} onClick={() => setOrden(o.clave)}>
-                  {o.texto}
-                </button>
-              ))}
+      {n > 0 && (
+        <Tarjetas guia="analisis.pedir-tarjetas">
+          {piden.map((t, k) => {
+            const dias = diasEnteros(t.dias);
+            const numero = dias === 0 ? "Ya no hay" : String(dias);
+            const unidad = dias === 0 ? "" : plural(dias ?? 0, "día te alcanza", "días te alcanzan");
+            const detalle = tallaQueSeAcaba(curvaDeTallas(base, t.categoria)) ?? undefined;
+            return (
+              <TarjetaPrenda
+                key={t.categoria}
+                i={4 + k}
+                miniatura={<LenteTipo t={t} />}
+                nombre={t.categoria}
+                que={`Vendiste ${t.vendidas} · tienes ${t.tiene}`}
+                numero={numero}
+                unidad={unidad}
+                est={tonoTipo(t)}
+                detalle={detalle}
+                etiqueta={`${t.categoria}: ${numero} ${unidad}. ${detalle ?? ""} Enter abre sus tallas y lo que más se vende.`}
+                onAbrir={() => setAbierto(t.categoria)}
+              />
+            );
+          })}
+        </Tarjetas>
+      )}
+
+      {(alcanzan.length > 0 || sinVentas.length > 0) && (
+        <section className="tarjeta bloque entra flex flex-wrap gap-x-6 gap-y-2 text-sm text-tinta/70" style={{ ["--i" as string]: 10 }}>
+          {alcanzan.length > 0 && (
+            <span>
+              <b className="font-semibold text-tinta">Te alcanzan:</b> {enlaces(alcanzan)}
             </span>
-          </div>
-          <p className="b-nota al-nota">
-            {textoRitmo(diasDeVentas)} · toca un tipo para ver sus tallas y lo que más se vende <span aria-hidden="true">→</span>
-          </p>
-          <TablaAlcance tipos={tiposOrdenados} hastaNavidad={hastaNavidad} categoria={categoria} onElegir={elegir} />
-          {sinRegistro.length > 0 && <p className="b-nota al-sin-registro">{notaTiposSinRegistrar(sinRegistro)}</p>}
-        </section>
-
-        {/* El panel del tipo elegido (o de toda la tienda): siempre a la vista junto a la lista mientras se recorre. */}
-        <aside ref={panel} className="tarjeta bloque entra panel-tipo" style={{ ["--i" as string]: 2 }} aria-live="polite" aria-label={`Detalle de ${categoria ?? "todos los tipos"}`}>
-          <div className="b-cab">
-            <h3 className="b-tit">{categoria ?? "Todos los tipos"}</h3>
-            {categoria && (
-              <button type="button" className="chip info quitar" onClick={quitar} aria-label={`Quitar el filtro: ${categoria}`}>
-                Ver todos los tipos ✕
-              </button>
-            )}
-          </div>
-          <p className="pt-frase">{fraseDelTipo(elegido, tipos, diasDeVentas)}</p>
-
-          <BloqueCurva c={curva} categoria={categoria} />
-
-          <div className="pt-cab">
-            <h4 className="pt-sub">Lo que más se vende</h4>
-            {opcionesTop.length > 1 && (
-              <span className="filtro-a" role="group" aria-label="Cuántos modelos ver">
-                {opcionesTop.map((t) => (
-                  <button key={t} type="button" className="pildora" aria-pressed={topMarcado === t} onClick={() => setTop(t)}>
-                    Top {t}
-                  </button>
-                ))}
-              </span>
-            )}
-          </div>
-          <div className="rank">
-            {tops.length === 0 ? (
-              <p className="b-nota">{categoria || q.trim() ? "Nada con este filtro." : `Sin ventas en ${diasDeVentas} ${plural(diasDeVentas, "día", "días")}.`}</p>
-            ) : (
-              tops.map((p, k) => {
-                const n = (p.vendidas30 / maxVenta) * LARGO_RANKING;
-                const queda = estadoQuedan(p);
-                return (
-                  <div
-                    key={p.varianteId}
-                    className="rank-f"
-                    role="button"
-                    tabIndex={0}
-                    data-ps={p.varianteId}
-                    aria-label={`${nombreLargo(p)}: ${p.vendidas30} vendidas, ${queda.texto.toLowerCase()}. Ver su ficha`}
-                    onClick={() => abrirFicha(p.varianteId)}
-                  >
-                    <TilePrenda prenda={p} tamano={32} />
-                    <span className="nm">
-                      <b>{p.nombre}</b>
-                      <span>{queTiene(p)}</span>
-                    </span>
-                    <span className="tr">
-                      <i className="cx" style={{ ["--d" as string]: k, ["--n" as string]: n }} />
-                      <em style={{ ["--n" as string]: n }}>{p.vendidas30}</em>
-                    </span>
-                    <span className="q">
-                      <ChipEstado est={queda.est}>{queda.texto}</ChipEstado>
-                    </span>
-                  </div>
-                );
-              })
-            )}
-          </div>
-          {vendidos > tops.length && tops.length > 0 && (
-            <p className="b-nota pt-de">
-              Ves {tops.length} de {vendidos} modelos que se vendieron · Últimos {diasDeVentas} {plural(diasDeVentas, "día", "días")}
-            </p>
           )}
-        </aside>
+          {sinVentas.length > 0 && (
+            <span>
+              <b className="font-semibold text-tinta">Sin ventas en {diasDeVentas} {plural(diasDeVentas, "día", "días")}:</b> {enlaces(sinVentas)}
+            </span>
+          )}
+        </section>
+      )}
+
+      <div className="entra flex flex-col gap-4" style={{ ["--i" as string]: 11 }}>
+        <BotonVerMas abierto={rinde} onCambiar={setRinde} texto="Ver lo que más rinde" forma="enlace" />
+        {rinde && <BloqueRinde />}
       </div>
 
-      <BloqueRinde />
+      {elegido && <HojaTipo t={elegido} base={base} onCerrar={() => setAbierto(null)} />}
     </>
   );
 }
 
-/** El riel de hoy a Navidad: lo ya pasado del mes en taupe, los meses del medio y los dos hitos (la maqueta). */
-function Riel({ r }: { r: RielNavidad }) {
+/** La hoja de un tipo: cómo va, sus tres cifras, las tallas que se llevan y lo que más se vende (el mismo orden que la ficha de una prenda). */
+function HojaTipo({ t, base, onCerrar }: { t: AlcanceTipo; base: Parameters<typeof curvaDeTallas>[0]; onCerrar: () => void }) {
+  const { datos, prendas, acceso, abrirFicha, diasDeVentas } = useAnalisis();
+  const hastaNavidad = diasANavidad(datos.hoy);
+  const tops = masVendidas(prendas, t.categoria, 5);
+  const dias = diasEnteros(t.dias);
+  const veredicto =
+    dias === null ? `No se vendió en ${diasDeVentas} ${plural(diasDeVentas, "día", "días")}.` : dias === 0 ? "Ya no hay. Pide para Navidad." : t.pide ? `Te alcanza para ${dias} ${plural(dias, "día", "días")}: no llega a Navidad.` : "Te alcanza hasta Navidad.";
   return (
-    <div className="riel" role="img" aria-label={r.etiqueta}>
-      <span className="linea-r" />
-      <span className="pasado cx" style={{ width: `${r.hoyPct}%` }} />
-      {r.meses.map((m) => (
-        <span key={m.clave} className="mes" style={{ left: `${m.pct}%` }}>
-          {m.texto}
-        </span>
-      ))}
-      <span className="hito hoy" style={{ left: `${r.hoyPct}%` }}>
-        <span style={r.juntos ? { visibility: "hidden" } : undefined}>Hoy</span>
-        <i />
-      </span>
-      <span className="hito" style={{ left: `${r.navidadPct}%` }}>
-        <span>Navidad</span>
-        <i />
-      </span>
-    </div>
-  );
-}
-
-/**
- * «¿Para cuánto te alcanza?»: cada tipo, para cuánto te alcanza lo que tienes al ritmo de los días de ventas, con la línea de
- * Navidad: lo que no llega va en ámbar con su ▲ (pídelo). Cada tipo es un botón que cambia el panel de al lado (opción A, Felipe
- * 2026-10-10). La lista se desplaza por dentro y, mientras queden tipos abajo, lo dice («↓ 6 tipos más», que baja al tocarlo).
- */
-function TablaAlcance({ tipos, hastaNavidad, categoria, onElegir }: { tipos: AlcanceTipo[]; hastaNavidad: number; categoria: string | null; onElegir: (c: string) => void }) {
-  const lista = useRef<HTMLDivElement>(null);
-  const [ocultos, setOcultos] = useState(0);
-  // Cuántos tipos quedan bajo el borde de la lista (más de la mitad de su fila fuera de la vista).
-  const medir = useCallback(() => {
-    const el = lista.current;
-    if (!el) return;
-    const fondo = el.scrollTop + el.clientHeight;
-    setOcultos([...el.querySelectorAll<HTMLElement>(".al-f")].filter((f) => f.offsetTop + f.offsetHeight / 2 > fondo).length);
-  }, []);
-  useEffect(() => {
-    medir();
-    const el = lista.current;
-    if (!el) return;
-    const ro = new ResizeObserver(medir);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [medir, tipos.length]);
-
-  if (tipos.length === 0) return <p className="b-nota">Todavía no hay ventas ni prendas que comparar.</p>;
-  const fin = finEjeAlcance(hastaNavidad);
-  const semanas = Math.round(hastaNavidad / 7);
-  return (
-    <div className="alcance" style={{ ["--nav" as string]: Math.min(1, hastaNavidad / fin) }}>
-      <div className="al-cab" aria-hidden>
-        <span />
-        <span>Tipo</span>
-        <span className="eje">
-          <span className="nav-et">
-            Navidad · {semanas} {plural(semanas, "semana", "semanas")}
-          </span>
-        </span>
-        <span>Te alcanza</span>
-      </div>
-      <div ref={lista} className="al-lista" onScroll={medir}>
-        {tipos.map((t, k) => (
-          <button key={t.categoria} type="button" className={`al-f ${t.pide ? "pide" : ""}`} aria-pressed={categoria === t.categoria} onClick={() => onElegir(t.categoria)}>
-            <span className="ico">
-              <IconoCategoria prefijo={t.prefijo} familia={(t.familia ?? null) as Parameters<typeof IconoCategoria>[0]["familia"]} className="h-[18px] w-[18px]" />
-            </span>
-            <span className="n">
-              <b>{t.categoria}</b>
-              <small>
-                vendiste {t.vendidas}
-                {t.sinPrenda > 0 ? ` (${t.sinPrenda} sin su prenda)` : ""} · tienes {t.tiene}
-              </small>
-            </span>
-            <span className="p">
-              {t.dias !== null && <i className="cx" style={{ ["--d" as string]: k, ["--n" as string]: Math.min(1, t.dias / fin) }} />}
-              <span className="nav" />
-            </span>
-            <span className="v">
-              {t.pide ? "▲ " : ""}
-              {textoAlcance(t.dias)}
-              {categoria === t.categoria && <span aria-hidden="true"> →</span>}
-            </span>
-          </button>
-        ))}
-        {ocultos > 0 && (
-          <button
-            type="button"
-            className="al-mas"
-            onClick={() => lista.current?.scrollBy({ top: lista.current.clientHeight * 0.8, behavior: prefiereQuieto() ? "auto" : "smooth" })}
-          >
-            ↓ {ocultos} {plural(ocultos, "tipo más", "tipos más")}
-          </button>
+    <Modal titulo={t.categoria} subtitulo={`Navidad es en ${hastaNavidad} ${plural(hastaNavidad, "día", "días")}`} onClose={onCerrar} tamano="mediana" conCerrar>
+      <div className="analisis analisis-hoja flex flex-col gap-5">
+        <p className="m-0 text-[15px] font-semibold" style={{ color: COLOR_ESTADO[tonoTipo(t)] }}>
+          {veredicto}
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          <TarjetaCifra etiqueta="Vendiste" valor={t.vendidas} unidad={`en ${diasDeVentas} ${plural(diasDeVentas, "día", "días")}`} />
+          <TarjetaCifra etiqueta="Tienes" valor={t.tiene} unidad="hoy" />
+          <TarjetaCifra etiqueta="Te alcanza" valor={dias ?? "—"} unidad={dias === null ? "sin ritmo" : plural(dias, "día", "días")} />
+        </div>
+        <BloqueCurva c={curvaDeTallas(base, t.categoria)} categoria={t.categoria} />
+        {tops.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <h4 className="pt-sub">Lo que más se vende</h4>
+            {tops.map((p) => {
+              const queda = estadoQuedan(p);
+              return (
+                <button key={p.varianteId} type="button" className="flex items-center gap-3 rounded-xl py-1.5 text-left" onClick={() => abrirFicha(p.varianteId)} aria-label={`${nombreLargo(p)}: ${p.vendidas30} vendidas, ${queda.texto.toLowerCase()}. Ver su ficha`}>
+                  <TilePrenda prenda={p} tamano={36} />
+                  <span className="min-w-0 flex-1">
+                    <b className="block text-[15px] font-semibold">{p.nombre}</b>
+                    <span className="texto-detalle">
+                      vendiste {p.vendidas30} · {queTiene(p)}
+                    </span>
+                  </span>
+                  <ChipEstado est={queda.est}>{queda.texto}</ChipEstado>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {acceso.planCompra && (
+          <div className="pie-acciones">
+            <BotonVer href="/compras/plan">Abrir el plan de campaña</BotonVer>
+          </div>
         )}
       </div>
-    </div>
+    </Modal>
   );
 }
 
-/** «Las tallas que se llevan»: por talla, se vende (tinta) contra tienes (claro); o el aviso de talla única. */
 function BloqueCurva({ c, categoria }: { c: CurvaTallas; categoria: string | null }) {
   const { diasDeVentas } = useAnalisis();
   // Va dentro del panel del tipo (opción A): el título del panel ya dice el tipo.

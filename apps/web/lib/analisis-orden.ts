@@ -20,6 +20,11 @@ export const ORDENES: Partial<Record<VistaAnalisis, readonly OpcionOrden[]>> = {
     { valor: "dias", texto: "Más días en la tienda" },
     { valor: "nombre", texto: "Por nombre" },
   ],
+  pedir: [
+    { valor: "vende", texto: "Lo que más se vende" },
+    { valor: "acaba", texto: "Lo que se acaba antes" },
+    { valor: "nombre", texto: "Por nombre" },
+  ],
   nose: [
     { valor: "dias", texto: "Más días sin venderse" },
     { valor: "parada", texto: "Más plata parada" },

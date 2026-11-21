@@ -79,6 +79,18 @@
       border-top: 1px solid var(--hilo-fila);
     }
     .an-tarj-acc { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+
+    /* ───────── La miniatura de un tipo («Qué pedir»): su ícono sobre una lente teñida de cómo va (ficha §4) ───────── */
+    .an-lente {
+      display: grid;
+      place-items: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 16px;
+      color: var(--c);
+      background: color-mix(in srgb, var(--c) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--c) 24%, transparent);
+    }
   }
 
   @container analisis (max-width: 640px) {
