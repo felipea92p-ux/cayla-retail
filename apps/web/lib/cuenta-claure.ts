@@ -1,8 +1,8 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { leerCuentaOtraEmpresa, leerFilaClaure, leerGastoClaure, leerPagoClaure, leerVentasClaure, type CuentaOtraEmpresa, type FilaClaure, type GastoClaure, type PagoClaure, type VentasClaure } from "@/lib/cuenta-claure-reglas";
+import { leerCuentaOtraEmpresa, leerFilaClaure, resumenClaure, leerGastoClaure, leerPagoClaure, leerVentasClaure, type CuentaOtraEmpresa, type FilaClaure, type GastoClaure, type PagoClaure, type VentasClaure } from "@/lib/cuenta-claure-reglas";
 import type { Lectura } from "@/lib/cuentas-dinero";
-import { leerAliadasConCuenta, type AliadaConCuenta } from "@/lib/empresas-aliadas-reglas";
+import { leerAliadasConCuenta, quienDeVarias, QUIEN_CLAURE, type AliadaConCuenta, type Quien } from "@/lib/empresas-aliadas-reglas";
 
 // Finanzas ▸ Cuentas y dinero ▸ CLAURE (ADR-0560, 20261029004000 y 20261029011000). Todo sale de `fn_claure_cuenta` (lo cobrado) y
 // `fn_claure_pagos` (lo ya pagado), que miran solo lo que la cuenta ve (el líder, todo; con el módulo Cuentas y dinero, su sede). El saldo lo
@@ -17,8 +17,31 @@ export type CuentaClaure = { filas: FilaClaure[]; pagos: PagoClaure[]; gastos: G
  */
 export async function getVentasClaure(desde: string, hasta: string): Promise<VentasClaure | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_claure_ventas_en" as never, { p_desde: desde, p_hasta: hasta } as never);
-  return error ? null : leerVentasClaure(data);
+  // ADR-0683: la base suma lo de todas las aliadas; la pantalla las nombra (la única, o «las empresas aliadas»).
+  const [{ data, error }, aliadas] = await Promise.all([
+    supabase.rpc("fn_claure_ventas_en" as never, { p_desde: desde, p_hasta: hasta } as never),
+    getAliadasConCuenta(),
+  ]);
+  const v = error ? null : leerVentasClaure(data);
+  return v ? { ...v, quien: quienDeVarias(aliadas) } : null;
+}
+
+/**
+ * Lo que se le debe a TODAS las aliadas juntas (ADR-0683), para «De eso, S/ X es de …» en Dónde está: la suma del saldo de cada cuenta, con la misma cuenta
+ * que su pestaña (`resumenClaure`). Sin la lista de aliadas (base sin 20261121162000), la de CLAURE como antes. `null` si alguna no se pudo leer: no se
+ * inventa una cifra a medias.
+ */
+export async function getSaldoDeAliadas(): Promise<{ saldo: number; quien: Quien } | null> {
+  const aliadas = await getAliadasConCuenta();
+  if (aliadas === null) {
+    const c = await getCuentaClaure();
+    return c.falla ? null : { saldo: resumenClaure(c.datos.filas, c.datos.pagos, c.datos.gastos).saldo, quien: QUIEN_CLAURE };
+  }
+  if (aliadas.length === 0) return null;
+  const cuentas = await Promise.all(aliadas.map((a) => getCuentaAliada(a.id)));
+  if (cuentas.some((c) => c.falla)) return null;
+  const saldo = cuentas.reduce((s, c) => s + resumenClaure(c.datos.filas, c.datos.pagos, c.datos.gastos).saldo, 0);
+  return { saldo: Math.round(saldo * 100) / 100, quien: quienDeVarias(aliadas) };
 }
 
 /**

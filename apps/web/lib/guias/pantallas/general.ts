@@ -304,8 +304,8 @@ export const GUIA_INICIO: Guia = {
       id: "claure",
       ancla: "inicio.claure",
       opcional: true,
-      titulo: "Lo de CLAURE no está en «Hoy»",
-      texto: "En Tienda Lima también se vende lo de CLAURE (de Claudia). «Hoy» cuenta solo lo de CAYLA y esta línea dice cuánto se dejó fuera. Caja sí lo cuenta todo, porque ahí está la plata del cajón.",
+      titulo: "Lo de las aliadas no está en «Hoy»",
+      texto: "Donde vende una empresa aliada (como CLAURE en Lima), «Hoy» cuenta solo lo de CAYLA y esta línea dice cuánto se dejó fuera. Caja sí lo cuenta todo, porque ahí está la plata del cajón.",
     },
     {
       id: "aviso-cierre",

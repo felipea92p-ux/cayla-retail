@@ -304,6 +304,16 @@ export function quienDe(a: { clave: string; nombre: string }): Quien {
 }
 
 /**
+ * Cómo se nombra a las aliadas en un texto que habla de todas a la vez (lo vendido de aliadas en Impuestos, lo que se le debe en Dónde está): la única
+ * que hay con su dueña; sin ninguna, CLAURE (como antes); con varias, «las empresas aliadas» y «sus dueñas».
+ */
+export function quienDeVarias(aliadas: readonly { clave: string; nombre: string }[] | null | undefined): Quien {
+  if (!aliadas || aliadas.length === 0) return QUIEN_CLAURE;
+  if (aliadas.length === 1) return quienDe(aliadas[0]!);
+  return { nombre: "las empresas aliadas", duena: "sus dueñas" };
+}
+
+/**
  * Los textos de la cuenta nacieron para CLAURE («le debes a CLAURE», «lo tiene Claudia»). Se dicen para la aliada que se mira cambiando esas dos palabras
  * en un solo lugar, a la salida: las reglas que los arman (y sus pruebas) no cambian. Con CLAURE no cambia nada.
  */

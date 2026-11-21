@@ -147,6 +147,6 @@ export function semanaSinClaure(semanaAnterior: number | null, claure: ClaureDeH
 }
 
 /** La línea bajo «Hoy» que dice cuánto no se contó; sin nada que decir, nada. */
-export function notaClaureDeHoy(excluido: number): string | null {
-  return excluido > 0 ? `No incluye ${soles(excluido)} de lo que se vendió de CLAURE: Caja sí lo cuenta.` : null;
+export function notaClaureDeHoy(excluido: number, nombre = "CLAURE"): string | null {
+  return excluido > 0 ? `No incluye ${soles(excluido)} de lo que se vendió de ${nombre}: Caja sí lo cuenta.` : null;
 }

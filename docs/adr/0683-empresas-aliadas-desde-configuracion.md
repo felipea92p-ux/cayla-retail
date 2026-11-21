@@ -149,6 +149,21 @@ existan las `fn_claure_*` (se borran juntas).
 SE ROMPE SI a una aliada se le suma una tienda donde otra ya tiene su parte: la suma puede pasar de 100 % hasta que alguien la corrija (el
 candado está al guardar el reparto).
 
+## Actividad 6 (2026-11-21): las cifras de CAYLA sin ninguna aliada
+
+**El problema.** La regla «¿esta línea vendida es de una aliada?» (`fn_item_es_de_claure`, `fn_lineas_de_claure`) y las cifras que la usan (calidad de
+lo vendido, compras del Club, Observatorio, «lo que falta del mes») preguntaban por CLAURE **activa**. Una aliada nueva habría inflado las cifras de
+CAYLA con sus ventas, y al dar de baja a una aliada todo su pasado habría vuelto a ser de CAYLA: meses cerrados cambiando solos.
+
+**Lo que hace (`20261121173000`).** «De una aliada» es de cualquier empresa que no es CAYLA, con cuenta, desde su arranque, activa o dada de baja. El
+mismo trozo se reemplazó en las seis funciones, con su cuenta comprobada contra producción. «Lo vendido de aliadas en un período» (Impuestos, Estado de
+resultados) suma a todas (`fn_aliadas_ventas`), y «lo de hoy» que el Inicio deja fuera (`fn_claure_de_hoy`) se rehízo sobre la regla de línea. Los
+nombres de las funciones no cambian. En la pantalla, «De eso, S/ X es de …» (Dónde está) suma lo que se le debe a todas, y los textos nombran a la
+única aliada o, si hay varias, a «las empresas aliadas».
+
+DECIDÍ cambiar la regla y dejar los nombres. DESCARTÉ renombrar a `*_de_aliada`: veinte llamadas y sus pruebas, sin cambiar un número. SE ROMPE SI
+alguien registra como «aliada» una sede de la propia CAYLA: sus ventas saldrían de las cifras de CAYLA.
+
 ## Verificación
 
 - `pnpm pruebas:empresas-aliadas` — 35/35 en Postgres local (cada caso en su transacción, con ROLLBACK).
