@@ -411,3 +411,50 @@ se puede saber» hasta que algún modelo cumpla su umbral; «Ver qué falta» di
 **Queda abierto.** Probar con una encargada real y pasar `/formidable` y `/chaos` (la hoja «Liquidar desde» sigue siendo la única escritura);
 «Qué pedir» contra Navidad fija o contra el Plan de campaña (tarea #5, decide Felipe); la curva de tallas de «Qué pedir» todavía no suma la talla
 de lo vendido sin registrar.
+
+## Actualización 2026-11-21 — la cara B «Una respuesta por pregunta»
+
+**El problema primero.** Felipe pidió que Análisis lo entienda «cualquier persona que ingrese». La pantalla respondía las cuatro preguntas, pero
+cada pestaña lo hacía con otra forma (cintas de flujo en «Hoy», carriles con eje de días, un riel de Navidad con tabla y panel lateral), y para
+leerla había que aprender cada gráfico. La maqueta `docs/maquetas/analisis-claro-2026-11/` dibujó tres caras con datos inventados; **Felipe eligió
+la B mirando** (2026-11-21), con cuatro pedidos suyos en el camino: la pestaña se sigue llamando «Qué pedir» (nunca «Para Navidad») y tiene su
+propio diseño; hay filtros («hay que darles la facilidad al usuario»); y **«No se vende» no propone liquidar** («basta con que aparezca lo que no se
+vende, así el usuario decide qué hacer»). Medidas y piezas: `docs/milimetro/analisis-b.md`.
+
+**Lo que es la cara B.**
+1. **Cinco pestañas cortas:** Hoy · Se acaba · No se vende · Sin salir · Qué pedir. Cada una abre con **su respuesta en grande** (`<Respuesta>`: la
+   cifra en serif de 46 px con el color de su estado, una frase y su acción de grupo) y sigue con **una sola tarjeta de prenda** para todas
+   (`<TarjetaPrenda>`: miniatura, nombre, un número que dice por qué está ahí y su botón; toda la tarjeta abre la ficha). `components/analisis/Tarjetas.tsx`.
+2. **«Hoy» son cuatro tarjetas, una por pregunta**, con su respuesta, las prendas que la forman y el botón que lleva a su pestaña. Ninguna dice «Va
+   bien» cuando no puede saberlo (punto 5 de la actualización del 2026-10-14, que sigue). Se fue el flujo de cintas «Qué hacer hoy» y con él el
+   único bucle de Análisis (los puntos que corrían por la cinta bajo el mouse; CLAUDE.md, regla de movimiento, ya no lo lista).
+3. **Una barra de filtros para toda la pantalla** (el patrón de Productos y Existencias): el buscador, «Tipo», «Talla», «Color», «Precio», «Viene
+   de» y «Sin venderse», con varias opciones a la vez y cada opción con cuántos modelos tiene; en el celular, el botón de filtros y su hoja. Los
+   filtros cambian los números de las pestañas y de cada respuesta, y un solo «Ordenar por» acomoda la pestaña abierta. `lib/analisis-filtros.ts`,
+   `lib/analisis-orden.ts`, `components/analisis/FiltrosAnalisis.tsx`.
+4. **«No se vende» sin «Liquidar».** La respuesta dice la plata parada a su costo; debajo, lo que no se vende, lo que en otra tienda sí se vende
+   (con «Mandar a …»), lo que quizá se vendió sin registrar y lo que va lento. «Sin venderse desde» (antes «Liquidar desde») sigue siendo el umbral
+   de respaldo y se sigue guardando para todas las tiendas con su hoja. Se fueron el botón «Liquidar» y su enlace a Etiquetas, la cifra de lo que
+   «costaron» y «tuvieron rebaja», y el gráfico de la edad del inventario. **Esto reemplaza la decisión 7 en lo que toca a liquidar:** Análisis ya
+   no propone rebajar; lo decide la persona.
+5. **«Qué pedir» va por tipo de prenda hasta Navidad:** la respuesta («5 tipos no te alcanzan hasta Navidad, en 34 días») y una tarjeta por tipo
+   que no llega, con sus días y la talla que se acaba primero; los que alcanzan y los que no se vendieron van en una línea, y «Lo que más rinde»
+   queda plegado. Con una talla o un color puestos en los filtros, cuenta talla por talla; lo vendido sin registrar se suma solo cuando el único
+   filtro es el tipo (`alcanceConFiltros`). Tocar un tipo abre su hoja.
+6. **La ficha de la prenda en tres bloques:** el veredicto en una frase con su color y su ícono (`veredictoDe`) y tres `TarjetaCifra` («Vendiste»,
+   «Tienes» y la que dice por qué está ahí: Llegan, En AQP, Parados, En duda, Guardada o Te dura; `cifrasDe`); lo vendido cada semana con
+   `BarrasTiempo`; y la talla y el color del modelo. La hoja de un tipo tiene la misma cabecera. Se fueron el chip de grupo, las tarjetitas de
+   «hechos» y el bloque de costo y ganancia.
+
+**Lo que no cambió.** Ninguna migración ni RPC: la cara B lee lo mismo (`fn_analisis_sede` y las lecturas de Frescura y de lo vendido sin
+registrar). Las reglas del 2026-10-14 siguen enteras (la vara de su tipo, el ritmo desde que se colgó, «Aún no se sabe», «Para saber»).
+
+**Cómo se verificó.** Cada pestaña en el navegador a 1440 y 375 px, en claro y oscuro, con una página de prueba local de datos inventados; la guía
+recorrida con `guias:recorrer` en un banco Supabase propio con el seed (escritorio, 375 oscuro, ida y vuelta: sin escrituras); `/milimetro auditar`
+(`docs/milimetro/auditorias/2026-11-21-analisis-b.md`: 3 graves corregidos, 0 abiertos).
+
+**`/formidable` (2026-11-21):** 7,6 y, con sus 3 cambios hechos con el OK de Felipe, 7,8. Los cambios: los plazos en «Se acaba» («cómpralos ya») y «Qué pedir»
+(«para la campaña»), la flecha de `<BotonVer>` en todo lo que lleva a otra pantalla y «Ver todo el piso» en vez de «Frescura del piso».
+
+**Queda abierto.** Probar con una encargada real; que «Comprar» diga a dónde lleva si la flecha no alcanza; los montos por grupo de «No se vende» junto al total; «Qué pedir» contra Navidad fija o contra el
+Plan de campaña (sigue de antes); la curva de tallas de la hoja de un tipo todavía no suma la talla de lo vendido sin registrar (sigue de antes).

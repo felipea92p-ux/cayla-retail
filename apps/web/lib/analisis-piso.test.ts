@@ -1,19 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PrendaAnalisis } from "./analisis-tipos";
-import {
-  cifrasPiso,
-  diasEnAlmacen,
-  finEjePiso,
-  lugarDeLoQueTienes,
-  marcasEjePiso,
-  nuncaSalio,
-  prendasSinSalir,
-  textoVendidasTipo,
-  textoVerMas,
-  tiposPiso,
-  vacioPiso,
-} from "./analisis-piso";
-import { armarModelos } from "./analisis-modelo";
+import { diasEnAlmacen, nuncaSalio, ordenarPiso, prendasSinSalir, tiposPiso, vacioPiso } from "./analisis-piso";
 import { diasDeVentas, leerVista, VENTANA_VENTAS } from "./analisis-reglas";
 
 // Datos inventados para la prueba (no son de producción).
@@ -107,33 +94,6 @@ describe("el orden", () => {
   });
 });
 
-describe("las cifras de arriba", () => {
-  it("modelos, unidades, costo y precio de lo guardado que nunca salió; el dinero, talla por talla (ADR-0357, decisión 12)", () => {
-    const tallas = [
-      prenda({ varianteId: "a", productoId: "m1", almacen: 3, costo: 20, precio: 50 }),
-      prenda({ varianteId: "b", productoId: "m1", talla: "L", almacen: 1, costo: null, precio: 50 }),
-      prenda({ varianteId: "c", productoId: "m2", almacen: 2, costo: 10, precio: null }),
-      prenda({ varianteId: "d", productoId: "m2", talla: "L", piso: 2, almacen: 1, salioAlPiso: "2026-10-01" }),
-    ];
-    // m2 tiene una talla colgada: el modelo entero ya salió y no cuenta aquí.
-    expect(cifrasPiso(armarModelos(tallas, HOY))).toEqual({ prendas: 1, unidades: 4, costo: 60, precioVenta: 200, sinCosto: 1 });
-  });
-  it("sin costos ni precios, «no se sabe» (null), nunca 0", () => {
-    const c = cifrasPiso([prenda({ costo: null, precio: null })]);
-    expect(c.costo).toBeNull();
-    expect(c.precioVenta).toBeNull();
-    expect(c.sinCosto).toBe(1);
-  });
-  it("dónde está lo que tienes: en el piso, guardado que ya salió y guardado que nunca salió", () => {
-    const todas = [
-      prenda({ almacen: 4 }),
-      prenda({ piso: 2, almacen: 3, salioAlPiso: "2026-10-01" }),
-      prenda({ piso: 0, almacen: 5, salioAlPiso: "2026-10-02" }),
-    ];
-    expect(lugarDeLoQueTienes(todas)).toEqual({ piso: 2, yaSalieron: 8, nunca: 4 });
-  });
-});
-
 describe("cuándo no hay carril", () => {
   it("sin prendas por una falla: sin datos (nunca «todo salió»)", () => {
     expect(vacioPiso({ sabePiso: true, prendas: 0, sinSalir: 0, fallas: 1 })).toBe("sin-datos");
@@ -147,32 +107,14 @@ describe("cuándo no hay carril", () => {
   });
 });
 
-describe("el eje y las palabras", () => {
-  it("el eje llega a un mes; si algo espera más, a los meses enteros que hagan falta", () => {
-    expect(finEjePiso(8)).toBe(30);
-    expect(finEjePiso(30)).toBe(30);
-    expect(finEjePiso(31)).toBe(60);
-    expect(finEjePiso(95)).toBe(120);
-  });
-  it("las marcas: semanas con el eje de un mes; con uno más largo, el primer mes (las semanas se juntarían)", () => {
-    expect(marcasEjePiso(30)).toEqual([
-      { texto: "0", left: "0%" },
-      { texto: "1 semana", left: "23.33%" },
-      { texto: "2 semanas", left: "46.67%" },
-      { texto: "1 mes", left: "100%" },
-    ]);
-    expect(marcasEjePiso(60)).toEqual([
-      { texto: "0", left: "0%" },
-      { texto: "1 mes", left: "50.00%" },
-      { texto: "2 meses", left: "100%" },
-    ]);
-    expect(marcasEjePiso(90).map((m) => m.texto)).toEqual(["0", "1 mes", "3 meses"]);
-  });
-  it("lo vendido del tipo con los días de ventas de la tienda", () => {
-    expect(textoVendidasTipo(38, 8)).toBe("vendiste 38 en 8 días");
-    expect(textoVendidasTipo(1, 1)).toBe("vendiste 1 en 1 día");
-    expect(textoVendidasTipo(0, 30)).toBe("sin ventas en 30 días");
-    expect(textoVerMas(68)).toBe("Ver 68 más");
+describe("el orden de «Sin salir» (cara B)", () => {
+  it("«vende» deja el de los tipos; «dias», lo que más espera primero; «nombre», de la A a la Z", () => {
+    const hoy = "2026-11-21";
+    const a = { nombre: "Blusa Ensayo", llego: "2026-11-01", almacen: 2, piso: 0, salioAlPiso: null, color: "", talla: "" } as unknown as PrendaAnalisis;
+    const b = { nombre: "Abrigo Ensayo", llego: "2026-10-01", almacen: 1, piso: 0, salioAlPiso: null, color: "", talla: "" } as unknown as PrendaAnalisis;
+    expect(ordenarPiso([a, b], "vende", hoy)).toEqual([a, b]);
+    expect(ordenarPiso([a, b], "nombre", hoy).map((x) => x.nombre)).toEqual(["Abrigo Ensayo", "Blusa Ensayo"]);
+    expect(ordenarPiso([a, b], "dias", hoy).map((x) => x.nombre)).toEqual(["Abrigo Ensayo", "Blusa Ensayo"]);
   });
 });
 

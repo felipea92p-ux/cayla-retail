@@ -7,7 +7,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Pestanas, type Pestana } from "@/components/ui/Pestanas";
 import { PedirAOtraSedeModal } from "@/components/PedirAOtraSedeModal";
 import { avisar } from "@/components/ui/Avisos";
-import { Contexto, type ContextoAnalisis, type FiltroAcaba } from "@/components/analisis/contexto";
+import { Contexto, type ContextoAnalisis } from "@/components/analisis/contexto";
 import { ChipEstado } from "@/components/analisis/piezas";
 import { HoyTodaviaNo, VistaTodaviaNo } from "@/components/analisis/TodaviaNo";
 import { HojaConfianza } from "@/components/analisis/HojaConfianza";
@@ -18,11 +18,13 @@ import { PestanaQuieta } from "@/components/analisis/PestanaQuieta";
 import { PestanaPedir } from "@/components/analisis/PestanaPedir";
 import { PestanaPiso } from "@/components/analisis/PestanaPiso";
 import type { AccesoAnalisis, DatosAnalisis, PrendaAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
-import { coincideBusqueda, GRUPOS_ACABA, GRUPOS_QUIETAS, prendasDe } from "@/lib/analisis-reglas";
+import { GRUPOS_ACABA, GRUPOS_QUIETAS, prendasDe } from "@/lib/analisis-reglas";
+import { filtrarModelos, hayFiltros, SIN_FILTROS, type FiltrosAnalisis } from "@/lib/analisis-filtros";
+import { ORDENES, ordenDe } from "@/lib/analisis-orden";
+import { BarraFiltros, VacioFiltros } from "@/components/analisis/FiltrosAnalisis";
 import { nuncaSalio } from "@/lib/analisis-piso";
 import { lineasParaPedir } from "@/lib/analisis-acciones";
 import { AVISO_QUE_FALTA, avisoDatosDeHoy, modoAnalisis, PARAM_QUE_FALTA, VALOR_QUE_FALTA } from "@/lib/analisis-aviso";
-import { Buscador } from "@/components/ui/Buscador";
 import { Aviso } from "@/components/ui/Aviso";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
@@ -37,9 +39,9 @@ import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 const PESTANAS: { clave: VistaAnalisis; texto: string }[] = [
   { clave: "hoy", texto: "Hoy" },
-  { clave: "acaba", texto: "Se está acabando" },
+  { clave: "acaba", texto: "Se acaba" },
   { clave: "nose", texto: "No se vende" },
-  { clave: "piso", texto: "Nunca salió al piso" },
+  { clave: "piso", texto: "Sin salir" },
   { clave: "pedir", texto: "Qué pedir" },
 ];
 
@@ -64,10 +66,12 @@ export function AnalisisPantalla({
 }) {
   const router = useRouter();
   const [vista, setVista] = useState<VistaAnalisis>(vistaInicial);
-  const [q, setQ] = useState(busquedaInicial);
+  // Los filtros de toda la pantalla (cara B, act. 2026-11-21): lo buscado y las píldoras. Lo que llega en `?q=` entra como lo buscado.
+  const [filtros, setFiltros] = useState<FiltrosAnalisis>({ ...SIN_FILTROS, q: busquedaInicial });
+  const q = filtros.q;
   const [liquidarDesde, setLiquidarDesde] = useState(datos.liquidarDesde);
-  const [filtroAcaba, setFiltroAcaba] = useState<FiltroAcaba>("todos");
-  const [categoria, setCategoria] = useState<string | null>(null);
+  // El orden que eligió la persona en cada pestaña; la que no eligió, va como siempre (`analisis-orden.ts`).
+  const [ordenes, setOrdenes] = useState<Partial<Record<VistaAnalisis, string>>>({});
   const [fichaId, setFichaId] = useState<string | null>(null);
   const [confianza, setConfianza] = useState(false);
   const [pedido, setPedido] = useState<{ origen: { id: string; nombre: string }; lineas: ReturnType<typeof lineasParaPedir> } | null>(null);
@@ -89,12 +93,9 @@ export function AnalisisPantalla({
     setLiquidarDesde(datos.liquidarDesde);
   }
 
-  // Un modelo pasa el buscador por su nombre o categoría, o por el color o la talla de cualquiera de sus prendas («camel» halla el
-  // Chaleco que tiene ese color).
-  const prendas = useMemo(
-    () => (q.trim() ? datos.prendas.filter((m) => coincideBusqueda(m, q) || m.variantes.some((v) => coincideBusqueda(v, q))) : datos.prendas),
-    [datos.prendas, q],
-  );
+  // Los modelos que pasan los filtros (`analisis-filtros.ts`): lo buscado por nombre, tipo, color o talla de cualquiera de sus prendas,
+  // y cada píldora puesta. Las cinco pestañas miran solo estos.
+  const prendas = useMemo(() => filtrarModelos(datos.prendas, filtros), [datos.prendas, filtros]);
   // Cuántos días de ventas tiene la tienda en el ERP (hasta 30), del cargador: el ritmo y «vendiste 38 en 8 días».
   const ventana = datos.diasDeVentas;
 
@@ -116,7 +117,6 @@ export function AnalisisPantalla({
     apagarResaltado();
     setFichaId(null);
     setVista(v);
-    setCategoria(null);
     setVuelta((n) => n + 1);
     setAnimar(true);
     setFoco(opciones?.foco ?? null);
@@ -166,10 +166,8 @@ export function AnalisisPantalla({
       q,
       liquidarDesde,
       setLiquidarDesde,
-      filtroAcaba,
-      setFiltroAcaba,
-      categoria,
-      setCategoria,
+      orden: Object.fromEntries(PESTANAS.map((p) => [p.clave, ordenDe(p.clave, ordenes)])) as Record<VistaAnalisis, string>,
+      filtros,
       sedeDe: (id: string) => datos.sedes.find((s) => s.id === id),
       abrirFicha,
       irA,
@@ -177,7 +175,7 @@ export function AnalisisPantalla({
       conDatosDeHoy: forzado,
       verConDatosDeHoy,
     }),
-    [datos, acceso, prendas, ventana, q, liquidarDesde, filtroAcaba, categoria, abrirFicha, irA, pedir, forzado, verConDatosDeHoy],
+    [datos, acceso, prendas, ventana, q, liquidarDesde, ordenes, filtros, abrirFicha, irA, pedir, forzado, verConDatosDeHoy],
   );
 
   // La animación de entrada dura lo que dura; después, lo que cambie (un filtro, el umbral) aparece sin volver a animarse.
@@ -227,14 +225,16 @@ export function AnalisisPantalla({
     }
   };
 
-  const cuentaAcaba = recomienda ? prendasDe(datos.prendas, GRUPOS_ACABA, liquidarDesde).length : null;
-  const cuentaQuietas = recomienda ? prendasDe(datos.prendas, GRUPOS_QUIETAS, liquidarDesde).length : null;
+  // Las cuentas de las pestañas son de lo que dejan ver los filtros.
+  const cuentaAcaba = recomienda ? prendasDe(prendas, GRUPOS_ACABA, liquidarDesde).length : null;
+  const cuentaQuietas = recomienda ? prendasDe(prendas, GRUPOS_QUIETAS, liquidarDesde).length : null;
   // Sin saber cuándo salió al piso cada prenda (la base sin 20261007120000), «—»: nunca una cuenta inventada.
-  const cuentaPiso = recomienda && datos.sabePiso ? datos.prendas.filter(nuncaSalio).length : null;
+  const cuentaPiso = recomienda && datos.sabePiso ? prendas.filter(nuncaSalio).length : null;
   const mia = datos.preparacion.find((p) => p.ubicacionId === datos.sede.id);
 
   let contenido;
   if (!recomienda) contenido = vista === "hoy" ? <HoyTodaviaNo /> : <VistaTodaviaNo />;
+  else if (hayFiltros(filtros) && prendas.length === 0) contenido = <VacioFiltros filtros={filtros} onFiltros={setFiltros} />;
   else if (vista === "hoy") contenido = <PestanaHoy />;
   else if (vista === "acaba") contenido = <PestanaAcaba />;
   else if (vista === "nose") contenido = <PestanaQuieta />;
@@ -244,10 +244,7 @@ export function AnalisisPantalla({
   return (
     <Contexto.Provider value={contexto}>
       <div ref={raiz} className="analisis" onKeyDown={alTeclear}>
-        <EncabezadoPagina sede={datos.sede.nombre} titulo="Análisis" subtitulo="Qué se acaba, qué no se mueve, qué nunca salió al piso y qué pedir.">
-          {/* Filtra las prendas ya leídas, en el navegador: nunca dice «Buscando…» (ADR-0358, ronda 5). */}
-          <Buscador guia="analisis.buscador" valor={q} onCambio={setQ} placeholder="Busca una prenda" etiqueta="Busca una prenda" className="w-60 max-w-full" />
-        </EncabezadoPagina>
+        <EncabezadoPagina sede={datos.sede.nombre} titulo="Análisis" subtitulo="Qué se acaba, qué no se mueve, qué nunca salió al piso y qué pedir." />
 
         <FilaPestanas
           vista={vista}
@@ -281,7 +278,23 @@ export function AnalisisPantalla({
           </p>
         )}
 
-        <div key={`${vista}-${vuelta}`} className={`vista ${animar ? "anim" : ""}`} data-guia="analisis.vista" role="tabpanel" aria-label={PESTANAS.find((p) => p.clave === vista)?.texto}>
+        {recomienda && (
+          <div className="mt-4">
+            <BarraFiltros
+              modelos={datos.prendas}
+              filtros={filtros}
+              onFiltros={setFiltros}
+              visibles={prendas.length}
+              orden={
+                ORDENES[vista]
+                  ? { valor: ordenDe(vista, ordenes), opciones: ORDENES[vista], onValor: (v) => setOrdenes((o) => ({ ...o, [vista]: v })) }
+                  : undefined
+              }
+            />
+          </div>
+        )}
+
+        <div key={`${vista}-${vuelta}`} className={`vista ${animar ? "anim" : ""}`} role="tabpanel" aria-label={PESTANAS.find((p) => p.clave === vista)?.texto}>
           {contenido}
         </div>
       </div>
