@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -9,6 +9,8 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
+import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { Casilla } from "@/components/ui/Casilla";
 import { Aviso } from "@/components/ui/Aviso";
@@ -50,6 +52,7 @@ export function HojaEmpresaAliada({
   otrosRuc,
   rucDeCasa,
   responsable,
+  volverA,
   onClose,
 }: {
   inicial: BorradorAliada | null;
@@ -60,10 +63,19 @@ export function HojaEmpresaAliada({
   otrosRuc: readonly string[];
   rucDeCasa: string | null;
   responsable: Responsable;
+  /** El botón que la abrió («Agregar empresa aliada» o el lápiz de su tarjeta): ahí vuelve el foco al cerrarla (/chaos 2026-11-21, TEC-06). */
+  volverA: RefObject<HTMLElement | null>;
   onClose: () => void;
 }) {
   const router = useRouter();
   const [b, setB] = useState<BorradorAliada>(inicial ?? BORRADOR_ALIADA_VACIO);
+  // Escape, el velo, la ✕ o Cancelar con algo escrito preguntan antes de perderlo (/chaos 2026-11-21, NAV-04: se cerraba sin preguntar).
+  const fotoActual = fotoFormulario(b);
+  const [fotoAlAbrir] = useState(fotoActual);
+  const avisoSalida = useSalidaSinGuardar(
+    fotoActual !== fotoAlAbrir,
+    "Escribiste datos de la empresa y todavía no se guardaron. Si cierras ahora, se pierde lo que escribiste.",
+  );
   const [guardando, setGuardando] = useState(false);
   const [baja, setBaja] = useState(false);
   const campos = camposDeAliada(b, otrosRuc, rucDeCasa);
@@ -97,8 +109,10 @@ export function HojaEmpresaAliada({
       return;
     }
     avisar.exito(editando ? `${b.nombre.trim()}: cambios guardados.` : `${b.nombre.trim()} ya es una empresa aliada.`);
-    router.refresh();
+    // Ya está guardado: la pregunta se retira antes de cerrar, o «¿Salir sin guardar?» saldría sobre lo que acaba de guardarse.
+    const guardiaFuera = avisoSalida.retirarYa();
     onClose();
+    void guardiaFuera.then(() => router.refresh());
   }
 
   return (
@@ -107,6 +121,8 @@ export function HojaEmpresaAliada({
         titulo={editando ? `Editar ${inicial?.nombre ?? b.nombre}` : "Nueva empresa aliada"}
         subtitulo={editando ? "Sus datos, tiendas y cuentas." : "Otra dueña que vende en tus tiendas con su propio RUC."}
         onClose={onClose}
+        antesDeCerrar={avisoSalida.pedirAccion}
+        alCerrarEnfocar={volverA}
         tamano="mediana"
         bloqueado={guardando}
       >
@@ -280,7 +296,8 @@ export function HojaEmpresaAliada({
               )}
               <PieGuia guia={guia} listo={editando ? "Todo listo para guardar." : "Todo listo para registrarla."} />
               <div className="ml-auto pie-acciones">
-                <Boton type="button" onClick={cerrar}>
+                {/* El `cerrar` de <Modal> no pasa por `antesDeCerrar`: Cancelar pregunta por su cuenta, como Escape y la ✕. */}
+                <Boton type="button" onClick={() => avisoSalida.pedirAccion(cerrar)}>
                   Cancelar
                 </Boton>
                 <Boton
@@ -298,6 +315,7 @@ export function HojaEmpresaAliada({
           </form>
         )}
       </Modal>
+      {avisoSalida.aviso}
       {baja && inicial?.id && (
         <HojaDarDeBaja
           id={inicial.id}
@@ -305,6 +323,8 @@ export function HojaEmpresaAliada({
           responsable={responsable}
           onClose={() => setBaja(false)}
           alTerminar={() => {
+            // La baja quedó pedida: la hoja se va sin preguntar por lo que se haya tocado arriba.
+            void avisoSalida.retirarYa();
             setBaja(false);
             onClose();
           }}

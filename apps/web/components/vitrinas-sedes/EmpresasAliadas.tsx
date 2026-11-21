@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type MouseEvent } from "react";
 import { Plus, Store } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -40,10 +40,15 @@ export function EmpresasAliadas({
     bajaPedida: boolean;
   } | null>(null);
   const [deshaciendo, setDeshaciendo] = useState<string | null>(null);
+  // El botón que abrió la hoja: al cerrarla, el foco vuelve ahí y no al principio de la página (/chaos 2026-11-21, TEC-06).
+  const origen = useRef<HTMLElement | null>(null);
   const { aliadas, puedeEditar } = lectura;
   const otrosRuc = (id: string | null) => aliadas.filter((a) => a.id !== id && a.ruc).map((a) => a.ruc as string);
   const agregar = puedeEditar ? (
-    <Boton type="button" onClick={() => setHoja({ inicial: null, bajaPedida: false })} data-guia="config.aliadas-agregar">
+    <Boton type="button" onClick={(e) => {
+        origen.current = e.currentTarget;
+        setHoja({ inicial: null, bajaPedida: false });
+      }} data-guia="config.aliadas-agregar">
       <span className="inline-flex items-center gap-1.5">
         <Plus className="mas h-4 w-4" aria-hidden /> Agregar empresa aliada
       </span>
@@ -114,12 +119,13 @@ export function EmpresasAliadas({
                   {puedeEditar && (
                     <LapizEditar
                       que={a.nombre}
-                      onClick={() =>
+                      onClick={(e?: MouseEvent<HTMLButtonElement>) => {
+                        origen.current = e?.currentTarget ?? null;
                         setHoja({
                           inicial: borradorDeAliada(a),
                           bajaPedida: a.bajaEl !== null,
-                        })
-                      }
+                        });
+                      }}
                     />
                   )}
                 </header>
@@ -181,6 +187,7 @@ export function EmpresasAliadas({
           otrosRuc={otrosRuc(hoja.inicial?.id ?? null)}
           rucDeCasa={rucDeCasa}
           responsable={responsable}
+          volverA={origen}
           onClose={() => setHoja(null)}
         />
       )}
