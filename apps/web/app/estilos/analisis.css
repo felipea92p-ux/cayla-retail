@@ -189,7 +189,7 @@
     .m-leyenda span{display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:600;border-radius:999px;padding:3px 9px}
     .m-leyenda span::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
     .m-leyenda .pedir{color:var(--color-ambar);background:color-mix(in srgb,var(--color-ambar) 12%,transparent)}
-    .m-leyenda .queda{color:var(--color-verde);background:color-mix(in srgb,var(--color-verde) 12%,transparent)}
+    .m-leyenda .queda{color:var(--color-verde-profundo);background:color-mix(in srgb,var(--color-verde) 12%,transparent)}
     .m-leyenda .nada{color:var(--color-tinta-60);background:var(--gota-chica-fondo);box-shadow:var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde)}
     .m-leyenda .nada::before{background:transparent;box-shadow:inset 0 0 0 1.5px currentColor}
     .m-otras{margin:12px 0 0;font-size:14px;color:var(--color-tinta-60);background:var(--placa-fondo);box-shadow:var(--placa-luz), inset 0 0 0 1px var(--placa-borde);border-radius:10px;padding:10px 12px}

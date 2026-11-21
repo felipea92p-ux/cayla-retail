@@ -79,6 +79,8 @@
       border-top: 1px solid var(--hilo-fila);
     }
     .an-tarj-acc { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+    /* «o pedir a …» vive dentro de la tarjeta, que también se toca: no le alcanza la excepción de separación de WCAG 2.5.8 (24 px). */
+    .an-tarj-acc > :is(a, button) { min-height: 24px; display: inline-flex; align-items: center; }
 
     /* ───────── La miniatura de un tipo («Qué pedir»): su ícono sobre una lente teñida de cómo va (ficha §4) ───────── */
     .an-lente {
