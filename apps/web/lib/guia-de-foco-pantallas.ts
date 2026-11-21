@@ -338,6 +338,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/campanas/HojaDeDescuento.tsx": { estado: "aplicada", evidencia: ["components/campanas/HojaDeDescuento.tsx"] },
   "components/sellos/SellosPantalla.tsx": { estado: "no-aplica", motivo: "Sus dos ventanas propias tienen UN solo campo cada una (el comentario al aprobar, el motivo al rechazar) y el botón dice por qué espera; las que se llenan de verdad (nueva insignia o campaña, configurar) son de EtiquetasLista.tsx, con su guía." },
   "components/FamiliasLista.tsx": { estado: "aplicada", evidencia: ["components/FamiliasLista.tsx"] },
+  "components/analisis/FiltrosAnalisis.tsx": { estado: "no-aplica", motivo: "Hoja de filtros de Análisis en el celular (cara B, ADR-0357 act. 2026-11-21; misma estructura que Productos): cada píldora filtra al tocarla y el botón dice cuántos modelos quedan; no hay nada que completar ni pasos que seguir." },
   "components/FiltrosExistencias.tsx": { estado: "no-aplica", motivo: "Hoja de filtros de Existencias en el celular (misma estructura que Productos, 2026-10-03): cada control filtra la lista al tocarlo y el botón dice cuántos productos quedan; no hay nada que completar ni pasos que seguir." },
   "components/FiltrosHistorialVentas.tsx": PENDIENTE, // 3 controles
   "components/FiltrosProductos.tsx": { estado: "no-aplica", motivo: "Hoja de filtros de Productos en el celular (ADR-0308): cada control filtra la lista al tocarlo y el botón dice cuántas prendas quedan; no hay nada que completar ni pasos que seguir." },

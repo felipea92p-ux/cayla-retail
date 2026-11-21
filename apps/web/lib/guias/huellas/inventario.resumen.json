@@ -2,7 +2,7 @@
   "guia": "inventario.resumen",
   "ruta": "/gestion/analisis",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 54,
+  "total": 61,
   "controles": {
     "components/PedirAOtraSedeModal.tsx": [
       "Desplegable «pedir-sede»",
@@ -27,6 +27,15 @@
       "button «Pedir a»",
       "BotonVer «Ver en Existencias»",
       "Link «Movimientos»"
+    ],
+    "components/analisis/FiltrosAnalisis.tsx": [
+      "DesplegablePildora «{etiqueta}»",
+      "BotonLimpiar «Limpiar todo»",
+      "BotonFiltros «→() => setHoja(true)»",
+      "FiltroPuesto «{`Quitar filtro ${p.texto}»",
+      "button «Limpiar»",
+      "button «Ver»",
+      "BotonLimpiar «Limpiar todo» #2"
     ],
     "components/analisis/HojaConfianza.tsx": [
       "button «Ver qué falta»",

@@ -23,7 +23,13 @@ export const GUIA_ANALISIS: Guia = {
       ancla: "analisis.buscador",
       opcional: true,
       titulo: "Busca una prenda",
-      texto: "Escribe su nombre y todas las pestañas muestran solo esa prenda.",
+      texto: "Escribe su nombre, su tipo o su color, y todas las pestañas muestran solo eso.",
+    },
+    {
+      id: "filtros",
+      ancla: "analisis.filtros",
+      titulo: "Filtra lo que quieres ver",
+      texto: "Tipo, talla, color, precio, de dónde viene o cuánto lleva sin venderse. Marca varias opciones a la vez: el número dice cuántos modelos hay en cada una.",
     },
     {
       id: "pestanas",
