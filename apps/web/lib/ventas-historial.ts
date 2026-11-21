@@ -191,6 +191,16 @@ export type PaginaHistorial = {
   siguiente: CursorVentas | null;
 };
 
+/**
+ * ¿La base sabe filtrar las ventas por empresa? (ADR-0683: la columna calculada `empresas_de_la_venta`, 20261121175000.) Una base sin ella, o que no
+ * responde, dice que no: Historial sale sin el filtro en vez de caerse. Una consulta de una fila.
+ */
+export async function baseFiltraPorEmpresa(empresaId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("ventas").select("id").contains("empresas_de_la_venta" as never, [empresaId] as never).limit(1);
+  return !error;
+}
+
 export async function listarVentasHistorial(
   f: FiltrosHistorial,
   opciones: { cursor?: CursorVentas | null; limite?: number; ids?: IdsHistorial } = {}

@@ -85,10 +85,10 @@
 
 /* ---------- las empresas aliadas (ADR-0683): una tarjeta por empresa, bajo la banda de CAYLA ---------- */
 .vs-aliadas { display: grid; gap: 18px; align-items: start; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); margin-top: 12px; }
-.vs-aliada { display: grid; gap: 12px; padding: 20px 22px; }
+.vs-aliada { display: grid; gap: 12px; padding: 20px 24px; }
 .vs-aliada header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .vs-aliada-nombre { display: block; font: 500 30px/1.05 var(--font-serif); overflow-wrap: anywhere; }
-.vs-aliada-fila { display: flex; flex-wrap: wrap; gap: 6px; }
+.vs-aliada-fila { display: flex; flex-wrap: wrap; gap: 8px; }
 /* Cada cuenta para cobrar dentro de la hoja: la placa, lo que explica es plano (recetas.css). */
 .vs-cuenta-aliada { border-radius: 16px; background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); }
 
