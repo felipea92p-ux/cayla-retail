@@ -82,18 +82,6 @@
     /* «o pedir a …» vive dentro de la tarjeta, que también se toca: no le alcanza la excepción de separación de WCAG 2.5.8 (24 px). */
     .an-tarj-acc > :is(a, button) { min-height: 24px; display: inline-flex; align-items: center; }
 
-    /* ───────── La miniatura de un tipo («Qué pedir»): su ícono sobre una lente teñida de cómo va (ficha §4) ───────── */
-    .an-lente {
-      display: grid;
-      place-items: center;
-      width: var(--t, 72px);
-      height: var(--t, 72px);
-      border-radius: calc(var(--t, 72px) / 4.5);
-      color: var(--c);
-      background: color-mix(in srgb, var(--c) 12%, transparent);
-      border: 1px solid color-mix(in srgb, var(--c) 24%, transparent);
-    }
-
     /* ───────── La ficha: qué pasa con la prenda, en una línea y con su color (ficha §6, 5·a) ───────── */
     .an-veredicto {
       --c: var(--color-tinta);
@@ -138,7 +126,6 @@
     .an-preg-pie { margin-top: auto; padding-top: 4px; }
     .an-pila { display: flex; align-items: center; }
     .an-pila-uno { display: inline-flex; margin-right: -8px; border-radius: 12px; box-shadow: 0 0 0 2px var(--color-papel); }
-    .an-pila-tipo { border-radius: 11px; }
   }
 
   @container analisis (max-width: 760px) {

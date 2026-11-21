@@ -6,6 +6,7 @@
 
 import type { PrendaAnalisis } from "./analisis-tipos";
 import type { FiltrosAnalisis } from "./analisis-filtros";
+import type { ModeloAnalisis } from "./analisis-modelo";
 import { DIAS_MINIMOS_RITMO, esTallaUnica, nuncaSalio, plural, totalEnTienda } from "./analisis-reglas";
 import { compararTallas, tipoDeTalla, type TipoTalla } from "./tallas";
 import { diasEntreFechas } from "./fechas-lima";
@@ -140,17 +141,6 @@ export function notaTiposSinRegistrar(tipos: readonly { categoria: string; vendi
   return `También vendiste ${lista} sin registrar: no están en el sistema, así que no se sabe para cuánto te alcanzan.`;
 }
 
-/**
- * Cómo se ordena «¿Para cuánto te alcanza?» (Felipe 2026-10-12): por defecto, lo que más se vende primero (a igual venta, lo que se
- * acaba antes; después, por nombre; lo que no se vendió va al final); o lo que se acaba antes (lo que `alcancePorTipo` ya devuelve).
- */
-export type OrdenAlcance = "acaba" | "vende";
-export function ordenarAlcance(tipos: readonly AlcanceTipo[], orden: OrdenAlcance): AlcanceTipo[] {
-  if (orden === "acaba") return [...tipos];
-  return [...tipos].sort(
-    (a, b) => b.vendidas - a.vendidas || (a.dias ?? Infinity) - (b.dias ?? Infinity) || a.categoria.localeCompare(b.categoria, "es"),
-  );
-}
 
 /**
  * De qué días habla el ritmo de todo Análisis: desde que cada prenda se colgó, nunca menos de una semana y hasta los días de ventas de la
@@ -260,36 +250,6 @@ export function curvaDeTallas(
 }
 
 /* ───────── «Lo que más se vende» ───────── */
-
-/** Cuántos modelos muestra «Lo que más se vende» en la hoja de un tipo. */
-export const TOP_DEFECTO = 5;
-
-/** Las que más se venden en mis días de ventas (hasta 30; del tipo elegido, si hay), de la que más a la que menos. */
-export function masVendidas<T extends Pick<PrendaAnalisis, "categoria" | "vendidas30" | "nombre" | "color" | "talla">>(
-  prendas: readonly T[],
-  categoria: string | null,
-  cuantos: number = TOP_DEFECTO,
-): T[] {
-  return prendas
-    .filter((p) => p.vendidas30 > 0 && (categoria === null || categoriaDe(p) === categoria))
-    .sort(
-      (a, b) =>
-        b.vendidas30 - a.vendidas30 ||
-        a.nombre.localeCompare(b.nombre, "es") ||
-        a.color.localeCompare(b.color, "es") ||
-        compararTallas(a.talla, b.talla),
-    )
-    .slice(0, Math.max(1, Math.round(cuantos)));
-}
-
-/** Lo que queda de una prenda del ranking: agotada (rojo), 1 o 2 (ámbar) o más (verde). */
-export function estadoQuedan(p: Pick<PrendaAnalisis, "piso" | "almacen">): { est: "urg" | "ate" | "bien"; texto: string } {
-  const n = totalEnTienda(p);
-  if (n <= 0) return { est: "urg", texto: "Agotada" };
-  return { est: n <= 2 ? "ate" : "bien", texto: plural(n, "Queda 1", `Quedan ${n}`) };
-}
-
-/* ───────── «Lo que más rinde»: cuánto se ganó por cada S/ 1 de ropa, por tipo ───────── */
 
 /** La ventana de «Lo que más rinde». */
 export const DIAS_RINDE = 90;
@@ -427,24 +387,54 @@ const soloTipo = (f: Pick<FiltrosAnalisis, "q" | "talla" | "color" | "precio" | 
 export const fraseAlcance = (n: number, hastaNavidad: number): string =>
   `para la campaña: ${n === 1 ? "no te alcanza" : "no te alcanzan"} hasta Navidad, en ${hastaNavidad} ${plural(hastaNavidad, "día", "días")}`;
 
+
+
+// ───────── Por modelo (Felipe 2026-11-21: «las tarjetas deberían ser por modelo y no por tipo; para eso existe el filtro de tipo») ─────────
+
+/** Para cuántos días le alcanza a un modelo lo que tiene: lo vendido y lo que hay en las tallas que se miran. */
+export type AlcanceModelo<T> = { modelo: T; vendidas: number; tiene: number; dias: number | null };
+
 /**
- * La talla que se acaba primero de un tipo, en una línea: «Ya no hay talla M», «Ya no hay talla S ni M» o «La M se acaba primero» (la que
- * menos tiene por cada una que se vende). null si no hay tallas que comparar o si solo tiene una.
+ * La misma cuenta que `alcancePorTipo`, en las tallas de UN modelo: lo que tiene entre lo que vende por día, cada talla en su ventana
+ * de ritmo (los días que estuvo colgada, con el techo de la tienda). Con talla o color en los filtros, solo esas tallas: «¿le alcanza la
+ * M de este modelo?». `dias` es null si no se vendió (sin ritmo no se sabe). Lo vendido sin registrar no tiene modelo y no entra aquí:
+ * cuenta en su tipo (el bloque del tipo cuando se filtra uno solo).
  */
-export function tallaQueSeAcaba(c: CurvaTallas): string | null {
-  if (c.tipo !== "tallas") return null;
-  const conVenta = c.columnas.filter((t) => t.vend > 0);
-  if (conVenta.length < 2) return null;
-  const agotadas = conVenta.filter((t) => t.tiene === 0).map((t) => t.talla);
-  if (agotadas.length === conVenta.length) return "No queda ninguna talla";
-  if (agotadas.length > 0) return `Ya no hay talla ${agotadas.length === 1 ? agotadas[0] : `${agotadas.slice(0, -1).join(", ")} ni ${agotadas[agotadas.length - 1]}`}`;
-  const primera = [...conVenta].sort((a, b) => a.tiene / a.vend - b.tiene / b.vend)[0]!;
-  return `La ${primera.talla} se acaba primero`;
+export function alcanceDelModelo<T extends ModeloAnalisis>(m: T, f: Pick<FiltrosAnalisis, "talla" | "color">, diasDeVentas: number): AlcanceModelo<T> {
+  const tienda = Math.min(30, Math.max(1, Math.round(diasDeVentas)));
+  const tallas = (m.variantes.length > 0 ? m.variantes : [m]).filter(
+    (v) => (f.talla.length === 0 || f.talla.includes(v.talla)) && (f.color.length === 0 || f.color.includes(v.color)),
+  );
+  let vendidas = 0;
+  let tiene = 0;
+  let porDia = 0;
+  for (const v of tallas) {
+    const vend = Math.max(0, v.vendidas30);
+    vendidas += vend;
+    tiene += Math.max(0, totalEnTienda(v));
+    porDia += vend / Math.min(30, Math.max(1, Math.round(v.diasDeVentas ?? tienda)));
+  }
+  return { modelo: m, vendidas, tiene, dias: vendidas > 0 && porDia > 0 ? tiene / porDia : null };
 }
 
-/** El orden de «Qué pedir»: lo que más se vende (de siempre), lo que se acaba antes o por nombre. */
-export function ordenarTipos(tipos: readonly AlcanceTipo[], orden: string): AlcanceTipo[] {
-  if (orden === "acaba") return ordenarAlcance(tipos, "acaba");
-  if (orden === "nombre") return [...tipos].sort((a, b) => a.categoria.localeCompare(b.categoria, "es"));
-  return ordenarAlcance(tipos, "vende");
+/**
+ * Los modelos que no llegan a Navidad: los que se venden y a los que lo que tienen no les alcanza hasta ese día. El orden de «Qué
+ * pedir»: lo que más se vende (de siempre), lo que se acaba antes o por nombre; a igual cosa, lo que se acaba antes y el nombre.
+ */
+export function modelosQueNoLlegan<T extends ModeloAnalisis>(
+  modelos: readonly T[],
+  f: Pick<FiltrosAnalisis, "talla" | "color">,
+  diasDeVentas: number,
+  hastaNavidad: number,
+  orden: string,
+): AlcanceModelo<T>[] {
+  const piden = modelos.map((m) => alcanceDelModelo(m, f, diasDeVentas)).filter((a) => a.dias !== null && a.dias < hastaNavidad);
+  const porNombre = (a: AlcanceModelo<T>, b: AlcanceModelo<T>) => a.modelo.nombre.localeCompare(b.modelo.nombre, "es");
+  const antes = (a: AlcanceModelo<T>, b: AlcanceModelo<T>) => (a.dias ?? Infinity) - (b.dias ?? Infinity);
+  if (orden === "nombre") return piden.sort((a, b) => porNombre(a, b) || antes(a, b));
+  if (orden === "acaba") return piden.sort((a, b) => antes(a, b) || b.vendidas - a.vendidas || porNombre(a, b));
+  return piden.sort((a, b) => b.vendidas - a.vendidas || antes(a, b) || porNombre(a, b));
 }
+
+/** Los días que alcanza, enteros, para la tarjeta: lo que se acaba en menos de un día dice 1; «Ya no hay» es solo el 0. null sin ritmo. */
+export const diasEnteros = (dias: number | null): number | null => (dias === null ? null : dias <= 0 ? 0 : Math.max(1, Math.round(dias)));

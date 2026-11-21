@@ -437,13 +437,16 @@ vende, así el usuario decide qué hacer»). Medidas y piezas: `docs/milimetro/a
    de respaldo y se sigue guardando para todas las tiendas con su hoja. Se fueron el botón «Liquidar» y su enlace a Etiquetas, la cifra de lo que
    «costaron» y «tuvieron rebaja», y el gráfico de la edad del inventario. **Esto reemplaza la decisión 7 en lo que toca a liquidar:** Análisis ya
    no propone rebajar; lo decide la persona.
-5. **«Qué pedir» va por tipo de prenda hasta Navidad:** la respuesta («5 tipos no te alcanzan hasta Navidad, en 34 días») y una tarjeta por tipo
-   que no llega, con sus días y la talla que se acaba primero; los que alcanzan y los que no se vendieron van en una línea, y «Lo que más rinde»
-   queda plegado. Con una talla o un color puestos en los filtros, cuenta talla por talla; lo vendido sin registrar se suma solo cuando el único
-   filtro es el tipo (`alcanceConFiltros`). Tocar un tipo abre su hoja.
+5. **«Qué pedir» va por modelo hasta Navidad.** La maqueta lo dibujaba por tipo, y al verlo con datos reales Felipe lo corrigió (la tarde del
+   2026-11-21): «el que muestra en las tarjetas debería ser por modelo y no por tipo, para eso existe el filtro de tipo». La respuesta («12 modelos
+   · para la campaña: no te alcanzan hasta Navidad, en 34 días») y una tarjeta por modelo que no llega, como en «Se acaba» pero contra Navidad: sus
+   días, qué talla falta, qué viene y «Comprar →» (`modelosQueNoLlegan`, `alcanceDelModelo`: la cuenta del tipo hecha en las tallas del modelo).
+   Con una talla o un color en los filtros, cuenta solo esas tallas. **Con un solo tipo en el filtro, arriba va el tipo entero:** sus días (con lo
+   vendido sin registrar, que no dice el modelo; `alcanceConFiltros`) y las tallas que se llevan. «Lo que más rinde» queda plegado. Se fueron la
+   tarjeta y la hoja de cada tipo.
 6. **La ficha de la prenda en tres bloques:** el veredicto en una frase con su color y su ícono (`veredictoDe`) y tres `TarjetaCifra` («Vendiste»,
    «Tienes» y la que dice por qué está ahí: Llegan, En AQP, Parados, En duda, Guardada o Te dura; `cifrasDe`); lo vendido cada semana con
-   `BarrasTiempo`; y la talla y el color del modelo. La hoja de un tipo tiene la misma cabecera. Se fueron el chip de grupo, las tarjetitas de
+   `BarrasTiempo`; y la talla y el color del modelo. Se fueron el chip de grupo, las tarjetitas de
    «hechos» y el bloque de costo y ganancia.
 
 **Lo que no cambió.** Ninguna migración ni RPC: la cara B lee lo mismo (`fn_analisis_sede` y las lecturas de Frescura y de lo vendido sin

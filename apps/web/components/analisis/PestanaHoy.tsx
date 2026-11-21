@@ -4,7 +4,6 @@ import "@/app/estilos/por-pantalla/analisis-pestanas.css";
 import type { ReactNode } from "react";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { ChipEstado, COLOR_ESTADO, soles, TilePrenda, type Estado } from "@/components/analisis/piezas";
-import { LenteTipo } from "@/components/analisis/PestanaPedir";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import type { VistaAnalisis } from "@/lib/analisis-tipos";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
@@ -12,7 +11,7 @@ import { plural } from "@/lib/analisis-reglas";
 import { prendasSinSalir } from "@/lib/analisis-piso";
 import { fraseAcaba } from "@/lib/analisis-acaba";
 import { plataParada } from "@/lib/analisis-quietas";
-import { alcanceConFiltros, diasANavidad, fraseAlcance, type AlcanceTipo } from "@/lib/analisis-pedir";
+import { diasANavidad, fraseAlcance, modelosQueNoLlegan } from "@/lib/analisis-pedir";
 import { conLoRegistrado, estadoSinNada, quietasHoy, seAcabanHoy, vacioQuietasHoy } from "@/lib/analisis-hoy";
 
 // Análisis, cara B «Una respuesta por pregunta» (ADR-0357, act. 2026-11-21): «Hoy». Cuatro tarjetas, una por pregunta de la tienda —¿qué
@@ -36,7 +35,8 @@ export function PestanaHoy() {
   // Sin saber cuándo salió al piso cada prenda (la base sin 20261007120000), la tarjeta lo dice con «Todavía no».
   const sinSalir = datos.sabePiso ? prendasSinSalir(prendas, datos.hoy) : [];
   const hastaNavidad = diasANavidad(datos.hoy);
-  const piden = alcanceConFiltros(prendas, datos.tallas, filtros, diasDeVentas, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo).filter((t) => t.pide);
+  // Por modelo, como su pestaña (Felipe 2026-11-21: el tipo es un filtro, no la tarjeta).
+  const piden = modelosQueNoLlegan(prendas, filtros, diasDeVentas, hastaNavidad, "vende").map((a) => a.modelo);
 
   return (
     <div className="an-resp4" data-guia="analisis.preguntas">
@@ -89,9 +89,9 @@ export function PestanaHoy() {
         vista="pedir"
         pregunta="¿Qué pedir?"
         est={piden.length ? "ate" : sinNada}
-        cifra={piden.length ? `${piden.length} ${plural(piden.length, "tipo", "tipos")}` : "Ninguno"}
+        cifra={piden.length ? `${piden.length} ${plural(piden.length, "modelo", "modelos")}` : "Ninguno"}
         frase={piden.length ? fraseAlcance(piden.length, hastaNavidad) : `se acaba antes de Navidad, en ${hastaNavidad} ${plural(hastaNavidad, "día", "días")}`}
-        pila={<PilaTipos lista={piden} />}
+        pila={<PilaPrendas lista={piden} />}
         boton="Preparar el pedido"
       />
     </div>
@@ -150,21 +150,6 @@ function PilaPrendas({ lista }: { lista: readonly ModeloAnalisis[] }) {
       {lista.slice(0, EN_LA_PILA).map((m) => (
         <span key={m.varianteId} className="an-pila-uno">
           <TilePrenda prenda={m} tamano={44} />
-        </span>
-      ))}
-      {lista.length > EN_LA_PILA && <span className="texto-detalle ml-4">y {lista.length - EN_LA_PILA} más</span>}
-    </span>
-  );
-}
-
-/** Los tipos que no llegan a Navidad, con su lente. */
-function PilaTipos({ lista }: { lista: readonly AlcanceTipo[] }) {
-  if (lista.length === 0) return null;
-  return (
-    <span className="an-pila" aria-hidden>
-      {lista.slice(0, EN_LA_PILA).map((t) => (
-        <span key={t.categoria} className="an-pila-uno an-pila-tipo">
-          <LenteTipo t={t} tamano={44} />
         </span>
       ))}
       {lista.length > EN_LA_PILA && <span className="texto-detalle ml-4">y {lista.length - EN_LA_PILA} más</span>}

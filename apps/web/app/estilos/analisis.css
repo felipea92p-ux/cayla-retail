@@ -285,7 +285,7 @@
     .sabe{padding:14px 16px}
     .sabe h4{margin:0 0 10px;font-size:15px;font-weight:600;display:flex;justify-content:space-between;gap:8px;align-items:center}
     .sabe .nota{font-size:14px;color:var(--color-tinta-60);margin-top:8px}
-    /* La fila de arriba de la ficha y de la hoja del tipo (cara B, ficha §6): miniatura de 72 + 16 px + el veredicto. */
+    /* La fila de arriba de la ficha (cara B, ficha §6): miniatura de 72 + 16 px + el veredicto. */
     .h-cab{display:flex;gap:16px;align-items:center;margin:4px 0 0}
     .h-sec{margin-top:20px}
     .h-sec h3{font-size:12px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--color-taupe);margin:0 0 10px}

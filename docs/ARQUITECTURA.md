@@ -646,8 +646,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (puro: `grupoDe` decide comprar · enviar · liquidar · vigila · duda, una prenda en un solo grupo, con los umbrales de su tipo o «Liquidar
   desde» de respaldo; `diasQueQuedan` —al ritmo de su ventana, `diasDeVentas`—, `seEstaAcabando`, `nuncaSalio`, `porLlegar`, `otraSedeQueLaTiene`, `sedeQueMasVende`,
   `coincideBusqueda`; las cifras de la maqueta como constantes: 2 semanas para «se acaba», 30 días para vigilar, 90 en rojo, «Liquidar desde»
-  de 1 a 999 con 60 de fábrica —sin tope desde el 2026-10-07, `20261007100000`—). «Sin salir»: `lib/analisis-piso.ts` (tipos, orden, vacíos); «¿Para cuánto te alcanza?» contra Navidad: `alcancePorTipo` y `alcanceConFiltros`
-  (talla por talla si hay talla o color en los filtros) en `lib/analisis-pedir.ts`. Filtros y orden (cara B): `lib/analisis-filtros.ts` y `lib/analisis-orden.ts`. A dónde lleva cada
+  de 1 a 999 con 60 de fábrica —sin tope desde el 2026-10-07, `20261007100000`—). «Sin salir»: `lib/analisis-piso.ts` (tipos, orden, vacíos); «¿Para cuánto te alcanza?» contra Navidad: por modelo, `modelosQueNoLlegan` y
+  `alcanceDelModelo`; el tipo entero, con un solo tipo en el filtro, `alcancePorTipo` y `alcanceConFiltros` (talla por talla si hay talla o color en los
+  filtros), todo en `lib/analisis-pedir.ts`. Filtros y orden (cara B): `lib/analisis-filtros.ts` y `lib/analisis-orden.ts`. A dónde lleva cada
   botón: `lib/analisis-acciones.ts` (`hrefComprar` → `/produccion/ordenes?nueva=<producto>` o `/compras/mi-plata` (desde 2026-10-23, ADR-0480 act.); `hrefEnviar` →
   `/inventario/traslados/nuevo?lineas=&destino=&desde=analisis`; `hrefReponerPiso` →
   `/inventario/bajar?lineas=`; `hrefExistencias`, `hrefMovimientos`; `lineasParaPedir` → `PedirAOtraSedeModal` → RPC `pedir_a_otra_sede`,
