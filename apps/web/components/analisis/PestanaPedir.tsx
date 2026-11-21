@@ -52,10 +52,10 @@ const diasEnteros = (dias: number | null): number | null => (dias === null ? nul
 const tonoTipo = (t: AlcanceTipo): Estado => (t.dias === null ? "nd" : !t.pide ? "bien" : (diasEnteros(t.dias) ?? 0) <= 7 ? "urg" : "ate");
 
 /** La miniatura de un tipo: su ícono sobre una lente teñida del color de cómo va (no es una prenda: no lleva color de dato). */
-function LenteTipo({ t }: { t: AlcanceTipo }) {
+export function LenteTipo({ t, tamano = 72 }: { t: AlcanceTipo; tamano?: number }) {
   return (
-    <span className="an-lente" style={{ ["--c" as string]: COLOR_ESTADO[tonoTipo(t)] }} aria-hidden>
-      <IconoCategoria prefijo={t.prefijo} familia={(t.familia ?? null) as Parameters<typeof IconoCategoria>[0]["familia"]} className="h-9 w-9" />
+    <span className="an-lente" style={{ ["--c" as string]: COLOR_ESTADO[tonoTipo(t)], ["--t" as string]: `${tamano}px` }} aria-hidden>
+      <IconoCategoria prefijo={t.prefijo} familia={(t.familia ?? null) as Parameters<typeof IconoCategoria>[0]["familia"]} className="h-1/2 w-1/2" />
     </span>
   );
 }

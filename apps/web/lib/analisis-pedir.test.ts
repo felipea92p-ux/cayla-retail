@@ -8,11 +8,8 @@ import {
   ordenarTipos,
   tallaQueSeAcaba,
   categoriaDe,
-  DIAS_ALCANZA_MAX,
   diasANavidad,
-  textoAlcance,
   textoRitmo,
-  tipoCorto,
   tiposSinRegistrar,
   notaTiposSinRegistrar,
   curvaDeTallas,
@@ -116,7 +113,6 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
   it("lo que se vendió y ya no está dura 0: «Ya no hay», y se pide", () => {
     const a = alcancePorTipo([prenda({ categoria: "Capas", vendidas30: 3, piso: 0, almacen: 0 })], 8, 79, true);
     expect(a[0]).toMatchObject({ dias: 0, pide: true });
-    expect(textoAlcance(0)).toBe("Ya no hay");
   });
 
   it("cada prenda suma su ritmo en su propia ventana (2026-10-14): una colgada hace poco no se diluye en los días de la tienda", () => {
@@ -154,7 +150,7 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
       expect(alcancePorTipo(tipo, 15, 72, true)[0]).toMatchObject({ dias: null, pide: false });
       const a = alcancePorTipo(tipo, 15, 72, true, { Shorts: 16 })[0]!;
       expect(a).toMatchObject({ vendidas: 16, sinPrenda: 16, tiene: 18, pide: true });
-      expect(textoAlcance(a.dias)).toBe("2 semanas");
+      expect(Math.round((a.dias ?? 0) / 7)).toBe(2);
     });
 
     it("un tipo que la tienda tiene pero hoy sin venta ni stock también suma lo vendido sin registrar (y ya no hay)", () => {
@@ -192,26 +188,17 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
     });
   });
 
-  it("las palabras: días bajo una semana, semanas hasta 6 meses, y lo que no se vendió", () => {
-    expect(textoAlcance(3.4)).toBe("3 días");
-    expect(textoAlcance(0.4)).toBe("1 día");
-    expect(textoAlcance(20)).toBe("3 semanas");
-    expect(textoAlcance(7)).toBe("1 semana");
-    expect(textoAlcance(181)).toBe("26 semanas");
-    expect(textoAlcance(DIAS_ALCANZA_MAX)).toBe("Más de 6 meses");
-    expect(textoAlcance(null)).toBe("No se vendió");
+  it("de qué días habla el ritmo", () => {
     // 2026-10-14: cada prenda mide su ritmo desde que se colgó (de 7 días hasta los de la tienda); con una semana o menos es lo mismo.
     expect(textoRitmo(8)).toBe("Al ritmo desde que se colgó · hasta 8 días");
     expect(textoRitmo(7)).toBe("Al ritmo de los últimos 7 días");
     expect(textoRitmo(1)).toBe("Al ritmo de los últimos 1 día");
   });
 
-  it("los días a Navidad y el nombre corto de un tipo", () => {
+  it("los días a Navidad", () => {
     expect(diasANavidad("2026-10-07")).toBe(79);
     expect(diasANavidad("2026-12-25")).toBe(0);
     expect(diasANavidad("2026-12-26")).toBe(364);
-    expect(tipoCorto("Gorros y Sombreros")).toBe("Gorros");
-    expect(tipoCorto("Polos")).toBe("Polos");
   });
 });
 

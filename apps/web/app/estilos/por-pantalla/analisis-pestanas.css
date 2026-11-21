@@ -1,6 +1,5 @@
 /* Las pestañas de Gestión ▸ Análisis (ADR-0357), en el orden en que iban en globals.css. `analisis.css` sigue global: lo alcanza el marco.
    Se importa desde los componentes que usan sus clases (ADR-0674, CSS por pantalla). Lo vigila `lib/css-por-pantalla.test.ts`. */
-@import "../analisis-hoy.css";
 @import "../analisis-quieta.css";
 @import "../analisis-pedir.css";
 @import "../analisis-ficha.css";

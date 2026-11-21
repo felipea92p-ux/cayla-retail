@@ -52,18 +52,6 @@ export function Ayuda({ texto }: { texto: string }) {
   );
 }
 
-/**
- * El contenido rico de un tooltip (una lista de prendas, «Por llegar: 13»…): va DENTRO del elemento que lo muestra y oculto;
- * el tooltip de la pantalla lo copia al pasar el mouse, tocarlo o enfocarlo.
- */
-export function TipRico({ children }: { children: ReactNode }) {
-  return (
-    <span className="tip-rico" hidden>
-      {children}
-    </span>
-  );
-}
-
 /** La prenda en miniatura: su foto o, sin foto, el ícono de su categoría sobre su color (ADR-0333). */
 export function TilePrenda({ prenda, tamano }: { prenda: Pick<PrendaAnalisis, "fotoUrl" | "colorHex" | "categoria" | "categoriaPrefijo" | "categoriaFamilia">; tamano: number }) {
   const radio = Math.round(tamano / 5);

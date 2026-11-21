@@ -183,8 +183,6 @@ export function armarModelos(prendas: readonly PrendaAnalisis[], hoy: string): M
   return [...porModelo.values()].map((vs) => modeloDe(vs, hoy));
 }
 
-/** Las tallas y colores de unos modelos, para lo que se hace prenda por prenda (bajar, mandar, liquidar, pedir). */
-export const variantesDe = (modelos: readonly Pick<ModeloAnalisis, "variantes">[]): PrendaAnalisis[] => modelos.flatMap((m) => m.variantes);
 
 /**
  * Lo que el modelo tiene, en una línea bajo su nombre: su color si es uno («Arena»), o cuántos («3 colores»); y sus tallas en orden

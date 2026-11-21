@@ -35,9 +35,6 @@ export function proximaNavidad(hoy: string): string {
 
 /* ───────── «¿Para cuánto te alcanza?»: por tipo de prenda, contra Navidad (Felipe, 2026-10-07, B2) ───────── */
 
-/** Desde cuántos días lo que tienes se dice «Más de 6 meses» (y donde termina el eje de la pestaña, si Navidad cabe antes). */
-export const DIAS_ALCANZA_MAX = 182;
-
 /** Los días que faltan para la próxima Navidad (el mismo día, 0): la meta contra la que se mide lo que tienes. */
 export const diasANavidad = (hoy: string): number => Math.max(0, diasEntreFechas(hoy, proximaNavidad(hoy)));
 
@@ -154,22 +151,6 @@ export function ordenarAlcance(tipos: readonly AlcanceTipo[], orden: OrdenAlcanc
     (a, b) => b.vendidas - a.vendidas || (a.dias ?? Infinity) - (b.dias ?? Infinity) || a.categoria.localeCompare(b.categoria, "es"),
   );
 }
-
-/** «Ya no hay», «3 días», «4 semanas», «Más de 6 meses» o «No se vendió»: para cuánto te alcanza, como se dice en tienda. */
-export function textoAlcance(dias: number | null): string {
-  if (dias === null) return "No se vendió";
-  if (dias <= 0) return "Ya no hay";
-  if (dias < 7) {
-    const d = Math.max(1, Math.round(dias));
-    return `${d} ${plural(d, "día", "días")}`;
-  }
-  if (dias >= DIAS_ALCANZA_MAX) return "Más de 6 meses";
-  const s = Math.round(dias / 7);
-  return `${s} ${plural(s, "semana", "semanas")}`;
-}
-
-/** El nombre corto de un tipo para un lugar chico: lo de antes de « y » («Gorros y Sombreros» → «Gorros»). */
-export const tipoCorto = (categoria: string): string => categoria.split(" y ")[0] ?? categoria;
 
 /**
  * De qué días habla el ritmo de todo Análisis: desde que cada prenda se colgó, nunca menos de una semana y hasta los días de ventas de la

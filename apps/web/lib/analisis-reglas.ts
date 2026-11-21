@@ -63,9 +63,6 @@ export function conVentanaDeRitmo<T extends Pick<PrendaAnalisis, "salioAlPiso">>
   return tallas.map((t) => ({ ...t, diasDeVentas: ventanaDeRitmo(t.salioAlPiso, hoy, diasTienda), diasDeVentasTienda: diasTienda }));
 }
 
-/** Cuántas prendas muestran las listas cortas de Hoy. */
-export const PRENDAS_EN_LISTA = 5;
-
 /** «duda»: quieta, pero alguna unidad colgada puede ser una venta sin registrar (ADR-0357, act. 2026-10-14): no se sabe, no se liquida. */
 export type GrupoAnalisis = "comprar" | "enviar" | "liquidar" | "vigila" | "duda";
 /** Los grupos de «Se está acabando» y de «No se vende», en el orden de su carril. */

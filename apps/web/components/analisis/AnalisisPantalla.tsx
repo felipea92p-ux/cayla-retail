@@ -39,9 +39,9 @@ import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 const PESTANAS: { clave: VistaAnalisis; texto: string }[] = [
   { clave: "hoy", texto: "Hoy" },
-  { clave: "acaba", texto: "Se está acabando" },
+  { clave: "acaba", texto: "Se acaba" },
   { clave: "nose", texto: "No se vende" },
-  { clave: "piso", texto: "Nunca salió al piso" },
+  { clave: "piso", texto: "Sin salir" },
   { clave: "pedir", texto: "Qué pedir" },
 ];
 
