@@ -595,7 +595,7 @@ export const GUIA_HISTORIAL: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "historial.filtros" }],
       titulo: "Todos los filtros",
-      texto: "Tienda y vendedor (para el líder), cómo pagaron, si la venta está completada o anulada y qué comprobante tiene. «Con datos de prueba» suma las ventas de prueba. Cada filtro puesto aparece debajo con su ✕ para quitarlo.",
+      texto: "Tienda y vendedor (para el líder), cómo pagaron, si la venta está completada o anulada y qué comprobante tiene. Donde venden dos empresas, «Empresa» deja las ventas con prendas de una. Cada filtro puesto aparece debajo con su ✕ para quitarlo.",
     },
     {
       id: "fin",

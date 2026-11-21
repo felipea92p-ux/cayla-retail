@@ -119,6 +119,9 @@ function consulta(supabase: Supabase, select: string, f: FiltrosHistorial, conPr
   // `vendedorId` ya pasó por `esUuid` en `filtrosDesdeParams`, así que no trae nada que rompa el filtro.
   if (f.vendedorId) q = q.or(`asesora_id.eq.${f.vendedorId},and(asesora_id.is.null,usuario_id.eq.${f.vendedorId})`);
   if (f.estado !== "todas") q = q.eq("estado", f.estado);
+  // ADR-0683: solo las ventas con prendas de esa empresa. `empresas_de_la_venta` es una columna calculada de la base (20261121175000): se filtra en la
+  // misma consulta, sin pedir antes la lista de ventas (en Lima, un mes de CAYLA son cientos y no caben en la URL).
+  if (f.empresaId) q = q.contains("empresas_de_la_venta" as never, [f.empresaId] as never);
   // D-54 (ADR-0159): dato ficticio de prueba, fuera de la vista por defecto — el toggle «Ver
   // datos de prueba» lo trae de vuelta.
   if (conPrueba && !f.incluirPrueba) q = q.eq("es_prueba", false);

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Mes } from "@/lib/facturacion-reglas";
 import type { Lectura } from "@/lib/cuentas-dinero";
 import { leerCortesMes, leerReporteMes, leerSeriesMes, primerDiaDelMes, type CortesMes, type ReporteMes, type SeriesMes } from "@/lib/reportes-ventas-reglas";
-import { claureDelVendido, instanteLima } from "@/lib/reportes-vendido-reglas";
+import { claureDelVendido, instanteLima, nombreDeAliadasDelVendido } from "@/lib/reportes-vendido-reglas";
 import { vendidoDeLaBase } from "@/lib/vendido-por-empresa-reglas";
 import { leerPagosDeEmpresa, type PagosDeEmpresa } from "@/lib/reportes-empresa-reglas";
 
@@ -67,7 +67,7 @@ export async function getCortesMes(mes: Mes, ubicacionId: string | null, empresa
  * mismos filtros que `fn_reporte_ventas_mes`: completadas, sin las de prueba, días de Lima. Es información de apoyo (principio 9): si la lectura falla,
  * devuelve `null` y la pantalla sale sin esa línea, nunca con una cifra a medias.
  */
-export async function getClaureDelTramo(tramo: { desde: string; hasta: string }, ubicacionId: string | null): Promise<number | null> {
+export async function getClaureDelTramo(tramo: { desde: string; hasta: string }, ubicacionId: string | null): Promise<{ monto: number; nombre: string } | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_vendido_por_empresa", {
     p_desde: instanteLima(tramo.desde),
@@ -77,5 +77,6 @@ export async function getClaureDelTramo(tramo: { desde: string; hasta: string },
     p_incluir_prueba: false,
   });
   if (error || !data) return null;
-  return claureDelVendido(data.map(vendidoDeLaBase));
+  const empresas = data.map(vendidoDeLaBase);
+  return { monto: claureDelVendido(empresas), nombre: nombreDeAliadasDelVendido(empresas) };
 }

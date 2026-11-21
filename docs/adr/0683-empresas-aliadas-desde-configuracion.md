@@ -164,6 +164,29 @@ nombres de las funciones no cambian. En la pantalla, «De eso, S/ X es de …» 
 DECIDÍ cambiar la regla y dejar los nombres. DESCARTÉ renombrar a `*_de_aliada`: veinte llamadas y sus pruebas, sin cambiar un número. SE ROMPE SI
 alguien registra como «aliada» una sede de la propia CAYLA: sus ventas saldrían de las cifras de CAYLA.
 
+## Actividad 7 (2026-11-21): el filtro «Empresa» en Existencias e Historial
+
+**Lo que ya había.** Productos y Reportes filtran por empresa solo donde conviven dos o más, y ya funcionan con cualquier aliada nueva
+(`opcionesDeEmpresa`, `empresasParaElegir`).
+
+**Lo que decidió Felipe.** El filtro va ahora en Existencias e Historial; Comprobantes y Pedidos web quedan para después (ya marcan la empresa de cada
+prenda). En Existencias se ven las **unidades de esa dueña**, no las fichas de su marca.
+
+**Lo que hace (`20261121175000`).**
+- `fn_stock_de_empresa(sede, empresa)` devuelve las unidades de una empresa por talla y lugar (a CAYLA, lo que queda tras restar a las aliadas). Con
+  `?emp=<clave>`, Existencias muestra solo esas tallas con SUS cantidades, sumadas con la regla de siempre (`sumarCantidades`). Así «Hoy», las cifras
+  de arriba y el valor del inventario hablan de lo de esa dueña.
+- `empresas_de_la_venta(ventas)` es una columna calculada. Historial filtra con ella en la misma consulta de la lista.
+- `fn_empresas_de_sede` ya no tiene escrito el id de CAYLA.
+- En la web se quitaron los «CLAURE» que nombraban a la empresa:
+  - Apartados lee el nombre de la base.
+  - Reportes y el valor del inventario nombran a la aliada de la tienda.
+  - Cada aliada tiene su color en «De quién es lo vendido».
+
+DECIDÍ una columna calculada para Historial. DESCARTÉ pedir antes los ids de las ventas de esa empresa: en Lima, un mes de CAYLA son cientos de ventas
+y no caben en la URL de la consulta. SE ROMPE SI se filtra un período muy largo de una tienda con mucho movimiento: la columna se calcula venta por
+venta.
+
 ## Verificación
 
 - `pnpm pruebas:empresas-aliadas` — 35/35 en Postgres local (cada caso en su transacción, con ROLLBACK).

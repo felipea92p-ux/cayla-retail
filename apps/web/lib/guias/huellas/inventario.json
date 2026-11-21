@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 217,
+  "total": 218,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
@@ -56,6 +56,7 @@
       "DesplegablePildora «Talla»",
       "DesplegablePildora «Color»",
       "DesplegablePildora «Marca»",
+      "DesplegablePildora «Empresa»",
       "DesplegablePildora «Hoy»",
       "DesplegablePildora «Condición»",
       "button «{`existencias.ver-${valor}»",

@@ -27,7 +27,9 @@ import { getEmpresasAqui } from "@/lib/empresas-de-sede";
 import { soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
 import { getEtapasOcultas } from "@/lib/etapa-prenda";
 import { sinLasEnProduccion } from "@/lib/etapa-prenda-reglas";
-import { getStockPorDueno } from "@/lib/stock-por-dueno";
+import { getFiltroEmpresa, getStockPorDueno } from "@/lib/stock-por-dueno";
+import { soloUnidadesDe } from "@/lib/existencias-empresa-reglas";
+import { quienDeVarias } from "@/lib/empresas-aliadas-reglas";
 import { getValorInventario } from "@/lib/valor-inventario";
 import { armarVistaValor } from "@/lib/valor-inventario-reglas";
 import { conDuenos } from "@/lib/stock-por-dueno-reglas";
@@ -62,7 +64,7 @@ import { desdeDeParams } from "@/lib/vuelta-productos";
 export default async function InventarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ubicacion?: string; danados?: string; danada?: string; variante?: string; ajustar?: string; de?: string; desde?: string }>;
+  searchParams: Promise<{ ubicacion?: string; danados?: string; danada?: string; variante?: string; ajustar?: string; de?: string; desde?: string; emp?: string }>;
 }) {
   // Cada lectura se mide (2026-11-13, `lib/medir-tramos.ts`): al terminar la respuesta, UNA línea `existencias_tramos` en el registro del
   // servidor dice cuánto tardó cada una, cuándo estuvo la lista y cuánto pesa lo que viaja. Se busca con `vercel logs --query existencias_tramos`.
@@ -96,7 +98,7 @@ export default async function InventarioPage({
   // `variante=<id>`: llegar desde un movimiento («Ver en Existencias», ADR-0241) abre el detalle de ESA prenda en esa talla.
   // `ajustar=1&de=<producto>`: llegar desde el candado de Editar producto (ADR-0494, actividad 3) abre la planilla de «Ajustar stock» en esa talla y
   // ofrece «Volver a Editar producto» (`lib/existencias-ajustar-desde-editar.ts`).
-  const { ubicacion: ubicacionQuery, danados, danada, variante, ajustar, de, desde } = await searchParams;
+  const { ubicacion: ubicacionQuery, danados, danada, variante, ajustar, de, desde, emp } = await searchParams;
   const ubicaciones = await medir("ubicaciones", getUbicaciones());
 
   const ubicacionActivaId =
@@ -139,6 +141,8 @@ export default async function InventarioPage({
   // De quién son las unidades de cada talla (ADR-0542): solo donde conviven dos empresas (Lima). Dato secundario: si la base no responde,
   // las tallas quedan sin la línea «De quién es» y nada más cambia.
   const repartoPendiente = empresasDeAqui.then((empresas) => medir("reparto", getStockPorDueno(ubicacionActivaId, empresas)));
+  // El filtro «Empresa» (ADR-0683, actividad 7): donde conviven dos o más, `?emp=<clave>` deja solo las unidades de esa dueña. Nunca lanza.
+  const empresaPendiente = empresasDeAqui.then((empresas) => medir("empresa_elegida", getFiltroEmpresa(ubicacionActivaId, empresas, emp)));
   const etapasPendientes = medir("etapas", getEtapasOcultas()).catch(() => null);
   // «Hoy» de cada talla: el motor del piso (ADR-0328 act. 7) sobre UNA lectura (`fn_piso_plan_lectura`): lo libre en piso y almacén, lo
   // vendido ayer y en 14 días (escaneado y anotado a mano) y las tallas centrales. Solo donde se vende. Si no responde, `null`: «Hoy» dice
@@ -153,7 +157,7 @@ export default async function InventarioPage({
   // base la repite y sin permiso devuelve cero filas. Dato secundario: si falla, sin el enlace. Arranca con las demás: hasta el 2026-11-13
   // empezaba recién cuando todas habían respondido y era el último tramo de la página, en fila (lo mostró `existencias_tramos`).
   const valorPendiente = persona.rol === "lider" || puede(persona, "verDineroCompras") ? medir("valor", getValorInventario()) : Promise.resolve(null);
-  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, empresasAqui, lugarDanadas, repartoDeStock, etapasOcultas] = await Promise.all([
+  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, empresasAqui, lugarDanadas, repartoDeStock, etapasOcultas, filtroEmpresa] = await Promise.all([
     existencias,
     medir("sububicaciones", getSububicaciones(ubicacionActivaId)),
     medir("traslados", getTrasladosEnCurso(ubicacionActivaId)),
@@ -189,7 +193,10 @@ export default async function InventarioPage({
     medir("lugar_danadas", getLugarDeDanadas(ubicacionActivaId)),
     repartoPendiente,
     etapasPendientes,
+    empresaPendiente,
   ]);
+  // Con una empresa elegida, cada talla dice SUS unidades (piso, almacén, apartado), y las que no tienen ninguna suya no salen.
+  const stockDeLaVista = filtroEmpresa.cantidades ? soloUnidadesDe(stockBase, filtroEmpresa.cantidades) : stockBase;
   const sinRegistrar = vende ? (colaSinRegistrar ?? "fallo") : null;
 
   // Política operativa de Inventario (Felipe, 2026-09-25): las jornadas mínimas del Ritmo reciente. Lo que el piso pide hoy ya
@@ -210,7 +217,7 @@ export default async function InventarioPage({
       conDescripcion(
         conEstadoProducto(
           conMarca(
-            stockBase,
+            stockDeLaVista,
             catalogo.productos
           ),
           catalogo.productos
@@ -228,7 +235,10 @@ export default async function InventarioPage({
       ? await medir("fila_sin_stock", getFilaSinStockDeVariante(variante, vende)).catch(() => null)
       : null;
   // Lo que todavía es una orden no aparece como «sin stock aquí»: aún no es una prenda (ADR-0614, actividad 14). Lo terminado sí.
-  const sinStock = productosSinStockEnSede(sinLasEnProduccion(soloLasDeAqui(catalogo.productos, empresasAqui), etapasOcultas), stockBase);
+  const sinStock = productosSinStockEnSede(
+    sinLasEnProduccion(soloLasDeAqui(catalogo.productos, filtroEmpresa.elegida ? [filtroEmpresa.elegida] : empresasAqui), etapasOcultas),
+    stockDeLaVista,
+  );
   // Lo que pide cada talla («Hoy») lo cuenta el panel con `hoyDeTalla`, la misma regla de la tabla, el filtro y «Para hoy»; el resumen
   // solo suma cantidades. Hasta el 2026-10-04 también contaba las tallas que piden reponer para una tarjeta que ya no existe.
   const resumen = resumirExistencias(stock);
@@ -301,6 +311,9 @@ export default async function InventarioPage({
   // Las props del panel en un objeto: además de pasarlas, se mide cuánto pesan (lo que viaja al navegador), en la línea del registro.
   const propsPanel = {
     ubicacionId: ubicacionActivaId,
+    // ADR-0683: la píldora «Empresa» (solo donde conviven dos o más) y la elegida.
+    empresas: filtroEmpresa.ofrecidas,
+    empresaElegida: filtroEmpresa.elegida?.clave ?? null,
     stock,
     resumen,
     enCamino,
@@ -351,7 +364,13 @@ export default async function InventarioPage({
     enCamino: resumen.enTransito > 0 ? { valor: resumen.enTransito, href: veTraslados ? "/inventario/traslados" : undefined } : null,
   } satisfies ComponentProps<typeof CifrasExistencias>;
   const propsValor = vistaValor
-    ? ({ vista: vistaValor, puedeEditarCatalogo: puede(persona, "editarCatalogo"), veComprobacion: veModulo(persona, "reportes_financieros") } satisfies ComponentProps<typeof ValorInventarioExistencias>)
+    ? ({
+        vista: vistaValor,
+        puedeEditarCatalogo: puede(persona, "editarCatalogo"),
+        veComprobacion: veModulo(persona, "reportes_financieros"),
+        // ADR-0683: «De CLAURE, aparte» nombra a la aliada de esta sede (o «las empresas aliadas» si hay varias).
+        aliadas: quienDeVarias(empresasAqui?.filter((e) => e.clave !== "cayla") ?? null).nombre,
+      } satisfies ComponentProps<typeof ValorInventarioExistencias>)
     : null;
 
   // La lista ya puede dibujarse: lo que falta (el plan y el ritmo) llega por su promesa. La línea del registro la escribe el `after` de arriba.

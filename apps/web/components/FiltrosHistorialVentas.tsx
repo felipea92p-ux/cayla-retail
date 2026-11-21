@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CircleCheck, FileText, Plus, Store, UserRound, Wallet } from "lucide-react";
+import { Building2, CircleCheck, FileText, Plus, Store, UserRound, Wallet } from "lucide-react";
 import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Modal } from "@/components/ui/Modal";
@@ -63,7 +63,12 @@ export function FiltrosHistorialVentas({
   porEnviar,
   sedePorDefecto = "",
   exportarHref,
+  empresas = null,
+  empresa = "",
 }: {
+  /** ADR-0683: las empresas de la tienda que se mira (solo si son dos o más; si no, la píldora no se dibuja) y la elegida (su clave). */
+  empresas?: readonly { clave: string; nombre: string }[] | null;
+  empresa?: string;
   /** Solo para un líder: las tiendas entre las que puede elegir. Sin esta prop no hay selector. */
   tiendas?: Opcion[];
   /** Solo para un líder: quiénes registraron ventas. */
@@ -109,6 +114,7 @@ export function FiltrosHistorialVentas({
     pago && !cubiertoPorAtajo("pago") ? pago : "",
     estado !== "todas" && !cubiertoPorAtajo("estado") ? estado : "",
     comprobante !== "todos" && !cubiertoPorAtajo("comp") ? comprobante : "",
+    empresa,
   ].filter(Boolean).length;
   const [panelAbierto, setPanelAbierto] = useState(activos > 0);
   function guardarAtajos(lista: ClaveAtajo[]) {
@@ -143,6 +149,7 @@ export function FiltrosHistorialVentas({
       estado !== "todas" && !cubiertoPorAtajo("estado") && { texto: estado === "anulada" ? "Anuladas" : "Completadas", quitar: { estado: "" } },
       comprobante !== "todos" && !cubiertoPorAtajo("comp") && { texto: TEXTO_COMPROBANTE[comprobante], quitar: { comp: "" } },
       incluirPrueba && { texto: "Con datos de prueba", quitar: { prueba: "" } },
+      empresa && { texto: empresas?.find((e) => e.clave === empresa)?.nombre ?? "Empresa", quitar: { emp: "" } },
     ] as (Chip | false | "")[]
   ).filter((c): c is Chip => !!c);
 
@@ -257,6 +264,16 @@ export function FiltrosHistorialVentas({
               valorPorDefecto={sedePorDefecto}
               onValor={(v) => aplicar({ sede: v === sedePorDefecto ? "" : v })}
               opciones={[{ valor: "todas", texto: "Todas las tiendas" }, ...tiendas.map((t) => ({ valor: t.id, texto: t.nombre }))]}
+            />
+          )}
+
+          {empresas && (
+            <DesplegablePildora
+              icono={Building2}
+              etiqueta="Empresa"
+              valor={empresa || TODOS}
+              onValor={(v) => aplicar({ emp: v === TODOS ? "" : v })}
+              opciones={[{ valor: TODOS, texto: "Todas las empresas" }, ...empresas.map((e) => ({ valor: e.clave, texto: e.nombre }))]}
             />
           )}
 

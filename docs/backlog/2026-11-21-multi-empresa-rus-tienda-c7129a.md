@@ -17,7 +17,10 @@
 - [ ] **Sumarle una tienda a una aliada** no revisa que el reparto de gastos de esa tienda siga bajo 100 %.
 - [x] **6 · Las cifras de CAYLA sin aliadas** (migración `20261121173000`, `pnpm pruebas:aliadas-cifras` 9/9): la regla de línea y sus seis usuarios, lo vendido en un período, lo de hoy del Inicio y «De eso es de …» en Dónde está valen para cualquier aliada, activa o dada de baja.
 - [ ] **Con varias aliadas, algunos textos quedan en singular** («Lo que las empresas aliadas vendió»): se arma con el texto de CLAURE cambiando dos palabras.
-- [ ] **7 · Filtros por empresa en toda tienda con más de una** y quitar «CLAURE» escrito a mano (valor del inventario, reportes, colores, la casa por `clave === "cayla"`).
+- [x] **7 · El filtro «Empresa» en Existencias e Historial** (migración `20261121175000`, `pnpm pruebas:aliadas-filtros` 8/8; 43 pruebas de empresas, stock, Historial y Reportes pasan en la base igual al CI). Existencias muestra las unidades de esa dueña; Historial, las ventas con prendas suyas. Visto en el navegador en Lima con CLAURE (la migración se aplicó y se quitó en la base local compartida).
+- [ ] **Comprobantes y Pedidos web** con filtro «Empresa» (Felipe 2026-11-21: después). Ya marcan la empresa de cada prenda.
+- [ ] **En Historial, una venta con prendas de dos empresas cuenta entera** con el filtro puesto; la barra «De quién es lo vendido» la parte exacto, pero no se ve con el filtro.
+- [ ] **La casa se reconoce por `clave === "cayla"`** en varias reglas de la web (`CLAVE_CASA`): si algún día cambia su clave, se cambia en esos lugares.
 - [ ] **8 · Producción y PR:** `/milimetro auditar /configuracion`, `/formidable`, `/chaos` sobre la hoja; Felipe pega las migraciones en orden; `pnpm datos:generar:produccion`.
 - [ ] **En producción, CLAURE no tiene RUC ni régimen:** su tarjeta dirá «Sin RUC» hasta que el Admin la edite.
 - [ ] **Contador:** que un Nuevo RUS opere en un solo local (hoy es un candado de la base); el contrato y lo que CAYLA les cobra a las aliadas.
