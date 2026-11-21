@@ -21,6 +21,7 @@
 - [ ] **Comprobantes y Pedidos web** con filtro «Empresa» (Felipe 2026-11-21: después). Ya marcan la empresa de cada prenda.
 - [ ] **En Historial, una venta con prendas de dos empresas cuenta entera** con el filtro puesto; la barra «De quién es lo vendido» la parte exacto, pero no se ve con el filtro.
 - [ ] **La casa se reconoce por `clave === "cayla"`** en varias reglas de la web (`CLAVE_CASA`): si algún día cambia su clave, se cambia en esos lugares.
+- [ ] **POR PEGAR (2026-11-21):** el PR [#1969](https://github.com/felipea92p-ux/cayla-retail/pull/1969) está en borrador hasta que Felipe pegue las 7 migraciones en orden (152000 → 160000 → 162000 → 164000 → 171000 → 173000 → 175000); después, `pnpm datos:generar:produccion`. `/milimetro` hecho (`docs/milimetro/auditorias/2026-11-21-empresas-aliadas.md`); faltan `/chaos`, `/formidable`, `tema:auditar` y `guias:recorrer`.
 - [ ] **8 · Producción y PR:** `/milimetro auditar /configuracion`, `/formidable`, `/chaos` sobre la hoja; Felipe pega las migraciones en orden; `pnpm datos:generar:produccion`.
 - [ ] **En producción, CLAURE no tiene RUC ni régimen:** su tarjeta dirá «Sin RUC» hasta que el Admin la edite.
 - [ ] **Contador:** que un Nuevo RUS opere en un solo local (hoy es un candado de la base); el contrato y lo que CAYLA les cobra a las aliadas.
