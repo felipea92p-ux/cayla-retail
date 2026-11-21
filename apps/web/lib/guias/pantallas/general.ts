@@ -1131,8 +1131,8 @@ export const GUIA_CONFIGURACION: Guia = {
       ancla: "config.claure-reparto",
       opcional: true,
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "config.tab-gastos" }],
-      titulo: "Reparto CLAURE",
-      texto: "Solo el líder la ve. Qué parte de cada gasto de la tienda es de Claudia: 0 es todo de CAYLA y 100, todo de CLAURE. Esa parte baja lo que se le debe y sale del gasto de CAYLA. Cada casilla se guarda sola, firmada; en la demo no cambiamos ninguna.",
+      titulo: "Reparto con las aliadas",
+      texto: "Solo el líder la ve. Un bloque por empresa aliada: qué parte de cada gasto de sus tiendas es suya. 0 es todo de CAYLA y 100, todo de ella. Esa parte baja lo que se le debe y sale del gasto de CAYLA. Cada casilla se guarda sola, firmada; en la demo no cambiamos ninguna.",
     },
     {
       id: "impuestos-confirmar",
@@ -1257,7 +1257,7 @@ export const GUIA_CONFIGURACION: Guia = {
       ancla: "config.aliadas",
       opcional: true,
       titulo: "Las empresas aliadas",
-      texto: "Otras dueñas que venden en tus tiendas con su propio RUC, como Claurè en Lima. Cada tarjeta dice su régimen, en qué tiendas vende y a qué cuentas se le paga. Lo que entra a esas cuentas es de ella: no suma a CAYLA.",
+      texto: "Otras dueñas que venden en tus tiendas con su propio RUC, como Claurè en Lima. Cada tarjeta dice su régimen, en qué tiendas vende y a qué cuentas se le paga. Lo que entra a esas cuentas es de ella: no suma a CAYLA. «Entra a las campañas» decide si una campaña puede bajarle el precio.",
     },
     {
       id: "aliadas-agregar",

@@ -10,7 +10,7 @@ import { fechaCorta } from "@/lib/carga-inicial-reglas";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
-import { Boton } from "@/components/ui/campos";
+import { Boton, Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { LapizEditar } from "@/components/ui/BotonEditar";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -51,6 +51,26 @@ export function EmpresasAliadas({
   ) : null;
 
   // Deshacer la baja pedida, durante su semana: un toque, sin otra confirmación (perdonar antes que preguntar).
+  // ADR-0683: si las prendas de una aliada pueden entrar a las campañas de CAYLA. Se guarda al tocarlo, como un ajuste; nace apagado.
+  async function cambiarCampanas(id: string, nombre: string, entra: boolean) {
+    if (!responsable.listo) {
+      avisar.error(responsable.motivo ?? "Elige quién hace el cambio (Responsable).");
+      return;
+    }
+    setDeshaciendo(id);
+    const { error } = (await firmar(createClient().rpc("fijar_aliada_en_campanas" as never, { p_id: id, p_entra: entra } as never) as never, responsable.firma())) as {
+      error: unknown;
+    };
+    setDeshaciendo(null);
+    responsable.despues(error as never);
+    if (error) {
+      avisar.error(traducirError(error as never, "cambiar si entra a las campañas"));
+      return;
+    }
+    avisar.exito(entra ? `Las prendas de ${nombre} ya pueden entrar a una campaña que las incluya.` : `Las prendas de ${nombre} quedan fuera de las campañas.`);
+    router.refresh();
+  }
+
   async function deshacerBaja(id: string, nombre: string) {
     if (!responsable.listo) {
       avisar.error(responsable.motivo ?? "Elige quién hace el cambio (Responsable).");
@@ -138,6 +158,16 @@ export function EmpresasAliadas({
                     <span className="vs-rotulo">Sin cuentas para cobrar</span>
                   )}
                 </div>
+                {puedeEditar ? (
+                  <Interruptor
+                    activo={a.entraACampanas}
+                    onActivo={(v) => cambiarCampanas(a.id, a.nombre, v)}
+                    disabled={deshaciendo === a.id}
+                    etiqueta="Entra a las campañas de CAYLA"
+                  />
+                ) : (
+                  a.entraACampanas && <span className="vs-rotulo">Entra a las campañas de CAYLA</span>
+                )}
               </article>
             );
           })}

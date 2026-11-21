@@ -12,7 +12,9 @@
 - [x] **4 · Vender con cualquier aliada** (migración `20261121164000`, `pnpm pruebas:aliadas-cobro` 11/11): «¿A qué número pagó?» en la hoja de cobro, con la cuenta de la dueña propuesta; la transferencia entra a la cuenta bancaria de una aliada. Visto en el navegador a 375 px con CLAURE en Lima (la función de números se creó y se quitó en la base local solo para mirarlo).
 - [ ] **Un ticket de dos empresas pagado TODO por Yape a dos números** se corrige con «Corregir pagos» (la hoja tiene una línea por medio). Si pasa seguido, partir la línea.
 - [ ] **La venta sin conexión** llega sin `x-cuentas-pagos` y se sella en CAYLA: guardar la elección en la cola si Lima lo necesita.
-- [ ] **5 · Campañas y gastos por aliada** (`campana_reglas.incluye_claure`, `gasto_reparto_claure`).
+- [x] **5 · Campañas y gastos por aliada** (migración `20261121171000`, `pnpm pruebas:aliadas-campanas-gastos` 17/17): interruptor «Entra a las campañas de CAYLA» por aliada (nace apagado), «Reparto con <aliada>» en Configuración ▸ Gastos. Probado contra una base con TODAS las migraciones (igual que el CI, `supabase_db_ensayo-aliadas-ci`): las 96 pruebas de base de Finanzas, Caja, CLAURE, ofertas y campañas pasan; `campana-reglas` y `ofertas-por-variante` necesitaron el deshacer de las aliadas antes de volver a pegar sus migraciones.
+- [ ] **El nombre `deClaure`** de las prendas de una campaña ya significa «de una aliada que entra»: renombrarlo con la actividad 7.
+- [ ] **Sumarle una tienda a una aliada** no revisa que el reparto de gastos de esa tienda siga bajo 100 %.
 - [ ] **6 · Las cifras de CAYLA sin aliadas** (`fn_item_es_de_claure`, `fn_lineas_de_claure` y sus usuarios).
 - [ ] **7 · Filtros por empresa en toda tienda con más de una** y quitar «CLAURE» escrito a mano (valor del inventario, reportes, colores, la casa por `clave === "cayla"`).
 - [ ] **8 · Producción y PR:** `/milimetro auditar /configuracion`, `/formidable`, `/chaos` sobre la hoja; Felipe pega las migraciones en orden; `pnpm datos:generar:produccion`.

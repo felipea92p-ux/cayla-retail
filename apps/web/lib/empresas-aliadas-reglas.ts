@@ -56,6 +56,8 @@ export type EmpresaAliada = {
   bajaEl: string | null;
   /** Por qué no se pudo aplicar la baja (todavía tiene prendas), o null. */
   bajaDetenida: string | null;
+  /** Sus prendas pueden entrar a una campaña de CAYLA que incluya a las aliadas (ADR-0683, actividad 5). Nace apagado. */
+  entraACampanas: boolean;
 };
 
 export type LecturaAliadas = { puedeEditar: boolean; aliadas: EmpresaAliada[] };
@@ -96,6 +98,7 @@ export function leerAliadas(crudo: unknown): LecturaAliadas {
         ),
         bajaEl: texto(a.baja_el),
         bajaDetenida: texto(a.baja_detenida),
+        entraACampanas: a.entra_a_campanas === true,
       })),
   };
 }

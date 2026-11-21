@@ -126,6 +126,29 @@ pruebas que fijan su texto) y una columna nueva en el JSON de pagos (cambia el c
 medio se parte en dos números (la hoja tiene una línea por medio: un ticket de dos empresas pagado todo por Yape a dos números se corrige con
 «Corregir pagos») o si la venta se sube sin conexión (llega sin el encabezado y se sella en CAYLA, como hoy).
 
+## Actividad 5 (2026-11-21): las campañas y el reparto de gastos con cualquier aliada
+
+**El problema.** Ocho funciones de ofertas decidían «salvo que sea de CLAURE» con su id escrito a mano: las prendas de una aliada nueva pasaban
+como si fueran de CAYLA y una campaña les bajaba el precio sin que su dueña lo supiera. Y el reparto de gastos (qué parte de la luz o del
+alquiler es de la aliada) existía solo para CLAURE.
+
+**Campañas.** Cada aliada tiene «Entra a las campañas de CAYLA» (`empresas.entra_a_campanas`), un interruptor en su tarjeta de Configuración que
+solo cambia un Admin. **Nace apagado**: una aliada nueva queda fuera de toda campaña, también de las ya activas. CLAURE queda encendida (ya
+entraba). La casilla de la oferta pasa a «Incluir las de <aliada>» (o «las de las aliadas» si entran varias). La regla vive en una función,
+`fn_campana_alcanza_empresa(empresa, incluye)`, que las ocho llaman; en la web, `entraALaOferta`.
+
+DECIDÍ un interruptor por aliada más la casilla de siempre en cada oferta. DESCARTÉ una lista de aliadas por oferta: cambia la firma de las
+cuatro `guardar_oferta*` y el JSON de las ofertas, las funciones más parchadas del ERP. SE ROMPE SI se quiere una campaña con CLAURE pero no
+con otra aliada encendida en la misma tienda: hoy se limita la campaña a una tienda o se apaga a la otra mientras dure.
+
+**Gastos.** `gasto_reparto_aliadas (empresa_id, categoria, pct)` guarda el reparto de todas (CLAURE se copió). Una aliada nueva empieza en 0 %.
+En una tienda, entre todas no pasan de 100 % por categoría. El Diario, la cuenta de cada dueña y «lo que falta del mes» leen esta tabla.
+Configuración ▸ Gastos muestra un bloque «Reparto con <aliada>» por cada una. `gasto_reparto_claure` se mantiene igual para CLAURE mientras
+existan las `fn_claure_*` (se borran juntas).
+
+SE ROMPE SI a una aliada se le suma una tienda donde otra ya tiene su parte: la suma puede pasar de 100 % hasta que alguien la corrija (el
+candado está al guardar el reparto).
+
 ## Verificación
 
 - `pnpm pruebas:empresas-aliadas` — 35/35 en Postgres local (cada caso en su transacción, con ROLLBACK).

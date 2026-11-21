@@ -110,7 +110,7 @@
       "Boton «+ Agregar fijo»",
       "button «{u.nombre}»",
       "LapizEditar «{f.descripcion}»",
-      "Casilla «{`Parte de CLAURE en ${f.nombre}»",
+      "Casilla «{`Parte de ${nombre}»",
       "BotonVerMas «{`Ver ${plegadas.length}»",
       "ComboResponsable «{responsable}»",
       "ComboResponsable «{responsable}» #2"

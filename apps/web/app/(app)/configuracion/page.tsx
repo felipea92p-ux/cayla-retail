@@ -18,7 +18,7 @@ import { getPanelImpuestos, getParametrosTributarios } from "@/lib/impuestos";
 import { getMaquinasPos, getMediosDeCobro, getPlanillaCuentas, getSaldos } from "@/lib/cuentas-dinero";
 import { getPresupuestoConfig } from "@/lib/presupuesto";
 import { getAsistenteSedes } from "@/lib/asistente/sedes-servidor";
-import { getRepartoClaure } from "@/lib/reparto-claure";
+import { getRepartoAliadas } from "@/lib/reparto-claure";
 import { getCuentasDeOtrasEmpresas } from "@/lib/cuenta-claure";
 import { getEmpresasAliadas } from "@/lib/empresas-aliadas";
 
@@ -133,7 +133,7 @@ async function SeccionGastos({ mes, esLider }: { mes: string | undefined; esLide
     getFijosMes(desde, { clave: "todas", ubicacionId: null, soloEmpresa: false }),
     getFichasDeFijos(),
     getPresupuestoConfig(esMes(mes) ? mes : mesDe(hoy)),
-    esLider ? getRepartoClaure() : null,
+    esLider ? getRepartoAliadas() : null,
   ]);
   return (
     <>

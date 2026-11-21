@@ -69,6 +69,10 @@ export async function cargarEtiquetasPantalla({
   // De qué empresa es cada prenda (ADR-0463): para que el conteo de una oferta no cuente las de Claurè, que ninguna oferta alcanza salvo a propósito.
   // Sin la función (una base vieja) nadie es de Claurè: el conteo es el de antes.
   const cargaEmpresas = puedeEditar ? supabase.rpc("fn_empresas") : Promise.resolve({ data: null, error: null });
+  // ADR-0683: qué aliadas entran a las campañas. Sin la lectura (base sin 20261121171000), la regla de antes: solo CLAURE se distingue.
+  const cargaAliadas = puedeEditar
+    ? (supabase.rpc("fn_aliadas_en_campanas" as never) as unknown as PromiseLike<{ data: { id: string; nombre: string; entra: boolean }[] | null; error: unknown }>)
+    : Promise.resolve({ data: null, error: null });
   const cargaReglas = supabase.rpc("campana_reglas" as never) as unknown as PromiseLike<{ data: FilaRegla[] | null; error: { message: string } | null }>;
   // «Anunciar en la portada» de cada campaña (ADR-0655, 20261113234000), en su propia lectura: sin la columna en esa base todas se anuncian,
   // como antes, y la pantalla no se cae por una columna que todavía no está.
@@ -96,7 +100,7 @@ export async function cargarEtiquetasPantalla({
         )
       : Promise.resolve(null);
 
-  const [resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, preciosTiendas, resSedes, tiendas, resReglas, resEmpresas, resAnuncios] = await Promise.all([
+  const [resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, preciosTiendas, resSedes, tiendas, resReglas, resEmpresas, resAnuncios, resAliadas] = await Promise.all([
     supabase.from("etiquetas").select("id, nombre, activo, notas, estado, estilo, icono, icono_imagen, icono_imagen_silueta, vigente_desde, vigente_hasta, descuento_pct").order("nombre"),
     supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
     supabase.from("etiqueta_categorias").select("etiqueta_id, categoria_id"),
@@ -123,9 +127,17 @@ export async function cargarEtiquetasPantalla({
     cargaReglas,
     cargaEmpresas,
     cargaAnuncios,
+    cargaAliadas,
   ]);
   const sinAnuncio = new Set((resAnuncios.error ? [] : (resAnuncios.data ?? [])).filter((f) => f.anunciar_en_portada === false).map((f) => f.id));
   const idClaure = (resEmpresas.data ?? []).find((e) => e.clave === "claure")?.id ?? null;
+  const aliadas = new Map(
+    resAliadas.error || !resAliadas.data
+      ? idClaure
+        ? [[idClaure, { nombre: (resEmpresas.data ?? []).find((e) => e.id === idClaure)?.nombre ?? "CLAURE", entra: true }]]
+        : []
+      : resAliadas.data.map((a) => [a.id, { nombre: a.nombre, entra: a.entra }] as const),
+  );
 
   const sedesDeCampana = new Map<string, string[]>();
   // Una lectura que falla deja todas las campañas «en todas las sedes»: lo que se ve es lo de siempre, y guardar no pisa nada que no se vio.
@@ -200,7 +212,7 @@ export async function cargarEtiquetasPantalla({
       referencia: v.producto?.referencia ?? undefined,
       // Su talla: la hoja de una oferta deja elegir tallas sueltas de un modelo (ADR-0682).
       talla: v.talla?.valor ?? null,
-      deClaure: idClaure !== null && v.producto?.empresa_id === idClaure,
+      ...duenaEnCampanas(v.producto?.empresa_id ? aliadas.get(v.producto.empresa_id) : undefined),
       insignias: [...new Set([...(manualesPorPrenda.get(v.id) ?? []), ...(v.producto?.categoria_id ? (insigniasPorCategoria.get(v.producto.categoria_id) ?? []) : [])])],
     };
   });
@@ -256,6 +268,12 @@ export async function cargarEtiquetasPantalla({
 }
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+/** Lo que una prenda dice de su dueña para una oferta (ADR-0683): de una aliada que entra (solo si la oferta la incluye) o que no entra (nunca). */
+function duenaEnCampanas(a: { nombre: string; entra: boolean } | undefined): { deClaure?: boolean; fueraDeCampanas?: boolean; aliada?: string } {
+  if (!a) return {};
+  return a.entra ? { deClaure: true, aliada: a.nombre } : { fueraDeCampanas: true, aliada: a.nombre };
+}
 
 /** Los nombres y tonos de colores, todas las categorías (con su prefijo, que decide el ícono) y las fotos de cada producto. Los colores
  *  y las categorías incluyen los desactivados: una prenda vieja puede tener uno. Las fotos no lanzan: sin ellas, la prenda sin foto. */
