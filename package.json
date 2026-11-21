@@ -511,6 +511,7 @@
     "pruebas:vendido-por-empresa": "node scripts/pruebas/vendido_por_empresa.mjs",
     "pruebas:claure-cuenta": "node scripts/pruebas/claure_cuenta.mjs",
     "pruebas:empresas-aliadas": "node scripts/pruebas/empresas_aliadas.mjs",
+    "pruebas:aliadas-balance": "node scripts/pruebas/aliadas_balance.mjs",
     "pruebas:fuera-de-cayla": "node scripts/pruebas/fuera_de_cayla.mjs",
     "pruebas:claure-pago": "node scripts/pruebas/claure_pago.mjs",
     "pruebas:claure-cierre": "node scripts/pruebas/claure_cierre.mjs",

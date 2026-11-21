@@ -1,6 +1,6 @@
 # ADR-0683 — Empresas aliadas: se crean, se editan y se dan de baja desde Configuración
 
-- **Fecha:** 2026-11-21 · **Decidió:** Felipe · **Estado:** actividad 1 de 8 construida y probada en local; la migración `20261121152000` **no está en producción** (se pega con las de las actividades 2 a 7: sola, una aliada nueva rompería el Balance con su primera venta).
+- **Fecha:** 2026-11-21 · **Decidió:** Felipe · **Estado:** actividades 1 y 2 de 8 construidas y probadas en local; las migraciones `20261121152000` y `20261121160000` **no están en producción** (se pega con las de las actividades 2 a 7: sola, una aliada nueva rompería el Balance con su primera venta).
 - **Relacionados:** ADR-0463 (empresas CAYLA y CLAURE), ADR-0505 (CLAURE solo en Lima), ADR-0542 (stock por dueño), ADR-0558 / ADR-0560 / ADR-0638 (la cuenta con Claudia y su Yape), ADR-0008 (padrón).
 - **Investigación y maqueta:** `docs/investigacion/2026-11-21-empresas-aliadas-y-boleta-por-ruc.md`, `docs/maquetas/empresas-aliadas-2026-11/`.
 
@@ -50,6 +50,31 @@ SE ROMPE SI el cron no corre: la aliada sigue vendiendo hasta la próxima corrid
 6. Las cifras de CAYLA sin ninguna aliada (Inicio, metas, Rendimiento, Club, Análisis, Impuestos).
 7. Filtros por empresa en toda tienda con más de una (Productos, Existencias, Historial, Comprobantes, Pedidos web, Reportes).
 8. Producción (Felipe pega las migraciones en orden), y el PR.
+
+## Actividad 2 (2026-11-21): el Diario y el Balance con cualquier aliada
+
+El Balance ya sacaba el stock de cualquier dueña que no fuera CAYLA (`fn_bal_stock`), pero el Diario reclasificaba solo lo de CLAURE: la venta de otra
+aliada bajaba la 201 por una prenda que el Balance ya no contaba, y el Balance no se dibujaba. Y las reglas preguntaban `activo`.
+
+- `fn_aliada_ventas(p_empresa, …)` y `fn_aliada_cambios(p_empresa, …)`: la lógica vigente de `fn_claure_ventas` / `fn_claure_cambios`, copiada sin tocar,
+  para cualquier aliada y **sin mirar `activo`**. `fn_aliadas_ventas` / `fn_aliadas_cambios` juntan las de todas las aliadas con cuenta: las lee el Diario
+  (`fn_asientos_claure`, reemplazo anclado de dos nombres).
+- `fn_claure_ventas` / `fn_claure_cambios` quedan con su firma y lo mismo que devuelven, pidiéndoselo a la versión por aliada: Impuestos y la cuenta con
+  Claudia no cambian hasta la actividad 3.
+- `fn_movimiento_es_de_claure` (pérdidas, conteos, producción, carga inicial) responde por cualquier aliada con cuenta; el nombre se queda por sus 7 llamadores.
+- **A una aliada no se le quita una tienda donde ya tiene historia** (vendió, recibió o contó ahí): el Diario la reconoce por sus tiendas, y su pasado allí
+  volvería a ser de CAYLA. Si ya no vende ahí, se le da de baja.
+- La migración no compara huellas md5 (las migraciones pegadas con la herramienta de Supabase pierden sus comentarios): busca trozos de la lógica que copia
+  y, si no los encuentra, no aplica nada.
+
+DECIDÍ una función por aliada y envolturas para CLAURE. DESCARTÉ que `fn_claure_ventas` devuelva las de todas: la línea «de eso, CLAURE» de Impuestos y la
+cuenta con Claudia sumarían ventas de otra dueña. SE ROMPE SI una migración posterior redefine `fn_asientos_claure` entera con `fn_claure_ventas`: el Diario
+vuelve a ver solo a CLAURE (lo ve `pnpm pruebas:aliadas-balance`, cuya autoprueba deshace justo eso).
+
+Verificación: en una copia desechable de la base local puesta al día con `main` (`ensayo_aliadas`; la compartida no se tocó), `pnpm pruebas:aliadas-balance`
+11/11, `pruebas:balance-claure` 16/16, las 18 `pruebas:claure-*`, `fuera-de-cayla` 52/52 e `igv-ventas` 26/26. `finanzas-alcance` y `redondeo-efectivo`
+fallan igual con y sin esta migración en esa copia (le faltan migraciones de producción), así que no son de aquí; el CI las corre contra la base completa.
+`claure_igv_lo_pone_cayla.mjs` suma el deshacer de este cambio antes de volver a pegar la suya.
 
 ## Verificación
 

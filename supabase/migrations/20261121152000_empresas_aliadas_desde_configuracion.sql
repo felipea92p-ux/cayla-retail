@@ -223,6 +223,11 @@ begin
         raise exception 'En «%» todavía hay prendas suyas: sácalas o véndelas antes de quitarle esa tienda.', (select u.nombre from retail.ubicaciones u where u.id = v_sede)
           using errcode = 'P0001', hint = 'sedes';
       end if;
+      -- Con historia ahí (vendió, recibió o contó), la tienda se queda: el Diario reconoce lo suyo por las tiendas donde opera (ADR-0683, actividad 2).
+      if exists (select 1 from retail.movimientos m where m.empresa_id = v_id and m.ubicacion_id = v_sede) then
+        raise exception 'En «%» ya tiene historia: no se le quita esa tienda. Si ya no vende, dale de baja.', (select u.nombre from retail.ubicaciones u where u.id = v_sede)
+          using errcode = 'P0001', hint = 'sedes';
+      end if;
       delete from retail.empresa_sedes es where es.empresa_id = v_id and es.ubicacion_id = v_sede;
     end if;
   end loop;

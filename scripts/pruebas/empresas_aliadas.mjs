@@ -185,6 +185,18 @@ reset role;
 select count(*) from retail.empresa_sedes es join retail.empresas e on e.id = es.empresa_id where e.clave = 'aliada_prueba';`),
   da("1"),
 );
+esperar(
+  "no se le quita una tienda donde ya tiene historia (sus movimientos de ahí siguen siendo suyos)",
+  caso(`${sesion(ADMIN)}\nselect ${crear(RUC_A, "mype", `${TRU}, ${LIM}`)};
+reset role;
+select set_config('t.aliada', (select id::text from retail.empresas where clave = 'aliada_prueba'), true);
+alter table retail.movimientos disable trigger user;
+insert into retail.movimientos (variante_id, ubicacion_id, tipo, cantidad, motivo, empresa_id) values ((select id from retail.variantes limit 1), ${LIM}, 'entrada', 1, 'prueba', current_setting('t.aliada')::uuid);
+alter table retail.movimientos enable trigger user;
+${sesion(ADMIN)}
+select retail.guardar_empresa_aliada(current_setting('t.aliada')::uuid, 'Aliada Prueba', '${RUC_A}', null, 'mype', null, null, array[${TRU}]::uuid[]);`),
+  fallaCon("ya tiene historia"),
+);
 esperar("CAYLA no se edita como aliada", caso(`${sesion(ADMIN)}\nselect retail.guardar_empresa_aliada(retail.fn_empresa_casa_id(), 'CAYLA', '${RUC_A}', null, 'general', null, null, array[${TRU}]::uuid[]);`), fallaCon("CAYLA se edita"));
 
 // 8. Leerlas
