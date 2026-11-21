@@ -9,6 +9,7 @@
 | Fecha | Corrida | Leyes | Oficio | Qué cambió |
 |---|---|---|---|---|
 | 2026-10-10 | rápido (solo medir) | sin calificar | sin calificar | Análisis pasa de tallas sueltas a modelos (ADR-0357 decisión 12) |
+| 2026-11-21 | completa: medir + ciega (1 agente, Sonnet, sobre capturas) | 7,6 | 7 | La cara B (ADR-0357 act. 2026-11-21): una respuesta por pregunta, filtros, «No se vende» sin «Liquidar», ficha en tres bloques. 3 cambios propuestos, esperan el OK de Felipe |
 
 ## Medido (pestaña «Nunca salió al piso», datos de la base local, Tienda Lima)
 - **1440 × 900:** sin desborde ni huecos fuera de escala. Dentro de Análisis: el «?» de ayuda de cada grupo del carril mide 18 × 18 (< 24 con
@@ -25,3 +26,67 @@
 
 ## Lo que falta para calificar
 Prueba ciega (¿se entiende «2 colores · S, M, L» y «Falta L Beige» sin explicar?), una encargada real, y el escéptico sobre los hallazgos.
+
+## 2026-11-21 · la cara B «Una respuesta por pregunta» · rama `claude/analisis-design-improvement-6bc529` (sobre 720ba1ad8)
+
+- **Dispositivo que manda:** escritorio (Mac mini). **Pregunta que debería resolver:** ¿qué compro ya, qué no se vende, qué nadie vio y qué pido para la campaña?
+- **Corrida:** completa, con **1 agente** (el ciego). Medición, revisión de leyes y escéptico, a mano. Antes corrió `/milimetro auditar`
+  (`docs/milimetro/auditorias/2026-11-21-analisis-b.md`: 3 graves corregidos, 0 abiertos).
+
+### Medido (página de prueba local, datos inventados; `medir-oficio.js` a 1440, 1024 y 375 en las cinco pestañas y la ficha)
+- Sin desborde ni huecos fuera de la escala de 4, a los tres anchos. Contraste: 0 fallas (después de los arreglos de `/milimetro`).
+- Blancos bajo 24 px que son de esta pantalla: «Movimientos» al pie de la ficha (81 × 20 px) y el chip «Datos confiables» (145 × 22 px). El «?» de 18 px va
+  dentro de una frase (excepción de 2.5.8).
+- Rojo: en «Se acaba» la respuesta y el número de cada tarjeta van en rojo (estado urgente, como lo eligió Felipe en la maqueta); en la ficha de algo
+  que se acaba el medidor cuenta hasta 10 rojos a la vista.
+- Letra chica de 10–11 px: solo la cabecera, el globito de las pestañas y los rótulos «PRENDA»/«VENTAS» del panel de filtros (piezas del sistema).
+- Bordes que no calzan por 2–3 px entre las pestañas y el buscador (leve).
+
+### Prueba ciega (Observado) — 1 agente Sonnet, sobre 9 capturas, datos inventados, sin el repo
+Tarea, en palabras de tienda: «Dime qué prendas tenemos que comprar ya porque se nos están acabando, y elige una prenda que lleve mucho tiempo sin
+venderse y dime qué harías con ella».
+
+| Medida | Resultado | ¿Pasa? |
+|---|---|---|
+| Lectura de 5 s | «un resumen de cómo va mi tienda, cuatro preguntas; lo que sigue es tocar "Ver y comprar" o "Se acaba"» | sí |
+| Primer intento | completó las dos partes sin volver atrás | sí |
+| Pasos | 4 pantallas (01 → Se acaba → No se vende → la ficha): el mínimo | sí |
+| Dudas | 5: «Se acaba» frente a «Qué pedir» (para ella «lo que se acaba ya es lo que hay que pedir»); si «Comprar» compra o lleva a otra pantalla; «Frescura del piso»; en la ficha de lo que no se vende, ningún botón le dijo qué hacer; la pestaña frente a «Ver y comprar» | 5 hallazgos |
+| Palabras no entendidas | «Frescura del piso»; las demás las interpretó bien («Parados S/ 576», «su tipo se vende antes de 60 días», «modelos», «Datos confiables», «Van lentas») | 1 |
+| Errores evitables | ninguno | sí |
+
+También dijo que la leyenda de la tabla («vendido y sin stock», «te queda», «no hay») parecía botones, y que no supo qué cambia en la lista el «− 60 +».
+**Real: sin probar** (falta una encargada de sede con su equipo).
+
+### Notas (0–10)
+| Ley | Nota | Evidencia |
+|---|---|---|
+| 1 Sin manual | 8 | Ciega a la primera, en el mínimo de pasos; real sin probar (tope 8) |
+| 2 Una pregunta, una respuesta | 7 | Cada pestaña abre con su respuesta; pero «Se acaba» y «Qué pedir» se leen como la misma pregunta |
+| 3 Simplicidad profunda | 8 | Veredictos y cifras entendidos sin explicación («Parados», «su tipo se vende antes de…») |
+| 4 Lenguaje de tienda | 7 | «Frescura del piso» es el nombre de un módulo, no una palabra de tienda |
+| 5 Contenido primero | 8 | Miniaturas y cifras grandes mandan; los marcos se retiran |
+| 6 Lo difícil, a un toque | 7 | El «?» existe pero no se reconoce como algo que se toca (pieza del sistema) |
+| 7 Perdonar antes que preguntar | 8 | Nada irreversible; «Guardar para todos» pregunta en su hoja. «Comprar» no dice que solo lleva a otra pantalla |
+| 8 Quitar antes de agregar | 8 | Se fueron las cintas, «Liquidar», el bloque de dinero y la edad del inventario |
+| 9 De punta a punta | 8 | Vacíos, datos incompletos, 375 y oscuro revisados; la guía recorrida |
+| **Total** | **7,6** | |
+| Oficio visual | 7 | 0 contraste, 0 desborde; 2 blancos < 24 px, rojos densos en «Se acaba», bordes de 2–3 px |
+
+### Los 3 cambios propuestos (esperan el OK de Felipe; no se tocó nada)
+1. **«Se acaba» y «Qué pedir» dicen su plazo** (leyes 2 y 1). Antes: «5 modelos · se acaban en 2 semanas o menos» y «5 tipos · no te alcanzan hasta
+   Navidad». Después: la frase de «Se acaba» empieza por lo que toca hoy («cómpralos ya: se acaban en 2 semanas o menos») y la de «Qué pedir» por la
+   campaña («para la campaña: 5 tipos no te alcanzan hasta Navidad»); los botones de «Hoy» pasan a «Comprar ya» y «Preparar el pedido». Los nombres
+   de las pestañas no cambian (Felipe: «Qué pedir», nunca «Para Navidad»). Se verifica repitiendo la ciega: que no dude entre las dos.
+2. **«Comprar» dice que lleva a otra pantalla** (leyes 1 y 7). Antes: «Comprar», sin flecha, en cada tarjeta y en la ficha. Después: «Comprar» con la
+   flecha de `<BotonVer>` (la pieza de «ver en otra pantalla», ADR-0358), igual que «Ver en Existencias». Se verifica con la ciega.
+3. **«Frescura del piso» en palabras de tienda** (ley 4). Antes: el botón de la respuesta de «No se vende» dice el nombre del módulo. Después: «Ver todo
+   el piso», con el nombre del módulo en su `title`. Se verifica con la ciega: que lo entienda.
+
+**Lo que sobra (ley 8):** la leyenda de la tabla de la ficha en forma de píldoras parece botones; bastaría el punto de color con su palabra, sin fondo.
+**Lo que Felipe no pidió y importa más:** en la ficha de algo que no se vende, la persona no encuentra qué hacer («no sé si el sistema me deja hacer
+algo más»). Es lo que Felipe eligió (sin «Liquidar»: decide la persona), pero quizá convenga una línea que nombre sus caminos (rebajarla, mandarla a
+otra tienda o esperar) sin empujar ninguno. Decide Felipe.
+
+**Lista aparte (sin ejecutar):** «Movimientos» de la ficha y el chip «Datos confiables» a 24 px; el «− 60 +» no dice qué cambia en la lista; menos rojo
+en las tarjetas de «Se acaba» (el número podría ir en tinta y solo la respuesta en rojo: va contra la maqueta elegida, decide Felipe).

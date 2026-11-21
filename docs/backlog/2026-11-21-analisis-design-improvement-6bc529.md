@@ -1,0 +1,26 @@
+## 📊 Análisis, la cara B «Una respuesta por pregunta» (2026-11-21, ADR-0357 act. 2026-11-21) — solo web, sin migración; rama `claude/analisis-design-improvement-6bc529`
+
+- [x] Maqueta con tres caras y datos inventados; Felipe eligió la B (`docs/maquetas/analisis-claro-2026-11/`)
+- [x] Ficha al milímetro de la cara B (`docs/milimetro/analisis-b.md`)
+- [x] Barra de filtros común (buscador, Tipo, Talla, Color, Precio, Viene de, Sin venderse) y «Ordenar por» por pestaña
+- [x] «Se acaba», «No se vende» (sin «Liquidar»), «Sin salir» y «Qué pedir» con su respuesta y sus tarjetas
+- [x] «Hoy» con las cuatro respuestas; pestañas con nombres cortos; se fue el flujo de cintas (y el único bucle de Análisis)
+- [x] La ficha de la prenda en tres bloques (veredicto + tres cifras, ventas por semana, talla y color); la hoja de un tipo con la misma cabecera
+- [x] Guía interactiva al día (23 pasos, cuatro de la ficha) y recorrida en escritorio, 375 oscuro e ida y vuelta
+- [x] `/milimetro auditar`: 3 graves corregidos («o pedir a» a 24 px, borde del paso de días, «te queda» a 4,5:1)
+- [x] `/formidable`: 7,6 · oficio 7; ciega a la primera (`docs/formidable/inventario-resumen.md`)
+- [ ] **Los 3 cambios de `/formidable`, esperan el OK de Felipe:**
+  - «Se acaba» y «Qué pedir» dicen su plazo («cómpralos ya» frente a «para la campaña»);
+  - «Comprar» lleva la flecha de «ver en otra pantalla»;
+  - «Frescura del piso» pasa a «Ver todo el piso».
+- [ ] **Decide Felipe:** ¿la ficha de algo que no se vende nombra sus caminos (rebajarla, mandarla a otra tienda, esperar) sin empujar ninguno? La ciega no supo qué hacer con ella.
+- [ ] Lista aparte de `/formidable`:
+  - «Movimientos» y el chip «Datos confiables» a 24 px;
+  - el «− 60 +» no dice qué cambia en la lista;
+  - menos rojo en las tarjetas de «Se acaba» (va contra la maqueta elegida).
+- [ ] Probar con una encargada real, en su equipo
+- [ ] `/chaos` de la única escritura («Guardar para todos» de «Sin venderse desde», `HojaLiquidarDesde`)
+- [ ] `seed-demo.sql` no corre: pide `productos.sku_padre`, que ya no existe (sin datos de demostración para una prueba local)
+- [ ] Sigue de antes:
+  - «Qué pedir» contra Navidad fija o contra el Plan de campaña (decide Felipe antes de diciembre);
+  - la curva de tallas de la hoja de un tipo todavía no suma lo vendido sin registrar.
