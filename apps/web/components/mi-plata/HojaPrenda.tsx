@@ -144,7 +144,7 @@ export function HojaPrenda({
   );
 
   return (
-    <Modal titulo={nueva ? "Algo nuevo" : h.nombre} subtitulo={nueva ? `De ${nueva.proveedor} · solo una referencia` : detalle} onClose={onClose} variante="hoja" antesDeCerrar={salida.pedirAccion}>
+    <Modal titulo={nueva ? "Anotar una prenda" : h.nombre} subtitulo={nueva ? `De ${nueva.proveedor} · solo una referencia` : detalle} onClose={onClose} variante="hoja" antesDeCerrar={salida.pedirAccion}>
       {(cerrar) => (
         <form
           className="space-y-4"
