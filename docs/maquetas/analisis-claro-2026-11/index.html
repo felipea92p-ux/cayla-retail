@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Análisis más claro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Gestión ▸ Análisis, más claro (2026-11-21)
+   Pedido: «un diseño mejor, más intuitivo, amigable, para que cualquier persona que ingrese pueda entenderlo; propuestas antes de modificar».
+   Tres caras sobre el marco elegido (vidrio-base-2026-10) y «Así está hoy» con capturas de la pantalla real dibujada con los MISMOS datos
+   inventados (el repo es público). Solo tokens; colores de prenda = dato (tema-fijo). Sin rebote ni bucle; con «Animaciones: apagadas»
+   (como arranca el ERP, ADR-0625) nada se mueve.
+   ==================================================================== */
+:root{--ok:var(--verde)}
+[data-mov="quieto"] .cont *,[data-mov="quieto"] .an-capa *{animation:none!important;transition-duration:.01ms!important}
+.an{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;padding-bottom:40px}
+.an-ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.an-ic.g{width:20px;height:20px}
+.entra{animation:sube .5s var(--ease) backwards;animation-delay:calc(var(--i,0) * 45ms)}
+
+/* ---------- cabecera (EncabezadoPagina, con el buscador a la derecha) ---------- */
+.an-cab{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 32px}
+.an-cab .ep-titulo{display:flex;align-items:center;gap:10px}
+.an-cab .ep-titulo .ayuda{width:22px;height:22px;font-size:12px;vertical-align:0;margin:0}
+.pozo{display:flex;align-items:center;gap:10px;height:44px;width:min(300px,100%);padding:0 16px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);color:var(--t65);font-size:14px}
+[data-tema="oscuro"] .pozo{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pozo kbd{margin-left:auto;padding:0 8px;border-radius:99px;border:1px solid var(--t25);font:600 11px/18px 'DM Sans';color:var(--t65)}
+
+/* ---------- pestañas de vista (Pestanas: el vidrio en mayúsculas) ---------- */
+.pst{justify-self:start;width:max-content;display:inline-flex;flex-wrap:wrap;gap:4px;padding:4px;border-radius:999px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:color-mix(in srgb,var(--tinta) 4%,transparent);max-width:100%}
+.pst button{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 16px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);white-space:nowrap}
+.pst button[aria-selected="true"]{color:var(--tinta);border:1px solid var(--borde)}
+.pst button[aria-selected="true"]{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 16px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"] .pst button[aria-selected="true"]{background:color-mix(in srgb,var(--tinta) 14%,transparent)}
+@media (hover:hover){.pst button:not([aria-selected="true"]):hover{color:var(--tinta);background:var(--t06)}}
+.glb{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:0;background:var(--t12);color:var(--t80);font-variant-numeric:tabular-nums}
+.glb.rojo{background:color-mix(in srgb,var(--rojo) 18%,transparent);color:var(--rojo)}
+.glb.ambar{background:color-mix(in srgb,var(--ambar) 18%,transparent);color:var(--ambar)}
+.glb.pizarra{background:color-mix(in srgb,var(--pizarra) 18%,transparent);color:var(--pizarra)}
+.glb.verde{background:color-mix(in srgb,var(--verde) 18%,transparent);color:var(--verde)}
+
+/* ---------- placa (un bloque que explica) y chips ---------- */
+.placa{border-radius:24px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 62%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--tinta) 5%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 8%,transparent)}
+.chip{display:inline-flex;align-items:center;gap:7px;height:24px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;background:var(--t06);color:var(--t80);white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.rojo{background:color-mix(in srgb,var(--rojo) 14%,transparent);color:var(--rojo)}
+.chip.ambar{background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar)}
+.chip.verde{background:color-mix(in srgb,var(--verde) 16%,transparent);color:var(--verde)}
+.chip.pizarra{background:color-mix(in srgb,var(--pizarra) 16%,transparent);color:var(--pizarra)}
+.tit-s{font-family:'EB Garamond',serif;font-weight:500;font-size:21px;line-height:1.2;display:flex;align-items:center;gap:10px}
+.vs-t{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--t65)}
+.btn.chico{height:36px;padding:0 14px;font-size:13.5px}
+.enl{font-size:13.5px;font-weight:500;color:var(--tinta);text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:3px;white-space:nowrap}
+@media (hover:hover){.enl:hover{color:var(--rojo-p);text-decoration-color:var(--rojo)}}
+
+/* ---------- la prenda sin foto (MosaicoPrenda): el ícono de su categoría sobre el color de la prenda ---------- */
+.tile{display:grid;place-items:center;flex:none;width:var(--t,44px);height:var(--t,44px);border-radius:12px;background:var(--hx);color:var(--crema-fija);border:1px solid color-mix(in srgb,var(--tinta) 10%,transparent)}
+.tile.claro{color:var(--tinta-fija)}
+.tile svg{width:58%;height:58%;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+
+/* ---------- el aviso de datos incompletos (Aviso tono atención) ---------- */
+.aviso{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:14px 18px;border-radius:18px;border:1px solid color-mix(in srgb,var(--ambar) 35%,transparent);
+  background:color-mix(in srgb,var(--ambar) 9%,transparent);position:relative;overflow:hidden}
+.aviso::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--ambar)}
+.aviso b{color:var(--ambar)}
+.aviso span{flex:1;min-width:14rem;color:var(--t80)}
+
+/* ---------- la barra fina (BarraAvance fina): la única forma de gráfico de la cara A ---------- */
+.bar{position:relative;display:block;height:6px;border-radius:99px;background:color-mix(in srgb,var(--tinta) 9%,transparent);overflow:hidden} /* beige-fijo: pista de un gráfico */
+.bar i{position:absolute;left:0;top:0;bottom:0;width:calc(var(--p) * 100%);border-radius:inherit;background:var(--c,var(--tinta));transform-origin:left;animation:dibuja-x .8s var(--ease) .2s backwards}
+
+/* ====================================================================
+   CARA A · Tu lista de hoy: lo que hay que HACER, agrupado por verbo
+   ==================================================================== */
+.verbos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.verbo{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:16px 18px 14px;border-radius:20px;text-align:left;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 62%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));transition:transform .25s var(--ease),border-color .2s}
+[data-tema="oscuro"] .verbo{background:color-mix(in srgb,var(--tinta) 5%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+@media (hover:hover){.verbo:hover{transform:translateY(-2px);border-color:var(--borde)}}
+/* la que filtra, puesta, se HUNDE (TarjetaCifra · Placa Serena): estás adentro de ese filtro */
+.verbo[aria-pressed="true"]{transform:none;border-color:color-mix(in srgb,var(--borde) 70%,transparent);background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 16%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent)}
+[data-tema="oscuro"] .verbo[aria-pressed="true"]{background:color-mix(in srgb,var(--sombra) 34%,transparent)}
+.verbo .vn{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--c)}
+.verbo .vn .lente{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:color-mix(in srgb,var(--c) 14%,transparent)}
+.verbo .vv{display:flex;align-items:baseline;gap:8px;margin-top:8px}
+.verbo .vv b{font-family:'EB Garamond',serif;font-weight:600;font-size:40px;line-height:1;font-variant-numeric:lining-nums tabular-nums}
+.verbo .vv span{font-size:14px;color:var(--taupe)}
+.verbo .vc{font-size:13px;color:var(--t65)}
+.grupo{padding:6px 0 4px}
+.grupo-cab{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:16px 22px 10px}
+.grupo-cab .tit-s .lente{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent)}
+.grupo-cab .acc{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fila{display:grid;grid-template-columns:48px minmax(200px,.9fr) minmax(0,1.4fr) auto;align-items:center;gap:6px 18px;width:100%;padding:12px 22px;text-align:left;border-top:1px solid color-mix(in srgb,var(--tinta) 7%,transparent);
+  transition:background .2s}
+@media (hover:hover){.fila:hover{background:color-mix(in srgb,var(--tinta) 3.5%,transparent)}}
+.fila .nm b{display:block;font-size:15px;font-weight:600;line-height:1.3}
+.fila .nm span{display:block;font-size:14px;color:var(--t65)}
+.fila .pq{display:grid;gap:6px;min-width:0}
+.fila .pq .dato{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:600;color:var(--c,var(--tinta))}
+.fila .pq .mas{font-size:13.5px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fila .bot{display:flex;align-items:center;justify-content:flex-end;gap:12px}
+.fila.tenue .nm,.fila.tenue .pq{opacity:.75}
+.vigilar{display:flex;align-items:center;gap:10px;padding:14px 22px;border-top:1px solid color-mix(in srgb,var(--tinta) 7%,transparent);font-size:14px;color:var(--t65)}
+.vigilar .an-ic{color:var(--t50)}
+
+/* ====================================================================
+   CARA B · Una respuesta por pregunta (las 5 pestañas de hoy, cada una abre con su respuesta)
+   ==================================================================== */
+.resp4{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.resp{display:flex;flex-direction:column;gap:14px;padding:22px 24px;text-align:left;min-height:220px}
+.resp .q{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.resp .r{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px}
+.resp .r b{font-family:'EB Garamond',serif;font-weight:500;font-size:52px;line-height:.95;font-variant-numeric:lining-nums tabular-nums;color:var(--c,var(--tinta))}
+.resp .r span{font-size:16px;color:var(--t80)}
+.pila{display:flex;align-items:center}
+.pila .tile{--t:44px;border:2px solid var(--papel);margin-right:-8px;box-shadow:0 4px 10px -6px color-mix(in srgb,var(--sombra) 40%,transparent)}
+.pila .mas{margin-left:16px;font-size:13.5px;color:var(--t65)}
+.resp .pie{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.respuesta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 24px;padding:24px 26px}
+.respuesta .r b{font-family:'EB Garamond',serif;font-weight:500;font-size:46px;line-height:1;color:var(--c,var(--tinta))}
+.respuesta .r span{display:block;margin-top:6px;font-size:16px;color:var(--t80)}
+.tarjetas{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.tarj{display:grid;grid-template-columns:72px minmax(0,1fr);gap:12px 16px;padding:16px;text-align:left;border-radius:20px}
+.tarj .tile{--t:72px;border-radius:16px}
+.tarj .nm b{display:block;font-size:15px;font-weight:600}
+.tarj .nm span{display:block;font-size:13.5px;color:var(--t65)}
+.tarj .gr{display:flex;align-items:baseline;gap:6px;margin-top:6px}
+.tarj .gr b{font-family:'EB Garamond',serif;font-weight:600;font-size:30px;line-height:1;color:var(--c,var(--tinta));font-variant-numeric:lining-nums tabular-nums}
+.tarj .gr span{font-size:13.5px;color:var(--t65)}
+.tarj .ab{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--tinta) 7%,transparent)}
+.tarj .ab .mas{font-size:13px;color:var(--t65)}
+
+/* ====================================================================
+   CARA C · La vitrina: todos los modelos de tu tienda, en repisas por cómo van
+   ==================================================================== */
+.fil{display:flex;flex-wrap:wrap;gap:8px}
+.fil button{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 14px;border-radius:999px;border:1px solid var(--borde);font-size:13.5px;font-weight:500;color:var(--tinta)}
+.fil button .pto{width:8px;height:8px;border-radius:50%;background:var(--c,var(--t50))}
+.fil button[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.fil button[aria-pressed="true"] .glb{background:color-mix(in srgb,var(--crema) 18%,transparent);color:var(--crema)}
+.repisa{display:grid;gap:14px}
+.repisa-cab{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px}
+.repisa-cab .tit-s::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--c)}
+.vitrina{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:16px}
+.vit{position:relative;display:flex;flex-direction:column;text-align:left;border-radius:20px;overflow:hidden;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 62%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));transition:transform .25s var(--ease),box-shadow .25s}
+[data-tema="oscuro"] .vit{background:color-mix(in srgb,var(--tinta) 5%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+@media (hover:hover){.vit:hover{transform:translateY(-3px);box-shadow:0 18px 30px -22px color-mix(in srgb,var(--sombra) 55%,transparent)}}
+.vit .foto{position:relative;aspect-ratio:4/5;display:grid;place-items:center;background:var(--hx);color:var(--crema-fija)}
+.vit .foto.claro{color:var(--tinta-fija)}
+.vit .foto svg{width:42%;height:42%;stroke:currentColor;fill:none;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+.vit .foto::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,color-mix(in srgb,var(--sombra) 22%,transparent))}
+/* la etiqueta colgada: el dato de la prenda, en el color de cómo va */
+.etq{position:absolute;z-index:1;left:12px;top:12px;display:inline-flex;align-items:center;gap:6px;max-width:calc(100% - 24px);padding:5px 10px 5px 16px;border-radius:6px 10px 10px 6px;
+  background:var(--papel);color:var(--c);font-size:12.5px;font-weight:700;box-shadow:0 6px 14px -8px color-mix(in srgb,var(--sombra) 60%,transparent);white-space:nowrap}
+.etq::before{content:"";position:absolute;left:6px;top:50%;width:5px;height:5px;margin-top:-2.5px;border-radius:50%;background:var(--crema);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 30%,transparent)}
+.vit .pie{display:grid;gap:2px;padding:12px 14px 14px}
+.vit .pie b{font-size:14.5px;font-weight:600}
+.vit .pie span{font-size:13px;color:var(--t65)}
+.vit .accion{margin-top:8px;display:flex;align-items:center;gap:8px}
+.vit.bien .foto{filter:saturate(.75)}
+
+/* ====================================================================
+   QUÉ PEDIR: lo mismo medido (¿te alcanza cada tipo hasta Navidad?), dibujado como cada cara.
+   A · una lista por lo que toca hacer · B · la respuesta en grande y una tarjeta por tipo · C · el tendedero hasta Navidad
+   ==================================================================== */
+/* el tipo de prenda: su ícono sobre el color de cómo va (no es una prenda, no lleva color de dato) */
+.tt{display:grid;place-items:center;flex:none;width:var(--t,44px);height:var(--t,44px);border-radius:12px;color:var(--c,var(--tinta));
+  background:color-mix(in srgb,var(--c,var(--tinta)) 12%,var(--papel));border:1px solid color-mix(in srgb,var(--c,var(--tinta)) 24%,transparent);transition:transform .25s var(--ease),box-shadow .25s}
+.tt svg{width:58%;height:58%;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.tarj .tt{border-radius:16px}
+.pila .tt{border:2px solid var(--papel);margin-right:-8px;background:color-mix(in srgb,var(--c) 14%,var(--papel))}
+.nav-linea{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--t80)}
+.nav-linea .lente{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--t06);color:var(--tinta)}
+.nav-linea b{color:var(--tinta)}
+.verbos.tres{grid-template-columns:repeat(3,minmax(0,1fr))}
+.otros{display:flex;flex-wrap:wrap;align-items:center;gap:10px 24px;padding:16px 22px;font-size:14px;color:var(--t65)}
+.otros > span{display:inline}
+.otros b{color:var(--tinta);font-weight:600}
+.rinde .vermas{border-top:0}
+/* C · el tendedero: hoy a la izquierda, Navidad a la derecha; cada tipo cuelga el día en que se acaba */
+.tend{padding:20px 24px 22px}
+.tend-cab{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px}
+.cuerda{position:relative;height:var(--alto);margin:22px 72px 0}
+.cuerda .linea{position:absolute;left:-48px;right:-48px;top:30px;height:2px;border-radius:2px;background:color-mix(in srgb,var(--tinta) 22%,transparent)}
+.cuerda .despues{position:absolute;top:30px;bottom:0;right:-48px;border-left:1.5px dashed var(--t50);background:color-mix(in srgb,var(--verde) 6%,transparent);border-radius:0 0 14px 0}
+.marca{position:absolute;top:0;translate:-50% 0;display:inline-flex;align-items:center;gap:5px;height:20px;font-size:12px;font-weight:600;color:var(--t65);white-space:nowrap}
+.marca::after{content:"";position:absolute;left:50%;top:24px;width:2px;height:10px;margin-left:-1px;border-radius:1px;background:color-mix(in srgb,var(--tinta) 22%,transparent)}
+.marca.nav{color:var(--tinta)}
+.marca .an-ic{width:14px;height:14px}
+.colgada{position:absolute;top:31px;width:136px;translate:-50% 0;display:grid;justify-items:center;text-align:center;padding-bottom:6px;border-radius:16px}
+.colgada .fch{display:none}
+/* la caja del colgador baja por la pinza y taparía al vecino: solo la prenda y su nombre se tocan */
+.colgada{pointer-events:none}.colgada .tt,.colgada .txt{pointer-events:auto}
+.colgada .pinza{position:relative;width:2px;height:var(--largo);background:color-mix(in srgb,var(--tinta) 22%,transparent)}
+.colgada .pinza::before{content:"";position:absolute;left:50%;top:-4px;width:8px;height:12px;margin-left:-4px;border-radius:2px;background:var(--taupe)} /* la pinza */
+.colgada .tt{border-radius:16px}
+.colgada .txt{display:grid;justify-items:center;gap:4px;margin-top:8px}
+.colgada .txt b{font-size:14.5px;font-weight:600;line-height:1.2}
+.etq-t{display:inline-flex;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;color:var(--c);background:color-mix(in srgb,var(--c) 13%,var(--papel));white-space:nowrap}
+.colgada[aria-pressed="true"] .tt{box-shadow:0 0 0 3px var(--papel),0 0 0 5px var(--tinta)}
+@media (hover:hover){.colgada:hover .tt{transform:translateY(-2px)}}
+.sep-nav{display:none}
+.otros-c{margin-top:8px;padding-top:14px;border-top:1px solid color-mix(in srgb,var(--tinta) 7%,transparent);font-size:14px;color:var(--t65)}
+.c-sel{display:grid;grid-template-columns:minmax(320px,400px) minmax(0,1fr);gap:16px;align-items:start}
+.c-sel > .placa{padding:20px 22px;display:grid;gap:16px}
+.c-sel .acc{display:flex;flex-wrap:wrap;gap:10px}
+.tallas{display:grid;gap:10px}
+.talla{display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:12px;font-size:14px}
+.talla b{font-family:'EB Garamond',serif;font-size:22px;font-weight:500}
+.talla .dos{display:grid;gap:4px}
+.talla .dos .bar{height:8px}
+.talla small{font-size:13px;color:var(--t65);white-space:nowrap}
+.leyenda{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--t65)}
+.leyenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px;background:var(--c)}
+.top5{display:grid;gap:2px}
+.top5 button{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:12px;padding:8px 0;text-align:left}
+.top5 .tile{--t:36px;border-radius:10px}
+.top5 b{font-size:14.5px;font-weight:600}
+.top5 span{font-size:13px;color:var(--t65)}
+.vermas{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:46px;border-top:1px solid color-mix(in srgb,var(--tinta) 7%,transparent);font-size:14px;color:var(--taupe)}
+
+/* ====================================================================
+   LOS FILTROS (iguales en las tres caras y en las dos vistas): Buscador, DesplegablePildora y BotonLimpiar; en el celular, BotonFiltros y su hoja
+   ==================================================================== */
+.barra-f{position:relative;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.busca{display:flex;align-items:center;gap:10px;height:44px;flex:0 1 360px;min-width:260px;padding:0 6px 0 16px;border-radius:999px;color:var(--t65);
+  border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);transition:background .2s,border-color .2s}
+[data-tema="oscuro"] .busca{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.busca:focus-within{border-color:var(--tinta);background:var(--papel)}
+.busca input{flex:1;min-width:0;height:100%;border:0;background:none;font:inherit;font-size:14.5px;color:var(--tinta);outline:none}
+.busca input::placeholder{color:var(--t65)}
+.busca kbd{margin-right:8px;padding:0 8px;border-radius:99px;border:1px solid var(--t25);font:600 11px/18px 'DM Sans';color:var(--t65)}
+.busca-x{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;color:var(--t80)}
+@media (hover:hover){.busca-x:hover{background:var(--t06)}}
+.pfs{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.pf-caja{position:relative;display:inline-flex}
+.pf{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--borde);font-size:13.5px;font-weight:500;color:var(--tinta);white-space:nowrap;transition:background .2s,border-color .2s}
+.pf .an-ic{color:var(--t65)}
+.pf .chev{width:14px;height:14px}
+@media (hover:hover){.pf:not(.puesta):hover{border-color:var(--tinta)}}
+.pf[aria-expanded="true"]{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta)}
+.pf.puesta{background:var(--tinta);color:var(--crema);border-color:var(--tinta);padding-right:42px}
+.pf.puesta .an-ic{color:var(--crema)}
+.pf.puesta .glb{background:color-mix(in srgb,var(--crema) 20%,transparent);color:var(--crema)}
+.pf.chica{height:34px;padding:0 12px;gap:6px}
+.pf-x{position:absolute;right:5px;top:50%;translate:0 -50%;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;color:var(--crema)}
+.pf-x .an-ic,.pf.chica .an-ic{width:14px;height:14px}
+@media (hover:hover){.pf-x:hover{background:color-mix(in srgb,var(--crema) 18%,transparent)}}
+.limpiar{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px;border-radius:999px;border:1px dashed var(--t50);font-size:13.5px;color:var(--t80)}
+@media (hover:hover){.limpiar:hover{border-color:var(--tinta);color:var(--tinta)}}
+.res-linea{position:relative;z-index:4;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin-top:-12px}
+.solo-movil{display:none}
+.solo-movil.pf{width:44px;height:44px;padding:0;justify-content:center;position:relative}
+.solo-movil .glb{position:absolute;top:-4px;right:-4px}
+.cuantos{font-size:14px;color:var(--t65)}
+.cuantos b{color:var(--tinta)}
+/* la lista que se abre: casillas, cuántas habría con cada opción y, si son más de 8, su buscador (ADR-0209) */
+.lf{position:absolute;z-index:30;top:calc(100% + 6px);left:0;min-width:250px;max-height:360px;overflow:auto;padding:6px;border-radius:18px;
+  background:color-mix(in srgb,var(--vidrio) 94%,transparent);-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);
+  border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);box-shadow:0 24px 48px -24px color-mix(in srgb,var(--sombra) 55%,transparent);animation:sube .24s var(--ease)}
+[data-tema="oscuro"] .lf{background:color-mix(in srgb,var(--vidrio) 97%,transparent);border-color:color-mix(in srgb,var(--tinta) 14%,transparent)}
+.lf.derecha{left:auto;right:0}
+.lf-busca{display:flex;align-items:center;gap:8px;height:40px;margin:2px 2px 6px;padding:0 12px;border-radius:12px;background:color-mix(in srgb,var(--tinta) 6%,transparent);color:var(--t65)}
+.lf-busca input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:14px;color:var(--tinta);outline:none}
+.lf-busca input::placeholder{color:var(--t65)}
+.lf-op{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:0 10px;border-radius:12px;font-size:14px;text-align:left;color:var(--tinta)}
+@media (hover:hover){.lf-op:not(:disabled):hover{background:color-mix(in srgb,var(--tinta) 6%,transparent)}}
+.lf-op:disabled{color:var(--t50);cursor:default}
+.lf-op .n{margin-left:auto;padding-left:12px;font-size:13px;color:var(--t65);font-variant-numeric:tabular-nums}
+.casilla{display:grid;place-items:center;flex:none;width:18px;height:18px;border-radius:5px;border:1.5px solid var(--t50)}
+.lf-op[aria-selected="true"] .casilla{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.casilla .an-ic{width:12px;height:12px;stroke-width:3}
+.casilla.redonda{border-radius:50%}
+.pto-color{flex:none;width:14px;height:14px;border-radius:50%;background:var(--hx);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 22%,transparent)}
+.lf-nada{padding:10px;font-size:14px;color:var(--t65)}
+/* nada con lo puesto: dice qué no encontró y deja quitar cada filtro de un toque */
+.vacio{display:grid;justify-items:center;gap:10px;padding:40px 24px;text-align:center}
+.vacio-ic{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:var(--t06);color:var(--t80)}
+.vacio p{font-size:15px;color:var(--t65)}
+.vacio-f{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:4px 0 6px}
+/* la hoja de filtros del celular: todo a la vista en chips */
+.hoja-f{gap:18px}
+.hoja-f .asa{display:none}
+.hf-tit{font-family:'EB Garamond',serif;font-weight:500;font-size:27px;line-height:1.1}
+.hf-g{display:grid;gap:10px}
+.hf-chips{display:flex;flex-wrap:wrap;gap:8px}
+.hf-chip{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--borde);font-size:14px;color:var(--tinta)}
+.hf-chip .n{font-size:12.5px;color:var(--t65)}
+.hf-chip[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.hf-chip[aria-pressed="true"] .n{color:color-mix(in srgb,var(--crema) 75%,transparent)}
+.hf-chip:disabled{opacity:.45}
+.hf-pie{position:sticky;bottom:0;margin:0 -18px -24px;padding:14px 18px 20px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);background:color-mix(in srgb,var(--vidrio) 94%,transparent)}
+.hf-pie .btn{flex:1}
+.ficha.quieta{animation:none}
+/* al filtrar, lo que ya está a la vista no vuelve a entrar en cascada */
+.an.sin-entrada .entra,.an.sin-entrada .bar i,.an.sin-entrada .lf{animation:none}
+
+/* ====================================================================
+   LO QUE NO SE VENDE: solo los datos (días, prendas, plata parada); qué hacer lo decide quien mira (Felipe 2026-11-21)
+   ==================================================================== */
+.fila.ns{grid-template-columns:48px minmax(170px,.8fr) minmax(0,1.2fr)}
+.dato.rojo,.gr b.rojo{color:var(--rojo)!important}
+.ns-cab{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:0 22px 12px}
+.ns-res{font-size:14px;color:var(--t65)}
+.ns-res b{color:var(--tinta);font-weight:600}
+.orden-ns{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;color:var(--t65)}
+.orden-ns button{height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--borde);font-size:13px;color:var(--tinta)}
+.orden-ns button[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.sub-ns{display:flex;align-items:center;gap:8px;padding:14px 22px 6px;border-top:1px solid color-mix(in srgb,var(--tinta) 7%,transparent);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.respuesta .orden-ns{margin-left:auto}
+.sec-t{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:-8px}
+.sec-t .sec-sub{flex:1;font-size:14px;color:var(--t65)}
+.sec-t .sec-sub b{color:var(--tinta);font-weight:600}
+.repisa-cab .ns-res{margin-left:auto}
+
+/* ====================================================================
+   LA FICHA (igual en las tres): una hoja Serena en tres bloques
+   ==================================================================== */
+.an-capa{position:absolute;inset:0;z-index:40;display:flex;justify-content:center;align-items:flex-start;padding:5% 24px 24px;overflow:auto}
+.an-capa .velo{position:fixed}
+.ficha{position:relative;width:min(620px,100%);padding:30px;border-radius:32px;background:color-mix(in srgb,var(--vidrio) 78%,transparent);
+  -webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 50px 90px -40px color-mix(in srgb,var(--sombra) 55%,transparent);animation:enfoca .5s var(--ease) both;display:grid;gap:22px}
+[data-tema="oscuro"] .ficha{background:color-mix(in srgb,var(--vidrio) 88%,transparent);border-color:color-mix(in srgb,var(--tinta) 14%,transparent)}
+.ficha .x{position:absolute;right:18px;top:18px;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;color:var(--t80)}
+.ficha .x{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 16px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+.f-cab{display:grid;grid-template-columns:72px minmax(0,1fr);gap:16px;align-items:center;padding-right:44px}
+.f-cab .tile{--t:72px;border-radius:18px}
+.f-cab h2{font-family:'EB Garamond',serif;font-weight:500;font-size:27px;line-height:1.1}
+.f-cab p{font-size:14px;color:var(--taupe);margin-top:2px}
+.f-ver{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:16px 18px;border-radius:18px;background:color-mix(in srgb,var(--c) 9%,transparent);border:1px solid color-mix(in srgb,var(--c) 28%,transparent)}
+.f-ver b{font-family:'EB Garamond',serif;font-weight:500;font-size:24px;line-height:1.15;color:var(--c)}
+.f-cif{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.f-cif div{padding:12px 14px;border-radius:16px;border:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.f-cif b{display:block;font-family:'EB Garamond',serif;font-weight:600;font-size:24px;line-height:1.1}
+.f-cif span{font-size:13px;color:var(--t65)}
+.sem{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;align-items:end;height:110px}
+.sem div{display:grid;justify-items:center;align-content:end;gap:4px;height:100%;font-size:12px;color:var(--t65)}
+.sem i{display:block;width:100%;max-width:28px;height:calc(var(--h) * 64px);border-radius:6px 6px 3px 3px;background:color-mix(in srgb,var(--tinta) 36%,transparent);transform-origin:bottom;animation:crece .7s var(--ease) backwards;animation-delay:calc(var(--i) * 40ms)}
+.sem div:last-child i{background:var(--tinta)}
+.sem b{font-size:12px;color:var(--tinta)}
+@keyframes crece{from{transform:scaleY(0)}}
+.mat{display:grid;gap:6px;font-size:13px}
+.mat .r{display:grid;grid-template-columns:110px repeat(var(--n),minmax(0,1fr));gap:6px;align-items:center}
+.mat .h{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--t65);text-align:center}
+.mat .col{display:flex;align-items:center;gap:8px;font-weight:600}
+.mat .col i{width:10px;height:10px;border-radius:50%;background:var(--hx);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 20%,transparent)}
+.mat .c{display:grid;place-items:center;height:40px;border-radius:12px;font-size:13px;font-weight:600}
+.mat .c.hay{background:color-mix(in srgb,var(--verde) 12%,transparent);color:var(--verde)}
+.mat .c.falta{background:color-mix(in srgb,var(--rojo) 11%,transparent);color:var(--rojo)}
+.mat .c.nada{border:1px dashed var(--t25);color:var(--t50);font-weight:500}
+.f-pie{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;padding-top:4px}
+.f-pie .izq{margin-right:auto;display:flex;gap:14px;align-items:center}
+
+/* ====================================================================
+   «Así está hoy»: las capturas de la pantalla real
+   ==================================================================== */
+.cap{border-radius:18px;overflow:hidden;border:1px solid var(--t12);box-shadow:0 20px 40px -30px color-mix(in srgb,var(--sombra) 50%,transparent)}
+.cap img{display:block;width:100%;height:auto}
+.nota-hoy{font-size:14px;color:var(--t65);max-width:70ch}
+
+/* ---------- análisis del pie: la comparación ---------- */
+.analisis .tag-a{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;background:color-mix(in srgb,var(--verde) 16%,transparent);color:var(--verde)}
+.analisis .num{font-variant-numeric:tabular-nums;text-align:right}
+
+/* ---------- anchos ---------- */
+@container disp (max-width:1100px){.verbos{grid-template-columns:repeat(2,minmax(0,1fr))}.fila{grid-template-columns:48px minmax(0,1fr) auto}.fila .pq{grid-column:2/3;grid-row:2}.fila .bot{grid-row:1/3;grid-column:3}
+  /* el tendedero no cabe a lo ancho: corre hacia abajo, con la fecha a la izquierda y Navidad como una raya */
+  .cuerda{height:auto;margin:12px 0 0;display:grid}
+  .cuerda .linea,.cuerda .despues,.marca{display:none}
+  .colgada{position:static;translate:none;width:auto;pointer-events:auto;grid-template-columns:64px 48px minmax(0,1fr);align-items:center;justify-items:start;gap:12px;text-align:left;padding:10px 0;border-radius:0;border-top:1px solid color-mix(in srgb,var(--tinta) 7%,transparent)}
+  .colgada .fch{display:block;font-size:13.5px;font-weight:600;color:var(--tinta)}
+  .colgada .pinza{display:none}
+  .colgada .tt{width:48px;height:48px;border-radius:12px}
+  .colgada .txt{justify-items:start;margin-top:0}
+  .sep-nav{display:flex;align-items:center;gap:8px;padding:12px 0;border-top:1.5px dashed var(--t50);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tinta)}
+  .c-sel{grid-template-columns:1fr}
+  .fila.ns{grid-template-columns:48px minmax(0,1fr)}.fila.ns .pq{grid-column:2;grid-row:2}}
+@container disp (max-width:760px){.resp4{grid-template-columns:1fr}.resp .r b{font-size:44px}}
+@container disp (max-width:640px){
+  .an{gap:18px}.an-cab .pozo{width:100%}
+  .verbo .vv b{font-size:32px}.verbo{padding:14px}.verbo .vc{display:none}
+  .fila{grid-template-columns:44px minmax(0,1fr);padding:12px 16px}.fila .bot{grid-column:1/-1;grid-row:auto;justify-content:flex-start}
+  .grupo-cab{padding:14px 16px 8px}
+  .vitrina{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.etq{font-size:11.5px;left:8px;top:8px}
+  .verbos.tres{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fila.ns{grid-template-columns:44px minmax(0,1fr)}.ns-cab{padding:0 16px 12px}.sub-ns{padding:14px 16px 6px}
+  .pfs,.res-linea .orden{display:none}.solo-movil{display:inline-flex}.busca{flex:1 1 0;min-width:0}.busca kbd{display:none}
+  .hoja-f .asa{display:block;justify-self:center;width:40px;height:5px;margin:-10px 0 -6px;border-radius:99px;background:var(--t25)}
+  .otros{padding:14px 16px}.tend{padding:16px}.colgada{grid-template-columns:56px 48px minmax(0,1fr);gap:10px}
+  .mat .r{grid-template-columns:76px repeat(var(--n),minmax(0,1fr))}
+  .an-capa{padding:0}.ficha{margin-top:auto;border-radius:28px 28px 0 0;padding:24px 18px}
+  .fila .pq .mas{white-space:normal}
+  .sem span{font-size:11px;white-space:nowrap}.sem div:nth-child(even) span{visibility:hidden}
+  .f-cif{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.f-cif div{padding:10px}.f-cif b{font-size:20px}
+  .pst button{padding:0 12px}
+  .respuesta .r b{font-size:36px}
+}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Gestión ▸ Análisis, más claro: tres caras para elegir mirando · datos inventados</span>
+  <span class="tag">Propuesta</span><div class="seg-m" data-ctl="dir"><button data-v="hoy">Así está hoy</button><button data-v="a">A · Tu lista de hoy ✓</button><button data-v="b">B · Una respuesta por pregunta</button><button data-v="c">C · La vitrina</button></div>
+  <span class="tag">Datos</span><div class="seg-m" data-ctl="datos"><button data-v="ok">Confiables</button><button data-v="incompletos">Incompletos</button></div>
+  <span class="tag">Animaciones</span><div class="seg-m" data-ctl="mov"><button data-v="quieto">Apagadas</button><button data-v="vivo">Encendidas</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="movil">375</button><button data-v="w1024">1024</button><button data-v="w1440">1440</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+  <div id="an-capa"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que cuesta entender hoy</h2>
+    <p>Medido en local, con la pantalla real dibujada con estos mismos 18 modelos inventados (21 nov., 1280 px). Con las 300 a 400 prendas de una tienda real, cada lista es más larga.</p>
+    <table>
+      <tr><th>Pestaña</th><th class="num">Palabras a la vista</th><th class="num">Botones y zonas que se tocan</th><th class="num">Formas de gráfico</th></tr>
+      <tr><td>Hoy</td><td class="num">215</td><td class="num">32</td><td class="num">3 (listas, barras de tipo, cintas)</td></tr>
+      <tr><td>Se está acabando</td><td class="num">178</td><td class="num">27</td><td class="num">1 (pista de días)</td></tr>
+      <tr><td>No se vende</td><td class="num">292</td><td class="num">29</td><td class="num">2 (barra apilada, pista con zonas y punto)</td></tr>
+      <tr><td>Nunca salió al piso</td><td class="num">178</td><td class="num">20</td><td class="num">2 (barra apilada, pista con punto)</td></tr>
+      <tr><td>Qué pedir</td><td class="num">371</td><td class="num">32</td><td class="num">5 (riel, barras, barras en pareja, ranking, piruletas)</td></tr>
+    </table>
+    <h3>Lo que se ve al recorrerla</h3>
+    <ul>
+      <li><b>Cada pestaña habla otro idioma gráfico:</b> 13 formas distintas en total, contando la ficha (pistas, puntos con aro, zonas de color, cintas, piruletas…). Quien entra tiene que aprender a leer cada una.</li>
+      <li><b>«Qué hacer hoy» hay que descifrarlo:</b> son tres tareas (comprar, mandar, liquidar) dibujadas como cintas que entran y salen de «Tu tienda». En la prueba ciega de ADR-0357 sacó 4 · 4; el mosaico de tareas sacó 5 · 5.</li>
+      <li><b>Lo mismo se pregunta dos veces:</b> las cuatro tarjetas de Hoy repiten las pestañas, y la pestaña repite la tarjeta con otro dibujo.</li>
+      <li><b>Tres unidades mezcladas:</b> «modelos», «unidades» y «prendas» en la misma pantalla («5 modelos quietos · 33 unidades»).</li>
+      <li><b>Frases de método a la vista:</b> «Al ritmo desde que se colgó · hasta 30 días», «Sin historial: liquidar desde», «La caja solo vale para tipos con menos de 10 ventas», «Por cada S/ 1 en ropa · 90 días».</li>
+      <li><b>Dos cifras para lo mismo:</b> en Qué pedir, arriba dice «4 semanas para Navidad» y la tabla dice «Navidad · 5 semanas» (34 días, redondeados de dos formas).</li>
+      <li><b>El botón queda lejos:</b> en «Se está acabando», cada fila apila hasta tres píldoras antes de llegar a «Comprar», en el borde derecho.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Cara</th><th>Qué es</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td><b>A · Tu lista de hoy</b> <span class="tag-a">Recomendada</span></td><td>Lo que hay que hacer hoy, agrupado: Comprar · Bajar al piso · Mandar a Arequipa · No se vende. Cada fila dice su porqué en una línea y tiene su botón. «Qué pedir» es la segunda pestaña y es otra lista igual: Pide ya · Te alcanzan · Sin ventas, un tipo de prenda por fila.</td><td>Se entiende sin aprender nada: cada grupo es una tarea y cada fila, una prenda con su botón. Un solo gráfico en toda la pantalla (la barra fina). De 5 pestañas a 2.</td><td>Desaparece el dibujo de cintas que Felipe pidió conservar en octubre («no quites el gráfico»). Quien venía a «mirar» la tienda, sin tarea, tiene menos que mirar.</td></tr>
+      <tr><td><b>B · Una respuesta por pregunta</b></td><td>Las mismas 5 pestañas de hoy, pero cada una abre con su respuesta en grande («5 modelos se acaban») y debajo las prendas, todas con la misma tarjeta. En «Qué pedir», «5 tipos no te alcanzan» y una tarjeta por tipo con los días que le quedan.</td><td>Es lo más cercano a lo que el equipo ya conoce (las preguntas, el orden). Una sola tarjeta para todas las prendas.</td><td>Siguen siendo 5 pestañas, y Hoy sigue repitiendo las otras cuatro. Para hacer algo hay que entrar a la pestaña.</td></tr>
+      <tr><td><b>C · La vitrina</b></td><td>Una sola pantalla con todos los modelos de la tienda como en la percha: repisas por cómo van, cada prenda con su etiqueta colgada. «Qué pedir» es un tendedero de hoy a Navidad: cada tipo cuelga el día en que se acaba.</td><td>Lo más visual: se reconoce la ropa antes de leer. Con fotos reales luce mucho.</td><td>Ocupa mucho alto: con 300 modelos hay que bajar bastante. Los que van bien también se muestran (plegados). Sin foto, la vitrina pierde fuerza.</td></tr>
+    </table>
+    <h3>Lo mismo en las tres</h3>
+    <ul>
+      <li><b>Todo se cuenta en modelos</b> (decisión 12 de ADR-0357). Las unidades solo salen dentro de la ficha.</li>
+      <li><b>Lo que no se vende, sin decir qué hacer:</b> cada prenda dice hace cuánto no se vende (en rojo, más de 3 meses), cuántas tienes y cuánta plata tiene parada. Se ordena por días, plata parada o prendas, y se filtra por «Sin venderse». Tocarla abre su ficha. No hay botón «Liquidar» ni rebaja sugerida: quien mira decide (Felipe 2026-11-21). Lo que en Arequipa sí se vende sigue con su «Mandar».</li>
+      <li><b>Filtros que se quedan puestos:</b> buscar mientras escribes (prenda, tipo o color), y Tipo · Talla · Color · Precio · De dónde viene, con varias opciones a la vez y cuántas hay en cada una. Valen en «Qué hacer hoy» y en «Qué pedir» («¿te alcanza la M hasta Navidad?»), y siguen puestos al cambiar de vista. Al lado, cuántos ves y cómo ordenar. Si no queda nada, cada filtro se quita de un toque. En el celular van en una hoja con chips y un botón «Ver N modelos». Hoy Análisis solo tiene el buscador y un «ordenar» en Qué pedir.</li>
+      <li><b>La ficha en tres bloques:</b> qué hacer (en una línea y con su color), tres cifras, cómo se vendió cada semana y qué talla y color faltan. Los botones abajo.</li>
+      <li><b>Qué pedir mide lo mismo:</b> ¿te alcanza cada tipo de prenda hasta Navidad?, qué talla se acaba primero y lo que más se vende. Cada cara lo dibuja a su manera (lista, tarjetas o tendedero). «Lo que más rinde» queda plegado.</li>
+      <li><b>Las reglas no cambian:</b> solo tu tienda, sin cantidades sugeridas, cada botón solo si la cuenta ve esa pantalla, el aviso de datos incompletos no se cierra y «Liquidar desde» se cambia en su hoja.</li>
+      <li><b>No cambia la base:</b> las tres caras usan los mismos datos que ya lee Análisis.</li>
+    </ul>
+    <h3>Mi recomendación</h3>
+    <p><b>A · Tu lista de hoy.</b> Quien entra a Análisis quiere saber qué hacer; A se lo dice con un verbo y un botón por prenda, y no hay nada que descifrar. Si extrañas un dibujo de la tienda entera, se puede sumar arriba una barra apilada de cómo van los modelos, con la misma forma que ya existe en el ERP.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- marco.js deja sus nombres en el ámbito global (estado, activa, abiertos, sv, T, L, TRAZOS…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  // ---------- íconos ----------
+  const I = {
+    reloj: 'M12 7v5l3 2 M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0',
+    agotado: 'M4.9 4.9l14.2 14.2 M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0',
+    carro: 'M7 21a1 1 0 1 0 2 0a1 1 0 1 0-2 0 M18 21a1 1 0 1 0 2 0a1 1 0 1 0-2 0 M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12',
+    percha: 'M12 6a2 2 0 1 1 2-2M12 6v2l9 6v2H3v-2l9-6',
+    camion: T.traslados,
+    etiqueta: 'M12.6 2.6a2 2 0 0 0-1.4-.6H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z M7.5 7.5h.01',
+    ojo: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0',
+    caja: TRAZOS.caja, flecha: TRAZOS.flecha, lupa: L.buscar, cerrar: L.cerrar, regalo: T.puntos,
+    camion2: 'M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2 M15 18H9 M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14 M15 18a2 2 0 1 0 4 0a2 2 0 1 0 -4 0 M5 18a2 2 0 1 0 4 0a2 2 0 1 0 -4 0',
+    llega: 'M12 22V12 M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5', check: 'M20 6 9 17l-5-5', abajo: 'M6 9l6 6 6-6',
+    regla: 'M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z M14.5 12.5l2-2 M11.5 9.5l2-2 M8.5 6.5l2-2 M17.5 15.5l2-2',
+    paleta: 'M12 3a9 9 0 1 0 0 18c1 0 1.5-.7 1.5-1.5 0-.4-.2-.8-.4-1.1-.3-.3-.4-.6-.4-1 0-.8.7-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8z M7.5 10.5h.01 M12 7.5h.01 M16.5 10.5h.01',
+    orden: 'M3 16l4 4 4-4 M7 20V4 M21 8l-4-4-4 4 M17 4v16',
+    filtros: 'M21 4h-7 M10 4H3 M21 12h-9 M8 12H3 M21 20h-5 M12 20H3 M14 2v4 M8 10v4 M16 18v4',
+    sinfiltro: 'M12.5 3H3l7 8v7l4 2v-6.5 M16.5 3.5l5 5 M21.5 3.5l-5 5',
+    sinres: 'M13.5 8.5l-5 5 M8.5 8.5l5 5 M3 11a8 8 0 1 0 16 0a8 8 0 1 0-16 0 M21 21l-4.3-4.3',
+  };
+  const ic = (k, c = 'an-ic') => `<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${I[k]}"/></svg>`;
+  // Los íconos de categoría de la prenda sin foto (lib/icono-categoria-reglas.ts), juntos en un solo trazo.
+  const CAT = {
+    POL: 'M8.6 3.5 3 6.6l2 4.4 2.5-1.2V20.5h9V9.8L19 11l2-4.4-5.6-3.1a3.6 3.6 0 0 1-6.8 0z',
+    CMS: 'M9 3.5 3.5 6.7 5 11l2.5-1.2v10.7h9V9.8L19 11l1.5-4.3L15 3.5 M9 3.5l3 4.2 3-4.2 M12 7.7v12.8',
+    TOP: 'M8.6 3 8 8.2l-2.5 2.4V16h13v-5.4L16 8.2 15.4 3 M8.6 3c.2 3.2 1.6 5 3.4 5s3.2-1.8 3.4-5',
+    BOD: 'M8.6 3 8 8.6c0 2.4-1.4 3.4-1.4 5.8 0 1.6 1 2.6 2.4 2.6l1.3 3.5h3.4l1.3-3.5c1.4 0 2.4-1 2.4-2.6 0-2.4-1.4-3.4-1.4-5.8L15.4 3 M8.6 3c.2 3 1.6 4.6 3.4 4.6s3.2-1.6 3.4-4.6',
+    VES: 'M9 3 8.6 8.8l-1.4 2.8-2.6 8.9h14.8l-2.6-8.9-1.4-2.8L15 3 M9 3c.2 2.6 1.4 4 3 4s2.8-1.4 3-4 M7.2 11.6h9.6',
+    FAL: 'M7.6 4h8.8l3.9 16H3.7z M7.3 7.6h9.4 M10.5 7.6 9 20M13.5 7.6 15 20',
+    PAN: 'M7 3h10l3 18h-6.6L12 9.6 10.6 21H4z M7.2 6.2h9.6 M12 6.2v3.4',
+    JEA: 'M7 3h10l1.6 18h-5.2L12 9.6 10.6 21H5.4z M7.2 6.2h9.6 M7.4 6.2c0 2.4 1.4 3.6 3 3.6M16.6 6.2c0 2.4-1.4 3.6-3 3.6',
+    SHO: 'M6.6 4.5h10.8L19 16h-5.6L12 10.4 10.6 16H5z M6.8 7.6h10.4',
+    BLZ: 'M9 3.6 4.6 6 3.4 18.6l3.2.6.9-8.4v9.7h9v-9.7l.9 8.4 3.2-.6L19.4 6 15 3.6 M9 3.6 12 13.6l3-10',
+    CAS: 'M8.6 3.8 4.4 6 3 17.6l3.6.6L7.5 11v9.5h9V11l.9 7.2 3.6-.6L19.6 6l-4.2-2.2 M8.6 3.8v2.4L12 8l3.4-1.8V3.8 M12 8v12.5',
+    CHA: 'M8.6 3 6.6 8.4V18l5.4 3 5.4-3V8.4L15.4 3 M8.6 3 12 11l3.4-8',
+  };
+  const tile = (m, t) => `<span class="tile${m.claro ? ' claro' : ''}" style="--hx:${m.hx}${t ? `;--t:${t}px` : ''}" data-color-dato><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${CAT[m.c]}"/></svg></span>`;
+
+  // ---------- los datos: inventados, los mismos con que se dibujó «Así está hoy» ----------
+  // est: comprar · bajar · mandar · liquidar · vigilar · bien. d = el número que importa (días que quedan, sin venderse, guardada o que te dura).
+  // t: cada talla con [vendidas en 30 días, las que tienes] · col: sus colores [nombre, hex] · origen: de dónde se repone.
+  const MODELOS = [ // tema-fijo: colores de prenda, son dato
+    { id: 'polo', n: 'Polo Nube', c: 'POL', hx: '#d8cbb3', claro: 1, que: '2 colores · S a L', est: 'comprar', d: 0, vend: 53, tiene: 0, otra: 12, precio: 49, costo: 18,
+      t: [['S', 22, 0], ['M', 18, 0], ['L', 13, 0]], col: [['Hueso', '#d8cbb3'], ['Negro', '#2b2b2b']], origen: 'Taller' },
+    { id: 'emma', n: 'Blusa Emma', c: 'CMS', hx: '#7a2e2a', que: '2 colores · S a L', est: 'comprar', d: 3, vend: 36, tiene: 4, llega: [12, '6 dic.'], falta: 'Faltan la M en los dos colores', otra: 18, precio: 89, costo: 34,
+      t: [['S', 14, 2], ['M', 12, 0], ['L', 10, 2]], col: [['Vino', '#7a2e2a'], ['Crudo', '#e7d7c1']], origen: 'Taller' },
+    { id: 'lia', n: 'Casaca Lía', c: 'CAS', hx: '#c9a27e', claro: 1, que: 'Camel · S a L', est: 'comprar', d: 3, vend: 18, tiene: 2, llega: [6, '6 dic.'], falta: 'Falta la M', otra: 9, precio: 189, costo: 82,
+      t: [['S', 6, 1], ['M', 8, 0], ['L', 4, 1]], col: [['Camel', '#c9a27e']], origen: 'Proveedor' },
+    { id: 'lirio', n: 'Body Lirio', c: 'BOD', hx: '#f2ede4', claro: 1, que: 'Blanco · S y M', est: 'comprar', d: 3, vend: 12, tiene: 1, llega: [6, '6 dic.'], falta: 'Falta la M', otra: 6, precio: 69, costo: 24,
+      t: [['S', 6, 1], ['M', 6, 0]], col: [['Blanco', '#f2ede4']], origen: 'Proveedor' },
+    { id: 'ara', n: 'Vestido Ara', c: 'VES', hx: '#2f4a3a', que: 'Bosque · S y M', est: 'comprar', d: 3, vend: 23, tiene: 2, llega: [6, '6 dic.'], falta: 'Falta la M', otra: 6, precio: 159, costo: 61,
+      t: [['S', 11, 2], ['M', 12, 0]], col: [['Bosque', '#2f4a3a']], origen: 'Taller' },
+    { id: 'roble', n: 'Chaleco Roble', c: 'CHA', hx: '#7d5a3c', que: 'Roble · talla única', est: 'bajar', d: 30, alm: 3, precio: 119, costo: 45,
+      t: [['Única', 0, 3]], col: [['Roble', '#7d5a3c']], origen: 'Proveedor' },
+    { id: 'coral', n: 'Blusa Coral', c: 'CMS', hx: '#c2876b', que: 'Coral · S y M', est: 'bajar', d: 28, alm: 8, precio: 85, costo: 31,
+      t: [['S', 0, 4], ['M', 0, 4]], col: [['Coral', '#c2876b']], origen: 'Taller' },
+    { id: 'mar', n: 'Camisa Mar', c: 'CMS', hx: '#4f6f8f', que: 'Azul mar · S a L', est: 'bajar', d: 26, alm: 12, precio: 109, costo: 42,
+      t: [['S', 0, 4], ['M', 0, 4], ['L', 0, 4]], col: [['Azul mar', '#4f6f8f']], origen: 'Proveedor' },
+    { id: 'brisa', n: 'Top Brisa', c: 'TOP', hx: '#e7d7c1', claro: 1, que: 'Arena · S y M', est: 'mandar', d: 65, tiene: 6, allaVendio: 10, precio: 59, costo: 21,
+      t: [['S', 0, 3], ['M', 0, 3]], col: [['Arena', '#e7d7c1']], origen: 'Taller' },
+    { id: 'oliva', n: 'Short Oliva', c: 'SHO', hx: '#8c9a6b', que: 'Oliva · S a L', est: 'mandar', d: 64, tiene: 9, allaVendio: 15, precio: 69, costo: 26,
+      t: [['S', 0, 3], ['M', 0, 3], ['L', 0, 3]], col: [['Oliva', '#8c9a6b']], origen: 'Proveedor' },
+    { id: 'malva', n: 'Saco Malva', c: 'BLZ', hx: '#5b3a5e', que: 'Malva · M y L', est: 'liquidar', d: 96, tiene: 6, precio: 219, costo: 96,
+      t: [['M', 0, 3], ['L', 0, 3]], col: [['Malva', '#5b3a5e']], origen: 'Proveedor' },
+    { id: 'duna', n: 'Casaca Duna', c: 'CAS', hx: '#cdb592', claro: 1, que: 'Arena · M y L', est: 'liquidar', d: 72, tiene: 6, precio: 199, costo: 88,
+      t: [['M', 0, 3], ['L', 0, 3]], col: [['Arena', '#cdb592']], origen: 'Proveedor' },
+    { id: 'inti', n: 'Falda Inti', c: 'FAL', hx: '#b5643a', que: 'Terracota · S y M', est: 'liquidar', d: 72, tiene: 6, precio: 99, costo: 38,
+      t: [['S', 0, 3], ['M', 0, 3]], col: [['Terracota', '#b5643a']], origen: 'Taller' },
+    { id: 'noa', n: 'Pantalón Noa', c: 'PAN', hx: '#2b2b2b', que: 'Negro · S a L', est: 'vigilar', d: 39, tiene: 12, precio: 129, costo: 49,
+      t: [['S', 0, 4], ['M', 0, 4], ['L', 0, 4]], col: [['Negro', '#2b2b2b']], origen: 'Proveedor' },
+    { id: 'rio', n: 'Jean Río', c: 'JEA', hx: '#1f2f4a', que: 'Índigo · 26 a 30', est: 'bien', d: 53, vend: 12, tiene: 21, precio: 139, costo: 58,
+      t: [['26', 4, 7], ['28', 5, 8], ['30', 3, 6]], col: [['Índigo', '#1f2f4a']], origen: 'Proveedor' },
+    { id: 'rubi', n: 'Vestido Rubí', c: 'VES', hx: '#a33b3b', que: 'Rubí · S a L', est: 'bien', d: 71, vend: 11, tiene: 26, precio: 169, costo: 64,
+      t: [['S', 4, 8], ['M', 4, 10], ['L', 3, 8]], col: [['Rubí', '#a33b3b']], origen: 'Taller' },
+    { id: 'jog', n: 'Jogger Pizarra', c: 'PAN', hx: '#36474f', que: 'Pizarra · S y M', est: 'bien', d: 60, vend: 6, tiene: 12, precio: 99, costo: 37,
+      t: [['S', 3, 6], ['M', 3, 6]], col: [['Pizarra', '#36474f']], origen: 'Taller' },
+    { id: 'sol', n: 'Blusa Sol', c: 'CMS', hx: '#d9b44a', claro: 1, que: 'Mostaza · S a L', est: 'bien', d: 54, vend: 10, tiene: 18, precio: 79, costo: 29,
+      t: [['S', 4, 6], ['M', 3, 6], ['L', 3, 6]], col: [['Mostaza', '#d9b44a']], origen: 'Taller' },
+  ];
+  // Cada estado: su verbo, su color y cómo dice su dato. La cuenta de la tienda es «solo lo de Trujillo», como hoy (ADR-0357 decisión 3 act.).
+  const EST = {
+    comprar: { verbo: 'Comprar', c: 'var(--rojo)', ic: 'carro', chip: 'rojo', grupo: 'Comprar', porque: 'se acaban en 3 días o menos', boton: 'Comprar', todos: 'Comprar todas',
+      dato: (m) => (m.d === 0 ? 'Ya no hay' : `Quedan ${m.d} días`), icd: (m) => (m.d === 0 ? 'agotado' : 'reloj'), p: (m) => Math.max(.04, m.d / 14) },
+    bajar: { verbo: 'Bajar al piso', c: 'var(--pizarra)', ic: 'percha', chip: 'pizarra', grupo: 'Bajar al piso', porque: 'están guardadas y nadie las vio', boton: 'Bajar', todos: 'Bajar todas',
+      dato: (m) => `${m.d} días guardada`, icd: () => 'caja', p: (m) => Math.min(1, m.d / 45) },
+    mandar: { verbo: 'Mandar a Arequipa', c: 'var(--ambar)', ic: 'camion2', chip: 'ambar', grupo: 'Mandar a Arequipa', porque: 'aquí no se venden; allá sí', boton: 'Mandar', todos: 'Mandar todas',
+      dato: (m) => `${m.d} días sin venderse`, icd: () => 'reloj', p: (m) => Math.min(1, m.d / 120) },
+    liquidar: { verbo: 'No se vende', c: 'var(--ambar)', ic: 'reloj', chip: 'ambar', grupo: 'No se vende', porque: 'llevan más de 60 días sin venderse', boton: null, todos: null,
+      dato: (m) => `${m.d} días sin venderse`, icd: () => 'reloj', p: (m) => Math.min(1, m.d / 120) },
+    vigilar: { verbo: 'Vigilar', c: 'var(--taupe)', ic: 'ojo', chip: '', grupo: 'Vigilar', dato: (m) => `${m.d} días sin venderse`, icd: () => 'reloj', p: (m) => m.d / 120 },
+    bien: { verbo: 'Van bien', c: 'var(--verde)', ic: 'check', chip: 'verde', grupo: 'Van bien', dato: (m) => `Te dura ${Math.round(m.d / 7)} semanas`, icd: () => 'check', p: () => 1 },
+  };
+  const mas = (m) => {
+    if (m.est === 'comprar') return [m.falta, m.llega ? `Llegan ${m.llega[0]} el ${m.llega[1]}` : `Arequipa tiene ${m.otra}`].filter(Boolean).join(' · ');
+    if (m.est === 'bajar') return `${m.alm} en el almacén`;
+    if (m.est === 'mandar') return `Arequipa vendió ${m.allaVendio} este mes`;
+    if (m.est === 'liquidar') return `Tienes ${m.tiene}`;
+    if (m.est === 'vigilar') return `Tienes ${m.tiene}`;
+    return `Vendiste ${m.vend} · tienes ${m.tiene}`;
+  };
+  const TIPO_DE = { Polo: 'Polos', Blusa: 'Blusas', Casaca: 'Casacas', Body: 'Bodys', Vestido: 'Vestidos', Jean: 'Jeans', Pantalón: 'Pantalones', Jogger: 'Pantalones', Camisa: 'Camisas', Chaleco: 'Chalecos', Falda: 'Faldas', Top: 'Tops', Short: 'Shorts', Saco: 'Sacos' };
+  const TIPO_C = { Polos: 'POL', Blusas: 'CMS', Casacas: 'CAS', Bodys: 'BOD', Vestidos: 'VES', Jeans: 'JEA', Pantalones: 'PAN', Camisas: 'CMS', Chalecos: 'CHA', Faldas: 'FAL', Tops: 'TOP', Shorts: 'SHO', Sacos: 'BLZ' };
+  const tipoDe = (m) => TIPO_DE[m.n.split(' ')[0]];
+  const NAVIDAD = 34; // hoy es sábado 21 de noviembre
+  const alcanceTxt = (dias) => (dias === null ? 'No se vendió' : dias === 0 ? 'Ya no hay' : dias < 14 ? `${dias} días` : dias > 120 ? 'más de 4 meses' : `${Math.round(dias / 7)} semanas`);
+
+  // ---------- los filtros: los mismos en las tres caras y en las dos vistas; siguen puestos al cambiar de vista ----------
+  const F = { q: '', tipo: new Set(), talla: new Set(), color: new Set(), precio: new Set(), origen: new Set(), quieta: new Set() };
+  const PRECIOS = [['hasta80', 'Hasta S/ 80', (p) => p <= 80], ['81a150', 'S/ 81 a 150', (p) => p > 80 && p <= 150], ['mas150', 'Más de S/ 150', (p) => p > 150]];
+  const COLORES = [...new Map(MODELOS.flatMap((m) => m.col).map(([n, hx]) => [n, hx])).entries()].sort((a, b) => a[0].localeCompare(b[0], 'es'));
+  // [clave, nombre, ícono, sus opciones: [valor, texto, hex del color]]
+  const FACETAS = [
+    ['tipo', 'Tipo', 'percha', () => Object.keys(TIPO_C).sort((a, b) => a.localeCompare(b, 'es')).map((v) => [v, v])],
+    ['talla', 'Talla', 'regla', () => ['S', 'M', 'L', '26', '28', '30', 'Única'].map((v) => [v, v])],
+    ['color', 'Color', 'paleta', () => COLORES.map(([n, hx]) => [n, n, hx])],
+    ['precio', 'Precio', 'etiqueta', () => PRECIOS.map(([k, t]) => [k, t])],
+    ['origen', 'Viene de', 'caja', () => [['Taller', 'Taller CAYLA'], ['Proveedor', 'Un proveedor']]],
+    ['quieta', 'Sin venderse', 'reloj', () => [['1a2', '1 a 2 meses'], ['2a3', '2 a 3 meses'], ['mas3', 'Más de 3 meses']]],
+  ];
+  const sinTilde = (s) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+  const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const pasa = (m, k, v) => (k === 'tipo' ? tipoDe(m) === v : k === 'talla' ? m.t.some(([t]) => t === v) : k === 'color' ? m.col.some(([c]) => c === v)
+    : k === 'precio' ? PRECIOS.find((p) => p[0] === v)[2](m.precio) : k === 'quieta' ? QUIETAS.includes(m.est) && tramoQuieta(m.d) === v : m.origen === v);
+  const QUIETAS = ['mandar', 'liquidar', 'vigilar'];
+  const tramoQuieta = (d) => (d < 60 ? '1a2' : d < 90 ? '2a3' : 'mas3');
+  // Se ve si pasa lo buscado y, en cada filtro puesto, alguna de sus opciones. `menos`: el filtro que se está contando (para que sus opciones digan cuántas habría).
+  const visible = (m, menos) => (!F.q.trim() || sinTilde(`${m.n} ${tipoDe(m)} ${m.col.map((c) => c[0]).join(' ')}`).includes(sinTilde(F.q.trim())))
+    && FACETAS.every(([k]) => k === menos || !F[k].size || [...F[k]].some((v) => pasa(m, k, v)));
+  const vis = () => MODELOS.filter((m) => visible(m));
+  const puestos = () => FACETAS.reduce((s, [k]) => s + F[k].size, 0) + (F.q.trim() ? 1 : 0);
+  const nombreOp = (k, v) => (FACETAS.find((f) => f[0] === k)[3]().find((o) => o[0] === v) || [v, v])[1];
+  const opciones = (k) => FACETAS.find((f) => f[0] === k)[3]().map(([v, t, hx]) => [v, t, hx, MODELOS.filter((m) => visible(m, k) && pasa(m, k, v)).length]);
+
+  // Ordenar: cada vista recuerda el suyo. En «Qué pedir», lo que más se vende primero (Felipe 2026-10-12).
+  let ordenHoy = 'urgente', ordenPedir = 'vende';
+  const ORDEN = { hoy: [['urgente', 'Lo más urgente'], ['vende', 'Lo que más se vende'], ['az', 'Por nombre']], pedir: [['vende', 'Lo que más se vende'], ['acaba', 'Lo que se acaba antes'], ['az', 'Por nombre']] };
+  const ordenar = (ms) => (ordenHoy === 'vende' ? [...ms].sort((a, b) => (b.vend || 0) - (a.vend || 0)) : ordenHoy === 'az' ? [...ms].sort((a, b) => a.n.localeCompare(b.n, 'es')) : ms);
+  const de = (est) => ordenar(vis().filter((m) => m.est === est));
+
+  // ---------- estado de la maqueta ----------
+  let vistaA = 'hoy', filtroA = null, filtroP = null, vistaB = 'hoy', filtroC = 'todos', capHoy = 'hoy', tipoSel = 'Blusas', rinde = false;
+  let abierto = null, buscaLista = '', hojaF = false;
+  let ordenNS = 'dias';
+  activa = 'gestion.analisis'; abiertos.add('gestion');
+  const $c = () => document.getElementById('cont');
+  const vistaActual = () => (estado.dir === 'a' ? vistaA : estado.dir === 'b' ? (vistaB === 'pedir' ? 'pedir' : 'hoy') : filtroC === 'pedir' ? 'pedir' : 'hoy');
+
+  // ---------- piezas comunes ----------
+  const cabecera = () => `<header class="an-cab entra" style="--i:0">
+      <div class="ep-izq"><div class="ep-linea"><p class="ep-sede"><span class="hilo" aria-hidden="true"></span><span>Tienda TRU · sábado, 21 de noviembre</span></p></div>
+        <h1 class="ep-titulo">Análisis <span class="ayuda" title="Qué hacer hoy con las prendas de tu tienda">?</span></h1></div></header>`;
+  const aviso = () => (estado.datos === 'incompletos' ? `<div class="aviso entra" style="--i:1"><b>Datos incompletos</b><span>Solo 58 de cada 100 ventas tienen su prenda: estas cifras pueden fallar.</span><button class="btn sec chico">Ver qué falta</button></div>` : '');
+  const pestanas = (items, activa, que) => `<div class="pst entra" role="tablist" style="--i:2">${items.map(([k, t, n, tono]) => `<button role="tab" aria-selected="${k === activa}" data-${que}="${k}">${t}${n != null ? `<span class="glb ${tono || ''}">${n}</span>` : ''}</button>`).join('')}</div>`;
+
+  // La lista que se abre de un filtro: casillas, cuántos habría con cada opción, y un buscador si son más de 8 (ADR-0209).
+  function listaFlotante(k) {
+    const f = FACETAS.find((x) => x[0] === k);
+    let ops = opciones(k);
+    const conBuscar = ops.length > 8;
+    if (conBuscar && buscaLista.trim()) ops = ops.filter(([, t]) => sinTilde(t).includes(sinTilde(buscaLista.trim())));
+    return `<div class="lf" role="listbox" aria-multiselectable="true" aria-label="${f[1]}">
+      ${conBuscar ? `<label class="lf-busca">${ic('lupa')}<input data-foco="lf-busca" data-lf-busca value="${esc(buscaLista)}" placeholder="Busca un ${f[1].toLowerCase()}" aria-label="Busca un ${f[1].toLowerCase()}"></label>` : ''}
+      ${ops.map(([v, t, hx, n]) => { const on = F[k].has(v); return `<button role="option" aria-selected="${on}" class="lf-op" data-op="${k}|${v}"${!n && !on ? ' disabled' : ''}><span class="casilla">${on ? ic('check') : ''}</span>${hx ? `<i class="pto-color" style="--hx:${hx}" data-color-dato></i>` : ''}<span>${t}</span><span class="n">${n}</span></button>`; }).join('') || '<p class="lf-nada">Ninguno se llama así.</p>'}
+    </div>`;
+  }
+  // El filtro en su píldora: suelto dice su nombre; puesto se rellena de tinta, dice lo elegido y trae su ✕.
+  const pildora = ([k, t, i]) => {
+    const sel = [...F[k]].map((v) => nombreOp(k, v)); const puesta = sel.length > 0;
+    return `<span class="pf-caja"><button class="pf${puesta ? ' puesta' : ''}" aria-expanded="${abierto === k}" data-pf="${k}">${ic(i)}<span>${puesta ? `${t}: ${sel.length > 2 ? `${sel.length} elegidos` : sel.join(', ')}` : t}</span>${puesta ? '' : ic('abajo', 'an-ic chev')}</button>${puesta ? `<button class="pf-x" data-pf-x="${k}" aria-label="Quitar el filtro ${t}">${ic('cerrar')}</button>` : ''}${abierto === k ? listaFlotante(k) : ''}</span>`;
+  };
+  const ordenPildora = () => {
+    const v = vistaActual(); const act = v === 'pedir' ? ordenPedir : ordenHoy;
+    return `<span class="pf-caja orden"><button class="pf" aria-expanded="${abierto === 'orden'}" data-pf="orden">${ic('orden')}<span>${ORDEN[v].find((o) => o[0] === act)[1]}</span>${ic('abajo', 'an-ic chev')}</button>
+      ${abierto === 'orden' ? `<div class="lf derecha" role="listbox" aria-label="Ordenar">${ORDEN[v].map(([k, s]) => `<button role="option" aria-selected="${k === act}" class="lf-op" data-orden="${k}"><span class="casilla redonda">${k === act ? ic('check') : ''}</span><span>${s}</span></button>`).join('')}</div>` : ''}</span>`;
+  };
+  // La barra: buscar mientras se escribe, cada filtro en su píldora, «Limpiar todo» y el orden. En el celular, el buscador y el botón «Filtros».
+  function barraFiltros() {
+    const p = puestos();
+    return `<div class="barra-f entra" style="--i:2">
+        <label class="busca">${ic('lupa')}<input data-foco="busca" data-busca value="${esc(F.q)}" placeholder="Busca prenda, tipo o color" aria-label="Busca una prenda">${F.q ? `<button class="busca-x" data-busca-x aria-label="Borrar la búsqueda">${ic('cerrar')}</button>` : '<kbd>/</kbd>'}</label>
+        <div class="pfs">${FACETAS.map(pildora).join('')}${p ? `<button class="limpiar" data-limpiar>${ic('sinfiltro')}Limpiar todo</button>` : ''}</div>
+        <button class="pf solo-movil${p ? ' puesta' : ''}" data-hoja-f aria-label="Filtros${p ? `, ${p} puestos` : ''}" title="Filtros">${ic('filtros')}${p ? `<span class="glb">${p}</span>` : ''}</button>
+      </div>
+      <div class="res-linea"><p class="cuantos">${p ? `Ves <b>${vis().length}</b> de ${MODELOS.length} modelos` : `<b>${MODELOS.length}</b> modelos en tu tienda`}</p>${estado.dir === 'c' && vistaActual() === 'pedir' ? '' : ordenPildora()}</div>`;
+  }
+  // Nada con lo puesto: dice qué no encontró y deja quitar cada filtro de un toque.
+  const vacio = () => `<section class="placa vacio entra" style="--i:4"><span class="vacio-ic">${ic('sinres', 'an-ic g')}</span>
+      <h2 class="tit-s">${F.q.trim() ? `Nada con «${esc(F.q.trim())}»` : 'Nada con estos filtros'}</h2><p>Quita un filtro o busca otra cosa.</p>
+      <div class="vacio-f">${F.q.trim() ? `<button class="pf puesta chica" data-busca-x>«${esc(F.q.trim())}» ${ic('cerrar')}</button>` : ''}${FACETAS.flatMap(([k]) => [...F[k]].map((v) => `<button class="pf puesta chica" data-op="${k}|${v}">${nombreOp(k, v)} ${ic('cerrar')}</button>`)).join('')}</div>
+      <button class="btn sec chico" data-limpiar>Limpiar todo</button></section>`;
+  const nadaQueHacer = (txt) => `<section class="placa otros entra" style="--i:6">${ic('check')}<span>${txt}</span></section>`;
+  // La hoja de filtros del celular: todo a la vista en chips, y el botón dice cuántos vas a ver.
+  function pintarHoja(quieta) {
+    const v = vistaActual(); const act = v === 'pedir' ? ordenPedir : ordenHoy;
+    document.getElementById('an-capa').innerHTML = `<div class="an-capa"><div class="velo" data-hoja-cerrar></div>
+      <section class="ficha hoja-f${quieta ? ' quieta' : ''}" role="dialog" aria-label="Filtros"><span class="asa" aria-hidden="true"></span>
+        <h2 class="hf-tit">Filtros</h2>
+        ${FACETAS.map(([k, t]) => `<div class="hf-g"><p class="vs-t">${t}</p><div class="hf-chips">${opciones(k).map(([val, txt, hx, n]) => { const on = F[k].has(val); return `<button class="hf-chip" aria-pressed="${on}" data-op="${k}|${val}"${!n && !on ? ' disabled' : ''}>${hx ? `<i class="pto-color" style="--hx:${hx}" data-color-dato></i>` : ''}${txt}<span class="n">${n}</span></button>`; }).join('')}</div></div>`).join('')}
+        ${estado.dir === 'c' && v === 'pedir' ? '' : `<div class="hf-g"><p class="vs-t">Ordenar</p><div class="hf-chips">${ORDEN[v].map(([k, s]) => `<button class="hf-chip" aria-pressed="${k === act}" data-orden="${k}">${s}</button>`).join('')}</div></div>`}
+        <div class="f-pie hf-pie"><button class="btn sec" data-limpiar>Limpiar</button><button class="btn pri" data-hoja-cerrar>Ver ${vis().length} modelos</button></div>
+      </section></div>`;
+  }
+
+  // ---------- Lo que no se vende: los datos para que decida quien mira (Felipe 2026-11-21: «basta con que aparezca lo que no se vende») ----------
+  // Sin verbo ni rebaja: hace cuánto no se vende, cuántas tienes y cuánta plata tiene parada (costo × prendas, que Análisis ya lee).
+  const NO_SE_VENDE = ['liquidar', 'vigilar'];
+  const unidades = (m) => m.tiene ?? m.alm ?? 0;
+  const parado = (m) => m.costo * unidades(m);
+  const soles = (n) => `S/ ${Math.round(n).toLocaleString('es-PE')}`;
+  const ORDEN_NS = [['dias', 'Más días'], ['parada', 'Más plata parada'], ['prendas', 'Más prendas']];
+  const ordenarNS = (ms) => [...ms].sort((a, b) => (ordenNS === 'parada' ? parado(b) - parado(a) : ordenNS === 'prendas' ? unidades(b) - unidades(a) : b.d - a.d));
+  const chipsOrdenNS = () => `<div class="orden-ns" role="group" aria-label="Ordenar lo que no se vende"><span>Ordenar:</span>${ORDEN_NS.map(([k, t]) => `<button aria-pressed="${ordenNS === k}" data-orden-ns="${k}">${t}</button>`).join('')}</div>`;
+  const diasNS = (m) => `<span class="dato${m.d >= 90 ? ' rojo' : ''}">${ic('reloj')}${m.d} días sin venderse</span>`;
+  const resumenNS = (ms) => `<b>${ms.reduce((t, m) => t + unidades(m), 0)}</b> prendas · <b>${soles(ms.reduce((t, m) => t + parado(m), 0))}</b> parados`;
+
+  // La ficha, igual en las tres caras.
+  function ficha(id) {
+    const m = MODELOS.find((x) => x.id === id);
+    if (!m) { hojaF = false; document.getElementById('an-capa').innerHTML = ''; return; }
+    const e = EST[m.est];
+    const ver = { comprar: m.d === 0 ? 'Ya no hay. Cómprala o pídela.' : `Quedan ${m.d} días. Cómprala o pídela.`, bajar: 'Está guardada. Bájala al piso.', mandar: 'Aquí no se vende; en Arequipa sí.', liquidar: `${m.d} días sin venderse.`, vigilar: `Va lenta: ${m.d} días sin venderse.`, bien: 'Va bien. No hay nada que hacer.' }[m.est];
+    const cif = m.est === 'comprar' ? [[m.vend, 'vendiste en 30 días'], [m.tiene, 'tienes hoy'], m.llega ? [m.llega[0], `llegan el ${m.llega[1]}`] : [m.otra, 'tiene Arequipa']]
+      : m.est === 'bajar' ? [[m.alm, 'en el almacén'], [0, 'en el piso'], [m.d, 'días guardada']]
+      : m.est === 'mandar' ? [[m.tiene, 'tienes'], [m.d, 'días sin venderse'], [m.allaVendio, 'vendió Arequipa']]
+      : m.est === 'bien' ? [[m.vend, 'vendiste en 30 días'], [m.tiene, 'tienes'], [Math.round(m.d / 7), 'semanas te dura']]
+      : [[unidades(m), 'tienes'], [soles(parado(m)), 'parados'], [m.vend || 0, 'vendiste en 30 días']];
+    const base = m.vend ? m.vend / 8 : m.est === 'bajar' ? 0 : 0.4;
+    const sem = Array.from({ length: 8 }, (_, i) => Math.max(0, Math.round(base * (0.6 + ((i * 7 + m.n.length) % 5) / 6) * (m.est === 'liquidar' || m.est === 'mandar' ? (i < 2 ? 1 : 0) : 1))));
+    const max = Math.max(1, ...sem);
+    const fechas = ['27 set.', '4 oct.', '11 oct.', '18 oct.', '25 oct.', '1 nov.', '8 nov.', '15 nov.'];
+    // la tabla de talla y color sale de lo mismo que cuentan los filtros: lo que tienes de cada talla, repartido entre sus colores
+    const tallas = m.t.map((x) => x[0]);
+    const colores = m.col; // tema-fijo: color de prenda, es dato
+    const q = (ci, ti) => { const tot = m.t[ti][2]; return colores.length === 1 ? tot : ci === 0 ? Math.ceil(tot / 2) : Math.floor(tot / 2); };
+    const celda = (ci, ti) => {
+      const n = q(ci, ti);
+      if (!n && m.t[ti][1] > 0) return '<span class="c falta">se acabó</span>';
+      if (!n) return '<span class="c nada">no hay</span>';
+      return `<span class="c hay">${m.est === 'bajar' ? `${n} guardada${n > 1 ? 's' : ''}` : `queda${n > 1 ? 'n' : ''} ${n}`}</span>`;
+    };
+    const principal = { comprar: 'Comprar', bajar: 'Bajar al piso', mandar: 'Mandar a Arequipa', liquidar: 'Ver en Existencias', vigilar: 'Ver en Existencias', bien: 'Ver en Existencias' }[m.est];
+    hojaF = false;
+    document.getElementById('an-capa').innerHTML = `<div class="an-capa"><div class="velo" data-an-cerrar></div>
+      <section class="ficha" role="dialog" aria-label="${m.n}">
+        <button class="x" data-an-cerrar aria-label="Cerrar">${ic('cerrar')}</button>
+        <div class="f-cab">${tile(m, 72)}<div><h2>${m.n}</h2><p>${m.que} · S/ ${m.precio}</p></div></div>
+        <div class="f-ver" style="--c:${e.c}">${ic(e.ic, 'an-ic g')}<b>${ver}</b></div>
+        <div class="f-cif">${cif.map(([v, t]) => `<div><b>${v}</b><span>${t}</span></div>`).join('')}</div>
+        <div><p class="vs-t" style="margin-bottom:10px">Vendidas cada semana</p>
+          ${sem.some(Boolean) ? `<div class="sem">${sem.map((v, i) => `<div><b>${v}</b><i style="--h:${v / max};--i:${i}"></i><span>${fechas[i]}</span></div>`).join('')}</div>` : `<p style="font-size:15px;color:var(--t65)">Ninguna en las últimas 8 semanas.</p>`}</div>
+        <div><p class="vs-t" style="margin-bottom:10px">Talla y color</p>
+          <div class="mat" style="--n:${tallas.length}"><div class="r"><span></span>${tallas.map((t) => `<span class="h">${t}</span>`).join('')}</div>
+          ${colores.map(([cn, hx], ci) => `<div class="r"><span class="col"><i style="--hx:${hx}" data-color-dato></i>${cn}</span>${tallas.map((_, ti) => celda(ci, ti)).join('')}</div>`).join('')}</div></div>
+        <div class="f-pie"><span class="izq"><a class="enl" href="#">Movimientos</a></span>
+          ${m.est === 'comprar' && m.otra ? '<button class="btn sec">Pedir a Arequipa</button>' : ''}<button class="btn pri">${principal}</button></div>
+      </section></div>`;
+  }
+
+  // ---------- Qué pedir: lo mismo medido en las tres caras, dibujado como cada una ----------
+  const MES = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'set.', 'oct.', 'nov.', 'dic.'];
+  const MES_L = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
+  const dia = (n) => new Date(2026, 10, 21 + n);
+  const fecha = (n) => `${dia(n).getDate()} ${MES[dia(n).getMonth()]}`;
+  const fechaLarga = (n) => `${dia(n).getDate()} de ${MES_L[dia(n).getMonth()]}`;
+  // Cada tipo se arma con los modelos que se ven y, si hay talla elegida, solo con esas tallas: «¿te alcanza la M hasta Navidad?».
+  function tiposActuales() {
+    const por = new Map();
+    for (const m of vis()) {
+      const n = tipoDe(m); const x = por.get(n) || { n, c: TIPO_C[n], v: 0, tiene: 0, tallas: new Map(), ms: [] };
+      for (const [t, v, ti] of m.t) {
+        if (F.talla.size && !F.talla.has(t)) continue;
+        x.v += v; x.tiene += ti; const a = x.tallas.get(t) || [t, 0, 0]; a[1] += v; a[2] += ti; x.tallas.set(t, a);
+      }
+      x.ms.push(m); por.set(n, x);
+    }
+    return [...por.values()].map((x) => ({ ...x, tallas: [...x.tallas.values()], dias: x.v ? Math.round((x.tiene / x.v) * 30) : null }));
+  }
+  // pide: se acaba antes de Navidad · llega: te alcanza · sin: no se vendió en 30 días
+  const grupoTipo = (t) => (t.dias === null ? 'sin' : t.dias < NAVIDAD ? 'pide' : 'llega');
+  const ordenTipos = (ts) => (ordenPedir === 'acaba' ? [...ts].sort((a, b) => (a.dias ?? 1e9) - (b.dias ?? 1e9)) : ordenPedir === 'az' ? [...ts].sort((a, b) => a.n.localeCompare(b.n, 'es')) : [...ts].sort((a, b) => b.v - a.v));
+  const tiposDe = (g) => ordenTipos(tiposActuales().filter((t) => grupoTipo(t) === g));
+  const colorTipo = (t) => ({ pide: t.dias <= 3 ? 'var(--rojo)' : 'var(--ambar)', llega: 'var(--verde)', sin: 'var(--taupe)' })[grupoTipo(t)];
+  const chipTipo = (t) => ({ pide: t.dias <= 3 ? 'rojo' : 'ambar', llega: 'verde', sin: '' })[grupoTipo(t)];
+  const icTipo = (t) => ({ pide: t.dias === 0 ? 'agotado' : 'reloj', llega: 'check', sin: 'ojo' })[grupoTipo(t)];
+  const cuando = (t) => ({ pide: t.dias === 0 ? 'Ya no hay' : `Se acaba el ${fecha(t.dias)}`, llega: 'Te alcanza hasta Navidad', sin: 'Sin ventas en 30 días' })[grupoTipo(t)];
+  const yLista = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} y ${xs[xs.length - 1]}`);
+  // la talla que se acaba primero: la que tiene menos por cada una que se vende
+  const tallaTxt = (t) => {
+    const ts = t.tallas.filter((x) => x[1] > 0); if (!ts.length) return '';
+    if (ts.every((x) => x[2] === 0)) return ts.length > 1 ? 'No queda ninguna talla' : '';
+    const cero = ts.filter((x) => x[2] === 0);
+    if (cero.length) return `Ya no hay talla ${yLista(cero.map((x) => x[0]))}`;
+    return ts.length > 1 ? `La ${[...ts].sort((a, b) => a[2] / a[1] - b[2] / b[1])[0][0]} se acaba primero` : '';
+  };
+  const quedan = (m) => { const q = m.tiene ?? m.alm ?? 0; return q === 0 ? ['rojo', 'Agotada'] : q < 5 ? ['ambar', `Quedan ${q}`] : ['verde', `Quedan ${q}`]; };
+  const ttile = (t, s = 44) => `<span class="tt" style="--c:${colorTipo(t)};--t:${s}px"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${CAT[t.c]}"/></svg></span>`;
+  const cifrasTipo = (t) => `<div class="f-cif">${[[t.v, 'vendiste en 30 días'], [t.tiene, 'tienes hoy'], [t.dias ?? '—', 'días te alcanzan']].map(([v, s]) => `<div><b>${v}</b><span>${s}</span></div>`).join('')}</div>`;
+  const tallasHtml = (t) => {
+    const ts = t.tallas; if (!ts.length) return '';
+    const max = Math.max(1, ...ts.flatMap((x) => [x[1], x[2]]));
+    return `<div><p class="vs-t" style="margin-bottom:10px">Las tallas que se llevan</p><div class="tallas">${ts.map(([n, v, ti]) => `<div class="talla"><b>${n}</b><span class="dos"><span class="bar" style="--p:${v / max};--c:var(--tinta)"><i></i></span><span class="bar" style="--p:${ti / max};--c:color-mix(in srgb,var(--tinta) 30%,transparent)"><i></i></span></span><small>vendiste ${v} · tienes ${ti}</small></div>`).join('')}</div>
+      <div class="leyenda" style="margin-top:10px"><span><i style="--c:var(--tinta)"></i>Vendiste</span><span><i style="--c:color-mix(in srgb,var(--tinta) 30%,transparent)"></i>Tienes</span></div></div>`;
+  };
+  const rindeHtml = (i) => `<section class="placa rinde entra" style="--i:${i}"><button class="vermas" data-rinde>${rinde ? 'Ocultar lo que más rinde' : 'Ver lo que más rinde'} ${ic('abajo')}</button>
+    ${rinde ? `<div class="tallas" style="padding:4px 22px 20px">${[['Blusas', 1.8], ['Vestidos', 1.5], ['Casacas', 1.1], ['Jeans', 0.9]].map(([n, v]) => `<div class="talla" style="grid-template-columns:90px minmax(0,1fr) auto"><span>${n}</span><span class="bar" style="--p:${v / 2};--c:${v < 1 ? 'var(--ambar)' : 'var(--tinta)'}"><i></i></span><small>S/ ${v.toFixed(2)} por cada S/ 1</small></div>`).join('')}</div>` : ''}</section>`;
+
+  // La hoja del tipo (A y B): el mismo orden que la ficha de una prenda.
+  function fichaTipo(n) {
+    const t = tiposActuales().find((x) => x.n === n); if (!t) return;
+    const g = grupoTipo(t);
+    const ver = { pide: t.dias === 0 ? `Ya no hay ${n.toLowerCase()}. Pide para Navidad.` : `Te alcanzan hasta el ${fechaLarga(t.dias)}. Pide antes.`, llega: 'Te alcanzan hasta Navidad.', sin: 'No se vendió en 30 días.' }[g];
+    const ms = t.ms.filter((m) => m.vend).sort((a, b) => b.vend - a.vend).slice(0, 5);
+    hojaF = false;
+    document.getElementById('an-capa').innerHTML = `<div class="an-capa"><div class="velo" data-an-cerrar></div>
+      <section class="ficha" role="dialog" aria-label="${n}">
+        <button class="x" data-an-cerrar aria-label="Cerrar">${ic('cerrar')}</button>
+        <div class="f-cab">${ttile(t, 72)}<div><h2>${n}</h2><p>${F.talla.size ? `Talla ${yLista([...F.talla])} · ` : ''}Navidad es en ${NAVIDAD} días</p></div></div>
+        <div class="f-ver" style="--c:${colorTipo(t)}">${ic(icTipo(t), 'an-ic g')}<b>${ver}</b></div>
+        ${cifrasTipo(t)}
+        ${tallasHtml(t)}
+        ${ms.length ? `<div><p class="vs-t" style="margin-bottom:4px">Lo que más se vende</p><div class="top5">${ms.map((m) => { const [tono, txt] = quedan(m); return `<button data-ficha="${m.id}">${tile(m, 36)}<span><b>${m.n}</b><br><span>vendiste ${m.vend}</span></span><span class="chip ${tono}">${txt}</span></button>`; }).join('')}</div></div>` : ''}
+        <div class="f-pie"><button class="btn sec">Abrir el plan de campaña</button>${g === 'pide' ? '<button class="btn pri">Comprar</button>' : ''}</div>
+      </section></div>`;
+  }
+
+  // A · Qué pedir como lista: lo mismo que «Qué hacer hoy», pero por tipo de prenda.
+  const GRUPOS_P = { pide: ['Pide ya', 'Pide antes de Navidad', 'reloj', 'var(--ambar)', 'se acaban antes del 25'], llega: ['Te alcanzan', 'Te alcanzan', 'check', 'var(--verde)', 'llegan a Navidad'], sin: ['Sin ventas', 'Sin ventas en 30 días', 'ojo', 'var(--taupe)', 'nada vendido en 30 días'] };
+  function pedirA() {
+    if (!tiposActuales().length) return vacio();
+    const nav = `<p class="nav-linea entra" style="--i:3"><span class="lente">${ic('regalo')}</span><span>Navidad es en <b>${NAVIDAD} días</b>, el 25 de diciembre.</span></p>`;
+    const cards = `<div class="verbos tres">${Object.entries(GRUPOS_P).map(([k, [corto, , i, c, s]], j) => `<button class="verbo entra" style="--i:${4 + j};--c:${c}" aria-pressed="${filtroP === k}" data-filtro-p="${k}"><span class="vn"><span class="lente">${ic(i)}</span>${corto}</span><span class="vv"><b>${tiposDe(k).length}</b><span>tipos</span></span><span class="vc">${s}</span></button>`).join('')}</div>`;
+    const grupos = Object.keys(GRUPOS_P).filter((k) => (!filtroP || filtroP === k) && tiposDe(k).length).map((k, gi) => {
+      const [, largo, i, c] = GRUPOS_P[k]; const ts = tiposDe(k);
+      return `<section class="placa grupo entra" style="--i:${7 + gi}">
+        <div class="grupo-cab" style="--c:${c}"><h2 class="tit-s"><span class="lente">${ic(i)}</span>${largo}<span class="glb">${ts.length}</span></h2>${k === 'pide' ? '<div class="acc"><button class="btn sec chico">Abrir el plan de campaña</button></div>' : ''}</div>
+        ${ts.map((t) => `<div class="fila${k === 'pide' ? '' : ' tenue'}" role="button" tabindex="0" data-tipo-ficha="${t.n}" style="--c:${colorTipo(t)}">${ttile(t, 48)}
+          <span class="nm"><b>${t.n}</b><span>Vendiste ${t.v} · tienes ${t.tiene}</span></span>
+          <span class="pq">${k === 'pide' ? `<span class="dato">${ic(icTipo(t))}${cuando(t)}</span><span class="mas">${tallaTxt(t)}</span>` : k === 'llega' ? `<span class="dato">${ic('check')}Te dura ${alcanceTxt(t.dias)}</span>` : ''}</span>
+          <span class="bot">${k === 'pide' ? '<button class="btn sec chico" data-no-ficha>Comprar</button>' : ''}</span></div>`).join('')}
+      </section>`;
+    }).join('');
+    return nav + cards + (grupos || nadaQueHacer('Con estos filtros no hay ninguno aquí.')) + rindeHtml(11);
+  }
+
+  // B · Qué pedir como respuesta: la cifra en grande y una tarjeta por tipo, como las otras preguntas.
+  function pedirB() {
+    if (!tiposActuales().length) return vacio();
+    const ps = tiposDe('pide'), ls = tiposDe('llega'), ss = tiposDe('sin');
+    const resp = `<section class="placa respuesta entra" style="--i:3;--c:${ps.length ? 'var(--ambar)' : 'var(--verde)'}"><div class="r"><b>${ps.length ? `${ps.length} tipo${ps.length > 1 ? 's' : ''}` : 'Ninguno'}</b><span>${ps.length ? `no te alcanza${ps.length > 1 ? 'n' : ''} hasta Navidad, en ${NAVIDAD} días` : 'se acaba antes de Navidad'}</span></div><button class="btn sec chico">Abrir el plan de campaña</button></section>`;
+    const cards = ps.length ? `<div class="tarjetas">${ps.map((t, i) => `<article class="placa tarj entra" style="--i:${4 + i};--c:${colorTipo(t)}" role="button" tabindex="0" data-tipo-ficha="${t.n}">${ttile(t, 72)}
+        <div><span class="nm"><b>${t.n}</b><span>Vendiste ${t.v} · tienes ${t.tiene}</span></span><span class="gr">${t.dias === 0 ? '<b>Ya no hay</b>' : `<b>${t.dias}</b><span>días te alcanzan</span>`}</span></div>
+        <div class="ab"><span class="mas">${tallaTxt(t)}</span><button class="btn sec chico" data-no-ficha>Comprar</button></div></article>`).join('')}</div>` : '';
+    const enl = (ts) => yLista(ts.map((t) => `<button class="enl" data-tipo-ficha="${t.n}">${t.n}</button>`));
+    const resto = ls.length || ss.length ? `<section class="placa otros entra" style="--i:10">${ls.length ? `<span><b>Te alcanzan:</b> ${enl(ls)}</span>` : ''}${ss.length ? `<span><b>Sin ventas en 30 días:</b> ${enl(ss)}</span>` : ''}</section>` : '';
+    return resp + cards + resto + rindeHtml(11);
+  }
+
+  // C · Qué pedir como tendedero: de hoy a Navidad, cada tipo cuelga el día en que se acaba.
+  function pedirC() {
+    const todos = tiposActuales(); if (!todos.length) return vacio();
+    const ps = tiposDe('pide'), ls = tiposDe('llega'), ss = tiposDe('sin');
+    const ESC = 40, x = (d) => (Math.min(d, ESC) / ESC) * 100;
+    // cada tipo baja a la primera fila donde no tapa al de al lado (20 % del ancho)
+    const filas = [];
+    const pos = [...[...ps].sort((a, b) => a.dias - b.dias).map((t) => [t, x(t.dias)]), ...ls.map((t) => [t, 92.5])].map(([t, px]) => {
+      let f = filas.findIndex((u) => px - u >= 20);
+      if (f < 0) { filas.push(px); f = filas.length - 1; } else filas[f] = px;
+      return [t, px, f];
+    });
+    const ALTO = 132, alto = 31 + 18 + (Math.max(1, filas.length) - 1) * ALTO + 128; // 132: lo que mide una prenda colgada con su nombre y su etiqueta
+    const marcas = [[0, 'Hoy'], [7, fecha(7)], [14, fecha(14)], [21, fecha(21)], [28, fecha(28)]].map(([d, t]) => `<span class="marca" style="left:${x(d)}%">${t}</span>`).join('')
+      + `<span class="marca nav" style="left:${x(NAVIDAD)}%">${ic('regalo')}Navidad</span>`;
+    const colgada = ([t, px, f], i) => `<button class="colgada entra" style="--i:${5 + i};left:${px}%;z-index:${10 - f};--largo:${18 + f * ALTO}px;--c:${colorTipo(t)}" aria-pressed="${t.n === tipoSel}" data-tipo="${t.n}">
+        <span class="fch">${grupoTipo(t) === 'llega' ? '' : t.dias === 0 ? 'Hoy' : fecha(t.dias)}</span><span class="pinza" aria-hidden="true"></span>${ttile(t, 64)}<span class="txt"><b>${t.n}</b><span class="etq-t">${grupoTipo(t) === 'llega' ? 'Te alcanza' : cuando(t)}</span></span></button>`;
+    const nPide = ps.length;
+    const cuerda = pos.length ? `<div class="cuerda" style="--alto:${alto}px"><span class="despues" style="left:${x(NAVIDAD)}%"></span><span class="linea"></span>${marcas}
+      ${pos.slice(0, nPide).map(colgada).join('')}<span class="sep-nav">${ic('regalo')}Navidad · 25 dic.</span>${pos.slice(nPide).map((p, i) => colgada(p, nPide + i)).join('')}</div>` : '';
+    const tend = `<section class="placa tend entra" style="--i:3"><div class="tend-cab"><h2 class="tit-s">¿Te alcanza hasta Navidad?</h2><button class="btn sec chico">Abrir el plan de campaña</button></div>${cuerda}
+      ${ss.length ? `<p class="otros-c">Sin ventas en 30 días: ${yLista(ss.map((t) => `<button class="enl" data-tipo="${t.n}">${t.n}</button>`))}</p>` : ''}</section>`;
+    // el tipo elegido: sus tallas y sus prendas en la vitrina
+    const t = todos.find((y) => y.n === tipoSel) || ps[0] || todos[0]; const ms = t.ms;
+    const sel = `<section class="repisa entra" style="--i:12"><div class="repisa-cab" style="--c:${colorTipo(t)}"><h2 class="tit-s">${t.n}<span class="glb">${ms.length}</span></h2><span class="chip ${chipTipo(t)}">${cuando(t)}</span></div>
+      <div class="c-sel"><div class="placa">${cifrasTipo(t)}${tallasHtml(t)}${grupoTipo(t) === 'pide' ? '<div class="acc"><button class="btn pri chico">Comprar</button></div>' : ''}</div>
+        <div class="vitrina">${ms.map((m) => { const [tono, txt] = quedan(m); return `<article class="vit" role="button" tabindex="0" data-ficha="${m.id}" style="--c:var(--${tono})">
+          <div class="foto${m.claro ? ' claro' : ''}" style="--hx:${m.hx}" data-color-dato><span class="etq">${txt}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${CAT[m.c]}"/></svg></div>
+          <div class="pie"><b>${m.n}</b><span>Vendiste ${m.vend || 0} en 30 días</span></div></article>`; }).join('')}</div></div></section>`;
+    return tend + sel;
+  }
+
+  // ---------- CARA A · Tu lista de hoy ----------
+  // «No se vende»: cada fila dice hace cuánto no se vende, cuántas tienes y cuánta plata tiene parada. Sin botón: tocarla abre su ficha.
+  function grupoNoSeVendeA(gi) {
+    const ms = ordenarNS(de('liquidar')), vg = ordenarNS(de('vigilar')), e = EST.liquidar;
+    const fila = (m, tenue) => `<div class="fila ns${tenue ? ' tenue' : ''}" role="button" tabindex="0" data-ficha="${m.id}" style="--c:${e.c}">${tile(m, 48)}
+        <span class="nm"><b>${m.n}</b><span>${m.que}</span></span>
+        <span class="pq">${diasNS(m)}<span class="mas">Tienes ${unidades(m)} · ${soles(parado(m))} parados</span></span></div>`;
+    return `<section class="placa grupo entra" style="--i:${7 + gi}">
+      <div class="grupo-cab" style="--c:${e.c}"><h2 class="tit-s"><span class="lente">${ic(e.ic)}</span>No se vende<span class="glb">${ms.length}</span></h2><div class="acc"><button class="enl" title="Cambia desde cuántos días cuenta como «no se vende»">Desde 60 días</button></div></div>
+      <div class="ns-cab"><span class="ns-res">${resumenNS(ms)}</span>${chipsOrdenNS()}</div>
+      ${ms.map((m) => fila(m)).join('')}
+      ${vg.length ? `<div class="sub-ns">${ic('ojo')}Van lentas: todavía no llegan a 60 días</div>${vg.map((m) => fila(m, true)).join('')}` : ''}
+    </section>`;
+  }
+  function caraA() {
+    const orden = ['comprar', 'bajar', 'mandar', 'liquidar'];
+    const tarjetas = `<div class="verbos">${orden.map((k, i) => {
+      const e = EST[k]; const n = de(k).length;
+      return `<button class="verbo entra" style="--i:${3 + i};--c:${e.c}" aria-pressed="${filtroA === k}" data-filtro-a="${k}"><span class="vn"><span class="lente">${ic(e.ic)}</span>${e.verbo}</span><span class="vv"><b>${n}</b><span>modelos</span></span><span class="vc">${e.porque}</span></button>`;
+    }).join('')}</div>`;
+    const grupos = orden.filter((k) => (!filtroA || filtroA === k) && (k === 'liquidar' ? de('liquidar').length + de('vigilar').length : de(k).length)).map((k, gi) => {
+      if (k === 'liquidar') return grupoNoSeVendeA(gi);
+      const e = EST[k]; const ms = de(k);
+      return `<section class="placa grupo entra" style="--i:${7 + gi}">
+        <div class="grupo-cab" style="--c:${e.c}"><h2 class="tit-s"><span class="lente">${ic(e.ic)}</span>${e.grupo}<span class="glb">${ms.length}</span></h2><div class="acc"><button class="btn sec chico">${e.todos}</button></div></div>
+        ${ms.map((m) => `<div class="fila" role="button" tabindex="0" data-ficha="${m.id}" style="--c:${e.c}">${tile(m, 48)}
+          <span class="nm"><b>${m.n}</b><span>${m.que}</span></span>
+          <span class="pq"><span class="dato">${ic(e.icd(m))}${e.dato(m)}</span><span class="mas">${mas(m)}</span></span>
+          <span class="bot">${k === 'comprar' && m.otra ? '<button class="enl" data-no-ficha>o pedir a Arequipa</button>' : ''}<button class="btn sec chico" data-no-ficha>${e.boton}</button></span></div>`).join('')}
+      </section>`;
+    }).join('');
+    const cuerpo = vistaA === 'hoy' ? (vis().length ? tarjetas + (grupos || nadaQueHacer('Con estos filtros no hay nada que hacer hoy.')) : vacio()) : pedirA();
+    return cabecera() + aviso() + pestanas([['hoy', 'Qué hacer hoy', de('comprar').length + de('bajar').length + de('mandar').length + de('liquidar').length], ['pedir', 'Qué pedir', tiposDe('pide').length, 'ambar']], vistaA, 'vista-a') + barraFiltros() + cuerpo;
+  }
+
+  // ---------- CARA B · Una respuesta por pregunta ----------
+  const PREG = {
+    acaba: { t: 'Se acaba', est: ['comprar'], q: '¿Qué se acaba?', r: (n) => `${n} modelo${n === 1 ? '' : 's'}`, s: 'se acaban en 3 días o menos', c: 'var(--rojo)', boton: 'Ver y comprar', chip: ['rojo', 'Urgente'] },
+    nose: { t: 'No se vende', est: ['liquidar', 'mandar', 'vigilar'], q: '¿Qué no se vende?', r: (n) => `${n} modelo${n === 1 ? '' : 's'}`, s: () => `${soles(QUIETAS.flatMap(de).reduce((t, m) => t + parado(m), 0))} parados sin venderse`, c: 'var(--ambar)', boton: 'Ver y decidir', chip: ['ambar', 'Atención'] },
+    piso: { t: 'Sin salir', est: ['bajar'], q: '¿Qué no salió al piso?', r: (n) => `${n} modelo${n === 1 ? '' : 's'}`, s: 'están guardados y nadie los vio', c: 'var(--pizarra)', boton: 'Ver y bajar', chip: ['pizarra', 'Atención'] },
+    pedir: { t: 'Qué pedir', est: [], q: '¿Qué pedir?', r: () => { const n = tiposDe('pide').length; return `${n} tipo${n === 1 ? '' : 's'}`; }, s: 'no te alcanzan hasta Navidad', c: 'var(--ambar)', boton: 'Ver qué pedir', chip: ['ambar', 'Atención'] },
+  };
+  // B · «No se vende»: la plata parada en grande; debajo lo de más de 60 días, lo que en Arequipa sí se vende y lo que va lento. Qué hacer, lo decides tú.
+  function noSeVendeB() {
+    const ns = ordenarNS(de('liquidar')), md = ordenarNS(de('mandar')), vg = ordenarNS(de('vigilar')), todos = [...ns, ...md, ...vg];
+    if (!todos.length) return nadaQueHacer('Con estos filtros no hay ninguno aquí.');
+    const resp = `<section class="placa respuesta entra" style="--i:3;--c:var(--ambar)"><div class="r"><b>${soles(todos.reduce((t, m) => t + parado(m), 0))}</b><span>parados en ${todos.length} modelo${todos.length > 1 ? 's' : ''} que no se venden</span></div>${chipsOrdenNS()}</section>`;
+    const tarjeta = (m, i) => `<article class="placa tarj entra" style="--i:${5 + i};--c:${EST[m.est].c}" role="button" tabindex="0" data-ficha="${m.id}">${tile(m, 72)}
+        <div><span class="nm"><b>${m.n}</b><span>${m.que}</span></span><span class="gr"><b${m.d >= 90 ? ' class="rojo"' : ''}>${m.d}</b><span>días sin venderse</span></span></div>
+        <div class="ab"><span class="mas">${m.est === 'mandar' ? mas(m) : `Tienes ${unidades(m)} · ${soles(parado(m))} parados`}</span>${m.est === 'mandar' ? '<button class="btn sec chico" data-no-ficha>Mandar</button>' : ''}</div></article>`;
+    const seccion = (titulo, sub, ms, i0) => (ms.length ? `<div class="sec-t entra" style="--i:4"><h2 class="tit-s">${titulo}<span class="glb">${ms.length}</span></h2><span class="sec-sub">${sub}</span></div>
+      <div class="tarjetas">${ms.map((m, i) => tarjeta(m, i0 + i)).join('')}</div>` : '');
+    return resp + seccion('Más de 60 días sin venderse', resumenNS(ns), ns, 0) + seccion('En Arequipa sí se venden', 'allá se vendieron este mes', md, 4) + seccion('Van lentas', 'todavía no llegan a 60 días', vg, 8);
+  }
+  function caraB() {
+    const items = [['hoy', 'Hoy'], ...Object.entries(PREG).map(([k, p]) => [k, p.t, p.est.length ? p.est.reduce((s, e) => s + de(e).length, 0) : null, k === 'acaba' ? 'rojo' : ''])];
+    let cuerpo;
+    if (vistaB === 'hoy') {
+      cuerpo = !vis().length ? vacio() : `<div class="resp4">${Object.entries(PREG).map(([k, p], i) => {
+        const ms = p.est.flatMap(de); const n = ms.length;
+        const pila = k === 'pedir' ? `<span class="pila">${tiposDe('pide').map((t) => ttile(t)).join('')}</span>`
+          : `<span class="pila">${ms.slice(0, 5).map((m) => tile(m)).join('')}${n > 5 ? `<span class="mas">y ${n - 5} más</span>` : ''}</span>`;
+        return `<section class="placa resp entra" style="--i:${3 + i};--c:${p.c}"><div class="q"><span class="vs-t">${p.q}</span><span class="chip ${p.chip[0]}">${p.chip[1]}</span></div>
+          <div class="r"><b>${p.r(n)}</b><span>${typeof p.s === 'function' ? p.s() : p.s}</span></div>${pila}
+          <div class="pie"><button class="btn pri chico" data-vista-b="${k}">${p.boton} ${ic('flecha')}</button></div></section>`;
+      }).join('')}</div>`;
+    } else if (vistaB === 'pedir') {
+      cuerpo = pedirB();
+    } else if (vistaB === 'nose') {
+      cuerpo = !vis().length ? vacio() : noSeVendeB();
+    } else {
+      const p = PREG[vistaB]; const ms = p.est.flatMap(de);
+      cuerpo = !vis().length ? vacio() : `<section class="placa respuesta entra" style="--i:3;--c:${p.c}"><div class="r"><b>${p.r(ms.length)}</b><span>${p.s}</span></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">${p.est.map((e) => `<button class="btn sec chico">${EST[e].todos}</button>`).join('')}</div></section>
+        ${ms.length ? `<div class="tarjetas">${ms.map((m, i) => { const e = EST[m.est]; const num = m.est === 'comprar' ? (m.d === 0 ? ['Ya no hay', ''] : [m.d, 'días te quedan']) : m.est === 'bajar' ? [m.d, 'días guardada'] : [m.d, 'días sin venderse'];
+          return `<article class="placa tarj entra" style="--i:${4 + i};--c:${e.c}" role="button" tabindex="0" data-ficha="${m.id}">${tile(m, 72)}
+            <div><span class="nm"><b>${m.n}</b><span>${m.que}</span></span><span class="gr"><b>${num[0]}</b><span>${num[1]}</span></span></div>
+            <div class="ab"><span class="mas">${mas(m)}</span><button class="btn sec chico" data-no-ficha>${e.verbo === 'Mandar a Arequipa' ? 'Mandar' : e.boton}</button></div></article>`; }).join('')}</div>` : nadaQueHacer('Con estos filtros no hay ninguno aquí.')}`;
+    }
+    return cabecera() + aviso() + pestanas(items, vistaB, 'vista-b') + barraFiltros() + cuerpo;
+  }
+
+  // ---------- CARA C · La vitrina ----------
+  const REPISAS = [['comprar', 'Se acaban', 'Comprar todas'], ['bajar', 'Guardadas, sin salir al piso', 'Bajar todas'], ['liquidar', 'No se venden', null], ['mandar', 'En Arequipa sí se venden', 'Mandar todas'], ['vigilar', 'Van lentas', null], ['bien', 'Van bien', null]];
+  function caraC() {
+    const fil = [['todos', 'Todos', vis().length, 'var(--t50)'], ['comprar', 'Se acaban', de('comprar').length, 'var(--rojo)'], ['bajar', 'Sin salir', de('bajar').length, 'var(--pizarra)'],
+      ['quietas', 'No se venden', de('mandar').length + de('liquidar').length + de('vigilar').length, 'var(--ambar)'], ['bien', 'Van bien', de('bien').length, 'var(--verde)'], ['pedir', 'Qué pedir', null, 'var(--taupe)']];
+    const filtros = `<div class="fil entra" style="--i:2">${fil.map(([k, t, n, c]) => `<button aria-pressed="${filtroC === k}" data-filtro-c="${k}" style="--c:${c}"><span class="pto"></span>${t}${n != null ? `<span class="glb">${n}</span>` : ''}</button>`).join('')}</div>`;
+    if (filtroC === 'pedir') return cabecera() + aviso() + barraFiltros() + filtros + pedirC();
+    const visibles = REPISAS.filter(([k]) => (filtroC === 'todos' || filtroC === k || (filtroC === 'quietas' && ['mandar', 'liquidar', 'vigilar'].includes(k))) && de(k).length);
+    const rep = visibles.map(([k, t, todos], ri) => {
+      const e = EST[k]; const ms = de(k);
+      const ns = NO_SE_VENDE.includes(k); const lista = ns ? ordenarNS(ms) : ms;
+      return `<section class="repisa entra" style="--i:${3 + ri}"><div class="repisa-cab" style="--c:${e.c}"><h2 class="tit-s">${t}<span class="glb">${ms.length}</span></h2>${ns ? `<span class="ns-res">${resumenNS(ms)}</span>` : todos ? `<button class="btn sec chico">${todos}</button>` : ''}</div>
+        ${k === 'liquidar' ? chipsOrdenNS() : ''}
+        <div class="vitrina">${lista.map((m) => `<article class="vit${k === 'bien' ? ' bien' : ''}" role="button" tabindex="0" data-ficha="${m.id}" style="--c:${ns && m.d >= 90 ? 'var(--rojo)' : e.c}">
+          <div class="foto${m.claro ? ' claro' : ''}" style="--hx:${m.hx}" data-color-dato><span class="etq">${ns ? `${m.d} días sin venderse` : e.dato(m)}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${CAT[m.c]}"/></svg></div>
+          <div class="pie"><b>${m.n}</b><span>${ns ? `${unidades(m)} prendas · ${soles(parado(m))} parados` : mas(m)}</span>${e.boton ? `<span class="accion"><button class="btn sec chico" data-no-ficha>${e.boton}</button></span>` : ''}</div></article>`).join('')}</div></section>`;
+    }).join('');
+    return cabecera() + aviso() + barraFiltros() + filtros + (!vis().length ? vacio() : rep || nadaQueHacer('Con estos filtros no hay ninguno aquí.'));
+  }
+
+  // ---------- «Así está hoy» ----------
+  function asiHoy() {
+    const caps = [['hoy', 'Hoy'], ['acaba', 'Se está acabando'], ['nose', 'No se vende'], ['piso', 'Nunca salió al piso'], ['pedir', 'Qué pedir'], ['ficha', 'La ficha']];
+    return `${pestanas(caps.map(([k, t]) => [k, t]), capHoy, 'cap')}
+      <p class="nota-hoy">La pantalla real, dibujada en local con los mismos 18 modelos inventados (sin el menú ni la cabecera del ERP). Se ve en claro y a 1280 px.</p>
+      <div class="cap"><img src="hoy/${capHoy}.jpg" alt="Análisis hoy: ${caps.find((c) => c[0] === capHoy)[1]}"></div>`;
+  }
+
+  // Al filtrar se vuelve a dibujar sin la entrada en cascada, y el cursor sigue donde estaba escribiendo.
+  function pantalla(sinEntrada) {
+    const a = document.activeElement; const foco = a && a.dataset ? a.dataset.foco : null; const pos = foco ? a.selectionStart : null;
+    const d = estado.dir;
+    const html = d === 'hoy' ? asiHoy() : d === 'a' ? caraA() : d === 'b' ? caraB() : caraC();
+    $c().innerHTML = `<div class="an${sinEntrada ? ' sin-entrada' : ''}">${html}</div>`;
+    if (hojaF) pintarHoja(true);
+    if (foco) { const el = document.querySelector(`[data-foco="${foco}"]`); if (el) { el.focus(); el.setSelectionRange(pos, pos); } }
+  }
+  const repinta = () => pantalla(true);
+  const cerrarCapa = () => { hojaF = false; document.getElementById('an-capa').innerHTML = ''; };
+
+  // ---------- interacción ----------
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (!t.closest('#cont, #an-capa')) return;
+    if (t.closest('[data-an-cerrar]')) { ficha(null); return; }
+    if (t.closest('[data-hoja-cerrar]')) { cerrarCapa(); repinta(); return; }
+    // los filtros
+    const on = t.closest('[data-orden-ns]'); if (on) { ordenNS = on.dataset.ordenNs; repinta(); return; }
+    const op = t.closest('[data-op]'); if (op) { const [k, v] = op.dataset.op.split('|'); if (F[k].has(v)) F[k].delete(v); else F[k].add(v); repinta(); return; }
+    const or = t.closest('[data-orden]'); if (or) { if (vistaActual() === 'pedir') ordenPedir = or.dataset.orden; else ordenHoy = or.dataset.orden; abierto = null; repinta(); return; }
+    const pfx = t.closest('[data-pf-x]'); if (pfx) { F[pfx.dataset.pfX].clear(); abierto = null; repinta(); return; }
+    const pf = t.closest('[data-pf]'); if (pf) { abierto = abierto === pf.dataset.pf ? null : pf.dataset.pf; buscaLista = ''; repinta(); return; }
+    if (t.closest('[data-limpiar]')) { FACETAS.forEach(([k]) => F[k].clear()); F.q = ''; abierto = null; repinta(); return; }
+    if (t.closest('[data-busca-x]')) { F.q = ''; repinta(); return; }
+    if (t.closest('[data-hoja-f]')) { hojaF = true; abierto = null; pintarHoja(false); return; }
+    if (t.closest('.lf, .busca')) return;
+    if (abierto) { abierto = null; repinta(); return; } // un clic afuera cierra la lista
+    // las vistas
+    const va = t.closest('[data-vista-a]'); if (va) { vistaA = va.dataset.vistaA; filtroA = null; pantalla(); $c().scrollTop = 0; return; }
+    const fp = t.closest('[data-filtro-p]'); if (fp) { filtroP = filtroP === fp.dataset.filtroP ? null : fp.dataset.filtroP; repinta(); return; }
+    const fa = t.closest('[data-filtro-a]'); if (fa) { filtroA = filtroA === fa.dataset.filtroA ? null : fa.dataset.filtroA; repinta(); return; }
+    const vb = t.closest('[data-vista-b]'); if (vb) { vistaB = vb.dataset.vistaB; pantalla(); $c().scrollTop = 0; return; }
+    const fc = t.closest('[data-filtro-c]'); if (fc) { filtroC = fc.dataset.filtroC; pantalla(); return; }
+    const cp = t.closest('[data-cap]'); if (cp) { capHoy = cp.dataset.cap; pantalla(); return; }
+    const tp = t.closest('[data-tipo]'); if (tp) { tipoSel = tp.dataset.tipo; repinta(); return; }
+    if (t.closest('[data-rinde]')) { rinde = !rinde; repinta(); return; }
+    if (t.closest('[data-no-ficha]')) return;
+    const tf = t.closest('[data-tipo-ficha]'); if (tf) { fichaTipo(tf.dataset.tipoFicha); return; }
+    const f = t.closest('[data-ficha]'); if (f) ficha(f.dataset.ficha);
+  });
+  // buscar mientras se escribe (sin Enter), en la barra y dentro de una lista larga
+  document.addEventListener('input', (e) => {
+    if (e.target.matches('[data-busca]')) { F.q = e.target.value; repinta(); }
+    if (e.target.matches('[data-lf-busca]')) { buscaLista = e.target.value; repinta(); }
+  });
+  document.addEventListener('keydown', (e) => {
+    const escribe = e.target.matches('input, textarea');
+    if (e.key === '/' && !escribe && estado.dir !== 'hoy') { const b = document.querySelector('[data-busca]'); if (b) { e.preventDefault(); b.focus(); } return; }
+    if (e.key === 'Escape') {
+      if (abierto) { abierto = null; repinta(); return; } // primero se cierra la lista, después la hoja
+      if (hojaF) { cerrarCapa(); repinta(); return; }
+      ficha(null); return;
+    }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('#cont [role="button"][data-ficha]')) { e.preventDefault(); ficha(e.target.dataset.ficha); }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('#cont [role="button"][data-tipo-ficha]')) { e.preventDefault(); fichaTipo(e.target.dataset.tipoFicha); }
+  });
+
+  Marco.iniciar({ estado: { dir: 'a', datos: 'ok', mov: 'quieto' }, alPintar: () => { abierto = null; $c().scrollTop = 0; pantalla(); } });
+})();
+</script>
+</body>
+</html>
