@@ -2,7 +2,6 @@
    Se importa desde los componentes que usan sus clases (ADR-0674, CSS por pantalla). Lo vigila `lib/css-por-pantalla.test.ts`. */
 @import "../analisis-hoy.css";
 @import "../analisis-quieta.css";
-@import "../analisis-piso.css";
 @import "../analisis-pedir.css";
 @import "../analisis-ficha.css";
 @import "../analisis-b.css";

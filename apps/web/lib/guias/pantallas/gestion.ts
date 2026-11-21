@@ -122,11 +122,18 @@ export const GUIA_ANALISIS: Guia = {
     },
     {
       id: "piso",
-      ancla: "analisis.vista",
+      ancla: "analisis.piso-respuesta",
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-piso" }],
-      titulo: "Nunca salió al piso",
-      texto: "Lo que está guardado en el almacén y nunca se colgó: si no se ve, no se vende.",
+      titulo: "Sin salir",
+      texto: "Lo que está guardado y nunca se colgó: si no se ve, no se vende. «Bajar todos» los lleva al piso de una vez.",
+    },
+    {
+      id: "piso-tarjetas",
+      ancla: "analisis.piso-tarjetas",
+      opcional: true,
+      titulo: "Primero lo que más se vende",
+      texto: "Cada tarjeta dice cuántos días lleva en la tienda y cuántas hay en el almacén. Empieza por el tipo que más se vende; «Bajar» la lleva al piso.",
     },
     {
       id: "pedir",
