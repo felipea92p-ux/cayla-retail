@@ -9,6 +9,8 @@
  *     (`fn_aliadas_saldo_a`) → vuelve a `fn_claure_saldo_a`.
  *   · 20261121171000: el Diario resta los gastos de todas las aliadas (`fn_aliadas_gastos_base`) → vuelve a los de CLAURE; «lo que falta del mes» lee el
  *     reparto de todas (`fn_parte_de_aliadas`) → vuelve al de CLAURE; las funciones de ofertas preguntan `fn_campana_alcanza_empresa` → vuelven a «salvo CLAURE».
+ *   · 20261121173000: las cifras de CAYLA preguntan por cualquier aliada con cuenta → vuelven a CLAURE activa; «lo vendido en un período» suma a todas
+ *     (`fn_aliadas_ventas`) → vuelve a `fn_claure_ventas`. (`fn_claure_de_hoy` se rehízo entera: una migración vieja que la pegue la pisa sola.)
  * Si una base no tiene esas migraciones, cada `replace` no encuentra nada y no cambia nada.
  */
 export const SQL_DESHACER_ALIADAS = `reset role;
@@ -25,6 +27,22 @@ begin
                                  and exists (select 1 from retail.empresa_sedes es
                                               where es.empresa_id = v_claure and es.ubicacion_id = f.ubicacion_id)), 0) / 100)');
   end if;
+  declare
+    v_cifra text;
+  begin
+    foreach v_cifra in array array['retail.fn_item_es_de_claure(uuid, uuid, timestamptz)', 'retail.fn_lineas_de_claure(timestamptz, timestamptz, uuid)',
+                                   'retail.fn_calidad(date, integer, integer)', 'retail.fn_club_compras_netas(uuid)', 'retail.fn_observatorio(integer)',
+                                   'retail.fn_lo_que_falta_del_mes(date)'] loop
+      if to_regprocedure(v_cifra) is not null then
+        execute replace(pg_get_functiondef(v_cifra::regprocedure), 'e.id <> retail.fn_empresa_casa_id() and e.cuenta_corriente_desde is not null',
+                        'e.clave = ''claure'' and e.activo and e.cuenta_corriente_desde is not null');
+      end if;
+    end loop;
+    if to_regprocedure('retail.fn_claure_ventas_en(date, date, uuid)') is not null then
+      execute replace(pg_get_functiondef('retail.fn_claure_ventas_en(date, date, uuid)'::regprocedure), 'retail.fn_aliadas_ventas(p_desde, p_hasta, v_todo, v_ubics) f;',
+                      'retail.fn_claure_ventas(p_desde, p_hasta, v_todo, v_ubics) f;');
+    end if;
+  end;
   declare
     v_cola constant text := ' or p.empresa_id is distinct from (select em.id from retail.empresas em where em.clave = ''claure''))';
     v_forma text;
