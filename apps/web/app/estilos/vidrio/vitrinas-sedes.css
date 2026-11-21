@@ -83,6 +83,15 @@
 .vs-guilloche .linea { fill: none; stroke: var(--color-taupe); stroke-width: 0.5; }
 .vs-guilloche .candado { fill: none; stroke: var(--color-tinta); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
+/* ---------- las empresas aliadas (ADR-0683): una tarjeta por empresa, bajo la banda de CAYLA ---------- */
+.vs-aliadas { display: grid; gap: 18px; align-items: start; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); margin-top: 12px; }
+.vs-aliada { display: grid; gap: 12px; padding: 20px 22px; }
+.vs-aliada header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.vs-aliada-nombre { display: block; font: 500 30px/1.05 var(--font-serif); overflow-wrap: anywhere; }
+.vs-aliada-fila { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Cada cuenta para cobrar dentro de la hoja: la placa, lo que explica es plano (recetas.css). */
+.vs-cuenta-aliada { border-radius: 16px; background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); }
+
 /* ---------- las vitrinas ---------- */
 .vs-vitrinas { display: grid; gap: 18px; align-items: start; grid-template-columns: repeat(auto-fit, minmax(252px, 1fr)); }
 .vs-vitrina { padding: 20px 14px 14px; transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform 500ms var(--ease-cayla); }
@@ -297,6 +306,7 @@ button.vs-dato:focus-visible { outline: 2px solid var(--color-rojo); outline-off
 .vs-guilloche .cierre { animation: vs-cierra 700ms var(--ease-cayla) 1300ms backwards; }
 
 .vs-vitrina { animation: vs-sale-gota 1000ms var(--ease-cayla) calc(80ms + var(--e) * 110ms) backwards; }
+.vs-aliada { animation: vs-sale-gota 1000ms var(--ease-cayla) calc(80ms + var(--e) * 110ms) backwards; }
 .vs-nombre span { animation: vs-ranura 800ms var(--ease-cayla) calc(250ms + var(--e) * 110ms) backwards; }
 .vs-direccion { animation: vs-funde 800ms var(--ease-cayla) calc(500ms + var(--e) * 110ms) backwards; }
 .vs-series { animation: vs-funde 800ms var(--ease-cayla) calc(650ms + var(--e) * 110ms) backwards; }

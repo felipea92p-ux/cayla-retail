@@ -1253,6 +1253,20 @@ export const GUIA_CONFIGURACION: Guia = {
       texto: "El carnet de la empresa: la razón social y el RUC que salen en las boletas, facturas y reportes. Aquí solo se leen: el «?» de al lado dice por qué.",
     },
     {
+      id: "aliadas",
+      ancla: "config.aliadas",
+      opcional: true,
+      titulo: "Las empresas aliadas",
+      texto: "Otras dueñas que venden en tus tiendas con su propio RUC, como Claurè en Lima. Cada tarjeta dice su régimen, en qué tiendas vende y a qué cuentas se le paga. Lo que entra a esas cuentas es de ella: no suma a CAYLA.",
+    },
+    {
+      id: "aliadas-agregar",
+      ancla: "config.aliadas-agregar",
+      opcional: true,
+      titulo: "Sumar una empresa aliada",
+      texto: "Solo el Admin. Pide el nombre, el RUC, el régimen y las tiendas; el correo, el teléfono y las cuentas son opcionales. Con su lápiz se edita o se da de baja: la baja se aplica en 7 días y hasta entonces se deshace.",
+    },
+    {
       id: "empresa-tiendas",
       ancla: "config.empresa-tiendas",
       opcional: true,

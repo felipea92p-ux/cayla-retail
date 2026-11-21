@@ -14,6 +14,8 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { MarcoCasilla, useGuardarCasilla, useVistoGuardado, type Guardar } from "@/components/ConfiguracionCasilla";
 import { CierreCargaInicialModal } from "@/components/ConfiguracionCargaInicial";
 import { AroSede, Instrumento, SelloEmpresa } from "@/components/vitrinas-sedes/Instrumentos";
+import { EmpresasAliadas } from "@/components/vitrinas-sedes/EmpresasAliadas";
+import type { LecturaAliadas } from "@/lib/empresas-aliadas-reglas";
 import { useLuzDelMouse } from "@/components/vitrinas-sedes/useLuzDelMouse";
 import { TOPE_MENSUAL_USD } from "@/lib/asistente/limites";
 import { gastoDelMes } from "@/lib/asistente/sedes";
@@ -385,6 +387,7 @@ export function VistaEmpresaTiendas({
   esLider,
   esAdmin,
   puedeHorario,
+  aliadas,
 }: {
   datos: DatosEmpresa;
   vitrinas: VitrinaSede[];
@@ -394,6 +397,8 @@ export function VistaEmpresaTiendas({
   esAdmin: boolean;
   /** ¿Ve el módulo «Datos y plazos de la tienda web»? Con él, la hora de cierre lleva a Tienda web ▸ Conf. Tienda. */
   puedeHorario: boolean;
+  /** Las empresas aliadas (ADR-0683). `null`: la base no las devolvió y la sección no se dibuja. */
+  aliadas: LecturaAliadas | null;
 }) {
   const { responsable, guardando, guardar } = useGuardarCasilla();
   const raiz = useRef<HTMLDivElement>(null);
@@ -413,6 +418,8 @@ export function VistaEmpresaTiendas({
       </div>
 
       <Carnet datos={datos} />
+
+      {aliadas && <EmpresasAliadas lectura={aliadas} tiendas={datos.tiendas.map((t) => ({ id: t.id, nombre: t.nombre }))} rucDeCasa={datos.ruc} responsable={responsable} />}
 
       {vitrinas.length === 0 ? (
         <Vacio tamano="chico" icono={<Settings2 />}>

@@ -938,6 +938,7 @@ export const PRUEBAS = [
   // proporción a las líneas de cada empresa; el efectivo, lo anterior al arranque, lo anulado y lo de una cuenta de CLAURE no entran; la
   // comisión del POS sale de su tarifa (nula sin ella); una devolución pagada desde una cuenta de CAYLA resta; un cambio se lista sin contar.
   "pruebas:claure-cuenta",
+  "pruebas:empresas-aliadas",
 
   // El Yape de Claudia sale de los números de CAYLA (ADR-0638, actividad 2 de Lima): la cuenta nace una y de CLAURE; vacía, nada cambia (16 huellas, con y sin los parches);
   // un Yape puesto ahí sale de BCP, de los saldos, del Flujo y del Balance y el Diario cuadra; nadie paga nada con ella, no aparece para elegir y un cobro Yape o Plin en su sede sí se puede.

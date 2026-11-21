@@ -1,0 +1,13 @@
+
+## 📌 Empresas aliadas (ADR-0683, Felipe 2026-11-21) — rama `claude/multi-empresa-rus-tienda-c7129a`, 8 actividades aprobadas
+
+- [x] **1 · Crear, editar y dar de baja una aliada desde Configuración.** Migración `20261121152000` (solo local, NO en producción: va con las de 2 a 7), `pnpm pruebas:empresas-aliadas` 35/35, la hoja con guía de foco, la guía interactiva y su huella, el cron `/api/empresas/bajas` (3:50 de Lima).
+- [ ] **2 · El Balance y el Diario con cualquier aliada.** Hoy `fn_asientos_claure`, `fn_claure_ventas` y `fn_movimiento_es_de_claure` miran `clave = 'claure'`, y `fn_bal_stock` ya resta a cualquier dueña: con una segunda aliada, la 201 deja de cuadrar. Además, la regla «¿es de una aliada?» no debe preguntar `activo` (hoy `fn_item_es_de_claure` lo hace): al dar de baja, su pasado volvería a ser de CAYLA. Y los traslados que llegan desde una sede sin dos empresas quedan como de CAYLA (`fn_dueno_de_una_entrada`).
+- [ ] **3 · La cuenta con cada dueña** (`fn_claure_*`, `pago_claure` sin empresa, `caja_traslados` «claudia», la pestaña CLAURE de Cuentas y dinero). La baja debe exigir su saldo en cero.
+- [ ] **4 · Vender con cualquier aliada** (`lib/cobro-por-dueno-reglas.ts` fijo en `{claure, cayla}`; `fn_cuenta_sellada` solo deja Yape y Plin en una cuenta ajena: abrir la transferencia para su cuenta bancaria).
+- [ ] **5 · Campañas y gastos por aliada** (`campana_reglas.incluye_claure`, `gasto_reparto_claure`).
+- [ ] **6 · Las cifras de CAYLA sin aliadas** (`fn_item_es_de_claure`, `fn_lineas_de_claure` y sus usuarios).
+- [ ] **7 · Filtros por empresa en toda tienda con más de una** y quitar «CLAURE» escrito a mano (valor del inventario, reportes, colores, la casa por `clave === "cayla"`).
+- [ ] **8 · Producción y PR:** `/milimetro auditar /configuracion`, `/formidable`, `/chaos` sobre la hoja; Felipe pega las migraciones en orden; `pnpm datos:generar:produccion`.
+- [ ] **En producción, CLAURE no tiene RUC ni régimen:** su tarjeta dirá «Sin RUC» hasta que el Admin la edite.
+- [ ] **Contador:** que un Nuevo RUS opere en un solo local (hoy es un candado de la base); el contrato y lo que CAYLA les cobra a las aliadas.

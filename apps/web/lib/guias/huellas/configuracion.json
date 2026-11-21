@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 118,
+  "total": 138,
   "controles": {
     "components/ConfiguracionCargaInicial.tsx": [
       "button «(sin nombre)»",
@@ -13,6 +13,11 @@
     "components/ConfiguracionCasilla.tsx": [
       "input «{etiqueta}»",
       "input «{etiqueta}» #2"
+    ],
+    "components/ConsultaDocumento.tsx": [
+      "CampoTexto «{contador ? ( <> {}»",
+      "BotonBuscar «→buscar»",
+      "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
@@ -146,6 +151,27 @@
       "button «{nombreCortoSede(t.nombre)}»",
       "button «config.tiendas-normal»",
       "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»"
+    ],
+    "components/vitrinas-sedes/EmpresasAliadas.tsx": [
+      "Boton «config.aliadas-agregar»",
+      "LapizEditar «{a.nombre}»",
+      "BotonDeshacer «→() => deshacerBaja(a.id, a.nombre)»"
+    ],
+    "components/vitrinas-sedes/HojaEmpresaAliada.tsx": [
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre en la tienda\")}»",
+      "Casilla «{t.nombre}»",
+      "CampoTexto «{guia.etiqueta(\"correo\", \"Correo\")}»",
+      "CampoTexto «{guia.etiqueta(\"telefono\", \"Teléfono\")}»",
+      "CampoTexto «Banco»",
+      "CampoTexto «{c.medio === \"transferencia\" ? \"Cuenta o CCI\" : \"Celular\"}»",
+      "button «Quitar esta cuenta»",
+      "Boton «(sin nombre)»",
+      "Boton «Dar de baja»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "CampoTexto «{`Escribe «${nombre}»",
+      "Boton «Cancelar» #2",
+      "Boton «Dar de baja» #2"
     ],
     "components/vitrinas-sedes/VistaEmpresaTiendas.tsx": [
       "input «{`${NOMBRE_CAMPO[campo]}»",

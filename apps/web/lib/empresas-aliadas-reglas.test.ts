@@ -1,0 +1,157 @@
+import { describe, expect, it } from "vitest";
+import { digitoVerificadorRuc } from "@cayla-retail/shared";
+import {
+  argsGuardarAliada,
+  BORRADOR_ALIADA_VACIO,
+  borradorDeAliada,
+  campoDelError,
+  camposDeAliada,
+  confirmaLaBaja,
+  diaDeLaBaja,
+  etiquetaCuenta,
+  leerAliadas,
+  problemaCuenta,
+  problemasAliada,
+  type BorradorAliada,
+} from "./empresas-aliadas-reglas";
+
+const ruc = (diez: string) => diez + String(digitoVerificadorRuc(diez));
+const RUC = ruc("1047000001");
+const RUC_CASA = ruc("2060000001");
+
+const lleno: BorradorAliada = { ...BORRADOR_ALIADA_VACIO, nombre: "Aliada", ruc: RUC, regimen: "nuevo_rus", sedes: ["tru"] };
+
+describe("problemasAliada", () => {
+  it("un borrador vacío pide nombre, RUC, régimen y tienda; lo opcional no", () => {
+    const p = problemasAliada(BORRADOR_ALIADA_VACIO, [], null);
+    expect(p.nombre).not.toBeNull();
+    expect(p.ruc).not.toBeNull();
+    expect(p.regimen).not.toBeNull();
+    expect(p.sedes).not.toBeNull();
+    expect([p.correo, p.telefono, p.cuentas]).toEqual([null, null, null]);
+  });
+  it("lleno, no tiene problemas", () => {
+    expect(Object.values(problemasAliada(lleno, [], RUC_CASA)).every((x) => x === null)).toBe(true);
+  });
+  it("el RUC: dígito verificador, el de CAYLA y uno repetido", () => {
+    const mal = RUC.slice(0, 10) + String((Number(RUC[10]) + 1) % 10);
+    expect(problemasAliada({ ...lleno, ruc: mal }, [], null).ruc).toMatch(/no es válido/);
+    expect(problemasAliada({ ...lleno, ruc: RUC_CASA }, [], RUC_CASA).ruc).toMatch(/CAYLA/);
+    expect(problemasAliada(lleno, [RUC], null).ruc).toMatch(/Ya hay/);
+    expect(problemasAliada({ ...lleno, ruc: `${RUC.slice(0, 2)} ${RUC.slice(2)}` }, [], null).ruc).toBeNull();
+  });
+  it("un Nuevo RUS va a una sola tienda; otro régimen puede ir a varias", () => {
+    expect(problemasAliada({ ...lleno, sedes: ["tru", "lim"] }, [], null).sedes).toMatch(/un solo local/);
+    expect(problemasAliada({ ...lleno, regimen: "mype", sedes: ["tru", "lim"] }, [], null).sedes).toBeNull();
+  });
+  it("correo y teléfono opcionales, pero si se escriben se revisan", () => {
+    expect(problemasAliada({ ...lleno, correo: "no-es-correo" }, [], null).correo).not.toBeNull();
+    expect(problemasAliada({ ...lleno, telefono: "abc" }, [], null).telefono).not.toBeNull();
+    expect(problemasAliada({ ...lleno, correo: "a@b.pe", telefono: "+51 900 000 000" }, [], null)).toMatchObject({ correo: null, telefono: null });
+  });
+});
+
+describe("problemaCuenta", () => {
+  it("Yape y Plin: 9 dígitos que empiezan con 9", () => {
+    expect(problemaCuenta({ id: null, medio: "yape", banco: "", numero: "900 000 010" })).toBeNull();
+    expect(problemaCuenta({ id: null, medio: "plin", banco: "", numero: "80000001" })).toMatch(/9 dígitos/);
+  });
+  it("una cuenta bancaria pide banco y número", () => {
+    expect(problemaCuenta({ id: null, medio: "transferencia", banco: "", numero: "191-0000000-0-45" })).toMatch(/banco/);
+    expect(problemaCuenta({ id: null, medio: "transferencia", banco: "BCP", numero: "x" })).toMatch(/número/);
+    expect(problemaCuenta({ id: null, medio: "transferencia", banco: "BCP", numero: "191-0000000-0-45" })).toBeNull();
+  });
+  it("una que se quita no se revisa", () => {
+    expect(problemaCuenta({ id: "c", medio: "yape", banco: "", numero: "", quitar: true })).toBeNull();
+  });
+});
+
+describe("camposDeAliada (guía de foco)", () => {
+  it("coincide con la validación: se puede confirmar si y solo si no hay problemas", () => {
+    const casos: BorradorAliada[] = [
+      BORRADOR_ALIADA_VACIO,
+      lleno,
+      { ...lleno, correo: "mal" },
+      { ...lleno, cuentas: [{ id: null, medio: "yape", banco: "", numero: "1" }] },
+      { ...lleno, sedes: ["a", "b"] },
+      { ...lleno, regimen: null },
+    ];
+    for (const b of casos) {
+      const campos = camposDeAliada(b, [], null);
+      const confirma = campos.every((c) => !c.requerido || c.hecho);
+      const sinProblemas = Object.values(problemasAliada(b, [], null)).every((x) => x === null);
+      expect(confirma).toBe(sinProblemas);
+    }
+  });
+  it("correo, teléfono y cuentas no se piden si están vacíos", () => {
+    const opcionales = camposDeAliada(lleno, [], null).filter((c) => ["correo", "telefono", "cuentas"].includes(c.id));
+    expect(opcionales.every((c) => !c.requerido)).toBe(true);
+  });
+});
+
+describe("argsGuardarAliada", () => {
+  it("limpia el RUC y los números; una cuenta nueva vacía no viaja; una que existía y se vació se quita", () => {
+    const a = argsGuardarAliada({
+      ...lleno,
+      ruc: `${RUC.slice(0, 2)} ${RUC.slice(2)}`,
+      cuentas: [
+        { id: null, medio: "yape", banco: "", numero: "900 000 010" },
+        { id: null, medio: "plin", banco: "", numero: "" },
+        { id: "vieja", medio: "yape", banco: "", numero: "" },
+        { id: null, medio: "transferencia", banco: " BCP ", numero: " 191-0000000-0-45 " },
+      ],
+    });
+    expect(a.p_ruc).toBe(RUC);
+    expect(a.p_cuentas).toEqual([
+      { id: null, medio: "yape", banco: null, numero: "900000010", quitar: false },
+      { id: "vieja", medio: "yape", banco: null, numero: "", quitar: true },
+      { id: null, medio: "transferencia", banco: "BCP", numero: "191-0000000-0-45", quitar: false },
+    ]);
+    expect(a.p_correo).toBeNull();
+  });
+});
+
+describe("leerAliadas y etiquetaCuenta", () => {
+  it("lee lo que devuelve la base y descarta lo que no entiende", () => {
+    const l = leerAliadas({
+      puede_editar: true,
+      aliadas: [
+        {
+          id: "e1",
+          clave: "claure",
+          nombre: "Claurè",
+          ruc: RUC,
+          regimen: "nuevo_rus",
+          sedes: [{ id: "lim", nombre: "Tienda Lima" }],
+          cuentas: [{ id: "c1", medio: "transferencia", nombre: "BCP de Claurè", numero: "191-0000000-0-45", banco: "BCP" }],
+        },
+        { nombre: "sin id" },
+      ],
+    });
+    expect(l.puedeEditar).toBe(true);
+    expect(l.aliadas).toHaveLength(1);
+    expect(etiquetaCuenta(l.aliadas[0].cuentas[0])).toBe("BCP ··· 045");
+    expect(borradorDeAliada(l.aliadas[0]).sedes).toEqual(["lim"]);
+    expect(leerAliadas(null)).toEqual({ puedeEditar: false, aliadas: [] });
+  });
+  it("un medio desconocido se lee como Yape (el de Claudia nació sin medio)", () => {
+    const l = leerAliadas({ aliadas: [{ id: "e", cuentas: [{ id: "c", medio: null, numero: "900000010" }] }] });
+    expect(etiquetaCuenta(l.aliadas[0].cuentas[0])).toBe("Yape ··· 010");
+  });
+  it("el hint de la base dice en qué campo va el error", () => {
+    expect(campoDelError("ruc")).toBe("ruc");
+    expect(campoDelError("cuenta_ajena")).toBeNull();
+  });
+});
+
+describe("la baja", () => {
+  it("se confirma con el nombre tal cual, sin importar mayúsculas ni espacios de los bordes", () => {
+    expect(confirmaLaBaja("Claurè", " claurè ")).toBe(true);
+    expect(confirmaLaBaja("Claurè", "Claure")).toBe(false);
+    expect(confirmaLaBaja("Claurè", "")).toBe(false);
+  });
+  it("se aplica 7 días después, también al cruzar de mes", () => {
+    expect(diaDeLaBaja("2026-11-21")).toBe("2026-11-28");
+    expect(diaDeLaBaja("2026-11-28")).toBe("2026-12-05");
+  });
+});
