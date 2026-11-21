@@ -942,6 +942,9 @@ export const PRUEBAS = [
   "pruebas:aliadas-balance",
   "pruebas:aliadas-cuenta",
   "pruebas:aliadas-cobro",
+  // ADR-0683, actividad 5: una aliada nueva queda fuera de las campañas hasta que el Admin la enciende, y el reparto de gastos (Diario, cuenta y «lo que
+  // falta del mes») vale para cualquier aliada, sin pasar de 100 % por tienda. ROLLBACK.
+  "pruebas:aliadas-campanas-gastos",
 
   // El Yape de Claudia sale de los números de CAYLA (ADR-0638, actividad 2 de Lima): la cuenta nace una y de CLAURE; vacía, nada cambia (16 huellas, con y sin los parches);
   // un Yape puesto ahí sale de BCP, de los saldos, del Flujo y del Balance y el Diario cuadra; nadie paga nada con ella, no aparece para elegir y un cobro Yape o Plin en su sede sí se puede.
