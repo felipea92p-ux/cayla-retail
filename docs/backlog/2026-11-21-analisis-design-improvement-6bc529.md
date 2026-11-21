@@ -1,0 +1,26 @@
+## 📊 Análisis, la cara B «Una respuesta por pregunta» (2026-11-21, ADR-0357 act. 2026-11-21) — solo web, sin migración; rama `claude/analisis-design-improvement-6bc529`
+
+- [x] Maqueta con tres caras y datos inventados; Felipe eligió la B (`docs/maquetas/analisis-claro-2026-11/`)
+- [x] Ficha al milímetro de la cara B (`docs/milimetro/analisis-b.md`)
+- [x] Barra de filtros común (buscador, Tipo, Talla, Color, Precio, Viene de, Sin venderse) y «Ordenar por» por pestaña
+- [x] «Se acaba», «No se vende» (sin «Liquidar»), «Sin salir» y «Qué pedir» con su respuesta y sus tarjetas
+- [x] «Hoy» con las cuatro respuestas; pestañas con nombres cortos; se fue el flujo de cintas (y el único bucle de Análisis)
+- [x] La ficha de la prenda en tres bloques (veredicto + tres cifras, ventas por semana, talla y color)
+- [x] Guía interactiva al día (23 pasos, cuatro de la ficha) y recorrida en escritorio, 375 oscuro e ida y vuelta
+- [x] `/milimetro auditar`: 3 graves corregidos («o pedir a» a 24 px, borde del paso de días, «te queda» a 4,5:1)
+- [x] `/formidable`: 7,6 · oficio 7; ciega a la primera (`docs/formidable/inventario-resumen.md`)
+- [x] **Los 3 cambios de `/formidable`, con el OK de Felipe:** plazos en «Se acaba» y «Qué pedir»; la flecha en todo lo que lleva a otra pantalla; «Ver todo el piso». Ciega repetida: 7,8
+- [x] **«Qué pedir» por modelo** (Felipe, al verlo con datos reales: «el que muestra en las tarjetas debería ser por modelo y no por tipo, para eso existe el filtro de tipo»): una tarjeta por modelo que no llega a Navidad; con un solo tipo en el filtro, arriba el tipo entero y sus tallas. Se fueron la tarjeta y la hoja de cada tipo
+- [ ] «Comprar» todavía no dice que lleva a otra pantalla (la ciega repetida tampoco lo supo): ¿«Comprar en Compras» o «Ir a comprar»? Decide Felipe, mejor después de verlo con una encargada
+- [ ] En «No se vende», el monto de cada grupo («S/ 1,332 parados») confunde junto al total de la respuesta («S/ 1,692»): decirlo como parte del total o quitarlo
+- [ ] **Decide Felipe:** ¿la ficha de algo que no se vende nombra sus caminos (rebajarla, mandarla a otra tienda, esperar) sin empujar ninguno? La ciega no supo qué hacer con ella.
+- [ ] Lista aparte de `/formidable`:
+  - «Movimientos» y el chip «Datos confiables» a 24 px;
+  - el «− 60 +» no dice qué cambia en la lista;
+  - menos rojo en las tarjetas de «Se acaba» (va contra la maqueta elegida).
+- [ ] Probar con una encargada real, en su equipo
+- [ ] `/chaos` de la única escritura («Guardar para todos» de «Sin venderse desde», `HojaLiquidarDesde`)
+- [ ] `seed-demo.sql` no corre: pide `productos.sku_padre`, que ya no existe (sin datos de demostración para una prueba local)
+- [ ] Sigue de antes:
+  - «Qué pedir» contra Navidad fija o contra el Plan de campaña (decide Felipe antes de diciembre);
+  - la curva de tallas del tipo (con un solo tipo en el filtro) todavía no suma lo vendido sin registrar.

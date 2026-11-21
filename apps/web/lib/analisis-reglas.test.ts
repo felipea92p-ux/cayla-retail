@@ -6,7 +6,6 @@ import {
   DIAS_MINIMOS_RITMO,
   ventanaDeRitmo,
   diasQueQuedan,
-  edadDelInventario,
   esTallaUnica,
   grupoDe,
   LIQUIDAR_DEFECTO,
@@ -161,13 +160,9 @@ describe("otras tiendas", () => {
   });
 });
 
-describe("por llegar, edad y lo que llega", () => {
+describe("por llegar y lo que llega", () => {
   it("suma compra, almacén y taller", () => {
     expect(porLlegar(prenda({ llega: [{ de: "compra", cantidad: 10, fecha: null }, { de: "almacen", cantidad: 2, fecha: null }, { de: "taller", cantidad: 1, fecha: null }] }))).toBe(13);
-  });
-  it("las unidades por tramo de días sin venderse", () => {
-    const e = edadDelInventario([prenda({ piso: 2, diasSinVender: 10 }), prenda({ almacen: 3, diasSinVender: 61 }), prenda({ piso: 1, diasSinVender: 120 }), prenda({ piso: 5 })]);
-    expect(e).toEqual({ hasta30: 2, de31a60: 0, de61a90: 3, masDe90: 1 });
   });
 });
 

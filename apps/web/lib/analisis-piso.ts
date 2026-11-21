@@ -6,17 +6,11 @@
 
 import type { PrendaAnalisis } from "./analisis-tipos";
 import { categoriaDe } from "./analisis-pedir";
-import { nuncaSalio, plural } from "./analisis-reglas";
+import { nuncaSalio } from "./analisis-reglas";
 import { diasEntreFechas } from "./fechas-lima";
 
 /** La falla que se dice una vez si la base todavía no dice cuándo salió al piso cada prenda (sin la migración 20261007120000). */
 export const FALLA_PISO = "No se pudo saber qué nunca salió al piso";
-
-/** Cuántas prendas de cada tipo se ven antes de «Ver N más» (la maqueta aprobada muestra tres). */
-export const PRENDAS_POR_TIPO_PISO = 3;
-
-/** El eje de «Días en el almacén» llega a un mes; si algo espera más, a los meses enteros que hagan falta. */
-export const DIAS_EJE_PISO = 30;
 
 /** Qué dice el «?» de cada tipo. */
 export const AYUDA_TIPO_PISO =
@@ -79,52 +73,6 @@ export function tiposPiso<T extends PrendaAnalisis>(todas: readonly PrendaAnalis
     .sort((a, b) => b.vendidas - a.vendidas || b.unidades - a.unidades || a.categoria.localeCompare(b.categoria, "es"));
 }
 
-/** Las cifras de arriba de la pestaña, de toda la tienda (el buscador no las mueve, como en «No se vende»). */
-export type CifrasPiso = {
-  /** Las filas que nunca salieron: desde la decisión 12 de ADR-0357, MODELOS (ningún color ni talla se colgó nunca). */
-  prendas: number;
-  unidades: number;
-  /** Lo que costaron las unidades guardadas; null si ninguna tiene costo. */
-  costo: number | null;
-  /** Lo que valen a precio de venta; null si ninguna tiene precio. */
-  precioVenta: number | null;
-  /** Cuántas tallas de las que nunca salieron no tienen costo (la cifra de costo no las cuenta). */
-  sinCosto: number;
-};
-
-type ConDinero = Pick<PrendaAnalisis, "salioAlPiso" | "almacen" | "piso" | "costo" | "precio">;
-
-/** Las cifras de arriba. El dinero se suma talla por talla (`variantes` de cada modelo), cada una con su costo y su precio. */
-export function cifrasPiso(todas: readonly (ConDinero & { variantes?: readonly ConDinero[] })[]): CifrasPiso {
-  const sin = todas.filter(nuncaSalio);
-  const tallas = sin.flatMap((p) => p.variantes ?? [p]);
-  const conCosto = tallas.filter((p) => p.costo !== null);
-  const conPrecio = tallas.filter((p) => p.precio !== null);
-  return {
-    prendas: sin.length,
-    unidades: sin.reduce((s, p) => s + p.almacen, 0),
-    costo: conCosto.length === 0 ? null : conCosto.reduce((s, p) => s + p.almacen * (p.costo ?? 0), 0),
-    precioVenta: conPrecio.length === 0 ? null : conPrecio.reduce((s, p) => s + p.almacen * (p.precio ?? 0), 0),
-    sinCosto: tallas.length - conCosto.length,
-  };
-}
-
-/** «Dónde está lo que tienes»: las unidades libres de la tienda en el piso, guardadas que ya salieron y guardadas que nunca salieron. */
-export type LugarDeLoQueTienes = { piso: number; yaSalieron: number; nunca: number };
-
-export function lugarDeLoQueTienes(todas: readonly PrendaAnalisis[]): LugarDeLoQueTienes {
-  let piso = 0;
-  let yaSalieron = 0;
-  let nunca = 0;
-  for (const p of todas) {
-    piso += p.piso;
-    if (nuncaSalio(p)) nunca += p.almacen;
-    else yaSalieron += p.almacen;
-  }
-  return { piso, yaSalieron, nunca };
-}
-
-/** Sin carril: la base todavía no lo sabe, no se pudieron leer las prendas, o todo salió al piso (la respuesta corta y buena). */
 export type VacioPiso = "sin-saber" | "sin-datos" | "todo-salio";
 
 export function vacioPiso(c: { sabePiso: boolean; prendas: number; sinSalir: number; fallas: number }): VacioPiso | null {
@@ -139,28 +87,12 @@ export const TEXTO_VACIO_PISO: Record<VacioPiso, { titulo: string; linea: string
   "todo-salio": { titulo: "Todo salió al piso", linea: "De cada modelo que tienes guardado, algo ya estuvo colgado alguna vez." },
 };
 
-/** El fin del eje: un mes, o los meses enteros que hagan falta para que la que más espera quede adentro. */
-export function finEjePiso(masDias: number): number {
-  return Math.max(DIAS_EJE_PISO, Math.ceil(Math.max(0, masDias) / 30) * 30);
+/**
+ * El orden de «Sin salir» (cara B, act. 2026-11-21): «vende» deja el de siempre (primero el tipo que más se vende, `tiposPiso`); «dias»,
+ * lo que más espera primero (`prendasSinSalir`); «nombre», de la A a la Z.
+ */
+export function ordenarPiso<T extends PrendaAnalisis>(lista: readonly T[], orden: string, hoy: string): T[] {
+  if (orden === "dias") return prendasSinSalir(lista, hoy);
+  if (orden === "nombre") return [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  return [...lista];
 }
-
-/** Las marcas del eje: 0, una y dos semanas (con el eje de un mes) o el primer mes (con uno más largo, donde las semanas se
- *  juntarían), y el fin («1 mes», «2 meses»…). */
-export function marcasEjePiso(fin: number): { texto: string; left: string }[] {
-  const pct = (d: number) => `${((d / fin) * 100).toFixed(2)}%`;
-  const meses = Math.round(fin / 30);
-  return [
-    { texto: "0", left: "0%" },
-    ...(fin <= DIAS_EJE_PISO ? [{ texto: "1 semana", left: pct(7) }, { texto: "2 semanas", left: pct(14) }] : [{ texto: "1 mes", left: pct(30) }]),
-    { texto: `${meses} ${plural(meses, "mes", "meses")}`, left: "100%" },
-  ];
-}
-
-/** «vendiste 38 en 8 días» / «sin ventas en 30 días»: lo vendido del tipo y la ventana de la tienda. */
-export function textoVendidasTipo(vendidas: number, diasDeVentas: number): string {
-  const dias = `${diasDeVentas} ${plural(diasDeVentas, "día", "días")}`;
-  return vendidas > 0 ? `vendiste ${vendidas} en ${dias}` : `sin ventas en ${dias}`;
-}
-
-/** «Ver 68 más»: lo que queda bajo el corte de un tipo. */
-export const textoVerMas = (n: number): string => `Ver ${n} más`;

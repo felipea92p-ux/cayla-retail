@@ -123,8 +123,6 @@ export type PrendaAnalisis = {
  */
 export type PrendaSede = Omit<PrendaAnalisis, "otras" | "llega">;
 
-/** Cuántas prendas de MI tienda cayeron en cada tramo de días sin venderse (unidades, no modelos). */
-export type EdadInventario = { hasta30: number; de31a60: number; de61a90: number; masDe90: number };
 
 /** Qué pantallas ve la cuenta (ADR-0161): un botón que lleva a «Sin acceso» no se muestra (ADR-0245). */
 export type AccesoAnalisis = {

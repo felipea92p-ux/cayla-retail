@@ -1,38 +1,28 @@
 import { describe, expect, it } from "vitest";
 import type { PrendaAnalisis } from "./analisis-tipos";
 import {
+  alcanceConFiltros,
   alcancePorTipo,
+  baseConFiltros,
+  fraseAlcance,
+  alcanceDelModelo,
+  diasEnteros,
+  modelosQueNoLlegan,
   categoriaDe,
-  DIAS_ALCANZA_MAX,
   diasANavidad,
-  finEjeAlcance,
-  textoAlcance,
   textoRitmo,
-  tipoCorto,
   tiposSinRegistrar,
   notaTiposSinRegistrar,
-  cuentaNavidad,
   curvaDeTallas,
   escalaRinde,
-  estadoQuedan,
   FALLA_RINDE,
   filaRindeDe,
-  masVendidas,
   notaRindeVacio,
-  TOP_DEFECTO,
-  topsPosibles,
-  cuantasVendidas,
-  fraseDelTipo,
-  ordenarAlcance,
-  ORDEN_ALCANCE_DEFECTO,
-  ORDENES_ALCANCE,
   proximaNavidad,
-  rielNavidad,
   rindePorCategoria,
   SIN_CATEGORIA,
   solesRinde,
   tipRinde,
-  ventaMaxima,
   type FilaRinde,
 } from "./analisis-pedir";
 import { armarModelos } from "./analisis-modelo";
@@ -86,57 +76,6 @@ describe("cuenta para Navidad", () => {
     expect(proximaNavidad("2026-12-26")).toBe("2027-12-25");
   });
 
-  it("semanas enteras mientras falte una o más (el 6 de octubre: 80 días = 11 semanas, como la maqueta)", () => {
-    expect(cuentaNavidad("2026-10-06")).toEqual({ valor: 11, texto: "semanas para Navidad" });
-    expect(cuentaNavidad("2026-12-18")).toEqual({ valor: 1, texto: "semana para Navidad" });
-    expect(cuentaNavidad("2026-12-26")).toEqual({ valor: 52, texto: "semanas para Navidad" });
-  });
-
-  it("en la última semana, días; el mismo día, sin número", () => {
-    expect(cuentaNavidad("2026-12-20")).toEqual({ valor: 5, texto: "días para Navidad" });
-    expect(cuentaNavidad("2026-12-24")).toEqual({ valor: 1, texto: "día para Navidad" });
-    expect(cuentaNavidad("2026-12-25")).toEqual({ valor: null, texto: "es Navidad" });
-  });
-});
-
-describe("rielNavidad", () => {
-  it("del 1 del mes de hoy al 31 de diciembre: hoy, cada mes en su mitad y Navidad, en % del tramo", () => {
-    const r = rielNavidad("2026-10-06");
-    // 1 oct → 31 dic son 91 días: hoy es el día 5 y Navidad el 85 (las posiciones de la maqueta).
-    expect(r.hoyPct).toBe(5.5);
-    expect(r.navidadPct).toBe(93.4);
-    expect(r.meses.map((m) => m.texto)).toEqual(["octubre", "noviembre", "diciembre"]);
-    expect(r.meses.map((m) => m.pct)).toEqual([16.5, 50, 83.5]);
-    expect(r.juntos).toBe(false);
-    expect(r.etiqueta).toBe("Hoy 6 de octubre, Navidad 25 de diciembre");
-  });
-
-  it("todo queda dentro del riel y en orden: hoy antes que Navidad, los meses de izquierda a derecha", () => {
-    for (const hoy of ["2026-01-01", "2026-06-30", "2026-09-01", "2026-12-01", "2026-12-25", "2026-12-31"]) {
-      const r = rielNavidad(hoy);
-      expect(r.hoyPct).toBeGreaterThanOrEqual(0);
-      expect(r.navidadPct).toBeLessThanOrEqual(100);
-      expect(r.hoyPct).toBeLessThanOrEqual(r.navidadPct);
-      const pcts = r.meses.map((m) => m.pct);
-      expect([...pcts].sort((a, b) => a - b)).toEqual(pcts);
-      expect(new Set(r.meses.map((m) => m.clave)).size).toBe(r.meses.length);
-    }
-  });
-
-  it("cerca de Navidad los rótulos se pisarían: «Hoy» queda solo como punto", () => {
-    expect(rielNavidad("2026-12-10").juntos).toBe(false);
-    expect(rielNavidad("2026-12-23").juntos).toBe(true);
-    expect(rielNavidad("2026-12-25").juntos).toBe(true);
-  });
-
-  it("con 5 a 7 meses, abreviados; con más, abreviados y uno sí, uno no, siempre con diciembre", () => {
-    expect(rielNavidad("2026-08-15").meses.map((m) => m.texto)).toEqual(["ago", "set", "oct", "nov", "dic"]);
-    expect(rielNavidad("2027-03-10").meses.map((m) => m.texto)).toEqual(["abr", "jun", "ago", "oct", "dic"]);
-    // Pasada la Navidad, el riel llega a la del año siguiente: 13 meses.
-    const r = rielNavidad("2026-12-26");
-    expect(r.meses.map((m) => m.texto)).toEqual(["dic", "feb", "abr", "jun", "ago", "oct", "dic"]);
-    expect(r.etiqueta).toBe("Hoy 26 de diciembre, Navidad 25 de diciembre");
-  });
 });
 
 describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
@@ -171,7 +110,6 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
   it("lo que se vendió y ya no está dura 0: «Ya no hay», y se pide", () => {
     const a = alcancePorTipo([prenda({ categoria: "Capas", vendidas30: 3, piso: 0, almacen: 0 })], 8, 79, true);
     expect(a[0]).toMatchObject({ dias: 0, pide: true });
-    expect(textoAlcance(0)).toBe("Ya no hay");
   });
 
   it("cada prenda suma su ritmo en su propia ventana (2026-10-14): una colgada hace poco no se diluye en los días de la tienda", () => {
@@ -209,7 +147,7 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
       expect(alcancePorTipo(tipo, 15, 72, true)[0]).toMatchObject({ dias: null, pide: false });
       const a = alcancePorTipo(tipo, 15, 72, true, { Shorts: 16 })[0]!;
       expect(a).toMatchObject({ vendidas: 16, sinPrenda: 16, tiene: 18, pide: true });
-      expect(textoAlcance(a.dias)).toBe("2 semanas");
+      expect(Math.round((a.dias ?? 0) / 7)).toBe(2);
     });
 
     it("un tipo que la tienda tiene pero hoy sin venta ni stock también suma lo vendido sin registrar (y ya no hay)", () => {
@@ -247,28 +185,17 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
     });
   });
 
-  it("las palabras: días bajo una semana, semanas hasta 6 meses, y lo que no se vendió", () => {
-    expect(textoAlcance(3.4)).toBe("3 días");
-    expect(textoAlcance(0.4)).toBe("1 día");
-    expect(textoAlcance(20)).toBe("3 semanas");
-    expect(textoAlcance(7)).toBe("1 semana");
-    expect(textoAlcance(181)).toBe("26 semanas");
-    expect(textoAlcance(DIAS_ALCANZA_MAX)).toBe("Más de 6 meses");
-    expect(textoAlcance(null)).toBe("No se vendió");
+  it("de qué días habla el ritmo", () => {
     // 2026-10-14: cada prenda mide su ritmo desde que se colgó (de 7 días hasta los de la tienda); con una semana o menos es lo mismo.
     expect(textoRitmo(8)).toBe("Al ritmo desde que se colgó · hasta 8 días");
     expect(textoRitmo(7)).toBe("Al ritmo de los últimos 7 días");
     expect(textoRitmo(1)).toBe("Al ritmo de los últimos 1 día");
   });
 
-  it("los días a Navidad, el nombre corto de un tipo y el fin del eje (6 meses, o más si Navidad queda lejos)", () => {
+  it("los días a Navidad", () => {
     expect(diasANavidad("2026-10-07")).toBe(79);
     expect(diasANavidad("2026-12-25")).toBe(0);
     expect(diasANavidad("2026-12-26")).toBe(364);
-    expect(tipoCorto("Gorros y Sombreros")).toBe("Gorros");
-    expect(tipoCorto("Polos")).toBe("Polos");
-    expect(finEjeAlcance(79)).toBe(DIAS_ALCANZA_MAX);
-    expect(finEjeAlcance(300)).toBe(345);
   });
 });
 
@@ -350,42 +277,6 @@ describe("curvaDeTallas", () => {
   it("sin ventas ni prendas del tipo, vacía", () => {
     expect(curvaDeTallas(tienda, "Casacas")).toEqual({ tipo: "vacia" });
     expect(curvaDeTallas([prenda({ talla: "S", vendidas30: 0, piso: 0 })], null)).toEqual({ tipo: "vacia" });
-  });
-});
-
-describe("lo que más se vende", () => {
-  it(`las ${TOP_DEFECTO} que más se venden por defecto, sin las que no se vendieron; a igual venta, por nombre; y las que pidas`, () => {
-    const prendas = [
-      ...Array.from({ length: 9 }, (_, k) => prenda({ nombre: `Polo ${String.fromCharCode(73 - k)}`, vendidas30: k + 1 })),
-      prenda({ nombre: "Polo Z", vendidas30: 9 }),
-      prenda({ nombre: "Polo quieto", vendidas30: 0, piso: 5 }),
-    ];
-    const tops = masVendidas(prendas, null);
-    expect(tops).toHaveLength(TOP_DEFECTO);
-    expect(tops.map((p) => p.vendidas30)).toEqual([9, 9, 8, 7, 6]);
-    expect(masVendidas(prendas, null, 10).map((p) => p.vendidas30)).toEqual([9, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    expect(masVendidas(prendas, null, 20)).toHaveLength(10);
-    expect(tops[0]!.nombre).toBe("Polo A");
-    expect(tops[1]!.nombre).toBe("Polo Z");
-    expect(tops.some((p) => p.nombre === "Polo quieto")).toBe(false);
-  });
-
-  it("con un tipo elegido, solo ese tipo", () => {
-    const prendas = [prenda({ categoria: "Polos", vendidas30: 5 }), prenda({ categoria: "Bodys", vendidas30: 9 }), prenda({ categoria: null, vendidas30: 2 })];
-    expect(masVendidas(prendas, "Polos").map((p) => p.categoria)).toEqual(["Polos"]);
-    expect(masVendidas(prendas, SIN_CATEGORIA).map((p) => p.vendidas30)).toEqual([2]);
-  });
-
-  it("la venta más alta de la tienda (para medir las barras), al menos 1", () => {
-    expect(ventaMaxima([prenda({ vendidas30: 3 }), prenda({ vendidas30: 8 })])).toBe(8);
-    expect(ventaMaxima([])).toBe(1);
-  });
-
-  it("lo que queda: agotada en rojo, 1 o 2 en ámbar, más en verde", () => {
-    expect(estadoQuedan({ piso: 0, almacen: 0 })).toEqual({ est: "urg", texto: "Agotada" });
-    expect(estadoQuedan({ piso: 1, almacen: 0 })).toEqual({ est: "ate", texto: "Queda 1" });
-    expect(estadoQuedan({ piso: 1, almacen: 1 })).toEqual({ est: "ate", texto: "Quedan 2" });
-    expect(estadoQuedan({ piso: 2, almacen: 3 })).toEqual({ est: "bien", texto: "Quedan 5" });
   });
 });
 
@@ -513,55 +404,78 @@ describe("Qué pedir por modelo (ADR-0357, decisión 12)", () => {
     expect(curva.tipo === "tallas" ? curva.columnas.map((c) => c.talla) : []).toEqual(["M", "L"]);
   });
 
-  it("«Lo que más se vende» es un ranking de modelos", () => {
-    expect(masVendidas(modelos, null).map((m) => m.nombre)).toEqual(["Polo Ensayo"]);
+});
+
+describe("Qué pedir con los filtros de la barra (cara B)", () => {
+  const sin = { q: "", tipo: [], talla: [], color: [], precio: [], origen: [], quieta: [] };
+  const tallas = [
+    prenda({ productoId: "p1", categoria: "Polos", talla: "S", vendidas30: 6, piso: 6 }),
+    prenda({ productoId: "p1", categoria: "Polos", talla: "M", vendidas30: 6, piso: 0 }),
+    prenda({ productoId: "p2", categoria: "Faldas", talla: "S", vendidas30: 3, piso: 9 }),
+  ];
+  const modelos = armarModelos(tallas, "2026-11-21");
+  it("sin talla ni color cuenta los modelos; con talla, solo esa talla", () => {
+    expect(baseConFiltros(modelos, tallas, sin)).toHaveLength(2);
+    const conM = baseConFiltros(modelos, tallas, { ...sin, talla: ["M"] });
+    expect(conM.map((p) => p.talla)).toEqual(["M"]);
+    const polosM = alcanceConFiltros(modelos, tallas, { ...sin, talla: ["M"] }, 30, 34, true, {});
+    expect(polosM.find((x) => x.categoria === "Polos")?.dias).toBe(0);
+  });
+  it("lo vendido sin registrar solo se suma sin otros filtros que el tipo", () => {
+    const conTodo = alcanceConFiltros(modelos, tallas, sin, 30, 34, true, { Polos: 12 });
+    const conTalla = alcanceConFiltros(modelos, tallas, { ...sin, talla: ["S"] }, 30, 34, true, { Polos: 12 });
+    expect(conTodo.find((x) => x.categoria === "Polos")?.sinPrenda).toBe(12);
+    expect(conTalla.find((x) => x.categoria === "Polos")?.sinPrenda).toBe(0);
+  });
+  it("la frase", () => {
+    expect(fraseAlcance(1, 34)).toBe("para la campaña: no te alcanza hasta Navidad, en 34 días");
+    expect(fraseAlcance(5, 1)).toBe("para la campaña: no te alcanzan hasta Navidad, en 1 día");
   });
 });
 
-describe("Qué pedir, opción A: el panel del tipo y el «Top» que se elige (Felipe 2026-10-10)", () => {
-  it("ofrece Top 5 siempre y los demás solo si hay más modelos vendidos que el anterior", () => {
-    expect(topsPosibles(0)).toEqual([5]);
-    expect(topsPosibles(5)).toEqual([5]);
-    expect(topsPosibles(6)).toEqual([5, 10]);
-    expect(topsPosibles(16)).toEqual([5, 10, 15, 20]);
+describe("Qué pedir por modelo (Felipe 2026-11-21: las tarjetas son modelos; el tipo es un filtro)", () => {
+  const sin = { talla: [] as string[], color: [] as string[] };
+  // Datos inventados: un polo que se vende en S y M (la M agotada), una falda que dura y un top que no se vendió.
+  const tallas = [
+    prenda({ productoId: "q1", nombre: "Polo Prueba", categoria: "Polos", talla: "S", vendidas30: 6, piso: 6 }),
+    prenda({ productoId: "q1", nombre: "Polo Prueba", categoria: "Polos", talla: "M", vendidas30: 6, piso: 0 }),
+    prenda({ productoId: "q2", nombre: "Falda Prueba", categoria: "Faldas", talla: "S", vendidas30: 3, piso: 9 }),
+    prenda({ productoId: "q3", nombre: "Top Quieto", categoria: "Tops", talla: "S", vendidas30: 0, piso: 4 }),
+    prenda({ productoId: "q4", nombre: "Body Agotado", categoria: "Bodys", talla: "S", vendidas30: 2, piso: 0 }),
+  ];
+  const modelos = armarModelos(tallas, "2026-11-21");
+  const de = (nombre: string) => modelos.find((m) => m.nombre === nombre)!;
+
+  it("lo que tiene entre lo que vende por día, sumando sus tallas; sin ventas no hay ritmo", () => {
+    expect(alcanceDelModelo(de("Polo Prueba"), sin, 30)).toMatchObject({ vendidas: 12, tiene: 6, dias: 15 });
+    expect(alcanceDelModelo(de("Falda Prueba"), sin, 30).dias).toBe(90);
+    expect(alcanceDelModelo(de("Top Quieto"), sin, 30).dias).toBeNull();
+    expect(alcanceDelModelo(de("Body Agotado"), sin, 30).dias).toBe(0);
   });
 
-  it("cuenta los modelos vendidos del tipo elegido o de toda la tienda", () => {
-    const ps = [prenda({ categoria: "Polos", vendidas30: 2 }), prenda({ categoria: "Polos", vendidas30: 0 }), prenda({ categoria: "Tops", vendidas30: 1 })];
-    expect(cuantasVendidas(ps, null)).toBe(2);
-    expect(cuantasVendidas(ps, "Polos")).toBe(1);
+  it("con una talla en los filtros, solo esa talla del modelo", () => {
+    expect(alcanceDelModelo(de("Polo Prueba"), { ...sin, talla: ["M"] }, 30).dias).toBe(0);
+    expect(alcanceDelModelo(de("Polo Prueba"), { ...sin, talla: ["S"] }, 30).dias).toBe(30);
+    expect(alcanceDelModelo(de("Falda Prueba"), { ...sin, talla: ["M"] }, 30)).toMatchObject({ vendidas: 0, dias: null });
   });
 
-  it("la frase del tipo: para cuánto alcanza contra Navidad y lo que tienes; sin tipo, lo de toda la tienda", () => {
-    const tops = { categoria: "Tops", prefijo: null, familia: null, vendidas: 21, sinPrenda: 0, tiene: 92, nunca: 39, dias: 49, pide: true };
-    const polos = { categoria: "Polos", prefijo: null, familia: null, vendidas: 0, sinPrenda: 0, tiene: 10, nunca: 0, dias: null, pide: false };
-    expect(fraseDelTipo(tops, [], 11)).toBe("Te alcanza para 7 semanas: no llega a Navidad. Tienes 92 · 39 nunca salieron al piso.");
-    expect(fraseDelTipo(polos, [], 11)).toBe("No se vendió en 11 días. Tienes 10.");
-    expect(fraseDelTipo({ ...tops, dias: 0, tiene: 0, nunca: 0 }, [], 11)).toBe("Ya no te queda: no llega a Navidad. Tienes 0.");
-    expect(fraseDelTipo(null, [tops, polos], 11)).toBe("Vendiste 21 en 11 días y tienes 102. 1 tipo no llega a Navidad.");
-  });
-});
-
-describe("el orden de «¿Para cuánto te alcanza?» (Felipe 2026-10-12)", () => {
-  const t = (categoria: string, vendidas: number, dias: number | null) => ({ categoria, prefijo: null, familia: null, vendidas, sinPrenda: 0, tiene: 5, nunca: 0, dias, pide: false });
-  // Ya ordenados por «se acaba antes», como los entrega alcancePorTipo.
-  const tipos = [t("Capas", 10, 1), t("Polos", 86, 35), t("Tops", 21, 56), t("Bodys", 21, 77), t("Shorts", 0, null)];
-
-  it("por defecto, lo que se acaba antes (el orden que ya trae)", () => {
-    expect(ordenarAlcance(tipos, "acaba").map((x) => x.categoria)).toEqual(["Capas", "Polos", "Tops", "Bodys", "Shorts"]);
+  it("piden los que se venden y no llegan a Navidad; los que llegan o no se venden, no", () => {
+    const piden = modelosQueNoLlegan(modelos, sin, 30, 34, "vende").map((a) => a.modelo.nombre);
+    expect(piden).toEqual(["Polo Prueba", "Body Agotado"]);
+    expect(modelosQueNoLlegan(modelos, sin, 30, 120, "vende").map((a) => a.modelo.nombre)).toContain("Falda Prueba");
   });
 
-  it("«Más vendido»: lo que más se vende primero; a igual venta, lo que se acaba antes; lo que no se vendió, al final", () => {
-    expect(ordenarAlcance(tipos, "vende").map((x) => x.categoria)).toEqual(["Polos", "Tops", "Bodys", "Capas", "Shorts"]);
+  it("el orden: lo que más se vende (de siempre), lo que se acaba antes o por nombre", () => {
+    const nombres = (orden: string) => modelosQueNoLlegan(modelos, sin, 30, 120, orden).map((a) => a.modelo.nombre);
+    expect(nombres("vende")).toEqual(["Polo Prueba", "Falda Prueba", "Body Agotado"]);
+    expect(nombres("acaba")).toEqual(["Body Agotado", "Polo Prueba", "Falda Prueba"]);
+    expect(nombres("nombre")).toEqual(["Body Agotado", "Falda Prueba", "Polo Prueba"]);
   });
 
-  it("por defecto, «Más vendido», y es la primera opción", () => {
-    expect(ORDEN_ALCANCE_DEFECTO).toBe("vende");
-    expect(ORDENES_ALCANCE[0].clave).toBe("vende");
-  });
-
-  it("no cambia la lista que recibe", () => {
-    ordenarAlcance(tipos, "vende");
-    expect(tipos[0].categoria).toBe("Capas");
+  it("los días de la tarjeta, enteros: «Ya no hay» es solo el 0", () => {
+    expect(diasEnteros(null)).toBeNull();
+    expect(diasEnteros(0)).toBe(0);
+    expect(diasEnteros(0.4)).toBe(1);
+    expect(diasEnteros(15.6)).toBe(16);
   });
 });
