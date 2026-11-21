@@ -4,6 +4,7 @@
  * texto que espera y aborta («cambió desde que se escribió esta migración»). Se ejecuta como dueño; nada se escribe fuera de la transacción de la prueba.
  *
  *   · 20261121160000: el Diario (`fn_asientos_claure`) lee lo de todas las aliadas → vuelve a leer lo de CLAURE.
+ *   · 20261121164000: `fn_cuenta_sellada` deja que una cuenta de aliada reciba transferencias → vuelve a solo Yape y Plin.
  *   · 20261121162000: `cerrar_caja` deja el efectivo con la dueña de cualquier aliada → vuelve al candado de CLAURE; la proyección de caja descuenta lo de todas
  *     (`fn_aliadas_saldo_a`) → vuelve a `fn_claure_saldo_a`.
  * Si una base no tiene esas migraciones, cada `replace` no encuentra nada y no cambia nada.
@@ -18,5 +19,8 @@ begin
     'where e.clave = ''claure'' and e.activo and es.ubicacion_id = v_caja.ubicacion_id'),
     'El efectivo solo se queda con la dueña en una tienda donde opera una empresa aliada', 'El efectivo solo se queda con Claudia en una tienda donde opera CLAURE');
   execute replace(pg_get_functiondef('retail.fn_flujo_caja_proyeccion(integer)'::regprocedure), 'retail.fn_aliadas_saldo_a(v_hoy)', 'retail.fn_claure_saldo_a(v_hoy)');
+  execute replace(replace(pg_get_functiondef('retail.fn_cuenta_sellada(text, text, uuid, date, uuid)'::regprocedure),
+    'p_medio in (''yape'', ''plin'', ''transferencia'')', 'p_medio in (''yape'', ''plin'')'),
+    'aquí solo entra lo cobrado por Yape, Plin o transferencia en su tienda.', 'aquí solo entra lo cobrado por Yape o Plin en su tienda.');
 end $deshacer_aliadas$;
 `;
