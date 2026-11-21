@@ -12,7 +12,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { BarrasTiempo } from "@/components/ui/BarrasTiempo";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
-import { grupoDe, plural, sedeQueMasVende } from "@/lib/analisis-reglas";
+import { grupoDe, sedeQueMasVende } from "@/lib/analisis-reglas";
 import { hrefExistencias, hrefMovimientos } from "@/lib/analisis-acciones";
 import {
   accionPrincipal,
@@ -82,23 +82,25 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
       <div ref={setRaiz} className="analisis analisis-hoja">
         <div className="anim">
           {/* Bloque 1: qué pasa, en una frase con su color, y sus tres cifras. */}
-          <div className="h-cab">
-            <TilePrenda prenda={p} tamano={72} />
-            <p className="an-veredicto" style={{ ["--c" as string]: COLOR_ESTADO[veredicto.est] }}>
-              <Icono nombre={ICONO_ESTADO[veredicto.est]} />
-              <span>{veredicto.texto}</span>
-            </p>
-          </div>
-          <div className="an-ficha-cifras">
-            {cifras.map((c) => (
-              <TarjetaCifra key={c.etiqueta} etiqueta={c.etiqueta} valor={c.valor}>
-                {c.detalle}
-              </TarjetaCifra>
-            ))}
+          <div data-guia="analisis.ficha">
+            <div className="h-cab">
+              <TilePrenda prenda={p} tamano={72} />
+              <p className="an-veredicto" style={{ ["--c" as string]: COLOR_ESTADO[veredicto.est] }}>
+                <Icono nombre={ICONO_ESTADO[veredicto.est]} />
+                <span>{veredicto.texto}</span>
+              </p>
+            </div>
+            <div className="an-ficha-cifras">
+              {cifras.map((c) => (
+                <TarjetaCifra key={c.etiqueta} etiqueta={c.etiqueta} valor={c.valor}>
+                  {c.detalle}
+                </TarjetaCifra>
+              ))}
+            </div>
           </div>
 
           {/* Bloque 2: cuánto se vendió cada semana; la última, la que termina hoy, en tinta. */}
-          <div className="h-sec">
+          <div className="h-sec" data-guia="analisis.ficha-semanas">
             <TituloGrupo nota={`en ${datos.sede.ciudad}`}>Vendidas cada semana</TituloGrupo>
             {vendioAlgo ? (
               <BarrasTiempo
@@ -116,8 +118,8 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
           {/* El modelo en tu tienda (opción B, Felipe 2026-10-10): una frase, una tabla con palabras y totales —los colores que más se
               venden arriba— y las otras tiendas en una línea. */}
           {/* Bloque 3: la talla y el color del modelo en tu tienda. */}
-          <div className="h-sec">
-            <TituloGrupo nota={`en tus ${datos.diasDeVentas} ${plural(datos.diasDeVentas, "día", "días")} de ventas`}>Talla y color</TituloGrupo>
+          <div className="h-sec" data-guia="analisis.ficha-tallas">
+            <TituloGrupo nota={datos.diasDeVentas === 1 ? "en tu primer día de ventas" : `en tus ${datos.diasDeVentas} días de ventas`}>Talla y color</TituloGrupo>
             <p className="m-frase">{frase}</p>
             {tabla && (
               <>
@@ -187,7 +189,7 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
           </div>
 
           {conAcciones && (
-            <div className="h-acciones pie-acciones">
+            <div className="h-acciones pie-acciones" data-guia="analisis.ficha-acciones">
               {movimientos && (
                 <Link href={movimientos} className="btn-cayla btn-enlace mr-auto">
                   Movimientos

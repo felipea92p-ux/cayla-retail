@@ -119,7 +119,10 @@ export function TarjetaPrenda({
     >
       {miniatura}
       <div className="an-tarj-cuerpo">
-        <p className="an-tarj-nombre">{nombre}</p>
+        {/* El ancla de la guía va en el nombre (un texto, sin botones): tocarlo abre la ficha, como toda la tarjeta. */}
+        <p className="an-tarj-nombre" data-guia="analisis.tarjeta">
+          {nombre}
+        </p>
         <p className="texto-detalle m-0">{que}</p>
         <p className="an-tarj-num">
           <b>{numero}</b>

@@ -38,6 +38,7 @@ import {
   type CurvaTallas,
 } from "@/lib/analisis-pedir";
 import { plural } from "@/lib/analisis-reglas";
+import { estadoSinNada } from "@/lib/analisis-hoy";
 
 // Análisis, cara B (ADR-0357, act. 2026-11-21): «Qué pedir». Abre con la respuesta («5 tipos no te alcanzan hasta Navidad, en 34 días»,
 // con el atajo al Plan de campaña) y sigue con una tarjeta por tipo que no llega: los días que le alcanzan (o «Ya no hay») y la talla que
@@ -104,7 +105,8 @@ export function PestanaPedir() {
     <>
       <Respuesta
         guia="analisis.pedir-respuesta"
-        est={n > 0 ? "ate" : "bien"}
+        // Sin nada que pedir, no dice «va bien» si los datos no alcanzan: «Para saber», como su tarjeta en «Hoy».
+        est={n > 0 ? "ate" : estadoSinNada(datos.puedeHablar)}
         {...(n > 0 ? { cuenta: n, cifra: plural(n, "tipo", "tipos") } : { cifra: "Ninguno" })}
         frase={n > 0 ? fraseAlcance(n, hastaNavidad) : `se acaba antes de Navidad, en ${hastaNavidad} ${plural(hastaNavidad, "día", "días")}`}
         ayuda={ayuda}

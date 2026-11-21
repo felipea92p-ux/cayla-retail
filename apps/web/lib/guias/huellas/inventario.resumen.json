@@ -20,10 +20,10 @@
       "Pestanas «{items}»"
     ],
     "components/analisis/FichaPrenda.tsx": [
-      "Link «{principal.texto}»",
+      "Link «Movimientos»",
       "button «Pedir a»",
       "BotonVer «Ver en Existencias»",
-      "Link «Movimientos»"
+      "Link «{principal.texto}»"
     ],
     "components/analisis/FiltrosAnalisis.tsx": [
       "DesplegablePildora «{etiqueta}»",
