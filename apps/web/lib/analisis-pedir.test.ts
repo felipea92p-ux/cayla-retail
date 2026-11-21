@@ -5,8 +5,9 @@ import {
   alcancePorTipo,
   baseConFiltros,
   fraseAlcance,
-  ordenarTipos,
-  tallaQueSeAcaba,
+  alcanceDelModelo,
+  diasEnteros,
+  modelosQueNoLlegan,
   categoriaDe,
   diasANavidad,
   textoRitmo,
@@ -14,13 +15,9 @@ import {
   notaTiposSinRegistrar,
   curvaDeTallas,
   escalaRinde,
-  estadoQuedan,
   FALLA_RINDE,
   filaRindeDe,
-  masVendidas,
   notaRindeVacio,
-  TOP_DEFECTO,
-  ordenarAlcance,
   proximaNavidad,
   rindePorCategoria,
   SIN_CATEGORIA,
@@ -283,37 +280,6 @@ describe("curvaDeTallas", () => {
   });
 });
 
-describe("lo que más se vende", () => {
-  it(`las ${TOP_DEFECTO} que más se venden por defecto, sin las que no se vendieron; a igual venta, por nombre; y las que pidas`, () => {
-    const prendas = [
-      ...Array.from({ length: 9 }, (_, k) => prenda({ nombre: `Polo ${String.fromCharCode(73 - k)}`, vendidas30: k + 1 })),
-      prenda({ nombre: "Polo Z", vendidas30: 9 }),
-      prenda({ nombre: "Polo quieto", vendidas30: 0, piso: 5 }),
-    ];
-    const tops = masVendidas(prendas, null);
-    expect(tops).toHaveLength(TOP_DEFECTO);
-    expect(tops.map((p) => p.vendidas30)).toEqual([9, 9, 8, 7, 6]);
-    expect(masVendidas(prendas, null, 10).map((p) => p.vendidas30)).toEqual([9, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    expect(masVendidas(prendas, null, 20)).toHaveLength(10);
-    expect(tops[0]!.nombre).toBe("Polo A");
-    expect(tops[1]!.nombre).toBe("Polo Z");
-    expect(tops.some((p) => p.nombre === "Polo quieto")).toBe(false);
-  });
-
-  it("con un tipo elegido, solo ese tipo", () => {
-    const prendas = [prenda({ categoria: "Polos", vendidas30: 5 }), prenda({ categoria: "Bodys", vendidas30: 9 }), prenda({ categoria: null, vendidas30: 2 })];
-    expect(masVendidas(prendas, "Polos").map((p) => p.categoria)).toEqual(["Polos"]);
-    expect(masVendidas(prendas, SIN_CATEGORIA).map((p) => p.vendidas30)).toEqual([2]);
-  });
-
-  it("lo que queda: agotada en rojo, 1 o 2 en ámbar, más en verde", () => {
-    expect(estadoQuedan({ piso: 0, almacen: 0 })).toEqual({ est: "urg", texto: "Agotada" });
-    expect(estadoQuedan({ piso: 1, almacen: 0 })).toEqual({ est: "ate", texto: "Queda 1" });
-    expect(estadoQuedan({ piso: 1, almacen: 1 })).toEqual({ est: "ate", texto: "Quedan 2" });
-    expect(estadoQuedan({ piso: 2, almacen: 3 })).toEqual({ est: "bien", texto: "Quedan 5" });
-  });
-});
-
 describe("lo que más rinde", () => {
   const fila = (f: Partial<FilaRinde> = {}): FilaRinde => ({
     categoria: "Polos",
@@ -438,28 +404,6 @@ describe("Qué pedir por modelo (ADR-0357, decisión 12)", () => {
     expect(curva.tipo === "tallas" ? curva.columnas.map((c) => c.talla) : []).toEqual(["M", "L"]);
   });
 
-  it("«Lo que más se vende» es un ranking de modelos", () => {
-    expect(masVendidas(modelos, null).map((m) => m.nombre)).toEqual(["Polo Ensayo"]);
-  });
-});
-
-describe("el orden de «¿Para cuánto te alcanza?» (Felipe 2026-10-12)", () => {
-  const t = (categoria: string, vendidas: number, dias: number | null) => ({ categoria, prefijo: null, familia: null, vendidas, sinPrenda: 0, tiene: 5, nunca: 0, dias, pide: false });
-  // Ya ordenados por «se acaba antes», como los entrega alcancePorTipo.
-  const tipos = [t("Capas", 10, 1), t("Polos", 86, 35), t("Tops", 21, 56), t("Bodys", 21, 77), t("Shorts", 0, null)];
-
-  it("por defecto, lo que se acaba antes (el orden que ya trae)", () => {
-    expect(ordenarAlcance(tipos, "acaba").map((x) => x.categoria)).toEqual(["Capas", "Polos", "Tops", "Bodys", "Shorts"]);
-  });
-
-  it("«Más vendido»: lo que más se vende primero; a igual venta, lo que se acaba antes; lo que no se vendió, al final", () => {
-    expect(ordenarAlcance(tipos, "vende").map((x) => x.categoria)).toEqual(["Polos", "Tops", "Bodys", "Capas", "Shorts"]);
-  });
-
-  it("no cambia la lista que recibe", () => {
-    ordenarAlcance(tipos, "vende");
-    expect(tipos[0].categoria).toBe("Capas");
-  });
 });
 
 describe("Qué pedir con los filtros de la barra (cara B)", () => {
@@ -483,19 +427,55 @@ describe("Qué pedir con los filtros de la barra (cara B)", () => {
     expect(conTodo.find((x) => x.categoria === "Polos")?.sinPrenda).toBe(12);
     expect(conTalla.find((x) => x.categoria === "Polos")?.sinPrenda).toBe(0);
   });
-  it("la frase y el orden", () => {
+  it("la frase", () => {
     expect(fraseAlcance(1, 34)).toBe("para la campaña: no te alcanza hasta Navidad, en 34 días");
     expect(fraseAlcance(5, 1)).toBe("para la campaña: no te alcanzan hasta Navidad, en 1 día");
-    const t = (categoria: string, vendidas: number, dias: number | null) => ({ categoria, prefijo: null, familia: null, vendidas, sinPrenda: 0, tiene: 5, nunca: 0, dias, pide: false });
-    const ts = [t("Capas", 10, 1), t("Polos", 86, 35), t("Abrigos", 0, null)];
-    expect(ordenarTipos(ts, "vende").map((x) => x.categoria)).toEqual(["Polos", "Capas", "Abrigos"]);
-    expect(ordenarTipos(ts, "acaba").map((x) => x.categoria)).toEqual(["Capas", "Polos", "Abrigos"]);
-    expect(ordenarTipos(ts, "nombre").map((x) => x.categoria)).toEqual(["Abrigos", "Capas", "Polos"]);
   });
-  it("la talla que se acaba primero", () => {
-    expect(tallaQueSeAcaba(curvaDeTallas(tallas, "Polos"))).toBe("Ya no hay talla M");
-    const ambas = [prenda({ categoria: "Tops", talla: "S", vendidas30: 4, piso: 8 }), prenda({ categoria: "Tops", talla: "M", vendidas30: 4, piso: 2 })];
-    expect(tallaQueSeAcaba(curvaDeTallas(ambas, "Tops"))).toBe("La M se acaba primero");
-    expect(tallaQueSeAcaba({ tipo: "unica" })).toBeNull();
+});
+
+describe("Qué pedir por modelo (Felipe 2026-11-21: las tarjetas son modelos; el tipo es un filtro)", () => {
+  const sin = { talla: [] as string[], color: [] as string[] };
+  // Datos inventados: un polo que se vende en S y M (la M agotada), una falda que dura y un top que no se vendió.
+  const tallas = [
+    prenda({ productoId: "q1", nombre: "Polo Prueba", categoria: "Polos", talla: "S", vendidas30: 6, piso: 6 }),
+    prenda({ productoId: "q1", nombre: "Polo Prueba", categoria: "Polos", talla: "M", vendidas30: 6, piso: 0 }),
+    prenda({ productoId: "q2", nombre: "Falda Prueba", categoria: "Faldas", talla: "S", vendidas30: 3, piso: 9 }),
+    prenda({ productoId: "q3", nombre: "Top Quieto", categoria: "Tops", talla: "S", vendidas30: 0, piso: 4 }),
+    prenda({ productoId: "q4", nombre: "Body Agotado", categoria: "Bodys", talla: "S", vendidas30: 2, piso: 0 }),
+  ];
+  const modelos = armarModelos(tallas, "2026-11-21");
+  const de = (nombre: string) => modelos.find((m) => m.nombre === nombre)!;
+
+  it("lo que tiene entre lo que vende por día, sumando sus tallas; sin ventas no hay ritmo", () => {
+    expect(alcanceDelModelo(de("Polo Prueba"), sin, 30)).toMatchObject({ vendidas: 12, tiene: 6, dias: 15 });
+    expect(alcanceDelModelo(de("Falda Prueba"), sin, 30).dias).toBe(90);
+    expect(alcanceDelModelo(de("Top Quieto"), sin, 30).dias).toBeNull();
+    expect(alcanceDelModelo(de("Body Agotado"), sin, 30).dias).toBe(0);
+  });
+
+  it("con una talla en los filtros, solo esa talla del modelo", () => {
+    expect(alcanceDelModelo(de("Polo Prueba"), { ...sin, talla: ["M"] }, 30).dias).toBe(0);
+    expect(alcanceDelModelo(de("Polo Prueba"), { ...sin, talla: ["S"] }, 30).dias).toBe(30);
+    expect(alcanceDelModelo(de("Falda Prueba"), { ...sin, talla: ["M"] }, 30)).toMatchObject({ vendidas: 0, dias: null });
+  });
+
+  it("piden los que se venden y no llegan a Navidad; los que llegan o no se venden, no", () => {
+    const piden = modelosQueNoLlegan(modelos, sin, 30, 34, "vende").map((a) => a.modelo.nombre);
+    expect(piden).toEqual(["Polo Prueba", "Body Agotado"]);
+    expect(modelosQueNoLlegan(modelos, sin, 30, 120, "vende").map((a) => a.modelo.nombre)).toContain("Falda Prueba");
+  });
+
+  it("el orden: lo que más se vende (de siempre), lo que se acaba antes o por nombre", () => {
+    const nombres = (orden: string) => modelosQueNoLlegan(modelos, sin, 30, 120, orden).map((a) => a.modelo.nombre);
+    expect(nombres("vende")).toEqual(["Polo Prueba", "Falda Prueba", "Body Agotado"]);
+    expect(nombres("acaba")).toEqual(["Body Agotado", "Polo Prueba", "Falda Prueba"]);
+    expect(nombres("nombre")).toEqual(["Body Agotado", "Falda Prueba", "Polo Prueba"]);
+  });
+
+  it("los días de la tarjeta, enteros: «Ya no hay» es solo el 0", () => {
+    expect(diasEnteros(null)).toBeNull();
+    expect(diasEnteros(0)).toBe(0);
+    expect(diasEnteros(0.4)).toBe(1);
+    expect(diasEnteros(15.6)).toBe(16);
   });
 });

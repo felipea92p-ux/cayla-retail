@@ -77,8 +77,8 @@ export function PestanaAcaba() {
                 unidad={num?.unidad}
                 est={num?.urgente ? "urg" : "ate"}
                 detalle={detalle}
-                acciones={<Acciones m={m} />}
-                etiqueta={`${nombreLargo(m)}: ${num ? `${num.numero} ${num.unidad}`.trim() : ""}. ${detalle}. Enter abre su ficha.`}
+                acciones={<AccionesDeCompra m={m} />}
+                etiqueta={`${nombreLargo(m)}: ${num ? `${num.numero} ${num.unidad}`.trim() : ""}. ${detalle.replace(/\.$/, "")}. Enter abre su ficha.`}
                 onAbrir={() => abrirFicha(m.varianteId)}
               />
             );
@@ -89,8 +89,8 @@ export function PestanaAcaba() {
   );
 }
 
-/** «Comprar» (Compras o Producción, según de dónde viene) y, si otra tienda la tiene, «o pedir a Arequipa». */
-function Acciones({ m }: { m: ModeloAnalisis }) {
+/** «Comprar» (Compras o Producción, según de dónde viene) y, si otra tienda la tiene, «o pedir a Arequipa». También en «Qué pedir». */
+export function AccionesDeCompra({ m }: { m: ModeloAnalisis }) {
   const { acceso, sedeDe, pedir } = useAnalisis();
   const comprar = hrefComprar(m, acceso);
   const otra = otraSedeQueLaTiene(m.otras);

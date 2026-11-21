@@ -125,3 +125,6 @@ Ley 2: 8 (las dos preguntas ya se distinguen) · ley 4: 8 («Ver todo el piso» 
 **Lo que sigue (sin ejecutar, decide Felipe):** que «Comprar» diga dónde lleva (p. ej. «Comprar en Compras» o «Ir a comprar») si la flecha no alcanza con
 una persona real; el monto de cada grupo de «No se vende» como parte del total («de esto, S/ 1,332») o sin monto; «Ya no hay» en vez de días puede leerse como
 otra cosa; y la línea con los caminos en la ficha de lo que no se vende.
+
+**Después de la nota (2026-11-21, tarde):** Felipe pidió «Qué pedir» por modelo («para eso existe el filtro de tipo»): la pestaña ya no tiene tarjetas
+ni hoja por tipo, sino una tarjeta por modelo, como «Se acaba», y el tipo entero aparece al filtrar uno solo. La ciega no se repitió sobre ese cambio.

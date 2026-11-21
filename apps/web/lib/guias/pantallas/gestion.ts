@@ -164,14 +164,14 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-pedir" }],
       titulo: "Qué pedir",
-      texto: "Arriba, cuántos tipos de prenda no te alcanzan hasta Navidad, con un atajo al Plan de campaña. Si eliges una talla en los filtros, te dice si te alcanza esa talla.",
+      texto: "Arriba, cuántos modelos no te alcanzan hasta Navidad, con un atajo al Plan de campaña. Elige un tipo en los filtros y ves también para cuánto le alcanza al tipo entero y qué tallas se llevan.",
     },
     {
       id: "pedir-tarjetas",
       ancla: "analisis.pedir-tarjetas",
       opcional: true,
-      titulo: "Un tipo por tarjeta",
-      texto: "Cada tarjeta dice para cuántos días te alcanza y qué talla se acaba primero. Tócala para ver sus tallas y lo que más se vende.",
+      titulo: "Un modelo por tarjeta",
+      texto: "Un modelo por tarjeta: para cuántos días te alcanza, qué talla falta y qué viene en camino. «Comprar» te lleva a comprarlo; tócala para ver su ficha.",
     },
     {
       id: "fin",

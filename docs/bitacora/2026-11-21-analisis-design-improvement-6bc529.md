@@ -18,3 +18,9 @@ Verificado:
 - La prueba ciega (Sonnet, sobre capturas) completó la tarea a la primera.
 
 No probado: con una encargada real, ni en producción.
+
+## Después: «Qué pedir» por modelo (la tarde del 2026-11-21)
+
+- **QUÉ HICE:** «Qué pedir» pasó de una tarjeta por tipo a una por modelo que no llega a Navidad (`modelosQueNoLlegan`), con la línea de detalle y «Comprar →» de «Se acaba»; «Hoy» cuenta modelos. Con un solo tipo en el filtro, arriba van los días del tipo entero y las tallas que se llevan. Se fueron la tarjeta y la hoja de cada tipo.
+- **POR QUÉ ASÍ:** Felipe, al verlo con datos reales: «el que muestra en las tarjetas debería ser por modelo y no por tipo, para eso existe el filtro de tipo». Con tarjetas por tipo, filtrar por tipo dejaba una sola tarjeta y había que abrirla para ver qué pedir. Lo vendido sin registrar no dice el modelo: se sigue contando en el tipo, que aparece al filtrar uno.
+- **QUÉ SE ROMPERÍA SIN ESTO:** el filtro «Tipo» no serviría en esa pestaña, y para saber qué modelo pedir habría que abrir tipo por tipo.
