@@ -13,7 +13,6 @@
 // viejas (`pruebas:redondeo-efectivo`, casos 12, 19 y 36): si no, fallan con «cambió desde que se escribió esta migración».
 import { readFileSync } from "node:fs";
 import { anclados } from "./_deshacer_claure.mjs";
-import { SQL_DESHACER_ALIADAS } from "./_deshacer_aliadas.mjs";
 
 const MAQUINAS = readFileSync("supabase/migrations/20261016173000_pos_maquinas_interbank_y_por_depositar.sql", "utf8");
 /** Cada `select pg_temp.reemplazar('<firma>', $v$ viejo $v$, $n$ nuevo $n$, 1);` del archivo, en el orden en que se aplican. */
@@ -30,10 +29,25 @@ if (REEMPLAZOS.length !== 8) {
 const POSTERIORES = anclados("20261110001000_cuenta_de_otra_empresa_candados_y_filtro.sql", ["retail.fn_cuenta_sellada(text, text, uuid, date, uuid)"]);
 
 /** Las ocho funciones como estaban antes de las máquinas de cobro: del último reemplazo al primero (lo posterior a ellas, antes). */
-// ADR-0683: lo de las empresas aliadas (20261121164000 dejó que una cuenta de aliada reciba transferencias en `fn_cuenta_sellada`) se
-// deshace primero: es posterior a las máquinas, y sin esto la huella de `fn_cuenta_sellada` no vuelve a la de antes.
+// ADR-0683: 20261121164000 dejó que una cuenta de aliada reciba transferencias en `fn_cuenta_sellada`. Es posterior a las máquinas: se deshace
+// primero (sin esto la huella de `fn_cuenta_sellada` no vuelve a la de antes) y se rehace al final de REHACER_MAQUINAS_SELLO. Solo ese
+// cambio: hay pruebas que pegan con commit entre DESHACER y REHACER, y lo que no se rehace queda deshecho para las que corren después.
+const TRANSFERENCIA_ALIADA = [
+  { viejo: "p_medio in ('yape', 'plin')", nuevo: "p_medio in ('yape', 'plin', 'transferencia')" },
+  { viejo: "aquí solo entra lo cobrado por Yape o Plin en su tienda.", nuevo: "aquí solo entra lo cobrado por Yape, Plin o transferencia en su tienda." },
+];
+const FIRMA_SELLADA = "retail.fn_cuenta_sellada(text, text, uuid, date, uuid)";
+const DESHACER_TRANSFERENCIA_ALIADA =
+  TRANSFERENCIA_ALIADA.map(
+    (r) => `do $deshacer$ begin execute replace(pg_get_functiondef('${FIRMA_SELLADA}'::regprocedure), $q$${r.nuevo}$q$, $q$${r.viejo}$q$); end $deshacer$;`,
+  ).join("\n") + "\n";
+const REHACER_TRANSFERENCIA_ALIADA =
+  TRANSFERENCIA_ALIADA.map(
+    (r) =>
+      `do $rehacer$ begin if position($q$${r.nuevo}$q$ in pg_get_functiondef('${FIRMA_SELLADA}'::regprocedure)) = 0 then execute replace(pg_get_functiondef('${FIRMA_SELLADA}'::regprocedure), $q$${r.viejo}$q$, $q$${r.nuevo}$q$); end if; end $rehacer$;`,
+  ).join("\n") + "\n";
 export const DESHACER_MAQUINAS_SELLO =
-  SQL_DESHACER_ALIADAS +
+  DESHACER_TRANSFERENCIA_ALIADA +
   [...REEMPLAZOS, ...POSTERIORES]
     .reverse()
     .map((r) => `do $deshacer$ begin execute replace(pg_get_functiondef('${r.firma}'::regprocedure), $q$${r.nuevo}$q$, $q$${r.viejo}$q$); end $deshacer$;`)
@@ -45,4 +59,4 @@ export const DESHACER_MAQUINAS_SELLO =
 const REEMPLAZAR = MAQUINAS.match(/create or replace function pg_temp\.reemplazar[\s\S]*?\$f\$;/)?.[0];
 if (!REEMPLAZAR) throw new Error("sello-antes-de-maquinas: no encontré pg_temp.reemplazar en 20261016173000");
 export const REHACER_MAQUINAS_SELLO =
-  `${REEMPLAZAR}\n` + [...REEMPLAZOS, ...POSTERIORES].map((r) => `select pg_temp.reemplazar('${r.firma}', $v$${r.viejo}$v$, $n$${r.nuevo}$n$, 1);`).join("\n") + "\n";
+  `${REEMPLAZAR}\n` + [...REEMPLAZOS, ...POSTERIORES].map((r) => `select pg_temp.reemplazar('${r.firma}', $v$${r.viejo}$v$, $n$${r.nuevo}$n$, 1);`).join("\n") + "\n" + REHACER_TRANSFERENCIA_ALIADA;
