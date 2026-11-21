@@ -41,6 +41,11 @@ if (fGustos && fGustos !== "-" && existsSync(fGustos)) {
   mira("stock (tallas por tipo)", suma(g.tallas_tipo, "h", 4), c.stock);
   mira("stock (telas)", suma(g.telas, "h", 4), c.stock);
   mira("ventas 28 (rotacion)", g.rotacion.reduce((s, r) => s + n(r.v), 0), c.ventas_28);
+  if (Array.isArray(g.modelos)) {
+    console.log("  modelos", g.modelos.length);
+    mira("ventas 28 con su prenda (modelos)", suma(g.modelos, "v", 3), g.registradas_28);
+    mira("stock (modelos)", suma(g.modelos, "h", 4), c.stock);
+  }
 }
 console.log(mal ? "RESULTADO: " + mal + " DESCUADRES" : "RESULTADO: todo cuadra");
 process.exit(mal ? 1 : 0);
