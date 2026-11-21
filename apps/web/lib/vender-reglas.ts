@@ -61,6 +61,9 @@ export type PagoAplicado = {
   /** Con tarjeta o QR: la cuenta «por depositar» de la MÁQUINA que cobró (Izipay, Vendemás; ADR-0429). Nace con la máquina por
    *  defecto de la tienda y la cajera la cambia con un toque donde hay dos. Viaja como `cuenta_id`; la base la valida. */
   cuentaId?: string;
+  /** Con Yape, Plin o transferencia, donde la tienda tiene empresas aliadas (ADR-0683): la cuenta de la dueña a la que pagó la clienta, o `""` si
+   *  pagó a CAYLA. Sin elegir, la hoja propone según de quién es lo cobrado (`cuentaDelPago`). Viaja en `x-cuentas-pagos`, no en el pago. */
+  numeroAliada?: string;
 };
 
 /** Los medios que dan un nº de operación que la clienta ve en su celular. */

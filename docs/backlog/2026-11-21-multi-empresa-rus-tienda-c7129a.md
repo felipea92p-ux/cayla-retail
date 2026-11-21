@@ -9,7 +9,9 @@
 - [ ] **«De eso, S/ X es de Claudia»** en Dónde está y **«de eso, CLAURE»** en Impuestos siguen leyendo solo a CLAURE (`getCuentaClaure`, `fn_claure_ventas_en`): actividad 6.
 - [ ] **Ver en el navegador** la pestaña de una segunda aliada y el cierre con dos: necesita la base local al día con `main` (orden de Felipe, `/actualizar-flujo`).
 - [ ] ~~3 · La cuenta con cada dueña~~ (`fn_claure_*`, `pago_claure` sin empresa, `caja_traslados` «claudia», la pestaña CLAURE de Cuentas y dinero). La baja debe exigir su saldo en cero.
-- [ ] **4 · Vender con cualquier aliada** (`lib/cobro-por-dueno-reglas.ts` fijo en `{claure, cayla}`; `fn_cuenta_sellada` solo deja Yape y Plin en una cuenta ajena: abrir la transferencia para su cuenta bancaria).
+- [x] **4 · Vender con cualquier aliada** (migración `20261121164000`, `pnpm pruebas:aliadas-cobro` 11/11): «¿A qué número pagó?» en la hoja de cobro, con la cuenta de la dueña propuesta; la transferencia entra a la cuenta bancaria de una aliada. Visto en el navegador a 375 px con CLAURE en Lima (la función de números se creó y se quitó en la base local solo para mirarlo).
+- [ ] **Un ticket de dos empresas pagado TODO por Yape a dos números** se corrige con «Corregir pagos» (la hoja tiene una línea por medio). Si pasa seguido, partir la línea.
+- [ ] **La venta sin conexión** llega sin `x-cuentas-pagos` y se sella en CAYLA: guardar la elección en la cola si Lima lo necesita.
 - [ ] **5 · Campañas y gastos por aliada** (`campana_reglas.incluye_claure`, `gasto_reparto_claure`).
 - [ ] **6 · Las cifras de CAYLA sin aliadas** (`fn_item_es_de_claure`, `fn_lineas_de_claure` y sus usuarios).
 - [ ] **7 · Filtros por empresa en toda tienda con más de una** y quitar «CLAURE» escrito a mano (valor del inventario, reportes, colores, la casa por `clave === "cayla"`).

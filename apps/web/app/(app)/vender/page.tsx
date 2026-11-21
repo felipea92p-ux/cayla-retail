@@ -23,6 +23,7 @@ import { lineasDelCarritoDesdeProforma } from "@/lib/proforma-al-carrito";
 import { lineasDelCarritoDesdeVenta, type RepeticionDeVenta } from "@/lib/repetir-venta";
 import { elegirComprobante, type VentaCruda } from "@/lib/ventas-historial-reglas";
 import { diaLima } from "@/lib/fechas-lima";
+import { leerNumerosDeAliadas } from "@/lib/cobro-por-dueno-reglas";
 import { leerMaquinasDeCobro, tiposDeComprobanteDeLaSede, type CampanaLinea } from "@/lib/vender-reglas";
 import { armarListasPrendaLibre, leerListasPrendaLibre } from "@/lib/prenda-sin-registrar-listas";
 import { clubDeLaCaja } from "@/lib/club-caja-reglas";
@@ -76,7 +77,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   const cargaOfertasGrupo = leerOfertasDeGrupoVigentes(supabase, persona.ubicacionId);
   // «Gastar un monto y ahorrar» (actividad 8): los montos de hoy, con sus escalones. Igual de secundario: sin ellos, la caja vende igual.
   const cargaOfertasMonto = leerOfertasDeMontoVigentes(supabase, persona.ubicacionId);
-  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas, resSeries, resMaquinas, repartoDeStock, proformaLeida, resRepetir, ultimoCierre] = await Promise.all([
+  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas, resSeries, resMaquinas, repartoDeStock, proformaLeida, resRepetir, ultimoCierre, resNumerosAliadas] = await Promise.all([
     // Lo que se puede vender AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima, y en Lima con su insignia.
     getCatalogoParaOfrecer(persona.ubicacionId),
     getCajaAbierta(persona.ubicacionId),
@@ -144,6 +145,9 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       : Promise.resolve(null),
     // Sin caja (ADR-0186): lo que dejó el último cierre, para que el modal «Abrir caja» pida contar el cajón.
     getCajaAbierta(persona.ubicacionId).then((c) => (c ? null : getUltimoCierre(persona.ubicacionId))),
+    // ADR-0683: los Yape, Plin y cuentas de las empresas aliadas de esta tienda, para que la hoja de cobro ofrezca el número de cada dueña. Sin
+    // respuesta, la hoja no lo pregunta y el pago se sella en CAYLA, como antes.
+    supabase.rpc("fn_cuentas_de_aliadas_en_sede" as never, { p_ubicacion_id: persona.ubicacionId } as never),
   ]);
   const coloresLeidos = tolerar(resColores, "los colores").datos ?? [];
   const coloresActivos = coloresLeidos.filter((c) => c.activo).map((c) => ({ codigo: c.codigo, tipo: c.tipo }));
@@ -304,6 +308,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
         verMesaRegularizar={modulos.includes("existencias")}
         club={club}
         qrDisponible={resQr.data === true}
+        numerosAliadas={leerNumerosDeAliadas(resNumerosAliadas.error ? [] : ((resNumerosAliadas.data ?? []) as Record<string, unknown>[]))}
         maquinasCobro={leerMaquinasDeCobro(resMaquinas.error ? [] : ((resMaquinas.data ?? []) as Record<string, unknown>[]))}
         tiposComprobante={tiposDeComprobanteDeLaSede(resSeries.error ? null : (resSeries.data ?? null))}
         redondeoEfectivoDisponible={resRedondeo.data === true}

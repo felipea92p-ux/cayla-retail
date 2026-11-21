@@ -106,6 +106,26 @@ Verificación: en la copia de la base al día con `main`, `pnpm pruebas:aliadas-
 **No verificado en el navegador:** la pestaña de una segunda aliada y el cierre con dos aliadas (la base compartida no tiene la migración del 2026-11-15 sobre
 la que se apoyan estas; la prueba de la base sí los cubre).
 
+## Actividad 4 (2026-11-21): el cobro al número de cada dueña
+
+**El problema.** La regla de ADR-0638 es que lo de una aliada por Yape o Plin se le paga a su dueña, pero el pago se sellaba siempre en la cuenta de
+CAYLA y la pantalla solo decía qué número dar (y solo sabía de CLAURE). Una aliada que cobra por transferencia ni siquiera podía recibirla: una cuenta
+ajena solo aceptaba Yape y Plin.
+
+**Lo que hace.** Felipe pidió «tener las dos opciones»: en un ticket con prendas de una aliada, cada pago de Yape, Plin o transferencia pregunta
+«¿A qué número pagó?» con la cuenta de la dueña ya marcada si todo es de ella (o si el pago es justo su parte), y la cajera la cambia con un toque;
+lo que entró mal se sigue corrigiendo con «Corregir pagos». Si la clienta igual pagó a CAYLA, se anota lo que pasó (Felipe, 2026-11-21).
+- Base (`20261121164000`): la pantalla manda lo elegido en el encabezado `x-cuentas-pagos`; el disparador que sella cada pago lo usa si la cuenta es
+  de una aliada de esa tienda y recibe ese medio; si no, sella como siempre. Una cuenta de aliada acepta transferencias. `fn_cuentas_de_aliadas_en_sede`
+  le da a la caja los números.
+- Web: `lib/cobro-por-dueno-reglas.ts` reparte el ticket por empresa (cualquier aliada) y propone la cuenta; `HojaDeCobro` dibuja la pregunta como
+  «¿Con qué máquina?»; el aviso «Dale el número de …» dice el nombre de la aliada (Claudia para CLAURE, igual que antes).
+
+DECIDÍ un encabezado leído por el disparador del pago. DESCARTÉ aceptar la cuenta en `registrar_venta` (la función más parchada del ERP, con doce
+pruebas que fijan su texto) y una columna nueva en el JSON de pagos (cambia el contrato de la venta en línea y sin conexión). SE ROMPE SI un mismo
+medio se parte en dos números (la hoja tiene una línea por medio: un ticket de dos empresas pagado todo por Yape a dos números se corrige con
+«Corregir pagos») o si la venta se sube sin conexión (llega sin el encabezado y se sella en CAYLA, como hoy).
+
 ## Verificación
 
 - `pnpm pruebas:empresas-aliadas` — 35/35 en Postgres local (cada caso en su transacción, con ROLLBACK).
