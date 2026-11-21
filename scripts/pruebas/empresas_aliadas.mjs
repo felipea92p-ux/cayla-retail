@@ -7,19 +7,28 @@
  * ni puede ser el de CAYLA; (3) solo el Admin guarda; (4) al sumar una aliada a una tienda sin filas, CAYLA sigue en esa tienda; (5) un Nuevo
  * RUS va a una sola tienda; (6) sus cuentas nacen como las de una empresa ajena (banco 104, saldo 0) y quitar es archivar; (7) no se le quita
  * una tienda donde todavía tiene prendas; (8) `fn_empresas_aliadas` las devuelve con tiendas y cuentas, y no a CAYLA.
- * Cada caso corre en su transacción con la migración aplicada dentro y TERMINA EN ROLLBACK.
+ * Desde 20261121203000 (los hallazgos de /chaos): (9) un nombre de puros caracteres invisibles no se guarda; (10) dos altas a la vez con el
+ * mismo nombre no chocan ni dicen «RUC», y dos con el mismo RUC dicen de quién es.
+ * Cada caso corre en su transacción con las migraciones aplicadas dentro y TERMINA EN ROLLBACK. La única excepción es (10): dos sesiones
+ * en paralelo no pueden compartir una transacción, así que confirman de verdad y la prueba borra al final SOLO lo que ella misma creó.
  *
  * USO: pnpm pruebas:empresas-aliadas   (necesita el stack local: `npx supabase start`)
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
-const MIGRACION = readFileSync(join(RAIZ, "supabase/migrations/20261121152000_empresas_aliadas_desde_configuracion.sql"), "utf8");
+// La función vive en 20261121152000 y la reemplaza 20261121203000: se aplican las dos, en orden, o la primera la dejaría como era.
+const MIGRACION = [
+  "supabase/migrations/20261121152000_empresas_aliadas_desde_configuracion.sql",
+  "supabase/migrations/20261121203000_guardar_empresa_aliada_nombre_y_choques.sql",
+]
+  .map((f) => readFileSync(join(RAIZ, f), "utf8"))
+  .join("\n");
 const ADMIN = "22222222-2222-4222-8222-000000000001"; // Felipe (seed): líder y Admin
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo (seed), no es Admin
 
@@ -308,6 +317,80 @@ select retail.programar_baja_empresa_aliada(${ID}, 'Aliada Prueba');
 select (a->>'baja_el') = (retail.fn_hoy_lima() + 7)::text from jsonb_array_elements(retail.fn_empresas_aliadas()->'aliadas') a where a->>'clave' = 'aliada_prueba';`),
   da("t"),
 );
+
+// 10. El nombre (20261121203000): al menos una letra o un número
+const INVISIBLE = "\u200b\u200c\u200d\u2060";
+esperar(
+  "un nombre de puros caracteres invisibles no se guarda",
+  caso(`${sesion(ADMIN)}\nselect retail.guardar_empresa_aliada(null, '${INVISIBLE}', '${RUC_A}', null, 'nuevo_rus', null, null, array[${TRU}]::uuid[]);`),
+  fallaCon("Escribe el nombre"),
+);
+esperar(
+  "un nombre de una sola letra con tilde o ñ sí",
+  caso(`${sesion(ADMIN)}\nselect retail.guardar_empresa_aliada(null, 'Ñ', '${RUC_A}', null, 'nuevo_rus', null, null, array[${TRU}]::uuid[]) is not null;`),
+  da("t"),
+);
+esperar(
+  "un nombre de puros números sí",
+  caso(`${sesion(ADMIN)}\nselect retail.guardar_empresa_aliada(null, '${INVISIBLE}21', '${RUC_A}', null, 'nuevo_rus', null, null, array[${TRU}]::uuid[]) is not null;`),
+  da("t"),
+);
+
+// 11. Dos altas a la vez (20261121203000). Dos sesiones de verdad: la primera guarda y se queda 2 s sin confirmar; la segunda empieza
+// medio segundo después. Sin el candado, la segunda generaba la misma clave y fallaba con «Ya hay una empresa con ese RUC».
+const RUC_C = ruc("1099990003");
+const RUC_D = ruc("1099990004");
+const NOMBRE_CHOQUE = "Aliada Choque Prueba";
+
+function psqlEnParalelo(sql) {
+  return new Promise((resolve) => {
+    const p = spawn("docker", ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", process.env.BASE_PG ?? "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-f", "-"]);
+    let out = "";
+    let err = "";
+    p.stdout.on("data", (d) => (out += d));
+    p.stderr.on("data", (d) => (err += d));
+    p.on("close", (code) => resolve(code === 0 ? { ok: true, salida: out.trim().split("\n").at(-1) ?? "" } : { ok: false, error: err || out }));
+    p.stdin.end(sql);
+  });
+}
+const esperarMedio = () => new Promise((r) => setTimeout(r, 500));
+const altaEnSesion = (nombre, rucv, demora) =>
+  `begin;\n${sesion(ADMIN)}\nselect retail.guardar_empresa_aliada(null, '${nombre}', '${rucv}', null, 'mype', null, null, array[${TRU}]::uuid[]) is not null;\n${demora ? "select pg_sleep(2) is not null;\n" : ""}commit;`;
+// Lo que la prueba creó: sus aliadas (por RUC) y la fila de CAYLA en Trujillo si la tienda no tenía filas antes.
+const TRU_SIN_FILAS = psql(`select not exists (select 1 from retail.empresa_sedes where ubicacion_id = ${TRU});`) === "t";
+function limpiar() {
+  psql(`begin;
+delete from retail.empresa_sedes where empresa_id in (select id from retail.empresas where ruc in ('${RUC_C}', '${RUC_D}'));
+delete from retail.empresas where ruc in ('${RUC_C}', '${RUC_D}');
+${TRU_SIN_FILAS ? `delete from retail.empresa_sedes where ubicacion_id = ${TRU} and empresa_id = retail.fn_empresa_casa_id();` : ""}
+commit;`);
+}
+async function dosALaVez(rucB) {
+  limpiar();
+  try {
+    const a = psqlEnParalelo(altaEnSesion(NOMBRE_CHOQUE, RUC_C, true));
+    await esperarMedio();
+    const b = psqlEnParalelo(altaEnSesion(NOMBRE_CHOQUE, rucB, false));
+    const [ra, rb] = await Promise.all([a, b]);
+    const claves = psql(`select coalesce(string_agg(clave, ',' order by clave), '') from retail.empresas where ruc in ('${RUC_C}', '${RUC_D}');`);
+    return { ra, rb, claves };
+  } finally {
+    limpiar();
+  }
+}
+{
+  const { ra, rb, claves } = await dosALaVez(RUC_D);
+  esperar(
+    "dos altas a la vez con el mismo nombre: las dos se guardan, con claves distintas",
+    { ok: ra.ok && rb.ok, salida: claves, error: `${ra.error ?? ""}${rb.error ?? ""}` },
+    (r) => r.ok && r.salida === "aliada_choque_prueba,aliada_choque_prueba_2",
+  );
+}
+{
+  const { ra, rb } = await dosALaVez(RUC_C);
+  esperar("dos altas a la vez con el mismo RUC: la primera se guarda", ra, da("t"));
+  esperar("…y la segunda dice de quién es ese RUC (no un choque de clave)", rb, fallaCon(`Ya hay una empresa con ese RUC: «${NOMBRE_CHOQUE}»`));
+}
 
 console.log(fallas ? `\n${fallas} prueba(s) fallaron.` : "\nTodas pasaron.");
 process.exit(fallas ? 1 : 0);
