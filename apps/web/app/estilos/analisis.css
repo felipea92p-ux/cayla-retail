@@ -277,12 +277,6 @@
     .racha{display:flex;gap:3px;flex-wrap:wrap}
     .racha i{width:14px;height:14px;border-radius:3px;box-shadow:inset 0 0 0 1px var(--color-sand);display:block}
     .racha i.ok{background:var(--color-verde);box-shadow:none}
-    .semanas{display:flex;align-items:flex-end;gap:6px;height:96px;padding-top:6px}
-    .semanas .s{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
-    .semanas .s i{display:block;width:100%;max-width:26px;border-radius:4px 4px 0 0;background:var(--color-grafico-neutro);min-height:2px}
-    .semanas .s.ult i{background:var(--color-tinta)}
-    .semanas .s span{font-size:10.5px;color:var(--color-tinta-60);white-space:nowrap}
-    .semanas .s b{font-size:11px;font-weight:600;min-height:14px}
     /* Real: todavía no */
     .todavia{padding:22px 24px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:24px 32px}
     @container analisis (max-width:900px){ .todavia{grid-template-columns:minmax(0,1fr)} }
@@ -291,16 +285,10 @@
     .sabe{padding:14px 16px}
     .sabe h4{margin:0 0 10px;font-size:15px;font-weight:600;display:flex;justify-content:space-between;gap:8px;align-items:center}
     .sabe .nota{font-size:14px;color:var(--color-tinta-60);margin-top:8px}
-    .h-cab{display:flex;gap:14px;align-items:center;margin:4px 0 14px;padding-right:44px}
-    .h-cab h2{font:500 28px/1.1 var(--font-serif);margin:0 0 4px}
-    .h-cab .meta{font-size:14px;color:var(--color-tinta-60)}
+    /* La fila de arriba de la ficha y de la hoja del tipo (cara B, ficha §6): miniatura de 72 + 16 px + el veredicto. */
+    .h-cab{display:flex;gap:16px;align-items:center;margin:4px 0 0}
     .h-sec{margin-top:20px}
     .h-sec h3{font-size:12px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--color-taupe);margin:0 0 10px}
-    .hechos{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px}
-    .hecho{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--c) 9%,var(--color-crema));border:1px solid color-mix(in srgb,var(--c) 22%,transparent)}
-    .hecho svg{width:18px;height:18px;color:var(--c);margin-bottom:4px}
-    .hecho b{font:500 19px/1.1 var(--font-serif)}
-    .hecho small{font-size:14px;color:var(--color-tinta-60)}
     .h-acciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;padding-top:16px;border-top:1px solid var(--color-sand)}
     .h-nota{font-size:14px;color:var(--color-tinta-60);margin-top:10px}
     .dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;margin:0;font-size:15px}

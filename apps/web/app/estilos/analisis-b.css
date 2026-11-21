@@ -92,6 +92,33 @@
       border: 1px solid color-mix(in srgb, var(--c) 24%, transparent);
     }
 
+    /* ───────── La ficha: qué pasa con la prenda, en una línea y con su color (ficha §6, 5·a) ───────── */
+    .an-veredicto {
+      --c: var(--color-tinta);
+      flex: 1;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid color-mix(in srgb, var(--c) 28%, transparent);
+      background: color-mix(in srgb, var(--c) 9%, transparent);
+      font-family: var(--font-serif);
+      font-size: 24px;
+      line-height: 1.15;
+      color: var(--c);
+    }
+    .an-veredicto svg { flex: none; width: 20px; height: 20px; }
+
+    /* Las tres cifras de la ficha (§6, 4): tres columnas también a 375 px; la `TarjetaCifra` achica su número con `@container`. */
+    .an-ficha-cifras {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
     /* ───────── «Hoy»: las cuatro preguntas (ficha §2, 1·a), dos columnas; una bajo 760 px ───────── */
     .an-resp4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
     .an-preg {

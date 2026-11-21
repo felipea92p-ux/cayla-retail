@@ -4,12 +4,13 @@ import "@/app/estilos/por-pantalla/analisis-pestanas.css";
 import { useMemo, useState } from "react";
 import { Check } from "lucide-react";
 import { useAnalisis } from "@/components/analisis/contexto";
-import { TRAZO_PERCHA } from "@/components/analisis/iconos";
-import { ChipEstado, COLOR_ESTADO, nombreLargo, TilePrenda, type Estado } from "@/components/analisis/piezas";
+import { Icono, TRAZO_PERCHA } from "@/components/analisis/iconos";
+import { ChipEstado, COLOR_ESTADO, ICONO_ESTADO, nombreLargo, TilePrenda, type Estado } from "@/components/analisis/piezas";
 import { Respuesta, TarjetaPrenda, Tarjetas } from "@/components/analisis/Tarjetas";
 import { IconoCategoria } from "@/components/IconoCategoria";
 import { Modal } from "@/components/ui/Modal";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { BotonVerMas } from "@/components/ui/VerMas";
 import { Vacio } from "@/components/ui/Vacio";
@@ -178,18 +179,31 @@ function HojaTipo({ t, base, onCerrar }: { t: AlcanceTipo; base: Parameters<type
   return (
     <Modal titulo={t.categoria} subtitulo={`Navidad es en ${hastaNavidad} ${plural(hastaNavidad, "día", "días")}`} onClose={onCerrar} tamano="mediana" conCerrar>
       <div className="analisis analisis-hoja flex flex-col gap-5">
-        <p className="m-0 text-[15px] font-semibold" style={{ color: COLOR_ESTADO[tonoTipo(t)] }}>
-          {veredicto}
-        </p>
-        <div className="grid grid-cols-3 gap-2">
-          <TarjetaCifra etiqueta="Vendiste" valor={t.vendidas} unidad={`en ${diasDeVentas} ${plural(diasDeVentas, "día", "días")}`} />
-          <TarjetaCifra etiqueta="Tienes" valor={t.tiene} unidad="hoy" />
-          <TarjetaCifra etiqueta="Te alcanza" valor={dias ?? "—"} unidad={dias === null ? "sin ritmo" : plural(dias, "día", "días")} />
+        {/* La misma cabecera que la ficha de una prenda: la lente del tipo y el veredicto con su color, y sus tres cifras. */}
+        <div>
+          <div className="h-cab">
+            <LenteTipo t={t} tamano={72} />
+            <p className="an-veredicto" style={{ ["--c" as string]: COLOR_ESTADO[tonoTipo(t)] }}>
+              <Icono nombre={ICONO_ESTADO[tonoTipo(t)]} />
+              <span>{veredicto}</span>
+            </p>
+          </div>
+          <div className="an-ficha-cifras">
+            <TarjetaCifra etiqueta="Vendiste" valor={t.vendidas}>
+              en {diasDeVentas} {plural(diasDeVentas, "día", "días")}
+            </TarjetaCifra>
+            <TarjetaCifra etiqueta="Tienes" valor={t.tiene}>
+              hoy
+            </TarjetaCifra>
+            <TarjetaCifra etiqueta="Te alcanza" valor={dias ?? "—"}>
+              {dias === null ? "sin ritmo" : plural(dias, "día", "días")}
+            </TarjetaCifra>
+          </div>
         </div>
         <BloqueCurva c={curvaDeTallas(base, t.categoria)} categoria={t.categoria} />
         {tops.length > 0 && (
           <div className="flex flex-col gap-1">
-            <h4 className="pt-sub">Lo que más se vende</h4>
+            <TituloGrupo nivel={4}>Lo que más se vende</TituloGrupo>
             {tops.map((p) => {
               const queda = estadoQuedan(p);
               return (
@@ -220,7 +234,7 @@ function HojaTipo({ t, base, onCerrar }: { t: AlcanceTipo; base: Parameters<type
 function BloqueCurva({ c, categoria }: { c: CurvaTallas; categoria: string | null }) {
   const { diasDeVentas } = useAnalisis();
   // Va dentro del panel del tipo (opción A): el título del panel ya dice el tipo.
-  const titulo = <h4 className="pt-sub">Las tallas que se llevan</h4>;
+  const titulo = <TituloGrupo nivel={4}>Las tallas que se llevan</TituloGrupo>;
   if (c.tipo !== "tallas") {
     const unica = c.tipo === "unica";
     return (

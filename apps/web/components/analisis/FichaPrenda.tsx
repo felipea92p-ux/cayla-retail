@@ -2,46 +2,41 @@
 
 import "@/app/estilos/por-pantalla/analisis-pestanas.css";
 import Link from "next/link";
+import { Receipt } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono } from "@/components/analisis/iconos";
-import { ChipEstado, COLOR_ESTADO, TilePrenda } from "@/components/analisis/piezas";
+import { COLOR_ESTADO, ICONO_ESTADO, TilePrenda } from "@/components/analisis/piezas";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { BarrasTiempo } from "@/components/ui/BarrasTiempo";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
-import { grupoDe, plural } from "@/lib/analisis-reglas";
+import { grupoDe, plural, sedeQueMasVende } from "@/lib/analisis-reglas";
 import { hrefExistencias, hrefMovimientos } from "@/lib/analisis-acciones";
 import {
   accionPrincipal,
   barrasSemanas,
-  chipDeGrupo,
-  dineroDe,
+  cifrasDe,
   fraseDelModelo,
-  hechosDe,
   lineaOtrasTiendas,
   sedeParaPedir,
   subtituloFicha,
   tablaDelModelo,
-  type TonoFicha,
+  veredictoDe,
 } from "@/lib/analisis-ficha";
 import { diasEnAlmacen, nuncaSalio } from "@/lib/analisis-piso";
 import { BotonVer } from "@/components/ui/BotonDescargar";
+import { Vacio } from "@/components/ui/Vacio";
 
-// Análisis v4 (ADR-0357): la ficha de una prenda (actividad 6), copia de `fichaHTML()` de la maqueta aprobada. Arriba, la prenda y
-// su estado; después tarjetitas (sin párrafos), sus ventas por semana, dónde hay en la red, el modelo entero en mi tienda, el dinero
-// y los botones. La maqueta la dibuja como hoja lateral; en el ERP todo modal es `<Modal>` (ADR-0136): el mismo contenido, con la
-// entrada y la cascada del sistema. Adentro, las barras crecen y los puntos asoman una vez (`.anim`; el retraso, en
-// `analisis-ficha.css`). Lo que dice cada parte lo decide `lib/analisis-ficha.ts`; aquí solo se dibuja.
+// Análisis (ADR-0357): la ficha de una prenda. Desde la cara B (act. 2026-11-21), en tres bloques: qué pasa en una frase con su color
+// y sus tres cifras (`TarjetaCifra`); cuánto se vendió cada semana (`BarrasTiempo`); y la talla y el color del modelo en mi tienda,
+// con los botones abajo («Movimientos» a la izquierda). Solo dice cómo está: no hay «Liquidar» (Felipe 2026-11-21: «así el usuario
+// decide qué hacer»). Medidas: `docs/milimetro/analisis-b.md`, §6. La maqueta la dibuja como hoja lateral; en el ERP todo modal es
+// `<Modal>` (ADR-0136), con la entrada y la cascada del sistema. Lo que dice cada parte lo decide `lib/analisis-ficha.ts`; aquí solo
+// se dibuja.
 //
 // No tiene campos: no lleva guía de foco (ADR-0284).
-
-/** El color de cada tarjetita, con los mismos tokens que los estados de Análisis. */
-const COLOR_TONO: Record<TonoFicha, string> = {
-  rojo: COLOR_ESTADO.urg,
-  ambar: COLOR_ESTADO.ate,
-  verde: COLOR_ESTADO.bien,
-  pizarra: COLOR_ESTADO.info,
-  taupe: COLOR_ESTADO.nd,
-};
 
 export function FichaPrenda({ varianteId, onCerrar }: { varianteId: string; onCerrar: () => void }) {
   const { datos } = useAnalisis();
@@ -67,13 +62,14 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
   const grupo = grupoDe(p, liquidarDesde);
   // Guardada y nunca colgada (solo si la base ya lo sabe: 20261007120000): no «va bien», nadie la vio.
   const sinSalir = datos.sabePiso && nuncaSalio(p);
-  const chip = chipDeGrupo(grupo, sinSalir);
-  const hechos = hechosDe(p, grupo, datos.sedes, sinSalir ? { dias: diasEnAlmacen(p, datos.hoy) } : null);
-  const barras = barrasSemanas(p.semanas, datos.hoy);
+  const vende = grupo === "enviar" ? sedeQueMasVende(p.otras) : null;
+  const veredicto = veredictoDe(p, grupo, sinSalir, vende ? datos.sedes.find((s) => s.id === vende.sedeId)?.ciudad : undefined);
+  const cifras = cifrasDe(p, grupo, datos.sedes, sinSalir ? { dias: diasEnAlmacen(p, datos.hoy) } : null);
+  const semanas = barrasSemanas(p.semanas, datos.hoy);
+  const vendioAlgo = semanas.some((b) => b.vendidas > 0);
   const frase = fraseDelModelo(p, datos.diasDeVentas);
   const tabla = tablaDelModelo(p);
   const otras = lineaOtrasTiendas(p, datos.sedes, datos.sede.id);
-  const dinero = dineroDe(p);
   // Un botón cuyo destino la cuenta no ve no se dibuja (cada función devuelve null).
   const principal = accionPrincipal(p, grupo, datos.sedes, acceso, sinSalir);
   const pedirA = sedeParaPedir(p, grupo, datos.sedes, acceso);
@@ -85,40 +81,43 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
     <Modal titulo={p.nombre} subtitulo={subtituloFicha(p)} onClose={onCerrar} variante="hoja" tamano="mediana" conCerrar>
       <div ref={setRaiz} className="analisis analisis-hoja">
         <div className="anim">
+          {/* Bloque 1: qué pasa, en una frase con su color, y sus tres cifras. */}
           <div className="h-cab">
-            <TilePrenda prenda={p} tamano={64} />
-            <ChipEstado est={chip.est}>{chip.texto}</ChipEstado>
+            <TilePrenda prenda={p} tamano={72} />
+            <p className="an-veredicto" style={{ ["--c" as string]: COLOR_ESTADO[veredicto.est] }}>
+              <Icono nombre={ICONO_ESTADO[veredicto.est]} />
+              <span>{veredicto.texto}</span>
+            </p>
+          </div>
+          <div className="an-ficha-cifras">
+            {cifras.map((c) => (
+              <TarjetaCifra key={c.etiqueta} etiqueta={c.etiqueta} valor={c.valor}>
+                {c.detalle}
+              </TarjetaCifra>
+            ))}
           </div>
 
+          {/* Bloque 2: cuánto se vendió cada semana; la última, la que termina hoy, en tinta. */}
           <div className="h-sec">
-            <div className="hechos">
-              {hechos.map((h, k) => (
-                <div key={`${h.icono}-${k}`} className="hecho" style={{ ["--c" as string]: COLOR_TONO[h.tono] }}>
-                  <Icono nombre={h.icono} />
-                  <b>{h.valor}</b>
-                  {h.etiqueta && <small>{h.etiqueta}</small>}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="h-sec">
-            <h3>Ventas por semana en {datos.sede.ciudad}</h3>
-            <div className="semanas">
-              {barras.map((b, j) => (
-                <div key={b.inicio} className={`s ${b.ultima ? "ult" : ""}`} data-tip={b.tip}>
-                  <b>{b.vendidas || ""}</b>
-                  <i className="cy" style={{ ["--d" as string]: j, height: b.alto }} />
-                  <span>{b.etiqueta}</span>
-                </div>
-              ))}
-            </div>
+            <TituloGrupo nota={`en ${datos.sede.ciudad}`}>Vendidas cada semana</TituloGrupo>
+            {vendioAlgo ? (
+              <BarrasTiempo
+                barras={semanas.map((b) => ({ clave: b.inicio, valor: b.vendidas, etiqueta: b.etiqueta, tip: b.tip }))}
+                destacada={semanas[semanas.length - 1]?.inicio ?? null}
+                cifras="todas"
+                alto={96}
+                etiqueta={`Vendidas cada semana en ${datos.sede.ciudad}, últimas ${semanas.length}`}
+              />
+            ) : (
+              <Vacio tamano="chico" icono={<Receipt />}>Ninguna en las últimas {semanas.length} semanas.</Vacio>
+            )}
           </div>
 
           {/* El modelo en tu tienda (opción B, Felipe 2026-10-10): una frase, una tabla con palabras y totales —los colores que más se
               venden arriba— y las otras tiendas en una línea. */}
+          {/* Bloque 3: la talla y el color del modelo en tu tienda. */}
           <div className="h-sec">
-            <h3>Talla y color · en tus {datos.diasDeVentas} {plural(datos.diasDeVentas, "día", "días")} de ventas</h3>
+            <TituloGrupo nota={`en tus ${datos.diasDeVentas} ${plural(datos.diasDeVentas, "día", "días")} de ventas`}>Talla y color</TituloGrupo>
             <p className="m-frase">{frase}</p>
             {tabla && (
               <>
@@ -187,21 +186,11 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
             {otras && <p className="m-otras">{otras}</p>}
           </div>
 
-          <div className="h-sec">
-            <h3>Dinero</h3>
-            <dl className="dl">
-              <dt>Costó cada una</dt>
-              <dd>{dinero.costo}</dd>
-              <dt>Ganas por cada una</dt>
-              <dd>{dinero.ganas}</dd>
-            </dl>
-          </div>
-
           {conAcciones && (
-            <div className="h-acciones">
-              {principal && (
-                <Link href={principal.href} className="btn-cayla btn-primario">
-                  {principal.texto}
+            <div className="h-acciones pie-acciones">
+              {movimientos && (
+                <Link href={movimientos} className="btn-cayla btn-enlace mr-auto">
+                  Movimientos
                 </Link>
               )}
               {pedirA && (
@@ -209,12 +198,10 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
                   Pedir a {pedirA.ciudad}
                 </button>
               )}
-              {existencias && (
-                <BotonVer href={existencias}>Ver en Existencias</BotonVer>
-              )}
-              {movimientos && (
-                <Link href={movimientos} className="btn-cayla btn-sutil">
-                  Movimientos
+              {existencias && <BotonVer href={existencias}>Ver en Existencias</BotonVer>}
+              {principal && (
+                <Link href={principal.href} className="btn-cayla btn-primario">
+                  {principal.texto}
                 </Link>
               )}
             </div>
