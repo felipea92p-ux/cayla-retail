@@ -2,7 +2,7 @@
   "guia": "inventario.resumen",
   "ruta": "/gestion/analisis",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 61,
+  "total": 60,
   "controles": {
     "components/PedirAOtraSedeModal.tsx": [
       "Desplegable «pedir-sede»",
@@ -71,15 +71,14 @@
       "Link «{`Bajar al piso: ${nombreLargo(p)}»"
     ],
     "components/analisis/PestanaQuieta.tsx": [
-      "Link «{etiqueta}»",
+      "BotonVer «Frescura del piso»",
+      "Link «Registrar ventas»",
+      "Link «{`Mandar todas a ${ciudad}»",
+      "Link «{`Mandar a ${v.ciudad}»",
       "button «{`${LIQUIDAR_PASO}»",
-      "input «{idUmbral}»",
+      "input «{id}»",
       "button «{`${LIQUIDAR_PASO}» #2",
-      "button «Guardar para todos»",
-      "Link «{`${texto}»",
-      "Link «{`Liquidar: ${nombreLargo(p)}»",
-      "button «Nunca salió al piso»",
-      "Link «Frescura del piso»"
+      "button «Guardar para todos»"
     ],
     "components/analisis/TodaviaNo.tsx": [
       "Link «{registrar.texto}»",

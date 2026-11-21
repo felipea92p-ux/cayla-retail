@@ -2,7 +2,9 @@
 // modelos se ven (ficha al milímetro `docs/milimetro/analisis-b.md`, §9 choque 5: una función, un control). Cada pestaña ofrece lo que
 // tiene sentido para su pregunta, y la primera opción es como la pestaña ya ordenaba. Ordenar no quita modelos: solo los acomoda.
 
-import type { VistaAnalisis } from "./analisis-tipos";
+import type { PrendaAnalisis, VistaAnalisis } from "./analisis-tipos";
+import { plataParada } from "./analisis-quietas";
+import { totalEnTienda } from "./analisis-reglas";
 
 export type OpcionOrden = { valor: string; texto: string };
 
@@ -12,6 +14,11 @@ export const ORDENES: Partial<Record<VistaAnalisis, readonly OpcionOrden[]>> = {
     { valor: "urgente", texto: "Lo más urgente" },
     { valor: "vende", texto: "Lo que más se vende" },
     { valor: "nombre", texto: "Por nombre" },
+  ],
+  nose: [
+    { valor: "dias", texto: "Más días sin venderse" },
+    { valor: "parada", texto: "Más plata parada" },
+    { valor: "prendas", texto: "Más prendas" },
   ],
 };
 
@@ -32,4 +39,11 @@ export function ordenar<T extends { nombre: string; vendidas30: number }>(lista:
   if (orden === "vende") return [...lista].sort((a, b) => b.vendidas30 - a.vendidas30);
   if (orden === "nombre") return [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   return [...lista];
+}
+
+/** «No se vende»: los días sin venderse (como ya vienen), la plata parada o cuántas prendas tiene, de más a menos. */
+export function ordenarQuietas<T extends PrendaAnalisis & { variantes?: readonly PrendaAnalisis[] }>(lista: readonly T[], orden: string): T[] {
+  if (orden === "parada") return [...lista].sort((a, b) => (plataParada(b) ?? 0) - (plataParada(a) ?? 0));
+  if (orden === "prendas") return [...lista].sort((a, b) => totalEnTienda(b) - totalEnTienda(a));
+  return ordenar(lista, orden);
 }

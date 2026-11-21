@@ -17,7 +17,7 @@ export const RPC_LEER_LIQUIDAR = "fn_liquidar_desde";
 export const RPC_GUARDAR_LIQUIDAR = "guardar_liquidar_desde";
 
 /** La nota de Análisis cuando la base no respondió: la pantalla sigue con el valor de fábrica y lo dice (principio 9). */
-export const FALLA_LEER_LIQUIDAR = `No se pudo leer desde cuándo se liquida: va con ${LIQUIDAR_DEFECTO} días`;
+export const FALLA_LEER_LIQUIDAR = `No se pudo leer desde cuándo algo cuenta como «no se vende»: va con ${LIQUIDAR_DEFECTO} días`;
 
 /** Lo que la hoja pone a la vista antes de guardar. */
 export type EfectoLiquidar = {
@@ -101,5 +101,5 @@ export function errorAlGuardarLiquidar(error: ErrorEscritura, efecto: Pick<Efect
     return { que: "No se guardó.", queda, sigue: "Guardar para todos todavía no está listo: avisa a Felipe." };
   }
   // El responsable (no está de turno, falta elegirlo): su frase sola, sin repetir «No se pudo…» de la primera línea.
-  return { que: "No se guardó.", queda, sigue: mensajeErrorResponsable(error) ?? traducirError(error, "guardar desde cuándo se liquida") };
+  return { que: "No se guardó.", queda, sigue: mensajeErrorResponsable(error) ?? traducirError(error, "guardar desde cuándo algo cuenta como «no se vende»") };
 }

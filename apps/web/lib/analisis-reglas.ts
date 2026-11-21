@@ -7,7 +7,7 @@
 // (60 días por defecto, uno para todos); en rojo, lo de más de 3 meses. El sistema NO decide si pedirla a otra tienda o
 // comprarla (decisión 7): todo lo que se acaba aparece para comprar y, si otra tienda la tiene, se dice cuántas tiene.
 
-import type { DatosAnalisis, EdadInventario, PrendaAnalisis, PrendaEnOtraSede, SedeAnalisis, VistaAnalisis } from "./analisis-tipos";
+import type { DatosAnalisis, PrendaAnalisis, PrendaEnOtraSede, SedeAnalisis, VistaAnalisis } from "./analisis-tipos";
 import { VISTAS_ANALISIS } from "./analisis-tipos";
 import { diaLima, diasEntreFechas } from "./fechas-lima";
 import { esPedidoDeTalla, type MotivoPedido } from "./se-probo-reglas";
@@ -18,8 +18,6 @@ export const DIAS_SE_ACABA = 14;
 export const DIAS_VIGILAR = 30;
 /** Desde cuántos días sin venderse va en rojo (3 meses). */
 export const DIAS_TRES_MESES = 90;
-/** El largo mínimo del carril «Días sin venderse» (4 meses): se alarga si «Liquidar desde» pasa de ahí (`finDelEje`). */
-export const DIAS_EJE_QUIETAS = 120;
 /**
  * «Liquidar desde»: el valor de fábrica y lo que acepta. Felipe, 2026-10-06: se mueve, no es fijo; 2026-10-07: sin tope, los días que
  * se quiera (de 1 a 999, lo mismo que la base: 20261007100000). Cada toque de − y + suma o resta LIQUIDAR_PASO.
@@ -168,20 +166,6 @@ export function ordenSeAcaba(a: PrendaAnalisis, b: PrendaAnalisis): number {
 /** Lo quieto, de lo que más espera a lo que menos. */
 export function ordenQuietas(a: PrendaAnalisis, b: PrendaAnalisis): number {
   return (b.diasSinVender ?? 0) - (a.diasSinVender ?? 0) || totalEnTienda(b) - totalEnTienda(a) || a.nombre.localeCompare(b.nombre, "es");
-}
-
-/** Las unidades de mi tienda por tramo de días sin venderse («Por tienda» en No se vende). Sin dato de días, no cuenta. */
-export function edadDelInventario(prendas: readonly Pick<PrendaAnalisis, "piso" | "almacen" | "diasSinVender">[]): EdadInventario {
-  const e: EdadInventario = { hasta30: 0, de31a60: 0, de61a90: 0, masDe90: 0 };
-  for (const p of prendas) {
-    const u = totalEnTienda(p);
-    if (u <= 0 || p.diasSinVender === null) continue;
-    if (p.diasSinVender <= 30) e.hasta30 += u;
-    else if (p.diasSinVender <= 60) e.de31a60 += u;
-    else if (p.diasSinVender <= 90) e.de61a90 += u;
-    else e.masDe90 += u;
-  }
-  return e;
 }
 
 /** «Liquidar desde» dentro de sus topes; lo que no es un número vuelve al de fábrica. */

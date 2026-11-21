@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PrendaAnalisis } from "./analisis-tipos";
-import { DIAS_VIGILAR, GRUPOS_QUIETAS, LIQUIDAR_DEFECTO, LIQUIDAR_MAX, LIQUIDAR_MIN, prendasDe } from "./analisis-reglas";
-import { barraDeEdad, cifrasQuietas, destinoDeTodas, gruposQuietas, lineaTodaviaNoQuietas, marcaLiquidarComun, marcasEje, notaDeUmbrales, plazoDeLiquidar, ETIQUETA_LIQUIDAR_DESDE, notaSinCosto, pistaQuieta, puedeJuzgarQuietas, TEXTO_VACIO_QUIETAS, TRAMOS_EDAD, vacioQuietas } from "./analisis-quietas";
+import { DIAS_VIGILAR, LIQUIDAR_DEFECTO, LIQUIDAR_MAX, LIQUIDAR_MIN } from "./analisis-reglas";
+import { destinoDeTodas, gruposQuietas, lineaTodaviaNoQuietas, notaDeUmbrales, ETIQUETA_LIQUIDAR_DESDE, plataParada, puedeJuzgarQuietas, TEXTO_VACIO_QUIETAS, vacioQuietas } from "./analisis-quietas";
 import { modeloDe } from "./analisis-modelo";
 
 // Datos inventados para la prueba: ni nombres del catálogo ni cifras de producción.
@@ -40,96 +40,6 @@ function prenda(parcial: Partial<PrendaAnalisis>): PrendaAnalisis {
 const quieta = (varianteId: string, dias: number, extra: Partial<PrendaAnalisis> = {}) => prenda({ varianteId, piso: 2, almacen: 1, diasSinVender: dias, ...extra });
 /** Lo que vendió otra tienda (inventada) en 30 días. */
 const vendioAlla = (sedeId: string, vendidas30: number, stock = 1) => ({ sedeId, stock, vendidas30 });
-
-describe("las cifras de arriba", () => {
-  it("cuenta prendas, unidades, lo que costaron y lo que valen a precio de venta", () => {
-    const c = cifrasQuietas([
-      quieta("a", 70, { costo: 20, precio: 50 }), // 3 unidades: 60 de costo, 150 a la venta
-      quieta("b", 80, { piso: 4, almacen: 0, costo: 10, precio: 30 }), // 4 unidades: 40 y 120
-    ]);
-    expect(c).toEqual({ prendas: 2, unidades: 7, costo: 100, precioVenta: 270, sinCosto: 0, sinPrecio: 0 });
-  });
-
-  it("si a una le falta el costo o el precio, cuenta solo las que lo tienen y dice cuántas faltan", () => {
-    const c = cifrasQuietas([quieta("a", 70, { costo: null, precio: 50 }), quieta("b", 80, { costo: 10, precio: null })]);
-    expect(c.costo).toBe(30);
-    expect(c.precioVenta).toBe(150);
-    expect(c.sinCosto).toBe(1);
-    expect(c.sinPrecio).toBe(1);
-    expect(c.unidades).toBe(6);
-  });
-
-  it("si ninguna tiene costo, no inventa un S/ 0: null (se dice «—»)", () => {
-    const c = cifrasQuietas([quieta("a", 70, { costo: null }), quieta("b", 80, { costo: null })]);
-    expect(c.costo).toBeNull();
-    expect(c.precioVenta).toBe(300);
-  });
-
-  it("sin quietas, todo en cero: no hay nada que costar", () => {
-    expect(cifrasQuietas([])).toEqual({ prendas: 0, unidades: 0, costo: 0, precioVenta: 0, sinCosto: 0, sinPrecio: 0 });
-  });
-
-  it("siguen a «Liquidar desde»: al bajarlo, lo que se vigilaba pasa a quieta y entra en las cifras", () => {
-    const prendas = [quieta("a", 45), quieta("b", 70)];
-    expect(cifrasQuietas(prendasDe(prendas, GRUPOS_QUIETAS, LIQUIDAR_DEFECTO)).prendas).toBe(1);
-    expect(cifrasQuietas(prendasDe(prendas, GRUPOS_QUIETAS, 40)).prendas).toBe(2);
-    expect(cifrasQuietas(prendasDe(prendas, GRUPOS_QUIETAS, LIQUIDAR_MAX)).prendas).toBe(0);
-  });
-});
-
-describe("el «?» de «costaron»", () => {
-  it("callado si todas entran en la cuenta", () => {
-    expect(notaSinCosto({ sinCosto: 0, sinPrecio: 0 })).toBeNull();
-  });
-  it("dice cuántas no entran, en singular y en plural", () => {
-    expect(notaSinCosto({ sinCosto: 1, sinPrecio: 0 })).toBe("No cuenta 1 prenda sin costo.");
-    expect(notaSinCosto({ sinCosto: 2, sinPrecio: 0 })).toBe("No cuenta 2 prendas sin costo.");
-    expect(notaSinCosto({ sinCosto: 0, sinPrecio: 3 })).toBe("No cuenta 3 prendas sin precio.");
-    expect(notaSinCosto({ sinCosto: 2, sinPrecio: 1 })).toBe("No cuenta 2 prendas sin costo ni 1 sin precio.");
-  });
-});
-
-describe("cada prenda en el carril «Días sin venderse»", () => {
-  it("cae en el eje de 4 meses; lo de más de 4 meses se queda al final", () => {
-    expect(pistaQuieta(0, LIQUIDAR_DEFECTO).n).toBe(0);
-    expect(pistaQuieta(60, LIQUIDAR_DEFECTO).n).toBe(0.5);
-    expect(pistaQuieta(120, LIQUIDAR_DEFECTO).n).toBe(1);
-    expect(pistaQuieta(300, LIQUIDAR_DEFECTO).n).toBe(1);
-  });
-
-  it("su aro: neutro antes de «Liquidar desde», ámbar desde ahí, rojo desde 3 meses", () => {
-    expect(pistaQuieta(59, 60).zona).toBe("nd");
-    expect(pistaQuieta(60, 60).zona).toBe("ate");
-    expect(pistaQuieta(89, 60).zona).toBe("ate");
-    expect(pistaQuieta(90, 60).zona).toBe("urg");
-    expect(pistaQuieta(86, 85).zona).toBe("ate");
-    expect(pistaQuieta(90, 85).zona).toBe("urg");
-    // Con «Liquidar desde» pasado de 3 meses (sin tope desde el 2026-10-07), lo de más de 3 meses sigue en rojo.
-    expect(pistaQuieta(104, 180).zona).toBe("urg");
-  });
-
-  it("el color sigue al control: la misma prenda cambia al moverlo, y vuelve", () => {
-    expect(pistaQuieta(70, 60).zona).toBe("ate");
-    expect(pistaQuieta(70, 75).zona).toBe("nd");
-    expect(pistaQuieta(70, 60).zona).toBe("ate");
-  });
-
-  it("su cifra va a la izquierda del punto solo pasado el 80 % del eje (a la derecha se saldría)", () => {
-    expect(pistaQuieta(60, 60).cifraALaIzquierda).toBe(false);
-    expect(pistaQuieta(96, 60).cifraALaIzquierda).toBe(false);
-    expect(pistaQuieta(97, 60).cifraALaIzquierda).toBe(true);
-    expect(pistaQuieta(400, 60).cifraALaIzquierda).toBe(true);
-  });
-
-  it("las marcas del eje: «Liquidar» se mueve con el control y, si pasa de 3 meses, el eje se alarga para que se siga viendo", () => {
-    expect(marcasEje(60)).toEqual({ liquidar: 50, tresMeses: 75 });
-    expect(marcasEje(30).liquidar).toBe(25);
-    expect(marcasEje(LIQUIDAR_MIN).liquidar).toBeCloseTo(100 / 120, 6);
-    expect(marcasEje(85).liquidar).toBeLessThan(marcasEje(85).tresMeses);
-    expect(marcasEje(180).liquidar).toBeGreaterThan(marcasEje(180).tresMeses);
-    expect(marcasEje(LIQUIDAR_MAX).liquidar).toBeLessThan(100);
-  });
-});
 
 describe("los grupos del carril", () => {
   const prendas = [
@@ -193,56 +103,22 @@ describe("«Aún no se sabe» (ADR-0357, act. 2026-10-14)", () => {
 
 describe("los escalones de cada tipo en el carril (ADR-0357, act. 2026-10-14)", () => {
   const polos = { vigila: 3, liquidar: 5, vara: "hoy" as const, vendidas: 30 };
-  it("cada fila pinta su zona de liquidar desde el umbral de su tipo; el eje es el de «Liquidar desde»", () => {
-    const sin = pistaQuieta(8, 60);
-    const con = pistaQuieta(8, 60, 5);
-    expect(con.n).toBe(sin.n); // el punto cae igual: el eje es uno
-    expect(sin.zona).toBe("nd");
-    expect(con.zona).toBe("ate");
-    expect(con.liquidar).toBeCloseTo((5 / 120) * 100);
-  });
-  it("la marca «Liquidar» del eje solo si todas las filas se liquidan desde el mismo día", () => {
-    expect(marcaLiquidarComun([], 60)).toBe(60);
-    expect(marcaLiquidarComun([{}, {}], 60)).toBe(60);
-    expect(marcaLiquidarComun([{ umbrales: polos }, { umbrales: polos }], 60)).toBe(5);
-    expect(marcaLiquidarComun([{ umbrales: polos }, {}], 60)).toBeNull();
-  });
   it("la nota dice con qué se mide cada tipo, y si la caja hoy no mueve a ninguno", () => {
-    expect(notaDeUmbrales([{ umbrales: polos }], "sin_modulo")).toContain("todo se liquida desde los días de la caja");
+    expect(notaDeUmbrales([{ umbrales: polos }], "sin_modulo")).toContain("todo cuenta como «no se vende» desde los días de la caja");
     expect(notaDeUmbrales([{}, {}], "ok")).toContain("Ningún tipo tiene todavía 10 ventas");
     expect(notaDeUmbrales([{ umbrales: polos }], "ok")).toContain("hoy no hay ninguno");
-    expect(notaDeUmbrales([{ umbrales: polos }, {}], "ok")).toContain("La caja solo vale para tipos con menos de 10 ventas.");
+    expect(notaDeUmbrales([{ umbrales: polos }, {}], "ok")).toContain("Los días de la caja solo valen para tipos con menos de 10 ventas.");
     expect(notaDeUmbrales([{ umbrales: polos }, {}], "ok")).not.toContain("hoy no hay ninguno");
   });
-  it("la caja dice en su nombre que solo vale sin historial", () => {
-    expect(ETIQUETA_LIQUIDAR_DESDE).toBe("Sin historial: liquidar desde");
+  it("el umbral se llama por lo que cuenta, sin «liquidar» (cara B, Felipe 2026-11-21)", () => {
+    expect(ETIQUETA_LIQUIDAR_DESDE).toBe("Sin venderse desde");
+    expect(ETIQUETA_LIQUIDAR_DESDE.toLowerCase()).not.toContain("liquid");
   });
-});
-
-describe("el plazo de cada fila (Felipe 2026-11-09: «Plazo por tipo, a la vista»)", () => {
-  const blusas = { vigila: 20, liquidar: 27, vara: "mes" as const, vendidas: 34 };
-  it("con ritmo propio dice cuánto suele tardar su tipo, y la caja no lo mueve", () => {
-    for (const caja of [1, 7, 60, 999]) {
-      const p = plazoDeLiquidar({ umbrales: blusas, categoria: "Blusas" }, caja);
-      expect(p).toMatchObject({ dias: 27, propio: true, texto: "Blusas: suelen venderse en 27 d" });
-    }
-    expect(plazoDeLiquidar({ umbrales: blusas, categoria: "Blusas" }, 7).detalle).toBe(
-      "9 de cada 10 blusas que se vendieron en tu piso tardaron 27 días o menos (contando 34 ventas). Pasado eso, se liquida.",
-    );
-  });
-  it("sin ritmo propio sigue a la caja", () => {
-    expect(plazoDeLiquidar({ categoria: "Casacas" }, 7)).toMatchObject({ dias: 7, propio: false, texto: "Sin historial: liquidar desde 7 d" });
-    expect(plazoDeLiquidar({ categoria: "Casacas" }, 1).dias).toBe(1);
-    expect(plazoDeLiquidar({ categoria: "Casacas" }, 1).detalle).toContain("Casacas todavía no tiene 10 ventas");
-  });
-  it("sin categoría no se cae ni inventa un tipo", () => {
-    expect(plazoDeLiquidar({ umbrales: blusas, categoria: null }, 7).texto).toBe("Su tipo suele venderse en 27 d");
-    expect(plazoDeLiquidar({ umbrales: blusas, categoria: "  " }, 7).texto).toBe("Su tipo suele venderse en 27 d");
-    expect(plazoDeLiquidar({ categoria: null }, 7).detalle).toContain("Su tipo todavía no tiene");
-  });
-  it("singular con un día y una venta", () => {
-    const uno = { vigila: 1, liquidar: 1, vara: "hoy" as const, vendidas: 1 };
-    expect(plazoDeLiquidar({ umbrales: uno, categoria: "Polos" }, 7).detalle).toContain("tardaron 1 día o menos (contando 1 venta)");
+  it("la plata parada: costo × lo que hay, talla por talla; sin costo en ninguna, null", () => {
+    const talla = (costo: number | null, piso: number, almacen = 0) => ({ costo, piso, almacen });
+    expect(plataParada({ ...talla(40, 0), variantes: [talla(40, 2, 1), talla(40, 1), talla(null, 5)] })).toBe(160);
+    expect(plataParada(talla(30, 2))).toBe(60);
+    expect(plataParada({ ...talla(null, 3), variantes: [talla(null, 3)] })).toBeNull();
   });
 });
 
@@ -273,32 +149,6 @@ describe("«Enviar todas»", () => {
   it("sin prendas, o con una que ninguna tienda vende, ninguna", () => {
     expect(destinoDeTodas([])).toBeNull();
     expect(destinoDeTodas([{ otras: [vendioAlla("tienda-b", 3)] }, { otras: [] }])).toBeNull();
-  });
-});
-
-describe("la edad por tienda", () => {
-  it("cuatro tramos, de lo nuevo a lo viejo, con la leyenda de la maqueta", () => {
-    expect(TRAMOS_EDAD.map((t) => t.clase)).toEqual(["e1", "e2", "e3", "e4"]);
-    expect(TRAMOS_EDAD.map((t) => t.etiqueta)).toEqual(["Hasta 1 mes", "1 a 2 meses", "2 a 3 meses", "Más de 3 meses"]);
-  });
-
-  it("cada tramo ocupa su parte, con un mínimo para que se vea; la cifra va adentro solo si pasa del 10 %", () => {
-    const { total, tramos } = barraDeEdad({ hasta30: 600, de31a60: 300, de61a90: 70, masDe90: 30 });
-    expect(total).toBe(1000);
-    expect(tramos.map((t) => t.unidades)).toEqual([600, 300, 70, 30]);
-    expect(tramos.map((t) => t.flex)).toEqual([0.6, 0.3, 0.07, 0.03]);
-    expect(tramos.map((t) => t.cifraAdentro)).toEqual([true, true, false, false]);
-    expect(barraDeEdad({ hasta30: 990, de31a60: 0, de61a90: 0, masDe90: 10 }).tramos.map((t) => t.flex)).toEqual([0.99, 0.03, 0.03, 0.03]);
-  });
-
-  it("justo el 10 % no lleva la cifra adentro", () => {
-    expect(barraDeEdad({ hasta30: 90, de31a60: 10, de61a90: 0, masDe90: 0 }).tramos[1]!.cifraAdentro).toBe(false);
-  });
-
-  it("una tienda sin unidades: total 0 y ningún tramo", () => {
-    const { total, tramos } = barraDeEdad({ hasta30: 0, de31a60: 0, de61a90: 0, masDe90: 0 });
-    expect(total).toBe(0);
-    expect(tramos.every((t) => t.flex === 0 && !t.cifraAdentro)).toBe(true);
   });
 });
 
@@ -345,7 +195,7 @@ describe("lo quieto por modelo (ADR-0357, decisión 12)", () => {
       ],
       HOY,
     );
-    expect(cifrasQuietas([m])).toEqual({ prendas: 1, unidades: 3, costo: 70, precioVenta: 100, sinCosto: 0, sinPrecio: 1 });
+    expect(plataParada(m)).toBe(70);
   });
 
   it("un modelo con una talla que se vende no está quieto, aunque otra lleve 70 días colgada", () => {

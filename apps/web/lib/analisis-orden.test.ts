@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ORDENES, ordenar, ordenDe, ordenPorDefecto } from "./analisis-orden";
+import type { PrendaAnalisis } from "./analisis-tipos";
+import { ORDENES, ordenar, ordenarQuietas, ordenDe, ordenPorDefecto } from "./analisis-orden";
 
 // Datos inventados.
 const LISTA = [
@@ -26,5 +27,16 @@ describe("orden de cada pestaña", () => {
     expect(ordenar(LISTA, "nombre").map((x) => x.nombre)).toEqual(["Abrigo Ensayo", "Blusa Ensayo", "Casaca Ensayo"]);
     expect(ordenar(LISTA, "urgente")).toEqual(LISTA);
     expect(ordenar(LISTA, "urgente")).not.toBe(LISTA);
+  });
+});
+
+describe("orden de «No se vende»", () => {
+  const quieta = (nombre: string, costo: number, piso: number) => ({ nombre, vendidas30: 0, costo, piso, almacen: 0 }) as unknown as PrendaAnalisis;
+  const LISTA_Q = [quieta("Saco Ensayo", 90, 2), quieta("Falda Ensayo", 30, 9), quieta("Top Ensayo", 20, 1)];
+  it("por plata parada o por prendas, de más a menos; «dias» deja el orden de la pestaña", () => {
+    expect(ordenarQuietas(LISTA_Q, "parada").map((x) => x.nombre)).toEqual(["Falda Ensayo", "Saco Ensayo", "Top Ensayo"]);
+    expect(ordenarQuietas(LISTA_Q, "prendas").map((x) => x.nombre)).toEqual(["Falda Ensayo", "Saco Ensayo", "Top Ensayo"]);
+    expect(ordenarQuietas(LISTA_Q, "dias").map((x) => x.nombre)).toEqual(["Saco Ensayo", "Falda Ensayo", "Top Ensayo"]);
+    expect(ordenPorDefecto("nose")).toBe("dias");
   });
 });

@@ -3,136 +3,285 @@
 import "@/app/estilos/por-pantalla/analisis-pestanas.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
+import { Check, Hourglass } from "lucide-react";
 import { useAnalisis } from "@/components/analisis/contexto";
-import { Carril, type GrupoCarril } from "@/components/analisis/Carril";
 import { HojaLiquidarDesde } from "@/components/analisis/HojaLiquidarDesde";
-import { Icono } from "@/components/analisis/iconos";
-import { Ayuda, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/analisis/piezas";
-import type { ModeloAnalisis } from "@/lib/analisis-modelo";
-import { edadDelInventario, GRUPOS_QUIETAS, LIQUIDAR_MAX, LIQUIDAR_MIN, LIQUIDAR_PASO, plural, prendasDe, sedeQueMasVende, totalEnTienda, umbralLiquidar, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-reglas";
+import { nombreLargo, soles, TilePrenda, type Estado } from "@/components/analisis/piezas";
+import { Respuesta, TarjetaPrenda, Tarjetas } from "@/components/analisis/Tarjetas";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { BotonVer } from "@/components/ui/BotonDescargar";
+import { Vacio } from "@/components/ui/Vacio";
+import { Aviso } from "@/components/ui/Aviso";
+import { queTiene, type ModeloAnalisis } from "@/lib/analisis-modelo";
+import { DIAS_TRES_MESES, LIQUIDAR_MAX, LIQUIDAR_MIN, LIQUIDAR_PASO, plural, sedeQueMasVende, totalEnTienda } from "@/lib/analisis-reglas";
 import { ERROR_DIAS_LIQUIDAR, leerDiasLiquidar, pasoLiquidar } from "@/lib/analisis-liquidar-reglas";
-import { hrefEnviar, hrefLiquidar, hrefRegistrarVentas } from "@/lib/analisis-acciones";
-import { nuncaSalio } from "@/lib/analisis-piso";
+import { hrefEnviar, hrefRegistrarVentas } from "@/lib/analisis-acciones";
+import { ordenarQuietas } from "@/lib/analisis-orden";
 import {
-  barraDeEdad,
-  cifrasQuietas,
   destinoDeTodas,
-  etiquetasEje,
-  gruposQuietas,
-  marcasEje,
-  notaSinCosto,
-  pistaQuieta,
-  lineaTodaviaNoQuietas,
-  marcaLiquidarComun,
-  notaDeUmbrales,
-  plazoDeLiquidar,
   ETIQUETA_LIQUIDAR_DESDE,
+  gruposQuietas,
+  lineaTodaviaNoQuietas,
+  notaDeUmbrales,
+  plataParada,
   TEXTO_VACIO_QUIETAS,
-  TRAMOS_EDAD,
   vacioQuietas,
   type VacioQuietas,
 } from "@/lib/analisis-quietas";
-import { Vacio } from "@/components/ui/Vacio";
-import { Check, Hourglass } from "lucide-react";
-import { Aviso } from "@/components/ui/Aviso";
 
-// Análisis v4 (ADR-0357): la pestaña «No se vende», como la maqueta aprobada (`vistaNose()`): arriba, cuánto hay quieto y la edad
-// de lo que tiene la tienda (solo la elegida arriba: la comparación entre tiendas vive en CAYLA Global); abajo, el carril «Días en el piso sin venderse» con el control «Liquidar desde», que mueve las prendas de
-// grupo EN VIVO (sin guardar). Guardarlo para todos es otra cosa y la pide un botón aparte. Cada fila abre el flujo que ya existe
-// (Traslados, Etiquetas): Análisis no guarda nada por su cuenta (ADR-0245).
-
-/** Números como se leen en tienda: «1,250». */
-const nf = (n: number): string => Math.round(n).toLocaleString("es-PE");
+// Análisis, cara B (ADR-0357, act. 2026-11-21): «No se vende». Solo dice lo que no se vende y cuánta plata tiene parada; qué hacer lo
+// decide quien mira (Felipe 2026-11-21: «hay que quitar el liquidar, basta con que aparezca lo que no se vende, así el usuario decide»).
+// Arriba, la respuesta: la plata parada en lo que no se vende. Debajo, en secciones: lo que no se vende, lo que en otra tienda sí se vende
+// (con «Mandar»), lo que puede ya haberse vendido (con «Registrar ventas») y lo que va lento. Cada modelo es una tarjeta: días sin
+// venderse (rojo desde 3 meses), cuántas tienes y su plata parada. «Sin venderse desde … días» sigue moviendo las tarjetas EN VIVO y se
+// guarda para todos en su hoja (`HojaLiquidarDesde`). Análisis no guarda nada por su cuenta (ADR-0245).
 
 export function PestanaQuieta() {
-  const { datos, acceso, prendas, liquidarDesde, setLiquidarDesde, sedeDe, irA } = useAnalisis();
-  const router = useRouter();
-  const idUmbral = useId();
+  const { datos, acceso, prendas, liquidarDesde, orden, abrirFicha } = useAnalisis();
   const [guardar, setGuardar] = useState(false);
-  // Lo escrito en la caja de «Liquidar desde» (puede quedar a medio escribir: «1» camino a «15»). Sigue al valor de afuera cuando este
-  // cambia por otro lado (un toque de − o +, lo guardado que vuelve del servidor), sin pisar lo que se está escribiendo.
+  const router = useRouter();
+
+  const vacio = vacioQuietas(datos.prendas, liquidarDesde, datos.fallas.length, datos.hoy);
+  if (vacio === "sin-datos") return <SinNada tipo={vacio} />;
+
+  const g = gruposQuietas(prendas, liquidarDesde);
+  const [noSeVenden, mandar, duda, lentas] = [g.liquidar, g.enviar, g.duda, g.vigila].map((ms) => ordenarQuietas(ms, orden.nose));
+  // La respuesta cuenta lo mismo que la pestaña: lo que no se vende y lo que en otra tienda sí (`GRUPOS_QUIETAS`).
+  const cuentan = [...noSeVenden, ...mandar];
+  const parada = cuentan.reduce((t, m) => t + (plataParada(m) ?? 0), 0);
+  const sinCosto = cuentan.filter((m) => plataParada(m) === null).length;
+  const hayAlgo = cuentan.length + duda.length + lentas.length > 0;
+  const control = <UmbralDias abrirGuardar={() => setGuardar(true)} />;
+
+  return (
+    <>
+      {vacio ? (
+        <section className="tarjeta bloque entra" style={{ ["--i" as string]: 3 }}>
+          <div className="mb-2 flex flex-wrap items-center justify-end gap-3">{control}</div>
+          <Vacio icono={vacio === "todavia-no" ? <Hourglass /> : <Check />} titulo={TEXTO_VACIO_QUIETAS[vacio].titulo}>
+            {vacio === "todavia-no" ? lineaTodaviaNoQuietas(datos.prendas, liquidarDesde) : TEXTO_VACIO_QUIETAS[vacio].linea}
+          </Vacio>
+        </section>
+      ) : (
+        <Respuesta
+          guia="analisis.nose-respuesta"
+          est="ate"
+          {...(parada > 0 ? { cifra: soles(parada) } : { cuenta: cuentan.length, cifra: plural(cuentan.length, "modelo", "modelos") })}
+          frase={
+            parada > 0
+              ? `parados en ${cuentan.length} ${plural(cuentan.length, "modelo que no se vende", "modelos que no se venden")}`
+              : plural(cuentan.length, "no se vende", "no se venden")
+          }
+          ayuda={sinCosto > 0 ? `${sinCosto} ${plural(sinCosto, "modelo no tiene", "modelos no tienen")} costo: no suman a la plata parada.` : undefined}
+          acciones={
+            acceso.frescura ? (
+              <BotonVer href="/gestion/frescura" chico>
+                Frescura del piso
+              </BotonVer>
+            ) : undefined
+          }
+        />
+      )}
+
+      {!vacio && !hayAlgo && (
+        <section className="tarjeta entra" style={{ ["--i" as string]: 4 }}>
+          <Vacio tamano="chico" icono={<Check />}>
+            Con estos filtros no hay ninguno aquí.
+          </Vacio>
+        </section>
+      )}
+
+      {!vacio && noSeVenden.length > 0 && (
+        <Seccion
+          guia="analisis.nose-tarjetas"
+          titulo="No se venden"
+          lista={noSeVenden}
+          ayuda={notaDeUmbrales(datos.prendas, datos.frescura)}
+          dato={resumen(noSeVenden)}
+          extra={control}
+          tono={(m) => ((m.diasSinVender ?? 0) >= DIAS_TRES_MESES ? "urg" : "ate")}
+          abrirFicha={abrirFicha}
+        />
+      )}
+      {!vacio && noSeVenden.length === 0 && hayAlgo && <div className="flex justify-end">{control}</div>}
+
+      {mandar.length > 0 && <SeccionMandar lista={mandar} />}
+
+      {duda.length > 0 && (
+        <Seccion
+          titulo="Puede que ya se vendieron"
+          lista={duda}
+          ayuda="Hay una venta anotada en caja de su tipo, talla y color que nadie registró. Regístrala antes de decidir qué hacer con ellas."
+          accion={<RegistrarVentas />}
+          tono={() => "info"}
+          abrirFicha={abrirFicha}
+        />
+      )}
+
+      {lentas.length > 0 && (
+        <Seccion
+          titulo="Van lentas"
+          lista={lentas}
+          ayuda="Llevan sin venderse más de lo que tardan 3 de cada 4 de su tipo (si su tipo todavía no tiene ritmo, un mes), pero todavía no tanto como lo que no se vende."
+          tono={() => "nd"}
+          abrirFicha={abrirFicha}
+        />
+      )}
+
+      {/* La hoja se cierra sola (con su salida) después de guardar: aquí solo se vuelve a leer el valor guardado. */}
+      {guardar && <HojaLiquidarDesde dias={liquidarDesde} onCerrar={() => setGuardar(false)} onGuardado={() => router.refresh()} />}
+    </>
+  );
+}
+
+/** «18 prendas · S/ 1,332 parados»: lo que resume una sección. */
+function resumen(ms: readonly ModeloAnalisis[]): ReactNode {
+  const unidades = ms.reduce((t, m) => t + totalEnTienda(m), 0);
+  const parada = ms.reduce((t, m) => t + (plataParada(m) ?? 0), 0);
+  return (
+    <>
+      <b>{unidades.toLocaleString("es-PE")}</b> {plural(unidades, "prenda", "prendas")}
+      {parada > 0 && (
+        <>
+          {" · "}
+          <b>{soles(parada)}</b> parados
+        </>
+      )}
+    </>
+  );
+}
+
+/** La línea de una tarjeta de lo quieto: cuántas tienes y su plata parada (si se sabe su costo). */
+function detalleQuieta(m: ModeloAnalisis): string {
+  const parada = plataParada(m);
+  return `Tienes ${totalEnTienda(m)}${parada ? ` · ${soles(parada)} parados` : ""}`;
+}
+
+/** «Registrar ventas»: la cola de ventas sin su prenda, si la cuenta la ve. */
+function RegistrarVentas() {
+  const { acceso } = useAnalisis();
+  const href = hrefRegistrarVentas(acceso);
+  return href ? (
+    <Link href={href} className="btn-cayla btn-secundario btn-chico">
+      Registrar ventas
+    </Link>
+  ) : null;
+}
+
+/** Una sección de lo quieto: su título (con cuántos, lo que resume y su «?») y una tarjeta por modelo. */
+function Seccion({
+  titulo,
+  lista,
+  ayuda,
+  dato,
+  accion,
+  extra,
+  tono,
+  abrirFicha,
+  guia,
+  detalle = detalleQuieta,
+  acciones,
+}: {
+  titulo: string;
+  lista: ModeloAnalisis[];
+  ayuda?: string;
+  dato?: ReactNode;
+  accion?: ReactNode;
+  /** Lo que va bajo el título (el control de días). */
+  extra?: ReactNode;
+  tono: (m: ModeloAnalisis) => Estado;
+  abrirFicha: (id: string) => void;
+  guia?: string;
+  detalle?: (m: ModeloAnalisis) => string;
+  acciones?: (m: ModeloAnalisis) => ReactNode;
+}) {
+  return (
+    <section className="entra flex flex-col gap-4" style={{ ["--i" as string]: 4 }} data-guia={guia}>
+      <TituloSeccion cuenta={lista.length} ayuda={ayuda} dato={dato} accion={accion}>
+        {titulo}
+      </TituloSeccion>
+      {extra && <div className="-mt-2 flex flex-wrap items-center gap-3">{extra}</div>}
+      <Tarjetas>
+        {lista.map((m, k) => (
+          <TarjetaPrenda
+            key={m.varianteId}
+            i={5 + k}
+            miniatura={<TilePrenda prenda={m} tamano={72} />}
+            nombre={m.nombre}
+            que={queTiene(m)}
+            numero={String(m.diasSinVender ?? 0)}
+            unidad={plural(m.diasSinVender ?? 0, "día sin venderse", "días sin venderse")}
+            est={tono(m)}
+            detalle={detalle(m)}
+            acciones={acciones?.(m)}
+            etiqueta={`${nombreLargo(m)}: ${m.diasSinVender ?? 0} días sin venderse. ${detalle(m)}. Enter abre su ficha.`}
+            onAbrir={() => abrirFicha(m.varianteId)}
+          />
+        ))}
+      </Tarjetas>
+    </section>
+  );
+}
+
+/** Lo que aquí no se vende pero en otra tienda sí: «Mandar» a la que más lo vende, y «Mandar todas» si van todas a la misma. */
+function SeccionMandar({ lista }: { lista: ModeloAnalisis[] }) {
+  const { acceso, sedeDe, abrirFicha } = useAnalisis();
+  const destino = destinoDeTodas(lista);
+  const ciudad = destino ? sedeDe(destino)?.ciudad : undefined;
+  const todas = destino ? hrefEnviar(lista, { id: destino }, acceso) : null;
+  const vende = (m: ModeloAnalisis) => {
+    const v = sedeQueMasVende(m.otras);
+    return v ? { ...v, ciudad: sedeDe(v.sedeId)?.ciudad ?? "otra tienda" } : null;
+  };
+  return (
+    <Seccion
+      guia="analisis.nose-mandar"
+      titulo={ciudad ? `En ${ciudad} sí se venden` : "En otra tienda sí se venden"}
+      lista={lista}
+      ayuda="Aquí no se venden, y en otra tienda se vendieron este mes."
+      accion={
+        todas ? (
+          <Link href={todas} className="btn-cayla btn-secundario btn-chico" aria-label={`Mandar todas a ${ciudad}`}>
+            Mandar todas
+          </Link>
+        ) : undefined
+      }
+      tono={() => "ate"}
+      abrirFicha={abrirFicha}
+      detalle={(m) => {
+        const v = vende(m);
+        return v ? `${v.ciudad} vendió ${v.vendidas30} este mes · tienes ${totalEnTienda(m)}` : detalleQuieta(m);
+      }}
+      acciones={(m) => {
+        const v = vende(m);
+        const href = v ? hrefEnviar([m], { id: v.sedeId }, acceso) : null;
+        return href && v ? (
+          <Link href={href} className="btn-cayla btn-secundario btn-chico" aria-label={`Mandar a ${v.ciudad}: ${nombreLargo(m)}`}>
+            Mandar a {v.ciudad}
+          </Link>
+        ) : null;
+      }}
+    />
+  );
+}
+
+/**
+ * «Sin venderse desde [− 60 +] días»: los días de la caja de los tipos que todavía no tienen ritmo propio (Felipe, 2026-10-07: sin barra
+ * y sin tope, de 1 a 999). Lo escrito mueve las tarjetas EN VIVO; si queda distinto de lo guardado, aparece «Guardar para todos», que abre
+ * su hoja. Las flechas ↑ ↓ suman o restan de a un día.
+ */
+function UmbralDias({ abrirGuardar }: { abrirGuardar: () => void }) {
+  const { datos, liquidarDesde, setLiquidarDesde } = useAnalisis();
+  const id = useId();
+  // Lo escrito puede quedar a medio escribir («1» camino a «15»). Sigue al valor de afuera cuando este cambia por otro lado.
   const [texto, setTexto] = useState(String(liquidarDesde));
   const [textoDe, setTextoDe] = useState(liquidarDesde);
   if (textoDe !== liquidarDesde) {
     setTextoDe(liquidarDesde);
     if (leerDiasLiquidar(texto) !== liquidarDesde) setTexto(String(liquidarDesde));
   }
-
-  // Hay carril o no, con las prendas de la tienda (sin buscar): si el buscador las deja fuera, el carril lo dice. Sin datos, la
-  // pestaña solo lo dice; con «Todo se mueve», las cifras, la edad de la ropa y «Liquidar desde» siguen a la vista (Felipe,
-  // 2026-10-07: en TRU no había nada quieto y no tenía dónde cambiar los 60 días).
-  const vacio = vacioQuietas(datos.prendas, liquidarDesde, datos.fallas.length, datos.hoy);
-  const sinSalir = datos.sabePiso ? datos.prendas.filter(nuncaSalio).length : 0;
-  if (vacio === "sin-datos") return <SinCarril tipo={vacio} />;
-
-  // Las cifras son de toda la tienda (como la cuenta de la pestaña); el carril, de lo que deja ver el buscador.
-  const cifras = cifrasQuietas(prendasDe(datos.prendas, GRUPOS_QUIETAS, liquidarDesde));
-  const faltan = notaSinCosto(cifras);
-  const { enviar, liquidar, duda, vigila } = gruposQuietas(prendas, liquidarDesde);
-  const marcas = marcasEje(liquidarDesde);
-  // La marca «Liquidar» del eje, solo si todas las filas se liquidan desde el mismo día; y la nota de con qué se mide cada tipo.
-  const enCarril = [...enviar, ...liquidar, ...duda, ...vigila];
-  const comun = marcaLiquidarComun(enCarril, liquidarDesde);
-  const notaUmbral = notaDeUmbrales(datos.prendas, datos.frescura);
-  const etiquetas = etiquetasEje(liquidarDesde);
-
-  // Los botones de todo el grupo: «Enviar todas» solo si todas van a la misma tienda (si no, cada fila tiene la suya).
-  const destino = destinoDeTodas(enviar);
-  const enviarTodas = destino ? hrefEnviar(enviar, { id: destino }, acceso) : null;
-  const liquidarTodas = hrefLiquidar(liquidar, acceso);
-  const lote = (href: string | null, texto: string, etiqueta: string) =>
-    href ? (
-      <Link href={href} className="btn-cayla btn-secundario btn-s" aria-label={etiqueta}>
-        {texto}
-      </Link>
-    ) : undefined;
-  const sedeDestino = destino ? sedeDe(destino) : undefined;
-
-  const grupos: GrupoCarril[] = [
-    {
-      clave: "enviar",
-      titulo: "Mándalas a donde sí se venden",
-      ayuda: `Aquí no se venden; en otra tienda se vendieron ${VENDIDAS_PARA_ENVIAR} o más este mes.`,
-      icono: "camion",
-      est: "ate",
-      prendas: enviar,
-      lote: lote(enviarTodas, "Enviar todos", `Enviar todos a ${sedeDestino?.ciudad ?? "otra tienda"}`),
-    },
-    {
-      clave: "liquidar",
-      titulo: "Liquidar",
-      ayuda: `Llevan en el piso sin venderse más de lo que tardan 9 de cada 10 de su tipo que sí se vendieron (si su tipo todavía no tiene 10 ventas, ${liquidarDesde} días: la caja «Sin historial»), aquí ni en otra tienda. En rojo, las de más de 3 meses. Cuánto rebajar lo eliges en Etiquetas.`,
-      icono: "etiqueta",
-      est: "ate",
-      prendas: liquidar,
-      lote: lote(liquidarTodas, "Liquidar todos", `Liquidar todos: ${liquidar.length} ${plural(liquidar.length, "modelo", "modelos")}`),
-    },
-    {
-      // ADR-0357, act. 2026-10-14: quietas, pero alguna unidad colgada puede ser una venta anotada en caja que nadie registró (la cuenta de
-      // Frescura). No se mandan ni se liquidan hasta saberlo: el botón lleva a registrar esas ventas.
-      clave: "duda",
-      titulo: "Aún no se sabe",
-      ayuda: "Puede que ya se hayan vendido: hay una venta anotada en caja de su tipo, talla y color que nadie registró. Regístrala antes de mandarlas o liquidarlas.",
-      icono: "info",
-      est: "info",
-      prendas: duda,
-      lote: lote(hrefRegistrarVentas(acceso), "Registrar ventas", "Registrar las ventas sin su prenda"),
-    },
-    {
-      clave: "vigila",
-      titulo: "Vigílalas",
-      ayuda: "Llevan sin venderse más de lo que tardan 3 de cada 4 de su tipo (si su tipo todavía no tiene ritmo, un mes), pero todavía no llegan a liquidar.",
-      icono: "vigila",
-      est: "nd",
-      mudo: true,
-      prendas: vigila,
-    },
-  ];
-
-  // «Liquidar desde»: una caja con − y + (Felipe, 2026-10-07: sin barra y sin tope, de 1 a 999 días). Lo escrito mueve el carril EN
-  // VIVO; si queda distinto de lo guardado, aparece «Guardar para todos». Las flechas ↑ ↓ suman o restan de a un día.
-  const errorDias = leerDiasLiquidar(texto) === null;
+  const error = leerDiasLiquidar(texto) === null;
   const escribir = (v: string) => {
     setTexto(v);
     const n = leerDiasLiquidar(v);
@@ -143,23 +292,23 @@ export function PestanaQuieta() {
     setTexto(String(n));
     setLiquidarDesde(n);
   };
-  const control = (
-    <span className="umbral">
-      <label htmlFor={idUmbral}>{ETIQUETA_LIQUIDAR_DESDE}</label>
+  return (
+    <span className="umbral" data-guia="analisis.nose-umbral">
+      <label htmlFor={id}>{ETIQUETA_LIQUIDAR_DESDE}</label>
       <span className="paso-dias">
         <button type="button" aria-label={`${LIQUIDAR_PASO} días menos`} disabled={liquidarDesde <= LIQUIDAR_MIN} onClick={() => mover(-LIQUIDAR_PASO)}>
           −
         </button>
         <input
-          id={idUmbral}
+          id={id}
           inputMode="numeric"
           autoComplete="off"
           value={texto}
-          aria-invalid={errorDias || undefined}
-          aria-describedby={errorDias ? `${idUmbral}-error` : undefined}
+          aria-invalid={error || undefined}
+          aria-describedby={error ? `${id}-error` : undefined}
           onChange={(e) => escribir(e.target.value)}
           onBlur={() => {
-            if (errorDias) setTexto(String(liquidarDesde));
+            if (error) setTexto(String(liquidarDesde));
           }}
           onKeyDown={(e) => {
             if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
@@ -172,257 +321,25 @@ export function PestanaQuieta() {
         </button>
       </span>
       <span>días</span>
-      {errorDias && (
-        <span id={`${idUmbral}-error`} className="umbral-error" role="alert">
+      {error && (
+        <span id={`${id}-error`} className="umbral-error" role="alert">
           {ERROR_DIAS_LIQUIDAR}
         </span>
       )}
       {liquidarDesde !== datos.liquidarDesde && (
-        <button type="button" className="btn-cayla btn-secundario btn-s" onClick={() => setGuardar(true)}>
+        <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={abrirGuardar}>
           Guardar para todos
         </button>
       )}
     </span>
   );
-
-  const pista = (p: ModeloAnalisis) => {
-    const dias = p.diasSinVender ?? 0;
-    // Cada fila dibuja su zona de liquidar desde el umbral de SU tipo (la vara de Frescura) o, sin él, la caja de días; y bajo la
-    // barra dice cuál de los dos manda y cuántos días son (Felipe 2026-11-09: «Plazo por tipo, a la vista»).
-    const plazo = plazoDeLiquidar(p, liquidarDesde);
-    const { n, zona, cifraALaIzquierda, liquidar: desde } = pistaQuieta(dias, liquidarDesde, plazo.dias);
-    return (
-      <span className="q-pista">
-        <span className="pista zonas" style={{ ["--u" as string]: `${desde}%`, ["--r" as string]: `${marcas.tresMeses}%` }}>
-          <i className="barra cx" style={{ ["--n" as string]: n }} />
-          <span
-            className="punto po"
-            data-color-dato
-            style={{ ["--n" as string]: n, ["--prenda" as string]: p.colorHex ?? "var(--color-grafico-neutro)", ["--c" as string]: COLOR_ESTADO[zona] }}
-          />
-          <b className="d" style={cifraALaIzquierda ? { left: "auto", right: `calc(${(1 - n) * 100}% + 12px)` } : { left: `calc(${n * 100}% + 12px)` }}>
-            {dias} d
-          </b>
-        </span>
-        <span className={`q-plazo ${plazo.propio ? "" : "caja"}`} style={{ ["--u" as string]: `${desde}%` }} title={plazo.detalle}>
-          {plazo.texto}
-        </span>
-      </span>
-    );
-  };
-
-  const pildoras = (p: ModeloAnalisis, g: GrupoCarril) => {
-    const vende = g.clave === "enviar" ? sedeQueMasVende(p.otras) : null;
-    const sede = vende ? sedeDe(vende.sedeId) : undefined;
-    if (vende && sede) {
-      return (
-        <span className="pil">
-          <span className="cod">{sede.codigo}</span> vendió <b>{vende.vendidas30}</b>
-        </span>
-      );
-    }
-    return (
-      <span className="pil">
-        Tienes <b>{totalEnTienda(p)}</b>
-      </span>
-    );
-  };
-
-  const accion = (p: ModeloAnalisis, g: GrupoCarril) => {
-    if (g.clave === "enviar") {
-      const vende = sedeQueMasVende(p.otras);
-      const href = vende ? hrefEnviar([p], { id: vende.sedeId }, acceso) : null;
-      if (!vende || !href) return null;
-      const texto = `Enviar a ${sedeDe(vende.sedeId)?.ciudad ?? "otra tienda"}`;
-      return (
-        <Link href={href} className="btn-cayla btn-secundario btn-s" aria-label={`${texto}: ${nombreLargo(p)}`}>
-          {texto}
-        </Link>
-      );
-    }
-    if (g.clave === "liquidar") {
-      const href = hrefLiquidar([p], acceso);
-      return href ? (
-        <Link href={href} className="btn-cayla btn-secundario btn-s" aria-label={`Liquidar: ${nombreLargo(p)}`}>
-          Liquidar
-        </Link>
-      ) : null;
-    }
-    return null;
-  };
-
-  return (
-    <>
-      <div className="dos d21">
-        <section className="tarjeta bloque q-numeros entra" style={{ ["--i" as string]: 0 }}>
-          <Numero valor={nf(cifras.prendas)} et={plural(cifras.prendas, "modelo quieto", "modelos quietos")} sub={`${nf(cifras.unidades)} ${plural(cifras.unidades, "unidad", "unidades")}`} />
-          <Numero
-            valor={cifras.costo === null ? "—" : soles(cifras.costo)}
-            et={
-              <>
-                costaron
-                {faltan && <Ayuda texto={faltan} />}
-              </>
-            }
-            sub={`a precio de venta ${cifras.precioVenta === null ? "—" : soles(cifras.precioVenta)}`}
-          />
-          <Numero valor={datos.rebajaDe100 === null ? "—" : String(datos.rebajaDe100)} et="de cada 100 ventas" sub="tuvieron rebaja" />
-        </section>
-        <EdadDeLoQueTienes />
-      </div>
-
-      {/* Lo que nunca salió al piso no cuenta aquí (20261007120000): tiene su pestaña, y esto lleva a ella. */}
-      {sinSalir > 0 && (
-        <div className="tarjeta q-pie entra" style={{ ["--i" as string]: 1 }}>
-          <span className="b-nota">
-            <b>{nf(sinSalir)}</b> {plural(sinSalir, "modelo nunca salió al piso: no cuenta aquí.", "modelos nunca salieron al piso: no cuentan aquí.")}
-          </span>
-          <button type="button" className="btn-cayla btn-sutil btn-s" onClick={() => irA("piso")}>
-            Nunca salió al piso <Icono nombre="sigue" />
-          </button>
-        </div>
-      )}
-
-      {vacio === "todo-se-mueve" || vacio === "todavia-no" ? (
-        <section className="tarjeta carril entra" style={{ ["--i" as string]: 2 }}>
-          <div className="c-cab">
-            <div>
-              <h3 className="b-tit">Días en el piso sin venderse</h3>
-              <span className="c-sub">{notaUmbral}</span>
-            </div>
-            <span className="b-nota">{control}</span>
-          </div>
-          <SinCarril tipo={vacio} dentro linea={vacio === "todavia-no" ? lineaTodaviaNoQuietas(datos.prendas, liquidarDesde) : undefined} />
-        </section>
-      ) : (
-        <Carril
-          titulo="Días en el piso sin venderse"
-          nota={notaUmbral}
-          herramienta={control}
-          eje={[
-            { texto: "0", left: "0%" },
-            ...(comun !== null
-              ? [
-                  {
-                    texto: (
-                      <span className="zona" style={{ color: "var(--color-ambar)" }}>
-                        Liquidar
-                      </span>
-                    ),
-                    left: `${pistaQuieta(0, liquidarDesde, comun).liquidar}%`,
-                  },
-                ]
-              : []),
-            ...(etiquetas.tresMeses
-              ? [
-                  {
-                    texto: (
-                      <span className="zona" style={{ color: "var(--color-rojo-profundo)" }}>
-                        3 meses
-                      </span>
-                    ),
-                    left: `${marcas.tresMeses}%`,
-                  },
-                ]
-              : []),
-            { texto: etiquetas.fin, left: "100%" },
-          ]}
-          grupos={grupos}
-          pista={pista}
-          pildoras={pildoras}
-          accion={accion}
-        />
-      )}
-
-      {acceso.frescura && (
-        <div className="tarjeta q-pie entra" style={{ ["--i" as string]: 3 }}>
-          <span className="b-nota">¿Cambiar de lugar lo colgado sin rebajar?</span>
-          <Link href="/gestion/frescura" className="btn-cayla btn-sutil btn-s">
-            Frescura del piso <Icono nombre="sigue" />
-          </Link>
-        </div>
-      )}
-
-      {/* La hoja se cierra sola (con su salida) después de guardar: aquí solo se vuelve a leer el valor guardado. */}
-      {guardar && <HojaLiquidarDesde dias={liquidarDesde} onCerrar={() => setGuardar(false)} onGuardado={() => router.refresh()} />}
-    </>
-  );
 }
 
-/**
- * Lo que tiene la tienda, por tiempo sin venderse: cuántas unidades llevan hasta 1, 2, 3 o más meses. Solo de la tienda elegida arriba
- * (Felipe, 2026-10-06: comparar las tres tiendas es de CAYLA Global, decisión 3 de ADR-0357, act.).
- */
-function EdadDeLoQueTienes() {
-  const { datos } = useAnalisis();
-  const { total, tramos } = barraDeEdad(edadDelInventario(datos.prendas));
+/** No se pudieron leer las prendas: un aviso de error, nunca «todo se mueve» por una falla. */
+function SinNada({ tipo }: { tipo: VacioQuietas }) {
   return (
-    <section className="tarjeta bloque entra" style={{ ["--i" as string]: 1 }}>
-      <div className="b-cab" style={{ marginBottom: 8 }}>
-        <h3 className="b-tit" style={{ fontSize: 18 }}>
-          Lo que salió al piso, por tiempo sin venderse
-        </h3>
-      </div>
-      <div className="edad">
-        {total === 0 ? (
-          <i className="q-sin">Sin prendas</i>
-        ) : (
-          // Un tramo sin unidades no se dibuja: una franja roja de «Más de 3 meses» diría que hay ropa vieja donde no hay.
-          tramos.filter((t) => t.unidades > 0).map((t, k) => (
-            <i
-              key={t.clase}
-              className={`${t.clase} cx`}
-              style={{ flex: t.flex, ["--d" as string]: k }}
-              data-tip={`${t.etiqueta} sin venderse: ${nf(t.unidades)} ${plural(t.unidades, "unidad", "unidades")}`}
-            >
-              {t.cifraAdentro ? nf(t.unidades) : ""}
-            </i>
-          ))
-        )}
-      </div>
-      <div className="leyenda" style={{ marginTop: 10 }}>
-        {TRAMOS_EDAD.map((t) => (
-          <span key={t.clase}>
-            <i className={t.clase} />
-            {t.etiqueta}
-          </span>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/** Sin carril: todo se mueve (la respuesta corta y buena) o no se pudieron leer las prendas (nunca «todo se mueve» por una falla). */
-function SinCarril({
-  tipo,
-  dentro = false,
-  linea,
-}: {
-  tipo: VacioQuietas;
-  /** Dentro de la tarjeta del carril, sin tarjeta propia. */
-  dentro?: boolean;
-  /** La línea en vez de la de siempre («Todavía no se puede saber» dice con qué umbral). */
-  linea?: string;
-}) {
-  const texto = { ...TEXTO_VACIO_QUIETAS[tipo], ...(linea ? { linea } : {}) };
-  // «No pude ver tus prendas» no es un vacío sino una lectura que falló: va como aviso de error (Felipe 2026-10-08).
-  if (tipo === "sin-datos")
-    return (
-      <Aviso tono="error" titulo={texto.titulo}>
-        {texto.linea}
-      </Aviso>
-    );
-  // La pieza única de vacío (ADR-0358, ronda 5): el título ya dice el estado, así que el chip «bien / sin datos» ya no se repite.
-  // «Todavía no se puede saber» no es un «todo bien»: el reloj de arena, no el visto (tarea #2, 2026-10-14).
-  const vacio = (
-    <Vacio icono={tipo === "todavia-no" ? <Hourglass /> : <Check />} titulo={texto.titulo}>
-      {texto.linea}
-    </Vacio>
-  );
-  if (dentro) return vacio;
-  return (
-    <section className="tarjeta entra" style={{ ["--i" as string]: 0 }}>
-      {vacio}
-    </section>
+    <Aviso tono="error" titulo={TEXTO_VACIO_QUIETAS[tipo].titulo}>
+      {TEXTO_VACIO_QUIETAS[tipo].linea}
+    </Aviso>
   );
 }
