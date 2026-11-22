@@ -32,3 +32,11 @@ Felipe se lleva: con Claurè sola, cada número sale igual. Con varias aliadas, 
 Qué hice: en las tiendas donde venden dos empresas o más, Existencias tiene la píldora «Empresa», y al elegir una se ven solo sus unidades, con sus cantidades de piso y almacén. Historial tiene la misma píldora y deja solo las ventas con prendas de esa empresa. Además: las empresas de una tienda ya no dependen del id de CAYLA escrito a mano, y los textos de Reportes, Apartados y el valor del inventario nombran a la aliada que corresponde. Migración `20261121175000`, solo en local.
 Por qué así: Felipe pidió que, al crear una tienda o una aliada, los filtros salgan solos. Productos y Reportes ya lo hacían; faltaban las dos pantallas que se usan a diario. Las cantidades salen de la regla de siempre, así ningún número contradice a otro.
 Felipe se lleva: en Lima ya puede ver «lo de CLAURE» en Existencias y en Historial. Comprobantes y Pedidos web quedan para después. Una venta con prendas de las dos empresas sale entera en Historial con el filtro puesto.
+
+## 2026-11-22 (Empresas aliadas: la conexión de cada aliada con Lucode, ADR-0683)
+Qué hice: cada tarjeta de aliada tiene «Comprobantes» (solo el Admin). Ahí se guarda su domicilio fiscal y la llave que le dio Lucode. La llave va cifrada al Vault de Supabase y nunca vuelve a la pantalla: la tarjeta dice «Lucode conectado · …ABCD». Al guardarla se prueba sola contra Lucode, sin emitir nada. Migración `20261122213000`, no está en producción; ruta `POST /api/lucode/probar-aliada`.
+Por qué así: Felipe eligió el Vault («la recomendada»). Una llave en una columna la puede leer cualquiera con acceso a la tabla y con ella se emiten comprobantes a nombre de otra empresa; en Vercel, cada aliada nueva pediría un deploy. Solo el servidor (service_role) la lee.
+Felipe se lleva: ya puede dejar conectada a CLAURE el día que tenga su llave. No cambia cómo se emite: hasta la fase 2 todo sigue saliendo como CAYLA. Probado en local con un Lucode falso: llave mal copiada, guardada, probada, nunca en la página, y a 375 px.
+
+## 2026-11-22 (/chaos en la base, aplicado)
+La migración `20261121203000` (nombre invisible y altas a la vez) ya está en producción: la huella de `guardar_empresa_aliada` coincide con la del repo.
