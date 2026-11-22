@@ -2,18 +2,17 @@
 // existe, con las prendas marcadas (ADR-0245), y quien lo termina es esa pantalla. Un botón cuyo destino la cuenta no ve no se
 // dibuja (ADR-0161): cada función devuelve null en ese caso, y la pantalla no muestra el botón.
 //
-// Lo que todavía no existe (2026-10-06): la rebaja de Etiquetas no recibe prendas marcadas: «Liquidar» abre las etiquetas de esas
-// prendas. «Comprar» de terceros lleva a «Mis compras», donde nace toda compra desde el 2026-10-23 (ADR-0480 act.: el
-// registro a mano de una factura, con su `?prov=`, se retiró).
+// «Liquidar» se fue con la cara B (Felipe 2026-11-21: basta con mostrar lo que no se vende; la persona decide qué hacer).
+// «Comprar» de terceros lleva a «Mis compras», donde nace toda compra desde el 2026-10-23 (ADR-0480 act.: el registro a mano
+// de una factura, con su `?prov=`, se retiró).
 
 import type { AccesoAnalisis, PrendaAnalisis, SedeAnalisis } from "./analisis-tipos";
 import { totalEnTienda } from "./analisis-reglas";
 import { lineasEnUrl, MAX_VARIANTES_EN_URL } from "./existencias-prendas";
-import { urlEtiquetasDePrecio } from "./etiqueta-precio-reglas";
 import { RUTA_NUEVO_TRASLADO } from "./traslados-reglas";
 
 /**
- * Lo que se hace prenda por prenda (bajar, mandar, liquidar, pedir) con lo que muestra Análisis: desde la decisión 12 de ADR-0357,
+ * Lo que se hace prenda por prenda (bajar, mandar, pedir) con lo que muestra Análisis: desde la decisión 12 de ADR-0357,
  * cada fila es un MODELO con sus tallas y colores adentro (`variantes`), y la acción va con todas ellas. Una fila sin `variantes`
  * (una talla suelta) va tal cual.
  */
@@ -23,9 +22,6 @@ function tallasDe<T extends object>(filas: readonly T[]): T[] {
 
 /** Donde nace una compra a terceros (ADR-0480). */
 const RUTA_MI_PLATA = "/compras/mi-plata";
-
-/** Dónde vuelve «Volver» desde las pantallas que lo aceptan. */
-export const RUTA_ANALISIS = "/gestion/analisis";
 
 /**
  * «Comprar»: del Taller, una orden de Producción con el modelo ya elegido; de terceros, «Mis compras» (allí se anota
@@ -65,13 +61,6 @@ export function hrefEnviar(prendas: readonly Pick<PrendaAnalisis, "varianteId" |
   const lineas = tallasDe(prendas).filter((p) => totalEnTienda(p) > 0).map((p) => ({ varianteId: p.varianteId, cantidad: 1 }));
   if (lineas.length === 0 || lineas.length > MAX_VARIANTES_EN_URL) return null;
   return `${RUTA_NUEVO_TRASLADO}?lineas=${lineasEnUrl(lineas)}&destino=${encodeURIComponent(destino.id)}&desde=analisis`;
-}
-
-/** «Liquidar»: las etiquetas de esas prendas (la rebaja se elige allí). null si son más de las que caben o la cuenta no ve Etiquetas. */
-export function hrefLiquidar(prendas: readonly Pick<PrendaAnalisis, "varianteId">[], a: Pick<AccesoAnalisis, "etiquetas">): string | null {
-  const tallas = tallasDe(prendas);
-  if (!a.etiquetas || tallas.length === 0 || tallas.length > MAX_VARIANTES_EN_URL) return null;
-  return urlEtiquetasDePrecio({ variantes: tallas.map((p) => p.varianteId) }, RUTA_ANALISIS);
 }
 
 /** «Registrar ventas»: la cola de ventas sin su prenda (Por regularizar), si la cuenta la ve (ADR-0357, act. 2026-10-14). */

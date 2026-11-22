@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hrefComprar, hrefComprarTodas, hrefEnviar, hrefLiquidar, hrefReponerPiso, lineasParaPedir } from "./analisis-acciones";
+import { hrefComprar, hrefComprarTodas, hrefEnviar, hrefReponerPiso, lineasParaPedir } from "./analisis-acciones";
 
 // Datos inventados para la prueba.
 const todo = { produccion: true, compras: true, traslados: true, etiquetas: true, existencias: true };
@@ -30,9 +30,7 @@ describe("a dónde lleva cada botón (ADR-0245: abre el flujo que ya existe)", (
     expect(decodeURIComponent(href!)).not.toContain("v2");
     expect(hrefEnviar([{ varianteId: "v1", piso: 1, almacen: 0 }], { id: "aqp" }, { traslados: false })).toBeNull();
   });
-  it("Liquidar abre las etiquetas de esas prendas; Reponer baja solo lo que tiene almacén", () => {
-    expect(hrefLiquidar([{ varianteId: "v1" }], todo)).toContain("/etiquetas-de-precio?variantes=");
-    expect(hrefLiquidar([], todo)).toBeNull();
+  it("Reponer baja solo lo que tiene almacén", () => {
     expect(hrefReponerPiso([{ varianteId: "v1", almacen: 0 }], todo)).toBeNull();
     expect(hrefReponerPiso([{ varianteId: "v1", almacen: 2 }], todo)).toContain("/inventario/bajar?lineas=");
   });
