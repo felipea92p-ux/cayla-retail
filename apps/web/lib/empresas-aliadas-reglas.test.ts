@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import { digitoVerificadorRuc } from "@cayla-retail/shared";
 import {
   argsGuardarAliada,
+  camposDeComprobantes,
+  chipLucode,
+  fraseDePrueba,
+  leerConexionLucode,
+  problemaLlaveLucode,
   BORRADOR_ALIADA_VACIO,
   borradorDeAliada,
   aliadaDeLaUrl,
@@ -181,5 +186,42 @@ describe("la cuenta con cada dueña", () => {
     expect(aliadaDeLaUrl(l, "kids")?.id).toBe("b");
     expect(aliadaDeLaUrl(l, "otra")?.id).toBe("a");
     expect(aliadaDeLaUrl([], null)).toBeNull();
+  });
+});
+
+describe("conexión con Lucode de una aliada (20261122213000)", () => {
+  it("lee lo que trae la base: sin `comprobantes` no se ofrece; sin llave, «sin_llave»", () => {
+    expect(leerConexionLucode(null)).toBeNull();
+    expect(leerConexionLucode({ estado: null, termina: null, probada_en: null })).toEqual({ estado: "sin_llave", termina: null, probadaEn: null });
+    expect(leerConexionLucode({ estado: "conectada", termina: "4F2A", probada_en: "2026-11-22T10:00:00Z" })?.termina).toBe("4F2A");
+    expect(leerConexionLucode({ estado: "otra_cosa", termina: "4F2A" })).toEqual({ estado: "sin_llave", termina: null, probadaEn: null });
+  });
+
+  it("el chip dice cómo está, con los 4 últimos caracteres y nunca la llave", () => {
+    expect(chipLucode({ estado: "conectada", termina: "4F2A", probadaEn: null })).toEqual({ texto: "Lucode conectado · …4F2A", tono: "verde" });
+    expect(chipLucode({ estado: "sin_llave", termina: null, probadaEn: null }).tono).toBe("pizarra");
+    expect(chipLucode({ estado: "rechazada", termina: "4F2A", probadaEn: null }).tono).toBe("rojo");
+  });
+
+  it("una llave mal copiada se dice antes de guardar, con la misma regla de la base (20–500, sin espacios)", () => {
+    expect(problemaLlaveLucode("")).toBeNull();
+    expect(problemaLlaveLucode("a".repeat(20))).toBeNull();
+    expect(problemaLlaveLucode("a".repeat(19))).not.toBeNull();
+    expect(problemaLlaveLucode("a".repeat(501))).not.toBeNull();
+    expect(problemaLlaveLucode("abc def ghi jkl mno pqr")).not.toBeNull();
+  });
+
+  it("la guía: la llave es sugerida solo si todavía no hay una, y mal copiada impide guardar", () => {
+    const sinLlave = camposDeComprobantes("", "", false);
+    expect(sinLlave.find((c) => c.id === "llave")).toMatchObject({ sugerido: true, requerido: false, hecho: false });
+    expect(camposDeComprobantes("", "", true).find((c) => c.id === "llave")?.sugerido).toBe(false);
+    expect(camposDeComprobantes("", "corta", true).find((c) => c.id === "llave")?.requerido).toBe(true);
+    expect(camposDeComprobantes("Av. Lima 1", "", true).find((c) => c.id === "domicilio")?.hecho).toBe(true);
+  });
+
+  it("tras probar: cada respuesta en una frase, y «no respondió» no cambia nada", () => {
+    expect(fraseDePrueba("conectada", "produccion")).toBe("Lucode aceptó la llave.");
+    expect(fraseDePrueba("conectada", "sandbox")).toContain("de pruebas");
+    expect(fraseDePrueba("sin_respuesta", "produccion")).toContain("quedó como estaba");
   });
 });

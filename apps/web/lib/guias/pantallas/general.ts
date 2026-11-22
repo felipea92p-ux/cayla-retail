@@ -1267,6 +1267,13 @@ export const GUIA_CONFIGURACION: Guia = {
       texto: "Solo el Admin. Pide el nombre, el RUC, el régimen y las tiendas; el correo, el teléfono y las cuentas son opcionales. Con su lápiz se edita o se da de baja: la baja se aplica en 7 días y hasta entonces se deshace.",
     },
     {
+      id: "aliadas-comprobantes",
+      ancla: "config.aliadas-comprobantes",
+      opcional: true,
+      titulo: "Su conexión con Lucode",
+      texto: "Solo el Admin. «Comprobantes» guarda su domicilio fiscal y la llave que le dio Lucode, para que un día emita con su RUC. La llave se guarda cifrada y no se vuelve a mostrar: el chip dice cómo termina y si Lucode la aceptó. Hoy lo que vende sigue saliendo como CAYLA.",
+    },
+    {
       id: "empresa-tiendas",
       ancla: "config.empresa-tiendas",
       opcional: true,

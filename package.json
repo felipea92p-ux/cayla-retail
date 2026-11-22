@@ -511,6 +511,7 @@
     "pruebas:vendido-por-empresa": "node scripts/pruebas/vendido_por_empresa.mjs",
     "pruebas:claure-cuenta": "node scripts/pruebas/claure_cuenta.mjs",
     "pruebas:empresas-aliadas": "node scripts/pruebas/empresas_aliadas.mjs",
+    "pruebas:empresas-aliadas-lucode": "node scripts/pruebas/empresas_aliadas_lucode.mjs",
     "pruebas:aliadas-balance": "node scripts/pruebas/aliadas_balance.mjs",
     "pruebas:aliadas-cuenta": "node scripts/pruebas/aliadas_cuenta.mjs",
     "pruebas:aliadas-cobro": "node scripts/pruebas/aliadas_cobro.mjs",

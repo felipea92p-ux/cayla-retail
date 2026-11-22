@@ -58,7 +58,41 @@ export type EmpresaAliada = {
   bajaDetenida: string | null;
   /** Sus prendas pueden entrar a una campaña de CAYLA que incluya a las aliadas (ADR-0683, actividad 5). Nace apagado. */
   entraACampanas: boolean;
+  /** Su domicilio fiscal (sale en su boleta, fase 2), o null. */
+  domicilioFiscal: string | null;
+  /** Cómo está su conexión con Lucode. Solo llega al Admin y solo si la base ya tiene 20261122213000; si no, `null` y no se ofrece. La llave
+   *  nunca llega: solo sus 4 últimos caracteres. */
+  comprobantes: ConexionLucode | null;
 };
+
+export type EstadoLucode = "sin_llave" | "sin_probar" | "conectada" | "rechazada";
+export type ConexionLucode = { estado: EstadoLucode; termina: string | null; probadaEn: string | null };
+
+const ESTADOS_LUCODE: readonly EstadoLucode[] = ["sin_probar", "conectada", "rechazada"];
+
+/** Lo que trae `comprobantes` de `fn_empresas_aliadas` (20261122213000). Sin llave guardada, «sin_llave». */
+export function leerConexionLucode(crudo: unknown): ConexionLucode | null {
+  if (!crudo || typeof crudo !== "object") return null;
+  const c = crudo as { estado?: unknown; termina?: unknown; probada_en?: unknown };
+  const estado = ESTADOS_LUCODE.includes(c.estado as EstadoLucode) ? (c.estado as EstadoLucode) : "sin_llave";
+  return { estado, termina: estado === "sin_llave" ? null : texto(c.termina), probadaEn: texto(c.probada_en) };
+}
+
+/** El chip de la tarjeta: cómo está la conexión con Lucode, en palabras de tienda. */
+export function chipLucode(c: ConexionLucode): { texto: string; tono: "verde" | "ambar" | "rojo" | "pizarra" } {
+  if (c.estado === "conectada") return { texto: `Lucode conectado · …${c.termina ?? ""}`, tono: "verde" };
+  if (c.estado === "rechazada") return { texto: "Lucode rechazó la llave", tono: "rojo" };
+  if (c.estado === "sin_probar") return { texto: `Lucode sin probar · …${c.termina ?? ""}`, tono: "ambar" };
+  return { texto: "Sin conexión con Lucode", tono: "pizarra" };
+}
+
+/** Lo mismo que pide la base (20261122213000): entera, sin espacios, de 20 a 500 caracteres. Vacía = no se cambia. */
+export function problemaLlaveLucode(llave: string): string | null {
+  const l = llave.trim();
+  if (!l) return null;
+  if (/\s/.test(l) || l.length < 20 || l.length > 500) return "Esa no parece una llave de Lucode: cópiala entera, sin espacios.";
+  return null;
+}
 
 export type LecturaAliadas = { puedeEditar: boolean; aliadas: EmpresaAliada[] };
 
@@ -99,6 +133,8 @@ export function leerAliadas(crudo: unknown): LecturaAliadas {
         bajaEl: texto(a.baja_el),
         bajaDetenida: texto(a.baja_detenida),
         entraACampanas: a.entra_a_campanas === true,
+        domicilioFiscal: texto(a.domicilio_fiscal),
+        comprobantes: leerConexionLucode(a.comprobantes),
       })),
   };
 }
@@ -342,4 +378,36 @@ export function deAliadaEnTodo<T>(x: T, q: Quien): T {
   if (Array.isArray(x)) return x.map((v) => deAliadaEnTodo(v, q)) as T;
   if (x && typeof x === "object") return Object.fromEntries(Object.entries(x).map(([k, v]) => [k, deAliadaEnTodo(v, q)])) as T;
   return x;
+}
+
+/** La hoja «Comprobantes» de una aliada (20261122213000): el domicilio y la llave de Lucode. Lo que guía: el domicilio es sugerido (sale en su
+ *  boleta) y la llave, sugerida solo si todavía no tiene una; una llave mal copiada sí impide guardar (la base la rechaza). */
+export function camposDeComprobantes(domicilio: string, llave: string, tieneLlave: boolean): CampoDeGuia[] {
+  const problema = problemaLlaveLucode(llave);
+  return [
+    {
+      id: "domicilio",
+      nombre: "Domicilio fiscal",
+      requerido: domicilio.trim().length > 200,
+      sugerido: true,
+      hecho: domicilio.trim() !== "" && domicilio.trim().length <= 200,
+      pendiente: domicilio.trim().length > 200 ? "El domicilio va hasta en 200 letras." : "Escribe su domicilio fiscal.",
+    },
+    {
+      id: "llave",
+      nombre: "Llave de Lucode",
+      requerido: problema !== null,
+      sugerido: !tieneLlave,
+      hecho: problema === null && llave.trim() !== "",
+      pendiente: problema ?? "Pega la llave que te dio Lucode.",
+    },
+  ];
+}
+
+/** Qué decir tras «Probar conexión», según lo que respondió el servidor. */
+export function fraseDePrueba(estado: "conectada" | "rechazada" | "sin_respuesta", entorno: "sandbox" | "produccion"): string {
+  const donde = entorno === "produccion" ? "Lucode" : "el Lucode de pruebas";
+  if (estado === "conectada") return `${donde} aceptó la llave.`;
+  if (estado === "rechazada") return `${donde} rechazó la llave. Revisa que la copiaste entera.`;
+  return "Lucode no respondió. La conexión quedó como estaba: prueba en un rato.";
 }

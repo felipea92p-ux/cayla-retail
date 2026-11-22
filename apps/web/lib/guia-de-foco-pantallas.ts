@@ -306,6 +306,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // ADR-0683: la hoja de una empresa aliada (nombre, RUC, régimen y tiendas son lo que falta; correo, teléfono y cuentas, opcionales) y, en el mismo archivo,
   // la segunda confirmación de su baja, de un solo control (escribir el nombre).
   "components/vitrinas-sedes/HojaEmpresaAliada.tsx": { estado: "aplicada", evidencia: ["components/vitrinas-sedes/HojaEmpresaAliada.tsx"] },
+  "components/vitrinas-sedes/HojaComprobantesAliada.tsx": { estado: "aplicada", evidencia: ["components/vitrinas-sedes/HojaComprobantesAliada.tsx"] },
   "components/plan-piso/GruposDelMix.tsx": { estado: "aplicada", evidencia: ["components/plan-piso/GruposDelMix.tsx"] },
   "components/plan-piso/ConfigurarPiso.tsx": { estado: "aplicada", evidencia: ["components/plan-piso/ConfigurarPiso.tsx"] },
   // ADR-0288 tanda 1b: la ficha ganó las acciones del club y, con ellas, la guía en cada acción que se llena. Tanda 1g: se fueron «Unirse al

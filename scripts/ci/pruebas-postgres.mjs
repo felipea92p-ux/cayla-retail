@@ -939,6 +939,8 @@ export const PRUEBAS = [
   // comisión del POS sale de su tarifa (nula sin ella); una devolución pagada desde una cuenta de CAYLA resta; un cambio se lista sin contar.
   "pruebas:claure-cuenta",
   "pruebas:empresas-aliadas",
+  // ADR-0683: la llave de Lucode de una aliada va cifrada al Vault, nunca vuelve a la pantalla y solo el servidor la lee. ROLLBACK.
+  "pruebas:empresas-aliadas-lucode",
   "pruebas:aliadas-balance",
   "pruebas:aliadas-cuenta",
   "pruebas:aliadas-cobro",

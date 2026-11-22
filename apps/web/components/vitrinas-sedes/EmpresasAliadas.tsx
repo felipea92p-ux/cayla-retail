@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type MouseEvent } from "react";
-import { Plus, Store } from "lucide-react";
+import { FileText, Plus, Store } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { firmar } from "@/lib/responsable-reglas";
@@ -16,8 +16,9 @@ import { LapizEditar } from "@/components/ui/BotonEditar";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { HojaEmpresaAliada } from "@/components/vitrinas-sedes/HojaEmpresaAliada";
+import { HojaComprobantesAliada } from "@/components/vitrinas-sedes/HojaComprobantesAliada";
 import type { useResponsable } from "@/lib/useResponsable";
-import { borradorDeAliada, etiquetaCuenta, REGIMENES, type BorradorAliada, type LecturaAliadas } from "@/lib/empresas-aliadas-reglas";
+import { borradorDeAliada, chipLucode, etiquetaCuenta, REGIMENES, type BorradorAliada, type EmpresaAliada, type LecturaAliadas } from "@/lib/empresas-aliadas-reglas";
 
 // «Empresas aliadas» (ADR-0683, opción D que eligió Felipe el 2026-11-21): bajo la banda de CAYLA, que sigue como está, una tarjeta por cada empresa
 // que vende en las tiendas con su propio RUC. El botón para agregar vive solo aquí, a un lado del título; las tiendas no muestran quién vende en ellas.
@@ -40,6 +41,8 @@ export function EmpresasAliadas({
     bajaPedida: boolean;
   } | null>(null);
   const [deshaciendo, setDeshaciendo] = useState<string | null>(null);
+  // «Comprobantes» de una aliada (20261122213000): su domicilio fiscal y su llave de Lucode. Solo el Admin, y solo si la base ya la tiene.
+  const [comprobantes, setComprobantes] = useState<EmpresaAliada | null>(null);
   // El botón que abrió la hoja: al cerrarla, el foco vuelve ahí y no al principio de la página (/chaos 2026-11-21, TEC-06).
   const origen = useRef<HTMLElement | null>(null);
   const { aliadas, puedeEditar } = lectura;
@@ -164,6 +167,26 @@ export function EmpresasAliadas({
                     <span className="vs-rotulo">Sin cuentas para cobrar</span>
                   )}
                 </div>
+                {a.comprobantes && (
+                  <div className="vs-aliada-fila items-center">
+                    <Chip tono={chipLucode(a.comprobantes).tono} versalitas={false}>
+                      {chipLucode(a.comprobantes).texto}
+                    </Chip>
+                    <Boton
+                      type="button"
+                      className="btn-chico"
+                      data-guia={e === 0 ? "config.aliadas-comprobantes" : undefined}
+                      onClick={(ev) => {
+                        origen.current = ev.currentTarget;
+                        setComprobantes(a);
+                      }}
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        <FileText className="h-4 w-4" aria-hidden /> Comprobantes
+                      </span>
+                    </Boton>
+                  </div>
+                )}
                 {puedeEditar ? (
                   <Interruptor
                     activo={a.entraACampanas}
@@ -190,6 +213,9 @@ export function EmpresasAliadas({
           volverA={origen}
           onClose={() => setHoja(null)}
         />
+      )}
+      {comprobantes && (
+        <HojaComprobantesAliada aliada={comprobantes} responsable={responsable} volverA={origen} onClose={() => setComprobantes(null)} />
       )}
     </section>
   );
