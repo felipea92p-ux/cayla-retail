@@ -34,7 +34,7 @@ Por qué así: Felipe pidió que, al crear una tienda o una aliada, los filtros 
 Felipe se lleva: en Lima ya puede ver «lo de CLAURE» en Existencias y en Historial. Comprobantes y Pedidos web quedan para después. Una venta con prendas de las dos empresas sale entera en Historial con el filtro puesto.
 
 ## 2026-11-22 (Empresas aliadas: la conexión de cada aliada con Lucode, ADR-0683)
-Qué hice: cada tarjeta de aliada tiene «Comprobantes» (solo el Admin). Ahí se guarda su domicilio fiscal y la llave que le dio Lucode. La llave va cifrada al Vault de Supabase y nunca vuelve a la pantalla: la tarjeta dice «Lucode conectado · …ABCD». Al guardarla se prueba sola contra Lucode, sin emitir nada. Migración `20261122213000`, no está en producción; ruta `POST /api/lucode/probar-aliada`.
+Qué hice: cada tarjeta de aliada tiene «Comprobantes» (solo el Admin). Ahí se guarda su domicilio fiscal y la llave que le dio Lucode. La llave va cifrada al Vault de Supabase y nunca vuelve a la pantalla: la tarjeta dice «Lucode conectado · …ABCD». Al guardarla se prueba sola contra Lucode, sin emitir nada. Migración `20261122213000`, pegada en producción el mismo día; ruta `POST /api/lucode/probar-aliada`.
 Por qué así: Felipe eligió el Vault («la recomendada»). Una llave en una columna la puede leer cualquiera con acceso a la tabla y con ella se emiten comprobantes a nombre de otra empresa; en Vercel, cada aliada nueva pediría un deploy. Solo el servidor (service_role) la lee.
 Felipe se lleva: ya puede dejar conectada a CLAURE el día que tenga su llave. No cambia cómo se emite: hasta la fase 2 todo sigue saliendo como CAYLA. Probado en local con un Lucode falso: llave mal copiada, guardada, probada, nunca en la página, y a 375 px.
 

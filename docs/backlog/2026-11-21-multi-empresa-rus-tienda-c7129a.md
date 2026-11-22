@@ -30,7 +30,7 @@
 - [ ] **Contador:** que un Nuevo RUS opere en un solo local (hoy es un candado de la base); el contrato y lo que CAYLA les cobra a las aliadas.
 
 ## 2026-11-22 · Conexión con Lucode por aliada
-- [ ] **Pegar `20261122213000_aliadas_conexion_con_lucode.sql` en producción** (Felipe). Mientras no esté, el botón «Comprobantes» no aparece (la web lo esconde sola).
+- [x] **`20261122213000_aliadas_conexion_con_lucode.sql` pegada en producción** (2026-11-22, «QUEDÓ BIEN»): 5 columnas, 3 restricciones, la llave solo la lee service_role (comprobado con SELECT de solo lectura).
 - [ ] «Probar conexión» necesita `SUPABASE_SERVICE_ROLE_KEY` en el servidor: en producción ya está; en una vista previa de Vercel no (solo Production), así que ahí responde «El servidor no puede leer la llave ahora».
 - [ ] Fase 2 (espera al contador y a Lucode): series por tienda de cada aliada, «emite desde», tope del Nuevo RUS al 80 %, y que la emisión use la llave de la aliada dueña de la venta.
 - [ ] La prueba de conexión pregunta por la boleta B999-1: confirmar con Lucode que una llave mala responde 401/403 (si respondiera otra cosa, la daría por buena).
