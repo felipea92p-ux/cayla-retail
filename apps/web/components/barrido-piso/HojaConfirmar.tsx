@@ -21,7 +21,7 @@ import {
   haceCuanto,
   leerResumenBarrido,
   leerVistaBarrido,
-  textoDeRechazo,
+  textoDeError,
   textoDelResultado,
   type LineaDelBarrido,
   type ResumenBarrido,
@@ -77,7 +77,7 @@ export function HojaConfirmar({
     void supabase
       .rpc(RPC_PREVISUALIZAR_BARRIDO as never, { p_barrido_id: barridoId } as never)
       .then(({ data, error }) => {
-        if (error) setFallo(textoDeRechazo(error.hint) ?? "No se pudo revisar el barrido. Vuelve a intentarlo en un momento.");
+        if (error) setFallo(textoDeError(error, "revisar el barrido"));
         else setVista(leerVistaBarrido(data));
       });
   }, [supabase, barridoId]);
@@ -91,7 +91,7 @@ export function HojaConfirmar({
     );
     setEnviando(false);
     if (error) {
-      setFallo(textoDeRechazo(error.hint) ?? error.message);
+      setFallo(textoDeError(error, "confirmar el barrido"));
       return;
     }
     setResultado(leerResumenBarrido((data as { resumen?: unknown } | null)?.resumen));
@@ -102,7 +102,7 @@ export function HojaConfirmar({
     const { error } = await firmar(supabase.rpc(RPC_CANCELAR_BARRIDO as never, { p_barrido_id: barridoId } as never), firma());
     setEnviando(false);
     if (error) {
-      setFallo(textoDeRechazo(error.hint) ?? error.message);
+      setFallo(textoDeError(error, "descartar el barrido"));
       setDescartar(false);
       return;
     }

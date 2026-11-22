@@ -512,9 +512,20 @@ export type Hallazgo = {
   anuladaPor: string | null;
 };
 
-/** La foto de un hallazgo en el bucket privado: la carpeta es el barrido (la política del bucket lo exige). */
-export function rutaFotoHallazgo(barridoId: string, hallazgoId: string): string {
-  return `${barridoId}/${hallazgoId}.jpg`;
+/**
+ * La foto de un hallazgo en el bucket privado: la carpeta es el barrido (la política del bucket lo exige). `toma` cuenta las fotos
+ * elegidas en la hoja: cada foto NUEVA va a su propia ruta (el bucket no deja pisar un objeto: solo tiene políticas de subir y ver),
+ * y reintentar con la MISMA foto cae en la misma ruta, que ya existe.
+ */
+export function rutaFotoHallazgo(barridoId: string, hallazgoId: string, toma = 1): string {
+  return `${barridoId}/${hallazgoId}${toma > 1 ? `-${toma}` : ""}.jpg`;
+}
+
+/** ¿El bucket rechazó la subida porque ese objeto YA estaba? (un reintento tras un corte: la foto ya subió la primera vez). */
+export function fotoYaEstaba(error: { message?: string; statusCode?: string | number; status?: number; error?: string } | null | undefined): boolean {
+  if (!error) return false;
+  const texto = `${error.message ?? ""} ${error.error ?? ""}`.toLowerCase();
+  return String(error.statusCode ?? "") === "409" || error.status === 409 || texto.includes("already exists") || texto.includes("duplicate");
 }
 
 /** Lo que devuelve `fn_barrido_piso_hallazgos`. Lo que no tiene forma se ignora. */
@@ -685,4 +696,44 @@ export function textoDelResultado(r: ResumenBarrido): string {
   if (r.prendasAlPiso > 0) partes.push(n(r.prendasAlPiso, "pasó al piso", "pasaron al piso"));
   if (r.prendasAlAlmacen > 0) partes.push(n(r.prendasAlAlmacen, "volvió al almacén", "volvieron al almacén"));
   return `${partes.join(" y ")}.`;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// La entrada en Existencias: el barrido en curso («súmate») y el barrido del mes.
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Cada cuánto toca barrer el piso (Felipe, 2026-11-22: una vez al mes). */
+export const DIAS_ENTRE_BARRIDOS = 30;
+
+/** `titulo` corto (cabe en una línea a 375 px) y `detalle` debajo, en chico. */
+export type AvisoDeBarrido = { tipo: "en_curso" | "toca"; titulo: string; detalle: string | null; boton: string };
+
+/**
+ * Lo que Existencias dice del barrido, o `null` si no hay nada que decir:
+ *  · hay uno abierto → quiénes escanean y cuánto llevan, con «Sumarme»;
+ *  · el último cuadre (o barrido) fue hace 30 días o más → toca el del mes.
+ * Una tienda que NUNCA cuadró no pasa por aquí: ya tiene su aviso «el piso nunca se ha cuadrado», que lleva al barrido.
+ */
+export function avisoDeBarrido({ barrido, cuadradoEn, ahora }: { barrido: BarridoAbierto | null; cuadradoEn: string | null; ahora: Date }): AvisoDeBarrido | null {
+  if (barrido) {
+    const quienes = quienesEscanean(barrido.personas, ahora);
+    const lleva = barrido.unidades === 1 ? "1 prenda" : `${barrido.unidades.toLocaleString("es-PE")} prendas`;
+    return { tipo: "en_curso", titulo: `Barrido en curso · ${lleva}`, detalle: quienes, boton: "Sumarme" };
+  }
+  const t = cuadradoEn ? Date.parse(cuadradoEn) : NaN;
+  if (!Number.isFinite(t)) return null;
+  const dias = Math.floor((ahora.getTime() - t) / 86_400_000);
+  if (dias < DIAS_ENTRE_BARRIDOS) return null;
+  return { tipo: "toca", titulo: "Toca el barrido del mes", detalle: `El último fue hace ${dias} días`, boton: "Hacer el barrido" };
+}
+
+/**
+ * Lo que se le dice a la persona cuando algo no se pudo guardar: la frase del rechazo si la base dijo por qué; «sin conexión» si no
+ * hubo respuesta (nunca el «TypeError: Failed to fetch» crudo del navegador); y, si no, el mensaje de la base con lo que se intentaba.
+ */
+export function textoDeError(e: { code?: string | null; hint?: string | null; message?: string | null } | null | undefined, que: string): string {
+  const conocido = textoDeRechazo(e?.hint);
+  if (conocido) return conocido;
+  if (clasificarError(e) === "red") return `No hay conexión: no se pudo ${que}. Vuelve a intentarlo.`;
+  return `No se pudo ${que}: ${e?.message ?? "la base no respondió"}`;
 }

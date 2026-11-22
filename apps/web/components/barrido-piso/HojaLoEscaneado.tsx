@@ -19,7 +19,7 @@ import {
   leerHallazgos,
   leerLecturasDelBarrido,
   textoDeTramo,
-  textoDeRechazo,
+  textoDeError,
   type Hallazgo,
   type LecturaDelBarrido,
   type PrendaBarrido,
@@ -88,7 +88,7 @@ export function HojaLoEscaneado({
       .rpc(RPC_LECTURAS_BARRIDO as never, { p_barrido_id: barridoId } as never)
       .then(({ data, error }) => {
         if (error) {
-          setFallo(textoDeRechazo(error.hint) ?? "No se pudo leer lo escaneado. Vuelve a intentarlo en un momento.");
+          setFallo(textoDeError(error, "leer lo escaneado"));
           return;
         }
         const r = leerLecturasDelBarrido(data);

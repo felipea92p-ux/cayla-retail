@@ -39,6 +39,13 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "Si contaste y el número no cuadra, empieza aquí: te pregunta qué prenda es (por nombre, código o escaneando la etiqueta) y abre su planilla con todos sus colores y tallas. En la demo no lo abrimos.",
     },
     {
+      id: "barrido",
+      ancla: "existencias.barrido",
+      opcional: true,
+      titulo: "Barrido del piso",
+      texto: "Una vez al mes se escanea todo lo colgado, entre varias personas, para que el sistema sepa qué está en el piso y qué en el almacén. Si ya hay uno en curso, desde aquí te sumas. En la demo no lo abrimos.",
+    },
+    {
       // Solo en el celular (bajo 640 px): en la computadora las cifras ya están a la vista, a la derecha de la cabecera.
       id: "resumen",
       ancla: "existencias.resumen",
@@ -431,6 +438,13 @@ export const GUIA_CUADRAR_PISO: Guia = {
       ancla: "cuadrar.pasos",
       titulo: "Tres pasos",
       texto: "Primero escaneas, después revisas lo que va a cambiar y al final confirmas. Aquí ves en qué paso estás.",
+    },
+    {
+      id: "barrido",
+      ancla: "cuadrar.barrido",
+      opcional: true,
+      titulo: "O escanea lo colgado",
+      texto: "Si en tu tienda es más fácil escanear las perchas que el almacén, usa el Barrido del piso: lo hacen varias personas a la vez, cada una desde su celular.",
     },
     {
       id: "cuidados",

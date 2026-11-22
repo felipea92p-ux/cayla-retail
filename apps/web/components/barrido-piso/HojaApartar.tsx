@@ -19,8 +19,9 @@ import {
   NOTA_MAXIMA_HALLAZGO,
   RPC_REGISTRAR_HALLAZGO,
   camposGuiaApartar,
+  fotoYaEstaba,
   rutaFotoHallazgo,
-  textoDeRechazo,
+  textoDeError,
   type TipoHallazgo,
 } from "@/lib/barrido-piso-reglas";
 
@@ -60,6 +61,8 @@ export function HojaApartar({
   const supabase = useMemo(() => createClient(), []);
   const [id] = useState(() => crypto.randomUUID());
   const [foto, setFoto] = useState<File | null>(null);
+  // Cuántas fotos se eligieron en esta hoja: cada foto nueva sube a su propia ruta (el bucket no deja pisar un objeto).
+  const [toma, setToma] = useState(0);
   const [cantidad, setCantidad] = useState(1);
   const [nota, setNota] = useState("");
   const [guardando, setGuardando] = useState(false);
@@ -83,9 +86,10 @@ export function HojaApartar({
       const reducida = await reducirMuestra(foto);
       if ("error" in reducida) sinFoto = reducida.error;
       else {
-        const destino = rutaFotoHallazgo(barridoId, id);
-        const subida = await supabase.storage.from(BUCKET_FOTOS_BARRIDO).upload(destino, reducida.archivo, { contentType: "image/jpeg", upsert: true });
-        if (subida.error) sinFoto = "La foto no se pudo subir.";
+        const destino = rutaFotoHallazgo(barridoId, id, toma);
+        const subida = await supabase.storage.from(BUCKET_FOTOS_BARRIDO).upload(destino, reducida.archivo, { contentType: "image/jpeg", upsert: false });
+        // «Ya existe» es un reintento: la foto subió la primera vez y lo que falló fue registrarla.
+        if (subida.error && !fotoYaEstaba(subida.error)) sinFoto = "La foto no se pudo subir.";
         else ruta = destino;
       }
     }
@@ -103,7 +107,7 @@ export function HojaApartar({
     );
     setGuardando(false);
     if (error) {
-      setFallo(textoDeRechazo(error.hint) ?? `No se pudo apartar: ${error.message}`);
+      setFallo(textoDeError(error, "apartar"));
       return;
     }
     const aparte = Number((data as { aparte?: unknown } | null)?.aparte ?? 0);
@@ -146,7 +150,10 @@ export function HojaApartar({
                   onChange={(e) => {
                     const archivo = e.target.files?.[0] ?? null;
                     e.target.value = "";
-                    if (archivo) setFoto(archivo);
+                    if (archivo) {
+                      setFoto(archivo);
+                      setToma((n) => n + 1);
+                    }
                   }}
                 />
               </label>

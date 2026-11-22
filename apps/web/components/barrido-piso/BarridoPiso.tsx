@@ -57,6 +57,7 @@ import {
   quienesEscanean,
   siguienteLote,
   sinLasSubidas,
+  textoDeError,
   textoDeRechazo,
   type BarridoAbierto,
   type ColaGuardada,
@@ -293,7 +294,7 @@ export function BarridoPiso({
     const { data, error } = await firmar(supabase.rpc(RPC_ABRIR_BARRIDO as never, { p_ubicacion_id: ubicacionId } as never), firma);
     setAbriendo(false);
     if (error) {
-      setAviso({ texto: textoDeRechazo(error.hint) ?? `No se pudo empezar el barrido: ${error.message}`, tono: "rojo" });
+      setAviso({ texto: textoDeError(error, "empezar el barrido"), tono: "rojo" });
       return;
     }
     const estado = leerEstadoBarrido((data as { estado?: unknown } | null)?.estado);
@@ -375,7 +376,7 @@ export function BarridoPiso({
     );
     if (error) {
       if (clasificarError(error) === "frena_todo") frenar(textoDeRechazo(error.hint) ?? error.message);
-      return textoDeRechazo(error.hint) ?? `No se pudo quitar: ${error.message}`;
+      return textoDeError(error, "quitar");
     }
     // La foto del equipo ya sin lo quitado (cuenta igual con la cola de este celular: lo que espera subir no se quitó).
     const estado = leerEstadoBarrido((data as { estado?: unknown } | null)?.estado);
@@ -395,7 +396,7 @@ export function BarridoPiso({
     if (!b) return "No hay un barrido abierto.";
     if (!responsable.listo) return "Elige quién está quitando: arriba, en «Quién escanea».";
     const { data, error } = await firmar(supabase.rpc(RPC_ANULAR_HALLAZGO as never, { p_barrido_id: b.id, p_id: id } as never), responsable.firma());
-    if (error) return textoDeRechazo(error.hint) ?? `No se pudo quitar: ${error.message}`;
+    if (error) return textoDeError(error, "quitar");
     const aparte = Number((data as { aparte?: unknown } | null)?.aparte ?? b.aparte);
     if (barridoRef.current) setBarrido({ ...barridoRef.current, aparte: Number.isFinite(aparte) ? aparte : b.aparte });
     return null;

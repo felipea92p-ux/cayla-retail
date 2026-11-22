@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  textoDeError,
+  avisoDeBarrido,
+  DIAS_ENTRE_BARRIDOS,
   camposGuiaConfirmar,
   dondeLaTiene,
   leerVistaBarrido,
   textoDelResultado,
   camposGuiaApartar,
   leerHallazgos,
+  fotoYaEstaba,
   rutaFotoHallazgo,
   sugerirPorNombre,
   agruparEnTramos,
@@ -328,8 +332,16 @@ describe("lo que no se puede escanear (actividad 4)", () => {
     expect(sugerirPorNombre("blusa", prendas, 1)).toHaveLength(1);
   });
 
-  it("la foto va en la carpeta del barrido", () => {
+  it("la foto va en la carpeta del barrido; cada foto nueva, en su propia ruta", () => {
     expect(rutaFotoHallazgo("b1", "h1")).toBe("b1/h1.jpg");
+    expect(rutaFotoHallazgo("b1", "h1", 2)).toBe("b1/h1-2.jpg");
+  });
+
+  it("reintentar con la misma foto: el bucket dice «ya existe» y se toma como subida", () => {
+    expect(fotoYaEstaba({ message: "The resource already exists", statusCode: "409" })).toBe(true);
+    expect(fotoYaEstaba({ message: "x", error: "Duplicate" })).toBe(true);
+    expect(fotoYaEstaba({ message: "new row violates row-level security policy", statusCode: "403" })).toBe(false);
+    expect(fotoYaEstaba(null)).toBe(false);
   });
 
   it("lee lo apartado y descarta lo que no tiene forma", () => {
@@ -384,5 +396,36 @@ describe("revisar y confirmar (actividad 5)", () => {
     expect(textoDelResultado(r)).toBe("2 pasaron al piso y 4 volvieron al almacén.");
     expect(textoDelResultado({ ...r, prendasAlPiso: 1, prendasAlAlmacen: 0 })).toBe("1 pasó al piso.");
     expect(textoDelResultado({ ...r, prendasAlPiso: 0, prendasAlAlmacen: 0 })).toBe("El piso ya estaba al día: no hubo que mover nada.");
+  });
+});
+
+describe("la entrada en Existencias", () => {
+  const hace = (dias: number) => new Date(ahora.getTime() - dias * 86_400_000).toISOString();
+  const abierto = { id: "b", abiertoEn: hace(0), abiertoPor: "Ana", unidades: 120, lecturas: 118, prendas: 60, porPrenda: {}, aparte: 0,
+    personas: [{ personaId: "ana", nombre: "Ana Pérez", unidades: 120, lecturas: 118, ultima: ahora.toISOString() }] };
+
+  it("con un barrido abierto invita a sumarse, con cuánto llevan y quién escanea", () => {
+    expect(avisoDeBarrido({ barrido: abierto, cuadradoEn: hace(3), ahora })).toEqual({ tipo: "en_curso", titulo: "Barrido en curso · 120 prendas", detalle: "Ana está escaneando", boton: "Sumarme" });
+    expect(avisoDeBarrido({ barrido: { ...abierto, unidades: 1, personas: [] }, cuadradoEn: null, ahora })).toMatchObject({ titulo: "Barrido en curso · 1 prenda", detalle: null });
+  });
+
+  it("a los 30 días del último cuadre toca el del mes; antes, nada", () => {
+    expect(DIAS_ENTRE_BARRIDOS).toBe(30);
+    expect(avisoDeBarrido({ barrido: null, cuadradoEn: hace(29), ahora })).toBeNull();
+    expect(avisoDeBarrido({ barrido: null, cuadradoEn: hace(30), ahora })).toEqual({ tipo: "toca", titulo: "Toca el barrido del mes", detalle: "El último fue hace 30 días", boton: "Hacer el barrido" });
+    expect(avisoDeBarrido({ barrido: null, cuadradoEn: hace(41), ahora })?.detalle).toBe("El último fue hace 41 días");
+  });
+
+  it("una tienda que nunca cuadró no lleva este aviso (tiene el suyo: «el piso nunca se ha cuadrado»)", () => {
+    expect(avisoDeBarrido({ barrido: null, cuadradoEn: null, ahora })).toBeNull();
+    expect(avisoDeBarrido({ barrido: null, cuadradoEn: "no es fecha", ahora })).toBeNull();
+  });
+});
+
+describe("lo que se dice cuando algo no se guardó", () => {
+  it("la frase del rechazo, «sin conexión» si no hubo respuesta, o el mensaje de la base", () => {
+    expect(textoDeError({ code: "P0001", hint: "barrido_cerrado", message: "x" }, "apartar")).toBe("Este barrido ya se cerró. Lo que escaneaste después no se sumó.");
+    expect(textoDeError({ message: "TypeError: Failed to fetch" }, "apartar")).toBe("No hay conexión: no se pudo apartar. Vuelve a intentarlo.");
+    expect(textoDeError({ code: "23505", hint: null, message: "duplicate key" }, "quitar")).toBe("No se pudo quitar: duplicate key");
   });
 });
