@@ -33,7 +33,18 @@ export type CuentaAliada = {
   banco: string;
   numero: string;
   quitar?: boolean;
+  /** Ya existía sin número (la «Yape de Claudia · LIM» de CLAURE, ADR-0638). Mientras siga sin número no se pide, no se renombra ni se archiva:
+   *  no viaja a la base (Felipe 2026-11-22, camino «b» de /formidable). */
+  sinNumeroDeOrigen?: boolean;
 };
+
+/** Una fila que no hay que mirar: la nueva que se abrió y quedó vacía (la base ya la ignora) o la que ya venía sin número y sigue igual. */
+export function cuentaQueNoCuenta(c: CuentaAliada): boolean {
+  if (c.quitar) return false;
+  const vacia = c.numero.trim() === "" && c.banco.trim() === "";
+  if (c.id === null) return vacia;
+  return Boolean(c.sinNumeroDeOrigen) && c.numero.trim() === "";
+}
 
 export type EmpresaAliada = {
   id: string;
@@ -139,6 +150,22 @@ export function leerAliadas(crudo: unknown): LecturaAliadas {
   };
 }
 
+/** Lo que le falta a una aliada para vender con sus datos completos, en una frase («Falta RUC y régimen»), o null si no le falta nada.
+ *  Lo mismo que pide la hoja para guardar una nueva: RUC, régimen y tiendas (CLAURE nació antes de la hoja, sin RUC ni régimen). */
+export function fraseDeAliada(a: Pick<EmpresaAliada, "ruc" | "regimen" | "sedes">): string | null {
+  const f = [!a.ruc && "RUC", !a.regimen && "régimen", a.sedes.length === 0 && "tiendas"].filter((x): x is string => Boolean(x));
+  if (!f.length) return null;
+  return `Falta ${f.length > 1 ? `${f.slice(0, -1).join(", ")} y ${f[f.length - 1]}` : f[0]}`;
+}
+
+/** La línea bajo el nombre: la razón social solo si dice algo distinto del nombre, y el RUC si lo tiene. */
+export function rotuloDeAliada(a: Pick<EmpresaAliada, "nombre" | "ruc" | "razonSocial">): string | null {
+  const igual = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/gi, "").toLowerCase();
+  const razon = a.razonSocial && igual(a.razonSocial) !== igual(a.nombre) ? a.razonSocial : null;
+  const partes = [razon, a.ruc ? `RUC ${a.ruc}` : null].filter(Boolean);
+  return partes.length ? partes.join(" · ") : null;
+}
+
 /** «Yape ··· 010» o «BCP ··· 045»: la cuenta sin mostrar su número entero. */
 export function etiquetaCuenta(c: { medio: MedioCuenta; banco?: string | null; numero?: string | null }): string {
   const d = soloDigitos(c.numero ?? "");
@@ -186,6 +213,7 @@ export function borradorDeAliada(a: EmpresaAliada): BorradorAliada {
       medio: c.medio,
       banco: c.banco ?? "",
       numero: c.numero ?? "",
+      sinNumeroDeOrigen: !c.numero,
     })),
   };
 }
@@ -215,7 +243,7 @@ export function problemasAliada(
   rucDeCasa: string | null,
 ): Record<"nombre" | "ruc" | "regimen" | "sedes" | "correo" | "telefono" | "cuentas", string | null> {
   const ruc = soloDigitos(b.ruc);
-  const cuentas = b.cuentas.filter((c) => !c.quitar);
+  const cuentas = b.cuentas.filter((c) => !c.quitar && !cuentaQueNoCuenta(c));
   const problemaRuc = !ruc
     ? "Escribe los 11 dígitos del RUC."
     : validarDocumento("ruc", ruc).valido === false
@@ -274,7 +302,7 @@ export function camposDeAliada(b: BorradorAliada, otrosRuc: readonly string[], r
     {
       ...c("cuentas", "Cuentas para cobrar", false),
       requerido: p.cuentas !== null,
-      hecho: p.cuentas === null && b.cuentas.some((x) => !x.quitar),
+      hecho: p.cuentas === null && b.cuentas.some((x) => !x.quitar && !cuentaQueNoCuenta(x)),
     },
   ];
 }
@@ -291,7 +319,7 @@ export function argsGuardarAliada(b: BorradorAliada) {
     p_telefono: b.telefono.trim() || null,
     p_sedes: b.sedes,
     p_cuentas: b.cuentas
-      .filter((c) => c.id !== null || (!c.quitar && c.numero.trim() !== ""))
+      .filter((c) => (c.id !== null || (!c.quitar && c.numero.trim() !== "")) && !cuentaQueNoCuenta(c))
       .map((c) => ({
         id: c.id,
         medio: c.medio,

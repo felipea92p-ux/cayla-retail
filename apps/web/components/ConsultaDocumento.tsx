@@ -52,6 +52,9 @@ type Props = {
       tarjeta y es el que se imprime. Quien llama lo calcula con el número de cada momento, así que corregir un dígito lo
       apaga y se consulta como siempre (Felipe 2026-10-15). */
   conocido?: { nombre: string; origen: string } | null;
+  /** Para el RUC de una empresa aliada (ADR-0683, /formidable 2026-11-22): lo que explica va solo en su «?» (bajo la caja, «RUC válido.» y
+      nada más), el aviso sin padrón habla de la empresa y no del cliente, y el «?» suma `ayudaExtra` al final (la de la clave SOL). */
+  paraEmpresa?: { ayudaExtra?: string };
 };
 
 // El resultado guarda A QUÉ NÚMERO pertenece. Así, cambiar de boleta a factura o
@@ -76,7 +79,7 @@ const MOTIVO_LEGIBLE: Record<string, string> = {
   "El padrón no respondió a tiempo": "El padrón no respondió.",
 };
 
-export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre, onNombre, disparo = "automatico", contador = false, problemaExterno, sinNumero, conocido }: Props) {
+export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre, onNombre, disparo = "automatico", contador = false, problemaExterno, sinNumero, conocido, paraEmpresa }: Props) {
   const [consulta, setConsulta] = useState<Consulta | null>(null);
   // Qué se pidió por última vez, para no repetir la misma llamada (cada una se paga).
   const ultima = useRef<string>("");
@@ -203,11 +206,13 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
                     <svg aria-hidden viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
                       <path pathLength={1} d="m5 12.5 4.5 4.5L19 7.5" className="trazo-linea anim-trazo" />
                     </svg>
-                    RUC válido. «Buscar» trae la razón social desde {etiqueta.padron}; también puedes escribirla a mano.
+                    {paraEmpresa ? "RUC válido." : `RUC válido. «Buscar» trae la razón social desde ${etiqueta.padron}; también puedes escribirla a mano.`}
                   </span>
                 ),
                 tono: "ok",
               }
+          : disparo === "boton" && !actual && paraEmpresa
+            ? { pie: null, tono: "neutro" }
           : disparo === "boton" && !actual
             ? { pie: `Con los ${largoDocumento(tipo)} dígitos, «Buscar» trae el nombre desde ${etiqueta.padron}. También puedes escribirlo a mano.`, tono: "neutro" }
             : vacio && sinNumero
@@ -236,7 +241,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
       ayuda={
         <Ayuda titulo={`Consulta de ${tipo.toUpperCase()}`}>
           {disparo === "boton"
-            ? `Con el número completo, «Buscar» le pregunta a ${etiqueta.padron} de quién es y trae el nombre oficial. Si prefieres, o si la consulta no está disponible, el nombre se escribe a mano y se guarda igual.`
+            ? `Con el número completo, «Buscar» le pregunta a ${etiqueta.padron} de quién es y trae el nombre oficial. Si prefieres, o si la consulta no está disponible, el nombre se escribe a mano y se guarda igual.${paraEmpresa?.ayudaExtra ? ` ${paraEmpresa.ayudaExtra}` : ""}`
             : yaConocido
               ? `${yaConocido.origen}. Como el sistema ya tiene el nombre de este número, no se vuelve a consultar el padrón. Si cambias el número, se consulta de nuevo.`
               : `Al escribir el número completo, el sistema le pregunta a ${etiqueta.padron} de quién es y muestra el nombre debajo. Sirve para ver, antes de emitir, que el comprobante va a salir a nombre de quien debe. Si la consulta no está disponible, el nombre se escribe a mano y la venta sigue igual.${sinNumero ? ` ${sinNumero}` : ""}`}
@@ -272,11 +277,11 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
   return (
     <div className="space-y-1">
       {disparo === "boton" ? (
-        // El botón se alinea con el input, no con el pie: el pie reserva su
-        // alto siempre (ver <Campo>), así que se compensa con margen.
-        <div className="flex items-end gap-3">
+        // El botón se alinea con el TOPE de la caja, no con el pie: el pie cambia de alto según lo que diga («RUC válido.», un error), y
+        // alineado abajo el botón bajaba 5 px con él (/formidable 2026-11-22). 22.5 px es lo que mide la etiqueta del campo con su margen.
+        <div className="flex items-start gap-3">
           <div className="flex-1">{campoNumero}</div>
-          <BotonBuscar className="mb-[1.15rem] h-9 shrink-0 py-0" onClick={buscar} cargando={actual?.fase === "cargando"} disabled={!puedeBuscar} />
+          <BotonBuscar className="mt-[22.5px] h-9 shrink-0 py-0" onClick={buscar} cargando={actual?.fase === "cargando"} disabled={!puedeBuscar} />
         </div>
       ) : (
         campoNumero
@@ -324,8 +329,8 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
             </>
           ) : (
             <p className="text-xs leading-snug text-tinta/70">
-              {conPunto(MOTIVO_LEGIBLE[datos.motivo ?? ""] ?? datos.motivo ?? "Sin datos del padrón.")} Escribe el nombre a
-              mano y confírmalo con el cliente antes de emitir.
+              {conPunto(MOTIVO_LEGIBLE[datos.motivo ?? ""] ?? datos.motivo ?? "Sin datos del padrón.")}{" "}
+              {paraEmpresa ? "Escribe la razón social a mano, tal como figura en su ficha RUC." : "Escribe el nombre a mano y confírmalo con el cliente antes de emitir."}
             </p>
           )}
 

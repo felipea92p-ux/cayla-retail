@@ -13,7 +13,6 @@ import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { Casilla } from "@/components/ui/Casilla";
-import { Aviso } from "@/components/ui/Aviso";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -146,6 +145,7 @@ export function HojaEmpresaAliada({
                 obligatorio
                 disparo="boton"
                 contador
+                paraEmpresa={{ ayudaExtra: "Nunca te pediremos la clave SOL." }}
                 numero={b.ruc}
                 onNumero={(v) => cambia({ ruc: v })}
                 nombre={b.razonSocial}
@@ -243,6 +243,8 @@ export function HojaEmpresaAliada({
                           value={c.numero}
                           maxLength={40}
                           autoComplete="off"
+                          // sugerir-fijo: dice que esa cuenta ya venía sin número; no depende de lo elegido
+                          placeholder={c.sinNumeroDeOrigen ? "Sin número guardado" : undefined}
                           onChange={(ev) => cambiaCuenta(i, { numero: ev.target.value })}
                           pie={problema ?? undefined}
                           tono={problema ? "error" : undefined}
@@ -282,10 +284,6 @@ export function HojaEmpresaAliada({
                 {visibles.length > 0 && <p className="text-sm text-taupe">Lo que entre aquí es de ella: no suma a CAYLA.</p>}
               </div>
             </CampoGuiado>
-
-            <Aviso tono="info" chico>
-              Nunca te pediremos la clave SOL.
-            </Aviso>
 
             <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
               {/* Lo peligroso de una hoja que guarda va a la izquierda del pie, en la gota con letra roja (ADR-0358, «Lo peligroso»). */}

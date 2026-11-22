@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { digitoVerificadorRuc } from "@cayla-retail/shared";
 import {
   argsGuardarAliada,
+  cuentaQueNoCuenta,
+  fraseDeAliada,
+  rotuloDeAliada,
   camposDeComprobantes,
   chipLucode,
   fraseDePrueba,
@@ -223,5 +226,50 @@ describe("conexión con Lucode de una aliada (20261122213000)", () => {
     expect(fraseDePrueba("conectada", "produccion")).toBe("Lucode aceptó la llave.");
     expect(fraseDePrueba("conectada", "sandbox")).toContain("de pruebas");
     expect(fraseDePrueba("sin_respuesta", "produccion")).toContain("quedó como estaba");
+  });
+});
+
+describe("/formidable 2026-11-22: cuentas que no cuentan y la tarjeta que dice qué falta", () => {
+  const base = { ...BORRADOR_ALIADA_VACIO, nombre: "Aliada", ruc: "", regimen: null, sedes: [] as string[] };
+
+  it("una cuenta nueva que se abrió y quedó vacía no impide guardar ni viaja", () => {
+    const b = { ...base, cuentas: [{ id: null, medio: "yape" as const, banco: "", numero: "" }] };
+    expect(cuentaQueNoCuenta(b.cuentas[0])).toBe(true);
+    expect(problemasAliada(b, [], null).cuentas).toBeNull();
+    expect(argsGuardarAliada(b).p_cuentas).toEqual([]);
+  });
+
+  it("la cuenta que ya venía sin número (la de CLAURE) no se pide, no se renombra ni se archiva: no viaja", () => {
+    const b = borradorDeAliada({
+      id: "a", clave: "claure", nombre: "CLAURE", ruc: null, razonSocial: null, regimen: null, correo: null, telefono: null, sedes: [],
+      cuentas: [{ id: "c1", medio: "yape", nombre: "Yape de Claudia · LIM", numero: null, banco: null }],
+      bajaEl: null, bajaDetenida: null, entraACampanas: true, domicilioFiscal: null, comprobantes: null,
+    });
+    expect(b.cuentas[0].sinNumeroDeOrigen).toBe(true);
+    expect(problemasAliada(b, [], null).cuentas).toBeNull();
+    expect(argsGuardarAliada(b).p_cuentas).toEqual([]);
+    // Si le escriben el número, ya cuenta y se guarda como cualquiera.
+    const conNumero = { ...b, cuentas: [{ ...b.cuentas[0], numero: "987654321" }] };
+    expect(argsGuardarAliada(conNumero).p_cuentas).toHaveLength(1);
+    // Quitarla sigue siendo quitarla (archivar).
+    const quitada = { ...b, cuentas: [{ ...b.cuentas[0], quitar: true }] };
+    expect(argsGuardarAliada(quitada).p_cuentas).toEqual([expect.objectContaining({ id: "c1", quitar: true })]);
+  });
+
+  it("una cuenta que tenía número y se vació sí se archiva, como antes", () => {
+    const b = { ...base, cuentas: [{ id: "c2", medio: "yape" as const, banco: "", numero: "" }] };
+    expect(argsGuardarAliada(b).p_cuentas).toEqual([expect.objectContaining({ id: "c2", quitar: true })]);
+  });
+
+  it("la tarjeta dice qué falta, como las de sede", () => {
+    expect(fraseDeAliada({ ruc: null, regimen: null, sedes: [{ id: "x", nombre: "Lima" }] })).toBe("Falta RUC y régimen");
+    expect(fraseDeAliada({ ruc: null, regimen: null, sedes: [] })).toBe("Falta RUC, régimen y tiendas");
+    expect(fraseDeAliada({ ruc: "10000000001", regimen: "nuevo_rus", sedes: [{ id: "x", nombre: "Lima" }] })).toBeNull();
+  });
+
+  it("la razón social solo se muestra si dice algo distinto del nombre", () => {
+    expect(rotuloDeAliada({ nombre: "Claurè", razonSocial: "CLAURE", ruc: null })).toBeNull();
+    expect(rotuloDeAliada({ nombre: "Claurè", razonSocial: "Claudia Ríos Pérez", ruc: "10456789012" })).toBe("Claudia Ríos Pérez · RUC 10456789012");
+    expect(rotuloDeAliada({ nombre: "CLAURE", razonSocial: null, ruc: "10456789012" })).toBe("RUC 10456789012");
   });
 });

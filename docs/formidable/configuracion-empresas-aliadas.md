@@ -23,7 +23,7 @@ entorno local (sin `configuracion_empresa` ni llave del padrón), no se cuentan.
 | **Leyes (promedio)** | **6,2** | ley 3, 6 y 8 en 5 |
 | **Oficio visual** | **7** | [Medido] sección 2/8 y hoja 2/8, todo heredado de piezas del sistema (interruptor 38×22, globito 10,5 px, `casilla-input` 20 px con su etiqueta tocable, versalitas de 11 px); sin desborde a 1440, 1024 y 375. [Observado] «Buscar» queda ~18 px bajo la caja del RUC y su ayuda pega con «Razón social» |
 
-## Los 3 cambios de mayor impacto (esperan el OK de Felipe)
+## Los 3 cambios de mayor impacto (Felipe dio el OK el 2026-11-22: aplicados)
 1. **La tarjeta dice si la aliada está lista para vender.** Antes: «Sin RUC» y nada más. Después: la línea «Falta RUC, régimen…» como las
    tarjetas de sede, y la razón social solo si es distinta del nombre. Ley 3 y 9. Se verifica con CLAURE (hoy sin RUC ni régimen). S. Presentación.
 2. **Una cuenta que se abrió y quedó vacía no impide guardar.** Antes: «Agregar una cuenta» + nada escrito = «Falta: Cuentas para cobrar» y
@@ -70,3 +70,18 @@ del padrón copiado de Vender y la tarjeta que no distingue una aliada a medias.
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-11-21 | eb9687562 | 6,2 | 7 | — (esperan el OK) |
+| 2026-11-22 | (este PR) | 6,9 | 7,5 | 1, 2, 3 y el Yape de CLAURE («b») |
+
+## Cerrado el 2026-11-22 (antes → después, al mismo ancho, 1440 × 900; capturas en `.chaos/f-*` y `.chaos/f2-*`, fuera de git)
+1. **La tarjeta dice qué le falta.** Antes: «Sin RUC» y nada más. Después: «Falta RUC, régimen y tiendas» en ámbar, como las tarjetas de sede, y la razón
+   social solo si dice algo distinto del nombre (`fraseDeAliada`, `rotuloDeAliada`). Sin régimen ni tiendas ya no queda una fila vacía en la tarjeta. [Observado]
+2. **Una cuenta abierta y vacía no impide guardar.** Antes: «Falta: Cuentas para cobrar». Después: el pie dice «Sigue: Nombre · quedan 3 más» y la fila vacía
+   no viaja (`cuentaQueNoCuenta`). [Medido en el navegador y en `empresas-aliadas-reglas.test.ts`]
+3. **Lo que explica, a un toque.** El RUC dice bajo la caja solo «RUC válido.»; lo demás y «Nunca te pediremos la clave SOL.» van en su «?» (`paraEmpresa` de
+   `ConsultaDocumento`; Proveedores no cambia de texto). Sin padrón: «Escribe la razón social a mano, tal como figura en su ficha RUC.» «Entra a las campañas de
+   CAYLA» tiene su «?». «Buscar» quedó alineado con el tope de la caja en todo estado: antes bajaba 5 px con «RUC válido.» (también en Proveedores). [Medido]
+4. **El Yape de CLAURE (camino «b»).** Una cuenta que ya venía sin número no se pide, no se renombra ni se archiva: no viaja a la base mientras siga vacía; su
+   caja dice «Sin número guardado». Probado en local con la misma cuenta que producción («Yape de Claudia · LIM», sin número): se guardó RUC y Nuevo RUS y la
+   cuenta quedó con su nombre, sin número y activa. [Medido en la base local, restaurada después]
+
+Notas nuevas [Opinión, sin otra prueba ciega]: leyes 3 → 6, 6 → 6, 7 → 7, 8 → 6, 9 → 7; oficio 7,5 por la alineación medida.

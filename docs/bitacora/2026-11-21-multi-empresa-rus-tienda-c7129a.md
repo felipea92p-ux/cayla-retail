@@ -40,3 +40,8 @@ Felipe se lleva: ya puede dejar conectada a CLAURE el día que tenga su llave. N
 
 ## 2026-11-22 (/chaos en la base, aplicado)
 La migración `20261121203000` (nombre invisible y altas a la vez) ya está en producción: la huella de `guardar_empresa_aliada` coincide con la del repo.
+
+## 2026-11-22 (/formidable de Empresas aliadas: los 3 cambios y el Yape de CLAURE)
+Qué hice: la tarjeta de una aliada dice qué le falta («Falta RUC, régimen y tiendas») y no repite la razón social si es su nombre; una cuenta nueva vacía ya no impide guardar; el RUC explica en su «?» (también la clave SOL), el padrón caído habla de la empresa, «Entra a las campañas» tiene su «?» y «Buscar» quedó alineado con la caja (también en Proveedores). La cuenta de CLAURE que no tiene número ya no se pide ni se renombra ni se archiva (camino «b»).
+Por qué así: Felipe aprobó los 3 cambios y la «b». Para cargarle el RUC a CLAURE, la hoja pedía el Yape de Claudia, y quitarla habría archivado la cuenta de sus cobros.
+Felipe se lleva: ya puede editar CLAURE en producción y cargarle RUC y régimen sin tocar su Yape. Probado en local con la misma cuenta que producción: guardó, y la cuenta siguió igual.
