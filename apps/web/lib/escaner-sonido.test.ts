@@ -37,6 +37,7 @@ const SUENAN_SOLOS = ["components/EscanerBusqueda.tsx", "components/EscanerCamar
 /** Quien dibuja `EscanerConteo` → el archivo donde suena su lectura (el mismo camino que la pistola). */
 const SUENA_EN: Record<string, string> = {
   "components/BajarAlPisoForm.tsx": "components/BajarAlPisoForm.tsx",
+  "components/barrido-piso/BarridoPiso.tsx": "components/barrido-piso/BarridoPiso.tsx",
   "components/conteo/ContarConteo.tsx": "components/conteo/ContarConteo.tsx",
   "components/cuadre-piso/CuadrarPisoForm.tsx": "components/cuadre-piso/CuadrarPisoForm.tsx",
   "components/traslados-pases/ReversoPase.tsx": "components/traslados-pases/useRecepcion.ts",

@@ -2366,3 +2366,65 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
   ],
   alSalir: [{ tipo: "escape" }, { tipo: "clic", ancla: "recepcion.filtros", para: "cerrar" }],
 };
+
+export const GUIA_BARRIDO_PISO: Guia = {
+  id: "inventario.barrido",
+  ruta: "/inventario/barrido",
+  titulo: "Barrido del piso",
+  resumen: "Escanear todo lo colgado entre varias personas, cada una desde su celular.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Escanear lo colgado",
+      texto: "Entre una o varias personas escanean todo lo que está colgado. Cada una desde su celular, sin repartirse zonas: lo de todas se suma. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "responsable",
+      ancla: "barrido.responsable",
+      titulo: "Tu nombre primero",
+      texto: "Elige tu nombre: cada prenda que escanees queda a tu nombre y con su hora. Si le pasas el celular a otra persona, cámbialo aquí.",
+    },
+    {
+      id: "empezar",
+      ancla: "barrido.empezar",
+      opcional: true,
+      titulo: "Empezar o sumarte",
+      texto: "Si nadie empezó, toca «Empezar el barrido». Si ya hay uno en curso, entras directo y te sumas.",
+    },
+    {
+      id: "cifras",
+      ancla: "barrido.cifras",
+      opcional: true,
+      titulo: "Lo que lleva el equipo",
+      texto: "Cuántas prendas escaneó todo el equipo, cuántas tú y quién está escaneando ahora. Abajo dice si lo tuyo ya se guardó.",
+    },
+    {
+      id: "escaner",
+      ancla: "barrido.escaner",
+      opcional: true,
+      titulo: "Escanea con la pistola",
+      texto: "Cada lectura suma 1 y suena. Si la misma prenda se repite, suena distinto y te pregunto antes de sumarla. Con 12 iguales, toca «Cambiar cantidad».",
+    },
+    {
+      id: "camara",
+      ancla: "barrido.camara",
+      opcional: true,
+      titulo: "O con la cámara",
+      texto: "Sin pistola, la cámara del celular lee las etiquetas una tras otra y te muestra la foto de cada prenda.",
+    },
+    {
+      id: "ultima",
+      ancla: "barrido.ultima",
+      opcional: true,
+      titulo: "La que acabas de escanear",
+      texto: "Su foto, talla, color y marca, y cuántas de esa prenda lleva el equipo. Mírala para saber que leyó la correcta.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes escanear en el barrido. Para repasarlo: Mi perfil ▸ Demo ▸ Barrido del piso.",
+    },
+  ],
+};

@@ -127,6 +127,8 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ADR-0328 (actividad 3): nace con su guía. Escanear: «Lo guardado» (o «no hay nada guardado») y lo que hay que volver a escanear;
   // confirmar: quién cuadra y, si la sede ya se cuadró, por qué se vuelve a cuadrar (lo exige la base). Lógica en lib/cuadre-piso-reglas.ts.
   "/inventario/cuadrar": { estado: "aplicada", evidencia: ["components/cuadre-piso/CuadrarPisoForm.tsx"] },
+  // El barrido del piso (ADR-0690): quién escanea (sin eso la base no guarda) y, ya abierto, lo colgado. Lógica en lib/barrido-piso-reglas.ts.
+  "/inventario/barrido": { estado: "aplicada", evidencia: ["components/barrido-piso/BarridoPiso.tsx"] },
   "/inventario/conteo": { estado: "aplicada", evidencia: ["components/AbrirConteo.tsx"] },
   "/inventario/conteo/[id]": PENDIENTE,
   // ADR-0328 (actividad 15): su único campo es «¿Quién cierra el conteo?», que aparece solo cuando hay que preguntarlo (terminal y conteo

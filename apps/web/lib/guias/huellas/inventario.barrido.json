@@ -1,0 +1,25 @@
+{
+  "guia": "inventario.barrido",
+  "ruta": "/inventario/barrido",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 11,
+  "controles": {
+    "app/(app)/inventario/barrido/page.tsx": [
+      "Volver «/inventario»"
+    ],
+    "components/EscanerConteo.tsx": [
+      "button «Cerrar la cámara»",
+      "button «Escribir el código»",
+      "button «Dar de alta»",
+      "button «Una menos»",
+      "button «Una más»",
+      "button «Listo»"
+    ],
+    "components/barrido-piso/BarridoPiso.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Empezar el barrido»",
+      "input «Escanea o escribe el código»",
+      "button «barrido.camara»"
+    ]
+  }
+}

@@ -729,6 +729,12 @@ export const PRUEBAS = [
   // cuadra dos veces; Frescura no lo lee como bajadas (núcleo) y lo bajado llega con edad desconocida. Cada caso en ROLLBACK.
   "pruebas:cuadrar-piso",
 
+  // «El barrido del piso» (ADR-0690, actividad 1): un barrido abierto por sede al que se suma quien llega; cada lectura es una
+  // fila con quién y a qué hora, y dos personas en la misma prenda se SUMAN (no se pisan como en Conteo); el mismo lote
+  // reenviado no cuenta dos veces; lo escaneado no se edita ni se borra; un barrido cerrado no recibe lecturas; abrir y
+  // escanear no tocan stock; 1.200 lecturas entran dentro del statement_timeout. Cada caso en ROLLBACK.
+  "pruebas:barrido-piso",
+
   // La caja registra la bajada que se olvidó (ADR-0321): `bajar_al_piso_desde_vender` pide VENDER (no Existencias: la
   // Terminal de ventas baja), baja solo lo que falta para el ticket (0 si otra persona ya la registró), lo apartado no
   // cuenta, sin almacén libre no mueve nada, firma el responsable, la misma marca no baja dos veces, y su fila del libro es
