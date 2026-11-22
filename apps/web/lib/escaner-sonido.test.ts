@@ -93,3 +93,15 @@ describe("ninguna cámara lee en silencio", () => {
     }
   });
 });
+
+// «Ya la escaneaste» no suena igual que «este código no existe» (ADR-0690): toda pantalla que abre la pregunta de la lectura
+// repetida (`decidirLectura`, ADR-0562) suena con `repetida`. Con la pistola se mira el estante: el oído tiene que distinguirlas.
+describe("la lectura repetida suena a repetida", () => {
+  it("toda pantalla que pregunta «¿Sumar otra?» suena con avisarLectura(\"repetida\")", () => {
+    const preguntan = archivos.filter((ruta) => !ruta.startsWith("lib/") && leidos.get(ruta)!.llamadas.has("decidirLectura")).sort();
+    expect(preguntan.length).toBeGreaterThanOrEqual(3);
+    const sinComentarios = (ruta: string) => readFileSync(join(WEB, ruta), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+    const mudas = preguntan.filter((ruta) => !/avisarLectura\(\s*"repetida"\s*\)/.test(sinComentarios(ruta)));
+    expect(mudas, "Estas pantallas preguntan «¿Sumar otra?» sin el sonido de la repetida").toEqual([]);
+  });
+});
