@@ -2,7 +2,7 @@
   "guia": "inventario.barrido",
   "ruta": "/inventario/barrido",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 26,
+  "total": 35,
   "controles": {
     "app/(app)/inventario/barrido/page.tsx": [
       "Volver «/inventario»"
@@ -18,25 +18,36 @@
     "components/barrido-piso/BarridoPiso.tsx": [
       "ComboResponsable «{responsable}»",
       "Boton «Empezar el barrido»",
-      "input «Escanea o escribe el código»",
+      "input «Escanea, o escribe el código o el nombre»",
       "button «barrido.camara»",
+      "button «barrido.sin-etiqueta»",
       "button «barrido.escaneado»",
       "button «Recargar»",
+      "button «Apartar con foto»",
       "Boton «Sí, descartar»",
       "Boton «No»",
       "Boton «Reintentar»",
       "button «Descartar»"
     ],
+    "components/barrido-piso/HojaApartar.tsx": [
+      "input «(sin nombre)»",
+      "CampoTexto «Cómo es (opcional)»",
+      "Boton «Cancelar»",
+      "Boton «Apartar»"
+    ],
     "components/barrido-piso/HojaLoEscaneado.tsx": [
       "button «Todas»",
       "button «{nombre}»",
-      "Boton «Quitar tramo»",
       "Boton «Sí, quitar»",
       "Boton «No»",
-      "BotonVerMas «(sin nombre)»",
+      "Boton «Quitar»",
+      "Boton «Quitar tramo»",
       "Boton «Sí, quitar» #2",
       "Boton «No» #2",
-      "Boton «Quitar»"
+      "BotonVerMas «(sin nombre)»",
+      "Boton «Sí, quitar» #3",
+      "Boton «No» #3",
+      "Boton «Quitar» #2"
     ]
   }
 }

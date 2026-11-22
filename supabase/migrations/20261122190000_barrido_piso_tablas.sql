@@ -10,7 +10,7 @@
 -- equipo reconozca de dónde a dónde se contó si algo salió mal. Conteo tampoco sirve: cada aparato manda «su total» de la
 -- prenda y la base lo PISA (gana el último guardado, `conteo_contar`), y no guarda quién contó.
 --
--- QUÉ HACE. Dos tablas nuevas. `movimientos`, `stock`, `cuadres_piso` y `conteos` NO cambian:
+-- QUÉ HACE. Tres tablas nuevas. `movimientos`, `stock`, `cuadres_piso` y `conteos` NO cambian:
 --   · `barridos_piso`: el barrido de una sede — quién lo abrió, cuándo y su estado. A lo sumo UNO abierto por sede: quien
 --     llega se suma al que está (`abrir_barrido_piso` devuelve el abierto en vez de crear otro).
 --   · `barrido_piso_lecturas`: UNA fila por lectura (un escaneo, o una pila declarada con «Cambiar cantidad»), con la persona
@@ -18,6 +18,7 @@
 --     aparato al leerla (llegan distintas si la lectura esperó en la cola de un teléfono sin red). El total de una prenda es
 --     la SUMA de sus lecturas: dos personas que escanean la misma blusa se suman, nunca se pisan.
 --     Su `id` lo genera el aparato: reenviar la misma lectura tras un corte no la cuenta dos veces.
+--   · `barrido_piso_hallazgos` (actividad 4): lo que se encontró colgado y NO se pudo escanear, aparte, con su foto.
 --
 -- ESTADO QUE DEJA DE SER POSIBLE (lo niega el esquema, no una validación en la pantalla)
 --   · dos barridos abiertos en la misma sede                 → índice único parcial barridos_piso_uno_abierto
@@ -31,6 +32,9 @@
 --     (actividad 3: quitar una lectura repetida o un tramo contado de más es una ANULACIÓN con quién, cuándo y por qué; la
 --     lectura sigue ahí, tachada, y deja de sumar. Nunca un DELETE: «de dónde a dónde se contó» tiene que poder verse después)
 --   · una anulación a medias (con fecha y sin quién, o al revés) → check barrido_piso_lecturas_anulacion_completa
+--   · algo apartado (actividad 4: sin etiqueta o código desconocido) que después no se pueda reconocer → check
+--     barrido_piso_hallazgos_se_reconoce (foto, nota o código); un «código desconocido» sin su código → check; editarlo o
+--     registrarlo con el barrido cerrado → disparador fn_barrido_piso_hallazgo_valido
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN. Sola, tal cual (trae `retail.` y su `search_path`), ANTES de la parte 2. Las llaves foráneas
 -- hacia ubicaciones, variantes y public.personas toman un candado breve: va SIN políticas (las tablas solo se leen y escriben
@@ -201,6 +205,76 @@ create or replace trigger barridos_piso_sin_borrar
 create or replace trigger barridos_piso_sin_truncate
   before truncate on retail.barridos_piso
   for each statement execute function retail.fn_barrido_piso_es_historia();
+
+-- ---------------------------------------------------------------------------
+-- Actividad 4: lo que no se puede escanear. Una prenda colgada SIN etiqueta, o con un código que el catálogo no conoce, no se
+-- frena el barrido por ella: se registra APARTE con cuántas son, una foto rápida (o una nota) para reconocerla después, quién y
+-- cuándo, y se resuelve en «Por resolver» (actividad 6). No es una lectura: todavía no se sabe qué prenda es, así que no suma a
+-- ninguna prenda ni se mueve al confirmar.
+-- ---------------------------------------------------------------------------
+create table if not exists retail.barrido_piso_hallazgos (
+  id uuid primary key,
+  barrido_id uuid not null references retail.barridos_piso (id),
+  tipo text not null check (tipo in ('sin_etiqueta', 'codigo_desconocido')),
+  codigo text check (codigo is null or char_length(codigo) between 1 and 120),
+  cantidad integer not null default 1 check (cantidad between 1 and 500),
+  nota text check (nota is null or (nota = btrim(nota) and char_length(nota) between 1 and 200)),
+  foto_ruta text unique check (foto_ruta is null or foto_ruta like barrido_id::text || '/%'),
+  persona_id uuid not null references public.personas (id),
+  registrado_en timestamptz not null default clock_timestamp(),
+  anulada_en timestamptz,
+  anulada_por uuid references public.personas (id),
+  constraint barrido_piso_hallazgos_codigo_si_desconocido check (tipo <> 'codigo_desconocido' or codigo is not null),
+  constraint barrido_piso_hallazgos_se_reconoce check (foto_ruta is not null or nota is not null or codigo is not null),
+  constraint barrido_piso_hallazgos_anulacion_completa check ((anulada_en is null) = (anulada_por is null) and (anulada_en is null or anulada_en >= registrado_en))
+);
+
+create index if not exists barrido_piso_hallazgos_barrido_idx on retail.barrido_piso_hallazgos (barrido_id, registrado_en);
+
+comment on table retail.barrido_piso_hallazgos is
+  'ADR-0690 (actividad 4): lo que se encontró colgado y no se pudo escanear (sin etiqueta, o con un código que el catálogo no conoce), con cuántas, una foto o nota para reconocerlo, quién y cuándo. Se resuelve en «Por resolver»; no suma a ninguna prenda.';
+comment on column retail.barrido_piso_hallazgos.foto_ruta is 'La foto en el bucket privado retail-barridos: <barrido>/<hallazgo>.jpg.';
+comment on column retail.barrido_piso_hallazgos.codigo is 'El código que leyó el escáner y el catálogo no conoce (codigo_desconocido).';
+
+create or replace function retail.fn_barrido_piso_hallazgo_valido()
+returns trigger
+language plpgsql
+set search_path = retail, public, extensions
+as $fn$
+begin
+  if (select b.estado from retail.barridos_piso b where b.id = coalesce(new.barrido_id, old.barrido_id)) is distinct from 'abierto' then
+    raise exception 'Este barrido ya se cerró.' using hint = 'barrido_cerrado';
+  end if;
+  if tg_op = 'UPDATE' then
+    -- La única edición posible: quitarlo, una vez y sin tocar nada más.
+    if not (old.anulada_en is null and new.anulada_en is not null
+            and (new.id, new.barrido_id, new.tipo, new.codigo, new.cantidad, new.nota, new.foto_ruta, new.persona_id, new.registrado_en)
+                is not distinct from
+                (old.id, old.barrido_id, old.tipo, old.codigo, old.cantidad, old.nota, old.foto_ruta, old.persona_id, old.registrado_en)) then
+      raise exception 'Lo registrado en un barrido no se edita: solo se puede quitar, una vez.' using hint = 'barrido_inmutable';
+    end if;
+  end if;
+  return new;
+end;
+$fn$;
+
+comment on function retail.fn_barrido_piso_hallazgo_valido() is
+  'ADR-0690: lo que se aparta en un barrido entra solo con el barrido abierto, y después solo se puede quitar (una vez, sin cambiar nada más).';
+
+create or replace trigger barrido_piso_hallazgos_validos
+  before insert or update on retail.barrido_piso_hallazgos
+  for each row execute function retail.fn_barrido_piso_hallazgo_valido();
+
+create or replace trigger barrido_piso_hallazgos_sin_borrar
+  before delete on retail.barrido_piso_hallazgos
+  for each row execute function retail.fn_barrido_piso_es_historia();
+
+create or replace trigger barrido_piso_hallazgos_sin_truncate
+  before truncate on retail.barrido_piso_hallazgos
+  for each statement execute function retail.fn_barrido_piso_es_historia();
+
+alter table retail.barrido_piso_hallazgos enable row level security;
+revoke all on retail.barrido_piso_hallazgos from public, anon, authenticated;
 
 alter table retail.barridos_piso enable row level security;
 alter table retail.barrido_piso_lecturas enable row level security;

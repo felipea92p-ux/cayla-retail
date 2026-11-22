@@ -52,6 +52,8 @@ export type BarridoAbierto = {
   prendas: number;
   porPrenda: Record<string, number>;
   personas: PersonaBarrido[];
+  /** Lo apartado (sin etiqueta o código desconocido, actividad 4) que sigue contando. */
+  aparte: number;
 };
 
 export type EstadoBarrido = { separa: boolean; barrido: BarridoAbierto | null };
@@ -98,6 +100,7 @@ export function leerEstadoBarrido(x: unknown): EstadoBarrido {
       prendas: entero(b.prendas),
       porPrenda: leerPorPrenda(b.por_prenda),
       personas,
+      aparte: entero(b.aparte),
     },
   };
 }
@@ -482,4 +485,93 @@ export function textoDeTramo(desde: string, hasta: string): string {
   const a = h(desde);
   const b = h(hasta);
   return a === b ? a : `${a} a ${b}`;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Lo que no se puede escanear (actividad 4): buscar por nombre, y apartar con foto lo que no tiene etiqueta o no existe.
+// ---------------------------------------------------------------------------------------------------------------------
+
+export const RPC_REGISTRAR_HALLAZGO = "registrar_hallazgo_barrido";
+export const RPC_HALLAZGOS_BARRIDO = "fn_barrido_piso_hallazgos";
+export const RPC_ANULAR_HALLAZGO = "anular_hallazgo_barrido";
+export const BUCKET_FOTOS_BARRIDO = "retail-barridos";
+export const NOTA_MAXIMA_HALLAZGO = 200;
+
+export type TipoHallazgo = "sin_etiqueta" | "codigo_desconocido";
+
+export type Hallazgo = {
+  id: string;
+  tipo: TipoHallazgo;
+  codigo: string | null;
+  cantidad: number;
+  nota: string | null;
+  fotoRuta: string | null;
+  nombre: string;
+  registradoEn: string;
+  anuladaEn: string | null;
+  anuladaPor: string | null;
+};
+
+/** La foto de un hallazgo en el bucket privado: la carpeta es el barrido (la política del bucket lo exige). */
+export function rutaFotoHallazgo(barridoId: string, hallazgoId: string): string {
+  return `${barridoId}/${hallazgoId}.jpg`;
+}
+
+/** Lo que devuelve `fn_barrido_piso_hallazgos`. Lo que no tiene forma se ignora. */
+export function leerHallazgos(x: unknown): Hallazgo[] {
+  if (!Array.isArray(x)) return [];
+  return x.filter(esObjeto).flatMap((h) => {
+    const id = texto(h.id);
+    const tipo = h.tipo === "sin_etiqueta" || h.tipo === "codigo_desconocido" ? h.tipo : null;
+    const registradoEn = texto(h.registrado_en);
+    if (!id || !tipo || !registradoEn) return [];
+    return [
+      {
+        id,
+        tipo,
+        codigo: texto(h.codigo),
+        cantidad: entero(h.cantidad),
+        nota: texto(h.nota),
+        fotoRuta: texto(h.foto_ruta),
+        nombre: texto(h.nombre) ?? "Alguien del equipo",
+        registradoEn,
+        anuladaEn: texto(h.anulada_en),
+        anuladaPor: texto(h.anulada_por),
+      },
+    ];
+  });
+}
+
+const sinTildes = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+/**
+ * Las prendas que calzan con lo escrito, por NOMBRE (modelo, talla, color, marca), para la prenda cuya etiqueta no se lee: cada
+ * palabra tiene que ser el COMIENZO de una palabra de la prenda, sin tildes ni mayúsculas y en cualquier orden («emma blusa m»
+ * encuentra «Blusa Emma · M» y no la S: la «m» de «Emma» no cuenta). Con menos de 2 letras en total, nada. Se elige TOCANDO la foto, nunca con Enter (la pistola remata con Enter y elegiría sola).
+ */
+export function sugerirPorNombre<T extends PrendaBarrido>(textoBuscado: string, prendas: readonly T[], max = 6): T[] {
+  const palabras = sinTildes(textoBuscado).split(/\s+/).filter(Boolean);
+  if (palabras.join("").length < 2) return [];
+  const res: T[] = [];
+  for (const p of prendas) {
+    const fichas = sinTildes([p.referencia, p.talla, p.color, p.marca, p.sku].filter(Boolean).join(" ")).split(/[\s·-]+/);
+    if (palabras.every((w) => fichas.some((f) => f.startsWith(w)))) {
+      res.push(p);
+      if (res.length >= max) break;
+    }
+  }
+  return res;
+}
+
+/**
+ * La guía de la hoja «Apartar» (ADR-0284): lo único que se exige es algo para reconocerla después —la foto o una nota— (lo mismo
+ * que exige la base: barrido_piso_hallazgos_se_reconoce). Un código desconocido ya trae su código, así que ahí la foto es sugerida.
+ */
+export function camposGuiaApartar({ tipo, conFoto, nota }: { tipo: TipoHallazgo; conFoto: boolean; nota: string }): CampoDeGuia[] {
+  const reconoce = conFoto || nota.trim().length > 0;
+  return [
+    tipo === "codigo_desconocido"
+      ? { id: "foto", nombre: "Foto", requerido: false, sugerido: true, hecho: reconoce, pendiente: "Tómale una foto: así se reconoce después." }
+      : { id: "foto", nombre: "Foto o nota", requerido: true, hecho: reconoce, pendiente: "Tómale una foto (o escribe cómo es) para reconocerla después." },
+  ];
 }

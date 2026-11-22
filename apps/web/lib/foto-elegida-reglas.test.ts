@@ -142,6 +142,7 @@ describe("toda foto de prenda que se elige pasa por la puerta", () => {
     "components/ConfiguracionTiendaWeb.tsx": { aparte: "foto de la fachada de una tienda: `prepararFotoDeTienda`" },
     "components/DetalleMuestraModal.tsx": { aparte: "muestra de un tejido o patrón: `muestra-atributo.ts`" },
     "components/PerfilModal.tsx": { aparte: "foto de perfil de una persona" },
+    "components/barrido-piso/HojaApartar.tsx": { aparte: "foto rápida de una prenda sin etiqueta para reconocerla después (barrido del piso), no del catálogo: `reducirMuestra`" },
     "components/campanas-web/EditorCampana.tsx": { aparte: "imagen de una campaña: `imagen-de-campana.ts`" },
     "components/existencias/FlujoTalla.tsx": { aparte: "foto de una prenda dañada (cuarentena), no del catálogo" },
     "components/finanzas/SubirPropuestaSireModal.tsx": { aparte: "archivo de SUNAT (SIRE), no es una foto" },

@@ -2414,6 +2414,13 @@ export const GUIA_BARRIDO_PISO: Guia = {
       texto: "Sin pistola, la cámara del celular lee las etiquetas una tras otra y te muestra la foto de cada prenda.",
     },
     {
+      id: "sin-etiqueta",
+      ancla: "barrido.sin-etiqueta",
+      opcional: true,
+      titulo: "Si no se puede escanear",
+      texto: "Una prenda sin etiqueta: tócalo, tómale una foto y ponla en la caja «Por etiquetar». Si la etiqueta no se lee, escribe el nombre y toca la prenda en la lista.",
+    },
+    {
       id: "escaneado",
       ancla: "barrido.escaneado",
       opcional: true,

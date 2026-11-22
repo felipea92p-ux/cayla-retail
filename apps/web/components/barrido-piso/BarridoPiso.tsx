@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Camera, ListChecks, ScanBarcode, ScanLine } from "lucide-react";
+import { Camera, ListChecks, ScanBarcode, ScanLine, Tag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { EscanerConteo, type LecturaConteo } from "@/components/EscanerConteo";
 import { HojaLoEscaneado } from "@/components/barrido-piso/HojaLoEscaneado";
+import { HojaApartar } from "@/components/barrido-piso/HojaApartar";
+import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Aviso as AvisoLinea } from "@/components/ui/Aviso";
@@ -30,6 +32,7 @@ import {
   REINTENTO_MS,
   RPC_ABRIR_BARRIDO,
   RPC_ANULAR_LECTURAS,
+  RPC_ANULAR_HALLAZGO,
   RPC_ESTADO_BARRIDO,
   RPC_REGISTRAR_LECTURAS,
   camposGuiaBarrido,
@@ -40,6 +43,7 @@ import {
   momentoDelLote,
   prefijoColaBarrido,
   personasDelBarrido,
+  sugerirPorNombre,
   serializarCola,
   textoDeSubida,
   unidadesDe,
@@ -59,6 +63,7 @@ import {
   type LecturaApartada,
   type LecturaBarrido,
   type PrendaBarrido,
+  type TipoHallazgo,
 } from "@/lib/barrido-piso-reglas";
 
 /* ====================================================================
@@ -73,7 +78,8 @@ import {
    misma blusa, y eso no es repetir.
    ==================================================================== */
 
-type Aviso = { texto: string; tono: "ambar" | "rojo" };
+/** `apartar`: el código desconocido que se puede apartar con foto desde el mismo aviso. */
+type Aviso = { texto: string; tono: "ambar" | "rojo"; apartar?: string };
 
 const nombreDe = (p: PrendaBarrido | undefined) => (p ? [p.referencia, p.talla, p.color].filter(Boolean).join(" · ") : "Esta prenda");
 
@@ -107,6 +113,9 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
   const [abriendo, setAbriendo] = useState(false);
   const [camara, setCamara] = useState(false);
   const [verEscaneado, setVerEscaneado] = useState(false);
+  // Lo que no se puede escanear (actividad 4): apartar con foto, y lo escrito que busca por nombre.
+  const [apartar, setApartar] = useState<{ tipo: TipoHallazgo; codigo: string | null } | null>(null);
+  const [buscado, setBuscado] = useState("");
   const [destello, setDestello] = useState(0);
   const repetidaRef = useRef<EstadoRepetida>(ESTADO_REPETIDA_VACIO);
   const [repetida, setRepetida] = useState<EstadoRepetida>(ESTADO_REPETIDA_VACIO);
@@ -131,6 +140,8 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
   const quienes = barrido ? quienesEscanean(barrido.personas, ahora) : null;
   // Cada persona con lo suyo en la base más lo suyo que espera en este celular: la lista y «tú» dicen lo mismo.
   const personas = barrido ? personasDelBarrido(barrido.personas, ahora).map((p) => ({ ...p, unidades: unidadesDe(p.personaId, barrido.personas, cola) })) : [];
+  // Lo escrito que NO es un código: las prendas que calzan por nombre, para tocar la de la foto (nunca con Enter).
+  const sugeridas = buscado.trim() && !resolverCodigoV2(buscado, prendas) ? sugerirPorNombre(buscado, prendas) : [];
   const guia = useGuiaCampos(camposGuiaBarrido({ responsableListo: responsable.listo, escaneadas: misUnidades, abierto: Boolean(barrido) }), { enModal: false });
 
   useEffect(() => {
@@ -363,6 +374,18 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
     return null;
   }
 
+  /** Quitar algo apartado por error (sin borrarlo). Devuelve el error, o null. */
+  async function anularAparte(id: string): Promise<string | null> {
+    const b = barridoRef.current;
+    if (!b) return "No hay un barrido abierto.";
+    if (!responsable.listo) return "Elige quién está quitando: arriba, en «Quién escanea».";
+    const { data, error } = await firmar(supabase.rpc(RPC_ANULAR_HALLAZGO as never, { p_barrido_id: b.id, p_id: id } as never), responsable.firma());
+    if (error) return textoDeRechazo(error.hint) ?? `No se pudo quitar: ${error.message}`;
+    const aparte = Number((data as { aparte?: unknown } | null)?.aparte ?? b.aparte);
+    if (barridoRef.current) setBarrido({ ...barridoRef.current, aparte: Number.isFinite(aparte) ? aparte : b.aparte });
+    return null;
+  }
+
   /** «Reintentar»: lo apartado vuelve a la cola, de a una. */
   function reintentarApartadas() {
     const vuelven: LecturaBarrido[] = apartadasRef.current.map((a) => ({ id: a.id, varianteId: a.varianteId, cantidad: a.cantidad, codigo: a.codigo, leidaEnAparato: a.leidaEnAparato, firma: a.firma }));
@@ -425,9 +448,14 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
     const p = resolverCodigoV2(codigo, prendas);
     if (!p) {
       avisarLectura("desconocida");
-      setAviso({ texto: `«${codigo}» no es de ninguna prenda del catálogo. Déjala aparte por ahora.`, tono: "ambar" });
+      setAviso({ texto: `«${codigo}» no es de ninguna prenda del catálogo.`, tono: "ambar", apartar: codigo });
       return { encontrada: false, codigo };
     }
+    return leerPrenda(p, codigo);
+  }
+
+  /** Una prenda reconocida (por su código, o tocada en la lista por nombre): la lectura repetida y, si va, se suma. */
+  function leerPrenda(p: PrendaBarrido, codigo: string | null): LecturaConteo {
     const lleva = miasRef.current[p.varianteId] ?? 0;
     const decision = decidirLectura(p.varianteId, lleva, true, repetidaRef.current);
     if (decision.tipo === "ignora") {
@@ -543,7 +571,7 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
           {textoDeSubida({ enCola, enLinea, frenada })}
         </TarjetaCifra>
         <TarjetaCifra className="hidden sm:flex" etiqueta="Prendas distintas" valor={Object.values(aLaVista).filter((n) => n > 0).length.toLocaleString("es-PE")}>
-          Tallas y colores ya vistos
+          {barrido.aparte > 0 ? `Y ${barrido.aparte.toLocaleString("es-PE")} aparte, por resolver` : "Tallas y colores ya vistos"}
         </TarjetaCifra>
       </div>
 
@@ -567,20 +595,52 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
                   autoCorrect="off"
                   spellCheck={false}
                   enterKeyHint="enter"
-                  placeholder="Escanea o escribe el código" // sugerir-fijo: dice cómo se escanea; no depende de nada elegido antes en esta pantalla (corto: cabe a 375 px)
+                  placeholder="Escanea, o escribe el código o el nombre" // sugerir-fijo: dice cómo se escanea; no depende de nada elegido antes en esta pantalla (corto: cabe a 375 px)
+                  {...ariaDelBuscador("barrido-sugeridas", sugeridas.length > 0, null)}
+                  onChange={(e) => setBuscado(e.currentTarget.value)}
                   onKeyDown={(e) => {
                     if (e.key !== "Enter") return;
                     e.preventDefault();
                     const texto = e.currentTarget.value;
+                    // Un nombre no se elige con Enter (la pistola remata con Enter): queda escrito y se toca la prenda de la lista.
+                    if (!resolverCodigoV2(texto, prendas) && sugerirPorNombre(texto, prendas).length > 0) return;
                     e.currentTarget.value = "";
+                    setBuscado("");
                     leer(texto);
                   }}
                 />
               </div>
+              {sugeridas.length > 0 && (
+                <div className="mt-2">
+                  <ListaSugerencias
+                    id="barrido-sugeridas"
+                    etiqueta="Prendas que calzan con lo escrito: toca la que tienes en la mano"
+                    sugerencias={sugeridas.map((p) => ({
+                      clave: p.varianteId,
+                      miniatura: <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} tamano="md" {...categoriaDe(p)} />,
+                      titulo: p.referencia,
+                      detalle: detalleDePrenda(p),
+                    }))}
+                    activa={null}
+                    tecla={null}
+                    onElegir={(i) => {
+                      const p = sugeridas[i];
+                      if (escaner.current) escaner.current.value = "";
+                      setBuscado("");
+                      if (p) leerPrenda(p, null);
+                      escaner.current?.focus({ preventScroll: true });
+                    }}
+                  />
+                </div>
+              )}
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button type="button" data-guia="barrido.camara" onClick={() => setCamara(true)} className="btn-cayla btn-secundario h-11">
                   <Camera aria-hidden className="h-4 w-4" />
                   Escanear con la cámara
+                </button>
+                <button type="button" data-guia="barrido.sin-etiqueta" onClick={() => setApartar({ tipo: "sin_etiqueta", codigo: null })} className="btn-cayla btn-secundario h-11">
+                  <Tag aria-hidden className="h-4 w-4" />
+                  Sin etiqueta
                 </button>
                 <button type="button" data-guia="barrido.escaneado" onClick={() => setVerEscaneado(true)} className="btn-cayla btn-secundario h-11">
                   <ListChecks aria-hidden className="h-4 w-4" />
@@ -597,6 +657,10 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
                     frenada ? (
                       <button type="button" className="btn-cayla btn-enlace" onClick={() => window.location.reload()}>
                         Recargar
+                      </button>
+                    ) : aviso?.apartar ? (
+                      <button type="button" className="btn-cayla btn-enlace" onClick={() => setApartar({ tipo: "codigo_desconocido", codigo: aviso.apartar ?? null })}>
+                        Apartar con foto
                       </button>
                     ) : undefined
                   }
@@ -690,8 +754,34 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
         </div>
       </div>
 
+      {apartar && (
+        <HojaApartar
+          barridoId={barrido.id}
+          tipo={apartar.tipo}
+          codigo={apartar.codigo}
+          firma={() => responsable.firma()}
+          listo={responsable.listo}
+          onListo={(aparte) => {
+            if (barridoRef.current) setBarrido({ ...barridoRef.current, aparte });
+            setAviso(null);
+            avisarLectura("nueva");
+          }}
+          onClose={() => {
+            setApartar(null);
+            window.setTimeout(() => escaner.current?.focus({ preventScroll: true }), 0);
+          }}
+        />
+      )}
+
       {verEscaneado && (
-        <HojaLoEscaneado barridoId={barrido.id} porId={porId} esperan={cola.length} onAnular={anular} onClose={() => setVerEscaneado(false)} />
+        <HojaLoEscaneado
+          barridoId={barrido.id}
+          porId={porId}
+          esperan={cola.length}
+          onAnular={anular}
+          onAnularAparte={anularAparte}
+          onClose={() => setVerEscaneado(false)}
+        />
       )}
 
       {camara && (

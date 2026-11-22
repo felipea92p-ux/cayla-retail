@@ -2,7 +2,7 @@
 -- 20261122191000_barrido_piso_funciones.sql — CAYLA V2 · ADR-0690 «El barrido del piso» · actividad 1 · PARTE 2 de 2
 -- Pega ANTES 20261122190000_barrido_piso_tablas.sql (lo comprueba la guarda de abajo).
 --
--- QUÉ HACE. Cinco funciones, ninguna mueve stock (mover llega en la actividad 5, al confirmar):
+-- QUÉ HACE. Nueve funciones, ninguna mueve stock (mover llega en la actividad 5, al confirmar):
 --   · `abrir_barrido_piso(sede)`: abre el barrido del piso de la sede, o devuelve el que ya está abierto. Quien llega a la
 --     tienda a mitad del barrido toca lo mismo y se suma: nunca hay dos (índice barridos_piso_uno_abierto + candado por sede).
 --   · `registrar_lecturas_barrido(barrido, lecturas)`: guarda un lote de lecturas (1 a 300) firmadas por el responsable del
@@ -13,6 +13,9 @@
 --   · `fn_barrido_piso_lecturas(barrido)`: lo escaneado, una lectura por fila, con quién y a qué hora (actividad 3). Solo lectura.
 --   · `anular_lecturas_barrido(barrido, ids, motivo)`: quita lecturas SIN borrarlas (actividad 3): una repetida o un tramo que no
 --     debía contarse. La lectura queda tachada con quién la quitó, cuándo y por qué, y deja de sumar en todos los totales.
+--   · `registrar_hallazgo_barrido`, `fn_barrido_piso_hallazgos`, `anular_hallazgo_barrido` (actividad 4): lo que no se puede escanear
+--     (sin etiqueta o código desconocido) se registra aparte con su foto, se lista y, si fue un error, se quita sin borrarlo.
+--   · `fn_puede_ver_foto_barrido(ruta)`: la regla de las fotos del bucket retail-barridos (la usan sus políticas, 20261122192000).
 --
 -- PUERTAS. Las de Existencias (ADR-0306: el barrido es una función de Existencias, no un módulo; ADR-0534 y Felipe
 -- 2026-11-22: lo hace y lo confirma quien ve Existencias). Escribir pide `fn_ve_modulo('existencias')` y operar la sede;
@@ -34,7 +37,8 @@ set lock_timeout = '3s';
 
 do $guarda$
 begin
-  if to_regclass('retail.barridos_piso') is null or to_regclass('retail.barrido_piso_lecturas') is null then
+  if to_regclass('retail.barridos_piso') is null or to_regclass('retail.barrido_piso_lecturas') is null
+     or to_regclass('retail.barrido_piso_hallazgos') is null then
     raise exception 'Faltan las tablas del barrido: pega antes 20261122190000_barrido_piso_tablas.sql';
   end if;
   if to_regprocedure('retail.fn_actor_persona_id(boolean)') is null or to_regprocedure('retail.fn_ve_modulo(text)') is null
@@ -82,6 +86,7 @@ begin
         'lecturas', (select count(*) from barrido_piso_lecturas l where l.barrido_id = v_barrido.id and l.anulada_en is null),
         'prendas', (select count(distinct l.variante_id) from barrido_piso_lecturas l where l.barrido_id = v_barrido.id and l.anulada_en is null),
         'anuladas', (select count(*) from barrido_piso_lecturas l where l.barrido_id = v_barrido.id and l.anulada_en is not null),
+        'aparte', coalesce((select sum(h.cantidad) from barrido_piso_hallazgos h where h.barrido_id = v_barrido.id and h.anulada_en is null), 0),
         'por_prenda', coalesce((
           select jsonb_agg(jsonb_build_object('variante_id', x.variante_id, 'cantidad', x.cantidad) order by x.variante_id)
             from (select l.variante_id, sum(l.cantidad)::integer as cantidad
@@ -394,6 +399,188 @@ $fn$;
 comment on function retail.anular_lecturas_barrido(uuid, uuid[], text) is
   'ADR-0690: quita (anula, sin borrar) de 1 a 2.000 lecturas de un barrido abierto, firmado por el responsable; motivo repetida o tramo. Quitar dos veces no resta dos veces. Devuelve {anuladas, ya_estaban, estado}.';
 
+-- ---------------------------------------------------------------------------
+-- 6. Lo que no se puede escanear (actividad 4): registrar APARTE una prenda sin etiqueta o con un código que el catálogo no conoce.
+--    PROMETE: guarda el hallazgo (o, si ya estaba con el mismo contenido, no lo repite: ya_registrado = true); el mismo id con otro
+--             contenido se rechaza (barrido_hallazgo_reusado). Devuelve {ya_registrado, aparte} con lo que suma lo apartado.
+--    ASUME:   la foto, si hay, ya se subió al bucket retail-barridos bajo <barrido>/…; el barrido está abierto.
+-- ---------------------------------------------------------------------------
+create or replace function retail.registrar_hallazgo_barrido(
+  p_barrido_id uuid, p_id uuid, p_tipo text, p_codigo text, p_cantidad integer, p_nota text, p_foto_ruta text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $fn$
+declare
+  v_sede uuid;
+  v_estado text;
+  v_actor uuid;
+  v_codigo text := nullif(btrim(coalesce(p_codigo, '')), '');
+  v_nota text := nullif(btrim(coalesce(p_nota, '')), '');
+  v_foto text := nullif(btrim(coalesce(p_foto_ruta, '')), '');
+  v_prev barrido_piso_hallazgos%rowtype;
+  r record;
+begin
+  if p_barrido_id is null or p_id is null then
+    raise exception 'Falta el barrido o la marca del registro.' using errcode = '22004', hint = 'barrido_hallazgo_invalido';
+  end if;
+  if p_tipo is null or p_tipo not in ('sin_etiqueta', 'codigo_desconocido') or p_cantidad is null or p_cantidad not between 1 and 500
+     or char_length(coalesce(v_nota, '')) > 200 or char_length(coalesce(v_codigo, '')) > 120
+     or (p_tipo = 'codigo_desconocido' and v_codigo is null) or (v_foto is null and v_nota is null and v_codigo is null) then
+    raise exception 'Falta la foto o una nota para reconocerla después, o la cantidad no va de 1 a 500.' using errcode = '22023', hint = 'barrido_hallazgo_invalido';
+  end if;
+  if v_foto is not null and v_foto not like p_barrido_id::text || '/%' then
+    raise exception 'La foto no es de este barrido.' using errcode = '22023', hint = 'barrido_hallazgo_invalido';
+  end if;
+  for r in select b.ubicacion_id, b.estado from barridos_piso b where b.id = p_barrido_id for share loop
+    v_sede := r.ubicacion_id;
+    v_estado := r.estado;
+  end loop;
+  if v_sede is null then
+    raise exception 'Ese barrido no existe.' using hint = 'barrido_no_existe';
+  end if;
+  if not fn_ve_modulo('existencias') then
+    raise exception 'El barrido del piso necesita el módulo Existencias en tu rol.' using errcode = '42501', hint = 'barrido_sin_modulo';
+  end if;
+  if not fn_puede_operar_ubicacion(v_sede) then
+    raise exception 'No tienes permiso para mover mercadería en esa sede.' using errcode = '42501', hint = 'barrido_sin_tienda';
+  end if;
+  if v_estado <> 'abierto' then
+    raise exception 'Este barrido ya se cerró.' using hint = 'barrido_cerrado';
+  end if;
+  v_actor := fn_actor_persona_id(true);
+  if v_actor is null then
+    raise exception 'Elige quién hace esta operación.' using hint = 'responsable_requerido';
+  end if;
+
+  for v_prev in select * from barrido_piso_hallazgos h where h.id = p_id loop
+    if (v_prev.barrido_id, v_prev.tipo, v_prev.codigo, v_prev.cantidad, v_prev.nota, v_prev.foto_ruta)
+       is distinct from (p_barrido_id, p_tipo, v_codigo, p_cantidad, v_nota, v_foto) then
+      raise exception 'Ese registro ya se guardó con otros datos.' using hint = 'barrido_hallazgo_reusado';
+    end if;
+    return jsonb_build_object('ya_registrado', true,
+      'aparte', coalesce((select sum(h.cantidad) from barrido_piso_hallazgos h where h.barrido_id = p_barrido_id and h.anulada_en is null), 0));
+  end loop;
+
+  insert into barrido_piso_hallazgos (id, barrido_id, tipo, codigo, cantidad, nota, foto_ruta, persona_id)
+  values (p_id, p_barrido_id, p_tipo, v_codigo, p_cantidad, v_nota, v_foto, v_actor);
+
+  return jsonb_build_object('ya_registrado', false,
+    'aparte', coalesce((select sum(h.cantidad) from barrido_piso_hallazgos h where h.barrido_id = p_barrido_id and h.anulada_en is null), 0));
+end;
+$fn$;
+
+comment on function retail.registrar_hallazgo_barrido(uuid, uuid, text, text, integer, text, text) is
+  'ADR-0690 (actividad 4): registra aparte una prenda colgada sin etiqueta o con un código que el catálogo no conoce, con cuántas y una foto o nota para reconocerla. Idempotente por id. Quien ve Existencias en la sede, firmado por el responsable.';
+
+-- 7. Lo apartado de un barrido (anulado incluido, tachado), del más reciente al más antiguo. Solo lectura.
+create or replace function retail.fn_barrido_piso_hallazgos(p_barrido_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $fn$
+declare
+  v_sede uuid;
+begin
+  v_sede := (select b.ubicacion_id from barridos_piso b where b.id = p_barrido_id);
+  if v_sede is null then
+    raise exception 'Ese barrido no existe.' using hint = 'barrido_no_existe';
+  end if;
+  if not ((fn_es_lider() or fn_ve_modulo('existencias')) and fn_puede_operar_ubicacion(v_sede)) then
+    raise exception 'Para ver el barrido del piso hace falta ver Existencias en tu rol y que sea tu sede.'
+      using errcode = '42501', hint = 'barrido_sin_permiso';
+  end if;
+  return coalesce((
+    select jsonb_agg(jsonb_build_object(
+             'id', h.id, 'tipo', h.tipo, 'codigo', h.codigo, 'cantidad', h.cantidad, 'nota', h.nota, 'foto_ruta', h.foto_ruta,
+             'persona_id', h.persona_id, 'nombre', fn_actividad_nombre(h.persona_id), 'registrado_en', h.registrado_en,
+             'anulada_en', h.anulada_en, 'anulada_por', case when h.anulada_por is null then null else fn_actividad_nombre(h.anulada_por) end)
+           order by h.registrado_en desc, h.id)
+      from barrido_piso_hallazgos h where h.barrido_id = p_barrido_id), '[]'::jsonb);
+end;
+$fn$;
+
+comment on function retail.fn_barrido_piso_hallazgos(uuid) is
+  'ADR-0690 (actividad 4): lo apartado de un barrido (sin etiqueta o código desconocido), con su foto, quién y cuándo; lo quitado también. Quien ve Existencias en la sede (o el líder).';
+
+-- 8. Quitar algo apartado por error, SIN borrarlo (queda tachado con quién y cuándo).
+create or replace function retail.anular_hallazgo_barrido(p_barrido_id uuid, p_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $fn$
+declare
+  v_sede uuid;
+  v_estado text;
+  v_actor uuid;
+  v_n integer;
+  r record;
+begin
+  for r in select b.ubicacion_id, b.estado from barridos_piso b where b.id = p_barrido_id for update loop
+    v_sede := r.ubicacion_id;
+    v_estado := r.estado;
+  end loop;
+  if v_sede is null then
+    raise exception 'Ese barrido no existe.' using hint = 'barrido_no_existe';
+  end if;
+  if not fn_ve_modulo('existencias') then
+    raise exception 'El barrido del piso necesita el módulo Existencias en tu rol.' using errcode = '42501', hint = 'barrido_sin_modulo';
+  end if;
+  if not fn_puede_operar_ubicacion(v_sede) then
+    raise exception 'No tienes permiso para mover mercadería en esa sede.' using errcode = '42501', hint = 'barrido_sin_tienda';
+  end if;
+  if v_estado <> 'abierto' then
+    raise exception 'Este barrido ya se cerró.' using hint = 'barrido_cerrado';
+  end if;
+  v_actor := fn_actor_persona_id(true);
+  if v_actor is null then
+    raise exception 'Elige quién hace esta operación.' using hint = 'responsable_requerido';
+  end if;
+  if not exists (select 1 from barrido_piso_hallazgos h where h.id = p_id and h.barrido_id = p_barrido_id) then
+    raise exception 'Eso no es de este barrido.' using hint = 'barrido_lectura_ajena';
+  end if;
+  update barrido_piso_hallazgos h set anulada_en = clock_timestamp(), anulada_por = v_actor
+   where h.id = p_id and h.anulada_en is null;
+  get diagnostics v_n = row_count;
+  return jsonb_build_object('anulado', v_n = 1,
+    'aparte', coalesce((select sum(h.cantidad) from barrido_piso_hallazgos h where h.barrido_id = p_barrido_id and h.anulada_en is null), 0));
+end;
+$fn$;
+
+comment on function retail.anular_hallazgo_barrido(uuid, uuid) is
+  'ADR-0690 (actividad 4): quita (sin borrar) algo apartado por error en un barrido abierto. Quitar dos veces no cambia nada.';
+
+-- 9. ¿Puede esta cuenta ver (o subir) la foto de esta ruta del bucket retail-barridos? Para las políticas del bucket
+--    (20261122192000): <barrido>/… de un barrido de una sede que opera y con Existencias (o líder). Nunca lanza.
+create or replace function retail.fn_puede_ver_foto_barrido(p_ruta text)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $fn$
+declare
+  v_barrido uuid;
+  v_sede uuid;
+begin
+  begin
+    v_barrido := split_part(coalesce(p_ruta, ''), '/', 1)::uuid;
+  exception when others then
+    return false;
+  end;
+  v_sede := (select b.ubicacion_id from barridos_piso b where b.id = v_barrido);
+  return v_sede is not null and (fn_es_lider() or fn_ve_modulo('existencias')) and fn_puede_operar_ubicacion(v_sede);
+end;
+$fn$;
+
+comment on function retail.fn_puede_ver_foto_barrido(text) is
+  'ADR-0690 (actividad 4): si quien llama puede ver o subir una foto del bucket retail-barridos (la carpeta es el barrido; quien ve Existencias en esa sede, o el líder). Nunca lanza. La usan las políticas del bucket.';
+
 revoke all on function retail.fn_barrido_piso_es_historia() from public, anon, authenticated;
 revoke all on function retail.fn_barrido_piso_lectura_valida() from public, anon, authenticated;
 revoke all on function retail.fn_barrido_piso_estado(uuid) from public, anon;
@@ -407,6 +594,15 @@ grant execute on function retail.fn_barrido_piso_lecturas(uuid) to authenticated
 revoke all on function retail.anular_lecturas_barrido(uuid, uuid[], text) from public, anon;
 grant execute on function retail.anular_lecturas_barrido(uuid, uuid[], text) to authenticated;
 revoke all on function retail.fn_barrido_piso_lectura_solo_anular() from public, anon, authenticated;
+revoke all on function retail.fn_barrido_piso_hallazgo_valido() from public, anon, authenticated;
+revoke all on function retail.registrar_hallazgo_barrido(uuid, uuid, text, text, integer, text, text) from public, anon;
+grant execute on function retail.registrar_hallazgo_barrido(uuid, uuid, text, text, integer, text, text) to authenticated;
+revoke all on function retail.fn_barrido_piso_hallazgos(uuid) from public, anon;
+grant execute on function retail.fn_barrido_piso_hallazgos(uuid) to authenticated;
+revoke all on function retail.anular_hallazgo_barrido(uuid, uuid) from public, anon;
+grant execute on function retail.anular_hallazgo_barrido(uuid, uuid) to authenticated;
+revoke all on function retail.fn_puede_ver_foto_barrido(text) from public, anon;
+grant execute on function retail.fn_puede_ver_foto_barrido(text) to authenticated;
 
 notify pgrst, 'reload schema';
 

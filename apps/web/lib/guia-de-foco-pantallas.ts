@@ -533,6 +533,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   // detalle si es «Otro»), el argumento pasado el 15 % y al menos una prenda.
   "components/apartados/DescuentoApartado.tsx": { estado: "aplicada", evidencia: ["components/apartados/DescuentoApartado.tsx"] },
   "components/conteo/AltaAlVuelo.tsx": PENDIENTE, // 7 controles
+  // Apartar en el barrido del piso (ADR-0690, actividad 4): lo único que falta es algo para reconocerla (foto o nota; con código, la foto es sugerida).
+  "components/barrido-piso/HojaApartar.tsx": { estado: "aplicada", evidencia: ["components/barrido-piso/HojaApartar.tsx"] },
   "components/conteo/CancelarConteoModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/ficha-producto/FotosPorColor.tsx": PENDIENTE, // 2 controles
   "components/finanzas/CierreMes.tsx": PENDIENTE, // 5 controles

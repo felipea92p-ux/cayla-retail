@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ListChecks } from "lucide-react";
+import { ListChecks, Tag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
@@ -11,7 +11,19 @@ import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { BotonVerMas } from "@/components/ui/VerMas";
 import { Vacio } from "@/components/ui/Vacio";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
-import { RPC_LECTURAS_BARRIDO, agruparEnTramos, leerLecturasDelBarrido, textoDeTramo, textoDeRechazo, type LecturaDelBarrido, type PrendaBarrido } from "@/lib/barrido-piso-reglas";
+import {
+  BUCKET_FOTOS_BARRIDO,
+  RPC_HALLAZGOS_BARRIDO,
+  RPC_LECTURAS_BARRIDO,
+  agruparEnTramos,
+  leerHallazgos,
+  leerLecturasDelBarrido,
+  textoDeTramo,
+  textoDeRechazo,
+  type Hallazgo,
+  type LecturaDelBarrido,
+  type PrendaBarrido,
+} from "@/lib/barrido-piso-reglas";
 
 /* ====================================================================
    HojaLoEscaneado · «Ver lo escaneado» del barrido del piso (ADR-0690, actividad 3)
@@ -22,13 +34,14 @@ import { RPC_LECTURAS_BARRIDO, agruparEnTramos, leerLecturasDelBarrido, textoDeT
    sumar (`anular_lecturas_barrido`). Lo que este celular todavía no subió no está aquí: se dice cuántas esperan.
    ==================================================================== */
 
-type Confirmar = { tipo: "tramo"; clave: string } | { tipo: "lectura"; id: string } | null;
+type Confirmar = { tipo: "tramo"; clave: string } | { tipo: "lectura"; id: string } | { tipo: "aparte"; id: string } | null;
 
 export function HojaLoEscaneado({
   barridoId,
   porId,
   esperan,
   onAnular,
+  onAnularAparte,
   onClose,
 }: {
   barridoId: string;
@@ -37,6 +50,8 @@ export function HojaLoEscaneado({
   esperan: number;
   /** Quita esas lecturas en la base (con la firma de quien está elegido). Devuelve el error a mostrar, o null si salió bien. */
   onAnular: (ids: string[], motivo: "repetida" | "tramo") => Promise<string | null>;
+  /** Quita algo apartado por error (sin borrarlo). Devuelve el error a mostrar, o null. */
+  onAnularAparte: (id: string) => Promise<string | null>;
   onClose: () => void;
 }) {
   const supabase = useMemo(() => createClient(), []);
@@ -47,8 +62,28 @@ export function HojaLoEscaneado({
   const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(new Set());
   const [confirmar, setConfirmar] = useState<Confirmar>(null);
   const [quitando, setQuitando] = useState(false);
+  // Lo apartado (actividad 4) y el enlace de 10 minutos de cada foto (el bucket es privado).
+  const [aparte, setAparte] = useState<Hallazgo[]>([]);
+  const [fotos, setFotos] = useState<Record<string, string>>({});
+
+  function cargarAparte() {
+    return supabase
+      .rpc(RPC_HALLAZGOS_BARRIDO as never, { p_barrido_id: barridoId } as never)
+      .then(async ({ data, error }) => {
+        if (error) return;
+        const hs = leerHallazgos(data);
+        setAparte(hs);
+        const rutas = hs.map((h) => h.fotoRuta).filter((r): r is string => Boolean(r));
+        if (rutas.length === 0) return;
+        const firmadas = await supabase.storage.from(BUCKET_FOTOS_BARRIDO).createSignedUrls(rutas, 600);
+        const porRuta: Record<string, string> = {};
+        for (const f of firmadas.data ?? []) if (f.path && f.signedUrl) porRuta[f.path] = f.signedUrl;
+        setFotos(porRuta);
+      });
+  }
 
   function cargar() {
+    void cargarAparte();
     return supabase
       .rpc(RPC_LECTURAS_BARRIDO as never, { p_barrido_id: barridoId } as never)
       .then(({ data, error }) => {
@@ -70,6 +105,18 @@ export function HojaLoEscaneado({
   const todos = useMemo(() => agruparEnTramos(lecturas ?? []), [lecturas]);
   const personas = useMemo(() => [...new Map(todos.map((t) => [t.personaId, t.nombre.split(" ")[0] || t.nombre])).entries()], [todos]);
   const tramos = persona ? todos.filter((t) => t.personaId === persona) : todos;
+
+  async function quitarAparte(id: string) {
+    setQuitando(true);
+    const error = await onAnularAparte(id);
+    setQuitando(false);
+    setConfirmar(null);
+    if (error) {
+      setFallo(error);
+      return;
+    }
+    await cargarAparte();
+  }
 
   async function quitar(ids: string[], motivo: "repetida" | "tramo") {
     setQuitando(true);
@@ -109,6 +156,59 @@ export function HojaLoEscaneado({
               </button>
             ))}
           </div>
+        )}
+
+        {aparte.length > 0 && (
+          <section className="vd-placa rounded-[var(--radius-tarjeta,1rem)] p-3 sm:p-4">
+            <p className="text-[15px] text-tinta">Aparte, por resolver</p>
+            <ul className="mt-2 divide-y divide-tinta/10">
+              {aparte.map((h) => {
+                const quitado = Boolean(h.anuladaEn);
+                const pregunta = confirmar?.tipo === "aparte" && confirmar.id === h.id;
+                const foto = h.fotoRuta ? fotos[h.fotoRuta] : undefined;
+                return (
+                  <li key={h.id} className="flex flex-wrap items-center gap-3 py-2">
+                    {foto ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- foto privada con enlace firmado de 10 min, no una imagen del sitio
+                      <img src={foto} alt="Foto de la prenda apartada" className="h-11 w-11 rounded-lg object-cover" />
+                    ) : (
+                      <span className="vd-lente grid h-11 w-11 place-items-center rounded-lg text-taupe" aria-hidden>
+                        <Tag className="h-4 w-4" />
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className={`truncate text-sm ${quitado ? "text-taupe line-through" : "text-tinta"}`}>
+                        {h.tipo === "sin_etiqueta" ? "Sin etiqueta" : `Código ${h.codigo}`} · {h.cantidad === 1 ? "1 prenda" : `${h.cantidad} prendas`}
+                        {h.nota && ` · ${h.nota}`}
+                      </p>
+                      <p className="texto-detalle text-taupe">
+                        {h.nombre.split(" ")[0]} · {textoDeTramo(h.registradoEn, h.registradoEn)}
+                        {quitado && ` · quitado${h.anuladaPor ? ` por ${h.anuladaPor.split(" ")[0]}` : ""}`}
+                      </p>
+                    </div>
+                    {quitado ? (
+                      <Chip tono="apagado" versalitas={false}>
+                        Quitado
+                      </Chip>
+                    ) : pregunta ? (
+                      <span className="flex items-center gap-2">
+                        <Boton peso="primario" className="btn-chico" cargando={quitando} textoCargando="Quitando…" onClick={() => void quitarAparte(h.id)}>
+                          Sí, quitar
+                        </Boton>
+                        <Boton peso="fantasma" className="btn-chico" disabled={quitando} onClick={() => setConfirmar(null)}>
+                          No
+                        </Boton>
+                      </span>
+                    ) : (
+                      <Boton peso="peligro" className="btn-chico" onClick={() => setConfirmar({ tipo: "aparte", id: h.id })}>
+                        Quitar
+                      </Boton>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         )}
 
         {lecturas === null && !fallo ? (

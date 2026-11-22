@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  camposGuiaApartar,
+  leerHallazgos,
+  rutaFotoHallazgo,
+  sugerirPorNombre,
   agruparEnTramos,
   leerLecturasDelBarrido,
   textoDeTramo,
@@ -302,5 +306,41 @@ describe("ver lo escaneado en tramos (actividad 3)", () => {
   it("la hora del tramo, en Lima", () => {
     expect(textoDeTramo("2026-11-22T15:05:00Z", "2026-11-22T15:12:00Z")).toBe("10:05 a 10:12");
     expect(textoDeTramo("2026-11-22T15:05:00Z", "2026-11-22T15:05:30Z")).toBe("10:05");
+  });
+});
+
+describe("lo que no se puede escanear (actividad 4)", () => {
+  const p = (varianteId: string, referencia: string, talla: string, color: string, marca = "CAYLA") =>
+    ({ varianteId, referencia, talla, color, marca, sku: `${referencia.slice(0, 3).toUpperCase()}-${talla}`, codigosBarras: [] }) as never;
+  const prendas = [p("1", "Blusa Emma", "M", "Beige"), p("2", "Blusa Emma", "S", "Beige"), p("3", "Casaca Ximena", "M", "Azul marino"), p("4", "Vestido Sofía", "L", "Negro")];
+
+  it("busca por nombre: cada palabra, en cualquier orden, sin tildes ni mayúsculas", () => {
+    expect(sugerirPorNombre("emma blusa", prendas).map((x: { varianteId: string }) => x.varianteId)).toEqual(["1", "2"]);
+    expect(sugerirPorNombre("BLUSA m", prendas).map((x: { varianteId: string }) => x.varianteId)).toEqual(["1"]);
+    expect(sugerirPorNombre("sofia", prendas).map((x: { varianteId: string }) => x.varianteId)).toEqual(["4"]);
+    expect(sugerirPorNombre("azul marino", prendas).map((x: { varianteId: string }) => x.varianteId)).toEqual(["3"]);
+    expect(sugerirPorNombre("b", prendas)).toEqual([]);
+    expect(sugerirPorNombre("pantalon", prendas)).toEqual([]);
+    expect(sugerirPorNombre("blusa", prendas, 1)).toHaveLength(1);
+  });
+
+  it("la foto va en la carpeta del barrido", () => {
+    expect(rutaFotoHallazgo("b1", "h1")).toBe("b1/h1.jpg");
+  });
+
+  it("lee lo apartado y descarta lo que no tiene forma", () => {
+    const h = leerHallazgos([
+      { id: "h1", tipo: "sin_etiqueta", cantidad: 2, nota: null, foto_ruta: "b/h1.jpg", nombre: "Ana", registrado_en: "2026-11-22T15:00:00Z", anulada_en: null },
+      { id: "h2", tipo: "otro", registrado_en: "x" },
+    ]);
+    expect(h).toEqual([{ id: "h1", tipo: "sin_etiqueta", codigo: null, cantidad: 2, nota: null, fotoRuta: "b/h1.jpg", nombre: "Ana", registradoEn: "2026-11-22T15:00:00Z", anuladaEn: null, anuladaPor: null }]);
+    expect(leerHallazgos(null)).toEqual([]);
+  });
+
+  it("apartar pide lo mismo que la base: algo para reconocerla (foto o nota); con código, la foto es sugerida", () => {
+    expect(camposGuiaApartar({ tipo: "sin_etiqueta", conFoto: false, nota: " " })[0]).toMatchObject({ requerido: true, hecho: false });
+    expect(camposGuiaApartar({ tipo: "sin_etiqueta", conFoto: false, nota: "polo gris" })[0]).toMatchObject({ hecho: true });
+    expect(camposGuiaApartar({ tipo: "sin_etiqueta", conFoto: true, nota: "" })[0]).toMatchObject({ hecho: true });
+    expect(camposGuiaApartar({ tipo: "codigo_desconocido", conFoto: false, nota: "" })[0]).toMatchObject({ requerido: false, sugerido: true });
   });
 });

@@ -22,6 +22,9 @@
  *   B8 cerrado: un barrido que ya no está abierto no recibe lecturas (ni por la función ni por un insert directo).
  *   B9 nada de stock: abrir y escanear no escriben en movimientos ni en stock.
  *   B10 tamaño: 1.200 lecturas en 4 lotes entran y el estado responde dentro del statement_timeout de authenticated.
+ *   B12 lo que no se puede escanear (actividad 4): se registra aparte con su foto o nota, quién y cuándo; sin nada para reconocerlo
+ *       no entra; el mismo registro reenviado no se duplica (con otro contenido, se rechaza); se quita sin borrar; con el barrido
+ *       cerrado no entra; la foto es de la carpeta del barrido y la parte del bucket trae solo el bucket y sus dos políticas.
  *   B11 quitar sin borrar (actividad 3): la lectura queda, tachada con quién y por qué, y deja de sumar en el estado, en la
  *       respuesta de cada lote y en lo de cada persona; quitar dos veces no resta dos veces; a mano solo se puede anular (una vez,
  *       sin tocar nada más); no se quita lo de otro barrido ni con el barrido cerrado; sin Existencias, no; «Ver lo escaneado»
@@ -43,6 +46,7 @@ const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const leerMigracion = (nombre) => readFileSync(join(RAIZ, "supabase", "migrations", nombre), "utf8");
 const MIGRACION_TABLAS = "20261122190000_barrido_piso_tablas.sql";
 const MIGRACION_FUNCIONES = "20261122191000_barrido_piso_funciones.sql";
+const MIGRACION_BUCKET = "20261122192000_barrido_piso_fotos_bucket.sql";
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed)
@@ -217,7 +221,7 @@ caso(
     "B1 · ninguna crea políticas ni quita disparadores (ADR-0195); la de funciones no altera tablas; la de tablas solo enciende RLS en las suyas",
     [MIGRACION_TABLAS, MIGRACION_FUNCIONES].every((m) => !/\bdrop\s+trigger\b|\b(create|drop)\s+policy\b/i.test(sin(m))) &&
       !/\balter\s+table\b/i.test(sin(MIGRACION_FUNCIONES)) &&
-      (sin(MIGRACION_TABLAS).match(/\balter\s+table\s+([\w.]+)/gi) ?? []).every((a) => /retail\.(barridos_piso|barrido_piso_lecturas)\b/.test(a))
+      (sin(MIGRACION_TABLAS).match(/\balter\s+table\s+([\w.]+)/gi) ?? []).every((a) => /retail\.(barridos_piso|barrido_piso_lecturas|barrido_piso_hallazgos)\b/.test(a))
   );
   const comillas = (m) => [...sin(m).matchAll(/'(?:[^']|'')*'/g)].map((x) => x[0]);
   esperar(
@@ -524,6 +528,74 @@ ${COMO_POSTGRES}select concat_ws(',', (:'v')::jsonb ->> 'total', (:'v')::jsonb -
   (:'v')::jsonb -> 'lecturas' -> 1 ->> 'anulada_en' is null, (:'v')::jsonb -> 'lecturas' -> 1 ->> 'nombre');`,
   "2,t,Felipe Alvarez,repetida,t,Felipe Alvarez"
 );
+
+// ===========================================================================
+// B12 · Lo que no se puede escanear
+// ===========================================================================
+
+const HALLAZGO = (id, tipo, codigo, cantidad, nota, foto) =>
+  `pg_temp.r(format('select retail.registrar_hallazgo_barrido(%L, %L, %L, %L, %s, %L, %L)', :'barrido', ${id}, ${tipo}, ${codigo}, ${cantidad}, ${nota}, ${foto}))`;
+
+caso(
+  "B12 · sin etiqueta con su foto y código desconocido con su nota: entran aparte, con quién y cuándo, y el estado suma lo apartado",
+  `${ABIERTO}select gen_random_uuid() as h1 \\gset
+select gen_random_uuid() as h2 \\gset
+select ${HALLAZGO(":'h1'", "'sin_etiqueta'", "null", 3, "null", ":'barrido' || '/' || :'h1' || '.jpg'")} as a \\gset
+select ${HALLAZGO(":'h2'", "'codigo_desconocido'", "'XX-999'", 1, "'Blusa verde, botones'", "null")} as b \\gset
+select (${estado()}) -> 'res' -> 'barrido' ->> 'aparte' as aparte \\gset
+select (pg_temp.r(format('select retail.fn_barrido_piso_hallazgos(%L)', :'barrido'))) -> 'res' as l \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'a')::jsonb -> 'res' ->> 'ya_registrado', (:'b')::jsonb -> 'res' ->> 'aparte', :'aparte',
+  jsonb_array_length((:'l')::jsonb), (:'l')::jsonb -> 0 ->> 'codigo', (:'l')::jsonb -> 1 ->> 'foto_ruta' like :'barrido' || '/%',
+  (select bool_and(persona_id = :'felipe_p') from retail.barrido_piso_hallazgos where barrido_id = :'barrido'),
+  (select count(*) from retail.barrido_piso_lecturas where barrido_id = :'barrido'));`,
+  "false,4,4,2,XX-999,t,t,0"
+);
+caso(
+  "B12 · sin foto, nota ni código no entra; código desconocido sin código, cantidad 0 o una foto de otra carpeta → barrido_hallazgo_invalido",
+  `${ABIERTO}select ${HALLAZGO("gen_random_uuid()", "'sin_etiqueta'", "null", 1, "null", "null")};
+select ${HALLAZGO("gen_random_uuid()", "'codigo_desconocido'", "null", 1, "'nota'", "null")};
+select ${HALLAZGO("gen_random_uuid()", "'sin_etiqueta'", "null", 0, "'nota'", "null")};
+select ${HALLAZGO("gen_random_uuid()", "'sin_etiqueta'", "null", 1, "null", "'otro-barrido/foto.jpg'")};
+${COMO_POSTGRES}select count(*) from retail.barrido_piso_hallazgos where barrido_id = :'barrido';`,
+  (l) => l.slice(-5, -1).every((x) => error(x, "barrido_hallazgo_invalido", "22023")) && l.at(-1) === "0"
+);
+caso(
+  "B12 · el mismo registro reenviado no se duplica; con otro contenido → barrido_hallazgo_reusado",
+  `${ABIERTO}select gen_random_uuid() as h1 \\gset
+select ${HALLAZGO(":'h1'", "'sin_etiqueta'", "null", 2, "'Polo gris'", "null")} as _a \\gset
+select (${HALLAZGO(":'h1'", "'sin_etiqueta'", "null", 2, "'Polo gris'", "null")}) -> 'res' ->> 'ya_registrado';
+select ${HALLAZGO(":'h1'", "'sin_etiqueta'", "null", 3, "'Polo gris'", "null")};
+${COMO_POSTGRES}select count(*) || '/' || sum(cantidad) from retail.barrido_piso_hallazgos where barrido_id = :'barrido';`,
+  (l) => l.at(-3) === "true" && error(l.at(-2), "barrido_hallazgo_reusado") && l.at(-1) === "1/2"
+);
+caso(
+  "B12 · se quita sin borrar (queda con quién); quitar dos veces no cambia nada; a mano solo se anula; con el barrido cerrado no entra nada",
+  `${ABIERTO}select gen_random_uuid() as h1 \\gset
+select ${HALLAZGO(":'h1'", "'sin_etiqueta'", "null", 2, "'Polo gris'", "null")} as _a \\gset
+select (pg_temp.r(format('select retail.anular_hallazgo_barrido(%L, %L)', :'barrido', :'h1'))) -> 'res' as q1 \\gset
+select (pg_temp.r(format('select retail.anular_hallazgo_barrido(%L, %L)', :'barrido', :'h1'))) -> 'res' ->> 'anulado';
+${COMO_POSTGRES}select pg_temp.intento(format('update retail.barrido_piso_hallazgos set cantidad = 9 where id = %L', :'h1')) ->> 'hint';
+select concat_ws(',', (:'q1')::jsonb ->> 'anulado', (:'q1')::jsonb ->> 'aparte',
+  (select count(*) from retail.barrido_piso_hallazgos where id = :'h1' and anulada_por = :'felipe_p'));
+update retail.barridos_piso set estado = 'cancelado', cerrado_en = now(), cerrado_por = :'felipe_p' where id = :'barrido';
+${sesion(FELIPE)}${COMO_API}select ${HALLAZGO("gen_random_uuid()", "'sin_etiqueta'", "null", 1, "'x'", "null")};`,
+  (l) => l.at(-4) === "false" && l.at(-3) === "barrido_inmutable" && l.at(-2) === "true,0,1" && error(l.at(-1), "barrido_cerrado")
+);
+caso(
+  "B12 · la foto: la ve y la sube quien ve Existencias en la sede del barrido; otra carpeta o una ruta rota, no",
+  `${ABIERTO}${COMO_API}select concat_ws(',', retail.fn_puede_ver_foto_barrido(:'barrido' || '/x.jpg'), retail.fn_puede_ver_foto_barrido(gen_random_uuid() || '/x.jpg'),
+  retail.fn_puede_ver_foto_barrido('no-es-uuid/x.jpg'), retail.fn_puede_ver_foto_barrido(null));
+${soloModulos("integrante", ["vender"])}${MICAELA_EN_LA_SEDE}${sesion(MICAELA)}${COMO_API}select retail.fn_puede_ver_foto_barrido(:'barrido' || '/x.jpg');`,
+  (l) => l.at(-2) === "t,f,f,f" && l.at(-1) === "f"
+);
+{
+  const sinComentarios = leerMigracion(MIGRACION_BUCKET).replace(/--[^\n]*/g, "");
+  const politicas = sinComentarios.match(/create\s+policy\s+(\w+)/gi) ?? [];
+  esperar(
+    "B12 · la parte del bucket va sola (ADR-0195): solo el bucket y sus dos políticas, sin alter table ni funciones",
+    politicas.length === 2 && !/\balter\s+table\b|create\s+or\s+replace\s+function/i.test(sinComentarios) && /lock_timeout\s*=\s*'3s'/.test(sinComentarios)
+  );
+}
 
 console.log(`\n${fallos === 0 ? "✓" : "✗"} ${total - fallos}/${total} verificaciones${fallos ? ` — ${fallos} fallaron` : ""}`);
 process.exit(fallos === 0 ? 0 : 1);
