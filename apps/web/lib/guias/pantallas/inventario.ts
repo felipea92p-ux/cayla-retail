@@ -2421,10 +2421,17 @@ export const GUIA_BARRIDO_PISO: Guia = {
       texto: "Su foto, talla, color y marca, y cuántas de esa prenda lleva el equipo. Mírala para saber que leyó la correcta.",
     },
     {
+      id: "personas",
+      ancla: "barrido.personas",
+      opcional: true,
+      titulo: "Quiénes escanearon",
+      texto: "Cada persona con cuántas escaneó y si sigue escaneando. Se pone al día sola cada pocos segundos: quien llega se suma y quien se va deja lo suyo guardado.",
+    },
+    {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes escanear en el barrido. Para repasarlo: Mi perfil ▸ Demo ▸ Barrido del piso.",
+      texto: "Ya sabes escanear en el barrido. Si se corta el internet, sigue escaneando: lo tuyo espera en el celular y sube solo. Para repasarlo: Mi perfil ▸ Demo ▸ Barrido del piso.",
     },
   ],
 };

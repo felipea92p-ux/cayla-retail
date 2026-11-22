@@ -10,7 +10,9 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Aviso as AvisoLinea } from "@/components/ui/Aviso";
 import { AvisoRepetida, avisarNoSumo } from "@/components/ui/AvisoRepetida";
 import { Boton } from "@/components/ui/campos";
+import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Vacio } from "@/components/ui/Vacio";
 import { usePistola } from "@/components/ui/usePistola";
@@ -21,10 +23,18 @@ import { categoriaDe } from "@/lib/categoria-de-prenda";
 import { avisarLectura } from "@/lib/sonido-conteo";
 import { ESTADO_REPETIDA_VACIO, declararPila, decidirLectura, type EstadoRepetida, type PreguntaRepetida } from "@/lib/lectura-repetida";
 import {
+  INTERVALO_ESTADO_MS,
   REINTENTO_MS,
   RPC_ABRIR_BARRIDO,
+  RPC_ESTADO_BARRIDO,
   RPC_REGISTRAR_LECTURAS,
   camposGuiaBarrido,
+  claveColaBarrido,
+  leerColaGuardada,
+  personasDelBarrido,
+  serializarCola,
+  textoDeSubida,
+  unidadesDe,
   detalleDePrenda,
   esRechazoQueFrena,
   leerEstadoBarrido,
@@ -64,7 +74,10 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
   const responsable = useResponsable({ ubicacionId, etiqueta: sede });
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p] as const)), [prendas]);
 
-  const [barrido, setBarrido] = useState<BarridoAbierto | null>(estadoInicial.barrido);
+  const [barrido, setBarridoEstado] = useState<BarridoAbierto | null>(estadoInicial.barrido);
+  // El barrido de ahora para lo que corre fuera del dibujo (la subida, el reintento, la puesta al día).
+  const barridoRef = useRef<BarridoAbierto | null>(estadoInicial.barrido);
+  const [enLinea, setEnLinea] = useState(true);
   // Lo que la BASE dice que lleva el equipo (por prenda y en total). Lo que este aparato aún no subió se suma al dibujar.
   const [base, setBase] = useState<Record<string, number>>(estadoInicial.barrido?.porPrenda ?? {});
   const [unidadesBase, setUnidadesBase] = useState(estadoInicial.barrido?.unidades ?? 0);
@@ -90,16 +103,93 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
   const aLaVista = porPrendaALaVista(base, cola);
   const enCola = cola.reduce((a, l) => a + l.cantidad, 0);
   const unidadesEquipo = unidadesBase + enCola;
-  const misUnidades = sumaDe(mias);
+  // «Escaneaste tú» es de la PERSONA elegida (lo suyo en la base + lo suyo sin subir), no de este aparato: si recarga, no vuelve a 0.
+  const misUnidades = barrido ? Math.max(unidadesDe(responsable.elegidoId, barrido.personas, cola), sumaDe(mias)) : sumaDe(mias);
   const quienes = barrido ? quienesEscanean(barrido.personas, ahora) : null;
+  // Cada persona con lo suyo en la base más lo suyo que espera en este celular: la lista y «tú» dicen lo mismo.
+  const personas = barrido ? personasDelBarrido(barrido.personas, ahora).map((p) => ({ ...p, unidades: unidadesDe(p.personaId, barrido.personas, cola) })) : [];
   const guia = useGuiaCampos(camposGuiaBarrido({ responsableListo: responsable.listo, escaneadas: misUnidades, abierto: Boolean(barrido) }), { enModal: false });
 
   useEffect(() => () => window.clearTimeout(reintento.current), []);
 
+  function setBarrido(b: BarridoAbierto | null) {
+    barridoRef.current = b;
+    setBarridoEstado(b);
+  }
+
+  /** La cola vive también en el aparato (por sede): un corte de red o un celular que se reinicia no pierde lo leído. */
   function cambiarCola(siguiente: LecturaBarrido[]) {
     colaRef.current = siguiente;
     setCola(siguiente);
+    const b = barridoRef.current;
+    try {
+      if (siguiente.length === 0 || !b) localStorage.removeItem(claveColaBarrido(ubicacionId));
+      else localStorage.setItem(claveColaBarrido(ubicacionId), serializarCola(b.id, siguiente, new Date()));
+    } catch {
+      // Sin almacenamiento (modo privado, lleno): la cola sigue en memoria y sube igual mientras la pantalla esté abierta.
+    }
   }
+
+  /** Lo que la base dice ahora del barrido de la sede. Lo pide la puesta al día y lo pide la subida al vaciarse la cola. */
+  async function ponerAlDia() {
+    if (subiendo.current) return;
+    const { data, error } = await supabase.rpc(RPC_ESTADO_BARRIDO as never, { p_ubicacion_id: ubicacionId } as never).setHeader("x-espera", "no");
+    if (error || subiendo.current) return; // sin red: se vuelve a preguntar en la próxima vuelta
+    const estado = leerEstadoBarrido(data);
+    const actual = barridoRef.current;
+    if (actual && estado.barrido?.id !== actual.id) {
+      setFrenada("Este barrido ya se cerró. Recarga para ver cómo quedó.");
+      return;
+    }
+    if (!estado.barrido) return;
+    setBarrido(estado.barrido);
+    setBase(estado.barrido.porPrenda);
+    setUnidadesBase(estado.barrido.unidades);
+    setAhora(new Date());
+  }
+
+  // Al llegar (o al sumarse a un barrido), lo que quedó sin subir en este aparato vuelve a la cola y sube.
+  useEffect(() => {
+    if (!barrido?.id) return;
+    let guardada: string | null = null;
+    try {
+      guardada = localStorage.getItem(claveColaBarrido(ubicacionId));
+    } catch {
+      guardada = null;
+    }
+    const pendientes = leerColaGuardada(guardada, barrido.id, new Date());
+    if (pendientes.length === 0) return;
+    const ids = new Set(colaRef.current.map((l) => l.id));
+    cambiarCola([...colaRef.current, ...pendientes.filter((l) => !ids.has(l.id))]);
+    void subir();
+    // Solo al cambiar de barrido: la cola de después ya la maneja la subida.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [barrido?.id]);
+
+  // La puesta al día: cada 5 s con la pantalla a la vista (también sin barrido: si otra persona lo abre, esta pantalla se suma sola).
+  useEffect(() => {
+    const vuelta = window.setInterval(() => {
+      if (document.visibilityState === "visible") void ponerAlDia();
+    }, INTERVALO_ESTADO_MS);
+    return () => window.clearInterval(vuelta);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sin red se sigue escaneando; al volver, lo que esperaba sube solo.
+  useEffect(() => {
+    const cambio = () => {
+      setEnLinea(navigator.onLine);
+      if (navigator.onLine) void subir();
+    };
+    cambio();
+    window.addEventListener("online", cambio);
+    window.addEventListener("offline", cambio);
+    return () => {
+      window.removeEventListener("online", cambio);
+      window.removeEventListener("offline", cambio);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   function cambiarRepetida(siguiente: EstadoRepetida) {
     repetidaRef.current = siguiente;
     setRepetida(siguiente);
@@ -133,6 +223,7 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
   // ---- Subir lo leído ----
 
   async function subir() {
+    const barrido = barridoRef.current;
     if (subiendo.current || !barrido) return;
     const lote = siguienteLote(colaRef.current);
     if (lote.length === 0) return;
@@ -161,7 +252,9 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
       setUnidadesBase(r.unidades);
     }
     setAhora(new Date());
+    // Con la cola vacía, la foto entera del equipo (personas y «tú» incluidos); si queda algo, sigue subiendo.
     if (colaRef.current.length > 0) void subir();
+    else void ponerAlDia();
   }
 
   // ---- Leer ----
@@ -325,7 +418,7 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
           {quienes ?? `Empezó ${barrido.abiertoPor ? `${barrido.abiertoPor.split(" ")[0]} ` : ""}a las ${horaCorta(barrido.abiertoEn)}`}
         </TarjetaCifra>
         <TarjetaCifra etiqueta="Escaneaste tú" valor={misUnidades.toLocaleString("es-PE")} unidad={misUnidades === 1 ? "prenda" : "prendas"}>
-          {estadoDeSubida(enCola, frenada)}
+          {textoDeSubida({ enCola, enLinea, frenada })}
         </TarjetaCifra>
         <TarjetaCifra className="hidden sm:flex" etiqueta="Prendas distintas" valor={Object.values(aLaVista).filter((n) => n > 0).length.toLocaleString("es-PE")}>
           Tallas y colores ya vistos
@@ -370,7 +463,18 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
               </div>
               {!camara && avisoRepetida && <div className="mt-3">{avisoRepetida}</div>}
               {(frenada || aviso) && (
-                <AvisoLinea chico className="mt-3" tono={frenada || aviso?.tono === "rojo" ? "error" : "atencion"}>
+                <AvisoLinea
+                  chico
+                  className="mt-3"
+                  tono={frenada || aviso?.tono === "rojo" ? "error" : "atencion"}
+                  accion={
+                    frenada ? (
+                      <button type="button" className="btn-cayla btn-enlace" onClick={() => window.location.reload()}>
+                        Recargar
+                      </button>
+                    ) : undefined
+                  }
+                >
                   {frenada ?? aviso?.texto}
                 </AvisoLinea>
               )}
@@ -379,7 +483,8 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
           <PieGuia guia={guia} listo="Sigue escaneando: cada prenda se guarda sola." />
         </div>
 
-        <section data-guia="barrido.ultima" aria-live="polite" className="vd-placa self-start rounded-[var(--radius-tarjeta,1rem)] p-4 sm:p-5">
+        <div className="space-y-4 self-start">
+        <section data-guia="barrido.ultima" aria-live="polite" className="vd-placa rounded-[var(--radius-tarjeta,1rem)] p-4 sm:p-5">
           {prendaUltima && actual ? (
             <div key={destello} className="anim-revelar flex items-center gap-4">
               <MiniaturaPrenda fotoUrl={prendaUltima.fotoUrl} colorHex={prendaUltima.colorHex} tamano="2xl" {...categoriaDe(prendaUltima)} />
@@ -399,6 +504,28 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
             </Vacio>
           )}
         </section>
+
+          {personas.length > 0 && (
+            <section data-guia="barrido.personas" className="vd-placa rounded-[var(--radius-tarjeta,1rem)] p-4 sm:p-5">
+              <TituloGrupo cuenta={personas.length}>Quiénes escanearon</TituloGrupo>
+              <ul className="mt-2 divide-y divide-tinta/10">
+                {personas.map((p) => (
+                  <li key={p.personaId} className="flex items-center gap-3 py-2">
+                    <span className="min-w-0 flex-1 truncate text-[15px] text-tinta">{p.nombre}</span>
+                    {p.activa ? (
+                      <Chip tono="verde" versalitas={false}>
+                        Escaneando
+                      </Chip>
+                    ) : (
+                      <span className="texto-detalle text-taupe">{p.hace}</span>
+                    )}
+                    <span className="w-14 text-right font-display text-lg tabular-nums text-tinta">{p.unidades.toLocaleString("es-PE")}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
       </div>
 
       {camara && (
@@ -446,8 +573,3 @@ function horaCorta(iso: string): string {
   return new Date(t).toLocaleTimeString("es-PE", { hour: "numeric", minute: "2-digit", timeZone: "America/Lima" });
 }
 
-function estadoDeSubida(enCola: number, frenada: string | null): string {
-  if (frenada) return "No se pudo guardar: mira el aviso";
-  if (enCola === 0) return "Todo guardado";
-  return enCola === 1 ? "Guardando 1…" : `Guardando ${enCola.toLocaleString("es-PE")}…`;
-}

@@ -215,3 +215,92 @@ export function camposGuiaBarrido({ responsableListo, escaneadas, abierto }: { r
   if (!abierto) return [quien];
   return [quien, { id: "colgado", nombre: "Lo colgado", requerido: true, hecho: escaneadas > 0, pendiente: "Escanea las prendas colgadas, una tras otra." }];
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Varias personas a la vez (actividad 2): la puesta al día, «tú», quién está y la cola que sobrevive a un corte.
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Cada cuánto se pregunta a la base qué lleva el equipo mientras la pantalla está a la vista. Preguntar y no escuchar en vivo
+ *  (ADR-0690): escuchar pediría abrir la lectura de las tablas a cada cuenta (una política más, pegada aparte), y para cinco
+ *  celulares durante una hora preguntar cada 5 s es barato y aguanta los cortes sin reconectar nada. */
+export const INTERVALO_ESTADO_MS = 5000;
+export const VERSION_COLA_BARRIDO = 1;
+/** Lo leído sin subir dura en el aparato hasta un día: un barrido se hace en la jornada. */
+export const HORAS_DE_VIDA_DE_LA_COLA = 24;
+
+/** La cola de UNA sede en este aparato. Por sede y no por cuenta: el celular de la tienda lo usan varias personas. */
+export function claveColaBarrido(ubicacionId: string): string {
+  return `cayla-barrido-cola:${ubicacionId}`;
+}
+
+export function serializarCola(barridoId: string, cola: readonly LecturaBarrido[], ahora: Date): string {
+  return JSON.stringify({ v: VERSION_COLA_BARRIDO, barridoId, guardadaEn: ahora.toISOString(), cola });
+}
+
+const esFirma = (x: unknown): x is Firma => esObjeto(x) && typeof x.responsableId === "string" && typeof x.ubicacionId === "string";
+const esLectura = (x: unknown): x is LecturaBarrido =>
+  esObjeto(x) &&
+  typeof x.id === "string" &&
+  typeof x.varianteId === "string" &&
+  typeof x.cantidad === "number" &&
+  Number.isInteger(x.cantidad) &&
+  x.cantidad >= 1 &&
+  (x.codigo === null || typeof x.codigo === "string") &&
+  typeof x.leidaEnAparato === "string" &&
+  (x.firma === null || esFirma(x.firma));
+
+/**
+ * Lo que quedó sin subir en este aparato, solo si es de ESTE barrido y no está vencido. Una cola de otro barrido (ya cerrado) o
+ * con una forma rara no se reenvía: la base la rechazaría entera. Nunca lanza.
+ */
+export function leerColaGuardada(texto: string | null, barridoId: string, ahora: Date): LecturaBarrido[] {
+  if (!texto) return [];
+  try {
+    const x: unknown = JSON.parse(texto);
+    if (!esObjeto(x) || x.v !== VERSION_COLA_BARRIDO || x.barridoId !== barridoId || !Array.isArray(x.cola)) return [];
+    const guardada = Date.parse(String(x.guardadaEn));
+    if (!Number.isFinite(guardada) || ahora.getTime() - guardada > HORAS_DE_VIDA_DE_LA_COLA * 3_600_000) return [];
+    return x.cola.filter(esLectura);
+  } catch {
+    return [];
+  }
+}
+
+/** «Escaneaste tú»: lo que la base ya tiene de esta persona más lo suyo que falta subir en este aparato. */
+export function unidadesDe(personaId: string | null, personas: readonly PersonaBarrido[], cola: readonly LecturaBarrido[]): number {
+  if (!personaId) return 0;
+  const enBase = personas.find((p) => p.personaId === personaId)?.unidades ?? 0;
+  const enCola = cola.filter((l) => l.firma?.responsableId === personaId).reduce((a, l) => a + l.cantidad, 0);
+  return enBase + enCola;
+}
+
+/** Qué pasa con lo que leyó este aparato, en una línea. */
+export function textoDeSubida({ enCola, enLinea, frenada }: { enCola: number; enLinea: boolean; frenada: string | null }): string {
+  if (frenada) return "No se pudo guardar: mira el aviso";
+  if (enCola === 0) return "Todo guardado";
+  if (!enLinea) return enCola === 1 ? "Sin conexión: 1 espera en este celular" : `Sin conexión: ${enCola.toLocaleString("es-PE")} esperan en este celular`;
+  return enCola === 1 ? "Guardando 1…" : `Guardando ${enCola.toLocaleString("es-PE")}…`;
+}
+
+/** «hace 3 min», «hace 1 h», «ahora». */
+export function haceCuanto(iso: string, ahora: Date): string {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return "";
+  const min = Math.floor((ahora.getTime() - t) / 60_000);
+  if (min < 1) return "ahora";
+  if (min < 60) return `hace ${min} min`;
+  return `hace ${Math.floor(min / 60)} h`;
+}
+
+/** Las personas del barrido, de la que leyó último a la primera, con su primer nombre y si sigue escaneando (10 min). */
+export function personasDelBarrido(personas: readonly PersonaBarrido[], ahora: Date, minutos = 10) {
+  return [...personas]
+    .sort((a, b) => Date.parse(b.ultima) - Date.parse(a.ultima))
+    .map((p) => ({
+      personaId: p.personaId,
+      nombre: p.nombre.split(" ")[0] || p.nombre,
+      unidades: p.unidades,
+      hace: haceCuanto(p.ultima, ahora),
+      activa: ahora.getTime() - Date.parse(p.ultima) <= minutos * 60_000,
+    }));
+}

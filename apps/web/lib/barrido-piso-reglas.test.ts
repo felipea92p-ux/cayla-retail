@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   camposGuiaBarrido,
+  claveColaBarrido,
+  haceCuanto,
+  leerColaGuardada,
+  personasDelBarrido,
+  serializarCola,
+  textoDeSubida,
+  unidadesDe,
   detalleDePrenda,
   esRechazoQueFrena,
   leerEstadoBarrido,
@@ -132,5 +139,54 @@ describe("la guía de foco", () => {
 
   it("antes de empezar solo cuenta quién: «Empezar el barrido» no pide prendas", () => {
     expect(camposGuiaBarrido({ responsableListo: false, escaneadas: 0, abierto: false }).map((c) => c.id)).toEqual(["responsable"]);
+  });
+});
+
+describe("varias personas a la vez", () => {
+  const B = "barrido-1";
+  it("la cola se guarda y vuelve igual, solo para el MISMO barrido y si no venció", () => {
+    const cola = [lectura("1", "va"), lectura("2", "vb", null as never)];
+    const texto = serializarCola(B, cola, ahora);
+    expect(leerColaGuardada(texto, B, ahora)).toEqual(cola);
+    expect(leerColaGuardada(texto, "otro-barrido", ahora)).toEqual([]);
+    expect(leerColaGuardada(texto, B, new Date(ahora.getTime() + 25 * 3_600_000))).toEqual([]);
+  });
+
+  it("una cola rota o de otra versión no se reenvía, y no lanza", () => {
+    expect(leerColaGuardada(null, B, ahora)).toEqual([]);
+    expect(leerColaGuardada("{no es json", B, ahora)).toEqual([]);
+    expect(leerColaGuardada(JSON.stringify({ v: 99, barridoId: B, guardadaEn: ahora.toISOString(), cola: [] }), B, ahora)).toEqual([]);
+    const conBasura = JSON.stringify({ v: 1, barridoId: B, guardadaEn: ahora.toISOString(), cola: [lectura("1", "va"), { id: 3 }, { ...lectura("2", "vb"), cantidad: 0 }] });
+    expect(leerColaGuardada(conBasura, B, ahora).map((l) => l.id)).toEqual(["1"]);
+  });
+
+  it("la cola es por sede", () => {
+    expect(claveColaBarrido("tru")).not.toBe(claveColaBarrido("aqp"));
+  });
+
+  it("«escaneaste tú» = lo de esa persona en la base + lo suyo que falta subir (no lo de otra)", () => {
+    const personas = [{ personaId: "ana", nombre: "Ana", unidades: 10, lecturas: 9, ultima: ahora.toISOString() }];
+    const cola = [lectura("1", "va"), lectura("2", "vb", ROSA)];
+    expect(unidadesDe("ana", personas, cola)).toBe(11);
+    expect(unidadesDe("rosa", personas, cola)).toBe(1);
+    expect(unidadesDe(null, personas, cola)).toBe(0);
+  });
+
+  it("la línea de lo que sube dice si guarda, si espera sin conexión o si está todo", () => {
+    expect(textoDeSubida({ enCola: 0, enLinea: true, frenada: null })).toBe("Todo guardado");
+    expect(textoDeSubida({ enCola: 3, enLinea: true, frenada: null })).toBe("Guardando 3…");
+    expect(textoDeSubida({ enCola: 12, enLinea: false, frenada: null })).toBe("Sin conexión: 12 esperan en este celular");
+    expect(textoDeSubida({ enCola: 1, enLinea: false, frenada: null })).toBe("Sin conexión: 1 espera en este celular");
+    expect(textoDeSubida({ enCola: 3, enLinea: true, frenada: "x" })).toBe("No se pudo guardar: mira el aviso");
+  });
+
+  it("las personas, de la última que leyó a la primera, con cuánto hace y si sigue", () => {
+    const p = (personaId: string, min: number, unidades: number) => ({ personaId, nombre: `${personaId} Apellido`, unidades, lecturas: unidades, ultima: new Date(ahora.getTime() - min * 60_000).toISOString() });
+    expect(personasDelBarrido([p("Luz", 30, 5), p("Ana", 0, 40), p("Rosa", 3, 12)], ahora)).toEqual([
+      { personaId: "Ana", nombre: "Ana", unidades: 40, hace: "ahora", activa: true },
+      { personaId: "Rosa", nombre: "Rosa", unidades: 12, hace: "hace 3 min", activa: true },
+      { personaId: "Luz", nombre: "Luz", unidades: 5, hace: "hace 30 min", activa: false },
+    ]);
+    expect(haceCuanto(new Date(ahora.getTime() - 125 * 60_000).toISOString(), ahora)).toBe("hace 2 h");
   });
 });
