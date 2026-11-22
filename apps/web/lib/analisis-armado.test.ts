@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { PrendaSede } from "./analisis-tipos";
 import { armarPrendas, conPreciosDeMiTienda } from "./analisis-armado";
 import { armarModelos } from "./analisis-modelo";
-import { dineroDe, subtituloFicha } from "./analisis-ficha";
+import { subtituloFicha } from "./analisis-ficha";
 
 // Datos inventados para la prueba.
 function fila(parcial: Partial<PrendaSede>): PrendaSede {
@@ -75,9 +75,8 @@ describe("el precio de MI tienda (Felipe 2026-10-10)", () => {
     expect(p!.precio).toBe(69.9);
     expect(p!.otras[0]).toEqual({ sedeId: "aqp", stock: 3, vendidas30: 0 });
   });
-  it("de punta a punta: «Ganas por cada una» y el precio del modelo salen con el precio de la tienda", () => {
+  it("de punta a punta: el precio del modelo sale con el precio de la tienda", () => {
     const prendas = armarPrendas(conPreciosDeMiTienda(mias, { s: 69.9, m: 69.9, l: 69.9 }), [], {});
-    expect(dineroDe(prendas[0]!).ganas).toBe("S/\u00a029.90");
     const [modelo] = armarModelos(prendas, "2026-10-11");
     expect(modelo!.precio).toBe(69.9);
     expect(subtituloFicha({ color: "Terracota", talla: "S", precio: prendas[0]!.precio })).toContain("69.90");

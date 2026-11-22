@@ -111,10 +111,10 @@ export function HojaLiquidarDesde({ dias, onCerrar, onGuardado }: { dias: number
               <small>{efecto.cambia ? `sin venderse · antes ${efecto.guardado}` : "sin venderse"}</small>
             </div>
             <div className="hecho" style={ambar}>
-              <Icono nombre="etiqueta" />
+              <Icono nombre="vigila" />
               <b>{cifraPrendas(efecto.enLiquidar)}</b>
               <small>
-                a liquidar en {datos.sede.ciudad}
+                no se venden en {datos.sede.ciudad}
                 {efecto.cambia ? ` · antes ${efecto.enLiquidarHoy}` : ""}
               </small>
             </div>

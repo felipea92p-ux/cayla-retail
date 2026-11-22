@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PrendaAnalisis } from "./analisis-tipos";
 import { diasQueQuedan, grupoDe, nuncaSalio, seEstaAcabando } from "./analisis-reglas";
-import { armarModelos, diasSinVenderModelo, modeloDe, variantesDe } from "./analisis-modelo";
+import { armarModelos, diasSinVenderModelo, modeloDe } from "./analisis-modelo";
 import { leerPrendaSede } from "./analisis-sede-lectura";
 
 // Datos inventados para la prueba (ni nombres del catálogo ni cifras de producción), con la forma del caso que llevó a la decisión
@@ -195,11 +195,11 @@ describe("la red, lo que viene, el dinero y el orden", () => {
     expect(m.fotoUrl).toBe("t.jpg");
   });
 
-  it("arma un modelo por producto, en el orden de su primera talla, y variantesDe las devuelve todas", () => {
+  it("arma un modelo por producto, en el orden de su primera talla, y adentro van todas sus tallas", () => {
     const otro = prenda({ varianteId: "o1", productoId: "p2", nombre: "Blusa Ensayo" });
     const modelos = armarModelos([chaleco[0], otro, ...chaleco.slice(1)], HOY);
     expect(modelos.map((x) => x.productoId)).toEqual(["p1", "p2"]);
-    expect(variantesDe(modelos)).toHaveLength(7);
+    expect(modelos.flatMap((m) => m.variantes)).toHaveLength(7);
   });
 });
 
