@@ -22,6 +22,8 @@
  *      no; nada se escribe en ninguno.
  *   F5 idempotencia: la misma marca devuelve el mismo resultado sin mover nada; la marca de otro barrido, barrido_token_reusado.
  *   F6 cancelar: no mueve nada, el barrido queda cancelado y ya no se confirma; se puede abrir otro.
+ *   F7 los relojes (actividad 6, `20261122194000_barrido_piso_relojes.sql`): el primer cuadre de la sede reinicia aunque sea un barrido;
+ *      el segundo barrido no; un cuadre del almacén sí; y siempre por sede.
  *
  * CÓMO. Igual que `barrido_piso.mjs`: cada caso en ROLLBACK, sesión simulada, sede nueva.
  *
@@ -346,6 +348,54 @@ select ${CONFIRMAR()};
 ${COMO_POSTGRES}select concat_ws(',', (select count(*) from retail.movimientos) = :'movs'::int, (select estado from retail.barridos_piso where id = :'barrido'),
   (select count(*) from retail.barrido_piso_lecturas where barrido_id = :'barrido') > 0);`,
   (l) => l.at(-3) === "true" && error(l.at(-2), "barrido_cerrado") && l.at(-1) === "t,cancelado,t"
+);
+
+// ===========================================================================
+// F7 · Los relojes (actividad 6): solo el primer cuadre de la sede reinicia
+// ===========================================================================
+
+const ULTIMO = `(select retail.fn_ultimo_cuadre_piso(:'bar'))`;
+/** Deja el cuadre de este barrido «hace 3 días» (la tabla es inmutable: solo dentro de esta transacción, sin disparadores). */
+const HACE_3_DIAS = `${COMO_POSTGRES}set local session_replication_role = replica;
+update retail.barridos_piso set abierto_en = abierto_en - interval '3 days', cerrado_en = cerrado_en - interval '3 days' where id = :'barrido';
+update retail.cuadres_piso set created_at = created_at - interval '3 days', escaneo_desde = escaneo_desde - interval '3 days' where barrido_id = :'barrido';
+set local session_replication_role = origin;
+`;
+const SEGUNDO_BARRIDO = `${sesion(FELIPE)}${COMO_API}select (retail.abrir_barrido_piso(:'bar') -> 'estado' -> 'barrido' ->> 'id') as barrido2 \\gset
+select ${registrar(lote(["va", 3]), ":'barrido2'")} as _r2 \\gset
+select ${CONFIRMAR("gen_random_uuid()", "true", ":'barrido2'")} ->> 'ok' as ok2 \\gset
+`;
+
+caso(
+  "F7 · el PRIMER cuadre de la sede, aunque sea un barrido, reinicia los relojes: fn_ultimo_cuadre_piso es su fecha",
+  `${ESCANEADO}${COMO_POSTGRES}select ${ULTIMO} is null as antes \\gset
+${sesion(FELIPE)}${COMO_API}select ${CONFIRMAR()} -> 'res' ->> 'cuadre_id' as cuadre \\gset
+${COMO_POSTGRES}select concat_ws(',', :'antes', ${ULTIMO} = (select created_at from retail.cuadres_piso where id = :'cuadre'));`,
+  "t,t"
+);
+caso(
+  "F7 · el SEGUNDO barrido no los reinicia: la fecha sigue siendo la del primero (pero «cuándo se cuadró» sí es la del último)",
+  `${ESCANEADO}select ${CONFIRMAR()} as _c \\gset
+${HACE_3_DIAS}select ${ULTIMO} as primero \\gset
+${SEGUNDO_BARRIDO}${COMO_POSTGRES}select concat_ws(',', :'ok2', ${ULTIMO} = :'primero'::timestamptz,
+  (select count(*) from retail.cuadres_piso where ubicacion_id = :'bar'),
+  (select max(created_at) from retail.cuadres_piso where ubicacion_id = :'bar') > :'primero'::timestamptz,
+  (${sesion(FELIPE)}select (retail.fn_cuadre_piso_estado(:'bar') ->> 'cuadrado_en')::timestamptz) > :'primero'::timestamptz);`.replace(`(${sesion(FELIPE)}select`, "(select"),
+  "true,t,2,t,t"
+);
+caso(
+  "F7 · un cuadre del ALMACÉN (cuadrar_piso) después de un barrido SÍ reinicia, como siempre",
+  `${ESCANEADO}select ${CONFIRMAR()} as _c \\gset
+${HACE_3_DIAS}select ${ULTIMO} as primero \\gset
+${sesion(FELIPE)}${COMO_API}select (pg_temp.r(format('select retail.cuadrar_piso(%L, %L::jsonb, now(), %L, gen_random_uuid())', :'bar', '[]', 'se rehace desde el almacén'))) ->> 'ok' as okc \\gset
+${COMO_POSTGRES}select concat_ws(',', :'okc', ${ULTIMO} > :'primero'::timestamptz, (select lado from retail.cuadres_piso where ubicacion_id = :'bar' order by created_at desc limit 1));`,
+  "true,t,almacen"
+);
+caso(
+  "F7 · el barrido de OTRA sede no mueve la fecha de esta (se busca por sede)",
+  `${ESCANEADO}select ${CONFIRMAR()} as _c \\gset
+${COMO_POSTGRES}select concat_ws(',', ${ULTIMO} is not null, retail.fn_ultimo_cuadre_piso(:'taller') is null);`,
+  "t,t"
 );
 
 console.log(`\n${fallos === 0 ? "✓" : "✗"} ${total - fallos}/${total} verificaciones${fallos ? ` — ${fallos} fallaron` : ""}`);
