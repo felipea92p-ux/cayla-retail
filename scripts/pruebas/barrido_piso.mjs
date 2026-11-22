@@ -13,7 +13,8 @@
  *   B2 permisos: sin Existencias, barrido_sin_modulo; en otra sede, barrido_sin_tienda; la integrante con Existencias en su
  *      sede abre y escanea y queda firmada ella; la terminal con Existencias firma la responsable; anon no; el Taller no se barre.
  *   B3 abrir: el primero crea (nuevo), el segundo se suma al mismo; nunca dos abiertos en la sede.
- *   B4 sumar, no pisar: dos personas en la misma prenda se suman; el estado dice lo de cada prenda y cada persona.
+ *   B4 sumar, no pisar: dos personas en la misma prenda se suman; el estado y la respuesta de cada lote dicen lo de cada prenda
+ *      y cada persona.
  *   B5 idempotencia: el mismo lote reenviado no cuenta dos veces; el mismo id con otro contenido no guarda nada.
  *   B6 la forma del lote: vacío, de más de 300, cantidad fuera de 1..500, id repetido, prenda que no existe, la «Prenda sin
  *      registrar», código de más de 120.
@@ -309,8 +310,10 @@ ${COMO_POSTGRES}select concat_ws(',', (:'r1')::jsonb ->> 'guardadas', (:'r2')::j
   jsonb_array_length((:'e')::jsonb -> 'personas'),
   (:'e')::jsonb -> 'personas' -> 0 ->> 'persona_id' = :'micaela_p',
   (select x ->> 'unidades' from jsonb_array_elements((:'e')::jsonb -> 'personas') x where x ->> 'persona_id' = :'felipe_p'),
-  (select count(*) from retail.barrido_piso_lecturas where barrido_id = :'barrido' and leida_en is not null));`,
-  "2,4,3,1,4,3,2,3,2,t,3,3"
+  (select count(*) from retail.barrido_piso_lecturas where barrido_id = :'barrido' and leida_en is not null),
+  jsonb_array_length((:'r2')::jsonb -> 'personas'),
+  (select x ->> 'unidades' from jsonb_array_elements((:'r2')::jsonb -> 'personas') x where x ->> 'persona_id' = :'micaela_p'));`,
+  "2,4,3,1,4,3,2,3,2,t,3,3,2,1"
 );
 caso(
   "B4 · la hora del aparato se guarda tal cual, aparte de la del servidor",

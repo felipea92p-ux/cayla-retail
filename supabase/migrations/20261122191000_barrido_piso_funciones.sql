@@ -148,7 +148,9 @@ comment on function retail.abrir_barrido_piso(uuid) is
 -- 3. Guardar un lote de lecturas.
 --    PROMETE: o entran todas las lecturas nuevas del lote, o ninguna y el error dice por qué. Una lectura que ya estaba
 --             (mismo id, mismo contenido) no se cuenta otra vez. Devuelve {guardadas, ya_estaban, unidades,
---             por_prenda: [{variante_id, cantidad}]} con lo que el EQUIPO lleva de cada prenda del lote.
+--             por_prenda: [{variante_id, cantidad}], personas: [...]} con lo que el EQUIPO lleva de cada prenda del lote y lo de
+--             cada persona (la misma forma que fn_barrido_piso_estado): quien escanea seguido no espera la próxima puesta al día
+--             para ver su cifra.
 --    ASUME:   p_lecturas = [{id, variante_id, cantidad?, codigo?, leida_en_aparato?}], de 1 a 300.
 -- ---------------------------------------------------------------------------
 create or replace function retail.registrar_lecturas_barrido(p_barrido_id uuid, p_lecturas jsonb)
@@ -254,12 +256,18 @@ begin
                 from barrido_piso_lecturas l
                where l.barrido_id = p_barrido_id
                  and l.variante_id in (select (x ->> 'variante_id')::uuid from jsonb_array_elements(v_lista) x)
-               group by l.variante_id) t), '[]'::jsonb));
+               group by l.variante_id) t), '[]'::jsonb),
+    'personas', coalesce((
+      select jsonb_agg(jsonb_build_object('persona_id', p.persona_id, 'nombre', fn_actividad_nombre(p.persona_id),
+                                          'unidades', p.unidades, 'lecturas', p.lecturas, 'ultima', p.ultima)
+                       order by p.ultima desc)
+        from (select l.persona_id, sum(l.cantidad)::integer as unidades, count(*)::integer as lecturas, max(l.leida_en) as ultima
+                from barrido_piso_lecturas l where l.barrido_id = p_barrido_id group by l.persona_id) p), '[]'::jsonb));
 end;
 $fn$;
 
 comment on function retail.registrar_lecturas_barrido(uuid, jsonb) is
-  'ADR-0690: guarda un lote de 1 a 300 lecturas de un barrido abierto, firmadas por el responsable. Idempotente por el id de cada lectura (lo genera el aparato). Devuelve {guardadas, ya_estaban, unidades, por_prenda} con lo que lleva el equipo.';
+  'ADR-0690: guarda un lote de 1 a 300 lecturas de un barrido abierto, firmadas por el responsable. Idempotente por el id de cada lectura (lo genera el aparato). Devuelve {guardadas, ya_estaban, unidades, por_prenda, personas} con lo que lleva el equipo y cada persona.';
 
 revoke all on function retail.fn_barrido_piso_es_historia() from public, anon, authenticated;
 revoke all on function retail.fn_barrido_piso_lectura_valida() from public, anon, authenticated;

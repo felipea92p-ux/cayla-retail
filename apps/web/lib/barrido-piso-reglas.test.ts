@@ -9,7 +9,11 @@ import {
   textoDeSubida,
   unidadesDe,
   detalleDePrenda,
-  esRechazoQueFrena,
+  clasificarError,
+  juntarColas,
+  LECTURA_MAX,
+  momentoDelLote,
+  prefijoColaBarrido,
   leerEstadoBarrido,
   leerRespuestaLecturas,
   loteParaLaBase,
@@ -99,6 +103,7 @@ describe("lo que devuelve registrar_lecturas_barrido", () => {
       yaEstaban: 1,
       unidades: 9,
       porPrenda: { va: 4 },
+      personas: null,
     });
     expect(leerRespuestaLecturas("ok")).toBeNull();
   });
@@ -118,13 +123,13 @@ describe("palabras de tienda", () => {
     expect(quienesEscanean([p("Ana", 30)], ahora)).toBeNull();
   });
 
-  it("cada rechazo conocido de la base tiene su frase y frena la cola; uno desconocido (la red) no", () => {
-    for (const hint of ["barrido_cerrado", "barrido_no_existe", "barrido_sin_modulo", "barrido_sin_tienda", "barrido_sin_permiso", "barrido_tienda_sin_piso", "responsable_requerido", "barrido_prenda_desconocida"]) {
-      expect(textoDeRechazo(hint), hint).toBeTruthy();
-      expect(esRechazoQueFrena(hint)).toBe(true);
-    }
+  it("cada rechazo conocido de la base tiene su frase", () => {
+    for (const hint of [
+      "barrido_cerrado", "barrido_no_existe", "barrido_sin_modulo", "barrido_sin_tienda", "barrido_sin_permiso", "barrido_tienda_sin_piso",
+      "responsable_requerido", "barrido_prenda_desconocida", "responsable_no_presente", "responsable_sin_acceso", "ubicacion_requerida",
+      "barrido_lecturas_invalidas", "barrido_lectura_reusada", "barrido_no_es_inventario",
+    ]) expect(textoDeRechazo(hint), hint).toBeTruthy();
     expect(textoDeRechazo(null)).toBeNull();
-    expect(esRechazoQueFrena(undefined)).toBe(false);
   });
 });
 
@@ -146,22 +151,40 @@ describe("varias personas a la vez", () => {
   const B = "barrido-1";
   it("la cola se guarda y vuelve igual, solo para el MISMO barrido y si no venció", () => {
     const cola = [lectura("1", "va"), lectura("2", "vb", null as never)];
-    const texto = serializarCola(B, cola, ahora);
-    expect(leerColaGuardada(texto, B, ahora)).toEqual(cola);
-    expect(leerColaGuardada(texto, "otro-barrido", ahora)).toEqual([]);
-    expect(leerColaGuardada(texto, B, new Date(ahora.getTime() + 25 * 3_600_000))).toEqual([]);
+    const apartadas = [{ ...lectura("3", "vc"), motivo: "No estaba de turno" }];
+    const texto = serializarCola(B, { cola, apartadas }, ahora);
+    expect(leerColaGuardada(texto, B, ahora)).toEqual({ cola, apartadas });
+    expect(leerColaGuardada(texto, "otro-barrido", ahora)).toEqual({ cola: [], apartadas: [] });
+    expect(leerColaGuardada(texto, B, new Date(ahora.getTime() + 25 * 3_600_000))).toEqual({ cola: [], apartadas: [] });
   });
 
-  it("una cola rota o de otra versión no se reenvía, y no lanza", () => {
-    expect(leerColaGuardada(null, B, ahora)).toEqual([]);
-    expect(leerColaGuardada("{no es json", B, ahora)).toEqual([]);
-    expect(leerColaGuardada(JSON.stringify({ v: 99, barridoId: B, guardadaEn: ahora.toISOString(), cola: [] }), B, ahora)).toEqual([]);
-    const conBasura = JSON.stringify({ v: 1, barridoId: B, guardadaEn: ahora.toISOString(), cola: [lectura("1", "va"), { id: 3 }, { ...lectura("2", "vb"), cantidad: 0 }] });
-    expect(leerColaGuardada(conBasura, B, ahora).map((l) => l.id)).toEqual(["1"]);
+  it("una cola rota, de otra versión o con una cantidad que la base rechazaría no se reenvía, y no lanza", () => {
+    const vacia = { cola: [], apartadas: [] };
+    expect(leerColaGuardada(null, B, ahora)).toEqual(vacia);
+    expect(leerColaGuardada("{no es json", B, ahora)).toEqual(vacia);
+    expect(leerColaGuardada(JSON.stringify({ v: 1, barridoId: B, guardadaEn: ahora.toISOString(), cola: [lectura("1", "va")] }), B, ahora)).toEqual(vacia);
+    const conBasura = JSON.stringify({
+      v: 2,
+      barridoId: B,
+      guardadaEn: ahora.toISOString(),
+      cola: [lectura("1", "va"), { id: 3 }, { ...lectura("2", "vb"), cantidad: 0 }, { ...lectura("4", "vb"), cantidad: LECTURA_MAX + 1 }],
+      apartadas: [lectura("5", "va")],
+    });
+    expect(leerColaGuardada(conBasura, B, ahora)).toEqual({ cola: [lectura("1", "va")], apartadas: [] });
   });
 
-  it("la cola es por sede", () => {
-    expect(claveColaBarrido("tru")).not.toBe(claveColaBarrido("aqp"));
+  it("una clave por pantalla abierta, todas con el prefijo de su sede: dos pestañas no se pisan", () => {
+    expect(claveColaBarrido("tru", "a")).not.toBe(claveColaBarrido("tru", "b"));
+    expect(claveColaBarrido("tru", "a").startsWith(prefijoColaBarrido("tru"))).toBe(true);
+    expect(claveColaBarrido("aqp", "a").startsWith(prefijoColaBarrido("tru"))).toBe(false);
+  });
+
+  it("juntar las colas de dos pestañas no repite ninguna lectura", () => {
+    const a = { cola: [lectura("1", "va"), lectura("2", "vb")], apartadas: [] };
+    const b = { cola: [lectura("2", "vb"), lectura("3", "vc")], apartadas: [{ ...lectura("4", "va"), motivo: "x" }] };
+    const j = juntarColas(a, b);
+    expect(j.cola.map((l) => l.id)).toEqual(["1", "2", "3"]);
+    expect(j.apartadas.map((l) => l.id)).toEqual(["4"]);
   });
 
   it("«escaneaste tú» = lo de esa persona en la base + lo suyo que falta subir (no lo de otra)", () => {
@@ -188,5 +211,48 @@ describe("varias personas a la vez", () => {
       { personaId: "Luz", nombre: "Luz", unidades: 5, hace: "hace 30 min", activa: false },
     ]);
     expect(haceCuanto(new Date(ahora.getTime() - 125 * 60_000).toISOString(), ahora)).toBe("hace 2 h");
+  });
+});
+
+describe("lo que la base rechaza no traba la cola (revisión adversarial de la actividad 2)", () => {
+  it("solo se reintenta lo que no tuvo respuesta; un «no» de la base se aparta; el barrido cerrado frena todo", () => {
+    expect(clasificarError(null)).toBe("red");
+    expect(clasificarError({ code: "", hint: null })).toBe("red"); // sin red: supabase-js no trae código
+    expect(clasificarError({ code: "PGRST301", hint: null })).toBe("red");
+    expect(clasificarError({ code: "57014", hint: null })).toBe("red"); // la base tardó demasiado
+    expect(clasificarError({ code: "08006", hint: null })).toBe("red");
+    expect(clasificarError({ code: "40P01", hint: null })).toBe("red");
+    expect(clasificarError({ code: "42501", hint: "responsable_no_presente" })).toBe("aparta");
+    expect(clasificarError({ code: "22023", hint: "barrido_lecturas_invalidas" })).toBe("aparta");
+    expect(clasificarError({ code: "P0001", hint: "barrido_prenda_desconocida" })).toBe("aparta");
+    expect(clasificarError({ code: "P0001", hint: "algo_nuevo_que_la_pantalla_no_conoce" })).toBe("aparta");
+    expect(clasificarError({ code: "P0001", hint: "barrido_cerrado" })).toBe("frena_todo");
+    expect(clasificarError({ code: "42501", hint: "barrido_sin_modulo" })).toBe("frena_todo");
+  });
+
+  it("una lectura de un lote rechazado sube sola, para encontrar la mala sin perder las buenas", () => {
+    const cola = [lectura("1", "va"), lectura("2", "vb"), lectura("3", "vc")];
+    expect(siguienteLote(cola, 300, new Set(["1"])).map((l) => l.id)).toEqual(["1"]);
+    expect(siguienteLote(cola, 300, new Set(["2"])).map((l) => l.id)).toEqual(["1"]);
+    expect(siguienteLote(cola.slice(1), 300, new Set(["2"])).map((l) => l.id)).toEqual(["2"]);
+  });
+
+  it("el lote viaja con la hora en que se escaneó, nunca en el futuro", () => {
+    const l = lectura("1", "va"); // 15:07
+    expect(momentoDelLote([l], new Date("2026-11-22T18:00:00Z"))).toBe("2026-11-22T15:07:00.000Z");
+    expect(momentoDelLote([l], new Date("2026-11-22T15:00:00Z"))).toBe("2026-11-22T15:00:00.000Z"); // reloj del aparato adelantado
+    expect(momentoDelLote([], ahora)).toBeNull();
+  });
+
+  it("el tope de una lectura es el de la base (cantidad between 1 and 500)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const sql = readFileSync(new URL("../../../supabase/migrations/20261122190000_barrido_piso_tablas.sql", import.meta.url), "utf8");
+    expect(sql).toContain(`check (cantidad between 1 and ${LECTURA_MAX})`);
+  });
+
+  it("la respuesta de cada lote trae lo de cada persona", () => {
+    const r = leerRespuestaLecturas({ guardadas: 1, ya_estaban: 0, unidades: 1, por_prenda: [], personas: [{ persona_id: "ana", nombre: "Ana", unidades: 1, lecturas: 1, ultima: "x" }] });
+    expect(r?.personas).toEqual([{ personaId: "ana", nombre: "Ana", unidades: 1, lecturas: 1, ultima: "x" }]);
+    expect(leerRespuestaLecturas({ guardadas: 1 })?.personas).toBeNull();
   });
 });

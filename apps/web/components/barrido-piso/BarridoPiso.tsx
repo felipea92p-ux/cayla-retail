@@ -24,19 +24,24 @@ import { avisarLectura } from "@/lib/sonido-conteo";
 import { ESTADO_REPETIDA_VACIO, declararPila, decidirLectura, type EstadoRepetida, type PreguntaRepetida } from "@/lib/lectura-repetida";
 import {
   INTERVALO_ESTADO_MS,
+  LECTURAS_POR_LOTE,
+  LECTURA_MAX,
   REINTENTO_MS,
   RPC_ABRIR_BARRIDO,
   RPC_ESTADO_BARRIDO,
   RPC_REGISTRAR_LECTURAS,
   camposGuiaBarrido,
+  clasificarError,
   claveColaBarrido,
+  juntarColas,
   leerColaGuardada,
+  momentoDelLote,
+  prefijoColaBarrido,
   personasDelBarrido,
   serializarCola,
   textoDeSubida,
   unidadesDe,
   detalleDePrenda,
-  esRechazoQueFrena,
   leerEstadoBarrido,
   leerRespuestaLecturas,
   loteParaLaBase,
@@ -47,7 +52,9 @@ import {
   sinLasSubidas,
   textoDeRechazo,
   type BarridoAbierto,
+  type ColaGuardada,
   type EstadoBarrido,
+  type LecturaApartada,
   type LecturaBarrido,
   type PrendaBarrido,
 } from "@/lib/barrido-piso-reglas";
@@ -67,12 +74,13 @@ import {
 type Aviso = { texto: string; tono: "ambar" | "rojo" };
 
 const nombreDe = (p: PrendaBarrido | undefined) => (p ? [p.referencia, p.talla, p.color].filter(Boolean).join(" · ") : "Esta prenda");
-const sumaDe = (r: Record<string, number>) => Object.values(r).reduce((a, n) => a + n, 0);
 
 export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubicacionId: string; sede: string; prendas: PrendaBarrido[]; estadoInicial: EstadoBarrido }) {
   const supabase = useMemo(() => createClient(), []);
   const responsable = useResponsable({ ubicacionId, etiqueta: sede });
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p] as const)), [prendas]);
+  // Un id por pantalla abierta: su cola se guarda bajo su propia clave (dos pestañas del mismo celular no se pisan).
+  const [instancia] = useState(() => crypto.randomUUID());
 
   const [barrido, setBarridoEstado] = useState<BarridoAbierto | null>(estadoInicial.barrido);
   // El barrido de ahora para lo que corre fuera del dibujo (la subida, el reintento, la puesta al día).
@@ -83,12 +91,17 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
   const [unidadesBase, setUnidadesBase] = useState(estadoInicial.barrido?.unidades ?? 0);
   const [cola, setCola] = useState<LecturaBarrido[]>([]);
   const colaRef = useRef<LecturaBarrido[]>([]);
-  // Lo que leyó este aparato en esta visita, por prenda: la lectura repetida y «Tú» se miden con esto.
+  // Lo que la base rechazó: apartado con su motivo, fuera de la cola, para que la persona decida.
+  const [apartadas, setApartadas] = useState<LecturaApartada[]>([]);
+  const apartadasRef = useRef<LecturaApartada[]>([]);
+  const [descartando, setDescartando] = useState(false);
+  // Lo que leyó este aparato en esta visita, por prenda: SOLO para la lectura repetida (no para «Escaneaste tú»).
   const [mias, setMias] = useState<Record<string, number>>({});
   const miasRef = useRef<Record<string, number>>({});
   const [ultima, setUltima] = useState<string | null>(null);
   const [aviso, setAviso] = useState<Aviso | null>(null);
-  const [frenada, setFrenada] = useState<string | null>(null);
+  const [frenada, setFrenadaEstado] = useState<string | null>(null);
+  const frenadaRef = useRef<string | null>(null);
   const [abriendo, setAbriendo] = useState(false);
   const [camara, setCamara] = useState(false);
   const [destello, setDestello] = useState(0);
@@ -96,6 +109,12 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
   const [repetida, setRepetida] = useState<EstadoRepetida>(ESTADO_REPETIDA_VACIO);
   const subiendo = useRef(false);
   const reintento = useRef<number | undefined>(undefined);
+  // Las lecturas de un lote que la base rechazó suben de a una, para encontrar la mala sin perder las buenas.
+  const aislar = useRef<Set<string>>(new Set());
+  // Sube cada vez que cambia lo de este aparato: una puesta al día pedida antes llega vieja y se descarta.
+  const version = useRef(0);
+  // Una pantalla que ya se cerró no escribe nada más (su cola la recoge la que se abre).
+  const vivo = useRef(true);
   const escaner = useRef<HTMLInputElement | null>(null);
   // «Quién está escaneando» mira las últimas lecturas contra esta hora; se pone al día con cada respuesta de la base.
   const [ahora, setAhora] = useState(() => new Date());
@@ -103,42 +122,70 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
   const aLaVista = porPrendaALaVista(base, cola);
   const enCola = cola.reduce((a, l) => a + l.cantidad, 0);
   const unidadesEquipo = unidadesBase + enCola;
-  // «Escaneaste tú» es de la PERSONA elegida (lo suyo en la base + lo suyo sin subir), no de este aparato: si recarga, no vuelve a 0.
-  const misUnidades = barrido ? Math.max(unidadesDe(responsable.elegidoId, barrido.personas, cola), sumaDe(mias)) : sumaDe(mias);
+  // «Escaneaste tú» es de la PERSONA elegida: lo suyo en la base + lo suyo sin subir. Si le pasa el celular a otra, la otra no hereda la
+  // cifra, y si recarga no vuelve a 0.
+  const misUnidades = barrido ? unidadesDe(responsable.elegidoId, barrido.personas, cola) : 0;
   const quienes = barrido ? quienesEscanean(barrido.personas, ahora) : null;
   // Cada persona con lo suyo en la base más lo suyo que espera en este celular: la lista y «tú» dicen lo mismo.
   const personas = barrido ? personasDelBarrido(barrido.personas, ahora).map((p) => ({ ...p, unidades: unidadesDe(p.personaId, barrido.personas, cola) })) : [];
   const guia = useGuiaCampos(camposGuiaBarrido({ responsableListo: responsable.listo, escaneadas: misUnidades, abierto: Boolean(barrido) }), { enModal: false });
 
-  useEffect(() => () => window.clearTimeout(reintento.current), []);
+  useEffect(() => {
+    vivo.current = true;
+    return () => {
+      vivo.current = false;
+      window.clearTimeout(reintento.current);
+    };
+  }, []);
 
   function setBarrido(b: BarridoAbierto | null) {
     barridoRef.current = b;
     setBarridoEstado(b);
   }
+  function frenar(texto: string) {
+    frenadaRef.current = texto;
+    setFrenadaEstado(texto);
+  }
 
-  /** La cola vive también en el aparato (por sede): un corte de red o un celular que se reinicia no pierde lo leído. */
-  function cambiarCola(siguiente: LecturaBarrido[]) {
-    colaRef.current = siguiente;
-    setCola(siguiente);
+  /** Lo que este aparato no subió vive también en su almacenamiento, bajo la clave de ESTA pantalla: un corte o un celular que se
+   *  reinicia no pierde lo leído. */
+  function guardarEnAparato() {
+    if (!vivo.current) return;
     const b = barridoRef.current;
+    const clave = claveColaBarrido(ubicacionId, instancia);
     try {
-      if (siguiente.length === 0 || !b) localStorage.removeItem(claveColaBarrido(ubicacionId));
-      else localStorage.setItem(claveColaBarrido(ubicacionId), serializarCola(b.id, siguiente, new Date()));
+      if (!b || (colaRef.current.length === 0 && apartadasRef.current.length === 0)) localStorage.removeItem(clave);
+      else localStorage.setItem(clave, serializarCola(b.id, { cola: colaRef.current, apartadas: apartadasRef.current }, new Date()));
     } catch {
       // Sin almacenamiento (modo privado, lleno): la cola sigue en memoria y sube igual mientras la pantalla esté abierta.
     }
   }
+  function cambiarCola(siguiente: LecturaBarrido[]) {
+    colaRef.current = siguiente;
+    setCola(siguiente);
+    version.current += 1;
+    guardarEnAparato();
+  }
+  function cambiarApartadas(siguiente: LecturaApartada[]) {
+    apartadasRef.current = siguiente;
+    setApartadas(siguiente);
+    guardarEnAparato();
+  }
 
-  /** Lo que la base dice ahora del barrido de la sede. Lo pide la puesta al día y lo pide la subida al vaciarse la cola. */
+  /**
+   * Lo que la base dice ahora del barrido de la sede. No corre mientras este aparato tenga algo por subir: la base podría ya tener
+   * lo que la cola todavía cuenta (una respuesta que se perdió) y se vería dos veces; la subida pide su foto al vaciarse. Y una foto
+   * pedida antes de un cambio de este aparato llega vieja: se descarta.
+   */
   async function ponerAlDia() {
-    if (subiendo.current) return;
+    if (subiendo.current || colaRef.current.length > 0) return;
+    const v = version.current;
     const { data, error } = await supabase.rpc(RPC_ESTADO_BARRIDO as never, { p_ubicacion_id: ubicacionId } as never).setHeader("x-espera", "no");
-    if (error || subiendo.current) return; // sin red: se vuelve a preguntar en la próxima vuelta
+    if (!vivo.current || error || subiendo.current || version.current !== v || colaRef.current.length > 0) return;
     const estado = leerEstadoBarrido(data);
     const actual = barridoRef.current;
     if (actual && estado.barrido?.id !== actual.id) {
-      setFrenada("Este barrido ya se cerró. Recarga para ver cómo quedó.");
+      frenar("Este barrido ya se cerró. Recarga para ver cómo quedó.");
       return;
     }
     if (!estado.barrido) return;
@@ -148,19 +195,30 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
     setAhora(new Date());
   }
 
-  // Al llegar (o al sumarse a un barrido), lo que quedó sin subir en este aparato vuelve a la cola y sube.
+  // Al llegar (o al sumarse a un barrido), lo que quedó sin subir en este celular —de esta pantalla o de otra pestaña que se cerró—
+  // vuelve a la cola y sube. Subir dos veces lo mismo no duplica (la base es idempotente por id).
   useEffect(() => {
     if (!barrido?.id) return;
-    let guardada: string | null = null;
+    const prefijo = prefijoColaBarrido(ubicacionId);
+    const propia = claveColaBarrido(ubicacionId, instancia);
+    const otras: { clave: string; guardada: ColaGuardada }[] = [];
     try {
-      guardada = localStorage.getItem(claveColaBarrido(ubicacionId));
+      for (let i = 0; i < localStorage.length; i++) {
+        const clave = localStorage.key(i);
+        if (clave && clave.startsWith(prefijo) && clave !== propia) otras.push({ clave, guardada: leerColaGuardada(localStorage.getItem(clave), barrido.id, new Date()) });
+      }
     } catch {
-      guardada = null;
+      return;
     }
-    const pendientes = leerColaGuardada(guardada, barrido.id, new Date());
-    if (pendientes.length === 0) return;
-    const ids = new Set(colaRef.current.map((l) => l.id));
-    cambiarCola([...colaRef.current, ...pendientes.filter((l) => !ids.has(l.id))]);
+    const junta = juntarColas({ cola: colaRef.current, apartadas: apartadasRef.current }, ...otras.map((o) => o.guardada));
+    apartadasRef.current = junta.apartadas;
+    setApartadas(junta.apartadas);
+    cambiarCola(junta.cola); // escribe la propia antes de soltar las otras: nada queda sin dueño
+    try {
+      for (const o of otras) localStorage.removeItem(o.clave);
+    } catch {
+      // Si no se pudieron soltar, la próxima pantalla las vuelve a recoger: subir dos veces no duplica.
+    }
     void subir();
     // Solo al cambiar de barrido: la cola de después ya la maneja la subida.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -223,38 +281,73 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
   // ---- Subir lo leído ----
 
   async function subir() {
-    const barrido = barridoRef.current;
-    if (subiendo.current || !barrido) return;
-    const lote = siguienteLote(colaRef.current);
+    const b = barridoRef.current;
+    if (!vivo.current || subiendo.current || !b || frenadaRef.current) return;
+    const lote = siguienteLote(colaRef.current, LECTURAS_POR_LOTE, aislar.current);
     if (lote.length === 0) return;
     subiendo.current = true;
     window.clearTimeout(reintento.current);
     const consulta = supabase
-      .rpc(RPC_REGISTRAR_LECTURAS as never, { p_barrido_id: barrido.id, p_lecturas: loteParaLaBase(lote) } as never)
+      .rpc(RPC_REGISTRAR_LECTURAS as never, { p_barrido_id: b.id, p_lecturas: loteParaLaBase(lote) } as never)
       // Escanear no es «guardar» para la persona: no se tapa la pantalla con el loader entre lectura y lectura (ADR-0149).
       .setHeader("x-espera", "no");
-    const { data, error } = await firmar(consulta, lote[0].firma);
+    // La firma viaja con la hora en que se ESCANEÓ: la base mira si esa persona estaba de turno entonces, no al subir.
+    const firma = lote[0].firma ? { ...lote[0].firma, momento: momentoDelLote(lote, new Date()) } : null;
+    const { data, error } = await firmar(consulta, firma);
     subiendo.current = false;
+    if (!vivo.current) return;
     if (error) {
-      if (esRechazoQueFrena(error.hint)) {
-        setFrenada(textoDeRechazo(error.hint));
+      const clase = clasificarError(error);
+      if (clase === "frena_todo") {
+        frenar(textoDeRechazo(error.hint) ?? error.message);
         avisarLectura("desconocida");
         return;
       }
-      // La red o la base que no respondió: lo leído sigue en la cola y se reintenta solo.
+      if (clase === "aparta") {
+        // La base dijo que no a ESTE lote: reintentarlo daría lo mismo para siempre. Si era más de una, se prueba de a una.
+        if (lote.length > 1) {
+          for (const l of lote) aislar.current.add(l.id);
+        } else {
+          aislar.current.delete(lote[0].id);
+          cambiarApartadas([...apartadasRef.current, { ...lote[0], motivo: textoDeRechazo(error.hint) ?? error.message }]);
+          cambiarCola(sinLasSubidas(colaRef.current, lote));
+          avisarLectura("desconocida");
+        }
+        void subir();
+        return;
+      }
+      // Sin respuesta de la base (sin red, se cayó, tardó): lo leído sigue en la cola y se reintenta solo.
       reintento.current = window.setTimeout(() => void subir(), REINTENTO_MS);
       return;
     }
+    for (const l of lote) aislar.current.delete(l.id);
     const r = leerRespuestaLecturas(data);
     cambiarCola(sinLasSubidas(colaRef.current, lote));
     if (r) {
-      setBase((b) => ({ ...b, ...r.porPrenda }));
+      setBase((x) => ({ ...x, ...r.porPrenda }));
       setUnidadesBase(r.unidades);
+      // Lo de cada persona viene con la respuesta: quien escanea seguido ve su cifra sin esperar la próxima puesta al día.
+      if (r.personas && barridoRef.current) setBarrido({ ...barridoRef.current, personas: r.personas, unidades: r.unidades });
     }
     setAhora(new Date());
-    // Con la cola vacía, la foto entera del equipo (personas y «tú» incluidos); si queda algo, sigue subiendo.
+    // Con la cola vacía, la foto entera del equipo; si queda algo, sigue subiendo.
     if (colaRef.current.length > 0) void subir();
     else void ponerAlDia();
+  }
+
+  /** «Reintentar»: lo apartado vuelve a la cola, de a una. */
+  function reintentarApartadas() {
+    const vuelven: LecturaBarrido[] = apartadasRef.current.map((a) => ({ id: a.id, varianteId: a.varianteId, cantidad: a.cantidad, codigo: a.codigo, leidaEnAparato: a.leidaEnAparato, firma: a.firma }));
+    for (const l of vuelven) aislar.current.add(l.id);
+    cambiarApartadas([]);
+    cambiarCola([...vuelven, ...colaRef.current]);
+    setDescartando(false);
+    void subir();
+  }
+  /** «Descartar» (con doble confirmación): lo apartado deja de esperar; no se suma al barrido. */
+  function descartarApartadas() {
+    cambiarApartadas([]);
+    setDescartando(false);
   }
 
   // ---- Leer ----
@@ -264,14 +357,14 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
     return tarjetaDe(p, porPrendaALaVista(base, colaRef.current)[p.varianteId] ?? 0, atencion);
   }
 
-  /** Suma `cantidad` de esa prenda: a la cola, a «Tú» y a la tarjeta; suena y sube. */
+  /** Suma `cantidad` de esa prenda: a la cola, a la tarjeta y a la lectura repetida; suena y sube. */
   function sumar(p: PrendaBarrido, codigo: string | null, cantidad = 1): LecturaConteo {
     if (!responsable.listo) return { encontrada: false, codigo: codigo ?? "" };
     const firma = responsable.firma();
     const lleva = miasRef.current[p.varianteId] ?? 0;
-    const lectura = nuevaLectura({ id: crypto.randomUUID(), varianteId: p.varianteId, codigo, ahora: new Date(), firma, cantidad });
+    const lectura = nuevaLectura({ id: crypto.randomUUID(), varianteId: p.varianteId, codigo, ahora: new Date(), firma, cantidad: Math.min(Math.max(1, cantidad), LECTURA_MAX) });
     cambiarCola([...colaRef.current, lectura]);
-    miasRef.current = { ...miasRef.current, [p.varianteId]: lleva + cantidad };
+    miasRef.current = { ...miasRef.current, [p.varianteId]: lleva + lectura.cantidad };
     setMias(miasRef.current);
     setUltima(p.varianteId);
     setDestello((n) => n + 1);
@@ -366,7 +459,8 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
       nombre={nombreDe(porId.get(pregunta.varianteId))}
       miniatura={<MiniaturaPrenda fotoUrl={porId.get(pregunta.varianteId)?.fotoUrl ?? null} colorHex={porId.get(pregunta.varianteId)?.colorHex ?? null} tamano="lg" {...categoriaDe(porId.get(pregunta.varianteId))} />}
       lleva={mias[pregunta.varianteId] ?? 0}
-      tope={null}
+      // «Cambiar cantidad» no pasa de lo que una lectura puede sumar en la base (cantidad 1 a 500): más se rechazaría.
+      tope={(mias[pregunta.varianteId] ?? 0) + LECTURA_MAX}
       variante={camara ? "camara" : "franja"}
       onSi={responderSi}
       onNo={responderNo}
@@ -476,6 +570,42 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
                   }
                 >
                   {frenada ?? aviso?.texto}
+                </AvisoLinea>
+              )}
+              {apartadas.length > 0 && (
+                <AvisoLinea
+                  className="mt-3"
+                  tono="error"
+                  titulo={apartadas.length === 1 ? "1 lectura no se guardó" : `${apartadas.length.toLocaleString("es-PE")} lecturas no se guardaron`}
+                >
+                  <ul className="mt-1 space-y-0.5">
+                    {apartadas.slice(0, 3).map((l) => (
+                      <li key={l.id}>
+                        {nombreDe(porId.get(l.varianteId))}: {l.motivo}
+                      </li>
+                    ))}
+                    {apartadas.length > 3 && <li>y {(apartadas.length - 3).toLocaleString("es-PE")} más</li>}
+                  </ul>
+                  {descartando ? (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span>¿Descartarlas? No se suman al barrido.</span>
+                      <Boton peso="primario" className="btn-chico" onClick={descartarApartadas}>
+                        Sí, descartar
+                      </Boton>
+                      <Boton peso="fantasma" className="btn-chico" onClick={() => setDescartando(false)}>
+                        No
+                      </Boton>
+                    </div>
+                  ) : (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Boton peso="fantasma" className="btn-chico" onClick={reintentarApartadas}>
+                        Reintentar
+                      </Boton>
+                      <button type="button" className="btn-cayla btn-enlace" onClick={() => setDescartando(true)}>
+                        Descartar
+                      </button>
+                    </div>
+                  )}
                 </AvisoLinea>
               )}
             </section>

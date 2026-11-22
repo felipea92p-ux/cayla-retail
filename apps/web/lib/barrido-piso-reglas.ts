@@ -21,6 +21,8 @@ export const RPC_REGISTRAR_LECTURAS = "registrar_lecturas_barrido";
 export const RPC_ESTADO_BARRIDO = "fn_barrido_piso_estado";
 /** Lo que la base acepta por llamada (`registrar_lecturas_barrido`). */
 export const LECTURAS_POR_LOTE = 300;
+/** Lo máximo que una lectura puede sumar de una vez («Cambiar cantidad»): el mismo tope de la base (`cantidad between 1 and 500`). */
+export const LECTURA_MAX = 500;
 /** Tras un fallo de red, cuánto se espera para volver a subir lo que quedó en la cola. */
 export const REINTENTO_MS = 4000;
 
@@ -70,19 +72,21 @@ export function leerPorPrenda(x: unknown): Record<string, number> {
   return res;
 }
 
+function leerPersonas(x: readonly unknown[]): PersonaBarrido[] {
+  return x.filter(esObjeto).flatMap((p) => {
+    const personaId = texto(p.persona_id);
+    if (!personaId) return [];
+    return [{ personaId, nombre: texto(p.nombre) ?? "Alguien del equipo", unidades: entero(p.unidades), lecturas: entero(p.lecturas), ultima: texto(p.ultima) ?? "" }];
+  });
+}
+
 /** Lo que devuelve `fn_barrido_piso_estado` (o el `estado` de `abrir_barrido_piso`). Con una forma rara, «no hay barrido». */
 export function leerEstadoBarrido(x: unknown): EstadoBarrido {
   if (!esObjeto(x)) return { separa: false, barrido: null };
   const separa = x.separa === true;
   const b = x.barrido;
   if (!esObjeto(b) || !texto(b.id)) return { separa, barrido: null };
-  const personas = Array.isArray(b.personas)
-    ? b.personas.filter(esObjeto).flatMap((p) => {
-        const personaId = texto(p.persona_id);
-        if (!personaId) return [];
-        return [{ personaId, nombre: texto(p.nombre) ?? "Alguien del equipo", unidades: entero(p.unidades), lecturas: entero(p.lecturas), ultima: texto(p.ultima) ?? "" }];
-      })
-    : [];
+  const personas = Array.isArray(b.personas) ? leerPersonas(b.personas) : [];
   return {
     separa,
     barrido: {
@@ -98,12 +102,18 @@ export function leerEstadoBarrido(x: unknown): EstadoBarrido {
   };
 }
 
-/** Lo que devuelve `registrar_lecturas_barrido`. */
-export type RespuestaLecturas = { guardadas: number; yaEstaban: number; unidades: number; porPrenda: Record<string, number> };
+/** Lo que devuelve `registrar_lecturas_barrido`. `personas`: lo de cada persona tras el lote (null si la base no lo trajo). */
+export type RespuestaLecturas = { guardadas: number; yaEstaban: number; unidades: number; porPrenda: Record<string, number>; personas: PersonaBarrido[] | null };
 
 export function leerRespuestaLecturas(x: unknown): RespuestaLecturas | null {
   if (!esObjeto(x)) return null;
-  return { guardadas: entero(x.guardadas), yaEstaban: entero(x.ya_estaban), unidades: entero(x.unidades), porPrenda: leerPorPrenda(x.por_prenda) };
+  return {
+    guardadas: entero(x.guardadas),
+    yaEstaban: entero(x.ya_estaban),
+    unidades: entero(x.unidades),
+    porPrenda: leerPorPrenda(x.por_prenda),
+    personas: Array.isArray(x.personas) ? leerPersonas(x.personas) : null,
+  };
 }
 
 /** Una lectura nueva: una unidad de esa prenda, con la firma de quien escanea ahora. */
@@ -123,16 +133,50 @@ const mismaFirma = (a: Firma | null, b: Firma | null) => (a === null || b === nu
 /**
  * El siguiente lote que sube: las primeras lecturas de la cola, en orden, mientras tengan la MISMA firma que la primera
  * (si alguien cambió el combo a mitad, lo de antes sube a nombre de quien lo leyó), hasta `LECTURAS_POR_LOTE`.
+ * Una lectura en `aislar` (su lote ya fue rechazado por la base) sube SOLA: así se encuentra la mala sin perder las buenas.
  */
-export function siguienteLote(cola: readonly LecturaBarrido[], max = LECTURAS_POR_LOTE): LecturaBarrido[] {
+export function siguienteLote(cola: readonly LecturaBarrido[], max = LECTURAS_POR_LOTE, aislar: ReadonlySet<string> = new Set()): LecturaBarrido[] {
   const primera = cola[0];
   if (!primera) return [];
+  if (aislar.has(primera.id)) return [primera];
   const lote: LecturaBarrido[] = [];
   for (const l of cola) {
-    if (lote.length >= max || !mismaFirma(l.firma, primera.firma)) break;
+    if (lote.length >= max || !mismaFirma(l.firma, primera.firma) || aislar.has(l.id)) break;
     lote.push(l);
   }
   return lote;
+}
+
+/**
+ * La hora que viaja con la firma del lote (`x-momento`): la de la PRIMERA lectura, no la de subir. Así la base mira si quien
+ * escaneó estaba de turno cuando escaneó (como la venta sin conexión): Ana escanea sin red, marca su salida, y lo suyo igual
+ * entra cuando vuelve la red. Nunca en el futuro: la base no acepta más de 5 minutos adelante y un reloj adelantado trabaría la cola.
+ */
+export function momentoDelLote(lote: readonly LecturaBarrido[], ahora: Date): string | null {
+  const t = Date.parse(lote[0]?.leidaEnAparato ?? "");
+  if (!Number.isFinite(t)) return null;
+  return new Date(Math.min(t, ahora.getTime())).toISOString();
+}
+
+/** Los rechazos que paran TODO el aparato (el barrido se cerró, la cuenta ya no puede): ninguna otra lectura subiría. */
+const FRENAN_TODO = new Set(["barrido_cerrado", "barrido_no_existe", "barrido_sin_modulo", "barrido_sin_tienda", "barrido_sin_permiso", "barrido_tienda_sin_piso"]);
+/** Códigos de Postgres que son de paso (se cortó la conexión, la base estaba ocupada o tardó): se reintenta. */
+const DE_PASO = /^(08|53|57|40001|40P01)/;
+
+/**
+ * Qué hacer con un error al subir un lote:
+ *  · `red`: no hubo respuesta de la base (sin red, 5xx, tiempo agotado, la base ocupada) → el lote se queda en la cola y se
+ *    reintenta solo;
+ *  · `frena_todo`: el barrido se cerró o la cuenta ya no puede → se para todo y se dice por qué;
+ *  · `aparta`: la base RESPONDIÓ que no a ESE lote (una persona que ya no está de turno, una lectura mal formada, una prenda que
+ *    se borró) → reintentarlo daría lo mismo para siempre y taparía lo que viene detrás: se aparta con su motivo y lo demás sigue.
+ */
+export function clasificarError(e: { code?: string | null; hint?: string | null } | null | undefined): "red" | "frena_todo" | "aparta" {
+  if (!e) return "red";
+  if (e.hint && FRENAN_TODO.has(e.hint)) return "frena_todo";
+  const code = e.code ?? "";
+  if (/^[0-9A-Z]{5}$/.test(code) && !DE_PASO.test(code)) return "aparta";
+  return "red";
 }
 
 /** El lote como lo pide la base (sin la firma: va en los encabezados). */
@@ -195,16 +239,23 @@ export function textoDeRechazo(hint: string | null | undefined): string | null {
     case "responsable_requerido":
       return "Elige quién está escaneando.";
     case "barrido_prenda_desconocida":
-      return "Una prenda escaneada ya no está en el catálogo. Recarga la página.";
+      return "Una prenda escaneada ya no está en el catálogo.";
+    case "responsable_no_presente":
+      return "Quien escaneó no estaba de turno a esa hora, así que no se guardó.";
+    case "responsable_sin_acceso":
+    case "ubicacion_requerida":
+      return "Quien escaneó no puede guardar en esta tienda.";
+    case "barrido_lecturas_invalidas":
+      return "La lectura llegó mal formada (la cantidad va de 1 a 500).";
+    case "barrido_lectura_reusada":
+      return "Esa lectura ya se había guardado con otros datos.";
+    case "barrido_no_es_inventario":
+      return "La «Prenda sin registrar» no se escanea en un barrido.";
     default:
       return null;
   }
 }
 
-/** ¿Este rechazo deja la cola como está para reintentar (la red, la base que no respondió) o hay que pararse? */
-export function esRechazoQueFrena(hint: string | null | undefined): boolean {
-  return textoDeRechazo(hint) !== null;
-}
 
 /**
  * La guía de foco del barrido (ADR-0284): primero quién escanea (sin eso la base no guarda nada: `responsable_requerido`) y después
@@ -224,17 +275,32 @@ export function camposGuiaBarrido({ responsableListo, escaneadas, abierto }: { r
  *  (ADR-0690): escuchar pediría abrir la lectura de las tablas a cada cuenta (una política más, pegada aparte), y para cinco
  *  celulares durante una hora preguntar cada 5 s es barato y aguanta los cortes sin reconectar nada. */
 export const INTERVALO_ESTADO_MS = 5000;
-export const VERSION_COLA_BARRIDO = 1;
+export const VERSION_COLA_BARRIDO = 2;
 /** Lo leído sin subir dura en el aparato hasta un día: un barrido se hace en la jornada. */
 export const HORAS_DE_VIDA_DE_LA_COLA = 24;
 
-/** La cola de UNA sede en este aparato. Por sede y no por cuenta: el celular de la tienda lo usan varias personas. */
-export function claveColaBarrido(ubicacionId: string): string {
-  return `cayla-barrido-cola:${ubicacionId}`;
+/** Una lectura que la base rechazó, apartada con su motivo para que la persona decida (reintentar o descartar). */
+export type LecturaApartada = LecturaBarrido & { motivo: string };
+
+/** Lo que este aparato todavía no subió: la cola y lo apartado. */
+export type ColaGuardada = { cola: LecturaBarrido[]; apartadas: LecturaApartada[] };
+
+/** Todas las colas de UNA sede en este aparato empiezan así. Por sede y no por cuenta: el celular de la tienda lo usan varias personas. */
+export function prefijoColaBarrido(ubicacionId: string): string {
+  return `cayla-barrido-cola:${ubicacionId}:`;
 }
 
-export function serializarCola(barridoId: string, cola: readonly LecturaBarrido[], ahora: Date): string {
-  return JSON.stringify({ v: VERSION_COLA_BARRIDO, barridoId, guardadaEn: ahora.toISOString(), cola });
+/**
+ * La cola de ESTA pantalla abierta (`instancia`: un id por pantalla). Una clave por pantalla y no una por sede: dos pestañas del
+ * mismo celular escribiendo la misma clave se borraban la cola la una a la otra. Al abrir, una pantalla recoge las de las demás
+ * (`recogerColas`); subir dos veces lo mismo no duplica (la base es idempotente por id).
+ */
+export function claveColaBarrido(ubicacionId: string, instancia: string): string {
+  return `${prefijoColaBarrido(ubicacionId)}${instancia}`;
+}
+
+export function serializarCola(barridoId: string, guardada: ColaGuardada, ahora: Date): string {
+  return JSON.stringify({ v: VERSION_COLA_BARRIDO, barridoId, guardadaEn: ahora.toISOString(), cola: guardada.cola, apartadas: guardada.apartadas });
 }
 
 const esFirma = (x: unknown): x is Firma => esObjeto(x) && typeof x.responsableId === "string" && typeof x.ubicacionId === "string";
@@ -245,25 +311,40 @@ const esLectura = (x: unknown): x is LecturaBarrido =>
   typeof x.cantidad === "number" &&
   Number.isInteger(x.cantidad) &&
   x.cantidad >= 1 &&
+  x.cantidad <= LECTURA_MAX &&
   (x.codigo === null || typeof x.codigo === "string") &&
   typeof x.leidaEnAparato === "string" &&
   (x.firma === null || esFirma(x.firma));
 
+const VACIA: ColaGuardada = { cola: [], apartadas: [] };
+
 /**
- * Lo que quedó sin subir en este aparato, solo si es de ESTE barrido y no está vencido. Una cola de otro barrido (ya cerrado) o
+ * Lo que quedó sin subir en una clave, solo si es de ESTE barrido y no está vencido. Una cola de otro barrido (ya cerrado) o
  * con una forma rara no se reenvía: la base la rechazaría entera. Nunca lanza.
  */
-export function leerColaGuardada(texto: string | null, barridoId: string, ahora: Date): LecturaBarrido[] {
-  if (!texto) return [];
+export function leerColaGuardada(texto: string | null, barridoId: string, ahora: Date): ColaGuardada {
+  if (!texto) return VACIA;
   try {
     const x: unknown = JSON.parse(texto);
-    if (!esObjeto(x) || x.v !== VERSION_COLA_BARRIDO || x.barridoId !== barridoId || !Array.isArray(x.cola)) return [];
+    if (!esObjeto(x) || x.v !== VERSION_COLA_BARRIDO || x.barridoId !== barridoId || !Array.isArray(x.cola)) return VACIA;
     const guardada = Date.parse(String(x.guardadaEn));
-    if (!Number.isFinite(guardada) || ahora.getTime() - guardada > HORAS_DE_VIDA_DE_LA_COLA * 3_600_000) return [];
-    return x.cola.filter(esLectura);
+    if (!Number.isFinite(guardada) || ahora.getTime() - guardada > HORAS_DE_VIDA_DE_LA_COLA * 3_600_000) return VACIA;
+    const apartadas = Array.isArray(x.apartadas)
+      ? x.apartadas.filter((a): a is LecturaApartada => esLectura(a) && typeof (a as { motivo?: unknown }).motivo === "string")
+      : [];
+    return { cola: x.cola.filter(esLectura), apartadas };
   } catch {
-    return [];
+    return VACIA;
   }
+}
+
+/** Junta varias colas guardadas (la propia y las que dejaron otras pantallas) sin repetir una lectura: manda la primera vez que aparece. */
+export function juntarColas(...colas: readonly ColaGuardada[]): ColaGuardada {
+  const vistos = new Set<string>();
+  const unica = <T extends LecturaBarrido>(l: T) => (vistos.has(l.id) ? false : (vistos.add(l.id), true));
+  const cola = colas.flatMap((c) => c.cola).filter(unica);
+  const apartadas = colas.flatMap((c) => c.apartadas).filter(unica);
+  return { cola, apartadas };
 }
 
 /** «Escaneaste tú»: lo que la base ya tiene de esta persona más lo suyo que falta subir en este aparato. */
