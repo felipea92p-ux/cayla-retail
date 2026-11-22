@@ -2414,6 +2414,13 @@ export const GUIA_BARRIDO_PISO: Guia = {
       texto: "Sin pistola, la cámara del celular lee las etiquetas una tras otra y te muestra la foto de cada prenda.",
     },
     {
+      id: "escaneado",
+      ancla: "barrido.escaneado",
+      opcional: true,
+      titulo: "Ver lo escaneado",
+      texto: "Todo lo escaneado, en tramos: lo que cada persona escaneó seguido, con su hora. Si algo se contó de más, quitas un tramo o una prenda; no se borra, queda tachado.",
+    },
+    {
       id: "ultima",
       ancla: "barrido.ultima",
       opcional: true,

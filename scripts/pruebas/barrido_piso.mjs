@@ -22,6 +22,10 @@
  *   B8 cerrado: un barrido que ya no está abierto no recibe lecturas (ni por la función ni por un insert directo).
  *   B9 nada de stock: abrir y escanear no escriben en movimientos ni en stock.
  *   B10 tamaño: 1.200 lecturas en 4 lotes entran y el estado responde dentro del statement_timeout de authenticated.
+ *   B11 quitar sin borrar (actividad 3): la lectura queda, tachada con quién y por qué, y deja de sumar en el estado, en la
+ *       respuesta de cada lote y en lo de cada persona; quitar dos veces no resta dos veces; a mano solo se puede anular (una vez,
+ *       sin tocar nada más); no se quita lo de otro barrido ni con el barrido cerrado; sin Existencias, no; «Ver lo escaneado»
+ *       trae todas, anuladas incluidas, de la más reciente a la más antigua.
  *
  * CÓMO. Igual que `cuadrar_piso.mjs`: cada caso en su transacción con ROLLBACK (nunca se commitea nada), sesión simulada con
  * `request.jwt.claim.sub` y el encabezado de PostgREST con `request.headers`. La sede es NUEVA en cada caso.
@@ -186,16 +190,18 @@ const error = (linea, hint, estado = "P0001") => {
 caso(
   "B1 · una sola versión de cada puerta, con la firma del contrato",
   `select string_agg(proname || '(' || pg_get_function_identity_arguments(oid) || ')', ';' order by proname)
-     from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('abrir_barrido_piso', 'registrar_lecturas_barrido', 'fn_barrido_piso_estado');`,
-  "abrir_barrido_piso(p_ubicacion_id uuid);fn_barrido_piso_estado(p_ubicacion_id uuid);registrar_lecturas_barrido(p_barrido_id uuid, p_lecturas jsonb)"
+     from pg_proc where pronamespace = 'retail'::regnamespace
+      and proname in ('abrir_barrido_piso', 'registrar_lecturas_barrido', 'fn_barrido_piso_estado', 'fn_barrido_piso_lecturas', 'anular_lecturas_barrido');`,
+  "abrir_barrido_piso(p_ubicacion_id uuid);anular_lecturas_barrido(p_barrido_id uuid, p_ids uuid[], p_motivo text);fn_barrido_piso_estado(p_ubicacion_id uuid);fn_barrido_piso_lecturas(p_barrido_id uuid);registrar_lecturas_barrido(p_barrido_id uuid, p_lecturas jsonb)"
 );
 caso(
   "B1 · las tres puertas: anon no, authenticated sí, security definer con el search_path de la casa; los disparadores: nadie de afuera",
   `select string_agg(p.proname || '=' || concat_ws(',', has_function_privilege('anon', p.oid, 'execute'), has_function_privilege('authenticated', p.oid, 'execute'),
                     p.prosecdef, coalesce(p.proconfig::text like '%search_path=retail, public, extensions%', false)), ';' order by p.proname)
      from pg_proc p where p.pronamespace = 'retail'::regnamespace
-      and p.proname in ('abrir_barrido_piso', 'registrar_lecturas_barrido', 'fn_barrido_piso_estado', 'fn_barrido_piso_es_historia', 'fn_barrido_piso_lectura_valida');`,
-  "abrir_barrido_piso=f,t,t,t;fn_barrido_piso_es_historia=f,f,f,t;fn_barrido_piso_estado=f,t,t,t;fn_barrido_piso_lectura_valida=f,f,f,t;registrar_lecturas_barrido=f,t,t,t"
+      and p.proname in ('abrir_barrido_piso', 'registrar_lecturas_barrido', 'fn_barrido_piso_estado', 'fn_barrido_piso_es_historia', 'fn_barrido_piso_lectura_valida',
+                        'fn_barrido_piso_lecturas', 'anular_lecturas_barrido', 'fn_barrido_piso_lectura_solo_anular');`,
+  "abrir_barrido_piso=f,t,t,t;anular_lecturas_barrido=f,t,t,t;fn_barrido_piso_es_historia=f,f,f,t;fn_barrido_piso_estado=f,t,t,t;fn_barrido_piso_lectura_solo_anular=f,f,f,t;fn_barrido_piso_lectura_valida=f,f,f,t;fn_barrido_piso_lecturas=f,t,t,t;registrar_lecturas_barrido=f,t,t,t"
 );
 caso(
   "B1 · las dos tablas: RLS encendido, CERO políticas y sin privilegios para authenticated (solo las tocan las funciones)",
@@ -433,6 +439,90 @@ ${["va", "vb", "vc", "va"]
   .join("\n")}
 select (${estado()}) -> 'res' -> 'barrido' ->> 'unidades';`,
   (l) => l.slice(-5, -1).every((x) => x === "300") && l.at(-1) === "1200"
+);
+
+// ===========================================================================
+// B11 · Quitar sin borrar
+// ===========================================================================
+
+const ANULAR = (ids, motivo = "'repetida'") => `pg_temp.r(format('select retail.anular_lecturas_barrido(%L, %L::uuid[], %s)', :'barrido', ${ids}, ${motivo === "null" ? "'null'" : `quote_literal(${motivo})`}))`;
+const DOS_PERSONAS = `${ABIERTO}select gen_random_uuid() as l1 \\gset
+select gen_random_uuid() as l2 \\gset
+select gen_random_uuid() as l3 \\gset
+select ${registrar(lote(["va", 2, ":'l1'"], ["vb", 1, ":'l2'"]))} as _r \\gset
+${soloModulos("integrante", ["existencias"])}${MICAELA_EN_LA_SEDE}${sesion(MICAELA)}${COMO_API}select ${registrar(lote(["va", 1, ":'l3'"]))} as _r2 \\gset
+`;
+
+caso(
+  "B11 · quitar una lectura: queda (no se borra), tachada con quién y por qué, y deja de sumar en el estado y en lo de cada persona",
+  `${DOS_PERSONAS}${sesion(FELIPE)}${COMO_API}select ${ANULAR("array[:'l1']")} as a \\gset
+select (${estado()}) -> 'res' -> 'barrido' as e \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'a')::jsonb -> 'res' ->> 'anuladas', (:'a')::jsonb -> 'res' -> 'estado' -> 'barrido' ->> 'unidades',
+  (select count(*) from retail.barrido_piso_lecturas where barrido_id = :'barrido'),
+  (select anulada_por = :'felipe_p' and motivo_anulacion = 'repetida' and anulada_en is not null from retail.barrido_piso_lecturas where id = :'l1'),
+  (:'e')::jsonb ->> 'unidades', (:'e')::jsonb ->> 'lecturas', (:'e')::jsonb ->> 'anuladas',
+  (select x ->> 'cantidad' from jsonb_array_elements((:'e')::jsonb -> 'por_prenda') x where x ->> 'variante_id' = :'va'),
+  (select x ->> 'unidades' from jsonb_array_elements((:'e')::jsonb -> 'personas') x where x ->> 'persona_id' = :'felipe_p'));`,
+  "1,2,3,t,2,2,1,1,1"
+);
+caso(
+  "B11 · quitar dos veces no resta dos veces (anuladas 0, ya_estaban 1); un lote nuevo tampoco cuenta lo quitado",
+  `${DOS_PERSONAS}${sesion(FELIPE)}${COMO_API}select ${ANULAR("array[:'l1']")} as a1 \\gset
+select ${ANULAR("array[:'l1', :'l2']", "'tramo'")} as a2 \\gset
+select (${registrar(lote(["vc"]))}) -> 'res' as r \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'a2')::jsonb -> 'res' ->> 'anuladas', (:'a2')::jsonb -> 'res' ->> 'ya_estaban',
+  (:'a2')::jsonb -> 'res' -> 'estado' -> 'barrido' ->> 'unidades',
+  (select motivo_anulacion from retail.barrido_piso_lecturas where id = :'l1'), (select motivo_anulacion from retail.barrido_piso_lecturas where id = :'l2'),
+  (:'r')::jsonb ->> 'unidades');`,
+  "1,1,1,repetida,tramo,2"
+);
+caso(
+  "B11 · a mano solo se anula una vez y sin tocar nada más: cambiar la cantidad al anular, re-anular o des-anular → barrido_inmutable",
+  `${DOS_PERSONAS}${COMO_POSTGRES}select pg_temp.intento(format('update retail.barrido_piso_lecturas set anulada_en = clock_timestamp(), anulada_por = %L, motivo_anulacion = ''tramo'', cantidad = 9 where id = %L', :'felipe_p', :'l1')) ->> 'hint';
+select pg_temp.intento(format('update retail.barrido_piso_lecturas set anulada_en = clock_timestamp(), anulada_por = %L, motivo_anulacion = ''tramo'' where id = %L', :'felipe_p', :'l1')) ->> 'ok';
+select pg_temp.intento(format('update retail.barrido_piso_lecturas set anulada_en = clock_timestamp() + interval ''1 s'' where id = %L', :'l1')) ->> 'hint';
+select pg_temp.intento(format('update retail.barrido_piso_lecturas set anulada_en = null, anulada_por = null, motivo_anulacion = null where id = %L', :'l1')) ->> 'hint';
+select pg_temp.intento(format('update retail.barrido_piso_lecturas set anulada_en = clock_timestamp() where id = %L', :'l2')) ->> 'estado';`,
+  (l) => l.at(-5) === "barrido_inmutable" && l.at(-4) === "true" && l.at(-3) === "barrido_inmutable" && l.at(-2) === "barrido_inmutable" && l.at(-1) === "23514"
+);
+caso(
+  "B11 · una lectura de OTRO barrido en la lista → barrido_lectura_ajena y no se quita ninguna",
+  `${DOS_PERSONAS}${COMO_POSTGRES}update retail.barridos_piso set estado = 'cancelado', cerrado_en = now(), cerrado_por = :'felipe_p' where id = :'barrido';
+select :'barrido' as viejo \\gset
+${sesion(FELIPE)}${COMO_API}select (retail.abrir_barrido_piso(:'bar') -> 'estado' -> 'barrido' ->> 'id') as barrido \\gset
+select gen_random_uuid() as l4 \\gset
+select ${registrar(lote(["va", 1, ":'l4'"]))} as _r \\gset
+select ${ANULAR("array[:'l4', :'l1']")};
+${COMO_POSTGRES}select count(*) from retail.barrido_piso_lecturas where anulada_en is not null and barrido_id in (:'barrido', :'viejo');`,
+  (l) => error(l.at(-2), "barrido_lectura_ajena") && l.at(-1) === "0"
+);
+caso(
+  "B11 · con el barrido cerrado no se quita (ni por la función ni a mano): barrido_cerrado",
+  `${DOS_PERSONAS}${COMO_POSTGRES}update retail.barridos_piso set estado = 'cancelado', cerrado_en = now(), cerrado_por = :'felipe_p' where id = :'barrido';
+${sesion(FELIPE)}${COMO_API}select ${ANULAR("array[:'l1']")};
+${COMO_POSTGRES}select pg_temp.intento(format('update retail.barrido_piso_lecturas set anulada_en = now(), anulada_por = %L, motivo_anulacion = ''tramo'' where id = %L', :'felipe_p', :'l1')) ->> 'hint';`,
+  (l) => error(l.at(-2), "barrido_cerrado") && l.at(-1) === "barrido_cerrado"
+);
+caso(
+  "B11 · sin lista, con más de 2.000, sin motivo o con otro motivo → barrido_anular_invalido; sin Existencias → barrido_sin_modulo",
+  `${DOS_PERSONAS}${sesion(FELIPE)}${COMO_API}select ${ANULAR("'{}'::uuid[]")};
+select ${ANULAR("(select array_agg(gen_random_uuid()) from generate_series(1, 2001))")};
+select ${ANULAR("array[:'l1']", "null")};
+select ${ANULAR("array[:'l1']", "'porque si'")};
+${soloModulos("integrante", ["vender"])}${sesion(MICAELA)}${COMO_API}select ${ANULAR("array[:'l1']")};`,
+  (l) => l.slice(-5, -1).every((x) => error(x, "barrido_anular_invalido", "22023")) && error(l.at(-1), "barrido_sin_modulo", "42501")
+);
+caso(
+  "B11 · «Ver lo escaneado» trae todas (la quitada también, con quién la quitó), de la más reciente a la más antigua por la hora del escaneo",
+  `${ABIERTO}select ${registrar(`jsonb_build_array(
+    jsonb_build_object('id', gen_random_uuid(), 'variante_id', :'va', 'leida_en_aparato', '2026-11-22T10:05:00-05:00'),
+    jsonb_build_object('id', '00000000-0000-4000-8000-0000000000b2', 'variante_id', :'vb', 'leida_en_aparato', '2026-11-22T10:07:00-05:00'))`)} as _r \\gset
+select ${ANULAR("array['00000000-0000-4000-8000-0000000000b2'::uuid]")} as _a \\gset
+select (pg_temp.r(format('select retail.fn_barrido_piso_lecturas(%L)', :'barrido'))) -> 'res' as v \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'v')::jsonb ->> 'total', (:'v')::jsonb -> 'lecturas' -> 0 ->> 'variante_id' = :'vb',
+  (:'v')::jsonb -> 'lecturas' -> 0 ->> 'anulada_por', (:'v')::jsonb -> 'lecturas' -> 0 ->> 'motivo',
+  (:'v')::jsonb -> 'lecturas' -> 1 ->> 'anulada_en' is null, (:'v')::jsonb -> 'lecturas' -> 1 ->> 'nombre');`,
+  "2,t,Felipe Alvarez,repetida,t,Felipe Alvarez"
 );
 
 console.log(`\n${fallos === 0 ? "✓" : "✗"} ${total - fallos}/${total} verificaciones${fallos ? ` — ${fallos} fallaron` : ""}`);

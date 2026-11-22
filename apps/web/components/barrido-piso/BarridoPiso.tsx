@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Camera, ScanBarcode, ScanLine } from "lucide-react";
+import { Camera, ListChecks, ScanBarcode, ScanLine } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { EscanerConteo, type LecturaConteo } from "@/components/EscanerConteo";
+import { HojaLoEscaneado } from "@/components/barrido-piso/HojaLoEscaneado";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Aviso as AvisoLinea } from "@/components/ui/Aviso";
@@ -28,6 +29,7 @@ import {
   LECTURA_MAX,
   REINTENTO_MS,
   RPC_ABRIR_BARRIDO,
+  RPC_ANULAR_LECTURAS,
   RPC_ESTADO_BARRIDO,
   RPC_REGISTRAR_LECTURAS,
   camposGuiaBarrido,
@@ -104,6 +106,7 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
   const frenadaRef = useRef<string | null>(null);
   const [abriendo, setAbriendo] = useState(false);
   const [camara, setCamara] = useState(false);
+  const [verEscaneado, setVerEscaneado] = useState(false);
   const [destello, setDestello] = useState(0);
   const repetidaRef = useRef<EstadoRepetida>(ESTADO_REPETIDA_VACIO);
   const [repetida, setRepetida] = useState<EstadoRepetida>(ESTADO_REPETIDA_VACIO);
@@ -335,6 +338,31 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
     else void ponerAlDia();
   }
 
+  /** Quitar lecturas ya subidas (un tramo o una repetida), sin borrarlas: firmado por quien está elegido. Devuelve el error, o null. */
+  async function anular(ids: string[], motivo: "repetida" | "tramo"): Promise<string | null> {
+    const b = barridoRef.current;
+    if (!b) return "No hay un barrido abierto.";
+    if (!responsable.listo) return "Elige quién está quitando: arriba, en «Quién escanea».";
+    const { data, error } = await firmar(
+      supabase.rpc(RPC_ANULAR_LECTURAS as never, { p_barrido_id: b.id, p_ids: ids, p_motivo: motivo } as never),
+      responsable.firma(),
+    );
+    if (error) {
+      if (clasificarError(error) === "frena_todo") frenar(textoDeRechazo(error.hint) ?? error.message);
+      return textoDeRechazo(error.hint) ?? `No se pudo quitar: ${error.message}`;
+    }
+    // La foto del equipo ya sin lo quitado (cuenta igual con la cola de este celular: lo que espera subir no se quitó).
+    const estado = leerEstadoBarrido((data as { estado?: unknown } | null)?.estado);
+    if (estado.barrido && estado.barrido.id === b.id) {
+      version.current += 1;
+      setBarrido(estado.barrido);
+      setBase(estado.barrido.porPrenda);
+      setUnidadesBase(estado.barrido.unidades);
+      setAhora(new Date());
+    }
+    return null;
+  }
+
   /** «Reintentar»: lo apartado vuelve a la cola, de a una. */
   function reintentarApartadas() {
     const vuelven: LecturaBarrido[] = apartadasRef.current.map((a) => ({ id: a.id, varianteId: a.varianteId, cantidad: a.cantidad, codigo: a.codigo, leidaEnAparato: a.leidaEnAparato, firma: a.firma }));
@@ -554,6 +582,10 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
                   <Camera aria-hidden className="h-4 w-4" />
                   Escanear con la cámara
                 </button>
+                <button type="button" data-guia="barrido.escaneado" onClick={() => setVerEscaneado(true)} className="btn-cayla btn-secundario h-11">
+                  <ListChecks aria-hidden className="h-4 w-4" />
+                  Ver lo escaneado
+                </button>
               </div>
               {!camara && avisoRepetida && <div className="mt-3">{avisoRepetida}</div>}
               {(frenada || aviso) && (
@@ -657,6 +689,10 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
           )}
         </div>
       </div>
+
+      {verEscaneado && (
+        <HojaLoEscaneado barridoId={barrido.id} porId={porId} esperan={cola.length} onAnular={anular} onClose={() => setVerEscaneado(false)} />
+      )}
 
       {camara && (
         <EscanerConteo

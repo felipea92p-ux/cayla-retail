@@ -26,8 +26,11 @@
 --   · la misma lectura guardada dos veces                      → PK (id del aparato)
 --   · una lectura que llega a un barrido que ya no está abierto, o de una prenda que no es inventario (la «Prenda sin
 --     registrar», ADR-0179) → disparador fn_barrido_piso_lectura_valida
---   · una lectura editada, borrada o las tablas vaciadas      → disparadores de inmutabilidad y sin truncate
---     (quitar una lectura repetida llega en la actividad 3 como ANULACIÓN con quién y cuándo, nunca como DELETE)
+--   · una lectura borrada o las tablas vaciadas               → disparadores de inmutabilidad y sin truncate
+--   · una lectura EDITADA en algo que no sea anularla una vez   → disparador fn_barrido_piso_lectura_solo_anular
+--     (actividad 3: quitar una lectura repetida o un tramo contado de más es una ANULACIÓN con quién, cuándo y por qué; la
+--     lectura sigue ahí, tachada, y deja de sumar. Nunca un DELETE: «de dónde a dónde se contó» tiene que poder verse después)
+--   · una anulación a medias (con fecha y sin quién, o al revés) → check barrido_piso_lecturas_anulacion_completa
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN. Sola, tal cual (trae `retail.` y su `search_path`), ANTES de la parte 2. Las llaves foráneas
 -- hacia ubicaciones, variantes y public.personas toman un candado breve: va SIN políticas (las tablas solo se leen y escriben
@@ -89,6 +92,26 @@ comment on column retail.barrido_piso_lecturas.leida_en is 'Hora del servidor al
 comment on column retail.barrido_piso_lecturas.leida_en_aparato is 'Hora del aparato al leerla: si la lectura esperó sin red, llega antes que leida_en. Solo para ordenar el historial; ningún candado la usa.';
 comment on column retail.barrido_piso_lecturas.codigo is 'Lo que leyó la pistola o la cámara (o se eligió tocando, sin código).';
 
+-- Actividad 3: quitar sin borrar. Una lectura anulada no suma; queda con quién la quitó, cuándo y por qué.
+alter table retail.barrido_piso_lecturas add column if not exists anulada_en timestamptz;
+alter table retail.barrido_piso_lecturas add column if not exists anulada_por uuid references public.personas (id);
+alter table retail.barrido_piso_lecturas add column if not exists motivo_anulacion text
+  check (motivo_anulacion is null or motivo_anulacion in ('repetida', 'tramo'));
+do $c$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'barrido_piso_lecturas_anulacion_completa'
+                   and conrelid = 'retail.barrido_piso_lecturas'::regclass) then
+    alter table retail.barrido_piso_lecturas add constraint barrido_piso_lecturas_anulacion_completa check (
+      (anulada_en is null and anulada_por is null and motivo_anulacion is null)
+      or (anulada_en is not null and anulada_por is not null and motivo_anulacion is not null and anulada_en >= leida_en));
+  end if;
+end;
+$c$;
+
+comment on column retail.barrido_piso_lecturas.anulada_en is 'Cuándo se quitó (no suma desde entonces). Nula: cuenta.';
+comment on column retail.barrido_piso_lecturas.anulada_por is 'Quién la quitó: el responsable del combo.';
+comment on column retail.barrido_piso_lecturas.motivo_anulacion is 'repetida: una lectura suelta que se contó de más · tramo: todo un tramo de una persona que no debía contarse.';
+
 -- ---------------------------------------------------------------------------
 -- Una lectura solo entra a un barrido ABIERTO y solo de una prenda que es inventario.
 -- ---------------------------------------------------------------------------
@@ -137,8 +160,35 @@ comment on function retail.fn_barrido_piso_es_historia() is
   'ADR-0690: impide editar, borrar o vaciar las lecturas de un barrido y borrar o vaciar un barrido.';
 
 create or replace trigger barrido_piso_lecturas_inmutables
-  before update or delete on retail.barrido_piso_lecturas
+  before delete on retail.barrido_piso_lecturas
   for each row execute function retail.fn_barrido_piso_es_historia();
+
+-- La única edición posible de una lectura: anularla, una sola vez y sin tocar nada más.
+create or replace function retail.fn_barrido_piso_lectura_solo_anular()
+returns trigger
+language plpgsql
+set search_path = retail, public, extensions
+as $fn$
+begin
+  if (select b.estado from retail.barridos_piso b where b.id = old.barrido_id) is distinct from 'abierto' then
+    raise exception 'Este barrido ya se cerró: lo escaneado ya no se puede quitar.' using hint = 'barrido_cerrado';
+  end if;
+  if old.anulada_en is null and new.anulada_en is not null
+     and (new.id, new.barrido_id, new.variante_id, new.cantidad, new.codigo, new.persona_id, new.leida_en, new.leida_en_aparato)
+         is not distinct from
+         (old.id, old.barrido_id, old.variante_id, old.cantidad, old.codigo, old.persona_id, old.leida_en, old.leida_en_aparato) then
+    return new;
+  end if;
+  raise exception 'Lo escaneado en un barrido no se edita: solo se puede quitar, una vez.' using hint = 'barrido_inmutable';
+end;
+$fn$;
+
+comment on function retail.fn_barrido_piso_lectura_solo_anular() is
+  'ADR-0690: una lectura de un barrido solo se edita para anularla (una vez, sin cambiar nada más, y solo con el barrido abierto).';
+
+create or replace trigger barrido_piso_lecturas_solo_anular
+  before update on retail.barrido_piso_lecturas
+  for each row execute function retail.fn_barrido_piso_lectura_solo_anular();
 
 create or replace trigger barrido_piso_lecturas_sin_truncate
   before truncate on retail.barrido_piso_lecturas

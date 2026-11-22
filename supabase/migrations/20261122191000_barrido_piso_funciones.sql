@@ -2,7 +2,7 @@
 -- 20261122191000_barrido_piso_funciones.sql — CAYLA V2 · ADR-0690 «El barrido del piso» · actividad 1 · PARTE 2 de 2
 -- Pega ANTES 20261122190000_barrido_piso_tablas.sql (lo comprueba la guarda de abajo).
 --
--- QUÉ HACE. Tres funciones, ninguna mueve stock (mover llega en la actividad 5, al confirmar):
+-- QUÉ HACE. Cinco funciones, ninguna mueve stock (mover llega en la actividad 5, al confirmar):
 --   · `abrir_barrido_piso(sede)`: abre el barrido del piso de la sede, o devuelve el que ya está abierto. Quien llega a la
 --     tienda a mitad del barrido toca lo mismo y se suma: nunca hay dos (índice barridos_piso_uno_abierto + candado por sede).
 --   · `registrar_lecturas_barrido(barrido, lecturas)`: guarda un lote de lecturas (1 a 300) firmadas por el responsable del
@@ -10,6 +10,9 @@
 --     (`on conflict do nothing`); el mismo id con OTRO contenido se rechaza sin guardar nada (`barrido_lectura_reusada`).
 --     Devuelve lo que el equipo lleva de cada prenda del lote y el total, para que la pantalla no tenga que releer.
 --   · `fn_barrido_piso_estado(sede)`: el barrido abierto de la sede con lo que lleva cada prenda y cada persona. Solo lectura.
+--   · `fn_barrido_piso_lecturas(barrido)`: lo escaneado, una lectura por fila, con quién y a qué hora (actividad 3). Solo lectura.
+--   · `anular_lecturas_barrido(barrido, ids, motivo)`: quita lecturas SIN borrarlas (actividad 3): una repetida o un tramo que no
+--     debía contarse. La lectura queda tachada con quién la quitó, cuándo y por qué, y deja de sumar en todos los totales.
 --
 -- PUERTAS. Las de Existencias (ADR-0306: el barrido es una función de Existencias, no un módulo; ADR-0534 y Felipe
 -- 2026-11-22: lo hace y lo confirma quien ve Existencias). Escribir pide `fn_ve_modulo('existencias')` y operar la sede;
@@ -75,19 +78,20 @@ begin
         'id', v_barrido.id,
         'abierto_en', v_barrido.abierto_en,
         'abierto_por', fn_actividad_nombre(v_barrido.abierto_por),
-        'unidades', coalesce((select sum(l.cantidad) from barrido_piso_lecturas l where l.barrido_id = v_barrido.id), 0),
-        'lecturas', (select count(*) from barrido_piso_lecturas l where l.barrido_id = v_barrido.id),
-        'prendas', (select count(distinct l.variante_id) from barrido_piso_lecturas l where l.barrido_id = v_barrido.id),
+        'unidades', coalesce((select sum(l.cantidad) from barrido_piso_lecturas l where l.barrido_id = v_barrido.id and l.anulada_en is null), 0),
+        'lecturas', (select count(*) from barrido_piso_lecturas l where l.barrido_id = v_barrido.id and l.anulada_en is null),
+        'prendas', (select count(distinct l.variante_id) from barrido_piso_lecturas l where l.barrido_id = v_barrido.id and l.anulada_en is null),
+        'anuladas', (select count(*) from barrido_piso_lecturas l where l.barrido_id = v_barrido.id and l.anulada_en is not null),
         'por_prenda', coalesce((
           select jsonb_agg(jsonb_build_object('variante_id', x.variante_id, 'cantidad', x.cantidad) order by x.variante_id)
             from (select l.variante_id, sum(l.cantidad)::integer as cantidad
-                    from barrido_piso_lecturas l where l.barrido_id = v_barrido.id group by l.variante_id) x), '[]'::jsonb),
+                    from barrido_piso_lecturas l where l.barrido_id = v_barrido.id and l.anulada_en is null group by l.variante_id) x), '[]'::jsonb),
         'personas', coalesce((
           select jsonb_agg(jsonb_build_object('persona_id', p.persona_id, 'nombre', fn_actividad_nombre(p.persona_id),
                                               'unidades', p.unidades, 'lecturas', p.lecturas, 'ultima', p.ultima)
                            order by p.ultima desc)
             from (select l.persona_id, sum(l.cantidad)::integer as unidades, count(*)::integer as lecturas, max(l.leida_en) as ultima
-                    from barrido_piso_lecturas l where l.barrido_id = v_barrido.id group by l.persona_id) p), '[]'::jsonb)
+                    from barrido_piso_lecturas l where l.barrido_id = v_barrido.id and l.anulada_en is null group by l.persona_id) p), '[]'::jsonb)
       ));
   end loop;
   return jsonb_build_object('separa', v_separa, 'barrido', null);
@@ -249,12 +253,12 @@ begin
   return jsonb_build_object(
     'guardadas', v_guardadas,
     'ya_estaban', v_n - v_guardadas,
-    'unidades', coalesce((select sum(l.cantidad) from barrido_piso_lecturas l where l.barrido_id = p_barrido_id), 0),
+    'unidades', coalesce((select sum(l.cantidad) from barrido_piso_lecturas l where l.barrido_id = p_barrido_id and l.anulada_en is null), 0),
     'por_prenda', coalesce((
       select jsonb_agg(jsonb_build_object('variante_id', t.variante_id, 'cantidad', t.cantidad) order by t.variante_id)
         from (select l.variante_id, sum(l.cantidad)::integer as cantidad
                 from barrido_piso_lecturas l
-               where l.barrido_id = p_barrido_id
+               where l.barrido_id = p_barrido_id and l.anulada_en is null
                  and l.variante_id in (select (x ->> 'variante_id')::uuid from jsonb_array_elements(v_lista) x)
                group by l.variante_id) t), '[]'::jsonb),
     'personas', coalesce((
@@ -262,12 +266,133 @@ begin
                                           'unidades', p.unidades, 'lecturas', p.lecturas, 'ultima', p.ultima)
                        order by p.ultima desc)
         from (select l.persona_id, sum(l.cantidad)::integer as unidades, count(*)::integer as lecturas, max(l.leida_en) as ultima
-                from barrido_piso_lecturas l where l.barrido_id = p_barrido_id group by l.persona_id) p), '[]'::jsonb));
+                from barrido_piso_lecturas l where l.barrido_id = p_barrido_id and l.anulada_en is null group by l.persona_id) p), '[]'::jsonb));
 end;
 $fn$;
 
 comment on function retail.registrar_lecturas_barrido(uuid, jsonb) is
   'ADR-0690: guarda un lote de 1 a 300 lecturas de un barrido abierto, firmadas por el responsable. Idempotente por el id de cada lectura (lo genera el aparato). Devuelve {guardadas, ya_estaban, unidades, por_prenda, personas} con lo que lleva el equipo y cada persona.';
+
+-- ---------------------------------------------------------------------------
+-- 4. Lo escaneado, una lectura por fila (actividad 3: «Ver lo escaneado»). Solo lectura.
+--    PROMETE: {lecturas: [...], total, tope} con las lecturas del barrido (anuladas incluidas, tachadas), de la más reciente a la
+--             más antigua por la hora en que se ESCANEARON (la del aparato si la trae; si no, la del servidor), hasta 5.000. Cada
+--             una con quién la escaneó y, si se quitó, quién, cuándo y por qué. La pantalla las agrupa en tramos por persona.
+-- ---------------------------------------------------------------------------
+create or replace function retail.fn_barrido_piso_lecturas(p_barrido_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $fn$
+declare
+  c_tope constant integer := 5000;
+  v_sede uuid;
+begin
+  v_sede := (select b.ubicacion_id from barridos_piso b where b.id = p_barrido_id);
+  if v_sede is null then
+    raise exception 'Ese barrido no existe.' using hint = 'barrido_no_existe';
+  end if;
+  if not ((fn_es_lider() or fn_ve_modulo('existencias')) and fn_puede_operar_ubicacion(v_sede)) then
+    raise exception 'Para ver el barrido del piso hace falta ver Existencias en tu rol y que sea tu sede.'
+      using errcode = '42501', hint = 'barrido_sin_permiso';
+  end if;
+  return jsonb_build_object(
+    'total', (select count(*) from barrido_piso_lecturas l where l.barrido_id = p_barrido_id),
+    'tope', c_tope,
+    'lecturas', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'id', x.id, 'variante_id', x.variante_id, 'cantidad', x.cantidad, 'codigo', x.codigo,
+               'persona_id', x.persona_id, 'nombre', fn_actividad_nombre(x.persona_id),
+               'escaneada_en', x.escaneada_en,
+               'anulada_en', x.anulada_en, 'anulada_por', case when x.anulada_por is null then null else fn_actividad_nombre(x.anulada_por) end,
+               'motivo', x.motivo_anulacion)
+             order by x.escaneada_en desc, x.id)
+        from (select l.*, coalesce(l.leida_en_aparato, l.leida_en) as escaneada_en
+                from barrido_piso_lecturas l
+               where l.barrido_id = p_barrido_id
+               order by coalesce(l.leida_en_aparato, l.leida_en) desc, l.id
+               limit c_tope) x), '[]'::jsonb));
+end;
+$fn$;
+
+comment on function retail.fn_barrido_piso_lecturas(uuid) is
+  'ADR-0690: las lecturas de un barrido (hasta 5.000, de la más reciente a la más antigua por la hora del escaneo), anuladas incluidas, con quién las escaneó y quién las quitó. Quien ve Existencias en la sede (o el líder). Solo lectura.';
+
+-- ---------------------------------------------------------------------------
+-- 5. Quitar lecturas (una repetida, o un tramo contado de más), SIN borrarlas.
+--    PROMETE: o se anulan todas las lecturas pedidas que seguían contando, o ninguna. Las ya anuladas no se vuelven a anular
+--             (quitar dos veces no resta dos veces). Devuelve {anuladas, ya_estaban, estado} con estado = fn_barrido_piso_estado.
+--    ASUME:   p_ids son lecturas de ESTE barrido (1 a 2.000); el barrido está abierto; p_motivo es 'repetida' o 'tramo'.
+-- ---------------------------------------------------------------------------
+create or replace function retail.anular_lecturas_barrido(p_barrido_id uuid, p_ids uuid[], p_motivo text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $fn$
+declare
+  v_sede uuid;
+  v_estado text;
+  v_actor uuid;
+  v_n integer;
+  v_anuladas integer;
+  r record;
+begin
+  if p_barrido_id is null then
+    raise exception 'Falta el barrido.' using errcode = '22004', hint = 'barrido_no_existe';
+  end if;
+  v_n := coalesce(cardinality(p_ids), 0);
+  if v_n < 1 or v_n > 2000 or exists (select 1 from unnest(p_ids) i where i is null) then
+    raise exception 'Se quitan de 1 a 2.000 lecturas por vez.' using errcode = '22023', hint = 'barrido_anular_invalido';
+  end if;
+  if p_motivo is null or p_motivo not in ('repetida', 'tramo') then
+    raise exception 'Falta por qué se quitan.' using errcode = '22023', hint = 'barrido_anular_invalido';
+  end if;
+  -- El barrido en exclusiva: nadie lo cierra mientras se quita, y dos personas que quitan lo mismo van una tras otra.
+  for r in select b.ubicacion_id, b.estado from barridos_piso b where b.id = p_barrido_id for update loop
+    v_sede := r.ubicacion_id;
+    v_estado := r.estado;
+  end loop;
+  if v_sede is null then
+    raise exception 'Ese barrido no existe.' using hint = 'barrido_no_existe';
+  end if;
+  if not fn_ve_modulo('existencias') then
+    raise exception 'El barrido del piso necesita el módulo Existencias en tu rol.' using errcode = '42501', hint = 'barrido_sin_modulo';
+  end if;
+  if not fn_puede_operar_ubicacion(v_sede) then
+    raise exception 'No tienes permiso para mover mercadería en esa sede.' using errcode = '42501', hint = 'barrido_sin_tienda';
+  end if;
+  if v_estado <> 'abierto' then
+    raise exception 'Este barrido ya se cerró: lo escaneado ya no se puede quitar.' using hint = 'barrido_cerrado';
+  end if;
+  v_actor := fn_actor_persona_id(true);
+  if v_actor is null then
+    raise exception 'Elige quién hace esta operación.' using hint = 'responsable_requerido';
+  end if;
+  if (select count(*) from barrido_piso_lecturas l where l.id = any (p_ids) and l.barrido_id = p_barrido_id)
+     <> (select count(distinct i) from unnest(p_ids) i) then
+    raise exception 'Alguna de esas lecturas no es de este barrido: no se quitó nada.' using hint = 'barrido_lectura_ajena';
+  end if;
+
+  with quitadas as (
+    update barrido_piso_lecturas l
+       set anulada_en = clock_timestamp(), anulada_por = v_actor, motivo_anulacion = p_motivo
+     where l.id = any (p_ids) and l.barrido_id = p_barrido_id and l.anulada_en is null
+    returning 1
+  )
+  select count(*) into v_anuladas from quitadas;
+
+  return jsonb_build_object(
+    'anuladas', v_anuladas,
+    'ya_estaban', (select count(distinct i) from unnest(p_ids) i) - v_anuladas,
+    'estado', fn_barrido_piso_estado(v_sede));
+end;
+$fn$;
+
+comment on function retail.anular_lecturas_barrido(uuid, uuid[], text) is
+  'ADR-0690: quita (anula, sin borrar) de 1 a 2.000 lecturas de un barrido abierto, firmado por el responsable; motivo repetida o tramo. Quitar dos veces no resta dos veces. Devuelve {anuladas, ya_estaban, estado}.';
 
 revoke all on function retail.fn_barrido_piso_es_historia() from public, anon, authenticated;
 revoke all on function retail.fn_barrido_piso_lectura_valida() from public, anon, authenticated;
@@ -277,6 +402,11 @@ revoke all on function retail.abrir_barrido_piso(uuid) from public, anon;
 grant execute on function retail.abrir_barrido_piso(uuid) to authenticated;
 revoke all on function retail.registrar_lecturas_barrido(uuid, jsonb) from public, anon;
 grant execute on function retail.registrar_lecturas_barrido(uuid, jsonb) to authenticated;
+revoke all on function retail.fn_barrido_piso_lecturas(uuid) from public, anon;
+grant execute on function retail.fn_barrido_piso_lecturas(uuid) to authenticated;
+revoke all on function retail.anular_lecturas_barrido(uuid, uuid[], text) from public, anon;
+grant execute on function retail.anular_lecturas_barrido(uuid, uuid[], text) to authenticated;
+revoke all on function retail.fn_barrido_piso_lectura_solo_anular() from public, anon, authenticated;
 
 notify pgrst, 'reload schema';
 

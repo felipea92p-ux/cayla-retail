@@ -251,6 +251,10 @@ export function textoDeRechazo(hint: string | null | undefined): string | null {
       return "Esa lectura ya se había guardado con otros datos.";
     case "barrido_no_es_inventario":
       return "La «Prenda sin registrar» no se escanea en un barrido.";
+    case "barrido_lectura_ajena":
+      return "Alguna de esas lecturas no es de este barrido. Vuelve a abrir «Ver lo escaneado».";
+    case "barrido_anular_invalido":
+      return "No se pudo quitar: vuelve a intentarlo.";
     default:
       return null;
   }
@@ -384,4 +388,98 @@ export function personasDelBarrido(personas: readonly PersonaBarrido[], ahora: D
       hace: haceCuanto(p.ultima, ahora),
       activa: ahora.getTime() - Date.parse(p.ultima) <= minutos * 60_000,
     }));
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Corregir mientras se cuenta (actividad 3): «Ver lo escaneado», en tramos por persona, y quitar sin borrar.
+// ---------------------------------------------------------------------------------------------------------------------
+
+export const RPC_LECTURAS_BARRIDO = "fn_barrido_piso_lecturas";
+export const RPC_ANULAR_LECTURAS = "anular_lecturas_barrido";
+/** Una pausa más larga que esto entre dos lecturas de la misma persona empieza otro tramo (pasó a otra percha). */
+export const PAUSA_ENTRE_TRAMOS_MS = 3 * 60_000;
+
+export type LecturaDelBarrido = {
+  id: string;
+  varianteId: string;
+  cantidad: number;
+  personaId: string;
+  nombre: string;
+  /** La hora en que se escaneó (la del aparato si la trajo). */
+  escaneadaEn: string;
+  anuladaEn: string | null;
+  anuladaPor: string | null;
+};
+
+/** Lo que devuelve `fn_barrido_piso_lecturas`. Lo que no tiene forma se ignora. */
+export function leerLecturasDelBarrido(x: unknown): { lecturas: LecturaDelBarrido[]; total: number; tope: number } {
+  if (!esObjeto(x) || !Array.isArray(x.lecturas)) return { lecturas: [], total: 0, tope: 0 };
+  const lecturas = x.lecturas.filter(esObjeto).flatMap((l) => {
+    const id = texto(l.id);
+    const varianteId = texto(l.variante_id);
+    const personaId = texto(l.persona_id);
+    const escaneadaEn = texto(l.escaneada_en);
+    if (!id || !varianteId || !personaId || !escaneadaEn) return [];
+    return [{ id, varianteId, cantidad: entero(l.cantidad), personaId, nombre: texto(l.nombre) ?? "Alguien del equipo", escaneadaEn, anuladaEn: texto(l.anulada_en), anuladaPor: texto(l.anulada_por) }];
+  });
+  return { lecturas, total: entero(x.total), tope: entero(x.tope) };
+}
+
+export type Tramo = {
+  /** Estable entre recargas: la persona y su primera lectura. */
+  clave: string;
+  personaId: string;
+  nombre: string;
+  desde: string;
+  hasta: string;
+  /** De la más reciente a la más antigua, como se muestran. */
+  lecturas: LecturaDelBarrido[];
+  /** Lo que todavía suma (sin lo quitado). */
+  unidades: number;
+  /** Los ids que todavía se pueden quitar. */
+  vivas: string[];
+};
+
+/**
+ * Lo escaneado en TRAMOS: lo que una persona escaneó seguido, sin una pausa de más de `pausaMs`. Es lo que las chicas reconocen
+ * («esto es la pared izquierda, lo conté yo a las 10») sin haberse repartido áreas. De lo más reciente a lo más antiguo.
+ */
+export function agruparEnTramos(lecturas: readonly LecturaDelBarrido[], pausaMs = PAUSA_ENTRE_TRAMOS_MS): Tramo[] {
+  const ordenadas = [...lecturas].sort((a, b) => Date.parse(a.escaneadaEn) - Date.parse(b.escaneadaEn) || a.id.localeCompare(b.id));
+  const abiertos = new Map<string, LecturaDelBarrido[]>();
+  const cerrados: LecturaDelBarrido[][] = [];
+  for (const l of ordenadas) {
+    const actual = abiertos.get(l.personaId);
+    const ultima = actual?.[actual.length - 1];
+    if (actual && ultima && Date.parse(l.escaneadaEn) - Date.parse(ultima.escaneadaEn) <= pausaMs) {
+      actual.push(l);
+    } else {
+      if (actual) cerrados.push(actual);
+      abiertos.set(l.personaId, [l]);
+    }
+  }
+  cerrados.push(...abiertos.values());
+  return cerrados
+    .map((grupo) => {
+      const vivas = grupo.filter((l) => !l.anuladaEn);
+      return {
+        clave: `${grupo[0].personaId}:${grupo[0].id}`,
+        personaId: grupo[0].personaId,
+        nombre: grupo[0].nombre,
+        desde: grupo[0].escaneadaEn,
+        hasta: grupo[grupo.length - 1].escaneadaEn,
+        lecturas: [...grupo].reverse(),
+        unidades: vivas.reduce((a, l) => a + l.cantidad, 0),
+        vivas: vivas.map((l) => l.id),
+      };
+    })
+    .sort((a, b) => Date.parse(b.hasta) - Date.parse(a.hasta));
+}
+
+/** «10:05 a 10:12», o «10:05» si fue un instante. En hora de Lima. */
+export function textoDeTramo(desde: string, hasta: string): string {
+  const h = (iso: string) => new Date(iso).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
+  const a = h(desde);
+  const b = h(hasta);
+  return a === b ? a : `${a} a ${b}`;
 }

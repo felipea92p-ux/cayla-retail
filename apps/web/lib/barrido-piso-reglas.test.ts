@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  agruparEnTramos,
+  leerLecturasDelBarrido,
+  textoDeTramo,
   camposGuiaBarrido,
   claveColaBarrido,
   haceCuanto,
@@ -127,7 +130,7 @@ describe("palabras de tienda", () => {
     for (const hint of [
       "barrido_cerrado", "barrido_no_existe", "barrido_sin_modulo", "barrido_sin_tienda", "barrido_sin_permiso", "barrido_tienda_sin_piso",
       "responsable_requerido", "barrido_prenda_desconocida", "responsable_no_presente", "responsable_sin_acceso", "ubicacion_requerida",
-      "barrido_lecturas_invalidas", "barrido_lectura_reusada", "barrido_no_es_inventario",
+      "barrido_lecturas_invalidas", "barrido_lectura_reusada", "barrido_no_es_inventario", "barrido_lectura_ajena", "barrido_anular_invalido",
     ]) expect(textoDeRechazo(hint), hint).toBeTruthy();
     expect(textoDeRechazo(null)).toBeNull();
   });
@@ -254,5 +257,50 @@ describe("lo que la base rechaza no traba la cola (revisión adversarial de la a
     const r = leerRespuestaLecturas({ guardadas: 1, ya_estaban: 0, unidades: 1, por_prenda: [], personas: [{ persona_id: "ana", nombre: "Ana", unidades: 1, lecturas: 1, ultima: "x" }] });
     expect(r?.personas).toEqual([{ personaId: "ana", nombre: "Ana", unidades: 1, lecturas: 1, ultima: "x" }]);
     expect(leerRespuestaLecturas({ guardadas: 1 })?.personas).toBeNull();
+  });
+});
+
+describe("ver lo escaneado en tramos (actividad 3)", () => {
+  const l = (id: string, personaId: string, hhmm: string, anulada = false) => ({
+    id,
+    varianteId: "va",
+    cantidad: 1,
+    personaId,
+    nombre: personaId === "ana" ? "Ana Pérez" : "Rosa Díaz",
+    escaneadaEn: `2026-11-22T${hhmm}:00-05:00`,
+    anuladaEn: anulada ? "2026-11-22T11:00:00-05:00" : null,
+    anuladaPor: anulada ? "Rosa Díaz" : null,
+  });
+
+  it("lee lo que devuelve la base y descarta lo que no tiene forma", () => {
+    const r = leerLecturasDelBarrido({
+      total: 2,
+      tope: 5000,
+      lecturas: [
+        { id: "1", variante_id: "va", cantidad: 1, persona_id: "ana", nombre: "Ana", escaneada_en: "2026-11-22T15:00:00Z", anulada_en: null, anulada_por: null },
+        { id: "2" },
+      ],
+    });
+    expect(r.lecturas).toHaveLength(1);
+    expect(r.lecturas[0]).toMatchObject({ id: "1", anuladaEn: null });
+    expect(leerLecturasDelBarrido(null)).toEqual({ lecturas: [], total: 0, tope: 0 });
+  });
+
+  it("un tramo es lo que una persona escaneó seguido; una pausa de más de 3 min empieza otro; dos personas a la vez no se mezclan", () => {
+    const tramos = agruparEnTramos([l("1", "ana", "10:05"), l("2", "rosa", "10:06"), l("3", "ana", "10:07"), l("4", "ana", "10:12"), l("5", "rosa", "10:08")]);
+    expect(tramos.map((t) => `${t.personaId}:${t.lecturas.map((x) => x.id).join("")}`)).toEqual(["ana:4", "rosa:52", "ana:31"]);
+    expect(tramos[2]).toMatchObject({ desde: "2026-11-22T10:05:00-05:00", hasta: "2026-11-22T10:07:00-05:00", unidades: 2, vivas: ["1", "3"] });
+  });
+
+  it("lo quitado sigue en su tramo pero no suma ni se puede volver a quitar", () => {
+    const [t] = agruparEnTramos([l("1", "ana", "10:05"), l("2", "ana", "10:06", true)]);
+    expect(t.lecturas.map((x) => x.id)).toEqual(["2", "1"]);
+    expect(t.unidades).toBe(1);
+    expect(t.vivas).toEqual(["1"]);
+  });
+
+  it("la hora del tramo, en Lima", () => {
+    expect(textoDeTramo("2026-11-22T15:05:00Z", "2026-11-22T15:12:00Z")).toBe("10:05 a 10:12");
+    expect(textoDeTramo("2026-11-22T15:05:00Z", "2026-11-22T15:05:30Z")).toBe("10:05");
   });
 });
