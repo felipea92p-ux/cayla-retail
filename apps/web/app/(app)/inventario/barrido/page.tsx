@@ -31,7 +31,14 @@ export default async function BarridoPage() {
         <p className="nota-cayla">{sede} todavía no separa piso y almacén, así que aquí no hay piso que barrer.</p>
       ) : (
         // `key`: si quien escanea cambia de sede, la cola de una tienda no se arrastra a otra.
-        <BarridoPiso key={persona.ubicacionId} ubicacionId={persona.ubicacionId} sede={sede} prendas={prendas} estadoInicial={barrido.estado} />
+        <BarridoPiso
+          key={persona.ubicacionId}
+          ubicacionId={persona.ubicacionId}
+          sede={sede}
+          prendas={prendas}
+          estadoInicial={barrido.estado}
+          ahoraServidor={new Date().toISOString()}
+        />
       )}
     </div>
   );

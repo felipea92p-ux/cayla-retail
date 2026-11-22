@@ -2435,6 +2435,13 @@ export const GUIA_BARRIDO_PISO: Guia = {
       texto: "Su foto, talla, color y marca, y cuántas de esa prenda lleva el equipo. Mírala para saber que leyó la correcta.",
     },
     {
+      id: "confirmar",
+      ancla: "barrido.confirmar",
+      opcional: true,
+      titulo: "Revisar y confirmar",
+      texto: "Cuando terminen, te muestra qué pasa al piso, qué vuelve al almacén y qué no está en la tienda. Nada se mueve hasta que confirmes, y el total de la tienda no cambia. En la demo no lo tocamos.",
+    },
+    {
       id: "personas",
       ancla: "barrido.personas",
       opcional: true,

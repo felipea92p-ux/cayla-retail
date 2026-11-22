@@ -7,6 +7,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { EscanerConteo, type LecturaConteo } from "@/components/EscanerConteo";
 import { HojaLoEscaneado } from "@/components/barrido-piso/HojaLoEscaneado";
 import { HojaApartar } from "@/components/barrido-piso/HojaApartar";
+import { HojaConfirmar } from "@/components/barrido-piso/HojaConfirmar";
 import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -83,7 +84,20 @@ type Aviso = { texto: string; tono: "ambar" | "rojo"; apartar?: string };
 
 const nombreDe = (p: PrendaBarrido | undefined) => (p ? [p.referencia, p.talla, p.color].filter(Boolean).join(" · ") : "Esta prenda");
 
-export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubicacionId: string; sede: string; prendas: PrendaBarrido[]; estadoInicial: EstadoBarrido }) {
+export function BarridoPiso({
+  ubicacionId,
+  sede,
+  prendas,
+  estadoInicial,
+  ahoraServidor,
+}: {
+  ubicacionId: string;
+  sede: string;
+  prendas: PrendaBarrido[];
+  estadoInicial: EstadoBarrido;
+  /** La hora del servidor al armar la página: «hace N min» se dibuja igual en el servidor y en el navegador (si no, la hidratación falla). */
+  ahoraServidor: string;
+}) {
   const supabase = useMemo(() => createClient(), []);
   const responsable = useResponsable({ ubicacionId, etiqueta: sede });
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p] as const)), [prendas]);
@@ -113,6 +127,7 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
   const [abriendo, setAbriendo] = useState(false);
   const [camara, setCamara] = useState(false);
   const [verEscaneado, setVerEscaneado] = useState(false);
+  const [revisar, setRevisar] = useState(false);
   // Lo que no se puede escanear (actividad 4): apartar con foto, y lo escrito que busca por nombre.
   const [apartar, setApartar] = useState<{ tipo: TipoHallazgo; codigo: string | null } | null>(null);
   const [buscado, setBuscado] = useState("");
@@ -129,7 +144,7 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
   const vivo = useRef(true);
   const escaner = useRef<HTMLInputElement | null>(null);
   // «Quién está escaneando» mira las últimas lecturas contra esta hora; se pone al día con cada respuesta de la base.
-  const [ahora, setAhora] = useState(() => new Date());
+  const [ahora, setAhora] = useState(() => new Date(ahoraServidor));
 
   const aLaVista = porPrendaALaVista(base, cola);
   const enCola = cola.reduce((a, l) => a + l.cantidad, 0);
@@ -707,6 +722,11 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
             </section>
           </CampoGuiado>
           <PieGuia guia={guia} listo="Sigue escaneando: cada prenda se guarda sola." />
+          <div data-guia="barrido.confirmar">
+            <Boton peso="primario" onClick={() => setRevisar(true)} disabled={unidadesEquipo === 0 && barrido.aparte === 0}>
+              Revisar y confirmar
+            </Boton>
+          </div>
         </div>
 
         <div className="space-y-4 self-start">
@@ -753,6 +773,26 @@ export function BarridoPiso({ ubicacionId, sede, prendas, estadoInicial }: { ubi
           )}
         </div>
       </div>
+
+      {revisar && (
+        <HojaConfirmar
+          barridoId={barrido.id}
+          esperan={cola.length + apartadas.length}
+          firma={() => responsable.firma()}
+          listo={responsable.listo}
+          quien={responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? responsable.firmaDeRespaldo ?? null}
+          onHecho={() => {
+            // El barrido se cerró (confirmado o descartado): la pantalla vuelve a «Nadie está barriendo».
+            setBarrido(null);
+            setBase({});
+            setUnidadesBase(0);
+            setUltima(null);
+            miasRef.current = {};
+            setMias({});
+          }}
+          onClose={() => setRevisar(false)}
+        />
+      )}
 
       {apartar && (
         <HojaApartar

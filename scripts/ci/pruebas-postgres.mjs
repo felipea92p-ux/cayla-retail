@@ -735,6 +735,12 @@ export const PRUEBAS = [
   // escanear no tocan stock; 1.200 lecturas entran dentro del statement_timeout. Cada caso en ROLLBACK.
   "pruebas:barrido-piso",
 
+  // «El barrido del piso» (ADR-0690, actividad 5): confirmar corrige piso y almacén en los dos sentidos con traslados internos, todo o
+  // nada y con la MISMA cuenta que revisar; no toca lo apartado, lo archivado, lo de prueba ni lo que se movió durante el barrido; lo no
+  // cargado queda con dónde lo tiene el sistema; exige «todo escaneado», frena con un conteo abierto; la misma marca no confirma dos
+  // veces; cancelar no mueve nada. Cada caso en ROLLBACK.
+  "pruebas:barrido-piso-confirmar",
+
   // La caja registra la bajada que se olvidó (ADR-0321): `bajar_al_piso_desde_vender` pide VENDER (no Existencias: la
   // Terminal de ventas baja), baja solo lo que falta para el ticket (0 si otra persona ya la registró), lo apartado no
   // cuenta, sin almacén libre no mueve nada, firma el responsable, la misma marca no baja dos veces, y su fila del libro es

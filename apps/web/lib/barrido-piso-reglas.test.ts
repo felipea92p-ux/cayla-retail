@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  camposGuiaConfirmar,
+  dondeLaTiene,
+  leerVistaBarrido,
+  textoDelResultado,
   camposGuiaApartar,
   leerHallazgos,
   rutaFotoHallazgo,
@@ -342,5 +346,43 @@ describe("lo que no se puede escanear (actividad 4)", () => {
     expect(camposGuiaApartar({ tipo: "sin_etiqueta", conFoto: false, nota: "polo gris" })[0]).toMatchObject({ hecho: true });
     expect(camposGuiaApartar({ tipo: "sin_etiqueta", conFoto: true, nota: "" })[0]).toMatchObject({ hecho: true });
     expect(camposGuiaApartar({ tipo: "codigo_desconocido", conFoto: false, nota: "" })[0]).toMatchObject({ requerido: false, sugerido: true });
+  });
+});
+
+describe("revisar y confirmar (actividad 5)", () => {
+  const vista = {
+    resumen: { antes: { piso: 9, almacen: 11 }, despues: { piso: 7, almacen: 13 }, total: 20, escaneadas: 9, prendas_al_piso: 2, prendas_al_almacen: 4, prendas_no_cargadas: 1, lineas_se_movieron: 1, aparte: 2 },
+    lineas: [
+      { variante_id: "va", prenda: "Blusa Emma · M", motivo: "cuadra", escaneadas: 3, piso: 1, almacen: 5, al_piso: 2, al_almacen: 0, no_cargadas: 0, otras_sedes: [], en_camino: 0 },
+      { variante_id: "vf", prenda: "Casaca · L", motivo: "cuadra", escaneadas: 1, piso: 0, almacen: 0, al_piso: 0, al_almacen: 0, no_cargadas: 1, otras_sedes: [{ sede: "Tienda Trujillo", cantidad: 2 }], en_camino: 1 },
+      { variante_id: "vz", motivo: "raro" },
+    ],
+    conteo_abierto: null,
+    ultima_lectura: "2026-11-22T15:00:00Z",
+  };
+
+  it("lee la revisión y descarta lo que no tiene forma", () => {
+    const v = leerVistaBarrido(vista);
+    expect(v?.resumen).toMatchObject({ prendasAlPiso: 2, prendasAlAlmacen: 4, prendasNoCargadas: 1, lineasSeMovieron: 1, aparte: 2, total: 20 });
+    expect(v?.lineas.map((l) => l.varianteId)).toEqual(["va", "vf"]);
+    expect(v?.conteoAbierto).toBeNull();
+    expect(leerVistaBarrido({ ...vista, conteo_abierto: { numero: 7 } })?.conteoAbierto).toBe("Conteo 7");
+    expect(leerVistaBarrido(null)).toBeNull();
+  });
+
+  it("dónde tiene el sistema lo que no está en la tienda", () => {
+    expect(dondeLaTiene({ otrasSedes: [{ sede: "Tienda Trujillo", cantidad: 2 }], enCamino: 1 })).toBe("Trujillo tiene 2 · 1 en camino a esta tienda");
+    expect(dondeLaTiene({ otrasSedes: [], enCamino: 0 })).toBe("No está en ninguna tienda");
+  });
+
+  it("confirmar pide quién y que se escaneó todo (lo mismo que la base)", () => {
+    expect(camposGuiaConfirmar({ responsableListo: true, todoEscaneado: false }).map((c) => `${c.id}:${c.hecho}:${c.requerido}`)).toEqual(["responsable:true:true", "todo:false:true"]);
+  });
+
+  it("el resultado en una línea", () => {
+    const r = leerVistaBarrido(vista)!.resumen;
+    expect(textoDelResultado(r)).toBe("2 pasaron al piso y 4 volvieron al almacén.");
+    expect(textoDelResultado({ ...r, prendasAlPiso: 1, prendasAlAlmacen: 0 })).toBe("1 pasó al piso.");
+    expect(textoDelResultado({ ...r, prendasAlPiso: 0, prendasAlAlmacen: 0 })).toBe("El piso ya estaba al día: no hubo que mover nada.");
   });
 });

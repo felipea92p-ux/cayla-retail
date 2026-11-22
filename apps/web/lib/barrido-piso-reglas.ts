@@ -575,3 +575,114 @@ export function camposGuiaApartar({ tipo, conFoto, nota }: { tipo: TipoHallazgo;
       : { id: "foto", nombre: "Foto o nota", requerido: true, hecho: reconoce, pendiente: "Tómale una foto (o escribe cómo es) para reconocerla después." },
   ];
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Revisar y confirmar (actividad 5): lo que va a pasar, con la MISMA cuenta que aplica la base.
+// ---------------------------------------------------------------------------------------------------------------------
+
+export const RPC_PREVISUALIZAR_BARRIDO = "previsualizar_barrido_piso";
+export const RPC_CONFIRMAR_BARRIDO = "confirmar_barrido_piso";
+export const RPC_CANCELAR_BARRIDO = "cancelar_barrido_piso";
+
+export type LineaDelBarrido = {
+  varianteId: string;
+  prenda: string;
+  motivo: "cuadra" | "se_movio" | "archivada" | "no_es_inventario";
+  escaneadas: number;
+  piso: number;
+  almacen: number;
+  alPiso: number;
+  alAlmacen: number;
+  noCargadas: number;
+  otrasSedes: { sede: string; cantidad: number }[];
+  enCamino: number;
+};
+
+export type ResumenBarrido = {
+  antes: { piso: number; almacen: number };
+  despues: { piso: number; almacen: number };
+  total: number;
+  escaneadas: number;
+  prendasAlPiso: number;
+  prendasAlAlmacen: number;
+  prendasNoCargadas: number;
+  lineasSeMovieron: number;
+  aparte: number;
+};
+
+export type VistaBarrido = { resumen: ResumenBarrido; lineas: LineaDelBarrido[]; conteoAbierto: string | null; ultimaLectura: string | null };
+
+const MOTIVOS = new Set(["cuadra", "se_movio", "archivada", "no_es_inventario"]);
+
+export function leerResumenBarrido(x: unknown): ResumenBarrido {
+  const r = esObjeto(x) ? x : {};
+  const par = (y: unknown) => (esObjeto(y) ? { piso: entero(y.piso), almacen: entero(y.almacen) } : { piso: 0, almacen: 0 });
+  return {
+    antes: par(r.antes),
+    despues: par(r.despues),
+    total: entero(r.total),
+    escaneadas: entero(r.escaneadas),
+    prendasAlPiso: entero(r.prendas_al_piso),
+    prendasAlAlmacen: entero(r.prendas_al_almacen),
+    prendasNoCargadas: entero(r.prendas_no_cargadas),
+    lineasSeMovieron: entero(r.lineas_se_movieron),
+    aparte: entero(r.aparte),
+  };
+}
+
+/** Lo que devuelve `previsualizar_barrido_piso`. Lo que no tiene forma se ignora; sin forma, `null`. */
+export function leerVistaBarrido(x: unknown): VistaBarrido | null {
+  if (!esObjeto(x) || !esObjeto(x.resumen)) return null;
+  const lineas = Array.isArray(x.lineas)
+    ? x.lineas.filter(esObjeto).flatMap((l) => {
+        const varianteId = texto(l.variante_id);
+        const motivo = typeof l.motivo === "string" && MOTIVOS.has(l.motivo) ? (l.motivo as LineaDelBarrido["motivo"]) : null;
+        if (!varianteId || !motivo) return [];
+        return [
+          {
+            varianteId,
+            prenda: texto(l.prenda) ?? "Una prenda",
+            motivo,
+            escaneadas: entero(l.escaneadas),
+            piso: entero(l.piso),
+            almacen: entero(l.almacen),
+            alPiso: entero(l.al_piso),
+            alAlmacen: entero(l.al_almacen),
+            noCargadas: entero(l.no_cargadas),
+            otrasSedes: Array.isArray(l.otras_sedes) ? l.otras_sedes.filter(esObjeto).map((o) => ({ sede: texto(o.sede) ?? "Otra sede", cantidad: entero(o.cantidad) })) : [],
+            enCamino: entero(l.en_camino),
+          },
+        ];
+      })
+    : [];
+  const conteo = esObjeto(x.conteo_abierto) ? `Conteo ${String(x.conteo_abierto.numero ?? "")}`.trim() : null;
+  return { resumen: leerResumenBarrido(x.resumen), lineas, conteoAbierto: conteo, ultimaLectura: texto(x.ultima_lectura) };
+}
+
+/** «Trujillo tiene 2 · 1 en camino»: dónde tiene el sistema una prenda que no está en la tienda. Sin nada, «No está en ninguna tienda». */
+export function dondeLaTiene(l: Pick<LineaDelBarrido, "otrasSedes" | "enCamino">): string {
+  const partes = l.otrasSedes.map((o) => `${o.sede.replace(/^Tienda\s+/i, "")} tiene ${o.cantidad}`);
+  if (l.enCamino > 0) partes.push(`${l.enCamino} en camino a esta tienda`);
+  return partes.length > 0 ? partes.join(" · ") : "No está en ninguna tienda";
+}
+
+/**
+ * La guía de la hoja «Revisar el barrido» (ADR-0284): quién confirma y que se escaneó TODO lo colgado (sin eso, «vuelve al almacén» no
+ * vale: lo exige la base con `barrido_falta_todo`).
+ */
+export function camposGuiaConfirmar({ responsableListo, todoEscaneado }: { responsableListo: boolean; todoEscaneado: boolean }): CampoDeGuia[] {
+  return [
+    { id: "responsable", nombre: "Quién confirma", requerido: true, hecho: responsableListo, pendiente: "Elige quién confirma (arriba, en «Quién escanea»)." },
+    { id: "todo", nombre: "Todo escaneado", requerido: true, hecho: todoEscaneado, pendiente: "Marca que se escaneó todo lo colgado." },
+  ];
+}
+
+/** «2 pasaron al piso y 4 volvieron al almacén.» — lo que quedó hecho, en una línea. */
+export function textoDelResultado(r: ResumenBarrido): string {
+  const n = (k: number, uno: string, varios: string) => `${k.toLocaleString("es-PE")} ${k === 1 ? uno : varios}`;
+  if (r.prendasAlPiso === 0 && r.prendasAlAlmacen === 0) return "El piso ya estaba al día: no hubo que mover nada.";
+  const partes = [];
+  if (r.prendasAlPiso > 0) partes.push(n(r.prendasAlPiso, "pasó al piso", "pasaron al piso"));
+  if (r.prendasAlAlmacen > 0) partes.push(n(r.prendasAlAlmacen, "volvió al almacén", "volvieron al almacén"));
+  return `${partes.join(" y ")}.`;
+}
