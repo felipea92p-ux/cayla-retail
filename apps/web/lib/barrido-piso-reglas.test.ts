@@ -39,6 +39,14 @@ import {
   sinLasSubidas,
   textoDeRechazo,
   type LecturaBarrido,
+  POR_RESOLVER_VACIO,
+  camposGuiaResolver,
+  dondeEstaNoCargada,
+  leerPorResolver,
+  opcionesDeResolver,
+  prendasPorResolver,
+  textoDeComo,
+  textoDeErrorResolver,
 } from "./barrido-piso-reglas";
 
 const ANA = { responsableId: "ana", ubicacionId: "tru" };
@@ -427,5 +435,52 @@ describe("lo que se dice cuando algo no se guardó", () => {
     expect(textoDeError({ code: "P0001", hint: "barrido_cerrado", message: "x" }, "apartar")).toBe("Este barrido ya se cerró. Lo que escaneaste después no se sumó.");
     expect(textoDeError({ message: "TypeError: Failed to fetch" }, "apartar")).toBe("No hay conexión: no se pudo apartar. Vuelve a intentarlo.");
     expect(textoDeError({ code: "23505", hint: null, message: "duplicate key" }, "quitar")).toBe("No se pudo quitar: duplicate key");
+  });
+});
+
+describe("«Por resolver» (actividad 8)", () => {
+  const crudo = {
+    no_cargadas: [
+      { barrido_id: "b1", confirmado_en: "2026-11-22T15:00:00Z", confirmado_por: "Ana", variante_id: "v1", prenda: "Blusa Emma · M", pendientes: 2,
+        otras_sedes: [{ sede: "Tienda Lima", cantidad: 3 }, { sede: "x" }], en_camino: 1 },
+      { barrido_id: "b1", variante_id: "v2", pendientes: 0 },
+    ],
+    apartados: [
+      { id: "h1", barrido_id: "b1", tipo: "sin_etiqueta", nota: "polo gris", cantidad: 3, pendientes: 2, por: "Rosa", registrado_en: "2026-11-22T14:00:00Z" },
+      { id: "h2", barrido_id: "b1", tipo: "otro", pendientes: 1 },
+    ],
+  };
+
+  it("lee las dos listas y descarta lo que ya no tiene pendientes o no tiene forma", () => {
+    const p = leerPorResolver(crudo);
+    expect(p.noCargadas.map((n) => [n.varianteId, n.pendientes, n.enCamino, n.otrasSedes.length])).toEqual([["v1", 2, 1, 1]]);
+    expect(p.apartados.map((a) => [a.id, a.pendientes, a.cantidad, a.nota])).toEqual([["h1", 2, 3, "polo gris"]]);
+    expect(prendasPorResolver(p)).toBe(4);
+    expect(leerPorResolver(null)).toEqual(POR_RESOLVER_VACIO);
+  });
+
+  it("dice dónde está una no cargada, primero lo que viene en camino", () => {
+    expect(dondeEstaNoCargada({ enCamino: 1, otrasSedes: [{ sede: "Tienda Lima", cantidad: 3 }] })).toBe("1 en camino a esta tienda · Tienda Lima tiene 3");
+    expect(dondeEstaNoCargada({ enCamino: 0, otrasSedes: [] })).toBe("No está en ninguna tienda del sistema");
+  });
+
+  it("«La encontré» no se ofrece si viene en camino (se contaría dos veces), y cada opción dice lo que hace", () => {
+    expect(opcionesDeResolver(0).every((o) => !o.deshabilitada)).toBe(true);
+    expect(opcionesDeResolver(2).find((o) => o.valor === "encontrada")?.deshabilitada).toBe(true);
+    expect(textoDeComo("", 2)).toMatch(/Traslados/);
+    expect(new Set((["colgada", "encontrada", "no_era"] as const).map((c) => textoDeComo(c, 0))).size).toBe(3);
+    expect(textoDeComo("", 0)).toBe("");
+  });
+
+  it("la guía pide qué pasó y, en lo apartado que no se descarta, qué prenda era", () => {
+    expect(camposGuiaResolver({ esApartado: false, como: "", varianteId: "" }).map((c) => c.id)).toEqual(["como"]);
+    expect(camposGuiaResolver({ esApartado: true, como: "colgada", varianteId: "" }).map((c) => [c.id, c.hecho])).toEqual([["como", true], ["prenda", false]]);
+    expect(camposGuiaResolver({ esApartado: true, como: "no_era", varianteId: "" }).map((c) => c.id)).toEqual(["como"]);
+  });
+
+  it("los rechazos con cifra se dicen con el mensaje de la base; los demás, en voz de tienda", () => {
+    expect(textoDeErrorResolver({ hint: "barrido_en_camino", message: "Esa prenda viene en un traslado (1 en camino)." })).toMatch(/1 en camino/);
+    expect(textoDeErrorResolver({ hint: "barrido_resolver_no_esta", message: "x" })).toBe("Eso ya no está por resolver. Recarga la lista.");
+    expect(textoDeErrorResolver({ message: "TypeError: Failed to fetch" })).toMatch(/conexión|resolver/);
   });
 });

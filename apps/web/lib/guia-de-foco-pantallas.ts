@@ -537,6 +537,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/barrido-piso/HojaApartar.tsx": { estado: "aplicada", evidencia: ["components/barrido-piso/HojaApartar.tsx"] },
   // Confirmar el barrido (actividad 5): quién confirma y «se escaneó todo lo colgado» (lo exige la base: barrido_falta_todo).
   "components/barrido-piso/HojaConfirmar.tsx": { estado: "aplicada", evidencia: ["components/barrido-piso/HojaConfirmar.tsx"] },
+  "components/barrido-piso/HojaResolver.tsx": { estado: "aplicada", evidencia: ["components/barrido-piso/HojaResolver.tsx"] },
   "components/conteo/CancelarConteoModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/ficha-producto/FotosPorColor.tsx": PENDIENTE, // 2 controles
   "components/finanzas/CierreMes.tsx": PENDIENTE, // 5 controles

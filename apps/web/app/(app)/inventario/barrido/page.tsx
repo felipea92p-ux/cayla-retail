@@ -3,7 +3,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BarridoPiso } from "@/components/barrido-piso/BarridoPiso";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getCatalogoConteo } from "@/lib/conteos";
-import { getBarridoEstado } from "@/lib/barrido-piso";
+import { getBarridoEstado, getPorResolver } from "@/lib/barrido-piso";
 
 // «El barrido del piso» (ADR-0690, Felipe 2026-11-22): una o varias personas escanean lo COLGADO de la tienda, cada una desde su
 // celular, sin repartirse áreas. Cada lectura va a la base con quién y a qué hora, y el total de cada prenda es la suma del equipo.
@@ -12,8 +12,13 @@ export default async function BarridoPage() {
   // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
   const persona = await exigirModulo("existencias");
   const sede = persona.ubicacionEtiqueta;
-  // En paralelo: el catálogo ENTERO de la sede (una prenda colgada que el sistema no tiene aquí también se escanea) y el barrido.
-  const [prendas, barrido] = await Promise.all([getCatalogoConteo(persona.ubicacionId), getBarridoEstado(persona.ubicacionId)]);
+  // En paralelo: el catálogo ENTERO de la sede (una prenda colgada que el sistema no tiene aquí también se escanea), el barrido y lo
+  // que los barridos confirmados dejaron por resolver (actividad 8).
+  const [prendas, barrido, porResolver] = await Promise.all([
+    getCatalogoConteo(persona.ubicacionId),
+    getBarridoEstado(persona.ubicacionId),
+    getPorResolver(persona.ubicacionId),
+  ]);
 
   return (
     <div className="space-y-6 pb-32 sm:pb-24">
@@ -37,6 +42,7 @@ export default async function BarridoPage() {
           sede={sede}
           prendas={prendas}
           estadoInicial={barrido.estado}
+          porResolverInicial={porResolver}
           ahoraServidor={new Date().toISOString()}
         />
       )}

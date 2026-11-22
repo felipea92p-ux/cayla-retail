@@ -8,6 +8,7 @@ import { EscanerConteo, type LecturaConteo } from "@/components/EscanerConteo";
 import { HojaLoEscaneado } from "@/components/barrido-piso/HojaLoEscaneado";
 import { HojaApartar } from "@/components/barrido-piso/HojaApartar";
 import { HojaConfirmar } from "@/components/barrido-piso/HojaConfirmar";
+import { PorResolver } from "@/components/barrido-piso/PorResolver";
 import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -62,6 +63,7 @@ import {
   type BarridoAbierto,
   type ColaGuardada,
   type EstadoBarrido,
+  type PorResolver as PorResolverLista,
   type LecturaApartada,
   type LecturaBarrido,
   type PrendaBarrido,
@@ -90,12 +92,15 @@ export function BarridoPiso({
   sede,
   prendas,
   estadoInicial,
+  porResolverInicial,
   ahoraServidor,
 }: {
   ubicacionId: string;
   sede: string;
   prendas: PrendaBarrido[];
   estadoInicial: EstadoBarrido;
+  /** Lo que los barridos confirmados dejaron sin cerrar (actividad 8); null si no se pudo leer. */
+  porResolverInicial: PorResolverLista | null;
   /** La hora del servidor al armar la página: «hace N min» se dibuja igual en el servidor y en el navegador (si no, la hidratación falla). */
   ahoraServidor: string;
 }) {
@@ -551,24 +556,35 @@ export function BarridoPiso({
 
   if (!barrido) {
     return (
-      <div className="max-w-2xl space-y-5">
-        {combo}
-        <Vacio
-          guia="barrido.empezar"
-          icono={<ScanLine />}
-          titulo="Nadie está barriendo el piso"
-          acciones={
-            <div className="space-y-2">
-              <PieGuia guia={guia} listo="Listo para empezar." />
-              <Boton peso="primario" onClick={abrir} cargando={abriendo} textoCargando="Empezando…" confirma={guia}>
-                Empezar el barrido
-              </Boton>
-            </div>
-          }
-        >
-          Escaneen todo lo colgado. Quien llegue después se suma desde su celular.
-        </Vacio>
-        {aviso && <AvisoLinea tono={aviso.tono === "rojo" ? "error" : "atencion"}>{aviso.texto}</AvisoLinea>}
+      // Dos columnas en escritorio: empezar a la izquierda y, al lado, lo que los barridos anteriores dejaron por resolver.
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+        <div className="space-y-5">
+          {combo}
+          <Vacio
+            guia="barrido.empezar"
+            icono={<ScanLine />}
+            titulo="Nadie está barriendo el piso"
+            acciones={
+              <div className="space-y-2">
+                <PieGuia guia={guia} listo="Listo para empezar." />
+                <Boton peso="primario" onClick={abrir} cargando={abriendo} textoCargando="Empezando…" confirma={guia}>
+                  Empezar el barrido
+                </Boton>
+              </div>
+            }
+          >
+            Escaneen todo lo colgado. Quien llegue después se suma desde su celular.
+          </Vacio>
+          {aviso && <AvisoLinea tono={aviso.tono === "rojo" ? "error" : "atencion"}>{aviso.texto}</AvisoLinea>}
+        </div>
+        <PorResolver
+          ubicacionId={ubicacionId}
+          inicial={porResolverInicial}
+          prendas={prendas}
+          porId={porId}
+          firma={() => responsable.firma()}
+          listo={responsable.listo}
+        />
       </div>
     );
   }

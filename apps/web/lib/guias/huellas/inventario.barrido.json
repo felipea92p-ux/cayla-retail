@@ -2,7 +2,7 @@
   "guia": "inventario.barrido",
   "ruta": "/inventario/barrido",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 44,
+  "total": 51,
   "controles": {
     "app/(app)/inventario/barrido/page.tsx": [
       "Volver «/inventario»"
@@ -59,6 +59,17 @@
       "Boton «Sí, quitar» #3",
       "Boton «No» #3",
       "Boton «Quitar» #2"
+    ],
+    "components/barrido-piso/HojaResolver.tsx": [
+      "BotonVer «Ir a Traslados»",
+      "ComboBuscable «{varianteId}»",
+      "CampoTexto «Nota (opcional)»",
+      "Boton «Cancelar»",
+      "Boton «Resolver»"
+    ],
+    "components/barrido-piso/PorResolver.tsx": [
+      "Boton «Resolver»",
+      "Boton «Resolver» #2"
     ]
   }
 }

@@ -737,3 +737,163 @@ export function textoDeError(e: { code?: string | null; hint?: string | null; me
   if (clasificarError(e) === "red") return `No hay conexión: no se pudo ${que}. Vuelve a intentarlo.`;
   return `No se pudo ${que}: ${e?.message ?? "la base no respondió"}`;
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// «Por resolver» (actividad 8): lo que un barrido confirmado dejó sin cerrar —las no cargadas y lo apartado— y cómo se cierra.
+// La base decide (`resolver_pendiente_barrido`, 20261122195000); aquí solo se lee y se dice en voz de tienda.
+// ---------------------------------------------------------------------------------------------------------------------
+
+export const RPC_POR_RESOLVER_BARRIDO = "fn_barrido_piso_por_resolver";
+export const RPC_RESOLVER_PENDIENTE = "resolver_pendiente_barrido";
+
+/** colgada: está en el almacén y se baja al piso · encontrada: «Encontré prendas» y al piso · no_era: no mueve nada. */
+export type ComoResolver = "colgada" | "encontrada" | "no_era";
+
+/** Una prenda escaneada colgada que el sistema no tiene en la sede. */
+export type NoCargadaPendiente = {
+  barridoId: string;
+  confirmadoEn: string;
+  confirmadoPor: string | null;
+  varianteId: string;
+  prenda: string;
+  pendientes: number;
+  otrasSedes: { sede: string; cantidad: number }[];
+  enCamino: number;
+};
+
+/** Lo apartado (sin etiqueta o con un código que no existe) que aún no se cierra. */
+export type ApartadoPendiente = {
+  id: string;
+  barridoId: string;
+  confirmadoEn: string;
+  tipo: TipoHallazgo;
+  codigo: string | null;
+  nota: string | null;
+  fotoRuta: string | null;
+  cantidad: number;
+  pendientes: number;
+  por: string;
+  registradoEn: string;
+};
+
+export type PorResolver = { noCargadas: NoCargadaPendiente[]; apartados: ApartadoPendiente[] };
+
+export const POR_RESOLVER_VACIO: PorResolver = { noCargadas: [], apartados: [] };
+
+/** Lo que devuelve `fn_barrido_piso_por_resolver` (y `resolver_pendiente_barrido`). Lo que no tiene forma se ignora. */
+export function leerPorResolver(x: unknown): PorResolver {
+  if (!esObjeto(x)) return POR_RESOLVER_VACIO;
+  const noCargadas = (Array.isArray(x.no_cargadas) ? x.no_cargadas : []).filter(esObjeto).flatMap((n): NoCargadaPendiente[] => {
+    const barridoId = texto(n.barrido_id);
+    const varianteId = texto(n.variante_id);
+    const pendientes = entero(n.pendientes);
+    if (!barridoId || !varianteId || pendientes < 1) return [];
+    return [
+      {
+        barridoId,
+        confirmadoEn: texto(n.confirmado_en) ?? "",
+        confirmadoPor: texto(n.confirmado_por),
+        varianteId,
+        prenda: texto(n.prenda) ?? "Una prenda",
+        pendientes,
+        otrasSedes: (Array.isArray(n.otras_sedes) ? n.otras_sedes : [])
+          .filter(esObjeto)
+          .flatMap((s) => (texto(s.sede) && entero(s.cantidad) > 0 ? [{ sede: texto(s.sede) as string, cantidad: entero(s.cantidad) }] : [])),
+        enCamino: Math.max(0, entero(n.en_camino)),
+      },
+    ];
+  });
+  const apartados = (Array.isArray(x.apartados) ? x.apartados : []).filter(esObjeto).flatMap((a): ApartadoPendiente[] => {
+    const id = texto(a.id);
+    const barridoId = texto(a.barrido_id);
+    const tipo = a.tipo === "sin_etiqueta" || a.tipo === "codigo_desconocido" ? a.tipo : null;
+    const pendientes = entero(a.pendientes);
+    if (!id || !barridoId || !tipo || pendientes < 1) return [];
+    return [
+      {
+        id,
+        barridoId,
+        confirmadoEn: texto(a.confirmado_en) ?? "",
+        tipo,
+        codigo: texto(a.codigo),
+        nota: texto(a.nota),
+        fotoRuta: texto(a.foto_ruta),
+        cantidad: Math.max(pendientes, entero(a.cantidad)),
+        pendientes,
+        por: texto(a.por) ?? "Alguien del equipo",
+        registradoEn: texto(a.registrado_en) ?? "",
+      },
+    ];
+  });
+  return { noCargadas, apartados };
+}
+
+/** Cuántas prendas faltan resolver, sumando las dos listas. */
+export function prendasPorResolver(p: PorResolver): number {
+  return p.noCargadas.reduce((a, n) => a + n.pendientes, 0) + p.apartados.reduce((a, h) => a + h.pendientes, 0);
+}
+
+/** Bajo una no cargada: dónde la tiene el sistema, en una línea. */
+export function dondeEstaNoCargada(n: Pick<NoCargadaPendiente, "otrasSedes" | "enCamino">): string {
+  const partes: string[] = [];
+  if (n.enCamino > 0) partes.push(`${n.enCamino} en camino a esta tienda`);
+  for (const s of n.otrasSedes.slice(0, 2)) partes.push(`${s.sede} tiene ${s.cantidad}`);
+  return partes.length ? partes.join(" · ") : "No está en ninguna tienda del sistema";
+}
+
+/** Las tres salidas, en el orden en que conviene pensarlas. «La encontré» no se ofrece si viene en camino: se contaría dos veces. */
+export function opcionesDeResolver(enCamino: number): { valor: ComoResolver; texto: string; deshabilitada?: boolean }[] {
+  return [
+    { valor: "colgada", texto: "Ya está en el almacén" },
+    { valor: "encontrada", texto: "La encontré: sumarla", deshabilitada: enCamino > 0 },
+    { valor: "no_era", texto: "No era de aquí" },
+  ];
+}
+
+/** La línea bajo «Qué pasó»: qué va a hacer la opción elegida. */
+export function textoDeComo(como: ComoResolver | "", enCamino: number): string {
+  if (como === "colgada") return "Se baja del almacén al piso.";
+  if (como === "encontrada") return "Entra con «Encontré prendas» y queda en el piso.";
+  if (como === "no_era") return "No mueve nada. Queda anotado.";
+  // Sin elegir, la guía ya dice «Elige lo que pasó»: aquí solo lo que cambia la decisión.
+  return enCamino > 0 ? "Viene en un traslado: recíbelo primero en Traslados." : "";
+}
+
+/** El ejemplo de la nota sigue a «Qué pasó» (ADR-0290): lo que diría alguien que eligió esa salida. */
+export function ejemploDeNotaResolver(como: ComoResolver | ""): string {
+  if (como === "no_era") return "Ej. se devolvió a su tienda";
+  if (como === "colgada") return "Ej. llegó en el traslado del lunes";
+  if (como === "encontrada") return "Ej. estaba en la caja Por etiquetar";
+  return "Ej. dónde estaba o qué se hizo";
+}
+
+/** La guía de foco de «Resolver» (ADR-0284): qué pasó y, si es algo apartado que no se descarta, qué prenda era. Sale de lo que la base exige. */
+export function camposGuiaResolver({ esApartado, como, varianteId }: { esApartado: boolean; como: ComoResolver | ""; varianteId: string }): CampoDeGuia[] {
+  const campos: CampoDeGuia[] = [{ id: "como", nombre: "Qué pasó", requerido: true, hecho: como !== "", pendiente: "Elige lo que pasó con la prenda." }];
+  if (esApartado && como !== "no_era") {
+    campos.push({ id: "prenda", nombre: "Qué prenda es", requerido: true, hecho: varianteId !== "", pendiente: "Busca la prenda por su nombre o su código." });
+  }
+  return campos;
+}
+
+/** Los rechazos de «Resolver» cuyo mensaje de la base ya trae la cifra («Quedan 1 por resolver…»): se muestran tal cual. */
+const RECHAZOS_CON_SU_CIFRA = new Set(["barrido_ya_resuelto", "barrido_en_camino", "barrido_sin_almacen"]);
+
+/** El error de «Resolver», en voz de tienda. */
+export function textoDeErrorResolver(e: { code?: string | null; hint?: string | null; message?: string | null } | null | undefined): string {
+  if (e?.hint && RECHAZOS_CON_SU_CIFRA.has(e.hint) && e.message) return e.message;
+  switch (e?.hint) {
+    case "barrido_no_confirmado":
+      return "Ese barrido todavía no se confirmó.";
+    case "barrido_resolver_prenda":
+      return "Elige qué prenda era (activa en el catálogo).";
+    case "barrido_resolver_no_esta":
+      return "Eso ya no está por resolver. Recarga la lista.";
+    case "barrido_token_reusado":
+      return "Eso ya se resolvió con otros datos. Recarga la lista.";
+    case "barrido_sin_modulo":
+      return "Para resolver hace falta ver Existencias en tu rol.";
+    default:
+      return textoDeError(e, "resolver");
+  }
+}

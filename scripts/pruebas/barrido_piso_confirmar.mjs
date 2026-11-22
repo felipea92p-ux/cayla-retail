@@ -24,6 +24,10 @@
  *   F6 cancelar: no mueve nada, el barrido queda cancelado y ya no se confirma; se puede abrir otro.
  *   F7 los relojes (actividad 6, `20261122194000_barrido_piso_relojes.sql`): el primer cuadre de la sede reinicia aunque sea un barrido;
  *      el segundo barrido no; un cuadre del almacén sí; y siempre por sede.
+ *   R  «Por resolver» (actividad 8, `20261122195000_barrido_piso_por_resolver.sql`): la lista sale solo de barridos confirmados; «encontrada»
+ *      entra por las funciones de siempre (stock inicial al piso con la carga abierta; «Encontré prendas» + bajada con la carga cerrada) y
+ *      se rechaza si viene en camino; «colgada» baja del almacén y frena sin stock; «no_era» no mueve nada; se resuelve por partes sin
+ *      pasarse; la marca no repite; los candados de módulo, sede y estado; lo resuelto no se edita ni se borra.
  *
  * CÓMO. Igual que `barrido_piso.mjs`: cada caso en ROLLBACK, sesión simulada, sede nueva.
  *
@@ -396,6 +400,141 @@ caso(
   `${ESCANEADO}select ${CONFIRMAR()} as _c \\gset
 ${COMO_POSTGRES}select concat_ws(',', ${ULTIMO} is not null, retail.fn_ultimo_cuadre_piso(:'taller') is null);`,
   "t,t"
+);
+
+// ===========================================================================
+// R · «Por resolver» (actividad 8)
+// ===========================================================================
+
+const MIGRACION_RESOLVER = "20261122195000_barrido_piso_por_resolver.sql";
+/** El barrido escaneado, con 2 prendas sin etiqueta apartadas, y CONFIRMADO: deja vf no cargada (1) y el apartado (2). */
+const CONFIRMADO = `${ESCANEADO}select gen_random_uuid() as hall \\gset
+select retail.registrar_hallazgo_barrido(:'barrido', :'hall', 'sin_etiqueta', null, 2, 'polo gris de rayas', null) as _h \\gset
+select ${CONFIRMAR()} as _c \\gset
+`;
+const POR_RESOLVER = `pg_temp.r(format('select retail.fn_barrido_piso_por_resolver(%L)', :'bar'))`;
+/** resolver(id, hallazgo|null, variante|null, como, cantidad) — ids y prendas como variables psql o expresiones SQL. */
+const RESOLVER = (id, hallazgo, variante, como, cantidad, barrido = ":'barrido'") =>
+  `pg_temp.r(format('select retail.resolver_pendiente_barrido(%L, %L, %L, %L, %L, %L, %L)', ${id}, ${barrido}, ${hallazgo}, ${variante}, '${como}', ${cantidad}, 'se revisó'))`;
+const NO_CARGADA = (j, v = "vf") => `(select x from jsonb_array_elements((${j})::jsonb -> 'no_cargadas') x where x ->> 'variante_id' = :'${v}')`;
+const CUENTA_R = `concat_ws(',', (select count(*) from retail.movimientos), (select count(*) from retail.barrido_piso_resueltos),
+  (select coalesce(sum(cantidad * 7 + cantidad_apartada), 0) from retail.stock where ubicacion_id = :'bar'))`;
+const CARGA_CERRADA = `${COMO_POSTGRES}update retail.ubicaciones set carga_inicial_hasta = retail.fn_hoy_lima() - 1 where id = :'bar';
+${sesion(FELIPE)}${COMO_API}`;
+
+caso(
+  "R · forma: las dos puertas para authenticated (no anon); la tabla con RLS y sin políticas; la migración sin políticas, sin drop trigger, sin alter table y sin «select … into» en comillas",
+  `select string_agg(p.proname || '=' || concat_ws(',', has_function_privilege('anon', p.oid, 'execute'),
+                    has_function_privilege('authenticated', p.oid, 'execute'), p.prosecdef), ';' order by p.proname)
+     || '|' || (select relrowsecurity::text from pg_class where oid = 'retail.barrido_piso_resueltos'::regclass)
+     || '|' || (select count(*) from pg_policies where schemaname = 'retail' and tablename = 'barrido_piso_resueltos')
+     || '|' || has_table_privilege('authenticated', 'retail.barrido_piso_resueltos', 'select')
+     from pg_proc p where p.pronamespace = 'retail'::regnamespace
+      and p.proname in ('fn_barrido_piso_por_resolver', 'resolver_pendiente_barrido');`,
+  "fn_barrido_piso_por_resolver=f,t,t;resolver_pendiente_barrido=f,t,t|true|0|false"
+);
+{
+  const sin = leerMigracion(MIGRACION_RESOLVER).replace(/--[^\n]*/g, "");
+  esperar(
+    "R · la migración no crea políticas, no quita disparadores, no altera tablas en uso (solo la suya) y no trae «select … into» en comillas",
+    !/\bdrop\s+trigger\b|\b(create|drop)\s+policy\b/i.test(sin) &&
+      (sin.match(/\balter\s+table\s+([\w.]+)/gi) ?? []).every((a) => /retail\.barrido_piso_resueltos\b/.test(a)) &&
+      [...sin.matchAll(/'(?:[^']|'')*'/g)].every((x) => !/select[\s\S]*\binto\b/i.test(x[0]))
+  );
+}
+caso(
+  "R · la lista: vf no cargada (1, Trujillo tiene 2, nada en camino) y el apartado (2, con su nota); un barrido abierto o descartado no deja nada",
+  `${CONFIRMADO}select (retail.abrir_barrido_piso(:'bar') -> 'estado' -> 'barrido' ->> 'id') as abierto \\gset
+select retail.registrar_hallazgo_barrido(:'abierto', gen_random_uuid(), 'sin_etiqueta', null, 1, 'otro', null) as _h2 \\gset
+select ${POR_RESOLVER} -> 'res' as l \\gset
+${COMO_POSTGRES}select concat_ws(',', jsonb_array_length((:'l')::jsonb -> 'no_cargadas'), ${NO_CARGADA(":'l'")} ->> 'pendientes',
+  ${NO_CARGADA(":'l'")} -> 'otras_sedes' -> 0 ->> 'cantidad', ${NO_CARGADA(":'l'")} ->> 'en_camino',
+  jsonb_array_length((:'l')::jsonb -> 'apartados'), (:'l')::jsonb -> 'apartados' -> 0 ->> 'pendientes', (:'l')::jsonb -> 'apartados' -> 0 ->> 'nota');`,
+  "1,1,2,0,1,2,polo gris de rayas"
+);
+caso(
+  "R · «encontrada» con la carga ABIERTA y sin historia: stock inicial directo al piso; sale de la lista y queda con quién",
+  `${CONFIRMADO}select gen_random_uuid() as rid \\gset
+select ${RESOLVER(":'rid'", "null", ":'vf'", "encontrada", 1)} -> 'res' as l \\gset
+${COMO_POSTGRES}select concat_ws(',', ${st("vf", "piso")}, ${st("vf", "alm")}, ${NO_CARGADA(":'l'")} is null, (:'l')::jsonb ->> 'ya_registrado',
+  (select como || ':' || cantidad || ':' || (persona_id = :'felipe_p') || ':' || (variante_id = :'vf') from retail.barrido_piso_resueltos where id = :'rid'));`,
+  "1/0,0/0,t,false,encontrada:1:true:true"
+);
+caso(
+  "R · «encontrada» con la carga CERRADA: «Encontré prendas» al almacén con su nota y bajada al piso, en una sola operación",
+  `${CONFIRMADO}${CARGA_CERRADA}select ${RESOLVER("gen_random_uuid()", "null", ":'vf'", "encontrada", 1)} ->> 'ok' as ok \\gset
+${COMO_POSTGRES}select concat_ws(',', :'ok', ${st("vf", "piso")}, ${st("vf", "alm")},
+  (select string_agg(m.tipo || ':' || m.motivo || ':' || m.cantidad || ':' || (m.nota like 'Barrido del piso%'), ' ' order by m.created_at, m.tipo)
+     from retail.movimientos m where m.variante_id = :'vf' and m.ubicacion_id = :'bar'));`,
+  "true,1/0,0/0,ajuste:reposicion:1:true traslado:movimiento_interno:1:true"
+);
+caso(
+  "R · «encontrada» la hace quien ve Existencias en la sede (como «Encontré prendas», ADR-0306), firmada por quien la hizo",
+  `${CONFIRMADO}${COMO_POSTGRES}update retail.ubicaciones set carga_inicial_hasta = retail.fn_hoy_lima() - 1 where id = :'bar';
+${soloModulos("integrante", ["existencias"])}${MICAELA_EN_LA_SEDE}${sesion(MICAELA)}${COMO_API}select gen_random_uuid() as rid \\gset
+select ${RESOLVER(":'rid'", "null", ":'vf'", "encontrada", 1)} ->> 'ok';
+${COMO_POSTGRES}select concat_ws(',', ${st("vf", "piso")}, (select persona_id = :'micaela_p' from retail.barrido_piso_resueltos where id = :'rid'));`,
+  (l) => l.at(-2) === "true" && l.at(-1) === "1/0,t"
+);
+caso(
+  "R · «encontrada» de una prenda que viene en un traslado hacia la sede → barrido_en_camino; la lista dice cuántas vienen",
+  `${CONFIRMADO}${COMO_POSTGRES}set local session_replication_role = replica;
+insert into retail.transferencias (ubicacion_origen_id, ubicacion_destino_id, estado) values (:'tru', :'bar', 'en_transito') returning id as tr \\gset
+insert into retail.transferencia_items (transferencia_id, variante_id, cantidad) values (:'tr', :'vf', 1);
+set local session_replication_role = origin;
+select ${CUENTA_R} as antes \\gset
+${sesion(FELIPE)}${COMO_API}select ${RESOLVER("gen_random_uuid()", "null", ":'vf'", "encontrada", 1)};
+select ${NO_CARGADA(`${POR_RESOLVER} -> 'res'`)} ->> 'en_camino';
+${COMO_POSTGRES}select ${CUENTA_R} = :'antes';`,
+  (l) => error(l.at(-3), "barrido_en_camino") && l.at(-2) === "1" && l.at(-1) === "t"
+);
+caso(
+  "R · «colgada»: el apartado era vd (en el almacén): baja 1 al piso; sin stock en el almacén (vf) → barrido_sin_almacen; pasarse → barrido_ya_resuelto",
+  `${CONFIRMADO}select ${RESOLVER("gen_random_uuid()", ":'hall'", ":'vd'", "colgada", 1)} -> 'res' as l \\gset
+select ${RESOLVER("gen_random_uuid()", "null", ":'vf'", "colgada", 1)};
+select ${RESOLVER("gen_random_uuid()", ":'hall'", ":'vd'", "colgada", 2)};
+${COMO_POSTGRES}select concat_ws(',', ${st("vd", "piso")}, ${st("vd", "alm")}, (:'l')::jsonb -> 'apartados' -> 0 ->> 'pendientes');`,
+  (l) => error(l.at(-3), "barrido_sin_almacen") && error(l.at(-2), "barrido_ya_resuelto") && l.at(-1) === "1/0,1/0,1"
+);
+caso(
+  "R · «no_era» no mueve nada y cierra lo que falta; el apartado sale de la lista",
+  `${CONFIRMADO}${COMO_POSTGRES}select (select count(*) from retail.movimientos) as movs \\gset
+${sesion(FELIPE)}${COMO_API}select ${RESOLVER("gen_random_uuid()", ":'hall'", "null", "no_era", 2)} -> 'res' as l \\gset
+select ${RESOLVER("gen_random_uuid()", "null", ":'vf'", "no_era", 1)} -> 'res' as l2 \\gset
+${COMO_POSTGRES}select concat_ws(',', (select count(*) from retail.movimientos) = :'movs'::int, jsonb_array_length((:'l')::jsonb -> 'apartados'),
+  jsonb_array_length((:'l2')::jsonb -> 'no_cargadas'), (select count(*) from retail.barrido_piso_resueltos where barrido_id = :'barrido' and variante_id is null));`,
+  "t,0,0,1"
+);
+caso(
+  "R · la misma marca otra vez → ya_registrado sin mover nada; la misma marca con otra cantidad → barrido_token_reusado",
+  `${CONFIRMADO}select gen_random_uuid() as rid \\gset
+select ${RESOLVER(":'rid'", ":'hall'", ":'vd'", "colgada", 1)} as _1 \\gset
+${COMO_POSTGRES}select ${CUENTA_R} as despues \\gset
+${sesion(FELIPE)}${COMO_API}select ${RESOLVER(":'rid'", ":'hall'", ":'vd'", "colgada", 1)} -> 'res' ->> 'ya_registrado';
+select ${RESOLVER(":'rid'", ":'hall'", ":'vd'", "colgada", 2)};
+${COMO_POSTGRES}select ${CUENTA_R} = :'despues';`,
+  (l) => l.at(-3) === "true" && error(l.at(-2), "barrido_token_reusado") && l.at(-1) === "t"
+);
+caso(
+  "R · candados: sin Existencias → barrido_sin_modulo; otra sede → barrido_sin_tienda; barrido abierto → barrido_no_confirmado; apartado sin prenda → barrido_resolver_prenda",
+  `${CONFIRMADO}${COMO_POSTGRES}select ${CUENTA_R} as antes \\gset
+${soloModulos("integrante", ["vender"])}${MICAELA_EN_LA_SEDE}${sesion(MICAELA)}${COMO_API}select ${RESOLVER("gen_random_uuid()", ":'hall'", "null", "no_era", 1)};
+${soloModulos("integrante", ["existencias"])}${COMO_POSTGRES}update retail.colaboradores set ubicacion_asignada_id = :'tru' where persona_id = :'micaela_p';
+${sesion(MICAELA)}${COMO_API}select ${RESOLVER("gen_random_uuid()", ":'hall'", "null", "no_era", 1)};
+${sesion(FELIPE)}${COMO_API}select (retail.abrir_barrido_piso(:'bar') -> 'estado' -> 'barrido' ->> 'id') as abierto \\gset
+select ${RESOLVER("gen_random_uuid()", "null", ":'va'", "no_era", 1, ":'abierto'")};
+select ${RESOLVER("gen_random_uuid()", ":'hall'", "null", "colgada", 1)};
+${COMO_POSTGRES}select ${CUENTA_R} = :'antes';`,
+  (l) =>
+    error(l.at(-5), "barrido_sin_modulo", "42501") && error(l.at(-4), "barrido_sin_tienda", "42501") &&
+    error(l.at(-3), "barrido_no_confirmado") && error(l.at(-2), "barrido_resolver_prenda") && l.at(-1) === "t"
+);
+caso(
+  "R · lo resuelto no se edita ni se borra (barrido_inmutable), tampoco como postgres",
+  `${CONFIRMADO}select ${RESOLVER("gen_random_uuid()", ":'hall'", "null", "no_era", 1)} as _r \\gset
+${COMO_POSTGRES}select pg_temp.intento('update retail.barrido_piso_resueltos set cantidad = 2') ->> 'hint';
+select pg_temp.intento('delete from retail.barrido_piso_resueltos') ->> 'hint';`,
+  (l) => l.at(-2) === "barrido_inmutable" && l.at(-1) === "barrido_inmutable"
 );
 
 console.log(`\n${fallos === 0 ? "✓" : "✗"} ${total - fallos}/${total} verificaciones${fallos ? ` — ${fallos} fallaron` : ""}`);

@@ -2463,6 +2463,13 @@ export const GUIA_BARRIDO_PISO: Guia = {
       texto: "Cada persona con cuántas escaneó y si sigue escaneando. Se pone al día sola cada pocos segundos: quien llega se suma y quien se va deja lo suyo guardado.",
     },
     {
+      id: "por-resolver",
+      ancla: "barrido.por-resolver",
+      opcional: true,
+      titulo: "Lo que quedó por resolver",
+      texto: "Lo que el barrido no pudo cuadrar solo: prendas colgadas que el sistema no tiene en esta tienda y lo apartado sin etiqueta. En «Resolver» dices qué pasó: estaba en el almacén, la encontraste o no era de aquí.",
+    },
+    {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
