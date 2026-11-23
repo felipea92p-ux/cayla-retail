@@ -14,7 +14,7 @@ construidas ese día (ver «Lo hecho»), cada una con su commit; lo que queda es
 - [x] **T4** `b511ff80b` — `/sitemap.xml` (XML válido, `&` escapado: Next 16 no lo escapa) y `/robots.txt`.
 - [x] **T5** `7157646f4` — `Organization` + `WebSite` en el Inicio y una `ClothingStore` por tienda en `/tiendas`.
 - [x] **T6** `cd665115c` — frase propia en cada página que se indexa, `noindex` en Entrar, Crear cuenta, Olvidé mi contraseña, el look
-  guardado, `/tu-look` y los favoritos; candado `lib/seo-paginas.ts` + su prueba.
+  guardado, `/tu-look` y los favoritos; candado `lib/seo-paginas.test.ts` (el registro vive en la prueba).
 - [x] **T7** medida, sin cambio de código: la ficha de `cayla.pe` pesa **35,5 kB en el cable** (brotli; los 496 kB eran sin comprimir) y el
   catálogo 50 kB; en la compilación local, 24 kB (documento) y 14,5 kB (flujo RSC). No hay motivo para tocar `MarcoCatalogo` sin datos de
   clientes reales.
@@ -168,7 +168,7 @@ Lo que sigue es como estaba la pregunta:
     de aquí son ejemplos y no dicen «de mujer» ni nada que no sepamos; le hablan igual a cualquiera (regla de vocabulario). `noindex` en
     `/entrar`, `/crear-cuenta`, `/olvide-mi-contrasena`, `/looks/guardado/[id]` y `/tu-look` cuando trae `?p=` (la vista previa de
     WhatsApp sigue igual: `noindex` no la toca).
-  - **Candado (como los del ERP):** un registro `lib/seo-paginas.ts` con cada `page.tsx` declarado `indexa` (con su descripción) o
+  - **Candado (como los del ERP):** un registro (hoy en `lib/seo-paginas.test.ts`) con cada `page.tsx` declarado `indexa` (con su descripción) o
     `noindex` (con su motivo), y una prueba que falla si una página nueva nace sin declararse. Así no vuelve a pasar.
   - **Cómo se verifica:** la prueba del registro; `curl` de cada página con `grep 'name="description"\|name="robots"'`.
 

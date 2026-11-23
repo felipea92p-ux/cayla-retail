@@ -41,7 +41,7 @@
    `robots.txt` solo cierra `/api/` y `/auth/`: lo que dice `noindex` no se bloquea, o el buscador nunca vería el `noindex`.
 6. **La marca y las tiendas para Google** (`lib/seo-marca.ts`): `Organization` y `WebSite` en el Inicio (el logo es el colibrí de la app, tal
    cual), y una `ClothingStore` por tienda en «Nuestras tiendas», con su horario de la semana.
-7. **Cada página dice si se indexa** (`lib/seo-paginas.ts` y su prueba): toda `page.tsx` se declara `indexa` (con su frase y su canonical) o no
+7. **Cada página dice si se indexa** (`lib/seo-paginas.test.ts`, que es el registro y su prueba): toda `page.tsx` se declara `indexa` (con su frase y su canonical) o no
    (con `noindex` y su motivo). Una página nueva no puede nacer sin declararse.
 
 ## Lo que descarté
