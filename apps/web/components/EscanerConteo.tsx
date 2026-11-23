@@ -51,7 +51,9 @@ const TEXTOS_CONTEO: TextosEscaner = {
 export type LecturaConteo =
   // `atencion`: la prenda se reconoció pero NO se sumó (necesita una respuesta de la persona: «Agregar igual», elegir quién
   // cuenta…). El destello sale ámbar y no verde, y lo que hay que responder va en `aviso`.
-  | { encontrada: true; referencia: string; detalle: string; sku: string; cantidad: number; atencion?: boolean }
+  // `miniatura`: la foto de la prenda (o su color con el ícono de su categoría) en la bandeja, para reconocerla de un vistazo (el
+  // barrido del piso, ADR-0690). Sin ella, la bandeja es solo texto, como en Conteo.
+  | { encontrada: true; referencia: string; detalle: string; sku: string; cantidad: number; atencion?: boolean; miniatura?: ReactNode }
   | { encontrada: false; codigo: string };
 
 export function EscanerConteo({
@@ -71,8 +73,9 @@ export function EscanerConteo({
   /** La prenda que se está contando, con su cifra en vivo (cambia también con − / +). */
   actual: Extract<LecturaConteo, { encontrada: true }> | null;
   avance: { contadas: number; total: number };
-  /** − / + sobre la prenda que se está contando. */
-  onPaso: (paso: number) => void;
+  /** − / + sobre la prenda que se está contando. Sin él, la bandeja no los dibuja (el barrido quita una lectura con doble
+   *  confirmación, no con un toque en la cámara). */
+  onPaso?: (paso: number) => void;
   /** Un código que no es de ninguna prenda: cerrar y ofrecer darla de alta con ese código. Sin él, no se ofrece (la pantalla
    *  que la usa dice qué hacer en `aviso`). */
   onDarDeAlta?: (codigo: string) => void;
@@ -263,6 +266,7 @@ export function EscanerConteo({
                 </div>
               ) : actual ? (
                 <div className="flex items-center gap-3">
+                  {actual.miniatura}
                   <span className="min-w-0 flex-1">
                     <span className="label-cayla block text-[10px] text-taupe">{t.enCurso}</span>
                     <span className="block truncate text-[15px] text-tinta">{actual.referencia}</span>
@@ -271,13 +275,17 @@ export function EscanerConteo({
                       {actual.sku && <span className="font-mono text-[11px]"> · {actual.sku}</span>}
                     </span>
                   </span>
-                  <button type="button" onClick={() => onPaso(-1)} aria-label="Una menos" className={botonPaso}>
-                    <Minus aria-hidden className="h-5 w-5" />
-                  </button>
+                  {onPaso && (
+                    <button type="button" onClick={() => onPaso(-1)} aria-label="Una menos" className={botonPaso}>
+                      <Minus aria-hidden className="h-5 w-5" />
+                    </button>
+                  )}
                   <span className="font-display min-w-[2.5ch] text-center text-4xl tabular-nums text-tinta">{actual.cantidad}</span>
-                  <button type="button" onClick={() => onPaso(1)} aria-label="Una más" className={botonPaso}>
-                    <Plus aria-hidden className="h-5 w-5" />
-                  </button>
+                  {onPaso && (
+                    <button type="button" onClick={() => onPaso(1)} aria-label="Una más" className={botonPaso}>
+                      <Plus aria-hidden className="h-5 w-5" />
+                    </button>
+                  )}
                 </div>
               ) : (
                 <p className="grid h-[4.75rem] place-items-center text-center text-sm text-tinta/55">{t.vacio}</p>

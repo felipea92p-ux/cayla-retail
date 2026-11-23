@@ -302,8 +302,10 @@ export type EstadoCuadre = {
 function leerResumen(x: Record<string, unknown>): ResumenCuadre | null {
   const antes = esObjeto(x.antes) ? x.antes : null;
   const despues = esObjeto(x.despues) ? x.despues : null;
-  const arch = esObjeto(x.archivadas) ? x.archivadas : null;
-  if (!antes || !despues || !arch || !("prendas_al_piso" in x) || !("total" in x)) return null;
+  // Un barrido del piso confirmado (ADR-0690) también es un cuadre: los suyos de antes de 20261122194500 no traen `archivadas` ni
+  // `prendas_escaneadas` (las demás claves faltantes leen 0). Sin esto, Cuadrar no entendía un «ya cuadrado» que venía de un barrido.
+  const arch = esObjeto(x.archivadas) ? x.archivadas : {};
+  if (!antes || !despues || !("prendas_al_piso" in x) || !("total" in x)) return null;
   return {
     lineasAlPiso: numero(x.lineas_al_piso),
     prendasAlPiso: numero(x.prendas_al_piso),
@@ -311,7 +313,7 @@ function leerResumen(x: Record<string, unknown>): ResumenCuadre | null {
     prendasAlAlmacen: numero(x.prendas_al_almacen),
     lineasNoCargadas: numero(x.lineas_no_cargadas),
     prendasNoCargadas: numero(x.prendas_no_cargadas),
-    prendasEscaneadas: numero(x.prendas_escaneadas),
+    prendasEscaneadas: numero(x.prendas_escaneadas ?? x.escaneadas),
     antes: { piso: numero(antes.piso), almacen: numero(antes.almacen) },
     despues: { piso: numero(despues.piso), almacen: numero(despues.almacen) },
     total: numero(x.total),

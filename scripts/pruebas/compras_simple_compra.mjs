@@ -84,9 +84,31 @@ const como = (auth, clave) =>
   `select set_config('request.headers', '${JSON.stringify(clave ? { "x-responsable-omitido": clave } : {})}', true) \\g /dev/null\n` +
   `set local role authenticated;\n`;
 
+// Esta migración se vuelve a pegar dos veces (para probar que pegarla otra vez no rompe nada), y su reemplazo anclado de `fn_producto_historia`
+// reconoce que ya está puesto porque su renglón 26 cierra la lista. Lo que otras migraciones sumaron DESPUÉS de ese renglón (el 27 y el 28 del
+// barrido del piso, 20261122194500 y 20261122195000) se quita aquí, dentro de la transacción de la prueba: el rollback lo devuelve.
+const HISTORIA_HASTA_26 = `
+do $$
+declare
+  v_def text := pg_get_functiondef('retail.fn_producto_historia(uuid)'::regprocedure);
+  c_ultimo constant text := 'from retail.orden_compra_items x where x.producto_id = p_producto_id';
+  c_cierre constant text := E'\\n    ) h';
+  v_i integer := position(c_ultimo in v_def);
+  v_j integer;
+begin
+  if v_i = 0 then
+    return;
+  end if;
+  v_j := v_i + length(c_ultimo) - 1 + position(c_cierre in substr(v_def, v_i + length(c_ultimo)));
+  if v_j > v_i + length(c_ultimo) then
+    execute substr(v_def, 1, v_i + length(c_ultimo) - 1) || substr(v_def, v_j);
+  end if;
+end $$;`;
+
 const PRELUDIO = `
 begin;
 ${REBOBINAR_COMPRA}
+${HISTORIA_HASTA_26}
 ${MIGRACION}
 ${MIGRACION}
 ${MIGRACION_FOTO}

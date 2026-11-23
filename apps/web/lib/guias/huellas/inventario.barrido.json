@@ -1,0 +1,80 @@
+{
+  "guia": "inventario.barrido",
+  "ruta": "/inventario/barrido",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 54,
+  "controles": {
+    "app/(app)/inventario/barrido/page.tsx": [
+      "Volver «/inventario»",
+      "BotonVer «Historial»"
+    ],
+    "components/EscanerConteo.tsx": [
+      "button «Cerrar la cámara»",
+      "button «Escribir el código»",
+      "button «Dar de alta»",
+      "button «Una menos»",
+      "button «Una más»",
+      "button «Listo»"
+    ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
+    ],
+    "components/barrido-piso/BarridoPiso.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Empezar el barrido»",
+      "input «Escanea, o escribe el código o el nombre»",
+      "button «barrido.camara»",
+      "button «barrido.sin-etiqueta»",
+      "button «barrido.escaneado»",
+      "button «Recargar»",
+      "button «Apartar con foto»",
+      "Boton «Sí, descartar»",
+      "Boton «No»",
+      "Boton «Reintentar»",
+      "button «Descartar»",
+      "Boton «Revisar y confirmar»"
+    ],
+    "components/barrido-piso/HojaApartar.tsx": [
+      "input «(sin nombre)»",
+      "CampoTexto «Cómo es (opcional)»",
+      "Boton «Cancelar»",
+      "Boton «Apartar»"
+    ],
+    "components/barrido-piso/HojaConfirmar.tsx": [
+      "BotonVer «Ver en Movimientos»",
+      "BotonVerMas «Ver cuáles»",
+      "Casilla «Se escaneó todo lo colgado»",
+      "Boton «Sí, descartar»",
+      "Boton «No»",
+      "Boton «Descartar el barrido»",
+      "Boton «Cancelar»",
+      "Boton «Confirmar barrido»"
+    ],
+    "components/barrido-piso/HojaLoEscaneado.tsx": [
+      "button «Todas»",
+      "button «{nombre}»",
+      "Boton «Sí, quitar»",
+      "Boton «No»",
+      "Boton «Quitar»",
+      "Boton «Quitar tramo»",
+      "Boton «Sí, quitar» #2",
+      "Boton «No» #2",
+      "BotonVerMas «(sin nombre)»",
+      "Boton «Sí, quitar» #3",
+      "Boton «No» #3",
+      "Boton «Quitar» #2"
+    ],
+    "components/barrido-piso/HojaResolver.tsx": [
+      "BotonVer «Ir a Traslados»",
+      "ComboBuscable «{varianteId}»",
+      "CampoTexto «Nota (opcional)»",
+      "Boton «Cancelar»",
+      "Boton «Resolver»"
+    ],
+    "components/barrido-piso/PorResolver.tsx": [
+      "Boton «Resolver»",
+      "Boton «Resolver» #2"
+    ]
+  }
+}

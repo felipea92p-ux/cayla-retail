@@ -479,8 +479,8 @@ export function BajarAlPisoForm({
       if (decision.tipo === "pregunta") {
         if (decision.cierraPregunta) dejarRastroDelNo(repetidaRef.current.pregunta);
         cambiarRepetida({ ...repetidaRef.current, pregunta: decision.pregunta });
-        // El tono grave de siempre: «mira la pantalla».
-        avisarLectura("desconocida");
+        // «Ya la escaneaste» suena distinto de «este código no existe» (ADR-0690): mirando el estante se sabe cuál de las dos.
+        avisarLectura("repetida");
         setAviso(null);
         setEnMano(null);
         setUltimaLeida(p.varianteId);

@@ -136,5 +136,6 @@ export async function getCatalogoConteo(sedeId?: string): Promise<PrendaConteo[]
     // legado como opción de escaneo: lo que se teclea o se escanea sigue resolviendo la misma prenda.
     ...codigosDeConteo(v),
     activo: v.activo,
+    marca: v.marca ?? null,
   }));
 }
