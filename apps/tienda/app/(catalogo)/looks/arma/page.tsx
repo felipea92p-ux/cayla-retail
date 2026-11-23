@@ -18,10 +18,14 @@ import { hayEnTienda } from "@/lib/stock";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../../estilos/probador.css";
-import { canonicalDe, claveCanonica } from "@/lib/seo";
+import { canonicalDe, claveCanonica, DESCRIPCIONES } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: "Arma tu outfit", alternates: { canonical: canonicalDe("/looks/arma", {}, claveCanonica(await leerSedes())) } };
+  return {
+    title: "Arma tu outfit",
+    description: DESCRIPCIONES.arma,
+    alternates: { canonical: canonicalDe("/looks/arma", {}, claveCanonica(await leerSedes())) },
+  };
 }
 
 // «Arma el tuyo» (ADR-0434, actividad 4; lienzo v3, `V3Probador`): el probador de looks. Junta el catálogo de la tienda elegida (qué se

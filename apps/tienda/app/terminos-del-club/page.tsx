@@ -9,8 +9,13 @@ import { soles, TEXTOS_VERSION } from "@/lib/cuentas";
 import { leerConfigDePuntosDelClub } from "@/lib/puntos-servidor";
 // La lectura larga (el índice, los títulos con su número y los enlaces dentro del texto) tiene su cara en ayuda.css.
 import "../estilos/ayuda.css";
+import { DESCRIPCIONES } from "@/lib/seo";
 
-export const metadata: Metadata = { title: { absolute: "Términos del Club CAYLA" }, alternates: { canonical: "/terminos-del-club" } };
+export const metadata: Metadata = {
+  title: { absolute: "Términos del Club CAYLA" },
+  description: DESCRIPCIONES.terminosDelClub,
+  alternates: { canonical: "/terminos-del-club" },
+};
 
 // Los puntos del texto, en su orden: su ancla y su título tal cual (el índice del costado y cada título salen de aquí, así nunca
 // dicen dos cosas distintas). Un título nuevo se escribe aquí.

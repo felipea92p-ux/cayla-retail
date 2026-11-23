@@ -69,7 +69,7 @@ import { leerPagina, paginaDe, POR_PAGINA } from "@/lib/paginas";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "@/app/estilos/campana.css";
 import "@/app/estilos/filtros.css";
-import { canonicalDe, claveCanonica } from "@/lib/seo";
+import { canonicalDe, claveCanonica, DESCRIPCIONES } from "@/lib/seo";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -93,19 +93,25 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const sedes = sedesEnOrden(await leerSedes());
   // Una lista filtrada por color o talla no se indexa (ADR-0512): son mezclas sin fin de la misma lista, y la lista entera ya está. La
   // dirección canónica es la de la tienda principal, sin orden ni filtros (ADR-0696).
-  const sinIndexar: Metadata = {
+  // Cada lista dice su frase (su título y su tienda), no la del layout.
+  const tienda = sedeDeLaUrl(sp.sede, sedes);
+  const conTitulo = (titulo: string): Metadata => ({
+    title: titulo,
+    description: DESCRIPCIONES.lista(titulo, tienda?.nombre ?? null),
     alternates: { canonical: canonicalDe("/catalogo", sp, claveCanonica(sedes)) },
     ...(sp.color !== undefined || sp.talla !== undefined ? { robots: { index: false, follow: true } } : {}),
-  };
+  });
   const lista = leerLista(sp.lista);
-  if (lista !== "todo") return { title: `${TITULOS[lista]}`, ...sinIndexar };
+  // Los favoritos son de cada persona: nunca se indexan.
+  if (lista === "favoritos") return { ...conTitulo(TITULOS.favoritos), robots: { index: false, follow: false } };
+  if (lista !== "todo") return conTitulo(TITULOS[lista]);
   const pedida = leerCategoria(sp.categoria);
   if (pedida) {
-    const catalogo = await leerCatalogo(sedeDeLaUrl(sp.sede, sedes)?.id ?? null);
+    const catalogo = await leerCatalogo(tienda?.id ?? null);
     const categoria = categoriasDe(catalogo?.prendas ?? []).find((c) => c.clave === pedida);
-    if (categoria) return { title: `${categoria.nombre}`, ...sinIndexar };
+    if (categoria) return conTitulo(categoria.nombre);
   }
-  return { title: `${leerGrupo(sp.grupo)?.nombre ?? leerMenu(sp.menu)?.nombre ?? TITULOS.todo}`, ...sinIndexar };
+  return conTitulo(leerGrupo(sp.grupo)?.nombre ?? leerMenu(sp.menu)?.nombre ?? TITULOS.todo);
 }
 
 // Las listas del catálogo (maqueta v4, `vLista` y `filtroTienda`): toda la tienda, Lo nuevo, las ofertas (con una tarjeta por campaña),

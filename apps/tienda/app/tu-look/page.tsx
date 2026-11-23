@@ -70,6 +70,8 @@ export async function generateMetadata({
     nombres.length > 0 ? "Mira este outfit en CAYLA" : "Arma tu outfit en CAYLA";
   return {
     title: `${nombres.length > 0 ? "Mira este outfit" : "Arma tu outfit"}`,
+    // Un look compartido por WhatsApp: hay uno por cada combinación posible. La vista previa sigue igual; Google no lo guarda (ADR-0696).
+    robots: { index: false, follow: true },
     description: descripcion,
     openGraph: {
       title: titulo,

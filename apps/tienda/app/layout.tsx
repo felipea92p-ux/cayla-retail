@@ -38,7 +38,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(ORIGEN_PUBLICO),
   title: { default: "CAYLA · Tienda online", template: "%s · CAYLA" },
   description: "Separa tus prendas de CAYLA y recógelas en tu tienda.",
-  openGraph: { ...OPEN_GRAPH_BASE, title: "CAYLA · Tienda online", description: "Separa tus prendas de CAYLA y recógelas en tu tienda." },
+  // Sin título ni frase: los heredaría cada página en su vista previa. Sin `og:title`, WhatsApp y Google leen el `<title>` de la página.
+  openGraph: OPEN_GRAPH_BASE,
   // Instalada en el iPhone (ADR-0431): abre en pantalla completa, con su nombre y su ícono. El manifiesto (`app/manifest.ts`) es el de Android.
   appleWebApp: { capable: true, title: "CAYLA", statusBarStyle: "default" },
   icons: { apple: "/cayla-apple-180.png" },

@@ -56,3 +56,28 @@ export function canonicalDe(ruta: string, parametros: Parametros = {}, sede: str
 /** El JSON listo para ir dentro de `<script type="application/ld+json">`: con `<` escapado, para que un texto escrito por el equipo
  *  (la descripción, el nombre de una prenda o de una tienda) nunca pueda cerrar el `<script>` y meter otra cosa en la página. */
 export const comoJsonLd = (dato: unknown): string => JSON.stringify(dato).replace(/</g, "\\u003c");
+
+/** Las tiendas dichas en una frase: «Arequipa, Lima y Trujillo». Sin tiendas leídas, «el Perú» (la frase sigue siendo verdad). */
+function lasTiendas(sedes: readonly { nombre: string }[]): string {
+  const nombres = sedes.map((s) => s.nombre);
+  if (nombres.length === 0) return "el Perú";
+  return nombres.length === 1 ? nombres[0] : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+}
+
+/**
+ * Las frases bajo el enlace de las páginas que se indexan (ADR-0696, T6): cada una dice lo suyo; antes todas heredaban la del layout. Le
+ * hablan igual a cualquiera («tu tienda», nunca «bienvenida») y dicen «en CAYLA», no «de CAYLA» (no todo lo que se vende es de la marca).
+ * Son textos para que Felipe los cambie: la regla es que cada página tenga la suya, no estas palabras.
+ */
+export const DESCRIPCIONES = {
+  inicio: (sedes: readonly { nombre: string }[]) =>
+    `Ropa y accesorios en CAYLA ${lasTiendas(sedes)}: mira lo nuevo, las ofertas y cuánto queda en tu tienda. Sepáralo online sin pagar.`,
+  lista: (titulo: string, tienda: string | null) =>
+    `${titulo} en CAYLA${tienda ? ` ${tienda}` : ""}: los modelos, sus colores y tallas, y cuánto queda. Sepáralos online sin pagar y recógelos en la tienda.`,
+  looks: "Outfits listos en CAYLA: prendas que combinan, armadas por el equipo. Mira cada una y sepárala para recoger en tu tienda.",
+  look: (nombre: string, frase: string | null) =>
+    frase?.trim() ? `${nombre}: ${frase.trim()}` : `${nombre}: un outfit armado en CAYLA. Mira cada prenda y sepárala para recoger en tu tienda.`,
+  arma: "Arma tu outfit con las prendas de CAYLA, a escala y en sus colores, y sepáralo para recoger en tu tienda.",
+  privacidad: "La política de privacidad de la tienda online de CAYLA: qué datos se guardan, para qué y cómo ejercer tus derechos.",
+  terminosDelClub: "Las reglas del Club CAYLA: cómo se ganan y se usan los puntos, los cupones y los beneficios de cumpleaños.",
+} as const;

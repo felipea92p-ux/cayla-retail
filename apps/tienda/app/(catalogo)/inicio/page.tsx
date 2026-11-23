@@ -38,12 +38,13 @@ import { hayEnTienda, notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../estilos/tiendas.css";
 import "../../estilos/inicio.css";
-import { canonicalDe, claveCanonica, comoJsonLd } from "@/lib/seo";
+import { canonicalDe, claveCanonica, comoJsonLd, DESCRIPCIONES } from "@/lib/seo";
 import { jsonLdDeLaMarca } from "@/lib/seo-marca";
 
 // La dirección canónica lleva la tienda principal (ADR-0696): la misma que pone el proxy a quien llega sin elegir una.
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: "Inicio", alternates: { canonical: canonicalDe("/inicio", {}, claveCanonica(await leerSedes())) } };
+  const sedes = sedesEnOrden(await leerSedes());
+  return { title: "Inicio", description: DESCRIPCIONES.inicio(sedes), alternates: { canonical: canonicalDe("/inicio", {}, claveCanonica(sedes)) } };
 }
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };

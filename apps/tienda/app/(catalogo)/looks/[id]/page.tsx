@@ -19,7 +19,7 @@ import { sedeDeLaPagina } from "@/lib/sede-servidor";
 import { hayEnTienda } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../../estilos/looks.css";
-import { canonicalDe, claveCanonica } from "@/lib/seo";
+import { canonicalDe, claveCanonica, DESCRIPCIONES } from "@/lib/seo";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -32,6 +32,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const lectura = await leerLook(id, sedeDeLaUrl(sp.sede, sedes)?.id ?? null);
   return {
     title: lectura?.look ? `${lectura.look.nombre} · Outfits listos` : "Outfits listos",
+    description: lectura?.look ? DESCRIPCIONES.look(lectura.look.nombre, lectura.look.frase) : DESCRIPCIONES.looks,
     alternates: { canonical: canonicalDe(`/looks/${id}`, {}, claveCanonica(sedes)) },
   };
 }
