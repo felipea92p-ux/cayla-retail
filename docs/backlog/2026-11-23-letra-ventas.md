@@ -1,6 +1,6 @@
 # Letra y texto de Ventas — 2026-11-23
 
-Rama `claude/letra-ventas`, apilada sobre `claude/letra-piezas-comunes` (PR #1981), que va sobre `claude/letra-escala-cerrada` (PR #1978).
+Rama `claude/letra-ventas`, sobre `main` (las actividades 1 a 3 ya entraron: PR #1978 y #1981).
 Actividad 4 de las ocho mejoras de estética. ADR-0691. Sin migraciones.
 
 ## Hecho
