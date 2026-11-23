@@ -101,7 +101,7 @@ Si un estado **no aplica**, la ficha lo dice con su motivo, por ejemplo «select
 
 ### `diseñar <pieza>`: sale una ficha completa
 
-0. **Terreno.** `git fetch origin`; `docs/SESIONES-ACTIVAS.md` (si otra sesión rediseña esa pieza, avísalo); `docs/unificar/<familia>.md` si existe.
+0. **Terreno.** `git fetch origin`; `pnpm sesiones` (si otra sesión rediseña esa pieza, avísalo); `docs/unificar/<familia>.md` si existe.
 1. **Árbol** (reglas 1–3). Escribe en la ficha qué rama tomó y por qué, por ejemplo «Pieza del repo: `<Boton peso="primario">`, decidida 2026-10-07».
 2. **Mide la pieza real** si ya existe: abre una pantalla donde viva (el `reporte.md` del censo dice dónde) y corre el fragmento de
    `referencia/ficha-plantilla.md` («Comprobar en el navegador») con `javascript_tool`. Lee su componente y su CSS con `grep -n`. Anota cada valor con su `archivo:línea`.

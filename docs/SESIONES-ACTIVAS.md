@@ -1,4 +1,10 @@
-# Sesiones activas — CAYLA Retail
+# Sesiones activas — CAYLA Retail (historia: ya no se usa)
+
+> **Desde el 2026-11-23 este archivo no recibe filas nuevas (ADR-0697).** Quién trabaja en qué lo dice **`pnpm sesiones`**, un
+> tablero que se arma solo cada vez de las worktrees de cada equipo, las ramas `claude/*` empujadas en las últimas 48 h, los PR
+> abiertos y las reservas de números, y que cruza los choques con el detector de `/abrir-pr`. Un resumen corto llega solo al abrir
+> cada sesión (hook `SessionStart`). Lo de abajo queda como historia de cómo se coordinaba a mano: el 2026-11-19 tenía 143 filas
+> «activas» y la más vieja era del 2026-09-18, porque nadie se sacaba al terminar.
 
 Tablero simple para que nadie lance una sesión de IA (o empiece una tarea grande) sin ver qué está tocando otra persona ahora mismo. Antes de lanzar una sesión nueva o empezar algo de más de 30 minutos: revisa esta lista. Al terminar o pausar: muévete a "Cerradas hoy".
 

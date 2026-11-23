@@ -17,7 +17,7 @@ Analiza la pantalla o el flujo que Felipe adjunta: $ARGUMENTS
 ## Paso 0 — Terreno (antes de opinar)
 
 1. `git fetch origin` y `git rev-list --left-right --count HEAD...origin/main`. Si la rama va detrás, lee los docs con `git show origin/main:<ruta>`: este repo ya tomó docs viejos por vigentes. Si el `fetch` falla (sin red), sigue con los docs locales y dilo en la primera línea: el análisis puede estar leyendo una foto vieja.
-2. Cruza la ruta con `docs/SESIONES-ACTIVAS.md`. Si otra sesión la está tocando, dilo en la primera línea: sus tareas pueden chocar con ese rediseño.
+2. Cruza la ruta con `pnpm sesiones`. Si otra sesión la está tocando, dilo en la primera línea: sus tareas pueden chocar con ese rediseño.
 3. Si existe `docs/pantallas/<slug>.md`, es un re-análisis: léelo, y al final agrega fila al historial y marca cuáles de las 12 tareas anteriores se cerraron. Antes, `git diff --stat <SHA del encabezado> origin/main -- <archivos de la pantalla>`: si cambiaron, el análisis previo está **vencido** (una pantalla rehecha no conserva sus tareas) y no se toma como base.
    Lee el código en el estado de `origin/main`: si la rama va detrás y esos archivos difieren (`git diff --stat HEAD origin/main -- <archivos>`), usa `git show origin/main:<archivo>`. Anota en el encabezado del archivo el SHA analizado (`git rev-parse --short origin/main`): sin él, nadie puede saber contra qué versión de la pantalla vale el análisis.
 4. Declara en pocas líneas: tipo de pantalla (formulario, listado, tablero, punto de venta, reporte, configuración); dispositivo que se juzga según el tipo (vender → mostrador/tablet, producción → taller, reportes → escritorio); rol y sede con que se ve; **finalidad** ("esta pantalla existe para X").
