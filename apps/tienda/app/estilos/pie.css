@@ -72,8 +72,8 @@
   .t-pie .ay-pie-tema-ic { width: 44px; height: 44px; }
   .t-pie .ay-pie-tema-tx b { font-size: 15px; }
   .t-pie .ay-pie-tema-tx small { font-size: 13px; }
-  /* Cuatro columnas (maqueta Premium): la marca y su lema, comprar, ayuda y el Club */
-  .t-pie .t-pie-in { grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); gap: 32px; }
+  /* La marca y su lema, y cuatro columnas: comprar, ayuda, el Club y la empresa (antes tres: «Empresa» llegó el 2026-11-22) */
+  .t-pie .t-pie-in { grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr)); gap: 32px; }
   .t-pie .t-pie-marca { grid-column: auto; }
   .t-pie .t-pie-marca .t-logo .t-marca-logo { height: 36px; }
 }
