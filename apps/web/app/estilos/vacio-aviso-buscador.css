@@ -30,7 +30,7 @@
   .vacio > * { animation: cayla-vacio-sube 460ms var(--ease-cayla) backwards; animation-delay: calc(var(--i, 0) * 55ms + 60ms); }
   .vacio-ic {
     position: relative; width: 56px; height: 56px; border-radius: 999px; display: grid; place-items: center;
-    background: color-mix(in srgb, var(--color-hueso) 92%, transparent); color: var(--color-taupe);
+    background: var(--lente-fondo); box-shadow: var(--lente-luz); color: var(--color-taupe);
   }
   .vacio-ic svg { width: 26px; height: 26px; stroke-width: 1.5; }
   .vacio-ic::after {
@@ -81,7 +81,7 @@
     transition: background-color var(--t-cambio), text-decoration-color var(--t-cambio);
   }
   @media (hover: hover) {
-    .vacio-chico-accion:hover { background: color-mix(in srgb, var(--color-sand) 55%, transparent); text-decoration-color: currentColor; }
+    .vacio-chico-accion:hover { background: var(--gota-marca); box-shadow: var(--gota-luz); text-decoration-color: currentColor; }
   }
 
   /* ---------- <Aviso>: la franja a la izquierda (P2) ---------- */
@@ -141,7 +141,7 @@
   /* ---------- <Buscador> de una lista ---------- */
   .buscador {
     position: relative; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 6px 0 12px; border-radius: 10px;
-    background: var(--color-hueso); border: 1px solid var(--color-borde-control); overflow: hidden; /* P2 de la familia: se escribe en él, lleva el borde de control (3:1) */
+    background: var(--hundido-fondo); box-shadow: var(--hundido-sombra); border: 1px solid var(--color-borde-control); overflow: hidden; /* P2 de la familia: se escribe en él, lleva el borde de control (3:1) */
     transition: background-color var(--t-cambio) var(--ease-cayla), border-color var(--t-cambio) var(--ease-cayla);
   }
   @media (hover: hover) {
@@ -154,7 +154,7 @@
   .buscador[data-lo-escribio-cayla] { border-color: var(--color-taupe); }
   .buscador[data-lo-escribio-cayla]::after {
     content: "Lo escribió CAYLA · revísalo"; flex-shrink: 0; white-space: nowrap; padding: 2px 8px; border-radius: 999px;
-    font-size: 11px; line-height: 16px; color: var(--color-taupe-profundo); background: var(--color-sand);
+    font-size: 11px; line-height: 16px; color: var(--color-taupe-profundo); background: var(--gota-chica-fondo); box-shadow: var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde);
   }
   /* La sombra de predicción (opt-in, `sombra`): el campo y la sombra comparten caja para que su texto empiece en el mismo punto. La
      sombra solo se ve con el cursor adentro; lo ya escrito va invisible para que lo único que se vea sea lo que falta. */
@@ -184,7 +184,7 @@
   }
   .buscador-borrar svg { width: 14px; height: 14px; }
   @media (hover: hover) {
-    .buscador-borrar:hover { background: var(--color-sand); color: var(--color-tinta); }
+    .buscador-borrar:hover { background: var(--gota-marca); box-shadow: var(--gota-luz); color: var(--color-tinta); }
   }
   .buscador-senal {
     position: absolute; right: 44px; pointer-events: none; white-space: nowrap; font-size: 10.5px; font-weight: 600;

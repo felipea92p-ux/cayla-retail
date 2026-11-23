@@ -209,7 +209,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                     {p.conteo != null && <span className="pildora-cayla__n">{p.conteo.toLocaleString("es-PE")}</span>}
                   </Link>
                 ))}
-                <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-sand" />
+                <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-sand" />{/* beige-fijo: línea separadora */}
                 {(["generada", "anulada"] as const).map((e) => {
                   const puesto = filtros.estado === e;
                   const conteo = resumen ? conteoDeDestino(resumen, filtros.destino, e) : null;

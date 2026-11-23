@@ -79,7 +79,7 @@ export function CuentasProveedor({
   const forma = etiquetaForma ?? (datos.formaPagoPreferida ? (ETIQUETA_METODO[datos.formaPagoPreferida] ?? datos.formaPagoPreferida) : null);
 
   return (
-    <div className={`anim-revelar rounded-xl border p-4 ${faltaCuenta ? "border-ambar/30 bg-ambar/[0.06]" : "border-sand bg-sand/40"} ${className}`}>
+    <div className={`anim-revelar rounded-xl border p-4 ${faltaCuenta ? "border-ambar/30 bg-ambar/[0.06]" : "border-sand vd-placa"} ${className}`}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
           <p className="label-cayla text-[10px] text-tinta/55">{titulo}</p>

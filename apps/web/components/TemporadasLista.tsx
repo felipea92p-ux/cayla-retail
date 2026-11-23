@@ -197,7 +197,7 @@ function FranjaTrabajo({ resumen: r, onElegir }: { resumen: ResumenVistas; onEle
   const falta = r.sinTemporada;
   const cifra = (n: number | string) => <b className="font-semibold tabular-nums text-tinta">{n}</b>;
   return (
-    <div role="group" aria-label="Trabajo de temporadas" data-guia="temporadas.franja" className="flex flex-wrap items-center gap-x-8 gap-y-2.5 rounded-lg bg-hueso/60 px-4 py-3 text-sm text-tinta/80">
+    <div role="group" aria-label="Trabajo de temporadas" data-guia="temporadas.franja" className="flex flex-wrap items-center gap-x-8 gap-y-2.5 rounded-lg vd-placa px-4 py-3 text-sm text-tinta/80">
       <Atajo accion="Completar" guia="temporadas.atajo-completar" punto={falta > 0 ? "bg-rojo-profundo" : "bg-verde"} onClick={() => onElegir("completar")}>
         {falta > 0 ? (
           <>
@@ -1161,7 +1161,7 @@ function GrupoPorCompletar({
       <div className="min-h-0 overflow-hidden">
         <div className="pb-3">
           <div className="card-cayla @container overflow-hidden transition-colors hover:border-taupe/35">
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 bg-sand/45 px-5 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 vd-hundido px-5 py-3">
               <p className="text-[15px] font-semibold text-tinta">
                 {g.categoria}
                 <span className="ml-1.5 text-sm font-normal text-taupe">

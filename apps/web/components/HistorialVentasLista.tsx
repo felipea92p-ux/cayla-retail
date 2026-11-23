@@ -252,7 +252,7 @@ function Racimo({ piezas, anulada }: { piezas: PrendaDeVenta[]; anulada: boolean
 
 /** La lente de la prenda: su foto o, sin ella, su COLOR (dato: no cambia con el tema). La luz y el aro los pone `historial-lente`. */
 function Miniatura({ p }: { p: PrendaDeVenta }) {
-  const color = <span className="block h-full w-full" style={{ background: p.colorHex ?? "var(--color-sand)" }} />;
+  const color = <span className="block h-full w-full" /* beige-fijo: color de prenda sin dato */ style={{ background: p.colorHex ?? "var(--color-sand)" }} />;
   return (
     <span className="historial-lente" data-color-dato>
       {p.fotoUrl ? <ImagenDePrenda src={p.fotoUrl} alt="" width={40} height={40} className="block h-full w-full object-cover" fallback={color} /> : color}

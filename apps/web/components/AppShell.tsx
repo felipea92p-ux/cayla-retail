@@ -703,6 +703,14 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
     setMovilAbierto(false);
     if (devolverFoco) botonMenuMovil.current?.focus();
   }, []);
+  // Una hoja que se abre desde el cajón del celular («Mi perfil», «Apariencia») lo cierra primero: la hoja es de vidrio y el
+  // menú se veía a través de ella, mezclado con sus campos. Se abre en el cuadro siguiente para que el cajón suelte lo de atrás
+  // y la hoja pueda alejarlo (fondoDeLaHoja: una sola dueña a la vez). Al cerrarla, el foco vuelve al botón del menú.
+  const abrirHojaDesdeElCajon = (abrir: () => void) => {
+    if (!movilAbierto) return abrir();
+    cerrarMovil(false);
+    requestAnimationFrame(abrir);
+  };
   const asideRef = useRef<HTMLElement | null>(null);
   const veloRef = useRef<HTMLDivElement | null>(null);
   // En el celular el cajón se cierra también deslizándolo hacia la izquierda (ADR-0479, actividad 11).
@@ -1014,7 +1022,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
           type="button"
           onClick={() => cerrarMovil()}
           aria-label="Cerrar menú"
-          className="area-dedo mr-3 mt-6 grid h-10 w-10 shrink-0 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
+          className="area-dedo mr-3 mt-6 grid h-10 w-10 shrink-0 place-items-center rounded-lg text-tinta/65 transition-colors vd-pasa-gota hover:text-rojo sm:hidden"
         >
           <Icono d={IC.cerrar} className="h-5 w-5" />
         </button>
@@ -1053,12 +1061,12 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
         {/* «Apariencia» (Felipe 2026-11-17, `docs/milimetro/apariencia.md`): modo oscuro, animaciones y modo liviano, juntos en una hoja.
             Es una fila más del menú, con su misma cara, pero no lleva a una pantalla ni es un módulo (ADR-0306): son ajustes del APARATO,
             los ve toda cuenta (también una terminal, que no tiene «Mi perfil») y sacarlos de la barra de arriba la deja para trabajar.
-            Abre una hoja: no cierra el cajón, como «Mi perfil». */}
+            Abre una hoja: en el celular cierra antes el cajón, como «Mi perfil». */}
         <div data-pieza-cajon style={{ "--k": 1 + menu.riel.length } as React.CSSProperties} className="px-3 pt-2 [[data-compacto]_&]:px-2.5">
           <button
             ref={filaApariencia}
             type="button"
-            onClick={() => setAparienciaAbierta(true)}
+            onClick={() => abrirHojaDesdeElCajon(() => setAparienciaAbierta(true))}
             onMouseEnter={(e) => entrarFila(e.currentTarget, "Apariencia")}
             onMouseLeave={salirFila}
             onFocus={(e) => entrarFila(e.currentTarget, "Apariencia")}
@@ -1097,7 +1105,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
             // Botón, no <div>: abre "Mi perfil". Salir queda AFUERA de este botón, como hermano — un clic ahí nunca dispara el perfil.
             <button
               type="button"
-              onClick={() => setPerfilAbierto(true)}
+              onClick={() => abrirHojaDesdeElCajon(() => setPerfilAbierto(true))}
               onMouseEnter={(e) => {
                 void cargarPerfil();
                 entrarFila(e.currentTarget, "Mi perfil");
@@ -1141,7 +1149,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
           }}
         />
       )}
-      {aparienciaAbierta && <HojaApariencia onClose={() => setAparienciaAbierta(false)} alCerrarEnfocar={filaApariencia} />}
+      {aparienciaAbierta && <HojaApariencia onClose={() => setAparienciaAbierta(false)} alCerrarEnfocar={esCelular ? botonMenuMovil : filaApariencia} />}
       {demoAbierto && <ElegirDemoModal filas={menu.riel} guias={guias} onClose={() => setDemoAbierto(false)} />}
 
       {/* Etiqueta de una fila plegada. Fuera del <aside> a propósito: el aside recorta (`overflow-hidden`)
@@ -1260,7 +1268,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
               onClick={abrirBuscadorGlobal}
               aria-label="Buscar una pantalla o a alguien del equipo"
               aria-haspopup="dialog"
-              className="area-dedo grid h-9 w-9 place-items-center rounded-full text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
+              className="area-dedo grid h-9 w-9 place-items-center rounded-full text-tinta/65 transition-colors vd-pasa-gota hover:text-rojo sm:hidden"
             >
               <Icono d={IC.buscar} className="h-4 w-4" />
             </button>

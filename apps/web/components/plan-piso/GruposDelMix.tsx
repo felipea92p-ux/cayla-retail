@@ -216,7 +216,7 @@ export function GruposDelMix({ grupos, categorias }: { grupos: GrupoMix[]; categ
 
 function CabeceraDeSeccion({ children, derecha }: { children: React.ReactNode; derecha: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 bg-hueso/70 px-5 py-2.5">
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 vd-hundido px-5 py-2.5">
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">{children}</div>
       <p className="text-sm text-taupe">{derecha}</p>
     </div>
@@ -394,7 +394,7 @@ function HojaGuardarGrupos({
         <p className="text-sm text-taupe">
           Se guardan todas juntas o ninguna, con tu firma.
         </p>
-        <ul className="max-h-56 space-y-1.5 overflow-y-auto rounded-md bg-hueso px-4 py-3 text-sm text-tinta">
+        <ul className="max-h-56 space-y-1.5 overflow-y-auto rounded-md vd-hundido px-4 py-3 text-sm text-tinta">
           {cambios.map((c) => (
             <li key={c.categoriaId}>{describirCambio(c, grupos)}</li>
           ))}

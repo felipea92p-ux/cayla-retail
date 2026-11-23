@@ -39,6 +39,13 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "Si contaste y el número no cuadra, empieza aquí: te pregunta qué prenda es (por nombre, código o escaneando la etiqueta) y abre su planilla con todos sus colores y tallas. En la demo no lo abrimos.",
     },
     {
+      id: "barrido",
+      ancla: "existencias.barrido",
+      opcional: true,
+      titulo: "Barrido del piso",
+      texto: "Una vez al mes se escanea todo lo colgado, entre varias personas, para que el sistema sepa qué está en el piso y qué en el almacén. Si ya hay uno en curso, desde aquí te sumas. En la demo no lo abrimos.",
+    },
+    {
       // Solo en el celular (bajo 640 px): en la computadora las cifras ya están a la vista, a la derecha de la cabecera.
       id: "resumen",
       ancla: "existencias.resumen",
@@ -431,6 +438,13 @@ export const GUIA_CUADRAR_PISO: Guia = {
       ancla: "cuadrar.pasos",
       titulo: "Tres pasos",
       texto: "Primero escaneas, después revisas lo que va a cambiar y al final confirmas. Aquí ves en qué paso estás.",
+    },
+    {
+      id: "barrido",
+      ancla: "cuadrar.barrido",
+      opcional: true,
+      titulo: "O escanea lo colgado",
+      texto: "Si en tu tienda es más fácil escanear las perchas que el almacén, usa el Barrido del piso: lo hacen varias personas a la vez, cada una desde su celular.",
     },
     {
       id: "cuidados",
@@ -2365,4 +2379,108 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
     },
   ],
   alSalir: [{ tipo: "escape" }, { tipo: "clic", ancla: "recepcion.filtros", para: "cerrar" }],
+};
+
+export const GUIA_BARRIDO_PISO: Guia = {
+  id: "inventario.barrido",
+  ruta: "/inventario/barrido",
+  titulo: "Barrido del piso",
+  resumen: "Escanear todo lo colgado entre varias personas, cada una desde su celular.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Escanear lo colgado",
+      texto: "Entre una o varias personas escanean todo lo que está colgado. Cada una desde su celular, sin repartirse zonas: lo de todas se suma. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "responsable",
+      ancla: "barrido.responsable",
+      titulo: "Tu nombre primero",
+      texto: "Elige tu nombre: cada prenda que escanees queda a tu nombre y con su hora. Si le pasas el celular a otra persona, cámbialo aquí.",
+    },
+    {
+      id: "empezar",
+      ancla: "barrido.empezar",
+      opcional: true,
+      titulo: "Empezar o sumarte",
+      texto: "Si nadie empezó, toca «Empezar el barrido». Si ya hay uno en curso, entras directo y te sumas.",
+    },
+    {
+      id: "cifras",
+      ancla: "barrido.cifras",
+      opcional: true,
+      titulo: "Lo que lleva el equipo",
+      texto: "Cuántas prendas escaneó todo el equipo, cuántas tú y quién está escaneando ahora. Abajo dice si lo tuyo ya se guardó.",
+    },
+    {
+      id: "escaner",
+      ancla: "barrido.escaner",
+      opcional: true,
+      titulo: "Escanea con la pistola",
+      texto: "Cada lectura suma 1 y suena. Si la misma prenda se repite, suena distinto y te pregunto antes de sumarla. Con 12 iguales, toca «Cambiar cantidad».",
+    },
+    {
+      id: "camara",
+      ancla: "barrido.camara",
+      opcional: true,
+      titulo: "O con la cámara",
+      texto: "Sin pistola, la cámara del celular lee las etiquetas una tras otra y te muestra la foto de cada prenda.",
+    },
+    {
+      id: "sin-etiqueta",
+      ancla: "barrido.sin-etiqueta",
+      opcional: true,
+      titulo: "Si no se puede escanear",
+      texto: "Una prenda sin etiqueta: tócalo, tómale una foto y ponla en la caja «Por etiquetar». Si la etiqueta no se lee, escribe el nombre y toca la prenda en la lista.",
+    },
+    {
+      id: "escaneado",
+      ancla: "barrido.escaneado",
+      opcional: true,
+      titulo: "Ver lo escaneado",
+      texto: "Todo lo escaneado, en tramos: lo que cada persona escaneó seguido, con su hora. Si algo se contó de más, quitas un tramo o una prenda; no se borra, queda tachado.",
+    },
+    {
+      id: "ultima",
+      ancla: "barrido.ultima",
+      opcional: true,
+      titulo: "La que acabas de escanear",
+      texto: "Su foto, talla, color y marca, y cuántas de esa prenda lleva el equipo. Mírala para saber que leyó la correcta.",
+    },
+    {
+      id: "confirmar",
+      ancla: "barrido.confirmar",
+      opcional: true,
+      titulo: "Revisar y confirmar",
+      texto: "Cuando terminen, te muestra qué pasa al piso, qué vuelve al almacén y qué no está en la tienda. Nada se mueve hasta que confirmes, y el total de la tienda no cambia. En la demo no lo tocamos.",
+    },
+    {
+      id: "personas",
+      ancla: "barrido.personas",
+      opcional: true,
+      titulo: "Quiénes escanearon",
+      texto: "Cada persona con cuántas escaneó y si sigue escaneando. Se pone al día sola cada pocos segundos: quien llega se suma y quien se va deja lo suyo guardado.",
+    },
+    {
+      id: "por-resolver",
+      ancla: "barrido.por-resolver",
+      opcional: true,
+      titulo: "Lo que quedó por resolver",
+      texto: "Lo que el barrido no pudo cuadrar solo: prendas colgadas que el sistema no tiene en esta tienda y lo apartado sin etiqueta. En «Resolver» dices qué pasó: estaba en el almacén, la encontraste o no era de aquí.",
+    },
+    {
+      id: "resolver-dueno",
+      ancla: "barrido.resolver-dueno",
+      opcional: true,
+      titulo: "De quién es",
+      texto: "En una tienda con dos dueños, lo que bajas o sumas dice si es de CAYLA o de CLAURE. Nadie lo elige por ti.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes escanear en el barrido. Si se corta el internet, sigue escaneando: lo tuyo espera en el celular y sube solo. Para repasarlo: Mi perfil ▸ Demo ▸ Barrido del piso.",
+    },
+  ],
 };

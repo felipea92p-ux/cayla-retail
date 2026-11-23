@@ -107,7 +107,7 @@ export function MatrizDelModelo({
             </thead>
             <tbody>
               {matriz.colores.map((c) => (
-                <tr key={c.nombre} className={c.nombre === fijado ? "bg-hueso/60" : undefined}>
+                <tr key={c.nombre} className={c.nombre === fijado ? "vd-marca" : undefined}>
                   <th scope="row" className="border-t border-tinta/10 py-2 pr-3 text-left font-normal">
                     <button
                       type="button"

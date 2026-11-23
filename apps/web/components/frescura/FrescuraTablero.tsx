@@ -72,7 +72,7 @@ export function FrescuraTablero({
               type="button"
               aria-pressed={activa}
               onClick={() => onElegir(activa ? null : f.categoriaId)}
-              className={`fila-cayla grid w-full grid-cols-1 items-center gap-x-4 text-left @min-[40rem]:grid-cols-subgrid ${tramo} ${compacto ? "gap-y-1 py-1.5" : "gap-y-1.5 py-2.5"} ${activa ? "bg-sand/60" : ""}`}
+              className={`fila-cayla grid w-full grid-cols-1 items-center gap-x-4 text-left @min-[40rem]:grid-cols-subgrid ${tramo} ${compacto ? "gap-y-1 py-1.5" : "gap-y-1.5 py-2.5"} ${activa ? "vd-marca" : ""}`}
             >
               {compacto ? (
                 <span className="block truncate text-[15px] font-semibold leading-tight">{f.nombre}</span>

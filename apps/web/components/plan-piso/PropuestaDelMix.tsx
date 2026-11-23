@@ -333,7 +333,7 @@ export function PropuestaDelMix({
               <FilaGrupo key={f.grupo.clave} f={f} indice={indice} cuadrado={p.cuadrado} capacidad={p.capacidad} />
             ))}
             {sinGrupo && (
-              <div className={fila(PLANTILLA, "sm:items-center bg-hueso/60")}>
+              <div className={fila(PLANTILLA, "sm:items-center vd-hundido")}>
                 <div className={celda("izq", "text-sm text-tinta")}>
                   Sin grupo
                   <span className="ml-2 text-sm text-taupe">

@@ -102,7 +102,7 @@ export function RevisarRecorteHoja({
         {r && (
           <div className="grid grid-cols-2 gap-3" data-guia="recortes.vista">
             {/* Claro y oscuro FIJOS: es como se verá en la tienda y donde se nota un borde, no un color del tema. */}
-            <div className="papel-fijo relative aspect-[4/5] overflow-hidden rounded-xl border border-sand bg-hueso">
+            <div /* beige-fijo: foto dentro de papel-fijo, no se oscurece */ className="papel-fijo relative aspect-[4/5] overflow-hidden rounded-xl border border-sand bg-hueso">
               <ImagenDePrenda key={`${r.url}-claro`} src={r.url} alt={`El recorte de ${f.nombre} sobre claro`} fill sizes="280px" fallback={null} className="object-contain p-4" />
             </div>
             <div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-tinta-fija">

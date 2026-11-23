@@ -640,7 +640,7 @@ export function ClientaFichaModal({
                 {vistaActual === "actividad" && (
                   <div className="space-y-5" data-guia="clientas.ficha-actividad">
                     {!c.anonimizada && !conClub && (
-                      <div className="rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
+                      <div className="rounded-xl vd-placa px-4 py-3 text-sm text-tinta/80">
                         <b className="font-semibold text-tinta">Tiene ficha pero no es del club.</b>{" "}
                         {faltaParaElClub ?? "Se une por su cuenta, escaneando el cartel del club con su celular y este mismo documento."}
                       </div>

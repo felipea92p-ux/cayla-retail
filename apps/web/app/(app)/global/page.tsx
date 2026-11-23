@@ -139,7 +139,7 @@ export default async function SaludDelNegocioPage() {
           <TituloSeccion id="accesos-titulo">Lo que ya puedes ver de toda CAYLA</TituloSeccion>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {accesos.map((a) => (
-              <Link key={a.href} href={a.href} className="card-cayla alza-cayla block p-5 hover:bg-sand/30">
+              <Link key={a.href} href={a.href} className="card-cayla alza-cayla block p-5 vd-pasa">
                 <span className="block font-display text-lg text-tinta">{a.pregunta}</span>
                 <span className="mt-1 block text-sm text-tinta/75">{a.donde}</span>
               </Link>

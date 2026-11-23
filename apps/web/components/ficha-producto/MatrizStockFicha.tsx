@@ -343,7 +343,7 @@ export function MatrizStockFicha({
           </colgroup>
           <thead>
             <tr>
-              <th scope="col" className="sticky left-0 top-0 z-[3] whitespace-nowrap border-r border-sand bg-hueso py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta @lg:pl-3.5">
+              <th scope="col" className="sticky left-0 top-0 z-[3] whitespace-nowrap border-r border-sand vd-pegado py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta @lg:pl-3.5">
                 Color
               </th>
               {m.tallas.map((t) => {
@@ -354,7 +354,7 @@ export function MatrizStockFicha({
                   ? `Quitar la talla ${nombreTalla} (recién agregada)`
                   : `Quitar la talla ${nombreTalla}: deja de venderse en todos los colores al guardar`;
                 return (
-                  <th key={t ?? "sin-talla"} scope="col" className="sticky top-0 z-[2] bg-hueso px-1 py-1.5 text-center text-xs font-semibold tabular-nums text-tinta @lg:px-1.5">
+                  <th key={t ?? "sin-talla"} scope="col" className="sticky top-0 z-[2] vd-pegado px-1 py-1.5 text-center text-xs font-semibold tabular-nums text-tinta @lg:px-1.5">
                     {/* El nombre (con su lápiz, si se puede corregir) y el tacho, como la fila de un color. En una columna angosta el tacho
                         baja a una segunda línea en vez de empujar la tabla, y un nombre que ni así cabe se corta con «…»: nada sale de la celda. */}
                     <span className="flex flex-wrap items-center justify-center gap-x-1 gap-y-0.5">
@@ -395,7 +395,7 @@ export function MatrizStockFicha({
                 );
               })}
               {conColumnaTotal && (
-                <th scope="col" className="sticky top-0 z-[2] whitespace-nowrap border-l border-sand bg-hueso px-1 py-2 text-center text-xs font-semibold text-taupe">
+                <th scope="col" className="sticky top-0 z-[2] whitespace-nowrap border-l border-sand vd-pegado px-1 py-2 text-center text-xs font-semibold text-taupe">
                   {TITULO_RESUMEN[vista]}
                 </th>
               )}
@@ -411,7 +411,7 @@ export function MatrizStockFicha({
               // pierde la fila de vista al mirar de lejos, y el anillo interior hace legible incluso un blanco o un crema.
               const conZebra = i % 2 === 1;
               const franja = color ? fondoDeColor(color.hex, color.familiaColor, color.tipo) : "var(--color-sand)";
-              const fondoFila = conZebra ? "bg-hueso/40" : "bg-papel";
+              const fondoFila = conZebra ? "vd-pegado-cebra" : "bg-papel";
               return (
                 <tr key={c ?? "sin-color"} id={`matriz-color-${c ?? "sin-color"}`} className={esNuevo ? "taller-fila-nueva" : undefined}>
                   <th
@@ -427,7 +427,7 @@ export function MatrizStockFicha({
                       onClick={() => onElegirColor(c)}
                       onMouseEnter={() => onVerColor(c)}
                       onMouseLeave={() => onVerColor(undefined)}
-                      className="-ml-1 flex min-w-0 items-center gap-1.5 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-hueso aria-pressed:bg-hueso"
+                      className="-ml-1 flex min-w-0 items-center gap-1.5 rounded-md px-1 py-0.5 text-left transition-colors vd-pasa aria-pressed:[background:var(--gota-marca)]"
                     >
                       {color ? <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} tonos={tonosDeMezcla(color, new Map(ctx.colores.map((x) => [x.codigo, x])))} /> : <Punto hex={null} />}
                       {/* «nueva» va DEBAJO del nombre: al lado le quitaba espacio y «Azul eléctrico» salía cortado. */}
@@ -478,16 +478,16 @@ export function MatrizStockFicha({
           {conFilaTotal && (
             <tfoot>
               <tr>
-                <th scope="row" className="sticky bottom-0 left-0 z-[2] border-r border-t border-sand bg-hueso py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta @lg:pl-3.5">
+                <th scope="row" className="sticky bottom-0 left-0 z-[2] border-r border-t border-sand vd-pegado py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta @lg:pl-3.5">
                   Total
                 </th>
                 {m.tallas.map((t) => (
-                  <td key={t ?? "sin-talla"} className="sticky bottom-0 z-[1] border-t border-sand bg-hueso px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta">
+                  <td key={t ?? "sin-talla"} className="sticky bottom-0 z-[1] border-t border-sand vd-pegado px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta">
                     {stock.cargando ? "…" : totales.porTalla.get(t) || ""}
                   </td>
                 ))}
                 {conColumnaTotal && (
-                  <td className="sticky bottom-0 z-[1] border-l border-t border-sand bg-hueso px-1 py-2 text-center font-semibold tabular-nums text-tinta">
+                  <td className="sticky bottom-0 z-[1] border-l border-t border-sand vd-pegado px-1 py-2 text-center font-semibold tabular-nums text-tinta">
                     {stock.cargando ? "…" : totales.total}
                   </td>
                 )}
@@ -570,7 +570,7 @@ export function MatrizStockFicha({
         disabled={deshabilitado}
         onClick={() => (h.puede ? huecos.onLlenar(c, t) : avisar.error(h.motivo))}
         className={`group flex h-12 w-full items-center justify-center text-tinta/25 transition-colors duration-200 ease-cayla @lg:h-[52px] ${RAYADO_FUERA} ${
-          h.puede ? "hover:bg-hueso hover:text-tinta focus-visible:bg-hueso focus-visible:text-tinta" : "cursor-help"
+          h.puede ? "vd-pasa hover:text-tinta focus-visible:text-tinta" : "cursor-help"
         } disabled:pointer-events-none`}
       >
         <span aria-hidden className={h.puede ? "group-hover:hidden group-focus-visible:hidden" : ""}>
@@ -684,7 +684,7 @@ export function MatrizStockFicha({
         data-cambiada={cambiada || undefined}
         style={lleva ? { backgroundColor: acentoElegida, borderColor: acentoElegida } : undefined}
         className={`grid h-8 w-8 place-items-center rounded-[7px] border text-[13px] font-semibold transition-[background-color,border-color,transform] duration-200 ease-cayla active:scale-95 disabled:opacity-40 motion-reduce:transition-none ${
-          lleva ? "text-crema hover:opacity-90" : "border-borde-control bg-hueso text-transparent hover:border-taupe"
+          lleva ? "text-crema hover:opacity-90" : "border-borde-control vd-gota text-transparent hover:border-taupe"
         } ${cambiada ? "ring-2 ring-ambar ring-offset-1 ring-offset-papel" : ""} ${f.guardada ? "" : "outline-[1.5px] outline-dashed outline-offset-2 outline-ambar"}`}
       >
         ✓
@@ -729,7 +729,7 @@ export function MatrizStockFicha({
           }
           onChange={(e) => precioAqui.onCambio(limpiarPrecio(e.target.value))}
           onFocus={(e) => e.currentTarget.select()}
-          className={`w-[58px] rounded-[7px] border border-borde-control bg-hueso px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none focus:border-taupe focus:bg-papel @lg:w-[66px] ${
+          className={`w-[58px] rounded-[7px] border border-borde-control vd-hundido px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none focus:border-taupe focus:bg-papel @lg:w-[66px] ${
             precioAqui.cambiado ? "font-semibold text-ambar-profundo" : "text-tinta"
           }`}
         />
@@ -769,7 +769,7 @@ export function MatrizStockFicha({
         title={cambiado ? `Antes S/\u00a0${texto(antes!)} · se guarda con «Revisar y guardar»` : undefined}
         onChange={(e) => onCambioFila(f.clave, { [campo]: limpiarPrecio(e.target.value) })}
         onFocus={(e) => e.currentTarget.select()}
-        className={`w-[58px] rounded-[7px] border border-borde-control bg-hueso px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none focus:border-taupe focus:bg-papel @lg:w-[66px] ${
+        className={`w-[58px] rounded-[7px] border border-borde-control vd-hundido px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none focus:border-taupe focus:bg-papel @lg:w-[66px] ${
           cambiado ? "font-semibold text-ambar-profundo" : "text-tinta"
         } ${f.guardada ? "" : "outline-[1.5px] outline-dashed outline-ambar"}`}
       />

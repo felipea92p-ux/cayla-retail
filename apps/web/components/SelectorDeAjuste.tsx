@@ -58,7 +58,7 @@ export function SelectorDeAjuste({
         return (
           <li key={f.varianteId} className="py-2.5">
             <div className="flex items-center gap-3">
-              <span className="grid h-9 min-w-9 shrink-0 place-items-center rounded-lg bg-hueso px-1.5 text-sm font-semibold text-tinta">{f.talla}</span>
+              <span className="grid h-9 min-w-9 shrink-0 place-items-center rounded-lg vd-gota-chica px-1.5 text-sm font-semibold text-tinta">{f.talla}</span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-tinta">{f.principal}</p>
                 {f.detalle && <p className="text-sm text-taupe">{f.detalle}</p>}

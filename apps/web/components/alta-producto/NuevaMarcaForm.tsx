@@ -273,7 +273,7 @@ export function NuevaMarcaForm({
   };
 
   const etiqueta = "text-sm font-semibold text-tinta";
-  const elegida = "flex items-center gap-2.5 rounded-lg bg-hueso px-3 py-2 text-sm text-tinta";
+  const elegida = "flex items-center gap-2.5 rounded-lg vd-placa px-3 py-2 text-sm text-tinta";
 
   return (
     <div className="space-y-3.5 rounded-xl border border-sand bg-crema px-4 py-3.5">

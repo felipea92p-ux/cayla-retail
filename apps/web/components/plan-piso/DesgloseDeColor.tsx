@@ -89,7 +89,7 @@ function BloqueDeFamilia({ f, color, dias, cabecera }: { f: FamiliaDeColor; colo
             <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
             {secciones.map((s) => (
               <div key={s.clave} className="divide-y divide-sand">
-                <div className="bg-hueso/60 px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.13em] text-taupe">{s.titulo}</div>
+                <div className="vd-hundido px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.13em] text-taupe">{s.titulo}</div>
                 {s.colores.map((c) => (
                   <FilaDeColor key={c.clave} c={c} maximo={maximo} conVentas={color.hayDetalleDeColor} />
                 ))}

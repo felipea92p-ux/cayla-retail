@@ -88,7 +88,7 @@
 @media screen {
   [data-tema="oscuro"] .lista-flotante .opcion-activa,
   [data-tema="oscuro"] .lista-flotante:not(:has(.opcion-activa)) [role="option"][aria-selected="true"] {
-    background: var(--gota-marca), var(--color-hueso);
+    background: var(--gota-marca), var(--color-hueso); /* beige-fijo: base opaca bajo la gota en oscuro */
   }
 }
 /* El globo de un filtro con campos (`CapaDeFiltro`, Compras y Recibidas): el mismo vidrio del globo de TablaViva. El desenfoque va en un
@@ -153,7 +153,7 @@
 }
 @media screen {
   [data-tema="oscuro"] .lista-menu .opcion-activa[data-peligro] {
-    background: linear-gradient(color-mix(in srgb, var(--color-rojo) 16%, transparent), color-mix(in srgb, var(--color-rojo) 16%, transparent)), var(--color-hueso);
+    background: linear-gradient(color-mix(in srgb, var(--color-rojo) 16%, transparent), color-mix(in srgb, var(--color-rojo) 16%, transparent)), var(--color-hueso); /* beige-fijo: base opaca bajo la gota en oscuro */
   }
 }
 @media (prefers-reduced-motion: reduce) {

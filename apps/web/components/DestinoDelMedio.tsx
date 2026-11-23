@@ -34,7 +34,7 @@ export function DestinoDelMedio({ destino, enlaceFicha, className = "" }: { dest
   }
 
   return (
-    <div className={`anim-revelar flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-sand/40 px-3 py-1.5 text-sm text-tinta/70 ${className}`}>
+    <div className={`anim-revelar flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg vd-placa px-3 py-1.5 text-sm text-tinta/70 ${className}`}>
       {/* El titular va primero (Felipe 2026-10-21): es lo que se compara con el nombre que muestra el banco antes de confirmar. */}
       {destino.titular && (
         <span className="text-tinta/55">

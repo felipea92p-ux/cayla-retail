@@ -13,7 +13,7 @@
 .rc-riel { position: relative; display: grid; grid-template-columns: repeat(var(--pasos, 3), minmax(0, 1fr)); gap: 8px; padding: 6px 0 2px; }
 /* Con dos paradas (Recibir: Contar y Cerrar) el riel se junta y se centra, con una separación proporcional al ancho (78 %, con un mínimo para el celular). */
 .rc-riel[data-pasos="2"] { width: max(78%, min(100%, 22rem)); margin-inline: auto; }
-.rc-riel-linea { position: absolute; left: calc(50% / var(--pasos, 3) + 18px); right: calc(50% / var(--pasos, 3) + 18px); top: 24px; height: 2px; border-radius: 2px; background: var(--color-sand); overflow: hidden; }
+.rc-riel-linea { position: absolute; left: calc(50% / var(--pasos, 3) + 18px); right: calc(50% / var(--pasos, 3) + 18px); top: 24px; height: 2px; border-radius: 2px; background: var(--color-sand); overflow: hidden; } /* beige-fijo: riel de 2 px: es una línea del paso a paso */
 .rc-riel-linea > i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: var(--color-tinta); transition: width 450ms var(--ease-cayla); }
 .rc-parada { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 2px 6px 8px; border-radius: 14px; color: color-mix(in srgb, var(--color-tinta) 72%, transparent); transition: color 240ms var(--ease-cayla); }
 @media (hover: hover) {
@@ -43,7 +43,7 @@ button.rc-parada:disabled { cursor: default; }
 @media (max-width: 639px) { .rc-caja { width: 120px; height: 102px; } }
 
 /* ---- El ícono de una categoría en su baldosa ---- */
-.rc-cat-ic { display: grid; flex: none; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--color-hueso); color: var(--color-tinta); }
+.rc-cat-ic { display: grid; flex: none; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--lente-fondo); box-shadow: var(--lente-luz); color: var(--color-tinta); }
 /* La chica vive en filas de cebra (papel y hueso): un tinte de tinta se ve igual sobre las dos; papel desaparecía en una y hueso en la otra. */
 .rc-cat-ic[data-tamano="chico"] { width: 32px; height: 32px; border-radius: 9px; background: color-mix(in srgb, var(--color-tinta) 6%, transparent); }
 
@@ -59,7 +59,7 @@ button.rc-parada:disabled { cursor: default; }
 .rc-anotada-chip b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .rc-anotada-chip span { color: var(--color-taupe); font-variant-numeric: tabular-nums; white-space: nowrap; }
 @media (hover: hover) {
-  .rc-anotada-chip:hover { border-color: var(--color-tinta); background: var(--color-hueso); translate: 0 -1px; }
+  .rc-anotada-chip:hover { border-color: var(--color-tinta); background: var(--gota-marca); box-shadow: var(--gota-luz); translate: 0 -1px; }
 }
 .rc-anotada-chip:active { scale: 0.96; translate: 0 0; }
 

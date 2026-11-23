@@ -75,11 +75,11 @@ export function MatrizVariantes({
         <table className="w-full border-separate border-spacing-0 text-[13px]">
           <thead>
             <tr>
-              <th scope="col" className="sticky left-0 top-0 z-[3] whitespace-nowrap border-r border-sand bg-hueso py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta sm:pl-3.5">
+              <th scope="col" className="sticky left-0 top-0 z-[3] whitespace-nowrap border-r border-sand vd-pegado py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta sm:pl-3.5">
                 {colores.length ? "Color" : "Prenda"}
               </th>
               {columnas.map((t) => (
-                <th key={t ?? "sin-talla"} scope="col" className="sticky top-0 z-[2] whitespace-nowrap bg-hueso px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta sm:px-1.5">
+                <th key={t ?? "sin-talla"} scope="col" className="sticky top-0 z-[2] whitespace-nowrap vd-pegado px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta sm:px-1.5">
                   {textoTalla(t)}
                 </th>
               ))}

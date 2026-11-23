@@ -25,10 +25,10 @@ import { Vacio } from "@/components/ui/Vacio";
 /** Colores A en la regla: verde, arena, ámbar y la ÚNICA mancha roja de la pantalla, la zona Crítica (un tinte). */
 const ZONA: Record<Tramo | "nada", string> = {
   nueva: "bg-verde/15",
-  vigente: "bg-sand",
+  vigente: "bg-sand", // beige-fijo: escala del dato (zona vigente)
   envejecida: "bg-ambar/15",
   critica: "bg-rojo/10",
-  nada: "bg-[repeating-linear-gradient(135deg,var(--color-sand)_0_3px,transparent_3px_6px)]",
+  nada: "bg-[repeating-linear-gradient(135deg,var(--color-sand)_0_3px,transparent_3px_6px)]", // beige-fijo: rayado que dice «nada», un dibujo de líneas
 };
 
 const TRASLADO: Record<"inicio" | "medio" | "fin", string> = { inicio: "translate-x-0", medio: "-translate-x-1/2", fin: "-translate-x-full" };
@@ -247,7 +247,7 @@ export function FrescuraDetalle({
             </p>
             {detalle.regla && <Regla regla={detalle.regla} />}
             {detalle.sinContarla && (
-              <div className="mt-2.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-sm leading-normal text-taupe">
+              <div className="mt-2.5 flex items-start gap-2 rounded-xl vd-placa px-3 py-2.5 text-sm leading-normal text-taupe">
                 <Info aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
                   <b className="font-semibold text-tinta">{FRASE_SIN_ELLA}</b> <TextoConNegritas texto={detalle.sinContarla} />
@@ -268,7 +268,7 @@ export function FrescuraDetalle({
                 <p className="text-sm leading-relaxed">{bloque.linea}</p>
                 {bloque.revisa && <p className="text-sm font-semibold">{bloque.revisa}</p>}
                 {bloque.progreso && <BarraDias dia={bloque.progreso.dia} de={bloque.progreso.de} />}
-                {bloque.nota && <p className="rounded-lg bg-hueso px-3 py-2 text-sm leading-snug">«{bloque.nota}»</p>}
+                {bloque.nota && <p className="rounded-lg vd-placa px-3 py-2 text-sm leading-snug">«{bloque.nota}»</p>}
                 {bloque.resultado && (
                   <p className="flex flex-wrap items-start gap-x-2 gap-y-1 text-[15px] leading-relaxed">
                     {bloque.resultado.chip && (
@@ -353,7 +353,7 @@ export function FrescuraDetalle({
           <Bloque titulo={`Tallas en ${sede}`}>
             <div data-guia="frescura.detalle-tallas" className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-1.5">
               {detalle.tallas.map((t) => (
-                <div key={t.varianteId} className="rounded-[10px] bg-hueso px-2.5 py-2 text-sm leading-normal">
+                <div key={t.varianteId} className="rounded-[10px] vd-placa px-2.5 py-2 text-sm leading-normal">
                   <b className="block text-sm font-semibold">{t.talla}</b>
                   <span className="text-taupe">Piso</span> {t.piso}
                   <br />

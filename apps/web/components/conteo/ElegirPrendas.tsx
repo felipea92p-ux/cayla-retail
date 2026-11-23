@@ -169,7 +169,7 @@ export function ElegirPrendas({
           {resultados.length > 0 && (
             <div className="overflow-hidden rounded-xl border border-sand bg-papel">
               {sinElegir.length > 1 && (
-                <div className="flex items-center justify-between gap-3 border-b border-sand bg-hueso/60 px-3 py-2">
+                <div className="flex items-center justify-between gap-3 border-b border-sand vd-placa px-3 py-2">
                   <span className="text-sm text-taupe">¿Todas las tallas y colores de lo que buscaste?</span>
                   <button type="button" onClick={() => agregar(sinElegir)} className="btn-cayla btn-enlace text-[13px]">
                     Agregar las {sinElegir.length}
@@ -185,7 +185,7 @@ export function ElegirPrendas({
                         type="button"
                         aria-pressed={elegida}
                         onClick={() => alternar(p)}
-                        className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors duration-150 ease-cayla hover:bg-sand/30 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-tinta/60 ${elegida ? "bg-sand/40" : ""}`}
+                        className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors duration-150 ease-cayla vd-pasa focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-tinta/60 ${elegida ? "vd-marca" : ""}`}
                       >
                         {/* Dos líneas a propósito: lo que distingue una fila de la de al lado es el color y la talla, y en una sola
                             línea angosta (375 px) «Blusa Valentina · Blanc…» las dejaba todas iguales. */}

@@ -40,7 +40,7 @@ export function RecorridoVenta({ fila }: { fila: FilaHistorial }) {
   return (
     <section aria-label="Recorrido de la venta">
       <TituloGrupo className="mb-2">Recorrido</TituloGrupo>
-      <ol className="relative space-y-1.5 pl-5 before:absolute before:bottom-1.5 before:left-[4px] before:top-1.5 before:w-[1.5px] before:bg-sand">
+      <ol /* beige-fijo: hilo vertical de la línea de tiempo */ className="relative space-y-1.5 pl-5 before:absolute before:bottom-1.5 before:left-[4px] before:top-1.5 before:w-[1.5px] before:bg-sand">
         {pasos.map((p, i) => (
           <li key={i} className="relative text-sm text-tinta">
             <span aria-hidden className={`absolute -left-5 top-[5px] h-[9px] w-[9px] rounded-full ${PUNTO[p.tono]}`} />
@@ -62,7 +62,7 @@ export function AccionesVenta({ fila, contexto }: { fila: FilaHistorial; context
   const acciones = accionesDeVenta(fila, { ...contexto, modulos: new Set(contexto.modulos) });
   if (acciones.length === 0) return null;
   return (
-    <section aria-label="Qué hacer con esta venta" className="-mx-6 -mb-6 rounded-b-2xl bg-hueso px-6 pb-6 pt-4">
+    <section aria-label="Qué hacer con esta venta" className="-mx-6 -mb-6 rounded-b-2xl vd-placa px-6 pb-6 pt-4">
       <TituloGrupo className="mb-2.5">Qué hacer con esta venta</TituloGrupo>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {acciones.map((a) => {

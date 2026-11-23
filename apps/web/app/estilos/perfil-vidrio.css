@@ -27,6 +27,20 @@
 @media (max-width: 639.98px) {
   .hoja-vidrio { border-radius: 26px 26px 0 0; }
 }
+/* Sin desenfoque, la hoja maciza (2026-11-21). Su fondo al 54 % no es una receta, así que ni el modo liviano (que apaga todo desenfoque,
+   liviano.css) ni «el vidrio que aguanta» (vidrio/aguanta.css) lo volvían papel: quedaba transparente y SIN desenfoque, y la pantalla de
+   atrás se leía nítida entre los datos del perfil. Aquí pasa a papel en los mismos dos casos que las demás hojas. */
+:root[data-liviano="si"] .hoja-vidrio {
+  background: var(--color-papel);
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .hoja-vidrio {
+    background: var(--color-papel);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 /* El velo, más liviano: que se vea lo de atrás a través del vidrio. */
 :where([data-state="open"]):has(+ div > .hoja-vidrio) {
   background: color-mix(in srgb, var(--color-sombra) 16%, transparent);
@@ -227,7 +241,7 @@
   font-size: 20px;
   line-height: 1.2;
 }
-.vidrio-nota { background: color-mix(in srgb, var(--color-hueso) 72%, transparent); }
+.vidrio-nota { background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); }
 .vidrio-escudo {
   display: grid;
   flex: none;
@@ -303,7 +317,6 @@
   @media (hover: hover) {
     [data-tema="oscuro"] .vidrio-fila-viva:hover { background: color-mix(in srgb, var(--color-tinta) 10%, transparent); }
   }
-  [data-tema="oscuro"] .vidrio-nota { background: color-mix(in srgb, var(--color-hueso) 80%, transparent); }
 }
 
 /* La entrada: el filo da su vuelta, la lente aparece, el nombre sube por su ranura y cada pestaña se enfoca al llegar. Una vez. */

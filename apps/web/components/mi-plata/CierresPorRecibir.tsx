@@ -94,14 +94,14 @@ export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierreP
     >
       {/* El cuaderno de la ronda (20261023210000): lo que tenía al abrirla, le dieron, compró y gastó, y el renglón final. Un cierre de antes
           de las rondas no trae cuaderno: queda solo el renglón final. */}
-      <div className="rounded-tarjeta bg-hueso p-2">
+      <div className="rounded-tarjeta vd-hundido p-2">
         {cierre.cuaderno && (
           <ul className="flex flex-col rounded-t-2xl bg-papel px-5 pt-2" data-guia="fondos.cierre-cuaderno">
             {renglonesCuaderno(cierre).map((r) => {
               const Icono = { antes: Wallet, dieron: ArrowDownLeft, compro: ShoppingBag, gasto: Receipt }[r.clave];
               return (
                 <li key={r.clave} className="flex items-center gap-4 border-b border-sand py-3">
-                  <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-hueso text-taupe">
+                  <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full vd-lente text-taupe">
                     <Icono className="h-4 w-4" />
                   </span>
                   <span className="min-w-0 flex-1 text-sm text-tinta">

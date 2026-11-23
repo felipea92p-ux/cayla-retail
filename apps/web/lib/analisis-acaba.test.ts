@@ -1,23 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { LlegadaPrenda, PrendaAnalisis } from "./analisis-tipos";
-import { DIAS_SE_ACABA, diasQueQuedan, seEstaAcabando } from "./analisis-reglas";
+import { DIAS_SE_ACABA } from "./analisis-reglas";
 import {
-  colorDias,
-  cuentasFiltroAcaba,
-  EJE_ACABA,
+  detalleAcaba,
   faltanDelModelo,
-  FILTROS_ACABA,
-  LINEA_SEMANA,
-  lineasPorLlegar,
-  pasaFiltroAcaba,
-  pistaAcaba,
+  fraseAcaba,
+  numeroAcaba,
   prendasQueSeAcaban,
   TEXTO_VACIO_ACABA,
-  textoLlegada,
   textoPedirA,
   textoProveedor,
-  tipOtraTienda,
-  tituloPorLlegar,
+  textoViene,
   UNA_SEMANA,
   vacioAcaba,
 } from "./analisis-acaba";
@@ -83,115 +76,14 @@ describe("lo que se acaba y su orden", () => {
   });
 });
 
-describe("los filtros Todos · Comprar · Por llegar", () => {
-  const seAcaban = prendasQueSeAcaban(TIENDA, 60);
-  it("son tres, en el orden de la maqueta", () => {
-    expect(FILTROS_ACABA.map((f) => f.texto)).toEqual(["Todos", "Comprar", "Por llegar"]);
-  });
-  it("«Comprar» es lo que no viene en camino; «Por llegar», lo que sí", () => {
-    expect(seAcaban.filter((p) => pasaFiltroAcaba(p, "comprar")).map((p) => p.varianteId)).toEqual(["a", "c"]);
-    expect(seAcaban.filter((p) => pasaFiltroAcaba(p, "llega")).map((p) => p.varianteId)).toEqual(["b", "d"]);
-    expect(seAcaban.filter((p) => pasaFiltroAcaba(p, "todos"))).toHaveLength(4);
-  });
-  it("una llegada en cero no cuenta como «Por llegar»", () => {
-    const vacia = prenda({ vendidas30: 4, llega: [llegada({ cantidad: 0 })] });
-    expect(pasaFiltroAcaba(vacia, "llega")).toBe(false);
-    expect(pasaFiltroAcaba(vacia, "comprar")).toBe(true);
-  });
-  it("las cuentas de cada píldora coinciden con lo que muestra el filtro, y Comprar + Por llegar = Todos", () => {
-    const c = cuentasFiltroAcaba(seAcaban);
-    expect(c).toEqual({ todos: 4, comprar: 2, llega: 2 });
-    for (const f of FILTROS_ACABA) expect(c[f.clave]).toBe(seAcaban.filter((p) => pasaFiltroAcaba(p, f.clave)).length);
-    expect(c.comprar + c.llega).toBe(c.todos);
-  });
-  it("sin nada que se acabe, las tres en cero", () => {
-    expect(cuentasFiltroAcaba([])).toEqual({ todos: 0, comprar: 0, llega: 0 });
-  });
-});
-
-describe("la pista de días", () => {
-  it("el eje va de 0 a 2 semanas, con la semana a la mitad (donde va la línea punteada)", () => {
-    expect(EJE_ACABA).toEqual([
-      { texto: "0", left: "0%" },
-      { texto: "1 semana", left: "50%" },
-      { texto: "2 semanas", left: "100%" },
-    ]);
-    expect(LINEA_SEMANA).toBe("50%");
-  });
-  it("color: rojo hasta una semana, ámbar hasta dos, taupe más allá", () => {
-    expect(colorDias(1)).toBe("var(--color-rojo-profundo)");
-    expect(colorDias(UNA_SEMANA)).toBe("var(--color-rojo-profundo)");
-    expect(colorDias(UNA_SEMANA + 1)).toBe("var(--color-ambar)");
-    expect(colorDias(DIAS_SE_ACABA)).toBe("var(--color-ambar)");
-    expect(colorDias(DIAS_SE_ACABA + 1)).toBe("var(--color-taupe)");
-  });
-  it("agotada: «Se agotó», sin barra", () => {
-    expect(pistaAcaba(0)).toEqual({ agotada: true, texto: "Se agotó" });
-  });
-  it("con días: la barra es la parte de 2 semanas, y el texto dice los días", () => {
-    expect(pistaAcaba(1)).toEqual({ agotada: false, n: 1 / 14, color: "var(--color-rojo-profundo)", texto: "1 día", dentro: false });
-    expect(pistaAcaba(7)).toMatchObject({ n: 0.5, texto: "7 días", dentro: false });
-    expect(pistaAcaba(14)).toMatchObject({ n: 1, color: "var(--color-ambar)", texto: "14 días" });
-  });
-  it("los días se escriben dentro de la barra solo cuando casi la llena", () => {
-    expect(pistaAcaba(11)).toMatchObject({ dentro: false });
-    expect(pistaAcaba(12)).toMatchObject({ dentro: true });
-  });
-  it("la barra nunca pasa de la pista", () => {
-    expect(pistaAcaba(40)).toMatchObject({ n: 1 });
-  });
-  it("sin ritmo (no se vende) no hay pista", () => {
-    expect(pistaAcaba(null)).toBeNull();
-  });
-  it("toda prenda que se acaba tiene su pista (ninguna fila queda sin días)", () => {
-    for (const p of prendasQueSeAcaban(TIENDA, 60)) {
-      expect(seEstaAcabando(p)).toBe(true);
-      expect(pistaAcaba(diasQueQuedan(p))).not.toBeNull();
-    }
-  });
-});
-
-describe("«Por llegar»: la píldora y su tooltip", () => {
-  const HOY = "2026-10-06";
-  it("cada parte con su origen, como se dice en tienda", () => {
-    expect(textoLlegada(llegada({ de: "compra", cantidad: 10, fecha: "2026-10-15" }), HOY)).toBe("Compra: 10 · llega el 15 oct.");
-    expect(textoLlegada(llegada({ de: "almacen", cantidad: 2, fecha: "2026-10-08" }), HOY)).toBe("Almacén: 2 · llega el 8 oct.");
-    expect(textoLlegada(llegada({ de: "taller", cantidad: 1, fecha: "2026-11-02" }), HOY)).toBe("Taller: 1 · llega el 2 nov.");
-    expect(textoLlegada(llegada({ de: "tienda", cantidad: 3, fecha: "2026-10-09" }), HOY)).toBe("Otra tienda: 3 · llega el 9 oct.");
-  });
-  it("hoy, atrasada o sin fecha: nunca dice «llega el» de un día que ya pasó", () => {
-    expect(textoLlegada(llegada({ cantidad: 4, fecha: HOY }), HOY)).toBe("Compra: 4 · llega hoy");
-    expect(textoLlegada(llegada({ cantidad: 4, fecha: "2026-10-01" }), HOY)).toBe("Compra: 4 · debía llegar el 1 oct.");
-    expect(textoLlegada(llegada({ cantidad: 4, fecha: null }), HOY)).toBe("Compra: 4 · sin fecha");
-  });
-  it("el título suma todas las partes, y las líneas van de lo que llega antes a lo que llega después", () => {
-    const p = prenda({
-      llega: [
-        llegada({ de: "compra", cantidad: 10, fecha: "2026-10-15" }),
-        llegada({ de: "taller", cantidad: 1, fecha: null }),
-        llegada({ de: "almacen", cantidad: 2, fecha: "2026-10-08" }),
-      ],
-    });
-    expect(tituloPorLlegar(p)).toBe("Por llegar: 13");
-    expect(lineasPorLlegar(p, HOY)).toEqual(["Almacén: 2 · llega el 8 oct.", "Compra: 10 · llega el 15 oct.", "Taller: 1 · sin fecha"]);
-  });
-  it("no cambia el orden de lo que recibe", () => {
-    const p = prenda({ llega: [llegada({ fecha: "2026-10-20" }), llegada({ fecha: "2026-10-10" })] });
-    lineasPorLlegar(p, HOY);
-    expect(p.llega.map((x) => x.fecha)).toEqual(["2026-10-20", "2026-10-10"]);
-  });
-});
-
 describe("las otras píldoras y el botón de pedir", () => {
   it("sin otra tienda que la tenga: a quién se compra; sin origen conocido, nada", () => {
     expect(textoProveedor("taller")).toBe("Proveedor taller");
     expect(textoProveedor("terceros")).toBe("Proveedor terceros");
     expect(textoProveedor(null)).toBeNull();
   });
-  it("si otra tienda la tiene: cuántas y qué hacer, y el botón nombra la ciudad", () => {
-    const sede = { ciudad: "Ciudad Prueba" };
-    expect(tipOtraTienda(sede, 3)).toBe("Ciudad Prueba tiene 3. Toca la prenda para ver cuánto vende cada tienda y decide si pedirla.");
-    expect(textoPedirA(sede)).toBe("o pedir a Ciudad Prueba");
+  it("el botón de pedir nombra la ciudad", () => {
+    expect(textoPedirA({ ciudad: "Ciudad Prueba" })).toBe("o pedir a Ciudad Prueba");
   });
 });
 
@@ -248,5 +140,36 @@ describe("lo que falta de un modelo que se acaba (ADR-0357, decisión 12)", () =
   it("nada que decir si no falta ninguna o si se agotó el modelo entero (lo dice su pista)", () => {
     expect(faltanDelModelo(modeloDe([prenda({ piso: 1 })], HOY))).toBeNull();
     expect(faltanDelModelo(modeloDe([prenda({ varianteId: "a", vendidas30: 2 }), prenda({ varianteId: "b", talla: "L", vendidas30: 1 })], HOY))).toBeNull();
+  });
+});
+
+describe("la tarjeta de un modelo que se acaba (cara B)", () => {
+  const HOY = "2026-10-06";
+  it("el número: los días que quedan con su unidad, o «Ya no hay»; urgente hasta una semana", () => {
+    expect(numeroAcaba(AGOTADA)).toEqual({ numero: "Ya no hay", unidad: "", urgente: true });
+    const tres = numeroAcaba(TRES_DIAS);
+    expect(tres?.unidad).toBe("días te quedan");
+    expect(Number(tres?.numero)).toBeLessThanOrEqual(UNA_SEMANA);
+    expect(tres?.urgente).toBe(true);
+    expect(numeroAcaba(DOCE_DIAS)?.urgente).toBe(false);
+    expect(numeroAcaba(QUIETA)).toBeNull();
+  });
+  it("la frase de la respuesta empieza por cuándo toca comprar y dice el tope de días, en singular o plural", () => {
+    expect(fraseAcaba(1)).toBe(`cómpralo ya: se acaba en ${DIAS_SE_ACABA / 7} semanas o menos`);
+    expect(fraseAcaba(5)).toBe(`cómpralos ya: se acaban en ${DIAS_SE_ACABA / 7} semanas o menos`);
+  });
+  it("lo que viene: la primera fecha, hoy o atrasada; sin fecha, solo cuántas", () => {
+    expect(textoViene(prenda({ llega: [llegada({ cantidad: 10, fecha: "2026-10-15" }), llegada({ cantidad: 2, fecha: "2026-10-08" })] }), HOY)).toBe("Llegan 12 el 8 oct.");
+    expect(textoViene(prenda({ llega: [llegada({ cantidad: 1, fecha: HOY })] }), HOY)).toBe("Llega 1 hoy");
+    expect(textoViene(prenda({ llega: [llegada({ cantidad: 4, fecha: "2026-10-01" })] }), HOY)).toBe("Llegan 4: debían llegar el 1 oct.");
+    expect(textoViene(prenda({ llega: [llegada({ cantidad: 3 })] }), HOY)).toBe("Llegan 3");
+    expect(textoViene(prenda({ llega: [llegada({ cantidad: 0 })] }), HOY)).toBeNull();
+  });
+  it("el detalle: lo que viene; si nada viene, quién más la tiene o a quién se compra", () => {
+    const ciudad = (id: string) => (id === "s2" ? "Ciudad Prueba" : undefined);
+    expect(detalleAcaba(modeloDe([AGOTADA_LLEGA], HOY), HOY, ciudad)).toBe("Llegan 4");
+    const enOtra = prenda({ vendidas30: 6, otras: [{ sedeId: "s2", stock: 5, vendidas30: 1 }] });
+    expect(detalleAcaba(modeloDe([enOtra], HOY), HOY, ciudad)).toBe("Ciudad Prueba tiene 5");
+    expect(detalleAcaba(modeloDe([AGOTADA], HOY), HOY, ciudad)).toBe("Proveedor taller");
   });
 });

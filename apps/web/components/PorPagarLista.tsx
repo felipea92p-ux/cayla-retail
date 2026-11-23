@@ -353,7 +353,7 @@ export function PorPagarLista({
             >
               <p className="label-cayla flex min-w-0 flex-wrap items-center gap-x-2.5 text-[11px]">
                 {b.proveedorId && (
-                  <span aria-hidden className="font-display grid h-[26px] w-[26px] place-items-center rounded-full bg-sand text-[13px] normal-case tracking-normal text-tinta">
+                  <span aria-hidden className="font-display grid h-[26px] w-[26px] place-items-center rounded-full vd-gota-chica text-[13px] normal-case tracking-normal text-tinta">
                     {b.titulo.trim().split(/\s+/).filter((w) => w.length > 2).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
                   </span>
                 )}

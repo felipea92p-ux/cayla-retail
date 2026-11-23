@@ -86,7 +86,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
             {/* La prenda en el color que se mira. En el celular, una franja (foto chica + datos) para que los colores
                 entren sin bajar; desde `sm`, la foto grande y fija mientras la lista se recorre. */}
             <div className="flex items-center gap-4 sm:sticky sm:top-0 sm:block sm:self-start">
-              <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-xl bg-sand/40 sm:w-full">
+              <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-xl vd-hundido sm:w-full">
                 <div key={mostrado.clave} className="vg-capa vg-capa-entra">
                   {mostrado.fotoUrl ? (
                     <ImagenDePrenda src={mostrado.fotoUrl} alt={[prenda.referencia, mostrado.color].filter(Boolean).join(" ")} fill sizes={SIZES_FOTO} className="object-cover" fondo={varMostrada?.colorHex} fallback={sinFotoMostrada} />
@@ -139,7 +139,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                     key={c.clave}
                     onPointerEnter={(e) => e.pointerType === "mouse" && setVistaPrevia(c.clave)}
                     style={{ "--i": Math.min(i, 8) } as CSSProperties}
-                    className={`anim-entra relative py-3 pl-3 transition-colors duration-200 ${activo ? "bg-hueso/45" : ""}`}
+                    className={`anim-entra relative py-3 pl-3 transition-colors duration-200 ${activo ? "vd-marca" : ""}`}
                   >
                     {/* El hilo del color que se mira: tinta, no rojo (un rojo por pantalla, y ya lo usa el foco). */}
                     <span aria-hidden className={`absolute top-3 bottom-3 left-0 w-[2px] rounded-full bg-tinta transition-opacity duration-200 ${activo ? "opacity-100" : "opacity-0"}`} />
@@ -155,7 +155,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                         <span
                           aria-hidden
                           className="h-4 w-4 shrink-0 rounded-full shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_16%,transparent)]"
-                          style={{ background: fondoDelPunto(estiloMosaicoColor(c.tallas[0]?.variante.colorHex)?.fondo, c.tallas[0]?.variante.colorTonos) ?? "var(--color-hueso)" }}
+                          style={{ background: fondoDelPunto(estiloMosaicoColor(c.tallas[0]?.variante.colorHex)?.fondo, c.tallas[0]?.variante.colorTonos) ?? "var(--color-hueso)" /* beige-fijo: muestra de prenda sin color, el beige es el dato */ }}
                         />
                       )}
                       <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-tinta">{c.color ?? "Sin color"}</span>
@@ -265,7 +265,7 @@ function Casilla({
           ? "border-dashed border-ambar/60 text-ambar-profundo hover:bg-ambar/10 active:translate-y-px"
           : agotada || apartada || tope
             ? "cursor-not-allowed border-dashed border-sand text-tinta/45"
-            : "border-sand bg-crema text-tinta hover:border-tinta/50 hover:bg-hueso active:translate-y-px"
+            : "border-sand bg-crema text-tinta hover:border-tinta/50 hover:[background:var(--gota-marca)] active:translate-y-px"
       }`}
     >
       <span className={`font-display text-[17px] leading-tight ${agotada ? "line-through" : ""} ${apartada ? "text-pizarra" : ""}`}>{t.talla}</span>

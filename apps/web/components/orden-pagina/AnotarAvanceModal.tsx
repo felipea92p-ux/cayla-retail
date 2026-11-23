@@ -274,7 +274,7 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
         </div>
 
         {preguntaLaTela && (
-          <div data-guia="prod-orden-terminar.tela" className="space-y-3 rounded-xl bg-hueso px-4 py-3">
+          <div data-guia="prod-orden-terminar.tela" className="space-y-3 rounded-xl vd-hundido px-4 py-3">
             <p className="text-sm text-tinta">
               <b className="font-semibold">Con esto queda cortado todo el lote.</b> ¿Cuánta tela quedó en el estante? Mide lo que quedó de cada rollo: lo usado sale de ahí.
             </p>

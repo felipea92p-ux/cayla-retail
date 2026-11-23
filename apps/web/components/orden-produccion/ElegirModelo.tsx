@@ -114,7 +114,7 @@ export function ElegirModelo({
                       data-fila-modelo
                       data-guia="prod-orden-nueva.modelo-fila"
                       onClick={() => onElegir(m.productoId)}
-                      className="flex w-full items-center gap-3 px-3.5 py-2 text-left outline-none transition-colors hover:bg-sand/45 focus-visible:bg-sand/45"
+                      className="flex w-full items-center gap-3 px-3.5 py-2 text-left outline-none transition-colors vd-pasa"
                     >
                       <Prenda modelo={m} tamano="md" />
                       <span className="min-w-0 flex-1">
@@ -147,7 +147,7 @@ export function ElegirModelo({
           type="button"
           data-fila-modelo
           onClick={() => onCrear(escrito)}
-          className="flex w-full items-center gap-3 border-t border-sand px-3.5 py-2.5 text-left outline-none transition-colors hover:bg-sand/45 focus-visible:bg-sand/45"
+          className="flex w-full items-center gap-3 border-t border-sand px-3.5 py-2.5 text-left outline-none transition-colors vd-pasa"
         >
           <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-md border border-dashed border-taupe text-taupe">
             <Plus className="h-5 w-5" />
@@ -165,7 +165,7 @@ export function ElegirModelo({
 /** El modelo ya elegido: su prenda, su nombre, lo que tiene y «Cambiar» para volver a buscar. */
 export function TarjetaModelo({ modelo, precio, onCambiar }: { modelo: ModeloProducible; precio: number; onCambiar: () => void }) {
   return (
-    <div className="flex items-center gap-3.5 rounded-xl border border-sand bg-hueso/40 px-3.5 py-2.5">
+    <div className="flex items-center gap-3.5 rounded-xl border border-sand vd-placa px-3.5 py-2.5">
       <Prenda modelo={modelo} tamano="lg" />
       <div className="min-w-0 flex-1">
         <p className="truncate font-display text-[22px] leading-tight text-tinta">{modelo.referencia}</p>

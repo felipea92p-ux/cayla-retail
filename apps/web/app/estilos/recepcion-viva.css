@@ -97,7 +97,7 @@
 .rc-dial-boton--mas { right: 0; border-color: var(--color-tinta); background: var(--color-tinta); color: var(--color-crema); }
 @media (hover: hover) {
   .rc-dial-boton:hover:not(:disabled) { translate: 0 -2px; }
-  .rc-dial-boton--menos:hover:not(:disabled) { background: var(--color-hueso); }
+  .rc-dial-boton--menos:hover:not(:disabled) { background: var(--gota-marca); box-shadow: var(--gota-luz); }
   .rc-dial-boton--mas:hover:not(:disabled) { border-color: var(--color-rojo-profundo); background: var(--color-rojo-profundo); }
 }
 .rc-dial-boton:active:not(:disabled) { scale: 0.92; translate: 0 0; }
@@ -151,7 +151,7 @@
 .rc-tray[data-forma="compacta"] { --bola: 28px; --parada: 12px; --via: 4px; display: grid; gap: 4px; }
 .rc-tray-camino { position: relative; height: var(--bola); margin: 0 calc(var(--bola) / 2); }
 .rc-tray[data-forma="completa"] .rc-tray-camino { height: 84px; }
-.rc-tray-via { position: absolute; left: 0; right: 0; top: calc((var(--bola) - var(--via)) / 2); height: var(--via); overflow: hidden; border-radius: 99px; background: var(--color-hueso); }
+.rc-tray-via { position: absolute; left: 0; right: 0; top: calc((var(--bola) - var(--via)) / 2); height: var(--via); overflow: hidden; border-radius: 99px; background: var(--color-hueso); } /* beige-fijo: pista del gráfico: la vía del trayecto */
 .rc-tray-lleno { position: absolute; inset: 0 auto 0 0; overflow: hidden; border-radius: 99px; background: linear-gradient(90deg, color-mix(in srgb, var(--tc) 55%, transparent), var(--tc)); transition: width 1s var(--ease-cayla); animation: rc-tray-crece 1.2s var(--ease-cayla) 150ms both; }
 @keyframes rc-tray-crece { from { width: 0; } }
 .rc-tray-lleno::after { content: ""; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-crema-fija) 70%, transparent), transparent); transform: translateX(-120%); animation: rc-tray-brillo 1.4s var(--ease-cayla) 900ms both; }
@@ -167,7 +167,7 @@
 }
 .rc-tray-marca { position: absolute; top: 0; z-index: 1; display: grid; justify-items: center; gap: 4px; transform: translateX(-50%); transition: left 1s var(--ease-cayla); animation: rc-tray-viaja 1.2s var(--ease-cayla) 150ms both; }
 @keyframes rc-tray-viaja { from { left: 0; opacity: 0.3; } }
-.rc-tray-bola { position: relative; display: grid; place-items: center; width: var(--bola); height: var(--bola); border-radius: 50%; background: conic-gradient(var(--tc) calc(var(--pp) * 1%), color-mix(in srgb, var(--tc) 25%, var(--color-hueso)) 0); }
+.rc-tray-bola { position: relative; display: grid; place-items: center; width: var(--bola); height: var(--bola); border-radius: 50%; background: conic-gradient(var(--tc) calc(var(--pp) * 1%), color-mix(in srgb, var(--tc) 25%, var(--color-hueso)) 0); } /* beige-fijo: resto del anillo: es la pista del dato */
 .rc-tray-bola::before { content: ""; position: absolute; inset: calc(var(--bola) / 10); border-radius: 50%; background: var(--tc); }
 .rc-tray-bola > svg { position: relative; width: 45%; height: 45%; color: var(--color-crema-fija); }
 :root[data-tema="oscuro"] .rc-tray-bola > svg, :root[data-tema="oscuro"] .rc-tray-parada { color: var(--color-tinta-fija); }
@@ -252,7 +252,7 @@
 /* Qué entró, en tabla color × talla: cada celda es una pastilla con su número; eligiendo de cuáles imprimir, la que sale va llena (tinta) y la que no,
    punteada. Ya no son 70 casillas sueltas (Felipe 2026-11-16). */
 .rc-entro-matriz { border-collapse: separate; border-spacing: 0; }
-.rc-entro-celda { display: inline-grid; place-items: center; min-width: 40px; height: 32px; padding: 0 8px; border-radius: 10px; background: var(--color-hueso); color: var(--color-tinta); font-weight: 600; }
+.rc-entro-celda { display: inline-grid; place-items: center; min-width: 40px; height: 32px; padding: 0 8px; border-radius: 10px; background: var(--gota-chica-fondo); box-shadow: var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde); color: var(--color-tinta); font-weight: 600; }
 button.rc-entro-celda { border: 1px solid transparent; cursor: pointer; transition: background-color var(--t-cambio) var(--ease-cayla), color var(--t-cambio) var(--ease-cayla), border-color var(--t-cambio) var(--ease-cayla); }
 button.rc-entro-celda[aria-pressed="true"] { background: var(--color-tinta); color: var(--color-crema); }
 button.rc-entro-celda[aria-pressed="false"] { background: transparent; border: 1px dashed var(--color-borde-control); color: var(--color-taupe); }
@@ -271,8 +271,8 @@ button.rc-entro-celda[aria-pressed="false"] { background: transparent; border: 1
 /* «Revisa y cierra» B (Felipe 2026-11-07): cada categoría y marca es una tarjeta (la de <Tabla>), con su cabecera —nombre, cuántas y su proveedor—,
    el detalle de cada modelo al abrirlo y el costo del grupo al pie. Al costado, «Al cerrar» con lo que falta, tocable. Solo tokens. */
 .rc-cierre-cabeza { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 14px 20px;
-  background: color-mix(in srgb, var(--color-hueso) 45%, transparent); }
-.rc-cierre-detalle { padding: 10px 20px 14px 72px; background: color-mix(in srgb, var(--color-hueso) 28%, transparent); }
+  background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); }
+.rc-cierre-detalle { padding: 10px 20px 14px 72px; background: var(--hundido-fondo); box-shadow: var(--hundido-sombra); }
 @container (max-width: 759px) { .rc-cierre-detalle { padding-left: 20px; } }
 .rc-cierre-pie { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; padding: 10px 20px;
-  background: color-mix(in srgb, var(--color-hueso) 30%, transparent); }
+  background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); }

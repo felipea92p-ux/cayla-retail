@@ -88,7 +88,7 @@ function Pastilla({
       className={
         sutil
           ? `inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
-              activa ? "border-taupe bg-hueso text-tinta" : "border-sand text-taupe hover:bg-sand/40 hover:text-tinta"
+              activa ? "border-taupe vd-marca text-tinta" : "border-sand text-taupe vd-pasa-gota hover:text-tinta"
             }`
           : // La píldora de filtro del sistema (ADR-0358): el foco es el anillo común y el conteo, del color del texto.
             "pildora-cayla shrink-0 disabled:cursor-default disabled:opacity-40"
@@ -224,7 +224,7 @@ export function FiltrosMovimientos({
   );
 
   const fechas = mostrarFechas && (
-    <div className="anim-revelar flex flex-wrap items-end gap-x-4 gap-y-1 rounded-xl bg-hueso/70 px-4 py-2.5">
+    <div className="anim-revelar flex flex-wrap items-end gap-x-4 gap-y-1 rounded-xl vd-hundido px-4 py-2.5">
       {/* Con un período rápido vigente, «Desde» muestra la fecha que rige aunque no esté en la URL: el
           control dice la verdad. Tocarlo la vuelve explícita. */}
       <div className="w-40 sm:w-44">

@@ -82,7 +82,7 @@ export function MotorEnProduccion({
               ))}
           </ul>
           {faltan.length > 0 && (
-            <div className="rounded-md bg-hueso px-3 py-2">
+            <div className="rounded-md vd-placa px-3 py-2">
               <p className="text-sm font-medium text-tinta">Se vendió rápido y falta{modelo.categoria ? ` en ${modelo.categoria}` : ""}</p>
               <ul className="mt-1 space-y-0.5 text-sm text-tinta/75">
                 {faltan.slice(0, 6).map((f) => (

@@ -19,7 +19,7 @@
   height: 44px;
   flex: none;
   border-radius: 12px;
-  background: var(--color-sand);
+  background: var(--lente-fondo); box-shadow: var(--lente-luz);
   font-family: var(--font-serif);
   font-size: 17px;
   color: var(--color-tinta);
@@ -105,7 +105,7 @@
   gap: 6px;
   padding: 16px;
   border-radius: 18px;
-  background: var(--color-hueso);
+  background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde);
   text-align: center;
 }
 .envio-codigo-numero {
@@ -147,7 +147,7 @@
   height: 10px;
   margin-top: 5px;
   border-radius: 50%;
-  background: var(--color-sand);
+  background: var(--color-sand); /* beige-fijo: punto de la línea de tiempo: marca del dato */
 }
 .envio-tiempo > li[data-paso="hecho"] {
   color: var(--color-tinta);

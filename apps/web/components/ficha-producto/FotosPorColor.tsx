@@ -351,7 +351,7 @@ function Tarjeta({
           disabled={bloqueado}
           etiqueta={textoVacio}
           className={`grid aspect-[4/5] w-full place-content-center justify-items-center gap-2 rounded-xl border-[1.5px] border-dashed p-3 text-center text-tinta transition-colors hover:border-tinta disabled:opacity-50 ${
-            general ? "border-tinta/25 hover:bg-hueso/30" : "border-taupe/55 bg-hueso/35 hover:bg-hueso/60"
+            general ? "border-tinta/25 vd-pasa" : "border-taupe/55 vd-hundido vd-pasa"
           }`}
         >
           <Camera /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ aria-hidden className="h-6 w-6" strokeWidth={1.5} />

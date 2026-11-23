@@ -326,7 +326,7 @@ export function HojaDeCobro({
               ) : efectivo ? (
                 <div data-guia="vender.cobro-recibe" className="hoja-cobro-efectivo anim-revelar">
                   {redondeo > 0 && aCobrar > 0 && (
-                    <p className="hoja-cobro-nota rounded-lg bg-hueso text-tinta/80" data-redondeo>
+                    <p className="hoja-cobro-nota rounded-lg vd-placa text-tinta/80" data-redondeo>
                       Cobra <b className="font-semibold text-tinta tabular-nums">{money(aCobrar)}</b> en efectivo
                       <span className="block text-sm text-tinta/60">
                         {TEXTO_REDONDEO} −{money(redondeo)} · {LEY_REDONDEO}
@@ -335,7 +335,7 @@ export function HojaDeCobro({
                   )}
                   {/* Menos de la moneda más chica: no hay con qué entregarlo. Lo mismo que dice el botón apagado (`motivoBloqueoCobro`). */}
                   {redondeo > 0 && aCobrar <= 0 && (
-                    <p className="hoja-cobro-nota rounded-lg bg-hueso text-ambar-profundo" data-redondeo-sin-moneda>
+                    <p className="hoja-cobro-nota rounded-lg vd-placa text-ambar-profundo" data-redondeo-sin-moneda>
                       No hay moneda para <b className="font-semibold tabular-nums">{money(cobroEfectivo?.deuda ?? 0)}</b>: la más chica es S/&nbsp;0.10. Cóbralo con otro medio.
                     </p>
                   )}

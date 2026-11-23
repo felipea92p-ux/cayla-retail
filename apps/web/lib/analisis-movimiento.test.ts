@@ -54,19 +54,13 @@ describe("analisis*.css — los límites del movimiento (ADR-0136, excepción de
 // El único bucle de Análisis (ADR-0136, act. 2026-10-06 (b), pedido de Felipe): los puntos que corren por la cinta del flujo de «Qué
 // hacer hoy» MIENTRAS el mouse o el foco está encima. Vive en un solo componente, se dibuja solo para el camino que está encima y con
 // «reducir movimiento» no se dibuja. Otro `repeatCount="indefinite"` en Análisis sería un bucle nuevo sin decisión.
-describe("Análisis — el único bucle: los puntos del flujo bajo el mouse", () => {
+// Desde la cara B (ADR-0357, act. 2026-11-21) Análisis ya no tiene el flujo de cintas, y con él se fue su único bucle (los puntos que
+// corrían por la cinta bajo el mouse): ningún componente de Análisis repite una animación.
+describe("Análisis — nada en bucle", () => {
   const componentes = join(__dirname, "../components/analisis");
   const tsx = readdirSync(componentes).filter((f) => f.endsWith(".tsx"));
-  it("solo PestanaHoy.tsx repite una animación", () => {
+  it("ningún componente repite una animación", () => {
     const conBucle = tsx.filter((f) => /repeatCount="indefinite"/.test(readFileSync(join(componentes, f), "utf8")));
-    expect(conBucle).toEqual(["PestanaHoy.tsx"]);
-  });
-  it("los puntos se dibujan solo con un camino encima y nunca con «reducir movimiento»", () => {
-    const hoy = readFileSync(join(componentes, "PestanaHoy.tsx"), "utf8");
-    const puntos = hoy.slice(hoy.indexOf("function PuntosCinta"), hoy.indexOf("function Franja"));
-    expect(puntos).toContain("useMovimientoReducido()");
-    expect(puntos).toMatch(/if \(reducido\) return null;/);
-    expect(hoy).toMatch(/activoIzq && <PuntosCinta/);
-    expect(hoy).toMatch(/activoDer && <PuntosCinta/);
+    expect(conBucle).toEqual([]);
   });
 });

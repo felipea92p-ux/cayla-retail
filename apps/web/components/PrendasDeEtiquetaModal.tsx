@@ -685,7 +685,7 @@ export function PrendasDeEtiquetaModal({
                             </button>
                           </div>
                           {abierto && (
-                            <ul className="grid grid-cols-1 gap-x-4 bg-hueso/40 px-3 pb-2.5 pl-11 sm:grid-cols-2 xl:grid-cols-3">
+                            <ul className="grid grid-cols-1 gap-x-4 px-3 pb-2.5 pl-11 [background:var(--hueco-fondo)] sm:grid-cols-2 xl:grid-cols-3">
                               {p.variantes.map((v) => {
                                 const nombreTalla = nombreDeTalla(v);
                                 return (

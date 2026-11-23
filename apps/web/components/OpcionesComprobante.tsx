@@ -31,7 +31,7 @@ import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 // ningún anillo (WCAG 2.4.7; auditoría /milimetro 2026-11-16). El anillo rojo/60 sigue siendo deuda de ADR-0351 (`lib/foco-comun.test.ts`).
 const BASE_OPCION =
   "flex min-h-[52px] items-center gap-3 rounded-[12px] border px-3 py-2.5 text-left text-[14px] transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60";
-const OPCION = `${BASE_OPCION} border-sand bg-papel text-tinta hover:bg-hueso`;
+const OPCION = `${BASE_OPCION} border-sand vd-gota vd-pasa-gota text-tinta`;
 // La principal (reenviar a la clienta) en tinta: una sola por hoja.
 const PRIMARIA = `${BASE_OPCION} border-tinta bg-tinta text-crema hover:bg-tinta/90`; // unificar-fijo: la opción ya elegida de un selector, no un botón principal
 const BAJADA = "block text-sm leading-snug text-tinta/65";

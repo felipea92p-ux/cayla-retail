@@ -500,7 +500,7 @@ function CrearEtiquetaAbierta({
       tabIndex={-1}
       role="group"
       aria-label={`Crear la insignia ${nombre}`}
-      className="space-y-2.5 rounded-md border border-sand bg-hueso p-3 outline-none"
+      className="space-y-2.5 rounded-md border border-sand vd-placa p-3 outline-none"
       onKeyDown={(e) => {
         if (e.key === "Escape" && !trabajando) {
           e.preventDefault();

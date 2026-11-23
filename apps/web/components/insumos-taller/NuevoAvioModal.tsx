@@ -268,7 +268,7 @@ export function NuevoAvioModal({
                         crear={{ etiqueta: (t) => `+ Crear la clase «${t.trim()}»`, onCrear: (t) => void crearClase(t), pista: "¿Es otra cosa? Escribe cómo se llama" }}
                       />
                     ) : (
-                      <p className="rounded-md bg-sand/60 px-3 py-2 text-sm text-tinta/75">No se pudieron cargar las clases de avío. Cierra esta ventana y vuelve a abrirla.</p>
+                      <p className="rounded-md vd-placa px-3 py-2 text-sm text-tinta/75">No se pudieron cargar las clases de avío. Cierra esta ventana y vuelve a abrirla.</p>
                     )}
                   </Campo>
                 </CampoGuiado>
@@ -289,7 +289,7 @@ export function NuevoAvioModal({
                     <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-tinta/65">
                       Código <span className="font-normal normal-case tracking-normal text-tinta/60">· se arma solo</span>
                     </p>
-                    <p className="flex h-12 items-center rounded-lg border border-dashed border-borde-control bg-hueso px-3 font-mono text-[15px] font-semibold text-tinta">{codigo}</p>
+                    <p className="flex h-12 items-center rounded-lg border border-dashed border-borde-control vd-hundido px-3 font-mono text-[15px] font-semibold text-tinta">{codigo}</p>
                   </div>
                 </div>
 
@@ -334,7 +334,7 @@ export function NuevoAvioModal({
                       ) : (
                         <div>
                           <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-tinta/65">En qué se mide</p>
-                          <p className="flex h-12 items-center rounded-lg bg-hueso px-3 text-[14px] text-tinta">{UNIDADES_MEDIDA[laMedida.unidades[0]].larga}</p>
+                          <p className="flex h-12 items-center rounded-lg vd-hundido px-3 text-[14px] text-tinta">{UNIDADES_MEDIDA[laMedida.unidades[0]].larga}</p>
                         </div>
                       )}
                     </div>
@@ -397,7 +397,7 @@ export function NuevoAvioModal({
                     enfocarBuscador={eligioColor}
                   />
                 ) : (
-                  <p className="rounded-md bg-sand/60 px-3 py-2 text-sm text-tinta/75">No se pudo cargar la carta de colores. Cierra esta ventana y vuelve a abrirla.</p>
+                  <p className="rounded-md vd-placa px-3 py-2 text-sm text-tinta/75">No se pudo cargar la carta de colores. Cierra esta ventana y vuelve a abrirla.</p>
                 )}
               </CampoGuiado>
               {n === 0 ? (
@@ -405,7 +405,7 @@ export function NuevoAvioModal({
               ) : (
                 <div className="overflow-x-auto">
                   <div style={{ minWidth: tabla.anchoMinimo }} className="overflow-hidden rounded-xl border border-sand">
-                    <div className={`${FILA} bg-hueso text-[11px] font-semibold uppercase tracking-[0.1em] text-tinta/70`} style={{ gridTemplateColumns: tabla.plantilla }}>
+                    <div className={`${FILA} vd-placa text-[11px] font-semibold uppercase tracking-[0.1em] text-tinta/70`} style={{ gridTemplateColumns: tabla.plantilla }}>
                       <span>Color</span>
                       <span>Código</span>
                       {puedeSaldo && <span className="text-right">¿Ya tienes? ({corta})</span>}

@@ -30,7 +30,7 @@ export type TonoChip = "neutro" | "ambar" | "verde" | "rojo" | "pizarra" | "apag
 // Guía oficial (2026-09-22, ADR-0169): insignia sin borde, fondo del color del estado al 10–15 % y un punto
 // del mismo color antes del texto. `pizarra` es el estado informativo (en camino, en revisión): no es semáforo.
 const TONO: Record<TonoChip, string> = {
-  neutro: "bg-sand text-taupe",
+  neutro: "vd-gota-chica text-taupe",
   ambar: "bg-ambar/15 text-ambar",
   verde: "bg-verde/15 text-verde",
   rojo: "bg-rojo/10 text-rojo-profundo",

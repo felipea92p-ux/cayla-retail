@@ -97,7 +97,7 @@ export function GraficoCierresDelMes({
                 })}
               {d.tipo === "abierta" && <span className="mb-px h-3 w-2 rounded-[2px] border border-dashed border-taupe/50" title="La caja quedó abierta esta noche" aria-hidden />}
               {d.tipo === "hoy" && <span className="h-[26px] w-2 rounded-[2px] border border-dashed border-rojo" title="Hoy: la caja todavía no se cierra" aria-hidden />}
-              {(d.tipo === "vacio" || d.tipo === "futuro") && <span className={`h-[2px] w-2 rounded-full ${d.tipo === "futuro" ? "bg-hueso" : "bg-sand"}`} aria-hidden />}
+              {(d.tipo === "vacio" || d.tipo === "futuro") && <span /* beige-fijo: marca de día sin dato del gráfico */ className={`h-[2px] w-2 rounded-full ${d.tipo === "futuro" ? "bg-hueso" : "bg-sand"}`} aria-hidden />}
             </div>
           ))}
         </div>

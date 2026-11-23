@@ -179,7 +179,7 @@ function Tarjeta({ p, indice, puedeEditar }: { p: NuevoProducto; indice: number;
         {visibles.length > 0 && (
           <div className="ia-sw">
             {visibles.map((c) => (
-              <i key={c.nombre} title={c.nombre} style={{ background: c.hex ?? "var(--color-sand)" }} />
+              <i key={c.nombre} title={c.nombre} style={{ background: c.hex ?? "var(--color-sand)" }} /* beige-fijo: muestra del color «sin color» */ />
             ))}
             <b>{p.colores.length > 4 ? `+${p.colores.length - 4}` : `${p.colores.length} ${p.colores.length === 1 ? "color" : "colores"}`}</b>
           </div>

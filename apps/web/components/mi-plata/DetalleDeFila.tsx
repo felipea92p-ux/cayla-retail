@@ -24,7 +24,7 @@ export function DetalleDeFila({ m, onClose, volverA }: { m: MovimientoCompradora
   return (
     <Modal titulo={m.titulo} onClose={onClose} variante="hoja" conCerrar alCerrarEnfocar={volverA}>
       <div className="space-y-3.5">
-        <dl className="rounded-[14px] bg-hueso px-3.5 py-1.5 text-sm tabular-nums">
+        <dl className="rounded-[14px] vd-hundido px-3.5 py-1.5 text-sm tabular-nums">
           {filas.map(([k, v]) => (
             <div key={k} className="flex justify-between gap-4 border-t border-sand py-2 first:border-t-0">
               <dt className="text-taupe">{k}</dt>

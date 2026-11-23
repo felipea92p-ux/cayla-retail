@@ -209,7 +209,7 @@ function HojaSaldoAFavor({
           )}
 
           {n != null && (
-            <div className="rounded-xl bg-hueso px-4 py-3" aria-live="polite">
+            <div className="rounded-xl vd-placa px-4 py-3" aria-live="polite">
               {valorAlDia ? (
                 <>
                   <p className="text-sm text-tinta">

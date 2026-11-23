@@ -380,7 +380,7 @@ function Ejemplo({
 function PasoEjemplo({ n, children }: { n: number; children: ReactNode }) {
   return (
     <li className="grid grid-cols-[28px_minmax(0,1fr)] gap-2.5 py-3 first:pt-1">
-      <span className="grid h-6 w-6 place-items-center rounded-full bg-hueso text-[12px] font-semibold text-tinta" aria-hidden>
+      <span className="grid h-6 w-6 place-items-center rounded-full vd-gota-chica text-[12px] font-semibold text-tinta" aria-hidden>
         {n}
       </span>
       <div>{children}</div>

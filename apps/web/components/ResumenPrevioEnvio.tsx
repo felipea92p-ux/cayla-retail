@@ -71,7 +71,7 @@ export function ResumenPrevioEnvio({
           <div>
             {filas.map((f) => (
               <div key={f.compraId} style={estilo()} className={filaClase}>
-                <span aria-hidden className="grid h-[30px] w-[30px] place-items-center rounded-full bg-sand text-[10.5px] font-bold tracking-wide text-tinta/75">
+                <span aria-hidden className="grid h-[30px] w-[30px] place-items-center rounded-full vd-gota-chica text-[10.5px] font-bold tracking-wide text-tinta/75">
                   {inicialesProveedor(f.proveedorNombre)}
                 </span>
                 <span className="min-w-0 text-sm text-tinta">
@@ -86,7 +86,7 @@ export function ResumenPrevioEnvio({
             ))}
             {fuera > 0 && (
               <div style={estilo()} className={filaClase}>
-                <span aria-hidden className="grid h-[30px] w-[30px] place-items-center rounded-full bg-sand text-tinta/75">
+                <span aria-hidden className="grid h-[30px] w-[30px] place-items-center rounded-full vd-gota-chica text-tinta/75">
                   <Tag className="h-3.5 w-3.5" />
                 </span>
                 <span className="min-w-0 text-sm text-tinta">
@@ -98,7 +98,7 @@ export function ResumenPrevioEnvio({
             )}
             {cierresMonto != null && (
               <div style={estilo()} className={filaClase}>
-                <span aria-hidden className="grid h-[30px] w-[30px] place-items-center rounded-full bg-sand text-tinta/75">
+                <span aria-hidden className="grid h-[30px] w-[30px] place-items-center rounded-full vd-gota-chica text-tinta/75">
                   <X className="h-3.5 w-3.5" />
                 </span>
                 <span className="min-w-0 text-sm text-tinta">

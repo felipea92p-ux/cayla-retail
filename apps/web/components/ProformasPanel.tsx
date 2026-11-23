@@ -222,7 +222,7 @@ export function ProformasPanel({
                             <Link
                               href={hrefApartarDesdeTicket(lineas.map((l) => ({ varianteId: l.variante_id, cantidad: l.cantidad })))}
                               aria-label={`Apartar ${numeroDeProforma(p.numero)} con un adelanto`}
-                              className="inline-flex h-7 items-center rounded-md border border-sand bg-papel px-2.5 text-xs font-semibold pointer-coarse:min-h-11 text-tinta outline-none transition-colors duration-200 hover:bg-hueso focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
+                              className="inline-flex h-7 items-center rounded-md border border-sand vd-gota vd-pasa-gota px-2.5 text-xs font-semibold pointer-coarse:min-h-11 text-tinta outline-none transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
                             >
                               Apartar
                             </Link>
@@ -286,7 +286,7 @@ export function ProformasPanel({
             <div className="mt-4 space-y-4">
               {/* En el celular la caja es más baja (en dvh) y la A4 más chica: a 375 px entra entera a lo ancho y solo se
                   desplaza hacia abajo, y el botón de imprimir no queda 150 px bajo el pliegue. */}
-              <div className="h-[42dvh] overflow-auto rounded-[10px] border border-tinta/10 bg-sand/30 p-3 sm:h-[62vh]" data-sin-cascada>
+              <div className="h-[42dvh] overflow-auto rounded-[10px] border border-tinta/10 vd-hundido p-3 sm:h-[62vh]" data-sin-cascada>
                 {/* `zoom` (no `scale`): achica también el espacio que ocupa, así la hoja entera cabe sin cortarse. */}
                 <div className="papel-fijo mx-auto w-fit bg-white p-[8mm] shadow-sm [zoom:0.38] sm:[zoom:0.68]">
                   <ProformaA4 proforma={viendo} tienda={nombreTienda(viendo.ubicacion_id)} fotos={fotos} />

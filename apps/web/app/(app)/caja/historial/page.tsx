@@ -109,7 +109,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
                 {u.nombre.replace(/^Tienda\s+/i, "")} <span className="font-normal">{resumenTodo.porSede.get(u.id)}</span>
               </Link>
             ))}
-            <span className="mx-1 h-5 w-px bg-sand" aria-hidden />
+            <span className="mx-1 h-5 w-px bg-sand" aria-hidden />{/* beige-fijo: línea separadora */}
             <Link
               href={href({ estado: soloConDiferencia ? undefined : "diferencia" })}
               aria-current={soloConDiferencia ? "page" : undefined}

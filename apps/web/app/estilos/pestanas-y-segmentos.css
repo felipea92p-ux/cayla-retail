@@ -246,7 +246,7 @@
     padding: 2px;
     border: 0;
     border-radius: var(--radius-md);
-    background: var(--color-sand);
+    background: var(--hundido-fondo); box-shadow: var(--hundido-sombra);
   }
   .segmento-cayla__opcion {
     display: inline-flex;

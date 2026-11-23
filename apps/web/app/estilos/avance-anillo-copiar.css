@@ -10,7 +10,7 @@
 
 @layer components {
   /* ---------- La barra de avance: la pista de arena y su relleno. Tres altos con nombre. ---------- */
-  .barra-avance { position: relative; display: block; width: 100%; height: 6px; border-radius: 999px; background: var(--color-sand); }
+  .barra-avance { position: relative; display: block; width: 100%; height: 6px; border-radius: 999px; background: var(--color-sand); } /* beige-fijo: pista del gráfico: la barra de avance */
   .barra-avance[data-alto="fina"] { height: 3px; }
   .barra-avance[data-alto="gruesa"] { height: 12px; }
   /* El relleno: tinta; verde al completarse; el rojo y el ámbar los pone la pantalla (`tono`). */

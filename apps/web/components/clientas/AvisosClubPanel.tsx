@@ -363,7 +363,7 @@ export function AvisosClubPanel({
                           <li key={a.clave}>
                             <button
                               type="button"
-                              className={`flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-sand/40 aria-[current=true]:bg-hueso aria-[current=true]:shadow-[inset_3px_0_0_var(--color-rojo)] ${hecho ? "text-tinta/55" : "text-tinta"}`}
+                              className={`flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors ${actual?.clave === a.clave ? "vd-marca" : "vd-pasa"} aria-[current=true]:shadow-[inset_3px_0_0_var(--color-rojo)] ${hecho ? "text-tinta/55" : "text-tinta"}`}
                               aria-current={actual?.clave === a.clave}
                               onClick={() => setElegido(a.clave)}
                             >

@@ -40,7 +40,7 @@ export function CanalDelApartado({
   const eleccion =
     canales.length === 1 ? (
       // Un rol que opera un solo canal online: se ve fijo, para que se note por dónde vende.
-      <p className="rounded-xl bg-sand/50 px-3.5 py-2.5 text-[15px] text-tinta">{canales[0].nombre}</p>
+      <p className="rounded-xl vd-placa px-3.5 py-2.5 text-[15px] text-tinta">{canales[0].nombre}</p>
     ) : (
       <SegmentoDeslizante
         etiqueta="¿Por dónde se vende?"

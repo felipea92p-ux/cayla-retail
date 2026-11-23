@@ -108,7 +108,7 @@ export function PreferenciasClienta({ clientaId, version, guardadas, soloLectura
                     title={o.enLaLista ? undefined : "Ya no está en la lista: se conserva mientras siga marcada."}
                     onClick={() => setMarcadas((p) => alternar(p, g.clave, o.valor))}
                     className={`h-8 rounded-md border px-3 text-xs transition-colors duration-200 ease-cayla disabled:cursor-not-allowed ${
-                      marcada ? "border-tinta bg-tinta text-crema" : "border-sand bg-papel text-tinta/70 hover:bg-sand/40"
+                      marcada ? "border-tinta bg-tinta text-crema" : "border-sand bg-papel text-tinta/70 vd-pasa-gota"
                     } ${o.enLaLista ? "" : "border-dashed"}`}
                   >
                     {o.valor}

@@ -145,7 +145,7 @@ export function SugerenciasColaModal({
             </p>
           )}
           {fase === "error" && (
-            <div className="rounded-md bg-hueso px-4 py-3 text-sm text-tinta">
+            <div className="rounded-md vd-placa px-4 py-3 text-sm text-tinta">
               <p>No se pudieron buscar las sugerencias. No se cambió nada.</p>
               <button type="button" onClick={() => setReintento((n) => n + 1)} className="btn-cayla btn-secundario mt-2">
                 Reintentar
@@ -153,7 +153,7 @@ export function SugerenciasColaModal({
             </div>
           )}
           {fase === "lista" && sugerencias.length === 0 && (
-            <div className="rounded-md bg-hueso px-4 py-3 text-sm text-tinta">
+            <div className="rounded-md vd-placa px-4 py-3 text-sm text-tinta">
               <p>No hay ventas con una sola prenda posible en esta tienda.</p>
               <p className="mt-1 text-sm text-tinta/70">Sin sugerencias, cada venta se identifica a mano con «Regularizar» o se cierra con «Cerrar la cola de arranque».</p>
             </div>
@@ -179,7 +179,7 @@ export function SugerenciasColaModal({
                   const { dia } = diaYHoraLima(s.venta.vendidoEn);
                   return (
                     <li key={s.prendaId}>
-                      <label className={`flex cursor-pointer items-start gap-3 rounded-md border px-3.5 py-3 transition-colors ease-cayla ${marcada ? "border-tinta bg-hueso" : "border-tinta/15 bg-papel"}`}>
+                      <label className={`flex cursor-pointer items-start gap-3 rounded-md border px-3.5 py-3 transition-colors ease-cayla ${marcada ? "border-tinta vd-marca" : "border-tinta/15 bg-papel"}`}>
                         <Casilla
                           marcada={marcada}
                           onCambio={() =>
@@ -214,7 +214,7 @@ export function SugerenciasColaModal({
                   );
                 })}
               </ul>
-              <p className="rounded-md bg-hueso px-3.5 py-2.5 text-sm text-tinta/80">
+              <p className="rounded-md vd-placa px-3.5 py-2.5 text-sm text-tinta/80">
                 <strong className="font-semibold text-tinta">Una sola candidata no es certeza.</strong> Si la prenda vendida nunca se cargó, la sugerida es OTRA
                 prenda que sigue en la tienda y quedaría con 1 de menos. Marca solo las que reconozcas. Se descuenta 1 de cada una del stock de la tienda.
               </p>

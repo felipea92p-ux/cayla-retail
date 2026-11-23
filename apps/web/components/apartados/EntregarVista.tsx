@@ -217,9 +217,9 @@ export function EntregarVista({
                 <div className="mt-1"><CanalChip a={a} className="max-w-full" /></div>
                 <p className="mt-1 font-mono text-sm text-tinta/55">{a.codigo}{a.comprobanteAnticipo ? ` · ${a.comprobanteAnticipo}` : ""}</p>
                 {conEstante && a.estante && (
-                  <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-hueso px-2 py-0.5 font-mono text-sm"><Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}</p>
+                  <p className="mt-1 inline-flex items-center gap-1 rounded-md vd-gota-chica px-2 py-0.5 font-mono text-sm"><Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}</p>
                 )}
-                <button type="button" onClick={() => elegir(null)} className="area-dedo label-cayla mt-1 h-7 rounded-md px-2 text-[10.5px] text-tinta/70 hover:bg-sand/40">
+                <button type="button" onClick={() => elegir(null)} className="area-dedo label-cayla mt-1 h-7 rounded-md px-2 text-[10.5px] text-tinta/70 vd-pasa-gota">
                   Otro cliente
                 </button>
               </div>
@@ -343,7 +343,7 @@ export function EntregarVista({
                 {saldo > 0 && (
                   <fieldset className="space-y-2">
                     <legend className="mb-2 text-sm text-tinta/50">Cómo paga el saldo</legend>
-                    <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1">
+                    <div className="grid grid-cols-5 gap-1 rounded-xl vd-hundido p-1">
                       {METODOS_PAGO.map((m, i) => {
                         const puesto = pagos.some((p) => p.metodo === m);
                         return (
@@ -375,7 +375,7 @@ export function EntregarVista({
                     )}
                     {/* El efectivo del saldo con la ley: lo que se cobra en monedas y lo que no (ADR-0311). Es la misma frase de la hoja de Vender. */}
                     {cobro.efectivo && cobro.efectivo.redondeo > 0 && cobro.efectivo.aCobrar > 0 && (
-                      <p className="anim-revelar rounded-lg bg-hueso px-3 py-2 text-sm leading-snug text-tinta/80" data-redondeo>
+                      <p className="anim-revelar rounded-lg vd-placa px-3 py-2 text-sm leading-snug text-tinta/80" data-redondeo>
                         Cobra <b className="font-semibold text-tinta tabular-nums">{money(cobro.efectivo.aCobrar)}</b> en efectivo
                         <span className="block text-sm text-tinta/60">
                           {TEXTO_REDONDEO} −{money(cobro.efectivo.redondeo)} · {LEY_REDONDEO}
@@ -384,7 +384,7 @@ export function EntregarVista({
                     )}
                     {/* Menos de la moneda más chica: no hay con qué entregarlo. Lo mismo que dice el botón apagado. */}
                     {cobro.sinMoneda && (
-                      <p className="rounded-lg bg-hueso px-3 py-2 text-sm leading-snug text-ambar-profundo" data-redondeo-sin-moneda>
+                      <p className="rounded-lg vd-placa px-3 py-2 text-sm leading-snug text-ambar-profundo" data-redondeo-sin-moneda>
                         No hay moneda para <b className="font-semibold tabular-nums">{money(cobro.efectivo?.deuda ?? 0)}</b>: la más chica es S/&nbsp;0.10. Cóbralo con otro medio.
                       </p>
                     )}
@@ -492,7 +492,7 @@ function LineaDeTiempo({ creadaEl, hoy, venceEl }: { creadaEl: string | null; ho
   const { total, pasados } = avanceDelPlazo(creadaEl, hoy, venceEl);
   return (
     <div className="relative grid grid-cols-3 pt-5 text-sm text-tinta/60">
-      <span aria-hidden className="absolute top-[7px] right-2 left-2 h-0.5 bg-sand" />
+      <span /* beige-fijo: línea del recorrido, no es superficie */ aria-hidden className="absolute top-[7px] right-2 left-2 h-0.5 bg-sand" />
       <span aria-hidden className="absolute top-[7px] left-2 h-0.5 bg-tinta transition-[width] duration-500" style={{ width: `calc(${(pasados / total) * 100}% - 1rem)` }} />
       {[
         { t: "Apartó", f: creadaEl, cls: "", punto: "left-0 bg-papel border-tinta" },

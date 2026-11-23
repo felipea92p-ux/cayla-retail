@@ -80,7 +80,7 @@
     content: "";
     flex: 1;
     height: 1px;
-    background: var(--color-sand);
+    background: var(--color-sand); /* beige-fijo: raya del título: es una línea */
     transform-origin: left;
     animation: cayla-raya-dibuja 520ms var(--ease-cayla) backwards;
     animation-delay: var(--retraso, 120ms);

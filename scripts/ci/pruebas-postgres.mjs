@@ -480,6 +480,10 @@ export const PRUEBAS = [
   // Ofertas por insignia (ADR-0655): una oferta que alcanza las prendas de unas insignias (a mano o por categoría), sumadas a sus categorías y
   // modelos; la caja, los grupos y el monto con ellas; los choques con la forma; guardarlas, su tope y su historia. ROLLBACK.
   "pruebas:ofertas-por-insignia",
+  // Ofertas por variante (ADR-0682): una oferta que alcanza una talla y color en concreto, sumada a sus categorías y modelos; con variantes y
+  // nada más no cae en las prendas de su campaña; la caja, la regla de una oferta guardada y la de todas de una vez dicen lo mismo; guardarlas,
+  // su historia y lo que no se guarda (un modelo entero, un monto de toda la compra). ROLLBACK.
+  "pruebas:ofertas-por-variante",
   // Cambiar la talla o el color de una prenda comprada con descuento no cobra el descuento otra vez (ADR-0655, Felipe 2026-11-14): el mismo
   // modelo, una talla más cara o más barata, otro modelo, una por varias y su mutante. ROLLBACK.
   "pruebas:cambio-mismo-modelo",
@@ -724,6 +728,19 @@ export const PRUEBAS = [
   // previsualización y el cuadre usan la MISMA cuenta; un almacén movido después del escaneo lo rechaza; la misma marca no
   // cuadra dos veces; Frescura no lo lee como bajadas (núcleo) y lo bajado llega con edad desconocida. Cada caso en ROLLBACK.
   "pruebas:cuadrar-piso",
+
+  // «El barrido del piso» (ADR-0690, actividad 1): un barrido abierto por sede al que se suma quien llega; cada lectura es una
+  // fila con quién y a qué hora, y dos personas en la misma prenda se SUMAN (no se pisan como en Conteo); el mismo lote
+  // reenviado no cuenta dos veces; lo escaneado no se edita ni se borra; un barrido cerrado no recibe lecturas; abrir y
+  // escanear no tocan stock; 1.200 lecturas entran dentro del statement_timeout. Cada caso en ROLLBACK.
+  "pruebas:barrido-piso",
+
+  // «El barrido del piso» (ADR-0690, actividad 5): confirmar corrige piso y almacén en los dos sentidos con traslados internos, todo o
+  // nada y con la MISMA cuenta que revisar; no toca lo apartado, lo archivado, lo de prueba ni lo que se movió durante el barrido; lo no
+  // cargado queda con dónde lo tiene el sistema; exige «todo escaneado», frena con un conteo abierto; la misma marca no confirma dos
+  // veces; cancelar no mueve nada. Y los relojes (actividad 6): solo el primer cuadre de la sede reinicia demanda y arranque; un
+  // segundo barrido no, un cuadre del almacén sí. Cada caso en ROLLBACK.
+  "pruebas:barrido-piso-confirmar",
 
   // La caja registra la bajada que se olvidó (ADR-0321): `bajar_al_piso_desde_vender` pide VENDER (no Existencias: la
   // Terminal de ventas baja), baja solo lo que falta para el ticket (0 si otra persona ya la registró), lo apartado no

@@ -41,7 +41,7 @@ export function UltimaRonda({
         <span className="font-serif text-[28px] leading-tight text-tinta">{u.ronda.titulo}</span>
         <span className="text-sm text-taupe">{u.ronda.detalle}</span>
       </header>
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-3.5 rounded-[14px] bg-hueso px-4 py-3.5 @min-[30rem]:grid-cols-3">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3.5 rounded-[14px] vd-hundido px-4 py-3.5 @min-[30rem]:grid-cols-3">
         <div className="flex min-w-0 flex-col gap-1">
           <dt className="label-cayla text-[11px] text-taupe">Salió de tu plata</dt>
           <dd className="font-serif text-2xl leading-none tabular-nums text-tinta">{u.ronda.monto}</dd>

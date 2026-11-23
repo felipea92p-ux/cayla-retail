@@ -96,7 +96,7 @@ export function ProbadorPrendaHoja({
           <span>{queHacerConLaPrenda(veredicto)}</span>
         </p>
         <div className="grid gap-4 sm:grid-cols-[9rem_minmax(0,1fr)]">
-          <div className="papel-fijo relative aspect-[4/5] w-36 overflow-hidden rounded-xl border border-sand bg-hueso">
+          <div /* beige-fijo: foto dentro de papel-fijo, no se oscurece */ className="papel-fijo relative aspect-[4/5] w-36 overflow-hidden rounded-xl border border-sand bg-hueso">
             {p.miniatura ? (
               <ImagenDePrenda src={p.miniatura} alt={p.nombre} fill sizes="144px" fallback={sinFoto} className={`object-contain ${p.miniaturaEsRecorte ? "p-3" : ""}`} />
             ) : (

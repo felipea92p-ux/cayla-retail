@@ -330,7 +330,7 @@ export function MatrizNuevas({
     <div className="overflow-x-auto rounded-xl border border-sand">
       <table className="w-full border-collapse text-sm">
         <thead>
-          <tr className="bg-hueso">
+          <tr className="vd-hundido">
             <th scope="col" className="px-3 py-2 text-left text-sm font-semibold text-tinta">
               Color
             </th>

@@ -434,6 +434,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   La cabecera de Existencias muestra además el botón «Bajar al piso» (→ `/inventario/bajar`, única entrada a esa
   pantalla; web publicada, y en producción su función, `0200`, pegada y su módulo, `0000`, sin confirmar) solo si el rol
   ve `bajada_piso` (`veModulo`), la sede que se mira es la activa y esa sede tiene piso y almacén.
+  **Barrido del piso (ADR-0690, 2026-11-22):** `/inventario/barrido` (`app/(app)/inventario/barrido/`, módulo `existencias`) →
+  `components/barrido-piso/BarridoPiso.tsx` (escáner, cola por pantalla en el aparato, puesta al día cada 5 s; lógica pura en
+  `lib/barrido-piso-reglas.ts`, lectura del servidor en `lib/barrido-piso.ts`) con sus hojas `HojaLoEscaneado` (tramos, quitar),
+  `HojaApartar` (foto al bucket `retail-barridos`), `HojaConfirmar` y la sección `PorResolver` + `HojaResolver`. RPC:
+  `fn_barrido_piso_estado`, `abrir_barrido_piso`, `registrar_lecturas_barrido`, `fn_barrido_piso_lecturas`, `anular_lecturas_barrido`,
+  `registrar_hallazgo_barrido`, `fn_barrido_piso_hallazgos`, `anular_hallazgo_barrido`, `previsualizar_barrido_piso`,
+  `confirmar_barrido_piso` (4 parámetros: con la huella), `cancelar_barrido_piso`, `fn_barrido_piso_por_resolver`,
+  `resolver_pendiente_barrido`. Entrada: `components/existencias/BotonBarrido.tsx` en la cabecera de Existencias y el aviso
+  del barrido en curso o del mes (`avisoDeBarrido`); Cuadrar el piso lo ofrece como camino alterno.
   **Existencias conectada (ADR-0237, 2026-09-26):** la lista entra por prenda (`components/ExistenciasPorPrenda.tsx`,
   agrupación en `lib/existencias-prendas.ts`; «Por talla» es la tabla de siempre), tocar una prenda abre
   `DetallePrendaExistencias.tsx`, y lo marcado se lleva con la lista cargada a `/inventario/bajar?lineas=`,
@@ -615,8 +624,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   edad contra su vara (`varaQueJuzgo`, `parteViejaEsperada`, `envejeceDeMas`) y suma lo anotado como venta. En CAYLA Global, cada tienda y
   cada celda llevan a `/gestion/frescura/tienda?tienda=&cat=` (`route.ts`: cambia la tienda con `cambiarUbicacionActiva` y vuelve a
   Frescura con la categoría elegida; enlazada con `<a>`, sin prefetch).
-- `/gestion/analisis` (**Análisis**, ADR-0357, 2026-10-06; ruta `/inventario/resumen` hasta ADR-0392, 2026-10-13, primera fila del grupo «Gestión»: cinco pestañas —Hoy · Se está acabando · No se vende · Nunca salió al piso
-  (2026-10-07, decisión 11) · Qué pedir—;
+- `/gestion/analisis` (**Análisis**, ADR-0357, 2026-10-06; ruta `/inventario/resumen` hasta ADR-0392, 2026-10-13, primera fila del grupo «Gestión»: cinco pestañas —Hoy · Se acaba · No se vende · Sin salir · Qué pedir— (nombres cortos desde la cara B, ADR-0357 act. 2026-11-21; «Sin salir»
+  nació el 2026-10-07, decisión 11);
   reemplaza Desempeño y Comparar períodos de ADR-0138, ADR-0245 y ADR-0277). La ve quien tiene el módulo `analisis`, y la encargada ve lo mismo
   que el líder: el dinero y el costo por prenda (ADR-0328, enmienda del 2026-10-06). Todo es de la tienda elegida arriba: la comparación de
   las tres tiendas vive en CAYLA Global (ADR-0357, decisión 3, act.). → `page.tsx` (`exigirModulo("analisis")` y
@@ -644,28 +653,26 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `lib/analisis-armado.ts` (`armarPrendas`: cada prenda de mi tienda con lo que tienen y venden las otras y lo que viene en camino).
   · **Contrato y reglas:** `lib/analisis-tipos.ts` (`DatosAnalisis`; `PrendaAnalisis` es una talla de un color) y `lib/analisis-reglas.ts`
   (puro: `grupoDe` decide comprar · enviar · liquidar · vigila · duda, una prenda en un solo grupo, con los umbrales de su tipo o «Liquidar
-  desde» de respaldo; `diasQueQuedan` —al ritmo de su ventana, `diasDeVentas`—, `seEstaAcabando`, `nuncaSalio`, `porLlegar`, `otraSedeQueLaTiene`, `sedeQueMasVende`, `edadDelInventario`,
+  desde» de respaldo; `diasQueQuedan` —al ritmo de su ventana, `diasDeVentas`—, `seEstaAcabando`, `nuncaSalio`, `porLlegar`, `otraSedeQueLaTiene`, `sedeQueMasVende`,
   `coincideBusqueda`; las cifras de la maqueta como constantes: 2 semanas para «se acaba», 30 días para vigilar, 90 en rojo, «Liquidar desde»
-  de 1 a 999 con 60 de fábrica —sin tope desde el 2026-10-07, `20261007100000`—). «Nunca salió al piso»: `lib/analisis-piso.ts` (tipos, cifras,
-  dónde está lo que tienes, eje); «¿Para cuánto te alcanza?» contra Navidad: `alcancePorTipo` en `lib/analisis-pedir.ts`. A dónde lleva cada
+  de 1 a 999 con 60 de fábrica —sin tope desde el 2026-10-07, `20261007100000`—). «Sin salir»: `lib/analisis-piso.ts` (tipos, orden, vacíos); «¿Para cuánto te alcanza?» contra Navidad: por modelo, `modelosQueNoLlegan` y
+  `alcanceDelModelo`; el tipo entero, con un solo tipo en el filtro, `alcancePorTipo` y `alcanceConFiltros` (talla por talla si hay talla o color en los
+  filtros), todo en `lib/analisis-pedir.ts`. Filtros y orden (cara B): `lib/analisis-filtros.ts` y `lib/analisis-orden.ts`. A dónde lleva cada
   botón: `lib/analisis-acciones.ts` (`hrefComprar` → `/produccion/ordenes?nueva=<producto>` o `/compras/mi-plata` (desde 2026-10-23, ADR-0480 act.); `hrefEnviar` →
-  `/inventario/traslados/nuevo?lineas=&destino=&desde=analisis`; `hrefLiquidar` → `/etiquetas-de-precio?variantes=`; `hrefReponerPiso` →
+  `/inventario/traslados/nuevo?lineas=&destino=&desde=analisis`; `hrefReponerPiso` →
   `/inventario/bajar?lineas=`; `hrefExistencias`, `hrefMovimientos`; `lineasParaPedir` → `PedirAOtraSedeModal` → RPC `pedir_a_otra_sede`,
-  ADR-0242 D-7). Cada una devuelve null si la cuenta no ve el destino, y el botón no se dibuja. Análisis no escribe nada, salvo «Liquidar desde»:
+  ADR-0242 D-7). Cada una devuelve null si la cuenta no ve el destino, y el botón no se dibuja. Análisis no escribe nada, salvo «Sin venderse desde» (antes «Liquidar desde»; la cara B ya no propone liquidar):
   `HojaLiquidarDesde.tsx` (un `<Modal>` con `ComboResponsable`; reglas en `lib/analisis-liquidar-reglas.ts`) → RPC `guardar_liquidar_desde`.
-  · **Pantalla** → `components/analisis/AnalisisPantalla.tsx` (cliente): `EncabezadoPagina` con el buscador (filtra en el navegador, sin URL ni
-  loader) → las cuatro pestañas (estado del cliente: `?vista=` se cambia con `history.replaceState`, sin loader) con el chip «Datos confiables
+  · **Pantalla** → `components/analisis/AnalisisPantalla.tsx` (cliente): `EncabezadoPagina` → la barra de filtros (`FiltrosAnalisis.tsx`: buscador, píldoras y «Ordenar por»; filtra en el navegador, sin URL ni
+  loader) → las cinco pestañas (estado del cliente: `?vista=` se cambia con `history.replaceState`, sin loader) con el chip «Datos confiables
   / incompletos» (`HojaConfianza.tsx`) → la pestaña: `PestanaHoy`, `PestanaAcaba`, `PestanaQuieta`, `PestanaPiso` o `PestanaPedir`; si la tienda no puede
   hablar, `TodaviaNo.tsx` (`HoyTodaviaNo`, `VistaTodaviaNo`, `AnillosCondiciones`). Todo les llega por `contexto.tsx` (`useAnalisis`: datos,
   acceso, prendas filtradas, `diasDeVentas`, «Liquidar desde» en vivo, filtros, `abrirFicha`, `irA(vista, { foco })`, `pedir`). Piezas:
-  `Carril.tsx` (el carril de «Se está acabando», «No se vende» y «Nunca salió al piso»; un grupo puede llevar su dibujo, un detalle y un corte con
-  «Ver N más»), `piezas.tsx` (chips, «?», anillo, racha, `TilePrenda` sobre `MosaicoPrenda`, ADR-0333) e
-  `iconos.tsx`. La ficha de la prenda es `FichaPrenda.tsx` (un `<Modal>`). Un solo tooltip para toda la pantalla (`data-tip` o `TipRico`) y el
-  resaltado de la misma prenda en todos los gráficos (`data-ps`).
-  · **Estilos y movimiento:** `app/estilos/analisis.css` (las clases de la maqueta bajo `.analisis`, con consultas de ancho del contenedor: bajo
-  760 px el flujo «Qué hacer hoy» se vuelve lista) + `analisis-hoy.css`, `analisis-acaba.css`, `analisis-quieta.css`, `analisis-piso.css`,
-  `analisis-pedir.css` y
-  `analisis-ficha.css`. Movimiento con excepción en ADR-0136 (act. 2026-10-06 (b)), vigilado por `lib/analisis-movimiento.test.ts`. Esqueleto:
+  `Tarjetas.tsx` (la cara B: `Respuesta`, la cifra grande de cada pestaña, y `TarjetaPrenda`, la misma tarjeta en todas), `piezas.tsx` (chips, «?», anillo, racha, `TilePrenda` sobre `MosaicoPrenda`, ADR-0333) e
+  `iconos.tsx`. La ficha de la prenda es `FichaPrenda.tsx` (un `<Modal>` en tres bloques: `veredictoDe` y `cifrasDe` de `lib/analisis-ficha.ts`, `BarrasTiempo`, la
+  tabla de talla y color). Un tooltip para la ficha (`data-tip`).
+  · **Estilos y movimiento:** `app/estilos/analisis.css` (las clases de la maqueta bajo `.analisis`, con consultas de ancho del contenedor) + `analisis-b.css` (la cara B: respuesta, tarjetas,
+  veredicto, «Hoy»), `analisis-quieta.css`, `analisis-pedir.css` y `analisis-ficha.css`, todas cargadas por `por-pantalla/analisis-pestanas.css`. Movimiento con excepción en ADR-0136 (act. 2026-10-06 (b)), vigilado por `lib/analisis-movimiento.test.ts`. Esqueleto:
   `loading.tsx`. Guía de foco: `no-aplica` (se lee, no se llena).
   · **Lo que quedó del Análisis viejo se borró** (2026-10-06, la limpieza aparte que anotaba ADR-0357; rama `claude/happy-zhukovsky-325b9f`):
   `lib/analisis-que-hacer.ts`, `resumen-desempeno.ts`, `resumen-comparacion.ts`, `resumen-lectura.ts`, `rotacion.ts`, `resumen-armado.ts`,
@@ -928,7 +935,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `prendasDelSello`, `loQueTiene`), el sello de tinta en `components/sellos/SelloTinta.tsx` y el movimiento en
   `app/estilos/sellos.css`. Guarda por las mismas puertas de antes: crear (`POST /api/productos/etiquetas` con el estilo de la vista),
   aprobar, rechazar, desactivar y reactivar (`PATCH`), configurar o repetir (`CampanaModal` → `actualizar_campana_etiqueta`) y
-  prendas (`PrendasDeEtiquetaModal`); **desde el 2026-10-23 «Configurar» de una campaña abre `components/sellos/OfertasHoja.tsx` («Tres preguntas», ADR-0496): las ofertas de la campaña (`campana_reglas()` leídas en `cargarEtiquetasPantalla`; guardar, activar y retirar por `/api/productos/campana-reglas` → `guardar_campana_regla` (o `guardar_oferta` si la oferta elige modelos sueltos, `campana_regla_productos`, ADR-0655; o `guardar_oferta_y_ceder` si otra oferta le cede, `campana_regla_cesiones`), con los choques de «una prenda, una oferta por tienda y por día» leídos en la hoja por `fn_choques_de_oferta` (`components/sellos/ChoquesDeOferta.tsx`) y frenados en la base por el disparador diferido `campana_reglas_sin_choques`, `activar_campana_regla`, `retirar_campana_regla`; lógica en `lib/campana-reglas.ts`, estilos `app/estilos/ofertas.css`; desde ADR-0677 (actividades 7 y 8) es la hoja de UNA oferta, sin pasos: ¿Qué le das? (las cinco formas con su ejemplo, `lib/oferta-que-le-das.ts`) y, debajo, ¿En qué prendas? (por categoría, prenda o insignia, con `CategoriasDeCampana.tsx`), ¿Cuándo y dónde? y Revisa (con el historial de la oferta abierta, `resumenAntes`); a la derecha, «En caja»: una compra de ejemplo con prendas de verdad cobrada con la cuenta de la caja (`lib/compra-de-ejemplo.ts`, sobre `descuentoDeCampana` y `ejemploDeGrupo`/`ejemploDeMonto`, con la foto de `prendasVitrina`); guardar, activar o retirar la cierran; de la franja de antes solo queda «Quitar el límite» de tiendas de una campaña vieja (`PATCH /api/productos/etiquetas`); cada oferta puede limitarse a algunas tiendas de su campaña (`campana_regla_sedes`); la caja las lee por `fn_campanas_en_sede`; `CampanaModal` solo se abre si la base no tiene las ofertas y desde la ficha de Tienda web**; imprime sus etiquetas de precio y enlaza al diseño (`/tienda-web/campanas/[id]`, para quien ve
+  prendas (`PrendasDeEtiquetaModal`); **desde el 2026-10-23 «Configurar» de una campaña abre `components/sellos/OfertasHoja.tsx` («Tres preguntas», ADR-0496): las ofertas de la campaña (`campana_reglas()` leídas en `cargarEtiquetasPantalla`; guardar, activar y retirar por `/api/productos/campana-reglas` → `guardar_campana_regla` (o `guardar_oferta` si la oferta elige modelos sueltos, `campana_regla_productos`, ADR-0655; o `guardar_oferta_y_ceder` si otra oferta le cede, `campana_regla_cesiones`), con los choques de «una prenda, una oferta por tienda y por día» leídos en la hoja por `fn_choques_de_oferta` (`components/sellos/ChoquesDeOferta.tsx`; desde ADR-0682, donde la base ya guarda tallas y colores sueltos de una oferta —`campana_regla_variantes`, `p_forma.variantes` de `guardar_oferta_completa`—, por `fn_choques_de_oferta_por_variante`; la lógica de las tallas vive en `lib/oferta-variantes.ts`) y frenados en la base por el disparador diferido `campana_reglas_sin_choques`, `activar_campana_regla`, `retirar_campana_regla`; lógica en `lib/campana-reglas.ts`, estilos `app/estilos/ofertas.css`; desde ADR-0677 (actividades 7 y 8) es la hoja de UNA oferta, sin pasos: ¿Qué le das? (las cinco formas con su ejemplo, `lib/oferta-que-le-das.ts`) y, debajo, ¿En qué prendas? (por categoría, prenda o insignia, con `CategoriasDeCampana.tsx`), ¿Cuándo y dónde? y Revisa (con el historial de la oferta abierta, `resumenAntes`); a la derecha, «En caja»: una compra de ejemplo con prendas de verdad cobrada con la cuenta de la caja (`lib/compra-de-ejemplo.ts`, sobre `descuentoDeCampana` y `ejemploDeGrupo`/`ejemploDeMonto`, con la foto de `prendasVitrina`); guardar, activar o retirar la cierran; de la franja de antes solo queda «Quitar el límite» de tiendas de una campaña vieja (`PATCH /api/productos/etiquetas`); cada oferta puede limitarse a algunas tiendas de su campaña (`campana_regla_sedes`); la caja las lee por `fn_campanas_en_sede`; `CampanaModal` solo se abre si la base no tiene las ofertas y desde la ficha de Tienda web**; imprime sus etiquetas de precio y enlaza al diseño (`/tienda-web/campanas/[id]`, para quien ve
   `campanas_web`). `/productos/campanas`, `/productos/etiquetas` y `/productos/atributos?tipo=etiquetas` redirigen aquí
   (`next.config.ts`). La tarjeta de UNA campaña (`TarjetaDeCampana`, en `components/EtiquetasLista.tsx`) sigue en la pestaña «Datos y
   prendas» de `/tienda-web/campanas/[id]`. Una campaña es una fila de `retail.etiquetas` con estilo `campana`; un sello, todo lo demás.

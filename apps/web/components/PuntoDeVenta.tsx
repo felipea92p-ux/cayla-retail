@@ -2444,7 +2444,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               <button
                 type="button"
                 onClick={soltarProforma}
-                className="label-cayla area-dedo rounded-md px-2 py-1 text-[11px] text-tinta/65 transition-colors hover:bg-sand/40 hover:text-tinta"
+                className="label-cayla area-dedo rounded-md px-2 py-1 text-[11px] text-tinta/65 transition-colors vd-pasa-gota hover:text-tinta"
               >
                 Soltar
               </button>

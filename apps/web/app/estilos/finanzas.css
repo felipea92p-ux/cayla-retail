@@ -59,7 +59,8 @@
     padding: 0 6px;
     margin-left: 6px;
     border-radius: 999px;
-    background: var(--color-sand);
+    background: var(--gota-chica-fondo);
+    box-shadow: var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde);
     font-size: 11.5px;
     color: var(--color-tinta);
   }
@@ -134,7 +135,8 @@
     padding: 8px 12px;
     border-radius: var(--radius-md);
     border: 1px solid var(--color-borde-control); /* lo que se toca pasa 3:1; `sand` es solo la línea decorativa (ADR-0516) */
-    background: var(--color-hueso);
+    background: var(--hundido-fondo);
+    box-shadow: var(--hundido-sombra);
     font-size: 13.5px;
     color: var(--color-tinta);
     transition: border-color 150ms;
@@ -236,7 +238,8 @@
     padding: 10px 12px;
     border: 1px solid var(--color-sand);
     border-radius: var(--radius-md);
-    background: var(--color-hueso);
+    background: var(--gota-fondo-encima);
+    box-shadow: var(--gota-luz);
     font-size: 14px;
     line-height: 1.3;
     color: var(--color-tinta);
@@ -269,7 +272,8 @@
     padding: 10px 12px;
     border: 1px solid var(--color-sand);
     border-radius: var(--radius-md);
-    background: var(--color-hueso);
+    background: var(--gota-fondo-encima);
+    box-shadow: var(--gota-luz);
     color: var(--color-tinta);
     cursor: pointer;
     transition: border-color 150ms, background-color 150ms;
@@ -345,7 +349,7 @@
     color: var(--color-tinta);
   }
   .fin-tabla thead {
-    background: color-mix(in oklab, var(--color-sand) 70%, transparent);
+    background: var(--placa-fondo);
   }
   .fin-tabla th {
     padding: 9px 14px;
@@ -380,7 +384,7 @@
     transition: background-color 150ms;
   }
   .fin-tabla tbody tr:nth-child(even) {
-    background: color-mix(in oklab, var(--color-hueso) 50%, transparent);
+    background: var(--hundido-fondo);
   }
   @media (hover: hover) {
     .fin-tabla tbody tr:hover {
@@ -434,7 +438,7 @@
     margin: 4px 0 0 auto;
     border-radius: 999px;
     overflow: hidden;
-    background: var(--color-hueso);
+    background: var(--color-hueso); /* beige-fijo: pista de la barra */
   }
   .fin-barra i {
     display: block;
@@ -710,7 +714,7 @@
     margin: 12px 0 6px;
     overflow: hidden;
     border-radius: 999px;
-    background: var(--color-hueso);
+    background: var(--color-hueso); /* beige-fijo: pista de la barra */
   }
   .fin-umbral-barra i {
     position: absolute;
@@ -792,7 +796,7 @@
 
   /* El mes que se mira, marcado en el historial. */
   .fin-tabla tbody tr.fin-fila-activa {
-    background: color-mix(in oklab, var(--color-sand) 45%, transparent);
+    background: var(--gota-marca);
   }
   .fin-tabla tbody tr.fin-fila-activa td:first-child {
     box-shadow: inset 2px 0 0 var(--color-tinta);
@@ -1004,7 +1008,7 @@
     color: var(--color-taupe);
     text-align: right;
     white-space: nowrap;
-    background: color-mix(in oklab, var(--color-sand) 70%, transparent);
+    background: var(--placa-fondo);
     vertical-align: bottom;
   }
   .fin-eerr th:first-child,
@@ -1041,7 +1045,7 @@
   }
   @media (hover: hover) {
     .fin-eerr td:has(> button.fin-eerr-celda):hover {
-      background: var(--color-hueso);
+      background: var(--gota-fondo);
     }
   }
   .fin-eerr button.fin-eerr-celda:focus-visible {
@@ -1051,7 +1055,7 @@
   .fin-eerr tr.fin-eerr-sub td {
     font-weight: 600;
     color: var(--color-taupe);
-    background: color-mix(in oklab, var(--color-hueso) 55%, transparent);
+    background: var(--hundido-fondo);
   }
   .fin-eerr tr.fin-eerr-total td {
     font-family: var(--font-serif);
@@ -1066,10 +1070,10 @@
     color: var(--color-taupe);
   }
   .fin-eerr .fin-eerr-cons {
-    background: color-mix(in oklab, var(--color-sand) 35%, transparent);
+    background: var(--hundido-fondo);
   }
   .fin-eerr tr.fin-eerr-sub td.fin-eerr-cons {
-    background: color-mix(in oklab, var(--color-sand) 45%, transparent);
+    background: var(--hundido-fondo);
   }
   /* El cuadro por sede se desliza de lado cuando no cabe en su tarjeta: el nombre del concepto se queda, con un fondo macizo por tipo de fila para que los números no se vean a través.
      Se pregunta por el ancho de la caja y no por el de la ventana: con el lateral abierto, de 1024 a ~1190 px la tabla (860 px mínimo) ya se
@@ -1087,10 +1091,10 @@
       box-shadow: inset -1px 0 0 var(--color-sand);
     }
     .fin-eerr th:first-child {
-      background: color-mix(in oklab, var(--color-sand) 70%, var(--color-papel));
+      background: color-mix(in oklab, var(--color-tinta) 8%, var(--color-papel));
     }
     .fin-eerr tr.fin-eerr-sub td:first-child {
-      background: color-mix(in oklab, var(--color-hueso) 55%, var(--color-papel));
+      background: color-mix(in oklab, var(--color-tinta) 5%, var(--color-papel));
     }
   }
   /* Bajo 640 px el ancho lo dan las columnas que hay: con una sede elegida no hace falta deslizar tanto. El concepto parte en dos líneas para dejarles lugar a las cifras. */
@@ -1291,7 +1295,7 @@
   }
   /* La franja de cada unidad (y la meta de ventas en Configuración): versalitas en taupe sobre arena. */
   .fin-tabla tr.fin-grupo td {
-    background: color-mix(in oklab, var(--color-sand) 45%, transparent);
+    background: var(--placa-fondo);
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.08em;
@@ -1342,7 +1346,7 @@
       min-width: 0;
     }
     .fin-tabla tbody tr.fin-grupo {
-      background: color-mix(in oklab, var(--color-sand) 45%, transparent);
+      background: var(--placa-fondo);
     }
     .fin-tabla tr.fin-grupo td {
       background: none;
@@ -1545,7 +1549,8 @@
     padding: 12px;
     border: 1px solid var(--color-sand);
     border-radius: var(--radius-md);
-    background: var(--color-hueso);
+    background: var(--placa-fondo);
+    box-shadow: var(--placa-luz);
     font-size: 14px;
     line-height: 1.45;
     color: var(--color-tinta);
@@ -1654,7 +1659,7 @@
     color: var(--color-taupe);
   }
   .fin-unidad-cons {
-    background: color-mix(in oklab, var(--color-hueso) 45%, var(--color-papel));
+    background: var(--hundido-fondo);
   }
 
   /* Chequeos: ✓ en verde, «!» en rojo si bloquea el cierre y en ámbar si solo avisa; a la derecha, «Resolver». */
@@ -2005,7 +2010,8 @@
     margin: 16px 0;
     padding: 12px 14px;
     border-radius: var(--radius-lg);
-    background: var(--color-hueso);
+    background: var(--hundido-fondo);
+    box-shadow: var(--hundido-sombra);
     font-size: 14px;
     color: var(--color-tinta);
     font-variant-numeric: tabular-nums;
@@ -2345,7 +2351,7 @@
     position: relative;
     height: 14px;
     border-radius: 999px;
-    background: var(--color-hueso);
+    background: var(--color-hueso); /* beige-fijo: pista de la barra */
   }
   .fin-pulso-ritmo-relleno {
     display: block;
@@ -2435,7 +2441,7 @@
     top: -4px;
     bottom: -4px;
     width: 1px;
-    background: var(--color-sand);
+    background: var(--color-sand); /* beige-fijo: línea del eje, no una superficie */
   }
   .fin-pulso-lugar-eje > i {
     position: absolute;
@@ -2513,7 +2519,8 @@
     gap: 8px;
     padding: 6px 12px;
     border-radius: 999px;
-    background: var(--color-hueso);
+    background: var(--gota-chica-fondo);
+    box-shadow: var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde);
     font-size: 14px;
   }
   .fin-dinero-partes > li > b {
@@ -2548,7 +2555,8 @@
     gap: 16px;
     padding: 14px 16px;
     border-radius: 12px;
-    background: var(--color-hueso);
+    background: var(--placa-fondo);
+    box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde);
   }
   .fin-gastos-cosa > div > b {
     display: block;

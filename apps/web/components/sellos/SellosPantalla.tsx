@@ -49,6 +49,7 @@ import { PanelDeDescuento } from "@/components/campanas/PanelDeDescuento";
 import { FilaDeLista } from "@/components/campanas/FilaDeLista";
 import { PanelDeCampana } from "@/components/campanas/PanelDeCampana";
 import { cartelesDeCampana, chipsDeCampana, prendasLasEligenSusOfertas } from "@/lib/campana-panel-reglas";
+import { variantesDichas, variantesPorModelo } from "@/lib/oferta-variantes";
 import { Volver } from "@/components/ui/Volver";
 import { claveModeloColor, type DescuentoDeLista } from "@/lib/rebaja-rapida-reglas";
 import { tramoDeCampana, TEXTOS_MODO } from "@/lib/sellos-campanas";
@@ -114,6 +115,7 @@ export function SellosPantalla({
   disenoWeb,
   reglas: reglasIniciales,
   reglasDisponibles,
+  ofertasPorVariante = false,
   insignias = [],
   nombresDeCampanas = {},
   choquesAbiertos = [],
@@ -157,6 +159,8 @@ export function SellosPantalla({
   reglas: ReglaCampana[];
   /** La base responde por las ofertas: si no, «Configurar» abre la hoja de siempre. */
   reglasDisponibles: boolean;
+  /** La base ya guarda una oferta por talla y color (ADR-0682): la hoja de una oferta deja abrir cada prenda y elegir sus variantes. */
+  ofertasPorVariante?: boolean;
   /** Las insignias que una oferta puede elegir (ADR-0655, por insignia); vacío en Catálogo ▸ Insignias, que no edita ofertas. */
   insignias?: InsigniaDeOferta[];
   /** El nombre de cada campaña: al desactivar una insignia, la confirmación nombra las ofertas que la usan con su campaña (ADR-0655). */
@@ -267,6 +271,16 @@ export function SellosPantalla({
     return { porClave, porModelo, porColor: new Map([...porClave].map(([k, vs]) => [k, vs.length])) };
   }, [prendasVitrina]);
   const costos = useMemo(() => new Map(prendasConCosto.map((p) => [p.id, p.costo])), [prendasConCosto]);
+  // Las tallas y colores sueltos de una oferta, para su cartel (ADR-0682): un solo modelo se nombra («Blusa Emma (Negro S y M)»).
+  const sueltasDeOferta = useMemo(() => {
+    const modeloDe = new Map(prendasConCosto.filter((p) => p.productoId).map((p) => [p.id, p.productoId as string]));
+    const nombreDe = new Map(prendasConCosto.filter((p) => p.productoId).map((p) => [p.productoId as string, p.referencia ?? p.nombre]));
+    const variantes = variantesPorModelo(prendasConCosto, (id) => vitrinaPorTalla?.get(id));
+    return (r: { variantesSolo: readonly string[] }) =>
+      r.variantesSolo.length === 0
+        ? null
+        : variantesDichas(r.variantesSolo, { modeloDe: (id) => modeloDe.get(id), nombreDe: (id) => nombreDe.get(id), variantesDe: (id) => variantes.get(id) ?? [] });
+  }, [prendasConCosto, vitrinaPorTalla]);
   const panelDescuento = descuentoAbierto ? (
     <PanelDeDescuento
       key={descuentoAbierto.etiquetaId}
@@ -989,7 +1003,7 @@ export function SellosPantalla({
         nombre={e.nombre}
         chips={chips}
         acciones={accionesDelPanel(e, editable)}
-        carteles={cartelesDeCampana(ofertas, hoy, nombreDeId, e.descuentoPct, { vigenteDesde: e.vigenteDesde, vigenteHasta: e.vigenteHasta, sedeIds: e.sedeIds, tiendas })}
+        carteles={cartelesDeCampana(ofertas, hoy, nombreDeId, e.descuentoPct, { vigenteDesde: e.vigenteDesde, vigenteHasta: e.vigenteHasta, sedeIds: e.sedeIds, tiendas }, sueltasDeOferta)}
         onCartel={editable ? (id) => (id === "descuento" ? setConfigurando(e) : abrirOferta(id)) : undefined}
         onNuevaOferta={editable ? () => abrirOferta(null) : undefined}
         prendas={p.modelos}
@@ -1227,6 +1241,7 @@ export function SellosPantalla({
           etiqueta={ofertando}
           ofertaInicial={ofertaAbierta}
           fotos={vitrinaPorTalla}
+          porVariante={ofertasPorVariante}
           reglas={reglasDeCampana(reglas, ofertando.id)}
           categorias={categorias}
           tiendas={tiendas}

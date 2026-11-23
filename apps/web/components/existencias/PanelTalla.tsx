@@ -625,7 +625,7 @@ export function PanelTalla({
             ? "bg-pizarra/[0.12] text-tinta"
             : clase === "danada"
               ? "bg-rojo/[0.09] text-tinta"
-              : "bg-hueso text-tinta";
+              : "vd-hundido text-tinta";
     const cuerpo = (
       <>
         <b className={`block font-display ${CIFRA_CASILLA} font-medium leading-none tabular-nums`}>{desde === undefined ? valor : <CifraQueCuenta valor={valor} desde={desde} />}</b>
@@ -675,11 +675,11 @@ export function PanelTalla({
 
   /** La celda de totales de «Todas» (ADR-0391): en hueso, sin borde, no se toca; sigue a la capa (una cifra) o apila las dos. */
   const totalCelda = (pisoN: number, almacenN: number) => {
-    if (!separa) return <div className="grid h-[52px] place-items-center rounded-[9px] bg-hueso text-[15px] font-semibold tabular-nums text-tinta">{pisoN}</div>;
-    if (capa === "piso") return <div className="grid h-[52px] place-items-center rounded-[9px] bg-hueso text-[17px] font-semibold tabular-nums text-tinta">{pisoN}</div>;
-    if (capa === "almacen") return <div className="grid h-[52px] place-items-center rounded-[9px] bg-hueso text-[17px] font-semibold tabular-nums text-tinta">{almacenN}</div>;
+    if (!separa) return <div className="grid h-[52px] place-items-center rounded-[9px] vd-hundido text-[15px] font-semibold tabular-nums text-tinta">{pisoN}</div>;
+    if (capa === "piso") return <div className="grid h-[52px] place-items-center rounded-[9px] vd-hundido text-[17px] font-semibold tabular-nums text-tinta">{pisoN}</div>;
+    if (capa === "almacen") return <div className="grid h-[52px] place-items-center rounded-[9px] vd-hundido text-[17px] font-semibold tabular-nums text-tinta">{almacenN}</div>;
     return (
-      <div className="grid h-[52px] grid-rows-2 overflow-hidden rounded-[9px] bg-hueso tabular-nums text-tinta">
+      <div className="grid h-[52px] grid-rows-2 overflow-hidden rounded-[9px] vd-hundido tabular-nums text-tinta">
         <span className="flex items-center justify-center gap-1 text-[15px] font-semibold">
           <IconoPercha aria-hidden className="h-3 w-3 text-taupe" />
           {pisoN}
@@ -787,7 +787,7 @@ export function PanelTalla({
                   onKeyDown={prenda.fotoUrl ? (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setFotoGrande(true)) : undefined}
                   aria-label={prenda.fotoUrl ? `Ver la foto de ${prenda.referencia} en grande` : undefined}
                   title={prenda.fotoUrl ? "Ver la foto en grande" : undefined}
-                  className={`group relative w-full overflow-hidden rounded-[14px] bg-sand/50 outline-none ring-tinta/40 transition-[box-shadow,height] duration-[420ms] ease-[var(--ease-cayla)] ${modoAjuste ? "h-20 sm:h-[168px]" : "h-36 sm:h-[362px]"} ${prenda.fotoUrl ? "cursor-zoom-in hover:ring-2 focus-visible:ring-2" : ""}`}
+                  className={`group relative w-full overflow-hidden rounded-[14px] vd-hundido outline-none ring-tinta/40 transition-[box-shadow,height] duration-[420ms] ease-[var(--ease-cayla)] ${modoAjuste ? "h-20 sm:h-[168px]" : "h-36 sm:h-[362px]"} ${prenda.fotoUrl ? "cursor-zoom-in hover:ring-2 focus-visible:ring-2" : ""}`}
                 >
                   {prenda.fotoUrl ? (
                     <>
@@ -810,8 +810,8 @@ export function PanelTalla({
                   <TalonDelAjuste control={ajuste} guardadas={listoAjuste?.lineas ?? sellando?.lineas} sellado={Boolean(listoAjuste || sellando)} />
                 ) : flujo ? (
                   // En un paso, el color y la talla no se cambian: el chip dice sobre cuál se está trabajando.
-                  <span className="inline-flex w-fit items-center gap-2 rounded-full bg-hueso px-3 py-1.5 text-sm text-taupe">
-                    <i aria-hidden className="h-3.5 w-3.5 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: fondoDelPunto(prenda.colorHex, prenda.colorTonos) ?? "var(--color-hueso)" }} />
+                  <span className="inline-flex w-fit items-center gap-2 rounded-full vd-gota-chica px-3 py-1.5 text-sm text-taupe">
+                    <i /* beige-fijo: muestra de la prenda sin color: el beige es el dato */ aria-hidden className="h-3.5 w-3.5 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: fondoDelPunto(prenda.colorHex, prenda.colorTonos) ?? "var(--color-hueso)" }} />
                     {prenda.color ?? "Sin color"} · Talla {fila.talla ?? "Única"}
                   </span>
                 ) : (
@@ -847,7 +847,7 @@ export function PanelTalla({
                             aria-label={`${c.color ?? "Sin color"}${dice ? `: ${dice}` : ""}`}
                             title={`${c.color ?? "Sin color"}${dice ? ` · ${dice}` : ""}`}
                             onClick={() => elegirColor(c)}
-                            style={{ background: fondoDelPunto(c.colorHex, c.colorTonos) ?? "var(--color-hueso)" }}
+                            style={{ background: fondoDelPunto(c.colorHex, c.colorTonos) ?? "var(--color-hueso)" }} /* beige-fijo: muestra de la prenda sin color: el beige es el dato */
                             className="area-dedo relative h-[30px] w-[30px] rounded-full border-2 border-papel shadow-[0_0_0_1px_var(--color-sand)] aria-checked:shadow-[0_0_0_2px_var(--color-tinta)]"
                           >
                             {c.colorEstampado && fotoQueDistingue(c.fotoUrl, colores.map((x) => x.fotoUrl)) && (
@@ -1093,10 +1093,10 @@ export function PanelTalla({
                                       aria-keyshortcuts={String(a.tecla)}
                                       onClick={() => alAccionar(a.clave)}
                                       className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors ${
-                                        tono === "ambar" ? "bg-ambar/[0.10] hover:bg-ambar/[0.16]" : tono === "pizarra" ? "bg-pizarra/[0.09] hover:bg-pizarra/[0.15]" : "hover:bg-hueso/70"
+                                        tono === "ambar" ? "bg-ambar/[0.10] hover:bg-ambar/[0.16]" : tono === "pizarra" ? "bg-pizarra/[0.09] hover:bg-pizarra/[0.15]" : "vd-pasa"
                                       }`}
                                     >
-                                      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${tono === "ambar" ? "bg-ambar/[0.18] text-ambar-profundo" : tono === "pizarra" ? "bg-pizarra/[0.16] text-pizarra" : "bg-hueso text-tinta"}`}>
+                                      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${tono === "ambar" ? "bg-ambar/[0.18] text-ambar-profundo" : tono === "pizarra" ? "bg-pizarra/[0.16] text-pizarra" : "vd-lente text-tinta"}`}>
                                         <Ico aria-hidden className="h-4 w-4" />
                                       </span>
                                       <span className="min-w-0 flex-1">
@@ -1121,11 +1121,11 @@ export function PanelTalla({
                         {/* ¿Cómo se vende? A la vista (antes plegado bajo «¿Cómo se vende?»). */}
                         {calculandoRitmo ? (
                           // El alto del bloque de abajo (aro de 40 px + dos líneas), para que nada salte cuando llega.
-                          <div className="rounded-xl bg-hueso px-3 py-2.5">
+                          <div className="rounded-xl vd-placa px-3 py-2.5">
                             <Calculando className="h-10 w-full rounded-lg" />
                           </div>
                         ) : (ritmo || vendidasTalla !== null) && (
-                          <div data-guia="existencias.cajon-ritmo" className="flex items-center gap-3 rounded-xl bg-hueso px-3 py-2.5 text-sm text-tinta/85">
+                          <div data-guia="existencias.cajon-ritmo" className="flex items-center gap-3 rounded-xl vd-placa px-3 py-2.5 text-sm text-tinta/85">
                             {ritmo && <AroSemanas ritmo={ritmoColor} />}
                             <div className="min-w-0">
                               {ritmo && <p>{prenda.color ? `${prenda.color}: ${ritmo.charAt(0).toLocaleLowerCase("es")}${ritmo.slice(1)}` : ritmo}</p>}
@@ -1253,11 +1253,11 @@ export function PanelTalla({
                                 const colorAbierto = c.clave === prenda.clave;
                                 return (
                                   <tr key={c.clave} className={vacioEnCapa ? "opacity-40" : ""}>
-                                    <th scope="row" className={`rounded-lg pl-1.5 pr-1.5 text-left text-sm font-semibold text-tinta ${colorAbierto ? "bg-hueso" : ""}`}>
+                                    <th scope="row" className={`rounded-lg pl-1.5 pr-1.5 text-left text-sm font-semibold text-tinta ${colorAbierto ? "vd-marca" : ""}`}>
                                       {/* El nombre baja a una segunda línea en vez de cortarse: «Azul m…» no decía qué color era (Felipe
                                           2026-11-17). La fila mide 52 px, así que dos líneas caben sin agrandarla. */}
                                       <span className="flex items-center gap-1.5">
-                                        <span aria-hidden className="inline-block h-3 w-3 shrink-0 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: fondoDelPunto(c.colorHex, c.colorTonos) ?? "var(--color-hueso)" }} />
+                                        <span /* beige-fijo: muestra de la prenda sin color: el beige es el dato */ aria-hidden className="inline-block h-3 w-3 shrink-0 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: fondoDelPunto(c.colorHex, c.colorTonos) ?? "var(--color-hueso)" }} />
                                         <span className="line-clamp-2 leading-tight [overflow-wrap:anywhere]" title={c.color ?? "Sin color"}>
                                           {c.color ?? "Sin color"}
                                         </span>

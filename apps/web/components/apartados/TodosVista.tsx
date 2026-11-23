@@ -249,7 +249,7 @@ export function TodosVista({
             key={c.etiqueta}
             style={{ ["--i" as string]: i }}
             data-custodia={c.custodia || undefined}
-            className={`ap-cifra anim-sube border-sand px-5 py-4 max-lg:[&:nth-child(n+3)]:border-t sm:[&:nth-child(even)]:border-l lg:[&:not(:first-child)]:border-l ${c.custodia ? "bg-[repeating-linear-gradient(135deg,transparent_0_9px,color-mix(in_srgb,var(--color-sand)_35%,transparent)_9px_10px)]" : ""} max-sm:[&:not(:first-child)]:border-t`}
+            /* beige-fijo: rayado de la cifra en custodia, un dibujo de líneas */ className={`ap-cifra anim-sube border-sand px-5 py-4 max-lg:[&:nth-child(n+3)]:border-t sm:[&:nth-child(even)]:border-l lg:[&:not(:first-child)]:border-l ${c.custodia ? "bg-[repeating-linear-gradient(135deg,transparent_0_9px,color-mix(in_srgb,var(--color-sand)_35%,transparent)_9px_10px)]" : ""} max-sm:[&:not(:first-child)]:border-t`}
           >
             <p className={`label-cayla text-[11px] ${c.alerta ? "text-rojo-profundo" : "text-tinta/60"}`}>{c.etiqueta}</p>
             <p className={`font-display mt-1 text-3xl leading-tight tabular-nums ${c.alerta ? "text-rojo-profundo" : "text-tinta"}`}>{c.valor}</p>
@@ -303,7 +303,7 @@ export function TodosVista({
                       {pe.estado === "cancelado" && pe.canceladoMotivo && ` · ${pe.canceladoMotivo}`}
                     </p>
                   </div>
-                  <span className={`rounded-full px-2.5 py-0.5 text-sm ${pe.estado === "llego" ? "bg-verde/10 text-verde-profundo" : pe.estado === "cancelado" ? "bg-hueso text-tinta/60" : "bg-pizarra/10 text-pizarra"}`}>
+                  <span className={`rounded-full px-2.5 py-0.5 text-sm ${pe.estado === "llego" ? "bg-verde/10 text-verde-profundo" : pe.estado === "cancelado" ? "vd-gota-chica text-tinta/60" : "bg-pizarra/10 text-pizarra"}`}>
                     {textoEstadoPedido(pe)}
                   </span>
                   <div className="flex flex-wrap gap-1.5">
@@ -401,7 +401,7 @@ export function TodosVista({
           </div>
           {(periodo === "personalizado" || periodo === "todo") && (
             // `relative z-20`: el calendario se abre hacia abajo y no debe quedar bajo la lista (como en el Historial de ventas).
-            <div className="anim-revelar relative z-20 flex flex-wrap items-end gap-x-4 gap-y-1 rounded-xl bg-sand/50 px-4 py-2.5">
+            <div className="anim-revelar relative z-20 flex flex-wrap items-end gap-x-4 gap-y-1 rounded-xl vd-placa px-4 py-2.5">
               <div className="w-44">
                 <CampoFecha etiqueta="Desde" valor={periodo === "todo" ? "" : (fechas.desde ?? "")} onValor={(v) => { setFechas((f) => ({ ...f, desde: v })); setPeriodo("personalizado"); }} />
               </div>
@@ -502,7 +502,7 @@ export function TodosVista({
                     className="anim-sube grid cursor-pointer items-center gap-x-5 gap-y-2 px-5 py-3.5 hover:bg-crema/60 @min-[56rem]:grid-cols-[minmax(190px,1.3fr)_minmax(130px,1fr)_150px_170px_auto]"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className="font-display grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sand/70 text-sm">{`${a.nombres[0] ?? ""}${a.apellidos[0] ?? ""}`.toUpperCase()}</span>
+                      <span className="font-display grid h-9 w-9 shrink-0 place-items-center rounded-full vd-gota-chica text-sm">{`${a.nombres[0] ?? ""}${a.apellidos[0] ?? ""}`.toUpperCase()}</span>
                       <div className="min-w-0">
                         {/* El nombre es el botón de la fila para el teclado y el lector; con el mouse, toda la fila. */}
                         <button
@@ -517,7 +517,7 @@ export function TodosVista({
                         <p className="text-sm text-tinta/60 tabular-nums">
                           {ver.celular && a.celular && `${formatoCelular(a.celular)} · `}<span className="font-mono">{a.codigo}</span>
                           {ver.estante && conEstante && a.estante && (
-                            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded bg-hueso px-1.5 font-mono text-sm text-tinta/80"><Archive className="h-3 w-3" aria-hidden />{a.estante}</span>
+                            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded vd-gota-chica px-1.5 font-mono text-sm text-tinta/80"><Archive className="h-3 w-3" aria-hidden />{a.estante}</span>
                           )}
                         </p>
                         {ver.asesora && a.asesora && <p className="text-sm text-tinta/55">atendió {a.asesora}</p>}

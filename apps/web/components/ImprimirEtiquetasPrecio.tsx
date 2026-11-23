@@ -473,7 +473,7 @@ function FilaEtiqueta({
           <span
             aria-hidden
             className="etq-franja absolute inset-y-0 left-0 w-[5px] shadow-[inset_-1px_0_0_0_color-mix(in_srgb,var(--color-tinta)_18%,transparent)]"
-            style={{ background: e.color ? (e.colorMuestra ?? VARIOS_COLORES) : "var(--color-sand)" }}
+            /* beige-fijo: color de prenda sin dato */ style={{ background: e.color ? (e.colorMuestra ?? VARIOS_COLORES) : "var(--color-sand)" }}
           />
           <span className="flex min-w-0 items-center gap-2.5">
             <CapsulaColor fondo={e.color ? (e.colorMuestra ?? null) : "var(--color-sand)"} />

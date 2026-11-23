@@ -368,10 +368,10 @@ export function NuevaProformaModal({
 export function Foto({ prenda }: { prenda: { fotoUrl: string | null; colorHex: string | null; referencia: string } }) {
   if (prenda.fotoUrl) {
     return (
-      <span className="relative h-12 w-10 shrink-0 overflow-hidden rounded-[4px] bg-sand/40">
-        <ImagenDePrenda src={prenda.fotoUrl} alt={prenda.referencia} fill sizes="40px" className="object-cover" fallback={<span aria-hidden className="absolute inset-0" style={{ background: prenda.colorHex ?? "var(--color-hueso)" }} />} />
+      <span className="relative h-12 w-10 shrink-0 overflow-hidden rounded-[4px] vd-hundido">
+        <ImagenDePrenda src={prenda.fotoUrl} alt={prenda.referencia} fill sizes="40px" className="object-cover" fallback={<span aria-hidden className="absolute inset-0" style={{ background: prenda.colorHex ?? "var(--color-hueso)" /* beige-fijo: color de prenda sin color, es el dato */ }} />} />
       </span>
     );
   }
-  return <span aria-hidden className="h-12 w-10 shrink-0 rounded-[4px] border border-tinta/10" style={{ background: prenda.colorHex ?? "var(--color-hueso)" }} />;
+  return <span aria-hidden className="h-12 w-10 shrink-0 rounded-[4px] border border-tinta/10" style={{ background: prenda.colorHex ?? "var(--color-hueso)" /* beige-fijo: color de prenda sin color, es el dato */ }} />;
 }

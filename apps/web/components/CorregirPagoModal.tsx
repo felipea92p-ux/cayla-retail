@@ -167,7 +167,7 @@ export function CorregirPagoModal({
                   </label>
                 ))}
                 {calculo.resto && (
-                  <p className="flex items-baseline justify-between gap-3 rounded-xl bg-hueso px-4 py-3 text-sm text-tinta">
+                  <p className="flex items-baseline justify-between gap-3 rounded-xl vd-hundido px-4 py-3 text-sm text-tinta">
                     <span>
                       {NOMBRE_METODO[calculo.resto]}
                       {reparto.medios.length > 1 && (

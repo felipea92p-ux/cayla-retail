@@ -476,7 +476,7 @@ function EquipoDeHoy({ equipo, esLider }: { equipo: MiembroEquipo[] | null; esLi
         ) : (
           equipo.map((m) => (
             <div key={m.personaId} className="inicio-persona flex items-start gap-3 px-4 py-3">
-              <span className="inicio-avatar font-display relative grid size-[34px] shrink-0 place-items-center rounded-full bg-sand text-[15px] text-tinta">
+              <span className="inicio-avatar font-display relative grid size-[34px] shrink-0 place-items-center rounded-full vd-gota-chica text-[15px] text-tinta">
                 {m.nombre.slice(0, 1)}
                 {m.estado === "presente" && <span className="inicio-avatar-turno absolute -right-px -bottom-px size-2.5 rounded-full border-2 border-papel bg-verde" />}
               </span>
@@ -487,7 +487,7 @@ function EquipoDeHoy({ equipo, esLider }: { equipo: MiembroEquipo[] | null; esLi
                   {m.ventas ? ` · ${m.ventas} ${m.ventas === 1 ? "venta" : "ventas"}` : ""}
                 </p>
                 {m.ultima && (
-                  <p className="inicio-persona-ultima mt-1 rounded-lg bg-hueso px-2 py-1 text-sm text-tinta/80">
+                  <p className="inicio-persona-ultima mt-1 rounded-lg vd-placa px-2 py-1 text-sm text-tinta/80">
                     <Icono clave="reloj" className="inicio-persona-ultima-icono hidden size-3.5" />
                     <span>
                       {m.ultima.texto} · {hora.format(new Date(m.ultima.hora))}

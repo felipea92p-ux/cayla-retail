@@ -149,7 +149,7 @@ function Portada({
     <div
       // En computador, el relleno y la letra del titular se encogen con la vista previa (`cqi`) y nunca pasan de lo de siempre: angosta
       // (el celular, o el editor a 768 px), la columna del titular quedaba en ~140 px y una palabra larga en 36 px se cortaba.
-      className={`relative isolate overflow-hidden ${celular ? "px-5 py-6" : "grid grid-cols-[1.1fr_1fr] items-center gap-4 px-[min(5cqi,2rem)] py-[min(5cqi,2rem)]"} ${vestida ? "" : "bg-hueso"}`}
+      className={`relative isolate overflow-hidden ${celular ? "px-5 py-6" : "grid grid-cols-[1.1fr_1fr] items-center gap-4 px-[min(5cqi,2rem)] py-[min(5cqi,2rem)]"} ${vestida ? "" : "vd-placa"}`}
       style={vestida ? { backgroundColor: "var(--cmp-fondo)", color: "var(--cmp-texto)" } : undefined}
       data-entrada={vestida ? movimiento.entrada : undefined}
     >
@@ -199,7 +199,7 @@ function Portada({
             className={`cmp-pol flex aspect-[4/5] ${celular ? "w-[30%]" : "w-[34%]"} -ml-3 items-center justify-center bg-papel p-1 text-taupe first:ml-0`}
             style={{ "--rot": `${giro}deg`, "--k": i, transform: `rotate(${giro}deg)`, zIndex: i } as CSSProperties}
           >
-            <span className="flex h-full w-full items-center justify-center bg-hueso">
+            <span className="flex h-full w-full items-center justify-center vd-hundido">
               <IconoPercha className="h-6 w-6" />
             </span>
           </div>
@@ -262,7 +262,7 @@ function Prendas({ pct, sello }: { pct: number | null; sello: { fondo: string; t
   return (
     <div className="grid grid-cols-3 gap-3 px-4 py-4" aria-hidden>
       {[0, 1, 2].map((i) => (
-        <div key={i} className="relative flex aspect-[4/5] items-center justify-center bg-hueso text-taupe">
+        <div key={i} className="relative flex aspect-[4/5] items-center justify-center vd-hundido text-taupe">
           {sello && (
             <span className="absolute left-1 top-1 px-1.5 py-0.5 text-[9px] font-bold" style={{ backgroundColor: sello.fondo, color: sello.texto }}>
               {pctDicho(pct)}
@@ -315,7 +315,7 @@ function Bolsa({ linea, nombre, pct }: { linea: { fondo: string; texto: string }
       <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em]">Tu bolsa</p>
       {["Blusa Emma", "Palazo Tiana"].map((n) => (
         <div key={n} className="flex items-center gap-3 border-b border-sand pb-3">
-          <span className="flex h-14 w-11 items-center justify-center bg-hueso text-taupe">
+          <span className="flex h-14 w-11 items-center justify-center vd-hundido text-taupe">
             <IconoPercha className="h-5 w-5" />
           </span>
           <span className="min-w-0 flex-1 text-[13px]">

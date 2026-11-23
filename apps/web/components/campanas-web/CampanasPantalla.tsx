@@ -162,7 +162,7 @@ export function CampanasPantalla({ lectura, puedeIrACampanas }: { lectura: Lectu
                   <span className="w-28 shrink-0 truncate text-sm font-semibold" title={b.campana.nombre}>
                     {b.campana.nombre}
                   </span>
-                  <div className="relative h-6 flex-1 rounded-md bg-hueso">
+                  <div className="relative h-6 flex-1 rounded-md bg-hueso"> {/* beige-fijo: pista del gráfico */}
                     <span
                       className={`absolute inset-y-0 rounded-md ${b.campana.estado === "vivo" ? "bg-tinta" : "bg-taupe"}`}
                       style={{ left: `${b.izquierda}%`, width: `${b.ancho}%` }}
@@ -206,7 +206,7 @@ function FilaCampana({ c, hoy }: { c: CampanaWeb; hoy: string }) {
     <div role="row" className={fila(PLANTILLA, "items-center")}>
       <span className={celda("izq", "flex items-center gap-3")}>
         <span
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${c.diseno ? "tw-marca-ahumada" : "border border-dashed border-taupe/60 bg-hueso text-taupe"}`}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${c.diseno ? "tw-marca-ahumada" : "border border-dashed border-taupe/60 vd-hundido text-taupe"}`}
           aria-hidden
         >
           {c.diseno?.modo === "imagen" ? <ImagenIcono className="h-4 w-4" /> : c.diseno ? <Sparkles className="h-4 w-4" /> : <Palette className="h-4 w-4" />}

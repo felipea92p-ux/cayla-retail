@@ -55,7 +55,7 @@ function FilaFirme({ f, primera, presentaciones, hojas }: { f: FilaPrimero; prim
 function FilaVigilar({ f, presentaciones, hojas }: { f: FilaPrimero } & Comunes) {
   return (
     <li className="border-b border-tinta/10 last:border-b-0">
-      <FilaQueAbreLaHoja hoja={hojas[f.productoId]} presentacion={presentaciones[f.productoId]} className="flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-sand/40 focus-visible:-outline-offset-2">
+      <FilaQueAbreLaHoja hoja={hojas[f.productoId]} presentacion={presentaciones[f.productoId]} className="flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left transition-colors vd-pasa focus-visible:-outline-offset-2">
         <FotoModelo productoId={f.productoId} presentaciones={presentaciones} ancho={32} className="w-8" />
         <span className="min-w-0 flex-1 truncate text-[14px] text-tinta">{f.referencia}</span>
         <span className="hidden text-sm text-tinta/65 sm:block">{f.frase}</span>
@@ -71,7 +71,7 @@ export function ListaQueFabricarPrimero({ datos, falloRed, nota, presentaciones,
     return (
       <section data-guia="prod-resumen.que-producir" aria-label="Qué fabricar primero" className="space-y-3">
         <TituloSeccion>¿Qué fabrico primero?</TituloSeccion>
-        <p className="rounded-md bg-sand/60 px-3 py-2 text-sm text-tinta/75">{falloRed}</p>
+        <p className="rounded-md vd-placa px-3 py-2 text-sm text-tinta/75">{falloRed}</p>
       </section>
     );
   const visibles = firmes.slice(0, PRIMEROS_QUE_SE_VEN).map((f, i) => <FilaFirme key={f.productoId} f={f} primera={i === 0} presentaciones={presentaciones} hojas={hojas} />);

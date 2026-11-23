@@ -155,7 +155,7 @@ export function ProveedoresRanking({
         {resto.length > 0 && <BotonVerMas abierto={verTodos} onCambiar={onVerTodos} texto={`Ver los ${resto.length} que faltan`} controla="proveedores-ranking-resto" />}
       </Tabla>
       {taller && (
-        <p className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-lg bg-hueso px-5 py-3 text-sm text-tinta">
+        <p className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-lg vd-placa px-5 py-3 text-sm text-tinta">
           <span>
             <b className="font-semibold">Producción propia</b> · {taller.nombre}: {taller.unidadesCompradas.toLocaleString("es-PE")} prendas, {Math.round(taller.pesoPct)} % del gasto
           </span>

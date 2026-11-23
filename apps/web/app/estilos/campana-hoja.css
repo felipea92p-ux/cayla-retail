@@ -52,7 +52,7 @@
   transition: background-color 200ms var(--ease-cayla);
 }
 @media (hover: hover) {
-  .cph-fam-cab:hover { background: color-mix(in srgb, var(--color-hueso) 60%, transparent); }
+  .cph-fam-cab:hover { background: var(--gota-fondo); }
 }
 .cph-fam-t { flex: 1; min-width: 0; }
 /* La flecha que pliega una familia (`plegables`): cierra hacia la derecha y abre hacia abajo. Todo el título se toca, la flecha es su señal. */
@@ -60,7 +60,7 @@
 .cph-fam-plegar svg { width: 16px; height: 16px; transition: transform 200ms var(--ease-cayla); }
 .cph-fam-plegar:not([data-abierta]) svg { transform: rotate(-90deg); }
 @media (hover: hover) {
-  .cph-fam-plegar:hover { background: var(--color-hueso); color: var(--color-tinta); }
+  .cph-fam-plegar:hover { background: var(--gota-marca); box-shadow: var(--gota-luz); color: var(--color-tinta); }
 }
 /* 13,5 rem por columna: con 11 rem, a 1024 px entraban tres de 186 px y se cortaban «Pañuelos y Pañoletas» y otras tres (/formidable
    2026-10-23); así entran dos y ningún nombre se corta. */
@@ -80,9 +80,10 @@
   transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla);
 }
 @media (hover: hover) {
-  .cph-cat:hover { background: color-mix(in srgb, var(--color-hueso) 60%, transparent); }
+  .cph-cat:hover { background: var(--gota-fondo); }
 }
-.cph-cat[data-elegida] { background: var(--color-hueso); color: var(--color-tinta); font-weight: 600; }
+/* La elegida es una gota que sobresale (lo que haces), no un relleno plano (Felipe 2026-11-19). */
+.cph-cat[data-elegida] { background: var(--gota-marca); box-shadow: var(--gota-luz), inset 0 0 0 1px var(--gota-chica-borde); color: var(--color-tinta); font-weight: 600; }
 .cph-cat-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cph-cat-c { font-size: 11.5px; font-weight: 500; font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--color-tinta) 64%, transparent); } /* contraste: texto sobre papel, hueso */
 .cph-cat-b { position: absolute; left: 40px; right: 10px; bottom: 5px; width: auto; }
@@ -110,7 +111,7 @@
 .cph-ej-b { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); transition: background-color 200ms var(--ease-cayla); } /* contraste: gráfico sobre papel */
 .cph-ej-b svg { width: 16px; height: 16px; }
 @media (hover: hover) {
-  .cph-ej-b:hover { background: var(--color-hueso); color: var(--color-tinta); }
+  .cph-ej-b:hover { background: var(--gota-marca); box-shadow: var(--gota-luz); color: var(--color-tinta); }
 }
 .cph-caja { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-top: 6px; }
 .cph-caja > :first-child { border-radius: 8px; }

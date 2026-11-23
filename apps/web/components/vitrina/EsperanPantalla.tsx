@@ -180,7 +180,7 @@ export function EsperanPantalla({ lectura, hoy }: { lectura: LecturaEsperan; hoy
                   </span>
                 </div>
                 {abierto && (
-                  <ul className="space-y-2 border-t border-sand bg-hueso px-5 py-3" aria-label={`Quién espera ${f.producto.nombre}`}>
+                  <ul className="space-y-2 border-t border-sand vd-hundido px-5 py-3" aria-label={`Quién espera ${f.producto.nombre}`}>
                     {f.quienes.map((w, k) => (
                       <li key={w.fichaId ?? `sin-${k}`} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
                         <span className="min-w-[10rem] font-medium text-tinta">{quienDicho(w)}</span>

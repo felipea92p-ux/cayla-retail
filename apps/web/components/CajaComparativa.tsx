@@ -245,7 +245,7 @@ export function DondeGanasYPierdes({ hoy, ayer, ahoraMin }: Omit<Props, "horaCie
         etiqueta="Dónde ganas y dónde pierdes: cada hora de hoy menos la misma hora de ayer"
       />
       {/* El veredicto en una frase (ronda 19): sin mejor ni peor hora es una sola idea, no dos frases que se niegan. */}
-      <p className="mt-3 rounded-xl bg-hueso px-3.5 py-3 text-[15px] text-tinta">
+      <p className="mt-3 rounded-xl vd-placa px-3.5 py-3 text-[15px] text-tinta">
         {!mejor && !peor ? (
           <>Ninguna hora mejor ni peor que ayer.</>
         ) : (

@@ -107,7 +107,7 @@ function BloquePrenda({ prenda }: { prenda: NonNullable<DetalleCajon["prenda"]> 
   return (
     <div className="mt-6 flex items-center gap-4">
       {prenda.fotoUrl ? (
-        <ImagenDePrenda src={prenda.fotoUrl} alt="" width={64} height={74} className="h-[74px] w-16 shrink-0 rounded-[10px] border border-tinta/10 bg-hueso object-cover" fallback={<SinFoto tamano="h-[74px] w-16" />} />
+        <ImagenDePrenda src={prenda.fotoUrl} alt="" width={64} height={74} className="h-[74px] w-16 shrink-0 rounded-[10px] border border-tinta/10 vd-lente object-cover" fallback={<SinFoto tamano="h-[74px] w-16" />} />
       ) : (
         <SinFoto tamano="h-[74px] w-16" />
       )}
@@ -188,13 +188,13 @@ function FilaEnlace({ link, onVerVenta }: { link: ConsultarLink; onVerVenta?: ()
   const clase = "flex min-h-12 w-full items-center gap-3 border-b border-sand py-2 text-left last:border-b-0";
   if (link.onClick === "abrir_venta" && onVerVenta) {
     return (
-      <button type="button" onClick={onVerVenta} className={`${clase} transition-colors hover:bg-hueso/60`}>
+      <button type="button" onClick={onVerVenta} className={`${clase} transition-colors vd-pasa`}>
         {cuerpo}
       </button>
     );
   }
   return link.href ? (
-    <Link href={link.href} className={`${clase} transition-colors hover:bg-hueso/60`}>
+    <Link href={link.href} className={`${clase} transition-colors vd-pasa`}>
       {cuerpo}
     </Link>
   ) : (

@@ -51,7 +51,7 @@ function BotonAccion({ icono: Icono, texto, activo, onClick, disabled }: { icono
       disabled={disabled}
       aria-expanded={activo}
       className={`grid justify-items-center gap-1.5 rounded-xl border px-2 py-3 text-sm font-semibold text-tinta transition-colors duration-200 ease-cayla disabled:cursor-not-allowed disabled:opacity-50 ${
-        activo ? "border-tinta bg-hueso" : "border-sand hover:border-taupe"
+        activo ? "border-tinta vd-marca" : "border-sand hover:border-taupe"
       }`}
     >
       <Icono aria-hidden className="h-5 w-5 text-taupe" />
@@ -223,7 +223,7 @@ export function FichaColaborador({
                         role="radio"
                         aria-checked={elegido}
                         onClick={() => setRolElegido(r.id)}
-                        className={`grid grid-cols-[18px_minmax(0,1fr)_auto] items-center gap-x-2.5 rounded-lg border px-3 py-2 text-left transition-colors duration-200 ease-cayla ${elegido ? "border-tinta bg-hueso" : "border-sand hover:border-borde-control"}`}
+                        className={`grid grid-cols-[18px_minmax(0,1fr)_auto] items-center gap-x-2.5 rounded-lg border px-3 py-2 text-left transition-colors duration-200 ease-cayla ${elegido ? "border-tinta vd-marca" : "border-sand hover:border-borde-control"}`}
                       >
                         <span aria-hidden className={`grid h-[18px] w-[18px] place-items-center rounded-full border-2 ${elegido ? "border-tinta" : "border-borde-control"}`}>
                           {elegido && <span className="h-2 w-2 rounded-full bg-tinta" />}
@@ -241,7 +241,7 @@ export function FichaColaborador({
               {destino && (
                 // De qué rol a cuál, grande y sin repetir el nombre de la persona (ya está arriba): sin lista de lo que gana o pierde.
                 <div className="flex flex-wrap items-center gap-2.5" aria-label={`De ${persona.rolNombre} a ${destino.nombre}`}>
-                  <span className="rounded-full bg-hueso px-3.5 py-1 text-[14px] font-semibold text-tinta/65">{persona.rolNombre}</span>
+                  <span className="rounded-full vd-gota-chica px-3.5 py-1 text-[14px] font-semibold text-tinta/65">{persona.rolNombre}</span>
                   <ArrowRight aria-hidden className="h-5 w-5 text-taupe" />
                   <span className="rounded-full bg-tinta px-4 py-1.5 text-base font-bold text-crema">{destino.nombre}</span>
                 </div>
@@ -291,7 +291,7 @@ export function FichaColaborador({
                       disabled={actual || !listo}
                       onClick={() => void acciones.cambiarSede(u.id)}
                       className={`rounded-xl border px-3 py-3 text-left text-[14px] font-semibold transition-colors duration-200 ease-cayla disabled:cursor-default ${
-                        actual ? "border-tinta bg-hueso text-tinta" : "border-sand text-tinta hover:border-taupe disabled:opacity-50"
+                        actual ? "border-tinta vd-marca text-tinta" : "border-sand text-tinta hover:border-taupe disabled:opacity-50"
                       }`}
                     >
                       {u.nombre}

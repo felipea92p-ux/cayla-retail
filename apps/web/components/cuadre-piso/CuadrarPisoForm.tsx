@@ -359,7 +359,8 @@ export function CuadrarPisoForm({
       if (decision.tipo === "pregunta") {
         if (decision.cierraPregunta) dejarRastroDelNo(repetidaRef.current.pregunta);
         cambiarRepetida({ ...repetidaRef.current, pregunta: decision.pregunta });
-        avisarLectura("desconocida");
+        // «Ya la escaneaste» suena distinto de «este código no existe» (ADR-0690): mirando el estante se sabe cuál de las dos.
+        avisarLectura("repetida");
         setAviso(null);
         setAnuncio(`${nombreDe(p)} ya está en lo escaneado: llevas ${yaEnLista}. ¿Quieres volver a agregarla?`);
         return enBandeja;
@@ -829,7 +830,7 @@ export function CuadrarPisoForm({
                 <p
                   role="alert"
                   className={`anim-revelar mt-3 flex items-start gap-2 rounded-lg px-3 py-2.5 text-sm ${
-                    aviso.tono === "ambar" ? "border border-ambar/35 bg-ambar/[0.07] text-ambar-profundo" : "bg-hueso text-tinta"
+                    aviso.tono === "ambar" ? "border border-ambar/35 bg-ambar/[0.07] text-ambar-profundo" : "vd-placa text-tinta"
                   }`}
                 >
                   <Info aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />

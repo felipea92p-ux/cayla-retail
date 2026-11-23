@@ -69,7 +69,7 @@ function DatoDelTema({ tema, lectura, tienda }: { tema: Tema; lectura: LecturaCa
                 title={c.nombre}
                 // El color de la prenda es dato: no cambia con el tema (ADR-0336, regla 3).
                 data-color-dato
-                className={`h-5 w-5 rounded-full border border-tinta/15 ${c.hex ? "" : "bg-sand"}`}
+                className={/* beige-fijo: muestra de prenda sin color, el beige es el dato */ `h-5 w-5 rounded-full border border-tinta/15 ${c.hex ? "" : "bg-sand"}`}
                 style={c.hex ? { background: c.hex } : undefined}
               />
             ))}
