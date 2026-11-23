@@ -574,7 +574,7 @@ export function ListaDelEnvio({
             title={sinAviso ? undefined : "Una categoría que no venía en el envío"}
           >
             <Plus aria-hidden className="h-4 w-4 shrink-0" />
-            <span className="whitespace-nowrap text-[14.5px]">{sinAviso ? "Agregar lo que llegó" : "Agregar categoría"}</span>
+            <span className="whitespace-nowrap text-detalle">{sinAviso ? "Agregar lo que llegó" : "Agregar categoría"}</span>
           </button>
         </div>
       </div>

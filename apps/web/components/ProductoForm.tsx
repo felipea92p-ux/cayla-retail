@@ -1742,7 +1742,7 @@ export function ProductoForm({
                 // Una prenda rechazada en el censo es terminal (productos_rechazado_descontinuado_check): ofrecerle «Activo»
                 // sería un botón que la base siempre rechaza. Se dice por qué y qué hacer, en vez de dejar que falle al guardar.
                 <div className="space-y-1">
-                  <p className="label-cayla text-[11px] text-tinta/70">Estado</p>
+                  <p className="label-cayla text-xs text-tinta/70">Estado</p>
                   <p className="text-sm text-tinta">Descontinuado</p>
                   <p className="text-sm text-tinta/60">
                     Se rechazó al revisar un alta al vuelo y no se reactiva. Si fue un error, créala de nuevo con Nuevo producto.
@@ -1780,7 +1780,7 @@ export function ProductoForm({
               />
             ) : (
               <div>
-                <p className="label-cayla text-[11px] text-tinta/65">Temporada</p>
+                <p className="label-cayla text-xs text-tinta/65">Temporada</p>
                 <p className="mt-1.5 flex h-9 items-center text-sm text-tinta/65">{producto?.temporada ?? "Sin temporada"}</p>
                 <p className="mt-1 text-sm text-tinta/55">
                   La lista de temporadas no está disponible ahora (todavía no se activa, o no se pudo leer). Guardar no cambia la temporada.
@@ -1802,7 +1802,7 @@ export function ProductoForm({
                   aria-expanded={verTemporadaColor}
                   aria-controls="producto-temporada-por-color"
                   onClick={() => setVerTemporadaColor((v) => !v)}
-                  className="label-cayla inline-flex items-center gap-1 text-[11px] text-tinta/65 hover:text-rojo"
+                  className="label-cayla inline-flex items-center gap-1 text-xs text-tinta/65 hover:text-rojo"
                 >
                   Temporada por color
                   {conTemporadaPropia > 0 ? ` (${conTemporadaPropia} con la suya)` : ""}

@@ -183,7 +183,7 @@ export function HistorialPrenda({
           </div>
           {gente.length > 0 && familia !== "costo" && (
             <div className="hp-gente" role="group" aria-label="Quién lo hizo" data-filtrando={persona ? "" : undefined}>
-              <span className="label-cayla text-[10.5px] text-tinta/45">Quién</span>
+              <span className="label-cayla text-xs text-tinta/45">Quién</span>
               {gente.map((g) => (
                 <button
                   key={g.clave}
@@ -215,7 +215,7 @@ export function HistorialPrenda({
           <Info aria-hidden />
           <span className="flex-1">No se pudo leer el historial. La prenda no cambió: solo falló la lectura.</span>
           {onReintentar && (
-            <button type="button" className="btn-cayla btn-secundario min-h-9 text-[12.5px]" onClick={onReintentar}>
+            <button type="button" className="btn-cayla btn-secundario min-h-9 text-xs leading-tight" onClick={onReintentar}>
               <RotateCcw aria-hidden className="h-4 w-4" />
               Reintentar
             </button>
@@ -307,20 +307,14 @@ function Hilo({ eventos, hoy, total, recien, hrefMovimientos }: { eventos: Event
       {recien && (
         <div className="hp-nota">
           <Info aria-hidden />
-          <span>Cuando alguien le cambie el precio, un color, una etiqueta o la ficha, aparecerá aquí arriba, con su nombre.</span>
+          <span>Los cambios de precio, color, etiqueta o ficha aparecerán aquí, con su autor.</span>
         </div>
       )}
       <div data-guia="historial-prenda.nota" className="hp-nota">
         <PackageOpen aria-hidden />
         <span>
-          Las ventas, traslados y ajustes de stock de esta prenda no están aquí
-          {hrefMovimientos ? (
-            <>
-              : viven en <Link href={hrefMovimientos}>Movimientos</Link>.
-            </>
-          ) : (
-            ": viven en Movimientos."
-          )}
+          Las ventas, traslados y ajustes de stock están en{" "}
+          {hrefMovimientos ? <Link href={hrefMovimientos}>Movimientos</Link> : "Movimientos"}.
         </span>
       </div>
     </div>

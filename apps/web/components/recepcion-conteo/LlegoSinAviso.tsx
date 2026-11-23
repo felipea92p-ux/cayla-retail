@@ -133,7 +133,7 @@ export function LlegoSinAviso({
     {!hayListaArriba && (
       <div className="flex flex-wrap items-center gap-3">
         <BotonSinAviso abierto={abierto} onCambiar={() => setAbierto((a) => !a)} />
-        {!abierto && <p className="text-[15px] text-taupe">¿Llegó algo sin aviso? Ábrelo aquí.</p>}
+        {!abierto && <p className="text-sm text-taupe">¿Llegó algo sin aviso? Ábrelo aquí.</p>}
       </div>
     )}
     {abierto && (
@@ -230,7 +230,7 @@ export function LlegoSinAviso({
                       <Store className="h-4 w-4" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <b className="block truncate text-[14.5px] text-tinta">{p.nombre}</b>
+                      <b className="block truncate text-detalle text-tinta">{p.nombre}</b>
                       {(p.marcas ?? []).length > 0 && <small className="block truncate text-sm text-taupe">{(p.marcas ?? []).join(" · ")}</small>}
                     </span>
                     {p.id === proveedorId && <Check aria-hidden className="h-4 w-4 text-verde" />}
@@ -308,7 +308,7 @@ export function LlegoSinAviso({
             </span>
           </Boton>
 
-          <p className="nota-cayla text-[15px]">
+          <p className="nota-cayla text-sm">
             Cuando Compras lo despache, el envío aparecerá arriba con lo que dijeron por categoría y marca, y la pantalla comparará sola. Lo que manda otra sede de CAYLA no entra por aquí: se recibe en <b className="text-tinta">Traslados</b>.
           </p>
         </form>

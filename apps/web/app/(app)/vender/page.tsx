@@ -46,7 +46,7 @@ import { ofertasDeGrupoDeFilas } from "@/lib/ofertas-de-grupo";
 export default async function VenderPage({ searchParams }: { searchParams: Promise<{ proforma?: string; repetir?: string }> }) {
   const { proforma, repetir } = await searchParams;
   return (
-    <Suspense fallback={<p className="label-cayla text-[11px] text-tinta/50">Cargando caja…</p>}>
+    <Suspense fallback={<p className="label-cayla text-xs text-tinta/50">Cargando caja…</p>}>
       <Caja proformaId={proforma ?? null} repetirVentaId={!proforma && repetir && /^[0-9a-f-]{36}$/i.test(repetir) ? repetir : null} />
     </Suspense>
   );

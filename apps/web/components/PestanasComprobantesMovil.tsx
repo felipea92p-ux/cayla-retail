@@ -39,7 +39,7 @@ export function PestanasComprobantesMovil({ conteos }: { conteos: ConteosPestana
               <Icono aria-hidden size={20} className={esActiva ? "text-rojo" : undefined} />
               {p.etiqueta}
               {conteo && (
-                <span className={`absolute top-2 left-[calc(50%+6px)] grid h-[17px] min-w-[17px] place-items-center rounded-full px-1 text-[10px] text-papel tabular-nums ${TONO[conteo.tono]}`}>
+                <span className={`absolute top-2 left-[calc(50%+6px)] grid h-[17px] min-w-[17px] place-items-center rounded-full px-1 text-xs text-papel tabular-nums ${TONO[conteo.tono]}`}>
                   {conteo.valor}
                   <span className="sr-only"> {conteo.texto}</span>
                 </span>

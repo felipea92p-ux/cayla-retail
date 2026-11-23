@@ -53,7 +53,7 @@ export function CuentasConClaudia({ cierre }: { cierre: CierreClaure }) {
   const hoy = cierre.hoy;
   return (
     <section className="rounded-xl border border-sand bg-crema/60 p-3.5 text-left" aria-labelledby="cierre-claudia">
-      <p id="cierre-claudia" className="label-cayla text-[10px] text-taupe-profundo">
+      <p id="cierre-claudia" className="label-cayla text-xs text-taupe-profundo">
         Cuentas con Claudia
       </p>
       <p className="mt-1 flex items-baseline justify-between gap-3">

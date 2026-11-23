@@ -51,6 +51,9 @@ const config: KnipConfig = {
       project: ["scripts/**/*.{mjs,js,ts,css}"],
     },
     "apps/web": {
+      // La letra de las cifras (`lib/letra-cifras.ts`, ADR-0691) toma su archivo de este paquete POR RUTA (`next/font/local` pide una
+      // ruta, no un import), así que Knip no ve que se usa.
+      ignoreDependencies: ["@fontsource-variable/inter"],
       // Las rutas de Next (`app/**`, `proxy.ts`), las pruebas de Vitest y los CLI de `package.json` los encuentra Knip solo. Estos no:
       entry: [
         // Se carga por URL desde el navegador: `navigator.serviceWorker.register("/sw.js")` (ADR-0210). Llega a la tienda: lleva `!`.
@@ -75,7 +78,7 @@ const config: KnipConfig = {
       ...(produccion
         ? {
             ignoreFiles: [
-              "lib/{guia-de-foco-pantallas,sugerir-archivos,tema-colores-archivos,beige-plano-archivos,relleno-silencioso-archivos}.ts",
+              "lib/{guia-de-foco-pantallas,sugerir-archivos,tema-colores-archivos,beige-plano-archivos,letra-suelta-archivos,relleno-silencioso-archivos}.ts",
               "lib/*-fixture{,s}.ts",
               // La ayuda de precio de «Nueva orden de compra» (`docs/pantallas/compras-ordenes-precio-y-stock.md`, actividad 1 de 7): las reglas
               // puras nacen antes que su pantalla, que las importa en la actividad 4 (`components/ordenes-compra/NuevaOrdenCompra.tsx`).

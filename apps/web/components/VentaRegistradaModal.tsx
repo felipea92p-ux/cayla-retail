@@ -100,7 +100,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
       {(cerrar) => (
         <div className="space-y-4">
           <div className={`card-cayla p-5 text-center ${ok.offline ? "border-ambar/30" : ""}`}>
-            <p className={`label-cayla text-[11px] ${ok.offline ? "text-ambar-profundo" : "text-verde-profundo"}`}>
+            <p className={`label-cayla text-xs ${ok.offline ? "text-ambar-profundo" : "text-verde-profundo"}`}>
               {ok.offline ? "Guardada en este equipo" : "Listo"}
             </p>
             <p className="font-display mt-2 text-3xl text-tinta">{money(ok.total)}</p>
@@ -112,7 +112,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
 
           {ok.offline && (
             <p className="text-center text-sm text-tinta/65">{/* unificar-fijo: explica qué pasó con la venta sin internet, no es un vacío */}
-              Sin internet: quedó guardada en este equipo y sube sola cuando vuelva la conexión. No se puede emitir comprobante todavía.
+              Sin internet: quedó guardada aquí y sube sola. Todavía sin comprobante.
             </p>
           )}
 
@@ -122,7 +122,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
                   las manos, antes de imprimir nada. */}
               {r.vueltoTotal > 0 && (
                 <div className="flex items-baseline justify-between rounded-xl border border-tinta/15 bg-papel px-4 py-3">
-                  <span className="label-cayla text-[11px] text-tinta/70">Entregar vuelto</span>
+                  <span className="label-cayla text-xs text-tinta/70">Entregar vuelto</span>
                   <span className="font-display text-3xl text-tinta">{money(r.vueltoTotal)}</span>
                 </div>
               )}
@@ -214,7 +214,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
 
           {!ok.offline && !r && (
             <p className="text-center text-sm text-tinta/65">
-              La venta quedó registrada, pero no se pudo leer su comprobante para imprimirlo. Búscala en «Ventas de hoy» o en Facturación.
+              La venta se registró, pero su comprobante no se pudo leer. Búscala en «Ventas de hoy» o en Comprobantes.
             </p>
           )}
           {!ok.offline && (

@@ -1,7 +1,11 @@
 ---
 name: skill-evaluacion-observabilidad
-description: Audita la observabilidad del ERP — logs estructurados, métricas y trazas — de un módulo o de todo el sistema: ¿existe algo que mida y registre?, ¿una RPC o la integración con SUNAT/Lucode/apis.net.pe puede fallar sin que nadie se entere?, ¿hay `catch` que se traga el error, `console.*` sueltos, datos personales en logs, `fetch` sin tope de espera? Úsala al tocar integraciones externas, Server Actions o RPC, antes de optimizar nada («medir antes de optimizar») o cuando algo falló en una tienda y nadie supo por qué.
+description: "Audita si el ERP se entera cuando algo falla: logs, métricas, catch que se tragan el error, fetch sin tope, datos personales en logs, integraciones con SUNAT o apis.net.pe. Úsala al tocar integraciones, RPC o Server Actions, o si algo falló y nadie supo."
 ---
+
+## Qué hace y cuándo se usa
+
+Audita la observabilidad del ERP — logs estructurados, métricas y trazas — de un módulo o de todo el sistema: ¿existe algo que mida y registre?, ¿una RPC o la integración con SUNAT/Lucode/apis.net.pe puede fallar sin que nadie se entere?, ¿hay `catch` que se traga el error, `console.*` sueltos, datos personales en logs, `fetch` sin tope de espera? Úsala al tocar integraciones externas, Server Actions o RPC, antes de optimizar nada («medir antes de optimizar») o cuando algo falló en una tienda y nadie supo por qué.
 
 Audita la observabilidad de: $ARGUMENTS   (un archivo, un módulo, la integración `sunat`, o `todo`)
 

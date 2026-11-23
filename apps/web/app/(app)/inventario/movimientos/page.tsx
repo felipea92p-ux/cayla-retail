@@ -216,8 +216,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
       {/* ADR-0241: sin la instrucción de uso («Toca un movimiento…»): las filas ya se ven tocables (flecha, referencia
           subrayada) y a la tercera visita era ruido. Queda la regla del negocio. */}
       <p data-guia="movimientos.nota" className="nota-cayla">
-        <b>Registro transparente:</b> cada movimiento queda con quién lo hizo, a qué hora y contra qué documento (boleta, factura
-        del proveedor, traslado, conteo). No se edita ni se borra nunca — se corrige con otro movimiento, y los dos quedan.
+        Un movimiento no se edita ni se borra: se corrige con otro, y quedan los dos.
       </p>
     </div>
   );

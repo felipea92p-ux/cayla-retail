@@ -150,7 +150,7 @@ export function AltaAlVuelo({
       titulo="Dar de alta esta prenda"
       subtitulo={
         <>
-          La etiqueta <span className="font-mono text-[12px]">{codigoBarras}</span> no es de ninguna prenda del catálogo. Se registra y se cuenta enseguida.
+          La etiqueta <span className="font-mono text-xs">{codigoBarras}</span> no es de ninguna prenda del catálogo. Se registra y se cuenta enseguida.
         </>
       }
       tamano="mediana"
@@ -183,7 +183,7 @@ export function AltaAlVuelo({
           </div>
           {categoriaId && (
             <div className="space-y-1.5">
-              <p className="label-cayla text-[11px] text-tinta/70">Marca y proveedor</p>
+              <p className="label-cayla text-xs text-tinta/70">Marca y proveedor</p>
               <ElegirMarcaProveedor
                 marcas={marcas.marcas}
                 proveedores={marcas.proveedores}

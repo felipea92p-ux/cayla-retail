@@ -58,8 +58,8 @@ export function MatrizVariantes({
 
   return (
     <div className="space-y-2">
-      <p className="text-[13px] leading-snug">
-        <b className="text-[15px] tabular-nums text-tinta">{incluidas}</b>{" "}
+      <p className="text-xs leading-snug">
+        <b className="text-sm tabular-nums text-tinta">{incluidas}</b>{" "}
         <span className="text-taupe">
           variante{incluidas === 1 ? "" : "s"} ({leyenda.deDonde}). <span className="font-bold text-verde">✓</span> se crea.
           {leyenda.ejemplo && (
@@ -72,7 +72,7 @@ export function MatrizVariantes({
       </p>
 
       <div className="max-h-[min(520px,60dvh)] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
-        <table className="w-full border-separate border-spacing-0 text-[13px]">
+        <table className="w-full border-separate border-spacing-0 text-xs">
           <thead>
             <tr>
               <th scope="col" className="sticky left-0 top-0 z-[3] whitespace-nowrap border-r border-sand vd-pegado py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta sm:pl-3.5">
@@ -92,7 +92,7 @@ export function MatrizVariantes({
               return (
                 <tr key={color ?? "sin-color"}>
                   <th scope="row" className="sticky left-0 z-[1] whitespace-nowrap border-r border-t border-sand bg-papel py-1.5 pl-2 pr-2 text-left font-medium text-tinta sm:py-2 sm:pl-3 sm:pr-2.5">
-                    <span className="flex items-center gap-1.5 text-[12.5px] font-semibold sm:text-[13.5px]">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold sm:text-detalle">
                       {c && <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
                       {nombre}
                     </span>
@@ -111,7 +111,7 @@ export function MatrizVariantes({
                           aria-pressed={!fuera}
                           aria-label={fuera ? `${etiqueta}: no se crea. Toca para volver a ponerla` : `${etiqueta}: se crea. Toca para quitarla`}
                           title={fuera ? "No se crea · toca para volver a ponerla" : "Toca para quitarla"}
-                          className={`flex h-12 w-full min-w-11 items-center justify-center text-[12.5px] transition-colors duration-150 hover:bg-tinta/[0.04] sm:h-[52px] sm:min-w-[54px] ${
+                          className={`flex h-12 w-full min-w-11 items-center justify-center text-xs transition-colors duration-150 hover:bg-tinta/[0.04] sm:h-[52px] sm:min-w-[54px] ${
                             fuera ? RAYADO_FUERA : ""
                           }`}
                         >

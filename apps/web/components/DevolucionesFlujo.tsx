@@ -351,7 +351,7 @@ export function DevolucionesFlujo({
                         />
                         <MiniaturaPrenda fotoUrl={l.fotoUrl} colorHex={l.colorHex} tamano="lg" />
                         <span className={`min-w-0 flex-1 ${estado.devolvible ? "" : "opacity-60"}`}>
-                          <span className="block text-[15px] font-semibold text-tinta">{l.referencia}</span>
+                          <span className="block text-sm font-semibold text-tinta">{l.referencia}</span>
                           <span className="block text-sm text-tinta/75">{varianteLegible(l)}</span>
                           <span className="mt-0.5 block text-sm text-tinta/70">
                             <span className="font-mono">{codigoPrenda(l)}</span> · {soles(l.precioUnitario)}
@@ -411,7 +411,7 @@ export function DevolucionesFlujo({
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
             <div className="posv-placa space-y-9 p-5 sm:p-7">
               <fieldset ref={refMotivo} data-guia="devolucion.motivo">
-                <legend className="text-[15px] font-semibold text-tinta">¿Por qué la devuelve?</legend>
+                <legend className="text-sm font-semibold text-tinta">¿Por qué la devuelve?</legend>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {MOTIVOS_DEVOLUCION.map((m) => (
                     <button
@@ -493,7 +493,7 @@ export function DevolucionesFlujo({
                       <li key={l.ventaItemId} className="posv-placa-plana flex flex-wrap items-center gap-3 rounded-xl p-3">
                         <MiniaturaPrenda fotoUrl={l.fotoUrl} colorHex={l.colorHex} tamano="lg" />
                         <div className="min-w-0 flex-1">
-                          <p className="text-[15px] font-semibold text-tinta">
+                          <p className="text-sm font-semibold text-tinta">
                             {l.referencia} <span className="font-normal text-tinta/70">× {item.cantidad}</span>
                           </p>
                           <p className="text-sm text-tinta/75">{varianteLegible(l)}</p>

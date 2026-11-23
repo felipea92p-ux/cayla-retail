@@ -113,3 +113,4 @@ transición que falta, el camino muerto, el efecto que interfiere) y la carrera 
 - `apps/web/lib/relleno-silencioso-archivos.ts` y `apps/web/lib/relleno-silencioso.test.ts` — la deuda y su candado.
 - `.claude/skills/skill-evaluacion-observabilidad/SKILL.md` — la regla en la auditoría.
 - `.github/workflows/ci.yml`, `knip.ts`.
+- `.claude/rules/relleno-silencioso.md` (la regla, con su fila en el índice de `CLAUDE.md`) y `.claude/rules/caos.md` (la novena familia).

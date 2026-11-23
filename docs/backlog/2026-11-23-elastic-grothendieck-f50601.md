@@ -7,7 +7,8 @@
   con un relleno nuevo y pasa con la marca.
 - [x] 55 rellenos marcados a mano (solo comentarios: el que ya decía qué pasa si falla). Tipos, lint y las 963 pruebas de la web en verde.
 - [x] `/chaos`: familia `boton` (BOT-01 a BOT-08) en `catalogo.mjs`, lector `scripts/chaos/boton.mjs` con 9 pruebas, paso nuevo del CI y la
-  skill, el tablero y CLAUDE.md al día.
+  skill, el tablero y las reglas al día (`.claude/rules/caos.md`, `.claude/rules/relleno-silencioso.md` y su fila en el índice de
+  CLAUDE.md, ADR-0692).
 - [ ] **La deuda del relleno: 129 en 94 archivos.** Cada uno es una decisión de qué debe pasar si esa lectura falla; la skill
   `skill-evaluacion-observabilidad` los toma al auditar cada módulo. Los que tocan dinero, stock o comprobante van primero y son de Felipe.
 - [ ] **La familia `boton` no se corrió todavía contra una pantalla.** Las 9 combinadas que marca el lector (un refresco junto a un efecto

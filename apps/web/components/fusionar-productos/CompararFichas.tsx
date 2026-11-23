@@ -87,7 +87,7 @@ export function CompararFichas({
               <div>
                 <div className="flex min-h-7 flex-wrap items-center gap-1.5">
                   {/* prettier-ignore */}
-                  <h3 /* unificar-fijo: el nombre de la ficha en su columna, no un título de sección */ className="text-[15px] font-semibold leading-tight text-tinta">{p.referencia}</h3>
+                  <h3 /* unificar-fijo: el nombre de la ficha en su columna, no un título de sección */ className="text-sm font-semibold leading-tight text-tinta">{p.referencia}</h3>
                   {p.id === quedaId && <Chip tono="verde">Queda</Chip>}
                 </div>
                 <p className="texto-detalle text-sm text-taupe">

@@ -153,7 +153,7 @@ export function AnularVentaForm({
                   <p className="text-sm text-tinta">
                     {i.referencia} <span className="text-tinta/65">{[i.talla, i.color].filter(Boolean).join("/")}</span>
                   </p>
-                  <p className="font-mono text-[11px] text-tinta/65">
+                  <p className="font-mono text-xs text-tinta/65">
                     {codigoPrenda(i)} × {i.cantidad}
                   </p>
                   <Desplegable

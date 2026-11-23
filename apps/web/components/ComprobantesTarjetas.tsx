@@ -129,7 +129,7 @@ export function ComprobantesTarjetas({
             )
           ) : (
             <>
-              Sin enviar, de todos los meses
+              De todos los meses
               {rechazados === 0 && porEnviar.masAntiguoAt && <> · la más antigua: {antiguedad(porEnviar.masAntiguoAt, ahora)}</>}.
             </>
           )

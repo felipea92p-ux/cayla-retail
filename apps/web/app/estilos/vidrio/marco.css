@@ -131,7 +131,7 @@
   padding-left: var(--fila-x);
   padding-right: 12px;
   border-radius: 10px;
-  font-size: 13.5px;
+  font-size: var(--text-detalle);
   --fila-x: 12px;
 }
 /* (Desde el 2026-11-02, con el menú abierto el primer nivel queda fijo en 40 px y sin aire: `useMenuHolgado` ya no lo reparte; plegado sigue
@@ -139,9 +139,9 @@
    2026-10-31). Las hijas conservan su alto: lo que crece es el índice, no la bandeja. */
 .marco-fila[data-prof="0"] { height: var(--fila-alto, 40px); }
 .marco-riel nav [data-pieza-cajon] + [data-pieza-cajon] { margin-top: var(--fila-aire, 0px); }
-.marco-riel nav[data-holgado] .marco-fila[data-prof="0"] { font-size: 14.5px; gap: 0.875rem; }
-.marco-fila[data-prof="1"] { height: 36px; font-size: 13px; --fila-x: 20px; }
-.marco-fila[data-prof="2"] { height: 34px; font-size: 12.5px; --fila-x: 40px; }
+.marco-riel nav[data-holgado] .marco-fila[data-prof="0"] { font-size: var(--text-detalle); gap: 0.875rem; }
+.marco-fila[data-prof="1"] { height: 36px; font-size: var(--text-xs); --fila-x: 20px; }
+.marco-fila[data-prof="2"] { height: 34px; font-size: var(--text-xs); --fila-x: 40px; }
 .marco-fila[data-fila-activa] { padding-left: calc(var(--fila-x) + 8px); }
 /* El corrimiento se anima solo con el menú abierto: plegado, el ícono va al centro y no hay nada que correr. */
 .marco-riel:not([data-compacto]) .marco-fila {
@@ -248,10 +248,11 @@
 
 /* Plegado (Plegado A · Con nombre, 84 px; el ancho vive en `--spacing-lateral`, globals.css). Antes el nombre invisible seguía
    ocupando su lugar y empujaba el ícono a la izquierda. Ahora cada fila es un cuadrado con el ícono al centro, la gota es ese
-   cuadrado y la marca roja sale al canto del menú para no descentrarlo; bajo cada ícono, su nombre corto en 10 px (ley 1: sin
-   manual, no hace falta apuntar para saber qué es). `data-compacto` lo pone el AppShell solo en escritorio: en el cajón del
-   celular el menú va siempre abierto, aunque la preferencia diga «plegado». */
-.marco-riel[data-compacto] nav { padding-inline: 10px; }
+   cuadrado y la marca roja sale al canto del menú para no descentrarlo; bajo cada ícono, su nombre corto en 13 px, el piso de la
+   escala (ADR-0691; era 10) (ley 1: sin manual, no hace falta apuntar para saber qué es). `data-compacto` lo pone el AppShell solo en
+   escritorio: en el cajón del celular el menú va siempre abierto, aunque la preferencia diga «plegado».
+   El margen de los lados bajó de 10 a 6 px: a 13 px, «Inventario» y «Apariencia» no entraban en 64 px y salían con «…». */
+.marco-riel[data-compacto] nav { padding-inline: 6px; }
 .marco-riel[data-compacto] .marco-fila[data-prof="0"] {
   flex-direction: column;
   justify-content: center;
@@ -266,7 +267,7 @@
   display: block;
   max-width: 100%;
   padding: 0 2px;
-  font-size: 10px;
+  font-size: var(--text-xs);
   line-height: 1.15;
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -527,8 +528,8 @@
   transition: transform 300ms var(--ease-cayla);
 }
 .marco-yo-texto { display: flex; min-width: 0; flex: 1; flex-direction: column; line-height: 1.25; }
-.marco-yo-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; font-weight: 600; color: var(--color-tinta); }
-.marco-yo-rol { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
+.marco-yo-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-detalle); font-weight: 600; color: var(--color-tinta); }
+.marco-yo-rol { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-xs); color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 .marco-yo-salida { flex: none; }
 .marco-yo-salir {
   display: grid;

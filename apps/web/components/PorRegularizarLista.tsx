@@ -266,8 +266,7 @@ export function PorRegularizarLista({
       </div>
 
       <p data-guia="regularizar.nota" className="nota-cayla text-sm">
-        Son prendas que caja vendió antes de que estuvieran en el sistema. Al regularizarlas, la venta pasa a la prenda real y el stock queda cuadrado. Las pendientes salen todas; las ya resueltas, las de este
-        mes y el anterior.
+        Prendas que caja vendió antes de estar en el sistema. Al regularizarlas, el stock cuadra.
       </p>
 
       {sugiriendo && <SugerenciasColaModal filas={filas} prendas={prendas} preciosPorSede={preciosPorSede} sedes={sedesConPendientes} inicial={sedeInicial} onClose={() => setSugiriendo(false)} />}

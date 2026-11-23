@@ -87,7 +87,7 @@ export function FiltrosRapidos({
               <span className="flex shrink-0 items-center gap-2" aria-hidden>
                 <span className="mx-1 h-5 w-px bg-tinta/15" />
                 {/* El rótulo solo donde sobra ancho: debajo, la línea ya separa y cada botón dice su nombre. */}
-                <span className="label-cayla hidden text-[10px] text-taupe min-[1400px]:inline">Recomendados</span>
+                <span className="label-cayla hidden text-xs text-taupe min-[1400px]:inline">Recomendados</span>
               </span>
             )}
             <button

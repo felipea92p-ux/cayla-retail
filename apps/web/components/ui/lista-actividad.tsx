@@ -37,14 +37,14 @@ export const PUNTO_ACTIVIDAD: Record<TonoChip, string> = {
 /** El título de cada día: una fila negra (tinta) con la letra blanca de CAYLA (crema), «HOY» o «SÁBADO, 26 DE SETIEMBRE» a la izquierda y
  *  cuántas filas trae el día a la derecha (Felipe, 2026-10-01: que el día se vea de un golpe al recorrer la lista). */
 export const DIA_TITULO = "mt-4 mb-1 flex items-baseline justify-between gap-3 rounded-lg bg-tinta px-3 py-2";
-export const DIA_ETIQUETA = "label-cayla text-[11px] font-bold text-crema";
-export const DIA_CUANTOS = "label-cayla text-[10.5px] font-bold text-crema";
+export const DIA_ETIQUETA = "label-cayla text-xs font-bold text-crema";
+export const DIA_CUANTOS = "label-cayla text-xs font-bold text-crema";
 
 /** La hora, primera columna de la fila (con 42 rem de tarjeta; más angosta sigue bajo el nombre, donde no hay columnas). Un rango trae
  *  la hora de la primera y, debajo, la de la última. */
 export function ColumnaHora({ desde, hasta }: { desde?: string | null; hasta?: string | null }) {
   return (
-    <span className="hidden whitespace-nowrap text-[13px] leading-snug tabular-nums text-taupe @min-[42rem]:block">
+    <span className="hidden whitespace-nowrap text-xs leading-snug tabular-nums text-taupe @min-[42rem]:block">
       {desde}
       {hasta && hasta !== desde && <span className="block">–{hasta}</span>}
     </span>

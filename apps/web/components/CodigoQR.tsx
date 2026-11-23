@@ -35,7 +35,7 @@ export function CodigoQR({ texto, ladoMm = LADO_QR_MM }: { texto: string; ladoMm
 
   if (texto.length > MAX_CARACTERES_COMODOS) {
     return (
-      <p className="text-[8px] leading-tight text-rojo">
+      <p className="text-[8px] leading-tight text-rojo" data-letra-fija>{/* letra-fija: el aviso va dentro del cuadro del QR, que mide milímetros de etiqueta */}
         «{texto}» tiene {texto.length} caracteres; a {ladoMm} mm entran cómodos{" "}
         {MAX_CARACTERES_COMODOS}. Agrandá el QR o acortá el código.
       </p>

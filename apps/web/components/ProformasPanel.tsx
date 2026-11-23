@@ -111,7 +111,7 @@ export function ProformasPanel({
       <div data-guia="proformas.lista" className={`card-cayla anim-sube @container ${proformasOrdenadas.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 6 } as CSSProperties}>
         <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-[18px] pb-3.5">
           <div className="min-w-0">
-            <p className="label-cayla text-[11px] text-tinta/65">
+            <p className="label-cayla text-xs text-tinta/65">
               Proformas
               <Ayuda titulo="Proforma">
                 No es un comprobante de pago: SUNAT no la reconoce y no usa número de serie. Sirve para cotizarle prendas a
@@ -120,7 +120,7 @@ export function ProformasPanel({
               </Ayuda>
             </p>
             <TituloSeccion className="mt-0.5">Todas las proformas</TituloSeccion>
-            <p className="mt-0.5 text-sm text-tinta/65">Las vigentes de cualquier mes, más las que se hicieron {periodo}. Las que vencen antes van primero.</p>
+            <p className="mt-0.5 text-sm text-tinta/65">Las vigentes y las hechas {periodo}.</p>
             {conversion.porcentaje !== null && (
               <p className="mt-1.5 text-sm text-tinta/75">
                 De las {conversion.creadas} creadas {periodo},{" "}
@@ -146,7 +146,7 @@ export function ProformasPanel({
           <SinCoincidencias />
         ) : (
           <>
-            <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-[11px] text-tinta/65 ${COLUMNAS}`}>
+            <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-xs text-tinta/65 ${COLUMNAS}`}>
               <span>Fecha</span>
               <span>Proforma</span>
               <span className="text-right">Total</span>
@@ -166,7 +166,7 @@ export function ProformasPanel({
                   <div className={`flex flex-col gap-2 px-5 py-3 transition-colors duration-150 hover:bg-tinta/[0.025] @min-[640px]:items-center @min-[640px]:gap-x-4 @min-[640px]:gap-y-0 ${COLUMNAS}`}>
                     <div className="flex items-baseline gap-2 @min-[640px]:block">
                       <p className="font-display text-lg leading-tight tabular-nums text-tinta">{dia}</p>
-                      <p className="label-cayla text-[10px] text-tinta/65 @min-[640px]:mt-0.5">{hora}</p>
+                      <p className="label-cayla text-xs text-tinta/65 @min-[640px]:mt-0.5">{hora}</p>
                     </div>
 
                     <button
@@ -176,7 +176,7 @@ export function ProformasPanel({
                       aria-expanded={abierta}
                       className="group min-w-0 rounded-md text-left outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60 disabled:cursor-default"
                     >
-                      <p className="truncate text-[15px] leading-normal text-tinta">
+                      <p className="truncate text-sm leading-normal text-tinta">
                         <span className="text-tinta/65">{numeroDeProforma(p.numero)}</span> · {quien}
                       </p>
                       <p className="flex items-center gap-1 text-sm text-tinta/60">

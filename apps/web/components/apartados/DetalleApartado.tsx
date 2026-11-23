@@ -205,14 +205,14 @@ function VistaDetalle({
             },
           ].map((x, i) => (
             <div key={x.t}>
-              <dt className="label-cayla text-[10.5px] text-tinta/60">{x.t}</dt>
+              <dt className="label-cayla text-xs text-tinta/60">{x.t}</dt>
               <dd className={`font-display text-xl leading-tight ${i === 2 ? "text-tinta" : "text-tinta/80"}`}>{money(x.v)}</dd>
             </div>
           ))}
         </dl>
         <BarraAvance pct={(Math.min(a.adelanto, a.total) / a.total) * 100} decorativa />
         {conEstante && a.estante && abierto && (
-          <p className="inline-flex items-center gap-1 rounded-md vd-gota-chica px-2 py-0.5 font-mono text-[11px] text-tinta/80">
+          <p className="inline-flex items-center gap-1 rounded-md vd-gota-chica px-2 py-0.5 font-mono text-xs text-tinta/80">
             <Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}
           </p>
         )}

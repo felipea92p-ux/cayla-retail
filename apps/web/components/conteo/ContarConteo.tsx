@@ -640,7 +640,7 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
             {filtrando && hayVariantes && !vaciaPorAcotar && nCoincidencias > 0 ? (
               <span>
                 Mostrando {nCoincidencias} de {acotadas.length} {acotadas.length === 1 ? "variante" : "variantes"} ·{" "}
-                <button type="button" onClick={() => setTexto("")} className="btn-cayla btn-enlace inline min-h-0 p-0 align-baseline text-[13px]">
+                <button type="button" onClick={() => setTexto("")} className="btn-cayla btn-enlace inline min-h-0 p-0 align-baseline text-xs leading-tight">
                   Limpiar
                 </button>
               </span>
@@ -858,7 +858,7 @@ function SinCoincidencias({ texto, sugeridas, alSumar }: { texto: string; sugeri
                 <span className="min-w-0">
                   <span className="block truncate">{p.referencia}</span>
                   <span className="block truncate text-sm text-taupe">
-                    {detalleDe(p) || "Sin talla ni color"} · <span className="font-mono text-[11px]">{p.sku || "sin código"}</span>
+                    {detalleDe(p) || "Sin talla ni color"} · <span className="font-mono text-xs">{p.sku || "sin código"}</span>
                   </span>
                 </span>
                 <button type="button" onClick={() => alSumar(p)} className="btn-cayla btn-secundario btn-chico shrink-0">

@@ -138,7 +138,7 @@ export function ApartadosModal({
                         {a.referencia}
                         <span className="text-tinta/55"> · {a.cantidad} {a.cantidad === 1 ? "prenda" : "prendas"}</span>
                       </p>
-                      <p className="font-mono text-[11px] text-tinta/55">
+                      <p className="font-mono text-xs text-tinta/55">
                         {a.sku}
                         {detalle ? ` · ${detalle}` : ""}
                       </p>
@@ -169,7 +169,7 @@ export function ApartadosModal({
                         <button
                           type="button"
                           onClick={() => setLiberando(a)}
-                          className="label-cayla text-[10px] text-tinta/55 underline underline-offset-2 hover:text-rojo hover:no-underline"
+                          className="label-cayla text-xs text-tinta/55 underline underline-offset-2 hover:text-rojo hover:no-underline"
                         >
                           Liberar
                         </button>

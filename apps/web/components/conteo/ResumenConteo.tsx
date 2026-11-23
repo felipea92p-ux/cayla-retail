@@ -48,7 +48,7 @@ function Progreso({ resumen, lateral, conPorcentaje = false }: { resumen: Resume
   return (
     <div className="w-full min-w-0">
       <div className="flex items-baseline justify-between gap-3">
-        <p className={`min-w-0 tabular-nums text-tinta ${conPorcentaje ? "text-[15px] font-semibold" : "text-sm font-medium"}`}>{texto}</p>
+        <p className={`min-w-0 tabular-nums text-tinta ${conPorcentaje ? "text-sm font-semibold" : "text-sm font-medium"}`}>{texto}</p>
         {lateral ? <span className="shrink-0 text-sm text-taupe">{lateral}</span> : null}
       </div>
       {/* La barra de avance del sistema (ronda 13): tinta mientras se cuenta y verde cuando ya se verificó todo. */}

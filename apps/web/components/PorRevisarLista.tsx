@@ -47,7 +47,7 @@ export function PorRevisarLista({
                   categoria={p.categoria}
                 />
                 <div className="min-w-0 space-y-1">
-                  <p className="flex flex-wrap items-baseline gap-x-2 text-[15px] font-semibold text-tinta">
+                  <p className="flex flex-wrap items-baseline gap-x-2 text-sm font-semibold text-tinta">
                     <Link href={`/productos/${p.productoId}/editar`} className="underline-offset-2 hover:underline" title="Abrir la ficha de la prenda">
                       {p.referencia}
                     </Link>

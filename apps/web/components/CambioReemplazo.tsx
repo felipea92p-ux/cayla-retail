@@ -26,7 +26,7 @@ const OPCION_SIN_STOCK = `${OPCION} posv-opcion posv-opcion-hueco`;
 
 function Pregunta({ children, id }: { children: ReactNode; id?: string }) {
   return (
-    <legend id={id} className="text-[15px] font-semibold text-tinta">
+    <legend id={id} className="text-sm font-semibold text-tinta">
       {children}
     </legend>
   );
@@ -187,7 +187,7 @@ export function CambioReemplazo({
       </fieldset>
 
       <div ref={refPrenda}>
-        <label htmlFor={`${idBase}-prenda`} className="text-[15px] font-semibold text-tinta">
+        <label htmlFor={`${idBase}-prenda`} className="text-sm font-semibold text-tinta">
           ¿Qué se lleva?
         </label>
         <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -251,7 +251,7 @@ export function CambioReemplazo({
               return (
                 <div key={extra.id} className="space-y-4 rounded-2xl vd-placa p-4 sm:p-5">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-tinta/65">Otra prenda · la {cual}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-tinta/65">Otra prenda · la {cual}</p>
                     <button
                       type="button"
                       onClick={() => onQuitarExtra(extra.id)}
@@ -329,7 +329,7 @@ export function CambioReemplazo({
 
       {disponible > 1 && (
         <div>
-          <label htmlFor={`${idBase}-cantidad`} className="text-[15px] font-semibold text-tinta">
+          <label htmlFor={`${idBase}-cantidad`} className="text-sm font-semibold text-tinta">
             ¿Cuántas cambia?
           </label>
           <p className="text-sm text-tinta/70">Compró {linea.cantidad}; quedan {disponible} por cambiar.</p>

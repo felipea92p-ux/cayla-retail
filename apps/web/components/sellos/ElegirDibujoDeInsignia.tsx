@@ -177,7 +177,7 @@ export function ElegirDibujoDeInsignia({
           </span>
         </label>
       )}
-      {!imagen && !error && <p className="text-sm text-taupe">¿No está el que buscas? Sube tu imagen: mejor un PNG con fondo transparente, que se reduce a 256 × 256.</p>}
+      {!imagen && !error && <p className="text-sm text-taupe">¿No está? Sube tu imagen: mejor un PNG sin fondo.</p>}
       {aviso && <p className="text-sm text-taupe">{aviso}</p>}
       {error && (
         <Aviso tono="error" chico>

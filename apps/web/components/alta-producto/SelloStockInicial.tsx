@@ -10,7 +10,7 @@ export function SelloStockInicial({ unidades, llegada = false }: { unidades: num
       aria-label={`${llegada ? "Llegada recibida" : "Stock inicial sellado"}: ${unidades} ${unidades === 1 ? "unidad" : "unidades"}`}
       className="sello-stock-inicial ml-auto grid h-[96px] w-[96px] flex-none place-items-center rounded-full border-2 border-rojo text-center text-rojo"
     >
-      <span aria-hidden className="block text-[8px] font-bold uppercase leading-tight tracking-[0.1em]">
+      <span aria-hidden className="block text-xs font-bold uppercase leading-tight tracking-[0.1em]">
         {llegada ? "Llegada" : "Stock inicial"}
         <b className="block font-serif text-[22px] font-medium normal-case leading-none tracking-normal">{unidades} u.</b>
         {llegada ? "recibida" : "sellado"}

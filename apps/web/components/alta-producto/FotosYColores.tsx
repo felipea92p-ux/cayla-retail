@@ -410,7 +410,7 @@ export function FotosYColores({
           <span className="grid h-12 w-12 place-items-center rounded-full border border-sand bg-papel">
             <ImagePlus aria-hidden className="h-5 w-5" />
           </span>
-          <p className="font-serif text-[21px] leading-tight">Sube la foto de cada color</p>
+          <p className="font-serif text-xl leading-tight">Sube la foto de cada color</p>
           <p className="text-sm text-tinta/70">El color sale solo de la foto.</p>
           <div className="mt-1 flex flex-wrap items-center justify-center gap-3">
             <BotonFoto onArchivos={agregar} disabled={disabled} etiqueta="Subir fotos" className="btn-cayla btn-primario">
@@ -472,7 +472,7 @@ export function FotosYColores({
                       {L?.tipo === "estampado" && !p.motivo ? (
                         <>
                           {/* Con dibujo, lo de casi siempre es la mezcla de sus tonos: el dibujo ya lo dice el patrón (Felipe 2026-11-14). */}
-                          <p className="text-[15px] font-medium">Tiene dibujo</p>
+                          <p className="text-sm font-medium">Tiene dibujo</p>
                           <Partes lectura={L} />
                           <div className="flex flex-wrap gap-2">
                             <Boton
@@ -494,7 +494,7 @@ export function FotosYColores({
                         </>
                       ) : L?.tipo === "muchos" && !p.motivo ? (
                         <>
-                          <p className="text-[15px] font-medium">Tiene {L.partes.length} colores</p>
+                          <p className="text-sm font-medium">Tiene {L.partes.length} colores</p>
                           <div className="flex flex-wrap gap-2">
                             {multicolor && (
                               <Boton type="button" peso="primario" className="btn-chico" disabled={disabled} onClick={() => contestar(p, null, multicolor.codigo)}>
@@ -509,14 +509,14 @@ export function FotosYColores({
                       ) : p.eleccion?.some((c) => c === null) ? (
                         <>
                           {partes.length > 1 && (
-                            <p className="text-[15px] font-medium">
+                            <p className="text-sm font-medium">
                               {nombreParcial(p.eleccion.map((c) => (c ? nombreDe(c) : "¿?")))}
                             </p>
                           )}
                           {partes.map((x, i) =>
                             p.eleccion?.[i] ? null : (
                               <div key={x.color.codigo} className="space-y-2">
-                                <p className="text-[15px] font-medium">{partes.length > 1 ? "Un color no está creado" : "Este color no está creado"}</p>
+                                <p className="text-sm font-medium">{partes.length > 1 ? "Un color no está creado" : "Este color no está creado"}</p>
                                 <div className="flex items-center gap-2.5 text-sm text-tinta/80">
                                   {/* El tono medido es dato de la prenda, no del tema. */}
                                   <span data-color-dato aria-hidden className="h-9 w-9 shrink-0 rounded-xl border border-tinta/20" style={{ background: x.visto }} />
@@ -553,7 +553,7 @@ export function FotosYColores({
                         </Boton>
                       ) : (
                         <>
-                          {!p.motivo && <p className="text-[15px] font-medium">No se ve la prenda en la foto</p>}
+                          {!p.motivo && <p className="text-sm font-medium">No se ve la prenda en la foto</p>}
                           <Boton type="button" peso="primario" className="btn-chico w-fit" disabled={disabled} onClick={() => setCarteando({ para: "pendiente", clave: p.clave })}>
                             Elegir el color
                           </Boton>
@@ -628,7 +628,7 @@ export function FotosYColores({
                   <div className="flex flex-1 flex-col gap-2 p-3">
                     <div className="flex items-center gap-2.5">
                       <Punto hex={color?.hex ?? null} familia={color?.familiaColor} tipo={color?.tipo} tonos={color ? tonosDe(color) : null} grande />
-                      <span className="min-w-0 flex-1 text-[15px] font-medium leading-tight">{nombre}</span>
+                      <span className="min-w-0 flex-1 text-sm font-medium leading-tight">{nombre}</span>
                       {yaTiene?.has(codigo) && !suyas.length && (
                         <Chip tono="neutro" versalitas={false}>
                           Ya la tiene
@@ -670,7 +670,7 @@ export function FotosYColores({
                 onArchivos={agregar}
                 disabled={disabled}
                 etiqueta="Otra foto"
-                className={`flex h-full min-h-56 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed text-[15px] font-medium transition-colors hover:border-tinta disabled:opacity-40 ${encima ? "border-tinta vd-marca" : "border-borde-control vd-hundido"}`}
+                className={`flex h-full min-h-56 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed text-sm font-medium transition-colors hover:border-tinta disabled:opacity-40 ${encima ? "border-tinta vd-marca" : "border-borde-control vd-hundido"}`}
               >
                 <span className="grid h-11 w-11 place-items-center rounded-full border border-sand bg-papel">
                   <ImagePlus aria-hidden className="h-5 w-5" />
