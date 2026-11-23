@@ -108,8 +108,11 @@ de siempre: el concepto en 4-6 líneas empezando por el problema (no la definici
 
 ## Ritual de sesión y estado vivo (específico de este repo)
 
-Al abrir sesión: miro `git status --short`, los archivos tocados en las últimas horas y `docs/SESIONES-ACTIVAS.md`, para no duplicar
-lo que otra sesión ya está haciendo (el 2026-09-12 dos sesiones escribieron la misma documentación en paralelo sin saberlo). Luego
+Al abrir sesión: miro `git status --short` y **`pnpm sesiones`**, el tablero de quién trabaja en qué, para no duplicar lo que otra
+sesión ya está haciendo (el 2026-09-12 dos sesiones escribieron la misma documentación en paralelo sin saberlo). El tablero se arma
+solo de las worktrees de este equipo, las ramas `claude/*` de las últimas 48 h, los PR abiertos y las reservas, cruza los choques con
+el detector de `/abrir-pr` y no guarda nada (ADR-0697); un resumen corto llega solo al abrir la sesión (hook `SessionStart`). Nadie
+anota filas a mano: `docs/SESIONES-ACTIVAS.md` quedó como historia. Luego
 leo **el camino mínimo**: este archivo (las reglas de `.claude/rules/` se cargan solas al tocar su carpeta),
 `docs/datos/15-COMO-OPERA-CAYLA.md`, `docs/datos/00-MAPA.md`, `docs/datos/generado/AVIARIO.md` y, si existe,
 `docs/pantallas/<pantalla>.md`. La bitácora y el backlog **se buscan, no se leen enteros** (por módulo, término o entrada reciente):

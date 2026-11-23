@@ -29,7 +29,7 @@ Adapta las sugerencias al contexto elegido en: $ARGUMENTS
 3. Las superficies son de dos clases, y la segunda pide más cuidado:
    - **Pasivas:** placeholder, «Ej. …», texto de ayuda. Solo informan.
    - **Activas:** chips o lista que **rellenan al tocarlos**, autocompletado, un orden por relevancia (colores por uso). Escriben un valor.
-4. Mira `docs/SESIONES-ACTIVAS.md`: si otra sesión toca los mismos archivos, **avísalo y no la pises** (en la primera corrida, `ProductoForm.tsx` estaba tomado por otra sesión y se dejó en la deuda a propósito).
+4. Mira `pnpm sesiones`: si otra sesión toca los mismos archivos, **avísalo y no la pises** (en la primera corrida, `ProductoForm.tsx` estaba tomado por otra sesión y se dejó en la deuda a propósito).
 
 ## Paso 2 — Mapa de dependencias (la parte que se olvida)
 

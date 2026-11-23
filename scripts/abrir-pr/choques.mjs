@@ -33,8 +33,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { leerReservas, revisarReservas } from "../reservar/reservas.mjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const ADR = /^docs\/adr\/(\d{4})-.+\.md$/;
-const MIGRACION = /^supabase\/migrations\/(\d{14})_.+\.sql$/;
+export const ADR = /^docs\/adr\/(\d{4})-.+\.md$/;
+export const MIGRACION = /^supabase\/migrations\/(\d{14})_.+\.sql$/;
 
 /**
  * Archivos que casi toda pantalla o módulo nuevo toca, y donde dos PR chocan aunque git los mezcle: dos entradas en el
@@ -73,7 +73,7 @@ export function funcionesQueToca(sql) {
 }
 
 /** Los números de un patrón (`ADR` o `MIGRACION`) en una lista de rutas. */
-function numeros(rutas, patron) {
+export function numeros(rutas, patron) {
   return [...new Set(rutas.map((r) => patron.exec(r)?.[1]).filter(Boolean))].sort();
 }
 
@@ -99,15 +99,15 @@ export function detectarChoques({ mio, otros, main, reservas = [], rama = "" }) 
   for (const otro of otros) {
     const con = `#${otro.numero} ${otro.titulo}`.trim();
     for (const n of comunes(mio.adrs, otro.adrs))
-      seguros.push({ con, que: `ADR ${n}`, detalle: "los dos PR lo agregan: renumera el que no tenga la reserva (`pnpm reservar --listar`)" });
+      seguros.push({ con, que: `ADR ${n}`, detalle: "las dos ramas lo agregan: renumera el que no tenga la reserva (`pnpm reservar --listar`)" });
     for (const n of comunes(mio.migraciones, otro.migraciones))
-      seguros.push({ con, que: `migración ${n}`, detalle: "los dos PR la agregan: `supabase start` fallará con schema_migrations_pkey al fusionar el segundo" });
+      seguros.push({ con, que: `migración ${n}`, detalle: "las dos ramas la agregan: `supabase start` fallará con schema_migrations_pkey al fusionar el segundo" });
     for (const f of comunes(mio.funciones, otro.funciones ?? []))
       probables.push({
         con,
         que: `retail.${f}`,
         detalle:
-          "los dos PR cambian esta función por migración: el segundo en fusionar se aplica encima del primero; si es un reemplazo anclado, su ancla puede no estar ya, y las pruebas que lo deshacen (DESHACER_*) tienen que conocer los dos",
+          "las dos ramas cambian esta función por migración: el segundo en fusionar se aplica encima del primero; si es un reemplazo anclado, su ancla puede no estar ya, y las pruebas que lo deshacen (DESHACER_*) tienen que conocer los dos",
       });
     const deRegistro = comunes(mio.archivos, otro.archivos).filter((a) => DE_REGISTRO.some((r) => r.test(a)));
     for (const a of deRegistro) probables.push({ con, que: a, detalle: "archivo de registro: revisa que las dos entradas no pidan el mismo lugar, orden o clave" });
@@ -143,8 +143,9 @@ function existeEn(ref, ruta) {
 }
 
 /** `rutasDeMain`: un ADR o una migración que el PR «agrega» pero que ya está en main con ESE MISMO archivo (un PR viejo cuyo
- * contenido ya entró por otro camino) no es un número nuevo: no cuenta. */
-function leerOtros(miRama, rutasDeMain = new Set()) {
+ * contenido ya entró por otro camino) no es un número nuevo: no cuenta. También lo usa el tablero de sesiones
+ * (`scripts/sesiones/tablero.mjs`, ADR-0697), que junta cada PR con su worktree por la `rama`. */
+export function leerOtros(miRama, rutasDeMain = new Set()) {
   const prs = JSON.parse(sh("gh", ["pr", "list", "--state", "open", "--limit", "100", "--json", "number,title,headRefName,isCrossRepository,files"]));
   return prs
     .filter((pr) => pr.headRefName !== miRama)
@@ -166,11 +167,11 @@ function leerOtros(miRama, rutasDeMain = new Set()) {
                 return []; // la borró, o la rama ya no está en el remoto
               }
             });
-      return { numero: pr.number, titulo: pr.title, archivos, adrs: numeros(agregados, ADR), migraciones: numeros(agregados, MIGRACION), funciones: [...new Set(funciones)] };
+      return { numero: pr.number, titulo: pr.title, rama: pr.headRefName, archivos, adrs: numeros(agregados, ADR), migraciones: numeros(agregados, MIGRACION), funciones: [...new Set(funciones)] };
     });
 }
 
-function leerMain() {
+export function leerMain() {
   const rutas = sh("git", ["ls-tree", "-r", "--name-only", "origin/main", "docs/adr/", "supabase/migrations/"]).split("\n");
   return { adrs: numeros(rutas, ADR), migraciones: numeros(rutas, MIGRACION), rutas: new Set(rutas) };
 }

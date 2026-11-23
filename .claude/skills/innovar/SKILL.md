@@ -37,7 +37,7 @@ oportunidades de mejora en cualquier cosa nueva que se crea, e incluso auditar l
 
 1. `git fetch origin` y `git rev-list --left-right --count HEAD...origin/main`; anota `git rev-parse --short origin/main`. Si la rama va detrás,
    los agentes leen con `git show origin/main:<ruta>`.
-2. Lo que ya está en vuelo: `docs/SESIONES-ACTIVAS.md` (tabla «Activas ahora») y `gh pr list --state open --limit 60`.
+2. Lo que ya está en vuelo: `pnpm sesiones` (las sesiones activas, los PR abiertos y sus choques).
 3. **Lo que ya se propuso:** `docs/innovacion/README.md`. Nada que esté `descartada` vuelve, salvo que el motivo del descarte ya no sea cierto
    (y se dice cuál cambió). Lo que está `propuesta` o `aceptada` no se repite: se cita su id.
 4. **El radar:** lee la fecha de `docs/radar/README.md`. Con más de 14 días (la rutina semanal faltó dos veces), dilo en la primera línea del informe y ofrece `/innovar radar` al final;
