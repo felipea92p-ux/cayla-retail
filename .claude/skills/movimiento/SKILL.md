@@ -1,7 +1,11 @@
 ---
 name: movimiento
-description: Diseña y audita el movimiento de una pieza del ERP al milímetro —qué se mueve, con qué tiempo (`--t-resp`, `--t-cambio`, `--t-hoja`, `--t-momento`), con qué curva, en qué orden y cómo se ve quieta— y enseña a hacer «full animaciones» que se sientan de clase mundial: con propósito, coreografía, desfases con tope, salida más corta que la entrada, solo transform y opacity, interrumpibles, una vez y sin bucle. Dice también dónde no van nunca (lo que se usa cientos de veces, el teclado, las filas). Respeta ADR-0136 y ADR-0625 y mide en el navegador con `document.getAnimations()`. Úsala cuando Felipe diga «full animaciones», «anímalo», «que se mueva bonito», «se siente lenta», «movimiento», cuando una hoja o una pantalla nueva vaya a moverse, o cuando /milimetro pida la sección Movimiento de una ficha. Con `auditar <ruta>` solo mide.
+description: "Diseña y audita el movimiento de una pieza al milímetro (tiempo, curva, orden y su versión quieta) dentro de ADR-0136 y ADR-0625. Úsala con «full animaciones», «anímalo» o «se siente lenta», o cuando /milimetro pida la sección Movimiento."
 ---
+
+## Qué hace y cuándo se usa
+
+Diseña y audita el movimiento de una pieza del ERP al milímetro —qué se mueve, con qué tiempo (`--t-resp`, `--t-cambio`, `--t-hoja`, `--t-momento`), con qué curva, en qué orden y cómo se ve quieta— y enseña a hacer «full animaciones» que se sientan de clase mundial: con propósito, coreografía, desfases con tope, salida más corta que la entrada, solo transform y opacity, interrumpibles, una vez y sin bucle. Dice también dónde no van nunca (lo que se usa cientos de veces, el teclado, las filas). Respeta ADR-0136 y ADR-0625 y mide en el navegador con `document.getAnimations()`. Úsala cuando Felipe diga «full animaciones», «anímalo», «que se mueva bonito», «se siente lenta», «movimiento», cuando una hoja o una pantalla nueva vaya a moverse, o cuando /milimetro pida la sección Movimiento de una ficha. Con `auditar <ruta>` solo mide.
 
 **Una animación rica se gana su lugar explicando algo (de dónde vino, a dónde fue, qué cambió, que se logró) y se retira de todo lo que se repite. Bien hecha, se siente cara porque nunca te hace esperar.**
 

@@ -1,7 +1,11 @@
 ---
 name: tipografia
-description: Diseña y audita al milímetro la letra del ERP CAYLA — escala con los valores reales del repo, interlineado, medida, pesos, cuándo serif y cuándo sans, versalitas, cifras (tabulares, a la derecha, decimales, «S/» con espacio duro, formato es-PE) y el español —, con base teórica etiquetada y medida en el navegador (`referencia/medir.js`). Aporta la sección «Tipografía» de la ficha de `/milimetro`. Úsala al diseñar o revisar un texto, una tabla de montos o una cifra, y cuando Felipe diga «tipografía», «la letra se ve chica», «los números no cuadran», «las cifras bailan», «muy apretado» o «al milímetro».
+description: "Diseña y audita la letra al milímetro: escala, interlineado, pesos, serif o sans, versalitas, cifras tabulares y formato es-PE, medido en el navegador. Úsala con «tipografía», «la letra se ve chica», «las cifras bailan» o cuando /milimetro pida Tipografía."
 ---
+
+## Qué hace y cuándo se usa
+
+Diseña y audita al milímetro la letra del ERP CAYLA — escala con los valores reales del repo, interlineado, medida, pesos, cuándo serif y cuándo sans, versalitas, cifras (tabulares, a la derecha, decimales, «S/» con espacio duro, formato es-PE) y el español —, con base teórica etiquetada y medida en el navegador (`referencia/medir.js`). Aporta la sección «Tipografía» de la ficha de `/milimetro`. Úsala al diseñar o revisar un texto, una tabla de montos o una cifra, y cuando Felipe diga «tipografía», «la letra se ve chica», «los números no cuadran», «las cifras bailan», «muy apretado» o «al milímetro».
 
 Tipografía de: $ARGUMENTS   (una pieza, una pantalla o ruta para auditar, `auditar <ruta>`, o sin argumento = lo que estás construyendo)
 

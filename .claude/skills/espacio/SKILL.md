@@ -1,7 +1,11 @@
 ---
 name: espacio
-description: Fija y audita al milímetro el espacio de una pieza del ERP —escala de 4 px, retícula y anchos, densidad (alto de filas y de controles), área de clic y de toque (24 px con mouse, 44 con el dedo), radios y profundidad— con base en WCAG, estudios y los mejores sistemas de diseño, y lo mide en el navegador. Es parte del set «Al milímetro» y aporta la sección «Espacio» de la ficha de /milimetro. Úsala al diseñar o revisar un componente, una tabla, un modal o una pantalla, y cuando Felipe diga «está apretado», «hay mucho aire», «no se alinea», «el botón es muy chico», «no se le atina», «se ve desordenado», «densidad» o «/espacio».
+description: "Fija y audita el espacio al milímetro: escala de 4 px, retícula, densidad, área de clic (24 px) y de toque (44 px), radios. Úsala al diseñar o revisar una pieza, o con «está apretado», «hay mucho aire», «no se alinea», «el botón es muy chico» o «densidad»."
 ---
+
+## Qué hace y cuándo se usa
+
+Fija y audita al milímetro el espacio de una pieza del ERP —escala de 4 px, retícula y anchos, densidad (alto de filas y de controles), área de clic y de toque (24 px con mouse, 44 con el dedo), radios y profundidad— con base en WCAG, estudios y los mejores sistemas de diseño, y lo mide en el navegador. Es parte del set «Al milímetro» y aporta la sección «Espacio» de la ficha de /milimetro. Úsala al diseñar o revisar un componente, una tabla, un modal o una pantalla, y cuando Felipe diga «está apretado», «hay mucho aire», «no se alinea», «el botón es muy chico», «no se le atina», «se ve desordenado», «densidad» o «/espacio».
 
 Espacio de: $ARGUMENTS   (un componente, una ruta como `/inventario/frescura`, un modal, una tabla; sin argumento = lo que estás construyendo)
 

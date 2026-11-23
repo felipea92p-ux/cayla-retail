@@ -59,8 +59,8 @@ modal, corre `/formidable`; el avance módulo por módulo vive en `docs/formidab
 
 ## Skills de diseño de afuera: se consultan, no mandan (regla — Felipe 2026-10-17)
 
-**`frontend-design` (Anthropic), `ui-ux-pro-max`, `better-ui` (Jakub Krehel) y `modern-web-guidance` (Google Chrome) solo se consultan: nunca mandan sobre los colores ni sobre las piezas ya decididas.**
-Las dos primeras no viven en el repo (cada quien las instala en su `~/.claude/skills/`); `better-ui` y `modern-web-guidance` sí (`.claude/skills/`, con esta regla escrita arriba). `modern-web-guidance` se dice «MANDATORY» y empuja la plataforma pura (`<dialog>`, `<select>` con `base-select`, `light-dark()`, `matchMedia`): aquí gana la pieza decidida, y lo nuevo que valga se prueba en una maqueta de `docs/maquetas/` antes de cambiar una regla (Felipe 2026-11-18). Todas se activan solas en casi cualquier tarea de interfaz y empujan
+**`frontend-design` (Anthropic), `ui-ux-pro-max`, `better-ui` (Jakub Krehel), `modern-web-guidance` (Google Chrome) y `web-design-guidelines` (Vercel) solo se consultan: nunca mandan sobre los colores ni sobre las piezas ya decididas.**
+Las dos primeras son plugins que el proyecto activa para todo equipo (`.claude/settings.json`, `enabledPlugins`, desde el 2026-11-23; antes cada quien las instalaba); las otras tres viven en `.claude/skills/`, con esta regla escrita arriba (`.claude/skills/PROCEDENCIA.md`). `modern-web-guidance` se dice «MANDATORY» y empuja la plataforma pura (`<dialog>`, `<select>` con `base-select`, `light-dark()`, `matchMedia`): aquí gana la pieza decidida, y lo nuevo que valga se prueba en una maqueta de `docs/maquetas/` antes de cambiar una regla (Felipe 2026-11-18). Todas se activan solas en casi cualquier tarea de interfaz y empujan
 a elegir una estética propia —fuentes, paletas, estilos—. Si lo que sugieren choca con `CLAUDE.md` o con `.claude/rules/`, ganan esas reglas:
 1. **En el ERP (`apps/web`), colores y letras:** solo los tokens de `apps/web/app/globals.css` con su oscuro en `estilos/tema.css`
    (ADR-0169 y ADR-0336). Nunca una paleta, un hex ni una fuente que proponga la skill.
