@@ -87,7 +87,7 @@ export function AbrirCajaFormV2({
   return (
     <form data-guia="caja.abrir" onSubmit={onSubmit} className={enHoja ? "space-y-4" : "card-cayla space-y-4 p-5"}>
       <div>
-        {!enHoja && <p className="label-cayla text-[11px] text-taupe-profundo">Abrir caja</p>}
+        {!enHoja && <p className="label-cayla text-xs text-taupe-profundo">Abrir caja</p>}
         <TituloSeccion className="mt-0.5">
           {esperado === null ? `${ubicacionEtiqueta} no tiene una caja abierta` : "Antes de abrir, cuenta el cajón"}
         </TituloSeccion>
@@ -98,8 +98,7 @@ export function AbrirCajaFormV2({
           <div className="flex gap-3 rounded-xl border border-metodo-efectivo/35 bg-metodo-efectivo/10 px-4 py-3 text-sm text-ambar-profundo">
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
             <p>
-              Según el último cierre, en el cajón deberían estar <b className="text-tinta">{money(esperado)}</b>. Cuéntalo
-              ahora: si abres con un monto que no está, cualquier faltante de hoy va a parecer tuyo.
+              Deberían estar <b className="text-tinta">{money(esperado)}</b>. Lo que falte hoy parecerá tuyo.
             </p>
           </div>
           <div role="radiogroup" aria-label="¿Cuánto hay en el cajón?" className={`grid gap-2 ${enHoja ? "sm:grid-cols-2" : ""}`}>

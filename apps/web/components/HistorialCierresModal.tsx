@@ -151,7 +151,7 @@ export function HistorialCierresModal({
         abierto ? (
           <div className="mb-3 flex items-center gap-2.5 pr-10">
             <Volver onClick={volver} a="Historial de cierres" />
-            <button type="button" tabIndex={-1} aria-hidden onClick={volver} className="label-cayla text-[11px] text-taupe transition-colors hover:text-tinta">
+            <button type="button" tabIndex={-1} aria-hidden onClick={volver} className="label-cayla text-xs text-taupe transition-colors hover:text-tinta">
               Historial de cierres
             </button>
           </div>
@@ -262,7 +262,7 @@ function Ticket({ cierre: c, onVer }: { cierre: CierreCaja; onVer: () => void })
       <span className="flex items-baseline justify-between gap-2">
         <span className="flex items-baseline gap-1.5">
           <span className="font-display text-[22px] leading-none">{dia}</span>
-          <span className="label-cayla text-[10px] text-tinta/60">{diaSemana}</span>
+          <span className="label-cayla text-xs text-tinta/60">{diaSemana}</span>
         </span>
         <span className="text-sm text-tinta/60 tabular-nums">
           {hora(c.abiertaEn)} – {hora(c.cerradaEn)}
@@ -278,16 +278,17 @@ function Ticket({ cierre: c, onVer }: { cierre: CierreCaja; onVer: () => void })
         <span className="font-semibold text-tinta tabular-nums">{money(c.montoCierreReal)}</span>
       </span>
       <span className="ht-corte" aria-hidden />
-      <span className="flex min-h-[28px] items-center justify-between gap-2">
-        <span className="flex min-w-0 items-center gap-1.5 text-[11.5px] text-tinta/60">
+      {/* Si la duración y el sello no entran juntos (un «Faltó S/ 1,234.50»), el sello baja a su línea: antes la duración se cortaba con «…». */}
+      <span className="flex min-h-[28px] flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+        <span className="flex items-center gap-1.5 whitespace-nowrap text-xs text-tinta/60">
           {duracion && (
             <>
               <Clock className="h-3.5 w-3.5 flex-none" aria-hidden />
-              <span className="truncate tabular-nums">{duracion}</span>
+              <span className="tabular-nums">{duracion}</span>
             </>
           )}
         </span>
-        <span className="ht-sello">{sello}</span>
+        <span className="ht-sello ml-auto">{sello}</span>
       </span>
     </button>
   );

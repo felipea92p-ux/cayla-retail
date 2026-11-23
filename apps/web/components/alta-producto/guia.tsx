@@ -81,7 +81,7 @@ export function FaltanDelPaso<T extends CampoDeGuia>({ faltan, ahora, onIr, rotu
   const cabeza = rotulo ?? (soloSugeridas ? "Sin elegir" : faltan.length === 1 ? "Falta" : "Faltan");
   const aLaVista = tope && faltan.length > tope ? [...faltan.filter((c) => c.id === ahora), ...faltan.filter((c) => c.id !== ahora)].slice(0, tope) : faltan;
   return (
-    <div className="mr-auto flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 text-[12.5px] text-taupe">
+    <div className="mr-auto flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-taupe">
       <span>{cabeza}:</span>
       {aLaVista.map((c) => (
         <button key={c.id} type="button" onClick={() => onIr(c)} title={c.pendiente} className="hilo-chip">

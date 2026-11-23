@@ -129,7 +129,7 @@ function TarjetaPendiente({
           <li key={n} className="flex flex-wrap items-center gap-3 rounded-lg px-3 py-2.5">
             <MiniaturaPrenda fotoUrl={i.fotoUrl} colorHex={i.colorHex} tamano="lg" />
             <div className="min-w-0 flex-1">
-              <p className="text-[15px] font-semibold text-tinta">
+              <p className="text-sm font-semibold text-tinta">
                 {i.referencia} <span className="font-normal text-tinta/70">× {i.cantidad}</span>
               </p>
               <p className="text-sm text-tinta/75">{varianteLegible(i)}</p>
@@ -295,7 +295,7 @@ function PanelResolver({
           <div>
             <TituloGrupo>¿Se le reembolsa algo?</TituloGrupo>
             <p className="mt-0.5 text-sm text-tinta/70">
-              Opcional, y es la última opción: primero un cambio, después una nota de crédito. Déjalo vacío si no hay reembolso.
+              Opcional y última opción: antes, un cambio o una nota de crédito.
             </p>
           </div>
           <div className="flex flex-wrap items-end gap-4">

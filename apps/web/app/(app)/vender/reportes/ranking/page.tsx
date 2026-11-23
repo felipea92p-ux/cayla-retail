@@ -67,7 +67,7 @@ export default async function RankingPrendasPage({ searchParams }: { searchParam
           <CifrasRanking r={r} f={f} periodo={periodo} />
           {r.sinRegistrar.unidades > 0 && sinPrendaFiltrada && (
             <Aviso tono="info" chico titulo={`No cuenta ${new Intl.NumberFormat("es-PE").format(r.sinRegistrar.unidades)} ${r.sinRegistrar.unidades === 1 ? "prenda sin registrar" : "prendas sin registrar"} (${soles(r.sinRegistrar.vendido)})`}>
-              Se cobraron en caja sin elegir qué prenda era. Cuando alguien las identifique en Inventario ▸ Por regularizar, entran aquí.
+              Se cobraron sin elegir la prenda. Entran al identificarlas en Inventario ▸ Por regularizar.
             </Aviso>
           )}
           {r.cuantos > 0 && !sePuedeComparar(r) && <p className="texto-detalle text-taupe">El período anterior empieza antes de que se vendiera: no se compara.</p>}

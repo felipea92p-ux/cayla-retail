@@ -7,7 +7,7 @@
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
   border-radius: 11px; padding: 15px 28px;
   background: var(--color-tinta); color: var(--color-crema);
-  font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap;
+  font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap;
   box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--color-sombra) 55%, transparent);
   transition: background-color 200ms var(--ease-cayla), transform 150ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
 }
@@ -38,9 +38,9 @@
   border: 1px solid var(--color-sand); border-radius: 16px; padding: 12px 14px 12px 20px;
   transition: background-color 400ms var(--ease-cayla), border-color 400ms var(--ease-cayla), color 400ms var(--ease-cayla);
 }
-.cc-barra b { display: block; font-size: 14px; font-weight: 700; }
+.cc-barra b { display: block; font-size: var(--text-detalle); font-weight: 700; }
 /* Ronda 19: la bajada es una frase corta, y por eso se lee a 14 px. */
-.cc-barra span.cc-bajada { font-size: 14px; opacity: 0.8; }
+.cc-barra span.cc-bajada { font-size: var(--text-detalle); opacity: 0.8; }
 .cc-barra[data-nivel="1"] { background: var(--color-tinta); border-color: var(--color-tinta); color: var(--color-crema); }
 .cc-barra[data-nivel="2"] { background: var(--color-rojo-profundo); border-color: var(--color-rojo-profundo); color: var(--color-crema); }
 .cc-barra[data-nivel="1"] .cc-boton, .cc-barra[data-nivel="2"] .cc-boton { background: var(--color-crema); color: var(--color-tinta); box-shadow: none; }

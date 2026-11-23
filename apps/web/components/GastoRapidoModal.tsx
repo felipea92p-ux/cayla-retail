@@ -536,7 +536,7 @@ export function GastoRapidoModal({
                     </CampoGuiado>
                   </div>
                   {onFormularioCompleto ? (
-                    <p className="text-[12.5px] text-taupe">
+                    <p className="text-xs text-taupe">
                       ¿Proveedor nuevo, o se paga a crédito?{" "}
                       <button type="button" className="btn-enlace" onClick={onFormularioCompleto}>
                         Usa el formulario completo
@@ -544,7 +544,7 @@ export function GastoRapidoModal({
                     </p>
                   ) : (
                     // Sin el módulo Gastos (ADR-0491): desde Caja va lo de hoy, al contado; lo demás se registra en Finanzas.
-                    <p className="text-[12.5px] text-taupe">¿Proveedor nuevo, o se paga a crédito? Eso se registra en Finanzas ▸ Gastos: pídeselo a tu líder.</p>
+                    <p className="text-xs text-taupe">¿Proveedor nuevo, o se paga a crédito? Eso se registra en Finanzas ▸ Gastos: pídeselo a tu líder.</p>
                   )}
                 </div>
               </div>
@@ -554,8 +554,8 @@ export function GastoRapidoModal({
           <AvisoNoDeducible aviso={avisoNoDeducible} reservar={conComprobanteGrande} />
 
           {onRetiro && (
-            <p className="text-[12.5px] text-taupe">
-              ¿Sale plata del cajón y no es un gasto (un retiro, un depósito al banco)?{" "}
+            <p className="text-xs text-taupe">
+              ¿No es un gasto?{" "}
               <button type="button" className="btn-enlace" onClick={onRetiro}>
                 Retiro o depósito
               </button>

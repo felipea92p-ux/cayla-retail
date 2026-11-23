@@ -295,7 +295,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
             </div>
           )}
           <div id={idLista} role="listbox" aria-label={`De turno ahora en ${sede}`} onScroll={alHacerScroll} className="min-h-0 flex-1 overflow-y-auto p-2">
-            <p className="label-cayla px-2 pb-2 pt-1.5 text-[11px] text-tinta/60">De turno ahora · {sede}</p>
+            <p className="label-cayla px-2 pb-2 pt-1.5 text-xs text-tinta/60">De turno ahora · {sede}</p>
             {mostrarBuscador && mostradas.length === 0 ? (
               <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
                 Nada coincide con <b>«{busqueda.trim()}»</b>.
@@ -319,7 +319,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
                   <AvatarPersona personaId={p.personaId} nombre={p.nombre} tamano={32} />
                   <span className="min-w-0 flex-1">
                     {cortos.get(p.nombre) ?? p.nombre}
-                    <small className="block text-[11.5px] text-tinta/60">
+                    <small className="block text-xs text-tinta/60">
                       {p.enPausa ? "En pausa · no puede firmar" : p.deOtraSede ? "De turno · de otra sede" : "De turno"}
                     </small>
                   </span>
