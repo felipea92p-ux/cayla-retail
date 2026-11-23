@@ -220,8 +220,18 @@
        --color-taupe            → SOLO bordes y tintes (border-taupe/40). Nunca texto.
        --color-taupe-profundo   → todo texto que antes era taupe.
      Encontrado el 2026-09-09 midiendo el lateral; ADR-0012 no lo había visto
-     porque sus 9 usos viven en pantallas que necesitan sesión. Ver ADR-0017. */
-  --color-taupe-profundo: #805c4c;
+     porque sus 9 usos viven en pantallas que necesitan sesión. Ver ADR-0017.
+     2026-11-23, ADR-0694 (Felipe eligió mirando la «B · Tinta en tres tonos»): el café sale del texto. `taupe-profundo` deja de ser café y
+     vale lo mismo que `secundario`, la tinta al 80 % hecha sólida sobre la crema; así sus ~150 usos de texto pasan al tono nuevo sin tocar
+     una pantalla. El café (`--color-taupe`) queda para líneas y bordes. Es un alias: se resuelve en la raíz con la tinta y la crema del
+     tema, así que no lleva versión oscura propia (sí en `.papel-fijo`). */
+  --color-taupe-profundo: color-mix(in oklab, var(--color-tinta) 80%, var(--color-crema));
+  /* Los tres tonos del texto (ADR-0694): el dato en `tinta`; lo que acompaña en `secundario` (tinta al 80 %: 7,7 a 8,9:1 en claro y 6,9
+     a 10,1:1 en oscuro sobre crema, papel, hueso y arena); lo más tenue que se lee en `tenue` (al 64 %: 4,7 a 5,1:1 y 5,1 a 6,9:1). Los
+     fantasmas (`/25`, `/30`) siguen aparte. En código nuevo, `text-secundario` y `text-tenue`; las 13 opacidades de antes
+     (`text-tinta/35` a `/85`) y el café (`text-taupe`) se traducen a estos tonos en `estilos/tema.css`. Lo mide `lib/tema-tokens.test.ts`. */
+  --color-secundario: color-mix(in oklab, var(--color-tinta) 80%, transparent);
+  --color-tenue: color-mix(in oklab, var(--color-tinta) 64%, transparent);
   /* El borde de lo que se toca o se escribe (campo, combo, área de texto, botón secundario, casilla, interruptor apagado). 2026-10-26, P2 de la
      familia CAYLA (Felipe eligió la opción C mirando la lámina): `sand` da 1.2:1 y no identifica un control (WCAG 1.4.11 pide 3:1); este tono —una
      mezcla de taupe y papel, el mínimo que pasa con margen— da 3.6:1 sobre crema, 3.8:1 sobre papel y 3.1:1 sobre hueso. `sand` sigue siendo la línea

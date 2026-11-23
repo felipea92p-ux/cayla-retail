@@ -223,7 +223,8 @@ importa desde ambos lados.
 ## Paleta y orden de pantalla (regla — ADR-0169, ADR-0220)
 
 **El ERP usa la guía oficial «CAYLA Dynamic»: los colores salen SOLO de los tokens de `apps/web/app/globals.css`**
-(crema, papel, tinta, rojo, rojo-profundo, sand, taupe, verde, ámbar, hueso, pizarra, `borde-control`). Nunca un hex suelto. **Lo que se toca o se escribe (campo, combo, botón secundario, casilla, interruptor) lleva `borde-control`, que pasa 3:1; `sand` es solo la línea decorativa** (tarjeta, tabla, píldora con texto): lo vigila `lib/tema-tokens.test.ts` y es el mismo valor en CAYLA Dynamic (ADR-0516 act. 2026-10-26 b). Pantalla nueva
+(crema, papel, tinta, rojo, rojo-profundo, sand, taupe, verde, ámbar, hueso, pizarra, `borde-control`; el texto, en sus tres tonos `tinta`,
+`secundario` y `tenue`, ADR-0694). Nunca un hex suelto. **Lo que se toca o se escribe (campo, combo, botón secundario, casilla, interruptor) lleva `borde-control`, que pasa 3:1; `sand` es solo la línea decorativa** (tarjeta, tabla, píldora con texto): lo vigila `lib/tema-tokens.test.ts` y es el mismo valor en CAYLA Dynamic (ADR-0516 act. 2026-10-26 b). Pantalla nueva
 o rediseñada: cabecera → cifras (`TarjetaCifra`) → filtros y tabla en UNA tarjeta (`Tabla`, `caja` en los campos,
 `pildora-cayla`) → nota en hueso (`nota-cayla`). **La cabecera es una sola en todo el ERP, Finanzas incluida desde el 2026-11-09 (Felipe 2026-10-14,
 `/unificar`, ADR-0358 y ADR-0220 act.):**
@@ -328,16 +329,17 @@ Lo que se exige a toda pantalla, modal o pieza nueva o editada:
    PRENDA (la baldosa de `MosaicoPrenda`, la muestra de un tejido) es dato: no cambia, lleva `data-color-dato`, y el texto que se
    escribe encima usa `--color-tinta-fija` / `--color-crema-fija` (idénticos en los dos temas), nunca `tinta`/`crema`. Una pantalla
    de cámara sobre el video es negra en los dos temas (`bg-tinta-fija` + `.papel-fijo`, como los tres visores).
-4. **Un texto tenue de Tailwind ya sube solo, en los dos temas** (dos pisos en `tema.css`, con `:where` para no ganarle a `hover:` ni a
-   `disabled:`): en oscuro, `text-tinta/35` a `/50` al 60 %; en claro (desde el 2026-10-14, Felipe lo eligió mirando), `text-tinta/35` a
-   `/60` al 64 %; `text-taupe/50` a `/70`, al taupe pleno en los dos; y sus marcadores (`placeholder:text-tinta/…`) igual. `/25` y `/30` son
-   fantasmas a propósito. No escribas `dark:` por costumbre, solo donde una medida lo pida (`dark:text-tinta/55`). `dark:` sigue el atributo, no el
-   sistema operativo. **No apagues un texto con `opacity-*` solo en claro** (`opacity-60 dark:opacity-85` en un conteo): el piso no lo ve y
-   en claro se pierde; usa el tono del texto o la misma opacidad en los dos temas. **El piso tampoco alcanza al texto tenue escrito en un
-   CSS** (`color:` o una variable `--x:` hecha de `color-mix(… var(--color-tinta) N%, transparent)`): desde el 64 % pasa en todo fondo y
-   tema; por debajo, la línea lleva `/* contraste: texto|texto grande|gráfico sobre <fondos> */` o `no aplica — <motivo>`, y
-   `lib/tema-tokens.test.ts` la mide (solo en oscuro si vive en un bloque `[data-tema="oscuro"]`), junto con los dos pisos (ADR-0336, act.
-   2026-10-14).
+4. **El texto tiene tres tonos, iguales en los dos temas (ADR-0694, Felipe 2026-11-23):** el dato en `text-tinta`, lo que acompaña en
+   `text-secundario` (tinta al 80 %) y lo más tenue que se lee en `text-tenue` (al 64 %). **El café no es texto**: `taupe` queda para líneas y
+   bordes, y `taupe-profundo` vale lo mismo que `secundario`. Las clases de antes ya se traducen solas en `tema.css` (con `:where`, para no
+   ganarle a `hover:` ni a `disabled:`): `text-tinta/35` a `/65` y sus marcadores van a `tenue`; `/70` a `/85` y `text-taupe` (y `/50` a `/80`)
+   van a `secundario`. `/25` y `/30` son fantasmas a propósito. En código nuevo escribe `text-secundario` o `text-tenue`, nunca una opacidad nueva.
+   No escribas `dark:` por costumbre, solo donde una medida lo pida. `dark:` sigue el atributo, no el sistema operativo. **No apagues un texto con
+   `opacity-*` solo en claro** (`opacity-60 dark:opacity-85` en un conteo): en claro se pierde; usa el tono del texto o la misma opacidad en los
+   dos temas. **La traducción no alcanza al texto escrito en un CSS** (`color:` o una variable `--x:` hecha de `color-mix(… var(--color-tinta)
+   N%, transparent)` o de `var(--color-taupe)`): al tocar ese archivo, pásalo a `var(--color-secundario)` o `var(--color-tenue)`; si queda un
+   tenue a mano por debajo del 64 %, la línea lleva `/* contraste: texto|texto grande|gráfico sobre <fondos> */` o `no aplica — <motivo>`, y
+   `lib/tema-tokens.test.ts` la mide (solo en oscuro si vive en un bloque `[data-tema="oscuro"]`), junto con los tres tonos.
 5. **Un token de color nuevo** va en el `@theme` de `globals.css`, en el bloque oscuro de `tema.css` y en `.papel-fijo` (si es de papel);
    `lib/tema-tokens.test.ts` falla si no coinciden, mide el contraste de cada texto sobre cada superficie y exige que toda
    `var(--color-…)` del código exista (Tailwind v4 solo emite un token que ve usado en CSS: el bloque de la paleta es `@theme static`).
