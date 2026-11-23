@@ -647,6 +647,11 @@ interfaz —el papel que se imprime, las iniciales dentro de un círculo, el ró
 línea (y `data-letra-fija` si es una clase, para que el puente no la toque). Una clase con variante se escribe con la utilidad (`sm:text-xs`), nunca
 `sm:text-[11px]`: el puente no puede repetir su condición.
 
+**Las cifras cuadran en columna (ADR-0691):** DM Sans no trae cifras de ancho fijo, así que los diez dígitos salen de otra letra
+(`lib/letra-cifras.ts`: Inter con `unicode-range` de solo dígitos, primera en `--font-sans`); las letras siguen en DM Sans y la serif no cambia. Una
+columna de dinero solo pide `tabular-nums`, como siempre. El papel que se imprime conserva sus dígitos (`app/estilos/cifras.css`). No se le quita el
+`unicode-range` ni se la mueve de lugar: lo cuida `lib/letra-cifras.test.ts`.
+
 ## Poco texto a la vista (regla — Felipe 2026-11-13)
 
 **Felipe: «hay demasiado texto, hay que evitar esto».** Nació de una opción que decía en tres frases lo que su nombre ya decía. Vale para toda

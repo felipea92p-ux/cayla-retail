@@ -58,3 +58,4 @@ hacen los mejores del mundo, hagámoslo». Cada propuesta dice qué se gana, de 
 | Fecha | # | Decisión |
 |---|---|---|
 | 2026-11-23 | — | La letra sale de una escala de cinco escalones (13 · 14 · 16 · 18 · 21) y nada baja de 13 px: ADR-0691. La eligió mirando `docs/maquetas/escala-de-letra-2026-11/` (escala B). Sube el piso de las etiquetas, que la regla 2 de `/tipografia` tenía en 11. |
+| 2026-11-23 | 1 | Las cifras en una letra con tabulares: sí, pero solo los diez dígitos (Inter con `unicode-range`), no todo el elemento. ADR-0691, decisión 4. |

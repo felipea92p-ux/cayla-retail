@@ -55,3 +55,16 @@ Existencias, Compras, la hoja de una talla (claro y oscuro), el menú plegado, y
 - Las hojas y los estados que solo se abren al guardar o con la caja abierta.
 - El modo oscuro con el barrido completo: solo se miró la hoja de una talla. El cambio no toca colores.
 - Los medidores de espacio, color, movimiento y textos: el cambio es solo de tamaño de letra.
+
+## Las cifras (actividad 2, mismo día)
+
+Medido en `/compras` y con el medidor de tipografía en las mismas siete pantallas, después de poner los dígitos en una letra con ancho fijo.
+
+| Medida | Antes | Después |
+|---|---|---|
+| Ancho de «1111» y de «0000» a 40 px, con ancho fijo | 49,9 y 109,5 px | 99,6 y 99,6 px |
+| Una frase sin dígitos, con la letra nueva y sin ella | — | 301,6 y 301,6 px |
+| Cifras que piden ancho fijo y no lo tienen (Existencias · Compras · Rendimiento · Resumen · Productos) | 36 · 10 · 5 · 30 · 62 | 0 · 0 · 0 · 0 · 0 |
+| Textos cortados en las 36 vistas | 208 | 208 |
+
+Sin hallazgos nuevos. Sin medir: una impresión de verdad y la llegada de la letra con mala conexión.

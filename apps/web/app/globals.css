@@ -134,6 +134,7 @@
 @import "./estilos/vidrio/tienda-web.css"; /* Tienda web con vidrio, armada con las piezas elegidas (tablero docs/vidrio/README.md, 4.3): placa Serena, vidrio claro, pozo, gota y ahumado */
 @import "./estilos/vidrio/estados.css"; /* Estados financieros: la tela de hilos, el vidrio con filo de luz y las cifras en Inter (ADR-0611). */
 @import "./estilos/vidrio/fusionar.css"; /* Catálogo ▸ Productos ▸ «Fusionar productos repetidos», dirección B «La ficha que se arma» (docs/maquetas/fusionar-productos-2026-11/) */
+@import "./estilos/cifras.css"; /* Las cifras con ancho fijo (ADR-0691): el papel que se imprime conserva sus dígitos. */
 @import "./estilos/letra.css"; /* El puente de la letra (ADR-0691): mientras se migra, cada `text-[Npx]` se ve en su escalón de la escala. */
 @import "./estilos/movimiento.css"; /* Animaciones encendidas o quietas (ADR-0625): arranca quieto; solo las señales de espera se mueven. */
 @import "./estilos/tacto.css"; /* Con el dedo, todo se toca en 44 px (ADR-0611, mejora 5). Va al final y sin capa: le gana a las piezas solo en una pantalla táctil. */
@@ -323,8 +324,9 @@
   --text-lg: 1.125rem;
   --text-xl: 1.3125rem;
 
-  /* Familias tipográficas */
-  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  /* Familias tipográficas. Primero `--font-cifras`: una letra que solo tiene los diez dígitos, con ancho fijo (`lib/letra-cifras.ts`,
+     ADR-0691). El navegador toma de ella los dígitos y de DM Sans todo lo demás. La serif no cambia: ya trae cifras de ancho fijo. */
+  --font-sans: var(--font-cifras), var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-eb-garamond), ui-serif, Georgia, serif;
 
   /* Radios — REVERSIÓN de la decisión de esquinas rectas del 2026-09-05.

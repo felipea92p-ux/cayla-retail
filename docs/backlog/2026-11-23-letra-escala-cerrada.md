@@ -9,6 +9,9 @@ Rama `claude/letra-escala-cerrada`. ADR-0691. Actividades 1 y 2 de la lista de l
       `@theme` de `globals.css`. El puente `app/estilos/letra.css` lleva cada `text-[Npx]` a su escalón. 85 tamaños de 12 hojas de piezas
       comunes pasaron a `var(--text-…)`. `lib/letra-suelta.test.ts` (17 casos) y `pnpm --filter web tema:letra`.
 - [x] Medido antes y después en 36 vistas: textos por debajo de 13 px, de 1.012 a 250; 3 cortes nuevos; ningún desborde horizontal.
+- [x] **2 · Las cifras alineadas.** Los diez dígitos salen de Inter (`lib/letra-cifras.ts`, primera en `--font-sans`); las letras siguen en
+      DM Sans. «1111» y «0000» miden lo mismo con ancho fijo. El papel que se imprime conserva sus dígitos (`app/estilos/cifras.css`).
+      Dependencia nueva: `@fontsource-variable/inter` 5.3.0 (OFL-1.1). `lib/letra-cifras.test.ts` (6 casos).
 
 ## Pendiente
 
@@ -24,5 +27,8 @@ Rama `claude/letra-escala-cerrada`. ADR-0691. Actividades 1 y 2 de la lista de l
       la escala sigue hacia arriba.
 - [ ] **El papel y los visores:** el puente no toca nada dentro de `.papel-fijo` ni de `[data-papel]`. Ahí también viven los visores de
       cámara y el aviso de cierre de caja, que no son papel: se quedan con su letra hasta que se revise cada uno.
+- [ ] **Sin probar en papel:** un ticket, una etiqueta y un rótulo impresos de verdad, para confirmar que sus dígitos no cambiaron.
+- [ ] **Decidir si lo impreso en hoja grande** (una orden, un reporte) también debería llevar las cifras de ancho fijo. Hoy todo lo impreso
+      conserva los dígitos de DM Sans.
 - [ ] **Dynamic:** nada llega solo. Quedan como tarea allá las hojas de `estilos/vidrio/` que pasaron a la escala y `ResumenSede` y
       `TarjetaCifra`; si quiere la misma escala, necesita sus cinco tokens (`globals.css` no viaja).

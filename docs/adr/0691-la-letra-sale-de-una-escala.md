@@ -97,6 +97,32 @@ dejaría `main` en rojo cada vez que otra sesión limpie una clase de un archivo
 
 SE ROMPE SI: se marca `letra-fija:` para callar la prueba. La marca pide un motivo de verdad, y lo lee quien revisa el PR.
 
+### 4. Las cifras: los diez dígitos salen de una letra con ancho fijo
+
+DM Sans, la letra del sistema, no trae cifras de ancho fijo. Medido: con `tabular-nums` puesto, «1111» ocupaba 49,9 px y «0000»,
+109,5 px. Por eso una columna de dinero no cuadraba dígito por dígito y una cifra que cuenta bailaba de ancho, aunque 445 archivos lo
+pedían. Estaba propuesto en `docs/milimetro/propuestas.md` (n.º 1), sin decidir; Felipe lo aprobó al ver la lámina
+`docs/maquetas/ocho-mejoras-2026-11/`.
+
+DECIDÍ: una letra que **solo tiene los diez dígitos** (`unicode-range: U+0030-0039`), sacada de Inter, que sí trae cifras de ancho fijo.
+Va primera en `--font-sans`: el navegador toma de ella los dígitos y de DM Sans todo lo demás. Se declara en `apps/web/lib/letra-cifras.ts`
+con `next/font/local` y la pone el `<html>`. `size-adjust: 96 %` iguala el alto de los dígitos de las dos letras. La serif no cambia:
+EB Garamond ya trae cifras de ancho fijo. El archivo sale del paquete `@fontsource-variable/inter` (licencia OFL-1.1), fijado en su versión.
+
+El papel conserva sus dígitos (`app/estilos/cifras.css`): al imprimir, `--font-sans` vuelve a ser solo DM Sans; en pantalla, lo que se ve
+como saldrá impreso redefine la variable. Un ticket o una etiqueta están medidos al milímetro con los dígitos de siempre.
+
+DESCARTÉ:
+- **Cambiar la letra de todo elemento que pide `tabular-nums`:** un elemento serif que la pide (una cifra grande en EB Garamond) habría
+  pasado a Inter, y no hay forma de saberlo desde el CSS cuando la serif se hereda.
+- **Cambiar DM Sans por otra letra:** es la del brandbook.
+- **Pedir los dígitos a Google en cada visita** (`…css2?family=Inter&text=0123456789`): hoy ninguna letra se pide a un tercero al abrir
+  el ERP; `next/font` las sirve desde la propia web.
+- **Copiar el archivo de la letra al repo:** el paquete trae su licencia y su versión; un archivo suelto, no.
+
+SE ROMPE SI: se le quita el `unicode-range` (todo el ERP pasaría a Inter) o si deja de ir primera en `--font-sans` (los dígitos
+volverían a DM Sans). Las dos cosas las cuida `lib/letra-cifras.test.ts`.
+
 ## Lo que cambia a la vista
 
 - Lo que se lee pasa de 15 a 16 px en todo el ERP.
@@ -105,6 +131,7 @@ SE ROMPE SI: se marca `letra-fija:` para callar la prueba. La marca pide un moti
 - El menú pasa de 13,5 a 14 px. Plegado, sus nombres cortos pasan de 10 a 13 px, y las filas ganan 8 px de ancho para que «Inventario»
   y «Apariencia» entren.
 - Un título de fila que estaba a 17 o 19 px queda en 18; uno de sección a 20, en 21.
+- Los dígitos de todo texto en la letra del sistema cambian de forma (son los de Inter) y, donde se pide ancho fijo, cuadran en columna.
 
 ## Verificado y no verificado
 
@@ -117,11 +144,17 @@ SE ROMPE SI: se marca `letra-fija:` para callar la prueba. La marca pide un moti
 - Miradas en captura: Existencias, Compras, la hoja de una talla en claro y oscuro, el menú plegado, y Vender, Cambios, Devoluciones y
   Apartados a 375 px.
 - `lib/letra-suelta.test.ts`: 17 casos. Se vio en rojo con un archivo nuevo con `text-[11px]` y con un tamaño quitado del puente.
+- Las cifras, en el navegador: con ancho fijo, «1111», «0000» y «8888» miden lo mismo (99,6 px a 40 px de letra); una frase sin
+  dígitos mide igual con la letra nueva y sin ella (301,6 px); la serif no cambió. El medidor de tipografía pasó de 36, 10, 5, 30 y 62
+  cifras «que piden ancho fijo y no lo tienen» a 0 en las siete pantallas. Las 36 vistas, antes y después de las cifras: 0 cortes nuevos.
+  `lib/letra-cifras.test.ts`: 6 casos; se vio en rojo al agrandar el rango de la letra.
 
 **No verificado:**
 - Las hojas y los estados que solo se abren al guardar o con la caja abierta (el cobro de Vender, un cambio en curso). Se miran en la
   actividad de cada módulo.
 - El Mac mini de la tienda y un teléfono de verdad.
+- Una impresión de verdad (ticket, etiqueta, rótulo): la regla que les conserva sus dígitos se revisó en el código, no en papel.
+- Lo que tarda en llegar la letra de las cifras con mala conexión: son 48 KB más y, mientras llega, los dígitos se ven en DM Sans.
 - Los 250 textos que siguen por debajo de 13 px: Observatorio, gráficos, Plan del piso, Movimientos, Finanzas y la persiana de Caja.
 
 ## Dynamic
@@ -129,4 +162,4 @@ SE ROMPE SI: se marca `letra-fija:` para callar la prueba. La marca pide un moti
 - **Llega solo:** nada. `recetas.css` y el contrato no cambian.
 - **Queda como tarea allá:** las hojas de `apps/web/app/estilos/vidrio/` que pasaron a la escala (`marco.css`, `notas-avisos-combos.css`,
   `tabla-viva.css`) y las piezas de `components/ui/` tocadas (`ResumenSede`, `TarjetaCifra`). Si Dynamic quiere la misma escala, necesita
-  sus cinco tokens: `globals.css` no viaja.
+  sus cinco tokens: `globals.css` no viaja. Lo mismo las cifras: `lib/letra-cifras.ts` y el paquete de la letra son de retail.

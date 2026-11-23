@@ -16,6 +16,7 @@ import { SCRIPT_MOVIMIENTO_ANTES_DE_PINTAR } from "@/lib/movimiento-reglas";
 import { SCRIPT_LIVIANO_ANTES_DE_PINTAR } from "@/lib/liviano-reglas";
 import { SCRIPT_NAVEGADOR_VIEJO } from "@/lib/navegador-viejo-reglas";
 import { AvisoNavegadorViejo } from "@/components/AvisoNavegadorViejo";
+import { letraCifras } from "@/lib/letra-cifras";
 
 // Las dos familias del sistema CAYLA (brandbook v3.0): EB Garamond es "el alma"
 // (títulos, cifras hero), DM Sans es "el sistema" (interfaz, cuerpo, etiquetas).
@@ -42,7 +43,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, view
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     // `suppressHydrationWarning`: los scripts de abajo ponen `data-tema`, `data-movimiento`, `data-liviano` y `data-navegador-viejo` en <html> antes de que React hidrate (ADR-0336).
-    <html lang="es" className={`${serif.variable} ${sans.variable}`} suppressHydrationWarning>
+    <html lang="es" className={`${serif.variable} ${sans.variable} ${letraCifras.variable}`} suppressHydrationWarning>
       <head>
         {/* El tema guardado se aplica ANTES de la primera pintura: sin esto, quien eligió oscuro vería un destello claro en cada carga. */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA_ANTES_DE_PINTAR }} />

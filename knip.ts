@@ -51,6 +51,9 @@ const config: KnipConfig = {
       project: ["scripts/**/*.{mjs,js,ts,css}"],
     },
     "apps/web": {
+      // La letra de las cifras (`lib/letra-cifras.ts`, ADR-0691) toma su archivo de este paquete POR RUTA (`next/font/local` pide una
+      // ruta, no un import), así que Knip no ve que se usa.
+      ignoreDependencies: ["@fontsource-variable/inter"],
       // Las rutas de Next (`app/**`, `proxy.ts`), las pruebas de Vitest y los CLI de `package.json` los encuentra Knip solo. Estos no:
       entry: [
         // Se carga por URL desde el navegador: `navigator.serviceWorker.register("/sw.js")` (ADR-0210). Llega a la tienda: lleva `!`.
