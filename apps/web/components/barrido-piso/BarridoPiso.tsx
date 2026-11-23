@@ -615,7 +615,8 @@ export function BarridoPiso({
   if (!barrido) {
     return (
       // Dos columnas en escritorio: empezar a la izquierda y, al lado, lo que los barridos anteriores dejaron por resolver.
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+      // `minmax(0,1fr)` también en el celular: sin eso, la columna crece con su contenido y la pantalla se desbordaba 45 px a 375 px.
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
         <div className="space-y-5">
           {combo}
           <Vacio
@@ -665,7 +666,7 @@ export function BarridoPiso({
         </TarjetaCifra>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="space-y-4">
           {combo}
           <CampoGuiado id="colgado" guia={guia} titulo="Lo colgado" ayuda="Cada lectura suma 1. Si la misma se repite, te pregunto antes de sumarla.">
@@ -675,8 +676,9 @@ export function BarridoPiso({
               </label>
               <div className="caja-cayla caja-campo min-h-14">
                 <ScanBarcode aria-hidden className="pointer-events-none h-5 w-5 shrink-0 text-tinta/45" />
+                {/* El campo llena su caja (56 px): con el dedo se toca el campo entero, no una franja de 42 px en el medio. */}
                 <input
-                  className="self-stretch py-0 text-base"
+                  className="min-h-11 min-w-0 flex-1 self-stretch py-0 text-base"
                   ref={escaner}
                   id="barrido-escaner"
                   type="text"
