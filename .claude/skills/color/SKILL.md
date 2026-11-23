@@ -1,7 +1,11 @@
 ---
 name: color
-description: Decide y audita el color de una pieza del ERP al milímetro — qué token va en cada texto, borde, superficie, estado y dato, con su contraste medido (WCAG 2 como puerta, APCA como segunda mirada) en claro y en oscuro, el rojo de marca separado del error, daltonismo y cuántos colores caben en una pantalla. Aporta la sección «Color» de la ficha de /milimetro. Úsala al diseñar o revisar una pantalla, un modal, un chip o un gráfico, y cuando Felipe diga «color», «contraste», «no se lee», «muy rojo», «se pierde en oscuro», «daltónico» o «qué color le pongo». Con una ruta mide la pantalla en el navegador; con `tabla` regenera los contrastes de la paleta.
+description: "Decide y audita el color de una pieza al milímetro: el token de cada texto, borde y estado, con contraste medido (WCAG y APCA) en claro y oscuro, y daltonismo. Úsala con «color», «contraste», «no se lee», «se pierde en oscuro» o cuando /milimetro pida Color."
 ---
+
+## Qué hace y cuándo se usa
+
+Decide y audita el color de una pieza del ERP al milímetro — qué token va en cada texto, borde, superficie, estado y dato, con su contraste medido (WCAG 2 como puerta, APCA como segunda mirada) en claro y en oscuro, el rojo de marca separado del error, daltonismo y cuántos colores caben en una pantalla. Aporta la sección «Color» de la ficha de /milimetro. Úsala al diseñar o revisar una pantalla, un modal, un chip o un gráfico, y cuando Felipe diga «color», «contraste», «no se lee», «muy rojo», «se pierde en oscuro», «daltónico» o «qué color le pongo». Con una ruta mide la pantalla en el navegador; con `tabla` regenera los contrastes de la paleta.
 
 Color al milímetro: $ARGUMENTS   (una pieza, una ruta como `/caja`, un modal, `tabla`, o sin argumento = lo que estás construyendo)
 

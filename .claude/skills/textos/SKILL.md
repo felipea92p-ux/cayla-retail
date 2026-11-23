@@ -1,7 +1,11 @@
 ---
 name: textos
-description: Escribe y audita cada texto del ERP CAYLA en español del Perú, al milímetro y con base teórica (WCAG, Apple, NN/g, RAE, CLDR) — botones, títulos de pantalla y de hoja, etiquetas, ayudas, errores de campo y de hoja, avisos de éxito y con «Deshacer», confirmaciones de lo irreversible, vacíos, cargando y sin conexión; y los formatos de dinero (S/ 1,234.50), fechas, horas y unidades. Respeta el vocabulario del repo (cliente, miembro, sede, integrante) y las piezas que ya traen su texto. Úsala al escribir o revisar los textos de una pantalla o un modal, cuando `/milimetro` pida la sección «Texto» de la ficha, y cuando Felipe diga «textos», «microcopy», «cómo lo digo», «el mensaje de error no se entiende», «revisa la redacción» o «el formato del monto/la fecha está mal».
+description: "Escribe y audita cada texto del ERP en español del Perú: botones, títulos, errores, avisos, vacíos y formatos de dinero y fecha, con el vocabulario del repo. Úsala con «textos», «microcopy», «cómo lo digo» o cuando /milimetro pida la sección Texto."
 ---
+
+## Qué hace y cuándo se usa
+
+Escribe y audita cada texto del ERP CAYLA en español del Perú, al milímetro y con base teórica (WCAG, Apple, NN/g, RAE, CLDR) — botones, títulos de pantalla y de hoja, etiquetas, ayudas, errores de campo y de hoja, avisos de éxito y con «Deshacer», confirmaciones de lo irreversible, vacíos, cargando y sin conexión; y los formatos de dinero (S/ 1,234.50), fechas, horas y unidades. Respeta el vocabulario del repo (cliente, miembro, sede, integrante) y las piezas que ya traen su texto. Úsala al escribir o revisar los textos de una pantalla o un modal, cuando `/milimetro` pida la sección «Texto» de la ficha, y cuando Felipe diga «textos», «microcopy», «cómo lo digo», «el mensaje de error no se entiende», «revisa la redacción» o «el formato del monto/la fecha está mal».
 
 Escribe o audita los textos de: $ARGUMENTS   (una ruta como `/vender`, un modal, un componente, `auditar <ruta>`, o sin argumento = lo que estás construyendo)
 

@@ -1,7 +1,11 @@
 ---
 name: skill-optimizacion-ui-ux-perf
-description: Diagnostica cuellos de botella de velocidad percibida y carga en el frontend de una pantalla, un módulo o todo el ERP — cascadas de `await`, falta de `Suspense`/esqueletos, JS de cliente excesivo, modales pesados cargados siempre, imágenes sin optimizar, candidatos legítimos a actualización optimista — respetando las reglas del repo (loader global único ADR-0149, nada optimista en dinero/stock). Úsala al construir o revisar una pantalla lenta, antes de dar por terminada una pantalla pesada, o cuando Felipe diga que «se siente lenta».
+description: "Diagnostica por qué una pantalla se siente lenta: cascadas de await, falta de Suspense, JS de cliente de más, modales pesados, imágenes sin optimizar; respeta el loader único y nada optimista en dinero. Úsala cuando una pantalla «se siente lenta»."
 ---
+
+## Qué hace y cuándo se usa
+
+Diagnostica cuellos de botella de velocidad percibida y carga en el frontend de una pantalla, un módulo o todo el ERP — cascadas de `await`, falta de `Suspense`/esqueletos, JS de cliente excesivo, modales pesados cargados siempre, imágenes sin optimizar, candidatos legítimos a actualización optimista — respetando las reglas del repo (loader global único ADR-0149, nada optimista en dinero/stock). Úsala al construir o revisar una pantalla lenta, antes de dar por terminada una pantalla pesada, o cuando Felipe diga que «se siente lenta».
 
 Diagnostica la velocidad percibida de: $ARGUMENTS   (una ruta como `/vender`, un módulo como `inventario`, o `todo`)
 

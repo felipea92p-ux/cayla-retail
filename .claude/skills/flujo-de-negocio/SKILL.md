@@ -1,7 +1,11 @@
 ---
 name: flujo-de-negocio
-description: Corre un caso de negocio de CAYLA (venta, cambio y devolución, traslado, caja, inventario) contra el ERP local como lo haría una persona real, en dos pasadas — una ciega, de alguien sin formación técnica que reporta dónde se perdió y por qué, y otra informada que verifica la base — y entrega un veredicto de negocio, el reporte de fricción y una guía interactiva para colaboradores nuevos. Úsala cuando Felipe pida probar un flujo de punta a punta, ver si una operación se entiende sin capacitación, o armar la guía de un proceso. Solo local, con datos inventados, sobre una rama idéntica a una foto de main que solo Felipe actualiza.
+description: "Corre un caso de negocio (venta, cambio, traslado, caja, inventario) contra el ERP local como una persona real, a ciegas y verificando la base, y entrega veredicto, fricción y una guía. Úsala para probar un flujo de punta a punta. Solo local y con datos inventados."
 ---
+
+## Qué hace y cuándo se usa
+
+Corre un caso de negocio de CAYLA (venta, cambio y devolución, traslado, caja, inventario) contra el ERP local como lo haría una persona real, en dos pasadas — una ciega, de alguien sin formación técnica que reporta dónde se perdió y por qué, y otra informada que verifica la base — y entrega un veredicto de negocio, el reporte de fricción y una guía interactiva para colaboradores nuevos. Úsala cuando Felipe pida probar un flujo de punta a punta, ver si una operación se entiende sin capacitación, o armar la guía de un proceso. Solo local, con datos inventados, sobre una rama idéntica a una foto de main que solo Felipe actualiza.
 
 Ejecuta el caso de negocio: $ARGUMENTS
 
