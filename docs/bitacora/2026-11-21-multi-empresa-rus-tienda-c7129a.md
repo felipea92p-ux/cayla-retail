@@ -45,3 +45,8 @@ La migración `20261121203000` (nombre invisible y altas a la vez) ya está en p
 Qué hice: la tarjeta de una aliada dice qué le falta («Falta RUC, régimen y tiendas») y no repite la razón social si es su nombre; una cuenta nueva vacía ya no impide guardar; el RUC explica en su «?» (también la clave SOL), el padrón caído habla de la empresa, «Entra a las campañas» tiene su «?» y «Buscar» quedó alineado con la caja (también en Proveedores). La cuenta de CLAURE que no tiene número ya no se pide ni se renombra ni se archiva (camino «b»).
 Por qué así: Felipe aprobó los 3 cambios y la «b». Para cargarle el RUC a CLAURE, la hoja pedía el Yape de Claudia, y quitarla habría archivado la cuenta de sus cobros.
 Felipe se lleva: ya puede editar CLAURE en producción y cargarle RUC y régimen sin tocar su Yape. Probado en local con la misma cuenta que producción: guardó, y la cuenta siguió igual.
+
+## 2026-11-23 (diccionario de datos y cierre de la rama)
+Qué hice: el diccionario quedó con la foto de producción del 2026-11-23: 102 grupos nuevos o cambiados, entre ellos las columnas de Empresas aliadas y `gasto_reparto_aliadas`; las 2319 huellas coinciden. Ocho tablas nuevas, varias de otras ramas ya publicadas, recibieron su pájaro en el aviario. Sumé la fila de la hoja de la aliada al tablero de /chaos.
+Por qué así: la consulta del repo pesa 100 KB de ida y otro tanto de vuelta. La partí en tres lecturas: huellas por cubos, la lista de lo que cambió y su contenido. Después la aplicó `pnpm datos:refrescar`, que vuelve a verificar todas las huellas contra producción.
+Felipe se lleva: la rama queda lista para revisar. Sin correr: `tema:auditar` y `guias:recorrer` (en el backlog).
