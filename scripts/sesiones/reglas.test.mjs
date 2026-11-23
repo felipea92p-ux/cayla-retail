@@ -1,7 +1,7 @@
 // El tablero de sesiones (ADR-0697): la parte pura, sin git ni red. Corre con `node --test` (CI, «Tablero de sesiones»).
 import assert from "node:assert/strict";
 import test from "node:test";
-import { armarSesiones, hace, informe, parsearCambios, parsearStatus, parsearWorktrees, zonas } from "./reglas.mjs";
+import { armarSesiones, choquesEntreSesiones, hace, informe, parsearCambios, parsearStatus, parsearWorktrees, puedeLlegarAMain, zonas } from "./reglas.mjs";
 
 const AHORA = 1_800_000_000;
 const HORA = 3600;
@@ -161,4 +161,81 @@ test("informe: una quieta va en una línea, y una lista larga de números se res
   assert.match(texto, /4 migraciones \(20261121152000 … 20261122213000\)/);
   assert.match(texto, /\n  claude\/vieja · hace 9 d · worktree vieja · 1 archivo \(1 sin commit\) · docs\/maquetas\/x \(1\)\n/);
   assert.doesNotMatch(texto, /No pude leer/);
+});
+
+// --- Choques: el mismo detector de `pnpm abrir-pr:choques`, entre las sesiones vivas ---
+
+/** Un tablero de dos o tres sesiones para cruzar. */
+function tableroCon(...worktrees) {
+  return armarSesiones({ worktrees, ahora: AHORA });
+}
+
+test("choques: dos sesiones con el mismo ADR o la misma migración nuevos es SEGURO", () => {
+  const t = tableroCon(
+    worktree("a", "claude/a", [cambio("docs/adr/0697-a.md", true), cambio("supabase/migrations/20261123100000_a.sql", true)]),
+    worktree("b", "claude/b", [], [cambio("docs/adr/0697-b.md", true), cambio("supabase/migrations/20261123100000_b.sql", true)]),
+  );
+  const c = choquesEntreSesiones({ sesiones: puedeLlegarAMain(t) });
+  assert.deepEqual(
+    c.map((x) => [x.gravedad, x.que, x.ramas.join(" y ")]),
+    [
+      ["seguro", "ADR 0697", "claude/a y claude/b"],
+      ["seguro", "migración 20261123100000", "claude/a y claude/b"],
+    ],
+  );
+  assert.match(c[0].detalle, /las dos ramas lo agregan/);
+});
+
+test("choques: la misma función de la base o el mismo archivo de registro es PROBABLE; otro archivo en común, solo informativo", () => {
+  const a = worktree("a", "claude/a", [cambio("apps/web/lib/menu.ts"), cambio("apps/web/components/A.tsx")]);
+  const b = worktree("b", "claude/b", [cambio("apps/web/lib/menu.ts"), cambio("apps/web/components/A.tsx")]);
+  a.funciones = ["registrar_venta", "fn_x"];
+  b.funciones = ["registrar_venta"];
+  const c = choquesEntreSesiones({ sesiones: puedeLlegarAMain(tableroCon(a, b)) });
+  assert.deepEqual(
+    c.map((x) => [x.gravedad, x.que]),
+    [
+      ["probable", "retail.registrar_venta"],
+      ["probable", "apps/web/lib/menu.ts"],
+      ["compartido", "1 archivo(s)"],
+    ],
+  );
+});
+
+test("choques: con main y con las reservas, cada sesión una vez", () => {
+  const t = tableroCon(worktree("a", "claude/a", [cambio("docs/adr/0600-a.md", true), cambio("docs/adr/0697-a.md", true)]));
+  const c = choquesEntreSesiones({
+    sesiones: puedeLlegarAMain(t),
+    main: { adrs: ["0600"], migraciones: [] },
+    reservas: [{ tipo: "adr", numero: "0697", rama: "claude/otra" }],
+  });
+  assert.deepEqual(
+    c.map((x) => [x.gravedad, x.que, x.ramas.join()]),
+    [
+      ["seguro", "ADR 0600", "claude/a"],
+      ["seguro", "ADR", "claude/a"],
+    ],
+  );
+  assert.match(c[1].detalle, /lo reservó la rama «claude\/otra»/);
+});
+
+test("choques: una worktree quieta sin PR no cuenta (es trabajo dejado); con PR, sí", () => {
+  const vieja = AHORA - 30 * 24 * HORA;
+  const t = armarSesiones({
+    worktrees: [worktree("viva", "claude/viva", [cambio("docs/adr/0697-a.md", true)]), worktree("dejada", "claude/dejada", [cambio("docs/adr/0697-b.md", true)], [], vieja)],
+    prs: [{ numero: 5, titulo: "Con PR", rama: "claude/con-pr", archivos: ["docs/adr/0697-c.md"], adrs: ["0697"], migraciones: [], funciones: [] }],
+    fechas: new Map([["claude/con-pr", vieja]]),
+    ahora: AHORA,
+  });
+  assert.deepEqual(puedeLlegarAMain(t).map((s) => s.rama), ["claude/viva", "claude/con-pr"]);
+  const c = choquesEntreSesiones({ sesiones: puedeLlegarAMain(t) });
+  assert.deepEqual(c.map((x) => x.ramas.join(" y ")), ["claude/viva y claude/con-pr"]);
+});
+
+test("informe: los choques van de peor a menos malo, y sin choques lo dice", () => {
+  const t = tableroCon(worktree("a", "claude/a", [cambio("docs/adr/0697-a.md", true), cambio("x.ts")]), worktree("b", "claude/b", [cambio("docs/adr/0697-b.md", true), cambio("x.ts")]));
+  const texto = informe({ ...t, choques: choquesEntreSesiones({ sesiones: puedeLlegarAMain(t) }), faltan: [] }, AHORA);
+  assert.match(texto, /CHOQUES entre lo que puede llegar a main \(activas y PR abiertos\): 1\n  🔴 SEGURO · ADR 0697 · claude\/a y claude\/b/);
+  assert.match(texto, /claude\/a y claude\/b: 1 archivo\(s\) — x\.ts/);
+  assert.match(informe({ ...t, choques: [], faltan: [] }, AHORA), /: ninguno seguro ni probable/);
 });

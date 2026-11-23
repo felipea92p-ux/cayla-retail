@@ -19,12 +19,12 @@
  *   pnpm sesiones --al-abrir   → no trae `main` (lo trae el aviso de la carpeta principal en paralelo: no se pisan)
  */
 import { spawn } from "node:child_process";
-import { lstat } from "node:fs/promises";
+import { lstat, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { leerMain, leerOtros } from "../abrir-pr/choques.mjs";
+import { funcionesQueToca, leerMain, leerOtros, MIGRACION } from "../abrir-pr/choques.mjs";
 import { leerReservas, PREFIJO } from "../reservar/reservas.mjs";
-import { armarSesiones, informe, parsearCambios, parsearStatus, parsearWorktrees, VENTANA_ACTIVA_S } from "./reglas.mjs";
+import { armarSesiones, choquesEntreSesiones, informe, parsearCambios, parsearStatus, parsearWorktrees, puedeLlegarAMain, VENTANA_ACTIVA_S } from "./reglas.mjs";
 
 /** Un comando sin bloquear: devuelve su salida, o `null` si falla o pasa de `tope` ms. */
 function correr(cmd, args, cwd, tope = 15000) {
@@ -78,6 +78,16 @@ async function ultimaEdicion(raiz, rutas) {
   return ultimo;
 }
 
+/** Las funciones de `retail` que tocan las migraciones de una lista de cambios (`leer` da el SQL de una ruta, o falla). */
+async function funcionesDe(cambios, leer) {
+  const nombres = new Set();
+  for (const { ruta } of cambios.filter((c) => MIGRACION.test(c.ruta))) {
+    const sql = await leer(ruta).catch(() => null); // borrada: no toca nada
+    if (sql) for (const f of funcionesQueToca(sql)) nombres.add(f);
+  }
+  return [...nombres];
+}
+
 async function leerWorktree(w) {
   const git = (...args) => correr("git", ["--no-optional-locks", ...args], w.ruta);
   const [cambios, estado, fecha] = await Promise.all([
@@ -88,7 +98,8 @@ async function leerWorktree(w) {
   const enCommits = cambios ? parsearCambios(cambios) : [];
   const sinCommit = estado ? parsearStatus(estado) : [];
   const ultimo = Math.max(enCommits.length && fecha ? Number(fecha) : 0, (await ultimaEdicion(w.ruta, sinCommit.map((c) => c.ruta))) ?? 0) || null;
-  return { ...w, enCommits, sinCommit, ultimo };
+  const funciones = await funcionesDe([...enCommits, ...sinCommit], (ruta) => readFile(join(w.ruta, ruta), "utf8"));
+  return { ...w, enCommits, sinCommit, ultimo, funciones };
 }
 
 /** Rama → fecha del último commit en el remoto, de todas las ramas que hay bajadas. */
@@ -106,7 +117,9 @@ async function leerRamasRecientes(raiz, fechas, ahora) {
   const recientes = [...fechas].filter(([rama, fecha]) => rama.startsWith("claude/") && ahora - fecha <= VENTANA_ACTIVA_S);
   return enTandas(recientes, 8, async ([rama, ultimo]) => {
     const cambios = await correr("git", ["diff", "--name-status", "-z", `origin/main...origin/${rama}`], raiz);
-    return { rama, ultimo, cambios: cambios ? parsearCambios(cambios) : [] };
+    const lista = cambios ? parsearCambios(cambios) : [];
+    const funciones = await funcionesDe(lista, async (ruta) => (await correr("git", ["show", `origin/${rama}:${ruta}`], raiz)) ?? Promise.reject());
+    return { rama, ultimo, cambios: lista, funciones };
   });
 }
 
@@ -129,7 +142,7 @@ export async function leerTablero({ cwd = process.cwd(), alAbrir = false, ahora 
   const ramas = await leerRamasRecientes(raiz, fechas, ahora);
 
   // `leerOtros` y `leerReservas` son síncronos: corren mientras las worktrees siguen leyéndose en sus propios procesos.
-  let main = { rutas: new Set() };
+  let main = { adrs: [], migraciones: [], rutas: new Set() };
   let prs = [];
   try {
     main = leerMain();
@@ -146,7 +159,8 @@ export async function leerTablero({ cwd = process.cwd(), alAbrir = false, ahora 
   }
 
   const tablero = armarSesiones({ worktrees: await worktrees, ramas, prs, fechas, reservas, rutasDeMain: main.rutas, actual, ahora });
-  return { ...tablero, faltan, ahora };
+  const choques = choquesEntreSesiones({ sesiones: puedeLlegarAMain(tablero), main, reservas });
+  return { ...tablero, choques, faltan, ahora };
 }
 
 async function principal() {

@@ -99,15 +99,15 @@ export function detectarChoques({ mio, otros, main, reservas = [], rama = "" }) 
   for (const otro of otros) {
     const con = `#${otro.numero} ${otro.titulo}`.trim();
     for (const n of comunes(mio.adrs, otro.adrs))
-      seguros.push({ con, que: `ADR ${n}`, detalle: "los dos PR lo agregan: renumera el que no tenga la reserva (`pnpm reservar --listar`)" });
+      seguros.push({ con, que: `ADR ${n}`, detalle: "las dos ramas lo agregan: renumera el que no tenga la reserva (`pnpm reservar --listar`)" });
     for (const n of comunes(mio.migraciones, otro.migraciones))
-      seguros.push({ con, que: `migración ${n}`, detalle: "los dos PR la agregan: `supabase start` fallará con schema_migrations_pkey al fusionar el segundo" });
+      seguros.push({ con, que: `migración ${n}`, detalle: "las dos ramas la agregan: `supabase start` fallará con schema_migrations_pkey al fusionar el segundo" });
     for (const f of comunes(mio.funciones, otro.funciones ?? []))
       probables.push({
         con,
         que: `retail.${f}`,
         detalle:
-          "los dos PR cambian esta función por migración: el segundo en fusionar se aplica encima del primero; si es un reemplazo anclado, su ancla puede no estar ya, y las pruebas que lo deshacen (DESHACER_*) tienen que conocer los dos",
+          "las dos ramas cambian esta función por migración: el segundo en fusionar se aplica encima del primero; si es un reemplazo anclado, su ancla puede no estar ya, y las pruebas que lo deshacen (DESHACER_*) tienen que conocer los dos",
       });
     const deRegistro = comunes(mio.archivos, otro.archivos).filter((a) => DE_REGISTRO.some((r) => r.test(a)));
     for (const a of deRegistro) probables.push({ con, que: a, detalle: "archivo de registro: revisa que las dos entradas no pidan el mismo lugar, orden o clave" });

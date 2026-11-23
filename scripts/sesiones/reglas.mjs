@@ -11,7 +11,7 @@
  *
  * Esta es la parte pura (sin git ni red), con su prueba en `reglas.test.mjs`. Lo que lee vive en `tablero.mjs`.
  */
-import { ADR, MIGRACION, numeros } from "../abrir-pr/choques.mjs";
+import { ADR, detectarChoques, MIGRACION, numeros } from "../abrir-pr/choques.mjs";
 
 /** Una sesión está «activa» si hizo algo en las últimas 48 h (lo que pide «ramas empujadas en las últimas 48 h»). */
 export const VENTANA_ACTIVA_S = 48 * 3600;
@@ -174,6 +174,39 @@ export function armarSesiones({ worktrees = [], ramas = [], prs = [], fechas = n
   return { activas: activas.sort(porFecha), quietas: quietas.sort(porFecha), vacias: vacias.sort() };
 }
 
+/**
+ * Lo que puede llegar a `main` y por eso puede chocar: una sesión activa, o una quieta que tiene un PR abierto. Una worktree
+ * quieta sin PR es trabajo dejado: sus números y archivos no se cruzan (serían ruido de hace semanas).
+ */
+export function puedeLlegarAMain(tablero) {
+  return [...tablero.activas, ...tablero.quietas.filter((s) => s.pr)];
+}
+
+/**
+ * Los choques entre las sesiones vivas, con el MISMO detector de `pnpm abrir-pr:choques` (`detectarChoques`; aquí no se
+ * escribe otro). Cada sesión se compara una vez con `main` y con las reservas, y cada par de sesiones una vez entre sí.
+ * Devuelve `[{ gravedad: "seguro" | "probable" | "compartido", ramas: [a, b?], que, detalle }]`, de peor a menos malo.
+ */
+export function choquesEntreSesiones({ sesiones, main = { adrs: [], migraciones: [] }, reservas = [] }) {
+  const choques = [];
+  const sinMain = { adrs: [], migraciones: [] };
+  sesiones.forEach((a, i) => {
+    const conMain = detectarChoques({ mio: a, otros: [], main, reservas, rama: a.rama });
+    for (const c of conMain.seguros) choques.push({ gravedad: "seguro", ramas: [a.rama], que: c.que, detalle: c.detalle });
+    for (const b of sesiones.slice(i + 1)) {
+      const entre = detectarChoques({ mio: a, otros: [b], main: sinMain, rama: a.rama });
+      for (const [gravedad, lista] of [
+        ["seguro", entre.seguros],
+        ["probable", entre.probables],
+        ["compartido", entre.compartidos],
+      ])
+        for (const c of lista) choques.push({ gravedad, ramas: [a.rama, b.rama], que: c.que, detalle: c.detalle });
+    }
+  });
+  const orden = { seguro: 0, probable: 1, compartido: 2 };
+  return choques.sort((x, y) => orden[x.gravedad] - orden[y.gravedad]);
+}
+
 /** «hace 40 min», «hace 3 h», «hace 2 d»; «sin fecha» si no se supo. */
 export function hace(segundos, ahora) {
   if (segundos == null) return "sin fecha";
@@ -227,6 +260,15 @@ export function informe(tablero, ahora) {
   if (tablero.quietas.length) {
     partes.push(`\nQUIETAS (más de 48 h, con trabajo sin cerrar o un PR abierto): ${tablero.quietas.length}`);
     for (const s of tablero.quietas) partes.push(...lineasDeSesion(s, ahora, { corta: true }));
+  }
+  const choques = tablero.choques ?? [];
+  const graves = choques.filter((c) => c.gravedad !== "compartido");
+  const compartidos = choques.filter((c) => c.gravedad === "compartido");
+  partes.push(`\nCHOQUES entre lo que puede llegar a main (activas y PR abiertos): ${graves.length ? graves.length : "ninguno seguro ni probable"}`);
+  for (const c of graves) partes.push(`  ${c.gravedad === "seguro" ? "🔴 SEGURO" : "🟠 PROBABLE"} · ${c.que} · ${c.ramas.join(" y ")}`, `      ${c.detalle}`);
+  if (compartidos.length) {
+    partes.push(`  ℹ Comparten otros archivos (solo para saber con quién hablar):`);
+    for (const c of compartidos) partes.push(`      ${c.ramas.join(" y ")}: ${c.que} — ${c.detalle}`);
   }
   partes.push(`\nVACÍAS: ${tablero.vacias.length} ${tablero.vacias.length === 1 ? "worktree" : "worktrees"} sin cambios propios.`);
   if (tablero.faltan?.length) partes.push(`\nNo pude leer: ${tablero.faltan.map((f) => FUENTES[f] ?? f).join("; ")}.`);
