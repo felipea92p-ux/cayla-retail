@@ -223,10 +223,10 @@ export function ProveedoresProduccionPanel({
           ) : (
             <div data-guia="prod-proveedores.lista" className="card-cayla @container overflow-hidden">
               <div className="hidden gap-4 border-b border-tinta/10 px-4 py-2.5 @min-[42rem]:grid @min-[42rem]:grid-cols-[minmax(0,1.6fr)_7rem_5rem_6.5rem_9rem]">
-                <span className="label-cayla text-[11px] text-tinta/65">Proveedor</span>
-                <span className="label-cayla text-right text-[11px] text-tinta/65">Comprado</span>
-                <span className="label-cayla text-right text-[11px] text-tinta/65">Lotes</span>
-                <span className="label-cayla text-right text-[11px] text-tinta/65">Última entrega</span>
+                <span className="label-cayla text-xs text-tinta/65">Proveedor</span>
+                <span className="label-cayla text-right text-xs text-tinta/65">Comprado</span>
+                <span className="label-cayla text-right text-xs text-tinta/65">Lotes</span>
+                <span className="label-cayla text-right text-xs text-tinta/65">Última entrega</span>
                 <span />
               </div>
               <ul>
@@ -238,7 +238,7 @@ export function ProveedoresProduccionPanel({
                       className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left outline-none transition-colors vd-pasa @min-[42rem]:grid-cols-[minmax(0,1.6fr)_7rem_5rem_6.5rem_9rem]"
                     >
                       <span className="min-w-0">
-                        <span data-guia="prod-proveedores.nombre" className={`block truncate text-[14px] ${p.activo ? "text-tinta" : "text-tinta/55 line-through"}`}>{p.nombre}</span>
+                        <span data-guia="prod-proveedores.nombre" className={`block truncate text-detalle ${p.activo ? "text-tinta" : "text-tinta/55 line-through"}`}>{p.nombre}</span>
                         <span className="block text-sm text-tinta/65">
                           {etiquetaRubro(p.rubro)} · {condicionDePago(p.plazoCreditoDias)}
                           {p.contacto ? ` · ${p.contacto}` : ""}

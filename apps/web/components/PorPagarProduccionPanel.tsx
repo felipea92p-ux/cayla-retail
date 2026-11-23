@@ -111,13 +111,13 @@ export function PorPagarProduccionPanel({
             {servicios.map((x) => (
               <li key={x.faseId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b border-tinta/10 px-4 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
                 <span className="min-w-0">
-                  <span className="block truncate text-[14px] text-tinta">{x.proveedor ?? "Falta decir quién lo hizo"}</span>
+                  <span className="block truncate text-detalle text-tinta">{x.proveedor ?? "Falta decir quién lo hizo"}</span>
                   <span className="block text-sm text-tinta/65">
                     {x.numeroTexto} · {x.producto} · {x.fase}
                     {x.documentado > 0 ? ` · con papel ${soles(x.documentado)} de ${soles(x.devengado)}` : ""}
                   </span>
                 </span>
-                <span className="text-right text-[14px] font-semibold tabular-nums text-tinta">{soles(x.falta)}</span>
+                <span className="text-right text-detalle font-semibold tabular-nums text-tinta">{soles(x.falta)}</span>
                 {x.proveedor === null ? (
                   <BotonEnlace href={hrefDeLaOrden(x.numero)} peso="fantasma" data-guia="prod-por-pagar.registrar-quien" className="col-span-2 sm:col-span-1">
                     Registrar quién
@@ -159,7 +159,7 @@ export function PorPagarProduccionPanel({
                   return (
                     <li key={c.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b border-tinta/10 px-4 py-3 last:border-b-0 @min-[40rem]:grid-cols-[minmax(0,1.5fr)_9rem_7rem_auto]">
                       <span className="min-w-0">
-                        <span className="block truncate text-[14px] text-tinta">{c.proveedor}</span>
+                        <span className="block truncate text-detalle text-tinta">{c.proveedor}</span>
                         <span className="block text-sm text-tinta/65">
                           {etiquetaTipo(c.tipo, true)} {c.serie}-{c.numero}
                           {c.pagado > 0 ? ` · pagado ${soles(c.pagado)} de ${soles(c.total)}` : ""}
@@ -184,7 +184,7 @@ export function PorPagarProduccionPanel({
                           </Chip>
                         )}
                       </span>
-                      <span className="text-right text-[14px] font-semibold tabular-nums text-tinta">{soles(c.saldo)}</span>
+                      <span className="text-right text-detalle font-semibold tabular-nums text-tinta">{soles(c.saldo)}</span>
                       <Boton peso="fantasma" data-guia="prod-por-pagar.pagar" onClick={() => setPagando(c)} className="col-span-2 @min-[40rem]:col-span-1">
                         Pagar
                       </Boton>

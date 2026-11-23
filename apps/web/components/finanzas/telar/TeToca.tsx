@@ -48,7 +48,7 @@ export function TeToca({ submodulos, leidaEn }: { submodulos: { clave: string; e
                       {g.pendientes.map((p) => (
                         <li key={p.id} className="te-toca-item" data-estado={p.estado}>
                           <div className="min-w-0">
-                            <p className="text-[14px] font-medium text-tinta">{p.titulo}</p>
+                            <p className="text-detalle font-medium text-tinta">{p.titulo}</p>
                             <p className="text-sm text-tinta/70">{p.detalle}</p>
                           </div>
                           <BotonVer href={p.href} alNavegar={cerrar} chico>

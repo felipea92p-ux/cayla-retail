@@ -212,11 +212,11 @@ export function MotorGuias({
     <>
       {ofrecida && !corriendo && (
         <aside className="guia-oferta" aria-labelledby="guia-oferta-titulo" role="complementary">
-          <p className="label-cayla text-[10.5px] text-taupe-profundo">Primera vez aquí</p>
-          <h2 id="guia-oferta-titulo" className="mt-1 font-display text-[20px] leading-tight text-tinta">
+          <p className="label-cayla text-xs text-taupe-profundo">Primera vez aquí</p>
+          <h2 id="guia-oferta-titulo" className="mt-1 font-display text-xl leading-tight text-tinta">
             ¿Te mostramos {ofrecida.titulo}?
           </h2>
-          <p className="mt-1.5 text-[13.5px] leading-relaxed text-tinta/75">
+          <p className="mt-1.5 text-detalle leading-relaxed text-tinta/75">
             {ofrecida.resumen} Es una demo de un par de minutos: no se guarda nada.
           </p>
           <div className="mt-3.5 flex items-center justify-end gap-2">
@@ -235,7 +235,7 @@ export function MotorGuias({
               Ver la demo
             </Boton>
           </div>
-          <p className="mt-2.5 text-[11.5px] text-tinta/55">Siempre la encuentras en Mi perfil ▸ Demo.</p>
+          <p className="mt-2.5 text-xs text-tinta/55">Siempre la encuentras en Mi perfil ▸ Demo.</p>
         </aside>
       )}
       {/* La clave lleva el primer paso: dos tramos seguidos de la misma pantalla son dos guías, y la segunda arranca de cero. */}

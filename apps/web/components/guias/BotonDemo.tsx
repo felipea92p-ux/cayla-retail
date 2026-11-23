@@ -15,7 +15,7 @@ export function BotonDemo({ onClick }: { onClick: () => void }) {
       className="area-dedo flex h-9 items-center gap-1.5 rounded-lg px-2 text-tinta/65 transition-colors vd-pasa-gota hover:text-rojo sm:px-2.5"
     >
       <PlayCircle className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-      <span className="label-cayla hidden text-[11px] sm:inline">Demo</span>
+      <span className="label-cayla hidden text-xs sm:inline">Demo</span>
     </button>
   );
 }

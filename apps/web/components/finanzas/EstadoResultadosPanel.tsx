@@ -325,7 +325,7 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, desde, hasta, titulo
       variante="hoja"
       titulo={
         <>
-          <span className="label-cayla mb-1 block font-sans text-[11px] font-semibold text-taupe">De dónde sale</span>
+          <span className="label-cayla mb-1 block font-sans text-xs font-semibold text-taupe">De dónde sale</span>
           {k.nombre} · {c.unidad === "consolidado" ? "CAYLA" : c.nombre}
         </>
       }
@@ -345,7 +345,7 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, desde, hasta, titulo
       )}
       {k.clave === "g62" && c.unidad === "empresa" && c.planillaPorSede.length > 0 && (
         <>
-          <p className="label-cayla mb-1 mt-4 text-[11px] text-taupe">De lo provisionado, por sede</p>
+          <p className="label-cayla mb-1 mt-4 text-xs text-taupe">De lo provisionado, por sede</p>
           <ListaDatos
             filas={c.planillaPorSede.map((s) => ({
               dato: `${s.nombre} · ${s.personas} ${s.personas === 1 ? "persona" : "personas"}`,
@@ -379,7 +379,7 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, desde, hasta, titulo
       )}
       {o && o.mayores.length > 0 && (
         <>
-          <p className="label-cayla mb-1 mt-4 text-[11px] text-taupe">Las más grandes</p>
+          <p className="label-cayla mb-1 mt-4 text-xs text-taupe">Las más grandes</p>
           <ListaDatos
             filas={o.mayores.map((l) => ({
               dato: `${fechaCorta(l.fecha)} · ${l.glosa}`,

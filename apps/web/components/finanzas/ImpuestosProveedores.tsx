@@ -37,8 +37,8 @@ export function ProveedoresSinFactura({ lista, desde, tasa, onCerrar }: { lista:
             {lista.map((p) => (
               <li key={p.clave} className="py-3">
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="min-w-0 text-[15px] font-medium text-tinta">{p.proveedor ?? "Gastos sin proveedor"}</span>
-                  <span className="shrink-0 tabular-nums text-[15px] text-tinta">{solesRedondo(p.sinPapel + p.enBoleta)}</span>
+                  <span className="min-w-0 text-sm font-medium text-tinta">{p.proveedor ?? "Gastos sin proveedor"}</span>
+                  <span className="shrink-0 tabular-nums text-sm text-tinta">{solesRedondo(p.sinPapel + p.enBoleta)}</span>
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-taupe">
                   <Chip tono="pizarra" versalitas={false}>

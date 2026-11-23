@@ -177,7 +177,7 @@ function Pantalla({ panel, unidadPedida, esAdmin }: { panel: PanelCierre; unidad
       <section className="fin-dos-col fin-cierre-cols">
         {u ? <Chequeos panel={panel} u={u} puedeSaltar={esAdmin && soloFaltaPlanilla(u)} onSaltar={() => setAccion({ tipo: "saltar", unidad: u })} onCerrar={() => setAccion({ tipo: "cerrar", unidad: u })} onReabrir={() => setAccion({ tipo: "reabrir", unidad: u })} /> : <div />}
         <Superficie pad className="anim-sube" guia="fin-cierre.rutina">
-          <p className="label-cayla text-[11px] text-taupe">La rutina de fin de mes</p>
+          <p className="label-cayla text-xs text-taupe">La rutina de fin de mes</p>
           <div className="fin-pasos-cierre">
             <div>
               <h3>Día 1 · cada tienda (20 min)</h3>
@@ -193,8 +193,8 @@ function Pantalla({ panel, unidadPedida, esAdmin }: { panel: PanelCierre; unidad
             </div>
           </div>
           <p className="nota-cayla mt-3.5">
-            Cierra y reabre quien tiene el módulo Cierre de mes (el líder, siempre). Reabrir pide motivo y queda en la historia; reabrir una tienda reabre también CAYLA
-            entera. Lo de hoy nunca se bloquea: una devolución o una anulación de hoy sobre una venta de un mes cerrado va al mes de hoy.
+            Cierra y reabre quien tiene el módulo Cierre de mes. Reabrir pide motivo y reabre también CAYLA entera. Lo de hoy nunca se bloquea: una devolución
+            de hoy sobre una venta de un mes cerrado va al mes de hoy.
           </p>
         </Superficie>
       </section>

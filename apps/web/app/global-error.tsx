@@ -76,7 +76,7 @@ export default function ErrorGlobal({
           <p
             style={{
               margin: 0,
-              fontSize: "11px",
+              fontSize: "13px", // letra-fija: la barrera global no carga las hojas de estilo; el tamaño va en línea, ya en la escala
               letterSpacing: "0.13em",
               textTransform: "uppercase",
               fontWeight: 600,
@@ -88,7 +88,7 @@ export default function ErrorGlobal({
           <h1 style={{ margin: "8px 0 0", fontSize: "24px", fontWeight: 400 }}>
             El sistema no pudo arrancar
           </h1>
-          <p style={{ margin: "12px 0 0", fontSize: "15px", lineHeight: 1.5, color: "color-mix(in srgb, var(--ge-texto) 75%, transparent)" }}>
+          <p style={{ margin: "12px 0 0", fontSize: "16px", lineHeight: 1.5, color: "color-mix(in srgb, var(--ge-texto) 75%, transparent)" }}>{/* letra-fija: la barrera global no carga las hojas de estilo; el tamaño va en línea, ya en la escala */}
             Esto no es un problema de tu computadora. {siSigueIgual(AVISA_SOLO)}
           </p>
           <button
@@ -100,7 +100,7 @@ export default function ErrorGlobal({
               border: "none",
               borderRadius: "8px",
               padding: "12px 22px",
-              fontSize: "11px",
+              fontSize: "13px", // letra-fija: la barrera global no carga las hojas de estilo; el tamaño va en línea, ya en la escala
               letterSpacing: "0.13em",
               textTransform: "uppercase",
               fontWeight: 600,
@@ -110,7 +110,7 @@ export default function ErrorGlobal({
             Reintentar
           </button>
           {error.digest && (
-            <p style={{ margin: "20px 0 0", fontSize: "13px", color: "color-mix(in srgb, var(--ge-texto) 65%, transparent)" }}>
+            <p style={{ margin: "20px 0 0", fontSize: "13px", color: "color-mix(in srgb, var(--ge-texto) 65%, transparent)" }}>{/* letra-fija: la barrera global no carga las hojas de estilo; el tamaño va en línea, ya en la escala */}
               Código: <span style={{ fontFamily: "monospace" }}>{error.digest}</span>
             </p>
           )}

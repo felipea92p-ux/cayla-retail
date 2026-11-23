@@ -145,7 +145,7 @@ function Fila({ marca, titulo, detalle, cifra, pie, urgente = false }: { marca: 
     <li className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3.5 border-t border-sand py-3 first:border-t-0">
       {marca}
       <span className="min-w-0">
-        <b className="block truncate text-[14px] font-semibold">{titulo}</b>
+        <b className="block truncate text-detalle font-semibold">{titulo}</b>
         <small className="block text-sm text-tinta/70">{detalle}</small>
       </span>
       <span className="text-right">

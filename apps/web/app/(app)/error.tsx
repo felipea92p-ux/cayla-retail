@@ -36,7 +36,7 @@ export default function ErrorDeSeccion({
     // (`PantallaAventurero`). El meme dice que alguien lo está resolviendo: desde el ADR-0424 es cierto en producción (Sentry le
     // escribe a Felipe), y el texto lo dice; el código sigue.
     <PantallaAventurero motivo="error">
-      <p className="label-cayla text-[11px] text-rojo">No se pudo cargar</p>
+      <p className="eyebrow-cayla">No se pudo cargar</p>
       <h1 className="font-display mt-2 text-2xl text-tinta sm:text-3xl">Esta pantalla no está mostrando datos</h1>
       <p className="mt-3 text-sm text-tinta/75 sm:text-base">
         Algo falló al traer la información. No se muestra nada a propósito: preferimos no enseñarte

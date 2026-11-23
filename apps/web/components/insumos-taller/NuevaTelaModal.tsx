@@ -228,10 +228,10 @@ export function NuevaTelaModal({
                     <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre de la tela")} value={nombre} onChange={(ev) => setNombre(ev.target.value)} maxLength={120} placeholder={sugerirInsumo("tela", materiales).nombre} autoComplete="off" />
                   </CampoGuiado>
                   <div>
-                    <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-tinta/65">
+                    <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-tinta/65">
                       Código <span className="font-normal normal-case tracking-normal text-tinta/60">· se arma solo</span>
                     </p>
-                    <p className="flex h-12 items-center rounded-lg border border-dashed border-borde-control vd-hundido px-3 font-mono text-[15px] font-semibold text-tinta">
+                    <p className="flex h-12 items-center rounded-lg border border-dashed border-borde-control vd-hundido px-3 font-mono text-sm font-semibold text-tinta">
                       {codigo}
                     </p>
                   </div>
@@ -297,7 +297,7 @@ export function NuevaTelaModal({
             ) : (
               <div className="overflow-x-auto">
                 <div style={{ minWidth: tabla.anchoMinimo }} className="overflow-hidden rounded-xl border border-sand">
-                  <div className={`${FILA} vd-placa text-[11px] font-semibold uppercase tracking-[0.1em] text-tinta/70`} style={{ gridTemplateColumns: tabla.plantilla }}>
+                  <div className={`${FILA} vd-placa text-xs font-semibold uppercase tracking-[0.1em] text-tinta/70`} style={{ gridTemplateColumns: tabla.plantilla }}>
                     <span>Color</span>
                     <span>Código</span>
                     {puedeSaldo && <span className="text-right">¿Ya tienes? ({unidadDeCompra})</span>}
@@ -312,11 +312,11 @@ export function NuevaTelaModal({
                     const metros = metrosDeFila(e, f);
                     return (
                       <div key={f.color} className={`${FILA} border-t border-sand`} style={{ gridTemplateColumns: tabla.plantilla }}>
-                        <span className="flex min-w-0 items-center gap-2 text-[14px] text-tinta">
+                        <span className="flex min-w-0 items-center gap-2 text-detalle text-tinta">
                           <Punto hex={c?.hex ?? null} familia={c?.familiaColor} tipo={c?.tipo} />
                           <span className="truncate">{nombreColor}</span>
                         </span>
-                        <span className="truncate font-mono text-[12.5px] text-tinta/75">{codigo}-{f.color}</span>
+                        <span className="truncate font-mono text-xs text-tinta/75">{codigo}-{f.color}</span>
                         {puedeSaldo && (
                           <CampoTexto caja sinPie etiqueta={`Cuánto hay de ${nombreColor} (${unidadDeCompra})`} inputMode="decimal" className="text-right tabular-nums" placeholder="0" value={f.ya} onChange={(ev) => cambiarFila(f.color, { ya: ev.target.value })} tono={numeroMalEscrito(f.ya) ? "error" : undefined} />
                         )}
@@ -325,7 +325,7 @@ export function NuevaTelaModal({
                           <CampoTexto caja sinPie etiqueta={`Costo de ${nombreColor}`} inputMode="decimal" className="text-right tabular-nums" placeholder="0.00" value={f.costo} onChange={(ev) => cambiarFila(f.color, { costo: ev.target.value })} tono={montoIlegible(f.costo) ? "error" : undefined} />
                         )}
                         <CampoTexto caja sinPie etiqueta={`Mínimo de ${nombreColor}`} inputMode="decimal" className="text-right tabular-nums" placeholder="—" value={f.minimo} onChange={(ev) => cambiarFila(f.color, { minimo: ev.target.value })} tono={numeroMalEscrito(f.minimo) ? "error" : undefined} />
-                        <button type="button" onClick={() => alternarColor(f.color)} aria-label={`Quitar ${nombreColor}`} className="grid h-8 w-8 place-items-center rounded-full text-[17px] leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta">
+                        <button type="button" onClick={() => alternarColor(f.color)} aria-label={`Quitar ${nombreColor}`} className="grid h-8 w-8 place-items-center rounded-full text-lg leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta">
                           ×
                         </button>
                       </div>

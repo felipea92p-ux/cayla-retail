@@ -109,7 +109,7 @@ import { registrarComprobanteOrdenInsumo } from "@/lib/ordenes-insumo-acciones";
 
 const TITULO = "mb-1 text-sm font-semibold text-tinta";
 // El título de un campo de la cabecera: una sola línea de alto fijo, así las cajas de al lado quedan alineadas en cualquier estado de la guía.
-const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whitespace-nowrap text-[13px] font-semibold text-tinta";
+const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whitespace-nowrap text-xs font-semibold text-tinta";
 // Un renglón del papel con lugar (sección de 52 rem o más): marca de la guía y número · insumo · cantidad con su unidad · costo · subtotal
 // · quitar. Lo comparten el encabezado y cada fila.
 const FILA_ANCHA = "@min-[52rem]:grid-cols-[2.5rem_minmax(0,1.6fr)_10rem_7rem_7rem_2rem]";
@@ -340,7 +340,7 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
         volver={<Volver href={RUTA_ORDENES_INSUMO} a="Órdenes de insumos" />}
       >
         <div data-guia="oi-comprobante.cifras" className="anim-sube text-right" style={{ ["--i" as string]: 1 }}>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-taupe-profundo">{palabras.total}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-taupe-profundo">{palabras.total}</p>
           <p className="font-display mt-1 text-2xl tabular-nums text-tinta" aria-live="polite">
             {soles(totalSoles)}
           </p>

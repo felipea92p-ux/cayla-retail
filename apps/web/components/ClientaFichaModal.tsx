@@ -648,7 +648,7 @@ export function ClientaFichaModal({
 
                     {tallas.length > 0 && (
                       <p className="text-sm text-tinta/75">
-                        <span className="label-cayla mr-2 text-[10.5px] text-tinta/55">Talla que suele comprar</span>
+                        <span className="label-cayla mr-2 text-xs text-tinta/55">Talla que suele comprar</span>
                         {tallas.map((t) => `${t.categoria}: ${t.talla}`).join(" · ")}
                       </p>
                     )}

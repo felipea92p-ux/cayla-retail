@@ -33,8 +33,8 @@ function FilaDeContacto({ icono, titulo, valor, copiable, que }: { icono: ReactN
         {icono}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="label-cayla text-[10px] leading-tight text-tinta/60">{titulo}</p>
-        <p className="break-words text-[15px] leading-snug text-tinta">{valor ?? <span className="text-tinta/60">Sin dato</span>}</p>
+        <p className="label-cayla text-xs leading-tight text-tinta/60">{titulo}</p>
+        <p className="break-words text-sm leading-snug text-tinta">{valor ?? <span className="text-tinta/60">Sin dato</span>}</p>
       </div>
       {valor && copiable && <BotonCopiar texto={copiable} que={que} forma="icono" />}
     </div>
@@ -100,7 +100,7 @@ export function PerfilDelCliente({ d, children }: { d: DatosDelPerfil; children?
 export function CifraDeLaFicha({ titulo, valor, detalle }: { titulo: string; valor: ReactNode; detalle?: ReactNode }) {
   return (
     <div className="rounded-2xl border border-sand p-3.5">
-      <p className="label-cayla text-[10px] text-tinta/60">{titulo}</p>
+      <p className="label-cayla text-xs text-tinta/60">{titulo}</p>
       <p className="mt-0.5 font-display text-[28px] leading-[1.1] tabular-nums text-tinta">{valor}</p>
       {detalle && <p className="text-sm leading-snug text-tinta/65">{detalle}</p>}
     </div>
@@ -169,7 +169,7 @@ function LineaDelMes({ grupos, sinPrimerMes = null }: { grupos: { mes: string; m
     <div className="space-y-4">
       {grupos.map((g, i) => (
         <section key={g.mes}>
-          {!(i === 0 && g.mes === sinPrimerMes) && <p className="label-cayla mb-1.5 text-[10.5px] text-tinta/60">{g.mes}</p>}
+          {!(i === 0 && g.mes === sinPrimerMes) && <p className="label-cayla mb-1.5 text-xs text-tinta/60">{g.mes}</p>}
           <ol>
             {g.movimientos.map((m, j) => (
               <MovimientoDelHistorial key={m.clave} m={m} ultimo={j === g.movimientos.length - 1} />
@@ -190,8 +190,8 @@ function MovimientoDelHistorial({ m, ultimo }: { m: Movimiento; ultimo: boolean 
       {/* El hilo que une un movimiento con el siguiente: se corta en el último de su mes. */}
       {!ultimo && <span aria-hidden className="absolute bottom-[-6px] left-[22px] top-[52px] w-0.5 bg-sand" />}{/* beige-fijo: línea de la cronología */}
       <div className="relative z-[1] grid h-[46px] w-[46px] place-content-center rounded-full vd-gota-chica text-center">
-        <b className="font-display text-[19px] font-medium leading-none tabular-nums">{dia}</b>
-        <span className="text-[9.5px] uppercase leading-tight tracking-[0.08em] text-tinta/65">{mes}</span>
+        <b className="font-display text-lg font-medium leading-none tabular-nums">{dia}</b>
+        <span className="text-xs uppercase leading-tight tracking-[0.08em] text-tinta/65">{mes}</span>
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3.5 gap-y-1 rounded-xl border border-sand px-3.5 py-2.5 transition-colors hover:border-taupe motion-reduce:transition-none">
         <div className="flex flex-wrap items-center gap-2">
@@ -205,7 +205,7 @@ function MovimientoDelHistorial({ m, ultimo }: { m: Movimiento; ultimo: boolean 
           )}
           {m.sede && <span className="text-sm text-tinta/65">{suSedeLegible(m.sede)}</span>}
         </div>
-        {m.monto !== null && <span className="row-span-2 col-start-2 row-start-1 whitespace-nowrap text-[17px] font-medium tabular-nums text-tinta">{m.tipo === "devolucion" ? "−" : ""}{SOLES(m.monto)}</span>}
+        {m.monto !== null && <span className="row-span-2 col-start-2 row-start-1 whitespace-nowrap text-lg font-medium tabular-nums text-tinta">{m.tipo === "devolucion" ? "−" : ""}{SOLES(m.monto)}</span>}
         <p className="col-start-1 break-words text-sm text-tinta">{m.detalle}</p>
       </div>
     </li>

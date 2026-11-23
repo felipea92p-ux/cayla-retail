@@ -418,7 +418,7 @@ export function RecomendacionHoja({
         <div className="max-w-[88%]">
           {/* Lo que escribió, tal cual (es texto: lo que parezca código se lee como texto). */}
           <blockquote
-            className="whitespace-pre-line break-words tw-cita rounded-2xl rounded-tl-md border px-4 py-3 font-serif text-[18px] leading-snug text-tinta"
+            className="whitespace-pre-line break-words tw-cita rounded-2xl rounded-tl-md border px-4 py-3 font-serif text-lg leading-snug text-tinta"
             data-guia="recomendacion.texto"
           >
             {r.texto}
@@ -432,7 +432,7 @@ export function RecomendacionHoja({
 
         {v.respuesta !== null && (
           <div className="ml-auto max-w-[88%]" data-guia="recomendacion.respuesta-dada">
-            <p className="whitespace-pre-line break-words rounded-2xl rounded-tr-md bg-tinta px-4 py-3 text-[14.5px] leading-snug text-crema">
+            <p className="whitespace-pre-line break-words rounded-2xl rounded-tr-md bg-tinta px-4 py-3 text-detalle leading-snug text-crema">
               {v.respuesta}
             </p>
             <p className="mt-1.5 pr-1 text-right text-sm text-taupe">
@@ -445,7 +445,7 @@ export function RecomendacionHoja({
         {pendiente && (
           // Lo que va a salir, ya en su lugar de la conversación pero tenue: todavía se puede deshacer.
           <div className="ml-auto max-w-[88%]" data-guia="recomendacion.por-salir">
-            <p className="whitespace-pre-line break-words rounded-2xl rounded-tr-md bg-tinta px-4 py-3 text-[14.5px] leading-snug text-crema opacity-60">
+            <p className="whitespace-pre-line break-words rounded-2xl rounded-tr-md bg-tinta px-4 py-3 text-detalle leading-snug text-crema opacity-60">
               {pendiente.texto}
             </p>
             <p className="mt-1.5 flex flex-wrap items-center justify-end gap-x-2 pr-1 text-right text-sm text-taupe" role="status">

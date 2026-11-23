@@ -9,7 +9,7 @@ export function BurbujaAviso({ texto, cierre, hora, className = "" }: { texto: s
   const cierreLimpio = cierre?.trim() ?? "";
   return (
     <div
-      className={`relative whitespace-pre-line break-words rounded-xl rounded-bl-sm bg-[color-mix(in_srgb,var(--color-verde)_13%,var(--color-papel))] px-3 pb-5 pt-2.5 text-[15px] leading-snug text-tinta ${className}`}
+      className={`relative whitespace-pre-line break-words rounded-xl rounded-bl-sm bg-[color-mix(in_srgb,var(--color-verde)_13%,var(--color-papel))] px-3 pb-5 pt-2.5 text-sm leading-snug text-tinta ${className}`}
     >
       {parrafos.map((p, i) => {
         const esBaja = p.trim() === LINEA_BAJA;

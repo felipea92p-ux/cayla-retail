@@ -56,7 +56,7 @@ export function Trozos({ trozos }: { trozos: readonly Trozo[] }) {
 /** La política o los términos, bloque por bloque (`bloquesDeTexto`): títulos, párrafos y listas, sin interpretar HTML. */
 export function TextoLegal({ bloques }: { bloques: readonly Bloque[] }) {
   return (
-    <div className="space-y-3 text-[14.5px] leading-relaxed text-tinta/85">
+    <div className="space-y-3 text-detalle leading-relaxed text-tinta/85">
       {bloques.map((b, i) => {
         if (b.tipo === "titulo") {
           return b.nivel === 2 ? (
@@ -64,7 +64,7 @@ export function TextoLegal({ bloques }: { bloques: readonly Bloque[] }) {
               <Trozos trozos={b.trozos} />
             </h2>
           ) : (
-            <h3 key={i} className="pt-3 text-[15px] font-semibold text-tinta">
+            <h3 key={i} className="pt-3 text-sm font-semibold text-tinta">
               <Trozos trozos={b.trozos} />
             </h3>
           );
@@ -105,7 +105,7 @@ export function AvisoClub({ titulo, children }: { titulo: string; children: Reac
   return (
     <section className="mt-10">
       <h1 className="font-display text-[30px] leading-tight text-tinta">{titulo}</h1>
-      <div className="mt-3 text-[15px] leading-relaxed text-tinta/70">{children}</div>
+      <div className="mt-3 text-sm leading-relaxed text-tinta/70">{children}</div>
     </section>
   );
 }

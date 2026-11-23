@@ -49,7 +49,7 @@ export function BotonAsistente({ rutasDelMenu }: { /** Las entradas del menú de
         className="area-dedo flex h-9 items-center gap-1.5 rounded-lg px-2 text-tinta/65 transition-colors vd-pasa-gota hover:text-rojo sm:px-2.5"
       >
         <MessageCircleQuestion /* unificar-fijo: el botón de la cabecera es del marco, trazo 1,5 y 18 px como «Actividad» y «Demo» (ronda 16) */ className="h-[18px] w-[18px]" strokeWidth={1.5} aria-hidden />
-        <span className="label-cayla hidden text-[11px] sm:inline">Preguntar</span>
+        <span className="label-cayla hidden text-xs sm:inline">Preguntar</span>
       </button>
       {abierto ? <CajonAsistente rutasDelMenu={rutasDelMenu} onCerrar={() => setAbierto(false)} /> : null}
     </>

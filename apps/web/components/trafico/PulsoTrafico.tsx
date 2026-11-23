@@ -98,7 +98,7 @@ export function PulsoTrafico({
           const elegida = metrica === x.clave;
           return (
             <button key={x.clave} type="button" className="trafico-franja-cifra group" aria-pressed={elegida} onClick={() => setMetrica(x.clave)}>
-              <span className="label-cayla text-[11px] text-taupe-profundo">{x.nombre}</span>
+              <span className="label-cayla text-xs text-taupe-profundo">{x.nombre}</span>
               <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <b className="trafico-franja-numero font-display font-medium tabular-nums">{cifraTexto(x.clave, t.valor)}</b>
                 {c ? (
@@ -219,7 +219,7 @@ function Lectura({ r, periodo, cierre }: { r: ResumenTrafico; periodo: { clave: 
         )}
       </div>
       <h3 className="font-display text-[24px] font-medium leading-[1.12] text-balance sm:text-[28px]" /* unificar-fijo: es la respuesta del período en una frase (la de la maqueta), no el título de una sección */>{v.titulo}</h3>
-      <p className="text-[14.5px] text-tinta/70">
+      <p className="text-detalle text-tinta/70">
         Entraron <b className="font-semibold text-tinta">{miles(r.pasos[0])} {r.pasos[0] === 1 ? "persona" : "personas"}</b>.
         {cierre !== null && (
           <>
@@ -228,7 +228,7 @@ function Lectura({ r, periodo, cierre }: { r: ResumenTrafico; periodo: { clave: 
           </>
         )}
       </p>
-      <dl className="mt-auto grid gap-2.5 border-t border-sand pt-3.5 text-[15px]">
+      <dl className="mt-auto grid gap-2.5 border-t border-sand pt-3.5 text-sm">
         {datos.map(([k, val]) => (
           <div key={k} className="flex items-baseline justify-between gap-3">
             <dt className="text-tinta/70">{k}</dt>

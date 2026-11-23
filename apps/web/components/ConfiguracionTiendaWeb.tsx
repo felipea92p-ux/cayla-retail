@@ -370,7 +370,7 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
       )}
 
       <div className="nota-cayla" data-guia="config.tienda-web-nota">
-        El WhatsApp de cada tienda es el del QR del club: cambiarlo aquí lo cambia también en el cartel. Por ahora no hay envíos: todo pedido se recoge en tienda.
+        Cambiar el WhatsApp aquí lo cambia también en el cartel del club. Todo pedido se recoge en tienda.
       </div>
       {salida.aviso}
     </>

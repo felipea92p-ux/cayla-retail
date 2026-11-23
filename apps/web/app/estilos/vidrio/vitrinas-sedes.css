@@ -71,8 +71,8 @@
 }
 .vs-barrido { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; border-radius: inherit; }
 .vs-marca { display: block; font: 500 40px/1 var(--font-serif); }
-.vs-rotulo { display: block; font-size: 14px; line-height: 1.25; color: var(--color-taupe); }
-.vs-dato-e { display: block; margin-top: 1px; font-size: 16px; font-weight: 500; overflow-wrap: anywhere; }
+.vs-rotulo { display: block; font-size: var(--text-detalle); line-height: 1.25; color: var(--color-taupe); }
+.vs-dato-e { display: block; margin-top: 1px; font-size: var(--text-sm); font-weight: 500; overflow-wrap: anywhere; }
 .vs-ruc { display: flex; font: 500 30px/1.2 var(--font-serif); font-variant-numeric: lining-nums tabular-nums; }
 .vs-digito { display: block; height: 1.2em; overflow: hidden; }
 .vs-digito > span { display: block; transform: translateY(calc(var(--d) * -1.2em)); }
@@ -94,7 +94,7 @@
 .vs-vitrina header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 0 6px 14px; }
 .vs-nombre { overflow: hidden; font: 500 33px/1.05 var(--font-serif); }
 .vs-nombre span { display: block; }
-.vs-direccion { display: flex; align-items: center; gap: 5px; margin-top: 4px; font-size: 14px; color: var(--color-taupe); }
+.vs-direccion { display: flex; align-items: center; gap: 5px; margin-top: 4px; font-size: var(--text-detalle); color: var(--color-taupe); }
 .vs-series { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
 .vs-series span {
   display: inline-flex;
@@ -102,12 +102,12 @@
   height: 25px;
   padding: 0 9px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: var(--text-detalle);
   font-variant-numeric: tabular-nums;
   background: var(--placa-fondo);
   box-shadow: var(--placa-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 8%, transparent);
 }
-.vs-frase { padding: 0 6px 12px; font-size: 15px; font-weight: 500; color: var(--color-ambar-profundo); }
+.vs-frase { padding: 0 6px 12px; font-size: var(--text-sm); font-weight: 500; color: var(--color-ambar-profundo); }
 .vs-frase.listo { color: var(--color-verde-profundo); }
 .vs-datos { display: grid; gap: 8px; }
 
@@ -127,7 +127,7 @@
 .vs-aro .tramo { fill: none; stroke-width: 3.2; stroke-linecap: round; }
 .vs-aro .tramo.lleno { stroke: var(--c); }
 .vs-aro .tramo.vacio { stroke: var(--color-ambar); opacity: 0.8; }
-.vs-aro b { font: 500 20px/1 var(--font-serif); font-variant-numeric: lining-nums; }
+.vs-aro b { font: 500 var(--text-xl)/1 var(--font-serif); font-variant-numeric: lining-nums; }
 .vs-aro .visto { width: 26px; height: 26px; fill: none; stroke: var(--c); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; } /* unificar-fijo: el visto del aro es parte del instrumento, no un ícono de la escala */
 
 /* Cada dato: la placa con su instrumento. Se toca entero; mientras se escribe, el pozo de la casilla vive adentro. */
@@ -158,7 +158,7 @@ button.vs-dato:focus-visible { outline: 2px solid var(--color-rojo); outline-off
 .vs-textos { flex: 1; min-width: 0; }
 /* Lo que dice que se puede tocar: el lápiz, o «Poner» en lo que falta */
 .vs-accion { flex: none; display: grid; place-items: center; color: var(--color-taupe); transition: color 250ms var(--ease-cayla), transform 250ms var(--ease-cayla); }
-.vs-accion.poner { height: 30px; padding: 0 12px; border-radius: 999px; font-size: 14px; font-weight: 500; color: var(--color-ambar-profundo); background: var(--gota-fondo); box-shadow: var(--gota-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-ambar) 42%, transparent); }
+.vs-accion.poner { height: 30px; padding: 0 12px; border-radius: 999px; font-size: var(--text-detalle); font-weight: 500; color: var(--color-ambar-profundo); background: var(--gota-fondo); box-shadow: var(--gota-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-ambar) 42%, transparent); }
 .vs-valor { display: block; font: 500 23px/1.2 var(--font-serif); font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
 .vs-dato.falta { background: color-mix(in srgb, var(--color-ambar) 7%, transparent); box-shadow: var(--placa-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-ambar) 38%, transparent); }
 .vs-dato.falta { --c: var(--color-ambar); }
@@ -166,7 +166,7 @@ button.vs-dato:focus-visible { outline: 2px solid var(--color-rojo); outline-off
 .vs-dato.apagado .vs-valor { color: var(--color-taupe); }
 .vs-dato.edita { background: var(--gota-fondo-encima); }
 .vs-dato .cfg-casilla { display: block; margin-top: 2px; }
-.vs-entrada { width: 100%; font-size: 16px; }
+.vs-entrada { width: 100%; font-size: var(--text-sm); }
 .vs-visto {
   position: absolute;
   top: 9px;
@@ -223,7 +223,7 @@ button.vs-dato:focus-visible { outline: 2px solid var(--color-rojo); outline-off
 .vsi-liq .cuerpo { fill: color-mix(in srgb, var(--c) 48%, transparent); }
 :root[data-tema="oscuro"] .vsi-liq .cuerpo { fill: color-mix(in srgb, var(--c) 58%, transparent); }
 .vsi-liq .espuma { fill: color-mix(in srgb, var(--c) 18%, var(--color-vidrio)); }
-.vsi-liq .simbolo { font: 500 19px var(--font-serif); fill: var(--color-tinta); text-anchor: middle; paint-order: stroke; stroke: color-mix(in srgb, var(--color-vidrio) 55%, transparent); stroke-width: 2.5px; }
+.vsi-liq .simbolo { font: 500 19px var(--font-serif); fill: var(--color-tinta); text-anchor: middle; paint-order: stroke; stroke: color-mix(in srgb, var(--color-vidrio) 55%, transparent); stroke-width: 2.5px; } /* letra-fija: símbolo del dibujo (svg) de la vitrina */
 :root[data-tema="oscuro"] .vsi-liq .simbolo { stroke: color-mix(in srgb, var(--color-sombra) 45%, transparent); }
 .vsi-liq .vacio { fill: none; stroke: var(--color-ambar); stroke-width: 1.5; stroke-dasharray: 3 4; }
 /* El globo del asistente, con su estrella */
@@ -247,7 +247,7 @@ button.vs-dato:focus-visible { outline: 2px solid var(--color-rojo); outline-off
 
 /* El tubo de Preguntar: la barra del sistema, a lo ancho */
 .vs-tubo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 12px 22px; border-radius: 999px; }
-.vs-tubo-nombre { font: 500 21px var(--font-serif); white-space: nowrap; }
+.vs-tubo-nombre { font: 500 var(--text-xl) var(--font-serif); white-space: nowrap; }
 .vs-tubo-barra { flex: 1; min-width: 160px; }
 
 @container (max-width: 520px) {

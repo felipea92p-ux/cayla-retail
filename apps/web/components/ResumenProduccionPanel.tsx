@@ -198,7 +198,7 @@ export function ResumenProduccionPanel({
                   </svg>
                 )}
                 <div className="min-w-0">
-                  <h3 className="text-[14.5px] font-medium text-tinta">{/* unificar-fijo: el nombre de un asunto de la lista, un dato y no el título de una sección */}{d.titulo}</h3>
+                  <h3 className="text-detalle font-medium text-tinta">{/* unificar-fijo: el nombre de un asunto de la lista, un dato y no el título de una sección */}{d.titulo}</h3>
                   <p className="mt-0.5 text-sm text-tinta/70">{d.detalle}</p>
                   <PorQue texto={d.porque} />
                 </div>
@@ -264,12 +264,12 @@ export function ResumenProduccionPanel({
         ) : (
           <div className="card-cayla overflow-hidden">
             <div className="hidden grid-cols-[minmax(0,1.6fr)_3rem_6rem_minmax(6.5rem,1.2fr)_9rem] gap-x-3 border-b border-tinta/10 px-4 py-2.5 lg:grid xl:grid-cols-[minmax(0,1.5fr)_3.5rem_6rem_minmax(7rem,1.2fr)_4rem_9rem]">
-              <span className="label-cayla pl-11 text-[11px] text-tinta/65">Modelo</span>
-              <span className="label-cayla text-right text-[11px] text-tinta/65">Stock</span>
-              <span className="label-cayla text-right text-[11px] text-tinta/65">Ventas/sem.</span>
-              <span className="label-cayla text-[11px] text-tinta/65">Cobertura</span>
-              <span className="label-cayla hidden text-right text-[11px] text-tinta/65 xl:block">En prod.</span>
-              <span className="label-cayla text-[11px] text-tinta/65">Sugerencia</span>
+              <span className="label-cayla pl-11 text-xs text-tinta/65">Modelo</span>
+              <span className="label-cayla text-right text-xs text-tinta/65">Stock</span>
+              <span className="label-cayla text-right text-xs text-tinta/65">Ventas/sem.</span>
+              <span className="label-cayla text-xs text-tinta/65">Cobertura</span>
+              <span className="label-cayla hidden text-right text-xs text-tinta/65 xl:block">En prod.</span>
+              <span className="label-cayla text-xs text-tinta/65">Sugerencia</span>
             </div>
             <ul>
               {resto.map((m) => {
@@ -286,7 +286,7 @@ export function ResumenProduccionPanel({
                       <span className="flex min-w-0 items-center gap-3">
                         <FotoModelo productoId={m.productoId} presentaciones={presentaciones} ancho={32} className="w-8" />
                         <span className="min-w-0">
-                          <span className="line-clamp-2 break-words text-[14px] leading-snug text-tinta">{m.referencia}</span>
+                          <span className="line-clamp-2 break-words text-detalle leading-snug text-tinta">{m.referencia}</span>
                           {/* De quién es y a quién se le compra: a la vista en la lista, sin abrir la hoja (Felipe 2026-10-15). */}
                           {origen && (
                             <span data-origen className="line-clamp-2 break-words text-sm text-tinta/65">
@@ -364,7 +364,7 @@ export function ResumenProduccionPanel({
             {telas.map((t) => (
               <li key={t.insumoId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b border-tinta/10 px-4 py-3 last:border-b-0 @min-[36rem]:grid-cols-[minmax(0,1.5fr)_8rem_11rem]">
                 <span className="min-w-0">
-                  <span className="block truncate text-[14px] text-tinta">{t.nombre}</span>
+                  <span className="block truncate text-detalle text-tinta">{t.nombre}</span>
                   <span className="block text-sm text-tinta/65">
                     hay {cantidadTexto(t.saldo, t.unidad)} · {loQueViene(t)}
                   </span>

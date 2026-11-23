@@ -356,7 +356,7 @@ export function PedidoWebHoja({
         <span className="inline-flex flex-wrap items-center gap-2">
           Pedido {p.codigo}
           {/* Solo el estado, corto y en versalitas; lo que le queda va en la ruta, a su derecha. */}
-          <Chip tono={estado.tono} vivo={estado.vivo} className="font-sans text-[11px] font-semibold uppercase tracking-[0.07em]">
+          <Chip tono={estado.tono} vivo={estado.vivo} className="font-sans text-xs font-semibold uppercase tracking-[0.07em]">
             {etiquetaDeEstado(p)}
           </Chip>
         </span>

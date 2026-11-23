@@ -540,8 +540,8 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
         data-piloto={pilotoActuando ? "" : undefined}
       >
         <div className="flex items-center justify-between gap-3">
-          <p className="label-cayla text-[10.5px] text-taupe-profundo">Guía · {guia.titulo}</p>
-          <p className="text-[11px] tabular-nums text-tinta/55" aria-live="polite">
+          <p className="label-cayla text-xs text-taupe-profundo">Guía · {guia.titulo}</p>
+          <p className="text-xs tabular-nums text-tinta/55" aria-live="polite">
             {enCurso > 0 ? `${enCurso} de ${esUltimo ? enCurso : total}` : ""}
           </p>
         </div>
@@ -569,16 +569,16 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
                   {enCurso}
                 </span>
               )}
-              <h2 id="guia-titulo" className="guia-titulo font-display text-[21px] leading-tight text-tinta">
+              <h2 id="guia-titulo" className="guia-titulo font-display text-xl leading-tight text-tinta">
                 {mostrando.paso.titulo}
               </h2>
             </div>
-            <p id="guia-texto" className="guia-texto mt-1.5 text-[14px] leading-relaxed text-tinta/80">
+            <p id="guia-texto" className="guia-texto mt-1.5 text-detalle leading-relaxed text-tinta/80">
               {mostrando.paso.texto}
             </p>
-            {mostrando.nota && <p className="guia-nota nota-cayla mt-3 rounded-lg px-3 py-2 text-[12.5px] leading-snug text-tinta/75">{mostrando.nota}</p>}
+            {mostrando.nota && <p className="guia-nota nota-cayla mt-3 rounded-lg px-3 py-2 text-xs leading-snug text-tinta/75">{mostrando.nota}</p>}
             {enCurso === 1 && (
-              <p className="guia-atajos mt-3 flex flex-wrap items-center gap-1.5 text-[11.5px] text-tinta/60">
+              <p className="guia-atajos mt-3 flex flex-wrap items-center gap-1.5 text-xs text-tinta/60">
                 <kbd>←</kbd>
                 <kbd>→</kbd> para moverte · <kbd>Esc</kbd> para salir
               </p>

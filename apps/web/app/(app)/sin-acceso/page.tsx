@@ -27,7 +27,7 @@ export default async function SinAccesoPage({ searchParams }: { searchParams: Pr
 
   return (
     <PantallaAventurero motivo="sin-acceso">
-      <p className="label-cayla text-[11px] text-taupe-profundo">Sin acceso</p>
+      <p className="label-cayla text-xs text-taupe-profundo">Sin acceso</p>
       {noVeNinguna ? (
         <>
           <h1 className="font-display mt-2 text-2xl text-tinta sm:text-3xl">Tu cuenta todavía no ve ninguna pantalla</h1>
@@ -45,8 +45,7 @@ export default async function SinAccesoPage({ searchParams }: { searchParams: Pr
         <>
           <h1 className="font-display mt-2 text-2xl text-tinta sm:text-3xl">{nombre ? `Tu rol no ve «${nombre}»` : "Tu rol no ve este módulo"}</h1>
           <p className="mt-3 text-sm text-tinta/75 sm:text-base">
-            Lo que ve cada cuenta lo decide su rol. Si necesitas entrar aquí, pídele a un líder de equipo que lo active en
-            Colaboradores, en la pestaña Roles y accesos.
+            Si necesitas entrar aquí, pídele a un líder de equipo que lo active en Colaboradores ▸ Roles y accesos.
           </p>
           <div className="mt-6 flex justify-center">
             <Link href="/" className="btn-cayla btn-primario">

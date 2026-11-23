@@ -24,7 +24,7 @@ export function PendientesImpuestos({ pendientes, guia }: { pendientes: LineaPen
         <Chip tono={pendientes.length ? "ambar" : "verde"}>{pendientes.length ? `${pendientes.length} por revisar` : "Al día"}</Chip>
       </div>
       {pendientes.length === 0 ? (
-        <p className="fin-tenue text-[14px]">Nada que revisar este mes.</p>
+        <p className="fin-tenue text-detalle">Nada que revisar este mes.</p>
       ) : (
         <ul className="fin-imp-lista">
           {pendientes.map((p) => {
@@ -95,7 +95,7 @@ export function LimiteAnio({ limite, panel, guia }: { limite: LimiteImpuestos; p
           <span style={{ left: `${limite.avisoPct}%` }}>Aviso{limite.avisoUit !== null ? ` · ${limite.avisoUit.toLocaleString("es-PE")} UIT` : ""}</span>
         </div>
       )}
-      <p className="text-[15px] text-tinta">
+      <p className="text-sm text-tinta">
         {limite.frase} <span className="fin-tenue">Tope: {solesRedondo(limite.umbralSoles)}.</span>
       </p>
       {aviso.titulo && (aviso.nivel === "aviso" || aviso.nivel === "cruzado") && (

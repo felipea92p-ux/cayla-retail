@@ -349,7 +349,7 @@ export function AvisosClubPanel({
               </section>
 
               <aside className="rounded-xl border border-sand bg-papel p-4 lg:sticky lg:top-24" aria-label="La fila de hoy" data-guia="avisos.fila">
-                <p className="font-serif text-[21px] leading-tight text-tinta">La fila de hoy</p>
+                <p className="font-serif text-xl leading-tight text-tinta">La fila de hoy</p>
                 <p className="mb-1 text-sm text-taupe">Toca a alguien para ir a su mensaje.</p>
                 {grupos.map((g) => (
                   <div key={g.tipo} className="mt-3">
@@ -393,7 +393,7 @@ export function AvisosClubPanel({
 
       {esTienda && (
         <p className="nota-cayla anim-sube" style={{ "--i": 3 } as CSSProperties} data-guia="avisos.reglas">
-          «Enviar» abre WhatsApp Web con el mensaje escrito: aprietas Enter y vuelves. <b>Máximo 2 promociones al mes</b> por miembro, y 1 de cada 5 no las recibe, para medir si sirven. Si alguien responde <b>BAJA</b>, márcalo con «Pidió BAJA».
+          «Enviar» abre WhatsApp Web con el mensaje escrito. <b>Máximo 2 promociones al mes</b> por miembro; 1 de cada 5 no las recibe, para medir si sirven. Si responde <b>BAJA</b>, márcalo con «Pidió BAJA».
         </p>
       )}
 

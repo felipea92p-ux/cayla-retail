@@ -18,7 +18,7 @@ export function CalendarioTrafico({ calendario, periodo, hoy }: { calendario: Ca
         {mes}, día por día
       </TituloSeccion>
       <div className="card-cayla mt-2 px-5 py-4">
-        <p className="text-[14px] text-tinta/70">
+        <p className="text-detalle text-tinta/70">
           {fuertes ? (
             <>
               Entra más gente los <b className="font-semibold text-tinta">{diasTexto(fuertes)}</b>.

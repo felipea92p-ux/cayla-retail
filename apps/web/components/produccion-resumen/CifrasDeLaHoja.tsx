@@ -13,7 +13,7 @@ export function Rotulo({ children }: { children: string }) {
 export function Dato({ etiqueta, valor, nota }: { etiqueta: string; valor: number | string; nota?: string }) {
   return (
     <div className="min-w-0">
-      <dt className="label-cayla text-[11px] text-tinta/65">{etiqueta}</dt>
+      <dt className="label-cayla text-xs text-tinta/65">{etiqueta}</dt>
       <dd className="mt-0.5 text-xl leading-tight tabular-nums text-tinta">{valor}</dd>
       {nota && <dd className="text-sm text-tinta/65">{nota}</dd>}
     </div>

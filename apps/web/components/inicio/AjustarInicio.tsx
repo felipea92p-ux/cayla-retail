@@ -65,7 +65,7 @@ export function AjustarInicio({
             <div className="space-y-5" data-guia="inicio.ajustar-lista">
               {grupos.map((g) => (
                 <div key={g}>
-                  <p className="label-cayla mb-2 text-[11px] text-tinta/65">{g}</p>
+                  <p className="label-cayla mb-2 text-xs text-tinta/65">{g}</p>
                   <div className="space-y-1.5">
                     {avisos
                       .filter((a) => a.grupo === g)

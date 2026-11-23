@@ -50,7 +50,7 @@ export function CierrePulso({ pulso }: { pulso: PulsoCierre }) {
                   </span>
                   <div className="min-w-0">
                     <b>
-                      {c.titulo} <small className="text-taupe">· {c.unidad}</small>
+                      {c.titulo} <small className="text-xs text-taupe">· {c.unidad}</small>
                     </b>
                     <p>{c.detalle}</p>
                   </div>

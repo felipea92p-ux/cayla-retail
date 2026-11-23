@@ -71,7 +71,7 @@ export function RecibirComprobanteModal({ comprobante: c, tallerId, onClose }: {
             return (
               <li key={l.itemId} className="rounded-2xl border border-sand bg-crema p-3.5">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="text-[14px] text-tinta">{l.insumo}</p>
+                  <p className="text-detalle text-tinta">{l.insumo}</p>
                   <p className="text-sm tabular-nums text-tinta/65">
                     faltan <b className="font-semibold text-tinta">{cantidadTexto(l.pendiente, l.unidad)}</b>
                     {(l.recibido > 0 || l.cerrado > 0) && ` de ${cantidadTexto(l.facturado, l.unidad)}`}
