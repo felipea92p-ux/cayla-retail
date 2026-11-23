@@ -13,3 +13,12 @@
 - **Actividad 9 · Historial de barridos** (`/inventario/barrido/historial`): la lista de la sede y el detalle de cada barrido (quién y entre
   qué horas, lo movido, lo no cargado, cada lectura para solo leer). Revisión adversarial: «Por resolver» del historial no descontaba lo ya
   resuelto, el catálogo era el de la sede activa y no la del barrido; corregido con su prueba. Migración `20261122196000`, por pegar.
+- **Actividad 10 · Cierre** (2026-11-23):
+  - Probado con `/formidable`, una prueba a ciegas a 375 px y `/chaos` (≈ 60 ataques, ningún estado imposible).
+  - En el celular, el campo y la última prenda quedan en la primera pantalla.
+  - Las repetidas preguntan también tras recargar: salen de la base.
+  - En «Lo escaneado», lo tuyo sale primero.
+  - Textos de tienda.
+  - Lo que llegó tarde tras confirmar se nombra.
+  - Detalle en ADR-0690, «Actualización 2026-11-23».
+

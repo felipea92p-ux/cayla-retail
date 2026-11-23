@@ -65,10 +65,10 @@ export default async function DetalleBarridoPage({ params }: { params: Promise<{
           {b.quitadas > 0 ? `${b.quitadas.toLocaleString("es-PE")} ${b.quitadas === 1 ? "lectura quitada" : "lecturas quitadas"}` : "Ninguna quitada"}
         </TarjetaCifra>
         <TarjetaCifra etiqueta="Pasaron al piso" valor={b.alPiso === null ? null : b.alPiso.toLocaleString("es-PE")}>
-          {confirmado ? "Estaban en el almacén" : "No se confirmó"}
+          {!confirmado ? "No se confirmó" : b.alPiso === null ? "Sin el detalle de lo movido" : "Estaban en el almacén"}
         </TarjetaCifra>
         <TarjetaCifra etiqueta="Volvieron al almacén" valor={b.alAlmacen === null ? null : b.alAlmacen.toLocaleString("es-PE")}>
-          {confirmado ? "Nadie las escaneó colgadas" : "No se confirmó"}
+          {!confirmado ? "No se confirmó" : b.alAlmacen === null ? "Sin el detalle de lo movido" : "Nadie las escaneó colgadas"}
         </TarjetaCifra>
         <TarjetaCifra etiqueta="Por resolver" valor={porResolver === null ? null : porResolver.toLocaleString("es-PE")}>
           {porResolver === null ? "No se confirmó" : porResolver === 0 ? "Todo resuelto" : b.aparte > 0 ? `${b.aparte.toLocaleString("es-PE")} aparte, sin etiqueta` : "No estaban en la tienda"}
