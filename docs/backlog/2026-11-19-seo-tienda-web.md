@@ -29,15 +29,24 @@ con 308 a `cayla.pe`, y las redirecciones permanentes de Shopify (ADR-0595 decid
 
 ### Decisiones de Felipe antes de empezar
 
-- [ ] **D1 · Qué tienda le muestra CAYLA a Google.** Google entra sin cookie, así que siempre ve la primera tienda de `sedesEnOrden` (hoy
+**Respondidas el 2026-11-23** (las trajo la sesión que pidió la auditoría):
+- **D1 → Trujillo.** La dirección canónica de cada página del catálogo lleva `?sede=trujillo`, y la puerta sin `?sede=` (el 307 de
+  `proxy.ts`) manda ahí a quien no eligió una tienda. Con una sola constante (`SEDE_PRINCIPAL`) y, si Trujillo deja de verse en la web, la
+  primera en orden: nunca una dirección a una tienda que no existe.
+- **D2 → sin precio** en la imagen de WhatsApp.
+- **D3 → sin `brand`**: no todo lo que se vende es CAYLA.
+
+Lo que sigue es como estaba la pregunta:
+
+- [x] **D1 · Qué tienda le muestra CAYLA a Google.** Google entra sin cookie, así que siempre ve la primera tienda de `sedesEnOrden` (hoy
   Arequipa) con su precio y su stock. **Recomiendo** que esa misma sea la tienda «canónica» de cada dirección (T1, T2): es la que Google ya
   ve, y no reabre la regla del 2026-10-19 («siempre se debe elegir una tienda»). Si prefieres que la cara sea Trujillo, se cambia el
   orden de las tiendas en la web, no un número escrito en el código. DESCARTÉ que la ficha sin `?sede=` se vea sin redirigir (una sola
   dirección por prenda): es más limpio para Google, pero reabre tu decisión del 2026-10-19 y con ~100 prendas la ganancia es chica.
-- [ ] **D2 · ¿La imagen de WhatsApp de una prenda lleva el precio?** **Recomiendo que no:** el precio cambia por tienda y por campaña, y
+- [x] **D2 · ¿La imagen de WhatsApp de una prenda lleva el precio?** **Recomiendo que no:** el precio cambia por tienda y por campaña, y
   WhatsApp guarda la vista previa días; una imagen con «S/ 79.90» mentiría cuando la campaña termine. El precio va en el texto y en los
   datos de producto.
-- [ ] **D3 · ¿Todo lo que se vende en la web es marca CAYLA?** Los datos de producto llevan `brand`. Si hay accesorios de proveedor (o
+- [x] **D3 · ¿Todo lo que se vende en la web es marca CAYLA?** Los datos de producto llevan `brand`. Si hay accesorios de proveedor (o
   prendas de CLAURE en Lima), sin una respuesta clara no se escribe `brand` (es recomendado, no obligatorio).
 
 ### Tareas, de mayor a menor impacto
