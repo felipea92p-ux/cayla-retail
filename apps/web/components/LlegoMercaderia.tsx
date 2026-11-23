@@ -377,7 +377,7 @@ export function LlegoMercaderia({
 
       {ok ? (
         <section className="card-cayla space-y-4 p-6 text-center" aria-live="polite">
-          <p className="label-cayla text-[11px] text-tinta/65">{ok.sinConexion ? "Guardada sin conexión" : "Recibida"}</p>
+          <p className="label-cayla text-xs text-tinta/65">{ok.sinConexion ? "Guardada sin conexión" : "Recibida"}</p>
           <p className="font-display text-3xl text-tinta">
             {ok.unidades} {ok.unidades === 1 ? "prenda" : "prendas"}
           </p>

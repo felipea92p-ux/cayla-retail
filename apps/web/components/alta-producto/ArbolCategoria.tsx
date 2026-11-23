@@ -181,7 +181,7 @@ export function ArbolCategoria({
       </div>
 
       <div data-guia="nuevo.familias">
-        <p className="label-cayla mb-2 flex items-center gap-2 text-[11px] text-tinta/60">
+        <p className="label-cayla mb-2 flex items-center gap-2 text-xs text-tinta/60">
           Familia
           {!pausado && !familiaAbierta && <EtiquetaAhora />}
         </p>
@@ -213,7 +213,7 @@ export function ArbolCategoria({
 
       {familiaAbierta && (
         <div id="categorias-de-la-familia" data-guia="nuevo.categorias" className="scroll-mb-28 scroll-mt-[4.25rem] sm:scroll-mt-[7.5rem]">
-          <p className="label-cayla mb-2 flex items-center gap-2 text-[11px] text-tinta/60">
+          <p className="label-cayla mb-2 flex items-center gap-2 text-xs text-tinta/60">
             Categoría
             {!pausado && <EtiquetaAhora />}
           </p>

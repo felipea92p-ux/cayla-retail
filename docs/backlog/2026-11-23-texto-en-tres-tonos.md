@@ -12,4 +12,3 @@
 - [x] **Las cifras en Inter** (Felipe eligió la B de la lámina): las trajo ADR-0691 a `main` el mismo día; el commit de esta rama que las hacía
   se revirtió. Sobre su letra, el N.° de documento de Historial de compras se partía en dos líneas: la columna pasó de 7,5 a 8,5 rem.
 - [ ] **Sin probar:** 375 px (el cambio es de color, igual en todos los anchos) y Safari.
-- [ ] **`ayuda-cabecera.css` tiene un texto de 10,5 px** (la etiqueta del globo), bajo el piso de 13 px de ADR-0691: no es de esta rama, queda anotado.

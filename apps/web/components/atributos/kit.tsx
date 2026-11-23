@@ -134,7 +134,7 @@ function Buscador({ valor, onValor, etiqueta, placeholder = "Buscar" }: Busqueda
 /** «● ROTACIÓN 4»: el título de cada grupo de tarjetas, con cuántas hay en el globito. Sin `punto`, el de «Desactivadas». */
 export function TituloGrupo({ punto, cuenta, children }: { punto?: string; cuenta: number; children: ReactNode }) {
   return (
-    <p className="label-cayla flex items-center gap-1.5 text-[11px] text-tinta/65">
+    <p className="label-cayla flex items-center gap-1.5 text-xs text-tinta/65">
       {punto && <span aria-hidden className={`inline-block h-1.5 w-1.5 rounded-full ${punto}`} />}
       {children}
       {/* Cuántos hay: el globito de los títulos y las pestañas (ADR-0358, ronda 9). */}
@@ -278,7 +278,7 @@ export function TarjetaAtributo({
       <div className="tarjeta-valor-muestra">{muestra}</div>
       <div className="flex flex-1 flex-col gap-1">
         <div className="flex items-start justify-between gap-2">
-          <span className="text-[15px] font-medium leading-snug text-tinta">
+          <span className="text-sm font-medium leading-snug text-tinta">
             {nombre}
             {/* El «!» es un botón y no puede ir dentro del botón que abre el detalle: ahí la nota se lee en el detalle. */}
             {notas && !abrir && <Ayuda titulo={nombre}>{notas}</Ayuda>}
@@ -313,10 +313,10 @@ export function TarjetaAtributo({
 export function BotonesPendiente({ onAprobar, onRechazar, aprobando = false }: { onAprobar: () => void; onRechazar: () => void; aprobando?: boolean }) {
   return (
     <div className="flex flex-wrap gap-2">
-      <Boton peso="primario" className="min-w-[6.5rem] flex-1 px-2.5! py-1.5 text-[11px] whitespace-nowrap" cargando={aprobando} onClick={onAprobar}>
+      <Boton peso="primario" className="min-w-[6.5rem] flex-1 px-2.5! py-1.5 text-xs leading-tight whitespace-nowrap" cargando={aprobando} onClick={onAprobar}>
         Aprobar
       </Boton>
-      <Boton peso="discreto" className="min-w-[6.5rem] flex-1 px-2.5! py-1.5 text-[11px] whitespace-nowrap text-rojo" onClick={onRechazar}>
+      <Boton peso="discreto" className="min-w-[6.5rem] flex-1 px-2.5! py-1.5 text-xs leading-tight whitespace-nowrap text-rojo" onClick={onRechazar}>
         Rechazar
       </Boton>
     </div>
@@ -338,7 +338,7 @@ export function DesactivarTarjeta({ onClick, cambiando = false }: { onClick: () 
       type="button"
       disabled={cambiando}
       onClick={onClick}
-      className="label-cayla area-dedo ml-auto whitespace-nowrap pointer-coarse:py-1 text-[10px] text-tinta/55 underline-offset-4 opacity-0 transition-[opacity,color] duration-200 hover:text-tinta hover:underline focus:opacity-100 disabled:opacity-50 group-hover/etq:opacity-100 [@media(hover:none)]:opacity-100"
+      className="label-cayla area-dedo ml-auto whitespace-nowrap pointer-coarse:py-1 text-xs text-tinta/55 underline-offset-4 opacity-0 transition-[opacity,color] duration-200 hover:text-tinta hover:underline focus:opacity-100 disabled:opacity-50 group-hover/etq:opacity-100 [@media(hover:none)]:opacity-100"
     >
       {cambiando ? "Desactivando…" : "Desactivar"}
     </button>

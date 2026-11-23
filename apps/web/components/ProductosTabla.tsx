@@ -354,7 +354,7 @@ export function ProductosTabla({
 
 function Th({ children, className = "", title }: { children: ReactNode; className?: string; title?: string }) {
   return (
-    <th title={title} className={`label-cayla whitespace-nowrap px-3 py-2.5 text-[10.5px] font-semibold text-tinta/60 ${className}`}>
+    <th title={title} className={`label-cayla whitespace-nowrap px-3 py-2.5 text-xs font-semibold text-tinta/60 ${className}`}>
       {children}
     </th>
   );
@@ -393,7 +393,7 @@ function Stock({ fila, alinear = "right" }: { fila: Fila; alinear?: "right" | "l
   const resto = lineas ? [lineas.detalle, ...lineas.avisos].filter(Boolean).join(" · ") : "";
   return (
     <span className={`block ${alinear === "right" ? "text-right" : ""}`} title={resto || EXPLICACION_STOCK_TOTAL}>
-      <span className={`block text-[14px] tabular-nums ${tono}`}>
+      <span className={`block text-detalle tabular-nums ${tono}`}>
         {lineas ? lineas.principal : p.stockTotal.toLocaleString("es-PE")}
         {alerta === "bajo" && <span className="ml-1 text-sm">· bajo</span>}
       </span>
@@ -485,7 +485,7 @@ function FilaAncha({
             <MiniaturaPrenda color={activo.color} referencia={p.referencia} className={`h-[50px] w-10 ${fila.descontinuado ? "opacity-60" : ""}`} {...categoriaDe(p)} />
             <div className={`min-w-0 ${fila.descontinuado ? "opacity-70" : ""}`}>
               <div className="flex min-w-0 items-center gap-1.5">
-                <p className="font-display truncate text-[17px] leading-tight text-tinta" title={p.referencia}>
+                <p className="font-display truncate text-lg leading-tight text-tinta" title={p.referencia}>
                   {p.referencia}
                 </p>
                 <InsigniaEmpresa nombre={p.empresa} className="shrink-0" />
@@ -551,7 +551,7 @@ function Tallas({ tallas }: { tallas: string[] }) {
   return (
     <span className="flex items-center gap-1">
       {visibles.map((t) => (
-        <span key={t} className="grid h-5 min-w-[22px] place-items-center rounded vd-gota-chica px-1 font-mono text-[10.5px] text-tinta/75">
+        <span key={t} className="grid h-5 min-w-[22px] place-items-center rounded vd-gota-chica px-1 font-mono text-xs text-tinta/75">
           {t}
         </span>
       ))}
@@ -652,10 +652,10 @@ function TarjetaFila({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-1.5">
-              <p className="font-display min-w-0 truncate text-[17px] leading-tight text-tinta">{p.referencia}</p>
+              <p className="font-display min-w-0 truncate text-lg leading-tight text-tinta">{p.referencia}</p>
               <InsigniaEmpresa nombre={p.empresa} className="shrink-0" />
             </div>
-            <p className="shrink-0 text-right text-[14px] tabular-nums text-tinta">
+            <p className="shrink-0 text-right text-detalle tabular-nums text-tinta">
               {fila.deHoy ? <PrecioConCampana precio={fila.deHoy} className="justify-end" /> : fila.precio}
               <InsigniaPrecios lista={fila.otrosPrecios} className="ml-1.5 align-middle" />
             </p>
@@ -704,7 +704,7 @@ function FichaVariantes({
   leer: (productoIds: string[]) => Promise<unknown>;
 }) {
   const { p } = fila;
-  const boton = "btn-cayla btn-secundario min-h-10 text-[12.5px]";
+  const boton = "btn-cayla btn-secundario min-h-10 text-xs leading-tight";
   // Al abrir, y otra vez cada vez que la página se refresca (un ajuste, una venta en otra caja): `p` es otro objeto.
   useEffect(() => {
     void leer([p.productoId]);
@@ -719,7 +719,7 @@ function FichaVariantes({
   return (
     <div data-guia="productos.tabla-ficha" className="anim-revelar px-4 pb-5 pt-3 @3xl:pl-[5.75rem] @3xl:pr-5">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <p className="label-cayla text-[10.5px] text-tinta/60">
+        <p className="label-cayla text-xs text-tinta/60">
           {variantesQueSeVenden(p.variantes).length} {variantesQueSeVenden(p.variantes).length === 1 ? "variante" : "variantes"}
           {fila.colores.length > 0 && ` · ${fila.colores.length} ${fila.colores.length === 1 ? "color" : "colores"}`}
           {fila.tallas.length > 0 && ` · ${fila.tallas.length} ${fila.tallas.length === 1 ? "talla" : "tallas"}`}
@@ -750,7 +750,7 @@ function FichaVariantes({
               </span>
               <span className="text-right text-sm tabular-nums text-tinta">S/{v.precio.toFixed(2)}</span>
               <StockDeVariante stock={stock} varianteId={v.varianteId} />
-              <span className="min-w-0 truncate font-mono text-[10.5px] text-tinta/55" title={v.codigosBarras.join(", ")}>
+              <span className="min-w-0 truncate font-mono text-xs text-tinta/55" title={v.codigosBarras.join(", ")}>
                 {v.codigo ?? v.sku ?? "—"}
                 {v.codigosBarras.length > 0 && ` · ${v.codigosBarras.join(", ")}`}
               </span>
@@ -790,7 +790,7 @@ function FichaVariantes({
           unidades={() => acciones.unidades()}
           que={p.referencia}
           sede={acciones.sede}
-          className={(negado) => (negado ? "btn-cayla min-h-10 bg-rojo text-[12.5px] text-crema hover:bg-rojo-profundo" : boton)}
+          className={(negado) => (negado ? "btn-cayla min-h-10 bg-rojo text-xs leading-tight text-crema hover:bg-rojo-profundo" : boton)}
         >
           <Tag aria-hidden className="h-4 w-4" />
           Etiquetas
@@ -800,7 +800,7 @@ function FichaVariantes({
           Historial
         </Link>
         {acciones.eliminar && (
-          <button type="button" onClick={acciones.eliminar} className="btn-cayla btn-peligro min-h-10 text-[12.5px]">
+          <button type="button" onClick={acciones.eliminar} className="btn-cayla btn-peligro min-h-10 text-xs leading-tight">
             <Trash2 aria-hidden className="h-4 w-4" />
             Eliminar
           </button>

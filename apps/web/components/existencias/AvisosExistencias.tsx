@@ -13,7 +13,7 @@ import { useLoQueSabeElPanel } from "@/components/existencias/cabecera-existenci
 export function AvisoPisoSinCuadrar({ accion, guia, className }: { accion?: ReactNode; guia?: string; className?: string }) {
   return (
     <Aviso tono="atencion" guia={guia} className={className} titulo="El piso de esta tienda nunca se ha cuadrado" accion={accion}>
-      Lo que dice «en almacén» puede estar colgado: los números del almacén no están verificados hasta el primer cuadre.
+      Lo que dice «en almacén» puede estar colgado hasta el primer cuadre.
     </Aviso>
   );
 }

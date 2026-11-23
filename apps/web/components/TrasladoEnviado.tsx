@@ -110,7 +110,7 @@ export function TrasladoEnviado({
   return (
     <div className="card-cayla space-y-6 p-5">
       <div className="space-y-1 text-center">
-        <p className="label-cayla text-[11px] text-tinta/65">Traslado enviado</p>
+        <p className="label-cayla text-xs text-tinta/65">Traslado enviado</p>
         <h2 ref={titulo} tabIndex={-1} className="font-display text-3xl text-tinta outline-none">
           {numero !== null ? `Traslado ${numero}` : "Traslado enviado"}
         </h2>

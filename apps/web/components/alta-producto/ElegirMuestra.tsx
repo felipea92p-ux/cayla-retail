@@ -290,7 +290,7 @@ function HojaMuestras({
         {propias.length > 0 && (
           <section>
             <TituloSeccion>
-              Los de {categoriaNombre} <small className="text-[12px] font-normal normal-case tracking-normal">· {propias.length}</small>
+              Los de {categoriaNombre} <small className="text-xs font-normal normal-case tracking-normal">· {propias.length}</small>
             </TituloSeccion>
             <GrillaMuestras>
               {propias.map((v) => (
@@ -314,7 +314,7 @@ function HojaMuestras({
           <section className={propias.length > 0 ? "mt-4" : ""}>
             <TituloSeccion>
               Del catálogo{" "}
-              <small className="text-[12px] font-normal normal-case tracking-normal">
+              <small className="text-xs font-normal normal-case tracking-normal">
                 · elegir uno lo suma a {categoriaNombre} (también para las prendas que vengan)
               </small>
             </TituloSeccion>
@@ -351,5 +351,5 @@ function HojaMuestras({
 }
 
 function TituloSeccion({ children }: { children: ReactNode }) {
-  return <h3 className="mb-2 flex flex-wrap items-baseline gap-x-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">{children}</h3>;
+  return <h3 className="mb-2 flex flex-wrap items-baseline gap-x-2 text-xs font-semibold uppercase tracking-[0.12em] text-taupe">{children}</h3>;
 }

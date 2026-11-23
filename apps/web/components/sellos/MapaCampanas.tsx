@@ -78,7 +78,7 @@ export function MapaCampanas({ aqui, onClose }: { aqui: "campanas" | "insignias"
             ))}
           </div>
           <div>
-            <p className="label-cayla pb-1 text-[11px] text-tinta/65">¿Qué quieres hacer?</p>
+            <p className="label-cayla pb-1 text-xs text-tinta/65">¿Qué quieres hacer?</p>
             <ul className="mapa-tareas">
               {TAREAS.map((t) => (
                 <li key={t.que}>

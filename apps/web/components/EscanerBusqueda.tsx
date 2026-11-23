@@ -155,14 +155,14 @@ export function EscanerBusqueda({
             <button type="button" onClick={cerrar} aria-label="Cerrar la cámara" className={botonRedondo}>
               <X aria-hidden className="h-5 w-5" />
             </button>
-            <p className="label-cayla text-[11px] text-crema/90">{titulo}</p>
+            <p className="label-cayla text-xs text-crema/90">{titulo}</p>
             <span aria-hidden className="w-11" />
           </div>
 
           <div className="papel-fijo relative flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-6">
             {sinCamara ? (
               <div className="relative z-10 flex max-w-xs flex-col items-center gap-5 text-center text-crema">
-                <p className="text-[15px] leading-relaxed">
+                <p className="text-sm leading-relaxed">
                   {estado === "sin-permiso"
                     ? "El navegador no tiene permiso para usar la cámara. Actívalo en los ajustes del navegador para este sitio, o busca escribiendo."
                     : "No encontramos una cámara disponible en este aparato. Busca escribiendo."}
@@ -186,7 +186,7 @@ export function EscanerBusqueda({
                   ))}
                   {estado === "abriendo" && <p className="absolute inset-0 grid place-items-center text-sm text-crema/80">Abriendo la cámara…</p>}
                 </div>
-                <p className="relative rounded-full bg-tinta/50 px-4 py-2 text-center text-[13px] text-crema/90 backdrop-blur-md">
+                <p className="relative rounded-full bg-tinta/50 px-4 py-2 text-center text-xs text-crema/90 backdrop-blur-md">
                   {pista}
                 </p>
               </>
@@ -212,14 +212,14 @@ export function EscanerBusqueda({
                     <div key={continuo.respuesta.clave} data-tono={continuo.respuesta.tono} className="lectura-camara anim-revelar flex flex-wrap items-center gap-3 rounded-2xl bg-papel px-4 py-3 text-tinta">
                       <span aria-hidden className="lectura-camara-punto size-2.5 shrink-0 rounded-full" />
                       <span className="min-w-0 flex-1">
-                        <span className="lectura-camara-estado block text-[11px] font-semibold uppercase tracking-[0.12em]">{continuo.respuesta.estado}</span>
+                        <span className="lectura-camara-estado block text-xs font-semibold uppercase tracking-[0.12em]">{continuo.respuesta.estado}</span>
                         <span className="block truncate text-sm font-medium">{continuo.respuesta.titulo}</span>
                         <span className="block truncate text-xs text-tinta/65">{continuo.respuesta.detalle}</span>
                       </span>
                       {continuo.respuesta.acciones && <span className="grid basis-full grid-cols-2 gap-2">{continuo.respuesta.acciones}</span>}
                     </div>
                   ) : (
-                    <p className="pt-5 text-center text-[13px] text-crema/80">{continuo.vacio ?? "Escanea una prenda tras otra: no hace falta tocar nada."}</p>
+                    <p className="pt-5 text-center text-xs text-crema/80">{continuo.vacio ?? "Escanea una prenda tras otra: no hace falta tocar nada."}</p>
                   )}
                 </div>
                 <button type="button" onClick={cerrar} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-crema text-sm font-medium text-tinta">

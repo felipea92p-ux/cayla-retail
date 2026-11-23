@@ -258,13 +258,13 @@ export function EnvioAbierto({ envio, costos, onClose }: { envio: EnvioRecibido;
                     <span className={celda("izq", "text-taupe")}>
                       <ChevronRight aria-hidden className={`h-4 w-4 transition-transform duration-300 ease-cayla ${abierta ? "rotate-90" : ""}`} />
                     </span>
-                    <span className={celda("izq", "whitespace-normal text-[15px] text-tinta")}>
+                    <span className={celda("izq", "whitespace-normal text-sm text-tinta")}>
                       {p.modelo}
                       {p.sku && <span className="text-tinta/55"> · {p.sku}</span>}
                       {deVarios && <span className="block text-sm text-tinta/65">de {p.proveedor}</span>}
                     </span>
                     {conCosto && <span className={celda("der", "text-sm tabular-nums text-tinta/65")}>{textoCosto(costo, prendasPorLote.get(p.loteId) ?? 1)}</span>}
-                    <span className={celda("der", "text-[15px] font-semibold tabular-nums text-tinta")}>{p.unidades}</span>
+                    <span className={celda("der", "text-sm font-semibold tabular-nums text-tinta")}>{p.unidades}</span>
                   </button>,
                   <FilasDeMas key={`${p.clave}-d`} id={panel} abierto={abierta} className="!border-t-0">
                     <ColoresYTallas prenda={p} />
@@ -283,7 +283,7 @@ export function EnvioAbierto({ envio, costos, onClose }: { envio: EnvioRecibido;
 
         {notas.map((n) => (
           <p key={n} className="text-sm text-tinta/65">
-            <span className="label-cayla text-[11px]">Nota · </span>
+            <span className="label-cayla text-xs">Nota · </span>
             {n}
           </p>
         ))}

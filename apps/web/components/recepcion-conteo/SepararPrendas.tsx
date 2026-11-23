@@ -146,7 +146,7 @@ export function SepararPrendas({
   return (
     <div data-guia="recepcion.separar" data-campo={idCampo} className="space-y-2.5 border-t border-sand pt-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="label-cayla text-[11px] text-tinta/75">
+        <p className="label-cayla text-xs text-tinta/75">
           ¿Qué {nombre} son?{" "}
           {!enHacerAhora && <span className="font-medium normal-case tracking-normal text-taupe">· identifica todas las que contaste</span>}
         </p>
@@ -179,7 +179,7 @@ export function SepararPrendas({
           <li key={p.productoId} className="rc-fila-sep">
             <BaldosaCategoria categoria={categoria} tamano="chico" />
             <span className="min-w-0">
-              <b className="block truncate text-[14.5px] text-tinta">{p.nombre ?? "Prenda"}</b>
+              <b className="block truncate text-detalle text-tinta">{p.nombre ?? "Prenda"}</b>
               <small className="block text-sm text-taupe">
                 {[
                   marca.nombre,
@@ -224,7 +224,7 @@ export function SepararPrendas({
               <Sparkles className="h-4 w-4" />
             </span>
             <span className="min-w-0">
-              <b className="block truncate text-[14.5px] text-tinta">{n.descripcion}</b>
+              <b className="block truncate text-detalle text-tinta">{n.descripcion}</b>
               <small className="block text-sm text-taupe">Nueva · se crea después, con su nombre, tallas y precio</small>
             </span>
             <span className="rc-fila-fin">
@@ -250,7 +250,7 @@ export function SepararPrendas({
             <Sparkles className="h-4 w-4" />
           </span>
           <span className="min-w-0">
-            <b className="block text-[14.5px] text-tinta">Nuevas, no están en el catálogo</b>
+            <b className="block text-detalle text-tinta">Nuevas, no están en el catálogo</b>
             <small className="block text-sm text-taupe">
               {enHacerAhora ? "Solo cuántas; describirlas (nombre, color, tallas) puede quedar para después" : "Pon cuántas y descríbelas con un nombre corto; el color y las tallas pueden quedar para después"}
             </small>
@@ -363,7 +363,7 @@ export function BuscarPrendaEnLinea({
                   <b className="text-sm text-tinta">{p.nombre}</b>
                   <small className="ml-1.5 text-sm text-taupe">{[p.codigo, `${new Set(p.variantes.map((v) => v.talla ?? "Única")).size} tallas`].filter(Boolean).join(" · ")}</small>
                 </span>
-                <span className="label-cayla text-[10px] text-taupe">Elegir</span>
+                <span className="label-cayla text-xs text-taupe">Elegir</span>
               </button>
             </li>
           ))}

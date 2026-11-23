@@ -139,7 +139,7 @@ export function ResumenStockOverlay({
         ) : (
           <Seccion titulo="Por categoría" bajada={separa ? "Cuántas prendas hay en el piso y en el almacén, y cuántas se vendieron este mes." : "Cuántas prendas hay y cuántas se vendieron este mes."}>
             <div className="overflow-hidden rounded-lg border border-tinta/10">
-              <div className="grid gap-x-3 vd-hundido px-3.5 py-2 text-[10px] font-semibold uppercase tracking-wide text-taupe" style={{ gridTemplateColumns: columnas }}>
+              <div className="grid gap-x-3 vd-hundido px-3.5 py-2 text-xs font-semibold uppercase tracking-wide text-taupe" style={{ gridTemplateColumns: columnas }}>
                 <span>Categoría</span>
                 {separa ? (
                   <>

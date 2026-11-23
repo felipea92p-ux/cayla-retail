@@ -119,7 +119,7 @@ export function EnviosParaRecibir({
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0 space-y-1">
           <TituloSeccion id="recibir-envios-oc">{porCategoria ? "Envíos por recibir en esta sede" : "Envíos de órdenes de compra para esta sede"}</TituloSeccion>
-          <p className="text-[15px] text-taupe">{porCategoria ? <>Se cuentan modelo por modelo y entran al almacén de {sede}.</> : <>Se cuentan talla por talla y entran al almacén de {sede}.</>}</p>
+          <p className="text-sm text-taupe">{porCategoria ? <>Se cuentan modelo por modelo y entran al almacén de {sede}.</> : <>Se cuentan talla por talla y entran al almacén de {sede}.</>}</p>
         </div>
         {/* Con `accionCelular`, bajo 768 px de caja la acción vive en la fila de filtros: aquí caía a una fila propia, desalineada. */}
         {accionTitulo && <div className={accionCelular ? "@max-[767.98px]:hidden" : undefined}>{accionTitulo}</div>}

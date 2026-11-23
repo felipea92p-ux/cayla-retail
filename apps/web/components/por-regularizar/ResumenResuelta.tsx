@@ -22,7 +22,7 @@ export function ResumenResuelta({
   const titulo = fila.estado === "regularizada" ? "Se identificó como" : fila.estado === "cerrada_sin_prenda" ? "Cerrada sin identificar" : "La venta se anuló";
   return (
     <div className="vsr-resumen">
-      <p className="label-cayla text-[11px] text-tinta/65">{titulo}</p>
+      <p className="label-cayla text-xs text-tinta/65">{titulo}</p>
       <div className="vsr-resumen-foto">
         <MosaicoDeVenta venta={fila} />
       </div>

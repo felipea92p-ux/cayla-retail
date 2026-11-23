@@ -58,7 +58,7 @@ export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: {
           </svg>
         </span>
       )}
-      <p className="label-cayla text-[11px] text-tinta/65">{ok.sinConexion ? "Envío guardado sin conexión" : ok.yaRegistrado ? "Envío ya registrado" : "Envío recibido"}</p>
+      <p className="label-cayla text-xs text-tinta/65">{ok.sinConexion ? "Envío guardado sin conexión" : ok.yaRegistrado ? "Envío ya registrado" : "Envío recibido"}</p>
       {ok.sinConexion && (
         <p className="max-w-lg text-sm text-ambar-profundo">
           Quedó guardado en este equipo y sube solo cuando vuelva el internet. No cierres esta pestaña. Las etiquetas de precio se imprimen cuando suba.
@@ -99,7 +99,7 @@ export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: {
         <ol aria-label="Movimientos que dejó el envío" className="relative mt-4 w-full max-w-xl pl-[22px] text-left">
           <span aria-hidden className="recibir-hilo absolute bottom-1.5 left-[5px] top-1.5 w-0.5 bg-taupe/50" />
           {ver.map((m, i) => (
-            <li key={i} style={{ "--i": i } as React.CSSProperties} className="anim-movimiento relative grid grid-cols-[3.2rem_1fr_auto] gap-2.5 py-1.5 text-[15px]">
+            <li key={i} style={{ "--i": i } as React.CSSProperties} className="anim-movimiento relative grid grid-cols-[3.2rem_1fr_auto] gap-2.5 py-1.5 text-sm">
               <span aria-hidden className="absolute -left-[21px] top-[14px] h-2 w-2 rounded-full border-2 border-taupe bg-papel" />
               <b className="font-display text-lg font-normal tabular-nums text-verde-profundo">+{m.cantidad}</b>
               <span className="min-w-0 truncate text-tinta">

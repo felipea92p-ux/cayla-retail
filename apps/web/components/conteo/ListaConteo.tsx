@@ -237,7 +237,7 @@ const BotonCompletarTodo = memo(function BotonCompletarTodo({
       disabled={!hay}
       onClick={() => alCompletar(ids)}
       aria-label={`Completar todo: ${nombre}`}
-      className="btn-cayla btn-secundario ml-auto h-9 min-h-0 shrink-0 gap-2 px-3 text-[13px] text-rojo-profundo disabled:opacity-50"
+      className="btn-cayla btn-secundario ml-auto h-9 min-h-0 shrink-0 gap-2 px-3 text-xs leading-tight text-rojo-profundo disabled:opacity-50"
     >
       <ListChecks aria-hidden className="h-4 w-4" />
       Completar todo
