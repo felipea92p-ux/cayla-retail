@@ -216,7 +216,7 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
     <>
       {acentoTrazo && <span aria-hidden className="anim-crece-y absolute bottom-3.5 left-0 top-3.5 w-0.5 origin-top rounded-sm bg-rojo" style={{ ["--i" as string]: 10 }} />}
       {/* 20 px de alto (leading-5): el (!) de 20 px cabe sin empujar el renglón, y las cifras de una fila quedan parejas. */}
-      <p className="label-cayla block min-h-5 text-[11px] font-bold leading-5 text-taupe">
+      <p className="label-cayla block min-h-5 text-xs font-bold leading-5 text-taupe">
         {punto && (
           <span aria-hidden className={`relative -top-px mr-[7px] inline-block h-1.5 w-1.5 rounded-full align-middle ${PUNTO[punto]} ${vivo ? "punto-vivo" : ""}`}>
             {puntoPulsa && <span className={`anim-vivo-onda pointer-events-none absolute inset-0 rounded-full ${PUNTO[punto]}`} style={{ animationDelay: "1400ms" }} />}

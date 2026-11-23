@@ -315,7 +315,7 @@
      Es la segunda vez que se sube el piso. El 2026-09-08 se hizo desde estos mismos tokens (xs de 12 a 13, sm de 14 a 15) y la
      queja volvió, porque 2.583 tamaños escritos a mano no pasaban por ellos. Ahora la letra se PIDE a la escala —en una hoja de
      estilos, `var(--text-xs)`…— y lo vigila `lib/letra-suelta.test.ts` (definición única: `tema/letra-suelta.mjs`). Mientras se
-     migra, `estilos/letra.css` (el puente) lleva en pantalla cada `text-[Npx]` a su escalón. */
+     migra, `estilos/letra.css` (el puente) lleva en pantalla cada `text-[Npx]` a su escalón de la escala. */
   --text-xs: 0.8125rem;
   --text-xs--line-height: 1.5;
   --text-detalle: 0.875rem;

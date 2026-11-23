@@ -137,7 +137,7 @@ export function Encabezado({
           ) : (
             c.titulo
           )}
-          {c.subtitulo && <span className={`block truncate ${grande ? "text-xs" : "text-[10px]"} text-taupe`}>{c.subtitulo}</span>}
+          {c.subtitulo && <span className={`block truncate text-xs text-taupe`}>{c.subtitulo}</span>}
         </span>
       ))}
     </div>

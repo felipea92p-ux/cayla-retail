@@ -11,7 +11,7 @@ export function PistaPlazo({ real, pactado }: { real: number; pactado: number })
   return (
     <span aria-hidden className="relative mb-4 mt-3 block">
       <BarraAvance pct={(real / tope) * 100} tono={pasa ? "ambar" : "tinta"} marca={(pactado / tope) * 100} decorativa indice={9} />
-      <span className="absolute top-full mt-1 -translate-x-1/2 whitespace-nowrap text-[10px] tracking-wide text-tinta/65" style={{ left: `${(pactado / tope) * 100}%` }}>
+      <span className="absolute top-full mt-1 -translate-x-1/2 whitespace-nowrap text-xs tracking-wide text-tinta/65" style={{ left: `${(pactado / tope) * 100}%` }}>
         pactado {pactado} d
       </span>
     </span>
