@@ -105,7 +105,3 @@ export function jsonLdDeFicha(f: Ficha, tienda: TiendaDeLaFicha | null, sede: st
     ],
   };
 }
-
-/** El JSON listo para ir dentro de `<script type="application/ld+json">`: con `<` escapado, para que un texto escrito por el equipo
- *  (la descripción, el nombre) nunca pueda cerrar el `<script>` y meter otra cosa en la página. */
-export const comoJsonLd = (dato: unknown): string => JSON.stringify(dato).replace(/</g, "\\u003c");

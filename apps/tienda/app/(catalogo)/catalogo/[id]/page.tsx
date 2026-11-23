@@ -23,8 +23,8 @@ import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../../estilos/ficha.css";
-import { canonicalDe, claveCanonica, conBase } from "@/lib/seo";
-import { comoJsonLd, descripcionDeFicha, jsonLdDeFicha } from "@/lib/seo-ficha";
+import { canonicalDe, claveCanonica, comoJsonLd, conBase } from "@/lib/seo";
+import { descripcionDeFicha, jsonLdDeFicha } from "@/lib/seo-ficha";
 
 type Props = {
   params: Promise<{ id: string }>;

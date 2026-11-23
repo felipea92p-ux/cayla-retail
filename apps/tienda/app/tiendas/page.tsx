@@ -4,6 +4,8 @@ import { NuestrasTiendas } from "@/components/NuestrasTiendas";
 import { hrefDelInicio } from "@/lib/inicio";
 import { claveDeSede } from "@/lib/sede-elegida";
 import { leerSedes } from "@/lib/tiendas-servidor";
+import { jsonLdDeTiendas } from "@/lib/seo-marca";
+import { comoJsonLd } from "@/lib/seo";
 
 // Nuestras tiendas (ADR-0408, actividad 6): la página del pie «Nuestras tiendas», con y sin cuenta. Sin cuenta, la cabecera de la portada;
 // con cuenta, la de la tienda (el menú, los favoritos, «Mi perfil» y la bolsa) y, en cada tienda, «Ver solo lo que hay aquí», que lleva al
@@ -21,8 +23,11 @@ export const metadata: Metadata = {
 export default async function Tiendas() {
   const sedes = await leerSedes();
   const ver = Object.fromEntries(sedes.map((s) => [s.id, { href: hrefDelInicio(claveDeSede(s.nombre)), actual: false }]));
+  // Cada tienda para Google (ADR-0696): dirección, WhatsApp y horario, lo mismo que se ve aquí. Sin tiendas leídas, nada.
+  const paraGoogle = jsonLdDeTiendas(sedes);
   return (
     <MarcoCuenta segunSesion conPie>
+      {paraGoogle && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: comoJsonLd(paraGoogle) }} />}
       {/* «Ver lo que hay aquí» también sin cuenta (rediseño Premium): el catálogo es de todos desde el 2026-10-17 (ADR-0438). */}
       <NuestrasTiendas sedes={sedes} enPagina ver={ver} idTitulo="nuestras-tiendas-pagina" />
     </MarcoCuenta>

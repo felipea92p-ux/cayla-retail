@@ -52,3 +52,7 @@ export function canonicalDe(ruta: string, parametros: Parametros = {}, sede: str
   const texto = query.toString();
   return texto ? `${ruta}?${texto}` : ruta;
 }
+
+/** El JSON listo para ir dentro de `<script type="application/ld+json">`: con `<` escapado, para que un texto escrito por el equipo
+ *  (la descripción, el nombre de una prenda o de una tienda) nunca pueda cerrar el `<script>` y meter otra cosa en la página. */
+export const comoJsonLd = (dato: unknown): string => JSON.stringify(dato).replace(/</g, "\\u003c");

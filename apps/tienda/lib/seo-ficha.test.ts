@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { interpretarFicha, type Ficha } from "./ficha";
-import { comoJsonLd, descripcionDeFicha, disponibilidad, jsonLdDeFicha } from "./seo-ficha";
+import { comoJsonLd } from "./seo";
+import { descripcionDeFicha, disponibilidad, jsonLdDeFicha } from "./seo-ficha";
 
 const TRU = "f775651f-62c8-4ff4-a414-b5614026d0cd";
 const LIM = "2d97d322-8a0a-4cd5-99c4-70e52b9c01db";
