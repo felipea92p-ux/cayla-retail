@@ -76,7 +76,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
     getProveedores(),
     siDinero(() => getCreditosProveedor(id)),
     getMarcasPorProveedor(), // ADR-0140: opcional; si falla llega `null` y la ficha se pinta sin marcas
-    // Cambios de cuenta (Felipe 2026-10-13): opcional como las marcas; si falla, la ficha se pinta sin el historial.
+    // relleno-a-proposito: Cambios de cuenta (Felipe 2026-10-13): opcional como las marcas; si falla, la ficha se pinta sin el historial.
     getCambiosBancarios(id).catch(() => []),
     // «Nos debe» (ADR-0362, fase 5a): las prendas por reponer. Con los mismos ojos que el saldo a favor (los montos de la ficha); si la base
     // todavía no lo sabe contar, llega vacío y la ficha sale como antes.
@@ -84,9 +84,9 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
     // Lo que se le paga a un proveedor de servicios (comprobantes de gasto). Con la misma llave que los montos.
     deServicios ? siDinero(() => getProveedorServicioResumen(id)) : Promise.resolve(null),
     // Lo que se le compró prenda por prenda y cuánto se vendió (2026-10-24): plata, así que con la misma llave que las cifras de arriba.
-    // Un proveedor de servicios no tiene prendas. Opcional: si la base todavía no tiene la función, la ficha se pinta sin esta sección.
+    // relleno-a-proposito: Un proveedor de servicios no tiene prendas. Opcional: si la base todavía no tiene la función, la ficha se pinta sin esta sección.
     deServicios ? Promise.resolve(null) : siDinero(() => getProveedorPrendas(id).catch(() => null)),
-    // Las tallas que se llevan y cómo le va en cada sede (2026-10-26): con la misma llave que lo comprado. Opcional: sin la función en la base,
+    // relleno-a-proposito: Las tallas que se llevan y cómo le va en cada sede (2026-10-26): con la misma llave que lo comprado. Opcional: sin la función en la base,
     // la ficha se pinta sin estas dos secciones.
     deServicios ? Promise.resolve(null) : siDinero(() => getProveedorTallasSedes(id).catch(() => null)),
   ]);

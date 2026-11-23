@@ -115,7 +115,7 @@ export function NuevoColorAlta({
         setCatalogoCompleto(data.filter((c) => c.activo).map((c) => ({ codigo: c.codigo, nombre: c.nombre, hex: c.hex, familiaColor: c.familia_color ?? "", tipo: c.tipo, sinonimos: c.sinonimos })));
       }
     })().catch(() => {
-      // Sin la lista completa se sugiere con los activos; si choca, lo dice la API.
+      // relleno-a-proposito: Sin la lista completa se sugiere con los activos; si choca, lo dice la API.
     });
     return () => {
       vigente = false;

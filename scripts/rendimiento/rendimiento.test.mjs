@@ -165,3 +165,77 @@ test("obs: una Server Action sin log, throw ni error se marca `accion-sin-rastro
 test("obs: `.rpc().then(({ error }) => …)` NO es `rpc-descartada` (falso positivo hallado en CerrarCajaModalV2 y VentasDeHoy)", () => {
   assert.deepEqual(tipos(`export function f(s: any) { s.rpc("fn_x").then(({ error }: any) => { if (error) alert("no"); }); }`), []);
 });
+
+// ───────────── Relleno silencioso (ADR-0693) ─────────────
+// Un relleno pone un valor en lugar del error y nadie se entera: el historial «vacío» que en verdad no cargó. Unos son a propósito
+// (una parte opcional de la pantalla) y otros esconden una falla. La regla: el que es a propósito lo dice en su línea.
+const rellenos = (src, nombre = "x.ts") => obs(src, nombre).filter((h) => h.tipo === "relleno-silencioso");
+
+test("relleno: `.catch(() => null|[]|{}|undefined|false|\"\")` y `.catch(() => {})` se marcan; el detalle dice qué pone", () => {
+  for (const cuerpo of ["null", "[]", "({})", "undefined", "false", '""', "{}", "{ return null; }", "({ data: null })", "new Map()", "fallback"]) {
+    const r = rellenos(`export async function f(x: any, fallback: any) { return x().catch(() => ${cuerpo}); }`);
+    assert.equal(r.length, 1, `.catch(() => ${cuerpo})`);
+  }
+  assert.match(rellenos(`export const f = (x: any) => x().catch(() => [])`)[0].detalle, /\[\]/);
+  assert.equal(rellenos(`export const f = (x: any) => x().catch(() => {})`)[0].detalle, "vacío");
+});
+
+test("relleno: un `catch` que solo devuelve un valor vacío se marca (antes contaba como tratado por llevar `return`)", () => {
+  for (const ret of ["return null;", "return [];", "return {};", "return false;", "return;", "return new Set();"]) {
+    assert.equal(rellenos(`export function f(t: string) { try { return JSON.parse(t); } catch { ${ret} } }`).length, 1, ret);
+  }
+  // `unstable_rethrow` solo deja pasar los avisos internos de Next: el resto de los errores sigue tragándose.
+  assert.equal(rellenos(`export async function f() { try { return await leer(); } catch (e) { unstable_rethrow(e); return []; } }`).length, 1);
+  // Y ya no cuenta como `catch-mudo` (es otro hallazgo, con su propia salida).
+  assert.ok(!tipos(`export function f(t: string) { try { return JSON.parse(t); } catch { return null; } }`).includes("catch-mudo"));
+});
+
+test("relleno: el que avisa, relanza, usa el error o hace algo más NO es relleno", () => {
+  const callados = [
+    `x().catch((e: unknown) => ({ data: null, error: { message: String(e) } }))`, // convierte el error en un resultado
+    `x().catch((e: unknown) => { console.error("no se pudo", e); return null; })`,
+    `x().catch(() => { capturarError("x", null); return []; })`,
+    `x().catch(() => { avisar.error("No se pudo leer"); return null; })`,
+    `x().catch(() => { throw new Error("otra cosa"); })`,
+    `x().catch(() => { incompleto = true; return []; })`, // deja una señal que la pantalla lee
+    `x().catch(() => setFallo(true))`,
+    `x().catch(manejar)`, // una referencia: lo decide quien la escribe
+  ];
+  for (const c of callados) assert.deepEqual(rellenos(`export async function f(x: any) { let incompleto = false; ${c}; return incompleto; }`), [], c);
+  assert.deepEqual(rellenos(`export function f(t: string) { try { return JSON.parse(t); } catch (e) { console.error(e); return null; } }`), []);
+  assert.deepEqual(rellenos(`export function f(t: string) { try { return JSON.parse(t); } catch (e) { return { error: String(e) }; } }`), []);
+  assert.deepEqual(rellenos(`export function f(t: string) { try { return JSON.parse(t); } catch { return error("No llegó", 400); } }`), []);
+  // Lo que lleva el aviso dentro se lo dice a la persona (falsos positivos de la primera corrida: subir una foto, el ritmo de Análisis).
+  assert.deepEqual(rellenos(`export async function f(x: any) { return x().catch(() => "No se pudo hablar con el servidor. Reintenta."); }`), []);
+  assert.deepEqual(rellenos(`export function f(t: string) { try { return JSON.parse(t); } catch { return { error: "Este navegador no puede leer esa imagen." }; } }`), []);
+  assert.deepEqual(rellenos(`export async function f(x: any, TEXTO: string) { return x().catch(() => ({ datos: null, fallo: TEXTO })); }`), []);
+  // Pero un `error: null` no avisa nada: sigue siendo relleno.
+  assert.equal(rellenos(`export async function f(x: any) { return x().catch(() => ({ data: [], error: null })); }`).length, 1);
+});
+
+test("relleno: el cuerpo de una respuesta (`res.json().catch(() => null)`) no cuenta: la falla ya se ve en `res.ok`", () => {
+  assert.deepEqual(rellenos(`export async function f(r: Response) { const b = await r.json().catch(() => null); return r.ok ? b : null; }`), []);
+  assert.deepEqual(rellenos(`export async function f(r: Request) { return (await r.text().catch(() => "")).length; }`), []);
+});
+
+test("relleno: la marca `relleno-a-proposito:` con su motivo lo calla en su línea, en el comentario de arriba o dentro del manejador", () => {
+  const motivo = "relleno-a-proposito: opcional; si falla, la ficha se pinta sin el historial";
+  assert.deepEqual(rellenos(`export const f = (x: any) => x().catch(() => []); // ${motivo}`), []);
+  assert.deepEqual(rellenos(`export const f = (x: any) =>\n  // ${motivo}\n  // (segunda línea del mismo comentario)\n  x().catch(() => []);`), []);
+  assert.deepEqual(rellenos(`export function f(t: string) {\n  try {\n    return JSON.parse(t);\n  } catch {\n    // ${motivo}\n    return null;\n  }\n}`), []);
+  assert.deepEqual(rellenos(`export const f = (x: any) => x().catch(() => {\n  // ${motivo}\n});`), []);
+});
+
+test("relleno: la marca sin motivo, con uno corto o lejos del relleno NO lo calla", () => {
+  assert.equal(rellenos(`export const f = (x: any) => x().catch(() => []); // relleno-a-proposito:`).length, 1);
+  assert.equal(rellenos(`export const f = (x: any) => x().catch(() => []); // relleno-a-proposito: corto`).length, 1);
+  // Un comentario con la marca, una línea de código y recién el relleno: la marca es de otro.
+  assert.equal(rellenos(`// relleno-a-proposito: opcional; si falla, se pinta vacío\nconst a = 1;\nexport const f = (x: any) => x().catch(() => a);`).length, 1);
+  // Y la marca de un relleno no calla al de la línea siguiente.
+  assert.equal(rellenos(`export const f = (x: any) => [\n  x().catch(() => []), // relleno-a-proposito: opcional; si falla, se pinta vacío\n  x().catch(() => null),\n];`).length, 1);
+});
+
+test("relleno: el hallazgo apunta a la línea del `catch`, no al principio de la cadena", () => {
+  const r = rellenos(`export const f = (s: any) =>\n  s\n    .from("x")\n    .select("*")\n    .catch(() => null);`);
+  assert.equal(r[0].linea, 5);
+});

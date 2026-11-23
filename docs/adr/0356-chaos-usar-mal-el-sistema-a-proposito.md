@@ -68,3 +68,11 @@ miraba la base después: un ataque casi nunca tira la pantalla, deja un estado q
 
 `.claude/skills/chaos/SKILL.md` · `scripts/chaos/invariantes.mjs` (+ `.test.mjs`) · `scripts/chaos/catalogo.mjs` (+ `.test.mjs`) ·
 `docs/chaos/README.md` · `CLAUDE.md` «Caos» · `.github/pull_request_template.md` · `.github/workflows/ci.yml` (paso «Catálogo de caos e invariantes»).
+
+## Actualización 2026-11-23 — novena familia: «El botón que no hace lo que dice» (ADR-0693)
+
+El catálogo suma la familia `boton` (BOT-01 a BOT-08, cuatro de núcleo para toda pantalla que guarda): la falla sin error ni estado
+imposible, donde lo que el botón promete no queda hecho (un `router.refresh()` o un `useEffect([prop])` que pisa lo recién guardado, dos
+respuestas que llegan al revés, un «Listo» con un error detrás). Las invariantes no la ven, así que sus ataques comparan lo que la pantalla
+dice, lo que muestra al recargar y lo que dice la base. Antes de esa familia se corre la lectura del código, `scripts/chaos/boton.mjs`. Una
+semilla de antes de hoy sortea distinto; con `--familias` y las ocho de entonces se repite exacta. El porqué, en ADR-0693.

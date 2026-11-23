@@ -15,7 +15,7 @@ export async function leerListasPrendaLibre(): Promise<ListasPrendaLibreLeidas> 
     supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
     supabase.from("tallas").select("id, valor").eq("activo", true).eq("estado", "aprobado"),
     supabase.from("colores").select("codigo, nombre, hex, familia_color, sinonimos").eq("activo", true).order("orden").order("nombre"),
-    // Las tallas de cada categoría (`categoria_tallas`) y sus habituales. Si no cargan, la hoja ofrece todas.
+    // relleno-a-proposito: Las tallas de cada categoría (`categoria_tallas`) y sus habituales. Si no cargan, la hoja ofrece todas.
     getEjesPorCategoria().catch(() => null),
   ]);
   return {

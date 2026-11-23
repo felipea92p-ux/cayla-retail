@@ -36,6 +36,7 @@ export const getEmpresasDeLaSede = cache(async (ubicacionId: string): Promise<Em
     if (error || !Array.isArray(data) || data.length < 2) return [];
     return data.map((e) => ({ id: e.id, clave: e.clave, nombre: e.nombre }));
   } catch (e) {
+    // relleno-a-proposito: sin respuesta, `[]`: el detalle de un pedido no nombra la empresa.
     unstable_rethrow(e);
     return [];
   }

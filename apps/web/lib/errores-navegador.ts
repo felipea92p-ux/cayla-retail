@@ -25,7 +25,7 @@ export function sentryDelNavegador(): Promise<SentryDelNavegador | null> {
       Sentry.init(opcionesDeSentry(entornoDeSentry()));
       return Sentry;
     })
-    .catch(() => null);
+    .catch(() => null); // relleno-a-proposito: sin Sentry el aviso se pierde y la pantalla sigue igual (lo dice arriba)
   return cargado;
 }
 

@@ -29,7 +29,7 @@ function storage(donde: DondeSeGuarda = "aparato"): Storage | null {
   try {
     return (donde === "pestana" ? window.sessionStorage : window.localStorage) ?? null;
   } catch {
-    // Algunos navegadores lanzan al solo TOCAR el almacenamiento (cookies bloqueadas).
+    // relleno-a-proposito: Algunos navegadores lanzan al solo TOCAR el almacenamiento (cookies bloqueadas).
     return null;
   }
 }
@@ -54,6 +54,7 @@ export function guardar(clave: string, valor: unknown, donde: DondeSeGuarda = "a
     s.setItem(clave, JSON.stringify(valor));
     return true;
   } catch {
+    // relleno-a-proposito: `false` le dice a quien llama que no se guardó (cuota llena, bloqueado).
     return false;
   }
 }
