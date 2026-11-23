@@ -65,7 +65,7 @@ function BloquePasos({ pasos, tipo }: { pasos: PasoCajon[]; tipo: TipoVisual }) 
             <span aria-hidden className="mv-paso-marca">
               {p.hecho ? "✓" : i + 1}
             </span>
-            <span className="text-[14.5px] leading-snug text-tinta">{p.texto}</span>
+            <span className="text-detalle leading-snug text-tinta">{p.texto}</span>
           </li>
         ))}
       </ol>
@@ -79,10 +79,10 @@ function Hero({ cifra, frase, donde, quien }: { cifra: string; frase: string; do
     <div className="mt-6 rounded-xl border border-sand px-5 py-4">
       <p className="flex items-center gap-4">
         <span className="font-display text-[44px] leading-none tabular-nums text-tinta">{cifra}</span>
-        <span className="text-balance text-[16px] leading-snug text-tinta">{frase}</span>
+        <span className="text-balance text-sm leading-snug text-tinta">{frase}</span>
       </p>
       {(donde || quien) && (
-        <dl className="mt-3 grid grid-cols-[4rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 border-t border-sand pt-3 text-[14px]">
+        <dl className="mt-3 grid grid-cols-[4rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 border-t border-sand pt-3 text-detalle">
           {donde && (
             <>
               <dt className="text-taupe">Dónde</dt>
@@ -112,8 +112,8 @@ function BloquePrenda({ prenda }: { prenda: NonNullable<DetalleCajon["prenda"]> 
         <SinFoto tamano="h-[74px] w-16" />
       )}
       <div className="min-w-0">
-        <p className="line-clamp-2 break-words text-[17px] font-semibold leading-snug text-tinta">{prenda.referencia}</p>
-        {prenda.variante && <p className="mt-0.5 truncate text-[14px] text-taupe">{prenda.variante}</p>}
+        <p className="line-clamp-2 break-words text-lg font-semibold leading-snug text-tinta">{prenda.referencia}</p>
+        {prenda.variante && <p className="mt-0.5 truncate text-detalle text-taupe">{prenda.variante}</p>}
       </div>
     </div>
   );
@@ -141,10 +141,10 @@ function FilaPrenda({ item }: { item: ItemPrenda }) {
     <li className="flex items-center gap-3 border-b border-sand py-3 last:border-b-0">
       <MiniaturaPrenda fotoUrl={item.fotoUrl} tamano="md" />
       <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 break-words text-[14.5px] font-semibold leading-snug text-tinta">{item.referencia}</p>
+        <p className="line-clamp-2 break-words text-detalle font-semibold leading-snug text-tinta">{item.referencia}</p>
         {item.variante && <p className="truncate text-sm text-taupe">{item.variante}</p>}
       </div>
-      <span className={`shrink-0 whitespace-nowrap text-right text-[14px] tabular-nums ${TONO_TEXTO[item.tono]}`}>{item.cantidad}</span>
+      <span className={`shrink-0 whitespace-nowrap text-right text-detalle tabular-nums ${TONO_TEXTO[item.tono]}`}>{item.cantidad}</span>
     </li>
   );
 }
@@ -161,7 +161,7 @@ function ListaPrendas({ items }: { items: ItemPrenda[] }) {
         ))}
       </ul>
       {!expandido && items.length > TOPE && (
-        <button type="button" onClick={() => setExpandido(true)} className="flex w-full items-center justify-center gap-1 border-t border-sand py-3 text-[15px] text-taupe hover:text-tinta">
+        <button type="button" onClick={() => setExpandido(true)} className="flex w-full items-center justify-center gap-1 border-t border-sand py-3 text-sm text-taupe hover:text-tinta">
           Ver las {items.length - TOPE} restantes
           <ChevronDown aria-hidden className="h-4 w-4" />
         </button>
@@ -179,7 +179,7 @@ function FilaEnlace({ link, onVerVenta }: { link: ConsultarLink; onVerVenta?: ()
     <>
       <Icono aria-hidden className="h-4 w-4 shrink-0 text-tinta/70" />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[14.5px] text-tinta">{link.texto}</span>
+        <span className="block truncate text-detalle text-tinta">{link.texto}</span>
         {link.detalle && <span className="block truncate text-sm text-taupe">{link.detalle}</span>}
       </span>
       {abre && <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/50" />}
@@ -210,7 +210,7 @@ function ContenidoBajadas({ b }: { b: DetalleBajadas }) {
   return (
     <>
       <Hero cifra={b.cifra} frase={b.frase} quien={b.quien} />
-      <p className="mt-3 text-[15px] leading-snug text-taupe">{b.nota}</p>
+      <p className="mt-3 text-sm leading-snug text-taupe">{b.nota}</p>
       {b.ruta && <BloqueRuta ruta={b.ruta} tipo={b.tipo} />}
       <BloquePasos pasos={b.pasos} tipo={b.tipo} />
 
@@ -221,14 +221,14 @@ function ContenidoBajadas({ b }: { b: DetalleBajadas }) {
               key={f.id}
               className={`grid items-center gap-3 border-b border-sand py-3 last:border-b-0 ${b.mostrarHora ? "grid-cols-[3rem_auto_minmax(0,1fr)_auto]" : "grid-cols-[auto_minmax(0,1fr)_auto]"}`}
             >
-              {b.mostrarHora && <span className="text-[15px] tabular-nums text-taupe">{f.hora}</span>}
+              {b.mostrarHora && <span className="text-sm tabular-nums text-taupe">{f.hora}</span>}
               <MiniaturaPrenda fotoUrl={f.fotoUrl} tamano="md" />
               <div className="min-w-0">
-                <p className="line-clamp-2 break-words text-[14.5px] font-semibold leading-snug text-tinta">{f.referencia}</p>
+                <p className="line-clamp-2 break-words text-detalle font-semibold leading-snug text-tinta">{f.referencia}</p>
                 {f.variante && <p className="truncate text-sm text-taupe">{f.variante}</p>}
                 {f.sentido && <p className="truncate text-sm text-taupe">{f.sentido}</p>}
               </div>
-              <span className="whitespace-nowrap text-right text-[14px] tabular-nums text-tinta">{f.cantidad}</span>
+              <span className="whitespace-nowrap text-right text-detalle tabular-nums text-tinta">{f.cantidad}</span>
             </li>
           ))}
         </ul>
@@ -249,7 +249,7 @@ function ContenidoOperacion({ d, onVerVenta }: { d: DetalleCajon; onVerVenta?: (
       <BloquePasos pasos={d.pasos} tipo={d.tipo} />
 
       {d.enTienda && (
-        <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-sand px-5 py-3 text-[14px]">
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-sand px-5 py-3 text-detalle">
           <span className="text-taupe">
             En toda la tienda
             <span className="block text-sm leading-tight">piso y almacén juntos</span>
@@ -260,7 +260,7 @@ function ContenidoOperacion({ d, onVerVenta }: { d: DetalleCajon; onVerVenta?: (
         </div>
       )}
       {d.motivo && (
-        <p className="mt-3 text-[15px] leading-snug text-taupe">
+        <p className="mt-3 text-sm leading-snug text-taupe">
           Motivo: <span className="text-tinta">{d.motivo}</span>
         </p>
       )}

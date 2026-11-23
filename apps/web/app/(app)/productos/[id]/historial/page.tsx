@@ -34,7 +34,7 @@ export default async function HistorialProductoPage({
         <Volver href={vueltaAProductos(desde)} a="Productos" className="mb-2" />
         <h1 className="font-display mt-1 text-[34px] leading-tight text-tinta">Historial</h1>
         <p className="mt-1 text-sm text-taupe">
-          «{prenda.referencia}»{prenda.categoria ? ` · ${prenda.categoria}` : ""} · lo que cambió en esta prenda, quién lo hizo y cuándo
+          «{prenda.referencia}»{prenda.categoria ? ` · ${prenda.categoria}` : ""} · qué cambió, quién lo hizo y cuándo
         </p>
       </div>
       <HistorialPrenda

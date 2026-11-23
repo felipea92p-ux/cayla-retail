@@ -32,7 +32,7 @@ export function TarjetaEmpresa({ children }: { children: ReactNode }) {
   return (
     <section aria-labelledby="pregunta-empresa" className="scroll-mt-[4.25rem] rounded-xl border border-sand bg-papel sm:scroll-mt-[7.5rem]">
       <div className="px-4 pt-4 sm:px-5">
-        <h2 id="pregunta-empresa" className="text-[14.5px] font-semibold text-tinta">{/* unificar-fijo: el título de una pregunta de Nuevo producto, que tiene su diseño aprobado (ADR-0260, ADR-0284) */}
+        <h2 id="pregunta-empresa" className="text-detalle font-semibold text-tinta">{/* unificar-fijo: el título de una pregunta de Nuevo producto, que tiene su diseño aprobado (ADR-0260, ADR-0284) */}
           ¿De qué tienda es esta prenda?
         </h2>
       </div>

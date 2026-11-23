@@ -74,18 +74,18 @@ export function RecepcionVistaRapida({
     >
       <dl className="grid grid-cols-3 divide-x divide-sand overflow-hidden rounded-xl border border-sand">
         <div className="px-3.5 py-3">
-          <dt className="label-cayla text-[10px] text-tinta/65">Llegó</dt>
-          <dd className="font-display mt-0.5 text-[21px] leading-tight tabular-nums text-tinta">
+          <dt className="label-cayla text-xs text-tinta/65">Llegó</dt>
+          <dd className="font-display mt-0.5 text-xl leading-tight tabular-nums text-tinta">
             <CifraQueCuenta valor={r.unidadesLlegaron} alMontar />
           </dd>
         </div>
         <div className="px-3.5 py-3">
-          <dt className="label-cayla text-[10px] text-tinta/65">Facturado</dt>
-          <dd className="font-display mt-0.5 text-[21px] leading-tight tabular-nums text-tinta">{r.unidadesFacturadas.toLocaleString("es-PE")}</dd>
+          <dt className="label-cayla text-xs text-tinta/65">Facturado</dt>
+          <dd className="font-display mt-0.5 text-xl leading-tight tabular-nums text-tinta">{r.unidadesFacturadas.toLocaleString("es-PE")}</dd>
         </div>
         <div className="px-3.5 py-3">
-          <dt className="label-cayla text-[10px] text-tinta/65">Demora</dt>
-          <dd className="font-display mt-0.5 text-[21px] leading-tight tabular-nums text-tinta">
+          <dt className="label-cayla text-xs text-tinta/65">Demora</dt>
+          <dd className="font-display mt-0.5 text-xl leading-tight tabular-nums text-tinta">
             <CifraQueCuenta valor={r.diasDemora} alMontar />
             <small className="ml-1 font-sans text-sm text-tinta/65">{r.diasDemora === 1 ? "día" : "días"}</small>
           </dd>
@@ -93,7 +93,7 @@ export function RecepcionVistaRapida({
       </dl>
 
       <div className="mt-5 flex items-center justify-between gap-3">
-        <span className="label-cayla text-[10.5px] text-tinta/55">Cómo llegó {r.documento}</span>
+        <span className="label-cayla text-xs text-tinta/55">Cómo llegó {r.documento}</span>
         <Chip tono={faltan > 0 ? "ambar" : "verde"}>
           {faltan === 0 && <Check aria-hidden className="check-trazo -ml-0.5 mr-1 inline h-3 w-3" style={{ "--d": "300ms" } as CSSProperties} />}
           {faltan > 0 ? `Faltan ${faltan}` : "Completa"}
@@ -105,13 +105,13 @@ export function RecepcionVistaRapida({
       {detalle.length > 0 ? (
         <ul className="divide-y divide-tinta/10">
           {detalle.map((l, i) => (
-            <li key={i} style={{ "--i": i + 2 } as CSSProperties} className="anim-entra flex items-baseline justify-between gap-3 py-2.5 text-[15px]">
+            <li key={i} style={{ "--i": i + 2 } as CSSProperties} className="anim-entra flex items-baseline justify-between gap-3 py-2.5 text-sm">
               <span className="min-w-0 text-tinta">
                 {l.referencia}
                 {l.sku ? ` · ${l.sku}` : ""}
                 <span className="block truncate text-sm text-tinta/55">{[l.talla, l.color].filter(Boolean).join(" / ") || "—"}</span>
               </span>
-              <b className="font-display text-[19px] font-normal tabular-nums text-tinta">{l.cantidad}</b>
+              <b className="font-display text-lg font-normal tabular-nums text-tinta">{l.cantidad}</b>
             </li>
           ))}
         </ul>

@@ -105,7 +105,7 @@ export function EditarMarcaModal({
     cerrar();
   }
 
-  const accion = "label-cayla shrink-0 text-[10.5px] text-tinta/60 underline underline-offset-4 hover:text-rojo";
+  const accion = "label-cayla shrink-0 text-xs text-tinta/60 underline underline-offset-4 hover:text-rojo";
 
   return (
     <Modal titulo="Editar marca" subtitulo={marca.nombre} onClose={onClose} tamano="mediana">
@@ -208,7 +208,7 @@ export function EditarMarcaModal({
               />
             </div>
             {hayConProductos && (
-              <p className="mt-2 text-sm text-tinta/55">Un proveedor con productos no se quita aquí: cámbiales el proveedor en Productos primero.</p>
+              <p className="mt-2 text-sm text-tinta/55">Un proveedor con productos se cambia primero en Productos.</p>
             )}
           </CampoGuiado>
 

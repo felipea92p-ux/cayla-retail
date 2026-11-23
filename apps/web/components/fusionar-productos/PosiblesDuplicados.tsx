@@ -59,7 +59,7 @@ export function PosiblesDuplicados({ pares }: { pares: ParDuplicado[] }) {
                 className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3"
               >
                 <span className="min-w-0 space-y-1">
-                  <span className="block text-[15px] text-tinta">
+                  <span className="block text-sm text-tinta">
                     {p.referenciaA} <span className="text-taupe">y</span>{" "}
                     {p.referenciaB}
                   </span>

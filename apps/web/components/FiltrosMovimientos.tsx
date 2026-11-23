@@ -239,7 +239,7 @@ export function FiltrosMovimientos({
         aria-pressed={periodo === "todo"}
         // `btn-enlace` agranda su caja 0,25 em hacia abajo para pintar el subrayado y lo devuelve con un margen negativo; aquí `mb-2`
         // le gana a ese margen, así que se descuenta para que «Todo el historial» quede donde estaba.
-        className={`btn-cayla btn-enlace mb-[calc(0.5rem_-_0.25em)] text-[12.5px] ${periodo === "todo" ? "font-semibold" : ""}`}
+        className={`btn-cayla btn-enlace mb-[calc(0.5rem_-_0.25em)] text-xs leading-tight ${periodo === "todo" ? "font-semibold" : ""}`}
       >
         Todo el historial
       </button>
@@ -257,7 +257,7 @@ export function FiltrosMovimientos({
     // «Zona»: dónde está la prenda dentro de la tienda. Con rótulo: «Todo · Piso · Almacén · Cuarentena» solos no
     // dicen qué se está eligiendo.
     <div data-guia="movimientos.zona" className="flex max-w-full shrink-0 items-center gap-2">
-      <span className="label-cayla text-[10px] font-bold text-taupe" aria-hidden>
+      <span className="label-cayla text-xs font-bold text-taupe" aria-hidden>
         Zona
       </span>
       {/* Deja menos movimientos (filtro de un valor): la píldora del sistema, no la pista hueso de la demo (ADR-0358). */}
@@ -276,7 +276,7 @@ export function FiltrosMovimientos({
   // «Tienda» (ADR-0532, Felipe 2026-10-26): ver por separado lo de CAYLA y lo de CLAURE en Lima. Con «Ventas» elegido, sus ventas.
   const tienda = empresas && empresas.length > 1 && (
     <div data-guia="movimientos.tienda" className="flex max-w-full shrink-0 items-center gap-2">
-      <span className="label-cayla text-[10px] font-bold text-taupe" aria-hidden>
+      <span className="label-cayla text-xs font-bold text-taupe" aria-hidden>
         Tienda
       </span>
       <div role="group" aria-label="De qué tienda es la prenda" className="pildoras-desliza gap-1.5 sm:flex-wrap" suppressHydrationWarning>
@@ -291,7 +291,7 @@ export function FiltrosMovimientos({
 
   const procesos = cat && hayProcesos && (
     <div role="group" aria-label={`Proceso dentro de ${nombreTipo(cat)}`} className="anim-revelar flex items-center gap-2 border-l-2 border-sand pl-3">
-      <span aria-hidden className="label-cayla shrink-0 text-[10px] font-bold text-taupe">
+      <span aria-hidden className="label-cayla shrink-0 text-xs font-bold text-taupe">
         Proceso
       </span>
       <div className={`${FILA_DESLIZA} min-w-0 flex-1`}>
@@ -372,13 +372,13 @@ export function FiltrosMovimientos({
           {(cerrar) => (
             <div className="space-y-5">
               <section className="space-y-2">
-                <p className="label-cayla text-[10.5px] text-taupe">Período</p>
+                <p className="label-cayla text-xs text-taupe">Período</p>
                 <div className="flex flex-wrap gap-1.5 [&>div]:mx-0 [&>div]:flex-wrap [&>div]:px-0">{periodos}</div>
                 {fechas}
               </section>
               {(procesos || procesoSueltoPildora) && (
                 <section className="space-y-2">
-                  <p className="label-cayla text-[10.5px] text-taupe">Qué pasó</p>
+                  <p className="label-cayla text-xs text-taupe">Qué pasó</p>
                   <div className="[&>div]:mx-0 [&>div]:flex-wrap [&>div]:px-0">{procesoSueltoPildora}</div>
                   {procesos}
                 </section>

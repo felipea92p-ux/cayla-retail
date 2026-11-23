@@ -60,7 +60,7 @@ function MatrizDeTallas({ color, separaPiso }: { color: ColorConsultado; separaP
             {filas.map((f) => {
               const n = f.valor(t);
               return (
-                <span key={f.clave} aria-hidden className={`flex h-8 items-center text-[15px] tabular-nums ${n > 0 ? "font-medium text-tinta" : "text-tinta/40"}`}>
+                <span key={f.clave} aria-hidden className={`flex h-8 items-center text-sm tabular-nums ${n > 0 ? "font-medium text-tinta" : "text-tinta/40"}`}>
                   {n}
                 </span>
               );

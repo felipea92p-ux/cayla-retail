@@ -21,7 +21,7 @@ export function IngresosVista({ ingresos, rango, sede, hoy }: { ingresos: Ingres
       ) : ingresos.resumen.modelos.length === 0 ? (
         <div className="card-cayla">
           <Vacio icono={<PackageCheck />} titulo={`No entró nada ${conPreposicion(rango.texto)}`}>
-            En {sede} no se cargó stock inicial ni se recibió mercadería en ese período. Prueba con más días.
+            Prueba con más días.
           </Vacio>
         </div>
       ) : (
@@ -37,8 +37,7 @@ export function IngresosVista({ ingresos, rango, sede, hoy }: { ingresos: Ingres
         />
       )}
       <p data-guia="movimientos.ingresos-nota" className="nota-cayla">
-        <b>Qué cuenta:</b> lo que entró como stock inicial y como mercadería recibida, sumado por modelo. No resta lo que se ajustó después: para eso está
-        la lista de Movimientos.
+        <b>Qué cuenta:</b> el stock inicial y la mercadería recibida, por modelo. Los ajustes están en Movimientos.
       </p>
     </div>
   );

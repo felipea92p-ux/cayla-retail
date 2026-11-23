@@ -177,7 +177,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
       {abrirOrden && subida !== "descartada" && (
         <div className="card-cayla flex flex-wrap items-center justify-between gap-4 border-tinta/40 p-5">
           <div className="max-w-xl space-y-1">
-            <p className="label-cayla text-[11px] text-tinta/70">Venías de una orden de producción</p>
+            <p className="label-cayla text-xs text-tinta/70">Venías de una orden de producción</p>
             <TituloSeccion nivel={3}>{abrirOrden.titulo}</TituloSeccion>
             <p className="text-sm text-tinta/70">
               {creado.nombre} ya está en el catálogo con sus {creado.variantes} variante{creado.variantes === 1 ? "" : "s"}. La orden se abre con este modelo elegido y su
@@ -202,7 +202,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
         {subida !== "descartada" && (
           <div className="card-cayla flex flex-col justify-between gap-4 border-tinta/40 p-5">
             <div className="space-y-2">
-              <p className="label-cayla text-[11px] text-tinta/70">{completas ? "Listo" : "Falta"}</p>
+              <p className="label-cayla text-xs text-tinta/70">{completas ? "Listo" : "Falta"}</p>
               {enEspera > 0 && (
                 <p className="text-sm text-ambar-profundo">
                   {enEspera === 1 ? "1 foto espera" : `${enEspera} fotos esperan`} en este equipo: suben solas después del producto.
@@ -248,7 +248,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
         {etiquetas && (
           <div className="card-cayla flex flex-col justify-between gap-4 p-5">
             <div className="space-y-2">
-              <p className="label-cayla text-[11px] text-tinta/70">Con la prenda en la mano</p>
+              <p className="label-cayla text-xs text-tinta/70">Con la prenda en la mano</p>
               <TituloSeccion nivel={3}>Imprimir etiquetas</TituloSeccion>
               <p className="text-sm text-tinta/70">
                 {etiquetas.unidades === 1 ? "Sale 1 etiqueta" : `Salen ${etiquetas.unidades} etiquetas`}, una por prenda cargada ({creado.stock?.donde}), con su precio y el QR que lee la caja.
@@ -263,7 +263,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
 
         <div className="card-cayla flex flex-col justify-between gap-4 p-5">
           <div className="space-y-2">
-            <p className="label-cayla text-[11px] text-tinta/70">Otra prenda de la colección</p>
+            <p className="label-cayla text-xs text-tinta/70">Otra prenda de la colección</p>
             <TituloSeccion nivel={3}>Crear otro parecido</TituloSeccion>
             <p className="text-sm text-tinta/70">
               Empiezas con la misma categoría, marca, proveedor, tallas, tejido, patrón, precio, costo y etiquetas. Solo cambias el nombre y los colores.
@@ -280,7 +280,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
 
         <div className="card-cayla flex flex-col justify-between gap-4 p-5">
           <div className="space-y-2">
-            <p className="label-cayla text-[11px] text-tinta/70">Terminé</p>
+            <p className="label-cayla text-xs text-tinta/70">Terminé</p>
             <TituloSeccion nivel={3}>Ir a productos</TituloSeccion>
             <p className="text-sm text-tinta/70">Vuelve a la lista. Las fotos se pueden agregar después desde el producto.</p>
           </div>

@@ -310,7 +310,7 @@ export function AgregarColoresModal({
                         <button
                           type="button"
                           onClick={() => setFotoDe((a) => Object.fromEntries(Object.entries(a).filter(([c]) => c !== codigo)))}
-                          className="btn-cayla btn-enlace ml-auto text-[12.5px]"
+                          className="btn-cayla btn-enlace ml-auto text-xs leading-tight"
                         >
                           Quitar
                         </button>

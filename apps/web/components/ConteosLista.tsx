@@ -92,7 +92,7 @@ export function ConteosLista({ grupos, hoy }: { grupos: GrupoDia[]; hoy: string 
                     <span className="flex min-w-0 items-center gap-2.5">
                       <FichaDeLugar tipo={c.sububicacionTipo} />
                       <span className="min-w-0">
-                        <span className="block truncate text-[15px] font-semibold text-tinta">Conteo {c.numero}</span>
+                        <span className="block truncate text-sm font-semibold text-tinta">Conteo {c.numero}</span>
                         {/* Angosta no hay columna de hora: va delante, y el detalle envuelve en vez de cortarse («Solo Cami…» no dice qué se contó). */}
                         <span className="block break-words text-sm leading-snug tabular-nums text-taupe @min-[42rem]:hidden">
                           {hora} · {detalle}
@@ -114,7 +114,7 @@ export function ConteosLista({ grupos, hoy }: { grupos: GrupoDia[]; hoy: string 
                       </span>
                     </span>
 
-                    <span className="col-start-3 row-start-1 flex items-center justify-end gap-1 text-right text-[15px] font-bold tabular-nums @min-[42rem]:col-start-6">
+                    <span className="col-start-3 row-start-1 flex items-center justify-end gap-1 text-right text-sm font-bold tabular-nums @min-[42rem]:col-start-6">
                       <span className="flex flex-col items-end leading-tight">
                         {cifra ? (
                           <>

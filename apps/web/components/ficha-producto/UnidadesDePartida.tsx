@@ -25,7 +25,7 @@ export function PasosDeAgregar({ primero, segundo, hechoPrimero }: { primero: st
     <li className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ease-cayla ${ahora || hecho ? "text-tinta" : "text-tinta/50"}`}>
       <span
         aria-hidden
-        className={`grid h-6 w-6 flex-none place-items-center rounded-full border text-[11px] font-semibold transition-[background-color,border-color,color] duration-300 ease-cayla ${
+        className={`grid h-6 w-6 flex-none place-items-center rounded-full border text-xs font-semibold transition-[background-color,border-color,color] duration-300 ease-cayla ${
           hecho ? "border-verde bg-verde text-crema-fija" : ahora ? "border-tinta" : "border-borde-control"
         }`}
       >
@@ -172,7 +172,7 @@ export function UnidadesDeLasNuevas({
       )}
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-tinta/80">
         <span>
-          Entran <b className="font-serif text-[20px] font-medium tabular-nums text-tinta">{total}</b> {total === 1 ? "unidad" : "unidades"} al <b>almacén</b>
+          Entran <b className="font-serif text-xl font-medium tabular-nums text-tinta">{total}</b> {total === 1 ? "unidad" : "unidades"} al <b>almacén</b>
         </span>
         <span className="flex gap-1">
           <button

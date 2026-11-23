@@ -129,7 +129,7 @@ export function RecepcionesRecientes({
 
             {abierta.nota && (
               <p className="text-sm text-tinta/65">
-                <span className="label-cayla text-[11px]">Nota · </span>
+                <span className="label-cayla text-xs">Nota · </span>
                 {abierta.nota}
               </p>
             )}

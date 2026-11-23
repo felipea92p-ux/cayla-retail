@@ -40,7 +40,7 @@ export function SeccionFicha({
         <span className="taller-num" aria-label={hecho ? "Completa" : `Paso ${numero}`}>
           {hecho ? "✓" : numero}
         </span>
-        <span className="text-[15px] font-semibold text-tinta">{titulo}</span>
+        <span className="text-sm font-semibold text-tinta">{titulo}</span>
         <span className="min-w-0 flex-1 truncate text-sm text-taupe">{resumen}</span>
         <ChevronDown aria-hidden className="taller-chev h-4 w-4" />
       </button>

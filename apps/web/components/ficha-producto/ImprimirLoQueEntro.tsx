@@ -92,12 +92,12 @@ export function ImprimirLoQueEntro({
                 <span className="font-serif text-[40px] leading-none tabular-nums text-tinta" aria-hidden>
                   {cifra}
                 </span>
-                <span className="text-[14px] font-medium text-tinta">{total === 1 ? "etiqueta por imprimir" : "etiquetas por imprimir"}</span>
+                <span className="text-detalle font-medium text-tinta">{total === 1 ? "etiqueta por imprimir" : "etiquetas por imprimir"}</span>
               </p>
               <p className="sr-only">
                 {total} {total === 1 ? "etiqueta" : "etiquetas"} por imprimir
               </p>
-              <p className="mt-1 text-[12.5px] text-taupe">{resumen}</p>
+              <p className="mt-1 text-xs text-taupe">{resumen}</p>
             </div>
           </div>
 
@@ -129,7 +129,7 @@ export function ImprimirLoQueEntro({
                 Imprimir {total} {total === 1 ? "etiqueta" : "etiquetas"}
               </BotonImprimir>
             </div>
-            <p className="mt-2 text-[11.5px] text-taupe sm:text-right">Si lo dejas para después, Productos te lo recuerda arriba hasta que salgas del módulo.</p>
+            <p className="mt-2 text-xs text-taupe sm:text-right">Si lo dejas para después, Productos te lo recuerda arriba hasta que salgas del módulo.</p>
           </div>
         </div>
       )}
@@ -178,25 +178,25 @@ export function TiraDeLoQueEntro({ prenda, papeles }: { prenda: string; papeles:
           >
             {/* El ojal de la etiqueta colgante. */}
             <span aria-hidden className="absolute left-1/2 top-1.5 h-1.5 w-1.5 -translate-x-1/2 rounded-full border border-sand bg-crema" />
-            <span className="absolute right-2 top-2 rounded-full bg-tinta px-1.5 py-0.5 text-[10.5px] font-semibold leading-none tabular-nums text-crema">
+            <span className="absolute right-2 top-2 rounded-full bg-tinta px-1.5 py-0.5 text-xs font-semibold leading-none tabular-nums text-crema">
               × {l.unidades}
             </span>
-            <span className="text-[8.5px] font-semibold uppercase tracking-[0.28em] text-tinta/55">Cayla</span>
-            <span className="mt-1 truncate text-[12px] text-tinta/75" title={prenda}>
+            <span className="text-xs font-semibold uppercase tracking-[0.28em] text-tinta/55">Cayla</span>
+            <span className="mt-1 truncate text-xs text-tinta/75" title={prenda}>
               {prenda}
             </span>
-            <span className="mt-1.5 flex items-center gap-1.5 text-[12.5px] text-tinta">
+            <span className="mt-1.5 flex items-center gap-1.5 text-xs text-tinta">
               {l.punto}
               <span className="truncate">{l.color}</span>
             </span>
             <span className="mt-2 flex items-end justify-between gap-2">
               <span className="font-serif text-[26px] leading-none text-tinta">{l.talla}</span>
-              <span className="text-[13px] font-semibold tabular-nums text-tinta">{l.precio !== null ? `S/\u00a0${precioEtiqueta(l.precio)}` : "—"}</span>
+              <span className="text-xs font-semibold tabular-nums text-tinta">{l.precio !== null ? `S/\u00a0${precioEtiqueta(l.precio)}` : "—"}</span>
             </span>
             {l.iconos.length > 0 && (
               <span className="mt-2 flex items-center gap-1.5 border-t border-dashed border-sand pt-1.5 [&_svg]:h-3.5 [&_svg]:w-3.5">
                 {l.iconos.map((nombre) => (
-                  <span key={nombre} className="inline-flex items-center gap-1 text-[10px] text-tinta/70">
+                  <span key={nombre} className="inline-flex items-center gap-1 text-xs text-tinta/70">
                     <IconoEtiquetaPapel icono={iconoDeEtiqueta(nombre) ?? "generico"} nombre={nombre} decorativo />
                     {nombre}
                   </span>

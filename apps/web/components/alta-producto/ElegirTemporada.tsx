@@ -81,7 +81,7 @@ function TarjetaTemporada({ t, elegido, enHoja = false, onClick }: { t: Item; el
     <TarjetaMuestraBase elegido={elegido} onClick={onClick} title={enHoja ? undefined : t.nombre}>
       {t.id === SIN_PROPIA ? (
         <div
-          className="flex h-10 w-full items-center justify-center rounded-lg border border-dashed border-tinta/20 text-[10px] uppercase tracking-wider text-tinta/40"
+          className="flex h-10 w-full items-center justify-center rounded-lg border border-dashed border-tinta/20 text-xs uppercase tracking-wider text-tinta/40"
           aria-hidden
         >
           Ninguna

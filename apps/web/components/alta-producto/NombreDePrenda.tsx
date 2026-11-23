@@ -60,7 +60,7 @@ export function NombreDePrenda({
   // «Otro nombre» y en Polos no). Con varios, los chips de arriba solo eligen el tipo.
   const enlaceLibre =
     tipos.length > 0 ? (
-      <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={() => onTipo(libre ? tipos[0] : TIPO_LIBRE)}>
+      <button type="button" className="btn-cayla btn-enlace text-xs leading-tight" onClick={() => onTipo(libre ? tipos[0] : TIPO_LIBRE)}>
         {libre ? `Volver a «${tipos[0]} + nombre»` : `${preguntaNoEs(tipos)} Escribe otro nombre`}
       </button>
     ) : null;
@@ -69,7 +69,7 @@ export function NombreDePrenda({
     <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
       <span className="flex flex-wrap items-baseline gap-x-2 text-sm text-taupe" aria-live="polite">
         Así se llamará:
-        <strong className="font-serif text-[18px] font-medium text-tinta">
+        <strong className="font-serif text-lg font-medium text-tinta">
           {nombreFinal && valor.trim() ? (
             nombreFinal
           ) : (
