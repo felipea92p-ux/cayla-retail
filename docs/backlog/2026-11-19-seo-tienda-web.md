@@ -1,7 +1,37 @@
-## 🔎 SEO técnico de la tienda web: auditoría y tareas (2026-11-23) — solo lectura, nada implementado; rama `claude/quizzical-murdock-3ce65d`
+## 🔎 SEO técnico de la tienda web: auditoría y tareas (2026-11-23, ADR-0696) — solo código de la tienda, sin migraciones; rama `claude/quizzical-murdock-3ce65d`
 
 Salió de revisar el repo de skills `affaan-m/ecc`: su skill `seo` es genérica y no se instala, pero al cruzarla con `apps/tienda` se vio
-que a la tienda le falta lo básico para Google y para la vista previa de WhatsApp. **Nada de esto se implementa sin el OK de Felipe.**
+que a la tienda le falta lo básico para Google y para la vista previa de WhatsApp. Felipe respondió D1–D3 el 2026-11-23 y T1–T7 quedaron
+construidas ese día (ver «Lo hecho»), cada una con su commit; lo que queda es de Felipe, fuera del repo.
+
+### Lo hecho (2026-11-23)
+
+- [x] **T1** `0d83de5d6` — 307 desde el proxy (`lib/puerta-sede.ts`) con la tienda de la cookie o Trujillo. Local: `/` → `/inicio?sede=trujillo`
+  en un salto; `/catalogo/<id>` → 307; la página final ya no trae `__next-page-redirect` y sí sus prendas.
+- [x] **T2** `eae8a7e0a` — `metadataBase`, canonical en cada página indexable (`lib/seo.ts`), plantilla `%s · CAYLA`, `lang="es-PE"`, `og:locale es_PE`.
+- [x] **T3** `ffa3ef46d` — la ficha con su frase, `opengraph-image.tsx` (1200×630, sin precio) y `Product`/`Offer` + `BreadcrumbList` (sin `brand`).
+  En la compilación de producción `og:image` apunta a `https://cayla.pe/…`.
+- [x] **T4** `b511ff80b` — `/sitemap.xml` (XML válido, `&` escapado: Next 16 no lo escapa) y `/robots.txt`.
+- [x] **T5** `7157646f4` — `Organization` + `WebSite` en el Inicio y una `ClothingStore` por tienda en `/tiendas`.
+- [x] **T6** `cd665115c` — frase propia en cada página que se indexa, `noindex` en Entrar, Crear cuenta, Olvidé mi contraseña, el look
+  guardado, `/tu-look` y los favoritos; candado `lib/seo-paginas.ts` + su prueba.
+- [x] **T7** medida, sin cambio de código: la ficha de `cayla.pe` pesa **35,5 kB en el cable** (brotli; los 496 kB eran sin comprimir) y el
+  catálogo 50 kB; en la compilación local, 24 kB (documento) y 14,5 kB (flujo RSC). No hay motivo para tocar `MarcoCatalogo` sin datos de
+  clientes reales.
+- [ ] **Sin hacer:** la imagen de WhatsApp de un look de CAYLA (`/looks/[id]`): hoy comparte la del sitio. Puede reutilizar la vista de
+  `/tu-look/vista` armando el código del look; queda para cuando se toque Outfits listos.
+
+### Lo que hace Felipe (fuera del repo)
+
+- [ ] **Search Console:** propiedad de dominio `cayla.pe` (el TXT ya está en el DNS), enviar `https://cayla.pe/sitemap.xml`, mirar «Páginas» a
+  la semana y, en «Inspección de URLs», que la canónica elegida por Google sea la de `?sede=trujillo`.
+- [ ] **Prueba de resultados enriquecidos** (`search.google.com/test/rich-results`) sobre una ficha y sobre `/tiendas`, ya publicadas.
+- [ ] **Depurador de Meta** (`developers.facebook.com/tools/debug`, el que lee WhatsApp) sobre una ficha: la imagen y la frase. Sirve también
+  para que WhatsApp vuelva a leer un enlace que guardó sin imagen.
+- [ ] **Perfil de Empresa de Google** de cada tienda, con la dirección, el horario y el WhatsApp de `/tiendas`.
+- [ ] **Medición de clientes reales:** `pnpm --filter tienda medicion:leer` (ADR-0447) con la CLI de Vercel 64 o más nueva y la cuenta de
+  CAYLA (en esta máquina había la 58 con otra cuenta). Si el LCP de la ficha pasa de 2,5 s o el INP de 200 ms al 75 %, se abre la parte de T7
+  que toca `MarcoCatalogo`.
 
 **Cómo se auditó.** El código de `apps/tienda` en `origin/main` (`2a8ef513a`) y la tienda en vivo, `https://cayla.pe`, con `curl`
 (solo peticiones GET a páginas públicas: no se mandó ningún dato de CAYLA a ningún servicio externo, ni a PageSpeed ni al validador de
@@ -51,7 +81,7 @@ Lo que sigue es como estaba la pregunta:
 
 ### Tareas, de mayor a menor impacto
 
-- [ ] **T1 · La puerta sin `?sede=`: un 307 de verdad desde el proxy, no una redirección escondida en la página** (H1, H2). Impacto: alto,
+- [x] **T1 · La puerta sin `?sede=`: un 307 de verdad desde el proxy, no una redirección escondida en la página** (H1, H2). Impacto: alto,
   todo lo demás se apoya en esto. Esfuerzo: medio.
   - **Archivos:** `proxy.ts`, `lib/sesion.ts` (`redireccionDelProxy`), `lib/sede-servidor.ts` (sigue como respaldo).
   - **Qué se escribe:** para una navegación GET/HEAD a una ruta del catálogo que no trae un `?sede=` válido (`/inicio`, `/catalogo`,
@@ -64,7 +94,7 @@ Lo que sigue es como estaba la pregunta:
     toca); en local, `curl -sI localhost:<puerto>/catalogo/<id>` → `307` con `location: /catalogo/<id>?sede=…`, y en el HTML de la página
     final ya no aparece `__next-page-redirect`. En producción, el mismo `curl` contra `cayla.pe` y «Inspección de URLs» en Search Console.
 
-- [ ] **T2 · Canonical, `metadataBase`, `es-PE` y la plantilla del título** (H4, H8). Impacto: alto (deja una dirección por página y es
+- [x] **T2 · Canonical, `metadataBase`, `es-PE` y la plantilla del título** (H4, H8). Impacto: alto (deja una dirección por página y es
   la base de las direcciones completas de T3 y T4). Esfuerzo: bajo-medio. Depende de D1.
   - **Archivos:** `app/layout.tsx`, `app/manifest.ts`, un `lib/seo.ts` nuevo con su `lib/seo.test.ts`, y el `generateMetadata` de cada
     página del grupo `(catalogo)`.
@@ -81,7 +111,7 @@ Lo que sigue es como estaba la pregunta:
     canonical` → `https://cayla.pe/catalogo/<id>?sede=<canónica>`. Tras publicar, Search Console ▸ Inspección: «URL canónica
     seleccionada por Google» debe coincidir.
 
-- [ ] **T3 · La ficha de una prenda: descripción, vista previa de WhatsApp y datos de producto** (H5, H11). Impacto: alto (WhatsApp es por
+- [x] **T3 · La ficha de una prenda: descripción, vista previa de WhatsApp y datos de producto** (H5, H11). Impacto: alto (WhatsApp es por
   donde se comparte; Google puede mostrar precio y «En stock» en el resultado). Esfuerzo: medio. Depende de T2, D2 y D3.
   - **Archivos:** `app/(catalogo)/catalogo/[id]/page.tsx`, `app/(catalogo)/catalogo/[id]/opengraph-image.tsx` (nuevo), `lib/seo-ficha.ts`
     (nuevo, puro, con su prueba), `lib/ficha.ts` (exponer `codigo`, que la base ya manda y `interpretarFicha` hoy descarta).
@@ -107,7 +137,7 @@ Lo que sigue es como estaba la pregunta:
     productos» y «Rutas de exploración», y `validator.schema.org`. Para WhatsApp: mandarte el enlace a ti mismo, o el depurador de Meta
     (`developers.facebook.com/tools/debug`, WhatsApp usa el mismo lector), que también sirve para que WhatsApp vuelva a leer una vista vieja.
 
-- [ ] **T4 · `app/sitemap.ts`, `app/robots.ts` y Search Console** (H3). Impacto: alto. Esfuerzo: bajo. Depende de T2.
+- [x] **T4 · `app/sitemap.ts`, `app/robots.ts` y Search Console** (H3). Impacto: alto. Esfuerzo: bajo. Depende de T2.
   - **Qué se escribe:** `sitemap.ts` con las direcciones canónicas: Inicio, Toda la tienda, cada categoría, Outfits listos y cada look,
     cada prenda publicada (todas, no solo las que tienen stock en la tienda canónica: `leerCatalogo(null)`), con su foto (`images`), y las
     páginas fijas (Tiendas, Cómo separar, Cambios y devoluciones, Preguntas frecuentes, Club, Libro de Reclamaciones, Privacidad, Términos
@@ -119,7 +149,7 @@ Lo que sigue es como estaba la pregunta:
   - **Cómo se verifica:** `curl localhost:<puerto>/robots.txt`; `curl localhost:<puerto>/sitemap.xml | grep -c '<url>'` = prendas publicadas
     + páginas fijas; una prueba de la función que arma la lista; Search Console ▸ Sitemaps en «Correcto».
 
-- [ ] **T5 · Las tiendas y la marca para Google** (H9). Impacto: medio-alto en búsquedas locales («tienda de ropa en Trujillo»). Esfuerzo: bajo.
+- [x] **T5 · Las tiendas y la marca para Google** (H9). Impacto: medio-alto en búsquedas locales («tienda de ropa en Trujillo»). Esfuerzo: bajo.
   - **Archivos:** `app/tiendas/page.tsx`, `app/layout.tsx` (o `app/(catalogo)/inicio/page.tsx`), `lib/seo.ts`.
   - **Qué se escribe:** en `/tiendas`, un `ClothingStore` por tienda desde `leerSedes()`: nombre («CAYLA Trujillo»), dirección
     (`addressLocality`, `addressCountry: "PE"`), `telephone` (+51 del WhatsApp), `openingHoursSpecification` desde `dias`,
@@ -130,7 +160,7 @@ Lo que sigue es como estaba la pregunta:
   - **Cómo se verifica:** `validator.schema.org` y la Prueba de resultados enriquecidos sobre `/tiendas` (con tu OK); una prueba que arma
     el horario desde `dias` y cuida que una tienda sin horario no rompa el bloque.
 
-- [ ] **T6 · Una descripción propia en cada página que se indexa, y `noindex` donde falta** (H6, H7). Impacto: medio (el texto bajo el
+- [x] **T6 · Una descripción propia en cada página que se indexa, y `noindex` donde falta** (H6, H7). Impacto: medio (el texto bajo el
   enlace en Google; hoy todas dicen lo mismo). Esfuerzo: bajo.
   - **Qué se escribe:** descripción propia en Inicio, cada lista (Lo nuevo, Ofertas, Más vendidos), cada categoría (armada con datos, en
     `lib/seo.ts` con su prueba: «Blusas CAYLA en Arequipa: 12 modelos desde S/ 54. Sepáralas online y recógelas en tienda.»), Outfits
@@ -142,7 +172,7 @@ Lo que sigue es como estaba la pregunta:
     `noindex` (con su motivo), y una prueba que falla si una página nueva nace sin declararse. Así no vuelve a pasar.
   - **Cómo se verifica:** la prueba del registro; `curl` de cada página con `grep 'name="description"\|name="robots"'`.
 
-- [ ] **T7 · Core Web Vitals de la ficha: medir antes de tocar** (H10). Impacto: por saber. Esfuerzo: la medición, bajo.
+- [x] **T7 · Core Web Vitals de la ficha: medir antes de tocar** (H10). Impacto: por saber. Esfuerzo: la medición, bajo.
   - **Qué se hace:** primero los datos de clientes reales, `pnpm --filter tienda medicion:leer` (ADR-0447: el registro de Vercel guarda
     1 día): LCP, INP y CLS al 75 % de `/catalogo/[id]` en celular. T1 ya quita una carga entera (el esqueleto con el refresh de 1 s) a
     quien llega sin `?sede=`. **Solo si** el LCP pasa de 2,5 s o el INP de 200 ms, se mira lo que `MarcoCatalogo` manda en cada página
