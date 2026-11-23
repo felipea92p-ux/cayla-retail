@@ -16,7 +16,7 @@
  * USO
  *   pnpm sesiones              → el tablero legible
  *   pnpm sesiones --json       → lo mismo, para otra herramienta (el hook de inicio de sesión, `al-abrir.mjs`)
- *   pnpm sesiones --al-abrir   → no trae `main` (lo trae el aviso de la carpeta principal en paralelo: no se pisan)
+ *   pnpm sesiones --al-abrir   → JSON y solo trae `main` y las ramas `claude/*` (más rápido; lo usa el hook)
  */
 import { spawn } from "node:child_process";
 import { lstat, readFile } from "node:fs/promises";
@@ -123,7 +123,13 @@ async function leerRamasRecientes(raiz, fechas, ahora) {
   });
 }
 
-/** Lee las cuatro fuentes y arma el tablero. `alAbrir`: no trae `main` (ver USO). */
+/**
+ * Lee las cuatro fuentes y arma el tablero. `alAbrir`: trae solo `main` y las ramas `claude/*` (ver USO).
+ *
+ * `main` se trae SIEMPRE antes de leer las ramas del remoto: una rama de otra máquina que ya trae un `main` más nuevo que el de
+ * aquí haría que `origin/main...<rama>` arrastrara lo que `main` cambió en ese tramo, y saldrían choques falsos (pasó el
+ * 2026-11-23: `package.json` y `ci.yml` «compartidos» con una rama que no los tocaba).
+ */
 export async function leerTablero({ cwd = process.cwd(), alAbrir = false, ahora = Math.floor(Date.now() / 1000) } = {}) {
   const raiz = (await correr("git", ["rev-parse", "--show-toplevel"], cwd))?.trim();
   const listado = raiz ? await correr("git", ["worktree", "list", "--porcelain"], raiz) : null;
@@ -131,7 +137,9 @@ export async function leerTablero({ cwd = process.cwd(), alAbrir = false, ahora 
   const faltan = [];
 
   // Lo lento va en paralelo: traer las ramas y las reservas mientras se leen las worktrees.
-  const ramasRemotas = alAbrir ? ["+refs/heads/claude/*:refs/remotes/origin/claude/*"] : ["+refs/heads/*:refs/remotes/origin/*"];
+  const ramasRemotas = alAbrir
+    ? ["+refs/heads/main:refs/remotes/origin/main", "+refs/heads/claude/*:refs/remotes/origin/claude/*"]
+    : ["+refs/heads/*:refs/remotes/origin/*"];
   const traerRamas = correr("git", ["fetch", "--quiet", "--prune", "origin", ...ramasRemotas], raiz, 8000);
   const traerReservas = correr("git", ["fetch", "--quiet", "--no-tags", "origin", `+refs/tags/${PREFIJO}*:refs/tags/${PREFIJO}*`], raiz, 8000);
   const worktrees = enTandas(parsearWorktrees(listado), 10, leerWorktree);

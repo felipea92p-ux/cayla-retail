@@ -35,8 +35,11 @@ en qué y no guarda nada en el repo:
    o uno con esta sesión: con seis sesiones abiertas a la vez, una línea que no pide nada es ruido.
 5. **Nunca traba la sesión (principio 9).** El hook corre el tablero como proceso aparte con un tope de 8 s (el tablero lee `gh` de
    forma síncrona; un proceso aparte se puede cortar a tiempo). Sin `gh` el tablero sale sin los PR y lo dice («los PR sin leer», nunca
-   «0 PR»); sin red usa las ramas que ya tenía; fuera de un repo calla y sale con 0. Con `--al-abrir` no trae `main`, para no pisar el
-   fetch del aviso de la carpeta principal, que corre al mismo tiempo.
+   «0 PR»); sin red usa las ramas que ya tenía; fuera de un repo calla y sale con 0. Con `--al-abrir` trae solo `main` y las ramas
+   `claude/*`. `main` se trae siempre antes de leer las ramas del remoto: una rama de otra máquina que ya trae un `main` más nuevo que el
+   de aquí arrastraría en su diff lo que `main` cambió en ese tramo (en la primera prueba salieron así dos choques falsos). Si el aviso
+   de la carpeta principal, que también trae `main` al mismo tiempo, choca con este por el candado de la ref, el que pierde usa la que
+   dejó el otro.
 6. **No le toma el índice a nadie.** Cada `git status` y `git diff` en la worktree de otra sesión va con `--no-optional-locks`: leer no
    escribe el índice, así que nunca deja un `index.lock` en medio de un commit ajeno.
 7. **El ritual cambia.** CLAUDE.md y las ocho skills que leían `docs/SESIONES-ACTIVAS.md` (`formidable`, `innovar`, `focus`,
