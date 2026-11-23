@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ocho mejoras, antes y después — lámina</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Lámina para ELEGIR MIRANDO (Felipe 2026-11-19). No es código del ERP: es un documento.
+   · Las capturas son del ERP local. Cada «después» es el ERP real con una regla inyectada en la página; no cambia ningún archivo.
+   · Las demos vivas usan los tokens reales de apps/web/app/globals.css y estilos/tema.css, y los tiempos del sistema. */
+:root{
+  --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;--rojo:#b8412d;--rojo-profundo:#8b2a1f;
+  --borde-control:#96786a;--vidrio:#ffffff;--sombra:#1a1a18;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+  --ease:cubic-bezier(.32,.72,.24,1);--t-resp:100ms;--t-cambio:160ms;--t-hoja:260ms;--t-momento:480ms;
+  --sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;--serif:"EB Garamond",ui-serif,Georgia,serif;
+  --linea:color-mix(in srgb,var(--sand) 90%,transparent);
+  --tarjeta:var(--papel);
+}
+:root[data-tema="oscuro"]{
+  --crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-profundo:#f29a86;
+  --borde-control:#8d7a6e;--vidrio:#33302a;--sombra:#000000;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;
+  --linea:color-mix(in srgb,var(--tinta) 11%,transparent);
+}
+/* Los dígitos salen de Inter; las letras siguen en DM Sans. Es la propuesta 2, y aquí solo la usa lo que lleva la clase `con-cifras`. */
+@font-face{font-family:"Cifras";src:url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2) format("woff2");font-weight:100 900;size-adjust:96%;unicode-range:U+0030-0039;}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+body{margin:0;background:var(--crema);color:var(--tinta);font:400 15px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+h1,h2,h3{font-family:var(--serif);font-weight:500;margin:0;letter-spacing:-.01em}
+.ancho{max-width:1180px;margin:0 auto;padding:0 24px}
+.versal{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe);font-weight:500}
+
+/* ---------- la barra de arriba ---------- */
+.barra{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--crema) 82%,transparent);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);border-bottom:1px solid var(--linea)}
+.barra .ancho{display:flex;align-items:center;gap:16px;height:60px}
+.barra strong{font-family:var(--serif);font-size:20px;font-weight:500;white-space:nowrap}
+.indice{display:flex;gap:6px;margin-left:auto;overflow-x:auto}
+.indice a{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:999px;border:1px solid var(--borde-control);text-decoration:none;color:var(--tinta);font-size:13px;font-weight:500}
+.indice a:hover{background:var(--tinta);color:var(--crema)}
+.seg{display:inline-flex;padding:3px;border-radius:999px;background:var(--hueso);border:1px solid var(--linea);gap:2px}
+.seg button{border:0;background:none;padding:6px 14px;border-radius:999px;font-size:13px;font-weight:500;color:color-mix(in srgb,var(--tinta) 72%,transparent);transition:background var(--t-cambio) var(--ease),color var(--t-cambio) var(--ease)}
+.seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+
+/* ---------- portada ---------- */
+.portada{padding:56px 0 24px}
+.portada h1{font-size:54px;line-height:1.05}
+.portada p{max-width:64ch;color:color-mix(in srgb,var(--tinta) 78%,transparent);margin:14px 0 0;font-size:16px}
+.aprendido{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:28px}
+.aprendido div{background:var(--tarjeta);border:1px solid var(--linea);border-radius:18px;padding:16px 18px}
+.aprendido b{display:block;font-family:var(--serif);font-size:19px;font-weight:500;margin-bottom:4px}
+.aprendido span{font-size:14px;color:color-mix(in srgb,var(--tinta) 76%,transparent)}
+
+/* ---------- cada mejora ---------- */
+section.mejora{padding:44px 0;border-top:1px solid var(--linea)}
+.cabeza{display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:end;margin-bottom:16px}
+.cabeza .n{font-family:var(--serif);font-size:64px;line-height:.8;color:var(--rojo)}
+.cabeza h2{font-size:32px;line-height:1.1}
+.cabeza p{margin:6px 0 0;color:color-mix(in srgb,var(--tinta) 78%,transparent)}
+.datos{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px;padding:0;list-style:none}
+.datos li{background:var(--hueso);border-radius:12px;padding:8px 12px;font-size:13.5px;max-width:52ch}
+.datos li b{font-weight:600}
+.datos li.ojo{background:color-mix(in srgb,var(--ambar) 14%,var(--papel))}
+.eleccion{display:flex;align-items:center;gap:10px}
+.eleccion span{font-size:12px;color:var(--taupe)}
+.controles{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}
+.btn{border:1px solid var(--borde-control);background:var(--papel);border-radius:999px;padding:7px 16px;font-size:13.5px;font-weight:500;transition:transform var(--t-resp) var(--ease),background var(--t-cambio) var(--ease)}
+.btn:hover{background:var(--hueso)}
+.btn:active{transform:scale(.97)}
+.btn.negro{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.nota{font-size:13px;color:var(--taupe);margin:10px 0 0}
+
+/* ---------- el comparador: se desliza entre hoy y la propuesta ---------- */
+.comp{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--linea);background:var(--hueso);--corte:50%;user-select:none}
+.comp img{display:block;width:100%;height:auto}
+.comp .despues{position:absolute;inset:0;clip-path:inset(0 0 0 var(--corte))}
+.comp .raya{position:absolute;top:0;bottom:0;left:var(--corte);width:2px;margin-left:-1px;background:var(--rojo);pointer-events:none}
+.comp .raya::after{content:"‹ ›";position:absolute;top:50%;left:50%;translate:-50% -50%;background:var(--rojo);color:#fff;font-size:13px;font-weight:600;padding:5px 9px;border-radius:999px;white-space:nowrap;letter-spacing:.1em}
+.comp input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize}
+.comp .eti{position:absolute;top:12px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;padding:5px 10px;border-radius:999px;background:rgba(26,26,24,.78);color:#f5f0e8;pointer-events:none}
+.comp .eti.izq{left:12px}.comp .eti.der{right:12px}
+.comp.angosto{max-width:760px}
+
+/* ---------- 2 · cifras, en vivo ---------- */
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.caja{background:var(--tarjeta);border:1px solid var(--linea);border-radius:18px;padding:18px 20px}
+.caja h3{font-family:var(--sans);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe);font-weight:500;margin-bottom:10px}
+.montos{list-style:none;margin:0;padding:0;font-variant-numeric:tabular-nums;font-size:17px}
+.montos li{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--linea)}
+.montos li span:first-child{color:color-mix(in srgb,var(--tinta) 72%,transparent);font-size:14px}
+.con-cifras{font-family:"Cifras",var(--sans)}
+.contador{font-size:40px;font-weight:500;font-variant-numeric:tabular-nums;margin-top:14px;text-align:right}
+
+/* ---------- 3 · animaciones de fábrica ---------- */
+.demo3{background:var(--tarjeta);border:1px solid var(--linea);border-radius:18px;padding:20px}
+.demo3 .fila-cifras{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.demo3 .cifra{background:var(--crema);border-radius:14px;padding:14px 16px}
+.demo3 .cifra b{display:block;font-family:var(--serif);font-size:30px;font-weight:500;line-height:1.1}
+.demo3 .barras{display:flex;align-items:flex-end;gap:10px;height:120px;padding:0 4px;border-bottom:1px solid var(--linea)}
+.demo3 .barras i{flex:1;background:var(--sand);border-radius:6px 6px 0 0;height:0}
+.demo3 .barras i.hoy{background:var(--tinta)}
+.demo3 ul{list-style:none;margin:14px 0 0;padding:0}
+.demo3 li{display:flex;justify-content:space-between;padding:9px 4px;border-bottom:1px solid var(--linea);font-size:14.5px}
+.demo3[data-modo="ligero"] .barras i{transition:height 200ms var(--ease)}
+.demo3[data-modo="ligero"] .cambia{animation:funde 160ms var(--ease) both}
+.demo3[data-modo="rico"] .barras i{transition:height 420ms var(--ease);transition-delay:calc(var(--i) * 40ms)}
+.demo3[data-modo="rico"] li.cambia,.demo3[data-modo="rico"] .cifra.cambia{animation:sube 320ms var(--ease) both;animation-delay:calc(var(--i) * 45ms)}
+@keyframes funde{from{opacity:0}}
+@keyframes sube{from{opacity:0;transform:translateY(8px)}}
+
+/* ---------- 5 · la foto que viaja a la hoja ---------- */
+.demo5{position:relative;background:var(--tarjeta);border:1px solid var(--linea);border-radius:18px;padding:20px;min-height:500px;overflow:hidden}
+.rejilla5{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.tile5{border:1px solid var(--linea);background:var(--crema);border-radius:18px;padding:8px;text-align:left}
+.tile5:hover{border-color:var(--borde-control)}
+.foto5{aspect-ratio:4/5;border-radius:12px;background:color-mix(in srgb,var(--hueso) 60%,var(--papel));display:grid;place-items:center;overflow:hidden}
+.foto5 svg{width:74%;height:auto;filter:drop-shadow(0 10px 14px rgba(0,0,0,.16))}
+.tile5 b{display:block;font-family:var(--serif);font-size:17px;font-weight:500;margin:10px 4px 0}
+.tile5 span{display:block;margin:0 4px 6px;font-size:13.5px;color:var(--taupe)}
+.velo5{position:absolute;inset:0;background:color-mix(in srgb,var(--sombra) 26%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.hoja5{position:absolute;inset:28px 8%;background:var(--papel);border:1px solid var(--linea);border-radius:28px;padding:22px;display:grid;grid-template-columns:minmax(0,300px) 1fr;gap:24px;box-shadow:0 30px 60px -30px color-mix(in srgb,var(--sombra) 60%,transparent)}
+.hoja5 .foto5{aspect-ratio:auto;height:100%;border-radius:18px}
+.hoja5 h3{font-size:30px}
+.hoja5 .tallas{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:18px 0}
+.hoja5 .tallas div{background:var(--hueso);border-radius:12px;padding:10px;text-align:center;font-size:13px}
+.hoja5 .tallas b{display:block;font-family:var(--serif);font-size:22px;font-weight:500}
+.velo5[hidden],.hoja5[hidden]{display:none}
+.hoja5.entra-hoy{animation:hoja-hoy var(--t-hoja) var(--ease) both}
+.velo5.entra-hoy{animation:funde var(--t-hoja) var(--ease) both}
+@keyframes hoja-hoy{from{opacity:0;transform:translateY(18px) scale(.985)}}
+::view-transition-group(foto5){animation-duration:440ms;animation-timing-function:cubic-bezier(.32,.72,.24,1)}
+::view-transition-old(root),::view-transition-new(root){animation-duration:240ms}
+
+/* ---------- 6 · la cabecera que se pliega ---------- */
+.pantalla6{height:460px;overflow-y:auto;background:var(--crema);border:1px solid var(--linea);border-radius:18px;position:relative}
+.barra6{position:sticky;top:0;z-index:2;height:52px;display:flex;align-items:center;gap:12px;padding:0 20px;background:color-mix(in srgb,var(--papel) 74%,transparent);-webkit-backdrop-filter:blur(12px) saturate(1.4);backdrop-filter:blur(12px) saturate(1.4);border-bottom:1px solid transparent}
+.barra6 .busca{flex:1;max-width:280px;height:32px;border-radius:999px;background:var(--hueso);border:1px solid var(--linea)}
+.barra6 .titulo-chico{font-family:var(--serif);font-size:20px;font-weight:500;opacity:0}
+.cabecera6{padding:26px 24px 14px}
+.cabecera6 h3{font-size:46px;line-height:1.05;transform-origin:0 0}
+.cuerpo6{padding:0 24px 24px}
+.cuerpo6 .fila{display:flex;justify-content:space-between;padding:13px 4px;border-bottom:1px solid var(--linea);font-size:14.5px}
+.cuerpo6 .fila span:last-child{font-variant-numeric:tabular-nums;color:color-mix(in srgb,var(--tinta) 72%,transparent)}
+@supports (animation-timeline: scroll()){
+  .pantalla6[data-modo="propuesta"]{scroll-timeline:--pantalla6 block}
+  .pantalla6[data-modo="propuesta"] .cabecera6 h3{animation:achica6 linear both;animation-timeline:--pantalla6;animation-range:0 120px}
+  .pantalla6[data-modo="propuesta"] .cabecera6 .versal{animation:apaga6 linear both;animation-timeline:--pantalla6;animation-range:0 60px}
+  .pantalla6[data-modo="propuesta"] .titulo-chico{animation:asoma6 linear both;animation-timeline:--pantalla6;animation-range:70px 130px}
+  .pantalla6[data-modo="propuesta"] .barra6{animation:filo6 linear both;animation-timeline:--pantalla6;animation-range:60px 130px}
+}
+@keyframes achica6{to{transform:translateY(-34px) scale(.44);opacity:0}}
+@keyframes apaga6{to{opacity:0}}
+@keyframes asoma6{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes filo6{to{border-bottom-color:var(--linea)}}
+
+/* ---------- 7 · la escala ---------- */
+.escalera{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;min-height:74px}
+.escalera span{font-family:var(--sans);line-height:1}
+.escalera small{display:block;font-size:10px;color:var(--taupe);margin-top:4px;font-variant-numeric:tabular-nums}
+.radios{display:flex;flex-wrap:wrap;gap:10px}
+.radios i{width:46px;height:46px;border:1.5px solid var(--tinta);background:var(--hueso);display:grid;place-items:center;font-style:normal;font-size:11px}
+.nido{display:flex;gap:28px;align-items:center;flex-wrap:wrap}
+.nido .afuera{width:190px;padding:10px;border-radius:24px;background:var(--hueso);border:1px solid var(--borde-control)}
+.nido .adentro{height:96px;background:var(--tinta)}
+.nido figcaption{font-size:13px;color:var(--taupe);margin-top:8px;text-align:center}
+.nido figure{margin:0}
+
+/* ---------- 8 · el rojo ---------- */
+.muestras{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.par{border-radius:18px;overflow:hidden;border:1px solid var(--linea);display:grid;grid-template-columns:1fr 1fr}
+.par div{height:150px;display:flex;align-items:flex-end;padding:10px 12px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:#fff}
+.par p{grid-column:1/-1;margin:0;padding:10px 12px;font-size:13.5px;background:var(--tarjeta)}
+.c1a{background:#b8412d}.c2a{background:#d12d6f}.c3a{background:#7a1f3a}
+.c1b{background:#b8412d}.c2b{background:#d12d6f}.c3b{background:#7a1f3a}
+@supports (color: oklch(from red l c h)){
+  .c1b{background:oklch(from #b8412d l calc(c * 1.3) h)}
+  .c2b{background:oklch(from #d12d6f l calc(c * 1.3) h)}
+  .c3b{background:oklch(from #7a1f3a l calc(c * 1.35) h)}
+}
+
+/* ---------- el cierre ---------- */
+.cierre{padding:44px 0 80px;border-top:1px solid var(--linea)}
+.orden{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
+.orden ol{margin:12px 0 0;padding-left:22px}
+.orden li{margin:6px 0}
+#resumen{background:var(--tarjeta);border:1px solid var(--linea);border-radius:18px;padding:16px 18px;font-size:14.5px;min-height:74px;white-space:pre-line}
+
+@media (max-width:760px){
+  .aprendido,.dos,.muestras,.orden,.demo3 .fila-cifras{grid-template-columns:1fr}
+  .rejilla5{grid-template-columns:1fr 1fr}
+  .cabeza{grid-template-columns:auto 1fr}
+  .cabeza .eleccion{grid-column:1/-1}
+  .portada h1{font-size:38px}
+  .hoja5{inset:12px;grid-template-columns:1fr}
+  .hoja5 .foto5{height:180px}
+  .indice{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="barra">
+  <div class="ancho">
+    <strong>Ocho mejoras</strong>
+    <div class="seg" role="group" aria-label="Tema">
+      <button type="button" data-tema-boton="claro" aria-pressed="true">Claro</button>
+      <button type="button" data-tema-boton="oscuro" aria-pressed="false">Oscuro</button>
+    </div>
+    <nav class="indice" aria-label="Ir a una mejora">
+      <a href="#m1">1</a><a href="#m2">2</a><a href="#m3">3</a><a href="#m4">4</a><a href="#m5">5</a><a href="#m6">6</a><a href="#m7">7</a><a href="#m8">8</a>
+    </nav>
+  </div>
+</header>
+
+<main class="ancho">
+  <div class="portada">
+    <p class="versal">Lámina para elegir mirando · 19 de noviembre de 2026</p>
+    <h1>Ocho mejoras,<br>antes y después</h1>
+    <p>Desliza cada captura para comparar. Las capturas son del ERP local: cada «después» es el ERP real con una regla puesta encima, sin tocar el código. Las de movimiento se prueban aquí mismo. En cada una, marca si la quieres.</p>
+    <div class="aprendido">
+      <div><b>Las fotos: cambió la receta</b><span>La mayoría ya está recortada. El problema son las que aún traen fondo: 11 de 18 en Productos.</span></div>
+      <div><b>Las tarjetas ya eran casi sólidas</b><span>La mejora 4 casi no cambia nada a la vista. La dejo para que lo compruebes.</span></div>
+      <div><b>La escala se nota poco</b><span>En una pantalla suelta casi no se ve. Su valor está en el conjunto y en el mantenimiento.</span></div>
+    </div>
+  </div>
+
+  <!-- 1 -->
+  <section class="mejora" id="m1">
+    <div class="cabeza">
+      <span class="n">1</span>
+      <div><h2>Todas las fotos recortadas</h2><p>La prenda flota sobre la tarjeta, en claro y en oscuro.</p></div>
+      <div class="eleccion" data-eleccion="1"></div>
+    </div>
+    <ul class="datos">
+      <li><b>Hoy:</b> 11 de 18 fotos a la vista en Productos traen fondo claro; en Existencias, 7 de 12.</li>
+      <li><b>Con qué:</b> recortar las que faltan. La pieza ya muestra bien una foto sin fondo.</li>
+      <li class="ojo"><b>Ojo:</b> el «después» simula el recorte quitando el blanco. El recorte real lo hace la foto.</li>
+    </ul>
+    <div class="controles">
+      <div class="seg" role="group" aria-label="Pantalla" data-serie-de="c1">
+        <button type="button" data-serie="fotos-productos" aria-pressed="true">Productos</button>
+        <button type="button" data-serie="fotos-existencias" aria-pressed="false">Existencias</button>
+      </div>
+      <span class="nota" style="margin:0">Se nota más en oscuro.</span>
+    </div>
+    <div class="comp" id="c1" data-comp data-serie="fotos-productos"></div>
+  </section>
+
+  <!-- 2 -->
+  <section class="mejora" id="m2">
+    <div class="cabeza">
+      <span class="n">2</span>
+      <div><h2>Las cifras alineadas</h2><p>Columnas que cuadran dígito por dígito.</p></div>
+      <div class="eleccion" data-eleccion="2"></div>
+    </div>
+    <ul class="datos">
+      <li><b>Hoy:</b> la letra del ERP no trae cifras de ancho fijo. «1111» mide 50 px y «0000», 109 px.</li>
+      <li><b>Con qué:</b> una sola regla: los dígitos salen de Inter y las letras siguen en DM Sans.</li>
+      <li><b>Pagas:</b> los números quedan con otra forma que las letras. Míralo de cerca.</li>
+    </ul>
+    <div class="comp angosto" id="c2" data-comp data-serie="cifras"></div>
+    <p class="nota">Historial de compras, de cerca. Fíjate en la columna «Total».</p>
+    <div class="controles" style="margin-top:18px"><button class="btn negro" type="button" id="contar">Contar una cifra</button><span class="nota" style="margin:0">A la izquierda la cifra baila de ancho; a la derecha, no.</span></div>
+    <div class="dos">
+      <div class="caja"><h3>Hoy · DM Sans</h3>
+        <ul class="montos"><li><span>Textiles Andina</span><span>8,496.00</span></li><li><span>Confecciones del Sur</span><span>37,453.20</span></li><li><span>Hilos del Norte</span><span>1,111.10</span></li><li><span>Botones Lima</span><span>5,333.60</span></li></ul>
+        <div class="contador" data-contador>0.00</div></div>
+      <div class="caja"><h3>Propuesta · dígitos de Inter</h3>
+        <ul class="montos con-cifras"><li><span>Textiles Andina</span><span>8,496.00</span></li><li><span>Confecciones del Sur</span><span>37,453.20</span></li><li><span>Hilos del Norte</span><span>1,111.10</span></li><li><span>Botones Lima</span><span>5,333.60</span></li></ul>
+        <div class="contador con-cifras" data-contador>0.00</div></div>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="mejora" id="m3">
+    <div class="cabeza">
+      <span class="n">3</span>
+      <div><h2>Animaciones encendidas de fábrica</h2><p>Un modo ligero para todos; lo rico, donde el equipo aguanta.</p></div>
+      <div class="eleccion" data-eleccion="3"></div>
+    </div>
+    <ul class="datos">
+      <li><b>Hoy:</b> arrancan apagadas en todo aparato. Casi nadie ve el movimiento que elegiste.</li>
+      <li><b>Con qué:</b> el ERP ya lee la memoria y los núcleos del aparato.</li>
+      <li><b>Decisión tuya:</b> reabre la del 7 de noviembre.</li>
+    </ul>
+    <div class="controles">
+      <div class="seg" role="group" aria-label="Modo" id="modo3">
+        <button type="button" data-modo="quieto" aria-pressed="true">Hoy · quieto</button>
+        <button type="button" data-modo="ligero" aria-pressed="false">Ligero</button>
+        <button type="button" data-modo="rico" aria-pressed="false">Rico</button>
+      </div>
+      <span class="nota" style="margin:0">Elige un modo y cambia de período.</span>
+    </div>
+    <div class="demo3" data-modo="quieto" id="demo3">
+      <div class="seg" role="group" aria-label="Período" id="periodo3">
+        <button type="button" data-p="0" aria-pressed="true">Hoy</button>
+        <button type="button" data-p="1" aria-pressed="false">7 días</button>
+        <button type="button" data-p="2" aria-pressed="false">30 días</button>
+      </div>
+      <div class="fila-cifras" id="cifras3"></div>
+      <div class="barras" id="barras3"><i></i><i></i><i></i><i></i><i></i><i></i><i class="hoy"></i></div>
+      <ul id="filas3"></ul>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="mejora" id="m4">
+    <div class="cabeza">
+      <span class="n">4</span>
+      <div><h2>Los datos sobre superficie sólida</h2><p>Papel con una línea fina; el vidrio, solo en lo que flota.</p></div>
+      <div class="eleccion" data-eleccion="4"></div>
+    </div>
+    <ul class="datos">
+      <li><b>Hoy:</b> tarjetas y tablas ya son casi sólidas: entre 66 y 86 % de blanco.</li>
+      <li class="ojo"><b>Lo que vi:</b> el cambio casi no se nota. Ya no la pondría entre las primeras.</li>
+    </ul>
+    <div class="controles">
+      <div class="seg" role="group" aria-label="Pantalla" data-serie-de="c4">
+        <button type="button" data-serie="superficies-compras" aria-pressed="true">Compras</button>
+        <button type="button" data-serie="superficies-existencias" aria-pressed="false">Existencias</button>
+      </div>
+    </div>
+    <div class="comp" id="c4" data-comp data-serie="superficies-compras"></div>
+  </section>
+
+  <!-- 5 -->
+  <section class="mejora" id="m5">
+    <div class="cabeza">
+      <span class="n">5</span>
+      <div><h2>La foto que viaja a la hoja</h2><p>La prenda que tocas crece hasta ser la de su hoja.</p></div>
+      <div class="eleccion" data-eleccion="5"></div>
+    </div>
+    <ul class="datos">
+      <li><b>Hoy:</b> la hoja aparece sola; no se ve de dónde sale.</li>
+      <li><b>Con qué:</b> View Transitions, en Chrome, Edge, Safari y Firefox desde octubre de 2025.</li>
+      <li><b>Decisión tuya:</b> cambia la regla de entrada de los modales.</li>
+    </ul>
+    <div class="controles">
+      <div class="seg" role="group" aria-label="Modo" id="modo5">
+        <button type="button" data-modo="hoy" aria-pressed="true">Hoy</button>
+        <button type="button" data-modo="propuesta" aria-pressed="false">Propuesta</button>
+      </div>
+      <span class="nota" style="margin:0" id="nota5">Toca una prenda; cierra y repite con el otro modo.</span>
+    </div>
+    <div class="demo5" id="demo5">
+      <div class="rejilla5" id="rejilla5"></div>
+      <div class="velo5" id="velo5" hidden></div>
+      <div class="hoja5" id="hoja5" role="dialog" aria-label="Prenda" hidden>
+        <div class="foto5" id="hojaFoto5"></div>
+        <div>
+          <p class="versal">CAYLA · Colección de prueba</p>
+          <h3 id="hojaNombre5"></h3>
+          <p id="hojaPrecio5" style="font-size:18px;margin:6px 0 0"></p>
+          <div class="tallas"><div><b>2</b>S</div><div><b>4</b>M</div><div><b>1</b>L</div><div><b>0</b>XL</div></div>
+          <button class="btn negro" type="button" id="cerrar5">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section class="mejora" id="m6">
+    <div class="cabeza">
+      <span class="n">6</span>
+      <div><h2>La cabecera que se pliega</h2><p>El título grande se guarda en la barra al bajar.</p></div>
+      <div class="eleccion" data-eleccion="6"></div>
+    </div>
+    <ul class="datos">
+      <li><b>Hoy:</b> el título se va con la página y arriba no queda dicho dónde estás.</li>
+      <li><b>Con qué:</b> animación guiada por el scroll, en CSS puro. En todos los navegadores desde octubre de 2026.</li>
+      <li><b>No es un bucle:</b> se mueve solo cuando tú mueves la página.</li>
+    </ul>
+    <div class="controles">
+      <div class="seg" role="group" aria-label="Modo" id="modo6">
+        <button type="button" data-modo="hoy" aria-pressed="true">Hoy</button>
+        <button type="button" data-modo="propuesta" aria-pressed="false">Propuesta</button>
+      </div>
+      <button class="btn" type="button" id="bajar6">Bajar y subir solo</button>
+      <span class="nota" style="margin:0" id="nota6">O desliza dentro del recuadro.</span>
+    </div>
+    <div class="pantalla6" data-modo="hoy" id="pantalla6">
+      <div class="barra6"><span class="busca"></span><span class="titulo-chico">Existencias</span></div>
+      <div class="cabecera6"><p class="versal">Tienda Lima · jueves, 19 de noviembre</p><h3>Existencias</h3></div>
+      <div class="cuerpo6" id="cuerpo6"></div>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section class="mejora" id="m7">
+    <div class="cabeza">
+      <span class="n">7</span>
+      <div><h2>Una escala cerrada de letra y de esquinas</h2><p>Menos medidas distintas; las mismas en todo el ERP.</p></div>
+      <div class="eleccion" data-eleccion="7"></div>
+    </div>
+    <ul class="datos">
+      <li><b>Hoy:</b> 28 tamaños de letra en ocho pantallas y 12 radios de esquina.</li>
+      <li><b>En Existencias:</b> pasaría de 16 tamaños a 7 y de 12 radios a 4.</li>
+      <li class="ojo"><b>Lo que vi:</b> en una pantalla casi no se nota. Es trabajo largo, por familias.</li>
+    </ul>
+    <div class="comp" id="c7" data-comp data-serie="escala" data-solo-claro></div>
+    <p class="nota">Existencias en claro, con cada medida llevada al escalón más cercano.</p>
+    <div class="dos" style="margin-top:18px">
+      <div class="caja"><h3>Hoy · 28 tamaños</h3><div class="escalera" id="escalaHoy"></div></div>
+      <div class="caja"><h3>Propuesta · 9 tamaños</h3><div class="escalera" id="escalaNueva"></div></div>
+      <div class="caja"><h3>Hoy · 12 radios</h3><div class="radios" id="radiosHoy"></div></div>
+      <div class="caja"><h3>Propuesta · 4 radios</h3><div class="radios" id="radiosNuevos"></div></div>
+    </div>
+    <div class="caja" style="margin-top:16px"><h3>Esquinas concéntricas: la de adentro es la de afuera menos el relleno</h3>
+      <div class="nido">
+        <figure><div class="afuera"><div class="adentro" style="border-radius:24px"></div></div><figcaption>El mismo radio adentro: se ve pellizcada</figcaption></figure>
+        <figure><div class="afuera"><div class="adentro" style="border-radius:14px"></div></div><figcaption>24 − 10 = 14: los bordes van paralelos</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section class="mejora" id="m8">
+    <div class="cabeza">
+      <span class="n">8</span>
+      <div><h2>El rojo en gama amplia</h2><p>Más vivo en las pantallas que pueden mostrarlo.</p></div>
+      <div class="eleccion" data-eleccion="8"></div>
+    </div>
+    <ul class="datos">
+      <li id="gama"><b>Tu pantalla:</b> midiendo…</li>
+      <li><b>Con qué:</b> el mismo tono y la misma claridad, con más color, solo donde la pantalla lo soporta.</li>
+      <li><b>Pagas:</b> los colores de marca viajan a Dynamic por contrato.</li>
+    </ul>
+    <div class="muestras">
+      <div class="par"><div class="c1a">Hoy</div><div class="c1b">Gama amplia</div><p>El rojo de marca</p></div>
+      <div class="par"><div class="c2a">Hoy</div><div class="c2b">Gama amplia</div><p>Una prenda fucsia</p></div>
+      <div class="par"><div class="c3a">Hoy</div><div class="c3b">Gama amplia</div><p>Una prenda vino</p></div>
+    </div>
+  </section>
+
+  <div class="cierre">
+    <div class="orden">
+      <div>
+        <p class="versal">Mi orden, después de verlas</p>
+        <ol>
+          <li><b>1 · Fotos recortadas.</b> Lo que más cambia, sobre todo en oscuro.</li>
+          <li><b>3 · Animaciones de fábrica.</b> Barato, y devuelve la vida.</li>
+          <li><b>5 · La foto que viaja.</b> El gesto que más se recuerda.</li>
+          <li><b>2 · Cifras alineadas.</b> Fino; se nota en tablas largas.</li>
+          <li><b>6 · Cabecera que se pliega.</b> Gana espacio para los datos.</li>
+          <li><b>8 · Rojo en gama amplia.</b> Sutil y barato.</li>
+          <li><b>7 · Escala cerrada.</b> Vale por el orden, no por la vista.</li>
+          <li><b>4 · Superficies sólidas.</b> Casi no cambia: la dejaría.</li>
+        </ol>
+      </div>
+      <div>
+        <p class="versal">Tu elección</p>
+        <div id="resumen" style="margin-top:12px">Marca «Sí», «Después» o «No» en cada mejora.</div>
+        <div class="controles" style="margin-top:12px"><button class="btn negro" type="button" id="copiar">Copiar mi elección</button><span class="nota" style="margin:0" id="copiado"></span></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const raiz = document.documentElement;
+const pulsar = (grupo, boton) => $$("button", grupo).forEach((b) => b.setAttribute("aria-pressed", String(b === boton)));
+
+/* ---------- el tema y los comparadores ---------- */
+function armarComparadores() {
+  for (const c of $$("[data-comp]")) {
+    if (!c.firstChild) {
+      c.innerHTML = '<img class="antes" alt="Hoy"><img class="despues" alt="Propuesta"><span class="raya"></span><span class="eti izq">Hoy</span><span class="eti der">Propuesta</span><input type="range" min="0" max="100" value="50" aria-label="Deslizar entre hoy y la propuesta">';
+      $("input", c).addEventListener("input", (e) => c.style.setProperty("--corte", e.target.value + "%"));
+    }
+    const tema = c.hasAttribute("data-solo-claro") ? "claro" : raiz.dataset.tema;
+    $(".antes", c).src = `capturas/${c.dataset.serie}-${tema}-antes.jpg`;
+    $(".despues", c).src = `capturas/${c.dataset.serie}-${tema}-despues.jpg`;
+  }
+}
+for (const b of $$("[data-tema-boton]")) b.addEventListener("click", () => { raiz.dataset.tema = b.dataset.temaBoton; pulsar(b.parentElement, b); armarComparadores(); });
+for (const g of $$("[data-serie-de]")) for (const b of $$("button", g)) b.addEventListener("click", () => { $("#" + g.dataset.serieDe).dataset.serie = b.dataset.serie; pulsar(g, b); armarComparadores(); });
+armarComparadores();
+
+/* ---------- 2 · la cifra que cuenta ---------- */
+const soles = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function contar(el, hasta, ms, formato = soles) {
+  const desde = performance.now();
+  const paso = (t) => { const k = Math.min(1, (t - desde) / ms); el.textContent = formato(hasta * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(paso); };
+  requestAnimationFrame(paso);
+}
+$("#contar").addEventListener("click", () => $$("[data-contador]").forEach((el) => contar(el, 42586.8, 2600)));
+
+/* ---------- 3 · animaciones de fábrica ---------- */
+const PERIODOS = [
+  { cifras: [["Vendido", 1284.5, "S/ "], ["Tickets", 14, ""], ["Ticket medio", 91.75, "S/ "]], barras: [30, 55, 42, 70, 38, 64, 88], filas: [["Blusa Emma · Beige", "4 vendidas"], ["Blazer Liz · Marrón", "3 vendidas"], ["Body Leonor · Vino", "3 vendidas"], ["Falda Renata · Beige", "2 vendidas"]] },
+  { cifras: [["Vendido", 9460.2, "S/ "], ["Tickets", 96, ""], ["Ticket medio", 98.54, "S/ "]], barras: [62, 48, 80, 55, 92, 70, 60], filas: [["Blazer Liz · Marrón", "21 vendidas"], ["Blusa Emma · Beige", "18 vendidas"], ["Casaca Ximena · Azul", "11 vendidas"], ["Body Leonor · Vino", "9 vendidas"]] },
+  { cifras: [["Vendido", 38215.9, "S/ "], ["Tickets", 402, ""], ["Ticket medio", 95.06, "S/ "]], barras: [74, 86, 58, 96, 66, 82, 90], filas: [["Blusa Emma · Beige", "74 vendidas"], ["Blazer Liz · Marrón", "61 vendidas"], ["Conjunto Ailsa · Gris", "40 vendidas"], ["Casaca Ximena · Azul", "38 vendidas"]] },
+];
+const demo3 = $("#demo3");
+function pintar3(p) {
+  const d = PERIODOS[p], modo = demo3.dataset.modo;
+  $("#cifras3").innerHTML = d.cifras.map(([n], i) => `<div class="cifra cambia" style="--i:${i}"><span class="versal">${n}</span><b></b></div>`).join("");
+  $$("#cifras3 b").forEach((b, i) => { const [, v, pre] = d.cifras[i]; const f = (x) => pre + (pre ? soles(x) : Math.round(x)); if (modo === "rico") contar(b, v, 560, f); else b.textContent = f(v); });
+  $$("#barras3 i").forEach((b, i) => { b.style.setProperty("--i", i); b.style.height = d.barras[i] + "%"; });
+  $("#filas3").innerHTML = d.filas.map(([a, b], i) => `<li class="cambia" style="--i:${i + 2}"><span>${a}</span><span>${b}</span></li>`).join("");
+}
+for (const b of $$("#modo3 button")) b.addEventListener("click", () => { demo3.dataset.modo = b.dataset.modo; pulsar(b.parentElement, b); $$("#barras3 i").forEach((i) => (i.style.height = "0")); requestAnimationFrame(() => requestAnimationFrame(() => pintar3(+$('#periodo3 [aria-pressed="true"]').dataset.p))); });
+for (const b of $$("#periodo3 button")) b.addEventListener("click", () => { pulsar(b.parentElement, b); pintar3(+b.dataset.p); });
+pintar3(0);
+
+/* ---------- 5 · la foto que viaja ---------- */
+const PRENDAS = [
+  ["Blusa Emma", "S/ 79.90", "#d9b99a", "M30 22 46 12q14 12 28 0l16 10 14 22-14 9-4-6v63H34V47l-4 6-14-9z"],
+  ["Pantalón Palazzo", "S/ 89.00", "#2f4a7a", "M38 10h44l8 100H66l-6-62-6 62H30z"],
+  ["Vestido Aurora", "S/ 129.00", "#8c2f4a", "M46 10q14 12 28 0l6 30 18 70H22l18-70z"],
+  ["Blazer Liz", "S/ 109.90", "#2a2a2c", "M36 14 52 10l8 22 8-22 16 4 16 30-12 8-2-6v60H34V50l-2 6-12-8z"],
+];
+const dibujo = (color, d) => `<svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="luz" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><path d="${d}" fill="${color}"/><path d="${d}" fill="url(#luz)"/></svg>`;
+$("#rejilla5").innerHTML = PRENDAS.map(([n, p, c, d], i) => `<button class="tile5" type="button" data-i="${i}"><div class="foto5">${dibujo(c, d)}</div><b>${n}</b><span>${p}</span></button>`).join("");
+const hoja5 = $("#hoja5"), velo5 = $("#velo5"), hojaFoto5 = $("#hojaFoto5");
+let modo5 = "hoy", abierta5 = null;
+const conVT = () => modo5 === "propuesta" && typeof document.startViewTransition === "function";
+if (typeof document.startViewTransition !== "function") $("#nota5").textContent = "Este navegador no anima el viaje: la propuesta se verá igual que hoy.";
+function abrir5(tile) {
+  const [n, p, c, d] = PRENDAS[+tile.dataset.i];
+  const foto = $(".foto5", tile);
+  const poner = () => { hojaFoto5.innerHTML = dibujo(c, d); $("#hojaNombre5").textContent = n; $("#hojaPrecio5").textContent = p; hoja5.hidden = velo5.hidden = false; };
+  abierta5 = tile;
+  hoja5.classList.remove("entra-hoy"); velo5.classList.remove("entra-hoy");
+  if (conVT()) {
+    foto.style.viewTransitionName = "foto5";
+    const t = document.startViewTransition(() => { foto.style.viewTransitionName = ""; poner(); hojaFoto5.style.viewTransitionName = "foto5"; });
+    t.finished.finally(() => (hojaFoto5.style.viewTransitionName = ""));
+  } else { poner(); hoja5.classList.add("entra-hoy"); velo5.classList.add("entra-hoy"); }
+}
+function cerrar5() {
+  if (!abierta5) return;
+  const foto = $(".foto5", abierta5);
+  const quitar = () => { hoja5.hidden = velo5.hidden = true; };
+  if (conVT()) {
+    hojaFoto5.style.viewTransitionName = "foto5";
+    const t = document.startViewTransition(() => { hojaFoto5.style.viewTransitionName = ""; quitar(); foto.style.viewTransitionName = "foto5"; });
+    t.finished.finally(() => (foto.style.viewTransitionName = ""));
+  } else quitar();
+  abierta5 = null;
+}
+for (const t of $$(".tile5")) t.addEventListener("click", () => abrir5(t));
+$("#cerrar5").addEventListener("click", cerrar5);
+velo5.addEventListener("click", cerrar5);
+for (const b of $$("#modo5 button")) b.addEventListener("click", () => { modo5 = b.dataset.modo; pulsar(b.parentElement, b); });
+
+/* ---------- 6 · la cabecera que se pliega ---------- */
+const pantalla6 = $("#pantalla6");
+$("#cuerpo6").innerHTML = ["Blusa Camelia", "Blusa Camisera Crop", "Blusa Emma", "Blusa Mariposa", "Blusa Satina", "Body Leonor", "Camisa Manga Larga", "Casaca Ximena", "Chaleco Cayla", "Conjunto Ailsa", "Conjunto Paolsa", "Falda Renata", "Jean Adelle", "Polo Basic Ori"].map((n, i) => `<div class="fila"><span>${n}</span><span>${(i * 7) % 12} en piso · ${(i * 5) % 9} en almacén</span></div>`).join("");
+if (!CSS.supports("animation-timeline: scroll()")) $("#nota6").textContent = "Este navegador no anima con el scroll: la propuesta se verá igual que hoy.";
+for (const b of $$("#modo6 button")) b.addEventListener("click", () => { pantalla6.dataset.modo = b.dataset.modo; pulsar(b.parentElement, b); pantalla6.scrollTop = 0; });
+$("#bajar6").addEventListener("click", () => { pantalla6.scrollTo({ top: 260, behavior: "smooth" }); setTimeout(() => pantalla6.scrollTo({ top: 0, behavior: "smooth" }), 1700); });
+
+/* ---------- 7 · la escala ---------- */
+const HOY = [9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14, 15, 15.5, 16, 17, 17.5, 18, 19, 21, 22, 24, 28, 28.8, 40, 46, 48, 54, 66.5];
+const NUEVA = [11, 12, 13, 14, 16, 18, 21, 28, 46];
+const escalon = (v) => `<span style="font-size:${Math.min(v, 46)}px">Aa<small>${String(v).replace(".", ",")}</small></span>`;
+$("#escalaHoy").innerHTML = HOY.map(escalon).join("");
+$("#escalaNueva").innerHTML = NUEVA.map(escalon).join("");
+$("#radiosHoy").innerHTML = [4, 6, 8, 9, 10, 12, 14, 16, 18, 20, 22, 24].map((r) => `<i style="border-radius:${r}px">${r}</i>`).join("");
+$("#radiosNuevos").innerHTML = [6, 10, 16, 24].map((r) => `<i style="border-radius:${r}px">${r}</i>`).join("");
+
+/* ---------- 8 · la gama de la pantalla ---------- */
+{
+  const amplia = matchMedia("(color-gamut: p3)").matches, sabe = CSS.supports("color: oklch(from red l c h)");
+  $("#gama").innerHTML = "<b>Tu pantalla:</b> " + (!sabe ? "este navegador no entiende la regla; las dos mitades se ven iguales." : amplia ? "sí muestra gama amplia. La mitad derecha debe verse más viva." : "no muestra gama amplia. Aquí las dos mitades se ven casi iguales.");
+}
+
+/* ---------- la elección ---------- */
+const NOMBRES = ["Fotos recortadas", "Cifras alineadas", "Animaciones de fábrica", "Superficies sólidas", "La foto que viaja", "Cabecera que se pliega", "Escala cerrada", "Rojo en gama amplia"];
+const guardada = (() => { try { return JSON.parse(localStorage.getItem("ocho-mejoras") || "{}"); } catch { return {}; } })();
+function resumir() {
+  const lineas = NOMBRES.map((n, i) => (guardada[i + 1] ? `${i + 1} · ${n}: ${guardada[i + 1]}` : null)).filter(Boolean);
+  $("#resumen").textContent = lineas.length ? lineas.join("\n") : "Marca «Sí», «Después» o «No» en cada mejora.";
+  try { localStorage.setItem("ocho-mejoras", JSON.stringify(guardada)); } catch {}
+}
+for (const caja of $$("[data-eleccion]")) {
+  const n = caja.dataset.eleccion;
+  caja.innerHTML = '<span>¿La quieres?</span><div class="seg" role="group" aria-label="Tu elección">' + ["Sí", "Después", "No"].map((o) => `<button type="button" aria-pressed="${guardada[n] === o}">${o}</button>`).join("") + "</div>";
+  for (const b of $$("button", caja)) b.addEventListener("click", () => { guardada[n] = b.textContent; pulsar(b.parentElement, b); resumir(); });
+}
+resumir();
+$("#copiar").addEventListener("click", async () => {
+  const texto = "Mi elección de las ocho mejoras:\n" + $("#resumen").textContent;
+  try { await navigator.clipboard.writeText(texto); $("#copiado").textContent = "Copiado. Pégalo en el chat."; }
+  catch { $("#copiado").textContent = "No se pudo copiar: selecciona el texto de arriba."; }
+});
+</script>
+</body>
+</html>

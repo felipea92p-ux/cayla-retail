@@ -23,6 +23,7 @@ import {
   rutaFotoHallazgo,
   textoDeError,
   type TipoHallazgo,
+  codigoParaMostrar,
 } from "@/lib/barrido-piso-reglas";
 
 /* ====================================================================
@@ -120,7 +121,7 @@ export function HojaApartar({
   return (
     <Modal
       titulo={titulo}
-      subtitulo={tipo === "sin_etiqueta" ? "Tómale una foto y ponla en la caja «Por etiquetar»." : `«${codigo}» no está en el catálogo. Apártala con una foto.`}
+      subtitulo={tipo === "sin_etiqueta" ? "Tómale una foto y ponla en la caja «Por etiquetar»." : `«${codigoParaMostrar(codigo ?? "")}» no está en el catálogo. Apártala con una foto.`}
       tamano="angosta"
       onClose={onClose}
     >

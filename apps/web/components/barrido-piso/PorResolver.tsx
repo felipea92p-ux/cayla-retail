@@ -88,7 +88,8 @@ export function PorResolver({
 
   return (
     <section data-guia="barrido.por-resolver" className="vd-placa space-y-3 rounded-[var(--radius-tarjeta,1rem)] p-4 sm:p-5">
-      <TituloSeccion cuenta={total}>Por resolver</TituloSeccion>
+      {/* El globito cuenta lo mismo que los de cada grupo (las filas por resolver); las prendas de cada una van en su línea. */}
+      <TituloSeccion cuenta={lista.noCargadas.length + lista.apartados.length}>Por resolver</TituloSeccion>
       <p className="texto-bajada text-taupe">Lo que el barrido no pudo cuadrar solo.</p>
 
       {lista.noCargadas.length > 0 && (

@@ -17,6 +17,7 @@ import { velocidad, type Muestra } from "@/lib/hoja-gesto";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 import { useQuieto } from "@/lib/useQuieto";
 import { useCuentaAtrasQuieta } from "@/components/ui/useCuentaAtrasQuieta";
+import { useVidrioQueDoblaEn } from "@/components/ui/useVidrioQueDobla";
 
 /* ====================================================================
    Avisos · una sola voz, arriba a la derecha (2026-09-14)
@@ -439,6 +440,8 @@ function Tarjeta({ aviso }: { aviso: Aviso }) {
     setTimeout(() => cerrar(aviso.id), SALIDA_MS);
   }
   useApartarConElDedo(ref, quitar);
+  // El aviso flota sobre la pantalla: dobla lo de atrás en su canto y conserva su lente de tono (lleva una frase que se lee). ADR-0681.
+  useVidrioQueDoblaEn(ref, { desenfoque: 22, asienta: true });
   useEffect(() => {
     if (aviso.tono !== "error") return;
     function esc(e: KeyboardEvent) {
