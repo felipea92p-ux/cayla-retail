@@ -129,7 +129,7 @@ export function CostoPrenda({
         className="card-cayla flex flex-wrap items-end justify-between gap-4 px-5 py-4"
       >
         <div className="min-w-0">
-          <p className="text-[14px] text-tinta/75">Hoy cada prenda te cuesta</p>
+          <p className="text-detalle text-tinta/75">Hoy cada prenda te cuesta</p>
           <p className="font-display mt-0.5 text-[44px] leading-none text-tinta tabular-nums">
             {soles(r.hoy)}
           </p>
@@ -462,7 +462,7 @@ function FilaCompra({
           onClick={onElegir}
           aria-pressed={activa}
           aria-label={`Compra ${numero}: verla en el gráfico`}
-          className={`grid h-6 w-6 place-items-center rounded-full border-2 border-tinta text-[11.5px] font-semibold tabular-nums transition-colors duration-200 ${activa ? "bg-tinta text-papel" : "text-tinta"}`}
+          className={`grid h-6 w-6 place-items-center rounded-full border-2 border-tinta text-xs font-semibold tabular-nums transition-colors duration-200 ${activa ? "bg-tinta text-papel" : "text-tinta"}`}
         >
           {numero}
         </button>
@@ -505,7 +505,7 @@ function FilaCompra({
         className={`col-start-3 row-start-1 row-span-2 flex flex-col items-end gap-1 @min-[560px]:col-auto @min-[560px]:row-auto @min-[560px]:flex-row @min-[560px]:items-center @min-[560px]:gap-2`}
         role="cell"
       >
-        <span className="font-display whitespace-nowrap text-[19px] leading-none text-tinta tabular-nums">
+        <span className="font-display whitespace-nowrap text-lg leading-none text-tinta tabular-nums">
           {soles(c.costoDespues)}
         </span>
         <span className="flex items-center gap-1.5">

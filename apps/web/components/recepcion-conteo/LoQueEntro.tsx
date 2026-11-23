@@ -68,9 +68,9 @@ export function LoQueEntro({
                     })
                   }
                 >
-                  <b className="min-w-0 flex-1 truncate text-[15px] font-semibold text-tinta">{p.nombre}</b>
+                  <b className="min-w-0 flex-1 truncate text-sm font-semibold text-tinta">{p.nombre}</b>
                   <span className="hidden shrink-0 text-sm text-taupe sm:inline">{m.tallas.join(" · ")}</span>
-                  <span className="w-20 shrink-0 text-right font-display text-[20px] leading-none tabular-nums text-tinta">
+                  <span className="w-20 shrink-0 text-right font-display text-xl leading-none tabular-nums text-tinta">
                     {elegir ? `${etiquetas.toLocaleString("es-PE")}/${p.cantidad.toLocaleString("es-PE")}` : p.cantidad.toLocaleString("es-PE")}
                   </span>
                   {!elegir && <ChevronDown aria-hidden className={`h-4 w-4 shrink-0 text-taupe transition-transform duration-300 ease-cayla ${abierta ? "rotate-180" : ""}`} />}

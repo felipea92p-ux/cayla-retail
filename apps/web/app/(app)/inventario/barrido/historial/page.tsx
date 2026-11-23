@@ -87,7 +87,7 @@ function FilaBarrido({ b, ahora }: { b: FilaHistorial; ahora: Date }) {
   const estado = estadoDelHistorial(b.estado);
   return (
     <Link href={`/inventario/barrido/historial/${b.id}`} aria-label={fraseDeLaFila(b, ahora)} className={fila(PLANTILLA, "grid-cols-[minmax(0,1fr)_auto] gap-y-1")}>
-      <span className={celda("izq", "text-[15px] text-tinta")}>{fechaDelBarrido(b.abiertoEn, ahora)}</span>
+      <span className={celda("izq", "text-sm text-tinta")}>{fechaDelBarrido(b.abiertoEn, ahora)}</span>
       <span className={celda()}>
         <Chip tono={estado.tono}>{estado.texto}</Chip>
       </span>

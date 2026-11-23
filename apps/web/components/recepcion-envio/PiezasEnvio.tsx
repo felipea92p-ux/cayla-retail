@@ -14,7 +14,7 @@ export function CabeceraEnvio({ sede, detalle, frase, cifra }: { sede: string; d
     <EncabezadoPagina sede={sede} titulo={`Recibir ${detalle.numero}`} subtitulo={frase} volver={<Volver href="/recibir" a="Recibir mercadería" />}>
       {cifra && (
         <div data-guia="recepcion.cifra" className="anim-sube text-right" style={{ "--i": 1 } as CSSProperties}>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-taupe-profundo">{cifra.rotulo}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-taupe-profundo">{cifra.rotulo}</p>
           <p className="font-display mt-1 text-2xl tabular-nums text-tinta" aria-live="polite">
             {cifra.valor}
           </p>

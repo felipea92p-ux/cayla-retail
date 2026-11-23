@@ -545,7 +545,7 @@ export function PrendasDeEtiquetaModal({
                 <DesplegablePildora icono={Shirt} etiqueta="Categoría" valor={categoriaId} onValor={setCategoriaId} opciones={opcionesCategoria} />
               </div>
               <div className="flex items-center gap-2 max-sm:w-full">
-                <span className="label-cayla whitespace-nowrap text-[10.5px] text-taupe">Al escanear</span>
+                <span className="label-cayla whitespace-nowrap text-xs text-taupe">Al escanear</span>
                 <SegmentoDeslizante
                   forma="modo"
                   etiqueta="Qué hace una lectura"
@@ -562,7 +562,7 @@ export function PrendasDeEtiquetaModal({
             {/* Disponible en: una fila por sede, ENCIMA de los otros filtros (el buscador, la categoría y «Con la etiqueta / Sin ella»). */}
             {sedes.length > 0 && (
               <div className="-mx-1 flex min-w-0 items-center gap-2 overflow-x-auto px-1 pb-0.5 max-sm:flex-nowrap sm:flex-wrap" role="group" aria-label="Disponible en">
-                <span className="label-cayla whitespace-nowrap text-[10.5px] text-taupe">Disponible en</span>
+                <span className="label-cayla whitespace-nowrap text-xs text-taupe">Disponible en</span>
                 <BotonFiltro activo={sedeId === null} onClick={() => setSedeId(null)} cuenta={sinSede.length}>
                   Todas las sedes
                 </BotonFiltro>
@@ -879,16 +879,16 @@ function Revision({
   const conEfecto = vista?.sinEfectoHoy === false || vistaQuitar?.sinEfectoHoy === false;
   return (
     <div className="anim-revelar space-y-4 py-4 md:pt-5">
-      <p className="label-cayla text-[10.5px] text-taupe">Antes de aplicar</p>
+      <p className="label-cayla text-xs text-taupe">Antes de aplicar</p>
       {caja && (
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl border border-sand bg-papel p-3 text-center">
           <span>
-            <span className="label-cayla block text-[10px] text-taupe">Hoy en caja</span>
+            <span className="label-cayla block text-xs text-taupe">Hoy en caja</span>
             <span className="font-serif text-2xl font-semibold tabular-nums text-taupe line-through decoration-1">{soles(caja.antes)}</span>
           </span>
           <ChevronRight aria-hidden className="h-4 w-4 text-taupe" />
           <span>
-            <span className="label-cayla block text-[10px] text-taupe">Con la etiqueta</span>
+            <span className="label-cayla block text-xs text-taupe">Con la etiqueta</span>
             <span className="font-serif text-2xl font-semibold tabular-nums">{soles(caja.despues)}</span>
           </span>
         </div>

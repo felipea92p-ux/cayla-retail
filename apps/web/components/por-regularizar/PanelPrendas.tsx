@@ -72,7 +72,7 @@ export function PanelPrendas({
 
       <div data-guia="regularizar.catalogo" className="vsr-busca">
         <div>
-          <p className="label-cayla text-[11px] text-tinta/65">¿No ves la tuya?</p>
+          <p className="label-cayla text-xs text-tinta/65">¿No ves la tuya?</p>
           <p>Búscala entre todas las prendas del catálogo.</p>
         </div>
         <Buscador

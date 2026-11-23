@@ -193,7 +193,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
           />
         )}
         {/* «Llenar todas» ocupa su lugar también en «Precios» y «Costos» (invisible): cambiar de segmento no mueve la tabla (ADR-0185). */}
-        <div className={`flex items-center gap-1.5 text-[12.5px] text-taupe ${enCantidades ? "" : "invisible"}`} aria-hidden={!enCantidades}>
+        <div className={`flex items-center gap-1.5 text-xs text-taupe ${enCantidades ? "" : "invisible"}`} aria-hidden={!enCantidades}>
           <label htmlFor="alta-llenar-todas">Llenar todas con</label>
           <input
             id="alta-llenar-todas"
@@ -231,7 +231,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
 
       {/* Las tres bajadas apiladas en la misma celda de grid: la más larga fija el alto, y cambiar de segmento no lo mueve. En la orden no hay bajadas: la tabla se explica sola. */}
       {!solo && (
-        <div className="grid text-[12.5px] text-taupe">
+        <div className="grid text-xs text-taupe">
           <p className={`col-start-1 row-start-1 ${enCantidades ? "" : "invisible"}`} aria-hidden={!enCantidades}>
             {llegada ? `Lo que llegó a ${destinoEtiqueta}.` : `Lo que hay hoy en ${destinoEtiqueta}.`} Lo que no tengas, déjalo vacío.{" "}
             <span className="text-tinta/45">—</span> = no existe.
@@ -246,7 +246,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
       )}
 
       <div className="max-h-[min(520px,60dvh)] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
-        <table className="w-full border-separate border-spacing-0 text-[13px]">
+        <table className="w-full border-separate border-spacing-0 text-xs">
           <thead>
             <tr>
               <th scope="col" className="sticky left-0 top-0 z-[3] whitespace-nowrap border-r border-sand vd-pegado py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta sm:pl-3.5">
@@ -418,7 +418,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                               onKeyDown={numero.onKeyDown}
                               onChange={(e) => (enCostos ? onCosto : onPrecio)?.(cel.clave, limpiarPrecio(e.target.value))}
                               onFocus={(e) => e.currentTarget.select()}
-                              className={`w-[58px] rounded-[7px] border border-borde-control vd-hundido px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel sm:w-[66px]${margenScroll} ${
+                              className={`w-[58px] rounded-[7px] border border-borde-control vd-hundido px-0.5 py-1.5 text-center text-xs tabular-nums outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel sm:w-[66px]${margenScroll} ${
                                 distinto ? "font-semibold text-ambar" : "text-tinta"
                               }`}
                             />

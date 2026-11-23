@@ -304,7 +304,7 @@ export function PanelDelTaller({
               Abrir la ficha
             </Boton>
           </div>
-          <p className="mt-2 text-sm leading-snug text-tinta/75">Cuánta tela y qué avíos lleva una prenda. Las órdenes de producción la proponen solas.</p>
+          <p className="mt-2 text-sm leading-snug text-tinta/75">Cuánta tela y qué avíos lleva una prenda.</p>
         </div>
       )}
 

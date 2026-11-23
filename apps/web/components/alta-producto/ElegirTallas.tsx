@@ -263,7 +263,7 @@ function HojaTallas({
         )}
         {grupos.map((g, i) => (
           <section key={g.grupo} className={i > 0 ? "mt-4" : ""}>
-            <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">{g.grupo}</h3>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-taupe">{g.grupo}</h3>
             <div className="flex flex-wrap gap-1.5">
               {g.tallas.map((t) => (
                 <ChipOpcion

@@ -103,7 +103,7 @@ export function PorResolver({
                 <li key={`${n.barridoId}:${n.varianteId}`} className="flex items-center gap-3 py-2.5">
                   <MiniaturaPrenda fotoUrl={p?.fotoUrl ?? null} colorHex={p?.colorHex ?? null} tamano="md" {...categoriaDe(p)} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[15px] text-tinta">
+                    <p className="truncate text-sm text-tinta">
                       {p ? p.referencia : n.prenda}
                       {detalle ? <span className="text-taupe"> · {detalle}</span> : null}
                     </p>
@@ -139,7 +139,7 @@ export function PorResolver({
                     </span>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[15px] text-tinta">
+                    <p className="truncate text-sm text-tinta">
                       {a.nota ?? (a.codigo ? `Código ${a.codigo}` : a.tipo === "sin_etiqueta" ? "Sin etiqueta" : "Código que no existe")}
                     </p>
                     <p className="texto-detalle truncate text-taupe">

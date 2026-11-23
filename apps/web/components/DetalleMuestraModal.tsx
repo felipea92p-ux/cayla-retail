@@ -290,7 +290,7 @@ export function DetalleMuestraModal({
             cliente. Lo ve cualquiera que abra el detalle (no solo quien edita). Los patrones no la llevan: su dibujo ya dice qué son. */}
         {ayuda && (
           <section data-guia="muestra.sobre" className="space-y-2">
-            <p className="label-cayla text-[11px] text-tinta/65">Sobre este tejido</p>
+            <p className="label-cayla text-xs text-tinta/65">Sobre este tejido</p>
             <div className="rounded-lg border border-sand vd-placa p-3 text-sm text-tinta/85">
               <p>{ayuda.queEs}</p>
               <dl className="mt-2 space-y-1.5">
@@ -306,7 +306,7 @@ export function DetalleMuestraModal({
         )}
 
         <section data-guia="muestra.prendas" className="space-y-2">
-          <p className="label-cayla text-[11px] text-tinta/65">Prendas con {palabra.el}</p>
+          <p className="label-cayla text-xs text-tinta/65">Prendas con {palabra.el}</p>
           {carga.estado === "cargando" && (
             <ul className="space-y-2" aria-label="Buscando prendas">
               {[0, 1, 2].map((i) => (

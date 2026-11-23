@@ -296,7 +296,7 @@ export function NuevaMarcaForm({
                 · {marcaExistente ? `ya existe. ${textoQuienLaTrae(marcaExistente.proveedores)}` : "marca nueva"}
               </span>
             </p>
-            <button type="button" onClick={cambiarMarca} disabled={guardando} className="btn-cayla btn-enlace ml-auto text-[12.5px]">
+            <button type="button" onClick={cambiarMarca} disabled={guardando} className="btn-cayla btn-enlace ml-auto text-xs leading-tight">
               Cambiar
             </button>
           </div>
@@ -342,7 +342,7 @@ export function NuevaMarcaForm({
             {guia.etiqueta("proveedor", "¿Quién te la trae?")}
           </label>
           {!provElegido && !provNuevo && (
-            <button type="button" onClick={() => proveedorNuevo()} className="btn-cayla btn-enlace text-[12.5px]">
+            <button type="button" onClick={() => proveedorNuevo()} className="btn-cayla btn-enlace text-xs leading-tight">
               + Proveedor nuevo
             </button>
           )}
@@ -350,7 +350,7 @@ export function NuevaMarcaForm({
         {provElegido && !provNuevo ? (
           <div className={elegida}>
             <p className="min-w-0 font-semibold">{provElegido.nombre}</p>
-            <button type="button" onClick={cambiarProveedor} disabled={guardando} className="btn-cayla btn-enlace ml-auto text-[12.5px]">
+            <button type="button" onClick={cambiarProveedor} disabled={guardando} className="btn-cayla btn-enlace ml-auto text-xs leading-tight">
               Cambiar
             </button>
           </div>

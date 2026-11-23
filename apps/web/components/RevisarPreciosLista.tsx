@@ -97,7 +97,7 @@ export function RevisarPreciosTabla({ prendas }: { prendas: PrendaARevisar[] }) 
               <div key={p.productoId}>
                 <div className={fila(PLANTILLA)}>
                   <div className={celda("izq")}>
-                    <p className="truncate text-[15px]">{p.referencia}</p>
+                    <p className="truncate text-sm">{p.referencia}</p>
                     <p className="texto-detalle truncate text-taupe">
                       {p.categoria} · {p.vendidas90 === 1 ? "1 vendida" : `${p.vendidas90} vendidas`} en 90 días · {p.stock} en stock
                     </p>

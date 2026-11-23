@@ -472,7 +472,7 @@ export function AjustarInventarioModal({
           ) : (
             <>
               {/* La prenda, como en «Reponer» y «Subir a almacén»: un puntito de su color, el nombre y el color. */}
-              <p className="flex items-center gap-2 text-[15px] text-tinta">
+              <p className="flex items-center gap-2 text-sm text-tinta">
                 {prenda?.colorHex && <span aria-hidden className="h-4 w-4 shrink-0 rounded-full border border-tinta/15" style={{ background: prenda.colorHex }} />}
                 <span className="font-semibold">{referencia}</span>
                 {colorPrenda && <span className="text-taupe">{colorPrenda}</span>}

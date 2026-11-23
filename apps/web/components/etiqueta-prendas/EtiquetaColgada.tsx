@@ -122,7 +122,7 @@ export function EtiquetaColgada({
       </div>
       <div ref={tarjeta} className="eqp-tarjeta">
         <span aria-hidden className="eqp-ojal" />
-        <span className="eqp-solo-ancho eqp-alto label-cayla block text-center text-[10.5px] text-taupe">Etiqueta de campaña</span>
+        <span className="eqp-solo-ancho eqp-alto label-cayla block text-center text-xs text-taupe">Etiqueta de campaña</span>
         <h3 className="eqp-nombre mt-1">{nombre}</h3>
         {descuentoPct !== null ? <p className="eqp-pct">−{pct} %</p> : <p className="eqp-pct-info">Informativa · no cambia el precio</p>}
         <p className="eqp-solo-ancho mt-1 text-center text-sm text-taupe">
@@ -202,12 +202,12 @@ export function EtiquetaColgada({
               <>
                 <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 text-center">
                   <span>
-                    <span className="label-cayla block text-[10px] text-taupe">Hoy en caja</span>
+                    <span className="label-cayla block text-xs text-taupe">Hoy en caja</span>
                     <span className="eqp-monto font-serif font-semibold tabular-nums text-taupe line-through decoration-1">{soles(caja.antes)}</span>
                   </span>
                   <ArrowRight aria-hidden className="h-4 w-4 text-taupe" />
                   <span>
-                    <span className="label-cayla block text-[10px] text-taupe">Con la etiqueta</span>
+                    <span className="label-cayla block text-xs text-taupe">Con la etiqueta</span>
                     <span className="eqp-monto font-serif font-semibold tabular-nums">
                       <CifraQueCuenta valor={caja.despues} formato="soles" />
                     </span>

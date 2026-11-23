@@ -82,7 +82,7 @@ export function MatrizRecepcion({
   return (
     <div className="max-h-[520px] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
       <table // unificar-fijo: la matriz talla × color de la recepción, no una lista de registros
-        className="w-full border-separate border-spacing-0 text-[13px]"
+        className="w-full border-separate border-spacing-0 text-xs"
       >
         <thead>
           <tr>

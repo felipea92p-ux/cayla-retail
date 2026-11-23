@@ -59,7 +59,7 @@ export function QuienRegistra({ control, deshabilitado = false }: { control: Con
   return (
     <section id={ID_QUIEN_REGISTRA} aria-labelledby="quien-registra-titulo" className="rounded-xl border border-sand bg-papel px-4 py-3.5 sm:px-5">
       <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <h2 id="quien-registra-titulo" className="text-[13px] font-semibold text-tinta">{/* unificar-fijo: el título de un bloque de Nuevo producto, que tiene su diseño aprobado (ADR-0260, ADR-0284) */}
+        <h2 id="quien-registra-titulo" className="text-xs font-semibold text-tinta">{/* unificar-fijo: el título de un bloque de Nuevo producto, que tiene su diseño aprobado (ADR-0260, ADR-0284) */}
           Quién registra
         </h2>
         <span className="texto-detalle leading-snug">
@@ -78,12 +78,12 @@ export function QuienRegistra({ control, deshabilitado = false }: { control: Con
 export function AvisoSinIdentidad({ firma, enHoja = false, className = "" }: { firma: FirmaDeMitad; /** Dentro de una hoja (`Modal`) el recuadro queda detrás del velo: se dice qué falta, sin enlace. */ enHoja?: boolean; className?: string }) {
   if (firma.listo) return null;
   return (
-    <p role="status" className={`text-[12.5px] text-ambar-profundo ${className}`}>
+    <p role="status" className={`text-xs text-ambar-profundo ${className}`}>
       {firma.motivo}
       {!enHoja && (
         <>
           {" "}
-          <button type="button" onClick={irAQuienRegistra} className="btn-cayla btn-enlace text-[12.5px]">
+          <button type="button" onClick={irAQuienRegistra} className="btn-cayla btn-enlace text-xs leading-tight">
             Ir a elegir
           </button>
         </>

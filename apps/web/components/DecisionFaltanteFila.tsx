@@ -93,7 +93,7 @@ export function ResumenDecision({ decision, onEditar }: { decision: Decision; on
   return (
     <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
       <span className={`text-sm leading-tight ${decision === "espero" ? "text-tinta/65" : "font-semibold text-tinta"}`}>{etiquetaDecision(decision)}</span>
-      <button type="button" onClick={onEditar} className="btn-cayla btn-enlace text-[11px]">
+      <button type="button" onClick={onEditar} className="btn-cayla btn-enlace text-xs leading-tight">
         Editar
       </button>
     </span>

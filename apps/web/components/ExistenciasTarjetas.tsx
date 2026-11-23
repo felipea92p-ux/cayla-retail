@@ -134,7 +134,7 @@ function ColumnasTallas({
             className={`vitrina-talla grid min-w-0 cursor-pointer gap-px rounded-[8px] border px-0.5 pb-1 pt-1 text-center transition-[background-color,outline-color,transform] duration-300 ease-[var(--ease-cayla)] hover:-translate-y-px hover:outline hover:outline-[1.5px] hover:outline-tinta/30 motion-reduce:transition-none ${fondo} ${marca === "tenue" ? "opacity-40" : ""}`}
           >
             {/* En ámbar o en rojo, el nombre toma el color de su celda: el taupe sobre el ámbar daba 3,8:1 (`tema:auditar`, 2026-10-31). */}
-            <span className={`inline-flex min-w-0 items-center justify-center gap-1 truncate text-[12px] font-semibold tracking-[0.04em] ${c.estado === "normal" ? "text-taupe" : ""} ${marca === "principal" ? "underline decoration-2 underline-offset-2" : ""}`}>
+            <span className={`inline-flex min-w-0 items-center justify-center gap-1 truncate text-xs font-semibold tracking-[0.04em] ${c.estado === "normal" ? "text-taupe" : ""} ${marca === "principal" ? "underline decoration-2 underline-offset-2" : ""}`}>
               {nombre}
               {/* 0 colgadas y algo en almacén, pero el motor del piso decidió que no hace falta (una talla de las puntas que no se vende):
                   el visto verde del modal («No hace falta»), para que no se lea como una que falta colgar (Felipe 2026-10-31, opción A). */}
@@ -148,7 +148,7 @@ function ColumnasTallas({
                   <i aria-hidden className={`h-1.5 w-1.5 rounded-full ${TONO_PUNTO[tono]}`} />
                 ))}
             </span>
-            <span className={`text-[19px] leading-[1.1] tabular-nums ${c.estado === "agotada" ? "font-medium" : c.estado === "falta" ? "font-semibold" : c.piso === 0 ? "font-normal text-taupe" : "font-semibold"}`}>
+            <span className={`text-lg leading-[1.1] tabular-nums ${c.estado === "agotada" ? "font-medium" : c.estado === "falta" ? "font-semibold" : c.piso === 0 ? "font-normal text-taupe" : "font-semibold"}`}>
               {c.estado === "agotada" ? "—" : c.piso}
             </span>
             {separa && (
@@ -418,12 +418,12 @@ export function ExistenciasTarjetas({
             {/* A la derecha: nombre y precio; el color (y lo dañado o apartado); la tira de tallas. */}
             <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_1fr] gap-y-1 pt-1">
               <div className="flex min-w-0 items-baseline justify-between gap-2">
-                <span data-guia="existencias.prenda-nombre" className="min-w-0 truncate font-display text-[17.5px] leading-tight text-tinta" title={[p.referencia, mostrarMarca ? p.marca : null, p.categoria].filter(Boolean).join(" · ")}>
+                <span data-guia="existencias.prenda-nombre" className="min-w-0 truncate font-display text-lg leading-tight text-tinta" title={[p.referencia, mostrarMarca ? p.marca : null, p.categoria].filter(Boolean).join(" · ")}>
                   {p.referencia}
                 </span>
                 {p.precio != null && (
                   <span className="flex shrink-0 flex-col items-end">
-                    <span className="font-display text-[15px] tabular-nums text-tinta">S/&nbsp;{p.precio.toFixed(2)}</span>
+                    <span className="font-display text-sm tabular-nums text-tinta">S/&nbsp;{p.precio.toFixed(2)}</span>
                     {/* Precio propio de esta sede (Felipe 2026-10-09): distinto del de las demás tiendas. */}
                     {p.precioDeSede && <span className="whitespace-nowrap text-sm font-semibold text-ambar-profundo">Precio de esta tienda</span>}
                   </span>

@@ -57,7 +57,7 @@ export function QuitarColor({ nombre, onQuitar, doble = false }: { nombre: strin
       type="button"
       onClick={(e) => (doble ? setArmado(true) : onQuitar(e.detail === 0))}
       aria-label={`Quitar ${nombre}`}
-      className="area-dedo grid h-6 w-6 place-items-center rounded-full text-[15px] leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
+      className="area-dedo grid h-6 w-6 place-items-center rounded-full text-sm leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
     >
       ×
     </button>

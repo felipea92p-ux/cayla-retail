@@ -62,7 +62,7 @@
 
   .lc-fila-sobre {
     display: block;
-    font-size: 11px;
+    font-size: var(--text-xs);
     font-weight: 600;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -81,7 +81,7 @@
   .lc-fila-bajada {
     display: block;
     margin-top: 2px;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
   }
   .lc-fila-der { text-align: right; white-space: nowrap; }
@@ -96,7 +96,7 @@
   .lc-fila-der span {
     display: block;
     margin-top: 4px;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
   }
 
@@ -109,7 +109,7 @@
     background: transparent;
     box-shadow: none;
     color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
-    font-size: 15px;
+    font-size: var(--text-sm);
     font-weight: 600;
   }
   .lc-fila-nuevo .lc-fila-lente { background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 25%, transparent); }
@@ -146,7 +146,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    font-size: 11px;
+    font-size: var(--text-xs);
     font-weight: 600;
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -164,7 +164,7 @@
   }
   .lc-panel-acc { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
   .lc-panel-cnt {
-    font-size: 15px;
+    font-size: var(--text-sm);
     color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
   }
   .lc-panel-cnt b {
@@ -191,10 +191,10 @@
     flex-wrap: wrap;
     align-items: baseline;
     gap: 4px 8px;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     font-variant-numeric: tabular-nums;
   }
-  .lc-pieza-precio b { font-size: 15px; font-weight: 600; }
+  .lc-pieza-precio b { font-size: var(--text-sm); font-weight: 600; }
   .lc-pieza-precio s { color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
   /* La que se quita sale corta mientras la base responde (ADR-0136: la salida, con `--ease-salida`). */
   .lc-pieza[data-sale] { animation: lc-sale var(--t-hoja) var(--ease-salida) forwards; pointer-events: none; }
@@ -243,7 +243,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-family: var(--font-serif);
-    font-size: 21px;
+    font-size: var(--text-xl);
     font-weight: 500;
     line-height: 1.2;
   }
@@ -288,7 +288,7 @@
     font-variant-numeric: lining-nums tabular-nums;
     text-wrap: balance;
   }
-  .lc-cartel-en { font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
+  .lc-cartel-en { font-size: var(--text-detalle); color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
   /* Dónde y cuándo, solo si no es lo de su campaña (Formidable 2026-11-18): pegado a «a qué», en la misma voz. */
   .lc-cartel-detalle { margin-top: -4px; }
   .lc-cartel-chip { margin-top: auto; padding-top: 4px; }
@@ -303,7 +303,7 @@
     background: transparent;
     box-shadow: none;
     color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
-    font-size: 15px;
+    font-size: var(--text-sm);
     font-weight: 600;
   }
 
