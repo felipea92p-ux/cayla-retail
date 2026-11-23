@@ -25,3 +25,12 @@ pantallas reales del ERP local (datos inventados, sin guardar nada) y el contras
 (hoy, tinta en tres tonos, o tinta y café): ninguna baja de 4,5:1, y en oscuro la tinta en tres tonos deja la mitad de textos débiles para
 APCA (46 contra 94). Las cifras: DM Sans no trae tabulares (medido), Inter y la Garamond sí. Al medir se retiró el tamaño óptico de DM
 Sans, que no cambia nada visible en la letra de lectura. Falta que Felipe elija.
+
+## 2026-11-23 (Que todo equipo vea las mismas skills)
+Qué hice: puse al día la carpeta principal del repo en la Mac de Felipe (iba 1.194 commits atrás: le faltaban tres skills y el
+CLAUDE.md corto) y agregué un aviso al abrir sesión (`scripts/claude/carpeta-principal.mjs`, hook `SessionStart`) que dice, en
+cualquier equipo, cuándo esa carpeta va atrás de main. Declaré en el proyecto el marketplace del plugin `agent-skills`.
+Por qué así: Claude Code lee las skills del proyecto de la carpeta principal, no de la worktree, así que un equipo atrasado trabaja
+con skills viejas sin saberlo. El aviso no mueve la carpeta solo porque en otro equipo puede haber un servidor corriendo desde ahí.
+Felipe se lleva: las 28 skills que cambia esta rama llegan a todos al fusionarse; cada equipo se entera si se queda atrás. Quedan
+cinco skills del stack y dos plugins que solo tiene su Mac: subirlos al repo lo decide él.

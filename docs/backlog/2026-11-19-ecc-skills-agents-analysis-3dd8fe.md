@@ -12,50 +12,67 @@ son ideas sueltas, ordenadas por valor. El análisis de las reglas que chocan co
 
 **Las 8 ideas para adaptar** (de más a menos valor)
 
-- [ ] **1. Que Claude pregunte antes de tocar producción.** `permissions.ask` nativo en `.claude/settings.json`, sin hooks:
+- [x] **1. Que Claude pregunte antes de tocar producción.** *(Hecho en esta rama, `.claude/settings.json`.)* `permissions.ask` nativo en `.claude/settings.json`, sin hooks:
   `apply_migration` del conector de Supabase, `Bash(supabase db push*)`, `Bash(git push --force*)` y `-f`,
   `Bash(git reset --hard*)`, `Bash(git stash pop*)`, `Bash(git clean*)` y `Bash(git commit --no-verify*)` (el pre-commit
   de `.githooks/` solo vale si nadie lo salta). `execute_sql` queda fuera salvo que Felipe acepte que pregunte también en
   cada `select` de `/revision`. Según la documentación de Claude Code, una regla `ask` sigue preguntando en modo auto.
   Viene de `gateguard`, que no ve las vías reales a producción. **Decide Felipe** (es configuración).
-- [ ] **2. Achicar `CLAUDE.md`: 143 KB y 1.005 líneas, unos 35.000 tokens en cada sesión.** La documentación oficial
+- [x] **2. Achicar `CLAUDE.md`:** *(Fusionado en #1983, ADR-0692: 239 líneas y 25 archivos en `.claude/rules/`.)* 143 KB y 1.005 líneas, unos 35.000 tokens en cada sesión.** La documentación oficial
   recomienda menos de 200 líneas y dice que un archivo largo «reduce la adherencia». El 91 % de sus bytes describe reglas que
   ya vigila una prueba o el CI, y el pre-commit corre la suite entera de `vitest`. Mecanismo: `.claude/rules/<tema>.md` con
   `paths:` (se cargan solo al tocar archivos de esa ruta) o un `CLAUDE.md` por carpeta (`supabase/`, `apps/tienda/`). Los
   `@imports` no sirven: se cargan siempre. Detalle en la investigación, propuesta A. **Decide Felipe** (toca todos los módulos).
-- [ ] **3. Descripciones de skills más cortas.** El listado de skills tiene un presupuesto (1 % de la ventana de contexto).
+- [x] **3. Descripciones de skills más cortas.** *(Hecho en esta rama: 27 skills propias.)* El listado de skills tiene un presupuesto (1 % de la ventana de contexto).
   Cuando se pasa, Claude Code recorta las descripciones de las skills menos usadas: en la sesión del 2026-11-19 `focus`,
   `sugerir`, `unificar`, `revision` y `textos` llegaron **sin descripción**. Recortarlas a unos 250 caracteres, con el caso
   de uso primero. Alternativa sin tocar las skills: `skillListingBudgetFraction: 0.02` en la configuración.
-- [ ] **4. «Relleno silencioso» en el escáner de observabilidad** (`scripts/rendimiento/observabilidad.mjs`,
+- [ ] **4. «Relleno silencioso» en el escáner de observabilidad** *(PR #1980 abierto, junto con la 5.)* (`scripts/rendimiento/observabilidad.mjs`,
   `/skill-evaluacion-observabilidad`). Hoy da por tratado un `catch { return [] }` y no mira `.catch(() => …)`: hay 144 en
   `apps/web` (64 `=> null`, 38 `=> {}`). Muchos son a propósito y están comentados (`getCambiosBancarios(id).catch(() => [])`
   en la ficha del proveedor lo dice en la línea de arriba). La regla sería exigir el motivo en la línea, como `// tema-fijo:`.
   Viene de `silent-failure-hunter`, «Dangerous Fallbacks».
-- [ ] **5. Una familia nueva en `/chaos`: «el botón que no hace lo que dice».** No falla nada ni se escribe nada malo, pero
+- [ ] **5.** *(PR #1980.)* **Una familia nueva en `/chaos`: «el botón que no hace lo que dice».** No falla nada ni se escribe nada malo, pero
   un `router.refresh()`, un `push` o un `useEffect([prop])` pisa el estado que se acababa de guardar. Las invariantes no lo
   ven y `/flujo-de-negocio` solo lo ve si el botón está en su camino. Viene de `click-path-audit` (patrones 4-6 y la carrera
   async); su mapa de stores no aplica (no hay Zustand ni Redux).
-- [ ] **6. Medir si el motor de demanda acierta:** sesgo con signo y WMAPE por categoría y campaña, nunca MAPE (se rompe con
+- [ ] **6. Medir si el motor de demanda acierta:** *(Sesión «Medir si el motor de demanda acierta», rama `claude/brave-blackburn-16a008`: no construyó nada; espera que Felipe diga dónde se ve, y hoy no hay campañas con plan terminadas para medir.)* sesgo con signo y WMAPE por categoría y campaña, nunca MAPE (se rompe con
   menos de ~50 unidades por semana). Hoy no hay ningún error de pronóstico medido en `apps/web/lib`. Dónde:
   `plan-compra-resultados.ts` (escenario elegido contra lo vendido, sin las agotadas) y el «comparar antes de reemplazar» de
   `demanda-reglas.ts` §5. Viene de `inventory-demand-planning`, «Forecast Accuracy Metrics». **Decide Felipe** (negocio).
-- [ ] **7. El candado que falta contra el deadlock de políticas.** `scripts/migraciones/sin-drop-trigger.mjs` dice que no ve
+- [ ] **7. El candado que falta contra el deadlock de políticas.** *(PR #1982 abierto.)* `scripts/migraciones/sin-drop-trigger.mjs` dice que no ve
   un `alter` de tabla en uso junto a un `create policy` en la misma pegada. Idea: correr cada parte en Postgres local dentro de
   `begin … rollback`, leer `pg_locks` del propio proceso y poner rojo si toma a la vez `AccessExclusiveLock` sobre
   `auth`/`storage` y sobre una tabla de `retail`. **Antes de construirlo:** probar que el Postgres local reproduce ese bloqueo
   (ADR-0195 lo midió solo en producción). Vale igual con el CLI: el bloqueo lo toma `create policy` en Postgres, no el
   editor. Viene de `database-migrations/examples/postgres-add-column.sql`.
-- [ ] **8. `/decide` con una voz independiente:** escribir la posición propia antes de mirar las opciones y lanzar un
+- [x] **8. `/decide` con una voz independiente:** *(Hecho en esta rama.)* escribir la posición propia antes de mirar las opciones y lanzar un
   escéptico con contexto limpio que reciba solo la pregunta; el disenso queda a la vista. Solo en decisiones estructurales.
   Viene de `council` (pasos 3-5).
 
 **Para hacer una vez**
 
-- [ ] **Auditoría SEO de `apps/tienda`** (tarjeta propuesta en la sesión del 2026-11-19). No hay `sitemap.ts`, `robots.ts`,
+- [x] **Que todo equipo vea las mismas skills (2026-11-23, Felipe: «que todas las skills que se van a añadir o reemplazar estén
+  disponibles para todos los dispositivos»).** De ecc no se instala nada y nada reemplaza a una skill propia: lo que cambia son
+  28 skills del repo (esta rama), que llegan a cada equipo al fusionarse en `main`. Dos huecos que lo impedían:
+  - Claude Code lee las skills del proyecto de la **carpeta principal** del repo, no de la worktree. En la Mac de Felipe iba
+    1.194 commits atrás (desde el 12-11): sin `innovar`, `modern-web-guidance` ni `actualizar-lista-compra`, y sin el CLAUDE.md
+    corto. Se avanzó a `origin/main` (solo avance, limpia y sin sesiones adentro). Para que no vuelva a pasar en ningún equipo, el
+    hook `SessionStart` de `.claude/settings.json` corre `scripts/claude/carpeta-principal.mjs`: si esa carpeta va atrás, la
+    sesión lo dice con el comando para ponerla al día. Solo avisa; nunca la mueve sola (puede haber un servidor corriendo ahí).
+    Prueba: `scripts/claude/carpeta-principal.test.mjs`, en el CI.
+  - El plugin `agent-skills@addy-agent-skills` se activó «para todo el equipo» el 2026-09-05, pero su marketplace solo estaba
+    declarado en la configuración personal de la Mac de Felipe: en otro equipo no se podía instalar. Ahora va en
+    `extraKnownMarketplaces` del proyecto.
+- [ ] **Skills que solo tiene la Mac de Felipe** (`~/.claude/skills/`): `supabase`, `supabase-postgres-best-practices`,
+  `vercel-react-best-practices`, `vercel-composition-patterns` y `web-design-guidelines` (del stack del repo), y los plugins
+  `frontend-design` y `ui-ux-pro-max` (CLAUDE.md dice que cada quien los instala). Si deben ser de todos, van al repo con su
+  procedencia (`.claude/skills/PROCEDENCIA.md`) o como plugin del proyecto. **Decide Felipe.**
+
+- [ ] **Auditoría SEO de `apps/tienda`** *(Hecha en la rama `claude/quizzical-murdock-3ce65d`, commit `a2bf23468`, sin PR: 11 hallazgos, 7 tareas y 3 decisiones de Felipe.)* (tarjeta propuesta en la sesión del 2026-11-19). No hay `sitemap.ts`, `robots.ts`,
   `metadataBase` ni canonical, y la ficha de prenda (`catalogo/[id]`) solo da `title`: sin descripción, sin imagen
   OpenGraph (la vista previa al compartir por WhatsApp) y sin JSON-LD `Product`/`Offer` en soles.
-- [ ] **Evaluación del asistente con repeticiones** (tarjeta propuesta en la sesión del 2026-11-19). `evaluar.mjs --veces 3`:
+- [ ] **Evaluación del asistente con repeticiones** *(Rama `claude/bold-merkle-4831e4`, commit `104f8dbc4`, sin PR; falta la corrida real, ~US$0,45, con el OK de Felipe.)* (tarjeta propuesta en la sesión del 2026-11-19). `evaluar.mjs --veces 3`:
   3 de 3 en los casos de seguridad (`sin_acceso`, `fuera_de_tema`), promedio y peor caso en el resto, y costo y tiempo de la
   corrida. Una sola pasada no separa un 88 % real de un 92 % con suerte. Viene de `eval-harness` (pass@k).
 - [ ] **Pasar la lista de revisión de `skill-stocktake` por las 35 skills**, a mano y con un subagente, sin sus scripts (escriben
