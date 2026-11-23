@@ -470,7 +470,7 @@ function FilaCompra({
       <span
         className={celda(
           "izq",
-          `col-start-2 text-sm text-tinta/65 @min-[560px]:col-auto @min-[560px]:text-[15px]`,
+          `col-start-2 text-sm text-tinta/65 @min-[560px]:col-auto`,
         )}
         role="cell"
       >
@@ -492,7 +492,7 @@ function FilaCompra({
       <span
         className={celda(
           "izq",
-          `col-start-2 text-sm tabular-nums text-tinta/75 @min-[560px]:col-auto @min-[560px]:text-[15px]`,
+          `col-start-2 text-sm tabular-nums text-tinta/75 @min-[560px]:col-auto`,
         )}
         role="cell"
       >

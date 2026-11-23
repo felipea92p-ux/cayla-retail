@@ -92,7 +92,7 @@ export function MatrizVariantes({
               return (
                 <tr key={color ?? "sin-color"}>
                   <th scope="row" className="sticky left-0 z-[1] whitespace-nowrap border-r border-t border-sand bg-papel py-1.5 pl-2 pr-2 text-left font-medium text-tinta sm:py-2 sm:pl-3 sm:pr-2.5">
-                    <span className="flex items-center gap-1.5 text-[12.5px] font-semibold sm:text-[13.5px]">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold sm:text-detalle">
                       {c && <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
                       {nombre}
                     </span>

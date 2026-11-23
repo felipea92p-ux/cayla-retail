@@ -17,6 +17,8 @@
     "tema:colores": "node tema/colores-sueltos.mjs",
     "tema:beige": "node tema/beige-plano.mjs",
     "tema:beige:registro": "node tema/beige-plano-registro.mjs",
+    "tema:letra": "node tema/letra-suelta.mjs",
+    "tema:letra:registro": "node tema/letra-suelta-registro.mjs",
     "unificar:censo": "node unificar/cli.mjs",
     "unificar:deuda": "node unificar/deuda.mjs",
     "unificar:rellenar": "node unificar/rellenar-deuda.mjs",

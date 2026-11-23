@@ -57,4 +57,4 @@ hacen los mejores del mundo, hagámoslo». Cada propuesta dice qué se gana, de 
 
 | Fecha | # | Decisión |
 |---|---|---|
-| | | |
+| 2026-11-23 | — | La letra sale de una escala de cinco escalones (13 · 14 · 16 · 18 · 21) y nada baja de 13 px: ADR-0691. La eligió mirando `docs/maquetas/escala-de-letra-2026-11/` (escala B). Sube el piso de las etiquetas, que la regla 2 de `/tipografia` tenía en 11. |
