@@ -1,0 +1,8 @@
+/* Lámina de escalas, opción C · «Tinta y café, dos voces» (propuesta, NO aplicada al ERP).
+   Lo principal en tinta; todo lo que acompaña en café, el mismo de hoy. Como Material 3 (on-surface y on-surface-variant).
+     texto-1  tinta plena  ← y text-tinta/80…/85                                        (no cambia de tono)
+     texto-2  café         ← text-tinta/35…/75 y text-taupe     claro 4,5–5,6:1 · oscuro 5,0–7,8:1 (justo sobre hueso y arena en claro)
+   Los fantasmas (/25, /30) quedan como están. Solo alcanza a las clases de Tailwind. */
+.text-tinta\/80, .text-tinta\/85 { color: var(--color-tinta); }
+.text-tinta\/35, .text-tinta\/40, .text-tinta\/45, .text-tinta\/50, .text-tinta\/55, .text-tinta\/60, .text-tinta\/65,
+.text-tinta\/70, .text-tinta\/75, .text-taupe\/50, .text-taupe\/60, .text-taupe\/70, .text-taupe\/80 { color: var(--color-taupe-profundo); }

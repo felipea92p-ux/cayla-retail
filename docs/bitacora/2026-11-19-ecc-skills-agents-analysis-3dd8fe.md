@@ -20,3 +20,8 @@ cuatro significados). Un escéptico frenó con evidencia sacar la Aurora, reabri
 movimiento apagado por defecto: Felipe ya los eligió mirando, con alternativas delante. En el flujo: el tablero de sesiones tiene
 143 filas «activas» a mano, los choques vienen de los archivos donde escriben todos y no de los componentes grandes, y las skills
 obligatorias sin CI casi no se marcan. Se corrigieron en la memoria tres PR que figuraban abiertos y ya estaban fusionados.
+2026-11-23, la lámina de escalas (`/milimetro proponer`, `docs/milimetro/laminas/2026-11-23-escalas/`): dos preguntas con fotos de
+pantallas reales del ERP local (datos inventados, sin guardar nada) y el contraste medido en cada foto. El tono del texto que acompaña
+(hoy, tinta en tres tonos, o tinta y café): ninguna baja de 4,5:1, y en oscuro la tinta en tres tonos deja la mitad de textos débiles para
+APCA (46 contra 94). Las cifras: DM Sans no trae tabulares (medido), Inter y la Garamond sí. Al medir se retiró el tamaño óptico de DM
+Sans, que no cambia nada visible en la letra de lectura. Falta que Felipe elija.

@@ -62,6 +62,10 @@ se elige mirando es la escala, y después cada pieza hereda. Linear rehízo así
 - **Paga:** una decisión de Felipe y la migración gradual.
 - **Cómo mirarlo:** Movimientos en tres versiones (hoy, secundario en taupe, secundario en tinta), en claro y en oscuro, con la
   escalera de contrastes al lado.
+- **Actualización 2026-11-23: la lámina está armada** (`docs/milimetro/laminas/2026-11-23-escalas/`), con Compras, Movimientos e
+  Historial de ventas reales. Medido: ninguna opción baja de 4,5:1. En oscuro, los textos débiles para APCA son 94 hoy, 46 con la tinta
+  en tres tonos y 95 con tinta y café. En claro, la tinta en tres tonos casi no se distingue de hoy: su ganancia es el orden y el oscuro.
+  La que más cambia a la vista es la de tinta y café.
 
 **2. Una rampa tipográfica cerrada, con el piso de 11 px y el tamaño óptico. MATIZAR.**
 
@@ -70,11 +74,13 @@ se elige mirando es la escala, y después cada pieza hereda. Linear rehízo así
 - **Cambia:**
   - Los 37 tamaños sueltos pasan a una rampa con nombre.
   - **Nada nuevo bajo 11 px:** una prueba que falle ante un tamaño nuevo, y una deuda que solo baja (197 usos hoy).
-  - **El eje de tamaño óptico de DM Sans** (`opsz`, de 9 a 40), que `layout.tsx:23` no pide. Con él la letra chica se abre y se lee
-    mejor, y la grande se afina. Es una línea (`axes: ["opsz"]`) y no cambia ninguna regla. Hay que mirarlo, porque cambia un
-    poco la textura de todo.
-  - **Cifras tabulares** en toda columna de montos, como ya propone `/tipografia`.
-- **Cómo mirarlo:** una tabla de montos y una hoja con y sin `opsz`, a 1440 y a 1024 px.
+  - ~~**El eje de tamaño óptico de DM Sans** (`opsz`, de 9 a 40), que `layout.tsx:23` no pide.~~ **Retirada el 2026-11-23, después de
+    medirla:** la misma frase mide 160,6 contra 160,8 px a 11 px y 204,0 contra 204,7 a 14 px; solo a 46 px cambia (606,7 contra 672,6),
+    y la letra grande del ERP es Garamond. En la letra de lectura no se nota.
+  - **Cifras tabulares** en toda columna de montos, como ya propone `/tipografia`. Medido el 2026-11-23: DM Sans no trae cifras
+    tabulares (ni la de next/font ni la completa de Google); Inter y la Garamond de los montos sí. Va en la misma lámina.
+- **Cómo mirarlo:** la lámina del 2026-11-23 (`docs/milimetro/laminas/2026-11-23-escalas/`), con Proveedores y Existencias.
+  Recordatorio: una escala de tamaños con nombre ya se mostró en la ronda 19 de `/unificar` y Felipe eligió condensar con piso de 14 px.
 
 **3. El vidrio: concentrarlo donde se luce. Para MIRAR, no para decidir por escrito.**
 

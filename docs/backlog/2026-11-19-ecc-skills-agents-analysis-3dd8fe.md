@@ -87,11 +87,18 @@ son ideas sueltas, ordenadas por valor. El análisis de las reglas que chocan co
 **Segunda vuelta: diseño, color y flujo** (`docs/investigacion/2026-11-19-diseno-color-y-flujo-sin-miedo-a-las-reglas.md`; lo
 que toca la estética lo elige Felipe mirando una lámina, no esta lista)
 
-- [ ] **Escalones con nombre para texto, línea y relleno** (4 + 3 + 2, en OKLCH por tema) en vez de 13 opacidades de tinta (2.324
-  usos) y el taupe compitiendo por ser el secundario (1.683). Migrar al tocar cada pantalla, con su deuda vigilada.
-- [ ] **Rampa tipográfica cerrada:** los 37 tamaños sueltos a una rampa con nombre; nada nuevo bajo 11 px (197 usos hoy, deuda
-  que solo baja); el eje `opsz` de DM Sans en `layout.tsx`; cifras tabulares en toda columna de montos. Se quedan el título de 46 px
-  y las versalitas de la cabecera.
+- [x] **Lámina de escalas armada (2026-11-23)** con `/milimetro proponer` (`docs/milimetro/laminas/2026-11-23-escalas/`): fotos de
+  Compras, Movimientos, Historial de ventas, Proveedores y Existencias reales, con la opción puesta encima y el contraste medido en cada
+  una. Verificada en el navegador a 1440 y 375 px, en claro y en oscuro; la elección de prueba se borró. Se ve con `unificar-laminas`
+  en `/escalas-2026-11/elegir.html`.
+- [ ] **Felipe elige el tono del texto que acompaña:** A hoy (13 opacidades y el café), B tinta en tres tonos (100, 80 y 64 %) o C tinta
+  y café, dos voces. Ninguna baja de 4,5:1; en oscuro, los textos débiles para APCA son 94, 46 y 95. Lo elegido va por su ADR y se migra
+  al tocar cada pantalla, también el texto tenue escrito en los CSS de `app/estilos` (que las fotos no alcanzan).
+- [ ] **Felipe elige las cifras:** A hoy (DM Sans, que no trae cifras tabulares) o B Inter solo en las cifras en DM Sans (propuesta 1
+  del tablero de `/milimetro`). La Garamond de los montos ya alinea y no cambia.
+- [ ] **Rampa tipográfica:** nada nuevo bajo 11 px (197 usos de 9 a 10,5 px hoy, deuda que solo baja). La escala de tamaños con nombre
+  ya se mostró en la ronda 19 y Felipe eligió condensar con piso de 14 px: no se vuelve a proponer. Se quedan el título de 46 px y las
+  versalitas de la cabecera. ~~El eje `opsz` de DM Sans~~: retirado el 2026-11-23, medido sin diferencia visible en 11–14 px.
 - [ ] **Comparar mirando «vidrio en todo» contra «vidrio solo en lo que flota»** en Existencias, Compras y la hoja de Cobro. Si
   gana la segunda, cambia la regla S5 del contrato con Dynamic.
 - [ ] **Cerrar las recetas de vidrio** en tres niveles de material (hoy 16 radios de desenfoque, 12 saturaciones y 217 variables),
