@@ -1,6 +1,7 @@
 import { Volver } from "@/components/ui/Volver";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BotonVer } from "@/components/ui/BotonDescargar";
+import { Aviso } from "@/components/ui/Aviso";
 import { BarridoPiso } from "@/components/barrido-piso/BarridoPiso";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getCatalogoConteo } from "@/lib/conteos";
@@ -35,9 +36,9 @@ export default async function BarridoPage() {
         }
       />
       {!barrido.estado ? (
-        <p role="alert" className="nota-cayla">
+        <Aviso tono="error" titulo="No se pudo leer el barrido">
           {barrido.fallo}
-        </p>
+        </Aviso>
       ) : !barrido.estado.separa ? (
         <p className="nota-cayla">{sede} todavía no separa piso y almacén, así que aquí no hay piso que barrer.</p>
       ) : (

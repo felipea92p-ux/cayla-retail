@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ListChecks } from "lucide-react";
 import { HojaLoEscaneado } from "@/components/barrido-piso/HojaLoEscaneado";
+import { Boton } from "@/components/ui/campos";
 import type { PrendaBarrido } from "@/lib/barrido-piso-reglas";
 
 /**
@@ -14,10 +15,10 @@ export function VerLecturasDelBarrido({ barridoId, prendas }: { barridoId: strin
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p] as const)), [prendas]);
   return (
     <>
-      <button type="button" data-guia="barrido-detalle.lecturas" onClick={() => setAbierta(true)} className="btn-cayla btn-secundario h-11">
+      <Boton peso="fantasma" type="button" data-guia="barrido-detalle.lecturas" onClick={() => setAbierta(true)}>
         <ListChecks aria-hidden className="h-4 w-4" />
         Ver cada lectura
-      </button>
+      </Boton>
       {abierta && <HojaLoEscaneado barridoId={barridoId} porId={porId} onClose={() => setAbierta(false)} />}
     </>
   );

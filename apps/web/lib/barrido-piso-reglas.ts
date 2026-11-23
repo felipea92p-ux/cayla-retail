@@ -954,6 +954,8 @@ export type EstadoDeBarrido = "abierto" | "confirmado" | "cancelado";
 /** Una fila del historial. Las cifras de lo movido son `null` si el barrido no se confirmó. */
 export type FilaHistorial = {
   id: string;
+  /** La sede del barrido (un líder puede mirar el de otra). */
+  ubicacionId: string | null;
   estado: EstadoDeBarrido;
   abiertoEn: string;
   abiertoPor: string | null;
@@ -989,6 +991,7 @@ function leerFilaHistorial(x: unknown): FilaHistorial | null {
   const confirmado = estado === "confirmado";
   return {
     id,
+    ubicacionId: texto(x.ubicacion_id),
     estado,
     abiertoEn,
     abiertoPor: texto(x.abierto_por),
@@ -1048,11 +1051,16 @@ export function estadoDelHistorial(estado: EstadoDeBarrido): { texto: string; to
   return { texto: "Descartado", tono: "pizarra" };
 }
 
-/** «sáb 22 nov, 18:05» en hora de Lima: la fecha de un barrido en una línea. */
-export function fechaDelBarrido(iso: string): string {
+/** «sáb 22 nov, 18:05» en hora de Lima: la fecha de un barrido en una línea; con el año («sáb 22 nov 2025, 18:05») si no es del año de `ahora`. */
+export function fechaDelBarrido(iso: string, ahora: Date = new Date()): string {
   const d = new Date(iso);
   if (!Number.isFinite(d.getTime())) return "";
-  const dia = d.toLocaleDateString("es-PE", { weekday: "short", day: "numeric", month: "short", timeZone: "America/Lima" }).replace(/\./g, "");
+  const anio = (x: Date) => x.toLocaleDateString("es-PE", { year: "numeric", timeZone: "America/Lima" });
+  const conAnio = anio(d) !== anio(ahora);
+  const dia = d
+    .toLocaleDateString("es-PE", { weekday: "short", day: "numeric", month: "short", ...(conAnio ? { year: "numeric" } : {}), timeZone: "America/Lima" })
+    .replace(/\./g, "")
+    .replace(/ de /g, " ");
   const hora = d.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
   return `${dia}, ${hora}`;
 }
@@ -1060,4 +1068,17 @@ export function fechaDelBarrido(iso: string): string {
 /** Lo que quedó por resolver de un barrido confirmado (lo no cargado más lo apartado), o `null` si no se confirmó. */
 export function porResolverDeLaFila(f: Pick<FilaHistorial, "estado" | "noCargadas" | "aparte">): number | null {
   return f.estado === "confirmado" ? (f.noCargadas ?? 0) + f.aparte : null;
+}
+
+/** Quién firmó el barrido (lo cerró, o lo empezó si sigue abierto) y, si escanearon varias, cuántas: «Rosa · 3 escanearon». */
+export function quienDelBarrido(f: Pick<FilaHistorial, "estado" | "abiertoPor" | "cerradoPor" | "personas">): string {
+  const quien = (f.estado === "abierto" ? f.abiertoPor : (f.cerradoPor ?? f.abiertoPor)) ?? "—";
+  return f.personas > 1 ? `${quien} · ${f.personas} escanearon` : quien;
+}
+
+/** La fila del historial dicha en una frase, para el lector de pantalla (la fila es un enlace a su detalle). */
+export function fraseDeLaFila(f: FilaHistorial, ahora: Date = new Date()): string {
+  const partes = [`Barrido del ${fechaDelBarrido(f.abiertoEn, ahora)}`, estadoDelHistorial(f.estado).texto.toLowerCase(), `${f.unidades} escaneadas`];
+  if (f.estado === "confirmado") partes.push(`${f.alPiso ?? 0} al piso`, `${f.alAlmacen ?? 0} al almacén`, `${porResolverDeLaFila(f) ?? 0} por resolver`);
+  return partes.join(", ");
 }

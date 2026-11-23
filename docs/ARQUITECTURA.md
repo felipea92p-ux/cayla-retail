@@ -443,6 +443,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `confirmar_barrido_piso` (4 parámetros: con la huella), `cancelar_barrido_piso`, `fn_barrido_piso_por_resolver`,
   `resolver_pendiente_barrido`. Entrada: `components/existencias/BotonBarrido.tsx` en la cabecera de Existencias y el aviso
   del barrido en curso o del mes (`avisoDeBarrido`); Cuadrar el piso lo ofrece como camino alterno.
+  Historial (actividad 9): `/inventario/barrido/historial` (lista, `getHistorialBarridos` → `fn_barridos_piso_historial`) y
+  `/inventario/barrido/historial/[id]` (detalle, `getDetalleBarrido` → `fn_barrido_piso_detalle`), con «Ver cada lectura»
+  (`VerLecturasDelBarrido`: `HojaLoEscaneado` sin `onAnular`, solo para leer, con el catálogo de la sede del barrido).
   **Existencias conectada (ADR-0237, 2026-09-26):** la lista entra por prenda (`components/ExistenciasPorPrenda.tsx`,
   agrupación en `lib/existencias-prendas.ts`; «Por talla» es la tabla de siempre), tocar una prenda abre
   `DetallePrendaExistencias.tsx`, y lo marcado se lleva con la lista cargada a `/inventario/bajar?lineas=`,

@@ -52,6 +52,8 @@ import {
   leerDetalleBarrido,
   leerHistorial,
   porResolverDeLaFila,
+  quienDelBarrido,
+  fraseDeLaFila,
 } from "./barrido-piso-reglas";
 
 const ANA = { responsableId: "ana", ubicacionId: "tru" };
@@ -515,6 +517,15 @@ describe("El historial (actividad 9)", () => {
 
   it("cada estado se dice con su palabra y la fecha va en hora de Lima", () => {
     expect((["confirmado", "abierto", "cancelado"] as const).map((e) => estadoDelHistorial(e).texto)).toEqual(["Confirmado", "En curso", "Descartado"]);
-    expect(fechaDelBarrido("2026-11-22T23:05:00Z")).toMatch(/22 nov, 18:05/);
+    const hoy = new Date("2026-11-23T15:00:00Z");
+    expect(fechaDelBarrido("2026-11-22T23:05:00Z", hoy)).toMatch(/22 nov, 18:05/);
+    expect(fechaDelBarrido("2025-11-22T23:05:00Z", hoy)).toMatch(/22 nov 2025, 18:05/);
+  });
+
+  it("quién firmó y cuántas escanearon; la fila dicha en una frase", () => {
+    const f = leerHistorial({ barridos: [{ id: "b1", estado: "confirmado", abierto_en: "2026-11-22T15:00:00Z", abierto_por: "Ana", cerrado_por: "Rosa", personas: 3, unidades: 9, al_piso: 2, al_almacen: 4, no_cargadas: 1, aparte: 0 }] }).barridos[0];
+    expect(quienDelBarrido(f)).toBe("Rosa · 3 escanearon");
+    expect(quienDelBarrido({ ...f, personas: 1 })).toBe("Rosa");
+    expect(fraseDeLaFila(f, new Date("2026-11-23T00:00:00Z"))).toMatch(/confirmado, 9 escaneadas, 2 al piso, 4 al almacén, 1 por resolver/);
   });
 });

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { ArrowLeftRight, Users } from "lucide-react";
 import { Volver } from "@/components/ui/Volver";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Aviso } from "@/components/ui/Aviso";
@@ -6,22 +7,29 @@ import { BotonVer } from "@/components/ui/BotonDescargar";
 import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Vacio } from "@/components/ui/Vacio";
 import { VerLecturasDelBarrido } from "@/components/barrido-piso/VerLecturasDelBarrido";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getCatalogoConteo } from "@/lib/conteos";
 import { getDetalleBarrido } from "@/lib/barrido-piso";
+import { opcional } from "@/lib/resultado";
 import { estadoDelHistorial, fechaDelBarrido, porResolverDeLaFila, textoDeTramo } from "@/lib/barrido-piso-reglas";
 
 // Un barrido del historial (ADR-0690, actividad 9): quién escaneó y entre qué horas, lo que movió al confirmarse y lo que no estaba en la
-// tienda. «Ver cada lectura» abre la hoja de lo escaneado para solo leer. Lo de otra sede no se ve (la base lo rechaza: 404).
+// tienda. «Ver cada lectura» abre la hoja de lo escaneado para solo leer, con el catálogo de la sede DEL BARRIDO (un líder puede mirar el de
+// otra). Lo que no existe o es de otra sede sin permiso da 404.
 
 export default async function DetalleBarridoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const persona = await exigirModulo("existencias");
-  const [b, prendas] = await Promise.all([getDetalleBarrido(id), getCatalogoConteo(persona.ubicacionId)]);
+  const b = await getDetalleBarrido(id);
   if (!b) notFound();
+  // Las fotos y los nombres de la hoja: si el catálogo no responde, la hoja sigue (las lecturas dicen su prenda sin foto).
+  const prendas = (await opcional(getCatalogoConteo(b.ubicacionId ?? persona.ubicacionId), "el catálogo del barrido")) ?? [];
+  const ahora = new Date();
   const estado = estadoDelHistorial(b.estado);
   const porResolver = porResolverDeLaFila(b);
+  const confirmado = b.estado === "confirmado";
   const alPiso = b.movidas.filter((m) => m.sentido === "al_piso");
   const alAlmacen = b.movidas.filter((m) => m.sentido === "al_almacen");
 
@@ -29,15 +37,25 @@ export default async function DetalleBarridoPage({ params }: { params: Promise<{
     <div className="space-y-6 pb-24">
       <EncabezadoPagina
         sede={b.sede || persona.ubicacionEtiqueta}
-        titulo={`Barrido del ${fechaDelBarrido(b.abiertoEn)}`}
-        detalle={b.cerradoPor ? `${b.estado === "confirmado" ? "Lo confirmó" : "Lo descartó"} ${b.cerradoPor}` : undefined}
+        titulo={`Barrido del ${fechaDelBarrido(b.abiertoEn, ahora)}`}
+        detalle={b.cerradoPor ? `${confirmado ? "Lo confirmó" : "Lo descartó"} ${b.cerradoPor}` : undefined}
         volver={<Volver href="/inventario/barrido/historial" a="Historial de barridos" />}
         pie={<Chip tono={estado.tono}>{estado.texto}</Chip>}
         acciones={<VerLecturasDelBarrido barridoId={b.id} prendas={prendas} />}
       />
 
       {b.estado === "abierto" && (
-        <Aviso tono="info" titulo="Este barrido sigue en curso" accion={<BotonVer href="/inventario/barrido" chico>Ir al barrido</BotonVer>}>
+        <Aviso
+          tono="info"
+          titulo="Este barrido sigue en curso"
+          accion={
+            b.ubicacionId === persona.ubicacionId ? (
+              <BotonVer href="/inventario/barrido" chico>
+                Ir al barrido
+              </BotonVer>
+            ) : undefined
+          }
+        >
           Lo que se ve aquí es lo escaneado hasta ahora.
         </Aviso>
       )}
@@ -46,14 +64,14 @@ export default async function DetalleBarridoPage({ params }: { params: Promise<{
         <TarjetaCifra etiqueta="Escaneadas" valor={b.unidades.toLocaleString("es-PE")} unidad={b.unidades === 1 ? "prenda" : "prendas"}>
           {b.quitadas > 0 ? `${b.quitadas.toLocaleString("es-PE")} ${b.quitadas === 1 ? "lectura quitada" : "lecturas quitadas"}` : "Ninguna quitada"}
         </TarjetaCifra>
-        <TarjetaCifra etiqueta="Pasaron al piso" valor={b.alPiso === null ? "—" : b.alPiso.toLocaleString("es-PE")}>
-          {b.estado === "confirmado" ? "Estaban en el almacén" : "No se confirmó"}
+        <TarjetaCifra etiqueta="Pasaron al piso" valor={b.alPiso === null ? null : b.alPiso.toLocaleString("es-PE")}>
+          {confirmado ? "Estaban en el almacén" : "No se confirmó"}
         </TarjetaCifra>
-        <TarjetaCifra etiqueta="Volvieron al almacén" valor={b.alAlmacen === null ? "—" : b.alAlmacen.toLocaleString("es-PE")}>
-          {b.estado === "confirmado" ? "Nadie las escaneó colgadas" : "No se confirmó"}
+        <TarjetaCifra etiqueta="Volvieron al almacén" valor={b.alAlmacen === null ? null : b.alAlmacen.toLocaleString("es-PE")}>
+          {confirmado ? "Nadie las escaneó colgadas" : "No se confirmó"}
         </TarjetaCifra>
-        <TarjetaCifra etiqueta="Por resolver" valor={porResolver === null ? "—" : porResolver.toLocaleString("es-PE")}>
-          {porResolver === null ? "No se confirmó" : b.aparte > 0 ? `${b.aparte.toLocaleString("es-PE")} aparte, sin etiqueta` : "Lo que no estaba en la tienda"}
+        <TarjetaCifra etiqueta="Por resolver" valor={porResolver === null ? null : porResolver.toLocaleString("es-PE")}>
+          {porResolver === null ? "No se confirmó" : porResolver === 0 ? "Todo resuelto" : b.aparte > 0 ? `${b.aparte.toLocaleString("es-PE")} aparte, sin etiqueta` : "No estaban en la tienda"}
         </TarjetaCifra>
       </div>
 
@@ -61,7 +79,9 @@ export default async function DetalleBarridoPage({ params }: { params: Promise<{
         <section data-guia="barrido-detalle.personas" className="vd-placa space-y-2 rounded-[var(--radius-tarjeta,1rem)] p-4 sm:p-5">
           <TituloSeccion cuenta={b.porPersona.length}>Quiénes escanearon</TituloSeccion>
           {b.porPersona.length === 0 ? (
-            <p className="texto-detalle text-taupe">Nadie escaneó en este barrido.</p>
+            <Vacio tamano="chico" icono={<Users />}>
+              Nadie escaneó en este barrido.
+            </Vacio>
           ) : (
             <ul className="divide-y divide-tinta/10">
               {b.porPersona.map((p) => (
@@ -82,10 +102,14 @@ export default async function DetalleBarridoPage({ params }: { params: Promise<{
 
         <section data-guia="barrido-detalle.movidas" className="vd-placa space-y-3 rounded-[var(--radius-tarjeta,1rem)] p-4 sm:p-5">
           <TituloSeccion cuenta={b.movidas.length}>Lo que se movió</TituloSeccion>
-          {b.estado !== "confirmado" ? (
-            <p className="texto-detalle text-taupe">{b.estado === "abierto" ? "Todavía nada: se mueve al confirmar." : "Nada: el barrido se descartó."}</p>
+          {!confirmado ? (
+            <Vacio tamano="chico" icono={<ArrowLeftRight />}>
+              {b.estado === "abierto" ? "Todavía nada: se mueve al confirmar." : "Nada: el barrido se descartó."}
+            </Vacio>
           ) : b.movidas.length === 0 ? (
-            <p className="texto-detalle text-taupe">El piso ya estaba al día: no hubo que mover nada.</p>
+            <Vacio tamano="chico" icono={<ArrowLeftRight />}>
+              El piso ya estaba al día: no hubo que mover nada.
+            </Vacio>
           ) : (
             <>
               <ListaMovidas titulo="Pasaron al piso" filas={alPiso} />

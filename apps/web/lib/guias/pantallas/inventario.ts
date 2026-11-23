@@ -2470,17 +2470,17 @@ export const GUIA_BARRIDO_PISO: Guia = {
       texto: "Lo que el barrido no pudo cuadrar solo: prendas colgadas que el sistema no tiene en esta tienda y lo apartado sin etiqueta. En «Resolver» dices qué pasó: estaba en el almacén, la encontraste o no era de aquí.",
     },
     {
-      id: "historial",
-      ancla: "barrido.historial",
-      titulo: "El historial",
-      texto: "Cada barrido queda guardado: quién escaneó, cuándo y qué corrigió. Aquí lo vuelves a mirar cuando quieras.",
-    },
-    {
       id: "resolver-dueno",
       ancla: "barrido.resolver-dueno",
       opcional: true,
       titulo: "De quién es",
       texto: "En una tienda con dos dueños, lo que bajas o sumas dice si es de CAYLA o de CLAURE. Nadie lo elige por ti.",
+    },
+    {
+      id: "historial",
+      ancla: "barrido.historial",
+      titulo: "El historial",
+      texto: "Cada barrido queda guardado: quién escaneó, cuándo y qué corrigió. Aquí lo vuelves a mirar cuando quieras.",
     },
     {
       id: "fin",

@@ -60,11 +60,15 @@ export async function getHistorialBarridos(ubicacionId: string): Promise<{ histo
 
 /** Un barrido del historial, o `null` si no existe, es de otra sede o no se pudo leer. */
 export async function getDetalleBarrido(barridoId: string): Promise<DetalleBarrido | null> {
+  // Una dirección que no es un id ni se le pregunta a la base.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(barridoId)) return null;
   const supabase = await createClient();
-  const { datos, fallo } = tolerar(await supabase.rpc(RPC_DETALLE_BARRIDO as never, { p_barrido_id: barridoId } as never), "un barrido del historial");
-  if (fallo) {
-    console.error(fallo);
+  const { data, error } = await supabase.rpc(RPC_DETALLE_BARRIDO as never, { p_barrido_id: barridoId } as never);
+  if (error) {
+    // Que no exista o sea de otra sede es un 404, no un error que avisar.
+    if (error.hint !== "barrido_no_existe" && error.code !== "42501") console.error("No se pudo leer un barrido del historial:", error.code, error.hint);
     return null;
   }
+  const datos = data;
   return leerDetalleBarrido(datos);
 }

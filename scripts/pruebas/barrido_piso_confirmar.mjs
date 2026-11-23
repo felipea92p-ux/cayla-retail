@@ -664,6 +664,18 @@ ${COMO_POSTGRES}select concat_ws(',', jsonb_array_length((:'d')::jsonb -> 'por_p
   "1,9,1,t,al_almacen:2 al_almacen:2 al_piso:2,1,ZZ Tienda Barrido"
 );
 caso(
+  "H · «Por resolver» del historial baja con lo que «Por resolver» ya cerró (la misma cuenta que la pantalla de la actividad 8)",
+  `${CONFIRMADO}select ${RESOLVER("gen_random_uuid()", ":'hall'", "null", "no_era", 1)} as _r1 \\gset
+select ${RESOLVER("gen_random_uuid()", "null", ":'vf'", "no_era", 1)} as _r2 \\gset
+select ${HISTORIAL} -> 'res' as h \\gset
+select ${POR_RESOLVER} -> 'res' as l \\gset
+${COMO_POSTGRES}select concat_ws(',',
+  (select (x ->> 'aparte') || '/' || (x ->> 'no_cargadas') from jsonb_array_elements((:'h')::jsonb -> 'barridos') x where x ->> 'id' = :'barrido'),
+  (select coalesce(sum((a ->> 'pendientes')::int), 0) from jsonb_array_elements((:'l')::jsonb -> 'apartados') a),
+  jsonb_array_length((:'l')::jsonb -> 'no_cargadas'));`,
+  "1/0,1,0"
+);
+caso(
   "H · el historial y el detalle de otra sede no se ven (barrido_sin_permiso)",
   `${CONFIRMADO}${soloModulos("integrante", ["existencias"])}${COMO_POSTGRES}update retail.colaboradores set ubicacion_asignada_id = :'tru' where persona_id = :'micaela_p';
 ${sesion(MICAELA)}${COMO_API}select ${HISTORIAL};

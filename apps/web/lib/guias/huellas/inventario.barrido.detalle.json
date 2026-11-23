@@ -23,7 +23,7 @@
       "Boton «Quitar» #2"
     ],
     "components/barrido-piso/VerLecturasDelBarrido.tsx": [
-      "button «barrido-detalle.lecturas»"
+      "Boton «barrido-detalle.lecturas»"
     ]
   }
 }
