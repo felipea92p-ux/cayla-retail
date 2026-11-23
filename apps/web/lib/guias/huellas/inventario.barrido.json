@@ -2,10 +2,11 @@
   "guia": "inventario.barrido",
   "ruta": "/inventario/barrido",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 53,
+  "total": 54,
   "controles": {
     "app/(app)/inventario/barrido/page.tsx": [
-      "Volver «/inventario»"
+      "Volver «/inventario»",
+      "BotonVer «Historial»"
     ],
     "components/EscanerConteo.tsx": [
       "button «Cerrar la cámara»",
