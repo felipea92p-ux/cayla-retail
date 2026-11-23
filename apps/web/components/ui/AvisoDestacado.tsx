@@ -82,8 +82,8 @@ function Hoja({ d }: { d: Destacado }) {
               </svg>
             </span>
             {d.cifra && <p className="mt-3 font-display text-[34px] font-medium leading-none tabular-nums text-tinta">{d.cifra}</p>}
-            {d.detalle && <p className="mt-2 text-[15px] font-medium text-tinta">{d.detalle}</p>}
-            {d.nota && <p className="mt-1 text-[13px] leading-snug text-taupe">{d.nota}</p>}
+            {d.detalle && <p className="mt-2 text-sm font-medium text-tinta">{d.detalle}</p>}
+            {d.nota && <p className="mt-1 text-xs leading-snug text-taupe">{d.nota}</p>}
           </div>
           {/* La cuenta atrás: al vaciarse cierra la hoja. Con el mouse encima se pausa (`.destacado-reloj`, avisos.css). */}
           <RelojBarra alTerminar={cerrar} />

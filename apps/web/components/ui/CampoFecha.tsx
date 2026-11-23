@@ -427,7 +427,7 @@ export function CampoFecha({
 
             <div className="grid grid-cols-7 text-center">
               {DIAS_SEMANA.map((d, i) => (
-                <span key={i} className="label-cayla py-1 text-[10px] text-tinta/45 dark:text-tinta/60">
+                <span key={i} className="label-cayla py-1 text-xs text-tinta/45 dark:text-tinta/60">
                   {d}
                 </span>
               ))}
@@ -494,11 +494,11 @@ export function CampoFecha({
             </div>
 
             <div className="mt-2 flex items-center justify-between border-t border-sand pt-2">
-              <button type="button" disabled={Boolean(motivoFueraDeLimites(aIso(elHoy), limites))} onClick={() => elegir(elHoy)} className="btn-cayla btn-enlace text-[13px] disabled:invisible">
+              <button type="button" disabled={Boolean(motivoFueraDeLimites(aIso(elHoy), limites))} onClick={() => elegir(elHoy)} className="btn-cayla btn-enlace text-xs leading-tight disabled:invisible">
                 Hoy
               </button>
               {marcados && (
-                <span className="flex items-center gap-1.5 text-[11px] text-tinta/55">
+                <span className="flex items-center gap-1.5 text-xs text-tinta/55">
                   <span aria-hidden className="h-1 w-1 rounded-full bg-taupe" />
                   {descripcionMarcado}
                 </span>
@@ -511,7 +511,7 @@ export function CampoFecha({
                     setAbierto(false);
                     onValor("");
                   }}
-                  className="btn-cayla btn-enlace text-[13px]"
+                  className="btn-cayla btn-enlace text-xs leading-tight"
                 >
                   Limpiar
                 </button>
