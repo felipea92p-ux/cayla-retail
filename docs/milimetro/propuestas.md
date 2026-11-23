@@ -68,4 +68,4 @@ hacen los mejores del mundo, hagámoslo». Cada propuesta dice qué se gana, de 
 
 | Fecha | # | Decisión |
 |---|---|---|
-| | | |
+| 2026-11-23 | Lámina de escalas · el tono del texto que acompaña | **B · Tinta en tres tonos**, elegida mirando la lámina: el dato en tinta plena, lo que acompaña en tinta al 80 %, lo más tenue al 64 %, y el café sale del texto (queda para líneas y bordes). Falta: su ADR, los tokens en `globals.css` y `tema.css` con su prueba, y la migración. Las cifras (A o B) siguen sin elegir |
