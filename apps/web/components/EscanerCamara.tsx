@@ -74,7 +74,7 @@ export function precargarLectorQR(): void {
   if (typeof window === "undefined" || !navigator.onLine) return;
   if ((window as unknown as { BarcodeDetector?: unknown }).BarcodeDetector) return;
   void import("jsqr").catch(() => {
-    // Sin red a mitad: se intentará la próxima vez que se abra Vender.
+    // relleno-a-proposito: Sin red a mitad: se intentará la próxima vez que se abra Vender.
   });
 }
 

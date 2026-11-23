@@ -97,7 +97,7 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
   const params = await searchParams;
   // «Hay en …» y «Sin stock en …» miran la sede elegida arriba; en CAYLA Global no hay una (ADR-0275) y no se aplican.
   const enSede = persona.vista !== "global";
-  // ADR-0505: CLAURE solo existe donde opera (Lima). En una sede con una sola empresa la lista pide solo esa, aunque la URL diga
+  // relleno-a-proposito: ADR-0505: CLAURE solo existe donde opera (Lima). En una sede con una sola empresa la lista pide solo esa, aunque la URL diga
   // otra; en Lima y en CAYLA Global, la elegida en «Tienda». Va antes de la lista porque la decide. Sin respuesta, como antes.
   const empresasAqui = await getEmpresasAqui(enSede ? persona.ubicacionId : null).catch(() => null);
   const desdeUrl = filtrosProductosDesdeParams(params);
@@ -137,7 +137,7 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("tallas").select("id, valor").eq("activo", true),
-    // La lista cerrada de temporadas, para su filtro. `null` si no se pudo: la píldora no aparece, el resto sigue.
+    // relleno-a-proposito: La lista cerrada de temporadas, para su filtro. `null` si no se pudo: la píldora no aparece, el resto sigue.
     getTemporadasCatalogo().catch(() => null),
     // ADR-0371: cuántas prendas propuestas esperan que alguien las apruebe. Solo a quien puede revisarlas; `null` si no se pudo saber
     // (la función aún no está en la base): sin número no se avisa nada, nunca un «0» que diga que no hay.
@@ -172,7 +172,7 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
     ),
     // «2 precios» (Felipe 2026-10-09): qué tiendas venden cada prenda a otro precio. Si no se puede leer, no hay insignia.
     getPreciosDeLasTiendas(),
-    // Lo que cobra la caja HOY con su campaña (ADR-0472, Felipe 2026-10-21): la misma lectura que la etiqueta de papel. Si no responde,
+    // relleno-a-proposito: Lo que cobra la caja HOY con su campaña (ADR-0472, Felipe 2026-10-21): la misma lectura que la etiqueta de papel. Si no responde,
     // las tarjetas muestran el precio de lista, como antes de esto: la lista no se cae por una campaña.
     campanasQueCobra(supabase, hoyLima(), resultado.productos.flatMap((p) => p.variantes.map((v) => v.varianteId))).catch(() => null),
   ]);

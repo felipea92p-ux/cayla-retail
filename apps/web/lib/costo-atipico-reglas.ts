@@ -57,6 +57,7 @@ export function leerCostoAtipico(error: ErrorConDetalle): CostoAtipico | null {
   try {
     return leerLinea(JSON.parse(error.details));
   } catch {
+    // relleno-a-proposito: un `details` roto es «no es un costo atípico» y el error sigue su camino normal.
     return null;
   }
 }

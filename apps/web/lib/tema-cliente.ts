@@ -39,7 +39,7 @@ export function cambiarTema(tema: Tema): void {
     return;
   }
   const transicion = conTransicion.startViewTransition(aplicar);
-  // El navegador RECHAZA estas promesas cuando aborta la transición (la pestaña se oculta, otra transición empieza encima,
+  // relleno-a-proposito: El navegador RECHAZA estas promesas cuando aborta la transición (la pestaña se oculta, otra transición empieza encima,
   // la persona navega). El tema ya quedó puesto por `aplicar`; que se salte el fundido no es un error de nadie.
   for (const promesa of [transicion?.ready, transicion?.finished, transicion?.updateCallbackDone]) promesa?.catch(() => {});
 }
