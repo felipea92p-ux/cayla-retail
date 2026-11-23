@@ -83,7 +83,7 @@ export function DevolucionesResueltas({
             <span className="tabular-nums text-tinta">{soles(d.valorPagado)}</span>
             {d.notaCredito &&
               (veComprobantes ? (
-                <Link href="/vender/comprobantes/emitidos" className="btn-cayla btn-enlace gap-1.5 text-[13px]">
+                <Link href="/vender/comprobantes/emitidos" className="btn-cayla btn-enlace gap-1.5 text-xs leading-tight">
                   <ReceiptText className="h-3.5 w-3.5" aria-hidden />
                   {d.notaCredito}
                 </Link>

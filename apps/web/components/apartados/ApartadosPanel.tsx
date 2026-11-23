@@ -106,7 +106,7 @@ export function ApartadosPanel(props: Props) {
       {/* Entre 1024 y 1280 px la columna de trabajo mide ~290 px (el ticket, 380): la etiqueta se oculta (la sede ya está en la barra de
           arriba y Apartados, en el menú) y «Opciones» queda en su ícono. En Todos, a todo el ancho, siempre caben. */}
       <header className="ap-cab flex flex-wrap items-center gap-x-4 gap-y-2 sm:min-h-16 sm:gap-x-6 lg:max-xl:gap-x-4">
-        <p className={`label-cayla text-[11px] text-tinta/80 ${vista === "todos" ? "" : "lg:max-xl:hidden"}`}>Apartados · {props.ubicacionEtiqueta}</p>
+        <p className={`label-cayla text-xs text-tinta/80 ${vista === "todos" ? "" : "lg:max-xl:hidden"}`}>Apartados · {props.ubicacionEtiqueta}</p>
         <span aria-hidden className={`ap-cab-sep h-[22px] w-px max-lg:hidden ${vista === "todos" ? "" : "lg:max-xl:hidden"}`} />
         <div className="flex items-center gap-6 lg:max-xl:gap-4">
         {/* La pestaña de vista del ERP (ADR-0358): «Apartar / Entregar / Todos» cambia de sección. Solo en escritorio; el celular lleva las
@@ -127,7 +127,7 @@ export function ApartadosPanel(props: Props) {
             data-guia="apartados.opciones"
             title="Qué funciones usa Apartados en esta tienda"
             aria-label="Opciones"
-            className="ap-opciones area-dedo label-cayla flex h-9 items-center gap-1.5 px-3 text-[10.5px] text-tinta/80"
+            className="ap-opciones area-dedo label-cayla flex h-9 items-center gap-1.5 px-3 text-xs text-tinta/80"
           >
             <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
             <span className={vista === "todos" ? "" : "lg:max-xl:hidden"}>Opciones</span>

@@ -96,7 +96,7 @@ export function HistorialCierresTabla({ cierres, pie }: { cierres: CierreCaja[];
                         </span>
                         {textoResultado(c.diferencia)}
                       </span>
-                      <span data-guia="caja-historial.ver" className="flex items-center justify-end gap-0.5 whitespace-nowrap text-[13px] font-semibold text-rojo group-hover:text-rojo-profundo">
+                      <span data-guia="caja-historial.ver" className="flex items-center justify-end gap-0.5 whitespace-nowrap text-xs font-semibold text-rojo group-hover:text-rojo-profundo">
                         Ver detalle
                         <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 ease-cayla group-hover:translate-x-0.5" aria-hidden />
                       </span>

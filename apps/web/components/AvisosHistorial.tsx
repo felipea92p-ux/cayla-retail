@@ -16,10 +16,10 @@ export function AvisosHistorial({ avisos }: { avisos: AvisoHistorial[] }) {
     <ul aria-label="Avisos" data-guia="historial.avisos" className="grid gap-2">
       {avisos.map((a) => (
         <li key={a.href}>
-          <Link href={a.href} className="group flex items-center gap-3 rounded-xl vd-placa vd-pasa px-4 py-2.5 text-[15px] text-tinta transition-colors">
+          <Link href={a.href} className="group flex items-center gap-3 rounded-xl vd-placa vd-pasa px-4 py-2.5 text-sm text-tinta transition-colors">
             <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${PUNTO[a.tono]}`} />
             <span className="min-w-0 flex-1">{a.texto}</span>
-            <span className="label-cayla flex shrink-0 items-center gap-0.5 text-[10.5px] text-tinta/75 group-hover:text-rojo">
+            <span className="label-cayla flex shrink-0 items-center gap-0.5 text-xs text-tinta/75 group-hover:text-rojo">
               {a.accion} <ChevronRight className="h-3.5 w-3.5" aria-hidden />
             </span>
           </Link>

@@ -50,7 +50,7 @@ export function FilaMovimientoCaja({ e, nuevo, onAbrir }: { e: EventoCaja; nuevo
       </div>
       <div className="min-w-0 flex-1">
         {/* Ronda 19: la fila se lee a 15 px y su detalle a 14 (antes 13,5 y 11,5, gris tenue). */}
-        <p className="truncate text-[15px] font-semibold text-tinta">{e.titulo}</p>
+        <p className="truncate text-sm font-semibold text-tinta">{e.titulo}</p>
         <p className="texto-detalle truncate">
           {e.horaTexto} · {e.meta}
         </p>

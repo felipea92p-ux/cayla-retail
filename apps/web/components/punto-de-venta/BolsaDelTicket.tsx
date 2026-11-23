@@ -104,7 +104,7 @@ export function AgregarBolsaModal({ bolsas, carrito, ubicacionEtiqueta, onAgrega
                     <ShoppingBag className="h-5 w-5" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15px] font-semibold text-tinta">{nombreDeBolsa(b)}</span>
+                    <span className="block truncate text-sm font-semibold text-tinta">{nombreDeBolsa(b)}</span>
                     <span className="block truncate text-sm text-tinta/60 tabular-nums">
                       {cobrable ? `Quedan ${b.stockAqui - lleva > 0 ? b.stockAqui - lleva : 0} aquí` : "Sin stock aquí"}
                     </span>
