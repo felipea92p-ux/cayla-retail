@@ -1,6 +1,6 @@
 # Radar de innovación
 
-**Último refresco:** 2026-11-16 · **Próximo:** 2026-11-23 (cada lunes, con la rutina semanal; con más de 14 días, `/innovar` avisa)
+**Último refresco:** 2026-11-23 · **Próximo:** 2026-11-30 (cada lunes, con la rutina semanal; con más de 14 días, `/innovar` avisa)
 
 El radar es la memoria de «lo último» que usa `/innovar` (ADR-0651): lo que salió en el stack del ERP y lo que hacen hoy los mejores, cada cosa
 con su fuente, su fecha y un anillo que dice qué tan lista está **para CAYLA** (3 tiendas + 1 taller), no para el mundo en general. Existe para
@@ -31,6 +31,53 @@ propuesta concreta, con su escenario de negocio, la arma `/innovar` y la decide 
 `.claude/skills/innovar/referencia/radar.md`. Cada refresco agrega su sección al tope del registro de abajo.
 
 ## Registro de cambios
+
+### 2026-11-23
+Refresco semanal (rutina del lunes): dos investigaciones en paralelo limitadas a lo publicado desde el 2026-11-16, más una mirada de solo lectura a
+Vercel, Sentry y Supabase. Ninguna versión nueva de `next` (16.4.6 sigue siendo `latest`) ni aviso para next, react, @supabase/*, typescript, turbo,
+tailwindcss ni `@sentry/nextjs`.
+
+- **Avisos de seguridad que tocan versiones del repo** (confirmados en la base de avisos de npm el 2026-11-23; todos de desarrollo o de build, ninguno
+  corre en producción):
+  - nuevo: **GHSA-qxg6-89mg-rqv8** (moderado) en `@vitest/mocker` `<4.1.12`: el arreglo mínimo de vitest sube de 4.1.11 a **4.1.12** (el repo
+    está en 4.1.10).
+  - nuevo: cinco avisos de **vite 8.0.0–8.1.5** (el repo resuelve 8.1.5, por vitest): GHSA-587h-7wmj-h5pm (alto, solo Windows),
+    GHSA-rq7h-c2jc-7f22, GHSA-r825-w8mm-5pxw, GHSA-698v-4r3x-3vcv (moderados) y GHSA-9jrq-w75r-8gcw (bajo). Llega el arreglo (8.1.6) al subir
+    vitest a 4.1.12.
+  - siguen abiertos: zod 3.25.76 (GHSA-mrhx-c7xc-m3w5, alto) y vitest 4.1.10 (GHSA-82fw-gwwq-j7x9). En indirectas de build: `js-yaml`, `fast-uri`,
+    `glob` y `minimatch` (vía eslint, typescript-eslint y el plugin de webpack de Sentry).
+- **Stack** (60 entradas: ADOPTAR 16 · PROBAR 20 · EVALUAR 19 · ESPERAR 5):
+  - ↑ **`ensureStatic`**, de PROBAR a ADOPTAR, por el cruce con Vercel (abajo).
+  - ↑ **Animaciones guiadas por scroll**, de EVALUAR a PROBAR: Baseline «recién disponible» desde octubre (Firefox 159). Corrige el radar anterior.
+  - **PostgreSQL 19** salió GA el 2026-11-19; sigue en ESPERAR porque Supabase hospedado no ofrece ni PG18.
+  - **Vercel Workflows**: Workflow SDK 5, listo para producción y en todas las regiones (también `gru1`). Mismo anillo.
+  - **Branching de Supabase**: fusionar a producción exige un token con alcance propio desde el 2026-11-12 (fuente secundaria).
+  - Versiones al día: supabase-js 2.119.2, CLI de Supabase 3.3.0, Sentry 11.16.0, vitest 5.1.1, turbo 2.11.13, knip 6.48.0, pnpm 12.23.0; TypeScript 7.1
+    RC sin salir; MCP sin especificación nueva.
+- **Referentes** (52 patrones: ADOPTAR 19 · PROBAR 21 · EVALUAR 10 · ESPERAR 2):
+  - nuevo: **52 · Ventas cortadas por atributo de la prenda (tejido, color, talla) sin contar doble** (PROBAR, ahora; Shopify Analytics y Sidekick,
+    17-nov). Encajaría en Análisis.
+  - nuevo: **53 · Congelar el mostrador en temporada alta: solo arreglos** (ADOPTAR, ahora; Shopify POS 11.18/11.19 solo con arreglos hasta fin de año).
+    Para Vender, Caja, Cambios y Devoluciones en diciembre; la ventana la decide Felipe.
+  - ↑ **50 · Código de producto SUNAT por categoría**, de EVALUAR a PROBAR: faltan 39 días para el 1-ene-2027 y el paso barato (guardar el código por
+    categoría sin enviarlo a Lucode) no tiene riesgo. Que viaje en el comprobante espera al contador, a Lucode y a Felipe. El Catálogo 25 volvió a la
+    versión 14 (fuentes secundarias).
+  - Corregidos, mismo anillo: 5 (Square imprime etiquetas desde el equipo de mano), 12 (Odoo 20, fuente secundaria), 15, 20, 25, 27, 37, 46 (Apple:
+    guía de tacto en Mac, respalda no esconder nada solo tras el hover) y 49.
+- **Lo que se vio en producción** (últimos 7 días, solo lectura):
+  - **Tienda (Vercel):** los fallos por leer la hora durante el prerender crecieron de cientos a **más de doce mil en la semana** (sobre todo la ficha
+    de prenda y «arma tu look»), más fallos de `fetch` rechazados al terminar el prerender en las páginas fijas (tiendas, cambios, club, privacidad).
+    Es justo lo que `ensureStatic` frena en el build: por eso sube a ADOPTAR.
+  - **ERP (Vercel):** sigue dominando el refresco de sesión vencido en el `proxy` (ruido de sesiones viejas); además unas 20 esperas agotadas del PSE,
+    tiempos agotados de consulta en Tráfico de la tienda web, Ventas sin registrar y Proveedores, y un aviso diario del vigía de invariantes (una
+    regla leve). Ninguna novedad del stack los arregla.
+  - **ERP (Sentry):** dominan los «Failed to fetch» del navegador en Vender, Productos y Caja, hacia la base y hacia un servicio local del equipo de la
+    sede; son cortes de red que ya cubre ADR-0411. La tienda sigue sin proyecto propio en Sentry.
+  - **Configuración:** Node 24.x en el ERP; Postgres 17.6 en producción; el asesor de salud de Supabase no marca nada.
+  - Ninguna propuesta del tablero de innovación pasa a `vencida` esta semana.
+- **Límites:** desde esta sesión no abrieron changelog.shopify.com, squareup.com, elperuano.pe, postgresql.org, supabase.com ni vercel.com, y la API de
+  avisos de GitHub respondió 403; lo de ahí viene del resumen del buscador (marcado como fuente secundaria) y los avisos se confirmaron en la base de
+  npm, que replica la de GitHub.
 
 ### 2026-11-16
 Refresco semanal (rutina del lunes): dos investigaciones en paralelo limitadas a lo publicado desde el 2026-11-13, más una mirada de solo lectura a
