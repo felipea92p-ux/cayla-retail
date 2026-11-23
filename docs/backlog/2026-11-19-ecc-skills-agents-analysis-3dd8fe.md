@@ -129,8 +129,8 @@ que toca la estética lo elige Felipe mirando una lámina, no esta lista)
 - [ ] **Detalles de oficio:** contorno interior de 1 px en las fotos de prendas, `text-wrap: balance` en títulos y `pretty` en párrafos.
 - [ ] **Decisión de Felipe:** si las animaciones ricas que se siguen construyendo deben verse (ofrecer el botón la primera vez, o
   encenderlas en los equipos que las aguantan), dado que ADR-0625 las deja apagadas por defecto.
-- [ ] **F1.** Tablero de sesiones que se arma solo (`pnpm sesiones` al abrir sesión), en lugar de las 143 filas a mano de
-  `docs/SESIONES-ACTIVAS.md`.
+- [x] **F1.** Tablero de sesiones que se arma solo (`pnpm sesiones` al abrir sesión), en lugar de las 143 filas a mano de
+  `docs/SESIONES-ACTIVAS.md`. Hecho el 2026-11-23 (ADR-0697, rama `claude/tablero-sesiones-6b1386`).
 - [ ] **F2.** Partir los archivos donde escriben todos: una guía por pantalla, un archivo por entrada en los tableros de
   `/formidable` y `/chaos`, y `ARQUITECTURA.md` generado.
 - [ ] **F3.** Skills obligatorias en tres niveles, con un recibo atado al commit en vez de una casilla.
