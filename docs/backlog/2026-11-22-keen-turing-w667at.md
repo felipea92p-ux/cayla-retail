@@ -1,9 +1,9 @@
 # Barrido del piso (ADR-0690) — lo que falta
 
-- [ ] **POR PEGAR (2026-11-23): `20261122195000_barrido_piso_por_resolver.sql`** — enciende la actividad 8, «Por resolver». Su web se publica
-      dormida (sin la función, la sección no se dibuja). Se pega sola, a cualquier hora, cuando Felipe lo diga (él pidió dejar 8 a 10 para después).
-- [ ] **Actividad 9, historial de barridos.** Lista y detalle: quién contó, lecturas por persona con su hora, lo quitado tachado, las fotos y
-      lo que se movió.
+- [x] ~~`20261122195000_barrido_piso_por_resolver.sql`~~ — pegada por Felipe el 2026-11-23: la actividad 8 está encendida.
+- [ ] **POR PEGAR (2026-11-23): `20261122196000_barrido_piso_historial.sql`** — el historial (actividad 9). Sola, a cualquier hora, después de
+      `195000`. Sin ella, «Historial» dice que no se pudo leer (no se cae nada).
+- [x] **Actividad 9, historial de barridos** (2026-11-23): lista y detalle, con su prueba (sección H de `barrido_piso_confirmar.mjs`).
 - [ ] **Actividad 10, cierre.** `/chaos` con 5 personas a la vez, `/formidable` y el área de 44 px con el dedo (`tacto:medir`). `/milimetro` ya se
       corrió el 2026-11-23 (0 graves, 0 medias: `docs/milimetro/auditorias/2026-11-23-barrido-del-piso.md`).
 - [ ] **Decisión de Felipe:** en Tienda LIM, una prenda cuya fila mezcla unidades de CAYLA y de CLAURE no se mueve al confirmar
