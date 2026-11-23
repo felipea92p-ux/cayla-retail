@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Modal } from "@/components/ui/Modal";
+import { Ayuda } from "@/components/Ayuda";
 import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { Casilla } from "@/components/ui/Casilla";
@@ -161,15 +162,21 @@ export function HojaConfirmar({
   }
 
   const r = vista?.resumen;
-  const grupos: { clave: string; titulo: string; filas: Fila[] }[] = vista
+  const grupos: { clave: string; titulo: string; porQue?: string; filas: Fila[] }[] = vista
     ? [
         { clave: "piso", titulo: "Pasan al piso", filas: filas(vista.lineas.filter((l) => l.alPiso > 0), (l) => `${l.alPiso} · estaban en el almacén`) },
         { clave: "almacen", titulo: "Vuelven al almacén", filas: filas(vista.lineas.filter((l) => l.alAlmacen > 0), (l) => `${l.alAlmacen} · nadie las escaneó colgadas`) },
         { clave: "no", titulo: "No están en la tienda", filas: filas(vista.lineas.filter((l) => l.noCargadas > 0), (l) => `${l.noCargadas} · ${dondeLaTiene(l)}`) },
-        { clave: "movio", titulo: "No se tocan: se movieron mientras se escaneaba", filas: filas(vista.lineas.filter((l) => l.motivo === "se_movio"), () => "Se corrige en el próximo barrido") },
+        {
+          clave: "movio",
+          titulo: "Se quedan como están",
+          porQue: "Alguien las vendió, trasladó o ajustó mientras se escaneaba: la cuenta ya no calza. Se corrigen en el próximo barrido.",
+          filas: filas(vista.lineas.filter((l) => l.motivo === "se_movio"), () => "Se corrige en el próximo barrido"),
+        },
         {
           clave: "duenos",
-          titulo: "No se tocan: tienen prendas de CAYLA y de CLAURE",
+          titulo: "Se quedan como están · CAYLA y CLAURE",
+          porQue: "En la misma fila hay prendas de CAYLA y de CLAURE, y el sistema no adivina de quién son las que se mueven. Muévelas en Existencias, eligiendo el dueño.",
           filas: filas(vista.lineas.filter((l) => l.motivo === "dos_duenos"), (l) => `${l.escaneadas} escaneadas · el sistema tiene ${l.piso} en el piso y ${l.almacen} en el almacén · se mueve en Existencias, eligiendo el dueño`),
         },
       ]
@@ -207,7 +214,7 @@ export function HojaConfirmar({
               <TarjetaCifra etiqueta="Pasan al piso" valor={r.prendasAlPiso.toLocaleString("es-PE")} />
               <TarjetaCifra etiqueta="Vuelven al almacén" valor={r.prendasAlAlmacen.toLocaleString("es-PE")} />
               <TarjetaCifra etiqueta="No están en la tienda" valor={(r.prendasNoCargadas + r.aparte).toLocaleString("es-PE")} />
-              <TarjetaCifra etiqueta="No se tocan" valor={(r.lineasSeMovieron + r.lineasDosDuenos).toLocaleString("es-PE")} />
+              <TarjetaCifra etiqueta="Se quedan como están" ayuda={<Ayuda titulo="Se quedan como están">Prendas que el barrido no mueve: cambiaron mientras se escaneaba, o mezclan dueños. Abajo dice cuáles.</Ayuda>} valor={(r.lineasSeMovieron + r.lineasDosDuenos).toLocaleString("es-PE")} />
             </div>
             <p className="texto-detalle text-taupe">
               Quedan {r.despues.piso.toLocaleString("es-PE")} en el piso y {r.despues.almacen.toLocaleString("es-PE")} en el almacén. El total de la tienda no
@@ -221,6 +228,12 @@ export function HojaConfirmar({
                   <li key={g.clave} className="vd-placa rounded-[var(--radius-tarjeta,1rem)] p-3 sm:p-4">
                     <p className="text-[15px] text-tinta">
                       {g.titulo} · {g.filas.length.toLocaleString("es-PE")} {g.filas.length === 1 ? "talla" : "tallas"}
+                      {g.porQue && (
+                        <>
+                          {" "}
+                          <Ayuda titulo={g.titulo}>{g.porQue}</Ayuda>
+                        </>
+                      )}
                     </p>
                     <BotonVerMas
                       forma="enlace"
