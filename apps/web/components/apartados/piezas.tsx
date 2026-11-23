@@ -57,7 +57,7 @@ export function DescuentoDePrenda({ prenda, conArgumento = false, className = ""
           </span>
         </Chip>
       )}
-      {conArgumento && d.argumento && <span className="text-[12px] text-tinta/60">Argumento: {d.argumento}</span>}
+      {conArgumento && d.argumento && <span className="text-xs text-tinta/60">Argumento: {d.argumento}</span>}
     </span>
   );
 }
@@ -69,7 +69,7 @@ export function ImporteDePrenda({ prenda, className = "" }: { prenda: PrendaApar
     <span className={`flex shrink-0 flex-col items-end text-sm tabular-nums ${className}`}>
       <span>{money(importe)}</span>
       {prenda.descuentoUnitario > 0 && (
-        <s className="text-[11.5px] font-normal text-tinta/55" aria-label={`Precio de etiqueta ${money(prenda.precioUnitario * prenda.cantidad)}`}>
+        <s className="text-xs font-normal text-tinta/55" aria-label={`Precio de etiqueta ${money(prenda.precioUnitario * prenda.cantidad)}`}>
           {money(prenda.precioUnitario * prenda.cantidad)}
         </s>
       )}
@@ -266,14 +266,14 @@ export function BarraMovil({
     {/* La isla oscura de lo que llevas elegido, apoyada en las pestañas (ADR-0479, actividad 12, `barra-abajo`). */}
     <BarraDeAbajo tono="tinta" sobre={SOBRE_ISLA_PESTANAS} className="z-20 flex-nowrap justify-between gap-3 py-2.5 pl-5 pr-2.5 sm:left-[calc(var(--spacing-lateral)+0.75rem)] lg:hidden">
       <div className="min-w-0">
-        <p className="label-cayla truncate text-[10px] text-crema/60 dark:text-crema/75">{etiqueta}</p>
+        <p className="label-cayla truncate text-xs text-crema/60 dark:text-crema/75">{etiqueta}</p>
         <p className="font-display text-2xl leading-tight tabular-nums">{money(monto)}</p>
       </div>
       <button
         type="button"
         disabled={deshabilitado}
         onClick={onClick}
-        className="label-cayla flex h-12 shrink-0 items-center gap-2 rounded-lg bg-crema px-4 text-[11px] text-tinta disabled:opacity-45"
+        className="label-cayla flex h-12 shrink-0 items-center gap-2 rounded-lg bg-crema px-4 text-xs text-tinta disabled:opacity-45"
       >
         {accion}
         {icono}

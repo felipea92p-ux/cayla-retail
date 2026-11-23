@@ -176,7 +176,7 @@ export function HojaLoEscaneado({
 
         {aparte.length > 0 && (
           <section className="vd-placa rounded-[var(--radius-tarjeta,1rem)] p-3 sm:p-4">
-            <p className="text-[15px] text-tinta">Aparte, por resolver</p>
+            <p className="text-sm text-tinta">Aparte, por resolver</p>
             <ul className="mt-2 divide-y divide-tinta/10">
               {aparte.map((h) => {
                 const quitado = Boolean(h.anuladaEn);
@@ -245,7 +245,7 @@ export function HojaLoEscaneado({
                 <li key={t.clave} className="vd-placa rounded-[var(--radius-tarjeta,1rem)] p-3 sm:p-4">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[15px] text-tinta">
+                      <p className="text-sm text-tinta">
                         Lo que escaneó {nombre} {deOALas} {cuando}
                       </p>
                       <p className="texto-detalle text-taupe">

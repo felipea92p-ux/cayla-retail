@@ -115,7 +115,7 @@ function Tarjeta({ d }: { d: DatosFicha }) {
         {d.fotos > 0 && <span className="absolute right-2.5 top-2.5 rounded-full bg-papel/90 px-2 py-0.5 text-sm tabular-nums text-tinta">{d.fotos} foto{d.fotos === 1 ? "" : "s"}</span>}
       </div>
       <div className="px-4 pb-4 pt-3.5">
-        <p className="font-mono text-[12.5px] tabular-nums text-taupe">{d.codigo ?? <Vacio>— código —</Vacio>}</p>
+        <p className="font-mono text-xs tabular-nums text-taupe">{d.codigo ?? <Vacio>— código —</Vacio>}</p>
         <p className="font-display mt-0.5 text-2xl leading-tight text-tinta">{d.nombre || <Vacio>Sin nombre</Vacio>}</p>
         <p className="text-sm text-taupe">
           {d.empresa && `${d.empresa} · `}
@@ -126,11 +126,11 @@ function Tarjeta({ d }: { d: DatosFicha }) {
         <dl className="mt-2.5 grid grid-cols-2 overflow-hidden rounded-lg border border-sand">
           <div className="px-2.5 py-2">
             <dt className="text-sm text-taupe">Variantes</dt>
-            <dd className="text-[17px] font-medium tabular-nums text-tinta">{d.variantes ?? <Vacio />}</dd>
+            <dd className="text-lg font-medium tabular-nums text-tinta">{d.variantes ?? <Vacio />}</dd>
           </div>
           <div className="border-l border-sand px-2.5 py-2">
             <dt className="text-sm text-taupe">Hoy en tienda</dt>
-            <dd className="text-[17px] font-medium tabular-nums text-tinta">{d.hoy ?? <Vacio />}</dd>
+            <dd className="text-lg font-medium tabular-nums text-tinta">{d.hoy ?? <Vacio />}</dd>
           </div>
         </dl>
         <div className="mt-3 border-t border-sand pt-3">

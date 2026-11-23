@@ -105,7 +105,7 @@ export function EtiquetaDeCampana({
       </div>
       <div ref={tarjeta} className="eqp-tarjeta">
         <span aria-hidden className="eqp-ojal" />
-        <span className="eqp-solo-ancho eqp-alto label-cayla block text-center text-[10.5px] text-taupe">Etiqueta de campaña</span>
+        <span className="eqp-solo-ancho eqp-alto label-cayla block text-center text-xs text-taupe">Etiqueta de campaña</span>
         <h3 className="eqp-nombre mt-1">{nombre}</h3>
         {titular ? (
           <p key={titular} className="eqp-pct cph-rueda">
@@ -137,7 +137,7 @@ export function EtiquetaDeCampana({
           <span className="eqp-cifra">
             <CifraQueCuenta valor={total} />
           </span>
-          <span className="text-[13px] text-taupe">{total === 1 ? "prenda la llevaría" : "prendas la llevarían"}</span>
+          <span className="text-xs text-taupe">{total === 1 ? "prenda la llevaría" : "prendas la llevarían"}</span>
         </p>
 
         {/* Sus categorías, de la que más trae a la que menos, con cuántas prendas trae cada una. */}
@@ -168,7 +168,7 @@ export function EtiquetaDeCampana({
           {ejemplo ? (
             <>
               <div className="flex items-center justify-between gap-2">
-                <span className="label-cayla text-[10.5px] text-taupe">{ejemplos.length > 1 ? `En caja · ${(verEjemplo % ejemplos.length) + 1} de ${ejemplos.length}` : "En caja"}</span>
+                <span className="label-cayla text-xs text-taupe">{ejemplos.length > 1 ? `En caja · ${(verEjemplo % ejemplos.length) + 1} de ${ejemplos.length}` : "En caja"}</span>
                 {ejemplos.length > 1 && (
                   <span className="flex gap-0.5">
                     <button type="button" className="cph-ej-b" aria-label="Prenda anterior" onClick={() => setVerEjemplo((i) => (i + ejemplos.length - 1) % ejemplos.length)}>
@@ -183,11 +183,11 @@ export function EtiquetaDeCampana({
               <div className="cph-caja" aria-live="polite">
                 <SinFoto tamano="h-11 w-10" prefijo={catEjemplo?.prefijo} familia={catEjemplo?.familiaCodigo} categoria={catEjemplo?.nombre} />
                 <span className="min-w-0">
-                  <span className="block truncate text-[12.5px] font-semibold" title={ejemplo.nombre}>{nombreSinSku(ejemplo.nombre)}</span>
-                  <span className="block truncate text-[11px] text-taupe">{ejemplo.enSede ? `Precio de ${ejemplo.enSede}` : (catEjemplo?.nombre ?? "")}</span>
+                  <span className="block truncate text-xs font-semibold" title={ejemplo.nombre}>{nombreSinSku(ejemplo.nombre)}</span>
+                  <span className="block truncate text-xs text-taupe">{ejemplo.enSede ? `Precio de ${ejemplo.enSede}` : (catEjemplo?.nombre ?? "")}</span>
                 </span>
                 <span className="text-right leading-tight">
-                  {ejemplo.despues !== ejemplo.antes && <span className="block text-[11.5px] text-taupe line-through">{soles(ejemplo.antes)}</span>}
+                  {ejemplo.despues !== ejemplo.antes && <span className="block text-xs text-taupe line-through">{soles(ejemplo.antes)}</span>}
                   <span className="cph-caja-precio">{soles(ejemplo.despues)}</span>
                 </span>
               </div>

@@ -281,7 +281,7 @@ function PanelTela({ ficha, borrador, puedeEditar, problemas, cambiar }: { ficha
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div>
-          <p className="font-display text-[17px] leading-tight text-tinta">Tela principal</p>
+          <p className="font-display text-lg leading-tight text-tinta">Tela principal</p>
           <p className="text-sm text-tinta/70">Metros que lleva una prenda, como los calcula Audaces.</p>
         </div>
         {variasTallas && (
@@ -378,7 +378,7 @@ function PanelAvios({
   return (
     <div className="@container space-y-3">
       <div>
-        <p className="font-display text-[17px] leading-tight text-tinta">Avíos</p>
+        <p className="font-display text-lg leading-tight text-tinta">Avíos</p>
         <p className="text-sm text-tinta/70">Botones, hilo, etiquetas: lo que lleva cada prenda además de la tela. «Para» dice a cuáles se aplica.</p>
       </div>
       {borrador.avios.length === 0 && <p className="text-sm text-tinta/70">Este modelo no tiene avíos. Si los agregas, las órdenes nuevas los proponen solas.</p>}
@@ -471,11 +471,11 @@ function DeDondeSale({ ficha, volver }: { ficha: FichaLeida; volver: AccionVolve
             const ahora = e.clave === actual;
             return (
               <li key={e.clave} className={`flex gap-2.5 ${hecho || ahora ? "" : "opacity-60"}`} aria-current={ahora ? "step" : undefined}>
-                <span aria-hidden className={`mt-0.5 grid h-5 w-5 flex-none place-items-center rounded-full border text-[11px] ${hecho ? "border-verde bg-verde text-papel" : ahora ? "border-tinta" : "border-sand"}`}>
+                <span aria-hidden className={`mt-0.5 grid h-5 w-5 flex-none place-items-center rounded-full border text-xs ${hecho ? "border-verde bg-verde text-papel" : ahora ? "border-tinta" : "border-sand"}`}>
                   {hecho ? "✓" : ahora ? <span className="h-2 w-2 rounded-full bg-tinta" /> : null}
                 </span>
                 <span>
-                  <span className="block text-[15px] font-semibold text-tinta">{e.titulo}</span>
+                  <span className="block text-sm font-semibold text-tinta">{e.titulo}</span>
                   <span className="block text-sm text-tinta/70">{e.detalle}</span>
                 </span>
               </li>

@@ -82,7 +82,7 @@ export function MatrizRecepcion({
   return (
     <div className="max-h-[520px] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
       <table // unificar-fijo: la matriz talla × color de la recepción, no una lista de registros
-        className="w-full border-separate border-spacing-0 text-[13px]"
+        className="w-full border-separate border-spacing-0 text-xs"
       >
         <thead>
           <tr>
@@ -116,7 +116,7 @@ export function MatrizRecepcion({
             const franja = color ? (fondoDeMuestra(color.hex, color.familiaColor, color.tipo) ?? "var(--color-sand)") : "var(--color-sand)";
             return (
               <tr key={c.codigo ?? "sin-color"}>
-                <th scope="row" className={`sticky left-0 z-[1] relative whitespace-nowrap border-r border-t border-sand py-1.5 pl-3.5 pr-2 text-left text-[12.5px] font-semibold text-tinta sm:py-2 sm:pl-4 sm:pr-2.5 sm:text-[13.5px] ${fondoFijo}`}>
+                <th scope="row" className={`sticky left-0 z-[1] relative whitespace-nowrap border-r border-t border-sand py-1.5 pl-3.5 pr-2 text-left text-xs font-semibold text-tinta sm:py-2 sm:pl-4 sm:pr-2.5 sm:text-detalle ${fondoFijo}`}>
                   <span
                     aria-hidden
                     data-color-dato

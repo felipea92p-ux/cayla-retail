@@ -549,7 +549,7 @@ export function CategoriasLista({
             <div className="grid gap-4 sm:grid-cols-[1fr_2fr_1fr]">
               {borrador.categoriaPadreId ? (
                 <div>
-                  <p className="label-cayla text-[11px] text-tinta/65">Familia</p>
+                  <p className="label-cayla text-xs text-tinta/65">Familia</p>
                   <p className="mt-1.5 flex h-9 items-center text-sm text-tinta/65">{etiquetaFamilia(borrador.familia)} (heredada)</p>
                 </div>
               ) : (
@@ -632,7 +632,7 @@ export function CategoriasLista({
 
           {editando && !borrador.categoriaPadreId && (
             <div data-guia="categorias.form-subcategorias" className="mt-5 border-t border-tinta/10 pt-4">
-              <p className="label-cayla text-[11px] text-tinta/65">Subcategorías</p>
+              <p className="label-cayla text-xs text-tinta/65">Subcategorías</p>
               {hijasDeEditada.length > 0 ? (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {hijasDeEditada.map((h) => (
@@ -651,7 +651,7 @@ export function CategoriasLista({
                       }
                       className="flex items-center gap-1.5 rounded-lg border border-tinta/10 bg-papel py-1 pl-1.5 pr-2.5 text-sm text-tinta hover:border-rojo/40 hover:text-rojo"
                     >
-                      <span className="rounded vd-gota-chica px-1.5 py-0.5 font-mono text-[10px] font-semibold text-tinta/65">{h.prefijo ?? "—"}</span>
+                      <span className="rounded vd-gota-chica px-1.5 py-0.5 font-mono text-xs font-semibold text-tinta/65">{h.prefijo ?? "—"}</span>
                       {h.nombre}
                     </button>
                   ))}
@@ -730,7 +730,7 @@ export function CategoriasLista({
           {editando && (
             <div data-guia="categorias.form-ejes" className="mt-5 space-y-4 border-t border-tinta/10 pt-4">
               <div>
-                <p className="label-cayla text-[11px] text-tinta/65">Tallas que ofrece</p>
+                <p className="label-cayla text-xs text-tinta/65">Tallas que ofrece</p>
                 {universo.tallas.length > 0 ? (
                   <div className="mt-1.5">
                     <SelectorMultiple
@@ -747,7 +747,7 @@ export function CategoriasLista({
                 )}
                 {ejesDraft.tallaIds.length > 0 && (
                   <div className="mt-3">
-                    <p className="label-cayla text-[11px] text-tinta/65">Curva habitual</p>
+                    <p className="label-cayla text-xs text-tinta/65">Curva habitual</p>
                     <p className="mt-0.5 text-sm text-tinta/70">Las que vienen marcadas de antemano al crear un producto de esta categoría.</p>
                     <div className="mt-1.5">
                       <SelectorMultiple
@@ -760,7 +760,7 @@ export function CategoriasLista({
                 )}
               </div>
               <div>
-                <p className="label-cayla text-[11px] text-tinta/65">Tejidos que ofrece</p>
+                <p className="label-cayla text-xs text-tinta/65">Tejidos que ofrece</p>
                 {universo.tejidos.length > 0 ? (
                   <div className="mt-1.5">
                     <SelectorMultiple
@@ -776,7 +776,7 @@ export function CategoriasLista({
                 )}
               </div>
               <div>
-                <p className="label-cayla text-[11px] text-tinta/65">Patrones que ofrece</p>
+                <p className="label-cayla text-xs text-tinta/65">Patrones que ofrece</p>
                 {universo.patrones.length > 0 ? (
                   <div className="mt-1.5">
                     <SelectorMultiple
@@ -842,7 +842,7 @@ export function CategoriasLista({
                 key={c.id}
                 className="flex w-full items-center gap-2 rounded-lg border border-tinta/10 bg-papel py-1.5 pl-2 pr-3 text-sm text-tinta/70 sm:w-auto"
               >
-                <span className="shrink-0 rounded vd-gota-chica px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
+                <span className="shrink-0 rounded vd-gota-chica px-1.5 py-0.5 font-mono text-xs font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
                 <span className="min-w-0 flex-1 truncate" title={c.nombre}>
                   {c.nombre}
                 </span>
@@ -903,7 +903,7 @@ function TarjetaCategoria({
       detalle={
         <>
           <p className="text-sm tabular-nums text-tinta/65">
-            <span className="mr-1.5 font-mono text-[10.5px] font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
+            <span className="mr-1.5 font-mono text-xs font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
             {subcategorias > 0 ? `${subcategorias} sub · ` : ""}
             {productos === 0 ? "sin productos" : `${productos} ${productos === 1 ? "producto" : "productos"}`}
           </p>
@@ -976,7 +976,7 @@ function VistaRapidaCategoria({
             <span className="text-sm text-tinta">
               {productos === 0 ? "Sin productos todavía" : `${productos} ${productos === 1 ? "producto activo" : "productos activos"}`}
             </span>
-            <span className="label-cayla text-[10px] text-tinta/70 group-hover:text-rojo">{/* unificar-fijo: el rótulo de una tarjeta que ya es enlace (no se anida un <EnlaceVer> en un <Link>) */}Ver en Productos →</span>
+            <span className="label-cayla text-xs text-tinta/70 group-hover:text-rojo">{/* unificar-fijo: el rótulo de una tarjeta que ya es enlace (no se anida un <EnlaceVer> en un <Link>) */}Ver en Productos →</span>
           </Link>
 
           {padre && (
@@ -987,7 +987,7 @@ function VistaRapidaCategoria({
 
           {hijas.length > 0 && (
             <div>
-              <p className="label-cayla text-[10.5px] text-tinta/70">Subcategorías</p>
+              <p className="label-cayla text-xs text-tinta/70">Subcategorías</p>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {hijas.map((h) => (
                   <button
@@ -996,7 +996,7 @@ function VistaRapidaCategoria({
                     onClick={() => onVerHija(h.id)}
                     className="flex items-center gap-1.5 rounded-lg border border-tinta/10 bg-papel py-1 pl-1.5 pr-2.5 text-sm text-tinta hover:border-rojo/40 hover:text-rojo"
                   >
-                    <span className="rounded vd-gota-chica px-1.5 py-0.5 font-mono text-[10px] font-semibold text-tinta/65">{h.prefijo ?? "—"}</span>
+                    <span className="rounded vd-gota-chica px-1.5 py-0.5 font-mono text-xs font-semibold text-tinta/65">{h.prefijo ?? "—"}</span>
                     {h.nombre}
                   </button>
                 ))}
@@ -1012,7 +1012,7 @@ function VistaRapidaCategoria({
 
           {temporada && (
             <div data-guia="categorias.vista-temporada">
-              <p className="label-cayla text-[10.5px] text-tinta/70">Temporada por defecto</p>
+              <p className="label-cayla text-xs text-tinta/70">Temporada por defecto</p>
               <p className="mt-1 text-sm text-tinta">{temporada.nombre ?? "Sin temporada"}</p>
               <p className="mt-0.5 text-sm text-tinta/70">
                 La heredan sus prendas que no tienen la suya.
@@ -1030,7 +1030,7 @@ function VistaRapidaCategoria({
 
           {categoria.notas && (
             <div>
-              <p className="label-cayla text-[10.5px] text-tinta/70">Notas internas</p>
+              <p className="label-cayla text-xs text-tinta/70">Notas internas</p>
               <p className="mt-1 text-sm text-tinta/70">{categoria.notas}</p>
             </div>
           )}
@@ -1051,7 +1051,7 @@ function GrupoEjes({ titulo, valores, marcados }: { titulo: string; valores: Val
   const hayMarcados = !!marcados && marcados.length > 0;
   return (
     <div>
-      <p className="label-cayla text-[10.5px] text-tinta/70">{titulo}{hayMarcados && " · ✓ = curva habitual"}</p>
+      <p className="label-cayla text-xs text-tinta/70">{titulo}{hayMarcados && " · ✓ = curva habitual"}</p>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {valores.map((v) => (
           <Chip key={v.id} tono="neutro">

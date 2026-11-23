@@ -200,6 +200,12 @@ jobs:
           node --test scripts/knip/produccion.test.mjs
           pnpm knip:produccion
 
+      # El aviso de la carpeta principal (hook `SessionStart` de `.claude/settings.json`): Claude Code lee las skills del proyecto de la
+      # carpeta principal del repo, y si va atrás de main la sesión lo dice al abrir. Comprueba qué dice en cada caso. ~0,1 s.
+      - name: Aviso de la carpeta principal
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: node --test scripts/claude/carpeta-principal.test.mjs
+
       # El aviario (ADR-0104): ninguna tabla de producción sin pájaro, ninguna con dos, y
       # `docs/datos/generado/AVIARIO.md` al día. Tampoco toca base de datos: lee el volcado
       # de producción commiteado, así que su alarma es tan fresca como ese volcado. No

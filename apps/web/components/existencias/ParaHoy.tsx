@@ -90,7 +90,7 @@ export function ParaHoy({
       >
         <span aria-hidden className={`h-2.5 w-2.5 shrink-0 self-start rounded-full ring-4 max-sm:mt-2.5 sm:self-center ${PUNTO[t.tono]}`} />
         <div className="min-w-0">
-          <p className="flex flex-wrap items-baseline gap-x-2 text-[15px] leading-6 text-tinta">
+          <p className="flex flex-wrap items-baseline gap-x-2 text-sm leading-6 text-tinta">
             {t.cifra !== null && <span className="font-display text-[26px] leading-none tabular-nums">{t.cifra.toLocaleString("es-PE")}</span>}
             <span className="font-medium">{t.texto}</span>
           </p>
@@ -139,7 +139,7 @@ export function ParaHoy({
         >
           {/* El punto toma el tono más grave de TODAS las tareas: un plazo vencido no queda escondido detrás de «por colgar». */}
           <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ring-4 ${PUNTO[plegado.tono]}`} />
-          <span className="min-w-0 flex-1 text-[15px] text-tinta">
+          <span className="min-w-0 flex-1 text-sm leading-tight text-tinta">
             {plegado.primera.cifra !== null && (
               <span className="mr-1.5 font-display text-[22px] tabular-nums">{plegado.primera.cifra.toLocaleString("es-PE")}</span>
             )}
@@ -156,7 +156,7 @@ export function ParaHoy({
       {tareas.length === 0 ? (
         <div className="flex items-center gap-4 border-t border-sand/70 px-5 py-4 max-sm:px-4">
           <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ring-4 ${PUNTO.verde}`} />
-          <p className="text-[15px] text-tinta">
+          <p className="text-sm text-tinta">
             Todo al día. <span className="text-taupe">No hay nada pendiente en el piso ni en el almacén de esta sede.</span>
           </p>
         </div>

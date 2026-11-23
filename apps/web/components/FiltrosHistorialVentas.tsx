@@ -189,7 +189,7 @@ export function FiltrosHistorialVentas({
               <Pastilla key={a.clave} activa={activo} onClick={() => aplicar(cambiosDeAtajo(a, activo))}>
                 {a.etiqueta}
                 {a.clave === "por_enviar" && porEnviar > 0 && (
-                  <span className={`ml-1.5 rounded-full px-1.5 text-[9.5px] leading-4 tracking-normal ${activo ? "bg-crema text-tinta" : "bg-ambar text-crema"}`}>{porEnviar}</span>
+                  <span className={`ml-1.5 rounded-full px-1.5 text-xs leading-4 tracking-normal ${activo ? "bg-crema text-tinta" : "bg-ambar text-crema"}`}>{porEnviar}</span>
                 )}
               </Pastilla>
             );

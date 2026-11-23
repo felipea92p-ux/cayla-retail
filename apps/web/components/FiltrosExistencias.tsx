@@ -295,7 +295,7 @@ export function FiltrosExistencias({
             partir de `sm` queda en una sola, igual que antes. */}
         {verComo && (
           <div role="group" aria-label="Ver como" data-guia="existencias.ver-como" className="flex min-h-9 min-w-0 max-w-full flex-wrap items-center gap-x-1.5 gap-y-1 px-3 max-sm:py-1">
-            <span className="label-cayla text-[11px] text-tinta/55">Ver como:</span>
+            <span className="label-cayla text-xs text-tinta/55">Ver como:</span>
             <span className="inline-flex max-w-full rounded-lg bg-tinta/[0.05] p-0.5">
               {VISTAS.map(({ valor, texto, icono: Icono }) => (
                 <button
@@ -304,7 +304,7 @@ export function FiltrosExistencias({
                   data-guia={`existencias.ver-${valor}`}
                   aria-pressed={verComo.valor === valor}
                   onClick={() => verComo.onValor(valor)}
-                  className="label-cayla inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-[11px] max-sm:px-2 text-tinta/60 transition-colors hover:text-tinta aria-pressed:bg-papel aria-pressed:text-tinta aria-pressed:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_12%,transparent)]"
+                  className="label-cayla inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-xs max-sm:px-2 text-tinta/60 transition-colors hover:text-tinta aria-pressed:bg-papel aria-pressed:text-tinta aria-pressed:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_12%,transparent)]"
                 >
                   <Icono aria-hidden className="h-3.5 w-3.5 shrink-0 max-[380px]:hidden" />
                   {texto}

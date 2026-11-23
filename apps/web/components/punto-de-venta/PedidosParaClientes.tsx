@@ -11,7 +11,7 @@ import { nombreCortoSede } from "@/lib/stock-por-sede";
 type ConCliente = PedidoEntreSedes & { cliente: ClientePedido };
 type Abierto = { tipo: "avisar"; pedido: PedidoPorAvisar } | { tipo: "pregunta"; pedido: ConCliente };
 
-const BOTON = "btn-cayla btn-secundario inline-flex h-8 shrink-0 items-center gap-1.5 px-2.5 text-[12.5px]";
+const BOTON = "btn-cayla btn-secundario inline-flex h-8 shrink-0 items-center gap-1.5 px-2.5 text-xs leading-tight";
 
 /**
  * Los pedidos que esta tienda hizo a otra para un cliente y que piden un paso de quien atiende (ADR-0328 act. 17): una franja

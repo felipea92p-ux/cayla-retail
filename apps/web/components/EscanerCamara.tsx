@@ -412,7 +412,7 @@ export function EscanerCamara({
                 />
               </div>
             ) : (
-              <p className="label-cayla text-[11px] text-crema/90">Escanear prenda</p>
+              <p className="label-cayla text-xs text-crema/90">Escanear prenda</p>
             )}
             {linterna.disponible ? (
               <button
@@ -433,7 +433,7 @@ export function EscanerCamara({
           <div className="papel-fijo relative flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-6">
             {sinCamara ? (
               <div className="relative z-10 flex max-w-xs flex-col items-center gap-5 text-center text-crema">
-                <p className="text-[15px] leading-relaxed">
+                <p className="text-sm leading-relaxed">
                   {estado === "sin-permiso"
                     ? "El navegador no tiene permiso para usar la cámara. Actívalo en los ajustes del navegador para este sitio, o busca la prenda por nombre."
                     : "No encontramos una cámara disponible en este aparato. Busca la prenda por nombre."}
@@ -465,7 +465,7 @@ export function EscanerCamara({
                   </div>
                   {estado === "abriendo" && <p className="absolute inset-0 grid place-items-center text-sm text-crema/80">Abriendo la cámara…</p>}
                 </div>
-                <p className="relative rounded-full bg-tinta/50 px-4 py-2 text-[13px] text-crema/90 backdrop-blur-md">
+                <p className="relative rounded-full bg-tinta/50 px-4 py-2 text-xs text-crema/90 backdrop-blur-md">
                   {consultando ? "Centra el QR · solo mira, no agrega al ticket" : "Centra el QR de la etiqueta en el cuadro"}
                 </p>
               </>
@@ -479,7 +479,7 @@ export function EscanerCamara({
               <>
                 {/* «Existencias»: en vez de las escaneadas y el ticket, lo que hay de la última prenda leída. Alto fijo, como el de
                     las filas de arriba (ADR-0185): leer otra prenda, o tocar otro color, no hace saltar la hoja. */}
-                <p className="label-cayla text-[10px] text-taupe">Existencias en {consulta.sede}</p>
+                <p className="label-cayla text-xs text-taupe">Existencias en {consulta.sede}</p>
                 <div aria-live="polite" className="mt-1 h-[12.25rem] overflow-y-auto [@media(max-height:500px)]:h-[9rem] [@media(min-height:700px)]:h-[15rem]">
                   <ExistenciasEnCamara
                     key={consultado?.id ?? 0}
@@ -493,10 +493,10 @@ export function EscanerCamara({
               </>
             ) : (
               <>
-                <p className="label-cayla text-[10px] text-taupe">Escaneadas</p>
+                <p className="label-cayla text-xs text-taupe">Escaneadas</p>
                 <ul aria-live="polite" className="mt-1 h-[6.5rem] overflow-hidden [@media(min-height:700px)]:h-[9.75rem]">
                   {historial.length === 0 ? (
-                    <li className="grid h-full place-items-center text-center text-[13px] text-tinta/55">Las prendas que escanees aparecen aquí.</li>
+                    <li className="grid h-full place-items-center text-center text-xs text-tinta/55">Las prendas que escanees aparecen aquí.</li>
                   ) : (
                     historial.map((l) => {
                       const { tono } = mensajeEscaneo(l);
@@ -528,7 +528,7 @@ export function EscanerCamara({
                     <Globito n={ticketMostrado.prendas} esquina sobreOscuro etiqueta="prendas en el ticket" className="absolute -right-1.5 -top-1.5" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="label-cayla block text-[10px] text-taupe">
+                    <span className="label-cayla block text-xs text-taupe">
                       Ticket · {ticketMostrado.prendas} {ticketMostrado.prendas === 1 ? "prenda" : "prendas"}
                     </span>
                     <span className="block font-display text-xl tabular-nums text-tinta">
@@ -557,7 +557,7 @@ export function EscanerCamara({
               <div className="flex w-[min(80vw,19rem)] -translate-x-1/2 -translate-y-1/2 items-center gap-3 rounded-2xl bg-crema p-2.5 pr-4 shadow-2xl">
                 <Miniatura prenda={vuelo.prenda} lado={52} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] font-medium text-tinta">{vuelo.prenda?.referencia ?? vuelo.codigo}</span>
+                  <span className="block truncate text-sm font-medium text-tinta">{vuelo.prenda?.referencia ?? vuelo.codigo}</span>
                   <span className="block truncate text-xs text-taupe">
                     {detalleDe(vuelo)} · {vuelo.estado === "agregada" ? soles(vuelo.prenda?.precio ?? 0) : <span className="text-ambar-profundo">{estadoCorto(vuelo)}</span>}
                   </span>

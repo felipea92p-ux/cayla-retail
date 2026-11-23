@@ -81,7 +81,7 @@ export function ContarCajonHoja({ inicial, onUsar, onClose }: { inicial: ConteoC
       )}
       <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl bg-tinta/[0.06] px-4 py-3">
         <div>
-          <p className="label-cayla text-[11px] text-taupe-profundo">Total contado</p>
+          <p className="label-cayla text-xs text-taupe-profundo">Total contado</p>
           <p className="font-display text-3xl leading-none tabular-nums text-tinta">{money(total)}</p>
         </div>
         <Boton

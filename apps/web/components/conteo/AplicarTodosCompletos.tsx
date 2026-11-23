@@ -39,7 +39,7 @@ export function BotonAplicarTodos({ control, alPedir }: { control: ControlConteo
       disabled={!hay}
       onClick={alPedir}
       title={hay ? "Cuenta las variantes pendientes con lo que CAYLA espera" : "No queda ninguna variante pendiente"}
-      className="btn-cayla btn-secundario h-9 min-h-0 shrink-0 gap-2 px-3 text-[13px] text-rojo-profundo disabled:opacity-50"
+      className="btn-cayla btn-secundario h-9 min-h-0 shrink-0 gap-2 px-3 text-xs leading-tight text-rojo-profundo disabled:opacity-50"
     >
       <ListChecks aria-hidden className="h-4 w-4" />
       Aplicar todos completos

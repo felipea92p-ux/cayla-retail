@@ -142,7 +142,7 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
       {(cerrar) => (
         <div className="space-y-4">
           <div className="card-cayla p-5 text-center">
-            <p className="label-cayla text-[11px] text-verde-profundo">Listo</p>
+            <p className="label-cayla text-xs text-verde-profundo">Listo</p>
             <p className="font-display mt-2 text-3xl text-tinta">{money(a.adelanto)}</p>
             <p className="mt-1 text-sm text-tinta/70">
               adelanto de {money(a.total)} · saldo {money(a.total - a.adelanto)}
@@ -150,18 +150,18 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
           </div>
           {vuelto > 0 && (
             <div className="flex items-baseline justify-between rounded-xl border border-tinta/15 bg-papel px-4 py-3">
-              <span className="label-cayla text-[11px] text-tinta/70">Entregar vuelto</span>
+              <span className="label-cayla text-xs text-tinta/70">Entregar vuelto</span>
               <span className="font-display text-3xl text-tinta">{money(vuelto)}</span>
             </div>
           )}
           <div className="card-cayla flex items-center gap-4 p-4">
             <div className="w-14 shrink-0 overflow-hidden rounded-lg border border-sand bg-papel text-center">
-              <p className="bg-rojo py-0.5 text-[10px] font-semibold tracking-[0.14em] text-papel">{mes}</p>
+              <p className="bg-rojo py-0.5 text-xs font-semibold tracking-[0.14em] text-papel">{mes}</p>
               <p className="font-display text-3xl leading-tight text-tinta">{dia}</p>
               <p className="pb-1 text-sm text-tinta/60">{semana}</p>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="label-cayla text-[11px] text-tinta/60">Recoger hasta</p>
+              <p className="label-cayla text-xs text-tinta/60">Recoger hasta</p>
               <p className="text-sm text-tinta">
                 {fechaCorta(a.venceEl)} · {PLAZO_DIAS} días
               </p>
@@ -205,7 +205,7 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
           </div>
           <fieldset className="card-cayla space-y-2 p-4">
             <legend className="sr-only">Con la prenda en la mano</legend>
-            <p className="label-cayla text-[11px] text-tinta/60">Ahora, con la prenda en la mano</p>
+            <p className="label-cayla text-xs text-tinta/60">Ahora, con la prenda en la mano</p>
             {pasos.map((t, i) => (
               <label key={i} className="flex cursor-pointer items-start gap-2.5 text-sm">
                 <Casilla marcada={hechos[i]} onCambio={() => setHechos((h) => h.map((x, j) => (j === i ? !x : x)))} etiqueta={t} className="mt-0.5 shrink-0" />
@@ -233,7 +233,7 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo =
       {(cerrar) => (
         <div className="space-y-4">
           <div className="card-cayla p-5 text-center">
-            <p className="label-cayla text-[11px] text-verde-profundo">Liquidado</p>
+            <p className="label-cayla text-xs text-verde-profundo">Liquidado</p>
             <p className="font-display mt-2 text-3xl text-tinta">{money(a.total)}</p>
             <p className="mt-1 text-sm text-tinta/70">
               {money(a.adelanto)} de adelanto + {money(a.total - a.adelanto)} hoy · {a.nombres}
@@ -241,7 +241,7 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo =
           </div>
           {vuelto > 0 && (
             <div className="flex items-baseline justify-between rounded-xl border border-tinta/15 bg-papel px-4 py-3">
-              <span className="label-cayla text-[11px] text-tinta/70">Entregar vuelto</span>
+              <span className="label-cayla text-xs text-tinta/70">Entregar vuelto</span>
               <span className="font-display text-3xl text-tinta">{money(vuelto)}</span>
             </div>
           )}
@@ -391,8 +391,8 @@ function AvisoDeCancelacion({ apartado, mensaje, cerrar }: { apartado: Apartado;
   return (
     <div className="space-y-4">
       <div className="card-cayla space-y-2 p-4">
-        <p className="label-cayla text-[11px] text-tinta/60">Mensaje para {apartado.nombres}</p>
-        <p className="rounded-xl rounded-bl-sm vd-placa px-3.5 py-3 text-[15px] text-tinta">{mensaje}</p>
+        <p className="label-cayla text-xs text-tinta/60">Mensaje para {apartado.nombres}</p>
+        <p className="rounded-xl rounded-bl-sm vd-placa px-3.5 py-3 text-sm text-tinta">{mensaje}</p>
       </div>
       <div className="pie-acciones">
         <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Ahora no</button>
@@ -478,7 +478,7 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
       {(cerrar) => (
         <div className="space-y-4">
           <div className="card-cayla p-4 text-center">
-            <p className="label-cayla text-[11px] text-rojo-profundo">A devolver</p>
+            <p className="label-cayla text-xs text-rojo-profundo">A devolver</p>{/* unificar-fijo: el rótulo de una cifra que sale de caja, no un aviso de error */}
             <p className="font-display mt-1 text-3xl text-tinta">{money(apartado.adelanto)}</p>
             <p className="mt-1 text-sm text-tinta/70">Pidió que se le devuelva por {textoDevolucion(apartado)}</p>
           </div>
@@ -638,8 +638,8 @@ export function RecordarModal({
             </>
           )}
           <div className="card-cayla space-y-2 p-4">
-            <p className="label-cayla text-[11px] text-tinta/60">Mensaje para {actual.nombres}</p>
-            <p className="rounded-xl rounded-bl-sm vd-placa px-3.5 py-3 text-[15px] text-tinta">{mensaje}</p>
+            <p className="label-cayla text-xs text-tinta/60">Mensaje para {actual.nombres}</p>
+            <p className="rounded-xl rounded-bl-sm vd-placa px-3.5 py-3 text-sm text-tinta">{mensaje}</p>
             <p className="text-sm text-tinta/60">Se abre WhatsApp con este texto y lo envías tú. Al volver, queda anotado quién le escribió y cuándo.</p>
           </div>
           <div className="pie-acciones">
@@ -1241,7 +1241,7 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
           </div>
           {grupos.map((g) => (
             <div key={g}>
-              <p className="label-cayla mb-1 text-[10.5px] text-tinta/55">{g}</p>
+              <p className="label-cayla mb-1 text-xs text-tinta/55">{g}</p>
               <ul className="divide-y divide-sand">
                 {FUNCIONES_APARTADOS.filter((f) => f.grupo === g).map((f) => {
                   const on = !apagadas.includes(f.clave);

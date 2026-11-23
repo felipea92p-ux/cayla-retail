@@ -314,7 +314,7 @@ function Matriz({
         <div className="rc-matriz" style={{ gridTemplateColumns: `minmax(6.5rem, 9rem) repeat(${matriz.tallas.length}, minmax(5.25rem, 7rem))` }} role="group" aria-label={`${cifraActiva === "costo" ? "Costo" : "Precio de venta"} por color y talla de ${nombre}`}>
           <span />
           {matriz.tallas.map((t) => (
-            <span key={t} className="label-cayla text-center text-[11px] text-taupe">
+            <span key={t} className="label-cayla text-center text-xs text-taupe">
               {t}
             </span>
           ))}
@@ -375,7 +375,7 @@ function Matriz({
               />
             )}
             {cifraActiva === "precio" && soloSede && <span className="text-sm text-taupe">Vale solo en {nombreCorto(sede)}.</span>}
-            {opcionesAlcance.length > 1 && <span className="label-cayla text-[11px] text-taupe">Aplicar a</span>}
+            {opcionesAlcance.length > 1 && <span className="label-cayla text-xs text-taupe">Aplicar a</span>}
             {opcionesAlcance.length > 1 && <ElegirOpcion chico etiqueta="Aplicar a: hasta dónde llega lo que escribiste" opciones={opcionesAlcance} valor={alcanceVigente} onValor={(v) => setAlcance(v as Alcance)} />}
             <span className="ml-auto flex gap-2">
               <Boton type="button" peso="fantasma" className="btn-chico" onClick={cancelar}>
@@ -503,7 +503,7 @@ function Vitrina({
           <SinFoto tamano="h-full w-full" {...categoria} />
         </span>
         <span className="min-w-0">
-          <b className="block truncate text-[15px] text-tinta">{nombre}</b>
+          <b className="block truncate text-sm text-tinta">{nombre}</b>
           <span className="block truncate text-sm text-taupe">{sub}</span>
         </span>
         {/* La etiqueta con su título a la vista (Formidable 2026-10-29: la ciega no la reconocía como el precio). No se vuelve a montar al cambiar
@@ -531,7 +531,7 @@ function Vitrina({
 
       <div className="rc-vitrina-info">
         <div className="rc-vitrina-linea">
-          <span className="text-[14px] text-taupe">Costo c/u {hayCostoCambiado && <Chip tono="ambar" versalitas={false}>cambiado</Chip>}</span>
+          <span className="text-detalle text-taupe">Costo c/u {hayCostoCambiado && <Chip tono="ambar" versalitas={false}>cambiado</Chip>}</span>
           {puedeCosto ? (
             <CampoTexto
               caja
@@ -549,11 +549,11 @@ function Vitrina({
               onKeyDown={teclas("costo", costoEscrito)}
             />
           ) : (
-            <b className="text-[15px] text-tinta">—</b>
+            <b className="text-sm text-tinta">—</b>
           )}
         </div>
         <div className="rc-vitrina-linea">
-          <span className="text-[14px] text-taupe">Ganas por prenda</span>
+          <span className="text-detalle text-taupe">Ganas por prenda</span>
           <b className="rc-vitrina-gana" data-pierde={cara.pierde ? "" : undefined}>
             {puedeCosto && cara.ganaTexto ? cara.ganaTexto : "—"}
           </b>
@@ -563,7 +563,7 @@ function Vitrina({
           <p className="text-sm text-taupe">{MENSAJE_SIN_CONTEO} Su precio se pone cuando tenga tallas y colores.</p>
         ) : (
           <div className="space-y-2">
-            <span className="label-cayla block text-[11px] text-taupe">El precio vale en</span>
+            <span className="label-cayla block text-xs text-taupe">El precio vale en</span>
             {soloSede ? (
               <p className="text-sm text-taupe">Desde esta terminal, el precio vale solo en {nombreCorto(sede)}.</p>
             ) : (

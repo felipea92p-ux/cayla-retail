@@ -195,14 +195,14 @@ export function SugerenciasColaModal({
                         />
                         <span className="grid min-w-0 flex-1 gap-x-6 gap-y-1 sm:grid-cols-2">
                           <span className="min-w-0">
-                            <span className="block text-[11px] uppercase tracking-wide text-taupe">Lo que anotó caja</span>
+                            <span className="block text-xs uppercase tracking-wide text-taupe">Lo que anotó caja</span>
                             <span className="block truncate text-sm text-tinta">{s.venta.descripcion}</span>
                             <span className="block text-sm text-taupe">
                               {[s.venta.categoria, s.venta.talla, s.venta.color].join(" · ")} · {soles(s.venta.precioCobrado)} · {s.venta.vendidoPor} · {dia}
                             </span>
                           </span>
                           <span className="min-w-0">
-                            <span className="block text-[11px] uppercase tracking-wide text-taupe">Sugerida</span>
+                            <span className="block text-xs uppercase tracking-wide text-taupe">Sugerida</span>
                             <span className="block truncate text-sm text-tinta">{s.prenda.nombre}</span>
                             <span className="block text-sm text-taupe">
                               {s.prenda.codigo} · {[s.prenda.talla, s.prenda.color].join(" · ")} · oficial {soles(s.prenda.precio)} · {textoDiferencia(s.diferencia)} · hay {s.enStock}

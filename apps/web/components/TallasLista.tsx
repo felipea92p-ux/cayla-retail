@@ -57,7 +57,7 @@ type Talla = {
 // cerrada de Etiquetas (sin rojo: acento sagrado, máx. 2 usos por pantalla).
 const TIPOS: Record<TipoTalla, { grupo: string; dot: string; estilo: Estilo }> = {
   letras: { grupo: "Letras", dot: "bg-tinta/25", estilo: "neutral" },
-  numeracion: { grupo: "Numeración", dot: "bg-taupe-profundo", estilo: "campana" },
+  numeracion: { grupo: "Numeración", dot: "bg-taupe", estilo: "campana" },
   unica: { grupo: "Única y estándar", dot: "bg-verde", estilo: "positivo" },
   otras: { grupo: "Otras", dot: "bg-ambar", estilo: "urgencia" },
 };

@@ -126,7 +126,7 @@ export function ConfirmarCambios({
 
           {responsable && (
             <div id="confirmar-cambios-responsable" data-campo="confirmar-cambios-responsable" className="space-y-1.5">
-              <p className="label-cayla text-[11px] text-taupe">Quién hace estos cambios</p>
+              <p className="label-cayla text-xs text-taupe">Quién hace estos cambios</p>
               <ComboResponsable control={responsable} deshabilitado={enCurso} />
               {faltaResponsable && responsable.motivo && <p className="text-sm leading-snug text-taupe">{responsable.motivo}</p>}
             </div>

@@ -189,8 +189,8 @@ export function PreciosPorSede({
               key={f.ubicacionId}
               className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2"
             >
-              <span className="min-w-[7.5rem] text-[13px] text-tinta">{f.sede}</span>
-              <span className="font-mono text-[14px] font-semibold text-tinta">
+              <span className="min-w-[7.5rem] text-xs text-tinta">{f.sede}</span>
+              <span className="font-mono text-detalle font-semibold text-tinta">
                 {precioDeLaTienda.precio !== null ? soles(precioDeLaTienda.precio) : "Según la talla"}
               </span>
               {tallas.length > 0 && <Chip tono="ambar">{tallas.length === 1 ? "1 talla con otro precio" : `${tallas.length} tallas con otro precio`}</Chip>}

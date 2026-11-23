@@ -212,7 +212,7 @@ export function FotosPorColor({
                 etiquetaAccesible={`Pasar la foto de ${nombreColor(f.colorCodigo)} a otro color`}
                 deshabilitado={bloqueado}
               />
-              <button type="button" disabled={bloqueado} onClick={() => onFotos(sinLaFoto(fotos, f.clientKey))} className="btn-cayla btn-peligro text-[12.5px]">
+              <button type="button" disabled={bloqueado} onClick={() => onFotos(sinLaFoto(fotos, f.clientKey))} className="btn-cayla btn-peligro text-xs leading-tight">
                 Quitar
               </button>
             </div>
@@ -266,8 +266,8 @@ function Miniatura({ foto, ancho }: { foto: FotoLocal; ancho: string }) {
   );
 }
 
-const INSIGNIA_PRINCIPAL = "label-cayla absolute left-2 top-2 rounded bg-rojo px-1.5 py-0.5 text-[9px] text-crema";
-const INSIGNIA_NUEVA = "absolute right-2 top-2 rounded-full bg-ambar px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-papel";
+const INSIGNIA_PRINCIPAL = "label-cayla absolute left-2 top-2 rounded bg-rojo px-1.5 py-0.5 text-xs text-crema";
+const INSIGNIA_NUEVA = "absolute right-2 top-2 rounded-full bg-ambar px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-papel";
 
 /** El rectángulo de un color (o de «Todos los colores»): su portada con cuántas fotos tiene, o el vacío punteado para agregar la primera. */
 function Tarjeta({
@@ -359,7 +359,7 @@ function Tarjeta({
           <span className="text-sm font-normal text-taupe">{subVacio}</span>
         </BotonFoto>
       )}
-      <div className="flex min-w-0 items-center gap-2 text-[15px] font-medium text-tinta">
+      <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-tinta">
         {punto}
         <span className="min-w-0 truncate">{titulo}</span>
         {(!general || fotos.length > 0) && (
@@ -459,7 +459,7 @@ function HojaDeFotos({
                   )}
                   {/* Al final: así los combos de las fotos quedan a la misma altura, la tenga o no. */}
                   {sePuedePonerPrimera(todas, f.clientKey) && (
-                    <button type="button" disabled={bloqueado} onClick={() => onFotos(primeraEnSuColor(todas, f.clientKey))} className="btn-cayla btn-enlace self-start text-[12.5px]">
+                    <button type="button" disabled={bloqueado} onClick={() => onFotos(primeraEnSuColor(todas, f.clientKey))} className="btn-cayla btn-enlace self-start text-xs leading-tight">
                       Ponerla primera
                     </button>
                   )}

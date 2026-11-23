@@ -138,7 +138,7 @@ export function HojaDetalle({ envio, sede, onCerrar }: { envio: EnvioPorAbrir; s
           {detalle && (
             <>
               <div className="flex items-center justify-between gap-3">
-                <p className="label-cayla text-[11px] text-taupe">Lo que trae</p>
+                <p className="label-cayla text-xs text-taupe">Lo que trae</p>
                 <Chip tono="pizarra">En camino</Chip>
               </div>
               <ul className="space-y-1.5" aria-label="Lo que trae">
@@ -147,13 +147,13 @@ export function HojaDetalle({ envio, sede, onCerrar }: { envio: EnvioPorAbrir; s
                     <BaldosaCategoria categoria={l.categoria} tamano="chico" />
                     <b className="text-sm text-tinta">{l.categoria?.nombre ?? "Categoría"}</b>
                     <span className="min-w-0 flex-1 truncate text-sm text-taupe">{[l.marca?.nombre, proveedores.length >= 2 ? l.proveedor?.nombre : null, l.descripcion].filter(Boolean).join(" · ")}</span>
-                    <b className="text-[17px] tabular-nums text-tinta">{l.enviado.toLocaleString("es-PE")}</b>
+                    <b className="text-lg tabular-nums text-tinta">{l.enviado.toLocaleString("es-PE")}</b>
                   </li>
                 ))}
               </ul>
               <div className="space-y-1">
                 <VienenFardos bultos={detalle.bultos} />
-                <p className="text-[14.5px] text-tinta">
+                <p className="text-detalle text-tinta">
                   Dijeron <b className="font-display text-[22px] tabular-nums">{detalle.enviado.toLocaleString("es-PE")}</b> {detalle.enviado === 1 ? "prenda" : "prendas"} · {categorias}{" "}
                   {categorias === 1 ? "categoría" : "categorías"} · {proveedores.length} {proveedores.length === 1 ? "proveedor" : "proveedores"} ·{" "}
                   <span className="text-taupe">todo viene sin etiqueta</span>
@@ -162,7 +162,7 @@ export function HojaDetalle({ envio, sede, onCerrar }: { envio: EnvioPorAbrir; s
               {detalle.nota && <p className="nota-cayla">Nota de quien lo envió: {detalle.nota}</p>}
 
               <div className="space-y-3 border-t border-sand pt-4">
-                <p className="text-[14.5px] font-semibold text-tinta">¿Vas a recepcionar una compra? Empieza a recibirla.</p>
+                <p className="text-detalle font-semibold text-tinta">¿Vas a recepcionar una compra? Empieza a recibirla.</p>
                 <CampoGuiado id="responsable" guia={guia} titulo="Quién recibe">
                   <ComboResponsable control={responsable} deshabilitado={abriendo} />
                 </CampoGuiado>

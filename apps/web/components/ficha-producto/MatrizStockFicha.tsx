@@ -266,7 +266,7 @@ export function MatrizStockFicha({
       </div>
 
       {/* Las bajadas apiladas en la misma celda de grid: la más larga fija el alto, y cambiar de pestaña no mueve la tabla (ADR-0185). */}
-      <div className="grid text-[12.5px] text-taupe">
+      <div className="grid text-xs text-taupe">
         <p className={`col-start-1 row-start-1 ${enUnidades ? "" : "invisible"}`} aria-hidden={!enUnidades}>
           Lo que hay hoy en esta sede.{stock.puedeAjustar ? " Cada número tiene candado: tócalo para ajustar el stock en Existencias." : ""}{" "}
           <span className="text-tinta/45">—</span> = no existe: tócala para agregarla.
@@ -311,9 +311,9 @@ export function MatrizStockFicha({
       </div>
 
       {stock.fallaLectura && (
-        <p role="alert" className="flex flex-wrap items-center gap-x-2 text-[12.5px] text-ambar-profundo">
+        <p role="alert" className="flex flex-wrap items-center gap-x-2 text-xs text-ambar-profundo">
           No se pudo leer el stock de esta sede: las tallas siguen en «…».
-          <button type="button" onClick={stock.recargar} className="btn-cayla btn-enlace text-[12.5px]">
+          <button type="button" onClick={stock.recargar} className="btn-cayla btn-enlace text-xs leading-tight">
             Reintentar
           </button>
         </p>
@@ -327,7 +327,7 @@ export function MatrizStockFicha({
             pestaña no corre las tallas. El color tiene su ancho y su nombre se corta con «…»; las tallas se reparten lo que queda,
             y en una pantalla angosta la tabla no se aprieta: se desliza de lado (el mínimo de abajo), con el color fijo a la izquierda. */}
         <table
-          className="w-full table-fixed border-separate border-spacing-0 text-[13px]"
+          className="w-full table-fixed border-separate border-spacing-0 text-xs"
           style={{ minWidth: ANCHO_COLOR_MIN_PX + m.tallas.length * anchoTalla + (conColumnaTotal ? ANCHO_RESUMEN_PX : 0) }}
           id="matriz-variantes"
         >
@@ -377,7 +377,7 @@ export function MatrizStockFicha({
                             {nombreTalla}
                           </span>
                         )}
-                        {tallaNueva && <span className="text-[9.5px] font-bold uppercase tracking-wide text-ambar-profundo">nueva</span>}
+                        {tallaNueva && <span className="text-xs font-bold uppercase tracking-wide text-ambar-profundo">nueva</span>}
                       </span>
                       <button
                         type="button"
@@ -416,7 +416,7 @@ export function MatrizStockFicha({
                 <tr key={c ?? "sin-color"} id={`matriz-color-${c ?? "sin-color"}`} className={esNuevo ? "taller-fila-nueva" : undefined}>
                   <th
                     scope="row"
-                    className={`sticky left-0 z-[1] relative overflow-hidden border-r border-t border-sand py-1.5 pl-3 pr-1.5 text-left text-[12.5px] font-semibold text-tinta @lg:py-2 @lg:pl-3.5 @lg:pr-2 @lg:text-[13.5px] ${fondoFila}`}
+                    className={`sticky left-0 z-[1] relative overflow-hidden border-r border-t border-sand py-1.5 pl-3 pr-1.5 text-left text-xs font-semibold text-tinta @lg:py-2 @lg:pl-3.5 @lg:pr-2 @lg:text-detalle ${fondoFila}`}
                   >
                     <span aria-hidden className="absolute inset-y-0 left-0 w-[5px] shadow-[inset_-1px_0_0_0_color-mix(in_srgb,var(--color-tinta)_18%,transparent)]" style={{ background: franja }} />
                     <span className="flex items-center justify-between gap-1.5">
@@ -435,7 +435,7 @@ export function MatrizStockFicha({
                         <span className="truncate" title={nombreColor}>
                           {nombreColor}
                         </span>
-                        {esNuevo && <span className="text-[9.5px] font-bold uppercase tracking-wide text-ambar-profundo">nueva</span>}
+                        {esNuevo && <span className="text-xs font-bold uppercase tracking-wide text-ambar-profundo">nueva</span>}
                       </span>
                     </button>
                     {botonesColor(botonesDeColor(c), nombreColor)}
@@ -467,7 +467,7 @@ export function MatrizStockFicha({
                     );
                   })}
                   {conColumnaTotal && (
-                    <td className={`truncate border-l border-t border-sand px-1 text-center text-[12px] tabular-nums text-taupe ${fondoFila}`}>
+                    <td className={`truncate border-l border-t border-sand px-1 text-center text-xs tabular-nums text-taupe ${fondoFila}`}>
                       {resumenDeFila(c, delColor)}
                     </td>
                   )}
@@ -577,7 +577,7 @@ export function MatrizStockFicha({
           —
         </span>
         {h.puede && (
-          <span aria-hidden className="hidden items-center gap-1 text-[12px] font-semibold group-hover:inline-flex group-focus-visible:inline-flex">
+          <span aria-hidden className="hidden items-center gap-1 text-xs font-semibold group-hover:inline-flex group-focus-visible:inline-flex">
             <Plus className="h-3 w-3" />
             {h.queHace === "reactiva" ? "Volver" : "Agregar"}
           </span>
@@ -683,7 +683,7 @@ export function MatrizStockFicha({
         onClick={() => onEtiqueta(etiquetaElegida, !lleva, [f.clave])}
         data-cambiada={cambiada || undefined}
         style={lleva ? { backgroundColor: acentoElegida, borderColor: acentoElegida } : undefined}
-        className={`grid h-8 w-8 place-items-center rounded-[7px] border text-[13px] font-semibold transition-[background-color,border-color,transform] duration-200 ease-cayla active:scale-95 disabled:opacity-40 motion-reduce:transition-none ${
+        className={`grid h-8 w-8 place-items-center rounded-[7px] border text-xs font-semibold transition-[background-color,border-color,transform] duration-200 ease-cayla active:scale-95 disabled:opacity-40 motion-reduce:transition-none ${
           lleva ? "text-crema hover:opacity-90" : "border-borde-control vd-gota text-transparent hover:border-taupe"
         } ${cambiada ? "ring-2 ring-ambar ring-offset-1 ring-offset-papel" : ""} ${f.guardada ? "" : "outline-[1.5px] outline-dashed outline-offset-2 outline-ambar"}`}
       >
@@ -698,7 +698,7 @@ export function MatrizStockFicha({
     const nivel = nivelMargen(margen);
     return (
       <span
-        className={`text-[10.5px] leading-none tabular-nums ${nivel === "negativo" ? "text-rojo-profundo" : nivel === "bajo" ? "text-ambar-profundo" : "text-taupe"}`}
+        className={`text-xs leading-none tabular-nums ${nivel === "negativo" ? "text-rojo-profundo" : nivel === "bajo" ? "text-ambar-profundo" : "text-taupe"}`}
         title={nivel === "negativo" ? "Con este precio se pierde dinero en cada venta" : nivel === "bajo" ? "Menos de 30 %: un descuento de campaña ya se come la ganancia" : "Margen"}
       >
         {margen === null ? "—" : `${margen.toFixed(0)} %`}
@@ -729,7 +729,7 @@ export function MatrizStockFicha({
           }
           onChange={(e) => precioAqui.onCambio(limpiarPrecio(e.target.value))}
           onFocus={(e) => e.currentTarget.select()}
-          className={`w-[58px] rounded-[7px] border border-borde-control vd-hundido px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none focus:border-taupe focus:bg-papel @lg:w-[66px] ${
+          className={`w-[58px] rounded-[7px] border border-borde-control vd-hundido px-0.5 py-1.5 text-center text-xs tabular-nums outline-none focus:border-taupe focus:bg-papel @lg:w-[66px] ${
             precioAqui.cambiado ? "font-semibold text-ambar-profundo" : "text-tinta"
           }`}
         />
@@ -737,7 +737,7 @@ export function MatrizStockFicha({
     }
     if (campo === "precio" && precioFijo && f.guardada) {
       return (
-        <span className="px-1 text-[13px] tabular-nums text-tinta" title="El precio de la prenda vale en todas las tiendas: desde una terminal no se cambia">
+        <span className="px-1 text-xs tabular-nums text-tinta" title="El precio de la prenda vale en todas las tiendas: desde una terminal no se cambia">
           {texto(valor)}
         </span>
       );
@@ -748,7 +748,7 @@ export function MatrizStockFicha({
       const porque = (f.id ? cuentaDeLaTalla(ctx.costo?.tallas?.[f.id], Number(valor)) : null) ?? textosCostoFijo(ctx.costoSinComprobar).celda;
       return (
         <>
-          <span className="px-1 text-[13px] tabular-nums text-tinta/60">
+          <span className="px-1 text-xs tabular-nums text-tinta/60">
             {texto(valor)}
             <Ayuda titulo={`Costo de ${etiqueta}`}>{porque}</Ayuda>
           </span>
@@ -769,7 +769,7 @@ export function MatrizStockFicha({
         title={cambiado ? `Antes S/\u00a0${texto(antes!)} · se guarda con «Revisar y guardar»` : undefined}
         onChange={(e) => onCambioFila(f.clave, { [campo]: limpiarPrecio(e.target.value) })}
         onFocus={(e) => e.currentTarget.select()}
-        className={`w-[58px] rounded-[7px] border border-borde-control vd-hundido px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none focus:border-taupe focus:bg-papel @lg:w-[66px] ${
+        className={`w-[58px] rounded-[7px] border border-borde-control vd-hundido px-0.5 py-1.5 text-center text-xs tabular-nums outline-none focus:border-taupe focus:bg-papel @lg:w-[66px] ${
           cambiado ? "font-semibold text-ambar-profundo" : "text-tinta"
         } ${f.guardada ? "" : "outline-[1.5px] outline-dashed outline-ambar"}`}
       />

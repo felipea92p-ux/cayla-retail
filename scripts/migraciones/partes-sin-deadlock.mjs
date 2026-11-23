@@ -7,7 +7,7 @@
  * y `storage` que lista `supautils.policy_grants` (21 hoy) hasta el final. Si la misma pegada ya tiene tomada en exclusiva
  * una tabla que la tienda usa (por un `alter table ubicaciones`), choca con el Asesor de seguridad del panel, que lee
  * `storage.buckets` y después esa tabla: `40P01 deadlock detected`, y no se aplica nada (ADR-0195, F1, 2026-09-24). La regla
- * está en CLAUDE.md («Políticas y deadlocks»), y `sin-drop-trigger.mjs` vigila la mitad que se lee en el texto. Esta mitad
+ * está en `.claude/rules/sql-produccion.md` («Políticas y deadlocks»), y `sin-drop-trigger.mjs` vigila la mitad que se lee en el texto. Esta mitad
  * no se lee: hay que ver qué candados toma cada sentencia, y eso solo lo dice Postgres.
  *
  * CÓMO LO MIDE. Corre la migración en un Postgres de Supabase dentro de `begin … rollback` (nunca la deja aplicada), y
@@ -308,7 +308,7 @@ export function informe(resultados, { reproduce = true } = {}) {
   }
   for (const r of resultados) {
     if (r.error || r.sinMedir) {
-      lineas.push(`::warning::${r.archivo}: no se pudo medir (${r.sinMedir ?? r.error}). Eso no dice que esté bien: revisa sus partes a mano (CLAUDE.md, «Políticas y deadlocks»).`);
+      lineas.push(`::warning::${r.archivo}: no se pudo medir (${r.sinMedir ?? r.error}). Eso no dice que esté bien: revisa sus partes a mano (.claude/rules/sql-produccion.md, «Políticas y deadlocks»).`);
       continue;
     }
     if (r.mezclas.length === 0) {
@@ -325,7 +325,7 @@ export function informe(resultados, { reproduce = true } = {}) {
   if (rojo) {
     lineas.push("");
     lineas.push("Pásala a su propia parte: una línea `-- ===== PARTE N · políticas =====` antes de la política, y en producción pega");
-    lineas.push("esa parte sola y al final. Detalle: encabezado de scripts/migraciones/partes-sin-deadlock.mjs y CLAUDE.md, «Políticas y deadlocks».");
+    lineas.push("esa parte sola y al final. Detalle: encabezado de scripts/migraciones/partes-sin-deadlock.mjs y .claude/rules/sql-produccion.md, «Políticas y deadlocks».");
   }
   return { texto: lineas.join("\n"), rojo };
 }

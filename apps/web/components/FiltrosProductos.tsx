@@ -629,7 +629,7 @@ function BloquePrecio({
     // Se parte en dos líneas si no cabe (cajas arriba, control abajo): a 768 px con el menú lateral quedan ~420 px de panel.
     <div className={`flex min-h-9 min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1 ${activa ? "text-tinta" : "text-tinta/60"}`} role="group" aria-label="Precio">
       <Banknote aria-hidden className={`h-3.5 w-3.5 shrink-0 ${activa ? "text-tinta/70" : "text-tinta/40"}`} />
-      <span className="label-cayla text-[11px]">Precio</span>
+      <span className="label-cayla text-xs">Precio</span>
       <CajaMonto
         valor={precioMin}
         // Ejemplo derivado de los precios reales de lo que se está viendo (ADR-0290), no un número fijo.

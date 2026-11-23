@@ -94,7 +94,7 @@
   box-shadow: var(--hueco-sombra);
 }
 .posv-ficha-nombre {
-  font-size: 19px;
+  font-size: var(--text-lg);
 }
 
 /* La lente ⇄: la lente grande del vidrio (los orbes de «Por revisar»), de 52 px. */
@@ -158,7 +158,7 @@
     height: 40px;
   }
   .posv-ficha-nombre {
-    font-size: 16px;
+    font-size: var(--text-sm);
   }
   .posv-diferencia-monto {
     font-size: 22px;

@@ -54,7 +54,7 @@ export function ResumenPrevioEnvio({
     <Modal
       titulo={
         <>
-          <span className="label-cayla mb-1 block text-[10.5px] text-tinta/65">Antes de recibir</span>
+          <span className="label-cayla mb-1 block text-xs text-tinta/65">Antes de recibir</span>
           Confirma lo que entra
         </>
       }
@@ -71,7 +71,7 @@ export function ResumenPrevioEnvio({
           <div>
             {filas.map((f) => (
               <div key={f.compraId} style={estilo()} className={filaClase}>
-                <span aria-hidden className="grid h-[30px] w-[30px] place-items-center rounded-full vd-gota-chica text-[10.5px] font-bold tracking-wide text-tinta/75">
+                <span aria-hidden className="grid h-[30px] w-[30px] place-items-center rounded-full vd-gota-chica text-xs font-bold tracking-wide text-tinta/75">
                   {inicialesProveedor(f.proveedorNombre)}
                 </span>
                 <span className="min-w-0 text-sm text-tinta">

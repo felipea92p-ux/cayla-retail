@@ -49,8 +49,8 @@ export function GraficoCierresDelMes({
   return (
     <div className="mt-3 rounded-[14px] border border-sand bg-papel px-3.5 pb-2 pt-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <p className="text-[12.5px] font-semibold text-tinta">Cómo cerró cada día</p>
-        <p className="flex gap-3 text-[11px] text-tinta/65" aria-hidden>
+        <p className="text-xs font-semibold text-tinta">Cómo cerró cada día</p>
+        <p className="flex gap-3 text-xs text-tinta/65" aria-hidden>
           <span className="inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-[3px] bg-verde" />Cuadró</span>
           <span className="inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-[3px] bg-rojo" />Faltó</span>
           <span className="inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-[3px] bg-ambar" />Sobró</span>
@@ -62,7 +62,7 @@ export function GraficoCierresDelMes({
         {lineas.map((f) => (
           <div key={f} className="absolute inset-x-0 border-t border-dashed border-sand" style={{ bottom: `${f * 100}%` }} aria-hidden>
             {(f === 0.5 || f === 1) && (
-              <span className="absolute -top-3.5 right-0 text-[9.5px] text-tinta/45 tabular-nums">S/&nbsp;{(tope * f).toLocaleString("es-PE")}</span>
+              <span className="absolute -top-3.5 right-0 text-xs text-tinta/45 tabular-nums">S/&nbsp;{(tope * f).toLocaleString("es-PE")}</span>
             )}
           </div>
         ))}
@@ -104,7 +104,7 @@ export function GraficoCierresDelMes({
 
         {encima && (
           <div
-            className="pointer-events-none absolute bottom-full z-10 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-[10px] bg-tinta px-3 py-2 text-[12px] leading-snug text-crema shadow-[0_10px_24px_-10px_color-mix(in_srgb,var(--color-sombra)_60%,transparent)]"
+            className="pointer-events-none absolute bottom-full z-10 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-[10px] bg-tinta px-3 py-2 text-xs leading-snug text-crema shadow-[0_10px_24px_-10px_color-mix(in_srgb,var(--color-sombra)_60%,transparent)]"
             style={{ left: `clamp(110px, ${((encima.col + 0.5) / n) * 100}%, calc(100% - 110px))` }}
             aria-hidden
           >
@@ -117,9 +117,9 @@ export function GraficoCierresDelMes({
 
       <div className="mt-1 grid" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }} aria-hidden>
         {dias.map((d) => (
-          <span key={d.dia} className="text-center text-[10px] leading-tight tabular-nums">
+          <span key={d.dia} className="text-center text-xs leading-tight tabular-nums">
             <span className="text-tinta/45">{etiquetas.has(d.dia) ? d.dia : " "}</span>
-            {esHoy(d.dia) && <span className="block text-[8.5px] font-bold tracking-[0.08em] text-rojo">HOY</span>}
+            {esHoy(d.dia) && <span className="block text-xs leading-tight font-bold tracking-[0.08em] text-rojo">HOY</span>}
           </span>
         ))}
       </div>

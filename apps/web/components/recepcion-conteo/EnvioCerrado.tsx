@@ -139,7 +139,7 @@ export function EnvioCerrado({
           «Para después», «Lo que no cuadró», «¿Encontraste algo más?» y dos botones más. */}
       <section data-guia="recepcion.cerrado" className="rc-lacre" aria-label="Envío cerrado">
         <Lacre />
-        <p className="label-cayla pr-24 text-[11px] text-taupe">
+        <p className="label-cayla pr-24 text-xs text-taupe">
           Envío cerrado{cuando ? ` · ${cuando.dia} ${cuando.hora}` : ""}
           {detalle.cerradoPor ? ` · ${detalle.cerradoPor}` : ""}
         </p>

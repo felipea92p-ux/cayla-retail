@@ -36,7 +36,7 @@ export function ChipOpcion({
       onClick={onClick}
       aria-pressed={elegido}
       disabled={disabled}
-      className={`relative flex items-center gap-1.5 rounded-md border transition-colors disabled:opacity-40 ${chico ? "min-h-8 px-2 py-1 text-[13px]" : "min-h-9 px-4 py-1.5 text-sm"} ${
+      className={`relative flex items-center gap-1.5 rounded-md border transition-colors disabled:opacity-40 ${chico ? "min-h-8 px-2 py-1 text-xs" : "min-h-9 px-4 py-1.5 text-sm"} ${
         elegido
           ? chico
             ? "border-tinta bg-tinta text-crema"
@@ -47,7 +47,7 @@ export function ChipOpcion({
       {/* La chica marca lo elegido rellenándose (como la maqueta de Recibir), sin el ✓: el ✓ la ensanchaba y empujaba a sus vecinas a
           otra línea en una celda angosta. En la normal, el ✓ va en el margen que ya tiene: elegir una talla no mueve a las demás. */}
       {elegido && !chico && (
-        <span aria-hidden className="absolute left-1 top-1/2 -translate-y-1/2 text-[11px] leading-none">
+        <span aria-hidden className="absolute left-1 top-1/2 -translate-y-1/2 text-xs leading-none">
           ✓
         </span>
       )}
@@ -84,7 +84,7 @@ export function PasoAlta({
     // página (`scroll-padding-top` de `<html>`, decisión 1A de Felipe, 2026-11-16). En el celular los puntos miden ~56 px y no 104.
     <section aria-labelledby={id} className="scroll-mt-[4.25rem] rounded-xl sm:scroll-mt-[7.5rem] border border-sand bg-papel">
       <div className="px-4 pt-4 sm:px-5">
-        <h2 id={id} className="text-[14.5px] font-semibold text-tinta">{/* unificar-fijo: el título de un paso de Nuevo producto, que tiene su diseño aprobado (ADR-0260, ADR-0284) */}
+        <h2 id={id} className="text-detalle font-semibold text-tinta">{/* unificar-fijo: el título de un paso de Nuevo producto, que tiene su diseño aprobado (ADR-0260, ADR-0284) */}
           {titulo}
         </h2>
       </div>
@@ -209,7 +209,7 @@ export function PlegableAlta({
 }) {
   return (
     <div className="border-t border-sand pt-3">
-      <button type="button" onClick={onAlternar} aria-expanded={abierto} className="flex w-full items-baseline gap-2 text-left text-[13px] font-semibold text-tinta">
+      <button type="button" onClick={onAlternar} aria-expanded={abierto} className="flex w-full items-baseline gap-2 text-left text-xs font-semibold text-tinta">
         <span
           aria-hidden
           className={`inline-block transition-transform duration-200 [transition-timing-function:var(--ease-cayla)] motion-reduce:transition-none ${abierto ? "rotate-90" : ""}`}

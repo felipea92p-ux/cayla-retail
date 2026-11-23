@@ -1,7 +1,11 @@
 ---
 name: abrir-pr
-description: Abre un PR de cayla-retail sin choques escondidos (ADR-0381). Antes de `gh pr create` trae origin/main y resuelve, confirma que cada ADR y migración nueva tiene su reserva, compara la rama contra main Y contra todos los PR abiertos (mismo número de ADR o de migración, la misma función de la base parchada —registrar_venta, las de ADR-0377—, los archivos de registro compartidos), corre las pruebas rápidas y las de base que toca el cambio, y recién ahí abre el PR con los choques probables escritos en su descripción. Úsala SIEMPRE que una sesión vaya a abrir un PR en este repo, y cuando Felipe diga «abre el PR», «sube esto» o «/abrir-pr». No fusiona ni activa la fusión automática.
+description: "Obligatoria para abrir un PR en este repo: trae main, revisa las reservas de ADR y migración, busca choques con main y los PR abiertos, corre las pruebas que toca y escribe los choques en el PR. Úsala con «abre el PR» o «sube esto». No fusiona."
 ---
+
+## Qué hace y cuándo se usa
+
+Abre un PR de cayla-retail sin choques escondidos (ADR-0381). Antes de `gh pr create` trae origin/main y resuelve, confirma que cada ADR y migración nueva tiene su reserva, compara la rama contra main Y contra todos los PR abiertos (mismo número de ADR o de migración, la misma función de la base parchada —registrar_venta, las de ADR-0377—, los archivos de registro compartidos), corre las pruebas rápidas y las de base que toca el cambio, y recién ahí abre el PR con los choques probables escritos en su descripción. Úsala SIEMPRE que una sesión vaya a abrir un PR en este repo, y cuando Felipe diga «abre el PR», «sube esto» o «/abrir-pr». No fusiona ni activa la fusión automática.
 
 Abre el PR de la rama actual: $ARGUMENTS
 

@@ -38,7 +38,7 @@ export function AvisoRecibido({
     >
       {(cerrar): ReactNode => (
         <div className="space-y-5">
-          <p className="text-center text-[15px] text-taupe">{linea}</p>
+          <p className="text-center text-sm text-taupe">{linea}</p>
           <div className="grid gap-2.5">
             {imprimir && (
               <BotonImprimir href={imprimir.href} peso="primario">

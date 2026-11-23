@@ -6,7 +6,7 @@
  * `drop trigger` —aunque el disparador no exista, aunque diga `if exists`— toma en exclusiva las 21 tablas de `auth` y
  * `storage` hasta el final (medido el 2026-09-24, ADR-0195). Si la misma pegada ya tiene tomada una tabla que la tienda
  * usa, choca con el Asesor de seguridad del panel: `40P01 deadlock detected`, y no se aplica nada. La regla está en
- * CLAUDE.md («Políticas y deadlocks»), pero una regla escrita no frena a nadie: el 2026-09-27 `20260927190000` (costo,
+ * `.claude/rules/sql-produccion.md` («Políticas y deadlocks»), pero una regla escrita no frena a nadie: el 2026-09-27 `20260927190000` (costo,
  * #520) llegó a `main` con un `drop trigger` y hubo que corregirla en otro PR (#538).
  *
  * QUÉ PROMETE. Sale con código 1 y nombra archivo y línea si una migración de `supabase/migrations/` (con número o de
@@ -168,7 +168,7 @@ function main() {
     console.error(`  - ${archivo}: línea${lineas.length > 1 ? "s" : ""} ${lineas.join(", ")}${extra}`);
   }
   console.error("\nUsa `create or replace trigger …` (o `alter table … disable trigger …` si solo querías apagarlo).");
-  console.error("Detalle: encabezado de scripts/migraciones/sin-drop-trigger.mjs y CLAUDE.md, «Políticas y deadlocks».");
+  console.error("Detalle: encabezado de scripts/migraciones/sin-drop-trigger.mjs y .claude/rules/sql-produccion.md, «Políticas y deadlocks».");
   process.exit(1);
 }
 

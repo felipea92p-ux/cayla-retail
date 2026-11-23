@@ -107,7 +107,7 @@ export function TarjetaMarca({
 
       <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
         <div data-guia="marcas.proveedores" className="flex min-w-0 flex-1 basis-56 flex-wrap items-center gap-1.5">
-          {m.proveedores.length > 0 && <span className="label-cayla mr-0.5 text-[10px] text-tinta/65">La trae</span>}
+          {m.proveedores.length > 0 && <span className="label-cayla mr-0.5 text-xs text-tinta/65">La trae</span>}
           {m.proveedores.map((p) => (
             // Una línea siempre: un nombre largo se corta con «…» (el nombre entero va en el título) en vez de doblarse dentro de la
             // píldora y volverla un óvalo de cinco renglones en una tarjeta angosta.

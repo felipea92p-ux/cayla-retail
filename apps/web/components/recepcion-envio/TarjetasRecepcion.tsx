@@ -161,7 +161,7 @@ export function TarjetaLinea({
     <article data-guia="recepcion.linea" aria-label={`${nombreLineaGuia(indice)}: ${prendaTexto}`} className="@container card-cayla space-y-4 p-4 sm:p-5">
       <header className="flex flex-col gap-3 @min-[40rem]:flex-row @min-[40rem]:items-start @min-[40rem]:justify-between">
         <div className="min-w-0">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-taupe-profundo">{nombreLineaGuia(indice)}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-taupe-profundo">{nombreLineaGuia(indice)}</p>
           <TituloSeccion className="mt-0.5">{prendaTexto}</TituloSeccion>
           {l.descripcion && <p className="text-sm text-tinta/75">{l.descripcion}</p>}
           <p className="mt-1 text-sm tabular-nums text-taupe">
@@ -189,14 +189,14 @@ export function TarjetaLinea({
           b.noLlego ? (
             <p className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-tinta">
               <Chip tono="ambar">No llegó nada</Chip>
-              <button type="button" onClick={() => onCambio({ noLlego: false, faltanteCausa: null })} className="btn-cayla btn-enlace text-[13px]">
+              <button type="button" onClick={() => onCambio({ noLlego: false, faltanteCausa: null })} className="btn-cayla btn-enlace text-xs leading-tight">
                 Sí llegó: elegir la prenda
               </button>
             </p>
           ) : undefined
         }
         extraAntes={
-          <button type="button" onClick={() => onCambio({ ...conPrenda(b, null), noLlego: true })} className="btn-cayla btn-enlace text-[13px]">
+          <button type="button" onClick={() => onCambio({ ...conPrenda(b, null), noLlego: true })} className="btn-cayla btn-enlace text-xs leading-tight">
             No llegó nada de esto
           </button>
         }
@@ -287,7 +287,7 @@ export function TarjetaExtra({
     <article data-guia="recepcion.extra" aria-label={`${nombre}: algo que no estaba en la guía`} className="@container card-cayla anim-revelar space-y-4 p-4 sm:p-5">
       <header className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-taupe-profundo">{nombre}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-taupe-profundo">{nombre}</p>
           <TituloSeccion className="mt-0.5">No estaba en la guía</TituloSeccion>
           <p className="text-sm text-taupe">Dile a Compras qué es y qué pasa con ello: entra al stock como todo lo demás.</p>
         </div>

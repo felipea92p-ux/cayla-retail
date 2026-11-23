@@ -126,7 +126,7 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
         <div className="mt-1.5 flex min-w-0 items-center gap-2.5" title={m.sku}>
           <MiniaturaPrenda fotoUrl={prenda?.fotoUrl ?? null} />
           <span className="min-w-0">
-            <span data-guia="movimientos.prenda-nombre" className="block truncate text-[15px] font-semibold text-tinta">{m.referencia}</span>
+            <span data-guia="movimientos.prenda-nombre" className="block truncate text-sm font-semibold text-tinta">{m.referencia}</span>
             <span className="block truncate text-sm tabular-nums text-taupe">{[variante, donde].filter(Boolean).join(" · ")}</span>
           </span>
         </div>
@@ -202,7 +202,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
             ))}
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-[15px] font-semibold text-tinta" title={r.productos.join(", ")}>
+            <span className="block truncate text-sm font-semibold text-tinta" title={r.productos.join(", ")}>
               {productos}
             </span>
             <span className="block truncate text-sm tabular-nums text-taupe">
@@ -264,7 +264,7 @@ export function FilaBajadas({ operaciones, prendas, ctx }: { operaciones: Operac
               ))}
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-[15px] font-semibold text-tinta">
+              <span className="block truncate text-sm font-semibold text-tinta">
                 {r.tallas} {r.tallas === 1 ? "prenda distinta" : "prendas distintas"}
               </span>
               <span className="block truncate text-sm tabular-nums text-taupe">

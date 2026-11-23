@@ -806,7 +806,7 @@ export function MuestraTejido({
   if (!familia) {
     return (
       <div
-        className={`${className} flex items-center justify-center rounded-lg border border-dashed border-tinta/20 text-[10px] uppercase tracking-wider text-tinta/40`}
+        className={`${className} flex items-center justify-center rounded-lg border border-dashed border-tinta/20 text-xs uppercase tracking-wider text-tinta/40`}
         aria-hidden
       >
         Sin muestra

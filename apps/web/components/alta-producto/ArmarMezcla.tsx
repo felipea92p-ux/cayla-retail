@@ -133,7 +133,7 @@ export function ArmarMezcla({
                   onClick={() => onQuitar(c.codigo)}
                   disabled={guardando}
                   aria-label={`Quitar ${c.nombre}`}
-                  className="area-dedo grid h-6 w-6 place-items-center rounded-full text-[15px] leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
+                  className="area-dedo grid h-6 w-6 place-items-center rounded-full text-sm leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
                 >
                   ×
                 </button>
