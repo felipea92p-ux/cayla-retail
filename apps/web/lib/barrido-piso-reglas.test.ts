@@ -47,6 +47,11 @@ import {
   prendasPorResolver,
   textoDeComo,
   textoDeErrorResolver,
+  estadoDelHistorial,
+  fechaDelBarrido,
+  leerDetalleBarrido,
+  leerHistorial,
+  porResolverDeLaFila,
 } from "./barrido-piso-reglas";
 
 const ANA = { responsableId: "ana", ubicacionId: "tru" };
@@ -482,5 +487,34 @@ describe("«Por resolver» (actividad 8)", () => {
     expect(textoDeErrorResolver({ hint: "barrido_en_camino", message: "Esa prenda viene en un traslado (1 en camino)." })).toMatch(/1 en camino/);
     expect(textoDeErrorResolver({ hint: "barrido_resolver_no_esta", message: "x" })).toBe("Eso ya no está por resolver. Recarga la lista.");
     expect(textoDeErrorResolver({ message: "TypeError: Failed to fetch" })).toMatch(/conexión|resolver/);
+  });
+});
+
+describe("El historial (actividad 9)", () => {
+  const fila = { id: "b1", estado: "confirmado", abierto_en: "2026-11-22T15:00:00Z", abierto_por: "Ana Torres", cerrado_en: "2026-11-22T16:00:00Z", cerrado_por: "Rosa",
+    unidades: 9, lecturas: 5, quitadas: 1, personas: 2, aparte: 2, al_piso: 2, al_almacen: 4, no_cargadas: 1 };
+
+  it("lee el historial y descarta lo que no tiene forma; un barrido no confirmado no trae cifras de lo movido", () => {
+    const h = leerHistorial({ total: 3, barridos: [fila, { ...fila, id: "b2", estado: "cancelado" }, { id: "x" }] });
+    expect(h.total).toBe(3);
+    expect(h.barridos.map((b) => [b.id, b.estado, b.alPiso, porResolverDeLaFila(b)])).toEqual([["b1", "confirmado", 2, 3], ["b2", "cancelado", null, null]]);
+    expect(leerHistorial(null)).toEqual({ barridos: [], total: 0 });
+  });
+
+  it("lee el detalle con lo de cada persona, lo movido y lo no cargado", () => {
+    const d = leerDetalleBarrido({ ...fila, sede: "Tienda Lima",
+      por_persona: [{ persona_id: "p1", nombre: "Ana Torres", unidades: 7, lecturas: 4, quitadas: 1, desde: "2026-11-22T15:00:00Z", hasta: "2026-11-22T15:40:00Z" }, { persona_id: "p2" }],
+      movidas: [{ variante_id: "v1", prenda: "Blusa Emma · M", sentido: "al_piso", cantidad: 2 }, { variante_id: "v2", sentido: "otro" }],
+      no_cargado: [{ variante_id: "v3", prenda: "Casaca", no_cargadas: 1 }] });
+    expect(d?.sede).toBe("Tienda Lima");
+    expect(d?.porPersona.map((p) => [p.nombre, p.unidades])).toEqual([["Ana Torres", 7]]);
+    expect(d?.movidas.map((m) => [m.sentido, m.cantidad])).toEqual([["al_piso", 2]]);
+    expect(d?.noCargado).toEqual([{ varianteId: "v3", prenda: "Casaca", cantidad: 1 }]);
+    expect(leerDetalleBarrido({})).toBeNull();
+  });
+
+  it("cada estado se dice con su palabra y la fecha va en hora de Lima", () => {
+    expect((["confirmado", "abierto", "cancelado"] as const).map((e) => estadoDelHistorial(e).texto)).toEqual(["Confirmado", "En curso", "Descartado"]);
+    expect(fechaDelBarrido("2026-11-22T23:05:00Z")).toMatch(/22 nov, 18:05/);
   });
 });

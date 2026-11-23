@@ -39,7 +39,7 @@ type Confirmar = { tipo: "tramo"; clave: string } | { tipo: "lectura"; id: strin
 export function HojaLoEscaneado({
   barridoId,
   porId,
-  esperan,
+  esperan = 0,
   onAnular,
   onAnularAparte,
   onClose,
@@ -47,11 +47,12 @@ export function HojaLoEscaneado({
   barridoId: string;
   porId: ReadonlyMap<string, PrendaBarrido>;
   /** Cuántas lecturas de este celular todavía no subieron. */
-  esperan: number;
-  /** Quita esas lecturas en la base (con la firma de quien está elegido). Devuelve el error a mostrar, o null si salió bien. */
-  onAnular: (ids: string[], motivo: "repetida" | "tramo") => Promise<string | null>;
-  /** Quita algo apartado por error (sin borrarlo). Devuelve el error a mostrar, o null. */
-  onAnularAparte: (id: string) => Promise<string | null>;
+  esperan?: number;
+  /** Quita esas lecturas en la base (con la firma de quien está elegido). Devuelve el error a mostrar, o null si salió bien. Sin él (el
+   *  historial de un barrido cerrado, actividad 9) la hoja solo se lee: no hay «Quitar». */
+  onAnular?: (ids: string[], motivo: "repetida" | "tramo") => Promise<string | null>;
+  /** Quita algo apartado por error (sin borrarlo). Devuelve el error a mostrar, o null. Sin él, solo se lee. */
+  onAnularAparte?: (id: string) => Promise<string | null>;
   onClose: () => void;
 }) {
   const supabase = useMemo(() => createClient(), []);
@@ -107,6 +108,7 @@ export function HojaLoEscaneado({
   const tramos = persona ? todos.filter((t) => t.personaId === persona) : todos;
 
   async function quitarAparte(id: string) {
+    if (!onAnularAparte) return;
     setQuitando(true);
     const error = await onAnularAparte(id);
     setQuitando(false);
@@ -119,6 +121,7 @@ export function HojaLoEscaneado({
   }
 
   async function quitar(ids: string[], motivo: "repetida" | "tramo") {
+    if (!onAnular) return;
     setQuitando(true);
     const error = await onAnular(ids, motivo);
     setQuitando(false);
@@ -199,11 +202,11 @@ export function HojaLoEscaneado({
                           No
                         </Boton>
                       </span>
-                    ) : (
+                    ) : onAnularAparte ? (
                       <Boton peso="peligro" className="btn-chico" onClick={() => setConfirmar({ tipo: "aparte", id: h.id })}>
                         Quitar
                       </Boton>
-                    )}
+                    ) : null}
                   </li>
                 );
               })}
@@ -235,7 +238,7 @@ export function HojaLoEscaneado({
                         {t.vivas.length < t.lecturas.length && ` · ${(t.lecturas.length - t.vivas.length).toLocaleString("es-PE")} quitadas`}
                       </p>
                     </div>
-                    {t.vivas.length > 0 && !confirmando && (
+                    {onAnular && t.vivas.length > 0 && !confirmando && (
                       <Boton peso="peligro" className="btn-chico" onClick={() => setConfirmar({ tipo: "tramo", clave: t.clave })}>
                         Quitar tramo
                       </Boton>
@@ -301,11 +304,11 @@ export function HojaLoEscaneado({
                                   No
                                 </Boton>
                               </span>
-                            ) : (
+                            ) : onAnular ? (
                               <Boton peso="peligro" className="btn-chico" onClick={() => setConfirmar({ tipo: "lectura", id: l.id })}>
                                 Quitar
                               </Boton>
-                            )}
+                            ) : null}
                           </li>
                         );
                       })}

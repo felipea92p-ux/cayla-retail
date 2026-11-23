@@ -940,3 +940,124 @@ export function textoDeErrorResolver(e: { code?: string | null; hint?: string | 
       return textoDeError(e, "resolver");
   }
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// El historial (actividad 9): los barridos de la sede y el detalle de cada uno. Solo lectura (`fn_barridos_piso_historial`,
+// `fn_barrido_piso_detalle`, 20261122196000); las lecturas y lo apartado de uno se leen como mientras estaba abierto.
+// ---------------------------------------------------------------------------------------------------------------------
+
+export const RPC_HISTORIAL_BARRIDOS = "fn_barridos_piso_historial";
+export const RPC_DETALLE_BARRIDO = "fn_barrido_piso_detalle";
+
+export type EstadoDeBarrido = "abierto" | "confirmado" | "cancelado";
+
+/** Una fila del historial. Las cifras de lo movido son `null` si el barrido no se confirmó. */
+export type FilaHistorial = {
+  id: string;
+  estado: EstadoDeBarrido;
+  abiertoEn: string;
+  abiertoPor: string | null;
+  cerradoEn: string | null;
+  cerradoPor: string | null;
+  unidades: number;
+  lecturas: number;
+  quitadas: number;
+  personas: number;
+  aparte: number;
+  alPiso: number | null;
+  alAlmacen: number | null;
+  noCargadas: number | null;
+};
+
+export type PersonaDelHistorial = { personaId: string; nombre: string; unidades: number; lecturas: number; quitadas: number; desde: string; hasta: string };
+export type MovidaDelBarrido = { varianteId: string; prenda: string; sentido: "al_piso" | "al_almacen"; cantidad: number };
+export type DetalleBarrido = FilaHistorial & {
+  sede: string;
+  porPersona: PersonaDelHistorial[];
+  movidas: MovidaDelBarrido[];
+  noCargado: { varianteId: string; prenda: string; cantidad: number }[];
+};
+
+const enteroONulo = (x: unknown): number | null => (x === null || x === undefined ? null : entero(x));
+
+function leerFilaHistorial(x: unknown): FilaHistorial | null {
+  if (!esObjeto(x)) return null;
+  const id = texto(x.id);
+  const abiertoEn = texto(x.abierto_en);
+  const estado = x.estado === "abierto" || x.estado === "confirmado" || x.estado === "cancelado" ? x.estado : null;
+  if (!id || !abiertoEn || !estado) return null;
+  const confirmado = estado === "confirmado";
+  return {
+    id,
+    estado,
+    abiertoEn,
+    abiertoPor: texto(x.abierto_por),
+    cerradoEn: texto(x.cerrado_en),
+    cerradoPor: texto(x.cerrado_por),
+    unidades: entero(x.unidades),
+    lecturas: entero(x.lecturas),
+    quitadas: entero(x.quitadas),
+    personas: entero(x.personas),
+    aparte: entero(x.aparte),
+    alPiso: confirmado ? enteroONulo(x.al_piso) : null,
+    alAlmacen: confirmado ? enteroONulo(x.al_almacen) : null,
+    noCargadas: confirmado ? enteroONulo(x.no_cargadas) : null,
+  };
+}
+
+/** Lo que devuelve `fn_barridos_piso_historial`. Lo que no tiene forma se ignora. */
+export function leerHistorial(x: unknown): { barridos: FilaHistorial[]; total: number } {
+  if (!esObjeto(x) || !Array.isArray(x.barridos)) return { barridos: [], total: 0 };
+  const barridos = x.barridos.map(leerFilaHistorial).filter((f): f is FilaHistorial => f !== null);
+  return { barridos, total: Math.max(entero(x.total), barridos.length) };
+}
+
+/** Lo que devuelve `fn_barrido_piso_detalle`, o `null` sin forma. */
+export function leerDetalleBarrido(x: unknown): DetalleBarrido | null {
+  const fila = leerFilaHistorial(x);
+  if (!fila || !esObjeto(x)) return null;
+  const lista = (y: unknown) => (Array.isArray(y) ? y.filter(esObjeto) : []);
+  return {
+    ...fila,
+    sede: texto(x.sede) ?? "",
+    porPersona: lista(x.por_persona).flatMap((p) => {
+      const personaId = texto(p.persona_id);
+      const desde = texto(p.desde);
+      const hasta = texto(p.hasta);
+      if (!personaId || !desde || !hasta) return [];
+      return [{ personaId, nombre: texto(p.nombre) ?? "Alguien del equipo", unidades: entero(p.unidades), lecturas: entero(p.lecturas), quitadas: entero(p.quitadas), desde, hasta }];
+    }),
+    movidas: lista(x.movidas).flatMap((m) => {
+      const varianteId = texto(m.variante_id);
+      const sentido = m.sentido === "al_piso" || m.sentido === "al_almacen" ? m.sentido : null;
+      if (!varianteId || !sentido) return [];
+      return [{ varianteId, prenda: texto(m.prenda) ?? "Una prenda", sentido, cantidad: entero(m.cantidad) }];
+    }),
+    noCargado: lista(x.no_cargado).flatMap((n) => {
+      const varianteId = texto(n.variante_id);
+      if (!varianteId) return [];
+      return [{ varianteId, prenda: texto(n.prenda) ?? "Una prenda", cantidad: entero(n.no_cargadas) }];
+    }),
+  };
+}
+
+/** La insignia del estado: dice el estado con su palabra (nunca solo el color). */
+export function estadoDelHistorial(estado: EstadoDeBarrido): { texto: string; tono: "verde" | "ambar" | "pizarra" } {
+  if (estado === "confirmado") return { texto: "Confirmado", tono: "verde" };
+  if (estado === "abierto") return { texto: "En curso", tono: "ambar" };
+  return { texto: "Descartado", tono: "pizarra" };
+}
+
+/** «sáb 22 nov, 18:05» en hora de Lima: la fecha de un barrido en una línea. */
+export function fechaDelBarrido(iso: string): string {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "";
+  const dia = d.toLocaleDateString("es-PE", { weekday: "short", day: "numeric", month: "short", timeZone: "America/Lima" }).replace(/\./g, "");
+  const hora = d.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
+  return `${dia}, ${hora}`;
+}
+
+/** Lo que quedó por resolver de un barrido confirmado (lo no cargado más lo apartado), o `null` si no se confirmó. */
+export function porResolverDeLaFila(f: Pick<FilaHistorial, "estado" | "noCargadas" | "aparte">): number | null {
+  return f.estado === "confirmado" ? (f.noCargadas ?? 0) + f.aparte : null;
+}

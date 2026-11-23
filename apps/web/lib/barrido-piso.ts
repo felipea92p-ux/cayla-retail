@@ -1,11 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
 import { tolerar } from "@/lib/resultado";
 import {
+  RPC_DETALLE_BARRIDO,
   RPC_ESTADO_BARRIDO,
+  RPC_HISTORIAL_BARRIDOS,
   RPC_POR_RESOLVER_BARRIDO,
+  leerDetalleBarrido,
   leerEstadoBarrido,
+  leerHistorial,
   leerPorResolver,
+  type DetalleBarrido,
   type EstadoBarrido,
+  type FilaHistorial,
   type PorResolver,
 } from "@/lib/barrido-piso-reglas";
 
@@ -39,4 +45,26 @@ export async function getPorResolver(ubicacionId: string): Promise<PorResolver |
     return null;
   }
   return leerPorResolver(datos);
+}
+
+/** Los barridos de la sede para el historial (actividad 9), o `{ fallo }` si no se pudo leer (una web publicada antes que su migración). */
+export async function getHistorialBarridos(ubicacionId: string): Promise<{ historial: { barridos: FilaHistorial[]; total: number }; fallo: null } | { historial: null; fallo: string }> {
+  const supabase = await createClient();
+  const { datos, fallo } = tolerar(await supabase.rpc(RPC_HISTORIAL_BARRIDOS as never, { p_ubicacion_id: ubicacionId, p_limite: 100 } as never), "el historial de barridos");
+  if (fallo) {
+    console.error(fallo);
+    return { historial: null, fallo: "No se pudo leer el historial de barridos de esta tienda. Vuelve a intentarlo en un momento." };
+  }
+  return { historial: leerHistorial(datos), fallo: null };
+}
+
+/** Un barrido del historial, o `null` si no existe, es de otra sede o no se pudo leer. */
+export async function getDetalleBarrido(barridoId: string): Promise<DetalleBarrido | null> {
+  const supabase = await createClient();
+  const { datos, fallo } = tolerar(await supabase.rpc(RPC_DETALLE_BARRIDO as never, { p_barrido_id: barridoId } as never), "un barrido del historial");
+  if (fallo) {
+    console.error(fallo);
+    return null;
+  }
+  return leerDetalleBarrido(datos);
 }

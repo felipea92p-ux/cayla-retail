@@ -28,6 +28,8 @@
  *      entra por las funciones de siempre (stock inicial al piso con la carga abierta; «Encontré prendas» + bajada con la carga cerrada) y
  *      se rechaza si viene en camino; «colgada» baja del almacén y frena sin stock; «no_era» no mueve nada; se resuelve por partes sin
  *      pasarse; la marca no repite; los candados de módulo, sede y estado; lo resuelto no se edita ni se borra.
+ *   H  el historial (actividad 9, `20261122196000_barrido_piso_historial.sql`): la lista de la sede con sus cifras y el detalle de un barrido
+ *      (por persona, lo que se movió, lo no cargado), y que otra sede no los ve.
  *   C  las correcciones de la revisión adversarial (`20261122194500_barrido_piso_correcciones.sql`): la apartada colgada y escaneada no
  *      se mueve; en una sede con dos dueños, la línea cuya fila de origen mezcla dueños no se mueve (dos_duenos) y el resto sí; un barrido
  *      sin lecturas no se confirma (barrido_vacio); si alguien escaneó mientras se revisaba, confirmar rechaza (barrido_cambio) sin mover
@@ -622,6 +624,51 @@ caso(
   `select (position('junta_barrido' in d) > 0) || ',' || ((length(d) - length(replace(d, 'bl.variante_id = x.variante_id', ''))) / length('bl.variante_id = x.variante_id'))
      from (select pg_get_functiondef('retail.fn_fusion_productos_plan(uuid,uuid[],jsonb)'::regprocedure) d) z;`,
   "true,1"
+);
+
+// ===========================================================================
+// H · Historial (actividad 9, 20261122196000)
+// ===========================================================================
+
+const HISTORIAL = `pg_temp.r(format('select retail.fn_barridos_piso_historial(%L, 50)', :'bar'))`;
+const DETALLE = `pg_temp.r(format('select retail.fn_barrido_piso_detalle(%L)', :'barrido'))`;
+
+caso(
+  "H · forma: el historial y el detalle para authenticated (no anon); la fila, interna",
+  `select string_agg(p.proname || '=' || concat_ws(',', has_function_privilege('anon', p.oid, 'execute'),
+                    has_function_privilege('authenticated', p.oid, 'execute'), p.prosecdef), ';' order by p.proname)
+     from pg_proc p where p.pronamespace = 'retail'::regnamespace
+      and p.proname in ('fn_barridos_piso_historial', 'fn_barrido_piso_detalle', 'fn_barrido_piso_fila');`,
+  "fn_barrido_piso_detalle=f,t,t;fn_barrido_piso_fila=f,f,t;fn_barridos_piso_historial=f,t,t"
+);
+caso(
+  "H · el historial: el barrido confirmado con lo escaneado (sin lo quitado), quién, lo que movió y lo que quedó; uno descartado también aparece",
+  `${CONFIRMADO}select (retail.abrir_barrido_piso(:'bar') -> 'estado' -> 'barrido' ->> 'id') as otro \\gset
+select retail.cancelar_barrido_piso(:'otro') as _x \\gset
+select ${HISTORIAL} -> 'res' as h \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'h')::jsonb ->> 'total',
+  (select string_agg(x ->> 'estado', ' ' order by x ->> 'estado') from jsonb_array_elements((:'h')::jsonb -> 'barridos') x),
+  (select concat_ws('/', x ->> 'unidades', x ->> 'lecturas', x ->> 'quitadas', x ->> 'personas', x ->> 'aparte', x ->> 'al_piso', x ->> 'al_almacen',
+                    x ->> 'no_cargadas', (x ->> 'abierto_por') is not null, (x ->> 'cerrado_por') is not null)
+     from jsonb_array_elements((:'h')::jsonb -> 'barridos') x where x ->> 'id' = :'barrido'));`,
+  "2,cancelado confirmado,9/5/1/1/2/2/4/1/t/t"
+);
+caso(
+  "H · el detalle: lo de cada persona con sus horas, lo que se movió prenda por prenda y lo no cargado",
+  `${CONFIRMADO}select ${DETALLE} -> 'res' as d \\gset
+${COMO_POSTGRES}select concat_ws(',', jsonb_array_length((:'d')::jsonb -> 'por_persona'),
+  (:'d')::jsonb -> 'por_persona' -> 0 ->> 'unidades', (:'d')::jsonb -> 'por_persona' -> 0 ->> 'quitadas',
+  ((:'d')::jsonb -> 'por_persona' -> 0 ->> 'desde') is not null,
+  (select string_agg((x ->> 'sentido') || ':' || (x ->> 'cantidad'), ' ' order by x ->> 'sentido', x ->> 'cantidad') from jsonb_array_elements((:'d')::jsonb -> 'movidas') x),
+  jsonb_array_length((:'d')::jsonb -> 'no_cargado'), (:'d')::jsonb ->> 'sede');`,
+  "1,9,1,t,al_almacen:2 al_almacen:2 al_piso:2,1,ZZ Tienda Barrido"
+);
+caso(
+  "H · el historial y el detalle de otra sede no se ven (barrido_sin_permiso)",
+  `${CONFIRMADO}${soloModulos("integrante", ["existencias"])}${COMO_POSTGRES}update retail.colaboradores set ubicacion_asignada_id = :'tru' where persona_id = :'micaela_p';
+${sesion(MICAELA)}${COMO_API}select ${HISTORIAL};
+select ${DETALLE};`,
+  (l) => error(l.at(-2), "barrido_sin_permiso", "42501") && error(l.at(-1), "barrido_sin_permiso", "42501")
 );
 
 console.log(`\n${fallos === 0 ? "✓" : "✗"} ${total - fallos}/${total} verificaciones${fallos ? ` — ${fallos} fallaron` : ""}`);
