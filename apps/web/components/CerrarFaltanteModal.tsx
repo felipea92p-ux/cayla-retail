@@ -88,7 +88,7 @@ export function CerrarFaltanteModal({
     <Modal
       titulo={
         <>
-          <span className="label-cayla mb-0.5 block text-[11px] text-tinta/65">Cerrar línea con faltante</span>
+          <span className="label-cayla mb-0.5 block text-xs text-tinta/65">Cerrar línea con faltante</span>
           <span className="block text-[28px] leading-tight">{producto}</span>
         </>
       }
@@ -135,7 +135,7 @@ export function CerrarFaltanteModal({
           </div>
 
           <div data-guia="faltante-modal.motivo">
-            <p className="label-cayla mb-2 text-[11px] text-tinta/65">¿Qué pasó con las {cantidadOk ? n : "que faltan"}?</p>
+            <p className="label-cayla mb-2 text-xs text-tinta/65">¿Qué pasó con las {cantidadOk ? n : "que faltan"}?</p>
             <div role="radiogroup" aria-label="Qué pasó con las unidades que faltan" className="inline-flex h-9 overflow-hidden rounded-lg border border-tinta/15">
               {MOTIVOS.map(([valor, texto]) => (
                 <button
@@ -144,7 +144,7 @@ export function CerrarFaltanteModal({
                   role="radio"
                   aria-checked={motivo === valor}
                   onClick={() => setMotivo(valor)}
-                  className={`label-cayla px-3.5 text-[11px] transition-colors ${motivo === valor ? "bg-tinta text-crema" : "text-tinta/65 hover:text-rojo"}`}
+                  className={`label-cayla px-3.5 text-xs transition-colors ${motivo === valor ? "bg-tinta text-crema" : "text-tinta/65 hover:text-rojo"}`}
                 >
                   {texto}
                 </button>

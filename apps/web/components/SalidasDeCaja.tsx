@@ -73,7 +73,7 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
   return (
     <div data-guia="por-pagar.salidas" className="card-cayla anim-entra min-w-0 p-5" style={{ ["--i" as string]: indice }}>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-        <p className="label-cayla text-[11px] text-tinta/65">Salidas de caja · próximos 30 días</p>
+        <p className="label-cayla text-xs text-tinta/65">Salidas de caja · próximos 30 días</p>
         {max > 0 && (
           <label data-guia="por-pagar.caja" className="flex items-center gap-1.5 text-sm text-tinta/65">
             Tengo

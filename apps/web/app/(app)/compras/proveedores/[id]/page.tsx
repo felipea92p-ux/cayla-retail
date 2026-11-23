@@ -262,7 +262,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
             <ProveedorCostoEvolucion evolucion={costo} />
           </div>
           <div data-guia="proveedor-ficha.ultimos" className="card-cayla anim-entra @container overflow-hidden" style={{ ["--i" as string]: 12 }}>
-            <p className="label-cayla px-5 pb-2 pt-4 text-[11px] text-tinta/65">Últimos comprobantes</p>
+            <p className="label-cayla px-5 pb-2 pt-4 text-xs text-tinta/65">Últimos comprobantes</p>
             <div className="divide-y divide-tinta/10">
               {ultimos.filas.map((c) => {
                 const r = celdaRecepcion(c, ahora);

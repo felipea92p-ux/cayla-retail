@@ -33,9 +33,9 @@ export function PanelDetalle({
         <div className="flex min-w-0 items-center gap-3.5">
           {avatar}
           <div className="min-w-0">
-            <span className="label-cayla block text-[11px] text-taupe">{sobre}</span>
+            <span className="label-cayla block text-xs text-taupe">{sobre}</span>
             <h3 className="revisar-titulo mt-1">{titulo}</h3>
-            {bajoTitulo && <span className="mt-1 block text-[15px] text-tinta">{bajoTitulo}</span>}
+            {bajoTitulo && <span className="mt-1 block text-sm text-tinta">{bajoTitulo}</span>}
             {subtitulo && <span className="mt-1 block text-sm text-taupe">{subtitulo}</span>}
           </div>
         </div>

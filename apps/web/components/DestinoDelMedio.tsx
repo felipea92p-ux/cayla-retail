@@ -55,7 +55,7 @@ function DatoCopiable({ fila }: { fila: FilaDestino }) {
   const que = nombre === "cuenta" ? "la cuenta" : nombre === "cci" ? "el CCI" : `el ${fila.etiqueta}`;
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className="label-cayla text-[10px] text-tinta/55">{fila.etiqueta}</span>
+      <span className="label-cayla text-xs text-tinta/55">{fila.etiqueta}</span>
       <span className="tabular-nums tracking-[0.02em] text-tinta select-all">{fila.valor}</span>
       <BotonCopiar forma="icono" texto={fila.copiar} que={que} className="-my-2" />
     </span>

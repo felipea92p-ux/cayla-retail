@@ -52,7 +52,10 @@ usa `create or replace trigger`, nunca `drop trigger` + `create trigger`. `drop 
 migración de producción **no mezcla** `alter` de tablas en uso con políticas. Pártela en PARTES que se pegan por
 separado (cada una con `set lock_timeout = '3s'`, idempotente), con las políticas solas y al final. Si la tabla nueva
 solo se lee por funciones `security definer`, deja RLS encendido sin políticas. Ejemplo:
-`supabase/migrations/20260924210000_configuracion_meta_y_fondo_por_campana.sql`.
+`supabase/migrations/20260924210000_configuracion_meta_y_fondo_por_campana.sql`. **Lo mide el CI (2026-11-23):** la tanda 1
+corre cada migración nueva del PR en `begin … rollback`, lee `pg_locks` después de cada sentencia y pone rojo una parte que
+mezcla (`scripts/migraciones/partes-sin-deadlock.mjs`). Cada parte empieza en una línea `-- ===== PARTE N · … =====`; sin
+marcas, el archivo es una sola parte. En local: `pnpm migraciones:partes-sin-deadlock <archivo>`.
 
 **El SQL Editor agrega líneas por su cuenta (aprendido 2026-09-30, ADR-0288):** si ve `select … into <nombre>` en el texto
 pegado, lo toma por un `SELECT INTO` que crea una tabla y agrega al final `alter table <nombre> enable row level security`.

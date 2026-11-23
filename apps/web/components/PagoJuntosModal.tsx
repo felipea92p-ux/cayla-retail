@@ -235,7 +235,7 @@ export function PagoJuntosModal({
           <span className="sr-only">Pago registrado</span>
         ) : (
           <>
-            <span className="label-cayla mb-0.5 block font-sans text-[11px] text-tinta/65">Pagar a proveedor</span>
+            <span className="label-cayla mb-0.5 block font-sans text-xs leading-tight text-tinta/65">Pagar a proveedor</span>
             <span className="block text-[28px] leading-tight">{proveedorNombre}</span>
           </>
         )
@@ -252,11 +252,11 @@ export function PagoJuntosModal({
           <DatosDelProveedor datos={datos} />
 
           <section>
-            <p className="label-cayla mb-2 text-[11px] text-tinta/65">Cómo se aplica el pago</p>
+            <p className="label-cayla mb-2 text-xs text-tinta/65">Cómo se aplica el pago</p>
             <div className="card-cayla divide-y divide-tinta/10 overflow-hidden">
               <div className="hidden gap-x-4 px-5 py-2 sm:grid sm:grid-cols-[1fr_9.5rem_7.5rem_8.5rem]">
                 {["Comprobante", "Vence", "Saldo", "Se paga"].map((t, i) => (
-                  <span key={t} className={`label-cayla text-[11px] text-tinta/55 ${i >= 2 ? "text-right" : ""}`}>
+                  <span key={t} className={`label-cayla text-xs text-tinta/55 ${i >= 2 ? "text-right" : ""}`}>
                     {t}
                   </span>
                 ))}
@@ -310,7 +310,7 @@ export function PagoJuntosModal({
                 );
               })}
               <div className="grid items-center gap-x-4 bg-tinta/[0.04] px-5 py-3 sm:grid-cols-[1fr_auto]">
-                <span className="label-cayla text-[11px] text-tinta">Total del pago</span>
+                <span className="label-cayla text-xs text-tinta">Total del pago</span>
                 {modo === "vencida" ? (
                   // El monto en la caja que se enciende, de 48 px (como `CampoMonto`; aquí sin su etiqueta: la fila ya dice «Total del pago»).
                   <label className="caja-cayla caja-campo caja-campo-alta justify-self-end">
@@ -332,7 +332,7 @@ export function PagoJuntosModal({
               </div>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-              <span className="label-cayla text-[10.5px] text-tinta/65">Si pagas menos</span>
+              <span className="label-cayla text-xs text-tinta/65">Si pagas menos</span>
               <SegmentoDeslizante
                 etiqueta="Cómo repartir un pago menor al total"
                 valor={modo}
@@ -346,7 +346,7 @@ export function PagoJuntosModal({
               />
               {(ordenados.length > 1 || totalVencido > 0) && (
                 <span className="flex flex-wrap items-center gap-2">
-                  <span className="label-cayla text-[10.5px] text-tinta/65">Atajos</span>
+                  <span className="label-cayla text-xs text-tinta/65">Atajos</span>
                   <button type="button" onClick={() => aplicarAtajo(totalSaldos)} className={PILDORA}>
                     Todo · {soles(totalSaldos)}
                   </button>

@@ -147,7 +147,7 @@ export function TituloComprobante({ compra }: { compra: CompraResumen }) {
   const anulada = compra.estado === "anulada";
   return (
     <>
-      <span className="cd-titulo label-cayla mb-0.5 block font-sans text-[11px] text-tinta/65">
+      <span className="cd-titulo label-cayla mb-0.5 block font-sans text-xs leading-tight text-tinta/65">
         {tipoCompra(compra)} · {compra.documento}
       </span>
       <span className={`cd-titulo block break-words text-[26px] font-medium leading-[1.15] ${anulada ? "text-tinta/50 line-through" : ""}`}>{compra.proveedorNombre}</span>
@@ -279,7 +279,7 @@ export function CompraDetalle({
         <div className="cd-mas space-y-6 border-t border-tinta/10 pt-6">
           {/* ---------- líneas ---------- */}
           <section className="space-y-2" data-guia="factura.lineas">
-            <p className="label-cayla text-[11px] text-tinta/65">Líneas del comprobante</p>
+            <p className="label-cayla text-xs text-tinta/65">Líneas del comprobante</p>
             <Tabla>
               <Encabezado
                 plantilla={PLANTILLA_LINEAS}
@@ -327,7 +327,7 @@ export function CompraDetalle({
                       {l.cantidad} × {soles(l.costoUnitario)}
                     </span>
                     <span className={celda("der")}>
-                      <span className={`label-cayla text-[11px] ${l.pendiente === 0 ? "text-tinta" : l.recibido > 0 ? "text-ambar" : "text-tinta/65"}`}>
+                      <span className={`label-cayla text-xs ${l.pendiente === 0 ? "text-tinta" : l.recibido > 0 ? "text-ambar" : "text-tinta/65"}`}>
                         {l.recibido}/{l.cantidad}
                       </span>
                       {/* Misma barra que las tarjetas de arriba, en miniatura: acá se
@@ -351,7 +351,7 @@ export function CompraDetalle({
           {/* ---------- recepciones ---------- */}
           <section className="space-y-2" data-guia="factura.recepciones">
             <div className="flex items-baseline justify-between">
-              <p className="label-cayla text-[11px] text-tinta/65">Recepciones</p>
+              <p className="label-cayla text-xs text-tinta/65">Recepciones</p>
               {!anulada && compra.estadoRecepcion !== "recibida" && hayAlgoQueRecibir(lineas) && (
                 <EnlaceVer href={`/compras/recibir?compra=${compra.id}`}>Recibir mercadería</EnlaceVer>
               )}
@@ -385,7 +385,7 @@ export function CompraDetalle({
 
           {compra.nota && (
             <p className="text-sm text-tinta/65">
-              <span className="label-cayla text-[11px]">Nota · </span>
+              <span className="label-cayla text-xs">Nota · </span>
               {compra.nota}
             </p>
           )}
@@ -421,7 +421,7 @@ function Totales({ subtotal, igv, total }: { subtotal: number; igv: number; tota
       <dl className="grid grid-cols-[auto_auto] gap-x-6 gap-y-1">
         {filas.map((f) => (
           <div key={f.etiqueta} className="contents">
-            <dt className={`text-right ${f.fuerte ? "label-cayla text-[11px] text-tinta" : "text-xs text-tinta/65"}`}>{f.etiqueta}</dt>
+            <dt className={`text-right ${f.fuerte ? "label-cayla text-xs text-tinta" : "text-xs text-tinta/65"}`}>{f.etiqueta}</dt>
             <dd className={`text-right tabular-nums ${f.fuerte ? "text-sm text-tinta" : "text-sm text-tinta/80"}`}>{soles(f.valor)}</dd>
           </div>
         ))}

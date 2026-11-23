@@ -234,12 +234,12 @@ export function LineasPago({
                       data-preferido={preferido === m}
                       onClick={() => actualizar(i, { metodo: m })}
                       onKeyDown={(e) => alTeclado(e, i, actual)}
-                      className="cd-ficha label-cayla rounded-full px-3 py-1 text-[10px] leading-4 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
+                      className="cd-ficha label-cayla rounded-full px-3 py-1 text-xs leading-4 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
                     >
                       {ETIQUETA_METODO_PAGO[m]}
                     </button>
                   ))}
-                  {i === 0 && preferido && <span className="ml-1 text-[11px] text-tinta/55">· el preferido de este proveedor</span>}
+                  {i === 0 && preferido && <span className="ml-1 text-xs text-tinta/55">· el preferido de este proveedor</span>}
                 </div>
                 <div className={`grid gap-3 sm:items-end ${plantilla}`}>
                   <CampoTexto
@@ -313,7 +313,7 @@ export function LineasPago({
           un pago pueda repartirse (transferencia + efectivo) es justo lo que
           este bloque existe para permitir, y como texto suelto nadie lo veía. */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Boton type="button" peso="fantasma" onClick={agregar} className="px-3 py-1.5 text-[11px]">
+        <Boton type="button" peso="fantasma" onClick={agregar} className="px-3 py-1.5 text-xs leading-tight">
           + Agregar otro medio de pago
         </Boton>
         {hayResumen && (

@@ -107,7 +107,7 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
       }}
       className="space-y-5"
     >
-      <p className="text-[15px] leading-relaxed text-tinta/80">Elige lo que hiciste. Solo se anota: no mueve stock ni cambia precios.</p>
+      <p className="text-sm leading-relaxed text-tinta/80">Elige lo que hiciste. Solo se anota: no mueve stock ni cambia precios.</p>
 
       <CampoGuiado id="opcion" guia={guia} titulo="Qué hiciste con ella">
         <div role="radiogroup" aria-label="Qué hiciste con la prenda" className="grid gap-2">
@@ -168,7 +168,7 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
       )}
 
       {error && (
-        <div role="alert" className="rounded-xl vd-placa px-3.5 py-3 text-[15px] leading-relaxed">
+        <div role="alert" className="rounded-xl vd-placa px-3.5 py-3 text-sm leading-relaxed">
           <p>{error.texto}</p>
           {error.conVer && (
             <button type="button" className="btn-cayla btn-enlace mt-1 text-sm" onClick={() => (anotador.limpiarError(), router.refresh())}>
@@ -212,7 +212,7 @@ function TarjetaOpcion({ o, marcada, onElegir, children }: { o: OpcionDeDecision
       <label className={`flex min-h-[44px] items-start gap-2.5 ${o.deshabilitada ? "cursor-not-allowed" : "cursor-pointer"}`}>
         <input type="radio" name="accion" value={o.clave} checked={marcada} disabled={o.deshabilitada} onChange={onElegir} className="mt-1" />
         <span>
-          <span className="block text-[15px] font-semibold leading-tight">{o.titulo}</span>
+          <span className="block text-sm font-semibold leading-tight">{o.titulo}</span>
           <span className="mt-0.5 block text-sm leading-snug text-taupe">{o.consecuencia}</span>
         </span>
       </label>
@@ -267,7 +267,7 @@ export function FrescuraQuitar({ decisionId, sede, onNo, onListo }: { decisionId
       }}
       className="space-y-4 rounded-xl border border-sand bg-papel px-3.5 py-3.5"
     >
-      <p className="text-[14px] font-semibold leading-snug">¿Quitar lo anotado?</p>
+      <p className="text-detalle font-semibold leading-snug">¿Quitar lo anotado?</p>
       <p className="text-sm leading-relaxed text-taupe">Vuelve a «Por decidir» si sigue quieta, y lo que se había anotado queda en el historial.</p>
       <CampoGuiado id="nota" guia={guia}>
         <CampoTexto etiqueta={guia.etiqueta("nota", "¿Qué pasó? (opcional)")} value={nota} maxLength={280} caja onChange={(e) => setNota(e.target.value)} />

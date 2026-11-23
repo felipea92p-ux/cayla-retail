@@ -128,7 +128,7 @@ function TarjetaDePedido({
   return (
     <article className={`card-cayla space-y-3 border-l-[6px] p-4 sm:px-5 ${BORDE[p.estado]}`} data-estado={p.estado}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <p className="font-display text-[19px] leading-tight text-tinta">{p.proveedor.nombre}</p>
+        <p className="font-display text-lg leading-tight text-tinta">{p.proveedor.nombre}</p>
         {pendiente ? (
           <Chip tono="ambar" versalitas={false}>
             Pendiente de campaña · falta confirmar

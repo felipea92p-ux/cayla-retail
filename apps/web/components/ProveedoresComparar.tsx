@@ -48,13 +48,13 @@ export function ProveedoresComparar({
   // El título de cada dato va arriba, a todo el ancho, y los proveedores debajo: así cada columna tiene todo el ancho de la caja (con 3, unos
   // 100 px) y un monto en soles cabe sin partirse.
   const columnas = { gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` };
-  const cifra = `font-display font-normal leading-none tabular-nums ${n === 3 ? "text-[18px]" : "text-[21px]"}`;
+  const cifra = `font-display font-normal leading-none tabular-nums ${n === 3 ? "text-lg" : "text-xl"}`;
   const fila = (titulo: ReactNode, celda: (f: FilaRanking) => ReactNode, i: number) => (
     <div className="prov-comp-fila anim-entra space-y-1.5 border-t py-2.5" style={{ ["--i" as string]: 2 + i }}>
       <span className="flex items-center gap-1 text-sm font-semibold text-taupe">{titulo}</span>
       <div className="grid items-start gap-3" style={columnas}>
         {filas.map((f) => (
-          <span key={f.proveedorId} className="flex min-w-0 flex-col items-start gap-1 break-words text-[15px] text-tinta">
+          <span key={f.proveedorId} className="flex min-w-0 flex-col items-start gap-1 break-words text-sm text-tinta">
             {celda(f)}
           </span>
         ))}
@@ -81,7 +81,7 @@ export function ProveedoresComparar({
         <div className="grid items-start gap-3 pb-2.5" style={columnas}>
           {filas.map((f) => (
             <span key={f.proveedorId} className="flex min-w-0 items-start justify-between gap-1">
-              <button type="button" className="font-display min-w-0 break-words text-left text-[15px] leading-tight text-tinta hover:text-rojo-profundo" onClick={() => onAbrir(f.proveedorId)} title="Abrir su vista rápida">
+              <button type="button" className="font-display min-w-0 break-words text-left text-sm leading-tight text-tinta hover:text-rojo-profundo" onClick={() => onAbrir(f.proveedorId)} title="Abrir su vista rápida">
                 {f.nombre}
               </button>
               <button
