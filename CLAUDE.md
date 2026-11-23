@@ -221,6 +221,7 @@ Cada fila es una regla: lo que pide en una línea, qué la vigila y el archivo d
 | «Guías interactivas» (ADR-0389) | Cada pantalla tiene su guía, al día en el mismo PR; la demo nunca guarda; anclas `data-guia` | `lib/guias.test.ts`, `guias:recorrer` | `guias.md` |
 | «Caos» (ADR-0356) | Toda pantalla o modal que guarda se ataca con `/chaos` antes de terminarse, solo en local; un hallazgo de seguridad no se versiona | `scripts/chaos/*.test.mjs`, tablero `docs/chaos/README.md` | `caos.md` |
 | «Código muerto: Knip en el CI» (ADR-0406) | Lo que nadie usa se borra; lo que queda a propósito se declara (`@public`, `@internal`, `ignore` o `entry` de `knip.ts`) | `pnpm knip`, `pnpm knip:produccion` | `knip.md` |
+| «Relleno silencioso» (ADR-0693) | Un `.catch(() => null)` o un `catch { return [] }` que es a propósito lo dice en su línea (`// relleno-a-proposito: <qué pasa si falla>`); si no, el error se ve o sube; la deuda de antes solo baja | `lib/relleno-silencioso.test.ts` | `relleno-silencioso.md` |
 | «La base de datos: `/docs/datos/`» | Una migración no está terminada hasta que su tabla está en el diccionario: `pnpm datos:generar:produccion` y `pnpm datos:comparar`; nunca se commitea `datos:generar` a secas | `pnpm datos:comparar` | `datos.md` |
 
 ## Skills de este repo

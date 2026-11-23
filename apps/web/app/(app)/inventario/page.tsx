@@ -127,7 +127,7 @@ export default async function InventarioPage({
   // a su vez, esperaba al ritmo.
   const cantidades = medir("cantidades", getCantidadesDeSede(ubicacionActivaId));
   const existencias = medir("existencias", getExistencias(ubicacionActivaId, ubicaciones, { cantidades }));
-  // Qué empresas operan aquí (ADR-0505): «en el catálogo, sin stock aquí» no ofrece en Trujillo una prenda de CLAURE. Sin respuesta, todas.
+  // relleno-a-proposito: Qué empresas operan aquí (ADR-0505): «en el catálogo, sin stock aquí» no ofrece en Trujillo una prenda de CLAURE. Sin respuesta, todas.
   const empresasDeAqui = medir("empresas", getEmpresasAqui(ubicacionActivaId)).catch(() => null);
   // Lo que depende de otra lectura arranca apenas esa responde, no cuando terminan TODAS (2026-11-13, `docs/innovacion/2026-11-13-cambiar-de-modulo.md`).
   // Las dos de abajo nunca lanzan: si no responden, su dato queda vacío y la pantalla lo dice, como antes.
@@ -140,7 +140,7 @@ export default async function InventarioPage({
     ? cantidades
         .then((filas) => medir("ritmo", getRitmoRecientePorVariante(ubicacionActivaId, [...pisoDeCadaTalla(filas).keys()], new Date(), medidor)))
         .then((r) => ritmoDelPanel(r.datos))
-        .catch(() => null)
+        .catch(() => null) // relleno-a-proposito: evita un rechazo suelto; si las cantidades fallan, la pantalla ya cae entera
     : null;
   // De quién son las unidades de cada talla (ADR-0542): solo donde conviven dos empresas (Lima). Dato secundario: si la base no responde,
   // las tallas quedan sin la línea «De quién es» y nada más cambia.
@@ -153,7 +153,7 @@ export default async function InventarioPage({
   // NO se espera para dibujar. La página le pasa al panel la PROMESA del plan, recortado a las tallas de la sede; la lista se dibuja con lo
   // demás y lo que depende del plan dice «calculando» hasta que llega.
   const planDelPiso = vende ? medir("plan", leerPlanDelPiso(ubicacionActivaId, {}, medidor)) : null;
-  // Si las prendas fallan, la pantalla entera cae (como antes) y esta promesa no la lee nadie: el `catch` evita un rechazo suelto.
+  // relleno-a-proposito: Si las prendas fallan, la pantalla entera cae (como antes) y esta promesa no la lee nadie: el `catch` evita un rechazo suelto.
   const planParaPanel = planDelPiso ? Promise.all([planDelPiso, existencias]).then(([plan, filas]) => planDelPanel(plan, filas)).catch(() => null) : null;
   // «Ver el valor a costo» (ADR-0557): solo se pregunta si la cuenta puede pasar la puerta (líder, o quien ve el dinero de Compras); la
   // base la repite y sin permiso devuelve cero filas. Dato secundario: si falla, sin el enlace. Arranca con las demás: hasta el 2026-11-13
@@ -188,7 +188,7 @@ export default async function InventarioPage({
     medir("catalogo", getCatalogoParaExistencias()),
     // La familia de cada color, para el filtro «Color» agrupado por familia (2026-10-03). Secundario: si falla, lista plana.
     medir("colores", getColoresParaExistencias()),
-    // Secundario: `null` si la cola no respondió. «Para hoy» lo dice («no se pudo leer») en vez de callar o dibujar un 0.
+    // relleno-a-proposito: Secundario: `null` si la cola no respondió. «Para hoy» lo dice («no se pudo leer») en vez de callar o dibujar un 0.
     vende ? medir("por_regularizar", contarPorRegularizar(ubicacionActivaId)).catch(() => null) : Promise.resolve(null),
     empresasDeAqui,
     // Dónde deja esta tienda las prendas dañadas (ADR-0564). Nunca lanza: sin dato, la pantalla sigue como antes.
@@ -246,7 +246,7 @@ export default async function InventarioPage({
   // la sede activa, y en otra (o en el Taller) no tendría nada que bajar.
   const enSuSede = ubicacionActivaId === persona.ubicacionId;
   const puedeBajarAlPiso = veModulo(persona, "existencias") && enSuSede && sububicacionPiso !== null && sububicacionAlmacen !== null;
-  // El barrido del piso (ADR-0690): si hay uno abierto («súmate») y cuándo fue el último cuadre («toca el del mes»). Dos lecturas
+  // relleno-a-proposito: El barrido del piso (ADR-0690): si hay uno abierto («súmate») y cuándo fue el último cuadre («toca el del mes»). Dos lecturas
   // chicas que salen YA y se esperan recién al dibujar; si fallan, Existencias no dice nada del barrido (el botón sigue).
   const barridoDeLaSede = puedeBajarAlPiso ? Promise.all([getBarridoEstado(ubicacionActivaId), getCuadrePisoEstado(ubicacionActivaId)]).catch(() => null) : null;
   // «Cuadrar el piso» (ADR-0328, actividad 3): la entrada a /inventario/cuadrar. Es una función de Existencias (ADR-0306), así que la

@@ -51,6 +51,29 @@ base de datos. Es un análisis de texto: no ve una función creada con `execute 
 completa es armar la base desde cero, que es lo que hacen las tandas de Postgres del CI. Si la migración que choca ya está en
 `main`, el check «SQL pegado» no deja editarla (ni cuando el cambio no toca ningún objeto de la base): decide Felipe.
 
+## Partes sin deadlock: una política no se mezcla con el `alter` de una tabla en uso
+
+En Supabase, `create policy`, `alter policy`, `drop policy` (aunque no exista) y `drop trigger` toman en exclusiva las tablas
+de `auth` y `storage` que lista `supautils.policy_grants` (21 hoy) hasta el final de la pegada. Si la misma pegada ya tiene
+tomada una tabla que la tienda usa, choca con el Asesor de seguridad del panel: `40P01 deadlock detected` y no se aplica nada
+(ADR-0195). `sin-drop-trigger.mjs` vigila lo que se lee en el texto; la mezcla del `alter` con la política no se lee, se mide.
+
+`partes-sin-deadlock.mjs` corre la migración en `begin … rollback` y lee `pg_locks` después de cada sentencia. Sale rojo
+una parte donde, además de la política, otra sentencia tomó en exclusiva una relación que ya existía. La tabla de la propia
+política no cuenta: «las políticas solas y al final» es la forma correcta. Lo que nace en la misma pegada tampoco cuenta.
+Una parte empieza en una línea `-- ===== PARTE N · … =====` (también `-- PARTE N · …` o `-- FIN DE LA PARTE N`); sin marcas,
+la migración es una sola parte.
+
+- **En el CI** mide cada migración nueva del PR en la tanda 1, justo antes de aplicarla (`huellas-del-pr.mjs aplicar
+  --partes`). El paso «Partes de migración sin deadlock» la revisa. La prueba `pnpm pruebas:partes-sin-deadlock` comprueba
+  que el Postgres del CI siga reproduciendo el bloqueo: si deja de hacerlo, el candado quedaría ciego.
+- **En local:** `pnpm migraciones:partes-sin-deadlock supabase/migrations/<archivo>.sql` la mide contra la base que esté
+  arriba, sin aplicarla. Mientras dura, toma los candados que tomaría la migración: en la base compartida, hazlo cuando
+  nadie la use.
+- **No ve** lo que pasa dentro de una sola sentencia (un bloque `do` que hace el `alter` y crea la política) ni una tabla
+  que una parte anterior del mismo archivo ya tomó. Tampoco mide una migración que maneja su propia transacción. El
+  encabezado del script lo explica.
+
 ## Qué significa cada resultado
 
 | Resultado | Qué puedes afirmar |

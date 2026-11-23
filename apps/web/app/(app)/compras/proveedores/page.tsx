@@ -39,10 +39,10 @@ export default async function ProveedoresPage() {
     verMontos ? getProveedoresResumen() : null,
     verMontos ? getProveedoresSerie() : null,
     getMarcasPorProveedor(),
-    // Qué le deja cada proveedor (2026-10-24): plata, así que con la misma llave que las cifras. Opcional: si la base no tiene la función, la lista sale como antes.
+    // relleno-a-proposito: Qué le deja cada proveedor (2026-10-24): plata, así que con la misma llave que las cifras. Opcional: si la base no tiene la función, la lista sale como antes.
     verMontos ? getProveedoresRendimiento().catch(() => null) : null,
-    verMontos ? getProveedoresPrendas().catch(() => null) : null,
-    // La línea de ventas de cada fila del ranking (ADR-0521): opcional como el rendimiento; sin la función en la base, las filas van sin línea.
+    verMontos ? getProveedoresPrendas().catch(() => null) : null, // relleno-a-proposito: opcional como la de arriba: sin la función, la lista sale como antes
+    // relleno-a-proposito: La línea de ventas de cada fila del ranking (ADR-0521): opcional como el rendimiento; sin la función en la base, las filas van sin línea.
     verMontos ? getProveedoresVentasDiarias().catch(() => null) : null,
   ]);
 

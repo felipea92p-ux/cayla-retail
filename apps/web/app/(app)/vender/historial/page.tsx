@@ -65,11 +65,11 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
 
   const [ubicaciones, colaboradores, suspendidos, inactivos] = await Promise.all([
     getUbicaciones(),
-    // Si la lista de colaboradores falla, solo desaparece el filtro por vendedor: el historial sigue.
+    // relleno-a-proposito: Si la lista de colaboradores falla, solo desaparece el filtro por vendedor: el historial sigue.
     esLider ? getColaboradores().catch(() => []) : Promise.resolve([]),
     // Quien está suspendido o ya no está activo en Dynamic igual vendió: sus ventas tienen que poder filtrarse por su nombre.
-    esLider ? getColaboradoresSuspendidos().catch(() => []) : Promise.resolve([]),
-    esLider ? getColaboradoresInactivos().catch(() => []) : Promise.resolve([]),
+    esLider ? getColaboradoresSuspendidos().catch(() => []) : Promise.resolve([]), // relleno-a-proposito: como la de arriba: si falla, el filtro por vendedor solo pierde estos nombres
+    esLider ? getColaboradoresInactivos().catch(() => []) : Promise.resolve([]), // relleno-a-proposito: como la de arriba: si falla, el filtro por vendedor solo pierde estos nombres
   ]);
   // Solo las tiendas venden: ni el Taller ni un almacén tienen mostrador.
   const tiendas = ubicaciones.filter((u) => u.tipo === "tienda");

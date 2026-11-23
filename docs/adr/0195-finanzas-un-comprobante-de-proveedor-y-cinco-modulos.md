@@ -581,3 +581,78 @@ cada casilla guarda con la misma función de antes y las reglas de validación n
 contador), lo que casi nadie toca se pliega (los efectos de campaña, las cuentas archivadas, el reparto en 0 %, lo de arranque), y estas cuatro pantallas ya no se dibujan con el kit de tablas de Finanzas sino con el
 vidrio de Las vitrinas. **Lo que queda del kit:** las hojas (`NuevaVigenciaModal`, `GastoFijoModal`, la hoja de la propuesta de topes) siguen con sus campos, tal cual. «Vendido este año» en Impuestos lee `getPanelImpuestos`:
 si esa lectura falla o la cuenta no la ve, el bloque se dibuja sin la barra.
+
+## Actualización 2026-11-23: la mezcla del `alter` con la política, medida en el CI
+
+**La pregunta.** El candado `sin-drop-trigger.mjs` (ADR-0251) vigila la mitad de la regla de F1 que se lee en el texto. La otra
+mitad, no mezclar el `alter` de una tabla en uso con `create policy` en la misma pegada, no se lee: hay que ver qué candados toma
+cada sentencia. Al revisar las skills de `affaan-m/ecc` (commit `3f14a10`) apareció una técnica: leer `pg_locks` del propio proceso
+dentro de la transacción. Felipe aprobó construir el candado con una condición: antes, probar que el Postgres local reproduce el
+bloqueo.
+
+**Medido el 2026-11-23 en una base desechable** (`supabase_db_medir-candados`, imagen `supabase/postgres:17.6.1.171`, la que usa el
+CLI 2.118.0 del CI, con los mismos servicios apagados que el CI; nunca la base compartida ni producción). En `begin … rollback`, como
+`postgres`, leyendo `select relation::regclass, mode from pg_locks where pid = pg_backend_pid()`:
+
+| Sentencia, sola en su transacción | En exclusiva en `auth` / `storage` | En exclusiva en `retail` |
+|---|---|---|
+| `create policy … on retail.ubicaciones` | 16 / 5 (las 21) | `ubicaciones` |
+| `alter policy …` | 21 | `ubicaciones` |
+| `drop policy if exists` de una que no existe | 16 / 5 | `ubicaciones` |
+| `drop trigger if exists` de uno que no existe | 16 / 5 | `ubicaciones` |
+| `alter table … add column`, `enable row level security` | 0 | la tabla |
+| `create table` | 0 | la tabla y su índice (nuevos) |
+| `comment on table`, `grant`/`revoke`, `create or replace trigger`, `drop function`/`drop index if exists` de algo que no existe | 0 | 0 |
+
+**Sí se reproduce**, con las mismas 21 tablas de producción. **La causa es `supautils`:** sus listas `policy_grants` y
+`drop_trigger_grants` nombran, para el rol `postgres`, 24 tablas de `auth`, `storage` y `realtime`. Con cada política o `drop
+trigger` las toma en exclusiva, y en esta base existen 21 (no están las dos de `realtime` ni `storage.prefixes`). La base del CI ya
+tiene esas tablas aunque `gotrue` y `storage-api` estén apagados: las trae la imagen.
+
+**El orden importa, y cambió el diseño.** Con otra sesión sosteniendo `storage.buckets` (un Asesor simulado), un `create policy`
+SOLO quedó esperando `storage.buckets` con `retail.ubicaciones` ya tomada. La política toma su propia tabla antes que las 21. Por eso
+el candado no puede ser «una parte con retail y con auth en exclusiva»: toda política saldría roja, también la forma correcta («las
+políticas solas y al final»). Lo que cierra el ciclo de F1 es que OTRA sentencia de la parte haya tomado en exclusiva una tabla que ya
+existía ANTES de la primera política: la migración la tiene y pide `storage.buckets`, el Asesor tiene `storage.buckets` y la pide. Lo
+que se toma después no lo cierra: con `storage.buckets` ya en exclusiva, el Asesor no puede tenerlo. Una primera versión contaba
+también lo de después. Al reproducir las migraciones del repo, salió rojo un falso positivo: la parte «solo políticas» de
+`20261005100200`, donde una función reescribe políticas después de la primera.
+
+**El candado** (`scripts/migraciones/partes-sin-deadlock.mjs`):
+- Parte la migración en sentencias de primer nivel, respetando `$$`, textos y comentarios, y en partes. Una parte empieza en una
+  marca como `-- ===== PARTE N · … =====`, `-- PARTE N de M · …` o `-- FIN DE LA PARTE N`. Ante la duda, una línea se toma como
+  marca: una marca de más solo puede esconder una mezcla, una de menos podría inventarla.
+- Corre la migración en `begin … rollback` con una foto de `pg_locks` (solo `AccessExclusiveLock` del propio proceso) después de
+  cada sentencia.
+- La sentencia que de pronto tiene tablas de `auth`/`storage` es la política. Si la parte ya las tenía de una parte anterior, la
+  política se reconoce por su texto. Lo que toma la política es suyo.
+- La parte sale roja si, antes de su primera política, otra sentencia tomó en exclusiva una relación con un oid menor o igual al más
+  alto del inicio, es decir, que ya existía. Lo que nace en la misma pegada, lo temporal y el TOAST no cuentan.
+- **En el CI:** `huellas-del-pr.mjs aplicar --partes` mide cada migración nueva del PR en la tanda 1, justo antes de aplicarla.
+  El paso «Partes de migración sin deadlock» revisa la medida. Las pruebas puras corren en «Tipos y candados».
+  `pnpm pruebas:partes-sin-deadlock` corre en las tandas y trae el canario: si el Postgres del CI deja de tomar `auth`/`storage`
+  con una política, sale rojo, porque el candado quedaría ciego. Cada medida del CI corre también el canario y, si no lo ve, avisa.
+- **En local:** `pnpm migraciones:partes-sin-deadlock <archivo>`.
+- **No ve:** lo que pasa dentro de una sola sentencia (un bloque `do` que hace el `alter` y crea la política); una tabla que una parte
+  anterior del mismo archivo creó o ya tomó (la medida corre el archivo entero en una transacción y un candado que ya se tiene no
+  aparece de nuevo); una política hecha por una función en una parte cuyas tablas de `auth` ya tomó otra anterior; y una migración
+  que maneja su propia transacción o usa órdenes de psql. Lo que no pudo medir sale como aviso, nunca como verde. Tampoco ve un
+  Asesor que leyera al revés (la tabla de retail primero y `storage` después): no se ha visto, y el registro de F1 mostró el otro
+  orden.
+- **De la skill de ecc no se trajo** `CREATE INDEX CONCURRENTLY` ni el `COMMIT` dentro de `DO $$`: fallan en la transacción única
+  del SQL Editor.
+
+**Probado sobre el SQL real del repo (2026-11-23).** En la base desechable, desde cero, se reprodujeron las 1 259 migraciones
+numeradas en orden: cada una se midió justo antes de aplicarla, como hará el CI con las de un PR. El partidor no perdió ningún
+carácter en las 18 790 sentencias. Resultado:
+- **32 salen rojas**, y todas menos una son anteriores al aprendizaje de F1 (el 2026-09-24), cuando la regla no existía.
+- **Desde F1, de 41 migraciones con políticas, una sola sale roja:** `20260928140000_clientas_version_y_archivo.sql`. Hace `alter
+  table retail.clientas` (línea 80) y después `drop`/`create policy` sobre `clientas_fusiones` (líneas 162-163) en la misma pegada,
+  aunque su cabecera dice «acá no hay `create policy`». Es el patrón de F1, y el candado lo habría parado. Ya está en `main` y no se
+  edita.
+- **9 no se pudieron medir**, y tampoco se aplicaron. Es un efecto de la reproducción, no del candado: `20261001100200` usa una
+  función `pg_temp` de una migración anterior. El CLI de Supabase aplica todas en una sola sesión; la reproducción, como `aplicar`
+  con las del PR, usa una sesión por archivo. Las otras 8 fallan en cadena detrás de esa.
+- La primera versión del candado contaba también lo que se toma después de la primera política, y no reconocía `PARTE FINAL ·` como
+  marca. Daba dos rojos falsos: `20261005100200` (la parte «solo políticas») y `20261026162000` (con su política en `PARTE FINAL`).
+  Los dos se corrigieron antes de publicar.

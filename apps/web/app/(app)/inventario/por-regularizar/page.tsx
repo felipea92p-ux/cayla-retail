@@ -23,7 +23,7 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
   // El líder ve las de todas sus sedes (cada fila dice cuál); los demás, las de la suya (RLS igual lo cuida). Un líder que llega desde
   // «Para hoy» de Existencias trae la sede (`?ubicacion=`, ADR-0331): ve la cola de ESA sede, la misma que contó allá
   // (`contarPorRegularizar`). Una sede que no existe se ignora y vuelve a «todas».
-  // Si la lista de sedes no responde, la página no se cae: muestra todas, como antes de traer la sede.
+  // relleno-a-proposito: Si la lista de sedes no responde, la página no se cae: muestra todas, como antes de traer la sede.
   const ubicaciones = esLider && ubicacion ? await getUbicaciones().catch(() => []) : [];
   const unaSede = ubicaciones.find((u) => u.id === ubicacion) ?? null;
   // Los plazos del cierre de arranque (ADR-0334): desde ADR-0534 cierra quien ve Existencias, no solo el líder. RLS deja leer los de las

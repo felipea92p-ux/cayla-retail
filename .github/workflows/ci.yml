@@ -242,6 +242,13 @@ jobs:
           node --test scripts/migraciones/sin-drop-trigger.test.mjs
           node scripts/migraciones/sin-drop-trigger.mjs
 
+      # La otra mitad de la regla: una parte que se pega sola no mezcla una política con el `alter` de una tabla que ya
+      # existía (40P01, ADR-0195). No se lee del texto: la mide la tanda 1 de Postgres («Partes de migración sin deadlock»).
+      # Aquí, su parte pura (partir en sentencias y partes, leer las fotos de pg_locks, decidir). Sin node_modules.
+      - name: Partes sin deadlock (pruebas del candado)
+        if: ${{ !cancelled() }}
+        run: node --test scripts/migraciones/partes-sin-deadlock.test.mjs
+
       # Ningún ayudante `pg_temp.<nombre>` cambia el nombre de sus parámetros respecto de uno anterior con la misma firma:
       # el CLI de Supabase aplica todas las migraciones en UNA sesión y `pg_temp` se arrastra, así que el segundo
       # `create or replace` falla con 42P13 y la base no se arma (2026-10-23, `20261023212000`; #1300 y #1301 en rojo).
@@ -299,6 +306,13 @@ jobs:
         if: ${{ !cancelled() }}
         run: node --test scripts/sugerir/escanear.test.mjs scripts/focus/escanear.test.mjs
 
+      # El escáner de observabilidad (skill `skill-evaluacion-observabilidad`) y sus hermanos de rendimiento: `apps/web/lib/relleno-silencioso.test.ts`
+      # lo importa como la única definición de «relleno silencioso» (ADR-0693), así que si el escáner se rompe, ese candado dejaría de ver los
+      # `.catch(() => null)` sin avisar. Sus casos buenos y malos corren aquí. Lee el AST con TypeScript: necesita la instalación.
+      - name: Escáneres de rendimiento y observabilidad
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: node --test scripts/rendimiento/rendimiento.test.mjs
+
       # El check «Al milímetro» (`.github/workflows/al-milimetro.yml`): qué archivos cuentan como visuales y qué casilla lo deja
       # pasar. Solo lee su lista; no necesita node_modules. Y el tablero de auditorías, que se arma desde la carpeta
       # (`pnpm milimetro:auditorias`, ADR-0259 act. 2026-11-17): como ya no hay una fila que resuma cada auditoría, un informe
@@ -314,6 +328,13 @@ jobs:
       - name: Catálogo de caos e invariantes
         if: ${{ !cancelled() }}
         run: node --test scripts/chaos/invariantes.test.mjs scripts/chaos/catalogo.test.mjs scripts/chaos/vigia-semilla.test.mjs
+
+      # La lectura del código de la familia «El botón que no hace lo que dice» (ADR-0693, `scripts/chaos/boton.mjs`): las pistas de
+      # refresco tras guardar y de efectos que pisan o llegan tarde, y que cada una apunte a un ataque del catálogo. Lee el AST con
+      # TypeScript: necesita la instalación (el paso de arriba no).
+      - name: Lectura del código de caos
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: node --test scripts/chaos/boton.test.mjs
 
       # `/flujo-de-negocio`: la parte pura de `espejo.mjs` (la ruta de `info/exclude`, que en un worktree git da absoluta).
       - name: Espejo de /flujo-de-negocio
@@ -465,8 +486,8 @@ jobs:
           if [ "${{ github.event_name }}" = pull_request ]; then node scripts/migraciones/huellas-del-pr.mjs apartar "$RUNNER_TEMP/migraciones-del-pr"; fi
           npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS" || { npx "$SUPABASE_CLI" stop --no-backup || true; sleep 15; npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"; }
           if [ -d "$RUNNER_TEMP/migraciones-del-pr" ]; then
-            if [ "${{ matrix.tanda }}" = 1 ]; then huellas="$RUNNER_TEMP/huellas-del-pr.json"; else huellas=""; fi
-            node scripts/migraciones/huellas-del-pr.mjs aplicar "$RUNNER_TEMP/migraciones-del-pr" $huellas
+            if [ "${{ matrix.tanda }}" = 1 ]; then huellas="$RUNNER_TEMP/huellas-del-pr.json"; partes="--partes $RUNNER_TEMP/partes-del-pr.json"; else huellas=""; partes=""; fi
+            node scripts/migraciones/huellas-del-pr.mjs aplicar "$RUNNER_TEMP/migraciones-del-pr" $huellas $partes
             node scripts/migraciones/huellas-del-pr.mjs devolver "$RUNNER_TEMP/migraciones-del-pr"
           fi
 
@@ -488,6 +509,14 @@ jobs:
           path: ${{ runner.temp }}/huellas-del-pr.json
           if-no-files-found: ignore
           retention-days: 7
+
+      # Una parte que se pega sola no mezcla una política con el `alter` de una tabla que ya existía: en Supabase la política
+      # toma en exclusiva las tablas de auth y storage, y con la tabla ya tomada choca con el Asesor del panel (40P01, ADR-0195).
+      # En la tanda 1, `aplicar --partes` midió cada migración nueva del PR justo antes de aplicarla (begin … rollback, leyendo
+      # pg_locks después de cada sentencia); aquí se revisa esa medida. Sin migraciones nuevas no hay medida y sale verde.
+      - name: Partes de migración sin deadlock
+        if: ${{ !cancelled() && github.event_name == 'pull_request' && steps.supabase.outcome == 'success' && matrix.tanda == 1 }}
+        run: node scripts/migraciones/partes-sin-deadlock.mjs revisar "$RUNNER_TEMP/partes-del-pr.json"
 
       # Las pruebas de esta tanda. Todas corren aunque una falle; el resumen de la corrida dice cuál falló y cuánto tardó cada una.
       - name: Pruebas de la tanda
