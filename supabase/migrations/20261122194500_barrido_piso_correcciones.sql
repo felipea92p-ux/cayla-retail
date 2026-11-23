@@ -26,7 +26,8 @@
 --      borrable = false). Catálogo ofrece «Desactivar» y lo dice, en vez de fallar con la llave. (Lo resuelto de un barrido, el 28, lo
 --      suma «Por resolver», 20261122195000.)
 --   8. FUSIONAR PRODUCTOS. Una talla que se junta y está en un barrido ABIERTO frena la fusión (junta_barrido), como un conteo abierto:
---      lo escaneado de la juntada se quedaría sin cuenta. Lo de un barrido cerrado es historia y se queda en la juntada.
+--      lo escaneado de la juntada se quedaría sin cuenta; y una talla vacía en un barrido abierto no se ofrece para sacar de la venta.
+--      Lo de un barrido cerrado es historia y se queda en la juntada.
 --
 -- QUÉ NO CAMBIA. Las tablas y los permisos. Los demás motivos (se_movio, archivada, no_es_inventario) y su orden.
 --
@@ -427,7 +428,9 @@ grant execute on function retail.confirmar_barrido_piso(uuid, uuid, boolean, tex
 -- ---------------------------------------------------------------------------
 -- 7 y 8. Los vecinos: eliminar y fusionar productos (reemplazos ANCLADOS).
 -- ---------------------------------------------------------------------------
-create or replace function pg_temp.reemplazar_barrido(p_firma text, p_viejo text, p_nuevo text)
+-- `p_marca`: un pedazo del texto nuevo que no cambia aunque otra migración siga parchando la misma función (20261122195000 agrega el
+-- renglón 28 justo después del 27): volver a pegar esta migración no hace nada.
+create or replace function pg_temp.reemplazar_barrido(p_firma text, p_marca text, p_viejo text, p_nuevo text)
 returns void
 language plpgsql
 as $f$
@@ -436,7 +439,7 @@ declare
   v_n integer;
 begin
   v_def := pg_get_functiondef(p_firma::regprocedure);
-  if position(p_nuevo in v_def) > 0 then
+  if position(p_marca in v_def) > 0 then
     return;
   end if;
   v_n := (length(v_def) - length(replace(v_def, p_viejo, ''))) / length(p_viejo);
@@ -448,7 +451,7 @@ end;
 $f$;
 
 -- 7. Lo escaneado en un barrido es historia: frena el borrado y Catálogo ofrece «Desactivar».
-select pg_temp.reemplazar_barrido('retail.fn_producto_historia(uuid)',
+select pg_temp.reemplazar_barrido('retail.fn_producto_historia(uuid)', $m$'lecturas de un barrido del piso'$m$,
 $v$        from retail.orden_compra_items x where x.producto_id = p_producto_id
     ) h$v$,
 $n$        from retail.orden_compra_items x where x.producto_id = p_producto_id
@@ -458,7 +461,7 @@ $n$        from retail.orden_compra_items x where x.producto_id = p_producto_id
     ) h$n$);
 
 -- 8. Una talla que se junta y está en un barrido ABIERTO frena la fusión, como un conteo abierto.
-select pg_temp.reemplazar_barrido('retail.fn_fusion_productos_plan(uuid,uuid[],jsonb)',
+select pg_temp.reemplazar_barrido('retail.fn_fusion_productos_plan(uuid,uuid[],jsonb)', $m$'junta_barrido'$m$,
 $v$está en un conteo abierto. Ciérralo antes de fusionar.');
     end if;$v$,
 $n$está en un conteo abierto. Ciérralo antes de fusionar.');
@@ -469,6 +472,14 @@ $n$está en un conteo abierto. Ciérralo antes de fusionar.');
       v_bloqueos := v_bloqueos || jsonb_build_object('codigo', 'junta_barrido', 'variante_id', r.variante_id, 'producto_id', r.producto_id,
         'mensaje', '«' || r.referencia || ' ' || r.nombre || '» está en un barrido del piso abierto. Confírmalo o descártalo antes de fusionar.');
     end if;$n$);
+
+-- 8 (b). Tampoco se ofrece «sacar de la venta» una talla vacía que está en un barrido ABIERTO (revisión adversarial, 2026-11-23): se
+-- apagaría y lo escaneado de ella dejaría de contar como «no cargada» sin aviso. Va junto a la condición del conteo abierto.
+select pg_temp.reemplazar_barrido('retail.fn_fusion_productos_plan(uuid,uuid[],jsonb)', $m$bl.variante_id = x.variante_id$m$,
+$v$where ci.variante_id = x.variante_id and co.estado = 'abierto'))));$v$,
+$n$where ci.variante_id = x.variante_id and co.estado = 'abierto')
+              or exists (select 1 from retail.barrido_piso_lecturas bl join retail.barridos_piso bp on bp.id = bl.barrido_id
+                          where bl.variante_id = x.variante_id and bp.estado = 'abierto' and bl.anulada_en is null))));$n$);
 
 reset lock_timeout;
 

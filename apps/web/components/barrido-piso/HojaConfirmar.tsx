@@ -111,6 +111,8 @@ export function HojaConfirmar({
         // No se movió nada: se muestra la cuenta nueva y se confirma otra vez, mirándola.
         setCambio(true);
         setFallo(null);
+        // Sin la cuenta vieja a la vista (ni su huella): «Confirmar» se apaga hasta que llega la nueva.
+        setVista(null);
         setVuelta((n) => n + 1);
         return;
       }

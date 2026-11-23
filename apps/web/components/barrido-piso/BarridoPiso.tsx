@@ -137,8 +137,16 @@ export function BarridoPiso({
   const [revisar, setRevisar] = useState(false);
   // La hoja de confirmar abierta, para lo que corre fuera del dibujo (la puesta al día no debe cerrar la pantalla bajo la hoja).
   const revisarRef = useRef(false);
+  // Un cierre que llegó mientras la hoja estaba abierta (otro celular confirmó): se aplica al cerrarla.
+  const cierrePendiente = useRef(false);
   useEffect(() => {
     revisarRef.current = revisar;
+    if (!revisar && cierrePendiente.current) {
+      cierrePendiente.current = false;
+      reiniciar("El barrido se cerró desde otro celular.");
+    }
+    // `reiniciar` solo toca refs y estados: no hace falta volver a correr por él.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [revisar]);
   // Lo que no se puede escanear (actividad 4): apartar con foto, y lo escrito que busca por nombre.
   const [apartar, setApartar] = useState<{ tipo: TipoHallazgo; codigo: string | null } | null>(null);
@@ -252,9 +260,14 @@ export function BarridoPiso({
     const actual = barridoRef.current;
     if (actual && estado.barrido?.id !== actual.id) {
       // Si la hoja de confirmar de ESTE celular está abierta, el cierre es suyo: la hoja lo cuenta.
-      if (revisarRef.current) return;
+      if (revisarRef.current) {
+        cierrePendiente.current = true;
+        return;
+      }
       reiniciar("El barrido se cerró desde otro celular.");
       if (!estado.barrido) return;
+      // Ya hay otro barrido abierto: la pantalla se suma a él, y el aviso del anterior sobra.
+      setAviso(null);
     }
     if (!estado.barrido) return;
     setBarrido(estado.barrido);
@@ -366,13 +379,18 @@ export function BarridoPiso({
     const { data, error } = await firmar(consulta, firma);
     subiendo.current = false;
     if (!vivo.current) return;
+    // La respuesta es de un barrido que ya no es el de la pantalla (se cerró y se abrió otro mientras subía): no le toca a este.
+    if (barridoRef.current?.id !== b.id) return;
     if (error) {
       const clase = clasificarError(error);
       if (clase === "frena_todo") {
-        if (error.hint === "barrido_cerrado" && !revisarRef.current) {
-          reiniciar("El barrido se cerró.");
+        if (error.hint === "barrido_cerrado") {
           avisarLectura("desconocida");
-          return;
+          if (!revisarRef.current) {
+            reiniciar("El barrido se cerró.");
+            return;
+          }
+          cierrePendiente.current = true;
         }
         frenar(textoDeRechazo(error.hint) ?? error.message);
         avisarLectura("desconocida");
@@ -780,7 +798,8 @@ export function BarridoPiso({
           </CampoGuiado>
           <PieGuia guia={guia} listo="Sigue escaneando: cada prenda se guarda sola." />
           <div data-guia="barrido.confirmar">
-            <Boton peso="primario" onClick={() => setRevisar(true)} disabled={unidadesEquipo === 0}>
+            {/* Siempre se abre: ahí también se descarta un barrido sin nada escaneado («Confirmar» se apaga solo y la base rechaza barrido_vacio). */}
+            <Boton peso="primario" onClick={() => setRevisar(true)}>
               Revisar y confirmar
             </Boton>
           </div>

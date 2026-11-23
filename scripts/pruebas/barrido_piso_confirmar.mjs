@@ -618,9 +618,10 @@ ${COMO_POSTGRES}select string_agg(orden || ':' || concepto || ':' || borrable, '
   "27:lecturas de un barrido del piso:false 28:prendas resueltas de un barrido del piso:false"
 );
 caso(
-  "C · fusionar frena si la talla que se junta está en un barrido ABIERTO (junta_barrido), como un conteo abierto",
-  `select position('junta_barrido' in pg_get_functiondef('retail.fn_fusion_productos_plan(uuid,uuid[],jsonb)'::regprocedure)) > 0;`,
-  "t"
+  "C · fusionar frena si la talla que se junta está en un barrido ABIERTO (junta_barrido), y no ofrece sacar de la venta una talla vacía que está en uno",
+  `select (position('junta_barrido' in d) > 0) || ',' || ((length(d) - length(replace(d, 'bl.variante_id = x.variante_id', ''))) / length('bl.variante_id = x.variante_id'))
+     from (select pg_get_functiondef('retail.fn_fusion_productos_plan(uuid,uuid[],jsonb)'::regprocedure) d) z;`,
+  "true,1"
 );
 
 console.log(`\n${fallos === 0 ? "✓" : "✗"} ${total - fallos}/${total} verificaciones${fallos ? ` — ${fallos} fallaron` : ""}`);
