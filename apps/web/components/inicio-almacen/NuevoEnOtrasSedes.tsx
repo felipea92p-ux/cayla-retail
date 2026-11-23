@@ -41,8 +41,8 @@ export function NuevoEnOtrasSedes({
     const aplicar = () => setFiltro(siguiente);
     const vt = (document as Document & { startViewTransition?: (cb: () => void) => { ready: Promise<void>; finished: Promise<void>; updateCallbackDone: Promise<void> } }).startViewTransition;
     if (!vt || prefiereQuieto()) return aplicar();
-    // Dos clics seguidos hacen que el navegador aborte la transición anterior y lo avise por promesa: no es un error.
     const t = vt.call(document, aplicar);
+    // relleno-a-proposito: dos clics seguidos hacen que el navegador aborte la transición anterior y lo avise por promesa: no es un error.
     [t.ready, t.finished, t.updateCallbackDone].forEach((p) => p.catch(() => {}));
   }
 

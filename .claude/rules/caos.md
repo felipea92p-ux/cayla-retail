@@ -10,9 +10,11 @@ paths:
 recarga a mitad de un guardado, abre dos pestañas, pega un monto con coma o pierde el internet justo al pulsar Guardar; hoy nada de eso lo
 prueba nadie de forma sistemática. **Lo grave no es la pantalla caída sino el descuadre que nadie ve** (un stock que ya no cuadra con
 `movimientos`, una venta cuyos pagos no suman, dos comprobantes): es el principio 2 llevado a prueba. **`/chaos` (skill) lo hace:**
-1. **Catálogo fijo + azar con semilla** (`scripts/chaos/catalogo.mjs`, 69 ataques en 8 familias: entradas hostiles, doble clic, navegación
-   torcida, concurrencia entre cuentas, permisos y URL ajena, red y sesión, celular 375 px, teclado). El núcleo corre siempre; el azar
-   descubre lo que no se nos ocurrió; la semilla repite una corrida exacta (`--semilla N`).
+1. **Catálogo fijo + azar con semilla** (`scripts/chaos/catalogo.mjs`, 85 ataques en 9 familias: entradas hostiles, doble clic, navegación
+   torcida, concurrencia entre cuentas, permisos y URL ajena, red y sesión, celular 375 px, teclado, y **el botón que no hace lo que dice**:
+   ni error ni dato imposible, pero lo prometido no quedó hecho —un `router.refresh()` o un `useEffect([prop])` que pisa lo recién
+   guardado, dos respuestas que llegan al revés—, con su lectura del código en `scripts/chaos/boton.mjs`, ADR-0693). El núcleo corre
+   siempre; el azar descubre lo que no se nos ocurrió; la semilla repite una corrida exacta (`--semilla N`).
 2. **Navegador y base.** Lo que ve la persona (el navegador integrado) y lo que la pantalla esconde (RPC directo en Postgres local, dos
    sesiones paralelas para la concurrencia).
 3. **Tras cada ataque que escribe se mira la base** (`node scripts/chaos/invariantes.mjs --contra <foto>`, 12 invariantes que cruzan tablas

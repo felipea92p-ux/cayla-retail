@@ -130,7 +130,7 @@ export async function getDatosNuevaOrden(): Promise<DatosNuevaOrden> {
     getDestinosOrden(),
     // La RPC es nueva y los tipos generados todavía no la conocen: se lee como `unknown` y se valida abajo.
     supabase.rpc(RPC_SIGUIENTE_ORDEN as never) as unknown as PromiseLike<{ data: unknown; error: unknown }>,
-    // Lo que cada proveedor debe por reponer (fase 5a): un adorno. Si no responde, la orden se llena igual, sin el aviso.
+    // relleno-a-proposito: Lo que cada proveedor debe por reponer (fase 5a): un adorno. Si no responde, la orden se llena igual, sin el aviso.
     getNosDebeResumen().catch(() => null),
     // Qué categorías maneja cada proveedor (prefiltro, 2026-10-21): un adorno. Sin la función (la web antes que la migración) o si no responde, la
     // orden se llena igual con todo el catálogo, como siempre.

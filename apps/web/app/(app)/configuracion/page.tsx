@@ -155,7 +155,7 @@ async function SeccionGastos({ mes, esLider }: { mes: string | undefined; esLide
 
 // Impuestos (ADR-0195 F8): tasa de IGV, UIT y régimen de cada año, con vigencia. Solo se agregan filas.
 async function SeccionImpuestos() {
-  // Lo vendido es un extra: si esa lectura falla (o esta cuenta no la ve), el límite se dibuja sin la barra y lo demás sigue igual.
+  // relleno-a-proposito: Lo vendido es un extra: si esa lectura falla (o esta cuenta no la ve), el límite se dibuja sin la barra y lo demás sigue igual.
   const [parametros, panel] = await Promise.all([getParametrosTributarios(), getPanelImpuestos().catch(() => null)]);
   return (
     <>
