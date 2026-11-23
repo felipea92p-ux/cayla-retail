@@ -9,6 +9,10 @@
   o `var(--color-tenue)` al tocar cada archivo. Si se quiere de una vez, un barrido con su lámina antes (es café que hoy se ve).
 - [ ] **Las líneas por opacidad** (`border-tinta/NN`, 16 escalones) y `tinta-60` (otro secundario cálido del puente shadcn): ordenarlos con el
   mismo criterio.
-- [ ] **Las cifras en Inter** (Felipe eligió la B de la lámina): DM Sans no trae cifras tabulares, y hacerlo como en la lámina (solo los dígitos,
-  sin tocar letras ni la Garamond) pide un archivo de Inter con solo los dígitos. Espera el OK de Felipe para bajarlo.
-- [ ] **Sin probar:** 375 px (el cambio es de color, igual en todos los anchos) y Safari.
+- [x] **Las cifras en Inter** (Felipe eligió la B de la lámina y dio el OK para bajar el archivo): `app/fuentes/inter-cifras.woff2` (Inter
+  recortada a 0–9, 7 KB, licencia OFL al lado) delante de DM Sans en `--font-sans`. Medido en 38 pantallas a 1440 px y 5 a 375 px: ningún
+  texto con dígitos se corta, desborda ni baja de línea, salvo el N.° de documento de Compras, que ya no cabía con un número lleno de ceros
+  y pasó de 7,5 a 8 rem. Prueba: `lib/cifras-en-inter.test.ts`.
+- [ ] **Las cifras en una columna que no pide `tabular-nums`**: alinean solo donde la celda lo pide (clase `tabular-nums` o su CSS). Una
+  columna de montos que no alinee se arregla poniéndoselo, no cambiando la letra.
+- [ ] **Sin probar:** Safari (los tonos y las cifras; Chrome sí, en claro, oscuro y a 375 px las cifras).

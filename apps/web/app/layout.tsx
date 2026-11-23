@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { EB_Garamond, DM_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Avisos } from "@/components/ui/Avisos";
 import { AvisoDestacado } from "@/components/ui/AvisoDestacado";
@@ -21,6 +22,18 @@ import { AvisoNavegadorViejo } from "@/components/AvisoNavegadorViejo";
 // (títulos, cifras hero), DM Sans es "el sistema" (interfaz, cuerpo, etiquetas).
 const serif = EB_Garamond({ subsets: ["latin"], variable: "--font-eb-garamond", display: "swap" });
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" });
+// Las cifras de DM Sans en Inter (ADR-0694, act. 2026-11-23): DM Sans no trae cifras tabulares y una columna de montos no alineaba.
+// Es un recorte con solo los dígitos 0–9 (7 KB, `fuentes/inter-cifras.woff2`, licencia OFL al lado): va delante de DM Sans en
+// `--font-sans` y el navegador lo usa solo para los dígitos; letras, signos y la Garamond no cambian. Sin fuente de respaldo
+// (`adjustFontFallback: false`): next/font la haría de Arial, sin `unicode-range`, y se quedaría con todas las letras.
+const cifras = localFont({
+  src: "./fuentes/inter-cifras.woff2",
+  variable: "--font-cifras",
+  display: "swap",
+  weight: "100 900",
+  adjustFontFallback: false,
+  declarations: [{ prop: "unicode-range", value: "U+0030-0039" }],
+});
 
 export const metadata: Metadata = {
   // Raya larga con espacios, igual que «Dynamic — CAYLA»: las dos pestañas se leen como una familia.
@@ -42,7 +55,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, view
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     // `suppressHydrationWarning`: los scripts de abajo ponen `data-tema`, `data-movimiento`, `data-liviano` y `data-navegador-viejo` en <html> antes de que React hidrate (ADR-0336).
-    <html lang="es" className={`${serif.variable} ${sans.variable}`} suppressHydrationWarning>
+    <html lang="es" className={`${serif.variable} ${sans.variable} ${cifras.variable}`} suppressHydrationWarning>
       <head>
         {/* El tema guardado se aplica ANTES de la primera pintura: sin esto, quien eligió oscuro vería un destello claro en cada carga. */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA_ANTES_DE_PINTAR }} />
