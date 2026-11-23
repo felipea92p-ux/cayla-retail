@@ -97,7 +97,7 @@ export function RevisaParecidasDelPaso({ texto, onVer }: { texto: string; onVer:
   return (
     <div className="mr-auto flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-taupe">
       <span>{texto} ·</span>
-      <button type="button" className="btn-cayla btn-enlace text-[12.5px]" aria-label={TEXTO.verParecidasAria} onClick={onVer}>
+      <button type="button" className="btn-cayla btn-enlace text-xs leading-tight" aria-label={TEXTO.verParecidasAria} onClick={onVer}>
         Ver
       </button>
     </div>

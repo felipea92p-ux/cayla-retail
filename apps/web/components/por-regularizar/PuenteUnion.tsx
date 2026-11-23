@@ -106,7 +106,7 @@ export function PuenteUnion({
 
   return (
     <div className="vsr-pu" data-guia="regularizar.puente" data-vsr-puente data-hecho={hecho ? "" : undefined}>
-      <p className="label-cayla vsr-pu-t text-[11px] text-tinta/65">Venta y prenda</p>
+      <p className="label-cayla vsr-pu-t text-xs text-tinta/65">Venta y prenda</p>
 
       <div className="vsr-sl vsr-sl-venta" data-vsr-slot="venta">
         <span className="vsr-sl-etq">Lo que anotó caja</span>

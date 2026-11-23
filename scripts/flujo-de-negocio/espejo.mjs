@@ -42,13 +42,13 @@ const HOSTS_LOCALES = ["localhost", "127.0.0.1", "[::1]"];
 const CUENTAS_SEED = ["felipe@cayla.local", "micaela@cayla.local", "sandra@cayla.local"];
 const ARCHIVO_FOTO = join(RAIZ, ".flujo-de-negocio/actualizacion.json");
 
-/** Lo que es de la skill: se copia a la rama de corrida. NO incluye `CLAUDE.md` ni `.gitignore`: copiarlos pisaría lo más nuevo de `main`. */
+/** Lo que es de la skill: se copia a la rama de corrida. NO incluye `CLAUDE.md`, `.claude/rules/` ni `.gitignore`: copiarlos pisaría lo más nuevo de `main`. */
 const DE_LA_SKILL = [".claude/skills/flujo-de-negocio", ".claude/skills/actualizar-flujo", "scripts/flujo-de-negocio", "docs/flujos"];
 /**
  * Lo que puede diferir de `main` sin que el ERP deje de ser espejo: la skill, su documentación y sus resultados. Sin esta
  * excepción, una rama que lleva la skill jamás sería «idéntica a main». Sigue exigiendo que NADA de la aplicación difiera.
  */
-const HERRAMIENTAS = [...DE_LA_SKILL.map((p) => `${p}/`), ".flujo-de-negocio/", "docs/bitacora/", "docs/backlog/", "CLAUDE.md", ".gitignore"];
+const HERRAMIENTAS = [...DE_LA_SKILL.map((p) => `${p}/`), ".flujo-de-negocio/", "docs/bitacora/", "docs/backlog/", "CLAUDE.md", ".claude/rules/", ".gitignore"];
 const esHerramienta = (f) => HERRAMIENTAS.some((p) => f === p || f.startsWith(p));
 
 const git = (...args) => execFileSync("git", args, { cwd: RAIZ, encoding: "utf8", maxBuffer: 256 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] }).trim();

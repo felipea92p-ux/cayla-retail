@@ -203,11 +203,11 @@ function TarjetaEtiqueta({
                   {chip.alerta}
                 </Chip>
               )}
-              {rango && <p className="text-[11px] tabular-nums text-tinta/60">{rango}</p>}
+              {rango && <p className="text-xs tabular-nums text-tinta/60">{rango}</p>}
             </div>
           )}
           {e.descuentoPct !== null && (
-            <p className="text-[11px] text-tinta/75">
+            <p className="text-xs text-tinta/75">
               <span className="font-medium tabular-nums text-tinta">{textoPct(e.descuentoPct)} % de descuento</span>
               {" · "}
               {e.categoriaIds.length === 0
@@ -223,13 +223,13 @@ function TarjetaEtiqueta({
             </div>
           )}
           {textos && (
-            <p className="text-[11px] tabular-nums text-tinta/60">
+            <p className="text-xs tabular-nums text-tinta/60">
               {textos.texto}
               {textos.fuera && <span className="block text-tinta/45">{textos.fuera}</span>}
             </p>
           )}
-          {rotacion && <p className="text-[11px] tabular-nums text-tinta/75">{rotacion}</p>}
-          {e.descuentoPct !== null && !DESCUENTO_YA_SE_APLICA && <p className="text-[10.5px] text-tinta/50">Aún no se aplica en Vender</p>} {/* unificar-fijo: dice el estado del descuento, no que falte algo */}
+          {rotacion && <p className="text-xs tabular-nums text-tinta/75">{rotacion}</p>}
+          {e.descuentoPct !== null && !DESCUENTO_YA_SE_APLICA && <p className="text-xs text-tinta/50">Aún no se aplica en Vender</p>} {/* unificar-fijo: dice el estado del descuento, no que falte algo */}
           {/* ADR-0180 paso 2: con la campaña vigente se imprimen sus etiquetas (precio rebajado); al terminar, las mismas
               prendas vuelven al precio normal. Antes de empezar no hay nada que imprimir: la etiqueta diría el precio de hoy. */}
           {/* A lo ancho de la tarjeta, como «Prendas» y «Configurar», y con el texto que baja de renglón: la tarjeta mide ~130 px
@@ -646,7 +646,7 @@ export function CampanaModal({
                 {avance && rangoElegido.desde && rangoElegido.hasta && (
                   <div className="mt-3">
                     <BarraAvance pct={avance.pct} alto="fina" tono="tinta" etiqueta={`Lo que lleva ${etiqueta.nombre}`} texto={`Día ${avance.dia} de ${avance.total}`} />
-                    <div className="mt-1.5 flex justify-between text-[11px] tabular-nums text-tinta/65">
+                    <div className="mt-1.5 flex justify-between text-xs tabular-nums text-tinta/65">
                       <span>{fechaCorta(rangoElegido.desde)}</span>
                       <span>
                         hoy, día {avance.dia} de {avance.total}
@@ -724,7 +724,7 @@ export function CampanaModal({
 
             <CampoGuiado id="categorias" guia={guia} retiene="fila">
               <div className="flex items-center justify-between gap-3">
-                <p className="label-cayla text-[11px] text-tinta/65">
+                <p className="label-cayla text-xs text-tinta/65">
                   {guia.etiqueta("categorias", "Categorías")}
                   {/* «· opcional» solo cuando la guía también lo dice: con un descuento que no llega a ninguna prenda, Categorías es
                       «sugerido» y las dos señales juntas se contradecían (/formidable 2026-10-23). */}

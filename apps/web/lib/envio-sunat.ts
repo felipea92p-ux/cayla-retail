@@ -20,7 +20,7 @@ export function primeraVez(ventaId: string, enviadas: Set<string> = yaEnviadas):
 export function enviarVentaASunat(ventaId: string): void {
   if (!primeraVez(ventaId)) return;
   fetch("/api/lucode/emitir", { ...OPCIONES, body: JSON.stringify({ venta_id: ventaId }) }).catch(() => {
-    // Sin red: el comprobante sigue `pendiente` y lo recoge el próximo barrido.
+    // relleno-a-proposito: Sin red: el comprobante sigue `pendiente` y lo recoge el próximo barrido.
   });
 }
 
@@ -32,7 +32,7 @@ const cambiosEnviados = new Set<string>();
 export function enviarCambioASunat(cambioId: string): void {
   if (!primeraVez(cambioId, cambiosEnviados)) return;
   fetch("/api/lucode/emitir", { ...OPCIONES, body: JSON.stringify({ cambio_id: cambioId }) }).catch(() => {
-    // Sin red: los documentos siguen `pendiente` y los recoge el próximo barrido.
+    // relleno-a-proposito: Sin red: los documentos siguen `pendiente` y los recoge el próximo barrido.
   });
 }
 

@@ -17,7 +17,7 @@ export async function tiendasConDosEmpresas(persona: { rol: string; ubicacionId:
     persona.rol === "lider"
       ? (await getUbicaciones()).filter((u) => u.tipo === "tienda" && u.activo).map((u) => ({ id: u.id, nombre: u.nombre }))
       : [{ id: persona.ubicacionId, nombre: persona.ubicacionEtiqueta }];
-  const empresas = await Promise.all(candidatas.map((t) => getEmpresasAqui(t.id).catch(() => null)));
+  const empresas = await Promise.all(candidatas.map((t) => getEmpresasAqui(t.id).catch(() => null))); // relleno-a-proposito: si la base no responde para una tienda, esa no se ofrece (lo dice arriba)
   return candidatas.flatMap((t, i) => {
     const e = empresas[i];
     return e && e.length > 1 ? [{ ...t, empresas: nombresDeEmpresas(e.map((x) => x.nombre)) }] : [];

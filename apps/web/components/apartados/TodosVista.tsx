@@ -91,8 +91,8 @@ function leerQueVer(): string | null {
     return null;
   }
 }
-const BOTON_CHICO = "btn-cayla btn-secundario h-8 whitespace-nowrap px-2.5 text-[12.5px]";
-const BOTON_CHICO_NEGRO = "btn-cayla btn-primario h-8 whitespace-nowrap px-2.5 text-[12.5px]";
+const BOTON_CHICO = "btn-cayla btn-secundario h-8 whitespace-nowrap px-2.5 text-xs leading-tight";
+const BOTON_CHICO_NEGRO = "btn-cayla btn-primario h-8 whitespace-nowrap px-2.5 text-xs leading-tight";
 
 export function TodosVista({
   ubicacionId,
@@ -251,7 +251,7 @@ export function TodosVista({
             data-custodia={c.custodia || undefined}
             /* beige-fijo: rayado de la cifra en custodia, un dibujo de líneas */ className={`ap-cifra anim-sube border-sand px-5 py-4 max-lg:[&:nth-child(n+3)]:border-t sm:[&:nth-child(even)]:border-l lg:[&:not(:first-child)]:border-l ${c.custodia ? "bg-[repeating-linear-gradient(135deg,transparent_0_9px,color-mix(in_srgb,var(--color-sand)_35%,transparent)_9px_10px)]" : ""} max-sm:[&:not(:first-child)]:border-t`}
           >
-            <p className={`label-cayla text-[11px] ${c.alerta ? "text-rojo-profundo" : "text-tinta/60"}`}>{c.etiqueta}</p>
+            <p className={`label-cayla text-xs ${c.alerta ? "text-rojo-profundo" : "text-tinta/60"}`}>{c.etiqueta}</p>
             <p className={`font-display mt-1 text-3xl leading-tight tabular-nums ${c.alerta ? "text-rojo-profundo" : "text-tinta"}`}>{c.valor}</p>
             <p className="text-sm text-tinta/60">{c.pie}</p>
           </div>
@@ -360,7 +360,7 @@ export function TodosVista({
         </button>
         {verAbierto && (
           <div className="anim-revelar absolute top-12 right-0 z-30 w-64 rounded-xl border border-sand bg-papel p-2 shadow-lg">
-            <p className="label-cayla px-2 pt-1 pb-1.5 text-[10px] text-tinta/55">Qué ver en cada apartado</p>
+            <p className="label-cayla px-2 pt-1 pb-1.5 text-xs text-tinta/55">Qué ver en cada apartado</p>
             {COLUMNAS_TODOS.filter((c) => c.id !== "estante" || conEstante).map((c) => (
               <label key={c.id} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm hover:bg-crema">
                 <Casilla marcada={ver[c.id]} onCambio={() => cambiarVer({ ...ver, [c.id]: !ver[c.id] })} etiqueta={`Ver ${c.etiqueta}`} className="shrink-0" />
@@ -369,7 +369,7 @@ export function TodosVista({
               </label>
             ))}
             <div className="mt-1 flex items-center justify-between border-t border-sand px-2 pt-2">
-              <button type="button" onClick={() => cambiarVer(COLUMNAS_DE_FABRICA)} className="label-cayla text-[10px] text-tinta/60 hover:text-tinta">Lo de fábrica</button>
+              <button type="button" onClick={() => cambiarVer(COLUMNAS_DE_FABRICA)} className="label-cayla text-xs text-tinta/60 hover:text-tinta">Lo de fábrica</button>
               <button type="button" onClick={() => setVerAbierto(false)} className={BOTON_CHICO_NEGRO}>Listo</button>
             </div>
           </div>
@@ -396,7 +396,7 @@ export function TodosVista({
               ))}
             </div>
             <p className="text-sm text-tinta/60" aria-live="polite">
-              Cerrados {textoDelPeriodo(periodo, rango)} · los que siguen abiertos se ven siempre{cargandoRango ? " · Buscando…" : ""}
+              Cerrados {textoDelPeriodo(periodo, rango)} · los abiertos, siempre{cargandoRango ? " · Buscando…" : ""}
             </p>
           </div>
           {(periodo === "personalizado" || periodo === "todo") && (

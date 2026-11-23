@@ -82,7 +82,7 @@ export function CuentasProveedor({
     <div className={`anim-revelar rounded-xl border p-4 ${faltaCuenta ? "border-ambar/30 bg-ambar/[0.06]" : "border-sand vd-placa"} ${className}`}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
-          <p className="label-cayla text-[10px] text-tinta/55">{titulo}</p>
+          <p className="label-cayla text-xs text-tinta/55">{titulo}</p>
           <p className="mt-1 text-sm text-tinta">
             {forma ?? "Sin medio preferido"}
             {datos.banco ? ` · ${datos.banco}` : ""}
@@ -136,7 +136,7 @@ export function CuentasProveedor({
 function FilaTitular({ titular }: { titular: string }) {
   return (
     <div className="grid grid-cols-[6.5rem_1fr_auto] items-center gap-3 py-2">
-      <dt className="label-cayla text-[10px] text-tinta/55">Titular</dt>
+      <dt className="label-cayla text-xs text-tinta/55">Titular</dt>
       <dd className="min-w-0 break-words text-sm text-tinta">
         <b className="font-semibold">{titular}</b>
         <span className="block text-xs text-tinta/45">Compáralo con el nombre que muestra el banco antes de confirmar.</span>
@@ -152,7 +152,7 @@ function FilaDato({ etiqueta, valor, copiar, alFallar }: { etiqueta: string; val
   const que = nombre === "cuenta" ? "la cuenta" : nombre === "cci" ? "el CCI" : `el ${etiqueta}`;
   return (
     <div className="grid grid-cols-[6.5rem_1fr_auto] items-center gap-3 py-2">
-      <dt className="label-cayla text-[10px] text-tinta/55">{etiqueta}</dt>
+      <dt className="label-cayla text-xs text-tinta/55">{etiqueta}</dt>
       <dd className="min-w-0 break-all text-sm tabular-nums tracking-[0.02em] text-tinta">{valor}</dd>
       <BotonCopiar forma="icono" texto={copiar} que={que} alFallar={alFallar} className="-my-1" />
     </div>

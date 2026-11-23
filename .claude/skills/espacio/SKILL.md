@@ -1,7 +1,11 @@
 ---
 name: espacio
-description: Fija y audita al milímetro el espacio de una pieza del ERP —escala de 4 px, retícula y anchos, densidad (alto de filas y de controles), área de clic y de toque (24 px con mouse, 44 con el dedo), radios y profundidad— con base en WCAG, estudios y los mejores sistemas de diseño, y lo mide en el navegador. Es parte del set «Al milímetro» y aporta la sección «Espacio» de la ficha de /milimetro. Úsala al diseñar o revisar un componente, una tabla, un modal o una pantalla, y cuando Felipe diga «está apretado», «hay mucho aire», «no se alinea», «el botón es muy chico», «no se le atina», «se ve desordenado», «densidad» o «/espacio».
+description: "Fija y audita el espacio al milímetro: escala de 4 px, retícula, densidad, área de clic (24 px) y de toque (44 px), radios. Úsala al diseñar o revisar una pieza, o con «está apretado», «hay mucho aire», «no se alinea», «el botón es muy chico» o «densidad»."
 ---
+
+## Qué hace y cuándo se usa
+
+Fija y audita al milímetro el espacio de una pieza del ERP —escala de 4 px, retícula y anchos, densidad (alto de filas y de controles), área de clic y de toque (24 px con mouse, 44 con el dedo), radios y profundidad— con base en WCAG, estudios y los mejores sistemas de diseño, y lo mide en el navegador. Es parte del set «Al milímetro» y aporta la sección «Espacio» de la ficha de /milimetro. Úsala al diseñar o revisar un componente, una tabla, un modal o una pantalla, y cuando Felipe diga «está apretado», «hay mucho aire», «no se alinea», «el botón es muy chico», «no se le atina», «se ve desordenado», «densidad» o «/espacio».
 
 Espacio de: $ARGUMENTS   (un componente, una ruta como `/inventario/frescura`, un modal, una tabla; sin argumento = lo que estás construyendo)
 
@@ -11,7 +15,7 @@ Espacio de: $ARGUMENTS   (un componente, una ruta como `/inventario/frescura`, u
 
 1. **El repo manda sobre la skill.** Radios, lateral y escala salen de `apps/web/app/globals.css` (`--radius-*`, `--spacing-lateral`, el
    `--spacing` de 4 px de Tailwind v4); la profundidad, de `apps/web/app/estilos/vidrio/recetas.css` (ADR-0596); el tacto, de
-   `apps/web/app/estilos/tacto.css` (ADR-0611, mejora 5); las piezas, de la tabla «Una función, una pieza» de `CLAUDE.md` (ADR-0358); el
+   `apps/web/app/estilos/tacto.css` (ADR-0611, mejora 5); las piezas, de la tabla «Una función, una pieza» de `.claude/rules/unificar.md` (ADR-0358); el
    movimiento, de ADR-0136 / ADR-0625. **Nunca** introduce un radio, una sombra, un hex, una fuente o una pieza nueva.
 2. **Si la investigación dice que una regla del repo se puede mejorar, no la cambia sola:** la escribe como propuesta (regla actual con
    archivo/ADR → qué hacen los mejores con fuente → propuesta → riesgo → cómo se mide) y Felipe decide mirando, como en `/unificar`. Cambiar

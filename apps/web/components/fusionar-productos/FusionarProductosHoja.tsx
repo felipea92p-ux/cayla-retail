@@ -802,7 +802,7 @@ export function FusionarProductosHoja({
                 <div className="min-w-0 space-y-5">
                   <section className="space-y-2">
                     <TituloGrupo>Qué va a pasar</TituloGrupo>
-                    <ul className="fus-lista-revisar max-w-prose space-y-2 text-[15px] leading-relaxed text-tinta">
+                    <ul className="fus-lista-revisar max-w-prose space-y-2 text-sm leading-relaxed text-tinta">
                       {[
                         ...frasesDelResumen(plan, fotosQueQuedan.length),
                         // Lo que cobrará cada tienda: cambia dinero y no se deshace, así que se dice aquí (auditoría 2026-11-16).
@@ -874,7 +874,7 @@ export function FusionarProductosHoja({
                   {hecho.referencia} es ahora una sola ficha
                 </h3>
                 <p
-                  className="fus-listo-texto mt-1.5 max-w-[46ch] text-[15px] leading-relaxed text-taupe"
+                  className="fus-listo-texto mt-1.5 max-w-[46ch] text-sm leading-relaxed text-taupe"
                   style={{ "--fus-k": 1 } as React.CSSProperties}
                 >
                   Lleva {hecho.vendidas.toLocaleString("es-PE")}{" "}
@@ -1069,7 +1069,7 @@ function TallasVacias({
               >
                 <CapsulaColor fondo={v.colorHex} compacta />
                 <span className="min-w-0">
-                  <span className="block truncate text-[15px] text-tinta">
+                  <span className="block truncate text-sm text-tinta">
                     {nombre}
                   </span>
                   <span className="block text-sm text-taupe">

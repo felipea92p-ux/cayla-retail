@@ -65,7 +65,7 @@ export function TarjetaKpiVidrio({
     <div className="kpi-vidrio-envoltura anim-sube" data-tono={tono} style={{ "--i": indice } as CSSProperties}>
       <div ref={tarjeta} className="kpi-vidrio @container" onPointerMove={seguirCursor}>
         <div className="flex items-center justify-between gap-2">
-          <span className="label-cayla text-[11px] text-tinta/65">{etiqueta}</span>
+          <span className="label-cayla text-xs text-tinta/65">{etiqueta}</span>
           <span className="kpi-vidrio__icono" aria-hidden>
             {icono}
           </span>

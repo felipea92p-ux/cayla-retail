@@ -1,7 +1,11 @@
 ---
 name: construir
-description: Ejecuta una construcción grande (pantalla nueva, módulo, migración con RPC+UI) actividad por actividad — cada una un corte vertical verificable con su propio commit, sin desviarse a nada fuera de esa actividad. Úsala para trabajo multi-paso que normalmente se dispersa; no la uses para un fix o ajuste de un solo archivo.
+description: "Ejecuta una construcción grande (pantalla, módulo, migración con RPC e interfaz) actividad por actividad, cada una verificable y con su commit, sin desviarse. Úsala para trabajo de varios pasos; no para el arreglo de un solo archivo."
 ---
+
+## Qué hace y cuándo se usa
+
+Ejecuta una construcción grande (pantalla nueva, módulo, migración con RPC+UI) actividad por actividad — cada una un corte vertical verificable con su propio commit, sin desviarse a nada fuera de esa actividad. Úsala para trabajo multi-paso que normalmente se dispersa; no la uses para un fix o ajuste de un solo archivo.
 
 Construye $ARGUMENTS con este protocolo. Objetivo: cortar el divagar, no añadir ceremonial.
 

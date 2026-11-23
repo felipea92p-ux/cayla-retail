@@ -141,7 +141,7 @@ export function Billetera({ billetera, puedeVerVacios, children }: { billetera: 
                   </span>
                 )}
                 <div className="min-w-0 max-sm:sr-only">
-                  <p className="text-[15px] font-semibold text-tinta">{dia.titulo}</p>
+                  <p className="text-sm font-semibold text-tinta">{dia.titulo}</p>
                   <p className="texto-detalle">{dia.detalle}</p>
                 </div>
               </div>

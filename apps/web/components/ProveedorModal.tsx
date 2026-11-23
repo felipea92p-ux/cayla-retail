@@ -500,7 +500,7 @@ export function ProveedorModal({
 
           {/* ADR-0134 · Cómo pagarle. Todo opcional: sin esto el proveedor se registra igual, y en el pago se avisa que falta. */}
           <section aria-labelledby="proveedor-pago-titulo" data-guia="proveedor-modal.como-pagarle" className="mt-1 space-y-2 border-t border-tinta/10 pt-4">
-            <p id="proveedor-pago-titulo" className="label-cayla text-[11px] text-tinta/65">
+            <p id="proveedor-pago-titulo" className="label-cayla text-xs text-tinta/65">
               Cómo pagarle
             </p>
             <p className="-mt-1 text-xs text-tinta/55">Todo es opcional. Lo que registres aparece al pagar, listo para copiar.</p>

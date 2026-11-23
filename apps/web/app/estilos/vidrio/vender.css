@@ -527,7 +527,7 @@
 .pv-desc-motivo {
   min-height: 1.25rem;
   text-align: center;
-  font-size: 0.875rem;
+  font-size: var(--text-detalle);
   color: var(--color-taupe);
 }
 
@@ -567,7 +567,7 @@
   justify-content: center;
 }
 .pv-desc-ayuda {
-  font-size: 0.875rem;
+  font-size: var(--text-detalle);
   color: var(--color-taupe);
 }
 
@@ -579,7 +579,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.25rem 0.875rem;
-  font-size: 14.5px;
+  font-size: var(--text-detalle);
   transition: background-color 200ms var(--ease-cayla);
 }
 .pv-desc-todo {
@@ -618,7 +618,7 @@
   justify-content: center;
   padding-inline: 0.25rem;
   border-radius: 1rem;
-  font-size: 1.0625rem;
+  font-size: var(--text-lg);
 }
 /* La ficha ya es grande y está sola en su caja: el ✓ delante de la puesta no hace falta (la cifra y el ahumado ya lo dicen). */
 .pv-desc-ficha.pildora-cayla::before {
@@ -638,7 +638,7 @@
   gap: 0.75rem;
   padding: 0.25rem 0.875rem;
   text-align: left;
-  font-size: 14.5px;
+  font-size: var(--text-detalle);
   transition: background-color 200ms var(--ease-cayla);
 }
 .pv-desc-opcion[aria-checked="true"] {

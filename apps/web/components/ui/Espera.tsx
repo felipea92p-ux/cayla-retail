@@ -355,12 +355,12 @@ export function EsperaGlobal() {
             />
           </svg>
         </div>
-        <p className="label-cayla text-[11px] text-taupe-profundo">{etiqueta}</p>
+        <p className="label-cayla text-xs text-taupe-profundo">{etiqueta}</p>
         <p className="font-display mt-1.5 text-[26px] leading-[1.15] text-tinta">
           {titulo}
           {resalte ? <> <span className="text-rojo-profundo">{resalte}</span></> : null}
         </p>
-        {linea ? <p className="mt-2 text-[13px] text-tinta/80">{linea}</p> : null}
+        {linea ? <p className="mt-2 text-xs text-tinta/80">{linea}</p> : null}
         <span aria-hidden className="espera-hilo">
           <span data-senal className="block h-full w-1/3 bg-rojo [animation:cayla-hilo-barrido_1.1s_linear_infinite] motion-reduce:animate-none" />
         </span>

@@ -91,7 +91,7 @@ export function SinConexion({ cuenta, generadoEn }: { cuenta: string; generadoEn
     const enDesarrollo = process.env.NODE_ENV !== "production";
     if (enDesarrollo && leer<string | null>(CLAVE_SW_DEV, null) !== "1") return;
     navigator.serviceWorker.register("/sw.js").catch(() => {
-      // Sin SW la app funciona igual; solo no se abre sin red.
+      // relleno-a-proposito: Sin SW la app funciona igual; solo no se abre sin red.
     });
   }, [cuenta]);
 

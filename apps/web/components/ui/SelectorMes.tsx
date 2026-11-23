@@ -130,7 +130,7 @@ export function SelectorMes({
         aria-haspopup="dialog"
         aria-expanded={abierto}
         onClick={() => (abierto ? cerrar() : abrir())}
-        className="area-dedo inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13.5px] font-semibold text-tinta"
+        className="area-dedo inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-detalle font-semibold text-tinta"
       >
         {nombreDelMes(valor)}
         {/* Da media vuelta al abrir, como la flecha del «Más». */}
@@ -174,7 +174,7 @@ export function SelectorMes({
                 >
                   <ChevronLeft className="h-4 w-4" aria-hidden />
                 </button>
-                <span className="font-display text-[19px] leading-none text-tinta tabular-nums" aria-live="polite">
+                <span className="font-display text-lg leading-none text-tinta tabular-nums" aria-live="polite">
                   {anio}
                 </span>
                 <button
@@ -200,7 +200,7 @@ export function SelectorMes({
                       aria-current={elegido ? "true" : undefined}
                       aria-label={m.bloqueado ? `${m.nombre} ${anio}: todavía no llega` : `${m.nombre} ${anio}`}
                       onClick={() => elegir({ anio, mes: m.mes })}
-                      className={`relative flex h-10 items-center justify-center gap-1 text-[13px] font-semibold ${
+                      className={`relative flex h-10 items-center justify-center gap-1 text-xs font-semibold ${
                         elegido ? "text-crema" : m.bloqueado ? "cursor-not-allowed text-tinta/30" : "text-tinta"
                       }`}
                     >

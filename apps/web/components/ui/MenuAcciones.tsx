@@ -234,7 +234,7 @@ export function MenuAcciones({
                 }`}
               >
                 {it.etiqueta}
-                {it.motivo && <span className="mt-0.5 block text-[11.5px] leading-snug text-tinta/60">{it.motivo}</span>}
+                {it.motivo && <span className="mt-0.5 block text-xs leading-snug text-tinta/60">{it.motivo}</span>}
               </button>
             ))}
           </div>,

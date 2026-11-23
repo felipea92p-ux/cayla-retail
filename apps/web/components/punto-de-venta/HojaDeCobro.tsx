@@ -377,7 +377,7 @@ export function HojaDeCobro({
                         </label>
                       </div>
                       <p className={`hoja-cobro-vuelto flex items-baseline justify-between ${lectura === null ? "invisible" : ""}`} data-recibido={lectura?.estado}>
-                        <span className={`label-cayla text-[13px] ${colorLectura.etiqueta}`}>{lectura?.estado === "vuelto" ? "Vuelto" : lectura?.estado === "falta" ? "Faltan" : lectura?.estado === "excede" ? "Vuelto de más" : "Exacto"}</span>
+                        <span className={`label-cayla text-xs ${colorLectura.etiqueta}`}>{lectura?.estado === "vuelto" ? "Vuelto" : lectura?.estado === "falta" ? "Faltan" : lectura?.estado === "excede" ? "Vuelto de más" : "Exacto"}</span>
                         <span
                           key={`${lectura?.estado}-${lectura?.monto}`}
                           className={`hoja-cobro-vuelto-monto ${lectura?.estado === "exacto" ? "es-exacto" : ""} anim-asentar font-display leading-none tabular-nums ${colorLectura.cifra}`}

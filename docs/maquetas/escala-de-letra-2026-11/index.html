@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La letra: tres tamaños para elegir — lámina</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Lámina para ELEGIR MIRANDO la escala de letra y el tono de los textos (Felipe 2026-11-19). No es código del ERP.
+   Las capturas son del ERP local: cada opción es el ERP real con una regla inyectada (capturar.mjs). Esta página usa letra grande a propósito. */
+:root{
+  --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;--rojo:#b8412d;--borde-control:#96786a;--verde:#48603f;--ambar:#74501a;
+  --ease:cubic-bezier(.32,.72,.24,1);--sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;--serif:"EB Garamond",ui-serif,Georgia,serif;
+  --linea:color-mix(in srgb,var(--sand) 90%,transparent);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:132px}
+body{margin:0;background:var(--crema);color:var(--tinta);font:400 17px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+h1,h2,h3{font-family:var(--serif);font-weight:500;margin:0;letter-spacing:-.01em}
+.ancho{max-width:1480px;margin:0 auto;padding:0 24px}
+.versal{font-size:13px;letter-spacing:.13em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin:0}
+
+.barra{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--crema) 86%,transparent);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);border-bottom:1px solid var(--linea);padding:12px 0}
+.barra .ancho{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
+.barra strong{font-family:var(--serif);font-size:24px;font-weight:500}
+.seg{display:inline-flex;flex-wrap:wrap;padding:4px;border-radius:999px;background:var(--hueso);border:1px solid var(--linea);gap:2px}
+.seg button{border:0;background:none;padding:9px 18px;border-radius:999px;font-size:16px;font-weight:500;color:color-mix(in srgb,var(--tinta) 74%,transparent);transition:background 160ms var(--ease),color 160ms var(--ease)}
+.seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.seg button:disabled{opacity:.35;cursor:not-allowed}
+.pista{font-size:15px;color:var(--taupe)}
+
+.portada{padding:40px 0 20px}
+.portada h1{font-size:54px;line-height:1.05}
+.portada p{max-width:62ch;margin:12px 0 0;font-size:18px;color:color-mix(in srgb,var(--tinta) 80%,transparent)}
+
+.visor{margin:18px 0 10px;border-radius:18px;overflow:hidden;border:1px solid var(--linea);background:var(--hueso)}
+.visor img{display:block;width:100%;height:auto}
+.leyenda{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:baseline;font-size:17px;margin:0 0 8px}
+.leyenda b{font-family:var(--serif);font-size:26px;font-weight:500}
+
+section{padding:44px 0;border-top:1px solid var(--linea)}
+section h2{font-size:36px;margin-bottom:6px}
+section > .ancho > p.bajada{margin:0 0 20px;font-size:18px;color:color-mix(in srgb,var(--tinta) 80%,transparent);max-width:70ch}
+
+.tres{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.caja{background:var(--papel);border:1px solid var(--linea);border-radius:18px;padding:20px 22px}
+.caja.elegida{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta)}
+.caja h3{font-size:28px}
+.caja .sello{display:inline-block;margin-left:8px;font:600 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;background:var(--tinta);color:var(--crema);padding:5px 9px;border-radius:999px;vertical-align:middle}
+.escalera{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;margin:14px 0;min-height:60px}
+.escalera span{line-height:1}
+.escalera small{display:block;font-size:12px;color:var(--taupe);margin-top:5px}
+.caja dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:16px}
+.caja dt{color:var(--taupe)}
+.caja dd{margin:0}
+
+.cifras{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.cifras .caja b{display:block;font-family:var(--serif);font-size:52px;font-weight:500;line-height:1}
+.cifras .caja span{display:block;margin-top:8px;font-size:16px}
+
+table{width:100%;border-collapse:collapse;background:var(--papel);border:1px solid var(--linea);border-radius:18px;overflow:hidden}
+th,td{text-align:left;vertical-align:top;padding:14px 18px;border-bottom:1px solid var(--linea);font-size:16px}
+th{font-size:13px;letter-spacing:.13em;text-transform:uppercase;color:var(--taupe);font-weight:600}
+td:first-child{white-space:nowrap;color:var(--taupe)}
+td.hoy{color:color-mix(in srgb,var(--tinta) 72%,transparent)}
+td.nuevo{font-weight:500;font-size:18px}
+td i{display:block;font-style:normal;font-size:13px;color:var(--taupe);margin-top:4px}
+tr:last-child td{border-bottom:0}
+
+.eleccion{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+.eleccion h3{font-size:24px;margin-bottom:10px}
+#resumen{background:var(--papel);border:1px solid var(--linea);border-radius:18px;padding:16px 18px;min-height:64px;white-space:pre-line;margin-top:16px}
+.btn{border:1px solid var(--tinta);background:var(--tinta);color:var(--crema);border-radius:999px;padding:10px 20px;font-size:16px;font-weight:500;margin-top:12px}
+
+@media (max-width:860px){
+  .tres,.cifras,.eleccion{grid-template-columns:1fr}
+  .portada h1{font-size:38px}
+  td:first-child{white-space:normal}
+}
+</style>
+</head>
+<body>
+
+<header class="barra">
+  <div class="ancho">
+    <strong>La letra</strong>
+    <div class="seg" role="group" aria-label="Pantalla" id="pantallas"></div>
+    <div class="seg" role="group" aria-label="Tamaño" id="opciones"></div>
+    <span class="pista">Cambia con ← →</span>
+  </div>
+</header>
+
+<main>
+  <div class="ancho">
+    <div class="portada">
+      <p class="versal">Lámina para elegir mirando · 19 de noviembre de 2026</p>
+      <h1>Tres tamaños de letra<br>y muy poco texto</h1>
+      <p>Arriba eliges la pantalla y el tamaño. Son capturas del ERP local, con la letra cambiada sobre la pantalla real. Pasa de una a otra con las flechas: se nota mejor.</p>
+    </div>
+    <p class="leyenda" id="leyenda"></p>
+    <div class="visor"><img id="captura" alt=""></div>
+    <p class="pista">La última opción suma «poco texto»: la misma pantalla con las frases acortadas.</p>
+  </div>
+
+  <section id="escalas">
+    <div class="ancho">
+      <h2>Las tres escalas</h2>
+      <p class="bajada">Hoy conviven 28 tamaños. Cada escala los reduce a seis o siete y sube el más chico.</p>
+      <div class="tres" id="tres"></div>
+    </div>
+  </section>
+
+  <section id="medido">
+    <div class="ancho">
+      <h2>Lo que medí</h2>
+      <p class="bajada">En 31 pantallas del ERP local, a 1440 px.</p>
+      <div class="cifras">
+        <div class="caja"><b>53 %</b><span>de los textos van por debajo de 14 px: 2.773 de 5.191.</span></div>
+        <div class="caja"><b>500</b><span>textos van por debajo de 12 px. El más chico mide 9.</span></div>
+        <div class="caja"><b>254</b><span>bloques de 12 palabras o más. Atributos tiene 88; Resumen de Finanzas, 27.</span></div>
+        <div class="caja"><b>826</b><span>veces el código escribe a mano una letra de menos de 12 px.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="texto">
+    <div class="ancho">
+      <h2>Poco texto: así sonaría</h2>
+      <p class="bajada">Diez frases reales de tus pantallas. Lo que explica no se pierde: pasa al «?» de cada pantalla.</p>
+      <table>
+        <thead><tr><th>Dónde</th><th>Hoy</th><th>Propuesta</th></tr></thead>
+        <tbody id="frases"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="elige">
+    <div class="ancho">
+      <h2>Tu elección</h2>
+      <div class="eleccion">
+        <div>
+          <h3>El tamaño</h3>
+          <div class="seg" role="group" aria-label="Tu tamaño" data-pregunta="Tamaño"><button type="button">A · Ajustada</button><button type="button">B · Cómoda</button><button type="button">C · Grande</button></div>
+          <h3 style="margin-top:22px">El tono de los textos</h3>
+          <div class="seg" role="group" aria-label="Tu tono" data-pregunta="Textos"><button type="button">Así</button><button type="button">Más corto aún</button><button type="button">Menos recorte</button></div>
+        </div>
+        <div>
+          <p class="versal">Para pegar en el chat</p>
+          <div id="resumen">Elige un tamaño y un tono.</div>
+          <button class="btn" type="button" id="copiar">Copiar mi elección</button> <span class="pista" id="copiado"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const pulsar = (grupo, boton) => $$("button", grupo).forEach((b) => b.setAttribute("aria-pressed", String(b === boton)));
+
+/* Lo que cambió en cada pantalla con cada escala (capturas/notas.json): [textos, cambian con A, con B, con C]. */
+const PANTALLAS = [
+  { id: "hoja", nombre: "Hoja de prenda", n: [329, 122, 250, 303], texto: true },
+  { id: "existencias", nombre: "Existencias", n: [286, 105, 213, 264], texto: true },
+  { id: "compras", nombre: "Compras", n: [150, 37, 73, 134], texto: false },
+  { id: "rendimiento", nombre: "Rendimiento", n: [209, 56, 102, 175], texto: true },
+  { id: "finanzas", nombre: "Finanzas", n: [313, 64, 105, 182], texto: true },
+];
+const OPCIONES = [
+  { id: "hoy", nombre: "Hoy", frase: "Como está: 28 tamaños, desde 9 px." },
+  { id: "a", nombre: "A · Ajustada", frase: "Nada por debajo de 12 px. Lo que se lee, a 15." },
+  { id: "b", nombre: "B · Cómoda", frase: "Nada por debajo de 13 px. Lo que se lee, a 16." },
+  { id: "c", nombre: "C · Grande", frase: "Nada por debajo de 14 px. Lo que se lee, a 16; los subtítulos, a 18." },
+  { id: "b-texto", nombre: "B + poco texto", frase: "La escala B, con las frases acortadas." },
+];
+let pantalla = 0, opcion = 2;
+function pintar() {
+  const p = PANTALLAS[pantalla];
+  if (OPCIONES[opcion].id === "b-texto" && !p.texto) opcion = 2;
+  const o = OPCIONES[opcion];
+  $("#captura").src = `capturas/${p.id}-${o.id}.jpg`;
+  $("#captura").alt = `${p.nombre}, ${o.nombre}`;
+  const cambian = { a: p.n[1], b: p.n[2], c: p.n[3], "b-texto": p.n[2] }[o.id];
+  $("#leyenda").innerHTML = `<b>${o.nombre}</b><span>${o.frase}</span>` + (cambian ? `<span class="pista">En esta pantalla cambian ${cambian} de ${p.n[0]} textos.</span>` : "");
+  $$("#pantallas button").forEach((b, i) => b.setAttribute("aria-pressed", String(i === pantalla)));
+  $$("#opciones button").forEach((b, i) => { b.setAttribute("aria-pressed", String(i === opcion)); b.disabled = OPCIONES[i].id === "b-texto" && !p.texto; });
+  for (const x of OPCIONES) if (x.id !== "b-texto" || p.texto) new Image().src = `capturas/${p.id}-${x.id}.jpg`; // para que el cambio sea instantáneo
+}
+$("#pantallas").innerHTML = PANTALLAS.map((p) => `<button type="button">${p.nombre}</button>`).join("");
+$("#opciones").innerHTML = OPCIONES.map((o) => `<button type="button">${o.nombre}</button>`).join("");
+$$("#pantallas button").forEach((b, i) => b.addEventListener("click", () => { pantalla = i; pintar(); }));
+$$("#opciones button").forEach((b, i) => b.addEventListener("click", () => { opcion = i; pintar(); }));
+addEventListener("keydown", (e) => {
+  if (e.target.closest("input, textarea")) return;
+  const paso = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+  if (!paso) return;
+  e.preventDefault();
+  const validas = OPCIONES.map((o, i) => i).filter((i) => OPCIONES[i].id !== "b-texto" || PANTALLAS[pantalla].texto);
+  opcion = validas[(validas.indexOf(opcion) + paso + validas.length) % validas.length];
+  pintar();
+});
+pintar();
+
+/* Las tres escalas, con lo que gana y lo que paga cada una. */
+const ESCALAS = [
+  { n: "A · Ajustada", t: [12, 13, 14, 15, 17, 21, 28], chico: "12 px", lee: "15 px", gana: "Casi no mueve nada de lugar.", paga: "Lo chico sigue siendo chico: sube 1 o 2 px." },
+  { n: "B · Cómoda", t: [13, 14, 16, 18, 21, 28], chico: "13 px", lee: "16 px", gana: "Se lee todo sin acercarse. Las pantallas aguantan.", paga: "Algunas filas de botones pasan a dos renglones.", elegida: true },
+  { n: "C · Grande", t: [14, 16, 18, 21, 24, 32], chico: "14 px", lee: "16 px", gana: "La más cómoda de leer.", paga: "Empuja el contenido: en Existencias las prendas bajan 170 px." },
+];
+$("#tres").innerHTML = ESCALAS.map((e) => `<div class="caja${e.elegida ? " elegida" : ""}"><h3>${e.n}${e.elegida ? '<span class="sello">Mi recomendación</span>' : ""}</h3>
+  <div class="escalera">${e.t.map((v) => `<span style="font-size:${v}px">Aa<small>${v}</small></span>`).join("")}</div>
+  <dl><dt>Lo más chico</dt><dd>${e.chico}</dd><dt>Lo que se lee</dt><dd>${e.lee}</dd><dt>Ganas</dt><dd>${e.gana}</dd><dt>Pagas</dt><dd>${e.paga}</dd></dl></div>`).join("");
+
+/* Diez frases reales. */
+const FRASES = [
+  ["Existencias", "El piso de esta tienda nunca se ha cuadrado. Lo que dice «en almacén» puede estar colgado: los números del almacén no están verificados hasta el primer cuadre.", "Falta cuadrar el piso. Hasta entonces, el almacén es aproximado."],
+  ["Hoja de prenda", "No ahora: Colgar (nada en almacén) · Subir (nada en piso) · Enviar (nada en almacén) · Reportar (nada que reportar).", ""],
+  ["Hoja de prenda", "Beige: poco tiempo en el piso para medir cuánto se vende. De esta talla: 0 vendidas en los últimos 7 días.", "Aún sin ventas para medir."],
+  ["Movimientos", "Registro transparente: cada movimiento queda con quién lo hizo, a qué hora y contra qué documento (boleta, factura del proveedor, traslado, conteo). No se edita ni se borra nunca: se corrige con otro movimiento.", "Nada se borra: se corrige con otro movimiento."],
+  ["Historial de ventas", "Una venta no se edita ni se borra: si se anula, queda tachada y deja de sumar. Un cambio o una devolución se marca en su venta.", "Una venta no se borra: se anula."],
+  ["Finanzas ▸ Resumen", "Todo lo que vendió con IGV en noviembre, lo que de eso es IGV, lo que costó, gastó y dejó, y lo que tiene en su caja. El IGV no cuenta en lo que dejó. Los bancos son de toda CAYLA: no se reparten.", "Lo que vendió, costó y dejó noviembre."],
+  ["Finanzas ▸ Gastos", "La planilla no se registra aquí: se lee de Dynamic. La mercadería va por Compras y la tela por Producción; aquí solo lo que se consume en el mes.", "Aquí va lo que se gasta en el mes."],
+  ["Rendimiento", "«Adelante» o «Por debajo» son 10 % arriba o abajo de lo que tocaba. Es para reconocer y acompañar, sin comisión ni bono. Toca a alguien o a un grupo y toda la pantalla se acomoda.", "Toca a alguien para ver su mes."],
+  ["Frescura", "Mientras el piso no esté cuadrado, el sistema no sabe con certeza qué está colgado: estos porcentajes son aproximados.", "Porcentajes aproximados: falta cuadrar el piso."],
+  ["Clientes", "La sede de cada cliente es donde más compró en 12 meses. «No reciben novedades»: miembros que aún no las pidieron por WhatsApp; solo les llegan los avisos informativos.", "Cada cliente va en la sede donde más compró."],
+];
+const palabras = (t) => (t ? t.trim().split(/\s+/).length : 0);
+$("#frases").innerHTML = FRASES.map(([d, h, n]) => `<tr><td>${d}</td><td class="hoy">${h}<i>${palabras(h)} palabras</i></td><td class="nuevo">${n || "Se quita. Lo que no se puede hacer no se lista."}<i>${n ? palabras(n) + " palabras" : "0 palabras"}</i></td></tr>`).join("");
+
+/* La elección. */
+const elegido = {};
+function resumir() {
+  const lineas = Object.entries(elegido).map(([k, v]) => `${k}: ${v}`);
+  $("#resumen").textContent = lineas.length ? lineas.join("\n") : "Elige un tamaño y un tono.";
+}
+for (const g of $$("[data-pregunta]")) for (const b of $$("button", g)) b.addEventListener("click", () => { elegido[g.dataset.pregunta] = b.textContent; pulsar(g, b); resumir(); });
+$("#copiar").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText("Mi elección de letra:\n" + $("#resumen").textContent); $("#copiado").textContent = "Copiado. Pégalo en el chat."; }
+  catch { $("#copiado").textContent = "No se pudo copiar: selecciona el texto."; }
+});
+</script>
+</body>
+</html>

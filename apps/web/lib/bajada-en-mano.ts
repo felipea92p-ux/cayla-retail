@@ -299,6 +299,7 @@ export function leerMarcas(texto: string | null, ahora: Date): MarcasEnDuda {
   try {
     crudo = JSON.parse(texto);
   } catch {
+    // relleno-a-proposito: un texto ilegible en el aparato se descarta, como lo de otra versión (nunca lanza).
     return {};
   }
   if (typeof crudo !== "object" || crudo === null || (crudo as { v?: unknown }).v !== VERSION_MARCAS_EN_MANO) return {};

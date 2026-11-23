@@ -859,7 +859,7 @@ function ColorEditarModal({
 
           {esMezcla ? (
             <div>
-              <p className="label-cayla text-[11px] text-tinta/65">Color</p>
+              <p className="label-cayla text-xs text-tinta/65">Color</p>
               <div className="mt-1.5 flex items-center gap-3">
                 <Muestra hex={color.hex} tonos={tonosDeMezcla(color, new Map(existentes.map((x) => [x.codigo, x])))} className="h-6 w-10" />
                 <span className="text-sm text-tinta/65">Es una mezcla: su tono y su familia son los de su base. Para otra mezcla, se arma desde «+ acompañante».</span>
@@ -867,7 +867,7 @@ function ColorEditarModal({
             </div>
           ) : esVarios ? (
             <div>
-              <p className="label-cayla text-[11px] text-tinta/65">Color</p>
+              <p className="label-cayla text-xs text-tinta/65">Color</p>
               <div className="mt-1.5 flex items-center gap-3">
                 <Muestra hex={null} className="h-6 w-10" />
                 <span className="text-sm text-tinta/65">De varios colores: no tiene un solo tono. Se ve así en todo el ERP y en la tienda.</span>
@@ -879,7 +879,7 @@ function ColorEditarModal({
               <SelectorColor hex={hex} onHex={setHex} />
             ) : (
               <div>
-                <p className="label-cayla text-[11px] text-tinta/65">Color</p>
+                <p className="label-cayla text-xs text-tinta/65">Color</p>
                 <div className="mt-1.5 flex items-center gap-3">
                   <MuestraEditable hex={hex} />
                   <span className="font-mono text-xs uppercase text-tinta/65">{hex}</span>

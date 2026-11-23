@@ -105,13 +105,13 @@ export function ClientesYTicket({ hoy, ayer, ahoraMin }: Omit<Props, "horaCierre
       <p className="texto-bajada">Hoy contra ayer a esta hora</p>
       <div className="mt-3 grid grid-cols-2 gap-4">
         <div>
-          <p className="label-cayla text-[10.5px] text-tinta/50">Número de ventas</p>
+          <p className="label-cayla text-xs text-tinta/50">Número de ventas</p>
           <p className="font-display text-[34px] leading-tight tabular-nums text-tinta"><Cuenta valor={v.ticketsHoy} formato={(n) => String(Math.round(n))} /></p>
           <Delta a={v.ticketsHoy} b={v.ticketsAyerAEstaHora} />
           <p className="texto-detalle mt-1">Ayer: {v.ticketsAyerAEstaHora}</p>
         </div>
         <div>
-          <p className="label-cayla text-[10.5px] text-tinta/50">Cuánto vale cada venta</p>
+          <p className="label-cayla text-xs text-tinta/50">Cuánto vale cada venta</p>
           <p className="font-display text-[34px] leading-tight tabular-nums text-tinta"><Cuenta valor={v.ticketPromedio} formato={soles} /></p>
           <Delta a={v.ticketPromedio} b={tpAyer} />
           <p className="texto-detalle mt-1">Ayer: {soles(tpAyer)}</p>
@@ -198,12 +198,12 @@ export function ComoTePagaron({ hoy, ayer }: Pick<Props, "hoy" | "ayer">) {
         <div className="mt-2">
           {filas.map((f, i) => (
             <div key={f.metodo} className="cmp-metodo">
-              <span className="inline-flex items-center gap-1.5 text-[15px]"><i className="h-2 w-2 rounded-full" style={{ background: COLOR_METODO[f.metodo] ?? "var(--color-taupe)" }} />{NOMBRE_METODO[f.metodo] ?? f.metodo}</span>
+              <span className="inline-flex items-center gap-1.5 text-sm"><i className="h-2 w-2 rounded-full" style={{ background: COLOR_METODO[f.metodo] ?? "var(--color-taupe)" }} />{NOMBRE_METODO[f.metodo] ?? f.metodo}</span>
               <span className="cmp-carril">
                 <span className="cmp-carril-barra" style={{ width: dentro ? `${(f.hoy / mx) * 100}%` : 0, background: COLOR_METODO[f.metodo] ?? "var(--color-taupe)", transitionDelay: `${i * 70}ms` }} />
                 <span className="cmp-carril-marca" style={{ left: `${(f.ayerDia / mx) * 100}%` }} title="Dónde terminó ayer este medio" />
               </span>
-              <span className="text-right text-[15px] tabular-nums"><b>{soles(f.hoy)}</b><br /><span className="texto-detalle">ayer {soles(f.ayerDia)}</span></span>
+              <span className="text-right text-sm tabular-nums"><b>{soles(f.hoy)}</b><br /><span className="texto-detalle">ayer {soles(f.ayerDia)}</span></span>
             </div>
           ))}
         </div>
@@ -245,7 +245,7 @@ export function DondeGanasYPierdes({ hoy, ayer, ahoraMin }: Omit<Props, "horaCie
         etiqueta="Dónde ganas y dónde pierdes: cada hora de hoy menos la misma hora de ayer"
       />
       {/* El veredicto en una frase (ronda 19): sin mejor ni peor hora es una sola idea, no dos frases que se niegan. */}
-      <p className="mt-3 rounded-xl vd-placa px-3.5 py-3 text-[15px] text-tinta">
+      <p className="mt-3 rounded-xl vd-placa px-3.5 py-3 text-sm text-tinta">
         {!mejor && !peor ? (
           <>Ninguna hora mejor ni peor que ayer.</>
         ) : (

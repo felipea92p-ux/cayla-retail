@@ -250,7 +250,7 @@ export function tareasParaHoy(e: EntradaParaHoy): TareaHoy[] {
       // La misma palabra del filtro «Hoy» al que lleva «Ver cuáles» (ADR-0326). Con el mínimo de 1 por talla (umbral 0), este caso es
       // una talla sin ninguna libre, ni colgada ni guardada: «queda poco en el piso» ya no es cierto.
       texto: `${plural(e.sinStockAtras.tallas, "talla", "tallas")} ${TEXTO_HOY.sin_stock_atras.toLocaleLowerCase("es")}`,
-      detalle: "No queda ninguna, ni colgada ni guardada, y no viene ninguna en camino: pídela a otra sede o al Taller.",
+      detalle: "No queda ninguna ni viene en camino: pídela a otra sede o al Taller.",
       tono: "pizarra",
     });
   }

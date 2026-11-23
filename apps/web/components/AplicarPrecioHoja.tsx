@@ -62,7 +62,7 @@ export function AplicarPrecioHoja({
       {(cerrar) => (
         <div className="space-y-4">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <p className="text-[15px] tabular-nums text-taupe line-through decoration-taupe/60">{soles(prenda.precio)}</p>
+            <p className="text-sm tabular-nums text-taupe line-through decoration-taupe/60">{soles(prenda.precio)}</p>
             <p className="font-display text-[1.75rem] leading-none tabular-nums">{soles(propuesta.precio)}</p>
             <p className="text-sm tabular-nums text-taupe">
               margen {Math.round(propuesta.margen)} %{propuesta.costoEstimado ? " con el costo estimado" : ""}

@@ -365,7 +365,7 @@ export function SelectorMultiple<T extends string>({
             aria-pressed={elegida}
             disabled={disabled}
             onClick={() => alternar(o.valor)}
-            className={`rounded-md border px-2 py-1 text-[11px] transition-colors disabled:opacity-50 ${
+            className={`rounded-md border px-2 py-1 text-xs transition-colors disabled:opacity-50 ${
               elegida ? "border-rojo/60 bg-rojo/5 text-rojo" : "border-tinta/15 text-tinta/65 hover:border-tinta/35"
             }`}
           >
@@ -425,7 +425,7 @@ export function Segmentado<T extends string>({
               tabIndex={o.valor === valor ? 0 : -1}
               onClick={() => onValor(o.valor)}
               onKeyDown={(e) => alTeclado(e, i)}
-              className={`label-cayla flex items-center justify-center rounded-t-md px-3 text-[11px] outline-none transition-all duration-300 focus-visible:bg-rojo/8 ${
+              className={`label-cayla flex items-center justify-center rounded-t-md px-3 text-xs outline-none transition-all duration-300 focus-visible:bg-rojo/8 ${
                 o.valor === valor ? "text-rojo" : "text-tinta/65 hover:text-tinta/80"
               }`}
             >
@@ -506,7 +506,7 @@ const FORMA_DESPLEGABLE = {
    *  fila abre la lista de lo que no cupo. */
   pildora: { boton: "pildora-cayla", flecha: true, hilo: false, comoNativo: false, marcadorComoTexto: true },
   /** Sola con su borde, en la cabecera (la sede). Con el vidrio (ADR-0596) es una gota en letra normal: `.combo-pastilla`, app/estilos/vidrio/. */
-  pastilla: { boton: "combo-pastilla gap-2 rounded-md border bg-transparent px-2.5 py-1.5 label-cayla text-[11px] text-tinta hover:border-rojo", flecha: true, hilo: false, comoNativo: false },
+  pastilla: { boton: "combo-pastilla gap-2 rounded-md border bg-transparent px-2.5 py-1.5 label-cayla text-tinta hover:border-rojo", flecha: true, hilo: false, comoNativo: false },
   /** Guía oficial (2026-09-22, ADR-0169): la caja hundida en hueso de las barras de filtros, la misma de `CampoTexto caja`.
    *  Hasta el 2026-09-26 salía transparente: un `bg-transparent` de todas las formas le ganaba a `.caja-cayla`. */
   caja: { boton: "caja-cayla caja-campo", flecha: true, hilo: false, comoNativo: false },
@@ -902,7 +902,7 @@ export function Desplegable<T extends string>({
                   <Fragment key={`t${k}`}>{t.items.map(({ o, i }) => opcion(o, i))}</Fragment>
                 ) : (
                   <li key={`t${k}`} role="presentation">
-                    <p id={`${id}-g${k}`} aria-hidden className="label-cayla px-4 pb-1 pt-2.5 text-[10px] text-tinta/55">
+                    <p id={`${id}-g${k}`} aria-hidden className="label-cayla px-4 pb-1 pt-2.5 text-xs text-tinta/55">
                       {t.grupo}
                     </p>
                     <ul role="group" aria-labelledby={`${id}-g${k}`}>

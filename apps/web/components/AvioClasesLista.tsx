@@ -51,8 +51,7 @@ export function AvioClasesLista({ clasesIniciales, puedeEditar }: { clasesInicia
     <div data-guia="atributos.clases-de-avio" className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="nota-cayla max-w-prose">
-          La clase de un avío decide tres cosas en «Nuevo avío»: <strong>en qué se cuenta</strong> (el hilo en conos), <strong>si lleva color</strong> y <strong>qué medida se le pide</strong>.
-          Lo que una clase propone se puede cambiar al crear el avío; lo que no se puede cambiar nunca es la unidad, una vez que entró su primer lote.
+          La clase decide <strong>en qué se cuenta</strong> un avío, <strong>si lleva color</strong> y <strong>qué medida pide</strong>. La unidad no cambia después de su primer lote.
         </p>
         {puedeEditar && (
           <Boton peso="primario" onClick={() => setCreando(true)}>
@@ -70,13 +69,13 @@ export function AvioClasesLista({ clasesIniciales, puedeEditar }: { clasesInicia
           <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
           {clases.map((c) => (
             <div key={c.id} className={fila(PLANTILLA, c.activo ? "" : "opacity-60")}>
-              <span className={celda("izq", "text-[14px] font-medium text-tinta")}>
+              <span className={celda("izq", "text-detalle font-medium text-tinta")}>
                 {c.nombre}
-                {!c.activo && <span className="ml-2 text-[12px] font-normal text-taupe">(apagada)</span>}
+                {!c.activo && <span className="ml-2 text-xs font-normal text-taupe">(apagada)</span>}
               </span>
-              <span className={celda("izq", "font-mono text-[12.5px] text-tinta/75")}>{c.prefijo}-</span>
-              <span className={celda("izq", "whitespace-normal text-[13px] text-taupe")}>{COMPORTAMIENTO_DICE[c.comportamiento]}</span>
-              <span className={celda("izq", "text-[13px] text-tinta")}>{UNIDADES_INSUMO[c.unidadSugerida].larga}</span>
+              <span className={celda("izq", "font-mono text-xs text-tinta/75")}>{c.prefijo}-</span>
+              <span className={celda("izq", "whitespace-normal text-xs text-taupe")}>{COMPORTAMIENTO_DICE[c.comportamiento]}</span>
+              <span className={celda("izq", "text-xs text-tinta")}>{UNIDADES_INSUMO[c.unidadSugerida].larga}</span>
               <span className={celda("izq")}>
                 <Chip tono={c.pideColor ? "verde" : "pizarra"} versalitas={false}>
                   {c.pideColor ? "Sí" : "No"}

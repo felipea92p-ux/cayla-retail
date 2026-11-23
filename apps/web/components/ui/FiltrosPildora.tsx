@@ -92,7 +92,7 @@ export function PanelPildoras({ children, filas = false, guia }: { children: Rea
 export function FilaPildoras({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
     <div role="group" aria-label={titulo} className="flex min-w-0 flex-col gap-0.5 py-1 lg:flex-row lg:items-center lg:gap-1 lg:py-0.5">
-      <span aria-hidden className="label-cayla shrink-0 px-3 pt-1 text-[10px] text-tinta/45 lg:w-[5.5rem] lg:pt-0">
+      <span aria-hidden className="label-cayla shrink-0 px-3 pt-1 text-xs text-tinta/45 lg:w-[5.5rem] lg:pt-0">
         {titulo}
       </span>
       <div className="flex min-w-0 flex-wrap items-center gap-2 py-1">{children}</div>
@@ -359,7 +359,7 @@ export function DesplegablePildora({
             />
           )}
           {rotuloCantidad && opciones.some((o) => o.cantidad != null) && (
-            <p className="shrink-0 px-3 pb-0.5 pt-2 text-[11px] leading-snug text-tinta/55">{rotuloCantidad}</p>
+            <p className="shrink-0 px-3 pb-0.5 pt-2 text-xs leading-snug text-tinta/55">{rotuloCantidad}</p>
           )}
           <ul
             id={`${id}-lista`}
@@ -377,7 +377,7 @@ export function DesplegablePildora({
                 {/* Sin opciones (los demás filtros no dejan ninguna) no es lo mismo que «la búsqueda no encontró nada». */}
                 {opciones.length === 0 ? (
                   <Vacio tamano="chico" alinear="izquierda" icono={<FunnelX />}>
-                    Con los filtros puestos no queda ninguna para elegir. Quita otro filtro.
+                    No queda ninguna con estos filtros. Quita uno.
                   </Vacio>
                 ) : (
                   <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
@@ -393,7 +393,7 @@ export function DesplegablePildora({
                   <Fragment key={`t${k}`}>{t.items.map(({ o: { o }, i }) => opcion(o, i))}</Fragment>
                 ) : (
                   <li key={`t${k}`} role="presentation">
-                    <p id={`${id}-g${k}`} aria-hidden className="label-cayla px-3 pb-1 pt-2.5 text-[10px] text-tinta/55">
+                    <p id={`${id}-g${k}`} aria-hidden className="label-cayla px-3 pb-1 pt-2.5 text-xs text-tinta/55">
                       {t.grupo}
                     </p>
                     <ul role="group" aria-labelledby={`${id}-g${k}`}>

@@ -88,7 +88,8 @@ export function PorResolver({
 
   return (
     <section data-guia="barrido.por-resolver" className="vd-placa space-y-3 rounded-[var(--radius-tarjeta,1rem)] p-4 sm:p-5">
-      <TituloSeccion cuenta={total}>Por resolver</TituloSeccion>
+      {/* El globito cuenta lo mismo que los de cada grupo (las filas por resolver); las prendas de cada una van en su línea. */}
+      <TituloSeccion cuenta={lista.noCargadas.length + lista.apartados.length}>Por resolver</TituloSeccion>
       <p className="texto-bajada text-taupe">Lo que el barrido no pudo cuadrar solo.</p>
 
       {lista.noCargadas.length > 0 && (
@@ -102,7 +103,7 @@ export function PorResolver({
                 <li key={`${n.barridoId}:${n.varianteId}`} className="flex items-center gap-3 py-2.5">
                   <MiniaturaPrenda fotoUrl={p?.fotoUrl ?? null} colorHex={p?.colorHex ?? null} tamano="md" {...categoriaDe(p)} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[15px] text-tinta">
+                    <p className="truncate text-sm text-tinta">
                       {p ? p.referencia : n.prenda}
                       {detalle ? <span className="text-taupe"> · {detalle}</span> : null}
                     </p>
@@ -138,7 +139,7 @@ export function PorResolver({
                     </span>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[15px] text-tinta">
+                    <p className="truncate text-sm text-tinta">
                       {a.nota ?? (a.codigo ? `Código ${a.codigo}` : a.tipo === "sin_etiqueta" ? "Sin etiqueta" : "Código que no existe")}
                     </p>
                     <p className="texto-detalle truncate text-taupe">

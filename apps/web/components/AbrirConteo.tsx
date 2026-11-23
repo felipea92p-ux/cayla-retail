@@ -435,7 +435,7 @@ export function AbrirConteo({
             <Fila etiqueta="Cuenta" valor={nombreElegido} />
           </dl>
           <p className="hidden text-sm leading-relaxed text-taupe @[46rem]:block">
-            Al empezar se congela lo que CAYLA dice que hay, para compararlo con lo que cuentes.
+            Al empezar se congela lo que CAYLA dice que hay.
           </p>
 
           <div className="col-span-2 row-start-2 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:mt-auto">
@@ -537,7 +537,7 @@ function TarjetasOpcion<T extends string>({
             }`}
           >
             <span className={`mb-2 transition-colors duration-200 ${activa ? "text-tinta" : "text-taupe"}`}>{o.icono}</span>
-            <span className="block text-[15px] font-medium text-tinta">{o.titulo}</span>
+            <span className="block text-sm font-medium text-tinta">{o.titulo}</span>
             <span className="block text-sm text-tinta-60">{o.linea}</span>
             {o.cifra && <span className="block text-sm text-taupe">{o.cifra}</span>}
             <span
@@ -621,7 +621,7 @@ function ElegirCategoria({
               tabIndex={(elegida === -1 ? i === 0 : activa) ? 0 : -1}
               onClick={() => onValor(c.id)}
               onKeyDown={(e) => alTeclado(e, i)}
-              className={`inline-flex items-baseline gap-1.5 rounded-full border px-3.5 py-1.5 text-[15px] transition-colors duration-150 ease-cayla focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta/60 ${
+              className={`inline-flex items-baseline gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors duration-150 ease-cayla focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta/60 ${
                 activa ? "border-tinta bg-tinta text-crema" : `border-sand bg-papel hover:border-taupe/45 ${cifraDe && cifraDe(c.id) === 0 ? "text-tinta/55" : "text-tinta"}`
               }`}
             >

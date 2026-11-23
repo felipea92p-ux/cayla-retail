@@ -136,7 +136,7 @@ export function DetalleCierreContenido({ cierre, detalle, cargando, error }: { c
       <div className="grid items-center gap-x-8 gap-y-3 rounded-2xl bg-tinta px-5 py-4 text-crema @2xl:grid-cols-[1fr_auto]">
         <div className="min-w-0">
           <p className="font-display text-[30px] leading-tight @2xl:text-[34px]">{estado === "cuadro" ? "Cuadró, sin diferencia" : `${estado === "sobro" ? "Sobró" : "Faltó"} ${money(Math.abs(cierre.diferencia))}`}</p>
-          <p className="mt-1 text-[13px] text-crema/70">
+          <p className="mt-1 text-xs text-crema/70">
             El sistema esperaba {money(cierre.montoCierreSistema)}
             {estado === "cuadro" ? " y se contó lo mismo." : ` y se contó ${money(cierre.montoCierreReal)}.`}
           </p>
@@ -146,14 +146,14 @@ export function DetalleCierreContenido({ cierre, detalle, cargando, error }: { c
               style={{ background: "linear-gradient(90deg, color-mix(in srgb, var(--color-rojo) 55%, transparent) 0 49.5%, var(--color-verde) 49.5% 50.5%, color-mix(in srgb, var(--color-ambar) 60%, transparent) 50.5% 100%)" }}
             />
             <span className="absolute top-[6px] h-[22px] w-[22px] -translate-x-1/2 rounded-full border-4 border-tinta bg-crema" style={{ left: `${escala.pos}%` }} />
-            <span className="absolute left-0 top-6 text-[11px] text-crema/70">falta {money(escala.rango)}</span>
-            <span className="absolute left-1/2 top-6 -translate-x-1/2 text-[11px] text-crema/70">cuadra</span>
-            <span className="absolute right-0 top-6 text-[11px] text-crema/70">sobra {money(escala.rango)}</span>
+            <span className="absolute left-0 top-6 text-xs text-crema/70">falta {money(escala.rango)}</span>
+            <span className="absolute left-1/2 top-6 -translate-x-1/2 text-xs text-crema/70">cuadra</span>
+            <span className="absolute right-0 top-6 text-xs text-crema/70">sobra {money(escala.rango)}</span>
           </div>
         </div>
         <div className="@2xl:text-right">
           <p className="font-display text-[40px] leading-none tabular-nums @2xl:text-[44px]">{money(cierre.montoCierreReal)}</p>
-          <p className="label-cayla mt-1.5 text-[10px] text-crema/70">Contado</p>
+          <p className="label-cayla mt-1.5 text-xs text-crema/70">Contado</p>
         </div>
       </div>
 
@@ -332,7 +332,7 @@ function Leyenda({ color, texto }: { color: string; texto: string }) {
 /** Una línea de «concepto … monto» con su hilo de arena arriba (la primera de un bloque no lo lleva). */
 function Linea({ k, sub, v, fuerte = false }: { k: ReactNode; sub?: string; v: ReactNode; fuerte?: boolean }) {
   return (
-    <div className={`flex items-baseline justify-between gap-3 border-t border-sand py-1.5 text-[13.5px] first:border-t-0 ${fuerte ? "font-semibold text-tinta" : "text-tinta/80"}`}>
+    <div className={`flex items-baseline justify-between gap-3 border-t border-sand py-1.5 text-detalle first:border-t-0 ${fuerte ? "font-semibold text-tinta" : "text-tinta/80"}`}>
       <p className="min-w-0">
         {k}
         {sub && <span className="block text-xs font-normal text-tinta/60">{sub}</span>}

@@ -10,7 +10,7 @@ import { ALFABETO } from "@/lib/marcas";
 export function IndiceLetras({ presentes, enEstaPagina, onLetra }: { presentes: ReadonlySet<string>; enEstaPagina: ReadonlySet<string>; onLetra: (letra: string) => void }) {
   return (
     <div role="group" aria-label="Ir a la letra" data-guia="marcas.letras" className="flex items-center gap-0.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <span className="label-cayla mr-2 whitespace-nowrap text-[11px] text-tinta/65">Ir a</span>
+      <span className="label-cayla mr-2 whitespace-nowrap text-xs text-tinta/65">Ir a</span>
       {/* La ranura con sus gotas (vidrio/catalogo.css): las letras viven adentro; «Ir a» queda fuera. */}
       <span className="indice-ranura">
         {ALFABETO.map((letra) => {
@@ -23,7 +23,7 @@ export function IndiceLetras({ presentes, enEstaPagina, onLetra }: { presentes: 
               data-aqui={enEstaPagina.has(letra) || undefined}
               aria-label={letra === "#" ? "Ir a las marcas que empiezan con un número" : `Ir a la ${letra}`}
               onClick={() => onLetra(letra)}
-              className={`h-[30px] min-w-[30px] shrink-0 rounded-lg text-[12.5px] font-semibold transition-colors motion-reduce:transition-none ${
+              className={`h-[30px] min-w-[30px] shrink-0 rounded-lg text-xs font-semibold transition-colors motion-reduce:transition-none ${
                 enEstaPagina.has(letra) ? "vd-marca" : ""
               } ${hay ? "text-tinta/80 vd-pasa-gota" : "cursor-default text-tinta/30"}`}
             >

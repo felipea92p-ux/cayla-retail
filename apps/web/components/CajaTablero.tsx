@@ -77,7 +77,7 @@ export function TarjetaCajon({ esperado, piezas, indice }: { esperado: number | 
   return (
     <div data-guia="caja.cajon" className="card-cayla anim-sube relative flex flex-col border-l-[3px] p-5" style={{ "--i": indice, borderLeftColor: "var(--color-metodo-efectivo)" } as CSSProperties}>
       <div className="flex items-center justify-between gap-3">
-        <p className="label-cayla text-[11px]" style={{ color: "var(--color-metodo-efectivo-tinta)" }}>
+        <p className="label-cayla text-xs" style={{ color: "var(--color-metodo-efectivo-tinta)" }}>
           Efectivo en el cajón ahora
         </p>
         <Lock size={16} aria-hidden className="text-tinta/50" />
@@ -109,7 +109,7 @@ export function TarjetaCobrado({ porMetodo, redondeo = 0, indice }: { porMetodo:
   const notaRedondeo = notaDeRedondeo(redondeo, soles);
   return (
     <div className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": indice } as CSSProperties}>
-      <p className="label-cayla text-[11px] text-tinta/65">Cobrado en el turno</p>
+      <p className="label-cayla text-xs text-tinta/65">Cobrado en el turno</p>
       <p className="font-display mt-2.5 text-[32px] leading-none text-tinta tabular-nums lining-nums">{soles(c.total)}</p>
       {c.metodos.length === 0 ? (
         <Vacio tamano="chico" alinear="izquierda" className="mt-2 px-0" icono={<Wallet />}>Sin ventas todavía.</Vacio>
@@ -134,11 +134,11 @@ export function TarjetaCobrado({ porMetodo, redondeo = 0, indice }: { porMetodo:
         </>
       )}
       {c.anticipo > 0 && (
-        <p className="mt-3 rounded-lg vd-placa px-2.5 py-1.5 text-[11.5px] text-tinta/70">
+        <p className="mt-3 rounded-lg vd-placa px-2.5 py-1.5 text-xs text-tinta/70">
           + {soles(c.anticipo)} de adelantos aplicados: se cobraron el día que se separó, no suman hoy.
         </p>
       )}
-      {notaRedondeo && <p className="mt-3 rounded-lg vd-placa px-2.5 py-1.5 text-[11.5px] text-tinta/70">{notaRedondeo}</p>}
+      {notaRedondeo && <p className="mt-3 rounded-lg vd-placa px-2.5 py-1.5 text-xs text-tinta/70">{notaRedondeo}</p>}
     </div>
   );
 }
@@ -159,8 +159,8 @@ function tarjetaAcceso(a: Acceso) {
     <>
       <span className={`grid h-[34px] w-[34px] shrink-0 place-items-center rounded-lg ${a.principal ? "bg-crema/15" : "vd-lente"}`}>{a.icono}</span>
       <span className="min-w-0">
-        <span className="block text-[13.5px] font-semibold leading-tight">{a.titulo}</span>
-        <span className={`mt-0.5 block text-[11.5px] leading-snug ${a.principal ? "text-crema/70" : "text-tinta/60"}`}>{a.detalle}</span>
+        <span className="block text-detalle font-semibold leading-tight">{a.titulo}</span>
+        <span className={`mt-0.5 block text-xs leading-snug ${a.principal ? "text-crema/70" : "text-tinta/60"}`}>{a.detalle}</span>
         {a.insignia && (
           <Chip tono="ambar" className="mt-1.5">
             {a.insignia}
@@ -202,7 +202,7 @@ export function AccesosCajaEscritorio({
     lista.push({ clave: "apartados", icono: <Bookmark size={20} aria-hidden />, titulo: "Apartados", detalle: "Cobrar saldo o separar", href: "/vender/apartados", insignia: apartadosPorCobrar > 0 ? `${apartadosPorCobrar} por cobrar` : undefined });
   return (
     <div className="hidden sm:block">
-      <p className="label-cayla mb-2 text-[11px] text-tinta/60">Hacer</p>
+      <p className="label-cayla mb-2 text-xs text-tinta/60">Hacer</p>
       <div className="grid grid-cols-2 gap-2.5 @[800px]:grid-cols-3 @[1100px]:grid-cols-5">{lista.map(tarjetaAcceso)}</div>
     </div>
   );
@@ -218,10 +218,10 @@ export function AccesosCajaMovil({ accesos, apartadosPorCobrar }: { accesos: Acc
   if (lista.length === 0) return null;
   return (
     <div className="sm:hidden">
-      <p className="label-cayla mb-2 text-[11px] text-tinta/60">Accesos</p>
+      <p className="label-cayla mb-2 text-xs text-tinta/60">Accesos</p>
       <div className="grid grid-cols-3 gap-2">
         {lista.map((a) => (
-          <Link key={a.clave} href={a.href} className="relative flex flex-col items-center gap-1.5 rounded-xl border border-sand bg-papel px-1 py-3.5 text-[12.5px] text-tinta">
+          <Link key={a.clave} href={a.href} className="relative flex flex-col items-center gap-1.5 rounded-xl border border-sand bg-papel px-1 py-3.5 text-xs text-tinta">
             {a.n ? <Globito n={a.n} pide esquina etiqueta="por cobrar" className="absolute right-1.5 top-1.5" /> : null}
             {a.icono}
             {a.texto}
@@ -245,12 +245,12 @@ export function BarraCajaMovil({
   onIngreso: () => void;
   onCerrar: (() => void) | null;
 }) {
-  const cuadrado = "flex h-14 w-[58px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl border border-sand bg-papel text-[10px] font-semibold text-tinta/80 active:scale-[0.97]";
+  const cuadrado = "flex h-14 w-[58px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl border border-sand bg-papel text-xs font-semibold text-tinta/80 active:scale-[0.97]";
   return (
     // La barra de abajo del celular es la Isla (ADR-0479, actividad 12): Vender y los cuadrados, dentro de la isla clara.
     <BarraDeAbajo data-guia="caja.barra-movil" className="flex-nowrap gap-2 p-2 sm:hidden">
       {vender && (
-        <Link href="/vender" className="btn-cayla btn-primario min-h-14 flex-1 gap-2.5 text-[15px]">
+        <Link href="/vender" className="btn-cayla btn-primario min-h-14 flex-1 gap-2.5 text-sm leading-tight">
           <ShoppingBag size={16} aria-hidden /> Vender
         </Link>
       )}
@@ -321,7 +321,7 @@ export function TarjetasElegibles({ contexto, ubicacionId }: { contexto: Context
   return (
     <div>
       <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [scrollbar-width:none]">
-        <span className="label-cayla shrink-0 text-[11px] text-tinta/60">
+        <span className="label-cayla shrink-0 text-xs text-tinta/60">
           <span className="sm:hidden">Mostrar</span>
           <span className="hidden sm:inline">Tu caja muestra</span>
         </span>
@@ -333,20 +333,20 @@ export function TarjetasElegibles({ contexto, ubicacionId }: { contexto: Context
               type="button"
               aria-pressed={on}
               onClick={() => alternar(t)}
-              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium transition-colors duration-200 ${
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors duration-200 ${
                 on ? "border-tinta bg-tinta text-crema" : pideAccion(t) ? "border-ambar/50 bg-papel text-tinta" : "border-sand bg-papel text-tinta hover:border-taupe"
               }`}
             >
               {on ? <Check size={12} aria-hidden /> : <Plus size={12} aria-hidden />}
               {NOMBRE_TARJETA[t]}
-              <span className={`text-[11px] ${on ? "text-crema/70" : pideAccion(t) ? "font-bold text-ambar" : "text-tinta/50"}`}>{cuenta[t]}</span>
+              <span className={`text-xs ${on ? "text-crema/70" : pideAccion(t) ? "font-bold text-ambar" : "text-tinta/50"}`}>{cuenta[t]}</span>
             </button>
           );
         })}
         {predeterminadas ? (
-          <span className="shrink-0 text-[11.5px] text-tinta/50">Predeterminado · se recuerda en este aparato</span>
+          <span className="shrink-0 text-xs text-tinta/50">Predeterminado · se recuerda en este aparato</span>
         ) : (
-          <button type="button" onClick={() => cambiar(tarjetasElegidas(null, contexto.disponibles))} className="shrink-0 text-[11.5px] text-taupe underline underline-offset-4 hover:text-tinta">
+          <button type="button" onClick={() => cambiar(tarjetasElegidas(null, contexto.disponibles))} className="shrink-0 text-xs text-taupe underline underline-offset-4 hover:text-tinta">
             Volver a lo predeterminado
           </button>
         )}
@@ -376,7 +376,7 @@ function CabeceraPanel({ titulo, bajada, derecha }: { titulo: string; bajada: st
   );
 }
 
-const filaLista = "flex items-center justify-between gap-3 border-t border-sand py-2.5 text-[13px] first:border-t-0";
+const filaLista = "flex items-center justify-between gap-3 border-t border-sand py-2.5 text-xs first:border-t-0";
 
 function SinLectura() {
   return <p className="py-3 text-xs text-tinta/50">No se pudo leer ahora. Vuelve a abrir Caja en un momento.</p>;
@@ -401,7 +401,7 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
                   </span>
                 </span>
                 {/* El enlace del sistema, no un botón: la fila no crece y se lee como una acción chica (ADR-0358, Felipe 2026-10-14). */}
-                <Link href={p.href} className="btn-cayla btn-enlace shrink-0 text-[13px]" aria-label={`Ver ${p.cantidad} ${p.texto}`}>
+                <Link href={p.href} className="btn-cayla btn-enlace shrink-0 text-xs leading-tight" aria-label={`Ver ${p.cantidad} ${p.texto}`}>
                   Ver
                 </Link>
               </div>
@@ -433,7 +433,7 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
               <div key={x.id} className={filaLista}>
                 <span className="min-w-0">
                   <span className="block truncate">{x.clienta}</span>
-                  <span className="block text-[11.5px] text-tinta/50">
+                  <span className="block text-xs text-tinta/50">
                     {x.prendas} · saldo {soles(x.saldo)}
                   </span>
                 </span>
@@ -470,7 +470,7 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
               <div key={x.id} className={filaLista}>
                 <span className="min-w-0">
                   <span className="block truncate">{x.descripcion}</span>
-                  <span className="block text-[11.5px] text-tinta/50">
+                  <span className="block text-xs text-tinta/50">
                     {x.hora}
                     {x.medio && ` · con ${TEXTO_MEDIO[x.medio]}`} · {x.conComprobante ? "con comprobante" : "sin comprobante"}
                   </span>
@@ -503,7 +503,7 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
             <div key={x.id} className={filaLista}>
               <span className="min-w-0">
                 <span className="block truncate">{x.texto}</span>
-                <span className="block text-[11.5px] text-tinta/50">{x.hora}</span>
+                <span className="block text-xs text-tinta/50">{x.hora}</span>
               </span>
               {x.efectivo === 0 ? (
                 <Chip tono="apagado" tachado={false}>
@@ -609,13 +609,13 @@ export function CierresAnteriores({ cierres, esLider, indice, onModo }: { cierre
       </div>
 
       <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3">
-        <Link href="/caja/historial" className="label-cayla inline-flex items-center gap-1.5 text-[11px] text-rojo hover:text-rojo-profundo">
+        <Link href="/caja/historial" className="label-cayla inline-flex items-center gap-1.5 text-xs text-rojo hover:text-rojo-profundo">
           <History size={12} aria-hidden /> Ver historial completo
         </Link>
         {modo === predeterminado ? (
-          <span className="text-[11.5px] text-tinta/50">Vista predeterminada · se recuerda en este aparato</span>
+          <span className="text-xs text-tinta/50">Vista predeterminada · se recuerda en este aparato</span>
         ) : (
-          <button type="button" onClick={() => cambiar(predeterminado)} className="text-[11.5px] text-taupe underline underline-offset-4 hover:text-tinta">
+          <button type="button" onClick={() => cambiar(predeterminado)} className="text-xs text-taupe underline underline-offset-4 hover:text-tinta">
             Volver a la predeterminada
           </button>
         )}
@@ -635,11 +635,11 @@ function VistaUltimo({ cierres }: { cierres: CierreCaja[] }) {
           {q.clave === "ok" ? <Check size={20} aria-hidden /> : <TriangleAlert size={20} aria-hidden />}
         </span>
         <div className="min-w-0">
-          <p className="text-[13.5px] font-semibold text-tinta">
+          <p className="text-detalle font-semibold text-tinta">
             {diaCorto(u.cerradaEn)} · {FORMATO_HORA.format(new Date(u.cerradaEn))}
             {u.cerradaPorNombre ? ` · ${u.cerradaPorNombre}` : ""}
           </p>
-          <p className="text-[12.5px] text-tinta/60 tabular-nums">
+          <p className="text-xs text-tinta/60 tabular-nums">
             Contó {soles(u.montoCierreReal)} · el sistema esperaba {soles(u.montoCierreSistema)}
             {u.montoFondo !== null ? ` · dejó ${soles(u.montoFondo)} para el siguiente turno` : ""}
           </p>
@@ -664,8 +664,8 @@ function VistaSemaforo({ cierres }: { cierres: CierreCaja[] }) {
         {orden.map((c) => {
           const q = cuadreDe(c.diferencia);
           return (
-            <div key={c.id} title={`${diaCorto(c.cerradaEn)} · ${c.cerradaPorNombre ?? "—"} · ${q.texto}`} className="text-center text-[10px] text-tinta/55">
-              <span className={`mb-1 grid h-8 place-items-center rounded-md border text-[10px] font-bold text-tinta ${FONDO_CUADRE[q.clave]}`}>
+            <div key={c.id} title={`${diaCorto(c.cerradaEn)} · ${c.cerradaPorNombre ?? "—"} · ${q.texto}`} className="text-center text-xs text-tinta/55">
+              <span className={`mb-1 grid h-8 place-items-center rounded-md border text-xs font-bold text-tinta ${FONDO_CUADRE[q.clave]}`}>
                 {q.clave === "ok" ? "" : `${q.diferencia > 0 ? "+" : "−"}${Math.abs(q.diferencia) >= 10 ? Math.round(Math.abs(q.diferencia)) : Math.abs(q.diferencia)}`}
               </span>
               {diaCorto(c.cerradaEn)}
@@ -706,7 +706,7 @@ function VistaTabla({ cierres }: { cierres: CierreCaja[] }) {
                 <span className="block">
                   {diaCorto(c.cerradaEn)} · {c.cerradaPorNombre ?? "—"}
                 </span>
-                <span className="block text-[11.5px] text-tinta/50 tabular-nums">
+                <span className="block text-xs text-tinta/50 tabular-nums">
                   Esperado {soles0(c.montoCierreSistema)} · contó {soles(c.montoCierreReal)}
                 </span>
               </span>
@@ -716,7 +716,7 @@ function VistaTabla({ cierres }: { cierres: CierreCaja[] }) {
         })}
       </div>
       {/* La tabla del sistema (ADR-0358, ronda 7), sangrada hasta el borde de su tarjeta; en celular, la lista de arriba. */}
-      <div className="-mx-5 hidden divide-y divide-sand border-y border-sand text-[12.5px] tabular-nums sm:block">
+      <div className="-mx-5 hidden divide-y divide-sand border-y border-sand text-xs tabular-nums sm:block">
         <Encabezado columnas={COLUMNAS_CIERRES} plantilla={PLANTILLA_CIERRES} />
         {cierres.map((c) => {
           const q = cuadreDe(c.diferencia);
@@ -768,7 +768,7 @@ function VistaGrafico({ cierres }: { cierres: CierreCaja[] }) {
 
 function Leyenda() {
   return (
-    <p className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1 text-[11.5px] text-tinta/60">
+    <p className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1 text-xs text-tinta/60">
       {(["ok", "poco", "mal"] as const).map((k) => (
         <span key={k} className="inline-flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full" style={{ background: COLOR_CUADRE[k] }} />

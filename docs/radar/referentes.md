@@ -1,8 +1,10 @@
-# Radar · referentes (al 2026-11-16)
+# Radar · referentes (al 2026-11-23)
 
 Qué hacen hoy los mejores productos, en **patrones** (no por empresa), leídos para un ERP de 3 tiendas + 1 taller (Next.js + Supabase/RLS, SUNAT vía PSE).
 Anillos de ThoughtWorks: **ADOPTAR** (hacerlo ya, el beneficio es claro) · **PROBAR** (un piloto acotado) · **EVALUAR** (entenderlo, sin construir aún) · **ESPERAR** (no ahora).
 Horizonte: **ahora** = días o semanas con el stack actual · **visión** = meses, o depende de algo externo.
+
+**Refresco semanal del 2026-11-23** (sobre el radar del 2026-11-16): entran el 52 (ventas cortadas por atributo de la prenda) y el 53 (congelar el mostrador en temporada alta); **↑ el 50** (de EVALUAR a PROBAR: faltan 39 días para el 1-ene-2027); se corrigen el 5, el 12, el 15, el 20, el 25, el 27, el 37, el 46, el 49 y el 50. Nada bajó ni salió. **52 patrones vigentes.** Esta semana solo funcionó el buscador: changelog.shopify.com, squareup.com, community.squareup.com, busquedas.elperuano.pe y grzasociados.com no resolvieron desde esta sesión (red restringida), así que lo nuevo se leyó de los resultados del buscador y se marca.
 
 **Refresco semanal del 2026-11-16** (sobre el radar del 2026-11-13): entran el 50 (código de producto SUNAT) y el 51 (el carrito web en el mostrador); se corrigen el 1, el 3 y el 22 (Lightspeed pasó de «próximamente» a beta por invitación), el 25 (calendario SUNAT 2027) y el 39; el 36 sale y se funde en el 10. **50 patrones vigentes.** En esta sesión solo funcionó el buscador: changelog.shopify.com, vercel.com y linear.app no se pudieron abrir (red restringida), así que lo nuevo se leyó de los resultados del buscador y se marca.
 
@@ -16,29 +18,29 @@ Horizonte: **ahora** = días o semanas con el stack actual · **visión** = mese
 | 2 | Mín/máx por prenda y sede, editable en lote | Retail/ERP | ADOPTAR | ahora |
 | 3 | Traslados entre sedes propuestos por el sistema (act. 2026-11-16) | Retail/ERP | PROBAR | ahora |
 | 4 | Conteo cíclico planificado, contado en tienda, aprobado arriba | Retail/ERP | ADOPTAR | ahora |
-| 5 | Recibir y trasladar escaneando, con informe de traslados | Retail/ERP | ADOPTAR | ahora |
+| 5 | Recibir y trasladar escaneando, con informe de traslados (act. 2026-11-23) | Retail/ERP | ADOPTAR | ahora |
 | 6 | RFID a nivel prenda | Retail/ERP | ESPERAR | visión |
 | 7 | «¿Hay en otra sede?» desde el mostrador | Retail/ERP | ADOPTAR | ahora |
 | 8 | Comprar online y retirar en cualquier sede (y pedido mixto) | Retail/ERP | PROBAR | visión |
 | 9 | Despachar pedidos web desde la tienda (ship-from-store) | Retail/ERP | EVALUAR | visión |
 | 10 | Vender sin internet, con interruptor por equipo y registro (absorbe el 36) | Retail/ERP | PROBAR | visión |
 | 11 | Registro de actividad de alto riesgo en el POS | Retail/ERP | ADOPTAR | ahora |
-| 12 | Personal de temporada: suspender, reactivar, varios roles | Retail/ERP | ADOPTAR | ahora |
+| 12 | Personal de temporada: suspender, reactivar, varios roles (act. 2026-11-23) | Retail/ERP | ADOPTAR | ahora |
 | 13 | Vista de equipos (terminales) y cierre de sesión remoto | Retail/ERP | PROBAR | ahora |
 | 14 | Atribución automática de la venta a la vendedora | Retail/ERP | ADOPTAR | ahora |
-| 15 | Reconocer al cliente en el cobro | Retail/ERP | PROBAR | ahora |
+| 15 | Reconocer al cliente en el cobro (act. 2026-11-23) | Retail/ERP | PROBAR | ahora |
 | 16 | Ficha de clienteling en el mostrador (talla, cumpleaños, club) | Retail/ERP | ADOPTAR | ahora |
 | 17 | Permiso aparte para ver datos personales del cliente | Retail/ERP | ADOPTAR | ahora |
 | 18 | Apartado con depósito y cobro del saldo por enlace con vencimiento | Retail/ERP | EVALUAR | visión |
 | 19 | Precio sugerido: rebaja o subida por rotación, stock y costo | Retail/ERP | PROBAR | ahora |
-| 20 | Preguntarle al negocio en palabras, con clima y eventos | Retail/ERP | PROBAR | ahora |
+| 20 | Preguntarle al negocio en palabras, con clima y eventos (act. 2026-11-23) | Retail/ERP | PROBAR | ahora |
 | 21 | Alertas de prendas sin rotación o por agotarse | Retail/ERP | ADOPTAR | ahora |
 | 22 | Agente de negocio que actúa con aprobación humana (act. 2026-11-16) | Retail/ERP | EVALUAR | visión |
 | 23 | Conector MCP: el ERP visible para asistentes externos | Retail/ERP | EVALUAR | visión |
 | 24 | Foto y descripción de producto asistidas por IA | Retail/ERP | PROBAR | ahora |
-| 25 | Comprobante peruano completo en el POS (térmica 58/80, descuentos UBL, retención) (act. 2026-11-16) | Retail/ERP | ADOPTAR | ahora |
+| 25 | Comprobante peruano completo en el POS (térmica 58/80, descuentos UBL, retención) (act. 2026-11-23) | Retail/ERP | ADOPTAR | ahora |
 | 26 | Compras al SIRE de SUNAT desde el sistema | Retail/ERP | EVALUAR | visión |
-| 27 | Guía de remisión electrónica nacida del traslado | Retail/ERP | EVALUAR | visión |
+| 27 | Guía de remisión electrónica nacida del traslado (act. 2026-11-23) | Retail/ERP | EVALUAR | visión |
 | 28 | QR interoperable (Yape/Plin) con monto y conciliación | Retail/ERP | EVALUAR | visión |
 | 29 | Conciliación bancaria: subir el extracto y emparejar | Retail/ERP | PROBAR | ahora |
 | 30 | Factura de proveedor duplicada: aviso en dos niveles | Retail/ERP | ADOPTAR | ahora |
@@ -48,7 +50,7 @@ Horizonte: **ahora** = días o semanas con el stack actual · **visión** = mese
 | 34 | Turnos propuestos con pronóstico de ventas | Retail/ERP | ESPERAR | visión |
 | 35 | Paleta de comandos (Cmd+K) que enseña los atajos | Software top | PROBAR | ahora |
 | 36 | ~~Local-first~~ — salió el 2026-11-16, fundido en el 10 | — | — | — |
-| 37 | Actualización optimista con reversión automática | Software top | PROBAR | ahora |
+| 37 | Actualización optimista con reversión automática (act. 2026-11-23) | Software top | PROBAR | ahora |
 | 38 | Idempotencia en toda escritura | Software top | ADOPTAR | ahora |
 | 39 | Deshacer en vez de preguntar (act. 2026-11-16) | Software top | ADOPTAR | ahora |
 | 40 | Sugerencias explicadas que se aplican solas bajo reglas | Software top | PROBAR | ahora |
@@ -57,14 +59,16 @@ Horizonte: **ahora** = días o semanas con el stack actual · **visión** = mese
 | 43 | Anomalía detectada → investigación con causa probable | Software top | PROBAR | ahora |
 | 44 | Inspector de un registro: relaciones, cambios y eventos | Software top | PROBAR | ahora |
 | 45 | Publicación gradual y vuelta atrás instantánea | Software top | ADOPTAR | ahora |
-| 46 | Vidrio solo en lo que flota, con mesura | Software top | ADOPTAR | ahora |
+| 46 | Vidrio solo en lo que flota, con mesura (act. 2026-11-23) | Software top | ADOPTAR | ahora |
 | 47 | Ayuda en el lugar, no un tour | Software top | ADOPTAR | ahora |
 | 48 | Lo pendiente vuelve solo, con el borrador listo | Software top | PROBAR | ahora |
-| 49 | IA con freno: alcance, aprobación, bitácora y tope de gasto | Software top | ADOPTAR | ahora |
-| 50 | Código de producto SUNAT en el catálogo, antes de que lo exija la validación (nuevo) | Retail/ERP | EVALUAR | ahora |
-| 51 | Lo que el cliente dejó en la tienda web, visible en el mostrador (nuevo) | Retail/ERP | EVALUAR | visión |
+| 49 | IA con freno: alcance, aprobación, bitácora y tope de gasto (act. 2026-11-23) | Software top | ADOPTAR | ahora |
+| 50 | Código de producto SUNAT en el catálogo, antes de que lo exija la validación (↑ 2026-11-23) | Retail/ERP | PROBAR | ahora |
+| 51 | Lo que el cliente dejó en la tienda web, visible en el mostrador | Retail/ERP | EVALUAR | visión |
+| 52 | Ventas cortadas por atributo de la prenda (tejido, color, talla), sin contar doble (nuevo) | Retail/ERP | PROBAR | ahora |
+| 53 | Congelar el mostrador en temporada alta: solo arreglos (nuevo) | Software top | ADOPTAR | ahora |
 
-**Conteo:** 50 patrones vigentes (36 Retail/ERP · 14 Software top). Por anillo: ADOPTAR 18 · PROBAR 19 · EVALUAR 11 · ESPERAR 2 — detalle al pie.
+**Conteo:** 52 patrones vigentes (37 Retail/ERP · 15 Software top). Por anillo: ADOPTAR 19 · PROBAR 21 · EVALUAR 10 · ESPERAR 2 — detalle al pie.
 
 ---
 
@@ -103,12 +107,12 @@ Horizonte: **ahora** = días o semanas con el stack actual · **visión** = mese
 - **Fuente:** https://changelog.shopify.com/posts/run-inventory-counts-in-pos (28-sep-2026) · https://help.shopify.com/manual/products/inventory/inventory-counts (sin fecha) — consultado 2026-11-13.
 
 ### 5. Recibir y trasladar escaneando, con informe de traslados
-- **Quién lo hace y cómo:** Shopify POS 10.20: traslados completos entre sedes (preparar y enviar desde Pedidos, recibir desde Productos escaneando, estado en tiempo real) y dos informes nuevos de traslados con filtros. POS 11.8: crear un traslado desde una orden de compra, importar por CSV y recibir mercadería del proveedor escaneando en el POS.
+- **Quién lo hace y cómo:** Shopify POS 10.20: traslados completos entre sedes (preparar y enviar desde Pedidos, recibir desde Productos escaneando, estado en tiempo real) y dos informes nuevos de traslados con filtros. POS 11.8: crear un traslado desde una orden de compra, importar por CSV y recibir mercadería del proveedor escaneando en el POS. **Nuevo (19-nov-2026):** Square imprime etiquetas de código de barras desde el equipo de mano y el Terminal (Inventario ▸ Imprimir etiquetas, impresora por USB o Wi-Fi), «donde se trabaja: en el almacén o en el piso»; antes solo desde Register.
 - **Grupo:** Retail/ERP.
 - **Anillo:** ADOPTAR — confirma el camino que ya sigue Recibir mercadería; falta el informe de traslados en camino o con diferencias.
 - **Dónde encajaría:** Traslados y Compras ▸ Recibir.
 - **Horizonte:** ahora.
-- **Fuente:** https://www.shopify.com/blog/retail-roundup-february-2026 (16-mar-2026) · https://www.shopify.com/blog/shopify-retail-roundup-june-2026 (jun-2026) — consultado 2026-11-13.
+- **Fuente:** https://www.shopify.com/blog/retail-roundup-february-2026 (16-mar-2026) · https://www.shopify.com/blog/shopify-retail-roundup-june-2026 (jun-2026) — consultado 2026-11-13 · https://squareup.com/us/en/release-notes/release-notes-2026-11-19 (19-nov-2026; leída por el resumen del buscador, la página no abrió) — consultado 2026-11-23.
 
 ### 6. RFID a nivel prenda
 - **Quién lo hace y cómo:** Inditex: hardware en el 100 % de sus tiendas y la etiqueta blanda en el 90 % de los productos de PV-2026 (resultados FY2025); en el primer semestre de 2026 dijo tenerla en todas sus tiendas, para cajas automáticas, puntos de retiro online y reserva de probador (dato del semestre vía prensa especializada). Para pymes hay apps sobre Shopify (TagMatiks, Keonn) que imprimen etiquetas RAIN y cuentan con lector de mano.
@@ -159,12 +163,12 @@ Horizonte: **ahora** = días o semanas con el stack actual · **visión** = mese
 - **Fuente:** https://www.shopify.com/blog/shopify-retail-roundup-june-2026 (POS 11.9, 22-jun-2026) — consultado 2026-11-13.
 
 ### 12. Personal de temporada: suspender, reactivar, varios roles
-- **Quién lo hace y cómo:** Shopify POS 11.8: permisos del POS y del admin en un solo lugar; suspender y reactivar personal de temporada; varios roles por persona; roles de alta confianza. Odoo 19: un tercer perfil mínimo para quien solo cobra.
+- **Quién lo hace y cómo:** Shopify POS 11.8: permisos del POS y del admin en un solo lugar; suspender y reactivar personal de temporada; varios roles por persona; roles de alta confianza. Odoo 19: un tercer perfil mínimo para quien solo cobra. **Corrección:** la versión vigente de Odoo es la **20** (sep-2026), que renombró los niveles de acceso del POS y sumó uno muy restringido, «Supervisado» (dato de un resumen de terceros; la nota oficial no se pudo leer entera).
 - **Grupo:** Retail/ERP.
 - **Anillo:** ADOPTAR — CAYLA ya tiene roles por módulo; valida la dirección y sugiere el estado «suspendido» para campaña.
 - **Dónde encajaría:** Colaboradores ▸ Roles y accesos.
 - **Horizonte:** ahora.
-- **Fuente:** https://www.shopify.com/blog/shopify-retail-roundup-june-2026 (jun-2026) · https://www.odoo.com/odoo-19-release-notes (sep-2025) — consultado 2026-11-13.
+- **Fuente:** https://www.shopify.com/blog/shopify-retail-roundup-june-2026 (jun-2026) · https://www.odoo.com/odoo-19-release-notes (sep-2025) — consultado 2026-11-13 · https://www.odoo.com/odoo-20-release-notes (sep-2026; solo el índice) · https://iventureteam.com/odoo-20-release-notes/point-of-sale/ (secundaria) — consultado 2026-11-23.
 
 ### 13. Vista de equipos (terminales) y cierre de sesión remoto
 - **Quién lo hace y cómo:** Shopify POS 11.9: en el admin, todos los dispositivos con su estado, versión y sede; cerrar sesión o quitar acceso a uno perdido o robado.
@@ -183,12 +187,12 @@ Horizonte: **ahora** = días o semanas con el stack actual · **visión** = mese
 - **Fuente:** https://www.shopify.com/blog/shopify-retail-roundup-june-2026 (jun-2026) — consultado 2026-11-13.
 
 ### 15. Reconocer al cliente en el cobro
-- **Quién lo hace y cómo:** Shopify Fall '26 / POS 11.17: al pagar con tarjeta, el POS reconoce al comprador (red de Shopify Payments), ofrece el comprobante digital con su contacto enmascarado y lo liga a su ficha; el que repite tarjeta se liga solo.
+- **Quién lo hace y cómo:** Shopify Fall '26 / POS 11.17: al pagar con tarjeta, el POS reconoce al comprador (red de Shopify Payments), ofrece el comprobante digital con su contacto enmascarado y lo liga a su ficha; el que repite tarjeta se liga solo. **Confirmado (pendiente del refresco anterior):** el «checkout más rápido» de POS 11.17 (changelog, 6-nov-2026) pide menos toques y deja **preseleccionada la forma de recibir el comprobante** del comprador reconocido. Y desde nov-2026 el comprobante por correo o SMS muestra lo mismo que el impreso (portada del changelog, sin fecha leída).
 - **Grupo:** Retail/ERP.
 - **Anillo:** PROBAR — sin red de pagos propia, el equivalente es reconocer por DNI o celular al pedir la boleta y sumarlo al club.
 - **Dónde encajaría:** Vender (paso de comprobante) + Clientes ▸ club.
 - **Horizonte:** ahora.
-- **Fuente:** https://www.shopify.com/news/fall-26-edition-merchant (≈ fines de oct-2026) · https://changelog.shopify.com/posts/identify-more-in-store-customers-with-pos (fecha no leída) — consultado 2026-11-13.
+- **Fuente:** https://www.shopify.com/news/fall-26-edition-merchant (≈ fines de oct-2026) · https://changelog.shopify.com/posts/identify-more-in-store-customers-with-pos (fecha no leída) — consultado 2026-11-13 · https://changelog.shopify.com/posts/faster-pos-checkout (6-nov-2026; leída por el resumen del buscador) — consultado 2026-11-23.
 
 ### 16. Ficha de clienteling en el mostrador (talla, cumpleaños, club)
 - **Quién lo hace y cómo:** Shopify: campos propios del cliente (cumpleaños, preferencias de talla, nivel de lealtad) visibles en la pantalla del POS, y apps que meten el clienteling dentro del cobro.
@@ -223,12 +227,12 @@ Horizonte: **ahora** = días o semanas con el stack actual · **visión** = mese
 - **Fuente:** https://apps.shopify.com/shopify-smart-pricing (lanzada 20-jun-2025) — consultado 2026-11-13.
 
 ### 20. Preguntarle al negocio en palabras, con clima y eventos
-- **Quién lo hace y cómo:** Square AI (8-oct-2025): además de los datos propios, trae clima, eventos, noticias y reseñas de la web. Lightspeed AI (9-ene-2026): preguntas en lenguaje natural dentro del POS, con contexto y recomendación. Toast IQ para retail: «¿qué no se mueve?» y marcar un SKU agotado desde el chat.
+- **Quién lo hace y cómo:** Square AI (8-oct-2025): además de los datos propios, trae clima, eventos, noticias y reseñas de la web. Lightspeed AI (9-ene-2026): preguntas en lenguaje natural dentro del POS, con contexto y recomendación. Toast IQ para retail: «¿qué no se mueve?» y marcar un SKU agotado desde el chat. **Nuevo (17-nov-2026, resumen del buscador):** Sidekick responde con los atributos propios del catálogo —«ventas por tejido»— si el campo tiene activada su analítica (ver patrón 52).
 - **Grupo:** Retail/ERP.
 - **Anillo:** PROBAR — una pregunta del dueño («¿qué vendí más en Arequipa el finde?») sobre vistas de solo lectura.
 - **Dónde encajaría:** Inicio del dueño / Análisis.
 - **Horizonte:** ahora.
-- **Fuente:** https://squareup.com/us/en/press/square-releases-ai (8-oct-2025) · https://www.prnewswire.com/news-releases/lightspeed-commerce-launches-lightspeed-ai-a-new-ai-powered-intelligence-layer-for-retail-and-hospitality-302656955.html (9-ene-2026) · https://pos.toasttab.com/news/toast-delivers-precision-insights-action-and-efficiency-for-retailers (fecha no verificada; página no abrió) — consultado 2026-11-13.
+- **Fuente:** https://squareup.com/us/en/press/square-releases-ai (8-oct-2025) · https://www.prnewswire.com/news-releases/lightspeed-commerce-launches-lightspeed-ai-a-new-ai-powered-intelligence-layer-for-retail-and-hospitality-302656955.html (9-ene-2026) · https://pos.toasttab.com/news/toast-delivers-precision-insights-action-and-efficiency-for-retailers (fecha no verificada; página no abrió) — consultado 2026-11-13 · https://changelog.shopify.com/posts/analyze-your-metafields-and-metaobjects-with-sidekick (17-nov-2026 según el resumen del buscador; la página no abrió) — consultado 2026-11-23.
 
 ### 21. Alertas de prendas sin rotación o por agotarse
 - **Quién lo hace y cómo:** Toast IQ (retail): marca lo casi agotado, lo agotado y lo inactivo hace 30+ días. Shopify Flow: Sidekick arma la automatización de stock bajo y la deja para revisión; Shopify aconseja disparar sobre «disponible», no «en mano».
@@ -263,12 +267,12 @@ Horizonte: **ahora** = días o semanas con el stack actual · **visión** = mese
 - **Fuente:** https://help.shopify.com/en/manual/shopify-admin/productivity-tools/shopify-magic/media-generation (sin fecha) · Lightspeed AI (ver patrón 20) — consultado 2026-11-13.
 
 ### 25. Comprobante peruano completo en el POS
-- **Quién lo hace y cómo:** Odoo 19, localización Perú: descuentos globales y por línea en UBL 2.1 según SUNAT, retención de IGV del 3 % (código 62) e impresión térmica conforme a SUNAT de factura, boleta y nota de crédito en 58 y 80 mm desde el POS. **Calendario SUNAT que mueve la lista:** la RS 000143-2026 (jul-2026) llevó la RS 000048-2026 al **1-ene-2027** —incluido el rechazo por código de producto (patrón 50)— y la designación de nuevos emisores electrónicos al 1-abr-2027.
+- **Quién lo hace y cómo:** Odoo 19, localización Perú: descuentos globales y por línea en UBL 2.1 según SUNAT, retención de IGV del 3 % (código 62) e impresión térmica conforme a SUNAT de factura, boleta y nota de crédito en 58 y 80 mm desde el POS. **Calendario SUNAT que mueve la lista:** la RS 000143-2026 (jul-2026) llevó la RS 000048-2026 al **1-ene-2027** —incluido el rechazo por código de producto (patrón 50)— y la designación de nuevos emisores electrónicos al 1-abr-2027 (sin nueva prórroga encontrada al 23-nov). **Nuevo (Square, 16-nov-2026, app 7.32, EE. UU. y Reino Unido):** opción para **ocultar del recibo impreso los ítems de precio 0**; en CAYLA la bolsa de obsequio ya no se declara a SUNAT (`itemsParaLucode`), y la pregunta abierta es si debe verse en el ticket (fuente: publicación de la comunidad de Square, leída por el buscador).
 - **Grupo:** Retail/ERP.
 - **Anillo:** ADOPTAR — usarlo como lista de comprobación contra lo que ya emite Lucode (cualquier cambio con validez legal, con OK de Felipe).
 - **Dónde encajaría:** Vender ▸ comprobante y Facturación.
 - **Horizonte:** ahora.
-- **Fuente:** https://www.odoo.com/odoo-19-release-notes (sep-2025) — consultado 2026-11-13 · https://www.sunat.gob.pe/legislacion/superin/2026/000143-2026.pdf (29-jul-2026; el PDF no abrió, leído por El Peruano y resúmenes) · https://www.elperuano.pe/noticia/301487-sunat-amplia-plazos-para-implementar-nuevas-reglas-de-emision-electronica-conoce-las-nuevas-fechas (jul-2026) — consultado 2026-11-16.
+- **Fuente:** https://www.odoo.com/odoo-19-release-notes (sep-2025) — consultado 2026-11-13 · https://www.sunat.gob.pe/legislacion/superin/2026/000143-2026.pdf (29-jul-2026; el PDF no abrió, leído por El Peruano y resúmenes) · https://www.elperuano.pe/noticia/301487-sunat-amplia-plazos-para-implementar-nuevas-reglas-de-emision-electronica-conoce-las-nuevas-fechas (jul-2026) — consultado 2026-11-16 · https://community.squareup.com/t5/Product-Updates/What-s-New-From-Square-November-Features-Coming-Soon-Volume-16/ba-p/852266 (nov-2026, comunidad; leída por el resumen del buscador) · https://lpderecho.pe/sunat-oficializa-prorroga-de-plazo-para-la-emision-obligatoria-electronica-res-000143-2026-sunat/ (secundaria) — consultado 2026-11-23.
 
 ### 26. Compras al SIRE de SUNAT desde el sistema
 - **Quién lo hace y cómo:** Bsale Perú (jul-2026): conexión directa con el SIRE para generar y enviar las compras sin volver a digitar; también cobro con tarjeta y cotizaciones desde el celular. Bsale fue comprada por Siigo. **Fuente secundaria (nota de prensa).**
@@ -279,12 +283,12 @@ Horizonte: **ahora** = días o semanas con el stack actual · **visión** = mese
 - **Fuente:** https://www.businessempresarial.com.pe/bsale-revoluciona-la-gestion-de-las-pymes-en-peru-automatiza-la-tributacion-y-potencia-su-app/ (jul-2026, secundaria) — consultado 2026-11-13.
 
 ### 27. Guía de remisión electrónica nacida del traslado
-- **Quién lo hace y cómo:** SUNAT, RS 123-2022: «traslado entre establecimientos de una misma empresa» es un motivo de GRE remitente; se envía **antes** de iniciar el traslado y se indica el código del establecimiento de llegada. No aplica dentro de un mismo local. Que sea obligatoria para CAYLA depende de su designación como emisor: verificar.
+- **Quién lo hace y cómo:** SUNAT, RS 123-2022: «traslado entre establecimientos de una misma empresa» es un motivo de GRE remitente; se envía **antes** de iniciar el traslado y se indica el código del establecimiento de llegada. No aplica dentro de un mismo local. Que sea obligatoria para CAYLA depende de su designación como emisor: verificar. **Corrección:** la RS 000108-2026/SUNAT (29-may-2026, vigente desde el 1-jun-2026) modificó el art. 18 del Reglamento de Comprobantes de Pago, que define **quién** emite la GRE remitente; la lista exacta no se pudo leer (PDF y resúmenes no abrieron). La RSNATI 000049-2026 (31-oct-2026, desde el 1-nov) solo toca traslados desde terminales portuarios: no aplica.
 - **Grupo:** Retail/ERP.
 - **Anillo:** EVALUAR — si aplica, el traslado ya tiene origen, destino y prendas: la guía puede salir sola (validez legal → Felipe).
 - **Dónde encajaría:** Traslados (al confirmar el envío).
 - **Horizonte:** visión.
-- **Fuente:** https://www.sunat.gob.pe/legislacion/superin/2022/123-2022.pdf (2022) · https://orientacion.sunat.gob.pe/05-preguntas-frecuentes-guias-de-remision-bf (sin fecha) — consultado 2026-11-13.
+- **Fuente:** https://www.sunat.gob.pe/legislacion/superin/2022/123-2022.pdf (2022) · https://orientacion.sunat.gob.pe/05-preguntas-frecuentes-guias-de-remision-bf (sin fecha) — consultado 2026-11-13 · https://www.sunat.gob.pe/legislacion/superin/2026/000108-2026.pdf (29-may-2026; no abrió, leída por el resumen del buscador) · https://www.ellb.com.pe/guias-de-remision-sunat-establece-un-periodo-de-no-sancion-para-determinados-traslados-desde-terminales-portuarios/ (nov-2026, secundaria) — consultado 2026-11-23.
 
 ### 28. QR interoperable (Yape/Plin) con monto y conciliación
 - **Quién lo hace y cómo:** Proveedores peruanos ofrecen un QR que cobra a Yape, Plin y otras billeteras de la interoperabilidad del BCRP; el QR dinámico lleva el monto; sin integración, la cajera verifica a mano cada pago. Estado de la interoperabilidad para comercios en 2026: las fuentes no coinciden. **Solo fuentes de proveedores.**
@@ -358,12 +362,12 @@ Horizonte: **ahora** = días o semanas con el stack actual · **visión** = mese
 Fundido en el patrón 10: lo único aplicable de «local-first» era el offline del mostrador, que ya estaba ahí. El número se conserva para no romper las referencias del tablero de innovación.
 
 ### 37. Actualización optimista con reversión automática
-- **Quién lo hace y cómo:** React 19 `useOptimistic`: el estado optimista se ve solo mientras la acción está en curso y vuelve al valor real al terminar o fallar. Linear lo usa como base de su sensación de instantáneo.
+- **Quién lo hace y cómo:** React 19 `useOptimistic`: el estado optimista se ve solo mientras la acción está en curso y vuelve al valor real al terminar o fallar. Linear lo usa como base de su sensación de instantáneo. **Contrapunto (API 2026-10 de Shopify, notas del 18-nov-2026):** en el POS, una escritura al carrito (descuento, cliente, edición en lote) que el POS no confirma ahora **se rechaza** en vez de darse por hecha: donde hay venta, nada de éxito fingido.
 - **Grupo:** Software top.
 - **Anillo:** PROBAR — solo donde no hay dinero ni stock (marcar visto, ordenar, editar un texto); ya existe la excepción de la pila de Gastos.
 - **Dónde encajaría:** Listas, filtros, notas, preferencias.
 - **Horizonte:** ahora.
-- **Fuente:** https://react.dev/reference/react/useOptimistic (sin fecha; React 19, 5-dic-2024) — consultado 2026-11-13.
+- **Fuente:** https://react.dev/reference/react/useOptimistic (sin fecha; React 19, 5-dic-2024) — consultado 2026-11-13 · https://shopify.dev/changelog/release-notes/2026-10 (18-nov-2026; leída por el resumen del buscador) — consultado 2026-11-23.
 
 ### 38. Idempotencia en toda escritura
 - **Quién lo hace y cómo:** Stripe: cada POST lleva `Idempotency-Key`; el reintento devuelve la respuesta guardada (24 h en v1, 30 días en v2); misma clave con otros datos = error; un 409 = la primera aún corre. Shopify agregó claves de idempotencia y compare-and-swap a su API de inventario (Winter '26).
@@ -430,12 +434,12 @@ Fundido en el patrón 10: lo único aplicable de «local-first» era el offline 
 - **Fuente:** https://vercel.com/docs/rolling-releases (sin fecha) · https://vercel.com/docs/instant-rollback (sin fecha) — consultado 2026-11-13.
 
 ### 46. Vidrio solo en lo que flota, con mesura
-- **Quién lo hace y cómo:** Apple Liquid Glass (9-jun-2025): material translúcido para controles y navegación que flota sobre el contenido; WWDC25 pide limitarlo a lo más importante, separar con «scroll edge effect» y expresar jerarquía con agrupación, no con decoración. Guía actualizada el 9-sep-2025, el 16-dic-2025 y el 8-jun-2026.
+- **Quién lo hace y cómo:** Apple Liquid Glass (9-jun-2025): material translúcido para controles y navegación que flota sobre el contenido; WWDC25 pide limitarlo a lo más importante, separar con «scroll edge effect» y expresar jerarquía con agrupación, no con decoración. Guía actualizada el 9-sep-2025, el 16-dic-2025 y el 8-jun-2026. **Corrección de la fecha:** la última actualización no es la del 8-jun-2026; el 28-oct-2026 Apple sumó guía de **tacto en macOS**, incluido cómo revelar con el dedo los controles que el mouse muestra al pasar (respalda la regla del ERP de no esconder nada solo tras el hover), y el 6-nov-2026 solo agregó marcos de equipos y kits.
 - **Grupo:** Software top.
 - **Anillo:** ADOPTAR — ya es la estética del ERP («Serena», ADR-0596/0623); la fuente respalda la regla de no desenfocar lo que se desplaza.
 - **Dónde encajaría:** Todo el ERP (recetas de vidrio).
 - **Horizonte:** ahora.
-- **Fuente:** https://www.apple.com/newsroom/2025/06/apple-introduces-a-delightful-and-elegant-new-software-design/ (9-jun-2025) · https://developer.apple.com/design/whats-new/ (act. 8-jun-2026) — consultado 2026-11-13.
+- **Fuente:** https://www.apple.com/newsroom/2025/06/apple-introduces-a-delightful-and-elegant-new-software-design/ (9-jun-2025) · https://developer.apple.com/design/whats-new/ (act. 8-jun-2026) — consultado 2026-11-13 · https://developer.apple.com/design/whats-new/ (entradas del 28-oct y 6-nov-2026; leídas por el resumen del buscador) — consultado 2026-11-23.
 
 ### 47. Ayuda en el lugar, no un tour
 - **Quién lo hace y cómo:** Apple TipKit y HIG «Offering help»: consejos de una sola idea junto al control, que se van cuando la persona hace la acción y con tope de veces; enseñar en contexto y no al inicio.
@@ -454,22 +458,22 @@ Fundido en el patrón 10: lo único aplicable de «local-first» era el offline 
 - **Fuente:** https://blog.superhuman.com/the-next-superhuman-ai/ (sin fecha) · https://help.superhuman.com/hc/en-us/articles/43822934607251-Remind-Me (sin fecha) — consultado 2026-11-13.
 
 ### 49. IA con freno: alcance, aprobación, bitácora y tope de gasto
-- **Quién lo hace y cómo:** Stripe (Sessions 2026): «guardrails» de agentes con identidad, reglas de alcance y aprobación para lo sensible (**preview**); Stripe Console pide confirmación antes de acciones importantes. Ramp: cada agente con identidad, dueño y presupuesto, y cada acción registrada. Notion (may-2026): el admin limita quién crea agentes, pone topes de créditos y apaga el que gasta demasiado rápido.
+- **Quién lo hace y cómo:** Stripe (Sessions 2026): «guardrails» de agentes con identidad, reglas de alcance y aprobación para lo sensible (**preview**); Stripe Console pide confirmación antes de acciones importantes. Ramp: cada agente con identidad, dueño y presupuesto, y cada acción registrada. Notion (may-2026): el admin limita quién crea agentes, pone topes de créditos y apaga el que gasta demasiado rápido. **Nuevo (Stripe Treasury para agentes, vista previa desde el 21-oct-2026, entrada del blog recogida el 19-nov):** el agente puede preparar el pago a un proveedor, pero se lo **enruta a quien aprueba antes de que el dinero se mueva**; se elige qué acciones toca y cuándo pide aprobación; los topes de gasto por agente aún están «en las próximas semanas» (dato de terceros).
 - **Grupo:** Software top.
 - **Anillo:** ADOPTAR — como regla de diseño antes de cualquier agente; ya hay tope de US$ 20/mes para precios con IA.
 - **Dónde encajaría:** Transversal: toda función con IA (precios, reposición, resúmenes).
 - **Horizonte:** ahora.
-- **Fuente:** https://stripe.com/blog/everything-we-announced-at-sessions-2026 (abr-2026) · https://agents.ramp.com/ (sin fecha) · https://www.notion.com/releases/2026-05-05 (5-may-2026) — consultado 2026-11-13.
+- **Fuente:** https://stripe.com/blog/everything-we-announced-at-sessions-2026 (abr-2026) · https://agents.ramp.com/ (sin fecha) · https://www.notion.com/releases/2026-05-05 (5-may-2026) — consultado 2026-11-13 · https://stripe.com/blog/give-your-agents-controlled-access-to-analyze-your-data-and-move-funds (oct/nov-2026; leída por el resumen del buscador) · https://www.startuphub.ai/cybersecurity/stripe-lets-ai-agents-move-money-with-guardrails (secundaria) — consultado 2026-11-23.
 
 ---
 
 ### 50. Código de producto SUNAT en el catálogo, antes de que lo exija la validación
-- **Quién lo hace y cómo:** SUNAT, RS 000048-2026 modificada por la RS 000143-2026: desde el **1-ene-2027** la validación del comprobante (factura, boleta, notas) rechaza el código de producto SUNAT faltante o mal formado donde corresponde (8 dígitos del Catálogo N.° 25, UNSPSC; regla ERR-3496 según Nubefact); hasta entonces solo da una observación. Las fuentes no coinciden en el alcance: no sería un requisito general de toda boleta, sino de bienes y operaciones específicas. Los PSE peruanos (Nubefact, Nibble) ya publican el cambio. **Fuentes secundarias**, salvo el PDF de SUNAT, que no abrió.
+- **Quién lo hace y cómo:** SUNAT, RS 000048-2026 modificada por la RS 000143-2026: desde el **1-ene-2027** la validación del comprobante (factura, boleta, notas) rechaza el código de producto SUNAT faltante o mal formado donde corresponde (8 dígitos del Catálogo N.° 25, UNSPSC; regla ERR-3496 según Nubefact); hasta entonces solo da una observación. Las fuentes no coinciden en el alcance: no sería un requisito general de toda boleta, sino de bienes y operaciones específicas. Los PSE peruanos (Nubefact, Nibble) ya publican el cambio. **Corrección (23-nov):** la lista de cambios de SUNAT que reproducen Nubefact y Estela dice que el Catálogo 25 **vuelve a la versión 14** (UNSPSC v14_0801) y que **se retiraron los subcatálogos 25.1, 25.2 y 25.3**; la fecha del 1-ene-2027 se mantiene y no apareció otra prórroga. **Fuentes secundarias**, salvo el PDF de SUNAT, que no abrió.
 - **Grupo:** Retail/ERP.
-- **Anillo:** EVALUAR — primero confirmar con el contador y con Lucode si la ropa de CAYLA entra en el alcance; si entra, el código va por **categoría** (una columna en `categorias`), no prenda por prenda, y viaja solo en cada línea. Validez legal → Felipe.
+- **Anillo:** PROBAR (↑ desde EVALUAR, 2026-11-23) — quedan 39 días y lo barato no tiene riesgo: una columna en `categorias` con el código de 8 dígitos (v14), llenada por categoría y **sin enviarla aún a Lucode**. Que viaje en cada línea espera la respuesta del contador y de Lucode sobre si la ropa entra en el alcance. Validez legal → Felipe.
 - **Dónde encajaría:** Catálogo ▸ Categorías → Vender ▸ comprobante (`itemsParaLucode`).
 - **Horizonte:** ahora (la fecha es 1-ene-2027).
-- **Fuente:** https://www.nubefact.com/blog/actualizaciones-sunat/sunat-aplaza-algunas-reglas-de-validacion-para-comprobantes-electronicos-hasta-el-1-de-enero-de-2027 (2026, secundaria) · http://nibble.pe/blog?post=actualizacion-sunat-aplaza-codigo-producto-enero-2027 (2026, secundaria) · https://www.sunat.gob.pe/legislacion/superin/2026/000143-2026.pdf (29-jul-2026) — consultado 2026-11-16.
+- **Fuente:** https://www.nubefact.com/blog/actualizaciones-sunat/sunat-aplaza-algunas-reglas-de-validacion-para-comprobantes-electronicos-hasta-el-1-de-enero-de-2027 (2026, secundaria) · http://nibble.pe/blog?post=actualizacion-sunat-aplaza-codigo-producto-enero-2027 (2026, secundaria) · https://www.sunat.gob.pe/legislacion/superin/2026/000143-2026.pdf (29-jul-2026) — consultado 2026-11-16 · https://www.nubefact.com/blog/actualizaciones-sunat/sunat-aplaza-algunas-reglas-de-validacion-para-comprobantes-electronicos-hasta-el-1-de-enero-de-2027 (2026, secundaria) · https://blog.estela.com/per%C3%BA/sunat-actualiza-las-reglas-de-validaci%C3%B3n-de-comprobantes-electr%C3%B3nicos (2026, secundaria) — consultado 2026-11-23.
 
 ### 51. Lo que el cliente dejó en la tienda web, visible en el mostrador
 - **Quién lo hace y cómo:** Shopify POS 11.14: la vendedora con permiso («View abandoned checkouts») ve las prendas del carrito que un cliente identificado dejó sin pagar en la tienda online; solo el carrito, no lo que miró, y solo si el cliente tiene correo. Fecha exacta del changelog no leída (el buscador lo ubica en el otoño de 2026).
@@ -479,12 +483,32 @@ Fundido en el patrón 10: lo único aplicable de «local-first» era el offline 
 - **Horizonte:** visión.
 - **Fuente:** https://changelog.shopify.com/posts/permitted-store-staff-can-now-see-an-identified-customer-s-online-cart-in-pos (otoño 2026; leída por el resumen del buscador) — consultado 2026-11-16.
 
+### 52. Ventas cortadas por atributo de la prenda (tejido, color, talla), sin contar doble
+- **Quién lo hace y cómo:** Shopify Analytics: los atributos de la categoría del producto (Color, Material, Corte, **Tejido**, Talla) y los campos propios entran a los informes como dimensión y filtro; si una prenda tiene dos valores de un mismo atributo, los junta en una fila para **no contar la venta dos veces** (changelog sin fecha leída; campos propios en informes desde el 12-feb-2026). Desde el 17-nov-2026, Sidekick responde «ventas por tejido» con esos mismos campos (resumen del buscador; la entrada no abrió).
+- **Grupo:** Retail/ERP.
+- **Anillo:** PROBAR — el catálogo ya tiene tejido, patrón, color y talla como vocabularios; cortar Análisis por ellos («¿se vende más el lino o el algodón en AQP?») sale de una vista de solo lectura. La regla de no contar doble es la que hay que copiar.
+- **Dónde encajaría:** Análisis (un corte más) y, después, el patrón 20.
+- **Horizonte:** ahora.
+- **Fuente:** https://changelog.shopify.com/posts/category-metafields-are-now-available-in-analytics (sin fecha leída) · https://changelog.shopify.com/posts/use-metafields-as-dimensions-and-filters-in-analytics (12-feb-2026) · https://changelog.shopify.com/posts/analyze-your-metafields-and-metaobjects-with-sidekick (17-nov-2026) — todas leídas por el resumen del buscador — consultado 2026-11-23.
+
 ---
 
-### Cuenta por anillo (al 2026-11-16)
-- **ADOPTAR 18:** 2, 4, 5, 7, 11, 12, 14, 16, 17, 21, 25, 30, 38, 39, 45, 46, 47, 49.
-- **PROBAR 19:** 1, 3, 8, 10, 13, 15, 19, 20, 24, 29, 31, 33, 35, 37, 40, 42, 43, 44, 48.
-- **EVALUAR 11:** 9, 18, 22, 23, 26, 27, 28, 32, 41, 50, 51.
+## B (cont.). Software de primer nivel (el CÓMO)
+
+### 53. Congelar el mostrador en temporada alta: solo arreglos
+- **Quién lo hace y cómo:** Shopify **pausó las versiones grandes del POS por el resto de 2026**: la 11.18 (26-oct) y la 11.19 (11-nov) traen solo arreglos y confiabilidad, «sin cambios de funciones en temporada alta»; los cambios de plataforma se siguen contando cada mes hasta enero. (Página del 26-oct-2026: no estaba en el radar anterior.) Las notas de la App Store de la 11.19 repiten funciones de la 11.18 y contradicen la pausa: manda la página oficial.
+- **Grupo:** Software top.
+- **Anillo:** ADOPTAR — con ~6 publicaciones por hora y diciembre por delante, una ventana en que Vender, Caja, Cambios y Devoluciones solo reciben arreglos protege la venta de campaña; el resto del ERP sigue publicando. Complementa el 45 (vuelta atrás) y el aviso de versión nueva (ADR-0422). Las fechas de la ventana las decide Felipe.
+- **Dónde encajaría:** Regla de publicación (vigía de ADR-0425 / candado en el CI para rutas del mostrador).
+- **Horizonte:** ahora (antes de la campaña de diciembre).
+- **Fuente:** https://www.shopify.com/blog/retail-release-roundup (act. 26-oct-2026; leída por el resumen del buscador) · https://apps.apple.com/us/app/shopify-point-of-sale-pos/id686830644 (historial de versiones) — consultado 2026-11-23.
+
+---
+
+### Cuenta por anillo (al 2026-11-23)
+- **ADOPTAR 19:** 2, 4, 5, 7, 11, 12, 14, 16, 17, 21, 25, 30, 38, 39, 45, 46, 47, 49, 53.
+- **PROBAR 21:** 1, 3, 8, 10, 13, 15, 19, 20, 24, 29, 31, 33, 35, 37, 40, 42, 43, 44, 48, 50, 52.
+- **EVALUAR 10:** 9, 18, 22, 23, 26, 27, 28, 32, 41, 51.
 - **ESPERAR 2:** 6, 34. (El 36 salió.)
 
 ### Lo que se buscó y no se confirmó
@@ -495,3 +519,6 @@ Fundido en el patrón 10: lo único aplicable de «local-first» era el offline 
 - Toast (páginas de noticias) y Oracle/NetSuite respondieron 403: sus datos vienen del resumen del buscador.
 - **Refresco 2026-11-16, sin novedad relevante:** Toast, NetSuite, Inditex (solo un fondo de sostenibilidad, 10/11-nov), Odoo (sin notas de 20.x para POS o inventario), Bsale, Siigo, Defontana, Alegra (nada posterior al 22-oct), Ramp, Brex y Apple HIG. Vistos y descartados por no servir a 3 tiendas + 1 taller: Linear «Bring your own key» (12-nov) y Mobile Diffs (5-nov), Vercel Token Pass y modelos del AI Gateway (13/15-nov), Raycast 2.12 (13-nov), Stripe cierra la compra de OpenRouter y Parafin (10/11-nov), Shopify POS con Alipay/WeChat Pay (6-nov), la campaña «Just An Idea» de Sidekick (14-nov). Pendiente de confirmar en fuente primaria: el «checkout más rápido» de Shopify POS 11.17 (menos toques en efectivo y pago dividido, 6-nov), que reforzaría el cobro de Vender.
 - changelog.shopify.com, vercel.com y linear.app no abrieron en esta sesión (red restringida): todo lo de ellos de este refresco viene del resumen del buscador.
+- **Refresco 2026-11-23, sin novedad relevante:** Lightspeed (lo último sigue siendo el 15-oct; nada de noviembre), Toast y NetSuite (nada de noviembre), Inditex (nada nuevo de RFID desde jul-2026), Bsale, Siigo, Defontana y Alegra (lo último es la compra de Bsale por Siigo, oct-2026), Linear (BYOK 12-nov y Mobile Diffs 5-nov, ya vistos), Ramp y Brex (nada de noviembre), Superhuman (solo Docs para iOS 2.0.12, 1-nov). Vistos y descartados por no servir a 3 tiendas + 1 taller: Raycast 2.13 con MCP local (18-nov), Vercel «computer use» (5-nov), Security Review (beta, nov), Priority Projects con alertas de anomalía y detección de bots (beta, 19-nov) y `vercel help search` (19-nov), Notion API de notas de reunión (16-nov) y su memoria compartida para asistentes externos (4-nov), Stripe AI Index (19-nov), Shopify POS con Cartes Bancaires en Francia (17-nov), Square Shifts con Rippling (AU, 19-nov) y la app móvil de Squaremates (anunciada, sin fecha).
+- **Buscado y no confirmado (23-nov):** que el resumen de El Peruano «Postergan la entrada en vigor de la RS 000048-2026» sea una **segunda** prórroga: todo indica que es la misma RS 000143-2026 (31-jul); la página no abrió. Las «instantáneas del inventario a una fecha pasada» de Odoo 19.4 (jul-2026) solo tienen fuente de terceros. Odoo 20 (sep-2026) existe, pero su nota oficial no se pudo leer entera: lo del patrón 12 viene de un resumen de terceros.
+- Esta semana no resolvieron desde la sesión: changelog.shopify.com, squareup.com, community.squareup.com, busquedas.elperuano.pe y grzasociados.com. Habría que permitirlos en la red de la sesión para leer las fuentes primarias.

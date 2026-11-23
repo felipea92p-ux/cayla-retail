@@ -1,11 +1,18 @@
 # Barrido del piso (ADR-0690) — lo que falta
 
 - [x] ~~`20261122195000_barrido_piso_por_resolver.sql`~~ — pegada por Felipe el 2026-11-23: la actividad 8 está encendida.
-- [ ] **POR PEGAR (2026-11-23): `20261122196000_barrido_piso_historial.sql`** — el historial (actividad 9). Sola, a cualquier hora, después de
-      `195000`. Sin ella, «Historial» dice que no se pudo leer (no se cae nada).
+- [x] ~~`20261122196000_barrido_piso_historial.sql`~~ — pegada por Felipe el 2026-11-23: el historial está encendido.
 - [x] **Actividad 9, historial de barridos** (2026-11-23): lista y detalle, con su prueba (sección H de `barrido_piso_confirmar.mjs`).
-- [ ] **Actividad 10, cierre.** `/chaos` con 5 personas a la vez, `/formidable` y el área de 44 px con el dedo (`tacto:medir`). `/milimetro` ya se
-      corrió el 2026-11-23 (0 graves, 0 medias: `docs/milimetro/auditorias/2026-11-23-barrido-del-piso.md`).
+- [x] **Actividad 10, cierre** (2026-11-23): `/formidable`, prueba a ciegas, `/chaos` y `/milimetro` (`2026-11-23-barrido-en-el-celular.md`).
+- [ ] **Decisión de Felipe (RPC, de `/chaos`):** acotar la hora del aparato en `registrar_lecturas_barrido`. Hoy acepta cualquier fecha:
+      un reloj atrasado desordena los tramos y el «desde / hasta» del historial. Las cantidades no cambian.
+- [ ] **Decisión de Felipe (RPC, de `/chaos`):** el «id reusado» no aguanta dos lotes a la vez con el mismo id y distinto contenido
+      (casi imposible con `crypto.randomUUID`, pero el candado promete más de lo que cumple).
+- [ ] **Decisión de Felipe (de `/chaos`):** un celular con la hora corrida más de 5 min no puede sumar (22007, «hora fuera de rango»).
+      Hay dos caminos: traducir el mensaje o corregir con la hora del servidor (`fn_actor_persona_id` es común a otras pantallas).
+- [ ] **Decisión de Felipe (de `/chaos`):** la hoja de confirmar no avisa si la MISMA persona escanea desde otro aparato. Con varias
+      personas sí avisa.
+- [ ] La flecha «Volver» de `EncabezadoPagina` mide 42 px con el dedo (pide 44): es la pieza común, va a `/unificar`.
 - [ ] **Decisión de Felipe:** en Tienda LIM, una prenda cuya fila mezcla unidades de CAYLA y de CLAURE no se mueve al confirmar
       (`dos_duenos`). ¿Se reparte por una regla fija (primero la casa) o se sigue moviendo a mano en Existencias? Al 2026-11-23 no hay
       ninguna fila así en producción.

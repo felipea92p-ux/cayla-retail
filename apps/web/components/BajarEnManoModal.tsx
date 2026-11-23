@@ -178,7 +178,7 @@ export function BajarEnManoModal({
           <div className="flex items-center gap-3">
             <MiniaturaPrenda fotoUrl={prenda.fotoUrl} tamano="lg" {...categoriaDe(prenda)} />
             <div className="min-w-0">
-              <p className="text-[15px] font-semibold text-tinta">{nombre}</p>
+              <p className="text-sm font-semibold text-tinta">{nombre}</p>
               {prenda.sku && <p className="font-mono text-xs text-tinta/65">{prenda.sku}</p>}
             </div>
           </div>

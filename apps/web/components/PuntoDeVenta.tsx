@@ -2366,7 +2366,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       >
         <div className="relative flex min-w-0 flex-col lg:min-h-0">
           <div className="pv-cat-aire anim-revelar flex flex-wrap items-center gap-2 px-4 pt-3 sm:px-6 sm:pt-4">
-            <p className="label-cayla mr-2 w-full text-[11px] text-taupe-profundo sm:w-auto">Venta en tienda · {ubicacionEtiqueta}</p>
+            <p className="label-cayla mr-2 w-full text-xs text-taupe-profundo sm:w-auto">Venta en tienda · {ubicacionEtiqueta}</p>
             {puedeApartar && <BotonApartados prendas={prendas} onApartar={apartarDesdeTicket} deshabilitado={bloqueado} />}
             {accesos.filter((a) => a.modulo === "existencias").map((a) => <BotonSepararDanada key={a.href} href={a.href} />)}
             <MasDeLaTienda
@@ -2444,7 +2444,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               <button
                 type="button"
                 onClick={soltarProforma}
-                className="label-cayla area-dedo rounded-md px-2 py-1 text-[11px] text-tinta/65 transition-colors vd-pasa-gota hover:text-tinta"
+                className="label-cayla area-dedo rounded-md px-2 py-1 text-xs text-tinta/65 transition-colors vd-pasa-gota hover:text-tinta"
               >
                 Soltar
               </button>
@@ -2570,7 +2570,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             </span>
             <span key={total} className="anim-asentar block font-display text-xl leading-tight tabular-nums">{money(total)}</span>
           </span>
-          <span className="pv-isla-ver label-cayla flex h-10 shrink-0 items-center gap-1 rounded-lg bg-crema px-3 text-[10.5px] text-tinta">
+          <span className="pv-isla-ver label-cayla flex h-10 shrink-0 items-center gap-1 rounded-lg bg-crema px-3 text-xs text-tinta">
             Ver ticket
             <ChevronUp className="h-3.5 w-3.5" aria-hidden />
           </span>

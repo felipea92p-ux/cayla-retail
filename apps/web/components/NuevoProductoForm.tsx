@@ -1012,7 +1012,7 @@ export function NuevoProductoForm({
       return (
         <div className="space-y-3">
           <p className="text-sm text-taupe">
-            La categoría trae el código, las tallas y los tejidos. Al tocarla, pasas al siguiente paso.
+            La categoría trae el código, las tallas y los tejidos.
           </p>
           {/* Sin tienda no se elige categoría (ADR-0463): se ve el camino, atenuado, y se enciende al elegir la tienda. La pregunta vive en su propia tarjeta, sobre este paso. */}
           <div inert={faltaEmpresa} className={faltaEmpresa ? "opacity-50 transition-opacity" : "transition-opacity"}>
@@ -1329,7 +1329,7 @@ export function NuevoProductoForm({
               />
               <CampoMonto etiqueta="Precio de venta" pie="Para todas las tallas y colores" inputMode="decimal" placeholder="0.00" value={precioBase} onChange={(e) => setPrecioBase(limpiarPrecio(e.target.value))} />
               <div>
-                <p className="label-cayla text-[11px] text-tinta/65">Margen</p>
+                <p className="label-cayla text-xs text-tinta/65">Margen</p>
                 <p
                   className={`font-display mt-1.5 pb-1 text-[1.75rem] leading-none tabular-nums ${
                     margen === null ? "text-tinta/25" : nivel === "negativo" ? "text-rojo-profundo" : nivel === "bajo" ? "text-ambar" : "text-verde"
@@ -1467,9 +1467,9 @@ export function NuevoProductoForm({
         {/* Quién firma el alta (ADR-0161): se elige UNA vez, arriba de los pasos (`QuienRegistra`); aquí, donde la persona
             termina, solo se ve a nombre de quién va a quedar, con la salida para cambiarlo. */}
         <FilaAlta etiqueta="Quién lo registra" ayuda="Queda a su nombre en el historial" campo="responsable" estado={est.responsable}>
-          <p className="flex flex-wrap items-center gap-x-2 text-[14px]">
+          <p className="flex flex-wrap items-center gap-x-2 text-detalle">
             {quienRegistra ? <b className="font-semibold text-tinta">{quienRegistra}</b> : <span className="text-taupe">Todavía nadie</span>}
-            <button type="button" onClick={irAQuienRegistra} disabled={cargando} className="btn-cayla btn-enlace text-[12.5px]">
+            <button type="button" onClick={irAQuienRegistra} disabled={cargando} className="btn-cayla btn-enlace text-xs leading-tight">
               {quienRegistra ? "Cambiar" : "Elegir"}
             </button>
           </p>

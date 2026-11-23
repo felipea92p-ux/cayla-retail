@@ -200,6 +200,12 @@ jobs:
           node --test scripts/knip/produccion.test.mjs
           pnpm knip:produccion
 
+      # El aviso de la carpeta principal (hook `SessionStart` de `.claude/settings.json`): Claude Code lee las skills del proyecto de la
+      # carpeta principal del repo, y si va atrás de main la sesión lo dice al abrir. Comprueba qué dice en cada caso. ~0,1 s.
+      - name: Aviso de la carpeta principal
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: node --test scripts/claude/carpeta-principal.test.mjs
+
       # El aviario (ADR-0104): ninguna tabla de producción sin pájaro, ninguna con dos, y
       # `docs/datos/generado/AVIARIO.md` al día. Tampoco toca base de datos: lee el volcado
       # de producción commiteado, así que su alarma es tan fresca como ese volcado. No
@@ -285,6 +291,13 @@ jobs:
         if: ${{ !cancelled() }}
         run: node --test scripts/sugerir/escanear.test.mjs scripts/focus/escanear.test.mjs
 
+      # El escáner de observabilidad (skill `skill-evaluacion-observabilidad`) y sus hermanos de rendimiento: `apps/web/lib/relleno-silencioso.test.ts`
+      # lo importa como la única definición de «relleno silencioso» (ADR-0693), así que si el escáner se rompe, ese candado dejaría de ver los
+      # `.catch(() => null)` sin avisar. Sus casos buenos y malos corren aquí. Lee el AST con TypeScript: necesita la instalación.
+      - name: Escáneres de rendimiento y observabilidad
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: node --test scripts/rendimiento/rendimiento.test.mjs
+
       # El check «Al milímetro» (`.github/workflows/al-milimetro.yml`): qué archivos cuentan como visuales y qué casilla lo deja
       # pasar. Solo lee su lista; no necesita node_modules. Y el tablero de auditorías, que se arma desde la carpeta
       # (`pnpm milimetro:auditorias`, ADR-0259 act. 2026-11-17): como ya no hay una fila que resuma cada auditoría, un informe
@@ -300,6 +313,13 @@ jobs:
       - name: Catálogo de caos e invariantes
         if: ${{ !cancelled() }}
         run: node --test scripts/chaos/invariantes.test.mjs scripts/chaos/catalogo.test.mjs scripts/chaos/vigia-semilla.test.mjs
+
+      # La lectura del código de la familia «El botón que no hace lo que dice» (ADR-0693, `scripts/chaos/boton.mjs`): las pistas de
+      # refresco tras guardar y de efectos que pisan o llegan tarde, y que cada una apunte a un ataque del catálogo. Lee el AST con
+      # TypeScript: necesita la instalación (el paso de arriba no).
+      - name: Lectura del código de caos
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: node --test scripts/chaos/boton.test.mjs
 
       # `/flujo-de-negocio`: la parte pura de `espejo.mjs` (la ruta de `info/exclude`, que en un worktree git da absoluta).
       - name: Espejo de /flujo-de-negocio
