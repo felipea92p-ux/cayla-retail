@@ -28,7 +28,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getAsistenteEncendido } from "@/lib/asistente/sedes-servidor";
 import { createClient } from "@/lib/supabase/server";
 
-// POST /api/asistente  { pregunta, ruta }  →  { resultado, preguntaId }
+// POST /api/asistente  { pregunta, ruta }  →  { resultado, preguntaId }  (y `gasto` fuera de producción, para la evaluación fija)
 //
 // «Pregúntale a CAYLA» (ADR-0536, actividades 2 a 5): la pregunta va a la IA con las pocas guías que la búsqueda local encontró, y vuelve
 // un recorrido de 1 a 3 tramos elegidos DE ESA LISTA, cada uno con la dirección para llegar (o «sin acceso», «no existe», «fuera de
@@ -138,7 +138,9 @@ export async function POST(request: Request) {
     );
     if (error) console.error(`[asistente] no se anotó la pregunta: ${error.code ?? "sin código"}`);
     else preguntaId = (data as unknown as string | null) ?? null;
-    return Response.json({ resultado, preguntaId });
+    // Fuera de producción viaja también lo que costó y tardó: la evaluación fija (`lib/asistente/evaluacion/evaluar.mjs`) suma el gasto de
+    // la corrida con esto. En producción no: al cajón no le sirve, y lo que se gasta ya queda anotado con la pregunta.
+    return Response.json(process.env.NODE_ENV === "production" ? { resultado, preguntaId } : { resultado, preguntaId, gasto });
   };
   const basico = (motivo: Extract<ResultadoAsistente, { tipo: "basico" }>["motivo"], gasto = SIN_GASTO) => responder({ tipo: "basico", motivo }, null, gasto);
 
