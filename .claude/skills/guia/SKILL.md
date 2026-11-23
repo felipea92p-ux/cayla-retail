@@ -1,7 +1,11 @@
 ---
 name: guia
-description: Crea o pone al día la GUÍA INTERACTIVA de una pantalla del ERP (la demo con el velo oscuro que enciende una pieza a la vez y explica qué es y para qué sirve; CLAUDE.md «Guías interactivas», ADR-0389). Con una ruta (`/vender/historial`) o un módulo (`ventas`), escribe la guía que falta; sin argumentos, revisa lo que cambiaste en la rama y pone al día las guías de esas pantallas (lo que pide la prueba cuando la «huella de controles» ya no coincide); con `todo`, solo informa el tablero. Ancla cada paso a un `data-guia`, nunca hace que el piloto guarde nada, prueba la guía en el navegador (escritorio y 375 px, claro y oscuro) con `guias:recorrer`, y recién ahí acepta la huella. Úsala cuando Felipe diga «guía», «demo», «tutorial» o «recorrido» de una pantalla, cuando `lib/guias.test.ts` falle por una huella, y antes de dar por terminada una pantalla nueva o editada.
+description: "Obligatoria: crea o pone al día la guía interactiva (la demo con velo) de una pantalla, sin que guarde nada, y la prueba con guias:recorrer. Úsala con «guía», «demo» o «tutorial», si falla una huella de lib/guias.test.ts o al cerrar una pantalla."
 ---
+
+## Qué hace y cuándo se usa
+
+Crea o pone al día la GUÍA INTERACTIVA de una pantalla del ERP (la demo con el velo oscuro que enciende una pieza a la vez y explica qué es y para qué sirve; CLAUDE.md «Guías interactivas», ADR-0389). Con una ruta (`/vender/historial`) o un módulo (`ventas`), escribe la guía que falta; sin argumentos, revisa lo que cambiaste en la rama y pone al día las guías de esas pantallas (lo que pide la prueba cuando la «huella de controles» ya no coincide); con `todo`, solo informa el tablero. Ancla cada paso a un `data-guia`, nunca hace que el piloto guarde nada, prueba la guía en el navegador (escritorio y 375 px, claro y oscuro) con `guias:recorrer`, y recién ahí acepta la huella. Úsala cuando Felipe diga «guía», «demo», «tutorial» o «recorrido» de una pantalla, cuando `lib/guias.test.ts` falle por una huella, y antes de dar por terminada una pantalla nueva o editada.
 
 Crea o pone al día la guía interactiva de: $ARGUMENTS
 

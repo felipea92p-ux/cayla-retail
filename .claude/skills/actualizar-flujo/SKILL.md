@@ -1,7 +1,11 @@
 ---
 name: actualizar-flujo
-description: Actualiza el entorno de /flujo-de-negocio a lo último de main. Muestra primero el plan (simulación) y, solo con el ok de Felipe, respalda la base local, aplica las migraciones pendientes en orden, crea una rama nueva idéntica a origin/main con la skill copiada y registra la foto nueva. Úsala cuando Felipe diga «actualiza el flujo», «trae lo último de main» o «actualiza la base local». Nunca se corre sola.
+description: "Actualiza el entorno de /flujo-de-negocio a lo último de main: muestra el plan y, solo con el OK de Felipe, respalda la base, aplica las migraciones y crea la rama nueva. Úsala con «actualiza el flujo» o «trae lo último de main». Nunca se corre sola."
 ---
+
+## Qué hace y cuándo se usa
+
+Actualiza el entorno de /flujo-de-negocio a lo último de main. Muestra primero el plan (simulación) y, solo con el ok de Felipe, respalda la base local, aplica las migraciones pendientes en orden, crea una rama nueva idéntica a origin/main con la skill copiada y registra la foto nueva. Úsala cuando Felipe diga «actualiza el flujo», «trae lo último de main» o «actualiza la base local». Nunca se corre sola.
 
 Actualiza el entorno de `/flujo-de-negocio`: $ARGUMENTS
 

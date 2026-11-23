@@ -1,7 +1,11 @@
 ---
 name: actualizar-lista-compra
-description: Renueva los datos del tablero «Qué comprar esta semana» (artefacto de claude.ai) desde la base del ERP. Corre las dos consultas de solo lectura, comprueba que cuadran y reemplaza la copia que lee el tablero, para que cualquiera con el enlace vea la lista al día. Sirve desde cualquier cuenta de Claude que tenga el conector de Supabase y permiso de editar el tablero. Úsala cuando Felipe diga «actualiza la lista de compra», «renueva el tablero de compras» o cada lunes.
+description: "Renueva los datos del tablero «Qué comprar esta semana» desde la base del ERP con dos consultas de solo lectura que se comprueban entre sí. Úsala cuando Felipe diga «actualiza la lista de compra», «renueva el tablero de compras» o cada lunes."
 ---
+
+## Qué hace y cuándo se usa
+
+Renueva los datos del tablero «Qué comprar esta semana» (artefacto de claude.ai) desde la base del ERP. Corre las dos consultas de solo lectura, comprueba que cuadran y reemplaza la copia que lee el tablero, para que cualquiera con el enlace vea la lista al día. Sirve desde cualquier cuenta de Claude que tenga el conector de Supabase y permiso de editar el tablero. Úsala cuando Felipe diga «actualiza la lista de compra», «renueva el tablero de compras» o cada lunes.
 
 Renueva el tablero «Qué comprar esta semana»: $ARGUMENTS
 

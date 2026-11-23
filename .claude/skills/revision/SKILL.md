@@ -1,7 +1,11 @@
 ---
 name: revision
-description: Revisión maestra del repo de CAYLA Retail. Cinco revisores en paralelo (módulos y diccionario, base de datos, cierre y pendientes, instrucciones a Claude Code, duplicación de la web) y un escéptico que descarta lo falso. Entrega un informe de hallazgos rankeados con solución, esfuerzo y cómo verificarla, más ideas para programar mejor. Solo lee, no arregla. Con `rapido` corre una pasada barata; con `eje=A`…`eje=E`, un solo eje.
+description: "Revisión maestra del repo: cinco revisores en paralelo y un escéptico, con hallazgos rankeados, su solución y cómo verificarla. Solo lee, no arregla. Úsala para auditar el repo entero; `rapido` hace una pasada barata y `eje=A…E` revisa uno solo."
 ---
+
+## Qué hace y cuándo se usa
+
+Revisión maestra del repo de CAYLA Retail. Cinco revisores en paralelo (módulos y diccionario, base de datos, cierre y pendientes, instrucciones a Claude Code, duplicación de la web) y un escéptico que descarta lo falso. Entrega un informe de hallazgos rankeados con solución, esfuerzo y cómo verificarla, más ideas para programar mejor. Solo lee, no arregla. Con `rapido` corre una pasada barata; con `eje=A`…`eje=E`, un solo eje.
 
 Revisión maestra del repo. Alcance pedido: $ARGUMENTS
 

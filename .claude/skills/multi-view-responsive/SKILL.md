@@ -1,7 +1,11 @@
 ---
 name: multi-view-responsive
-description: Recorre las pantallas, pestañas, modales y hojas de un módulo del ERP CAYLA en LOCAL a siete tamaños de laptop y monitor (1024 a 1920) o, con `celular`, a seis de teléfono y tablet (360 a 844), mide el DOM y captura cada vista para encontrar errores de responsive (desborde, texto cortado, solapes, hojas y tablas rotas, espacio desperdiciado; en celular, además, toques chicos, campos que hacen zoom y barras pegadas que fallan) y los reporta en el chat de forma concreta para que la persona los ordene arreglar. Solo mide y reporta, no toca código. Úsala cuando pidan revisar el responsive de un módulo, una ruta o todo el ERP, en escritorio o en celular.
+description: "Revisa el responsive de un módulo, una ruta o todo el ERP en local: siete tamaños de escritorio (1024 a 1920) o, con `celular`, seis de teléfono y tablet. Mide el DOM, captura y reporta; no toca código. Úsala cuando pidan revisar el responsive."
 ---
+
+## Qué hace y cuándo se usa
+
+Recorre las pantallas, pestañas, modales y hojas de un módulo del ERP CAYLA en LOCAL a siete tamaños de laptop y monitor (1024 a 1920) o, con `celular`, a seis de teléfono y tablet (360 a 844), mide el DOM y captura cada vista para encontrar errores de responsive (desborde, texto cortado, solapes, hojas y tablas rotas, espacio desperdiciado; en celular, además, toques chicos, campos que hacen zoom y barras pegadas que fallan) y los reporta en el chat de forma concreta para que la persona los ordene arreglar. Solo mide y reporta, no toca código. Úsala cuando pidan revisar el responsive de un módulo, una ruta o todo el ERP, en escritorio o en celular.
 
 Revisa el responsive de: $ARGUMENTS
 
