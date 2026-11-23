@@ -14,7 +14,22 @@ describe("la puerta del catálogo (ADR-0696)", () => {
     for (const ruta of ["/inicio", "/catalogo", "/catalogo/abc", "/looks", "/looks/arma", "/looks/guardado/x", "/bolsa"]) {
       expect(rutaConSede(ruta), ruta).toBe(true);
     }
-    for (const ruta of ["/", "/bolsa/separado/W-1", "/tiendas", "/cuenta", "/catalogos", "/inicios", "/lookbook", "/entrar", "/api/salud"]) {
+    for (const ruta of [
+      "/",
+      "/bolsa/separado/W-1",
+      "/tiendas",
+      "/cuenta",
+      "/catalogos",
+      "/inicios",
+      "/lookbook",
+      "/entrar",
+      "/api/salud",
+      // Lo que cuelga de una página: la imagen de WhatsApp de una ficha y la de un look guardado.
+      "/catalogo/abc/opengraph-image-1c8w3k",
+      "/looks/guardado",
+      "/looks/guardado/x/historia",
+      "/inicio/x",
+    ]) {
       expect(rutaConSede(ruta), ruta).toBe(false);
     }
   });

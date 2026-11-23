@@ -7,11 +7,11 @@ import { SEDE_PRINCIPAL } from "./sede-elegida";
 // Ahora el proxy responde un 307 de verdad ANTES de armar nada, con la tienda de la cookie o, sin ella, la principal. No le pregunta a la
 // base: una clave que ya no existe la sigue corrigiendo la página (`sedeDeLaPagina`), que queda de respaldo. Lógica pura, con su prueba.
 
-/** Las páginas que llaman `sedeDeLaPagina` (las que redirigen sin `?sede=`): el Inicio, el catálogo y cada ficha, los looks y la bolsa. */
-export function rutaConSede(ruta: string): boolean {
-  if (ruta === "/inicio" || ruta === "/catalogo" || ruta === "/looks" || ruta === "/bolsa") return true;
-  return ruta.startsWith("/catalogo/") || ruta.startsWith("/looks/");
-}
+/** Las páginas que llaman `sedeDeLaPagina` (las que redirigen sin `?sede=`): el Inicio, el catálogo y cada ficha, los looks y la bolsa.
+ *  Solo la página misma: lo que cuelga de ella (la imagen de WhatsApp de una ficha, `/catalogo/<id>/opengraph-image…`; la de un look
+ *  guardado, `/looks/guardado/<id>/historia`) no elige tienda y no se redirige. */
+const RUTAS_CON_SEDE = [/^\/(?:inicio|catalogo|looks|bolsa)$/, /^\/catalogo\/[^/]+$/, /^\/looks\/(?!guardado$)[^/]+$/, /^\/looks\/guardado\/[^/]+$/];
+export const rutaConSede = (ruta: string): boolean => RUTAS_CON_SEDE.some((r) => r.test(ruta));
 
 /** Una clave de tienda bien escrita (`claveDeSede`: minúsculas, números y guiones). Lo de la cookie lo escribe el navegador: no se le cree. */
 const CLAVE_VALIDA = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;

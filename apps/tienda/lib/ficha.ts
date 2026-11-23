@@ -90,6 +90,8 @@ export type Ficha = {
   /** Las tiendas de la web, en su orden: las filas de la tabla. */
   sedes: { id: string; nombre: string }[];
   id: string;
+  /** El código del modelo (`CMS-0001`): el `sku` de sus datos de producto para Google (ADR-0696). */
+  codigo: string | null;
   nombre: string;
   descripcion: string | null;
   categoria: { nombre: string; prefijo: string | null } | null;
@@ -127,6 +129,7 @@ export function interpretarFicha(dato: unknown): Ficha | "no_esta" | null {
     umbral,
     sedes,
     id: p.id,
+    codigo: p.codigo,
     nombre: p.nombre,
     descripcion: p.descripcion,
     categoria: p.categoria,
