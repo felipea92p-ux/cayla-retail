@@ -86,14 +86,14 @@ export function ResumenSede({ sede, cifras }: { sede: string; cifras: readonly C
                 {/* La nota sí se parte en dos renglones (el número no): «de 1800 (provisional)» en una cifra de tres a 375 px pedía
                     más ancho que el de su columna y se montaba sobre la de al lado. Una nota que cabe se ve igual que antes. */}
                 {nota && valor !== null && (
-                  <span className="ml-1 block whitespace-normal font-sans text-[11px] font-medium text-taupe sm:inline sm:text-[13px]">{nota}</span>
+                  <span className="ml-1 block whitespace-normal font-sans text-xs font-medium text-taupe sm:inline">{nota}</span>
                 )}
               </span>
-              <span className={`mt-2 flex items-center gap-1.5 text-[11px] leading-tight sm:text-xs ${alerta ? "font-semibold text-ambar-profundo" : "text-tinta/70"}`}>
+              <span className={`mt-2 flex items-center gap-1.5 text-xs leading-tight ${alerta ? "font-semibold text-ambar-profundo" : "text-tinta/70"}`}>
                 <Icono className={`hidden h-3.5 w-3.5 shrink-0 sm:block ${alerta ? "" : "text-taupe"}`} aria-hidden />
                 {etiqueta}
               </span>
-              {aparte && <span className="mt-1 text-[11px] leading-tight text-taupe sm:text-xs">{aparte}</span>}
+              {aparte && <span className="mt-1 text-xs leading-tight text-taupe">{aparte}</span>}
             </>
           );
           return (

@@ -226,7 +226,7 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
       </p>
       <p className={`flex flex-wrap items-baseline gap-x-2 ${compacta ? "mt-0.5" : "mt-1"}`}>
         {antes !== undefined && antes !== null && (
-          <span className="font-display inline-flex items-baseline gap-1.5 whitespace-nowrap text-[17px] leading-tight text-taupe lining-nums tabular-nums @max-[148px]:text-[15px]">
+          <span className="font-display inline-flex items-baseline gap-1.5 whitespace-nowrap text-lg leading-tight text-taupe lining-nums tabular-nums @max-[148px]:text-sm">
             <span className="sr-only">Período A: </span>
             {antes}
             <ArrowRight aria-hidden className="h-3.5 w-3.5 self-center text-tinta/45" />

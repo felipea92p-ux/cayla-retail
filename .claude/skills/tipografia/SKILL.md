@@ -34,16 +34,16 @@ La rampa completa, rol por rol, con archivo y razón: `referencia/escala.md`. Aq
 
 ### A · Tamaño
 
-1. **Lo que se lee no baja de 14 px** → `.texto-detalle` 14, `.nota-cayla` 14, `text-sm` 15, `.texto-bajada` 15, título de fila 15
-   (CLAUDE.md fila `texto`). `[Evidencia]` el tamaño que manda es la altura x: 14 px de DM Sans ≈ el tamaño crítico (0,2°) en un 24" 1080p
+1. **Lo que se lee va a 16 px y nunca baja de 14** (la escala, ADR-0691) → `text-sm` 16, `.texto-bajada` 16, título de fila 16; `.texto-detalle` 14,
+   `.nota-cayla` 14 (CLAUDE.md «La letra sale de una escala» y fila `texto`). `[Evidencia]` el tamaño que manda es la altura x: 14 px de DM Sans ≈ el tamaño crítico (0,2°) en un 24" 1080p
    a 60 cm; bajo él se lee más lento (Legge y Bigelow 2011). `[Práctica]` 14/20 es el cuerpo de Material, Carbon, Atlassian, Primer y Fluent.
-2. **Etiquetas (no lectura): piso 11 px**, y solo en versalitas de 1–3 palabras → `campo-etiqueta`, `label-cayla`, sede de la cabecera.
-   Encabezado de columna: `text-xs` (13 px, `TABLA.titulo`). Bajo 11: no existe pieza, ver propuesta 2. `[Práctica]` Label S 11/16 (Material).
+2. **Etiquetas (no lectura): piso 13 px** (`text-xs`, el piso de la escala, ADR-0691; era 11), y solo en versalitas de 1–3 palabras →
+   `campo-etiqueta`, `label-cayla`, sede de la cabecera. Encabezado de columna: `text-xs` (13 px, `TABLA.titulo`). Bajo 13 no se escribe nada. `[Práctica]` Label S 11/16 (Material).
 3. **La serif no baja de 21 px en la interfaz** → `TituloSeccion` 21 es su piso (el título de `<Vacio>`, 22). Excepciones que no son
    lectura: la unidad pegada a la cifra de `TarjetaCifra` (17) y las iniciales de `AvatarPersona` (10,5–29, `enlaces-paginas-caras.css`).
    `[Verificación]` altura x de EB Garamond 0,400 contra 0,526 de DM Sans: a igual `font-size` se ve 24 % más chica.
-4. **Un tamaño nuevo usa uno de la rampa** (46 · 28 · 27 · 24 · 22 · 21 · 15 · 14 · 13,5 · 13 · 12,5 · 11). Nunca un `text-[Npx]` de lectura a
-   mano: lo vigila la firma de `texto` en `lib/unificar.test.ts`. `[Práctica]` la escala modular se redondea y se documenta (Tim Brown 2011).
+4. **Un tamaño usa un escalón de la escala** (21 `text-xl` · 18 `text-lg` · 16 `text-sm` · 14 `text-detalle` · 13 `text-xs`; desde 22 es
+   exhibición: 46 · 28 · 27 · 24 · 22). Nunca un tamaño a mano (`text-[Npx]`, `font-size: Npx`): lo vigila `lib/letra-suelta.test.ts` (ADR-0691). `[Práctica]` la escala modular se redondea y se documenta (Tim Brown 2011).
 
 ### B · Interlineado
 
