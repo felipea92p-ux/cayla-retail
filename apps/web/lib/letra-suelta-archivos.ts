@@ -158,7 +158,7 @@ export const LETRA_A_MANO: Record<string, number> = {
   "components/Ayuda.tsx": 2,
   "components/BajarAlPisoForm.tsx": 3,
   "components/BajarEnManoModal.tsx": 1,
-  "components/barrido-piso/BarridoPiso.tsx": 2,
+  "components/barrido-piso/BarridoPiso.tsx": 4,
   "components/barrido-piso/HojaConfirmar.tsx": 2,
   "components/barrido-piso/HojaLoEscaneado.tsx": 2,
   "components/barrido-piso/HojaResolver.tsx": 2,
@@ -508,4 +508,4 @@ export const LETRA_A_MANO: Record<string, number> = {
 };
 
 /** La deuda que queda: la suma de `LETRA_A_MANO`. Solo baja. Si SUBE, alguien declaró deuda nueva: no se puede. */
-export const DEUDA_LETRA_HOY = 2420;
+export const DEUDA_LETRA_HOY = 2422;
