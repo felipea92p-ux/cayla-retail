@@ -641,3 +641,18 @@ también lo de después. Al reproducir las migraciones del repo, salió rojo un 
   orden.
 - **De la skill de ecc no se trajo** `CREATE INDEX CONCURRENTLY` ni el `COMMIT` dentro de `DO $$`: fallan en la transacción única
   del SQL Editor.
+
+**Probado sobre el SQL real del repo (2026-11-23).** En la base desechable, desde cero, se reprodujeron las 1 259 migraciones
+numeradas en orden: cada una se midió justo antes de aplicarla, como hará el CI con las de un PR. El partidor no perdió ningún
+carácter en las 18 790 sentencias. Resultado:
+- **32 salen rojas**, y todas menos una son anteriores al aprendizaje de F1 (el 2026-09-24), cuando la regla no existía.
+- **Desde F1, de 41 migraciones con políticas, una sola sale roja:** `20260928140000_clientas_version_y_archivo.sql`. Hace `alter
+  table retail.clientas` (línea 80) y después `drop`/`create policy` sobre `clientas_fusiones` (líneas 162-163) en la misma pegada,
+  aunque su cabecera dice «acá no hay `create policy`». Es el patrón de F1, y el candado lo habría parado. Ya está en `main` y no se
+  edita.
+- **9 no se pudieron medir**, y tampoco se aplicaron. Es un efecto de la reproducción, no del candado: `20261001100200` usa una
+  función `pg_temp` de una migración anterior. El CLI de Supabase aplica todas en una sola sesión; la reproducción, como `aplicar`
+  con las del PR, usa una sesión por archivo. Las otras 8 fallan en cadena detrás de esa.
+- La primera versión del candado contaba también lo que se toma después de la primera política, y no reconocía `PARTE FINAL ·` como
+  marca. Daba dos rojos falsos: `20261005100200` (la parte «solo políticas») y `20261026162000` (con su política en `PARTE FINAL`).
+  Los dos se corrigieron antes de publicar.
