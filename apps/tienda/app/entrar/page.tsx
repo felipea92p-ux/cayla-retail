@@ -5,7 +5,7 @@ import { PanelDelClub, PantallaDeEntrada } from "@/components/cuenta/PanelDeEntr
 import { anioActual } from "@/lib/hoy-servidor";
 import "../estilos/entrada.css";
 
-export const metadata: Metadata = { title: "Entrar · CAYLA" };
+export const metadata: Metadata = { title: "Entrar" };
 
 /** «Entrar»: desde 960 px, la pantalla partida con el panel del Club a la izquierda; en el celular, el panel debajo del formulario. */
 export default async function Entrar() {

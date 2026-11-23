@@ -44,7 +44,7 @@ async function misLooks() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const [{ id }, looks] = await Promise.all([params, misLooks()]);
   const look = looks?.find((l) => l.id === id);
-  return { title: look ? `${look.nombre} · Tus favoritos · CAYLA` : "Tu outfit · CAYLA" };
+  return { title: look ? `${look.nombre} · Tus favoritos` : "Tu outfit" };
 }
 
 // Un look que el cliente guardó desde «Arma el tuyo» (ADR-0434, actividad 8; lienzo v3, `V3TuLook`): se abre como los looks de CAYLA. La

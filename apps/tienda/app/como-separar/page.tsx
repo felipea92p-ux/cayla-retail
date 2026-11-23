@@ -13,7 +13,8 @@ import { leerSedes } from "@/lib/tiendas-servidor";
 import "../estilos/ayuda.css";
 
 export const metadata: Metadata = {
-  title: "Cómo separar · CAYLA",
+  alternates: { canonical: "/como-separar" },
+  title: "Cómo separar",
   description: "Separa online sin pagar en la web, confírmalo por WhatsApp y recógelo en tu tienda CAYLA.",
 };
 

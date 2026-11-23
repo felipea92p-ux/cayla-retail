@@ -8,7 +8,7 @@ import { TEXTOS_VERSION } from "@/lib/cuentas";
 // La lectura larga (el índice, los títulos con su número y los enlaces dentro del texto) tiene su cara en ayuda.css.
 import "../estilos/ayuda.css";
 
-export const metadata: Metadata = { title: "Política de privacidad · CAYLA" };
+export const metadata: Metadata = { title: "Política de privacidad", alternates: { canonical: "/privacidad" } };
 
 // Los puntos del texto, en su orden: su ancla y su título tal cual (el índice del costado y cada título salen de aquí, así nunca
 // dicen dos cosas distintas). Un título nuevo se escribe aquí.

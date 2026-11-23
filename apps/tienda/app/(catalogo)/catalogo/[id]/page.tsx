@@ -23,6 +23,7 @@ import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../../estilos/ficha.css";
+import { canonicalDe, claveCanonica } from "@/lib/seo";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -43,8 +44,11 @@ async function leer(props: Props) {
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
-  const { ficha } = await leer(props);
-  return { title: `${ficha ? ficha.nombre : "Prenda"} · CAYLA` };
+  const { id, sedes, ficha } = await leer(props);
+  return {
+    title: ficha ? ficha.nombre : "Prenda",
+    alternates: { canonical: canonicalDe(`/catalogo/${id}`, {}, claveCanonica(sedes)) },
+  };
 }
 
 // La ficha de una prenda (maqueta v4, `vProducto`): sus fotos, su precio en la tienda elegida (o el mayor, con «Todas») y su campaña,

@@ -11,7 +11,7 @@ import "../../../estilos/ayuda.css";
 import "../../../estilos/libro.css";
 
 // Una constancia con los datos de una persona: no se indexa ni se guarda en el caché de nadie.
-export const metadata: Metadata = { title: "Tu hoja de reclamación · CAYLA", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Tu hoja de reclamación", robots: { index: false, follow: false } };
 
 /**
  * La constancia de una hoja del Libro de Reclamaciones (ADR-0679): lo que la persona envió, con su número, la fecha y la hora, tal como

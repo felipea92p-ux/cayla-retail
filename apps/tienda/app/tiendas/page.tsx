@@ -13,7 +13,8 @@ import { leerSedes } from "@/lib/tiendas-servidor";
 // cualquier cantidad de tiendas (sus estilos los trae `NuestrasTiendas`).
 
 export const metadata: Metadata = {
-  title: "Nuestras tiendas · CAYLA",
+  alternates: { canonical: "/tiendas" },
+  title: "Nuestras tiendas",
   description: "Dónde recoger lo que separas en la web: la dirección, el horario, el WhatsApp y cómo llegar a cada tienda CAYLA.",
 };
 

@@ -16,7 +16,7 @@ import "@/app/estilos/inicio.css";
 // armó, con las prendas de la tienda de verdad, sin que lo vea nadie que no tenga el enlace. Nunca se indexa. Un enlace que no sirve (llave rara,
 // vencida, campaña terminada) dice solo eso: no revela si la llave existió.
 export const metadata: Metadata = {
-  title: "Vista previa · CAYLA",
+  title: "Vista previa",
   robots: { index: false, follow: false, nocache: true },
   referrer: "no-referrer",
 };

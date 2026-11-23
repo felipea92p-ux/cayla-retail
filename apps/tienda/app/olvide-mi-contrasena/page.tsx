@@ -5,7 +5,7 @@ import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import { PanelDeAcceso, PantallaDeEntrada } from "@/components/cuenta/PanelDeEntrada";
 import "../estilos/entrada.css";
 
-export const metadata: Metadata = { title: "Olvidé mi contraseña · CAYLA" };
+export const metadata: Metadata = { title: "Olvidé mi contraseña" };
 
 /**
  * `?enlace=vencido`: vuelve de un enlace del correo que ya se usó o venció, y lo dice arriba. La pantalla partida, con los tres pasos

@@ -69,6 +69,7 @@ import { leerPagina, paginaDe, POR_PAGINA } from "@/lib/paginas";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "@/app/estilos/campana.css";
 import "@/app/estilos/filtros.css";
+import { canonicalDe, claveCanonica } from "@/lib/seo";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -89,18 +90,22 @@ const PUESTOS_CON_SELLO = 3;
 // la página, una sola por visita) o el grupo.
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const sp = await searchParams;
-  // Una lista filtrada por color o talla no se indexa (ADR-0512): son mezclas sin fin de la misma lista, y la lista entera ya está.
-  const sinIndexar: Metadata = sp.color !== undefined || sp.talla !== undefined ? { robots: { index: false, follow: true } } : {};
+  const sedes = sedesEnOrden(await leerSedes());
+  // Una lista filtrada por color o talla no se indexa (ADR-0512): son mezclas sin fin de la misma lista, y la lista entera ya está. La
+  // dirección canónica es la de la tienda principal, sin orden ni filtros (ADR-0696).
+  const sinIndexar: Metadata = {
+    alternates: { canonical: canonicalDe("/catalogo", sp, claveCanonica(sedes)) },
+    ...(sp.color !== undefined || sp.talla !== undefined ? { robots: { index: false, follow: true } } : {}),
+  };
   const lista = leerLista(sp.lista);
-  if (lista !== "todo") return { title: `${TITULOS[lista]} · CAYLA`, ...sinIndexar };
+  if (lista !== "todo") return { title: `${TITULOS[lista]}`, ...sinIndexar };
   const pedida = leerCategoria(sp.categoria);
   if (pedida) {
-    const sedes = sedesEnOrden(await leerSedes());
     const catalogo = await leerCatalogo(sedeDeLaUrl(sp.sede, sedes)?.id ?? null);
     const categoria = categoriasDe(catalogo?.prendas ?? []).find((c) => c.clave === pedida);
-    if (categoria) return { title: `${categoria.nombre} · CAYLA`, ...sinIndexar };
+    if (categoria) return { title: `${categoria.nombre}`, ...sinIndexar };
   }
-  return { title: `${leerGrupo(sp.grupo)?.nombre ?? leerMenu(sp.menu)?.nombre ?? TITULOS.todo} · CAYLA`, ...sinIndexar };
+  return { title: `${leerGrupo(sp.grupo)?.nombre ?? leerMenu(sp.menu)?.nombre ?? TITULOS.todo}`, ...sinIndexar };
 }
 
 // Las listas del catálogo (maqueta v4, `vLista` y `filtroTienda`): toda la tienda, Lo nuevo, las ofertas (con una tarjeta por campaña),
