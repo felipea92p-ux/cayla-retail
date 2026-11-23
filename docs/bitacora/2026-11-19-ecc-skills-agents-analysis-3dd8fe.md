@@ -34,3 +34,13 @@ Por qué así: Claude Code lee las skills del proyecto de la carpeta principal, 
 con skills viejas sin saberlo. El aviso no mueve la carpeta solo porque en otro equipo puede haber un servidor corriendo desde ahí.
 Felipe se lleva: las 28 skills que cambia esta rama llegan a todos al fusionarse; cada equipo se entera si se queda atrás. Quedan
 cinco skills del stack y dos plugins que solo tiene su Mac: subirlos al repo lo decide él.
+
+## 2026-11-23 (Las skills de la Mac de Felipe, al repo)
+Qué hice: copié al repo, desde su original y con su licencia, las cinco skills del stack que solo tenía la Mac de Felipe (Supabase y
+Vercel), cada una con una nota de CAYLA arriba; activé para todo equipo los plugins `frontend-design` y `ui-ux-pro-max`; dejé `decide`
+igual en la copia de Codex (`.agents/skills/`); y actualicé `PROCEDENCIA.md`, `.claude/rules/diseno.md` y la lista de CLAUDE.md.
+Por qué así: Felipe pidió que todo equipo tenga las mismas skills. Una skill de afuera es texto que Claude obedece: se leyeron los 126
+archivos de referencias y aparecieron consejos de Postgres que en producción bloquean tablas o borran datos (`force row level security`,
+índices sin `concurrently`, `drop table` de particiones), y la de Supabase empuja `execute_sql` y `supabase db pull`. La nota dice qué gana.
+Felipe se lleva: un equipo nuevo recibe las mismas 41 skills y los 3 plugins al clonar y confiar en la carpeta. En su Mac, las copias
+personales de esas cinco le siguen ganando a las del repo, hasta que él decida quitarlas.

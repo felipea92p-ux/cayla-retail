@@ -167,7 +167,7 @@ la regla de lo que vas a tocar.
   o editada se arma con las piezas ya elegidas (`<Modal>`, `<Tabla>`, `<TarjetaCifra>`, `<Chip>`, `<Buscador>`, `btn-cayla`…), nunca
   en papel sólido ni con un beige plano, y ya no se dibujan maquetas de vidrio: lo que falta se audita. Antes de dibujar una pieza,
   mira «Una función, una pieza» (`unificar.md`). Las skills de diseño de afuera (`frontend-design`, `ui-ux-pro-max`, `better-ui`,
-  `modern-web-guidance`) se consultan, no mandan, y nunca con `--persist`. Detalle: `vidrio.md` y `diseno.md`.
+  `modern-web-guidance`, `web-design-guidelines`) se consultan, no mandan, y nunca con `--persist`. Detalle: `vidrio.md` y `diseno.md`.
 - **«Al milímetro», obligatoria (Felipe 2026-11-12):** pantalla, modal o pieza nueva, `/milimetro diseñar <pieza>` ANTES de escribir
   el código; cambio visual, `/milimetro auditar <ruta>` al terminar; después, según lo que toque, `/formidable` (se entiende en 5 s),
   `/focus`, `/sugerir`, `/guia` y `/chaos`. El PR lo dice en su casilla (check «Al milímetro»). Detalle: `diseno.md`.
@@ -227,8 +227,11 @@ skill. **Obligatorias:** `/abrir-pr` (todo PR), `/milimetro`, `/formidable`, `/f
 decidir:** `/revision`, `/innovar`, `/rigor`, `/ultra-criterio`, `/decide`, `/examen`, `/explica`, `/pantalla`, `/backlog`,
 `/construir`, `/multi-view-responsive`. **Negocio en local:** `/flujo-de-negocio` (la foto la actualiza solo Felipe, con
 `/actualizar-flujo`) y `/actualizar-lista-compra`. **De afuera** (`.claude/skills/PROCEDENCIA.md`): `/grill-me`, `/caveman`,
-`/better-ui`, `/modern-web-guidance`. **Si una skill no aparece en tu sesión** aunque esté en `.claude/skills/` de tu carpeta de
-trabajo, compara con `ls .claude/skills` en la carpeta principal del repo (la que no es un worktree): déjala en `main` al día (si
+`/better-ui`, `/modern-web-guidance`, `/web-design-guidelines`, `/supabase`, `/supabase-postgres-best-practices`,
+`/vercel-react-best-practices` y `/vercel-composition-patterns`; los plugins `frontend-design`, `ui-ux-pro-max` y `agent-skills` los
+activa `.claude/settings.json` para todo equipo. **Si una skill no aparece en tu sesión** aunque esté en `.claude/skills/` de tu carpeta de
+trabajo, compara con `ls .claude/skills` en la carpeta principal del repo (la que no es un worktree; si va atrás de main, la sesión lo
+avisa al abrir: `scripts/claude/carpeta-principal.mjs`): déjala en `main` al día (si
 tiene cambios sin commit o una sesión abierta, primero guárdalos o ciérrala) y abre una sesión nueva.
 
 ## graphify

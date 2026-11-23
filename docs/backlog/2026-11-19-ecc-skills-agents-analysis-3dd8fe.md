@@ -64,10 +64,14 @@ son ideas sueltas, ordenadas por valor. El análisis de las reglas que chocan co
   - El plugin `agent-skills@addy-agent-skills` se activó «para todo el equipo» el 2026-09-05, pero su marketplace solo estaba
     declarado en la configuración personal de la Mac de Felipe: en otro equipo no se podía instalar. Ahora va en
     `extraKnownMarketplaces` del proyecto.
-- [ ] **Skills que solo tiene la Mac de Felipe** (`~/.claude/skills/`): `supabase`, `supabase-postgres-best-practices`,
-  `vercel-react-best-practices`, `vercel-composition-patterns` y `web-design-guidelines` (del stack del repo), y los plugins
-  `frontend-design` y `ui-ux-pro-max` (CLAUDE.md dice que cada quien los instala). Si deben ser de todos, van al repo con su
-  procedencia (`.claude/skills/PROCEDENCIA.md`) o como plugin del proyecto. **Decide Felipe.**
+- [x] **Skills que solo tenía la Mac de Felipe, ahora en el repo (2026-11-23, Felipe: «Sí, súbelas»).** `supabase`,
+  `supabase-postgres-best-practices`, `vercel-react-best-practices`, `vercel-composition-patterns` y `web-design-guidelines` se copiaron
+  de su original, se leyeron enteras y llevan su nota de CAYLA (`.claude/skills/PROCEDENCIA.md`). Los plugins `frontend-design` y
+  `ui-ux-pro-max` los activa `.claude/settings.json` para todo equipo. `decide`, que esta rama cambió, quedó igual en `.agents/skills/`
+  (la copia de Codex).
+- [ ] **En la Mac de Felipe, las copias personales de esas cinco** (`~/.claude/skills/`) siguen ahí y le ganan a las del repo: no traen
+  la nota de CAYLA, y su `web-design-guidelines` es la vieja, que baja las reglas de internet. Quitarlas o no es de Felipe (las usa
+  también en otros proyectos).
 
 - [ ] **Auditoría SEO de `apps/tienda`** *(Hecha en la rama `claude/quizzical-murdock-3ce65d`, commit `a2bf23468`, sin PR: 11 hallazgos, 7 tareas y 3 decisiones de Felipe.)* (tarjeta propuesta en la sesión del 2026-11-19). No hay `sitemap.ts`, `robots.ts`,
   `metadataBase` ni canonical, y la ficha de prenda (`catalogo/[id]`) solo da `title`: sin descripción, sin imagen
