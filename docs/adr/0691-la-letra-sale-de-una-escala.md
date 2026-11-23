@@ -69,7 +69,8 @@ No toca:
 
 Las hojas de estilo no tienen puente: su `font-size: 11px` se cambia a mano por `var(--text-xs)`. En esta actividad se pasaron las de las
 piezas comunes (menú, cabecera, etiquetas, botones, pestañas, títulos, buscador, vacíos, globito, barra de abajo, tabla viva: 85 tamaños
-en 12 hojas). La deuda bajó de 2.583 a 2.471.
+en 12 hojas). La deuda bajó de 2.583 a 2.471; al traer `main` el mismo día subió a 2.476, por una pantalla nueva
+(el historial de barridos) que había nacido antes de este candado.
 Las de cada módulo van en su actividad.
 
 DESCARTÉ:

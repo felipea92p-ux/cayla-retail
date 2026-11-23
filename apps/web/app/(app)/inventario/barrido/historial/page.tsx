@@ -91,7 +91,7 @@ function FilaBarrido({ b, ahora }: { b: FilaHistorial; ahora: Date }) {
       <span className={celda()}>
         <Chip tono={estado.tono}>{estado.texto}</Chip>
       </span>
-      <span className={celda("izq", "texto-detalle text-taupe sm:text-[15px] sm:text-tinta")}>{quienDelBarrido(b)}</span>
+      <span className={celda("izq", "texto-detalle text-taupe sm:text-sm sm:text-tinta")}>{quienDelBarrido(b)}</span>
       <span className={celda("der")}>
         {b.unidades.toLocaleString("es-PE")}
         <span className="text-taupe sm:hidden"> escaneadas</span>

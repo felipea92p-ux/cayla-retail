@@ -15,7 +15,7 @@ Rama `claude/letra-escala-cerrada`. ADR-0691. Actividades 1 y 2 de la lista de l
 
 ## Pendiente
 
-- [ ] **La deuda: 2.471 tamaños escritos a mano en 507 archivos.** Baja módulo por módulo (actividades 3 a 7). Al terminar cada uno:
+- [ ] **La deuda: 2.476 tamaños escritos a mano en 509 archivos** (5 llegaron con el historial de barridos, que `main` trajo el mismo día). Baja módulo por módulo (actividades 3 a 7). Al terminar cada uno:
       `pnpm --filter web tema:letra:registro`, y borrar del puente los tamaños que ya no use nadie.
 - [ ] **250 textos siguen por debajo de 13 px** en las 36 vistas medidas. Vienen de hojas propias: Observatorio (`o-*`), los gráficos
       (`mc-*`, `barras-tiempo-eje`), Plan del piso (`pp-*`), Movimientos (`mv-rotulo`), Finanzas (`dock-telar`, `bolsillos`, `fin-*`) y la

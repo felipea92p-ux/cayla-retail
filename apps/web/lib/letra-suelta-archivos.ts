@@ -26,6 +26,8 @@ export const LETRA_A_MANO: Record<string, number> = {
   "app/(app)/compras/proveedores/[id]/page.tsx": 1,
   "app/(app)/error.tsx": 1,
   "app/(app)/global/elige-sede/page.tsx": 1,
+  "app/(app)/inventario/barrido/historial/[id]/page.tsx": 4,
+  "app/(app)/inventario/barrido/historial/page.tsx": 1,
   "app/(app)/page.tsx": 2,
   "app/(app)/productos/por-revisar/page.tsx": 1,
   "app/(app)/productos/revisar-precios/page.tsx": 1,
@@ -531,4 +533,4 @@ export const LETRA_A_MANO: Record<string, number> = {
 };
 
 /** La deuda que queda: la suma de `LETRA_A_MANO`. Solo baja. Si SUBE, alguien declaró deuda nueva: no se puede. */
-export const DEUDA_LETRA_HOY = 2471;
+export const DEUDA_LETRA_HOY = 2476;
