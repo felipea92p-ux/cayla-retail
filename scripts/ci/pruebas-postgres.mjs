@@ -40,6 +40,11 @@ export const PRUEBAS = [
   // en una vuelta, no uno por uno.
   "caja:verificar",
 
+  // El candado de partes (ADR-0195, act. 2026-11-23) lee bien este Postgres: una política toma auth/storage (el canario; si
+  // un día deja de hacerlo, el candado quedaría ciego), y el alter de una tabla en uso con una política en la misma parte
+  // sale rojo, en los dos órdenes; partida, sola o sobre una tabla nueva, verde. Solo mide en begin … rollback.
+  "pruebas:partes-sin-deadlock",
+
   // Tener sesión no es ser del equipo: una cuenta de Dynamic que no trabaja en retail no lee el catálogo, las sedes ni
   // los proveedores, ni da de alta vocabulario; el líder, una colaboradora y una terminal siguen igual. ROLLBACK.
   "pruebas:sesion-no-es-equipo",

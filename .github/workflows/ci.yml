@@ -234,6 +234,13 @@ jobs:
           node --test scripts/migraciones/sin-drop-trigger.test.mjs
           node scripts/migraciones/sin-drop-trigger.mjs
 
+      # La otra mitad de la regla: una parte que se pega sola no mezcla una política con el `alter` de una tabla que ya
+      # existía (40P01, ADR-0195). No se lee del texto: la mide la tanda 1 de Postgres («Partes de migración sin deadlock»).
+      # Aquí, su parte pura (partir en sentencias y partes, leer las fotos de pg_locks, decidir). Sin node_modules.
+      - name: Partes sin deadlock (pruebas del candado)
+        if: ${{ !cancelled() }}
+        run: node --test scripts/migraciones/partes-sin-deadlock.test.mjs
+
       # Ningún ayudante `pg_temp.<nombre>` cambia el nombre de sus parámetros respecto de uno anterior con la misma firma:
       # el CLI de Supabase aplica todas las migraciones en UNA sesión y `pg_temp` se arrastra, así que el segundo
       # `create or replace` falla con 42P13 y la base no se arma (2026-10-23, `20261023212000`; #1300 y #1301 en rojo).
@@ -471,8 +478,8 @@ jobs:
           if [ "${{ github.event_name }}" = pull_request ]; then node scripts/migraciones/huellas-del-pr.mjs apartar "$RUNNER_TEMP/migraciones-del-pr"; fi
           npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS" || { npx "$SUPABASE_CLI" stop --no-backup || true; sleep 15; npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"; }
           if [ -d "$RUNNER_TEMP/migraciones-del-pr" ]; then
-            if [ "${{ matrix.tanda }}" = 1 ]; then huellas="$RUNNER_TEMP/huellas-del-pr.json"; else huellas=""; fi
-            node scripts/migraciones/huellas-del-pr.mjs aplicar "$RUNNER_TEMP/migraciones-del-pr" $huellas
+            if [ "${{ matrix.tanda }}" = 1 ]; then huellas="$RUNNER_TEMP/huellas-del-pr.json"; partes="--partes $RUNNER_TEMP/partes-del-pr.json"; else huellas=""; partes=""; fi
+            node scripts/migraciones/huellas-del-pr.mjs aplicar "$RUNNER_TEMP/migraciones-del-pr" $huellas $partes
             node scripts/migraciones/huellas-del-pr.mjs devolver "$RUNNER_TEMP/migraciones-del-pr"
           fi
 
@@ -494,6 +501,14 @@ jobs:
           path: ${{ runner.temp }}/huellas-del-pr.json
           if-no-files-found: ignore
           retention-days: 7
+
+      # Una parte que se pega sola no mezcla una política con el `alter` de una tabla que ya existía: en Supabase la política
+      # toma en exclusiva las tablas de auth y storage, y con la tabla ya tomada choca con el Asesor del panel (40P01, ADR-0195).
+      # En la tanda 1, `aplicar --partes` midió cada migración nueva del PR justo antes de aplicarla (begin … rollback, leyendo
+      # pg_locks después de cada sentencia); aquí se revisa esa medida. Sin migraciones nuevas no hay medida y sale verde.
+      - name: Partes de migración sin deadlock
+        if: ${{ !cancelled() && github.event_name == 'pull_request' && steps.supabase.outcome == 'success' && matrix.tanda == 1 }}
+        run: node scripts/migraciones/partes-sin-deadlock.mjs revisar "$RUNNER_TEMP/partes-del-pr.json"
 
       # Las pruebas de esta tanda. Todas corren aunque una falle; el resumen de la corrida dice cuál falló y cuánto tardó cada una.
       - name: Pruebas de la tanda
