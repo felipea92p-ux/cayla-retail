@@ -18,7 +18,7 @@ export function PasoSugerido({ paso, proveedorId, animar = false, indice, classN
     : null;
   return (
     <div
-      className={`card-cayla border-l-2 px-4 py-3 text-[13.5px] text-tinta ${BORDE[paso.tono]} ${animar ? "anim-revelar" : ""} ${indice != null ? "anim-entra" : ""} ${className}`}
+      className={`card-cayla border-l-2 px-4 py-3 text-detalle text-tinta ${BORDE[paso.tono]} ${animar ? "anim-revelar" : ""} ${indice != null ? "anim-entra" : ""} ${className}`}
       style={indice != null ? { ["--i" as string]: indice } : undefined}
     >
       <b className="font-semibold">{paso.fuerte}</b>
