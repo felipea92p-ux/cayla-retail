@@ -308,6 +308,13 @@ jobs:
         if: ${{ !cancelled() }}
         run: node --test scripts/chaos/invariantes.test.mjs scripts/chaos/catalogo.test.mjs scripts/chaos/vigia-semilla.test.mjs
 
+      # La lectura del código de la familia «El botón que no hace lo que dice» (ADR-0693, `scripts/chaos/boton.mjs`): las pistas de
+      # refresco tras guardar y de efectos que pisan o llegan tarde, y que cada una apunte a un ataque del catálogo. Lee el AST con
+      # TypeScript: necesita la instalación (el paso de arriba no).
+      - name: Lectura del código de caos
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: node --test scripts/chaos/boton.test.mjs
+
       # `/flujo-de-negocio`: la parte pura de `espejo.mjs` (la ruta de `info/exclude`, que en un worktree git da absoluta).
       - name: Espejo de /flujo-de-negocio
         if: ${{ !cancelled() }}
