@@ -97,7 +97,7 @@ export function EnviarBoleta({
     <div className="card-cayla space-y-2.5 p-4 text-sm" data-envio-boleta={envio.fase}>
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-tinta">Enviar por WhatsApp</span>
-        <span className="font-mono text-[11.5px] text-tinta/65">{envio.celular}</span>
+        <span className="font-mono text-xs text-tinta/65">{envio.celular}</span>
       </div>
       {envio.fase === "listo" && (
         <a href={envio.href} target="_blank" rel="noreferrer" className="btn-cayla btn-secundario flex w-full items-center justify-center gap-2">

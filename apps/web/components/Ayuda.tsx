@@ -104,7 +104,7 @@ function AvisoFalta({ titulo, children }: { titulo?: string; children: React.Rea
         aria-label={`Falta: ${titulo ?? "algo por completar"}`}
         // h-5 y no h-4: con la etiqueta ya en 11px, el "!" se desbordaba de un
         // círculo de 16px. `active:scale-90` da el acuse de tacto que faltaba.
-        className={`ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full border text-[11px] font-semibold leading-none transition-all active:scale-90 ${
+        className={`ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs font-semibold leading-none transition-all active:scale-90 ${
           abierto ? "border-rojo bg-rojo text-crema" : "border-rojo bg-rojo/8 text-rojo hover:bg-rojo hover:text-crema"
         }`}
       >
@@ -124,7 +124,7 @@ function AvisoFalta({ titulo, children }: { titulo?: string; children: React.Rea
           onClick={(e) => e.stopPropagation()}
           className="anim-globo fixed left-0 top-0 z-40 block w-64 whitespace-normal rounded-lg border border-sand bg-papel p-3.5 text-left font-sans normal-case tracking-normal shadow-md"
         >
-          {titulo && <span className="label-cayla mb-1 block text-[11px] text-rojo">{titulo}</span>}
+          {titulo && <span className="label-cayla mb-1 block text-xs text-rojo">{titulo}</span>}
           <span className="block text-xs font-normal leading-relaxed text-tinta/80 normal-case tracking-normal">{children}</span>
         </span>,
         destino,

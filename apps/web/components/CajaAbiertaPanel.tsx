@@ -652,7 +652,7 @@ function TurnoCompacto({ abiertaEn }: { abiertaEn: string }) {
       {ahora && (
         <>
           {" · lleva "}
-          <b key={duracionAbierta(abiertaEn, ahora.getTime())} className="font-display anim-asentar inline-block text-[17px] font-medium text-tinta">
+          <b key={duracionAbierta(abiertaEn, ahora.getTime())} className="font-display anim-asentar inline-block text-lg font-medium text-tinta">
             {duracionAbierta(abiertaEn, ahora.getTime())}
           </b>
         </>
@@ -673,7 +673,7 @@ function EstadoSync({ pendientes }: { pendientes: number }) {
     <span role="status" className="shrink-0">
       <span
         key={ok ? "ok" : "pendiente"}
-        className={`anim-asentar label-cayla inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] ${
+        className={`anim-asentar label-cayla inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs ${
           ok ? "bg-verde/15 text-verde-profundo" : "bg-ambar/15 text-ambar-profundo"
         }`}
       >
@@ -734,7 +734,7 @@ function Metrica({ etiqueta, valor, asentar = false }: { etiqueta: string; valor
       >
         {valor}
       </p>
-      <p className="label-cayla mt-2 text-[10px] leading-snug text-tinta/55">{etiqueta}</p>
+      <p className="label-cayla mt-2 text-xs leading-snug text-tinta/55">{etiqueta}</p>
     </div>
   );
 }
@@ -811,18 +811,18 @@ function RitmoDelDia({ ventas, abiertaEn, idsNuevos }: { ventas: VentaDelDia[]; 
                         style={{ background: fondoDePunto(p.metodos) }}
                       />
                     )}
-                    <span className="pointer-events-none absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded bg-tinta px-1.5 py-0.5 text-[10px] text-crema opacity-0 transition-opacity group-hover:opacity-100">
+                    <span className="pointer-events-none absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded bg-tinta px-1.5 py-0.5 text-xs text-crema opacity-0 transition-opacity group-hover:opacity-100">
                       {money(p.total)} · {p.hora}
                     </span>
                   </span>
                 );
               })}
             </div>
-            <div className="mt-2.5 flex justify-between text-[11px] text-tinta/55">
+            <div className="mt-2.5 flex justify-between text-xs text-tinta/55">
               <span>{r.abrioHoy ? `Abre ${hora(new Date(abiertaEn))}` : "Desde medianoche"}</span>
               <span>Ahora {hora(ahora)}</span>
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px] text-tinta/55">
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-tinta/55">
               {r.metodos.map((m) => (
                 <span key={m} className="inline-flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full" style={{ backgroundColor: METODO_RITMO[m].color }} />
@@ -846,7 +846,7 @@ function soles0(n: number): string {
 function DatoMeta({ etiqueta, valor, detalle, className = "" }: { etiqueta: string; valor: string; detalle?: ReactNode; className?: string }) {
   return (
     <div className={`min-w-0 ${className}`}>
-      <dt className="label-cayla text-[11px] text-taupe">{etiqueta}</dt>
+      <dt className="label-cayla text-xs text-taupe">{etiqueta}</dt>
       <dd className="font-display mt-1 text-[26px] leading-none tabular-nums text-tinta">{valor}</dd>
       {detalle && <dd className="mt-1.5 text-sm text-taupe">{detalle}</dd>}
     </div>

@@ -95,10 +95,10 @@ export function ColaSunatPanel({
       )}
       <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-[18px] pb-3.5">
         <div className="min-w-0">
-          <TituloSeccion>Por enviar a SUNAT</TituloSeccion>
-          <p className="mt-0.5 text-sm text-tinta/65">
-            Todo lo que todavía no llegó: lo que nunca se intentó, lo que falló y lo que SUNAT rechazó. No pierden su número; si uno pasa de {HORAS_AVISO_COLA} hora, mira el error.
-          </p>
+          <TituloSeccion ayuda={<>Lo que nunca se intentó, lo que falló y lo que SUNAT rechazó. Si uno pasa de {HORAS_AVISO_COLA} hora, mira el error.</>}>
+            Por enviar a SUNAT
+          </TituloSeccion>
+          <p className="mt-0.5 text-sm text-tinta/65">Cada uno conserva su número.</p>
         </div>
         {filas.length > 1 && (
           <BotonCompacto variante="primario" data-guia="por-enviar.todos" cargando={reintentandoTodos} textoCargando="Reintentando…" disabled={transmitiendoId !== null} onClick={() => setConfirmarTodos(true)}>
@@ -126,7 +126,7 @@ export function ColaSunatPanel({
           return (
             <div key={f.comprobante_id} className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-tinta/10 px-5 py-3">
               <div className="min-w-[11rem]">
-                <p className="text-[15px] text-tinta">
+                <p className="text-sm text-tinta">
                   <span className="text-tinta/65">{nombreDelTipo(f.tipo)}</span> <b data-guia="por-enviar.numero" className="whitespace-nowrap font-semibold tabular-nums">{numero(f)}</b>
                 </p>
                 <p className="text-sm text-tinta/65">{nombreDe(f.ubicacion_id)}</p>

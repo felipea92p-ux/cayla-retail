@@ -23,7 +23,7 @@ export default function ErrorDeVista({ error, reset }: { error: Error & { digest
     // Aventurero (2026-10-15) abre la tarjeta, como en la barrera de toda la app (`app/(app)/error.tsx`). Vive bajo la cabecera y las
     // pestañas de Facturación: `enVista` reserva ese alto y no estira la tarjeta hasta el piso.
     <PantallaAventurero motivo="error" enVista>
-      <p className="label-cayla text-[11px] text-rojo">No se pudo cargar</p>
+      <p className="eyebrow-cayla">No se pudo cargar</p>
       <h2 className="font-display mt-2 text-xl text-tinta sm:text-2xl">Esta vista no está mostrando datos</h2>
       <p className="mt-3 text-sm text-tinta/75">
         Algo falló al traer la información y no mostramos nada a propósito: preferimos no enseñarte un número equivocado.

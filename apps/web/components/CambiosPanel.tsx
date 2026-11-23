@@ -338,12 +338,14 @@ function TallasQueNoCalzan({ tallas }: { tallas: TallaQueNoCalza[] }) {
   return (
     <section className="space-y-3 pt-6" aria-labelledby="tallas-que-no-calzan">
       <div>
-        <TituloSeccion id="tallas-que-no-calzan" dato="últimos 90 días">
+        <TituloSeccion
+          id="tallas-que-no-calzan"
+          dato="últimos 90 días"
+          ayuda="Cuenta los cambios de todas las sedes. Si una prenda va casi siempre a la talla de arriba, la horma puede estar calzando chica."
+        >
           Tallas que no calzan
         </TituloSeccion>
-        <p className="mt-0.5 text-sm text-tinta/70">
-          Prendas que se cambian seguido a otra talla, en todas las sedes. Si una va casi siempre a la talla de arriba, la horma puede estar calzando chica.
-        </p>
+        <p className="mt-0.5 text-sm text-tinta/70">Prendas que se cambian seguido a otra talla.</p>
       </div>
       <ul className="rounded-xl bg-papel ring-1 ring-tinta/[0.07]">
         {tallas.map((t) => (

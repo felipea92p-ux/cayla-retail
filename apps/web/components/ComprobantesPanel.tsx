@@ -307,7 +307,7 @@ export function ComprobantesPanel({
           (mes vacío o búsqueda sin resultados) la tarjeta es baja y recortaría el globo de ayuda del encabezado. */}
       <div ref={tarjetaListaRef} className={`card-cayla anim-sube @container ${visibles.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 7 } as CSSProperties}>
         <div className="px-5 pt-[18px] pb-3.5">
-          <p className="label-cayla text-[11px] text-tinta/65">
+          <p className="label-cayla text-xs text-tinta/65">
             Comprobantes
             <Ayuda titulo="Estados de un comprobante">
               Pendiente de enviar: ya tiene su número oficial reservado (nadie más puede usarlo), pero todavía no se transmitió a SUNAT. Si SUNAT
@@ -359,7 +359,7 @@ export function ComprobantesPanel({
           <SinCoincidencias />
         ) : (
           <>
-            <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-[11px] text-tinta/65 ${COLUMNAS}`}>
+            <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-xs text-tinta/65 ${COLUMNAS}`}>
               <span>Fecha</span>
               <span>Comprobante</span>
               <span className="hidden @min-[900px]:inline">Cliente</span>
@@ -380,11 +380,11 @@ export function ComprobantesPanel({
                 >
                   <div className="flex items-baseline gap-2 @min-[640px]:block">
                     <p className="font-display text-lg leading-tight tabular-nums text-tinta">{dia}</p>
-                    <p className="label-cayla text-[10px] text-tinta/65 @min-[640px]:mt-0.5">{hora}</p>
+                    <p className="label-cayla text-xs text-tinta/65 @min-[640px]:mt-0.5">{hora}</p>
                   </div>
 
                   <div className="min-w-0">
-                    <p className="text-[15px] leading-normal text-tinta">
+                    <p className="text-sm leading-normal text-tinta">
                       <span className="text-tinta/65">{ETIQUETA_TIPO[c.tipo]}</span>{" "}
                       <b data-guia="comprobantes.numero" className="whitespace-nowrap font-semibold">
                         {c.serie}-{String(c.numero).padStart(6, "0")}
