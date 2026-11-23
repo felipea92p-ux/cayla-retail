@@ -208,10 +208,11 @@ jobs:
 
       # El tablero de sesiones (`pnpm sesiones`, ADR-0697): quién trabaja en qué, armado cada vez de las worktrees, las ramas
       # `claude/*` de las últimas 48 h, los PR abiertos y las reservas, sin guardar nada. Comprueba la parte pura (cómo junta las
-      # fuentes por rama y qué cuenta como activo). Solo usa Node; no necesita node_modules. ~0,1 s.
+      # fuentes por rama, qué cuenta como activo, qué choca y qué dice al abrir sesión) y que su hook `SessionStart` calle fuera
+      # de un repo. Solo usa Node; no necesita node_modules. ~0,3 s.
       - name: Tablero de sesiones
         if: ${{ !cancelled() }}
-        run: node --test scripts/sesiones/reglas.test.mjs
+        run: node --test scripts/sesiones/reglas.test.mjs scripts/sesiones/al-abrir.test.mjs
 
       # El aviario (ADR-0104): ninguna tabla de producción sin pájaro, ninguna con dos, y
       # `docs/datos/generado/AVIARIO.md` al día. Tampoco toca base de datos: lee el volcado

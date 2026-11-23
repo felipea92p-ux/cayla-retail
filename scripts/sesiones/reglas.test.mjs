@@ -1,7 +1,7 @@
 // El tablero de sesiones (ADR-0697): la parte pura, sin git ni red. Corre con `node --test` (CI, «Tablero de sesiones»).
 import assert from "node:assert/strict";
 import test from "node:test";
-import { armarSesiones, choquesEntreSesiones, hace, informe, parsearCambios, parsearStatus, parsearWorktrees, puedeLlegarAMain, zonas } from "./reglas.mjs";
+import { armarSesiones, choquesEntreSesiones, hace, informe, parsearCambios, parsearStatus, parsearWorktrees, puedeLlegarAMain, resumenAlAbrir, zonas } from "./reglas.mjs";
 
 const AHORA = 1_800_000_000;
 const HORA = 3600;
@@ -238,4 +238,62 @@ test("informe: los choques van de peor a menos malo, y sin choques lo dice", () 
   assert.match(texto, /CHOQUES entre lo que puede llegar a main \(activas y PR abiertos\): 1\n  🔴 SEGURO · ADR 0697 · claude\/a y claude\/b/);
   assert.match(texto, /claude\/a y claude\/b: 1 archivo\(s\) — x\.ts/);
   assert.match(informe({ ...t, choques: [], faltan: [] }, AHORA), /: ninguno seguro ni probable/);
+});
+
+// --- El resumen al abrir sesión (hook `SessionStart`) ---
+
+/** El tablero tal como lo devuelve `tablero.mjs --al-abrir`, con sus choques. */
+function alAbrir({ worktrees = [], prs = [], actual = "claude/yo" }) {
+  const t = armarSesiones({ worktrees, prs, actual, ahora: AHORA });
+  return { ...t, choques: choquesEntreSesiones({ sesiones: puedeLlegarAMain(t) }), faltan: [], ahora: AHORA };
+}
+
+test("al abrir: sola, sin nadie más ni choques, calla", () => {
+  assert.equal(resumenAlAbrir(alAbrir({ worktrees: [worktree("yo", "claude/yo", [cambio("a.ts")])] })), null);
+  assert.equal(resumenAlAbrir(alAbrir({})), null);
+});
+
+test("al abrir: nombra a las otras sesiones (no a esta) y, sin choques, no le muestra nada a la persona", () => {
+  const r = resumenAlAbrir(
+    alAbrir({
+      worktrees: [worktree("yo", "claude/yo", [cambio("a.ts")]), worktree("otra", "claude/otra", [cambio("docs/adr/0697-x.md", true), cambio("apps/web/lib/x.ts")])],
+      prs: [{ numero: 12, titulo: "Otra", rama: "claude/otra", archivos: [], adrs: [], migraciones: [], funciones: [] }],
+    }),
+  );
+  assert.equal(r.hookSpecificOutput.hookEventName, "SessionStart");
+  const texto = r.hookSpecificOutput.additionalContext;
+  assert.match(texto, /1 sesión activa en las últimas 48 h además de esta, 1 PR abierto/);
+  assert.match(texto, /- claude\/otra \(worktree otra, PR #12, hace 1 h\): apps\/web\/lib, docs\/adr · ADR 0697/);
+  assert.doesNotMatch(texto, /claude\/yo/);
+  assert.match(texto, /pnpm sesiones/);
+  assert.equal(r.systemMessage, undefined);
+});
+
+test("al abrir: sin gh no dice «0 PR», dice que no los leyó", () => {
+  const t = alAbrir({ worktrees: [worktree("otra", "claude/otra", [cambio("a.ts")])] });
+  const texto = resumenAlAbrir({ ...t, faltan: ["prs"] }).hookSpecificOutput.additionalContext;
+  assert.match(texto, /además de esta, los PR sin leer \(gh no respondió\), 0 quietas/);
+  assert.doesNotMatch(texto, /0 PR abiertos/);
+});
+
+test("al abrir: un choque seguro lo ve la persona; uno probable entre otras dos, solo se cuenta", () => {
+  const seguro = resumenAlAbrir(
+    alAbrir({ worktrees: [worktree("a", "claude/a", [cambio("docs/adr/0697-a.md", true)]), worktree("b", "claude/b", [cambio("docs/adr/0697-b.md", true)])] }),
+  );
+  assert.match(seguro.systemMessage, /^Tablero de sesiones: 1 choque seguro \(ADR 0697 entre claude\/a y claude\/b\)\. Detalle: pnpm sesiones\.$/);
+  assert.match(seguro.hookSpecificOutput.additionalContext, /Choques: 🔴 seguro: ADR 0697 entre claude\/a y claude\/b\./);
+
+  const ajeno = resumenAlAbrir(alAbrir({ worktrees: [worktree("a", "claude/a", [cambio("package.json")]), worktree("b", "claude/b", [cambio("package.json")])] }));
+  assert.equal(ajeno.systemMessage, undefined);
+  assert.match(ajeno.hookSpecificOutput.additionalContext, /hay 1 choque\(s\) probable\(s\) que no tocan a esta/);
+
+  const mio = resumenAlAbrir(alAbrir({ worktrees: [worktree("yo", "claude/yo", [cambio("package.json")]), worktree("b", "claude/b", [cambio("package.json")])] }));
+  assert.match(mio.systemMessage, /1 choque probable con esta sesión \(package\.json entre claude\/b y claude\/yo\)/);
+});
+
+test("al abrir: con muchas sesiones nombra 8 y cuenta el resto", () => {
+  const worktrees = Array.from({ length: 11 }, (_, i) => worktree(`s${i}`, `claude/s${i}`, [cambio(`zona${i}/a.ts`)], [], AHORA - (i + 1) * 60));
+  const texto = resumenAlAbrir(alAbrir({ worktrees })).hookSpecificOutput.additionalContext;
+  assert.equal(texto.match(/^- claude\//gm).length, 8);
+  assert.match(texto, /- … y 3 más/);
 });

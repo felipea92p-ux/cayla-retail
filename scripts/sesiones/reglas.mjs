@@ -248,6 +248,59 @@ function lineasDeSesion(s, ahora, { corta = false } = {}) {
   return [cabeza, `      ${detalle}`];
 }
 
+/** Cuántas sesiones nombra el resumen al abrir, y cuántos choques: más ya es leer el tablero entero. */
+const AL_ABRIR_SESIONES = 8;
+const AL_ABRIR_CHOQUES = 5;
+
+/**
+ * Lo que el hook `SessionStart` le deja a la sesión que abre (`al-abrir.mjs`), o `null` si no hay nada que decir.
+ * - `additionalContext` (para Claude): las otras sesiones activas en una línea cada una, cuántos PR y quietas hay, los
+ *   choques SEGUROS de todos y los PROBABLES que tocan a esta sesión.
+ * - `systemMessage` (lo que ve la persona): solo si hay un choque seguro o uno que toca a esta sesión. Si no, callar: con
+ *   seis sesiones abiertas a la vez, una línea en cada una que no pide nada es ruido.
+ */
+export function resumenAlAbrir(tablero) {
+  const otras = tablero.activas.filter((s) => !s.esta);
+  const prs = [...tablero.activas, ...tablero.quietas].filter((s) => s.pr).length;
+  const choques = (tablero.choques ?? []).filter((c) => c.gravedad !== "compartido");
+  const actual = [...tablero.activas, ...tablero.quietas].find((s) => s.esta)?.rama;
+  const importan = choques.filter((c) => c.gravedad === "seguro" || c.ramas.includes(actual));
+  if (otras.length === 0 && importan.length === 0) return null;
+
+  const lineas = [
+    `Tablero de sesiones (\`pnpm sesiones\`, ADR-0697; se arma de git, GitHub y las reservas, no se escribe en ningún lado): ` +
+      `${otras.length} ${otras.length === 1 ? "sesión activa" : "sesiones activas"} en las últimas 48 h además de esta, ` +
+      // Sin `gh` no hay «0 PR»: no se sabe cuántos hay.
+      `${tablero.faltan?.includes("prs") ? "los PR sin leer (gh no respondió)" : `${prs} PR ${prs === 1 ? "abierto" : "abiertos"}`}, ` +
+      `${tablero.quietas.length} quietas con trabajo sin cerrar.`,
+  ];
+  for (const s of otras.slice(0, AL_ABRIR_SESIONES)) {
+    const donde = [s.worktree ? `worktree ${s.worktree.nombre}` : "otra máquina o la nube", s.pr ? `PR #${s.pr.numero}` : null].filter(Boolean).join(", ");
+    const que = zonas(s.archivos, 3)
+      .map((z) => z.zona)
+      .join(", ");
+    const numerosNuevos = [s.adrs.length ? `ADR ${s.adrs.join(", ")}` : null, s.migraciones.length ? `${s.migraciones.length} migración(es)` : null].filter(Boolean).join(", ");
+    lineas.push(`- ${s.rama} (${donde}, ${hace(s.ultimo, tablero.ahora)}): ${que}${numerosNuevos ? ` · ${numerosNuevos}` : ""}`);
+  }
+  if (otras.length > AL_ABRIR_SESIONES) lineas.push(`- … y ${otras.length - AL_ABRIR_SESIONES} más (\`pnpm sesiones\`).`);
+  const queEntre = (c) => (c.ramas.length > 1 ? `${c.que} entre ${c.ramas.join(" y ")}` : `${c.que} en ${c.ramas[0]}`);
+  const nombrar = (c) => `${c.gravedad === "seguro" ? "🔴 seguro" : "🟠 probable"}: ${queEntre(c)}`;
+  if (importan.length) lineas.push(`Choques: ${importan.slice(0, AL_ABRIR_CHOQUES).map(nombrar).join("; ")}${importan.length > AL_ABRIR_CHOQUES ? `; y ${importan.length - AL_ABRIR_CHOQUES} más` : ""}.`);
+  const otrosProbables = choques.length - importan.length;
+  if (otrosProbables > 0) lineas.push(`Entre otras sesiones hay ${otrosProbables} choque(s) probable(s) que no tocan a esta.`);
+  lineas.push("Antes de tocar lo que otra sesión ya está tocando, mira el detalle con `pnpm sesiones` y no la pises: avísale al usuario.");
+
+  const aviso = {
+    hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: lineas.join("\n") },
+  };
+  if (importan.length) {
+    const seguros = importan.filter((c) => c.gravedad === "seguro").length;
+    const cuantos = seguros ? `${seguros} ${seguros === 1 ? "choque seguro" : "choques seguros"}` : `${importan.length} ${importan.length === 1 ? "choque probable" : "choques probables"} con esta sesión`;
+    aviso.systemMessage = `Tablero de sesiones: ${cuantos} (${queEntre(importan[0])}${importan.length > 1 ? ", …" : ""}). Detalle: pnpm sesiones.`;
+  }
+  return aviso;
+}
+
 /** Los nombres de las fuentes, para decir cuál no respondió. */
 const FUENTES = { worktrees: "las worktrees", ramas: "las ramas del remoto (sin red: uso las que ya tenía)", prs: "los PR (gh no respondió)", reservas: "las reservas" };
 
