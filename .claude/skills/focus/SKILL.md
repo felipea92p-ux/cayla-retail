@@ -34,7 +34,7 @@ Verifica y completa la guía de foco de las pantallas y los modales en construcc
    - «Archivos con campos que no llegan a ninguna pantalla»: un componente en construcción que ni es modal. La regla vale igual.
    - «Registro por ajustar»: pantallas con guía que siguen «pendiente», o «aplicada» sin guía.
 4. **Mirada de tolerancia** (el escáner no la hace; léela tú en cada pantalla y modal del alcance, con guía nueva o ya puesta): anota, por control, en cuál de las filas de la tabla de «La guía acompaña, no apura» cae. Busca en especial (a) **controles de varias opciones** (chips que se marcan de a uno: tallas, colores, etiquetas) sin `retiene="fila"`, y (b) **combos o chips con valor de fábrica** (`useState("neutro")`, una opción marcada de antemano) que la guía no mira.
-5. Mira `docs/SESIONES-ACTIVAS.md`: si otra sesión toca los mismos archivos, **avísalo y no la pises**.
+5. Mira `pnpm sesiones`: si otra sesión toca los mismos archivos, **avísalo y no la pises**.
 
 ## Paso 2 — Avisa (ANTES de tocar código)
 

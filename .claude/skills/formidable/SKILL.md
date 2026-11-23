@@ -41,7 +41,7 @@ Cada ley, con su prueba de «pasa / falla» y un ejemplo real: `referencia/leyes
 
 ## Método (cada paso deja evidencia con etiqueta: **Medido** / **Observado** / **Opinión**; sin evidencia no hay nota)
 
-0. **Terreno.** `git fetch origin`; `docs/SESIONES-ACTIVAS.md`; si existe `docs/pantallas/<slug>.md`, léelo. La finalidad de la pantalla sale de
+0. **Terreno.** `git fetch origin`; `pnpm sesiones` (quién está tocando qué); si existe `docs/pantallas/<slug>.md`, léelo. La finalidad de la pantalla sale de
    `docs/`, nunca de la captura (como `/pantalla`). Anota qué dispositivo manda según el tipo de pantalla.
 1. **Medir** (Medido). `referencia/medir-oficio.js` con `javascript_tool` a **1440 × 900 primero**, luego 1024 × 768 y 375 × 812. Y los escáneres que
    ya existen, sin reescribirlos: `pnpm focus`, `pnpm sugerir`, `node scripts/rendimiento/ui.mjs --ruta <x>`.
