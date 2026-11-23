@@ -76,6 +76,7 @@
     --estados-fondo: var(--color-papel);
     --estados-fondo-fuerte: var(--color-papel);
     --estados-cal-fondo: var(--color-papel);
+    --vidrio-dobla-fondo: var(--color-papel);
 }
 
 /* Nada desenfocado: el desenfoque es lo que traba la gráfica de un teléfono barato (ADR-0623 ya lo quitó de lo que se desplaza). */
@@ -86,8 +87,15 @@
   backdrop-filter: none !important;
 }
 
-/* Las nubes del fondo (`.marco-aurora`, vidrio/marco.css): tres degradados de 600 px fijos detrás de todo. Sin vidrio, no hay nada que
-   se vea a través de ellas; solo cuestan. */
-:root[data-liviano="si"] .marco-aurora {
+/* Los pliegues del fondo (`.marco-seda`, vidrio/marco.css; antes las nubes de la Aurora): nueve degradados fijos detrás de todo. Sin
+   vidrio, no hay nada que se vea a través de ellos; solo cuestan. */
+:root[data-liviano="si"] .marco-seda {
   display: none;
+}
+/* Sin los pliegues, el menú lateral de escritorio vuelve a su fondo liso: desde el 2026-11-19 no tiene fondo propio, deja ver Seda
+   (vidrio/marco.css). Bajo 640 px es el cajón, que ya tiene su cara maciza. */
+@media (min-width: 640px) {
+  :root[data-liviano="si"] .marco-riel {
+    background: var(--riel-fondo);
+  }
 }

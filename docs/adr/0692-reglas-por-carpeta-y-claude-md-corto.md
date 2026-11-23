@@ -6,7 +6,7 @@ piezas que corren en sesiones aparte). Cambia dónde viven las reglas, no qué d
 
 ## Contexto
 
-`CLAUDE.md` medía **144.942 bytes y 1.013 líneas** (`main` del 2026-11-23, `2a8ef513a`): unos 35 mil tokens que Claude Code carga en
+`CLAUDE.md` medía **148.515 bytes y 1.047 líneas** (`main` del 2026-11-23, `c395466b7`): unos 35 mil tokens que Claude Code carga en
 **cada** sesión, también en una que solo toca una migración o un texto de la tienda. Recibe unos 76 commits al mes. La documentación
 de Claude Code (code.claude.com/docs/en/memory.md, consultada el 2026-11-19) recomienda menos de 200 líneas por archivo y dice que un
 archivo largo consume contexto y **reduce la adherencia**: el tamaño juega en contra de lo que el tamaño busca. Una regla nueva entraba
@@ -18,14 +18,14 @@ se carga junto al archivo que lo importa.
 
 ## Decisión
 
-1. **`CLAUDE.md` raíz (238 líneas, 26 KB):** el rol y la nota de arquitectura, los 12 principios, la autonomía, el vocabulario, el
+1. **`CLAUDE.md` raíz (239 líneas, 26 KB):** el rol y la nota de arquitectura, los 12 principios, la autonomía, el vocabulario, el
    idioma, las convenciones, el protocolo y el ritual de sesión (con «Números y PR» y «Celular obligatorio») **tal cual**; y lo nuevo:
    «Dónde viven las reglas», **«Reglas que cruzan todo el repo»** (una o pocas líneas cada una, con la prueba que la vigila y su
    archivo) y el **«Índice de las demás reglas»** (una fila por regla: lo que pide, qué la vigila, dónde está el detalle). Las
    transversales se quedan arriba porque una sesión las necesita antes de abrir un archivo: SQL a producción, solo tokens y modo oscuro,
    la estética del vidrio, Al milímetro, módulos y roles, guía de foco y sugerencias, familias fuera de los motores y precio 0, y
    números y PR.
-2. **El detalle va a `.claude/rules/`, una carpeta por tema y partido por ruta.** Cada sección se **movió tal cual** (no se reescribió):
+2. **El detalle va a `.claude/rules/`, un archivo por tema, partido por ruta.** Cada sección se **movió tal cual** (no se reescribió):
    ninguna regla cambia de sentido. Los nombres de las secciones se conservan en el índice, así que una referencia de una prueba, una
    skill o la plantilla del PR («CLAUDE.md «Guía de foco»») sigue llegando a su regla.
 3. **La lista de excepciones de movimiento** (31 animaciones permitidas, 11 KB en un solo párrafo) sale a su propio archivo, una por
@@ -53,13 +53,14 @@ se carga junto al archivo que lo importa.
 | `movimiento-excepciones.md` | Las 31 excepciones a «sin rebote, nunca en bucle» | `apps/web/app/**/*.css`, `lib/**/*movimiento*`, `docs/adr/0136-*` | 10,6 |
 | `nextjs.md` | Server Components y `"use client"` | `apps/**/*.ts`, `apps/**/*.tsx` | 0,5 |
 | `paleta.md` | Paleta y orden de pantalla | pantalla, `globals.css` | 2,5 |
-| `vidrio.md` | El vidrio «Serena», nada de beige plano, los dos sistemas, 44 px, lo que flota | pantalla, `app/estilos/**`, `components/ui/**`, `docs/vidrio/**`, `docs/familia/**` | 8,2 |
+| `vidrio.md` | El vidrio «Serena», el vidrio que dobla, nada de beige plano, los dos sistemas, 44 px, lo que flota | pantalla, `app/estilos/**`, `components/ui/**`, `docs/vidrio/**`, `docs/familia/**` | 9,4 |
 | `modo-oscuro.md` | Modo oscuro | pantalla, `estilos/tema.css`, `apps/web/tema/**` | 5,1 |
+| `letra.md` | La letra sale de una escala y las cifras cuadran en columna | pantalla, `tema/letra-suelta.mjs`, `lib/letra-*` | 2,4 |
 | `pantallas.md` | Todo el ancho, la prenda sin foto, la página estable, los combos, poco texto | pantalla, `lib/combo-reglas.ts`, `lib/categoria-de-prenda.ts` | 6,9 |
 | `carga-y-espera.md` | Carga y espera | pantalla, `lib/espera-*` | 4,2 |
 | `guia-de-foco.md` | Guía de foco | pantalla, `lib/*-guia.ts`, `lib/guia-*`, `scripts/focus/**` | 7,0 |
 | `sugerencias.md` | Sugerencias coherentes y «Existe también» | pantalla, `lib/sugerencias-*`, `lib/sugerir-*`, `lib/atributo-parecido*`, `scripts/sugerir/**` | 5,6 |
-| `unificar.md` | Una función, una pieza (con la tabla de piezas únicas) | pantalla, `apps/web/unificar/**`, `docs/unificar/**` | 28,7 |
+| `unificar.md` | Una función, una pieza (con la tabla de piezas únicas) | pantalla, `apps/web/unificar/**`, `docs/unificar/**` | 28,8 |
 | `finanzas.md` | Pantallas de Finanzas | `app/**/finanzas/**`, `components/finanzas/**`, `finanzas.css`, `vidrio/estados.css`, `lib/estados-*` | 2,6 |
 | `version-nueva.md` | Aviso de versión nueva | `VersionNueva.tsx`, `app/api/version/**`, `lib/version-nueva*`, `next.config.ts` | 1,2 |
 | `diseno.md` | Al milímetro, Formidable, skills de diseño de afuera | `docs/milimetro/**`, `docs/formidable/**`, `docs/maquetas/**`, `scripts/milimetro/**`, `apps/tienda/**`, `al-milimetro.yml` | 8,1 |
@@ -72,8 +73,9 @@ se carga junto al archivo que lo importa.
 
 ### Tabla de control: cada sección de antes y dónde quedó
 
-Comprobado con un script que busca cada línea de texto de `CLAUDE.md` de antes (887 líneas) en la raíz nueva y en `.claude/rules/`,
-sin mirar los saltos de línea: **871 están tal cual** y 16 se cambiaron a propósito (abajo). Ninguna se perdió.
+Comprobado con un script que busca cada línea de texto de `CLAUDE.md` de antes (915 líneas, el de `c395466b7`) en la raíz nueva y en
+`.claude/rules/`, sin mirar los saltos de línea: **899 están tal cual** y 16 se cambiaron a propósito (abajo). Ninguna se perdió. Lo que
+`main` sumó mientras se hacía esto (el vidrio que dobla, ADR-0681; la escala de la letra, ADR-0691) entró a su archivo al traer `main`.
 
 | Sección de antes | Dónde quedó |
 |---|---|
@@ -91,6 +93,7 @@ sin mirar los saltos de línea: **871 están tal cual** y 16 se cambiaron a prop
 | Guía de foco | `guia-de-foco.md` (y su resumen en la raíz) |
 | Sugerencias coherentes · «Existe también» | `sugerencias.md` |
 | Formidable · Skills de diseño de afuera · Al milímetro | `diseno.md` |
+| La letra sale de una escala (con «Las cifras cuadran en columna») | `letra.md` |
 | La tienda y el ERP no comparten estilos | `tienda.md` |
 | Una función, una pieza | `unificar.md` |
 | Guías interactivas | `guias.md` |
@@ -117,15 +120,15 @@ sin mirar los saltos de línea: **871 están tal cual** y 16 se cambiaron a prop
 
 | Sesión | Antes | Ahora | Se cargan además de la raíz |
 |---|---|---|---|
-| Cualquiera, al empezar | 141,5 KB (~35 mil) | 26,0 KB (~6,5 mil), **82 % menos** | — |
-| Solo SQL (una migración) | 141,5 KB | 39,6 KB (~9,9 mil), **72 % menos** | `sql-produccion`, `datos`, `modulos-y-roles`, `motores` |
-| Una regla de negocio en `lib/` | 141,5 KB | 26,5 KB, **81 % menos** | `nextjs` |
-| La tienda web | 141,5 KB | 35,4 KB, **75 % menos** | `diseno`, `tienda`, `nextjs` |
-| Un modal (solo su `.tsx`) | 141,5 KB | 100,4 KB (~25 mil), **29 % menos** | las 10 de pantalla |
-| Un modal con su CSS | 141,5 KB | 111,0 KB, **22 % menos** | las 10 de pantalla + las excepciones de movimiento |
+| Cualquiera, al empezar | 145,0 KB (~36 mil) | 26,4 KB (~6,6 mil), **82 % menos** | — |
+| Solo SQL (una migración) | 145,0 KB | 40,0 KB (~10 mil), **72 % menos** | `sql-produccion`, `datos`, `modulos-y-roles`, `motores` |
+| Una regla de negocio en `lib/` | 145,0 KB | 27,0 KB, **81 % menos** | `nextjs` |
+| La tienda web | 145,0 KB | 35,8 KB, **75 % menos** | `diseno`, `tienda`, `nextjs` |
+| Un modal (solo su `.tsx`) | 145,0 KB | 104,5 KB (~26 mil), **28 % menos** | las 11 de pantalla |
+| Un modal con su CSS | 145,0 KB | 115,1 KB, **21 % menos** | las 11 de pantalla + las excepciones de movimiento |
 
 Una sesión que toca pantallas carga casi todo lo de pantallas, como hoy: era lo esperado (casi todas esas reglas le aplican). Lo que
-más pesa ahí es la tabla de `unificar.md` (28,7 KB). `/context` en una sesión real dice la cifra exacta; el script de la medición
+más pesa ahí es la tabla de `unificar.md` (28,8 KB). `/context` en una sesión real dice la cifra exacta; el script de la medición
 calcula qué reglas calzan con los `paths:` de cada caso.
 
 ## Alternativas descartadas
@@ -142,7 +145,7 @@ calcula qué reglas calzan con los `paths:` de cada caso.
 
 ## Consecuencias
 
-- **Ganas:** 6,5 mil tokens al empezar en vez de 35 mil; cada sesión ve las reglas de lo que está tocando; una regla se lee entera en
+- **Ganas:** 6,6 mil tokens al empezar en vez de 36 mil; cada sesión ve las reglas de lo que está tocando; una regla se lee entera en
   su archivo, y dos sesiones que cambian reglas distintas ya no chocan en el mismo archivo.
 - **Pagas:** una regla puede quedar en una ruta que no se toca. Se mitiga con el índice y las transversales en la raíz, y con un
   `/revision` que lo revise. Codex no carga `.claude/rules/` solo: `AGENTS.md` le dice que los lea.

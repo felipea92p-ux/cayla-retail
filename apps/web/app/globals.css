@@ -115,6 +115,7 @@
 /* El marco con vidrio (ADR-0596): la aurora del fondo, el riel del menú con su gota, la bandeja de submódulos y las dos islas
    de la cabecera. La estructura vive en components/AppShell.tsx. */
 @import "./estilos/vidrio/marco.css";
+@import "./estilos/vidrio/dobla.css"; /* El vidrio que dobla (ADR-0681): lo que flota quieto dobla lo de atrás, donde el navegador sabe */
 @import "./estilos/vidrio/inicio.css"; /* El Inicio de una líder con vidrio (inicio-lider-vidrio-2026-10) */
 @import "./estilos/vidrio/vender.css"; /* El Punto de Venta con vidrio: la mesa al aire, el ticket en placa y la prenda «Foto al aire» (docs/maquetas/vender-vidrio-2026-11/) */
 @import "./estilos/vidrio/caja.css"; /* La Caja con vidrio: titular A · Ahumado, barra de cierre B · Isla */
@@ -134,6 +135,8 @@
 @import "./estilos/vidrio/tienda-web.css"; /* Tienda web con vidrio, armada con las piezas elegidas (tablero docs/vidrio/README.md, 4.3): placa Serena, vidrio claro, pozo, gota y ahumado */
 @import "./estilos/vidrio/estados.css"; /* Estados financieros: la tela de hilos, el vidrio con filo de luz y las cifras en Inter (ADR-0611). */
 @import "./estilos/vidrio/fusionar.css"; /* Catálogo ▸ Productos ▸ «Fusionar productos repetidos», dirección B «La ficha que se arma» (docs/maquetas/fusionar-productos-2026-11/) */
+@import "./estilos/cifras.css"; /* Las cifras con ancho fijo (ADR-0691): el papel que se imprime conserva sus dígitos. */
+@import "./estilos/letra.css"; /* El puente de la letra (ADR-0691): mientras se migra, cada `text-[Npx]` se ve en su escalón de la escala. */
 @import "./estilos/movimiento.css"; /* Animaciones encendidas o quietas (ADR-0625): arranca quieto; solo las señales de espera se mueven. */
 @import "./estilos/tacto.css"; /* Con el dedo, todo se toca en 44 px (ADR-0611, mejora 5). Va al final y sin capa: le gana a las piezas solo en una pantalla táctil. */
 
@@ -302,17 +305,29 @@
      de S/ 0.10. En «Cómo se pagó» (Historial) va en taupe, como el anticipo, para que no salga sin punto. */
   --color-metodo-redondeo: var(--color-taupe);
 
-  /* Escala tipográfica — se sube el PISO, no el techo (2026-09-08). La queja
-     de Felipe era sobre el texto chico, no sobre los títulos: xs pasa de 12 a
-     13px y sm de 14 a 15px, y `text-2xl`/`3xl` quedan como estaban. Cambiarlo
-     desde el token mueve las ~320 apariciones de la app de una sola vez. */
+  /* La escala de letra (ADR-0691, Felipe 2026-11-19: «hay cosas con fuente demasiado pequeña y son imposibles de leer»). Cinco
+     escalones y nada por debajo de 13 px; desde 22 px es exhibición (títulos de pantalla, cifras grandes) y no cambia.
+       13  `text-xs`       lo más chico que se escribe: etiquetas, chips, conteos
+       14  `text-detalle`  la segunda línea de una fila, lo denso de una tabla
+       16  `text-sm`       lo que se lee (era 15; `text-base` mide lo mismo)
+       18  `text-lg`       el título de una fila o de una tarjeta
+       21  `text-xl`       el título de una sección (era 20)
+     Es la segunda vez que se sube el piso. El 2026-09-08 se hizo desde estos mismos tokens (xs de 12 a 13, sm de 14 a 15) y la
+     queja volvió, porque 2.583 tamaños escritos a mano no pasaban por ellos. Ahora la letra se PIDE a la escala —en una hoja de
+     estilos, `var(--text-xs)`…— y lo vigila `lib/letra-suelta.test.ts` (definición única: `tema/letra-suelta.mjs`). Mientras se
+     migra, `estilos/letra.css` (el puente) lleva en pantalla cada `text-[Npx]` a su escalón. */
   --text-xs: 0.8125rem;
   --text-xs--line-height: 1.5;
-  --text-sm: 0.9375rem;
-  --text-sm--line-height: 1.55;
+  --text-detalle: 0.875rem;
+  --text-detalle--line-height: 1.5;
+  --text-sm: 1rem;
+  --text-sm--line-height: 1.5;
+  --text-lg: 1.125rem;
+  --text-xl: 1.3125rem;
 
-  /* Familias tipográficas */
-  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  /* Familias tipográficas. Primero `--font-cifras`: una letra que solo tiene los diez dígitos, con ancho fijo (`lib/letra-cifras.ts`,
+     ADR-0691). El navegador toma de ella los dígitos y de DM Sans todo lo demás. La serif no cambia: ya trae cifras de ancho fijo. */
+  --font-sans: var(--font-cifras), var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-eb-garamond), ui-serif, Georgia, serif;
 
   /* Radios — REVERSIÓN de la decisión de esquinas rectas del 2026-09-05.
@@ -544,7 +559,7 @@ body {
   /* El sobretítulo de una pantalla («INVENTARIO · EXISTENCIAS»): en rojo, el único rojo de la
      cabecera. Cuenta dentro del máximo de 2 rojos por pantalla. */
   .eyebrow-cayla {
-    font-size: 11px;
+    font-size: var(--text-xs);
     font-weight: 700;
     letter-spacing: 0.09em;
     text-transform: uppercase;
@@ -561,7 +576,7 @@ body {
     border-radius: var(--radius-md);
     border: 1px solid transparent;
     padding: 0.5rem 1rem;
-    font-size: 13.5px;
+    font-size: var(--text-detalle);
     font-weight: 500;
     line-height: 1.25;
     white-space: nowrap;
@@ -576,7 +591,7 @@ body {
     extiende aquí porque es la misma clase compartida en 23 pantallas — subirla en un solo archivo habría dejado dos
     botones «chicos» de alto distinto en la web). */
     padding: 0.3125rem 0.75rem;
-    font-size: 12.5px;
+    font-size: var(--text-xs);
   }
   .btn-primario {
     background: var(--color-tinta);
@@ -672,7 +687,7 @@ body {
     border-radius: 999px;
     border: 1px solid var(--color-sand);
     padding: 0.3125rem 0.875rem;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     font-weight: 600;
     color: var(--color-taupe);
     white-space: nowrap;
@@ -717,7 +732,7 @@ body {
     box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde);
     border-radius: var(--radius-xl);
     padding: 0.875rem 1.125rem;
-    font-size: 14px; /* ronda 19: a 13 nadie la leía */
+    font-size: var(--text-detalle); /* ronda 19: a 13 nadie la leía */
     line-height: 1.6;
     color: var(--color-taupe);
   }
@@ -1790,7 +1805,7 @@ html[data-buscando] [data-resultados] {
     text-transform: uppercase;
     letter-spacing: 0.13em;
     font-weight: 600;
-    font-size: 11px;
+    font-size: var(--text-xs);
     padding: 0.75rem 1rem;
   }
 }

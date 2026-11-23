@@ -2439,7 +2439,7 @@ export const GUIA_BARRIDO_PISO: Guia = {
       ancla: "barrido.escaneado",
       opcional: true,
       titulo: "Ver lo escaneado",
-      texto: "Todo lo escaneado, en tramos: lo que cada persona escaneó seguido, con su hora. Si algo se contó de más, quitas un tramo o una prenda; no se borra, queda tachado.",
+      texto: "Lo que escaneó cada persona, con su hora. Lo tuyo más reciente sale primero y abierto. Si algo se contó de más, lo quitas: no se borra, queda tachado.",
     },
     {
       id: "ultima",

@@ -8,7 +8,8 @@ import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { useHojaArrastre } from "@/components/ui/useHojaArrastre";
 import { useAtrasCierraLaHoja } from "@/components/ui/useAtrasCierraLaHoja";
-import { CELULAR, useEnCelular } from "@/components/ui/useEnCelular";
+import { CELULAR, ESCRITORIO, useEnCelular } from "@/components/ui/useEnCelular";
+import { useVidrioQueDobla } from "@/components/ui/useVidrioQueDobla";
 import { decidirLado, goma, pasoDeLado, velocidad, type Muestra } from "@/lib/hoja-gesto";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
@@ -262,12 +263,23 @@ export function Cajon({
     [navegacion]
   );
   const deslizar = useDeslizarDeLado({ navegacion, registro, alPasar: navegar });
+  // El cajón flota sobre la lista: dobla lo de atrás en su canto y conserva su relleno. Solo en escritorio: en el celular es una hoja
+  // pegada abajo, sin canto libre. ADR-0681.
+  const dobla = useVidrioQueDobla<HTMLDivElement>({ desenfoque: 22, solo: ESCRITORIO, asienta: true });
   const ponerHoja = useCallback(
     (el: HTMLDivElement | null) => {
       arrastre.enlazar(el);
       deslizar(el);
+      if (!el) return;
+      const soltar = dobla(el);
+      // Con una limpieza, React ya no llama a esta función con `null` al desmontar: se avisa aquí a quien lo esperaba.
+      return () => {
+        soltar?.();
+        arrastre.enlazar(null);
+        deslizar(null);
+      };
     },
-    [arrastre, deslizar]
+    [arrastre, deslizar, dobla]
   );
 
   const describe = frase ? "frase" : sobre ? "sobre" : null;

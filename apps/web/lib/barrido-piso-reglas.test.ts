@@ -54,6 +54,10 @@ import {
   porResolverDeLaFila,
   quienDelBarrido,
   fraseDeLaFila,
+  memoriaDeLaPersona,
+  juntarMemoria,
+  textoLlegaronTarde,
+  codigoParaMostrar,
 } from "./barrido-piso-reglas";
 
 const ANA = { responsableId: "ana", ubicacionId: "tru" };
@@ -527,5 +531,61 @@ describe("El historial (actividad 9)", () => {
     expect(quienDelBarrido(f)).toBe("Rosa · 3 escanearon");
     expect(quienDelBarrido({ ...f, personas: 1 })).toBe("Rosa");
     expect(fraseDeLaFila(f, new Date("2026-11-23T00:00:00Z"))).toMatch(/confirmado, 9 escaneadas, 2 al piso, 4 al almacén, 1 por resolver/);
+  });
+});
+
+describe("la memoria de la persona (repetidas tras recargar, /formidable 2026-11-23)", () => {
+  const l = (id: string, varianteId: string, personaId: string, hhmm: string, anulada = false) => ({
+    id,
+    varianteId,
+    cantidad: 1,
+    personaId,
+    nombre: personaId,
+    escaneadaEn: `2026-11-22T${hhmm}:00-05:00`,
+    anuladaEn: anulada ? "2026-11-22T11:00:00-05:00" : null,
+    anuladaPor: null,
+  });
+  const lecturas = [l("1", "m", "ana", "10:01"), l("2", "s", "ana", "10:03"), l("3", "m", "rosa", "10:05"), l("4", "l", "ana", "10:02", true), l("5", "m", "ana", "10:00")];
+
+  it("cuenta solo lo suyo y sin lo quitado, y su última es la más nueva que sigue en pie", () => {
+    expect(memoriaDeLaPersona(lecturas, "ana")).toEqual({ porPrenda: { m: 2, s: 1 }, ultima: "s" });
+    expect(memoriaDeLaPersona(lecturas, "rosa")).toEqual({ porPrenda: { m: 1 }, ultima: "m" });
+  });
+
+  it("sin persona elegida no recuerda nada", () => {
+    expect(memoriaDeLaPersona(lecturas, null)).toEqual({ porPrenda: {}, ultima: null });
+  });
+
+  it("suma lo suyo que espera en este celular, nunca lo de otra firma", () => {
+    expect(juntarMemoria({ m: 2 }, [lectura("a", "m"), lectura("b", "s", ROSA)], "ana", null)).toEqual({ m: 3 });
+  });
+
+  it("no baja de lo que el celular ya contaba (una lectura subió entre la pregunta y la respuesta)", () => {
+    expect(juntarMemoria({ m: 1 }, [], "ana", { m: 2, s: 1 })).toEqual({ m: 2, s: 1 });
+  });
+
+  it("si cambió la persona, empieza de lo de ella", () => {
+    expect(juntarMemoria({ s: 1 }, [], "rosa", null)).toEqual({ s: 1 });
+  });
+});
+
+describe("lo que llegó tarde y el código largo (chaos 2026-11-23)", () => {
+  const nombre = (id: string) => ({ a: "Blusa Emma · L", b: "Polo Kai · M" })[id] ?? "Prenda";
+  it("nombra las prendas que no entraron", () => {
+    expect(textoLlegaronTarde([{ varianteId: "a", cantidad: 1 }], nombre)).toBe(
+      "1 lectura de este celular llegó tarde y no entró: Blusa Emma · L. Si están colgadas, revisa en Existencias que sigan en el piso.",
+    );
+    expect(textoLlegaronTarde([{ varianteId: "a", cantidad: 1 }, { varianteId: "a", cantidad: 2 }, { varianteId: "b", cantidad: 1 }], nombre)).toMatch(/^4 lecturas .*: Blusa Emma · L, Polo Kai · M\./);
+  });
+  it("sin nada pendiente no dice nada", () => {
+    expect(textoLlegaronTarde([], nombre)).toBeNull();
+  });
+  it("con muchas prendas corta en tres", () => {
+    const l = ["1", "2", "3", "4", "5"].map((v) => ({ varianteId: v, cantidad: 1 }));
+    expect(textoLlegaronTarde(l, (v) => `P${v}`)).toContain("P1, P2, P3 y 2 más.");
+  });
+  it("un código larguísimo se muestra corto", () => {
+    expect(codigoParaMostrar("Y".repeat(300))).toBe(`${"Y".repeat(40)}…`);
+    expect(codigoParaMostrar(" ABC ")).toBe("ABC");
   });
 });
