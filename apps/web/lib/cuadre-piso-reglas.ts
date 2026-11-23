@@ -197,6 +197,7 @@ export function leerBorradorCuadre(texto: string | null, ahora: Date): BorradorC
   try {
     crudo = JSON.parse(texto);
   } catch {
+    // relleno-a-proposito: un borrador roto es «no hay borrador» (lo dice arriba).
     return null;
   }
   if (!esObjeto(crudo) || crudo.v !== VERSION_BORRADOR_CUADRE || typeof crudo.token !== "string" || !ES_UUID.test(crudo.token)) return null;

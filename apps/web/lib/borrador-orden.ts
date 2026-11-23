@@ -120,6 +120,7 @@ export function leerBorrador(texto: string | null): BorradorDeOrden | null {
   try {
     x = JSON.parse(texto);
   } catch {
+    // relleno-a-proposito: un borrador que no es JSON es «no hay borrador» (nunca lanza).
     return null;
   }
   if (!esObjeto(x) || x.v !== VERSION || !esTexto(x.guardadoEn) || Number.isNaN(Date.parse(x.guardadoEn)) || !esFoto(x.foto)) return null;
@@ -143,6 +144,7 @@ function leerIndice(almacen: Almacen, tallerId: string): string[] {
     const x: unknown = JSON.parse(almacen.getItem(claveDelIndice(tallerId)) ?? "[]");
     return Array.isArray(x) && x.every(esTexto) ? x : [];
   } catch {
+    // relleno-a-proposito: un índice roto se lee como vacío (lo dice arriba).
     return [];
   }
 }

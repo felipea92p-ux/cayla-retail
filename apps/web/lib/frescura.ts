@@ -155,6 +155,7 @@ async function familiasDelCatalogo(supabase: Supabase): Promise<Familia[]> {
     if (error || !data) return [];
     return data.map((f) => ({ codigo: f.codigo, nombre: f.nombre, orden: Number(f.orden) || 0 }));
   } catch {
+    // relleno-a-proposito: si la lectura falla, ninguna familia: la barra de la tienda va entera.
     return [];
   }
 }

@@ -35,7 +35,17 @@ node scripts/rendimiento/observabilidad.mjs --json     # hallazgos con archivo:l
 **Infraestructura** (sí/no): logger estructurado · APM/errores · `instrumentation.ts` · Core Web Vitals · `request_id` · límites de error por segmento.
 **Higiene** (AST): `console-suelto` · `catch-mudo` (vacío o solo `console`) · `rpc-descartada` (`await supabase.rpc(…);` sin mirar el resultado) ·
 `rpc-ignora-error` (`{ data }` sin `error`: una falla se confunde con «no hay datos») · `fetch-sin-tope` (sin `signal`) ·
-`dato-personal-en-log` · `accion-sin-rastro` (Server Action sin log, `throw` ni error). Son pistas: **cada una se confirma leyendo** el archivo.
+`dato-personal-en-log` · `accion-sin-rastro` (Server Action sin log, `throw` ni error) · `relleno-silencioso` (ver abajo). Son pistas: **cada una se
+confirma leyendo** el archivo.
+
+**`relleno-silencioso` es un candado del CI, no solo una pista (ADR-0693).** Un relleno pone un valor en lugar del error —`.catch(() => null)`,
+`.catch(() => [])`, `.catch(() => {})`, `catch { return [] }`— y la pantalla sigue como si nada: el historial «vacío» que en verdad no cargó. El que
+es a propósito lo dice en su línea, en el comentario pegado arriba o dentro del manejador: `// relleno-a-proposito: <qué pasa si falla, 10
+caracteres o más>`. No es relleno lo que avisa o usa el error (`capturarError`, `avisar.error`, `console.error`, relanzar, `({ error: String(e) })`,
+`setFallo(true)`) ni `res.json().catch(() => null)` (la falla ya se ve en `res.ok`). Lo de antes de la regla es deuda en
+`apps/web/lib/relleno-silencioso-archivos.ts`, que solo baja; `apps/web/lib/relleno-silencioso.test.ts` falla si nace uno sin marca. Al auditar un
+módulo, **cada relleno de su deuda es una pregunta del Paso 2**: si es opcional de verdad, se marca con su motivo; si esconde una falla que alguien
+tendría que saber (dinero, stock, comprobante), se avisa o se deja subir, y se baja su número.
 
 ## Paso 2 — Las cuatro preguntas (por cada módulo o integración auditada)
 

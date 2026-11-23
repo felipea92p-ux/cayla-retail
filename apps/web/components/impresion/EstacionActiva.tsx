@@ -22,7 +22,7 @@ const darleUnMomento = () => new Promise<void>((listo) => window.setTimeout(list
 /** Las imágenes del recibo (logo, QR) decodificadas, con tope: una que no carga no frena la boleta. */
 const imagenesListas = () =>
   Promise.race([
-    Promise.all([...document.querySelectorAll<HTMLImageElement>("#comprobante-print img")].map((i) => i.decode().catch(() => undefined))),
+    Promise.all([...document.querySelectorAll<HTMLImageElement>("#comprobante-print img")].map((i) => i.decode().catch(() => undefined))), // relleno-a-proposito: una imagen que no carga no frena la boleta
     new Promise((listo) => window.setTimeout(listo, 1500)),
   ]);
 

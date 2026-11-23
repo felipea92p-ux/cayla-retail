@@ -166,8 +166,9 @@ async function CajaConDatos({
   });
 
   const metaVentaDiaria = parametros ? parametros.meta : (ubicaciones.find((u) => u.id === caja.ubicacionId)?.metaVentaDiaria ?? null);
-  // El cierre del día en que se abrió esta caja, el mismo que usa el Marcador (nunca deben discrepar). Si no se puede leer, el de hoy: la pantalla no se cae por un horario.
+  // El cierre del día en que se abrió esta caja, el mismo que usa el Marcador (nunca deben discrepar).
   const horaHoy = ubicaciones.find((u) => u.id === caja.ubicacionId)?.horaCierre ?? null;
+  // relleno-a-proposito: si no se puede leer, el de hoy: la pantalla no se cae por un horario.
   const horaCierre = await horaCierreDeLaCaja(caja.ubicacionId, horaHoy, caja.abiertaEn).catch(() => horaHoy);
 
   return (

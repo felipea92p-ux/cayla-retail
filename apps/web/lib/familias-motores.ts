@@ -48,6 +48,7 @@ export async function categoriasFueraDeMotores(supabase: Supabase): Promise<Set<
     if (error || !data) return new Set();
     return categoriasApagadas(data as unknown as CategoriaConFamilia[]);
   } catch {
+    // relleno-a-proposito: si la lectura falla, vacío y la pantalla cuenta como antes (lo dice arriba).
     return new Set();
   }
 }
