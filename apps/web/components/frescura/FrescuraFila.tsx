@@ -55,7 +55,7 @@ function QueHacer({ fila, decision }: { fila: FilaVista; decision: FilaDeDecisio
   return (
     <div className="flex flex-col items-start gap-1.5">
       {decision && <Decision d={decision} />}
-      <span className="flex items-start gap-1.5 text-[15px] leading-snug">
+      <span className="flex items-start gap-1.5 text-sm leading-snug">
         <Icono aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-taupe" />
         <span>{primera.texto}</span>
       </span>
@@ -80,7 +80,7 @@ function Prenda({ fila, apariencia, categoria, onAbrir }: { fila: FilaVista; apa
           aria-label={`${fila.nombre}${fila.color ? ` ${fila.color}` : ""}: abrir el detalle`}
           data-guia="frescura.prenda-nombre"
           // `min-h-7`: un blanco de 24 px o más con el mouse (medía 19; oficio visual, Formidable 2026-10-09).
-          className="block min-h-7 py-0.5 text-left text-[15px] font-semibold leading-tight hover:underline focus-visible:underline"
+          className="block min-h-7 py-0.5 text-left text-sm font-semibold leading-tight hover:underline focus-visible:underline"
         >
           {fila.nombre}
         </button>

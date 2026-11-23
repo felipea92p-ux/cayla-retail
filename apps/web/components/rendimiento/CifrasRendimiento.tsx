@@ -44,7 +44,7 @@ function Volteable({ frente, tras, indice, guia, className = "" }: { frente: Rea
   );
 }
 
-const Nombre = ({ children }: { children: ReactNode }) => <p className="label-cayla text-[11px] font-bold text-taupe">{children}</p>; // unificar-fijo: el nombre de la cara de atrás, el mismo de <TarjetaCifra>
+const Nombre = ({ children }: { children: ReactNode }) => <p className="label-cayla text-xs font-bold text-taupe">{children}</p>; // unificar-fijo: el nombre de la cara de atrás, el mismo de <TarjetaCifra>
 
 /** La línea que sube: lo vendido, sumado, dentro del tramo. Se dibuja una vez por tramo. */
 function Trazo({ serie }: { serie: number[] }) {

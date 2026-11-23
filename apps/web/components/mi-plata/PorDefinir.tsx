@@ -56,7 +56,7 @@ export function PorDefinir({ modelos, categorias, guia }: { modelos: ModeloPorDe
           <li key={m.ids.join(",")} className="grid grid-cols-[3rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 py-3 @min-[32rem]:grid-cols-[3rem_minmax(0,1fr)_auto]">
             <MiniaturaPrenda fotoUrl={null} tamano="lg" categoria={m.categoria} />
             <div className="min-w-0">
-              <p className="truncate text-[15px] font-semibold leading-tight text-tinta">
+              <p className="truncate text-sm font-semibold leading-tight text-tinta">
                 {m.nombre} <span className="font-normal text-taupe">· {m.cantidad} unid.</span>
               </p>
               <p className="texto-detalle mt-0.5 text-taupe">{detalleDelModelo(m)}</p>

@@ -605,7 +605,7 @@ export function ProveedoresPanel({
 
       {desactivados.length > 0 && (
         <section className="anim-entra space-y-2" style={{ ["--i" as string]: 9 }}>
-          <p className="label-cayla text-[11px] text-tinta/65">Desactivados — ya no aparecen al registrar un comprobante</p>
+          <p className="label-cayla text-xs text-tinta/65">Desactivados — ya no aparecen al registrar un comprobante</p>
           <Tabla>
             {desactivados.map((p, indice) => (
               <Fila

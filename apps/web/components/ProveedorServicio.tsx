@@ -58,7 +58,7 @@ export function ProveedorServicio({ resumen }: { resumen: ResumenServicio }) {
 
       <div className="grid gap-3 lg:grid-cols-2">
         <div className="card-cayla p-5">
-          <p className="label-cayla pb-3 text-[11px] text-tinta/65">Mes a mes</p>
+          <p className="label-cayla pb-3 text-xs text-tinta/65">Mes a mes</p>
           <BarrasTiempo
             etiqueta="Lo pagado a este proveedor en cada uno de los últimos 12 meses"
             destacada={mesActual}
@@ -74,7 +74,7 @@ export function ProveedorServicio({ resumen }: { resumen: ResumenServicio }) {
         </div>
 
         <div className="card-cayla @container overflow-hidden">
-          <p className="label-cayla px-5 pb-2 pt-4 text-[11px] text-tinta/65">Últimos comprobantes</p>
+          <p className="label-cayla px-5 pb-2 pt-4 text-xs text-tinta/65">Últimos comprobantes</p>
           <div className="divide-y divide-tinta/10">
             {resumen.ultimos.map((u) => (
               <div key={u.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-5 py-3 @min-[28rem]:grid-cols-[6.5rem_minmax(0,1fr)_auto] @min-[28rem]:gap-x-4">

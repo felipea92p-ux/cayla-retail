@@ -59,15 +59,15 @@ export const VISIBILIDADES: readonly VisibilidadFinanzas[] = ["todo", "escenario
 export const TEXTO_DE_VISIBILIDAD: Record<VisibilidadFinanzas, { corto: string; nota: string }> = {
   todo: {
     corto: "Se hará: todo Finanzas",
-    nota: "Se hará. La inversión sale en el Resumen de Finanzas y en tu caja de las próximas semanas, para que sepas qué pagos vienen y puedas guardar plata o anticiparte.",
+    nota: "Se hará. Sale en el Resumen de Finanzas y en tu caja de las próximas semanas.",
   },
   escenarios: {
     corto: "Solo en Escenarios",
-    nota: "Es una idea: sirve para el «¿y si compro esto?» de Escenarios, pero no sale en el Resumen ni en tu caja. Escenarios todavía no la lee: se conectará.",
+    nota: "Es una idea: no sale en el Resumen ni en tu caja. Escenarios todavía no la lee.",
   },
   nada: {
     corto: "No mostrarla",
-    nota: "Finanzas no la ve en ningún sitio. Lo ya registrado de verdad (órdenes, facturas por pagar) sigue contando.",
+    nota: "Finanzas no la ve. Las órdenes y facturas ya registradas siguen contando.",
   },
 };
 

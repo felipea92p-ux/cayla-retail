@@ -101,17 +101,19 @@ export function ProveedorVistaRapida({
     >
       <PasoSugerido paso={paso} proveedorId={p.id} animar />
 
+      {/* Con la letra en 13 px, «Facturado 12 m» y «Última compra» ocupan dos renglones y «Saldo» uno: cada celda pega su cifra abajo
+          para que las tres queden a la misma altura. (En una sola línea no entran: se probó y «Última compra» se cortaba.) */}
       <dl className="mt-5 grid grid-cols-3 divide-x divide-sand overflow-hidden rounded-xl border border-sand">
-        <div className="px-3.5 py-3">
-          <dt className="label-cayla text-[10px] text-tinta/65">Facturado 12 m</dt>
-          <dd className="font-display mt-0.5 text-[21px] leading-tight tabular-nums text-tinta">{soles(p.facturado_12m ?? 0).replace(/\.00$/, "")}</dd>
+        <div className="flex flex-col justify-between px-3.5 py-3">
+          <dt className="label-cayla text-xs text-tinta/65">Facturado 12 m</dt>
+          <dd className="font-display mt-0.5 text-xl leading-tight tabular-nums text-tinta">{soles(p.facturado_12m ?? 0).replace(/\.00$/, "")}</dd>
         </div>
-        <div className="px-3.5 py-3">
-          <dt className="label-cayla text-[10px] text-tinta/65">Saldo</dt>
-          <dd className={`font-display mt-0.5 text-[21px] leading-tight tabular-nums ${(p.saldo_vencido ?? 0) > 0 ? "text-rojo" : "text-tinta"}`}>{soles(p.saldo ?? 0).replace(/\.00$/, "")}</dd>
+        <div className="flex flex-col justify-between px-3.5 py-3">
+          <dt className="label-cayla text-xs text-tinta/65">Saldo</dt>
+          <dd className={`font-display mt-0.5 text-xl leading-tight tabular-nums ${(p.saldo_vencido ?? 0) > 0 ? "text-rojo" : "text-tinta"}`}>{soles(p.saldo ?? 0).replace(/\.00$/, "")}</dd>
         </div>
-        <div className="px-3.5 py-3">
-          <dt className="label-cayla text-[10px] text-tinta/65">Última compra</dt>
+        <div className="flex flex-col justify-between px-3.5 py-3">
+          <dt className="label-cayla text-xs text-tinta/65">Última compra</dt>
           <dd className={`font-display mt-1 text-lg leading-tight ${sinCompras90 && p.activo ? "text-ambar-profundo" : "text-tinta"}`}>{haceCuanto(p.dias_desde_ultima_compra)}</dd>
         </div>
       </dl>

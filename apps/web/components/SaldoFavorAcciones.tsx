@@ -87,7 +87,7 @@ function ReembolsoModal({ proveedorId, proveedorNombre, saldoFavor, onClose }: {
             <CampoFecha etiqueta="Fecha" valor={fecha} onValor={setFecha} required />
           </div>
           <div>
-            <p className="label-cayla text-[11px] text-tinta/65">Cómo te lo devolvió</p>
+            <p className="label-cayla text-xs text-tinta/65">Cómo te lo devolvió</p>
             <div role="radiogroup" aria-label="Medio de devolución" className="mt-2 flex flex-wrap gap-1.5">
               {Object.entries(ETIQUETA_METODO).map(([v, t]) => (
                 <button
@@ -96,7 +96,7 @@ function ReembolsoModal({ proveedorId, proveedorNombre, saldoFavor, onClose }: {
                   role="radio"
                   aria-checked={metodo === v}
                   onClick={() => setMetodo(v)}
-                  className={`label-cayla rounded-full border px-3 py-1 text-[10px] leading-4 transition-colors ${
+                  className={`label-cayla rounded-full border px-3 py-1 text-xs leading-4 transition-colors ${
                     metodo === v ? "border-tinta bg-tinta text-crema" : "border-tinta/15 bg-tinta/[0.04] text-tinta/75 hover:border-rojo hover:text-rojo"
                   }`}
                 >
