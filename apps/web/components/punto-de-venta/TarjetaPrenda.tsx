@@ -202,7 +202,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
               onClick={() => onAbrir(prenda.clave, elegido.clave)}
               disabled={bloqueado}
               aria-label={`Ver los ${prenda.colores.length} colores de ${nombre}`}
-              className="pv-talla h-[1.625rem] min-w-[1.875rem] px-1.5 text-[11px] font-semibold tabular-nums text-tinta/70"
+              className="pv-talla h-[1.625rem] min-w-[1.875rem] px-1.5 text-xs font-semibold tabular-nums text-tinta/70"
             >
               +{resto}
             </button>
@@ -252,7 +252,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
           className="anim-tope pv-prenda-tope pointer-events-none absolute inset-0 z-20 overflow-hidden bg-rojo/[0.06] shadow-lg shadow-rojo/25 ring-1 ring-inset ring-rojo/50"
         >
           <span className="anim-tope-barrido absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-rojo/15 to-transparent" />
-          <span className="label-cayla absolute top-3 left-3 rounded-full bg-papel/90 px-2 py-0.5 text-[10px] text-rojo-profundo">Máximo alcanzado</span>
+          <span className="label-cayla absolute top-3 left-3 rounded-full bg-papel/90 px-2 py-0.5 text-xs text-rojo-profundo">Máximo alcanzado</span>
         </span>
       )}
 
@@ -268,7 +268,7 @@ function BotonAgregar({ color, bloqueado, onAgregar }: { color: Color; bloqueado
   if (!t) return null;
   const motivo = motivoNoCobrable(t.variante);
   const base =
-    "pv-talla vg-entra label-cayla flex h-8 min-w-0 flex-1 items-center justify-center gap-1.5 px-2 text-[10.5px] active:translate-y-px";
+    "pv-talla vg-entra label-cayla flex h-8 min-w-0 flex-1 items-center justify-center gap-1.5 px-2 text-xs active:translate-y-px";
   if (motivo === "cobrable")
     return (
       <button
@@ -326,7 +326,7 @@ function CasillaTalla({
 }) {
   const estilo = { "--i": i } as CSSProperties;
   // Cada talla es una gota, como las píldoras de filtro (vidrio/vender.css): `data-talla` dice cuál es su cara.
-  const base = "pv-talla vg-entra label-cayla flex h-8 min-w-8 items-center justify-center px-2 text-[11px]";
+  const base = "pv-talla vg-entra label-cayla flex h-8 min-w-8 items-center justify-center px-2 text-xs";
   if (t.stockAqui <= 0 && t.almacenAqui > 0)
     return (
       <Tooltip>

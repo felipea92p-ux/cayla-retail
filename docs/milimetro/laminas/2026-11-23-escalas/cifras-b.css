@@ -1,0 +1,8 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400..600&display=swap");
+/* Lámina de escalas, cifras B · «Inter con tabulares, solo donde hoy hay DM Sans» (propuesta 1 del tablero de /milimetro, NO aplicada).
+   Medido el 2026-11-23 en una página en blanco, a 40 px, con tabular-nums: «1111» y «0000» miden lo mismo en Inter (103,8 px) y en
+   EB Garamond (76,8 px), y no en DM Sans, ni la de next/font ni la completa de Google (41,3 contra 107 px): DM Sans no trae cifras
+   tabulares. Por eso los montos en Garamond quedan como están (ya alinean) e Inter entra solo en las cifras en DM Sans. El guion de las
+   fotos marca esas cifras con `data-cifra-sans` (las `.tabular-nums` cuya letra no es Garamond). Inter ya la carga Estados financieros
+   (lib/letra-estados.ts); aquí sale de Google Fonts solo para la foto. */
+[data-cifra-sans] { font-family: "Inter", var(--font-sans); font-variant-numeric: tabular-nums; }

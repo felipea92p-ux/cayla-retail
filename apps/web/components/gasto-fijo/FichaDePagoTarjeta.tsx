@@ -27,7 +27,7 @@ function Dato({ etiqueta, children, copiar, que }: { etiqueta: string; children:
   return (
     <div className="flex items-start justify-between gap-3 py-1.5">
       <div className="min-w-0">
-        <p className="label-cayla text-[10px] text-tinta/55">{etiqueta}</p>
+        <p className="label-cayla text-xs text-tinta/55">{etiqueta}</p>
         <div className="text-sm text-tinta">{children}</div>
       </div>
       {copiar && que && <BotonCopiar texto={copiar} que={que} forma="icono" />}
@@ -90,7 +90,7 @@ export function FichaDePagoTarjeta({ gastoFijoId, hoy }: { gastoFijoId: string; 
   return (
     <div className="anim-revelar mb-4 space-y-3" aria-live="polite">
       <div className="rounded-xl border border-sand vd-placa p-4">
-        <p className="label-cayla text-[10px] text-tinta/55">Se le paga a</p>
+        <p className="label-cayla text-xs text-tinta/55">Se le paga a</p>
         <div className="mt-1 divide-y divide-tinta/10">
           {f.beneficiario && (
             <Dato etiqueta="Propietario o empresa">

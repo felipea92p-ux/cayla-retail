@@ -1,7 +1,11 @@
 ---
 name: milimetro
-description: OBLIGATORIA en todo cambio visual, pantalla o modal nuevo y auditoría del ERP (CLAUDE.md «Al milímetro»; el check del PR la pide). La entrada del set «Al milímetro». Diseña y audita cada pieza del ERP CAYLA (botón, campo, tabla, gráfico, texto) con base teórica y medida en el navegador. Arma la «ficha al milímetro» llamando a /espacio, /tipografia, /color, /movimiento, /textos y /graficos, y define los estados de toda pieza interactiva. Antes de dibujar mira «Una función, una pieza»: nunca dibuja una pieza nueva a mano. Modos: `diseñar <pieza>`, `auditar <ruta|pieza>` (corre los medidores de las siete skills y ordena los hallazgos por severidad) y `proponer` (junta en un tablero las mejoras al repo que proponen las seis, para que Felipe decida mirando). Úsala siempre que cambie algo que se ve en `apps/web`, y cuando alguien diga «al milímetro», «diseña este componente», «con base teórica», «full animaciones», «audita esta pieza» o «qué estados le faltan».
+description: "Obligatoria en todo cambio visual, pantalla o modal nuevo y auditoría del ERP: arma la ficha al milímetro con /espacio, /tipografia, /color, /movimiento, /textos y /graficos, y audita o propone mejoras. Úsala siempre que cambie algo que se ve en apps/web."
 ---
+
+## Qué hace y cuándo se usa
+
+OBLIGATORIA en todo cambio visual, pantalla o modal nuevo y auditoría del ERP (CLAUDE.md «Al milímetro»; el check del PR la pide). La entrada del set «Al milímetro». Diseña y audita cada pieza del ERP CAYLA (botón, campo, tabla, gráfico, texto) con base teórica y medida en el navegador. Arma la «ficha al milímetro» llamando a /espacio, /tipografia, /color, /movimiento, /textos y /graficos, y define los estados de toda pieza interactiva. Antes de dibujar mira «Una función, una pieza»: nunca dibuja una pieza nueva a mano. Modos: `diseñar <pieza>`, `auditar <ruta|pieza>` (corre los medidores de las siete skills y ordena los hallazgos por severidad) y `proponer` (junta en un tablero las mejoras al repo que proponen las seis, para que Felipe decida mirando). Úsala siempre que cambie algo que se ve en `apps/web`, y cuando alguien diga «al milímetro», «diseña este componente», «con base teórica», «full animaciones», «audita esta pieza» o «qué estados le faltan».
 
 Al milímetro: $ARGUMENTS   (`diseñar <pieza>`, `auditar <ruta|pieza>`, `proponer`; sin argumento = la pieza que estás construyendo)
 
@@ -28,7 +32,7 @@ debe funcionar y **cómo se juntan** las seis respuestas en una sola ficha:
 ## Candados
 
 1. **El repo manda sobre la skill.** Colores y letras salen solo de los tokens de `apps/web/app/globals.css` (el oscuro está en `apps/web/app/estilos/tema.css`).
-   Las piezas salen de la tabla «Una función, una pieza» de `CLAUDE.md` (ADR-0358) y de `docs/unificar/README.md`. El movimiento sale de ADR-0136 / ADR-0625
+   Las piezas salen de la tabla «Una función, una pieza» de `.claude/rules/unificar.md` (ADR-0358) y de `docs/unificar/README.md`. El movimiento sale de ADR-0136 / ADR-0625
    y de `--t-resp`, `--t-cambio`, `--t-hoja`, `--t-momento`, `--ease-cayla` y `--ease-salida`. El vidrio sale de `apps/web/app/estilos/vidrio/recetas.css` (ADR-0596).
    **Nunca** introduce un hex, una fuente o una pieza nueva.
 2. **Si la investigación dice que una regla del repo se puede mejorar, no la cambia sola.** La escribe como **propuesta**: regla actual con su archivo o ADR →
@@ -52,7 +56,7 @@ Las fuentes de cada nivel, comentadas y con lo que quedó sin verificar: `refere
 
 ### A. Antes de dibujar: el árbol (1–4)
 
-1. **¿La pieza está en «Piezas únicas»?** (`grep -n "^## Una función, una pieza" CLAUDE.md` y su tabla, más `docs/unificar/README.md`). Entonces se usa
+1. **¿La pieza está en «Piezas únicas»?** (`grep -n "^## Una función, una pieza" .claude/rules/unificar.md` y su tabla, más `docs/unificar/README.md`). Entonces se usa
    **esa pieza con sus props**, y la ficha la documenta tal como es, no la vuelve a dibujar → regla del repo (ADR-0358) → lo respalda `[Práctica]` (consistencia,
    heurística 4 de Nielsen) → se mide con `pnpm --filter web test -- unificar`, que falla si alguien la redibuja.
 2. **¿La familia existe pero no está decidida?** Se usa la forma **A**, la más usada en el último censo (`apps/web/unificar/.salida/<fecha>/reporte.md`),
@@ -146,7 +150,7 @@ Si un estado **no aplica**, la ficha lo dice con su motivo, por ejemplo «select
 4. **Felipe elige mirando, no leyendo:** por cada propuesta que cambia algo que se ve o se mueve, arma la página de `/unificar` (`node unificar/elegir.mjs <spec.json>`,
    desde `apps/web`) con dos opciones: **«Existe hoy»** (la regla actual) y **«Propuesta dibujada»**. Usa el campo `demo` para que pueda pasar el mouse y
    presionar con el CSS real, en claro y en oscuro. Sírvela con `preview_start` `unificar-laminas`. Las que no se ven (una prueba nueva, un umbral) van en una pregunta corta.
-5. Lo elegido entra por su camino normal: si es una pieza, `/unificar` (paso 6); si es una regla, un ADR y su sección de `CLAUDE.md`, con el OK de Felipe.
+5. Lo elegido entra por su camino normal: si es una pieza, `/unificar` (paso 6); si es una regla, un ADR y su archivo de `.claude/rules/` (con su línea en el índice de `CLAUDE.md`), con el OK de Felipe.
    El tablero queda en `docs/milimetro/propuestas.md`, con la fecha y lo que decidió.
 
 ### Cuándo pasar la posta

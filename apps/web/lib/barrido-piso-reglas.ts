@@ -448,6 +448,39 @@ export type Tramo = {
 };
 
 /**
+ * Lo que ESTA persona ya escaneó en el barrido, por prenda, y la última que escaneó. Con esto la lectura repetida («¿Sumar otra?»)
+ * y «Última que escaneaste» sobreviven a una recarga o a un cambio de celular (/formidable 2026-11-23: tras recargar, la misma
+ * etiqueta se sumaba sin preguntar). Solo cuenta lo que no se quitó; las de otra persona no son «repetir» (ADR-0562).
+ */
+export function memoriaDeLaPersona(lecturas: readonly LecturaDelBarrido[], personaId: string | null): { porPrenda: Record<string, number>; ultima: string | null } {
+  const porPrenda: Record<string, number> = {};
+  let ultima: { varianteId: string; en: number } | null = null;
+  if (!personaId) return { porPrenda, ultima: null };
+  for (const l of lecturas) {
+    if (l.personaId !== personaId || l.anuladaEn) continue;
+    porPrenda[l.varianteId] = (porPrenda[l.varianteId] ?? 0) + l.cantidad;
+    const en = Date.parse(l.escaneadaEn);
+    if (Number.isFinite(en) && (!ultima || en > ultima.en)) ultima = { varianteId: l.varianteId, en };
+  }
+  return { porPrenda, ultima: ultima?.varianteId ?? null };
+}
+
+/**
+ * Lo que la persona lleva por prenda para la lectura repetida: lo suyo en la base más lo suyo que espera en este celular, sin bajar nunca
+ * de lo que este celular ya contaba (una lectura que subió entre la pregunta y la respuesta estaría en las dos). Sin `previo` (cambió
+ * la persona), solo lo de ella.
+ */
+export function juntarMemoria(deLaBase: Record<string, number>, cola: readonly LecturaBarrido[], personaId: string, previo: Record<string, number> | null): Record<string, number> {
+  const res: Record<string, number> = { ...deLaBase };
+  for (const l of cola) {
+    if (l.firma?.responsableId !== personaId) continue;
+    res[l.varianteId] = (res[l.varianteId] ?? 0) + l.cantidad;
+  }
+  if (previo) for (const [id, n] of Object.entries(previo)) res[id] = Math.max(res[id] ?? 0, n);
+  return res;
+}
+
+/**
  * Lo escaneado en TRAMOS: lo que una persona escaneó seguido, sin una pausa de más de `pausaMs`. Es lo que las chicas reconocen
  * («esto es la pared izquierda, lo conté yo a las 10») sin haberse repartido áreas. De lo más reciente a lo más antiguo.
  */
@@ -1081,4 +1114,26 @@ export function fraseDeLaFila(f: FilaHistorial, ahora: Date = new Date()): strin
   const partes = [`Barrido del ${fechaDelBarrido(f.abiertoEn, ahora)}`, estadoDelHistorial(f.estado).texto.toLowerCase(), `${f.unidades} escaneadas`];
   if (f.estado === "confirmado") partes.push(`${f.alPiso ?? 0} al piso`, `${f.alAlmacen ?? 0} al almacén`, `${porResolverDeLaFila(f) ?? 0} por resolver`);
   return partes.join(", ");
+}
+
+/** El código más largo que se guarda (como `nuevaLectura`): una pistola que pega dos códigos o un QR con una dirección no traban «Apartar». */
+export const CODIGO_MAX = 120;
+
+/** Lo escrito que no es de ninguna prenda, para decirlo en una línea: los primeros 40 caracteres y «…». */
+export function codigoParaMostrar(codigo: string): string {
+  const t = codigo.trim();
+  return t.length > 40 ? `${t.slice(0, 40)}…` : t;
+}
+
+/**
+ * Lo que este celular no alcanzó a subir antes de que se cerrara el barrido, con NOMBRE (chaos 2026-11-23): la base ya no lo acepta y, si la
+ * prenda estaba colgada sin otra lectura, el cuadre la devolvió al almacén. Decir solo «1 lectura» no dejaba a nadie revisarla.
+ */
+export function textoLlegaronTarde(lecturas: readonly { varianteId: string; cantidad: number }[], nombre: (varianteId: string) => string): string | null {
+  const total = lecturas.reduce((a, l) => a + l.cantidad, 0);
+  if (total === 0) return null;
+  const nombres = [...new Set(lecturas.map((l) => nombre(l.varianteId)))];
+  const lista = nombres.length <= 3 ? nombres.join(", ") : `${nombres.slice(0, 3).join(", ")} y ${(nombres.length - 3).toLocaleString("es-PE")} más`;
+  const cuantas = total === 1 ? "1 lectura de este celular llegó tarde y no entró" : `${total.toLocaleString("es-PE")} lecturas de este celular llegaron tarde y no entraron`;
+  return `${cuantas}: ${lista}. Si están colgadas, revisa en Existencias que sigan en el piso.`;
 }

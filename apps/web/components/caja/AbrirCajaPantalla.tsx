@@ -149,19 +149,19 @@ export function AbrirCajaPantalla({
     <form data-guia="caja.abrir" onSubmit={abrir} onKeyDown={enterNoGuarda} className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(300px,0.9fr)]">
       {/* ---- A la izquierda: cuánto hay en el cajón ---- */}
       <section className="card-cayla anim-sube flex min-w-0 flex-col p-6" style={{ "--i": 1 } as CSSProperties}>
-        <p className="label-cayla text-[11px] text-taupe-profundo">Abrir caja</p>
+        <p className="label-cayla text-xs text-taupe-profundo">Abrir caja</p>
         <h2 className="font-display mt-2 text-[clamp(30px,3.2vw,42px)] leading-[1.05] text-tinta">{ultimo ? "¿Cuánto hay en el cajón?" : "¿Con cuánto abres?"}</h2>
 
         {ultimo ? (
           <div data-guia="caja.ultimo-cierre" className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-tinta/10 bg-tinta/[0.04] px-4 py-3">
             <AvatarPersona personaId={null} nombre={ultimo.cerradaPorNombre ?? "—"} tamano={40} />
             <div className="min-w-[11rem] flex-1">
-              <p className="truncate text-[15px] font-semibold text-tinta">{ultimo.cerradaPorNombre ? `Cerró ${ultimo.cerradaPorNombre}` : "Último cierre"}</p>
+              <p className="truncate text-sm font-semibold text-tinta">{ultimo.cerradaPorNombre ? `Cerró ${ultimo.cerradaPorNombre}` : "Último cierre"}</p>
               <p className="text-sm text-tinta/65">Último cierre · {cuando(ultimo.cerradaEn)}</p>
             </div>
             {esperado !== null && (
               <div className="w-full sm:w-auto sm:text-right">
-                <p className="label-cayla text-[11px] text-taupe-profundo">Debería haber</p>
+                <p className="label-cayla text-xs text-taupe-profundo">Debería haber</p>
                 <p className="font-display text-3xl leading-none tabular-nums text-tinta">{money(esperado)}</p>
               </div>
             )}
@@ -253,13 +253,13 @@ export function AbrirCajaPantalla({
                       aria-label={`Ver el detalle del cierre del ${dia}: ${NOMBRE_CIERRE[estado].toLowerCase()}`}
                       className="group flex h-full w-full min-w-0 flex-col gap-0.5 rounded-2xl border border-tinta/10 bg-tinta/[0.04] px-3.5 py-3 text-left transition-colors duration-200 ease-cayla hover:border-tinta/25 hover:bg-tinta/[0.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta"
                     >
-                      <span className="label-cayla text-[11px] text-taupe-profundo">{dia}</span>
+                      <span className="label-cayla text-xs text-taupe-profundo">{dia}</span>
                       <b className="font-display text-[23px] font-medium leading-tight tabular-nums text-tinta">{(c.montoFondo ?? c.montoCierreReal).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
                       <span className="truncate text-xs text-tinta/65">Cerró {primerNombre(c.cerradaPorNombre)}</span>
                       <span className="mt-1.5 self-start"><Chip tono={TONO_CIERRE[estado]} versalitas={false}>{NOMBRE_CIERRE[estado].toLowerCase()}</Chip></span>
                       {/* Dice que la tarjeta se toca (Felipe 2026-11-08). Las palabras de la tabla del historial, en tinta y no en rojo:
                           son siete por pantalla y el rojo de un «ver» es para dos como mucho (ADR-0358, `enlace`). */}
-                      <span aria-hidden className="mt-auto flex items-center gap-0.5 whitespace-nowrap pt-2 text-[13px] font-semibold text-tinta/70 transition-colors duration-200 ease-cayla group-hover:text-tinta">
+                      <span aria-hidden className="mt-auto flex items-center gap-0.5 whitespace-nowrap pt-2 text-xs font-semibold text-tinta/70 transition-colors duration-200 ease-cayla group-hover:text-tinta">
                         Ver detalle
                         <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 ease-cayla group-hover:translate-x-0.5" />
                       </span>
@@ -275,7 +275,7 @@ export function AbrirCajaPantalla({
 
       {/* ---- A la derecha: el resumen y abrir ---- */}
       <aside className="card-cayla anim-sube flex min-w-0 flex-col p-6" style={{ "--i": 2 } as CSSProperties}>
-        <p className="label-cayla text-[11px] text-taupe-profundo">Resumen</p>
+        <p className="label-cayla text-xs text-taupe-profundo">Resumen</p>
         <dl className="mt-1.5 text-sm" data-guia="caja.resumen">
           <Fila etiqueta="Contaste" valor={monto === null ? "—" : money(monto)} fuerte />
           {esperado !== null && <Fila etiqueta="Diferencia" valor={diferencia === null ? "—" : diferencia === 0 ? "Ninguna" : `${diferencia < 0 ? "−" : "+"} ${money(Math.abs(diferencia))}`} />}
@@ -286,7 +286,7 @@ export function AbrirCajaPantalla({
           <ul className="mt-3.5 grid gap-2" style={{ gridTemplateColumns: `repeat(${cifras.length}, minmax(0, 1fr))` }}>
             {cifras.map((c) => (
               <li key={c.clave} className="rounded-2xl bg-tinta/[0.06] px-3.5 py-3">
-                <span className="label-cayla block text-[11px] text-taupe-profundo">{c.etiqueta}</span>
+                <span className="label-cayla block text-xs text-taupe-profundo">{c.etiqueta}</span>
                 {/* lg:max-xl: entre 1024 y 1279 el aside queda en su mínimo (300 px) y cada cifra tiene ~51 px: a 24 px «3,450»
                     mide 55 y se mete en su relleno; a 20 px mide ~46. */}
                 <span className="font-display mt-1 block text-2xl leading-none tabular-nums text-tinta lg:max-xl:text-xl">{c.valor.replace("S/ ", "")}</span>

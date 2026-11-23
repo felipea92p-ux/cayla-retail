@@ -26,7 +26,7 @@ export function CabezaPaso({
       >
         {hecho ? <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> : numero}
       </span>
-      <h3 className="label-cayla whitespace-nowrap text-[15px] font-bold text-tinta">{/* unificar-fijo: la cabeza numerada de un paso del cobro, con su pista y su estado */}{titulo}</h3>
+      <h3 className="label-cayla whitespace-nowrap text-sm font-bold text-tinta">{/* unificar-fijo: la cabeza numerada de un paso del cobro, con su pista y su estado */}{titulo}</h3>
       {pista && (
         <span className={`hilo-etiqueta ${pistaFuerte ? "" : "!text-taupe"}`}>
           {pista}

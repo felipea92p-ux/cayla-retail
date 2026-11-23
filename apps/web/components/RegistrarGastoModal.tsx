@@ -357,7 +357,7 @@ export function RegistrarGastoModal({
                   nuevoProveedor ? undefined : (
                     <button
                       type="button"
-                      className="btn-enlace text-[11.5px]"
+                      className="btn-enlace text-xs leading-tight"
                       onClick={() => {
                         setNuevoProveedor({ nombre: "", ruc: "" });
                         setDescartados(new Set());
@@ -434,7 +434,7 @@ export function RegistrarGastoModal({
                   <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={sumarProveedor}>
                     Sumar proveedor
                   </button>
-                  <span className="text-[12px]">Queda en el directorio; sus cuentas se completan en Compras ▸ Proveedores.</span>
+                  <span className="text-xs">Queda en el directorio; sus cuentas se completan en Compras ▸ Proveedores.</span>
                 </div>
               </div>
             )}

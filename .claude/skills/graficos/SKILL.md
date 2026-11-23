@@ -1,7 +1,11 @@
 ---
 name: graficos
-description: Diseña y audita al milímetro los gráficos y las cifras del ERP CAYLA (set «Al milímetro») — elige la pieza por la pregunta que responde, fija codificación, base cero, alto, rejilla, etiquetas, color de dato y daltonismo, el 3:1 de las marcas (WCAG 1.4.11), la meta, la tarjeta de cifra, la animación de datos (Heer & Robertson) y la accesibilidad, todo con las seis piezas `grafico.*` y `TarjetaCifra` que ya existen. Entrega la sección «Gráfico» de la ficha de /milimetro. Úsala al poner un gráfico, una barra, una línea, un anillo o una cifra en una pantalla, al revisar uno que «no se entiende», «se ve apagado», «está muy chico» o «no sé qué dice», y cuando Felipe pida «el gráfico al milímetro» o «como los mejores del mundo».
+description: "Diseña y audita gráficos y cifras al milímetro con las piezas grafico.* y TarjetaCifra: qué gráfico responde la pregunta, ejes, etiquetas, color de dato y accesibilidad. Úsala al poner o revisar un gráfico, o si «no se entiende» o «no sé qué dice»."
 ---
+
+## Qué hace y cuándo se usa
+
+Diseña y audita al milímetro los gráficos y las cifras del ERP CAYLA (set «Al milímetro») — elige la pieza por la pregunta que responde, fija codificación, base cero, alto, rejilla, etiquetas, color de dato y daltonismo, el 3:1 de las marcas (WCAG 1.4.11), la meta, la tarjeta de cifra, la animación de datos (Heer & Robertson) y la accesibilidad, todo con las seis piezas `grafico.*` y `TarjetaCifra` que ya existen. Entrega la sección «Gráfico» de la ficha de /milimetro. Úsala al poner un gráfico, una barra, una línea, un anillo o una cifra en una pantalla, al revisar uno que «no se entiende», «se ve apagado», «está muy chico» o «no sé qué dice», y cuando Felipe pida «el gráfico al milímetro» o «como los mejores del mundo».
 
 Gráfico al milímetro: $ARGUMENTS   (una pantalla, un componente, una captura o sin argumento = el gráfico que estás construyendo)
 
@@ -10,7 +14,7 @@ Gráfico al milímetro: $ARGUMENTS   (una pantalla, un componente, una captura o
 ## Candados
 
 1. **El repo manda sobre la skill.** Colores, solo tokens de `apps/web/app/globals.css` (+ oscuro en `apps/web/app/estilos/tema.css`); piezas,
-   solo la tabla «Una función, una pieza» de `CLAUDE.md` (ADR-0358): `grafico.barra`, `grafico.avance`, `grafico.anillo`, `grafico.linea`,
+   solo la tabla «Una función, una pieza» de `.claude/rules/unificar.md` (ADR-0358): `grafico.barra`, `grafico.avance`, `grafico.anillo`, `grafico.linea`,
    `grafico.barras`, `grafico.escala` y `cifra`; movimiento, ADR-0136 / ADR-0357 / ADR-0625 con `--t-*`, `--ease-cayla`, `--ease-salida`.
    **Nunca un hex, una fuente, una librería ni una pieza de gráfico nueva.** El repo no usa recharts, visx ni d3 (`apps/web/package.json`):
    las seis piezas son SVG y CSS propios, y no se suma una librería para «ganar tiempo».

@@ -1,4 +1,8 @@
+"use client";
+
 import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
+import { CELULAR } from "@/components/ui/useEnCelular";
+import { useVidrioQueDobla } from "@/components/ui/useVidrioQueDobla";
 
 /**
  * La barra de abajo: la Isla (ADR-0479, actividad 12; /unificar familia `barra-movil`, Felipe la eligió mirando el 2026-10-23). Flota a
@@ -25,9 +29,13 @@ export function BarraDeAbajo({
   className?: string;
   children: ReactNode;
 } & HTMLAttributes<HTMLDivElement>) {
+  // La isla clara flota sobre la pantalla en el celular: dobla lo de atrás en su canto y conserva su relleno (lleva una cifra y su detalle
+  // que se leen). La oscura es ahumada, no de vidrio; y en escritorio la barra va a ras, de borde a borde. ADR-0681.
+  const dobla = useVidrioQueDobla<HTMLDivElement>({ desenfoque: 24, solo: CELULAR, asienta: true, activo: tono !== "tinta" });
   return (
     <div
       {...resto}
+      ref={dobla}
       className={`barra-abajo ${className}`}
       data-tono={tono === "tinta" ? "tinta" : undefined}
       data-sola={sola || undefined}

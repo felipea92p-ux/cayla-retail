@@ -330,7 +330,7 @@ export function PuntoDeVentaTicket({
                 disabled={bloqueado}
                 aria-label="Dejar en espera"
                 title="Dejar en espera"
-                className={`btn-cayla btn-secundario anim-revelar ml-auto flex h-8 shrink-0 items-center gap-1.5 text-[12.5px] ${
+                className={`btn-cayla btn-secundario anim-revelar ml-auto flex h-8 shrink-0 items-center gap-1.5 text-xs leading-tight ${
                   conChipEspera ? "w-8 justify-center px-0" : "px-2.5 @max-[20rem]:w-8 @max-[20rem]:justify-center @max-[20rem]:px-0"
                 }`}
               >
@@ -344,7 +344,7 @@ export function PuntoDeVentaTicket({
                 type="button"
                 onClick={onIrAEspera}
                 disabled={bloqueado}
-                className="btn-cayla btn-secundario anim-revelar flex h-8 shrink-0 items-center gap-1.5 px-2.5 text-[12.5px]"
+                className="btn-cayla btn-secundario anim-revelar flex h-8 shrink-0 items-center gap-1.5 px-2.5 text-xs leading-tight"
               >
                 <CirclePause className={ICONO_CHICO} aria-hidden />
                 En espera · {enEspera.length}
@@ -445,7 +445,7 @@ export function PuntoDeVentaTicket({
                           type="button"
                           onClick={() => onRetomar(t.id)}
                           disabled={bloqueado}
-                          className="btn-cayla btn-primario flex h-9 shrink-0 items-center gap-1.5 px-2.5 text-[12.5px]"
+                          className="btn-cayla btn-primario flex h-9 shrink-0 items-center gap-1.5 px-2.5 text-xs leading-tight"
                         >
                           <Play className={ICONO_CHICO} aria-hidden />
                           Retomar
@@ -573,7 +573,7 @@ export function PuntoDeVentaTicket({
                   −{money(vale.monto)}
                 </span>
                 {onQuitarCupon && momentoMostrado === "armar" && (
-                  <button type="button" onClick={onQuitarCupon} disabled={bloqueado} className="btn-cayla btn-enlace text-[11.5px]">
+                  <button type="button" onClick={onQuitarCupon} disabled={bloqueado} className="btn-cayla btn-enlace text-xs leading-tight">
                     Quitar
                   </button>
                 )}
@@ -605,7 +605,7 @@ export function PuntoDeVentaTicket({
                       type="button"
                       onClick={() => onAbrirDescuento(null)}
                       disabled={bloqueado}
-                      className="area-dedo label-cayla h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors vd-pasa-gota hover:text-tinta"
+                      className="area-dedo label-cayla h-7 rounded-md px-2 text-xs text-tinta/70 transition-colors vd-pasa-gota hover:text-tinta"
                     >
                       Cambiar
                     </button>
@@ -619,7 +619,7 @@ export function PuntoDeVentaTicket({
                   // Apagado con el ticket vacío: el porqué va en su `title` (no se arregla llenando un campo).
                   title={carrito.length === 0 ? "Agrega una prenda para descontar" : undefined}
                   aria-label="Aplicar descuento"
-                  className="area-dedo label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors vd-pasa-gota hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
+                  className="area-dedo label-cayla -ml-2 h-7 rounded-md px-2 text-xs text-tinta/70 transition-colors vd-pasa-gota hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
                 >
                   <span className="flex items-center gap-1.5">
                     <Percent className={ICONO_CHICO} aria-hidden />
@@ -639,7 +639,7 @@ export function PuntoDeVentaTicket({
                   title={carrito.length === 0 ? "Agrega una prenda para usar un cupón" : vale != null ? "Ya hay un cupón en el ticket" : undefined}
                   data-guia="vender.codigo-cupon-boton"
                   aria-label="Código de cupón"
-                  className="area-dedo label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors vd-pasa-gota hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
+                  className="area-dedo label-cayla -ml-2 h-7 rounded-md px-2 text-xs text-tinta/70 transition-colors vd-pasa-gota hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
                 >
                   <span className="flex items-center gap-1.5">
                     <Ticket className={ICONO_CHICO} aria-hidden />
@@ -673,7 +673,7 @@ export function PuntoDeVentaTicket({
               )}
             </div>
             <div className="ml-auto text-right">
-              <p className="label-cayla text-[11px] text-tinta/60">Total</p>
+              <p className="label-cayla text-xs text-tinta/60">Total</p>
               {/* `key={total}`: al cambiar el monto el número se vuelve a montar y se
                   asienta (responde a la prenda que entró, no se anima solo). */}
               <p key={total} className="pv-pie-total anim-asentar font-display text-5xl leading-none text-tinta">
@@ -724,7 +724,7 @@ export function PuntoDeVentaTicket({
                 aria-describedby={motivoDescuento !== null ? ID_MOTIVO : undefined}
                 className={`${BOTON_PRINCIPAL} ${luzListo ? "cobrar-listo" : ""}`}
               >
-                <span className="label-cayla flex items-center gap-2 text-[11px]">
+                <span className="label-cayla flex items-center gap-2 text-xs">
                   <BadgePercent className={ICONO} aria-hidden />
                   Aplicar descuento
                 </span>
@@ -735,7 +735,7 @@ export function PuntoDeVentaTicket({
                   type="button"
                   onClick={onQuitarDescuento}
                   disabled={bloqueado}
-                  className="label-cayla mt-2 h-9 w-full rounded-md text-[11px] text-rojo-profundo transition-colors vd-pasa-gota"
+                  className="label-cayla mt-2 h-9 w-full rounded-md text-xs text-rojo-profundo transition-colors vd-pasa-gota"
                 >
                   Quitar descuento
                 </button>
@@ -753,7 +753,7 @@ export function PuntoDeVentaTicket({
               aria-describedby={motivoBloqueo !== null ? ID_MOTIVO : undefined}
               className={`${BOTON_PRINCIPAL} ${listoParaConfirmar ? "cobrar-listo" : ""}`}
             >
-              <span className="label-cayla flex items-center gap-2 text-[11px]">
+              <span className="label-cayla flex items-center gap-2 text-xs">
                 <Check className={ICONO} aria-hidden />
                 {loading ? "Procesando…" : "Confirmar cobro"}
               </span>
@@ -769,7 +769,7 @@ export function PuntoDeVentaTicket({
               aria-describedby={motivoBloqueo !== null ? ID_MOTIVO : undefined}
               className={BOTON_PRINCIPAL}
             >
-              <span className="label-cayla flex items-center gap-2 text-[11px]">
+              <span className="label-cayla flex items-center gap-2 text-xs">
                 <Wallet className={ICONO} aria-hidden />
                 Cobrar
               </span>

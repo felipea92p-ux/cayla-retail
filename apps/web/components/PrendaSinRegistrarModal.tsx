@@ -298,8 +298,8 @@ export function PrendaSinRegistrarModal({
       titulo={corregir ? "Corregir lo anotado" : "Prenda sin registrar"}
       subtitulo={
         corregir
-          ? "Cambia categoría, talla, color o descripción si caja se equivocó. El precio, el stock y el comprobante no cambian."
-          : "La etiqueta provisional se arma mientras eliges. Almacén la registra después con estos datos."
+          ? "El precio, el stock y el comprobante no cambian."
+          : "Almacén la registra después con estos datos."
       }
       onClose={onClose}
       alCerrarEnfocar={alCerrarEnfocar}
@@ -381,9 +381,9 @@ export function PrendaSinRegistrarModal({
             ayuda={categoria && !grupos.unica ? `Las de ${categoria.nombre.toLowerCase()}` : undefined}
           >
             {!categoria ? (
-              <p className="rounded-lg vd-placa px-3 py-2.5 text-[13px] text-tinta/60">Primero la categoría: las tallas salen de ella.</p>
+              <p className="rounded-lg vd-placa px-3 py-2.5 text-xs text-tinta/60">Primero la categoría: las tallas salen de ella.</p>
             ) : grupos.unica ? (
-              <p key={categoriaId} className="anim-revelar rounded-lg vd-placa px-3 py-2.5 text-[13px] text-tinta">
+              <p key={categoriaId} className="anim-revelar rounded-lg vd-placa px-3 py-2.5 text-xs text-tinta">
                 <span className="font-semibold">Talla {grupos.unica.valor.toLowerCase()}</span>
                 <span className="text-tinta/70"> · {categoria.nombre} tiene una sola talla: ya quedó puesta.</span>
               </p>
@@ -395,7 +395,7 @@ export function PrendaSinRegistrarModal({
                 </div>
                 {grupos.otras.length > 0 && (
                   <div>
-                    <p className="mb-1.5 text-[11px] uppercase tracking-[0.08em] text-tinta/55">Otras de {categoria.nombre.toLowerCase()}</p>
+                    <p className="mb-1.5 text-xs uppercase tracking-[0.08em] text-tinta/55">Otras de {categoria.nombre.toLowerCase()}</p>
                     <div className="flex flex-wrap gap-1.5">{grupos.otras.map((t) => botonTalla(t, true))}</div>
                   </div>
                 )}
@@ -425,7 +425,7 @@ export function PrendaSinRegistrarModal({
               la controle: se toca con el mouse o con Tab. Si no es ninguna, se sigue anotando como siempre. */}
           {listaPosibles.length > 0 && (
             <div key={`${categoriaId}-${tallaId}-${colorCodigo}`} className="anim-revelar space-y-2" data-posibles data-sin-cascada>
-              <p className="text-[13px] font-semibold text-tinta">{fraseDePosibles(listaPosibles.length)}</p>
+              <p className="text-xs font-semibold text-tinta">{fraseDePosibles(listaPosibles.length)}</p>
               <ListaSugerencias
                 id={idPosibles}
                 etiqueta="Prendas del catálogo que coinciden con lo elegido"
@@ -465,7 +465,7 @@ export function PrendaSinRegistrarModal({
           {corregir ? (
             <CampoGuiado id="precio" guia={guia}>
               <div className="card-cayla flex items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-4">
-                <span className="min-w-0 text-[13px] text-tinta">
+                <span className="min-w-0 text-xs text-tinta">
                   <span className="font-semibold">{guia.etiqueta("precio", <Titulo icono={<Banknote />}>Precio cobrado</Titulo>)}</span>
                   <span className="mt-0.5 block text-xs text-tinta/65">No cambia: es lo que entró a caja.</span>
                 </span>
@@ -475,7 +475,7 @@ export function PrendaSinRegistrarModal({
           ) : (
           <CampoGuiado id="precio" guia={guia}>
             <label htmlFor={idPrecio} className="card-cayla flex items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-4">
-              <span className="min-w-0 text-[13px] font-semibold text-tinta">{guia.etiqueta("precio", <Titulo icono={<Banknote />}>Precio cobrado</Titulo>)}</span>
+              <span className="min-w-0 text-xs font-semibold text-tinta">{guia.etiqueta("precio", <Titulo icono={<Banknote />}>Precio cobrado</Titulo>)}</span>
               {/* El monto en la caja del sistema, alta (ADR-0358, ronda 6). */}
               <span className="caja-cayla caja-campo caja-campo-alta w-36 shrink-0 sm:w-44">
                 <span aria-hidden className="font-display text-base leading-none text-tinta/55">
@@ -647,7 +647,7 @@ function EtiquetaPrevia({
       </span>
 
       <div className="min-w-0 flex-1 md:w-full md:flex-none">
-        <p className="truncate text-[11px] uppercase tracking-[0.14em] text-tinta/60">
+        <p className="truncate text-xs uppercase tracking-[0.14em] text-tinta/60">
           {categoria ? (
             <span key={categoria.id} className="anim-revelar inline-block">
               {categoria.nombre}
@@ -656,7 +656,7 @@ function EtiquetaPrevia({
             <span className={vacio}>Categoría</span>
           )}
         </p>
-        <p className="mt-0.5 truncate text-[13px] text-tinta md:hidden">{lineaColor}</p>
+        <p className="mt-0.5 truncate text-xs text-tinta md:hidden">{lineaColor}</p>
       </div>
 
       <p className={`font-display leading-none text-tinta md:my-2 ${talla && talla.length > 3 ? "text-2xl md:text-4xl" : "text-3xl md:text-6xl"}`}>
@@ -669,14 +669,14 @@ function EtiquetaPrevia({
         )}
       </p>
 
-      <p className="hidden min-h-5 items-center justify-center text-[13px] text-tinta md:flex">{lineaColor}</p>
+      <p className="hidden min-h-5 items-center justify-center text-xs text-tinta md:flex">{lineaColor}</p>
 
       <p className={`font-display text-xl md:mt-3 md:w-full md:border-t md:border-dashed md:border-sand md:pt-3 md:text-3xl ${precio > 0 ? "text-tinta" : vacio}`}>
         {textoPrecio}
       </p>
 
       {descripcion && (
-        <p key={descripcion} className="anim-revelar mt-2 hidden text-[12px] leading-snug text-tinta/65 md:block">
+        <p key={descripcion} className="anim-revelar mt-2 hidden text-xs leading-snug text-tinta/65 md:block">
           «{descripcion}»
         </p>
       )}

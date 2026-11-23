@@ -352,10 +352,10 @@ export function IngresoRapidoModal({
           </CampoGuiado>
 
           {(accesos.apartados || accesos.vender || onRetiro) && (
-            <div className="gr-factura space-y-1.5 text-[12.5px] text-taupe">
+            <div className="gr-factura space-y-1.5 text-xs text-taupe">
               {(accesos.apartados || accesos.vender) && (
                 <p>
-                  Un abono de apartado o una venta no van aquí: se cobran en{" "}
+                  Un abono o una venta se cobran en{" "}
                   {accesos.apartados && (
                     <Link href="/vender/apartados" className="btn-enlace">
                       Apartados
@@ -372,7 +372,7 @@ export function IngresoRapidoModal({
               )}
               {onRetiro && (
                 <p>
-                  ¿Sale plata del cajón y no es un gasto?{" "}
+                  ¿Sale plata y no es un gasto?{" "}
                   <button type="button" className="btn-enlace" onClick={onRetiro}>
                     Retiro o depósito
                   </button>

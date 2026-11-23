@@ -392,7 +392,7 @@ export function PuntoDeVentaCatalogo({
                 activo={soloConStock}
                 onActivo={onSoloConStock}
                 disabled={bloqueado}
-                etiqueta={<span className="label-cayla text-[11px] font-semibold text-tinta">Solo con stock</span>}
+                etiqueta={<span className="label-cayla text-xs font-semibold text-tinta">Solo con stock</span>}
               />
             </div>
             {soloConStock && ocultasSinStock > 0 && (
@@ -400,9 +400,9 @@ export function PuntoDeVentaCatalogo({
               // (D-40): se dice cuántos, para que se sepa que apagando el filtro aparecen. Cuenta COLORES (los puntos de
               // las tarjetas, ADR-0323), no unidades. `leading-tight`: en dos líneas cabe en el alto del interruptor, y la
               // fila no cambia de alto al prenderlo o apagarlo (ADR-0185).
-              <span className="anim-asentar text-right text-sm leading-tight text-tinta/60">
+              <span className="anim-asentar text-right text-detalle leading-tight text-tinta/60">
                 {ocultasEnAlmacen > 0
-                  ? `${ocultasSinStock} ${ocultasSinStock === 1 ? "color oculto" : "colores ocultos"} (${ocultasEnAlmacen} con stock en el almacén)`
+                  ? `${ocultasSinStock} ${ocultasSinStock === 1 ? "color oculto" : "colores ocultos"} · ${ocultasEnAlmacen} en almacén`
                   : `${ocultasSinStock} ${ocultasSinStock === 1 ? "color agotado oculto" : "colores agotados ocultos"}`}
               </span>
             )}

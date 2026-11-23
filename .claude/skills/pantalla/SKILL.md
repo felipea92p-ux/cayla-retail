@@ -1,7 +1,11 @@
 ---
 name: pantalla
-description: Analiza una pantalla (captura) o un flujo del ERP CAYLA — estética, lógica, arquitectura, funciones, utilidad y conexión con el ERP —, mide si cumple su finalidad y cuán relevante es, y propone 12 tareas ordenadas por importancia. Úsala cuando Felipe pase una captura o una ruta. Con `rapido` en los argumentos hace una pasada barata.
+description: "Analiza una pantalla (captura) o un flujo del ERP: estética, lógica, utilidad y conexión con el resto, y propone 12 tareas por importancia. Solo analiza. Úsala cuando Felipe pase una captura o una ruta; `rapido` hace una pasada barata."
 ---
+
+## Qué hace y cuándo se usa
+
+Analiza una pantalla (captura) o un flujo del ERP CAYLA — estética, lógica, arquitectura, funciones, utilidad y conexión con el ERP —, mide si cumple su finalidad y cuán relevante es, y propone 12 tareas ordenadas por importancia. Úsala cuando Felipe pase una captura o una ruta. Con `rapido` en los argumentos hace una pasada barata.
 
 Analiza la pantalla o el flujo que Felipe adjunta: $ARGUMENTS
 

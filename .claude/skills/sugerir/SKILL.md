@@ -1,7 +1,11 @@
 ---
 name: sugerir
-description: Hace que las sugerencias de la web (placeholders de las cajas de texto, «Ej. …», textos de ayuda, listas y chips sugeridos) digan algo coherente con lo que la persona ya eligió antes. Es OBLIGATORIA (CLAUDE.md «Sugerencias coherentes», ADR-0290). Recorre la pantalla o el modal, encuentra cada sugerencia escrita a mano, averigua qué botón, filtro o combo la debería decidir (categoría, familia, sede, medio de pago…), la adapta con lógica pura y probada contra todos los valores del control, y después prueba en el navegador cada control que la afecta, también a 375 px. Úsala cuando una sugerencia no calce con lo elegido (elegiste «Casacas» y el nombre sugiere «Blusa Aurora»), al construir o editar una pantalla o modal con campos que traen ejemplos, cuando `lib/sugerir.test.ts` falle, y cuando alguien diga «sugerir», «el ejemplo no tiene que ver» o «el placeholder está mal».
+description: "Obligatoria: hace que placeholders, «Ej. …» y chips sugeridos sigan lo que la persona ya eligió (con «Casacas», nunca «Blusa Aurora»), con lógica pura probada. Úsala al construir o editar campos con ejemplos, o si falla lib/sugerir.test.ts."
 ---
+
+## Qué hace y cuándo se usa
+
+Hace que las sugerencias de la web (placeholders de las cajas de texto, «Ej. …», textos de ayuda, listas y chips sugeridos) digan algo coherente con lo que la persona ya eligió antes. Es OBLIGATORIA (CLAUDE.md «Sugerencias coherentes», ADR-0290). Recorre la pantalla o el modal, encuentra cada sugerencia escrita a mano, averigua qué botón, filtro o combo la debería decidir (categoría, familia, sede, medio de pago…), la adapta con lógica pura y probada contra todos los valores del control, y después prueba en el navegador cada control que la afecta, también a 375 px. Úsala cuando una sugerencia no calce con lo elegido (elegiste «Casacas» y el nombre sugiere «Blusa Aurora»), al construir o editar una pantalla o modal con campos que traen ejemplos, cuando `lib/sugerir.test.ts` falle, y cuando alguien diga «sugerir», «el ejemplo no tiene que ver» o «el placeholder está mal».
 
 Adapta las sugerencias al contexto elegido en: $ARGUMENTS
 

@@ -17,6 +17,7 @@ import { velocidad, type Muestra } from "@/lib/hoja-gesto";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 import { useQuieto } from "@/lib/useQuieto";
 import { useCuentaAtrasQuieta } from "@/components/ui/useCuentaAtrasQuieta";
+import { useVidrioQueDoblaEn } from "@/components/ui/useVidrioQueDobla";
 
 /* ====================================================================
    Avisos · una sola voz, arriba a la derecha (2026-09-14)
@@ -306,7 +307,7 @@ export function Avisos() {
       className="pointer-events-none fixed right-[max(1rem,env(safe-area-inset-right))] top-[max(1rem,env(safe-area-inset-top))] z-[100] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2"
     >
       {lista.length >= 3 && (
-        <button type="button" onClick={() => cerrables.forEach((a) => cerrar(a.id))} className="aviso-cerrar-todos label-cayla text-[11px]">
+        <button type="button" onClick={() => cerrables.forEach((a) => cerrar(a.id))} className="aviso-cerrar-todos label-cayla text-xs">
           Cerrar todos
         </button>
       )}
@@ -439,6 +440,8 @@ function Tarjeta({ aviso }: { aviso: Aviso }) {
     setTimeout(() => cerrar(aviso.id), SALIDA_MS);
   }
   useApartarConElDedo(ref, quitar);
+  // El aviso flota sobre la pantalla: dobla lo de atrás en su canto y conserva su lente de tono (lleva una frase que se lee). ADR-0681.
+  useVidrioQueDoblaEn(ref, { desenfoque: 22, asienta: true });
   useEffect(() => {
     if (aviso.tono !== "error") return;
     function esc(e: KeyboardEvent) {
@@ -507,7 +510,7 @@ function Tarjeta({ aviso }: { aviso: Aviso }) {
                 quitar();
                 onClick();
               }}
-              className="aviso-acc label-cayla text-[11px]"
+              className="aviso-acc label-cayla text-xs"
             >
               {aviso.accion.texto}
             </button>

@@ -1,7 +1,11 @@
 ---
 name: ultra-criterio
-description: Diseña y programa con el criterio de los mejores arquitectos, diseñadores y programadores del mundo (Torvalds, Brooks, Pike, Hoare, Hickey, Beck, Knuth, Dijkstra, Lamport, Rams, Norman, Hamilton, Kleppmann, Pólya…) y con prácticas modernas de élite sin moda: el pedido de Felipe del 2026-08-13, en doce reglas aterrizadas a CAYLA Retail (Supabase + RLS, schema `retail`, `movimientos` append-only, caja y SUNAT). Úsala al diseñar una solución nueva, una tabla, una RPC o un módulo, al analizar uno existente, y cuando Felipe pida «como lo harían los mejores del mundo», «de forma formidable» o «/ultra-criterio».
+description: "Diseña y programa con el criterio de los mejores: doce reglas aterrizadas a CAYLA (datos medidos, opciones con DECIDÍ y DESCARTÉ, rigor con plata y stock, diseño para el error). Úsala al diseñar una tabla, una RPC o un módulo, o con «como lo harían los mejores»."
 ---
+
+## Qué hace y cuándo se usa
+
+Diseña y programa con el criterio de los mejores arquitectos, diseñadores y programadores del mundo (Torvalds, Brooks, Pike, Hoare, Hickey, Beck, Knuth, Dijkstra, Lamport, Rams, Norman, Hamilton, Kleppmann, Pólya…) y con prácticas modernas de élite sin moda: el pedido de Felipe del 2026-08-13, en doce reglas aterrizadas a CAYLA Retail (Supabase + RLS, schema `retail`, `movimientos` append-only, caja y SUNAT). Úsala al diseñar una solución nueva, una tabla, una RPC o un módulo, al analizar uno existente, y cuando Felipe pida «como lo harían los mejores del mundo», «de forma formidable» o «/ultra-criterio».
 
 > El pedido original de Felipe (2026-08-13): «diseña la solución más óptima, con bastante inteligencia, con buen código, como los
 > mejores arquitectos, diseñadores y programadores del mundo. Vamos a trabajar de una forma formidable».
