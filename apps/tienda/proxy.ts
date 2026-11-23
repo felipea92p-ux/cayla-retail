@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
+import { destinoConSede } from "@/lib/puerta-sede";
+import { COOKIE_SEDE } from "@/lib/sede-cookie";
 import { configAuth, OPCIONES_COOKIE_SESION, redireccionDelProxy, tieneCookieDeSesion } from "@/lib/sesion";
 
 // La barrera por delante de la tienda (Next 16 llama `proxy` a lo que antes era `middleware`). Hace dos cosas:
@@ -10,12 +12,16 @@ import { configAuth, OPCIONES_COOKIE_SESION, redireccionDelProxy, tieneCookieDeS
 //   2. Lleva a cada uno a su lado: con sesión, de la portada, «Entrar», «Crear mi cuenta» y «Olvidé mi contraseña» al Inicio;
 //      sin sesión, del Inicio, el catálogo y «Mi cuenta» a «Entrar», con la página pedida en `?volver=` (`lib/sesion.ts`). Si el proyecto de clientes no contesta,
 //      no manda a nadie a ningún lado.
+//   3. Pone la tienda en la dirección de las páginas del catálogo que llegan sin ella (`?sede=`, ADR-0696): un 307 de verdad, con la de la
+//      cookie o la principal, antes de armar la página (`lib/puerta-sede.ts`). Antes lo hacía la página con una redirección escondida.
 // No es la que protege los datos: cada página y cada acción vuelve a preguntar quién es, y la base decide en sus funciones.
 export async function proxy(request: NextRequest) {
   const ajustes = configAuth();
   const ruta = request.nextUrl.pathname;
+  const pedido = { ruta, busqueda: request.nextUrl.search, metodo: request.method };
+  const recordada = request.cookies.get(COOKIE_SEDE)?.value;
   if (!ajustes || !tieneCookieDeSesion(request.cookies.getAll().map((c) => c.name))) {
-    const destino = redireccionDelProxy(ruta, request.method, "no", request.nextUrl.search);
+    const destino = destinoConSede(redireccionDelProxy(ruta, request.method, "no", request.nextUrl.search), pedido, recordada);
     return destino ? NextResponse.redirect(new URL(destino, request.url)) : NextResponse.next();
   }
 
@@ -40,7 +46,7 @@ export async function proxy(request: NextRequest) {
   // preguntarle al proyecto (`leerSesion`, con `getUser`), así que una sesión cerrada en otro aparato no ve nada de la cuenta.
   const { data, error } = await supabase.auth.getClaims();
   const usuario = data?.claims?.sub ? "si" : error && isAuthRetryableFetchError(error) ? "no_se" : "no";
-  const destino = redireccionDelProxy(ruta, request.method, usuario, request.nextUrl.search);
+  const destino = destinoConSede(redireccionDelProxy(ruta, request.method, usuario, request.nextUrl.search), pedido, recordada);
   if (!destino) return respuesta;
   const redireccion = NextResponse.redirect(new URL(destino, request.url));
   for (const cookie of respuesta.cookies.getAll()) redireccion.cookies.set(cookie);

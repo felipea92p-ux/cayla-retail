@@ -46,7 +46,7 @@ import "../estilos/catalogo.css";
 import "../estilos/bolsa.css";
 import "../estilos/campana.css";
 
-export const metadata: Metadata = { title: "Tu bolsa · CAYLA", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Tu bolsa", robots: { index: false, follow: false } };
 
 /** Lo que dice cada carril de la bolsa vacía y a qué lista lleva su «Ver todo». */
 const CARRIL_DE_LA_BOLSA: Record<CarrilDeLaBolsaVacia["lista"], { ceja: string; titulo: [string, string]; href: string }> = {

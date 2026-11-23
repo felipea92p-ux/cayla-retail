@@ -9,6 +9,7 @@ import { RevelaAlBajar } from "@/components/RevelaAlBajar";
 import { VigiaDelCamino } from "@/components/EnCamino";
 import { RecordarPrendaTocada } from "@/components/PrendaTocada";
 import { SCRIPT_DEL_AVISO } from "@/lib/instalar";
+import { OPEN_GRAPH_BASE, ORIGEN_PUBLICO } from "@/lib/seo";
 import { SCRIPT_DEL_TEMA } from "@/lib/tema";
 import "./globals.css";
 // Las páginas de la cuenta (crear, entrar, recuperar, «Mi cuenta», privacidad y términos) y el aviso «Listo: …», que también
@@ -30,9 +31,15 @@ import "./estilos/diseno-nuevo.css";
 const sans = Public_Sans({ subsets: ["latin"], variable: "--font-public", display: "swap" });
 const titulos = Playfair_Display({ subsets: ["latin"], weight: ["400", "500"], style: ["normal", "italic"], variable: "--font-titulos", display: "swap" });
 
+// Lo que ven Google y WhatsApp (ADR-0696): las direcciones completas salen de `cayla.pe`, cada página escribe solo su nombre (la plantilla
+// le suma «· CAYLA») y la vista previa dice el sitio y el idioma. La dirección canónica la pone cada página, nunca este layout: la
+// heredarían todas.
 export const metadata: Metadata = {
-  title: "CAYLA · Tienda online",
+  metadataBase: new URL(ORIGEN_PUBLICO),
+  title: { default: "CAYLA · Tienda online", template: "%s · CAYLA" },
   description: "Separa tus prendas de CAYLA y recógelas en tu tienda.",
+  // Sin título ni frase: los heredaría cada página en su vista previa. Sin `og:title`, WhatsApp y Google leen el `<title>` de la página.
+  openGraph: OPEN_GRAPH_BASE,
   // Instalada en el iPhone (ADR-0431): abre en pantalla completa, con su nombre y su ícono. El manifiesto (`app/manifest.ts`) es el de Android.
   appleWebApp: { capable: true, title: "CAYLA", statusBarStyle: "default" },
   icons: { apple: "/cayla-apple-180.png" },
@@ -49,7 +56,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     // `suppressHydrationWarning`: el script del tema marca `<html>` antes de que React lo hidrate, y esa marca no viene del servidor.
-    <html lang="es" data-diseno="nuevo" className={`${sans.variable} ${titulos.variable}`} suppressHydrationWarning>
+    <html lang="es-PE" data-diseno="nuevo" className={`${sans.variable} ${titulos.variable}`} suppressHydrationWarning>
       <head>
         {/* El tema elegido (claro, oscuro o el del aparato) se aplica antes de pintar: sin esto, quien eligió oscuro vería un destello blanco (lib/tema.ts). */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_DEL_TEMA }} />
