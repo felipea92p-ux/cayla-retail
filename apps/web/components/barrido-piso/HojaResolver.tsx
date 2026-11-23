@@ -12,7 +12,10 @@ import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { ElegirDueno } from "@/components/existencias/ElegirDueno";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
+import { conDueno, faltaElegirDueno, hayQueElegirDueno } from "@/lib/dueno-reglas";
+import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import {
   NOTA_MAXIMA_HALLAZGO,
@@ -47,6 +50,7 @@ import {
 export type QueSeResuelve = { tipo: "no_cargada"; n: NoCargadaPendiente } | { tipo: "apartado"; a: ApartadoPendiente; fotoUrl: string | null };
 
 export function HojaResolver({
+  ubicacionId,
   que,
   prendas,
   porId,
@@ -55,6 +59,7 @@ export function HojaResolver({
   onListo,
   onClose,
 }: {
+  ubicacionId: string;
   que: QueSeResuelve;
   prendas: PrendaBarrido[];
   porId: ReadonlyMap<string, PrendaBarrido>;
@@ -75,7 +80,11 @@ export function HojaResolver({
   const [nota, setNota] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [fallo, setFallo] = useState<string | null>(null);
-  const guia = useGuiaCampos(camposGuiaResolver({ esApartado, como, varianteId }));
+  // En Tienda LIM (dos empresas) lo que se baja o se suma dice de quién es, con un botón y sin respuesta de fábrica (ADR-0542).
+  const empresas = useEmpresasDeSede(ubicacionId);
+  const pideDueno = hayQueElegirDueno(empresas) && como !== "" && como !== "no_era";
+  const [duenoId, setDuenoId] = useState("");
+  const guia = useGuiaCampos(camposGuiaResolver({ esApartado, como, varianteId, pideDueno, duenoElegido: !faltaElegirDueno(empresas, duenoId) }));
 
   // El catálogo entero como opciones (se busca por nombre, talla, color o código). Solo lo apartado lo necesita.
   const opciones = useMemo<OpcionCombo<string>[]>(
@@ -93,7 +102,8 @@ export function HojaResolver({
     setGuardando(true);
     setFallo(null);
     const { data, error } = await firmar(
-      supabase.rpc(
+      conDueno(
+        supabase.rpc(
         RPC_RESOLVER_PENDIENTE as never,
         {
           p_id: id,
@@ -104,6 +114,8 @@ export function HojaResolver({
           p_cantidad: cantidad,
           p_nota: nota.trim() || null,
         } as never
+        ),
+        pideDueno ? duenoId : null
       ),
       firma()
     );
@@ -176,6 +188,12 @@ export function HojaResolver({
             <Campo etiqueta="Qué prenda es" etiquetaOculta>
               <ComboBuscable valor={varianteId} onValor={setVarianteId} opciones={opciones} marcador="Nombre, talla o código" etiquetaAccesible="Qué prenda es" />
             </Campo>
+          </CampoGuiado>
+        )}
+
+        {pideDueno && empresas && (
+          <CampoGuiado id="dueno" guia={guia} titulo="De quién es">
+            <ElegirDueno empresas={empresas} duenoId={duenoId} onElegir={setDuenoId} deshabilitado={guardando} guia="barrido.resolver-dueno" />
           </CampoGuiado>
         )}
 

@@ -28,6 +28,10 @@
  *      entra por las funciones de siempre (stock inicial al piso con la carga abierta; «Encontré prendas» + bajada con la carga cerrada) y
  *      se rechaza si viene en camino; «colgada» baja del almacén y frena sin stock; «no_era» no mueve nada; se resuelve por partes sin
  *      pasarse; la marca no repite; los candados de módulo, sede y estado; lo resuelto no se edita ni se borra.
+ *   C  las correcciones de la revisión adversarial (`20261122194500_barrido_piso_correcciones.sql`): la apartada colgada y escaneada no
+ *      se mueve; en una sede con dos dueños, la línea cuya fila de origen mezcla dueños no se mueve (dos_duenos) y el resto sí; un barrido
+ *      sin lecturas no se confirma (barrido_vacio); si alguien escaneó mientras se revisaba, confirmar rechaza (barrido_cambio) sin mover
+ *      nada; la no cargada dice lo que la sede tiene en cuarentena; lo del barrido es historia al eliminar; la fusión frena.
  *
  * CÓMO. Igual que `barrido_piso.mjs`: cada caso en ROLLBACK, sesión simulada, sede nueva.
  *
@@ -205,8 +209,11 @@ const error = (linea, hint, estado = "P0001") => {
 };
 
 const PREVIA = `pg_temp.r(format('select retail.previsualizar_barrido_piso(%L)', :'barrido'))`;
-const CONFIRMAR = (tok = ":'tok'", todo = "true", barrido = ":'barrido'") =>
-  `pg_temp.r(format('select retail.confirmar_barrido_piso(%L, %L, %L)', ${barrido}, ${tok}, ${todo}::boolean))`;
+/** Confirmar con la huella de lo que muestra «Revisar» en ese instante (lo que haría la pantalla); `huella` la fija a mano. */
+const CONFIRMAR = (tok = ":'tok'", todo = "true", barrido = ":'barrido'", huella = null) =>
+  huella
+    ? `pg_temp.r(format('select retail.confirmar_barrido_piso(%L, %L, %L, %L)', ${barrido}, ${tok}, ${todo}::boolean, ${huella}))`
+    : `pg_temp.r(format('select retail.confirmar_barrido_piso(%L, %L, %L, retail.previsualizar_barrido_piso(%L) ->> %L)', ${barrido}, ${tok}, ${todo}::boolean, ${barrido}, 'huella'))`;
 /** El escenario: el barrido abierto y escaneado (va 3, vb 2, vf 1, vp 1, vm 2, una lectura de va quitada) y vm vendida DESPUÉS. */
 const ESCANEADO = `${ABIERTO}select gen_random_uuid() as tok \\gset
 select gen_random_uuid() as lq \\gset
@@ -232,7 +239,7 @@ caso(
                     has_function_privilege('authenticated', p.oid, 'execute'), p.prosecdef), ';' order by p.proname)
      from pg_proc p where p.pronamespace = 'retail'::regnamespace
       and p.proname in ('previsualizar_barrido_piso', 'confirmar_barrido_piso', 'cancelar_barrido_piso', 'fn_barrido_piso_calculo', 'fn_barrido_piso_vista', 'fn_barrido_piso_respuesta');`,
-  "cancelar_barrido_piso(p_barrido_id uuid)=f,t,t;confirmar_barrido_piso(p_barrido_id uuid, p_token uuid, p_todo_escaneado boolean)=f,t,t;fn_barrido_piso_calculo(p_barrido_id uuid)=f,f,t;fn_barrido_piso_respuesta(p_cuadre_id uuid)=f,f,t;fn_barrido_piso_vista(p_barrido_id uuid)=f,f,t;previsualizar_barrido_piso(p_barrido_id uuid)=f,t,t"
+  "cancelar_barrido_piso(p_barrido_id uuid)=f,t,t;confirmar_barrido_piso(p_barrido_id uuid, p_token uuid, p_todo_escaneado boolean, p_huella text)=f,t,t;fn_barrido_piso_calculo(p_barrido_id uuid)=f,f,t;fn_barrido_piso_respuesta(p_cuadre_id uuid)=f,f,t;fn_barrido_piso_vista(p_barrido_id uuid)=f,f,t;previsualizar_barrido_piso(p_barrido_id uuid)=f,t,t"
 );
 {
   const sin = leerMigracion(MIGRACION_CONFIRMAR).replace(/--[^\n]*/g, "");
@@ -316,9 +323,9 @@ ${COMO_POSTGRES}select ${CONTADORES} = :'antes';`,
 caso(
   "F4 · sin Existencias → barrido_sin_modulo; en otra sede → barrido_sin_tienda; nada se escribe",
   `${ESCANEADO}${COMO_POSTGRES}select ${CONTADORES} as antes \\gset
-${soloModulos("integrante", ["vender"])}${MICAELA_EN_LA_SEDE}${sesion(MICAELA)}${COMO_API}select ${CONFIRMAR()};
+${soloModulos("integrante", ["vender"])}${MICAELA_EN_LA_SEDE}${sesion(MICAELA)}${COMO_API}select ${CONFIRMAR(":'tok'", "true", ":'barrido'", "'x'")};
 ${soloModulos("integrante", ["existencias"])}${COMO_POSTGRES}update retail.colaboradores set ubicacion_asignada_id = :'tru' where persona_id = :'micaela_p';
-${sesion(MICAELA)}${COMO_API}select ${CONFIRMAR()};
+${sesion(MICAELA)}${COMO_API}select ${CONFIRMAR(":'tok'", "true", ":'barrido'", "'x'")};
 select ${PREVIA};
 ${COMO_POSTGRES}select ${CONTADORES} = :'antes';`,
   (l) => error(l.at(-4), "barrido_sin_modulo", "42501") && error(l.at(-3), "barrido_sin_tienda", "42501") && error(l.at(-2), "barrido_sin_permiso", "42501") && l.at(-1) === "t"
@@ -535,6 +542,85 @@ caso(
 ${COMO_POSTGRES}select pg_temp.intento('update retail.barrido_piso_resueltos set cantidad = 2') ->> 'hint';
 select pg_temp.intento('delete from retail.barrido_piso_resueltos') ->> 'hint';`,
   (l) => l.at(-2) === "barrido_inmutable" && l.at(-1) === "barrido_inmutable"
+);
+
+// ===========================================================================
+// C · Correcciones de la revisión adversarial (20261122194500)
+// ===========================================================================
+
+caso(
+  "C · una prenda APARTADA que sigue colgada y se escanea no «pasa al piso»: el stock no cambia",
+  `${COMO_POSTGRES}select retail.apartar_stock(:'va', :'bar', 1, 'Ana Torres', '999111222', retail.fn_hoy_lima() + 3, null, :'piso', null) as _apva \\gset
+${ABIERTO}select gen_random_uuid() as tok \\gset
+select ${registrar(lote(["va", 1], ["vb", 2]))} as _r \\gset
+select ${PREVIA} -> 'res' as p \\gset
+select ${CONFIRMAR()} ->> 'ok' as ok \\gset
+${COMO_POSTGRES}select concat_ws(',', :'ok', ${linea(":'p'", "va")} is null, ${st("va", "piso")}, ${st("va", "alm")});`,
+  "true,t,1/1,5/0"
+);
+caso(
+  "C · Lima con dos dueños: la línea cuya fila de origen mezcla CAYLA y CLAURE no se mueve (dos_duenos); las demás sí y el barrido se confirma",
+  `${COMO_POSTGRES}insert into retail.empresa_sedes (empresa_id, ubicacion_id)
+  select e.id, :'bar' from retail.empresas e where e.clave in ('cayla', 'claure') on conflict do nothing;
+set local session_replication_role = replica;
+insert into retail.stock_dueno (variante_id, ubicacion_id, sububicacion_id, empresa_id, cantidad)
+  select :'vb', :'bar', :'piso', e.id, 1 from retail.empresas e where e.clave = 'claure';
+set local session_replication_role = origin;
+${ABIERTO}select gen_random_uuid() as tok \\gset
+select ${registrar(lote(["va", 3], ["vb", 1], ["vc", 1], ["ve", 2]))} as _r \\gset
+select ${PREVIA} -> 'res' as p \\gset
+select ${CONFIRMAR()} ->> 'ok' as ok \\gset
+${COMO_POSTGRES}select concat_ws(',', :'ok', ${linea(":'p'", "vb")} ->> 'motivo', ${linea(":'p'", "vb")} ->> 'al_almacen', (:'p')::jsonb -> 'resumen' ->> 'lineas_dos_duenos',
+  ${st("vb", "piso")}, ${st("va", "piso")}, ${st("vc", "piso")});`,
+  "true,dos_duenos,0,1,2/0,3/0,2/1"
+);
+caso(
+  "C · un barrido sin ninguna lectura vigente no se confirma (barrido_vacio) y no mueve nada",
+  `${ABIERTO}select gen_random_uuid() as tok \\gset
+select gen_random_uuid() as lq \\gset
+select ${registrar(lote(["va", 1, ":'lq'"]))} as _r \\gset
+select retail.anular_lecturas_barrido(:'barrido', array[:'lq']::uuid[], 'repetida') as _q \\gset
+${COMO_POSTGRES}select ${CONTADORES} as antes \\gset
+${sesion(FELIPE)}${COMO_API}select ${CONFIRMAR()};
+${COMO_POSTGRES}select ${CONTADORES} = :'antes';`,
+  (l) => error(l.at(-2), "barrido_vacio") && l.at(-1) === "t"
+);
+caso(
+  "C · alguien escanea mientras otro revisa: confirmar con la huella vieja rechaza (barrido_cambio) sin mover nada; con la nueva, confirma",
+  `${ESCANEADO}select ${PREVIA} -> 'res' ->> 'huella' as vieja \\gset
+select ${registrar(lote(["vd"]))} as _r2 \\gset
+${COMO_POSTGRES}select ${CONTADORES} as antes \\gset
+${sesion(FELIPE)}${COMO_API}select ${CONFIRMAR(":'tok'", "true", ":'barrido'", ":'vieja'")};
+select ${CONFIRMAR(":'tok'", "true", ":'barrido'", "null")};
+${COMO_POSTGRES}select ${CONTADORES} = :'antes' as igual \\gset
+${sesion(FELIPE)}${COMO_API}select ${CONFIRMAR()} ->> 'ok';
+select :'igual';`,
+  (l) => error(l.at(-4), "barrido_cambio") && error(l.at(-3), "barrido_cambio") && l.at(-2) === "true" && l.at(-1) === "t"
+);
+caso(
+  "C · una no cargada dice cuántas tiene la sede en cuarentena (no las mueve)",
+  `${COMO_POSTGRES}insert into retail.sububicaciones (ubicacion_id, nombre, tipo) values (:'bar', 'Cuarentena', 'cuarentena') returning id as cua \\gset
+set local session_replication_role = replica;
+insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad) values (:'vf', :'bar', :'cua', 1);
+set local session_replication_role = origin;
+${ESCANEADO}select ${PREVIA} -> 'res' as p \\gset
+select ${CONFIRMAR()} as _c \\gset
+select ${POR_RESOLVER} -> 'res' as l \\gset
+${COMO_POSTGRES}select concat_ws(',', ${linea(":'p'", "vf")} ->> 'en_cuarentena', ${NO_CARGADA(":'l'")} ->> 'en_cuarentena',
+  coalesce((select cantidad from retail.stock where variante_id = :'vf' and sububicacion_id = :'cua'), 0));`,
+  "1,1,1"
+);
+caso(
+  "C · lo escaneado y lo resuelto de un barrido es historia: «Eliminar producto» lo nombra y no lo deja borrar",
+  `${CONFIRMADO}select ${RESOLVER("gen_random_uuid()", "null", ":'vf'", "no_era", 1)} as _r \\gset
+${COMO_POSTGRES}select string_agg(orden || ':' || concepto || ':' || borrable, ' ' order by orden)
+  from retail.fn_producto_historia(:'prod') where orden in (27, 28);`,
+  "27:lecturas de un barrido del piso:false 28:prendas resueltas de un barrido del piso:false"
+);
+caso(
+  "C · fusionar frena si la talla que se junta está en un barrido ABIERTO (junta_barrido), como un conteo abierto",
+  `select position('junta_barrido' in pg_get_functiondef('retail.fn_fusion_productos_plan(uuid,uuid[],jsonb)'::regprocedure)) > 0;`,
+  "t"
 );
 
 console.log(`\n${fallos === 0 ? "✓" : "✗"} ${total - fallos}/${total} verificaciones${fallos ? ` — ${fallos} fallaron` : ""}`);

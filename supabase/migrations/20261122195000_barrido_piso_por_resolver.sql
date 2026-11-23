@@ -135,7 +135,12 @@ begin
                    'en_camino', coalesce((
                      select sum(ti.cantidad)::integer from transferencias tr join transferencia_items ti on ti.transferencia_id = tr.id
                       where tr.estado = 'en_transito' and tr.ubicacion_destino_id = p_ubicacion_id
-                        and ti.variante_id = (l ->> 'variante_id')::uuid), 0)) as x
+                        and ti.variante_id = (l ->> 'variante_id')::uuid), 0),
+                   -- Lo que la sede tiene en su cuarentena (no se vende ni cuenta en el piso o el almacén).
+                   'en_cuarentena', coalesce((
+                     select sum(st.cantidad)::integer from stock st join sububicaciones sb on sb.id = st.sububicacion_id
+                      where st.ubicacion_id = p_ubicacion_id and sb.tipo = 'cuarentena'
+                        and st.variante_id = (l ->> 'variante_id')::uuid), 0)) as x
             from barridos_piso b
             join cuadres_piso c on c.barrido_id = b.id
             cross join lateral jsonb_array_elements(coalesce(c.no_cargado, '[]'::jsonb)) l
@@ -175,7 +180,7 @@ $fn$;
 revoke all on function retail.fn_barrido_piso_por_resolver(uuid) from public, anon;
 grant execute on function retail.fn_barrido_piso_por_resolver(uuid) to authenticated;
 comment on function retail.fn_barrido_piso_por_resolver(uuid) is
-  'ADR-0690 (actividad 8): lo que los barridos CONFIRMADOS de la sede dejaron por resolver y todavía no se cierra: {no_cargadas: [{barrido_id, confirmado_en, confirmado_por, variante_id, prenda, pendientes, otras_sedes, en_camino}], apartados: [{id, barrido_id, confirmado_en, tipo, codigo, nota, foto_ruta, cantidad, pendientes, por, registrado_en}]}. Hasta 300 de cada uno. Lo lee quien ve Existencias en la sede.';
+  'ADR-0690 (actividad 8): lo que los barridos CONFIRMADOS de la sede dejaron por resolver y todavía no se cierra: {no_cargadas: [{barrido_id, confirmado_en, confirmado_por, variante_id, prenda, pendientes, otras_sedes, en_camino, en_cuarentena}], apartados: [{id, barrido_id, confirmado_en, tipo, codigo, nota, foto_ruta, cantidad, pendientes, por, registrado_en}]}. Hasta 300 de cada uno. Lo lee quien ve Existencias en la sede.';
 
 -- ----------------------------------------------------------------------------
 -- 3. Resolver una parte: todo o nada.
@@ -354,6 +359,32 @@ revoke all on function retail.resolver_pendiente_barrido(uuid, uuid, uuid, uuid,
 grant execute on function retail.resolver_pendiente_barrido(uuid, uuid, uuid, uuid, text, integer, text) to authenticated;
 comment on function retail.resolver_pendiente_barrido(uuid, uuid, uuid, uuid, text, integer, text) is
   'ADR-0690 (actividad 8): cierra una parte de lo que un barrido confirmado dejó por resolver. p_hallazgo_id null = una no cargada (p_variante_id es su prenda); con p_hallazgo_id = un apartado (p_variante_id es la prenda que era; null en no_era). p_como: colgada (baja del almacén al piso, mover_interno), encontrada («Encontré prendas» por ajustar_inventario —candado fn_puede_ajustar_stock— y se baja al piso; rechazada si viene en camino: barrido_en_camino), no_era (no mueve nada). p_id lo elige el aparato: el mismo id con los mismos datos devuelve la lista sin repetir. Pide Existencias, operar la sede y responsable. Devuelve fn_barrido_piso_por_resolver(sede) + ya_registrado.';
+
+-- ----------------------------------------------------------------------------
+-- 4. Lo resuelto de un barrido es historia: frena «Eliminar producto» (renglón 28 de fn_producto_historia, junto al 27 de las
+--    lecturas que sumó 20261122194500). Reemplazo ANCLADO: si el texto vivo no es el esperado, aborta sin cambiar nada.
+-- ----------------------------------------------------------------------------
+do $historia$
+declare
+  c_viejo constant text := $v$        from retail.barrido_piso_lecturas x where x.variante_id in (select id from vs)
+    ) h$v$;
+  c_nuevo constant text := $n$        from retail.barrido_piso_lecturas x where x.variante_id in (select id from vs)
+      union all select 28, 'prendas resueltas de un barrido del piso', count(*), false
+        from retail.barrido_piso_resueltos x where x.variante_id in (select id from vs) or x.pendiente_variante_id in (select id from vs)
+    ) h$n$;
+  v_def text := pg_get_functiondef('retail.fn_producto_historia(uuid)'::regprocedure);
+  v_n integer;
+begin
+  if position(c_nuevo in v_def) > 0 then
+    return;
+  end if;
+  v_n := (length(v_def) - length(replace(v_def, c_viejo, ''))) / length(c_viejo);
+  if v_n <> 1 then
+    raise exception 'fn_producto_historia no es la que esta migración espera (falta el renglón 27 de 20261122194500, o la parcharon en vivo). No se cambió nada.';
+  end if;
+  execute replace(v_def, c_viejo, c_nuevo);
+end;
+$historia$;
 
 reset lock_timeout;
 

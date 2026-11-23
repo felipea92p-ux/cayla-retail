@@ -157,6 +157,7 @@ export function PorResolver({
 
       {abierto && (
         <HojaResolver
+          ubicacionId={ubicacionId}
           que={abierto}
           prendas={prendas}
           porId={porId}

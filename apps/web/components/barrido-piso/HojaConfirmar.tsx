@@ -45,6 +45,7 @@ type Fila = { clave: string; titulo: string; detalle: string };
 export function HojaConfirmar({
   barridoId,
   esperan,
+  recientes,
   firma,
   listo,
   quien,
@@ -54,6 +55,8 @@ export function HojaConfirmar({
   barridoId: string;
   /** Lecturas o apartados de ESTE celular que todavía no subieron: confirmar ahora los dejaría fuera. */
   esperan: number;
+  /** Quiénes más escanearon hace un momento: su celular puede tener lecturas sin subir (desde aquí no se ven). */
+  recientes: string | null;
   firma: () => Firma | null;
   listo: boolean;
   /** El nombre de quien está elegido (firma el barrido). */
@@ -73,24 +76,44 @@ export function HojaConfirmar({
   const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(new Set());
   const guia = useGuiaCampos(camposGuiaConfirmar({ responsableListo: listo, todoEscaneado: todo }));
 
+  // La cuenta se vuelve a leer al abrir, cuando lo de este celular termina de subir y cuando la base dice que cambió (barrido_cambio):
+  // lo que se confirma es siempre lo que se ve (la huella lo hace cumplir en la base).
+  const [vuelta, setVuelta] = useState(0);
+  const [cambio, setCambio] = useState(false);
+  const todoSubido = esperan === 0;
   useEffect(() => {
+    let vivo = true;
     void supabase
       .rpc(RPC_PREVISUALIZAR_BARRIDO as never, { p_barrido_id: barridoId } as never)
       .then(({ data, error }) => {
+        if (!vivo) return;
         if (error) setFallo(textoDeError(error, "revisar el barrido"));
         else setVista(leerVistaBarrido(data));
       });
-  }, [supabase, barridoId]);
+    return () => {
+      vivo = false;
+    };
+  }, [supabase, barridoId, vuelta, todoSubido]);
 
   async function confirmar() {
     setEnviando(true);
     setFallo(null);
     const { data, error } = await firmar(
-      supabase.rpc(RPC_CONFIRMAR_BARRIDO as never, { p_barrido_id: barridoId, p_token: token, p_todo_escaneado: todo } as never),
+      supabase.rpc(
+        RPC_CONFIRMAR_BARRIDO as never,
+        { p_barrido_id: barridoId, p_token: token, p_todo_escaneado: todo, p_huella: vista?.huella ?? null } as never
+      ),
       firma(),
     );
     setEnviando(false);
     if (error) {
+      if (error.hint === "barrido_cambio") {
+        // No se movió nada: se muestra la cuenta nueva y se confirma otra vez, mirándola.
+        setCambio(true);
+        setFallo(null);
+        setVuelta((n) => n + 1);
+        return;
+      }
       setFallo(textoDeError(error, "confirmar el barrido"));
       return;
     }
@@ -142,6 +165,11 @@ export function HojaConfirmar({
         { clave: "almacen", titulo: "Vuelven al almacén", filas: filas(vista.lineas.filter((l) => l.alAlmacen > 0), (l) => `${l.alAlmacen} · nadie las escaneó colgadas`) },
         { clave: "no", titulo: "No están en la tienda", filas: filas(vista.lineas.filter((l) => l.noCargadas > 0), (l) => `${l.noCargadas} · ${dondeLaTiene(l)}`) },
         { clave: "movio", titulo: "No se tocan: se movieron mientras se escaneaba", filas: filas(vista.lineas.filter((l) => l.motivo === "se_movio"), () => "Se corrige en el próximo barrido") },
+        {
+          clave: "duenos",
+          titulo: "No se tocan: tienen prendas de CAYLA y de CLAURE",
+          filas: filas(vista.lineas.filter((l) => l.motivo === "dos_duenos"), (l) => `${l.escaneadas} escaneadas · el sistema tiene ${l.piso} en el piso y ${l.almacen} en el almacén · se mueve en Existencias, eligiendo el dueño`),
+        },
       ]
     : [];
 
@@ -149,6 +177,16 @@ export function HojaConfirmar({
     <Modal titulo="Revisar el barrido" subtitulo="Esto es lo que va a cambiar. Nada se mueve hasta que confirmes." tamano="ancha" onClose={onClose}>
       <div className="space-y-4">
         {fallo && <Aviso tono="error">{fallo}</Aviso>}
+        {cambio && (
+          <Aviso tono="atencion" titulo="La cuenta cambió">
+            Alguien escaneó o quitó prendas mientras revisabas. Esta es la cuenta nueva: no se movió nada.
+          </Aviso>
+        )}
+        {recientes && esperan === 0 && (
+          <Aviso tono="atencion" titulo={`${recientes} ${recientes.includes(" y ") ? "escanearon" : "escaneó"} hace un momento`}>
+            Espera a que su celular diga «Todo guardado» antes de confirmar.
+          </Aviso>
+        )}
         {esperan > 0 && (
           <Aviso tono="atencion" titulo="Falta subir lo de este celular">
             {esperan.toLocaleString("es-PE")} {esperan === 1 ? "lectura todavía no subió" : "lecturas todavía no subieron"}: confirma cuando diga «Todo guardado».
@@ -167,7 +205,7 @@ export function HojaConfirmar({
               <TarjetaCifra etiqueta="Pasan al piso" valor={r.prendasAlPiso.toLocaleString("es-PE")} />
               <TarjetaCifra etiqueta="Vuelven al almacén" valor={r.prendasAlAlmacen.toLocaleString("es-PE")} />
               <TarjetaCifra etiqueta="No están en la tienda" valor={(r.prendasNoCargadas + r.aparte).toLocaleString("es-PE")} />
-              <TarjetaCifra etiqueta="No se tocan" valor={r.lineasSeMovieron.toLocaleString("es-PE")} />
+              <TarjetaCifra etiqueta="No se tocan" valor={(r.lineasSeMovieron + r.lineasDosDuenos).toLocaleString("es-PE")} />
             </div>
             <p className="texto-detalle text-taupe">
               Quedan {r.despues.piso.toLocaleString("es-PE")} en el piso y {r.despues.almacen.toLocaleString("es-PE")} en el almacén. El total de la tienda no
@@ -249,7 +287,7 @@ export function HojaConfirmar({
                 cargando={enviando}
                 textoCargando="Confirmando…"
                 confirma={guia}
-                disabled={enviando || !vista || esperan > 0 || Boolean(vista?.conteoAbierto)}
+                disabled={enviando || !vista || esperan > 0 || Boolean(vista?.conteoAbierto) || vista?.resumen.escaneadas === 0}
                 onClick={() => void confirmar()}
               >
                 Confirmar barrido

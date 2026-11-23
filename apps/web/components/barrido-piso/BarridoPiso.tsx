@@ -55,6 +55,7 @@ import {
   loteParaLaBase,
   nuevaLectura,
   porPrendaALaVista,
+  otrosEscaneandoAhora,
   quienesEscanean,
   siguienteLote,
   sinLasSubidas,
@@ -134,6 +135,11 @@ export function BarridoPiso({
   const [camara, setCamara] = useState(false);
   const [verEscaneado, setVerEscaneado] = useState(false);
   const [revisar, setRevisar] = useState(false);
+  // La hoja de confirmar abierta, para lo que corre fuera del dibujo (la puesta al día no debe cerrar la pantalla bajo la hoja).
+  const revisarRef = useRef(false);
+  useEffect(() => {
+    revisarRef.current = revisar;
+  }, [revisar]);
   // Lo que no se puede escanear (actividad 4): apartar con foto, y lo escrito que busca por nombre.
   const [apartar, setApartar] = useState<{ tipo: TipoHallazgo; codigo: string | null } | null>(null);
   const [buscado, setBuscado] = useState("");
@@ -182,6 +188,31 @@ export function BarridoPiso({
     setFrenadaEstado(texto);
   }
 
+  /**
+   * El barrido se cerró (aquí o desde otro celular): la pantalla vuelve a «Nadie está barriendo» sin arrastrar nada del anterior —ni
+   * la frenada, ni la pregunta de repetida, ni la cola—. Lo que este celular tenía sin subir ya no entra (la base lo rechaza): se dice
+   * cuántas, para que nadie crea que se sumó.
+   */
+  function reiniciar(porQue: string | null) {
+    const tarde = colaRef.current.reduce((a, l) => a + l.cantidad, 0) + apartadasRef.current.reduce((a, l) => a + l.cantidad, 0);
+    frenadaRef.current = null;
+    setFrenadaEstado(null);
+    cambiarRepetida(ESTADO_REPETIDA_VACIO);
+    aislar.current.clear();
+    window.clearTimeout(reintento.current);
+    setBarrido(null); // antes de vaciar la cola: sin barrido, la clave del aparato se borra
+    cambiarCola([]);
+    cambiarApartadas([]);
+    setBase({});
+    setUnidadesBase(0);
+    setUltima(null);
+    miasRef.current = {};
+    setMias({});
+    const partes = [porQue, tarde > 0 ? `${tarde.toLocaleString("es-PE")} ${tarde === 1 ? "lectura de este celular llegó tarde y no entró" : "lecturas de este celular llegaron tarde y no entraron"}.` : null];
+    const texto = partes.filter(Boolean).join(" ");
+    setAviso(texto ? { texto, tono: "ambar" } : null);
+  }
+
   /** Lo que este aparato no subió vive también en su almacenamiento, bajo la clave de ESTA pantalla: un corte o un celular que se
    *  reinicia no pierde lo leído. */
   function guardarEnAparato() {
@@ -220,8 +251,10 @@ export function BarridoPiso({
     const estado = leerEstadoBarrido(data);
     const actual = barridoRef.current;
     if (actual && estado.barrido?.id !== actual.id) {
-      frenar("Este barrido ya se cerró. Recarga para ver cómo quedó.");
-      return;
+      // Si la hoja de confirmar de ESTE celular está abierta, el cierre es suyo: la hoja lo cuenta.
+      if (revisarRef.current) return;
+      reiniciar("El barrido se cerró desde otro celular.");
+      if (!estado.barrido) return;
     }
     if (!estado.barrido) return;
     setBarrido(estado.barrido);
@@ -307,6 +340,8 @@ export function BarridoPiso({
       setAviso({ texto: "No se pudo leer el barrido recién abierto. Recarga la página.", tono: "rojo" });
       return;
     }
+    frenadaRef.current = null;
+    setFrenadaEstado(null);
     setBarrido(estado.barrido);
     setBase(estado.barrido.porPrenda);
     setUnidadesBase(estado.barrido.unidades);
@@ -334,6 +369,11 @@ export function BarridoPiso({
     if (error) {
       const clase = clasificarError(error);
       if (clase === "frena_todo") {
+        if (error.hint === "barrido_cerrado" && !revisarRef.current) {
+          reiniciar("El barrido se cerró.");
+          avisarLectura("desconocida");
+          return;
+        }
         frenar(textoDeRechazo(error.hint) ?? error.message);
         avisarLectura("desconocida");
         return;
@@ -740,7 +780,7 @@ export function BarridoPiso({
           </CampoGuiado>
           <PieGuia guia={guia} listo="Sigue escaneando: cada prenda se guarda sola." />
           <div data-guia="barrido.confirmar">
-            <Boton peso="primario" onClick={() => setRevisar(true)} disabled={unidadesEquipo === 0 && barrido.aparte === 0}>
+            <Boton peso="primario" onClick={() => setRevisar(true)} disabled={unidadesEquipo === 0}>
               Revisar y confirmar
             </Boton>
           </div>
@@ -795,17 +835,13 @@ export function BarridoPiso({
         <HojaConfirmar
           barridoId={barrido.id}
           esperan={cola.length + apartadas.length}
+          recientes={otrosEscaneandoAhora(barrido.personas, responsable.elegidoId, ahora)}
           firma={() => responsable.firma()}
           listo={responsable.listo}
           quien={responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? responsable.firmaDeRespaldo ?? null}
           onHecho={() => {
-            // El barrido se cerró (confirmado o descartado): la pantalla vuelve a «Nadie está barriendo».
-            setBarrido(null);
-            setBase({});
-            setUnidadesBase(0);
-            setUltima(null);
-            miasRef.current = {};
-            setMias({});
+            // El barrido se cerró (confirmado o descartado): la pantalla vuelve a «Nadie está barriendo», sin nada del anterior.
+            reiniciar(null);
           }}
           onClose={() => setRevisar(false)}
         />

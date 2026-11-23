@@ -258,6 +258,10 @@ export function textoDeRechazo(hint: string | null | undefined): string | null {
       return "Alguna de esas lecturas no es de este barrido. Vuelve a abrir «Ver lo escaneado».";
     case "barrido_anular_invalido":
       return "No se pudo quitar: vuelve a intentarlo.";
+    case "barrido_vacio":
+      return "Este barrido no tiene ninguna prenda escaneada: no hay nada que confirmar. Escanea lo colgado o descártalo.";
+    case "barrido_cambio":
+      return "Alguien escaneó o quitó prendas mientras revisabas. Esta es la cuenta nueva: revísala y confirma otra vez.";
     default:
       return null;
   }
@@ -598,7 +602,8 @@ export const RPC_CANCELAR_BARRIDO = "cancelar_barrido_piso";
 export type LineaDelBarrido = {
   varianteId: string;
   prenda: string;
-  motivo: "cuadra" | "se_movio" | "archivada" | "no_es_inventario";
+  /** dos_duenos: en Tienda LIM, la fila de donde saldría tiene unidades de CAYLA y de CLAURE; no se mueve (se elige en Existencias). */
+  motivo: "cuadra" | "se_movio" | "archivada" | "no_es_inventario" | "dos_duenos";
   escaneadas: number;
   piso: number;
   almacen: number;
@@ -607,6 +612,8 @@ export type LineaDelBarrido = {
   noCargadas: number;
   otrasSedes: { sede: string; cantidad: number }[];
   enCamino: number;
+  /** Lo que la sede tiene en su cuarentena (no se vende ni cuenta en el piso o el almacén). */
+  enCuarentena: number;
 };
 
 export type ResumenBarrido = {
@@ -618,12 +625,14 @@ export type ResumenBarrido = {
   prendasAlAlmacen: number;
   prendasNoCargadas: number;
   lineasSeMovieron: number;
+  lineasDosDuenos: number;
   aparte: number;
 };
 
-export type VistaBarrido = { resumen: ResumenBarrido; lineas: LineaDelBarrido[]; conteoAbierto: string | null; ultimaLectura: string | null };
+/** `huella`: la de lo escaneado al revisar; confirmar la exige igual (si alguien escaneó mientras tanto, `barrido_cambio`). */
+export type VistaBarrido = { resumen: ResumenBarrido; lineas: LineaDelBarrido[]; conteoAbierto: string | null; ultimaLectura: string | null; huella: string | null };
 
-const MOTIVOS = new Set(["cuadra", "se_movio", "archivada", "no_es_inventario"]);
+const MOTIVOS = new Set(["cuadra", "se_movio", "archivada", "no_es_inventario", "dos_duenos"]);
 
 export function leerResumenBarrido(x: unknown): ResumenBarrido {
   const r = esObjeto(x) ? x : {};
@@ -637,6 +646,7 @@ export function leerResumenBarrido(x: unknown): ResumenBarrido {
     prendasAlAlmacen: entero(r.prendas_al_almacen),
     prendasNoCargadas: entero(r.prendas_no_cargadas),
     lineasSeMovieron: entero(r.lineas_se_movieron),
+    lineasDosDuenos: entero(r.lineas_dos_duenos),
     aparte: entero(r.aparte),
   };
 }
@@ -662,18 +672,20 @@ export function leerVistaBarrido(x: unknown): VistaBarrido | null {
             noCargadas: entero(l.no_cargadas),
             otrasSedes: Array.isArray(l.otras_sedes) ? l.otras_sedes.filter(esObjeto).map((o) => ({ sede: texto(o.sede) ?? "Otra sede", cantidad: entero(o.cantidad) })) : [],
             enCamino: entero(l.en_camino),
+            enCuarentena: Math.max(0, entero(l.en_cuarentena)),
           },
         ];
       })
     : [];
   const conteo = esObjeto(x.conteo_abierto) ? `Conteo ${String(x.conteo_abierto.numero ?? "")}`.trim() : null;
-  return { resumen: leerResumenBarrido(x.resumen), lineas, conteoAbierto: conteo, ultimaLectura: texto(x.ultima_lectura) };
+  return { resumen: leerResumenBarrido(x.resumen), lineas, conteoAbierto: conteo, ultimaLectura: texto(x.ultima_lectura), huella: texto(x.huella) };
 }
 
 /** «Trujillo tiene 2 · 1 en camino»: dónde tiene el sistema una prenda que no está en la tienda. Sin nada, «No está en ninguna tienda». */
-export function dondeLaTiene(l: Pick<LineaDelBarrido, "otrasSedes" | "enCamino">): string {
+export function dondeLaTiene(l: Pick<LineaDelBarrido, "otrasSedes" | "enCamino"> & { enCuarentena?: number }): string {
   const partes = l.otrasSedes.map((o) => `${o.sede.replace(/^Tienda\s+/i, "")} tiene ${o.cantidad}`);
   if (l.enCamino > 0) partes.push(`${l.enCamino} en camino a esta tienda`);
+  if ((l.enCuarentena ?? 0) > 0) partes.unshift(`${l.enCuarentena} en cuarentena aquí`);
   return partes.length > 0 ? partes.join(" · ") : "No está en ninguna tienda";
 }
 
@@ -759,6 +771,7 @@ export type NoCargadaPendiente = {
   pendientes: number;
   otrasSedes: { sede: string; cantidad: number }[];
   enCamino: number;
+  enCuarentena: number;
 };
 
 /** Lo apartado (sin etiqueta o con un código que no existe) que aún no se cierra. */
@@ -800,6 +813,7 @@ export function leerPorResolver(x: unknown): PorResolver {
           .filter(esObjeto)
           .flatMap((s) => (texto(s.sede) && entero(s.cantidad) > 0 ? [{ sede: texto(s.sede) as string, cantidad: entero(s.cantidad) }] : [])),
         enCamino: Math.max(0, entero(n.en_camino)),
+        enCuarentena: Math.max(0, entero(n.en_cuarentena)),
       },
     ];
   });
@@ -834,8 +848,9 @@ export function prendasPorResolver(p: PorResolver): number {
 }
 
 /** Bajo una no cargada: dónde la tiene el sistema, en una línea. */
-export function dondeEstaNoCargada(n: Pick<NoCargadaPendiente, "otrasSedes" | "enCamino">): string {
+export function dondeEstaNoCargada(n: Pick<NoCargadaPendiente, "otrasSedes" | "enCamino"> & { enCuarentena?: number }): string {
   const partes: string[] = [];
+  if ((n.enCuarentena ?? 0) > 0) partes.push(`${n.enCuarentena} en cuarentena aquí`);
   if (n.enCamino > 0) partes.push(`${n.enCamino} en camino a esta tienda`);
   for (const s of n.otrasSedes.slice(0, 2)) partes.push(`${s.sede} tiene ${s.cantidad}`);
   return partes.length ? partes.join(" · ") : "No está en ninguna tienda del sistema";
@@ -868,16 +883,44 @@ export function ejemploDeNotaResolver(como: ComoResolver | ""): string {
 }
 
 /** La guía de foco de «Resolver» (ADR-0284): qué pasó y, si es algo apartado que no se descarta, qué prenda era. Sale de lo que la base exige. */
-export function camposGuiaResolver({ esApartado, como, varianteId }: { esApartado: boolean; como: ComoResolver | ""; varianteId: string }): CampoDeGuia[] {
+export function camposGuiaResolver({
+  esApartado,
+  como,
+  varianteId,
+  pideDueno = false,
+  duenoElegido = false,
+}: {
+  esApartado: boolean;
+  como: ComoResolver | "";
+  varianteId: string;
+  /** En Tienda LIM (dos empresas), lo que se baja o se suma dice de quién es (ADR-0542): sin respuesta de fábrica. */
+  pideDueno?: boolean;
+  duenoElegido?: boolean;
+}): CampoDeGuia[] {
   const campos: CampoDeGuia[] = [{ id: "como", nombre: "Qué pasó", requerido: true, hecho: como !== "", pendiente: "Elige lo que pasó con la prenda." }];
   if (esApartado && como !== "no_era") {
     campos.push({ id: "prenda", nombre: "Qué prenda es", requerido: true, hecho: varianteId !== "", pendiente: "Busca la prenda por su nombre o su código." });
   }
+  if (pideDueno && como !== "" && como !== "no_era") {
+    campos.push({ id: "dueno", nombre: "De quién es", requerido: true, hecho: duenoElegido, pendiente: "Elige si es de CAYLA o de CLAURE." });
+  }
   return campos;
 }
 
+/**
+ * Quiénes del equipo (que no son quien confirma) escanearon en los últimos `segundos`: su celular puede tener lecturas sin subir que
+ * confirmar ahora dejaría fuera (lo de otro celular no se puede ver desde aquí). «Rosa» / «Rosa y Ana» / `null` si nadie.
+ */
+export function otrosEscaneandoAhora(personas: readonly PersonaBarrido[], yoId: string | null, ahora: Date, segundos = 90): string | null {
+  const nombres = personas
+    .filter((p) => p.personaId !== yoId && Number.isFinite(Date.parse(p.ultima)) && ahora.getTime() - Date.parse(p.ultima) <= segundos * 1000)
+    .map((p) => p.nombre.split(" ")[0]);
+  if (nombres.length === 0) return null;
+  return nombres.length === 1 ? nombres[0] : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+}
+
 /** Los rechazos de «Resolver» cuyo mensaje de la base ya trae la cifra («Quedan 1 por resolver…»): se muestran tal cual. */
-const RECHAZOS_CON_SU_CIFRA = new Set(["barrido_ya_resuelto", "barrido_en_camino", "barrido_sin_almacen"]);
+const RECHAZOS_CON_SU_CIFRA = new Set(["barrido_ya_resuelto", "barrido_en_camino", "barrido_sin_almacen", "elegir_dueno", "dueno_sin_unidades", "empresa_fuera_de_sede"]);
 
 /** El error de «Resolver», en voz de tienda. */
 export function textoDeErrorResolver(e: { code?: string | null; hint?: string | null; message?: string | null } | null | undefined): string {
