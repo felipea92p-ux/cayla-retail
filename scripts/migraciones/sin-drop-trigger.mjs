@@ -15,9 +15,9 @@
  * en un bloque `do`): corre al pegar igual que el suelto.
  *
  * QUÉ NO PUEDE DECIR. No sabe si la migración se pegó en producción ni en qué partes: eso lo dice la casilla «SQL
- * pegado en producción» del formulario de PR. Tampoco revisa la otra mitad de la regla (no mezclar el `alter` de una
- * tabla en uso con `create policy` en la misma pegada), porque las partes de una migración no se distinguen leyendo el
- * archivo.
+ * pegado en producción» del formulario de PR. La otra mitad de la regla (no mezclar el `alter` de una tabla en uso con
+ * `create policy` en la misma pegada) no se distingue leyendo el archivo: la mide `partes-sin-deadlock.mjs` en el Postgres
+ * del CI, leyendo `pg_locks` después de cada sentencia (2026-11-23).
  *
  * QUÉ HACER SI SALE ROJO. Cambia `drop trigger x on t; create trigger x …` por `create or replace trigger x …`
  * (Postgres 14+; producción es 17). Si lo que querías era apagar el disparador, `alter table t disable trigger x` no
@@ -61,7 +61,7 @@ export const LEGADO = new Map([
 ]);
 
 /** Apertura de un texto `$tag$…$tag$` (o `$$`). `$1` no lo es: la marca empieza con letra o guion bajo. */
-const MARCA_DOLAR = /\$(?:[A-Za-z_\u0080-￿][\w\u0080-￿]*)?\$/y;
+export const MARCA_DOLAR = /\$(?:[A-Za-z_\u0080-￿][\w\u0080-￿]*)?\$/y;
 
 /**
  * Borra los comentarios (`-- …` y `/* … *\/`, que en Postgres se anidan) y deja todo lo demás, incluidos los textos
