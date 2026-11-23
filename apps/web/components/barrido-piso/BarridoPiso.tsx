@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Camera, ListChecks, ScanBarcode, ScanLine, Tag } from "lucide-react";
+import { Camera, ListChecks, ScanBarcode, ScanLine, Tag, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { EscanerConteo, type LecturaConteo } from "@/components/EscanerConteo";
@@ -49,6 +49,13 @@ import {
   serializarCola,
   textoDeSubida,
   unidadesDe,
+  RPC_LECTURAS_BARRIDO,
+  leerLecturasDelBarrido,
+  memoriaDeLaPersona,
+  juntarMemoria,
+  textoLlegaronTarde,
+  codigoParaMostrar,
+  CODIGO_MAX,
   detalleDePrenda,
   leerEstadoBarrido,
   leerRespuestaLecturas,
@@ -135,6 +142,9 @@ export function BarridoPiso({
   const [camara, setCamara] = useState(false);
   const [verEscaneado, setVerEscaneado] = useState(false);
   const [revisar, setRevisar] = useState(false);
+  // En el celular, quien ya eligió su nombre lo ve como una línea con «Cambiar» (el combo le quitaba al escáner 80 px de pantalla).
+  // Guarda a quién se iba a cambiar: elegida otra persona, vuelve sola a la línea.
+  const [cambiandoDesde, setCambiandoDesde] = useState<string | null | undefined>(undefined);
   // La hoja de confirmar abierta, para lo que corre fuera del dibujo (la puesta al día no debe cerrar la pantalla bajo la hoja).
   const revisarRef = useRef(false);
   // Un cierre que llegó mientras la hoja estaba abierta (otro celular confirmó): se aplica al cerrarla.
@@ -187,6 +197,39 @@ export function BarridoPiso({
     };
   }, []);
 
+  // La memoria de la persona elegida (lo suyo en la base, actividad 10): la lectura repetida y «Última que escaneaste» sobreviven a
+  // una recarga o a un cambio de celular. Al cambiar de persona se empieza de lo de ella. Si la base no responde, sigue lo de este
+  // celular: nunca frena el escaneo.
+  const personaElegida = useRef<string | null>(null);
+  // De quién es lo que recuerda `miasRef`: si no es de quien escanea ahora, no cuenta como «repetir».
+  const miasDe = useRef<string | null>(null);
+  function memoriaAlDia(persona: string | null) {
+    if (miasDe.current === persona) return;
+    miasDe.current = persona;
+    miasRef.current = persona ? juntarMemoria({}, colaRef.current, persona, null) : {};
+  }
+  function recordar(sinPrevio: boolean) {
+    const b = barridoRef.current;
+    const persona = personaElegida.current;
+    if (!b || !persona) return;
+    void supabase.rpc(RPC_LECTURAS_BARRIDO as never, { p_barrido_id: b.id } as never).then(({ data, error }) => {
+      if (error || !vivo.current || barridoRef.current?.id !== b.id || personaElegida.current !== persona) return;
+      const m = memoriaDeLaPersona(leerLecturasDelBarrido(data).lecturas, persona);
+      const otra = miasDe.current !== persona;
+      miasDe.current = persona;
+      miasRef.current = juntarMemoria(m.porPrenda, colaRef.current, persona, sinPrevio || otra ? null : miasRef.current);
+      setMias(miasRef.current);
+      if (otra) setUltima(m.ultima);
+      else if (m.ultima) setUltima((u) => u ?? m.ultima);
+    });
+  }
+  useEffect(() => {
+    personaElegida.current = responsable.elegidoId;
+    recordar(false);
+    // `recordar` lee refs: basta con correr al cambiar el barrido o la persona.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [barrido?.id, responsable.elegidoId]);
+
   function setBarrido(b: BarridoAbierto | null) {
     barridoRef.current = b;
     setBarridoEstado(b);
@@ -202,7 +245,7 @@ export function BarridoPiso({
    * cuántas, para que nadie crea que se sumó.
    */
   function reiniciar(porQue: string | null) {
-    const tarde = colaRef.current.reduce((a, l) => a + l.cantidad, 0) + apartadasRef.current.reduce((a, l) => a + l.cantidad, 0);
+    const tarde = textoLlegaronTarde([...colaRef.current, ...apartadasRef.current], (id) => nombreDe(porId.get(id)));
     frenadaRef.current = null;
     setFrenadaEstado(null);
     cambiarRepetida(ESTADO_REPETIDA_VACIO);
@@ -216,7 +259,7 @@ export function BarridoPiso({
     setUltima(null);
     miasRef.current = {};
     setMias({});
-    const partes = [porQue, tarde > 0 ? `${tarde.toLocaleString("es-PE")} ${tarde === 1 ? "lectura de este celular llegó tarde y no entró" : "lecturas de este celular llegaron tarde y no entraron"}.` : null];
+    const partes = [porQue, tarde];
     const texto = partes.filter(Boolean).join(" ");
     setAviso(texto ? { texto, tono: "ambar" } : null);
   }
@@ -450,6 +493,8 @@ export function BarridoPiso({
       setUnidadesBase(estado.barrido.unidades);
       setAhora(new Date());
     }
+    // Lo quitado ya no cuenta para «¿Sumar otra?».
+    recordar(true);
     return null;
   }
 
@@ -527,7 +572,7 @@ export function BarridoPiso({
     const p = resolverCodigoV2(codigo, prendas);
     if (!p) {
       avisarLectura("desconocida");
-      setAviso({ texto: `«${codigo}» no es de ninguna prenda del catálogo.`, tono: "ambar", apartar: codigo });
+      setAviso({ texto: `«${codigoParaMostrar(codigo)}» no es de ninguna prenda del catálogo.`, tono: "ambar", apartar: codigo.slice(0, CODIGO_MAX) });
       return { encontrada: false, codigo };
     }
     return leerPrenda(p, codigo);
@@ -535,6 +580,7 @@ export function BarridoPiso({
 
   /** Una prenda reconocida (por su código, o tocada en la lista por nombre): la lectura repetida y, si va, se suma. */
   function leerPrenda(p: PrendaBarrido, codigo: string | null): LecturaConteo {
+    memoriaAlDia(responsable.elegidoId);
     const lleva = miasRef.current[p.varianteId] ?? 0;
     const decision = decidirLectura(p.varianteId, lleva, true, repetidaRef.current);
     if (decision.tipo === "ignora") {
@@ -604,12 +650,32 @@ export function BarridoPiso({
     />
   ) : null;
 
+  const nombreElegido = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null;
+  const quienNombre = nombreElegido?.split(" ")[0] ?? null;
+  // El Admin firma él siempre: no hay a quién cambiar.
+  const puedeCambiar = responsable.estado !== "admin" && responsable.estado !== "respaldo";
+  const cambiandoQuien = cambiandoDesde !== undefined && cambiandoDesde === responsable.elegidoId;
+  const enChip = Boolean(barrido) && responsable.listo && !cambiandoQuien && quienNombre !== null;
+
   const combo = (
-    <CampoGuiado id="responsable" guia={guia} titulo="Quién escanea" ayuda="Cada prenda queda a tu nombre.">
-      <div data-guia="barrido.responsable">
-        <ComboResponsable control={responsable} deshabilitado={abriendo} />
-      </div>
-    </CampoGuiado>
+    <div data-guia="barrido.responsable" className="order-1 lg:order-none">
+      {enChip && (
+        <p className="flex min-h-11 items-center gap-2 text-[15px] text-tinta lg:hidden">
+          <UserRound aria-hidden className="h-4 w-4 shrink-0 text-taupe" />
+          <span className="min-w-0 truncate">
+            Escanea <b className="font-semibold">{quienNombre}</b>
+          </span>
+          {puedeCambiar && (
+            <button type="button" className="btn-cayla btn-enlace area-dedo" onClick={() => setCambiandoDesde(responsable.elegidoId)}>
+              Cambiar
+            </button>
+          )}
+        </p>
+      )}
+      <CampoGuiado id="responsable" guia={guia} titulo="Quién escanea" ayuda="Cada prenda queda a tu nombre." className={enChip ? "max-lg:hidden" : ""}>
+        <ComboResponsable control={responsable} deshabilitado={abriendo} compacto />
+      </CampoGuiado>
+    </div>
   );
 
   if (!barrido) {
@@ -632,7 +698,7 @@ export function BarridoPiso({
               </div>
             }
           >
-            Escaneen todo lo colgado. Quien llegue después se suma desde su celular.
+            Escanea todo lo colgado; quien llegue se suma desde su celular.
           </Vacio>
           {aviso && <AvisoLinea tono={aviso.tono === "rojo" ? "error" : "atencion"}>{aviso.texto}</AvisoLinea>}
         </div>
@@ -652,24 +718,36 @@ export function BarridoPiso({
   const actual = prendaUltima ? tarjetaDe(prendaUltima, aLaVista[prendaUltima.varianteId] ?? 0) : null;
 
   return (
-    <div className="space-y-5">
-      {/* En el celular, dos cifras lado a lado: tres apiladas tapaban el escáner. */}
-      <div data-guia="barrido.cifras" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <TarjetaCifra etiqueta="Escaneó el equipo" valor={unidadesEquipo.toLocaleString("es-PE")} unidad={unidadesEquipo === 1 ? "prenda" : "prendas"}>
-          {quienes ?? `Empezó ${barrido.abiertoPor ? `${barrido.abiertoPor.split(" ")[0]} ` : ""}a las ${horaCorta(barrido.abiertoEn)}`}
-        </TarjetaCifra>
-        <TarjetaCifra etiqueta="Escaneaste tú" valor={misUnidades.toLocaleString("es-PE")} unidad={misUnidades === 1 ? "prenda" : "prendas"}>
-          {textoDeSubida({ enCola, enLinea, frenada })}
-        </TarjetaCifra>
-        <TarjetaCifra className="hidden sm:flex" etiqueta="Prendas distintas" valor={Object.values(aLaVista).filter((n) => n > 0).length.toLocaleString("es-PE")}>
-          {barrido.aparte > 0 ? `Y ${barrido.aparte.toLocaleString("es-PE")} aparte, por resolver` : "Tallas y colores ya vistos"}
-        </TarjetaCifra>
+    // En el celular, lo que se mira al escanear va arriba: el campo y la última prenda; las cifras, en una línea debajo. Las columnas
+    // de escritorio se «disuelven» (`max-lg:contents`) y cada pieza toma su lugar con `order`; en escritorio no cambia nada.
+    <div className="flex flex-col gap-5">
+      <div data-guia="barrido.cifras" className="order-4 lg:order-none">
+        <p className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[15px] text-taupe sm:hidden">
+          <span>
+            Equipo <b className="font-display text-xl font-normal tabular-nums text-tinta">{unidadesEquipo.toLocaleString("es-PE")}</b>
+          </span>
+          <span>
+            Tú <b className="font-display text-xl font-normal tabular-nums text-tinta">{misUnidades.toLocaleString("es-PE")}</b>
+          </span>
+          <span>{textoDeSubida({ enCola, enLinea, frenada })}</span>
+        </p>
+        <div className="hidden gap-3 sm:grid sm:grid-cols-3">
+          <TarjetaCifra etiqueta="Escaneó el equipo" valor={unidadesEquipo.toLocaleString("es-PE")} unidad={unidadesEquipo === 1 ? "prenda" : "prendas"}>
+            {quienes ?? `Empezó ${barrido.abiertoPor ? `${barrido.abiertoPor.split(" ")[0]} ` : ""}a las ${horaCorta(barrido.abiertoEn)}`}
+          </TarjetaCifra>
+          <TarjetaCifra etiqueta="Escaneaste tú" valor={misUnidades.toLocaleString("es-PE")} unidad={misUnidades === 1 ? "prenda" : "prendas"}>
+            {textoDeSubida({ enCola, enLinea, frenada })}
+          </TarjetaCifra>
+          <TarjetaCifra etiqueta="Prendas distintas" valor={Object.values(aLaVista).filter((n) => n > 0).length.toLocaleString("es-PE")}>
+            {barrido.aparte > 0 ? `Y ${barrido.aparte.toLocaleString("es-PE")} aparte, por resolver` : "Tallas y colores ya vistos"}
+          </TarjetaCifra>
+        </div>
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="space-y-4">
+      <div className="max-lg:contents lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-5">
+        <div className="max-lg:contents lg:space-y-4">
           {combo}
-          <CampoGuiado id="colgado" guia={guia} titulo="Lo colgado" ayuda="Cada lectura suma 1. Si la misma se repite, te pregunto antes de sumarla.">
+          <CampoGuiado className="order-2 lg:order-none" id="colgado" guia={guia} titulo="Lo colgado" ayuda="Cada lectura suma 1. Si la misma se repite, te pregunto antes de sumarla.">
             <section data-guia="barrido.escaner" className="vd-placa rounded-[var(--radius-tarjeta,1rem)] p-4 sm:p-5">
               <label htmlFor="barrido-escaner" className="sr-only">
                 Escanear prenda colgada
@@ -725,20 +803,6 @@ export function BarridoPiso({
                   />
                 </div>
               )}
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button type="button" data-guia="barrido.camara" onClick={() => setCamara(true)} className="btn-cayla btn-secundario h-11">
-                  <Camera aria-hidden className="h-4 w-4" />
-                  Escanear con la cámara
-                </button>
-                <button type="button" data-guia="barrido.sin-etiqueta" onClick={() => setApartar({ tipo: "sin_etiqueta", codigo: null })} className="btn-cayla btn-secundario h-11">
-                  <Tag aria-hidden className="h-4 w-4" />
-                  Sin etiqueta
-                </button>
-                <button type="button" data-guia="barrido.escaneado" onClick={() => setVerEscaneado(true)} className="btn-cayla btn-secundario h-11">
-                  <ListChecks aria-hidden className="h-4 w-4" />
-                  Ver lo escaneado
-                </button>
-              </div>
               {!camara && avisoRepetida && <div className="mt-3">{avisoRepetida}</div>}
               {(frenada || aviso) && (
                 <AvisoLinea
@@ -796,10 +860,26 @@ export function BarridoPiso({
                   )}
                 </AvisoLinea>
               )}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button type="button" data-guia="barrido.camara" onClick={() => setCamara(true)} className="btn-cayla btn-secundario h-11">
+                  <Camera aria-hidden className="h-4 w-4" />
+                  Escanear con la cámara
+                </button>
+                <button type="button" data-guia="barrido.sin-etiqueta" onClick={() => setApartar({ tipo: "sin_etiqueta", codigo: null })} className="btn-cayla btn-secundario h-11">
+                  <Tag aria-hidden className="h-4 w-4" />
+                  Sin etiqueta
+                </button>
+                <button type="button" data-guia="barrido.escaneado" onClick={() => setVerEscaneado(true)} className="btn-cayla btn-secundario h-11">
+                  <ListChecks aria-hidden className="h-4 w-4" />
+                  Ver lo escaneado
+                </button>
+              </div>
             </section>
           </CampoGuiado>
-          <PieGuia guia={guia} listo="Sigue escaneando: cada prenda se guarda sola." />
-          <div data-guia="barrido.confirmar">
+          <div className="order-5 lg:order-none">
+            <PieGuia guia={guia} listo="Sigue escaneando: cada prenda se guarda sola." />
+          </div>
+          <div data-guia="barrido.confirmar" className="order-6 lg:order-none">
             {/* Siempre se abre: ahí también se descarta un barrido sin nada escaneado («Confirmar» se apaga solo y la base rechaza barrido_vacio). */}
             <Boton peso="primario" onClick={() => setRevisar(true)}>
               Revisar y confirmar
@@ -807,8 +887,8 @@ export function BarridoPiso({
           </div>
         </div>
 
-        <div className="space-y-4 self-start">
-        <section data-guia="barrido.ultima" aria-live="polite" className="vd-placa rounded-[var(--radius-tarjeta,1rem)] p-4 sm:p-5">
+        <div className="max-lg:contents lg:space-y-4 lg:self-start">
+        <section data-guia="barrido.ultima" aria-live="polite" className="order-3 vd-placa rounded-[var(--radius-tarjeta,1rem)] p-4 sm:p-5 lg:order-none">
           {prendaUltima && actual ? (
             <div key={destello} className="anim-revelar flex items-center gap-4">
               <MiniaturaPrenda fotoUrl={prendaUltima.fotoUrl} colorHex={prendaUltima.colorHex} tamano="2xl" {...categoriaDe(prendaUltima)} />
@@ -830,7 +910,7 @@ export function BarridoPiso({
         </section>
 
           {personas.length > 0 && (
-            <section data-guia="barrido.personas" className="vd-placa rounded-[var(--radius-tarjeta,1rem)] p-4 sm:p-5">
+            <section data-guia="barrido.personas" className="order-7 vd-placa rounded-[var(--radius-tarjeta,1rem)] p-4 sm:p-5 lg:order-none">
               <TituloGrupo cuenta={personas.length}>Quiénes escanearon</TituloGrupo>
               <ul className="mt-2 divide-y divide-tinta/10">
                 {personas.map((p) => (
@@ -859,7 +939,7 @@ export function BarridoPiso({
           recientes={otrosEscaneandoAhora(barrido.personas, responsable.elegidoId, ahora)}
           firma={() => responsable.firma()}
           listo={responsable.listo}
-          quien={responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? responsable.firmaDeRespaldo ?? null}
+          quien={nombreElegido ?? responsable.firmaDeRespaldo ?? null}
           onHecho={() => {
             // El barrido se cerró (confirmado o descartado): la pantalla vuelve a «Nadie está barriendo», sin nada del anterior.
             reiniciar(null);
@@ -894,6 +974,7 @@ export function BarridoPiso({
           esperan={cola.length}
           onAnular={anular}
           onAnularAparte={anularAparte}
+          personaId={responsable.elegidoId}
           onClose={() => setVerEscaneado(false)}
         />
       )}
