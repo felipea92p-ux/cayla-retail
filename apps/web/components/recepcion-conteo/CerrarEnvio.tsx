@@ -852,7 +852,7 @@ export function CerrarEnvio({
       <Tabla key={g.clave} className="@container rc-cierre-grupo">
         <div className="rc-cierre-cabeza">
           <div className="min-w-0">
-            <p className="font-display text-[21px] leading-tight text-tinta">{nombreGrupo}</p>
+            <p className="font-display text-xl leading-tight text-tinta">{nombreGrupo}</p>
             <p className="text-sm text-taupe">
               {[
                 modelos > 0 ? `${modelos} ${modelos === 1 ? "modelo" : "modelos"}` : null,
@@ -1298,7 +1298,7 @@ export function CerrarEnvio({
             <Tabla className="@container">
               <div className="rc-cierre-cabeza">
                 <div className="min-w-0">
-                  <p className="font-display text-[21px] leading-tight text-tinta">Falta contar</p>
+                  <p className="font-display text-xl leading-tight text-tinta">Falta contar</p>
                   <p className="text-sm text-taupe">Si no llegó nada, al contarla elige «No llegó nada».</p>
                 </div>
                 <Chip tono="ambar">{sinContarDelTodo.length === 1 ? "1 sin contar" : `${n(sinContarDelTodo.length)} sin contar`}</Chip>

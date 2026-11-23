@@ -8,8 +8,8 @@ import { INVARIANTES } from "./invariantes.mjs";
 
 const CLAVES = Object.keys(FAMILIAS);
 
-test("las ocho familias que Felipe pidió existen, cada una con su prefijo único", () => {
-  assert.deepEqual(CLAVES.sort(), ["celular", "concurrencia", "doble-clic", "entradas", "navegacion", "permisos", "red-sesion", "teclado"]);
+test("las nueve familias existen (las ocho de Felipe y «El botón que no hace lo que dice», ADR-0693), cada una con su prefijo único", () => {
+  assert.deepEqual(CLAVES.sort(), ["boton", "celular", "concurrencia", "doble-clic", "entradas", "navegacion", "permisos", "red-sesion", "teclado"]);
   const prefijos = Object.values(FAMILIAS).map((f) => f.prefijo);
   assert.equal(new Set(prefijos).size, prefijos.length);
 });
@@ -109,6 +109,22 @@ test("plan: solo trae ataques que aplican a la pantalla y el azar no repite el n
 test("plan: una pantalla con dinero y stock recibe el doble clic, la recarga, la red cortada y la última prenda", () => {
   const ids = plan({ ingredientes: ING, semilla: 1, azar: 0 }).nucleo.map((a) => a.id);
   for (const quiero of ["DC-01", "DC-03", "NAV-03", "CON-01", "RS-01", "RS-03"]) assert.ok(ids.includes(quiero), `falta ${quiero}`);
+});
+
+test("plan: toda pantalla que guarda recibe la familia «boton» en el núcleo: lo prometido quedó hecho, el refresco, el efecto y el aviso que miente", () => {
+  const ids = plan({ ingredientes: ["guarda"], semilla: 1, azar: 0 }).nucleo.map((a) => a.id);
+  for (const quiero of ["BOT-01", "BOT-02", "BOT-03", "BOT-05"]) assert.ok(ids.includes(quiero), `falta ${quiero}`);
+  // Y una de solo lectura igual recibe «el efecto que lo deshace» (un filtro que vuelve solo a su valor también es esta falla).
+  assert.ok(plan({ ingredientes: ["lista"], semilla: 1, azar: 0 }).nucleo.some((a) => a.id === "BOT-03"));
+});
+
+test("la familia «boton» no se apoya en las invariantes: lo que mira es si quedó hecho lo que el botón promete", () => {
+  // Es la falla que las invariantes NO ven (no hay estado imposible): por eso ninguno es de gravedad 1 y ninguno las cita para calmarse.
+  for (const a of ATAQUES.filter((x) => x.familia === "boton")) {
+    assert.ok(a.gravedadTipica >= 2, `${a.id}: gravedad ${a.gravedadTipica}`);
+    assert.deepEqual(a.mira, [], `${a.id} cita invariantes`);
+    assert.match(`${a.como} ${a.esperado}`, /botón|verbo|hoja|pantalla/, `${a.id} no dice qué botón mirar`);
+  }
 });
 
 test("plan: sortea valores solo de los tipos de campo que la pantalla tiene, y son estables", () => {

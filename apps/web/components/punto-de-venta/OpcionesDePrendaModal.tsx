@@ -96,7 +96,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                 </div>
               </div>
               <div className="min-w-0 sm:mt-3.5">
-                <p className="label-cayla text-[10.5px] text-taupe">Color</p>
+                <p className="label-cayla text-xs text-taupe">Color</p>
                 <p key={mostrado.clave} className="anim-revelar truncate font-display text-xl leading-tight text-tinta">{mostrado.color ?? "Sin color"}</p>
                 {/* El precio es lo que más se mira al vender (Felipe 2026-11-13: «sale muy pequeño»): la cifra en serif de 30 px, la misma de
                     los montos de Vender (el total de «Hoy», el cupón), más grande que el nombre del color. */}
@@ -158,7 +158,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                           style={{ background: fondoDelPunto(estiloMosaicoColor(c.tallas[0]?.variante.colorHex)?.fondo, c.tallas[0]?.variante.colorTonos) ?? "var(--color-hueso)" /* beige-fijo: muestra de prenda sin color, el beige es el dato */ }}
                         />
                       )}
-                      <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-tinta">{c.color ?? "Sin color"}</span>
+                      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-tinta">{c.color ?? "Sin color"}</span>
                       {lleva > 0 && (
                         <span key={lleva} className="anim-revelar shrink-0 text-sm font-semibold text-rojo tabular-nums">
                           {lleva} en el ticket
@@ -268,7 +268,7 @@ function Casilla({
             : "border-sand bg-crema text-tinta hover:border-tinta/50 hover:[background:var(--gota-marca)] active:translate-y-px"
       }`}
     >
-      <span className={`font-display text-[17px] leading-tight ${agotada ? "line-through" : ""} ${apartada ? "text-pizarra" : ""}`}>{t.talla}</span>
+      <span className={`font-display text-lg leading-tight ${agotada ? "line-through" : ""} ${apartada ? "text-pizarra" : ""}`}>{t.talla}</span>
       <span aria-hidden className={`text-sm leading-snug ${apartada ? "text-pizarra" : ""}`}>
         <span className="@sm:hidden">{corto}</span>
         <span className="hidden @sm:inline">{texto}</span>

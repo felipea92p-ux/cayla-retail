@@ -259,6 +259,7 @@ function hayEnDetalle(details: string | null | undefined): number | null {
     const d = JSON.parse(details) as { hay?: unknown };
     return typeof d.hay === "number" && Number.isInteger(d.hay) && d.hay >= 0 ? d.hay : null;
   } catch {
+    // relleno-a-proposito: un detalle roto no dice cuántas había (nunca lanza).
     return null;
   }
 }

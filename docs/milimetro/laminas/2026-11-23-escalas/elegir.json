@@ -1,0 +1,180 @@
+{
+  "titulo": "Al milímetro · El tono del texto y las cifras",
+  "clave": "milimetro-escalas-2026-11",
+  "nota": "Dos preguntas que salieron de revisar las reglas de diseño (docs/investigacion/2026-11-19-diseno-color-y-flujo-sin-miedo-a-las-reglas.md). Todas las fotos son pantallas reales del ERP local, con datos inventados y la opción puesta encima: no se guardó nada. El contraste de cada opción lo midió /color en cada foto. Compara fila por fila: las tres columnas muestran las mismas pantallas en el mismo orden. La escala de tamaños de letra no está aquí: ya la viste en la ronda 19 y elegiste condensar el texto con piso de 14 px.",
+  "estilos": [
+    "lamina.css"
+  ],
+  "familias": [
+    {
+      "id": "texto",
+      "nombre": "El tono del texto que acompaña",
+      "pregunta": "Todo lo que no es el dato principal (el proveedor bajo la marca, «Contado», «2 prendas», la hora): ¿con qué tono va?",
+      "ayuda": "Hoy ese texto se escribe con 13 opacidades de tinta (de /25 a /85, 2.324 usos) y, aparte, en café (text-taupe, 1.683 usos). En claro, las de /35 a /60 ya se pintan iguales (el piso de tema.css las sube al 64 %), así que a la vista hay unos 3 tonos con 13 nombres y el café compitiendo como «el secundario». Ninguna opción baja de 4,5:1: lo que cambia es cómo se ve y cuánto se lee en oscuro.",
+      "grupos": [
+        {
+          "id": "tono",
+          "nombre": "Tono",
+          "pregunta": "¿Cuál se ve mejor en todo el ERP?",
+          "opciones": [
+            {
+              "id": "A",
+              "tipo": "hoy",
+              "nombre": "Hoy · 13 tonos de tinta y el café",
+              "detalle": "El texto que acompaña sale gris en unas pantallas y café en otras, a veces en la misma (mira Historial de ventas: «Tienda Lima · últimos 30 días» en café y «2 prendas» en gris).",
+              "donde": "Medido en estas 5 fotos: 0 textos bajo 4,5:1. En oscuro, 94 textos débiles para APCA (la segunda mirada de /color): 45 en Compras, 16 en Movimientos y 33 en Ventas.",
+              "imagenes": [
+                {
+                  "src": "img/texto-A-compras-claro.png",
+                  "vista": "img/texto-A-compras-claro-vista.png",
+                  "pie": "Compras · claro"
+                },
+                {
+                  "src": "img/texto-A-ventas-claro.png",
+                  "vista": "img/texto-A-ventas-claro-vista.png",
+                  "pie": "Historial de ventas · claro"
+                },
+                {
+                  "src": "img/texto-A-movimientos-claro.png",
+                  "vista": "img/texto-A-movimientos-claro-vista.png",
+                  "pie": "Movimientos · claro"
+                },
+                {
+                  "src": "img/texto-A-compras-oscuro.png",
+                  "vista": "img/texto-A-compras-oscuro-vista.png",
+                  "pie": "Compras · oscuro"
+                },
+                {
+                  "src": "img/texto-A-ventas-oscuro.png",
+                  "vista": "img/texto-A-ventas-oscuro-vista.png",
+                  "pie": "Historial de ventas · oscuro"
+                }
+              ]
+            },
+            {
+              "id": "B",
+              "tipo": "propuesta",
+              "nombre": "B · Tinta en tres tonos",
+              "detalle": "Sin café en el texto: el dato en tinta plena, lo que acompaña en tinta al 80 % y lo más tenue al 64 %. Como las etiquetas de Apple. El café queda para líneas y bordes. En claro casi no se nota a la vista; en oscuro se lee mejor.",
+              "donde": "Medido en estas 5 fotos: 0 textos bajo 4,5:1. En oscuro, 46 débiles para APCA (contra 94 de hoy): 14 en Compras, 10 en Movimientos y 22 en Ventas. Contraste por tono: 80 % da 7,7 a 8,9:1 en claro y 6,9 a 10,1:1 en oscuro; 64 % da 4,7 a 5,1:1 y 5,1 a 6,9:1.",
+              "imagenes": [
+                {
+                  "src": "img/texto-B-compras-claro.png",
+                  "vista": "img/texto-B-compras-claro-vista.png",
+                  "pie": "Compras · claro"
+                },
+                {
+                  "src": "img/texto-B-ventas-claro.png",
+                  "vista": "img/texto-B-ventas-claro-vista.png",
+                  "pie": "Historial de ventas · claro"
+                },
+                {
+                  "src": "img/texto-B-movimientos-claro.png",
+                  "vista": "img/texto-B-movimientos-claro-vista.png",
+                  "pie": "Movimientos · claro"
+                },
+                {
+                  "src": "img/texto-B-compras-oscuro.png",
+                  "vista": "img/texto-B-compras-oscuro-vista.png",
+                  "pie": "Compras · oscuro"
+                },
+                {
+                  "src": "img/texto-B-ventas-oscuro.png",
+                  "vista": "img/texto-B-ventas-oscuro-vista.png",
+                  "pie": "Historial de ventas · oscuro"
+                }
+              ]
+            },
+            {
+              "id": "C",
+              "tipo": "propuesta",
+              "nombre": "C · Tinta y café, dos voces",
+              "detalle": "Lo principal en tinta; todo lo que acompaña en el café de hoy. Dos voces y nada más, como Material. Es la más cálida y la que más cambia a la vista.",
+              "donde": "Medido en estas 5 fotos: 0 textos bajo 4,5:1, pero el café sobre hueso y arena queda justo (4,5 a 4,6:1 en claro). En oscuro, 95 débiles para APCA, como hoy.",
+              "imagenes": [
+                {
+                  "src": "img/texto-C-compras-claro.png",
+                  "vista": "img/texto-C-compras-claro-vista.png",
+                  "pie": "Compras · claro"
+                },
+                {
+                  "src": "img/texto-C-ventas-claro.png",
+                  "vista": "img/texto-C-ventas-claro-vista.png",
+                  "pie": "Historial de ventas · claro"
+                },
+                {
+                  "src": "img/texto-C-movimientos-claro.png",
+                  "vista": "img/texto-C-movimientos-claro-vista.png",
+                  "pie": "Movimientos · claro"
+                },
+                {
+                  "src": "img/texto-C-compras-oscuro.png",
+                  "vista": "img/texto-C-compras-oscuro-vista.png",
+                  "pie": "Compras · oscuro"
+                },
+                {
+                  "src": "img/texto-C-ventas-oscuro.png",
+                  "vista": "img/texto-C-ventas-oscuro-vista.png",
+                  "pie": "Historial de ventas · oscuro"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cifras",
+      "nombre": "Las cifras en DM Sans",
+      "pregunta": "Las cifras que hoy van en DM Sans (porcentajes, cantidades, montos chicos): ¿pasan a Inter para alinearse en columna?",
+      "ayuda": "Medido el 2026-11-23: DM Sans no trae cifras tabulares (con tabular-nums, «1111» sigue midiendo 41 px y «0000» 107 px a 40 px), ni la de next/font ni la completa de Google. Inter sí (103,8 y 103,8), y la Garamond de los montos grandes también: esos ya alinean y no se tocan. Inter ya la carga Estados financieros. Es la propuesta 1 del tablero de /milimetro.",
+      "grupos": [
+        {
+          "id": "letra",
+          "nombre": "Letra de las cifras",
+          "pregunta": "¿Cuál se ve mejor?",
+          "opciones": [
+            {
+              "id": "A",
+              "tipo": "hoy",
+              "nombre": "Hoy · DM Sans",
+              "detalle": "Las cifras piden alinearse (tabular-nums) pero DM Sans no puede: «1 %» y «0 %», o «582» y «314», miden distinto.",
+              "donde": "En estas pantallas: 21 cifras en DM Sans en Proveedores y 63 en Existencias.",
+              "imagenes": [
+                {
+                  "src": "img/cifras-A-proveedores.png",
+                  "vista": "img/cifras-A-proveedores-vista.png",
+                  "pie": "Proveedores"
+                },
+                {
+                  "src": "img/cifras-A-existencias.png",
+                  "vista": "img/cifras-A-existencias-vista.png",
+                  "pie": "Existencias"
+                }
+              ]
+            },
+            {
+              "id": "B",
+              "tipo": "propuesta",
+              "nombre": "B · Inter, solo en las cifras",
+              "detalle": "Las mismas cifras en Inter, que sí alinea. Los nombres y las frases siguen en DM Sans, y los montos en Garamond no cambian. Inter es un poco más ancha y más firme que DM Sans: cambia la textura de los números.",
+              "donde": "Medido: entre las cifras del mismo largo hay menos anchos distintos. En Existencias, las de 2 caracteres pasan de 5 anchos (de 14,2 a 22,9 px) a 2; en Proveedores, las de 3, de 3 anchos a 2. Lo que queda distinto es otro tamaño de letra, no otra cifra.",
+              "imagenes": [
+                {
+                  "src": "img/cifras-B-proveedores.png",
+                  "vista": "img/cifras-B-proveedores-vista.png",
+                  "pie": "Proveedores"
+                },
+                {
+                  "src": "img/cifras-B-existencias.png",
+                  "vista": "img/cifras-B-existencias-vista.png",
+                  "pie": "Existencias"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

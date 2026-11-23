@@ -58,7 +58,7 @@ export const TOPE_ESPERA_MS = 20_000;
 
 /** Lo que dice el formulario mientras no se sabe si se guardó. */
 export const TEXTO_INCIERTO =
-  "Se cortó la conexión y no sabemos si se guardó. No cambies nada todavía: revisa si se guardó, o vuelve a intentarlo tal cual (si ya se guardó, no se repite).";
+  "Se cortó la conexión. No cambies nada. Reintentar no lo duplica.";
 
 /** JSON estable: las claves de cada objeto ordenadas, para que dos envíos iguales con otro orden de claves den la misma huella. */
 export function huellaDe(valor: unknown): string {

@@ -683,11 +683,11 @@ export function ResolverDanadosModal({
                     <p className="text-sm text-taupe">{p.referencia}</p>
                     {/* ADR-0640: la talla y el color en grande. Es lo primero que se compara con la prenda en la mano: así una talla mal
                         reportada se nota aquí, y no después en el stock. */}
-                    <p className="text-[17px] font-semibold leading-snug text-tinta">
+                    <p className="text-lg font-semibold leading-snug text-tinta">
                       {nombreCorto(p.talla, p.color).replace(/^talla/, "Talla")}
                       {p.cantidad > 1 && <span className="font-normal text-taupe"> · {p.cantidad} unidades</span>}
                     </p>
-                    <p className="font-mono text-[11px] text-tinta/55">
+                    <p className="font-mono text-xs text-tinta/55">
                       {p.sku} · dañada desde{" "}
                       {new Date(p.creadoEn).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" })}
                     </p>

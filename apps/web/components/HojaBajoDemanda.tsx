@@ -41,7 +41,7 @@ export function hojaBajoDemanda<P extends object>(cargar: () => Promise<Componen
   }
 
   /** Empieza a bajarla sin abrirla (al acercar el mouse o el foco al botón, o cuando la pantalla queda libre). Un fallo aquí no se dice. */
-  const precargar = () => void pieza.pedir().catch(() => {});
+  const precargar = () => void pieza.pedir().catch(() => {}); // relleno-a-proposito: es una precarga: al abrir la hoja se pide otra vez y ahí sí se avisa
 
   return Object.assign(Hoja, { precargar });
 }

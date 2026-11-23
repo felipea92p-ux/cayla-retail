@@ -263,7 +263,7 @@ export function HojaPrenda({
         const r = await fetch(deIA.url);
         return r.ok ? await r.blob() : null;
       } catch {
-        // Sin molde, la IA igual responde: el primer color de esta hoja hace de molde, como al crear.
+        // relleno-a-proposito: Sin molde, la IA igual responde: el primer color de esta hoja hace de molde, como al crear.
         return null;
       }
     })();

@@ -1,0 +1,58 @@
+/* =====================================================================
+   EL PUENTE DE LA LETRA (ADR-0691; Felipe 2026-11-19: «hay cosas con fuente demasiado pequeña y son imposibles de leer»).
+
+   La letra del ERP sale de una escala de cinco escalones (el `@theme` de `app/globals.css`): 13 `text-xs` · 14 `text-detalle` ·
+   16 `text-sm` · 18 `text-lg` · 21 `text-xl`. Pero 1.300 clases escriben su tamaño a mano (`text-[11px]`) y no pasan por ella.
+   Este archivo es el PUENTE mientras se migran, módulo por módulo: lleva cada tamaño escrito a mano a su escalón, en pantalla, para
+   que desde hoy nada se vea por debajo de 13 px. Al migrar un archivo se cambia la clase por la utilidad de la escala (`text-xs`) y,
+   cuando un tamaño ya no lo usa nadie, su línea se borra de aquí. La deuda la cuenta `lib/letra-suelta.test.ts`, que además exige que
+   este puente cubra cada tamaño que la web todavía usa.
+
+   Cómo está hecho, y por qué:
+   · Sin capa y dentro de `:where()`: sin capa le gana a la utilidad de Tailwind (que vive en `@layer utilities`); con peso cero no le
+     gana a ninguna pieza del sistema que ponga su propia letra.
+   · `[class~="text-[11px]"]` y no `[class*=…]`: solo la clase sin variante. Una variante (`sm:text-[11px]`) no se puede puentear sin
+     repetir su condición, así que esas se escriben bien de entrada (la prueba no deja que haya ninguna).
+   · Solo en pantalla, y nunca dentro del papel: lo que se imprime (un ticket, una etiqueta, un rótulo) mide lo que mide su papel, y
+     su vista previa tiene que verse igual que saldrá. Tampoco dentro de un dibujo (`svg`): ahí la letra escala con el dibujo.
+   · `data-letra-fija` saca de la regla a una pieza y a todo lo de adentro. Se usa solo con un motivo, escrito al lado.
+   ===================================================================== */
+@media screen {
+  /* Hasta 12,5 px → 13 px, el piso. */
+  :where(
+    :is(
+      [class~="text-[8px]"], [class~="text-[8.5px]"], [class~="text-[9px]"], [class~="text-[9.5px]"], [class~="text-[10px]"],
+      [class~="text-[10.5px]"], [class~="text-[11px]"], [class~="text-[11.5px]"], [class~="text-[12px]"], [class~="text-[12.5px]"]
+    ):not(.papel-fijo, .papel-fijo *, [data-papel], [data-papel] *, [data-letra-fija], [data-letra-fija] *, svg *)
+  ) {
+    font-size: var(--text-xs);
+  }
+
+  /* 13,5 y 14,5 px → 14 px. */
+  :where(
+    :is([class~="text-[13.5px]"], [class~="text-[14.5px]"]):not(.papel-fijo, .papel-fijo *, [data-papel], [data-papel] *, [data-letra-fija], [data-letra-fija] *, svg *)
+  ) {
+    font-size: var(--text-detalle);
+  }
+
+  /* 15 px → 16 px: lo que se lee. */
+  :where(
+    :is([class~="text-[15px]"]):not(.papel-fijo, .papel-fijo *, [data-papel], [data-papel] *, [data-letra-fija], [data-letra-fija] *, svg *)
+  ) {
+    font-size: var(--text-sm);
+  }
+
+  /* 17, 17,5 y 19 px → 18 px. */
+  :where(
+    :is([class~="text-[17px]"], [class~="text-[17.5px]"], [class~="text-[19px]"]):not(.papel-fijo, .papel-fijo *, [data-papel], [data-papel] *, [data-letra-fija], [data-letra-fija] *, svg *)
+  ) {
+    font-size: var(--text-lg);
+  }
+
+  /* 20 px → 21 px. */
+  :where(
+    :is([class~="text-[20px]"]):not(.papel-fijo, .papel-fijo *, [data-papel], [data-papel] *, [data-letra-fija], [data-letra-fija] *, svg *)
+  ) {
+    font-size: var(--text-xl);
+  }
+}

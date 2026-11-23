@@ -953,7 +953,7 @@ export function RecepcionEnvio({
           <span className="flex flex-col items-end gap-1">
             <Chip tono={CHIP_ESTADO[estado]}>{estado === "sin_contar" ? "Sin contar" : `${recibiendoLinea} de ${l.pendiente}`}</Chip>
             {estado === "sin_contar" && (
-              <button type="button" onClick={() => nadaLlegoDe(l.id)} className="label-cayla text-[10px] text-tinta/65 hover:text-rojo">
+              <button type="button" onClick={() => nadaLlegoDe(l.id)} className="label-cayla text-xs text-tinta/65 hover:text-rojo">
                 Nada llegó
               </button>
             )}
@@ -1001,7 +1001,7 @@ export function RecepcionEnvio({
             className="px-4 pt-4"
             accion={
               hayEnvio ? (
-                <button type="button" onClick={() => setListaPlegada((v) => !v)} aria-expanded={!listaPlegada} className="label-cayla text-[10.5px] text-tinta/65 hover:text-rojo lg:hidden">
+                <button type="button" onClick={() => setListaPlegada((v) => !v)} aria-expanded={!listaPlegada} className="label-cayla text-xs text-tinta/65 hover:text-rojo lg:hidden">
                   {listaPlegada ? "Cambiar" : "Ocultar"}
                 </button>
               ) : undefined
@@ -1079,7 +1079,7 @@ export function RecepcionEnvio({
                   {marcada && <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="check-trazo h-3 w-3" strokeWidth={3} style={{ "--d": "0ms" } as CSSProperties} />}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14.5px] font-semibold text-tinta">
+                  <span className="block truncate text-detalle font-semibold text-tinta">
                     <Resaltado texto={c.proveedorNombre} busqueda={busqueda} />
                   </span>
                   <span className="block text-sm tabular-nums text-tinta/75">
@@ -1140,7 +1140,7 @@ export function RecepcionEnvio({
                     <Truck className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="font-display text-[21px] leading-tight text-tinta">{tituloEnvio}</p>
+                    <p className="font-display text-xl leading-tight text-tinta">{tituloEnvio}</p>
                     <p className="mt-2 flex flex-wrap items-center text-sm text-tinta/65">
                       {proveedoresEnvio.map((p) => (
                         <Ini key={p.id} nombre={p.nombre} chico apilada />
@@ -1183,10 +1183,10 @@ export function RecepcionEnvio({
                 <div className="flex items-center gap-4 border-t border-tinta/10 p-5 @xl:col-span-2 @[44rem]:col-span-1 @[44rem]:border-l @[44rem]:border-t-0">
                   {/* Cuánto llevas contado del envío (el anillo del sistema, ronda 13): en tinta mientras falta, verde al 100 %. */}
                   <Anillo pct={pctContado} tamano="mediano" etiqueta={`${pctContado} % contado`}>
-                    <span className="font-display text-[19px] font-normal">{pctContado}%</span>
+                    <span className="font-display text-lg font-normal">{pctContado}%</span>
                   </Anillo>
                   <div>
-                    <p className="label-cayla text-[10.5px] text-tinta/55">Estado de recepción</p>
+                    <p className="label-cayla text-xs text-tinta/55">Estado de recepción</p>
                     <p key={estadoDelEnvio} className="anim-asentar font-display text-2xl leading-tight text-tinta">{estadoDelEnvio}</p>
                     <p className="text-sm text-tinta/65">
                       {totales.contadas.toLocaleString("es-PE")} de {totales.esperadas.toLocaleString("es-PE")} unidades contadas
@@ -1198,7 +1198,7 @@ export function RecepcionEnvio({
               {/* los comprobantes del envío, de cualquier proveedor */}
               <section className="card-cayla anim-entra relative p-5" style={{ "--i": 1 } as CSSProperties}>
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <p className="label-cayla text-[10.5px] text-tinta/55">Comprobantes de este envío</p>
+                  <p className="label-cayla text-xs text-tinta/55">Comprobantes de este envío</p>
                   {comprasSinMarcar.length > 0 && (
                     <div ref={menuRef} className="relative">
                       <Boton type="button" peso="discreto" aria-expanded={menuAgregar} aria-haspopup="menu" onClick={() => setMenuAgregar((v) => !v)} className="btn-chico">
@@ -1343,7 +1343,7 @@ export function RecepcionEnvio({
 
                     <div className={`hidden gap-x-3 border-b border-tinta/10 px-5 py-2 @[46rem]:grid ${PLANTILLA_LINEA}`}>
                       {["Prenda", "Código", "Pendiente", "Llegó", "Dif.", "Estado"].map((t, i) => (
-                        <span key={t} className={`label-cayla text-[11px] text-tinta/55 ${i === 1 ? "hidden @[60rem]:block" : ""} ${i === 2 || i === 3 || i === 4 ? "text-center" : ""}`}>
+                        <span key={t} className={`label-cayla text-xs text-tinta/55 ${i === 1 ? "hidden @[60rem]:block" : ""} ${i === 2 || i === 3 || i === 4 ? "text-center" : ""}`}>
                           {t}
                         </span>
                       ))}
@@ -1365,7 +1365,7 @@ export function RecepcionEnvio({
                               <ChevronRight aria-hidden className={`h-4 w-4 shrink-0 text-tinta/55 transition-transform duration-300 ease-cayla ${abierto ? "rotate-90" : ""}`} />
                               <Ini nombre={c.proveedorNombre} />
                               <span className="min-w-0">
-                                <span className="flex flex-wrap items-center gap-2 text-[15px] font-semibold text-tinta">
+                                <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-tinta">
                                   {c.proveedorNombre}
                                   <Chip tono={llegada.tono}>{llegada.texto}</Chip>
                                 </span>
@@ -1388,14 +1388,14 @@ export function RecepcionEnvio({
                               </span>
                               {abierto ? (
                                 <>
-                                  <button type="button" onClick={() => marcarTodas(c.id, "todo")} className="label-cayla text-[10px] text-tinta hover:text-rojo">
+                                  <button type="button" onClick={() => marcarTodas(c.id, "todo")} className="label-cayla text-xs text-tinta hover:text-rojo">
                                     Todo llegó
                                   </button>
-                                  <button type="button" onClick={() => marcarTodas(c.id, "nada")} className="label-cayla text-[10px] text-tinta hover:text-rojo">
+                                  <button type="button" onClick={() => marcarTodas(c.id, "nada")} className="label-cayla text-xs text-tinta hover:text-rojo">
                                     Nada llegó
                                   </button>
                                   {contadasC > 0 && (
-                                    <button type="button" onClick={() => marcarTodas(c.id, "vaciar")} className="label-cayla text-[10px] text-tinta/65 hover:text-rojo">
+                                    <button type="button" onClick={() => marcarTodas(c.id, "vaciar")} className="label-cayla text-xs text-tinta/65 hover:text-rojo">
                                       Vaciar
                                     </button>
                                   )}
@@ -1523,7 +1523,7 @@ export function RecepcionEnvio({
                               }}
                               className={`caja-campo-input w-24 shrink-0 text-right tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
                             />
-                            <button type="button" onClick={() => quitarExtra(i)} className="label-cayla shrink-0 pb-2 text-[10px] text-tinta/55 hover:text-rojo">
+                            <button type="button" onClick={() => quitarExtra(i)} className="label-cayla shrink-0 pb-2 text-xs text-tinta/55 hover:text-rojo">
                               Quitar
                             </button>
                             {ex.varianteId && !extraCompleto(ex) && <p className="w-full text-sm text-ambar-profundo">Elige de qué proveedor viene esta prenda.</p>}
@@ -1666,7 +1666,7 @@ export function RecepcionEnvio({
                       <span className={`font-display text-xl leading-none tabular-nums transition-colors duration-300 sm:text-2xl ${m.tono}`}>
                         <CifraQueCuenta valor={m.n} />
                       </span>
-                      <span className="label-cayla mt-0.5 block text-[8.5px] leading-tight text-tinta/55 sm:text-[9.5px]">{m.etiqueta}</span>
+                      <span className="label-cayla mt-0.5 block text-xs leading-tight text-tinta/55">{m.etiqueta}</span>
                     </span>
                   ))}
                 </div>
@@ -1761,7 +1761,7 @@ function Miniatura({ variante }: { variante: Variante | undefined }) {
 function Ini({ nombre, chico = false, apilada = false }: { nombre: string; chico?: boolean; apilada?: boolean }) {
   // `apilada`: los círculos se montan un poco unos sobre otros, con un borde del color de la tarjeta (varios proveedores en un envío).
   return (
-    <span aria-hidden className={`grid shrink-0 place-items-center rounded-full vd-gota-chica font-bold tracking-wide text-tinta/75 ${chico ? "h-[22px] w-[22px] text-[9px]" : "h-[30px] w-[30px] text-[10.5px]"} ${apilada ? "anim-asentar -ml-1.5 border-2 border-papel first:ml-0" : ""}`}>
+    <span aria-hidden className={`grid shrink-0 place-items-center rounded-full vd-gota-chica font-bold tracking-wide text-tinta/75 ${chico ? "h-[22px] w-[22px] text-xs" : "h-[30px] w-[30px] text-xs"} ${apilada ? "anim-asentar -ml-1.5 border-2 border-papel first:ml-0" : ""}`}>
       {inicialesProveedor(nombre)}
     </span>
   );
@@ -1853,11 +1853,11 @@ function CurvaVariantes({
           <tr>
             {!unaFila && <th className="w-12 text-left sm:w-24" />}
             {tallas.map((t) => (
-              <th key={t} className="label-cayla pb-0.5 text-center text-[11px] text-tinta/55">
+              <th key={t} className="label-cayla pb-0.5 text-center text-xs text-tinta/55">
                 {t === SIN ? "Talla única" : t}
               </th>
             ))}
-            {!unaFila && <th className="label-cayla pb-0.5 pl-2 text-right text-[11px] text-tinta/55">Total</th>}
+            {!unaFila && <th className="label-cayla pb-0.5 pl-2 text-right text-xs text-tinta/55">Total</th>}
           </tr>
         </thead>
         <tbody>

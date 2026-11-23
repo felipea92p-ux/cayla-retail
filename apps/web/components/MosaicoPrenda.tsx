@@ -65,7 +65,7 @@ export function MosaicoPrenda({
     >
       {sinCategoria ? <IconoPercha className={claseIcono} strokeWidth={1.5} /> : <IconoCategoria prefijo={prefijo} familia={familia ?? null} className={claseIcono} />}
       {conRotulo && (
-        <span className={`label-cayla line-clamp-2 max-w-full text-center leading-snug ${enGrilla ? "text-[9.5px]" : "text-[8px] !tracking-[0.04em] @min-[9rem]:text-[11px]"}`} style={{ opacity: color ? 0.85 : 0.6, color: color ? undefined : "var(--color-tinta-fija)" }}>
+        <span data-letra-fija /* letra-fija: el rótulo es parte del dibujo de la baldosa y crece con ella (ADR-0333) */ className={`label-cayla line-clamp-2 max-w-full text-center leading-snug ${enGrilla ? "text-[9.5px]" : "text-[8px] !tracking-[0.04em] @min-[9rem]:text-[11px]"}`} style={{ opacity: color ? 0.85 : 0.6, color: color ? undefined : "var(--color-tinta-fija)" }}>
           {categoria}
         </span>
       )}

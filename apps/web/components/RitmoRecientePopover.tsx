@@ -81,7 +81,7 @@ export function RitmoRecientePopover({
               style={{ top: pos.top, left: pos.left, width: ANCHO }}
               className="card-cayla fixed z-[60] p-4 text-sm"
             >
-              <p className="label-cayla text-[10px] font-bold text-taupe">Ritmo reciente</p>
+              <p className="label-cayla text-xs font-bold text-taupe">Ritmo reciente</p>
               <p className="mt-0.5 text-sm text-tinta/55">
                 {referencia} · <span className="font-mono">{sku}</span>
               </p>

@@ -1,7 +1,11 @@
 ---
 name: rigor
-description: Aplica rigor matemático explícito (conjuntos/álgebra relacional, complejidad algorítmica, álgebra lineal/vectorización, estadística, resiliencia tipo-Result) a una decisión de esquema, RLS, algoritmo en lib/*.ts, o cifra financiera/estadística. Úsala al diseñar una tabla/política/RPC, elegir una estructura de datos o índice, rankear/promediar con poca muestra, o tocar una integración externa — o automáticamente cuando la tarea sea de ese tipo.
+description: "Aplica rigor matemático (álgebra relacional, complejidad, estadística con poca muestra, resiliencia tipo Result) a una tabla, una política RLS, una RPC, un algoritmo o una cifra. Úsala al diseñar esas piezas o al tocar una integración externa."
 ---
+
+## Qué hace y cuándo se usa
+
+Aplica rigor matemático explícito (conjuntos/álgebra relacional, complejidad algorítmica, álgebra lineal/vectorización, estadística, resiliencia tipo-Result) a una decisión de esquema, RLS, algoritmo en lib/*.ts, o cifra financiera/estadística. Úsala al diseñar una tabla/política/RPC, elegir una estructura de datos o índice, rankear/promediar con poca muestra, o tocar una integración externa — o automáticamente cuando la tarea sea de ese tipo.
 
 Aplica sobre: $ARGUMENTS
 

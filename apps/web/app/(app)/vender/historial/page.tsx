@@ -65,11 +65,11 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
 
   const [ubicaciones, colaboradores, suspendidos, inactivos] = await Promise.all([
     getUbicaciones(),
-    // Si la lista de colaboradores falla, solo desaparece el filtro por vendedor: el historial sigue.
+    // relleno-a-proposito: Si la lista de colaboradores falla, solo desaparece el filtro por vendedor: el historial sigue.
     esLider ? getColaboradores().catch(() => []) : Promise.resolve([]),
     // Quien está suspendido o ya no está activo en Dynamic igual vendió: sus ventas tienen que poder filtrarse por su nombre.
-    esLider ? getColaboradoresSuspendidos().catch(() => []) : Promise.resolve([]),
-    esLider ? getColaboradoresInactivos().catch(() => []) : Promise.resolve([]),
+    esLider ? getColaboradoresSuspendidos().catch(() => []) : Promise.resolve([]), // relleno-a-proposito: como la de arriba: si falla, el filtro por vendedor solo pierde estos nombres
+    esLider ? getColaboradoresInactivos().catch(() => []) : Promise.resolve([]), // relleno-a-proposito: como la de arriba: si falla, el filtro por vendedor solo pierde estos nombres
   ]);
   // Solo las tiendas venden: ni el Taller ni un almacén tienen mostrador.
   const tiendas = ubicaciones.filter((u) => u.tipo === "tienda");
@@ -238,7 +238,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
                 titulo={buscando ? `Ninguna venta con «${filtros.busqueda}»` : "Ninguna venta coincide"}
                 detalle={
                   buscando
-                    ? "Se buscó en todas las fechas. Prueba con el número sin ceros (B004-31), el DNI o RUC o el nombre de la prenda."
+                    ? "Se buscó en todas las fechas. Prueba el número (B004-31), el DNI o la prenda."
                     : `No hay ventas con estos filtros (${periodoEnPalabras.toLowerCase()}). Prueba con otro período o quita algún filtro.`
                 }
               />
@@ -258,7 +258,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
           />
 
           <p data-guia="historial.nota" className="max-w-2xl text-sm leading-relaxed text-tinta/60">
-            Una venta no se edita ni se borra: si se anula, queda tachada y deja de sumar. Un cambio o una devolución se marca en su venta.
+            Una venta no se borra: anulada, queda tachada y no suma.
           </p>
         </div>
 

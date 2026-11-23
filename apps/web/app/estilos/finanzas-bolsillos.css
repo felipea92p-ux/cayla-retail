@@ -490,7 +490,7 @@
 }
 .movs-renglon[data-tipo="mueve"] .movs-icono,
 .movs-renglon[data-tipo="claure"] .movs-icono {
-  --c: var(--color-taupe-profundo);
+  --c: var(--color-taupe); /* el café de la categoría (ADR-0694: `taupe-profundo` ya es tinta, `taupe` vale lo mismo que antes) */
 }
 .movs-renglon[data-tipo="ajuste"] .movs-icono {
   --c: var(--color-ambar-profundo);

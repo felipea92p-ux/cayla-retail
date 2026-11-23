@@ -62,7 +62,7 @@ export function EtiquetasDeLaMatriz({
   return (
     <section aria-label="Insignias" className="space-y-3 rounded-xl border border-sand bg-papel p-3 @lg:p-4" id="matriz-etiquetas">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5">
-        <p className="text-[13px] text-tinta">
+        <p className="text-xs text-tinta">
           {nombre && cuenta ? (
             <>
               <b className="font-semibold">{nombre}</b>{" "}
@@ -76,10 +76,10 @@ export function EtiquetasDeLaMatriz({
         </p>
         {elegida && cuenta && (
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <button type="button" disabled={deshabilitado || cuenta.con === cuenta.de} onClick={() => onEnTodas(true)} className="btn-cayla btn-enlace text-[12.5px]">
+            <button type="button" disabled={deshabilitado || cuenta.con === cuenta.de} onClick={() => onEnTodas(true)} className="btn-cayla btn-enlace text-xs leading-tight">
               Poner en todas
             </button>
-            <button type="button" disabled={deshabilitado || cuenta.con === 0} onClick={() => onEnTodas(false)} className="btn-cayla btn-enlace text-[12.5px]">
+            <button type="button" disabled={deshabilitado || cuenta.con === 0} onClick={() => onEnTodas(false)} className="btn-cayla btn-enlace text-xs leading-tight">
               Quitar de todas
             </button>
           </div>
@@ -88,7 +88,7 @@ export function EtiquetasDeLaMatriz({
 
       {grupos.map((g) => (
         <div key={g.estilo} role="group" aria-label={g.grupo}>
-          <p className="label-cayla mb-1.5 flex items-center gap-1.5 text-[11px] text-tinta/65">
+          <p className="label-cayla mb-1.5 flex items-center gap-1.5 text-xs text-tinta/65">
             <span aria-hidden className={`inline-block h-1.5 w-1.5 rounded-full ${g.dot}`} />
             {g.grupo}
           </p>
@@ -104,7 +104,7 @@ export function EtiquetasDeLaMatriz({
                     {marcada && <span aria-hidden>✓ </span>}
                     {et.texto}
                   </span>
-                  <span className="px-0.5 text-[10.5px] tabular-nums text-taupe">
+                  <span className="px-0.5 text-xs tabular-nums text-taupe">
                     {c.con === 0 ? "ninguna talla" : c.con === c.de ? "todas las tallas" : `${c.con} de ${c.de} tallas`}
                   </span>
                   <BarraAvance pct={c.de > 0 ? (c.con / c.de) * 100 : 0} alto="fina" decorativa className="mx-0.5 mb-0.5 w-auto" />

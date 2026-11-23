@@ -19,6 +19,7 @@ import { BotonAsistente } from "@/components/asistente/Asistente";
 import { pantallasDelAsistente } from "@/lib/asistente/pantallas";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
+import { useVidrioQueDobla } from "@/components/ui/useVidrioQueDobla";
 import { BuscadorGlobal, abrirBuscadorGlobal } from "@/components/BuscadorGlobal";
 import dynamic from "next/dynamic";
 import { INICIO_DE_LA_PALABRA, LogoCayla } from "@/components/ui/LogoCayla";
@@ -538,6 +539,8 @@ function CajonGrupo({
   onSalir: () => void;
 }) {
   const filas = useRef<(HTMLAnchorElement | null)[]>([]);
+  // El cajón flota sobre la pantalla: dobla lo de atrás en su canto y conserva su relleno (lleva nombres que se leen). ADR-0681.
+  const dobla = useVidrioQueDobla<HTMLDivElement>({ desenfoque: 24, asienta: true });
   // Solo las PANTALLAS, a cualquier profundidad (D-84: un subgrupo como Abastecimiento se aplana acá en vez de abrir
   // un segundo cajón en cascada — el cajón ya es la vista rápida y plegada, no vale la pena otro nivel de flotante
   // para un menú de cuatro filas). El teclado (flechas, Inicio/Fin) navega entre PANTALLAS, nunca entre etiquetas.
@@ -618,6 +621,7 @@ function CajonGrupo({
 
   return (
     <div
+      ref={dobla}
       role="menu"
       aria-label={grupo.etiqueta}
       onKeyDown={alTeclado}
@@ -713,6 +717,8 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
   };
   const asideRef = useRef<HTMLElement | null>(null);
   const veloRef = useRef<HTMLDivElement | null>(null);
+  // La cabecera dobla lo que pasa por debajo (ADR-0681): una barra a ras, por su borde de abajo, con el relleno claro de una pieza de control.
+  const doblaCabecera = useVidrioQueDobla<HTMLDivElement>({ lados: "abajo", relleno: "claro" });
   // En el celular el cajón se cierra también deslizándolo hacia la izquierda (ADR-0479, actividad 11).
   useLateralConElDedo(asideRef, veloRef, movilAbierto, cerrarMovil);
   // Etiqueta flotante de una fila plegada y cajón de un grupo: uno a la vez, ambos siempre pegados
@@ -962,14 +968,10 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
   return (
     // `data-lateral` cambia UN token (`--spacing-lateral`, globals.css): el aside, la cabecera, el <main> y las
     // barras fijas de abajo lo leen, así que plegar no obliga a tocar ninguno de los cuatro.
-    // Sin fondo propio: el crema es el del <body> y, encima, la aurora (que vive DETRÁS del contenido, marco.css).
+    // Sin fondo propio: el crema es el del <body> y, encima, Seda (que vive DETRÁS del contenido, marco.css).
     <div className="min-h-screen" data-lateral={plegado ? "plegado" : undefined}>
-      {/* El fondo con vidrio (ADR-0596, «B · Aurora»): tres nubes muy tenues, quietas, para que el vidrio tenga algo que desenfocar. */}
-      <div aria-hidden className="marco-aurora">
-        <i />
-        <i />
-        <i />
-      </div>
+      {/* El fondo con vidrio (ADR-0681, «Seda»): cuatro pliegues enormes, quietos, para que el vidrio tenga algo que doblar. Solo CSS. */}
+      <div aria-hidden className="marco-seda" />
       {/* Velo del cajón (celular): tocarlo cierra. Siempre montado para que también se APAGUE al cerrar (`.velo-cajon`,
           globals.css); cerrado no recibe toques. Su tinte y su desenfoque son del vidrio (`vidrio/marco.css`, «A · Hoja con
           profundidad»). */}
@@ -1203,7 +1205,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
       {/* `data-fondo-hoja`: con una hoja abierta en el celular, la cabecera y el contenido se alejan juntos (ADR-0479,
           components/ui/fondoDeLaHoja.ts). */}
       <header data-cabecera-app data-fondo-hoja="borde" className="marco-cabecera">
-        <div className="marco-cabecera-fila">
+        <div ref={doblaCabecera} className="marco-cabecera-fila">
           <div className="marco-isla marco-isla-izq">
             {/* Celular: abre el cajón con el menú completo (v4), a la izquierda del colibrí. */}
             <button

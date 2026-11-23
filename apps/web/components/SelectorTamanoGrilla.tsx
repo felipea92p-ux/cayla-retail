@@ -40,7 +40,7 @@ export function SelectorTamanoGrilla({ inicial }: { inicial: TamanoGrilla }) {
   const [valor, elegir] = useTamanoGrilla(inicial);
   return (
     <div data-guia="productos.tamano" className="flex items-center gap-2.5">
-      <span aria-hidden className="label-cayla hidden text-[10.5px] text-tinta/60 sm:inline">
+      <span aria-hidden className="label-cayla hidden text-xs text-tinta/60 sm:inline">
         Tamaño
       </span>
       <SegmentoDeslizante

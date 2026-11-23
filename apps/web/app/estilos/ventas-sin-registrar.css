@@ -34,7 +34,7 @@
     padding: 0.875rem 1.25rem;
   }
   .vsr-f-prog { flex: 1 1 18rem; min-width: 0; display: flex; flex-direction: column; gap: 0.5rem; }
-  .vsr-f-top { display: flex; align-items: baseline; gap: 0.625rem; font-size: 14px; color: var(--vsr-t65); }
+  .vsr-f-top { display: flex; align-items: baseline; gap: 0.625rem; font-size: var(--text-detalle); color: var(--vsr-t65); }
   .vsr-f-n { font-family: var(--font-serif); font-size: 36px; line-height: 1; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
   .vsr-venc {
     display: inline-flex;
@@ -44,7 +44,7 @@
     border: 1px solid color-mix(in srgb, var(--color-rojo) 38%, var(--color-sand));
     background: color-mix(in srgb, var(--color-rojo) 8%, var(--color-papel));
     padding: 0.4375rem 0.875rem;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 600;
     color: var(--color-rojo-profundo);
     transition: background-color 250ms, color 250ms, border-color 250ms;
@@ -55,7 +55,7 @@
   .vsr-venc[aria-pressed="true"] { background: var(--color-rojo-profundo); border-color: var(--color-rojo-profundo); color: var(--color-crema); }
   /* La «Vencida» es una señal (ADR-0136): su punto late TRES veces y se queda quieto, como el chip. */
   .vsr-venc > i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: vsr-late 1.1s var(--ease-cayla) 3; }
-  .vsr-f-mes { margin-left: auto; font-size: 12.5px; color: var(--vsr-t65); }
+  .vsr-f-mes { margin-left: auto; font-size: var(--text-xs); color: var(--vsr-t65); }
   .vsr-f-mes b { color: var(--color-tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
 
   /* ---- La mesa ---- */
@@ -105,8 +105,8 @@
   .vsr-talon-foto { position: relative; width: 4rem; flex: none; overflow: hidden; border-radius: calc(var(--radius-xl) - 1px) 0 0 calc(var(--radius-xl) - 1px); }
   .vsr-talon-foto > div { position: absolute; inset: 0; border-radius: 0 !important; }
   .vsr-talon-tx { flex: 1; min-width: 0; padding: 0.6875rem 0.875rem; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
-  .vsr-talon-tx b { font-weight: 500; font-size: 14.5px; color: var(--color-tinta); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; line-height: 1.25; }
-  .vsr-talon-tx small { font-size: 12px; color: var(--color-taupe-profundo); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vsr-talon-tx b { font-weight: 500; font-size: var(--text-detalle); color: var(--color-tinta); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; line-height: 1.25; }
+  .vsr-talon-tx small { font-size: var(--text-xs); color: var(--color-taupe-profundo); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .vsr-talon-tx .vsr-talon-anotado { color: var(--color-tinta); font-weight: 500; }
   .vsr-talon-der {
     position: relative;
@@ -125,7 +125,7 @@
   .vsr-talon-der::after { content: ""; position: absolute; left: -8px; width: 14px; height: 14px; border-radius: 50%; background: var(--color-papel); border: 1px solid var(--color-sand); }
   .vsr-talon-der::before { top: -8px; clip-path: inset(50% 0 0 0); }
   .vsr-talon-der::after { bottom: -8px; clip-path: inset(0 0 50% 0); }
-  .vsr-talon-precio { font-weight: 600; font-size: 14px; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
+  .vsr-talon-precio { font-weight: 600; font-size: var(--text-detalle); color: var(--color-tinta); font-variant-numeric: tabular-nums; }
   .vsr-nub { position: absolute; right: -5px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%; background: var(--color-tinta); transform: scale(0); transition: transform 300ms var(--ease-cayla); z-index: 2; }
   .vsr-talon[aria-pressed="true"] .vsr-nub { transform: scale(1); }
   .vsr-mesa:not([data-modo="tres"]) .vsr-nub { display: none; }
@@ -141,7 +141,7 @@
     padding: 3px 12px;
     font-weight: 700;
     letter-spacing: 0.2em;
-    font-size: 12px;
+    font-size: var(--text-xs);
     text-transform: uppercase;
     transform: rotate(-8deg);
     background: color-mix(in srgb, var(--color-verde) 7%, var(--color-papel));
@@ -149,7 +149,7 @@
     animation: vsr-sello 500ms var(--ease-cayla) both;
   }
   .vsr-talon[data-saliendo] { pointer-events: none; overflow: hidden; animation: vsr-pliega 560ms 1000ms var(--ease-cayla) both; }
-  .vsr-vacio { padding: 2.25rem 0.5rem; text-align: center; font-size: 14px; color: var(--vsr-t65); }
+  .vsr-vacio { padding: 2.25rem 0.5rem; text-align: center; font-size: var(--text-detalle); color: var(--vsr-t65); }
 
   /* ---- Las dos columnas de la derecha: pegadas a la ventana ---- */
   .vsr-puente,
@@ -160,7 +160,7 @@
   .vsr-mesa[data-modo="tres"] .vsr-prendas { z-index: 3; }
   .vsr-prendas { display: flex; flex-direction: column; gap: 0.875rem; }
   .vsr-prendas-cab { display: flex; flex-direction: column; gap: 2px; }
-  .vsr-prendas-cab p { font-size: 12.5px; color: var(--vsr-t65); }
+  .vsr-prendas-cab p { font-size: var(--text-xs); color: var(--vsr-t65); }
   .vsr-rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: 0.75rem; }
 
   /* ---- La tarjeta de una prenda ---- */
@@ -185,31 +185,31 @@
   .vsr-ct[data-sin-unidades] .vsr-ct-foto { opacity: 0.6; }
   .vsr-ct-foto { position: relative; width: 100%; aspect-ratio: 1.75; overflow: hidden; border-radius: var(--radius-md); }
   .vsr-ct-foto > div { position: absolute; inset: 0; }
-  .vsr-ct b { font-weight: 600; font-size: 14px; padding: 0 3px; color: var(--color-tinta); line-height: 1.25; }
-  .vsr-ct small { padding: 0 3px; font-size: 12px; color: var(--color-taupe-profundo); }
-  .vsr-ct-pr { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; padding: 0 3px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .vsr-ct b { font-weight: 600; font-size: var(--text-detalle); padding: 0 3px; color: var(--color-tinta); line-height: 1.25; }
+  .vsr-ct small { padding: 0 3px; font-size: var(--text-xs); color: var(--color-taupe-profundo); }
+  .vsr-ct-pr { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; padding: 0 3px; font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
   .vsr-ct-pr b { padding: 0; }
-  .vsr-ct-pr span { color: var(--vsr-t65); font-size: 12px; text-align: right; }
-  .vsr-veredicto { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0 3px; font-size: 12px; font-weight: 600; color: var(--color-verde); }
+  .vsr-ct-pr span { color: var(--vsr-t65); font-size: var(--text-xs); text-align: right; }
+  .vsr-veredicto { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0 3px; font-size: var(--text-xs); font-weight: 600; color: var(--color-verde); }
   .vsr-veredicto > i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
   .vsr-veredicto[data-tono="casi"] { color: var(--color-ambar); }
   .vsr-veredicto[data-tono="otra"] { color: var(--vsr-t65); }
   /* «¿Por qué?»: lo difícil bajo un toque (ley 6). */
-  .vsr-pq { display: inline-flex; align-items: center; min-height: 24px; padding: 0 2px; font-size: 12px; color: var(--color-taupe-profundo); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
+  .vsr-pq { display: inline-flex; align-items: center; min-height: 24px; padding: 0 2px; font-size: var(--text-xs); color: var(--color-taupe-profundo); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
   @media (hover: hover) {
     .vsr-pq:hover { color: var(--color-tinta); }
   }
   .vsr-pq[aria-expanded="true"] { color: var(--color-tinta); text-decoration-style: solid; }
-  .vsr-pq-nota { flex-basis: 100%; width: 100%; background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); border-radius: var(--radius-md); padding: 0.5625rem 0.75rem; font-size: 12.5px; line-height: 1.45; color: var(--color-tinta); animation: vsr-sube 300ms var(--ease-cayla) backwards; }
+  .vsr-pq-nota { flex-basis: 100%; width: 100%; background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); border-radius: var(--radius-md); padding: 0.5625rem 0.75rem; font-size: var(--text-xs); line-height: 1.45; color: var(--color-tinta); animation: vsr-sube 300ms var(--ease-cayla) backwards; }
   .vsr-pq-nota b { font-weight: 600; }
   .vsr-pq-nota p + p { margin-top: 0.375rem; }
-  .vsr-sug { position: absolute; left: 6px; top: 6px; z-index: 2; background: var(--color-verde); color: var(--color-crema); font-size: 12px; font-weight: 700; padding: 1px 9px; border-radius: 999px; animation: vsr-crece 450ms 300ms var(--ease-cayla) backwards; }
-  .vsr-dif { position: absolute; right: 6px; bottom: 6px; z-index: 2; background: var(--color-tinta); color: var(--color-crema); font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+  .vsr-sug { position: absolute; left: 6px; top: 6px; z-index: 2; background: var(--color-verde); color: var(--color-crema); font-size: var(--text-xs); font-weight: 700; padding: 1px 9px; border-radius: 999px; animation: vsr-crece 450ms 300ms var(--ease-cayla) backwards; }
+  .vsr-dif { position: absolute; right: 6px; bottom: 6px; z-index: 2; background: var(--color-tinta); color: var(--color-crema); font-size: var(--text-xs); font-weight: 600; padding: 1px 8px; border-radius: 999px; font-variant-numeric: tabular-nums; }
 
   /* ---- El buscador debajo de las sugerencias ---- */
   .vsr-busca { display: flex; flex-direction: column; gap: 0.625rem; padding-top: 1rem; border-top: 1px solid var(--color-sand); }
-  .vsr-busca p { font-size: 12.5px; color: var(--vsr-t65); }
-  .vsr-res-n { font-size: 12.5px; color: var(--vsr-t65); margin-bottom: 0.5rem; }
+  .vsr-busca p { font-size: var(--text-xs); color: var(--vsr-t65); }
+  .vsr-res-n { font-size: var(--text-xs); color: var(--vsr-t65); margin-bottom: 0.5rem; }
 
   /* ---- El puente ---- */
   .vsr-pu { display: flex; flex-direction: column; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: var(--radius-2xl, 1.25rem); padding: 0.875rem; position: relative; animation: vsr-sube 500ms var(--ease-cayla) backwards; }
@@ -218,30 +218,30 @@
   .vsr-sl-foto { position: relative; width: 3.25rem; height: 3.25rem; flex: none; overflow: hidden; border-radius: var(--radius-lg); }
   .vsr-sl-foto > div { position: absolute; inset: 0; }
   .vsr-sl-tx { min-width: 0; flex: 1; }
-  .vsr-sl-tx b { display: block; font-weight: 600; font-size: 14px; line-height: 1.25; color: var(--color-tinta); }
-  .vsr-sl-tx small { display: block; color: var(--color-taupe-profundo); font-size: 12px; }
+  .vsr-sl-tx b { display: block; font-weight: 600; font-size: var(--text-detalle); line-height: 1.25; color: var(--color-tinta); }
+  .vsr-sl-tx small { display: block; color: var(--color-taupe-profundo); font-size: var(--text-xs); }
   .vsr-sl-tx .vsr-sl-anotado { color: var(--color-tinta); font-weight: 500; }
   /* ADR-0369: lo anotado se corrigió después de la venta; se dice en voz baja, bajo quién vendió. */
-  .vsr-sl-corregida { display: block; color: var(--color-taupe-profundo); font-size: 12px; }
+  .vsr-sl-corregida { display: block; color: var(--color-taupe-profundo); font-size: var(--text-xs); }
   .vsr-sl-tx .vsr-sl-corregir { display: block; margin-top: 4px; }
-  .vsr-sl-tx .vsr-sl-pr { font-weight: 600; font-size: 13px; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
-  .vsr-sl-etq { position: absolute; left: 12px; top: -7px; font-size: 12px; font-weight: 600; background: var(--color-papel); padding: 0 6px; color: var(--vsr-t65); line-height: 1; }
+  .vsr-sl-tx .vsr-sl-pr { font-weight: 600; font-size: var(--text-xs); color: var(--color-tinta); font-variant-numeric: tabular-nums; }
+  .vsr-sl-etq { position: absolute; left: 12px; top: -7px; font-size: var(--text-xs); font-weight: 600; background: var(--color-papel); padding: 0 6px; color: var(--vsr-t65); line-height: 1; }
   .vsr-sl-venta { border-color: var(--color-tinta); background: var(--color-papel); box-shadow: 0 12px 22px -18px color-mix(in srgb, var(--color-sombra) 50%, transparent); }
   .vsr-sl-prenda { border-style: dashed; min-height: 4rem; color: var(--vsr-t65); }
   .vsr-sl-prenda[data-llena] { border-style: solid; border-color: var(--color-tinta); background: var(--color-papel); color: inherit; animation: vsr-crece 500ms var(--ease-cayla) backwards; }
-  .vsr-sl-vacio { flex: 1; text-align: center; font-size: 12.5px; line-height: 1.35; }
+  .vsr-sl-vacio { flex: 1; text-align: center; font-size: var(--text-xs); line-height: 1.35; }
   .vsr-mesa[data-modo="dos"] .vsr-sl-prenda { min-height: 0; padding: 0.375rem 0.5625rem; }
   /* La cuerda del medio. */
   .vsr-cuerda { position: relative; display: grid; justify-items: center; align-content: center; min-height: 3rem; padding: 3px 0; }
   .vsr-cuerda::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: repeating-linear-gradient(var(--color-taupe) 0 4px, transparent 4px 9px); opacity: 0.55; }
   .vsr-cuerda[data-lista]::before { background: var(--color-tinta); opacity: 1; transform-origin: top; animation: vsr-cuerda 600ms var(--ease-cayla) backwards; }
   .vsr-visitos { position: relative; display: flex; gap: 6px; background: var(--color-papel); padding: 5px 8px; border-radius: 999px; border: 1px solid var(--color-sand); }
-  .vsr-visito { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--vsr-t65); animation: vsr-sube 450ms var(--ease-cayla) backwards; animation-delay: calc(450ms + var(--i) * 200ms); }
-  .vsr-visito > i { font-style: normal; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid var(--color-verde); color: var(--color-verde); background: color-mix(in srgb, var(--color-verde) 9%, var(--color-papel)); font-size: 12px; }
+  .vsr-visito { display: flex; align-items: center; gap: 5px; font-size: var(--text-xs); font-weight: 600; color: var(--vsr-t65); animation: vsr-sube 450ms var(--ease-cayla) backwards; animation-delay: calc(450ms + var(--i) * 200ms); }
+  .vsr-visito > i { font-style: normal; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid var(--color-verde); color: var(--color-verde); background: color-mix(in srgb, var(--color-verde) 9%, var(--color-papel)); font-size: var(--text-xs); }
   .vsr-visito[data-no] > i { border-color: var(--color-ambar); color: var(--color-ambar); background: color-mix(in srgb, var(--color-ambar) 9%, var(--color-papel)); font-weight: 700; }
   /* Cuando un visito dice «≠»: contra qué (lo que anotó caja y lo que es la prenda). */
-  .vsr-difs { list-style: none; margin: 0.25rem 0 0; padding: 0; position: relative; z-index: 1; display: flex; flex-direction: column; gap: 2px; background: var(--color-papel); border-radius: var(--radius-md); padding: 0.25rem 0.5rem; font-size: 12px; color: var(--color-ambar); text-align: center; animation: vsr-sube 450ms 700ms var(--ease-cayla) backwards; }
-  .vsr-sin-visitos { position: relative; background: var(--color-papel); padding: 4px 10px; font-size: 12px; color: var(--vsr-t65); }
+  .vsr-difs { list-style: none; margin: 0.25rem 0 0; padding: 0; position: relative; z-index: 1; display: flex; flex-direction: column; gap: 2px; background: var(--color-papel); border-radius: var(--radius-md); padding: 0.25rem 0.5rem; font-size: var(--text-xs); color: var(--color-ambar); text-align: center; animation: vsr-sube 450ms 700ms var(--ease-cayla) backwards; }
+  .vsr-sin-visitos { position: relative; background: var(--color-papel); padding: 4px 10px; font-size: var(--text-xs); color: var(--vsr-t65); }
   .vsr-pu[data-hecho] .vsr-cuerda::before { opacity: 0.25; }
   /* Al guardar, las dos mitades se juntan: la prenda sube hasta la venta y se funde con ella. */
   .vsr-pu[data-hecho] .vsr-sl-prenda { transform: translateY(calc(-100% - 4.25rem)) scale(0.94); opacity: 0; }
@@ -254,20 +254,20 @@
 
   /* La balanza de precio: dos marcas (oficial y cobrado) y el tramo entre ellas. */
   .vsr-bal { display: flex; flex-direction: column; gap: 0.5rem; }
-  .vsr-bal-t { display: flex; flex-direction: column; gap: 1px; font-size: 13px; }
+  .vsr-bal-t { display: flex; flex-direction: column; gap: 1px; font-size: var(--text-xs); }
   .vsr-bal-t b { font-weight: 600; color: var(--color-tinta); }
-  .vsr-bal-t span { color: var(--vsr-t65); font-size: 12px; }
+  .vsr-bal-t span { color: var(--vsr-t65); font-size: var(--text-xs); }
   .vsr-regla { position: relative; height: 3.25rem; --vsr-c: var(--color-verde); }
   .vsr-regla[data-tipo="descuento"] { --vsr-c: var(--color-ambar); }
   .vsr-regla[data-tipo="sobreprecio"] { --vsr-c: var(--color-pizarra); }
   .vsr-regla-eje { position: absolute; left: 0; right: 0; top: 19px; height: 4px; border-radius: 2px; background: var(--color-sand); } /* beige-fijo: pista del gráfico: el eje de la regla */
   .vsr-regla-tramo { position: absolute; top: 17px; height: 8px; border-radius: 4px; background: var(--vsr-c); transform-origin: left; animation: vsr-escala 800ms 200ms var(--ease-cayla) backwards; }
   .vsr-regla-punto { position: absolute; top: 14px; width: 14px; height: 14px; border-radius: 50%; background: var(--vsr-c); border: 2px solid var(--color-papel); transform: translateX(-50%); animation: vsr-crece 500ms 600ms var(--ease-cayla) backwards; }
-  .vsr-regla-of { position: absolute; top: 0; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: var(--vsr-t65); white-space: nowrap; text-align: center; font-variant-numeric: tabular-nums; }
+  .vsr-regla-of { position: absolute; top: 0; transform: translateX(-50%); font-size: var(--text-xs); font-weight: 600; color: var(--vsr-t65); white-space: nowrap; text-align: center; font-variant-numeric: tabular-nums; }
   .vsr-regla-of[data-alin="ini"], .vsr-regla-co[data-alin="ini"] { transform: translateX(-12px); }
   .vsr-regla-of[data-alin="fin"], .vsr-regla-co[data-alin="fin"] { transform: translateX(calc(-100% + 12px)); }
   .vsr-regla-of::after { content: ""; display: block; width: 2px; height: 14px; background: var(--color-tinta); margin: 2px auto 0; }
-  .vsr-regla-co { position: absolute; bottom: 0; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: var(--color-tinta); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .vsr-regla-co { position: absolute; bottom: 0; transform: translateX(-50%); font-size: var(--text-xs); font-weight: 600; color: var(--color-tinta); white-space: nowrap; font-variant-numeric: tabular-nums; }
   /* «Cómo estaba», dos opciones en tarjeta (la guía de foco las enciende: alta-guia.css). */
   .vsr-formas { display: grid; gap: 0.5rem; }
   .vsr-forma { display: flex; gap: 0.625rem; align-items: flex-start; text-align: left; border: 1px solid var(--color-sand); border-radius: var(--radius-lg); padding: 0.5625rem 0.6875rem; background: var(--color-crema); transition: border-color 250ms, background-color 250ms, box-shadow 250ms; }
@@ -275,18 +275,18 @@
     .vsr-forma:hover { border-color: var(--color-taupe); }
   }
   .vsr-forma svg { margin-top: 2px; width: 18px; height: 18px; color: var(--color-taupe-profundo); flex: none; }
-  .vsr-forma b { display: block; font-weight: 600; font-size: 13.5px; color: var(--color-tinta); }
-  .vsr-forma small { display: block; color: var(--vsr-t65); font-size: 12px; line-height: 1.35; margin-top: 1px; }
+  .vsr-forma b { display: block; font-weight: 600; font-size: var(--text-detalle); color: var(--color-tinta); }
+  .vsr-forma small { display: block; color: var(--vsr-t65); font-size: var(--text-xs); line-height: 1.35; margin-top: 1px; }
   .vsr-forma[aria-pressed="true"] { border-color: var(--color-tinta); background: var(--color-papel); box-shadow: 0 0 0 1px var(--color-tinta); }
   .vsr-forma[aria-pressed="true"] svg { color: var(--color-tinta); }
-  .vsr-cons { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.625rem; font-size: 12.5px; color: var(--vsr-t65); background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); border-radius: var(--radius-md); padding: 0.5rem 0.75rem; animation: vsr-aparece 400ms var(--ease-cayla) backwards; }
+  .vsr-cons { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.625rem; font-size: var(--text-xs); color: var(--vsr-t65); background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); border-radius: var(--radius-md); padding: 0.5rem 0.75rem; animation: vsr-aparece 400ms var(--ease-cayla) backwards; }
   .vsr-cons b { color: var(--color-tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
   /* «¿Cómo estaba?» deducido del libro (ADR-0328 act. 5): la opción que sugiere el libro lleva «Sugerida» (la misma pastilla que la tarjeta
      sugerida, sin elegirla), y debajo su porqué en hueso; si se elige la contraria, la misma línea pasa a ámbar y dice qué pasaría. */
-  .vsr-forma-sug { display: inline-block; margin-left: 0.375rem; vertical-align: 1px; background: var(--color-verde); color: var(--color-crema); font-size: 12px; font-weight: 700; line-height: 1.5; padding: 0 8px; border-radius: 999px; animation: vsr-crece 450ms var(--ease-cayla) backwards; }
-  .vsr-deduce { margin-top: 0.5rem; scroll-margin: 0.75rem 0 8rem; font-size: 12.5px; line-height: 1.4; color: var(--vsr-t65); background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); border-radius: var(--radius-md); padding: 0.4375rem 0.6875rem; animation: vsr-aparece 400ms var(--ease-cayla) backwards; }
+  .vsr-forma-sug { display: inline-block; margin-left: 0.375rem; vertical-align: 1px; background: var(--color-verde); color: var(--color-crema); font-size: var(--text-xs); font-weight: 700; line-height: 1.5; padding: 0 8px; border-radius: 999px; animation: vsr-crece 450ms var(--ease-cayla) backwards; }
+  .vsr-deduce { margin-top: 0.5rem; scroll-margin: 0.75rem 0 8rem; font-size: var(--text-xs); line-height: 1.4; color: var(--vsr-t65); background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); border-radius: var(--radius-md); padding: 0.4375rem 0.6875rem; animation: vsr-aparece 400ms var(--ease-cayla) backwards; }
   .vsr-deduce[data-aviso] { color: var(--color-ambar); background: color-mix(in srgb, var(--color-ambar) 8%, var(--color-papel)); }
-  .vsr-aviso-stock { font-size: 12px; color: var(--color-ambar); background: color-mix(in srgb, var(--color-ambar) 8%, var(--color-papel)); border-radius: var(--radius-md); padding: 0.4375rem 0.6875rem; }
+  .vsr-aviso-stock { font-size: var(--text-xs); color: var(--color-ambar); background: color-mix(in srgb, var(--color-ambar) 8%, var(--color-papel)); border-radius: var(--radius-md); padding: 0.4375rem 0.6875rem; }
 
   /* ---- Cuando no hay nada elegido o no queda nada por hacer ---- */
   .vsr-resumen { background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: var(--radius-2xl, 1.25rem); padding: 1.125rem; display: flex; flex-direction: column; gap: 0.75rem; animation: vsr-sube 500ms var(--ease-cayla) backwards; }

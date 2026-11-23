@@ -57,3 +57,34 @@ escritorio y a 375 px: escanear con dos celulares, sin red, quitar tramos, apart
 En este orden, cada una sola: `20261122190000` (tablas), `191000` (funciones), `193000` (confirmar), `192000` (bucket y sus dos políticas,
 al final y sola, ADR-0195) — ya en producción el 2026-11-22 —; `194000` (relojes) y `194500` (correcciones) — 2026-11-23 —; y `195000`
 («Por resolver»), que enciende la sección de su pantalla (sin ella la web la esconde).
+— y `196000` (historial), pegada el 2026-11-23.
+
+## Actualización 2026-11-23 — Actividad 10: el barrido pensado para el celular
+
+`/formidable` (≈ 6,3/10), una prueba a ciegas a 375 px y `/chaos` (unos 60 ataques, semilla 690) sobre la pantalla. `/chaos` no encontró ningún
+estado imposible. Felipe aprobó los cuatro cambios de mayor impacto, todos de presentación (no cambian qué se mueve):
+
+1. **En el celular, lo que se mira va arriba:** el campo y «Última que escaneaste» quedan en la primera pantalla (antes, a 645 y 1004 px).
+   Las cifras pasan a una línea («Equipo 4 · Tú 4 · Todo guardado»), y «Quién escanea» pasa a «Escanea Felipe · Cambiar» una vez elegido. Las
+   columnas de escritorio se disuelven bajo `lg` (`max-lg:contents` + `order`), así que el escritorio no cambia. El aviso de un código
+   desconocido sale junto al campo, sobre los botones.
+2. **Las repetidas y «la última» salen de la base** (`memoriaDeLaPersona`, `juntarMemoria`): de las lecturas de esa persona en el barrido,
+   sin las quitadas. Antes vivían solo en la pestaña: al recargar, la misma etiqueta se sumaba sin preguntar.
+3. **«Lo escaneado»:** el último tramo de quien tiene el celular sale primero y abierto, con un «Quitar» por prenda. «Quitar todo lo que
+   escaneó de HH:MM a HH:MM» baja al pie del tramo (junto al nombre parecía un borrado de un toque).
+4. **Textos de tienda:**
+   - «Escanea todo lo colgado; quien llegue se suma desde su celular».
+   - «Lo que escaneó Ana de 10:15 a 10:16».
+   - «Se quedan como están», con el porqué detrás del «?».
+   - La nota de admin, como chip de una línea.
+
+De `/chaos`, dos cosas de pantalla, arregladas:
+- El aviso de lo que llegó tarde tras confirmar nombra las prendas (`textoLlegaronTarde`).
+- Un código de más de 120 letras se recorta al apartarlo (`CODIGO_MAX`); antes, «Apartar» fallaba con un mensaje que no decía por qué.
+
+Lo que es de RPC espera a Felipe (backlog de la rama):
+- acotar la hora del aparato;
+- el «id reusado» bajo concurrencia;
+- traducir la hora fuera de rango (22007);
+- avisar cuando la misma persona escanea desde otro aparato.
+

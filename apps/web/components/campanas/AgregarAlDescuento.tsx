@@ -314,7 +314,7 @@ export function AgregarAlDescuento({
           <div className="flex items-center gap-3">
             <MiniaturaPrenda fotoUrl={p.foto} colorHex={p.colorHex} tamano="md" prefijo={p.categoria.prefijo} familia={p.categoria.familia} categoria={p.categoria.nombre} />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[15px] font-medium">{p.referencia}</p>
+              <p className="truncate text-sm font-medium">{p.referencia}</p>
               <p className="text-sm text-tinta/70">{[p.color, p.talla].filter(Boolean).join(" · ")}</p>
             </div>
             <p className="lc-pieza-precio shrink-0 justify-end">

@@ -393,7 +393,7 @@ export function DevolucionesPanel({
             subirAlBuscador();
             escanear.current?.();
           }}
-          className="btn-cayla btn-primario min-h-12 flex-1 gap-2.5 text-[15px]"
+          className="btn-cayla btn-primario min-h-12 flex-1 gap-2.5 text-sm leading-tight"
         >
           <ScanLine size={20} aria-hidden />
           Escanear prenda
@@ -439,9 +439,8 @@ function AvisosDevoluciones({ accesos, cajaAbierta }: { accesos: AccesosDevoluci
             <b className="font-semibold text-tinta">
               {cuarentena} {cuarentena === 1 ? "prenda espera" : "prendas esperan"} en cuarentena
             </b>
-            <span className="hidden sm:inline">: decide si vuelven al piso, van al Taller o se dan de baja.</span>
           </span>
-          <Link href="/inventario?danados=1" className="btn-cayla btn-enlace gap-1 text-[13px] max-sm:ml-11">
+          <Link href="/inventario?danados=1" className="btn-cayla btn-enlace gap-1 text-xs leading-tight max-sm:ml-11">
             Revisar en Inventario <ArrowRight className="h-3.5 w-3.5" aria-hidden />
           </Link>
         </p>
@@ -456,7 +455,7 @@ function AvisosDevoluciones({ accesos, cajaAbierta }: { accesos: AccesosDevoluci
             Puedes registrar y aprobar sin reembolso; si el cliente quiere su dinero en efectivo, abre la caja primero.
           </span>
           {accesos.caja && (
-            <Link href="/caja" className="btn-cayla btn-enlace gap-1 text-[13px] max-sm:ml-11">
+            <Link href="/caja" className="btn-cayla btn-enlace gap-1 text-xs leading-tight max-sm:ml-11">
               Abrir caja <ArrowRight className="h-3.5 w-3.5" aria-hidden />
             </Link>
           )}

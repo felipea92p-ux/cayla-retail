@@ -219,7 +219,7 @@ export function EntregarVista({
                 {conEstante && a.estante && (
                   <p className="mt-1 inline-flex items-center gap-1 rounded-md vd-gota-chica px-2 py-0.5 font-mono text-sm"><Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}</p>
                 )}
-                <button type="button" onClick={() => elegir(null)} className="area-dedo label-cayla mt-1 h-7 rounded-md px-2 text-[10.5px] text-tinta/70 vd-pasa-gota">
+                <button type="button" onClick={() => elegir(null)} className="area-dedo label-cayla mt-1 h-7 rounded-md px-2 text-xs text-tinta/70 vd-pasa-gota">
                   Otro cliente
                 </button>
               </div>
@@ -263,7 +263,7 @@ export function EntregarVista({
           </article>
         ) : (
           <>
-            <p className="label-cayla text-[11px] text-tinta/60">{texto ? "Coinciden" : `Por recoger en ${ubicacionEtiqueta}`} · {encontrados.length}</p>
+            <p className="label-cayla text-xs text-tinta/60">{texto ? "Coinciden" : `Por recoger en ${ubicacionEtiqueta}`} · {encontrados.length}</p>
             {encontrados.length === 0 ? (
               <div className="card-cayla">
                 {texto ? (
@@ -280,7 +280,7 @@ export function EntregarVista({
                   </Vacio>
                 ) : (
                   <Vacio icono={<ShoppingBag />} titulo="No hay apartados por recoger">
-                    Cuando alguien aparte una prenda en {ubicacionEtiqueta}, aparecerá aquí hasta que la recoja.
+                    Lo que se aparte en {ubicacionEtiqueta} aparecerá aquí.
                   </Vacio>
                 )}
               </div>
@@ -291,7 +291,7 @@ export function EntregarVista({
                     <button type="button" onClick={() => elegir(x.id)} className="anim-revelar grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-sand bg-papel px-4 py-3 text-left hover:border-taupe ap-placa">
                       <AvatarPersona personaId={null} nombre={nombreParaIniciales(x)} tamano={32} />
                       <span className="min-w-0">
-                        <b className="font-semibold">{x.nombres} {x.apellidos}</b> <span className="font-mono text-[11px] text-tinta/55">{x.codigo}</span>
+                        <b className="font-semibold">{x.nombres} {x.apellidos}</b> <span className="font-mono text-xs text-tinta/55">{x.codigo}</span>
                         <span className="block truncate text-sm text-tinta/60">{x.prendas.map((pr) => `${pr.referencia} ${detallePrenda(porVariante.get(pr.varianteId), pr.sku)}`).join(" · ")}</span>
                       </span>
                       <span className="text-right">
@@ -348,7 +348,7 @@ export function EntregarVista({
                         const puesto = pagos.some((p) => p.metodo === m);
                         return (
                           <button key={m} type="button" aria-pressed={puesto} title={`${m} (F${i + 1})`} onClick={() => tocarMedio(m)} style={puesto ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined} className={`metodo-${m} relative flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-sm capitalize transition-colors ${puesto ? "anim-pop shadow-sm" : OPCION_INACTIVA}`}>
-                            <span aria-hidden className="absolute top-0.5 right-1 text-[8px] font-semibold opacity-45">F{i + 1}</span>
+                            <span aria-hidden className="absolute top-0.5 right-1 text-xs font-semibold opacity-45">F{i + 1}</span>
                             {ICONO_METODO[m]}
                             <span className="max-w-full truncate">{NOMBRE_CORTO[m] ?? m}</span>
                           </button>
@@ -411,7 +411,7 @@ export function EntregarVista({
                 )}
                 {cobro.vuelto > 0 && (
                   <div className="anim-revelar flex items-baseline justify-between rounded-xl border border-tinta/15 bg-papel px-4 py-2.5">
-                    <span className="label-cayla text-[11px] text-tinta/70">Entregar vuelto</span>
+                    <span className="label-cayla text-xs text-tinta/70">Entregar vuelto</span>
                     <span className="font-display text-2xl tabular-nums">{money(cobro.vuelto)}</span>
                   </div>
                 )}
@@ -421,7 +421,7 @@ export function EntregarVista({
                       <p className="text-sm font-semibold">¿Viene solo a abonar?</p>
                       <p className="text-sm text-tinta/60">Paga una parte; la prenda se queda guardada.</p>
                     </div>
-                    <button type="button" onClick={() => setAbonar(true)} disabled={!cajaAbierta} className="btn-cayla btn-secundario inline-flex h-9 shrink-0 items-center gap-1.5 px-2.5 text-[12.5px]">
+                    <button type="button" onClick={() => setAbonar(true)} disabled={!cajaAbierta} className="btn-cayla btn-secundario inline-flex h-9 shrink-0 items-center gap-1.5 px-2.5 text-xs leading-tight">
                       <Wallet className="h-3.5 w-3.5" aria-hidden /> Abonar
                     </button>
                   </div>
@@ -445,7 +445,7 @@ export function EntregarVista({
                   <dt>Ya pagó</dt><dd className="text-tinta">−{money(a.adelanto)}</dd>
                 </dl>
                 <div className="text-right">
-                  <p className="label-cayla text-[11px] text-tinta/60">Saldo</p>
+                  <p className="label-cayla text-xs text-tinta/60">Saldo</p>
                   <p className="font-display text-[44px] leading-none text-tinta tabular-nums">{money(saldo)}</p>
                 </div>
               </div>
@@ -458,7 +458,7 @@ export function EntregarVista({
                 onClick={entregar}
                 className={`${BOTON_PRINCIPAL} max-lg:hidden`}
               >
-                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><ShoppingBag className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Entregar y cobrar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}</span>
+                <span className="label-cayla flex items-center gap-2.5 text-xs"><ShoppingBag className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Entregar y cobrar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}</span>
                 <span className="font-display text-xl tabular-nums">{money(saldo)}</span>
               </button>
               <p className="text-center text-sm text-tinta/55">{!cajaAbierta ? "Abre la caja para poder entregar." : cobro.sinMoneda ? AVISO_EFECTIVO_SIN_MONEDA : !cobro.listo ? "Elige cómo paga el saldo." : (responsable.motivo ?? "Listo: entrega la prenda y la boleta.")}</p>

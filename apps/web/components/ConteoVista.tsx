@@ -165,8 +165,7 @@ export function ConteoVista({
       </section>
 
       <p data-guia="conteo.nota" className="nota-cayla">
-        <b>Cómo se cuenta:</b> se escanea o se escribe lo que encuentras en la tienda y se compara con lo que CAYLA esperaba. Cada diferencia se confirma antes de cerrar y
-        cada ajuste queda como movimiento.{" "}
+        Cada diferencia se confirma antes de cerrar y queda como movimiento.{" "}
         <Link href="/inventario/movimientos?proc=conteo" className="btn-cayla btn-enlace">
           Ver ajustes por conteo
         </Link>

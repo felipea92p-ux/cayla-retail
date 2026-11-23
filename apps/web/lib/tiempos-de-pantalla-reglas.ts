@@ -151,6 +151,7 @@ export function leerLote(texto: string): TiempoDePantalla[] {
   try {
     cuerpo = JSON.parse(texto);
   } catch {
+    // relleno-a-proposito: un cuerpo raro se ignora: no rompe nada ni llega a los registros.
     return [];
   }
   const tiempos = (cuerpo as { tiempos?: unknown } | null)?.tiempos;

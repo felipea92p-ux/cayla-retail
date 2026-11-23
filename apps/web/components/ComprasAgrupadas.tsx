@@ -111,7 +111,7 @@ export function ComprasAgrupadas({
       <div className="space-y-8">
         {agruparPorDia(lineas, ahora).map((dia, d) => (
           <section key={dia.etiqueta} aria-label={dia.etiqueta} className="space-y-3.5">
-            <h3 className="relative text-[11.5px] font-semibold uppercase tracking-[0.16em] text-taupe-profundo">
+            <h3 className="relative text-xs font-semibold uppercase tracking-[0.16em] text-taupe-profundo">
               <span aria-hidden className="absolute -left-7 -top-px flex h-3.5 w-3.5 items-center justify-center rounded-full bg-crema ring-[1.5px] ring-taupe sm:-left-10">
                 <span className="h-1.5 w-1.5 rounded-full bg-taupe" />
               </span>

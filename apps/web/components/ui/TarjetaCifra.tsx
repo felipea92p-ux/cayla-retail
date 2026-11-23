@@ -216,7 +216,7 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
     <>
       {acentoTrazo && <span aria-hidden className="anim-crece-y absolute bottom-3.5 left-0 top-3.5 w-0.5 origin-top rounded-sm bg-rojo" style={{ ["--i" as string]: 10 }} />}
       {/* 20 px de alto (leading-5): el (!) de 20 px cabe sin empujar el renglón, y las cifras de una fila quedan parejas. */}
-      <p className="label-cayla block min-h-5 text-[11px] font-bold leading-5 text-taupe">
+      <p className="label-cayla block min-h-5 text-xs font-bold leading-5 text-taupe">
         {punto && (
           <span aria-hidden className={`relative -top-px mr-[7px] inline-block h-1.5 w-1.5 rounded-full align-middle ${PUNTO[punto]} ${vivo ? "punto-vivo" : ""}`}>
             {puntoPulsa && <span className={`anim-vivo-onda pointer-events-none absolute inset-0 rounded-full ${PUNTO[punto]}`} style={{ animationDelay: "1400ms" }} />}
@@ -226,7 +226,7 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
       </p>
       <p className={`flex flex-wrap items-baseline gap-x-2 ${compacta ? "mt-0.5" : "mt-1"}`}>
         {antes !== undefined && antes !== null && (
-          <span className="font-display inline-flex items-baseline gap-1.5 whitespace-nowrap text-[17px] leading-tight text-taupe lining-nums tabular-nums @max-[148px]:text-[15px]">
+          <span className="font-display inline-flex items-baseline gap-1.5 whitespace-nowrap text-lg leading-tight text-taupe lining-nums tabular-nums @max-[148px]:text-sm">
             <span className="sr-only">Período A: </span>
             {antes}
             <ArrowRight aria-hidden className="h-3.5 w-3.5 self-center text-tinta/45" />

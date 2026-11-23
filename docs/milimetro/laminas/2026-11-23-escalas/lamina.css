@@ -1,0 +1,10 @@
+/* La cara de la página para elegir (no del ERP): las letras y los tokens del ERP, copiados de apps/web/app/globals.css y
+   apps/web/app/estilos/tema.css el 2026-11-23, para que la página se lea como el ERP y «Ver en oscuro» cambie de tema. */
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400..700&family=EB+Garamond:wght@400..600&display=swap");
+:root {
+  --font-dm-sans: "DM Sans"; --font-eb-garamond: "EB Garamond";
+  --color-crema: #f5f0e8; --color-papel: #fbf8f2; --color-tinta: #1a1a18; --color-taupe: #805c4c; --color-sand: #e8e0d0; --color-hueso: #eae1d2;
+}
+:root[data-tema="oscuro"] {
+  --color-crema: #1c1a17; --color-papel: #26241f; --color-tinta: #f5f0e8; --color-taupe: #c4a898; --color-sand: #403b34; --color-hueso: #33302a;
+}
