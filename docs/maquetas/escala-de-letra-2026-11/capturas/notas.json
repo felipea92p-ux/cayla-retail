@@ -1,0 +1,126 @@
+{
+ "existencias": {
+  "hoy": {
+   "cortados": 20
+  },
+  "a": {
+   "textos": 286,
+   "cambiados": 105,
+   "cortados": 20
+  },
+  "b": {
+   "textos": 286,
+   "cambiados": 213,
+   "cortados": 20
+  },
+  "c": {
+   "textos": 286,
+   "cambiados": 264,
+   "cortados": 20
+  },
+  "texto": {
+   "textos": 286,
+   "cambiados": 213,
+   "cortados": 20,
+   "frases": 3
+  }
+ },
+ "hoja": {
+  "hoy": {
+   "cortados": 20
+  },
+  "a": {
+   "textos": 329,
+   "cambiados": 122,
+   "cortados": 20
+  },
+  "b": {
+   "textos": 329,
+   "cambiados": 250,
+   "cortados": 20
+  },
+  "c": {
+   "textos": 329,
+   "cambiados": 303,
+   "cortados": 20
+  },
+  "texto": {
+   "textos": 327,
+   "cambiados": 248,
+   "cortados": 20,
+   "frases": 4
+  }
+ },
+ "compras": {
+  "hoy": {
+   "cortados": 2
+  },
+  "a": {
+   "textos": 150,
+   "cambiados": 37,
+   "cortados": 2
+  },
+  "b": {
+   "textos": 150,
+   "cambiados": 73,
+   "cortados": 2
+  },
+  "c": {
+   "textos": 150,
+   "cambiados": 134,
+   "cortados": 2
+  }
+ },
+ "rendimiento": {
+  "hoy": {
+   "cortados": 6
+  },
+  "a": {
+   "textos": 209,
+   "cambiados": 56,
+   "cortados": 6
+  },
+  "b": {
+   "textos": 209,
+   "cambiados": 102,
+   "cortados": 6
+  },
+  "c": {
+   "textos": 209,
+   "cambiados": 175,
+   "cortados": 6
+  },
+  "texto": {
+   "textos": 209,
+   "cambiados": 102,
+   "cortados": 6,
+   "frases": 4
+  }
+ },
+ "finanzas": {
+  "hoy": {
+   "cortados": 7
+  },
+  "a": {
+   "textos": 313,
+   "cambiados": 64,
+   "cortados": 7
+  },
+  "b": {
+   "textos": 313,
+   "cambiados": 105,
+   "cortados": 7
+  },
+  "c": {
+   "textos": 313,
+   "cambiados": 182,
+   "cortados": 7
+  },
+  "texto": {
+   "textos": 313,
+   "cambiados": 105,
+   "cortados": 7,
+   "frases": 2
+  }
+ }
+}
