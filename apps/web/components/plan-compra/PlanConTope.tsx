@@ -63,7 +63,7 @@ export function PlanConTope({
           icono={<PackageOpen />}
           accion={{ texto: "Armar el plan", href: hrefPlan }}
         >
-          Todavía no hay nada que comprar: arma el plan de las categorías para ver si cabe en tu tope.
+          Arma el plan de las categorías para ver si cabe en tu tope.
         </Vacio>
       </div>
     );

@@ -157,7 +157,7 @@ export function ResultadosCampana({
         <PestanasPlan activa="resultados" planId={r.plan.id} />
         <div className="card-cayla">
           <Vacio icono={<ChartColumn />} titulo="Esta campaña todavía no empieza">
-            Empieza el {fechaCortaES(r.plan.desde)}. Desde el día siguiente, aquí ves lo que se va vendiendo, tienda por tienda.
+            Empieza el {fechaCortaES(r.plan.desde)}. Desde el día siguiente verás sus ventas, tienda por tienda.
           </Vacio>
         </div>
       </div>

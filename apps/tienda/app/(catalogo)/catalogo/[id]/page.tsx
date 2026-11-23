@@ -23,6 +23,8 @@ import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../../estilos/ficha.css";
+import { canonicalDe, claveCanonica, comoJsonLd, conBase } from "@/lib/seo";
+import { descripcionDeFicha, jsonLdDeFicha } from "@/lib/seo-ficha";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -42,9 +44,22 @@ async function leer(props: Props) {
   return { id, sp, sedes, pedida, ficha };
 }
 
+// Lo que ven Google y WhatsApp (ADR-0696): la frase bajo el enlace, la vista previa (su imagen la arma `opengraph-image.tsx`, sin precio)
+// y la dirección canónica, la de la tienda principal. Si la base no respondió, la página de «no pudimos cargar» no se indexa: si Google
+// pasa justo en un corte, no guarda esa página en lugar de la prenda.
 export async function generateMetadata(props: Props): Promise<Metadata> {
-  const { ficha } = await leer(props);
-  return { title: `${ficha ? ficha.nombre : "Prenda"} · CAYLA` };
+  const { id, sedes, ficha } = await leer(props);
+  const canonical = canonicalDe(`/catalogo/${id}`, {}, claveCanonica(sedes));
+  if (!ficha) return { title: "Prenda", alternates: { canonical }, robots: { index: false, follow: true } };
+  const elegida = ficha.sede ? sedes.find((s) => s.id === ficha.sede) ?? null : null;
+  const descripcion = descripcionDeFicha(ficha, elegida);
+  return {
+    title: ficha.nombre,
+    description: descripcion,
+    alternates: { canonical },
+    openGraph: conBase({ title: `${ficha.nombre} · CAYLA`, description: descripcion, url: canonical }),
+    twitter: { card: "summary_large_image", title: `${ficha.nombre} · CAYLA`, description: descripcion },
+  };
 }
 
 // La ficha de una prenda (maqueta v4, `vProducto`): sus fotos, su precio en la tienda elegida (o el mayor, con «Todas») y su campaña,
@@ -123,71 +138,75 @@ export default async function FichaDePrenda(props: Props) {
             </Link>
           </div>
         ) : (
-          <FichaPrenda
-            ficha={ficha}
-            sedeElegida={elegida?.id ?? null}
-            colorPedido={unValor(sp.color)}
-            tallaPedida={unValor(sp.talla)}
-            origenFotos={origenFotos}
-            chips={chips}
-            esperas={guardados ? [...guardados.esperas.keys()] : []}
-            esperasIds={guardados ? Object.fromEntries(guardados.esperas) : {}}
-            enLaBolsa={enLaBolsa}
-            separadas={[...separadas]}
-            probador={enElProbador ? { codigo: enElProbador.codigo ?? enElProbador.id, sede } : null}
-            promesas={promesasDeCompra(plazos)}
-          >
-            {combina && (
-              <section className="t-sec" aria-labelledby="combina">
-                <div className="t-sec-cab cp-sec-cab">
-                  <div>
-                    <span className="t-ceja">{combina.look.nombre}</span>
-                    <h2 id="combina">
-                      Combínalo <em>con</em>
-                    </h2>
+          <>
+            {/* Los datos de producto para Google (ADR-0696): el precio en soles y cuánto hay en ESTA tienda, sin marca (D3). */}
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: comoJsonLd(jsonLdDeFicha(ficha, elegida, sede)) }} />
+            <FichaPrenda
+              ficha={ficha}
+              sedeElegida={elegida?.id ?? null}
+              colorPedido={unValor(sp.color)}
+              tallaPedida={unValor(sp.talla)}
+              origenFotos={origenFotos}
+              chips={chips}
+              esperas={guardados ? [...guardados.esperas.keys()] : []}
+              esperasIds={guardados ? Object.fromEntries(guardados.esperas) : {}}
+              enLaBolsa={enLaBolsa}
+              separadas={[...separadas]}
+              probador={enElProbador ? { codigo: enElProbador.codigo ?? enElProbador.id, sede } : null}
+              promesas={promesasDeCompra(plazos)}
+            >
+              {combina && (
+                <section className="t-sec" aria-labelledby="combina">
+                  <div className="t-sec-cab cp-sec-cab">
+                    <div>
+                      <span className="t-ceja">{combina.look.nombre}</span>
+                      <h2 id="combina">
+                        Combínalo <em>con</em>
+                      </h2>
+                    </div>
+                    <Link className="t-ver" href={hrefLook(combina.look.id, sede)}>
+                      Ver el outfit <Icono nombre="flecha" />
+                    </Link>
                   </div>
-                  <Link className="t-ver" href={hrefLook(combina.look.id, sede)}>
-                    Ver el outfit <Icono nombre="flecha" />
-                  </Link>
-                </div>
-                <CarrilConFlechas className="cp-carril">
-                  <div className="t-carril">
-                    {combina.prendas.map((p) => (
-                      <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={notaDeStock(p.stock, elegida, sedes)} />
-                    ))}
-                  </div>
-                </CarrilConFlechas>
-              </section>
-            )}
+                  <CarrilConFlechas className="cp-carril">
+                    <div className="t-carril">
+                      {combina.prendas.map((p) => (
+                        <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={notaDeStock(p.stock, elegida, sedes)} />
+                      ))}
+                    </div>
+                  </CarrilConFlechas>
+                </section>
+              )}
 
-            {parecidas && parecidas.prendas.length > 0 && (
-              <section className="t-sec" aria-labelledby="similares">
-                <div className="t-sec-cab cp-sec-cab">
-                  <div>
-                    <span className="t-ceja">{parecidas.ceja}</span>
-                    <h2 id="similares">
-                      También te <em>puede gustar</em>
-                    </h2>
+              {parecidas && parecidas.prendas.length > 0 && (
+                <section className="t-sec" aria-labelledby="similares">
+                  <div className="t-sec-cab cp-sec-cab">
+                    <div>
+                      <span className="t-ceja">{parecidas.ceja}</span>
+                      <h2 id="similares">
+                        También te <em>puede gustar</em>
+                      </h2>
+                    </div>
+                    {/* «Ver todo» lleva a lo que dice la ceja: su categoría, su grupo o toda la tienda. */}
+                    <Link
+                      className="t-ver"
+                      href={hrefLista({ sede, categoria: parecidas.ver.categoria, grupo: parecidas.ver.grupo, orden: "destacado" })}
+                      aria-label={`Ver todo: ${parecidas.ceja === "Sigue mirando" ? "toda la tienda" : parecidas.ceja}`}
+                    >
+                      Ver todo <Icono nombre="flecha" />
+                    </Link>
                   </div>
-                  {/* «Ver todo» lleva a lo que dice la ceja: su categoría, su grupo o toda la tienda. */}
-                  <Link
-                    className="t-ver"
-                    href={hrefLista({ sede, categoria: parecidas.ver.categoria, grupo: parecidas.ver.grupo, orden: "destacado" })}
-                    aria-label={`Ver todo: ${parecidas.ceja === "Sigue mirando" ? "toda la tienda" : parecidas.ceja}`}
-                  >
-                    Ver todo <Icono nombre="flecha" />
-                  </Link>
-                </div>
-                <CarrilConFlechas className="cp-carril">
-                  <div className="t-carril">
-                    {parecidas.prendas.map((p) => (
-                      <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={notaDeStock(p.stock, elegida, sedes)} />
-                    ))}
-                  </div>
-                </CarrilConFlechas>
-              </section>
-            )}
-          </FichaPrenda>
+                  <CarrilConFlechas className="cp-carril">
+                    <div className="t-carril">
+                      {parecidas.prendas.map((p) => (
+                        <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={notaDeStock(p.stock, elegida, sedes)} />
+                      ))}
+                    </div>
+                  </CarrilConFlechas>
+                </section>
+              )}
+            </FichaPrenda>
+          </>
         )}
       </div>
     </MarcoCatalogo>

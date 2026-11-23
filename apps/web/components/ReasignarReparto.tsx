@@ -167,7 +167,7 @@ function ReasignarRepartoModal({
     <Modal
       titulo={
         <>
-          <span className="label-cayla mb-0.5 block text-[11px] text-tinta/65">Reasignar entre tiendas</span>
+          <span className="label-cayla mb-0.5 block text-xs text-tinta/65">Reasignar entre tiendas</span>
           <span className="block text-[28px] leading-tight">Mover mercadería</span>
         </>
       }
@@ -203,7 +203,7 @@ function ReasignarRepartoModal({
                 />
               ) : (
                 <p className="text-sm text-tinta">
-                  <span className="label-cayla mr-2 text-[11px] text-tinta/65">Línea</span>
+                  <span className="label-cayla mr-2 text-xs text-tinta/65">Línea</span>
                   {linea?.producto}
                 </p>
               )}
@@ -255,7 +255,7 @@ function ReasignarRepartoModal({
 
             <div className="space-y-5" data-guia="reasignar-modal.motivo">
               <fieldset>
-                <legend className="label-cayla mb-2 text-[11px] text-tinta/65">¿Por qué se mueve?</legend>
+                <legend className="label-cayla mb-2 text-xs text-tinta/65">¿Por qué se mueve?</legend>
                 <div className="space-y-1.5">
                   {MOTIVOS_REASIGNACION.map((m) => (
                     <label key={m} className="flex cursor-pointer items-center gap-2.5 text-sm text-tinta/80">

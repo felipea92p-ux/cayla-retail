@@ -22,7 +22,7 @@
     justify-content: space-between;
     gap: 0.875rem;
     padding: 0.5rem 1.25rem;
-    font-size: 0.875rem;
+    font-size: var(--text-detalle);
   }
   .nc-banda-rojo { background: color-mix(in srgb, var(--color-rojo) 5%, transparent); color: var(--color-rojo); }
   .nc-banda-ambar { background: color-mix(in srgb, var(--color-ambar) 8%, transparent); color: var(--color-ambar-profundo); }

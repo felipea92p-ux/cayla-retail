@@ -119,7 +119,7 @@ function FilaGrupo({ f, indice, cuadrado, capacidad }: { f: FilaDelRiel; indice:
         {sinPropuesta ? (
           "—"
         ) : (
-          <span className="font-display text-[17px] leading-tight text-tinta">
+          <span className="font-display text-lg leading-tight text-tinta">
             {f.propuestaPrendas === null ? "" : `${n(f.propuestaPrendas)} · `}
             {pct(f.propuestaPct as number)}
           </span>

@@ -14,7 +14,7 @@ import { leerSesion } from "@/lib/sesion-servidor";
 import "../../../estilos/catalogo.css";
 import "../../../estilos/bolsa.css";
 
-export const metadata: Metadata = { title: "¡Listo, lo separaste! · CAYLA", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "¡Listo, lo separaste!", robots: { index: false, follow: false } };
 
 /**
  * «¡Listo, lo separaste!» (maqueta v4, `vSeparado`): el número del pedido, cuánto falta para que se cierre solo si nadie lo confirma,

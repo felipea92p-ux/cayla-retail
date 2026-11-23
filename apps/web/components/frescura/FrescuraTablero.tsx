@@ -75,10 +75,10 @@ export function FrescuraTablero({
               className={`fila-cayla grid w-full grid-cols-1 items-center gap-x-4 text-left @min-[40rem]:grid-cols-subgrid ${tramo} ${compacto ? "gap-y-1 py-1.5" : "gap-y-1.5 py-2.5"} ${activa ? "vd-marca" : ""}`}
             >
               {compacto ? (
-                <span className="block truncate text-[15px] font-semibold leading-tight">{f.nombre}</span>
+                <span className="block truncate text-sm font-semibold leading-tight">{f.nombre}</span>
               ) : (
                 <span className="min-w-0">
-                  <span className="block truncate text-[15px] font-semibold leading-tight">{f.nombre}</span>
+                  <span className="block truncate text-sm font-semibold leading-tight">{f.nombre}</span>
                   <span className="block text-sm leading-snug text-taupe">
                     {f.prendas} {f.prendas === 1 ? "prenda" : "prendas"} · {f.total} {f.total === 1 ? "unidad" : "unidades"}
                   </span>
@@ -96,7 +96,7 @@ export function FrescuraTablero({
                 </span>
               )}
               {/* «N por decidir» solo cuando hay (Formidable, ley 8: «Nada por decidir» en cada fila era ruido). */}
-              <span className="text-[15px] font-semibold tabular-nums text-ambar-profundo">{f.porDecidir > 0 ? `${f.porDecidir} por decidir` : ""}</span>
+              <span className="text-sm font-semibold tabular-nums text-ambar-profundo">{f.porDecidir > 0 ? `${f.porDecidir} por decidir` : ""}</span>
               <span className="@min-[40rem]:justify-self-start">
                 {f.vara && (
                   // `tachado={false}`: el tono apagado tacha por defecto (es lo que pide «Anulado»); «Sin ventas aún» no es una anulación.

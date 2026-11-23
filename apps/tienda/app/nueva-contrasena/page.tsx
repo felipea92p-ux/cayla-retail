@@ -7,7 +7,7 @@ import { Icono } from "@/components/Icono";
 import "../estilos/entrada.css";
 
 // La dirección trae el código de un solo uso del correo: que no la guarde ningún buscador.
-export const metadata: Metadata = { title: "Crea tu contraseña nueva · CAYLA", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Crea tu contraseña nueva", robots: { index: false, follow: false } };
 
 // Esta página no tiene cáscara que armar por adelantado a propósito (ADR-0432): lo que muestra (el formulario de la contraseña nueva o
 // «Abre el enlace de tu correo») y hasta el paso que marca el panel dependen del código que trae la dirección. Se arma en cada visita,

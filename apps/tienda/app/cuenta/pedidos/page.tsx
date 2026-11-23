@@ -9,7 +9,7 @@ import { leerSesion } from "@/lib/sesion-servidor";
 import "../../estilos/catalogo.css";
 import "../../estilos/bolsa.css";
 
-export const metadata: Metadata = { title: "Mis pedidos · CAYLA", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Mis pedidos", robots: { index: false, follow: false } };
 
 /**
  * «Mis pedidos» (maqueta v4, `vCuenta` ▸ «Mis pedidos»): cada pedido con su número, su total, su tienda, cuándo se separó y en qué

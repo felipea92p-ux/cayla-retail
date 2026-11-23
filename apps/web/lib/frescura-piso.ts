@@ -350,9 +350,9 @@ export function razonDeLaPuerta(puerta: PuertaPiso): string | null {
 export function avisoDeLaPuerta(puerta: PuertaPiso): string {
   switch (puerta?.falta) {
     case "piso_cuadrado":
-      return "Mientras el piso no esté cuadrado, el sistema no sabe con certeza qué está colgado: estos porcentajes son aproximados.";
+      return "Mientras el piso no esté cuadrado, estos porcentajes son aproximados.";
     case "almacen_contado":
-      return "Mientras el almacén no esté contado, algo guardado puede contarse como colgado: estos porcentajes son aproximados.";
+      return "Mientras el almacén no esté contado, estos porcentajes son aproximados.";
     case "venta_identificada":
       // Con ventas sin su prenda, eso; si no (faltan días seguidos, o no hay ventas todavía), el aviso compartido con Análisis.
       return puerta.venta === "sin_prenda" || (puerta.venta === undefined && (puerta.sinPrenda ?? 0) > 0)

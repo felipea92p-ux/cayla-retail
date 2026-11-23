@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- es la plantilla de `next/og` (satori), no la página: ahí `next/image` no existe. */
 import "server-only";
 import { bordesDe, DOMINIO_A_LA_VISTA, fotoContenida, tarjetasDelLook, type PiezaDeLaImagen, type Tarjeta } from "./compartir-look";
+import { tituloPartido } from "./grupos";
 import { COLIBRI, LOGO, type PiezaDeMarca } from "@cayla-retail/shared/marca";
 
 // Las dos imágenes de un look compartido (ADR-0434, actividad 9), como las dibuja `next/og` (satori: estilos en línea, sin las clases
@@ -38,6 +39,9 @@ async function comoDato(url: string): Promise<string | null> {
     return null;
   }
 }
+
+/** Una foto suelta lista para `next/og` (`data:`), o null si no llegó o no es PNG ni JPEG: la vista previa de una prenda (ADR-0696). */
+export const fotoComoDato = (url: string): Promise<string | null> => comoDato(url);
 
 /** Las fotos de las prendas, a la vez. */
 export const cargarFotos = (piezas: readonly PiezaDeLaImagen[]): Promise<PiezaConFoto[]> =>
@@ -231,6 +235,85 @@ export function VistaDelLook({ piezas }: { piezas: readonly PiezaConFoto[] }) {
         <Tarjetas piezas={piezas} tarjetas={tarjetas} k={k} dx={dx} dy={dy} />
       ) : (
         <img src={COLIBRI_ROJO} width={372} height={Math.round((372 * COLIBRI.alto) / COLIBRI.ancho)} alt="" style={{ position: "absolute", left: caja.x + 64, top: caja.y + 144, opacity: 0.9 }} />
+      )}
+    </div>
+  );
+}
+
+/* ---------------- La vista previa de una prenda (1200×630, ADR-0696) ---------------- */
+
+/** El tamaño del nombre por su renglón más largo, para que entre en la columna de la izquierda en dos renglones como mucho. */
+const tamanoDelNombre = (antes: string, ultima: string) => {
+  const largo = Math.max(antes.length, ultima.length);
+  return largo <= 10 ? 96 : largo <= 14 ? 80 : largo <= 20 ? 64 : 52;
+};
+
+/**
+ * Lo que muestra WhatsApp al pegar el enlace de una prenda: a la izquierda la marca, su categoría y su nombre (la última palabra en
+ * cursiva y rosada, como el de un look) con el llamado; a la derecha, su foto en la tarjeta del estudio. **Sin precio** (Felipe
+ * 2026-11-23: cambia por tienda y por campaña, y WhatsApp guarda la vista días). Sin foto, el colibrí grande, como un look sin prendas.
+ */
+export function VistaDePrenda({ nombre, categoria, foto }: { nombre: string; categoria: string | null; foto: string | null }) {
+  const [antes, ultima] = tituloPartido(nombre);
+  const tamano = tamanoDelNombre(antes, ultima);
+  const tarjeta = { x: 716, y: 58, w: 412, h: 514 };
+  return (
+    <div style={{ ...TAMANO_VISTA, position: "relative", display: "flex", backgroundImage: COLOR.fondoAncho, color: COLOR.crema, fontFamily: SANS }}>
+      <div style={{ position: "absolute", left: 72, top: 64, bottom: 64, width: 580, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+        <Marca alto={34} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 19, fontWeight: 700, letterSpacing: 4, textTransform: "uppercase", color: COLOR.acento }}>
+            <div style={{ width: 40, height: 2, background: COLOR.acento }} />
+            {categoria ?? "En CAYLA"}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", fontFamily: SERIF, fontWeight: 500, fontSize: tamano, lineHeight: 0.95, letterSpacing: -Math.round(tamano * 0.02) }}>
+            {antes && <span>{antes}</span>}
+            <span style={{ fontStyle: "italic", color: COLOR.acento }}>{ultima}</span>
+          </div>
+          <span style={{ fontSize: 24, lineHeight: 1.35, color: "rgba(245, 240, 232, 0.78)", maxWidth: 500 }}>
+            Sepárala online sin pagar y recógela en tu tienda.
+          </span>
+        </div>
+        <div style={{ display: "flex" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              padding: "18px 30px",
+              borderRadius: 999,
+              background: COLOR.crema,
+              color: COLOR.tinta,
+              fontSize: 22,
+              fontWeight: 700,
+              boxShadow: "0 20px 44px rgba(0, 0, 0, 0.35)",
+            }}
+          >
+            {`Mírala en ${DOMINIO_A_LA_VISTA}`}
+          </div>
+        </div>
+      </div>
+      {foto ? (
+        <div
+          style={{
+            position: "absolute",
+            left: tarjeta.x,
+            top: tarjeta.y,
+            width: tarjeta.w,
+            height: tarjeta.h,
+            display: "flex",
+            padding: 14,
+            borderRadius: 6,
+            background: COLOR.papel,
+            boxShadow: "0 26px 52px rgba(0, 0, 0, 0.45)",
+            transform: "rotate(2.5deg)",
+          }}
+        >
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 3, background: COLOR.foto }}>
+            <img src={foto} width={tarjeta.w - 44} height={tarjeta.h - 44} alt="" style={{ objectFit: "contain" }} />
+          </div>
+        </div>
+      ) : (
+        <img src={COLIBRI_ROJO} width={372} height={Math.round((372 * COLIBRI.alto) / COLIBRI.ancho)} alt="" style={{ position: "absolute", left: 740, top: 190, opacity: 0.9 }} />
       )}
     </div>
   );

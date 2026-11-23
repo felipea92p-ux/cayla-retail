@@ -141,7 +141,7 @@ export function GruposDelMix({ grupos, categorias }: { grupos: GrupoMix[]; categ
               Otra persona cambió {quitadas.map((q) => `«${q.categoria}»`).join(", ")} mientras tenías cambios preparados. Quité {quitadas.length === 1 ? "ese cambio" : "esos cambios"}{" "}
               de lo tuyo para no pisarla: revisa cómo quedó {quitadas.length === 1 ? "y vuelve a decidir si hace falta" : "y vuelve a decidir lo que haga falta"}.
             </p>
-            <button type="button" className="btn-cayla btn-enlace shrink-0 text-[12.5px]" onClick={() => setPendientes(sinObsoletas(categorias, pendientes))}>
+            <button type="button" className="btn-cayla btn-enlace shrink-0 text-xs leading-tight" onClick={() => setPendientes(sinObsoletas(categorias, pendientes))}>
               Entendido
             </button>
           </div>
@@ -167,9 +167,8 @@ export function GruposDelMix({ grupos, categorias }: { grupos: GrupoMix[]; categ
       </section>
 
       <p className="nota-cayla">
-        Los grupos son la unidad del plan: con pocos días de venta, repartir el piso categoría por categoría daría cifras de 2 prendas que no dicen nada.
-        «Por revisar» es la propuesta de la investigación del 4 de octubre; el rol de cada grupo (destino, rutina…) es una hipótesis que se valida con las
-        ventas de cada sede, no un hecho. Cuánto lugar tiene cada grupo viene en el paso siguiente, sobre estos mismos grupos.
+        El plan reparte el piso por grupos, no por categoría: con pocas ventas, categoría por categoría no dice nada. «Por revisar» es una
+        propuesta: se valida con las ventas de cada sede.
       </p>
 
       <BarraFija
@@ -280,7 +279,7 @@ function FilaCategoria({
     <div id={`cat-${c.categoriaId}`} data-campo={`cat-${c.categoriaId}`} data-guia="plan-piso.grupos-fila" className={fila(PLANTILLA, "sm:items-center")}>
       <div className={celda("izq")}>
         <span className="text-sm text-tinta">{c.categoria}</span>
-        {c.prefijo && <span className="ml-2 font-mono text-[11px] text-taupe">{c.prefijo}</span>}
+        {c.prefijo && <span className="ml-2 font-mono text-xs text-taupe">{c.prefijo}</span>}
       </div>
       <div className={celda("izq", "flex flex-wrap items-center gap-1.5")}>
         {preparado !== undefined ? (
@@ -306,7 +305,7 @@ function FilaCategoria({
         {estado === "por_revisar" && preparado === undefined && (
           <button
             type="button"
-            className="btn-cayla btn-enlace shrink-0 text-[12.5px]"
+            className="btn-cayla btn-enlace shrink-0 text-xs leading-tight"
             onClick={() => onPreparar(conCambio(pendientes, c, c.grupoClave as string))}
             aria-label={`Confirmar ${c.categoria} en ${nombreGrupo(c.grupoClave)}`}
           >

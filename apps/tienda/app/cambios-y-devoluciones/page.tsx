@@ -11,7 +11,8 @@ import { leerSedes } from "@/lib/tiendas-servidor";
 import "../estilos/ayuda.css";
 
 export const metadata: Metadata = {
-  title: "Cambios y devoluciones · CAYLA",
+  alternates: { canonical: "/cambios-y-devoluciones" },
+  title: "Cambios y devoluciones",
   description: "Lo que separas en la web se cambia o se devuelve igual que en tienda, en cualquier tienda CAYLA.",
 };
 

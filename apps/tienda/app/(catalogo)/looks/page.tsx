@@ -14,9 +14,16 @@ import { sedeDeLaPagina } from "@/lib/sede-servidor";
 import { hayEnTienda } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../estilos/looks.css";
+import { canonicalDe, claveCanonica, DESCRIPCIONES } from "@/lib/seo";
 
 // Un nombre por destino (rediseño Premium, 2026-11-07): «Outfits listos» son los que arma CAYLA; «Arma tu outfit», la herramienta.
-export const metadata: Metadata = { title: "Outfits listos · CAYLA" };
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "Outfits listos",
+    description: DESCRIPCIONES.looks,
+    alternates: { canonical: canonicalDe("/looks", {}, claveCanonica(await leerSedes())) },
+  };
+}
 
 // «Arma tu look» (maqueta v4, `vLooks`): las combinaciones que el ERP arma en Vitrina web ▸ Looks, en su orden, cada una con su lámina, su
 // frase y lo que cuesta completa en la tienda elegida («Ver lo que hay en»; con «Todas», al mayor entre las tiendas de la web). Se lee en

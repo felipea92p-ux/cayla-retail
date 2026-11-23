@@ -36,7 +36,7 @@ export function RepartoPorTienda({
   // Un comprobante anulado ya no recibe nada: no hay reparto que mostrar ni mercadería que mover.
   if (compra.estado !== "vigente") return null;
 
-  const titulo = <p className="label-cayla text-[11px] text-tinta/65">Reparto por tienda</p>;
+  const titulo = <p className="label-cayla text-xs text-tinta/65">Reparto por tienda</p>;
   if (reparto.fallo) {
     return (
       <section className="space-y-2" data-guia="factura.reparto">
@@ -63,7 +63,7 @@ export function RepartoPorTienda({
   const historial =
     reasignaciones.length > 0 ? (
       <div className="space-y-1.5">
-        <p className="label-cayla text-[10.5px] text-tinta/55">Movimientos entre tiendas</p>
+        <p className="label-cayla text-xs text-tinta/55">Movimientos entre tiendas</p>
         <ul className="space-y-1 text-sm leading-relaxed text-tinta/65">
           {reasignaciones.slice(0, 5).map((r) => (
             <li key={r.id}>
@@ -110,11 +110,11 @@ export function RepartoPorTienda({
         <table className="w-full min-w-[30rem] border-collapse text-sm">
           <thead>
             <tr className="border-b border-tinta/10">
-              <th scope="col" className="label-cayla px-5 py-2 text-left text-[11px] font-normal text-tinta/55">
+              <th scope="col" className="label-cayla px-5 py-2 text-left text-xs font-normal text-tinta/55">
                 Producto
               </th>
               {ids.map((id) => (
-                <th key={id} scope="col" className="label-cayla px-3 py-2 text-right text-[11px] font-normal text-tinta/55">
+                <th key={id} scope="col" className="label-cayla px-3 py-2 text-right text-xs font-normal text-tinta/55">
                   {nombreDe(id)}
                 </th>
               ))}
@@ -159,7 +159,7 @@ export function RepartoPorTienda({
           </tbody>
           <tfoot>
             <tr className="border-t border-tinta/15 bg-tinta/[0.03]">
-              <th scope="row" className="label-cayla px-5 py-3 text-left align-top text-[11px] font-normal text-tinta">
+              <th scope="row" className="label-cayla px-5 py-3 text-left align-top text-xs font-normal text-tinta">
                 En total
               </th>
               {totales.map((t) => {

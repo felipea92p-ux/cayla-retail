@@ -48,7 +48,7 @@ export function SaldoFavorProveedor({
         )}
         {movimientos.length > 0 && (
           <div className="mt-4 border-t border-tinta/10 pt-3">
-            <p className="label-cayla text-[11px] text-tinta/55">Movimientos</p>
+            <p className="label-cayla text-xs text-tinta/55">Movimientos</p>
             <ul className="mt-1 divide-y divide-tinta/10">
               {movimientos.map((m) => {
                 const suma = m.tipo === "nota_credito";

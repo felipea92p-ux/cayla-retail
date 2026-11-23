@@ -56,7 +56,7 @@ import { crearEnvioDeOrden } from "@/lib/ordenes-compra-acciones";
 // Sale de `camposDelEnvio`. En una orden «directo» todo viene listo y el botón ya se puede pulsar; en una «Por repartir» lo primero que
 // sigue es la sede.
 
-const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whitespace-nowrap text-[13px] font-semibold text-tinta";
+const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whitespace-nowrap text-xs font-semibold text-tinta";
 // Una línea con lugar (sección de 40 rem o más): marca de la guía y número · prenda · lo que queda · cuántas van. Lo comparten el
 // encabezado y cada fila.
 const FILA_ANCHA = "@min-[40rem]:grid-cols-[2.5rem_minmax(0,1fr)_5.5rem_8rem]";
@@ -205,7 +205,7 @@ export function EnviarOrdenASede({ orden, sedes, sede }: Props) {
         volver={<Volver href="/compras/ordenes" a="Órdenes de compra" />}
       >
         <div data-guia="envio.cifras" className="anim-sube text-right" style={{ ["--i" as string]: 1 }}>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-taupe-profundo">Va en esta guía</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-taupe-profundo">Va en esta guía</p>
           <p className="font-display mt-1 text-2xl tabular-nums text-tinta" aria-live="polite">
             {unidades.toLocaleString("es-PE")} {unidades === 1 ? "unidad" : "unidades"}
           </p>
