@@ -196,7 +196,8 @@ describe("modo oscuro: contraste medido", () => {
   // Los colores que se usan como TEXTO. Sobre `sand` (cabecera de tabla, hover) solo se leen tinta y taupe; el rojo, el plomo y
   // el azul sobre sand quedan en 4.0–4.4, el mismo caso raro que ya tiene el claro (rojo sobre sand: 4.18).
   const textos = [
-    "tinta", "tinta-60", "taupe", "taupe-profundo", "rojo", "rojo-profundo", "verde", "verde-profundo", "ambar", "ambar-profundo",
+    // `taupe-profundo` ya no es un hex: desde ADR-0694 es la tinta al 80 % (lo mide «los tres tonos del texto», al final).
+    "tinta", "tinta-60", "taupe", "rojo", "rojo-profundo", "verde", "verde-profundo", "ambar", "ambar-profundo",
     "pizarra", "metodo-efectivo-tinta", "metodo-tarjeta", "metodo-yape", "metodo-plin", "metodo-transferencia",
   ];
 
@@ -252,10 +253,13 @@ describe("modo oscuro: contraste medido", () => {
 describe("el fondo Seda: todo color de texto se lee sobre cada uno de sus tonos (≥ 4.5), en claro y en oscuro", () => {
   const marco = leer("app/estilos/vidrio/marco.css");
   const TONOS = ["hondo", "medio", "claro", "brillo"];
+  // `taupe-profundo` ya no es un hex (ADR-0694: es la tinta al 80 %); él y los dos tonos del texto se miden abajo, mezclados sobre cada tono.
   const textos = [
-    "tinta", "tinta-60", "taupe", "taupe-profundo", "rojo", "rojo-profundo", "verde", "verde-profundo", "ambar", "ambar-profundo",
+    "tinta", "tinta-60", "taupe", "rojo", "rojo-profundo", "verde", "verde-profundo", "ambar", "ambar-profundo",
     "pizarra", "metodo-efectivo-tinta", "metodo-tarjeta", "metodo-yape", "metodo-plin", "metodo-transferencia",
   ];
+  /** Cuánta tinta lleva un tono del texto (`secundario`, `tenue`), leído de su token en globals.css. */
+  const tintaDe = (token: string) => Number((claro[token] ?? "").match(/var\(--color-tinta\)\s+(\d+(?:\.\d+)?)%/)?.[1] ?? 0) / 100;
   /** Un tono de Seda es un token, o la mezcla de dos tokens. Otra forma no se sabe medir: mejor que falle a que pase sin mirar. */
   function resolver(valor: string, paleta: Record<string, string>): string {
     const mix = valor.match(/^color-mix\(in srgb, var\(--color-([a-z0-9-]+)\) (\d+)%, var\(--color-([a-z0-9-]+)\)\)$/);
@@ -284,6 +288,10 @@ describe("el fondo Seda: todo color de texto se lee sobre cada uno de sus tonos 
     for (const [tono, hex] of lista) {
       it(`${nombre}: todo texto sobre el tono ${tono} de Seda`, () => {
         for (const t of textos) expect(contraste(paleta[t], hex), `${t} sobre ${tono} (${hex})`).toBeGreaterThanOrEqual(4.5);
+        for (const t of ["secundario", "tenue"]) {
+          expect(tintaDe(t), `no pude leer cuánta tinta lleva «${t}»`).toBeGreaterThan(0);
+          expect(contraste(mezcla(paleta.tinta, hex, tintaDe(t)), hex), `${t} sobre ${tono} (${hex})`).toBeGreaterThanOrEqual(4.5);
+        }
       });
     }
   }
@@ -394,39 +402,53 @@ describe("texto hecho de tinta en los CSS: por debajo del 64 % dice qué es y so
   }
 });
 
-describe("los pisos del texto tenue (estilos/tema.css) se leen", () => {
-  // El piso sube en un solo lugar las clases de Tailwind tenues (`text-tinta/40`…), que son cientos: si su porcentaje baja o pierde un escalón,
-  // todo el ERP vuelve a no leerse sin que ninguna otra prueba lo note. En oscuro desde la actividad 8 de ADR-0336; en claro desde el 2026-10-14.
+describe("los tres tonos del texto (ADR-0694) se leen y alcanzan a todas las clases de antes", () => {
+  // Felipe eligió mirando la «B · Tinta en tres tonos» (2026-11-23): el dato en `tinta`, lo que acompaña en `secundario` y lo más tenue en
+  // `tenue`, en los dos temas, y el café fuera del texto. `estilos/tema.css` traduce en un solo lugar las 13 opacidades de antes
+  // (`text-tinta/35` … `/85`) y el café (`text-taupe`): si una regla pierde una clase o el porcentaje baja, cientos de textos vuelven a su
+  // tono de antes sin que ninguna otra prueba lo note.
   const FONDOS = ["crema", "papel", "hueso", "sand"];
-  const piso = (aviso: RegExp) => {
-    const m = tema.match(new RegExp(`${aviso.source}[^{]*\\{\\s*color:\\s*color-mix\\(in (?:srgb|oklab),\\s*var\\(--color-tinta\\)\\s+(\\d+(?:\\.\\d+)?)%`));
-    return m ? { selectores: m[0], p: Number(m[1]) } : null;
+  const pct = (token: string) => {
+    const m = (claro[token] ?? "").match(/^color-mix\(in oklab,\s*var\(--color-tinta\)\s+(\d+(?:\.\d+)?)%,\s*(transparent|var\(--color-crema\))\)$/);
+    return m ? Number(m[1]) : null;
   };
-  const oscuroPiso = piso(/:where\(:root\[data-tema="oscuro"\]\) \.text-tinta\\\/35/);
-  const claroPiso = piso(/:where\(:root:not\(\[data-tema="oscuro"\]\)\) \.text-tinta\\\/35/);
+  const regla = (token: string) => {
+    const m = tema.match(new RegExp(`((?::where\\(:root\\) [^,{]+,\\s*)*:where\\(:root\\) [^,{]+)\\{\\s*color:\\s*var\\(--color-${token}\\);`));
+    return m ? m[1] : null;
+  };
 
-  it("en oscuro, `text-tinta/35` a `/50` (y su marcador) pasan 4.5:1 sobre crema, papel, hueso y sand", () => {
-    expect(oscuroPiso, "no encontré el piso del oscuro en tema.css").not.toBeNull();
-    for (const n of [35, 40, 45, 50]) {
-      expect(oscuroPiso?.selectores).toContain(`.text-tinta\\/${n}`);
-      expect(oscuroPiso?.selectores).toContain(`.placeholder\\:text-tinta\\/${n}::placeholder`);
-    }
-    for (const f of FONDOS) expect(contraste(mezcla(oscuro.tinta, oscuro[f], (oscuroPiso?.p ?? 0) / 100), oscuro[f]), `sobre ${f}`).toBeGreaterThanOrEqual(4.5);
+  it("`secundario` y `tenue` son la tinta al 80 % y al 64 %, y `taupe-profundo` vale lo mismo que `secundario`", () => {
+    expect(pct("secundario")).toBe(80);
+    expect(pct("tenue")).toBe(64);
+    expect(pct("taupe-profundo")).toBe(80);
   });
 
-  it("en claro, `text-tinta/35` a `/60` (y su marcador) pasan 4.5:1 sobre crema, papel, hueso y sand", () => {
-    expect(claroPiso, "no encontré el piso del claro en tema.css").not.toBeNull();
-    for (const n of [35, 40, 45, 50, 55, 60]) {
-      expect(claroPiso?.selectores).toContain(`.text-tinta\\/${n}`);
-      expect(claroPiso?.selectores).toContain(`.placeholder\\:text-tinta\\/${n}::placeholder`);
+  it("en los dos temas, `secundario` y `tenue` pasan 4.5:1 sobre crema, papel, hueso y arena", () => {
+    for (const [nombre, t] of [["claro", claro], ["oscuro", oscuro]] as const) {
+      for (const token of ["secundario", "tenue"]) {
+        for (const f of FONDOS) {
+          expect(contraste(mezcla(t.tinta, t[f], (pct(token) ?? 0) / 100), t[f]), `${token} en ${nombre}, sobre ${f}`).toBeGreaterThanOrEqual(4.5);
+        }
+      }
     }
-    for (const f of FONDOS) expect(contraste(mezcla(claro.tinta, claro[f], (claroPiso?.p ?? 0) / 100), claro[f]), `sobre ${f}`).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("en los dos temas, `text-taupe/50` a `/70` suben al taupe pleno, que pasa 4.5:1 sobre crema, papel, hueso y sand", () => {
-    const regla = tema.match(/:where\(:root\) \.text-taupe\\\/50[^{]*\{\s*color:\s*var\(--color-taupe\)/);
-    expect(regla, "no encontré el piso del taupe (para los dos temas) en tema.css").not.toBeNull();
-    for (const n of [50, 60, 70]) expect(regla?.[0]).toContain(`.text-taupe\\/${n}`);
-    for (const t of [claro, oscuro]) for (const f of FONDOS) expect(contraste(t.taupe, t[f]), `sobre ${f}`).toBeGreaterThanOrEqual(4.5);
+  it("`text-tinta/35` a `/65` y su marcador (`/35` a `/60`) pasan a `tenue`", () => {
+    const sel = regla("tenue");
+    expect(sel, "no encontré la regla de `tenue` en tema.css").not.toBeNull();
+    for (const n of [35, 40, 45, 50, 55, 60, 65]) expect(sel).toContain(`.text-tinta\\/${n}`);
+    for (const n of [35, 40, 45, 50, 55, 60]) expect(sel).toContain(`.placeholder\\:text-tinta\\/${n}::placeholder`);
+  });
+
+  it("`text-tinta/70` a `/85`, `text-taupe` y `text-taupe/50` a `/80` pasan a `secundario`", () => {
+    const sel = regla("secundario");
+    expect(sel, "no encontré la regla de `secundario` en tema.css").not.toBeNull();
+    for (const n of [70, 75, 80, 85]) expect(sel).toContain(`.text-tinta\\/${n}`);
+    expect(sel).toMatch(/\.text-taupe(,|\s|$)/);
+    for (const n of [50, 60, 70, 80]) expect(sel).toContain(`.text-taupe\\/${n}`);
+  });
+
+  it("los fantasmas (`/25`, `/30`) no se tocan", () => {
+    for (const token of ["secundario", "tenue"]) for (const n of [25, 30]) expect(regla(token)).not.toContain(`.text-tinta\\/${n},`);
   });
 });

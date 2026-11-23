@@ -161,7 +161,8 @@ la regla de lo que vas a tocar.
   agrega líneas»). Las cifras de la base envejecen: pregúntale a la base. Detalle: `sql-produccion.md`; el diccionario, `datos.md`.
 - **Solo tokens, en claro y en oscuro (ADR-0169, ADR-0336):** los colores salen SOLO de los tokens de `apps/web/app/globals.css` (su
   oscuro, en `app/estilos/tema.css`): nunca un hex, un `rgb()`/`rgba()`, `bg-white` ni `bg-gray-*`; un velo o una sombra es
-  `--color-sombra`, nunca `tinta`; el papel impreso y el color de una prenda no se oscurecen. Vigilan `lib/tema-colores.test.ts` y
+  `--color-sombra`, nunca `tinta`; el papel impreso y el color de una prenda no se oscurecen. El texto va en tres tonos: `text-tinta`, `text-secundario`
+  y `text-tenue` (ADR-0694), nunca una opacidad nueva ni el café (`taupe`). Vigilan `lib/tema-colores.test.ts` y
   `lib/tema-tokens.test.ts`; antes de terminar una pantalla, `tema:auditar`. Detalle: `paleta.md` y `modo-oscuro.md`.
 - **La estética del ERP es el vidrio «Serena», y es obligatoria (ADR-0596, Felipe 2026-11-02):** toda pantalla, modal o pieza nueva
   o editada se arma con las piezas ya elegidas (`<Modal>`, `<Tabla>`, `<TarjetaCifra>`, `<Chip>`, `<Buscador>`, `btn-cayla`…), nunca
