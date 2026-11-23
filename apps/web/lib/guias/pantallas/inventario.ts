@@ -2439,7 +2439,7 @@ export const GUIA_BARRIDO_PISO: Guia = {
       ancla: "barrido.escaneado",
       opcional: true,
       titulo: "Ver lo escaneado",
-      texto: "Todo lo escaneado, en tramos: lo que cada persona escaneó seguido, con su hora. Si algo se contó de más, quitas un tramo o una prenda; no se borra, queda tachado.",
+      texto: "Lo que escaneó cada persona, con su hora. Lo tuyo más reciente sale primero y abierto. Si algo se contó de más, lo quitas: no se borra, queda tachado.",
     },
     {
       id: "ultima",
@@ -2477,10 +2477,100 @@ export const GUIA_BARRIDO_PISO: Guia = {
       texto: "En una tienda con dos dueños, lo que bajas o sumas dice si es de CAYLA o de CLAURE. Nadie lo elige por ti.",
     },
     {
+      id: "historial",
+      ancla: "barrido.historial",
+      titulo: "El historial",
+      texto: "Cada barrido queda guardado: quién escaneó, cuándo y qué corrigió. Aquí lo vuelves a mirar cuando quieras.",
+    },
+    {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
       texto: "Ya sabes escanear en el barrido. Si se corta el internet, sigue escaneando: lo tuyo espera en el celular y sube solo. Para repasarlo: Mi perfil ▸ Demo ▸ Barrido del piso.",
+    },
+  ],
+};
+
+export const GUIA_HISTORIAL_BARRIDOS: Guia = {
+  id: "inventario.barrido.historial",
+  ruta: "/inventario/barrido/historial",
+  titulo: "Historial de barridos",
+  resumen: "Los barridos del piso de la tienda: cuándo, quién y qué corrigió cada uno.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Lo que dejó cada barrido",
+      texto: "Cada barrido del piso de esta tienda queda aquí, del más nuevo al más viejo. Nada se borra.",
+    },
+    {
+      id: "cifras",
+      ancla: "barridos.cifras",
+      opcional: true,
+      titulo: "El resumen",
+      texto: "Cuántos barridos hubo, cuándo se confirmó el último y cuántas prendas corrigió.",
+    },
+    {
+      id: "tabla",
+      ancla: "barridos.tabla",
+      opcional: true,
+      titulo: "Cada barrido",
+      texto: "Cuándo fue, si se confirmó, quién lo hizo, cuánto se escaneó y qué pasó al piso o volvió al almacén. Toca uno para ver su detalle.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Para repasarlo: Mi perfil ▸ Demo ▸ Historial de barridos.",
+    },
+  ],
+};
+
+export const GUIA_DETALLE_BARRIDO: Guia = {
+  id: "inventario.barrido.detalle",
+  ruta: "/inventario/barrido/historial/[id]",
+  titulo: "Un barrido",
+  resumen: "Quién escaneó, entre qué horas y qué corrigió un barrido.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "El detalle de un barrido",
+      texto: "Todo lo que dejó este barrido: quién escaneó, cuánto y qué se movió.",
+    },
+    {
+      id: "cifras",
+      ancla: "barrido-detalle.cifras",
+      opcional: true,
+      titulo: "Las cifras",
+      texto: "Lo escaneado (sin lo quitado), lo que pasó al piso, lo que volvió al almacén y lo que quedó por resolver.",
+    },
+    {
+      id: "personas",
+      ancla: "barrido-detalle.personas",
+      opcional: true,
+      titulo: "Quiénes escanearon",
+      texto: "Cada persona con cuántas prendas y entre qué horas. Sirve para saber de dónde salió lo contado.",
+    },
+    {
+      id: "movidas",
+      ancla: "barrido-detalle.movidas",
+      opcional: true,
+      titulo: "Lo que se movió",
+      texto: "Prenda por prenda: lo que pasó al piso, lo que volvió al almacén y lo que no estaba en la tienda.",
+    },
+    {
+      id: "lecturas",
+      ancla: "barrido-detalle.lecturas",
+      opcional: true,
+      titulo: "Cada lectura",
+      texto: "Abre cada lectura con su hora. Lo quitado se ve tachado, con quién lo quitó. Aquí solo se mira.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Vuelve al historial con la flecha de arriba.",
     },
   ],
 };

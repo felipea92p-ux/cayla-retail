@@ -16,7 +16,7 @@ Las cifras salen de `referencia/contrastes.md`, generado desde los tokens reales
 ## Candados
 
 1. **El repo manda sobre la skill.** Colores SOLO de los tokens de `apps/web/app/globals.css` (`@theme static`) y su oscuro en
-   `apps/web/app/estilos/tema.css`; piezas, de la tabla «Una función, una pieza» de `CLAUDE.md` (ADR-0358); el vidrio, de
+   `apps/web/app/estilos/tema.css`; piezas, de la tabla «Una función, una pieza» de `.claude/rules/unificar.md` (ADR-0358); el vidrio, de
    `app/estilos/vidrio/recetas.css` (ADR-0596). **Nunca un hex, un `rgb()`, `bg-white`, una paleta o una pieza nueva** (lo vigila `lib/tema-colores.test.ts`).
 2. **Si la investigación dice que una regla del repo se puede mejorar, no la cambias:** la escribes como propuesta (regla actual con archivo/ADR →
    qué hacen los mejores con fuente → propuesta → riesgo → cómo se mide) y se decide con Felipe mirando, como en `/unificar`. Un token nuevo o un

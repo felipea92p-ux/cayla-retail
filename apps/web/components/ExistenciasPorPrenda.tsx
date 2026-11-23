@@ -63,7 +63,7 @@ export function CurvaTallas({
             }}
             aria-label={`Ver la talla ${f.talla ?? "Única"} de ${prenda.referencia}${prenda.color ? ` ${prenda.color}` : ""}`}
             title={`${f.talla ?? "Única"}: ${separa ? `${f.pisoDisponible ?? 0} en piso, ${f.almacenDisponible ?? 0} en almacén` : `${f.disponible} disponibles`} — ${AYUDA_TALLA[estado]}${f.apartado > 0 ? ` · ${f.apartado} apartada${f.apartado === 1 ? "" : "s"}` : ""}`}
-            className={`inline-flex min-h-11 min-w-11 cursor-pointer flex-col items-center justify-center rounded-lg border px-1.5 py-0.5 text-xs sm:min-h-0 sm:min-w-[3.25rem] sm:justify-start sm:py-[3px] sm:text-[13px] leading-tight tabular-nums transition-[filter] hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tinta/60 ${
+            className={`inline-flex min-h-11 min-w-11 cursor-pointer flex-col items-center justify-center rounded-lg border px-1.5 py-0.5 text-xs sm:min-h-0 sm:min-w-[3.25rem] sm:justify-start sm:py-[3px] leading-tight tabular-nums transition-[filter] hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tinta/60 ${
               estado === "sin_stock" ? CLASE_TALLA.sin_stock : CLASE_TALLA.normal
             }`}
           >

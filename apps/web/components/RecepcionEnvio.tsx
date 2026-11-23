@@ -1666,7 +1666,7 @@ export function RecepcionEnvio({
                       <span className={`font-display text-xl leading-none tabular-nums transition-colors duration-300 sm:text-2xl ${m.tono}`}>
                         <CifraQueCuenta valor={m.n} />
                       </span>
-                      <span className="label-cayla mt-0.5 block text-[8.5px] leading-tight text-tinta/55 sm:text-[9.5px]">{m.etiqueta}</span>
+                      <span className="label-cayla mt-0.5 block text-xs leading-tight text-tinta/55">{m.etiqueta}</span>
                     </span>
                   ))}
                 </div>

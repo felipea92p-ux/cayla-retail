@@ -1,0 +1,152 @@
+/* =====================================================================
+   EL VIDRIO QUE DOBLA (ADR-0681, Felipe 2026-11-18; maqueta docs/maquetas/vidrio-que-dobla-2026-11/, preset «E · Elegido»).
+
+   Las piezas que FLOTAN quietas (la cabecera, y las que se sumen) doblan lo que tienen detrás en su canto, como el borde de una gota,
+   en vez de solo desenfocarlo. El filtro lo arma `components/ui/useVidrioQueDobla.ts` (un filtro SVG por pieza, con su mapa calculado
+   en `lib/vidrio-dobla.ts`) y lo deja en la variable `--dobla` de la pieza, junto con el atributo `data-dobla-activa`.
+
+   Es una MEJORA: estas reglas solo valen con ese atributo, que solo se pone donde el navegador acepta un filtro SVG dentro de
+   `backdrop-filter` (hoy Chrome y Edge). En Safari, en Firefox, en modo liviano, con «menos transparencia» y con «más contraste», la
+   pieza no lleva el atributo y se ve con su vidrio de siempre. Por eso aquí no hay `@supports` ni respaldo: el respaldo es no entrar.
+
+   Fuera de capa, como el resto de `vidrio/`: le gana a la pieza por especificidad (suma un atributo), no por orden.
+
+   Solo en lo que flota quieto. Lo que se desplaza no lleva `backdrop-filter` (ADR-0623), y esto es uno más caro que un desenfoque.
+   ===================================================================== */
+
+/* ---------- La cabecera: una barra a ras, dobla por su borde de abajo ----------
+   Relleno claro: deja ver el color de lo que pasa por detrás. La letra se sigue leyendo porque el filtro recoge la luminosidad
+   (`LUMINOSIDAD`, lib/vidrio-dobla.ts; medido por lib/vidrio-dobla.test.ts). Conserva la sombra de lo que flota y suma su hondura. */
+.marco-cabecera-fila[data-dobla-activa]::before {
+  background: var(--vidrio-dobla-grano), var(--vidrio-dobla-fondo);
+  -webkit-backdrop-filter: var(--dobla);
+  backdrop-filter: var(--dobla);
+  box-shadow: var(--vidrio-flota-sombra), var(--vidrio-dobla-hondura);
+}
+/* Sobre el vidrio claro, la letra va en tinta PLENA. El piso de luminosidad garantiza 4.5:1 para la tinta entera; «Buscar…» y
+   «Actividad» iban en tinta al 70 y al 65 %, y con una foto oscura detrás bajaban de 4,1:1 a 2,9:1. Es lo mismo que hace «más
+   contraste» en `aguanta.css`. Una pieza nueva de relleno claro hace lo mismo con su texto secundario, o le da un fondo propio. */
+.marco-cabecera-fila[data-dobla-activa="claro"] :where(.marco-buscador-texto, .label-cayla) {
+  color: var(--color-tinta);
+}
+/* El borde que se disuelve: lo que pasa justo bajo la barra se va desenfocando de a poco. La máscara solo usa la opacidad del color. */
+.marco-cabecera-fila[data-dobla-activa]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  /* 24 px y no los 34 de la maqueta: bajo la cabecera pasan filas con cifras, y cada px de esta franja es una fila que se lee peor. */
+  height: 24px;
+  pointer-events: none;
+  -webkit-backdrop-filter: var(--vidrio-dobla-disuelve);
+  backdrop-filter: var(--vidrio-dobla-disuelve);
+  -webkit-mask: linear-gradient(var(--color-sombra), transparent);
+  mask: linear-gradient(var(--color-sombra), transparent);
+}
+
+/* ---------- Lo que flota suelto y se LEE: el aviso de la esquina, el cajón de un módulo y la isla del celular ----------
+   Relleno propio: cada una conserva su relleno y su desenfoque de siempre (el filtro lo repite en el centro) y solo dobla en el canto.
+   No usan el relleno claro porque llevan texto en taupe directo sobre su vidrio, y el piso de luminosidad solo alcanza para la tinta.
+   Suman el grano y la hondura. Al aparecer, el vidrio se asienta: lo hace el filtro (`useVidrioQueDobla`), no el CSS. */
+.aviso-tarjeta[data-dobla-activa] {
+  background: var(--vidrio-dobla-grano), var(--aviso-lente);
+  -webkit-backdrop-filter: var(--dobla);
+  backdrop-filter: var(--dobla);
+  box-shadow: var(--lente-tono-sombra), var(--vidrio-dobla-hondura);
+}
+.marco-cajon-grupo[data-dobla-activa] {
+  background: var(--vidrio-dobla-grano), var(--vidrio-flota-fondo);
+  -webkit-backdrop-filter: var(--dobla);
+  backdrop-filter: var(--dobla);
+  box-shadow: var(--vidrio-flota-sombra), var(--vidrio-dobla-hondura);
+}
+/* ---------- El cajón lateral (<Cajon>): flota a 12 px de los bordes en escritorio ----------
+   Ya llevaba su propio desenfoque (casi siempre abre sin velo), así que la lente va en él mismo. Su scroll es de un bloque de adentro. */
+.cajon-serena[data-dobla-activa] {
+  background: var(--vidrio-dobla-grano), var(--vidrio-hoja-fondo);
+  -webkit-backdrop-filter: var(--dobla);
+  backdrop-filter: var(--dobla);
+  box-shadow: var(--vidrio-hoja-sombra), var(--vidrio-dobla-hondura);
+}
+
+/* ---------- La hoja (<Modal>): la lente es su HERMANA, no ella ----------
+   La hoja NO puede llevar `backdrop-filter`: la volvería el bloque contenedor de todo lo `fixed` de adentro, y la lista de un combo
+   quedaría recortada y se iría con su scroll (estilos/vidrio/hoja.css, ADR-0596). Por eso la lente es un <span> que `Modal` pone justo
+   antes de la hoja: detrás, y con la misma caja gracias al posicionamiento por ancla (la hoja declara `anchor-name`).
+   · Donde el navegador no sabe de anclas, estas cuatro líneas se descartan, el <span> mide cero y nunca se activa.
+   · Con la lente puesta, el relleno pasa de la hoja a la lente (si no, la lente doblaría también el blanco de la hoja y casi no se
+     vería) y el velo deja de desenfocar: si lo de atrás ya llega borroso, el canto no tiene nada nítido que doblar. El velo sigue
+     oscureciendo, y la lente desenfoca el centro de la hoja como siempre.
+   · Lo de AFUERA de la hoja se sigue viendo desenfocado (Felipe 2026-11-19: «¿por qué ya no se difumina lo de atrás?»). Lo hace
+     `.hoja-afuera`, otra hermana: un marco anclado a la misma caja, con un hueco del tamaño de la hoja. Así el desenfoque queda
+     en todo menos bajo la hoja, que es lo único que la lente necesita nítido.
+   · Solo con la hoja quieta y en escritorio: una caja anclada no sigue una transformación (la entrada, la salida, el dedo). */
+.hoja-lente {
+  /* `absolute` y no `fixed`: para que el ancla valga, la hoja y su lente tienen que compartir el bloque contenedor (el `div` fijo que
+     ubica la hoja, que cubre toda la pantalla). Con `fixed`, el de la lente sería la ventana y el navegador descarta el ancla. */
+  position: absolute;
+  top: anchor(top);
+  left: anchor(left);
+  right: anchor(right);
+  bottom: anchor(bottom);
+  visibility: hidden;
+  pointer-events: none;
+  border-radius: var(--vidrio-hoja-radio);
+}
+.hoja-lente[data-dobla-activa] {
+  visibility: visible;
+  background: var(--vidrio-dobla-grano), var(--vidrio-hoja-fondo);
+  -webkit-backdrop-filter: var(--dobla);
+  backdrop-filter: var(--dobla);
+  box-shadow: var(--vidrio-dobla-hondura);
+}
+.hoja-lente[data-dobla-activa] + .hoja-serena {
+  background: transparent;
+}
+/* El velo suelta su desenfoque y lo toma el marco de afuera, en el mismo cuadro y SIN transición: fuera de la hoja las dos cuentas
+   dan lo mismo (oscurecer y desenfocar conmutan), así que no se nota el relevo. Con una transición, los dos desenfoques a medias se
+   sumarían a menos que uno entero y toda la pantalla «respiraría». */
+:where([data-state="open"]):has(+ div > .hoja-lente[data-dobla-activa]) {
+  -webkit-backdrop-filter: blur(0) saturate(1);
+  backdrop-filter: blur(0) saturate(1);
+}
+/* El marco de afuera: su caja de relleno ES la caja de la hoja (los cuatro lados anclados) y su borde, transparente, llega más allá
+   de la pantalla. La máscara deja solo el borde: ahí va el mismo desenfoque que llevaba el velo (estilos/vidrio/hoja.css). El radio
+   de afuera es el borde más el radio de la hoja, así el hueco sale con las esquinas de la hoja. No recibe clics: el clic afuera
+   sigue llegando al velo, que es el que cierra. */
+.hoja-afuera {
+  --afuera: 100vmax;
+  position: absolute;
+  top: anchor(top);
+  left: anchor(left);
+  right: anchor(right);
+  bottom: anchor(bottom);
+  margin: calc(-1 * var(--afuera));
+  border: var(--afuera) solid transparent;
+  border-radius: calc(var(--afuera) + var(--vidrio-hoja-radio));
+  visibility: hidden;
+  pointer-events: none;
+}
+.hoja-afuera:has(+ .hoja-lente[data-dobla-activa]) {
+  visibility: visible;
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
+  /* La máscara solo usa la opacidad del color: la capa del relleno se le RESTA a la del borde. */
+  mask:
+    linear-gradient(var(--color-sombra), var(--color-sombra)) padding-box exclude,
+    linear-gradient(var(--color-sombra), var(--color-sombra));
+}
+
+/* La isla vive en la capa `components` a propósito (estilos/barra-abajo.css): una pantalla que en escritorio la quiere a ras le gana
+   con sus utilidades. Esta regla va en la misma capa para no romper eso. Solo en el celular, que es donde flota. */
+@layer components {
+  @media (max-width: 639.98px) {
+    .barra-abajo[data-dobla-activa] {
+      background: var(--vidrio-dobla-grano), var(--vidrio-flota-fondo);
+      -webkit-backdrop-filter: var(--dobla);
+      backdrop-filter: var(--dobla);
+      box-shadow: var(--vidrio-flota-sombra), var(--vidrio-dobla-hondura);
+    }
+  }
+}

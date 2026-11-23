@@ -448,6 +448,39 @@ export type Tramo = {
 };
 
 /**
+ * Lo que ESTA persona ya escaneó en el barrido, por prenda, y la última que escaneó. Con esto la lectura repetida («¿Sumar otra?»)
+ * y «Última que escaneaste» sobreviven a una recarga o a un cambio de celular (/formidable 2026-11-23: tras recargar, la misma
+ * etiqueta se sumaba sin preguntar). Solo cuenta lo que no se quitó; las de otra persona no son «repetir» (ADR-0562).
+ */
+export function memoriaDeLaPersona(lecturas: readonly LecturaDelBarrido[], personaId: string | null): { porPrenda: Record<string, number>; ultima: string | null } {
+  const porPrenda: Record<string, number> = {};
+  let ultima: { varianteId: string; en: number } | null = null;
+  if (!personaId) return { porPrenda, ultima: null };
+  for (const l of lecturas) {
+    if (l.personaId !== personaId || l.anuladaEn) continue;
+    porPrenda[l.varianteId] = (porPrenda[l.varianteId] ?? 0) + l.cantidad;
+    const en = Date.parse(l.escaneadaEn);
+    if (Number.isFinite(en) && (!ultima || en > ultima.en)) ultima = { varianteId: l.varianteId, en };
+  }
+  return { porPrenda, ultima: ultima?.varianteId ?? null };
+}
+
+/**
+ * Lo que la persona lleva por prenda para la lectura repetida: lo suyo en la base más lo suyo que espera en este celular, sin bajar nunca
+ * de lo que este celular ya contaba (una lectura que subió entre la pregunta y la respuesta estaría en las dos). Sin `previo` (cambió
+ * la persona), solo lo de ella.
+ */
+export function juntarMemoria(deLaBase: Record<string, number>, cola: readonly LecturaBarrido[], personaId: string, previo: Record<string, number> | null): Record<string, number> {
+  const res: Record<string, number> = { ...deLaBase };
+  for (const l of cola) {
+    if (l.firma?.responsableId !== personaId) continue;
+    res[l.varianteId] = (res[l.varianteId] ?? 0) + l.cantidad;
+  }
+  if (previo) for (const [id, n] of Object.entries(previo)) res[id] = Math.max(res[id] ?? 0, n);
+  return res;
+}
+
+/**
  * Lo escaneado en TRAMOS: lo que una persona escaneó seguido, sin una pausa de más de `pausaMs`. Es lo que las chicas reconocen
  * («esto es la pared izquierda, lo conté yo a las 10») sin haberse repartido áreas. De lo más reciente a lo más antiguo.
  */
@@ -939,4 +972,168 @@ export function textoDeErrorResolver(e: { code?: string | null; hint?: string | 
     default:
       return textoDeError(e, "resolver");
   }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// El historial (actividad 9): los barridos de la sede y el detalle de cada uno. Solo lectura (`fn_barridos_piso_historial`,
+// `fn_barrido_piso_detalle`, 20261122196000); las lecturas y lo apartado de uno se leen como mientras estaba abierto.
+// ---------------------------------------------------------------------------------------------------------------------
+
+export const RPC_HISTORIAL_BARRIDOS = "fn_barridos_piso_historial";
+export const RPC_DETALLE_BARRIDO = "fn_barrido_piso_detalle";
+
+export type EstadoDeBarrido = "abierto" | "confirmado" | "cancelado";
+
+/** Una fila del historial. Las cifras de lo movido son `null` si el barrido no se confirmó. */
+export type FilaHistorial = {
+  id: string;
+  /** La sede del barrido (un líder puede mirar el de otra). */
+  ubicacionId: string | null;
+  estado: EstadoDeBarrido;
+  abiertoEn: string;
+  abiertoPor: string | null;
+  cerradoEn: string | null;
+  cerradoPor: string | null;
+  unidades: number;
+  lecturas: number;
+  quitadas: number;
+  personas: number;
+  aparte: number;
+  alPiso: number | null;
+  alAlmacen: number | null;
+  noCargadas: number | null;
+};
+
+export type PersonaDelHistorial = { personaId: string; nombre: string; unidades: number; lecturas: number; quitadas: number; desde: string; hasta: string };
+export type MovidaDelBarrido = { varianteId: string; prenda: string; sentido: "al_piso" | "al_almacen"; cantidad: number };
+export type DetalleBarrido = FilaHistorial & {
+  sede: string;
+  porPersona: PersonaDelHistorial[];
+  movidas: MovidaDelBarrido[];
+  noCargado: { varianteId: string; prenda: string; cantidad: number }[];
+};
+
+const enteroONulo = (x: unknown): number | null => (x === null || x === undefined ? null : entero(x));
+
+function leerFilaHistorial(x: unknown): FilaHistorial | null {
+  if (!esObjeto(x)) return null;
+  const id = texto(x.id);
+  const abiertoEn = texto(x.abierto_en);
+  const estado = x.estado === "abierto" || x.estado === "confirmado" || x.estado === "cancelado" ? x.estado : null;
+  if (!id || !abiertoEn || !estado) return null;
+  const confirmado = estado === "confirmado";
+  return {
+    id,
+    ubicacionId: texto(x.ubicacion_id),
+    estado,
+    abiertoEn,
+    abiertoPor: texto(x.abierto_por),
+    cerradoEn: texto(x.cerrado_en),
+    cerradoPor: texto(x.cerrado_por),
+    unidades: entero(x.unidades),
+    lecturas: entero(x.lecturas),
+    quitadas: entero(x.quitadas),
+    personas: entero(x.personas),
+    aparte: entero(x.aparte),
+    alPiso: confirmado ? enteroONulo(x.al_piso) : null,
+    alAlmacen: confirmado ? enteroONulo(x.al_almacen) : null,
+    noCargadas: confirmado ? enteroONulo(x.no_cargadas) : null,
+  };
+}
+
+/** Lo que devuelve `fn_barridos_piso_historial`. Lo que no tiene forma se ignora. */
+export function leerHistorial(x: unknown): { barridos: FilaHistorial[]; total: number } {
+  if (!esObjeto(x) || !Array.isArray(x.barridos)) return { barridos: [], total: 0 };
+  const barridos = x.barridos.map(leerFilaHistorial).filter((f): f is FilaHistorial => f !== null);
+  return { barridos, total: Math.max(entero(x.total), barridos.length) };
+}
+
+/** Lo que devuelve `fn_barrido_piso_detalle`, o `null` sin forma. */
+export function leerDetalleBarrido(x: unknown): DetalleBarrido | null {
+  const fila = leerFilaHistorial(x);
+  if (!fila || !esObjeto(x)) return null;
+  const lista = (y: unknown) => (Array.isArray(y) ? y.filter(esObjeto) : []);
+  return {
+    ...fila,
+    sede: texto(x.sede) ?? "",
+    porPersona: lista(x.por_persona).flatMap((p) => {
+      const personaId = texto(p.persona_id);
+      const desde = texto(p.desde);
+      const hasta = texto(p.hasta);
+      if (!personaId || !desde || !hasta) return [];
+      return [{ personaId, nombre: texto(p.nombre) ?? "Alguien del equipo", unidades: entero(p.unidades), lecturas: entero(p.lecturas), quitadas: entero(p.quitadas), desde, hasta }];
+    }),
+    movidas: lista(x.movidas).flatMap((m) => {
+      const varianteId = texto(m.variante_id);
+      const sentido = m.sentido === "al_piso" || m.sentido === "al_almacen" ? m.sentido : null;
+      if (!varianteId || !sentido) return [];
+      return [{ varianteId, prenda: texto(m.prenda) ?? "Una prenda", sentido, cantidad: entero(m.cantidad) }];
+    }),
+    noCargado: lista(x.no_cargado).flatMap((n) => {
+      const varianteId = texto(n.variante_id);
+      if (!varianteId) return [];
+      return [{ varianteId, prenda: texto(n.prenda) ?? "Una prenda", cantidad: entero(n.no_cargadas) }];
+    }),
+  };
+}
+
+/** La insignia del estado: dice el estado con su palabra (nunca solo el color). */
+export function estadoDelHistorial(estado: EstadoDeBarrido): { texto: string; tono: "verde" | "ambar" | "pizarra" } {
+  if (estado === "confirmado") return { texto: "Confirmado", tono: "verde" };
+  if (estado === "abierto") return { texto: "En curso", tono: "ambar" };
+  return { texto: "Descartado", tono: "pizarra" };
+}
+
+/** «sáb 22 nov, 18:05» en hora de Lima: la fecha de un barrido en una línea; con el año («sáb 22 nov 2025, 18:05») si no es del año de `ahora`. */
+export function fechaDelBarrido(iso: string, ahora: Date = new Date()): string {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "";
+  const anio = (x: Date) => x.toLocaleDateString("es-PE", { year: "numeric", timeZone: "America/Lima" });
+  const conAnio = anio(d) !== anio(ahora);
+  const dia = d
+    .toLocaleDateString("es-PE", { weekday: "short", day: "numeric", month: "short", ...(conAnio ? { year: "numeric" } : {}), timeZone: "America/Lima" })
+    .replace(/\./g, "")
+    .replace(/ de /g, " ");
+  const hora = d.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
+  return `${dia}, ${hora}`;
+}
+
+/** Lo que quedó por resolver de un barrido confirmado (lo no cargado más lo apartado), o `null` si no se confirmó. */
+export function porResolverDeLaFila(f: Pick<FilaHistorial, "estado" | "noCargadas" | "aparte">): number | null {
+  return f.estado === "confirmado" ? (f.noCargadas ?? 0) + f.aparte : null;
+}
+
+/** Quién firmó el barrido (lo cerró, o lo empezó si sigue abierto) y, si escanearon varias, cuántas: «Rosa · 3 escanearon». */
+export function quienDelBarrido(f: Pick<FilaHistorial, "estado" | "abiertoPor" | "cerradoPor" | "personas">): string {
+  const quien = (f.estado === "abierto" ? f.abiertoPor : (f.cerradoPor ?? f.abiertoPor)) ?? "—";
+  return f.personas > 1 ? `${quien} · ${f.personas} escanearon` : quien;
+}
+
+/** La fila del historial dicha en una frase, para el lector de pantalla (la fila es un enlace a su detalle). */
+export function fraseDeLaFila(f: FilaHistorial, ahora: Date = new Date()): string {
+  const partes = [`Barrido del ${fechaDelBarrido(f.abiertoEn, ahora)}`, estadoDelHistorial(f.estado).texto.toLowerCase(), `${f.unidades} escaneadas`];
+  if (f.estado === "confirmado") partes.push(`${f.alPiso ?? 0} al piso`, `${f.alAlmacen ?? 0} al almacén`, `${porResolverDeLaFila(f) ?? 0} por resolver`);
+  return partes.join(", ");
+}
+
+/** El código más largo que se guarda (como `nuevaLectura`): una pistola que pega dos códigos o un QR con una dirección no traban «Apartar». */
+export const CODIGO_MAX = 120;
+
+/** Lo escrito que no es de ninguna prenda, para decirlo en una línea: los primeros 40 caracteres y «…». */
+export function codigoParaMostrar(codigo: string): string {
+  const t = codigo.trim();
+  return t.length > 40 ? `${t.slice(0, 40)}…` : t;
+}
+
+/**
+ * Lo que este celular no alcanzó a subir antes de que se cerrara el barrido, con NOMBRE (chaos 2026-11-23): la base ya no lo acepta y, si la
+ * prenda estaba colgada sin otra lectura, el cuadre la devolvió al almacén. Decir solo «1 lectura» no dejaba a nadie revisarla.
+ */
+export function textoLlegaronTarde(lecturas: readonly { varianteId: string; cantidad: number }[], nombre: (varianteId: string) => string): string | null {
+  const total = lecturas.reduce((a, l) => a + l.cantidad, 0);
+  if (total === 0) return null;
+  const nombres = [...new Set(lecturas.map((l) => nombre(l.varianteId)))];
+  const lista = nombres.length <= 3 ? nombres.join(", ") : `${nombres.slice(0, 3).join(", ")} y ${(nombres.length - 3).toLocaleString("es-PE")} más`;
+  const cuantas = total === 1 ? "1 lectura de este celular llegó tarde y no entró" : `${total.toLocaleString("es-PE")} lecturas de este celular llegaron tarde y no entraron`;
+  return `${cuantas}: ${lista}. Si están colgadas, revisa en Existencias que sigan en el piso.`;
 }

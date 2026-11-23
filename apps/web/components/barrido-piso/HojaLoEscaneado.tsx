@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ListChecks, Tag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Modal } from "@/components/ui/Modal";
@@ -39,19 +39,23 @@ type Confirmar = { tipo: "tramo"; clave: string } | { tipo: "lectura"; id: strin
 export function HojaLoEscaneado({
   barridoId,
   porId,
-  esperan,
+  esperan = 0,
   onAnular,
   onAnularAparte,
+  personaId = null,
   onClose,
 }: {
   barridoId: string;
   porId: ReadonlyMap<string, PrendaBarrido>;
   /** Cuántas lecturas de este celular todavía no subieron. */
-  esperan: number;
-  /** Quita esas lecturas en la base (con la firma de quien está elegido). Devuelve el error a mostrar, o null si salió bien. */
-  onAnular: (ids: string[], motivo: "repetida" | "tramo") => Promise<string | null>;
-  /** Quita algo apartado por error (sin borrarlo). Devuelve el error a mostrar, o null. */
-  onAnularAparte: (id: string) => Promise<string | null>;
+  esperan?: number;
+  /** Quita esas lecturas en la base (con la firma de quien está elegido). Devuelve el error a mostrar, o null si salió bien. Sin él (el
+   *  historial de un barrido cerrado, actividad 9) la hoja solo se lee: no hay «Quitar». */
+  onAnular?: (ids: string[], motivo: "repetida" | "tramo") => Promise<string | null>;
+  /** Quita algo apartado por error (sin borrarlo). Devuelve el error a mostrar, o null. Sin él, solo se lee. */
+  onAnularAparte?: (id: string) => Promise<string | null>;
+  /** Quien escanea en este celular: su último tramo va primero y abierto, con un «Quitar» por prenda (/formidable 2026-11-23). */
+  personaId?: string | null;
   onClose: () => void;
 }) {
   const supabase = useMemo(() => createClient(), []);
@@ -104,9 +108,20 @@ export function HojaLoEscaneado({
 
   const todos = useMemo(() => agruparEnTramos(lecturas ?? []), [lecturas]);
   const personas = useMemo(() => [...new Map(todos.map((t) => [t.personaId, t.nombre.split(" ")[0] || t.nombre])).entries()], [todos]);
-  const tramos = persona ? todos.filter((t) => t.personaId === persona) : todos;
+  // Lo último que escaneó quien tiene el celular va primero: es lo que viene a revisar.
+  const miUltimo = personaId ? todos.find((t) => t.personaId === personaId) ?? null : null;
+  const filtrados = persona ? todos.filter((t) => t.personaId === persona) : todos;
+  const tramos = miUltimo && filtrados.includes(miUltimo) ? [miUltimo, ...filtrados.filter((t) => t !== miUltimo)] : filtrados;
+  // Ese tramo se abre solo, una vez: si la persona lo cierra, queda cerrado.
+  const abrioElMio = useRef(false);
+  useEffect(() => {
+    if (abrioElMio.current || !miUltimo) return;
+    abrioElMio.current = true;
+    setAbiertos((s) => new Set(s).add(miUltimo.clave));
+  }, [miUltimo]);
 
   async function quitarAparte(id: string) {
+    if (!onAnularAparte) return;
     setQuitando(true);
     const error = await onAnularAparte(id);
     setQuitando(false);
@@ -119,6 +134,7 @@ export function HojaLoEscaneado({
   }
 
   async function quitar(ids: string[], motivo: "repetida" | "tramo") {
+    if (!onAnular) return;
     setQuitando(true);
     const error = await onAnular(ids, motivo);
     setQuitando(false);
@@ -136,7 +152,7 @@ export function HojaLoEscaneado({
   };
 
   return (
-    <Modal titulo="Lo escaneado" subtitulo="En tramos: lo que cada persona escaneó seguido." tamano="ancha" conCerrar onClose={onClose}>
+    <Modal titulo="Lo escaneado" subtitulo="Lo que escaneó cada persona, con su hora." tamano="ancha" conCerrar onClose={onClose}>
       <div className="space-y-4">
         {esperan > 0 && (
           <p className="nota-cayla">
@@ -199,11 +215,11 @@ export function HojaLoEscaneado({
                           No
                         </Boton>
                       </span>
-                    ) : (
+                    ) : onAnularAparte ? (
                       <Boton peso="peligro" className="btn-chico" onClick={() => setConfirmar({ tipo: "aparte", id: h.id })}>
                         Quitar
                       </Boton>
-                    )}
+                    ) : null}
                   </li>
                 );
               })}
@@ -223,38 +239,21 @@ export function HojaLoEscaneado({
               const abierto = abiertos.has(t.clave);
               const confirmando = confirmar?.tipo === "tramo" && confirmar.clave === t.clave;
               const nombre = t.nombre.split(" ")[0] || t.nombre;
+              const cuando = textoDeTramo(t.desde, t.hasta);
+              const deOALas = cuando.includes(" a ") ? "de" : "a las";
               return (
                 <li key={t.clave} className="vd-placa rounded-[var(--radius-tarjeta,1rem)] p-3 sm:p-4">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                     <div className="min-w-0 flex-1">
                       <p className="text-[15px] text-tinta">
-                        {nombre} · {textoDeTramo(t.desde, t.hasta)}
+                        Lo que escaneó {nombre} {deOALas} {cuando}
                       </p>
                       <p className="texto-detalle text-taupe">
                         {t.unidades === 1 ? "1 prenda" : `${t.unidades.toLocaleString("es-PE")} prendas`}
                         {t.vivas.length < t.lecturas.length && ` · ${(t.lecturas.length - t.vivas.length).toLocaleString("es-PE")} quitadas`}
                       </p>
                     </div>
-                    {t.vivas.length > 0 && !confirmando && (
-                      <Boton peso="peligro" className="btn-chico" onClick={() => setConfirmar({ tipo: "tramo", clave: t.clave })}>
-                        Quitar tramo
-                      </Boton>
-                    )}
                   </div>
-                  {confirmando && (
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <span className="text-sm text-tinta">
-                        ¿Quitar {t.unidades === 1 ? "la prenda" : `las ${t.unidades.toLocaleString("es-PE")} prendas`} que {nombre} escaneó {textoDeTramo(t.desde, t.hasta).includes(" a ") ? "de" : "a las"}{" "}
-                        {textoDeTramo(t.desde, t.hasta)}?
-                      </span>
-                      <Boton peso="primario" className="btn-chico" cargando={quitando} textoCargando="Quitando…" onClick={() => void quitar(t.vivas, "tramo")}>
-                        Sí, quitar {t.unidades.toLocaleString("es-PE")}
-                      </Boton>
-                      <Boton peso="fantasma" className="btn-chico" disabled={quitando} onClick={() => setConfirmar(null)}>
-                        No
-                      </Boton>
-                    </div>
-                  )}
                   <BotonVerMas
                     forma="enlace"
                     className="mt-2"
@@ -301,15 +300,34 @@ export function HojaLoEscaneado({
                                   No
                                 </Boton>
                               </span>
-                            ) : (
+                            ) : onAnular ? (
                               <Boton peso="peligro" className="btn-chico" onClick={() => setConfirmar({ tipo: "lectura", id: l.id })}>
                                 Quitar
                               </Boton>
-                            )}
+                            ) : null}
                           </li>
                         );
                       })}
                     </ul>
+                  )}
+                  {abierto && confirmando && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="text-sm text-tinta">
+                        ¿Quitar {t.unidades === 1 ? "la prenda" : `las ${t.unidades.toLocaleString("es-PE")} prendas`} que {nombre} escaneó {deOALas} {cuando}?
+                      </span>
+                      <Boton peso="primario" className="btn-chico" cargando={quitando} textoCargando="Quitando…" onClick={() => void quitar(t.vivas, "tramo")}>
+                        Sí, quitar {t.unidades.toLocaleString("es-PE")}
+                      </Boton>
+                      <Boton peso="fantasma" className="btn-chico" disabled={quitando} onClick={() => setConfirmar(null)}>
+                        No
+                      </Boton>
+                    </div>
+                  )}
+                  {/* Quitar todo de una vez va al pie, después de cada prenda: junto al nombre parecía que un toque borraba todo. */}
+                  {abierto && onAnular && t.vivas.length > 1 && !confirmando && (
+                    <Boton peso="peligro" className="btn-chico mt-2" onClick={() => setConfirmar({ tipo: "tramo", clave: t.clave })}>
+                      Quitar todo lo que escaneó {deOALas} {cuando}
+                    </Boton>
                   )}
                 </li>
               );

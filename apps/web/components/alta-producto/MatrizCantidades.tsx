@@ -289,7 +289,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                     scope="row"
                     // Con un «×» dentro, el lector de pantalla leería «Negro Quitar Negro» como nombre de la fila: el nombre es solo el color.
                     aria-label={solo && accionFila && c ? c.nombre : undefined}
-                    className={`sticky left-0 z-[1] relative whitespace-nowrap border-r border-t border-sand py-1.5 pl-3.5 pr-2 text-left text-[12.5px] font-semibold text-tinta sm:py-2 sm:pl-4 sm:pr-2.5 sm:text-[13.5px] ${fondoNombre}`}
+                    className={`sticky left-0 z-[1] relative whitespace-nowrap border-r border-t border-sand py-1.5 pl-3.5 pr-2 text-left text-xs font-semibold text-tinta sm:py-2 sm:pl-4 sm:pr-2.5 sm:text-detalle ${fondoNombre}`}
                   >
                     <span
                       aria-hidden

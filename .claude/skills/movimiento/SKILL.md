@@ -18,7 +18,7 @@ Movimiento de: $ARGUMENTS   (una pieza, una hoja, una ruta como `/inventario`, `
    quieto. Las señales de espera llevan `data-senal` o van en la lista de `app/estilos/movimiento.css`. Lo que anima desde JavaScript pregunta
    `prefiereQuieto()` o `useQuieto()`, nunca `matchMedia`. GSAP solo entra por `lib/motion-gsap.ts` (`caylaEase`, `Flip`). **La skill nunca introduce
    un hex, una curva propia, un tiempo suelto de 100 ms o más en una pieza del sistema, ni una librería nueva** (lo vigila `lib/movimiento-tiempos.test.ts`).
-2. **«Full animaciones» no abre una excepción por sí solo.** Cada excepción la nombra Felipe, mirando, y entra a la lista de ADR-0136 y de `CLAUDE.md`
+2. **«Full animaciones» no abre una excepción por sí solo.** Cada excepción la nombra Felipe, mirando, y entra a la lista de ADR-0136 y de `.claude/rules/movimiento-excepciones.md`
    («Movimiento y modales») con su alcance y su prueba `lib/<pieza>-movimiento.test.ts`. La skill diseña la coreografía y la **propone**; no la agrega.
 3. **Cuando la investigación mejora una regla del repo,** la skill no la cambia sola. La escribe como propuesta (regla actual → qué hacen los mejores
    → propuesta → riesgo → cómo se mide) y se decide con Felipe mirando, como en `/unificar`. Una regla de varios módulos espera su OK.

@@ -14,7 +14,7 @@ Gráfico al milímetro: $ARGUMENTS   (una pantalla, un componente, una captura o
 ## Candados
 
 1. **El repo manda sobre la skill.** Colores, solo tokens de `apps/web/app/globals.css` (+ oscuro en `apps/web/app/estilos/tema.css`); piezas,
-   solo la tabla «Una función, una pieza» de `CLAUDE.md` (ADR-0358): `grafico.barra`, `grafico.avance`, `grafico.anillo`, `grafico.linea`,
+   solo la tabla «Una función, una pieza» de `.claude/rules/unificar.md` (ADR-0358): `grafico.barra`, `grafico.avance`, `grafico.anillo`, `grafico.linea`,
    `grafico.barras`, `grafico.escala` y `cifra`; movimiento, ADR-0136 / ADR-0357 / ADR-0625 con `--t-*`, `--ease-cayla`, `--ease-salida`.
    **Nunca un hex, una fuente, una librería ni una pieza de gráfico nueva.** El repo no usa recharts, visx ni d3 (`apps/web/package.json`):
    las seis piezas son SVG y CSS propios, y no se suma una librería para «ganar tiempo».

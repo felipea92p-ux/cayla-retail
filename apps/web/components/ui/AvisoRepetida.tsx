@@ -101,7 +101,7 @@ export function AvisoRepetida({
         <div className="flex min-w-0 flex-1 basis-60 items-center gap-3">
           <span className="shrink-0">{miniatura}</span>
           <div className="min-w-0 flex-1">
-            <p className="line-clamp-2 break-words text-[15px] font-semibold leading-snug">{nombre}</p>
+            <p className="line-clamp-2 break-words text-sm font-semibold leading-snug">{nombre}</p>
             <p className="text-xs text-taupe">Ya está en la lista · ¿Sumar otra?</p>
           </div>
           <p aria-label={`Llevas ${lleva}; si la sumas, ${lleva + 1}`} className="flex shrink-0 items-center gap-1.5 font-display text-2xl leading-none tabular-nums">
