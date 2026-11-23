@@ -11,7 +11,7 @@ Espacio de: $ARGUMENTS   (un componente, una ruta como `/inventario/frescura`, u
 
 1. **El repo manda sobre la skill.** Radios, lateral y escala salen de `apps/web/app/globals.css` (`--radius-*`, `--spacing-lateral`, el
    `--spacing` de 4 px de Tailwind v4); la profundidad, de `apps/web/app/estilos/vidrio/recetas.css` (ADR-0596); el tacto, de
-   `apps/web/app/estilos/tacto.css` (ADR-0611, mejora 5); las piezas, de la tabla «Una función, una pieza» de `CLAUDE.md` (ADR-0358); el
+   `apps/web/app/estilos/tacto.css` (ADR-0611, mejora 5); las piezas, de la tabla «Una función, una pieza» de `.claude/rules/unificar.md` (ADR-0358); el
    movimiento, de ADR-0136 / ADR-0625. **Nunca** introduce un radio, una sombra, un hex, una fuente o una pieza nueva.
 2. **Si la investigación dice que una regla del repo se puede mejorar, no la cambia sola:** la escribe como propuesta (regla actual con
    archivo/ADR → qué hacen los mejores con fuente → propuesta → riesgo → cómo se mide) y Felipe decide mirando, como en `/unificar`. Cambiar
