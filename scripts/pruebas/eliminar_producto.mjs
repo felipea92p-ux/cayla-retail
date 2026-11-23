@@ -407,6 +407,10 @@ select pg_temp.huella(:'va');`);
     // para reconstruirla a mano; sus llaves (sin cascada) frenan el borrado. Pendiente aparte, como `trafico_web`: que Catálogo lo diga con
     // su mensaje («se fusionó con otra ficha») en vez del error de la llave, con su renglón en `fn_producto_historia`.
     "producto_fusiones",
+    // ADR-0690: lo escaneado en un barrido del piso (quién y a qué hora) y lo que se resolvió de él son historia que no se borra (un
+    // disparador lo impide): renglones 27 y 28 de `fn_producto_historia` (20261122194500), y Catálogo ofrece «Desactivar».
+    "barrido_piso_lecturas",
+    "barrido_piso_resueltos",
     "productos",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de

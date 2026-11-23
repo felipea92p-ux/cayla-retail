@@ -359,7 +359,8 @@ export function CuadrarPisoForm({
       if (decision.tipo === "pregunta") {
         if (decision.cierraPregunta) dejarRastroDelNo(repetidaRef.current.pregunta);
         cambiarRepetida({ ...repetidaRef.current, pregunta: decision.pregunta });
-        avisarLectura("desconocida");
+        // «Ya la escaneaste» suena distinto de «este código no existe» (ADR-0690): mirando el estante se sabe cuál de las dos.
+        avisarLectura("repetida");
         setAviso(null);
         setAnuncio(`${nombreDe(p)} ya está en lo escaneado: llevas ${yaEnLista}. ¿Quieres volver a agregarla?`);
         return enBandeja;

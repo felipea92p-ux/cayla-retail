@@ -36,9 +36,10 @@ export function debeContarLectura(
 // --- Sonido y vibración ---------------------------------------------------------------------------------------------
 
 /** `suma`: otra unidad de una variante ya verificada · `nueva`: la primera unidad de una variante que estaba pendiente ·
- *  `desconocida`: el código no es de ninguna prenda del catálogo. Con la pistola se mira el rack, no la pantalla: el
- *  oído dice qué pasó. */
-export type SonidoLectura = "suma" | "nueva" | "desconocida";
+ *  `desconocida`: el código no es de ninguna prenda del catálogo · `repetida`: esa prenda ya se leyó en este aparato y no se
+ *  sumó sola («¿Sumar otra?», ADR-0562; el barrido del piso, ADR-0690). Con la pistola se mira el rack, no la pantalla: el
+ *  oído dice qué pasó, y «ya la contaste» no puede sonar igual que «esta etiqueta no existe». */
+export type SonidoLectura = "suma" | "nueva" | "desconocida" | "repetida";
 
 export function sonidoDeLectura(r: { encontrada: boolean; yaContada: boolean }): SonidoLectura {
   if (!r.encontrada) return "desconocida";
@@ -51,4 +52,6 @@ export const PATRON_SONIDO: Record<SonidoLectura, { tonos: readonly (readonly [n
   suma: { tonos: [[1760, 70]], vibracion: 35 },
   nueva: { tonos: [[1320, 60], [1760, 70]], vibracion: [30, 50, 30] },
   desconocida: { tonos: [[330, 260]], vibracion: [120, 60, 120] },
+  // Dos toques medios e iguales: ni el «bien» agudo ni el «mira» grave y largo. Es una pregunta, no un error.
+  repetida: { tonos: [[660, 90], [660, 90]], vibracion: [60, 40, 60] },
 };

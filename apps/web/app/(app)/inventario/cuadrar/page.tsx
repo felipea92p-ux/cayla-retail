@@ -1,6 +1,8 @@
 import { Volver } from "@/components/ui/Volver";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { CuadrarPisoForm } from "@/components/cuadre-piso/CuadrarPisoForm";
+import { Aviso } from "@/components/ui/Aviso";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 import { exigirModulo } from "@/lib/persona-actual";
 import { encontrarPorTipo, getSububicaciones } from "@/lib/sububicaciones";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
@@ -59,6 +61,18 @@ export default async function CuadrarPisoPage() {
   return (
     <div className="space-y-6 pb-32 sm:pb-24">
       {encabezado}
+      {/* El otro camino (ADR-0690): escanear lo COLGADO entre varias personas. Quien llega aquí desde un aviso viejo lo encuentra. */}
+      <Aviso
+        chico
+        tono="info"
+        guia="cuadrar.barrido"
+        titulo="¿Es más fácil escanear lo colgado?"
+        accion={
+          <BotonVer href="/inventario/barrido" chico>
+            Barrido del piso
+          </BotonVer>
+        }
+      />
       {cuadre.estado ? (
         // `key`: si quien cuadra cambia de sede, lo escaneado en otra tienda no se arrastra a esta (el borrador es por sede).
         <CuadrarPisoForm

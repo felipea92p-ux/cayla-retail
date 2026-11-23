@@ -434,6 +434,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   La cabecera de Existencias muestra además el botón «Bajar al piso» (→ `/inventario/bajar`, única entrada a esa
   pantalla; web publicada, y en producción su función, `0200`, pegada y su módulo, `0000`, sin confirmar) solo si el rol
   ve `bajada_piso` (`veModulo`), la sede que se mira es la activa y esa sede tiene piso y almacén.
+  **Barrido del piso (ADR-0690, 2026-11-22):** `/inventario/barrido` (`app/(app)/inventario/barrido/`, módulo `existencias`) →
+  `components/barrido-piso/BarridoPiso.tsx` (escáner, cola por pantalla en el aparato, puesta al día cada 5 s; lógica pura en
+  `lib/barrido-piso-reglas.ts`, lectura del servidor en `lib/barrido-piso.ts`) con sus hojas `HojaLoEscaneado` (tramos, quitar),
+  `HojaApartar` (foto al bucket `retail-barridos`), `HojaConfirmar` y la sección `PorResolver` + `HojaResolver`. RPC:
+  `fn_barrido_piso_estado`, `abrir_barrido_piso`, `registrar_lecturas_barrido`, `fn_barrido_piso_lecturas`, `anular_lecturas_barrido`,
+  `registrar_hallazgo_barrido`, `fn_barrido_piso_hallazgos`, `anular_hallazgo_barrido`, `previsualizar_barrido_piso`,
+  `confirmar_barrido_piso` (4 parámetros: con la huella), `cancelar_barrido_piso`, `fn_barrido_piso_por_resolver`,
+  `resolver_pendiente_barrido`. Entrada: `components/existencias/BotonBarrido.tsx` en la cabecera de Existencias y el aviso
+  del barrido en curso o del mes (`avisoDeBarrido`); Cuadrar el piso lo ofrece como camino alterno.
   **Existencias conectada (ADR-0237, 2026-09-26):** la lista entra por prenda (`components/ExistenciasPorPrenda.tsx`,
   agrupación en `lib/existencias-prendas.ts`; «Por talla» es la tabla de siempre), tocar una prenda abre
   `DetallePrendaExistencias.tsx`, y lo marcado se lleva con la lista cargada a `/inventario/bajar?lineas=`,

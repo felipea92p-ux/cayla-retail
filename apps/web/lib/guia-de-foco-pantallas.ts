@@ -127,6 +127,8 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ADR-0328 (actividad 3): nace con su guía. Escanear: «Lo guardado» (o «no hay nada guardado») y lo que hay que volver a escanear;
   // confirmar: quién cuadra y, si la sede ya se cuadró, por qué se vuelve a cuadrar (lo exige la base). Lógica en lib/cuadre-piso-reglas.ts.
   "/inventario/cuadrar": { estado: "aplicada", evidencia: ["components/cuadre-piso/CuadrarPisoForm.tsx"] },
+  // El barrido del piso (ADR-0690): quién escanea (sin eso la base no guarda) y, ya abierto, lo colgado. Lógica en lib/barrido-piso-reglas.ts.
+  "/inventario/barrido": { estado: "aplicada", evidencia: ["components/barrido-piso/BarridoPiso.tsx"] },
   "/inventario/conteo": { estado: "aplicada", evidencia: ["components/AbrirConteo.tsx"] },
   "/inventario/conteo/[id]": PENDIENTE,
   // ADR-0328 (actividad 15): su único campo es «¿Quién cierra el conteo?», que aparece solo cuando hay que preguntarlo (terminal y conteo
@@ -531,6 +533,11 @@ export const MODALES: Record<string, PantallaGuia> = {
   // detalle si es «Otro»), el argumento pasado el 15 % y al menos una prenda.
   "components/apartados/DescuentoApartado.tsx": { estado: "aplicada", evidencia: ["components/apartados/DescuentoApartado.tsx"] },
   "components/conteo/AltaAlVuelo.tsx": PENDIENTE, // 7 controles
+  // Apartar en el barrido del piso (ADR-0690, actividad 4): lo único que falta es algo para reconocerla (foto o nota; con código, la foto es sugerida).
+  "components/barrido-piso/HojaApartar.tsx": { estado: "aplicada", evidencia: ["components/barrido-piso/HojaApartar.tsx"] },
+  // Confirmar el barrido (actividad 5): quién confirma y «se escaneó todo lo colgado» (lo exige la base: barrido_falta_todo).
+  "components/barrido-piso/HojaConfirmar.tsx": { estado: "aplicada", evidencia: ["components/barrido-piso/HojaConfirmar.tsx"] },
+  "components/barrido-piso/HojaResolver.tsx": { estado: "aplicada", evidencia: ["components/barrido-piso/HojaResolver.tsx"] },
   "components/conteo/CancelarConteoModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/ficha-producto/FotosPorColor.tsx": PENDIENTE, // 2 controles
   "components/finanzas/CierreMes.tsx": PENDIENTE, // 5 controles
