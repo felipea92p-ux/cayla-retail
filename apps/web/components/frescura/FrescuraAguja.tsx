@@ -22,12 +22,12 @@ function Tarjeta({ s, puedeBajar, onVerCategoria }: { s: SenalCategoria; puedeBa
   return (
     <li data-tono={tono} className="frescura-aguja-tarjeta flex min-w-0 flex-col gap-2 px-4 py-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-[16px] font-semibold leading-tight">{s.nombre}</span>
+        <span className="text-sm font-semibold leading-tight">{s.nombre}</span>
         {/* Dos causas, dos nombres (Felipe, Formidable 2026-10-10 (c)): lo colgado es viejo para su categoría, o ocupa más de lo que vende. */}
         <Chip tono={tono}>{s.tipo === "se_lleva" ? "Se lleva más" : s.motivo === "edad" ? "Envejeciendo" : "Le sobra piso"}</Chip>
       </div>
       {a && (
-        <p className="text-[15px] leading-snug">
+        <p className="text-sm leading-snug">
           Ocupa {pct(a.partePiso)} del piso y hace {pct(a.parteVentas)} de lo vendido en {a.dias} días.
         </p>
       )}
@@ -94,7 +94,7 @@ export function FrescuraAguja({
       <TituloSeccion id="frescura-aguja-titulo">{pisoCuadrado ? "Lo que mueve la aguja" : "Lo que más se llevan"}</TituloSeccion>
       {!pisoCuadrado ? (
         <>
-          <p className="mt-1 text-[15px] leading-snug">
+          <p className="mt-1 text-sm leading-snug">
             {seLlevan.map((c) => `${c.nombre} ${c.unidades}`).join(" · ")} <span className="text-taupe">en 14 días, con lo anotado en caja.</span>
           </p>
           <p className="mt-1 text-sm leading-snug text-taupe">
@@ -115,7 +115,7 @@ export function FrescuraAguja({
       {pisoCuadrado && estrenar.prendas > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-sand pt-3">
           <Sparkles aria-hidden className="h-5 w-5 shrink-0 text-taupe" />
-          <p className="min-w-0 flex-1 text-[15px] leading-snug">
+          <p className="min-w-0 flex-1 text-sm leading-snug">
             <span className="font-semibold">
               Sin estrenar: {estrenar.prendas} {estrenar.prendas === 1 ? "prenda" : "prendas"}
             </span>{" "}

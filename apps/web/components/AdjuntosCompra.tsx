@@ -28,7 +28,7 @@ function IconoTipo({ tipo }: { tipo: string }) {
   return (
     <span
       aria-hidden
-      className={`label-cayla inline-flex h-7 w-9 shrink-0 items-center justify-center rounded border text-[9px] ${
+      className={`label-cayla inline-flex h-7 w-9 shrink-0 items-center justify-center rounded border text-xs ${
         esPdf ? "border-rojo/30 text-rojo-profundo" : "border-tinta/20 text-tinta/65"
       }`}
     >
@@ -114,7 +114,7 @@ export function AdjuntosDeFactura({
   return (
     <section className="space-y-2" data-guia="factura.adjuntos">
       <div className="flex items-baseline justify-between">
-        <p className="label-cayla text-[11px] text-tinta/65">Adjuntos</p>
+        <p className="label-cayla text-xs text-tinta/65">Adjuntos</p>
         {adjuntos.some((a) => a.url === null) && <span className="text-sm text-tinta/45">Sin acceso al almacén de archivos ahora</span>}
       </div>
       <div className="card-cayla divide-y divide-tinta/10">
@@ -135,12 +135,12 @@ export function AdjuntosDeFactura({
               </span>
             </span>
             {a.url && (
-              <a href={a.url} target="_blank" rel="noopener noreferrer" className="label-cayla shrink-0 text-[10px] text-tinta/65 hover:text-rojo">
+              <a href={a.url} target="_blank" rel="noopener noreferrer" className="label-cayla shrink-0 text-xs text-tinta/65 hover:text-rojo">
                 Ver
               </a>
             )}
             {puedeEditar && (
-              <button type="button" onClick={() => setAQuitar(a)} className="label-cayla shrink-0 text-[10px] text-tinta/45 hover:text-rojo">
+              <button type="button" onClick={() => setAQuitar(a)} className="label-cayla shrink-0 text-xs text-tinta/45 hover:text-rojo">
                 Quitar
               </button>
             )}

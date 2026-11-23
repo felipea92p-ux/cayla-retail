@@ -84,7 +84,7 @@ export function PorPagarVistaRapida({
     >
       <div className="flex items-end justify-between gap-3">
         <div>
-          <p className="label-cayla text-[10.5px] text-tinta/65">Saldo por pagar</p>
+          <p className="label-cayla text-xs text-tinta/65">Saldo por pagar</p>
           <p className="font-display text-[40px] leading-[1.1] tabular-nums text-tinta">{soles(c.saldo)}</p>
         </div>
         <Chip tono={tonoChip}>{c.fechaVencimiento ? etiquetaVence(c.fechaVencimiento, ahora) : "Sin fecha de vencimiento"}</Chip>
@@ -92,16 +92,16 @@ export function PorPagarVistaRapida({
 
       <dl className="mt-[18px] grid grid-cols-3 divide-x divide-sand overflow-hidden rounded-xl border border-sand">
         <div className="px-3.5 py-3">
-          <dt className="label-cayla text-[10px] text-tinta/65">Total</dt>
-          <dd className="font-display mt-0.5 text-[20px] leading-tight tabular-nums text-tinta">{soles(c.total)}</dd>
+          <dt className="label-cayla text-xs text-tinta/65">Total</dt>
+          <dd className="font-display mt-0.5 text-xl leading-tight tabular-nums text-tinta">{soles(c.total)}</dd>
         </div>
         <div className="px-3.5 py-3">
-          <dt className="label-cayla text-[10px] text-tinta/65">Pagado</dt>
-          <dd className={`font-display mt-0.5 text-[20px] leading-tight tabular-nums ${c.pagado > 0 ? "text-verde-profundo" : "text-tinta/55"}`}>{c.pagado > 0 ? soles(c.pagado) : "—"}</dd>
+          <dt className="label-cayla text-xs text-tinta/65">Pagado</dt>
+          <dd className={`font-display mt-0.5 text-xl leading-tight tabular-nums ${c.pagado > 0 ? "text-verde-profundo" : "text-tinta/55"}`}>{c.pagado > 0 ? soles(c.pagado) : "—"}</dd>
         </div>
         <div className="px-3.5 py-3">
-          <dt className="label-cayla text-[10px] text-tinta/65">Crédito</dt>
-          <dd className="font-display mt-0.5 text-[20px] leading-tight tabular-nums text-tinta">{datos?.plazoCreditoDias != null ? `${datos.plazoCreditoDias} días` : "—"}</dd>
+          <dt className="label-cayla text-xs text-tinta/65">Crédito</dt>
+          <dd className="font-display mt-0.5 text-xl leading-tight tabular-nums text-tinta">{datos?.plazoCreditoDias != null ? `${datos.plazoCreditoDias} días` : "—"}</dd>
         </div>
       </dl>
 
@@ -109,7 +109,7 @@ export function PorPagarVistaRapida({
 
       <div className="mt-[18px] space-y-3" data-guia="por-pagar.vista-pasos">
         {pasos.map((p, i) => (
-          <div key={i} className={`card-cayla anim-revelar border-l-2 px-4 py-3 text-[15px] text-tinta ${BORDE[p.tono]}`} style={{ animationDelay: `${180 + i * 80}ms` }}>
+          <div key={i} className={`card-cayla anim-revelar border-l-2 px-4 py-3 text-sm text-tinta ${BORDE[p.tono]}`} style={{ animationDelay: `${180 + i * 80}ms` }}>
             <b className="font-semibold">{p.fuerte}</b>
             {p.resto}
           </div>

@@ -56,21 +56,21 @@ export function TuCompra({
       className={`card-cayla sticky top-40 hidden flex-col gap-3 rounded-[22px] px-5 pb-4 pt-[18px] lg:flex ${llegaron.size > 0 ? "compra-pulso" : ""}`}
     >
       <span className="flex items-baseline justify-between gap-3">
-        <span className="label-cayla text-[11px] text-taupe">Tu compra</span>
+        <span className="label-cayla text-xs text-taupe">Tu compra</span>
         <span className="text-sm tabular-nums text-taupe">Paso {paso} de 3</span>
       </span>
       <p className="font-serif text-[46px] leading-none tabular-nums text-tinta">
         <span className="mr-1 align-[0.35em] text-2xl text-taupe">S/</span>
         {soloNumero(total)}
       </p>
-      <p className="flex min-w-0 items-center gap-2.5 text-[15px] text-tinta">
+      <p className="flex min-w-0 items-center gap-2.5 text-sm text-tinta">
         <span aria-hidden className="compra-iniciales compra-iniciales-chico">
           {proveedor ? inicialesProveedor(proveedor) : "—"}
         </span>
         <span className="min-w-0">{proveedor ?? "Aún sin marca"}</span>
       </p>
       {prendas.length === 0 ? (
-        <p className="text-[15px] text-taupe">{proveedor ? "Cuando elijas las prendas, aparecen aquí." : "Elige primero qué marca compraste."}</p>
+        <p className="text-sm text-taupe">{proveedor ? "Cuando elijas las prendas, aparecen aquí." : "Elige primero qué marca compraste."}</p>
       ) : (
         <>
           <div className="flex flex-wrap gap-1.5">
@@ -93,7 +93,7 @@ export function TuCompra({
                 <li
                   key={p.clave}
                   data-vuelo-destino={p.clave}
-                  className={`grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2.5 border-b border-sand py-2 text-[15px] text-tinta ${enVuelo.has(p.clave) ? "compra-linea-vuela" : ""} ${llegaron.has(p.clave) ? "compra-linea-llega" : ""}`}
+                  className={`grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2.5 border-b border-sand py-2 text-sm text-tinta ${enVuelo.has(p.clave) ? "compra-linea-vuela" : ""} ${llegaron.has(p.clave) ? "compra-linea-llega" : ""}`}
                 >
                   <MiniaturaPrenda fotoUrl={(p.productoId && fotos.get(p.productoId)) || null} prefijo={c?.prefijo} familia={c?.familia} categoria={p.categoria} />
                   <span className="min-w-0">

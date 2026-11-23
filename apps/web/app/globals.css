@@ -3045,7 +3045,7 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
      nombre más largo, medido el 2026-11-23 en ocho tamaños de pantalla: «Transferencia» pide 115 px con su espaciado y 105 sin él. */
   .hoja-cobro-nombre { font-size: var(--text-xs); line-height: 1.2; letter-spacing: min(0.08em, 0.6cqi); white-space: nowrap; }
   .hoja-cobro-nombre-corto { display: none; }
-  /* Ficha de menos de 8,25 rem (132 px): «Transferencia» entra entera, sin su espaciado. */
+  /* Ficha de menos de 8,25 rem (132 px): «Transferencia» entra entera, sin espaciado. */
   @container (max-width: 8.25rem) {
     .hoja-cobro-nombre-largo { letter-spacing: 0; }
   }

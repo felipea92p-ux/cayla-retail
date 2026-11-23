@@ -121,7 +121,7 @@ export function FrescuraPiso({
         <ul aria-label="Cada familia" className="@container mt-4 divide-y divide-sand border-t border-sand">
           {lineas.map((f) => (
             <li key={f.codigo ?? "otras"} className="grid grid-cols-1 items-center gap-x-4 gap-y-1.5 py-2.5 @min-[40rem]:grid-cols-[minmax(140px,1fr)_minmax(180px,2fr)_minmax(0,2fr)]">
-              <span className="text-[14px] font-semibold leading-tight">
+              <span className="text-detalle font-semibold leading-tight">
                 {f.nombre} <span className="text-sm font-normal tabular-nums text-taupe">· {unidades(f.total)}</span>
               </span>
               <BarraApilada segmentos={segmentosDelPiso(f)} alto={8} unidad="unidades colgadas" />

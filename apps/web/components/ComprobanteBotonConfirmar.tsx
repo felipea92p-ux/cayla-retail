@@ -40,7 +40,7 @@ export function BotonConfirmar({
       data-confirmar
       disabled={estado === "reposo" && disabled}
       aria-busy={estado === "cargando"}
-      className={`cd-btn-confirmar label-cayla rounded-md py-2.5 text-[11px] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 ${className}`}
+      className={`cd-btn-confirmar label-cayla rounded-md py-2.5 text-xs outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 ${className}`}
     >
       <span className="cd-btn-txt">{children}</span>
       <span className="cd-btn-giro" aria-hidden>

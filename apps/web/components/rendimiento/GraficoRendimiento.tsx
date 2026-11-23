@@ -494,7 +494,7 @@ export function GraficoRendimiento({ dias, hoy, filas, medidas, colores, esLaTie
           </span>
         )}
       </div>
-      {!usado && <p className="mesa-pista">Arrastra sobre el gráfico para elegir días, o toca un día. Lo demás se acomoda solo.</p>}
+      {!usado && <p className="mesa-pista">Arrastra sobre el gráfico para elegir días, o toca un día.</p>}
     </section>
   );
 }

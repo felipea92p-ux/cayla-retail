@@ -351,9 +351,9 @@ export function PorPagarLista({
               role="row"
               className={`group scroll-mt-8 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-2 ${ESTILO_BANDA[b.tono]}`}
             >
-              <p className="label-cayla flex min-w-0 flex-wrap items-center gap-x-2.5 text-[11px]">
+              <p className="label-cayla flex min-w-0 flex-wrap items-center gap-x-2.5 text-xs">
                 {b.proveedorId && (
-                  <span aria-hidden className="font-display grid h-[26px] w-[26px] place-items-center rounded-full vd-gota-chica text-[13px] normal-case tracking-normal text-tinta">
+                  <span aria-hidden className="font-display grid h-[26px] w-[26px] place-items-center rounded-full vd-gota-chica text-xs normal-case tracking-normal text-tinta">
                     {b.titulo.trim().split(/\s+/).filter((w) => w.length > 2).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
                   </span>
                 )}
@@ -365,7 +365,7 @@ export function PorPagarLista({
                   <button
                     type="button"
                     onClick={() => setSeleccion(b.filas.map((f) => f.id))}
-                    className="label-cayla area-dedo text-[11px] text-tinta opacity-0 transition-[opacity,color] duration-200 hover:text-rojo focus-visible:opacity-100 group-hover:opacity-100 max-sm:opacity-100 pointer-coarse:opacity-100"
+                    className="label-cayla area-dedo text-xs text-tinta opacity-0 transition-[opacity,color] duration-200 hover:text-rojo focus-visible:opacity-100 group-hover:opacity-100 max-sm:opacity-100 pointer-coarse:opacity-100"
                   >
                     Marcar todo
                   </button>
@@ -438,7 +438,7 @@ export function PorPagarLista({
         }
         acciones={
           <>
-            <button type="button" onClick={() => setSeleccion([])} className="btn-cayla btn-enlace text-[13px]">
+            <button type="button" onClick={() => setSeleccion([])} className="btn-cayla btn-enlace text-xs leading-tight">
               Limpiar
             </button>
             <Boton type="button" peso="primario" onClick={() => setPagando(true)}>
@@ -640,7 +640,7 @@ function FilaPorPagar({
           <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-none stroke-current" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
             <path pathLength={1} d="M20 6 9 17l-5-5" className="trazo-linea anim-tilde" />
           </svg>
-          <span className="label-cayla text-[11px]">Pagada</span>
+          <span className="label-cayla text-xs">Pagada</span>
         </span>
       )}
       {/* La casilla mide 20 px dentro de una fila que abre la vista rápida: tocar a 2 px de ella abría la factura en vez de marcarla. Su
@@ -697,7 +697,7 @@ function FilaPorPagar({
         )}
       </div>
       <div className={`shrink-0 text-right ${sellada ? "opacity-55" : ""}`}>
-        <span data-guia="por-pagar.saldo-fila" className="font-display block text-[18px] tabular-nums text-tinta">{soles(saldoMostrado)}</span>
+        <span data-guia="por-pagar.saldo-fila" className="font-display block text-lg tabular-nums text-tinta">{soles(saldoMostrado)}</span>
         {/* Donde la columna «Pagado» no cabe (< 56rem), lo pagado se dice aquí, bajo el saldo. */}
         {c.pagado > 0 && <span className="block text-sm tabular-nums text-verde-profundo @[56rem]:hidden">pagado {soles(c.pagado)}</span>}
         <span data-guia="por-pagar.pagar" className="relative z-10 mt-1.5 inline-block @[40rem]:hidden">
